@@ -276,14 +276,14 @@ void GkBoundaryIntegral3x2vSer_F_VX_P1(const bool atLower, const double intFac, 
   // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
   // vBoundary: velocity at the boundary of the velocity grid. 
   // dxv[5]:    cell length in each direciton. 
-  // fIn[32]:    distribution function at velocity boundaries. 
+  // fIn[33]:    distribution function at velocity boundaries. 
   // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
  
   const double dS = 0.5*dxv[4]*intFac; 
  
   if (atLower) {
  
-    out[0] += (1.732050807568877*fIn[4]-1.0*fIn[0])*dS; 
+    out[0] += ((-2.23606797749979*fIn[32])+1.732050807568877*fIn[4]-1.0*fIn[0])*dS; 
     out[1] += (1.732050807568877*fIn[9]-1.0*fIn[1])*dS; 
     out[2] += (1.732050807568877*fIn[10]-1.0*fIn[2])*dS; 
     out[3] += (1.732050807568877*fIn[11]-1.0*fIn[3])*dS; 
@@ -294,7 +294,7 @@ void GkBoundaryIntegral3x2vSer_F_VX_P1(const bool atLower, const double intFac, 
  
   } else {
  
-    out[0] += (1.732050807568877*fIn[4]+fIn[0])*dS; 
+    out[0] += (2.23606797749979*fIn[32]+1.732050807568877*fIn[4]+fIn[0])*dS; 
     out[1] += (1.732050807568877*fIn[9]+fIn[1])*dS; 
     out[2] += (1.732050807568877*fIn[10]+fIn[2])*dS; 
     out[3] += (1.732050807568877*fIn[11]+fIn[3])*dS; 
@@ -307,330 +307,38 @@ void GkBoundaryIntegral3x2vSer_F_VX_P1(const bool atLower, const double intFac, 
  
 } 
  
-void GkBoundaryIntegral3x2vSer_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out) 
-{ 
-  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
-  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
-  // vBoundary: velocity at the boundary of the velocity grid. 
-  // dxv[5]:    cell length in each direciton. 
-  // fIn[112]:    distribution function at velocity boundaries. 
-  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
- 
-  const double dS = 0.5*dxv[4]*intFac; 
- 
-  if (atLower) {
- 
-    out[0] += ((-2.23606797749979*fIn[19])+1.732050807568877*fIn[4]-1.0*fIn[0])*dS; 
-    out[1] += ((-2.23606797749979*fIn[40])+1.732050807568877*fIn[9]-1.0*fIn[1])*dS; 
-    out[2] += ((-2.23606797749979*fIn[41])+1.732050807568877*fIn[10]-1.0*fIn[2])*dS; 
-    out[3] += ((-2.23606797749979*fIn[42])+1.732050807568877*fIn[11]-1.0*fIn[3])*dS; 
-    out[4] += ((-2.23606797749979*fIn[65])+1.732050807568877*fIn[22]-1.0*fIn[6])*dS; 
-    out[5] += ((-2.23606797749979*fIn[66])+1.732050807568877*fIn[23]-1.0*fIn[7])*dS; 
-    out[6] += ((-2.23606797749979*fIn[67])+1.732050807568877*fIn[24]-1.0*fIn[8])*dS; 
-    out[7] += (1.732050807568877*fIn[37]-1.0*fIn[16])*dS; 
-    out[8] += (1.732050807568877*fIn[38]-1.0*fIn[17])*dS; 
-    out[9] += (1.732050807568877*fIn[39]-1.0*fIn[18])*dS; 
-    out[10] += ((-2.23606797749979*fIn[90])+1.732050807568877*fIn[51]-1.0*fIn[21])*dS; 
-    out[11] += (1.732050807568877*fIn[59]-1.0*fIn[31])*dS; 
-    out[12] += (1.732050807568877*fIn[60]-1.0*fIn[32])*dS; 
-    out[13] += (1.732050807568877*fIn[61]-1.0*fIn[33])*dS; 
-    out[14] += (1.732050807568877*fIn[62]-1.0*fIn[34])*dS; 
-    out[15] += (1.732050807568877*fIn[63]-1.0*fIn[35])*dS; 
-    out[16] += (1.732050807568877*fIn[64]-1.0*fIn[36])*dS; 
-    out[17] += (1.732050807568877*fIn[87]-1.0*fIn[56])*dS; 
-    out[18] += (1.732050807568877*fIn[88]-1.0*fIn[57])*dS; 
-    out[19] += (1.732050807568877*fIn[89]-1.0*fIn[58])*dS; 
- 
-  } else {
- 
-    out[0] += (2.23606797749979*fIn[19]+1.732050807568877*fIn[4]+fIn[0])*dS; 
-    out[1] += (2.23606797749979*fIn[40]+1.732050807568877*fIn[9]+fIn[1])*dS; 
-    out[2] += (2.23606797749979*fIn[41]+1.732050807568877*fIn[10]+fIn[2])*dS; 
-    out[3] += (2.23606797749979*fIn[42]+1.732050807568877*fIn[11]+fIn[3])*dS; 
-    out[4] += (2.23606797749979*fIn[65]+1.732050807568877*fIn[22]+fIn[6])*dS; 
-    out[5] += (2.23606797749979*fIn[66]+1.732050807568877*fIn[23]+fIn[7])*dS; 
-    out[6] += (2.23606797749979*fIn[67]+1.732050807568877*fIn[24]+fIn[8])*dS; 
-    out[7] += (1.732050807568877*fIn[37]+fIn[16])*dS; 
-    out[8] += (1.732050807568877*fIn[38]+fIn[17])*dS; 
-    out[9] += (1.732050807568877*fIn[39]+fIn[18])*dS; 
-    out[10] += (2.23606797749979*fIn[90]+1.732050807568877*fIn[51]+fIn[21])*dS; 
-    out[11] += (1.732050807568877*fIn[59]+fIn[31])*dS; 
-    out[12] += (1.732050807568877*fIn[60]+fIn[32])*dS; 
-    out[13] += (1.732050807568877*fIn[61]+fIn[33])*dS; 
-    out[14] += (1.732050807568877*fIn[62]+fIn[34])*dS; 
-    out[15] += (1.732050807568877*fIn[63]+fIn[35])*dS; 
-    out[16] += (1.732050807568877*fIn[64]+fIn[36])*dS; 
-    out[17] += (1.732050807568877*fIn[87]+fIn[56])*dS; 
-    out[18] += (1.732050807568877*fIn[88]+fIn[57])*dS; 
-    out[19] += (1.732050807568877*fIn[89]+fIn[58])*dS; 
- 
-  }
- 
-} 
- 
-void GkBoundaryIntegral3x2vSer_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out) 
-{ 
-  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
-  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
-  // vBoundary: velocity at the boundary of the velocity grid. 
-  // dxv[5]:    cell length in each direciton. 
-  // fIn[192]:    distribution function at velocity boundaries. 
-  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
- 
-  const double dS = 0.5*dxv[4]*intFac; 
- 
-  if (atLower) {
- 
-    out[0] += (2.645751311064591*fIn[54]-2.23606797749979*fIn[19]+1.732050807568877*fIn[4]-1.0*fIn[0])*dS; 
-    out[1] += (2.645751311064591*fIn[100]-2.23606797749979*fIn[40]+1.732050807568877*fIn[9]-1.0*fIn[1])*dS; 
-    out[2] += (2.645751311064591*fIn[101]-2.23606797749979*fIn[41]+1.732050807568877*fIn[10]-1.0*fIn[2])*dS; 
-    out[3] += (2.645751311064591*fIn[102]-2.23606797749979*fIn[42]+1.732050807568877*fIn[11]-1.0*fIn[3])*dS; 
-    out[4] += (2.645751311064591*fIn[141]-2.23606797749979*fIn[70]+1.732050807568877*fIn[22]-1.0*fIn[6])*dS; 
-    out[5] += (2.645751311064591*fIn[142]-2.23606797749979*fIn[71]+1.732050807568877*fIn[23]-1.0*fIn[7])*dS; 
-    out[6] += (2.645751311064591*fIn[143]-2.23606797749979*fIn[72]+1.732050807568877*fIn[24]-1.0*fIn[8])*dS; 
-    out[7] += (1.732050807568877*fIn[37]-1.0*fIn[16])*dS; 
-    out[8] += (1.732050807568877*fIn[38]-1.0*fIn[17])*dS; 
-    out[9] += (1.732050807568877*fIn[39]-1.0*fIn[18])*dS; 
-    out[10] += (2.645751311064591*fIn[170]-2.23606797749979*fIn[115]+1.732050807568877*fIn[56]-1.0*fIn[21])*dS; 
-    out[11] += (1.732050807568877*fIn[64]-1.0*fIn[31])*dS; 
-    out[12] += (1.732050807568877*fIn[65]-1.0*fIn[32])*dS; 
-    out[13] += (1.732050807568877*fIn[66]-1.0*fIn[33])*dS; 
-    out[14] += (1.732050807568877*fIn[67]-1.0*fIn[34])*dS; 
-    out[15] += (1.732050807568877*fIn[68]-1.0*fIn[35])*dS; 
-    out[16] += (1.732050807568877*fIn[69]-1.0*fIn[36])*dS; 
-    out[17] += (1.732050807568877*fIn[97]-1.0*fIn[51])*dS; 
-    out[18] += (1.732050807568877*fIn[98]-1.0*fIn[52])*dS; 
-    out[19] += (1.732050807568877*fIn[99]-1.0*fIn[53])*dS; 
-    out[20] += (1.732050807568877*fIn[112]-1.0*fIn[61])*dS; 
-    out[21] += (1.732050807568877*fIn[113]-1.0*fIn[62])*dS; 
-    out[22] += (1.732050807568877*fIn[114]-1.0*fIn[63])*dS; 
-    out[23] += (1.732050807568877*fIn[135]-1.0*fIn[91])*dS; 
-    out[24] += (1.732050807568877*fIn[136]-1.0*fIn[92])*dS; 
-    out[25] += (1.732050807568877*fIn[137]-1.0*fIn[93])*dS; 
-    out[26] += (1.732050807568877*fIn[138]-1.0*fIn[94])*dS; 
-    out[27] += (1.732050807568877*fIn[139]-1.0*fIn[95])*dS; 
-    out[28] += (1.732050807568877*fIn[140]-1.0*fIn[96])*dS; 
-    out[29] += (1.732050807568877*fIn[167]-1.0*fIn[132])*dS; 
-    out[30] += (1.732050807568877*fIn[168]-1.0*fIn[133])*dS; 
-    out[31] += (1.732050807568877*fIn[169]-1.0*fIn[134])*dS; 
- 
-  } else {
- 
-    out[0] += (2.645751311064591*fIn[54]+2.23606797749979*fIn[19]+1.732050807568877*fIn[4]+fIn[0])*dS; 
-    out[1] += (2.645751311064591*fIn[100]+2.23606797749979*fIn[40]+1.732050807568877*fIn[9]+fIn[1])*dS; 
-    out[2] += (2.645751311064591*fIn[101]+2.23606797749979*fIn[41]+1.732050807568877*fIn[10]+fIn[2])*dS; 
-    out[3] += (2.645751311064591*fIn[102]+2.23606797749979*fIn[42]+1.732050807568877*fIn[11]+fIn[3])*dS; 
-    out[4] += (2.645751311064591*fIn[141]+2.23606797749979*fIn[70]+1.732050807568877*fIn[22]+fIn[6])*dS; 
-    out[5] += (2.645751311064591*fIn[142]+2.23606797749979*fIn[71]+1.732050807568877*fIn[23]+fIn[7])*dS; 
-    out[6] += (2.645751311064591*fIn[143]+2.23606797749979*fIn[72]+1.732050807568877*fIn[24]+fIn[8])*dS; 
-    out[7] += (1.732050807568877*fIn[37]+fIn[16])*dS; 
-    out[8] += (1.732050807568877*fIn[38]+fIn[17])*dS; 
-    out[9] += (1.732050807568877*fIn[39]+fIn[18])*dS; 
-    out[10] += (2.645751311064591*fIn[170]+2.23606797749979*fIn[115]+1.732050807568877*fIn[56]+fIn[21])*dS; 
-    out[11] += (1.732050807568877*fIn[64]+fIn[31])*dS; 
-    out[12] += (1.732050807568877*fIn[65]+fIn[32])*dS; 
-    out[13] += (1.732050807568877*fIn[66]+fIn[33])*dS; 
-    out[14] += (1.732050807568877*fIn[67]+fIn[34])*dS; 
-    out[15] += (1.732050807568877*fIn[68]+fIn[35])*dS; 
-    out[16] += (1.732050807568877*fIn[69]+fIn[36])*dS; 
-    out[17] += (1.732050807568877*fIn[97]+fIn[51])*dS; 
-    out[18] += (1.732050807568877*fIn[98]+fIn[52])*dS; 
-    out[19] += (1.732050807568877*fIn[99]+fIn[53])*dS; 
-    out[20] += (1.732050807568877*fIn[112]+fIn[61])*dS; 
-    out[21] += (1.732050807568877*fIn[113]+fIn[62])*dS; 
-    out[22] += (1.732050807568877*fIn[114]+fIn[63])*dS; 
-    out[23] += (1.732050807568877*fIn[135]+fIn[91])*dS; 
-    out[24] += (1.732050807568877*fIn[136]+fIn[92])*dS; 
-    out[25] += (1.732050807568877*fIn[137]+fIn[93])*dS; 
-    out[26] += (1.732050807568877*fIn[138]+fIn[94])*dS; 
-    out[27] += (1.732050807568877*fIn[139]+fIn[95])*dS; 
-    out[28] += (1.732050807568877*fIn[140]+fIn[96])*dS; 
-    out[29] += (1.732050807568877*fIn[167]+fIn[132])*dS; 
-    out[30] += (1.732050807568877*fIn[168]+fIn[133])*dS; 
-    out[31] += (1.732050807568877*fIn[169]+fIn[134])*dS; 
- 
-  }
- 
-} 
- 
 void GkBoundaryIntegral3x2vSer_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out) 
 { 
   // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
   // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
   // vBoundary: velocity at the boundary of the velocity grid. 
   // dxv[5]:    cell length in each direciton. 
-  // fIn[32]:    distribution function at velocity boundaries. 
+  // fIn[33]:    distribution function at velocity boundaries. 
   // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
  
   const double dS = 0.5*dxv[4]*intFac; 
  
   if (atLower) {
  
-    out[0] += (1.732050807568877*fIn[4]-1.0*fIn[0])*dS*vBoundary+(0.8660254037844386*dxv[3]*fIn[4]-0.5*fIn[0]*dxv[3])*dS; 
-    out[1] += (1.732050807568877*fIn[9]-1.0*fIn[1])*dS*vBoundary+(0.8660254037844386*dxv[3]*fIn[9]-0.5*fIn[1]*dxv[3])*dS; 
-    out[2] += (1.732050807568877*fIn[10]-1.0*fIn[2])*dS*vBoundary+(0.8660254037844386*dxv[3]*fIn[10]-0.5*fIn[2]*dxv[3])*dS; 
-    out[3] += (1.732050807568877*fIn[11]-1.0*fIn[3])*dS*vBoundary+(0.8660254037844386*dxv[3]*fIn[11]-0.5*dxv[3]*fIn[3])*dS; 
-    out[4] += (1.732050807568877*fIn[17]-1.0*fIn[6])*dS*vBoundary+(0.8660254037844386*dxv[3]*fIn[17]-0.5*dxv[3]*fIn[6])*dS; 
-    out[5] += (1.732050807568877*fIn[18]-1.0*fIn[7])*dS*vBoundary+(0.8660254037844386*dxv[3]*fIn[18]-0.5*dxv[3]*fIn[7])*dS; 
-    out[6] += (1.732050807568877*fIn[19]-1.0*fIn[8])*dS*vBoundary+(0.8660254037844386*dxv[3]*fIn[19]-0.5*dxv[3]*fIn[8])*dS; 
-    out[7] += (1.732050807568877*fIn[26]-1.0*fIn[16])*dS*vBoundary+(0.8660254037844386*dxv[3]*fIn[26]-0.5*dxv[3]*fIn[16])*dS; 
+    out[0] += ((-2.23606797749979*fIn[32])+1.732050807568877*fIn[4]-1.0*fIn[0])*dS*vBoundary; 
+    out[1] += (1.732050807568877*fIn[9]-1.0*fIn[1])*dS*vBoundary; 
+    out[2] += (1.732050807568877*fIn[10]-1.0*fIn[2])*dS*vBoundary; 
+    out[3] += (1.732050807568877*fIn[11]-1.0*fIn[3])*dS*vBoundary; 
+    out[4] += (1.732050807568877*fIn[17]-1.0*fIn[6])*dS*vBoundary; 
+    out[5] += (1.732050807568877*fIn[18]-1.0*fIn[7])*dS*vBoundary; 
+    out[6] += (1.732050807568877*fIn[19]-1.0*fIn[8])*dS*vBoundary; 
+    out[7] += (1.732050807568877*fIn[26]-1.0*fIn[16])*dS*vBoundary; 
  
   } else {
  
-    out[0] += (1.732050807568877*fIn[4]+fIn[0])*dS*vBoundary+((-0.8660254037844386*dxv[3]*fIn[4])-0.5*fIn[0]*dxv[3])*dS; 
-    out[1] += (1.732050807568877*fIn[9]+fIn[1])*dS*vBoundary+((-0.8660254037844386*dxv[3]*fIn[9])-0.5*fIn[1]*dxv[3])*dS; 
-    out[2] += (1.732050807568877*fIn[10]+fIn[2])*dS*vBoundary+((-0.8660254037844386*dxv[3]*fIn[10])-0.5*fIn[2]*dxv[3])*dS; 
-    out[3] += (1.732050807568877*fIn[11]+fIn[3])*dS*vBoundary+((-0.8660254037844386*dxv[3]*fIn[11])-0.5*dxv[3]*fIn[3])*dS; 
-    out[4] += (1.732050807568877*fIn[17]+fIn[6])*dS*vBoundary+((-0.8660254037844386*dxv[3]*fIn[17])-0.5*dxv[3]*fIn[6])*dS; 
-    out[5] += (1.732050807568877*fIn[18]+fIn[7])*dS*vBoundary+((-0.8660254037844386*dxv[3]*fIn[18])-0.5*dxv[3]*fIn[7])*dS; 
-    out[6] += (1.732050807568877*fIn[19]+fIn[8])*dS*vBoundary+((-0.8660254037844386*dxv[3]*fIn[19])-0.5*dxv[3]*fIn[8])*dS; 
-    out[7] += (1.732050807568877*fIn[26]+fIn[16])*dS*vBoundary+((-0.8660254037844386*dxv[3]*fIn[26])-0.5*dxv[3]*fIn[16])*dS; 
- 
-  }
- 
-} 
- 
-void GkBoundaryIntegral3x2vSer_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out) 
-{ 
-  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
-  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
-  // vBoundary: velocity at the boundary of the velocity grid. 
-  // dxv[5]:    cell length in each direciton. 
-  // fIn[112]:    distribution function at velocity boundaries. 
-  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
- 
-  const double dS = 0.5*dxv[4]*intFac; 
- 
-  if (atLower) {
- 
-    out[0] += ((-2.23606797749979*fIn[19])+1.732050807568877*fIn[4]-1.0*fIn[0])*dS*vBoundary; 
-    out[1] += ((-2.23606797749979*fIn[40])+1.732050807568877*fIn[9]-1.0*fIn[1])*dS*vBoundary; 
-    out[2] += ((-2.23606797749979*fIn[41])+1.732050807568877*fIn[10]-1.0*fIn[2])*dS*vBoundary; 
-    out[3] += ((-2.23606797749979*fIn[42])+1.732050807568877*fIn[11]-1.0*fIn[3])*dS*vBoundary; 
-    out[4] += ((-2.23606797749979*fIn[65])+1.732050807568877*fIn[22]-1.0*fIn[6])*dS*vBoundary; 
-    out[5] += ((-2.23606797749979*fIn[66])+1.732050807568877*fIn[23]-1.0*fIn[7])*dS*vBoundary; 
-    out[6] += ((-2.23606797749979*fIn[67])+1.732050807568877*fIn[24]-1.0*fIn[8])*dS*vBoundary; 
-    out[7] += (1.732050807568877*fIn[37]-1.0*fIn[16])*dS*vBoundary; 
-    out[8] += (1.732050807568877*fIn[38]-1.0*fIn[17])*dS*vBoundary; 
-    out[9] += (1.732050807568877*fIn[39]-1.0*fIn[18])*dS*vBoundary; 
-    out[10] += ((-2.23606797749979*fIn[90])+1.732050807568877*fIn[51]-1.0*fIn[21])*dS*vBoundary; 
-    out[11] += (1.732050807568877*fIn[59]-1.0*fIn[31])*dS*vBoundary; 
-    out[12] += (1.732050807568877*fIn[60]-1.0*fIn[32])*dS*vBoundary; 
-    out[13] += (1.732050807568877*fIn[61]-1.0*fIn[33])*dS*vBoundary; 
-    out[14] += (1.732050807568877*fIn[62]-1.0*fIn[34])*dS*vBoundary; 
-    out[15] += (1.732050807568877*fIn[63]-1.0*fIn[35])*dS*vBoundary; 
-    out[16] += (1.732050807568877*fIn[64]-1.0*fIn[36])*dS*vBoundary; 
-    out[17] += (1.732050807568877*fIn[87]-1.0*fIn[56])*dS*vBoundary; 
-    out[18] += (1.732050807568877*fIn[88]-1.0*fIn[57])*dS*vBoundary; 
-    out[19] += (1.732050807568877*fIn[89]-1.0*fIn[58])*dS*vBoundary; 
- 
-  } else {
- 
-    out[0] += (2.23606797749979*fIn[19]+1.732050807568877*fIn[4]+fIn[0])*dS*vBoundary; 
-    out[1] += (2.23606797749979*fIn[40]+1.732050807568877*fIn[9]+fIn[1])*dS*vBoundary; 
-    out[2] += (2.23606797749979*fIn[41]+1.732050807568877*fIn[10]+fIn[2])*dS*vBoundary; 
-    out[3] += (2.23606797749979*fIn[42]+1.732050807568877*fIn[11]+fIn[3])*dS*vBoundary; 
-    out[4] += (2.23606797749979*fIn[65]+1.732050807568877*fIn[22]+fIn[6])*dS*vBoundary; 
-    out[5] += (2.23606797749979*fIn[66]+1.732050807568877*fIn[23]+fIn[7])*dS*vBoundary; 
-    out[6] += (2.23606797749979*fIn[67]+1.732050807568877*fIn[24]+fIn[8])*dS*vBoundary; 
-    out[7] += (1.732050807568877*fIn[37]+fIn[16])*dS*vBoundary; 
-    out[8] += (1.732050807568877*fIn[38]+fIn[17])*dS*vBoundary; 
-    out[9] += (1.732050807568877*fIn[39]+fIn[18])*dS*vBoundary; 
-    out[10] += (2.23606797749979*fIn[90]+1.732050807568877*fIn[51]+fIn[21])*dS*vBoundary; 
-    out[11] += (1.732050807568877*fIn[59]+fIn[31])*dS*vBoundary; 
-    out[12] += (1.732050807568877*fIn[60]+fIn[32])*dS*vBoundary; 
-    out[13] += (1.732050807568877*fIn[61]+fIn[33])*dS*vBoundary; 
-    out[14] += (1.732050807568877*fIn[62]+fIn[34])*dS*vBoundary; 
-    out[15] += (1.732050807568877*fIn[63]+fIn[35])*dS*vBoundary; 
-    out[16] += (1.732050807568877*fIn[64]+fIn[36])*dS*vBoundary; 
-    out[17] += (1.732050807568877*fIn[87]+fIn[56])*dS*vBoundary; 
-    out[18] += (1.732050807568877*fIn[88]+fIn[57])*dS*vBoundary; 
-    out[19] += (1.732050807568877*fIn[89]+fIn[58])*dS*vBoundary; 
- 
-  }
- 
-} 
- 
-void GkBoundaryIntegral3x2vSer_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out) 
-{ 
-  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
-  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
-  // vBoundary: velocity at the boundary of the velocity grid. 
-  // dxv[5]:    cell length in each direciton. 
-  // fIn[192]:    distribution function at velocity boundaries. 
-  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
- 
-  const double dS = 0.5*dxv[4]*intFac; 
- 
-  if (atLower) {
- 
-    out[0] += (2.645751311064591*fIn[54]-2.23606797749979*fIn[19]+1.732050807568877*fIn[4]-1.0*fIn[0])*dS*vBoundary; 
-    out[1] += (2.645751311064591*fIn[100]-2.23606797749979*fIn[40]+1.732050807568877*fIn[9]-1.0*fIn[1])*dS*vBoundary; 
-    out[2] += (2.645751311064591*fIn[101]-2.23606797749979*fIn[41]+1.732050807568877*fIn[10]-1.0*fIn[2])*dS*vBoundary; 
-    out[3] += (2.645751311064591*fIn[102]-2.23606797749979*fIn[42]+1.732050807568877*fIn[11]-1.0*fIn[3])*dS*vBoundary; 
-    out[4] += (2.645751311064591*fIn[141]-2.23606797749979*fIn[70]+1.732050807568877*fIn[22]-1.0*fIn[6])*dS*vBoundary; 
-    out[5] += (2.645751311064591*fIn[142]-2.23606797749979*fIn[71]+1.732050807568877*fIn[23]-1.0*fIn[7])*dS*vBoundary; 
-    out[6] += (2.645751311064591*fIn[143]-2.23606797749979*fIn[72]+1.732050807568877*fIn[24]-1.0*fIn[8])*dS*vBoundary; 
-    out[7] += (1.732050807568877*fIn[37]-1.0*fIn[16])*dS*vBoundary; 
-    out[8] += (1.732050807568877*fIn[38]-1.0*fIn[17])*dS*vBoundary; 
-    out[9] += (1.732050807568877*fIn[39]-1.0*fIn[18])*dS*vBoundary; 
-    out[10] += (2.645751311064591*fIn[170]-2.23606797749979*fIn[115]+1.732050807568877*fIn[56]-1.0*fIn[21])*dS*vBoundary; 
-    out[11] += (1.732050807568877*fIn[64]-1.0*fIn[31])*dS*vBoundary; 
-    out[12] += (1.732050807568877*fIn[65]-1.0*fIn[32])*dS*vBoundary; 
-    out[13] += (1.732050807568877*fIn[66]-1.0*fIn[33])*dS*vBoundary; 
-    out[14] += (1.732050807568877*fIn[67]-1.0*fIn[34])*dS*vBoundary; 
-    out[15] += (1.732050807568877*fIn[68]-1.0*fIn[35])*dS*vBoundary; 
-    out[16] += (1.732050807568877*fIn[69]-1.0*fIn[36])*dS*vBoundary; 
-    out[17] += (1.732050807568877*fIn[97]-1.0*fIn[51])*dS*vBoundary; 
-    out[18] += (1.732050807568877*fIn[98]-1.0*fIn[52])*dS*vBoundary; 
-    out[19] += (1.732050807568877*fIn[99]-1.0*fIn[53])*dS*vBoundary; 
-    out[20] += (1.732050807568877*fIn[112]-1.0*fIn[61])*dS*vBoundary; 
-    out[21] += (1.732050807568877*fIn[113]-1.0*fIn[62])*dS*vBoundary; 
-    out[22] += (1.732050807568877*fIn[114]-1.0*fIn[63])*dS*vBoundary; 
-    out[23] += (1.732050807568877*fIn[135]-1.0*fIn[91])*dS*vBoundary; 
-    out[24] += (1.732050807568877*fIn[136]-1.0*fIn[92])*dS*vBoundary; 
-    out[25] += (1.732050807568877*fIn[137]-1.0*fIn[93])*dS*vBoundary; 
-    out[26] += (1.732050807568877*fIn[138]-1.0*fIn[94])*dS*vBoundary; 
-    out[27] += (1.732050807568877*fIn[139]-1.0*fIn[95])*dS*vBoundary; 
-    out[28] += (1.732050807568877*fIn[140]-1.0*fIn[96])*dS*vBoundary; 
-    out[29] += (1.732050807568877*fIn[167]-1.0*fIn[132])*dS*vBoundary; 
-    out[30] += (1.732050807568877*fIn[168]-1.0*fIn[133])*dS*vBoundary; 
-    out[31] += (1.732050807568877*fIn[169]-1.0*fIn[134])*dS*vBoundary; 
- 
-  } else {
- 
-    out[0] += (2.645751311064591*fIn[54]+2.23606797749979*fIn[19]+1.732050807568877*fIn[4]+fIn[0])*dS*vBoundary; 
-    out[1] += (2.645751311064591*fIn[100]+2.23606797749979*fIn[40]+1.732050807568877*fIn[9]+fIn[1])*dS*vBoundary; 
-    out[2] += (2.645751311064591*fIn[101]+2.23606797749979*fIn[41]+1.732050807568877*fIn[10]+fIn[2])*dS*vBoundary; 
-    out[3] += (2.645751311064591*fIn[102]+2.23606797749979*fIn[42]+1.732050807568877*fIn[11]+fIn[3])*dS*vBoundary; 
-    out[4] += (2.645751311064591*fIn[141]+2.23606797749979*fIn[70]+1.732050807568877*fIn[22]+fIn[6])*dS*vBoundary; 
-    out[5] += (2.645751311064591*fIn[142]+2.23606797749979*fIn[71]+1.732050807568877*fIn[23]+fIn[7])*dS*vBoundary; 
-    out[6] += (2.645751311064591*fIn[143]+2.23606797749979*fIn[72]+1.732050807568877*fIn[24]+fIn[8])*dS*vBoundary; 
-    out[7] += (1.732050807568877*fIn[37]+fIn[16])*dS*vBoundary; 
-    out[8] += (1.732050807568877*fIn[38]+fIn[17])*dS*vBoundary; 
-    out[9] += (1.732050807568877*fIn[39]+fIn[18])*dS*vBoundary; 
-    out[10] += (2.645751311064591*fIn[170]+2.23606797749979*fIn[115]+1.732050807568877*fIn[56]+fIn[21])*dS*vBoundary; 
-    out[11] += (1.732050807568877*fIn[64]+fIn[31])*dS*vBoundary; 
-    out[12] += (1.732050807568877*fIn[65]+fIn[32])*dS*vBoundary; 
-    out[13] += (1.732050807568877*fIn[66]+fIn[33])*dS*vBoundary; 
-    out[14] += (1.732050807568877*fIn[67]+fIn[34])*dS*vBoundary; 
-    out[15] += (1.732050807568877*fIn[68]+fIn[35])*dS*vBoundary; 
-    out[16] += (1.732050807568877*fIn[69]+fIn[36])*dS*vBoundary; 
-    out[17] += (1.732050807568877*fIn[97]+fIn[51])*dS*vBoundary; 
-    out[18] += (1.732050807568877*fIn[98]+fIn[52])*dS*vBoundary; 
-    out[19] += (1.732050807568877*fIn[99]+fIn[53])*dS*vBoundary; 
-    out[20] += (1.732050807568877*fIn[112]+fIn[61])*dS*vBoundary; 
-    out[21] += (1.732050807568877*fIn[113]+fIn[62])*dS*vBoundary; 
-    out[22] += (1.732050807568877*fIn[114]+fIn[63])*dS*vBoundary; 
-    out[23] += (1.732050807568877*fIn[135]+fIn[91])*dS*vBoundary; 
-    out[24] += (1.732050807568877*fIn[136]+fIn[92])*dS*vBoundary; 
-    out[25] += (1.732050807568877*fIn[137]+fIn[93])*dS*vBoundary; 
-    out[26] += (1.732050807568877*fIn[138]+fIn[94])*dS*vBoundary; 
-    out[27] += (1.732050807568877*fIn[139]+fIn[95])*dS*vBoundary; 
-    out[28] += (1.732050807568877*fIn[140]+fIn[96])*dS*vBoundary; 
-    out[29] += (1.732050807568877*fIn[167]+fIn[132])*dS*vBoundary; 
-    out[30] += (1.732050807568877*fIn[168]+fIn[133])*dS*vBoundary; 
-    out[31] += (1.732050807568877*fIn[169]+fIn[134])*dS*vBoundary; 
+    out[0] += (2.23606797749979*fIn[32]+1.732050807568877*fIn[4]+fIn[0])*dS*vBoundary; 
+    out[1] += (1.732050807568877*fIn[9]+fIn[1])*dS*vBoundary; 
+    out[2] += (1.732050807568877*fIn[10]+fIn[2])*dS*vBoundary; 
+    out[3] += (1.732050807568877*fIn[11]+fIn[3])*dS*vBoundary; 
+    out[4] += (1.732050807568877*fIn[17]+fIn[6])*dS*vBoundary; 
+    out[5] += (1.732050807568877*fIn[18]+fIn[7])*dS*vBoundary; 
+    out[6] += (1.732050807568877*fIn[19]+fIn[8])*dS*vBoundary; 
+    out[7] += (1.732050807568877*fIn[26]+fIn[16])*dS*vBoundary; 
  
   }
  
@@ -642,7 +350,7 @@ void GkBoundaryIntegral3x2vSer_vF_VY_P1(const bool atLower, const double intFac,
   // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
   // vBoundary: velocity at the boundary of the velocity grid. 
   // dxv[5]:    cell length in each direciton. 
-  // fIn[32]:    distribution function at velocity boundaries. 
+  // fIn[33]:    distribution function at velocity boundaries. 
   // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
  
   const double dS = 0.5*dxv[3]*intFac; 
@@ -668,152 +376,6 @@ void GkBoundaryIntegral3x2vSer_vF_VY_P1(const bool atLower, const double intFac,
     out[5] += (1.732050807568877*fIn[21]+fIn[7])*dS*vBoundary; 
     out[6] += (1.732050807568877*fIn[22]+fIn[8])*dS*vBoundary; 
     out[7] += (1.732050807568877*fIn[27]+fIn[16])*dS*vBoundary; 
- 
-  }
- 
-} 
- 
-void GkBoundaryIntegral3x2vSer_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out) 
-{ 
-  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
-  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
-  // vBoundary: velocity at the boundary of the velocity grid. 
-  // dxv[5]:    cell length in each direciton. 
-  // fIn[112]:    distribution function at velocity boundaries. 
-  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
- 
-  const double dS = 0.5*dxv[3]*intFac; 
- 
-  if (atLower) {
- 
-    out[0] += ((-2.23606797749979*fIn[20])+1.732050807568877*fIn[5]-1.0*fIn[0])*dS*vBoundary; 
-    out[1] += ((-2.23606797749979*fIn[47])+1.732050807568877*fIn[12]-1.0*fIn[1])*dS*vBoundary; 
-    out[2] += ((-2.23606797749979*fIn[48])+1.732050807568877*fIn[13]-1.0*fIn[2])*dS*vBoundary; 
-    out[3] += ((-2.23606797749979*fIn[49])+1.732050807568877*fIn[14]-1.0*fIn[3])*dS*vBoundary; 
-    out[4] += ((-2.23606797749979*fIn[80])+1.732050807568877*fIn[25]-1.0*fIn[6])*dS*vBoundary; 
-    out[5] += ((-2.23606797749979*fIn[81])+1.732050807568877*fIn[26]-1.0*fIn[7])*dS*vBoundary; 
-    out[6] += ((-2.23606797749979*fIn[82])+1.732050807568877*fIn[27]-1.0*fIn[8])*dS*vBoundary; 
-    out[7] += (1.732050807568877*fIn[43]-1.0*fIn[16])*dS*vBoundary; 
-    out[8] += (1.732050807568877*fIn[44]-1.0*fIn[17])*dS*vBoundary; 
-    out[9] += (1.732050807568877*fIn[45]-1.0*fIn[18])*dS*vBoundary; 
-    out[10] += ((-2.23606797749979*fIn[103])+1.732050807568877*fIn[52]-1.0*fIn[21])*dS*vBoundary; 
-    out[11] += (1.732050807568877*fIn[68]-1.0*fIn[31])*dS*vBoundary; 
-    out[12] += (1.732050807568877*fIn[69]-1.0*fIn[32])*dS*vBoundary; 
-    out[13] += (1.732050807568877*fIn[70]-1.0*fIn[33])*dS*vBoundary; 
-    out[14] += (1.732050807568877*fIn[71]-1.0*fIn[34])*dS*vBoundary; 
-    out[15] += (1.732050807568877*fIn[72]-1.0*fIn[35])*dS*vBoundary; 
-    out[16] += (1.732050807568877*fIn[73]-1.0*fIn[36])*dS*vBoundary; 
-    out[17] += (1.732050807568877*fIn[91]-1.0*fIn[56])*dS*vBoundary; 
-    out[18] += (1.732050807568877*fIn[92]-1.0*fIn[57])*dS*vBoundary; 
-    out[19] += (1.732050807568877*fIn[93]-1.0*fIn[58])*dS*vBoundary; 
- 
-  } else {
- 
-    out[0] += (2.23606797749979*fIn[20]+1.732050807568877*fIn[5]+fIn[0])*dS*vBoundary; 
-    out[1] += (2.23606797749979*fIn[47]+1.732050807568877*fIn[12]+fIn[1])*dS*vBoundary; 
-    out[2] += (2.23606797749979*fIn[48]+1.732050807568877*fIn[13]+fIn[2])*dS*vBoundary; 
-    out[3] += (2.23606797749979*fIn[49]+1.732050807568877*fIn[14]+fIn[3])*dS*vBoundary; 
-    out[4] += (2.23606797749979*fIn[80]+1.732050807568877*fIn[25]+fIn[6])*dS*vBoundary; 
-    out[5] += (2.23606797749979*fIn[81]+1.732050807568877*fIn[26]+fIn[7])*dS*vBoundary; 
-    out[6] += (2.23606797749979*fIn[82]+1.732050807568877*fIn[27]+fIn[8])*dS*vBoundary; 
-    out[7] += (1.732050807568877*fIn[43]+fIn[16])*dS*vBoundary; 
-    out[8] += (1.732050807568877*fIn[44]+fIn[17])*dS*vBoundary; 
-    out[9] += (1.732050807568877*fIn[45]+fIn[18])*dS*vBoundary; 
-    out[10] += (2.23606797749979*fIn[103]+1.732050807568877*fIn[52]+fIn[21])*dS*vBoundary; 
-    out[11] += (1.732050807568877*fIn[68]+fIn[31])*dS*vBoundary; 
-    out[12] += (1.732050807568877*fIn[69]+fIn[32])*dS*vBoundary; 
-    out[13] += (1.732050807568877*fIn[70]+fIn[33])*dS*vBoundary; 
-    out[14] += (1.732050807568877*fIn[71]+fIn[34])*dS*vBoundary; 
-    out[15] += (1.732050807568877*fIn[72]+fIn[35])*dS*vBoundary; 
-    out[16] += (1.732050807568877*fIn[73]+fIn[36])*dS*vBoundary; 
-    out[17] += (1.732050807568877*fIn[91]+fIn[56])*dS*vBoundary; 
-    out[18] += (1.732050807568877*fIn[92]+fIn[57])*dS*vBoundary; 
-    out[19] += (1.732050807568877*fIn[93]+fIn[58])*dS*vBoundary; 
- 
-  }
- 
-} 
- 
-void GkBoundaryIntegral3x2vSer_vF_VY_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out) 
-{ 
-  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
-  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
-  // vBoundary: velocity at the boundary of the velocity grid. 
-  // dxv[5]:    cell length in each direciton. 
-  // fIn[192]:    distribution function at velocity boundaries. 
-  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
- 
-  const double dS = 0.5*dxv[3]*intFac; 
- 
-  if (atLower) {
- 
-    out[0] += (2.645751311064591*fIn[55]-2.23606797749979*fIn[20]+1.732050807568877*fIn[5]-1.0*fIn[0])*dS*vBoundary; 
-    out[1] += (2.645751311064591*fIn[107]-2.23606797749979*fIn[47]+1.732050807568877*fIn[12]-1.0*fIn[1])*dS*vBoundary; 
-    out[2] += (2.645751311064591*fIn[108]-2.23606797749979*fIn[48]+1.732050807568877*fIn[13]-1.0*fIn[2])*dS*vBoundary; 
-    out[3] += (2.645751311064591*fIn[109]-2.23606797749979*fIn[49]+1.732050807568877*fIn[14]-1.0*fIn[3])*dS*vBoundary; 
-    out[4] += (2.645751311064591*fIn[156]-2.23606797749979*fIn[85]+1.732050807568877*fIn[25]-1.0*fIn[6])*dS*vBoundary; 
-    out[5] += (2.645751311064591*fIn[157]-2.23606797749979*fIn[86]+1.732050807568877*fIn[26]-1.0*fIn[7])*dS*vBoundary; 
-    out[6] += (2.645751311064591*fIn[158]-2.23606797749979*fIn[87]+1.732050807568877*fIn[27]-1.0*fIn[8])*dS*vBoundary; 
-    out[7] += (1.732050807568877*fIn[43]-1.0*fIn[16])*dS*vBoundary; 
-    out[8] += (1.732050807568877*fIn[44]-1.0*fIn[17])*dS*vBoundary; 
-    out[9] += (1.732050807568877*fIn[45]-1.0*fIn[18])*dS*vBoundary; 
-    out[10] += (2.645751311064591*fIn[183]-2.23606797749979*fIn[128]+1.732050807568877*fIn[57]-1.0*fIn[21])*dS*vBoundary; 
-    out[11] += (1.732050807568877*fIn[73]-1.0*fIn[31])*dS*vBoundary; 
-    out[12] += (1.732050807568877*fIn[74]-1.0*fIn[32])*dS*vBoundary; 
-    out[13] += (1.732050807568877*fIn[75]-1.0*fIn[33])*dS*vBoundary; 
-    out[14] += (1.732050807568877*fIn[76]-1.0*fIn[34])*dS*vBoundary; 
-    out[15] += (1.732050807568877*fIn[77]-1.0*fIn[35])*dS*vBoundary; 
-    out[16] += (1.732050807568877*fIn[78]-1.0*fIn[36])*dS*vBoundary; 
-    out[17] += (1.732050807568877*fIn[103]-1.0*fIn[51])*dS*vBoundary; 
-    out[18] += (1.732050807568877*fIn[104]-1.0*fIn[52])*dS*vBoundary; 
-    out[19] += (1.732050807568877*fIn[105]-1.0*fIn[53])*dS*vBoundary; 
-    out[20] += (1.732050807568877*fIn[116]-1.0*fIn[61])*dS*vBoundary; 
-    out[21] += (1.732050807568877*fIn[117]-1.0*fIn[62])*dS*vBoundary; 
-    out[22] += (1.732050807568877*fIn[118]-1.0*fIn[63])*dS*vBoundary; 
-    out[23] += (1.732050807568877*fIn[144]-1.0*fIn[91])*dS*vBoundary; 
-    out[24] += (1.732050807568877*fIn[145]-1.0*fIn[92])*dS*vBoundary; 
-    out[25] += (1.732050807568877*fIn[146]-1.0*fIn[93])*dS*vBoundary; 
-    out[26] += (1.732050807568877*fIn[147]-1.0*fIn[94])*dS*vBoundary; 
-    out[27] += (1.732050807568877*fIn[148]-1.0*fIn[95])*dS*vBoundary; 
-    out[28] += (1.732050807568877*fIn[149]-1.0*fIn[96])*dS*vBoundary; 
-    out[29] += (1.732050807568877*fIn[171]-1.0*fIn[132])*dS*vBoundary; 
-    out[30] += (1.732050807568877*fIn[172]-1.0*fIn[133])*dS*vBoundary; 
-    out[31] += (1.732050807568877*fIn[173]-1.0*fIn[134])*dS*vBoundary; 
- 
-  } else {
- 
-    out[0] += (2.645751311064591*fIn[55]+2.23606797749979*fIn[20]+1.732050807568877*fIn[5]+fIn[0])*dS*vBoundary; 
-    out[1] += (2.645751311064591*fIn[107]+2.23606797749979*fIn[47]+1.732050807568877*fIn[12]+fIn[1])*dS*vBoundary; 
-    out[2] += (2.645751311064591*fIn[108]+2.23606797749979*fIn[48]+1.732050807568877*fIn[13]+fIn[2])*dS*vBoundary; 
-    out[3] += (2.645751311064591*fIn[109]+2.23606797749979*fIn[49]+1.732050807568877*fIn[14]+fIn[3])*dS*vBoundary; 
-    out[4] += (2.645751311064591*fIn[156]+2.23606797749979*fIn[85]+1.732050807568877*fIn[25]+fIn[6])*dS*vBoundary; 
-    out[5] += (2.645751311064591*fIn[157]+2.23606797749979*fIn[86]+1.732050807568877*fIn[26]+fIn[7])*dS*vBoundary; 
-    out[6] += (2.645751311064591*fIn[158]+2.23606797749979*fIn[87]+1.732050807568877*fIn[27]+fIn[8])*dS*vBoundary; 
-    out[7] += (1.732050807568877*fIn[43]+fIn[16])*dS*vBoundary; 
-    out[8] += (1.732050807568877*fIn[44]+fIn[17])*dS*vBoundary; 
-    out[9] += (1.732050807568877*fIn[45]+fIn[18])*dS*vBoundary; 
-    out[10] += (2.645751311064591*fIn[183]+2.23606797749979*fIn[128]+1.732050807568877*fIn[57]+fIn[21])*dS*vBoundary; 
-    out[11] += (1.732050807568877*fIn[73]+fIn[31])*dS*vBoundary; 
-    out[12] += (1.732050807568877*fIn[74]+fIn[32])*dS*vBoundary; 
-    out[13] += (1.732050807568877*fIn[75]+fIn[33])*dS*vBoundary; 
-    out[14] += (1.732050807568877*fIn[76]+fIn[34])*dS*vBoundary; 
-    out[15] += (1.732050807568877*fIn[77]+fIn[35])*dS*vBoundary; 
-    out[16] += (1.732050807568877*fIn[78]+fIn[36])*dS*vBoundary; 
-    out[17] += (1.732050807568877*fIn[103]+fIn[51])*dS*vBoundary; 
-    out[18] += (1.732050807568877*fIn[104]+fIn[52])*dS*vBoundary; 
-    out[19] += (1.732050807568877*fIn[105]+fIn[53])*dS*vBoundary; 
-    out[20] += (1.732050807568877*fIn[116]+fIn[61])*dS*vBoundary; 
-    out[21] += (1.732050807568877*fIn[117]+fIn[62])*dS*vBoundary; 
-    out[22] += (1.732050807568877*fIn[118]+fIn[63])*dS*vBoundary; 
-    out[23] += (1.732050807568877*fIn[144]+fIn[91])*dS*vBoundary; 
-    out[24] += (1.732050807568877*fIn[145]+fIn[92])*dS*vBoundary; 
-    out[25] += (1.732050807568877*fIn[146]+fIn[93])*dS*vBoundary; 
-    out[26] += (1.732050807568877*fIn[147]+fIn[94])*dS*vBoundary; 
-    out[27] += (1.732050807568877*fIn[148]+fIn[95])*dS*vBoundary; 
-    out[28] += (1.732050807568877*fIn[149]+fIn[96])*dS*vBoundary; 
-    out[29] += (1.732050807568877*fIn[171]+fIn[132])*dS*vBoundary; 
-    out[30] += (1.732050807568877*fIn[172]+fIn[133])*dS*vBoundary; 
-    out[31] += (1.732050807568877*fIn[173]+fIn[134])*dS*vBoundary; 
  
   }
  

@@ -139,10 +139,10 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     ) else (
       facVparMid   : float(expand(fullratsimp(subst(zr,facVpar_e))))
     ),
+    /* alter CFL because vpar^2 included */
+    if polyOrder=1 then polyOrderEff:1 /*2*/
+    else polyOrderEff : polyOrder,
     if vdim = 1 then (
-      /* alter CFL because vpar^2 included */
-      if polyOrder=1 then polyOrderEff:1 /*2*/
-      else polyOrderEff : polyOrder,
       expr : float(expand(fullratsimp(((polyOrderEff+1)**2)*facVparMid/(2*polyOrderEff+1)))),
       param : cons(expr, [float(expand(((polyOrderEff+1)**2)/(2*polyOrderEff+1))), rdvSq4[1], m_, w[vid[1]]]),
       eColl : apply(collectterms, param),
@@ -158,8 +158,8 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       ) else (
        	facMuMid : float(expand(fullratsimp(subst(zr,facMu_e))))
       ),
-      expr  : float(expand(fullratsimp(-alphaMuDMid+((polyOrder+1)**2)*(facVparMid+facMuMid)/(2*polyOrder+1)))),
-      param : cons(expr, [float(expand(((polyOrder+1)**2)/(2*polyOrder+1))), rdvSq4[1], m_, w[vid[2]]]),
+      expr  : float(expand(fullratsimp(-alphaMuDMid+((polyOrderEff+1)**2)*(facVparMid+facMuMid)/(2*polyOrderEff+1)))),
+      param : cons(expr, [float(expand(((polyOrderEff+1)**2)/(2*polyOrderEff+1))), rdvSq4[1], m_, w[vid[2]]]),
       eColl : apply(collectterms, param),
       printf(fh, "  return std::abs(~a) + ~a; ~%", alphaVparMid, eColl )
     ),

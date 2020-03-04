@@ -1,4 +1,5 @@
 #include <DistFuncMomentCalcModDecl.h> 
+#include <cmath> 
 void GkM0Star1x1vMax_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out) 
 { 
   // intFac:  =2pi/m for gyrokinetics (not used in Vlasov). 
@@ -44,19 +45,19 @@ void GkBoundaryIntegral1x1vMax_F_VX_P1(const bool atLower, const double intFac, 
   // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
   // vBoundary: velocity at the boundary of the velocity grid. 
   // dxv[2]:    cell length in each direciton. 
-  // fIn[3]:    distribution function at velocity boundaries. 
+  // fIn[4]:    distribution function at velocity boundaries. 
   // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
  
   const double dS = 1.0*intFac; 
  
   if (atLower) {
  
-    out[0] += (1.224744871391589*fIn[2]-0.7071067811865475*fIn[0])*dS; 
+    out[0] += ((-1.58113883008419*fIn[3])+1.224744871391589*fIn[2]-0.7071067811865475*fIn[0])*dS; 
     out[1] += -0.7071067811865475*fIn[1]*dS; 
  
   } else {
  
-    out[0] += (1.224744871391589*fIn[2]+0.7071067811865475*fIn[0])*dS; 
+    out[0] += (1.58113883008419*fIn[3]+1.224744871391589*fIn[2]+0.7071067811865475*fIn[0])*dS; 
     out[1] += 0.7071067811865475*fIn[1]*dS; 
  
   }
@@ -125,20 +126,20 @@ void GkBoundaryIntegral1x1vMax_vF_VX_P1(const bool atLower, const double intFac,
   // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
   // vBoundary: velocity at the boundary of the velocity grid. 
   // dxv[2]:    cell length in each direciton. 
-  // fIn[3]:    distribution function at velocity boundaries. 
+  // fIn[4]:    distribution function at velocity boundaries. 
   // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
  
   const double dS = 1.0*intFac; 
  
   if (atLower) {
  
-    out[0] += (1.224744871391589*fIn[2]-0.7071067811865475*fIn[0])*dS*vBoundary+(0.6123724356957944*dxv[1]*fIn[2]-0.3535533905932737*fIn[0]*dxv[1])*dS; 
-    out[1] += (-0.7071067811865475*fIn[1]*dS*vBoundary)-0.3535533905932737*dxv[1]*fIn[1]*dS; 
+    out[0] += ((-1.58113883008419*fIn[3])+1.224744871391589*fIn[2]-0.7071067811865475*fIn[0])*dS*vBoundary; 
+    out[1] += -0.7071067811865475*fIn[1]*dS*vBoundary; 
  
   } else {
  
-    out[0] += (1.224744871391589*fIn[2]+0.7071067811865475*fIn[0])*dS*vBoundary+((-0.6123724356957944*dxv[1]*fIn[2])-0.3535533905932737*fIn[0]*dxv[1])*dS; 
-    out[1] += 0.7071067811865475*fIn[1]*dS*vBoundary-0.3535533905932737*dxv[1]*fIn[1]*dS; 
+    out[0] += (1.58113883008419*fIn[3]+1.224744871391589*fIn[2]+0.7071067811865475*fIn[0])*dS*vBoundary; 
+    out[1] += 0.7071067811865475*fIn[1]*dS*vBoundary; 
  
   }
  
