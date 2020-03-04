@@ -142,7 +142,7 @@ function DistFuncMomentCalc:init(tbl)
       end
       self._isFirst   = true
       self._perpRange = {}    -- Perp ranges in velocity directions.
-      if self._polyOrder == 1 then
+      if self._polyOrder == 1 and self._isGk==false then
          self._StarM1iM2Calc = MomDecl.selectStarM1iM2Calc(self._kinSpecies, self._basisID, self._cDim, self._vDim)
          -- Cell index, center and length left of a cell-boundary.
          self.idxM = Lin.IntVec(self._pDim)
@@ -236,7 +236,7 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
             distfItrP = distf:get(1)
             distfItrM = distf:get(1)
    
-            if self._polyOrder == 1 then
+            if self._polyOrder == 1 and self._isGk==false then
                m0Star = outFld[6]
                m1Star = outFld[7]
                m2Star = outFld[8]
@@ -253,7 +253,7 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
       end
    
       -- Separate the case with and without LBO collisions to reduce number of if statements.
-      if (self._fiveMomentsLBO and (self._polyOrder==1)) then 
+      if (self._fiveMomentsLBO and (self._polyOrder==1) and self._isGk==false) then 
    
          -- Outer loop is threaded and over configuration space.
          for cIdx in confRangeDecomp:rowMajorIter(tId) do
@@ -383,7 +383,7 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
          end    -- Loop over configuration space.
    
    
-      else    -- if self._fiveMomentsLBO and self._polyOrder=1. 
+      else    -- if not (self._fiveMomentsLBO and self._polyOrder=1 and isGk==false)
    
          -- Outer loop is threaded and over configuration space.
          for cIdx in confRangeDecomp:rowMajorIter(tId) do
@@ -420,7 +420,7 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
                end
             end
    
-            if self._fiveMomentsLBO then  -- and polyOrder>1.
+            if self._fiveMomentsLBO then  -- and polyOrder>1 or isGk
                -- Now loop over velocity space boundary surfaces to compute boundary corrections.
                cMomB:fill(confIndexer(cIdx), cMomBItr)
                cEnergyB:fill(confIndexer(cIdx), cEnergyBItr)
