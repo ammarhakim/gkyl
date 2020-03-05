@@ -71,7 +71,8 @@ function AdiosCartFieldIo:init(tbl)
    -- Allocate memory buffer for use in ADIOS I/O.
    self._outBuff   = self._allocator(1) -- This will be resized on an actual write().
 
-   self._writeGhost = xsys.pickBool(tbl.writeGhost, false)
+   -- write skin cells on boundaries of global domain (for BCs)
+   self._writeSkin = xsys.pickBool(tbl.writeSkin, false)
 
    -- If we have meta-data to write out, store it.
    self._metaData = {
@@ -112,23 +113,29 @@ end
 -- fName: file name
 -- tmStamp: time-stamp
 -- frNum: frame number
--- writeGhost: Flag to indicate if we should write ghost-cells
+-- writeSkin: Flag to indicate if we should write skin-cells on boundaries of global domain
 -- 
-function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeGhost)
-   local _writeGhost = self._writeGhost
-   if writeGhost ~= nil then _writeGhost = writeGhost end
-   local comm =  Mpi.getComm(field:grid():commSet().nodeComm)
+function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeSkin)
+   local _writeSkin = self._writeSkin
+   if writeSkin ~= nil then _writeSkin = writeSkin end
+   local comm = Mpi.getComm(field:grid():commSet().nodeComm)
    -- (the extra getComm() is needed as Lua has no concept of
    -- pointers and hence we don't know before hand if nodeComm is a
    -- pointer or an object)
 
    -- No need to do anything if communicator is not valid.
    if not Mpi.Is_comm_valid(comm) then return end
+   local rank = Mpi.Comm_rank(comm)
 
    local ndim = field:ndim()
    local localRange, globalRange = field:localRange(), field:globalRange()
-   if _writeGhost then 
-      localRange  = field:localExtRange() 
+   if _writeSkin then 
+      -- extend localRange to include skin cells if on edge of global domain
+      for d = 1, ndim do
+         if localRange:lower(d) == globalRange:lower(d) then localRange = localRange:extendDir(d, field:lowerGhost(), 0) end
+         if localRange:upper(d) == globalRange:upper(d) then localRange = localRange:extendDir(d, 0, field:upperGhost()) end
+      end
+      -- extend globalRange to include skin cells
       globalRange = field:globalExtRange() 
    end
    
@@ -138,7 +145,7 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeGhost)
       _adLocalSz[d]  = localRange:shape(d)
       _adGlobalSz[d] = globalRange:shape(d)
       _adOffset[d]   = localRange:lower(d)-1
-      if _writeGhost then _adOffset[d] = _adOffset[d] + 1 end
+      if _writeSkin then _adOffset[d] = _adOffset[d] + field:lowerGhost() end
    end
    _adLocalSz[ndim+1]  = field:numComponents()
    _adGlobalSz[ndim+1] = field:numComponents()
@@ -154,9 +161,7 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeGhost)
    if not tmStamp then tmStamp = 0.0 end -- Default time-stamp.
 
    -- Resize buffer (only done if needed. Alloc handles this automatically).
-   self._outBuff:expand(field:size())
-
-   local rank = Mpi.Comm_rank(comm)
+   self._outBuff:expand(localRange:volume()*field:numComponents())
 
    -- Setup ADIOS for IO.
    Adios.init_noxml(comm)
@@ -182,14 +187,14 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeGhost)
    local lower = new("double[?]", ndim)
    for d = 1, ndim do 
       lower[d-1] = field:grid():lower(d) 
-      if _writeGhost then lower[d-1] = lower[d-1] - field:lowerGhost()*field:grid():dx(d) end
+      if _writeSkin then lower[d-1] = lower[d-1] - field:lowerGhost()*field:grid():dx(d) end
    end
    Adios.define_attribute_byvalue(grpId, "lowerBounds", "", Adios.double, ndim, lower)
 
    local upper = new("double[?]", ndim)
    for d = 1, ndim do 
       upper[d-1] = field:grid():upper(d) 
-      if _writeGhost then upper[d-1] = upper[d-1] + field:upperGhost()*field:grid():dx(d) end
+      if _writeSkin then upper[d-1] = upper[d-1] + field:upperGhost()*field:grid():dx(d) end
    end
    Adios.define_attribute_byvalue(grpId, "upperBounds", "", Adios.double, ndim, upper)
 
@@ -235,10 +240,10 @@ end
 
 -- Read field from file.
 -- fName: file name
-function AdiosCartFieldIo:read(field, fName, readGhost) --> time-stamp, frame-number
-   local _readGhost = self._writeGhost
-   if readGhost ~= nil then _readGhost = readGhost end
-   local comm    =  Mpi.getComm(field:grid():commSet().nodeComm)
+function AdiosCartFieldIo:read(field, fName, readSkin) --> time-stamp, frame-number
+   local _readSkin = self._writeSkin
+   if readSkin ~= nil then _readSkin = readSkin end
+   local comm    = Mpi.getComm(field:grid():commSet().nodeComm)
    local shmComm = Mpi.getComm(field:grid():commSet().sharedComm)
    -- (the extra getComm() is needed as Lua has no concept of
    -- pointers and hence we don't know before hand if nodeComm is a
@@ -251,34 +256,38 @@ function AdiosCartFieldIo:read(field, fName, readGhost) --> time-stamp, frame-nu
    -- Only read in data if communicator is valid.
    if Mpi.Is_comm_valid(comm) then
 
-      local ndim                    = field:ndim()
+      local ndim = field:ndim()
       local localRange, globalRange = field:localRange(), field:globalRange()
-
-      if _readGhost then
-         localRange  = field:localExtRange() 
+      if _readSkin then 
+         -- extend localRange to include skin cells if on edge of global domain
+         for d = 1, ndim do
+            if localRange:lower(d) == globalRange:lower(d) then localRange = localRange:extendDir(d, field:lowerGhost(), 0) end
+            if localRange:upper(d) == globalRange:upper(d) then localRange = localRange:extendDir(d, 0, field:upperGhost()) end
+         end
+         -- extend globalRange to include skin cells
          globalRange = field:globalExtRange() 
       end
-
+      
       -- For use in ADIOS output.
       local _adLocalSz, _adGlobalSz, _adOffset = {}, {}, {}
       for d = 1, ndim do
-	 _adLocalSz[d]  = localRange:shape(d)
-	 _adGlobalSz[d] = globalRange:shape(d)
-	 _adOffset[d]   = localRange:lower(d)-1
-         if _readGhost then _adOffset[d] = _adOffset[d] + 1 end
+         _adLocalSz[d]  = localRange:shape(d)
+         _adGlobalSz[d] = globalRange:shape(d)
+         _adOffset[d]   = localRange:lower(d)-1
+         if _readSkin then _adOffset[d] = _adOffset[d] + field:lowerGhost() end
       end
-      _adLocalSz[ndim+1]  = field:numComponents()
+      _adLocalSz[ndim+1] = field:numComponents()
       _adGlobalSz[ndim+1] = field:numComponents()
-      _adOffset[ndim+1]   = 0
+      _adOffset[ndim+1] = 0
 
       -- Convert tables to comma-seperated-string. For some strange
       -- reasons, this is what ADIOS expects.
-      adLocalSz  = toCSV(_adLocalSz)
+      adLocalSz = toCSV(_adLocalSz)
       adGlobalSz = toCSV(_adGlobalSz)
-      adOffset   = toCSV(_adOffset)
+      adOffset = toCSV(_adOffset)
 
       -- Resize buffer (only done if needed. Alloc handles this automatically).
-      self._outBuff:expand(field:size())
+      self._outBuff:expand(localRange:volume()*field:numComponents())
 
       local rank = Mpi.Comm_rank(comm)
 
@@ -298,14 +307,14 @@ function AdiosCartFieldIo:read(field, fName, readGhost) --> time-stamp, frame-nu
       local lower = new("double[?]", ndim)
       for d = 1, ndim do 
          lower[d-1] = field:grid():lower(d)
-         if _readGhost then lower[d-1] = lower[d-1] - field:lowerGhost()*field:grid():dx(d) end
+         if _readSkin then lower[d-1] = lower[d-1] - field:lowerGhost()*field:grid():dx(d) end
       end
       Adios.define_attribute_byvalue(grpId, "lowerBounds", "", Adios.double, ndim, lower)
 
       local upper = new("double[?]", ndim)
       for d = 1, ndim do 
          upper[d-1] = field:grid():upper(d) 
-         if _readGhost then upper[d-1] = upper[d-1] + field:upperGhost()*field:grid():dx(d) end
+         if _readSkin then upper[d-1] = upper[d-1] + field:upperGhost()*field:grid():dx(d) end
       end
       Adios.define_attribute_byvalue(grpId, "upperBounds", "", Adios.double, ndim, upper)
 
@@ -328,11 +337,11 @@ function AdiosCartFieldIo:read(field, fName, readGhost) --> time-stamp, frame-nu
       -- types below)
       local start, count = Lin.UInt64Vec(ndim+1), Lin.UInt64Vec(ndim+1)
       for d = 1, ndim do
-         local s = localRange:lower(d)-1
-         local c = localRange:shape(d)
-         if _readGhost then s = s + 1 end
-         start[d] = s
-         count[d] = c
+         local st = localRange:lower(d)-1
+         local ct = localRange:shape(d)
+         if _readSkin then st = st + field:lowerGhost() end
+         start[d] = st
+         count[d] = ct
       end
       count[ndim+1] = field:numComponents()
       start[ndim+1] = 0

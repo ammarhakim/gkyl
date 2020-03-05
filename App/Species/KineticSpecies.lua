@@ -102,7 +102,7 @@ function KineticSpecies:fullInit(appTbl)
    self.distIoFrame = 0 -- Frame number for distribution function.
    self.diagIoFrame = 0 -- Frame number for diagnostics.
 
-   self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
+   self.writeSkin = xsys.pickBool(appTbl.writeSkin, false)
 
    -- Write perturbed moments by subtracting background before moment calc.. false by default.
    self.perturbedMoments = false
@@ -493,7 +493,7 @@ function KineticSpecies:alloc(nRkDup)
    self.distIo = AdiosCartFieldIo {
       elemType   = self.distf[1]:elemType(),
       method     = self.ioMethod,
-      writeGhost = self.writeGhost,
+      writeSkin = self.writeSkin,
       metaData = {
 	 polyOrder = self.basis:polyOrder(),
 	 basisType = self.basis:id()
@@ -775,7 +775,7 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
     for i, mom in ipairs(self.diagnosticMoments) do
        -- Should one use AdiosIo object for this?
        self.diagnosticMomentFields[mom]:write(
-          string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
+          string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
     end
 
     if self.diagnosticWeakMoments then 
@@ -783,7 +783,7 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        for mom, _ in pairs(self.diagnosticWeakMoments) do
           -- Should one use AdiosIo object for this?
           self.diagnosticMomentFields[mom]:write(
-             string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
+             string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        end
     end
 
@@ -792,7 +792,7 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        for mom, _ in pairs(self.diagnosticAuxMoments) do
           -- Should one use AdiosIo object for this?
           self.diagnosticMomentFields[mom]:write(
-             string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
+             string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        end
     end
 
@@ -872,9 +872,9 @@ end
 
 function KineticSpecies:writeRestart(tm)
    -- (The final "true/false" determines writing of ghost cells).
-   local writeGhosts = false
-   if self.hasSheathBcs or self.fluctuationBCs then writeGhosts = true end
-   self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, writeGhosts)
+   local writeSkin = false
+   if self.hasSheathBcs or self.fluctuationBCs then writeSkin = true end
+   self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, writeSkin)
    for i, mom in ipairs(self.diagnosticMoments) do
       self.diagnosticMomentFields[mom]:write(
 	 string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
@@ -888,11 +888,16 @@ function KineticSpecies:writeRestart(tm)
 end
 
 function KineticSpecies:readRestart()
-   local readGhosts = false
-   if self.hasSheathBcs or self.fluctuationBCs then readGhosts = true end
-   local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name), readGhosts)
+   local readSkin = false
+   if self.hasSheathBcs or self.fluctuationBCs then readSkin = true end
+   local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name), readSkin)
 
-   -- Apply BCs and set ghost-cell data (unless ghosts have been read because of special BCs)
+   self.distIo:write(self.distf[1], string.format("%s_restarted.bp", self.name), tm, self.distIoFrame, false)
+
+   -- set ghost cells
+   self.distf[1]:sync()
+
+   -- Apply BCs (unless skin cells have been read because of special BCs)
    if not self.hasSheathBcs and not self.fluctuationBCs then 
       self:applyBc(tm, self.distf[1]) 
    end 
