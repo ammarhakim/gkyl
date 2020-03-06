@@ -21,6 +21,15 @@ local ffi = require "ffi"
 local ffiC = ffi.C
 local xsys = require "xsys"
 
+-- scimath: load precomputed ordinates and abscissas for
+-- double-exponential integration
+local data = require "sci.quad._dblexp_precomputed"
+local gmath = require "sci.math".generic
+
+local abscissas = data.abscissas
+local weights = data.weigths -- spelling error in scimath!
+
+
 -- Template for function to map computional space -> physical space.
 local compToPhysTempl = xsys.template([[
 return function (eta, dx, xc, xOut)
@@ -57,11 +66,13 @@ function ProjectExactlyOnBasis:init(tbl)
    self._isFirst = true -- For use in advance().
 
    self._onGrid = assert(tbl.onGrid, "Updater.ProjectExactlyOnBasis: Must provide grid object using 'onGrid'")
-   self._basis  = assert(tbl.basis, "Updater.ProjectExactlyOnBasis: Must specify basis functions to use using 'basis'")
-   local ev     = assert(tbl.evaluate, "Updater.ProjectExactlyOnBasis: Must specify function to project using 'evaluate'")
+   self._basis = assert(tbl.basis, "Updater.ProjectExactlyOnBasis: Must specify basis functions to use using 'basis'")
+   local ev = assert(tbl.evaluate, "Updater.ProjectExactlyOnBasis: Must specify function to project using 'evaluate'")
    self:setFunc(ev)
 
    assert(self._onGrid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
+
+   local ndim = self._basis:ndim()
       
    -- Construct various functions from template representations.
    self._compToPhys = loadstring(compToPhysTempl {NDIM = ndim} )()
@@ -73,7 +84,7 @@ function ProjectExactlyOnBasis:_advance(tCurr, inFld, outFld)
    local qOut = assert(outFld[1], "ProjectExactlyOnBasis.advance: Must specify an output field")
 
    local ndim = grid:ndim()
-   local numOrd  = #self._weights
+   local numOrd  = #abscissas[#abscissas]
    local numBasis = self._basis:numBasis()
    local numVal = qOut:numComponents()/numBasis
 
