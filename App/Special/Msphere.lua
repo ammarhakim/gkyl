@@ -1,10 +1,10 @@
 -- Gkyl ------------------------------------------------------------------------
+-- Builder for a 3d magnetosphere app that supports an abitrary number of
+-- species.
 
-local Proto = require("Proto")
 local Moments = require("App.PlasmaOnCartGrid").Moments
 local Euler = require "Eq.Euler"
 local TenMoment = require "Eq.TenMoment"
-local Constants = require "Constants"
 local Logger = require "Logger"
 local common = require "App.Special.Msphere_common"
 
@@ -36,6 +36,7 @@ local function buildApp(tbl)
    end
    for s = 1, nSpecies do
       tbl.massFractions[s] = mass[s] / totalMass
+      print('species mass fraction', s, tbl.massFractions[s])
    end
 
    local R = tbl.planetRadius
@@ -111,7 +112,36 @@ local function buildApp(tbl)
       speciesNames[s] = "fluid"..s
    end
 
-   local momentApp = Moments.App {
+   local field = Moments.Field {
+      epsilon0 = tbl.epsilon0,
+      mu0 = tbl.mu0,
+      evolve = true,
+      init = function(t, xn)
+         local x, y, z = xn[1], xn[2], xn[3]
+         return initMirdip.initField(x, y, z, nSpecies + 1)
+      end,
+      bcx = {
+         Moments.Field.bcConst(unpack(valuesIn[nSpecies + 1])),
+         Moments.Field.bcCopy
+      },
+      bcy = {Moments.Field.bcCopy, Moments.Field.bcCopy},
+      bcz = {Moments.Field.bcCopy, Moments.Field.bcCopy},
+      hasSsBnd = true,
+      inOutFunc = common.buildInOutFunc(tbl),
+      ssBc = {Moments.Species.bcReflect}
+   }
+
+   local emSource = Moments.CollisionlessEmSource {
+      species = species,
+      timeStepper = "direct",
+      hasStaticField = true,
+      staticEmFunction = function(t, xn)
+         local x, y, z = xn[1], xn[2], xn[3]
+         return initMirdip.calcStaticEB(x, y, z)
+      end
+   }
+
+   local mt = {
       logToFile = true,
 
       tEnd = tEnd,
@@ -124,39 +154,15 @@ local function buildApp(tbl)
 
       timeStepper = "fvDimSplit",
 
-      -- TODO any number of species
-      ion = species[1],
-      elc = species[2],
-
-      field = Moments.Field {
-         epsilon0 = tbl.epsilon0,
-         mu0 = tbl.mu0,
-         evolve = true,
-         init = function(t, xn)
-            local x, y, z = xn[1], xn[2], xn[3]
-            return initMirdip.initField(x, y, z, nSpecies + 1)
-         end,
-         bcx = {
-            Moments.Field.bcConst(unpack(valuesIn[nSpecies + 1])),
-            Moments.Field.bcCopy
-         },
-         bcy = {Moments.Field.bcCopy, Moments.Field.bcCopy},
-         bcz = {Moments.Field.bcCopy, Moments.Field.bcCopy},
-         hasSsBnd = true,
-         inOutFunc = common.buildInOutFunc(tbl),
-         ssBc = {Moments.Species.bcReflect}
-      },
-
-      emSource = Moments.CollisionlessEmSource {
-         species = {"ion", "elc"},
-         timeStepper = "direct",
-         hasStaticField = true,
-         staticEmFunction = function(t, xn)
-            local x, y, z = xn[1], xn[2], xn[3]
-            return initMirdip.calcStaticEB(x, y, z)
-         end
-      }
+      field = field,
+      emSource = emSource,
    }
+   for s = 1, nSpecies do
+      mt[speciesNames[s]] = species[s]
+   end
+
+   local momentApp = Moments.App (mt)
+
    return momentApp
 end
 
