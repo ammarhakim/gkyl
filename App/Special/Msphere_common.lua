@@ -13,9 +13,9 @@ end
 
 local function setdefaultEarth(tbl)
    setdefault(tbl, "planetRadius", 6378.1e3)
-   setdefault(tbl, "planetB0", 3.12e-5)
-   setdefault(tbl, "planetB0theta", -math.pi/2)
-   setdefault(tbl, "planetB0phi",0)
+   setdefault(tbl, "planetBx0", 0)
+   setdefault(tbl, "planetBy0", 0)
+   setdefault(tbl, "planetBz0", -3.12e-5)
    setdefault(tbl, "rhoIn", 5e6 * Constants.PROTON_MASS)
    setdefault(tbl, "pIn", 3e-12)
    setdefault(tbl, "vxIn", 400e3)
@@ -37,8 +37,8 @@ end
 local function setdefaultMercury(tbl)
    setdefault(tbl, "planetRadius", 2439.7e3)
    setdefault(tbl, "planetBx0", 0)
-   setdefault(tbl, "planetBx0", 0)
-   setdefault(tbl, "planetBx0", -195e-9)
+   setdefault(tbl, "planetBy0", 0)
+   setdefault(tbl, "planetBz0", -195e-9)
    setdefault(tbl, "rhoIn", 56e6 * Constants.PROTON_MASS)
    setdefault(tbl, "pIn", 0.19e-9)
    setdefault(tbl, "vxIn", 400e3)
@@ -60,8 +60,8 @@ end
 local function setdefaultGanymede(tbl)
    setdefault(tbl, "planetRadius", 2634.1e3)
    setdefault(tbl, "planetBx0", -18e-9)
-   setdefault(tbl, "planetBx0", 51.8e-9)
-   setdefault(tbl, "planetBx0", -716.8e-9)
+   setdefault(tbl, "planetBy0", 51.8e-9)
+   setdefault(tbl, "planetBz0", -716.8e-9)
    setdefault(tbl, "rhoIn", 56e6 * Constants.PROTON_MASS)
    setdefault(tbl, "pIn", 3.8e-12)
    setdefault(tbl, "vxIn", 140e3)
@@ -229,7 +229,7 @@ local function buildInitMirdip(tbl)
 
    local calcBt = tbl.calcBt
    if not calcBt then
-      calcBt =    function(x, y, z)
+      calcBt = function(x, y, z)
          local Bxt, Byt, Bzt = 0, 0, 0
 
          if x > xmir then
