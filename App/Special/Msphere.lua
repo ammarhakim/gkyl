@@ -1,6 +1,4 @@
 -- Gkyl ------------------------------------------------------------------------
--- Builder for a 3d magnetosphere app that supports an abitrary number of
--- species.
 
 local Moments = require("App.PlasmaOnCartGrid").Moments
 local Euler = require "Eq.Euler"
@@ -17,27 +15,8 @@ local log = function(...)
    logger("\n")
 end
 
-local function setdefault(tbl, key, val)
-   if tbl[key] == nil then
-      tbl[key] = val
-   end
-   return tbl[key]
-end
-
 local function buildApp(tbl)
-   local moments = tbl.moments
-   local nSpecies = #moments
-
-   local mass = tbl.mass
-   local totalMass = 0
-   tbl.massFractions = {}
-   for s = 1, nSpecies do
-      totalMass = totalMass + mass[s]
-   end
-   for s = 1, nSpecies do
-      tbl.massFractions[s] = mass[s] / totalMass
-      print('species mass fraction', s, tbl.massFractions[s])
-   end
+   common.setdefaultObject(tbl)
 
    local R = tbl.planetRadius
    local xlo, xup, nx = tbl.xlo * R, tbl.xup * R, tbl.nx
@@ -48,8 +27,7 @@ local function buildApp(tbl)
    local cells = {nx, ny, nz}
 
    local coordinateMap = nil
-
-   local useNonUniformGrid = setdefault(tbl, "useNonUniformGrid", false)
+   local useNonUniformGrid = tbl.useNonUniformGrid
    if useNonUniformGrid then
       local wx, fwx, rx = tbl.wx, tbl.fwx, tbl.rx
       local wy, fwy, ry = tbl.wy, tbl.fwy, tbl.ry
@@ -69,10 +47,10 @@ local function buildApp(tbl)
    local tFrame = tbl.tFrame
    local nFrame = math.floor(tEnd / tFrame)
 
+   local initMirdip = common.buildInitMirdip(tbl)
    local valuesIn = common.calcValuesIn(tbl)
 
-   local initMirdip = common.buildInitMirdip(tbl)
-
+   local nSpecies = #tbl.moments
    local species = {}
    local speciesNames = {}
    for s = 1, nSpecies do
@@ -98,10 +76,7 @@ local function buildApp(tbl)
             return initMirdip.initFluid(x, y, z, s)
          end,
 
-         bcx = {
-            model.bcConst(unpack(valuesIn[s])),
-            model.bcCopy
-         },
+         bcx = {model.bcConst(unpack(valuesIn[s])), model.bcCopy},
          bcy = {model.bcCopy, model.bcCopy},
          bcz = {model.bcCopy, model.bcCopy},
 
@@ -144,13 +119,13 @@ local function buildApp(tbl)
    local mt = {
       logToFile = true,
 
-      tEnd = tEnd,
-      nFrame = nFrame,
-
       lower = lower,
       upper = upper,
       cells = cells,
       coordinateMap = coordinateMap,
+
+      tEnd = tEnd,
+      nFrame = nFrame,
 
       timeStepper = "fvDimSplit",
 
@@ -161,9 +136,7 @@ local function buildApp(tbl)
       mt[speciesNames[s]] = species[s]
    end
 
-   local momentApp = Moments.App (mt)
-
-   return momentApp
+   return Moments.App (mt)
 end
 
 return buildApp

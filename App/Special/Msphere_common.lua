@@ -1,6 +1,8 @@
---------------------
--- INITIALIZATION --
---------------------
+local Constants = require "Constants"
+
+------------------------
+-- DEFAULT PARAMETERS --
+------------------------
 
 local function setdefault(tbl, key, val)
    if tbl[key] == nil then
@@ -8,6 +10,73 @@ local function setdefault(tbl, key, val)
    end
    return tbl[key]
 end
+
+local function setdefaultEarth(tbl)
+   setdefault(tbl, "planetRadius", 6378.1e3)
+   setdefault(tbl, "planetB0", 3.12e-5)
+   setdefault(tbl, "planetB0theta", -math.pi/2)
+   setdefault(tbl, "planetB0phi",0)
+   setdefault(tbl, "rhoIn", 5e6 * Constants.PROTON_MASS)
+   setdefault(tbl, "pIn", 3e-12)
+   setdefault(tbl, "vxIn", 400e3)
+   setdefault(tbl, "vyIn", 0)
+   setdefault(tbl, "vzIn", 0)
+   setdefault(tbl, "BxIn", 0)
+   setdefault(tbl, "ByIn", 0)
+   setdefault(tbl, "BzIn", -5e-9)
+
+   setdefault(tbl, "rCut", 0.5 * tbl.planetRadius)
+   setdefault(tbl, "xmir", 0.2 * tbl.planetRadius)
+   setdefault(tbl, "stretch", 1)
+   setdefault(tbl, "r_ramp1", 2 * tbl.planetRadius)
+   setdefault(tbl, "r_ramp2", 2.5 * tbl.planetRadius)
+
+   setdefault(tbl, "rInOut", tbl.planetRadius)
+end
+
+local function setdefaultObject(tbl)
+   setdefault(tbl, "gasGamma", 5./3.)
+
+   setdefault(tbl, "mu0", Constants.MU0)
+   if tbl.epsilon0 == nil then
+      setdefault(tbl, "lightSpeed", Constants.SPEED_OF_LIGHT / 50)
+      setdefault(tbl, "epsilon00", 1 / mu0 / (tbl.lightSpeed^2))
+   end
+
+   if type(tbl.objectName) == "string" then
+      if string.lower(tbl.objectName) == "earth" then
+         setdefaultEarth(tbl)
+      else
+         assert(false, "Object name \""..tbl.objectName.."\" not recognized")
+      end
+   end
+
+   if tbl.planetBx0 == nil or tbl.planetBy0 == nil or tbl.planetBz0 == nil then
+      -- TODO make sure theta & phi are consistent with conventions
+      local B0 = tonumber(tbl.planetB0)
+      local theta = tonumber(tbl.planetB0theta)
+      local phi = tonumber(tbl.planetB0phi)
+      tbl.planetBx0 = B0 * math.sin(theta) * math.cos(phi)
+      tbl.planetBy0 = B0 * math.sin(theta) * math.sin(phi)
+      tbl.planetBz0 = B0 * math.cos(theta)
+   end
+
+   local nSpecies = #tbl.moments
+
+   local mass = tbl.mass
+   local totalMass = 0
+   tbl.massFractions = {}
+   for s = 1, nSpecies do
+      totalMass = totalMass + mass[s]
+   end
+   for s = 1, nSpecies do
+      tbl.massFractions[s] = mass[s] / totalMass
+   end
+end
+
+--------------------
+-- INITIALIZATION --
+--------------------
 
 local function dipoleB(x, y, z, x0, y0, z0, Dx, Dy, Dz, rCut)
    local xx = x - x0
@@ -30,15 +99,6 @@ local function buildInitMirdip(tbl)
    -- planet parameters
    local R = tbl.planetRadius
    -- dipole streghth; B0 is B field at equator
-   if tbl.planetBx0 == nil or tbl.planetBy0 == nil or tbl.planetBz0 == nil then
-      -- TODO make sure theta & phi are consistent with conventions
-      local B0 = tonumber(tbl.planetB0)
-      local theta = tonumber(tbl.planetB0theta)
-      local phi = tonumber(tbl.planetB0phi)
-      tbl.planetBx0 = B0 * math.sin(theta) * math.cos(phi)
-      tbl.planetBy0 = B0 * math.sin(theta) * math.sin(phi)
-      tbl.planetBz0 = B0 * math.cos(theta)
-   end
    local Dx = tbl.planetBx0 * R ^ 3
    local Dy = tbl.planetBy0 * R ^ 3
    local Dz = tbl.planetBz0 * R ^ 3
@@ -55,11 +115,11 @@ local function buildInitMirdip(tbl)
    local BzIn = tbl.BzIn
 
    -- mirdip setup parameters
-   local rCut = setdefault(tbl, "rCut", 0.5 * R)
-   local xmir = setdefault(tbl, "xmir", 0.2 * R)
-   local stretch = setdefault(tbl, "stretch", 1)
-   local r_ramp1  = setdefault(tbl, "r_ramp1", 2 * R)
-   local r_ramp2  = setdefault(tbl, "r_ramp2", 2.5 * R)
+   local rCut = tbl.rCut
+   local xmir = tbl.xmir
+   local stretch = tbl.stretch
+   local r_ramp1  = tbl.r_ramp1
+   local r_ramp2  = tbl.r_ramp2
 
    -- multifluid parameters
    local massFractions = tbl.massFractions
@@ -69,7 +129,7 @@ local function buildInitMirdip(tbl)
    assert(#massFractions == #pressureFractions)
 
    -- constants
-   local gasGamma = setdefault(tbl, "gasGamma", 5./3.)
+   local gasGamma = tbl.gasGamma
 
    local calcRho = tbl.calcRho
    if not calcRho then
@@ -285,7 +345,7 @@ local calcValuesIn = function(tbl)
    local ByIn = tbl.ByIn
    local BzIn = tbl.BzIn
 
-   local gasGamma = setdefault(tbl, "gasGamma", 5./3.)
+   local gasGamma = tbl.gasGamma
 
    -- multifluid parameters
    local massFractions = tbl.massFractions
@@ -335,11 +395,9 @@ local calcValuesIn = function(tbl)
 end
 
 local buildInOutFunc = function(tbl)
-   local R = tbl.planetRadius
-   local rInOut =  setdefault(tbl, "rInOut", R)
    return function(t, xn)
       local x, y, z = xn[1], xn[2], xn[3]
-      if (x^2 + y^2 + z^2 < rInOut^2) then
+      if (x^2 + y^2 + z^2 < tbl.rInOut^2) then
          return -1
       else
          return 1
@@ -437,6 +495,7 @@ end
 
 
 return {
+   setdefaultObject = setdefaultObject,
    buildInitMirdip = buildInitMirdip,
    buildInOutFunc = buildInOutFunc,
    calcValuesIn = calcValuesIn,
