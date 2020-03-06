@@ -502,7 +502,7 @@ double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx
 
 double rescaleVolTerm(const double tCurr, const double dt, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int numBasis, int *idx)
 {
-  double fOutSurf[32];
+  double fOutSurf[numBasis];
   for(int i=0; i<numBasis; i++) {
     fOutSurf[i] = weight/dt*fIn[i] + fRhsSurf[i];
   }
