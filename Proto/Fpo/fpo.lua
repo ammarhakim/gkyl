@@ -87,6 +87,10 @@ return function(tbl)
    local h = getField()
    local g = getField()
 
+   local test = getField()
+
+   local src = getField()
+
    local moms = DataStruct.DynVector { numComponents = 4 }
    local diag = DataStruct.DynVector { numComponents = 3 }
 
@@ -272,8 +276,8 @@ return function(tbl)
    local momVec = calcMoms(0, f, moms)
 
    -- Check if drag/diff functions are provided
-   local initDragFunc = tbl.initDrag and tbl.initDrag or function(t, xn) return 0.0 end
-   local initDiffFunc = tbl.initDiff and tbl.initDiff or function(t, xn) return 0.0 end
+   local initDragFunc = tbl.initDrag and tbl.initDrag or function(t, z) return 0.0 end
+   local initDiffFunc = tbl.initDiff and tbl.initDiff or function(t, z) return 0.0 end
 
    -- Overwrite the init functions if the the Dougherty potentials are turned on
    if doughertyPotentials then
@@ -290,13 +294,13 @@ return function(tbl)
       end
    end
 
-   local initDrag = Updater.ProjectOnBasis {
+   local projectDrag = Updater.ProjectOnBasis {
       onGrid = grid,
       basis = basis,
       evaluate = initDragFunc,
       projectOnGhosts = true,
    }
-   local initDiff = Updater.ProjectOnBasis {
+   local projectDiff = Updater.ProjectOnBasis {
       onGrid = grid,
       basis = basis,
       evaluate = initDiffFunc,
@@ -308,8 +312,8 @@ return function(tbl)
       updateRosenbluthDrag(f, h)
       updateRosenbluthDiffusion(h, g)
    else
-      initDrag:advance(0.0, {}, {h})
-      initDiff:advance(0.0, {}, {g})
+      projectDrag:advance(0.0, {}, {h})
+      projectDiff:advance(0.0, {}, {g})
    end
 
    -- write initial conditions
@@ -322,6 +326,25 @@ return function(tbl)
       g:write(string.format('g_%d.bp', 0), 0.0, 0)
    end
 
+   -- source
+   local hasConstSource = false
+   if tbl.constSource then
+      hasConstSource = true
+      -- A wrapper to add time dependance for projectOnBasis
+      local constSourceFn = function (t, z) return tbl.constSource(z) end
+      local projectSource = Updater.ProjectOnBasis {
+         onGrid = grid,
+         basis = basis,
+         evaluate = constSourceFn,
+         projectOnGhosts = true,
+      }
+      projectSource:advance(0.0, {}, {src})
+      if writeDiagnostics then
+         src:write('src.bp', 0.0, 0)
+      end
+   end
+   test:accumulate(1, src)
+   test:write('test.bp', 0.0, 0)
 
    local function forwardEuler(dt, fIn, hIn, gIn, fOut)
       local tmStart = Time.clock()
@@ -385,6 +408,8 @@ return function(tbl)
          local gBL = gIn:get(indexer(idxsBL))
          local gBR = gIn:get(indexer(idxsBR))
 
+         local srcP = src:get(indexer(idxs))
+
          local fOutP = fOut:get(indexer(idxs))
 
          dragFreq = dragKernelFn(dt, dv:data(),
@@ -408,6 +433,10 @@ return function(tbl)
 				 isLeftEdge, isRightEdge,
 				 fOutP:data())
 	 cflFreq = math.max(cflFreq, diffFreq, dragFreq)
+      end
+
+      if hasConstSource then
+         fOut:accumulate(dt, src)
       end
 
       tmFpo = tmFpo + Time.clock()-tmStart
