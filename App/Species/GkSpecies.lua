@@ -588,7 +588,6 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local fRhsOut = self:rkStepperFields()[outIdx]
 
    local em = emIn[1]:rkStepperFields()[inIdx]
-   local dApardtProv = emIn[1].dApardtProv
    local emFunc = emIn[2]:rkStepperFields()[1]
 
    -- solvers specified with clearOut = false, so we need to zero out RHS here
@@ -610,13 +609,13 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
+      self.solver:advance(tCurr, {fIn, em, emFunc}, {fRhsOut})
 
       if self.positivity then
          self.gkEqn:getPositivityRhs(tCurr, self.dtGlobal[0], fIn, fRhsOut)
       end
    else
-      self.gkEqn:setAuxFields({em, emFunc, dApardtProv})  -- Set auxFields in case they are needed by BCs/collisions.
+      self.gkEqn:setAuxFields({em, emFunc})  -- Set auxFields in case they are needed by BCs/collisions.
    end
 
    if self.fSource and self.evolveSources then
@@ -632,12 +631,11 @@ function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
    local fRhsOut = self:rkStepperFields()[outIdx]
 
    local em = emIn[1]:rkStepperFields()[inIdx]
-   local dApardtProv = emIn[1].dApardtProv
    local emFunc = emIn[2]:rkStepperFields()[1]
 
    if self.evolveCollisionless then
       self.solverStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solverStep2:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
+      self.solverStep2:advance(tCurr, {fIn, em, emFunc}, {fRhsOut})
       if self.positivity then
          self.gkEqn:getPositivityRhsStep2(tCurr, self.dtGlobal[0], fIn, fRhsOut)
       end
