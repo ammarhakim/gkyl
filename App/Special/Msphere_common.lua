@@ -277,7 +277,6 @@ local calcValuesIn = function(tbl)
    local BzIn = tbl.BzIn
 
    local gasGamma = setdefault(tbl, "gasGamma", 5./3.)
-   tbl.gasGamma = gasGamma
 
    -- multifluid parameters
    local massFractions = tbl.massFractions
@@ -354,7 +353,7 @@ local function calcGrid(calcDx, xlo, xup, nx)
      x_nc : node-center physical domain coordinates
    Both xx_nc and x_c have nx+1+2*sw points. xx_nc is uniform and 1-on-1 maps
    to x_nc.
---]]
+   --]]
    local sw = 2
    local sw1 = sw + 100 -- wider stencile for xx_nc to include more possible xx values
    local xx_nc = {}
@@ -415,7 +414,7 @@ end
 local function buildGridFlatTop1d(xlo, xup, nx, x0, width, flatWidth, ratioDx)
    local calcDx = function(x)
       return calcDxFlatTop1d(x, (x0 - xlo) / (xup - xlo), width / (xup - xlo),
-                   flatWidth / (xup - xlo), ratioDx)
+                             flatWidth / (xup - xlo), ratioDx)
    end
 
    local xx_nc, x_nc = calcGrid(calcDx, xlo, xup, nx)

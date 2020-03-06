@@ -49,7 +49,6 @@ local function buildApp(tbl)
    local coordinateMap = nil
 
    local useNonUniformGrid = setdefault(tbl, "useNonUniformGrid", false)
-   print(useNonUniformGrid)
    if useNonUniformGrid then
       local wx, fwx, rx = tbl.wx, tbl.fwx, tbl.rx
       local wy, fwy, ry = tbl.wy, tbl.fwy, tbl.ry
