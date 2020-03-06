@@ -16,6 +16,7 @@ local function setdefaultEarth(tbl)
    setdefault(tbl, "planetBx0", 0)
    setdefault(tbl, "planetBy0", 0)
    setdefault(tbl, "planetBz0", -3.12e-5)
+
    setdefault(tbl, "rhoIn", 5e6 * Constants.PROTON_MASS)
    setdefault(tbl, "pIn", 3e-12)
    setdefault(tbl, "vxIn", 400e3)
@@ -39,6 +40,8 @@ local function setdefaultMercury(tbl)
    setdefault(tbl, "planetBx0", 0)
    setdefault(tbl, "planetBy0", 0)
    setdefault(tbl, "planetBz0", -195e-9)
+   setdefault(tbl, "planetB0z", 0.2 * tbl.planetRadius)
+
    setdefault(tbl, "rhoIn", 56e6 * Constants.PROTON_MASS)
    setdefault(tbl, "pIn", 0.19e-9)
    setdefault(tbl, "vxIn", 400e3)
@@ -62,6 +65,7 @@ local function setdefaultGanymede(tbl)
    setdefault(tbl, "planetBx0", -18e-9)
    setdefault(tbl, "planetBy0", 51.8e-9)
    setdefault(tbl, "planetBz0", -716.8e-9)
+
    setdefault(tbl, "rhoIn", 56e6 * Constants.PROTON_MASS)
    setdefault(tbl, "pIn", 3.8e-12)
    setdefault(tbl, "vxIn", 140e3)
@@ -88,6 +92,11 @@ local function setdefaultObject(tbl)
       setdefault(tbl, "lightSpeed", Constants.SPEED_OF_LIGHT / 50)
       setdefault(tbl, "epsilon0", 1 / mu0 / (tbl.lightSpeed^2))
    end
+
+   -- dipole center
+   setdefault(tbl, "planetB0x", 0)
+   setdefault(tbl, "planetB0y", 0)
+   setdefault(tbl, "planetB0z", 0)
 
    if type(tbl.objectName) == "string" then
       if string.lower(tbl.objectName) == "earth" then
@@ -152,6 +161,9 @@ local function buildInitMirdip(tbl)
    local Dx = tbl.planetBx0 * R ^ 3
    local Dy = tbl.planetBy0 * R ^ 3
    local Dz = tbl.planetBz0 * R ^ 3
+   local x0 = tbl.planetB0x
+   local y0 = tbl.planetB0y
+   local z0 = tbl.planetB0z
 
    -- solar wind parameters
    local rhoIn = tbl.rhoIn
@@ -213,7 +225,7 @@ local function buildInitMirdip(tbl)
    local calcB0 = tbl.calcBt
    if not calcB0 then
       calcB0 = function(x, y, z)
-         return dipoleB(x, y, z, 0, 0, 0, Dx, Dy, Dz, rCut)
+         return dipoleB(x, y, z, x0, y0, z0, Dx, Dy, Dz, rCut)
       end
    end
 
@@ -233,11 +245,11 @@ local function buildInitMirdip(tbl)
          local Bxt, Byt, Bzt = 0, 0, 0
 
          if x > xmir then
-            local Bxd, Byd, Bzd = dipoleB(x, y, z, 0, 0, 0, Dx, Dy, Dz, rCut)
+            local Bxd, Byd, Bzd = dipoleB(x, y, z, x0, y0, z0, Dx, Dy, Dz, rCut)
             Bxt, Byt, Bzt = Bxt + Bxd, Byt + Byd, Bzt + Bzd
 
-            local Bxdm, Bydm, Bzdm = dipoleB(x, y, z, 2 * xmir, 0, 0, -Dx, Dy, Dz,
-                                             rCut)
+            local Bxdm, Bydm, Bzdm = dipoleB(x, y, z, 2 * xmir - x0, y0, z0,
+                                             -Dx, Dy, Dz, rCut)
             Bxt, Byt, Bzt = Bxt + Bxdm, Byt + Bydm, Bzt + Bzdm
          end
 
