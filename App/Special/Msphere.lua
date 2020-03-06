@@ -17,8 +17,11 @@ local log = function(...)
    logger("\n")
 end
 
-local function default(key, val)
-   return key and key or val
+local function setdefault(tbl, key, val)
+   if tbl[key] == nil then
+      tbl[key] = val
+   end
+   return tbl[key]
 end
 
 local function buildApp(tbl)
@@ -45,7 +48,8 @@ local function buildApp(tbl)
 
    local coordinateMap = nil
 
-   local useNonUniformGrid = default(tbl.useNonUniformGrid, false)
+   local useNonUniformGrid = setdefault(tbl, "useNonUniformGrid", false)
+   print(useNonUniformGrid)
    if useNonUniformGrid then
       local wx, fwx, rx = tbl.wx, tbl.fwx, tbl.rx
       local wy, fwy, ry = tbl.wy, tbl.fwy, tbl.ry

@@ -2,8 +2,11 @@
 -- INITIALIZATION --
 --------------------
 
-local function default(key, val)
-   return key and key or val
+local function setdefault(tbl, key, val)
+   if tbl[key] == nil then
+      tbl[key] = val
+   end
+   return tbl[key]
 end
 
 local function dipoleB(x, y, z, x0, y0, z0, Dx, Dy, Dz, rCut)
@@ -43,11 +46,11 @@ local function buildInitMirdip(tbl)
    local BzIn = tbl.BzIn
 
    -- mirdip setup parameters
-   local rCut = default(tbl.rCut, 0.5 * R)
-   local xmir = default(tbl.xmir, 0.2 * R)
-   local stretch = default(tbl.stretch, 1)
-   local r_ramp1  = default(tbl.r_ramp1, 2 * R)
-   local r_ramp2  = default(tbl.r_ramp2, 2.5 * R)
+   local rCut = setdefault(tbl, "rCut", 0.5 * R)
+   local xmir = setdefault(tbl, "xmir", 0.2 * R)
+   local stretch = setdefault(tbl, "stretch", 1)
+   local r_ramp1  = setdefault(tbl, "r_ramp1", 2 * R)
+   local r_ramp2  = setdefault(tbl, "r_ramp2", 2.5 * R)
 
    -- multifluid parameters
    local massFractions = tbl.massFractions
@@ -57,8 +60,7 @@ local function buildInitMirdip(tbl)
    assert(#massFractions == #pressureFractions)
 
    -- constants
-   local gasGamma = default(tbl.gasGamma, 5./3.)
-   tbl.gasGamma = gasGamma
+   local gasGamma = setdefault(tbl, "gasGamma", 5./3.)
 
    local calcRho = tbl.calcRho
    if not calcRho then
@@ -274,7 +276,7 @@ local calcValuesIn = function(tbl)
    local ByIn = tbl.ByIn
    local BzIn = tbl.BzIn
 
-   local gasGamma = default(tbl.gasGamma, 5./3.)
+   local gasGamma = setdefault(tbl, "gasGamma", 5./3.)
    tbl.gasGamma = gasGamma
 
    -- multifluid parameters
@@ -326,7 +328,7 @@ end
 
 local buildInOutFunc = function(tbl)
    local R = tbl.planetRadius
-   local rInOut =  default(tbl.rInOut, R)
+   local rInOut =  setdefault(tbl, "rInOut", R)
    return function(t, xn)
       local x, y, z = xn[1], xn[2], xn[3]
       if (x^2 + y^2 + z^2 < rInOut^2) then
