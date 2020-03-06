@@ -89,7 +89,6 @@ function Gyrokinetic:setAuxFields(auxFields)
       -- get electromagnetic terms
       self.apar = potentials.apar
       self.dApardt = potentials.dApardt
-      self.dApardtProv = auxFields[3]
    end
 
    -- get magnetic geometry fields
@@ -109,7 +108,6 @@ function Gyrokinetic:setAuxFields(auxFields)
       if self._isElectromagnetic then
          self.aparPtr = self.apar:get(1)
          self.dApardtPtr = self.dApardt:get(1)
-         self.dApardtProvPtr = self.dApardtProv:get(1)
          self.aparIdxr = self.apar:genIndexer()
          self.dApardtIdxr = self.dApardt:genIndexer()
       end
@@ -160,8 +158,7 @@ function Gyrokinetic:volTerm(w, dx, idx, f, out)
    local res
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idx), self.aparPtr)
-     self.dApardtProv:fill(self.dApardtIdxr(idx), self.dApardtProvPtr)
-     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtProvPtr:data(), f:data(), out:data())
+     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), f:data(), out:data())
    else 
      res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), f:data(), out:data())
    end
