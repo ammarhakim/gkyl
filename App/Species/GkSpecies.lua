@@ -313,12 +313,8 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          operation = "Multiply",
       }
       if self.positivity then
+         -- This scaled distribution function is needed for collisions. 
          self.scaledDistF = self:allocDistf()
-         self.phaseMul    = Updater.CartFieldBinOp {
-            onGrid    = self.grid,
-            weakBasis = self.basis,
-            operation = "Multiply",
-         }
       end
    end
    

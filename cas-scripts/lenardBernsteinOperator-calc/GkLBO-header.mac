@@ -1,7 +1,12 @@
+/* Generate the header file for GkLBO kernels. */
+
 cVars : [X, Y, Z]$
 vVars : [Vpar, Mu]$
 
 polyOrderMax : 3$
+
+bName   : ["Ser","Max"]$
+gkVdims : [[1,2], [2], [2]]$
 
 fh : openw("~/max-out/GkLBOModDecl.h")$
 
@@ -15,27 +20,30 @@ printf(fh, "    return (T(0) < val) - (val < T(0)); ~%")$
 printf(fh, "} ~%")$
 printf(fh, "extern \"C\" { ~%")$
 
-/* Serendipity basis. */
-for ci : 1 thru 3 do (
-  for vi : 1 thru 2 do (
+for bInd : 1 thru length(bName) do (
+  for ci : 1 thru 3 do (
+    for gkV : 1 thru length(gkVdims[ci]) do (
 
-    for pi : 1 thru polyOrderMax do (
-      printf(fh, "double GkLBOconstNuVol~ax~avSerP~a(const double m_, const double *w, const double *dxv, double *cflRateByDir, const double *BmagInv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, const double *f, double *out); ~%", ci, vi, pi),
-
-      for si : 1 thru vi do (
-        printf(fh, "double GkLBOconstNuSurf~ax~avSer_~a_P~a(const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, vVars[si], pi),
-
-        printf(fh, "double GkLBOconstNuBoundarySurf~ax~avSer_~a_P~a(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, vVars[si], pi),
-
-        if pi=1 then (
-          /* Add kernels for positivity preserving algorithm. */
-          printf(fh, "double GkLBOconstNuSurfPositivity~ax~avSer_~a_P~a(const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, vVars[si], pi)
-        )
+      vi : gkVdims[ci][gkV],
+  
+      for pi : 1 thru polyOrderMax do (
+        printf(fh, "double GkLBOconstNuVol~ax~av~aP~a(const double m_, const double *w, const double *dxv, double *cflRateByDir, const double *BmagInv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, const double *f, double *out); ~%", ci, vi, bName[bInd], pi),
+  
+        for si : 1 thru vi do (
+          printf(fh, "double GkLBOconstNuSurf~ax~av~a_~a_P~a(const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, bName[bInd], vVars[si], pi),
+  
+          printf(fh, "double GkLBOconstNuBoundarySurf~ax~av~a_~a_P~a(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, bName[bInd], vVars[si], pi),
+  
+          if pi=1 then (
+            /* Add kernels for positivity preserving algorithm. */
+            printf(fh, "double GkLBOconstNuSurfPositivity~ax~av~a_~a_P~a(const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, bName[bInd], vVars[si], pi)
+          )
+        ),
+        printf(fh, "~%")
+  
       ),
       printf(fh, "~%")
-
-    ),
-    printf(fh, "~%")
+    )
   )
 )$
 

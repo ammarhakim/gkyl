@@ -83,8 +83,8 @@ plasmaApp = Plasma.App {
 
       evolve              = true,    -- Evolve this species.
       evolveCollisionless = false,   -- Don't evolve collisionless terms for this test.
---      positivity          = true,    -- Enforce positivity.
---      positivityDiffuse   = true,    -- Add intra-cell diffusion to reduce negativity errors.
+      positivity          = true,    -- Enforce positivity.
+      positivityDiffuse   = true,    -- Add intra-cell diffusion to reduce negativity errors.
 
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       coll = Plasma.LBOCollisions {
@@ -108,8 +108,8 @@ plasmaApp = Plasma.App {
 
       evolve              = true,    -- Evolve this species.
       evolveCollisionless = false,   -- Don't evolve collisionless terms for this test.
---      positivity          = true,    -- Enforce positivity.
---      positivityDiffuse   = true,    -- Add intra-cell diffusion to reduce negativity errors.
+      positivity          = true,    -- Enforce positivity.
+      positivityDiffuse   = true,    -- Add intra-cell diffusion to reduce negativity errors.
 
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       coll = Plasma.LBOCollisions {

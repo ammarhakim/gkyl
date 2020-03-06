@@ -16,8 +16,8 @@ vMin      = -2.0                            -- Min velocity in grid.
 vMax      =  2.0                            -- Max velocity in grid.
 muMin     = 0.0 
 muMax     = mass*(vMax^2)/(2*B0)
-Nx        = {2,2}                             -- Number of cells in configuration space.
-Nv        = {16,8}                         -- Number of cells in velocity space.
+Nx        = {2,2,2}                             -- Number of cells in configuration space.
+Nv        = {16,16}                         -- Number of cells in velocity space.
 -- The next three are for p1, 2x2x16x16, rectangular IC.
 nMr  = 1.06066017                           -- Density of Maxwellian and rectangle. 
 uMr  = 0.0                                  -- Flow speed of Maxwellian and rectangle. 
@@ -34,7 +34,7 @@ uMb  = 0.56742884                           -- Flow speed of Maxwellian and bump
 vt2Mb = 0.33609184                          -- Thermal speed of Maxwellian and bump.
 
 -- Top hat function without drift (u=0).
-local function topHat(x, y, vpar, mu, n, u, vth)
+local function topHat(x, y, z, vpar, mu, n, u, vth)
    local Pi     = math.pi
    local fOut   = 0.0
    local v0     = math.sqrt(3.0*(vth^2)/2.0)
@@ -47,7 +47,7 @@ local function topHat(x, y, vpar, mu, n, u, vth)
 end
 
 -- Maxwellian with a Maxwellian bump in the tail.
-local function bumpMaxwell(x,y,vpar,mu,n,u,vth,bA,bU,bS,bVth)
+local function bumpMaxwell(x,y,z,vpar,mu,n,u,vth,bA,bU,bS,bVth)
    local Pi   = math.pi
    local vSq  = ((vpar-u)^2+2*B0*math.abs(mu)/mass)/((math.sqrt(2.0)*vth)^2)
    local vbSq = ((vpar-u)^2+2*B0*math.abs(mu)/mass)/((math.sqrt(2.0)*bVth)^2)
@@ -59,22 +59,23 @@ end
 plasmaApp = Plasma.App {
    logToFile = false,
    
-   tEnd        = 1,           -- End time.
+   tEnd        = 0.05,           -- End time.
    nFrame      = 1,             -- Number of frames to write.
-   lower       = {0,0},         -- Configuration space lower coordinate.
-   upper       = {1.0,1.0},         -- Configuration space upper coordinate.
+   lower       = {0,0,0},       -- Configuration space lower coordinate.
+   upper       = {1.0,1.0,1.0}, -- Configuration space upper coordinate.
    cells       = Nx,            -- Configuration space cells.
    basis       = "serendipity", -- One of "serendipity" or "maximal-order".
    polyOrder   = polyOrder,     -- Polynomial order.
    timeStepper = "rk3",         -- One of "rk2", "rk3" or "rk3s4".
    cflFrac     = 0.01,
+
    
    -- Decomposition for configuration space.
-   decompCuts = {1,1},            -- Cuts in each configuration direction.
+   decompCuts = {1,1,1},            -- Cuts in each configuration direction.
    useShared  = false,          -- If to use shared memory.
 
    -- Boundary conditions for configuration space.
-   periodicDirs = {1,2},          -- Periodic directions.
+   periodicDirs = {1,2,3},          -- Periodic directions.
 
    -- Neutral species with a rectangular/square IC.
    square = Plasma.Species {
@@ -85,17 +86,17 @@ plasmaApp = Plasma.App {
       cells      = Nv,
       -- Initial conditions.
       init = function (t, xn)
-	 local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
+	 local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
 
-         return topHat(x, y, vpar, mu, n0, u0, vt)
+         return topHat(x, y, z, vpar, mu, n0, u0, vt)
       end,
       --bcx = { Plasma.Species.bcOpen,
       --        Plasma.Species.bcOpen },
       -- Evolve species?
       evolve              = true,    -- Evolve this species.
       evolveCollisionless = false,   -- Don't evolve collisionless terms for this test.
---      positivity          = true,    -- Enforce positivity.
---      positivityDiffuse   = true,    -- Add intra-cell diffusion to reduce negativity errors.
+      positivity          = true,    -- Enforce positivity.
+      positivityDiffuse   = true,    -- Add intra-cell diffusion to reduce negativity errors.
       -- Diagnostic moments.
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.
@@ -104,6 +105,23 @@ plasmaApp = Plasma.App {
          frequencies = {nu},
       },
    },
+
+   -- maxwellSquare = Plasma.Species {
+   --    charge = 1.0, mass = 1.0,
+   --    lower      = {vMin,muMin},
+   --    upper      = {vMax,muMax},
+   --    cells      = Nv,
+   --    -- Initial conditions.
+   --    init = {"maxwellian",
+   --            density = nMr,
+   -- 	      driftSpeed = {uMr},
+   --            temperature = vt2Mr,   
+   --    },
+   --    -- Evolve species?
+   --    evolve = false,
+   --    -- Diagnostic moments.
+   --    diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+   -- },
 
    -- Neutral species with a bump in the tail.
    bump = Plasma.Species {
@@ -114,17 +132,17 @@ plasmaApp = Plasma.App {
       cells      = Nv,
       -- Initial conditions.
       init = function (t, xn)
-   	 local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
+   	 local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
 
-         return bumpMaxwell(x,y,vpar,mu,n0,u0,vt,ab,ub,sb,vtb)
+         return bumpMaxwell(x,y,z,vpar,mu,n0,u0,vt,ab,ub,sb,vtb)
       end,
       --bcx = { Plasma.Species.bcOpen,
       --        Plasma.Species.bcOpen },
       -- Evolve species?
       evolve              = true,    -- Evolve this species.
       evolveCollisionless = false,   -- Don't evolve collisionless terms for this test.
---      positivity          = true,    -- Enforce positivity.
---      positivityDiffuse   = true,    -- Add intra-cell diffusion to reduce negativity errors.
+      positivity          = true,    -- Enforce positivity.
+      positivityDiffuse   = true,    -- Add intra-cell diffusion to reduce negativity errors.
       -- Diagnostic moments.
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.
@@ -134,15 +152,33 @@ plasmaApp = Plasma.App {
       },
    },
 
+   -- maxwellBump = Plasma.GkSpecies {
+   -- -- Velocity space grid.
+   --    charge = 1.0, mass = 1.0,
+   --    lower      = {vMin,muMin},
+   --    upper      = {vMax,muMax},
+   --    cells      = Nv,
+   --    -- Initial conditions.
+   --    init = {"maxwellian",
+   --            density = nMb,
+   -- 	      driftSpeed = {uMb},
+   --            temperature = vt2Mb,
+   --           }, 
+   --    -- Evolve species?
+   --    evolve = false,
+   --    -- Diagnostic moments.
+   --    diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+   -- },
+
    -- Field solver.
    field = Plasma.Field {
       evolve      = false, -- Evolve fields?
       externalPhi = function (t, xn) return 0.0 end,
    },
    
-   -- Magnetic geometry. 
+   -- Magnetic geometry.
    funcField = Plasma.Geometry {
-      -- Background magnetic field.
+      -- Background magnetic field
       bmag = function (t, xn)
          local x = xn[1]
          return B0
