@@ -203,6 +203,26 @@ function GkLBOCollisions:setPhaseGrid(grid)
    self.phaseGrid = grid
 end
 
+function GkLBOCollisions:allocDistF()
+   local f = DataStruct.Field {
+        onGrid        = self.phaseGrid,
+        numComponents = self.phaseBasis:numBasis(),
+        ghost         = {1, 1},
+   }
+   f:clear(0.0)
+   return f
+end
+
+function GkLBOCollisions:allocMoment()
+   local m = DataStruct.Field {
+        onGrid        = self.confGrid,
+        numComponents = self.confBasis:numBasis(),
+        ghost         = {1, 1},
+   }
+   m:clear(0.0)
+   return m
+end
+
 function GkLBOCollisions:createSolver(funcField)
    self.vDim = self.phaseGrid:ndim() - self.confGrid:ndim()
 
@@ -213,32 +233,16 @@ function GkLBOCollisions:createSolver(funcField)
    end
 
    -- Maximum velocity of the velocity grid (and its square).
-   self.vParMax            = self.phaseGrid:upper(self.confGrid:ndim()+1)
-   self.vParMaxSq          = self.vParMax^2
+   self.vParMax   = self.phaseGrid:upper(self.confGrid:ndim()+1)
+   self.vParMaxSq = self.vParMax^2
 
    -- Intemediate storage for output of collisions.
-   self.collOut = DataStruct.Field {
-      onGrid        = self.phaseGrid,
-      numComponents = self.phaseBasis:numBasis(),
-      ghost         = {1, 1},
-   }
-   self.collVol = DataStruct.Field {
-      onGrid        = self.phaseGrid,
-      numComponents = self.phaseBasis:numBasis(),
-      ghost         = {1, 1},
-   }
+   self.collOut = self:allocDistF()
+   self.collVol = self:allocDistF()
    -- Parallel flow velocity times collisionality, summed over species.
-   self.nuUParSum = DataStruct.Field {
-      onGrid        = self.confGrid,
-      numComponents = self.confBasis:numBasis(),
-      ghost         = {1, 1},
-   }
+   self.nuUParSum = self:allocMoment() 
    -- Thermal speed squared times collisionality, summed over species.
-   self.nuVtSqSum = DataStruct.Field {
-      onGrid        = self.confGrid,
-      numComponents = self.confBasis:numBasis(),
-      ghost         = {1, 1},
-   }
+   self.nuVtSqSum = self:allocMoment() 
 
    -- Inverse of background magnetic field.
    self.bmag    = funcField.geo.bmag
@@ -251,20 +255,11 @@ function GkLBOCollisions:createSolver(funcField)
       zfd[d] = self.confGrid:ndim() + d
    end
 
-   self.gkLBOconstNuCalcEq = {}
    if self.varNu then
       -- Self-species collisionality, which varies in space.
-      self.nuVarXSelf = DataStruct.Field {
-         onGrid        = self.confGrid,
-         numComponents = self.cNumBasis,
-         ghost         = {1, 1},
-      }
+      self.nuVarXSelf = self:allocMoment()
       -- Collisionality, nu, summed over all species pairs.
-      self.nuSum = DataStruct.Field {
-         onGrid        = self.confGrid,
-         numComponents = self.confBasis:numBasis(),
-         ghost         = {1, 1},
-      }
+      self.nuSum      = self:allocMoment()
       if self.timeDepNu then
         -- Updater to compute spatially varying (Spitzer) nu.
         self.spitzerNu = Updater.SpitzerCollisionality {
@@ -325,31 +320,58 @@ function GkLBOCollisions:createSolver(funcField)
          updateDirections   = zfd,    -- Only update velocity directions.
          zeroFluxDirections = zfd,
       }
+      -- This scaled distribution function is needed for collisions.
+      self.scaledDistF = self:allocDistF()
+      -- Need to compute moments of a scaled distribution.
+      self.threeMomentsLBOCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.phaseGrid,
+         phaseBasis = self.phaseBasis,
+         confBasis  = self.confBasis,
+         moment     = "GkThreeMomentsLBO",
+         gkfacs     = {self.mass, self.bmag},
+         positivity = self.usePositivity,
+      }
+      -- New moments of scaled distribution.
+      self.m0Scaled = self:allocMoment()
+      self.m1Scaled = self:allocMoment()
+      self.m2Scaled = self:allocMoment()
+      -- Intermediary quantities used in computing new primitive moments.
+      self.correctedMom1 = self:allocMoment()
+      self.correctedMom2 = self:allocMoment()
+      -- New primitive moments.
+      self.uParScaled = self:allocMoment()
+      self.vtSqScaled = self:allocMoment()
+      -- Some temporary conf-space buffer fields.
+      self.confBuf1 = self:allocMoment()
+      self.confBuf2 = self:allocMoment()
+      if (self.phaseBasis:polyOrder()==1) then
+         self.confBuf3     = self:allocMoment()
+         self.m1StarScaled = self:allocMoment()
+         self.m2StarScaled = self:allocMoment()
+      end
+      -- For now we will use binOp to recompute primitive moments.
+      if not self.varNu then
+         -- Weak multiplication updater can also be instantiated when varNu=true.
+         self.confMul = Updater.CartFieldBinOp {
+            onGrid    = self.confGrid,
+            weakBasis = self.confBasis,
+            operation = "Multiply",
+         }
+      end
+      self.confDiv = Updater.CartFieldBinOp {
+         onGrid    = self.confGrid,
+         weakBasis = self.confBasis,
+         operation = "Divide",
+      }
    end
    if self.crossCollisions then
       if self.varNu then
          -- Temporary collisionality fields.
-         self.nuCrossSelf = DataStruct.Field {
-            onGrid        = self.confGrid,
-            numComponents = self.confBasis:numBasis(),
-            ghost         = {1, 1},
-         }
-         self.nuCrossOther = DataStruct.Field {
-            onGrid        = self.confGrid,
-            numComponents = self.confBasis:numBasis(),
-            ghost         = {1, 1},
-         }
+         self.nuCrossSelf  = self:allocMoment() 
+         self.nuCrossOther = self:allocMoment() 
          -- Cross-species uPar and vtSq multiplied by collisionality.
-         self.nuUParCross = DataStruct.Field {
-            onGrid        = self.confGrid,
-            numComponents = self.confBasis:numBasis(),
-            ghost         = {1, 1},
-         }
-         self.nuVtSqCross = DataStruct.Field {
-            onGrid        = self.confGrid,
-            numComponents = self.confBasis:numBasis(),
-            ghost         = {1, 1},
-         }
+         self.nuUParCross = self:allocMoment() 
+         self.nuVtSqCross = self:allocMoment() 
       else
          self.nuCrossSelf  = 0.0
          self.nuCrossOther = 0.0
@@ -500,10 +522,59 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 
 end
 
-function GkLBOCollisions:advanceStep2(tCurr, fIn, species, auxPrimMomSelf, fRhsOut)
+function GkLBOCollisions:advanceStep2(tCurr, fIn, species, fRhsOut)
+   -- For positivity we need to recompute primitive moments and the volume term.
+   -- We will probably move/reorganize this to support cross-collisions (e.g. move
+   -- calculation of new primitive moments to GkSpecies).
 
-   -- Fetch coupling moments and primitive moments of this species.
-   local selfMom = species[self.speciesName]:fluidMoments()
+   -- Fetch primitive moments, boundary corrections and star-moments of this species.
+   local primMomSelf      = species[self.speciesName]:selfPrimitiveMoments()
+   local bCorrectionsSelf = species[self.speciesName]:boundaryCorrections()
+   local starMomSelf      = species[self.speciesName]:starMoments()
+
+   local energyEqM0, energyEqM1, energyEqM2 = nil, nil, nil
+   local scaleVolTermScale                  = true
+   -- Recompute uPar and vtSq from a new weak system in which boundary corrections use
+   -- the old vtSq, and the other terms are multiplied by the volume rescaling factor.
+   if scaleVolTermScale then
+      self.scaledDistF:copy(fIn)
+      self.scaledDistF:scaleByCell(self.gkLBOconstNuCalcEq.volTermRescale)
+      scaleVolTermScale = false
+      -- Compute new moments with scaled distribution function.
+      self.threeMomentsLBOCalc:advance(tCurr, {self.scaledDistF}, { self.m0Scaled, self.m1Scaled, self.m2Scaled,
+                                                                    self.confBuf1, self.confBuf2,
+                                                                    self.confBuf3, self.m1StarScaled, self.m2StarScaled })
+      energyEqM0, energyEqM1, energyEqM2 = self.m0Scaled, self.m1Scaled, self.m2Scaled
+      if self.phaseBasis:polyOrder()==1 then
+         energyEqM0, energyEqM1, energyEqM2 = starMomSelf[1], self.m1StarScaled, self.m2StarScaled
+      end
+   end
+
+   self.confMul:advance(tCurr, {primMomSelf[2], bCorrectionsSelf[1]}, {self.correctedMom1})
+   -- Barrier over shared communicator before accumulate.
+   Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
+   self.correctedMom1:accumulate(1.0,self.m1Scaled)
+   self.confDiv:advance(tCurr, {self.m0Scaled, self.correctedMom1}, {self.uParScaled})
+
+   self.confMul:advance(tCurr, {self.uParScaled, energyEqM1}, {self.correctedMom1})
+   if (self.phaseBasis:polyOrder()==1) and (self.vDim > 1) then
+      -- Barrier over shared communicator before combine.
+      Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
+      self.confBuf2:combine(1.0, bCorrectionsSelf[2], -1.0, starMomSelf[1])
+      self.confMul:advance(tCurr, {primMomSelf[2], self.confBuf2}, {self.correctedMom2})
+      self.correctedMom2:scale(0.5)
+      -- Barrier over shared communicator before combine.
+      Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
+      self.correctedMom2:accumulate( 0.5, energyEqM2, -0.5, self.correctedMom1)
+      self.confDiv:advance(tCurr, {self.m0Scaled, self.correctedMom2}, {self.vtSqScaled})
+   else
+      self.confMul:advance(tCurr, {primMomSelf[2], bCorrectionsSelf[2]}, {self.correctedMom2})
+      self.correctedMom2:scale(1.0/self.vDimPhys)
+      -- Barrier over shared communicator before combine.
+      Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
+      self.correctedMom2:accumulate( 1.0/self.vDimPhys, energyEqM2, -1.0/self.vDimPhys, self.correctedMom1 )
+      self.confDiv:advance(tCurr, {energyEqM0, self.correctedMom2}, {self.vtSqScaled})
+   end
 
    if self.varNu then
       self.nuSum:clear(0.0)
@@ -520,18 +591,19 @@ function GkLBOCollisions:advanceStep2(tCurr, fIn, species, auxPrimMomSelf, fRhsO
       self.gkLBOconstNuCalcEq.primMomCrossLimit = 0.0
 
       if self.varNu then
-         self.confMul:advance(tCurr, {self.nuSum, auxPrimMomSelf[1]}, {self.nuUParSum})
-         self.confMul:advance(tCurr, {self.nuSum, auxPrimMomSelf[2]}, {self.nuVtSqSum})
+         self.confMul:advance(tCurr, {self.nuSum, self.uParScaled}, {self.nuUParSum})
+         self.confMul:advance(tCurr, {self.nuSum, self.vtSqScaled}, {self.nuVtSqSum})
       else
          self.nuSum = self.collFreqSelf
-         self.nuUParSum:combine(self.collFreqSelf, auxPrimMomSelf[1])
-         self.nuVtSqSum:combine(self.collFreqSelf, auxPrimMomSelf[2])
+         self.nuUParSum:combine(self.collFreqSelf, self.uParScaled)
+         self.nuVtSqSum:combine(self.collFreqSelf, self.vtSqScaled)
       end
    end    -- end if self.selfCollisions.
 
-   --if self.crossCollisions then
-   --
-   --end    -- end if self.crossCollisions.
+   if self.crossCollisions then
+      -- Cross-collisions with positivity is not available yet.
+      assert(false, "App.Collisions.GkLBO: Cross-collisions with positivity is not available yet.")
+   end    -- end if self.crossCollisions.
 
    -- Compute increment from collisions and accumulate it into output.
    -- Note that if positivity=true, self.collOut only has the surface

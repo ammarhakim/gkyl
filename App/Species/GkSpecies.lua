@@ -35,20 +35,17 @@ function GkSpecies:alloc(nRkDup)
    -- Allocate distribution function.
    GkSpecies.super.alloc(self, nRkDup)
 
-   -- Allocate fields to store coupling moments (for use in coupling
-   -- to field and collisions).
+   -- Allocate fields to store coupling moments (for use in coupling to field and collisions).
    self.numDensity         = self:allocMoment()
-   self.numDensityAux      = self:allocMoment()
    self.momDensity         = self:allocMoment()
-   self.momDensityAux      = self:allocMoment()
    self.ptclEnergy         = self:allocMoment()
+   self.numDensityAux      = self:allocMoment()
+   self.momDensityAux      = self:allocMoment()
    self.ptclEnergyAux      = self:allocMoment()
    if self.positivity then
       self.numDensityPos   = self:allocMoment()
       self.momDensityPos   = self:allocMoment()
       self.ptclEnergyPos   = self:allocMoment()
-      -- To obtain the cell average, divide the zeroth coefficient by this factor.
-      self.cellAvFac       = math.sqrt(2.0^self.ndim)
    end
    self.polarizationWeight = self:allocMoment() -- not used when using linearized poisson solve
 
@@ -312,10 +309,6 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          weakBasis = self.confBasis,
          operation = "Multiply",
       }
-      if self.positivity then
-         -- This scaled distribution function is needed for collisions. 
-         self.scaledDistF = self:allocDistf()
-      end
    end
    
    self._firstMomentCalc = true  -- To avoid re-calculating moments when not evolving.
@@ -552,17 +545,6 @@ function GkSpecies:initCrossSpeciesCoupling(species)
          self.m1Star = self:allocMoment()
          self.m2Star = self:allocMoment()
       end
-
-      if self.positivity then
-         self.uParAux = self:allocMoment()
-         self.vtSqAux = self:allocMoment()
-
-         self.m1CorrectionAux = self:allocMoment()
-         self.m2CorrectionAux = self:allocMoment()
-         if (self.basis:polyOrder()==1) then
-            self.m0StarAux = self:allocMoment()
-         end
-      end
    end
 
    -- Allocate fieds to store cross-species primitive moments.
@@ -654,6 +636,11 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
          if (self.positivity) and (c.collKind == "GkLBO") then
             c.gkLBOconstNuCalcEq:getPositivityRhs(tCurr, self.dtGlobal[0], fIn, fRhsOut)
+
+            -- Set the time step and CFL again.
+            c.collisionSlvrStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+
+            c:advanceStep2(tCurr, fIn, species, fRhsOut)
          end
       end
    end
@@ -684,69 +671,6 @@ function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
    local dApardtProv = emIn[1].dApardtProv
    local emFunc      = emIn[2]:rkStepperFields()[1]
 
-   if self.evolveCollisions and self.positivity then
-      local energyEqM0, energyEqM1, energyEqM2 = nil, nil, nil
-      local scaleVolTermScale                  = true
-      for _, c in pairs(self.collisions) do
-         if (c.collKind == "GkLBO") then
-            -- Recompute uPar and vtSq from a new weak system in which boundary corrections use
-            -- the old vtSq, and the other terms are multiplied by the volume rescaling factor.
-            if scaleVolTermScale then
-               self.scaledDistF:copy(fIn)
-               self.scaledDistF:scaleByCell(c.gkLBOconstNuCalcEq.volTermRescale)
-               scaleVolTermScale = false
-               -- Compute new moments with scaled distribution function. 
-               self.threeMomentsLBOCalc:advance(tCurr, {self.scaledDistF}, { self.numDensityAux, self.momDensityAux, self.ptclEnergyAux,
-                                                                             self.m1CorrectionAux, self.m2CorrectionAux,
-                                                                             self.m0StarAux, self.m1Star, self.m2Star })
-               energyEqM0, energyEqM1, energyEqM2 = self.numDensityAux, self.momDensityAux, self.ptclEnergyAux
-               if self.basis:polyOrder()==1 then
-                  energyEqM0, energyEqM1, energyEqM2 = self.m0Star, self.m1Star, self.m2Star
-               end
-            end
-
-            if self.needCorrectedSelfPrimMom then
-               self.confMul:advance(tCurr, {self.vtSqSelf, self.m1Correction}, {self.numDensityPos})
-               -- Barrier over shared communicator before accumulate.
-               Mpi.Barrier(self.grid:commSet().sharedComm)
-               self.numDensityPos:accumulate(1.0,self.momDensityAux)
-               self.confDiv:advance(tCurr, {self.numDensityAux, self.numDensityPos}, {self.uParAux})
-
-               self.confMul:advance(tCurr, {self.uParAux, energyEqM1}, {self.momDensityPos})
-               if (self.basis:polyOrder()==1) and (self.vdim > 1) then
-                  -- Barrier over shared communicator before combine.
-                  Mpi.Barrier(self.grid:commSet().sharedComm)
-                  self.m2CorrectionAux:combine(1.0, self.m0Star, -1.0, self.m2Correction)
-                  self.confMul:advance(tCurr, {self.vtSqSelf, self.m2CorrectionAux}, {self.ptclEnergyPos})
-                  -- Barrier over shared communicator before combine.
-                  Mpi.Barrier(self.grid:commSet().sharedComm)
-                  self.numDensityPos:combine( 0.5, energyEqM2,
-                                             -0.5, self.momDensityPos,
-                                             -0.5, self.ptclEnergyPos )
-                  self.confDiv:advance(tCurr, {self.numDensityAux, self.numDensityPos}, {self.vtSqAux})
-               else
-                  self.confMul:advance(tCurr, {self.vtSqSelf, self.m2Correction}, {self.ptclEnergyPos})
-                  -- Barrier over shared communicator before combine.
-                  Mpi.Barrier(self.grid:commSet().sharedComm)
-                  self.numDensityPos:combine( 1.0/self.vDegFreedom, energyEqM2,
-                                             -1.0/self.vDegFreedom, self.momDensityPos,
-                                              1.0/self.vDegFreedom, self.ptclEnergyPos )
-                  self.confDiv:advance(tCurr, {energyEqM0, self.numDensityPos}, {self.vtSqAux})
-               end
-
-            else
-               -- If code gets in here it must mean that self-species LBO is not present,
-               -- but cross-species LBO is. So need to recompute the cross-species primitive
-               -- moments taking into account the rescaling of the cross-species LBO volume term.
-               -- Maybe this needs to take place inside Eq:advanceStep2().
-            end
-
-            -- Recompute the volume term, scale it by the scaling term, and accumulate it 
-            c.collisionSlvrStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-            c:advanceStep2(tCurr, fIn, species, {self.uParAux,self.vtSqAux}, fRhsOut)
-         end
-      end
-   end
    if self.evolveCollisionless then
       self.solverStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solverStep2:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})

@@ -199,8 +199,8 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
       local velRange = phaseRange:selectLast(vDim)
       local tId      = grid:subGridSharedId()    -- Local thread ID.
    
-      local phaseIndexer      = distf:genIndexer()
-      local confIndexer       = mom1:genIndexer()
+      local phaseIndexer = distf:genIndexer()
+      local confIndexer  = mom1:genIndexer()
 
       local mom2, mom3
       local mom2Itr, mom3Itr
@@ -346,7 +346,7 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
                      if firstDir and i<dirUpIdx then
                         if self._isGk then
                            self._momCalcFun(self.xcP:data(), self.dxP:data(), self.mass, self.bmagItr:data(), distfItrP:data(), 
-                            		 mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
+                                            mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
                            self._StarM1iM2Calc(self.xcP:data(), self.dxP:data(), self._intFac[1], self.mass, self.bmagItr:data(), distfItrP:data(), m1StarItr:data(), m2StarItr:data())
                         else
                            self._momCalcFun(self.xcP:data(), self.dxP:data(), distfItrP:data(), mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
@@ -407,7 +407,7 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
                      mom2:fill(confIndexer(cIdx), mom2Itr)
                      mom3:fill(confIndexer(cIdx), mom3Itr)
                      self._momCalcFun(self.xcP:data(), self.dxP:data(), self.mass, self.bmagItr:data(), distfItr:data(), 
-                      		mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
+                                      mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
                   else
                      self._momCalcFun(self.xcP:data(), self.dxP:data(), self.mass, self.bmagItr:data(), distfItr:data(), mom1Itr:data())
                   end
