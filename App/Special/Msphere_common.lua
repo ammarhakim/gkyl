@@ -30,6 +30,15 @@ local function buildInitMirdip(tbl)
    -- planet parameters
    local R = tbl.planetRadius
    -- dipole streghth; B0 is B field at equator
+   if tbl.planetBx0 == nil or tbl.planetBy0 == nil or tbl.planetBz0 == nil then
+      -- TODO make sure theta & phi are consistent with conventions
+      local B0 = tonumber(tbl.planetB0)
+      local theta = tonumber(tbl.planetB0theta)
+      local phi = tonumber(tbl.planetB0phi)
+      tbl.planetBx0 = B0 * math.sin(theta) * math.cos(phi)
+      tbl.planetBy0 = B0 * math.sin(theta) * math.sin(phi)
+      tbl.planetBz0 = B0 * math.cos(theta)
+   end
    local Dx = tbl.planetBx0 * R ^ 3
    local Dy = tbl.planetBy0 * R ^ 3
    local Dz = tbl.planetBz0 * R ^ 3
