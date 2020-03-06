@@ -64,7 +64,6 @@ return {
    MaxwellianOnBasis = MaxwellianOnBasis,
    PositivityCheck = PositivityCheck,
    PositivityRescale = PositivityRescale,
-   ProjectExactlyOnBasis = ProjectExactlyOnBasis,
    ProjectOnBasis = ProjectOnBasis,
    SelfPrimMoments = SelfPrimMoments,
    SolidSurface = SolidSurface,
