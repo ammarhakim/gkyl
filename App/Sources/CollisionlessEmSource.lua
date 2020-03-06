@@ -11,6 +11,7 @@ local DataStruct = require "DataStruct"
 local Basis = require "Basis"
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
+local Species          = require "App.Species"
 local xsys = require "xsys"
 
 -- CollisionlessEmSource ---------------------------------------------------------------
@@ -71,19 +72,31 @@ function CollisionlessEmSource:createSolver(species, field)
 
    local source_type
    for i, nm in ipairs(self.speciesList) do
-      mass[i] = species[nm]:getMass()
-      charge[i] = species[nm]:getCharge()
+      local _species_
+      if type(nm) == 'string' then
+         _species_ = species[nm]
+      else
+         _species_ = nm
+      end
+      mass[i] = _species_:getMass()
+      charge[i] = _species_:getCharge()
       if not source_type then
-         source_type = species[nm].nMoments
+         source_type = _species_.nMoments
       else
          -- FIXME Currently all species must have the same moments.
-         assert(source_type == species[nm].nMoments)
+         assert(source_type == _species_.nMoments)
       end
    end
    if not evolve then
       evolve = {}
       for i, nm in ipairs(self.speciesList) do
-         evolve[i] = species[nm]:getEvolve()
+         local _species_
+         if type(nm) == 'string' then
+            _species_ = species[nm]
+         else
+            _species_ = nm
+         end
+         evolve[i] = _species_:getEvolve()
       end
    end
 
@@ -156,6 +169,9 @@ end
 function CollisionlessEmSource:updateSource(tCurr, dt, speciesVar, fieldVar)
    local outVars = {}
    for i, nm in ipairs(self.speciesList) do
+      if Species.SpeciesBase.is(nm) then
+         nm = nm.name
+      end
       outVars[i] = speciesVar[nm]
    end
    outVars[#self.speciesList+1] = fieldVar
