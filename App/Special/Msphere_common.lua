@@ -26,7 +26,53 @@ local function setdefaultEarth(tbl)
    setdefault(tbl, "BzIn", -5e-9)
 
    setdefault(tbl, "rCut", 0.5 * tbl.planetRadius)
-   setdefault(tbl, "xmir", 0.2 * tbl.planetRadius)
+   setdefault(tbl, "xmir", 15 * tbl.planetRadius)
+   setdefault(tbl, "stretch", 2)
+   setdefault(tbl, "r_ramp1", 12 * tbl.planetRadius)
+   setdefault(tbl, "r_ramp2", 14 * tbl.planetRadius)
+
+   setdefault(tbl, "rInOut", tbl.planetRadius)
+end
+
+local function setdefaultMercury(tbl)
+   setdefault(tbl, "planetRadius", 2439.7e3)
+   setdefault(tbl, "planetBx0", 0)
+   setdefault(tbl, "planetBx0", 0)
+   setdefault(tbl, "planetBx0", -195e-9)
+   setdefault(tbl, "rhoIn", 56e6 * Constants.PROTON_MASS)
+   setdefault(tbl, "pIn", 0.19e-9)
+   setdefault(tbl, "vxIn", 400e3)
+   setdefault(tbl, "vyIn", 50e3)
+   setdefault(tbl, "vzIn", 0)
+   setdefault(tbl, "BxIn", -15.21e-9)
+   setdefault(tbl, "ByIn", 8e-9)
+   setdefault(tbl, "BzIn", -8.51e-9)
+
+   setdefault(tbl, "rCut", 0.5 * tbl.planetRadius)
+   setdefault(tbl, "xmir", 5 * tbl.planetRadius)
+   setdefault(tbl, "stretch", 2)
+   setdefault(tbl, "r_ramp1", 2 * tbl.planetRadius)
+   setdefault(tbl, "r_ramp2", 2.5 * tbl.planetRadius)
+
+   setdefault(tbl, "rInOut", tbl.planetRadius)
+end
+
+local function setdefaultGanymede(tbl)
+   setdefault(tbl, "planetRadius", 2634.1e3)
+   setdefault(tbl, "planetBx0", -18e-9)
+   setdefault(tbl, "planetBx0", 51.8e-9)
+   setdefault(tbl, "planetBx0", -716.8e-9)
+   setdefault(tbl, "rhoIn", 56e6 * Constants.PROTON_MASS)
+   setdefault(tbl, "pIn", 3.8e-12)
+   setdefault(tbl, "vxIn", 140e3)
+   setdefault(tbl, "vyIn", 0)
+   setdefault(tbl, "vzIn", 0)
+   setdefault(tbl, "BxIn", 0)
+   setdefault(tbl, "ByIn", -6e-9)
+   setdefault(tbl, "BzIn", -77e-9)
+
+   setdefault(tbl, "rCut", 0.5 * tbl.planetRadius)
+   setdefault(tbl, "xmir", 2.5 * tbl.planetRadius)
    setdefault(tbl, "stretch", 1)
    setdefault(tbl, "r_ramp1", 2 * tbl.planetRadius)
    setdefault(tbl, "r_ramp2", 2.5 * tbl.planetRadius)
@@ -46,6 +92,10 @@ local function setdefaultObject(tbl)
    if type(tbl.objectName) == "string" then
       if string.lower(tbl.objectName) == "earth" then
          setdefaultEarth(tbl)
+      elseif string.lower(tbl.objectName) == "mercury" then
+         setdefaultMercury(tbl)
+      elseif string.lower(tbl.objectName) == "ganymede" then
+         setdefaultGanymede(tbl)
       else
          assert(false, "Object name \""..tbl.objectName.."\" not recognized")
       end
