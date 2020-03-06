@@ -40,7 +40,7 @@ local function setdefaultObject(tbl)
    setdefault(tbl, "mu0", Constants.MU0)
    if tbl.epsilon0 == nil then
       setdefault(tbl, "lightSpeed", Constants.SPEED_OF_LIGHT / 50)
-      setdefault(tbl, "epsilon00", 1 / mu0 / (tbl.lightSpeed^2))
+      setdefault(tbl, "epsilon0", 1 / mu0 / (tbl.lightSpeed^2))
    end
 
    if type(tbl.objectName) == "string" then
@@ -332,7 +332,6 @@ local function buildInitMirdip(tbl)
    }
 end
 
-
 local calcValuesIn = function(tbl)
    -- solar wind parameters
    local rhoIn = tbl.rhoIn
@@ -409,6 +408,7 @@ end
 ----------
 -- Grid --
 ----------
+
 local function calcGrid(calcDx, xlo, xup, nx)
    --[[
    Args:
@@ -492,7 +492,6 @@ local function buildGridFlatTop1d(xlo, xup, nx, x0, width, flatWidth, ratioDx)
 
    return coordinateMap
 end
-
 
 return {
    setdefaultObject = setdefaultObject,

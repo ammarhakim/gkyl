@@ -1,19 +1,9 @@
 -- Gkyl ------------------------------------------------------------------------
-
 local Moments = require("App.PlasmaOnCartGrid").Moments
 local Euler = require "Eq.Euler"
 local TenMoment = require "Eq.TenMoment"
 local Logger = require "Logger"
 local common = require "App.Special.Msphere_common"
-
-local logger = Logger {
-   logToFile = true
-}
-
-local log = function(...)
-   logger(string.format(...))
-   logger("\n")
-end
 
 local function buildApp(tbl)
    common.setdefaultObject(tbl)
@@ -32,13 +22,11 @@ local function buildApp(tbl)
       local wx, fwx, rx = tbl.wx, tbl.fwx, tbl.rx
       local wy, fwy, ry = tbl.wy, tbl.fwy, tbl.ry
       local wz, fwz, rz = tbl.wz, tbl.fwz, tbl.rz
-
       coordinateMap = {
          common.buildGridFlatTop1d (xlo, xup, nx, 0, wx, fwx, rx),
          common.buildGridFlatTop1d (ylo, yup, ny, 0, wy, fwy, ry),
          common.buildGridFlatTop1d (zlo, zup, nz, 0, wz, fwz, rz),
       }
-
       lower = {0, 0, 0}
       upper = {1, 1, 1}
    end
@@ -91,16 +79,19 @@ local function buildApp(tbl)
       epsilon0 = tbl.epsilon0,
       mu0 = tbl.mu0,
       evolve = true,
+
       init = function(t, xn)
          local x, y, z = xn[1], xn[2], xn[3]
          return initMirdip.initField(x, y, z, nSpecies + 1)
       end,
+
       bcx = {
          Moments.Field.bcConst(unpack(valuesIn[nSpecies + 1])),
          Moments.Field.bcCopy
       },
       bcy = {Moments.Field.bcCopy, Moments.Field.bcCopy},
       bcz = {Moments.Field.bcCopy, Moments.Field.bcCopy},
+
       hasSsBnd = true,
       inOutFunc = common.buildInOutFunc(tbl),
       ssBc = {Moments.Species.bcReflect}
@@ -140,4 +131,3 @@ local function buildApp(tbl)
 end
 
 return buildApp
-
