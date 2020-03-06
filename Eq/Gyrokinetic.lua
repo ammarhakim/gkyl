@@ -47,7 +47,6 @@ function Gyrokinetic:init(tbl)
    self._surfTerms = GyrokineticModDecl.selectSurf(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self._positivity, self.Bvars)
    if self._isElectromagnetic then 
       self._volTermStep2 = GyrokineticModDecl.selectStep2Vol(nm, self._cdim, self._vdim, p, self._positivity)
-      if p > 1 then self._surfTermsStep2 = GyrokineticModDecl.selectStep2Surf(nm, self._cdim, self._vdim, p, self._positivity, self.Bvars) end
    end
 
    -- for sheath BCs
@@ -75,6 +74,7 @@ function Gyrokinetic:init(tbl)
    -- timers
    self.totalVolTime = 0.0
    self.totalSurfTime = 0.0
+   if self._positivity then self.positivityTime = 0.0 end
 
    self.cflRateByDir = DataStruct.Field {
       onGrid        = self._grid,
@@ -373,30 +373,9 @@ function Gyrokinetic:volTermStep2(w, dx, idx, f_ptr, fRhs_ptr)
    return cflRate
 end
 
--- Step2 surface integral term for use in DG scheme (EM only, vpar dir only)
-function Gyrokinetic:surfTermStep2(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, 
-                                   f_L_ptr, f_R_ptr, fRhs_L_ptr, fRhs_R_ptr)
-   local tmStart = Time.clock()
-   self.dApardt:fill(self.dApardtIdxr(idxr), self.dApardt_ptr)
-
-   local res
-   if self._positivity then
-      self.cflRateByDir:fill(self.cflRateByDirIdxr(idxl), self.cflRateByDir_L_ptr)
-      self.cflRateByDir:fill(self.cflRateByDirIdxr(idxr), self.cflRateByDir_R_ptr)
-      self.fRhsSurfV:fill(self.fRhsIdxr(idxl), self.fRhsSurfV_L_ptr)
-      self.fRhsSurfV:fill(self.fRhsIdxr(idxr), self.fRhsSurfV_R_ptr)
-      res = self._surfTermsStep2[dir](self.charge, self.mass, wr:data(), dxr:data(),
-                                      self.dApardt_ptr:data(), 
-                                      dtApprox, self.cflRateByDir_L_ptr:data(), self.cflRateByDir_R_ptr:data(),
-                                      f_L_ptr:data(), f_R_ptr:data(), self.fRhsSurfV_L_ptr:data(), self.fRhsSurfV_R_ptr:data())
-   else
-      res = self._surfTermsStep2[dir](self.charge, self.mass, wr:data(), dxr:data(), 
-                                      self.dApardt_ptr:data(),
-                                      f_L_ptr:data(), f_R_ptr:data(), fRhs_L_ptr:data(), fRhs_R_ptr:data())
-   end
-
-   self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
-   return res
+function Gyrokinetic:surfTermStep2(...)
+   -- step 2 surface term for EMGK is same as step 1...
+   return self:surfTerm(...)
 end
 
 function Gyrokinetic:clearRhsTerms()
@@ -415,6 +394,7 @@ end
 -- when using positivity algorithm, different parts of RHS are stored separately.
 -- here we combine the parts, with some rescaling of the volume term
 function Gyrokinetic:getPositivityRhs(tCurr, dtApprox, fIn, fRhs)
+   local tmStart = Time.clock()
    if self._isElectromagnetic then
       weightDirs = {}
       for d = 1, self._cdim do
@@ -432,9 +412,11 @@ function Gyrokinetic:getPositivityRhs(tCurr, dtApprox, fIn, fRhs)
 
       fRhs:accumulate(1.0, self.fRhsVol)
    end 
+   self.positivityTime = self.positivityTime + (Time.clock()-tmStart)
 end
 
 function Gyrokinetic:getPositivityRhsStep2(tCurr, dtApprox, fIn, fRhs)
+   local tmStart = Time.clock()
    if self._isElectromagnetic then
       weightDirs = {}
       for d = 1, self._vdim do
@@ -443,6 +425,7 @@ function Gyrokinetic:getPositivityRhsStep2(tCurr, dtApprox, fIn, fRhs)
       if dtApprox > 0 then self.posRescaler:rescaleVolTerm(tCurr, dtApprox, fIn, self.cflRateByDir, weightDirs, self.fRhsSurfV, self.fRhsVolV) end
       fRhs:accumulate(1.0, self.fRhsSurfV, 1.0, self.fRhsVolV)
    end 
+   self.positivityTime = self.positivityTime + (Time.clock()-tmStart)
 end
 
 return {GkEq = Gyrokinetic}

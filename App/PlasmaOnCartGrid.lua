@@ -397,7 +397,7 @@ local function buildApplication(self, tbl)
       end
 
       -- Some systems (e.g. EM GK) require additional step(s) to complete the forward Euler.
-      for _, istep in pairs({2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4}) do      
+      for istep = 2, nstep do
          -- Update EM field.. step 2 (if necessary). 
          -- Note: no calcCouplingMoments call because field:forwardEulerStep2
          -- either reuses already calculated moments, or other moments are

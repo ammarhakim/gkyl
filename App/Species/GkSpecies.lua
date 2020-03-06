@@ -1239,7 +1239,7 @@ end
 function GkSpecies:totalSolverTime()
    local timer = self.solver.totalTime
    if self.solverStep2 then timer = timer + self.solverStep2.totalTime end
-   if self.posRescaler then timer = timer + self.posRescaler.totalTime end
+   if self.positivity then timer = timer + self.gkEqn.positivityTime end
    return timer
 end
 
