@@ -259,71 +259,6 @@ local function buildInitMirdip(tbl)
       end
    end
 
-   local init = tbl.init
-   if not init then
-      init = function(x, y, z)
-         local rho = calcRho(x,y,z)
-         local vx,vy,vz = calcV(x,y,z)
-         local p = calcP(x,y,z)
-
-         local values = {}
-         local comp = 0
-
-         for s = 1, nSpecies do
-            local rho_s = rho * massFractions[s]
-            local rhovx_s = rho_s * vx
-            local rhovy_s = rho_s * vy
-            local rhovz_s = rho_s * vz
-            local p_s = p * pressureFractions[s]
-
-            values[comp + 1] = rho_s
-            values[comp + 2] = rhovx_s
-            values[comp + 3] = rhovy_s
-            values[comp + 4] = rhovz_s
-
-            local moment = moments[s]
-            if moment == 5 then
-               local e_s = p_s / (gasGamma - 1) +
-                           0.5 * (rhovx_s^2 + rhovy_s^2 + rhovz_s^2) / rho_s
-               values[comp + 5] = e_s
-            elseif moment == 10 then
-               values[comp + 5] = p_s +   rhovx_s^2 / rho_s -- Pxx_s
-               values[comp + 6] = rhovx_s * rhovy_s / rho_s -- Pxy_s
-               values[comp + 7] = rhovx_s * rhovz_s / rho_s -- Pxz_s
-               values[comp + 8] = p_s +   rhovy_s^2 / rho_s -- Pyy_s
-               values[comp + 9] = rhovy_s * rhovz_s / rho_s -- Pyz_s
-               values[comp + 10] = p_s +   rhovz_s^2 / rho_s -- Pzz_s
-            else
-               assert(false)
-            end
-            comp = comp + moment
-         end
-
-         local Bxt, Byt, Bzt = calcBt(x, y, z)
-         local Bx0, By0, Bz0 = calcB0(x, y, 1)
-         local Bx1, By1, Bz1 = Bxt - Bx0, Byt - By0, Bzt - Bz0
-
-         local Ex = - vy * Bzt + vz * Byt
-         local Ey = - vz * Bxt + vx * Bzt
-         local Ez = - vx * Byt + vy * Bxt
-
-         values[comp + 1] = Ex
-         values[comp + 2] = Ey
-         values[comp + 3] = Ez
-
-         values[comp + 4] = Bx1
-         values[comp + 5] = By1
-         values[comp + 6] = Bz1
-
-         local phiE = 0
-         local phiB = 0
-         values[comp + 7] = phiE
-         values[comp + 8] = phiB
-
-         return values
-      end
-   end
-
    local initFluid = tbl.initFluid
    if not initFluid then
       initFluid = function(x, y, z, s)
@@ -388,7 +323,6 @@ local function buildInitMirdip(tbl)
       calcBt = calcBt,
       calcB0 = calcB0,
       calcStaticEB = calcStaticEB,
-      init = init,
       initFluid = initFluid,
       initField = initField,
    }
