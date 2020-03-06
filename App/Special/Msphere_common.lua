@@ -1,133 +1,434 @@
+--------------------
+-- INITIALIZATION --
+--------------------
 
+local function default(key, val)
+   return key and key or val
+end
 
-local function dipoleB(x, y, z, x0, y0, z0, Dx, Dy, Dz)
-   local xx = (x - x0)
-   local yy = (y - y0)
-   local zz = (z - z0)
-   local rr = math.sqrt(xx^2+yy^2+zz^2)
+local function dipoleB(x, y, z, x0, y0, z0, Dx, Dy, Dz, rCut)
+   local xx = x - x0
+   local yy = y - y0
+   local zz = z - z0
+   local rr = math.sqrt(xx^2 + yy^2 + zz^2)
+
+   if rr and (rr < rCut) then
+      return 0, 0, 0
+   end
+
    local Bx = (3*xx*Dx*xx + 3*xx*Dy*yy + 3*xx*Dz*zz - Dx*rr^2) / rr^5
    local By = (3*yy*Dx*xx + 3*yy*Dy*yy + 3*yy*Dz*zz - Dy*rr^2) / rr^5
    local Bz = (3*zz*Dx*xx + 3*zz*Dy*yy + 3*zz*Dz*zz - Dz*rr^2) / rr^5
+
    return Bx, By, Bz
 end
 
-local function mirdip_dipoleB(x, y, z, x0, y0, z0, Dx, Dy, Dz, cut, xmir)
-   if cut and x < xmir then
-      return 0, 0, 0
+local function buildInitMirdip(tbl)
+   -- planet parameters
+   local R = tbl.planetRadius
+   -- dipole streghth; B0 is B field at equator
+   local Dx = tbl.planetBx0 * R ^ 3
+   local Dy = tbl.planetBy0 * R ^ 3
+   local Dz = tbl.planetBz0 * R ^ 3
+
+   -- solar wind parameters
+   local rhoIn = tbl.rhoIn
+   local vxIn = tbl.vxIn
+   local vyIn = tbl.vyIn
+   local vzIn = tbl.vzIn
+   local pIn = tbl.pIn
+
+   local BxIn = tbl.BxIn
+   local ByIn = tbl.ByIn
+   local BzIn = tbl.BzIn
+
+   -- mirdip setup parameters
+   local rCut = default(tbl.rCut, 0.5 * R)
+   local xmir = default(tbl.xmir, 0.2 * R)
+   local stretch = default(tbl.stretch, 1)
+   local r_ramp1  = default(tbl.r_ramp1, 2 * R)
+   local r_ramp2  = default(tbl.r_ramp2, 2.5 * R)
+
+   -- multifluid parameters
+   local massFractions = tbl.massFractions
+   local pressureFractions = tbl.pressureFractions
+   local moments = tbl.moments
+   local nSpecies = #moments
+   assert(#massFractions == #pressureFractions)
+
+   -- constants
+   local gasGamma = default(tbl.gasGamma, 5./3.)
+   tbl.gasGamma = gasGamma
+
+   local calcRho = tbl.calcRho
+   if not calcRho then
+      calcRho = function(x, y, z)
+         return rhoIn
+      end
    end
-   return dipoleB(x, y, z, x0, y0, z0, Dx, Dy, Dz)
-end
 
-function mirdip_rho(x,y,z)
-   local rho = rho_in
-   return rho
-end
-
-function mirdip_pressure(x,y,z)
-   local p = p_in
-   return p
-end
-
-local function mirdip_v(x, y, z)
-   local xx = x > 0 and x/stretch or x
-   local r = math.sqrt(xx^2 + y^2 + z^2)
-   local s = (r-r_ramp1)/(r_ramp2-r_ramp1)
-   s = math.max(s, 0)
-   s = math.min(s, 1)
-   local vx = vx_in * s
-   local vy = vy_in * s
-   local vz = vz_in * s
-   return vx, vy, vz
-end
-
-local function mirdip_staticB(x, y, z, xmir, r1)
-   local r2 = x^2+y^2+z^2
-   if (r2 < r1^2) then
-      return 0, 0, 0
+   local calcV = tbl.calcV
+   if not calcV then
+      calcV = function(x, y, z)
+         local xx = x > 0 and x / stretch or x
+         local r = math.sqrt(xx^2 + y^2 + z^2)
+         local s = (r - r_ramp1) / (r_ramp2 - r_ramp1)
+         s = math.max(s, 0)
+         s = math.min(s, 1)
+         local vx = vxIn * s
+         local vy = vyIn * s
+         local vz = vzIn * s
+         return vx, vy, vz
+      end
    end
-   local Bxs, Bys, Bzs = 0, 0, 0
-   local Bxd0, Byd0, Bzd0 = mirdip_dipoleB(x, y, z, 0, 0, 0, Dx, Dy, Dz, false, xmir)
-   Bxs, Bys, Bzs = Bxs+Bxd0, Bys+Byd0, Bzs+Bzd0
-   -- Bxs, Bys, Bzs = Bxs+Bx_in, Bys+By_in, Bzs+Bz_in
-   return Bxs, Bys, Bzs
-end
 
-local function mirdip_totalB(x, y, z, xmir, r1)
-   local r2 = x^2+y^2+z^2
-   if (r2 < r1^2) then
-      return 0, 0, 0
+   local calcP = tbl.calcP
+   if not calcP then
+      calcP = function(x, y, z)
+         return pIn
+      end
    end
-   local Bxt, Byt, Bzt = 0, 0, 0
-   local Bxd0, Byd0, Bzd0 = mirdip_dipoleB(x, y, z, 0, 0, 0, Dx, Dy, Dz, true, xmir)
-   Bxt, Byt, Bzt = Bxt+Bxd0, Byt+Byd0, Bzt+Bzd0
-   local Bxdm, Bydm, Bzdm = mirdip_dipoleB(x, y, z, 2*xmir, 0, 0, -Dx, Dy, Dz, true, xmir)
-   Bxt, Byt, Bzt = Bxt+Bxdm, Byt+Bydm, Bzt+Bzdm
-   Bxt, Byt, Bzt = Bxt+Bx_in, Byt+By_in, Bzt+Bz_in
-   return Bxt, Byt, Bzt
+
+   local calcB0 = tbl.calcBt
+   if not calcB0 then
+      calcB0 = function(x, y, z)
+         return dipoleB(x, y, z, 0, 0, 0, Dx, Dy, Dz, rCut)
+      end
+   end
+
+   local calcStaticEB = tbl.calcBt
+   if not calcStaticEB then
+      calcStaticEB = function(x, y, z)
+         local Ex, Ey, Ez = 0, 0, 0
+         local Bx, By, Bz = calcB0(x, y, z)
+         local phiE, phiB = 0, 0
+         return Ex, Ey, Ez, Bx, By, Bz, phiE, phiB
+      end
+   end
+
+   local calcBt = tbl.calcBt
+   if not calcBt then
+      calcBt =    function(x, y, z)
+         local Bxt, Byt, Bzt = 0, 0, 0
+
+         if x > xmir then
+            local Bxd, Byd, Bzd = dipoleB(x, y, z, 0, 0, 0, Dx, Dy, Dz, rCut)
+            Bxt, Byt, Bzt = Bxt + Bxd, Byt + Byd, Bzt + Bzd
+
+            local Bxdm, Bydm, Bzdm = dipoleB(x, y, z, 2 * xmir, 0, 0, -Dx, Dy, Dz,
+                                             rCut)
+            Bxt, Byt, Bzt = Bxt + Bxdm, Byt + Bydm, Bzt + Bzdm
+         end
+
+         Bxt, Byt, Bzt = Bxt + BxIn, Byt + ByIn, Bzt + BzIn
+
+         return Bxt, Byt, Bzt
+      end
+   end
+
+   local init = tbl.init
+   if not init then
+      init = function(x, y, z)
+         local rho = calcRho(x,y,z)
+         local vx,vy,vz = calcV(x,y,z)
+         local p = calcP(x,y,z)
+
+         local values = {}
+         local comp = 0
+
+         for s = 1, nSpecies do
+            local rho_s = rho * massFractions[s]
+            local rhovx_s = rho_s * vx
+            local rhovy_s = rho_s * vy
+            local rhovz_s = rho_s * vz
+            local p_s = p * pressureFractions[s]
+
+            values[comp + 1] = rho_s
+            values[comp + 2] = rhovx_s
+            values[comp + 3] = rhovy_s
+            values[comp + 4] = rhovz_s
+
+            local moment = moments[s]
+            if moment == 5 then
+               local e_s = p_s / (gasGamma - 1) +
+                           0.5 * (rhovx_s^2 + rhovy_s^2 + rhovz_s^2) / rho_s
+               values[comp + 5] = e_s
+            elseif moment == 10 then
+               values[comp + 5] = p_s +   rhovx_s^2 / rho_s -- Pxx_s
+               values[comp + 6] = rhovx_s * rhovy_s / rho_s -- Pxy_s
+               values[comp + 7] = rhovx_s * rhovz_s / rho_s -- Pxz_s
+               values[comp + 8] = p_s +   rhovy_s^2 / rho_s -- Pyy_s
+               values[comp + 9] = rhovy_s * rhovz_s / rho_s -- Pyz_s
+               values[comp + 10] = p_s +   rhovz_s^2 / rho_s -- Pzz_s
+            else
+               assert(false)
+            end
+            comp = comp + moment
+         end
+
+         local Bxt, Byt, Bzt = calcBt(x, y, z)
+         local Bx0, By0, Bz0 = calcB0(x, y, 1)
+         local Bx1, By1, Bz1 = Bxt - Bx0, Byt - By0, Bzt - Bz0
+
+         local Ex = - vy * Bzt + vz * Byt
+         local Ey = - vz * Bxt + vx * Bzt
+         local Ez = - vx * Byt + vy * Bxt
+
+         values[comp + 1] = Ex
+         values[comp + 2] = Ey
+         values[comp + 3] = Ez
+
+         values[comp + 4] = Bx1
+         values[comp + 5] = By1
+         values[comp + 6] = Bz1
+
+         local phiE = 0
+         local phiB = 0
+         values[comp + 7] = phiE
+         values[comp + 8] = phiB
+
+         return values
+      end
+   end
+
+   local initFluid = tbl.initFluid
+   if not initFluid then
+      initFluid = function(x, y, z, s)
+         local rho = calcRho(x,y,z)
+         local vx,vy,vz = calcV(x,y,z)
+         local p = calcP(x,y,z)
+
+         local rho_s = rho * massFractions[s]
+         local rhovx_s = rho_s * vx
+         local rhovy_s = rho_s * vy
+         local rhovz_s = rho_s * vz
+         local p_s = p * pressureFractions[s]
+
+         local moment = moments[s]
+         if moment == 5 then
+            local e_s = p_s / (gasGamma - 1) +
+                        0.5 * (rhovx_s^2 + rhovy_s^2 + rhovz_s^2) / rho_s
+
+            return rho_s, rhovx_s, rhovy_s, rhovz_s, e_s
+         elseif moment == 10 then
+            local Pxx_s = p_s +   rhovx_s^2 / rho_s -- local Pxx_s
+            local Pxy_s = rhovx_s * rhovy_s / rho_s -- local Pxy_s
+            local Pxz_s = rhovx_s * rhovz_s / rho_s -- local Pxz_s
+            local Pyy_s = p_s +   rhovy_s^2 / rho_s -- local Pyy_s
+            local Pyz_s = rhovy_s * rhovz_s / rho_s -- local Pyz_s
+            local Pzz_s = p_s +   rhovz_s^2 / rho_s -- local Pzz_s
+
+            return rho_s, rhovx_s, rhovy_s, rhovz_s, Pxx_s, Pxy_s, Pxz_s, Pyy_s,
+                   Pyz_s, Pzz_s
+         else
+            assert(false)
+         end
+      end
+   end
+
+   local initField = tbl.initField
+   if not initField then
+      initField = function(x, y, z)
+         local rho = calcRho(x,y,z)
+         local vx,vy,vz = calcV(x,y,z)
+         local p = calcP(x,y,z)
+
+         local Bxt, Byt, Bzt = calcBt(x, y, z)
+         local Bx0, By0, Bz0 = calcB0(x, y, 1)
+         local Bx1, By1, Bz1 = Bxt - Bx0, Byt - By0, Bzt - Bz0
+
+         local Ex = - vy * Bzt + vz * Byt
+         local Ey = - vz * Bxt + vx * Bzt
+         local Ez = - vx * Byt + vy * Bxt
+
+         local phiE = 0
+         local phiB = 0
+
+         return Ex, Ey, Ez, Bx1, By1, Bz1, phiE, phiB
+      end
+   end
+
+   return {
+      calcRho = calcRho,
+      calcV = calcV,
+      calcP = calcP,
+      calcBt = calcBt,
+      calcB0 = calcB0,
+      calcStaticEB = calcStaticEB,
+      init = init,
+      initFluid = initFluid,
+      initField = initField,
+   }
 end
 
-local function mirdip_init5m(x, y, z, xmir, r1)
-   local rho = mirdip_rho(x,y,z)
-   local vx,vy,vz = mirdip_v(x,y,z)
-   local p = mirdip_pressure(x,y,z)
 
-   local rho_e = rho / (1 + mass_ratio)
-   local rho_i = rho - rho_e
-   local rhovx_e = rho_e * vx
-   local rhovy_e = rho_e * vy
-   local rhovz_e = rho_e * vz
-   local rhovx_i = rho_i * vx
-   local rhovy_i = rho_i * vy
-   local rhovz_i = rho_i * vz
-   local p_e = p / (1 + pressure_ratio)
-   local p_i = p - p_e
+local calcValuesIn = function(tbl)
+   -- solar wind parameters
+   local rhoIn = tbl.rhoIn
+   local vxIn = tbl.vxIn
+   local vyIn = tbl.vyIn
+   local vzIn = tbl.vzIn
+   local pIn = tbl.pIn
 
-   local e_e = p_e / (gasGamma - 1.) + 0.5 * (rhovx_e^2 + rhovy_e^2 + rhovz_e^2) / rho_e
-   local e_i = p_i / (gasGamma - 1.) + 0.5 * (rhovx_i^2 + rhovy_i^2 + rhovz_i^2) / rho_i
+   local BxIn = tbl.BxIn
+   local ByIn = tbl.ByIn
+   local BzIn = tbl.BzIn
 
-   local Pxx_e = p_e + rhovx_e^2 / rho_e
-   local Pyy_e = p_e + rhovy_e^2 / rho_e
-   local Pzz_e = p_e + rhovz_e^2 / rho_e
-   local Pxy_e = rhovx_e * rhovy_e / rho_e
-   local Pxz_e = rhovx_e * rhovz_e / rho_e
-   local Pyz_e = rhovy_e * rhovz_e / rho_e
+   local gasGamma = default(tbl.gasGamma, 5./3.)
+   tbl.gasGamma = gasGamma
 
-   local Pxx_i = p_i + rhovx_i^2 / rho_i
-   local Pyy_i = p_i + rhovy_i^2 / rho_i
-   local Pzz_i = p_i + rhovz_i^2 / rho_i
-   local Pxy_i = rhovx_i * rhovy_i / rho_i
-   local Pxz_i = rhovx_i * rhovz_i / rho_i
-   local Pyz_i = rhovy_i * rhovz_i / rho_i
+   -- multifluid parameters
+   local massFractions = tbl.massFractions
+   local pressureFractions = tbl.pressureFractions
+   local moments = tbl.moments
+   local nSpecies = #moments
 
-   local Bxt, Byt, Bzt = mirdip_totalB(x, y, z, xmir, r1)
-   local Bxs, Bys, Bzs = mirdip_staticB(x, y, z, xmir, r1)
-   local Bx, By, Bz = Bxt-Bxs, Byt-Bys, Bzt-Bzs
+   local valuesIn = {}
 
-   local Ex = - vy*Bzt + vz*Byt
-   local Ey = - vz*Bxt + vx*Bzt
-   local Ez = - vx*Byt + vy*Bxt
+   for s = 1, nSpecies do
+      local rho_s = rhoIn * massFractions[s]
+      local rhovx_s = rho_s * vxIn
+      local rhovy_s = rho_s * vyIn
+      local rhovz_s = rho_s * vzIn
+      local p_s = pIn * pressureFractions[s]
 
-   return rho_e, rhovx_e, rhovy_e, rhovz_e, e_e,
-          rho_i, rhovx_i, rhovy_i, rhovz_i, e_i,
-          Ex, Ey, Ez, Bx, By, Bz, 0, 0
+      local moment = moments[s]
+      if moment == 5 then
+         local e_s = p_s / (gasGamma - 1) +
+                     0.5 * (rhovx_s^2 + rhovy_s^2 + rhovz_s^2) / rho_s
+         valuesIn[s] = {rho_s, rhovx_s, rhovy_s, rhovz_s, e_s}
+      elseif moment == 10 then
+         local Pxx_s = p_s +   rhovx_s^2 / rho_s -- local Pxx_s
+         local Pxy_s = rhovx_s * rhovy_s / rho_s -- local Pxy_s
+         local Pxz_s = rhovx_s * rhovz_s / rho_s -- local Pxz_s
+         local Pyy_s = p_s +   rhovy_s^2 / rho_s -- local Pyy_s
+         local Pyz_s = rhovy_s * rhovz_s / rho_s -- local Pyz_s
+         local Pzz_s = p_s +   rhovz_s^2 / rho_s -- local Pzz_s
+
+         valuesIn[s] = {rho_s, rhovx_s, rhovy_s, rhovz_s, Pxx_s, Pxy_s, Pxz_s,
+                        Pyy_s, Pyz_s, Pzz_s}
+
+      else
+         assert(false)
+      end
+   end
+
+   local ExIn = -vyIn * BzIn + vzIn * ByIn
+   local EyIn = -vzIn * BxIn + vxIn * BzIn
+   local EzIn = -vxIn * ByIn + vyIn * BxIn
+   local phiEIn = 0
+   local phiBIn = 0
+
+   valuesIn[nSpecies + 1] = {ExIn, EyIn, EzIn, BxIn, ByIn, BzIn, phiEIn, phiBIn}
+
+   return valuesIn
 end
 
-function setStaticField(x, y, z)
-   local Exs, Eys, Ezs = 0, 0, 0
-   local Bxs, Bys, Bzs = mirdip_staticB(x, y, z, xmir, r1)
-   return Exs, Eys, Ezs, Bxs, Bys, Bzs, 0, 0
+local buildInOutFunc = function(tbl)
+   local R = tbl.planetRadius
+   local rInOut =  default(tbl.rInOut, R)
+   return function(t, xn)
+      local x, y, z = xn[1], xn[2], xn[3]
+      if (x^2 + y^2 + z^2 < rInOut^2) then
+         return -1
+      else
+         return 1
+      end
+
+   end
 end
 
-function setInOutField(x, y, z)
-   if (x^2 + y^2 + z^2 < r0^2) then
-      return -1
-   else
+----------
+-- Grid --
+----------
+local function calcGrid(calcDx, xlo, xup, nx)
+   --[[
+   Args:
+     xlo, xup: lower and upper bounds of physical domain
+     nx   : number of real cells
+   Returns:
+     xx_nc: node-center compuational domain coordinates; 'ghost' points might
+          go out of [0, 1]
+     x_nc : node-center physical domain coordinates
+   Both xx_nc and x_c have nx+1+2*sw points. xx_nc is uniform and 1-on-1 maps
+   to x_nc.
+--]]
+   local sw = 2
+   local sw1 = sw + 100 -- wider stencile for xx_nc to include more possible xx values
+   local xx_nc = {}
+   xx_nc[sw1 + 1] = 0
+   for j = 0, nx + sw1 - 1 do
+      local i = j + sw1 + 1
+      xx_nc[i + 1] = xx_nc[i] + calcDx((j + .5) / nx)
+   end
+   for j = 0, -sw1 + 1, -1 do
+      local i = j + sw1 + 1
+      xx_nc[i - 1] = xx_nc[i] - calcDx((j - .5) / nx)
+   end
+   local fac = 1 / xx_nc[nx + sw1 + 1]
+   for j = -sw1, nx + sw1 do
+      local i = j + sw1 + 1
+      xx_nc[i] = xx_nc[i] * fac
+   end
+   local x_nc = {}
+   for j = -sw1, nx + sw1 do
+      local i = j + sw1 + 1
+      x_nc[i] = xlo + (xup - xlo) * j / nx
+   end
+   return xx_nc, x_nc
+end
+
+local function linearRefine(xx, xx_nc, x_nc)
+   local num = table.getn(xx_nc)
+   local x
+   if (xx <= xx_nc[1]) then
+      x = x_nc[1]
+   elseif (xx >= xx_nc[num]) then
+      x = x_nc[num]
+   end
+   for i = 2, num do
+      if (xx == xx_nc[i]) then
+         x = x_nc[i]
+         break
+      elseif (xx < xx_nc[i]) then -- xx is between xx_nc[i-1] and xx_nc[i]
+         x = x_nc[i - 1] + (x_nc[i] - x_nc[i - 1]) * (xx - xx_nc[i - 1]) / (xx_nc[i] - xx_nc[i - 1])
+         break
+      end
+   end
+   return x
+end
+
+local function calcDxFlatTop1d(x, x0, width, flatWidth, ratioDx)
+   if (math.abs(x - x0) <= flatWidth) then
       return 1
+   elseif (x - x0 > flatWidth) then
+      local x1 = x0 + flatWidth
+      return (1 / ratioDx - (1 / ratioDx - 1) * math.exp(-.5 * ((x - x1) / width) ^ 2))
+   elseif (x - x0 < -flatWidth) then
+      local x1 = x0 - flatWidth
+      return (1 / ratioDx - (1 / ratioDx - 1) * math.exp(-.5 * ((x - x1) / width) ^ 2))
    end
 end
+
+local function buildGridFlatTop1d(xlo, xup, nx, x0, width, flatWidth, ratioDx)
+   local calcDx = function(x)
+      return calcDxFlatTop1d(x, (x0 - xlo) / (xup - xlo), width / (xup - xlo),
+                   flatWidth / (xup - xlo), ratioDx)
+   end
+
+   local xx_nc, x_nc = calcGrid(calcDx, xlo, xup, nx)
+
+   local coordinateMap = function(xx)
+      return linearRefine(xx, xx_nc, x_nc)
+   end
+
+   return coordinateMap
+end
+
 
 return {
-   dipoleB = dipoleB,
-   mirdip_staticB = mirdip_staticB,
-   mirdip_init5m = mirdip_init5m,
+   buildInitMirdip = buildInitMirdip,
+   buildInOutFunc = buildInOutFunc,
+   calcValuesIn = calcValuesIn,
+   buildGridFlatTop1d = buildGridFlatTop1d,
 }
