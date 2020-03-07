@@ -69,7 +69,7 @@ local function buildApp(tbl)
          bcz = {model.bcCopy, model.bcCopy},
 
          hasSsBnd = true,
-         inOutFunc = common.buildInOutFunc(tbl),
+         inOutFunc = common.buildInOutFunc(tbl.rInOutFluid),
          ssBc = {Moments.Species.bcCopy}
       }
       speciesNames[s] = "fluid"..s
@@ -93,7 +93,7 @@ local function buildApp(tbl)
       bcz = {Moments.Field.bcCopy, Moments.Field.bcCopy},
 
       hasSsBnd = true,
-      inOutFunc = common.buildInOutFunc(tbl),
+      inOutFunc = common.buildInOutFunc(tbl.rInOutField),
       ssBc = {Moments.Species.bcReflect}
    }
 

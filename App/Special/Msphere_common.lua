@@ -32,7 +32,8 @@ local function setdefaultEarth(tbl)
    setdefault(tbl, "r_ramp1", 12 * tbl.planetRadius)
    setdefault(tbl, "r_ramp2", 14 * tbl.planetRadius)
 
-   setdefault(tbl, "rInOut", tbl.planetRadius)
+   setdefault(tbl, "rInOutFluid", 3 * tbl.planetRadius)
+   setdefault(tbl, "rInOutField", 2.5 * tbl.planetRadius)
 end
 
 local function setdefaultMercury(tbl)
@@ -57,7 +58,8 @@ local function setdefaultMercury(tbl)
    setdefault(tbl, "r_ramp1", 2 * tbl.planetRadius)
    setdefault(tbl, "r_ramp2", 2.5 * tbl.planetRadius)
 
-   setdefault(tbl, "rInOut", tbl.planetRadius)
+   setdefault(tbl, "rInOutFluid", 1 * tbl.planetRadius)
+   setdefault(tbl, "rInOutField", 0.8 * tbl.planetRadius)
 end
 
 local function setdefaultGanymede(tbl)
@@ -81,7 +83,8 @@ local function setdefaultGanymede(tbl)
    setdefault(tbl, "r_ramp1", 2 * tbl.planetRadius)
    setdefault(tbl, "r_ramp2", 2.5 * tbl.planetRadius)
 
-   setdefault(tbl, "rInOut", tbl.planetRadius)
+   setdefault(tbl, "rInOutFluid", 1.05 * tbl.planetRadius)
+   setdefault(tbl, "rInOutField", 1 * tbl.planetRadius)
 end
 
 local function setdefaultObject(tbl)
@@ -110,6 +113,18 @@ local function setdefaultObject(tbl)
       end
    end
 
+   -- the following parameters might not be set in the object or object might
+   -- not be set at all
+   setdefault(tbl, "rCut", 0.5 * tbl.planetRadius)
+   setdefault(tbl, "xmir", 5 * tbl.planetRadius)
+   setdefault(tbl, "stretch", 2)
+   setdefault(tbl, "r_ramp1", 2 * tbl.planetRadius)
+   setdefault(tbl, "r_ramp2", 2.5 * tbl.planetRadius)
+
+   setdefault(tbl, "rInOutFluid", tbl.planetRadius)
+   setdefault(tbl, "rInOutField", tbl.planetRadius)
+
+   -- derived parameters
    if tbl.planetBx0 == nil or tbl.planetBy0 == nil or tbl.planetBz0 == nil then
       -- TODO make sure theta & phi are consistent with conventions
       local B0 = tonumber(tbl.planetB0)
@@ -121,15 +136,13 @@ local function setdefaultObject(tbl)
    end
 
    local nSpecies = #tbl.moments
-
-   local mass = tbl.mass
    local totalMass = 0
    tbl.massFractions = {}
    for s = 1, nSpecies do
-      totalMass = totalMass + mass[s]
+      totalMass = totalMass + tbl.mass[s]
    end
    for s = 1, nSpecies do
-      tbl.massFractions[s] = mass[s] / totalMass
+      tbl.massFractions[s] = tbl.mass[s] / totalMass
    end
 end
 
@@ -389,10 +402,10 @@ local calcValuesIn = function(tbl)
    return valuesIn
 end
 
-local buildInOutFunc = function(tbl)
+local buildInOutFunc = function(rInOut)
    return function(t, xn)
       local x, y, z = xn[1], xn[2], xn[3]
-      if (x^2 + y^2 + z^2 < tbl.rInOut^2) then
+      if (x^2 + y^2 + z^2 < rInOut^2) then
          return -1
       else
          return 1
