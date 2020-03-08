@@ -50,6 +50,7 @@ function CollisionlessEmSource:fullInit(appTbl)
 
    self.hasPressure = tbl.hasPressureField
    self.hasSigmaField = tbl.hasSigmaField
+   self.sigmaFunc = tbl.sigmaFunction
    self.hasAuxSourceFunction = tbl.hasAuxSourceFunction
    self.auxSourceFunction = tbl.auxSourceFunction
 end
@@ -116,6 +117,24 @@ function CollisionlessEmSource:createSolver(species, field)
          projectOnGhosts = true,
       }
       project:advance(0.0, {}, {self.staticEm})
+   end
+
+   if self.hasSigmaField then
+      local ndim = self.grid:ndim()
+      local polyOrder = 0
+      self.basis = Basis.CartModalMaxOrder { ndim = ndim, polyOrder = polyOrder }
+      self.sigmaField = DataStruct.Field {
+         onGrid = self.grid,
+         numComponents = 1,
+         ghost = {2, 2}
+      }
+      local project = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = self.sigmaFunc,
+         projectOnGhosts = true,
+      }
+      project:advance(0.0, {}, {self.sigmaField})
    end
 
    if source_type == 5 then
