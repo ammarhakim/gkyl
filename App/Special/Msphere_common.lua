@@ -11,6 +11,10 @@ local function setdefault(tbl, key, val)
    return tbl[key]
 end
 
+local function ramp(x, x0, x1, val0, val1)
+   return (val1 - val0) * x / (x1 - x0) + (val0 * x1 - val1 * x0) / (x1 - x0)
+end
+
 local function setdefaultEarth(tbl)
    setdefault(tbl, "planetRadius", 6378.1e3)
    setdefault(tbl, "planetBx0", 0)
@@ -60,6 +64,39 @@ local function setdefaultMercury(tbl)
 
    setdefault(tbl, "rInOutFluid", 1 * tbl.planetRadius)
    setdefault(tbl, "rInOutField", 0.8 * tbl.planetRadius)
+
+   local rCore = setdefault(tbl, "rCore", 0.8 * tbl.planetRadius)
+   local rMantle1 = setdefault(tbl, "rMantle1", 0.83 * tbl.planetRadius)
+   local rMantle2 = setdefault(tbl, "rMantle2", 0.85 * tbl.planetRadius)
+   local rMantle3 = setdefault(tbl, "rMantle3", 0.95 * tbl.planetRadius)
+   local rMantle4 = setdefault(tbl, "rMantle4", 1.02 * tbl.planetRadius)
+
+   local sigma0 = setdefault(tbl, "sigma0", 1e50)  -- unit is ohm m
+   local sigma1 = setdefault(tbl, "sigma1", 1./1.25e1)  -- unit is ohm m
+   local sigma2 = setdefault(tbl, "sigma2", 1./1.25e7)  -- unit is ohm m
+   local sigma3 = setdefault(tbl, "sigma3", 1./1.25e7)  -- unit is ohm m
+   local sigma4 = setdefault(tbl, "sigma4", 0)  -- unit is ohm m
+
+   tbl.hasSigmaField = true
+   local sigmaFunction = function(t, xn)
+      local x, y, z = xn[1], xn[2], xn[3]
+
+      local r = math.sqrt(x^2 + y^2 + z^2)
+      if (r < tbl.rCore) then
+         return tbl.sigma0
+      elseif (r < rMantle1) then
+         return ramp(r, rCore, rMantle1, sigma0, sigma1)
+      elseif (r <  rMantle2) then
+         return ramp(r, rMantle1, rMantle2, sigma1, sigma2)
+      elseif (r <  rMantle3) then
+         return ramp(r, rMantle2, rMantle3, sigma2, sigma3)
+      elseif (r <  rMantle4) then
+         return ramp(r, rMantle3, rMantle4, sigma3, sigma4)
+      else
+         return 0
+      end
+   end
+   setdefault(tbl, "sigmaFunction", sigmaFunction)
 end
 
 local function setdefaultGanymede(tbl)
@@ -100,6 +137,8 @@ local function setdefaultObject(tbl)
    setdefault(tbl, "planetB0x", 0)
    setdefault(tbl, "planetB0y", 0)
    setdefault(tbl, "planetB0z", 0)
+
+   setdefault(tbl, "hasSigmaField", false)
 
    if type(tbl.objectName) == "string" then
       if string.lower(tbl.objectName) == "earth" then
@@ -143,6 +182,10 @@ local function setdefaultObject(tbl)
    end
    for s = 1, nSpecies do
       tbl.massFractions[s] = tbl.mass[s] / totalMass
+   end
+
+   if tbl.hasSigmaField == true then
+      assert(tbl.sigmaFunction ~= nil)
    end
 end
 

@@ -104,7 +104,9 @@ local function buildApp(tbl)
       staticEmFunction = function(t, xn)
          local x, y, z = xn[1], xn[2], xn[3]
          return initMirdip.calcStaticEB(x, y, z)
-      end
+      end,
+      hasSigmaField = tbl.hasSigmaField,
+      sigmaFunction = tbl.sigmaFunction,
    }
 
    local mt = {
