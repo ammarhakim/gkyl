@@ -1,3 +1,8 @@
+/* Generate Lua code that fills the left-side matrix entries
+   corresponding to the discretization of the Poisson equation
+      Laplacian(phi) = - rho
+   with recovery DG in the 2D upper boundary skin cell. */
+
 kill(all)$
 load("recovery-calc/recovery")$
 
@@ -16,37 +21,62 @@ for bIdx : 1 thru length(basisNm) do (
       printf(fh, "local Lin = require \"Lib.Linalg\"~%"),
       printf(fh, "local function stencilFn(dx, a, b, val)~%"),
       printf(fh, "  local _M = {}~%~%"),
+
+      /* Variables and basis. */
+      bC          : basisC[polyOrder],
+      numBasis    : length(bC),
+      surfVar     : dirs[d],
+      remSurfVars : delete(surfVar,varsC),
+      bCp         : diff(bC,surfVar),
+  
+      hC_e : doExpand(hC,bC),
+  
+      /* Recovery polynomials at lower and upper boundaries. */
+      phiRecL : calcRecov2CellGen(basisNm[bIdx],dirs[d],size,polyOrder,hL, hC),
+      phiRecU : calcRecov2CellGen(basisNm[bIdx],dirs[d],size,polyOrder,hL, hC, [0,0], [a,b,val]),
+      /* Recovery value and derivative at the boundary. */
+      phiRecL0  : subst(surfVar=0,phiRecL),
+      phiRecLp0 : subst(surfVar=0,diff(phiRecL,surfVar)),
+      phiRecU0  : subst(surfVar=size[d],phiRecU),
+      phiRecUp0 : subst(surfVar=size[d],diff(phiRecU,surfVar)),
+      /* Surface terms. */
+      surfTerms : J[d]*( calcInnerProdList(remSurfVars,1.0,subst(surfVar=1,bC),phiRecUp0)
+                        -calcInnerProdList(remSurfVars,1.0,subst(surfVar=1,bCp),phiRecU0) )
+                 -J[d]*( calcInnerProdList(remSurfVars,1.0,subst(surfVar=-1,bC),phiRecLp0)
+                        -calcInnerProdList(remSurfVars,1.0,subst(surfVar=-1,bCp),phiRecL0) ),
+      /* Volume terms. */
+      volTerms  : J[d]*calcInnerProdList(varsC,1,diff(bC,varsC[d],2),hC_e),
+  
+      /* Left-side stencil.*/
+      stProj : surfTerms + volTerms,
       
-      numBasis : length(basisC[polyOrder]),
-      st : diff(calcRecov3CellGen(basisNm[bIdx], dirs[d], size, polyOrder, 1, hL, hC, val, [0,0],[a,b]), dirs[d], 2)*J[d],
-      stProj : calcInnerProdListGen(dirs, range, 1, basisC[polyOrder], st),
-      
+
       ML : coefmatrix(stProj, makelist(hL[i], i, 1, numBasis)),
       printf(fh, "  _M[1] = Lin.Mat(~a,~a)~%", numBasis, numBasis),
       for i : 1 thru numBasis do (
         for j : 1 thru numBasis do (
           printf(fh, "  _M[1][~a][~a] = ~a~%", i, j, float(ML[i][j]))
-          )
-        ),
+        )
+      ),
       
       MC : coefmatrix(stProj, makelist(hC[i], i, 1, numBasis)),
       printf(fh, "  _M[2] = Lin.Mat(~a,~a)~%", numBasis, numBasis),
       for i : 1 thru numBasis do (
         for j : 1 thru numBasis do (
           printf(fh, "  _M[2][~a][~a] = ~a~%", i, j, float(MC[i][j]))
-          )
-        ),
+        )
+      ),
       
       MU : coefmatrix(stProj, [val]),
       printf(fh, "  _M[3] = Lin.Vec(~a)~%", numBasis),
       for i : 1 thru numBasis do (
         printf(fh, "  _M[3][~a] = ~a*val~%", i, float(MU[i][1]))
-        ),
+      ),
       
       printf(fh, "  return(_M)~%"),
       printf(fh, "end~%~%"),
       printf(fh, "return(stencilFn)"),
       close(fh)
-      )
     )
-  )$
+  )
+)$
