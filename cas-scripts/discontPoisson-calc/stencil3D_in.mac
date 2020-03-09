@@ -1,22 +1,24 @@
 /* Generate Lua code that fills the left-side matrix entries
    corresponding to the discretization of the Poisson equation
       Laplacian(phi) = - rho
-   with recovery DG in the 2D interior cells. */
+   with recovery DG in the 3D interior cells. */
 
 kill(all)$
 load("recovery-calc/recovery")$
 
-dirs : [x, y]$
-size : [2, 2]$
-range : [[-1,1], [-1,1]]$
+dirs : [x, y, z]$
+size : [2, 2, 2]$
+range : [[-1,1], [-1,1], [-1,1]]$
 basisNm : ["Ser", "Tensor"]$
-J : [4/dx[1]^2, 4/dx[2]^2]$
+polyOrderPerBasis : [2,2]$
+
+J : [4/dx[1]^2, 4/dx[2]^2, 4/dx[3]^2]$
 
 for bIdx : 1 thru length(basisNm) do (
-  load(sconcat("basis-precalc/basis", basisNm[bIdx], "2x")),
+  load(sconcat("basis-precalc/basis", basisNm[bIdx], "3x")),
   for d : 1 thru length(dirs) do (
-    for polyOrder : 1 thru 3 do (
-      fname : sconcat("~/max-out/discontPoisson", basisNm[bIdx], "Stencil2D_", polyOrder, "p_", dirs[d], ".lua"),
+    for polyOrder : 1 thru polyOrderPerBasis[bIdx] do (
+      fname : sconcat("~/max-out/discontPoisson", basisNm[bIdx], "Stencil3D_", polyOrder, "p_", dirs[d], ".lua"),
       fh : openw(fname),
       printf(fh, "local Lin = require \"Lib.Linalg\"~%"),
       printf(fh, "local function stencilFn(dx)~%"),
