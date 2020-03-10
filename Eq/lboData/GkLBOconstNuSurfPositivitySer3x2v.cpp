@@ -1,8 +1,8 @@
 #include <GkLBOModDecl.h> 
-double GkLBOconstNuSurfPositivity3x2vSer_Vpar_P1(const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuSurfPositivity3x2vSer_Vpar_P1(const double m_, const double *positivityWeightByDirL, const double *positivityWeightByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // m_:              species mass. 
-  // cflRateByDir[5]: CFL rate in each direction. 
+  // positivityWeightByDir[5]: CFL rate in each direction. 
   // w[5]:            Cell-center coordinates. 
   // dxv[5]:          Cell spacing. 
   // nuSum:           collisionalities added (self and cross species collisionalities). 
@@ -262,8 +262,8 @@ double GkLBOconstNuSurfPositivity3x2vSer_Vpar_P1(const double m_, const double *
  
   double fluxFracL, fluxFracR, flim = 0.;
   double GhatDragCtrl[16];
-  fluxFracL = cflRateByDirL[0] == 0. ? 0.25 : cflRateByDirL[1]/cflRateByDirL[0]; 
-  fluxFracR = cflRateByDirR[0] == 0. ? 0.25 : cflRateByDirR[1]/cflRateByDirR[0]; 
+  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.25 : positivityWeightByDirL[1]/positivityWeightByDirL[0]; 
+  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.25 : positivityWeightByDirR[1]/positivityWeightByDirR[0]; 
   // Control node [x,y,z,mu] = [-1/3,-1/3,-1/3,-1/3]. 
   GhatDragCtrl[0] = (-0.03608439182435162*(alphaDrSurf[11]*fhatAL[15]+alphaDrSurf[7]*fhatAL[14]+alphaDrSurf[6]*fhatAL[13]+alphaDrSurf[5]*fhatAL[12]+alphaDrSurf[3]*fhatAL[10]+alphaDrSurf[2]*fhatAL[9]+alphaDrSurf[1]*fhatAL[8]+alphaDrSurf[0]*fhatAL[4]))+0.02083333333333333*((alphaDrSurf[7]+alphaDrSurf[6]+alphaDrSurf[5])*fhatAL[15]+(alphaDrSurf[11]+alphaDrSurf[3]+alphaDrSurf[2])*fhatAL[14]+(alphaDrSurf[11]+alphaDrSurf[3]+alphaDrSurf[1])*fhatAL[13]+(alphaDrSurf[11]+alphaDrSurf[2]+alphaDrSurf[1])*fhatAL[12]+(alphaDrSurf[7]+alphaDrSurf[6]+alphaDrSurf[0])*fhatAL[10]+(alphaDrSurf[7]+alphaDrSurf[5]+alphaDrSurf[0])*fhatAL[9]+(alphaDrSurf[6]+alphaDrSurf[5]+alphaDrSurf[0])*fhatAL[8]+(alphaDrSurf[3]+alphaDrSurf[2]+alphaDrSurf[1])*fhatAL[4])-0.01202813060811721*((alphaDrSurf[3]+alphaDrSurf[2]+alphaDrSurf[1])*fhatAL[15]+(alphaDrSurf[6]+alphaDrSurf[5]+alphaDrSurf[0])*fhatAL[14]+(alphaDrSurf[7]+alphaDrSurf[5]+alphaDrSurf[0])*fhatAL[13]+(alphaDrSurf[7]+alphaDrSurf[6]+alphaDrSurf[0])*fhatAL[12]+(fhatAL[10]+fhatAL[9]+fhatAL[8])*alphaDrSurf[11]+(alphaDrSurf[2]+alphaDrSurf[1])*fhatAL[10]+alphaDrSurf[3]*(fhatAL[9]+fhatAL[8])+alphaDrSurf[1]*fhatAL[9]+alphaDrSurf[2]*fhatAL[8]+fhatAL[4]*(alphaDrSurf[7]+alphaDrSurf[6]+alphaDrSurf[5]))+0.006944444444444444*(alphaDrSurf[0]*fhatAL[15]+alphaDrSurf[1]*fhatAL[14]+alphaDrSurf[2]*fhatAL[13]+alphaDrSurf[3]*fhatAL[12]+fhatAL[4]*alphaDrSurf[11]+alphaDrSurf[5]*fhatAL[10]+alphaDrSurf[6]*fhatAL[9]+alphaDrSurf[7]*fhatAL[8])+0.0625*(alphaDrSurf[11]*fhatAL[11]+alphaDrSurf[7]*fhatAL[7]+alphaDrSurf[6]*fhatAL[6]+alphaDrSurf[5]*fhatAL[5]+alphaDrSurf[3]*fhatAL[3]+alphaDrSurf[2]*fhatAL[2]+alphaDrSurf[1]*fhatAL[1]+alphaDrSurf[0]*fhatAL[0])-0.03608439182435162*((alphaDrSurf[7]+alphaDrSurf[6]+alphaDrSurf[5])*fhatAL[11]+(fhatAL[7]+fhatAL[6]+fhatAL[5])*alphaDrSurf[11]+(alphaDrSurf[3]+alphaDrSurf[2])*fhatAL[7]+(fhatAL[3]+fhatAL[2])*alphaDrSurf[7]+(alphaDrSurf[3]+alphaDrSurf[1])*fhatAL[6]+(fhatAL[3]+fhatAL[1])*alphaDrSurf[6]+(alphaDrSurf[2]+alphaDrSurf[1])*fhatAL[5]+(fhatAL[2]+fhatAL[1])*alphaDrSurf[5]+alphaDrSurf[0]*fhatAL[3]+fhatAL[0]*alphaDrSurf[3]+alphaDrSurf[0]*fhatAL[2]+fhatAL[0]*alphaDrSurf[2]+alphaDrSurf[0]*fhatAL[1]+fhatAL[0]*alphaDrSurf[1])+0.02083333333333333*((alphaDrSurf[3]+alphaDrSurf[2]+alphaDrSurf[1])*fhatAL[11]+(fhatAL[3]+fhatAL[2]+fhatAL[1])*alphaDrSurf[11]+(alphaDrSurf[6]+alphaDrSurf[5]+alphaDrSurf[0])*fhatAL[7]+(fhatAL[6]+fhatAL[5]+fhatAL[0])*alphaDrSurf[7]+(alphaDrSurf[5]+alphaDrSurf[0])*fhatAL[6]+(fhatAL[5]+fhatAL[0])*alphaDrSurf[6]+alphaDrSurf[0]*fhatAL[5]+fhatAL[0]*alphaDrSurf[5]+(alphaDrSurf[2]+alphaDrSurf[1])*fhatAL[3]+(fhatAL[2]+fhatAL[1])*alphaDrSurf[3]+alphaDrSurf[1]*fhatAL[2]+fhatAL[1]*alphaDrSurf[2])-0.01202813060811721*(alphaDrSurf[0]*fhatAL[11]+fhatAL[0]*alphaDrSurf[11]+alphaDrSurf[1]*fhatAL[7]+fhatAL[1]*alphaDrSurf[7]+alphaDrSurf[2]*fhatAL[6]+fhatAL[2]*alphaDrSurf[6]+alphaDrSurf[3]*fhatAL[5]+fhatAL[3]*alphaDrSurf[5]); 
   if(GhatDragCtrl[0] > EPSILON) {
@@ -805,10 +805,10 @@ double GkLBOconstNuSurfPositivity3x2vSer_Vpar_P1(const double m_, const double *
 
   return std::abs(wl[3]-(0.3535533905932737*nuUSum[0])/nuSum); 
 } 
-double GkLBOconstNuSurfPositivity3x2vSer_Mu_P1(const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuSurfPositivity3x2vSer_Mu_P1(const double m_, const double *positivityWeightByDirL, const double *positivityWeightByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // m_:              species mass. 
-  // cflRateByDir[5]: CFL rate in each direction. 
+  // positivityWeightByDir[5]: CFL rate in each direction. 
   // w[5]:            Cell-center coordinates. 
   // dxv[5]:          Cell spacing. 
   // nuSum:           collisionalities added (self and cross species collisionalities). 
@@ -1061,8 +1061,8 @@ double GkLBOconstNuSurfPositivity3x2vSer_Mu_P1(const double m_, const double *cf
  
   double fluxFracL, fluxFracR, flim = 0.;
   double GhatDragCtrl[16];
-  fluxFracL = cflRateByDirL[0] == 0. ? 0.25 : cflRateByDirL[2]/cflRateByDirL[0]; 
-  fluxFracR = cflRateByDirR[0] == 0. ? 0.25 : cflRateByDirR[2]/cflRateByDirR[0]; 
+  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.25 : positivityWeightByDirL[2]/positivityWeightByDirL[0]; 
+  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.25 : positivityWeightByDirR[2]/positivityWeightByDirR[0]; 
   // Control node [x,y,z,vpar] = [-1/3,-1/3,-1/3,-1/3]. 
   GhatDragCtrl[0] = alphaDrSurf[0]*(0.006944444444444444*fhatAL[15]-0.01202813060811721*(fhatAL[14]+fhatAL[13]+fhatAL[12]+fhatAL[11])+0.02083333333333333*(fhatAL[10]+fhatAL[9]+fhatAL[8]+fhatAL[7]+fhatAL[6]+fhatAL[5])-0.03608439182435162*(fhatAL[4]+fhatAL[3]+fhatAL[2]+fhatAL[1])+0.0625*fhatAL[0]); 
   if(GhatDragCtrl[0] > EPSILON) {

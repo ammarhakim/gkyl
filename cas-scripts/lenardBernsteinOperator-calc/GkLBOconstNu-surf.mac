@@ -307,9 +307,9 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
 
     /*............. RECOVERY DONE ..............................*/
 
-    printf(fh, "double ~a_~a_P~a(const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vVars[dir], polyOrder),
+    printf(fh, "double ~a_~a_P~a(const double m_, const double *positivityWeightByDirL, const double *positivityWeightByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vVars[dir], polyOrder),
     printf(fh, "  // m_:              species mass. ~%"),
-    printf(fh, "  // cflRateByDir[~a]: CFL rate in each direction. ~%", cdim+vdim),
+    printf(fh, "  // positivityWeightByDir[~a]: CFL rate in each direction. ~%", cdim+vdim),
     printf(fh, "  // w[~a]:            Cell-center coordinates. ~%", cdim+vdim),
     printf(fh, "  // dxv[~a]:          Cell spacing. ~%", cdim+vdim),
     printf(fh, "  // nuSum:           collisionalities added (self and cross species collisionalities). ~%"),
@@ -442,8 +442,8 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
       GhatDragC        : nodesub(GhatDrag_e, cSurfNodes),
       printf(fh, "  double fluxFracL, fluxFracR, flim = 0.;~%"),
       printf(fh, "  double GhatDragCtrl[~a];~%", length(cSurfNodes)),
-      printf(fh, "  fluxFracL = cflRateByDirL[0] == 0. ? ~a : cflRateByDirL[~a]/cflRateByDirL[0]; ~%", float(1/(cdim+1)), dir),
-      printf(fh, "  fluxFracR = cflRateByDirR[0] == 0. ? ~a : cflRateByDirR[~a]/cflRateByDirR[0]; ~%", float(1/(cdim+1)), dir),
+      printf(fh, "  fluxFracL = positivityWeightByDirL[0] == 0. ? ~a : positivityWeightByDirL[~a]/positivityWeightByDirL[0]; ~%", float(1/(cdim+vdim)), dir),
+      printf(fh, "  fluxFracR = positivityWeightByDirR[0] == 0. ? ~a : positivityWeightByDirR[~a]/positivityWeightByDirR[0]; ~%", float(1/(cdim+vdim)), dir),
       for c:1 thru length(cSurfNodes) do (
         printf(fh, "  // Control node ~a = ~a. ~%", surfVars, cSurfNodes[c]),
         flimL:gcfac(float(fullratsimp(subst(vv=1/3,nodesub(fl_e,cSurfNodes)[c])))),

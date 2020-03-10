@@ -2,7 +2,7 @@
 double GyrokineticSurfPositivity2x2vSer_X_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, 
-                        const double dtApprox, const double *cflRateByDirL, const double *cflRateByDirR, 
+                        const double dtApprox, const double *positivityWeightByDirL, const double *positivityWeightByDirR, 
                         const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
@@ -147,8 +147,8 @@ double GyrokineticSurfPositivity2x2vSer_X_P1_Bvars_0(const double q_, const doub
  
   double fluxFracL, fluxFracR, limfac, flim = 0.;
   double GhatCtrl[8], GhatLimCtrl[8], ohmModCtrl[8];
-  fluxFracL = cflRateByDirL[0] == 0. ? 0.25 : cflRateByDirL[1]/cflRateByDirL[0]; 
-  fluxFracR = cflRateByDirR[0] == 0. ? 0.25 : cflRateByDirR[1]/cflRateByDirR[0]; 
+  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.25 : positivityWeightByDirL[1]/positivityWeightByDirL[0]; 
+  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.25 : positivityWeightByDirR[1]/positivityWeightByDirR[0]; 
   // control node [y,vpar,mu] = [-1/3,-1/3,-1/3] 
   GhatCtrl[0] = 0.04166666666666666*(alpha[2]*fhatAL[7]+alpha[0]*fhatAL[5])-0.02405626121623441*(alpha[0]*fhatAL[7]+alpha[2]*fhatAL[5])-0.07216878364870323*(alpha[2]*fhatAL[6]+alpha[0]*fhatAL[3])+0.04166666666666666*(alpha[0]*fhatAL[6]+alpha[2]*fhatAL[3])-0.07216878364870323*(alpha[2]*fhatAL[4]+alpha[0]*fhatAL[1])+0.04166666666666666*(alpha[0]*fhatAL[4]+fhatAL[1]*alpha[2])+0.125*(alpha[2]*fhatAL[2]+alpha[0]*fhatAL[0])-0.07216878364870323*(alpha[0]*fhatAL[2]+fhatAL[0]*alpha[2]); 
   GhatLimCtrl[0] = 0.04166666666666666*(alpha[2]*fhatAL[7]+alpha[0]*fhatAL[5])-0.02405626121623441*(alpha[0]*fhatAL[7]+alpha[2]*fhatAL[5])-0.07216878364870323*(alpha[2]*fhatAL[6]+alpha[0]*fhatAL[3])+0.04166666666666666*(alpha[0]*fhatAL[6]+alpha[2]*fhatAL[3])-0.07216878364870323*(alpha[2]*fhatAL[4]+alpha[0]*fhatAL[1])+0.04166666666666666*(alpha[0]*fhatAL[4]+fhatAL[1]*alpha[2])+0.125*(alpha[2]*fhatAL[2]+alpha[0]*fhatAL[0])-0.07216878364870323*(alpha[0]*fhatAL[2]+fhatAL[0]*alpha[2]); 
@@ -293,7 +293,7 @@ double GyrokineticSurfPositivity2x2vSer_X_P1_Bvars_0(const double q_, const doub
 double GyrokineticSurfPositivity2x2vSer_Y_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, 
-                        const double dtApprox, const double *cflRateByDirL, const double *cflRateByDirR, 
+                        const double dtApprox, const double *positivityWeightByDirL, const double *positivityWeightByDirR, 
                         const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
@@ -438,8 +438,8 @@ double GyrokineticSurfPositivity2x2vSer_Y_P1_Bvars_0(const double q_, const doub
  
   double fluxFracL, fluxFracR, limfac, flim = 0.;
   double GhatCtrl[8], GhatLimCtrl[8], ohmModCtrl[8];
-  fluxFracL = cflRateByDirL[0] == 0. ? 0.25 : cflRateByDirL[2]/cflRateByDirL[0]; 
-  fluxFracR = cflRateByDirR[0] == 0. ? 0.25 : cflRateByDirR[2]/cflRateByDirR[0]; 
+  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.25 : positivityWeightByDirL[2]/positivityWeightByDirL[0]; 
+  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.25 : positivityWeightByDirR[2]/positivityWeightByDirR[0]; 
   // control node [x,vpar,mu] = [-1/3,-1/3,-1/3] 
   GhatCtrl[0] = 0.04166666666666666*(alpha[2]*fhatAL[7]+alpha[0]*fhatAL[5])-0.02405626121623441*(alpha[0]*fhatAL[7]+alpha[2]*fhatAL[5])-0.07216878364870323*(alpha[2]*fhatAL[6]+alpha[0]*fhatAL[3])+0.04166666666666666*(alpha[0]*fhatAL[6]+alpha[2]*fhatAL[3])-0.07216878364870323*(alpha[2]*fhatAL[4]+alpha[0]*fhatAL[1])+0.04166666666666666*(alpha[0]*fhatAL[4]+fhatAL[1]*alpha[2])+0.125*(alpha[2]*fhatAL[2]+alpha[0]*fhatAL[0])-0.07216878364870323*(alpha[0]*fhatAL[2]+fhatAL[0]*alpha[2]); 
   GhatLimCtrl[0] = 0.04166666666666666*(alpha[2]*fhatAL[7]+alpha[0]*fhatAL[5])-0.02405626121623441*(alpha[0]*fhatAL[7]+alpha[2]*fhatAL[5])-0.07216878364870323*(alpha[2]*fhatAL[6]+alpha[0]*fhatAL[3])+0.04166666666666666*(alpha[0]*fhatAL[6]+alpha[2]*fhatAL[3])-0.07216878364870323*(alpha[2]*fhatAL[4]+alpha[0]*fhatAL[1])+0.04166666666666666*(alpha[0]*fhatAL[4]+fhatAL[1]*alpha[2])+0.125*(alpha[2]*fhatAL[2]+alpha[0]*fhatAL[0])-0.07216878364870323*(alpha[0]*fhatAL[2]+fhatAL[0]*alpha[2]); 
@@ -584,7 +584,7 @@ double GyrokineticSurfPositivity2x2vSer_Y_P1_Bvars_0(const double q_, const doub
 double GyrokineticSurfPositivity2x2vSer_Vpar_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, 
-                        const double dtApprox, const double *cflRateByDirL, const double *cflRateByDirR, 
+                        const double dtApprox, const double *positivityWeightByDirL, const double *positivityWeightByDirR, 
                         const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
@@ -730,8 +730,8 @@ double GyrokineticSurfPositivity2x2vSer_Vpar_P1_Bvars_0(const double q_, const d
  
   double fluxFracL, fluxFracR, limfac, flim = 0.;
   double GhatCtrl[8], GhatLimCtrl[8], ohmModCtrl[8];
-  fluxFracL = cflRateByDirL[0] == 0. ? 0.25 : cflRateByDirL[3]/cflRateByDirL[0]; 
-  fluxFracR = cflRateByDirR[0] == 0. ? 0.25 : cflRateByDirR[3]/cflRateByDirR[0]; 
+  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.25 : positivityWeightByDirL[3]/positivityWeightByDirL[0]; 
+  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.25 : positivityWeightByDirR[3]/positivityWeightByDirR[0]; 
   // control node [x,y,mu] = [-1/3,-1/3,-1/3] 
   GhatCtrl[0] = 0.04166666666666666*((alpha[2]+alpha[1])*fhatAL[7]+alpha[0]*(fhatAL[6]+fhatAL[5])+(alpha[2]+alpha[1])*fhatAL[3])-0.02405626121623441*(alpha[0]*fhatAL[7]+alpha[1]*fhatAL[6]+alpha[2]*fhatAL[5])-0.07216878364870323*(alpha[2]*fhatAL[6]+alpha[1]*fhatAL[5]+(alpha[2]+alpha[1])*fhatAL[4]+alpha[0]*(fhatAL[3]+fhatAL[2])+fhatAL[0]*alpha[2]+alpha[0]*fhatAL[1]+fhatAL[0]*alpha[1])+0.04166666666666666*(alpha[0]*fhatAL[4]+alpha[1]*fhatAL[2]+fhatAL[1]*alpha[2])+0.125*(alpha[2]*fhatAL[2]+alpha[1]*fhatAL[1]+alpha[0]*fhatAL[0]); 
   GhatLimCtrl[0] = 0.04166666666666666*((alpha[2]+alpha[1])*fhatAL[7]+alpha[0]*(fhatAL[6]+fhatAL[5])+(alpha[2]+alpha[1])*fhatAL[3])-0.02405626121623441*(alpha[0]*fhatAL[7]+alpha[1]*fhatAL[6]+alpha[2]*fhatAL[5])-0.07216878364870323*(alpha[2]*fhatAL[6]+alpha[1]*fhatAL[5]+(alpha[2]+alpha[1])*fhatAL[4]+alpha[0]*(fhatAL[3]+fhatAL[2])+fhatAL[0]*alpha[2]+alpha[0]*fhatAL[1]+fhatAL[0]*alpha[1])+0.04166666666666666*(alpha[0]*fhatAL[4]+alpha[1]*fhatAL[2]+fhatAL[1]*alpha[2])+0.125*(alpha[2]*fhatAL[2]+alpha[1]*fhatAL[1]+alpha[0]*fhatAL[0]); 
@@ -876,7 +876,7 @@ double GyrokineticSurfPositivity2x2vSer_Vpar_P1_Bvars_0(const double q_, const d
 double GyrokineticSurfPositivity2x2vSer_X_P1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, 
-                        const double dtApprox, const double *cflRateByDirL, const double *cflRateByDirR, 
+                        const double dtApprox, const double *positivityWeightByDirL, const double *positivityWeightByDirR, 
                         const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
@@ -1021,8 +1021,8 @@ double GyrokineticSurfPositivity2x2vSer_X_P1_Bvars_1(const double q_, const doub
  
   double fluxFracL, fluxFracR, limfac, flim = 0.;
   double GhatCtrl[8], GhatLimCtrl[8], ohmModCtrl[8];
-  fluxFracL = cflRateByDirL[0] == 0. ? 0.25 : cflRateByDirL[1]/cflRateByDirL[0]; 
-  fluxFracR = cflRateByDirR[0] == 0. ? 0.25 : cflRateByDirR[1]/cflRateByDirR[0]; 
+  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.25 : positivityWeightByDirL[1]/positivityWeightByDirL[0]; 
+  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.25 : positivityWeightByDirR[1]/positivityWeightByDirR[0]; 
   // control node [y,vpar,mu] = [-1/3,-1/3,-1/3] 
   GhatCtrl[0] = 0.04166666666666666*(alpha[2]*fhatAL[7]+alpha[0]*fhatAL[5])-0.02405626121623441*(alpha[0]*fhatAL[7]+alpha[2]*fhatAL[5])-0.07216878364870323*(alpha[2]*fhatAL[6]+alpha[0]*fhatAL[3])+0.04166666666666666*(alpha[0]*fhatAL[6]+alpha[2]*fhatAL[3])-0.07216878364870323*(alpha[2]*fhatAL[4]+alpha[0]*fhatAL[1])+0.04166666666666666*(alpha[0]*fhatAL[4]+fhatAL[1]*alpha[2])+0.125*(alpha[2]*fhatAL[2]+alpha[0]*fhatAL[0])-0.07216878364870323*(alpha[0]*fhatAL[2]+fhatAL[0]*alpha[2]); 
   GhatLimCtrl[0] = 0.04166666666666666*(alpha[2]*fhatAL[7]+alpha[0]*fhatAL[5])-0.02405626121623441*(alpha[0]*fhatAL[7]+alpha[2]*fhatAL[5])-0.07216878364870323*(alpha[2]*fhatAL[6]+alpha[0]*fhatAL[3])+0.04166666666666666*(alpha[0]*fhatAL[6]+alpha[2]*fhatAL[3])-0.07216878364870323*(alpha[2]*fhatAL[4]+alpha[0]*fhatAL[1])+0.04166666666666666*(alpha[0]*fhatAL[4]+fhatAL[1]*alpha[2])+0.125*(alpha[2]*fhatAL[2]+alpha[0]*fhatAL[0])-0.07216878364870323*(alpha[0]*fhatAL[2]+fhatAL[0]*alpha[2]); 
@@ -1167,7 +1167,7 @@ double GyrokineticSurfPositivity2x2vSer_X_P1_Bvars_1(const double q_, const doub
 double GyrokineticSurfPositivity2x2vSer_Y_P1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, 
-                        const double dtApprox, const double *cflRateByDirL, const double *cflRateByDirR, 
+                        const double dtApprox, const double *positivityWeightByDirL, const double *positivityWeightByDirR, 
                         const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
@@ -1316,8 +1316,8 @@ double GyrokineticSurfPositivity2x2vSer_Y_P1_Bvars_1(const double q_, const doub
  
   double fluxFracL, fluxFracR, limfac, flim = 0.;
   double GhatCtrl[8], GhatLimCtrl[8], ohmModCtrl[8];
-  fluxFracL = cflRateByDirL[0] == 0. ? 0.25 : cflRateByDirL[2]/cflRateByDirL[0]; 
-  fluxFracR = cflRateByDirR[0] == 0. ? 0.25 : cflRateByDirR[2]/cflRateByDirR[0]; 
+  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.25 : positivityWeightByDirL[2]/positivityWeightByDirL[0]; 
+  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.25 : positivityWeightByDirR[2]/positivityWeightByDirR[0]; 
   // control node [x,vpar,mu] = [-1/3,-1/3,-1/3] 
   GhatCtrl[0] = (-0.07216878364870323*((alpha[5]+alpha[4])*fhatAL[7]+(alpha[3]+alpha[2])*fhatAL[6]+alpha[1]*fhatAL[5]+fhatAL[1]*alpha[5]+alpha[1]*fhatAL[4]+fhatAL[1]*alpha[4]+alpha[0]*fhatAL[3]+fhatAL[0]*alpha[3]+alpha[0]*fhatAL[2]+fhatAL[0]*alpha[2]))+0.04166666666666666*((alpha[3]+alpha[2]+alpha[1])*fhatAL[7]+alpha[5]*fhatAL[6]+(alpha[4]+alpha[0])*(fhatAL[6]+fhatAL[5])+(fhatAL[4]+fhatAL[0])*alpha[5]+alpha[0]*fhatAL[4]+fhatAL[0]*alpha[4]+(alpha[2]+alpha[1])*fhatAL[3]+(fhatAL[2]+fhatAL[1])*alpha[3]+alpha[1]*fhatAL[2]+fhatAL[1]*alpha[2])-0.02405626121623441*(alpha[0]*fhatAL[7]+alpha[1]*fhatAL[6]+alpha[2]*fhatAL[5]+fhatAL[2]*alpha[5]+alpha[3]*fhatAL[4]+fhatAL[3]*alpha[4])+0.125*(alpha[5]*fhatAL[5]+alpha[4]*fhatAL[4]+alpha[3]*fhatAL[3]+alpha[2]*fhatAL[2]+alpha[1]*fhatAL[1]+alpha[0]*fhatAL[0])-0.07216878364870323*(alpha[3]*fhatAL[5]+fhatAL[3]*alpha[5]+alpha[2]*fhatAL[4]+fhatAL[2]*alpha[4]+alpha[0]*fhatAL[1]+fhatAL[0]*alpha[1]); 
   GhatLimCtrl[0] = (-0.07216878364870323*((alpha[5]+alpha[4])*fhatAL[7]+(alpha[3]+alpha[2])*fhatAL[6]+alpha[1]*fhatAL[5]+fhatAL[1]*alpha[5]+alpha[1]*fhatAL[4]+fhatAL[1]*alpha[4]+alpha[0]*fhatAL[3]+fhatAL[0]*alpha[3]+alpha[0]*fhatAL[2]+fhatAL[0]*alpha[2]))+0.04166666666666666*((alpha[3]+alpha[2]+alpha[1])*fhatAL[7]+alpha[5]*fhatAL[6]+(alpha[4]+alpha[0])*(fhatAL[6]+fhatAL[5])+(fhatAL[4]+fhatAL[0])*alpha[5]+alpha[0]*fhatAL[4]+fhatAL[0]*alpha[4]+(alpha[2]+alpha[1])*fhatAL[3]+(fhatAL[2]+fhatAL[1])*alpha[3]+alpha[1]*fhatAL[2]+fhatAL[1]*alpha[2])-0.02405626121623441*(alpha[0]*fhatAL[7]+alpha[1]*fhatAL[6]+alpha[2]*fhatAL[5]+fhatAL[2]*alpha[5]+alpha[3]*fhatAL[4]+fhatAL[3]*alpha[4])+0.125*(alpha[5]*fhatAL[5]+alpha[4]*fhatAL[4]+alpha[3]*fhatAL[3]+alpha[2]*fhatAL[2]+alpha[1]*fhatAL[1]+alpha[0]*fhatAL[0])-0.07216878364870323*(alpha[3]*fhatAL[5]+fhatAL[3]*alpha[5]+alpha[2]*fhatAL[4]+fhatAL[2]*alpha[4]+alpha[0]*fhatAL[1]+fhatAL[0]*alpha[1]); 
@@ -1462,7 +1462,7 @@ double GyrokineticSurfPositivity2x2vSer_Y_P1_Bvars_1(const double q_, const doub
 double GyrokineticSurfPositivity2x2vSer_Vpar_P1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, 
-                        const double dtApprox, const double *cflRateByDirL, const double *cflRateByDirR, 
+                        const double dtApprox, const double *positivityWeightByDirL, const double *positivityWeightByDirR, 
                         const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
@@ -1611,8 +1611,8 @@ double GyrokineticSurfPositivity2x2vSer_Vpar_P1_Bvars_1(const double q_, const d
  
   double fluxFracL, fluxFracR, limfac, flim = 0.;
   double GhatCtrl[8], GhatLimCtrl[8], ohmModCtrl[8];
-  fluxFracL = cflRateByDirL[0] == 0. ? 0.25 : cflRateByDirL[3]/cflRateByDirL[0]; 
-  fluxFracR = cflRateByDirR[0] == 0. ? 0.25 : cflRateByDirR[3]/cflRateByDirR[0]; 
+  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.25 : positivityWeightByDirL[3]/positivityWeightByDirL[0]; 
+  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.25 : positivityWeightByDirR[3]/positivityWeightByDirR[0]; 
   // control node [x,y,mu] = [-1/3,-1/3,-1/3] 
   GhatCtrl[0] = (-0.07216878364870323*((alpha[5]+alpha[4])*fhatAL[7]+(alpha[3]+alpha[2])*fhatAL[6]+alpha[1]*fhatAL[5]+fhatAL[1]*alpha[5]+alpha[1]*fhatAL[4]+fhatAL[1]*alpha[4]+alpha[0]*fhatAL[3]+fhatAL[0]*alpha[3]+alpha[0]*fhatAL[2]+fhatAL[0]*alpha[2]))+0.04166666666666666*((alpha[3]+alpha[2]+alpha[1])*fhatAL[7]+alpha[5]*fhatAL[6]+(alpha[4]+alpha[0])*(fhatAL[6]+fhatAL[5])+(fhatAL[4]+fhatAL[0])*alpha[5]+alpha[0]*fhatAL[4]+fhatAL[0]*alpha[4]+(alpha[2]+alpha[1])*fhatAL[3]+(fhatAL[2]+fhatAL[1])*alpha[3]+alpha[1]*fhatAL[2]+fhatAL[1]*alpha[2])-0.02405626121623441*(alpha[0]*fhatAL[7]+alpha[1]*fhatAL[6]+alpha[2]*fhatAL[5]+fhatAL[2]*alpha[5]+alpha[3]*fhatAL[4]+fhatAL[3]*alpha[4])+0.125*(alpha[5]*fhatAL[5]+alpha[4]*fhatAL[4]+alpha[3]*fhatAL[3]+alpha[2]*fhatAL[2]+alpha[1]*fhatAL[1]+alpha[0]*fhatAL[0])-0.07216878364870323*(alpha[3]*fhatAL[5]+fhatAL[3]*alpha[5]+alpha[2]*fhatAL[4]+fhatAL[2]*alpha[4]+alpha[0]*fhatAL[1]+fhatAL[0]*alpha[1]); 
   GhatLimCtrl[0] = (-0.07216878364870323*((alpha[5]+alpha[4])*fhatAL[7]+(alpha[3]+alpha[2])*fhatAL[6]+alpha[1]*fhatAL[5]+fhatAL[1]*alpha[5]+alpha[1]*fhatAL[4]+fhatAL[1]*alpha[4]+alpha[0]*fhatAL[3]+fhatAL[0]*alpha[3]+alpha[0]*fhatAL[2]+fhatAL[0]*alpha[2]))+0.04166666666666666*((alpha[3]+alpha[2]+alpha[1])*fhatAL[7]+alpha[5]*fhatAL[6]+(alpha[4]+alpha[0])*(fhatAL[6]+fhatAL[5])+(fhatAL[4]+fhatAL[0])*alpha[5]+alpha[0]*fhatAL[4]+fhatAL[0]*alpha[4]+(alpha[2]+alpha[1])*fhatAL[3]+(fhatAL[2]+fhatAL[1])*alpha[3]+alpha[1]*fhatAL[2]+fhatAL[1]*alpha[2])-0.02405626121623441*(alpha[0]*fhatAL[7]+alpha[1]*fhatAL[6]+alpha[2]*fhatAL[5]+fhatAL[2]*alpha[5]+alpha[3]*fhatAL[4]+fhatAL[3]*alpha[4])+0.125*(alpha[5]*fhatAL[5]+alpha[4]*fhatAL[4]+alpha[3]*fhatAL[3]+alpha[2]*fhatAL[2]+alpha[1]*fhatAL[1]+alpha[0]*fhatAL[0])-0.07216878364870323*(alpha[3]*fhatAL[5]+fhatAL[3]*alpha[5]+alpha[2]*fhatAL[4]+fhatAL[2]*alpha[4]+alpha[0]*fhatAL[1]+fhatAL[0]*alpha[1]); 

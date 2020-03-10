@@ -623,9 +623,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    -- Solvers specified with clearOut = false, so we need to zero out RHS here.
    fRhsOut:clear(0.0)
-   self.gkEqn:clearRhsTerms()
 
-   -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
          if (c.collKind == "GkLBO") then
@@ -639,12 +637,13 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
             -- Set the time step and CFL again.
             c.collisionSlvrStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-
             c:advanceStep2(tCurr, fIn, species, fRhsOut)
+            c.gkLBOconstNuCalcEq:getPositivityRhsStep2(tCurr, self.dtGlobal[0], fIn, fRhsOut)
          end
       end
    end
    if self.evolveCollisionless then
+      self.gkEqn:clearRhsTerms()
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
 
@@ -653,6 +652,16 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       end
    else
       self.gkEqn:setAuxFields({em, emFunc, dApardtProv})  -- Set auxFields in case they are needed by BCs/collisions.
+   end
+
+   -- combine positivity weights from collisionless and collisions (for use on next step)
+   if self.positivity then
+      self.gkEqn:setPositivityWeights(self.cflRateByCell)
+      for _, c in pairs(self.collisions) do
+         if (c.collKind == "GkLBO") then
+            c.gkLBOconstNuCalcEq:setPositivityWeights(self.cflRateByCell)
+         end
+      end
    end
 
    if self.fSource and self.evolveSources then

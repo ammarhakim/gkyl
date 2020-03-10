@@ -538,7 +538,7 @@ function GkLBOCollisions:advanceStep2(tCurr, fIn, species, fRhsOut)
    -- the old vtSq, and the other terms are multiplied by the volume rescaling factor.
    if scaleVolTermScale then
       self.scaledDistF:copy(fIn)
-      self.scaledDistF:scaleByCell(self.gkLBOconstNuCalcEq.volTermRescale)
+      self.scaledDistF:scaleByCell(self.gkLBOconstNuCalcEq.volTermScaleFac)
       scaleVolTermScale = false
       -- Compute new moments with scaled distribution function.
       self.threeMomentsLBOCalc:advance(tCurr, {self.scaledDistF}, { self.m0Scaled, self.m1Scaled, self.m2Scaled,
@@ -604,6 +604,8 @@ function GkLBOCollisions:advanceStep2(tCurr, fIn, species, fRhsOut)
       -- Cross-collisions with positivity is not available yet.
       assert(false, "App.Collisions.GkLBO: Cross-collisions with positivity is not available yet.")
    end    -- end if self.crossCollisions.
+
+   self.gkLBOconstNuCalcEq.fRhsVol:clear(0.0)
 
    -- Compute increment from collisions and accumulate it into output.
    -- Note that if positivity=true, self.collOut only has the surface

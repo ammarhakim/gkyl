@@ -2,7 +2,7 @@
 double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, 
-                        const double dtApprox, const double *cflRateByDirL, const double *cflRateByDirR, 
+                        const double dtApprox, const double *positivityWeightByDirL, const double *positivityWeightByDirR, 
                         const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
@@ -56,8 +56,8 @@ double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const doub
  
   double fluxFracL, fluxFracR, limfac, flim = 0.;
   double GhatCtrl[2], GhatLimCtrl[2], ohmModCtrl[2];
-  fluxFracL = cflRateByDirL[0] == 0. ? 0.5 : cflRateByDirL[1]/cflRateByDirL[0]; 
-  fluxFracR = cflRateByDirR[0] == 0. ? 0.5 : cflRateByDirR[1]/cflRateByDirR[0]; 
+  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.5 : positivityWeightByDirL[1]/positivityWeightByDirL[0]; 
+  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.5 : positivityWeightByDirR[1]/positivityWeightByDirR[0]; 
   // control node [y] = [-1/3] 
   GhatCtrl[0] = alpha[0]*(0.5*fhatAL[0]-0.2886751345948129*fhatAL[1]); 
   GhatLimCtrl[0] = alpha[0]*(0.5*fhatAL[0]-0.2886751345948129*fhatAL[1]); 
@@ -100,7 +100,7 @@ double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const doub
 double GyrokineticSurfPositivity2x0vSer_Y_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, 
-                        const double dtApprox, const double *cflRateByDirL, const double *cflRateByDirR, 
+                        const double dtApprox, const double *positivityWeightByDirL, const double *positivityWeightByDirR, 
                         const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
@@ -154,8 +154,8 @@ double GyrokineticSurfPositivity2x0vSer_Y_P1_Bvars_0(const double q_, const doub
  
   double fluxFracL, fluxFracR, limfac, flim = 0.;
   double GhatCtrl[2], GhatLimCtrl[2], ohmModCtrl[2];
-  fluxFracL = cflRateByDirL[0] == 0. ? 0.5 : cflRateByDirL[2]/cflRateByDirL[0]; 
-  fluxFracR = cflRateByDirR[0] == 0. ? 0.5 : cflRateByDirR[2]/cflRateByDirR[0]; 
+  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.5 : positivityWeightByDirL[2]/positivityWeightByDirL[0]; 
+  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.5 : positivityWeightByDirR[2]/positivityWeightByDirR[0]; 
   // control node [x] = [-1/3] 
   GhatCtrl[0] = alpha[0]*(0.5*fhatAL[0]-0.2886751345948129*fhatAL[1]); 
   GhatLimCtrl[0] = alpha[0]*(0.5*fhatAL[0]-0.2886751345948129*fhatAL[1]); 

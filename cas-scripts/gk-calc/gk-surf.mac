@@ -82,7 +82,7 @@ load(modNm),
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, 
                         const double *Apar, const double *dApardt, const double *dApardtProv, 
-                        const double dtApprox, const double *cflRateByDirL, const double *cflRateByDirR, 
+                        const double dtApprox, const double *positivityWeightByDirL, const double *positivityWeightByDirR, 
                         const double *fl, const double *fr, double *outl, double *outr, 
                         double *ohmModL, double *ohmModR) ~%{ ~%",
                   funcNm, dirlabel, polyOrder, simplode(bvarslist,"_"))
@@ -100,7 +100,7 @@ load(modNm),
       printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, 
-                        const double dtApprox, const double *cflRateByDirL, const double *cflRateByDirR, 
+                        const double dtApprox, const double *positivityWeightByDirL, const double *positivityWeightByDirR, 
                         const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", 
                   funcNm, dirlabel, polyOrder, simplode(bvarslist,"_"))
     else
@@ -272,8 +272,8 @@ load(modNm),
       ), 
       printf(fh, "  double fluxFracL, fluxFracR, limfac, flim = 0.;~%"),
       printf(fh, "  double GhatCtrl[~a], GhatLimCtrl[~a], ohmModPosCtrl[~a];~%", length(cSurfNodes), length(cSurfNodes), length(cSurfNodes)),
-      printf(fh, "  fluxFracL = cflRateByDirL[0] != -10. ? ~a : cflRateByDirL[~a]/cflRateByDirL[0]; ~%", float(1/(cdim+vdim)), surfDir),
-      printf(fh, "  fluxFracR = cflRateByDirR[0] != -10. ? ~a : cflRateByDirR[~a]/cflRateByDirR[0]; ~%", float(1/(cdim+vdim)), surfDir),
+      printf(fh, "  fluxFracL = positivityWeightByDirL[0] == 0. ? ~a : positivityWeightByDirL[~a]/positivityWeightByDirL[0]; ~%", float(1/(cdim+vdim)), surfDir),
+      printf(fh, "  fluxFracR = positivityWeightByDirR[0] == 0. ? ~a : positivityWeightByDirR[~a]/positivityWeightByDirR[0]; ~%", float(1/(cdim+vdim)), surfDir),
       for c:1 thru length(cSurfNodes) do (
         printf(fh, "  // control node ~a = ~a ~%", surfIntVars, cSurfNodes[c]), 
         flimL:gcfac(float(fullratsimp(subst(surfVar=1/3,nodesub(fL_expd,cSurfNodes)[c])))),
@@ -684,8 +684,8 @@ load(modNm),
       GhatC : nodesub(Ghat_expd, cSurfNodes),
       printf(fh, "  double fluxFracL, fluxFracR, flim = 0.;~%"),
       printf(fh, "  double GhatCtrl[~a];~%", length(cSurfNodes)),
-      printf(fh, "  fluxFracL = cflRateByDirL[0] == 0. ? ~a : cflRateByDirL[~a]/cflRateByDirL[0]; ~%", float(1/(cdim+1)), surfDir),
-      printf(fh, "  fluxFracR = cflRateByDirR[0] == 0. ? ~a : cflRateByDirR[~a]/cflRateByDirR[0]; ~%", float(1/(cdim+1)), surfDir),
+      printf(fh, "  fluxFracL = positivityWeightByDirL[0] == 0. ? ~a : positivityWeightByDirL[~a]/positivityWeightByDirL[0]; ~%", float(1/(cdim+vdim)), surfDir),
+      printf(fh, "  fluxFracR = positivityWeightByDirR[0] == 0. ? ~a : positivityWeightByDirR[~a]/positivityWeightByDirR[0]; ~%", float(1/(cdim+vdim)), surfDir),
       for c:1 thru length(cSurfNodes) do (
         printf(fh, "  // control node ~a = ~a ~%", surfIntVars, cSurfNodes[c]), 
         flimL:gcfac(float(fullratsimp(subst(surfVar=1/3,nodesub(fL_expd,cSurfNodes)[c])))),
@@ -867,7 +867,7 @@ calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,p,emflag, bvarslist) := block
   )
 )$
 
-em:true$
+em:false$
 for pos: 1 thru 1 do (
 if pos=0 then positivity:false
 else positivity:true,

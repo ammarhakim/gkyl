@@ -86,7 +86,7 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
               +calcInnerProdList(varsP,facMu_e,bPpp,f_e))
     ),
     
-    printf(fh, "double ~aP~a(const double m_, const double *w, const double *dxv, double *cflRateByDir, const double *BmagInv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "double ~aP~a(const double m_, const double *w, const double *dxv, double *positivityWeightByDir, const double *BmagInv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
     printf(fh, "  // w[~a]:            Cell-center coordinates. ~%", cdim+vdim),
     printf(fh, "  // dxv[~a]:          Cell spacing. ~%", cdim+vdim),
     printf(fh, "  // cflRatebyDir[~a]: CFL rate in each direction. ~%",cdim+vdim),
@@ -130,9 +130,8 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
         printf(fh, "~%")    
       )
     ),
-
+/*
     /* Compute the CFL rate in each direction. */
-    printf(fh, "  cflRateByDir[0] = 0.; ~%"),
     printf(fh, "  double alphaL = 0.0; ~%"),
     printf(fh, "  double alphaR = 0.0; ~%"),
     for d : 1 thru vdim do (
@@ -155,15 +154,16 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       printf(fh, "  // Evaluate alpha at left surface quadrature points. ~%"),
       for i:1 thru length(alphaLquad) do (
         printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaLquad[i]))),
-        printf(fh, "  cflRateByDir[~a] += std::abs(alphaL); ~%", d)
+        printf(fh, "  positivityWeightByDir[~a] += std::abs(alphaL); ~%", d)
       ),
       printf(fh, "  // Evaluate alpha at right surface quadrature points. ~%"),
       for i:1 thru length(alphaRquad) do (
         printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaRquad[i]))),
-        printf(fh, "  cflRateByDir[~a] += std::abs(alphaR); ~%", d)
+        printf(fh, "  positivityWeightByDir[~a] += std::abs(alphaR); ~%", d)
       )
     ),
     printf(fh, "~%"),
+*/
 
     clst : makelist(f[i],i,0,NC-1),
     writeCExprsCollect1c(radcan(incr)),
@@ -177,11 +177,14 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     ) else (
       facVparMid   : float(expand(fullratsimp(subst(zr,facVpar_e))))
     ),
+    /* vpar contribution */
+    expr_vpar  : float(expand(fullratsimp(((polyOrder+1)**2)*facVparMid/(2*polyOrder+1)))),
+    param_vpar : cons(expr_vpar, [float(expand(((polyOrder+1)**2)/(2*polyOrder+1))), rdvSq4[1], m_, w[vid[1]]]),
+    eColl_vpar : apply(collectterms, param_vpar),
+    printf(fh, "  positivityWeightByDir[1] = std::abs(~a) + ~a; ~%", alphaVparMid, eColl_vpar),
+
     if vdim = 1 then (
-      expr  : float(expand(fullratsimp(((polyOrder+1)**2)*facVparMid/(2*polyOrder+1)))),
-      param : cons(expr, [float(expand(((polyOrder+1)**2)/(2*polyOrder+1))), rdvSq4[1], m_, w[vid[1]]]),
-      eColl : apply(collectterms, param),
-      printf(fh, "  return std::abs(~a) + ~a; ~%", alphaVparMid, eColl )
+      printf(fh, "  return std::abs(~a) + ~a; ~%", alphaVparMid, eColl_vpar )
     ),
     if vdim = 2 then (
       alphaMuD_c : calcInnerProdList(varsP,1,bP,2*nuSum*(-cv + rdv2[1]*(-w[vid[2]]))),
@@ -193,10 +196,11 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       ) else (
        	facMuMid : float(expand(fullratsimp(subst(zr,facMu_e))))
       ),
-      expr  : float(expand(fullratsimp(-alphaMuDMid+((polyOrder+1)**2)*(facVparMid+facMuMid)/(2*polyOrder+1)))),
-      param : cons(expr, [float(expand(((polyOrder+1)**2)/(2*polyOrder+1))), rdvSq4[1], m_, w[vid[2]]]),
-      eColl : apply(collectterms, param),
-      printf(fh, "  return std::abs(~a) + ~a; ~%", alphaVparMid, eColl )
+      expr_mu  : float(expand(fullratsimp(-alphaMuDMid+((polyOrder+1)**2)*(facMuMid)/(2*polyOrder+1)))),
+      param_mu : cons(expr_mu, [float(expand(((polyOrder+1)**2)/(2*polyOrder+1))), rdvSq4[1], m_, w[vid[2]]]),
+      eColl_mu : apply(collectterms, param_mu),
+      printf(fh, "  positivityWeightByDir[2] = ~a; ~%", eColl_mu),
+      printf(fh, "  return std::abs(~a) + ~a; ~%", alphaVparMid, eColl_vpar + eColl_mu )
     ),
     printf(fh, "~%"),
   

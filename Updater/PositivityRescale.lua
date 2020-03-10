@@ -177,7 +177,7 @@ function PositivityRescale:calcVolTermRescale(tCurr, dtApprox, fIn, weights, wei
       if weights then
          weightfac = 0.0
          weights:fill(weightsIndexer(idx), weights_ptr)
-         for i, d in pairs(weightDirs) do
+         for i, d in ipairs(weightDirs) do
             weightfac = weightfac + weights_ptr:data()[d]
          end
          weightfac = weightfac/weights_ptr:data()[0]
@@ -212,7 +212,7 @@ function PositivityRescale:rescaleVolTerm(tCurr, dtApprox, fIn, weights, weightD
       if weights then
          weightfac = 0.0
          weights:fill(weightsIndexer(idx), weights_ptr)
-         for i, d in pairs(weightDirs) do
+         for i, d in ipairs(weightDirs) do
             weightfac = weightfac + weights_ptr:data()[d]
          end
          weightfac = weightfac/weights_ptr:data()[0]

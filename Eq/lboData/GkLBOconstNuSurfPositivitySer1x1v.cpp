@@ -1,8 +1,8 @@
 #include <GkLBOModDecl.h> 
-double GkLBOconstNuSurfPositivity1x1vSer_Vpar_P1(const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuSurfPositivity1x1vSer_Vpar_P1(const double m_, const double *positivityWeightByDirL, const double *positivityWeightByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // m_:              species mass. 
-  // cflRateByDir[2]: CFL rate in each direction. 
+  // positivityWeightByDir[2]: CFL rate in each direction. 
   // w[2]:            Cell-center coordinates. 
   // dxv[2]:          Cell spacing. 
   // nuSum:           collisionalities added (self and cross species collisionalities). 
@@ -60,8 +60,8 @@ double GkLBOconstNuSurfPositivity1x1vSer_Vpar_P1(const double m_, const double *
  
   double fluxFracL, fluxFracR, flim = 0.;
   double GhatDragCtrl[2];
-  fluxFracL = cflRateByDirL[0] == 0. ? 0.5 : cflRateByDirL[1]/cflRateByDirL[0]; 
-  fluxFracR = cflRateByDirR[0] == 0. ? 0.5 : cflRateByDirR[1]/cflRateByDirR[0]; 
+  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.5 : positivityWeightByDirL[1]/positivityWeightByDirL[0]; 
+  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.5 : positivityWeightByDirR[1]/positivityWeightByDirR[0]; 
   // Control node [x] = [-1/3]. 
   GhatDragCtrl[0] = 0.5*(alphaDrSurf[1]*fhatAL[1]+alphaDrSurf[0]*fhatAL[0])-0.2886751345948129*(alphaDrSurf[0]*fhatAL[1]+fhatAL[0]*alphaDrSurf[1]); 
   if(GhatDragCtrl[0] > EPSILON) {

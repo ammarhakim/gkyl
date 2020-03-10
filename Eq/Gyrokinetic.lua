@@ -89,13 +89,6 @@ function Gyrokinetic:init(tbl)
    self.totalVolTime  = 0.0
    self.totalSurfTime = 0.0
 
-   self.cflRateByDir = DataStruct.Field {
-      onGrid        = self._grid,
-      numComponents = self._ndim+1,
-      ghost         = {1, 1},
-   }
-   self.cflRateByDirIdxr = self.cflRateByDir:genIndexer()
-
    if self._positivity then
       self.posRescaler = Updater.PositivityRescale {
          onGrid = self._grid,
@@ -143,12 +136,27 @@ function Gyrokinetic:init(tbl)
          }
          self.fRhsVol_ptr = self.fRhsVol:get(1)
 
+         self.fRhsSurf = DataStruct.Field {
+            onGrid        = self._grid,
+            numComponents = self._basis:numBasis(),
+            ghost         = {1, 1}
+         }
+         self.fRhsSurf_ptr = self.fRhsSurf:get(1)
+         self.fRhsSurf_L_ptr = self.fRhsSurf:get(1)
+         self.fRhsSurf_R_ptr = self.fRhsSurf:get(1)
+
          self.fRhsIdxr = self.fRhsVol:genIndexer()
       end
 
-      self.cflRateByDir_ptr   = self.cflRateByDir:get(1)
-      self.cflRateByDir_L_ptr = self.cflRateByDir:get(1)
-      self.cflRateByDir_R_ptr = self.cflRateByDir:get(1)
+      self.positivityWeightByDir = DataStruct.Field {
+         onGrid        = self._grid,
+         numComponents = self._cdim+2,
+         ghost         = {1, 1},
+      }
+      self.positivityWeightByDirIdxr = self.positivityWeightByDir:genIndexer()
+      self.positivityWeightByDir_ptr   = self.positivityWeightByDir:get(1)
+      self.positivityWeightByDir_L_ptr = self.positivityWeightByDir:get(1)
+      self.positivityWeightByDir_R_ptr = self.positivityWeightByDir:get(1)
    end
 end
 
@@ -244,13 +252,13 @@ function Gyrokinetic:volTerm(w, dx, idx, f_ptr, fRhs_ptr)
       if self._positivity then
          self.fRhsVolX:fill(self.fRhsIdxr(idx), self.fRhsVolX_ptr)
          self.fRhsVolV:fill(self.fRhsIdxr(idx), self.fRhsVolV_ptr)
-         self.cflRateByDir:fill(self.cflRateByDirIdxr(idx), self.cflRateByDir_ptr)
+         self.positivityWeightByDir:fill(self.positivityWeightByDirIdxr(idx), self.positivityWeightByDir_ptr)
 
          cflRate = self._volTerm(self.charge, self.mass, w:data(), dx:data(), 
                              self.bmag_ptr:data(), self.bmagInv_ptr:data(), self.gradpar_ptr:data(), 
                              self.bdriftX_ptr:data(), self.bdriftY_ptr:data(), self.phi_ptr:data(), self.apar_ptr:data(), 
                              f_ptr:data(), self.fRhsVolX_ptr:data(), self.fRhsVolV_ptr:data(), 
-                             self.cflRateByDir_ptr:data())
+                             self.positivityWeightByDir_ptr:data())
       else
          cflRate = self._volTerm(self.charge, self.mass, w:data(), dx:data(), 
                              self.bmag_ptr:data(), self.bmagInv_ptr:data(), self.gradpar_ptr:data(), 
@@ -260,13 +268,13 @@ function Gyrokinetic:volTerm(w, dx, idx, f_ptr, fRhs_ptr)
    else  -- Electrostatic.
       if self._positivity then 
          self.fRhsVol:fill(self.fRhsIdxr(idx), self.fRhsVol_ptr)
-         self.cflRateByDir:fill(self.cflRateByDirIdxr(idx), self.cflRateByDir_ptr)
+         self.positivityWeightByDir:fill(self.positivityWeightByDirIdxr(idx), self.positivityWeightByDir_ptr)
 
          cflRate = self._volTerm(self.charge, self.mass, w:data(), dx:data(), 
                              self.bmag_ptr:data(), self.bmagInv_ptr:data(), self.gradpar_ptr:data(), 
                              self.bdriftX_ptr:data(), self.bdriftY_ptr:data(), self.phi_ptr:data(), 
                              f_ptr:data(), self.fRhsVol_ptr:data(), 
-                             self.cflRateByDir_ptr:data())
+                             self.positivityWeightByDir_ptr:data())
       else
          cflRate = self._volTerm(self.charge, self.mass, w:data(), dx:data(), 
                              self.bmag_ptr:data(), self.bmagInv_ptr:data(), self.gradpar_ptr:data(), 
@@ -316,14 +324,14 @@ function Gyrokinetic:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr,
              fRhsSurf_R_ptr = self.fRhsSurfX_R_ptr
          end
       
-         self.cflRateByDir:fill(self.cflRateByDirIdxr(idxl), self.cflRateByDir_L_ptr)
-         self.cflRateByDir:fill(self.cflRateByDirIdxr(idxr), self.cflRateByDir_R_ptr)
+         self.positivityWeightByDir:fill(self.positivityWeightByDirIdxr(idxl), self.positivityWeightByDir_L_ptr)
+         self.positivityWeightByDir:fill(self.positivityWeightByDirIdxr(idxr), self.positivityWeightByDir_R_ptr)
 
          res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(),
                      self.bmag_ptr:data(), self.bmagInv_ptr:data(), self.gradpar_ptr:data(), 
                      self.bdriftX_ptr:data(), self.bdriftY_ptr:data(), self.phi_ptr:data(), 
                      self.apar_ptr:data(), self.dApardt_ptr:data(), self.dApardtProv_ptr:data(), 
-                     dtApprox, self.cflRateByDir_L_ptr:data(), self.cflRateByDir_R_ptr:data(),
+                     dtApprox, self.positivityWeightByDir_L_ptr:data(), self.positivityWeightByDir_R_ptr:data(),
                      f_L_ptr:data(), f_R_ptr:data(), fRhsSurf_L_ptr:data(), fRhsSurf_R_ptr:data(), 
                      self.ohmMod_L_ptr:data(), self.ohmMod_R_ptr:data())
       else
@@ -336,16 +344,17 @@ function Gyrokinetic:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr,
       end
    else   -- Electrostatic.
       if self._positivity then
-         local cflRateByDir_L_ptr = self.cflRateByDir:get(1)
-         local cflRateByDir_R_ptr = self.cflRateByDir:get(1)
-         self.cflRateByDir:fill(self.cflRateByDirIdxr(idxl), cflRateByDir_L_ptr)
-         self.cflRateByDir:fill(self.cflRateByDirIdxr(idxr), cflRateByDir_R_ptr)
+         self.positivityWeightByDir:fill(self.positivityWeightByDirIdxr(idxl), self.positivityWeightByDir_L_ptr)
+         self.positivityWeightByDir:fill(self.positivityWeightByDirIdxr(idxr), self.positivityWeightByDir_R_ptr)
+
+         self.fRhsSurf:fill(self.fRhsIdxr(idxl), self.fRhsSurf_L_ptr)
+         self.fRhsSurf:fill(self.fRhsIdxr(idxr), self.fRhsSurf_R_ptr)
 
          res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), 
                      self.bmag_ptr:data(), self.bmagInv_ptr:data(), self.gradpar_ptr:data(), 
                      self.bdriftX_ptr:data(), self.bdriftY_ptr:data(), self.phi_ptr:data(), 
-                     dtApprox, self.cflRateByDir_L_ptr:data(), self.cflRateByDir_R_ptr:data(),
-                     f_L_ptr:data(), f_R_ptr:data(), fRhs_L_ptr:data(), fRhs_R_ptr:data())
+                     dtApprox, self.positivityWeightByDir_L_ptr:data(), self.positivityWeightByDir_R_ptr:data(),
+                     f_L_ptr:data(), f_R_ptr:data(), self.fRhsSurf_L_ptr:data(), self.fRhsSurf_R_ptr:data())
       else
          res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(),  
                      self.bmag_ptr:data(), self.bmagInv_ptr:data(), self.gradpar_ptr:data(), 
@@ -365,7 +374,7 @@ function Gyrokinetic:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_
 end
 
 function Gyrokinetic:sync()
-   self.cflRateByDir:sync()
+   self.positivityWeightByDir:sync()
 end
 
 -- Step2 volume integral term for use in DG scheme (EM only).
@@ -377,12 +386,12 @@ function Gyrokinetic:volTermStep2(w, dx, idx, f_ptr, fRhs_ptr)
    if self._positivity then
       self.fRhsVolV:fill(self.fRhsIdxr(idx), self.fRhsVolV_ptr)
       self.fRhsSurfV:fill(self.fRhsIdxr(idx), self.fRhsSurfV_ptr)
-      self.cflRateByDir:fill(self.cflRateByDirIdxr(idx), self.cflRateByDir_ptr)
+      self.positivityWeightByDir:fill(self.positivityWeightByDirIdxr(idx), self.positivityWeightByDir_ptr)
 
       cflRate = self._volTermStep2(self.charge, self.mass, w:data(), dx:data(), 
                                    self.ohmMod_ptr:data(), self.dApardt_ptr:data(), 
                                    f_ptr:data(), self.fRhsVolV_ptr:data(), self.fRhsSurfV_ptr:data(),
-                                   self.cflRateByDir_ptr:data())
+                                   self.positivityWeightByDir_ptr:data())
    else
       cflRate = self._volTermStep2(self.charge, self.mass, w:data(), dx:data(), 
                                    self.ohmMod_ptr:data(), self.dApardt_ptr:data(), 
@@ -409,15 +418,15 @@ function Gyrokinetic:surfTermStep2(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, 
 
    local res
    if self._positivity then
-      self.cflRateByDir:fill(self.cflRateByDirIdxr(idxl), self.cflRateByDir_L_ptr)
-      self.cflRateByDir:fill(self.cflRateByDirIdxr(idxr), self.cflRateByDir_R_ptr)
+      self.positivityWeightByDir:fill(self.positivityWeightByDirIdxr(idxl), self.positivityWeightByDir_L_ptr)
+      self.positivityWeightByDir:fill(self.positivityWeightByDirIdxr(idxr), self.positivityWeightByDir_R_ptr)
       self.fRhsSurfV:fill(self.fRhsIdxr(idxl), self.fRhsSurfV_L_ptr)
       self.fRhsSurfV:fill(self.fRhsIdxr(idxr), self.fRhsSurfV_R_ptr)
       res = self._surfTermsStep2[dir](self.charge, self.mass, wr:data(), dxr:data(),
                                       self.bmag_ptr:data(), self.bmagInv_ptr:data(), self.gradpar_ptr:data(), 
                                       self.bdriftX_ptr:data(), self.bdriftY_ptr:data(), self.phi_ptr:data(), 
                                       self.apar_ptr:data(), self.dApardt_ptr:data(), self.dApardtProv_ptr:data(), 
-                                      dtApprox, self.cflRateByDir_L_ptr:data(), self.cflRateByDir_R_ptr:data(),
+                                      dtApprox, self.positivityWeightByDir_L_ptr:data(), self.positivityWeightByDir_R_ptr:data(),
                                       f_L_ptr:data(), f_R_ptr:data(), self.fRhsSurfV_L_ptr:data(), self.fRhsSurfV_R_ptr:data())
    else
       res = self._surfTermsStep2[dir](self.charge, self.mass, wr:data(), dxr:data(), 
@@ -440,6 +449,7 @@ function Gyrokinetic:clearRhsTerms()
          self.fRhsSurfV:clear(0.0)
       else    -- Electrostatic.
          self.fRhsVol:clear(0.0)
+         self.fRhsSurf:clear(0.0)
       end
    end
 
@@ -453,32 +463,38 @@ end
 function Gyrokinetic:getPositivityRhs(tCurr, dtApprox, fIn, fRhs)
    if self._isElectromagnetic then
       weightDirs = {}
-      for d = 1, self._cdim do
+      for d = 1, self._cdim do -- configuration space dirs
          weightDirs[d] = d
       end
-      if dtApprox > 0 then self.posRescaler:rescaleVolTerm(tCurr, dtApprox, fIn, self.cflRateByDir, weightDirs, self.fRhsSurfX, self.fRhsVolX) end
+      if dtApprox > 0 and tCurr > 0 then self.posRescaler:rescaleVolTerm(tCurr, dtApprox, fIn, self.positivityWeightByDir, weightDirs, self.fRhsSurfX, self.fRhsVolX) end
 
-      fRhs:combine(1.0, self.fRhsSurfX, 1.0, self.fRhsVolX)
+      fRhs:accumulate(1.0, self.fRhsSurfX, 1.0, self.fRhsVolX)
    else
-      -- For electrostatic, fRhs already contains surface term.
-      local fRhsSurf = fRhs 
+      weightDirs = {}
+      for d = 1, self._cdim+1 do -- configuration space dirs + vpar dir
+         weightDirs[d] = d
+      end
       -- fIn + fac*dt*fVol + dt*fSurf > 0.
       -- Rescale volume term by fac, and add to surface term fRhs = fRhsSurf.
-      if dtApprox > 0 then self.posRescaler:rescaleVolTerm(tCurr, dtApprox, fIn, nil, nil, fRhsSurf, self.fRhsVol) end
+      if dtApprox > 0 and tCurr > 0 then self.posRescaler:rescaleVolTerm(tCurr, dtApprox, fIn, self.positivityWeightByDir, weightDirs, self.fRhsSurf, self.fRhsVol) end
 
-      fRhs:accumulate(1.0, self.fRhsVol)
+      fRhs:accumulate(1.0, self.fRhsSurf, 1.0, self.fRhsVol)
    end 
 end
 
 function Gyrokinetic:getPositivityRhsStep2(tCurr, dtApprox, fIn, fRhs)
    if self._isElectromagnetic then
-      weightDirs = {}
-      for d = 1, self._vdim do
-         weightDirs[d] = d + self._cdim
-      end
-      if dtApprox > 0 then self.posRescaler:rescaleVolTerm(tCurr, dtApprox, fIn, self.cflRateByDir, weightDirs, self.fRhsSurfV, self.fRhsVolV) end
+      weightDirs = {self._cdim + 1} -- only vpar direction
+      if dtApprox > 0 then self.posRescaler:rescaleVolTerm(tCurr, dtApprox, fIn, self.positivityWeightByDir, weightDirs, self.fRhsSurfV, self.fRhsVolV) end
       fRhs:accumulate(1.0, self.fRhsSurfV, 1.0, self.fRhsVolV)
    end 
+end
+
+function Gyrokinetic:setPositivityWeights(cflRateByCell)
+   -- set total weight = positivityWeightByDir[0] = cflRateByCell in each cell
+   -- other elements will be overwritten in kernels
+   self.positivityWeightByDir:clear(1.0)
+   self.positivityWeightByDir:scaleByCell(cflRateByCell)
 end
 
 return {GkEq = Gyrokinetic}
