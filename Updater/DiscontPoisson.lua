@@ -10,7 +10,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- Gkyl libraries
+-- Gkyl libraries.
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
@@ -32,7 +32,7 @@ ffi.cdef[[
   void discontPoisson_getSolution(DiscontPoisson* f, int idx, double* sol);
 ]]
 
--- DG Poisson solver updater object
+-- DG Poisson solver updater object.
 local DiscontPoisson = Proto(UpdaterBase)
 
 function DiscontPoisson:init(tbl)
@@ -46,7 +46,7 @@ function DiscontPoisson:init(tbl)
    self.nbasis = self.basis:numBasis()
    local polyOrder = self.basis:polyOrder()
    self.ncell = ffi.new("int[3]")
-   local dx = Lin.Vec(3)
+   local dx = Lin.Vec(3)    -- Limited to uniform grids for now.
    for d = 1,self.ndim do
       self.ncell[d-1] = self.grid:numCells(d)
       dx[d] = self.grid:dx(d)
@@ -54,6 +54,7 @@ function DiscontPoisson:init(tbl)
 
    local writeMatrix = xsys.pickBool(tbl.writeMatrix, false)
 
+   -- Read the boundary conditions in.
    assert(#tbl.bcLower == self.ndim, "Updater.DiscontPoisson: Must provide lower boundary conditions for all the dimesions using 'bcLower'")
    assert(#tbl.bcUpper == self.ndim, "Updater.DiscontPoisson: Must provide upper boundary conditions for all the dimesions using 'bcUpper'")
    local bcLower, bcUpper = {}, {}
@@ -67,7 +68,7 @@ function DiscontPoisson:init(tbl)
       elseif tbl.bcLower[d].T == "P" then
          bcLower[d] = {0,0,0}
       else
-         assert(false, "Updater.DiscontPoisson: The lower BC type must be either 'D' for Dirichlet, 'N' for Neumann, 'R' for Robin (mixed), or 'P' for periodic.")
+         assert(false, "Updater.DiscontPoisson: The lower BC type must be either 'D' for Dirichlet, 'N' for Neumann, 'R' for Robin, or 'P' for periodic.")
       end
 
       if tbl.bcUpper[d].T == "D" then
@@ -79,7 +80,7 @@ function DiscontPoisson:init(tbl)
       elseif tbl.bcUpper[d].T == "P" then
          bcUpper[d] = {0,0,0}
       else
-         assert(false, "Updater.DiscontPoisson: The upper BC type must be either 'D' for Dirichlet, 'N' for Neumann, 'R' for Robin (mixed), or 'P' for periodic.")
+         assert(false, "Updater.DiscontPoisson: The upper BC type must be either 'D' for Dirichlet, 'N' for Neumann, 'R' for Robin, or 'P' for periodic.")
       end
    end
 

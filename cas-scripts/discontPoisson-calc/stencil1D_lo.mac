@@ -1,3 +1,8 @@
+/* Generate Lua code that fills the left-side matrix entries
+   corresponding to the discretization of the Poisson equation
+      Laplacian(phi) = - rho
+   with recovery DG in the 1D lower boundary skin cell. */
+
 kill(all)$
 load("recovery-calc/recovery")$
 load("basis-precalc/basisSer1x")$
@@ -7,17 +12,44 @@ size : [2]$
 range : [[-1,1]]$
 J : [4/dx[1]^2]$
 
-for d : 1 thru length(dirs) do (
-  for polyOrder : 1 thru 3 do (
+
+for polyOrder : 1 thru 3 do (
+
+  for d : 1 thru length(dirs) do (
+
     fname : sconcat("~/max-out/discontPoissonStencil1D_", polyOrder, "p_", dirs[d], "Lo.lua"),
     fh : openw(fname),
     printf(fh, "local Lin = require \"Lib.Linalg\"~%"),
     printf(fh, "local function stencilFn(dx, a, b, val)~%"),
     printf(fh, "  local _M = {}~%~%"),
     
-    numBasis : length(basisC[polyOrder]),
-    st : diff(getRecov3CellGen(dirs[d], size, polyOrder, 1, val, hC, hU, [a,b],[0,0]), dirs[d], 2)*J[d],
-    stProj : calcInnerProdListGen(dirs, range, 1, basisC[polyOrder], st),
+    /* Variables and basis. */
+    bC          : basisC[polyOrder],
+    numBasis    : length(bC),
+    surfVar     : dirs[d],
+    remSurfVars : delete(surfVar,varsC),
+    bCp         : diff(bC,surfVar),
+
+    hC_e : doExpand(hC,bC),
+
+    /* Recovery polynomials at lower and upper boundaries. */
+    phiRecL : calcRecov2CellGen("Ser",dirs[d],size,polyOrder,hC, hU, [a,b,val], [0,0]),
+    phiRecU : calcRecov2CellGen("Ser",dirs[d],size,polyOrder,hC, hU),
+    /* Recovery value and derivative at the boundary. */
+    phiRecL0  : subst(surfVar=-size[d],phiRecL),
+    phiRecLp0 : subst(surfVar=-size[d],diff(phiRecL,surfVar)),
+    phiRecU0  : subst(surfVar=0,phiRecU),
+    phiRecUp0 : subst(surfVar=0,diff(phiRecU,surfVar)),
+    /* Surface terms. */
+    surfTerms : J[d]*( calcInnerProdList(remSurfVars,1.0,subst(surfVar=1,bC),phiRecUp0)
+                      -calcInnerProdList(remSurfVars,1.0,subst(surfVar=1,bCp),phiRecU0) )
+               -J[d]*( calcInnerProdList(remSurfVars,1.0,subst(surfVar=-1,bC),phiRecLp0)
+                      -calcInnerProdList(remSurfVars,1.0,subst(surfVar=-1,bCp),phiRecL0) ),
+    /* Volume terms. */
+    volTerms  : J[d]*calcInnerProdList(varsC,1,diff(bC,varsC[d],2),hC_e),
+
+    /* Left-side stencil.*/ 
+    stProj : surfTerms + volTerms,
     
     ML : coefmatrix(stProj, [val]),
     printf(fh, "  _M[1] = Lin.Vec(~a)~%", numBasis),
@@ -45,5 +77,5 @@ for d : 1 thru length(dirs) do (
     printf(fh, "end~%~%"),
     printf(fh, "return(stencilFn)"),
     close(fh)
-    )
-  )$
+  )
+)$
