@@ -190,6 +190,9 @@ function GkLBO:volTerm(w, dx, idx, f_ptr, out_ptr)
       if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
           (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum))) then
          cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self.cflRateByDir_ptr:data(), self._BmagInvPtr:data(), self._inNuSum, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), f_ptr:data(), self.fRhsVol_ptr:data())
+         -- if using positivity, the volume term will be repeated in step 2, and we will use the cflFreq from there
+         -- to avoid double counting, set cflFreq = 0 here
+         if self._positivity then cflFreq = 0.0 end
       else
          cflFreq = 0.0
          self.primMomCrossLimit = self.primMomCrossLimit+1

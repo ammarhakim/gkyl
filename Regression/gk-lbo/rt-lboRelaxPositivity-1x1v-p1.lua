@@ -94,29 +94,29 @@ plasmaApp = Plasma.App {
    },
 
    -- Neutral species with a bump in the tail.
-   bump = Plasma.Species {
-      charge = 1.0, mass = 1.0,
-      -- Velocity space grid.
-      lower      = {-8.0*vt},
-      upper      = { 8.0*vt},
-      cells      = {32},
-      -- Initial conditions.
-      init = function (t, xn)
-	 local x, v = xn[1], xn[2]
-         return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
-      end,
+   --bump = Plasma.Species {
+   --   charge = 1.0, mass = 1.0,
+   --   -- Velocity space grid.
+   --   lower      = {-8.0*vt},
+   --   upper      = { 8.0*vt},
+   --   cells      = {32},
+   --   -- Initial conditions.
+   --   init = function (t, xn)
+   --      local x, v = xn[1], xn[2]
+   --      return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
+   --   end,
 
-      evolve              = true,    -- Evolve this species.
-      evolveCollisionless = false,   -- Don't evolve collisionless terms for this test.
-      positivity          = true,    -- Enforce positivity.
-      positivityDiffuse   = true,    -- Add intra-cell diffusion to reduce negativity errors.
+   --   evolve              = true,    -- Evolve this species.
+   --   evolveCollisionless = false,   -- Don't evolve collisionless terms for this test.
+   --   positivity          = true,    -- Enforce positivity.
+   --   positivityDiffuse   = true,    -- Add intra-cell diffusion to reduce negativity errors.
 
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
-      coll = Plasma.LBOCollisions {
-         collideWith = {'bump'},
-         frequencies = {nu, },
-      },
-   },
+   --   diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+   --   coll = Plasma.LBOCollisions {
+   --      collideWith = {'bump'},
+   --      frequencies = {nu, },
+   --   },
+   --},
 
    -- Field solver.
    field = Plasma.Field {
