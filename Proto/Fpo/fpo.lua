@@ -15,6 +15,10 @@ local xsys = require "xsys"
 local _ = require "Proto.Fpo.fpoKernelsCdef"
 
 return function(tbl)
+   local numKeys, keysUsed = 0, 0
+   for key, value in pairs(tbl) do
+      numKeys = numKeys + 1
+   end
    -- Simulation parameters
    local polyOrder = tbl.polyOrder -- polynomial order
 
