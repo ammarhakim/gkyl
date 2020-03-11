@@ -155,6 +155,10 @@ function RectCart:id() return "uniform" end
 function RectCart:commSet() return self._commSet end 
 function RectCart:isShared() return self._isShared end
 function RectCart:subGridId() return self._block end
+function RectCart:subGridIdByDim(idx) 
+   local invIdxr = self._decomposedRange:cutsInvIndexer()
+   invIdxr(self._block, idx)
+end
 function RectCart:numSharedProcs()
    return Mpi.Comm_size(self._commSet.sharedComm)
 end
