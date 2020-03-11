@@ -97,6 +97,7 @@ plasmaApp = Plasma.App {
       positivityDiffuse   = true,    -- Add intra-cell diffusion to reduce negativity errors.
       -- Diagnostic moments.
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      diagnosticIntegratedMoments = {"intDelPosL2", "intDelL2"},
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'square'},
@@ -129,7 +130,7 @@ plasmaApp = Plasma.App {
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
-         frequencies = {nu},
+         frequencies = {nu/6},
       },
    },
 

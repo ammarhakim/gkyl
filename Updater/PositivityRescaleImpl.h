@@ -2,6 +2,7 @@
 #include <cmath>
 #include <stdio.h>
 #define EPSILON std::numeric_limits<double>::epsilon()
+#define DBL_MIN std::numeric_limits<double>::min()
 extern "C" { 
 double findMinNodalValue(const double *fIn, int ndim); 
 double findMinNodalRatio(const double *fNum, const double *fDenom, double fac, int ndim);

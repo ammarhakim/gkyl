@@ -181,6 +181,11 @@ modToNod : (
 return(modToNod)
 )$
 
+getNodalBasis(nodes, modalBasis, vars) := block([modToNod],
+modToNod : calcModToNodPhaseWithNodesAndBasis(nodes, modalBasis, vars),
+return(fullratsimp(list_matrix_entries(invert(modToNod).modalBasis)))
+)$
+
 /* calculate nodal-to-modal transformation matrix */
 calcNodToModPerp(cdim, p) := block([],
 kill(varsC, varsP, basisC, basisP),
