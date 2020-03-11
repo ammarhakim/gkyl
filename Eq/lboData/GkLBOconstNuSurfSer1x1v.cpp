@@ -48,35 +48,15 @@ double GkLBOconstNuSurf1x1vSer_Vpar_P1(const double m_, const double *cflRateByD
   incr1[2] = 0.8660254037844386*Ghat[0]*rdv2R; 
   incr1[3] = 0.8660254037844386*Ghat[1]*rdv2R; 
 
-  double fluxFracL, fluxFracR, limFac=1.0;
-  double outlPos[2], outrPos[2]; 
-  fluxFracL = cflRateByDirL[0] == 0. ? 0.5 : cflRateByDirL[1]/cflRateByDirL[0]; 
-  fluxFracR = cflRateByDirR[0] == 0. ? 0.5 : cflRateByDirR[1]/cflRateByDirR[0]; 
-  outlPos[0] = 0.1666666666666667*(incr2[3]-1.0*incr1[3]-1.732050807568877*incr2[2]+1.732050807568877*(incr1[2]+incr1[1])-3.0*incr1[0]); 
-  outlPos[1] = -0.1666666666666667*(incr2[3]-1.0*incr1[3]+1.732050807568877*incr2[2]-1.732050807568877*incr1[2]+1.732050807568877*incr1[1]+3.0*incr1[0]); 
-  outrPos[0] = 0.1666666666666667*(incr2[3]+incr1[3]-1.732050807568877*(incr2[2]+incr1[2]+incr1[1])+3.0*incr1[0]); 
-  outrPos[1] = -0.1666666666666667*(incr2[3]+incr1[3]+1.732050807568877*(incr2[2]+incr1[2])-1.732050807568877*incr1[1]-3.0*incr1[0]); 
-  if(outlPos[0] < 0.) limFac = std::min(1.0, -fluxFracL*(-0.1666666666666667*(fl[3]-1.732050807568877*fl[2]+1.732050807568877*fl[1]-3.0*fl[0]))/dtApprox/outlPos[0]); 
-  else limFac = 1.0; 
-  if(outrPos[0] < 0.) limFac = std::min(limFac, -fluxFracR*(0.1666666666666667*(fr[3]-1.732050807568877*(fr[2]+fr[1])+3.0*fr[0]))/dtApprox/outrPos[0]); 
-  if(limFac < 0.) limFac = 0.; 
-  outlPos[0] *= limFac; 
-  outrPos[0] *= limFac; 
-  if(outlPos[1] < 0.) limFac = std::min(1.0, -fluxFracL*(0.1666666666666667*(fl[3]+1.732050807568877*(fl[2]+fl[1])+3.0*fl[0]))/dtApprox/outlPos[1]); 
-  else limFac = 1.0; 
-  if(outrPos[1] < 0.) limFac = std::min(limFac, -fluxFracR*(-0.1666666666666667*(fr[3]+1.732050807568877*fr[2]-1.732050807568877*fr[1]-3.0*fr[0]))/dtApprox/outrPos[1]); 
-  if(limFac < 0.) limFac = 0.; 
-  outlPos[1] *= limFac; 
-  outrPos[1] *= limFac; 
-  outr[0] += 0.5*outrPos[1]+0.5*outrPos[0]; 
-  outr[1] += 0.8660254037844386*outrPos[1]-0.8660254037844386*outrPos[0]; 
-  outr[2] += (-0.8660254037844386*outrPos[1])-0.8660254037844386*outrPos[0]; 
-  outr[3] += 1.5*outrPos[0]-1.5*outrPos[1]; 
+  outr[0] += incr1[0]; 
+  outr[1] += incr1[1]; 
+  outr[2] += incr2[2]+incr1[2]; 
+  outr[3] += incr2[3]+incr1[3]; 
 
-  outl[0] += 0.5*outlPos[1]+0.5*outlPos[0]; 
-  outl[1] += 0.8660254037844386*outlPos[1]-0.8660254037844386*outlPos[0]; 
-  outl[2] += 0.8660254037844386*outlPos[1]+0.8660254037844386*outlPos[0]; 
-  outl[3] += 1.5*outlPos[1]-1.5*outlPos[0]; 
+  outl[0] += -1.0*incr1[0]; 
+  outl[1] += -1.0*incr1[1]; 
+  outl[2] += incr1[2]-1.0*incr2[2]; 
+  outl[3] += incr1[3]-1.0*incr2[3]; 
 
   return std::abs(wl[1]-(0.7071067811865475*nuUSum[0])/nuSum); 
 } 

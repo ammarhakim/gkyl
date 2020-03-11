@@ -9,7 +9,7 @@ load(stringproc)$
 /* Serendipity basis. */
 maxPolyOrder_Ser : 1$
 minCdim_Ser : 1$
-maxCdim_Ser : 3$
+maxCdim_Ser : 1$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 1$
