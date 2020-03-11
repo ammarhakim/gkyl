@@ -510,8 +510,8 @@ double calcVolTermRescale(const double tCurr, const double dt, const double *fIn
   double minOutSurf = findMinNodalValue(fOutSurf, ndim);
   double f0         = fOutSurf[0]*pow(0.7071067811865475, ndim);
  
-  if (dt*minOutSurf < -EPSILON*dt*abs(minOutSurf-2*f0)*2) {
-    printf("warning: at time %g, surface terms making control node negative, with value = %g, in cell = (%d", tCurr, dt*minOutSurf, idx[0]);
+  if (dt*minOutSurf < -EPSILON*dt*abs(minOutSurf-2*f0)*10-DBL_MIN*10) {
+    printf("warning: at time %g, surface terms making control node negative, with value = %g in cell = (%d", tCurr, dt*minOutSurf, idx[0]);
     for(int i=1; i<ndim; i++) {
       printf(", %d", idx[i]);
     }

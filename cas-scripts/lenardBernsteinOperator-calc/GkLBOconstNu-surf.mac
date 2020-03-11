@@ -140,14 +140,14 @@ compWriteIncr(fRec,fRecP, nSpaces) := block([incr_s1,incr_s2],
   Ghat_e     : doExpandLst(glst1, bP),
   Ghat_final : subst(vv=1, Ghat_e),
 
-  /* Increments to the right cell (some dimensional factors missing).
+  /* Increments to the right cell.
      incr_r1 and incr_r2 (farther below) have separate left/right symmetry. */
-  incr_r1 :  calcInnerProdList(surfVars, -1, subst(vv=-1, bP), Ghat_final),
-  incr_r2 :  fullratsimp(-calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), diffFac_e*fRec)),
+  incr_r1 :  rdv2R*calcInnerProdList(surfVars, -1, subst(vv=-1, bP), Ghat_final),
+  incr_r2 :  rdvSq4R*fullratsimp(-calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), diffFac_e*fRec)),
 
   /* Increments to the left cell (some dimensional factors missing). */
-  incr_l1 :  calcInnerProdList(surfVars, 1, subst(vv=1, bP), Ghat_final),
-  incr_l2 :  fullratsimp(-calcInnerProdList(surfVars, 1, subst(vv=1, bPp), diffFac_e*fRec)),
+  incr_l1 :  rdv2R*calcInnerProdList(surfVars, 1, subst(vv=1, bP), Ghat_final),
+  incr_l2 :  rdvSq4R*fullratsimp(-calcInnerProdList(surfVars, 1, subst(vv=1, bPp), diffFac_e*fRec)),
 
   clst : append(makelist(nuVtSqSum[i],i,0,NC-1), makelist(BmagInv[i],i,0,NC-1)),
   writeCExprsCollect1c(incr2, radcan(incr_r2), clst, nSpaces),
@@ -430,41 +430,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
       fHatSurf_e    : subst(gkvsub, fhatALgenUpwindNoLim( subst(gkvsubInv,fl_e), subst(gkvsubInv,fr_e), 
                                                          -subst(gkvsubInv,alphaDrSurf_e), subst(gkvsubInv,vv), 
                                                           cfll, cflr, cdim, vdim, polyOrder )),
-      /*
-      GhatDrag_c    : calcInnerProdList(varsP,alphaDrSurf_e,bP,fHatSurf_e),
-      */
-      GhatDrag_c    : calcInnerProdList(surfVars,alphaDrSurf_e,bSurf,fHatSurf_e),
-      GhatDrag_e    : GhatDrag_c.bSurf,
-
-      /* Limit flux to preserve positivity of control nodes. */
-      cSurfNodes       : eval_string(sconcat("nodes", cdim+vdim-1, "xp", polyOrder))/3,
-      nodesub(f,nodes) := makelist(subst(makelist(surfVars[j]=nodes[i][j],j,1,length(surfVars)),f),i,1,length(nodes)),
-      GhatDragC        : nodesub(GhatDrag_e, cSurfNodes),
-      printf(fh, "  double fluxFracL, fluxFracR, flim = 0.;~%"),
-      printf(fh, "  double GhatDragCtrl[~a];~%", length(cSurfNodes)),
-      printf(fh, "  fluxFracL = cflRateByDirL[0] == 0. ? ~a : cflRateByDirL[~a]/cflRateByDirL[0]; ~%", float(1/(cdim+1)), dir),
-      printf(fh, "  fluxFracR = cflRateByDirR[0] == 0. ? ~a : cflRateByDirR[~a]/cflRateByDirR[0]; ~%", float(1/(cdim+1)), dir),
-      for c:1 thru length(cSurfNodes) do (
-        printf(fh, "  // Control node ~a = ~a. ~%", surfVars, cSurfNodes[c]),
-        flimL:gcfac(float(fullratsimp(subst(vv=1/3,nodesub(fl_e,cSurfNodes)[c])))),
-        flimR:gcfac(float(fullratsimp(subst(vv=-1/3,nodesub(fr_e,cSurfNodes)[c])))),
-        printf(fh, "  GhatDragCtrl[~a] = ~a; ~%", c-1, gcfac(float(GhatDragC[c]))),
-        printf(fh, "  if(GhatDragCtrl[~a] > EPSILON) {~%", c-1),
-        printf(fh, "    flim = std::max(0., ~a); ~%", flimL),
-        printf(fh, "    GhatDragCtrl[~a] = std::min(GhatDragCtrl[~a], std::abs(fluxFracL*flim/dtApprox/~a)); ~%", c-1, c-1, rdv2L),
-        printf(fh, "  } else if(GhatDragCtrl[~a] < -EPSILON) {~%", c-1),
-        printf(fh, "    flim = std::max(0., ~a); ~%", flimR),
-        printf(fh, "    GhatDragCtrl[~a] = -std::min(-GhatDragCtrl[~a], std::abs(fluxFracR*flim/dtApprox/~a)); ~%", c-1, c-1, rdv2R),
-        printf(fh, "  } else GhatDragCtrl[~a] = 0.; ~%", c-1)
-      ),
-      modToNodC  : calcModToNodPhaseWithNodesAndBasis(cSurfNodes, bSurf, surfVars),
-      GhatDrag_c : fullratsimp(invert(transpose(modToNodC)).makelist(GhatDragCtrl[i-1],i,1,length(cSurfNodes))),
-      GhatDrag_c : gcfac(makelist(GhatDrag_c[i][1],i,1,length(GhatDrag_c))),
-      GhatDrag_e : GhatDrag_c.bSurf,
-      GhatDrag_c : calcInnerProdList(varsP,1.0,bP,GhatDrag_e),
-      printf(fh, "~%")
-      /* Finished limiting flux. */
-
+      GhatDrag_c    : calcInnerProdList(varsP,alphaDrSurf_e,bP,fHatSurf_e)
     ),
 
     if (not applyPos) then (
@@ -622,19 +588,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
     writeCExprsCollect1(incr1, incr_r1, clst),
     printf(fh, "~%"),
 
-    incr_s1 : makelist(incr1[i-1], i, 1, NP),
-    incr_s2 : makelist(incr2[i-1], i, 1, NP),
-    /* Don't do coefficients where the increment is zero */
-    for i : 1 thru NP do (
-      if (incr_r1[i] = 0) then
-        incr_s1[i] : 0,
-      if (incr_r2[i] = 0) then
-        incr_s2[i] : 0
-    ),
-    /* Write out contribution right cell. */
-    writeCIncrExprs1(outr, rdv2R*incr_s1+rdvSq4R*incr_s2), 
-    printf(fh, "~%"),
-
+    /* Get signs for left increment */
     signs1 : makelist(1,i,1,NP),
     signs2 : makelist(1,i,1,NP),
     for i : 1 thru NP do (
@@ -647,10 +601,21 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
       else
         signs2[i] : fullratsimp(incr_l2[i]/incr_r2[i])
     ),
+
+    /* Don't do coefficients where the increment is zero */
+    incr_s1 : makelist(incr1[i-1], i, 1, NP),
+    incr_s2 : makelist(incr2[i-1], i, 1, NP),
+    for i : 1 thru NP do (
+      if (incr_r1[i] = 0) then
+        incr_s1[i] : 0,
+      if (incr_r2[i] = 0) then
+        incr_s2[i] : 0
+    ),
+    outr_c : incr_s1 + incr_s2,
+
+    /* Don't do coefficients where the increment is zero */
     incr_s1 : makelist(signs1[i]*incr1[i-1], i, 1, NP),
     incr_s2 : makelist(signs2[i]*incr2[i-1], i, 1, NP),
-    /*incr_s2 : incr_l2,*/
-    /* Don't do coefficients where the increment is zero */
     for i : 1 thru NP do (
       if (incr_r1[i] = 0) then
         incr_s1[i] : 0
@@ -659,8 +624,65 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
       if (incr_r2[i] = 0) then
         incr_s2[i] : 0
     ),
+    outl_c : incr_s1 + incr_s2,
+
+    /*** Limit fluxes for positivity ***/
+
+    /* Expand outl and outr on volume basis */
+    outl_e : outl_c.bP,
+    outr_e : outr_c.bP,
+
+    /* Get positivity surface projection basis */
+    surfNodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", polyOrder)),
+    posSurfProjBasis : getNodalBasis(surfNodes, bSurf, surfVars),
+
+    /* Project outl and fl onto left positivity surface basis */
+    fl_pos : gcfac(float(calcInnerProdList(varsP, 1, posSurfProjBasis*(1/2+1/2*vv), fl_e))),
+    outl_pos : gcfac(float(calcInnerProdList(varsP, 1, posSurfProjBasis*(1/2+1/2*vv), outl_e))),
+
+    /* Project outr and fr onto right positivity surface basis */
+    fr_pos : gcfac(float(calcInnerProdList(varsP, 1, posSurfProjBasis*(1/2-1/2*vv), fr_e))),
+    outr_pos : gcfac(float(calcInnerProdList(varsP, 1, posSurfProjBasis*(1/2-1/2*vv), outr_e))),
+
+    /* Set up positivity weights */
+    printf(fh, "  double fluxFracL, fluxFracR, limFac=1.0;~%"),
+    printf(fh, "  double outlPos[~a], outrPos[~a]; ~%", length(posSurfProjBasis), length(posSurfProjBasis)),
+    printf(fh, "  fluxFracL = cflRateByDirL[0] == 0. ? ~a : cflRateByDirL[~a]/cflRateByDirL[0]; ~%", float(1/(cdim+vdim)), dir),
+    printf(fh, "  fluxFracR = cflRateByDirR[0] == 0. ? ~a : cflRateByDirR[~a]/cflRateByDirR[0]; ~%", float(1/(cdim+vdim)), dir),
+
+    /* Write coefficients of outl and outr on positivity surface basis */
+    writeCExprsNoExpand1(outlPos, outl_pos),
+    writeCExprsNoExpand1(outrPos, outr_pos),
+
+    /* Loop over positivity surface basis, and calculate limiters */
+    for i : 1 thru length(posSurfProjBasis) do (
+       printf(fh, "  if(outlPos[~a] < 0.) limFac = std::min(1.0, -fluxFracL*(~a)/dtApprox/outlPos[~a]); ~%", i-1, fl_pos[i], i-1),
+       printf(fh, "  else limFac = 1.0; ~%"),
+       printf(fh, "  if(outrPos[~a] < 0.) limFac = std::min(limFac, -fluxFracR*(~a)/dtApprox/outrPos[~a]); ~%", i-1, fr_pos[i], i-1),
+       printf(fh, "  if(limFac < 0.) limFac = 0.; ~%"),
+       
+       printf(fh, "  outlPos[~a] *= limFac; ~%", i-1),
+       printf(fh, "  outrPos[~a] *= limFac; ~%", i-1)
+    ),
+
+    /* Get positivity surface expansion basis */
+    posSurfExpdBasis : getNodalBasis(surfNodes/3, bSurf, surfVars),
+
+    /* Expand on positivity surface expansion basis, and then project back onto modal basis */
+    outl_pos_e : makelist(outlPos[i-1],i,1,length(posSurfExpdBasis)).posSurfExpdBasis*(1/2+3/2*vv),
+    outr_pos_e : makelist(outrPos[i-1],i,1,length(posSurfExpdBasis)).posSurfExpdBasis*(1/2-3/2*vv),
+
+    outl_c : gcfac(float(fullratsimp(calcInnerProdList(varsP, 1, bP, outl_pos_e)))),
+    outr_c : gcfac(float(fullratsimp(calcInnerProdList(varsP, 1, bP, outr_pos_e)))),
+
+    /*** Finished limiting fluxes for positivity ***/
+
+    /* Write out contribution right cell. */
+    writeCIncrExprs1(outr, outr_c), 
+    printf(fh, "~%"),
+
     /* Write out contribution to left cell. */
-    writeCIncrExprs1(outl, rdv2L*incr_s1+rdvSq4L*incr_s2), 
+    writeCIncrExprs1(outl, outl_c), 
     printf(fh, "~%"),
 
     printf(fh, "  return std::abs(~a); ~%", vMuMid),
