@@ -1,0 +1,49 @@
+calcRecovFaceGen(basisNm, dir, ndiff, dx, polyOrder, C, lo, ce, up) := block(
+  [perpDir, perpDirIdx, rLo, rCe, rUp, basisC, baC, rLoCoef, rCeCoef,
+  rUpCoef, r],
+  if dir = x then perpDir : y else perpDir : x, /* Hard-coded; needs generalization for 3D !! */
+  numDims : length(dx),
+  perpDirIdx : getDirIdx(perpDir, numDims),
+
+  basisC : subst(x=perpDir, getBasis(sconcat("basis-precalc/basis",
+        basisNm, "1x"),
+      polyOrder)),
+  baC : etaDir(perpDir, 0, dx[perpDirIdx], basisC),
+  
+  if is(op(lo)=dg) then (
+    rLo : diff(calcRecov2CellGen(basisNm, dir, dx, polyOrder,
+        dg(args(lo)[1]), dg(args(lo)[2])),
+      dir, ndiff),
+    rLoCoef : calcInnerProdListGen([perpDir],
+      [[-dx[perpDirIdx]/2, dx[perpDirIdx]/2]],
+      1, baC, subst(dir=0, rLo)),
+    lo2 : dg(rLoCoef)
+  ) else (
+    lo2 : lo
+  ),
+  
+  rCe : diff(calcRecov2CellGen(basisNm, dir, dx, polyOrder,
+      dg(args(ce)[1]), dg(args(ce)[2])),
+    dir, ndiff),
+  rCeCoef : calcInnerProdListGen([perpDir],
+    [[-dx[perpDirIdx]/2, dx[perpDirIdx]/2]],
+    1, baC, subst(dir=0, rCe)),
+  ce2 : dg(rCeCoef),
+
+  if is(op(up)=dg) then (
+    rUp : diff(calcRecov2CellGen(basisNm, dir, dx, polyOrder,
+        dg(args(up)[1]), dg(args(up)[2])),
+      dir, ndiff),
+    rUpCoef : calcInnerProdListGen([perpDir],
+      [[-dx[perpDirIdx]/2, dx[perpDirIdx]/2]],
+      1, baC, subst(dir=0, rUp)),
+    up2 : dg(rUpCoef)
+  ) else (
+    up2 : up
+  ),
+
+  r : calcRecov1CellGen(basisNm, perpDir, [dx[perpDirIdx]], polyOrder, C,
+    lo2, ce2, up2),
+
+  return(r)
+) $
