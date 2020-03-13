@@ -1,468 +1,396 @@
+-- Gkyl ------------------------------------------------------------------------
+--
+-- Lua wrapper for C BinOp kernels.
+--    _______     ___
+-- + 6 @ |||| # P ||| +
+--------------------------------------------------------------------------------
+
 local ffi = require "ffi" 
 
 ffi.cdef [[
+
 typedef struct binOpData_t binOpData_t;
 binOpData_t* new_binOpData_t(int nbasis_S, int nbasis_D);
+
 void CartFieldBinOpMultiply1xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1xSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1xSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpMultiply2xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2xSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2xSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpMultiply3xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply3xSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
+void CartFieldBinOpDotProduct1xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide1xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply1xSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct1xSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide1xSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply1xSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct1xSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide1xSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpDividePositivity1xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply1x1vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x1vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x1vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x1vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x1vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x1vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x1vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x1vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x1vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x2vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x2vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x2vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x2vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x2vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x2vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x2vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x2vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x2vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x3vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x3vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x3vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x3vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x3vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x3vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x3vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x3vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x3vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct2xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide2xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply2xSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct2xSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide2xSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply2xSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct2xSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide2xSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpDividePositivity2xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply2x2vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply2x2vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide2x2vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x2vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply2x2vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide2x2vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x2vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply2x2vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide2x2vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x3vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply2x3vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide2x3vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x3vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply2x3vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide2x3vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x3vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply2x3vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide2x3vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply3xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct3xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide3xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply3xSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct3xSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide3xSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply3xSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct3xSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDivide3xSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpDividePositivity3xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
-void CartFieldBinOpDotProduct1xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDotProduct1xSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDotProduct1xSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpDotProduct2xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDotProduct2xSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDotProduct2xSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpDotProduct3xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDotProduct3xSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpMultiply1x1vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x1vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x1vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x2vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x2vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x2vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x3vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x3vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x3vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpMultiply2x2vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2x2vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2x2vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2x3vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2x3vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2x3vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
 void CartFieldBinOpMultiply3x3vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply3x3vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide3x3vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpMultiply3x3vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply3x3vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide3x3vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpMultiply3x3vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpDivide1x1vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x1vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x1vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x2vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x2vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x2vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x3vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x3vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x3vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpDivide2x2vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide2x2vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide2x2vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide2x3vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide2x3vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide2x3vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpDivide3x3vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide3x3vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide3x3vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply3x3vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide3x3vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 
 void CartFieldBinOpMultiply3x2vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply3x2vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide3x2vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpMultiply3x2vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply3x2vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide3x2vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpMultiply3x2vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide3x2vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide3x2vSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide3x2vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply3x2vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide3x2vSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpMultiply1xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1xMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1xMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpMultiply2xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2xMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2xMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpMultiply3xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply3xMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply3xMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
+void CartFieldBinOpDotProduct1xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide1xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply1xMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct1xMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide1xMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply1xMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct1xMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide1xMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpDividePositivity1xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply1x1vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x1vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x1vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x1vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x1vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x1vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x1vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x1vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x1vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x2vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x2vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x2vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x2vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x2vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x2vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x2vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x2vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x2vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x3vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x3vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x3vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x3vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x3vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x3vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x3vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x3vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x3vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct2xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide2xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply2xMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct2xMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide2xMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply2xMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct2xMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide2xMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpDividePositivity2xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply2x2vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply2x2vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide2x2vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x2vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply2x2vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide2x2vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x2vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply2x2vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide2x2vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x3vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply2x3vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide2x3vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x3vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply2x3vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide2x3vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x3vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply2x3vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide2x3vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply3xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct3xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide3xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply3xMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct3xMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide3xMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply3xMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct3xMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide3xMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpDividePositivity3xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
-void CartFieldBinOpDotProduct1xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDotProduct1xMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDotProduct1xMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpDotProduct2xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDotProduct2xMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDotProduct2xMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpDotProduct3xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDotProduct3xMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDotProduct3xMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpMultiply1x1vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x1vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x1vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x2vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x2vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x2vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x3vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x3vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x3vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpMultiply2x2vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2x2vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2x2vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2x3vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2x3vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2x3vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
 void CartFieldBinOpMultiply3x3vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply3x3vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide3x3vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpMultiply3x3vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply3x3vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide3x3vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpMultiply3x3vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpDivide1x1vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x1vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x1vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x2vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x2vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x2vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x3vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x3vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x3vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpDivide2x2vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide2x2vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide2x2vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide2x3vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide2x3vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide2x3vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpDivide3x3vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide3x3vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide3x3vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply3x3vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide3x3vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 
 void CartFieldBinOpMultiply3x2vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply3x2vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide3x2vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpMultiply3x2vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply3x2vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide3x2vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpMultiply3x2vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide3x2vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide3x2vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide3x2vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply3x2vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide3x2vMax_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpMultiply1xTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1xTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1xTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpMultiply2xTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2xTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2xTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpMultiply3xTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply3xTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply3xTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
+void CartFieldBinOpDotProduct1xTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide1xTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply1xTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct1xTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide1xTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply1xTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct1xTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide1xTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpDividePositivity1xTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply1x1vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x1vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x1vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x1vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x1vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x1vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x1vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x1vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x1vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x2vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x2vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x2vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x2vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x2vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x2vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x2vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x2vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x2vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x3vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x3vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x3vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x3vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x3vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x3vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x3vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply1x3vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide1x3vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2xTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct2xTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide2xTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply2xTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct2xTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide2xTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply2xTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct2xTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide2xTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpDividePositivity2xTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply2x2vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply2x2vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide2x2vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x2vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply2x2vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide2x2vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x2vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply2x2vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide2x2vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x3vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply2x3vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide2x3vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x3vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply2x3vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide2x3vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x3vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply2x3vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide2x3vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply3xTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct3xTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide3xTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply3xTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct3xTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide3xTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply3xTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpDotProduct3xTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 void CartFieldBinOpDivide3xTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpDividePositivity3xTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
-void CartFieldBinOpDotProduct1xTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDotProduct1xTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDotProduct1xTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpDotProduct2xTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDotProduct2xTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDotProduct2xTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpDotProduct3xTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDotProduct3xTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDotProduct3xTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpMultiply1x1vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x1vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x1vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x2vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x2vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x2vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x3vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x3vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply1x3vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpMultiply2x2vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2x2vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2x2vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2x3vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2x3vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpMultiply2x3vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
 void CartFieldBinOpMultiply3x3vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply3x3vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide3x3vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpMultiply3x3vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply3x3vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide3x3vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpMultiply3x3vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpDivide1x1vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x1vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x1vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x2vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x2vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x2vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x3vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x3vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide1x3vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpDivide2x2vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide2x2vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide2x2vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide2x3vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide2x3vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide2x3vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-
-void CartFieldBinOpDivide3x3vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide3x3vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide3x3vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply3x3vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide3x3vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 
 void CartFieldBinOpMultiply3x2vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply3x2vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide3x2vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpMultiply3x2vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply3x2vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide3x2vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpMultiply3x2vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide3x2vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide3x2vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
-
-void CartFieldBinOpDivide3x2vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseMultiply3x2vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+void CartFieldBinOpConfPhaseDivide3x2vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 ]]

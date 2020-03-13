@@ -11,13 +11,15 @@ load("out-scripts");
 load(stringproc)$
 fpprec : 24$
 
-calcBinOpMultiplyS(fh, funcNm, cdim, basisFun, pMax) := block([],
+calcBinOpConfMultiply(fh, funcNm, cdim, basisFun, pMax) := block([],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
   load(modNm),
   for polyOrder : 1 thru pMax do (
-    bC : basisC[polyOrder],
-    N  : length(bC),
+
+    bW    : basisC[polyOrder],
+    varsW : varsC,
+    N     : length(bW),
   
     /* Function declaration with input/output variables. */
     printf(fh, "void ~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) ~%{ ~%", funcNm, polyOrder),
@@ -29,14 +31,14 @@ calcBinOpMultiplyS(fh, funcNm, cdim, basisFun, pMax) := block([],
     printf(fh, " ~%"),
 
     /* Expand fields A and B in configuration space basis. */
-    Ae : doExpand1(A, bC),
-    Be : doExpand1(B, bC),
+    Ae : doExpand1(A, bW),
+    Be : doExpand1(B, bW),
 
     /* To allow for multiple components change the cofficient indices in Ae and Be. */
     Ae : psubst(makelist(A[i]=A[a0+i],i,0,N-1),Ae),
     Be : psubst(makelist(B[i]=B[b0+i],i,0,N-1),Be),
 
-    prod : calcInnerProdList(varsC,Ae,bC,Be),
+    prod : calcInnerProdList(varsW,Ae,bW,Be),
   
     printf(fh, "  double tmp[~a]; ~%",N),
     printf(fh, " ~%"),
@@ -46,9 +48,10 @@ calcBinOpMultiplyS(fh, funcNm, cdim, basisFun, pMax) := block([],
     printf(fh, "    unsigned short int b0 = ~a; ~%",N*vd),
     printf(fh, "    unsigned short int a0 = ~a; ~%",eqNcomp*b0),
     printf(fh, "    // Component-wise (of the vectors) multiplication. ~%"),
-    expr : float(expand(prod)),
+    expr : float(fullratsimp(prod)),
     for i : 1 thru N do (
-      printf(fh, "    ~a = ~a; ~%", tmp[i-1], expr[i])
+      printf(fh, "    ~a = ~a; ~%", tmp[i-1], expr[i]),
+      flush_output(fh)
     ),
     printf(fh, " ~%"),
     printf(fh, "    // This tmp allows for in-place multiplication. ~%"),
@@ -64,7 +67,53 @@ calcBinOpMultiplyS(fh, funcNm, cdim, basisFun, pMax) := block([],
   )
 )$
 
-calcBinOpMultiplyD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcBinOpPhasePhaseMultiply(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+  for polyOrder : 1 thru pMax do (
+
+    bW    : basisP[polyOrder],
+    varsW : varsP,
+    N     : length(bW),
+  
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // A:       scalar/vector field. ~%"),
+    printf(fh, "  // B:       scalar/vector field (must be vector if A is vector). ~%"),
+    printf(fh, "  // Ncomp:   number of components of B (could be 1D, 2D, 3D, vector). ~%"),
+    printf(fh, "  // eqNcomp: =1 if A:numComponents=B:numComponents, =0 else. ~%"),
+    printf(fh, "  // out:     output field A*B (same number of components as B). ~%"),
+    printf(fh, " ~%"),
+
+    /* Expand fields A and B in configuration space basis. */
+    Ae : doExpand1(A, bW),
+    Be : doExpand1(B, bW),
+
+    prod : calcInnerProdList(varsW,Ae,bW,Be),
+  
+    printf(fh, "  double tmp[~a]; ~%",N),
+    printf(fh, " ~%"),
+
+    expr : float(fullratsimp(prod)),
+    for i : 1 thru N do (
+      if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", tmp[i-1], expr[i]),
+      flush_output(fh)
+    ),
+    printf(fh, " ~%"),
+    printf(fh, "  // This tmp allows for in-place multiplication. ~%"),
+    printf(fh, "  for (unsigned short int i=0; i<~a; i++) ~%",N),
+    printf(fh, "  { ~%"),
+    printf(fh, "    out[i] = tmp[i]; ~%"),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
+    printf(fh, "} ~%"),
+    printf(fh, " ~%")
+  )
+)$
+
+calcBinOpConfPhaseMultiply(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -91,6 +140,7 @@ calcBinOpMultiplyD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "  double tmp[~a]; ~%",N),
 
     writeCExprs1(tmp,prod),
+    flush_output(fh),
     printf(fh, " ~%"),
 
     printf(fh, "  // This tmp allows for in-place multiplication. ~%"),

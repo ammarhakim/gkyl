@@ -18,9 +18,9 @@ void CartFieldBinOpMultiply2xMax_P1(binOpData_t* data, const double *A, const do
     unsigned short int b0 = 3*vd; 
     unsigned short int a0 = b0*eqNcomp; 
     // Component-wise (of the vectors) multiplication. 
-    tmp[0] = 0.5*A[a0+2]*B[b0+2]+0.5*A[a0+1]*B[b0+1]+0.5*A[a0]*B[b0]; 
-    tmp[1] = 0.5*A[a0]*B[b0+1]+0.5*A[a0+1]*B[b0]; 
-    tmp[2] = 0.5*A[a0]*B[b0+2]+0.5*A[a0+2]*B[b0]; 
+    tmp[0] = 0.5*(A[a0+2]*B[b0+2]+A[a0+1]*B[b0+1]+A[a0]*B[b0]); 
+    tmp[1] = 0.5*(A[a0]*B[b0+1]+A[a0+1]*B[b0]); 
+    tmp[2] = 0.5*(A[a0]*B[b0+2]+A[a0+2]*B[b0]); 
  
     // This tmp allows for in-place multiplication. 
     for (unsigned short int i=0; i<3; i++) 
@@ -46,12 +46,12 @@ void CartFieldBinOpMultiply2xMax_P2(binOpData_t* data, const double *A, const do
     unsigned short int b0 = 6*vd; 
     unsigned short int a0 = b0*eqNcomp; 
     // Component-wise (of the vectors) multiplication. 
-    tmp[0] = 0.5*A[a0+5]*B[b0+5]+0.5*A[a0+4]*B[b0+4]+0.5*A[a0+3]*B[b0+3]+0.5*A[a0+2]*B[b0+2]+0.5*A[a0+1]*B[b0+1]+0.5*A[a0]*B[b0]; 
-    tmp[1] = 0.4472135954999579*A[a0+1]*B[b0+4]+0.5*A[a0+2]*B[b0+3]+0.5*A[a0+3]*B[b0+2]+0.4472135954999579*A[a0+4]*B[b0+1]+0.5*A[a0]*B[b0+1]+0.5*A[a0+1]*B[b0]; 
-    tmp[2] = 0.4472135954999579*A[a0+2]*B[b0+5]+0.5*A[a0+1]*B[b0+3]+0.4472135954999579*A[a0+5]*B[b0+2]+0.5*A[a0]*B[b0+2]+0.5*A[a0+3]*B[b0+1]+0.5*A[a0+2]*B[b0]; 
-    tmp[3] = 0.4472135954999579*A[a0+3]*B[b0+5]+0.4472135954999579*A[a0+3]*B[b0+4]+0.4472135954999579*A[a0+5]*B[b0+3]+0.4472135954999579*A[a0+4]*B[b0+3]+0.5*A[a0]*B[b0+3]+0.5*A[a0+1]*B[b0+2]+0.5*A[a0+2]*B[b0+1]+0.5*A[a0+3]*B[b0]; 
-    tmp[4] = 0.31943828249997*A[a0+4]*B[b0+4]+0.5*A[a0]*B[b0+4]+0.4472135954999579*A[a0+3]*B[b0+3]+0.4472135954999579*A[a0+1]*B[b0+1]+0.5*A[a0+4]*B[b0]; 
-    tmp[5] = 0.31943828249997*A[a0+5]*B[b0+5]+0.5*A[a0]*B[b0+5]+0.4472135954999579*A[a0+3]*B[b0+3]+0.4472135954999579*A[a0+2]*B[b0+2]+0.5*A[a0+5]*B[b0]; 
+    tmp[0] = 0.5*(A[a0+5]*B[b0+5]+A[a0+4]*B[b0+4]+A[a0+3]*B[b0+3]+A[a0+2]*B[b0+2]+A[a0+1]*B[b0+1]+A[a0]*B[b0]); 
+    tmp[1] = 0.1*(4.47213595499958*A[a0+1]*B[b0+4]+5.0*A[a0+2]*B[b0+3]+5.0*A[a0+3]*B[b0+2]+(4.47213595499958*A[a0+4]+5.0*A[a0])*B[b0+1]+5.0*A[a0+1]*B[b0]); 
+    tmp[2] = 0.1*(4.47213595499958*A[a0+2]*B[b0+5]+5.0*A[a0+1]*B[b0+3]+(4.47213595499958*A[a0+5]+5.0*A[a0])*B[b0+2]+5.0*A[a0+3]*B[b0+1]+5.0*A[a0+2]*B[b0]); 
+    tmp[3] = 0.1*(4.47213595499958*A[a0+3]*B[b0+5]+4.47213595499958*A[a0+3]*B[b0+4]+(4.47213595499958*A[a0+5]+4.47213595499958*A[a0+4]+5.0*A[a0])*B[b0+3]+5.0*A[a0+1]*B[b0+2]+5.0*A[a0+2]*B[b0+1]+5.0*A[a0+3]*B[b0]); 
+    tmp[4] = 0.01428571428571429*((22.3606797749979*A[a0+4]+35.0*A[a0])*B[b0+4]+31.30495168499706*A[a0+3]*B[b0+3]+31.30495168499706*A[a0+1]*B[b0+1]+35.0*A[a0+4]*B[b0]); 
+    tmp[5] = 0.01428571428571429*((22.3606797749979*A[a0+5]+35.0*A[a0])*B[b0+5]+31.30495168499706*A[a0+3]*B[b0+3]+31.30495168499706*A[a0+2]*B[b0+2]+35.0*A[a0+5]*B[b0]); 
  
     // This tmp allows for in-place multiplication. 
     for (unsigned short int i=0; i<6; i++) 
@@ -72,16 +72,16 @@ void CartFieldBinOpDivide2xMax_P1(binOpData_t* data, const double *A, const doub
  
   // If a corner value is below zero, use cell average A.
   bool avgA = false;
-  if ((-0.8660254037844386*A[2])-0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if ((-0.8660254037844386*A[2])-0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
-  if ((-0.8660254037844386*A[2])-0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if (0.8660254037844386*A[2]-0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
-  if ((-0.8660254037844386*A[2])+0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if ((-0.8660254037844386*A[2])+0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
-  if ((-0.8660254037844386*A[2])+0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if (0.8660254037844386*A[2]+0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
  
@@ -112,8 +112,8 @@ void CartFieldBinOpDivide2xMax_P1(binOpData_t* data, const double *A, const doub
     } 
   } 
  
-  // Fill AEM_S matrix. 
-  data->AEM_S = Eigen::MatrixXd::Zero(3,3);
+  // Fill AEM matrix. 
+  data->AEM_S = Eigen::MatrixXd::Zero(3,3); 
   data->AEM_S(0,0) = 0.5*As[0]; 
   data->AEM_S(0,1) = 0.5*As[1]; 
   data->AEM_S(0,2) = 0.5*As[2]; 
@@ -121,21 +121,21 @@ void CartFieldBinOpDivide2xMax_P1(binOpData_t* data, const double *A, const doub
   data->AEM_S(1,1) = 0.5*As[0]; 
   data->AEM_S(2,0) = 0.5*As[2]; 
   data->AEM_S(2,2) = 0.5*As[0]; 
- 
+
   for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
     b0 = 3*vd; 
-    // Fill BEV_S. 
+    // Fill BEV. 
     data->BEV_S << Bs[b0],Bs[b0+1],Bs[b0+2]; 
- 
+
     // Solve the system of equations. 
     data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
  
     // Copy data from Eigen vector. 
     Eigen::Map<VectorXd>(out+vd*3,3,1) = data->u_S; 
   } 
-} 
- 
+}
+
 void CartFieldBinOpDivide2xMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       denominator field (must be a scalar field). 
@@ -146,16 +146,16 @@ void CartFieldBinOpDivide2xMax_P2(binOpData_t* data, const double *A, const doub
  
   // If a corner value is below zero, use cell average A.
   bool avgA = false;
-  if (1.118033988749895*A[5]+1.118033988749895*A[4]+1.5*A[3]-0.8660254037844386*A[2]-0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if (1.118033988749895*A[5]+1.118033988749895*A[4]+1.5*A[3]-0.8660254037844386*A[2]-0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
-  if (1.118033988749895*A[5]+1.118033988749895*A[4]+1.5*A[3]-0.8660254037844386*A[2]-0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if (1.118033988749895*A[5]+1.118033988749895*A[4]-1.5*A[3]+0.8660254037844386*A[2]-0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
-  if (1.118033988749895*A[5]+1.118033988749895*A[4]-1.5*A[3]-0.8660254037844386*A[2]+0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if (1.118033988749895*A[5]+1.118033988749895*A[4]-1.5*A[3]-0.8660254037844386*A[2]+0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
-  if (1.118033988749895*A[5]+1.118033988749895*A[4]-1.5*A[3]-0.8660254037844386*A[2]+0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if (1.118033988749895*A[5]+1.118033988749895*A[4]+1.5*A[3]+0.8660254037844386*A[2]+0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
  
@@ -198,8 +198,8 @@ void CartFieldBinOpDivide2xMax_P2(binOpData_t* data, const double *A, const doub
     } 
   } 
  
-  // Fill AEM_S matrix. 
-  data->AEM_S = Eigen::MatrixXd::Zero(6,6);
+  // Fill AEM matrix. 
+  data->AEM_S = Eigen::MatrixXd::Zero(6,6); 
   data->AEM_S(0,0) = 0.5*As[0]; 
   data->AEM_S(0,1) = 0.5*As[1]; 
   data->AEM_S(0,2) = 0.5*As[2]; 
@@ -230,21 +230,21 @@ void CartFieldBinOpDivide2xMax_P2(binOpData_t* data, const double *A, const doub
   data->AEM_S(5,2) = 0.4472135954999579*As[2]; 
   data->AEM_S(5,3) = 0.4472135954999579*As[3]; 
   data->AEM_S(5,5) = 0.31943828249997*As[5]+0.5*As[0]; 
- 
+
   for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
     b0 = 6*vd; 
-    // Fill BEV_S. 
+    // Fill BEV. 
     data->BEV_S << Bs[b0],Bs[b0+1],Bs[b0+2],Bs[b0+3],Bs[b0+4],Bs[b0+5]; 
- 
+
     // Solve the system of equations. 
     data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
  
     // Copy data from Eigen vector. 
     Eigen::Map<VectorXd>(out+vd*6,6,1) = data->u_S; 
   } 
-} 
- 
+}
+
 void CartFieldBinOpDotProduct2xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       scalar/vector field. 

@@ -1,78 +1,48 @@
+/* Generate the header file for BinOp kernels. */
+
 cvars : [X, Y, Z]$
 polyOrderMax : 3$
 bName        : ["Ser","Max","Tensor"]$
 
-printPrototypes() := block([], 
-printf(fh, "typedef struct {~%"),
-printf(fh, "  Eigen::MatrixXd AEM; ~%"),
-printf(fh, "  // Declare Eigen Vector with coefficients of B.  ~%"),
-printf(fh, "  Eigen::VectorXd BEV; ~%"),
-printf(fh, "  // Declare vector with solution to system of equations.  ~%"),
-printf(fh, "  Eigen::VectorXd u; ~%"),
-printf(fh, "} binOpData_t*; ~%"),
-printf(fh, "void alloc_binOpData(binOpData_t* data, int nbasis); ~%"),
+printKernelSignatures() := block([], 
 
-for bInd : 1 thru length(bName) do (
-  for ci : 1 thru 3 do (
-    for pi : 1 thru polyOrderMax do (
-      printf(fh, "void CartFieldBinOpMultiply~ax~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, bName[bInd], pi),
-      printf(fh, "~%") 
-    ),
-    printf(fh, "~%")
-  ),
-  
-  for ci : 1 thru 3 do (
-    for pi : 1 thru polyOrderMax do (
-      printf(fh, "void CartFieldBinOpDivide~ax~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, bName[bInd], pi),
-      printf(fh, "~%") 
-    ),
-    printf(fh, "void CartFieldBinOpDividePositivity~ax~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, bName[bInd], 1),
-    printf(fh, "~%")
-  ),
-  
-  for ci : 1 thru 3 do (
-    for pi : 1 thru polyOrderMax do (
-      printf(fh, "void CartFieldBinOpDotProduct~ax~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, bName[bInd], pi),
-      printf(fh, "~%") 
-    ),
-    printf(fh, "~%")
-  ),
-  
-  for ci : 1 thru 3 do (
-    for vi : ci thru 3 do (
+  for bInd : 1 thru length(bName) do (
+    for ci : 1 thru 3 do (
       for pi : 1 thru polyOrderMax do (
-        printf(fh, "void CartFieldBinOpMultiply~ax~av~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, bName[bInd], pi),
+        printf(fh, "void CartFieldBinOpMultiply~ax~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, bName[bInd], pi),
+        printf(fh, "void CartFieldBinOpDotProduct~ax~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, bName[bInd], pi),
+        printf(fh, "void CartFieldBinOpDivide~ax~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, bName[bInd], pi),
         printf(fh, "~%") 
+      ),
+      printf(fh, "void CartFieldBinOpDividePositivity~ax~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, bName[bInd], 1),
+      printf(fh, "~%"),
+
+      for vi : ci thru 3 do (
+        for pi : 1 thru polyOrderMax do (
+          printf(fh, "void CartFieldBinOpMultiply~ax~av~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, bName[bInd], pi),
+          printf(fh, "void CartFieldBinOpConfPhaseMultiply~ax~av~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, bName[bInd], pi),
+          printf(fh, "void CartFieldBinOpConfPhaseDivide~ax~av~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, bName[bInd], pi),
+          printf(fh, "~%") 
+        )
       )
     ),
-    printf(fh, "~%")
-  ),
-  
-  for ci : 1 thru 3 do (
-    for vi : ci thru 3 do (
-      for pi : 1 thru polyOrderMax do (
-        printf(fh, "void CartFieldBinOpDivide~ax~av~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, bName[bInd], pi),
-        printf(fh, "~%") 
-      )
-    ),
-    printf(fh, "~%")
-  ),
-  
-  ci : 3,
-  vi : 2,
-  for pi : 1 thru polyOrderMax do (
-    printf(fh, "void CartFieldBinOpMultiply~ax~av~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, bName[bInd], pi),
-    printf(fh, "~%")
-  ),
-  
-  for pi : 1 thru polyOrderMax do (
-    printf(fh, "void CartFieldBinOpDivide~ax~av~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, bName[bInd], pi),
-    printf(fh, "~%")
+    printf(fh, "~%"),
+    
+    
+    /* For gyrokinetics. */
+    ci : 3,
+    vi : 2,
+    for pi : 1 thru polyOrderMax do (
+      printf(fh, "void CartFieldBinOpMultiply~ax~av~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, bName[bInd], pi),
+      printf(fh, "void CartFieldBinOpConfPhaseMultiply~ax~av~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, bName[bInd], pi),
+      printf(fh, "void CartFieldBinOpConfPhaseDivide~ax~av~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, bName[bInd], pi),
+      printf(fh, "~%")
+    )
+    
   )
-
-)
 )$
 
+/* Write out the C++ header file. */
 fh : openw("~/max-out/CartFieldBinOpModDecl.h")$
 printf(fh, "#ifndef CART_FIELD_BINOP_MOD_DECL_H ~%")$
 printf(fh, "#define CART_FIELD_BINOP_MOD_DECL_H ~%")$
@@ -80,15 +50,45 @@ printf(fh, " ~%")$
 printf(fh, "// Eigen include statements. ~%")$
 printf(fh, "#include <Eigen/Dense> ~%")$
 printf(fh, " ~%")$
+printf(fh, "class binOpData_t;~%")$
+printf(fh, " ~%")$
 printf(fh, "extern \"C\" { ~%")$
-printPrototypes()$
+printf(fh, "void* new_binOpData_t(int nbasis_S, int nbasis_D);~%")$
+printf(fh, "~%")$
+printKernelSignatures()$
 printf(fh, "} ~%")$
+printf(fh, "~%")$
+printf(fh, "class binOpData_t~%")$
+printf(fh, "{~%")$
+printf(fh, " public:~%")$
+printf(fh, "  binOpData_t(int nbasis_S, int nbasis_D);~%")$
+printf(fh, "  ~~binOpData_t();~%")$
+printf(fh, "  Eigen::MatrixXd AEM_S;~%")$
+printf(fh, "  Eigen::VectorXd BEV_S;~%")$
+printf(fh, "  Eigen::VectorXd u_S;~%")$
+printf(fh, "  Eigen::MatrixXd AEM_D;~%")$
+printf(fh, "  Eigen::VectorXd BEV_D;~%")$
+printf(fh, "  Eigen::VectorXd u_D;~%")$
+printf(fh, "};~%")$
+printf(fh, "~%")$
 printf(fh, "#endif ~%")$
 close(fh)$
 
+/* Write the declarations in Lua. */
 fh : openw("~/max-out/_CartFieldBinOpCdef.lua")$
+printf(fh,"-- Gkyl ------------------------------------------------------------------------~%")$
+printf(fh,"--~%")$
+printf(fh,"-- Lua wrapper for C BinOp kernels.~%")$
+printf(fh,"--    _______     ___~%")$
+printf(fh,"-- + 6 @ |||| # P ||| +~%")$
+printf(fh,"--------------------------------------------------------------------------------~%")$
+printf(fh, "~%")$
 printf(fh, "local ffi = require \"ffi\" ~%~%")$
 printf(fh, "ffi.cdef [[~%")$
-printPrototypes()$
+printf(fh, "~%")$
+printf(fh, "typedef struct binOpData_t binOpData_t;~%")$
+printf(fh, "binOpData_t* new_binOpData_t(int nbasis_S, int nbasis_D);~%")$
+printf(fh, "~%")$
+printKernelSignatures()$
 printf(fh, "]]~%")$
 close(fh)$

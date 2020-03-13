@@ -5,6 +5,57 @@ using namespace Eigen;
  
 void CartFieldBinOpMultiply1x1vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
+  // A:       scalar/vector field. 
+  // B:       scalar/vector field (must be vector if A is vector). 
+  // Ncomp:   number of components of B (could be 1D, 2D, 3D, vector). 
+  // eqNcomp: =1 if A:numComponents=B:numComponents, =0 else. 
+  // out:     output field A*B (same number of components as B). 
+ 
+  double tmp[4]; 
+ 
+  tmp[0] = 0.5*(A[3]*B[3]+A[2]*B[2]+A[1]*B[1]+A[0]*B[0]); 
+  tmp[1] = 0.5*(A[2]*B[3]+B[2]*A[3]+A[0]*B[1]+B[0]*A[1]); 
+  tmp[2] = 0.5*(A[1]*B[3]+B[1]*A[3]+A[0]*B[2]+B[0]*A[2]); 
+  tmp[3] = 0.5*(A[0]*B[3]+B[0]*A[3]+A[1]*B[2]+B[1]*A[2]); 
+ 
+  // This tmp allows for in-place multiplication. 
+  for (unsigned short int i=0; i<4; i++) 
+  { 
+    out[i] = tmp[i]; 
+  } 
+ 
+} 
+ 
+void CartFieldBinOpMultiply1x1vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+{ 
+  // A:       scalar/vector field. 
+  // B:       scalar/vector field (must be vector if A is vector). 
+  // Ncomp:   number of components of B (could be 1D, 2D, 3D, vector). 
+  // eqNcomp: =1 if A:numComponents=B:numComponents, =0 else. 
+  // out:     output field A*B (same number of components as B). 
+ 
+  double tmp[9]; 
+ 
+  tmp[0] = 0.5*(A[8]*B[8]+A[7]*B[7]+A[6]*B[6]+A[5]*B[5]+A[4]*B[4]+A[3]*B[3]+A[2]*B[2]+A[1]*B[1]+A[0]*B[0]); 
+  tmp[1] = 0.03333333333333333*(13.41640786499874*A[7]*B[8]+13.41640786499874*B[7]*A[8]+15.0*A[5]*B[7]+15.0*B[5]*A[7]+13.41640786499874*A[3]*B[6]+13.41640786499874*B[3]*A[6]+13.41640786499874*A[1]*B[4]+13.41640786499874*B[1]*A[4]+15.0*A[2]*B[3]+15.0*B[2]*A[3]+15.0*A[0]*B[1]+15.0*B[0]*A[1]); 
+  tmp[2] = 0.03333333333333333*(13.41640786499874*A[6]*B[8]+13.41640786499874*B[6]*A[8]+13.41640786499874*A[3]*B[7]+13.41640786499874*B[3]*A[7]+15.0*A[4]*B[6]+15.0*B[4]*A[6]+13.41640786499874*A[2]*B[5]+13.41640786499874*B[2]*A[5]+15.0*A[1]*B[3]+15.0*B[1]*A[3]+15.0*A[0]*B[2]+15.0*B[0]*A[2]); 
+  tmp[3] = 0.03333333333333333*(12.0*A[3]*B[8]+12.0*B[3]*A[8]+(12.0*A[6]+13.41640786499874*A[2])*B[7]+(12.0*B[6]+13.41640786499874*B[2])*A[7]+13.41640786499874*A[1]*B[6]+13.41640786499874*B[1]*A[6]+13.41640786499874*A[3]*B[5]+13.41640786499874*B[3]*A[5]+13.41640786499874*A[3]*B[4]+13.41640786499874*B[3]*A[4]+15.0*A[0]*B[3]+15.0*B[0]*A[3]+15.0*A[1]*B[2]+15.0*B[1]*A[2]); 
+  tmp[4] = 0.004761904761904762*((67.0820393249937*A[8]+105.0*A[5])*B[8]+105.0*B[5]*A[8]+93.91485505499116*A[7]*B[7]+(67.0820393249937*A[6]+105.0*A[2])*B[6]+105.0*B[2]*A[6]+(67.0820393249937*A[4]+105.0*A[0])*B[4]+105.0*B[0]*A[4]+93.91485505499116*A[3]*B[3]+93.91485505499116*A[1]*B[1]); 
+  tmp[5] = 0.004761904761904762*((67.0820393249937*A[8]+105.0*A[4])*B[8]+105.0*B[4]*A[8]+(67.0820393249937*A[7]+105.0*A[1])*B[7]+105.0*B[1]*A[7]+93.91485505499116*A[6]*B[6]+(67.0820393249937*A[5]+105.0*A[0])*B[5]+105.0*B[0]*A[5]+93.91485505499116*A[3]*B[3]+93.91485505499116*A[2]*B[2]); 
+  tmp[6] = 0.004761904761904762*((60.0*A[6]+93.91485505499116*A[2])*B[8]+(60.0*B[6]+93.91485505499116*B[2])*A[8]+84.0*A[3]*B[7]+84.0*B[3]*A[7]+(93.91485505499116*A[5]+67.0820393249937*A[4]+105.0*A[0])*B[6]+(93.91485505499116*B[5]+67.0820393249937*B[4]+105.0*B[0])*A[6]+105.0*A[2]*B[4]+105.0*B[2]*A[4]+93.91485505499116*A[1]*B[3]+93.91485505499116*B[1]*A[3]); 
+  tmp[7] = 0.004761904761904762*((60.0*A[7]+93.91485505499116*A[1])*B[8]+(60.0*B[7]+93.91485505499116*B[1])*A[8]+(67.0820393249937*A[5]+93.91485505499116*A[4]+105.0*A[0])*B[7]+(67.0820393249937*B[5]+93.91485505499116*B[4]+105.0*B[0])*A[7]+84.0*A[3]*B[6]+84.0*B[3]*A[6]+105.0*A[1]*B[5]+105.0*B[1]*A[5]+93.91485505499116*A[2]*B[3]+93.91485505499116*B[2]*A[3]); 
+  tmp[8] = 6.802721088435374e-4*((300.0*A[8]+469.5742752749559*A[5]+469.5742752749559*A[4]+735.0*A[0])*B[8]+(469.5742752749559*B[5]+469.5742752749559*B[4]+735.0*B[0])*A[8]+(420.0*A[7]+657.4039853849381*A[1])*B[7]+657.4039853849381*B[1]*A[7]+(420.0*A[6]+657.4039853849381*A[2])*B[6]+657.4039853849381*B[2]*A[6]+735.0*A[4]*B[5]+735.0*B[4]*A[5]+588.0*A[3]*B[3]); 
+ 
+  // This tmp allows for in-place multiplication. 
+  for (unsigned short int i=0; i<9; i++) 
+  { 
+    out[i] = tmp[i]; 
+  } 
+ 
+} 
+ 
+void CartFieldBinOpConfPhaseMultiply1x1vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+{ 
   // A:       scalar/vector field in configuration space. 
   // B:       scalar field in phase space. 
   // Ncomp:   number of components of B (should =1 here). 
@@ -25,7 +76,7 @@ void CartFieldBinOpMultiply1x1vTensor_P1(binOpData_t* data, const double *A, con
  
 } 
  
-void CartFieldBinOpMultiply1x1vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpConfPhaseMultiply1x1vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       scalar/vector field in configuration space. 
   // B:       scalar field in phase space. 
@@ -52,7 +103,7 @@ void CartFieldBinOpMultiply1x1vTensor_P2(binOpData_t* data, const double *A, con
  
 } 
  
-void CartFieldBinOpDivide1x1vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpConfPhaseDivide1x1vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       configuration space denominator field (must be a scalar field). 
   // B:       phase space numerator field (must be a scalar field). 
@@ -87,14 +138,14 @@ void CartFieldBinOpDivide1x1vTensor_P1(binOpData_t* data, const double *A, const
     Bs[3] = B[3]; 
   } 
  
-  // Fill AEM_D matrix. 
-  data->AEM_D = Eigen::MatrixXd::Zero(4,4);
+  // Fill AEM matrix. 
+  data->AEM_D = Eigen::MatrixXd::Zero(4,4); 
   data->AEM_D(0,0) = 0.7071067811865475*As[0]; 
   data->AEM_D(0,1) = 0.7071067811865475*As[1]; 
   data->AEM_D(0,2) = 0.7071067811865475*As[1]; 
   data->AEM_D(0,3) = 0.7071067811865475*As[0]; 
  
-  // Fill BEV_D. 
+  // Fill BEV. 
   data->BEV_D << Bs[0],Bs[1],Bs[2],Bs[3]; 
  
   // Solve the system of equations. 
@@ -105,7 +156,7 @@ void CartFieldBinOpDivide1x1vTensor_P1(binOpData_t* data, const double *A, const
  
 } 
  
-void CartFieldBinOpDivide1x1vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpConfPhaseDivide1x1vTensor_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       configuration space denominator field (must be a scalar field). 
   // B:       phase space numerator field (must be a scalar field). 
@@ -152,8 +203,8 @@ void CartFieldBinOpDivide1x1vTensor_P2(binOpData_t* data, const double *A, const
     Bs[8] = B[8]; 
   } 
  
-  // Fill AEM_D matrix. 
-  data->AEM_D = Eigen::MatrixXd::Zero(9,9);
+  // Fill AEM matrix. 
+  data->AEM_D = Eigen::MatrixXd::Zero(9,9); 
   data->AEM_D(0,0) = 0.7071067811865475*As[0]; 
   data->AEM_D(0,1) = 0.7071067811865475*As[1]; 
   data->AEM_D(0,3) = 0.7071067811865475*As[1]; 
@@ -164,7 +215,7 @@ void CartFieldBinOpDivide1x1vTensor_P2(binOpData_t* data, const double *A, const
   data->AEM_D(1,4) = 0.6324555320336759*As[1]; 
   data->AEM_D(2,2) = 0.7071067811865475*As[2]; 
  
-  // Fill BEV_D. 
+  // Fill BEV. 
   data->BEV_D << Bs[0],Bs[1],Bs[2],Bs[3],Bs[4],Bs[5],Bs[6],Bs[7],Bs[8]; 
  
   // Solve the system of equations. 

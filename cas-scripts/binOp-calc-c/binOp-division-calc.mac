@@ -71,7 +71,7 @@ toHyper(expr,vars) := block([],
   )
 )$
 
-calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Eflat,Ef,eq,E],
+calcBinOpConfDivide(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Eflat,Ef,eq,E],
 
   kill(varsC, varsP, basisC, basisP),
 
@@ -84,11 +84,15 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
   ),
 
   kill(varsC, varsP, basisC, basisP),
+
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
   load(modNm),
   for polyOrder : 1 thru pOrderMax do (
-    bC : basisC[polyOrder],
-    N  : length(bC),
+
+    bW    : basisC[polyOrder],
+    varsW : varsC,
+    wdim  : cdim,
+    N     : length(bW),
   
     /* Function declaration with input/output variables. */
     printf(fh, "void ~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) ~%{ ~%", funcNm, polyOrder),
@@ -117,21 +121,21 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
     ),
 
     /* List of A evaluated at the corners. */
-    cornerAs : makelist(0,i,1,2^cdim),
+    cornerAs : makelist(0,i,1,2^wdim),
     iHe : 1,
-    pointEval(cornerAs,doExpand1(A,bC),varsC,1),
+    pointEval(cornerAs,doExpand1(A,bW),varsW,1),
 
     /* List of A evaluated close to positivity control points. */
-    controlAs : makelist(0,i,1,2^cdim),
+    controlAs : makelist(0,i,1,2^wdim),
     iHe : 1,
-    pointEval(controlAs,doExpand1(A,bC),varsC,2/5),
+    pointEval(controlAs,doExpand1(A,bW),varsW,2/5),
 
     if (not applyPos) then (
       /* In order to avoid dividing by very small, negative or zero numbers
          use the cell average of A when A<0 at one of the corners. */
       printf(fh, "  // If a corner value is below zero, use cell average A.~%"),
       printf(fh, "  bool avgA = false;~%"),
-      for i : 1 thru 2^cdim do (
+      for i : 1 thru 2^wdim do (
         printf(fh, "  if (~a < 0.0) { ~%",float(expand(cornerAs[i]))),
         printf(fh, "    avgA = true;~%"),
         printf(fh, "  }~%")
@@ -143,19 +147,20 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
       printf(fh, "  // If A<0 at corners, but A>0 near positivity control points, use cell average A.~%"),
       printf(fh, "  bool expA = false;~%"),
       printf(fh, "  bool avgA = false;~%"),
-      for i : 1 thru 2^cdim do (
+      for i : 1 thru 2^wdim do (
         printf(fh, "  if ((~a < 0.0) && (~a > 0.0)) { ~%",float(expand(cornerAs[i])),float(expand(controlAs[i]))),
         printf(fh, "    expA = true;~%"),
         printf(fh, "  }~%")
       ),
       printf(fh, "  // If A is zero near positivity control points, use cell average A.~%"),
-      for i : 1 thru 2^cdim do (
+      for i : 1 thru 2^wdim do (
         printf(fh, "  if (~a < 0.0) { ~%",float(expand(controlAs[i]))),
         printf(fh, "    avgA = true;~%"),
         printf(fh, "  }~%")
       )
     ),
     printf(fh, " ~%"),
+    flush_output(fh),
 
     printf(fh, "  unsigned short int b0; ~%"),
     printf(fh, "  double As[~a]; ~%", N),
@@ -181,12 +186,13 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
     printf(fh, "    } ~%"),
     printf(fh, "  } ~%"),
     printf(fh, " ~%"),
+    flush_output(fh),
 
-    /* Expand fields A and B in configuration space basis. */
-    Ae : doExpand1(As, bC),
-    Be : doExpand1(Bs, bC),
+    /* Expand fields A and B in weak basis. */
+    Ae : doExpand1(As, bW),
+    Be : doExpand1(Bs, bW),
     /* Expand u function and create a list of expansion coefficients. */ 
-    ue : doExpand1(u,bC),
+    ue : doExpand1(u,bW),
     un : makelist(u[i],i,0,N-1),
 
     kill(eq,E,Eflat,Ef,Elhs),
@@ -230,7 +236,7 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
 
     if (not applyPos) then (
 
-      eq : calcInnerProdList(varsC,ue,bC,Ae),
+      eq : calcInnerProdList(varsW,ue,bW,Ae),
       E  : fullratsimp(coefmatrix(eq,un)),
 
       eigenMassMatrix(E,0),
@@ -240,7 +246,7 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
 
       printf(fh, "  if ((avgA) || (!expA)) {~%"),
 
-      eq : calcInnerProdList(varsC,ue,bC,Ae),
+      eq : calcInnerProdList(varsW,ue,bW,Ae),
       E  : fullratsimp(coefmatrix(eq,un)),
 
       eigenMassMatrix(E,2),
@@ -250,12 +256,12 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
 
       Aexp : 0,
       E    : zeromatrix(N,N),
-      Ncp  : 2^(cdim-1),  /* Number of control points. */
-      printf(fh,"    double xBar[~a];~%",Ncp*cdim),
-      printf(fh,"    double g1[~a];~%",Ncp*cdim),
-      for iDir : 1 thru cdim do (
-        cv : varsC[iDir],
-        surfVars : delete(cv,varsC),
+      Ncp  : 2^(wdim-1),  /* Number of control points. */
+      printf(fh,"    double xBar[~a];~%",Ncp*wdim),
+      printf(fh,"    double g1[~a];~%",Ncp*wdim),
+      for iDir : 1 thru wdim do (
+        cv : varsW[iDir],
+        surfVars : delete(cv,varsW),
 
         /* Evaluate A at all control points on surface perp to iDir. */
         cpA : makelist(0,j,1,Ncp),
@@ -285,12 +291,12 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
 
         /* Construct the symbolic exponential A. */
 
-        if (cdim=1) then (
+        if (wdim=1) then (
           Aexp : expg0[0]*exp(g1[0]*cv)
         ) else (
           /*........... Create nodal to modal transform matrix .......... */
           /* Surface basis: basis of one lower dimensionality w/o surf variable. */
-          bSurf  : sqrt(2)*delete(0,fullratsimp(innerProd(varsC,1,bC,subst(cv=0,bC)))*bC),
+          bSurf  : sqrt(2)*delete(0,fullratsimp(innerProd(varsW,1,bW,subst(cv=0,bW)))*bW),
           gFsurf : doExpand(gF,bSurf),
           /* Evaluate the g-Function at various combinations of control points. */
           gFsurfCP : makelist(0,i,1,Ncp),
@@ -310,11 +316,11 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
           ),
           modalV : linsolve(eqList, makelist(gF[i],i,1,length(bSurf))),
 
-          Aexp : (1/cdim)*doExpand(makelist(rhs(modalV[i]),i,1,length(bSurf)),bSurf)
+          Aexp : (1/wdim)*doExpand(makelist(rhs(modalV[i]),i,1,length(bSurf)),bSurf)
 
         ),
       
-        eq   : calcInnerProdList(varsC,ue,bC,Aexp),
+        eq   : calcInnerProdList(varsW,ue,bW,Aexp),
         Emat : fullratsimp(coefmatrix(eq,un)),
 
         /* We will simply the expressions in Emat in order
@@ -342,7 +348,6 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
           Emat : fullratsimp(subst([expMg1,expg1],Emat))
 
         ),
-        print(Emat[1][1]),
 
         E : E+Emat
 
@@ -359,7 +364,7 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
   )
 )$
 
-calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([Elhs,Eflat,Ef,eq,E],
+calcBinOpConfPhaseDivide(fh, funcNm, cdim, vdim, basisFun, pMax) := block([Elhs,Eflat,Ef,eq,E],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -407,6 +412,7 @@ calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([Elhs,Eflat,Ef
       )
     ),
     printf(fh, " ~%"),
+    flush_output(fh),
 
     printf(fh, "  double As[~a]; ~%", NC),
     printf(fh, "  double Bs[~a]; ~%", NP),
@@ -443,6 +449,7 @@ calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([Elhs,Eflat,Ef
     printf(fh, "  // Fill AEM matrix. ~%"),
     printf(fh, "  data->AEM_D = Eigen::MatrixXd::Zero(~a,~a); ~%", NP, NP),
     writeCExprsB(Elhs,Eflat,0),
+    flush_output(fh),
     printf(fh, " ~%"),
 
     printf(fh, "  // Fill BEV. ~%"),
