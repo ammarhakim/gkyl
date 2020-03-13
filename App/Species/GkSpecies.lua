@@ -167,6 +167,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       positivity   = self.positivity,
       gyavgSlvr    = self.emGyavgSlvr,
    }
+   self.equation = self.gkEqn
 
    -- No update in mu direction (last velocity direction if present)
    local upd = {}
@@ -1072,6 +1073,40 @@ function GkSpecies:calcDiagnosticAuxMoments()
          self.diagnosticMomentFields[nm]:copy(self.vtSqCross[otherNm])
       end
    end
+end
+
+function GkSpecies:writeRestart(tm)
+   GkSpecies.super.writeRestart(self,tm)
+
+   if self.positivity then
+      self.gkEqn.positivityWeightByDir:write(
+         string.format("%s_positivityWeight_restart.bp", self.name), tm, self.diagIoFrame, false)
+      for _, c in pairs(self.collisions) do
+         if (c.collKind == "GkLBO") then
+            c.gkLBOconstNuCalcEq.positivityWeightByDir:write(
+               string.format("%s_GkLBO_positivityWeight_restart.bp", self.name), tm, self.diagIoFrame, false)
+         end
+      end
+   end
+end
+
+function GkSpecies:readRestart()
+   tm = GkSpecies.super.readRestart(self)
+
+   if self.positivity then
+      self.gkEqn.positivityWeightByDir:read(
+         string.format("%s_positivityWeight_restart.bp", self.name), false)
+      self.gkEqn.positivityWeightByDir:sync()
+      for _, c in pairs(self.collisions) do
+         if (c.collKind == "GkLBO") then
+            c.gkLBOconstNuCalcEq.positivityWeightByDir:read(
+               string.format("%s_GkLBO_positivityWeight_restart.bp", self.name), false)
+            c.gkLBOconstNuCalcEq.positivityWeightByDir:sync()
+         end
+      end
+   end
+  
+   return tm
 end
 
 -- BC functions.
