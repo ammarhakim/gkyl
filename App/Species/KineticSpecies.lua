@@ -662,7 +662,13 @@ function KineticSpecies:suggestDt()
    -- All reduce to get global min dt.
    Mpi.Allreduce(self.dt, self.dtGlobal, 1, Mpi.DOUBLE, Mpi.MIN, grid:commSet().comm)
 
-   return math.min(self.dtGlobal[0], GKYL_MAX_DOUBLE)
+   local dtSuggested = math.min(self.dtGlobal[0], GKYL_MAX_DOUBLE)
+
+   -- If dtSuggested == GKYL_MAX_DOUBLE, it is likely because of NaNs. 
+   -- If so, return 0 so that no timestep is taken, and we will abort the simulation.
+   if dtSuggested == GKYL_MAX_DOUBLE then dtSuggested = 0.0 end
+
+   return dtSuggested
 end
 
 function KineticSpecies:setDtGlobal(dtGlobal)
