@@ -1,0 +1,145 @@
+calcRecov2CellGen(basisNm, dir, dx, polyOrder, lo, up) := block(
+  /* Returns recovered polynomial across two neighboring cells in
+     terms of expansion coefficients at the lower (qLo) and the upper
+     (qUp) side.
+  Inputs:
+    basisNm : name of used basis function ("Ser", "Tensor", or "Max");
+      NOTE: This makes no difference for 1D recoveries so it should
+      ideally be an optional input but I don't see a way around it
+      now. --Petr Cagas
+    dir : direction of the recovery (x, y, or z)
+    dx : a list of cell sizes; if the specified length is greater than
+      one, the no-recovered direction are backsubstitued to the output
+    polyOrder : polynomial order of the inputs
+    qLo : an array of expansion coefficients of the recovered quantity
+      at the lower side
+    qUp : an array of expansion coefficients of the recovered quantity
+      at the upper side
+  Outputs:
+    a polynomial in terms of qLo and qUp
+  */
+  [numDims, dIdx, basisC, basis1D, baLo1D, baUp1D, DoF, rExp, recEqList,
+  rSol, rSub, projSubList, basisND, xc, baLoND, baUpND, dimProjLo,
+  dimProjUp],
+  numDims : length(dx),
+  dIdx : getDirIdx(dir, numDims), /* converting x, y, or z into 1, 2, or 3 */
+  basisC : getBasis(sconcat("basis-precalc/basis", basisNm, "1x"), polyOrder),
+  basis1D : subst(x=dir, basisC),
+  
+  /* forming and solving the equation system */
+  DoF : 0,
+  if is(op(lo)=dg) then (
+    DoF : DoF + polyOrder+1,
+    if length(args(lo)) > 1 then DoF : DoF + 1 /* aditional DoF for BC */
+  )
+  else (
+    DoF : DoF + 1 /* only 1 DoF for BC */
+  ),
+  if is(op(up)=dg) then (
+    DoF : DoF + polyOrder+1,
+    if length(args(up)) > 1 then DoF : DoF + 1 /* aditional DoF for BC */
+  )
+  else (
+    DoF : DoF + 1 /* only 1 DoF for BC */
+  ),
+  rExp : doExpand(r, makelist(dir^i, i, 0, DoF-1)), /* recovery polynomial */
+  
+  recEqList : [], /* equation set from the weak equality formulation */
+  if is(op(lo)=dg) then (
+    baLo1D : etaDir(dir, -dx[dIdx]/2, dx[dIdx], basis1D),
+    recEqList : append(
+      recEqList,
+      calcInnerProdListGen([dir], [[-dx[dIdx], 0]], 1,
+        baLo1D, rExp-doExpand(qLo1D, baLo1D))
+    ),
+    if length(args(lo)) > 1 then (
+      recEqList : append(
+        recEqList,
+        [subst(args(args(lo)[2]), val - D*subst(dir=-dx[dIdx], rExp)
+          - N*subst(dir=-dx[dIdx], diff(rExp, dir)))]
+      )
+    )
+  )
+  else (
+    recEqList : append(
+      recEqList,
+      [subst(args(lo), val - D*subst(dir=-dx[dIdx], rExp)
+        - N*subst(dir=-dx[dIdx], diff(rExp, dir)))]
+    )
+  ),
+
+  if is(op(up)=dg) then (
+    baUp1D : etaDir(dir, dx[dIdx]/2, dx[dIdx], basis1D),
+    recEqList : append(
+      recEqList,
+      calcInnerProdListGen([dir], [[0, dx[dIdx]]], 1,
+        baUp1D, rExp-doExpand(qUp1D, baUp1D))
+    ),
+    if length(args(up)) > 1 then (
+      recEqList : append(
+        recEqList,
+        [subst(args(args(up)[2]), val - D*subst(dir=dx[dIdx], rExp)
+          - N*subst(dir=dx[dIdx], diff(rExp, dir)))]
+      )
+    )
+  )
+  else (
+    recEqList : append(
+      recEqList,
+      [subst(args(up), val - D*subst(dir=dx[dIdx], rExp)
+        - N*subst(dir=dx[dIdx], diff(rExp, dir)))]
+    )
+  ),
+
+  rSol : linsolve(recEqList, makelist(r[i], i, 1, DoF)),
+  rSub : fullratsimp(subst(rSol, rExp)),
+  
+  /* backsubstitute the non-recovered directtions if needed */
+  if numDims > 1 then (
+    basisC : getBasis(sconcat("basis-precalc/basis", basisNm, numDims, "x"), polyOrder),
+    basisND : basisC,
+    xc : [0, 0, 0],
+    
+    xc[dIdx] : dx[dIdx]/2,
+    baUpND : eta(xc, dx, basisND), /* shifting the multi-D basis in only one direction */
+    
+    projSubList : [],
+    if is(op(lo)=dg) then (
+      xc[dIdx] : -dx[dIdx]/2,
+      baLoND : eta(xc, dx, basisND),
+      dimProjLo : calcInnerProdListGen([dir], [[-dx[dIdx], 0]],
+        1, baLo1D, doExpand(args(lo)[1], baLoND)),
+      projSubList : append (
+        projSubList,
+        makelist(qLo1D[i]=dimProjLo[i], i, 1, length(basis1D))
+      )
+    ),
+    if is(op(up)=dg) then (
+      xc[dIdx] : dx[dIdx]/2,
+      baUpND : eta(xc, dx, basisND),
+      dimProjUp : calcInnerProdListGen([dir], [[0, dx[dIdx]]],
+        1, baUp1D, doExpand(args(up)[1], baUpND)),
+      projSubList : append (
+        projSubList,
+        makelist(qUp1D[i]=dimProjUp[i], i, 1, length(basis1D))
+      )
+    )
+  )
+  else (
+    projSubList : [],
+    if is(op(lo)=dg) then (
+      projSubList : append (
+        projSubList,
+        makelist(qLo1D[i]=args(lo)[1][i], i, 1, length(basis1D))
+      )
+    ),
+    if is(op(up)=dg) then (
+      projSubList : append (
+        projSubList,
+        makelist(qUp1D[i]=args(up)[1][i], i, 1, length(basis1D))
+      )
+    )
+  ),
+
+  return(expand(subst(projSubList, rSub)))
+  ) $
