@@ -56,7 +56,7 @@ plasmaApp = Plasma.App {
               density = function (t, xn)
                  local x, v = xn[1], xn[2]
                  local k = knumber
-                 local alpha = .1
+                 local alpha = .8
                  local perturb = alpha*math.cos(k*x)
                  return ni0*(1+perturb)
               end,
@@ -66,7 +66,9 @@ plasmaApp = Plasma.App {
              },
       evolve = true, -- evolve species?
       diagnosticMoments = {"GkM0", "GkM2", perturbed = false},
+      diagnosticIntegratedMoments = {"intDelL2", "intDelPosL2"},
       positivity = true,
+      positivityDiffuse = true,
    },
 
    adiabaticElectron = Plasma.AdiabaticSpecies {

@@ -374,7 +374,9 @@ function Gyrokinetic:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_
 end
 
 function Gyrokinetic:sync()
-   self.positivityWeightByDir:sync()
+   if self._positivity then
+      self.positivityWeightByDir:sync()
+   end
 end
 
 -- Step2 volume integral term for use in DG scheme (EM only).
