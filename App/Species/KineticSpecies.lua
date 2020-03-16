@@ -499,10 +499,6 @@ function KineticSpecies:alloc(nRkDup)
       },
    }
 
-   if self.positivityRescaleVolTerm then
-      self.fRhsVol = self:allocDistf()
-   end
-
    self.fPrev = self:allocDistf()
    self.fPrev:clear(0.0)
 
@@ -646,14 +642,6 @@ end
 function KineticSpecies:forwardEuler(tCurr, dt, inIdx, outIdx)
    -- NOTE: order of these arguments matters... outIdx must come before inIdx.
    self:combineRk(outIdx, dt, outIdx, 1.0, inIdx)
-
-   --if self.positivityRescaleVolTerm then
-   --   -- if rescaling volume term, then the combineRk above only computed f^n + dt*f^n_surf (stored in outIdx)
-   --   -- because volume term is stored separately in self.fRhsVol
-   --   -- now compute scaling factor for volume term so that all control nodes stay positive. 
-   --   self.posRescaler:rescaleVolTerm(tCurr, self:rkStepperFields()[outIdx], dt, self.fRhsVol)
-   --   self:rkStepperFields()[outIdx]:accumulate(dt, self.fRhsVol)
-   --end
 end
 
 function KineticSpecies:suggestDt()
