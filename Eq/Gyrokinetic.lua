@@ -373,12 +373,6 @@ function Gyrokinetic:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_
                                             self.phi_ptr:data(), self.phiWall_ptr:data(), f_ptr:data(), fRefl_ptr:data())
 end
 
-function Gyrokinetic:sync()
-   if self._positivity then
-      self.positivityWeightByDir:sync()
-   end
-end
-
 -- Step2 volume integral term for use in DG scheme (EM only).
 function Gyrokinetic:volTermStep2(w, dx, idx, f_ptr, fRhs_ptr)
    local tmStart = Time.clock()
