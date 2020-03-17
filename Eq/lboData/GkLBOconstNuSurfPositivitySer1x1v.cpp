@@ -125,14 +125,20 @@ double GkLBOconstNuSurfPositivity1x1vSer_Vpar_P1(const double m_, const double *
   double outlPosM[2], outrPosM[2]; 
   fluxFracL = positivityWeightByDirL[0] == 0. ? 0.5 : positivityWeightByDirL[1]/positivityWeightByDirL[0]; 
   fluxFracR = positivityWeightByDirR[0] == 0. ? 0.5 : positivityWeightByDirR[1]/positivityWeightByDirR[0]; 
-  outlPosP[0] = 0.1666666666666667*(incr2[3]-1.0*incr1[3]-1.732050807568877*incr2[2]+1.732050807568877*(incr1[2]+incr1[1])-3.0*incr1[0]); 
-  outlPosP[1] = -0.1666666666666667*(incr2[3]-1.0*incr1[3]+1.732050807568877*incr2[2]-1.732050807568877*incr1[2]+1.732050807568877*incr1[1]+3.0*incr1[0]); 
-  outlPosM[0] = -0.1666666666666667*(incr2[3]-1.0*incr1[3]-1.732050807568877*incr2[2]+1.732050807568877*incr1[2]-1.732050807568877*incr1[1]+3.0*incr1[0]); 
-  outlPosM[1] = 0.1666666666666667*(incr2[3]-1.0*incr1[3]+1.732050807568877*incr2[2]-1.732050807568877*(incr1[2]+incr1[1])-3.0*incr1[0]); 
-  outrPosP[0] = -0.1666666666666667*(incr2[3]+incr1[3]-1.732050807568877*(incr2[2]+incr1[2])+1.732050807568877*incr1[1]-3.0*incr1[0]); 
-  outrPosP[1] = 0.1666666666666667*(incr2[3]+incr1[3]+1.732050807568877*(incr2[2]+incr1[2]+incr1[1])+3.0*incr1[0]); 
-  outrPosM[0] = 0.1666666666666667*(incr2[3]+incr1[3]-1.732050807568877*(incr2[2]+incr1[2]+incr1[1])+3.0*incr1[0]); 
-  outrPosM[1] = -0.1666666666666667*(incr2[3]+incr1[3]+1.732050807568877*(incr2[2]+incr1[2])-1.732050807568877*incr1[1]-3.0*incr1[0]); 
+  outlPosP[0] = -0.1666666666666667*(incr1[3]-1.732050807568877*(incr1[2]+incr1[1])+3.0*incr1[0]); 
+  outlPosP[1] = 0.1666666666666667*(incr1[3]+1.732050807568877*incr1[2]-1.732050807568877*incr1[1]-3.0*incr1[0]); 
+  outlPosM[0] = 0.1666666666666667*(incr1[3]-1.732050807568877*incr1[2]+1.732050807568877*incr1[1]-3.0*incr1[0]); 
+  outlPosM[1] = -0.1666666666666667*(incr1[3]+1.732050807568877*(incr1[2]+incr1[1])+3.0*incr1[0]); 
+  outrPosP[0] = -0.1666666666666667*(incr1[3]-1.732050807568877*incr1[2]+1.732050807568877*incr1[1]-3.0*incr1[0]); 
+  outrPosP[1] = 0.1666666666666667*(incr1[3]+1.732050807568877*(incr1[2]+incr1[1])+3.0*incr1[0]); 
+  outrPosM[0] = 0.1666666666666667*(incr1[3]-1.732050807568877*(incr1[2]+incr1[1])+3.0*incr1[0]); 
+  outrPosM[1] = -0.1666666666666667*(incr1[3]+1.732050807568877*incr1[2]-1.732050807568877*incr1[1]-3.0*incr1[0]); 
+  if(-0.1666666666666667*(incr2[3]-1.732050807568877*incr2[2]) > 0. && -0.1666666666666667*(incr2[3]-1.732050807568877*incr2[2]) > 0.) {
+    outlPosP[0] += 0.1666666666666667*(incr2[3]-1.732050807568877*incr2[2]); 
+    outlPosM[0] += -0.1666666666666667*(incr2[3]-1.732050807568877*incr2[2]); 
+    outrPosP[0] += -0.1666666666666667*(incr2[3]-1.732050807568877*incr2[2]); 
+    outrPosM[0] += 0.1666666666666667*(incr2[3]-1.732050807568877*incr2[2]); 
+  }
   if(outlPosP[0] < 0.) limFac = std::min(1.0, -fluxFracL*(-0.1666666666666667*(fl[3]-1.732050807568877*fl[2]+1.732050807568877*fl[1]-3.0*fl[0]))/dtApprox/outlPosP[0]); 
   else limFac = 1.0; 
   if(outrPosM[0] < 0.) limFac = std::min(limFac, -fluxFracR*(0.1666666666666667*(fr[3]-1.732050807568877*(fr[2]+fr[1])+3.0*fr[0]))/dtApprox/outrPosM[0]); 
@@ -141,6 +147,12 @@ double GkLBOconstNuSurfPositivity1x1vSer_Vpar_P1(const double m_, const double *
   outlPosM[0] *= limFac; 
   outrPosP[0] *= limFac; 
   outrPosM[0] *= limFac; 
+  if(0.1666666666666667*(incr2[3]+1.732050807568877*incr2[2]) > 0. && 0.1666666666666667*(incr2[3]+1.732050807568877*incr2[2]) > 0.) {
+    outlPosP[1] += -0.1666666666666667*(incr2[3]+1.732050807568877*incr2[2]); 
+    outlPosM[1] += 0.1666666666666667*(incr2[3]+1.732050807568877*incr2[2]); 
+    outrPosP[1] += 0.1666666666666667*(incr2[3]+1.732050807568877*incr2[2]); 
+    outrPosM[1] += -0.1666666666666667*(incr2[3]+1.732050807568877*incr2[2]); 
+  }
   if(outlPosP[1] < 0.) limFac = std::min(1.0, -fluxFracL*(0.1666666666666667*(fl[3]+1.732050807568877*(fl[2]+fl[1])+3.0*fl[0]))/dtApprox/outlPosP[1]); 
   else limFac = 1.0; 
   if(outrPosM[1] < 0.) limFac = std::min(limFac, -fluxFracR*(-0.1666666666666667*(fr[3]+1.732050807568877*fr[2]-1.732050807568877*fr[1]-3.0*fr[0]))/dtApprox/outrPosM[1]); 

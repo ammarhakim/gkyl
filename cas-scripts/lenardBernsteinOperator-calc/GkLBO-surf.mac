@@ -51,11 +51,19 @@ for bInd : 1 thru length(bName) do (
 
       /* The following create kernels with positivity preserving schemes. */
       usePositivity : true,
+
       disp(printf(false,sconcat("Creating surface GKLBOconstNuPositivity",bName[bInd]," ~ax~av"),c,v)),
       fname : sconcat("~/max-out/GkLBOconstNuSurfPositivity", bName[bInd], c, "x", v, "v", ".cpp"),
       fh : openw(fname),
       funcName : sconcat("GkLBOconstNuSurfPositivity", c, "x", v, "v", bName[bInd]),
       calcGkLBOconstNuSurfUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd], usePositivity),
+      close(fh),
+
+      disp(printf(false,sconcat("Creating boundary surface GkLBOconstNuPositivity",bName[bInd]," ~ax~av"),c,v)),
+      fname : sconcat("~/max-out/GkLBOconstNuBoundarySurfPositivity", bName[bInd], c, "x", v, "v", ".cpp"),
+      fh : openw(fname),
+      funcName : sconcat("GkLBOconstNuBoundarySurfPositivity", c, "x", v, "v", bName[bInd]),
+      calcGkLBOconstNuBoundarySurfUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd], usePositivity),
       close(fh)
 
     )

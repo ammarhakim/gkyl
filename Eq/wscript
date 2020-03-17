@@ -31,6 +31,10 @@ def build(bld):
     lboData/GkLBOconstNuSurfPositivitySer1x2v.cpp
     lboData/GkLBOconstNuSurfPositivitySer2x2v.cpp
     lboData/GkLBOconstNuSurfPositivitySer3x2v.cpp
+    lboData/GkLBOconstNuBoundarySurfPositivitySer1x1v.cpp
+    lboData/GkLBOconstNuBoundarySurfPositivitySer1x2v.cpp
+    lboData/GkLBOconstNuBoundarySurfPositivitySer2x2v.cpp
+    lboData/GkLBOconstNuBoundarySurfPositivitySer3x2v.cpp
     
     lboData/VmLBOconstNuSer1x1v.cpp
     lboData/VmLBOconstNuSer1x2v.cpp

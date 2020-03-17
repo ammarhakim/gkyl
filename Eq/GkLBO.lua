@@ -258,7 +258,7 @@ function GkLBO:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, fL_pt
 end
 
 -- Contribution from surface integral term at the boundaries for use in DG scheme.
-function GkLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outL_ptr, outR_ptr)
+function GkLBO:boundarySurfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outL_ptr, outR_ptr)
    local vMuMidMax = 0.0
    -- Set pointer to BmagInv, sum(nu*u) and sum(nu*vtSq) fields.
    self._BmagInv:fill(self._BmagInvIdxr(idxl), self._BmagInvPtr)          -- Get pointer to BmagInv field.
@@ -288,12 +288,12 @@ function GkLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr,
          if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
              (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum))) then
             vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-               self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._inNuSum, maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), self.fRhsSurf_L_ptr:data(), self.fRhsSurf_R_ptr:data())
+               self._inMass, self.positivityWeightByDirL_ptr:data(), self.positivityWeightByDirR_ptr:data(), wl:data(), wr:data(), dxl:data(), dxr:data(), dtApprox, idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._inNuSum, maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), self.fRhsSurf_L_ptr:data(), self.fRhsSurf_R_ptr:data())
          end
       else
          self._nuSum:fill(self._nuSumIdxr(idxl), self._nuSumPtr)    -- Get pointer to sum(nu) field.
          vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-            self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._nuSumPtr:data(), maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), self.fRhsSurf_L_ptr:data(), self.fRhsSurf_R_ptr:data())
+            self._inMass, self.positivityWeightByDirL_ptr:data(), self.positivityWeightByDirR_ptr:data(), wl:data(), wr:data(), dxl:data(), dxr:data(), dtApprox, idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._nuSumPtr:data(), maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), self.fRhsSurf_L_ptr:data(), self.fRhsSurf_R_ptr:data())
       end
    end
    return vMuMidMax

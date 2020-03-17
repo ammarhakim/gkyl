@@ -8,18 +8,7 @@ polyOrderMax : 3$
 bName   : ["Ser","Max"]$
 gkVdims : [[1,2], [2], [2]]$
 
-fh : openw("~/max-out/GkLBOModDecl.h")$
-
-printf(fh, "#ifndef GKLBO_MOD_DELC_H ~%")$
-printf(fh, "#define GKLBO_MOD_DELC_H ~%")$
-printf(fh, "#include <cmath> ~%")$
-printf(fh, "#include <algorithm> ~%")$
-printf(fh, "#include <Positivity.h> ~%")$
-printf(fh, "template <typename T> int sgn(T val) { ~%")$
-printf(fh, "    return (T(0) < val) - (val < T(0)); ~%")$
-printf(fh, "} ~%")$
-printf(fh, "extern \"C\" { ~%")$
-
+printPrototypes() := block([], 
 for bInd : 1 thru length(bName) do (
   for ci : 1 thru 3 do (
     for gkV : 1 thru length(gkVdims[ci]) do (
@@ -32,11 +21,12 @@ for bInd : 1 thru length(bName) do (
         for si : 1 thru vi do (
           printf(fh, "double GkLBOconstNuSurf~ax~av~a_~a_P~a(const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, bName[bInd], vVars[si], pi),
   
-          printf(fh, "double GkLBOconstNuBoundarySurf~ax~av~a_~a_P~a(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, bName[bInd], vVars[si], pi),
+          printf(fh, "double GkLBOconstNuBoundarySurf~ax~av~a_~a_P~a(const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const int *idxl, const int *idxr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, bName[bInd], vVars[si], pi),
   
           if pi=1 then (
             /* Add kernels for positivity preserving algorithm. */
-            printf(fh, "double GkLBOconstNuSurfPositivity~ax~av~a_~a_P~a(const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, bName[bInd], vVars[si], pi)
+            printf(fh, "double GkLBOconstNuSurfPositivity~ax~av~a_~a_P~a(const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, bName[bInd], vVars[si], pi),
+            printf(fh, "double GkLBOconstNuBoundarySurfPositivity~ax~av~a_~a_P~a(const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const int *idxl, const int *idxr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, bName[bInd], vVars[si], pi)
           )
         ),
         printf(fh, "~%")
@@ -45,12 +35,28 @@ for bInd : 1 thru length(bName) do (
       printf(fh, "~%")
     )
   )
+)
 )$
 
-printf(fh, "~% ~%")$
-
+fh : openw("~/max-out/GkLBOModDecl.h")$
+printf(fh, "#ifndef GKLBO_MOD_DELC_H ~%")$
+printf(fh, "#define GKLBO_MOD_DELC_H ~%")$
+printf(fh, "#include <cmath> ~%")$
+printf(fh, "#include <algorithm> ~%")$
+printf(fh, "#include <Positivity.h> ~%")$
+printf(fh, "template <typename T> int sgn(T val) { ~%")$
+printf(fh, "    return (T(0) < val) - (val < T(0)); ~%")$
 printf(fh, "} ~%")$
-
+printf(fh, "extern \"C\" { ~%")$
+printPrototypes()$
+printf(fh, "~% ~%")$
+printf(fh, "} ~%")$
 printf(fh, "#endif ~%")$
+close(fh)$
 
+fh : openw("~/max-out/_GkLBOCdef.lua")$
+printf(fh, "local ffi = require \"ffi\" ~%~%")$
+printf(fh, "ffi.cdef [[~%")$
+printPrototypes()$
+printf(fh, "]]~%")$
 close(fh)$

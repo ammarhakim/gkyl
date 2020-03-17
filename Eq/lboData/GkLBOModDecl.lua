@@ -63,12 +63,14 @@ function _M.selectBoundarySurf(basisNm, CDIM, VDIM, polyOrder, applyPos)
    end
 end
 function _M.selectConstNuBoundarySurf(basisNm, CDIM, VDIM, polyOrder, applyPos)
+   local posString = ""
+   if applyPos then posString = "Positivity" end
    if VDIM == 1 then
-      local funcNmX = string.format("GkLBOconstNuBoundarySurf%dx%dv%s_Vpar_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmX = string.format("GkLBOconstNuBoundarySurf%s%dx%dv%s_Vpar_P%d", posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       return { ffi.C[funcNmX], nullFunc, nullFunc }
    elseif VDIM == 2 then
-      local funcNmX = string.format("GkLBOconstNuBoundarySurf%dx%dv%s_Vpar_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmY = string.format("GkLBOconstNuBoundarySurf%dx%dv%s_Mu_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmX = string.format("GkLBOconstNuBoundarySurf%s%dx%dv%s_Vpar_P%d", posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmY = string.format("GkLBOconstNuBoundarySurf%s%dx%dv%s_Mu_P%d", posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       return { ffi.C[funcNmX], ffi.C[funcNmY], nullFunc }
    end
 end

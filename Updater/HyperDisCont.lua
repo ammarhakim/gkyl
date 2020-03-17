@@ -234,7 +234,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 	          -- Give equations a chance to apply partial surface updates 
 	          -- even when the zeroFlux BCs have been applied.
 	          self._equation:boundarySurfTerm(
-		     dir, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
+		     dir, dtApprox*1.25, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
                end
 	    end
 	 end
