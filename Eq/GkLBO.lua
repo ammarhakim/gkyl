@@ -378,6 +378,12 @@ function GkLBO:setPositivityWeights(cflRateByCell)
    self.positivityWeightByDir:scaleByCell(cflRateByCell)
 end
 
+function GkLBO:sync()
+   if self._positivity then 
+      self.positivityWeightByDir:sync()
+   end
+end
+
 function GkLBO:setAuxFields(auxFields)
    -- Single aux field that has the full BmagInv, sum(nu*u), sum(nu*vtSq) and sum(nu) fields.
    self._BmagInv   = auxFields[1]

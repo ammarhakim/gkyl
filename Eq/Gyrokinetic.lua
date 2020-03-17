@@ -493,6 +493,12 @@ function Gyrokinetic:setPositivityWeights(cflRateByCell)
    self.positivityWeightByDir:scaleByCell(cflRateByCell)
 end
 
+function Gyrokinetic:sync()
+   if self._positivity then 
+      self.positivityWeightByDir:sync()
+   end
+end
+
 function Gyrokinetic:read(name)
    self.positivityWeightByDir:read(
       string.format("%s_cflRateByCell_restart.bp", name), false)
