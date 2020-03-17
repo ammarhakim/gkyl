@@ -462,7 +462,7 @@ function Gyrokinetic:getPositivityRhs(tCurr, dtApprox, fIn, fRhs)
       for d = 1, self._cdim do -- configuration space dirs
          weightDirs[d] = d
       end
-      if dtApprox > 0 and tCurr > 0 then self.posRescaler:rescaleVolTerm(tCurr, dtApprox, fIn, self.positivityWeightByDir, weightDirs, self.fRhsSurfX, self.fRhsVolX) end
+      if dtApprox > 0 then self.posRescaler:rescaleVolTerm(tCurr, dtApprox, fIn, self.positivityWeightByDir, weightDirs, self.fRhsSurfX, self.fRhsVolX) end
 
       fRhs:accumulate(1.0, self.fRhsSurfX, 1.0, self.fRhsVolX)
    else
@@ -472,7 +472,7 @@ function Gyrokinetic:getPositivityRhs(tCurr, dtApprox, fIn, fRhs)
       end
       -- fIn + fac*dt*fVol + dt*fSurf > 0.
       -- Rescale volume term by fac, and add to surface term fRhs = fRhsSurf.
-      if dtApprox > 0 and tCurr > 0 then self.posRescaler:rescaleVolTerm(tCurr, dtApprox, fIn, self.positivityWeightByDir, weightDirs, self.fRhsSurf, self.fRhsVol) end
+      if dtApprox > 0 then self.posRescaler:rescaleVolTerm(tCurr, dtApprox, fIn, self.positivityWeightByDir, weightDirs, self.fRhsSurf, self.fRhsVol) end
 
       fRhs:accumulate(1.0, self.fRhsSurf, 1.0, self.fRhsVol)
    end 

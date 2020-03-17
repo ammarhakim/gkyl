@@ -181,6 +181,7 @@ function PositivityRescale:calcVolTermRescale(tCurr, dtApprox, fIn, weights, wei
             weightfac = weightfac + weights_ptr:data()[d]
          end
          weightfac = weightfac/weights_ptr:data()[0]
+         if weightfac > 1 then weightfac = 1 end
       end
       
       volRescale_ptr[1] = ffiC.calcVolTermRescale(tCurr, dtApprox, fIn_ptr:data(), weightfac, fRhsSurf_ptr:data(),
@@ -216,6 +217,7 @@ function PositivityRescale:rescaleVolTerm(tCurr, dtApprox, fIn, weights, weightD
             weightfac = weightfac + weights_ptr:data()[d]
          end
          weightfac = weightfac/weights_ptr:data()[0]
+         if weightfac > 1 then weightfac = 1 end
       end
       
       local scaler = ffiC.rescaleVolTerm(tCurr, dtApprox, fIn_ptr:data(), weightfac, fRhsSurf_ptr:data(), fRhsVol_ptr:data(), self.basis:ndim(), self.basis:numBasis(), idx:data())

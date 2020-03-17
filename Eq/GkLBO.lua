@@ -199,7 +199,7 @@ function GkLBO:volTerm(w, dx, idx, f_ptr, out_ptr)
           (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum))) then
          cflRate = self._volUpdate(self._inMass, w:data(), dx:data(), self.positivityWeightByDir_ptr:data(), self._BmagInvPtr:data(), self._inNuSum, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), f_ptr:data(), self.fRhsVol_ptr:data())
          -- if using positivity, the volume term will be repeated in step 2, and we will use the cflRate from there
-         -- to avoid double counting, set cflFreq = 0 here
+         -- to avoid double counting, set cflRate = 0 here
          if self._positivity then cflRate = 0.0 end
       else
          cflRate = 0.0
@@ -320,7 +320,7 @@ function GkLBO:getPositivityRhs(tCurr, dtApprox, fIn, fRhs)
    end
    -- fIn + fac*dt*fVol + dt*fSurf > 0.
    -- Compute the scaling factor for volume term, fac = self.volTermScaleFac, but don't do the scaling yet.
-   if dtApprox > 0 and tCurr > 0 then self.posRescaler:calcVolTermRescale(tCurr, dtApprox, fIn, self.positivityWeightByDir, weightDirs, self.fRhsSurf, self.fRhsVol, self.volTermScaleFac) end
+   if dtApprox > 0 then self.posRescaler:calcVolTermRescale(tCurr, dtApprox, fIn, self.positivityWeightByDir, weightDirs, self.fRhsSurf, self.fRhsVol, self.volTermScaleFac) end
 end
 
 -- Step 2 volume integral term for use in positivity-LBO scheme.
