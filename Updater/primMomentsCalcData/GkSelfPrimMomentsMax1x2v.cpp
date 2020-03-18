@@ -12,12 +12,8 @@ void GkSelfPrimMoments1x2vMax_P1(binOpData_t *data, const double *m0, const doub
  
   // If a corner value is below zero, use cell average m0.
   bool cellAvg = false;
-  if (0.7071067811865475*m0[0]-1.224744871391589*m0[1] < 0) { 
-    cellAvg = true;
-  }
-  if (1.224744871391589*m0[1]+0.7071067811865475*m0[0] < 0) { 
-    cellAvg = true;
-  }
+  if (-0.5*(2.449489742783178*m0[1]-1.414213562373095*m0[0]) < 0) cellAvg = true; 
+  if (0.5*(2.449489742783178*m0[1]+1.414213562373095*m0[0]) < 0) cellAvg = true; 
  
   double m0r[2]; 
   double m1r[2]; 
@@ -105,12 +101,8 @@ void GkSelfPrimMoments1x2vMax_P2(binOpData_t *data, const double *m0, const doub
  
   // If a corner value is below zero, use cell average m0.
   bool cellAvg = false;
-  if (1.58113883008419*m0[2]-1.224744871391589*m0[1]+0.7071067811865475*m0[0] < 0) { 
-    cellAvg = true;
-  }
-  if (1.58113883008419*m0[2]+1.224744871391589*m0[1]+0.7071067811865475*m0[0] < 0) { 
-    cellAvg = true;
-  }
+  if (0.7071067811865475*(2.23606797749979*m0[2]-1.732050807568877*m0[1]+m0[0]) < 0) cellAvg = true; 
+  if (0.7071067811865475*(2.23606797749979*m0[2]+1.732050807568877*m0[1]+m0[0]) < 0) cellAvg = true; 
  
   double m0r[3]; 
   double m1r[3]; 
@@ -218,12 +210,8 @@ void GkSelfPrimMoments1x2vMax_P3(binOpData_t *data, const double *m0, const doub
  
   // If a corner value is below zero, use cell average m0.
   bool cellAvg = false;
-  if ((-1.870828693386971*m0[3])+1.58113883008419*m0[2]-1.224744871391589*m0[1]+0.7071067811865475*m0[0] < 0) { 
-    cellAvg = true;
-  }
-  if (1.870828693386971*m0[3]+1.58113883008419*m0[2]+1.224744871391589*m0[1]+0.7071067811865475*m0[0] < 0) { 
-    cellAvg = true;
-  }
+  if (-0.5*(3.741657386773942*m0[3]-3.16227766016838*m0[2]+2.449489742783178*m0[1]-1.414213562373095*m0[0]) < 0) cellAvg = true; 
+  if (0.5*(3.741657386773942*m0[3]+3.16227766016838*m0[2]+2.449489742783178*m0[1]+1.414213562373095*m0[0]) < 0) cellAvg = true; 
  
   double m0r[4]; 
   double m1r[4]; 

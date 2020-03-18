@@ -11,6 +11,7 @@
 load("modal-basis");
 load("out-scripts");
 load(stringproc)$
+load("fem-calc/femMatrices");
 fpprec : 24$
 
 VarsC : [X, Y, Z]$
@@ -84,7 +85,7 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
        use the cell average m0 when m0<0 at one of the corners. */
     printf(fh, "  // If a corner value is below zero, use cell average m0.~%"),
     printf(fh, "  bool cellAvg = false;~%"),
-    nodes : eval_string(sconcat("nodes", cdim, "xp", polyOrder)),
+    nodes : eval_string(sconcat("nodes", cdim, "xp", 1)),
     nodesub(f):=makelist(subst(makelist(varsC[j]=nodes[i][j],j,1,length(varsC)),f),i,1,length(nodes)),
     m0Corners : gcfac(float(fullratsimp(nodesub(doExpand1(m0,bC))))),
     for i : 1 thru length(nodes) do (
