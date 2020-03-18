@@ -48,7 +48,7 @@ calcBinOpConfMultiply(fh, funcNm, cdim, basisFun, pMax) := block([],
     printf(fh, "    unsigned short int b0 = ~a; ~%",N*vd),
     printf(fh, "    unsigned short int a0 = ~a; ~%",eqNcomp*b0),
     printf(fh, "    // Component-wise (of the vectors) multiplication. ~%"),
-    expr : float(fullratsimp(prod)),
+    expr : gcfac(float(fullratsimp(prod))),
     for i : 1 thru N do (
       printf(fh, "    ~a = ~a; ~%", tmp[i-1], expr[i]),
       flush_output(fh)
@@ -95,7 +95,7 @@ calcBinOpPhasePhaseMultiply(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "  double tmp[~a]; ~%",N),
     printf(fh, " ~%"),
 
-    expr : float(fullratsimp(prod)),
+    expr : gcfac(float(fullratsimp(prod))),
     for i : 1 thru N do (
       if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", tmp[i-1], expr[i]),
       flush_output(fh)
@@ -135,7 +135,7 @@ calcBinOpConfPhaseMultiply(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     Ae : doExpand1(A, bC),
     Be : doExpand1(B, bP),
 
-    prod : calcInnerProdList(varsP,Ae,bP,Be),
+    prod : gcfac(float(fullratsimp(calcInnerProdList(varsP,Ae,bP,Be)))),
   
     printf(fh, "  double tmp[~a]; ~%",N),
 
