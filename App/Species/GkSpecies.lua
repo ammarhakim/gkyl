@@ -803,7 +803,6 @@ function GkSpecies:createDiagnostics()
       weakBasis  = self.confBasis,
       operation  = "Divide",
       onGhosts   = true,
-      positivity = self.positivity,
    }
    self.weakDivisionPhase = Updater.CartFieldBinOp {
       onGrid     = self.grid,
@@ -1362,7 +1361,6 @@ function GkSpecies:getOhmModifier(rkIdx)
    if self.basis:polyOrder() > 1 then return self:getNumDensity(rkIdx) end
 
    local fIn = self.gkEqn.ohmMod
-   --self.weakDivisionPhase:advance(0.0, {self.gkEqn.dApardtProv, fIn}, {fIn})
 
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()

@@ -137,6 +137,8 @@ function GkLBO:init(tbl)
    self.positivityWeightByDir_ptr  = self.positivityWeightByDir:get(1)
    self.positivityWeightByDirL_ptr = self.positivityWeightByDir:get(1)
    self.positivityWeightByDirR_ptr = self.positivityWeightByDir:get(1)
+
+   self.dummy = Lin.Vec(self._vdim + 1)
 end
 
 -- Methods.
@@ -198,12 +200,14 @@ function GkLBO:volTerm(w, dx, idx, f_ptr, out_ptr)
       if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
           (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum))) then
          cflRate = self._volUpdate(self._inMass, w:data(), dx:data(), self.positivityWeightByDir_ptr:data(), self._BmagInvPtr:data(), self._inNuSum, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), f_ptr:data(), self.fRhsVol_ptr:data())
-         -- if using positivity, the volume term will be repeated in step 2, and we will use the cflRate from there
-         -- to avoid double counting, set cflRate = 0 here
-         if self._positivity then cflRate = 0.0 end
       else
          cflRate = 0.0
          self.primMomCrossLimit = self.primMomCrossLimit+1
+         if self._positivity then 
+            cflRate = self.positivityWeightByDir_ptr:data()[0]
+            self.positivityWeightByDir_ptr:data()[1] = 0
+            self.positivityWeightByDir_ptr:data()[2] = 0
+         end
       end
    else
       self._nuSum:fill(self._nuSumIdxr(idx), self._nuSumPtr)             -- Get pointer to sum(nu) field.
@@ -320,7 +324,7 @@ function GkLBO:getPositivityRhs(tCurr, dtApprox, fIn, fRhs)
    end
    -- fIn + fac*dt*fVol + dt*fSurf > 0.
    -- Compute the scaling factor for volume term, fac = self.volTermScaleFac, but don't do the scaling yet.
-   if dtApprox > 0 then self.posRescaler:calcVolTermRescale(tCurr, dtApprox, fIn, self.positivityWeightByDir, weightDirs, self.fRhsSurf, self.fRhsVol, self.volTermScaleFac) end
+   if dtApprox > 0 then self.posRescaler:calcVolTermRescale(tCurr, dtApprox*1.05, fIn, self.positivityWeightByDir, weightDirs, self.fRhsSurf, self.fRhsVol, self.volTermScaleFac) end
 end
 
 -- Step 2 volume integral term for use in positivity-LBO scheme.
@@ -346,14 +350,15 @@ function GkLBO:volTermStep2(w, dx, idx, f_ptr, out_ptr)
       local nuVtSqSum0 = self._nuVtSqSumPtr[1]*self._cellAvFac
       if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
           (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum))) then
-         cflRate = self._volUpdate(self._inMass, w:data(), dx:data(), self.positivityWeightByDir_ptr:data(), self._BmagInvPtr:data(), self._inNuSum, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), f_ptr:data(), self.fRhsVol_ptr:data())
+         cflRate = self._volUpdate(self._inMass, w:data(), dx:data(), self.dummy:data(), self._BmagInvPtr:data(), self._inNuSum, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), f_ptr:data(), self.fRhsVol_ptr:data())
+         cflRate = 0.0 -- already computed on step 1
       else
-         cflRate = 0.0
+         cflRate = 0.0 
          self.primMomCrossLimit = self.primMomCrossLimit+1
       end
    else
       self._nuSum:fill(self._nuSumIdxr(idx), self._nuSumPtr)             -- Get pointer to sum(nu) field.
-      cflRate = self._volUpdate(self._inMass, w:data(), dx:data(), self.positivityWeightByDir_ptr:data(), self._BmagInvPtr:data(), self._nuSumPtr:data(), self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), f_ptr:data(), self.fRhsVol_ptr:data())
+      cflRate = self._volUpdate(self._inMass, w:data(), dx:data(), self.dummy:data(), self._BmagInvPtr:data(), self._nuSumPtr:data(), self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), f_ptr:data(), self.fRhsVol_ptr:data())
    end
 
    return cflRate
