@@ -162,7 +162,7 @@ for p : 1 thru pmax do (
         printf(fh, "    fac = ~a; ~%", fReflfacs[k]),
         printf(fh, "    fReflXYZMuQuad[~a][~a] = (~a)*fac; ~%", j-1, k-1, gcfac(float(fXYZMuQ_Vp_c[k]))),
         printf(fh, "    fe = fetestexcept(FE_OVERFLOW | FE_DIVBYZERO);~%"),
-        printf(fh, "    if(fe) {printf(\"~a,~a,1: b = \%Le, xc = \%Le, xbar = \%Le, std::sinh(b) = \%Le, std::exp(b*xc) = \%Le, std::exp(-b) = \%Le, fac = \%Le, fRefl = \%e, ERRCODE = %d\\n\", b, xc, xbarVal, std::sinh(b), std::exp(b*xc), std::exp(-b), fac, fReflXYZMuQuad[~a][~a], fe); fReflXYZMuQuad[~a][~a] = 0.;}~%",j,k, j-1,k-1, j-1, k-1)
+        printf(fh, "    if(fe) {feclearexcept(FE_ALL_EXCEPT); printf(\"~a,~a,1: b = \%Le, xc = \%Le, xbar = \%Le, std::sinh(b) = \%Le, std::exp(b*xc) = \%Le, std::exp(-b) = \%Le, fac = \%Le, fRefl = \%e, ERRCODE = %d\\n\", b, xc, xbarVal, std::sinh(b), std::exp(b*xc), std::exp(-b), fac, fReflXYZMuQuad[~a][~a], fe); fReflXYZMuQuad[~a][~a] = 0.;}~%",j,k, j-1,k-1, j-1, k-1)
         ),
         printf(fh, "   } else { ~%"),
         printf(fh, "    xc = 2.*(-std::sqrt(vcutSq_i)-wv)/dv; ~%"),
@@ -173,7 +173,7 @@ for p : 1 thru pmax do (
         printf(fh, "    fac = ~a; ~%", fReflfacs[k]),
         printf(fh, "    fReflXYZMuQuad[~a][~a] = (~a)*fac; ~%", j-1, k-1, gcfac(float(fXYZMuQ_Vp_c[k]))),
         printf(fh, "    fe = fetestexcept(FE_OVERFLOW | FE_DIVBYZERO);~%"),
-        printf(fh, "    if(fe) {printf(\"~a,~a,2: b = \%Le, xc = \%Le, xbar = \%Le, std::sinh(b) = \%Le, std::exp(b*xc) = \%Le, std::exp(b) = \%Le, fac = \%Le, fRefl = \%e, ERRCODE = %d\\n\", b, xc, xbarVal, std::sinh(b), std::exp(b*xc), std::exp(b), fac, fReflXYZMuQuad[~a][~a], fe); fReflXYZMuQuad[~a][~a] = 0.;}~%",j,k, j-1,k-1, j-1,k-1)
+        printf(fh, "    if(fe) {feclearexcept(FE_ALL_EXCEPT); printf(\"~a,~a,2: b = \%Le, xc = \%Le, xbar = \%Le, std::sinh(b) = \%Le, std::exp(b*xc) = \%Le, std::exp(b) = \%Le, fac = \%Le, fRefl = \%e, ERRCODE = %d\\n\", b, xc, xbarVal, std::sinh(b), std::exp(b*xc), std::exp(b), fac, fReflXYZMuQuad[~a][~a], fe); fReflXYZMuQuad[~a][~a] = 0.;}~%",j,k, j-1,k-1, j-1,k-1)
         ),
         printf(fh, "   } ~%"),
         printf(fh, "  } ~%"),

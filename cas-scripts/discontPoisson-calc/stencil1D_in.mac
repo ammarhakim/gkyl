@@ -1,3 +1,8 @@
+/* Generate Lua code that fills the left-side matrix entries
+   corresponding to the discretization of the Poisson equation
+      Laplacian(phi) = - rho
+   with recovery DG in the 1D interior cells. */
+
 kill(all)$
 load("recovery-calc/recovery")$
 load("basis-precalc/basisSer1x")$
@@ -24,28 +29,28 @@ for d : 1 thru length(dirs) do (
     for i : 1 thru numBasis do (
       for j : 1 thru numBasis do (
         printf(fh, "  _M[1][~a][~a] = ~a~%", i, j, float(ML[i][j]))
-        )
-      ),
+      )
+    ),
     
     MC : coefmatrix(stProj, makelist(hC[i], i, 1, numBasis)),
     printf(fh, "  _M[2] = Lin.Mat(~a,~a)~%", numBasis, numBasis),
     for i : 1 thru numBasis do (
       for j : 1 thru numBasis do (
         printf(fh, "  _M[2][~a][~a] = ~a~%", i, j, float(MC[i][j]))
-        )
-      ),
+      )
+    ),
     
     MU : coefmatrix(stProj, makelist(hU[i], i, 1, numBasis)),
     printf(fh, "  _M[3] = Lin.Mat(~a,~a)~%", numBasis, numBasis),
     for i : 1 thru numBasis do (
       for j : 1 thru numBasis do (
         printf(fh, "  _M[3][~a][~a] = ~a~%", i, j, float(MU[i][j]))
-        )
-      ),
+      )
+    ),
     
     printf(fh, "  return(_M)~%"),
     printf(fh, "end~%~%"),
     printf(fh, "return(stencilFn)"),
     close(fh)
-    )
-  )$
+  )
+)$

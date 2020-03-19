@@ -8,6 +8,7 @@
 load("modal-basis");
 load("out-scripts");
 load(stringproc)$
+load("fem-calc/femMatrices");
 fpprec : 24$
 
 writeCExprsB(lhs, rhs, nSpaces) := block([expr],
@@ -71,24 +72,24 @@ toHyper(expr,vars) := block([],
   )
 )$
 
-calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Eflat,Ef,eq,E],
+calcBinOpConfDivide(fh, funcNm, cdim, basisFun, polyOrder, applyPos) := block([Elhs,Eflat,Ef,eq,E],
 
   kill(varsC, varsP, basisC, basisP),
 
   if applyPos then (
-    pOrderMax : 1,
     load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
     bC1 : basisC[1]    /* Save 1D basis for later use. */
-  ) else (
-    pOrderMax : pMax
   ),
 
   kill(varsC, varsP, basisC, basisP),
+
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
   load(modNm),
-  for polyOrder : 1 thru pOrderMax do (
-    bC : basisC[polyOrder],
-    N  : length(bC),
+
+    bW    : basisC[polyOrder],
+    varsW : varsC,
+    wdim  : cdim,
+    N     : length(bW),
   
     /* Function declaration with input/output variables. */
     printf(fh, "void ~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) ~%{ ~%", funcNm, polyOrder),
@@ -99,40 +100,23 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
     printf(fh, "  // out:     output field (same number of components as B). ~%"),
     printf(fh, " ~%"),
 
-    /* This function evaluates the denominator (fIn, expanded in
-        variables evalVars) at all combinations of (+/- evalPoint)
-        points, and places it in the list fEvOut. */
-    pointEval(fEvOut,fIn,evalVars,evalPoint) := block([v1,otherVars,fSub],
-      v1        : evalVars[1],
-      otherVars : delete(v1,evalVars),
-      for iQ : -1 step 2 thru 1 do (
-        fSub : subst(v1=iQ*evalPoint,fIn),
-        if length(otherVars)>0 then (
-          pointEval(fEvOut,fSub,otherVars,evalPoint)
-        ) else (
-          fEvOut[iHe] : fSub,
-          iHe : iHe + 1
-        )
-      )
-    ),
+    /* function to evaluate f on nodes */
+    nodesub(f, nodes):=fullratsimp(makelist(subst(makelist(varsW[j]=nodes[i][j],j,1,length(varsW)),f),i,1,length(nodes))),
+    cornerNodes : eval_string(sconcat("nodes", wdim, "xp", 1)),
 
     /* List of A evaluated at the corners. */
-    cornerAs : makelist(0,i,1,2^cdim),
-    iHe : 1,
-    pointEval(cornerAs,doExpand1(A,bC),varsC,1),
+    cornerAs : nodesub(doExpand1(A,bW), cornerNodes),
 
     /* List of A evaluated close to positivity control points. */
-    controlAs : makelist(0,i,1,2^cdim),
-    iHe : 1,
-    pointEval(controlAs,doExpand1(A,bC),varsC,2/5),
+    controlAs : nodesub(doExpand1(A,bW), cornerNodes*2/5),
 
     if (not applyPos) then (
       /* In order to avoid dividing by very small, negative or zero numbers
          use the cell average of A when A<0 at one of the corners. */
       printf(fh, "  // If a corner value is below zero, use cell average A.~%"),
       printf(fh, "  bool avgA = false;~%"),
-      for i : 1 thru 2^cdim do (
-        printf(fh, "  if (~a < 0.0) { ~%",float(expand(cornerAs[i]))),
+      for i : 1 thru length(cornerNodes) do (
+        printf(fh, "  if (~a < 0.0) { ~%",gcfac(float(expand(cornerAs[i])))),
         printf(fh, "    avgA = true;~%"),
         printf(fh, "  }~%")
       )
@@ -143,19 +127,20 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
       printf(fh, "  // If A<0 at corners, but A>0 near positivity control points, use cell average A.~%"),
       printf(fh, "  bool expA = false;~%"),
       printf(fh, "  bool avgA = false;~%"),
-      for i : 1 thru 2^cdim do (
-        printf(fh, "  if ((~a < 0.0) && (~a > 0.0)) { ~%",float(expand(cornerAs[i])),float(expand(controlAs[i]))),
+      for i : 1 thru 2^wdim do (
+        printf(fh, "  if ((~a < 0.0) && (~a > 0.0)) { ~%",gcfac(float(expand(cornerAs[i]))),gcfac(float(expand(controlAs[i])))),
         printf(fh, "    expA = true;~%"),
         printf(fh, "  }~%")
       ),
       printf(fh, "  // If A is zero near positivity control points, use cell average A.~%"),
-      for i : 1 thru 2^cdim do (
-        printf(fh, "  if (~a < 0.0) { ~%",float(expand(controlAs[i]))),
+      for i : 1 thru 2^wdim do (
+        printf(fh, "  if (~a < 0.0) { ~%",gcfac(float(expand(controlAs[i])))),
         printf(fh, "    avgA = true;~%"),
         printf(fh, "  }~%")
       )
     ),
     printf(fh, " ~%"),
+    flush_output(fh),
 
     printf(fh, "  unsigned short int b0; ~%"),
     printf(fh, "  double As[~a]; ~%", N),
@@ -165,7 +150,7 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
     printf(fh, "    for(unsigned short int vd=0; vd<Ncomp; vd++) ~%"),
     printf(fh, "    { ~%"),
     printf(fh, "      b0 = ~a*vd; ~%", N),
-    expr : float(expand(append([B[b0]],makelist(0.0,i,1,N-1)))),
+    expr : gcfac(float(expand(append([B[b0]],makelist(0.0,i,1,N-1))))),
     for i : 1 thru length(expr) do (
       printf(fh, "      ~a = ~a; ~%", Bs[b0+i-1], expr[i])
     ),
@@ -181,12 +166,13 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
     printf(fh, "    } ~%"),
     printf(fh, "  } ~%"),
     printf(fh, " ~%"),
+    flush_output(fh),
 
-    /* Expand fields A and B in configuration space basis. */
-    Ae : doExpand1(As, bC),
-    Be : doExpand1(Bs, bC),
+    /* Expand fields A and B in weak basis. */
+    Ae : doExpand1(As, bW),
+    Be : doExpand1(Bs, bW),
     /* Expand u function and create a list of expansion coefficients. */ 
-    ue : doExpand1(u,bC),
+    ue : doExpand1(u,bW),
     un : makelist(u[i],i,0,N-1),
 
     kill(eq,E,Eflat,Ef,Elhs),
@@ -230,7 +216,7 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
 
     if (not applyPos) then (
 
-      eq : calcInnerProdList(varsC,ue,bC,Ae),
+      eq : calcInnerProdList(varsW,ue,bW,Ae),
       E  : fullratsimp(coefmatrix(eq,un)),
 
       eigenMassMatrix(E,0),
@@ -240,7 +226,7 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
 
       printf(fh, "  if ((avgA) || (!expA)) {~%"),
 
-      eq : calcInnerProdList(varsC,ue,bC,Ae),
+      eq : calcInnerProdList(varsW,ue,bW,Ae),
       E  : fullratsimp(coefmatrix(eq,un)),
 
       eigenMassMatrix(E,2),
@@ -250,21 +236,18 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
 
       Aexp : 0,
       E    : zeromatrix(N,N),
-      Ncp  : 2^(cdim-1),  /* Number of control points. */
-      printf(fh,"    double xBar[~a];~%",Ncp*cdim),
-      printf(fh,"    double g1[~a];~%",Ncp*cdim),
-      for iDir : 1 thru cdim do (
-        cv : varsC[iDir],
-        surfVars : delete(cv,varsC),
+      Ncp  : 2^(wdim-1),  /* Number of control points. */
+      printf(fh,"    double xBar[~a];~%",Ncp*wdim),
+      printf(fh,"    double g1[~a];~%",Ncp*wdim),
+      for iDir : 1 thru wdim do (
+        cv : varsW[iDir],
+        surfVars : delete(cv,varsW),
+
+        nodesubSurf(f, nodes) := makelist(subst(makelist(surfVars[j]=nodes[i][j],j,1,length(surfVars)),f),i,1,length(nodes)),
+        surfNodes : eval_string(sconcat("nodes", wdim-1, "xp", 1)),
 
         /* Evaluate A at all control points on surface perp to iDir. */
-        cpA : makelist(0,j,1,Ncp),
-        iHe : 1,
-        if (length(surfVars)>0) then (
-          pointEval(cpA,Ae,surfVars,1/3)
-        ) else (
-          cpA[iHe] : Ae
-        ),
+        cpA : nodesubSurf(Ae, surfNodes/3),
 
         /* At each control point, need to reconstruct an exponential,
            for which we need xBar, xBarSq and g1. */
@@ -285,17 +268,15 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
 
         /* Construct the symbolic exponential A. */
 
-        if (cdim=1) then (
+        if (wdim=1) then (
           Aexp : expg0[0]*exp(g1[0]*cv)
         ) else (
           /*........... Create nodal to modal transform matrix .......... */
           /* Surface basis: basis of one lower dimensionality w/o surf variable. */
-          bSurf  : sqrt(2)*delete(0,fullratsimp(innerProd(varsC,1,bC,subst(cv=0,bC)))*bC),
+          bSurf  : sqrt(2)*delete(0,fullratsimp(innerProd(varsW,1,bW,subst(cv=0,bW)))*bW),
           gFsurf : doExpand(gF,bSurf),
           /* Evaluate the g-Function at various combinations of control points. */
-          gFsurfCP : makelist(0,i,1,Ncp),
-          iHe      : 1,
-          pointEval(gFsurfCP,gFsurf,surfVars,1/3),
+          gFsurfCP : nodesubSurf(gFsurf, surfNodes/3),
           /* Construct the nodal-to-modal matrix. */
           /*n2m : invert(coefmatrix(gFsurfCP,makelist(gF[i],i,1,length(bSurf)))),*/
           /*........... Built nodal to modal transform matrix .......... */
@@ -310,11 +291,11 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
           ),
           modalV : linsolve(eqList, makelist(gF[i],i,1,length(bSurf))),
 
-          Aexp : (1/cdim)*doExpand(makelist(rhs(modalV[i]),i,1,length(bSurf)),bSurf)
+          Aexp : (1/wdim)*doExpand(makelist(rhs(modalV[i]),i,1,length(bSurf)),bSurf)
 
         ),
       
-        eq   : calcInnerProdList(varsC,ue,bC,Aexp),
+        eq   : calcInnerProdList(varsW,ue,bW,Aexp),
         Emat : fullratsimp(coefmatrix(eq,un)),
 
         /* We will simply the expressions in Emat in order
@@ -342,7 +323,6 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
           Emat : fullratsimp(subst([expMg1,expg1],Emat))
 
         ),
-        print(Emat[1][1]),
 
         E : E+Emat
 
@@ -356,17 +336,15 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Efla
     ),
     printf(fh, "}~%"),
     printf(fh, "~%")
-  )
 )$
 
-calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax, includeVpar2) := block([Elhs,Eflat,Ef,eq,E],
+calcBinOpConfPhaseDivide(fh, funcNm, cdim, vdim, basisFun, polyOrder, includeVx2) := block([Elhs,Eflat,Ef,eq,E],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
-  for polyOrder : 1 thru pMax do (
     bC : basisC[polyOrder],
     bP : basisP[polyOrder],
-    if polyOrder=1 and vdim>0 and includeVpar2 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)]),
+    if polyOrder=1 and vdim>0 and includeVx2 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)]),
     NC : length(bC),
     NP : length(bP),
   
@@ -381,33 +359,23 @@ calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax, includeVpar2) := block(
 
     /* In order to avoid dividing by very small, negative or zero numbers
        use the cell average of A when A<0 at one of the corners. */
+
+    /* function to evaluate f on nodes */
+    nodesub(f, nodes):=fullratsimp(makelist(subst(makelist(varsC[j]=nodes[i][j],j,1,length(varsC)),f),i,1,length(nodes))),
+    cornerNodes : eval_string(sconcat("nodes", cdim, "xp", 1)),
+
+    /* List of A evaluated at the corners. */
+    cornerAs : nodesub(doExpand1(A,bC), cornerNodes),
+
     printf(fh, "  // If a corner value is below zero, use cell average A.~%"),
     printf(fh, "  bool avgA = false;~%"),
-    for v1 : -1 step 2 thru 1 do (
-      cornerA : subst(varsC[1]=v1,doExpand1(A,bC)),
-      if cdim > 1 then (
-        for v2 : -1 step 2 thru 1 do (
-          cornerA : subst(varsC[2]=v2,cornerA),
-          if cdim > 2 then (
-            for v3 : -1 step 2 thru 1 do (
-              cornerA : subst(varsC[3]=v3,cornerA),
-              printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
-              printf(fh, "    avgA = true;~%"),
-              printf(fh, "  }~%")
-            )
-          ) else (
-            printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
-            printf(fh, "    avgA = true;~%"),
-            printf(fh, "  }~%")
-          )
-        )
-      ) else (
-        printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
-        printf(fh, "    avgA = true;~%"),
-        printf(fh, "  }~%")
-      )
+    for i : 1 thru length(cornerNodes) do (
+      printf(fh, "  if (~a < 0.0) { ~%",gcfac(float(expand(cornerAs[i])))),
+      printf(fh, "    avgA = true;~%"),
+      printf(fh, "  }~%")
     ),
     printf(fh, " ~%"),
+    flush_output(fh),
 
     printf(fh, "  double As[~a]; ~%", NC),
     printf(fh, "  double Bs[~a]; ~%", NP),
@@ -444,6 +412,7 @@ calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax, includeVpar2) := block(
     printf(fh, "  // Fill AEM matrix. ~%"),
     printf(fh, "  data->AEM_D = Eigen::MatrixXd::Zero(~a,~a); ~%", NP, NP),
     writeCExprsB(Elhs,Eflat,0),
+    flush_output(fh),
     printf(fh, " ~%"),
 
     printf(fh, "  // Fill BEV. ~%"),
@@ -462,6 +431,5 @@ calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax, includeVpar2) := block(
     printf(fh, " ~%"),
     printf(fh, "} ~%"),
     printf(fh, " ~%")
-  )
 )$
 

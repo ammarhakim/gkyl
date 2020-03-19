@@ -71,7 +71,7 @@ function CartFieldBinOp:init(tbl)
 
    -- Function to compute specified operation.
    if isOpNameGood(op) then
-      self._BinOpCalcS = BinOpDecl.selectBinOpCalcS(op, id, self._cDim, polyOrder, applyPositivity)
+      self._BinOpCalcS = BinOpDecl.selectBinOpCalcS(op, id, self._cDim, self._vDim, polyOrder, inclVx2, applyPositivity)
       if fieldBasis then self._BinOpCalcD = BinOpDecl.selectBinOpCalcD(op, id, self._cDim, self._vDim, polyOrder, inclVx2) end
    else
       assert(false, string.format(

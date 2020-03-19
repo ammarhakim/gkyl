@@ -169,7 +169,7 @@ function MappedCart:calcJacobian(xc)
    self:calcMetric(xc, g)
    local jacobian
    if ndim == 1 then 
-      jacobian = 1
+      jacobian = math.sqrt(g[1]*g[1])
    elseif ndim == 2 then 
       jacobian = math.sqrt(g[1]*g[3] - g[2]*g[2]) 
    elseif ndim == 3 then

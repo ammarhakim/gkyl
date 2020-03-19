@@ -24,6 +24,8 @@ void VmLBOCrossPrimMoments1x2vMax_P1(binOpData_t *data, binOpData_t *dataDiv, co
   double m0rSelf[2]; 
   double m1rSelf[4]; 
   double m2rSelf[2]; 
+  double cMrSelf[4]; 
+  double cErSelf[2]; 
   double m0SrSelf[2]; 
   double m1SrSelf[4]; 
   double m2SrSelf[2]; 
@@ -32,10 +34,16 @@ void VmLBOCrossPrimMoments1x2vMax_P1(binOpData_t *data, binOpData_t *dataDiv, co
     m0rSelf[1] = 0.0; 
     m1rSelf[0] = m1Self[0]; 
     m1rSelf[1] = 0.0; 
+    cMrSelf[0] = cMSelf[0]; 
+    cMrSelf[1] = 0.0; 
     m1rSelf[2] = m1Self[2]; 
     m1rSelf[3] = 0.0; 
+    cMrSelf[2] = cMSelf[2]; 
+    cMrSelf[3] = 0.0; 
     m2rSelf[0] = m2Self[0]; 
     m2rSelf[1] = 0.0; 
+    cErSelf[0] = cESelf[0]; 
+    cErSelf[1] = 0.0; 
     m0SrSelf[0] = m0SSelf[0]; 
     m0SrSelf[1] = 0.0; 
     m1SrSelf[0] = m1SSelf[0]; 
@@ -53,6 +61,12 @@ void VmLBOCrossPrimMoments1x2vMax_P1(binOpData_t *data, binOpData_t *dataDiv, co
     m1rSelf[3] = m1Self[3]; 
     m2rSelf[0] = m2Self[0]; 
     m2rSelf[1] = m2Self[1]; 
+    cMrSelf[0] = cMSelf[0]; 
+    cMrSelf[1] = cMSelf[1]; 
+    cMrSelf[2] = cMSelf[2]; 
+    cMrSelf[3] = cMSelf[3]; 
+    cErSelf[0] = cESelf[0]; 
+    cErSelf[1] = cESelf[1]; 
     m0SrSelf[0] = m0SSelf[0]; 
     m0SrSelf[1] = m0SSelf[1]; 
     m1SrSelf[0] = m1SSelf[0]; 
@@ -73,6 +87,8 @@ void VmLBOCrossPrimMoments1x2vMax_P1(binOpData_t *data, binOpData_t *dataDiv, co
   double m0rOther[2]; 
   double m1rOther[4]; 
   double m2rOther[2]; 
+  double cMrOther[4]; 
+  double cErOther[2]; 
   double m0SrOther[2]; 
   double m1SrOther[4]; 
   double m2SrOther[2]; 
@@ -81,10 +97,16 @@ void VmLBOCrossPrimMoments1x2vMax_P1(binOpData_t *data, binOpData_t *dataDiv, co
     m0rOther[1] = 0.0; 
     m1rOther[0] = m1Other[0]; 
     m1rOther[1] = 0.0; 
+    cMrOther[0] = cMOther[0]; 
+    cMrOther[1] = 0.0; 
     m1rOther[2] = m1Other[2]; 
     m1rOther[3] = 0.0; 
+    cMrOther[2] = cMOther[2]; 
+    cMrOther[3] = 0.0; 
     m2rOther[0] = m2Other[0]; 
     m2rOther[1] = 0.0; 
+    cErOther[0] = cEOther[0]; 
+    cErOther[1] = 0.0; 
     m0SrOther[0] = m0SOther[0]; 
     m0SrOther[1] = 0.0; 
     m1SrOther[0] = m1SOther[0]; 
@@ -102,6 +124,12 @@ void VmLBOCrossPrimMoments1x2vMax_P1(binOpData_t *data, binOpData_t *dataDiv, co
     m1rOther[3] = m1Other[3]; 
     m2rOther[0] = m2Other[0]; 
     m2rOther[1] = m2Other[1]; 
+    cMrOther[0] = cMOther[0]; 
+    cMrOther[1] = cMOther[1]; 
+    cMrOther[2] = cMOther[2]; 
+    cMrOther[3] = cMOther[3]; 
+    cErOther[0] = cEOther[0]; 
+    cErOther[1] = cEOther[1]; 
     m0SrOther[0] = m0SOther[0]; 
     m0SrOther[1] = m0SOther[1]; 
     m1SrOther[0] = m1SOther[0]; 
@@ -131,10 +159,10 @@ void VmLBOCrossPrimMoments1x2vMax_P1(binOpData_t *data, binOpData_t *dataDiv, co
   data->AEM_S(1,1) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
  
   // ... Block from correction to momentum conservation (self) ... // 
-  data->AEM_S(0,4) = -0.7071067811865475*cMSelf[0]*mnuSelf; 
-  data->AEM_S(0,5) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
-  data->AEM_S(1,4) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
-  data->AEM_S(1,5) = -0.7071067811865475*cMSelf[0]*mnuSelf; 
+  data->AEM_S(0,4) = -0.7071067811865475*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(0,5) = -0.7071067811865475*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(1,4) = -0.7071067811865475*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(1,5) = -0.7071067811865475*cMrSelf[0]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherX ... // 
   data->AEM_S(0,6) = 0.7071067811865475*m0rOther[0]*mnuOther; 
@@ -143,10 +171,10 @@ void VmLBOCrossPrimMoments1x2vMax_P1(binOpData_t *data, binOpData_t *dataDiv, co
   data->AEM_S(1,7) = 0.7071067811865475*m0rOther[0]*mnuOther; 
  
   // ... Block from correction to momentum conservation (other) ... // 
-  data->AEM_S(0,10) = -0.7071067811865475*cMOther[0]*mnuOther; 
-  data->AEM_S(0,11) = -0.7071067811865475*cMOther[1]*mnuOther; 
-  data->AEM_S(1,10) = -0.7071067811865475*cMOther[1]*mnuOther; 
-  data->AEM_S(1,11) = -0.7071067811865475*cMOther[0]*mnuOther; 
+  data->AEM_S(0,10) = -0.7071067811865475*cMrOther[0]*mnuOther; 
+  data->AEM_S(0,11) = -0.7071067811865475*cMrOther[1]*mnuOther; 
+  data->AEM_S(1,10) = -0.7071067811865475*cMrOther[1]*mnuOther; 
+  data->AEM_S(1,11) = -0.7071067811865475*cMrOther[0]*mnuOther; 
  
   // ... Block from weak multiply of mSelf, nuSelf, m1SelfX and uCrossSelfX ... // 
   data->AEM_S(4,0) = 0.7071067811865475*m1SrSelf[0]*mnuSelf; 
@@ -171,10 +199,10 @@ void VmLBOCrossPrimMoments1x2vMax_P1(binOpData_t *data, binOpData_t *dataDiv, co
   data->AEM_S(3,3) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
  
   // ... Block from correction to momentum conservation (self) ... // 
-  data->AEM_S(2,4) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
-  data->AEM_S(2,5) = -0.7071067811865475*cMSelf[3]*mnuSelf; 
-  data->AEM_S(3,4) = -0.7071067811865475*cMSelf[3]*mnuSelf; 
-  data->AEM_S(3,5) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
+  data->AEM_S(2,4) = -0.7071067811865475*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(2,5) = -0.7071067811865475*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(3,4) = -0.7071067811865475*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(3,5) = -0.7071067811865475*cMrSelf[2]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherY ... // 
   data->AEM_S(2,8) = 0.7071067811865475*m0rOther[0]*mnuOther; 
@@ -183,10 +211,10 @@ void VmLBOCrossPrimMoments1x2vMax_P1(binOpData_t *data, binOpData_t *dataDiv, co
   data->AEM_S(3,9) = 0.7071067811865475*m0rOther[0]*mnuOther; 
  
   // ... Block from correction to momentum conservation (other) ... // 
-  data->AEM_S(2,10) = -0.7071067811865475*cMOther[2]*mnuOther; 
-  data->AEM_S(2,11) = -0.7071067811865475*cMOther[3]*mnuOther; 
-  data->AEM_S(3,10) = -0.7071067811865475*cMOther[3]*mnuOther; 
-  data->AEM_S(3,11) = -0.7071067811865475*cMOther[2]*mnuOther; 
+  data->AEM_S(2,10) = -0.7071067811865475*cMrOther[2]*mnuOther; 
+  data->AEM_S(2,11) = -0.7071067811865475*cMrOther[3]*mnuOther; 
+  data->AEM_S(3,10) = -0.7071067811865475*cMrOther[3]*mnuOther; 
+  data->AEM_S(3,11) = -0.7071067811865475*cMrOther[2]*mnuOther; 
  
   // ... Block from weak multiply of mSelf, nuSelf, m1SelfY and uCrossSelfY ... // 
   data->AEM_S(4,2) = 0.7071067811865475*m1SrSelf[2]*mnuSelf; 
@@ -205,16 +233,16 @@ void VmLBOCrossPrimMoments1x2vMax_P1(binOpData_t *data, binOpData_t *dataDiv, co
   mnuM1sum[3] += m1rSelf[3]*mnuSelf+m1rOther[3]*mnuOther; 
  
   // ... Block from correction to energy conservation (self) ... // 
-  data->AEM_S(4,4) = 0.7071067811865475*m0SrSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
-  data->AEM_S(4,5) = 0.7071067811865475*m0SrSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
-  data->AEM_S(5,4) = 0.7071067811865475*m0SrSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
-  data->AEM_S(5,5) = 0.7071067811865475*m0SrSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(4,4) = 0.7071067811865475*m0SrSelf[0]*mnuSelf-0.7071067811865475*cErSelf[0]*mnuSelf; 
+  data->AEM_S(4,5) = 0.7071067811865475*m0SrSelf[1]*mnuSelf-0.7071067811865475*cErSelf[1]*mnuSelf; 
+  data->AEM_S(5,4) = 0.7071067811865475*m0SrSelf[1]*mnuSelf-0.7071067811865475*cErSelf[1]*mnuSelf; 
+  data->AEM_S(5,5) = 0.7071067811865475*m0SrSelf[0]*mnuSelf-0.7071067811865475*cErSelf[0]*mnuSelf; 
  
   // ... Block from correction to energy conservation (other) ... // 
-  data->AEM_S(4,10) = 0.7071067811865475*m0SrOther[0]*mnuOther-0.7071067811865475*cEOther[0]*mnuOther; 
-  data->AEM_S(4,11) = 0.7071067811865475*m0SrOther[1]*mnuOther-0.7071067811865475*cEOther[1]*mnuOther; 
-  data->AEM_S(5,10) = 0.7071067811865475*m0SrOther[1]*mnuOther-0.7071067811865475*cEOther[1]*mnuOther; 
-  data->AEM_S(5,11) = 0.7071067811865475*m0SrOther[0]*mnuOther-0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(4,10) = 0.7071067811865475*m0SrOther[0]*mnuOther-0.7071067811865475*cErOther[0]*mnuOther; 
+  data->AEM_S(4,11) = 0.7071067811865475*m0SrOther[1]*mnuOther-0.7071067811865475*cErOther[1]*mnuOther; 
+  data->AEM_S(5,10) = 0.7071067811865475*m0SrOther[1]*mnuOther-0.7071067811865475*cErOther[1]*mnuOther; 
+  data->AEM_S(5,11) = 0.7071067811865475*m0SrOther[0]*mnuOther-0.7071067811865475*cErOther[0]*mnuOther; 
  
   double mnuM2sum[2]; 
   // ... Contribution to RHS vector from mnuM2Self+mnuM2Other. 
@@ -243,10 +271,10 @@ void VmLBOCrossPrimMoments1x2vMax_P1(binOpData_t *data, binOpData_t *dataDiv, co
   data->AEM_S(7,1) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
  
   // ... Block from correction to (self) 1st moment of collision operator ... // 
-  data->AEM_S(6,4) = -0.7071067811865475*cMSelf[0]*mnuSelf; 
-  data->AEM_S(6,5) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
-  data->AEM_S(7,4) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
-  data->AEM_S(7,5) = -0.7071067811865475*cMSelf[0]*mnuSelf; 
+  data->AEM_S(6,4) = -0.7071067811865475*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(6,5) = -0.7071067811865475*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(7,4) = -0.7071067811865475*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(7,5) = -0.7071067811865475*cMrSelf[0]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherX ... // 
   data->AEM_S(6,6) = -0.7071067811865475*m0rOther[0]*mnuOther; 
@@ -255,10 +283,10 @@ void VmLBOCrossPrimMoments1x2vMax_P1(binOpData_t *data, binOpData_t *dataDiv, co
   data->AEM_S(7,7) = -0.7071067811865475*m0rOther[0]*mnuOther; 
  
   // ... Block from correction to (other) 1st moment of collision operator ... // 
-  data->AEM_S(6,10) = 0.7071067811865475*cMOther[0]*mnuOther; 
-  data->AEM_S(6,11) = 0.7071067811865475*cMOther[1]*mnuOther; 
-  data->AEM_S(7,10) = 0.7071067811865475*cMOther[1]*mnuOther; 
-  data->AEM_S(7,11) = 0.7071067811865475*cMOther[0]*mnuOther; 
+  data->AEM_S(6,10) = 0.7071067811865475*cMrOther[0]*mnuOther; 
+  data->AEM_S(6,11) = 0.7071067811865475*cMrOther[1]*mnuOther; 
+  data->AEM_S(7,10) = 0.7071067811865475*cMrOther[1]*mnuOther; 
+  data->AEM_S(7,11) = 0.7071067811865475*cMrOther[0]*mnuOther; 
  
   // ... Block from weak multiply of mSelf, nuSelf, (m1SelfX-uSelfX*m0Self) and uCrossSelfX ... // 
   data->AEM_S(10,0) = (-0.5*m0rSelf[1]*uSelf[1]*mnuSelf)-0.5*m0rSelf[0]*uSelf[0]*mnuSelf+0.7071067811865475*m1SrSelf[0]*mnuSelf; 
@@ -300,10 +328,10 @@ void VmLBOCrossPrimMoments1x2vMax_P1(binOpData_t *data, binOpData_t *dataDiv, co
   data->AEM_S(9,3) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
  
   // ... Block from correction to (self) 1st moment of collision operator ... // 
-  data->AEM_S(8,4) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
-  data->AEM_S(8,5) = -0.7071067811865475*cMSelf[3]*mnuSelf; 
-  data->AEM_S(9,4) = -0.7071067811865475*cMSelf[3]*mnuSelf; 
-  data->AEM_S(9,5) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
+  data->AEM_S(8,4) = -0.7071067811865475*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(8,5) = -0.7071067811865475*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(9,4) = -0.7071067811865475*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(9,5) = -0.7071067811865475*cMrSelf[2]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherY ... // 
   data->AEM_S(8,8) = -0.7071067811865475*m0rOther[0]*mnuOther; 
@@ -312,10 +340,10 @@ void VmLBOCrossPrimMoments1x2vMax_P1(binOpData_t *data, binOpData_t *dataDiv, co
   data->AEM_S(9,9) = -0.7071067811865475*m0rOther[0]*mnuOther; 
  
   // ... Block from correction to (other) 1st moment of collision operator ... // 
-  data->AEM_S(8,10) = 0.7071067811865475*cMOther[2]*mnuOther; 
-  data->AEM_S(8,11) = 0.7071067811865475*cMOther[3]*mnuOther; 
-  data->AEM_S(9,10) = 0.7071067811865475*cMOther[3]*mnuOther; 
-  data->AEM_S(9,11) = 0.7071067811865475*cMOther[2]*mnuOther; 
+  data->AEM_S(8,10) = 0.7071067811865475*cMrOther[2]*mnuOther; 
+  data->AEM_S(8,11) = 0.7071067811865475*cMrOther[3]*mnuOther; 
+  data->AEM_S(9,10) = 0.7071067811865475*cMrOther[3]*mnuOther; 
+  data->AEM_S(9,11) = 0.7071067811865475*cMrOther[2]*mnuOther; 
  
   // ... Block from weak multiply of mSelf, nuSelf, (m1SelfY-uSelfY*m0Self) and uCrossSelfY ... // 
   data->AEM_S(10,2) = (-0.5*m0rSelf[1]*uSelf[3]*mnuSelf)-0.5*m0rSelf[0]*uSelf[2]*mnuSelf+0.7071067811865475*m1SrSelf[2]*mnuSelf; 
@@ -354,15 +382,15 @@ void VmLBOCrossPrimMoments1x2vMax_P1(binOpData_t *data, binOpData_t *dataDiv, co
   { 
     unsigned short int a0 = 2*vd; 
     // Contribution to dot-product from weak multiplication of vd component. 
-    ucMSelf[0] += 0.7071067811865475*cMSelf[a0+1]*uSelf[a0+1]+0.7071067811865475*cMSelf[a0]*uSelf[a0]; 
-    ucMSelf[1] += 0.7071067811865475*cMSelf[a0]*uSelf[a0+1]+0.7071067811865475*uSelf[a0]*cMSelf[a0+1]; 
+    ucMSelf[0] += 0.7071067811865475*cMrSelf[a0+1]*uSelf[a0+1]+0.7071067811865475*cMrSelf[a0]*uSelf[a0]; 
+    ucMSelf[1] += 0.7071067811865475*cMrSelf[a0]*uSelf[a0+1]+0.7071067811865475*uSelf[a0]*cMrSelf[a0+1]; 
   } 
  
   // ... Block from correction to (self) 2nd moment of collision operator ... // 
-  data->AEM_S(10,4) = 0.7071067811865475*ucMSelf[0]*mnuSelf+0.7071067811865475*m0SrSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
-  data->AEM_S(10,5) = 0.7071067811865475*ucMSelf[1]*mnuSelf+0.7071067811865475*m0SrSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
-  data->AEM_S(11,4) = 0.7071067811865475*ucMSelf[1]*mnuSelf+0.7071067811865475*m0SrSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
-  data->AEM_S(11,5) = 0.7071067811865475*ucMSelf[0]*mnuSelf+0.7071067811865475*m0SrSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(10,4) = 0.7071067811865475*ucMSelf[0]*mnuSelf+0.7071067811865475*m0SrSelf[0]*mnuSelf-0.7071067811865475*cErSelf[0]*mnuSelf; 
+  data->AEM_S(10,5) = 0.7071067811865475*ucMSelf[1]*mnuSelf+0.7071067811865475*m0SrSelf[1]*mnuSelf-0.7071067811865475*cErSelf[1]*mnuSelf; 
+  data->AEM_S(11,4) = 0.7071067811865475*ucMSelf[1]*mnuSelf+0.7071067811865475*m0SrSelf[1]*mnuSelf-0.7071067811865475*cErSelf[1]*mnuSelf; 
+  data->AEM_S(11,5) = 0.7071067811865475*ucMSelf[0]*mnuSelf+0.7071067811865475*m0SrSelf[0]*mnuSelf-0.7071067811865475*cErSelf[0]*mnuSelf; 
  
   double ucMOther[2]; 
   // Zero out array with dot product of uOther and cMOther. 
@@ -374,15 +402,15 @@ void VmLBOCrossPrimMoments1x2vMax_P1(binOpData_t *data, binOpData_t *dataDiv, co
   { 
     unsigned short int a0 = 2*vd; 
     // Contribution to dot-product from weak multiplication of vd component. 
-    ucMOther[0] += 0.7071067811865475*cMOther[a0+1]*uOther[a0+1]+0.7071067811865475*cMOther[a0]*uOther[a0]; 
-    ucMOther[1] += 0.7071067811865475*cMOther[a0]*uOther[a0+1]+0.7071067811865475*uOther[a0]*cMOther[a0+1]; 
+    ucMOther[0] += 0.7071067811865475*cMrOther[a0+1]*uOther[a0+1]+0.7071067811865475*cMrOther[a0]*uOther[a0]; 
+    ucMOther[1] += 0.7071067811865475*cMrOther[a0]*uOther[a0+1]+0.7071067811865475*uOther[a0]*cMrOther[a0+1]; 
   } 
  
   // ... Block from correction to (other) 2nd moment of collision operator ... // 
-  data->AEM_S(10,10) = (-0.7071067811865475*ucMOther[0]*mnuOther)-0.7071067811865475*m0SrOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
-  data->AEM_S(10,11) = (-0.7071067811865475*ucMOther[1]*mnuOther)-0.7071067811865475*m0SrOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
-  data->AEM_S(11,10) = (-0.7071067811865475*ucMOther[1]*mnuOther)-0.7071067811865475*m0SrOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
-  data->AEM_S(11,11) = (-0.7071067811865475*ucMOther[0]*mnuOther)-0.7071067811865475*m0SrOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(10,10) = (-0.7071067811865475*ucMOther[0]*mnuOther)-0.7071067811865475*m0SrOther[0]*mnuOther+0.7071067811865475*cErOther[0]*mnuOther; 
+  data->AEM_S(10,11) = (-0.7071067811865475*ucMOther[1]*mnuOther)-0.7071067811865475*m0SrOther[1]*mnuOther+0.7071067811865475*cErOther[1]*mnuOther; 
+  data->AEM_S(11,10) = (-0.7071067811865475*ucMOther[1]*mnuOther)-0.7071067811865475*m0SrOther[1]*mnuOther+0.7071067811865475*cErOther[1]*mnuOther; 
+  data->AEM_S(11,11) = (-0.7071067811865475*ucMOther[0]*mnuOther)-0.7071067811865475*m0SrOther[0]*mnuOther+0.7071067811865475*cErOther[0]*mnuOther; 
  
   double kinESelf[2]; 
   // zero out array with dot product of u and m1. 
@@ -497,6 +525,8 @@ void VmLBOCrossPrimMoments1x2vMax_P2(binOpData_t *data, binOpData_t *dataDiv,con
   double m0rSelf[3]; 
   double m1rSelf[6]; 
   double m2rSelf[3]; 
+  double cMrSelf[6]; 
+  double cErSelf[3]; 
   if (cellAvg) { 
     m0rSelf[0] = m0Self[0]; 
     m0rSelf[1] = 0.0; 
@@ -504,12 +534,21 @@ void VmLBOCrossPrimMoments1x2vMax_P2(binOpData_t *data, binOpData_t *dataDiv,con
     m1rSelf[0] = m1Self[0]; 
     m1rSelf[1] = 0.0; 
     m1rSelf[2] = 0.0; 
+    cMrSelf[0] = cMSelf[0]; 
+    cMrSelf[1] = 0.0; 
+    cMrSelf[2] = 0.0; 
     m1rSelf[3] = m1Self[3]; 
     m1rSelf[4] = 0.0; 
     m1rSelf[5] = 0.0; 
+    cMrSelf[3] = cMSelf[3]; 
+    cMrSelf[4] = 0.0; 
+    cMrSelf[5] = 0.0; 
     m2rSelf[0] = m2Self[0]; 
     m2rSelf[1] = 0.0; 
     m2rSelf[2] = 0.0; 
+    cErSelf[0] = cESelf[0]; 
+    cErSelf[1] = 0.0; 
+    cErSelf[2] = 0.0; 
   } else { 
     m0rSelf[0] = m0Self[0]; 
     m0rSelf[1] = m0Self[1]; 
@@ -523,6 +562,15 @@ void VmLBOCrossPrimMoments1x2vMax_P2(binOpData_t *data, binOpData_t *dataDiv,con
     m2rSelf[0] = m2Self[0]; 
     m2rSelf[1] = m2Self[1]; 
     m2rSelf[2] = m2Self[2]; 
+    cMrSelf[0] = cMSelf[0]; 
+    cMrSelf[1] = cMSelf[1]; 
+    cMrSelf[2] = cMSelf[2]; 
+    cMrSelf[3] = cMSelf[3]; 
+    cMrSelf[4] = cMSelf[4]; 
+    cMrSelf[5] = cMSelf[5]; 
+    cErSelf[0] = cESelf[0]; 
+    cErSelf[1] = cESelf[1]; 
+    cErSelf[2] = cESelf[2]; 
   } 
  
   if (1.58113883008419*m0Other[2]-1.224744871391589*m0Other[1]+0.7071067811865475*m0Other[0] < 0) { 
@@ -535,6 +583,8 @@ void VmLBOCrossPrimMoments1x2vMax_P2(binOpData_t *data, binOpData_t *dataDiv,con
   double m0rOther[3]; 
   double m1rOther[6]; 
   double m2rOther[3]; 
+  double cMrOther[6]; 
+  double cErOther[3]; 
   if (cellAvg) { 
     m0rOther[0] = m0Other[0]; 
     m0rOther[1] = 0.0; 
@@ -542,12 +592,21 @@ void VmLBOCrossPrimMoments1x2vMax_P2(binOpData_t *data, binOpData_t *dataDiv,con
     m1rOther[0] = m1Other[0]; 
     m1rOther[1] = 0.0; 
     m1rOther[2] = 0.0; 
+    cMrOther[0] = cMOther[0]; 
+    cMrOther[1] = 0.0; 
+    cMrOther[2] = 0.0; 
     m1rOther[3] = m1Other[3]; 
     m1rOther[4] = 0.0; 
     m1rOther[5] = 0.0; 
+    cMrOther[3] = cMOther[3]; 
+    cMrOther[4] = 0.0; 
+    cMrOther[5] = 0.0; 
     m2rOther[0] = m2Other[0]; 
     m2rOther[1] = 0.0; 
     m2rOther[2] = 0.0; 
+    cErOther[0] = cEOther[0]; 
+    cErOther[1] = 0.0; 
+    cErOther[2] = 0.0; 
   } else { 
     m0rOther[0] = m0Other[0]; 
     m0rOther[1] = m0Other[1]; 
@@ -561,6 +620,15 @@ void VmLBOCrossPrimMoments1x2vMax_P2(binOpData_t *data, binOpData_t *dataDiv,con
     m2rOther[0] = m2Other[0]; 
     m2rOther[1] = m2Other[1]; 
     m2rOther[2] = m2Other[2]; 
+    cMrOther[0] = cMOther[0]; 
+    cMrOther[1] = cMOther[1]; 
+    cMrOther[2] = cMOther[2]; 
+    cMrOther[3] = cMOther[3]; 
+    cMrOther[4] = cMOther[4]; 
+    cMrOther[5] = cMOther[5]; 
+    cErOther[0] = cEOther[0]; 
+    cErOther[1] = cEOther[1]; 
+    cErOther[2] = cEOther[2]; 
   } 
  
   // Declare Eigen matrix and vectors for weak system. 
@@ -587,15 +655,15 @@ void VmLBOCrossPrimMoments1x2vMax_P2(binOpData_t *data, binOpData_t *dataDiv,con
   data->AEM_S(2,2) = 0.4517539514526256*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf; 
  
   // ... Block from correction to momentum conservation (self) ... // 
-  data->AEM_S(0,6) = -0.7071067811865475*cMSelf[0]*mnuSelf; 
-  data->AEM_S(0,7) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
-  data->AEM_S(0,8) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
-  data->AEM_S(1,6) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
-  data->AEM_S(1,7) = (-0.6324555320336759*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
-  data->AEM_S(1,8) = -0.6324555320336759*cMSelf[1]*mnuSelf; 
-  data->AEM_S(2,6) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
-  data->AEM_S(2,7) = -0.6324555320336759*cMSelf[1]*mnuSelf; 
-  data->AEM_S(2,8) = (-0.4517539514526256*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
+  data->AEM_S(0,6) = -0.7071067811865475*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(0,7) = -0.7071067811865475*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(0,8) = -0.7071067811865475*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(1,6) = -0.7071067811865475*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(1,7) = (-0.6324555320336759*cMrSelf[2]*mnuSelf)-0.7071067811865475*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(1,8) = -0.6324555320336759*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(2,6) = -0.7071067811865475*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(2,7) = -0.6324555320336759*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(2,8) = (-0.4517539514526256*cMrSelf[2]*mnuSelf)-0.7071067811865475*cMrSelf[0]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherX ... // 
   data->AEM_S(0,9) = 0.7071067811865475*m0rOther[0]*mnuOther; 
@@ -609,15 +677,15 @@ void VmLBOCrossPrimMoments1x2vMax_P2(binOpData_t *data, binOpData_t *dataDiv,con
   data->AEM_S(2,11) = 0.4517539514526256*m0rOther[2]*mnuOther+0.7071067811865475*m0rOther[0]*mnuOther; 
  
   // ... Block from correction to momentum conservation (other) ... // 
-  data->AEM_S(0,15) = -0.7071067811865475*cMOther[0]*mnuOther; 
-  data->AEM_S(0,16) = -0.7071067811865475*cMOther[1]*mnuOther; 
-  data->AEM_S(0,17) = -0.7071067811865475*cMOther[2]*mnuOther; 
-  data->AEM_S(1,15) = -0.7071067811865475*cMOther[1]*mnuOther; 
-  data->AEM_S(1,16) = (-0.6324555320336759*cMOther[2]*mnuOther)-0.7071067811865475*cMOther[0]*mnuOther; 
-  data->AEM_S(1,17) = -0.6324555320336759*cMOther[1]*mnuOther; 
-  data->AEM_S(2,15) = -0.7071067811865475*cMOther[2]*mnuOther; 
-  data->AEM_S(2,16) = -0.6324555320336759*cMOther[1]*mnuOther; 
-  data->AEM_S(2,17) = (-0.4517539514526256*cMOther[2]*mnuOther)-0.7071067811865475*cMOther[0]*mnuOther; 
+  data->AEM_S(0,15) = -0.7071067811865475*cMrOther[0]*mnuOther; 
+  data->AEM_S(0,16) = -0.7071067811865475*cMrOther[1]*mnuOther; 
+  data->AEM_S(0,17) = -0.7071067811865475*cMrOther[2]*mnuOther; 
+  data->AEM_S(1,15) = -0.7071067811865475*cMrOther[1]*mnuOther; 
+  data->AEM_S(1,16) = (-0.6324555320336759*cMrOther[2]*mnuOther)-0.7071067811865475*cMrOther[0]*mnuOther; 
+  data->AEM_S(1,17) = -0.6324555320336759*cMrOther[1]*mnuOther; 
+  data->AEM_S(2,15) = -0.7071067811865475*cMrOther[2]*mnuOther; 
+  data->AEM_S(2,16) = -0.6324555320336759*cMrOther[1]*mnuOther; 
+  data->AEM_S(2,17) = (-0.4517539514526256*cMrOther[2]*mnuOther)-0.7071067811865475*cMrOther[0]*mnuOther; 
  
   // ... Block from weak multiply of mSelf, nuSelf, m1SelfX and uCrossSelfX ... // 
   data->AEM_S(6,0) = 0.7071067811865475*m1rSelf[0]*mnuSelf; 
@@ -658,15 +726,15 @@ void VmLBOCrossPrimMoments1x2vMax_P2(binOpData_t *data, binOpData_t *dataDiv,con
   data->AEM_S(5,5) = 0.4517539514526256*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf; 
  
   // ... Block from correction to momentum conservation (self) ... // 
-  data->AEM_S(3,6) = -0.7071067811865475*cMSelf[3]*mnuSelf; 
-  data->AEM_S(3,7) = -0.7071067811865475*cMSelf[4]*mnuSelf; 
-  data->AEM_S(3,8) = -0.7071067811865475*cMSelf[5]*mnuSelf; 
-  data->AEM_S(4,6) = -0.7071067811865475*cMSelf[4]*mnuSelf; 
-  data->AEM_S(4,7) = (-0.6324555320336759*cMSelf[5]*mnuSelf)-0.7071067811865475*cMSelf[3]*mnuSelf; 
-  data->AEM_S(4,8) = -0.6324555320336759*cMSelf[4]*mnuSelf; 
-  data->AEM_S(5,6) = -0.7071067811865475*cMSelf[5]*mnuSelf; 
-  data->AEM_S(5,7) = -0.6324555320336759*cMSelf[4]*mnuSelf; 
-  data->AEM_S(5,8) = (-0.4517539514526256*cMSelf[5]*mnuSelf)-0.7071067811865475*cMSelf[3]*mnuSelf; 
+  data->AEM_S(3,6) = -0.7071067811865475*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(3,7) = -0.7071067811865475*cMrSelf[4]*mnuSelf; 
+  data->AEM_S(3,8) = -0.7071067811865475*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(4,6) = -0.7071067811865475*cMrSelf[4]*mnuSelf; 
+  data->AEM_S(4,7) = (-0.6324555320336759*cMrSelf[5]*mnuSelf)-0.7071067811865475*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(4,8) = -0.6324555320336759*cMrSelf[4]*mnuSelf; 
+  data->AEM_S(5,6) = -0.7071067811865475*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(5,7) = -0.6324555320336759*cMrSelf[4]*mnuSelf; 
+  data->AEM_S(5,8) = (-0.4517539514526256*cMrSelf[5]*mnuSelf)-0.7071067811865475*cMrSelf[3]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherY ... // 
   data->AEM_S(3,12) = 0.7071067811865475*m0rOther[0]*mnuOther; 
@@ -680,15 +748,15 @@ void VmLBOCrossPrimMoments1x2vMax_P2(binOpData_t *data, binOpData_t *dataDiv,con
   data->AEM_S(5,14) = 0.4517539514526256*m0rOther[2]*mnuOther+0.7071067811865475*m0rOther[0]*mnuOther; 
  
   // ... Block from correction to momentum conservation (other) ... // 
-  data->AEM_S(3,15) = -0.7071067811865475*cMOther[3]*mnuOther; 
-  data->AEM_S(3,16) = -0.7071067811865475*cMOther[4]*mnuOther; 
-  data->AEM_S(3,17) = -0.7071067811865475*cMOther[5]*mnuOther; 
-  data->AEM_S(4,15) = -0.7071067811865475*cMOther[4]*mnuOther; 
-  data->AEM_S(4,16) = (-0.6324555320336759*cMOther[5]*mnuOther)-0.7071067811865475*cMOther[3]*mnuOther; 
-  data->AEM_S(4,17) = -0.6324555320336759*cMOther[4]*mnuOther; 
-  data->AEM_S(5,15) = -0.7071067811865475*cMOther[5]*mnuOther; 
-  data->AEM_S(5,16) = -0.6324555320336759*cMOther[4]*mnuOther; 
-  data->AEM_S(5,17) = (-0.4517539514526256*cMOther[5]*mnuOther)-0.7071067811865475*cMOther[3]*mnuOther; 
+  data->AEM_S(3,15) = -0.7071067811865475*cMrOther[3]*mnuOther; 
+  data->AEM_S(3,16) = -0.7071067811865475*cMrOther[4]*mnuOther; 
+  data->AEM_S(3,17) = -0.7071067811865475*cMrOther[5]*mnuOther; 
+  data->AEM_S(4,15) = -0.7071067811865475*cMrOther[4]*mnuOther; 
+  data->AEM_S(4,16) = (-0.6324555320336759*cMrOther[5]*mnuOther)-0.7071067811865475*cMrOther[3]*mnuOther; 
+  data->AEM_S(4,17) = -0.6324555320336759*cMrOther[4]*mnuOther; 
+  data->AEM_S(5,15) = -0.7071067811865475*cMrOther[5]*mnuOther; 
+  data->AEM_S(5,16) = -0.6324555320336759*cMrOther[4]*mnuOther; 
+  data->AEM_S(5,17) = (-0.4517539514526256*cMrOther[5]*mnuOther)-0.7071067811865475*cMrOther[3]*mnuOther; 
  
   // ... Block from weak multiply of mSelf, nuSelf, m1SelfY and uCrossSelfY ... // 
   data->AEM_S(6,3) = 0.7071067811865475*m1rSelf[3]*mnuSelf; 
@@ -718,26 +786,26 @@ void VmLBOCrossPrimMoments1x2vMax_P2(binOpData_t *data, binOpData_t *dataDiv,con
   mnuM1sum[5] += m1rSelf[5]*mnuSelf+m1rOther[5]*mnuOther; 
  
   // ... Block from correction to energy conservation (self) ... // 
-  data->AEM_S(6,6) = 1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
-  data->AEM_S(6,7) = 1.414213562373095*m0rSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
-  data->AEM_S(6,8) = 1.414213562373095*m0rSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf; 
-  data->AEM_S(7,6) = 1.414213562373095*m0rSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
-  data->AEM_S(7,7) = 1.264911064067352*m0rSelf[2]*mnuSelf-0.6324555320336759*cESelf[2]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
-  data->AEM_S(7,8) = 1.264911064067352*m0rSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
-  data->AEM_S(8,6) = 1.414213562373095*m0rSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf; 
-  data->AEM_S(8,7) = 1.264911064067352*m0rSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
-  data->AEM_S(8,8) = 0.9035079029052515*m0rSelf[2]*mnuSelf-0.4517539514526256*cESelf[2]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(6,6) = 1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cErSelf[0]*mnuSelf; 
+  data->AEM_S(6,7) = 1.414213562373095*m0rSelf[1]*mnuSelf-0.7071067811865475*cErSelf[1]*mnuSelf; 
+  data->AEM_S(6,8) = 1.414213562373095*m0rSelf[2]*mnuSelf-0.7071067811865475*cErSelf[2]*mnuSelf; 
+  data->AEM_S(7,6) = 1.414213562373095*m0rSelf[1]*mnuSelf-0.7071067811865475*cErSelf[1]*mnuSelf; 
+  data->AEM_S(7,7) = 1.264911064067352*m0rSelf[2]*mnuSelf-0.6324555320336759*cErSelf[2]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cErSelf[0]*mnuSelf; 
+  data->AEM_S(7,8) = 1.264911064067352*m0rSelf[1]*mnuSelf-0.6324555320336759*cErSelf[1]*mnuSelf; 
+  data->AEM_S(8,6) = 1.414213562373095*m0rSelf[2]*mnuSelf-0.7071067811865475*cErSelf[2]*mnuSelf; 
+  data->AEM_S(8,7) = 1.264911064067352*m0rSelf[1]*mnuSelf-0.6324555320336759*cErSelf[1]*mnuSelf; 
+  data->AEM_S(8,8) = 0.9035079029052515*m0rSelf[2]*mnuSelf-0.4517539514526256*cErSelf[2]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cErSelf[0]*mnuSelf; 
  
   // ... Block from correction to energy conservation (other) ... // 
-  data->AEM_S(6,15) = 1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*cEOther[0]*mnuOther; 
-  data->AEM_S(6,16) = 1.414213562373095*m0rOther[1]*mnuOther-0.7071067811865475*cEOther[1]*mnuOther; 
-  data->AEM_S(6,17) = 1.414213562373095*m0rOther[2]*mnuOther-0.7071067811865475*cEOther[2]*mnuOther; 
-  data->AEM_S(7,15) = 1.414213562373095*m0rOther[1]*mnuOther-0.7071067811865475*cEOther[1]*mnuOther; 
-  data->AEM_S(7,16) = 1.264911064067352*m0rOther[2]*mnuOther-0.6324555320336759*cEOther[2]*mnuOther+1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*cEOther[0]*mnuOther; 
-  data->AEM_S(7,17) = 1.264911064067352*m0rOther[1]*mnuOther-0.6324555320336759*cEOther[1]*mnuOther; 
-  data->AEM_S(8,15) = 1.414213562373095*m0rOther[2]*mnuOther-0.7071067811865475*cEOther[2]*mnuOther; 
-  data->AEM_S(8,16) = 1.264911064067352*m0rOther[1]*mnuOther-0.6324555320336759*cEOther[1]*mnuOther; 
-  data->AEM_S(8,17) = 0.9035079029052515*m0rOther[2]*mnuOther-0.4517539514526256*cEOther[2]*mnuOther+1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(6,15) = 1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*cErOther[0]*mnuOther; 
+  data->AEM_S(6,16) = 1.414213562373095*m0rOther[1]*mnuOther-0.7071067811865475*cErOther[1]*mnuOther; 
+  data->AEM_S(6,17) = 1.414213562373095*m0rOther[2]*mnuOther-0.7071067811865475*cErOther[2]*mnuOther; 
+  data->AEM_S(7,15) = 1.414213562373095*m0rOther[1]*mnuOther-0.7071067811865475*cErOther[1]*mnuOther; 
+  data->AEM_S(7,16) = 1.264911064067352*m0rOther[2]*mnuOther-0.6324555320336759*cErOther[2]*mnuOther+1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*cErOther[0]*mnuOther; 
+  data->AEM_S(7,17) = 1.264911064067352*m0rOther[1]*mnuOther-0.6324555320336759*cErOther[1]*mnuOther; 
+  data->AEM_S(8,15) = 1.414213562373095*m0rOther[2]*mnuOther-0.7071067811865475*cErOther[2]*mnuOther; 
+  data->AEM_S(8,16) = 1.264911064067352*m0rOther[1]*mnuOther-0.6324555320336759*cErOther[1]*mnuOther; 
+  data->AEM_S(8,17) = 0.9035079029052515*m0rOther[2]*mnuOther-0.4517539514526256*cErOther[2]*mnuOther+1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*cErOther[0]*mnuOther; 
  
   double mnuM2sum[3]; 
   // ... Contribution to RHS vector from mnuM2Self+mnuM2Other. 
@@ -772,15 +840,15 @@ void VmLBOCrossPrimMoments1x2vMax_P2(binOpData_t *data, binOpData_t *dataDiv,con
   data->AEM_S(11,2) = 0.4517539514526256*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf; 
  
   // ... Block from correction to (self) 1st moment of collision operator ... // 
-  data->AEM_S(9,6) = -0.7071067811865475*cMSelf[0]*mnuSelf; 
-  data->AEM_S(9,7) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
-  data->AEM_S(9,8) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
-  data->AEM_S(10,6) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
-  data->AEM_S(10,7) = (-0.6324555320336759*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
-  data->AEM_S(10,8) = -0.6324555320336759*cMSelf[1]*mnuSelf; 
-  data->AEM_S(11,6) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
-  data->AEM_S(11,7) = -0.6324555320336759*cMSelf[1]*mnuSelf; 
-  data->AEM_S(11,8) = (-0.4517539514526256*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
+  data->AEM_S(9,6) = -0.7071067811865475*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(9,7) = -0.7071067811865475*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(9,8) = -0.7071067811865475*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(10,6) = -0.7071067811865475*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(10,7) = (-0.6324555320336759*cMrSelf[2]*mnuSelf)-0.7071067811865475*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(10,8) = -0.6324555320336759*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(11,6) = -0.7071067811865475*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(11,7) = -0.6324555320336759*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(11,8) = (-0.4517539514526256*cMrSelf[2]*mnuSelf)-0.7071067811865475*cMrSelf[0]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherX ... // 
   data->AEM_S(9,9) = -0.7071067811865475*m0rOther[0]*mnuOther; 
@@ -794,15 +862,15 @@ void VmLBOCrossPrimMoments1x2vMax_P2(binOpData_t *data, binOpData_t *dataDiv,con
   data->AEM_S(11,11) = (-0.4517539514526256*m0rOther[2]*mnuOther)-0.7071067811865475*m0rOther[0]*mnuOther; 
  
   // ... Block from correction to (other) 1st moment of collision operator ... // 
-  data->AEM_S(9,15) = 0.7071067811865475*cMOther[0]*mnuOther; 
-  data->AEM_S(9,16) = 0.7071067811865475*cMOther[1]*mnuOther; 
-  data->AEM_S(9,17) = 0.7071067811865475*cMOther[2]*mnuOther; 
-  data->AEM_S(10,15) = 0.7071067811865475*cMOther[1]*mnuOther; 
-  data->AEM_S(10,16) = 0.6324555320336759*cMOther[2]*mnuOther+0.7071067811865475*cMOther[0]*mnuOther; 
-  data->AEM_S(10,17) = 0.6324555320336759*cMOther[1]*mnuOther; 
-  data->AEM_S(11,15) = 0.7071067811865475*cMOther[2]*mnuOther; 
-  data->AEM_S(11,16) = 0.6324555320336759*cMOther[1]*mnuOther; 
-  data->AEM_S(11,17) = 0.4517539514526256*cMOther[2]*mnuOther+0.7071067811865475*cMOther[0]*mnuOther; 
+  data->AEM_S(9,15) = 0.7071067811865475*cMrOther[0]*mnuOther; 
+  data->AEM_S(9,16) = 0.7071067811865475*cMrOther[1]*mnuOther; 
+  data->AEM_S(9,17) = 0.7071067811865475*cMrOther[2]*mnuOther; 
+  data->AEM_S(10,15) = 0.7071067811865475*cMrOther[1]*mnuOther; 
+  data->AEM_S(10,16) = 0.6324555320336759*cMrOther[2]*mnuOther+0.7071067811865475*cMrOther[0]*mnuOther; 
+  data->AEM_S(10,17) = 0.6324555320336759*cMrOther[1]*mnuOther; 
+  data->AEM_S(11,15) = 0.7071067811865475*cMrOther[2]*mnuOther; 
+  data->AEM_S(11,16) = 0.6324555320336759*cMrOther[1]*mnuOther; 
+  data->AEM_S(11,17) = 0.4517539514526256*cMrOther[2]*mnuOther+0.7071067811865475*cMrOther[0]*mnuOther; 
  
   // ... Block from weak multiply of mSelf, nuSelf, (m1SelfX-uSelfX*m0Self) and uCrossSelfX ... // 
   data->AEM_S(15,0) = (-0.5*m0rSelf[2]*uSelf[2]*mnuSelf)-0.5*m0rSelf[1]*uSelf[1]*mnuSelf-0.5*m0rSelf[0]*uSelf[0]*mnuSelf+0.7071067811865475*m1rSelf[0]*mnuSelf; 
@@ -866,15 +934,15 @@ void VmLBOCrossPrimMoments1x2vMax_P2(binOpData_t *data, binOpData_t *dataDiv,con
   data->AEM_S(14,5) = 0.4517539514526256*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf; 
  
   // ... Block from correction to (self) 1st moment of collision operator ... // 
-  data->AEM_S(12,6) = -0.7071067811865475*cMSelf[3]*mnuSelf; 
-  data->AEM_S(12,7) = -0.7071067811865475*cMSelf[4]*mnuSelf; 
-  data->AEM_S(12,8) = -0.7071067811865475*cMSelf[5]*mnuSelf; 
-  data->AEM_S(13,6) = -0.7071067811865475*cMSelf[4]*mnuSelf; 
-  data->AEM_S(13,7) = (-0.6324555320336759*cMSelf[5]*mnuSelf)-0.7071067811865475*cMSelf[3]*mnuSelf; 
-  data->AEM_S(13,8) = -0.6324555320336759*cMSelf[4]*mnuSelf; 
-  data->AEM_S(14,6) = -0.7071067811865475*cMSelf[5]*mnuSelf; 
-  data->AEM_S(14,7) = -0.6324555320336759*cMSelf[4]*mnuSelf; 
-  data->AEM_S(14,8) = (-0.4517539514526256*cMSelf[5]*mnuSelf)-0.7071067811865475*cMSelf[3]*mnuSelf; 
+  data->AEM_S(12,6) = -0.7071067811865475*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(12,7) = -0.7071067811865475*cMrSelf[4]*mnuSelf; 
+  data->AEM_S(12,8) = -0.7071067811865475*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(13,6) = -0.7071067811865475*cMrSelf[4]*mnuSelf; 
+  data->AEM_S(13,7) = (-0.6324555320336759*cMrSelf[5]*mnuSelf)-0.7071067811865475*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(13,8) = -0.6324555320336759*cMrSelf[4]*mnuSelf; 
+  data->AEM_S(14,6) = -0.7071067811865475*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(14,7) = -0.6324555320336759*cMrSelf[4]*mnuSelf; 
+  data->AEM_S(14,8) = (-0.4517539514526256*cMrSelf[5]*mnuSelf)-0.7071067811865475*cMrSelf[3]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherY ... // 
   data->AEM_S(12,12) = -0.7071067811865475*m0rOther[0]*mnuOther; 
@@ -888,15 +956,15 @@ void VmLBOCrossPrimMoments1x2vMax_P2(binOpData_t *data, binOpData_t *dataDiv,con
   data->AEM_S(14,14) = (-0.4517539514526256*m0rOther[2]*mnuOther)-0.7071067811865475*m0rOther[0]*mnuOther; 
  
   // ... Block from correction to (other) 1st moment of collision operator ... // 
-  data->AEM_S(12,15) = 0.7071067811865475*cMOther[3]*mnuOther; 
-  data->AEM_S(12,16) = 0.7071067811865475*cMOther[4]*mnuOther; 
-  data->AEM_S(12,17) = 0.7071067811865475*cMOther[5]*mnuOther; 
-  data->AEM_S(13,15) = 0.7071067811865475*cMOther[4]*mnuOther; 
-  data->AEM_S(13,16) = 0.6324555320336759*cMOther[5]*mnuOther+0.7071067811865475*cMOther[3]*mnuOther; 
-  data->AEM_S(13,17) = 0.6324555320336759*cMOther[4]*mnuOther; 
-  data->AEM_S(14,15) = 0.7071067811865475*cMOther[5]*mnuOther; 
-  data->AEM_S(14,16) = 0.6324555320336759*cMOther[4]*mnuOther; 
-  data->AEM_S(14,17) = 0.4517539514526256*cMOther[5]*mnuOther+0.7071067811865475*cMOther[3]*mnuOther; 
+  data->AEM_S(12,15) = 0.7071067811865475*cMrOther[3]*mnuOther; 
+  data->AEM_S(12,16) = 0.7071067811865475*cMrOther[4]*mnuOther; 
+  data->AEM_S(12,17) = 0.7071067811865475*cMrOther[5]*mnuOther; 
+  data->AEM_S(13,15) = 0.7071067811865475*cMrOther[4]*mnuOther; 
+  data->AEM_S(13,16) = 0.6324555320336759*cMrOther[5]*mnuOther+0.7071067811865475*cMrOther[3]*mnuOther; 
+  data->AEM_S(13,17) = 0.6324555320336759*cMrOther[4]*mnuOther; 
+  data->AEM_S(14,15) = 0.7071067811865475*cMrOther[5]*mnuOther; 
+  data->AEM_S(14,16) = 0.6324555320336759*cMrOther[4]*mnuOther; 
+  data->AEM_S(14,17) = 0.4517539514526256*cMrOther[5]*mnuOther+0.7071067811865475*cMrOther[3]*mnuOther; 
  
   // ... Block from weak multiply of mSelf, nuSelf, (m1SelfY-uSelfY*m0Self) and uCrossSelfY ... // 
   data->AEM_S(15,3) = (-0.5*m0rSelf[2]*uSelf[5]*mnuSelf)-0.5*m0rSelf[1]*uSelf[4]*mnuSelf-0.5*m0rSelf[0]*uSelf[3]*mnuSelf+0.7071067811865475*m1rSelf[3]*mnuSelf; 
@@ -947,21 +1015,21 @@ void VmLBOCrossPrimMoments1x2vMax_P2(binOpData_t *data, binOpData_t *dataDiv,con
   { 
     unsigned short int a0 = 3*vd; 
     // Contribution to dot-product from weak multiplication of vd component. 
-    ucMSelf[0] += 0.7071067811865475*cMSelf[a0+2]*uSelf[a0+2]+0.7071067811865475*cMSelf[a0+1]*uSelf[a0+1]+0.7071067811865475*cMSelf[a0]*uSelf[a0]; 
-    ucMSelf[1] += 0.6324555320336759*cMSelf[a0+1]*uSelf[a0+2]+0.6324555320336759*uSelf[a0+1]*cMSelf[a0+2]+0.7071067811865475*cMSelf[a0]*uSelf[a0+1]+0.7071067811865475*uSelf[a0]*cMSelf[a0+1]; 
-    ucMSelf[2] += 0.4517539514526256*cMSelf[a0+2]*uSelf[a0+2]+0.7071067811865475*cMSelf[a0]*uSelf[a0+2]+0.7071067811865475*uSelf[a0]*cMSelf[a0+2]+0.6324555320336759*cMSelf[a0+1]*uSelf[a0+1]; 
+    ucMSelf[0] += 0.7071067811865475*cMrSelf[a0+2]*uSelf[a0+2]+0.7071067811865475*cMrSelf[a0+1]*uSelf[a0+1]+0.7071067811865475*cMrSelf[a0]*uSelf[a0]; 
+    ucMSelf[1] += 0.6324555320336759*cMrSelf[a0+1]*uSelf[a0+2]+0.6324555320336759*uSelf[a0+1]*cMrSelf[a0+2]+0.7071067811865475*cMrSelf[a0]*uSelf[a0+1]+0.7071067811865475*uSelf[a0]*cMrSelf[a0+1]; 
+    ucMSelf[2] += 0.4517539514526256*cMrSelf[a0+2]*uSelf[a0+2]+0.7071067811865475*cMrSelf[a0]*uSelf[a0+2]+0.7071067811865475*uSelf[a0]*cMrSelf[a0+2]+0.6324555320336759*cMrSelf[a0+1]*uSelf[a0+1]; 
   } 
  
   // ... Block from correction to (self) 2nd moment of collision operator ... // 
-  data->AEM_S(15,6) = 0.7071067811865475*ucMSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
-  data->AEM_S(15,7) = 0.7071067811865475*ucMSelf[1]*mnuSelf+1.414213562373095*m0rSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
-  data->AEM_S(15,8) = 0.7071067811865475*ucMSelf[2]*mnuSelf+1.414213562373095*m0rSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf; 
-  data->AEM_S(16,6) = 0.7071067811865475*ucMSelf[1]*mnuSelf+1.414213562373095*m0rSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
-  data->AEM_S(16,7) = 0.6324555320336759*ucMSelf[2]*mnuSelf+1.264911064067352*m0rSelf[2]*mnuSelf-0.6324555320336759*cESelf[2]*mnuSelf+0.7071067811865475*ucMSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
-  data->AEM_S(16,8) = 0.6324555320336759*ucMSelf[1]*mnuSelf+1.264911064067352*m0rSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
-  data->AEM_S(17,6) = 0.7071067811865475*ucMSelf[2]*mnuSelf+1.414213562373095*m0rSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf; 
-  data->AEM_S(17,7) = 0.6324555320336759*ucMSelf[1]*mnuSelf+1.264911064067352*m0rSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
-  data->AEM_S(17,8) = 0.4517539514526256*ucMSelf[2]*mnuSelf+0.9035079029052515*m0rSelf[2]*mnuSelf-0.4517539514526256*cESelf[2]*mnuSelf+0.7071067811865475*ucMSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(15,6) = 0.7071067811865475*ucMSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cErSelf[0]*mnuSelf; 
+  data->AEM_S(15,7) = 0.7071067811865475*ucMSelf[1]*mnuSelf+1.414213562373095*m0rSelf[1]*mnuSelf-0.7071067811865475*cErSelf[1]*mnuSelf; 
+  data->AEM_S(15,8) = 0.7071067811865475*ucMSelf[2]*mnuSelf+1.414213562373095*m0rSelf[2]*mnuSelf-0.7071067811865475*cErSelf[2]*mnuSelf; 
+  data->AEM_S(16,6) = 0.7071067811865475*ucMSelf[1]*mnuSelf+1.414213562373095*m0rSelf[1]*mnuSelf-0.7071067811865475*cErSelf[1]*mnuSelf; 
+  data->AEM_S(16,7) = 0.6324555320336759*ucMSelf[2]*mnuSelf+1.264911064067352*m0rSelf[2]*mnuSelf-0.6324555320336759*cErSelf[2]*mnuSelf+0.7071067811865475*ucMSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cErSelf[0]*mnuSelf; 
+  data->AEM_S(16,8) = 0.6324555320336759*ucMSelf[1]*mnuSelf+1.264911064067352*m0rSelf[1]*mnuSelf-0.6324555320336759*cErSelf[1]*mnuSelf; 
+  data->AEM_S(17,6) = 0.7071067811865475*ucMSelf[2]*mnuSelf+1.414213562373095*m0rSelf[2]*mnuSelf-0.7071067811865475*cErSelf[2]*mnuSelf; 
+  data->AEM_S(17,7) = 0.6324555320336759*ucMSelf[1]*mnuSelf+1.264911064067352*m0rSelf[1]*mnuSelf-0.6324555320336759*cErSelf[1]*mnuSelf; 
+  data->AEM_S(17,8) = 0.4517539514526256*ucMSelf[2]*mnuSelf+0.9035079029052515*m0rSelf[2]*mnuSelf-0.4517539514526256*cErSelf[2]*mnuSelf+0.7071067811865475*ucMSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cErSelf[0]*mnuSelf; 
  
   double ucMOther[3]; 
   // Zero out array with dot product of uOther and cMOther. 
@@ -973,21 +1041,21 @@ void VmLBOCrossPrimMoments1x2vMax_P2(binOpData_t *data, binOpData_t *dataDiv,con
   { 
     unsigned short int a0 = 3*vd; 
     // Contribution to dot-product from weak multiplication of vd component. 
-    ucMOther[0] += 0.7071067811865475*cMOther[a0+2]*uOther[a0+2]+0.7071067811865475*cMOther[a0+1]*uOther[a0+1]+0.7071067811865475*cMOther[a0]*uOther[a0]; 
-    ucMOther[1] += 0.6324555320336759*cMOther[a0+1]*uOther[a0+2]+0.6324555320336759*uOther[a0+1]*cMOther[a0+2]+0.7071067811865475*cMOther[a0]*uOther[a0+1]+0.7071067811865475*uOther[a0]*cMOther[a0+1]; 
-    ucMOther[2] += 0.4517539514526256*cMOther[a0+2]*uOther[a0+2]+0.7071067811865475*cMOther[a0]*uOther[a0+2]+0.7071067811865475*uOther[a0]*cMOther[a0+2]+0.6324555320336759*cMOther[a0+1]*uOther[a0+1]; 
+    ucMOther[0] += 0.7071067811865475*cMrOther[a0+2]*uOther[a0+2]+0.7071067811865475*cMrOther[a0+1]*uOther[a0+1]+0.7071067811865475*cMrOther[a0]*uOther[a0]; 
+    ucMOther[1] += 0.6324555320336759*cMrOther[a0+1]*uOther[a0+2]+0.6324555320336759*uOther[a0+1]*cMrOther[a0+2]+0.7071067811865475*cMrOther[a0]*uOther[a0+1]+0.7071067811865475*uOther[a0]*cMrOther[a0+1]; 
+    ucMOther[2] += 0.4517539514526256*cMrOther[a0+2]*uOther[a0+2]+0.7071067811865475*cMrOther[a0]*uOther[a0+2]+0.7071067811865475*uOther[a0]*cMrOther[a0+2]+0.6324555320336759*cMrOther[a0+1]*uOther[a0+1]; 
   } 
  
   // ... Block from correction to (other) 2nd moment of collision operator ... // 
-  data->AEM_S(15,15) = (-0.7071067811865475*ucMOther[0]*mnuOther)-1.414213562373095*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
-  data->AEM_S(15,16) = (-0.7071067811865475*ucMOther[1]*mnuOther)-1.414213562373095*m0rOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
-  data->AEM_S(15,17) = (-0.7071067811865475*ucMOther[2]*mnuOther)-1.414213562373095*m0rOther[2]*mnuOther+0.7071067811865475*cEOther[2]*mnuOther; 
-  data->AEM_S(16,15) = (-0.7071067811865475*ucMOther[1]*mnuOther)-1.414213562373095*m0rOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
-  data->AEM_S(16,16) = (-0.6324555320336759*ucMOther[2]*mnuOther)-1.264911064067352*m0rOther[2]*mnuOther+0.6324555320336759*cEOther[2]*mnuOther-0.7071067811865475*ucMOther[0]*mnuOther-1.414213562373095*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
-  data->AEM_S(16,17) = (-0.6324555320336759*ucMOther[1]*mnuOther)-1.264911064067352*m0rOther[1]*mnuOther+0.6324555320336759*cEOther[1]*mnuOther; 
-  data->AEM_S(17,15) = (-0.7071067811865475*ucMOther[2]*mnuOther)-1.414213562373095*m0rOther[2]*mnuOther+0.7071067811865475*cEOther[2]*mnuOther; 
-  data->AEM_S(17,16) = (-0.6324555320336759*ucMOther[1]*mnuOther)-1.264911064067352*m0rOther[1]*mnuOther+0.6324555320336759*cEOther[1]*mnuOther; 
-  data->AEM_S(17,17) = (-0.4517539514526256*ucMOther[2]*mnuOther)-0.9035079029052515*m0rOther[2]*mnuOther+0.4517539514526256*cEOther[2]*mnuOther-0.7071067811865475*ucMOther[0]*mnuOther-1.414213562373095*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(15,15) = (-0.7071067811865475*ucMOther[0]*mnuOther)-1.414213562373095*m0rOther[0]*mnuOther+0.7071067811865475*cErOther[0]*mnuOther; 
+  data->AEM_S(15,16) = (-0.7071067811865475*ucMOther[1]*mnuOther)-1.414213562373095*m0rOther[1]*mnuOther+0.7071067811865475*cErOther[1]*mnuOther; 
+  data->AEM_S(15,17) = (-0.7071067811865475*ucMOther[2]*mnuOther)-1.414213562373095*m0rOther[2]*mnuOther+0.7071067811865475*cErOther[2]*mnuOther; 
+  data->AEM_S(16,15) = (-0.7071067811865475*ucMOther[1]*mnuOther)-1.414213562373095*m0rOther[1]*mnuOther+0.7071067811865475*cErOther[1]*mnuOther; 
+  data->AEM_S(16,16) = (-0.6324555320336759*ucMOther[2]*mnuOther)-1.264911064067352*m0rOther[2]*mnuOther+0.6324555320336759*cErOther[2]*mnuOther-0.7071067811865475*ucMOther[0]*mnuOther-1.414213562373095*m0rOther[0]*mnuOther+0.7071067811865475*cErOther[0]*mnuOther; 
+  data->AEM_S(16,17) = (-0.6324555320336759*ucMOther[1]*mnuOther)-1.264911064067352*m0rOther[1]*mnuOther+0.6324555320336759*cErOther[1]*mnuOther; 
+  data->AEM_S(17,15) = (-0.7071067811865475*ucMOther[2]*mnuOther)-1.414213562373095*m0rOther[2]*mnuOther+0.7071067811865475*cErOther[2]*mnuOther; 
+  data->AEM_S(17,16) = (-0.6324555320336759*ucMOther[1]*mnuOther)-1.264911064067352*m0rOther[1]*mnuOther+0.6324555320336759*cErOther[1]*mnuOther; 
+  data->AEM_S(17,17) = (-0.4517539514526256*ucMOther[2]*mnuOther)-0.9035079029052515*m0rOther[2]*mnuOther+0.4517539514526256*cErOther[2]*mnuOther-0.7071067811865475*ucMOther[0]*mnuOther-1.414213562373095*m0rOther[0]*mnuOther+0.7071067811865475*cErOther[0]*mnuOther; 
  
   double kinESelf[3]; 
   // zero out array with dot product of u and m1. 
@@ -1108,6 +1176,8 @@ void VmLBOCrossPrimMoments1x2vMax_P3(binOpData_t *data, binOpData_t *dataDiv,con
   double m0rSelf[4]; 
   double m1rSelf[8]; 
   double m2rSelf[4]; 
+  double cMrSelf[8]; 
+  double cErSelf[4]; 
   if (cellAvg) { 
     m0rSelf[0] = m0Self[0]; 
     m0rSelf[1] = 0.0; 
@@ -1117,14 +1187,26 @@ void VmLBOCrossPrimMoments1x2vMax_P3(binOpData_t *data, binOpData_t *dataDiv,con
     m1rSelf[1] = 0.0; 
     m1rSelf[2] = 0.0; 
     m1rSelf[3] = 0.0; 
+    cMrSelf[0] = cMSelf[0]; 
+    cMrSelf[1] = 0.0; 
+    cMrSelf[2] = 0.0; 
+    cMrSelf[3] = 0.0; 
     m1rSelf[4] = m1Self[4]; 
     m1rSelf[5] = 0.0; 
     m1rSelf[6] = 0.0; 
     m1rSelf[7] = 0.0; 
+    cMrSelf[4] = cMSelf[4]; 
+    cMrSelf[5] = 0.0; 
+    cMrSelf[6] = 0.0; 
+    cMrSelf[7] = 0.0; 
     m2rSelf[0] = m2Self[0]; 
     m2rSelf[1] = 0.0; 
     m2rSelf[2] = 0.0; 
     m2rSelf[3] = 0.0; 
+    cErSelf[0] = cESelf[0]; 
+    cErSelf[1] = 0.0; 
+    cErSelf[2] = 0.0; 
+    cErSelf[3] = 0.0; 
   } else { 
     m0rSelf[0] = m0Self[0]; 
     m0rSelf[1] = m0Self[1]; 
@@ -1142,6 +1224,18 @@ void VmLBOCrossPrimMoments1x2vMax_P3(binOpData_t *data, binOpData_t *dataDiv,con
     m2rSelf[1] = m2Self[1]; 
     m2rSelf[2] = m2Self[2]; 
     m2rSelf[3] = m2Self[3]; 
+    cMrSelf[0] = cMSelf[0]; 
+    cMrSelf[1] = cMSelf[1]; 
+    cMrSelf[2] = cMSelf[2]; 
+    cMrSelf[3] = cMSelf[3]; 
+    cMrSelf[4] = cMSelf[4]; 
+    cMrSelf[5] = cMSelf[5]; 
+    cMrSelf[6] = cMSelf[6]; 
+    cMrSelf[7] = cMSelf[7]; 
+    cErSelf[0] = cESelf[0]; 
+    cErSelf[1] = cESelf[1]; 
+    cErSelf[2] = cESelf[2]; 
+    cErSelf[3] = cESelf[3]; 
   } 
  
   if ((-1.870828693386971*m0Other[3])+1.58113883008419*m0Other[2]-1.224744871391589*m0Other[1]+0.7071067811865475*m0Other[0] < 0) { 
@@ -1154,6 +1248,8 @@ void VmLBOCrossPrimMoments1x2vMax_P3(binOpData_t *data, binOpData_t *dataDiv,con
   double m0rOther[4]; 
   double m1rOther[8]; 
   double m2rOther[4]; 
+  double cMrOther[8]; 
+  double cErOther[4]; 
   if (cellAvg) { 
     m0rOther[0] = m0Other[0]; 
     m0rOther[1] = 0.0; 
@@ -1163,14 +1259,26 @@ void VmLBOCrossPrimMoments1x2vMax_P3(binOpData_t *data, binOpData_t *dataDiv,con
     m1rOther[1] = 0.0; 
     m1rOther[2] = 0.0; 
     m1rOther[3] = 0.0; 
+    cMrOther[0] = cMOther[0]; 
+    cMrOther[1] = 0.0; 
+    cMrOther[2] = 0.0; 
+    cMrOther[3] = 0.0; 
     m1rOther[4] = m1Other[4]; 
     m1rOther[5] = 0.0; 
     m1rOther[6] = 0.0; 
     m1rOther[7] = 0.0; 
+    cMrOther[4] = cMOther[4]; 
+    cMrOther[5] = 0.0; 
+    cMrOther[6] = 0.0; 
+    cMrOther[7] = 0.0; 
     m2rOther[0] = m2Other[0]; 
     m2rOther[1] = 0.0; 
     m2rOther[2] = 0.0; 
     m2rOther[3] = 0.0; 
+    cErOther[0] = cEOther[0]; 
+    cErOther[1] = 0.0; 
+    cErOther[2] = 0.0; 
+    cErOther[3] = 0.0; 
   } else { 
     m0rOther[0] = m0Other[0]; 
     m0rOther[1] = m0Other[1]; 
@@ -1188,6 +1296,18 @@ void VmLBOCrossPrimMoments1x2vMax_P3(binOpData_t *data, binOpData_t *dataDiv,con
     m2rOther[1] = m2Other[1]; 
     m2rOther[2] = m2Other[2]; 
     m2rOther[3] = m2Other[3]; 
+    cMrOther[0] = cMOther[0]; 
+    cMrOther[1] = cMOther[1]; 
+    cMrOther[2] = cMOther[2]; 
+    cMrOther[3] = cMOther[3]; 
+    cMrOther[4] = cMOther[4]; 
+    cMrOther[5] = cMOther[5]; 
+    cMrOther[6] = cMOther[6]; 
+    cMrOther[7] = cMOther[7]; 
+    cErOther[0] = cEOther[0]; 
+    cErOther[1] = cEOther[1]; 
+    cErOther[2] = cEOther[2]; 
+    cErOther[3] = cEOther[3]; 
   } 
  
   // Declare Eigen matrix and vectors for weak system. 
@@ -1221,22 +1341,22 @@ void VmLBOCrossPrimMoments1x2vMax_P3(binOpData_t *data, binOpData_t *dataDiv,con
   data->AEM_S(3,3) = 0.421637021355784*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf; 
  
   // ... Block from correction to momentum conservation (self) ... // 
-  data->AEM_S(0,8) = -0.7071067811865475*cMSelf[0]*mnuSelf; 
-  data->AEM_S(0,9) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
-  data->AEM_S(0,10) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
-  data->AEM_S(0,11) = -0.7071067811865475*cMSelf[3]*mnuSelf; 
-  data->AEM_S(1,8) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
-  data->AEM_S(1,9) = (-0.6324555320336759*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
-  data->AEM_S(1,10) = (-0.6210590034081186*cMSelf[3]*mnuSelf)-0.6324555320336759*cMSelf[1]*mnuSelf; 
-  data->AEM_S(1,11) = -0.6210590034081186*cMSelf[2]*mnuSelf; 
-  data->AEM_S(2,8) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
-  data->AEM_S(2,9) = (-0.6210590034081186*cMSelf[3]*mnuSelf)-0.6324555320336759*cMSelf[1]*mnuSelf; 
-  data->AEM_S(2,10) = (-0.4517539514526256*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
-  data->AEM_S(2,11) = (-0.421637021355784*cMSelf[3]*mnuSelf)-0.6210590034081186*cMSelf[1]*mnuSelf; 
-  data->AEM_S(3,8) = -0.7071067811865475*cMSelf[3]*mnuSelf; 
-  data->AEM_S(3,9) = -0.6210590034081186*cMSelf[2]*mnuSelf; 
-  data->AEM_S(3,10) = (-0.421637021355784*cMSelf[3]*mnuSelf)-0.6210590034081186*cMSelf[1]*mnuSelf; 
-  data->AEM_S(3,11) = (-0.421637021355784*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
+  data->AEM_S(0,8) = -0.7071067811865475*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(0,9) = -0.7071067811865475*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(0,10) = -0.7071067811865475*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(0,11) = -0.7071067811865475*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(1,8) = -0.7071067811865475*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(1,9) = (-0.6324555320336759*cMrSelf[2]*mnuSelf)-0.7071067811865475*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(1,10) = (-0.6210590034081186*cMrSelf[3]*mnuSelf)-0.6324555320336759*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(1,11) = -0.6210590034081186*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(2,8) = -0.7071067811865475*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(2,9) = (-0.6210590034081186*cMrSelf[3]*mnuSelf)-0.6324555320336759*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(2,10) = (-0.4517539514526256*cMrSelf[2]*mnuSelf)-0.7071067811865475*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(2,11) = (-0.421637021355784*cMrSelf[3]*mnuSelf)-0.6210590034081186*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(3,8) = -0.7071067811865475*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(3,9) = -0.6210590034081186*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(3,10) = (-0.421637021355784*cMrSelf[3]*mnuSelf)-0.6210590034081186*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(3,11) = (-0.421637021355784*cMrSelf[2]*mnuSelf)-0.7071067811865475*cMrSelf[0]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherX ... // 
   data->AEM_S(0,12) = 0.7071067811865475*m0rOther[0]*mnuOther; 
@@ -1257,22 +1377,22 @@ void VmLBOCrossPrimMoments1x2vMax_P3(binOpData_t *data, binOpData_t *dataDiv,con
   data->AEM_S(3,15) = 0.421637021355784*m0rOther[2]*mnuOther+0.7071067811865475*m0rOther[0]*mnuOther; 
  
   // ... Block from correction to momentum conservation (other) ... // 
-  data->AEM_S(0,20) = -0.7071067811865475*cMOther[0]*mnuOther; 
-  data->AEM_S(0,21) = -0.7071067811865475*cMOther[1]*mnuOther; 
-  data->AEM_S(0,22) = -0.7071067811865475*cMOther[2]*mnuOther; 
-  data->AEM_S(0,23) = -0.7071067811865475*cMOther[3]*mnuOther; 
-  data->AEM_S(1,20) = -0.7071067811865475*cMOther[1]*mnuOther; 
-  data->AEM_S(1,21) = (-0.6324555320336759*cMOther[2]*mnuOther)-0.7071067811865475*cMOther[0]*mnuOther; 
-  data->AEM_S(1,22) = (-0.6210590034081186*cMOther[3]*mnuOther)-0.6324555320336759*cMOther[1]*mnuOther; 
-  data->AEM_S(1,23) = -0.6210590034081186*cMOther[2]*mnuOther; 
-  data->AEM_S(2,20) = -0.7071067811865475*cMOther[2]*mnuOther; 
-  data->AEM_S(2,21) = (-0.6210590034081186*cMOther[3]*mnuOther)-0.6324555320336759*cMOther[1]*mnuOther; 
-  data->AEM_S(2,22) = (-0.4517539514526256*cMOther[2]*mnuOther)-0.7071067811865475*cMOther[0]*mnuOther; 
-  data->AEM_S(2,23) = (-0.421637021355784*cMOther[3]*mnuOther)-0.6210590034081186*cMOther[1]*mnuOther; 
-  data->AEM_S(3,20) = -0.7071067811865475*cMOther[3]*mnuOther; 
-  data->AEM_S(3,21) = -0.6210590034081186*cMOther[2]*mnuOther; 
-  data->AEM_S(3,22) = (-0.421637021355784*cMOther[3]*mnuOther)-0.6210590034081186*cMOther[1]*mnuOther; 
-  data->AEM_S(3,23) = (-0.421637021355784*cMOther[2]*mnuOther)-0.7071067811865475*cMOther[0]*mnuOther; 
+  data->AEM_S(0,20) = -0.7071067811865475*cMrOther[0]*mnuOther; 
+  data->AEM_S(0,21) = -0.7071067811865475*cMrOther[1]*mnuOther; 
+  data->AEM_S(0,22) = -0.7071067811865475*cMrOther[2]*mnuOther; 
+  data->AEM_S(0,23) = -0.7071067811865475*cMrOther[3]*mnuOther; 
+  data->AEM_S(1,20) = -0.7071067811865475*cMrOther[1]*mnuOther; 
+  data->AEM_S(1,21) = (-0.6324555320336759*cMrOther[2]*mnuOther)-0.7071067811865475*cMrOther[0]*mnuOther; 
+  data->AEM_S(1,22) = (-0.6210590034081186*cMrOther[3]*mnuOther)-0.6324555320336759*cMrOther[1]*mnuOther; 
+  data->AEM_S(1,23) = -0.6210590034081186*cMrOther[2]*mnuOther; 
+  data->AEM_S(2,20) = -0.7071067811865475*cMrOther[2]*mnuOther; 
+  data->AEM_S(2,21) = (-0.6210590034081186*cMrOther[3]*mnuOther)-0.6324555320336759*cMrOther[1]*mnuOther; 
+  data->AEM_S(2,22) = (-0.4517539514526256*cMrOther[2]*mnuOther)-0.7071067811865475*cMrOther[0]*mnuOther; 
+  data->AEM_S(2,23) = (-0.421637021355784*cMrOther[3]*mnuOther)-0.6210590034081186*cMrOther[1]*mnuOther; 
+  data->AEM_S(3,20) = -0.7071067811865475*cMrOther[3]*mnuOther; 
+  data->AEM_S(3,21) = -0.6210590034081186*cMrOther[2]*mnuOther; 
+  data->AEM_S(3,22) = (-0.421637021355784*cMrOther[3]*mnuOther)-0.6210590034081186*cMrOther[1]*mnuOther; 
+  data->AEM_S(3,23) = (-0.421637021355784*cMrOther[2]*mnuOther)-0.7071067811865475*cMrOther[0]*mnuOther; 
  
   // ... Block from weak multiply of mSelf, nuSelf, m1SelfX and uCrossSelfX ... // 
   data->AEM_S(8,0) = 0.7071067811865475*m1rSelf[0]*mnuSelf; 
@@ -1335,22 +1455,22 @@ void VmLBOCrossPrimMoments1x2vMax_P3(binOpData_t *data, binOpData_t *dataDiv,con
   data->AEM_S(7,7) = 0.421637021355784*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf; 
  
   // ... Block from correction to momentum conservation (self) ... // 
-  data->AEM_S(4,8) = -0.7071067811865475*cMSelf[4]*mnuSelf; 
-  data->AEM_S(4,9) = -0.7071067811865475*cMSelf[5]*mnuSelf; 
-  data->AEM_S(4,10) = -0.7071067811865475*cMSelf[6]*mnuSelf; 
-  data->AEM_S(4,11) = -0.7071067811865475*cMSelf[7]*mnuSelf; 
-  data->AEM_S(5,8) = -0.7071067811865475*cMSelf[5]*mnuSelf; 
-  data->AEM_S(5,9) = (-0.6324555320336759*cMSelf[6]*mnuSelf)-0.7071067811865475*cMSelf[4]*mnuSelf; 
-  data->AEM_S(5,10) = (-0.6210590034081186*cMSelf[7]*mnuSelf)-0.6324555320336759*cMSelf[5]*mnuSelf; 
-  data->AEM_S(5,11) = -0.6210590034081186*cMSelf[6]*mnuSelf; 
-  data->AEM_S(6,8) = -0.7071067811865475*cMSelf[6]*mnuSelf; 
-  data->AEM_S(6,9) = (-0.6210590034081186*cMSelf[7]*mnuSelf)-0.6324555320336759*cMSelf[5]*mnuSelf; 
-  data->AEM_S(6,10) = (-0.4517539514526256*cMSelf[6]*mnuSelf)-0.7071067811865475*cMSelf[4]*mnuSelf; 
-  data->AEM_S(6,11) = (-0.421637021355784*cMSelf[7]*mnuSelf)-0.6210590034081186*cMSelf[5]*mnuSelf; 
-  data->AEM_S(7,8) = -0.7071067811865475*cMSelf[7]*mnuSelf; 
-  data->AEM_S(7,9) = -0.6210590034081186*cMSelf[6]*mnuSelf; 
-  data->AEM_S(7,10) = (-0.421637021355784*cMSelf[7]*mnuSelf)-0.6210590034081186*cMSelf[5]*mnuSelf; 
-  data->AEM_S(7,11) = (-0.421637021355784*cMSelf[6]*mnuSelf)-0.7071067811865475*cMSelf[4]*mnuSelf; 
+  data->AEM_S(4,8) = -0.7071067811865475*cMrSelf[4]*mnuSelf; 
+  data->AEM_S(4,9) = -0.7071067811865475*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(4,10) = -0.7071067811865475*cMrSelf[6]*mnuSelf; 
+  data->AEM_S(4,11) = -0.7071067811865475*cMrSelf[7]*mnuSelf; 
+  data->AEM_S(5,8) = -0.7071067811865475*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(5,9) = (-0.6324555320336759*cMrSelf[6]*mnuSelf)-0.7071067811865475*cMrSelf[4]*mnuSelf; 
+  data->AEM_S(5,10) = (-0.6210590034081186*cMrSelf[7]*mnuSelf)-0.6324555320336759*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(5,11) = -0.6210590034081186*cMrSelf[6]*mnuSelf; 
+  data->AEM_S(6,8) = -0.7071067811865475*cMrSelf[6]*mnuSelf; 
+  data->AEM_S(6,9) = (-0.6210590034081186*cMrSelf[7]*mnuSelf)-0.6324555320336759*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(6,10) = (-0.4517539514526256*cMrSelf[6]*mnuSelf)-0.7071067811865475*cMrSelf[4]*mnuSelf; 
+  data->AEM_S(6,11) = (-0.421637021355784*cMrSelf[7]*mnuSelf)-0.6210590034081186*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(7,8) = -0.7071067811865475*cMrSelf[7]*mnuSelf; 
+  data->AEM_S(7,9) = -0.6210590034081186*cMrSelf[6]*mnuSelf; 
+  data->AEM_S(7,10) = (-0.421637021355784*cMrSelf[7]*mnuSelf)-0.6210590034081186*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(7,11) = (-0.421637021355784*cMrSelf[6]*mnuSelf)-0.7071067811865475*cMrSelf[4]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherY ... // 
   data->AEM_S(4,16) = 0.7071067811865475*m0rOther[0]*mnuOther; 
@@ -1371,22 +1491,22 @@ void VmLBOCrossPrimMoments1x2vMax_P3(binOpData_t *data, binOpData_t *dataDiv,con
   data->AEM_S(7,19) = 0.421637021355784*m0rOther[2]*mnuOther+0.7071067811865475*m0rOther[0]*mnuOther; 
  
   // ... Block from correction to momentum conservation (other) ... // 
-  data->AEM_S(4,20) = -0.7071067811865475*cMOther[4]*mnuOther; 
-  data->AEM_S(4,21) = -0.7071067811865475*cMOther[5]*mnuOther; 
-  data->AEM_S(4,22) = -0.7071067811865475*cMOther[6]*mnuOther; 
-  data->AEM_S(4,23) = -0.7071067811865475*cMOther[7]*mnuOther; 
-  data->AEM_S(5,20) = -0.7071067811865475*cMOther[5]*mnuOther; 
-  data->AEM_S(5,21) = (-0.6324555320336759*cMOther[6]*mnuOther)-0.7071067811865475*cMOther[4]*mnuOther; 
-  data->AEM_S(5,22) = (-0.6210590034081186*cMOther[7]*mnuOther)-0.6324555320336759*cMOther[5]*mnuOther; 
-  data->AEM_S(5,23) = -0.6210590034081186*cMOther[6]*mnuOther; 
-  data->AEM_S(6,20) = -0.7071067811865475*cMOther[6]*mnuOther; 
-  data->AEM_S(6,21) = (-0.6210590034081186*cMOther[7]*mnuOther)-0.6324555320336759*cMOther[5]*mnuOther; 
-  data->AEM_S(6,22) = (-0.4517539514526256*cMOther[6]*mnuOther)-0.7071067811865475*cMOther[4]*mnuOther; 
-  data->AEM_S(6,23) = (-0.421637021355784*cMOther[7]*mnuOther)-0.6210590034081186*cMOther[5]*mnuOther; 
-  data->AEM_S(7,20) = -0.7071067811865475*cMOther[7]*mnuOther; 
-  data->AEM_S(7,21) = -0.6210590034081186*cMOther[6]*mnuOther; 
-  data->AEM_S(7,22) = (-0.421637021355784*cMOther[7]*mnuOther)-0.6210590034081186*cMOther[5]*mnuOther; 
-  data->AEM_S(7,23) = (-0.421637021355784*cMOther[6]*mnuOther)-0.7071067811865475*cMOther[4]*mnuOther; 
+  data->AEM_S(4,20) = -0.7071067811865475*cMrOther[4]*mnuOther; 
+  data->AEM_S(4,21) = -0.7071067811865475*cMrOther[5]*mnuOther; 
+  data->AEM_S(4,22) = -0.7071067811865475*cMrOther[6]*mnuOther; 
+  data->AEM_S(4,23) = -0.7071067811865475*cMrOther[7]*mnuOther; 
+  data->AEM_S(5,20) = -0.7071067811865475*cMrOther[5]*mnuOther; 
+  data->AEM_S(5,21) = (-0.6324555320336759*cMrOther[6]*mnuOther)-0.7071067811865475*cMrOther[4]*mnuOther; 
+  data->AEM_S(5,22) = (-0.6210590034081186*cMrOther[7]*mnuOther)-0.6324555320336759*cMrOther[5]*mnuOther; 
+  data->AEM_S(5,23) = -0.6210590034081186*cMrOther[6]*mnuOther; 
+  data->AEM_S(6,20) = -0.7071067811865475*cMrOther[6]*mnuOther; 
+  data->AEM_S(6,21) = (-0.6210590034081186*cMrOther[7]*mnuOther)-0.6324555320336759*cMrOther[5]*mnuOther; 
+  data->AEM_S(6,22) = (-0.4517539514526256*cMrOther[6]*mnuOther)-0.7071067811865475*cMrOther[4]*mnuOther; 
+  data->AEM_S(6,23) = (-0.421637021355784*cMrOther[7]*mnuOther)-0.6210590034081186*cMrOther[5]*mnuOther; 
+  data->AEM_S(7,20) = -0.7071067811865475*cMrOther[7]*mnuOther; 
+  data->AEM_S(7,21) = -0.6210590034081186*cMrOther[6]*mnuOther; 
+  data->AEM_S(7,22) = (-0.421637021355784*cMrOther[7]*mnuOther)-0.6210590034081186*cMrOther[5]*mnuOther; 
+  data->AEM_S(7,23) = (-0.421637021355784*cMrOther[6]*mnuOther)-0.7071067811865475*cMrOther[4]*mnuOther; 
  
   // ... Block from weak multiply of mSelf, nuSelf, m1SelfY and uCrossSelfY ... // 
   data->AEM_S(8,4) = 0.7071067811865475*m1rSelf[4]*mnuSelf; 
@@ -1431,40 +1551,40 @@ void VmLBOCrossPrimMoments1x2vMax_P3(binOpData_t *data, binOpData_t *dataDiv,con
   mnuM1sum[7] += m1rSelf[7]*mnuSelf+m1rOther[7]*mnuOther; 
  
   // ... Block from correction to energy conservation (self) ... // 
-  data->AEM_S(8,8) = 1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
-  data->AEM_S(8,9) = 1.414213562373095*m0rSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
-  data->AEM_S(8,10) = 1.414213562373095*m0rSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf; 
-  data->AEM_S(8,11) = 1.414213562373095*m0rSelf[3]*mnuSelf-0.7071067811865475*cESelf[3]*mnuSelf; 
-  data->AEM_S(9,8) = 1.414213562373095*m0rSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
-  data->AEM_S(9,9) = 1.264911064067352*m0rSelf[2]*mnuSelf-0.6324555320336759*cESelf[2]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
-  data->AEM_S(9,10) = 1.242118006816237*m0rSelf[3]*mnuSelf-0.6210590034081186*cESelf[3]*mnuSelf+1.264911064067352*m0rSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
-  data->AEM_S(9,11) = 1.242118006816237*m0rSelf[2]*mnuSelf-0.6210590034081186*cESelf[2]*mnuSelf; 
-  data->AEM_S(10,8) = 1.414213562373095*m0rSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf; 
-  data->AEM_S(10,9) = 1.242118006816237*m0rSelf[3]*mnuSelf-0.6210590034081186*cESelf[3]*mnuSelf+1.264911064067352*m0rSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
-  data->AEM_S(10,10) = 0.9035079029052515*m0rSelf[2]*mnuSelf-0.4517539514526256*cESelf[2]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
-  data->AEM_S(10,11) = 0.8432740427115681*m0rSelf[3]*mnuSelf-0.421637021355784*cESelf[3]*mnuSelf+1.242118006816237*m0rSelf[1]*mnuSelf-0.6210590034081186*cESelf[1]*mnuSelf; 
-  data->AEM_S(11,8) = 1.414213562373095*m0rSelf[3]*mnuSelf-0.7071067811865475*cESelf[3]*mnuSelf; 
-  data->AEM_S(11,9) = 1.242118006816237*m0rSelf[2]*mnuSelf-0.6210590034081186*cESelf[2]*mnuSelf; 
-  data->AEM_S(11,10) = 0.8432740427115681*m0rSelf[3]*mnuSelf-0.421637021355784*cESelf[3]*mnuSelf+1.242118006816237*m0rSelf[1]*mnuSelf-0.6210590034081186*cESelf[1]*mnuSelf; 
-  data->AEM_S(11,11) = 0.8432740427115681*m0rSelf[2]*mnuSelf-0.421637021355784*cESelf[2]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(8,8) = 1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cErSelf[0]*mnuSelf; 
+  data->AEM_S(8,9) = 1.414213562373095*m0rSelf[1]*mnuSelf-0.7071067811865475*cErSelf[1]*mnuSelf; 
+  data->AEM_S(8,10) = 1.414213562373095*m0rSelf[2]*mnuSelf-0.7071067811865475*cErSelf[2]*mnuSelf; 
+  data->AEM_S(8,11) = 1.414213562373095*m0rSelf[3]*mnuSelf-0.7071067811865475*cErSelf[3]*mnuSelf; 
+  data->AEM_S(9,8) = 1.414213562373095*m0rSelf[1]*mnuSelf-0.7071067811865475*cErSelf[1]*mnuSelf; 
+  data->AEM_S(9,9) = 1.264911064067352*m0rSelf[2]*mnuSelf-0.6324555320336759*cErSelf[2]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cErSelf[0]*mnuSelf; 
+  data->AEM_S(9,10) = 1.242118006816237*m0rSelf[3]*mnuSelf-0.6210590034081186*cErSelf[3]*mnuSelf+1.264911064067352*m0rSelf[1]*mnuSelf-0.6324555320336759*cErSelf[1]*mnuSelf; 
+  data->AEM_S(9,11) = 1.242118006816237*m0rSelf[2]*mnuSelf-0.6210590034081186*cErSelf[2]*mnuSelf; 
+  data->AEM_S(10,8) = 1.414213562373095*m0rSelf[2]*mnuSelf-0.7071067811865475*cErSelf[2]*mnuSelf; 
+  data->AEM_S(10,9) = 1.242118006816237*m0rSelf[3]*mnuSelf-0.6210590034081186*cErSelf[3]*mnuSelf+1.264911064067352*m0rSelf[1]*mnuSelf-0.6324555320336759*cErSelf[1]*mnuSelf; 
+  data->AEM_S(10,10) = 0.9035079029052515*m0rSelf[2]*mnuSelf-0.4517539514526256*cErSelf[2]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cErSelf[0]*mnuSelf; 
+  data->AEM_S(10,11) = 0.8432740427115681*m0rSelf[3]*mnuSelf-0.421637021355784*cErSelf[3]*mnuSelf+1.242118006816237*m0rSelf[1]*mnuSelf-0.6210590034081186*cErSelf[1]*mnuSelf; 
+  data->AEM_S(11,8) = 1.414213562373095*m0rSelf[3]*mnuSelf-0.7071067811865475*cErSelf[3]*mnuSelf; 
+  data->AEM_S(11,9) = 1.242118006816237*m0rSelf[2]*mnuSelf-0.6210590034081186*cErSelf[2]*mnuSelf; 
+  data->AEM_S(11,10) = 0.8432740427115681*m0rSelf[3]*mnuSelf-0.421637021355784*cErSelf[3]*mnuSelf+1.242118006816237*m0rSelf[1]*mnuSelf-0.6210590034081186*cErSelf[1]*mnuSelf; 
+  data->AEM_S(11,11) = 0.8432740427115681*m0rSelf[2]*mnuSelf-0.421637021355784*cErSelf[2]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cErSelf[0]*mnuSelf; 
  
   // ... Block from correction to energy conservation (other) ... // 
-  data->AEM_S(8,20) = 1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*cEOther[0]*mnuOther; 
-  data->AEM_S(8,21) = 1.414213562373095*m0rOther[1]*mnuOther-0.7071067811865475*cEOther[1]*mnuOther; 
-  data->AEM_S(8,22) = 1.414213562373095*m0rOther[2]*mnuOther-0.7071067811865475*cEOther[2]*mnuOther; 
-  data->AEM_S(8,23) = 1.414213562373095*m0rOther[3]*mnuOther-0.7071067811865475*cEOther[3]*mnuOther; 
-  data->AEM_S(9,20) = 1.414213562373095*m0rOther[1]*mnuOther-0.7071067811865475*cEOther[1]*mnuOther; 
-  data->AEM_S(9,21) = 1.264911064067352*m0rOther[2]*mnuOther-0.6324555320336759*cEOther[2]*mnuOther+1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*cEOther[0]*mnuOther; 
-  data->AEM_S(9,22) = 1.242118006816237*m0rOther[3]*mnuOther-0.6210590034081186*cEOther[3]*mnuOther+1.264911064067352*m0rOther[1]*mnuOther-0.6324555320336759*cEOther[1]*mnuOther; 
-  data->AEM_S(9,23) = 1.242118006816237*m0rOther[2]*mnuOther-0.6210590034081186*cEOther[2]*mnuOther; 
-  data->AEM_S(10,20) = 1.414213562373095*m0rOther[2]*mnuOther-0.7071067811865475*cEOther[2]*mnuOther; 
-  data->AEM_S(10,21) = 1.242118006816237*m0rOther[3]*mnuOther-0.6210590034081186*cEOther[3]*mnuOther+1.264911064067352*m0rOther[1]*mnuOther-0.6324555320336759*cEOther[1]*mnuOther; 
-  data->AEM_S(10,22) = 0.9035079029052515*m0rOther[2]*mnuOther-0.4517539514526256*cEOther[2]*mnuOther+1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*cEOther[0]*mnuOther; 
-  data->AEM_S(10,23) = 0.8432740427115681*m0rOther[3]*mnuOther-0.421637021355784*cEOther[3]*mnuOther+1.242118006816237*m0rOther[1]*mnuOther-0.6210590034081186*cEOther[1]*mnuOther; 
-  data->AEM_S(11,20) = 1.414213562373095*m0rOther[3]*mnuOther-0.7071067811865475*cEOther[3]*mnuOther; 
-  data->AEM_S(11,21) = 1.242118006816237*m0rOther[2]*mnuOther-0.6210590034081186*cEOther[2]*mnuOther; 
-  data->AEM_S(11,22) = 0.8432740427115681*m0rOther[3]*mnuOther-0.421637021355784*cEOther[3]*mnuOther+1.242118006816237*m0rOther[1]*mnuOther-0.6210590034081186*cEOther[1]*mnuOther; 
-  data->AEM_S(11,23) = 0.8432740427115681*m0rOther[2]*mnuOther-0.421637021355784*cEOther[2]*mnuOther+1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(8,20) = 1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*cErOther[0]*mnuOther; 
+  data->AEM_S(8,21) = 1.414213562373095*m0rOther[1]*mnuOther-0.7071067811865475*cErOther[1]*mnuOther; 
+  data->AEM_S(8,22) = 1.414213562373095*m0rOther[2]*mnuOther-0.7071067811865475*cErOther[2]*mnuOther; 
+  data->AEM_S(8,23) = 1.414213562373095*m0rOther[3]*mnuOther-0.7071067811865475*cErOther[3]*mnuOther; 
+  data->AEM_S(9,20) = 1.414213562373095*m0rOther[1]*mnuOther-0.7071067811865475*cErOther[1]*mnuOther; 
+  data->AEM_S(9,21) = 1.264911064067352*m0rOther[2]*mnuOther-0.6324555320336759*cErOther[2]*mnuOther+1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*cErOther[0]*mnuOther; 
+  data->AEM_S(9,22) = 1.242118006816237*m0rOther[3]*mnuOther-0.6210590034081186*cErOther[3]*mnuOther+1.264911064067352*m0rOther[1]*mnuOther-0.6324555320336759*cErOther[1]*mnuOther; 
+  data->AEM_S(9,23) = 1.242118006816237*m0rOther[2]*mnuOther-0.6210590034081186*cErOther[2]*mnuOther; 
+  data->AEM_S(10,20) = 1.414213562373095*m0rOther[2]*mnuOther-0.7071067811865475*cErOther[2]*mnuOther; 
+  data->AEM_S(10,21) = 1.242118006816237*m0rOther[3]*mnuOther-0.6210590034081186*cErOther[3]*mnuOther+1.264911064067352*m0rOther[1]*mnuOther-0.6324555320336759*cErOther[1]*mnuOther; 
+  data->AEM_S(10,22) = 0.9035079029052515*m0rOther[2]*mnuOther-0.4517539514526256*cErOther[2]*mnuOther+1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*cErOther[0]*mnuOther; 
+  data->AEM_S(10,23) = 0.8432740427115681*m0rOther[3]*mnuOther-0.421637021355784*cErOther[3]*mnuOther+1.242118006816237*m0rOther[1]*mnuOther-0.6210590034081186*cErOther[1]*mnuOther; 
+  data->AEM_S(11,20) = 1.414213562373095*m0rOther[3]*mnuOther-0.7071067811865475*cErOther[3]*mnuOther; 
+  data->AEM_S(11,21) = 1.242118006816237*m0rOther[2]*mnuOther-0.6210590034081186*cErOther[2]*mnuOther; 
+  data->AEM_S(11,22) = 0.8432740427115681*m0rOther[3]*mnuOther-0.421637021355784*cErOther[3]*mnuOther+1.242118006816237*m0rOther[1]*mnuOther-0.6210590034081186*cErOther[1]*mnuOther; 
+  data->AEM_S(11,23) = 0.8432740427115681*m0rOther[2]*mnuOther-0.421637021355784*cErOther[2]*mnuOther+1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*cErOther[0]*mnuOther; 
  
   double mnuM2sum[4]; 
   // ... Contribution to RHS vector from mnuM2Self+mnuM2Other. 
@@ -1507,22 +1627,22 @@ void VmLBOCrossPrimMoments1x2vMax_P3(binOpData_t *data, binOpData_t *dataDiv,con
   data->AEM_S(15,3) = 0.421637021355784*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf; 
  
   // ... Block from correction to (self) 1st moment of collision operator ... // 
-  data->AEM_S(12,8) = -0.7071067811865475*cMSelf[0]*mnuSelf; 
-  data->AEM_S(12,9) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
-  data->AEM_S(12,10) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
-  data->AEM_S(12,11) = -0.7071067811865475*cMSelf[3]*mnuSelf; 
-  data->AEM_S(13,8) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
-  data->AEM_S(13,9) = (-0.6324555320336759*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
-  data->AEM_S(13,10) = (-0.6210590034081186*cMSelf[3]*mnuSelf)-0.6324555320336759*cMSelf[1]*mnuSelf; 
-  data->AEM_S(13,11) = -0.6210590034081186*cMSelf[2]*mnuSelf; 
-  data->AEM_S(14,8) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
-  data->AEM_S(14,9) = (-0.6210590034081186*cMSelf[3]*mnuSelf)-0.6324555320336759*cMSelf[1]*mnuSelf; 
-  data->AEM_S(14,10) = (-0.4517539514526256*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
-  data->AEM_S(14,11) = (-0.421637021355784*cMSelf[3]*mnuSelf)-0.6210590034081186*cMSelf[1]*mnuSelf; 
-  data->AEM_S(15,8) = -0.7071067811865475*cMSelf[3]*mnuSelf; 
-  data->AEM_S(15,9) = -0.6210590034081186*cMSelf[2]*mnuSelf; 
-  data->AEM_S(15,10) = (-0.421637021355784*cMSelf[3]*mnuSelf)-0.6210590034081186*cMSelf[1]*mnuSelf; 
-  data->AEM_S(15,11) = (-0.421637021355784*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
+  data->AEM_S(12,8) = -0.7071067811865475*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(12,9) = -0.7071067811865475*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(12,10) = -0.7071067811865475*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(12,11) = -0.7071067811865475*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(13,8) = -0.7071067811865475*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(13,9) = (-0.6324555320336759*cMrSelf[2]*mnuSelf)-0.7071067811865475*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(13,10) = (-0.6210590034081186*cMrSelf[3]*mnuSelf)-0.6324555320336759*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(13,11) = -0.6210590034081186*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(14,8) = -0.7071067811865475*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(14,9) = (-0.6210590034081186*cMrSelf[3]*mnuSelf)-0.6324555320336759*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(14,10) = (-0.4517539514526256*cMrSelf[2]*mnuSelf)-0.7071067811865475*cMrSelf[0]*mnuSelf; 
+  data->AEM_S(14,11) = (-0.421637021355784*cMrSelf[3]*mnuSelf)-0.6210590034081186*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(15,8) = -0.7071067811865475*cMrSelf[3]*mnuSelf; 
+  data->AEM_S(15,9) = -0.6210590034081186*cMrSelf[2]*mnuSelf; 
+  data->AEM_S(15,10) = (-0.421637021355784*cMrSelf[3]*mnuSelf)-0.6210590034081186*cMrSelf[1]*mnuSelf; 
+  data->AEM_S(15,11) = (-0.421637021355784*cMrSelf[2]*mnuSelf)-0.7071067811865475*cMrSelf[0]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherX ... // 
   data->AEM_S(12,12) = -0.7071067811865475*m0rOther[0]*mnuOther; 
@@ -1543,22 +1663,22 @@ void VmLBOCrossPrimMoments1x2vMax_P3(binOpData_t *data, binOpData_t *dataDiv,con
   data->AEM_S(15,15) = (-0.421637021355784*m0rOther[2]*mnuOther)-0.7071067811865475*m0rOther[0]*mnuOther; 
  
   // ... Block from correction to (other) 1st moment of collision operator ... // 
-  data->AEM_S(12,20) = 0.7071067811865475*cMOther[0]*mnuOther; 
-  data->AEM_S(12,21) = 0.7071067811865475*cMOther[1]*mnuOther; 
-  data->AEM_S(12,22) = 0.7071067811865475*cMOther[2]*mnuOther; 
-  data->AEM_S(12,23) = 0.7071067811865475*cMOther[3]*mnuOther; 
-  data->AEM_S(13,20) = 0.7071067811865475*cMOther[1]*mnuOther; 
-  data->AEM_S(13,21) = 0.6324555320336759*cMOther[2]*mnuOther+0.7071067811865475*cMOther[0]*mnuOther; 
-  data->AEM_S(13,22) = 0.6210590034081186*cMOther[3]*mnuOther+0.6324555320336759*cMOther[1]*mnuOther; 
-  data->AEM_S(13,23) = 0.6210590034081186*cMOther[2]*mnuOther; 
-  data->AEM_S(14,20) = 0.7071067811865475*cMOther[2]*mnuOther; 
-  data->AEM_S(14,21) = 0.6210590034081186*cMOther[3]*mnuOther+0.6324555320336759*cMOther[1]*mnuOther; 
-  data->AEM_S(14,22) = 0.4517539514526256*cMOther[2]*mnuOther+0.7071067811865475*cMOther[0]*mnuOther; 
-  data->AEM_S(14,23) = 0.421637021355784*cMOther[3]*mnuOther+0.6210590034081186*cMOther[1]*mnuOther; 
-  data->AEM_S(15,20) = 0.7071067811865475*cMOther[3]*mnuOther; 
-  data->AEM_S(15,21) = 0.6210590034081186*cMOther[2]*mnuOther; 
-  data->AEM_S(15,22) = 0.421637021355784*cMOther[3]*mnuOther+0.6210590034081186*cMOther[1]*mnuOther; 
-  data->AEM_S(15,23) = 0.421637021355784*cMOther[2]*mnuOther+0.7071067811865475*cMOther[0]*mnuOther; 
+  data->AEM_S(12,20) = 0.7071067811865475*cMrOther[0]*mnuOther; 
+  data->AEM_S(12,21) = 0.7071067811865475*cMrOther[1]*mnuOther; 
+  data->AEM_S(12,22) = 0.7071067811865475*cMrOther[2]*mnuOther; 
+  data->AEM_S(12,23) = 0.7071067811865475*cMrOther[3]*mnuOther; 
+  data->AEM_S(13,20) = 0.7071067811865475*cMrOther[1]*mnuOther; 
+  data->AEM_S(13,21) = 0.6324555320336759*cMrOther[2]*mnuOther+0.7071067811865475*cMrOther[0]*mnuOther; 
+  data->AEM_S(13,22) = 0.6210590034081186*cMrOther[3]*mnuOther+0.6324555320336759*cMrOther[1]*mnuOther; 
+  data->AEM_S(13,23) = 0.6210590034081186*cMrOther[2]*mnuOther; 
+  data->AEM_S(14,20) = 0.7071067811865475*cMrOther[2]*mnuOther; 
+  data->AEM_S(14,21) = 0.6210590034081186*cMrOther[3]*mnuOther+0.6324555320336759*cMrOther[1]*mnuOther; 
+  data->AEM_S(14,22) = 0.4517539514526256*cMrOther[2]*mnuOther+0.7071067811865475*cMrOther[0]*mnuOther; 
+  data->AEM_S(14,23) = 0.421637021355784*cMrOther[3]*mnuOther+0.6210590034081186*cMrOther[1]*mnuOther; 
+  data->AEM_S(15,20) = 0.7071067811865475*cMrOther[3]*mnuOther; 
+  data->AEM_S(15,21) = 0.6210590034081186*cMrOther[2]*mnuOther; 
+  data->AEM_S(15,22) = 0.421637021355784*cMrOther[3]*mnuOther+0.6210590034081186*cMrOther[1]*mnuOther; 
+  data->AEM_S(15,23) = 0.421637021355784*cMrOther[2]*mnuOther+0.7071067811865475*cMrOther[0]*mnuOther; 
  
   // ... Block from weak multiply of mSelf, nuSelf, (m1SelfX-uSelfX*m0Self) and uCrossSelfX ... // 
   data->AEM_S(20,0) = (-0.5*m0rSelf[3]*uSelf[3]*mnuSelf)-0.5*m0rSelf[2]*uSelf[2]*mnuSelf-0.5*m0rSelf[1]*uSelf[1]*mnuSelf-0.5*m0rSelf[0]*uSelf[0]*mnuSelf+0.7071067811865475*m1rSelf[0]*mnuSelf; 
@@ -1652,22 +1772,22 @@ void VmLBOCrossPrimMoments1x2vMax_P3(binOpData_t *data, binOpData_t *dataDiv,con
   data->AEM_S(19,7) = 0.421637021355784*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf; 
  
   // ... Block from correction to (self) 1st moment of collision operator ... // 
-  data->AEM_S(16,8) = -0.7071067811865475*cMSelf[4]*mnuSelf; 
-  data->AEM_S(16,9) = -0.7071067811865475*cMSelf[5]*mnuSelf; 
-  data->AEM_S(16,10) = -0.7071067811865475*cMSelf[6]*mnuSelf; 
-  data->AEM_S(16,11) = -0.7071067811865475*cMSelf[7]*mnuSelf; 
-  data->AEM_S(17,8) = -0.7071067811865475*cMSelf[5]*mnuSelf; 
-  data->AEM_S(17,9) = (-0.6324555320336759*cMSelf[6]*mnuSelf)-0.7071067811865475*cMSelf[4]*mnuSelf; 
-  data->AEM_S(17,10) = (-0.6210590034081186*cMSelf[7]*mnuSelf)-0.6324555320336759*cMSelf[5]*mnuSelf; 
-  data->AEM_S(17,11) = -0.6210590034081186*cMSelf[6]*mnuSelf; 
-  data->AEM_S(18,8) = -0.7071067811865475*cMSelf[6]*mnuSelf; 
-  data->AEM_S(18,9) = (-0.6210590034081186*cMSelf[7]*mnuSelf)-0.6324555320336759*cMSelf[5]*mnuSelf; 
-  data->AEM_S(18,10) = (-0.4517539514526256*cMSelf[6]*mnuSelf)-0.7071067811865475*cMSelf[4]*mnuSelf; 
-  data->AEM_S(18,11) = (-0.421637021355784*cMSelf[7]*mnuSelf)-0.6210590034081186*cMSelf[5]*mnuSelf; 
-  data->AEM_S(19,8) = -0.7071067811865475*cMSelf[7]*mnuSelf; 
-  data->AEM_S(19,9) = -0.6210590034081186*cMSelf[6]*mnuSelf; 
-  data->AEM_S(19,10) = (-0.421637021355784*cMSelf[7]*mnuSelf)-0.6210590034081186*cMSelf[5]*mnuSelf; 
-  data->AEM_S(19,11) = (-0.421637021355784*cMSelf[6]*mnuSelf)-0.7071067811865475*cMSelf[4]*mnuSelf; 
+  data->AEM_S(16,8) = -0.7071067811865475*cMrSelf[4]*mnuSelf; 
+  data->AEM_S(16,9) = -0.7071067811865475*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(16,10) = -0.7071067811865475*cMrSelf[6]*mnuSelf; 
+  data->AEM_S(16,11) = -0.7071067811865475*cMrSelf[7]*mnuSelf; 
+  data->AEM_S(17,8) = -0.7071067811865475*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(17,9) = (-0.6324555320336759*cMrSelf[6]*mnuSelf)-0.7071067811865475*cMrSelf[4]*mnuSelf; 
+  data->AEM_S(17,10) = (-0.6210590034081186*cMrSelf[7]*mnuSelf)-0.6324555320336759*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(17,11) = -0.6210590034081186*cMrSelf[6]*mnuSelf; 
+  data->AEM_S(18,8) = -0.7071067811865475*cMrSelf[6]*mnuSelf; 
+  data->AEM_S(18,9) = (-0.6210590034081186*cMrSelf[7]*mnuSelf)-0.6324555320336759*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(18,10) = (-0.4517539514526256*cMrSelf[6]*mnuSelf)-0.7071067811865475*cMrSelf[4]*mnuSelf; 
+  data->AEM_S(18,11) = (-0.421637021355784*cMrSelf[7]*mnuSelf)-0.6210590034081186*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(19,8) = -0.7071067811865475*cMrSelf[7]*mnuSelf; 
+  data->AEM_S(19,9) = -0.6210590034081186*cMrSelf[6]*mnuSelf; 
+  data->AEM_S(19,10) = (-0.421637021355784*cMrSelf[7]*mnuSelf)-0.6210590034081186*cMrSelf[5]*mnuSelf; 
+  data->AEM_S(19,11) = (-0.421637021355784*cMrSelf[6]*mnuSelf)-0.7071067811865475*cMrSelf[4]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherY ... // 
   data->AEM_S(16,16) = -0.7071067811865475*m0rOther[0]*mnuOther; 
@@ -1688,22 +1808,22 @@ void VmLBOCrossPrimMoments1x2vMax_P3(binOpData_t *data, binOpData_t *dataDiv,con
   data->AEM_S(19,19) = (-0.421637021355784*m0rOther[2]*mnuOther)-0.7071067811865475*m0rOther[0]*mnuOther; 
  
   // ... Block from correction to (other) 1st moment of collision operator ... // 
-  data->AEM_S(16,20) = 0.7071067811865475*cMOther[4]*mnuOther; 
-  data->AEM_S(16,21) = 0.7071067811865475*cMOther[5]*mnuOther; 
-  data->AEM_S(16,22) = 0.7071067811865475*cMOther[6]*mnuOther; 
-  data->AEM_S(16,23) = 0.7071067811865475*cMOther[7]*mnuOther; 
-  data->AEM_S(17,20) = 0.7071067811865475*cMOther[5]*mnuOther; 
-  data->AEM_S(17,21) = 0.6324555320336759*cMOther[6]*mnuOther+0.7071067811865475*cMOther[4]*mnuOther; 
-  data->AEM_S(17,22) = 0.6210590034081186*cMOther[7]*mnuOther+0.6324555320336759*cMOther[5]*mnuOther; 
-  data->AEM_S(17,23) = 0.6210590034081186*cMOther[6]*mnuOther; 
-  data->AEM_S(18,20) = 0.7071067811865475*cMOther[6]*mnuOther; 
-  data->AEM_S(18,21) = 0.6210590034081186*cMOther[7]*mnuOther+0.6324555320336759*cMOther[5]*mnuOther; 
-  data->AEM_S(18,22) = 0.4517539514526256*cMOther[6]*mnuOther+0.7071067811865475*cMOther[4]*mnuOther; 
-  data->AEM_S(18,23) = 0.421637021355784*cMOther[7]*mnuOther+0.6210590034081186*cMOther[5]*mnuOther; 
-  data->AEM_S(19,20) = 0.7071067811865475*cMOther[7]*mnuOther; 
-  data->AEM_S(19,21) = 0.6210590034081186*cMOther[6]*mnuOther; 
-  data->AEM_S(19,22) = 0.421637021355784*cMOther[7]*mnuOther+0.6210590034081186*cMOther[5]*mnuOther; 
-  data->AEM_S(19,23) = 0.421637021355784*cMOther[6]*mnuOther+0.7071067811865475*cMOther[4]*mnuOther; 
+  data->AEM_S(16,20) = 0.7071067811865475*cMrOther[4]*mnuOther; 
+  data->AEM_S(16,21) = 0.7071067811865475*cMrOther[5]*mnuOther; 
+  data->AEM_S(16,22) = 0.7071067811865475*cMrOther[6]*mnuOther; 
+  data->AEM_S(16,23) = 0.7071067811865475*cMrOther[7]*mnuOther; 
+  data->AEM_S(17,20) = 0.7071067811865475*cMrOther[5]*mnuOther; 
+  data->AEM_S(17,21) = 0.6324555320336759*cMrOther[6]*mnuOther+0.7071067811865475*cMrOther[4]*mnuOther; 
+  data->AEM_S(17,22) = 0.6210590034081186*cMrOther[7]*mnuOther+0.6324555320336759*cMrOther[5]*mnuOther; 
+  data->AEM_S(17,23) = 0.6210590034081186*cMrOther[6]*mnuOther; 
+  data->AEM_S(18,20) = 0.7071067811865475*cMrOther[6]*mnuOther; 
+  data->AEM_S(18,21) = 0.6210590034081186*cMrOther[7]*mnuOther+0.6324555320336759*cMrOther[5]*mnuOther; 
+  data->AEM_S(18,22) = 0.4517539514526256*cMrOther[6]*mnuOther+0.7071067811865475*cMrOther[4]*mnuOther; 
+  data->AEM_S(18,23) = 0.421637021355784*cMrOther[7]*mnuOther+0.6210590034081186*cMrOther[5]*mnuOther; 
+  data->AEM_S(19,20) = 0.7071067811865475*cMrOther[7]*mnuOther; 
+  data->AEM_S(19,21) = 0.6210590034081186*cMrOther[6]*mnuOther; 
+  data->AEM_S(19,22) = 0.421637021355784*cMrOther[7]*mnuOther+0.6210590034081186*cMrOther[5]*mnuOther; 
+  data->AEM_S(19,23) = 0.421637021355784*cMrOther[6]*mnuOther+0.7071067811865475*cMrOther[4]*mnuOther; 
  
   // ... Block from weak multiply of mSelf, nuSelf, (m1SelfY-uSelfY*m0Self) and uCrossSelfY ... // 
   data->AEM_S(20,4) = (-0.5*m0rSelf[3]*uSelf[7]*mnuSelf)-0.5*m0rSelf[2]*uSelf[6]*mnuSelf-0.5*m0rSelf[1]*uSelf[5]*mnuSelf-0.5*m0rSelf[0]*uSelf[4]*mnuSelf+0.7071067811865475*m1rSelf[4]*mnuSelf; 
@@ -1770,29 +1890,29 @@ void VmLBOCrossPrimMoments1x2vMax_P3(binOpData_t *data, binOpData_t *dataDiv,con
   { 
     unsigned short int a0 = 4*vd; 
     // Contribution to dot-product from weak multiplication of vd component. 
-    ucMSelf[0] += 0.7071067811865475*cMSelf[a0+3]*uSelf[a0+3]+0.7071067811865475*cMSelf[a0+2]*uSelf[a0+2]+0.7071067811865475*cMSelf[a0+1]*uSelf[a0+1]+0.7071067811865475*cMSelf[a0]*uSelf[a0]; 
-    ucMSelf[1] += 0.6210590034081186*cMSelf[a0+2]*uSelf[a0+3]+0.6210590034081186*uSelf[a0+2]*cMSelf[a0+3]+0.6324555320336759*cMSelf[a0+1]*uSelf[a0+2]+0.6324555320336759*uSelf[a0+1]*cMSelf[a0+2]+0.7071067811865475*cMSelf[a0]*uSelf[a0+1]+0.7071067811865475*uSelf[a0]*cMSelf[a0+1]; 
-    ucMSelf[2] += 0.421637021355784*cMSelf[a0+3]*uSelf[a0+3]+0.6210590034081186*cMSelf[a0+1]*uSelf[a0+3]+0.6210590034081186*uSelf[a0+1]*cMSelf[a0+3]+0.4517539514526256*cMSelf[a0+2]*uSelf[a0+2]+0.7071067811865475*cMSelf[a0]*uSelf[a0+2]+0.7071067811865475*uSelf[a0]*cMSelf[a0+2]+0.6324555320336759*cMSelf[a0+1]*uSelf[a0+1]; 
-    ucMSelf[3] += 0.421637021355784*cMSelf[a0+2]*uSelf[a0+3]+0.7071067811865475*cMSelf[a0]*uSelf[a0+3]+0.421637021355784*uSelf[a0+2]*cMSelf[a0+3]+0.7071067811865475*uSelf[a0]*cMSelf[a0+3]+0.6210590034081186*cMSelf[a0+1]*uSelf[a0+2]+0.6210590034081186*uSelf[a0+1]*cMSelf[a0+2]; 
+    ucMSelf[0] += 0.7071067811865475*cMrSelf[a0+3]*uSelf[a0+3]+0.7071067811865475*cMrSelf[a0+2]*uSelf[a0+2]+0.7071067811865475*cMrSelf[a0+1]*uSelf[a0+1]+0.7071067811865475*cMrSelf[a0]*uSelf[a0]; 
+    ucMSelf[1] += 0.6210590034081186*cMrSelf[a0+2]*uSelf[a0+3]+0.6210590034081186*uSelf[a0+2]*cMrSelf[a0+3]+0.6324555320336759*cMrSelf[a0+1]*uSelf[a0+2]+0.6324555320336759*uSelf[a0+1]*cMrSelf[a0+2]+0.7071067811865475*cMrSelf[a0]*uSelf[a0+1]+0.7071067811865475*uSelf[a0]*cMrSelf[a0+1]; 
+    ucMSelf[2] += 0.421637021355784*cMrSelf[a0+3]*uSelf[a0+3]+0.6210590034081186*cMrSelf[a0+1]*uSelf[a0+3]+0.6210590034081186*uSelf[a0+1]*cMrSelf[a0+3]+0.4517539514526256*cMrSelf[a0+2]*uSelf[a0+2]+0.7071067811865475*cMrSelf[a0]*uSelf[a0+2]+0.7071067811865475*uSelf[a0]*cMrSelf[a0+2]+0.6324555320336759*cMrSelf[a0+1]*uSelf[a0+1]; 
+    ucMSelf[3] += 0.421637021355784*cMrSelf[a0+2]*uSelf[a0+3]+0.7071067811865475*cMrSelf[a0]*uSelf[a0+3]+0.421637021355784*uSelf[a0+2]*cMrSelf[a0+3]+0.7071067811865475*uSelf[a0]*cMrSelf[a0+3]+0.6210590034081186*cMrSelf[a0+1]*uSelf[a0+2]+0.6210590034081186*uSelf[a0+1]*cMrSelf[a0+2]; 
   } 
  
   // ... Block from correction to (self) 2nd moment of collision operator ... // 
-  data->AEM_S(20,8) = 0.7071067811865475*ucMSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
-  data->AEM_S(20,9) = 0.7071067811865475*ucMSelf[1]*mnuSelf+1.414213562373095*m0rSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
-  data->AEM_S(20,10) = 0.7071067811865475*ucMSelf[2]*mnuSelf+1.414213562373095*m0rSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf; 
-  data->AEM_S(20,11) = 0.7071067811865475*ucMSelf[3]*mnuSelf+1.414213562373095*m0rSelf[3]*mnuSelf-0.7071067811865475*cESelf[3]*mnuSelf; 
-  data->AEM_S(21,8) = 0.7071067811865475*ucMSelf[1]*mnuSelf+1.414213562373095*m0rSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
-  data->AEM_S(21,9) = 0.6324555320336759*ucMSelf[2]*mnuSelf+1.264911064067352*m0rSelf[2]*mnuSelf-0.6324555320336759*cESelf[2]*mnuSelf+0.7071067811865475*ucMSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
-  data->AEM_S(21,10) = 0.6210590034081186*ucMSelf[3]*mnuSelf+1.242118006816237*m0rSelf[3]*mnuSelf-0.6210590034081186*cESelf[3]*mnuSelf+0.6324555320336759*ucMSelf[1]*mnuSelf+1.264911064067352*m0rSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
-  data->AEM_S(21,11) = 0.6210590034081186*ucMSelf[2]*mnuSelf+1.242118006816237*m0rSelf[2]*mnuSelf-0.6210590034081186*cESelf[2]*mnuSelf; 
-  data->AEM_S(22,8) = 0.7071067811865475*ucMSelf[2]*mnuSelf+1.414213562373095*m0rSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf; 
-  data->AEM_S(22,9) = 0.6210590034081186*ucMSelf[3]*mnuSelf+1.242118006816237*m0rSelf[3]*mnuSelf-0.6210590034081186*cESelf[3]*mnuSelf+0.6324555320336759*ucMSelf[1]*mnuSelf+1.264911064067352*m0rSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
-  data->AEM_S(22,10) = 0.4517539514526256*ucMSelf[2]*mnuSelf+0.9035079029052515*m0rSelf[2]*mnuSelf-0.4517539514526256*cESelf[2]*mnuSelf+0.7071067811865475*ucMSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
-  data->AEM_S(22,11) = 0.421637021355784*ucMSelf[3]*mnuSelf+0.8432740427115681*m0rSelf[3]*mnuSelf-0.421637021355784*cESelf[3]*mnuSelf+0.6210590034081186*ucMSelf[1]*mnuSelf+1.242118006816237*m0rSelf[1]*mnuSelf-0.6210590034081186*cESelf[1]*mnuSelf; 
-  data->AEM_S(23,8) = 0.7071067811865475*ucMSelf[3]*mnuSelf+1.414213562373095*m0rSelf[3]*mnuSelf-0.7071067811865475*cESelf[3]*mnuSelf; 
-  data->AEM_S(23,9) = 0.6210590034081186*ucMSelf[2]*mnuSelf+1.242118006816237*m0rSelf[2]*mnuSelf-0.6210590034081186*cESelf[2]*mnuSelf; 
-  data->AEM_S(23,10) = 0.421637021355784*ucMSelf[3]*mnuSelf+0.8432740427115681*m0rSelf[3]*mnuSelf-0.421637021355784*cESelf[3]*mnuSelf+0.6210590034081186*ucMSelf[1]*mnuSelf+1.242118006816237*m0rSelf[1]*mnuSelf-0.6210590034081186*cESelf[1]*mnuSelf; 
-  data->AEM_S(23,11) = 0.421637021355784*ucMSelf[2]*mnuSelf+0.8432740427115681*m0rSelf[2]*mnuSelf-0.421637021355784*cESelf[2]*mnuSelf+0.7071067811865475*ucMSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(20,8) = 0.7071067811865475*ucMSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cErSelf[0]*mnuSelf; 
+  data->AEM_S(20,9) = 0.7071067811865475*ucMSelf[1]*mnuSelf+1.414213562373095*m0rSelf[1]*mnuSelf-0.7071067811865475*cErSelf[1]*mnuSelf; 
+  data->AEM_S(20,10) = 0.7071067811865475*ucMSelf[2]*mnuSelf+1.414213562373095*m0rSelf[2]*mnuSelf-0.7071067811865475*cErSelf[2]*mnuSelf; 
+  data->AEM_S(20,11) = 0.7071067811865475*ucMSelf[3]*mnuSelf+1.414213562373095*m0rSelf[3]*mnuSelf-0.7071067811865475*cErSelf[3]*mnuSelf; 
+  data->AEM_S(21,8) = 0.7071067811865475*ucMSelf[1]*mnuSelf+1.414213562373095*m0rSelf[1]*mnuSelf-0.7071067811865475*cErSelf[1]*mnuSelf; 
+  data->AEM_S(21,9) = 0.6324555320336759*ucMSelf[2]*mnuSelf+1.264911064067352*m0rSelf[2]*mnuSelf-0.6324555320336759*cErSelf[2]*mnuSelf+0.7071067811865475*ucMSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cErSelf[0]*mnuSelf; 
+  data->AEM_S(21,10) = 0.6210590034081186*ucMSelf[3]*mnuSelf+1.242118006816237*m0rSelf[3]*mnuSelf-0.6210590034081186*cErSelf[3]*mnuSelf+0.6324555320336759*ucMSelf[1]*mnuSelf+1.264911064067352*m0rSelf[1]*mnuSelf-0.6324555320336759*cErSelf[1]*mnuSelf; 
+  data->AEM_S(21,11) = 0.6210590034081186*ucMSelf[2]*mnuSelf+1.242118006816237*m0rSelf[2]*mnuSelf-0.6210590034081186*cErSelf[2]*mnuSelf; 
+  data->AEM_S(22,8) = 0.7071067811865475*ucMSelf[2]*mnuSelf+1.414213562373095*m0rSelf[2]*mnuSelf-0.7071067811865475*cErSelf[2]*mnuSelf; 
+  data->AEM_S(22,9) = 0.6210590034081186*ucMSelf[3]*mnuSelf+1.242118006816237*m0rSelf[3]*mnuSelf-0.6210590034081186*cErSelf[3]*mnuSelf+0.6324555320336759*ucMSelf[1]*mnuSelf+1.264911064067352*m0rSelf[1]*mnuSelf-0.6324555320336759*cErSelf[1]*mnuSelf; 
+  data->AEM_S(22,10) = 0.4517539514526256*ucMSelf[2]*mnuSelf+0.9035079029052515*m0rSelf[2]*mnuSelf-0.4517539514526256*cErSelf[2]*mnuSelf+0.7071067811865475*ucMSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cErSelf[0]*mnuSelf; 
+  data->AEM_S(22,11) = 0.421637021355784*ucMSelf[3]*mnuSelf+0.8432740427115681*m0rSelf[3]*mnuSelf-0.421637021355784*cErSelf[3]*mnuSelf+0.6210590034081186*ucMSelf[1]*mnuSelf+1.242118006816237*m0rSelf[1]*mnuSelf-0.6210590034081186*cErSelf[1]*mnuSelf; 
+  data->AEM_S(23,8) = 0.7071067811865475*ucMSelf[3]*mnuSelf+1.414213562373095*m0rSelf[3]*mnuSelf-0.7071067811865475*cErSelf[3]*mnuSelf; 
+  data->AEM_S(23,9) = 0.6210590034081186*ucMSelf[2]*mnuSelf+1.242118006816237*m0rSelf[2]*mnuSelf-0.6210590034081186*cErSelf[2]*mnuSelf; 
+  data->AEM_S(23,10) = 0.421637021355784*ucMSelf[3]*mnuSelf+0.8432740427115681*m0rSelf[3]*mnuSelf-0.421637021355784*cErSelf[3]*mnuSelf+0.6210590034081186*ucMSelf[1]*mnuSelf+1.242118006816237*m0rSelf[1]*mnuSelf-0.6210590034081186*cErSelf[1]*mnuSelf; 
+  data->AEM_S(23,11) = 0.421637021355784*ucMSelf[2]*mnuSelf+0.8432740427115681*m0rSelf[2]*mnuSelf-0.421637021355784*cErSelf[2]*mnuSelf+0.7071067811865475*ucMSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf-0.7071067811865475*cErSelf[0]*mnuSelf; 
  
   double ucMOther[4]; 
   // Zero out array with dot product of uOther and cMOther. 
@@ -1804,29 +1924,29 @@ void VmLBOCrossPrimMoments1x2vMax_P3(binOpData_t *data, binOpData_t *dataDiv,con
   { 
     unsigned short int a0 = 4*vd; 
     // Contribution to dot-product from weak multiplication of vd component. 
-    ucMOther[0] += 0.7071067811865475*cMOther[a0+3]*uOther[a0+3]+0.7071067811865475*cMOther[a0+2]*uOther[a0+2]+0.7071067811865475*cMOther[a0+1]*uOther[a0+1]+0.7071067811865475*cMOther[a0]*uOther[a0]; 
-    ucMOther[1] += 0.6210590034081186*cMOther[a0+2]*uOther[a0+3]+0.6210590034081186*uOther[a0+2]*cMOther[a0+3]+0.6324555320336759*cMOther[a0+1]*uOther[a0+2]+0.6324555320336759*uOther[a0+1]*cMOther[a0+2]+0.7071067811865475*cMOther[a0]*uOther[a0+1]+0.7071067811865475*uOther[a0]*cMOther[a0+1]; 
-    ucMOther[2] += 0.421637021355784*cMOther[a0+3]*uOther[a0+3]+0.6210590034081186*cMOther[a0+1]*uOther[a0+3]+0.6210590034081186*uOther[a0+1]*cMOther[a0+3]+0.4517539514526256*cMOther[a0+2]*uOther[a0+2]+0.7071067811865475*cMOther[a0]*uOther[a0+2]+0.7071067811865475*uOther[a0]*cMOther[a0+2]+0.6324555320336759*cMOther[a0+1]*uOther[a0+1]; 
-    ucMOther[3] += 0.421637021355784*cMOther[a0+2]*uOther[a0+3]+0.7071067811865475*cMOther[a0]*uOther[a0+3]+0.421637021355784*uOther[a0+2]*cMOther[a0+3]+0.7071067811865475*uOther[a0]*cMOther[a0+3]+0.6210590034081186*cMOther[a0+1]*uOther[a0+2]+0.6210590034081186*uOther[a0+1]*cMOther[a0+2]; 
+    ucMOther[0] += 0.7071067811865475*cMrOther[a0+3]*uOther[a0+3]+0.7071067811865475*cMrOther[a0+2]*uOther[a0+2]+0.7071067811865475*cMrOther[a0+1]*uOther[a0+1]+0.7071067811865475*cMrOther[a0]*uOther[a0]; 
+    ucMOther[1] += 0.6210590034081186*cMrOther[a0+2]*uOther[a0+3]+0.6210590034081186*uOther[a0+2]*cMrOther[a0+3]+0.6324555320336759*cMrOther[a0+1]*uOther[a0+2]+0.6324555320336759*uOther[a0+1]*cMrOther[a0+2]+0.7071067811865475*cMrOther[a0]*uOther[a0+1]+0.7071067811865475*uOther[a0]*cMrOther[a0+1]; 
+    ucMOther[2] += 0.421637021355784*cMrOther[a0+3]*uOther[a0+3]+0.6210590034081186*cMrOther[a0+1]*uOther[a0+3]+0.6210590034081186*uOther[a0+1]*cMrOther[a0+3]+0.4517539514526256*cMrOther[a0+2]*uOther[a0+2]+0.7071067811865475*cMrOther[a0]*uOther[a0+2]+0.7071067811865475*uOther[a0]*cMrOther[a0+2]+0.6324555320336759*cMrOther[a0+1]*uOther[a0+1]; 
+    ucMOther[3] += 0.421637021355784*cMrOther[a0+2]*uOther[a0+3]+0.7071067811865475*cMrOther[a0]*uOther[a0+3]+0.421637021355784*uOther[a0+2]*cMrOther[a0+3]+0.7071067811865475*uOther[a0]*cMrOther[a0+3]+0.6210590034081186*cMrOther[a0+1]*uOther[a0+2]+0.6210590034081186*uOther[a0+1]*cMrOther[a0+2]; 
   } 
  
   // ... Block from correction to (other) 2nd moment of collision operator ... // 
-  data->AEM_S(20,20) = (-0.7071067811865475*ucMOther[0]*mnuOther)-1.414213562373095*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
-  data->AEM_S(20,21) = (-0.7071067811865475*ucMOther[1]*mnuOther)-1.414213562373095*m0rOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
-  data->AEM_S(20,22) = (-0.7071067811865475*ucMOther[2]*mnuOther)-1.414213562373095*m0rOther[2]*mnuOther+0.7071067811865475*cEOther[2]*mnuOther; 
-  data->AEM_S(20,23) = (-0.7071067811865475*ucMOther[3]*mnuOther)-1.414213562373095*m0rOther[3]*mnuOther+0.7071067811865475*cEOther[3]*mnuOther; 
-  data->AEM_S(21,20) = (-0.7071067811865475*ucMOther[1]*mnuOther)-1.414213562373095*m0rOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
-  data->AEM_S(21,21) = (-0.6324555320336759*ucMOther[2]*mnuOther)-1.264911064067352*m0rOther[2]*mnuOther+0.6324555320336759*cEOther[2]*mnuOther-0.7071067811865475*ucMOther[0]*mnuOther-1.414213562373095*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
-  data->AEM_S(21,22) = (-0.6210590034081186*ucMOther[3]*mnuOther)-1.242118006816237*m0rOther[3]*mnuOther+0.6210590034081186*cEOther[3]*mnuOther-0.6324555320336759*ucMOther[1]*mnuOther-1.264911064067352*m0rOther[1]*mnuOther+0.6324555320336759*cEOther[1]*mnuOther; 
-  data->AEM_S(21,23) = (-0.6210590034081186*ucMOther[2]*mnuOther)-1.242118006816237*m0rOther[2]*mnuOther+0.6210590034081186*cEOther[2]*mnuOther; 
-  data->AEM_S(22,20) = (-0.7071067811865475*ucMOther[2]*mnuOther)-1.414213562373095*m0rOther[2]*mnuOther+0.7071067811865475*cEOther[2]*mnuOther; 
-  data->AEM_S(22,21) = (-0.6210590034081186*ucMOther[3]*mnuOther)-1.242118006816237*m0rOther[3]*mnuOther+0.6210590034081186*cEOther[3]*mnuOther-0.6324555320336759*ucMOther[1]*mnuOther-1.264911064067352*m0rOther[1]*mnuOther+0.6324555320336759*cEOther[1]*mnuOther; 
-  data->AEM_S(22,22) = (-0.4517539514526256*ucMOther[2]*mnuOther)-0.9035079029052515*m0rOther[2]*mnuOther+0.4517539514526256*cEOther[2]*mnuOther-0.7071067811865475*ucMOther[0]*mnuOther-1.414213562373095*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
-  data->AEM_S(22,23) = (-0.421637021355784*ucMOther[3]*mnuOther)-0.8432740427115681*m0rOther[3]*mnuOther+0.421637021355784*cEOther[3]*mnuOther-0.6210590034081186*ucMOther[1]*mnuOther-1.242118006816237*m0rOther[1]*mnuOther+0.6210590034081186*cEOther[1]*mnuOther; 
-  data->AEM_S(23,20) = (-0.7071067811865475*ucMOther[3]*mnuOther)-1.414213562373095*m0rOther[3]*mnuOther+0.7071067811865475*cEOther[3]*mnuOther; 
-  data->AEM_S(23,21) = (-0.6210590034081186*ucMOther[2]*mnuOther)-1.242118006816237*m0rOther[2]*mnuOther+0.6210590034081186*cEOther[2]*mnuOther; 
-  data->AEM_S(23,22) = (-0.421637021355784*ucMOther[3]*mnuOther)-0.8432740427115681*m0rOther[3]*mnuOther+0.421637021355784*cEOther[3]*mnuOther-0.6210590034081186*ucMOther[1]*mnuOther-1.242118006816237*m0rOther[1]*mnuOther+0.6210590034081186*cEOther[1]*mnuOther; 
-  data->AEM_S(23,23) = (-0.421637021355784*ucMOther[2]*mnuOther)-0.8432740427115681*m0rOther[2]*mnuOther+0.421637021355784*cEOther[2]*mnuOther-0.7071067811865475*ucMOther[0]*mnuOther-1.414213562373095*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(20,20) = (-0.7071067811865475*ucMOther[0]*mnuOther)-1.414213562373095*m0rOther[0]*mnuOther+0.7071067811865475*cErOther[0]*mnuOther; 
+  data->AEM_S(20,21) = (-0.7071067811865475*ucMOther[1]*mnuOther)-1.414213562373095*m0rOther[1]*mnuOther+0.7071067811865475*cErOther[1]*mnuOther; 
+  data->AEM_S(20,22) = (-0.7071067811865475*ucMOther[2]*mnuOther)-1.414213562373095*m0rOther[2]*mnuOther+0.7071067811865475*cErOther[2]*mnuOther; 
+  data->AEM_S(20,23) = (-0.7071067811865475*ucMOther[3]*mnuOther)-1.414213562373095*m0rOther[3]*mnuOther+0.7071067811865475*cErOther[3]*mnuOther; 
+  data->AEM_S(21,20) = (-0.7071067811865475*ucMOther[1]*mnuOther)-1.414213562373095*m0rOther[1]*mnuOther+0.7071067811865475*cErOther[1]*mnuOther; 
+  data->AEM_S(21,21) = (-0.6324555320336759*ucMOther[2]*mnuOther)-1.264911064067352*m0rOther[2]*mnuOther+0.6324555320336759*cErOther[2]*mnuOther-0.7071067811865475*ucMOther[0]*mnuOther-1.414213562373095*m0rOther[0]*mnuOther+0.7071067811865475*cErOther[0]*mnuOther; 
+  data->AEM_S(21,22) = (-0.6210590034081186*ucMOther[3]*mnuOther)-1.242118006816237*m0rOther[3]*mnuOther+0.6210590034081186*cErOther[3]*mnuOther-0.6324555320336759*ucMOther[1]*mnuOther-1.264911064067352*m0rOther[1]*mnuOther+0.6324555320336759*cErOther[1]*mnuOther; 
+  data->AEM_S(21,23) = (-0.6210590034081186*ucMOther[2]*mnuOther)-1.242118006816237*m0rOther[2]*mnuOther+0.6210590034081186*cErOther[2]*mnuOther; 
+  data->AEM_S(22,20) = (-0.7071067811865475*ucMOther[2]*mnuOther)-1.414213562373095*m0rOther[2]*mnuOther+0.7071067811865475*cErOther[2]*mnuOther; 
+  data->AEM_S(22,21) = (-0.6210590034081186*ucMOther[3]*mnuOther)-1.242118006816237*m0rOther[3]*mnuOther+0.6210590034081186*cErOther[3]*mnuOther-0.6324555320336759*ucMOther[1]*mnuOther-1.264911064067352*m0rOther[1]*mnuOther+0.6324555320336759*cErOther[1]*mnuOther; 
+  data->AEM_S(22,22) = (-0.4517539514526256*ucMOther[2]*mnuOther)-0.9035079029052515*m0rOther[2]*mnuOther+0.4517539514526256*cErOther[2]*mnuOther-0.7071067811865475*ucMOther[0]*mnuOther-1.414213562373095*m0rOther[0]*mnuOther+0.7071067811865475*cErOther[0]*mnuOther; 
+  data->AEM_S(22,23) = (-0.421637021355784*ucMOther[3]*mnuOther)-0.8432740427115681*m0rOther[3]*mnuOther+0.421637021355784*cErOther[3]*mnuOther-0.6210590034081186*ucMOther[1]*mnuOther-1.242118006816237*m0rOther[1]*mnuOther+0.6210590034081186*cErOther[1]*mnuOther; 
+  data->AEM_S(23,20) = (-0.7071067811865475*ucMOther[3]*mnuOther)-1.414213562373095*m0rOther[3]*mnuOther+0.7071067811865475*cErOther[3]*mnuOther; 
+  data->AEM_S(23,21) = (-0.6210590034081186*ucMOther[2]*mnuOther)-1.242118006816237*m0rOther[2]*mnuOther+0.6210590034081186*cErOther[2]*mnuOther; 
+  data->AEM_S(23,22) = (-0.421637021355784*ucMOther[3]*mnuOther)-0.8432740427115681*m0rOther[3]*mnuOther+0.421637021355784*cErOther[3]*mnuOther-0.6210590034081186*ucMOther[1]*mnuOther-1.242118006816237*m0rOther[1]*mnuOther+0.6210590034081186*cErOther[1]*mnuOther; 
+  data->AEM_S(23,23) = (-0.421637021355784*ucMOther[2]*mnuOther)-0.8432740427115681*m0rOther[2]*mnuOther+0.421637021355784*cErOther[2]*mnuOther-0.7071067811865475*ucMOther[0]*mnuOther-1.414213562373095*m0rOther[0]*mnuOther+0.7071067811865475*cErOther[0]*mnuOther; 
  
   double kinESelf[4]; 
   // zero out array with dot product of u and m1. 

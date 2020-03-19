@@ -155,6 +155,10 @@ function RectCart:id() return "uniform" end
 function RectCart:commSet() return self._commSet end 
 function RectCart:isShared() return self._isShared end
 function RectCart:subGridId() return self._block end
+function RectCart:subGridIdByDim(idx) 
+   local invIdxr = self._decomposedRange:cutsInvIndexer()
+   invIdxr(self._block, idx)
+end
 function RectCart:numSharedProcs()
    return Mpi.Comm_size(self._commSet.sharedComm)
 end
@@ -240,10 +244,10 @@ function RectCart:calcContraMetric(xc, gOut)
    if self._ndim == 1 then
       gOut[1] = 1.0 -- g_11
    elseif self._ndim == 2 then
-      -- g_11, g_12, g_22
+      -- g^11, g^12, g^22
       gOut[1], gOut[2], gOut[3] = 1.0, 0.0, 1.0
    elseif self._ndim == 3 then
-      -- g_11, g_12, g_13, g_22, g_23, g_33
+      -- g^11, g^12, g^13, g^22, g^23, g^33
       gOut[1], gOut[2], gOut[3], gOut[4], gOut[5], gOut[6] = 1.0, 0.0, 0.0, 1.0, 0.0, 1.0
    else
       assert(false, "RectCart:calcContraMetric does not support more than 3 dimensions!")

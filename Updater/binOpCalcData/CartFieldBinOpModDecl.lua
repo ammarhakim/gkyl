@@ -16,10 +16,17 @@ local _M = {}
 
 -- Select kernel function to compute specified operation
 -- between inputs with same dimensionality.
-function _M.selectBinOpCalcS(op, basisNm, CDIM, polyOrder, applyPos)
+function _M.selectBinOpCalcS(op, basisNm, CDIM, VDIM, polyOrder, applyPos, inclVx2)
    local posString = ""
    if (applyPos and op=="Divide") then posString = "Positivity" end
-   local funcNm = string.format("CartFieldBinOp%s%s%dx%s_P%d", op, posString, CDIM, basisNmMap[basisNm], polyOrder)
+   local funcNm
+   if VDIM then 
+      local inclVx2str = ""
+      if inclVx2 and polyOrder==1 then inclVx2str = "InclVx2" end
+      funcNm = string.format("CartFieldBinOp%s%s%dx%dv%s_P%d", op, posString, CDIM, VDIM, basisNmMap[basisNm], inclVx2str, polyOrder)
+   else
+      funcNm = string.format("CartFieldBinOp%s%s%dx%s_P%d", op, posString, CDIM, basisNmMap[basisNm], polyOrder)
+   end
    return ffi.C[funcNm]
 end
 
@@ -28,7 +35,7 @@ end
 function _M.selectBinOpCalcD(op, basisNm, CDIM, VDIM, polyOrder, inclVx2)
    local inclVx2str = ""
    if inclVx2 and polyOrder==1 then inclVx2str = "InclVx2" end
-   local funcNm = string.format("CartFieldBinOp%s%dx%dv%s%s_P%d", op, CDIM, VDIM, basisNmMap[basisNm], inclVx2str, polyOrder)
+   local funcNm = string.format("CartFieldBinOpConfPhase%s%dx%dv%s_P%d", op, CDIM, VDIM, basisNmMap[basisNm], inclVx2str, polyOrder)
    return ffi.C[funcNm]
 end
 

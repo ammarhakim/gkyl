@@ -75,6 +75,8 @@ function DecomposedRange:cuts(dir) return self._cutsRange:upper(dir) end
 function DecomposedRange:numSubDomains() return self._cutsRange:volume() end
 function DecomposedRange:subDomain(k) return self._domains[k] end
 function DecomposedRange:boundarySubDomainIds(dir) return self._periodicDomPairs[dir] end
+function DecomposedRange:cutsIndexer() return Range.makeColMajorGenIndexer(self._cutsRange) end
+function DecomposedRange:cutsInvIndexer() return Range.makeColMajorInvIndexer(self._cutsRange) end
 
 -- CartProdDecomp --------------------------------------------------------------
 --

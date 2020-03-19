@@ -49,7 +49,7 @@ function GkField:fullInit(appTbl)
 
    self.ioFrame = 0 -- Frame number for IO.
 
-   self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
+   self.writeSkin = xsys.pickBool(appTbl.writeSkin, false)
 
    -- Get boundary condition settings.
    -- These will be checked for consistency when the solver is initialized.
@@ -475,7 +475,7 @@ function GkField:createDiagnostics()
    self.fieldIo = AdiosCartFieldIo {
       elemType   = self.potentials[1].phi:elemType(),
       method     = self.ioMethod,
-      writeGhost = self.writeGhost,
+      writeSkin = self.writeSkin,
       metaData   = {
 	 polyOrder = self.basis:polyOrder(),
 	 basisType = self.basis:id()

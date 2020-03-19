@@ -47,14 +47,19 @@ ffi.cdef[[
 -- Projection updater object.
 local EvalOnNodes = Proto(UpdaterBase)
 
+function EvalOnNodes:setFunc(func)
+   self._evaluate = func
+end
+
 function EvalOnNodes:init(tbl)
    EvalOnNodes.super.init(self, tbl) -- Setup base object.
 
-   self._isFirst  = true -- For use in advance().
+   self._isFirst = true -- For use in advance().
 
-   self._onGrid   = assert(tbl.onGrid, "Updater.EvalOnNodes: Must provide grid object using 'onGrid'")
-   self._basis    = assert(tbl.basis, "Updater.EvalOnNodes: Must specify basis functions to use using 'basis'")
-   self._evaluate = assert(tbl.evaluate, "Updater.EvalOnNodes: Must specify function to project using 'evaluate'")
+   self._onGrid  = assert(tbl.onGrid, "Updater.EvalOnNodes: Must provide grid object using 'onGrid'")
+   self._basis   = assert(tbl.basis, "Updater.EvalOnNodes: Must specify basis functions to use using 'basis'")
+   local ev      = assert(tbl.evaluate, "Updater.EvalOnNodes: Must specify function to project using 'evaluate'")
+   self:setFunc(ev)
 
    assert(self._onGrid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
 

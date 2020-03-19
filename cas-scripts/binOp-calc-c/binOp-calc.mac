@@ -14,24 +14,24 @@ load(stringproc)$
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 2$
-minCdim_Ser : 3$
+minCdim_Ser : 1$
 minVdim_Ser : 1$
 maxCdim_Ser : 3$
-maxVdim_Ser : 0$
+maxVdim_Ser : 3$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 2$
 minCdim_Max : 1$
 minVdim_Max : 1$
-maxCdim_Max : 0$
-maxVdim_Max : 0$
+maxCdim_Max : 3$
+maxVdim_Max : 3$
 
 /* Tensor product basis. */
 maxPolyOrder_Tensor : 2$
 minCdim_Tensor : 1$
 minVdim_Tensor : 1$
-maxCdim_Tensor : 0$
-maxVdim_Tensor : 0$
+maxCdim_Tensor : 2$
+maxVdim_Tensor : 2$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -45,109 +45,101 @@ maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
 for bInd : 1 thru length(bName) do (
   /* Generate kernels for operations between two fields defined on
      spaces with same dimensions (1D, 2D, 3D). */
-     
-  for c : minCdim[bInd] thru maxCdim[bInd] do (
-    fname : sconcat("~/max-out/CartFieldBinOp", bName[bInd], c, "x", ".cpp"),
-    fh : openw(fname),
-  
-    disp(printf(false,sconcat("Creating ~ax ", bName[bInd]),c)),
-  
-    printf(fh, "#include <math.h> ~%"),
-    printf(fh, "#include <CartFieldBinOpModDecl.h> ~%"),
-    printf(fh, " ~%"),
-    printf(fh, "using namespace Eigen; ~%"),
-    printf(fh, " ~%"),
-    
-    funcName : sconcat("CartFieldBinOpMultiply", c, "x", bName[bInd]),
-    disp(printf(false,sconcat("Working on CartFieldBinOpMultiply", c, "x", bName[bInd]))),
-    calcBinOpMultiplyS(fh, funcName, c, bName[bInd],maxPolyOrder[bInd]),
-    
-    usePositivity : false,
-    funcName : sconcat("CartFieldBinOpDivide", c, "x", bName[bInd]),
-    disp(printf(false,sconcat("Working on CartFieldBinOpDivide", c, "x", bName[bInd]))),
-    calcBinOpDivideS(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], usePositivity),
-
-    if (bName[bInd]="Ser") then (
-      usePositivity : true,
-      funcName : sconcat("CartFieldBinOpDividePositivity", c, "x", bName[bInd]),
-      disp(printf(false,sconcat("Working on CartFieldBinOpDividePositivity", c, "x", bName[bInd]))),
-      calcBinOpDivideS(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], usePositivity)
-    ),
-   
-    funcName : sconcat("CartFieldBinOpDotProduct", c, "x", bName[bInd]),
-    disp(printf(false,sconcat("Working on CartFieldBinOpDotProduct", c, "x", bName[bInd]))),
-    calcBinOpDotProduct(fh, funcName, c, bName[bInd],maxPolyOrder[bInd]),
-   
-    close(fh)
-  ),
-  
-  
-  /* Kernels for operations between two fields defined on
-     spaces with different dimensions, mostly for operations between
-     a configuration space field and a phase space field. */
-  for c : minCdim[bInd] thru maxCdim[bInd] do (
-    for v : c thru maxVdim[bInd] do (
-      fname : sconcat("~/max-out/CartFieldBinOp", bName[bInd], c, "x", v, "v",".cpp"),
+  for polyOrder : 1 thru maxPolyOrder[bInd] do (
+    for c : minCdim[bInd] thru maxCdim[bInd] do (
+      fname : sconcat("~/max-out/CartFieldBinOp", bName[bInd], c, "xP", polyOrder, ".cpp"),
       fh : openw(fname),
-  
-      disp(printf(false,sconcat("Creating ~ax~av ", bName[bInd]),c,v)),
-  
+    
+      disp(printf(false,sconcat("Creating ~ax ", bName[bInd]),c)),
+    
       printf(fh, "#include <math.h> ~%"),
       printf(fh, "#include <CartFieldBinOpModDecl.h> ~%"),
       printf(fh, " ~%"),
       printf(fh, "using namespace Eigen; ~%"),
       printf(fh, " ~%"),
-     
-      funcName : sconcat("CartFieldBinOpMultiply", c, "x", v, "v", bName[bInd]),
-      calcBinOpMultiplyD(fh, funcName, c, v, bName[bInd],maxPolyOrder[bInd], false), 
-
-      funcName : sconcat("CartFieldBinOpMultiply", c, "x", v, "v", bName[bInd], "InclVx2"),
-      calcBinOpMultiplyD(fh, funcName, c, v, bName[bInd], 1, true), 
-  
-      funcName : sconcat("CartFieldBinOpDivide", c, "x", v, "v", bName[bInd]),
-      calcBinOpDivideD(fh, funcName, c, v, bName[bInd],maxPolyOrder[bInd], false),
-
-      funcName : sconcat("CartFieldBinOpDivide", c, "x", v, "v", bName[bInd], "InclVx2"),
-      calcBinOpDivideD(fh, funcName, c, v, bName[bInd], 1, true),
-  
-      close(fh)
-    )
-  )
-  
-  
-  /* Generate the 3x2v case (mostly for gyrokinetics). */
+      
+      funcName : sconcat("CartFieldBinOpMultiply", c, "x", bName[bInd]),
+      disp(printf(false,sconcat("Working on CartFieldBinOpMultiply", c, "x", bName[bInd]))),
+      calcBinOpConfMultiply(fh, funcName, c, bName[bInd],polyOrder),
+      
+      usePositivity : false,
+      funcName : sconcat("CartFieldBinOpDivide", c, "x", bName[bInd]),
+      disp(printf(false,sconcat("Working on CartFieldBinOpDivide", c, "x", bName[bInd]))),
+      calcBinOpConfDivide(fh, funcName, c, bName[bInd], polyOrder, usePositivity),
 
 /*
-  if bName[bInd]="Ser" or bName[bInd]="Max" then (
-  c : 3,
-  v : 2,
-  disp(printf(false,sconcat("Creating ~ax~av ", bName[bInd]),c,v)),
-  
-  fname : sconcat("~/max-out/CartFieldBinOp", bName[bInd], c, "x", v, "v", ".cpp"),
-  fh : openw(fname),
-  
-  printf(fh, "#include <math.h> ~%"),
-  printf(fh, "#include <CartFieldBinOpModDecl.h> ~%"),
-  printf(fh, " ~%"),
-  printf(fh, "using namespace Eigen; ~%"),
-  printf(fh, " ~%"),
-
-  funcName : sconcat("CartFieldBinOpMultiply", c, "x", v, "v", bName[bInd]),
-  calcBinOpMultiplyD(fh, funcName, c, v, bName[bInd],maxPolyOrder[bInd], false), 
-  
-  funcName : sconcat("CartFieldBinOpMultiply", c, "x", v, "v", bName[bInd], "InclVx2"),
-  calcBinOpMultiplyD(fh, funcName, c, v, bName[bInd], 1, true),
+      if (bName[bInd]="Ser" and polyOrder=1) then (
+        usePositivity : true,
+        funcName : sconcat("CartFieldBinOpDividePositivity", c, "x", bName[bInd]),
+        disp(printf(false,sconcat("Working on CartFieldBinOpDividePositivity", c, "x", bName[bInd]))),
+        calcBinOpConfDivide(fh, funcName, c, bName[bInd], polyOrder, usePositivity)
+      ),
+*/
      
-  funcName : sconcat("CartFieldBinOpDivide", c, "x", v, "v", bName[bInd]),
-  calcBinOpDivideD(fh, funcName, c, v, bName[bInd],maxPolyOrder[bInd], false),
-
-  funcName : sconcat("CartFieldBinOpDivide", c, "x", v, "v", bName[bInd], "InclVx2"),
-  calcBinOpDivideD(fh, funcName, c, v, bName[bInd], 1, true),
+      funcName : sconcat("CartFieldBinOpDotProduct", c, "x", bName[bInd]),
+      disp(printf(false,sconcat("Working on CartFieldBinOpDotProduct", c, "x", bName[bInd]))),
+      calcBinOpDotProduct(fh, funcName, c, bName[bInd],polyOrder),
+     
+      close(fh)
+    ),
   
-  close(fh)
+    for c : minCdim[bInd] thru maxCdim[bInd] do (
+      for v : min(2,c) thru maxVdim[bInd] do (
+        if(not (c+v>4 and polyOrder > 1)) then (
+          fname : sconcat("~/max-out/CartFieldBinOp", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
+          fh : openw(fname),
+    
+          disp(printf(false,sconcat("Creating ~ax~av ", bName[bInd]),c,v)),
+    
+          printf(fh, "#include <math.h> ~%"),
+          printf(fh, "#include <CartFieldBinOpModDecl.h> ~%"),
+          printf(fh, " ~%"),
+          printf(fh, "using namespace Eigen; ~%"),
+          printf(fh, " ~%"),
+
+          /* Kernels for operations between two fields defined
+             on the same (phase) space. */
+          inclVx2 : false,
+          funcName : sconcat("CartFieldBinOpMultiply", c, "x", v, "v", bName[bInd]),
+          disp(printf(false,sconcat("Working on CartFieldBinOpMultiply", c, "x", v, "v", bName[bInd]))),
+          calcBinOpPhasePhaseMultiply(fh, funcName, c, v, bName[bInd],polyOrder, inclVx2),
+       
+          /* Kernels for operations between two fields defined on
+             spaces with different dimensions, i.e. operations between
+             a configuration space field and a phase space field. */
+          funcName : sconcat("CartFieldBinOpConfPhaseMultiply", c, "x", v, "v", bName[bInd]),
+          disp(printf(false,sconcat("Working on CartFieldBinOpConfPhaseMultiply", c, "x", v, "v", bName[bInd]))),
+          calcBinOpConfPhaseMultiply(fh, funcName, c, v, bName[bInd],polyOrder, inclVx2), 
+
+          funcName : sconcat("CartFieldBinOpConfPhaseDivide", c, "x", v, "v", bName[bInd]),
+          disp(printf(false,sconcat("Working on CartFieldBinOpConfPhaseDivide", c, "x", v, "v", bName[bInd]))),
+          calcBinOpConfPhaseDivide(fh, funcName, c, v, bName[bInd],polyOrder, inclVx2),
+
+          /* Make kernels that include an extra vx^2 basis element for Ser p=1 */
+          if(bName[bInd]="Ser" and polyOrder=1) then (
+            inclVx2 : true,
+            /* Kernels for operations between two fields defined
+               on the same (phase) space. */
+            funcName : sconcat("CartFieldBinOpMultiply", c, "x", v, "v", bName[bInd], "InclVx2"),
+            disp(printf(false,sconcat("Working on CartFieldBinOpMultiply", c, "x", v, "v", bName[bInd], "InclVx2"))),
+            calcBinOpPhasePhaseMultiply(fh, funcName, c, v, bName[bInd],polyOrder, inclVx2),
+
+            /* Kernels for operations between two fields defined on
+               spaces with different dimensions, i.e. operations between
+               a configuration space field and a phase space field. */
+            funcName : sconcat("CartFieldBinOpConfPhaseMultiply", c, "x", v, "v", bName[bInd], "InclVx2"),
+            disp(printf(false,sconcat("Working on CartFieldBinOpConfPhaseMultiply", c, "x", v, "v", bName[bInd], "InclVx2"))),
+            calcBinOpConfPhaseMultiply(fh, funcName, c, v, bName[bInd],polyOrder, inclVx2), 
+    
+            funcName : sconcat("CartFieldBinOpConfPhaseDivide", c, "x", v, "v", bName[bInd], "InclVx2"),
+            disp(printf(false,sconcat("Working on CartFieldBinOpConfPhaseDivide", c, "x", v, "v", bName[bInd], "InclVx2"))),
+            calcBinOpConfPhaseDivide(fh, funcName, c, v, bName[bInd],polyOrder, inclVx2)
+          ),
+    
+          close(fh)
+        )
+      )
+    )
   )
-  */
-
-  
 )$
 

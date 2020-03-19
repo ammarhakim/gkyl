@@ -11,6 +11,7 @@
 load("modal-basis");
 load("out-scripts");
 load(stringproc)$
+load("fem-calc/femMatrices");
 fpprec : 24$
 
 VarsC : [X, Y, Z]$
@@ -76,35 +77,19 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
        use the cell average m0 when m0<0 at one of the corners. */
     printf(fh, "  // If a corner value is below zero, use cell average m0.~%"),
     printf(fh, "  bool cellAvg = false;~%"),
-    for v1 : -1 step 2 thru 1 do (
-      cornerA : subst(varsC[1]=v1,doExpand1(m0,bC)),
-      if cdim > 1 then (
-        for v2 : -1 step 2 thru 1 do (
-          cornerA : subst(varsC[2]=v2,cornerA),
-          if cdim > 2 then (
-            for v3 : -1 step 2 thru 1 do (
-              cornerA : subst(varsC[3]=v3,cornerA),
-              printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
-              printf(fh, "    cellAvg = true;~%"),
-              printf(fh, "  }~%")
-            )
-          ) else (
-            printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
-            printf(fh, "    cellAvg = true;~%"),
-            printf(fh, "  }~%")
-          )
-        )
-      ) else (
-        printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
-        printf(fh, "    cellAvg = true;~%"),
-        printf(fh, "  }~%")
-      )
+    nodes : eval_string(sconcat("nodes", cdim, "xp", 1)),
+    nodesub(f):=makelist(subst(makelist(varsC[j]=nodes[i][j],j,1,length(varsC)),f),i,1,length(nodes)),
+    m0Corners : gcfac(float(fullratsimp(nodesub(doExpand1(m0,bC))))),
+    for i : 1 thru length(nodes) do (
+      printf(fh, "  if (~a < 0) cellAvg = true; ~%", m0Corners[i])
     ),
     printf(fh, " ~%"),
 
-    /* Declare new buffers where moments and star moments are stored. */
+    /* Declare new buffers where moments, star moments and boundary corrections are stored. */
     printf(fh, "  double m0r[~a]; ~%", NC),
     printf(fh, "  double m1r[~a]; ~%", udim*NC),
+    printf(fh, "  double cMr[~a]; ~%", udim*NC),
+    printf(fh, "  double cEr[~a]; ~%", NC),
     if (polyOrder=1 and species#"Gk") then (
       printf(fh, "  double m0Sr[~a]; ~%", NC),
       printf(fh, "  double m1Sr[~a]; ~%", udim*NC),
@@ -120,8 +105,13 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       expr : float(expand(append([m1[(vd-1)*NC]],makelist(0.0,i,1,NC-1)))),
       for i : 1 thru length(expr) do (
         printf(fh, "    ~a = ~a; ~%", m1r[(vd-1)*NC+i-1], expr[i])
+      ),
+      expr : float(expand(append([cM[(vd-1)*NC]],makelist(0.0,i,1,NC-1)))),
+      for i : 1 thru length(expr) do (
+        printf(fh, "    ~a = ~a; ~%", cMr[(vd-1)*NC+i-1], expr[i])
       )
     ),
+    writeCExprs1s(cEr,append([cE[0]],makelist(0.0,i,1,NC-1))),
     if (polyOrder=1 and species#"Gk") then (
       /* Piecewise linear: use cell average of star moments. */
       writeCExprs1s(m0Sr,append([m0S[0]],makelist(0.0,i,1,NC-1))),
@@ -140,6 +130,8 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /* Use the original expansion polynomial. */
     writeCExprs1s(m0r,makelist(m0[i],i,0,NC-1)),
     writeCExprs1s(m1r,makelist(m1[i],i,0,udim*NC-1)),
+    writeCExprs1s(cMr,makelist(cM[i],i,0,udim*NC-1)),
+    writeCExprs1s(cEr,makelist(cE[i],i,0,NC-1)),
     if (polyOrder=1 and species#"Gk") then (
       writeCExprs1s(m0Sr,makelist(m0S[i],i,0,NC-1)),
       writeCExprs1s(m1Sr,makelist(m1S[i],i,0,udim*NC-1)),
@@ -168,8 +160,8 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     vtSq_c : makelist(vtSq[i],i,0,NC-1),
     /* cM and cE are the corrections to u and vtSq
        needed to preserve momentum and energy conservation. */
-    cE_e : doExpand1(cE, bC),
-    cE_c : makelist(cE[i],i,0,NC-1),
+    cE_e : doExpand1(cEr, bC),
+    cE_c : makelist(cEr[i],i,0,NC-1),
 
     /* N is the size of the linear problem. LHS Eigen matrix is NxN. */
     N : NC*(udim+1),
@@ -189,15 +181,15 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       m1_c : makelist(m1r[i],i,0,NC-1),
       u_e  : doExpand1(u,bC),
       u_c  : makelist(u[i],i,0,NC-1),
-      cM_e : doExpand1(cM, bC),
-      cM_c : makelist(cM[i],i,0,NC-1),
+      cM_e : doExpand1(cMr, bC),
+      cM_c : makelist(cMr[i],i,0,NC-1),
       /* Use the vd component of u, m1 and cM. */
       u_e : subst(makelist(u[i]=u[(vd-1)*NC+i],i,0,NC-1),u_e),
       u_c : subst(makelist(u[i]=u[(vd-1)*NC+i],i,0,NC-1),u_c),
       m1_e : subst(makelist(m1r[i]=m1r[(vd-1)*NC+i],i,0,NC-1),m1_e),
       m1_c : subst(makelist(m1r[i]=m1r[(vd-1)*NC+i],i,0,NC-1),m1_c),
-      cM_e : subst(makelist(cM[i]=cM[(vd-1)*NC+i],i,0,NC-1),cM_e),
-      cM_c : subst(makelist(cM[i]=cM[(vd-1)*NC+i],i,0,NC-1),cM_c),
+      cM_e : subst(makelist(cMr[i]=cMr[(vd-1)*NC+i],i,0,NC-1),cM_e),
+      cM_c : subst(makelist(cMr[i]=cMr[(vd-1)*NC+i],i,0,NC-1),cM_c),
 
       /*........... Matrix block from weak multiply of u and M_0 .............*/
       eq : calcInnerProdList(varsC,u_e,bC,m0_e),

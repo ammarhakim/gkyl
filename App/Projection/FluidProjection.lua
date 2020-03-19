@@ -79,8 +79,8 @@ function ReadInput:run(t, distf)
       },
    }
 
-   local readGhosts = false
-   local tm, fr     = self.momIoRead:read(distf, string.format("%s",self.userInputFile), readGhosts)
+   local readSkin = false
+   local tm, fr     = self.momIoRead:read(distf, string.format("%s",self.userInputFile), readSkin)
 end
 ----------------------------------------------------------------------
 return {

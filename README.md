@@ -10,9 +10,8 @@ Documentation for the code is available at http://gkeyll.rtfd.io.
 # License
 
 **Gkeyll can be used freely for research at universities, national
-laboratories and other research institutions. In general, use in
-commercial (for-profit) companies is not permitted, even if used for
-research. If you want to use Gkeyll in a commercial environment,
+laboratories and other research institutions. 
+If you want to use Gkeyll in a commercial environment,
 please ask us first.**
 
 We follow an *open-source but closed development model*. Even though

@@ -743,6 +743,13 @@ local function buildApplication(self, tbl)
             break
          end
 
+         -- Abort simulation if the suggested timestep is 0, which means there are likely NaNs.
+         -- Don't write anything.
+         if (myDt == 0.0) then
+            log(string.format(" ERROR: dt is zero, there are likely NaNs. Terminating without writing files."))
+            break
+         end
+
 	 -- Check status and determine what to do next.
 	 if status and isInv then
             if first then 
