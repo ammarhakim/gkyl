@@ -696,23 +696,6 @@ function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
    local emFunc      = emIn[2]:rkStepperFields()[1]
 
    if self.evolveCollisionless then
-      self.gkEqn.ohmMod:clear(0.)
-      self.gkEqn.fRhsSurfV:clear(0.)
- 
-      self.solverStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solverStep2:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
-   end
-end
-
-function GkSpecies:advanceStep4(tCurr, species, emIn, inIdx, outIdx)
-   local fIn     = self:rkStepperFields()[inIdx]
-   local fRhsOut = self:rkStepperFields()[outIdx]
-
-   local em          = emIn[1]:rkStepperFields()[inIdx]
-   local dApardtProv = emIn[1].dApardtProv
-   local emFunc      = emIn[2]:rkStepperFields()[1]
-
-   if self.evolveCollisionless then
       self.solverStep3:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solverStep3:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
 
@@ -801,13 +784,6 @@ function GkSpecies:createDiagnostics()
    self.weakDivision = Updater.CartFieldBinOp {
       onGrid     = self.confGrid,
       weakBasis  = self.confBasis,
-      operation  = "Divide",
-      onGhosts   = true,
-   }
-   self.weakDivisionPhase = Updater.CartFieldBinOp {
-      onGrid     = self.grid,
-      weakBasis  = self.basis,
-      fieldBasis = self.confBasis,
       operation  = "Divide",
       onGhosts   = true,
    }
