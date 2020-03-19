@@ -9,11 +9,10 @@ load("out-scripts");
 load(stringproc)$
 fpprec : 24$
 
-calcBinOpDotProduct(fh, funcNm, cdim, basisFun, pMax) := block([],
+calcBinOpDotProduct(fh, funcNm, cdim, basisFun, polyOrder) := block([],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
   load(modNm),
-  for polyOrder : 1 thru pMax do (
     bC : basisC[polyOrder],
     N  : length(bC),
   
@@ -56,6 +55,5 @@ calcBinOpDotProduct(fh, funcNm, cdim, basisFun, pMax) := block([],
 
     printf(fh, "} ~%"),
     printf(fh, " ~%")
-  )
 )$
 

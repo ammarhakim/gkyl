@@ -72,23 +72,19 @@ toHyper(expr,vars) := block([],
   )
 )$
 
-calcBinOpConfDivide(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Eflat,Ef,eq,E],
+calcBinOpConfDivide(fh, funcNm, cdim, basisFun, polyOrder, applyPos) := block([Elhs,Eflat,Ef,eq,E],
 
   kill(varsC, varsP, basisC, basisP),
 
   if applyPos then (
-    pOrderMax : 1,
     load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
     bC1 : basisC[1]    /* Save 1D basis for later use. */
-  ) else (
-    pOrderMax : pMax
   ),
 
   kill(varsC, varsP, basisC, basisP),
 
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
   load(modNm),
-  for polyOrder : 1 thru pOrderMax do (
 
     bW    : basisC[polyOrder],
     varsW : varsC,
@@ -340,14 +336,12 @@ calcBinOpConfDivide(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,E
     ),
     printf(fh, "}~%"),
     printf(fh, "~%")
-  )
 )$
 
-calcBinOpConfPhaseDivide(fh, funcNm, cdim, vdim, basisFun, pMax) := block([Elhs,Eflat,Ef,eq,E],
+calcBinOpConfPhaseDivide(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([Elhs,Eflat,Ef,eq,E],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
-  for polyOrder : 1 thru pMax do (
     bC : basisC[polyOrder],
     bP : basisP[polyOrder],
     NC : length(bC),
@@ -436,6 +430,5 @@ calcBinOpConfPhaseDivide(fh, funcNm, cdim, vdim, basisFun, pMax) := block([Elhs,
     printf(fh, " ~%"),
     printf(fh, "} ~%"),
     printf(fh, " ~%")
-  )
 )$
 
