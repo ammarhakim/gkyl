@@ -18,7 +18,7 @@ local Range          = require "Lib.Range"
 local UpdaterBase    = require "Updater.Base"
 
 -- System libraries.
-local ffi = require "ffi"
+local ffi  = require "ffi"
 local ffiC = ffi.C
 local xsys = require "xsys"
 
@@ -134,16 +134,16 @@ function ProjectOnBasis:_advance(tCurr, inFld, outFld)
       self._evalFunc = loadstring(evalFuncTempl { M = numVal } )()
    end
 
-   -- sanity check: ensure number of variables, components and basis functions are consistent
+   -- Sanity check: ensure number of variables, components and basis functions are consistent.
    assert(qOut:numComponents() % numBasis == 0, "ProjectOnBasis:advance: Incompatible input field")
 
-   local dx  = Lin.Vec(ndim) -- cell shape
-   local xc  = Lin.Vec(ndim) -- cell center
-   local fv  = Lin.Mat(numOrd, numVal) -- function values at ordinates
-   local xmu = Lin.Vec(ndim) -- coordinate at ordinate
+   local dx  = Lin.Vec(ndim)           -- Cell shape.
+   local xc  = Lin.Vec(ndim)           -- Cell center.
+   local fv  = Lin.Mat(numOrd, numVal) -- Function values at ordinates.
+   local xmu = Lin.Vec(ndim)           -- Coordinate at ordinate.
 
-   local tId = grid:subGridSharedId() -- local thread ID
-   -- object to iterate over only region owned by local SHM thread
+   local tId = grid:subGridSharedId() -- Local thread ID.
+   -- Object to iterate over only region owned by local SHM thread.
    local localRangeDecomp
    if self._projectOnGhosts then
       localRangeDecomp = LinearDecomp.LinearDecompRange {
@@ -156,15 +156,15 @@ function ProjectOnBasis:_advance(tCurr, inFld, outFld)
    local indexer = qOut:genIndexer()
    local fItr    = qOut:get(1)
 
-   -- loop, computing projections in each cell
+   -- Loop, computing projections in each cell.
    for idx in localRangeDecomp:colMajorIter(tId) do
       grid:setIndex(idx)
       grid:getDx(dx)
       grid:cellCenter(xc)
 
-      -- precompute value of function at each ordinate
+      -- Precompute value of function at each ordinate.
       for mu = 1, numOrd do
-	 self._compToPhys(self._ordinates[mu], dx, xc, xmu) -- compute coordinate
+	 self._compToPhys(self._ordinates[mu], dx, xc, xmu) -- Compute coordinate.
 	 self._evalFunc(tCurr, xmu, self._evaluate, fv[mu])
       end
 
@@ -173,7 +173,7 @@ function ProjectOnBasis:_advance(tCurr, inFld, outFld)
 	 fItr:data(), self._weights:data(), self._basisAtOrdinates:data(), fv:data(), numVal, numBasis, numOrd)
    end
 
-   -- set id of output to id of projection basis
+   -- Set id of output to id of projection basis.
    qOut:setBasisId(self._basis:id())
 
    self._isFirst = false

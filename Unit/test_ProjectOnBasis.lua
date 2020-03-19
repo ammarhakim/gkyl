@@ -1,19 +1,20 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Test for updater to project on basis functions
+-- Test for updater to project on basis functions.
+--
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Unit = require "Unit"
-local Grid = require "Grid"
+local Unit       = require "Unit"
+local Grid       = require "Grid"
 local DataStruct = require "DataStruct"
-local Basis = require "Basis"
-local Updater = require "Updater"
-local Lin = require "Lib.Linalg"
+local Basis      = require "Basis"
+local Updater    = require "Updater"
+local Lin        = require "Lib.Linalg"
 
 local assert_equal = Unit.assert_equal
-local stats = Unit.stats
+local stats        = Unit.stats
 
 function test_1d_1()
    local grid = Grid.RectCart {
@@ -23,25 +24,25 @@ function test_1d_1()
    }
    local basis = Basis.CartModalSerendipity { ndim = 1, polyOrder = 2 }
    local distf = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = basis:numBasis(),
-      ghost = {0, 0},
+      ghost         = {0, 0},
    }
    local project = Updater.ProjectOnBasis {
-      onGrid = grid,
-      basis = basis,
+      onGrid   = grid,
+      basis    = basis,
       evaluate = function (t, xn)
 	 return xn[1]
       end
    }
 
-   -- do projection
+   -- Do projection.
    project:advance(0.0, {}, {distf})
 
-   local idx = Lin.IntVec(grid:ndim())
-   local xc = Lin.Vec(1)
+   local idx     = Lin.IntVec(grid:ndim())
+   local xc      = Lin.Vec(1)
    local indexer = distf:indexer()
-   -- check projection
+   -- Check projection.
    for i = 1, grid:numCells(1) do
       grid:setIndex( idx:setValues {i} )
       grid:cellCenter(xc)
@@ -61,25 +62,25 @@ function test_1d_2()
    }
    local basis = Basis.CartModalSerendipity { ndim = 1, polyOrder = 2 }
    local distf = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = basis:numBasis(),
-      ghost = {0, 0},
+      ghost         = {0, 0},
    }
    local project = Updater.ProjectOnBasis {
-      onGrid = grid,
-      basis = basis,
+      onGrid   = grid,
+      basis    = basis,
       evaluate = function (t, xn)
 	 return xn[1]^2
       end
    }
 
-   -- do projection
+   -- Do projection.
    project:advance(0.0, {}, {distf})
 
-   local idx = Lin.IntVec(grid:ndim())
-   local xc = Lin.Vec(1)
+   local idx     = Lin.IntVec(grid:ndim())
+   local xc      = Lin.Vec(1)
    local indexer = distf:indexer()
-   -- check projection
+   -- Check projection.
    for i = 1, grid:numCells(1) do
       grid:setIndex( idx:setValues {i} )
       grid:cellCenter(xc)
@@ -99,25 +100,25 @@ function test_2d()
    }
    local basis = Basis.CartModalSerendipity { ndim = 2, polyOrder = 2 }
    local distf = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = basis:numBasis(),
-      ghost = {0, 0},
+      ghost         = {0, 0},
    }
    local project = Updater.ProjectOnBasis {
-      onGrid = grid,
-      basis = basis,
+      onGrid   = grid,
+      basis    = basis,
       evaluate = function (t, xn)
 	 return xn[1]
       end
    }
 
-   -- do projection
+   -- Do projection.
    project:advance(0.0, {}, {distf})
 
-   local idx = Lin.IntVec(grid:ndim())
-   local xc = Lin.Vec(grid:ndim())
+   local idx     = Lin.IntVec(grid:ndim())
+   local xc      = Lin.Vec(grid:ndim())
    local indexer = distf:indexer()
-   -- check projection
+   -- Check projection.
    for i = 1, grid:numCells(1) do
       for j = 2, grid:numCells(2) do
 	 grid:setIndex( idx:setValues {i, j} )
@@ -138,25 +139,25 @@ function test_2d_2()
    }
    local basis = Basis.CartModalSerendipity { ndim = 2, polyOrder = 2 }
    local distf = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = 2*basis:numBasis(),
-      ghost = {0, 0},
+      ghost         = {0, 0},
    }
    local project = Updater.ProjectOnBasis {
-      onGrid = grid,
-      basis = basis,
+      onGrid   = grid,
+      basis    = basis,
       evaluate = function (t, xn)
 	 return xn[1], xn[1]
       end
    }
 
-   -- do projection
+   -- Do projection.
    project:advance(0.0, {}, {distf})
 
-   local idx = Lin.IntVec(grid:ndim())
-   local xc = Lin.Vec(grid:ndim())
+   local idx     = Lin.IntVec(grid:ndim())
+   local xc      = Lin.Vec(grid:ndim())
    local indexer = distf:indexer()
-   -- check projection
+   -- Check projection.
    for i = 1, grid:numCells(1) do
       for j = 2, grid:numCells(2) do
 	 grid:setIndex( idx:setValues {i, j} )
@@ -183,25 +184,25 @@ function test_3()
    }
    local basis = Basis.CartModalSerendipity { ndim = 1, polyOrder = 2 }
    local distf = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = basis:numBasis(),
-      ghost = {0, 0},
+      ghost         = {0, 0},
    }
    local project = Updater.ProjectOnBasis {
-      onGrid = grid,
-      basis = basis,
+      onGrid   = grid,
+      basis    = basis,
       evaluate = function (t, xn)
 	 return xn[1]
       end
    }
 
-   -- do projection
+   -- Do projection.
    project:advance(0.0, {}, {distf})
 
-   local idx = Lin.IntVec(grid:ndim())
-   local xc = Lin.Vec(1)
+   local idx     = Lin.IntVec(grid:ndim())
+   local xc      = Lin.Vec(1)
    local indexer = distf:indexer()
-   -- check projection
+   -- Check projection.
    for i = 1, grid:numCells(1) do
       grid:setIndex( idx:setValues {i} )
       grid:cellCenter(xc)
@@ -213,13 +214,13 @@ function test_3()
 
    project:setFunc(function (t, xn) return 2*xn[1] end)
 
-   -- do projection
+   -- Do projection.
    project:advance(0.0, {}, {distf})
 
-   local idx = Lin.IntVec(grid:ndim())
-   local xc = Lin.Vec(1)
+   local idx     = Lin.IntVec(grid:ndim())
+   local xc      = Lin.Vec(1)
    local indexer = distf:indexer()
-   -- check projection
+   -- Check projection.
    for i = 1, grid:numCells(1) do
       grid:setIndex( idx:setValues {i} )
       grid:cellCenter(xc)
@@ -231,7 +232,7 @@ function test_3()
 
 end
 
--- run tests
+-- Run tests.
 test_1d_1()
 test_1d_2()
 test_2d()

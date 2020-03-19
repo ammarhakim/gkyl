@@ -917,6 +917,7 @@ end
 --- * Test weak division of a scalar 1x field by a scalar 1x field.
 --- * Test weak multiplication of a scalar 1x field by a scalar 1x field.
 --- * Test weak multiplication of a 1x1v scalar field by a scalar 1x field.
+--- * Test weak multiplication of a 1x1v scalar field by a scalar 1x1v field.
 ------------------------------------------------------------------------------------
 function test_binOp1x1v(nx, nv, p, writeMatrix)
    writeMatrix = writeMatrix or false
@@ -1148,7 +1149,38 @@ function test_binOp1x1v(nx, nv, p, writeMatrix)
    local tmMom1, lvMom1 = dynVecMom1:lastData()
    io.write("Average RMS in Mom1 error = ", math.sqrt(lvMom1[1]), "\n")
    print()
-   return math.sqrt(lvF[1]), math.sqrt(lvUi[1]), math.sqrt(lvMom1[1])
+
+   -- Now test phase-phase multiplication, reusing fields and projection updaters.
+   initnDistFA:setFunc(function(t, xn)
+                          local muV  = 0.0
+                          local sigV = 0.8
+                          local x, v = xn[1], xn[2]
+                          return 2.0*x*math.exp(-((v-muV)/(math.sqrt(2)*sigV))^2)
+                       end)
+   initnDistFA:advance(0.,{},{ndistFA})
+
+   -- Analytic and calculated numDens*distF.
+   local nPhase = DataStruct.Field {
+      onGrid        = phaseGrid,
+      numComponents = phaseBasis:numBasis(),
+      ghost         = {1, 1},
+   }
+   initnDistFA:setFunc(function(t, xn) return 2.0*xn[1] end)
+   initnDistFA:advance(0.,{},{nPhase})
+   print("Multiply numPhase by distF...")
+   local t1 = os.clock()
+   pfldMult:advance(0.,{nPhase,distF},{ndistF})
+   local t2 = os.clock()
+   io.write("ndistF computation took total of ", t2-t1, " s\n")
+
+   errF:combine(1.0, ndistFA, -1.0, ndistF)
+   local dynVecP = DataStruct.DynVector { numComponents = 1 }
+   calcIntF:advance(0.0, {errF}, {dynVecP})
+   local tmP, lvP = dynVecP:lastData()
+   io.write("Average RMS in nPhase*F error = ", math.sqrt(lvP[1]), "\n")
+   print()
+
+   return math.sqrt(lvF[1]), math.sqrt(lvUi[1]), math.sqrt(lvMom1[1]), math.sqrt(lvP[1])
 end
 
 ------------------------------------------------------------------------------------
@@ -1158,6 +1190,7 @@ end
 --- * Test weak division of a 2D vector in 1x by a scalar 1x field.
 --- * Test weak multiplication of a 2D vector in 1x by a scalar 1x field.
 --- * Test weak multiplication of a 1x2v scalar field by a scalar 1x field.
+--- * Test weak multiplication of a 1x2v field by a scalar 1x2v field.
 ------------------------------------------------------------------------------------
 function test_binOp1x2v(nx, nvx, nvy, p, writeMatrix)
    writeMatrix = writeMatrix or false
@@ -1479,8 +1512,40 @@ function test_binOp1x2v(nx, nvx, nvy, p, writeMatrix)
    local tmMom12D, lvMom12D = dynVecMom12D:lastData()
    io.write("Average RMS in Mom12D error = (", math.sqrt(lvMom12D[1]),",", math.sqrt(lvMom12D[2]),") \n")
    print()
+   
+   -- Now test phase-phase multiplication, reusing fields and projection updaters.
+   initnDistFA:setFunc(function(t, xn)
+                          local muV  = 0.0
+                          local sigV = 0.8
+                          local x, v = xn[1], xn[2]
+                          return 2.0*x*math.exp(-((v-muV)/(math.sqrt(2)*sigV))^2)
+                       end)
+   initnDistFA:advance(0.,{},{ndistFA})
+
+   -- Analytic and calculated numDens*distF.
+   local nPhase = DataStruct.Field {
+      onGrid        = phaseGrid,
+      numComponents = phaseBasis:numBasis(),
+      ghost         = {1, 1},
+   }
+   initnDistFA:setFunc(function(t, xn) return 2.0*xn[1] end)
+   initnDistFA:advance(0.,{},{nPhase})
+   print("Multiply numPhase by distF...")
+   local t1 = os.clock()
+   pfldMult:advance(0.,{nPhase,distF},{ndistF})
+   local t2 = os.clock()
+   io.write("ndistF computation took total of ", t2-t1, " s\n")
+
+   errF:combine(1.0, ndistFA, -1.0, ndistF)
+   local dynVecP = DataStruct.DynVector { numComponents = 1 }
+   calcIntF:advance(0.0, {errF}, {dynVecP})
+   local tmP, lvP = dynVecP:lastData()
+   io.write("Average RMS in nPhase*F error = ", math.sqrt(lvP[1]), "\n")
+   print()
+
    return math.sqrt(lvF[1]), math.sqrt(lvUi[1]), math.sqrt(lvMom1[1]), 
-          math.sqrt(lvUi2D[1]), math.sqrt(lvMom12D[1]), math.sqrt(lvUi2D[2]), math.sqrt(lvMom12D[2])
+          math.sqrt(lvUi2D[1]), math.sqrt(lvMom12D[1]), math.sqrt(lvUi2D[2]), math.sqrt(lvMom12D[2]),
+          math.sqrt(lvP[1]) 
 end
 
 ------------------------------------------------------------------------------------
@@ -1490,6 +1555,7 @@ end
 --- * Test weak division of a 2D vector in 2x by a scalar 2x field.
 --- * Test weak multiplication of a 2D vector in 2x by a scalar 2x field.
 --- * Test weak multiplication of a 2x2v scalar field by a scalar 2x field.
+--- * Test weak multiplication of a 2x2v field by a scalar 2x2v field.
 ------------------------------------------------------------------------------------
 function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
    writeMatrix = writeMatrix or false
@@ -1816,8 +1882,42 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
    local tmMom12D, lvMom12D = dynVecMom12D:lastData()
    io.write("Average RMS in Mom12D error = (", math.sqrt(lvMom12D[1]),",", math.sqrt(lvMom12D[2]),") \n")
    print()
+
+   -- Now test phase-phase multiplication, reusing fields and projection updaters.
+   initnDistFA:setFunc(function(t, xn)
+                          local muVx  = 0.0
+                          local sigVx = 0.8
+                          local muVy  = 0.1
+                          local sigVy = 0.6
+                          local x, y, vx, vy = xn[1], xn[2], xn[3], xn[4]
+                          return 2.0*x*math.exp(-((vx-muVx)/(math.sqrt(2)*sigVx))^2-((vy-muVy)/(math.sqrt(2)*sigVy))^2)
+                       end)
+   initnDistFA:advance(0.,{},{ndistFA})
+
+   -- Analytic and calculated numDens*distF.
+   local nPhase = DataStruct.Field {
+      onGrid        = phaseGrid,
+      numComponents = phaseBasis:numBasis(),
+      ghost         = {1, 1},
+   }
+   initnDistFA:setFunc(function(t, xn) return 2.0*xn[1] end)
+   initnDistFA:advance(0.,{},{nPhase})
+   print("Multiply numPhase by distF...")
+   local t1 = os.clock()
+   pfldMult:advance(0.,{nPhase,distF},{ndistF})
+   local t2 = os.clock()
+   io.write("ndistF computation took total of ", t2-t1, " s\n")
+
+   errF:combine(1.0, ndistFA, -1.0, ndistF)
+   local dynVecP = DataStruct.DynVector { numComponents = 1 }
+   calcIntF:advance(0.0, {errF}, {dynVecP})
+   local tmP, lvP = dynVecP:lastData()
+   io.write("Average RMS in nPhase*F error = ", math.sqrt(lvP[1]), "\n")
+   print()
+
    return math.sqrt(lvF[1]), math.sqrt(lvUi[1]), math.sqrt(lvMom1[1]), 
-          math.sqrt(lvUi2D[1]), math.sqrt(lvMom12D[1]), math.sqrt(lvUi2D[2]), math.sqrt(lvMom12D[2])
+          math.sqrt(lvUi2D[1]), math.sqrt(lvMom12D[1]), math.sqrt(lvUi2D[2]), math.sqrt(lvMom12D[2]),
+          math.sqrt(lvP[1])
 end
 
 ------------------------------------------------------------------------------------
@@ -1827,6 +1927,7 @@ end
 --- * Test weak division of a 3D vector in 2x by a scalar 2x field.
 --- * Test weak multiplication of a 3D vector in 2x by a scalar 2x field.
 --- * Test weak multiplication of a 2x3v scalar field by a scalar 2x field.
+--- * Test weak multiplication of a 2x3v field by a scalar 2x3v field.
 ------------------------------------------------------------------------------------
 function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
    writeMatrix = writeMatrix or false
@@ -2155,9 +2256,42 @@ function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
    local tmMom13D, lvMom13D = dynVecMom13D:lastData()
    io.write("Average RMS in Mom13D error = (", math.sqrt(lvMom13D[1]),",", math.sqrt(lvMom13D[2]),",", math.sqrt(lvMom13D[3]),") \n")
    print()
+
+   -- Now test phase-phase multiplication, reusing fields and projection updaters.
+   initnDistFA:setFunc(function(t, xn)
+                          local muVx, sigVx  = 0.0, 0.8
+                          local muVy, sigVy  = 0.1, 0.6
+                          local muVz, sigVz  = -0.2, 0.3
+                          local x, y, vx, vy, vz = xn[1], xn[2], xn[3], xn[4], xn[5]
+                          return 2.0*x*math.exp(-((vx-muVx)/(math.sqrt(2)*sigVx))^2-((vy-muVy)/(math.sqrt(2)*sigVy))^2
+                                                -((vz-muVz)/(math.sqrt(2)*sigVz))^2)
+                       end)
+   initnDistFA:advance(0.,{},{ndistFA})
+
+   -- Analytic and calculated numDens*distF.
+   local nPhase = DataStruct.Field {
+      onGrid        = phaseGrid,
+      numComponents = phaseBasis:numBasis(),
+      ghost         = {1, 1},
+   }
+   initnDistFA:setFunc(function(t, xn) return 2.0*xn[1] end)
+   initnDistFA:advance(0.,{},{nPhase})
+   print("Multiply numPhase by distF...")
+   local t1 = os.clock()
+   pfldMult:advance(0.,{nPhase,distF},{ndistF})
+   local t2 = os.clock()
+   io.write("ndistF computation took total of ", t2-t1, " s\n")
+
+   errF:combine(1.0, ndistFA, -1.0, ndistF)
+   local dynVecP = DataStruct.DynVector { numComponents = 1 }
+   calcIntF:advance(0.0, {errF}, {dynVecP})
+   local tmP, lvP = dynVecP:lastData()
+   io.write("Average RMS in nPhase*F error = ", math.sqrt(lvP[1]), "\n")
+   print()
+
    return math.sqrt(lvF[1]), math.sqrt(lvUi[1]), math.sqrt(lvMom1[1]), 
           math.sqrt(lvUi3D[1]), math.sqrt(lvMom13D[1]), math.sqrt(lvUi3D[2]), math.sqrt(lvMom13D[2]), 
-          math.sqrt(lvUi3D[3]), math.sqrt(lvMom13D[3])
+          math.sqrt(lvUi3D[3]), math.sqrt(lvMom13D[3]), math.sqrt(lvP[1]) 
 end
 
 ------------------------------------------------------------------------------------
@@ -2166,7 +2300,8 @@ end
 --- * Test weak multiplication of a scalar 3x field by a scalar 3x field.
 --- * Test weak division of a 2D vector in 3x by a scalar 3x field.
 --- * Test weak multiplication of a 2D vector in 3x by a scalar 3x field.
---- * Test weak multiplication of a 3x2v scalar field by a scalar 3x field.
+--- * Test weak multiplication of a 2D vector in 3x by a scalar 3x field.
+--- * Test weak multiplication of a 3x2v field by a scalar 3x2v field.
 ------------------------------------------------------------------------------------
 function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
    writeMatrix = writeMatrix or false
@@ -2495,9 +2630,42 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
    local tmMom13D, lvMom13D = dynVecMom13D:lastData()
    io.write("Average RMS in Mom13D error = (", math.sqrt(lvMom13D[1]),",", math.sqrt(lvMom13D[2]),",", math.sqrt(lvMom13D[3]),") \n")
    print()
+
+   -- Now test phase-phase multiplication, reusing fields and projection updaters.
+   initnDistFA:setFunc(function(t, xn)
+                          local muVx  = 0.0
+                          local sigVx = 0.8
+                          local muVy  = 0.1
+                          local sigVy = 0.6
+                          local x, y, z, vx, vy = xn[1], xn[2], xn[3], xn[4], xn[5]
+                          return 2.0*x*math.exp(-((vx-muVx)/(math.sqrt(2)*sigVx))^2-((vy-muVy)/(math.sqrt(2)*sigVy))^2)
+                       end)
+   initnDistFA:advance(0.,{},{ndistFA})
+
+   -- Analytic and calculated numDens*distF.
+   local nPhase = DataStruct.Field {
+      onGrid        = phaseGrid,
+      numComponents = phaseBasis:numBasis(),
+      ghost         = {1, 1},
+   }
+   initnDistFA:setFunc(function(t, xn) return 2.0*xn[1] end)
+   initnDistFA:advance(0.,{},{nPhase})
+   print("Multiply numPhase by distF...")
+   local t1 = os.clock()
+   pfldMult:advance(0.,{nPhase,distF},{ndistF})
+   local t2 = os.clock()
+   io.write("ndistF computation took total of ", t2-t1, " s\n")
+
+   errF:combine(1.0, ndistFA, -1.0, ndistF)
+   local dynVecP = DataStruct.DynVector { numComponents = 1 }
+   calcIntF:advance(0.0, {errF}, {dynVecP})
+   local tmP, lvP = dynVecP:lastData()
+   io.write("Average RMS in nPhase*F error = ", math.sqrt(lvP[1]), "\n")
+   print()
+
    return math.sqrt(lvF[1]), math.sqrt(lvUi[1]), math.sqrt(lvMom1[1]), 
           math.sqrt(lvUi3D[1]), math.sqrt(lvMom13D[1]), math.sqrt(lvUi3D[2]), math.sqrt(lvMom13D[2]), 
-          math.sqrt(lvUi3D[3]), math.sqrt(lvMom13D[3])
+          math.sqrt(lvUi3D[3]), math.sqrt(lvMom13D[3]), math.sqrt(lvP[1])
 end
 
 -------------------------------------------------------
@@ -2588,15 +2756,17 @@ end
 function binOp1x1v_conv(p)
   print(" ")
   print("--- Testing convergence of BinOpSer1x1v updater with p=",p," ---")
-  errF1, errUi1, errMom11 = test_binOp1x1v(32, 8, p)
-  errF2, errUi2, errMom12 = test_binOp1x1v(64, 8, p)
-  errF3, errUi3, errMom13 = test_binOp1x1v(128, 8, p)
-  print("phaseMultiply order:", math.log10(errF1/errF2)/math.log10(2.0), 
-                                math.log10(errF2/errF3)/math.log10(2.0))
+  errF1, errUi1, errMom11, errP1 = test_binOp1x1v(32, 8, p)
+  errF2, errUi2, errMom12, errP2 = test_binOp1x1v(64, 8, p)
+  errF3, errUi3, errMom13, errP3 = test_binOp1x1v(128, 8, p)
+  print("ConfPhaseMultiply order:", math.log10(errF1/errF2)/math.log10(2.0), 
+                                    math.log10(errF2/errF3)/math.log10(2.0))
   print("Division order:", math.log10(errUi1/errUi2)/math.log10(2.0), 
                            math.log10(errUi2/errUi3)/math.log10(2.0))
-  print("confMultiply order:", math.log10(errMom11/errMom12)/math.log10(2.0), 
+  print("ConfMultiply order:", math.log10(errMom11/errMom12)/math.log10(2.0), 
                                math.log10(errMom12/errMom13)/math.log10(2.0))
+  print("Multiply order:", math.log10(errP1/errP2)/math.log10(2.0), 
+                           math.log10(errP2/errP3)/math.log10(2.0))
 --  assert_close(1.0, err1/err2/4.0, .01)
 --  assert_close(1.0, err2/err3/4.0, .01)
   print()
@@ -2607,21 +2777,23 @@ end
 -------------------------------------------------------
 function binOp1x2v_conv(p)
   print("--- Testing convergence of BinOpSer1x2v updater with p=",p," ---")
-  errF1, errUi1, errMom11, errUi1x, errMom11x, errUi1y, errMom11y = test_binOp1x2v(32, 32, 32, p)
-  errF2, errUi2, errMom12, errUi2x, errMom12x, errUi2y, errMom12y = test_binOp1x2v(64, 64, 64, p)
-  errF3, errUi3, errMom13, errUi3x, errMom13x, errUi3y, errMom13y = test_binOp1x2v(128, 128, 128, p)
-  print("phaseMultiply order:", math.log10(errF1/errF2)/math.log10(2.0), 
-                                math.log10(errF2/errF3)/math.log10(2.0))
+  errF1, errUi1, errMom11, errUi1x, errMom11x, errUi1y, errMom11y, errP1 = test_binOp1x2v(32, 32, 32, p)
+  errF2, errUi2, errMom12, errUi2x, errMom12x, errUi2y, errMom12y, errP2 = test_binOp1x2v(64, 64, 64, p)
+  errF3, errUi3, errMom13, errUi3x, errMom13x, errUi3y, errMom13y, errP3 = test_binOp1x2v(128, 128, 128, p)
+  print("ConfPhaseMultiply order:", math.log10(errF1/errF2)/math.log10(2.0), 
+                                    math.log10(errF2/errF3)/math.log10(2.0))
   print("Division order:", math.log10(errUi1/errUi2)/math.log10(2.0), 
                            math.log10(errUi2/errUi3)/math.log10(2.0))
-  print("Multiply order:", math.log10(errMom11/errMom12)/math.log10(2.0), 
-                           math.log10(errMom12/errMom13)/math.log10(2.0))
+  print("confMultiply order:", math.log10(errMom11/errMom12)/math.log10(2.0), 
+                               math.log10(errMom12/errMom13)/math.log10(2.0))
   print("2D Division order: (", math.log10(errUi1x/errUi2x)/math.log10(2.0),",", 
     math.log10(errUi1y/errUi2y)/math.log10(2.0),")  (", 
     math.log10(errUi2x/errUi3x)/math.log10(2.0),",", math.log10(errUi2x/errUi3x)/math.log10(2.0),")")
   print("2D Multiply order: (", math.log10(errMom11x/errMom12x)/math.log10(2.0),",", 
     math.log10(errMom11y/errMom12y)/math.log10(2.0),")  (", 
     math.log10(errMom12x/errMom13x)/math.log10(2.0),",", math.log10(errMom12x/errMom13x)/math.log10(2.0),")")
+  print("1x2v Multiply order:", math.log10(errP1/errP2)/math.log10(2.0), 
+                                math.log10(errP2/errP3)/math.log10(2.0))
 --  assert_close(1.0, err1/err2/4.0, .01)
 --  assert_close(1.0, err2/err3/4.0, .01)
   print()
@@ -2632,21 +2804,23 @@ end
 -------------------------------------------------------
 function binOp2x2v_conv(p)
   print("--- Testing convergence of BinOpSer2x2v updater with p=",p," ---")
-  errF1, errUi1, errMom11, errUi1x, errMom11x, errUi1y, errMom11y = test_binOp2x2v(8, 8, 8, 8, p)
-  errF2, errUi2, errMom12, errUi2x, errMom12x, errUi2y, errMom12y = test_binOp2x2v(32, 32, 32, 32, p)
-  errF3, errUi3, errMom13, errUi3x, errMom13x, errUi3y, errMom13y = test_binOp2x2v(64, 64, 64, 64, p)
-  print("phaseMultiply order:", math.log10(errF1/errF2)/math.log10(2.0), 
-                                math.log10(errF2/errF3)/math.log10(2.0))
+  errF1, errUi1, errMom11, errUi1x, errMom11x, errUi1y, errMom11y, errP1 = test_binOp2x2v(8, 8, 8, 8, p)
+  errF2, errUi2, errMom12, errUi2x, errMom12x, errUi2y, errMom12y, errP2 = test_binOp2x2v(32, 32, 32, 32, p)
+  errF3, errUi3, errMom13, errUi3x, errMom13x, errUi3y, errMom13y, errP3 = test_binOp2x2v(64, 64, 64, 64, p)
+  print("ConfPhaseMultiply order:", math.log10(errF1/errF2)/math.log10(2.0), 
+                                    math.log10(errF2/errF3)/math.log10(2.0))
   print("Division order:", math.log10(errUi1/errUi2)/math.log10(2.0), 
                            math.log10(errUi2/errUi3)/math.log10(2.0))
-  print("Multiply order:", math.log10(errMom11/errMom12)/math.log10(2.0), 
-                           math.log10(errMom12/errMom13)/math.log10(2.0))
+  print("ConfMultiply order:", math.log10(errMom11/errMom12)/math.log10(2.0), 
+                               math.log10(errMom12/errMom13)/math.log10(2.0))
   print("2D Division order: (", math.log10(errUi1x/errUi2x)/math.log10(2.0),",", 
     math.log10(errUi1y/errUi2y)/math.log10(2.0),")  (", 
     math.log10(errUi2x/errUi3x)/math.log10(2.0),",", math.log10(errUi2x/errUi3x)/math.log10(2.0),")")
   print("2D Multiply order: (", math.log10(errMom11x/errMom12x)/math.log10(2.0),",", 
     math.log10(errMom11y/errMom12y)/math.log10(2.0),")  (", 
     math.log10(errMom12x/errMom13x)/math.log10(2.0),",", math.log10(errMom12x/errMom13x)/math.log10(2.0),")")
+  print("Multiply order:", math.log10(errP1/errP2)/math.log10(2.0), 
+                           math.log10(errP2/errP3)/math.log10(2.0))
 --  assert_close(1.0, err1/err2/4.0, .01)
 --  assert_close(1.0, err2/err3/4.0, .01)
   print()
@@ -2658,17 +2832,17 @@ end
 function binOp2x3v_conv(p)
   print("--- Testing convergence of BinOpSer2x3v updater with p=",p," ---")
   errF1, errUi1, errMom11, errUi1x, errMom11x, 
-    errUi1y, errMom11y, errUi1z, errMom11z = test_binOp2x3v(8, 8, 8, 8, 8, p)
+    errUi1y, errMom11y, errUi1z, errMom11z, errP1 = test_binOp2x3v(8, 8, 8, 8, 8, p)
   errF2, errUi2, errMom12, errUi2x, errMom12x, 
-    errUi2y, errMom12y, errUi2z, errMom12z = test_binOp2x3v(16, 16, 16, 16, 16, p)
+    errUi2y, errMom12y, errUi2z, errMom12z, errP2 = test_binOp2x3v(16, 16, 16, 16, 16, p)
   errF3, errUi3, errMom13, errUi3x, errMom13x, 
-    errUi3y, errMom13y, errUi3z, errMom13z = test_binOp2x3v(32, 32, 32, 32, 32, p)
-  print("phaseMultiply order:", math.log10(errF1/errF2)/math.log10(2.0), 
-                                math.log10(errF2/errF3)/math.log10(2.0))
+    errUi3y, errMom13y, errUi3z, errMom13z, errP3 = test_binOp2x3v(32, 32, 32, 32, 32, p)
+  print("ConfPhaseMultiply order:", math.log10(errF1/errF2)/math.log10(2.0), 
+                                    math.log10(errF2/errF3)/math.log10(2.0))
   print("Division order:", math.log10(errUi1/errUi2)/math.log10(2.0), 
                            math.log10(errUi2/errUi3)/math.log10(2.0))
-  print("Multiply order:", math.log10(errMom11/errMom12)/math.log10(2.0), 
-                           math.log10(errMom12/errMom13)/math.log10(2.0))
+  print("ConfMultiply order:", math.log10(errMom11/errMom12)/math.log10(2.0), 
+                               math.log10(errMom12/errMom13)/math.log10(2.0))
   print("3D Division order: (", math.log10(errUi1x/errUi2x)/math.log10(2.0),",", 
     math.log10(errUi1y/errUi2y)/math.log10(2.0),",",math.log10(errUi1z/errUi2z)/math.log10(2.0),")  (", 
     math.log10(errUi2x/errUi3x)/math.log10(2.0),",", math.log10(errUi2x/errUi3x)/math.log10(2.0),",",
@@ -2677,6 +2851,8 @@ function binOp2x3v_conv(p)
     math.log10(errMom11y/errMom12y)/math.log10(2.0),",",math.log10(errMom11z/errMom12z)/math.log10(2.0),")  (", 
     math.log10(errMom12x/errMom13x)/math.log10(2.0),",", math.log10(errMom12x/errMom13x)/math.log10(2.0),",",
     math.log10(errMom12z/errMom13z)/math.log10(2.0),")")
+  print("Multiply order:", math.log10(errP1/errP2)/math.log10(2.0), 
+                           math.log10(errP2/errP3)/math.log10(2.0))
 --  assert_close(1.0, err1/err2/4.0, .01)
 --  assert_close(1.0, err2/err3/4.0, .01)
   print()
@@ -2688,17 +2864,17 @@ end
 function binOp3x2v_conv(p)
   print("--- Testing convergence of BinOpSer3x2v updater with p=",p," ---")
   errF1, errUi1, errMom11, errUi1x, errMom11x, 
-    errUi1y, errMom11y, errUi1z, errMom11z = test_binOp3x2v(8, 8, 8, 8, 8, p)
+    errUi1y, errMom11y, errUi1z, errMom11z, errP1 = test_binOp3x2v(8, 8, 8, 8, 8, p)
   errF2, errUi2, errMom12, errUi2x, errMom12x, 
-    errUi2y, errMom12y, errUi2z, errMom12z = test_binOp3x2v(16, 16, 16, 16, 16, p)
+    errUi2y, errMom12y, errUi2z, errMom12z, errP2 = test_binOp3x2v(16, 16, 16, 16, 16, p)
   errF3, errUi3, errMom13, errUi3x, errMom13x, 
-    errUi3y, errMom13y, errUi3z, errMom13z = test_binOp3x2v(32, 32, 32, 32, 32, p)
-  print("phaseMultiply order:", math.log10(errF1/errF2)/math.log10(2.0), 
-                                math.log10(errF2/errF3)/math.log10(2.0))
+    errUi3y, errMom13y, errUi3z, errMom13z, errP3 = test_binOp3x2v(32, 32, 32, 32, 32, p)
+  print("ConfPhaseMultiply order:", math.log10(errF1/errF2)/math.log10(2.0), 
+                                    math.log10(errF2/errF3)/math.log10(2.0))
   print("Division order:", math.log10(errUi1/errUi2)/math.log10(2.0), 
                            math.log10(errUi2/errUi3)/math.log10(2.0))
-  print("Multiply order:", math.log10(errMom11/errMom12)/math.log10(2.0), 
-                           math.log10(errMom12/errMom13)/math.log10(2.0))
+  print("ConfMultiply order:", math.log10(errMom11/errMom12)/math.log10(2.0), 
+                               math.log10(errMom12/errMom13)/math.log10(2.0))
   print("3D Division order: (", math.log10(errUi1x/errUi2x)/math.log10(2.0),",", 
     math.log10(errUi1y/errUi2y)/math.log10(2.0),",",math.log10(errUi1z/errUi2z)/math.log10(2.0),")  (", 
     math.log10(errUi2x/errUi3x)/math.log10(2.0),",", math.log10(errUi2x/errUi3x)/math.log10(2.0),",",
@@ -2707,6 +2883,8 @@ function binOp3x2v_conv(p)
     math.log10(errMom11y/errMom12y)/math.log10(2.0),",",math.log10(errMom11z/errMom12z)/math.log10(2.0),")  (", 
     math.log10(errMom12x/errMom13x)/math.log10(2.0),",", math.log10(errMom12x/errMom13x)/math.log10(2.0),",",
     math.log10(errMom12z/errMom13z)/math.log10(2.0),")")
+  print("Multiply order:", math.log10(errP1/errP2)/math.log10(2.0), 
+                           math.log10(errP2/errP3)/math.log10(2.0))
 --  assert_close(1.0, err1/err2/4.0, .01)
 --  assert_close(1.0, err2/err3/4.0, .01)
   print()
@@ -2717,12 +2895,12 @@ local t1 = os.clock()
 -- binOp1x_conv(1)
 -- binOp1x_conv(2)
 -- binOp2x_conv(1)
-binOp2x_conv(2)
+-- binOp2x_conv(2)
 -- binOp3x_conv(1)  -- This one takes a little time.
 -- binOp3x_conv(2)  -- This one takes more than a little time.
 -- binOp1x1v_conv(1)
 -- binOp1x1v_conv(2)
--- binOp1x2v_conv(1)
+binOp1x2v_conv(1)
 -- binOp1x2v_conv(2)
 -- binOp2x2v_conv(1)
 -- binOp2x2v_conv(2)
