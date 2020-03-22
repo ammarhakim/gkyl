@@ -63,7 +63,7 @@ plasmaApp = Plasma.App {
       upper = {4, 4},
       cells = {8, 8},
       -- Initial conditions.
-      init = {"maxwellian",
+      init = Plasma.MaxwellianProjection {
               density     = squareHat,
               temperature = function (t, xn)
                  return 1.0
