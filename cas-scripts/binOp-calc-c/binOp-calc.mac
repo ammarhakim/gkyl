@@ -13,14 +13,14 @@ load(stringproc)$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 2$
+maxPolyOrder_Ser : 3$
 minCdim_Ser : 1$
 minVdim_Ser : 1$
 maxCdim_Ser : 3$
 maxVdim_Ser : 3$
 
 /* Maximal order basis. */
-maxPolyOrder_Max : 2$
+maxPolyOrder_Max : 3$
 minCdim_Max : 1$
 minVdim_Max : 1$
 maxCdim_Max : 3$
@@ -45,7 +45,7 @@ maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
 for bInd : 1 thru length(bName) do (
   /* Generate kernels for operations between two fields defined on
      spaces with same dimensions (1D, 2D, 3D). */
-  for polyOrder : 1 thru maxPolyOrder[bInd] do (
+  for polyOrder : 2 thru maxPolyOrder[bInd] do (
     for c : minCdim[bInd] thru maxCdim[bInd] do (
       fname : sconcat("~/max-out/CartFieldBinOp", bName[bInd], c, "xP", polyOrder, ".cpp"),
       fh : openw(fname),
@@ -84,8 +84,8 @@ for bInd : 1 thru length(bName) do (
     ),
   
     for c : minCdim[bInd] thru maxCdim[bInd] do (
-      for v : min(2,c) thru maxVdim[bInd] do (
-        if(not (c+v>4 and polyOrder > 1)) then (
+      for v : max(minVdim[bInd],min(2,c)) thru maxVdim[bInd] do (
+        if(not (c+v>4 and polyOrder > 2)) then (
           fname : sconcat("~/max-out/CartFieldBinOp", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
           fh : openw(fname),
     

@@ -12,7 +12,6 @@ void CartFieldBinOpMultiply1x3vMax_P2(binOpData_t* data, const double *A, const 
   // out:     output field A*B (same number of components as B). 
  
   double tmp[15]; 
- 
   tmp[0] = 0.25*(A[14]*B[14]+A[13]*B[13]+A[12]*B[12]+A[11]*B[11]+A[10]*B[10]+A[9]*B[9]+A[8]*B[8]+A[7]*B[7]+A[6]*B[6]+A[5]*B[5]+A[4]*B[4]+A[3]*B[3]+A[2]*B[2]+A[1]*B[1]+A[0]*B[0]); 
   tmp[1] = 0.05*(4.47213595499958*(A[1]*B[11]+B[1]*A[11])+5.0*(A[4]*B[8]+B[4]*A[8]+A[3]*B[6]+B[3]*A[6]+A[2]*B[5]+B[2]*A[5]+A[0]*B[1]+B[0]*A[1])); 
   tmp[2] = 0.05*(4.47213595499958*(A[2]*B[12]+B[2]*A[12])+5.0*(A[4]*B[9]+B[4]*A[9]+A[3]*B[7]+B[3]*A[7]+A[1]*B[5]+B[1]*A[5]+A[0]*B[2]+B[0]*A[2])); 

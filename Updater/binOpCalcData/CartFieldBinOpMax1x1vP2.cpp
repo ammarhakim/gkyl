@@ -11,8 +11,7 @@ void CartFieldBinOpMultiply1x1vMax_P2(binOpData_t* data, const double *A, const 
   // eqNcomp: =1 if A:numComponents=B:numComponents, =0 else. 
   // out:     output field A*B (same number of components as B). 
  
-  double tmp[6]; 
- 
+  double tmp[6];
   tmp[0] = 0.5*(A[5]*B[5]+A[4]*B[4]+A[3]*B[3]+A[2]*B[2]+A[1]*B[1]+A[0]*B[0]); 
   tmp[1] = 0.1*(4.47213595499958*(A[1]*B[4]+B[1]*A[4])+5.0*(A[2]*B[3]+B[2]*A[3]+A[0]*B[1]+B[0]*A[1])); 
   tmp[2] = 0.1*(4.47213595499958*(A[2]*B[5]+B[2]*A[5])+5.0*(A[1]*B[3]+B[1]*A[3]+A[0]*B[2]+B[0]*A[2])); 
