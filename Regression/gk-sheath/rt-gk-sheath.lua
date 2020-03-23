@@ -128,7 +128,7 @@ plasmaApp = Plasma.App {
       },
       source = {"maxwellian", density = sourceDensity, temperature = sourceTemperature},
       evolve = true, -- Evolve species?
-      --applyPositivity = true,
+      positivity = true,
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp"}, 
       diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
       randomseed = randomseed,
@@ -174,7 +174,7 @@ plasmaApp = Plasma.App {
       },
       source = {"maxwellian", density = sourceDensity, temperature = sourceTemperature},
       evolve = true, -- Evolve species?
-      --applyPositivity = true,
+      positivity = true,
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp"}, 
       diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
       randomseed = randomseed,

@@ -354,13 +354,13 @@ load(modNm),
     for i:1 thru length(alphaLquad) do (
       printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaLquad[i]))),
       printf(fh, "  cflRate += -0.5*(alphaL-std::abs(alphaL)); ~%"),
-      if positivity then printf(fh, "  positivityWeightByDir[~a] += cflRate; //std::abs(alphaL); ~%", d)
+      if positivity then printf(fh, "  positivityWeightByDir[~a] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); ~%", d)
     ),
     printf(fh, "  // evaluate alpha at right surface quadrature points ~%"),
     for i:1 thru length(alphaRquad) do (
       printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaRquad[i]))),
       printf(fh, "  cflRate += 0.5*(alphaR+std::abs(alphaR)); ~%"),
-      if positivity then printf(fh, "  positivityWeightByDir[~a] += cflRate; //std::abs(alphaL); ~%", d)
+      if positivity then printf(fh, "  positivityWeightByDir[~a] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); ~%", d)
     ),
     printf(fh, "#endif ~%"),
 
@@ -369,9 +369,9 @@ load(modNm),
 )$
 
 pmax:1$
-em:false$
+em:true$
 
-for pos: 1 thru 1 do (
+for pos: 0 thru 1 do (
 if pos=0 then positivity:false
 else positivity:true,
 if positivity then posString : "Positivity"

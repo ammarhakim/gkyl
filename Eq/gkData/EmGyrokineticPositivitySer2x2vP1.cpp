@@ -2,7 +2,7 @@
 double EmGyrokineticVolPositivity2x2vSer_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, 
-                        const double *f, double *outX, double *outV, double *cflRateByDir) 
+                        const double *f, double *outX, double *outV, double *positivityWeightByDir) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -18,7 +18,6 @@ double EmGyrokineticVolPositivity2x2vSer_P1_Bvars_0(const double q_, const doubl
   double q2 = q_*q_; 
   double m2 = m_*m_; 
   double cflRate = 0.0; 
-  cflRateByDir[0] = 0.; 
   double alphaL = 0.0; 
   double alphaR = 0.0; 
   double alphaCtrl;
@@ -28,69 +27,69 @@ double EmGyrokineticVolPositivity2x2vSer_P1_Bvars_0(const double q_, const doubl
   alphax[2] = BdriftX[0]*Apar[2]*dfac_x*wv; 
   alphax[3] = (1.154700538379252*BdriftX[0]*dfac_x*m_*wv)/(dfac_v*q_); 
   alphax[5] = BdriftX[0]*Apar[3]*dfac_x*wv; 
-  cflRateByDir[1] = 0.; 
+  positivityWeightByDir[1] = 0.; 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
   alphaL = -0.125*(1.732050807568877*alphax[1]-1.0*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaL); 
+  positivityWeightByDir[1] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate surface-averaged alpha on right 
   alphaR = 0.125*(1.732050807568877*alphax[1]+alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaR); 
+  positivityWeightByDir[1] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
 #elif cflType == QUAD 
   // evaluate alpha at left surface quadrature points 
   alphaL = 0.0625*(0.4330127018922193*alphax[5]-0.25*(alphax[3]+alphax[2])-0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[1] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.4330127018922193*alphax[5])-0.25*alphax[3]+0.25*alphax[2]-0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[1] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*(0.4330127018922193*alphax[5]+0.25*alphax[3]-0.25*alphax[2]-0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[1] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.4330127018922193*alphax[5])+0.25*(alphax[3]+alphax[2])-0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[1] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*(0.4330127018922193*alphax[5]-0.25*(alphax[3]+alphax[2])-0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[1] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.4330127018922193*alphax[5])-0.25*alphax[3]+0.25*alphax[2]-0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[1] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*(0.4330127018922193*alphax[5]+0.25*alphax[3]-0.25*alphax[2]-0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[1] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.4330127018922193*alphax[5])+0.25*(alphax[3]+alphax[2])-0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[1] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   // evaluate alpha at right surface quadrature points 
   alphaR = 0.0625*((-0.4330127018922193*alphax[5])-0.25*(alphax[3]+alphax[2])+0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[1] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.4330127018922193*alphax[5]-0.25*alphax[3]+0.25*alphax[2]+0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[1] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.4330127018922193*alphax[5])+0.25*alphax[3]-0.25*alphax[2]+0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[1] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.4330127018922193*alphax[5]+0.25*(alphax[3]+alphax[2])+0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[1] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.4330127018922193*alphax[5])-0.25*(alphax[3]+alphax[2])+0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[1] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.4330127018922193*alphax[5]-0.25*alphax[3]+0.25*alphax[2]+0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[1] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.4330127018922193*alphax[5])+0.25*alphax[3]-0.25*alphax[2]+0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[1] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.4330127018922193*alphax[5]+0.25*(alphax[3]+alphax[2])+0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[1] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
 #endif 
-  cflRateByDir[0] += cflRateByDir[1];
+
   outX[1] += 0.4330127018922193*(alphax[5]*f[5]+alphax[3]*f[3]+alphax[2]*f[2]+alphax[1]*f[1]+alphax[0]*f[0]); 
   outX[5] += 0.4330127018922193*(alphax[3]*f[7]+alphax[1]*f[5]+f[1]*alphax[5]+alphax[0]*f[2]+f[0]*alphax[2]); 
   outX[6] += 0.4330127018922193*(alphax[5]*f[11]+alphax[2]*f[7]+alphax[1]*f[6]+alphax[0]*f[3]+f[0]*alphax[3]); 
@@ -105,69 +104,69 @@ double EmGyrokineticVolPositivity2x2vSer_P1_Bvars_0(const double q_, const doubl
   alphay[2] = -1.0*dfac_y*(1.732050807568877*BmagInv[0]*Apar[3]*dfac_x*wv-1.0*(BdriftY[0]*Apar[2]*wv+1.732050807568877*BmagInv[0]*Phi[3]*dfac_x)); 
   alphay[3] = (1.154700538379252*BdriftY[0]*dfac_y*m_*wv)/(dfac_v*q_); 
   alphay[5] = BdriftY[0]*Apar[3]*dfac_y*wv; 
-  cflRateByDir[2] = 0.; 
+  positivityWeightByDir[2] = 0.; 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
   alphaL = -0.125*(1.732050807568877*alphay[2]-1.0*alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaL); 
+  positivityWeightByDir[2] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate surface-averaged alpha on right 
   alphaR = 0.125*(1.732050807568877*alphay[2]+alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaR); 
+  positivityWeightByDir[2] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
 #elif cflType == QUAD 
   // evaluate alpha at left surface quadrature points 
   alphaL = 0.0625*(0.4330127018922193*alphay[5]-0.25*alphay[3]-0.4330127018922193*alphay[2]-0.25*alphay[1]+0.25*alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[2] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.4330127018922193*alphay[5])-0.25*alphay[3]-0.4330127018922193*alphay[2]+0.25*(alphay[1]+alphay[0])); 
-  cflRateByDir[2] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[2] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*(0.4330127018922193*alphay[5]+0.25*alphay[3]-0.4330127018922193*alphay[2]-0.25*alphay[1]+0.25*alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[2] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.4330127018922193*alphay[5])+0.25*alphay[3]-0.4330127018922193*alphay[2]+0.25*(alphay[1]+alphay[0])); 
-  cflRateByDir[2] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[2] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*(0.4330127018922193*alphay[5]-0.25*alphay[3]-0.4330127018922193*alphay[2]-0.25*alphay[1]+0.25*alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[2] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.4330127018922193*alphay[5])-0.25*alphay[3]-0.4330127018922193*alphay[2]+0.25*(alphay[1]+alphay[0])); 
-  cflRateByDir[2] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[2] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*(0.4330127018922193*alphay[5]+0.25*alphay[3]-0.4330127018922193*alphay[2]-0.25*alphay[1]+0.25*alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[2] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.4330127018922193*alphay[5])+0.25*alphay[3]-0.4330127018922193*alphay[2]+0.25*(alphay[1]+alphay[0])); 
-  cflRateByDir[2] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[2] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   // evaluate alpha at right surface quadrature points 
   alphaR = 0.0625*((-0.4330127018922193*alphay[5])-0.25*alphay[3]+0.4330127018922193*alphay[2]-0.25*alphay[1]+0.25*alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[2] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.4330127018922193*alphay[5]-0.25*alphay[3]+0.4330127018922193*alphay[2]+0.25*(alphay[1]+alphay[0])); 
-  cflRateByDir[2] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[2] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.4330127018922193*alphay[5])+0.25*alphay[3]+0.4330127018922193*alphay[2]-0.25*alphay[1]+0.25*alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[2] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.4330127018922193*alphay[5]+0.25*alphay[3]+0.4330127018922193*alphay[2]+0.25*(alphay[1]+alphay[0])); 
-  cflRateByDir[2] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[2] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.4330127018922193*alphay[5])-0.25*alphay[3]+0.4330127018922193*alphay[2]-0.25*alphay[1]+0.25*alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[2] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.4330127018922193*alphay[5]-0.25*alphay[3]+0.4330127018922193*alphay[2]+0.25*(alphay[1]+alphay[0])); 
-  cflRateByDir[2] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[2] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.4330127018922193*alphay[5])+0.25*alphay[3]+0.4330127018922193*alphay[2]-0.25*alphay[1]+0.25*alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[2] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.4330127018922193*alphay[5]+0.25*alphay[3]+0.4330127018922193*alphay[2]+0.25*(alphay[1]+alphay[0])); 
-  cflRateByDir[2] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[2] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
 #endif 
-  cflRateByDir[0] += cflRateByDir[2];
+
   outX[2] += 0.4330127018922193*(alphay[5]*f[5]+alphay[3]*f[3]+alphay[2]*f[2]+alphay[1]*f[1]+alphay[0]*f[0]); 
   outX[5] += 0.4330127018922193*(alphay[3]*f[6]+alphay[2]*f[5]+f[2]*alphay[5]+alphay[0]*f[1]+f[0]*alphay[1]); 
   outX[7] += 0.4330127018922193*(alphay[5]*f[11]+alphay[2]*f[7]+alphay[1]*f[6]+alphay[0]*f[3]+f[0]*alphay[3]); 
@@ -184,69 +183,69 @@ double EmGyrokineticVolPositivity2x2vSer_P1_Bvars_0(const double q_, const doubl
   alphav[5] = -(0.8660254037844386*dfac_v*(BdriftY[0]*(Apar[2]*Phi[3]+Phi[2]*Apar[3])*dfac_y+BdriftX[0]*(Apar[1]*Phi[3]+Phi[1]*Apar[3])*dfac_x)*q_)/m_; 
   alphav[6] = -1.0*BdriftY[0]*Phi[3]*dfac_y; 
   alphav[7] = -1.0*BdriftX[0]*Phi[3]*dfac_x; 
-  cflRateByDir[3] = 0.; 
+  positivityWeightByDir[3] = 0.; 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
   alphaL = -0.125*(1.732050807568877*alphav[3]-1.0*alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaL); 
+  positivityWeightByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate surface-averaged alpha on right 
   alphaR = 0.125*(1.732050807568877*alphav[3]+alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaR); 
+  positivityWeightByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
 #elif cflType == QUAD 
   // evaluate alpha at left surface quadrature points 
   alphaL = 0.0625*(0.4330127018922193*(alphav[7]+alphav[6])+0.25*alphav[5]-0.4330127018922193*alphav[3]-0.25*(alphav[2]+alphav[1])+0.25*alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*(0.4330127018922193*alphav[7]-0.4330127018922193*alphav[6]-0.25*alphav[5]-0.4330127018922193*alphav[3]-0.25*alphav[2]+0.25*(alphav[1]+alphav[0])); 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.4330127018922193*alphav[7])+0.4330127018922193*alphav[6]-0.25*alphav[5]-0.4330127018922193*alphav[3]+0.25*alphav[2]-0.25*alphav[1]+0.25*alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.4330127018922193*(alphav[7]+alphav[6]))+0.25*alphav[5]-0.4330127018922193*alphav[3]+0.25*(alphav[2]+alphav[1]+alphav[0])); 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*(0.4330127018922193*(alphav[7]+alphav[6])+0.25*alphav[5]-0.4330127018922193*alphav[3]-0.25*(alphav[2]+alphav[1])+0.25*alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*(0.4330127018922193*alphav[7]-0.4330127018922193*alphav[6]-0.25*alphav[5]-0.4330127018922193*alphav[3]-0.25*alphav[2]+0.25*(alphav[1]+alphav[0])); 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.4330127018922193*alphav[7])+0.4330127018922193*alphav[6]-0.25*alphav[5]-0.4330127018922193*alphav[3]+0.25*alphav[2]-0.25*alphav[1]+0.25*alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.4330127018922193*(alphav[7]+alphav[6]))+0.25*alphav[5]-0.4330127018922193*alphav[3]+0.25*(alphav[2]+alphav[1]+alphav[0])); 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   // evaluate alpha at right surface quadrature points 
   alphaR = 0.0625*((-0.4330127018922193*(alphav[7]+alphav[6]))+0.25*alphav[5]+0.4330127018922193*alphav[3]-0.25*(alphav[2]+alphav[1])+0.25*alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.4330127018922193*alphav[7])+0.4330127018922193*alphav[6]-0.25*alphav[5]+0.4330127018922193*alphav[3]-0.25*alphav[2]+0.25*(alphav[1]+alphav[0])); 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.4330127018922193*alphav[7]-0.4330127018922193*alphav[6]-0.25*alphav[5]+0.4330127018922193*alphav[3]+0.25*alphav[2]-0.25*alphav[1]+0.25*alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.4330127018922193*(alphav[7]+alphav[6])+0.25*alphav[5]+0.4330127018922193*alphav[3]+0.25*(alphav[2]+alphav[1]+alphav[0])); 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.4330127018922193*(alphav[7]+alphav[6]))+0.25*alphav[5]+0.4330127018922193*alphav[3]-0.25*(alphav[2]+alphav[1])+0.25*alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.4330127018922193*alphav[7])+0.4330127018922193*alphav[6]-0.25*alphav[5]+0.4330127018922193*alphav[3]-0.25*alphav[2]+0.25*(alphav[1]+alphav[0])); 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.4330127018922193*alphav[7]-0.4330127018922193*alphav[6]-0.25*alphav[5]+0.4330127018922193*alphav[3]+0.25*alphav[2]-0.25*alphav[1]+0.25*alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.4330127018922193*(alphav[7]+alphav[6])+0.25*alphav[5]+0.4330127018922193*alphav[3]+0.25*(alphav[2]+alphav[1]+alphav[0])); 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
 #endif 
-  cflRateByDir[0] += cflRateByDir[3];
+
   outV[3] += 0.4330127018922193*(alphav[7]*f[7]+alphav[6]*f[6]+alphav[5]*f[5]+alphav[3]*f[3]+alphav[2]*f[2]+alphav[1]*f[1]+alphav[0]*f[0]); 
   outV[6] += 0.4330127018922193*(alphav[7]*f[11]+alphav[3]*f[6]+f[3]*alphav[6]+alphav[2]*f[5]+f[2]*alphav[5]+alphav[0]*f[1]+f[0]*alphav[1]); 
   outV[7] += 0.4330127018922193*(alphav[6]*f[11]+alphav[3]*f[7]+f[3]*alphav[7]+alphav[1]*f[5]+f[1]*alphav[5]+alphav[0]*f[2]+f[0]*alphav[2]); 
@@ -259,7 +258,7 @@ double EmGyrokineticVolPositivity2x2vSer_P1_Bvars_0(const double q_, const doubl
 } 
 double EmGyrokineticStep2VolPositivity2x2vSer_P1(const double q_, const double m_, const double *w, const double *dxv, 
                            const double *ohmMod, const double *dApardt, 
-                           const double *f, double *outVol, double *outSurf, double *cflRateByDir) 
+                           const double *f, double *outVol, double *outSurf, double *positivityWeightByDir) 
 { 
   double dvInv = 1.0/dxv[2]; 
   double dfac_v = 2.0/dxv[2]; 
@@ -293,70 +292,70 @@ double EmGyrokineticStep2VolPositivity2x2vSer_P1(const double q_, const double m
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
   alphaL = -(0.25*dApardt[0]*dfac_v*q_)/m_; 
-  cflRateByDir[3] += std::abs(alphaL); 
+  positivityWeightByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate surface-averaged alpha on right 
   alphaR = -(0.25*dApardt[0]*dfac_v*q_)/m_; 
-  cflRateByDir[3] += std::abs(alphaR); 
+  positivityWeightByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
 #elif cflType == QUAD 
   // evaluate alpha at left surface quadrature points 
   alphaL = -(0.0625*(0.5*dApardt[3]-0.5*(dApardt[2]+dApardt[1])+0.5*dApardt[0])*dfac_v*q_)/m_; 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = -(0.0625*(0.5*(dApardt[1]+dApardt[0])-0.5*(dApardt[3]+dApardt[2]))*dfac_v*q_)/m_; 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = -(0.0625*((-0.5*dApardt[3])+0.5*dApardt[2]-0.5*dApardt[1]+0.5*dApardt[0])*dfac_v*q_)/m_; 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = -(0.03125*(dApardt[3]+dApardt[2]+dApardt[1]+dApardt[0])*dfac_v*q_)/m_; 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = -(0.0625*(0.5*dApardt[3]-0.5*(dApardt[2]+dApardt[1])+0.5*dApardt[0])*dfac_v*q_)/m_; 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = -(0.0625*(0.5*(dApardt[1]+dApardt[0])-0.5*(dApardt[3]+dApardt[2]))*dfac_v*q_)/m_; 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = -(0.0625*((-0.5*dApardt[3])+0.5*dApardt[2]-0.5*dApardt[1]+0.5*dApardt[0])*dfac_v*q_)/m_; 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = -(0.03125*(dApardt[3]+dApardt[2]+dApardt[1]+dApardt[0])*dfac_v*q_)/m_; 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   // evaluate alpha at right surface quadrature points 
   alphaR = -(0.0625*(0.5*dApardt[3]-0.5*(dApardt[2]+dApardt[1])+0.5*dApardt[0])*dfac_v*q_)/m_; 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = -(0.0625*(0.5*(dApardt[1]+dApardt[0])-0.5*(dApardt[3]+dApardt[2]))*dfac_v*q_)/m_; 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = -(0.0625*((-0.5*dApardt[3])+0.5*dApardt[2]-0.5*dApardt[1]+0.5*dApardt[0])*dfac_v*q_)/m_; 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = -(0.03125*(dApardt[3]+dApardt[2]+dApardt[1]+dApardt[0])*dfac_v*q_)/m_; 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = -(0.0625*(0.5*dApardt[3]-0.5*(dApardt[2]+dApardt[1])+0.5*dApardt[0])*dfac_v*q_)/m_; 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = -(0.0625*(0.5*(dApardt[1]+dApardt[0])-0.5*(dApardt[3]+dApardt[2]))*dfac_v*q_)/m_; 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = -(0.0625*((-0.5*dApardt[3])+0.5*dApardt[2]-0.5*dApardt[1]+0.5*dApardt[0])*dfac_v*q_)/m_; 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = -(0.03125*(dApardt[3]+dApardt[2]+dApardt[1]+dApardt[0])*dfac_v*q_)/m_; 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
 #endif 
-  cflRateByDir[0] += cflRateByDir[3];return cflRate; 
+return cflRate; 
 } 
 double EmGyrokineticVolPositivity2x2vSer_P1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, 
-                        const double *f, double *outX, double *outV, double *cflRateByDir) 
+                        const double *f, double *outX, double *outV, double *positivityWeightByDir) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -372,7 +371,6 @@ double EmGyrokineticVolPositivity2x2vSer_P1_Bvars_1(const double q_, const doubl
   double q2 = q_*q_; 
   double m2 = m_*m_; 
   double cflRate = 0.0; 
-  cflRateByDir[0] = 0.; 
   double alphaL = 0.0; 
   double alphaR = 0.0; 
   double alphaCtrl;
@@ -383,69 +381,69 @@ double EmGyrokineticVolPositivity2x2vSer_P1_Bvars_1(const double q_, const doubl
   alphax[3] = (1.154700538379252*BdriftX[0]*dfac_x*m_*wv)/(dfac_v*q_); 
   alphax[5] = (BdriftX[0]*Apar[3]+BdriftX[1]*Apar[2])*dfac_x*wv; 
   alphax[6] = (1.154700538379252*BdriftX[1]*dfac_x*m_*wv)/(dfac_v*q_); 
-  cflRateByDir[1] = 0.; 
+  positivityWeightByDir[1] = 0.; 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
   alphaL = -0.125*(1.732050807568877*alphax[1]-1.0*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaL); 
+  positivityWeightByDir[1] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate surface-averaged alpha on right 
   alphaR = 0.125*(1.732050807568877*alphax[1]+alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaR); 
+  positivityWeightByDir[1] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
 #elif cflType == QUAD 
   // evaluate alpha at left surface quadrature points 
   alphaL = 0.0625*(0.4330127018922193*(alphax[6]+alphax[5])-0.25*(alphax[3]+alphax[2])-0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[1] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*(0.4330127018922193*alphax[6]-0.4330127018922193*alphax[5]-0.25*alphax[3]+0.25*alphax[2]-0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[1] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.4330127018922193*alphax[6])+0.4330127018922193*alphax[5]+0.25*alphax[3]-0.25*alphax[2]-0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[1] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.4330127018922193*(alphax[6]+alphax[5]))+0.25*(alphax[3]+alphax[2])-0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[1] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*(0.4330127018922193*(alphax[6]+alphax[5])-0.25*(alphax[3]+alphax[2])-0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[1] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*(0.4330127018922193*alphax[6]-0.4330127018922193*alphax[5]-0.25*alphax[3]+0.25*alphax[2]-0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[1] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.4330127018922193*alphax[6])+0.4330127018922193*alphax[5]+0.25*alphax[3]-0.25*alphax[2]-0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[1] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.4330127018922193*(alphax[6]+alphax[5]))+0.25*(alphax[3]+alphax[2])-0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[1] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   // evaluate alpha at right surface quadrature points 
   alphaR = 0.0625*((-0.4330127018922193*(alphax[6]+alphax[5]))-0.25*(alphax[3]+alphax[2])+0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[1] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.4330127018922193*alphax[6])+0.4330127018922193*alphax[5]-0.25*alphax[3]+0.25*alphax[2]+0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[1] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.4330127018922193*alphax[6]-0.4330127018922193*alphax[5]+0.25*alphax[3]-0.25*alphax[2]+0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[1] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.4330127018922193*(alphax[6]+alphax[5])+0.25*(alphax[3]+alphax[2])+0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[1] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.4330127018922193*(alphax[6]+alphax[5]))-0.25*(alphax[3]+alphax[2])+0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[1] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.4330127018922193*alphax[6])+0.4330127018922193*alphax[5]-0.25*alphax[3]+0.25*alphax[2]+0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[1] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.4330127018922193*alphax[6]-0.4330127018922193*alphax[5]+0.25*alphax[3]-0.25*alphax[2]+0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[1] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.4330127018922193*(alphax[6]+alphax[5])+0.25*(alphax[3]+alphax[2])+0.4330127018922193*alphax[1]+0.25*alphax[0]); 
-  cflRateByDir[1] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[1] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
 #endif 
-  cflRateByDir[0] += cflRateByDir[1];
+
   outX[1] += 0.4330127018922193*(alphax[6]*f[6]+alphax[5]*f[5]+alphax[3]*f[3]+alphax[2]*f[2]+alphax[1]*f[1]+alphax[0]*f[0]); 
   outX[5] += 0.4330127018922193*(alphax[6]*f[11]+alphax[3]*f[7]+alphax[1]*f[5]+f[1]*alphax[5]+alphax[0]*f[2]+f[0]*alphax[2]); 
   outX[6] += 0.4330127018922193*(alphax[5]*f[11]+alphax[2]*f[7]+alphax[1]*f[6]+f[1]*alphax[6]+alphax[0]*f[3]+f[0]*alphax[3]); 
@@ -463,69 +461,69 @@ double EmGyrokineticVolPositivity2x2vSer_P1_Bvars_1(const double q_, const doubl
   alphay[5] = -1.0*dfac_y*(1.732050807568877*BmagInv[1]*Apar[3]*dfac_x*wv-1.0*((BdriftY[0]*Apar[3]+BdriftY[1]*Apar[2])*wv+1.732050807568877*BmagInv[1]*Phi[3]*dfac_x)); 
   alphay[6] = (1.154700538379252*BdriftY[1]*dfac_y*m_*wv)/(dfac_v*q_); 
   alphay[8] = (Bmag[1]*BmagInv[1]*dfac_x*dfac_y)/(dfac_m*q_); 
-  cflRateByDir[2] = 0.; 
+  positivityWeightByDir[2] = 0.; 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
   alphaL = -0.125*(1.732050807568877*alphay[2]-1.0*alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaL); 
+  positivityWeightByDir[2] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate surface-averaged alpha on right 
   alphaR = 0.125*(1.732050807568877*alphay[2]+alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaR); 
+  positivityWeightByDir[2] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
 #elif cflType == QUAD 
   // evaluate alpha at left surface quadrature points 
   alphaL = 0.0625*(0.25*(alphay[8]+alphay[6])+0.4330127018922193*alphay[5]-0.25*(alphay[4]+alphay[3])-0.4330127018922193*alphay[2]-0.25*alphay[1]+0.25*alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[2] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.25*(alphay[8]+alphay[6]))-0.4330127018922193*alphay[5]-0.25*(alphay[4]+alphay[3])-0.4330127018922193*alphay[2]+0.25*(alphay[1]+alphay[0])); 
-  cflRateByDir[2] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[2] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*(0.25*alphay[8]-0.25*alphay[6]+0.4330127018922193*alphay[5]-0.25*alphay[4]+0.25*alphay[3]-0.4330127018922193*alphay[2]-0.25*alphay[1]+0.25*alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[2] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.25*alphay[8])+0.25*alphay[6]-0.4330127018922193*alphay[5]-0.25*alphay[4]+0.25*alphay[3]-0.4330127018922193*alphay[2]+0.25*(alphay[1]+alphay[0])); 
-  cflRateByDir[2] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[2] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.25*alphay[8])+0.25*alphay[6]+0.4330127018922193*alphay[5]+0.25*alphay[4]-0.25*alphay[3]-0.4330127018922193*alphay[2]-0.25*alphay[1]+0.25*alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[2] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*(0.25*alphay[8]-0.25*alphay[6]-0.4330127018922193*alphay[5]+0.25*alphay[4]-0.25*alphay[3]-0.4330127018922193*alphay[2]+0.25*(alphay[1]+alphay[0])); 
-  cflRateByDir[2] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[2] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.25*(alphay[8]+alphay[6]))+0.4330127018922193*alphay[5]+0.25*(alphay[4]+alphay[3])-0.4330127018922193*alphay[2]-0.25*alphay[1]+0.25*alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[2] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*(0.25*(alphay[8]+alphay[6])-0.4330127018922193*alphay[5]+0.25*(alphay[4]+alphay[3])-0.4330127018922193*alphay[2]+0.25*(alphay[1]+alphay[0])); 
-  cflRateByDir[2] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[2] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   // evaluate alpha at right surface quadrature points 
   alphaR = 0.0625*(0.25*(alphay[8]+alphay[6])-0.4330127018922193*alphay[5]-0.25*(alphay[4]+alphay[3])+0.4330127018922193*alphay[2]-0.25*alphay[1]+0.25*alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[2] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.25*(alphay[8]+alphay[6]))+0.4330127018922193*alphay[5]-0.25*(alphay[4]+alphay[3])+0.4330127018922193*alphay[2]+0.25*(alphay[1]+alphay[0])); 
-  cflRateByDir[2] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[2] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.25*alphay[8]-0.25*alphay[6]-0.4330127018922193*alphay[5]-0.25*alphay[4]+0.25*alphay[3]+0.4330127018922193*alphay[2]-0.25*alphay[1]+0.25*alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[2] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.25*alphay[8])+0.25*alphay[6]+0.4330127018922193*alphay[5]-0.25*alphay[4]+0.25*alphay[3]+0.4330127018922193*alphay[2]+0.25*(alphay[1]+alphay[0])); 
-  cflRateByDir[2] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[2] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.25*alphay[8])+0.25*alphay[6]-0.4330127018922193*alphay[5]+0.25*alphay[4]-0.25*alphay[3]+0.4330127018922193*alphay[2]-0.25*alphay[1]+0.25*alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[2] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.25*alphay[8]-0.25*alphay[6]+0.4330127018922193*alphay[5]+0.25*alphay[4]-0.25*alphay[3]+0.4330127018922193*alphay[2]+0.25*(alphay[1]+alphay[0])); 
-  cflRateByDir[2] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[2] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.25*(alphay[8]+alphay[6]))-0.4330127018922193*alphay[5]+0.25*(alphay[4]+alphay[3])+0.4330127018922193*alphay[2]-0.25*alphay[1]+0.25*alphay[0]); 
-  cflRateByDir[2] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[2] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.25*(alphay[8]+alphay[6])+0.4330127018922193*alphay[5]+0.25*(alphay[4]+alphay[3])+0.4330127018922193*alphay[2]+0.25*(alphay[1]+alphay[0])); 
-  cflRateByDir[2] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[2] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
 #endif 
-  cflRateByDir[0] += cflRateByDir[2];
+
   outX[2] += 0.4330127018922193*(alphay[8]*f[8]+alphay[6]*f[6]+alphay[5]*f[5]+alphay[4]*f[4]+alphay[3]*f[3]+alphay[2]*f[2]+alphay[1]*f[1]+alphay[0]*f[0]); 
   outX[5] += 0.4330127018922193*(alphay[4]*f[8]+f[4]*alphay[8]+alphay[3]*f[6]+f[3]*alphay[6]+alphay[2]*f[5]+f[2]*alphay[5]+alphay[0]*f[1]+f[0]*alphay[1]); 
   outX[7] += 0.4330127018922193*(alphay[8]*f[13]+alphay[5]*f[11]+alphay[4]*f[10]+alphay[2]*f[7]+alphay[1]*f[6]+f[1]*alphay[6]+alphay[0]*f[3]+f[0]*alphay[3]); 
@@ -549,69 +547,69 @@ double EmGyrokineticVolPositivity2x2vSer_P1_Bvars_1(const double q_, const doubl
   alphav[11] = -1.0*BdriftX[1]*Phi[3]*dfac_x; 
   alphav[12] = -(0.5*Bmag[1]*(BdriftX[0]*Apar[3]+BdriftX[1]*Apar[2])*dfac_v*dfac_x)/(dfac_m*m_); 
   alphav[13] = -(0.5773502691896258*BdriftX[1]*Bmag[1]*dfac_x)/(dfac_m*q_); 
-  cflRateByDir[3] = 0.; 
+  positivityWeightByDir[3] = 0.; 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
   alphaL = -0.125*(1.732050807568877*alphav[3]-1.0*alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaL); 
+  positivityWeightByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate surface-averaged alpha on right 
   alphaR = 0.125*(1.732050807568877*alphav[3]+alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaR); 
+  positivityWeightByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
 #elif cflType == QUAD 
   // evaluate alpha at left surface quadrature points 
   alphaL = 0.0625*((-0.4330127018922193*alphav[13])-0.25*alphav[12]-0.4330127018922193*alphav[11]+0.4330127018922193*alphav[10]+0.25*(alphav[9]+alphav[8])+0.4330127018922193*(alphav[7]+alphav[6])+0.25*alphav[5]-0.25*alphav[4]-0.4330127018922193*alphav[3]-0.25*(alphav[2]+alphav[1])+0.25*alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*(0.4330127018922193*alphav[13]+0.25*alphav[12]+0.4330127018922193*(alphav[11]+alphav[10])+0.25*alphav[9]-0.25*alphav[8]+0.4330127018922193*alphav[7]-0.4330127018922193*alphav[6]-0.25*(alphav[5]+alphav[4])-0.4330127018922193*alphav[3]-0.25*alphav[2]+0.25*(alphav[1]+alphav[0])); 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.4330127018922193*alphav[13])+0.25*alphav[12]+0.4330127018922193*(alphav[11]+alphav[10])-0.25*alphav[9]+0.25*alphav[8]-0.4330127018922193*alphav[7]+0.4330127018922193*alphav[6]-0.25*(alphav[5]+alphav[4])-0.4330127018922193*alphav[3]+0.25*alphav[2]-0.25*alphav[1]+0.25*alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*(0.4330127018922193*alphav[13]-0.25*alphav[12]-0.4330127018922193*alphav[11]+0.4330127018922193*alphav[10]-0.25*(alphav[9]+alphav[8])-0.4330127018922193*(alphav[7]+alphav[6])+0.25*alphav[5]-0.25*alphav[4]-0.4330127018922193*alphav[3]+0.25*(alphav[2]+alphav[1]+alphav[0])); 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*(0.4330127018922193*alphav[13]+0.25*alphav[12]-0.4330127018922193*(alphav[11]+alphav[10])-0.25*(alphav[9]+alphav[8])+0.4330127018922193*(alphav[7]+alphav[6])+0.25*(alphav[5]+alphav[4])-0.4330127018922193*alphav[3]-0.25*(alphav[2]+alphav[1])+0.25*alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.4330127018922193*alphav[13])-0.25*alphav[12]+0.4330127018922193*alphav[11]-0.4330127018922193*alphav[10]-0.25*alphav[9]+0.25*alphav[8]+0.4330127018922193*alphav[7]-0.4330127018922193*alphav[6]-0.25*alphav[5]+0.25*alphav[4]-0.4330127018922193*alphav[3]-0.25*alphav[2]+0.25*(alphav[1]+alphav[0])); 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*(0.4330127018922193*alphav[13]-0.25*alphav[12]+0.4330127018922193*alphav[11]-0.4330127018922193*alphav[10]+0.25*alphav[9]-0.25*alphav[8]-0.4330127018922193*alphav[7]+0.4330127018922193*alphav[6]-0.25*alphav[5]+0.25*alphav[4]-0.4330127018922193*alphav[3]+0.25*alphav[2]-0.25*alphav[1]+0.25*alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   alphaL = 0.0625*((-0.4330127018922193*alphav[13])+0.25*alphav[12]-0.4330127018922193*(alphav[11]+alphav[10])+0.25*(alphav[9]+alphav[8])-0.4330127018922193*(alphav[7]+alphav[6])+0.25*(alphav[5]+alphav[4])-0.4330127018922193*alphav[3]+0.25*(alphav[2]+alphav[1]+alphav[0])); 
-  cflRateByDir[3] += std::abs(alphaL); 
   cflRate += -0.5*(alphaL-std::abs(alphaL)); 
+  positivityWeightByDir[3] += -0.5*(alphaL-std::abs(alphaL)); //std::abs(alphaL); 
   // evaluate alpha at right surface quadrature points 
   alphaR = 0.0625*(0.4330127018922193*alphav[13]-0.25*alphav[12]+0.4330127018922193*alphav[11]-0.4330127018922193*alphav[10]+0.25*(alphav[9]+alphav[8])-0.4330127018922193*(alphav[7]+alphav[6])+0.25*alphav[5]-0.25*alphav[4]+0.4330127018922193*alphav[3]-0.25*(alphav[2]+alphav[1])+0.25*alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.4330127018922193*alphav[13])+0.25*alphav[12]-0.4330127018922193*(alphav[11]+alphav[10])+0.25*alphav[9]-0.25*alphav[8]-0.4330127018922193*alphav[7]+0.4330127018922193*alphav[6]-0.25*(alphav[5]+alphav[4])+0.4330127018922193*alphav[3]-0.25*alphav[2]+0.25*(alphav[1]+alphav[0])); 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.4330127018922193*alphav[13]+0.25*alphav[12]-0.4330127018922193*(alphav[11]+alphav[10])-0.25*alphav[9]+0.25*alphav[8]+0.4330127018922193*alphav[7]-0.4330127018922193*alphav[6]-0.25*(alphav[5]+alphav[4])+0.4330127018922193*alphav[3]+0.25*alphav[2]-0.25*alphav[1]+0.25*alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.4330127018922193*alphav[13])-0.25*alphav[12]+0.4330127018922193*alphav[11]-0.4330127018922193*alphav[10]-0.25*(alphav[9]+alphav[8])+0.4330127018922193*(alphav[7]+alphav[6])+0.25*alphav[5]-0.25*alphav[4]+0.4330127018922193*alphav[3]+0.25*(alphav[2]+alphav[1]+alphav[0])); 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.4330127018922193*alphav[13])+0.25*alphav[12]+0.4330127018922193*(alphav[11]+alphav[10])-0.25*(alphav[9]+alphav[8])-0.4330127018922193*(alphav[7]+alphav[6])+0.25*(alphav[5]+alphav[4])+0.4330127018922193*alphav[3]-0.25*(alphav[2]+alphav[1])+0.25*alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.4330127018922193*alphav[13]-0.25*alphav[12]-0.4330127018922193*alphav[11]+0.4330127018922193*alphav[10]-0.25*alphav[9]+0.25*alphav[8]-0.4330127018922193*alphav[7]+0.4330127018922193*alphav[6]-0.25*alphav[5]+0.25*alphav[4]+0.4330127018922193*alphav[3]-0.25*alphav[2]+0.25*(alphav[1]+alphav[0])); 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*((-0.4330127018922193*alphav[13])-0.25*alphav[12]-0.4330127018922193*alphav[11]+0.4330127018922193*alphav[10]+0.25*alphav[9]-0.25*alphav[8]+0.4330127018922193*alphav[7]-0.4330127018922193*alphav[6]-0.25*alphav[5]+0.25*alphav[4]+0.4330127018922193*alphav[3]+0.25*alphav[2]-0.25*alphav[1]+0.25*alphav[0]); 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
   alphaR = 0.0625*(0.4330127018922193*alphav[13]+0.25*alphav[12]+0.4330127018922193*(alphav[11]+alphav[10])+0.25*(alphav[9]+alphav[8])+0.4330127018922193*(alphav[7]+alphav[6])+0.25*(alphav[5]+alphav[4])+0.4330127018922193*alphav[3]+0.25*(alphav[2]+alphav[1]+alphav[0])); 
-  cflRateByDir[3] += std::abs(alphaR); 
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
+  positivityWeightByDir[3] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
 #endif 
-  cflRateByDir[0] += cflRateByDir[3];
+
   outV[3] += 0.4330127018922193*(alphav[13]*f[13]+alphav[12]*f[12]+alphav[11]*f[11]+alphav[10]*f[10]+alphav[9]*f[9]+alphav[8]*f[8]+alphav[7]*f[7]+alphav[6]*f[6]+alphav[5]*f[5]+alphav[4]*f[4]+alphav[3]*f[3]+alphav[2]*f[2]+alphav[1]*f[1]+alphav[0]*f[0]); 
   outV[6] += 0.4330127018922193*(alphav[10]*f[13]+f[10]*alphav[13]+alphav[9]*f[12]+f[9]*alphav[12]+alphav[7]*f[11]+f[7]*alphav[11]+alphav[4]*f[8]+f[4]*alphav[8]+alphav[3]*f[6]+f[3]*alphav[6]+alphav[2]*f[5]+f[2]*alphav[5]+alphav[0]*f[1]+f[0]*alphav[1]); 
   outV[7] += 0.4330127018922193*(alphav[13]*f[15]+alphav[10]*f[14]+alphav[8]*f[12]+f[8]*alphav[12]+alphav[6]*f[11]+f[6]*alphav[11]+alphav[4]*f[9]+f[4]*alphav[9]+alphav[3]*f[7]+f[3]*alphav[7]+alphav[1]*f[5]+f[1]*alphav[5]+alphav[0]*f[2]+f[0]*alphav[2]); 

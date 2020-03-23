@@ -73,6 +73,9 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
    -- collisions solver.
    GkSpecies.super.createSolver(self,funcField)
 
+   self.isElectromagnetic = false
+   if hasApar then self.isElectromagnetic = true end
+
    -- Set up jacobian.
    if funcField then
       -- Save bmagFunc for later...
@@ -656,7 +659,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
 
    -- combine positivity weights from collisionless and collisions (for use on next step)
-   if self.positivity then
+   if self.positivity and not self.isElectromagnetic then
       self.gkEqn:setPositivityWeights(self.cflRateByCell)
       for _, c in pairs(self.collisions) do
          if (c.collKind == "GkLBO") then
@@ -701,6 +704,15 @@ function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
 
       if self.positivity then
          self.gkEqn:getPositivityRhsStep2(tCurr, self.dtGlobal[0], fIn, fRhsOut)
+      end
+   end
+
+   if self.positivity then
+      self.gkEqn:setPositivityWeights(self.cflRateByCell)
+      for _, c in pairs(self.collisions) do
+         if (c.collKind == "GkLBO") then
+            c.gkLBOconstNuCalcEq:setPositivityWeights(self.cflRateByCell)
+         end
       end
    end
 end

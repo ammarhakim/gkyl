@@ -256,10 +256,7 @@ load(modNm),
 
       if surfVar=vpar and emflag and polyOrder=1 then (
         ohmMod_k : calcInnerProdList(surfIntVars, 1, bSurf, fhatSurf_expd),
-        ohmMod_expd : ohmMod_k.bSurf,
-
-        ohmModPos_k : calcInnerProdList(surfIntVars, q_/m_*dAdtProv_expd, bSurf, fhatSurf_expd),
-        ohmModPos_expd : ohmModPos_k.bSurf
+        ohmMod_expd : ohmMod_k.bSurf
       ),
 
       /* limit flux to preserve positivity of control nodes */
@@ -268,10 +265,10 @@ load(modNm),
       GhatC : nodesub(Ghat_expd, cSurfNodes),
       if surfVar=vpar and emflag and polyOrder=1 then (
         GhatLimC : nodesub(GhatLim_expd, cSurfNodes),
-        ohmModPosC : nodesub(ohmModPos_expd, cSurfNodes)
+        ohmModC : nodesub(ohmMod_expd, cSurfNodes)
       ), 
       printf(fh, "  double fluxFracL, fluxFracR, limfac, flim = 0.;~%"),
-      printf(fh, "  double GhatCtrl[~a], GhatLimCtrl[~a], ohmModPosCtrl[~a];~%", length(cSurfNodes), length(cSurfNodes), length(cSurfNodes)),
+      printf(fh, "  double GhatCtrl[~a], GhatLimCtrl[~a], ohmModCtrl[~a];~%", length(cSurfNodes), length(cSurfNodes), length(cSurfNodes)),
       printf(fh, "  fluxFracL = positivityWeightByDirL[0] == 0. ? ~a : positivityWeightByDirL[~a]/positivityWeightByDirL[0]; ~%", float(1/(cdim+vdim)), surfDir),
       printf(fh, "  fluxFracR = positivityWeightByDirR[0] == 0. ? ~a : positivityWeightByDirR[~a]/positivityWeightByDirR[0]; ~%", float(1/(cdim+vdim)), surfDir),
       for c:1 thru length(cSurfNodes) do (
@@ -281,8 +278,8 @@ load(modNm),
         printf(fh, "  GhatCtrl[~a] = ~a; ~%", c-1, gcfac(float(GhatC[c]))),
         GhatLimCtrl : GhatCtrl,
         if surfVar=vpar and emflag and polyOrder=1 then (
+          printf(fh, "  ohmModCtrl[~a] = ~a; ~%", c-1, gcfac(float(ohmModC[c]))),
           printf(fh, "  GhatLimCtrl[~a] = ~a; ~%", c-1, gcfac(float(GhatLimC[c]))),
-          printf(fh, "  ohmModPosCtrl[~a] = ~a; ~%", c-1, gcfac(float(ohmModPosC[c]))),
           kill(GhatLimCtrl)
         ),
         printf(fh, "  if(~a[~a] > EPSILON) {~%", GhatLimCtrl, c-1),
@@ -292,24 +289,22 @@ load(modNm),
         printf(fh, "    flim = std::max(0., ~a); ~%", flimR),
         printf(fh, "    limfac = std::min(1., std::abs(fluxFracR*flim/~a[~a]/dtApprox/~a)); ~%", GhatLimCtrl, c-1, surfac),
         printf(fh, "  } else limfac = 0.; ~%"),
-        printf(fh, "  if(limfac != 1.) { ~%"),
+        printf(fh, "  //if(limfac != 1.) { ~%"),
         printf(fh, "    GhatCtrl[~a] = limfac*~a[~a]; ~%", c-1, GhatLimCtrl, c-1),
         if surfVar=vpar and emflag and polyOrder=1 then (
-          printf(fh, "    GhatCtrl[~a] += ohmModPosCtrl[~a]; ~%", c-1, c-1)
+          printf(fh, "    ohmModCtrl[~a] = 0.; ~%", c-1)
         ),
-        printf(fh, "  }~%")
+        printf(fh, "  //}~%")
       ),
       modToNodC : calcModToNodPhaseWithNodesAndBasis(cSurfNodes, bSurf, surfIntVars),
       Ghat_k:fullratsimp(invert(transpose(modToNodC)).makelist(GhatCtrl[i-1],i,1,length(cSurfNodes))),
       Ghat_k:gcfac(makelist(Ghat_k[i][1],i,1,length(Ghat_k))),
       Ghat_expd : Ghat_k.bSurf,
-      /*
       if surfVar=vpar and emflag and polyOrder=1 then (
         ohmMod_k:fullratsimp(invert(transpose(modToNodC)).makelist(ohmModCtrl[i-1],i,1,length(cSurfNodes))),
         ohmMod_k:gcfac(makelist(ohmMod_k[i][1],i,1,length(ohmMod_k))),
         ohmMod_expd : ohmMod_k.bSurf
       ),
-      */
       printf(fh, "~%"),
       /* finished limiting flux */
 
@@ -867,7 +862,7 @@ calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,p,emflag, bvarslist) := block
   )
 )$
 
-em:false$
+em:true$
 for pos: 1 thru 1 do (
 if pos=0 then positivity:false
 else positivity:true,
