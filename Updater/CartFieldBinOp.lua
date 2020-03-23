@@ -44,7 +44,8 @@ function CartFieldBinOp:init(tbl)
    local op = assert(
       tbl.operation, "Updater.CartFieldBinOp: Must provide an operation using 'operation'.")
 
-   local applyPositivity = xsys.pickBool(tbl.positivity,false)   -- Positivity preserving option.
+   -- Positivity option disabled for now. Need to investigate bugs in kernels.
+   local applyPositivity = false -- xsys.pickBool(tbl.positivity,false)   -- Positivity preserving option.
 
    -- Dimension of spaces.
    self._wDim = weakBasis:ndim()
