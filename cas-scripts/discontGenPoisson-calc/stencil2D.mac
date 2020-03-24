@@ -39,6 +39,7 @@ for polyOrder : 1 thru 1 do (
                   polyOrder),
     numBasis : length(ba),
 
+    /* Volume ----------------------------------------------------- */
     if isRight then
       recfx : calcRecov1CellGen(basisNm[bIdx], x, size, polyOrder, C,
                                 dg(fL), dg(fC), bc(D=Dx, N=Nx, val=valx))
@@ -68,7 +69,7 @@ for polyOrder : 1 thru 1 do (
           calcInnerProdList(dirs, Jyy, diff(ba, y),
                             doExpand(Dyy, ba)*diff(recfy, y)),
 
-    /* Top */
+    /* Top -------------------------------------------------------- */
     if isTop then (
       rec2 : calcRecov2CellGen(basisNm[bIdx], y, size, polyOrder,
                                dg(fB), dg(fC, bc(D=Dy, N=Ny, val=valy))),
@@ -92,7 +93,7 @@ for polyOrder : 1 thru 1 do (
     ),
     surfT : calcInnerProdList([x], 1, subst(y=1, ba), faceT),
 
-    /* Bottom */
+    /* Bottom ----------------------------------------------------- */
     if isBottom then (
       rec2 : calcRecov2CellGen(basisNm[bIdx], y, size, polyOrder,
                                dg(fC, bc(D=Dy, N=Ny, val=valy)), dg(fT)),
@@ -116,7 +117,7 @@ for polyOrder : 1 thru 1 do (
     ),
     surfB : calcInnerProdList([x], 1, subst(y=-1, ba), faceB),
 
-    /* Left */
+    /* Left ------------------------------------------------------- */
     if isLeft then (
       rec2 : calcRecov2CellGen(basisNm[bIdx], x, size, polyOrder,
                                dg(fC, bc(D=Dx, N=Nx, val=valx)), dg(fR)),
@@ -133,14 +134,14 @@ for polyOrder : 1 thru 1 do (
                                 bc(D=Dy, N=Ny, val=valy),
                                 dg(fL, fC), dg(fTL, fT))
       else
-        rec6 : calcRecovFaceGen(basisNm[bIdx], y, 0, size, polyOrder, C,
+        rec6 : calcRecovFaceGen(basisNm[bIdx], x, 0, size, polyOrder, C,
                                 dg(fBL, fB), dg(fL, fC), dg(fTL, fT)),
       faceL : subst(x=-1, doExpand(Dxx, ba))*subst(x=0, diff(rec2, x))*Jxx +
               subst(x=-1, doExpand(Dxy, ba))*diff(rec6, y)*Jxy
     ),
     surfL : calcInnerProdList([y], 1, subst(x=-1, ba), faceL),
 
-    /* Right */
+    /* Right ------------------------------------------------------ */
     if isRight then (
       rec2 : calcRecov2CellGen(basisNm[bIdx], x, size, polyOrder,
                                dg(fL), dg(fC, bc(D=Dx, N=Nx, val=valx))),
@@ -157,13 +158,14 @@ for polyOrder : 1 thru 1 do (
                                 bc(D=Dy, N=Ny, val=valy),
                                 dg(fC, fR), dg(fT, fTR))
       else
-        rec6 : calcRecovFaceGen(basisNm[bIdx], y, 0, size, polyOrder, C,
+        rec6 : calcRecovFaceGen(basisNm[bIdx], x, 0, size, polyOrder, C,
                                 dg(fB, fBR), dg(fC, fR), dg(fT, fTR)),
       faceR : subst(x=1, doExpand(Dxx, ba))*subst(x=0, diff(rec2, x))*Jxx +
               subst(x=1, doExpand(Dxy, ba))*diff(rec6, y)*Jxy
     ),
     surfR : calcInnerProdList([y], 1, subst(x=1, ba), faceR),
 
+    /* Assembly --------------------------------------------------- */
     st : surfT - surfB + surfR - surfL - vol,
 
     fList : [fBL, fL, fTL, fB, fC, fT, fBR, fR, fTR],
