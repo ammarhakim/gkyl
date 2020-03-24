@@ -65,6 +65,8 @@ plasmaApp = Plasma.App {
    -- boundary conditions for configuration space
    periodicDirs = {1,2,3}, -- periodic directions
 
+   deltaF = true, -- only apply BCs to fluctuations, and use perturbed moments in field solve
+
    -- gyrokinetic electrons
    electron = Plasma.GkSpecies {
       charge = qe,
@@ -74,7 +76,7 @@ plasmaApp = Plasma.App {
       upper = {VPAR_UPPER, MU_UPPER},
       cells = {N_VPAR, N_MU},
       -- initial conditions
-      initBackground = {"maxwellian", 
+      initBackground = Plasma.Gyrokinetic.MaxwellianProjection {
               density = function (t, xn)
                  local x = xn[1]
                  return n0*(1-(x-r0)/L_n)
@@ -83,8 +85,9 @@ plasmaApp = Plasma.App {
                  local x = xn[1]
                  return Te0*(1-(x-r0)/L_T)
               end,
+              isBackground = true,
              },
-      init = {"maxwellian", 
+      init = Plasma.Gyrokinetic.MaxwellianProjection {
               density = function (t, xn)
                  local x, y, z = xn[1], xn[2], xn[3]
                  local perturb = 1e-5*rho_e/L_T*math.cos(ky_min*y+kz_min*z)
@@ -95,7 +98,6 @@ plasmaApp = Plasma.App {
                  return Te0*(1-(x-r0)/L_T)
               end,
              },
-      fluctuationBCs = true, -- only apply BCs to fluctuations
       evolve = true, -- evolve species?
       diagnosticMoments = {"GkM0", "GkM2"},
    },

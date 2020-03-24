@@ -788,7 +788,6 @@ function GkSpecies:createDiagnostics()
       weakBasis  = self.confBasis,
       operation  = "Divide",
       onGhosts   = true,
-      positivity = self.positivity,
    }
    -- Sort moments into diagnosticMoments, diagnosticWeakMoments, and diagnosticAuxMoments.
    for i, mom in pairs(self.diagnosticMoments) do

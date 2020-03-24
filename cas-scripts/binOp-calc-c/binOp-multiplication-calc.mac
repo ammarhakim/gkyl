@@ -11,11 +11,10 @@ load("out-scripts");
 load(stringproc)$
 fpprec : 24$
 
-calcBinOpConfMultiply(fh, funcNm, cdim, basisFun, pMax) := block([],
+calcBinOpConfMultiply(fh, funcNm, cdim, basisFun, polyOrder) := block([],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
   load(modNm),
-  for polyOrder : 1 thru pMax do (
 
     bW    : basisC[polyOrder],
     varsW : varsC,
@@ -64,14 +63,12 @@ calcBinOpConfMultiply(fh, funcNm, cdim, basisFun, pMax) := block([],
 
     printf(fh, "} ~%"),
     printf(fh, " ~%")
-  )
 )$
 
-calcBinOpPhasePhaseMultiply(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcBinOpPhasePhaseMultiply(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
-  for polyOrder : 1 thru pMax do (
 
     bW    : basisP[polyOrder],
     varsW : varsP,
@@ -85,19 +82,20 @@ calcBinOpPhasePhaseMultiply(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "  // eqNcomp: =1 if A:numComponents=B:numComponents, =0 else. ~%"),
     printf(fh, "  // out:     output field A*B (same number of components as B). ~%"),
     printf(fh, " ~%"),
+    flush_output(fh),
 
     /* Expand fields A and B in configuration space basis. */
     Ae : doExpand1(A, bW),
     Be : doExpand1(B, bW),
 
-    prod : calcInnerProdList(varsW,Ae,bW,Be),
-  
     printf(fh, "  double tmp[~a]; ~%",N),
     printf(fh, " ~%"),
 
-    expr : gcfac(float(fullratsimp(prod))),
     for i : 1 thru N do (
-      if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", tmp[i-1], expr[i]),
+      print("working on innerProd", i, "/", N),
+      prod : innerProd(varsW, Ae, bW[i], Be),
+      expr : gcfac(float(fullratsimp(prod))),
+      if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", tmp[i-1], expr),
       flush_output(fh)
     ),
     printf(fh, " ~%"),
@@ -110,14 +108,12 @@ calcBinOpPhasePhaseMultiply(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     printf(fh, "} ~%"),
     printf(fh, " ~%")
-  )
 )$
 
-calcBinOpConfPhaseMultiply(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcBinOpConfPhaseMultiply(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
-  for polyOrder : 1 thru pMax do (
     bC : basisC[polyOrder],
     bP : basisP[polyOrder],
     N  : length(bP),
@@ -152,5 +148,4 @@ calcBinOpConfPhaseMultiply(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     printf(fh, "} ~%"),
     printf(fh, " ~%")
-  )
 )$

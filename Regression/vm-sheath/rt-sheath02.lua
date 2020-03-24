@@ -1,6 +1,6 @@
 -- Gkyl --------------------------------------------------------------
 -- Basic sheath simulation -------------------------------------------
-local Plasma = require "App.PlasmaOnCartGrid"
+local Plasma = (require "App.PlasmaOnCartGrid").VlasovMaxwell
 
 -- SI units
 local epsilon_0, mu_0 = 8.854e-12, 1.257e-6
@@ -44,14 +44,14 @@ sim = Plasma.App {
    periodicDirs = {}, -- periodic directions
 
    -- electrons
-   elc = Plasma.VlasovSpecies {
+   elc = Plasma.Species {
       charge = q_e, mass = m_e,
       -- velocity space grid
       lower = {-6.0*vth_e},
       upper = {6.0*vth_e},
       cells = {16},
       -- initial conditions
-      init = {"maxwellian", 
+      init = Plasma.MaxwellianProjection {
               density = function (t, xn)
                  return n_e
               end,
@@ -63,19 +63,19 @@ sim = Plasma.App {
               end
              },
       evolve = true, -- evolve species?
-      bcx = { Plasma.VlasovSpecies.bcAbsorb,
-	      Plasma.VlasovSpecies.bcReflect },
+      bcx = { Plasma.Species.bcAbsorb,
+	      Plasma.Species.bcReflect },
       diagnosticMoments = { "M0", "M1i", "M2" },
    },
 
-   ion = Plasma.VlasovSpecies {
+   ion = Plasma.Species {
       charge = q_i, mass = m_i,
       -- velocity space grid
       lower = {-6.0*vth_i},
       upper = {6.0*vth_i},
       cells = {16},
       -- initial conditions
-      init = {"maxwellian", 
+      init = Plasma.MaxwellianProjection {
               density = function (t, xn)
                  return n_i
               end,
@@ -87,20 +87,20 @@ sim = Plasma.App {
               end
              },
       evolve = true, -- evolve species?
-      bcx = { Plasma.VlasovSpecies.bcAbsorb,
-	      Plasma.VlasovSpecies.bcReflect },
+      bcx = { Plasma.Species.bcAbsorb,
+	      Plasma.Species.bcReflect },
       diagnosticMoments = { "M0", "M1i", "M2" },
    },
    
    -- field solver
-   field = Plasma.MaxwellField {
+   field = Plasma.Field {
       epsilon0 = epsilon_0, mu0 = mu_0,
       init = function (t, xn)
 	 return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
       end,
       evolve = true, -- evolve field?
-      bcx = { Plasma.MaxwellField.bcReflect,
-	      Plasma.MaxwellField.bcSymmetry },
+      bcx = { Plasma.Field.bcReflect,
+	      Plasma.Field.bcSymmetry },
    },
 }
 -- run application

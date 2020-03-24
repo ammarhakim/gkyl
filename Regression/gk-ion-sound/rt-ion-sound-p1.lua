@@ -44,15 +44,16 @@ plasmaApp = Plasma.App {
       cells = {32},
       -- initial conditions
       -- specify background so that we can plot perturbed distribution and moments
-      initBackground = {"maxwellian",
+      initBackground = Plasma.Gyrokinetic.MaxwellianProjection {
               density = function (t, xn)
                  return ni0
               end,
               temperature = function (t, xn)
                  return Ti0
               end,
+              isBackground = true,
              },
-      init = {"maxwellian",
+      init = Plasma.Gyrokinetic.MaxwellianProjection {
               density = function (t, xn)
                  local x, v = xn[1], xn[2]
                  local k = knumber

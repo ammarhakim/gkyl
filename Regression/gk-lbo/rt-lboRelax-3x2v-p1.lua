@@ -109,7 +109,7 @@ plasmaApp = Plasma.App {
    --    upper      = {vMax,muMax},
    --    cells      = Nv,
    --    -- Initial conditions.
-   --    init = {"maxwellian",
+   --    init = Plasma.MaxwellianProjection {
    --            density = nMr,
    -- 	      driftSpeed = {uMr},
    --            temperature = vt2Mr,   
@@ -153,7 +153,7 @@ plasmaApp = Plasma.App {
    --    upper      = {vMax,muMax},
    --    cells      = Nv,
    --    -- Initial conditions.
-   --    init = {"maxwellian",
+   --    init = Plasma.MaxwellianProjection {
    --            density = nMb,
    -- 	      driftSpeed = {uMb},
    --            temperature = vt2Mb,

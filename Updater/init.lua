@@ -12,6 +12,7 @@ local CartFieldBinOp = require "Updater.CartFieldBinOp"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local ConfToPhase = require "Updater.ConfToPhase"
 local CrossPrimMoments = require "Updater.CrossPrimMoments"
+local DiscontGenPoisson = require "Updater.DiscontGenPoisson"
 local DiscontPoisson = require "Updater.DiscontPoisson"
 local DistFuncIntegratedMomentCalc = require "Updater.DistFuncIntegratedMomentCalc"
 local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
@@ -46,6 +47,7 @@ return {
    CartFieldIntegratedQuantCalc = CartFieldIntegratedQuantCalc,
    ConfToPhase = ConfToPhase,
    CrossPrimMoments = CrossPrimMoments,
+   DiscontGenPoisson = DiscontGenPoisson,
    DiscontPoisson = DiscontPoisson,
    DistFuncIntegratedMomentCalc = DistFuncIntegratedMomentCalc,
    DistFuncMomentCalc = DistFuncMomentCalc,

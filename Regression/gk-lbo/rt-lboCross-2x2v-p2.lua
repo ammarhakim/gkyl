@@ -77,7 +77,7 @@ plasmaApp = Plasma.App {
       upper      = { 5*vte, 12*me*(vte^2)/(2*B0)},
       cells      = {16, 8},
       -- Initial conditions.
-      init = {"maxwellian",
+      init = Plasma.MaxwellianProjection {
          density = function (t, xn)
             local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
             return n0
@@ -120,7 +120,7 @@ plasmaApp = Plasma.App {
       upper      = { 5*vti, 12*mi*(vti^2)/(2*B0)},
       cells      = {16, 8},
       -- Initial conditions.
-      init = {"maxwellian",
+      init = Plasma.MaxwellianProjection {
          density = function (t, xn)
             local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
             return n0
