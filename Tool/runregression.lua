@@ -456,7 +456,7 @@ end
 -- relative difference between two numbers (NOT SURE IF THIS IS BEST
 -- WAY TO DO THINGS)
 local function get_relative_numeric(expected, actual, maxVal)
-   if maxVal < 1e-15 then
+   if maxVal < GKYL_MIN_DOUBLE then
       return math.max(expected-actual)
    else
       return math.abs(expected-actual)/maxVal
