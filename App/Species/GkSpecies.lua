@@ -734,7 +734,7 @@ function GkSpecies:createDiagnostics()
          self.diagnosticIntegratedMomentFields[mom] = DataStruct.DynVector {
             numComponents = 1,
          }
-         if mom == ("intL2" or "intDelL2" or "intDelPosL2") then
+         if mom == "intL2" or mom == "intDelL2" or mom == "intDelPosL2" then
             self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
                onGrid        = self.grid,
                basis         = self.basis,

@@ -623,7 +623,7 @@ end
 -- Solve for electrostatic potential phi.
 function GkField:advance(tCurr, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
-   local potAux  = self:rkStepperFields()[outIdx]
+   local potRhs  = self:rkStepperFields()[outIdx]
    
    if self.evolve or (self._first and not self.externalPhi) then
       if self.externalPhiTimeDependence then
