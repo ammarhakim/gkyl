@@ -631,6 +631,7 @@ function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end
 
+   -- Keep track of evolution of changes in f from diffusive positivity rescaling.
    if self.positivityDiffuse then
       self.fDelPos[outIdx]:combine(a, self.fDelPos[aIdx])
       for i = 1, nFlds do -- Accumulate rest of the fields.
@@ -642,6 +643,14 @@ end
 function KineticSpecies:forwardEuler(tCurr, dt, inIdx, outIdx)
    -- NOTE: order of these arguments matters... outIdx must come before inIdx.
    self:combineRk(outIdx, dt, outIdx, 1.0, inIdx)
+
+   -- Diffusive (non-conservative) positivity rescaling at end of step, to make sure there are no positivity violations.
+   -- Can measure effect of this by monitoring intDelPosL2 (L2 change from positivity rescaling).
+   if self.positivityDiffuse then
+      self.fDelPos[outIdx]:combine(-1.0, self:rkStepperFields()[outIdx])
+      self.posRescaler:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]})
+      self.fDelPos[outIdx]:accumulate(1.0, self:rkStepperFields()[outIdx])
+   end
 end
 
 function KineticSpecies:suggestDt()
@@ -703,16 +712,9 @@ function KineticSpecies:checkPositivity(tCurr, idx)
   return status
 end
 
-function KineticSpecies:applyBcIdx(tCurr, idx, isFirstRk)
-  if self.positivityDiffuse then
-     self.fDelPos[idx]:combine(-1.0, self:rkStepperFields()[idx])
-     self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]}, true, isFirstRk)
-     self.fDelPos[idx]:accumulate(1.0, self:rkStepperFields()[idx])
-  end
+function KineticSpecies:applyBcIdx(tCurr, idx)
+  -- apply boundary conditions
   self:applyBc(tCurr, self:rkStepperFields()[idx])
-  if self.positivity then
-     self:checkPositivity(tCurr, idx)
-  end
 end
 
 function KineticSpecies:applyBc(tCurr, fIn)

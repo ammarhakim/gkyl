@@ -17,8 +17,8 @@ local ffiC        = ffi.C
 ffi.cdef[[
   double findMinNodalValue(double *fIn, int ndim); 
   double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx, double tCurr);
-  double calcVolTermRescale(const double tCurr, const double dtApprox, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int numBasis, int *idx);
-  double rescaleVolTerm(const double tCurr, const double dtApprox, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int numBasis, int *idx);
+  double calcVolTermRescale(const double tCurr, const double dt, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int numBasis, int *idx, int printWarnings);
+  double rescaleVolTerm(const double tCurr, const double dt, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int numBasis, int *idx, int printWarnings);
 ]]
 
 local PositivityRescale = Proto(UpdaterBase)
@@ -87,11 +87,14 @@ function PositivityRescale:init(tbl)
    self.tCurrOld      = 0.0
    self.rkIdx         = 1
 
+   -- print positivity warnings when surface terms make control points negative?
+   self.printWarnings = false
+
    self._first = true
 end   
 
--- advance method
-function PositivityRescale:advance(tCurr, inFld, outFld, computeDiagnostics, zeroOut)
+-- advance method: for diffusive (non-conservative) rescaling of f at end of timestep
+function PositivityRescale:advance(tCurr, inFld, outFld)
    local grid      = self.grid
    local fIn, fOut = inFld[1], outFld[1]
 
@@ -103,34 +106,10 @@ function PositivityRescale:advance(tCurr, inFld, outFld, computeDiagnostics, zer
       self.fInPtr            = fIn:get(1)
       self.fOutIndexer       = fOut:genIndexer()
       self.fOutPtr           = fOut:get(1)
-      self.del2ChangeIndexer = self.del2ChangeByCell:genIndexer()
-      self.del2ChangePtr     = self.del2ChangeByCell:get(1)
       self._first            = false
    end
 
-   if computeDiagnostics == nil then computeDiagnostics = true end
-
-   if zeroOut then 
-      if computeDiagnostics and tCurr > 0 then 
-         self.del2ChangeL[1]:appendData(self.tCurrOld, {self.del2Change[1]}) 
-         self.del2ChangeG[1]:appendData(self.tCurrOld, {0})
-         self.del2ChangeL[2]:appendData(self.tCurrOld, {self.del2Change[2]}) 
-         self.del2ChangeG[2]:appendData(self.tCurrOld, {0})
-         self.del2ChangeL[3]:appendData(self.tCurrOld, {self.del2Change[3]}) 
-         self.del2ChangeG[3]:appendData(self.tCurrOld, {0})
-         self.del2ChangeL[4]:appendData(self.tCurrOld, {self.del2Change[4]}) 
-         self.del2ChangeG[4]:appendData(self.tCurrOld, {0})
-         self.rescaledCellsL:appendData(self.tCurrOld, {self.rescaledCells}) 
-         self.rescaledCellsG:appendData(self.tCurrOld, {0}) 
-      end
-      self.delChange     = 0.
-      self.rescaledCells = 0.0
-      self.tCurrOld      = tCurr
-      self.rkIdx         = 1
-   end
- 
    local localRange = fIn:localRange()   
-   self.del2Change[self.rkIdx] = 0.
 
    for idx in localRange:rowMajorIter() do
       grid:setIndex(idx)
@@ -139,14 +118,7 @@ function PositivityRescale:advance(tCurr, inFld, outFld, computeDiagnostics, zer
       fOut:fill(self.fOutIndexer(idx), self.fOutPtr)
 
       local del2ChangeCell = ffiC.rescale(self.fInPtr:data(), self.fOutPtr:data(), ndim, numBasis, idx:data(), tCurr)
-      if computeDiagnostics then 
-         self.del2ChangeByCell:fill(self.del2ChangeIndexer(idx), self.del2ChangePtr)
-         self.del2ChangePtr:data()[self.rkIdx-1] = del2ChangeCell
-         self.del2Change[self.rkIdx] = self.del2Change[self.rkIdx] + del2ChangeCell*grid:cellVolume()
-         if del2ChangeCell ~= 0. then self.rescaledCells = self.rescaledCells + 1 end
-      end
    end
-   self.rkIdx = self.rkIdx+1
 end
 
 function PositivityRescale:calcVolTermRescale(tCurr, dtApprox, fIn, weights, weightDirs, fRhsSurf, fRhsVol, volRescale)
@@ -185,7 +157,7 @@ function PositivityRescale:calcVolTermRescale(tCurr, dtApprox, fIn, weights, wei
       end
       
       volRescale_ptr[1] = ffiC.calcVolTermRescale(tCurr, dtApprox, fIn_ptr:data(), weightfac, fRhsSurf_ptr:data(),
-                                                  fRhsVol_ptr:data(), self.basis:ndim(), self.basis:numBasis(), idx:data())
+                                                  fRhsVol_ptr:data(), self.basis:ndim(), self.basis:numBasis(), idx:data(), self.printWarnings)
    end
 end
 
@@ -220,36 +192,8 @@ function PositivityRescale:rescaleVolTerm(tCurr, dtApprox, fIn, weights, weightD
          if weightfac > 1 then weightfac = 1 end
       end
       
-      local scaler = ffiC.rescaleVolTerm(tCurr, dtApprox, fIn_ptr:data(), weightfac, fRhsSurf_ptr:data(), fRhsVol_ptr:data(), self.basis:ndim(), self.basis:numBasis(), idx:data())
+      local scaler = ffiC.rescaleVolTerm(tCurr, dtApprox, fIn_ptr:data(), weightfac, fRhsSurf_ptr:data(), fRhsVol_ptr:data(), self.basis:ndim(), self.basis:numBasis(), idx:data(), self.printWarnings)
    end
-end
-
-function PositivityRescale:write(tm, frame, nm)
-   self.del2ChangeByCell:write(string.format("%s_%s_%d.bp", nm, "del2ChangeByCell", frame), tm, frame, false)
-
-   Mpi.Allreduce(self.rescaledCellsL:data():data(), self.rescaledCellsG:data():data(), self.rescaledCellsG:size()*2,
-                 Mpi.DOUBLE, Mpi.SUM, self.grid:commSet().comm)
-   for i=1, 4 do
-      Mpi.Allreduce(self.del2ChangeL[i]:data():data(), self.del2ChangeG[i]:data():data(), self.del2ChangeG[i]:size()*2,
-                    Mpi.DOUBLE, Mpi.SUM, self.grid:commSet().comm)
-   end
-   for j=1, self.del2ChangeG[1]:size() do
-      local delChange = 0.
-      for i=1, 4 do
-         delChange = delChange + math.sqrt(self.del2ChangeG[i]:data()[j][1])
-      end
-      self.delChangeG:appendData(self.del2ChangeG[1]:timeMesh():data()[j-1], {delChange})
-   end
-   
-   self.delChangeG:write(string.format("%s_%s_%d.bp", nm, "delChange", frame), tm, frame, true)
-   self.rescaledCellsG:write(string.format("%s_%s_%d.bp", nm, "rescaledCells", frame), tm, frame, true)
-   for i=1, 4 do
-      self.del2ChangeL[i]:clear()
-      self.del2ChangeG[i]:clear()
-   end
-   self.rescaledCellsL:clear()
-   self.rescaledCellsG:clear()
-   self.delChangeG:clear()
 end
 
 return PositivityRescale

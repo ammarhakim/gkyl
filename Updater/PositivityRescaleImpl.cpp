@@ -470,9 +470,22 @@ bool check(const double *fIn, int ndim, int numBasis, int *idx, double tCurr, in
 double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx, double tCurr)
 {
   double f0 = fIn[0]*std::pow(0.7071067811865475,ndim);
-  if (f0 < 0.) return 0.;
+  if (f0 < 0.) {
+     if(ndim == 1) {
+       printf("WARNING: negative cell avg %e in cell %2d, tCurr = %e\n", f0, idx[0], tCurr);
+     } else if( ndim == 2) {
+       printf("WARNING: negative cell avg %e in cell %2d %2d, tCurr = %e\n", f0, idx[0], idx[1], tCurr);
+     } else if( ndim == 3) {
+       printf("WARNING: negative cell avg %e in cell %2d %2d %2d, tCurr = %e\n", f0, idx[0], idx[1], idx[2], tCurr);
+     } else if( ndim == 4) {
+       printf("WARNING: negative cell avg %e in cell %2d %2d %2d %2d, tCurr = %e\n", f0, idx[0], idx[1], idx[2], idx[3], tCurr);
+     } else if( ndim == 5) {
+       printf("WARNING: negative cell avg %e in cell %2d %2d %2d %2d %2d, tCurr = %e\n", f0, idx[0], idx[1], idx[2], idx[3], idx[4], tCurr);
+     }
+     return 0.;
+  }
 
-  double fmin                = findMinNodalValue(fIn, ndim);
+  double fmin = findMinNodalValue(fIn, ndim);
   double fminOld, del2Change = 0.;
   int j = 0;
 
@@ -496,11 +509,25 @@ double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx
      fmin = findMinNodalValue(fOut, ndim);
      j++;
   }
+
+  if (fmin < 0.0) {
+     if(ndim == 1) {
+       printf("warning: negative control node %e in cell %2d, tCurr = %e \n", fmin, idx[0], tCurr);
+     } else if(ndim == 2) {
+       printf("warning: negative control node %e in cell %2d %2d, tCurr = %e\n", fmin, idx[0], idx[1], tCurr);
+     } else if(ndim == 3) {
+       printf("warning: negative control node %e in cell %2d %2d %2d, tCurr = %e\n", fmin, idx[0], idx[1], idx[2], tCurr);
+     } else if(ndim == 4) {
+       printf("warning: negative control node %e in cell %2d %2d %2d %2d, tCurr = %e\n", fmin, idx[0], idx[1], idx[2], idx[3], tCurr);
+     } else if(ndim == 5) {
+       printf("warning: negative control node %e in cell %2d %2d %2d %2d %2d, tCurr = %e\n", fmin, idx[0], idx[1], idx[2], idx[3], idx[4], tCurr);
+     }
+  }
   
   return del2Change;
 }
 
-double calcVolTermRescale(const double tCurr, const double dt, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int numBasis, int *idx)
+double calcVolTermRescale(const double tCurr, const double dt, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int numBasis, int *idx, int printWarnings)
 {
   double fOutSurf[numBasis];
   for(int i=0; i<numBasis; i++) {
@@ -510,7 +537,7 @@ double calcVolTermRescale(const double tCurr, const double dt, const double *fIn
   double minOutSurf = findMinNodalValue(fOutSurf, ndim);
   double f0         = fOutSurf[0]*pow(0.7071067811865475, ndim);
  
-  if (dt*minOutSurf < -EPSILON*dt*abs(minOutSurf-2*f0)-DBL_MIN) {
+  if (printWarnings && (dt*minOutSurf < -EPSILON*dt*abs(minOutSurf-2*f0)-DBL_MIN)) {
     printf("warning: at time %g, surface terms making control node negative, with value = %g in cell = (%d", tCurr, dt*minOutSurf, idx[0]);
     for(int i=1; i<ndim; i++) {
       printf(", %d", idx[i]);
@@ -525,10 +552,10 @@ double calcVolTermRescale(const double tCurr, const double dt, const double *fIn
   return scaler;
 }
 
-double rescaleVolTerm(const double tCurr, const double dt, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int numBasis, int *idx)
+double rescaleVolTerm(const double tCurr, const double dt, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int numBasis, int *idx, int printWarnings)
 {
 
-  double scaler = calcVolTermRescale(tCurr, dt, fIn, weight, fRhsSurf, fRhsVol, ndim, numBasis, idx);
+  double scaler = calcVolTermRescale(tCurr, dt, fIn, weight, fRhsSurf, fRhsVol, ndim, numBasis, idx, printWarnings);
 
   for(int i=0; i<numBasis; i++) {
     fRhsVol[i] *= scaler;

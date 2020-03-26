@@ -438,7 +438,7 @@ local function buildApplication(self, tbl)
          s:forwardEuler(tCurr, dtSuggested, inIdx, outIdx)
       end
       field:forwardEuler(tCurr, dtSuggested, inIdx, outIdx)
-      applyBc(tCurr, outIdx, calcCflFlag)
+      applyBc(tCurr, outIdx)
 
       return dtSuggested
    end
