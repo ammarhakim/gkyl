@@ -1091,27 +1091,27 @@ function GkGeometry:createSolver()
    end
 
    -- Projection updaters.
-   self.setBmag = Updater.EvalOnNodes {
+   self.setBmag = Updater.ProjectOnBasis {
       onGrid          = self.grid,
       basis           = self.basis,
       evaluate        = self.bmagFunc,
       projectOnGhosts = true,
    }
-   self.setBmagInv = Updater.EvalOnNodes {
+   self.setBmagInv = Updater.ProjectOnBasis {
       onGrid          = self.grid,
       basis           = self.basis,
       projectOnGhosts = true,
       evaluate        = self.bmagInvFunc
    }
    if self.gradparFunc then 
-      self.setGradpar = Updater.EvalOnNodes {
+      self.setGradpar = Updater.ProjectOnBasis {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
          evaluate        = self.gradparFunc
       }
    else
-      self.setGradpar = Updater.EvalOnNodes {
+      self.setGradpar = Updater.ProjectOnBasis {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
@@ -1119,14 +1119,14 @@ function GkGeometry:createSolver()
       }
    end
    if self.jacobGeoFunc then 
-      self.setJacobGeo = Updater.EvalOnNodes {
+      self.setJacobGeo = Updater.ProjectOnBasis {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
          evaluate        = self.jacobGeoFunc
       }
    else 
-      self.setJacobGeo = Updater.EvalOnNodes {
+      self.setJacobGeo = Updater.ProjectOnBasis {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
@@ -1134,14 +1134,14 @@ function GkGeometry:createSolver()
       }
    end
    if self.gxxFunc then 
-      self.setGxx = Updater.EvalOnNodes {
+      self.setGxx = Updater.ProjectOnBasis {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
          evaluate        = self.gxxFunc
       }
    else 
-      self.setGxx = Updater.EvalOnNodes {
+      self.setGxx = Updater.ProjectOnBasis {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
@@ -1149,14 +1149,14 @@ function GkGeometry:createSolver()
       }
    end
    if self.gxyFunc then 
-      self.setGxy = Updater.EvalOnNodes {
+      self.setGxy = Updater.ProjectOnBasis {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
          evaluate        = self.gxyFunc
       }
    else 
-      self.setGxy = Updater.EvalOnNodes {
+      self.setGxy = Updater.ProjectOnBasis {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
@@ -1164,14 +1164,14 @@ function GkGeometry:createSolver()
       }
    end
    if self.gyyFunc then 
-      self.setGyy = Updater.EvalOnNodes {
+      self.setGyy = Updater.ProjectOnBasis {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
          evaluate        = self.gyyFunc
       }
    else 
-      self.setGyy = Updater.EvalOnNodes {
+      self.setGyy = Updater.ProjectOnBasis {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
@@ -1179,7 +1179,7 @@ function GkGeometry:createSolver()
       }
    end
    if self.bdriftXFunc then 
-      self.setBdriftX = Updater.EvalOnNodes {
+      self.setBdriftX = Updater.ProjectOnBasis {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
@@ -1187,7 +1187,7 @@ function GkGeometry:createSolver()
       }
    end
    if self.bdriftYFunc then
-      self.setBdriftY = Updater.EvalOnNodes {
+      self.setBdriftY = Updater.ProjectOnBasis {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
@@ -1195,7 +1195,7 @@ function GkGeometry:createSolver()
       }
    end
    if self.phiWallFunc then 
-      self.setPhiWall = Updater.EvalOnNodes {
+      self.setPhiWall = Updater.ProjectOnBasis {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
