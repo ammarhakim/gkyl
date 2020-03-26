@@ -327,7 +327,7 @@ function Gyrokinetic:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr,
          self.positivityWeightByDir:fill(self.positivityWeightByDirIdxr(idxl), self.positivityWeightByDir_L_ptr)
          self.positivityWeightByDir:fill(self.positivityWeightByDirIdxr(idxr), self.positivityWeightByDir_R_ptr)
 
-         res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(),
+         res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs,
                      self.bmag_ptr:data(), self.bmagInv_ptr:data(), self.gradpar_ptr:data(), 
                      self.bdriftX_ptr:data(), self.bdriftY_ptr:data(), self.phi_ptr:data(), 
                      self.apar_ptr:data(), self.dApardt_ptr:data(), self.dApardtProv_ptr:data(), 
@@ -335,7 +335,7 @@ function Gyrokinetic:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr,
                      f_L_ptr:data(), f_R_ptr:data(), fRhsSurf_L_ptr:data(), fRhsSurf_R_ptr:data(), 
                      self.ohmMod_L_ptr:data(), self.ohmMod_R_ptr:data())
       else
-         res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(),
+         res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs,
                      self.bmag_ptr:data(), self.bmagInv_ptr:data(), self.gradpar_ptr:data(), 
                      self.bdriftX_ptr:data(), self.bdriftY_ptr:data(), self.phi_ptr:data(), 
                      self.apar_ptr:data(), self.dApardt_ptr:data(), self.dApardtProv_ptr:data(), 
@@ -350,13 +350,13 @@ function Gyrokinetic:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr,
          self.fRhsSurf:fill(self.fRhsIdxr(idxl), self.fRhsSurf_L_ptr)
          self.fRhsSurf:fill(self.fRhsIdxr(idxr), self.fRhsSurf_R_ptr)
 
-         res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), 
+         res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs,
                      self.bmag_ptr:data(), self.bmagInv_ptr:data(), self.gradpar_ptr:data(), 
                      self.bdriftX_ptr:data(), self.bdriftY_ptr:data(), self.phi_ptr:data(), 
                      dtApprox, self.positivityWeightByDir_L_ptr:data(), self.positivityWeightByDir_R_ptr:data(),
                      f_L_ptr:data(), f_R_ptr:data(), self.fRhsSurf_L_ptr:data(), self.fRhsSurf_R_ptr:data())
       else
-         res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(),  
+         res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, 
                      self.bmag_ptr:data(), self.bmagInv_ptr:data(), self.gradpar_ptr:data(), 
                      self.bdriftX_ptr:data(), self.bdriftY_ptr:data(), self.phi_ptr:data(), 
                      f_L_ptr:data(), f_R_ptr:data(), fRhs_L_ptr:data(), fRhs_R_ptr:data())

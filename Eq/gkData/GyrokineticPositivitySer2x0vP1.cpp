@@ -1,5 +1,5 @@
 #include <GyrokineticModDecl.h> 
-double GyrokineticVolPositivity2x0vSer_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
+double GyrokineticVolPositivity2x0vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, 
                         const double *f, double *out, double *positivityWeightByDir) 

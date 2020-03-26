@@ -1,5 +1,5 @@
 #include <GyrokineticModDecl.h> 
-double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
+double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, 
                         const double dtApprox, const double *positivityWeightByDirL, const double *positivityWeightByDirR, 
@@ -13,19 +13,19 @@ double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const doub
   double q2 = q_*q_; 
   double incr[4]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = -0.125*BmagInv[0]*(1.732050807568877*Phi[2]-3.0*Phi[3])*dfac_y; 
+  double alpha0 = 0.125*BmagInv[0]*(3.0*Phi[3]-1.732050807568877*Phi[2])*dfac_y; 
 
   double alpha[2]; 
-  alpha[0] = -0.3535533905932737*BmagInv[0]*(1.732050807568877*Phi[2]-3.0*Phi[3])*dfac_y; 
+  alpha[0] = 0.3535533905932737*BmagInv[0]*(3.0*Phi[3]-1.732050807568877*Phi[2])*dfac_y; 
   double rCtrlL[2], rCtrlR[2];  // rCtrl=f1/f0 at each control node in dimensions other than x 
-  rCtrlL[0] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[1]))/(1.732050807568877*(2.0*EPSILON+fl[0])-1.0*fl[2]); 
-  rCtrlL[1] = (1.732050807568877*fl[3]+3.0*fl[1])/(1.732050807568877*(2.0*EPSILON+fl[0])+fl[2]); 
-  rCtrlR[0] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[1]))/(1.732050807568877*(2.0*EPSILON+fr[0])-1.0*fr[2]); 
-  rCtrlR[1] = (1.732050807568877*fr[3]+3.0*fr[1])/(1.732050807568877*(2.0*EPSILON+fr[0])+fr[2]); 
+  rCtrlL[0] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[1]))/(3.464101615137754*EPSILON-1.0*fl[2]+1.732050807568877*fl[0]); 
+  rCtrlL[1] = (1.732050807568877*fl[3]+3.0*fl[1])/(3.464101615137754*EPSILON+fl[2]+1.732050807568877*fl[0]); 
+  rCtrlR[0] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[1]))/(3.464101615137754*EPSILON-1.0*fr[2]+1.732050807568877*fr[0]); 
+  rCtrlR[1] = (1.732050807568877*fr[3]+3.0*fr[1])/(3.464101615137754*EPSILON+fr[2]+1.732050807568877*fr[0]); 
   double fCtrlL[2], fCtrlR[2];  // fCtrl = anti-limited f evaluated at each control node on x surface 
   // control node [y] = [-1/3] 
-  fCtrlL[0] = 0.2886751345948129*(1.732050807568877*fl[0]-1.0*fl[2])*limTheta(rCtrlL[0],1.0); 
-  fCtrlR[0] = 0.2886751345948129*(1.732050807568877*fr[0]-1.0*fr[2])*limTheta(rCtrlR[0],-1.0); 
+  fCtrlL[0] = -0.2886751345948129*(fl[2]-1.732050807568877*fl[0])*limTheta(rCtrlL[0],1.0); 
+  fCtrlR[0] = -0.2886751345948129*(fr[2]-1.732050807568877*fr[0])*limTheta(rCtrlR[0],-1.0); 
   // control node [y] = [1/3] 
   fCtrlL[1] = 0.2886751345948129*(fl[2]+1.732050807568877*fl[0])*limTheta(rCtrlL[1],1.0); 
   fCtrlR[1] = 0.2886751345948129*(fr[2]+1.732050807568877*fr[0])*limTheta(rCtrlR[1],-1.0); 
@@ -60,26 +60,28 @@ double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const doub
   fluxFracR = positivityWeightByDirR[0] == 0. ? 0.5 : positivityWeightByDirR[1]/positivityWeightByDirR[0]; 
   // control node [y] = [-1/3] 
   GhatCtrl[0] = alpha[0]*(0.5*fhatAL[0]-0.2886751345948129*fhatAL[1]); 
-  GhatLimCtrl[0] = alpha[0]*(0.5*fhatAL[0]-0.2886751345948129*fhatAL[1]); 
   if(GhatCtrl[0] > EPSILON) {
-    flim = std::max(0., -0.1666666666666667*(fl[3]+1.732050807568877*(fl[2]-1.0*fl[1])-3.0*fl[0])); 
-    limfac = std::min(1., std::abs(fluxFracL*flim/GhatLimCtrl[0]/dtApprox/dfac_x)); 
+    flim = std::max(0., -0.1666666666666667*(fl[3]+1.732050807568877*fl[2]-1.732050807568877*fl[1]-3.0*fl[0])); 
+    limfac = std::min(1., std::abs(fluxFracL*flim/GhatCtrl[0]/dtApprox/dfac_x)); 
   } else if(GhatCtrl[0] < -EPSILON) {
-    flim = std::max(0., -0.1666666666666667*((-1.0*fr[3])+1.732050807568877*(fr[2]+fr[1])-3.0*fr[0])); 
-    limfac = std::min(1., std::abs(fluxFracR*flim/GhatLimCtrl[0]/dtApprox/dfac_x)); 
+    flim = std::max(0., 0.1666666666666667*(fr[3]-1.732050807568877*(fr[2]+fr[1])+3.0*fr[0])); 
+    limfac = std::min(1., std::abs(fluxFracR*flim/GhatCtrl[0]/dtApprox/dfac_x)); 
   } else limfac = 0.; 
-  GhatCtrl[0] *= limfac; 
+  //if(limfac != 1.) { 
+    GhatCtrl[0] = limfac*GhatCtrl[0]; 
+  //}
   // control node [y] = [1/3] 
   GhatCtrl[1] = alpha[0]*(0.2886751345948129*fhatAL[1]+0.5*fhatAL[0]); 
-  GhatLimCtrl[1] = alpha[0]*(0.2886751345948129*fhatAL[1]+0.5*fhatAL[0]); 
   if(GhatCtrl[1] > EPSILON) {
     flim = std::max(0., 0.1666666666666667*(fl[3]+1.732050807568877*(fl[2]+fl[1])+3.0*fl[0])); 
-    limfac = std::min(1., std::abs(fluxFracL*flim/GhatLimCtrl[1]/dtApprox/dfac_x)); 
+    limfac = std::min(1., std::abs(fluxFracL*flim/GhatCtrl[1]/dtApprox/dfac_x)); 
   } else if(GhatCtrl[1] < -EPSILON) {
-    flim = std::max(0., 0.1666666666666667*((-1.0*fr[3])+1.732050807568877*(fr[2]-1.0*fr[1])+3.0*fr[0])); 
-    limfac = std::min(1., std::abs(fluxFracR*flim/GhatLimCtrl[1]/dtApprox/dfac_x)); 
+    flim = std::max(0., -0.1666666666666667*(fr[3]-1.732050807568877*fr[2]+1.732050807568877*fr[1]-3.0*fr[0])); 
+    limfac = std::min(1., std::abs(fluxFracR*flim/GhatCtrl[1]/dtApprox/dfac_x)); 
   } else limfac = 0.; 
-  GhatCtrl[1] *= limfac; 
+  //if(limfac != 1.) { 
+    GhatCtrl[1] = limfac*GhatCtrl[1]; 
+  //}
 
   incr[0] = 0.5*(GhatCtrl[1]+GhatCtrl[0])*dfac_x; 
   incr[1] = -0.8660254037844386*(GhatCtrl[1]+GhatCtrl[0])*dfac_x; 
@@ -97,7 +99,7 @@ double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const doub
   outl[3] += incr[3]; 
   return std::abs(alpha0); 
 } 
-double GyrokineticSurfPositivity2x0vSer_Y_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
+double GyrokineticSurfPositivity2x0vSer_Y_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, 
                         const double dtApprox, const double *positivityWeightByDirL, const double *positivityWeightByDirR, 
@@ -111,19 +113,19 @@ double GyrokineticSurfPositivity2x0vSer_Y_P1_Bvars_0(const double q_, const doub
   double q2 = q_*q_; 
   double incr[4]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = 0.125*BmagInv[0]*(1.732050807568877*Phi[1]-3.0*Phi[3])*dfac_x; 
+  double alpha0 = -0.125*BmagInv[0]*(3.0*Phi[3]-1.732050807568877*Phi[1])*dfac_x; 
 
   double alpha[2]; 
-  alpha[0] = 0.3535533905932737*BmagInv[0]*(1.732050807568877*Phi[1]-3.0*Phi[3])*dfac_x; 
+  alpha[0] = -0.3535533905932737*BmagInv[0]*(3.0*Phi[3]-1.732050807568877*Phi[1])*dfac_x; 
   double rCtrlL[2], rCtrlR[2];  // rCtrl=f1/f0 at each control node in dimensions other than y 
-  rCtrlL[0] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[2]))/(1.732050807568877*(2.0*EPSILON+fl[0])-1.0*fl[1]); 
-  rCtrlL[1] = (1.732050807568877*fl[3]+3.0*fl[2])/(1.732050807568877*(2.0*EPSILON+fl[0])+fl[1]); 
-  rCtrlR[0] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[2]))/(1.732050807568877*(2.0*EPSILON+fr[0])-1.0*fr[1]); 
-  rCtrlR[1] = (1.732050807568877*fr[3]+3.0*fr[2])/(1.732050807568877*(2.0*EPSILON+fr[0])+fr[1]); 
+  rCtrlL[0] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[2]))/(3.464101615137754*EPSILON-1.0*fl[1]+1.732050807568877*fl[0]); 
+  rCtrlL[1] = (1.732050807568877*fl[3]+3.0*fl[2])/(3.464101615137754*EPSILON+fl[1]+1.732050807568877*fl[0]); 
+  rCtrlR[0] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[2]))/(3.464101615137754*EPSILON-1.0*fr[1]+1.732050807568877*fr[0]); 
+  rCtrlR[1] = (1.732050807568877*fr[3]+3.0*fr[2])/(3.464101615137754*EPSILON+fr[1]+1.732050807568877*fr[0]); 
   double fCtrlL[2], fCtrlR[2];  // fCtrl = anti-limited f evaluated at each control node on y surface 
   // control node [x] = [-1/3] 
-  fCtrlL[0] = 0.2886751345948129*(1.732050807568877*fl[0]-1.0*fl[1])*limTheta(rCtrlL[0],1.0); 
-  fCtrlR[0] = 0.2886751345948129*(1.732050807568877*fr[0]-1.0*fr[1])*limTheta(rCtrlR[0],-1.0); 
+  fCtrlL[0] = -0.2886751345948129*(fl[1]-1.732050807568877*fl[0])*limTheta(rCtrlL[0],1.0); 
+  fCtrlR[0] = -0.2886751345948129*(fr[1]-1.732050807568877*fr[0])*limTheta(rCtrlR[0],-1.0); 
   // control node [x] = [1/3] 
   fCtrlL[1] = 0.2886751345948129*(fl[1]+1.732050807568877*fl[0])*limTheta(rCtrlL[1],1.0); 
   fCtrlR[1] = 0.2886751345948129*(fr[1]+1.732050807568877*fr[0])*limTheta(rCtrlR[1],-1.0); 
@@ -158,26 +160,28 @@ double GyrokineticSurfPositivity2x0vSer_Y_P1_Bvars_0(const double q_, const doub
   fluxFracR = positivityWeightByDirR[0] == 0. ? 0.5 : positivityWeightByDirR[2]/positivityWeightByDirR[0]; 
   // control node [x] = [-1/3] 
   GhatCtrl[0] = alpha[0]*(0.5*fhatAL[0]-0.2886751345948129*fhatAL[1]); 
-  GhatLimCtrl[0] = alpha[0]*(0.5*fhatAL[0]-0.2886751345948129*fhatAL[1]); 
   if(GhatCtrl[0] > EPSILON) {
-    flim = std::max(0., 0.1666666666666667*((-1.0*fl[3])+1.732050807568877*(fl[2]-1.0*fl[1])+3.0*fl[0])); 
-    limfac = std::min(1., std::abs(fluxFracL*flim/GhatLimCtrl[0]/dtApprox/dfac_y)); 
+    flim = std::max(0., -0.1666666666666667*(fl[3]-1.732050807568877*fl[2]+1.732050807568877*fl[1]-3.0*fl[0])); 
+    limfac = std::min(1., std::abs(fluxFracL*flim/GhatCtrl[0]/dtApprox/dfac_y)); 
   } else if(GhatCtrl[0] < -EPSILON) {
-    flim = std::max(0., -0.1666666666666667*((-1.0*fr[3])+1.732050807568877*(fr[2]+fr[1])-3.0*fr[0])); 
-    limfac = std::min(1., std::abs(fluxFracR*flim/GhatLimCtrl[0]/dtApprox/dfac_y)); 
+    flim = std::max(0., 0.1666666666666667*(fr[3]-1.732050807568877*(fr[2]+fr[1])+3.0*fr[0])); 
+    limfac = std::min(1., std::abs(fluxFracR*flim/GhatCtrl[0]/dtApprox/dfac_y)); 
   } else limfac = 0.; 
-  GhatCtrl[0] *= limfac; 
+  //if(limfac != 1.) { 
+    GhatCtrl[0] = limfac*GhatCtrl[0]; 
+  //}
   // control node [x] = [1/3] 
   GhatCtrl[1] = alpha[0]*(0.2886751345948129*fhatAL[1]+0.5*fhatAL[0]); 
-  GhatLimCtrl[1] = alpha[0]*(0.2886751345948129*fhatAL[1]+0.5*fhatAL[0]); 
   if(GhatCtrl[1] > EPSILON) {
     flim = std::max(0., 0.1666666666666667*(fl[3]+1.732050807568877*(fl[2]+fl[1])+3.0*fl[0])); 
-    limfac = std::min(1., std::abs(fluxFracL*flim/GhatLimCtrl[1]/dtApprox/dfac_y)); 
+    limfac = std::min(1., std::abs(fluxFracL*flim/GhatCtrl[1]/dtApprox/dfac_y)); 
   } else if(GhatCtrl[1] < -EPSILON) {
-    flim = std::max(0., -0.1666666666666667*(fr[3]+1.732050807568877*(fr[2]-1.0*fr[1])-3.0*fr[0])); 
-    limfac = std::min(1., std::abs(fluxFracR*flim/GhatLimCtrl[1]/dtApprox/dfac_y)); 
+    flim = std::max(0., -0.1666666666666667*(fr[3]+1.732050807568877*fr[2]-1.732050807568877*fr[1]-3.0*fr[0])); 
+    limfac = std::min(1., std::abs(fluxFracR*flim/GhatCtrl[1]/dtApprox/dfac_y)); 
   } else limfac = 0.; 
-  GhatCtrl[1] *= limfac; 
+  //if(limfac != 1.) { 
+    GhatCtrl[1] = limfac*GhatCtrl[1]; 
+  //}
 
   incr[0] = 0.5*(GhatCtrl[1]+GhatCtrl[0])*dfac_y; 
   incr[1] = 0.8660254037844386*(GhatCtrl[1]-1.0*GhatCtrl[0])*dfac_y; 

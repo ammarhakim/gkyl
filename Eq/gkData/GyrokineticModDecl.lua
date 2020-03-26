@@ -24,7 +24,7 @@ function _M.selectVol(basisNm, CDIM, VDIM, polyOrder, isElectromagnetic, positiv
    for k, v in ipairs(Bvars) do
       bvarString = bvarString .. "_" .. v
    end
-   local funcNm = string.format("%sGyrokineticVol%s%dx%dv%s_P%d", emString, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   local funcNm = string.format("%sGyrokineticVol%s%dx%dv%sP%d", emString, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
    return ffi.C[funcNm..bvarString]
 end
 
@@ -65,7 +65,7 @@ end
 function _M.selectStep2Vol(basisNm, CDIM, VDIM, polyOrder, positivity)
    local posString = ""
    if positivity then posString = "Positivity" end
-   local funcNm = string.format("EmGyrokineticStep2Vol%s%dx%dv%s_P%d", posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   local funcNm = string.format("EmGyrokineticStep2Vol%s%dx%dv%sP%d", posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
    return ffi.C[funcNm]
 end
 

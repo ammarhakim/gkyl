@@ -1,5 +1,5 @@
 #include <GyrokineticModDecl.h> 
-double GyrokineticVol1x2vSer_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
+double GyrokineticVol1x2vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, 
                         const double *f, double *out) 
@@ -89,7 +89,7 @@ double GyrokineticVol1x2vSer_P1_Bvars_0(const double q_, const double m_, const 
   out[7] += 0.6123724356957944*alphav[0]*f[5]; 
   return cflRate; 
 } 
-double GyrokineticVol1x2vSer_P1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, 
+double GyrokineticVol1x2vSerP1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, 
                         const double *f, double *out) 

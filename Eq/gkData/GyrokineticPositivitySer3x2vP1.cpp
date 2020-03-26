@@ -1,5 +1,5 @@
 #include <GyrokineticModDecl.h> 
-double GyrokineticVolPositivity3x2vSer_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
+double GyrokineticVolPositivity3x2vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, 
                         const double *f, double *out, double *positivityWeightByDir) 
@@ -561,7 +561,7 @@ double GyrokineticVolPositivity3x2vSer_P1_Bvars_0(const double q_, const double 
   out[31] += 0.3061862178478971*(alphav[4]*f[31]+alphav[9]*f[30]+alphav[10]*f[29]+alphav[11]*f[28]+alphav[0]*f[27]+alphav[18]*f[24]+alphav[19]*f[23]+alphav[1]*f[22]+alphav[2]*f[21]+alphav[3]*f[20]+alphav[6]*f[14]+alphav[7]*f[13]+alphav[8]*f[12]); 
   return cflRate; 
 } 
-double GyrokineticVolPositivity3x2vSer_P1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, 
+double GyrokineticVolPositivity3x2vSerP1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, 
                         const double *f, double *out, double *positivityWeightByDir) 

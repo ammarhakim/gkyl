@@ -1,5 +1,5 @@
 #include <GyrokineticModDecl.h> 
-double EmGyrokineticVolPositivity1x2vSer_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
+double EmGyrokineticVolPositivity1x2vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, 
                         const double *f, double *outX, double *outV, double *positivityWeightByDir) 
@@ -111,7 +111,7 @@ double EmGyrokineticVolPositivity1x2vSer_P1_Bvars_0(const double q_, const doubl
   outV[7] += 0.6123724356957944*alphav[0]*f[5]; 
   return cflRate; 
 } 
-double EmGyrokineticStep2VolPositivity1x2vSer_P1(const double q_, const double m_, const double *w, const double *dxv, 
+double EmGyrokineticStep2VolPositivity1x2vSerP1(const double q_, const double m_, const double *w, const double *dxv, 
                            const double *ohmMod, const double *dApardt, 
                            const double *f, double *outVol, double *outSurf, double *positivityWeightByDir) 
 { 
@@ -171,7 +171,7 @@ double EmGyrokineticStep2VolPositivity1x2vSer_P1(const double q_, const double m
 #endif 
 return cflRate; 
 } 
-double EmGyrokineticVolPositivity1x2vSer_P1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, 
+double EmGyrokineticVolPositivity1x2vSerP1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, 
                         const double *f, double *outX, double *outV, double *positivityWeightByDir) 

@@ -1,5 +1,5 @@
 #include <GyrokineticModDecl.h> 
-double GyrokineticSurf2x0vSer_X_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
+double GyrokineticSurf2x0vSer_X_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, 
                         const double *fl, const double *fr, double *outl, double *outr) 
@@ -55,7 +55,7 @@ double alphaQuad;
   outl[3] += incr[3]; 
   return std::abs(alpha0); 
 } 
-double GyrokineticSurf2x0vSer_Y_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
+double GyrokineticSurf2x0vSer_Y_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, 
                         const double *Bmag, const double *BmagInv, const double *Gradpar, 
                         const double *BdriftX, const double *BdriftY, const double *Phi, 
                         const double *fl, const double *fr, double *outl, double *outr) 
