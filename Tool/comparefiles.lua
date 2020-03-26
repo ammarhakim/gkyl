@@ -31,7 +31,7 @@ end
 -- relative difference between two numbers (NOT SURE IF THIS IS BEST
 -- WAY TO DO THINGS)
 local function get_relative_numeric(expected, actual, maxVal)
-   if maxVal < 1e-15 then
+   if maxVal < GKYL_MIN_DOUBLE then
       return math.max(expected-actual)
    else
       return math.abs(expected-actual)/maxVal
@@ -49,9 +49,8 @@ end
 
 -- function to compare files
 local function compareFiles(f1, f2)
-   -- verboseLog(string.format("Comparing %s %s ...\n", f1, f2))   
    if not lfs.attributes(f1) or not lfs.attributes(f2) then
-      verboseLog(string.format(
+      verboseLogger(string.format(
 		    " ... files %s and/or %s do not exist!\n", f1, f2))
       return false
    end
@@ -97,7 +96,7 @@ local function compareFiles(f1, f2)
    end
 
    if cmpPass == false then
-      verboseLog(string.format(" ... relative error in file %s is %g ...\n", f2, currMaxDiff))
+      verboseLogger(string.format(" ... relative error in file %s is %g ...\n", f2, currMaxDiff))
    end
 
    r1:close(); r2:close()
