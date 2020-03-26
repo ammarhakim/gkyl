@@ -76,8 +76,8 @@ gkylCartFieldIntQuantGradPerpV2(int ndim, unsigned nc, unsigned nb, const double
 
   // assume 1 component
   if(ndim==2) {
-    out[0] = vol*((3*fIn[3]*fIn[3]+3*fIn[2]*fIn[2])*dfac2_y+(3*fIn[3]*fIn[3]+3*fIn[1]*fIn[1])*dfac2_x);
+    out[0] += vol*((3*fIn[3]*fIn[3]+3*fIn[2]*fIn[2])*dfac2_y+(3*fIn[3]*fIn[3]+3*fIn[1]*fIn[1])*dfac2_x);
   } else if(ndim==3) {
-    out[0] = vol*((3*fIn[7]*fIn[7]+3*fIn[6]*fIn[6]+3*fIn[4]*fIn[4]+3*fIn[2]*fIn[2])*dfac2_y+(3*fIn[7]*fIn[7]+3*fIn[5]*fIn[5]+3*fIn[4]*fIn[4]+3*fIn[1]*fIn[1])*dfac2_x);
+    out[0] += vol*((3*fIn[7]*fIn[7]+3*fIn[6]*fIn[6]+3*fIn[4]*fIn[4]+3*fIn[2]*fIn[2])*dfac2_y+(3*fIn[7]*fIn[7]+3*fIn[5]*fIn[5]+3*fIn[4]*fIn[4]+3*fIn[1]*fIn[1])*dfac2_x);
   }
 }

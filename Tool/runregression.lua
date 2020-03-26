@@ -445,9 +445,9 @@ end
 -- "coarse" but a direct comparison of floats is very tricky.
 local function check_equal_numeric(expected, actual, maxVal)
    if maxVal < GKYL_MIN_DOUBLE then
-      return math.max(expected-actual) > 10*GKYL_MIN_DOUBLE
+      return math.abs(expected-actual) > 10*GKYL_MIN_DOUBLE
    end
-   if math.max(expected-actual)/maxVal > 1e-12 then
+   if math.abs(expected-actual)/maxVal > 1e-12 then
       return false
    end
    return true
@@ -456,8 +456,8 @@ end
 -- relative difference between two numbers (NOT SURE IF THIS IS BEST
 -- WAY TO DO THINGS)
 local function get_relative_numeric(expected, actual, maxVal)
-   if maxVal < 1e-15 then
-      return math.max(expected-actual)
+   if maxVal < GKYL_MIN_DOUBLE then
+      return math.abs(expected-actual)
    else
       return math.abs(expected-actual)/maxVal
    end
@@ -512,7 +512,7 @@ local function compareFiles(f1, f2)
 	 return false
       end
 
-      local maxVal = maxValueInField(d1) -- maximum value (for numeric comparison)
+      local maxVal = math.max(maxValueInField(d1),maxValueInField(d2)) -- maximum value (for numeric comparison)
       for i = 1, d1:size() do
 	 if check_equal_numeric(d1[i], d2[i], maxVal) == false then
 	    currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i], maxVal))

@@ -69,7 +69,7 @@ plasmaApp = Plasma.App {
       upper = {VPAR_UPPER, MU_UPPER},
       cells = {N_VPAR, N_MU},
       -- initial conditions
-      initBackground = {"maxwellian",
+      initBackground = Plasma.Gyrokinetic.MaxwellianProjection {
               density = function (t, xn)
                  return n0
               end,
@@ -77,8 +77,9 @@ plasmaApp = Plasma.App {
                  local x = xn[1]
                  return Te0*(1-(x-r0)/L_T)
               end,
+              isBackground = true,
              },
-      init = {"maxwellian",
+      init = Plasma.Gyrokinetic.MaxwellianProjection {
               density = function (t, xn)
                  local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
                  local perturb = 1e-3*rho_e/L_T*math.cos(ky_min*y)

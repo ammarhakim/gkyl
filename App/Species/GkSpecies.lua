@@ -235,28 +235,28 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       onGrid     = self.grid,
       phaseBasis = self.basis,
       confBasis  = self.confBasis,
-      moment     = "GkM0",
+      moment     = "GkM0", -- GkM0 = < f >
       gkfacs     = {self.mass, self.bmag},
    }
    self.momDensityCalc = Updater.DistFuncMomentCalc {
       onGrid     = self.grid,
       phaseBasis = self.basis,
       confBasis  = self.confBasis,
-      moment     = "GkM1",
+      moment     = "GkM1", -- GkM1 = < v_parallel f > 
       gkfacs     = {self.mass, self.bmag},
    }
    self.momProjDensityCalc = Updater.DistFuncMomentCalc {
       onGrid     = self.grid,
       phaseBasis = self.basis,
       confBasis  = self.confBasis,
-      moment     = "GkM1proj",
+      moment     = "GkM1proj", -- GkM1proj = < cellavg(v_parallel) f >
       gkfacs     = {self.mass, self.bmag},
    }
    self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
       onGrid     = self.grid,
       phaseBasis = self.basis,
       confBasis  = self.confBasis,
-      moment     = "GkM2",
+      moment     = "GkM2", -- GkM2 = < (v_parallel^2 + 2*mu*B/m) f >
       gkfacs     = {self.mass, self.bmag},
    }
    self.M2parCalc = Updater.DistFuncMomentCalc {
@@ -625,7 +625,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local dApardtProv = emIn[1].dApardtProv
    local emFunc      = emIn[2]:rkStepperFields()[1]
 
-   -- Solvers specified with clearOut = false, so we need to zero out RHS here.
+   -- clear RHS, because HyperDisCont set up with clearOut = false
    fRhsOut:clear(0.0)
 
    if self.evolveCollisions then
@@ -719,7 +719,7 @@ end
 
 function GkSpecies:createDiagnostics()
    local function isIntegratedMomentNameGood(nm)
-      if nm == "intM0" or nm == "intM1" or nm == "intM2" or nm == "intL1" or nm == "intL2"
+      if nm == "intM0" or nm == "intM1" or nm == "intM2" or nm == "intKE" or nm == "intL1" or nm == "intL2"
       or nm == "intDelM0" or nm == "intDelM2" or nm == "intDelL2"
       or nm == "intDelPosM0" or nm == "intDelPosM2" or nm == "intDelPosL2" then
          return true
@@ -734,7 +734,7 @@ function GkSpecies:createDiagnostics()
          self.diagnosticIntegratedMomentFields[mom] = DataStruct.DynVector {
             numComponents = 1,
          }
-         if mom == "intL2" or "intDelL2" or "intDelPosL2" then
+         if mom == ("intL2" or "intDelL2" or "intDelPosL2") then
             self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
                onGrid        = self.grid,
                basis         = self.basis,
@@ -753,7 +753,7 @@ function GkSpecies:createDiagnostics()
                onGrid        = self.confGrid,
                basis         = self.confBasis,
                numComponents = 1,
-               quantity      = "V"
+               quantity      = "V",
             }
          end
       else
@@ -980,6 +980,9 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tCurr)
       elseif mom == "intM2" then
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
             tCurr, {self.ptclEnergy}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intKE" then
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {self.ptclEnergy, self.mass/2}, {self.diagnosticIntegratedMomentFields[mom]})
       elseif mom == "intL1" then
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
             tCurr, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[mom]})
@@ -1006,7 +1009,6 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tCurr)
             tCurr, {self.ptclEnergyPos}, {self.diagnosticIntegratedMomentFields[mom]})
       end
    end
-
 end
 
 function GkSpecies:calcDiagnosticWeakMoments()
@@ -1367,7 +1369,9 @@ end
 
 function GkSpecies:getPolarizationWeight(linearized)
    if linearized == false then 
-     self.polarizationWeight:combine(self.mass/self.B0^2, self.numDensity)
+     self.weakMultiplication:advance(0.0, {self.numDensity, self.bmagInv}, {self.polarizationWeight})
+     self.weakMultiplication:advance(0.0, {self.polarizationWeight, self.bmagInv}, {self.polarizationWeight})
+     self.polarizationWeight:scale(self.mass)
      return self.polarizationWeight
    else 
      return self.n0*self.mass/self.B0^2
