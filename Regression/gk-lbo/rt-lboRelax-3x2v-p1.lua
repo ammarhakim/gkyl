@@ -166,7 +166,7 @@ plasmaApp = Plasma.App {
 
    -- Field solver.
    field = Plasma.Field {
-      evolve      = true, -- Evolve fields?
+      evolve      = false, -- Evolve fields?
       externalPhi = function (t, xn) return 0.0 end,
    },
    
@@ -175,7 +175,7 @@ plasmaApp = Plasma.App {
       -- Background magnetic field
       bmag = function (t, xn)
          local x = xn[1]
-         return B0
+         return B0*(1+x)
       end,
 
       -- Geometry is not time-dependent.

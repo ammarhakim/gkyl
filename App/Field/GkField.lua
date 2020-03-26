@@ -129,6 +129,12 @@ function GkField:alloc(nRkDup)
          ghost         = {1, 1}
       }
       self.potentials[i].phi:clear(0.0)
+      self.potentials[i].phiAux = DataStruct.Field {
+         onGrid        = self.grid,
+         numComponents = self.basis:numBasis(),
+         ghost         = {1, 1}
+      }
+      self.potentials[i].phiAux:clear(0.0)
       if self.isElectromagnetic then
          self.potentials[i].apar = DataStruct.Field {
             onGrid        = self.grid,
@@ -334,6 +340,11 @@ function GkField:createSolver(species, funcField)
      gxy = gxy,
      gyy = gyy,
    }
+   self.phiSmoother = Updater.FemPoisson {
+     onGrid = self.grid,
+     basis = self.basis,
+     smooth = true,
+   }
    -- when using a linearizedPolarization term in Poisson equation,
    -- the weights on the terms are constant scalars
    if self.linearizedPolarization then
@@ -507,17 +518,29 @@ function GkField:write(tm, force)
       if self.isElectromagnetic then 
         self.int2Calc:advance(tm, { self.potentials[1].apar }, { self.apar2 })
       end
-      if self.linearizedPolarization then
-         local esEnergyFac = .5*self.polarizationWeight
-         if self.ndim == 1 then esEnergyFac = esEnergyFac*self.kperp2 end
-         if self.energyCalc then self.energyCalc:advance(tm, { self.potentials[1].phi, esEnergyFac }, { self.esEnergy }) end
-      else
-         -- Something.
-      end
-      if self.isElectromagnetic then 
-        local emEnergyFac = .5/self.mu0
-        if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperp2 end
-        if self.energyCalc then self.energyCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy }) end
+      if self.energyCalc then 
+         if self.linearizedPolarization then
+            local esEnergyFac = .5*self.polarizationWeight
+            if self.ndim == 1 then 
+               esEnergyFac = esEnergyFac*self.kperp2 
+               if self.adiabatic then 
+                  esEnergyFac = esEnergyFac + .5*self.adiabSpec:getQneutFac() 
+               end
+            end
+            self.energyCalc:advance(tm, { self.potentials[1].phiAux, esEnergyFac }, { self.esEnergy })
+            if self.adiabatic and self.ndim > 1 then
+               local tm, energyVal = self.esEnergy:lastData()
+               local _, phi2Val = self.phi2:lastData()
+               energyVal[1] = energyVal[1] + .5*self.adiabSpec:getQneutFac()*phi2Val[1]
+            end
+         else
+            -- Something.
+         end
+         if self.isElectromagnetic then 
+           local emEnergyFac = .5/self.mu0
+           if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperp2 end
+           self.energyCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy })
+         end
       end
       
       if self.ioTrigger(tm) or force then
@@ -592,7 +615,7 @@ end
 -- Solve for electrostatic potential phi.
 function GkField:advance(tCurr, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
-   local potRhs  = self:rkStepperFields()[outIdx]
+   local potAux  = self:rkStepperFields()[outIdx]
    
    if self.evolve or (self._first and not self.externalPhi) then
       if self.externalPhiTimeDependence then
@@ -626,8 +649,14 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
             end
             if self.adiabatic or self.ndim == 1 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
          end
-         -- phi solve (elliptic, so update potCurr.phi).
-         self.phiSlvr:advance(tCurr, {self.chargeDens}, {potCurr.phi})
+         -- Phi solve (elliptic, so update potCurr).
+         -- Energy conservation requires phi to be continuous in all directions. 
+         -- The first FEM solve ensures that phi is continuous in x and y.
+         -- The conserved energy is defined in terms of this intermediate result,
+         -- which we denote phiAux, before the final smoothing operation in z.
+         self.phiSlvr:advance(tCurr, {self.chargeDens}, {potCurr.phiAux})
+         -- Smooth phi in z to ensure continuity in all directions.
+         self.phiSmoother:advance(tCurr, {potCurr.phiAux}, {potCurr.phi})
 
          -- Apply BCs.
          local tmStart = Time.clock()
@@ -1062,27 +1091,27 @@ function GkGeometry:createSolver()
    end
 
    -- Projection updaters.
-   self.setBmag = Updater.ProjectOnBasis {
+   self.setBmag = Updater.EvalOnNodes {
       onGrid          = self.grid,
       basis           = self.basis,
       evaluate        = self.bmagFunc,
       projectOnGhosts = true,
    }
-   self.setBmagInv = Updater.ProjectOnBasis {
+   self.setBmagInv = Updater.EvalOnNodes {
       onGrid          = self.grid,
       basis           = self.basis,
       projectOnGhosts = true,
       evaluate        = self.bmagInvFunc
    }
    if self.gradparFunc then 
-      self.setGradpar = Updater.ProjectOnBasis {
+      self.setGradpar = Updater.EvalOnNodes {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
          evaluate        = self.gradparFunc
       }
    else
-      self.setGradpar = Updater.ProjectOnBasis {
+      self.setGradpar = Updater.EvalOnNodes {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
@@ -1090,14 +1119,14 @@ function GkGeometry:createSolver()
       }
    end
    if self.jacobGeoFunc then 
-      self.setJacobGeo = Updater.ProjectOnBasis {
+      self.setJacobGeo = Updater.EvalOnNodes {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
          evaluate        = self.jacobGeoFunc
       }
    else 
-      self.setJacobGeo = Updater.ProjectOnBasis {
+      self.setJacobGeo = Updater.EvalOnNodes {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
@@ -1105,14 +1134,14 @@ function GkGeometry:createSolver()
       }
    end
    if self.gxxFunc then 
-      self.setGxx = Updater.ProjectOnBasis {
+      self.setGxx = Updater.EvalOnNodes {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
          evaluate        = self.gxxFunc
       }
    else 
-      self.setGxx = Updater.ProjectOnBasis {
+      self.setGxx = Updater.EvalOnNodes {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
@@ -1120,14 +1149,14 @@ function GkGeometry:createSolver()
       }
    end
    if self.gxyFunc then 
-      self.setGxy = Updater.ProjectOnBasis {
+      self.setGxy = Updater.EvalOnNodes {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
          evaluate        = self.gxyFunc
       }
    else 
-      self.setGxy = Updater.ProjectOnBasis {
+      self.setGxy = Updater.EvalOnNodes {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
@@ -1135,14 +1164,14 @@ function GkGeometry:createSolver()
       }
    end
    if self.gyyFunc then 
-      self.setGyy = Updater.ProjectOnBasis {
+      self.setGyy = Updater.EvalOnNodes {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
          evaluate        = self.gyyFunc
       }
    else 
-      self.setGyy = Updater.ProjectOnBasis {
+      self.setGyy = Updater.EvalOnNodes {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
@@ -1150,7 +1179,7 @@ function GkGeometry:createSolver()
       }
    end
    if self.bdriftXFunc then 
-      self.setBdriftX = Updater.ProjectOnBasis {
+      self.setBdriftX = Updater.EvalOnNodes {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
@@ -1158,7 +1187,7 @@ function GkGeometry:createSolver()
       }
    end
    if self.bdriftYFunc then
-      self.setBdriftY = Updater.ProjectOnBasis {
+      self.setBdriftY = Updater.EvalOnNodes {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
@@ -1166,7 +1195,7 @@ function GkGeometry:createSolver()
       }
    end
    if self.phiWallFunc then 
-      self.setPhiWall = Updater.ProjectOnBasis {
+      self.setPhiWall = Updater.EvalOnNodes {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,

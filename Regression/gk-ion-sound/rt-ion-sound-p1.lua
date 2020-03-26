@@ -67,6 +67,7 @@ plasmaApp = Plasma.App {
              },
       evolve = true, -- evolve species?
       diagnosticMoments = {"GkM0", "GkM2", perturbed = false},
+      diagnosticIntegratedMoments = {"intM0", "intM2"},
    },
 
    adiabaticElectron = Plasma.AdiabaticSpecies {
