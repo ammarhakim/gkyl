@@ -340,11 +340,13 @@ function GkField:createSolver(species, funcField)
      gxy = gxy,
      gyy = gyy,
    }
-   self.phiSmoother = Updater.FemPoisson {
-     onGrid = self.grid,
-     basis = self.basis,
-     smooth = true,
-   }
+   if self.ndim == 3 and not self.discontinuousPhi then
+      self.phiZSmoother = Updater.FemParPoisson {
+        onGrid = self.grid,
+        basis = self.basis,
+        smooth = true,
+      }
+   end
    -- when using a linearizedPolarization term in Poisson equation,
    -- the weights on the terms are constant scalars
    if self.linearizedPolarization then
@@ -656,7 +658,11 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
          -- which we denote phiAux, before the final smoothing operation in z.
          self.phiSlvr:advance(tCurr, {self.chargeDens}, {potCurr.phiAux})
          -- Smooth phi in z to ensure continuity in all directions.
-         self.phiSmoother:advance(tCurr, {potCurr.phiAux}, {potCurr.phi})
+         if self.ndim == 3 and not self.discontinuousPhi then
+            self.phiZSmoother:advance(tCurr, {potCurr.phiAux}, {potCurr.phi})
+         else
+            potCurr.phi = potCurr.phiAux
+         end
 
          -- Apply BCs.
          local tmStart = Time.clock()
