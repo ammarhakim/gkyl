@@ -718,6 +718,14 @@ function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
 end
 
 function GkSpecies:createDiagnostics()
+   local function contains(table, element)
+     for _, value in pairs(table) do
+       if value == element then
+         return true
+       end
+     end
+     return false
+   end
    local function isIntegratedMomentNameGood(nm)
       if nm == "intM0" or nm == "intM1" or nm == "intM2" or nm == "intKE" or nm == "intL1" or nm == "intL2"
       or nm == "intDelM0" or nm == "intDelM2" or nm == "intDelL2"
@@ -728,6 +736,13 @@ function GkSpecies:createDiagnostics()
    end
    self.diagnosticIntegratedMomentFields   = { }
    self.diagnosticIntegratedMomentUpdaters = { } 
+   if self.positivityDiffuse and not contains(self.diagnosticIntegratedMoments, "intDelPosL2") then
+      table.insert(self.diagnosticIntegratedMoments, "intDelPosL2")
+   end
+   if self.positivityDiffuse and not contains(self.diagnosticIntegratedMoments, "intDelL2") then
+      table.insert(self.diagnosticIntegratedMoments, "intDelL2")
+   end
+
    -- Allocate space to store integrated moments and create integrated moment updaters.
    for i, mom in pairs(self.diagnosticIntegratedMoments) do
       if isIntegratedMomentNameGood(mom) then
@@ -770,14 +785,6 @@ function GkSpecies:createDiagnostics()
    end
    local function isAuxMomentNameGood(nm)
       return nm == "GkBeta" or nm == "GkUparCross" or nm == "GkVtSqCross"
-   end
-   local function contains(table, element)
-     for _, value in pairs(table) do
-       if value == element then
-         return true
-       end
-     end
-     return false
    end
 
    self.diagnosticMomentFields   = { }
