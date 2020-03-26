@@ -151,7 +151,8 @@ Gkyl::Gkyl(const std::string& luaExpr, const std::string& inpFileNm, const std::
     { "help", { "help.lua", "Gkeyll help system" } },
     { "examples", {"examples.lua", "Example input files"} },
     { "queryrdb", {"queryrdb.lua", "Query/modify regression test DB"} },
-    { "runregression", {"runregression.lua", "Run regression/unit tests"} }
+    { "runregression", {"runregression.lua", "Run regression/unit tests"} },
+    { "comparefiles", {"comparefiles.lua", "Compare two BP files"} }
   };
 
   if (hasInpFile) {
