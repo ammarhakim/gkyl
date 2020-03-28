@@ -120,6 +120,7 @@ def build(bld):
 
     binOpCalcData/CartFieldBinOpTensor1xP1.cpp
     binOpCalcData/CartFieldBinOpTensor2xP1.cpp
+    binOpCalcData/CartFieldBinOpTensor3xP1.cpp
     binOpCalcData/CartFieldBinOpTensor1x1vP1.cpp
     binOpCalcData/CartFieldBinOpTensor1x2vP1.cpp
     binOpCalcData/CartFieldBinOpTensor1x3vP1.cpp
@@ -149,6 +150,7 @@ def build(bld):
 
     binOpCalcData/CartFieldBinOpTensor1xP2.cpp
     binOpCalcData/CartFieldBinOpTensor2xP2.cpp
+    binOpCalcData/CartFieldBinOpTensor3xP2.cpp
     binOpCalcData/CartFieldBinOpTensor1x1vP2.cpp
     binOpCalcData/CartFieldBinOpTensor1x2vP2.cpp
     binOpCalcData/CartFieldBinOpTensor1x3vP2.cpp
