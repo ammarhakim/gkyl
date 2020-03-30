@@ -164,8 +164,8 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
    -- Accumulate contributions from volume and surface integrals.
    local cflRate
    -- Iterate through updateDirs backwards so that a zero flux dir is first in kinetics.
-   for d = 0, #self._updateDirs do 
-      local dir = self._updateDirs[d] or 1
+   for d = #self._updateDirs, 1, -1 do 
+      local dir = self._updateDirs[d] 
       -- Lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell).
       local dirLoIdx, dirUpIdx         = localRange:lower(dir), localRange:upper(dir)+1
       local dirLoSurfIdx, dirUpSurfIdx = dirLoIdx, dirUpIdx
@@ -225,11 +225,11 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 	       cflRate = self.volTerm(self._equation, xcp, dxp, idxp, qInP, qVolOutP)
                cflRateByCellP:data()[0] = cflRateByCellP:data()[0] + cflRate
 	    end
-	    if d>0 and i >= dirLoSurfIdx and i <= dirUpSurfIdx and self._updateSurfaceTerm then
+	    if i >= dirLoSurfIdx and i <= dirUpSurfIdx and self._updateSurfaceTerm then
 	       local maxs = self.surfTerm(self._equation,
 		  dir, dtApprox*1.05, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
 	       self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
-            elseif d>0 and self._updateSurfaceTerm then
+            elseif self._updateSurfaceTerm then
 	       if self._zeroFluxFlags[dir] then
 	          -- Give equations a chance to apply partial surface updates 
 	          -- even when the zeroFlux BCs have been applied.

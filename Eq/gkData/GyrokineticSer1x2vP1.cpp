@@ -49,10 +49,6 @@ double GyrokineticVol1x2vSerP1_Bvars_0(const double q_, const double m_, const d
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
-  out[1] += 0.6123724356957944*alphax[0]*f[0]; 
-  out[4] += 0.6123724356957944*alphax[0]*f[2]; 
-  out[5] += 0.6123724356957944*alphax[0]*f[3]; 
-  out[7] += 0.6123724356957944*alphax[0]*f[6]; 
   double alphav[8]; 
   alphav[0] = -(2.449489742783178*Gradpar[0]*Phi[1]*dfac_v*dfac_x*q_)/m_; 
 #if cflType == SURFAVG 
@@ -83,10 +79,12 @@ double GyrokineticVol1x2vSerP1_Bvars_0(const double q_, const double m_, const d
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
+  out[1] += 0.6123724356957944*alphax[0]*f[0]; 
   out[2] += 0.6123724356957944*alphav[0]*f[0]; 
-  out[4] += 0.6123724356957944*alphav[0]*f[1]; 
+  out[4] += 0.6123724356957944*(alphax[0]*f[2]+alphav[0]*f[1]); 
+  out[5] += 0.6123724356957944*alphax[0]*f[3]; 
   out[6] += 0.6123724356957944*alphav[0]*f[3]; 
-  out[7] += 0.6123724356957944*alphav[0]*f[5]; 
+  out[7] += 0.6123724356957944*(alphax[0]*f[6]+alphav[0]*f[5]); 
   return cflRate; 
 } 
 double GyrokineticVol1x2vSerP1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, 
@@ -140,10 +138,6 @@ double GyrokineticVol1x2vSerP1_Bvars_1(const double q_, const double m_, const d
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
-  out[1] += 0.6123724356957944*(alphax[1]*f[1]+alphax[0]*f[0]); 
-  out[4] += 0.6123724356957944*(alphax[1]*f[4]+alphax[0]*f[2]); 
-  out[5] += 0.6123724356957944*(alphax[1]*f[5]+alphax[0]*f[3]); 
-  out[7] += 0.6123724356957944*(alphax[1]*f[7]+alphax[0]*f[6]); 
   double alphav[8]; 
   alphav[0] = -(2.449489742783178*Gradpar[0]*dfac_v*dfac_x*(Bmag[1]*wm+Phi[1]*q_))/m_; 
   alphav[1] = -(2.449489742783178*Gradpar[1]*dfac_v*dfac_x*(Bmag[1]*wm+Phi[1]*q_))/m_; 
@@ -177,9 +171,11 @@ double GyrokineticVol1x2vSerP1_Bvars_1(const double q_, const double m_, const d
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
+  out[1] += 0.6123724356957944*(alphax[1]*f[1]+alphax[0]*f[0]); 
   out[2] += 0.6123724356957944*(alphav[5]*f[5]+alphav[3]*f[3]+alphav[1]*f[1]+alphav[0]*f[0]); 
-  out[4] += 0.6123724356957944*(alphav[3]*f[5]+f[3]*alphav[5]+alphav[0]*f[1]+f[0]*alphav[1]); 
+  out[4] += 0.6123724356957944*(alphav[3]*f[5]+f[3]*alphav[5]+alphax[1]*f[4]+alphax[0]*f[2]+alphav[0]*f[1]+f[0]*alphav[1]); 
+  out[5] += 0.6123724356957944*(alphax[1]*f[5]+alphax[0]*f[3]); 
   out[6] += 0.6123724356957944*(alphav[1]*f[5]+f[1]*alphav[5]+alphav[0]*f[3]+f[0]*alphav[3]); 
-  out[7] += 0.6123724356957944*(alphav[0]*f[5]+f[0]*alphav[5]+alphav[1]*f[3]+f[1]*alphav[3]); 
+  out[7] += 0.6123724356957944*(alphax[1]*f[7]+alphax[0]*f[6]+alphav[0]*f[5]+f[0]*alphav[5]+alphav[1]*f[3]+f[1]*alphav[3]); 
   return cflRate; 
 } 

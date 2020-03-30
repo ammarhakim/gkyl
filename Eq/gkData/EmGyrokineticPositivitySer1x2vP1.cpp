@@ -112,23 +112,15 @@ double EmGyrokineticVolPositivity1x2vSerP1_Bvars_0(const double q_, const double
   return cflRate; 
 } 
 double EmGyrokineticStep2VolPositivity1x2vSerP1(const double q_, const double m_, const double *w, const double *dxv, 
-                           const double *ohmMod, const double *dApardt, 
-                           const double *f, double *outVol, double *outSurf, double *positivityWeightByDir) 
+                           const double *dApardt, 
+                           const double *f, double *out, double *positivityWeightByDir) 
 { 
   double dvInv = 1.0/dxv[1]; 
   double dfac_v = 2.0/dxv[1]; 
-  outVol[2] += -(1.224744871391589*(dApardt[1]*f[1]+dApardt[0]*f[0])*dfac_v*q_)/m_; 
-  outVol[4] += -(1.224744871391589*(dApardt[0]*f[1]+f[0]*dApardt[1])*dfac_v*q_)/m_; 
-  outVol[6] += -(1.224744871391589*(dApardt[1]*f[5]+dApardt[0]*f[3])*dfac_v*q_)/m_; 
-  outVol[7] += -(1.224744871391589*(dApardt[0]*f[5]+dApardt[1]*f[3])*dfac_v*q_)/m_; 
-  outSurf[0] += -(0.7071067811865475*(dApardt[1]*ohmMod[1]+dApardt[0]*ohmMod[0])*q_)/m_; 
-  outSurf[1] += -(0.7071067811865475*(dApardt[0]*ohmMod[1]+ohmMod[0]*dApardt[1])*q_)/m_; 
-  outSurf[2] += -(0.7071067811865475*(dApardt[1]*ohmMod[4]+dApardt[0]*ohmMod[2])*q_)/m_; 
-  outSurf[3] += -(0.7071067811865475*(dApardt[1]*ohmMod[5]+dApardt[0]*ohmMod[3])*q_)/m_; 
-  outSurf[4] += -(0.7071067811865475*(dApardt[0]*ohmMod[4]+dApardt[1]*ohmMod[2])*q_)/m_; 
-  outSurf[5] += -(0.7071067811865475*(dApardt[0]*ohmMod[5]+dApardt[1]*ohmMod[3])*q_)/m_; 
-  outSurf[6] += -(0.7071067811865475*(dApardt[1]*ohmMod[7]+dApardt[0]*ohmMod[6])*q_)/m_; 
-  outSurf[7] += -(0.7071067811865475*(dApardt[0]*ohmMod[7]+dApardt[1]*ohmMod[6])*q_)/m_; 
+  out[2] += -(1.224744871391589*(dApardt[1]*f[1]+dApardt[0]*f[0])*dfac_v*q_)/m_; 
+  out[4] += -(1.224744871391589*(dApardt[0]*f[1]+f[0]*dApardt[1])*dfac_v*q_)/m_; 
+  out[6] += -(1.224744871391589*(dApardt[1]*f[5]+dApardt[0]*f[3])*dfac_v*q_)/m_; 
+  out[7] += -(1.224744871391589*(dApardt[0]*f[5]+dApardt[1]*f[3])*dfac_v*q_)/m_; 
   double cflRate = 0.0; 
   double alphaL = 0.0; 
   double alphaR = 0.0; 

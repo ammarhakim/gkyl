@@ -253,8 +253,8 @@ function KineticSpecies:fullInit(appTbl)
       end
    end
 
-   self.positivity               = xsys.pickBool(tbl.positivity or tbl.applyPositivity, false)
-   self.positivityDiffuse        = xsys.pickBool(tbl.positivityDiffuse, self.positivity)
+   self.positivity = xsys.pickBool(tbl.positivity or tbl.applyPositivity, false)
+   self.positivityDiffuse = xsys.pickBool(tbl.positivityDiffuse, self.positivity)
    
    -- for GK only: flag for gyroaveraging.
    self.gyavg = xsys.pickBool(tbl.gyroaverage, false)

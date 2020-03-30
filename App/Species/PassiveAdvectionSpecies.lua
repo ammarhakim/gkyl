@@ -80,7 +80,7 @@ end
 function PassiveAdvectionSpecies:getNumDensity(rkIdx)
 end
 
-function PassiveAdvectionSpecies:suggestDt(inIdx, outIdx)
+function PassiveAdvectionSpecies:suggestDt()
    -- Loop over local region.
    local grid = self.grid
    self.dt[0] = GKYL_MAX_DOUBLE
@@ -88,12 +88,6 @@ function PassiveAdvectionSpecies:suggestDt(inIdx, outIdx)
    local localRange       = self.cflRateByCell:localRange()
    local localRangeDecomp = LinearDecomp.LinearDecompRange {
 	 range = localRange, numSplit = grid:numSharedProcs() }
-
-   local fIn = self:rkStepperFields()[inIdx]
-   local fRhsSurf = self:rkStepperFields()[outIdx]
-   local fInPtr = fIn:get(1)
-   local fRhsSurfPtr = fRhsSurf:get(1)
-   local fIdxr = fIn:genIndexer()
 
    for idx in localRangeDecomp:rowMajorIter(tId) do
       -- Calculate local min dt from local cflRates.

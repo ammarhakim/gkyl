@@ -257,35 +257,19 @@ double EmGyrokineticVolPositivity2x2vSerP1_Bvars_0(const double q_, const double
   return cflRate; 
 } 
 double EmGyrokineticStep2VolPositivity2x2vSerP1(const double q_, const double m_, const double *w, const double *dxv, 
-                           const double *ohmMod, const double *dApardt, 
-                           const double *f, double *outVol, double *outSurf, double *positivityWeightByDir) 
+                           const double *dApardt, 
+                           const double *f, double *out, double *positivityWeightByDir) 
 { 
   double dvInv = 1.0/dxv[2]; 
   double dfac_v = 2.0/dxv[2]; 
-  outVol[3] += -(0.8660254037844386*(dApardt[3]*f[5]+dApardt[2]*f[2]+dApardt[1]*f[1]+dApardt[0]*f[0])*dfac_v*q_)/m_; 
-  outVol[6] += -(0.8660254037844386*(dApardt[2]*f[5]+f[2]*dApardt[3]+dApardt[0]*f[1]+f[0]*dApardt[1])*dfac_v*q_)/m_; 
-  outVol[7] += -(0.8660254037844386*(dApardt[1]*f[5]+f[1]*dApardt[3]+dApardt[0]*f[2]+f[0]*dApardt[2])*dfac_v*q_)/m_; 
-  outVol[10] += -(0.8660254037844386*(dApardt[3]*f[12]+dApardt[2]*f[9]+dApardt[1]*f[8]+dApardt[0]*f[4])*dfac_v*q_)/m_; 
-  outVol[11] += -(0.8660254037844386*(dApardt[0]*f[5]+f[0]*dApardt[3]+dApardt[1]*f[2]+f[1]*dApardt[2])*dfac_v*q_)/m_; 
-  outVol[13] += -(0.8660254037844386*(dApardt[2]*f[12]+dApardt[3]*f[9]+dApardt[0]*f[8]+dApardt[1]*f[4])*dfac_v*q_)/m_; 
-  outVol[14] += -(0.8660254037844386*(dApardt[1]*f[12]+dApardt[0]*f[9]+dApardt[3]*f[8]+dApardt[2]*f[4])*dfac_v*q_)/m_; 
-  outVol[15] += -(0.8660254037844386*(dApardt[0]*f[12]+dApardt[1]*f[9]+dApardt[2]*f[8]+dApardt[3]*f[4])*dfac_v*q_)/m_; 
-  outSurf[0] += -(0.5*(dApardt[3]*ohmMod[5]+dApardt[2]*ohmMod[2]+dApardt[1]*ohmMod[1]+dApardt[0]*ohmMod[0])*q_)/m_; 
-  outSurf[1] += -(0.5*(dApardt[2]*ohmMod[5]+ohmMod[2]*dApardt[3]+dApardt[0]*ohmMod[1]+ohmMod[0]*dApardt[1])*q_)/m_; 
-  outSurf[2] += -(0.5*(dApardt[1]*ohmMod[5]+ohmMod[1]*dApardt[3]+dApardt[0]*ohmMod[2]+ohmMod[0]*dApardt[2])*q_)/m_; 
-  outSurf[3] += -(0.5*(dApardt[3]*ohmMod[11]+dApardt[2]*ohmMod[7]+dApardt[1]*ohmMod[6]+dApardt[0]*ohmMod[3])*q_)/m_; 
-  outSurf[4] += -(0.5*(dApardt[3]*ohmMod[12]+dApardt[2]*ohmMod[9]+dApardt[1]*ohmMod[8]+dApardt[0]*ohmMod[4])*q_)/m_; 
-  outSurf[5] += -(0.5*(dApardt[0]*ohmMod[5]+ohmMod[0]*dApardt[3]+dApardt[1]*ohmMod[2]+ohmMod[1]*dApardt[2])*q_)/m_; 
-  outSurf[6] += -(0.5*(dApardt[2]*ohmMod[11]+dApardt[3]*ohmMod[7]+dApardt[0]*ohmMod[6]+dApardt[1]*ohmMod[3])*q_)/m_; 
-  outSurf[7] += -(0.5*(dApardt[1]*ohmMod[11]+dApardt[0]*ohmMod[7]+dApardt[3]*ohmMod[6]+dApardt[2]*ohmMod[3])*q_)/m_; 
-  outSurf[8] += -(0.5*(dApardt[2]*ohmMod[12]+dApardt[3]*ohmMod[9]+dApardt[0]*ohmMod[8]+dApardt[1]*ohmMod[4])*q_)/m_; 
-  outSurf[9] += -(0.5*(dApardt[1]*ohmMod[12]+dApardt[0]*ohmMod[9]+dApardt[3]*ohmMod[8]+dApardt[2]*ohmMod[4])*q_)/m_; 
-  outSurf[10] += -(0.5*(dApardt[3]*ohmMod[15]+dApardt[2]*ohmMod[14]+dApardt[1]*ohmMod[13]+dApardt[0]*ohmMod[10])*q_)/m_; 
-  outSurf[11] += -(0.5*(dApardt[0]*ohmMod[11]+dApardt[1]*ohmMod[7]+dApardt[2]*ohmMod[6]+dApardt[3]*ohmMod[3])*q_)/m_; 
-  outSurf[12] += -(0.5*(dApardt[0]*ohmMod[12]+dApardt[1]*ohmMod[9]+dApardt[2]*ohmMod[8]+dApardt[3]*ohmMod[4])*q_)/m_; 
-  outSurf[13] += -(0.5*(dApardt[2]*ohmMod[15]+dApardt[3]*ohmMod[14]+dApardt[0]*ohmMod[13]+dApardt[1]*ohmMod[10])*q_)/m_; 
-  outSurf[14] += -(0.5*(dApardt[1]*ohmMod[15]+dApardt[0]*ohmMod[14]+dApardt[3]*ohmMod[13]+dApardt[2]*ohmMod[10])*q_)/m_; 
-  outSurf[15] += -(0.5*(dApardt[0]*ohmMod[15]+dApardt[1]*ohmMod[14]+dApardt[2]*ohmMod[13]+dApardt[3]*ohmMod[10])*q_)/m_; 
+  out[3] += -(0.8660254037844386*(dApardt[3]*f[5]+dApardt[2]*f[2]+dApardt[1]*f[1]+dApardt[0]*f[0])*dfac_v*q_)/m_; 
+  out[6] += -(0.8660254037844386*(dApardt[2]*f[5]+f[2]*dApardt[3]+dApardt[0]*f[1]+f[0]*dApardt[1])*dfac_v*q_)/m_; 
+  out[7] += -(0.8660254037844386*(dApardt[1]*f[5]+f[1]*dApardt[3]+dApardt[0]*f[2]+f[0]*dApardt[2])*dfac_v*q_)/m_; 
+  out[10] += -(0.8660254037844386*(dApardt[3]*f[12]+dApardt[2]*f[9]+dApardt[1]*f[8]+dApardt[0]*f[4])*dfac_v*q_)/m_; 
+  out[11] += -(0.8660254037844386*(dApardt[0]*f[5]+f[0]*dApardt[3]+dApardt[1]*f[2]+f[1]*dApardt[2])*dfac_v*q_)/m_; 
+  out[13] += -(0.8660254037844386*(dApardt[2]*f[12]+dApardt[3]*f[9]+dApardt[0]*f[8]+dApardt[1]*f[4])*dfac_v*q_)/m_; 
+  out[14] += -(0.8660254037844386*(dApardt[1]*f[12]+dApardt[0]*f[9]+dApardt[3]*f[8]+dApardt[2]*f[4])*dfac_v*q_)/m_; 
+  out[15] += -(0.8660254037844386*(dApardt[0]*f[12]+dApardt[1]*f[9]+dApardt[2]*f[8]+dApardt[3]*f[4])*dfac_v*q_)/m_; 
   double cflRate = 0.0; 
   double alphaL = 0.0; 
   double alphaR = 0.0; 

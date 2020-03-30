@@ -418,7 +418,7 @@ local function buildApplication(self, tbl)
          -- Get suggested dt from each field and species.
          dtSuggested = math.min(dtSuggested, field:suggestDt())
          for nm, s in pairs(species) do
-            dtSuggested = math.min(dtSuggested, s:suggestDt(inIdx, outIdx))
+            dtSuggested = math.min(dtSuggested, s:suggestDt())
          end
 
          -- After deciding global dt, tell species.

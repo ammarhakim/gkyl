@@ -571,59 +571,27 @@ double EmGyrokineticVolPositivity3x2vSerP1_Bvars_0(const double q_, const double
   return cflRate; 
 } 
 double EmGyrokineticStep2VolPositivity3x2vSerP1(const double q_, const double m_, const double *w, const double *dxv, 
-                           const double *ohmMod, const double *dApardt, 
-                           const double *f, double *outVol, double *outSurf, double *positivityWeightByDir) 
+                           const double *dApardt, 
+                           const double *f, double *out, double *positivityWeightByDir) 
 { 
   double dvInv = 1.0/dxv[3]; 
   double dfac_v = 2.0/dxv[3]; 
-  outVol[4] += -(0.6123724356957944*(dApardt[7]*f[16]+dApardt[6]*f[8]+dApardt[5]*f[7]+dApardt[4]*f[6]+dApardt[3]*f[3]+dApardt[2]*f[2]+dApardt[1]*f[1]+dApardt[0]*f[0])*dfac_v*q_)/m_; 
-  outVol[9] += -(0.6123724356957944*(dApardt[6]*f[16]+dApardt[7]*f[8]+dApardt[3]*f[7]+dApardt[2]*f[6]+f[3]*dApardt[5]+f[2]*dApardt[4]+dApardt[0]*f[1]+f[0]*dApardt[1])*dfac_v*q_)/m_; 
-  outVol[10] += -(0.6123724356957944*(dApardt[5]*f[16]+dApardt[3]*f[8]+dApardt[7]*f[7]+dApardt[1]*f[6]+f[3]*dApardt[6]+f[1]*dApardt[4]+dApardt[0]*f[2]+f[0]*dApardt[2])*dfac_v*q_)/m_; 
-  outVol[11] += -(0.6123724356957944*(dApardt[4]*f[16]+dApardt[2]*f[8]+dApardt[1]*f[7]+f[6]*dApardt[7]+f[2]*dApardt[6]+f[1]*dApardt[5]+dApardt[0]*f[3]+f[0]*dApardt[3])*dfac_v*q_)/m_; 
-  outVol[15] += -(0.6123724356957944*(dApardt[7]*f[27]+dApardt[6]*f[22]+dApardt[5]*f[21]+dApardt[4]*f[20]+dApardt[3]*f[14]+dApardt[2]*f[13]+dApardt[1]*f[12]+dApardt[0]*f[5])*dfac_v*q_)/m_; 
-  outVol[17] += -(0.6123724356957944*(dApardt[3]*f[16]+dApardt[5]*f[8]+dApardt[6]*f[7]+f[3]*dApardt[7]+dApardt[0]*f[6]+f[0]*dApardt[4]+dApardt[1]*f[2]+f[1]*dApardt[2])*dfac_v*q_)/m_; 
-  outVol[18] += -(0.6123724356957944*(dApardt[2]*f[16]+dApardt[4]*f[8]+dApardt[0]*f[7]+f[2]*dApardt[7]+dApardt[6]*f[6]+f[0]*dApardt[5]+dApardt[1]*f[3]+f[1]*dApardt[3])*dfac_v*q_)/m_; 
-  outVol[19] += -(0.6123724356957944*(dApardt[1]*f[16]+dApardt[0]*f[8]+dApardt[4]*f[7]+f[1]*dApardt[7]+dApardt[5]*f[6]+f[0]*dApardt[6]+dApardt[2]*f[3]+f[2]*dApardt[3])*dfac_v*q_)/m_; 
-  outVol[23] += -(0.6123724356957944*(dApardt[6]*f[27]+dApardt[7]*f[22]+dApardt[3]*f[21]+dApardt[2]*f[20]+dApardt[5]*f[14]+dApardt[4]*f[13]+dApardt[0]*f[12]+dApardt[1]*f[5])*dfac_v*q_)/m_; 
-  outVol[24] += -(0.6123724356957944*(dApardt[5]*f[27]+dApardt[3]*f[22]+dApardt[7]*f[21]+dApardt[1]*f[20]+dApardt[6]*f[14]+dApardt[0]*f[13]+dApardt[4]*f[12]+dApardt[2]*f[5])*dfac_v*q_)/m_; 
-  outVol[25] += -(0.6123724356957944*(dApardt[4]*f[27]+dApardt[2]*f[22]+dApardt[1]*f[21]+dApardt[7]*f[20]+dApardt[0]*f[14]+dApardt[6]*f[13]+dApardt[5]*f[12]+dApardt[3]*f[5])*dfac_v*q_)/m_; 
-  outVol[26] += -(0.6123724356957944*(dApardt[0]*f[16]+dApardt[1]*f[8]+dApardt[2]*f[7]+f[0]*dApardt[7]+dApardt[3]*f[6]+f[1]*dApardt[6]+f[2]*dApardt[5]+f[3]*dApardt[4])*dfac_v*q_)/m_; 
-  outVol[28] += -(0.6123724356957944*(dApardt[3]*f[27]+dApardt[5]*f[22]+dApardt[6]*f[21]+dApardt[0]*f[20]+dApardt[7]*f[14]+dApardt[1]*f[13]+dApardt[2]*f[12]+dApardt[4]*f[5])*dfac_v*q_)/m_; 
-  outVol[29] += -(0.6123724356957944*(dApardt[2]*f[27]+dApardt[4]*f[22]+dApardt[0]*f[21]+dApardt[6]*f[20]+dApardt[1]*f[14]+dApardt[7]*f[13]+dApardt[3]*f[12]+dApardt[5]*f[5])*dfac_v*q_)/m_; 
-  outVol[30] += -(0.6123724356957944*(dApardt[1]*f[27]+dApardt[0]*f[22]+dApardt[4]*f[21]+dApardt[5]*f[20]+dApardt[2]*f[14]+dApardt[3]*f[13]+dApardt[7]*f[12]+f[5]*dApardt[6])*dfac_v*q_)/m_; 
-  outVol[31] += -(0.6123724356957944*(dApardt[0]*f[27]+dApardt[1]*f[22]+dApardt[2]*f[21]+dApardt[3]*f[20]+dApardt[4]*f[14]+dApardt[5]*f[13]+dApardt[6]*f[12]+f[5]*dApardt[7])*dfac_v*q_)/m_; 
-  outSurf[0] += -(0.3535533905932737*(dApardt[7]*ohmMod[16]+dApardt[6]*ohmMod[8]+dApardt[5]*ohmMod[7]+dApardt[4]*ohmMod[6]+dApardt[3]*ohmMod[3]+dApardt[2]*ohmMod[2]+dApardt[1]*ohmMod[1]+dApardt[0]*ohmMod[0])*q_)/m_; 
-  outSurf[1] += -(0.3535533905932737*(dApardt[6]*ohmMod[16]+dApardt[7]*ohmMod[8]+dApardt[3]*ohmMod[7]+dApardt[2]*ohmMod[6]+ohmMod[3]*dApardt[5]+ohmMod[2]*dApardt[4]+dApardt[0]*ohmMod[1]+ohmMod[0]*dApardt[1])*q_)/m_; 
-  outSurf[2] += -(0.3535533905932737*(dApardt[5]*ohmMod[16]+dApardt[3]*ohmMod[8]+dApardt[7]*ohmMod[7]+dApardt[1]*ohmMod[6]+ohmMod[3]*dApardt[6]+ohmMod[1]*dApardt[4]+dApardt[0]*ohmMod[2]+ohmMod[0]*dApardt[2])*q_)/m_; 
-  outSurf[3] += -(0.3535533905932737*(dApardt[4]*ohmMod[16]+dApardt[2]*ohmMod[8]+dApardt[1]*ohmMod[7]+ohmMod[6]*dApardt[7]+ohmMod[2]*dApardt[6]+ohmMod[1]*dApardt[5]+dApardt[0]*ohmMod[3]+ohmMod[0]*dApardt[3])*q_)/m_; 
-  outSurf[4] += -(0.3535533905932737*(dApardt[7]*ohmMod[26]+dApardt[6]*ohmMod[19]+dApardt[5]*ohmMod[18]+dApardt[4]*ohmMod[17]+dApardt[3]*ohmMod[11]+dApardt[2]*ohmMod[10]+dApardt[1]*ohmMod[9]+dApardt[0]*ohmMod[4])*q_)/m_; 
-  outSurf[5] += -(0.3535533905932737*(dApardt[7]*ohmMod[27]+dApardt[6]*ohmMod[22]+dApardt[5]*ohmMod[21]+dApardt[4]*ohmMod[20]+dApardt[3]*ohmMod[14]+dApardt[2]*ohmMod[13]+dApardt[1]*ohmMod[12]+dApardt[0]*ohmMod[5])*q_)/m_; 
-  outSurf[6] += -(0.3535533905932737*(dApardt[3]*ohmMod[16]+dApardt[5]*ohmMod[8]+dApardt[6]*ohmMod[7]+ohmMod[3]*dApardt[7]+dApardt[0]*ohmMod[6]+ohmMod[0]*dApardt[4]+dApardt[1]*ohmMod[2]+ohmMod[1]*dApardt[2])*q_)/m_; 
-  outSurf[7] += -(0.3535533905932737*(dApardt[2]*ohmMod[16]+dApardt[4]*ohmMod[8]+dApardt[0]*ohmMod[7]+ohmMod[2]*dApardt[7]+dApardt[6]*ohmMod[6]+ohmMod[0]*dApardt[5]+dApardt[1]*ohmMod[3]+ohmMod[1]*dApardt[3])*q_)/m_; 
-  outSurf[8] += -(0.3535533905932737*(dApardt[1]*ohmMod[16]+dApardt[0]*ohmMod[8]+dApardt[4]*ohmMod[7]+ohmMod[1]*dApardt[7]+dApardt[5]*ohmMod[6]+ohmMod[0]*dApardt[6]+dApardt[2]*ohmMod[3]+ohmMod[2]*dApardt[3])*q_)/m_; 
-  outSurf[9] += -(0.3535533905932737*(dApardt[6]*ohmMod[26]+dApardt[7]*ohmMod[19]+dApardt[3]*ohmMod[18]+dApardt[2]*ohmMod[17]+dApardt[5]*ohmMod[11]+dApardt[4]*ohmMod[10]+dApardt[0]*ohmMod[9]+dApardt[1]*ohmMod[4])*q_)/m_; 
-  outSurf[10] += -(0.3535533905932737*(dApardt[5]*ohmMod[26]+dApardt[3]*ohmMod[19]+dApardt[7]*ohmMod[18]+dApardt[1]*ohmMod[17]+dApardt[6]*ohmMod[11]+dApardt[0]*ohmMod[10]+dApardt[4]*ohmMod[9]+dApardt[2]*ohmMod[4])*q_)/m_; 
-  outSurf[11] += -(0.3535533905932737*(dApardt[4]*ohmMod[26]+dApardt[2]*ohmMod[19]+dApardt[1]*ohmMod[18]+dApardt[7]*ohmMod[17]+dApardt[0]*ohmMod[11]+dApardt[6]*ohmMod[10]+dApardt[5]*ohmMod[9]+dApardt[3]*ohmMod[4])*q_)/m_; 
-  outSurf[12] += -(0.3535533905932737*(dApardt[6]*ohmMod[27]+dApardt[7]*ohmMod[22]+dApardt[3]*ohmMod[21]+dApardt[2]*ohmMod[20]+dApardt[5]*ohmMod[14]+dApardt[4]*ohmMod[13]+dApardt[0]*ohmMod[12]+dApardt[1]*ohmMod[5])*q_)/m_; 
-  outSurf[13] += -(0.3535533905932737*(dApardt[5]*ohmMod[27]+dApardt[3]*ohmMod[22]+dApardt[7]*ohmMod[21]+dApardt[1]*ohmMod[20]+dApardt[6]*ohmMod[14]+dApardt[0]*ohmMod[13]+dApardt[4]*ohmMod[12]+dApardt[2]*ohmMod[5])*q_)/m_; 
-  outSurf[14] += -(0.3535533905932737*(dApardt[4]*ohmMod[27]+dApardt[2]*ohmMod[22]+dApardt[1]*ohmMod[21]+dApardt[7]*ohmMod[20]+dApardt[0]*ohmMod[14]+dApardt[6]*ohmMod[13]+dApardt[5]*ohmMod[12]+dApardt[3]*ohmMod[5])*q_)/m_; 
-  outSurf[15] += -(0.3535533905932737*(dApardt[7]*ohmMod[31]+dApardt[6]*ohmMod[30]+dApardt[5]*ohmMod[29]+dApardt[4]*ohmMod[28]+dApardt[3]*ohmMod[25]+dApardt[2]*ohmMod[24]+dApardt[1]*ohmMod[23]+dApardt[0]*ohmMod[15])*q_)/m_; 
-  outSurf[16] += -(0.3535533905932737*(dApardt[0]*ohmMod[16]+dApardt[1]*ohmMod[8]+dApardt[2]*ohmMod[7]+ohmMod[0]*dApardt[7]+dApardt[3]*ohmMod[6]+ohmMod[1]*dApardt[6]+ohmMod[2]*dApardt[5]+ohmMod[3]*dApardt[4])*q_)/m_; 
-  outSurf[17] += -(0.3535533905932737*(dApardt[3]*ohmMod[26]+dApardt[5]*ohmMod[19]+dApardt[6]*ohmMod[18]+dApardt[0]*ohmMod[17]+dApardt[7]*ohmMod[11]+dApardt[1]*ohmMod[10]+dApardt[2]*ohmMod[9]+dApardt[4]*ohmMod[4])*q_)/m_; 
-  outSurf[18] += -(0.3535533905932737*(dApardt[2]*ohmMod[26]+dApardt[4]*ohmMod[19]+dApardt[0]*ohmMod[18]+dApardt[6]*ohmMod[17]+dApardt[1]*ohmMod[11]+dApardt[7]*ohmMod[10]+dApardt[3]*ohmMod[9]+ohmMod[4]*dApardt[5])*q_)/m_; 
-  outSurf[19] += -(0.3535533905932737*(dApardt[1]*ohmMod[26]+dApardt[0]*ohmMod[19]+dApardt[4]*ohmMod[18]+dApardt[5]*ohmMod[17]+dApardt[2]*ohmMod[11]+dApardt[3]*ohmMod[10]+dApardt[7]*ohmMod[9]+ohmMod[4]*dApardt[6])*q_)/m_; 
-  outSurf[20] += -(0.3535533905932737*(dApardt[3]*ohmMod[27]+dApardt[5]*ohmMod[22]+dApardt[6]*ohmMod[21]+dApardt[0]*ohmMod[20]+dApardt[7]*ohmMod[14]+dApardt[1]*ohmMod[13]+dApardt[2]*ohmMod[12]+dApardt[4]*ohmMod[5])*q_)/m_; 
-  outSurf[21] += -(0.3535533905932737*(dApardt[2]*ohmMod[27]+dApardt[4]*ohmMod[22]+dApardt[0]*ohmMod[21]+dApardt[6]*ohmMod[20]+dApardt[1]*ohmMod[14]+dApardt[7]*ohmMod[13]+dApardt[3]*ohmMod[12]+dApardt[5]*ohmMod[5])*q_)/m_; 
-  outSurf[22] += -(0.3535533905932737*(dApardt[1]*ohmMod[27]+dApardt[0]*ohmMod[22]+dApardt[4]*ohmMod[21]+dApardt[5]*ohmMod[20]+dApardt[2]*ohmMod[14]+dApardt[3]*ohmMod[13]+dApardt[7]*ohmMod[12]+ohmMod[5]*dApardt[6])*q_)/m_; 
-  outSurf[23] += -(0.3535533905932737*(dApardt[6]*ohmMod[31]+dApardt[7]*ohmMod[30]+dApardt[3]*ohmMod[29]+dApardt[2]*ohmMod[28]+dApardt[5]*ohmMod[25]+dApardt[4]*ohmMod[24]+dApardt[0]*ohmMod[23]+dApardt[1]*ohmMod[15])*q_)/m_; 
-  outSurf[24] += -(0.3535533905932737*(dApardt[5]*ohmMod[31]+dApardt[3]*ohmMod[30]+dApardt[7]*ohmMod[29]+dApardt[1]*ohmMod[28]+dApardt[6]*ohmMod[25]+dApardt[0]*ohmMod[24]+dApardt[4]*ohmMod[23]+dApardt[2]*ohmMod[15])*q_)/m_; 
-  outSurf[25] += -(0.3535533905932737*(dApardt[4]*ohmMod[31]+dApardt[2]*ohmMod[30]+dApardt[1]*ohmMod[29]+dApardt[7]*ohmMod[28]+dApardt[0]*ohmMod[25]+dApardt[6]*ohmMod[24]+dApardt[5]*ohmMod[23]+dApardt[3]*ohmMod[15])*q_)/m_; 
-  outSurf[26] += -(0.3535533905932737*(dApardt[0]*ohmMod[26]+dApardt[1]*ohmMod[19]+dApardt[2]*ohmMod[18]+dApardt[3]*ohmMod[17]+dApardt[4]*ohmMod[11]+dApardt[5]*ohmMod[10]+dApardt[6]*ohmMod[9]+ohmMod[4]*dApardt[7])*q_)/m_; 
-  outSurf[27] += -(0.3535533905932737*(dApardt[0]*ohmMod[27]+dApardt[1]*ohmMod[22]+dApardt[2]*ohmMod[21]+dApardt[3]*ohmMod[20]+dApardt[4]*ohmMod[14]+dApardt[5]*ohmMod[13]+dApardt[6]*ohmMod[12]+ohmMod[5]*dApardt[7])*q_)/m_; 
-  outSurf[28] += -(0.3535533905932737*(dApardt[3]*ohmMod[31]+dApardt[5]*ohmMod[30]+dApardt[6]*ohmMod[29]+dApardt[0]*ohmMod[28]+dApardt[7]*ohmMod[25]+dApardt[1]*ohmMod[24]+dApardt[2]*ohmMod[23]+dApardt[4]*ohmMod[15])*q_)/m_; 
-  outSurf[29] += -(0.3535533905932737*(dApardt[2]*ohmMod[31]+dApardt[4]*ohmMod[30]+dApardt[0]*ohmMod[29]+dApardt[6]*ohmMod[28]+dApardt[1]*ohmMod[25]+dApardt[7]*ohmMod[24]+dApardt[3]*ohmMod[23]+dApardt[5]*ohmMod[15])*q_)/m_; 
-  outSurf[30] += -(0.3535533905932737*(dApardt[1]*ohmMod[31]+dApardt[0]*ohmMod[30]+dApardt[4]*ohmMod[29]+dApardt[5]*ohmMod[28]+dApardt[2]*ohmMod[25]+dApardt[3]*ohmMod[24]+dApardt[7]*ohmMod[23]+dApardt[6]*ohmMod[15])*q_)/m_; 
-  outSurf[31] += -(0.3535533905932737*(dApardt[0]*ohmMod[31]+dApardt[1]*ohmMod[30]+dApardt[2]*ohmMod[29]+dApardt[3]*ohmMod[28]+dApardt[4]*ohmMod[25]+dApardt[5]*ohmMod[24]+dApardt[6]*ohmMod[23]+dApardt[7]*ohmMod[15])*q_)/m_; 
+  out[4] += -(0.6123724356957944*(dApardt[7]*f[16]+dApardt[6]*f[8]+dApardt[5]*f[7]+dApardt[4]*f[6]+dApardt[3]*f[3]+dApardt[2]*f[2]+dApardt[1]*f[1]+dApardt[0]*f[0])*dfac_v*q_)/m_; 
+  out[9] += -(0.6123724356957944*(dApardt[6]*f[16]+dApardt[7]*f[8]+dApardt[3]*f[7]+dApardt[2]*f[6]+f[3]*dApardt[5]+f[2]*dApardt[4]+dApardt[0]*f[1]+f[0]*dApardt[1])*dfac_v*q_)/m_; 
+  out[10] += -(0.6123724356957944*(dApardt[5]*f[16]+dApardt[3]*f[8]+dApardt[7]*f[7]+dApardt[1]*f[6]+f[3]*dApardt[6]+f[1]*dApardt[4]+dApardt[0]*f[2]+f[0]*dApardt[2])*dfac_v*q_)/m_; 
+  out[11] += -(0.6123724356957944*(dApardt[4]*f[16]+dApardt[2]*f[8]+dApardt[1]*f[7]+f[6]*dApardt[7]+f[2]*dApardt[6]+f[1]*dApardt[5]+dApardt[0]*f[3]+f[0]*dApardt[3])*dfac_v*q_)/m_; 
+  out[15] += -(0.6123724356957944*(dApardt[7]*f[27]+dApardt[6]*f[22]+dApardt[5]*f[21]+dApardt[4]*f[20]+dApardt[3]*f[14]+dApardt[2]*f[13]+dApardt[1]*f[12]+dApardt[0]*f[5])*dfac_v*q_)/m_; 
+  out[17] += -(0.6123724356957944*(dApardt[3]*f[16]+dApardt[5]*f[8]+dApardt[6]*f[7]+f[3]*dApardt[7]+dApardt[0]*f[6]+f[0]*dApardt[4]+dApardt[1]*f[2]+f[1]*dApardt[2])*dfac_v*q_)/m_; 
+  out[18] += -(0.6123724356957944*(dApardt[2]*f[16]+dApardt[4]*f[8]+dApardt[0]*f[7]+f[2]*dApardt[7]+dApardt[6]*f[6]+f[0]*dApardt[5]+dApardt[1]*f[3]+f[1]*dApardt[3])*dfac_v*q_)/m_; 
+  out[19] += -(0.6123724356957944*(dApardt[1]*f[16]+dApardt[0]*f[8]+dApardt[4]*f[7]+f[1]*dApardt[7]+dApardt[5]*f[6]+f[0]*dApardt[6]+dApardt[2]*f[3]+f[2]*dApardt[3])*dfac_v*q_)/m_; 
+  out[23] += -(0.6123724356957944*(dApardt[6]*f[27]+dApardt[7]*f[22]+dApardt[3]*f[21]+dApardt[2]*f[20]+dApardt[5]*f[14]+dApardt[4]*f[13]+dApardt[0]*f[12]+dApardt[1]*f[5])*dfac_v*q_)/m_; 
+  out[24] += -(0.6123724356957944*(dApardt[5]*f[27]+dApardt[3]*f[22]+dApardt[7]*f[21]+dApardt[1]*f[20]+dApardt[6]*f[14]+dApardt[0]*f[13]+dApardt[4]*f[12]+dApardt[2]*f[5])*dfac_v*q_)/m_; 
+  out[25] += -(0.6123724356957944*(dApardt[4]*f[27]+dApardt[2]*f[22]+dApardt[1]*f[21]+dApardt[7]*f[20]+dApardt[0]*f[14]+dApardt[6]*f[13]+dApardt[5]*f[12]+dApardt[3]*f[5])*dfac_v*q_)/m_; 
+  out[26] += -(0.6123724356957944*(dApardt[0]*f[16]+dApardt[1]*f[8]+dApardt[2]*f[7]+f[0]*dApardt[7]+dApardt[3]*f[6]+f[1]*dApardt[6]+f[2]*dApardt[5]+f[3]*dApardt[4])*dfac_v*q_)/m_; 
+  out[28] += -(0.6123724356957944*(dApardt[3]*f[27]+dApardt[5]*f[22]+dApardt[6]*f[21]+dApardt[0]*f[20]+dApardt[7]*f[14]+dApardt[1]*f[13]+dApardt[2]*f[12]+dApardt[4]*f[5])*dfac_v*q_)/m_; 
+  out[29] += -(0.6123724356957944*(dApardt[2]*f[27]+dApardt[4]*f[22]+dApardt[0]*f[21]+dApardt[6]*f[20]+dApardt[1]*f[14]+dApardt[7]*f[13]+dApardt[3]*f[12]+dApardt[5]*f[5])*dfac_v*q_)/m_; 
+  out[30] += -(0.6123724356957944*(dApardt[1]*f[27]+dApardt[0]*f[22]+dApardt[4]*f[21]+dApardt[5]*f[20]+dApardt[2]*f[14]+dApardt[3]*f[13]+dApardt[7]*f[12]+f[5]*dApardt[6])*dfac_v*q_)/m_; 
+  out[31] += -(0.6123724356957944*(dApardt[0]*f[27]+dApardt[1]*f[22]+dApardt[2]*f[21]+dApardt[3]*f[20]+dApardt[4]*f[14]+dApardt[5]*f[13]+dApardt[6]*f[12]+f[5]*dApardt[7])*dfac_v*q_)/m_; 
   double cflRate = 0.0; 
   double alphaL = 0.0; 
   double alphaR = 0.0; 

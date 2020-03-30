@@ -245,11 +245,13 @@ load(modNm),
     if positivity and emflag then (
       if d>cdim then writeCIncrExprsNoExpand1(outV, gcfac(float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], facsum(gkVolTerm_k,derivfac)))))
       else writeCIncrExprsNoExpand1(outX, gcfac(float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], facsum(gkVolTerm_k,derivfac)))))
-    ) else (
-      writeCIncrExprsNoExpand1(out, gcfac(float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], facsum(gkVolTerm_k,derivfac)))))
     )
   ),
 
+  if not (positivity and emflag) then (
+    gkVolTerm_k : fullratsimp(innerProd(varsP, 1, f_expd, alphaSum_expd)),
+    writeCIncrExprsNoExpand(gcfac(float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], facsum(gkVolTerm_k,derivfac)))))
+  ),
   flush_output(fh),
 
   printf(fh, "  return cflRate; ~%"),
@@ -277,12 +279,12 @@ load(modNm),
 
   if positivity then (
     printf(fh, "double ~aP~a(const double q_, const double m_, const double *w, const double *dxv, 
-                           const double *ohmMod, const double *dApardt, 
-                           const double *f, double *outVol, double *outSurf, double *positivityWeightByDir) ~%{ ~%", 
+                           const double *dApardt, 
+                           const double *f, double *out, double *positivityWeightByDir) ~%{ ~%", 
                 funcNm, polyOrder)
   ) else (
     printf(fh, "double ~aP~a(const double q_, const double m_, const double *w, const double *dxv, 
-                           const double *ohmMod, const double *dApardt, 
+                           const double *dApardt, 
                            const double *f, double *out) ~%{ ~%", 
                 funcNm, polyOrder)
   ),
@@ -297,21 +299,8 @@ load(modNm),
      < - f q/m dApar/dt d/dvpar(bP) > */
   gkVolTerm_k : fullratsimp(innerProd(varsP, 1, f_expd, -q_/m_*dAdt_expd*diff(bP,vpar)*dfac_v)),
 
-  if polyOrder=1 then (
-    ohmMod_expd:doExpand1(ohmMod,bP),
-    surfTerm_k : fullratsimp(innerProd(varsP, bP, ohmMod_expd, -q_/m_*dAdt_expd))
-  ),
-
   /* write C increment expressions for volume term */
-  if positivity then (
-    writeCIncrExprsNoExpand1(outVol, float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], facsum(gkVolTerm_k,derivfac)))),
- 
-    writeCIncrExprsNoExpand1(outSurf, float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], surfTerm_k)))
-  ) 
-  else (
-    writeCIncrExprsNoExpand1(out, float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], facsum(gkVolTerm_k,derivfac)))),
-    writeCIncrExprsNoExpand1(out, float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], surfTerm_k)))
-  ),
+  writeCIncrExprsNoExpand1(out, float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], facsum(gkVolTerm_k,derivfac)))),
 
   /* cfl calculation */
     alpha_expd : - q_/m_*dAdt_expd*dfac_v,
@@ -371,7 +360,7 @@ load(modNm),
 pmax:1$
 em:true$
 
-for pos: 0 thru 1 do (
+for pos: 0 thru 0 do (
 if pos=0 then positivity:false
 else positivity:true,
 if positivity then posString : "Positivity"
@@ -380,6 +369,7 @@ else posString : "",
 for c : 1 thru 3 do (
 for v: 1 thru 2 do (
 if c=1 or (c>1 and v=2) then (
+if positivity then pmax:1,
 for p : 1 thru pmax do (
 if em then fname : sconcat("~/max-out/EmGyrokinetic", posString, "Ser", c, "x", v, "vP", p, ".cpp")
 else fname : sconcat("~/max-out/Gyrokinetic", posString, "Ser", c, "x", v, "vP", p, ".cpp"),

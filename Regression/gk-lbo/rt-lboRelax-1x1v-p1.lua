@@ -80,12 +80,7 @@ plasmaApp = Plasma.App {
 
          return topHat(x, v, n0, u0, vt)
       end,
-
-      evolve              = true,    -- Evolve this species.
-      evolveCollisionless = false,   -- Don't evolve collisionless terms for this test.
---      positivity          = true,    -- Enforce positivity.
---      positivityDiffuse   = true,    -- Add intra-cell diffusion to reduce negativity errors.
-
+      evolve = true,
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'square'},
@@ -105,12 +100,7 @@ plasmaApp = Plasma.App {
 	 local x, v = xn[1], xn[2]
          return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
       end,
-
-      evolve              = true,    -- Evolve this species.
-      evolveCollisionless = false,   -- Don't evolve collisionless terms for this test.
---      positivity          = true,    -- Enforce positivity.
---      positivityDiffuse   = true,    -- Add intra-cell diffusion to reduce negativity errors.
-
+      evolve            = true,
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
@@ -120,7 +110,7 @@ plasmaApp = Plasma.App {
 
    -- Field solver.
    field = Plasma.Field {
-      evolve      = false, -- Evolve fields?
+      evolve      = false, -- Rvolve fields?
       externalPhi = function (t, xn) return 0.0 end,
       kperp2      = 0.0
    },

@@ -192,7 +192,7 @@ function VmLBO:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, q
 end
 
 -- Contribution from surface integral term at the boundaries for use in DG scheme.
-function VmLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+function VmLBO:boundarySurfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local vMuMidMax = 0.0
    -- Set pointer to u and vthSq fields.
    self._nuUSum:fill(self._nuUSumIdxr(idxl), self._nuUSumPtr)          -- Get pointer to u field.

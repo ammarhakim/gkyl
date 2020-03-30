@@ -617,17 +617,6 @@ function FluidSpecies:write(tm, force)
 	    self.moments[1], string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
          self.integratedMoments:write(
             string.format("%s_intMom_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
-         self.integratedRmsMoments:write(
-            string.format("%s_intRmsMom_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
-         for i=1,3 do
-         self.intRmsDiff[i]:write(
-            string.format("%s_intRmsDiff%d_%d.bp", self.name, i, self.diagIoFrame), tm, self.diagIoFrame)
-         end
-
-         -- write local cfl number by cell
-         self.cflRateByCell:scale(self.dtGlobal[0])
-         self.cflRateByCell:write(
-             string.format("%s_%s_%d.bp", self.name, "cflByCell", self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
 
          if self.positivityDiffuse then
             self.posRescaler:write(tm, self.diagIoFrame, self.name)
@@ -653,8 +642,6 @@ function FluidSpecies:writeRestart(tm)
       self.moments[1], string.format("%s_restart.bp", self.name), tm, self.diagIoFrame)
    self.integratedMoments:write(
       string.format("%s_intMom_restart.bp", self.name), tm, self.diagIoFrame, false)
-   self.integratedRmsMoments:write(
-      string.format("%s_intRmsMom_restart.bp", self.name), tm, self.diagIoFrame, false)
 end
 
 function FluidSpecies:readRestart()

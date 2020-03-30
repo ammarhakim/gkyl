@@ -46,8 +46,6 @@ double GyrokineticVolPositivity1x1vSerP1_Bvars_0(const double q_, const double m
   positivityWeightByDir[1] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
 #endif 
 
-  out[1] += 0.8660254037844386*alphax[0]*f[0]; 
-  out[3] += 0.8660254037844386*alphax[0]*f[2]; 
   double alphav[4]; 
   alphav[0] = -(1.732050807568877*Gradpar[0]*Phi[1]*dfac_v*dfac_x*q_)/m_; 
   positivityWeightByDir[2] = 0.; 
@@ -77,8 +75,9 @@ double GyrokineticVolPositivity1x1vSerP1_Bvars_0(const double q_, const double m
   positivityWeightByDir[2] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
 #endif 
 
+  out[1] += 0.8660254037844386*alphax[0]*f[0]; 
   out[2] += 0.8660254037844386*alphav[0]*f[0]; 
-  out[3] += 0.8660254037844386*alphav[0]*f[1]; 
+  out[3] += 0.8660254037844386*(alphax[0]*f[2]+alphav[0]*f[1]); 
   return cflRate; 
 } 
 double GyrokineticVolPositivity1x1vSerP1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, 
@@ -129,8 +128,6 @@ double GyrokineticVolPositivity1x1vSerP1_Bvars_1(const double q_, const double m
   positivityWeightByDir[1] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
 #endif 
 
-  out[1] += 0.8660254037844386*(alphax[1]*f[1]+alphax[0]*f[0]); 
-  out[3] += 0.8660254037844386*(alphax[1]*f[3]+alphax[0]*f[2]); 
   double alphav[4]; 
   alphav[0] = -(1.732050807568877*Gradpar[0]*Phi[1]*dfac_v*dfac_x*q_)/m_; 
   alphav[1] = -(1.732050807568877*Gradpar[1]*Phi[1]*dfac_v*dfac_x*q_)/m_; 
@@ -161,7 +158,8 @@ double GyrokineticVolPositivity1x1vSerP1_Bvars_1(const double q_, const double m
   positivityWeightByDir[2] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
 #endif 
 
+  out[1] += 0.8660254037844386*(alphax[1]*f[1]+alphax[0]*f[0]); 
   out[2] += 0.8660254037844386*(alphav[1]*f[1]+alphav[0]*f[0]); 
-  out[3] += 0.8660254037844386*(alphav[0]*f[1]+f[0]*alphav[1]); 
+  out[3] += 0.8660254037844386*(alphax[1]*f[3]+alphax[0]*f[2]+alphav[0]*f[1]+f[0]*alphav[1]); 
   return cflRate; 
 } 

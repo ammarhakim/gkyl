@@ -49,10 +49,6 @@ double EmGyrokineticVol1x2vSerP1_Bvars_0(const double q_, const double m_, const
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
-  out[1] += 0.6123724356957944*alphax[0]*f[0]; 
-  out[4] += 0.6123724356957944*alphax[0]*f[2]; 
-  out[5] += 0.6123724356957944*alphax[0]*f[3]; 
-  out[7] += 0.6123724356957944*alphax[0]*f[6]; 
   double alphav[8]; 
   alphav[0] = -(2.449489742783178*Gradpar[0]*Phi[1]*dfac_v*dfac_x*q_)/m_; 
 #if cflType == SURFAVG 
@@ -83,14 +79,16 @@ double EmGyrokineticVol1x2vSerP1_Bvars_0(const double q_, const double m_, const
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
+  out[1] += 0.6123724356957944*alphax[0]*f[0]; 
   out[2] += 0.6123724356957944*alphav[0]*f[0]; 
-  out[4] += 0.6123724356957944*alphav[0]*f[1]; 
+  out[4] += 0.6123724356957944*(alphax[0]*f[2]+alphav[0]*f[1]); 
+  out[5] += 0.6123724356957944*alphax[0]*f[3]; 
   out[6] += 0.6123724356957944*alphav[0]*f[3]; 
-  out[7] += 0.6123724356957944*alphav[0]*f[5]; 
+  out[7] += 0.6123724356957944*(alphax[0]*f[6]+alphav[0]*f[5]); 
   return cflRate; 
 } 
 double EmGyrokineticStep2Vol1x2vSerP1(const double q_, const double m_, const double *w, const double *dxv, 
-                           const double *ohmMod, const double *dApardt, 
+                           const double *dApardt, 
                            const double *f, double *out) 
 { 
   double dvInv = 1.0/dxv[1]; 
@@ -99,14 +97,6 @@ double EmGyrokineticStep2Vol1x2vSerP1(const double q_, const double m_, const do
   out[4] += -(1.224744871391589*(dApardt[0]*f[1]+f[0]*dApardt[1])*dfac_v*q_)/m_; 
   out[6] += -(1.224744871391589*(dApardt[1]*f[5]+dApardt[0]*f[3])*dfac_v*q_)/m_; 
   out[7] += -(1.224744871391589*(dApardt[0]*f[5]+dApardt[1]*f[3])*dfac_v*q_)/m_; 
-  out[0] += -(0.7071067811865475*(dApardt[1]*ohmMod[1]+dApardt[0]*ohmMod[0])*q_)/m_; 
-  out[1] += -(0.7071067811865475*(dApardt[0]*ohmMod[1]+ohmMod[0]*dApardt[1])*q_)/m_; 
-  out[2] += -(0.7071067811865475*(dApardt[1]*ohmMod[4]+dApardt[0]*ohmMod[2])*q_)/m_; 
-  out[3] += -(0.7071067811865475*(dApardt[1]*ohmMod[5]+dApardt[0]*ohmMod[3])*q_)/m_; 
-  out[4] += -(0.7071067811865475*(dApardt[0]*ohmMod[4]+dApardt[1]*ohmMod[2])*q_)/m_; 
-  out[5] += -(0.7071067811865475*(dApardt[0]*ohmMod[5]+dApardt[1]*ohmMod[3])*q_)/m_; 
-  out[6] += -(0.7071067811865475*(dApardt[1]*ohmMod[7]+dApardt[0]*ohmMod[6])*q_)/m_; 
-  out[7] += -(0.7071067811865475*(dApardt[0]*ohmMod[7]+dApardt[1]*ohmMod[6])*q_)/m_; 
   double cflRate = 0.0; 
   double alphaL = 0.0; 
   double alphaR = 0.0; 
@@ -190,10 +180,6 @@ double EmGyrokineticVol1x2vSerP1_Bvars_1(const double q_, const double m_, const
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
-  out[1] += 0.6123724356957944*(alphax[1]*f[1]+alphax[0]*f[0]); 
-  out[4] += 0.6123724356957944*(alphax[1]*f[4]+alphax[0]*f[2]); 
-  out[5] += 0.6123724356957944*(alphax[1]*f[5]+alphax[0]*f[3]); 
-  out[7] += 0.6123724356957944*(alphax[1]*f[7]+alphax[0]*f[6]); 
   double alphav[8]; 
   alphav[0] = -(2.449489742783178*Gradpar[0]*dfac_v*dfac_x*(Bmag[1]*wm+Phi[1]*q_))/m_; 
   alphav[1] = -(2.449489742783178*Gradpar[1]*dfac_v*dfac_x*(Bmag[1]*wm+Phi[1]*q_))/m_; 
@@ -227,9 +213,11 @@ double EmGyrokineticVol1x2vSerP1_Bvars_1(const double q_, const double m_, const
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
+  out[1] += 0.6123724356957944*(alphax[1]*f[1]+alphax[0]*f[0]); 
   out[2] += 0.6123724356957944*(alphav[5]*f[5]+alphav[3]*f[3]+alphav[1]*f[1]+alphav[0]*f[0]); 
-  out[4] += 0.6123724356957944*(alphav[3]*f[5]+f[3]*alphav[5]+alphav[0]*f[1]+f[0]*alphav[1]); 
+  out[4] += 0.6123724356957944*(alphav[3]*f[5]+f[3]*alphav[5]+alphax[1]*f[4]+alphax[0]*f[2]+alphav[0]*f[1]+f[0]*alphav[1]); 
+  out[5] += 0.6123724356957944*(alphax[1]*f[5]+alphax[0]*f[3]); 
   out[6] += 0.6123724356957944*(alphav[1]*f[5]+f[1]*alphav[5]+alphav[0]*f[3]+f[0]*alphav[3]); 
-  out[7] += 0.6123724356957944*(alphav[0]*f[5]+f[0]*alphav[5]+alphav[1]*f[3]+f[1]*alphav[3]); 
+  out[7] += 0.6123724356957944*(alphax[1]*f[7]+alphax[0]*f[6]+alphav[0]*f[5]+f[0]*alphav[5]+alphav[1]*f[3]+f[1]*alphav[3]); 
   return cflRate; 
 } 

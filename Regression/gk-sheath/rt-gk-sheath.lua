@@ -132,7 +132,7 @@ plasmaApp = Plasma.App {
                 isSource = true,
       },
       evolve = true, -- Evolve species?
-      positivity = true,
+      --applyPositivity = true,
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp"}, 
       diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
       randomseed = randomseed,
@@ -182,7 +182,7 @@ plasmaApp = Plasma.App {
                 isSource = true,
       },
       evolve = true, -- Evolve species?
-      positivity = true,
+      --applyPositivity = true,
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp"}, 
       diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
       randomseed = randomseed,

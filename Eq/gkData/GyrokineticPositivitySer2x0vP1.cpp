@@ -45,8 +45,6 @@ double GyrokineticVolPositivity2x0vSerP1_Bvars_0(const double q_, const double m
   positivityWeightByDir[1] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
 #endif 
 
-  out[1] += 0.8660254037844386*(alphax[1]*f[1]+alphax[0]*f[0]); 
-  out[3] += 0.8660254037844386*(alphax[1]*f[3]+alphax[0]*f[2]); 
   double alphay[4]; 
   alphay[0] = 0.8660254037844386*BmagInv[0]*Phi[1]*dfac_x*dfac_y; 
   alphay[2] = 0.8660254037844386*BmagInv[0]*Phi[3]*dfac_x*dfac_y; 
@@ -77,7 +75,8 @@ double GyrokineticVolPositivity2x0vSerP1_Bvars_0(const double q_, const double m
   positivityWeightByDir[2] += 0.5*(alphaR+std::abs(alphaR)); //std::abs(alphaL); 
 #endif 
 
+  out[1] += 0.8660254037844386*(alphax[1]*f[1]+alphax[0]*f[0]); 
   out[2] += 0.8660254037844386*(alphay[2]*f[2]+alphay[0]*f[0]); 
-  out[3] += 0.8660254037844386*(alphay[2]*f[3]+alphay[0]*f[1]); 
+  out[3] += 0.8660254037844386*((alphay[2]+alphax[1])*f[3]+alphax[0]*f[2]+alphay[0]*f[1]); 
   return cflRate; 
 } 

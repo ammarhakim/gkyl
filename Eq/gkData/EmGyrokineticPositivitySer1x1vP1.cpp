@@ -82,17 +82,13 @@ double EmGyrokineticVolPositivity1x1vSerP1_Bvars_0(const double q_, const double
   return cflRate; 
 } 
 double EmGyrokineticStep2VolPositivity1x1vSerP1(const double q_, const double m_, const double *w, const double *dxv, 
-                           const double *ohmMod, const double *dApardt, 
-                           const double *f, double *outVol, double *outSurf, double *positivityWeightByDir) 
+                           const double *dApardt, 
+                           const double *f, double *out, double *positivityWeightByDir) 
 { 
   double dvInv = 1.0/dxv[1]; 
   double dfac_v = 2.0/dxv[1]; 
-  outVol[2] += -(1.224744871391589*(dApardt[1]*f[1]+dApardt[0]*f[0])*dfac_v*q_)/m_; 
-  outVol[3] += -(1.224744871391589*(dApardt[0]*f[1]+f[0]*dApardt[1])*dfac_v*q_)/m_; 
-  outSurf[0] += -(0.5*(1.414213562373095*dApardt[1]*ohmMod[1]+1.414213562373095*dApardt[0]*ohmMod[0])*q_)/m_; 
-  outSurf[1] += -(0.5*(1.414213562373095*dApardt[0]*ohmMod[1]+1.414213562373095*ohmMod[0]*dApardt[1])*q_)/m_; 
-  outSurf[2] += -(0.5*(1.414213562373095*dApardt[1]*ohmMod[3]+1.414213562373095*dApardt[0]*ohmMod[2])*q_)/m_; 
-  outSurf[3] += -(0.5*(1.414213562373095*dApardt[0]*ohmMod[3]+1.414213562373095*dApardt[1]*ohmMod[2])*q_)/m_; 
+  out[2] += -(1.224744871391589*(dApardt[1]*f[1]+dApardt[0]*f[0])*dfac_v*q_)/m_; 
+  out[3] += -(1.224744871391589*(dApardt[0]*f[1]+f[0]*dApardt[1])*dfac_v*q_)/m_; 
   double cflRate = 0.0; 
   double alphaL = 0.0; 
   double alphaR = 0.0; 

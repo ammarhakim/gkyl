@@ -39,8 +39,6 @@ double EmGyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
-  out[1] += 0.8660254037844386*alphax[0]*f[0]; 
-  out[3] += 0.8660254037844386*alphax[0]*f[2]; 
   double alphav[4]; 
   alphav[0] = -(1.732050807568877*Gradpar[0]*Phi[1]*dfac_v*dfac_x*q_)/m_; 
 #if cflType == SURFAVG 
@@ -63,22 +61,19 @@ double EmGyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
+  out[1] += 0.8660254037844386*alphax[0]*f[0]; 
   out[2] += 0.8660254037844386*alphav[0]*f[0]; 
-  out[3] += 0.8660254037844386*alphav[0]*f[1]; 
+  out[3] += 0.8660254037844386*(alphax[0]*f[2]+alphav[0]*f[1]); 
   return cflRate; 
 } 
 double EmGyrokineticStep2Vol1x1vSerP1(const double q_, const double m_, const double *w, const double *dxv, 
-                           const double *ohmMod, const double *dApardt, 
+                           const double *dApardt, 
                            const double *f, double *out) 
 { 
   double dvInv = 1.0/dxv[1]; 
   double dfac_v = 2.0/dxv[1]; 
   out[2] += -(1.224744871391589*(dApardt[1]*f[1]+dApardt[0]*f[0])*dfac_v*q_)/m_; 
   out[3] += -(1.224744871391589*(dApardt[0]*f[1]+f[0]*dApardt[1])*dfac_v*q_)/m_; 
-  out[0] += -(0.5*(1.414213562373095*dApardt[1]*ohmMod[1]+1.414213562373095*dApardt[0]*ohmMod[0])*q_)/m_; 
-  out[1] += -(0.5*(1.414213562373095*dApardt[0]*ohmMod[1]+1.414213562373095*ohmMod[0]*dApardt[1])*q_)/m_; 
-  out[2] += -(0.5*(1.414213562373095*dApardt[1]*ohmMod[3]+1.414213562373095*dApardt[0]*ohmMod[2])*q_)/m_; 
-  out[3] += -(0.5*(1.414213562373095*dApardt[0]*ohmMod[3]+1.414213562373095*dApardt[1]*ohmMod[2])*q_)/m_; 
   double cflRate = 0.0; 
   double alphaL = 0.0; 
   double alphaR = 0.0; 
@@ -144,8 +139,6 @@ double EmGyrokineticVol1x1vSerP1_Bvars_1(const double q_, const double m_, const
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
-  out[1] += 0.8660254037844386*(alphax[1]*f[1]+alphax[0]*f[0]); 
-  out[3] += 0.8660254037844386*(alphax[1]*f[3]+alphax[0]*f[2]); 
   double alphav[4]; 
   alphav[0] = -(1.732050807568877*Gradpar[0]*Phi[1]*dfac_v*dfac_x*q_)/m_; 
   alphav[1] = -(1.732050807568877*Gradpar[1]*Phi[1]*dfac_v*dfac_x*q_)/m_; 
@@ -169,7 +162,8 @@ double EmGyrokineticVol1x1vSerP1_Bvars_1(const double q_, const double m_, const
   cflRate += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
+  out[1] += 0.8660254037844386*(alphax[1]*f[1]+alphax[0]*f[0]); 
   out[2] += 0.8660254037844386*(alphav[1]*f[1]+alphav[0]*f[0]); 
-  out[3] += 0.8660254037844386*(alphav[0]*f[1]+f[0]*alphav[1]); 
+  out[3] += 0.8660254037844386*(alphax[1]*f[3]+alphax[0]*f[2]+alphav[0]*f[1]+f[0]*alphav[1]); 
   return cflRate; 
 } 

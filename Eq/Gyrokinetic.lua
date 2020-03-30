@@ -47,8 +47,9 @@ function Gyrokinetic:init(tbl)
    self._surfTerms = GyrokineticModDecl.selectSurf(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self._positivity, self.Bvars)
    if self._isElectromagnetic then 
       self._volTermStep2 = GyrokineticModDecl.selectStep2Vol(nm, self._cdim, self._vdim, p, self._positivity)
-      if p > 1 then self._surfTermsStep2 = GyrokineticModDecl.selectStep2Surf(nm, self._cdim, self._vdim, p, self._positivity, self.Bvars) end
+      if p == 1 and not self._positivity then self._surfTermsStep2 = GyrokineticModDecl.selectStep2Surf(nm, self._cdim, self._vdim, p, self._positivity, self.Bvars) end
    end
+   self._polyOrder = p
 
    -- For sheath BCs.
    if tbl.hasSheathBcs then
@@ -306,9 +307,6 @@ function Gyrokinetic:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr,
    local res
    if self._isElectromagnetic then
       self.apar:fill(self.aparIdxr(idxr), self.apar_ptr)
-      self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProv_ptr)
-      self.ohmMod:fill(self.ohmModIdxr(idxl), self.ohmMod_L_ptr)
-      self.ohmMod:fill(self.ohmModIdxr(idxr), self.ohmMod_R_ptr)
 
       if self._positivity then
          local fRhsSurf_L_ptr, fRhsSurf_R_ptr
@@ -330,11 +328,13 @@ function Gyrokinetic:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr,
          res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs,
                      self.bmag_ptr:data(), self.bmagInv_ptr:data(), self.gradpar_ptr:data(), 
                      self.bdriftX_ptr:data(), self.bdriftY_ptr:data(), self.phi_ptr:data(), 
-                     self.apar_ptr:data(), self.dApardt_ptr:data(), self.dApardtProv_ptr:data(), 
+                     self.apar_ptr:data(), self.dApardt_ptr:data(), 
                      dtApprox, self.positivityWeightByDir_L_ptr:data(), self.positivityWeightByDir_R_ptr:data(),
-                     f_L_ptr:data(), f_R_ptr:data(), fRhsSurf_L_ptr:data(), fRhsSurf_R_ptr:data(), 
-                     self.ohmMod_L_ptr:data(), self.ohmMod_R_ptr:data())
+                     f_L_ptr:data(), f_R_ptr:data(), fRhsSurf_L_ptr:data(), fRhsSurf_R_ptr:data())
       else
+         self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProv_ptr)
+         self.ohmMod:fill(self.ohmModIdxr(idxl), self.ohmMod_L_ptr)
+         self.ohmMod:fill(self.ohmModIdxr(idxr), self.ohmMod_R_ptr)
          res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs,
                      self.bmag_ptr:data(), self.bmagInv_ptr:data(), self.gradpar_ptr:data(), 
                      self.bdriftX_ptr:data(), self.bdriftY_ptr:data(), self.phi_ptr:data(), 
@@ -377,7 +377,6 @@ end
 function Gyrokinetic:volTermStep2(w, dx, idx, f_ptr, fRhs_ptr)
    local tmStart = Time.clock()
    self.dApardt:fill(self.dApardtIdxr(idx), self.dApardt_ptr)
-   self.ohmMod:fill(self.ohmModIdxr(idx), self.ohmMod_ptr)
    local cflRate
    if self._positivity then
       self.fRhsVolV:fill(self.fRhsIdxr(idx), self.fRhsVolV_ptr)
@@ -385,12 +384,12 @@ function Gyrokinetic:volTermStep2(w, dx, idx, f_ptr, fRhs_ptr)
       self.positivityWeightByDir:fill(self.positivityWeightByDirIdxr(idx), self.positivityWeightByDir_ptr)
 
       cflRate = self._volTermStep2(self.charge, self.mass, w:data(), dx:data(), 
-                                   self.ohmMod_ptr:data(), self.dApardt_ptr:data(), 
-                                   f_ptr:data(), self.fRhsVolV_ptr:data(), self.fRhsSurfV_ptr:data(),
+                                   self.dApardt_ptr:data(), 
+                                   f_ptr:data(), self.fRhsVolV_ptr:data(),
                                    self.positivityWeightByDir_ptr:data())
    else
       cflRate = self._volTermStep2(self.charge, self.mass, w:data(), dx:data(), 
-                                   self.ohmMod_ptr:data(), self.dApardt_ptr:data(), 
+                                   self.dApardt_ptr:data(), 
                                    f_ptr:data(), fRhs_ptr:data())
    end
    self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
@@ -400,39 +399,31 @@ end
 -- Step2 surface integral term for use in DG scheme (EM only, vpar dir only).
 function Gyrokinetic:surfTermStep2(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, 
                                    f_L_ptr, f_R_ptr, fRhs_L_ptr, fRhs_R_ptr)
-   local tmStart = Time.clock()
-   self.phi:fill(self.phiIdxr(idxr), self.phi_ptr)
-   self.bmag:fill(self.bmagIdxr(idxr), self.bmag_ptr)
-   self.bmagInv:fill(self.bmagInvIdxr(idxr), self.bmagInv_ptr)
-   self.gradpar:fill(self.gradparIdxr(idxr), self.gradpar_ptr)
-   self.bdriftX:fill(self.bdriftXIdxr(idxr), self.bdriftX_ptr)
-   self.bdriftY:fill(self.bdriftYIdxr(idxr), self.bdriftY_ptr)
-   self.apar:fill(self.aparIdxr(idxr), self.apar_ptr)
-   self.ohmMod:fill(self.ohmModIdxr(idxr), self.ohmMod_ptr)
-   self.dApardt:fill(self.dApardtIdxr(idxr), self.dApardt_ptr)
-   self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProv_ptr)
-
    local res
-   if self._positivity then
-      self.positivityWeightByDir:fill(self.positivityWeightByDirIdxr(idxl), self.positivityWeightByDir_L_ptr)
-      self.positivityWeightByDir:fill(self.positivityWeightByDirIdxr(idxr), self.positivityWeightByDir_R_ptr)
-      self.fRhsSurfV:fill(self.fRhsIdxr(idxl), self.fRhsSurfV_L_ptr)
-      self.fRhsSurfV:fill(self.fRhsIdxr(idxr), self.fRhsSurfV_R_ptr)
-      res = self._surfTermsStep2[dir](self.charge, self.mass, wr:data(), dxr:data(),
+   if self._positivity or self._polyOrder > 1 then
+      -- no separate step 2 surfTerm kernel, just do entire vpar surf term in step 2
+      return self:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, 
+                                      f_L_ptr, f_R_ptr, fRhs_L_ptr, fRhs_R_ptr)
+   else
+      local tmStart = Time.clock()
+      self.phi:fill(self.phiIdxr(idxr), self.phi_ptr)
+      self.bmag:fill(self.bmagIdxr(idxr), self.bmag_ptr)
+      self.bmagInv:fill(self.bmagInvIdxr(idxr), self.bmagInv_ptr)
+      self.gradpar:fill(self.gradparIdxr(idxr), self.gradpar_ptr)
+      self.bdriftX:fill(self.bdriftXIdxr(idxr), self.bdriftX_ptr)
+      self.bdriftY:fill(self.bdriftYIdxr(idxr), self.bdriftY_ptr)
+      self.apar:fill(self.aparIdxr(idxr), self.apar_ptr)
+      self.dApardt:fill(self.dApardtIdxr(idxr), self.dApardt_ptr)
+      self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProv_ptr)
+
+      res = self._surfTermsStep2(self.charge, self.mass, wr:data(), dxr:data(), maxs,
                                       self.bmag_ptr:data(), self.bmagInv_ptr:data(), self.gradpar_ptr:data(), 
                                       self.bdriftX_ptr:data(), self.bdriftY_ptr:data(), self.phi_ptr:data(), 
                                       self.apar_ptr:data(), self.dApardt_ptr:data(), self.dApardtProv_ptr:data(), 
-                                      dtApprox, self.positivityWeightByDir_L_ptr:data(), self.positivityWeightByDir_R_ptr:data(),
-                                      f_L_ptr:data(), f_R_ptr:data(), self.fRhsSurfV_L_ptr:data(), self.fRhsSurfV_R_ptr:data())
-   else
-      res = self._surfTermsStep2[dir](self.charge, self.mass, wr:data(), dxr:data(), 
-                                      self.bmag_ptr:data(), self.bmagInv_ptr:data(), self.gradpar_ptr:data(), 
-                                      self.bdriftX_ptr:data(), self.bdriftY_ptr:data(), self.phi_ptr:data(), 
-                                      self.ohmMod_ptr:data(), self.dApardt_ptr:data(), self.dApardtProv_ptr:data(), 
                                       f_L_ptr:data(), f_R_ptr:data(), fRhs_L_ptr:data(), fRhs_R_ptr:data())
+      self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    end
 
-   self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    return res
 end
 
@@ -448,10 +439,6 @@ function Gyrokinetic:clearRhsTerms()
          self.fRhsSurf:clear(0.0)
       end
    end
-
-   if self._isElectromagnetic then
-      self.ohmMod:clear(0.0)
-   end
 end
 
 -- When using positivity algorithm, different parts of RHS are stored separately.
@@ -464,7 +451,11 @@ function Gyrokinetic:getPositivityRhs(tCurr, dtApprox, fIn, fRhs)
       end
       if dtApprox > 0 then self.posRescaler:rescaleVolTerm(tCurr, dtApprox*1.05, fIn, self.positivityWeightByDir, weightDirs, self.fRhsSurfX, self.fRhsVolX) end
 
-      fRhs:accumulate(1.0, self.fRhsSurfX, 1.0, self.fRhsVolX)
+      -- accumulate Rhs terms into total fRhs. 
+      -- note that fRhsVolV is only the partial vpar volume term, the part that doesn't depend on dA/dt. this is because this term is needed for Ohm's law.
+      -- before the step 2 update we will remove this partial fRhsVolV from fRhs. 
+      -- then the step 2 update will accumulate the dA/dt vol term into fRhsVolV, and we will add the entire fRhsVolV into fRhs (in getPositivityRhsStep2).
+      fRhs:accumulate(1.0, self.fRhsSurfX, 1.0, self.fRhsVolX, 1.0, self.fRhsVolV)
    else
       weightDirs = {}
       for d = 1, self._cdim+1 do -- configuration space dirs + vpar dir
@@ -476,6 +467,14 @@ function Gyrokinetic:getPositivityRhs(tCurr, dtApprox, fIn, fRhs)
 
       fRhs:accumulate(1.0, self.fRhsSurf, 1.0, self.fRhsVol)
    end 
+end
+
+function Gyrokinetic:clearRhsTermsStep2(fRhs)
+   if self._positivity and self._isElectromagnetic then
+      -- fRhsVolV that was accumulated into fRhs was only partial, because it was needed for Ohm's law. 
+      -- now subtract it, so that later we can accumulate the entire fRhsVolV into fRhs.
+      fRhs:accumulate(-1.0, self.fRhsVolV)
+   end
 end
 
 function Gyrokinetic:getPositivityRhsStep2(tCurr, dtApprox, fIn, fRhs)
