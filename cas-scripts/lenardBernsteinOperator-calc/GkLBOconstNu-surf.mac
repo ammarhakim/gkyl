@@ -130,12 +130,11 @@ compWriteIncr(fRec,fRecP, nSpaces) := block([incr_s1,incr_s2],
   alst    : doMakeExprLst(Gdiff_c, Gdiff),
   Gdiff_e : doExpand(alst, bP),
   
-  /*   Calculate Ghat (drag+diffusion) projected on the phase basis. */
+  /* Calculate Ghat (drag+diffusion) projected on the phase basis. */
   Ghat_c : fullratsimp(GhatDrag_c+rdv*calcInnerProdList(varsP,1,bP,Gdiff_e)),
-  GhatNoDiff_c : fullratsimp(GhatDrag_c),
 
   /* Ghat_c (coefficients of Ghat) is what gets written. From here
-  ** on we can simply refer to Ghat. */
+     on we can simply refer to Ghat. */
   glst1      : doMakeExprLst(Ghat_c, Ghat),
   Ghat_e     : doExpandLst(glst1, bP),
   Ghat_final : subst(vv=1, Ghat_e),
@@ -324,7 +323,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
     printf(fh, "~%"),
 
     /* First compute the contribution coming from the second
-    ** integration by parts to left and right cells. */
+       integration by parts to left and right cells. */
     nuVtSqSum_e  : doExpand1(nuVtSqSum,bC),
 
     /* Now do the contribution from the generalized flux Ghat. */
@@ -381,7 +380,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
         fl_e : doExpand1(fl, bP),
         fr_e : doExpand1(fr, bP),
         /* Surface basis. Equivalent to basis of one lower
-        ** dimensionality without surface variable. */
+           dimensionality without surface variable. */
         bSurf : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst(vv=0,bP)))*bP),
         /* Project alphaDrag evaluatated at interior surface onto surf basis. */
         alphaDrSurf_c : fullratsimp(innerProd(surfVars, 1, bSurf, subst(vv=1,alphaDr))),
@@ -413,7 +412,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
       fl_e : doExpand1(fl, bP),
       fr_e : doExpand1(fr, bP),
       /* Surface basis. Equivalent to basis of one lower
-      ** dimensionality without surface variable. */
+         dimensionality without surface variable. */
       bSurf : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst(vv=0,bP)))*bP),
       /* Project alphaDrag evaluated at interior surface onto surf basis. */
       alphaDrSurf_c : fullratsimp(innerProd(surfVars, 1, bSurf, subst(vv=1,alphaDr))),
@@ -458,7 +457,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
         printf(fh, "~%"),
 
         printf(fh, "  double fUpwindQuad[~a];~%", length(nodes)),
-        for i:1 thru length(alphaq) do (
+        for i : 1 thru length(alphaq) do (
           /* This subst eliminates the need for another variable, and removes
              the common factor (for p=1) which is not needed to determine
              sign (not working for p>1). */
@@ -614,7 +613,6 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
     ),
     incr_s1 : makelist(signs1[i]*incr1[i-1], i, 1, NP),
     incr_s2 : makelist(signs2[i]*incr2[i-1], i, 1, NP),
-    /*incr_s2 : incr_l2,*/
     /* Don't do coefficients where the increment is zero */
     for i : 1 thru NP do (
       if (incr_r1[i] = 0) then

@@ -126,7 +126,7 @@ calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /*............. RECOVERY DONE ..............................*/
 
     /* First compute the contribution coming from the second
-    ** differentiation by parts to left and right cells. */
+       differentiation by parts to left and right cells. */
     nuVtSqSum_e : doExpand1(nuVtSqSum,bC),
 
     /* Now do the contribution from the generalized flux Ghat. */
