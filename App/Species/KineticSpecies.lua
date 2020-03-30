@@ -559,6 +559,7 @@ function KineticSpecies:initDist()
       if pr.isInit then
 	 self.distf[1]:accumulate(1.0, self.distf[2])
 	 initCnt = initCnt + 1
+         if pr.scaleWithSourcePower then self.scaleInitWithSourcePower = true end
       end
       if pr.isBackground then
 	 if not self.f0 then 
@@ -576,6 +577,20 @@ function KineticSpecies:initDist()
          if self.positivityRescale then
             self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
          end
+         if pr.power then
+            local calcInt = Updater.CartFieldIntegratedQuantCalc {
+               onGrid        = self.confGrid,
+               basis         = self.confBasis,
+               numComponents = 1,
+               quantity      = "V",
+            }
+            local intKE = DataStruct.DynVector{numComponents = 1}
+            self.ptclEnergyCalc:advance(0.0, {self.fSource}, {self.ptclEnergyAux})
+            calcInt:advance(0.0, {self.ptclEnergyAux, self.mass/2}, {intKE})
+            local _, intKE_data = intKE:lastData()
+            self.powerScalingFac = pr.power/intKE_data[1]
+            self.fSource:scale(self.powerScalingFac)
+         end
       end
       if pr.isReservoir then
 	 if not self.fReservoir then 
@@ -584,6 +599,7 @@ function KineticSpecies:initDist()
 	 self.fReservoir:accumulate(1.0, self.distf[2])
       end
    end
+   if self.scaleInitWithSourcePower then self.distf[1]:scale(self.powerScalingFac) end
    assert(initCnt > 0,
 	  string.format("KineticSpecies: Species '%s' not initialized!", self.name))
    if self.f0 and backgroundCnt == 0 then 

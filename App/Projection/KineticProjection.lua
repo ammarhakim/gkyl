@@ -42,6 +42,9 @@ function KineticProjection:fullInit(species)
    self.exactScaleM012  = xsys.pickBool(self.tbl.exactScaleM012, false)
    if self.exactScaleM012 then self.exactScaleM0 = false end
    self.exactLagFixM012 = xsys.pickBool(self.tbl.exactLagFixM012, false)
+
+   self.power = self.tbl.power
+   self.scaleWithSourcePower = xsys.pickBool(self.tbl.scaleWithSourcePower, false)
 end
 
 ----------------------------------------------------------------------
