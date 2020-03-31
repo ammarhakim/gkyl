@@ -726,8 +726,10 @@ function GkSpecies:createDiagnostics()
      end
      return false
    end
+
    local function isIntegratedMomentNameGood(nm)
       if nm == "intM0" or nm == "intM1" or nm == "intM2" or nm == "intKE" or nm == "intL1" or nm == "intL2"
+      or nm == "intSrcM0" or nm == "intSrcM1" or nm == "intSrcM2" or nm == "intSrcKE"
       or nm == "intDelM0" or nm == "intDelM2" or nm == "intDelL2"
       or nm == "intDelPosM0" or nm == "intDelPosM2" or nm == "intDelPosL2" then
          return true
@@ -743,12 +745,33 @@ function GkSpecies:createDiagnostics()
       table.insert(self.diagnosticIntegratedMoments, "intDelL2")
    end
 
+   if self.fSource then
+      self.momSource = self:allocMoment()
+      if contains(self.diagnosticIntegratedMoments, "intM0") then
+        table.insert(self.diagnosticIntegratedMoments, "intSrcM0")
+      end
+      if contains(self.diagnosticIntegratedMoments, "intM1") then
+         table.insert(self.diagnosticIntegratedMoments, "intSrcM1")
+      end
+      if contains(self.diagnosticIntegratedMoments, "intM2") then
+         table.insert(self.diagnosticIntegratedMoments, "intSrcM2")
+      end
+      if contains(self.diagnosticIntegratedMoments, "intKE") then
+         table.insert(self.diagnosticIntegratedMoments, "intSrcKE")
+      end
+   end
    -- Allocate space to store integrated moments and create integrated moment updaters.
    for i, mom in pairs(self.diagnosticIntegratedMoments) do
       if isIntegratedMomentNameGood(mom) then
          self.diagnosticIntegratedMomentFields[mom] = DataStruct.DynVector {
             numComponents = 1,
          }
+         local intCalc = Updater.CartFieldIntegratedQuantCalc {
+               onGrid        = self.confGrid,
+               basis         = self.confBasis,
+               numComponents = 1,
+               quantity      = "V",
+            }
          if mom == "intL2" or mom == "intDelL2" or mom == "intDelPosL2" then
             self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
                onGrid        = self.grid,
@@ -763,13 +786,16 @@ function GkSpecies:createDiagnostics()
                numComponents = 1,
                quantity      = "AbsV"
             }
-         else
+         elseif mom == "intSrcM0" or mom == "intSrcM1" or mom == "intSrcM2" or mom == "intSrcKE" then
             self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
                onGrid        = self.confGrid,
                basis         = self.confBasis,
                numComponents = 1,
                quantity      = "V",
+               timeIntegrate = true,
             }
+         else
+            self.diagnosticIntegratedMomentUpdaters[mom] = intCalc
          end
       else
          assert(false, string.format("Integrated moment %s not valid", mom))
@@ -1014,6 +1040,34 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tCurr)
       elseif mom == "intDelPosM2" and self.positivityDiffuse then
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
             tCurr, {self.ptclEnergyPos}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intSrcM0" then
+         if tCurr == 0.0 then -- only calculate source density on first step
+            self.numDensitySrc = self:allocMoment()
+            self.numDensityCalc:advance(0.0, {self.fSource}, {self.numDensitySrc})
+         end
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+               tCurr, {self.numDensitySrc, self.sourceTimeDependence(tCurr)}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intSrcM1" then
+         if tCurr == 0.0 then -- only calculate source momentum on first step
+            self.momDensitySrc = self:allocMoment()
+            self.momDensityCalc:advance(0.0, {self.fSource}, {self.momDensitySrc})
+         end
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+               tCurr, {self.momDensitySrc, self.sourceTimeDependence(tCurr)}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intSrcM2" then
+         if tCurr == 0.0 then -- only calculate source density on first step
+            self.ptclEnergySrc = self:allocMoment()
+            self.ptclEnergyCalc:advance(0.0, {self.fSource}, {self.ptclEnergySrc})
+         end
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+               tCurr, {self.ptclEnergySrc, self.sourceTimeDependence(tCurr)}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intSrcKE" then
+         if tCurr == 0.0 then -- only calculate source density on first step
+            self.ptclEnergySrc = self:allocMoment()
+            self.ptclEnergyCalc:advance(0.0, {self.fSource}, {self.ptclEnergySrc})
+         end
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+               tCurr, {self.ptclEnergySrc, self.sourceTimeDependence(tCurr)*self.mass/2}, {self.diagnosticIntegratedMomentFields[mom]})
       end
    end
 end

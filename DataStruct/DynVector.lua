@@ -82,7 +82,20 @@ end
 
 function DynVector:numComponents() return self._numComponents end
 function DynVector:lastTime() return self._timeMesh:last() end
-function DynVector:lastData() return self._timeMesh:last(), self._data:last() end
+function DynVector:lastTime()
+   if self:size() == 0 and self.tLast then 
+      return self.tLast
+   else
+      return self._timeMesh:last()
+   end
+end
+function DynVector:lastData()
+   if self:size() == 0 and self.dLast then 
+      return self.tLast, self.dLast
+   else
+      return self._timeMesh:last(), self._data:last() 
+   end
+end
 function DynVector:timeMesh() return self._timeMesh end
 function DynVector:data() return self._data end
 function DynVector:size() return self._data:size() end
@@ -179,7 +192,10 @@ function DynVector:write(outNm, tmStamp, frNum, flushData)
    Adios.finalize(rank)
 
    -- clear data for next round of IO
-   if flushData then self:clear() end
+   if flushData then 
+     self.tLast, self.dLast = self:lastData() -- save the last data, in case we need it later
+     self:clear()
+   end
 end
 
 -- returns time-stamp and frame number

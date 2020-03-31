@@ -135,7 +135,7 @@ def build(bld):
     binOpCalcData/CartFieldBinOpSer2x2vP2.cpp
     binOpCalcData/CartFieldBinOpSer2x3vP2.cpp
     binOpCalcData/CartFieldBinOpSer3x2vP2.cpp
-    binOpCalcData/CartFieldBinOpSer3x3vP2.cpp
+
 
     binOpCalcData/CartFieldBinOpMax1xP2.cpp
     binOpCalcData/CartFieldBinOpMax2xP2.cpp
@@ -146,7 +146,7 @@ def build(bld):
     binOpCalcData/CartFieldBinOpMax2x2vP2.cpp
     binOpCalcData/CartFieldBinOpMax2x3vP2.cpp
     binOpCalcData/CartFieldBinOpMax3x2vP2.cpp
-    binOpCalcData/CartFieldBinOpMax3x3vP2.cpp
+
 
     binOpCalcData/CartFieldBinOpTensor1xP2.cpp
     binOpCalcData/CartFieldBinOpTensor2xP2.cpp
@@ -270,3 +270,6 @@ def build(bld):
     bld.shlib(source = sources,
               includes = '. .. ../Cuda mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='lib EIGEN MPI', target = 'updater', name = 'updater', vum = '1.0')
     
+## Removed the following files from the build for now
+#     binOpCalcData/CartFieldBinOpSer3x3vP2.cpp
+#     binOpCalcData/CartFieldBinOpMax3x3vP2.cpp

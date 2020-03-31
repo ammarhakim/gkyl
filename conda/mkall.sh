@@ -14,12 +14,11 @@ conda build .
 cd ..
 
 cd adiospy
-conda build . --python=3.6
-conda build . --python=2.7
+conda build .
 cd ..
 
 cd gkyl
-#conda build .
+conda build .
 cd ..
 
 conda build purge
