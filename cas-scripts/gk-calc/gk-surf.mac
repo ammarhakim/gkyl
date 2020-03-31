@@ -652,7 +652,7 @@ load(modNm),
     flush_output(fh),
     /* use modToNod transformation to get modal surface expansion from nodal quadrature points */
     modToNod:fullratsimp(calcModToNodPhaseWithNodesAndBasis(nodes,bSurf,surfIntVars)),
-    fupwind_k:invert(transpose(float(modToNod))).makelist(fupwindQuad[i-1],i,1,length(nodes)),
+    fupwind_k:invert(transpose((modToNod))).makelist(fupwindQuad[i-1],i,1,length(nodes)),
     fupwind_k:gcfac(makelist(fupwind_k[i][1],i,1,length(fupwind_k))),
     /* write coefficients of modal surface expansion fupwind */
     writeCExprsNoExpand1(fupwind, fupwind_k),

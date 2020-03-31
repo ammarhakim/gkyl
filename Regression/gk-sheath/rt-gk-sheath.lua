@@ -23,12 +23,7 @@ R0           = 0.85  -- [m]
 a0           = 0.15   -- [m]
 R            = R0 + a0
 B0           = B_axis*(R0/R) -- [T]
-
--- Source parameters.
-P_SOL        = 8.1e5 -- [W] 
-S0           = 5.7691e23
-xSource      = R -- [m], source start coordinate
-lambdaSource = 0.005 -- [m], characteristic length scale of density and temperature
+Lpol           = 2.4 -- [m]
 
 -- Parameters for collisions.
 nuFrac = 0.1
@@ -51,14 +46,20 @@ Lx = 50*rho_s
 Ly = 100*rho_s
 Lz = 4 -- [m]
 
+-- Source parameters.
+P_SOL = 3.4e6 -- [W], total SOL power, from experimental heating power
+P_src = P_SOL*Ly*Lz/(2*math.pi*R*Lpol) -- [W], fraction of total SOL power into flux tube
+xSource = R -- [m], source start coordinate
+lambdaSource = 0.005 -- [m], characteristic length scale of density and temperature
+
 -- Source profiles.
 sourceDensity = function (t, xn)
    local x, y, z = xn[1], xn[2], xn[3]
    local sourceFloor = 0.1
    if math.abs(z) < Lz/4 then
-      return 0.90625*S0*math.max(math.exp(-(x-xSource)^2/(2*lambdaSource)^2), sourceFloor)
+      return math.max(math.exp(-(x-xSource)^2/(2*lambdaSource)^2), sourceFloor)
    else
-      return 1e-10
+      return 1e-40
    end
 end
 sourceTemperature = function (t, xn)
@@ -85,7 +86,7 @@ plasmaApp = Plasma.App {
    basis       = "serendipity",            -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                        -- Polynomial order.
    timeStepper = "rk3",                    -- One of "rk2" or "rk3".
-   cflFrac     = 0.9,
+   cflFrac     = 0.4,
    restartFrameEvery = .5,
 
    -- Boundary conditions for configuration space.
@@ -121,6 +122,7 @@ plasmaApp = Plasma.App {
                     return 20*eV
                  end
               end,
+              scaleWithSourcePower = true,
       },
       coll   = Plasma.LBOCollisions {
          collideWith = {'electron'},
@@ -129,6 +131,7 @@ plasmaApp = Plasma.App {
       source = Plasma.MaxwellianProjection {
                 density = sourceDensity,
                 temperature = sourceTemperature,
+                power = P_src/2,
                 isSource = true,
       },
       evolve = true, -- Evolve species?
@@ -171,6 +174,7 @@ plasmaApp = Plasma.App {
                     return 20*eV
                  end
               end,
+              scaleWithSourcePower = true,
       },
       coll   = Plasma.LBOCollisions {
          collideWith = {'ion'},
@@ -179,6 +183,7 @@ plasmaApp = Plasma.App {
       source = Plasma.MaxwellianProjection {
                 density = sourceDensity,
                 temperature = sourceTemperature,
+                power = P_src/2,
                 isSource = true,
       },
       evolve = true, -- Evolve species?
@@ -202,7 +207,7 @@ plasmaApp = Plasma.App {
       phiBcBack  = { T ="N", V = 0.0},
       phiBcFront = { T ="N", V = 0.0},
       evolve     = true, -- Evolve fields?
-      isElectromagnetic = true,
+      isElectromagnetic = false,
    },
 
    -- Magnetic geometry.
