@@ -70,6 +70,7 @@ function GkField:fullInit(appTbl)
    self.apar2    = DataStruct.DynVector { numComponents = 1 }
    self.esEnergy = DataStruct.DynVector { numComponents = 1 }
    self.emEnergy = DataStruct.DynVector { numComponents = 1 }
+   self.emEnergyError = DataStruct.DynVector { numComponents = 1 }
 
    self.adiabatic = false
    self.discontinuousPhi  = xsys.pickBool(tbl.discontinuousPhi, false)
@@ -488,6 +489,13 @@ function GkField:createSolver(species, funcField)
    elseif self.isElectromagnetic then
       self.nstep = 2
    end
+
+   self.weakMultiplication = Updater.CartFieldBinOp {
+      onGrid    = self.grid,
+      weakBasis = self.basis,
+      operation = "Multiply",
+      onGhosts  = true,
+   }
 end
 
 function GkField:createDiagnostics()
@@ -503,6 +511,11 @@ function GkField:createDiagnostics()
    }
 
    -- Updaters for computing integrated quantities.
+   self.intCalc = Updater.CartFieldIntegratedQuantCalc {
+      onGrid   = self.grid,
+      basis    = self.basis,
+      quantity = "V"
+   }
    self.int2Calc = Updater.CartFieldIntegratedQuantCalc {
       onGrid   = self.grid,
       basis    = self.basis,
@@ -523,7 +536,7 @@ function GkField:createDiagnostics()
    end
 end
 
-function GkField:write(tm, force)
+function GkField:write(tm, force, species)
    if self.evolve then
       -- Compute integrated quantities over domain.
       self.int2Calc:advance(tm, { self.potentials[1].phi }, { self.phi2 })
@@ -552,6 +565,19 @@ function GkField:write(tm, force)
            local emEnergyFac = .5/self.mu0
            if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperp2 end
            self.energyCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy })
+
+           if self.positivity then
+              self.currentDens:clear(0.0)
+              for nm, s in pairs(species) do
+                if s:isEvolving() then 
+                   self.currentDens:accumulate(1.0, s:getMomDensity(1))
+                   self.currentDens:accumulate(-1.0, s:getMomProjDensity(1))
+                   self.currentDens:scale(s:getCharge()*s:getDtGlobal())
+                end
+              end
+              self.weakMultiplication:advance(0.0, {self.currentDens, self.potentials[1].dApardt}, {self.currentDens})
+              self.intCalc:advance(tm, { self.currentDens }, { self.emEnergyError })
+           end
          end
       end
       
@@ -566,6 +592,9 @@ function GkField:write(tm, force)
 	 if self.isElectromagnetic then
 	    self.apar2:write(string.format("apar2_%d.bp", self.ioFrame), tm, self.ioFrame)
 	    self.emEnergy:write(string.format("emEnergy_%d.bp", self.ioFrame), tm, self.ioFrame)
+            if self.positivity then
+	       self.emEnergyError:write(string.format("emEnergyError_%d.bp", self.ioFrame), tm, self.ioFrame)
+            end
 	 end
 	 
 	 self.ioFrame = self.ioFrame+1
