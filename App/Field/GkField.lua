@@ -516,6 +516,12 @@ function GkField:createDiagnostics()
       basis    = self.basis,
       quantity = "V"
    }
+   self.intRateCalc = Updater.CartFieldIntegratedQuantCalc {
+      onGrid   = self.grid,
+      basis    = self.basis,
+      quantity = "V",
+      timeIntegrate = true,
+   }
    self.int2Calc = Updater.CartFieldIntegratedQuantCalc {
       onGrid   = self.grid,
       basis    = self.basis,
@@ -572,11 +578,11 @@ function GkField:write(tm, force, species)
                 if s:isEvolving() then 
                    self.currentDens:accumulate(1.0, s:getMomDensity(1))
                    self.currentDens:accumulate(-1.0, s:getMomProjDensity(1))
-                   self.currentDens:scale(s:getCharge()*s:getDtGlobal())
+                   self.currentDens:scale(s:getCharge())
                 end
               end
               self.weakMultiplication:advance(0.0, {self.currentDens, self.potentials[1].dApardt}, {self.currentDens})
-              self.intCalc:advance(tm, { self.currentDens }, { self.emEnergyError })
+              self.intRateCalc:advance(tm, { self.currentDens }, { self.emEnergyError })
            end
          end
       end
