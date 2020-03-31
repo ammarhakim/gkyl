@@ -15,6 +15,7 @@ local Proto        = require "Lib.Proto"
 local Range        = require "Lib.Range"
 local UpdaterBase  = require "Updater.Base"
 local ffi          = require "ffi"
+local xsys         = require "xsys"
 
 local ffiC = ffi.C
 ffi.cdef [[
@@ -56,6 +57,8 @@ function CartFieldIntegratedQuantCalc:init(tbl)
    if tbl.quantity == "GradPerpV2" then assert(self.numComponents==1 and self.basis:polyOrder()==1, 
           "CartFieldIntegratedQuantCalc: GradPerpV2 currently only implemented for p=1 and numComponents=1")
    end
+
+   self.timeIntegrate = xsys.pickBool(tbl.timeIntegrate, false)
 
    -- For use in advance method.
    self.dxv        = Lin.Vec(self.basis:ndim())    -- Cell shape.
@@ -106,6 +109,13 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, inFld, outFld)
       for i = 1, nvals do
          if self.sqrt then self.globalVals[i] = math.sqrt(self.globalVals[i]) end
          if multfac then self.globalVals[i] = self.globalVals[i]*multfac end
+      end
+   end
+
+   if self.timeIntegrate then
+      local tLast, lastVals = vals:lastData()
+      for i = 1, nvals do
+         self.globalVals[i] = lastVals[i] + (tCurr - tLast)*self.globalVals[i]
       end
    end
 
