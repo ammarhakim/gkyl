@@ -377,6 +377,10 @@ function KineticSpecies:allocDistf()
 	onGrid        = self.grid,
 	numComponents = self.basis:numBasis(),
 	ghost         = {1, 1},
+        metaData = {
+           polyOrder = self.basis:polyOrder(),
+           basisType = self.basis:id()
+        },
    }
    f:clear(0.0)
    return f
@@ -386,6 +390,10 @@ function KineticSpecies:allocMoment()
 	onGrid        = self.confGrid,
 	numComponents = self.confBasis:numBasis(),
 	ghost         = {1, 1},
+        metaData = {
+           polyOrder = self.basis:polyOrder(),
+           basisType = self.basis:id()
+        },
    }
    m:clear(0.0)
    return m
@@ -395,6 +403,10 @@ function KineticSpecies:allocVectorMoment(dim)
 	onGrid        = self.confGrid,
 	numComponents = self.confBasis:numBasis()*dim,
 	ghost         = {1, 1},
+        metaData = {
+           polyOrder = self.basis:polyOrder(),
+           basisType = self.basis:id()
+        },
    }
    m:clear(0.0)
    return m
@@ -863,6 +875,9 @@ function KineticSpecies:write(tm, force)
          end
          if tm == 0.0 and self.fSource then
             self.distIo:write(self.fSource, string.format("%s_fSource_0.bp", self.name), tm, self.distIoFrame)
+            if self.numDensitySrc then self.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.name), tm, self.distIoFrame) end
+            if self.momDensitySrc then self.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.name), tm, self.distIoFrame) end
+            if self.ptclEnergySrc then self.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.name), tm, self.distIoFrame) end
          end
 	 self.distIoFrame = self.distIoFrame+1
       end
