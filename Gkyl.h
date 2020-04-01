@@ -152,7 +152,8 @@ Gkyl::Gkyl(const std::string& luaExpr, const std::string& inpFileNm, const std::
     { "examples", {"examples.lua", "Example input files"} },
     { "queryrdb", {"queryrdb.lua", "Query/modify regression test DB"} },
     { "runregression", {"runregression.lua", "Run regression/unit tests"} },
-    { "comparefiles", {"comparefiles.lua", "Compare two BP files"} }
+    { "comparefiles", {"comparefiles.lua", "Compare two BP files"} },
+    { "exacteulerrp", {"exacteulerrp.lua", "Exact Euler Riemann problem solver"} }
   };
 
   if (hasInpFile) {
