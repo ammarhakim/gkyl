@@ -746,17 +746,20 @@ function GkSpecies:createDiagnostics()
    end
 
    if self.fSource then
-      self.momSource = self:allocMoment()
-      if contains(self.diagnosticIntegratedMoments, "intM0") then
+      self.numDensitySrc = self:allocMoment()
+      self.momDensitySrc = self:allocMoment()
+      self.ptclEnergySrc = self:allocMoment()
+      self.threeMomentsCalc:advance(0.0, {self.fSource}, {self.numDensitySrc, self.momDensitySrc, self.ptclEnergySrc})
+      if contains(self.diagnosticIntegratedMoments, "intM0") and not contains(self.diagnosticIntegratedMoments, "intSrcM0") then
         table.insert(self.diagnosticIntegratedMoments, "intSrcM0")
       end
-      if contains(self.diagnosticIntegratedMoments, "intM1") then
+      if contains(self.diagnosticIntegratedMoments, "intM1") and not contains(self.diagnosticIntegratedMoments, "intSrcM1") then
          table.insert(self.diagnosticIntegratedMoments, "intSrcM1")
       end
-      if contains(self.diagnosticIntegratedMoments, "intM2") then
+      if contains(self.diagnosticIntegratedMoments, "intM2") and not contains(self.diagnosticIntegratedMoments, "intSrcM2") then
          table.insert(self.diagnosticIntegratedMoments, "intSrcM2")
       end
-      if contains(self.diagnosticIntegratedMoments, "intKE") then
+      if contains(self.diagnosticIntegratedMoments, "intKE") and not contains(self.diagnosticIntegratedMoments, "intSrcKE") then
          table.insert(self.diagnosticIntegratedMoments, "intSrcKE")
       end
    end
@@ -1041,31 +1044,15 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tCurr)
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
             tCurr, {self.ptclEnergyPos}, {self.diagnosticIntegratedMomentFields[mom]})
       elseif mom == "intSrcM0" then
-         if tCurr == 0.0 then -- only calculate source density on first step
-            self.numDensitySrc = self:allocMoment()
-            self.numDensityCalc:advance(0.0, {self.fSource}, {self.numDensitySrc})
-         end
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
                tCurr, {self.numDensitySrc, self.sourceTimeDependence(tCurr)}, {self.diagnosticIntegratedMomentFields[mom]})
       elseif mom == "intSrcM1" then
-         if tCurr == 0.0 then -- only calculate source momentum on first step
-            self.momDensitySrc = self:allocMoment()
-            self.momDensityCalc:advance(0.0, {self.fSource}, {self.momDensitySrc})
-         end
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
                tCurr, {self.momDensitySrc, self.sourceTimeDependence(tCurr)}, {self.diagnosticIntegratedMomentFields[mom]})
       elseif mom == "intSrcM2" then
-         if tCurr == 0.0 then -- only calculate source density on first step
-            self.ptclEnergySrc = self:allocMoment()
-            self.ptclEnergyCalc:advance(0.0, {self.fSource}, {self.ptclEnergySrc})
-         end
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
                tCurr, {self.ptclEnergySrc, self.sourceTimeDependence(tCurr)}, {self.diagnosticIntegratedMomentFields[mom]})
       elseif mom == "intSrcKE" then
-         if tCurr == 0.0 then -- only calculate source density on first step
-            self.ptclEnergySrc = self:allocMoment()
-            self.ptclEnergyCalc:advance(0.0, {self.fSource}, {self.ptclEnergySrc})
-         end
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
                tCurr, {self.ptclEnergySrc, self.sourceTimeDependence(tCurr)*self.mass/2}, {self.diagnosticIntegratedMomentFields[mom]})
       end
