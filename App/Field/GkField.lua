@@ -629,7 +629,7 @@ function GkField:writeRestart(tm)
 
    -- (the final "false" prevents flushing of data after write).
    self.phi2:write("phi2_restart.bp", tm, self.ioFrame, false)
-
+   if self.isElectromagnetic and self.positivity then self.emEnergyError:write("emEnergyError_restart.bp", tm, self.ioFrame, false) end
 end
 
 function GkField:readRestart()
@@ -646,6 +646,9 @@ function GkField:readRestart()
 
    if self.isElectromagnetic then
       self.fieldIo:read(self.potentials[1].apar, "apar_restart.bp")
+      if self.positivity then
+         self.emEnergyError:read("emEnergyError_restart.bp")
+      end
    end
 
    self:applyBc(0, self.potentials[1])
