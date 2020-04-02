@@ -13,6 +13,9 @@ def build(bld):
     TenMomentSrcImpl.cpp
     TenMomentRelaxImpl.cpp
 
+    interpolateCalcData/CartFieldInterpSer1x.cpp
+    interpolateCalcData/CartFieldInterpSer2x.cpp
+
     mgPoissonCalcData/MGpoissonSer1x.cpp
     mgPoissonCalcData/MGpoissonSer2x.cpp
 
@@ -268,7 +271,7 @@ def build(bld):
         )
 
     bld.shlib(source = sources,
-              includes = '. .. ../Cuda mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='lib EIGEN MPI', target = 'updater', name = 'updater', vum = '1.0')
+              includes = '. .. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='lib EIGEN MPI', target = 'updater', name = 'updater', vum = '1.0')
     
 ## Removed the following files from the build for now
 #     binOpCalcData/CartFieldBinOpSer3x3vP2.cpp
