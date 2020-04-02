@@ -30,6 +30,9 @@ local date = require "xsys.date"
 local lume = require "Lib.lume"
 local sql = require "sqlite3"
 
+-- need to change this as it is keyed on input file name
+GKYL_OUT_PREFIX = lfs.currentdir() .. "/" .. "runregression"
+
 local log = Logger { logToFile = true }
 local verboseLog = function (msg) end -- default no messages are written
 local verboseLogger = function (msg) log(msg) end

@@ -74,6 +74,7 @@ def build(bld):
     bld.recurse("Grid")
     bld.recurse("Lib")
     bld.recurse("Proto")
+    bld.recurse("Tool")
     bld.recurse("Unit")
     bld.recurse("Updater")
     if bld.env['CUTOOLS_FOUND']:
@@ -238,7 +239,7 @@ def buildExec(bld):
         bld.env.SHLIB_MARKER = '-Wl,-Bdynamic,--no-as-needed'
 
     # list of objects to use
-    useList = ' lib datastruct eq unit comm updater proto basis grid LUAJIT ADIOS EIGEN MPI M DL '
+    useList = ' lib datastruct eq unit comm updater tool proto basis grid LUAJIT ADIOS EIGEN MPI M DL '
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
     if bld.env['CUTOOLS_FOUND']:

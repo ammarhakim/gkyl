@@ -40,6 +40,9 @@ local statusToString = { [-2] = "create", [-1] = "skip", [0] = "fail", [1] = "pa
 -- Name of configuration file
 local confFile = os.getenv("HOME") .. "/runregression.config.lua"
 
+-- need to change this as it is keyed on input file name
+GKYL_OUT_PREFIX = lfs.currentdir() .. "/" .. "queryrdb"
+
 local log = Logger { logToFile = true }
 local verboseLog = function (msg) end -- default no messages are written
 local verboseLogger = function (msg) log(msg) end
