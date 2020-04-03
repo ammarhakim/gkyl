@@ -14,6 +14,7 @@ local Updater        = require "Updater"
 local DataStruct     = require "DataStruct"
 local Time           = require "Lib.Time"
 local Constants      = require "Lib.Constants"
+local Lin            = require "Lib.Linalg"
 
 local GkSpecies = Proto(KineticSpecies)
 
@@ -1141,16 +1142,16 @@ function GkSpecies:bcSheathFunc(dir, tm, idxIn, fIn, fOut)
    end
    local w = gridIn:cellCenterInDir(vpardir)
    local dv = gridIn:dx(vpardir)
-   local fhat = self.fhatSheathPtr -- distribution function to be reflected
-   self.fhatSheath:fill(self.fhatSheathIdxr(idxIn), fhat)
+   --local fhat = self.fhatSheathPtr -- distribution function to be reflected
+   --self.fhatSheath:fill(self.fhatSheathIdxr(idxIn), fhat)
    -- calculate reflected distribution function fhat
    -- note: reflected distribution can be 
    -- 1) fhat=0 (no reflection, i.e. absorb), 
    -- 2) fhat=f (full reflection)
    -- 3) fhat=c*f (partial reflection)
-   self.gkEqn:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, self.charge, self.mass, idxIn, fIn, fhat)
+   self.gkEqn:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, self.charge, self.mass, idxIn, fIn, self.fhatSheath)
    -- reflect fhat into skin cells
-   self:bcReflectFunc(dir, tm, nil, fhat, fOut) 
+   self:bcReflectFunc(dir, tm, nil, self.fhatSheath, fOut) 
 end
 
 function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
@@ -1175,9 +1176,7 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    elseif bcType == SP_BC_REFLECT and dir==self.cdim then
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcReflectFunc }, "flip"))
    elseif bcType == SP_BC_SHEATH and dir==self.cdim then
-      self.fhatSheath = self:allocDistf()
-      self.fhatSheathPtr = self.fhatSheath:get(1)
-      self.fhatSheathIdxr = self.fhatSheath:genIndexer()
+      self.fhatSheath = Lin.Vec(self.basis:numBasis())
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcSheathFunc }, "flip"))
       self.hasSheathBcs = true
    elseif bcType == SP_BC_ZEROFLUX then
