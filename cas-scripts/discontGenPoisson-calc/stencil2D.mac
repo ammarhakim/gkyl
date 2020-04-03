@@ -20,7 +20,7 @@ isBottom : false $
 isLeft : false $
 isRight : false $
 
-for polyOrder : 1 thru 1 do (
+for polyOrder : 1 thru 3 do (
   for bIdx : 1 thru min(length(basisNm),polyOrder) do (
     if polyOrder=1 then bnm : "" else bnm : basisNm[bIdx],
     fname : sconcat("~/max-out/discontGenPoisson", bnm,
@@ -45,7 +45,7 @@ for polyOrder : 1 thru 1 do (
                                 dg(fL), dg(fC), bc(D=Dx, N=Nx, val=valx))
     else if isLeft then
       recfx : calcRecov1CellGen(basisNm[bIdx], x, size, polyOrder, C,
-                                bc(D=Dx, N=Nx, val=valx), dg(fC), dg(fC))
+                                bc(D=Dx, N=Nx, val=valx), dg(fC), dg(fR))
     else
       recfx : calcRecov1CellGen(basisNm[bIdx], x, size, polyOrder, C,
                                 dg(fL), dg(fC), dg(fR)),
