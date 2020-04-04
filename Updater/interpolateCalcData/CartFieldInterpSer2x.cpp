@@ -1,6 +1,6 @@
 #include <CartFieldInterpolateModDecl.h> 
  
-void CartFieldInterpProlong2xSer_P1(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF) 
+void CartFieldInterp2xSer_P1(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF) 
 { 
   // wC:   cell center of coarse-grid cell.
   // wF:   cell center of fine-grid cell.

@@ -21,7 +21,6 @@ Completed
 ** Base.lua
 ** CalcDiagnostic.lua
 ** CartFieldIntegratedQuantCalc.lua
-** DistFuncIntegratedMomentCalc.lua
 ** ProjectOnBasis.lua
 ** Bc.lua
 ** DistFuncMomentCalc.lua

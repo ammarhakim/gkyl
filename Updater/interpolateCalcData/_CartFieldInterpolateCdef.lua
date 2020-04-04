@@ -10,11 +10,9 @@ local ffi = require "ffi"
 
 ffi.cdef [[
 
-void CartFieldInterpProlong1xSer_P1(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF);
-void CartFieldInterpRestrict1xSer_P1(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldF, double *fldC);
+void CartFieldInterp1xSer_P1(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF);
 
-void CartFieldInterpProlong2xSer_P1(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF);
-void CartFieldInterpRestrict2xSer_P1(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldF, double *fldC);
+void CartFieldInterp2xSer_P1(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF);
 
 
 ]]

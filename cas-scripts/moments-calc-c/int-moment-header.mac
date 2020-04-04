@@ -1,0 +1,75 @@
+/* Generate the header file for the kernels used by the IntegratedDGMoment
+   updater. */
+
+fh : openw("~/max-out/IntegratedDGMomentModDecl.h")$
+
+maxPolyOrder : 3$
+minCdim : 1$
+minVdim : 1$
+maxCdim : 3$
+maxVdim : 3$
+
+VarsC : [X, Y, Z]$
+
+printf(fh, "#ifndef INTEGRATED_DG_MOMENT_MOD_DECL_H ~%")$
+printf(fh, "#define INTEGRATED_DG_MOMENT_MOD_DECL_H ~%")$
+printf(fh, " ~%")$
+printf(fh, " ~%")$
+
+printf(fh, "extern \"C\" { ~%")$
+printf(fh, " ~%")$
+
+bName       : ["Ser","Max","Tensor"]$
+momentsX    : ["one","xSq"]$
+momentsXi   : ["x1", "x2", "x3", "x4", "x5", "x6"]$
+momentsXiSq : ["x1Sq", "x2Sq", "x3Sq", "x4Sq", "x5Sq", "x6Sq"]$
+momentsV    : ["vi","vSq","intM"]$
+momentsVi   : ["v1", "v2", "v3"]$
+momentsViSq : ["v1Sq", "v2Sq", "v3Sq"]$
+
+for bInd : 1 thru length(bName) do (
+
+  for pi : 1 thru maxPolyOrder do (
+    for ci : minCdim thru (maxCdim+maxVdim) do (
+
+      for k : 1 thru length(momentsX) do (
+        printf(fh, "  void IntDGMoment~ax~a_~a_P~a(const double *w, const double *dx, const double *fld, double *out); ~%", ci, bName[bInd], momentsX[k], pi),
+        printf(fh, "~%")
+      ),
+
+      for k : 1 thru ci do (
+        printf(fh, "  void IntDGMoment~ax~a_~a_P~a(const double *w, const double *dx, const double *fld, double *out); ~%", ci, bName[bInd], momentsXi[k], pi),
+        printf(fh, "~%"),
+        printf(fh, "  void IntDGMoment~ax~a_~a_P~a(const double *w, const double *dx, const double *fld, double *out); ~%", ci, bName[bInd], momentsXiSq[k], pi),
+        printf(fh, "~%")
+      )
+
+    ),
+
+    for ci : minCdim thru maxCdim do (
+      for vi : max(ci,minVdim) thru maxVdim do (
+
+        for k : 1 thru length(momentsV) do (
+          printf(fh, "  void IntDGMoment~ax~av~a_~a_P~a(const double *w, const double *dx, const double *fld, double *out); ~%", ci, vi, bName[bInd], momentsV[k], pi),
+          printf(fh, "~%")
+        ),
+
+        for k : 1 thru vi do (
+          printf(fh, "  void IntDGMoment~ax~av~a_~a_P~a(const double *w, const double *dx, const double *fld, double *out); ~%", ci, vi, bName[bInd], momentsVi[k], pi),
+          printf(fh, "~%"),
+          printf(fh, "  void IntDGMoment~ax~av~a_~a_P~a(const double *w, const double *dx, const double *fld, double *out); ~%", ci, vi, bName[bInd], momentsViSq[k], pi),
+          printf(fh, "~%")
+        )
+
+      )
+    ),
+    printf(fh, "~%")
+  )
+
+);
+
+printf(fh, "} ~%")$
+
+printf(fh, "#endif ~%")$
+
+close(fh)$

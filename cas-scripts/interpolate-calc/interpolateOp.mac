@@ -19,10 +19,10 @@ writeCIncrExprs1sub(lhs, rhs, sublist) := block([expr],
   )
 )$
 
-calcProlongationOp(fh, funcNm, dim, basisFun, pMax) := block([],
-  /* Prolongation operator transfering a coarse-grid field to the
-     fine grid. This kernel is called to compute contribution from a single
-     coarse-grid cell, to a single fine-grid cell. */
+calcInterpolationOp(fh, funcNm, dim, basisFun, pMax) := block([],
+  /* Interpolation operator transfering a field defined on one grid to
+     another grid. This kernel is called to compute contribution from a single
+     origin-grid cell, to a single target-grid cell. */
   kill(varsC, varsP, basisC, basisP),
 
   if (dim < 4) then (
@@ -77,11 +77,6 @@ calcProlongationOp(fh, funcNm, dim, basisFun, pMax) := block([],
        of the coarse field times the basis fine-grid functions. */
     intLims : makelist([eLo[d-1], eUp[d-1]],d,1,dim),
     IcFld   : fullratsimp(calcInnerProdListGen(vars,intLims,1.0,basis,subst(makelist(vars[i]=varMap[i],i,1,dim),cFld_e))),
-    /*
-    print(fullratsimp(subst([wC[0]=wF[0]-dxF[0]/2,dxF[0]=dxC[0]/2],float(1-(2/dxF[0])*(wF[0]+dxF[0]/2-(wC[0]-dxC[0]/2)))))),
-    print(fullratsimp(subst([wC[0]=wF[0]-dxF[0]/2,dxF[0]=dxC[0]/2],float(-1+(2/dxF[0])*(wC[0]+dxC[0]/2-(wF[0]-dxF[0]/2)))))),
-    print(fullratsimp(subst([eLo[0]=-1,eUp[0]=1,wC[0]=wF[0]-dxF[0]/2,dxF[0]=dxC[0]/2],IcFld))),
-    */
 
     /* In general these expressions are very complex. It would be beneficial to
        perform some kind of common subexpression elimination. For now we'll just eliminate the exponents. */
@@ -108,9 +103,6 @@ calcProlongationOp(fh, funcNm, dim, basisFun, pMax) := block([],
     ),
     printf(fh, "~%"),
 
-/*
-    writeCIncrExprs1(fldF,IcFld),
-*/
     writeCIncrExprs1sub(fldF,IcFld,subList),
     printf(fh, "~%"),
 
@@ -120,78 +112,3 @@ calcProlongationOp(fh, funcNm, dim, basisFun, pMax) := block([],
   )
 )$
 
-calcRestrictionOp(fh, funcNm, dim, basisFun, pMax) := block([],
-  /* Restriction operator transfering a fine-grid field to the
-     coarse grid. For now we'll limit ourselves to the compact
-     stencil of width=2. */
-  stencilWidth : 2,
-  stencilSize  : stencilWidth^dim,
-  fldF         : [fldF1, fldF2, fldF3, fldF4, fldF5, fldF6, fldF7, fldF8],
-
-  kill(varsC, varsP, basisC, basisP),
-
-  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
-
-  for polyOrder : 1 thru pMax do (
-    bC : basisC[polyOrder],
-    N  : length(bC),
-
-    /* Function declaration with input/output variables. */
-    printf(fh, "void ~a_P~a(double **fldF, double *fldC) ~%{ ~%", funcNm, polyOrder),
-    printf(fh, "  // fldF: fine-grid field in stencils pointed to by the stencil.~%"),
-    printf(fh, "  // fldC: coarse-grid field.~%"),
-    printf(fh, "~%"),
-
-    /* Create a pointer to each cell used by stencil. */
-    for sI : 1 thru stencilSize do (
-      printf(fh, "  double *fldF~a = fldF[~a];~%", sI, sI-1)
-    ),
-    printf(fh, "~%"),
-
-    /* Coarse field expansion and list of coefficients. */
-    cFld_e : doExpand1(fldC,bC),         /* Expand coarse field in basis. */
-    cFld_c : makelist(fldC[i],i,0,N-1),
-
-    /* Create a table of the relationship between the logical coordinates
-       in each direction of the coarse and fine grids, that is, the linear map
-         xi_c = L(xi_f)
-       where xi_c and xi_f are the is the coarse and fine logical coordinates. */
-    varMap    : makelist(0,i,1,stencilSize),
-    varMap[1] : makelist((varsC[i]-1)/2,i,1,dim),
-    cellCount : 1,
-    for dir : 1 thru dim do (
-      for rI : 1 thru stencilWidth^(dir-1) do (
-        cellCount              : cellCount + 1,
-        varMap[cellCount]      : copylist(varMap[rI]),
-        varMap[cellCount][dir] : (varsC[dir]+1)/2
-      )
-    ),
-
-    IfFld : 0,
-    /* Loop through fine-grid cells contributing to this coarse cell. */
-    for sI : 1 thru stencilSize do (
-
-      /* Expansion and coefficients of current cell fine-grid field. */
-      fFld_e : doExpand1(fldF[sI],bC),
-      fFld_c : makelist(fldF[sI][i],i,0,N-1),
-
-      /* Compute the inner product, on fine grid of current cell,
-         of the coarse field times the basis fine-grid functions. */
-      IcFld : calcInnerProdList(varsC,1.0,bC,subst(makelist(varsC[i]=varMap[sI][i],i,1,dim),cFld_e)),
-
-      /* IcFld gives the prolongation operator transformations.
-         The restriction operator is the transpose of that, times some
-         power of the coarsening factor. */
-      IfFld_v : (1/2^dim)*(transpose(coefmatrix(IcFld,cFld_c))).fFld_c,
-      IfFld   : IfFld+makelist(IfFld_v[i][1],i,1,N)
-
-    ),
-    
-    writeCIncrExprs1(fldC,IfFld),
-    printf(fh, "~%"),
-
-    printf(fh, "}~%"),
-    printf(fh, "~%")
-
-  )
-)$

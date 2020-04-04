@@ -39,10 +39,10 @@ for bInd : 1 thru length(bName) do (
     printf(fh, "#include <CartFieldInterpolateModDecl.h> ~%"),
     printf(fh, " ~%"),
     
-    /* Prolongation operator. */
-    funcName : sconcat("CartFieldInterpProlong", c, "x", bName[bInd]),
-    disp(printf(false,sconcat("Working on CartFieldInterpProlong", c, "x", bName[bInd]))),
-    calcProlongationOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    /* Interpolation operator. */
+    funcName : sconcat("CartFieldInterp", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on CartFieldInterp", c, "x", bName[bInd]))),
+    calcInterpolationOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
     
     close(fh)
   )

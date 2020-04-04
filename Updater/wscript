@@ -13,6 +13,19 @@ def build(bld):
     TenMomentSrcImpl.cpp
     TenMomentRelaxImpl.cpp
 
+    momentCalcData/IntegratedDGMoment1x.cpp
+    momentCalcData/IntegratedDGMoment2x.cpp
+    momentCalcData/IntegratedDGMoment3x.cpp
+    momentCalcData/IntegratedDGMoment4x.cpp
+    momentCalcData/IntegratedDGMoment5x.cpp
+    momentCalcData/IntegratedDGMoment6x.cpp
+    momentCalcData/IntegratedDGMoment1x1v.cpp
+    momentCalcData/IntegratedDGMoment1x2v.cpp
+    momentCalcData/IntegratedDGMoment1x3v.cpp
+    momentCalcData/IntegratedDGMoment2x2v.cpp
+    momentCalcData/IntegratedDGMoment2x3v.cpp
+    momentCalcData/IntegratedDGMoment3x3v.cpp
+
     interpolateCalcData/CartFieldInterpSer1x.cpp
     interpolateCalcData/CartFieldInterpSer2x.cpp
 

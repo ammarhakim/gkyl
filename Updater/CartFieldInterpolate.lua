@@ -22,7 +22,6 @@ local Proto             = require "Lib.Proto"
 local UpdaterBase       = require "Updater.Base"
 local LinearDecomp      = require "Lib.LinearDecomp"
 local Lin               = require "Lib.Linalg"
-local ffi               = require "ffi"
 local lume              = require "Lib.lume" 
 local Range             = require "Lib.Range"
 local PrimeFactor       = require "Lib.PrimeFactor"
@@ -171,7 +170,7 @@ function CartFieldInterpolate:init(tbl)
    end
 
    -- Select interpolation kernels.
-   self._prolongation = CartFldInterpDecl.selectProlongation(basisID, self.dim, polyOrder)
+   self._interpolation = CartFldInterpDecl.selectInterpolation(basisID, self.dim, polyOrder)
 
    -- Cell lengths and cell centers.
    self.inDx  = Lin.Vec(self.dim)
@@ -196,10 +195,10 @@ function CartFieldInterpolate:indexToStencil(idxIn, numCellsIn)
 end
 
 -- Advance method.
-function CartFieldInterpolate:_advance(tCurr, inputField, outputField)
+function CartFieldInterpolate:_advance(tCurr, fldIn, fldOut)
 
-   local inFld   = inputField[1]
-   local outFld  = outputField[1]
+   local inFld   = fldIn[1]
+   local outFld  = fldOut[1]
 
    local inGrid  = inFld:grid() 
    local outGrid = outFld:grid() 
@@ -238,7 +237,7 @@ function CartFieldInterpolate:_advance(tCurr, inputField, outputField)
 
          outFld:fill(outFldIndexer(self.outIdx), outFldItr)   -- Fine-grid field pointer.
 
-         self._prolongation(self.inXc:data(), self.outXc:data(), self.inDx:data(), self.outDx:data(), inFldItr:data(), outFldItr:data())
+         self._interpolation(self.inXc:data(), self.outXc:data(), self.inDx:data(), self.outDx:data(), inFldItr:data(), outFldItr:data())
       end
   
    end

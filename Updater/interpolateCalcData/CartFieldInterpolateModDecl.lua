@@ -14,15 +14,9 @@ local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max", ["tenso
 
 local _M = {}
 
--- Select restriction operator kernel.
-function _M.selectRestriction(basisNm, dim, polyOrder)
-   local funcNm = string.format("CartFieldInterpRestrict%dx%s_P%d", dim, basisNmMap[basisNm], polyOrder)
-   return ffi.C[funcNm]
-end
-
 -- Select prolongation operator kernel.
-function _M.selectProlongation(basisNm, dim, polyOrder)
-   local funcNm = string.format("CartFieldInterpProlong%dx%s_P%d", dim, basisNmMap[basisNm], polyOrder)
+function _M.selectInterpolation(basisNm, dim, polyOrder)
+   local funcNm = string.format("CartFieldInterp%dx%s_P%d", dim, basisNmMap[basisNm], polyOrder)
    return ffi.C[funcNm]
 end
 

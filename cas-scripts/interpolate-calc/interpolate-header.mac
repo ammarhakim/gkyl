@@ -11,7 +11,10 @@ VarsC : [X, Y, Z]$
 
 printf(fh, "#ifndef CART_FIELD_INTERPOLATE_MOD_DECL_H ~%")$
 printf(fh, "#define CART_FIELD_INTERPOLATE_MOD_DECL_H ~%")$
+printf(fh, " ~%")$
 
+printf(fh, "#include <cmath>~%")$
+printf(fh, "#include <algorithm>~%")$
 printf(fh, " ~%")$
 
 printf(fh, "extern \"C\" { ~%")$
@@ -22,9 +25,8 @@ for bInd : 1 thru length(bName) do (
   for polyOrder : 1 thru polyOrderMax do (
     for ci : 1 thru 2 do (
 
-      /* Prolongation and restriction operators. */
-      printf(fh, "void CartFieldInterpProlong~ax~a_P~a(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF);~%", ci, bName[bInd], polyOrder),
-      printf(fh, "void CartFieldInterpRestrict~ax~a_P~a(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldF, double *fldC);~%", ci, bName[bInd], polyOrder),
+      /* Interpolation operator. */
+      printf(fh, "void CartFieldInterp~ax~a_P~a(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF);~%", ci, bName[bInd], polyOrder),
       printf(fh, "~%")
 
     ),
