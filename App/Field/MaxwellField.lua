@@ -394,7 +394,7 @@ function MaxwellField:write(tm, force)
 
       if self.ioTrigger(tm) or force then
 	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm, self.ioFrame)
-	 self.emEnergy:write(string.format("fieldEnergy_%d.bp", self.ioFrame), tm, self.ioFrame)
+	 self.emEnergy:write(string.format("fieldEnergy.bp"), tm, self.ioFrame)
 	 
 	 self.ioFrame = self.ioFrame+1
       end
@@ -411,8 +411,8 @@ function MaxwellField:writeRestart(tm)
    -- (the final "false" prevents writing of ghost cells)
    self.fieldIo:write(self.em[1], "field_restart.bp", tm, self.ioFrame, false)
 
-   -- (the final "false" prevents flushing of data after write)
-   self.emEnergy:write("fieldEnergy_restart.bp", tm, self.ioFrame, false)
+   -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
+   self.emEnergy:write("fieldEnergy_restart.bp", tm, self.ioFrame, false, false)
 end
 
 function MaxwellField:readRestart()

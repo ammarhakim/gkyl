@@ -577,7 +577,7 @@ function FluidSpecies:write(tm, force)
 	 self.momIo:write(
 	    self.moments[1], string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
          self.integratedMoments:write(
-            string.format("%s_intMom_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
+            string.format("%s_intMom.bp", self.name), tm, self.diagIoFrame)
 
          if self.positivityDiffuse then
             self.posRescaler:write(tm, self.diagIoFrame, self.name)
@@ -601,8 +601,9 @@ end
 function FluidSpecies:writeRestart(tm)
    self.momIo:write(
       self.moments[1], string.format("%s_restart.bp", self.name), tm, self.diagIoFrame)
+   -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
    self.integratedMoments:write(
-      string.format("%s_intMom_restart.bp", self.name), tm, self.diagIoFrame, false)
+      string.format("%s_intMom_restart.bp", self.name), tm, self.diagIoFrame, false, false)
 end
 
 function FluidSpecies:readRestart()

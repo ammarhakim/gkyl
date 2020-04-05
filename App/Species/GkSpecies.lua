@@ -1142,8 +1142,6 @@ function GkSpecies:bcSheathFunc(dir, tm, idxIn, fIn, fOut)
    end
    local w = gridIn:cellCenterInDir(vpardir)
    local dv = gridIn:dx(vpardir)
-   --local fhat = self.fhatSheathPtr -- distribution function to be reflected
-   --self.fhatSheath:fill(self.fhatSheathIdxr(idxIn), fhat)
    -- calculate reflected distribution function fhat
    -- note: reflected distribution can be 
    -- 1) fhat=0 (no reflection, i.e. absorb), 

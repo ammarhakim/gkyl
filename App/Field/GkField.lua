@@ -551,11 +551,11 @@ function GkField:write(tm, force)
 	   self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
 	   self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
          end
-	 self.phi2:write(string.format("phi2_%d.bp", self.ioFrame), tm, self.ioFrame)
-	 self.esEnergy:write(string.format("esEnergy_%d.bp", self.ioFrame), tm, self.ioFrame)
+	 self.phi2:write(string.format("phi2.bp"), tm, self.ioFrame)
+	 self.esEnergy:write(string.format("esEnergy.bp"), tm, self.ioFrame)
 	 if self.isElectromagnetic then
-	    self.apar2:write(string.format("apar2_%d.bp", self.ioFrame), tm, self.ioFrame)
-	    self.emEnergy:write(string.format("emEnergy_%d.bp", self.ioFrame), tm, self.ioFrame)
+	    self.apar2:write(string.format("apar2.bp"), tm, self.ioFrame)
+	    self.emEnergy:write(string.format("emEnergy.bp"), tm, self.ioFrame)
 	 end
 	 
 	 self.ioFrame = self.ioFrame+1
@@ -582,8 +582,8 @@ function GkField:writeRestart(tm)
      self.fieldIo:write(self.potentials[1].apar, "apar_restart.bp", tm, self.ioFrame, false)
    end
 
-   -- (the final "false" prevents flushing of data after write).
-   self.phi2:write("phi2_restart.bp", tm, self.ioFrame, false)
+   -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
+   self.phi2:write("phi2_restart.bp", tm, self.ioFrame, false, false)
 
 end
 

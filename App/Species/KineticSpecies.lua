@@ -833,7 +833,7 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
     -- Write integrated moments.
     for i, mom in ipairs(self.diagnosticIntegratedMoments) do
        self.diagnosticIntegratedMomentFields[mom]:write(
-          string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame)
+          string.format("%s_%s.bp", self.name, mom), tm, self.diagIoFrame)
     end
 end
 
@@ -917,10 +917,10 @@ function KineticSpecies:writeRestart(tm)
 	 string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
    end   
 
-   -- (The final "false" prevents flushing of data after write).
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
+      -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
       self.diagnosticIntegratedMomentFields[mom]:write(
-         string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
+         string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false, false)
    end
 end
 
@@ -928,8 +928,7 @@ function KineticSpecies:readRestart()
    local readSkin = false
    if self.hasSheathBcs or self.fluctuationBCs then readSkin = true end
    local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name), readSkin)
-
-   self.distIo:write(self.distf[1], string.format("%s_restarted.bp", self.name), tm, self.distIoFrame, false)
+   self.distIoFrame = fr -- Reset internal frame counter.
 
    -- set ghost cells
    self.distf[1]:sync()
@@ -939,7 +938,6 @@ function KineticSpecies:readRestart()
       self:applyBc(tm, self.distf[1]) 
    end 
    
-   self.distIoFrame = fr -- Reset internal frame counter.
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
       local _, dfr = self.diagnosticIntegratedMomentFields[mom]:read(
          string.format("%s_%s_restart.bp", self.name, mom))

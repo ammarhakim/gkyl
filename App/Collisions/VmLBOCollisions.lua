@@ -504,7 +504,7 @@ end
 
 function VmLBOCollisions:write(tm, frame)
 -- Since this doesn't seem to be as big a problem in Vm as in Gk, we comment this out for now.
---   self.primMomLimitCrossings:write(string.format("%s_%s_%d.bp", self.speciesName, "primMomLimitCrossings", frame), tm, frame)
+--   self.primMomLimitCrossings:write(string.format("%s_%s.bp", self.speciesName, "primMomLimitCrossings"), tm, frame)
 end
 
 function VmLBOCollisions:totalTime()
