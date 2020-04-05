@@ -506,21 +506,28 @@ local function compareFiles(f1, f2)
 	    cmpPass = false
 	 end
       end
-   elseif r1:hasVar("TimeMesh") and r2:hasVar("TimeMesh") then
-      -- Compare DynVector
-      local d1, d2 = r1:getVar("Data"):read(), r2:getVar("Data"):read()
-      if d1:size() ~= d2:size() then
-	 verboseLog(string.format(
-		       " ... DynVector in files %s and %s not the same size!\n", f1, f2))
-	 return false
-      end
-
-      local maxVal = math.max(maxValueInField(d1),maxValueInField(d2)) -- maximum value (for numeric comparison)
-      for i = 1, d1:size() do
-	 if check_equal_numeric(d1[i], d2[i], maxVal) == false then
-	    currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i], maxVal))
-	    cmpPass = false
+   elseif r1:hasVar("TimeMesh0") and r2:hasVar("TimeMesh0") then
+      -- Compare DynVector: there may be more than one set of data in
+      -- the BP file
+      local frNum = 0
+      while true do
+	 local tNm, dNm = string.format("TimeMesh%d", frNum), string.format("Data%d", frNum)
+	 if not r1:hasVar(tNm) then break end
+	 local d1, d2 = r1:getVar(dNm):read(), r2:getVar(dNm):read()
+	 if d1:size() ~= d2:size() then
+	    verboseLog(string.format(
+			  " ... DynVector in files %s and %s not the same size!\n", f1, f2))
+	    return false
 	 end
+	 
+	 local maxVal = math.max(maxValueInField(d1),maxValueInField(d2)) -- maximum value (for numeric comparison)
+	 for i = 1, d1:size() do
+	    if check_equal_numeric(d1[i], d2[i], maxVal) == false then
+	       currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i], maxVal))
+	       cmpPass = false
+	    end
+	 end
+	 frNum = frNum+1
       end
    end
 
