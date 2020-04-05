@@ -18,29 +18,28 @@ namespace Gkyl {
 
   // Private types to extract real and adjoint parts from a
   // number. The number can be a POD (double/float) or a HyperReal
-  namespace {
-    /* Fetch real part of POD number */
-    template <typename T>
-    struct _R {
-        static T g(T r) { return r; }
-    };
-    /* Fetch infinitesimal part of POD number */
-    template <typename T>
-    struct _I {
-        static T g(T r) { return 0; }
-    };
 
-    /* Fetch real part of HyperReal number */
-    template <typename RT, typename AT>
-    struct _R<HyperReal<RT, AT> > {
-        static RT g(const HyperReal<RT, AT>& r) { return r.real(); }
-    };
-    /* Fetch infinitesimal part of HyperReal number */
-    template <typename RT, typename AT>
-    struct _I<HyperReal<RT, AT> > {
-        static AT g(const HyperReal<RT, AT>& r) { return r.inf(); }
-    };
-  }
+  /* Fetch real part of POD number */
+  template <typename T>
+  struct _R {
+      static T g(T r) { return r; }
+  };
+  /* Fetch infinitesimal part of POD number */
+  template <typename T>
+  struct _I {
+      static T g(T r) { return 0; }
+  };
+  
+  /* Fetch real part of HyperReal number */
+  template <typename RT, typename AT>
+  struct _R<HyperReal<RT, AT> > {
+      static RT g(const HyperReal<RT, AT>& r) { return r.real(); }
+  };
+  /* Fetch infinitesimal part of HyperReal number */
+  template <typename RT, typename AT>
+  struct _I<HyperReal<RT, AT> > {
+      static AT g(const HyperReal<RT, AT>& r) { return r.inf(); }
+  };
 
   /* Hyperreal number: real + infinitesimal (adjoint). RT is type of
    * the real-part and AT the type of the adoint part */
@@ -161,116 +160,114 @@ namespace Gkyl {
 
   /* Derivatives of functions from std::math library */
 
-  namespace {
-    // sign of value
-    template <typename T>
-    int sgn(T val) { return (T(0) < val) - (val < T(0)); }
+  // sign of value
+  template <typename T>
+  int sgn(T val) { return (T(0) < val) - (val < T(0)); }
     
-    // this default private struct supplies methods for use with POD
-    // types (double and float)
-    template <typename T>
-    struct _m {
-        static T sqrt(const T& x) { return std::sqrt(x); }      
-        static T cos(const T& x) { return std::cos(x); }
-        static T sin(const T& x) { return std::sin(x); }
-        static T tan(const T& x) { return std::tan(x); }
-        static T asin(const T& x) { return std::asin(x); }
-        static T acos(const T& x) { return std::acos(x); }
-        static T atan(const T& x) { return std::atan(x); }
-        static T sinh(const T& x) { return std::sinh(x); }
-        static T cosh(const T& x) { return std::cosh(x); }
-        static T tanh(const T& x) { return std::tanh(x); }
-        static T exp(const T& x) { return std::exp(x); }
-        static T log(const T& x) { return std::log(x); }
-        static T abs(const T& x) { return std::abs(x); }
-        static T floor(const T& x) { return std::floor(x); }
-        static T ceil(const T& x) { return std::ceil(x); }
-    };
-    
-    // specialization to HyperReal number
-    template <typename RT, typename AT>
-    struct _m<HyperReal<RT,AT> > {
+  // this default private struct supplies methods for use with POD
+  // types (double and float)
+  template <typename T>
+  struct _m {
+      static T sqrt(const T& x) { return std::sqrt(x); }      
+      static T cos(const T& x) { return std::cos(x); }
+      static T sin(const T& x) { return std::sin(x); }
+      static T tan(const T& x) { return std::tan(x); }
+      static T asin(const T& x) { return std::asin(x); }
+      static T acos(const T& x) { return std::acos(x); }
+      static T atan(const T& x) { return std::atan(x); }
+      static T sinh(const T& x) { return std::sinh(x); }
+      static T cosh(const T& x) { return std::cosh(x); }
+      static T tanh(const T& x) { return std::tanh(x); }
+      static T exp(const T& x) { return std::exp(x); }
+      static T log(const T& x) { return std::log(x); }
+      static T abs(const T& x) { return std::abs(x); }
+      static T floor(const T& x) { return std::floor(x); }
+      static T ceil(const T& x) { return std::ceil(x); }
+  };
+  
+  // specialization to HyperReal number
+  template <typename RT, typename AT>
+  struct _m<HyperReal<RT,AT> > {
+      
+      static HyperReal<RT,AT> sqrt(const HyperReal<RT,AT>& x) {
+        RT x0 = x.real(); AT x1 = x.inf();
+        double y0 = std::sqrt(x0);
+        return HyperReal<RT,AT>(y0, 0.5*x1/y0);
+      }
+      
+      static HyperReal<RT,AT> cos(const HyperReal<RT,AT>& x) {
+        RT x0 = x.real(); AT x1 = x.inf();
+        return HyperReal<RT,AT>(std::cos(x0), -x1*std::sin(x0));
+      }
         
-        static HyperReal<RT,AT> sqrt(const HyperReal<RT,AT>& x) {
-          RT x0 = x.real(); AT x1 = x.inf();
-          double y0 = std::sqrt(x0);
-          return HyperReal<RT,AT>(y0, 0.5*x1/y0);
-        }
-        
-        static HyperReal<RT,AT> cos(const HyperReal<RT,AT>& x) {
-          RT x0 = x.real(); AT x1 = x.inf();
-          return HyperReal<RT,AT>(std::cos(x0), -x1*std::sin(x0));
-        }
-        
-        static HyperReal<RT,AT> sin(const HyperReal<RT,AT>& x) {
-          RT x0 = x.real(); AT x1 = x.inf();
-          return HyperReal<RT,AT>(std::sin(x0), x1*std::cos(x0));
-        }
+      static HyperReal<RT,AT> sin(const HyperReal<RT,AT>& x) {
+        RT x0 = x.real(); AT x1 = x.inf();
+        return HyperReal<RT,AT>(std::sin(x0), x1*std::cos(x0));
+      }
 
-        static HyperReal<RT,AT> tan(const HyperReal<RT,AT>& x) {
-          RT x0 = x.real(); AT x1 = x.inf();
-          double tx0 = std::tan(x0);
-          return HyperReal<RT,AT>(tx0, x1*(1+tx0*tx0));
-        }
+      static HyperReal<RT,AT> tan(const HyperReal<RT,AT>& x) {
+        RT x0 = x.real(); AT x1 = x.inf();
+        double tx0 = std::tan(x0);
+        return HyperReal<RT,AT>(tx0, x1*(1+tx0*tx0));
+      }
 
-        static HyperReal<RT,AT> asin(const HyperReal<RT,AT>& x) {
-          RT x0 = x.real(); AT x1 = x.inf();
-          return HyperReal<RT,AT>(std::asin(x0), x1/std::sqrt(1-x0*x0));
-        }
+      static HyperReal<RT,AT> asin(const HyperReal<RT,AT>& x) {
+        RT x0 = x.real(); AT x1 = x.inf();
+        return HyperReal<RT,AT>(std::asin(x0), x1/std::sqrt(1-x0*x0));
+      }
 
-        static HyperReal<RT,AT> acos(const HyperReal<RT,AT>& x) {
-          RT x0 = x.real(); AT x1 = x.inf();
-          return HyperReal<RT,AT>(std::acos(x0), -x1/std::sqrt(1-x0*x0));
-        }
+      static HyperReal<RT,AT> acos(const HyperReal<RT,AT>& x) {
+        RT x0 = x.real(); AT x1 = x.inf();
+        return HyperReal<RT,AT>(std::acos(x0), -x1/std::sqrt(1-x0*x0));
+      }
 
-        static HyperReal<RT,AT> atan(const HyperReal<RT,AT>& x) {
-          RT x0 = x.real(); AT x1 = x.inf();
-          return HyperReal<RT,AT>(std::atan(x0), x1/(1+x0*x0));
-        }
+      static HyperReal<RT,AT> atan(const HyperReal<RT,AT>& x) {
+        RT x0 = x.real(); AT x1 = x.inf();
+        return HyperReal<RT,AT>(std::atan(x0), x1/(1+x0*x0));
+      }
 
-        static HyperReal<RT,AT> sinh(const HyperReal<RT,AT>& x) {
-          RT x0 = x.real(); AT x1 = x.inf();
-          return HyperReal<RT,AT>(std::sinh(x0), x1*std::cosh(x0));
-        }
+      static HyperReal<RT,AT> sinh(const HyperReal<RT,AT>& x) {
+        RT x0 = x.real(); AT x1 = x.inf();
+        return HyperReal<RT,AT>(std::sinh(x0), x1*std::cosh(x0));
+      }
 
-        static HyperReal<RT,AT> cosh(const HyperReal<RT,AT>& x) {
-          RT x0 = x.real(); AT x1 = x.inf();
-          return HyperReal<RT,AT>(std::cosh(x0), x1*std::sinh(x0));
-        }
+      static HyperReal<RT,AT> cosh(const HyperReal<RT,AT>& x) {
+        RT x0 = x.real(); AT x1 = x.inf();
+        return HyperReal<RT,AT>(std::cosh(x0), x1*std::sinh(x0));
+      }
 
-        static HyperReal<RT,AT> tanh(const HyperReal<RT,AT>& x) {
-          RT x0 = x.real(); AT x1 = x.inf();
-          double tx0 = std::tanh(x0);
-          return HyperReal<RT,AT>(tx0, x1*(1-tx0*tx0));
-        }
+      static HyperReal<RT,AT> tanh(const HyperReal<RT,AT>& x) {
+        RT x0 = x.real(); AT x1 = x.inf();
+        double tx0 = std::tanh(x0);
+        return HyperReal<RT,AT>(tx0, x1*(1-tx0*tx0));
+      }
 
-        static HyperReal<RT,AT> exp(const HyperReal<RT,AT>& x) {
-          RT x0 = x.real(); AT x1 = x.inf();
-          double ex0 = std::exp(x0);
-          return HyperReal<RT,AT>(ex0, x1*ex0);
-        }
+      static HyperReal<RT,AT> exp(const HyperReal<RT,AT>& x) {
+        RT x0 = x.real(); AT x1 = x.inf();
+        double ex0 = std::exp(x0);
+        return HyperReal<RT,AT>(ex0, x1*ex0);
+      }
 
-        static HyperReal<RT,AT> log(const HyperReal<RT,AT>& x) {
-          RT x0 = x.real(); AT x1 = x.inf();
-          return HyperReal<RT,AT>(std::log(x0), x1/x0);
-        }
+      static HyperReal<RT,AT> log(const HyperReal<RT,AT>& x) {
+        RT x0 = x.real(); AT x1 = x.inf();
+        return HyperReal<RT,AT>(std::log(x0), x1/x0);
+      }
 
-        static HyperReal<RT,AT> abs(const HyperReal<RT,AT>& x) {
-          RT x0 = x.real(); AT x1 = x.inf();
-          return HyperReal<RT,AT>(std::abs(x0), x1*sgn(x0));
-        }
+      static HyperReal<RT,AT> abs(const HyperReal<RT,AT>& x) {
+        RT x0 = x.real(); AT x1 = x.inf();
+        return HyperReal<RT,AT>(std::abs(x0), x1*sgn(x0));
+      }
 
-        static HyperReal<RT,AT> floor(const HyperReal<RT,AT>& x) {
-          RT x0 = x.real(); AT x1 = x.inf();
-          return HyperReal<RT,AT>(std::floor(x0), 0.0);
-        }
+      static HyperReal<RT,AT> floor(const HyperReal<RT,AT>& x) {
+        RT x0 = x.real(); AT x1 = x.inf();
+        return HyperReal<RT,AT>(std::floor(x0), 0.0);
+      }
 
-        static HyperReal<RT,AT> ceil(const HyperReal<RT,AT>& x) {
-          RT x0 = x.real(); AT x1 = x.inf();
-          return HyperReal<RT,AT>(std::ceil(x0), 0.0);
-        }
-    };
-  }
+      static HyperReal<RT,AT> ceil(const HyperReal<RT,AT>& x) {
+        RT x0 = x.real(); AT x1 = x.inf();
+        return HyperReal<RT,AT>(std::ceil(x0), 0.0);
+      }
+  };
 
   // Math functions
   template <typename T> inline T sqrt(const T& x) { return _m<T>::sqrt(x); }
