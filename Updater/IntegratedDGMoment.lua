@@ -82,7 +82,7 @@ function IntegratedDGMoment:init(tbl)
 
    local momDirIdxS = string.find(mom,'%d')
    local momDir     = nil
-   if (momDirIdxS) then momDir = tonumber(string.sub(mom,momDirIdxS)) end
+   if (momDirIdxS) then momDir = tonumber(string.sub(mom,momDirIdxS,momDirIdxS)) end
 
 
    self.intMomNcomp = 1      -- Number of integrated moments computed.
@@ -106,7 +106,10 @@ function IntegratedDGMoment:init(tbl)
          end
       end
 
-     if (mom == 'intM') then
+     if (mom == 'vi') then
+        -- This computes the integrals of v_1, v_2 and v_3 at the same time.
+        self.intMomNcomp = self.vDim
+     elseif (mom == 'intM') then
         -- This computes the integrals of M0, M1i and M2 at the same time.
         self.intMomNcomp = 2+self.vDim
      end
