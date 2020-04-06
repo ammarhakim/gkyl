@@ -284,7 +284,7 @@ def build(bld):
         )
 
     bld.shlib(source = sources,
-              includes = '. .. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='lib EIGEN MPI', target = 'updater', name = 'updater', vum = '1.0')
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='lib EIGEN MPI', target = 'updater', name = 'updater', vum = '1.0')
     
 ## Removed the following files from the build for now
 #     binOpCalcData/CartFieldBinOpSer3x3vP2.cpp
