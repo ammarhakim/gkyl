@@ -168,6 +168,45 @@ void IntDGMoment2xSer_x2Sq_P3(const double *w, const double *dx, const double *f
   out[0] += 2.0*fld[0]*volFac*wx2R2+1.154700538379252*fld[2]*dx2*volFac*wx2+0.149071198499986*fld[5]*dx2R2*volFac+0.1666666666666667*fld[0]*dx2R2*volFac; 
 
 } 
+void IntDGMoment2xSer_xi_P1(const double *w, const double *dx, const double *fld, double *out) 
+{ 
+  const double volFac = dx[0]*dx[1]*0.25; 
+  const double wx1 = w[0]; 
+  const double dx1 = dx[0]; 
+  const double wx2 = w[1]; 
+  const double dx2 = dx[1]; 
+ 
+
+  out[0] += 2.0*fld[0]*volFac*wx1+0.5773502691896258*fld[1]*dx1*volFac; 
+  out[1] += 2.0*fld[0]*volFac*wx2+0.5773502691896258*fld[2]*dx2*volFac; 
+
+} 
+void IntDGMoment2xSer_xi_P2(const double *w, const double *dx, const double *fld, double *out) 
+{ 
+  const double volFac = dx[0]*dx[1]*0.25; 
+  const double wx1 = w[0]; 
+  const double dx1 = dx[0]; 
+  const double wx2 = w[1]; 
+  const double dx2 = dx[1]; 
+ 
+
+  out[0] += 2.0*fld[0]*volFac*wx1+0.5773502691896258*fld[1]*dx1*volFac; 
+  out[1] += 2.0*fld[0]*volFac*wx2+0.5773502691896258*fld[2]*dx2*volFac; 
+
+} 
+void IntDGMoment2xSer_xi_P3(const double *w, const double *dx, const double *fld, double *out) 
+{ 
+  const double volFac = dx[0]*dx[1]*0.25; 
+  const double wx1 = w[0]; 
+  const double dx1 = dx[0]; 
+  const double wx2 = w[1]; 
+  const double dx2 = dx[1]; 
+ 
+
+  out[0] += 2.0*fld[0]*volFac*wx1+0.5773502691896258*fld[1]*dx1*volFac; 
+  out[1] += 2.0*fld[0]*volFac*wx2+0.5773502691896258*fld[2]*dx2*volFac; 
+
+} 
 void IntDGMoment2xSer_xSq_P1(const double *w, const double *dx, const double *fld, double *out) 
 { 
   const double volFac = dx[0]*dx[1]*0.25; 

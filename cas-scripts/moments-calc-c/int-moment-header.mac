@@ -16,11 +16,14 @@ printf(fh, "#define INTEGRATED_DG_MOMENT_MOD_DECL_H ~%")$
 printf(fh, " ~%")$
 printf(fh, " ~%")$
 
+printf(fh, "#include <cmath>~%")$
+printf(fh, " ~%")$
+
 printf(fh, "extern \"C\" { ~%")$
 printf(fh, " ~%")$
 
 bName       : ["Ser","Max","Tensor"]$
-momentsX    : ["one","xSq"]$
+momentsX    : ["one","xSq","xi"]$
 momentsXi   : ["x1", "x2", "x3", "x4", "x5", "x6"]$
 momentsXiSq : ["x1Sq", "x2Sq", "x3Sq", "x4Sq", "x5Sq", "x6Sq"]$
 momentsV    : ["vi","vSq","intM"]$

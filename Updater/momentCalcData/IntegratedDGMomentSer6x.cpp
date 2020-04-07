@@ -304,6 +304,56 @@ void IntDGMoment6xSer_x6Sq_P2(const double *w, const double *dx, const double *f
   out[0] += 8.0*fld[0]*volFac*wx6R2+4.618802153517007*fld[6]*dx6*volFac*wx6+0.5962847939999438*fld[27]*dx6R2*volFac+0.6666666666666666*fld[0]*dx6R2*volFac; 
 
 } 
+void IntDGMoment6xSer_xi_P1(const double *w, const double *dx, const double *fld, double *out) 
+{ 
+  const double volFac = dx[0]*dx[1]*dx[2]*dx[3]*dx[4]*dx[5]*0.015625; 
+  const double wx1 = w[0]; 
+  const double dx1 = dx[0]; 
+  const double wx2 = w[1]; 
+  const double dx2 = dx[1]; 
+  const double wx3 = w[2]; 
+  const double dx3 = dx[2]; 
+  const double wx4 = w[3]; 
+  const double dx4 = dx[3]; 
+  const double wx5 = w[4]; 
+  const double dx5 = dx[4]; 
+  const double wx6 = w[5]; 
+  const double dx6 = dx[5]; 
+ 
+
+  out[0] += 8.0*fld[0]*volFac*wx1+2.309401076758503*fld[1]*dx1*volFac; 
+  out[1] += 8.0*fld[0]*volFac*wx2+2.309401076758503*fld[2]*dx2*volFac; 
+  out[2] += 8.0*fld[0]*volFac*wx3+2.309401076758503*fld[3]*dx3*volFac; 
+  out[3] += 8.0*fld[0]*volFac*wx4+2.309401076758503*fld[4]*dx4*volFac; 
+  out[4] += 8.0*fld[0]*volFac*wx5+2.309401076758503*fld[5]*dx5*volFac; 
+  out[5] += 8.0*fld[0]*volFac*wx6+2.309401076758503*fld[6]*dx6*volFac; 
+
+} 
+void IntDGMoment6xSer_xi_P2(const double *w, const double *dx, const double *fld, double *out) 
+{ 
+  const double volFac = dx[0]*dx[1]*dx[2]*dx[3]*dx[4]*dx[5]*0.015625; 
+  const double wx1 = w[0]; 
+  const double dx1 = dx[0]; 
+  const double wx2 = w[1]; 
+  const double dx2 = dx[1]; 
+  const double wx3 = w[2]; 
+  const double dx3 = dx[2]; 
+  const double wx4 = w[3]; 
+  const double dx4 = dx[3]; 
+  const double wx5 = w[4]; 
+  const double dx5 = dx[4]; 
+  const double wx6 = w[5]; 
+  const double dx6 = dx[5]; 
+ 
+
+  out[0] += 8.0*fld[0]*volFac*wx1+2.309401076758503*fld[1]*dx1*volFac; 
+  out[1] += 8.0*fld[0]*volFac*wx2+2.309401076758503*fld[2]*dx2*volFac; 
+  out[2] += 8.0*fld[0]*volFac*wx3+2.309401076758503*fld[3]*dx3*volFac; 
+  out[3] += 8.0*fld[0]*volFac*wx4+2.309401076758503*fld[4]*dx4*volFac; 
+  out[4] += 8.0*fld[0]*volFac*wx5+2.309401076758503*fld[5]*dx5*volFac; 
+  out[5] += 8.0*fld[0]*volFac*wx6+2.309401076758503*fld[6]*dx6*volFac; 
+
+} 
 void IntDGMoment6xSer_xSq_P1(const double *w, const double *dx, const double *fld, double *out) 
 { 
   const double volFac = dx[0]*dx[1]*dx[2]*dx[3]*dx[4]*dx[5]*0.015625; 

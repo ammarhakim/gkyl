@@ -14,6 +14,8 @@ ffi.cdef [[
 
   void IntDGMoment1xSer_xSq_P1(const double *w, const double *dx, const double *fld, double *out); 
 
+  void IntDGMoment1xSer_xi_P1(const double *w, const double *dx, const double *fld, double *out); 
+
   void IntDGMoment1xSer_x1_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment1xSer_x1Sq_P1(const double *w, const double *dx, const double *fld, double *out); 
@@ -21,6 +23,8 @@ ffi.cdef [[
   void IntDGMoment2xSer_one_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment2xSer_xSq_P1(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment2xSer_xi_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment2xSer_x1_P1(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -33,6 +37,8 @@ ffi.cdef [[
   void IntDGMoment3xSer_one_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment3xSer_xSq_P1(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment3xSer_xi_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment3xSer_x1_P1(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -49,6 +55,8 @@ ffi.cdef [[
   void IntDGMoment4xSer_one_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment4xSer_xSq_P1(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment4xSer_xi_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment4xSer_x1_P1(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -69,6 +77,8 @@ ffi.cdef [[
   void IntDGMoment5xSer_one_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment5xSer_xSq_P1(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment5xSer_xi_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment5xSer_x1_P1(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -93,6 +103,8 @@ ffi.cdef [[
   void IntDGMoment6xSer_one_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment6xSer_xSq_P1(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment6xSer_xi_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment6xSer_x1_P1(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -215,6 +227,8 @@ ffi.cdef [[
 
   void IntDGMoment1xSer_xSq_P2(const double *w, const double *dx, const double *fld, double *out); 
 
+  void IntDGMoment1xSer_xi_P2(const double *w, const double *dx, const double *fld, double *out); 
+
   void IntDGMoment1xSer_x1_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment1xSer_x1Sq_P2(const double *w, const double *dx, const double *fld, double *out); 
@@ -222,6 +236,8 @@ ffi.cdef [[
   void IntDGMoment2xSer_one_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment2xSer_xSq_P2(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment2xSer_xi_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment2xSer_x1_P2(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -234,6 +250,8 @@ ffi.cdef [[
   void IntDGMoment3xSer_one_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment3xSer_xSq_P2(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment3xSer_xi_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment3xSer_x1_P2(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -250,6 +268,8 @@ ffi.cdef [[
   void IntDGMoment4xSer_one_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment4xSer_xSq_P2(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment4xSer_xi_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment4xSer_x1_P2(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -270,6 +290,8 @@ ffi.cdef [[
   void IntDGMoment5xSer_one_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment5xSer_xSq_P2(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment5xSer_xi_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment5xSer_x1_P2(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -294,6 +316,8 @@ ffi.cdef [[
   void IntDGMoment6xSer_one_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment6xSer_xSq_P2(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment6xSer_xi_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment6xSer_x1_P2(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -416,6 +440,8 @@ ffi.cdef [[
 
   void IntDGMoment1xSer_xSq_P3(const double *w, const double *dx, const double *fld, double *out); 
 
+  void IntDGMoment1xSer_xi_P3(const double *w, const double *dx, const double *fld, double *out); 
+
   void IntDGMoment1xSer_x1_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment1xSer_x1Sq_P3(const double *w, const double *dx, const double *fld, double *out); 
@@ -423,6 +449,8 @@ ffi.cdef [[
   void IntDGMoment2xSer_one_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment2xSer_xSq_P3(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment2xSer_xi_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment2xSer_x1_P3(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -435,6 +463,8 @@ ffi.cdef [[
   void IntDGMoment3xSer_one_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment3xSer_xSq_P3(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment3xSer_xi_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment3xSer_x1_P3(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -451,6 +481,8 @@ ffi.cdef [[
   void IntDGMoment4xSer_one_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment4xSer_xSq_P3(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment4xSer_xi_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment4xSer_x1_P3(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -471,6 +503,8 @@ ffi.cdef [[
   void IntDGMoment5xSer_one_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment5xSer_xSq_P3(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment5xSer_xi_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment5xSer_x1_P3(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -495,6 +529,8 @@ ffi.cdef [[
   void IntDGMoment6xSer_one_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment6xSer_xSq_P3(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment6xSer_xi_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment6xSer_x1_P3(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -617,6 +653,8 @@ ffi.cdef [[
 
   void IntDGMoment1xMax_xSq_P1(const double *w, const double *dx, const double *fld, double *out); 
 
+  void IntDGMoment1xMax_xi_P1(const double *w, const double *dx, const double *fld, double *out); 
+
   void IntDGMoment1xMax_x1_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment1xMax_x1Sq_P1(const double *w, const double *dx, const double *fld, double *out); 
@@ -624,6 +662,8 @@ ffi.cdef [[
   void IntDGMoment2xMax_one_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment2xMax_xSq_P1(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment2xMax_xi_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment2xMax_x1_P1(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -636,6 +676,8 @@ ffi.cdef [[
   void IntDGMoment3xMax_one_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment3xMax_xSq_P1(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment3xMax_xi_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment3xMax_x1_P1(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -652,6 +694,8 @@ ffi.cdef [[
   void IntDGMoment4xMax_one_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment4xMax_xSq_P1(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment4xMax_xi_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment4xMax_x1_P1(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -672,6 +716,8 @@ ffi.cdef [[
   void IntDGMoment5xMax_one_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment5xMax_xSq_P1(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment5xMax_xi_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment5xMax_x1_P1(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -696,6 +742,8 @@ ffi.cdef [[
   void IntDGMoment6xMax_one_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment6xMax_xSq_P1(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment6xMax_xi_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment6xMax_x1_P1(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -818,6 +866,8 @@ ffi.cdef [[
 
   void IntDGMoment1xMax_xSq_P2(const double *w, const double *dx, const double *fld, double *out); 
 
+  void IntDGMoment1xMax_xi_P2(const double *w, const double *dx, const double *fld, double *out); 
+
   void IntDGMoment1xMax_x1_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment1xMax_x1Sq_P2(const double *w, const double *dx, const double *fld, double *out); 
@@ -825,6 +875,8 @@ ffi.cdef [[
   void IntDGMoment2xMax_one_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment2xMax_xSq_P2(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment2xMax_xi_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment2xMax_x1_P2(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -837,6 +889,8 @@ ffi.cdef [[
   void IntDGMoment3xMax_one_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment3xMax_xSq_P2(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment3xMax_xi_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment3xMax_x1_P2(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -853,6 +907,8 @@ ffi.cdef [[
   void IntDGMoment4xMax_one_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment4xMax_xSq_P2(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment4xMax_xi_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment4xMax_x1_P2(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -873,6 +929,8 @@ ffi.cdef [[
   void IntDGMoment5xMax_one_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment5xMax_xSq_P2(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment5xMax_xi_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment5xMax_x1_P2(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -897,6 +955,8 @@ ffi.cdef [[
   void IntDGMoment6xMax_one_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment6xMax_xSq_P2(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment6xMax_xi_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment6xMax_x1_P2(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1019,6 +1079,8 @@ ffi.cdef [[
 
   void IntDGMoment1xMax_xSq_P3(const double *w, const double *dx, const double *fld, double *out); 
 
+  void IntDGMoment1xMax_xi_P3(const double *w, const double *dx, const double *fld, double *out); 
+
   void IntDGMoment1xMax_x1_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment1xMax_x1Sq_P3(const double *w, const double *dx, const double *fld, double *out); 
@@ -1026,6 +1088,8 @@ ffi.cdef [[
   void IntDGMoment2xMax_one_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment2xMax_xSq_P3(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment2xMax_xi_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment2xMax_x1_P3(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1038,6 +1102,8 @@ ffi.cdef [[
   void IntDGMoment3xMax_one_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment3xMax_xSq_P3(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment3xMax_xi_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment3xMax_x1_P3(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1054,6 +1120,8 @@ ffi.cdef [[
   void IntDGMoment4xMax_one_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment4xMax_xSq_P3(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment4xMax_xi_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment4xMax_x1_P3(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1074,6 +1142,8 @@ ffi.cdef [[
   void IntDGMoment5xMax_one_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment5xMax_xSq_P3(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment5xMax_xi_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment5xMax_x1_P3(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1098,6 +1168,8 @@ ffi.cdef [[
   void IntDGMoment6xMax_one_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment6xMax_xSq_P3(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment6xMax_xi_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment6xMax_x1_P3(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1220,6 +1292,8 @@ ffi.cdef [[
 
   void IntDGMoment1xTensor_xSq_P1(const double *w, const double *dx, const double *fld, double *out); 
 
+  void IntDGMoment1xTensor_xi_P1(const double *w, const double *dx, const double *fld, double *out); 
+
   void IntDGMoment1xTensor_x1_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment1xTensor_x1Sq_P1(const double *w, const double *dx, const double *fld, double *out); 
@@ -1227,6 +1301,8 @@ ffi.cdef [[
   void IntDGMoment2xTensor_one_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment2xTensor_xSq_P1(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment2xTensor_xi_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment2xTensor_x1_P1(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1239,6 +1315,8 @@ ffi.cdef [[
   void IntDGMoment3xTensor_one_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment3xTensor_xSq_P1(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment3xTensor_xi_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment3xTensor_x1_P1(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1255,6 +1333,8 @@ ffi.cdef [[
   void IntDGMoment4xTensor_one_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment4xTensor_xSq_P1(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment4xTensor_xi_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment4xTensor_x1_P1(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1275,6 +1355,8 @@ ffi.cdef [[
   void IntDGMoment5xTensor_one_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment5xTensor_xSq_P1(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment5xTensor_xi_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment5xTensor_x1_P1(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1299,6 +1381,8 @@ ffi.cdef [[
   void IntDGMoment6xTensor_one_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment6xTensor_xSq_P1(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment6xTensor_xi_P1(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment6xTensor_x1_P1(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1421,6 +1505,8 @@ ffi.cdef [[
 
   void IntDGMoment1xTensor_xSq_P2(const double *w, const double *dx, const double *fld, double *out); 
 
+  void IntDGMoment1xTensor_xi_P2(const double *w, const double *dx, const double *fld, double *out); 
+
   void IntDGMoment1xTensor_x1_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment1xTensor_x1Sq_P2(const double *w, const double *dx, const double *fld, double *out); 
@@ -1428,6 +1514,8 @@ ffi.cdef [[
   void IntDGMoment2xTensor_one_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment2xTensor_xSq_P2(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment2xTensor_xi_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment2xTensor_x1_P2(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1440,6 +1528,8 @@ ffi.cdef [[
   void IntDGMoment3xTensor_one_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment3xTensor_xSq_P2(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment3xTensor_xi_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment3xTensor_x1_P2(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1456,6 +1546,8 @@ ffi.cdef [[
   void IntDGMoment4xTensor_one_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment4xTensor_xSq_P2(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment4xTensor_xi_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment4xTensor_x1_P2(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1476,6 +1568,8 @@ ffi.cdef [[
   void IntDGMoment5xTensor_one_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment5xTensor_xSq_P2(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment5xTensor_xi_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment5xTensor_x1_P2(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1500,6 +1594,8 @@ ffi.cdef [[
   void IntDGMoment6xTensor_one_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment6xTensor_xSq_P2(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment6xTensor_xi_P2(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment6xTensor_x1_P2(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1622,6 +1718,8 @@ ffi.cdef [[
 
   void IntDGMoment1xTensor_xSq_P3(const double *w, const double *dx, const double *fld, double *out); 
 
+  void IntDGMoment1xTensor_xi_P3(const double *w, const double *dx, const double *fld, double *out); 
+
   void IntDGMoment1xTensor_x1_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment1xTensor_x1Sq_P3(const double *w, const double *dx, const double *fld, double *out); 
@@ -1629,6 +1727,8 @@ ffi.cdef [[
   void IntDGMoment2xTensor_one_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment2xTensor_xSq_P3(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment2xTensor_xi_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment2xTensor_x1_P3(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1641,6 +1741,8 @@ ffi.cdef [[
   void IntDGMoment3xTensor_one_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment3xTensor_xSq_P3(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment3xTensor_xi_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment3xTensor_x1_P3(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1657,6 +1759,8 @@ ffi.cdef [[
   void IntDGMoment4xTensor_one_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment4xTensor_xSq_P3(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment4xTensor_xi_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment4xTensor_x1_P3(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1677,6 +1781,8 @@ ffi.cdef [[
   void IntDGMoment5xTensor_one_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment5xTensor_xSq_P3(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment5xTensor_xi_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment5xTensor_x1_P3(const double *w, const double *dx, const double *fld, double *out); 
 
@@ -1701,6 +1807,8 @@ ffi.cdef [[
   void IntDGMoment6xTensor_one_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment6xTensor_xSq_P3(const double *w, const double *dx, const double *fld, double *out); 
+
+  void IntDGMoment6xTensor_xi_P3(const double *w, const double *dx, const double *fld, double *out); 
 
   void IntDGMoment6xTensor_x1_P3(const double *w, const double *dx, const double *fld, double *out); 
 
