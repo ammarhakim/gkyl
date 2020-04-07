@@ -201,6 +201,9 @@ local function test_1x(pOrder, basisName, writeOut)
 end
 
 local function test_2x(pOrder, basisName, writeOut, testN, off)
+   off   = off or 0
+   testN = testN or 500
+
    local lower = {0.0, 0.0}
    local upper = {1.0, 1.0}
 
@@ -228,25 +231,23 @@ local function test_2x(pOrder, basisName, writeOut, testN, off)
       gridPairs[(i-1)*#pairsN+j] = {pairsN[i], pairsN[j]}
    end end
 
-   -- Below, testN gets reinterpreted to mean the number of grids to test,
-   -- and 'off' to mean the offset in the gridPairs table.
-   off   = off or 0
-   testN = testN or 500
+   testNpairs = testN
+   offPairs   = off
    if (#gridPairs)*2 < 1000 then
-      testN = #gridPairs
-      off   = 0
+      testNpairs = #gridPairs
+      offPairs   = 0
    elseif ((off+1)*testN > #gridPairs) then
-      testN = #gridPairs - off*testN
+      testNpairs = #gridPairs - off*testN
    end
 
    print(" ")
    print(string.format(" Number of interpolations possible: %d",(#gridPairs)*2))
    print(string.format(" Number of possible grid combinations: %d",#gridPairs))
-   print(string.format(" Testing grid combinations %d to %d.",off*testN+1,(off+1)*testN))
+   print(string.format(" Testing grid combinations %d to %d.",offPairs*testN+1,offPairs*testN+testNpairs))
    print(" ")
 
-   for k = 1, testN do
-      N = gridPairs[off*testN+k]
+   for k = 1, testNpairs do
+      N = gridPairs[offPairs*testN+k]
       for i = 1,2 do   -- Test interpolation in both directions.
          if i==1 then
             fromIdx = 1
@@ -323,8 +324,6 @@ local function test_2x(pOrder, basisName, writeOut, testN, off)
          end
       end
    end
-
-   off = off+1
 end
 
 local polyOrder    = 1
