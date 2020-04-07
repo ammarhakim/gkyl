@@ -1005,27 +1005,29 @@ local function test_intM(pOrder, basis)
    assert_equal(intM[5], intME[1], "Checking vSq moment")
 end
 
-local polyOrder = 2
+local polyOrderMax = 2
 local basisType = "Ser"
 
-test_one( polyOrder, basisType)
-test_x1( polyOrder, basisType)
-test_x2v1( polyOrder, basisType)
-test_x3v2( polyOrder, basisType)
-test_x4v3( polyOrder, basisType)
-test_x5v3( polyOrder, basisType)
-test_x6v3( polyOrder, basisType)
-test_x1SqxSq( polyOrder, basisType)
-test_x2SqxSq( polyOrder, basisType)
-test_x3SqxSq( polyOrder, basisType)
-test_x4SqxSq( polyOrder, basisType)
-test_x5SqxSq( polyOrder, basisType)
-test_x6SqxSq( polyOrder, basisType)
-test_v1SqvSq( polyOrder, basisType)
-test_v2SqvSq( polyOrder, basisType)
-test_v3SqvSq( polyOrder, basisType)
-test_vi( polyOrder, basisType)
-test_intM( polyOrder, basisType)
+for polyOrder = 1, polyOrderMax do
+  test_one( polyOrder, basisType)
+  test_x1( polyOrder, basisType)
+  test_x2v1( polyOrder, basisType)
+  test_x3v2( polyOrder, basisType)
+  test_x4v3( polyOrder, basisType)
+  test_x5v3( polyOrder, basisType)
+  test_x6v3( polyOrder, basisType)
+  test_x1SqxSq( polyOrder, basisType)
+  test_x2SqxSq( polyOrder, basisType)
+  test_x3SqxSq( polyOrder, basisType)
+  test_x4SqxSq( polyOrder, basisType)
+  test_x5SqxSq( polyOrder, basisType)
+  test_x6SqxSq( polyOrder, basisType)
+  test_v1SqvSq( polyOrder, basisType)
+  test_v2SqvSq( polyOrder, basisType)
+  test_v3SqvSq( polyOrder, basisType)
+  test_vi( polyOrder, basisType)
+  test_intM( polyOrder, basisType)
+end
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

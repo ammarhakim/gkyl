@@ -2,7 +2,7 @@
 
 fh : openw("~/max-out/CartFieldInterpolateModDecl.h")$
 
-polyOrderMax : 1$
+polyOrderMax : 2$
 
 bName        : ["Ser"]$
 
