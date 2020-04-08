@@ -204,7 +204,7 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
 
       local mom2, mom3
       local mom2Itr, mom3Itr
-      mom1:scale(0.0) -- Zero out moments.
+      mom1:clear(0.0) -- Zero out moments.
    
       local cMomB, cEnergyB
       local m0Star, m1Star, m2Star
@@ -219,8 +219,8 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
          mom2Itr = mom2:get(1)
          mom3Itr = mom3:get(1) 
    
-         mom2:scale(0.0)
-         mom3:scale(0.0)
+         mom2:clear(0.0)
+         mom3:clear(0.0)
          if self._fiveMomentsLBO then 
             cMomB    = outFld[4]
             cEnergyB = outFld[5] 
@@ -228,8 +228,8 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
             cMomBItr    = cMomB:get(1) 
             cEnergyBItr = cEnergyB:get(1) 
    
-            cMomB:scale(0.0)
-            cEnergyB:scale(0.0)
+            cMomB:clear(0.0)
+            cEnergyB:clear(0.0)
    
             -- Added for corrections and star moments.
             -- Distribution functions left and right of a cell-boundary.
@@ -245,9 +245,9 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
                m1StarItr = m1Star:get(1) 
                m2StarItr = m2Star:get(1) 
    
-               m0Star:scale(0.0)
-               m1Star:scale(0.0)
-               m2Star:scale(0.0)
+               m0Star:clear(0.0)
+               m1Star:clear(0.0)
+               m2Star:clear(0.0)
             end
          end
       end
