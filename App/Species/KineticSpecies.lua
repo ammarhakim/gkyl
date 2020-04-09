@@ -352,6 +352,7 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts,
       end
       GridConstructor = Grid.NonUniformRectCart
    end
+
    self.grid = GridConstructor {
       lower         = lower,
       upper         = upper,
@@ -360,6 +361,10 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts,
       decomposition = self.decomp,
       mappings      = coordinateMap,
    }
+
+   if self.coordinateMap then
+      self.grid:write("grid.bp")
+   end
 
    for _, c in pairs(self.collisions) do
       c:setPhaseGrid(self.grid)
