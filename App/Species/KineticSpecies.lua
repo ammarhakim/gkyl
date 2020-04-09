@@ -672,6 +672,8 @@ function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
 end
 
 function KineticSpecies:suggestDt()
+   if not self.evolve then return GKYL_MAX_DOUBLE end
+
    -- Loop over local region. 
    local grid = self.grid
    self.dt[0] = GKYL_MAX_DOUBLE
