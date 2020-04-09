@@ -27,6 +27,7 @@ local goodMomNames = {
    "one",                                            -- int(f)  
    "x1", "x2", "x3", "x4", "x5", "x6",               -- int(x_i*f)
    "x1Sq", "x2Sq", "x3Sq", "x4Sq", "x5Sq", "x6Sq",   -- int(x_i^2*f)
+   "xi",                                             -- int(x_i*f) for i=1,2,...,dim.
    "xSq",                                            -- int((sum_i x_i^2)*f)
    "v1", "v2", "v3",                                 -- int(v_i*f), only for phase space fields. 
    "v1Sq", "v2Sq", "v3Sq",                           -- int(v_i^2*f), only for phase space fields.  
@@ -123,6 +124,11 @@ function IntegratedDGMoment:init(tbl)
             assert(false, "Updater.IntegratedDGMoment: coordinate given in 'moment' is invalid for this dimensionality. See valid list in updater.")
          end
       end
+
+     if (mom == 'xi') then
+        -- This computes the integrals of x_1, x_2, etc, at the same time.
+        self.intMomNcomp = self.dim
+     end
 
       -- Kernel to compute integrated moment.
       self.intMomCalc = IntMomDecl.selectIntMomCalc(mom, basisID, self.dim, polyOrder)

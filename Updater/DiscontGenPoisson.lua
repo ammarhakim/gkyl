@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Updater to (directly) solve generalized Poisson equation 
+-- Updater to (directly) solve generalized Poisson equation
 --
 --      nabla_i D^ij nabla_j phi  = - rho
 --
@@ -11,7 +11,6 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
@@ -43,11 +42,11 @@ function DiscontGenPoisson:init(tbl)
 
    assert(self.grid:ndim() == self.basis:ndim(),
           "Dimensions of basis and grid must match")
-   
+
    self.ndim = self.grid:ndim()
    self.nbasis = self.basis:numBasis()
    local polyOrder = self.basis:polyOrder()
-   
+
    self.ncell = ffi.new("int[3]")
    self.dx = Lin.Vec(3)    -- Limited to uniform grids for now.
    for d = 1,self.ndim do
@@ -71,12 +70,11 @@ function DiscontGenPoisson:init(tbl)
          basisNm = 'Tensor'
       end
    end
-      
+
    self.Dxx = tbl.Dxx
    self.Dyy = tbl.Dyy
    self.Dxy = tbl.Dxy
-   
-   self._first = true
+
    self._matrixFn = require(string.format("Updater.discontGenPoissonData.discontGenPoisson%sStencil%dD_%dp", basisNm, self.ndim, polyOrder))
    self._matrixFn_T = require(string.format("Updater.discontGenPoissonData.discontGenPoisson%sStencil%dD_T_%dp", basisNm, self.ndim, polyOrder))
    self._matrixFn_B = require(string.format("Updater.discontGenPoissonData.discontGenPoisson%sStencil%dD_B_%dp", basisNm, self.ndim, polyOrder))
@@ -91,14 +89,159 @@ function DiscontGenPoisson:init(tbl)
    self.poisson = ffiC.new_DiscontPoisson(self.ncell, self.ndim, self.nbasis,
                                           self.nnonzero, polyOrder, writeMatrix)
 
+   self:buildStiffMatrix()
+
    return self
 end
 
-function DiscontGenPoisson:buildStiffMatrix(phi)
+function DiscontGenPoisson:getBlock(idxs)
+   local indexer = self.Dxx:genIndexer()
+   local localRange = self.Dxx:localRange()
+   
+   local idxsT = {}
+   local idxsB = {}
+   local idxsL = {}
+   local idxsR = {}
+
+   idxsT[1], idxsT[2] = idxs[1], idxs[2]+1
+   idxsB[1], idxsB[2] = idxs[1], idxs[2]-1
+   idxsL[1], idxsL[2] = idxs[1]-1, idxs[2]
+   idxsR[1], idxsR[2] = idxs[1]+1, idxs[2]
+
+   local DxxCPtr = self.Dxx:get(indexer(idxs))
+   local DyyCPtr = self.Dyy:get(indexer(idxs))
+   local DxyCPtr = self.Dxy:get(indexer(idxs))
+
+   local DxxTPtr = self.Dxx:get(indexer(idxsT))
+   local DyyTPtr = self.Dyy:get(indexer(idxsT))
+   local DxyTPtr = self.Dxy:get(indexer(idxsT))
+
+   local DxxBPtr = self.Dxx:get(indexer(idxsB))
+   local DyyBPtr = self.Dyy:get(indexer(idxsB))
+   local DxyBPtr = self.Dxy:get(indexer(idxsB))
+
+   local DxxLPtr = self.Dxx:get(indexer(idxsL))
+   local DyyLPtr = self.Dyy:get(indexer(idxsL))
+   local DxyLPtr = self.Dxy:get(indexer(idxsL))
+
+   local DxxRPtr = self.Dxx:get(indexer(idxsR))
+   local DyyRPtr = self.Dyy:get(indexer(idxsR))
+   local DxyRPtr = self.Dxy:get(indexer(idxsR))
+
+   local SM = {}
+   if idxs[1] == localRange:lower(1) and idxs[2] == localRange:lower(2) then
+      SM = self._matrixFn_BL(self.dx,
+                             DxxCPtr, DyyCPtr, DxyCPtr,
+                             DxxLPtr, DyyLPtr, DxyLPtr,
+                             DxxRPtr, DyyRPtr, DxyRPtr,
+                             DxxBPtr, DyyBPtr, DxyBPtr,
+                             DxxTPtr, DyyTPtr, DxyTPtr,
+                             self.bcLower[1].D,
+                             self.bcLower[1].N,
+                             self.bcLower[1].val,
+                             self.bcLower[2].D,
+                             self.bcLower[2].N,
+                             self.bcLower[2].val)
+   elseif idxs[1] == localRange:lower(1) and idxs[2] == localRange:upper(2) then
+      SM = self._matrixFn_TL(self.dx,
+                             DxxCPtr, DyyCPtr, DxyCPtr,
+                             DxxLPtr, DyyLPtr, DxyLPtr,
+                             DxxRPtr, DyyRPtr, DxyRPtr,
+                             DxxBPtr, DyyBPtr, DxyBPtr,
+                             DxxTPtr, DyyTPtr, DxyTPtr,
+                             self.bcLower[1].D,
+                             self.bcLower[1].N,
+                             self.bcLower[1].val,
+                             self.bcUpper[2].D,
+                             self.bcUpper[2].N,
+                             self.bcUpper[2].val)
+   elseif idxs[1] == localRange:upper(1) and idxs[2] == localRange:lower(2) then
+      SM = self._matrixFn_BR(self.dx,
+                             DxxCPtr, DyyCPtr, DxyCPtr,
+                             DxxLPtr, DyyLPtr, DxyLPtr,
+                             DxxRPtr, DyyRPtr, DxyRPtr,
+                             DxxBPtr, DyyBPtr, DxyBPtr,
+                             DxxTPtr, DyyTPtr, DxyTPtr,
+                             self.bcUpper[1].D,
+                             self.bcUpper[1].N,
+                             self.bcUpper[1].val,
+                             self.bcLower[2].D,
+                             self.bcLower[2].N,
+                             self.bcLower[2].val)
+   elseif idxs[1] == localRange:upper(1) and idxs[2] == localRange:upper(2) then
+      SM = self._matrixFn_TR(self.dx,
+                             DxxCPtr, DyyCPtr, DxyCPtr,
+                             DxxLPtr, DyyLPtr, DxyLPtr,
+                             DxxRPtr, DyyRPtr, DxyRPtr,
+                             DxxBPtr, DyyBPtr, DxyBPtr,
+                             DxxTPtr, DyyTPtr, DxyTPtr,
+                             self.bcUpper[1].D,
+                             self.bcUpper[1].N,
+                             self.bcUpper[1].val,
+                             self.bcUpper[2].D,
+                             self.bcUpper[2].N,
+                             self.bcUpper[2].val)
+   elseif idxs[1] == localRange:lower(1) then
+      SM = self._matrixFn_L(self.dx,
+                            DxxCPtr, DyyCPtr, DxyCPtr,
+                            DxxLPtr, DyyLPtr, DxyLPtr,
+                            DxxRPtr, DyyRPtr, DxyRPtr,
+                            DxxBPtr, DyyBPtr, DxyBPtr,
+                            DxxTPtr, DyyTPtr, DxyTPtr,
+                            self.bcLower[1].D,
+                            self.bcLower[1].N,
+                            self.bcLower[1].val,
+                            0, 0, 0)
+   elseif idxs[1] == localRange:upper(1) then
+      SM = self._matrixFn_R(self.dx,
+                            DxxCPtr, DyyCPtr, DxyCPtr,
+                            DxxLPtr, DyyLPtr, DxyLPtr,
+                            DxxRPtr, DyyRPtr, DxyRPtr,
+                            DxxBPtr, DyyBPtr, DxyBPtr,
+                            DxxTPtr, DyyTPtr, DxyTPtr,
+                            self.bcUpper[1].D,
+                            self.bcUpper[1].N,
+                            self.bcUpper[1].val,
+                            0, 0, 0)
+   elseif idxs[2] == localRange:lower(2)then
+      SM = self._matrixFn_B(self.dx,
+                            DxxCPtr, DyyCPtr, DxyCPtr,
+                            DxxLPtr, DyyLPtr, DxyLPtr,
+                            DxxRPtr, DyyRPtr, DxyRPtr,
+                            DxxBPtr, DyyBPtr, DxyBPtr,
+                            DxxTPtr, DyyTPtr, DxyTPtr,
+                            0, 0, 0,
+                            self.bcLower[2].D,
+                            self.bcLower[2].N,
+                            self.bcLower[2].val)
+   elseif idxs[2] == localRange:upper(2) then
+      SM = self._matrixFn_T(self.dx,
+                            DxxCPtr, DyyCPtr, DxyCPtr,
+                            DxxLPtr, DyyLPtr, DxyLPtr,
+                            DxxRPtr, DyyRPtr, DxyRPtr,
+                            DxxBPtr, DyyBPtr, DxyBPtr,
+                            DxxTPtr, DyyTPtr, DxyTPtr,
+                            0, 0, 0,
+                            self.bcUpper[2].D,
+                            self.bcUpper[2].N,
+                            self.bcUpper[2].val)
+   else
+      SM = self._matrixFn(self.dx,
+                          DxxCPtr, DyyCPtr, DxyCPtr,
+                          DxxLPtr, DyyLPtr, DxyLPtr,
+                          DxxRPtr, DyyRPtr, DxyRPtr,
+                          DxxBPtr, DyyBPtr, DxyBPtr,
+                          DxxTPtr, DyyTPtr, DxyTPtr,
+                          0, 0, 0, 0, 0, 0)
+   end
+   return SM
+end
+
+function DiscontGenPoisson:buildStiffMatrix()
    local ndim = self.ndim
 
-   local localRange = phi:localRange()
-   local indexer = phi:genIndexer()
+   local localRange = self.Dxx:localRange()
+
    local lower, upper = {}, {}
    for d = 1,ndim do
       lower[d] = localRange:lower(d)
@@ -118,78 +261,11 @@ function DiscontGenPoisson:buildStiffMatrix(phi)
    local stencilIndexer = Range.makeRowMajorGenIndexer(stencilRange)
 
    local idxsExtK, idxsExtL = Lin.Vec(ndim+1), Lin.Vec(ndim+1)
-   local cnt, val = 1, 0.0
+   local val = 0.0
    local idxK, idxL = 0, 0
 
-   local SM = {}
-   
    for idxs in localRange:colMajorIter() do
-      local DxxPtr = self.Dxx:get(indexer(idxs))
-      local DyyPtr = self.Dyy:get(indexer(idxs))
-      local DxyPtr = self.Dxy:get(indexer(idxs))
-
-      local SM = {}
-      if idxs[1] == localRange:lower(1) and idxs[2] == localRange:lower(2) then
-         SM = self._matrixFn_BL(self.dx, DxxPtr, DyyPtr, DxyPtr,
-                                self.bcLower[1].D,
-                                self.bcLower[1].N,
-                                self.bcLower[1].val,
-                                self.bcLower[2].D,
-                                self.bcLower[2].N,
-                                self.bcLower[2].val)
-      elseif idxs[1] == localRange:lower(1) and idxs[2] == localRange:upper(2) then
-         SM = self._matrixFn_TL(self.dx, DxxPtr, DyyPtr, DxyPtr,
-                                self.bcLower[1].D,
-                                self.bcLower[1].N,
-                                self.bcLower[1].val,
-                                self.bcUpper[2].D,
-                                self.bcUpper[2].N,
-                                self.bcUpper[2].val)
-      elseif idxs[1] == localRange:upper(1) and idxs[2] == localRange:lower(2) then
-         SM = self._matrixFn_BR(self.dx, DxxPtr, DyyPtr, DxyPtr,
-                                self.bcUpper[1].D,
-                                self.bcUpper[1].N,
-                                self.bcUpper[1].val,
-                                self.bcLower[2].D,
-                                self.bcLower[2].N,
-                                self.bcLower[2].val)
-      elseif idxs[1] == localRange:upper(1) and idxs[2] == localRange:upper(2) then
-         SM = self._matrixFn_TR(self.dx, DxxPtr, DyyPtr, DxyPtr,
-                                self.bcUpper[1].D,
-                                self.bcUpper[1].N,
-                                self.bcUpper[1].val,
-                                self.bcUpper[2].D,
-                                self.bcUpper[2].N,
-                                self.bcUpper[2].val)
-      elseif idxs[1] == localRange:lower(1) then
-         SM = self._matrixFn_L(self.dx, DxxPtr, DyyPtr, DxyPtr,
-                               self.bcLower[1].D,
-                               self.bcLower[1].N,
-                               self.bcLower[1].val,
-                               0, 0, 0)
-      elseif idxs[1] == localRange:upper(1) then
-         SM = self._matrixFn_R(self.dx, DxxPtr, DyyPtr, DxyPtr,
-                                self.bcUpper[1].D,
-                                self.bcUpper[1].N,
-                                self.bcUpper[1].val,
-                                0, 0, 0)
-      elseif idxs[2] == localRange:lower(2)then
-         SM = self._matrixFn_B(self.dx, DxxPtr, DyyPtr, DxyPtr,
-                                0, 0, 0,
-                                self.bcLower[2].D,
-                                self.bcLower[2].N,
-                                self.bcLower[2].val)
-      elseif idxs[2] == localRange:upper(2) then
-         SM = self._matrixFn_T(self.dx, DxxPtr, DyyPtr, DxyPtr,
-                                0, 0, 0,
-                                self.bcUpper[2].D,
-                                self.bcUpper[2].N,
-                                self.bcUpper[2].val)
-      else
-         SM = self._matrixFn(self.dx, DxxPtr, DyyPtr, DxyPtr,
-                             0, 0, 0, 0, 0, 0)
-      end
-
+      local SM = self:getBlock(idxs)
       for d = 1,ndim do
          idxsExtK[d] = idxs[d]
       end
@@ -207,7 +283,7 @@ function DiscontGenPoisson:buildStiffMatrix(phi)
                if math.abs(val) > 1e-14 then
                   ffiC.discontPoisson_pushTriplet(self.poisson, idxK-1, idxL-1, val)
                end
-            end        
+            end
          end
       end
    end
@@ -232,88 +308,19 @@ function DiscontGenPoisson:_advance(tCurr, inFld, outFld)
    local stiffMatrixRange = Range.Range(lower, upper)
    local stiffMatrixIndexer = Range.makeRowMajorGenIndexer(stiffMatrixRange)
 
-   if self._first then
-      self.srcIndexer = src:genIndexer()
-      self.solIndexer = sol:genIndexer()
-
-      -- Construct the stiffness matrix using Eigen.
-      self:buildStiffMatrix(sol)
-   end
+   local srcIndexer = src:genIndexer()
+   local solIndexer = sol:genIndexer()
 
    -- Pushing source to the Eigen matrix.
    local idxsExt = Lin.Vec(ndim+1)
    local srcMod = Lin.Vec(self.nbasis)
    for idxs in localRange:colMajorIter() do
-      local DxxPtr = self.Dxx:get(self.srcIndexer(idxs))
-      local DyyPtr = self.Dyy:get(self.srcIndexer(idxs))
-      local DxyPtr = self.Dxy:get(self.srcIndexer(idxs))
-
-      if idxs[1] == localRange:lower(1) and idxs[2] == localRange:lower(2) then
-         SM = self._matrixFn_BL(self.dx, DxxPtr, DyyPtr, DxyPtr,
-                                self.bcLower[1].D,
-                                self.bcLower[1].N,
-                                self.bcLower[1].val,
-                                self.bcLower[2].D,
-                                self.bcLower[2].N,
-                                self.bcLower[2].val)
-      elseif idxs[1] == localRange:lower(1) and idxs[2] == localRange:upper(2) then
-         SM = self._matrixFn_TL(self.dx, DxxPtr, DyyPtr, DxyPtr,
-                                self.bcLower[1].D,
-                                self.bcLower[1].N,
-                                self.bcLower[1].val,
-                                self.bcUpper[2].D,
-                                self.bcUpper[2].N,
-                                self.bcUpper[2].val)
-      elseif idxs[1] == localRange:upper(1) and idxs[2] == localRange:lower(2) then
-         SM = self._matrixFn_BR(self.dx, DxxPtr, DyyPtr, DxyPtr,
-                                self.bcUpper[1].D,
-                                self.bcUpper[1].N,
-                                self.bcUpper[1].val,
-                                self.bcLower[2].D,
-                                self.bcLower[2].N,
-                                self.bcLower[2].val)
-      elseif idxs[1] == localRange:upper(1) and idxs[2] == localRange:upper(2) then
-         SM = self._matrixFn_TR(self.dx, DxxPtr, DyyPtr, DxyPtr,
-                                self.bcUpper[1].D,
-                                self.bcUpper[1].N,
-                                self.bcUpper[1].val,
-                                self.bcUpper[2].D,
-                                self.bcUpper[2].N,
-                                self.bcUpper[2].val)
-      elseif idxs[1] == localRange:lower(1) then
-         SM = self._matrixFn_L(self.dx, DxxPtr, DyyPtr, DxyPtr,
-                               self.bcLower[1].D,
-                               self.bcLower[1].N,
-                               self.bcLower[1].val,
-                               0, 0, 0)
-      elseif idxs[1] == localRange:upper(1) then
-         SM = self._matrixFn_R(self.dx, DxxPtr, DyyPtr, DxyPtr,
-                                self.bcUpper[1].D,
-                                self.bcUpper[1].N,
-                                self.bcUpper[1].val,
-                                0, 0, 0)
-      elseif idxs[2] == localRange:lower(2)then
-         SM = self._matrixFn_B(self.dx, DxxPtr, DyyPtr, DxyPtr,
-                                0, 0, 0,
-                                self.bcLower[2].D,
-                                self.bcLower[2].N,
-                                self.bcLower[2].val)
-      elseif idxs[2] == localRange:upper(2) then
-         SM = self._matrixFn_T(self.dx, DxxPtr, DyyPtr, DxyPtr,
-                                0, 0, 0,
-                                self.bcUpper[2].D,
-                                self.bcUpper[2].N,
-                                self.bcUpper[2].val)
-      else
-         SM = self._matrixFn(self.dx, DxxPtr, DyyPtr, DxyPtr,
-                             0, 0, 0, 0, 0, 0)
-      end
-
+      local SM = self:getBlock(idxs)
       for k = 1,self.nbasis do
          srcMod[k] = -SM[10][k]
       end
-      
-      local srcPtr = src:get(self.srcIndexer(idxs))
+
+      local srcPtr = src:get(srcIndexer(idxs))
       for d = 1,ndim do idxsExt[d] = idxs[d] end
       idxsExt[ndim+1] = 1
       local idx = stiffMatrixIndexer(idxsExt)
@@ -323,8 +330,7 @@ function DiscontGenPoisson:_advance(tCurr, inFld, outFld)
    ffiC.discontPoisson_solve(self.poisson)
 
    for idxs in localRange:colMajorIter() do
-      local solPtr = sol:get(self.solIndexer(idxs))
-      local idxsExt = Lin.Vec(ndim+1)
+      local solPtr = sol:get(solIndexer(idxs))
       for d = 1,ndim do idxsExt[d] = idxs[d] end
       idxsExt[ndim+1] = 1
       local idx = stiffMatrixIndexer(idxsExt)

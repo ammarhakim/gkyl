@@ -44,25 +44,26 @@ for bInd : 1 thru length(bName) do (
     maxPolyOrderB : maxPolyOrder[bInd],
     if(c>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
 
-    fname : sconcat("~/max-out/IntegratedDGMoment", c, "x", ".cpp"),
+    fname : sconcat("~/max-out/IntegratedDGMoment", bName[bInd], c, "x", ".cpp"),
     fh : openw(fname),
     printf(fh, "#include <IntegratedDGMomentModDecl.h> ~%"),
     printf(fh, " ~%"),
 
-    /* Integral of the field over all space. */
     funcName : sconcat("IntDGMoment", c, "x", bName[bInd]),
+
+    /* Integral of the field over all space. */
     calcOne(fh, funcName, c, bName[bInd], maxPolyOrderB),
 
     /* Compute the integral of x1, x2, x3, x4, x5 or x6. */
-    funcName : sconcat("IntDGMoment", c, "x", bName[bInd]),
     calcSingleX(fh, funcName, c, bName[bInd], maxPolyOrderB, 1),
 
     /* Compute the integral of x1^2, x2^2, x3^2, x4^2, x5^2 or x6^2. */
-    funcName : sconcat("IntDGMoment", c, "x", bName[bInd]),
     calcSingleX(fh, funcName, c, bName[bInd], maxPolyOrderB, 2),
 
+    /* Compute the integral of x1, x2, etc, all at the same time. */
+    xiCalc(fh, funcName, c, bName[bInd], maxPolyOrderB),
+
     /* Compute the integral of sum_i x_i^2. */
-    funcName : sconcat("IntDGMoment", c, "x", bName[bInd]),
     xSqCalc(fh, funcName, c, bName[bInd], maxPolyOrderB),
 
     close(fh)
@@ -75,29 +76,26 @@ for bInd : 1 thru length(bName) do (
       maxPolyOrderB : maxPolyOrder[bInd],
       if(c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
 
-      fname : sconcat("~/max-out/IntegratedDGMoment", c, "x", v, "v", ".cpp"),
+      fname : sconcat("~/max-out/IntegratedDGMoment", bName[bInd], c, "x", v, "v", ".cpp"),
       fh : openw(fname),
       printf(fh, "#include <IntegratedDGMomentModDecl.h> ~%"),
       printf(fh, " ~%"),
 
-      /* Compute the integral of v1, v2 or v3. */
       funcName : sconcat("IntDGMoment", c, "x", v, "v", bName[bInd]),
+
+      /* Compute the integral of v1, v2 or v3. */
       calcSingleV(fh, funcName, c, v, bName[bInd], maxPolyOrderB, 1),
 
       /* Compute the integral of v1^2, v2^2 or v3^2. */
-      funcName : sconcat("IntDGMoment", c, "x", v, "v", bName[bInd]),
       calcSingleV(fh, funcName, c, v, bName[bInd], maxPolyOrderB, 2),
 
       /* Compute the integral of M1i. */
-      funcName : sconcat("IntDGMoment", c, "x", v, "v", bName[bInd]),
       viCalc(fh, funcName, c, v, bName[bInd], maxPolyOrderB),
 
       /* Compute the integral of M2. */
-      funcName : sconcat("IntDGMoment", c, "x", v, "v", bName[bInd]),
       vSqCalc(fh, funcName, c, v, bName[bInd], maxPolyOrderB),
 
       /* Compute the integrals of M0, M1i and M2 together. */
-      funcName : sconcat("IntDGMoment", c, "x", v, "v", bName[bInd]),
       calcIntM(fh, funcName, c, v, bName[bInd], maxPolyOrderB),
 
       close(fh)

@@ -7,7 +7,7 @@ load("interpolate-calc/interpolateOp")$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 1$
+maxPolyOrder_Ser : 2$
 minCdim_Ser : 1$
 maxCdim_Ser : 2$
 

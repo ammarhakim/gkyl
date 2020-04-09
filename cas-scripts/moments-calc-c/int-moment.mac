@@ -154,6 +154,50 @@ calcSingleX(fh, funcNm, dim, basisFun, pMax, momPower) := block([],
   )
 )$
 
+xiCalc(fh, funcNm, dim, basisFun, pMax) := block([],
+  /* Computes the integral of "x1", "x2" and so on, at the same time. */
+  loadBasisX(dim, basisFun),
+
+  for polyOrder : 1 thru pMax do (
+
+    if (dim < 4) then (
+      basis    : basisC[polyOrder],
+      vars     : varsC,
+      varTrans : xTrans
+    ) else (
+      basis    : basisP[polyOrder],
+      vars     : varsP,
+      varTrans : vars*makelist(dxs[i]/2,i,1,dim)+makelist(xcs[i],i,1,dim)
+    ),
+
+    
+    printf(fh, "void ~a_xi_P~a(const double *w, const double *dx, const double *fld, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  const double volFac = ~a*~a; ~%", volExpr(dim), float(1/(2^dim)) ),
+    for i : 1 thru dim do (
+      printf(fh, "  const double ~a = w[~a]; ~%", xcs[i], i-1),
+      printf(fh, "  const double ~a = dx[~a]; ~%", dxs[i], i-1)
+    ),
+
+    printf(fh, " ~%"),
+
+    fld_e : doExpand1(fld, basis),
+
+    M : [],
+
+    for d : 1 thru dim do (
+       mom : fullratsimp(innerProd(vars, 1, varTrans[d], fld_e)),
+       M  : endcons(mom,M)
+    ),
+
+    intM : volFac*M,
+
+    writeCIncrExprs1noPowers(out,intM,append(xcs,dxs)),
+    printf(fh, "~%"),
+
+    printf(fh, "} ~%")
+  )
+)$
+
 xSqCalc(fh, funcNm, dim, basisFun, pMax) := block([],
   /* Computes the integral of sum_i (x_i^2)*field. */
   loadBasisX(dim, basisFun),

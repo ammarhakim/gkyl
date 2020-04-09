@@ -252,7 +252,6 @@ local function test_x3v2(pOrder, basis)
    -- Moment updater.
    local calcMomDensity = distFmoment(phaseGrid,phaseBasis,confBasis,"M1i")
    calcMomDensity:advance(0.0, {distf}, {momDensity})
-   momDensity:write("momDensity.bp",0.0)
 
    -- Compute integrated M1_1 moment with CartFieldIntegratedQuantCalc.
    local intM1_1   = DataStruct.DynVector {numComponents = vDim,}
@@ -889,6 +888,58 @@ local function test_v3SqvSq(pOrder, basis)
    assert_equal(NPn[1], NP1[1]+NP2[1]+NP3[1], "Checking v1Sq+v2Sq moment")
 end
 
+local function test_xi(pOrder, basis)
+   local pLower = {0.0, -2.0, -2.0}
+   local pUpper = {1.0,  6.0,  6.0}
+   local pN     = {4, 4, 4}
+   -- Phase-space and config-space grids.
+   local phaseGrid = createGrid(pLower, pUpper, pN)
+   local confGrid  = createGrid({phaseGrid:lower(1)},{phaseGrid:upper(1)},{phaseGrid:numCells(1)})
+   -- Basis functions.
+   local phaseBasis = createBasis(phaseGrid:ndim(), pOrder, basis)
+   local confBasis  = createBasis(confGrid:ndim(), pOrder, basis)
+   -- Fields.
+   local vDim       = phaseBasis:ndim()-confBasis:ndim()
+   local distf      = createField(phaseGrid,phaseBasis)
+   local momDensity = createField(confGrid,confBasis,vDim)
+
+   -- Updater to initialize distribution function
+   local project = createProject(phaseGrid,phaseBasis)
+   project:setFunc(function (t, xn)
+         return 1/( (phaseGrid:upper(1)-phaseGrid:lower(1))
+                   *(phaseGrid:upper(2)-phaseGrid:lower(2))
+                   *(phaseGrid:upper(3)-phaseGrid:lower(3))
+                   *(0.5*(phaseGrid:upper(4)^2-phaseGrid:lower(4)^2)) )
+      end
+   )
+   project:advance(0.0, {}, {distf})
+   -- Compute integral of x_1*f, x_2*f and x_3*f at the same time with IntegratedDGMoment.
+   local intxiF  = DataStruct.DynVector {numComponents = phaseGrid:ndim(),}
+   local intMom  = intDGmom(phaseGrid,phaseBasis,"xi")
+   intMom:advance(0.0, {distf}, {intxiF})
+   local _, intM = intxiF:lastData()
+
+   -- Compute integral of x_1*f with IntegratedDGMoment.
+   local intx1F   = DataStruct.DynVector {numComponents = 1,}
+   local intMom1  = intDGmom(phaseGrid,phaseBasis,"x1")
+   intMom1:advance(0.0, {distf}, {intx1F})
+   local _, intM1 = intx1F:lastData()
+   -- Compute integral of x_2*f with IntegratedDGMoment.
+   local intx2F   = DataStruct.DynVector {numComponents = 1,}
+   local intMom2  = intDGmom(phaseGrid,phaseBasis,"x2")
+   intMom2:advance(0.0, {distf}, {intx2F})
+   local _, intM2 = intx2F:lastData()
+   -- Compute integral of x_3*f with IntegratedDGMoment.
+   local intx3F   = DataStruct.DynVector {numComponents = 1,}
+   local intMom3  = intDGmom(phaseGrid,phaseBasis,"x3")
+   intMom3:advance(0.0, {distf}, {intx3F})
+   local _, intM3 = intx3F:lastData()
+
+   assert_equal(intM[1], intM1[1], "Checking x1 moment")
+   assert_equal(intM[2], intM2[1], "Checking x2 moment")
+   assert_equal(intM[3], intM3[1], "Checking x2 moment")
+end
+
 local function test_vi(pOrder, basis)
    local pLower = {0.0, -2.0, -2.0, -2.0}
    local pUpper = {1.0,  6.0, 6.0, 6.0}
@@ -1005,27 +1056,30 @@ local function test_intM(pOrder, basis)
    assert_equal(intM[5], intME[1], "Checking vSq moment")
 end
 
-local polyOrder = 2
-local basisType = "Ser"
+local polyOrderMax = 2
+local basisType    = "Ser"
 
-test_one( polyOrder, basisType)
-test_x1( polyOrder, basisType)
-test_x2v1( polyOrder, basisType)
-test_x3v2( polyOrder, basisType)
-test_x4v3( polyOrder, basisType)
-test_x5v3( polyOrder, basisType)
-test_x6v3( polyOrder, basisType)
-test_x1SqxSq( polyOrder, basisType)
-test_x2SqxSq( polyOrder, basisType)
-test_x3SqxSq( polyOrder, basisType)
-test_x4SqxSq( polyOrder, basisType)
-test_x5SqxSq( polyOrder, basisType)
-test_x6SqxSq( polyOrder, basisType)
-test_v1SqvSq( polyOrder, basisType)
-test_v2SqvSq( polyOrder, basisType)
-test_v3SqvSq( polyOrder, basisType)
-test_vi( polyOrder, basisType)
-test_intM( polyOrder, basisType)
+for polyOrder = 1, polyOrderMax do
+  test_one( polyOrder, basisType)
+  test_x1( polyOrder, basisType)
+  test_x2v1( polyOrder, basisType)
+  test_x3v2( polyOrder, basisType)
+  test_x4v3( polyOrder, basisType)
+  test_x5v3( polyOrder, basisType)
+  test_x6v3( polyOrder, basisType)
+  test_x1SqxSq( polyOrder, basisType)
+  test_x2SqxSq( polyOrder, basisType)
+  test_x3SqxSq( polyOrder, basisType)
+  test_x4SqxSq( polyOrder, basisType)
+  test_x5SqxSq( polyOrder, basisType)
+  test_x6SqxSq( polyOrder, basisType)
+  test_v1SqvSq( polyOrder, basisType)
+  test_v2SqvSq( polyOrder, basisType)
+  test_v3SqvSq( polyOrder, basisType)
+  test_xi( polyOrder, basisType)
+  test_vi( polyOrder, basisType)
+  test_intM( polyOrder, basisType)
+end
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

@@ -1,4 +1,4 @@
-#include <cmath> 
+#include <cmath>
 #include <GyrokineticModDecl.h> 
 // approximation for inverse Langevin function 
 long double invL(long double x) { 
@@ -44,18 +44,18 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    if(wv > 0) {
     xc = 2.*(std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 0. : b<-500? 1. : std::abs(b)<1e-10? (1.+xc)/2. : (std::exp(b*xc)-std::exp(-b))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (0.02777777777777778*(f[27]-1.732050807568877*(f[22]+f[21]+f[20]+f[16])+3.0*(f[14]+f[13]+f[12]+f[8]+f[7]+f[6])-5.196152422706631*(f[5]+f[3]+f[2]+f[1])+9.0*f[0]))*fac; 
     fac = (b>500 || std::abs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*std::exp(b*xc)+(b+1)*std::exp(-b))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (0.02777777777777778*(f[31]-1.732050807568877*(f[30]+f[29]+f[28]+f[26])+3.0*(f[25]+f[24]+f[23]+f[19]+f[18]+f[17])-5.196152422706631*(f[15]+f[11]+f[10]+f[9])+9.0*f[4]))*fac; 
    } else { 
     xc = 2.*(-std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 1. : b<-500? 0. : std::abs(b)<1e-10? (1.-xc)/2. : (std::exp(b)-std::exp(b*xc))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (0.02777777777777778*(f[27]-1.732050807568877*(f[22]+f[21]+f[20]+f[16])+3.0*(f[14]+f[13]+f[12]+f[8]+f[7]+f[6])-5.196152422706631*(f[5]+f[3]+f[2]+f[1])+9.0*f[0]))*fac; 
     fac = b>500? 1. : (b<-500 || std::abs(b)<1e-8)? 0. : ((b-1)*std::exp(b)-(b*xc-1)*std::exp(b*xc))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (0.02777777777777778*(f[31]-1.732050807568877*(f[30]+f[29]+f[28]+f[26])+3.0*(f[25]+f[24]+f[23]+f[19]+f[18]+f[17])-5.196152422706631*(f[15]+f[11]+f[10]+f[9])+9.0*f[4]))*fac; 
    } 
   } 
@@ -69,18 +69,18 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    if(wv > 0) {
     xc = 2.*(std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 0. : b<-500? 1. : std::abs(b)<1e-10? (1.+xc)/2. : (std::exp(b*xc)-std::exp(-b))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (-0.02777777777777778*(f[27]+1.732050807568877*((-1.0*(f[22]+f[21]))+f[20]-1.0*f[16])+3.0*(f[14]-1.0*(f[13]+f[12]-1.0*f[8])+f[7]-1.0*f[6])+5.196152422706631*(f[5]-1.0*f[3]+f[2]+f[1])-9.0*f[0]))*fac; 
     fac = (b>500 || std::abs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*std::exp(b*xc)+(b+1)*std::exp(-b))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (-0.02777777777777778*(f[31]+1.732050807568877*((-1.0*(f[30]+f[29]))+f[28]-1.0*f[26])+3.0*(f[25]-1.0*(f[24]+f[23]-1.0*f[19])+f[18]-1.0*f[17])+5.196152422706631*(f[15]-1.0*f[11]+f[10]+f[9])-9.0*f[4]))*fac; 
    } else { 
     xc = 2.*(-std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 1. : b<-500? 0. : std::abs(b)<1e-10? (1.-xc)/2. : (std::exp(b)-std::exp(b*xc))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (-0.02777777777777778*(f[27]+1.732050807568877*((-1.0*(f[22]+f[21]))+f[20]-1.0*f[16])+3.0*(f[14]-1.0*(f[13]+f[12]-1.0*f[8])+f[7]-1.0*f[6])+5.196152422706631*(f[5]-1.0*f[3]+f[2]+f[1])-9.0*f[0]))*fac; 
     fac = b>500? 1. : (b<-500 || std::abs(b)<1e-8)? 0. : ((b-1)*std::exp(b)-(b*xc-1)*std::exp(b*xc))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (-0.02777777777777778*(f[31]+1.732050807568877*((-1.0*(f[30]+f[29]))+f[28]-1.0*f[26])+3.0*(f[25]-1.0*(f[24]+f[23]-1.0*f[19])+f[18]-1.0*f[17])+5.196152422706631*(f[15]-1.0*f[11]+f[10]+f[9])-9.0*f[4]))*fac; 
    } 
   } 
@@ -94,18 +94,18 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    if(wv > 0) {
     xc = 2.*(std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 0. : b<-500? 1. : std::abs(b)<1e-10? (1.+xc)/2. : (std::exp(b*xc)-std::exp(-b))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (-0.02777777777777778*(f[27]-1.732050807568877*(f[22]+f[21]+f[20]-1.0*f[16])+3.0*(f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6]))+5.196152422706631*((-1.0*f[5])+f[3]+f[2]+f[1])-9.0*f[0]))*fac; 
     fac = (b>500 || std::abs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*std::exp(b*xc)+(b+1)*std::exp(-b))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (-0.02777777777777778*(f[31]-1.732050807568877*(f[30]+f[29]+f[28]-1.0*f[26])+3.0*(f[25]+f[24]+f[23]-1.0*(f[19]+f[18]+f[17]))+5.196152422706631*((-1.0*f[15])+f[11]+f[10]+f[9])-9.0*f[4]))*fac; 
    } else { 
     xc = 2.*(-std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 1. : b<-500? 0. : std::abs(b)<1e-10? (1.-xc)/2. : (std::exp(b)-std::exp(b*xc))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (-0.02777777777777778*(f[27]-1.732050807568877*(f[22]+f[21]+f[20]-1.0*f[16])+3.0*(f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6]))+5.196152422706631*((-1.0*f[5])+f[3]+f[2]+f[1])-9.0*f[0]))*fac; 
     fac = b>500? 1. : (b<-500 || std::abs(b)<1e-8)? 0. : ((b-1)*std::exp(b)-(b*xc-1)*std::exp(b*xc))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (-0.02777777777777778*(f[31]-1.732050807568877*(f[30]+f[29]+f[28]-1.0*f[26])+3.0*(f[25]+f[24]+f[23]-1.0*(f[19]+f[18]+f[17]))+5.196152422706631*((-1.0*f[15])+f[11]+f[10]+f[9])-9.0*f[4]))*fac; 
    } 
   } 
@@ -119,18 +119,18 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    if(wv > 0) {
     xc = 2.*(std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 0. : b<-500? 1. : std::abs(b)<1e-10? (1.+xc)/2. : (std::exp(b*xc)-std::exp(-b))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (0.02777777777777778*(f[27]+1.732050807568877*((-1.0*(f[22]+f[21]))+f[20]+f[16])+3.0*(f[14]-1.0*(f[13]+f[12]+f[8]+f[7]-1.0*f[6]))+5.196152422706631*(f[5]+f[3]-1.0*(f[2]+f[1]))+9.0*f[0]))*fac; 
     fac = (b>500 || std::abs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*std::exp(b*xc)+(b+1)*std::exp(-b))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (0.02777777777777778*(f[31]+1.732050807568877*((-1.0*(f[30]+f[29]))+f[28]+f[26])+3.0*(f[25]-1.0*(f[24]+f[23]+f[19]+f[18]-1.0*f[17]))+5.196152422706631*(f[15]+f[11]-1.0*(f[10]+f[9]))+9.0*f[4]))*fac; 
    } else { 
     xc = 2.*(-std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 1. : b<-500? 0. : std::abs(b)<1e-10? (1.-xc)/2. : (std::exp(b)-std::exp(b*xc))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (0.02777777777777778*(f[27]+1.732050807568877*((-1.0*(f[22]+f[21]))+f[20]+f[16])+3.0*(f[14]-1.0*(f[13]+f[12]+f[8]+f[7]-1.0*f[6]))+5.196152422706631*(f[5]+f[3]-1.0*(f[2]+f[1]))+9.0*f[0]))*fac; 
     fac = b>500? 1. : (b<-500 || std::abs(b)<1e-8)? 0. : ((b-1)*std::exp(b)-(b*xc-1)*std::exp(b*xc))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (0.02777777777777778*(f[31]+1.732050807568877*((-1.0*(f[30]+f[29]))+f[28]+f[26])+3.0*(f[25]-1.0*(f[24]+f[23]+f[19]+f[18]-1.0*f[17]))+5.196152422706631*(f[15]+f[11]-1.0*(f[10]+f[9]))+9.0*f[4]))*fac; 
    } 
   } 
@@ -176,18 +176,18 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    if(wv > 0) {
     xc = 2.*(std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 0. : b<-500? 1. : std::abs(b)<1e-10? (1.+xc)/2. : (std::exp(b*xc)-std::exp(-b))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (-0.02777777777777778*(f[27]+1.732050807568877*(f[22]-1.0*(f[21]+f[20]+f[16]))+3.0*((-1.0*(f[14]+f[13]))+f[12]-1.0*f[8]+f[7]+f[6])+5.196152422706631*(f[5]+f[3]+f[2])-1.0*(5.196152422706631*f[1]+9.0*f[0])))*fac; 
     fac = (b>500 || std::abs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*std::exp(b*xc)+(b+1)*std::exp(-b))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (-0.02777777777777778*(f[31]+1.732050807568877*(f[30]-1.0*(f[29]+f[28]+f[26]))+3.0*((-1.0*(f[25]+f[24]))+f[23]-1.0*f[19]+f[18]+f[17])+5.196152422706631*(f[15]+f[11]+f[10])-1.0*(5.196152422706631*f[9]+9.0*f[4])))*fac; 
    } else { 
     xc = 2.*(-std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 1. : b<-500? 0. : std::abs(b)<1e-10? (1.-xc)/2. : (std::exp(b)-std::exp(b*xc))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (-0.02777777777777778*(f[27]+1.732050807568877*(f[22]-1.0*(f[21]+f[20]+f[16]))+3.0*((-1.0*(f[14]+f[13]))+f[12]-1.0*f[8]+f[7]+f[6])+5.196152422706631*(f[5]+f[3]+f[2])-1.0*(5.196152422706631*f[1]+9.0*f[0])))*fac; 
     fac = b>500? 1. : (b<-500 || std::abs(b)<1e-8)? 0. : ((b-1)*std::exp(b)-(b*xc-1)*std::exp(b*xc))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (-0.02777777777777778*(f[31]+1.732050807568877*(f[30]-1.0*(f[29]+f[28]+f[26]))+3.0*((-1.0*(f[25]+f[24]))+f[23]-1.0*f[19]+f[18]+f[17])+5.196152422706631*(f[15]+f[11]+f[10])-1.0*(5.196152422706631*f[9]+9.0*f[4])))*fac; 
    } 
   } 
@@ -201,18 +201,18 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    if(wv > 0) {
     xc = 2.*(std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 0. : b<-500? 1. : std::abs(b)<1e-10? (1.+xc)/2. : (std::exp(b*xc)-std::exp(-b))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (0.02777777777777778*(f[27]+1.732050807568877*(f[22]-1.0*f[21]+f[20]-1.0*f[16])+3.0*((-1.0*f[14])+f[13]-1.0*(f[12]+f[8]-1.0*f[7]+f[6]))+5.196152422706631*((-1.0*f[5])+f[3]-1.0*f[2]+f[1])+9.0*f[0]))*fac; 
     fac = (b>500 || std::abs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*std::exp(b*xc)+(b+1)*std::exp(-b))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (0.02777777777777778*(f[31]+1.732050807568877*(f[30]-1.0*f[29]+f[28]-1.0*f[26])+3.0*((-1.0*f[25])+f[24]-1.0*(f[23]+f[19]-1.0*f[18]+f[17]))+5.196152422706631*((-1.0*f[15])+f[11]-1.0*f[10]+f[9])+9.0*f[4]))*fac; 
    } else { 
     xc = 2.*(-std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 1. : b<-500? 0. : std::abs(b)<1e-10? (1.-xc)/2. : (std::exp(b)-std::exp(b*xc))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (0.02777777777777778*(f[27]+1.732050807568877*(f[22]-1.0*f[21]+f[20]-1.0*f[16])+3.0*((-1.0*f[14])+f[13]-1.0*(f[12]+f[8]-1.0*f[7]+f[6]))+5.196152422706631*((-1.0*f[5])+f[3]-1.0*f[2]+f[1])+9.0*f[0]))*fac; 
     fac = b>500? 1. : (b<-500 || std::abs(b)<1e-8)? 0. : ((b-1)*std::exp(b)-(b*xc-1)*std::exp(b*xc))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (0.02777777777777778*(f[31]+1.732050807568877*(f[30]-1.0*f[29]+f[28]-1.0*f[26])+3.0*((-1.0*f[25])+f[24]-1.0*(f[23]+f[19]-1.0*f[18]+f[17]))+5.196152422706631*((-1.0*f[15])+f[11]-1.0*f[10]+f[9])+9.0*f[4]))*fac; 
    } 
   } 
@@ -226,18 +226,18 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    if(wv > 0) {
     xc = 2.*(std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 0. : b<-500? 1. : std::abs(b)<1e-10? (1.+xc)/2. : (std::exp(b*xc)-std::exp(-b))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (0.02777777777777778*(f[27]+1.732050807568877*(f[22]-1.0*(f[21]+f[20]-1.0*f[16]))+3.0*((-1.0*(f[14]+f[13]))+f[12]+f[8]-1.0*(f[7]+f[6]))+5.196152422706631*(f[5]-1.0*(f[3]+f[2]-1.0*f[1]))+9.0*f[0]))*fac; 
     fac = (b>500 || std::abs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*std::exp(b*xc)+(b+1)*std::exp(-b))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (0.02777777777777778*(f[31]+1.732050807568877*(f[30]-1.0*(f[29]+f[28]-1.0*f[26]))+3.0*((-1.0*(f[25]+f[24]))+f[23]+f[19]-1.0*(f[18]+f[17]))+5.196152422706631*(f[15]-1.0*(f[11]+f[10]-1.0*f[9]))+9.0*f[4]))*fac; 
    } else { 
     xc = 2.*(-std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 1. : b<-500? 0. : std::abs(b)<1e-10? (1.-xc)/2. : (std::exp(b)-std::exp(b*xc))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (0.02777777777777778*(f[27]+1.732050807568877*(f[22]-1.0*(f[21]+f[20]-1.0*f[16]))+3.0*((-1.0*(f[14]+f[13]))+f[12]+f[8]-1.0*(f[7]+f[6]))+5.196152422706631*(f[5]-1.0*(f[3]+f[2]-1.0*f[1]))+9.0*f[0]))*fac; 
     fac = b>500? 1. : (b<-500 || std::abs(b)<1e-8)? 0. : ((b-1)*std::exp(b)-(b*xc-1)*std::exp(b*xc))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (0.02777777777777778*(f[31]+1.732050807568877*(f[30]-1.0*(f[29]+f[28]-1.0*f[26]))+3.0*((-1.0*(f[25]+f[24]))+f[23]+f[19]-1.0*(f[18]+f[17]))+5.196152422706631*(f[15]-1.0*(f[11]+f[10]-1.0*f[9]))+9.0*f[4]))*fac; 
    } 
   } 
@@ -251,18 +251,18 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    if(wv > 0) {
     xc = 2.*(std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 0. : b<-500? 1. : std::abs(b)<1e-10? (1.+xc)/2. : (std::exp(b*xc)-std::exp(-b))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (-0.02777777777777778*(f[27]+1.732050807568877*(f[22]-1.0*f[21]+f[20]+f[16])+3.0*((-1.0*f[14])+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6])+5.196152422706631*(f[2]-1.0*(f[5]+f[3]))-1.0*(5.196152422706631*f[1]+9.0*f[0])))*fac; 
     fac = (b>500 || std::abs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*std::exp(b*xc)+(b+1)*std::exp(-b))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (-0.02777777777777778*(f[31]+1.732050807568877*(f[30]-1.0*f[29]+f[28]+f[26])+3.0*((-1.0*f[25])+f[24]-1.0*f[23]+f[19]-1.0*f[18]+f[17])+5.196152422706631*(f[10]-1.0*(f[15]+f[11]))-1.0*(5.196152422706631*f[9]+9.0*f[4])))*fac; 
    } else { 
     xc = 2.*(-std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 1. : b<-500? 0. : std::abs(b)<1e-10? (1.-xc)/2. : (std::exp(b)-std::exp(b*xc))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (-0.02777777777777778*(f[27]+1.732050807568877*(f[22]-1.0*f[21]+f[20]+f[16])+3.0*((-1.0*f[14])+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6])+5.196152422706631*(f[2]-1.0*(f[5]+f[3]))-1.0*(5.196152422706631*f[1]+9.0*f[0])))*fac; 
     fac = b>500? 1. : (b<-500 || std::abs(b)<1e-8)? 0. : ((b-1)*std::exp(b)-(b*xc-1)*std::exp(b*xc))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (-0.02777777777777778*(f[31]+1.732050807568877*(f[30]-1.0*f[29]+f[28]+f[26])+3.0*((-1.0*f[25])+f[24]-1.0*f[23]+f[19]-1.0*f[18]+f[17])+5.196152422706631*(f[10]-1.0*(f[15]+f[11]))-1.0*(5.196152422706631*f[9]+9.0*f[4])))*fac; 
    } 
   } 
@@ -308,18 +308,18 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    if(wv > 0) {
     xc = 2.*(std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 0. : b<-500? 1. : std::abs(b)<1e-10? (1.+xc)/2. : (std::exp(b*xc)-std::exp(-b))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (-0.02777777777777778*(f[27]+1.732050807568877*((-1.0*f[22])+f[21]-1.0*(f[20]+f[16]))+3.0*((-1.0*f[14])+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6])+5.196152422706631*(f[5]+f[3]-1.0*f[2]+f[1])-9.0*f[0]))*fac; 
     fac = (b>500 || std::abs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*std::exp(b*xc)+(b+1)*std::exp(-b))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (-0.02777777777777778*(f[31]+1.732050807568877*((-1.0*f[30])+f[29]-1.0*(f[28]+f[26]))+3.0*((-1.0*f[25])+f[24]-1.0*f[23]+f[19]-1.0*f[18]+f[17])+5.196152422706631*(f[15]+f[11]-1.0*f[10]+f[9])-9.0*f[4]))*fac; 
    } else { 
     xc = 2.*(-std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 1. : b<-500? 0. : std::abs(b)<1e-10? (1.-xc)/2. : (std::exp(b)-std::exp(b*xc))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (-0.02777777777777778*(f[27]+1.732050807568877*((-1.0*f[22])+f[21]-1.0*(f[20]+f[16]))+3.0*((-1.0*f[14])+f[13]-1.0*f[12]+f[8]-1.0*f[7]+f[6])+5.196152422706631*(f[5]+f[3]-1.0*f[2]+f[1])-9.0*f[0]))*fac; 
     fac = b>500? 1. : (b<-500 || std::abs(b)<1e-8)? 0. : ((b-1)*std::exp(b)-(b*xc-1)*std::exp(b*xc))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (-0.02777777777777778*(f[31]+1.732050807568877*((-1.0*f[30])+f[29]-1.0*(f[28]+f[26]))+3.0*((-1.0*f[25])+f[24]-1.0*f[23]+f[19]-1.0*f[18]+f[17])+5.196152422706631*(f[15]+f[11]-1.0*f[10]+f[9])-9.0*f[4]))*fac; 
    } 
   } 
@@ -333,18 +333,18 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    if(wv > 0) {
     xc = 2.*(std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 0. : b<-500? 1. : std::abs(b)<1e-10? (1.+xc)/2. : (std::exp(b*xc)-std::exp(-b))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (0.02777777777777778*(f[27]+1.732050807568877*((-1.0*f[22])+f[21]+f[20]-1.0*f[16])+3.0*((-1.0*(f[14]+f[13]))+f[12]+f[8]-1.0*(f[7]+f[6]))+5.196152422706631*((-1.0*f[5])+f[3]+f[2]-1.0*f[1])+9.0*f[0]))*fac; 
     fac = (b>500 || std::abs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*std::exp(b*xc)+(b+1)*std::exp(-b))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (0.02777777777777778*(f[31]+1.732050807568877*((-1.0*f[30])+f[29]+f[28]-1.0*f[26])+3.0*((-1.0*(f[25]+f[24]))+f[23]+f[19]-1.0*(f[18]+f[17]))+5.196152422706631*((-1.0*f[15])+f[11]+f[10]-1.0*f[9])+9.0*f[4]))*fac; 
    } else { 
     xc = 2.*(-std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 1. : b<-500? 0. : std::abs(b)<1e-10? (1.-xc)/2. : (std::exp(b)-std::exp(b*xc))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (0.02777777777777778*(f[27]+1.732050807568877*((-1.0*f[22])+f[21]+f[20]-1.0*f[16])+3.0*((-1.0*(f[14]+f[13]))+f[12]+f[8]-1.0*(f[7]+f[6]))+5.196152422706631*((-1.0*f[5])+f[3]+f[2]-1.0*f[1])+9.0*f[0]))*fac; 
     fac = b>500? 1. : (b<-500 || std::abs(b)<1e-8)? 0. : ((b-1)*std::exp(b)-(b*xc-1)*std::exp(b*xc))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (0.02777777777777778*(f[31]+1.732050807568877*((-1.0*f[30])+f[29]+f[28]-1.0*f[26])+3.0*((-1.0*(f[25]+f[24]))+f[23]+f[19]-1.0*(f[18]+f[17]))+5.196152422706631*((-1.0*f[15])+f[11]+f[10]-1.0*f[9])+9.0*f[4]))*fac; 
    } 
   } 
@@ -358,18 +358,18 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    if(wv > 0) {
     xc = 2.*(std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 0. : b<-500? 1. : std::abs(b)<1e-10? (1.+xc)/2. : (std::exp(b*xc)-std::exp(-b))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (0.02777777777777778*(f[27]+1.732050807568877*((-1.0*f[22])+f[21]-1.0*f[20]+f[16])+3.0*((-1.0*f[14])+f[13]-1.0*(f[12]+f[8]-1.0*f[7]+f[6]))+5.196152422706631*(f[5]-1.0*f[3]+f[2]-1.0*f[1])+9.0*f[0]))*fac; 
     fac = (b>500 || std::abs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*std::exp(b*xc)+(b+1)*std::exp(-b))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (0.02777777777777778*(f[31]+1.732050807568877*((-1.0*f[30])+f[29]-1.0*f[28]+f[26])+3.0*((-1.0*f[25])+f[24]-1.0*(f[23]+f[19]-1.0*f[18]+f[17]))+5.196152422706631*(f[15]-1.0*f[11]+f[10]-1.0*f[9])+9.0*f[4]))*fac; 
    } else { 
     xc = 2.*(-std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 1. : b<-500? 0. : std::abs(b)<1e-10? (1.-xc)/2. : (std::exp(b)-std::exp(b*xc))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (0.02777777777777778*(f[27]+1.732050807568877*((-1.0*f[22])+f[21]-1.0*f[20]+f[16])+3.0*((-1.0*f[14])+f[13]-1.0*(f[12]+f[8]-1.0*f[7]+f[6]))+5.196152422706631*(f[5]-1.0*f[3]+f[2]-1.0*f[1])+9.0*f[0]))*fac; 
     fac = b>500? 1. : (b<-500 || std::abs(b)<1e-8)? 0. : ((b-1)*std::exp(b)-(b*xc-1)*std::exp(b*xc))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (0.02777777777777778*(f[31]+1.732050807568877*((-1.0*f[30])+f[29]-1.0*f[28]+f[26])+3.0*((-1.0*f[25])+f[24]-1.0*(f[23]+f[19]-1.0*f[18]+f[17]))+5.196152422706631*(f[15]-1.0*f[11]+f[10]-1.0*f[9])+9.0*f[4]))*fac; 
    } 
   } 
@@ -383,18 +383,18 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    if(wv > 0) {
     xc = 2.*(std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 0. : b<-500? 1. : std::abs(b)<1e-10? (1.+xc)/2. : (std::exp(b*xc)-std::exp(-b))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (-0.02777777777777778*(f[27]+1.732050807568877*((-1.0*f[22])+f[21]+f[20]+f[16])+3.0*((-1.0*(f[14]+f[13]))+f[12]-1.0*f[8]+f[7]+f[6])-5.196152422706631*(f[5]+f[3]+f[2]-1.0*f[1])-9.0*f[0]))*fac; 
     fac = (b>500 || std::abs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*std::exp(b*xc)+(b+1)*std::exp(-b))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (-0.02777777777777778*(f[31]+1.732050807568877*((-1.0*f[30])+f[29]+f[28]+f[26])+3.0*((-1.0*(f[25]+f[24]))+f[23]-1.0*f[19]+f[18]+f[17])-5.196152422706631*(f[15]+f[11]+f[10]-1.0*f[9])-9.0*f[4]))*fac; 
    } else { 
     xc = 2.*(-std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 1. : b<-500? 0. : std::abs(b)<1e-10? (1.-xc)/2. : (std::exp(b)-std::exp(b*xc))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (-0.02777777777777778*(f[27]+1.732050807568877*((-1.0*f[22])+f[21]+f[20]+f[16])+3.0*((-1.0*(f[14]+f[13]))+f[12]-1.0*f[8]+f[7]+f[6])-5.196152422706631*(f[5]+f[3]+f[2]-1.0*f[1])-9.0*f[0]))*fac; 
     fac = b>500? 1. : (b<-500 || std::abs(b)<1e-8)? 0. : ((b-1)*std::exp(b)-(b*xc-1)*std::exp(b*xc))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (-0.02777777777777778*(f[31]+1.732050807568877*((-1.0*f[30])+f[29]+f[28]+f[26])+3.0*((-1.0*(f[25]+f[24]))+f[23]-1.0*f[19]+f[18]+f[17])-5.196152422706631*(f[15]+f[11]+f[10]-1.0*f[9])-9.0*f[4]))*fac; 
    } 
   } 
@@ -440,18 +440,18 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    if(wv > 0) {
     xc = 2.*(std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 0. : b<-500? 1. : std::abs(b)<1e-10? (1.+xc)/2. : (std::exp(b*xc)-std::exp(-b))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (0.02777777777777778*(f[27]+1.732050807568877*(f[22]+f[21]-1.0*(f[20]+f[16]))+3.0*(f[14]-1.0*(f[13]+f[12]+f[8]+f[7]-1.0*f[6]))+5.196152422706631*((-1.0*(f[5]+f[3]))+f[2]+f[1])+9.0*f[0]))*fac; 
     fac = (b>500 || std::abs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*std::exp(b*xc)+(b+1)*std::exp(-b))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (0.02777777777777778*(f[31]+1.732050807568877*(f[30]+f[29]-1.0*(f[28]+f[26]))+3.0*(f[25]-1.0*(f[24]+f[23]+f[19]+f[18]-1.0*f[17]))+5.196152422706631*((-1.0*(f[15]+f[11]))+f[10]+f[9])+9.0*f[4]))*fac; 
    } else { 
     xc = 2.*(-std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 1. : b<-500? 0. : std::abs(b)<1e-10? (1.-xc)/2. : (std::exp(b)-std::exp(b*xc))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][0] = (0.02777777777777778*(f[27]+1.732050807568877*(f[22]+f[21]-1.0*(f[20]+f[16]))+3.0*(f[14]-1.0*(f[13]+f[12]+f[8]+f[7]-1.0*f[6]))+5.196152422706631*((-1.0*(f[5]+f[3]))+f[2]+f[1])+9.0*f[0]))*fac; 
     fac = b>500? 1. : (b<-500 || std::abs(b)<1e-8)? 0. : ((b-1)*std::exp(b)-(b*xc-1)*std::exp(b*xc))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[0][1] = (0.02777777777777778*(f[31]+1.732050807568877*(f[30]+f[29]-1.0*(f[28]+f[26]))+3.0*(f[25]-1.0*(f[24]+f[23]+f[19]+f[18]-1.0*f[17]))+5.196152422706631*((-1.0*(f[15]+f[11]))+f[10]+f[9])+9.0*f[4]))*fac; 
    } 
   } 
@@ -465,18 +465,18 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    if(wv > 0) {
     xc = 2.*(std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 0. : b<-500? 1. : std::abs(b)<1e-10? (1.+xc)/2. : (std::exp(b*xc)-std::exp(-b))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (-0.02777777777777778*(f[27]+1.732050807568877*(f[22]+f[21]+f[20]-1.0*f[16])+3.0*(f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6]))+5.196152422706631*f[5]-1.0*(5.196152422706631*(f[3]+f[2]+f[1])+9.0*f[0])))*fac; 
     fac = (b>500 || std::abs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*std::exp(b*xc)+(b+1)*std::exp(-b))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (-0.02777777777777778*(f[31]+1.732050807568877*(f[30]+f[29]+f[28]-1.0*f[26])+3.0*(f[25]+f[24]+f[23]-1.0*(f[19]+f[18]+f[17]))+5.196152422706631*f[15]-1.0*(5.196152422706631*(f[11]+f[10]+f[9])+9.0*f[4])))*fac; 
    } else { 
     xc = 2.*(-std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 1. : b<-500? 0. : std::abs(b)<1e-10? (1.-xc)/2. : (std::exp(b)-std::exp(b*xc))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][0] = (-0.02777777777777778*(f[27]+1.732050807568877*(f[22]+f[21]+f[20]-1.0*f[16])+3.0*(f[14]+f[13]+f[12]-1.0*(f[8]+f[7]+f[6]))+5.196152422706631*f[5]-1.0*(5.196152422706631*(f[3]+f[2]+f[1])+9.0*f[0])))*fac; 
     fac = b>500? 1. : (b<-500 || std::abs(b)<1e-8)? 0. : ((b-1)*std::exp(b)-(b*xc-1)*std::exp(b*xc))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[1][1] = (-0.02777777777777778*(f[31]+1.732050807568877*(f[30]+f[29]+f[28]-1.0*f[26])+3.0*(f[25]+f[24]+f[23]-1.0*(f[19]+f[18]+f[17]))+5.196152422706631*f[15]-1.0*(5.196152422706631*(f[11]+f[10]+f[9])+9.0*f[4])))*fac; 
    } 
   } 
@@ -490,18 +490,18 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    if(wv > 0) {
     xc = 2.*(std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 0. : b<-500? 1. : std::abs(b)<1e-10? (1.+xc)/2. : (std::exp(b*xc)-std::exp(-b))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (-0.02777777777777778*(f[27]+1.732050807568877*(f[22]+f[21]-1.0*f[20]+f[16])+3.0*(f[14]-1.0*(f[13]+f[12]-1.0*f[8])+f[7]-1.0*f[6])+5.196152422706631*(f[3]-1.0*f[5])-1.0*(5.196152422706631*(f[2]+f[1])+9.0*f[0])))*fac; 
     fac = (b>500 || std::abs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*std::exp(b*xc)+(b+1)*std::exp(-b))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (-0.02777777777777778*(f[31]+1.732050807568877*(f[30]+f[29]-1.0*f[28]+f[26])+3.0*(f[25]-1.0*(f[24]+f[23]-1.0*f[19])+f[18]-1.0*f[17])+5.196152422706631*(f[11]-1.0*f[15])-1.0*(5.196152422706631*(f[10]+f[9])+9.0*f[4])))*fac; 
    } else { 
     xc = 2.*(-std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 1. : b<-500? 0. : std::abs(b)<1e-10? (1.-xc)/2. : (std::exp(b)-std::exp(b*xc))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][0] = (-0.02777777777777778*(f[27]+1.732050807568877*(f[22]+f[21]-1.0*f[20]+f[16])+3.0*(f[14]-1.0*(f[13]+f[12]-1.0*f[8])+f[7]-1.0*f[6])+5.196152422706631*(f[3]-1.0*f[5])-1.0*(5.196152422706631*(f[2]+f[1])+9.0*f[0])))*fac; 
     fac = b>500? 1. : (b<-500 || std::abs(b)<1e-8)? 0. : ((b-1)*std::exp(b)-(b*xc-1)*std::exp(b*xc))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[2][1] = (-0.02777777777777778*(f[31]+1.732050807568877*(f[30]+f[29]-1.0*f[28]+f[26])+3.0*(f[25]-1.0*(f[24]+f[23]-1.0*f[19])+f[18]-1.0*f[17])+5.196152422706631*(f[11]-1.0*f[15])-1.0*(5.196152422706631*(f[10]+f[9])+9.0*f[4])))*fac; 
    } 
   } 
@@ -515,18 +515,18 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    if(wv > 0) {
     xc = 2.*(std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 0. : b<-500? 1. : std::abs(b)<1e-10? (1.+xc)/2. : (std::exp(b*xc)-std::exp(-b))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (0.02777777777777778*(f[27]+1.732050807568877*(f[22]+f[21]+f[20]+f[16])+3.0*(f[14]+f[13]+f[12]+f[8]+f[7]+f[6])+5.196152422706631*(f[5]+f[3]+f[2]+f[1])+9.0*f[0]))*fac; 
     fac = (b>500 || std::abs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*std::exp(b*xc)+(b+1)*std::exp(-b))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (0.02777777777777778*(f[31]+1.732050807568877*(f[30]+f[29]+f[28]+f[26])+3.0*(f[25]+f[24]+f[23]+f[19]+f[18]+f[17])+5.196152422706631*(f[15]+f[11]+f[10]+f[9])+9.0*f[4]))*fac; 
    } else { 
     xc = 2.*(-std::sqrt(vcutSq_i)-wv)/dv; 
     fac = b>500? 1. : b<-500? 0. : std::abs(b)<1e-10? (1.-xc)/2. : (std::exp(b)-std::exp(b*xc))/(2.*std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][0] = (0.02777777777777778*(f[27]+1.732050807568877*(f[22]+f[21]+f[20]+f[16])+3.0*(f[14]+f[13]+f[12]+f[8]+f[7]+f[6])+5.196152422706631*(f[5]+f[3]+f[2]+f[1])+9.0*f[0]))*fac; 
     fac = b>500? 1. : (b<-500 || std::abs(b)<1e-8)? 0. : ((b-1)*std::exp(b)-(b*xc-1)*std::exp(b*xc))/2./(b*std::cosh(b)-std::sinh(b)); 
-    if(isnan(fac) || isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
+    if(std::isnan(fac) || std::isinf(fac)) {printf("reflect fac = %LG, b=%LG, xbarVal=%LG \n", fac, b, xbarVal); fac=0.;} 
     fReflXYZMuQuad[3][1] = (0.02777777777777778*(f[31]+1.732050807568877*(f[30]+f[29]+f[28]+f[26])+3.0*(f[25]+f[24]+f[23]+f[19]+f[18]+f[17])+5.196152422706631*(f[15]+f[11]+f[10]+f[9])+9.0*f[4]))*fac; 
    } 
   } 
