@@ -132,21 +132,6 @@ function NonUniformRectCart:write(fName)
    local indexer = nodalCoords:genIndexer()
    for idx in localRange:rowMajorIter() do
       grid:setIndex(idx)
-
-      -- grid:cellCenter(xnc) -- nodal coordinate in computational space
-      -- self:_mapc2p_vec(xnc, xnp) -- nodal coordinate in physical space
-      -- for d = 1, self:ndim() do
-      --    for n = 1, cells[d]+1 do
-      --       vcoords[n] = mapFunc(lower[d]+dx[d]*(n-1))
-      --    end
-      -- end
-      -- for d, mapFunc in next, self._mappings, nil do
-      --    -- if d > ndim then break end -- break out if too many functions provided
-      --    vcoords = fillWithMappedNodeCoords(
-      --       lower[d], upper[d], cells[d],
-      --       mapFunc, self._nodeCoords[d])
-      -- end
-
       local nitr = nodalCoords:get(indexer(idx))
       for d = 1, self:ndim() do
          nodeCoords = self:nodeCoords(d)
