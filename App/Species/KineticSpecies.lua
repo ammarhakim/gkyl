@@ -107,6 +107,7 @@ function KineticSpecies:fullInit(appTbl)
    -- Write perturbed moments by subtracting background before moment calc.. false by default.
    self.perturbedMoments = false
    -- Read in which diagnostic moments to compute on output.
+   self.requestedDiagnosticMoments = tbl.diagnosticMoments or {}
    self.diagnosticMoments = { }
    if tbl.diagnosticMoments then
       for i, nm in pairs(tbl.diagnosticMoments) do
@@ -128,6 +129,7 @@ function KineticSpecies:fullInit(appTbl)
 
    -- Read in which boundary diagnostic moments to compute on output.
    self.diagnosticBoundaryFluxMoments = { }
+   self.requestedDiagnosticBoundaryFluxMoments = tbl.diagnosticBoundaryFluxMoments or {}
    if tbl.diagnosticBoundaryFluxMoments then
       self.boundaryFluxDiagnostics = true
       for i, nm in pairs(tbl.diagnosticBoundaryFluxMoments) do
@@ -856,36 +858,27 @@ end
 
 function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
     self:calcDiagnosticMoments(tm)
-    for i, mom in ipairs(self.diagnosticMoments) do
+    if self.diagnosticWeakMoments then 
+       self:calcDiagnosticWeakMoments(tm, self.diagnosticWeakMoments)
+    end
+    if self.diagnosticBoundaryFluxMoments then
+       self:calcDiagnosticBoundaryFluxMoments(tm)
+    end
+    if self.diagnosticWeakBoundaryFluxMoments then
+       for _, bc in ipairs(self.boundaryConditions) do
+          self:calcDiagnosticWeakMoments(tm, self.diagnosticWeakBoundaryFluxMoments, bc)
+       end
+    end
+
+    for i, mom in ipairs(self.requestedDiagnosticMoments) do
        self.diagnosticMomentFields[mom]:write(
           string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
     end
 
-    if self.diagnosticWeakMoments then 
-       self:calcDiagnosticWeakMoments(tm, self.diagnosticWeakMoments)
-       for i, mom in ipairs(self.diagnosticWeakMoments) do
-          self.diagnosticMomentFields[mom]:write(
-             string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       end
-    end
-
-    if self.diagnosticBoundaryFluxMoments then
-       self:calcDiagnosticBoundaryFluxMoments(tm)
-       for i, mom in ipairs(self.diagnosticBoundaryFluxMoments) do
-          for _, bc in ipairs(self.boundaryConditions) do
-             self.diagnosticMomentFields[mom..bc:label()]:write(
-                string.format("%s_%s_%d.bp", self.name, mom..bc:label(), self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-          end
-       end
-    end
-
-    if self.diagnosticWeakBoundaryFluxMoments then
+    for i, mom in ipairs(self.requestedDiagnosticBoundaryFluxMoments) do
        for _, bc in ipairs(self.boundaryConditions) do
-          self:calcDiagnosticWeakMoments(tm, self.diagnosticWeakBoundaryFluxMoments, bc)
-          for i, mom in ipairs(self.diagnosticWeakBoundaryFluxMoments) do
-             self.diagnosticMomentFields[mom..bc:label()]:write(
-                string.format("%s_%s_%d.bp", self.name, mom..bc:label(), self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-          end
+          self.diagnosticMomentFields[mom..bc:label()]:write(
+             string.format("%s_%s_%d.bp", self.name, mom..bc:label(), self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        end
     end
 
