@@ -869,14 +869,6 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        end
     end
 
-    if self.diagnosticAuxMoments then 
-       self:calcDiagnosticAuxMoments(tm)
-       for i, mom in ipairs(self.diagnosticAuxMoments) do
-          self.diagnosticMomentFields[mom]:write(
-             string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       end
-    end
-
     if self.diagnosticBoundaryFluxMoments then
        self:calcDiagnosticBoundaryFluxMoments(tm)
        for i, mom in ipairs(self.diagnosticBoundaryFluxMoments) do
@@ -891,16 +883,6 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        for _, bc in ipairs(self.boundaryConditions) do
           self:calcDiagnosticWeakMoments(tm, self.diagnosticWeakBoundaryFluxMoments, bc)
           for i, mom in ipairs(self.diagnosticWeakBoundaryFluxMoments) do
-             self.diagnosticMomentFields[mom..bc:label()]:write(
-                string.format("%s_%s_%d.bp", self.name, mom..bc:label(), self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-          end
-       end
-    end
-
-    if self.diagnosticAuxBoundaryFluxMoments then
-       for _, bc in ipairs(self.boundaryConditions) do
-          self:calcDiagnosticAuxMoments(tm, bc)
-          for i, mom in ipairs(self.diagnosticAuxBoundaryFluxMoments) do
              self.diagnosticMomentFields[mom..bc:label()]:write(
                 string.format("%s_%s_%d.bp", self.name, mom..bc:label(), self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
           end

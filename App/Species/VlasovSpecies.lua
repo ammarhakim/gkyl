@@ -711,7 +711,7 @@ function VlasovSpecies:createDiagnostics()
       onGhosts  = true,
    }
 
-   -- Sort moments into diagnosticWeakMoments and diagnosticAuxMoments.
+   -- Sort moments into diagnosticWeakMoments.
    local function organizeDiagnosticMoments(moments, weakMoments, integratedMoments)
       -- At beginning, all moment names are in the 'moments' list.
       -- We want to remove the weak moments and put them in the 'weakMoments' list
@@ -1035,32 +1035,6 @@ function VlasovSpecies:calcDiagnosticIntegratedMoments(tm)
       end
    end
 end
-
-function VlasovSpecies:calcDiagnosticAuxMoments(tm, bc)
-   local label = ""
-   if bc then 
-      label = bc:label() 
-   end
-   for i, nm in ipairs(self.diagnosticAuxMoments) do
-      if string.find(nm, "uCross") then
-         otherNm = string.gsub(nm, "uCross%-", "")
-         local uParCrossOther = self.uParCross[otherNm]
-         if bc then
-            uParCrossOther = bc:evalOnConfBoundary(self.uParCross[otherNm])
-         end
-         self.diagnosticMomentFields[nm..label]:copy(uParCrossOther)
-      end
-      if string.find(nm, "vtSqCross") then
-         otherNm = string.gsub(nm, "vtSqCross%-", "")
-         local vtSqCrossOther = self.vtSqCross[otherNm]
-         if bc then
-            vtSqCrossOther = bc:evalOnConfBoundary(self.vtSqCross[otherNm])
-         end
-         self.diagnosticMomentFields[nm..label]:copy(vtSqCrossOther)
-      end
-   end
-end
-
 
 -- BC functions.
 function VlasovSpecies:bcReflectFunc(dir, tm, idxIn, fIn, fOut)
