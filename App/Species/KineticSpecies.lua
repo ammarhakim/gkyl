@@ -126,6 +126,24 @@ function KineticSpecies:fullInit(appTbl)
       end
    end
 
+   -- Read in which boundary diagnostic moments to compute on output.
+   self.diagnosticBoundaryFluxMoments = { }
+   if tbl.diagnosticBoundaryFluxMoments then
+      self.boundaryFluxDiagnostics = true
+      for i, nm in pairs(tbl.diagnosticBoundaryFluxMoments) do
+         self.diagnosticBoundaryFluxMoments[i] = nm
+      end
+   end
+
+   -- Read in which boundary diagnostic moments to compute on output.
+   self.diagnosticIntegratedBoundaryFluxMoments = { }
+   if tbl.diagnosticIntegratedBoundaryFluxMoments then
+      self.boundaryFluxDiagnostics = true
+      for i, nm in pairs(tbl.diagnosticIntegratedBoundaryFluxMoments) do
+         self.diagnosticIntegratedBoundaryFluxMoments[i] = nm
+      end
+   end
+
    -- Get a random seed for random initial conditions.
    self.randomseed = tbl.randomseed
 
@@ -650,6 +668,14 @@ end
 -- For RK timestepping.
 function KineticSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
+
+   if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
+      for _, bc in ipairs(self.boundaryConditions) do
+         bc:getBoundaryFluxRate():combine(1.0/self.dtGlobal[0], bc:getBoundaryFluxFields()[aIdx], -1.0/self.dtGlobal[0], bc:getBoundaryFluxFields()[outIdx])
+         bc:getBoundaryFluxFields()[outIdx]:copy(bc:getBoundaryFluxFields()[aIdx])
+      end
+   end
+
    if self.positivity then
       self.fDelPos[outIdx]:copy(self.fDelPos[aIdx])
    end
@@ -661,6 +687,15 @@ function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
    self:rkStepperFields()[outIdx]:combine(a, self:rkStepperFields()[aIdx])
    for i = 1, nFlds do -- Accumulate rest of the fields.
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
+   end
+
+   if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
+      for _, bc in ipairs(self.boundaryConditions) do
+         bc:getBoundaryFluxFields()[outIdx]:combine(a, bc:getBoundaryFluxFields()[aIdx])
+         for i = 1, nFlds do -- Accumulate rest of the fields.
+            bc:getBoundaryFluxFields()[outIdx]:accumulate(args[2*i-1], bc:getBoundaryFluxFields()[args[2*i]])
+         end
+      end
    end
 
    if self.positivity then
@@ -781,54 +816,98 @@ end
 function KineticSpecies:createDiagnostics()
 end
 
-function KineticSpecies:calcDiagnosticMoments()
+function KineticSpecies:calcDiagnosticMoments(tm)
    local f = self.distf[1]
-   if self.f0 and self.perturbedMoments then f:accumulate(-1, self.f0) end
-   for i, mom in pairs(self.diagnosticMoments) do
+   local tCurr = tm
+   if self.f0 and self.perturbedMoments then 
+      f:accumulate(-1, self.f0)
+      tCurr = -tm-1 -- setting tCurr = -tm-1 will force the updater to recompute moments even if it has already been used on this timestep
+   end
+   for i, mom in ipairs(self.diagnosticMoments) do
       self.diagnosticMomentUpdaters[mom]:advance(
-	 0.0, {f}, {self.diagnosticMomentFields[mom]})
+	 tCurr, {f}, {self.diagnosticMomentFields[mom]})
    end
    if self.f0 and self.perturbedMoments then f:accumulate(1, self.f0) end
 end
 
-function KineticSpecies:calcDiagnosticWeakMoments()
-   for mom, _ in pairs(self.diagnosticWeakMoments) do
-      self.weakDivision:advance(0.0, self.weakMomentOpFields[mom], {self.diagnosticMomentFields[mom]})
-      if self.weakMomentScaleFac[mom] then self.diagnosticMomentFields[mom]:scale(self.weakMomentScaleFac[mom]) end
+-- Some species-specific parts, but this function still gets called.
+function KineticSpecies:calcDiagnosticWeakMoments(tm, weakMoments, bc)
+   local label = label or ""
+   if bc then 
+      label = bc:label() 
+   end
+   for i, mom in ipairs(weakMoments) do
+      self.diagnosticMomentUpdaters[mom..label].advance(self, tm)
    end
 end
 
 -- Species-specific.
-function KineticSpecies:calcDiagnosticAuxMoments()
+function KineticSpecies:calcDiagnosticAuxMoments(tm)
+end
+
+function KineticSpecies:calcDiagnosticBoundaryFluxMoments(tm)
+   for _, bc in ipairs(self.boundaryConditions) do
+      for i, mom in ipairs(self.diagnosticBoundaryFluxMoments) do
+         self.diagnosticMomentUpdaters[mom..bc:label()]:advance(
+            tm, {bc:getBoundaryFluxRate()}, {self.diagnosticMomentFields[mom..bc:label()]})
+      end 
+   end
 end
 
 -- Species-specific.
-function KineticSpecies:calcDiagnosticIntegratedMoments()
+function KineticSpecies:calcDiagnosticIntegratedMoments(tm)
 end
 
 function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
-    self:calcDiagnosticMoments()
+    self:calcDiagnosticMoments(tm)
     for i, mom in ipairs(self.diagnosticMoments) do
-       -- Should one use AdiosIo object for this?
        self.diagnosticMomentFields[mom]:write(
           string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
     end
 
     if self.diagnosticWeakMoments then 
-       self:calcDiagnosticWeakMoments()
-       for mom, _ in pairs(self.diagnosticWeakMoments) do
-          -- Should one use AdiosIo object for this?
+       self:calcDiagnosticWeakMoments(tm, self.diagnosticWeakMoments)
+       for i, mom in ipairs(self.diagnosticWeakMoments) do
           self.diagnosticMomentFields[mom]:write(
              string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        end
     end
 
     if self.diagnosticAuxMoments then 
-       self:calcDiagnosticAuxMoments()
-       for mom, _ in pairs(self.diagnosticAuxMoments) do
-          -- Should one use AdiosIo object for this?
+       self:calcDiagnosticAuxMoments(tm)
+       for i, mom in ipairs(self.diagnosticAuxMoments) do
           self.diagnosticMomentFields[mom]:write(
              string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       end
+    end
+
+    if self.diagnosticBoundaryFluxMoments then
+       self:calcDiagnosticBoundaryFluxMoments(tm)
+       for i, mom in ipairs(self.diagnosticBoundaryFluxMoments) do
+          for _, bc in ipairs(self.boundaryConditions) do
+             self.diagnosticMomentFields[mom..bc:label()]:write(
+                string.format("%s_%s_%d.bp", self.name, mom..bc:label(), self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+          end
+       end
+    end
+
+    if self.diagnosticWeakBoundaryFluxMoments then
+       for _, bc in ipairs(self.boundaryConditions) do
+          self:calcDiagnosticWeakMoments(tm, self.diagnosticWeakBoundaryFluxMoments, bc)
+          for i, mom in ipairs(self.diagnosticWeakBoundaryFluxMoments) do
+             self.diagnosticMomentFields[mom..bc:label()]:write(
+                string.format("%s_%s_%d.bp", self.name, mom..bc:label(), self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+          end
+       end
+    end
+
+    if self.diagnosticAuxBoundaryFluxMoments then
+       for _, bc in ipairs(self.boundaryConditions) do
+          self:calcDiagnosticAuxMoments(tm, bc)
+          for i, mom in ipairs(self.diagnosticAuxBoundaryFluxMoments) do
+             self.diagnosticMomentFields[mom..bc:label()]:write(
+                string.format("%s_%s_%d.bp", self.name, mom..bc:label(), self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+          end
        end
     end
 
@@ -836,6 +915,13 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
     for i, mom in ipairs(self.diagnosticIntegratedMoments) do
        self.diagnosticIntegratedMomentFields[mom]:write(
           string.format("%s_%s.bp", self.name, mom), tm, self.diagIoFrame)
+    end
+
+    for i, mom in ipairs(self.diagnosticIntegratedBoundaryFluxMoments) do
+       for _, bc in ipairs(self.boundaryConditions) do
+          self.diagnosticIntegratedMomentFields[mom..bc:label()]:write(
+             string.format("%s_%s.bp", self.name, mom..bc:label()), tm, self.diagIoFrame)
+       end
     end
 end
 
@@ -887,8 +973,6 @@ function KineticSpecies:write(tm, force)
                c:write(tm, self.diagIoFrame)
             end
          end
-
-         self.cflRateByCell:scale(self.dtGlobal[0])
 
          if self.positivityDiffuse then
             self.posRescaler:write(tm, self.diagIoFrame, self.name)

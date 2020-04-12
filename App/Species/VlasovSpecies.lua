@@ -15,6 +15,7 @@ local DataStruct     = require "DataStruct"
 local Time           = require "Lib.Time"
 local ffi            = require "ffi"
 local Lin            = require "Lib.Linalg"
+local xsys           = require "xsys"
 
 local VlasovSpecies = Proto(KineticSpecies)
 
@@ -580,13 +581,30 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       Mpi.Barrier(self.grid:commSet().sharedComm)
       fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
    end
+
+   -- Save boundary fluxes for diagnostics.
+   if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
+      for _, bc in ipairs(self.boundaryConditions) do
+         bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)
+      end
+   end
 end
 
 function VlasovSpecies:createDiagnostics()
+   local function contains(table, element)
+     for _, value in pairs(table) do
+       if value == element then
+         return true
+       end
+     end
+     return false
+   end
+
    -- Create updater to compute volume-integrated moments
    -- function to check if integrated moment name is correct.
    local function isIntegratedMomentNameGood(nm)
-      if nm == "intM0" or nm == "intM1i" or nm == "intM2Flow" or nm == "intM2Thermal" or nm == "intL2" then
+      if nm == "intM0" or nm == "intM1i" or nm == "intM2Flow" 
+         or nm == "intM2Thermal" or nm == "intM2" or nm == "intL2" then
          return true
       end
       return false
@@ -597,33 +615,57 @@ function VlasovSpecies:createDiagnostics()
    numCompInt["intM1i"]       = self.vdim
    numCompInt["intM2Flow"]    = 1
    numCompInt["intM2Thermal"] = 1
+   numCompInt["intM2"]        = 1
    numCompInt["intL2"]        = 1
 
    self.diagnosticIntegratedMomentFields   = { }
    self.diagnosticIntegratedMomentUpdaters = { } 
-   -- Allocate space to store moments and create moment updater.
-   for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-      if isIntegratedMomentNameGood(mom) then
-         self.diagnosticIntegratedMomentFields[mom] = DataStruct.DynVector {
-            numComponents = numCompInt[mom],
-         }
-         if mom == "intL2" then
-            self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
-               onGrid        = self.grid,
-               basis         = self.basis,
+   -- Allocate space to store integrated moments and create integrated moment updaters.
+   local function allocateDiagnosticIntegratedMoments(intMoments, bc, timeIntegrate)
+      local label = ""
+      local phaseGrid = self.grid
+      local confGrid = self.confGrid
+      if bc then
+         label = bc:label()
+         phaseGrid = bc:getBoundaryGrid()
+         confGrid = bc:getConfBoundaryGrid()
+      end
+      local timeIntegrate = xsys.pickBool(timeIntegrate, false)
+      for i, mom in ipairs(intMoments) do
+         if isIntegratedMomentNameGood(mom) then
+            self.diagnosticIntegratedMomentFields[mom..label] = DataStruct.DynVector {
                numComponents = numCompInt[mom],
-               quantity      = "V2"
             }
+            local intCalc = Updater.CartFieldIntegratedQuantCalc {
+                  onGrid        = self.confGrid,
+                  basis         = self.confBasis,
+                  numComponents = numCompInt[mom],
+                  quantity      = "V",
+                  timeIntegrate = timeIntegrate,
+               }
+            if mom == "intL2" then
+               self.diagnosticIntegratedMomentUpdaters[mom..label] = Updater.CartFieldIntegratedQuantCalc {
+                  onGrid        = self.grid,
+                  basis         = self.basis,
+                  numComponents = numCompInt[mom],
+                  quantity      = "V2",
+                  timeIntegrate = timeIntegrate,
+               }
+            else
+               self.diagnosticIntegratedMomentUpdaters[mom..label] = intCalc
+            end
          else
-            self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
-               onGrid        = self.confGrid,
-               basis         = self.confBasis,
-               numComponents = numCompInt[mom],
-               quantity      = "V"
-            }
+            assert(false, string.format("Error: integrated moment %s not valid", mom..label))
          end
-      else
-         assert(false, string.format("Integrated Moment %s not valid", mom))
+      end
+   end
+
+   allocateDiagnosticIntegratedMoments(self.diagnosticIntegratedMoments)
+
+   if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
+      for _, bc in ipairs(self.boundaryConditions) do
+         bc:initBcDiagnostics(self.cdim)
+         allocateDiagnosticIntegratedMoments(self.diagnosticIntegratedBoundaryFluxMoments, bc, true)
       end
    end
 
@@ -631,21 +673,11 @@ function VlasovSpecies:createDiagnostics()
    local function isMomentNameGood(nm)
       return Updater.DistFuncMomentCalc:isMomentNameGood(nm)
    end
-   -- Diagnostics computed with weak binary operations as diagnostic.
+   -- weakMoments are diagnostics computed with weak binary operations.
    -- Check if diagnostic name is correct.
    local function isWeakMomentNameGood(nm)
-      return nm == "u" or nm == "vtSq"
-   end
-   local function isAuxMomentNameGood(nm)
-      return nm == "uCross" or nm == "vtSqCross"
-   end
-   local function contains(table, element)
-     for _, value in pairs(table) do
-       if value == element then
-         return true
-       end
-     end
-     return false
+      return nm == "u" or nm == "vtSq" or nm == "uCross" or nm == "vtSqCross" 
+          or nm == "M2Flow" or nm == "M2Thermal" 
    end
 
    local numComp        = {}
@@ -658,13 +690,13 @@ function VlasovSpecies:createDiagnostics()
    numComp["vtSq"]      = 1
    numComp["uCross"]    = self.vdim
    numComp["vtSqCross"] = 1
+   numComp["M2Flow"]    = 1
+   numComp["M2Thermal"] = 1
 
    self.diagnosticMomentFields   = { }
    self.diagnosticMomentUpdaters = { } 
    self.diagnosticWeakMoments    = { }
-   self.diagnosticAuxMoments     = { }
-   self.weakMomentOpFields       = { }
-   self.weakMomentScaleFac       = { }
+   self.diagnosticWeakBoundaryFluxMoments = { }
    -- Create weak multiplication and division operations.
    self.weakDotProduct = Updater.CartFieldBinOp {
       onGrid    = self.confGrid,
@@ -680,137 +712,356 @@ function VlasovSpecies:createDiagnostics()
    }
 
    -- Sort moments into diagnosticWeakMoments and diagnosticAuxMoments.
-   for i, mom in pairs(self.diagnosticMoments) do
-      if isWeakMomentNameGood(mom) then
-         -- Remove moment name from self.diagnosticMoments list, and add it to self.diagnosticWeakMoments list.
-         self.diagnosticWeakMoments[mom] = true
-         self.diagnosticMoments[i]       = nil
-      elseif isAuxMomentNameGood(mom) then
-         -- Remove moment name from self.diagnosticMoments list, and add it to self.diagnosticAuxMoments list.
-         if mom == "uCross" then
-            for nm, _ in pairs(self.uCross) do
-               -- Create one diagnostic for each cross velocity (used in collisions).
-               self.diagnosticAuxMoments[mom .. "-" .. nm] = true
+   local function organizeDiagnosticMoments(moments, weakMoments, integratedMoments)
+      -- At beginning, all moment names are in the 'moments' list.
+      -- We want to remove the weak moments and put them in the 'weakMoments' list
+      for i, mom in ipairs(moments) do
+         if isWeakMomentNameGood(mom) then
+            -- Remove moment name from moments list, and add it to weakMoments list.
+            if mom == "uCross" then
+               for nm, _ in pairs(self.uCross) do
+                  -- Create one diagnostic for each cross velocity (used in collisions).
+                  table.insert(weakMoments, mom .. "-" .. nm)
+               end
+            elseif mom == "vtSqCross" then
+               for nm, _ in pairs(self.vtSqCross) do
+                  -- Create one diagnostic for each cross temperature (used in collisions).
+                  table.insert(weakMoments, mom .. "-" .. nm)
+               end
+            else
+               table.insert(weakMoments, mom)
             end
-         elseif mom == "vtSqCross" then
-            for nm, _ in pairs(self.vtSqCross) do
-               -- Create one diagnostic for each cross temperature (used in collisions).
-               self.diagnosticAuxMoments[mom .. "-" .. nm] = true
+            moments[i] = nil
+         end
+      end
+
+      -- Make sure we have moment updaters/fields needed to compute integrated moments.
+      -- Note: this could result in extra moments being written out if they were not
+      -- already requested.
+      for i, mom in ipairs(integratedMoments) do
+         -- integrated M0
+         if mom == "intM0" then
+            if not contains(moments, "M0") then
+               table.insert(moments, "M0")
             end
-         else
-            self.diagnosticAuxMoments[mom] = true
          end
-         self.diagnosticMoments[i] = nil
-      end
-   end
-
-   -- Make sure we have the updaters needed to calculate all the aux moments.
-   for i, mom in pairs(self.diagnosticAuxMoments) do
--- Not supported yet.
---      if mom == "beta" then
---         if not self.diagnosticWeakMoments["vtSq"] then
---            self.diagnosticWeakMoments["vtSq"] = true
---         end
---         if not contains(self.diagnosticMoments, "M0") then
---            table.insert(self.diagnosticMoments, "M0")
---         end
---      end
-   end
-
-   -- Make sure we have the updaters needed to calculate all the weak moments.
-   for mom, _ in pairs(self.diagnosticWeakMoments) do
-      -- All weak moments require M0 = density.
-      if not contains(self.diagnosticMoments, "M0") then
-         table.insert(self.diagnosticMoments, "M0")
-      end
-
-      if mom == "u" then
-         if not contains(self.diagnosticMoments, "M1i") then
-            table.insert(self.diagnosticMoments, "M1i")
+         -- integrated M1i
+         if mom == "intM1i" then
+            if not contains(moments, "M1i") then
+               table.insert(moments, "M1i")
+            end
+         end
+         -- integrated M2
+         if mom == "intM2" then
+            if not contains(moments, "M2") then
+               table.insert(moments, "M2")
+            end
+         end
+         -- integrated M2Flow
+         if mom == "intM2Flow" then
+            if not contains(weakMoments, "M2Flow") then
+               table.insert(weakMoments, "M2Flow")
+            end
+         end
+         -- integrated M2Thermal
+         if mom == "intM2Thermal" then
+            if not contains(weakMoments, "M2Thermal") then
+               table.insert(weakMoments, "M2Thermal")
+            end
          end
       end
-      if mom == "vtSq" then
-         if not contains(self.diagnosticMoments, "M2") then
-            table.insert(self.diagnosticMoments, "M2")
+   
+      -- Make sure we have the updaters needed to calculate all the weak moments.
+      -- Note: this could result in extra moments being written out if they were not
+      -- already requested.
+      for i, mom in ipairs(weakMoments) do
+         -- All weak moments require M0 = density.
+         if not contains(moments, "M0") then
+            table.insert(moments, "M0")
          end
-         if not self.diagnosticWeakMoments["u"] then
-            self.diagnosticWeakMoments["u"] = true
+   
+         if mom == "u" then
+            if not contains(moments, "M1i") then
+               table.insert(moments, "M1i")
+            end
+         end
+         if mom == "vtSq" then
+            if not contains(moments, "M2") then
+               table.insert(moments, "M2")
+            end
+            if not contains(weakMoments, "u") then
+               table.insert(weakMoments, "u")
+            end
+            if not contains(moments, "M1i") then
+               table.insert(moments, "M1i")
+            end
+         end
+         if mom == "M2Flow" then -- = n*u^2 = M1.u
+            if not contains(moments, "M1i") then
+               table.insert(moments, "M1i")
+            end
+            if not contains(weakMoments, "u") then
+               table.insert(weakMoments, "u")
+            end
+         end
+         if mom == "M2Thermal" then -- = VDIM*n*vtSq = M2 - M2Flow
+            if not contains(moments, "M2") then
+               table.insert(moments, "M2")
+            end
+            if not contains(weakMoments, "M2Flow") then
+               table.insert(weakMoments, "M2Flow")
+            end
+            -- M1i and u are needed for M2Flow
+            if not contains(moments, "M1i") then
+               table.insert(moments, "M1i")
+            end
+            if not contains(weakMoments, "u") then
+               table.insert(weakMoments, "u")
+            end
          end
       end
    end
 
    -- Allocate space to store moments and create moment updater.
-   for i, mom in ipairs(self.diagnosticMoments) do
-      if isMomentNameGood(mom) then
-         self.diagnosticMomentFields[mom] = DataStruct.Field {
-            onGrid        = self.confGrid,
+   local function allocateDiagnosticMoments(moments, weakMoments, bc)
+      local label = ""
+      local phaseGrid = self.grid
+      local confGrid = self.confGrid
+      if bc then
+         label = bc:label()
+         phaseGrid = bc:getBoundaryGrid()
+         confGrid = bc:getConfBoundaryGrid()
+      end
+
+      for i, mom in ipairs(moments) do
+         if isMomentNameGood(mom) then
+            self.diagnosticMomentFields[mom..label] = DataStruct.Field {
+               onGrid        = confGrid,
+               numComponents = self.confBasis:numBasis()*numComp[mom],
+               ghost         = {1, 1},
+               metaData = {
+                  polyOrder = self.basis:polyOrder(),
+                  basisType = self.basis:id()
+               },
+            }
+            self.diagnosticMomentUpdaters[mom..label] = Updater.DistFuncMomentCalc {
+               onGrid     = phaseGrid,
+               phaseBasis = self.basis,
+               confBasis  = self.confBasis,
+               moment     = mom,
+            }
+         else
+            assert(false, string.format("Error: moment %s not valid", mom..label))
+         end
+      end
+
+      for i, mom in ipairs(weakMoments) do
+         self.diagnosticMomentFields[mom..label] = DataStruct.Field {
+            onGrid        = confGrid,
             numComponents = self.confBasis:numBasis()*numComp[mom],
             ghost         = {1, 1},
-	    metaData = {
-	       polyOrder = self.basis:polyOrder(),
-	       basisType = self.basis:id()
-	    },
+            metaData = {
+               polyOrder = self.basis:polyOrder(),
+               basisType = self.basis:id()
+            },	    	    
          }
-         self.diagnosticMomentUpdaters[mom] = Updater.DistFuncMomentCalc {
-            onGrid     = self.grid,
-            phaseBasis = self.basis,
-            confBasis  = self.confBasis,
-            moment     = mom,
-         }
-      else
-         assert(false, string.format("Moment %s not valid", mom))
+
+         self.diagnosticMomentUpdaters[mom..label] = {}
+         -- Weak moments do not have their own MomentCalc updaters. 
+         -- Instead they are computed via weak division of two other moments.
+         -- Here we set up custom advance methods for each weak moment, 
+         -- which call various weak ops.
+         if mom == "u" then
+            self.diagnosticMomentUpdaters["u"..label].advance = function (self, tm)
+               if self.diagnosticMomentUpdaters["u"..label].tCurr == tm then return end -- return if already computed for this tm
+
+               -- compute dependencies if not already computed: M0, M1i
+               if self.diagnosticMomentUpdaters["M0"..label].tCurr ~= tm then
+                  local fIn = self:rkStepperFields()[1]
+                  if bc then
+                     fIn = bc:getBoundaryFluxRate()
+                  end
+                  self.diagnosticMomentUpdaters["M0"..label]:advance(tm, {fIn}, {self.diagnosticMomentFields["M0"..label]})
+               end
+               if self.diagnosticMomentUpdaters["M1i"..label].tCurr ~= tm then
+                  local fIn = self:rkStepperFields()[1]
+                  if bc then
+                     fIn = bc:getBoundaryFluxRate()
+                  end
+                  self.diagnosticMomentUpdaters["M1i"..label]:advance(tm, {fIn}, {self.diagnosticMomentFields["M1i"..label]})
+               end
+
+               -- do weak ops
+               self.weakDivision:advance(tm, {self.diagnosticMomentFields["M0"..label], self.diagnosticMomentFields["M1i"..label]}, {self.diagnosticMomentFields["u"..label]})
+
+               self.diagnosticMomentUpdaters["u"..label].tCurr = tm -- mark as complete for this tm
+            end
+         elseif mom == "M2Flow" then
+            self.diagnosticMomentUpdaters["M2Flow"..label].advance = function (self, tm)
+               if self.diagnosticMomentUpdaters["M2Flow"..label].tCurr == tm then return end -- return if already computed for this tm
+
+               -- compute dependencies if not already computed: u (M1i will be computed via u if necessary)
+               if self.diagnosticMomentUpdaters["u"..label].tCurr ~= tm then
+                  self.diagnosticMomentUpdaters["u"..label].advance(self, tm)
+               end
+
+               -- do weak ops
+               -- M2Flow = M1i.u
+               self.weakDotProduct:advance(tm, {self.diagnosticMomentFields["M1i"..label], self.diagnosticMomentFields["u"..label]}, 
+                                               {self.diagnosticMomentFields["M2Flow"..label]})
+
+               self.diagnosticMomentUpdaters["M2Flow"..label].tCurr = tm -- mark as complete for this tm
+            end
+         elseif mom == "M2Thermal" then
+            self.diagnosticMomentUpdaters["M2Thermal"..label].advance = function (self, tm)
+               if self.diagnosticMomentUpdaters["M2Thermal"..label].tCurr == tm then return end -- return if already computed for this tm
+
+               -- compute dependencies if not already computed: M2, M2Flow 
+               if self.diagnosticMomentUpdaters["M2"..label].tCurr ~= tm then
+                  local fIn = self:rkStepperFields()[1]
+                  if bc then
+                     fIn = bc:getBoundaryFluxRate()
+                  end
+                  self.diagnosticMomentUpdaters["M2"..label]:advance(tm, {fIn}, {self.diagnosticMomentFields["M2"..label]})
+               end
+               if self.diagnosticMomentUpdaters["M2Flow"..label].tCurr ~= tm then
+                  self.diagnosticMomentUpdaters["M2Flow"..label].advance(self, tm)
+               end
+
+               -- do weak ops
+               -- M2Thermal = VDIM*M0*vtSq = M2 - M2Flow               
+               self.diagnosticMomentFields["M2Thermal"..label]:combine(1.0, self.diagnosticMomentFields["M2"..label], -1.0, self.diagnosticMomentFields["M2Flow"..label])
+
+               self.diagnosticMomentUpdaters["M2Thermal"..label].tCurr = tm -- mark as complete for this tm
+            end
+         elseif mom == "vtSq" then 
+            self.diagnosticMomentUpdaters["vtSq"..label].advance = function (self, tm)
+               if self.diagnosticMomentUpdaters["vtSq"..label].tCurr == tm then return end -- return if already computed for this tm
+
+               -- compute dependencies if not already computed: M0, M2Thermal
+               if self.diagnosticMomentUpdaters["M0"..label].tCurr ~= tm then
+                  local fIn = self:rkStepperFields()[1]
+                  if bc then
+                     fIn = bc:getBoundaryFluxRate()
+                  end
+                  self.diagnosticMomentUpdaters["M0"..label]:advance(tm, {fIn}, {self.diagnosticMomentFields["M0"..label]})
+               end
+               if self.diagnosticMomentUpdaters["M2Thermal"..label].tCurr ~= tm then
+                  self.diagnosticMomentUpdaters["M2Thermal"..label].advance(self, tm)
+               end
+
+               -- do weak ops
+               -- vtSq = M2Thermal/(M0*VDIM)
+               self.weakDivision:advance(tm, {self.diagnosticMomentFields["M0"..label], self.diagnosticMomentFields["M2Thermal"..label]}, {self.diagnosticMomentFields["vtSq"..label]})
+               self.diagnosticMomentFields["vtSq"..label]:scale(1.0/self.vdim)
+
+               self.diagnosticMomentUpdaters["vtSq"..label].tCurr = tm -- mark as complete for this tm
+            end
+         elseif string.find(mom, "uCross") then
+            self.diagnosticMomentUpdaters["uCross"..label].advance = function (self, tm)
+               otherNm = string.gsub(mom, "uCross%-", "")
+               local uCrossOther = self.uCross[otherNm]
+               if bc then
+                  uCrossOther = bc:evalOnConfBoundary(self.uCross[otherNm])
+               end
+               self.diagnosticMomentFields[mom..label]:copy(uCrossOther)
+            end
+         elseif string.find(mom, "vtSqCross") then
+            self.diagnosticMomentUpdaters["vtSqCross"..label].advance = function (self, tm)
+               otherNm = string.gsub(mom, "vtSqCross%-", "")
+               local vtSqCrossOther = self.vtSqCross[otherNm]
+               if bc then
+                  vtSqCrossOther = bc:evalOnConfBoundary(self.vtSqCross[otherNm])
+               end
+               self.diagnosticMomentFields[mom..label]:copy(vtSqCrossOther)
+            end
+         end
       end
    end
 
-   for mom, _ in pairs(self.diagnosticWeakMoments) do
-      if isWeakMomentNameGood(mom) then
-         self.diagnosticMomentFields[mom] = DataStruct.Field {
-            onGrid        = self.confGrid,
-            numComponents = self.confBasis:numBasis()*numComp[mom],
-            ghost         = {1, 1},
-	    metaData = {
-	       polyOrder = self.basis:polyOrder(),
-	       basisType = self.basis:id()
-	    },	    	    
-         }
-      else
-         assert(false, string.format("Moment %s not valid", mom))
-      end
+   organizeDiagnosticMoments(self.diagnosticMoments, self.diagnosticWeakMoments, self.diagnosticIntegratedMoments)
+   allocateDiagnosticMoments(self.diagnosticMoments, self.diagnosticWeakMoments)
 
-      if mom == "u" then
-         self.weakMomentOpFields["u"] = {self.diagnosticMomentFields["M0"], self.diagnosticMomentFields["M1i"]}
-      elseif mom == "vtSq" then
-         self.weakMomentOpFields["vtSq"] = {self.diagnosticMomentFields["M0"], self.diagnosticMomentFields["M2"]}
-         self.weakMomentScaleFac["vtSq"] = 1.0/self.vdim
+   if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
+      organizeDiagnosticMoments(self.diagnosticBoundaryFluxMoments, self.diagnosticWeakBoundaryFluxMoments, self.diagnosticIntegratedBoundaryFluxMoments)
+      for _, bc in ipairs(self.boundaryConditions) do
+         allocateDiagnosticMoments(self.diagnosticBoundaryFluxMoments, self.diagnosticWeakBoundaryFluxMoments, bc)
       end
    end
-
-   for mom, _ in pairs(self.diagnosticAuxMoments) do
-      if string.find(mom, "uCross") then
-         self.diagnosticMomentFields[mom] = DataStruct.Field {
-            onGrid        = self.confGrid,
-            numComponents = self.confBasis:numBasis()*numComp["uCross"],
-            ghost         = {1, 1},
-	    metaData = {
-	       polyOrder = self.basis:polyOrder(),
-	       basisType = self.basis:id()
-	    },	    
-
-         }
-      else
-         self.diagnosticMomentFields[mom] = DataStruct.Field {
-            onGrid        = self.confGrid,
-            numComponents = self.confBasis:numBasis(),
-            ghost         = {1, 1},
-	    metaData = {
-	       polyOrder = self.basis:polyOrder(),
-	       basisType = self.basis:id()
-	    },	    
-         }
-      end
-   end
-
 end
+
+-- Function to compute integrated moments.
+function VlasovSpecies:calcDiagnosticIntegratedMoments(tm)
+   local fIn = self:rkStepperFields()[1]
+
+   local function computeIntegratedMoments(intMoments, fIn, label)
+      local label = label
+      if not label then label = "" end
+      for i, mom in ipairs(intMoments) do
+         if mom == "intM0" then
+            self.diagnosticMomentUpdaters["M0"..label]:advance(
+               tm, {fIn}, {self.diagnosticMomentFields["M0"..label]})
+            self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
+               tm, {self.diagnosticMomentFields["M0"..label]}, {self.diagnosticIntegratedMomentFields[mom..label]})
+         elseif mom == "intM1i" then
+            self.diagnosticMomentUpdaters["M1i"..label]:advance(
+               tm, {fIn}, {self.diagnosticMomentFields["M1i"..label]})
+            self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
+               tm, {self.diagnosticMomentFields["M1i"..label]}, {self.diagnosticIntegratedMomentFields[mom..label]})
+         elseif mom == "intM2" then
+            self.diagnosticMomentUpdaters["M2"..label]:advance(
+               tm, {fIn}, {self.diagnosticMomentFields["M2"..label]})
+            self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
+               tm, {self.diagnosticMomentFields["M2"..label]}, {self.diagnosticIntegratedMomentFields[mom..label]})
+         elseif mom == "intM2Flow" then
+            self.diagnosticMomentUpdaters["M2Flow"..label].advance(self, tm)
+            self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
+               tm, {self.diagnosticMomentFields["M2Flow"..label]}, {self.diagnosticIntegratedMomentFields[mom..label]})
+         elseif mom == "intM2Thermal" then
+            self.diagnosticMomentUpdaters["M2Thermal"..label].advance(self, tm)
+            self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
+               tm, {self.diagnosticMomentFields["M2Thermal"..label]}, {self.diagnosticIntegratedMomentFields[mom..label]})
+         elseif mom == "intL2" then
+            self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+               tm, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[mom]})
+         end
+      end
+   end
+
+   computeIntegratedMoments(self.diagnosticIntegratedMoments, fIn)
+   
+   if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
+      for _, bc in ipairs(self.boundaryConditions) do
+         computeIntegratedMoments(self.diagnosticIntegratedBoundaryFluxMoments, bc:getBoundaryFluxRate(), bc:label())
+      end
+   end
+end
+
+function VlasovSpecies:calcDiagnosticAuxMoments(tm, bc)
+   local label = ""
+   if bc then 
+      label = bc:label() 
+   end
+   for i, nm in ipairs(self.diagnosticAuxMoments) do
+      if string.find(nm, "uCross") then
+         otherNm = string.gsub(nm, "uCross%-", "")
+         local uParCrossOther = self.uParCross[otherNm]
+         if bc then
+            uParCrossOther = bc:evalOnConfBoundary(self.uParCross[otherNm])
+         end
+         self.diagnosticMomentFields[nm..label]:copy(uParCrossOther)
+      end
+      if string.find(nm, "vtSqCross") then
+         otherNm = string.gsub(nm, "vtSqCross%-", "")
+         local vtSqCrossOther = self.vtSqCross[otherNm]
+         if bc then
+            vtSqCrossOther = bc:evalOnConfBoundary(self.vtSqCross[otherNm])
+         end
+         self.diagnosticMomentFields[nm..label]:copy(vtSqCrossOther)
+      end
+   end
+end
+
 
 -- BC functions.
 function VlasovSpecies:bcReflectFunc(dir, tm, idxIn, fIn, fOut)
@@ -905,66 +1156,6 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx)
    end
    self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
 
-end
-
--- Function to compute n, u, nu^2, and nT for use in integrated moment routine.
-function VlasovSpecies:calcDiagnosticIntegratedMoments(tCurr)
-   -- First compute M0, M1i, M2.
-   local fIn = self:rkStepperFields()[1]
-   self.fiveMomentsCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
-
-   -- Compute n*u^2 from n*u and n.
-   self.confDiv:advance(0., {self.numDensity, self.momDensity}, {self.flow})
-   self.confDotProduct:advance(0., {self.flow, self.momDensity}, {self.kineticEnergyDensity})
-   -- Barrier over shared communicator before combine
-   Mpi.Barrier(self.grid:commSet().sharedComm)
-   -- Compute VDIM*n*T from M2 and kinetic energy density.
-   self.thermalEnergyDensity:combine(1.0, self.ptclEnergy, -1.0, self.kineticEnergyDensity)
-
-   for i, mom in pairs(self.diagnosticIntegratedMoments) do
-      if mom == "intM0" then
-         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
-            tCurr, {self.numDensity}, {self.diagnosticIntegratedMomentFields[mom]})
-      elseif mom == "intM1i" then
-         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
-            tCurr, {self.momDensity}, {self.diagnosticIntegratedMomentFields[mom]})
-      elseif mom == "intM2Flow" then
-         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
-            tCurr, {self.kineticEnergyDensity}, {self.diagnosticIntegratedMomentFields[mom]})
-      elseif mom == "intM2Thermal" then
-         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
-            tCurr, {self.thermalEnergyDensity}, {self.diagnosticIntegratedMomentFields[mom]})
-      elseif mom == "intL2" then
-         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
-            tCurr, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[mom]})
-      end
-   end
-end
-
-function VlasovSpecies:calcDiagnosticWeakMoments()
-   VlasovSpecies.super.calcDiagnosticWeakMoments(self)
-   if self.diagnosticWeakMoments["vtSq"] then
-      -- Need to subtract (u^2)/vdim from vtSq (which at this point holds M2/(vdim*M0)).
-      -- u is calculated in KineticEnergySpecies:calcDiagnositcWeakMoments().
-      self.weakDotProduct:advance(0.0,
-         {self.diagnosticMomentFields["u"], self.diagnosticMomentFields["u"]}, {self.kineticEnergyDensity})
-      -- Barrier over shared communicator before accumulate
-      Mpi.Barrier(self.grid:commSet().sharedComm)
-      self.diagnosticMomentFields["vtSq"]:accumulate(-self.weakMomentScaleFac["vtSq"], self.kineticEnergyDensity)
-   end
-end
-
-function VlasovSpecies:calcDiagnosticAuxMoments()
-   for nm, _ in pairs(self.diagnosticAuxMoments) do
-      if string.find(nm, "uCross") then
-         otherNm = string.gsub(nm, "uCross%-", "")
-         self.diagnosticMomentFields[nm]:copy(self.uCross[otherNm])
-      end
-      if string.find(nm, "vtSqCross") then
-         otherNm = string.gsub(nm, "vtSqCross%-", "")
-         self.diagnosticMomentFields[nm]:copy(self.vtSqCross[otherNm])
-      end
-   end
 end
 
 function VlasovSpecies:fluidMoments()
