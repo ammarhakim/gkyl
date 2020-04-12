@@ -154,10 +154,16 @@ function DistFuncMomentCalc:init(tbl)
    self.applyPositivity = xsys.pickBool(tbl.positivity,false)   -- Positivity preserving option.
 
    self.onGhosts = xsys.pickBool(tbl.onGhosts, true)
+
+   -- Option to compute moments only once per timestep, based on tCurr input parameter.
+   -- NOTE: this should not be used if the updater is used to compute several different quantities in the same timestep.
+   self.oncePerTime = xsys.pickBool(tbl.oncePerTime, false)
 end
 
 -- advance method
 function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
+   if self.oncePerTime and self.tCurr == tCurr then return end -- do nothing, already computed on this step
+
    local grid        = self._onGrid
    local distf, mom1 = inFld[1], outFld[1]
 
@@ -496,6 +502,8 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
       if self.momfac ~= 1.0 then mom1:scale(self.momfac) end
 
    end
+
+   if self.oncePerTime then self.tCurr = tCurr end
 end
 
 return DistFuncMomentCalc
