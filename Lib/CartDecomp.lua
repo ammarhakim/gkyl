@@ -94,6 +94,7 @@ function CartProdDecomp:init(tbl)
    self._useShared = xsys.pickBool(tbl.useShared, false)
 
    local comm, shmComm = Mpi.COMM_WORLD, nil
+   if tbl.comm then comm = tbl.comm end
    -- create various communicators
    if self._useShared then
       shmComm = Mpi.Comm_split_type(comm, Mpi.COMM_TYPE_SHARED, 0, Mpi.INFO_NULL)
