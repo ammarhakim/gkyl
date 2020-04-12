@@ -832,17 +832,13 @@ end
 
 -- Some species-specific parts, but this function still gets called.
 function KineticSpecies:calcDiagnosticWeakMoments(tm, weakMoments, bc)
-   local label = label or ""
+   local label = ""
    if bc then 
       label = bc:label() 
    end
    for i, mom in ipairs(weakMoments) do
       self.diagnosticMomentUpdaters[mom..label].advance(self, tm)
    end
-end
-
--- Species-specific.
-function KineticSpecies:calcDiagnosticAuxMoments(tm)
 end
 
 function KineticSpecies:calcDiagnosticBoundaryFluxMoments(tm)

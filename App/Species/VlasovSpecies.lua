@@ -995,8 +995,7 @@ function VlasovSpecies:calcDiagnosticIntegratedMoments(tm)
    local fIn = self:rkStepperFields()[1]
 
    local function computeIntegratedMoments(intMoments, fIn, label)
-      local label = label
-      if not label then label = "" end
+      local label = label or ""
       for i, mom in ipairs(intMoments) do
          if mom == "intM0" then
             self.diagnosticMomentUpdaters["M0"..label]:advance(

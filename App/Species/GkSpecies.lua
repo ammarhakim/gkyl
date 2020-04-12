@@ -1279,8 +1279,7 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tm)
    end
 
    local function computeIntegratedMoments(intMoments, fIn, label)
-      local label = label
-      if not label then label = "" end
+      local label = label or ""
       for i, mom in ipairs(intMoments) do
          if mom == "intM0" then
             self.diagnosticMomentUpdaters["GkM0"..label]:advance(
