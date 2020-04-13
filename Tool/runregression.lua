@@ -698,7 +698,7 @@ local c_run = parser:command("run")
    :description("Run regression tests.")
    :require_command(false)
    :action(run_action)
-c_run:option("-r --run-only", "Only run this test or all tests in this directory")
+c_run:option("-r --run-only", "Only run these tests or all tests in these directories.\nCommma separated list")
 c_run:flag("-m --moat", "Only run key MOAT regression")
 
 -- check against accepted results
