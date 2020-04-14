@@ -269,6 +269,9 @@ std::string Gkyl::createTopLevelDefs() const {
   varDefs << "GKYL_MAX_FLOAT = " << std::numeric_limits<float>::max() << std::endl;
   varDefs << "GKYL_EPSILON = " << std::numeric_limits<double>::epsilon() << std::endl;
 
+  // flag to indicate if input file should be embedded in ouput
+  varDefs << "GKYL_EMBED_INP = true" << std::endl; // default true
+
   // set some JIT parameters to fiddle around with optimizations
   varDefs << "jit.opt.start('callunroll=40', 'loopunroll=80', 'maxmcode=40960', 'maxtrace=8000', 'maxrecord=16000', 'minstitch=3')"
           << std::endl;
