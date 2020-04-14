@@ -625,7 +625,7 @@ function GkLBOCollisions:write(tm, frame)
       Mpi.Allreduce(self.primMomLimitCrossingsL:data():data(), 
                     self.primMomLimitCrossingsG:data():data(), self.primMomLimitCrossingsG:size()*2,
                     Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().comm)
-      self.primMomLimitCrossingsG:write(string.format("%s_%s_%d.bp", self.speciesName, "primMomLimitCrossings", frame), tm, frame, true)
+      self.primMomLimitCrossingsG:write(string.format("%s_%s.bp", self.speciesName, "primMomLimitCrossings"), tm, frame)
       self.primMomLimitCrossingsL:clear(0.0)
       self.primMomLimitCrossingsG:clear(0.0)
    end

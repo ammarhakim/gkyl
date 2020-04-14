@@ -13,6 +13,22 @@ def build(bld):
     TenMomentSrcImpl.cpp
     TenMomentRelaxImpl.cpp
 
+    momentCalcData/IntegratedDGMomentSer1x.cpp
+    momentCalcData/IntegratedDGMomentSer2x.cpp
+    momentCalcData/IntegratedDGMomentSer3x.cpp
+    momentCalcData/IntegratedDGMomentSer4x.cpp
+    momentCalcData/IntegratedDGMomentSer5x.cpp
+    momentCalcData/IntegratedDGMomentSer6x.cpp
+    momentCalcData/IntegratedDGMomentSer1x1v.cpp
+    momentCalcData/IntegratedDGMomentSer1x2v.cpp
+    momentCalcData/IntegratedDGMomentSer1x3v.cpp
+    momentCalcData/IntegratedDGMomentSer2x2v.cpp
+    momentCalcData/IntegratedDGMomentSer2x3v.cpp
+    momentCalcData/IntegratedDGMomentSer3x3v.cpp
+
+    interpolateCalcData/CartFieldInterpSer1x.cpp
+    interpolateCalcData/CartFieldInterpSer2x.cpp
+
     mgPoissonCalcData/MGpoissonSer1x.cpp
     mgPoissonCalcData/MGpoissonSer2x.cpp
 
@@ -268,7 +284,7 @@ def build(bld):
         )
 
     bld.shlib(source = sources,
-              includes = '. .. ../Cuda mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='lib EIGEN MPI', target = 'updater', name = 'updater', vum = '1.0')
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='lib EIGEN MPI', target = 'updater', name = 'updater', vum = '1.0')
     
 ## Removed the following files from the build for now
 #     binOpCalcData/CartFieldBinOpSer3x3vP2.cpp

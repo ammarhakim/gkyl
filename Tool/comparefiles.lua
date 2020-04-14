@@ -11,6 +11,9 @@ local AdiosReader = require "Io.AdiosReader"
 local Logger = require "Lib.Logger"
 local argparse = require "Lib.argparse"
 
+-- need to change this as it is keyed on input file name
+GKYL_OUT_PREFIX = lfs.currentdir() .. "/" .. "comparefiles"
+
 local log = Logger { logToFile = true }
 local verboseLog = function (msg) end -- default no messages are written
 local verboseLogger = function (msg) log(msg) end

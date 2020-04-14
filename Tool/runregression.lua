@@ -30,6 +30,9 @@ local date = require "xsys.date"
 local lume = require "Lib.lume"
 local sql = require "sqlite3"
 
+-- need to change this as it is keyed on input file name
+GKYL_OUT_PREFIX = lfs.currentdir() .. "/" .. "runregression"
+
 local log = Logger { logToFile = true }
 local verboseLog = function (msg) end -- default no messages are written
 local verboseLogger = function (msg) log(msg) end
@@ -70,6 +73,15 @@ local function uuid()
 			 local v = (c == 'x') and random(0, 0xf) or random(8, 0xb)
 			 return string.format('%x', v)
    end)
+end
+
+-- function to split comma separated list (strinng) into table
+local function splitList(listStr)
+   local words = {}
+   for w in listStr:gmatch('[^,%s]+') do
+      table.insert(words, w)
+   end
+   return words
 end
 
 -- generate ID for this run of regression system
@@ -368,17 +380,23 @@ local function list_tests(args)
       -- only MOAT regressions are to be run
       for _, t in ipairs(moatTests) do addTest(t) end
    elseif args.run_only then
-      local a = lfs.attributes(args.run_only)
-      if a.mode == "file" then
-	 addTest(args.run_only)
-      elseif a.mode == "directory" then
-	 for dir, fn, _ in dirtree(args.run_only) do addTest(dir .. "/" .. fn) end
+      -- get list of tests to run (this could be a comma separated
+      -- list of file names or directory names, or combination of
+      -- both)
+      local runList = splitList(args.run_only)
+      for _, ro in ipairs(runList) do
+	 local a = lfs.attributes(ro)
+	 if a.mode == "file" then
+	    addTest(ro)
+	 elseif a.mode == "directory" then
+	    for dir, fn, _ in dirtree(ro) do addTest(dir .. "/" .. fn) end
+	 end
       end
    else
       for dir, fn, _ in dirtree(".") do addTest(dir .. "/" .. fn) end
    end
 
-   -- this function is used to filter out tests that should not be
+   -- this function is used to filter out tests that should NOT be
    -- run. Note the confusing name
    local function shouldRun(t)
       if lume.find(ignoreTests, t) then return false end
@@ -474,7 +492,7 @@ end
 
 -- function to compare files
 local function compareFiles(f1, f2)
-   -- verboseLog(string.format("Comparing %s %s ...\n", f1, f2))   
+   verboseLog(string.format("Comparing %s %s ...\n", f1, f2))   
    if not lfs.attributes(f1) or not lfs.attributes(f2) then
       verboseLog(string.format(
 		    " ... files %s and/or %s do not exist!\n", f1, f2))
@@ -503,21 +521,28 @@ local function compareFiles(f1, f2)
 	    cmpPass = false
 	 end
       end
-   elseif r1:hasVar("TimeMesh") and r2:hasVar("TimeMesh") then
-      -- Compare DynVector
-      local d1, d2 = r1:getVar("Data"):read(), r2:getVar("Data"):read()
-      if d1:size() ~= d2:size() then
-	 verboseLog(string.format(
-		       " ... DynVector in files %s and %s not the same size!\n", f1, f2))
-	 return false
-      end
-
-      local maxVal = math.max(maxValueInField(d1),maxValueInField(d2)) -- maximum value (for numeric comparison)
-      for i = 1, d1:size() do
-	 if check_equal_numeric(d1[i], d2[i], maxVal) == false then
-	    currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i], maxVal))
-	    cmpPass = false
+   elseif r1:hasVar("TimeMesh0") and r2:hasVar("TimeMesh0") then
+      -- Compare DynVector: there may be more than one set of data in
+      -- the BP file
+      local frNum = 0
+      while true do
+	 local tNm, dNm = string.format("TimeMesh%d", frNum), string.format("Data%d", frNum)
+	 if not r1:hasVar(tNm) then break end
+	 local d1, d2 = r1:getVar(dNm):read(), r2:getVar(dNm):read()
+	 if d1:size() ~= d2:size() then
+	    verboseLog(string.format(
+			  " ... DynVector in files %s and %s not the same size!\n", f1, f2))
+	    return false
 	 end
+	 
+	 local maxVal = math.max(maxValueInField(d1),maxValueInField(d2)) -- maximum value (for numeric comparison)
+	 for i = 1, d1:size() do
+	    if check_equal_numeric(d1[i], d2[i], maxVal) == false then
+	       currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i], maxVal))
+	       cmpPass = false
+	    end
+	 end
+	 frNum = frNum+1
       end
    end
 
@@ -673,7 +698,7 @@ local c_run = parser:command("run")
    :description("Run regression tests.")
    :require_command(false)
    :action(run_action)
-c_run:option("-r --run-only", "Only run this test or all tests in this directory")
+c_run:option("-r --run-only", "Only run these tests or all tests in these directories.\nCommma separated list")
 c_run:flag("-m --moat", "Only run key MOAT regression")
 
 -- check against accepted results

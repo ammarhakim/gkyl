@@ -17,3 +17,9 @@ def build(bld):
               name = 'unit',
               vnum = '1.0',
               target = 'unit', features='cxx')
+
+    bld.program(
+        source = 'test_ForwardDiff.cxx',
+        target = 'test_ForwardDiff',
+        includes = '../Lib .'
+    )    

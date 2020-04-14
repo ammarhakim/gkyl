@@ -1,0 +1,390 @@
+/* Functions called by int-moment-calc.mac in order to 
+   generate kernels for IntegratedDGMoment updater. */
+
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+xcs : [wx1, wx2, wx3, wx4, wx5, wx6]$
+dxs : [dx1, dx2, dx3, dx4, dx5, dx6]$
+xTrans : [x*dxs[1]/2+xcs[1], y*dxs[2]/2+xcs[2], z*dxs[3]/2+xcs[3],
+          vx*dxs[4]/2+xcs[4], vy*dxs[5]/2+xcs[5], vz*dxs[6]/2+xcs[6]]$
+
+vcs    : [wv1, wv2, wv3]$
+dvs    : [dv1, dv2, dv3]$
+vTrans : [vx*dvs[1]/2+vcs[1], vy*dvs[2]/2+vcs[2], vz*dvs[3]/2+vcs[3]]$
+
+volExpr(totDim) := prod(dx[i-1], i, 1, totDim)$
+
+momPowStr : ["","Sq"]$
+    
+
+writeCIncrExprs1noPowers(lhs, rhs, qPow) := block([expr],
+  /* Search for powers of the quantities in qPow. If one of them is found
+     then define a temporary variable for it before writing out the increment. */
+
+  exprN : length(rhs),
+
+  /* Elimate the exponents as needed. */
+  subList : [],
+  maxExponent : 8,
+  for eI : 1 thru length(qPow) do (
+    for f : 2 thru maxExponent do (
+      doSub : false,
+      for k : 1 thru exprN do (
+        if (not freeof(qPow[eI]^f,rhs[k])) then ( doSub : true )
+      ),
+      if (doSub) then (
+        /* Define a separate variable. */
+        lhsS : sconcat("  const double ",string(qPow[eI]),"R",f),
+        rhsS : sconcat("std::pow(",string(qPow[eI]),",",f,");~%"),
+        printf(fh, sconcat(lhsS," = ",rhsS)),
+        /* Add to the string substitution list, used in writing file. */
+        subList : append(subList,[[sconcat(string(qPow[eI]), "^",f), sconcat(string(qPow[eI]),"R",f)]])
+      )
+    )
+  ),
+  printf(fh, "~%"),
+
+  expr : float(expand(rhs)),
+  for i : 1 thru exprN do (
+    if expr[i] # 0.0 then (
+      ep : string(expr[i]),
+      if (length(subList) > 0) then (
+        outStr : ssubst(subList[1][2],subList[1][1],ep),
+        for s : 2 thru length(subList) do (
+          outStr : ssubst(subList[s][2],subList[s][1],outStr)
+        )
+      ) else (
+        outStr : ep
+      ),
+      printf(fh, "  ~a += ~a; ~%", lhs[i-1], outStr)
+    )
+  )
+)$
+
+loadBasisX(dimTot, basisType) := block([],
+  /* Load a basis based on dimensionality and basis type alone. */
+  kill(varsC, varsP, basisC, basisP),
+  if (dimTot < 4) then (
+    load(sconcat("basis-precalc/basis", basisType, dimTot, "x"))
+  ) else (
+    load(sconcat("basis-precalc/basis", basisType, dimTot-3, "x", 3, "v"))
+  )
+)$
+
+calcOne(fh, funcNm, dim, basisFun, pMax) := block([],
+  /* Computes the integral of the input field over all space. */
+  loadBasisX(dim, basisFun),
+
+  for polyOrder : 1 thru pMax do (
+
+    if (dim < 4) then (
+      basis : basisC[polyOrder],
+      vars  : varsC
+    ) else (
+      basis : basisP[polyOrder],
+      vars  : varsP
+    ),
+    
+    printf(fh, "void ~a_one_P~a(const double *w, const double *dx, const double *fld, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, " ~%"),
+
+    printf(fh, "  const double volFac = ~a*~a; ~%", volExpr(dim), float(1/(2^dim)) ),
+    printf(fh, " ~%"),
+
+    fld_e : doExpand1(fld, basis),
+
+    M  : [],
+
+    m0 : fullratsimp(innerProd(vars, 1, 1, fld_e)),
+    M  : endcons(m0,M),
+
+    one : volFac*M,
+
+    writeCIncrExprs1(out,one),
+    printf(fh, "~%"),
+
+    printf(fh, "} ~%")
+  )
+)$
+
+calcSingleX(fh, funcNm, dim, basisFun, pMax, momPower) := block([],
+  /* Computes the integrated x1, x2, x3, x4, x5, x6,
+     x1^2, x2^2, x3^2, x4^2, x5^2 or x6^2 moment. */
+  loadBasisX(dim, basisFun),
+
+  for dir : 1 thru dim do (
+    for polyOrder : 1 thru pMax do (
+
+      if (dim < 4) then (
+        basis    : basisC[polyOrder],
+        vars     : varsC,
+        varTrans : xTrans
+      ) else (
+        basis    : basisP[polyOrder],
+        vars     : varsP,
+        varTrans : vars*makelist(dxs[i]/2,i,1,dim)+makelist(xcs[i],i,1,dim)
+      ),
+
+      printf(fh, "void ~a_x~a~a_P~a(const double *w, const double *dx, const double *fld, double *out) ~%{ ~%", funcNm, dir, momPowStr[momPower], polyOrder),
+      printf(fh, " ~%"),
+
+      printf(fh, "  const double volFac = ~a*~a; ~%", volExpr(dim), float(1/(2^(dim))) ),
+      printf(fh, "  const double ~a = w[~a]; ~%", xcs[dir], dir-1),
+      printf(fh, "  const double ~a = dx[~a]; ~%", dxs[dir], dir-1),
+      printf(fh, " ~%"),
+  
+      fld_e : doExpand1(fld, basis),
+  
+      M : [],
+  
+      /* Integrated x_i or x_i^momPower moment. */
+      xInt : fullratsimp(innerProd(vars, 1, (varTrans[dir])^momPower, fld_e)),
+      M    : endcons(xInt,M),
+  
+      intM : volFac*M,
+  
+      writeCIncrExprs1noPowers(out,intM,append(xcs,dxs)),
+      printf(fh, "~%"),
+  
+      printf(fh, "} ~%")
+    )
+  )
+)$
+
+xiCalc(fh, funcNm, dim, basisFun, pMax) := block([],
+  /* Computes the integral of "x1", "x2" and so on, at the same time. */
+  loadBasisX(dim, basisFun),
+
+  for polyOrder : 1 thru pMax do (
+
+    if (dim < 4) then (
+      basis    : basisC[polyOrder],
+      vars     : varsC,
+      varTrans : xTrans
+    ) else (
+      basis    : basisP[polyOrder],
+      vars     : varsP,
+      varTrans : vars*makelist(dxs[i]/2,i,1,dim)+makelist(xcs[i],i,1,dim)
+    ),
+
+    
+    printf(fh, "void ~a_xi_P~a(const double *w, const double *dx, const double *fld, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  const double volFac = ~a*~a; ~%", volExpr(dim), float(1/(2^dim)) ),
+    for i : 1 thru dim do (
+      printf(fh, "  const double ~a = w[~a]; ~%", xcs[i], i-1),
+      printf(fh, "  const double ~a = dx[~a]; ~%", dxs[i], i-1)
+    ),
+
+    printf(fh, " ~%"),
+
+    fld_e : doExpand1(fld, basis),
+
+    M : [],
+
+    for d : 1 thru dim do (
+       mom : fullratsimp(innerProd(vars, 1, varTrans[d], fld_e)),
+       M  : endcons(mom,M)
+    ),
+
+    intM : volFac*M,
+
+    writeCIncrExprs1noPowers(out,intM,append(xcs,dxs)),
+    printf(fh, "~%"),
+
+    printf(fh, "} ~%")
+  )
+)$
+
+xSqCalc(fh, funcNm, dim, basisFun, pMax) := block([],
+  /* Computes the integral of sum_i (x_i^2)*field. */
+  loadBasisX(dim, basisFun),
+
+  for polyOrder : 1 thru pMax do (
+    if (dim < 4) then (
+      basis    : basisC[polyOrder],
+      vars     : varsC,
+      varTrans : xTrans
+    ) else (
+      basis    : basisP[polyOrder],
+      vars     : varsP,
+      varTrans : vars*makelist(dxs[i]/2,i,1,dim)+makelist(xcs[i],i,1,dim)
+    ),
+
+    printf(fh, "void ~a_xSq_P~a(const double *w, const double *dx, const double *fld, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  const double volFac = ~a*~a; ~%", volExpr(dim), float(1/(2^dim)) ),
+    for i : 1 thru dim do (
+      printf(fh, "  const double ~a = w[~a]; ~%", xcs[i], i-1),
+      printf(fh, "  const double ~a = dx[~a]; ~%", dxs[i], i-1)
+    ),
+
+    printf(fh, " ~%"),
+
+    fld_e : doExpand1(fld, basis),
+
+    M : [],
+
+    /* Integrated sum_i x_i^2 moment. */
+    xSq : sum(innerProd(vars, 1, varTrans[d]*varTrans[d], fld_e), d, 1, dim),
+    M   : endcons(xSq, M),
+
+    intXsq : volFac*M,
+
+    writeCIncrExprs1noPowers(out,intXsq,append(xcs,dxs)),
+    printf(fh, "~%"),
+
+    printf(fh, "} ~%")
+  )
+)$
+
+calcSingleV(fh, funcNm, cdim, vdim, basisFun, pMax, momPower) := block([],
+  /* Computes the integrated v1, v2 or v3 moment. */
+  kill(varsC, varsP, basisC, basisP),
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+  for vDir : 1 thru vdim do (
+    for polyOrder : 1 thru pMax do (
+      bP : basisP[polyOrder],
+      bC : basisC[polyOrder],
+      
+      printf(fh, "void ~a_v~a~a_P~a(const double *w, const double *dx, const double *fld, double *out) ~%{ ~%", funcNm, vDir, momPowStr[momPower], polyOrder),
+      printf(fh, " ~%"),
+
+      printf(fh, "  const double volFac = ~a*~a; ~%", volExpr(cdim+vdim), float(1/(2^(cdim+vdim))) ),
+      printf(fh, "  const double ~a = w[~a]; ~%", vcs[vDir], cdim+vDir-1),
+      printf(fh, "  const double ~a = dx[~a]; ~%", dvs[vDir], cdim+vDir-1),
+      printf(fh, " ~%"),
+  
+      fld_e : doExpand1(fld, bP),
+  
+      M : [],
+  
+      /* Integrated momentum. */
+      vInt : fullratsimp(innerProd(varsP, 1, (vTrans[vDir])^momPower, fld_e)),
+      M    : endcons(vInt,M),
+  
+      intM : volFac*M,
+  
+      writeCIncrExprs1noPowers(out,intM,append(vcs,dvs)),
+      printf(fh, "~%"),
+  
+      printf(fh, "} ~%")
+    )
+  )
+)$
+
+vSqCalc(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  /* Computes the integral of M2. */
+  kill(varsC, varsP, basisC, basisP),
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+  for polyOrder : 1 thru pMax do (
+    bP : basisP[polyOrder],
+    bC : basisC[polyOrder],
+    
+    printf(fh, "void ~a_vSq_P~a(const double *w, const double *dx, const double *fld, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  const double volFac = ~a*~a; ~%", volExpr(cdim+vdim), float(1/(2^(cdim+vdim))) ),
+    for i : 1 thru vdim do (
+      printf(fh, "  const double ~a = w[~a]; ~%", vcs[i], cdim+i-1),
+      printf(fh, "  const double ~a = dx[~a]; ~%", dvs[i], cdim+i-1)
+    ),
+
+    printf(fh, " ~%"),
+
+    fld_e : doExpand1(fld, bP),
+
+    M : [],
+
+    /* Integrated particle energy. */
+    m2 : sum(innerProd(varsP, 1, vTrans[d]*vTrans[d], fld_e), d, 1, vdim),
+    M  : endcons(m2, M),
+
+    intM2 : volFac*M,
+
+    writeCIncrExprs1noPowers(out,intM2,append(vcs,dvs)),
+    printf(fh, "~%"),
+
+    printf(fh, "} ~%")
+  )
+)$
+
+viCalc(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  /* Computes the integral of M1i, that is, "v1", "v2" and "v3" at the same time. */
+  kill(varsC, varsP, basisC, basisP),
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+  for polyOrder : 1 thru pMax do (
+    bP : basisP[polyOrder],
+    bC : basisC[polyOrder],
+    
+    printf(fh, "void ~a_vi_P~a(const double *w, const double *dx, const double *fld, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  const double volFac = ~a*~a; ~%", volExpr(cdim+vdim), float(1/(2^(cdim+vdim))) ),
+    for i : 1 thru vdim do (
+      printf(fh, "  const double ~a = w[~a]; ~%", vcs[i], cdim+i-1),
+      printf(fh, "  const double ~a = dx[~a]; ~%", dvs[i], cdim+i-1)
+    ),
+
+    printf(fh, " ~%"),
+
+    fld_e : doExpand1(fld, bP),
+
+    M : [],
+
+    /* Integrated momentum. */
+    for v : 1 thru vdim do (
+       m1 : fullratsimp(innerProd(varsP, 1, vTrans[v], fld_e)),
+       M  : endcons(m1,M)
+    ),
+
+    intM : volFac*M,
+
+    writeCIncrExprs1noPowers(out,intM,append(vcs,dvs)),
+    printf(fh, "~%"),
+
+    printf(fh, "} ~%")
+  )
+)$
+
+calcIntM(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  /* Computes the integral of M0, M1i and M2 at the same time. */
+  kill(varsC, varsP, basisC, basisP),
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+  for polyOrder : 1 thru pMax do (
+    bP : basisP[polyOrder],
+    bC : basisC[polyOrder],
+    
+    printf(fh, "void ~a_intM_P~a(const double *w, const double *dx, const double *fld, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  const double volFac = ~a*~a; ~%", volExpr(cdim+vdim), float(1/(2^(cdim+vdim))) ),
+    for i : 1 thru vdim do (
+      printf(fh, "  const double ~a = w[~a]; ~%", vcs[i], cdim+i-1),
+      printf(fh, "  const double ~a = dx[~a]; ~%", dvs[i], cdim+i-1)
+    ),
+
+    printf(fh, " ~%"),
+
+    fld_e : doExpand1(fld, bP),
+
+    M : [],
+
+    /* Integrated M0. */
+    m0 : fullratsimp(innerProd(varsP, 1, 1, fld_e)),
+    M  : endcons(m0,M),
+
+    /* Integrated momentum. */
+    for v : 1 thru vdim do (
+       m1 : fullratsimp(innerProd(varsP, 1, vTrans[v], fld_e)),
+       M  : endcons(m1,M)
+    ),
+
+    /* Integrated particle energy. */
+    m2 : sum(innerProd(varsP, 1, vTrans[d]*vTrans[d], fld_e), d, 1, vdim),
+    M  : endcons(m2, M),
+
+    intM : volFac*M,
+
+    writeCIncrExprs1noPowers(out,intM,append(vcs,dvs)),
+    printf(fh, "~%"),
+
+    printf(fh, "} ~%")
+  )
+)$
+

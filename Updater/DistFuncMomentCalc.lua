@@ -154,10 +154,16 @@ function DistFuncMomentCalc:init(tbl)
    self.applyPositivity = xsys.pickBool(tbl.positivity,false)   -- Positivity preserving option.
 
    self.onGhosts = xsys.pickBool(tbl.onGhosts, true)
+
+   -- Option to compute moments only once per timestep, based on tCurr input parameter.
+   -- NOTE: this should not be used if the updater is used to compute several different quantities in the same timestep.
+   self.oncePerTime = xsys.pickBool(tbl.oncePerTime, false)
 end
 
 -- advance method
 function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
+   if self.oncePerTime and self.tCurr == tCurr then return end -- do nothing, already computed on this step
+
    local grid        = self._onGrid
    local distf, mom1 = inFld[1], outFld[1]
 
@@ -204,7 +210,7 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
 
       local mom2, mom3
       local mom2Itr, mom3Itr
-      mom1:scale(0.0) -- Zero out moments.
+      mom1:clear(0.0) -- Zero out moments.
    
       local cMomB, cEnergyB
       local m0Star, m1Star, m2Star
@@ -219,8 +225,8 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
          mom2Itr = mom2:get(1)
          mom3Itr = mom3:get(1) 
    
-         mom2:scale(0.0)
-         mom3:scale(0.0)
+         mom2:clear(0.0)
+         mom3:clear(0.0)
          if self._fiveMomentsLBO then 
             cMomB    = outFld[4]
             cEnergyB = outFld[5] 
@@ -228,8 +234,8 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
             cMomBItr    = cMomB:get(1) 
             cEnergyBItr = cEnergyB:get(1) 
    
-            cMomB:scale(0.0)
-            cEnergyB:scale(0.0)
+            cMomB:clear(0.0)
+            cEnergyB:clear(0.0)
    
             -- Added for corrections and star moments.
             -- Distribution functions left and right of a cell-boundary.
@@ -245,9 +251,9 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
                m1StarItr = m1Star:get(1) 
                m2StarItr = m2Star:get(1) 
    
-               m0Star:scale(0.0)
-               m1Star:scale(0.0)
-               m2Star:scale(0.0)
+               m0Star:clear(0.0)
+               m1Star:clear(0.0)
+               m2Star:clear(0.0)
             end
          end
       end
@@ -496,6 +502,8 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
       if self.momfac ~= 1.0 then mom1:scale(self.momfac) end
 
    end
+
+   if self.oncePerTime then self.tCurr = tCurr end
 end
 
 return DistFuncMomentCalc

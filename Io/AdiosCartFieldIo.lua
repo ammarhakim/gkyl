@@ -75,17 +75,17 @@ function AdiosCartFieldIo:init(tbl)
    self._writeSkin = xsys.pickBool(tbl.writeSkin, false)
 
    -- If we have meta-data to write out, store it.
-   self._metaData = {
-      -- DISABLING OUTPUT FOR INPUT FILE FOR NOW AT THIS BARFS IT THE
-      -- STRING IS TOO LONG
-      ["inputfile"] = {
-      	 value = "inputfile"
-      }
-      -- -- We always write out input file contents (encoded as base64 string).
-      -- ["inputfile"] = {
-      -- 	 value = GKYL_INP_FILE_CONTENTS, vType = "string"
-      -- }
+   if GKYL_EMBED_INP then
+      self._metaData = {
+	 -- write out input file contents (encoded as base64 string)
+	 ["inputfile"] = {
+	    value = GKYL_INP_FILE_CONTENTS, vType = "string"
+	 }
    }
+   else
+      -- write some dummy text otherwise
+      self._metaData = { ["inputfile"] = { value = "inputfile", vType = "string" } }
+   end
    if tbl.metaData then
       -- Store value and its type for each piece of data.
       for k,v in pairs(tbl.metaData) do

@@ -40,6 +40,9 @@ local statusToString = { [-2] = "create", [-1] = "skip", [0] = "fail", [1] = "pa
 -- Name of configuration file
 local confFile = os.getenv("HOME") .. "/runregression.config.lua"
 
+-- need to change this as it is keyed on input file name
+GKYL_OUT_PREFIX = lfs.currentdir() .. "/" .. "queryrdb"
+
 local log = Logger { logToFile = true }
 local verboseLog = function (msg) end -- default no messages are written
 local verboseLogger = function (msg) log(msg) end
@@ -139,6 +142,9 @@ local function query_action(args, name)
 	 if args.fail_only then
 	    if status == "fail" then return true else return false end
 	 end
+	 if args.pass_only then
+	    if status == "pass" then return true else return false end
+	 end	 
 	 return true
       end
       
@@ -149,13 +155,26 @@ local function query_action(args, name)
 	 print(string.format("=== ")) 
 	 print(dbData[tidx].runlog)
       else
-	 local fmt = "%-4s: %-" .. maxNm+2 .. "s %-7s %-4s"
-	 print(string.format(fmt, "ID", "Name", "Status", "Run-Time"))
-	 local fmt1 = "%-4s: %-" .. maxNm+2 .. "s %-7s %.4g"
-	 for i,d in pairs(dbData) do
-	    if filt(d.status) then
-	       print(string.format(fmt1, i, d.name, d.status, d.runtime))
+	 if args.comma_list then
+	    -- print pass/fail as comma seperated list (unless -f flag
+	    -- is use this list does not distinguish passed and failed
+	    -- tests)
+	    for i,d in pairs(dbData) do
+	       if filt(d.status) then
+		  io.write(d.name .. ',')
+	       end
 	    end
+	    io.write('\n')
+	 else
+	    -- print detailed complete information
+	    local fmt = "%-4s: %-" .. maxNm+2 .. "s %-7s %-4s"
+	    print(string.format(fmt, "ID", "Name", "Status", "Run-Time"))
+	    local fmt1 = "%-4s: %-" .. maxNm+2 .. "s %-7s %.4g"
+	    for i,d in pairs(dbData) do
+	       if filt(d.status) then
+		  print(string.format(fmt1, i, d.name, d.status, d.runtime))
+	       end
+	    end	    
 	 end
       end
    end
@@ -246,6 +265,8 @@ local c_query = parser:command("query", "Query individual run of regression syst
    :action(query_action)
 c_query:option("-i --id", "Print information for regression run with this ID", 1)
 c_query:flag("-f --fail-only", "Print only failed tests", false)
+c_query:flag("-p --pass-only", "Print only pass tests", false)
+c_query:flag("-l --comma-list", "Print test list as comma seperated list", false)
 c_query:option("-t --test", "Print log for specified test number", 0)
 c_query:flag("--net-time", "Print total time it took to run all tests", false)
 

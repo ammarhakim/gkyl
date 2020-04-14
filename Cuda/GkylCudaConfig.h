@@ -8,7 +8,7 @@
 #ifndef GK_CUDA_CONFIG_H
 #define GK_CUDA_CONFIG_H
 
-#include <gkylconfig.h>
+#include <../gkylconfig.h>
 
 #ifndef HAVE_CUDA_H
 # define __global__

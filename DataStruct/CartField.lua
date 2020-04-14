@@ -316,6 +316,7 @@ local function Field_meta_ctor(elct)
 	 metaData = tbl.metaData,
       }
       -- tag to identify basis used to set this field
+      self._metaData = tbl.metaData
       self._basisId = "none"
 
       return self
@@ -605,6 +606,9 @@ local function Field_meta_ctor(elct)
       end,
       getBasisId = function(self)
          return self._basisId
+      end,
+      getMetaData = function(self)
+         return self._metaData 
       end,
       compatible = function(self, fld)
          return field_compatible(self, fld)
