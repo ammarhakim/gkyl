@@ -46,6 +46,9 @@ nodes5xp2 : matrix([-1,-1,-1,-1,-1],[0,-1,-1,-1,-1],[1,-1,-1,-1,-1],[-1,0,-1,-1,
             [-1,-1,0,1,1],[1,-1,0,1,1],[-1,1,0,1,1],[1,1,0,1,1],
             [-1,-1,1,1,1],[0,-1,1,1,1],[1,-1,1,1,1],[-1,0,1,1,1],[1,0,1,1,1],[-1,1,1,1,1],[0,1,1,1,1],[1,1,1,1,1])$
 
+/* substitute node values in f expression */
+nodesub(f,vars,nodes):=makelist(subst(makelist(vars[j]=nodes[i][j],j,1,length(vars)),f),i,1,length(nodes))$
+
 /* calculate modal-to-nodal transformation matrix */
 calcModToNod(cdim, p) := block([varsC, varsP, basisC, basisP], 
 modNm : sconcat("basis-precalc/basisSer", cdim, "x"),

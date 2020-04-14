@@ -23,7 +23,7 @@ double GkLBOconstNuVol1x1vSerP1(const double m_, const double *w, const double *
   out[2] += 0.8660254037844386*(alphaVpar[2]*f[2]+alphaVpar[1]*f[1]+alphaVpar[0]*f[0]); 
   out[3] += 0.8660254037844386*(alphaVpar[2]*f[3]+alphaVpar[0]*f[1]+f[0]*alphaVpar[1]); 
 
-  positivityWeightByDir[1] = std::abs(0.5*alphaVpar[0]) + 0.9428090415820625*nuVtSqSum[0]*rdvSq4[0]; 
+  positivityWeightByDir[2] = std::abs(0.5*alphaVpar[0]) + 0.9428090415820625*nuVtSqSum[0]*rdvSq4[0]; 
   return std::abs(0.5*alphaVpar[0]) + 0.9428090415820625*nuVtSqSum[0]*rdvSq4[0]; 
 
 } 

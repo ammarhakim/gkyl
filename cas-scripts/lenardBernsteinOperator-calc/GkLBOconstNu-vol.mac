@@ -154,12 +154,12 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       printf(fh, "  // Evaluate alpha at left surface quadrature points. ~%"),
       for i:1 thru length(alphaLquad) do (
         printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaLquad[i]))),
-        printf(fh, "  positivityWeightByDir[~a] += std::abs(alphaL); ~%", d)
+        printf(fh, "  positivityWeightByDir[~a] += std::abs(alphaL); ~%", d+cdim)
       ),
       printf(fh, "  // Evaluate alpha at right surface quadrature points. ~%"),
       for i:1 thru length(alphaRquad) do (
         printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaRquad[i]))),
-        printf(fh, "  positivityWeightByDir[~a] += std::abs(alphaR); ~%", d)
+        printf(fh, "  positivityWeightByDir[~a] += std::abs(alphaR); ~%", d+cdim)
       )
     ),
     printf(fh, "~%"),
@@ -181,7 +181,7 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     expr_vpar  : float(expand(fullratsimp(((polyOrder+1)**2)*facVparMid/(2*polyOrder+1)))),
     param_vpar : cons(expr_vpar, [float(expand(((polyOrder+1)**2)/(2*polyOrder+1))), rdvSq4[1], m_, w[vid[1]]]),
     eColl_vpar : apply(collectterms, param_vpar),
-    printf(fh, "  positivityWeightByDir[1] = std::abs(~a) + ~a; ~%", alphaVparMid, eColl_vpar),
+    printf(fh, "  positivityWeightByDir[~a] = std::abs(~a) + ~a; ~%", cdim+1, alphaVparMid, eColl_vpar),
 
     if vdim = 1 then (
       printf(fh, "  return std::abs(~a) + ~a; ~%", alphaVparMid, eColl_vpar )
@@ -199,7 +199,7 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       expr_mu  : float(expand(fullratsimp(-alphaMuDMid+((polyOrder+1)**2)*(facMuMid)/(2*polyOrder+1)))),
       param_mu : cons(expr_mu, [float(expand(((polyOrder+1)**2)/(2*polyOrder+1))), rdvSq4[1], m_, w[vid[2]]]),
       eColl_mu : apply(collectterms, param_mu),
-      printf(fh, "  positivityWeightByDir[2] = ~a; ~%", eColl_mu),
+      printf(fh, "  positivityWeightByDir[~a] = ~a; ~%", cdim+2, eColl_mu),
       printf(fh, "  return std::abs(~a) + ~a; ~%", alphaVparMid, eColl_vpar + eColl_mu )
     ),
     printf(fh, "~%"),

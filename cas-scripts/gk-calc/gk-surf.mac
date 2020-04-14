@@ -248,16 +248,15 @@ load(modNm),
 
       /* limit flux to preserve positivity of control nodes */
       cSurfNodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", polyOrder))/3,
-      nodesub(f,nodes):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j],j,1,length(surfIntVars)),f),i,1,length(nodes)),
-      GhatC : nodesub(Ghat_expd, cSurfNodes),
+      GhatC : nodesub(Ghat_expd, surfIntVars, cSurfNodes),
       printf(fh, "  double fluxFracL, fluxFracR, limfac, flim = 0.;~%"),
       printf(fh, "  double GhatCtrl[~a];~%", length(cSurfNodes), length(cSurfNodes), length(cSurfNodes)),
       printf(fh, "  fluxFracL = positivityWeightByDirL[0] == 0. ? ~a : positivityWeightByDirL[~a]/positivityWeightByDirL[0]; ~%", float(1/(cdim+vdim)), surfDir),
       printf(fh, "  fluxFracR = positivityWeightByDirR[0] == 0. ? ~a : positivityWeightByDirR[~a]/positivityWeightByDirR[0]; ~%", float(1/(cdim+vdim)), surfDir),
       for c:1 thru length(cSurfNodes) do (
         printf(fh, "  // control node ~a = ~a ~%", surfIntVars, cSurfNodes[c]), 
-        flimL:gcfac(float(fullratsimp(subst(surfVar=1/3,nodesub(fL_expd,cSurfNodes)[c])))),
-        flimR:gcfac(float(fullratsimp(subst(surfVar=-1/3,nodesub(fR_expd,cSurfNodes)[c])))),
+        flimL:gcfac(float(fullratsimp(subst(surfVar=1/3,nodesub(fL_expd,surfIntVars,cSurfNodes)[c])))),
+        flimR:gcfac(float(fullratsimp(subst(surfVar=-1/3,nodesub(fR_expd,surfIntVars,cSurfNodes)[c])))),
         printf(fh, "  GhatCtrl[~a] = ~a; ~%", c-1, gcfac(float(GhatC[c]))),
         printf(fh, "  if(GhatCtrl[~a] > EPSILON) {~%", c-1),
         printf(fh, "    flim = std::max(0., ~a); ~%", flimL),
@@ -332,13 +331,11 @@ load(modNm),
       if polyOrder=1 then quad:1/sqrt(3),
       if polyOrder=2 then quad:sqrt(3/5),
       nodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", polyOrder))*quad,
-      /* function to evaluate expansion g at surface quadrature nodes */
-      nodesub(g):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j],j,1,length(varsP)-1),g),i,1,length(nodes)),
       /* evaluate fl, fr, and alpha at surface quadrature nodes */
-      frQ:gcfac(float(nodesub(subst(surfVar=-1,fR_expd)))),
-      flQ:gcfac(float(nodesub(subst(surfVar=1,fL_expd)))), 
+      frQ:gcfac(float(nodesub(subst(surfVar=-1,fR_expd),surfIntVars,nodes))),
+      flQ:gcfac(float(nodesub(subst(surfVar=1,fL_expd),surfIntVars,nodes))), 
       /* note: alphaSurf_expd is already a surface expansion */
-      alphaq:gcfac(float(nodesub(alphaUpSurf_expd))),
+      alphaq:gcfac(float(nodesub(alphaUpSurf_expd),surfIntVars,nodes)),
       /* determine upwinding at each surface quadrature node */
       fupQ : gcfac(.5*(flQ+frQ)+.5*sgn(alphaQuad)*(flQ-frQ)),
       for i:1 thru length(alphaq) do (
@@ -636,13 +633,11 @@ load(modNm),
     if polyOrder=1 then quad:1/sqrt(3),
     if polyOrder=2 then quad:sqrt(3/5),
     nodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", polyOrder))*quad,
-    /* function to evaluate expansion g at surface quadrature nodes */
-    nodesub(g):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j],j,1,length(varsP)-1),g),i,1,length(nodes)),
     /* evaluate fl, fr, and alpha at surface quadrature nodes */
-    frQ:gcfac(float(nodesub(subst(surfVar=-1,fR_expd)))),
-    flQ:gcfac(float(nodesub(subst(surfVar=1,fL_expd)))), 
+    frQ:gcfac(float(nodesub(subst(surfVar=-1,fR_expd),surfIntVars,nodes))),
+    flQ:gcfac(float(nodesub(subst(surfVar=1,fL_expd),surfIntVars,nodes))), 
     /* note: alphaSurf_expd is already a surface expansion */
-    alphaq:gcfac(float(nodesub(alphaUpSurf_expd))),
+    alphaq:gcfac(float(nodesub(alphaUpSurf_expd),surfIntVars,nodes)),
     /* determine upwinding at each surface quadrature node */
     fupQ : gcfac(.5*(flQ+frQ)+.5*sgn(alphaQuad)*(flQ-frQ)),
     for i:1 thru length(alphaq) do (

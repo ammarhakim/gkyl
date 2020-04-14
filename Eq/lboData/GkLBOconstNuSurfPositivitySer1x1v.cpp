@@ -121,55 +121,54 @@ double GkLBOconstNuSurfPositivity1x1vSer_Vpar_P1(const double m_, const double *
   incr1[3] = 0.8660254037844386*Ghat[1]*rdv2R; 
 
   double fluxFracL, fluxFracR, limFac=1.0;
-  double outlPosP[2], outrPosP[2]; 
-  double outlPosM[2], outrPosM[2]; 
-  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.5 : positivityWeightByDirL[1]/positivityWeightByDirL[0]; 
-  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.5 : positivityWeightByDirR[1]/positivityWeightByDirR[0]; 
-  outlPosP[0] = -0.1666666666666667*(incr1[3]-1.732050807568877*(incr1[2]+incr1[1])+3.0*incr1[0]); 
-  outlPosP[1] = 0.1666666666666667*(incr1[3]+1.732050807568877*incr1[2]-1.732050807568877*incr1[1]-3.0*incr1[0]); 
-  outlPosM[0] = 0.1666666666666667*(incr1[3]-1.732050807568877*incr1[2]+1.732050807568877*incr1[1]-3.0*incr1[0]); 
-  outlPosM[1] = -0.1666666666666667*(incr1[3]+1.732050807568877*(incr1[2]+incr1[1])+3.0*incr1[0]); 
-  outrPosP[0] = -0.1666666666666667*(incr1[3]-1.732050807568877*incr1[2]+1.732050807568877*incr1[1]-3.0*incr1[0]); 
-  outrPosP[1] = 0.1666666666666667*(incr1[3]+1.732050807568877*(incr1[2]+incr1[1])+3.0*incr1[0]); 
-  outrPosM[0] = 0.1666666666666667*(incr1[3]-1.732050807568877*(incr1[2]+incr1[1])+3.0*incr1[0]); 
-  outrPosM[1] = -0.1666666666666667*(incr1[3]+1.732050807568877*incr1[2]-1.732050807568877*incr1[1]-3.0*incr1[0]); 
+  double outlPos[4], outrPos[4]; 
+  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.5 : positivityWeightByDirL[2]/positivityWeightByDirL[0]; 
+  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.5 : positivityWeightByDirR[2]/positivityWeightByDirR[0]; 
+  outlPos[0] = 0.1666666666666667*(incr1[3]-1.732050807568877*incr1[2]+1.732050807568877*incr1[1]-3.0*incr1[0]); 
+  outlPos[1] = -0.1666666666666667*(incr1[3]+1.732050807568877*(incr1[2]+incr1[1])+3.0*incr1[0]); 
+  outlPos[2] = -0.1666666666666667*(incr1[3]-1.732050807568877*(incr1[2]+incr1[1])+3.0*incr1[0]); 
+  outlPos[3] = 0.1666666666666667*(incr1[3]+1.732050807568877*incr1[2]-1.732050807568877*incr1[1]-3.0*incr1[0]); 
+  outrPos[0] = 0.1666666666666667*(incr1[3]-1.732050807568877*(incr1[2]+incr1[1])+3.0*incr1[0]); 
+  outrPos[1] = -0.1666666666666667*(incr1[3]+1.732050807568877*incr1[2]-1.732050807568877*incr1[1]-3.0*incr1[0]); 
+  outrPos[2] = -0.1666666666666667*(incr1[3]-1.732050807568877*incr1[2]+1.732050807568877*incr1[1]-3.0*incr1[0]); 
+  outrPos[3] = 0.1666666666666667*(incr1[3]+1.732050807568877*(incr1[2]+incr1[1])+3.0*incr1[0]); 
   if(-0.1666666666666667*(incr2[3]-1.732050807568877*incr2[2]) > 0. && -0.1666666666666667*(incr2[3]-1.732050807568877*incr2[2]) > 0.) {
-    outlPosP[0] += 0.1666666666666667*(incr2[3]-1.732050807568877*incr2[2]); 
-    outlPosM[0] += -0.1666666666666667*(incr2[3]-1.732050807568877*incr2[2]); 
-    outrPosP[0] += -0.1666666666666667*(incr2[3]-1.732050807568877*incr2[2]); 
-    outrPosM[0] += 0.1666666666666667*(incr2[3]-1.732050807568877*incr2[2]); 
+    outlPos[2] += 0.1666666666666667*(incr2[3]-1.732050807568877*incr2[2]); 
+    outlPos[0] += -0.1666666666666667*(incr2[3]-1.732050807568877*incr2[2]); 
+    outrPos[2] += -0.1666666666666667*(incr2[3]-1.732050807568877*incr2[2]); 
+    outrPos[0] += 0.1666666666666667*(incr2[3]-1.732050807568877*incr2[2]); 
   }
-  if(outlPosP[0] < 0.) limFac = std::min(1.0, -fluxFracL*(-0.1666666666666667*(fl[3]-1.732050807568877*fl[2]+1.732050807568877*fl[1]-3.0*fl[0]))/dtApprox/outlPosP[0]); 
+  if(outlPos[2] < 0.) limFac = std::min(1.0, -fluxFracL*(-0.1666666666666667*(fl[3]-1.732050807568877*fl[2]+1.732050807568877*fl[1]-3.0*fl[0]))/dtApprox/outlPos[2]); 
   else limFac = 1.0; 
-  if(outrPosM[0] < 0.) limFac = std::min(limFac, -fluxFracR*(0.1666666666666667*(fr[3]-1.732050807568877*(fr[2]+fr[1])+3.0*fr[0]))/dtApprox/outrPosM[0]); 
+  if(outrPos[0] < 0.) limFac = std::min(limFac, -fluxFracR*(0.1666666666666667*(fr[3]-1.732050807568877*(fr[2]+fr[1])+3.0*fr[0]))/dtApprox/outrPos[0]); 
   if(limFac < 0.) limFac = 0.; 
-  outlPosP[0] *= limFac; 
-  outlPosM[0] *= limFac; 
-  outrPosP[0] *= limFac; 
-  outrPosM[0] *= limFac; 
+  outlPos[2] *= limFac; 
+  outlPos[0] *= limFac; 
+  outrPos[2] *= limFac; 
+  outrPos[0] *= limFac; 
   if(0.1666666666666667*(incr2[3]+1.732050807568877*incr2[2]) > 0. && 0.1666666666666667*(incr2[3]+1.732050807568877*incr2[2]) > 0.) {
-    outlPosP[1] += -0.1666666666666667*(incr2[3]+1.732050807568877*incr2[2]); 
-    outlPosM[1] += 0.1666666666666667*(incr2[3]+1.732050807568877*incr2[2]); 
-    outrPosP[1] += 0.1666666666666667*(incr2[3]+1.732050807568877*incr2[2]); 
-    outrPosM[1] += -0.1666666666666667*(incr2[3]+1.732050807568877*incr2[2]); 
+    outlPos[3] += -0.1666666666666667*(incr2[3]+1.732050807568877*incr2[2]); 
+    outlPos[1] += 0.1666666666666667*(incr2[3]+1.732050807568877*incr2[2]); 
+    outrPos[3] += 0.1666666666666667*(incr2[3]+1.732050807568877*incr2[2]); 
+    outrPos[1] += -0.1666666666666667*(incr2[3]+1.732050807568877*incr2[2]); 
   }
-  if(outlPosP[1] < 0.) limFac = std::min(1.0, -fluxFracL*(0.1666666666666667*(fl[3]+1.732050807568877*(fl[2]+fl[1])+3.0*fl[0]))/dtApprox/outlPosP[1]); 
+  if(outlPos[3] < 0.) limFac = std::min(1.0, -fluxFracL*(0.1666666666666667*(fl[3]+1.732050807568877*(fl[2]+fl[1])+3.0*fl[0]))/dtApprox/outlPos[3]); 
   else limFac = 1.0; 
-  if(outrPosM[1] < 0.) limFac = std::min(limFac, -fluxFracR*(-0.1666666666666667*(fr[3]+1.732050807568877*fr[2]-1.732050807568877*fr[1]-3.0*fr[0]))/dtApprox/outrPosM[1]); 
+  if(outrPos[1] < 0.) limFac = std::min(limFac, -fluxFracR*(-0.1666666666666667*(fr[3]+1.732050807568877*fr[2]-1.732050807568877*fr[1]-3.0*fr[0]))/dtApprox/outrPos[1]); 
   if(limFac < 0.) limFac = 0.; 
-  outlPosP[1] *= limFac; 
-  outlPosM[1] *= limFac; 
-  outrPosP[1] *= limFac; 
-  outrPosM[1] *= limFac; 
-  outr[0] += 0.5*(outrPosP[1]+outrPosM[1]+outrPosP[0]+outrPosM[0]); 
-  outr[1] += 0.5*(1.732050807568877*(outrPosP[1]+outrPosM[1])-1.732050807568877*(outrPosP[0]+outrPosM[0])); 
-  outr[2] += 0.5*(1.732050807568877*outrPosP[1]-1.732050807568877*outrPosM[1]+1.732050807568877*outrPosP[0]-1.732050807568877*outrPosM[0]); 
-  outr[3] += 0.5*(3.0*outrPosP[1]-3.0*(outrPosM[1]+outrPosP[0])+3.0*outrPosM[0]); 
+  outlPos[3] *= limFac; 
+  outlPos[1] *= limFac; 
+  outrPos[3] *= limFac; 
+  outrPos[1] *= limFac; 
+  outr[0] += 0.5*(outrPos[3]+outrPos[2]+outrPos[1]+outrPos[0]); 
+  outr[1] += 0.5*(1.732050807568877*outrPos[3]-1.732050807568877*outrPos[2]+1.732050807568877*outrPos[1]-1.732050807568877*outrPos[0]); 
+  outr[2] += 0.5*(1.732050807568877*(outrPos[3]+outrPos[2])-1.732050807568877*(outrPos[1]+outrPos[0])); 
+  outr[3] += 0.5*(3.0*outrPos[3]-3.0*(outrPos[2]+outrPos[1])+3.0*outrPos[0]); 
 
-  outl[0] += 0.5*(outlPosP[1]+outlPosM[1]+outlPosP[0]+outlPosM[0]); 
-  outl[1] += 0.5*(1.732050807568877*(outlPosP[1]+outlPosM[1])-1.732050807568877*(outlPosP[0]+outlPosM[0])); 
-  outl[2] += 0.5*(1.732050807568877*outlPosP[1]-1.732050807568877*outlPosM[1]+1.732050807568877*outlPosP[0]-1.732050807568877*outlPosM[0]); 
-  outl[3] += 0.5*(3.0*outlPosP[1]-3.0*(outlPosM[1]+outlPosP[0])+3.0*outlPosM[0]); 
+  outl[0] += 0.5*(outlPos[3]+outlPos[2]+outlPos[1]+outlPos[0]); 
+  outl[1] += 0.5*(1.732050807568877*outlPos[3]-1.732050807568877*outlPos[2]+1.732050807568877*outlPos[1]-1.732050807568877*outlPos[0]); 
+  outl[2] += 0.5*(1.732050807568877*(outlPos[3]+outlPos[2])-1.732050807568877*(outlPos[1]+outlPos[0])); 
+  outl[3] += 0.5*(3.0*outlPos[3]-3.0*(outlPos[2]+outlPos[1])+3.0*outlPos[0]); 
 
   return std::abs(wl[1]-(0.7071067811865475*nuUSum[0])/nuSum); 
 } 
