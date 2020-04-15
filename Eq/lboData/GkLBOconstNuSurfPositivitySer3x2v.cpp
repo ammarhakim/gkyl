@@ -590,8 +590,8 @@ double GkLBOconstNuSurfPositivity3x2vSer_Vpar_P1(const double m_, const double *
 
   double fluxFracL, fluxFracR, limFac=1.0;
   double outlPos[32], outrPos[32]; 
-  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.2 : positivityWeightByDirL[4]/positivityWeightByDirL[0]; 
-  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.2 : positivityWeightByDirR[4]/positivityWeightByDirR[0]; 
+  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.2 : positivityWeightByDirL[1]/positivityWeightByDirL[0]; 
+  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.2 : positivityWeightByDirR[1]/positivityWeightByDirR[0]; 
   outlPos[0] = -0.004629629629629629*(2.449489742783178*(incr1[31]+3.0*(incr1[25]+incr1[24]+incr1[23])-3.0*(incr1[22]+incr1[21]+incr1[20])+3.0*(incr1[19]+incr1[18]+incr1[17])-3.0*incr1[16]-9.0*incr1[5]+9.0*incr1[4]-9.0*(incr1[3]+incr1[2]+incr1[1]))+1.414213562373095*((-3.0*(incr1[30]+incr1[29]+incr1[28]))+3.0*incr1[27]-3.0*incr1[26]-9.0*incr1[15]+9.0*(incr1[14]+incr1[13]+incr1[12])-9.0*(incr1[11]+incr1[10]+incr1[9])+9.0*(incr1[8]+incr1[7]+incr1[6])+27.0*incr1[0])); 
   outlPos[1] = 0.004629629629629629*(2.449489742783178*(incr1[31]-3.0*(incr1[25]+incr1[24])+3.0*(incr1[23]+incr1[22])-3.0*(incr1[21]+incr1[20]+incr1[19])+3.0*(incr1[18]+incr1[17])-3.0*incr1[16]+9.0*incr1[5]-9.0*incr1[4]+9.0*(incr1[3]+incr1[2])-9.0*incr1[1])+1.414213562373095*(3.0*incr1[30]-3.0*(incr1[29]+incr1[28])+3.0*incr1[27]-3.0*incr1[26]+9.0*incr1[15]-9.0*(incr1[14]+incr1[13])+9.0*(incr1[12]+incr1[11]+incr1[10])-9.0*(incr1[9]+incr1[8])+9.0*(incr1[7]+incr1[6])-27.0*incr1[0])); 
   outlPos[2] = 0.004629629629629629*(2.449489742783178*(incr1[31]-3.0*incr1[25]+3.0*incr1[24]-3.0*(incr1[23]+incr1[22])+3.0*incr1[21]-3.0*incr1[20]+3.0*incr1[19]-3.0*incr1[18]+3.0*incr1[17]-3.0*incr1[16]+9.0*incr1[5]-9.0*incr1[4]+9.0*incr1[3]-9.0*incr1[2]+9.0*incr1[1])+1.414213562373095*((-3.0*incr1[30])+3.0*incr1[29]-3.0*incr1[28]+3.0*incr1[27]-3.0*incr1[26]+9.0*incr1[15]-9.0*incr1[14]+9.0*incr1[13]-9.0*incr1[12]+9.0*incr1[11]-9.0*incr1[10]+9.0*(incr1[9]+incr1[8])-9.0*incr1[7]+9.0*incr1[6]-27.0*incr1[0])); 
@@ -1542,8 +1542,8 @@ double GkLBOconstNuSurfPositivity3x2vSer_Mu_P1(const double m_, const double *po
 
   double fluxFracL, fluxFracR, limFac=1.0;
   double outlPos[32], outrPos[32]; 
-  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.2 : positivityWeightByDirL[5]/positivityWeightByDirL[0]; 
-  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.2 : positivityWeightByDirR[5]/positivityWeightByDirR[0]; 
+  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.2 : positivityWeightByDirL[2]/positivityWeightByDirL[0]; 
+  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.2 : positivityWeightByDirR[2]/positivityWeightByDirR[0]; 
   outlPos[0] = -0.004629629629629629*(2.449489742783178*(incr1[31]+3.0*(incr1[25]+incr1[24]+incr1[23]+incr1[22]+incr1[21]+incr1[20])-3.0*(incr1[19]+incr1[18]+incr1[17]+incr1[16])+9.0*incr1[5]-9.0*(incr1[4]+incr1[3]+incr1[2]+incr1[1]))+1.414213562373095*((-3.0*(incr1[30]+incr1[29]+incr1[28]+incr1[27]))+3.0*incr1[26]-9.0*(incr1[15]+incr1[14]+incr1[13]+incr1[12])+9.0*(incr1[11]+incr1[10]+incr1[9]+incr1[8]+incr1[7]+incr1[6])+27.0*incr1[0])); 
   outlPos[1] = 0.004629629629629629*(2.449489742783178*(incr1[31]-3.0*(incr1[25]+incr1[24])+3.0*incr1[23]-3.0*incr1[22]+3.0*(incr1[21]+incr1[20]+incr1[19])-3.0*(incr1[18]+incr1[17]+incr1[16])-9.0*incr1[5]+9.0*(incr1[4]+incr1[3]+incr1[2])-9.0*incr1[1])+1.414213562373095*(3.0*incr1[30]-3.0*(incr1[29]+incr1[28]+incr1[27])+3.0*incr1[26]+9.0*(incr1[15]+incr1[14]+incr1[13])-9.0*(incr1[12]+incr1[11]+incr1[10])+9.0*incr1[9]-9.0*incr1[8]+9.0*(incr1[7]+incr1[6])-27.0*incr1[0])); 
   outlPos[2] = 0.004629629629629629*(2.449489742783178*(incr1[31]-3.0*incr1[25]+3.0*incr1[24]-3.0*incr1[23]+3.0*incr1[22]-3.0*incr1[21]+3.0*incr1[20]-3.0*incr1[19]+3.0*incr1[18]-3.0*(incr1[17]+incr1[16])-9.0*incr1[5]+9.0*(incr1[4]+incr1[3])-9.0*incr1[2]+9.0*incr1[1])+1.414213562373095*((-3.0*incr1[30])+3.0*incr1[29]-3.0*(incr1[28]+incr1[27])+3.0*incr1[26]+9.0*(incr1[15]+incr1[14])-9.0*incr1[13]+9.0*incr1[12]-9.0*incr1[11]+9.0*incr1[10]-9.0*incr1[9]+9.0*incr1[8]-9.0*incr1[7]+9.0*incr1[6]-27.0*incr1[0])); 

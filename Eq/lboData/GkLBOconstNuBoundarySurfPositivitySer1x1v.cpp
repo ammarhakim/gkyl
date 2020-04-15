@@ -17,7 +17,7 @@ double GkLBOconstNuBoundarySurfPositivity1x1vSer_Vpar_P1(const double m_, const 
   if (idxr[1] == 1) {
 
   double outrPos[4]; 
-  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.5 : positivityWeightByDirR[2]/positivityWeightByDirR[0]; 
+  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.5 : positivityWeightByDirR[1]/positivityWeightByDirR[0]; 
   outrPos[0] = 0.04166666666666666*((7.348469228349534*nuVtSqSum[1]-4.242640687119286*nuVtSqSum[0])*fr[3]+(7.348469228349534*nuVtSqSum[0]-4.242640687119286*nuVtSqSum[1])*fr[2]+(2.449489742783178*fr[0]-4.242640687119286*fr[1])*nuVtSqSum[1]+nuVtSqSum[0]*(2.449489742783178*fr[1]-4.242640687119286*fr[0]))*rdvSq4R; 
   outrPos[1] = 0.04166666666666666*((7.348469228349534*nuVtSqSum[1]+4.242640687119286*nuVtSqSum[0])*fr[3]+(4.242640687119286*nuVtSqSum[1]+7.348469228349534*nuVtSqSum[0])*fr[2]+((-4.242640687119286*fr[1])-2.449489742783178*fr[0])*nuVtSqSum[1]+nuVtSqSum[0]*((-2.449489742783178*fr[1])-4.242640687119286*fr[0]))*rdvSq4R; 
   outrPos[2] = -0.04166666666666666*((7.348469228349534*nuVtSqSum[1]-4.242640687119286*nuVtSqSum[0])*fr[3]+(7.348469228349534*nuVtSqSum[0]-4.242640687119286*nuVtSqSum[1])*fr[2]+(2.449489742783178*fr[0]-4.242640687119286*fr[1])*nuVtSqSum[1]+nuVtSqSum[0]*(2.449489742783178*fr[1]-4.242640687119286*fr[0]))*rdvSq4R; 
@@ -40,7 +40,7 @@ double GkLBOconstNuBoundarySurfPositivity1x1vSer_Vpar_P1(const double m_, const 
   } else {
 
   double outlPos[4]; 
-  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.5 : positivityWeightByDirL[2]/positivityWeightByDirL[0]; 
+  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.5 : positivityWeightByDirL[1]/positivityWeightByDirL[0]; 
   outlPos[0] = 0.04166666666666666*((7.348469228349534*nuVtSqSum[1]-4.242640687119286*nuVtSqSum[0])*fl[3]+(7.348469228349534*nuVtSqSum[0]-4.242640687119286*nuVtSqSum[1])*fl[2]+(4.242640687119286*fl[1]-2.449489742783178*fl[0])*nuVtSqSum[1]+nuVtSqSum[0]*(4.242640687119286*fl[0]-2.449489742783178*fl[1]))*rdvSq4L; 
   outlPos[1] = 0.04166666666666666*((7.348469228349534*nuVtSqSum[1]+4.242640687119286*nuVtSqSum[0])*fl[3]+(4.242640687119286*nuVtSqSum[1]+7.348469228349534*nuVtSqSum[0])*fl[2]+(4.242640687119286*fl[1]+2.449489742783178*fl[0])*nuVtSqSum[1]+nuVtSqSum[0]*(2.449489742783178*fl[1]+4.242640687119286*fl[0]))*rdvSq4L; 
   outlPos[2] = -0.04166666666666666*((7.348469228349534*nuVtSqSum[1]-4.242640687119286*nuVtSqSum[0])*fl[3]+(7.348469228349534*nuVtSqSum[0]-4.242640687119286*nuVtSqSum[1])*fl[2]+(4.242640687119286*fl[1]-2.449489742783178*fl[0])*nuVtSqSum[1]+nuVtSqSum[0]*(4.242640687119286*fl[0]-2.449489742783178*fl[1]))*rdvSq4L; 

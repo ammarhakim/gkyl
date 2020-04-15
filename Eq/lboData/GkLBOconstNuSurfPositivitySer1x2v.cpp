@@ -188,8 +188,8 @@ double GkLBOconstNuSurfPositivity1x2vSer_Vpar_P1(const double m_, const double *
 
   double fluxFracL, fluxFracR, limFac=1.0;
   double outlPos[8], outrPos[8]; 
-  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.3333333333333333 : positivityWeightByDirL[2]/positivityWeightByDirL[0]; 
-  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.3333333333333333 : positivityWeightByDirR[2]/positivityWeightByDirR[0]; 
+  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.3333333333333333 : positivityWeightByDirL[1]/positivityWeightByDirL[0]; 
+  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.3333333333333333 : positivityWeightByDirR[1]/positivityWeightByDirR[0]; 
   outlPos[0] = -0.02777777777777778*(2.449489742783178*incr1[7]-4.242640687119286*incr1[6]+4.242640687119286*incr1[5]-4.242640687119286*incr1[4]-7.348469228349534*incr1[3]+7.348469228349534*incr1[2]-7.348469228349534*incr1[1]+12.72792206135786*incr1[0]); 
   outlPos[1] = 0.02777777777777778*(2.449489742783178*incr1[7]+4.242640687119286*(incr1[6]+incr1[5])-4.242640687119286*incr1[4]+7.348469228349534*incr1[3]-7.348469228349534*(incr1[2]+incr1[1])-12.72792206135786*incr1[0]); 
   outlPos[2] = 0.02777777777777778*(2.449489742783178*incr1[7]-4.242640687119286*(incr1[6]+incr1[5]+incr1[4])+7.348469228349534*(incr1[3]+incr1[2]+incr1[1])-12.72792206135786*incr1[0]); 
@@ -474,8 +474,8 @@ double GkLBOconstNuSurfPositivity1x2vSer_Mu_P1(const double m_, const double *po
 
   double fluxFracL, fluxFracR, limFac=1.0;
   double outlPos[8], outrPos[8]; 
-  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.3333333333333333 : positivityWeightByDirL[3]/positivityWeightByDirL[0]; 
-  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.3333333333333333 : positivityWeightByDirR[3]/positivityWeightByDirR[0]; 
+  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.3333333333333333 : positivityWeightByDirL[2]/positivityWeightByDirL[0]; 
+  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.3333333333333333 : positivityWeightByDirR[2]/positivityWeightByDirR[0]; 
   outlPos[0] = -0.02777777777777778*(2.449489742783178*incr1[7]-4.242640687119286*(incr1[6]+incr1[5])+4.242640687119286*incr1[4]+7.348469228349534*incr1[3]-7.348469228349534*(incr1[2]+incr1[1])+12.72792206135786*incr1[0]); 
   outlPos[1] = 0.02777777777777778*(2.449489742783178*incr1[7]+4.242640687119286*incr1[6]-4.242640687119286*incr1[5]+4.242640687119286*incr1[4]-7.348469228349534*incr1[3]+7.348469228349534*incr1[2]-7.348469228349534*incr1[1]-12.72792206135786*incr1[0]); 
   outlPos[2] = 0.02777777777777778*(2.449489742783178*incr1[7]-4.242640687119286*incr1[6]+4.242640687119286*(incr1[5]+incr1[4])-7.348469228349534*(incr1[3]+incr1[2])+7.348469228349534*incr1[1]-12.72792206135786*incr1[0]); 

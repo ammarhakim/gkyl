@@ -671,8 +671,8 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
        /* Set up positivity weights */
        printf(fh, "  double fluxFracL, fluxFracR, limFac=1.0;~%"),
        printf(fh, "  double outlPos[~a], outrPos[~a]; ~%", length(posProjBasis), length(posProjBasis)),
-       printf(fh, "  fluxFracL = positivityWeightByDirL[0] == 0. ? ~a : positivityWeightByDirL[~a]/positivityWeightByDirL[0]; ~%", float(1/(vdim+cdim)), dir+cdim),
-       printf(fh, "  fluxFracR = positivityWeightByDirR[0] == 0. ? ~a : positivityWeightByDirR[~a]/positivityWeightByDirR[0]; ~%", float(1/(vdim+cdim)), dir+cdim),
+       printf(fh, "  fluxFracL = positivityWeightByDirL[0] == 0. ? ~a : positivityWeightByDirL[~a]/positivityWeightByDirL[0]; ~%", float(1/(vdim+cdim)), dir),
+       printf(fh, "  fluxFracR = positivityWeightByDirR[0] == 0. ? ~a : positivityWeightByDirR[~a]/positivityWeightByDirR[0]; ~%", float(1/(vdim+cdim)), dir),
 
        /* Write coefficients of outl and outr on positivity basis */
        writeCExprsNoExpand1(outlPos, outl_pos),
@@ -843,7 +843,7 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) :
 
        /* Set up positivity weights */
        printf(fh, "  double outrPos[~a]; ~%", length(posProjBasis)),
-       printf(fh, "  fluxFracR = positivityWeightByDirR[0] == 0. ? ~a : positivityWeightByDirR[~a]/positivityWeightByDirR[0]; ~%", float(1/(vdim+cdim)), dir+cdim),
+       printf(fh, "  fluxFracR = positivityWeightByDirR[0] == 0. ? ~a : positivityWeightByDirR[~a]/positivityWeightByDirR[0]; ~%", float(1/(vdim+cdim)), dir),
 
        /* Write coefficients of outr on positivity surface basis */
        writeCExprsNoExpand1(outrPos, outr_pos),
@@ -897,7 +897,7 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) :
 
        /* Set up positivity weights */
        printf(fh, "  double outlPos[~a]; ~%", length(posProjBasis)),
-       printf(fh, "  fluxFracL = positivityWeightByDirL[0] == 0. ? ~a : positivityWeightByDirL[~a]/positivityWeightByDirL[0]; ~%", float(1/(vdim+cdim)), dir+cdim),
+       printf(fh, "  fluxFracL = positivityWeightByDirL[0] == 0. ? ~a : positivityWeightByDirL[~a]/positivityWeightByDirL[0]; ~%", float(1/(vdim+cdim)), dir),
 
        /* Write coefficients of outl on positivity surface basis */
        writeCExprsNoExpand1(outlPos, outl_pos),

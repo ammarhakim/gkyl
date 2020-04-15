@@ -35,8 +35,8 @@ double GkLBOconstNuVol1x2vSerP1(const double m_, const double *w, const double *
   out[6] += 0.6123724356957944*((alphaMu[3]+alphaVpar[2])*f[6]+alphaVpar[1]*f[5]+alphaMu[1]*f[4]+alphaVpar[0]*f[3]+alphaMu[0]*f[2]); 
   out[7] += 0.6123724356957944*((alphaMu[3]+alphaVpar[2])*f[7]+alphaVpar[0]*f[5]+alphaMu[0]*f[4]+alphaVpar[1]*f[3]+alphaMu[1]*f[2]); 
 
-  positivityWeightByDir[2] = std::abs(0.3535533905932737*alphaVpar[0]) + 0.9428090415820625*nuVtSqSum[0]*rdvSq4[0]; 
-  positivityWeightByDir[3] = 2.0*rdv2[1]*w[2]*nuSum+1.333333333333333*(BmagInv[1]*nuVtSqSum[1]+BmagInv[0]*nuVtSqSum[0])*rdvSq4[1]*w[2]*m_; 
+  positivityWeightByDir[1] = std::abs(0.3535533905932737*alphaVpar[0]) + 0.9428090415820625*nuVtSqSum[0]*rdvSq4[0]; 
+  positivityWeightByDir[2] = 2.0*rdv2[1]*w[2]*nuSum+1.333333333333333*(BmagInv[1]*nuVtSqSum[1]+BmagInv[0]*nuVtSqSum[0])*rdvSq4[1]*w[2]*m_; 
   return std::abs(0.3535533905932737*alphaVpar[0]) + 2.0*rdv2[1]*w[2]*nuSum+1.333333333333333*(BmagInv[1]*nuVtSqSum[1]+BmagInv[0]*nuVtSqSum[0])*rdvSq4[1]*w[2]*m_+0.9428090415820625*nuVtSqSum[0]*rdvSq4[0]; 
 
 } 

@@ -122,8 +122,8 @@ double GkLBOconstNuSurfPositivity1x1vSer_Vpar_P1(const double m_, const double *
 
   double fluxFracL, fluxFracR, limFac=1.0;
   double outlPos[4], outrPos[4]; 
-  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.5 : positivityWeightByDirL[2]/positivityWeightByDirL[0]; 
-  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.5 : positivityWeightByDirR[2]/positivityWeightByDirR[0]; 
+  fluxFracL = positivityWeightByDirL[0] == 0. ? 0.5 : positivityWeightByDirL[1]/positivityWeightByDirL[0]; 
+  fluxFracR = positivityWeightByDirR[0] == 0. ? 0.5 : positivityWeightByDirR[1]/positivityWeightByDirR[0]; 
   outlPos[0] = 0.1666666666666667*(incr1[3]-1.732050807568877*incr1[2]+1.732050807568877*incr1[1]-3.0*incr1[0]); 
   outlPos[1] = -0.1666666666666667*(incr1[3]+1.732050807568877*(incr1[2]+incr1[1])+3.0*incr1[0]); 
   outlPos[2] = -0.1666666666666667*(incr1[3]-1.732050807568877*(incr1[2]+incr1[1])+3.0*incr1[0]); 
