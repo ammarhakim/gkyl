@@ -908,7 +908,6 @@ function KineticSpecies:write(tm, force)
          end
       end
 
-
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.
       if self.calcIntQuantFlag == false then
