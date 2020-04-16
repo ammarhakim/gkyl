@@ -673,7 +673,6 @@ function KineticSpecies:copyRk(outIdx, aIdx)
 
    if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
       for _, bc in ipairs(self.boundaryConditions) do
-         bc:getBoundaryFluxRate():combine(1.0/self.dtGlobal[0], bc:getBoundaryFluxFields()[aIdx], -1.0/self.dtGlobal[0], bc:getBoundaryFluxFields()[outIdx])
          bc:getBoundaryFluxFields()[outIdx]:copy(bc:getBoundaryFluxFields()[aIdx])
       end
    end
@@ -902,6 +901,14 @@ end
 
 function KineticSpecies:write(tm, force)
    if self.evolve then
+      if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics and tm > 0 then
+         for _, bc in ipairs(self.boundaryConditions) do
+            bc:getBoundaryFluxRate():combine(1.0/self.dtGlobal[0], bc:getBoundaryFluxFields()[1], -1.0/self.dtGlobal[0], bc:getBoundaryFluxFieldPrev())
+            bc:getBoundaryFluxFieldPrev():copy(bc:getBoundaryFluxFields()[1])
+         end
+      end
+
+
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.
       if self.calcIntQuantFlag == false then
