@@ -2,7 +2,7 @@
 
 fh : openw("~/max-out/MGpoissonModDecl.h")$
 
-polyOrderMax : 1$
+polyOrderMax : 2$
 
 bName        : ["Ser"]$
 
@@ -22,7 +22,9 @@ bcKey    : [[bcTypes[1],bcStrs[1]],[bcTypes[2],bcStrs[2]]]$
 
 printf(fh, "#ifndef MG_POISSON_MOD_DECL_H ~%")$
 printf(fh, "#define MG_POISSON_MOD_DECL_H ~%")$
+printf(fh, " ~%")$
 
+printf(fh, "#include <cmath>~%")$
 printf(fh, " ~%")$
 
 printf(fh, "extern \"C\" { ~%")$
@@ -109,29 +111,84 @@ findBoundaryStrCombo(fhIn, funcNameStr, funcArgsStr, basisFun, dim) := block([],
   )
 )$
 
+getDGtoFEMboundaryStrs(fhIn, funcNameStr, funcArgsStr, basisFun, dim) := block([],
+  /* Obtain the various string combinations for the names of the
+     kernels used near boundaries. */
+
+  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
+
+  /* Create a list with 3^dim elements. Each element is itself an dim-long
+     list indicating whether the cell is next to a lower (=-1) or upper (=1)
+     boundary, or no boundary (=0) in that direction. */
+  stencilLoc : [makelist(0,i,1,dim)],  /* Lower left stencil, all zeros. */
+  for dir : 1 thru dim do (
+    /* Loop through cells already added to stencilLoc. */
+    for acI : 1 thru 3^(dir-1) do (
+      /* Loop over lower and upper. */
+      for bI : -1 thru 1 step 2 do (
+        stencilLoc : append(stencilLoc, copylist([stencilLoc[acI]])),
+        stencilLoc[length(stencilLoc)][dir] : bI
+      )
+    )
+  ),
+
+  /* This is used in placing (string) variables in kernel boundary names. */
+  sVarsC : copylist(varsC),
+  for d : 1 thru dim do (
+    sVarsC[d] : string(varsC[d])
+  ),
+  condVarsC : [[-1,sVarsC],[0,makelist("",i,1,dim)],[1,sVarsC]],
+
+  for sI : 2 thru length(stencilLoc) do (
+    /* Number of non-periodic boundaries. */
+    npBCs : sum(stencilLoc[sI][i],i,1,length(stencilLoc[sI])),
+
+    boundaryStr : "",
+    for d : 1 thru dim do (
+      boundaryStr : sconcat(boundaryStr,assoc(stencilLoc[sI][d],boundStrKey),
+                            assoc(stencilLoc[sI][d],condVarsC)[d])
+    ),
+    boundaryStr : sconcat(boundaryStr,"_"),
+
+    printf(fhIn, sconcat("void ",funcNameStr,"~ax~a_~aP~a(",funcArgsStr,");~%"), dim, bName[bInd], boundaryStr, polyOrder)
+  )
+)$
+
 for bInd : 1 thru length(bName) do (
 
   for polyOrder : 1 thru polyOrderMax do (
     for ci : 1 thru 2 do (
 
-      /* DG solver kernels, */
+      /* ~~~~~~~~~~~~~~ DG solver kernels ~~~~~~~~~~~~~~ */
 
       /* Prolongation and restriction operators. */
-      printf(fh, "void MGpoissonProlong~ax~a_P~a(const double *fldC, double **fldF);~%", ci, bName[bInd], polyOrder),
-      printf(fh, "void MGpoissonRestrict~ax~a_P~a(double **fldF, double *fldC);~%", ci, bName[bInd], polyOrder),
+      printf(fh, "void MGpoissonDGProlong~ax~a_P~a(const double *fldC, double **fldF);~%", ci, bName[bInd], polyOrder),
+      printf(fh, "void MGpoissonDGRestrict~ax~a_P~a(double **fldF, double *fldC);~%", ci, bName[bInd], polyOrder),
       printf(fh, "~%"),
 
       /* Smoothers. */
-      printf(fh, "void MGpoissonDampedGaussSeidel~ax~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
-      printf(fh, "void MGpoissonDampedJacobi~ax~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
+      printf(fh, "void MGpoissonDGDampedGaussSeidel~ax~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
+      printf(fh, "void MGpoissonDGDampedJacobi~ax~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
       /* Boundary smoothers. */
-      findBoundaryStrCombo(fh, "MGpoissonDampedGaussSeidel", "const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi", bName[bInd], ci),
-      findBoundaryStrCombo(fh, "MGpoissonDampedJacobi", "const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi", bName[bInd], ci),
+      findBoundaryStrCombo(fh, "MGpoissonDGDampedGaussSeidel", "const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi", bName[bInd], ci),
+      findBoundaryStrCombo(fh, "MGpoissonDGDampedJacobi", "const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi", bName[bInd], ci),
       printf(fh, "~%"),
 
       /* Residue kernels. */
-      printf(fh, "void MGpoissonResidue~ax~a_P~a(double **dx, const double *bcVals, const double *rho, double **phi, double *resOut);~%", ci, bName[bInd], polyOrder),
-      findBoundaryStrCombo(fh, "MGpoissonResidue", "double **dx, const double *bcVals, const double *rho, double **phi, double *resOut", bName[bInd], ci),
+      printf(fh, "void MGpoissonDGResidue~ax~a_P~a(double **dx, const double *bcVals, const double *rho, double **phi, double *resOut);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonDGResidue", "double **dx, const double *bcVals, const double *rho, double **phi, double *resOut", bName[bInd], ci),
+      printf(fh, "~%"),
+
+      /* ~~~~~~~~~~~~~~ FEM solver kernels. ~~~~~~~~~~~~~~ */
+      /* Translating between DG and FEM. */
+      printf(fh, "void MGpoissonFEM_DGtoFEM_~ax~a_P~a(const double *dgFld, double **femOut);~%", ci, bName[bInd], polyOrder),
+      getDGtoFEMboundaryStrs(fh, "MGpoissonFEM_DGtoFEM_", "const double *dgFld, double **femOut", bName[bInd], ci),
+      printf(fh, "~%"),
+
+      /* Smoothers. */
+      printf(fh, "void MGpoissonFEMDampedGaussSeidel~ax~a_P~a(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
+      /* Boundary smoothers. */
+      findBoundaryStrCombo(fh, "MGpoissonFEMDampedGaussSeidel", "const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi", bName[bInd], ci),
       printf(fh, "~%")
 
     ),

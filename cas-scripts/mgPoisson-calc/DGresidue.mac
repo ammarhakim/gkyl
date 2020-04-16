@@ -44,7 +44,7 @@ writeCExprs1sub(lhs, rhs, sublist) := block([expr],
   )
 )$
 
-calcResidue(fh, funcNm, dim, basisFun, pMax) := block([],
+calcDGResidue(fh, funcNm, dim, basisFun, pMax) := block([],
   /* Residue computation for the Poisson equation using an RDG
      discretization. Other options involve LDG and interior
      penalty methods. */
@@ -176,7 +176,7 @@ calcResidue(fh, funcNm, dim, basisFun, pMax) := block([],
 )$
 
 
-calcResidueBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
+calcDGResidueBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
   /* Kernels for computing the residual near the boundaries. */
 
   kill(varsC, varsP, basisC, basisP),
