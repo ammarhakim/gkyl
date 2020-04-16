@@ -75,6 +75,15 @@ local function uuid()
    end)
 end
 
+-- function to split comma separated list (strinng) into table
+local function splitList(listStr)
+   local words = {}
+   for w in listStr:gmatch('[^,%s]+') do
+      table.insert(words, w)
+   end
+   return words
+end
+
 -- generate ID for this run of regression system
 local runID = uuid()
 -- date when tests were run
@@ -371,17 +380,23 @@ local function list_tests(args)
       -- only MOAT regressions are to be run
       for _, t in ipairs(moatTests) do addTest(t) end
    elseif args.run_only then
-      local a = lfs.attributes(args.run_only)
-      if a.mode == "file" then
-	 addTest(args.run_only)
-      elseif a.mode == "directory" then
-	 for dir, fn, _ in dirtree(args.run_only) do addTest(dir .. "/" .. fn) end
+      -- get list of tests to run (this could be a comma separated
+      -- list of file names or directory names, or combination of
+      -- both)
+      local runList = splitList(args.run_only)
+      for _, ro in ipairs(runList) do
+	 local a = lfs.attributes(ro)
+	 if a.mode == "file" then
+	    addTest(ro)
+	 elseif a.mode == "directory" then
+	    for dir, fn, _ in dirtree(ro) do addTest(dir .. "/" .. fn) end
+	 end
       end
    else
       for dir, fn, _ in dirtree(".") do addTest(dir .. "/" .. fn) end
    end
 
-   -- this function is used to filter out tests that should not be
+   -- this function is used to filter out tests that should NOT be
    -- run. Note the confusing name
    local function shouldRun(t)
       if lume.find(ignoreTests, t) then return false end
@@ -477,7 +492,7 @@ end
 
 -- function to compare files
 local function compareFiles(f1, f2)
-   -- verboseLog(string.format("Comparing %s %s ...\n", f1, f2))   
+   verboseLog(string.format("Comparing %s %s ...\n", f1, f2))   
    if not lfs.attributes(f1) or not lfs.attributes(f2) then
       verboseLog(string.format(
 		    " ... files %s and/or %s do not exist!\n", f1, f2))
@@ -683,7 +698,7 @@ local c_run = parser:command("run")
    :description("Run regression tests.")
    :require_command(false)
    :action(run_action)
-c_run:option("-r --run-only", "Only run this test or all tests in this directory")
+c_run:option("-r --run-only", "Only run these tests or all tests in these directories.\nCommma separated list")
 c_run:flag("-m --moat", "Only run key MOAT regression")
 
 -- check against accepted results
