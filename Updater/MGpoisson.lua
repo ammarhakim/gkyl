@@ -497,6 +497,7 @@ function MGpoisson:opStencilIndices(idxIn, stencilType, stencilIdx)
          for pDC = 1, prevDimCells do
             for pm = 1-stencilType[3][d],self.phiStencilWidth-1 do
                sI = sI + 1
+               for _, dr in ipairs(self.dimRemain[d]) do stencilIdx[sI][dr] = stencilIdx[pDC][dr] end
                stencilIdx[sI][d] = stencilIdx[pDC][d]+((-1)^(pm % 2))*((self.phiStencilWidth-1)/2)
             end
          end

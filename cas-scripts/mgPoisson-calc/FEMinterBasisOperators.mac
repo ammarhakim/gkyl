@@ -28,7 +28,7 @@ calcDGtoFEM(fh, funcNm, dim, basisFun, pMax) := block([],
     /* Expansion coefficients of DG field in this (lower corner) cell. */
     dgC_c : makelist(dgFld[i],i,0,N-1),
 
-    /* Get modal to nodal transformation matrix.*/
+    /* Get modal to nodal coefficient transformation matrix.*/
     modToNod : calcModToNod(basisFun,dim,polyOrder),
 
     /* Convert to nodal in this cell.*/ 
