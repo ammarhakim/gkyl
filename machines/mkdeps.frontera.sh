@@ -1,5 +1,3 @@
-module swap intel/19.0.5 intel/18.0.5
-module swap impi/19.0.5 impi/18.0.5
 export PATH=$PATH:/usr/sbin/
 # if we are in machines directory, go up a directory
 if [ `dirname "$0"` == "." ] 
