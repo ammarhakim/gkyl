@@ -760,7 +760,7 @@ local function buildApplication(self, tbl)
 	    writeData(tCurr+myDt)
 	    if checkWriteRestart(tCurr+myDt) then
 	       writeRestart(tCurr+myDt)
-               dtTracker:write(string.format("dt.bp"), tCurr+myDt)
+               dtTracker:write(string.format("dt.bp"), tCurr+myDt, nil, false, false)
 	    end	    
 	    
 	    tCurr = tCurr + myDt
