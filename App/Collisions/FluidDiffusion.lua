@@ -79,7 +79,7 @@ function FluidDiffusion:createSolver()
    end
 
    -- Diffusion equation.
-   local constDiffusionCalc = ConstDiffusionEq {
+   self.equation = ConstDiffusionEq {
       Dcoeff = self.diffCoeff,
       basis  = self.confBasis,
       positivity = self.usePositivity,
@@ -88,7 +88,7 @@ function FluidDiffusion:createSolver()
       onGrid             = self.confGrid,
       basis              = self.confBasis,
       cfl                = self.cfl,
-      equation           = constDiffusionCalc,
+      equation           = self.equation,
 --      updateDirections   = zfd, -- only update velocity directions
 --      zeroFluxDirections = zfd,
    }

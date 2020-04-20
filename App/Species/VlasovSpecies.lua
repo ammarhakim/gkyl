@@ -97,7 +97,7 @@ function VlasovSpecies:createSolver(hasE, hasB)
    end
 
    -- Create updater to advance solution by one time-step.
-   local vlasovEqn = VlasovEq {
+   self.equation = VlasovEq {
       onGrid           = self.grid,
       phaseBasis       = self.basis,
       confBasis        = self.confBasis,
@@ -117,7 +117,7 @@ function VlasovSpecies:createSolver(hasE, hasB)
       onGrid             = self.grid,
       basis              = self.basis,
       cfl                = self.cfl,
-      equation           = vlasovEqn,
+      equation           = self.equation,
       zeroFluxDirections = self.zeroFluxDirections,
    }
 
