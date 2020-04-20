@@ -45,7 +45,7 @@ writeCExprs1sub(lhs, rhs, sublist) := block([expr],
   )
 )$
 
-calcGaussSeidelOp(fh, funcNm, dim, basisFun, pMax) := block([],
+calcDGGaussSeidelOp(fh, funcNm, dim, basisFun, pMax) := block([],
   /* Damped Gauss-Seidel relaxation on the Poisson equation
      using an RDG discretization. Other options involve LDG and
      interior penalty methods. */
@@ -182,7 +182,7 @@ calcGaussSeidelOp(fh, funcNm, dim, basisFun, pMax) := block([],
 )$
 
 
-calcGaussSeidelOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
+calcDGGaussSeidelOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
   /* Boundary kernels for damped Gauss-Seidel relaxation on the
      Poisson equation using an RDG discretization. */
 
@@ -192,12 +192,9 @@ calcGaussSeidelOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
 
   twos : makelist(2,i,1,dim),
 
-  /* This will well with (string) variable selection
-     depending on stencil location. */
-  sVarsC : copylist(varsC),
-  for d : 1 thru dim do (
-    sVarsC[d] : string(varsC[d])
-  ),
+  /* This is used in placing (string) variables in kernel boundary names. */
+  sVarsC    : copylist(varsC),
+  for d : 1 thru dim do ( sVarsC[d] : string(varsC[d]) ),
   condVarsC : [[-1,sVarsC],[0,makelist("",i,1,dim)],[1,sVarsC]],
 
   /* Create a list with 3^dim elements. Each element is itself an dim-long
@@ -205,7 +202,6 @@ calcGaussSeidelOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
      boundary, or no boundary (=0) in that direction. */
   cD : 1,
   stencilLoc  : [makelist(0,i,1,dim)],  /* Center stencil, all zeros. */
-
   for dir : 1 thru dim do (
     /* Loop through cells already added to stencilLoc. */
     for acI : 1 thru 3^(dir-1) do (
@@ -222,9 +218,7 @@ calcGaussSeidelOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
     /* Count the number of non-periodic boundaries. */
     npBCs : 0,
     for d : 1 thru dim do (
-      if (stencilLoc[sI][d] # 0) then (
-        npBCs : npBCs + 1
-      )
+      if (stencilLoc[sI][d] # 0) then ( npBCs : npBCs + 1 )
     ),
 
     /* Given npBCs non-periodic BCs there are bcN^npBCs possible combinations of
@@ -234,11 +228,9 @@ calcGaussSeidelOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
     for l : 2 thru npBCs do (
       tmp : copylist(npBCcombos),
       npBCcombos : [],
-      for cI : 1 thru length(tmp) do (
-        for bI : 2 thru length(bcTypes) do (
-          npBCcombos : append(npBCcombos,[ append(tmp[cI],[bcTypes[bI]]) ])
-        )
-      )
+      for cI : 1 thru length(tmp) do ( for bI : 2 thru length(bcTypes) do (
+        npBCcombos : append(npBCcombos,[ append(tmp[cI],[bcTypes[bI]]) ])
+      ) )
     ),
 
     /* Loop over BC combinations. Will create a separate kernel for each. */
@@ -429,7 +421,7 @@ calcGaussSeidelOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
 
 )$
 
-calcJacobiOp(fh, funcNm, dim, basisFun, pMax) := block([],
+calcDGJacobiOp(fh, funcNm, dim, basisFun, pMax) := block([],
   /* Damped Jacobi relaxation on the Poisson equation
      using an RDG discretization. */
 
@@ -566,7 +558,7 @@ calcJacobiOp(fh, funcNm, dim, basisFun, pMax) := block([],
   )
 )$
 
-calcJacobiOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
+calcDGJacobiOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
   /* Boundary kernels for damped Jacobi relaxation on the
      Poisson equation using an RDG discretization. */
 

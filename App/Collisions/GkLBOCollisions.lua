@@ -255,6 +255,7 @@ function GkLBOCollisions:createSolver(funcField)
       zfd[d] = self.confGrid:ndim() + d
    end
 
+   self.equation = {}
    if self.varNu then
       -- Self-species collisionality, which varies in space.
       self.nuVarXSelf = self:allocMoment()
@@ -291,7 +292,7 @@ function GkLBOCollisions:createSolver(funcField)
       self.nuSum = 0.0    -- Assigned in advance method.
    end
    -- Lenard-Bernstein equation.
-   self.gkLBOconstNuCalcEq = GkLBOconstNuEq {
+   self.equation = GkLBOconstNuEq {
       onGrid           = self.phaseGrid,
       phaseBasis       = self.phaseBasis,
       confBasis        = self.confBasis,
@@ -305,7 +306,7 @@ function GkLBOCollisions:createSolver(funcField)
       onGrid             = self.phaseGrid,
       basis              = self.phaseBasis,
       cfl                = self.cfl,
-      equation           = self.gkLBOconstNuCalcEq,
+      equation           = self.equation,
       updateDirections   = zfd,    -- Only update velocity directions.
       zeroFluxDirections = zfd,
    }
@@ -415,7 +416,7 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
    if self.selfCollisions then
       self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
 
-      self.gkLBOconstNuCalcEq.primMomCrossLimit = 0.0
+      self.equation.primMomCrossLimit = 0.0
 
       if self.varNu then
          if self.timeDepNu then
@@ -513,7 +514,7 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
       tCurr, {fIn, self.bmagInv, self.nuUParSum, self.nuVtSqSum, self.nuSum}, {self.collOut})
 
    self.primMomLimitCrossingsG:appendData(tCurr, {0.0})
-   self.primMomLimitCrossingsL:appendData(tCurr, {self.gkLBOconstNuCalcEq.primMomCrossLimit})
+   self.primMomLimitCrossingsL:appendData(tCurr, {self.equation.primMomCrossLimit})
 
    -- Barrier over shared communicator before accumulate
    Mpi.Barrier(self.phaseGrid:commSet().sharedComm)

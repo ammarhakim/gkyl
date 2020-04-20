@@ -158,7 +158,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
    end
 
    -- Create updater to advance solution by one time-step.
-   self.gkEqn = Gk.GkEq {
+   self.equation = Gk.GkEq {
       onGrid       = self.grid,
       confGrid     = self.confGrid,
       phaseBasis   = self.basis,
@@ -172,7 +172,6 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       positivity   = self.positivity,
       gyavgSlvr    = self.emGyavgSlvr,
    }
-   self.equation = self.gkEqn
 
    -- No update in mu direction (last velocity direction if present)
    local upd = {}
@@ -189,7 +188,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       onGrid             = self.grid,
       basis              = self.basis,
       cfl                = self.cfl,
-      equation           = self.gkEqn,
+      equation           = self.equation,
       zeroFluxDirections = self.zeroFluxDirections,
       updateDirections   = upd,
       clearOut           = false,   -- Continue accumulating into output field.
@@ -201,7 +200,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          onGrid             = self.grid,
          basis              = self.basis,
          cfl                = self.cfl,
-         equation           = self.gkEqn,
+         equation           = self.equation,
          eqnStep            = 2,  -- Use step2 functions from gkEqn.
          zeroFluxDirections = self.zeroFluxDirections,
          updateDirections   = {self.cdim+1},
@@ -213,7 +212,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          onGrid             = self.grid,
          basis              = self.basis,
          cfl                = self.cfl,
-         equation           = self.gkEqn,
+         equation           = self.equation,
          zeroFluxDirections = self.zeroFluxDirections,
          updateDirections   = {self.cdim+1},    -- Only vpar terms.
          updateVolumeTerm   = false,            -- No volume term.
@@ -224,7 +223,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          onGrid             = self.grid,
          basis              = self.basis,
          cfl                = self.cfl,
-         equation           = self.gkEqn,
+         equation           = self.equation,
          eqnStep            = 2,  -- Use step2 functions from gkEqn.
          zeroFluxDirections = self.zeroFluxDirections,
          updateDirections   = {self.cdim+1},    -- Only vpar terms.
@@ -657,7 +656,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          self.gkEqn:getPositivityRhs(tCurr, self.dtGlobal[0], fIn, fRhsOut)
       end
    else
-      self.gkEqn:setAuxFields({em, emFunc, dApardtProv})  -- Set auxFields in case they are needed by BCs/collisions.
+      self.equation:setAuxFields({em, emFunc, dApardtProv})  -- Set auxFields in case they are needed by BCs/collisions.
    end
 
    -- combine positivity weights from collisionless and collisions (for use on next step)
@@ -1206,9 +1205,9 @@ function GkSpecies:createDiagnostics()
          elseif mom == "GkHamilEnergy" then
             self.diagnosticMomentUpdaters["GkHamilEnergy"..label].advance = function (self, tm)
                if self.diagnosticMomentUpdaters["GkHamilEnergy"..label].tCurr == tm then return end -- return if already computed for this tm
-               local phi = self.gkEqn.phi
+               local phi = self.equation.phi
                if bc then
-                  phi = bc:evalOnConfBoundary(self.gkEqn.phi)
+                  phi = bc:evalOnConfBoundary(self.equation.phi)
                end
 
                -- compute dependencies if not already computed: GkM0, GkM2   
@@ -1453,7 +1452,7 @@ function GkSpecies:bcSheathFunc(dir, tm, idxIn, fIn, fOut)
    -- 1) fhat=0 (no reflection, i.e. absorb), 
    -- 2) fhat=f (full reflection)
    -- 3) fhat=c*f (partial reflection)
-   self.gkEqn:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, self.charge, self.mass, idxIn, fIn, self.fhatSheath)
+   self.equation:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, self.charge, self.mass, idxIn, fIn, self.fhatSheath)
    -- reflect fhat into skin cells
    self:bcReflectFunc(dir, tm, nil, self.fhatSheath, fOut) 
 end
@@ -1631,7 +1630,7 @@ function GkSpecies:getOhmModifier(rkIdx)
    -- For p > 1, this is just numDensity.
    if self.basis:polyOrder() > 1 then return self:getNumDensity(rkIdx) end
 
-   local fIn = self.gkEqn.ohmMod
+   local fIn = self.equation.ohmMod
 
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
@@ -1669,11 +1668,11 @@ function GkSpecies:momCalcTime()
 end
 
 function GkSpecies:solverVolTime()
-   return self.gkEqn.totalVolTime
+   return self.equation.totalVolTime
 end
 
 function GkSpecies:solverSurfTime()
-   return self.gkEqn.totalSurfTime
+   return self.equation.totalSurfTime
 end
 function GkSpecies:totalSolverTime()
    local timer = self.solver.totalTime

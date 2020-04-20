@@ -229,6 +229,13 @@ function Bc:storeBoundaryFlux(tCurr, rkIdx, qOut)
          ghost         = {1,1},
          metaData = qOut:getMetaData(),
       }
+      self._boundaryFluxFieldPrev = DataStruct.Field {
+         onGrid        = self._boundaryGrid,
+         numComponents = qOut:numComponents(),
+         ghost         = {1,1},
+         metaData = qOut:getMetaData(),
+      }
+      self._boundaryFluxFieldPrev:clear(0.0)
       self._boundaryPtr = {self._boundaryFluxFields[1]:get(1), 
                            self._boundaryFluxFields[2]:get(1),
                            self._boundaryFluxFields[3]:get(1),
@@ -323,6 +330,10 @@ end
 
 function Bc:getBoundaryFluxRate()
    return self._boundaryFluxRate
+end
+
+function Bc:getBoundaryFluxFieldPrev()
+   return self._boundaryFluxFieldPrev
 end
 
 function Bc:getBoundaryGrid()

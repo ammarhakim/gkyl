@@ -164,11 +164,9 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
 
    if appendData and (frNum and frNum>=0) then 
       self.frNum = frNum 
-   elseif (not appendData) and (frNum and frNum>=0) then 
+   else 
       self.frNum = "" 
-   else -- frNum == nil
-      self.frNum = self.frNum + 1
-      frNum = self.frNum
+      frNum = frNum or 0
    end
 
    -- setup ADIOS for IO

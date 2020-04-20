@@ -63,7 +63,7 @@ function IncompEulerSpecies:createSolver(hasE, hasB)
 
    if self.evolveCollisionless then
       -- Create updater to advance solution by one time-step.
-      local eqn = IncompEulerEq {
+      self.equation = IncompEulerEq {
          onGrid     = self.grid,
          basis      = self.basis,
          charge     = self.charge,
@@ -74,7 +74,7 @@ function IncompEulerSpecies:createSolver(hasE, hasB)
          onGrid             = self.grid,
          basis              = self.basis,
          cfl                = self.cfl,
-         equation           = eqn,
+         equation           = self.equation,
          zeroFluxDirections = self.zeroFluxDirections,
       }
    end

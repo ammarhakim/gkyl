@@ -4,7 +4,7 @@ load("modal-basis");
 load("out-scripts");
 fpprec : 24$
 
-calcProlongationOp(fh, funcNm, dim, basisFun, pMax) := block([],
+calcDGProlongationOp(fh, funcNm, dim, basisFun, pMax) := block([],
   /* Prolongation operator transfering a coarse-grid field to the
      fine grid. For now we'll limit ourselves to the compact
      stencil of width=2. */
@@ -73,7 +73,7 @@ calcProlongationOp(fh, funcNm, dim, basisFun, pMax) := block([],
   )
 )$
 
-calcRestrictionOp(fh, funcNm, dim, basisFun, pMax) := block([],
+calcDGRestrictionOp(fh, funcNm, dim, basisFun, pMax) := block([],
   /* Restriction operator transfering a fine-grid field to the
      coarse grid. For now we'll limit ourselves to the compact
      stencil of width=2. */
