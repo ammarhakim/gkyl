@@ -7,8 +7,8 @@
 load(stringproc)$
 load("mgPoisson-calc/FEMinterBasisOperators")$
 load("mgPoisson-calc/FEMsmoothers")$
-/*
 load("mgPoisson-calc/FEMinterGridOperators")$
+/*
 load("mgPoisson-calc/FEMresidue")$
 */
 
@@ -47,6 +47,17 @@ for bInd : 1 thru length(bName) do (
     printf(fh, "#include <MGpoissonModDecl.h> ~%"),
     printf(fh, " ~%"),
     
+    /* Inter-grid operators. */
+    funcName : sconcat("MGpoissonFEMProlong", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonFEMProlong", c, "x", bName[bInd]))),
+    calcFEMProlongationOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+
+/*
+    funcName : sconcat("MGpoissonDGRestrict", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonDGRestrict", c, "x", bName[bInd]))),
+    calcDGRestrictionOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    */
+
     /* Kernels to translate a DG field into an CG field, and viceversa. */
     funcName : sconcat("MGpoissonFEM_DGtoFEM_", c, "x", bName[bInd]),
     disp(printf(false,sconcat("Working on MGpoissonFEM_DGtoFEM_", c, "x", bName[bInd]))),

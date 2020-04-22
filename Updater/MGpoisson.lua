@@ -345,6 +345,7 @@ function MGpoisson:init(tbl)
       self._calcResidue  = MGpoissonDecl.selectResidueCalc(solverType, basisID, self.dim, polyOrder, bcTypes)
    elseif self.isFEM then
       self._relaxation   = MGpoissonDecl.selectRelaxation(solverType, basisID, self.dim, polyOrder, relaxKind, bcTypes)
+      self._prolongation = MGpoissonDecl.selectProlongation(solverType, basisID, self.dim, polyOrder)
    end
 
    -- Intergrid operator stencils: 
@@ -430,9 +431,11 @@ function MGpoisson:init(tbl)
 
    -- Select MG components for FEM or DG solver.
    if self.isDG then
-      self.relax = function(numRelax, phiFld, rhoFld) MGpoisson['relaxDG'](self, numRelax, phiFld, rhoFld) end
+      self.relax   = function(numRelax, phiFld, rhoFld) MGpoisson['relaxDG'](self, numRelax, phiFld, rhoFld) end
+      self.prolong = function(cFld,fFld) MGpoisson['prolongDG'](self,cFld,fFld) end
    else
-      self.relax = function(numRelax, phiFld, rhoFld) MGpoisson['relaxFEM'](self, numRelax, phiFld, rhoFld) end
+      self.relax   = function(numRelax, phiFld, rhoFld) MGpoisson['relaxFEM'](self, numRelax, phiFld, rhoFld) end
+      self.prolong = function(cFld,fFld) MGpoisson['prolongFEM'](self,cFld,fFld) end
    end
 
    -- Updater to compute the L2-norm of the residue.
@@ -831,8 +834,8 @@ function MGpoisson:areIndicesOdd(idxIn)
    return areOdd
 end
 
-function MGpoisson:prolong(cFld,fFld)
-   -- Prolongation of a coarse-grid field (cFld) to a fine-grid field (fFld). 
+function MGpoisson:prolongDG(cFld,fFld)
+   -- DG prolongation of a coarse-grid field (cFld) to a fine-grid field (fFld). 
 
    local grid = fFld:grid() 
 
@@ -879,6 +882,54 @@ function MGpoisson:prolong(cFld,fFld)
    end
 end
 
+function MGpoisson:prolongFEM(cFld,fFld)
+   -- FEM prolongation of a coarse-grid field (cFld) to a fine-grid field (fFld). 
+
+   local grid = cFld:grid() 
+
+   localRangeDecomp  = LinearDecomp.LinearDecompRange {
+      range = cFld:localRange(), numSplit = grid:numSharedProcs() }
+   local tId         = grid:subGridSharedId()    -- Local thread ID.
+
+   local cFldIndexer = cFld:genIndexer()
+   local cFldItr     = cFld:get(1)
+
+   local fFldIndexer = fFld:genIndexer()
+   local fFldItr     = fFld:get(1)
+
+   for cIdx in localRangeDecomp:rowMajorIter(tId) do
+
+      grid:setIndex(cIdx)
+
+      -- Array of indexes to fine-grid cells this coarse-grid cell contributes to.
+      for d = 1, self.dim do self.fineGridIdx[1][d] = 2*cIdx[d] end
+      local parIdx     = 1
+      local fCellCount = 1
+      for dir = 1, self.dim do
+         for rI = 1, self.igOpStencilWidth^(dir-1) do
+            for k = 1, (self.igOpStencilWidth-1) do
+               local newIdxInDir = self.fineGridIdx[parIdx][dir]-k
+               if newIdxInDir<1 then break end
+               fCellCount = fCellCount + 1
+               for d = 1, self.dim do self.fineGridIdx[fCellCount][d] = self.fineGridIdx[parIdx][d] end
+               self.fineGridIdx[fCellCount][dir] = newIdxInDir
+            end
+            parIdx = parIdx + self.igOpStencilWidth-1
+         end
+      end
+
+      cFld:fill(cFldIndexer(cIdx), cFldItr)   -- Coarse field pointer.
+  
+      -- Array of pointers to fine-grid field data by stencil. 
+      for i = 1, self.igOpStencilSize do
+         fFld:fill(fFldIndexer(self.fineGridIdx[i]), fFldItr)
+         self.fineFldItr[i] = fFldItr:data()
+      end
+  
+      self._prolongation(cFldItr:data(), self.fineFldItr:data())
+   end
+end
+
 function MGpoisson:gammaCycle(lCurr)
    -- Perform a single gamma-cycle at the lCurr grid level.
    --   gamma=1 V-cycle
@@ -917,7 +968,7 @@ function MGpoisson:gammaCycle(lCurr)
       end
 
       -- Prolong the error to the finer grid and correct the iterate.
-      self:prolong(self.phiAll[lCurr+1], self.residueAll[lCurr])
+      self.prolong(self.phiAll[lCurr+1], self.residueAll[lCurr])
       self.phiAll[lCurr]:accumulate(1.0,self.residueAll[lCurr])
 
       -- Relax nu2 times.
@@ -964,7 +1015,7 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
       self.phiAll[self.mgLevels]:clear(0.0)
       for i = self.mgLevels, 1, -1 do
          self:gammaCycle(i)
-         if (i > 1) then self:prolong(self.phiAll[i], self.phiAll[i-1]) end
+         if (i > 1) then self.prolong(self.phiAll[i], self.phiAll[i-1]) end
       end
 
    end
