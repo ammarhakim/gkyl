@@ -1002,9 +1002,8 @@ function KineticSpecies:readRestart()
    end 
    
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-      local _, dfr = self.diagnosticIntegratedMomentFields[mom]:read(
+      self.diagnosticIntegratedMomentFields[mom]:read(
          string.format("%s_%s_restart.bp", self.name, mom))
-      self.diagIoFrame = dfr -- Reset internal diagnostic IO frame counter.
    end
 
    for i, mom in ipairs(self.diagnosticMoments) do

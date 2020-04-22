@@ -60,23 +60,21 @@ function test_2()
    for i = 1, 5 do
       dynVec:appendData(0.1*i, {2.5*i^2, 2.5*i^2+0.5})
    end
-   dynVec:write("test_1.bp", 1.5, 1)
+   dynVec:write("test.bp", 1.5, 0)
    for i = 6, 10 do
       dynVec:appendData(0.1*i, {2.5*i^2, 2.5*i^2+0.5})
    end
-   dynVec:write("test_2.bp", 1.5, 2)
+   dynVec:write("test.bp", 1.5, 1)
 end
 
 function test_2r()
    local dynVec = DataStruct.DynVector { numComponents = 2 }
    assert_equal(dynVec:numComponents(), 2, "Testing number of components")
 
-   local tmStamp, frNum = dynVec:read("test_1.bp")
-   assert_equal(1.5, tmStamp, "Testing time-stamp")
-   assert_equal(1, frNum, "Testing frame")
+   local tmStamp, frNum = dynVec:read("test.bp")
 
    -- check contents
-   assert_equal(5, dynVec:size(), "Checking size")
+   assert_equal(10, dynVec:size(), "Checking size")
 
    local tmMesh = dynVec:timeMesh()
    for i = 1, dynVec:size() do

@@ -145,6 +145,8 @@ int64_t adios_define_var (int64_t group_id,
 // for the next output step.
 int adios_delete_vardefs (int64_t id);
 
+int adios_set_time_aggregation ( int64_t groupid, uint64_t buffersize, int64_t syncgroupid );
+
 // Return the expected size (in bytes) of a defined variable.
 // It is simply the product of local dimensions and byte-size of type.
 // It works only if the variable is defined with numeric dimensions or
