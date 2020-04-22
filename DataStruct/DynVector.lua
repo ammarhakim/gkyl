@@ -164,18 +164,14 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
 
    if appendData and (frNum and frNum>=0) then 
       self.frNum = frNum 
-   elseif (not appendData) and (frNum and frNum>=0) then 
+   else 
       self.frNum = "" 
-   else -- frNum == nil
-      self.frNum = self.frNum + 1
-      frNum = self.frNum
+      frNum = frNum or 0
    end
 
-   -- setup ADIOS for IO
-   Adios.init_noxml(comm[0])
-
    -- create group and set I/O method
-   local grpId = Adios.declare_group("DynVector", "", Adios.flag_no)
+   local grpNm = "DynVector"..self.frNum..outNm
+   local grpId = Adios.declare_group(grpNm, "", Adios.flag_no)
    Adios.select_method(grpId, "MPI", "", "")
    
    -- ADIOS expects CSV string to specify data shape
@@ -184,27 +180,16 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
    
    -- define data to write
    Adios.define_var(
-      grpId, "frame", "", Adios.integer, "", "", "")
-   Adios.define_var(
-      grpId, "time", "", Adios.double, "", "", "")
-   Adios.define_var(
       grpId, "TimeMesh"..self.frNum, "", Adios.double, localTmSz, "", "")
    Adios.define_var(
       grpId, "Data"..self.frNum, "", Adios.double, localDatSz, "", "")
 
    local fullNm = GKYL_OUT_PREFIX .. "_" .. outNm
    if frNum == 0 or not appendData then
-      fd = Adios.open("DynVector", fullNm, "w", comm[0])
+      fd = Adios.open(grpNm, fullNm, "w", comm[0])
    else
-      fd = Adios.open("DynVector", fullNm, "u", comm[0])
+      fd = Adios.open(grpNm, fullNm, "u", comm[0])
    end
-
-   -- write data
-   local tmStampBuff = new("double[1]"); tmStampBuff[0] = tmStamp
-   Adios.write(fd, "time", tmStampBuff)
-
-   local frNumBuff = new("int[1]"); frNumBuff[0] = frNum
-   Adios.write(fd, "frame", frNumBuff)
 
    Adios.write(fd, "TimeMesh"..self.frNum, self._timeMesh:data())
    -- copy data to IO buffer
@@ -213,7 +198,6 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
    Adios.write(fd, "Data"..self.frNum, self._ioBuff:data())
    
    Adios.close(fd)
-   Adios.finalize(rank)
 
    -- clear data for next round of IO
    if flushData then 
@@ -229,9 +213,6 @@ function DynVector:read(fName)
    local fullNm = GKYL_OUT_PREFIX .. "_" .. fName
    local reader = AdiosReader.Reader(fullNm, comm)
 
-   local tm = reader:getVar("time"):read()
-   local frame = reader:getVar("frame"):read()
-
    local timeMesh, data
    if reader:hasVar("TimeMesh") then
       timeMesh = reader:getVar("TimeMesh"):read()
@@ -244,8 +225,10 @@ function DynVector:read(fName)
          local timeMeshN = reader:getVar("TimeMesh"..varCnt):read()
          local dataN = reader:getVar("Data"..varCnt):read()
          for i = 1, timeMeshN:size() do
-            timeMesh[timeMesh:size()+1] = timeMeshN[i]
-            data[data:size()+1] = dataN[i]
+            timeMesh:push(timeMeshN[i])
+         end
+         for i = 1, dataN:size() do
+            data:push(dataN[i])
          end
          varCnt = varCnt + 1
       end
@@ -262,8 +245,6 @@ function DynVector:read(fName)
    self:_copy_to_dynvector(data)
 
    reader:close()
-   
-   return tm, frame
 end
 
 return { DynVector = DynVector }

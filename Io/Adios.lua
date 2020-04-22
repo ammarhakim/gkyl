@@ -71,6 +71,27 @@ function _M.define_var(group_id, name, path, typ, dimensions, global_dimensions,
       group_id[0], name, path, typ, dimensions, global_dimensions, local_offsets)
    return varId
 end
+
+function _M.delete_vardefs(group_id)
+   return ffiC.adios_delete_vardefs(group_id[0])
+end
+
+function _M.define_var_mesh(group_id, varname, meshname)
+   return ffiC.adios_define_var_mesh(group_id[0], varname, meshname)
+end
+
+function _M.define_mesh_timevarying(flag, group_id, meshname)
+   return ffiC.adios_define_mesh_timevarying(flag, group_id[0], meshname)
+end
+
+function _M.set_time_aggregation(group_id, buff_size, flush_group_id)
+   if flush_group_id then
+      ffiC.adios_set_time_aggregation(group_id[0], buff_size, flush_group_id[0])
+   else
+      ffiC.adios_set_time_aggregation(group_id[0], buff_size, 0)
+   end
+end
+
 -- adios_define_attribute
 function _M.define_attribute(group, name, path, typ, value, var)
    local err = ffiC.adios_define_attribute(group[0], name, path, typ, value, var)
@@ -97,6 +118,11 @@ end
 -- adios_write
 function _M.write(fd, name, var)
    local err = ffiC.adios_write(fd[0], name, var)
+   return err
+end
+
+function _M.write_byid(fd, id, var)
+   local err = ffiC.adios_write_byid(fd[0], id, var)
    return err
 end
 
@@ -169,5 +195,6 @@ function _M.get_attr_byid(fp, attrid) --> type, size, void* to data
    ffiC.adios_get_attr_byid(fp, attrid, typePtr, sizePtr, voidPtr)
    return typePtr[0], sizePtr[0], voidPtr[0]
 end
+
 
 return _M

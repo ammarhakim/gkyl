@@ -288,7 +288,7 @@ function VmLBOCollisions:createSolver()
       self.nuSum    = 0.0    -- Assigned in advance method.
    end
    -- Lenard-Bernstein equation.
-   local vmLBOconstNuCalc = VmLBOconstNuEq {
+   self.equation = VmLBOconstNuEq {
       phaseBasis       = self.phaseBasis,
       confBasis        = self.confBasis,
       vUpper           = self.vMax,
@@ -299,7 +299,7 @@ function VmLBOCollisions:createSolver()
       onGrid             = self.phaseGrid,
       basis              = self.phaseBasis,
       cfl                = self.cfl,
-      equation           = vmLBOconstNuCalc,
+      equation           = self.equation,
       updateDirections   = zfd,    -- Only update velocity directions.
       zeroFluxDirections = zfd,
    }

@@ -1,17 +1,16 @@
 #!/bin/bash
 
 # Edit the paths and options in the following command to suit your system
-module swap intel/19.0.5 intel/18.0.5
-module swap impi/19.0.5 impi/18.0.5
-
-# Build directory
+ # Build directory
 OUT=build
 # Install location
 PREFIX=$HOME/gkylsoft/gkyl
 
 # Compile flags (set optimization/debug flags here)
-CC=icc
-CXX=icpc
+# Note that Intel 19 on Frontera has some additional wrappers
+# on mpicc that are impossible to do ourselves, so we just use CC=mpicc
+CC=mpicc
+CXX=mpicxx
 CXXFLAGS='-O3,-std=c++17,-axCORE-AVX512'
 
 # LuaJIT options
