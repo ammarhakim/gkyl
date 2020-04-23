@@ -20,7 +20,7 @@ isBottom : false $
 isLeft : false $
 isRight : false $
 
-for polyOrder : 1 thru 3 do (
+for polyOrder : 1 thru 2 do (
   for bIdx : 1 thru min(length(basisNm),polyOrder) do (
     if polyOrder=1 then bnm : "" else bnm : basisNm[bIdx],
     fname : sconcat("~/.max-out/discontGenPoisson", bnm,
