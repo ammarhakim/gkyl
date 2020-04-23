@@ -709,6 +709,7 @@ local function buildApplication(self, tbl)
       local tmSimStart = Time.clock()
       local first = true
       local failcount = 0
+      local irestart = 0
       local stopfile = GKYL_OUT_PREFIX .. ".stop"
 
       -- For the fvDimSplit updater, tryInv contains for indicators for each
@@ -760,7 +761,8 @@ local function buildApplication(self, tbl)
 	    writeData(tCurr+myDt)
 	    if checkWriteRestart(tCurr+myDt) then
 	       writeRestart(tCurr+myDt)
-               dtTracker:write(string.format("dt.bp"), tCurr+myDt, nil, false, false)
+               dtTracker:write(string.format("dt.bp"), tCurr+myDt, irestart)
+               irestart = irestart + 1
 	    end	    
 	    
 	    tCurr = tCurr + myDt
