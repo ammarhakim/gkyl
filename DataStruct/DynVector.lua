@@ -66,7 +66,9 @@ function DynVector:init(tbl)
    self._timeMesh = Alloc.Double()
    self._data = allocator()
     -- temp storage for single entry
-   self._tmpData = new(string.format("double[%d]", self._numComponents+1))
+   self._tmpData  = new(string.format("double[%d]", self._numComponents+1))
+   self._tmpTable = {}
+   for i = 1, self._numComponents do self._tmpTable[i] = nil end
 
    -- construct various functions from template representations
    self._copyToTempData = loadstring( copyTempl {NCOMP=self._numComponents} )()
@@ -81,41 +83,58 @@ function DynVector:init(tbl)
    self.frNum = -1
 end
 
-function DynVector:numComponents() return self._numComponents end
-function DynVector:lastTime() return self._timeMesh:last() end
-function DynVector:lastTime()
-   if self:size() == 0 and self.tLast then 
-      return self.tLast
-   else
-      return self._timeMesh:last()
-   end
-end
-function DynVector:lastData()
-   if self:size() == 0 and self.dLast then 
-      return self.tLast, self.dLast
-   else
-      return self._timeMesh:last(), self._data:last() 
-   end
-end
-function DynVector:timeMesh() return self._timeMesh end
-function DynVector:data() return self._data end
-function DynVector:size() return self._data:size() end
-
 function DynVector:appendData(t, v)
    self._timeMesh:push(t)
    self._copyToTempData(v, self._tmpData)
    self._data:push(self._tmpData)
 end
 
-function DynVector:removeLast()
-   local tm = self._timeMesh:popLast()
-   local v = self._data:popLast()
-   return tm, v
+function DynVector:assignLastTime(tm)
+   self._timeMesh:assignLast(tm)
 end
 
-function DynVector:clear()
-   self._data:clear()
-   self._timeMesh:clear()
+function DynVector:assignLastVal(fact, val)
+   for i = 1, self._numComponents do self._tmpData[i] = val[i]*fact end
+   self._data:assignLast(self._tmpData)
+end
+
+function DynVector:assignLast(fact, dynV)
+   local _, lv = dynV:lastData()
+   for i = 1, self._numComponents do self._tmpData[i] = lv[i]*fact end
+   self._data:assignLast(self._tmpData)
+end
+
+function DynVector:copyLast(dynV)
+   local _, lv = dynV:lastData()
+   self._data:assignLast(lv)
+end
+
+function DynVector:accumulateLastOne(fact, dynV)
+   local _, lv = dynV:lastData()
+   local selflv
+   if self:size() == 0 and self.dLast then
+      selflv = self.dLast
+   else
+      selflv = self._data:last()
+   end
+   for i = 1, self._numComponents do self._tmpData[i] = selflv[i]+lv[i]*fact end
+   self._data:assignLast(self._tmpData)
+end
+
+function DynVector:accumulateLast(c1, dynV1, ...)
+   local args = {...}                  -- Package up rest of args as table.
+   self:accumulateLastOne(c1, dynV1)   -- Accumulate first factor*vec:last() pair.
+   for i = 1, #args/2 do               -- Accumulate rest of the factor*vec:last() pairs.
+      self:accumulateLastOne(args[2*i-1], args[2*i])
+   end
+end
+
+function DynVector:combineLast(c1, dynV1, ...)
+   local args = {...}           -- Package up rest of args as table.
+   self:assignLast(c1, dynV1)   -- Assign first factor*vec:last() pair.
+   for i = 1, #args/2 do        -- Accumulate rest of the factor*vec:last() pairs.
+      self:accumulateLastOne(args[2*i-1], args[2*i])
+   end
 end
 
 function DynVector:_copy_from_dynvector(buff)
@@ -139,16 +158,94 @@ function DynVector:_copy_to_dynvector(buff)
       end
    end
 end
-local function split (inputstr, sep)
-        if sep == nil then
-                sep = "%s"
-        end
-        local t={}
-        for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
-                table.insert(t, str)
-        end
-        return t
+
+function DynVector:clear()
+   self._data:clear()
+   self._timeMesh:clear()
 end
+
+function DynVector:data() return self._data end
+function DynVector:lastTime() return self._timeMesh:last() end
+
+function DynVector:lastTime()
+   if self:size() == 0 and self.tLast then 
+      return self.tLast
+   else
+      return self._timeMesh:last()
+   end
+end
+
+function DynVector:lastData()
+   if self:size() == 0 and self.dLast then 
+      return self.tLast, self.dLast
+   else
+      return self._timeMesh:last(), self._data:last() 
+   end
+end
+
+function DynVector:numComponents() return self._numComponents end
+
+-- returns time-stamp and frame number
+function DynVector:read(fName)
+   local comm = Mpi.COMM_WORLD -- need to read from all processors
+
+   local fullNm = GKYL_OUT_PREFIX .. "_" .. fName
+   local reader = AdiosReader.Reader(fullNm, comm)
+
+   local timeMesh, data
+   if reader:hasVar("TimeMesh") then
+      timeMesh = reader:getVar("TimeMesh"):read()
+      data = reader:getVar("Data"):read()
+   elseif reader:hasVar("TimeMesh0") then
+      timeMesh = reader:getVar("TimeMesh0"):read()
+      data = reader:getVar("Data0"):read()
+      varCnt = 1
+      while reader:hasVar("TimeMesh"..varCnt) do
+         local timeMeshN = reader:getVar("TimeMesh"..varCnt):read()
+         local dataN = reader:getVar("Data"..varCnt):read()
+         for i = 1, timeMeshN:size() do
+            timeMesh:push(timeMeshN[i])
+         end
+         for i = 1, dataN:size() do
+            data:push(dataN[i])
+         end
+         varCnt = varCnt + 1
+      end
+   end
+
+   -- copy over time-mesh and data
+   local nVal = data:size()/self._numComponents
+   self._timeMesh:expand(nVal)
+   for i = 1, self._timeMesh:size() do
+      self._timeMesh[i] = timeMesh[i]
+   end
+
+   self._data:expand(nVal)   
+   self:_copy_to_dynvector(data)
+
+   reader:close()
+end
+
+function DynVector:removeLast()
+   local tm = self._timeMesh:popLast()
+   local v = self._data:popLast()
+   return tm, v
+end
+
+function DynVector:size() return self._data:size() end
+
+local function split (inputstr, sep)
+   if sep == nil then
+      sep = "%s"
+   end
+   local t={}
+   for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+      table.insert(t, str)
+   end
+   return t
+end
+
+function DynVector:timeMesh() return self._timeMesh end
 
 function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
    local comm = self._ioComm
@@ -204,47 +301,6 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
      self.tLast, self.dLast = self:lastData() -- save the last data, in case we need it later
      self:clear()
    end
-end
-
--- returns time-stamp and frame number
-function DynVector:read(fName)
-   local comm = Mpi.COMM_WORLD -- need to read from all processors
-
-   local fullNm = GKYL_OUT_PREFIX .. "_" .. fName
-   local reader = AdiosReader.Reader(fullNm, comm)
-
-   local timeMesh, data
-   if reader:hasVar("TimeMesh") then
-      timeMesh = reader:getVar("TimeMesh"):read()
-      data = reader:getVar("Data"):read()
-   elseif reader:hasVar("TimeMesh0") then
-      timeMesh = reader:getVar("TimeMesh0"):read()
-      data = reader:getVar("Data0"):read()
-      varCnt = 1
-      while reader:hasVar("TimeMesh"..varCnt) do
-         local timeMeshN = reader:getVar("TimeMesh"..varCnt):read()
-         local dataN = reader:getVar("Data"..varCnt):read()
-         for i = 1, timeMeshN:size() do
-            timeMesh:push(timeMeshN[i])
-         end
-         for i = 1, dataN:size() do
-            data:push(dataN[i])
-         end
-         varCnt = varCnt + 1
-      end
-   end
-
-   -- copy over time-mesh and data
-   local nVal = data:size()/self._numComponents
-   self._timeMesh:expand(nVal)
-   for i = 1, self._timeMesh:size() do
-      self._timeMesh[i] = timeMesh[i]
-   end
-
-   self._data:expand(nVal)   
-   self:_copy_to_dynvector(data)
-
-   reader:close()
 end
 
 return { DynVector = DynVector }
