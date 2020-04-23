@@ -153,6 +153,13 @@ local function Alloc_meta_ctor(elct)
 	 function (self)
 	    return self._data[self._size-1]
 	 end,
+      assignLast = copyElemFunc and
+	 function (self, v)
+	    copyElemFunc(self._data[self._size-1], v)
+	 end or
+	 function (self, v)
+	    self._data[self._size-1] = v
+	 end,
       popLast = function(self)
 	 assert(self._size > 0, "Can't pop from empty Alloc array")
 	 local l = self:last()
