@@ -118,6 +118,9 @@ function test_4()
       assert_equal(i, da[i], "Testing post-push")
    end
 
+   da:assignLast(2.2)
+   assert_equal(2.2, da:last(), "Testing size")
+
    da:clear()
    assert_equal(0, da:size(), "Testing size")
 end
