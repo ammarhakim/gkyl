@@ -172,7 +172,7 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeSkin)
    self._outBuff:expand(localRange:volume()*field:numComponents())
 
    -- Get group name based on size (number of cells in each dim and num components).
-   local grpNm = "CartField"..adGlobalSz
+   local grpNm = "CartField"..string.sub(fName,1,string.find(fName,'_')-1)..adGlobalSz
 
    -- Setup group and set I/O method. Only need to do once for each grpNm.
    if not self.grpIds[grpNm] then
