@@ -50,6 +50,7 @@ function GkField:fullInit(appTbl)
    end
 
    self.ioFrame = 0 -- Frame number for IO.
+   self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
 
    self.writeSkin = xsys.pickBool(appTbl.writeSkin, false)
 
@@ -638,7 +639,8 @@ function GkField:writeRestart(tm)
    end
 
    -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
-   self.phi2:write("phi2_restart.bp", tm, self.ioFrame, false, false)
+   self.phi2:write("phi2_restart.bp", tm, self.dynVecRestartFrame, false, false)
+   self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 
 end
 

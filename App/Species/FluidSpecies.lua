@@ -70,6 +70,7 @@ function FluidSpecies:fullInit(appTbl)
    end
 
    self.diagIoFrame = 0 -- Frame number for diagnostics.
+   self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
 
    -- For storing integrated moments.
    self.integratedMoments = nil -- Allocated in alloc() method.
@@ -601,9 +602,13 @@ end
 function FluidSpecies:writeRestart(tm)
    self.momIo:write(
       self.moments[1], string.format("%s_restart.bp", self.name), tm, self.diagIoFrame)
+
+   -- Write restart files for integrated moments. Note: these are only needed for the rare case that the
+   -- restart write frequency is higher than the normal write frequency from nFrame.
    -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
    self.integratedMoments:write(
-      string.format("%s_intMom_restart.bp", self.name), tm, self.diagIoFrame, false, false)
+      string.format("%s_intMom_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
+   self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
 function FluidSpecies:readRestart()
