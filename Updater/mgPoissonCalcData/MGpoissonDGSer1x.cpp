@@ -1,6 +1,6 @@
 #include <MGpoissonModDecl.h> 
  
-void MGpoissonProlong1xSer_P1(const double *fldC, double **fldF) 
+void MGpoissonDGProlong1xSer_P1(const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -16,7 +16,7 @@ void MGpoissonProlong1xSer_P1(const double *fldC, double **fldF)
 
 }
 
-void MGpoissonRestrict1xSer_P1(double **fldF, double *fldC) 
+void MGpoissonDGRestrict1xSer_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in stencils pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -29,7 +29,7 @@ void MGpoissonRestrict1xSer_P1(double **fldF, double *fldC)
 
 }
 
-void MGpoissonDampedGaussSeidel1xSer_P1(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) 
+void MGpoissonDGDampedGaussSeidel1xSer_P1(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) 
 { 
   // omega:   relaxation parameter.
   // dx:      cell lengths of cells pointed to by the stencil.
@@ -54,7 +54,7 @@ void MGpoissonDampedGaussSeidel1xSer_P1(const double omega, double **dx, const d
 
 }
 
-void MGpoissonDampedGaussSeidel1xSer_LxRobin_P1(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) 
+void MGpoissonDGDampedGaussSeidel1xSer_LxRobin_P1(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) 
 { 
   // omega:   relaxation parameter.
   // dx:      cell lengths of cells pointed to by the stencil.
@@ -87,7 +87,7 @@ void MGpoissonDampedGaussSeidel1xSer_LxRobin_P1(const double omega, double **dx,
 
 }
 
-void MGpoissonDampedGaussSeidel1xSer_UxRobin_P1(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) 
+void MGpoissonDGDampedGaussSeidel1xSer_UxRobin_P1(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) 
 { 
   // omega:   relaxation parameter.
   // dx:      cell lengths of cells pointed to by the stencil.
@@ -120,7 +120,7 @@ void MGpoissonDampedGaussSeidel1xSer_UxRobin_P1(const double omega, double **dx,
 
 }
 
-void MGpoissonDampedJacobi1xSer_P1(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) 
+void MGpoissonDGDampedJacobi1xSer_P1(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) 
 { 
   // omega:   relaxation parameter.
   // dx:      cell lengths of cells pointed to by the stencil.
@@ -146,7 +146,7 @@ void MGpoissonDampedJacobi1xSer_P1(const double omega, double **dx, const double
 
 }
 
-void MGpoissonDampedJacobi1xSer_LxRobin_P1(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) 
+void MGpoissonDGDampedJacobi1xSer_LxRobin_P1(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) 
 { 
   // omega:   relaxation parameter.
   // dx:      cell lengths of cells pointed to by the stencil.
@@ -180,7 +180,7 @@ void MGpoissonDampedJacobi1xSer_LxRobin_P1(const double omega, double **dx, cons
 
 }
 
-void MGpoissonDampedJacobi1xSer_UxRobin_P1(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) 
+void MGpoissonDGDampedJacobi1xSer_UxRobin_P1(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) 
 { 
   // omega:   relaxation parameter.
   // dx:      cell lengths of cells pointed to by the stencil.
@@ -214,7 +214,7 @@ void MGpoissonDampedJacobi1xSer_UxRobin_P1(const double omega, double **dx, cons
 
 }
 
-void MGpoissonResidue1xSer_P1(double **dx, const double *bcVals, const double *rho, double **phi, double *resOut) 
+void MGpoissonDGResidue1xSer_P1(double **dx, const double *bcVals, const double *rho, double **phi, double *resOut) 
 { 
   // dx:     cell lengths of cells pointed to by the stencil.
   // rho:    right-side source in the current cell.
@@ -238,7 +238,7 @@ void MGpoissonResidue1xSer_P1(double **dx, const double *bcVals, const double *r
 
 }
 
-void MGpoissonResidue1xSer_LxRobin_P1(double **dx, const double *bcVals, const double *rho, double **phi, double *resOut) 
+void MGpoissonDGResidue1xSer_LxRobin_P1(double **dx, const double *bcVals, const double *rho, double **phi, double *resOut) 
 { 
   // dx:     cell lengths of cells pointed to by the stencil.
   // rho:    right-side source in the current cell.
@@ -262,7 +262,7 @@ void MGpoissonResidue1xSer_LxRobin_P1(double **dx, const double *bcVals, const d
 
 }
 
-void MGpoissonResidue1xSer_UxRobin_P1(double **dx, const double *bcVals, const double *rho, double **phi, double *resOut) 
+void MGpoissonDGResidue1xSer_UxRobin_P1(double **dx, const double *bcVals, const double *rho, double **phi, double *resOut) 
 { 
   // dx:     cell lengths of cells pointed to by the stencil.
   // rho:    right-side source in the current cell.

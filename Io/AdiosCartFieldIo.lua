@@ -126,6 +126,10 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeSkin)
    -- No need to do anything if communicator is not valid.
    if not Mpi.Is_comm_valid(comm) then return end
    local rank = Mpi.Comm_rank(comm)
+   -- Also don't do anything if the rank of the communicator does not match the rank of the global communicator.
+   -- This is for cases when the communicator has been split, and the write only happens over
+   -- a subset of the domain (and a subset of the global ranks).
+   if rank ~= Mpi.Comm_rank(Mpi.COMM_WORLD) then return end
 
    local ndim = field:ndim()
    local localRange, globalRange = field:localRange(), field:globalRange()

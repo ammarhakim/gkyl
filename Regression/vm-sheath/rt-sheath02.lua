@@ -66,6 +66,8 @@ sim = Plasma.App {
       bcx = { Plasma.Species.bcAbsorb,
 	      Plasma.Species.bcReflect },
       diagnosticMoments = { "M0", "M1i", "M2" },
+      diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2" },
+      diagnosticIntegratedBoundaryFluxMoments = { "intM0", "intM1i", "intM2" },
    },
 
    ion = Plasma.Species {
@@ -90,6 +92,8 @@ sim = Plasma.App {
       bcx = { Plasma.Species.bcAbsorb,
 	      Plasma.Species.bcReflect },
       diagnosticMoments = { "M0", "M1i", "M2" },
+      diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2" },
+      diagnosticIntegratedBoundaryFluxMoments = { "intM0", "intM1i", "intM2" },
    },
    
    -- field solver

@@ -71,49 +71,54 @@ function Bc:init(tbl)
    self.hasExtFld = xsys.pickBool(tbl.hasExtFld, false)
 
    -- For diagnostics: create reduced boundary grid with 1 cell in dimension of self._dir.
-   local reducedLower, reducedUpper, reducedNumCells, reducedCuts = {}, {}, {}, {}
-   for d = 1, self._grid:ndim() do
-      if d==self._dir then
-         table.insert(reducedLower, -self._grid:dx(d)/2)
-         table.insert(reducedUpper, self._grid:dx(d)/2)
-         table.insert(reducedNumCells, 1)
-         table.insert(reducedCuts, 1)
-      else
-         table.insert(reducedLower, self._grid:lower(d))
-         table.insert(reducedUpper, self._grid:upper(d))
-         table.insert(reducedNumCells, self._grid:numCells(d))
-         table.insert(reducedCuts, self._grid:cuts(d))
+   if self._grid:isShared() then 
+      -- Shared memory implementation needs more work...
+      self._boundaryGrid = self._grid
+   else
+      local reducedLower, reducedUpper, reducedNumCells, reducedCuts = {}, {}, {}, {}
+      for d = 1, self._grid:ndim() do
+         if d==self._dir then
+            table.insert(reducedLower, -self._grid:dx(d)/2)
+            table.insert(reducedUpper, self._grid:dx(d)/2)
+            table.insert(reducedNumCells, 1)
+            table.insert(reducedCuts, 1)
+         else
+            table.insert(reducedLower, self._grid:lower(d))
+            table.insert(reducedUpper, self._grid:upper(d))
+            table.insert(reducedNumCells, self._grid:numCells(d))
+            table.insert(reducedCuts, self._grid:cuts(d))
+         end
       end
-   end
-   local commSet = self._grid:commSet()
-   local worldComm = commSet.comm
-   local nodeComm = commSet.nodeComm
-   local nodeRank = Mpi.Comm_rank(nodeComm)
-   local dirRank = nodeRank
-   local cutsX = self._grid:cuts(1) or 1
-   local cutsY = self._grid:cuts(2) or 1
-   local cutsZ = self._grid:cuts(3) or 1
-   if self._dir == 1 then 
-      dirRank = nodeRank % (cutsX*cutsY) % cutsX
-   elseif self._dir == 2 then 
-      dirRank = math.floor(nodeRank / cutsX) % cutsY
-   elseif self._dir == 3 then
-      dirRank = math.floor(nodeRank/cutsX/cutsY)
-   end
-   self._splitComm = Mpi.Comm_split(worldComm, dirRank, nodeRank)
-   
-   local reducedDecomp = CartDecomp.CartProd {
-      comm = self._splitComm,
-      cuts = reducedCuts,
-      useShared = self._grid:isShared(),
-   }
+      local commSet = self._grid:commSet()
+      local worldComm = commSet.comm
+      local nodeComm = commSet.nodeComm
+      local nodeRank = Mpi.Comm_rank(nodeComm)
+      local dirRank = nodeRank
+      local cutsX = self._grid:cuts(1) or 1
+      local cutsY = self._grid:cuts(2) or 1
+      local cutsZ = self._grid:cuts(3) or 1
+      if self._dir == 1 then 
+         dirRank = nodeRank % (cutsX*cutsY) % cutsX
+      elseif self._dir == 2 then 
+         dirRank = math.floor(nodeRank / cutsX) % cutsY
+      elseif self._dir == 3 then
+         dirRank = math.floor(nodeRank/cutsX/cutsY)
+      end
+      self._splitComm = Mpi.Comm_split(worldComm, dirRank, nodeRank)
+      
+      local reducedDecomp = CartDecomp.CartProd {
+         comm = self._splitComm,
+         cuts = reducedCuts,
+         useShared = self._grid:isShared(),
+      }
 
-   self._boundaryGrid = Grid.RectCart {
-      lower = reducedLower,
-      upper = reducedUpper,
-      cells = reducedNumCells,
-      decomposition = reducedDecomp,
-   }
+      self._boundaryGrid = Grid.RectCart {
+         lower = reducedLower,
+         upper = reducedUpper,
+         cells = reducedNumCells,
+         decomposition = reducedDecomp,
+      }
+   end
 end
 
 function Bc:getGhostRange(global, globalExt)
@@ -229,6 +234,13 @@ function Bc:storeBoundaryFlux(tCurr, rkIdx, qOut)
          ghost         = {1,1},
          metaData = qOut:getMetaData(),
       }
+      self._boundaryFluxFieldPrev = DataStruct.Field {
+         onGrid        = self._boundaryGrid,
+         numComponents = qOut:numComponents(),
+         ghost         = {1,1},
+         metaData = qOut:getMetaData(),
+      }
+      self._boundaryFluxFieldPrev:clear(0.0)
       self._boundaryPtr = {self._boundaryFluxFields[1]:get(1), 
                            self._boundaryFluxFields[2]:get(1),
                            self._boundaryFluxFields[3]:get(1),
@@ -323,6 +335,10 @@ end
 
 function Bc:getBoundaryFluxRate()
    return self._boundaryFluxRate
+end
+
+function Bc:getBoundaryFluxFieldPrev()
+   return self._boundaryFluxFieldPrev
 end
 
 function Bc:getBoundaryGrid()

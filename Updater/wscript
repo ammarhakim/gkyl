@@ -29,8 +29,10 @@ def build(bld):
     interpolateCalcData/CartFieldInterpSer1x.cpp
     interpolateCalcData/CartFieldInterpSer2x.cpp
 
-    mgPoissonCalcData/MGpoissonSer1x.cpp
-    mgPoissonCalcData/MGpoissonSer2x.cpp
+    mgPoissonCalcData/MGpoissonDGSer1x.cpp
+    mgPoissonCalcData/MGpoissonDGSer2x.cpp
+    mgPoissonCalcData/MGpoissonFEMSer1x.cpp
+    mgPoissonCalcData/MGpoissonFEMSer2x.cpp
 
     spitzerNuCalcData/SpitzerNuSer1x.cpp
     spitzerNuCalcData/SpitzerNuSer2x.cpp
