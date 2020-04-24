@@ -85,6 +85,13 @@ function NonUniformRectCart:dx(dir)
    local nodeCoords, idx = self:nodeCoords(dir), self._currIdx
    return nodeCoords[idx[dir]+1]-nodeCoords[idx[dir]]
 end
+
+function NonUniformRectCart:getDx(dxOut) 
+   for d = 1, self:ndim() do
+     dxOut[d] = self:dx(d)
+   end
+end
+
 function NonUniformRectCart:cellCenterInDir(d)
    local nodeCoords = self:nodeCoords(d)
    return 0.5*(nodeCoords[idx[d]+1]+nodeCoords[idx[d]])
