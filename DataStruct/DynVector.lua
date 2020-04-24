@@ -273,7 +273,7 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
    end
 
    -- create group and set I/O method
-   local grpNm = "DynVector"..self.frNum..outNm
+   local grpNm = "DynVector"..frNum..outNm
    local grpId = Adios.declare_group(grpNm, "", Adios.flag_no)
    Adios.select_method(grpId, "MPI", "", "")
    

@@ -101,6 +101,7 @@ function KineticSpecies:fullInit(appTbl)
 
    self.distIoFrame = 0 -- Frame number for distribution function.
    self.diagIoFrame = 0 -- Frame number for diagnostics.
+   self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
 
    self.writeSkin = xsys.pickBool(appTbl.writeSkin, false)
 
@@ -980,11 +981,14 @@ function KineticSpecies:writeRestart(tm)
 	 string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
    end   
 
+   -- Write restart files for integrated moments. Note: these are only needed for the rare case that the
+   -- restart write frequency is higher than the normal write frequency from nFrame.
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
       -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
       self.diagnosticIntegratedMomentFields[mom]:write(
-         string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false, false)
+         string.format("%s_%s_restart.bp", self.name, mom), tm, self.dynVecRestartFrame, false, false)
    end
+   self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
 function KineticSpecies:readRestart()
