@@ -7,6 +7,7 @@
 --------------------------------------------------------------------------------
 
 local lfs = require "lfs"
+local uuid = require "Lib.UUID"
 
 if GKYL_HAVE_SQLITE3 == false then
    -- can't run without SQLITE3
@@ -64,18 +65,7 @@ local insertRegressionMetaProc = nil
 -- Name of configuration file
 local confFile = os.getenv("HOME") .. "/runregression.config.lua"
 
--- UUID generator
-math.randomseed( os.time() )
-local function uuid()
-   local random = math.random
-   local template ='xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
-   return string.gsub(template, '[xy]', function (c)
-			 local v = (c == 'x') and random(0, 0xf) or random(8, 0xb)
-			 return string.format('%x', v)
-   end)
-end
-
--- function to split comma separated list (strinng) into table
+-- function to split comma separated list (string) into table
 local function splitList(listStr)
    local words = {}
    for w in listStr:gmatch('[^,%s]+') do
@@ -501,11 +491,48 @@ local function compareFiles(f1, f2)
    
    local r1, r2 = AdiosReader.Reader(f1), AdiosReader.Reader(f2)
 
+   -- check attribute
+   local function checkVecAttr(attrNm)
+      if not r1:hasAttr(attrNm) and not r2:hasAttr(attrNm) then
+	 return true -- if both files have attribute missing, consider as pass
+      end
+
+      -- If both don't have it
+      if not r1:hasAttr(attrNm) or not r2:hasAttr(attrNm) then
+	 verboseLog(string.format(
+		       " ... CartGridField attr %s not present in both files %s and %s!\n", attrNm, f1, f2))
+	 return false
+      end
+      
+      local r1_attrNm, r2_attrNm = r1:getAttr(attrNm):read(), r2:getAttr(attrNm):read()
+      if #r1_attrNm ~= #r2_attrNm then
+	 verboseLog(string.format(
+		       " ... CartGridField attr %s in files %s and %s not the same size!\n", attrNm, f1, f2))
+	 return false
+      end
+      for i = 1, #r1_attrNm do
+	 if r1_attrNm[i] ~= r2_attrNm[i] then
+	    verboseLog(string.format(
+			  " ... CartGridField attr %s not the same files %s and %s not the same!\n", attrNm, f1, f2))
+	    return false
+	 end
+      end
+      return true
+   end
+
    local cmpPass = true
    local currMaxDiff = 0.0
    
    if r1:hasVar("CartGridField") and r2:hasVar("CartGridField") then
-      -- compare CartField
+      
+      -- compare stable attributes (not all attributes can be compared)
+      if not checkVecAttr("numCells") then return false end
+      if not checkVecAttr("lowerBounds") then return false end
+      if not checkVecAttr("upperBounds") then return false end
+      if not checkVecAttr("basisType") then return false end
+      if not checkVecAttr("polyOrder") then return false end
+      
+      -- compare CartField data
       local d1, d2 = r1:getVar("CartGridField"):read(), r2:getVar("CartGridField"):read()
 
       if d1:size() ~= d2:size() then
