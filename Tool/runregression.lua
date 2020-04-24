@@ -548,28 +548,70 @@ local function compareFiles(f1, f2)
 	    cmpPass = false
 	 end
       end
-   elseif r1:hasVar("TimeMesh0") and r2:hasVar("TimeMesh0") then
-      -- Compare DynVector: there may be more than one set of data in
-      -- the BP file
-      local frNum = 0
-      while true do
-	 local tNm, dNm = string.format("TimeMesh%d", frNum), string.format("Data%d", frNum)
-	 if not r1:hasVar(tNm) then break end
-	 local d1, d2 = r1:getVar(dNm):read(), r2:getVar(dNm):read()
-	 if d1:size() ~= d2:size() then
-	    verboseLog(string.format(
-			  " ... DynVector in files %s and %s not the same size!\n", f1, f2))
-	    return false
-	 end
-	 
-	 local maxVal = math.max(maxValueInField(d1),maxValueInField(d2)) -- maximum value (for numeric comparison)
-	 for i = 1, d1:size() do
-	    if check_equal_numeric(d1[i], d2[i], maxVal) == false then
-	       currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i], maxVal))
-	       cmpPass = false
-	    end
-	 end
-	 frNum = frNum+1
+   -- Compare DynVector
+   elseif (r1:hasVar("TimeMesh0") or r1:hasVar("TimeMesh")) and (r2:hasVar("TimeMesh0") or r2:hasVar("TimeMesh")) then
+      local t1, t2
+      local d1, d2
+      
+      -- Read from file 1
+      -- If single dataset, read it into single array
+      if r1:hasVar("TimeMesh") then 
+         t1 = r1:getVar("TimeMesh"):read()
+         d1 = r1:getVar("Data"):read()
+      -- If multiple datasets, read and append into single array
+      elseif r1:hasVar("TimeMesh0") then
+         t1 = r1:getVar("TimeMesh0"):read()
+         d1 = r1:getVar("Data0"):read()
+         frNum = 1
+         while r1:hasVar("TimeMesh"..frNum) do
+            local t1N = r1:getVar("TimeMesh"..frNum):read()
+            local d1N = r1:getVar("Data"..frNum):read()
+            for i = 1, t1N:size() do
+               t1:push(t1N[i])
+            end
+            for i = 1, d1N:size() do
+               d1:push(d1N[i])
+            end
+            frNum = frNum + 1
+         end
+      end
+
+      -- Read from file 2
+      -- If single dataset, read it into single array
+      if r2:hasVar("TimeMesh") then 
+         t2 = r2:getVar("TimeMesh"):read()
+         d2 = r2:getVar("Data"):read()
+      -- If multiple datasets, read and append into single array
+      elseif r2:hasVar("TimeMesh0") then
+         t2 = r2:getVar("TimeMesh0"):read()
+         d2 = r2:getVar("Data0"):read()
+         frNum = 1
+         while r2:hasVar("TimeMesh"..frNum) do
+            local t2N = r2:getVar("TimeMesh"..frNum):read()
+            local d2N = r2:getVar("Data"..frNum):read()
+            for i = 1, t2N:size() do
+               t2:push(t2N[i])
+            end
+            for i = 1, d2N:size() do
+               d2:push(d2N[i])
+            end
+            frNum = frNum + 1
+         end
+      end
+
+      -- Check equivalence
+      if d1:size() ~= d2:size() then
+         verboseLog(string.format(
+          	  " ... DynVector in files %s and %s not the same size!\n", f1, f2))
+         return false
+      end
+      
+      local maxVal = math.max(maxValueInField(d1),maxValueInField(d2)) -- maximum value (for numeric comparison)
+      for i = 1, d1:size() do
+         if check_equal_numeric(d1[i], d2[i], maxVal) == false then
+            currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i], maxVal))
+            cmpPass = false
+         end
       end
    end
 
