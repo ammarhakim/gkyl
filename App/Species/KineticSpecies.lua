@@ -384,7 +384,7 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts,
    }
 
    if self.coordinateMap then
-      self.grid:write("grid.bp")
+      self.grid:write("grid_" .. self.name .. ".bp")
    end
 
    for _, c in pairs(self.collisions) do
