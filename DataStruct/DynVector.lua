@@ -89,6 +89,11 @@ function DynVector:appendData(t, v)
    self._data:push(self._tmpData)
 end
 
+function DynVector:appendLast(dynV)
+   local tm, lv = dynV:lastData()
+   self:appendData(tm, lv)
+end
+
 function DynVector:assignLastTime(tm)
    self._timeMesh:assignLast(tm)
 end
@@ -105,7 +110,8 @@ function DynVector:assignLast(fact, dynV)
 end
 
 function DynVector:copyLast(dynV)
-   local _, lv = dynV:lastData()
+   local tm, lv = dynV:lastData()
+   self._timeMesh:assignLast(tm)
    self._data:assignLast(lv)
 end
 

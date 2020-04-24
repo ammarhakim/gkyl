@@ -128,7 +128,7 @@ function test_4()
    end
    dynVec:copyLast(dummyVec)
    tm, lv = dynVec:lastData()
-   assert_equal(1.0, tm, "Testing last time")
+   assert_equal(0.1, tm, "Testing last time")
    assert_equal(7.5, lv[1], "Testing last value after copyLast")
    assert_equal(4.5, lv[2], "Testing last value after copyLast")
 
@@ -162,6 +162,13 @@ function test_4()
    dynVec:assignLastTime(3.0)
    tm, lv = dynVec:lastData()
    assert_equal(3.0, tm, "Testing last time after assignLastTime")
+
+   dynVec:appendLast(dummyVec)
+   tm, lv = dynVec:lastData()
+   assert_equal(0.1, tm, "Testing last time after appendLast")
+   assert_equal(7.5, lv[1], "Testing last value after appendLast")
+   assert_equal(4.5, lv[2], "Testing last value after appendLast")
+
 end
 
 test_1()
