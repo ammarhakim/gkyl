@@ -24,10 +24,10 @@ local lua_version = tonumber(_VERSION:match("%d%.*%d*"))  -- grab Lua version us
 -- @return the (potentially modified) seed used
 
 local function randomseed(seed)
-  seed = math_floor(math_abs(seed))
+  seed = math.floor(math.abs(seed))
   if seed >= (2^bitsize) then
     -- integer overflow, so reduce to prevent a bad seed
-    seed = seed - math_floor(seed / 2^bitsize) * (2^bitsize)
+    seed = seed - math.floor(seed / 2^bitsize) * (2^bitsize)
   end
   if lua_version < 5.2 then
     -- 5.1 uses (incorrect) signed int
