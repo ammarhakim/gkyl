@@ -383,10 +383,6 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts,
       mappings      = coordinateMap,
    }
 
-   if self.coordinateMap then
-      self.grid:write("grid_" .. self.name .. ".bp")
-   end
-
    for _, c in pairs(self.collisions) do
       c:setPhaseGrid(self.grid)
    end
@@ -396,6 +392,13 @@ function KineticSpecies:createBasis(nm, polyOrder)
    self.basis = createBasis(nm, self.ndim, polyOrder)
    for _, c in pairs(self.collisions) do
       c:setPhaseBasis(self.basis)
+   end
+
+   -- Output of grid file is placed here because as the file name is associated
+   -- with a species, we wish to save the basisID and polyOrder in it. But these
+   -- can only be extracted from self.basis after this is created.
+   if self.coordinateMap then
+      self.grid:write("grid_" .. self.name .. ".bp", {metaData = {polyOrder = self.basis:polyOrder(), basisType = self.basis:id()}} )
    end
 end
 
