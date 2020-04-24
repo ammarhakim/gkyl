@@ -171,8 +171,8 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeSkin)
    -- Resize buffer (only done if needed. Alloc handles this automatically).
    self._outBuff:expand(localRange:volume()*field:numComponents())
 
-   -- Get group name based on size (number of cells in each dim and num components).
-   local grpNm = "CartField"..adGlobalSz
+   -- Get group name based on fName with frame and suffix chopped off.
+   local grpNm = string.gsub(string.gsub(fName, "_(%d+).bp", ""), ".bp", "")
 
    -- Setup group and set I/O method. Only need to do once for each grpNm.
    if not self.grpIds[grpNm] then
@@ -299,12 +299,8 @@ function AdiosCartFieldIo:read(field, fName, readSkin) --> time-stamp, frame-num
 
       local rank = Mpi.Comm_rank(comm)
 
-      -- Get group name based on dimension, number of components, 
-      -- and whether the field is a boundary flux or a restart, 
-      -- all of which give different ouptut patterns.
-      local grpNm = "CartField"..field:ndim().."D"..field:numComponents()
-      if string.find(fName, "lower") or string.find(fName, "upper") then grpNm = grpNm.."Flux" end
-      if string.find(fName, "restart") then grpNm = grpNm.."Restart" end
+      -- Get group name based on fName with frame and suffix chopped off.
+      local grpNm = string.gsub(string.gsub(fName, "_(%d+).bp", ""), ".bp", "")
 
       -- Setup group and set I/O method. Only need to do once for each grpNm.
       if not self.grpIds[grpNm] then
