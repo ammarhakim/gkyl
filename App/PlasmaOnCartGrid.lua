@@ -648,9 +648,9 @@ local function buildApplication(self, tbl)
    local tmEnd = Time.clock()
    log(string.format("Initializing completed in %g sec\n\n", tmEnd-tmStart))
 
-   -- Read some info about restarts (default is to write restarts 1/20 (5%) of sim).
-   local restartFrameEvery = tbl.restartFrameEvery and tbl.restartFrameEvery or 1/20.0
-   local restartFrameAfter = tbl.restartFrameAfter and tbl.restartFrameAfter or GKYL_MAX_DOUBLE
+   -- Read some info about restarts (default is to write restarts 1/20 (5%) of sim, 
+   -- but no need to write restarts more frequently than regular diagnostic output).
+   local restartFrameEvery = tbl.restartFrameEvery and tbl.restartFrameEvery or math.max(1/20.0, 1/tbl.nFrame)
 
    -- Return function that runs main simulation loop.
    return function(self)
@@ -710,9 +710,10 @@ local function buildApplication(self, tbl)
       end
 
       local tmSimStart = Time.clock()
-      local first      = true
-      local failcount  = 0
-      local stopfile   = GKYL_OUT_PREFIX .. ".stop"
+      local first = true
+      local failcount = 0
+      local irestart = 0
+      local stopfile = GKYL_OUT_PREFIX .. ".stop"
 
       -- For the fvDimSplit updater, tryInv contains for indicators for each
       -- species whether the domain-invariant equation should be used in the
@@ -763,7 +764,8 @@ local function buildApplication(self, tbl)
 	    writeData(tCurr+myDt)
 	    if checkWriteRestart(tCurr+myDt) then
 	       writeRestart(tCurr+myDt)
-               dtTracker:write(string.format("dt.bp"), tCurr+myDt, nil, false, false)
+               dtTracker:write(string.format("dt.bp"), tCurr+myDt, irestart)
+               irestart = irestart + 1
 	    end	    
 	    
 	    tCurr = tCurr + myDt

@@ -7,6 +7,7 @@
 --------------------------------------------------------------------------------
 
 local lfs = require "lfs"
+local uuid = require "Lib.UUID"
 
 if GKYL_HAVE_SQLITE3 == false then
    -- can't run without SQLITE3
@@ -64,18 +65,7 @@ local insertRegressionMetaProc = nil
 -- Name of configuration file
 local confFile = os.getenv("HOME") .. "/runregression.config.lua"
 
--- UUID generator
-math.randomseed( os.time() )
-local function uuid()
-   local random = math.random
-   local template ='xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
-   return string.gsub(template, '[xy]', function (c)
-			 local v = (c == 'x') and random(0, 0xf) or random(8, 0xb)
-			 return string.format('%x', v)
-   end)
-end
-
--- function to split comma separated list (strinng) into table
+-- function to split comma separated list (string) into table
 local function splitList(listStr)
    local words = {}
    for w in listStr:gmatch('[^,%s]+') do
@@ -501,11 +491,48 @@ local function compareFiles(f1, f2)
    
    local r1, r2 = AdiosReader.Reader(f1), AdiosReader.Reader(f2)
 
+   -- check attribute
+   local function checkVecAttr(attrNm)
+      if not r1:hasAttr(attrNm) and not r2:hasAttr(attrNm) then
+	 return true -- if both files have attribute missing, consider as pass
+      end
+
+      -- If both don't have it
+      if not r1:hasAttr(attrNm) or not r2:hasAttr(attrNm) then
+	 verboseLog(string.format(
+		       " ... CartGridField attr %s not present in both files %s and %s!\n", attrNm, f1, f2))
+	 return false
+      end
+      
+      local r1_attrNm, r2_attrNm = r1:getAttr(attrNm):read(), r2:getAttr(attrNm):read()
+      if #r1_attrNm ~= #r2_attrNm then
+	 verboseLog(string.format(
+		       " ... CartGridField attr %s in files %s and %s not the same size!\n", attrNm, f1, f2))
+	 return false
+      end
+      for i = 1, #r1_attrNm do
+	 if r1_attrNm[i] ~= r2_attrNm[i] then
+	    verboseLog(string.format(
+			  " ... CartGridField attr %s not the same files %s and %s not the same!\n", attrNm, f1, f2))
+	    return false
+	 end
+      end
+      return true
+   end
+
    local cmpPass = true
    local currMaxDiff = 0.0
    
    if r1:hasVar("CartGridField") and r2:hasVar("CartGridField") then
-      -- compare CartField
+      
+      -- compare stable attributes (not all attributes can be compared)
+      if not checkVecAttr("numCells") then return false end
+      if not checkVecAttr("lowerBounds") then return false end
+      if not checkVecAttr("upperBounds") then return false end
+      if not checkVecAttr("basisType") then return false end
+      if not checkVecAttr("polyOrder") then return false end
+      
+      -- compare CartField data
       local d1, d2 = r1:getVar("CartGridField"):read(), r2:getVar("CartGridField"):read()
 
       if d1:size() ~= d2:size() then
@@ -521,28 +548,70 @@ local function compareFiles(f1, f2)
 	    cmpPass = false
 	 end
       end
-   elseif r1:hasVar("TimeMesh0") and r2:hasVar("TimeMesh0") then
-      -- Compare DynVector: there may be more than one set of data in
-      -- the BP file
-      local frNum = 0
-      while true do
-	 local tNm, dNm = string.format("TimeMesh%d", frNum), string.format("Data%d", frNum)
-	 if not r1:hasVar(tNm) then break end
-	 local d1, d2 = r1:getVar(dNm):read(), r2:getVar(dNm):read()
-	 if d1:size() ~= d2:size() then
-	    verboseLog(string.format(
-			  " ... DynVector in files %s and %s not the same size!\n", f1, f2))
-	    return false
-	 end
-	 
-	 local maxVal = math.max(maxValueInField(d1),maxValueInField(d2)) -- maximum value (for numeric comparison)
-	 for i = 1, d1:size() do
-	    if check_equal_numeric(d1[i], d2[i], maxVal) == false then
-	       currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i], maxVal))
-	       cmpPass = false
-	    end
-	 end
-	 frNum = frNum+1
+   -- Compare DynVector
+   elseif (r1:hasVar("TimeMesh0") or r1:hasVar("TimeMesh")) and (r2:hasVar("TimeMesh0") or r2:hasVar("TimeMesh")) then
+      local t1, t2
+      local d1, d2
+      
+      -- Read from file 1
+      -- If single dataset, read it into single array
+      if r1:hasVar("TimeMesh") then 
+         t1 = r1:getVar("TimeMesh"):read()
+         d1 = r1:getVar("Data"):read()
+      -- If multiple datasets, read and append into single array
+      elseif r1:hasVar("TimeMesh0") then
+         t1 = r1:getVar("TimeMesh0"):read()
+         d1 = r1:getVar("Data0"):read()
+         frNum = 1
+         while r1:hasVar("TimeMesh"..frNum) do
+            local t1N = r1:getVar("TimeMesh"..frNum):read()
+            local d1N = r1:getVar("Data"..frNum):read()
+            for i = 1, t1N:size() do
+               t1:push(t1N[i])
+            end
+            for i = 1, d1N:size() do
+               d1:push(d1N[i])
+            end
+            frNum = frNum + 1
+         end
+      end
+
+      -- Read from file 2
+      -- If single dataset, read it into single array
+      if r2:hasVar("TimeMesh") then 
+         t2 = r2:getVar("TimeMesh"):read()
+         d2 = r2:getVar("Data"):read()
+      -- If multiple datasets, read and append into single array
+      elseif r2:hasVar("TimeMesh0") then
+         t2 = r2:getVar("TimeMesh0"):read()
+         d2 = r2:getVar("Data0"):read()
+         frNum = 1
+         while r2:hasVar("TimeMesh"..frNum) do
+            local t2N = r2:getVar("TimeMesh"..frNum):read()
+            local d2N = r2:getVar("Data"..frNum):read()
+            for i = 1, t2N:size() do
+               t2:push(t2N[i])
+            end
+            for i = 1, d2N:size() do
+               d2:push(d2N[i])
+            end
+            frNum = frNum + 1
+         end
+      end
+
+      -- Check equivalence
+      if d1:size() ~= d2:size() then
+         verboseLog(string.format(
+          	  " ... DynVector in files %s and %s not the same size!\n", f1, f2))
+         return false
+      end
+      
+      local maxVal = math.max(maxValueInField(d1),maxValueInField(d2)) -- maximum value (for numeric comparison)
+      for i = 1, d1:size() do
+         if check_equal_numeric(d1[i], d2[i], maxVal) == false then
+            currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i], maxVal))
+            cmpPass = false
+         end
       end
    end
 

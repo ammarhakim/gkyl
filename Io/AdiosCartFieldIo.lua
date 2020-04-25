@@ -107,6 +107,10 @@ function AdiosCartFieldIo:init(tbl)
 	 end
       end
    end
+
+   self._initOnce = true
+   self._isFirst = true
+   self.grpIds = {}
 end
 
 -- Writes field to file.
@@ -167,59 +171,63 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeSkin)
    -- Resize buffer (only done if needed. Alloc handles this automatically).
    self._outBuff:expand(localRange:volume()*field:numComponents())
 
-   -- Setup ADIOS for IO.
-   Adios.init_noxml(comm)
-   --Adios.set_max_buffer_size(16) -- 16 MB chunks	 
+   -- Get group name based on fName with frame and suffix chopped off.
+   local grpNm = string.gsub(string.gsub(fName, "_(%d+).bp", ""), ".bp", "")
 
-   -- Setup group and set I/O method.
-   local grpId = Adios.declare_group("CartField", "", Adios.flag_no)
-   Adios.select_method(grpId, self._method, "", "")
-
-   -- Global attributes for Gkyl build.
-   Adios.define_attribute_byvalue(grpId, "changeset", "", Adios.string, 1, GKYL_GIT_CHANGESET)
-   Adios.define_attribute_byvalue(grpId, "builddate", "", Adios.string, 1, GKYL_BUILD_DATE)
-
-   -- Field attributes.
-   Adios.define_attribute_byvalue(grpId, "type", "", Adios.string, 1, field:grid():id())
-   local gridFullNm = GKYL_OUT_PREFIX .. "_grid.bp"
-   Adios.define_attribute_byvalue(grpId, "grid", "", Adios.string, 1, gridFullNm)
-   
-   local cells = new("int[?]", ndim)
-   for d = 1, ndim do cells[d-1] = globalRange:shape(d) end
-   Adios.define_attribute_byvalue(grpId, "numCells", "", Adios.integer, ndim, cells)
-
-   local lower = new("double[?]", ndim)
-   for d = 1, ndim do 
-      lower[d-1] = field:grid():lower(d) 
-      if _writeSkin then lower[d-1] = lower[d-1] - field:lowerGhost()*field:grid():dx(d) end
-   end
-   Adios.define_attribute_byvalue(grpId, "lowerBounds", "", Adios.double, ndim, lower)
-
-   local upper = new("double[?]", ndim)
-   for d = 1, ndim do 
-      upper[d-1] = field:grid():upper(d) 
-      if _writeSkin then upper[d-1] = upper[d-1] + field:upperGhost()*field:grid():dx(d) end
-   end
-   Adios.define_attribute_byvalue(grpId, "upperBounds", "", Adios.double, ndim, upper)
-
-   -- Write meta-data for this file.
-   for attrNm, v in pairs(self._metaData) do
-      if v.vType == "integer" then
-	 Adios.define_attribute_byvalue(grpId, attrNm, "", Adios.integer, 1, v.value)
-      elseif v.vType == "double" then
-	 Adios.define_attribute_byvalue(grpId, attrNm, "", Adios.double, 1, v.value)
-      elseif v.vType == "string" then
-	 Adios.define_attribute_byvalue(grpId, attrNm, "", Adios.string, 1, v.value)
+   -- Setup group and set I/O method. Only need to do once for each grpNm.
+   if not self.grpIds[grpNm] then
+      self.grpIds[grpNm] = Adios.declare_group(grpNm, "", Adios.flag_no)
+      --Adios.set_max_buffer_size(16)
+      Adios.select_method(self.grpIds[grpNm], self._method, "", "")
+      
+      -- Global attributes for Gkyl build.
+      Adios.define_attribute_byvalue(self.grpIds[grpNm], "changeset", "", Adios.string, 1, GKYL_GIT_CHANGESET)
+      Adios.define_attribute_byvalue(self.grpIds[grpNm], "builddate", "", Adios.string, 1, GKYL_BUILD_DATE)
+      
+      -- Field attributes.
+      Adios.define_attribute_byvalue(self.grpIds[grpNm], "type", "", Adios.string, 1, field:grid():id())
+      if self._metaData["grid"] == nil then   -- Otherwise it gets written below with other meta data.
+         local gridFullNm = GKYL_OUT_PREFIX .. "_grid.bp"
+         Adios.define_attribute_byvalue(self.grpIds[grpNm], "grid", "", Adios.string, 1, gridFullNm)
       end
+      
+      local cells = new("int[?]", ndim)
+      for d = 1, ndim do cells[d-1] = globalRange:shape(d) end
+      Adios.define_attribute_byvalue(self.grpIds[grpNm], "numCells", "", Adios.integer, ndim, cells)
+      
+      local lower = new("double[?]", ndim)
+      for d = 1, ndim do 
+         lower[d-1] = field:grid():lower(d) 
+         if _writeSkin then lower[d-1] = lower[d-1] - field:lowerGhost()*field:grid():dx(d) end
+      end
+      Adios.define_attribute_byvalue(self.grpIds[grpNm], "lowerBounds", "", Adios.double, ndim, lower)
+      
+      local upper = new("double[?]", ndim)
+      for d = 1, ndim do 
+         upper[d-1] = field:grid():upper(d) 
+         if _writeSkin then upper[d-1] = upper[d-1] + field:upperGhost()*field:grid():dx(d) end
+      end
+      Adios.define_attribute_byvalue(self.grpIds[grpNm], "upperBounds", "", Adios.double, ndim, upper)
+      
+      -- Write meta-data for this file.
+      for attrNm, v in pairs(self._metaData) do
+         if v.vType == "integer" then
+         Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.integer, 1, v.value)
+         elseif v.vType == "double" then
+         Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.double, 1, v.value)
+         elseif v.vType == "string" then
+         Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.string, 1, v.value)
+         end
+      end
+      
+      -- Define data to write.
+      Adios.define_var(
+         self.grpIds[grpNm], "frame", "", Adios.integer, "", "", "")
+      Adios.define_var(
+         self.grpIds[grpNm], "time", "", Adios.double, "", "", "")
+      Adios.define_var(
+         self.grpIds[grpNm], "CartGridField", "", self._elctIoType, adLocalSz, adGlobalSz, adOffset)
    end
-
-   -- Define data to write.
-   Adios.define_var(
-      grpId, "frame", "", Adios.integer, "", "", "")
-   Adios.define_var(
-      grpId, "time", "", Adios.double, "", "", "")
-   Adios.define_var(
-      grpId, "CartGridField", "", self._elctIoType, adLocalSz, adGlobalSz, adOffset)
 
    -- Copy field into output buffer (this copy is needed as
    -- field also contains ghost-cell data, and, in addition,
@@ -228,7 +236,7 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeSkin)
 
    local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- Concatenate prefix.
    -- Open file to write out group.
-   local fd = Adios.open("CartField", fullNm, "w", comm)
+   local fd = Adios.open(grpNm, fullNm, "w", comm)
 
    local tmStampBuff = new("double[1]"); tmStampBuff[0] = tmStamp
    Adios.write(fd, "time", tmStampBuff)
@@ -238,8 +246,6 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeSkin)
 
    Adios.write(fd, "CartGridField", self._outBuff:data())
    Adios.close(fd)
-   
-   Adios.finalize(rank)
 end
 
 -- Read field from file.
@@ -295,40 +301,61 @@ function AdiosCartFieldIo:read(field, fName, readSkin) --> time-stamp, frame-num
 
       local rank = Mpi.Comm_rank(comm)
 
-      -- Setup ADIOS for IO.
-      Adios.init_noxml(comm)
-      --Adios.set_max_buffer_size(16) -- 16 MB chunks.
+      -- Get group name based on fName with frame and suffix chopped off.
+      local grpNm = string.gsub(string.gsub(fName, "_(%d+).bp", ""), ".bp", "")
 
-      -- Setup group and set I/O method.
-      local grpId = Adios.declare_group("CartField", "", Adios.flag_no)
-      Adios.select_method(grpId, self._method, "", "")
-
-      -- Field attributes.
-      local cells = new("int[?]", ndim)
-      for d = 1, ndim do cells[d-1] = globalRange:shape(d) end
-      Adios.define_attribute_byvalue(grpId, "numCells", "", Adios.integer, ndim, cells)
-
-      local lower = new("double[?]", ndim)
-      for d = 1, ndim do 
-         lower[d-1] = field:grid():lower(d)
-         if _readSkin then lower[d-1] = lower[d-1] - field:lowerGhost()*field:grid():dx(d) end
+      -- Setup group and set I/O method. Only need to do once for each grpNm.
+      if not self.grpIds[grpNm] then
+         self.grpIds[grpNm] = Adios.declare_group(grpNm, "", Adios.flag_no)
+         --Adios.set_max_buffer_size(16)
+         Adios.select_method(self.grpIds[grpNm], self._method, "", "")
+         
+         -- Global attributes for Gkyl build.
+         Adios.define_attribute_byvalue(self.grpIds[grpNm], "changeset", "", Adios.string, 1, GKYL_GIT_CHANGESET)
+         Adios.define_attribute_byvalue(self.grpIds[grpNm], "builddate", "", Adios.string, 1, GKYL_BUILD_DATE)
+         
+         -- Field attributes.
+         Adios.define_attribute_byvalue(self.grpIds[grpNm], "type", "", Adios.string, 1, field:grid():id())
+         local gridFullNm = GKYL_OUT_PREFIX .. "_grid.bp"
+         Adios.define_attribute_byvalue(self.grpIds[grpNm], "grid", "", Adios.string, 1, gridFullNm)
+         
+         local cells = new("int[?]", ndim)
+         for d = 1, ndim do cells[d-1] = globalRange:shape(d) end
+         Adios.define_attribute_byvalue(self.grpIds[grpNm], "numCells", "", Adios.integer, ndim, cells)
+         
+         local lower = new("double[?]", ndim)
+         for d = 1, ndim do 
+            lower[d-1] = field:grid():lower(d) 
+            if _writeSkin then lower[d-1] = lower[d-1] - field:lowerGhost()*field:grid():dx(d) end
+         end
+         Adios.define_attribute_byvalue(self.grpIds[grpNm], "lowerBounds", "", Adios.double, ndim, lower)
+         
+         local upper = new("double[?]", ndim)
+         for d = 1, ndim do 
+            upper[d-1] = field:grid():upper(d) 
+            if _writeSkin then upper[d-1] = upper[d-1] + field:upperGhost()*field:grid():dx(d) end
+         end
+         Adios.define_attribute_byvalue(self.grpIds[grpNm], "upperBounds", "", Adios.double, ndim, upper)
+         
+         -- Write meta-data for this file.
+         for attrNm, v in pairs(self._metaData) do
+            if v.vType == "integer" then
+            Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.integer, 1, v.value)
+            elseif v.vType == "double" then
+            Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.double, 1, v.value)
+            elseif v.vType == "string" then
+            Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.string, 1, v.value)
+            end
+         end
+         
+         -- Define data to write.
+         Adios.define_var(
+            self.grpIds[grpNm], "frame", "", Adios.integer, "", "", "")
+         Adios.define_var(
+            self.grpIds[grpNm], "time", "", Adios.double, "", "", "")
+         Adios.define_var(
+            self.grpIds[grpNm], "CartGridField", "", self._elctIoType, adLocalSz, adGlobalSz, adOffset)
       end
-      Adios.define_attribute_byvalue(grpId, "lowerBounds", "", Adios.double, ndim, lower)
-
-      local upper = new("double[?]", ndim)
-      for d = 1, ndim do 
-         upper[d-1] = field:grid():upper(d) 
-         if _readSkin then upper[d-1] = upper[d-1] + field:upperGhost()*field:grid():dx(d) end
-      end
-      Adios.define_attribute_byvalue(grpId, "upperBounds", "", Adios.double, ndim, upper)
-
-      -- Define data to read.
-      Adios.define_var(
-	 grpId, "frame", "", Adios.integer, "", "", "")
-      Adios.define_var(
-	 grpId, "time", "", Adios.double, "", "", "")
-      Adios.define_var(
-	 grpId, "CartGridField", "", self._elctIoType, adLocalSz, adGlobalSz, adOffset)
 
       local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- Concatenate prefix.
       -- Open file to read data.
@@ -358,9 +385,6 @@ function AdiosCartFieldIo:read(field, fName, readSkin) --> time-stamp, frame-num
 
       -- Copy output buffer into field.
       field:_copy_to_field_region(localRange, self._outBuff)
-
-      Adios.finalize(rank)
-
    end
    -- If running with shared memory, need to broadcast time stamp and frame number.
    Mpi.Bcast(tmStampBuff, 1, Mpi.DOUBLE, 0, shmComm)

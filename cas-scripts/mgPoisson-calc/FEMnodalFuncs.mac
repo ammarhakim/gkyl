@@ -1,0 +1,141 @@
+/* A collection of functions to manipulate nodal data/functions
+   in FEM solvers. */
+
+deleteNodes(nodesIn,coordsIn,allTrueIn) := block([numNodes,dimCheck,remNodes,removeNode],
+  /* Given a list of nodes (nodesIn), delete the nodes that have the all
+     coordinates given by coordsIn (allTrueIn=true), or those that have
+     at least one coordinate equal to those in nodesIn (allTrueIn=false). */
+  numNodes : length(nodesIn), 
+  dimCheck : length(coordsIn),
+  remNodes : copylist(nodesIn),
+  for i : 1 thru numNodes do (
+    if allTrueIn then ( removeNode : true ) else ( removeNode : false ),
+    for j : 1 thru dimCheck do (
+      if allTrueIn then (
+        if (nodesIn[i][coordsIn[j][1]]=coordsIn[j][2]) then (
+          removeNode : removeNode and true
+        ) else (
+          removeNode : removeNode and false
+        )
+      ) else (
+        if (nodesIn[i][coordsIn[j][1]]=coordsIn[j][2]) then (
+          removeNode : true
+        )
+      )
+    ),
+    if removeNode then ( remNodes : delete(nodesIn[i],remNodes) )
+  ),
+  return(remNodes)
+)$
+
+getStoredNodes(nodesIn,cellLoc) := block([numNodes,dim,storedNodes],
+  /* Given the nodes abutting a cell, return a list of the nodes
+     which this cell actually stores in memory. */
+  numNodes    : length(nodesIn),
+  dim         : length(nodesIn[1]),
+  storedNodes : copylist(nodesIn),
+  for i : 1 thru numNodes do (
+    removeNode : false,
+    for d : 1 thru dim do (
+      if (nodesIn[i][d]=1) and (cellLoc[d]<1) then ( removeNode : true )
+    ),
+    if removeNode then ( storedNodes : delete(nodesIn[i],storedNodes) )
+  ),
+  return(storedNodes)
+)$
+
+getStoredNodesStencil(nodesIn,cellLoc) := block([storedNodes,dim,numStoredNodes,neighStoredNodes],
+  /* Produce a list of the nodes saved in each neighboring cell.
+     Each entry in neighStoredNodes is a 2 element list. The first element
+     is a list that identifies the cell, the second is a list of nodes with
+     coordinates on the [-3,3] extended logical space. */
+
+  storedNodes : getStoredNodes(nodesIn,cellLoc),
+  dim         : length(storedNodes[1]),
+
+  neighStoredNodes : [[makelist(0,i,1,dim), storedNodes]],
+  for dI: 1 thru dim do (
+    numStoredNodes : length(neighStoredNodes),
+    for pS : 1 thru numStoredNodes do (
+      newNodes : copylist(neighStoredNodes[pS][2]),
+      if (cellLoc[dI] > -1) then (
+        /* Add the nearest lower cell in dI direction. */
+        if (cellLoc[dI] = 1) then (
+          /* Upper boundary cell has some extra nodes we need to remove. */
+          tmp : copylist(newNodes),
+          for i : 1 thru length(tmp) do (
+            if (tmp[i][dI]=1) then ( newNodes : delete(tmp[i],newNodes) )
+          )
+        ),
+        for i : 1 thru length(newNodes) do ( newNodes[i][dI] : newNodes[i][dI]-2 ),
+        loc     : copylist(neighStoredNodes[pS][1]),
+        loc[dI] : -1,
+        neighStoredNodes : endcons([loc,newNodes],neighStoredNodes)
+      ),
+      if (cellLoc[dI] < 1) then (
+        /* Add the nearest upper cell in dI direction. */
+        newNodes      : copylist(neighStoredNodes[pS][2]),
+        for i : 1 thru length(newNodes) do ( newNodes[i][dI] : newNodes[i][dI]+2 ),
+        loc            : copylist(neighStoredNodes[pS][1]),
+        loc[dI]        : 1,
+        neighStoredNodes : endcons([loc,newNodes],neighStoredNodes)
+      )
+    )
+  ),
+  return(neighStoredNodes)
+)$
+
+getNodeIndices(nodeSubsetIn,nodesIn) := block([nodeIdxs,idx],
+  /* Return the indices of a set of nodes (nodeSubsetIn) within the nodesIn list. */
+  nodeIdxs : [],
+  for k : 1 thru length(nodeSubsetIn) do (
+    idx      : sublist_indices(nodesIn,lambda([x],x=nodeSubsetIn[k]))[1],
+    nodeIdxs : append(nodeIdxs,[idx])
+  ),
+  return(nodeIdxs)
+)$
+
+getBasisMap(nodesIn,storedNodesIn,cellLoc,cellBCs) := block([numStoredNodes,dim,prevToNodes,prevFromNodes,prevMap,toNodes,fromNodes,basisMap],
+  /* Map the contribution of each basis function in 2^dim cells to a weak
+     equation.
+     basisMap is a list with an element for each cell abutting the
+     lower left node. Each of these elements is itself a list of two
+     indices, the first indicating which node contributes from that cell,
+     and the second indicating to which node in the first cell it
+     contributes. */
+  numStoredNodes : length(storedNodesIn),
+  dim            : length(nodesIn[1]), 
+
+  basisMap : [[]],
+  for k : 1 thru numStoredNodes do (
+    idx         : sublist_indices(nodesIn,lambda([x],x=storedNodesIn[k]))[1],
+    basisMap[1] : endcons([idx,idx],basisMap[1])
+  ),
+  prevToNodes   : [storedNodesIn],
+  prevFromNodes : [storedNodesIn],
+  for dI : 1 thru dim do (
+    numBasisMap : length(basisMap),
+    for pS : 1 thru numBasisMap do (
+      /* Each pS iteration is a step to the nearest lower cell. */
+      if (cellLoc[dI]>-1) or (cellBCs[dI]=0) then (
+        /* Discard nodes from this cell that don't contribute. */
+        toNodes   : copylist(sublist(prevToNodes[pS], lambda([x],x[dI]=-1))),
+        fromNodes : copylist(sublist(prevFromNodes[pS], lambda([x],x[dI]=-1))),
+
+        for j : 1 thru length(fromNodes) do ( fromNodes[j][dI] : (-1)*fromNodes[j][dI] ),
+
+        prevToNodes   : endcons(toNodes,prevToNodes),
+        prevFromNodes : endcons(fromNodes,prevFromNodes),
+
+        newNodeMap : [],
+        for k : 1 thru length(toNodes) do (
+          toIdx      : sublist_indices(nodes,lambda([x],x=toNodes[k]))[1],
+          fromIdx    : sublist_indices(nodes,lambda([x],x=fromNodes[k]))[1],
+          newNodeMap : endcons([fromIdx,toIdx],newNodeMap)
+        ),
+        basisMap : endcons(newNodeMap,basisMap)
+      )
+    )
+  ),
+  return(basisMap)
+)$

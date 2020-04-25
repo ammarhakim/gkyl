@@ -101,6 +101,7 @@ function KineticSpecies:fullInit(appTbl)
 
    self.distIoFrame = 0 -- Frame number for distribution function.
    self.diagIoFrame = 0 -- Frame number for diagnostics.
+   self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
 
    self.writeSkin = xsys.pickBool(appTbl.writeSkin, false)
 
@@ -371,6 +372,7 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts,
       end
       GridConstructor = Grid.NonUniformRectCart
    end
+
    self.grid = GridConstructor {
       lower         = lower,
       upper         = upper,
@@ -389,6 +391,18 @@ function KineticSpecies:createBasis(nm, polyOrder)
    self.basis = createBasis(nm, self.ndim, polyOrder)
    for _, c in pairs(self.collisions) do
       c:setPhaseBasis(self.basis)
+   end
+
+   -- Output of grid file is placed here because as the file name is associated
+   -- with a species, we wish to save the basisID and polyOrder in it. But these
+   -- can only be extracted from self.basis after this is created.
+   if self.coordinateMap then
+      local metaData = {
+         polyOrder = self.basis:polyOrder(),
+         basisType = self.basis:id(),
+         grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
+      }
+      self.grid:write("grid_" .. self.name .. ".bp", 0.0, metaData)
    end
 end
 
@@ -522,12 +536,13 @@ function KineticSpecies:alloc(nRkDup)
 
    -- Create Adios object for field I/O.
    self.distIo = AdiosCartFieldIo {
-      elemType   = self.distf[1]:elemType(),
-      method     = self.ioMethod,
+      elemType  = self.distf[1]:elemType(),
+      method    = self.ioMethod,
       writeSkin = self.writeSkin,
-      metaData = {
+      metaData  = {
 	 polyOrder = self.basis:polyOrder(),
-	 basisType = self.basis:id()
+	 basisType = self.basis:id(),
+         grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
       },
    }
 
@@ -983,11 +998,14 @@ function KineticSpecies:writeRestart(tm)
 	 string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
    end   
 
+   -- Write restart files for integrated moments. Note: these are only needed for the rare case that the
+   -- restart write frequency is higher than the normal write frequency from nFrame.
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
       -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
       self.diagnosticIntegratedMomentFields[mom]:write(
-         string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false, false)
+         string.format("%s_%s_restart.bp", self.name, mom), tm, self.dynVecRestartFrame, false, false)
    end
+   self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
 function KineticSpecies:readRestart()
@@ -1005,9 +1023,8 @@ function KineticSpecies:readRestart()
    end 
    
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-      local _, dfr = self.diagnosticIntegratedMomentFields[mom]:read(
+      self.diagnosticIntegratedMomentFields[mom]:read(
          string.format("%s_%s_restart.bp", self.name, mom))
-      self.diagIoFrame = dfr -- Reset internal diagnostic IO frame counter.
    end
 
    for i, mom in ipairs(self.diagnosticMoments) do

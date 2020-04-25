@@ -5,13 +5,9 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local GaussQuadRules = require "Lib.GaussQuadRules"
-local LinearDecomp   = require "Lib.LinearDecomp"
-local Lin            = require "Lib.Linalg"
-local Proto          = require "Proto"
-local Range          = require "Lib.Range"
-local Time           = require "Lib.Time"
-local UpdaterBase    = require "Updater.Base"
+local LinearDecomp = require "Lib.LinearDecomp"
+local Proto        = require "Proto"
+local UpdaterBase  = require "Updater.Base"
 
 -- System libraries.
 local xsys = require "xsys"
@@ -35,7 +31,7 @@ function BgkCollisions:init(tbl)
    local varNuIn       = tbl.varyingNu           -- Specify if collisionality varies spatially.
    local cellConstNuIn = tbl.useCellAverageNu    -- Specify whether to use cell-wise constant collisionality.
 
-  -- Dimension of phase space.
+   -- Dimension of phase space.
    self._pDim = self._phaseBasis:ndim()
 
    -- The default is spatially constant collisionality.
@@ -55,7 +51,7 @@ function BgkCollisions:init(tbl)
       self._nuPtr, self._nuIdxr = nil, nil
    end
 
-   local numConfDims   = self._confBasis:ndim()
+   local numConfDims = self._confBasis:ndim()
    -- To obtain the cell average, multiply the zeroth coefficient by this factor.
    self._cellAvFac = 1.0/(math.sqrt(2.0^numConfDims))
 end
@@ -63,9 +59,9 @@ end
 ----------------------------------------------------------------------
 -- Updater Advance ---------------------------------------------------
 function BgkCollisions:_advance(tCurr, inFld, outFld)
-   local grid = self._phaseGrid
+   local grid          = self._phaseGrid
    local numPhaseBasis = self._phaseBasis:numBasis()
-   local pDim = self._pDim
+   local pDim          = self._pDim
    -- Get the inputs and outputs.
    local fIn           = assert(inFld[1],
       "BgkCollisions.advance: Must specify an input distribution function field as input[1]")
@@ -92,14 +88,14 @@ function BgkCollisions:_advance(tCurr, inFld, outFld)
    end
 
    local fRhsOutItr   = fRhsOut:get(1)
-   local phaseRange = fRhsOut:localRange()
+   local phaseRange   = fRhsOut:localRange()
    -- Get the range to loop over the domain.
    local phaseIndexer = fRhsOut:genIndexer()
 
    -- Get the interface for setting global CFL frequencies
-   local cflRateByCell = self._cflRateByCell
+   local cflRateByCell     = self._cflRateByCell
    local cflRateByCellIdxr = cflRateByCell:genIndexer()
-   local cflRateByCellPtr = cflRateByCell:get(1)
+   local cflRateByCellPtr  = cflRateByCell:get(1)
 
    -- Construct range for shared memory.
    local phaseRangeDecomp = LinearDecomp.LinearDecompRange {

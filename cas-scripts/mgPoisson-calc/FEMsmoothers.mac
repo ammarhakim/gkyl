@@ -98,14 +98,6 @@ calcGaussSeidelOp(fh, funcNm, dim, basisFun, pMax) := block([],
 
     numCellNodes : 1+(polyOrder-1)*dim, /* Number of nodes stored per cell. */
 
-    /* We need two mappings. Consider the inner product:
-         < varphi_r * sum_i (rho_i*varphi_i) >
-       The first mapping indicates which contribution by the inner product with the basis
-       function varphi_k^{(i)} local to the i-th cell should be used to increment the
-       stencil entry corresponding to varphi_r (basisMap).
-       The second mapping says, for a given cell, where each rho_i coefficient
-       comes from (dataMap). */
-
     /* We can build the stencil by mapping a single inner product to that
        of 2^dim cells. Need to map the contribution of each basis function.
        basisMap is a list with an element for each cell abutting the lower left node.

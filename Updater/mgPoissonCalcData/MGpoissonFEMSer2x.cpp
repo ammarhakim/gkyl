@@ -1,5 +1,31 @@
 #include <MGpoissonModDecl.h> 
  
+void MGpoissonFEMProlong2xSer_P1(const double *fldC, double **fldF) 
+{ 
+  // fldC: coarse-grid field.
+  // fldF: fine-grid field in cells pointed to by the stencil.
+
+  double *fldF0 = fldF[0];
+  double *fldF1 = fldF[1];
+  double *fldF2 = fldF[2];
+  double *fldF4 = fldF[4];
+  double *fldF5 = fldF[5];
+  double *fldF7 = fldF[7];
+  double *fldF8 = fldF[8];
+  double *fldF10 = fldF[10];
+  double *fldF11 = fldF[11];
+
+  fldF0[0] += 0.25*fldC[0]; 
+  fldF1[0] += 0.5*fldC[0]; 
+  fldF4[0] += 0.5*fldC[0]; 
+  fldF7[0] += fldC[0]; 
+  fldF10[0] += 0.5*fldC[0]; 
+  fldF2[0] += 0.25*fldC[0]; 
+  fldF5[0] += 0.25*fldC[0]; 
+  fldF8[0] += 0.5*fldC[0]; 
+  fldF11[0] += 0.25*fldC[0]; 
+}
+
 void MGpoissonFEM_DGtoFEM_2xSer_P1(const double *dgFld, double **femOut) 
 { 
   // dgFld:  DG (modal) field coefficients.
