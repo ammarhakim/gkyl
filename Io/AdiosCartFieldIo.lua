@@ -186,8 +186,10 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeSkin)
       
       -- Field attributes.
       Adios.define_attribute_byvalue(self.grpIds[grpNm], "type", "", Adios.string, 1, field:grid():id())
-      local gridFullNm = GKYL_OUT_PREFIX .. "_grid.bp"
-      Adios.define_attribute_byvalue(self.grpIds[grpNm], "grid", "", Adios.string, 1, gridFullNm)
+      if self._metaData["grid"] == nil then   -- Otherwise it gets written below with other meta data.
+         local gridFullNm = GKYL_OUT_PREFIX .. "_grid.bp"
+         Adios.define_attribute_byvalue(self.grpIds[grpNm], "grid", "", Adios.string, 1, gridFullNm)
+      end
       
       local cells = new("int[?]", ndim)
       for d = 1, ndim do cells[d-1] = globalRange:shape(d) end

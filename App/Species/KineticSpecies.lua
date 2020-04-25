@@ -398,7 +398,12 @@ function KineticSpecies:createBasis(nm, polyOrder)
    -- with a species, we wish to save the basisID and polyOrder in it. But these
    -- can only be extracted from self.basis after this is created.
    if self.coordinateMap then
-      self.grid:write("grid_" .. self.name .. ".bp", {metaData = {polyOrder = self.basis:polyOrder(), basisType = self.basis:id()}} )
+      local metaData = {
+         polyOrder = self.basis:polyOrder(),
+         basisType = self.basis:id(),
+         grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
+      }
+      self.grid:write("grid_" .. self.name .. ".bp", 0.0, metaData)
    end
 end
 
@@ -532,12 +537,13 @@ function KineticSpecies:alloc(nRkDup)
 
    -- Create Adios object for field I/O.
    self.distIo = AdiosCartFieldIo {
-      elemType   = self.distf[1]:elemType(),
-      method     = self.ioMethod,
+      elemType  = self.distf[1]:elemType(),
+      method    = self.ioMethod,
       writeSkin = self.writeSkin,
-      metaData = {
+      metaData  = {
 	 polyOrder = self.basis:polyOrder(),
-	 basisType = self.basis:id()
+	 basisType = self.basis:id(),
+         grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
       },
    }
 

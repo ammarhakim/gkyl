@@ -111,9 +111,8 @@ function NonUniformRectCart:cellVolume()
    return v
 end
 
-function NonUniformRectCart:write(fName, metaAttr)
-   -- Write a file containing the grid. We can also pass metaData or
-   -- attributes we would like to store in the grid file with the table metaAttr.
+function NonUniformRectCart:write(fName, tmStamp, metaData)
+   -- Write a file containing the grid node coordinates. 
 
    -- Create a grid over nodes and a field to store nodal coordinates.
    local cells, lower, upper, dx = {}, {}, {}, {}
@@ -131,12 +130,10 @@ function NonUniformRectCart:write(fName, metaAttr)
       upper = upper,
       cells = cells,
    }
-   local metaDataIn = nil
-   if metaAttr['metaData'] then metaDataIn = metaAttr['metaData'] end
    local nodalCoords = DataStruct.Field {
       onGrid        = grid,
       numComponents = self:ndim(),
-      metaData      = metaDataIn
+      metaData      = metaData
    }
 
    local xnc, xnp = Lin.Vec(self:ndim()), Lin.Vec(self:ndim())
@@ -151,7 +148,8 @@ function NonUniformRectCart:write(fName, metaAttr)
          nitr[d] = nodeCoords[idx[d]]
       end
    end
-   nodalCoords:write(fName)
+
+   nodalCoords:write(fName, tmStamp)
 end
 
 return NonUniformRectCart
