@@ -96,7 +96,7 @@ end
 function NonUniformRectCart:cellLowerInDir(dir)
    return self:cellCenterInDir(dir)-0.5*self:dx(dir)
 end
-function NonUniformRectCart:cellUpperInDir(d)
+function NonUniformRectCart:cellUpperInDir(dir)
    return self:cellCenterInDir(dir)+0.5*self:dx(dir)
 end
 function NonUniformRectCart:cellCenter(xc)
