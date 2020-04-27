@@ -52,7 +52,7 @@ sintheta = 2.4/Lz
 -- Source parameters.
 P_SOL = 3.4e6 -- [W], total SOL power, from experimental heating power
 P_src = P_SOL*Ly*Lz/(2*math.pi*Rc*Lpol) -- [W], fraction of total SOL power into flux tube
-xSource = R -- [m], source start coordinate
+xSource = Rc -- [m], source start coordinate
 lambdaSource = 0.005 -- [m], characteristic length scale of density and temperature
 
 -- Source profiles.
