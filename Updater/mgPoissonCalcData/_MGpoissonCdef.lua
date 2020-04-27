@@ -32,6 +32,13 @@ void MGpoissonFEMDampedGaussSeidel1xSer_P1(const double omega, double **dx, cons
 void MGpoissonFEMDampedGaussSeidel1xSer_LxRobin_P1(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi);
 void MGpoissonFEMDampedGaussSeidel1xSer_UxRobin_P1(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi);
 
+void MGpoissonFEMProlong1xSer_P1(const double *fldC, double **fldF);
+void MGpoissonFEMProlong1xSer_LxRobin_P1(const double *fldC, double **fldF);
+void MGpoissonFEMProlong1xSer_UxRobin_P1(const double *fldC, double **fldF);
+void MGpoissonFEMRestrict1xSer_P1(double **fldF, double *fldC);
+void MGpoissonFEMRestrict1xSer_LxRobin_P1(double **fldF, double *fldC);
+void MGpoissonFEMRestrict1xSer_UxRobin_P1(double **fldF, double *fldC);
+
 void MGpoissonDGProlong2xSer_P1(const double *fldC, double **fldF);
 void MGpoissonDGRestrict2xSer_P1(double **fldF, double *fldC);
 
@@ -84,6 +91,25 @@ void MGpoissonFEMDampedGaussSeidel2xSer_LxRobinUyRobin_P1(const double omega, do
 void MGpoissonFEMDampedGaussSeidel2xSer_UxRobinLyRobin_P1(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi);
 void MGpoissonFEMDampedGaussSeidel2xSer_UxRobinUyRobin_P1(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi);
 
+void MGpoissonFEMProlong2xSer_P1(const double *fldC, double **fldF);
+void MGpoissonFEMProlong2xSer_LxRobin_P1(const double *fldC, double **fldF);
+void MGpoissonFEMProlong2xSer_UxRobin_P1(const double *fldC, double **fldF);
+void MGpoissonFEMProlong2xSer_LyRobin_P1(const double *fldC, double **fldF);
+void MGpoissonFEMProlong2xSer_UyRobin_P1(const double *fldC, double **fldF);
+void MGpoissonFEMProlong2xSer_LxRobinLyRobin_P1(const double *fldC, double **fldF);
+void MGpoissonFEMProlong2xSer_LxRobinUyRobin_P1(const double *fldC, double **fldF);
+void MGpoissonFEMProlong2xSer_UxRobinLyRobin_P1(const double *fldC, double **fldF);
+void MGpoissonFEMProlong2xSer_UxRobinUyRobin_P1(const double *fldC, double **fldF);
+void MGpoissonFEMRestrict2xSer_P1(double **fldF, double *fldC);
+void MGpoissonFEMRestrict2xSer_LxRobin_P1(double **fldF, double *fldC);
+void MGpoissonFEMRestrict2xSer_UxRobin_P1(double **fldF, double *fldC);
+void MGpoissonFEMRestrict2xSer_LyRobin_P1(double **fldF, double *fldC);
+void MGpoissonFEMRestrict2xSer_UyRobin_P1(double **fldF, double *fldC);
+void MGpoissonFEMRestrict2xSer_LxRobinLyRobin_P1(double **fldF, double *fldC);
+void MGpoissonFEMRestrict2xSer_LxRobinUyRobin_P1(double **fldF, double *fldC);
+void MGpoissonFEMRestrict2xSer_UxRobinLyRobin_P1(double **fldF, double *fldC);
+void MGpoissonFEMRestrict2xSer_UxRobinUyRobin_P1(double **fldF, double *fldC);
+
 
 void MGpoissonDGProlong1xSer_P2(const double *fldC, double **fldF);
 void MGpoissonDGRestrict1xSer_P2(double **fldF, double *fldC);
@@ -106,6 +132,13 @@ void MGpoissonFEM_DGtoFEM_1xSer_Ux_P2(const double *dgFld, double **femOut);
 void MGpoissonFEMDampedGaussSeidel1xSer_P2(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi);
 void MGpoissonFEMDampedGaussSeidel1xSer_LxRobin_P2(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi);
 void MGpoissonFEMDampedGaussSeidel1xSer_UxRobin_P2(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi);
+
+void MGpoissonFEMProlong1xSer_P2(const double *fldC, double **fldF);
+void MGpoissonFEMProlong1xSer_LxRobin_P2(const double *fldC, double **fldF);
+void MGpoissonFEMProlong1xSer_UxRobin_P2(const double *fldC, double **fldF);
+void MGpoissonFEMRestrict1xSer_P2(double **fldF, double *fldC);
+void MGpoissonFEMRestrict1xSer_LxRobin_P2(double **fldF, double *fldC);
+void MGpoissonFEMRestrict1xSer_UxRobin_P2(double **fldF, double *fldC);
 
 void MGpoissonDGProlong2xSer_P2(const double *fldC, double **fldF);
 void MGpoissonDGRestrict2xSer_P2(double **fldF, double *fldC);
@@ -158,5 +191,24 @@ void MGpoissonFEMDampedGaussSeidel2xSer_LxRobinLyRobin_P2(const double omega, do
 void MGpoissonFEMDampedGaussSeidel2xSer_LxRobinUyRobin_P2(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi);
 void MGpoissonFEMDampedGaussSeidel2xSer_UxRobinLyRobin_P2(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi);
 void MGpoissonFEMDampedGaussSeidel2xSer_UxRobinUyRobin_P2(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi);
+
+void MGpoissonFEMProlong2xSer_P2(const double *fldC, double **fldF);
+void MGpoissonFEMProlong2xSer_LxRobin_P2(const double *fldC, double **fldF);
+void MGpoissonFEMProlong2xSer_UxRobin_P2(const double *fldC, double **fldF);
+void MGpoissonFEMProlong2xSer_LyRobin_P2(const double *fldC, double **fldF);
+void MGpoissonFEMProlong2xSer_UyRobin_P2(const double *fldC, double **fldF);
+void MGpoissonFEMProlong2xSer_LxRobinLyRobin_P2(const double *fldC, double **fldF);
+void MGpoissonFEMProlong2xSer_LxRobinUyRobin_P2(const double *fldC, double **fldF);
+void MGpoissonFEMProlong2xSer_UxRobinLyRobin_P2(const double *fldC, double **fldF);
+void MGpoissonFEMProlong2xSer_UxRobinUyRobin_P2(const double *fldC, double **fldF);
+void MGpoissonFEMRestrict2xSer_P2(double **fldF, double *fldC);
+void MGpoissonFEMRestrict2xSer_LxRobin_P2(double **fldF, double *fldC);
+void MGpoissonFEMRestrict2xSer_UxRobin_P2(double **fldF, double *fldC);
+void MGpoissonFEMRestrict2xSer_LyRobin_P2(double **fldF, double *fldC);
+void MGpoissonFEMRestrict2xSer_UyRobin_P2(double **fldF, double *fldC);
+void MGpoissonFEMRestrict2xSer_LxRobinLyRobin_P2(double **fldF, double *fldC);
+void MGpoissonFEMRestrict2xSer_LxRobinUyRobin_P2(double **fldF, double *fldC);
+void MGpoissonFEMRestrict2xSer_UxRobinLyRobin_P2(double **fldF, double *fldC);
+void MGpoissonFEMRestrict2xSer_UxRobinUyRobin_P2(double **fldF, double *fldC);
 
 ]]

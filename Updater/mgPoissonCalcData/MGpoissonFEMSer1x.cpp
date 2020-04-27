@@ -14,6 +14,33 @@ void MGpoissonFEMProlong1xSer_P1(const double *fldC, double **fldF)
   fldF2[0] += 0.5*fldC[0]; 
 }
 
+void MGpoissonFEMProlong1xSer_LxRobin_P1(const double *fldC, double **fldF) 
+{ 
+  // fldC: coarse-grid field.
+  // fldF: fine-grid field in cells pointed to by the stencil.
+
+  double *fldF0 = fldF[0];
+  double *fldF1 = fldF[1];
+
+  fldF0[0] += 0.5*fldC[0]; 
+  fldF1[0] += fldC[0]; 
+}
+
+void MGpoissonFEMProlong1xSer_UxRobin_P1(const double *fldC, double **fldF) 
+{ 
+  // fldC: coarse-grid field.
+  // fldF: fine-grid field in cells pointed to by the stencil.
+
+  double *fldF0 = fldF[0];
+  double *fldF1 = fldF[1];
+  double *fldF2 = fldF[2];
+
+  fldF0[0] += 0.5*fldC[1]+0.5*fldC[0]; 
+  fldF1[0] += fldC[0]; 
+  fldF0[1] += fldC[1]; 
+  fldF2[0] += 0.5*fldC[0]; 
+}
+
 void MGpoissonFEM_DGtoFEM_1xSer_P1(const double *dgFld, double **femOut) 
 { 
   // dgFld:  DG (modal) field coefficients.

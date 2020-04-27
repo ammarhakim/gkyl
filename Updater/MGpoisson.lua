@@ -338,18 +338,19 @@ function MGpoisson:init(tbl)
    if self.isDG then
 -- temporary if-statement.
       -- Select restriction and prolongation operator kernels.
-      self._restriction  = MGpoissonDecl.selectRestriction(solverType, basisID, self.dim, polyOrder)
-      self._prolongation = MGpoissonDecl.selectProlongation(solverType, basisID, self.dim, polyOrder)
+      self._restriction  = MGpoissonDecl.selectRestriction(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
+      self._prolongation = MGpoissonDecl.selectProlongation(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
       -- Select kernels for relaxation and computing the residue.
       self._relaxation   = MGpoissonDecl.selectRelaxation(solverType, basisID, self.dim, polyOrder, relaxKind, bcTypes)
       self._calcResidue  = MGpoissonDecl.selectResidueCalc(solverType, basisID, self.dim, polyOrder, bcTypes)
    elseif self.isFEM then
-      self._relaxation   = MGpoissonDecl.selectRelaxation(solverType, basisID, self.dim, polyOrder, relaxKind, bcTypes)
-      self._prolongation = MGpoissonDecl.selectProlongation(solverType, basisID, self.dim, polyOrder)
+      self._relaxation   = MGpoissonDecl.selectRelaxation(solverType, basisID, self.dim, polyOrder, relaxKind, bcTypes, self.isDG)
+      self._prolongation = MGpoissonDecl.selectProlongation(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
    end
 
    -- Intergrid operator stencils: 
    self.igOpStencilWidth = 2
+   if self.isFEM then self.igOpStencilWidth = 4 end
    self.igOpStencilSize  = self.igOpStencilWidth^self.dim
    -- Array of fine grid indexes of cells needed in inter-grid transfer.
    self.fineGridIdx = {}
@@ -611,7 +612,7 @@ function MGpoisson:restrict(fFld,cFld)
          self.fineFldItr[i] = fFldItr:data()
       end
   
-      self._restriction(self.fineFldItr:data(), cFldItr:data())
+      self._restriction[1](self.fineFldItr:data(), cFldItr:data())
    end
 end
 
@@ -877,7 +878,7 @@ function MGpoisson:prolongDG(cFld,fFld)
             self.fineFldItr[i] = fFldItr:data()
          end
   
-         self._prolongation(cFldItr:data(), self.fineFldItr:data())
+         self._prolongation[1](cFldItr:data(), self.fineFldItr:data())
       end
    end
 end
@@ -885,7 +886,9 @@ end
 function MGpoisson:prolongFEM(cFld,fFld)
    -- FEM prolongation of a coarse-grid field (cFld) to a fine-grid field (fFld). 
 
-   local grid = cFld:grid() 
+   local grid   = cFld:grid() 
+   local cellsN = {}
+   for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
 
    localRangeDecomp  = LinearDecomp.LinearDecompRange {
       range = cFld:localRange(), numSplit = grid:numSharedProcs() }
@@ -894,6 +897,7 @@ function MGpoisson:prolongFEM(cFld,fFld)
    local cFldIndexer = cFld:genIndexer()
    local cFldItr     = cFld:get(1)
 
+   fFld:clear(0.0)
    local fFldIndexer = fFld:genIndexer()
    local fFldItr     = fFld:get(1)
 
@@ -903,30 +907,29 @@ function MGpoisson:prolongFEM(cFld,fFld)
 
       -- Array of indexes to fine-grid cells this coarse-grid cell contributes to.
       for d = 1, self.dim do self.fineGridIdx[1][d] = 2*cIdx[d] end
-      local parIdx     = 1
       local fCellCount = 1
       for dir = 1, self.dim do
-         for rI = 1, self.igOpStencilWidth^(dir-1) do
+         local prevAdded = fCellCount
+         for rI = 1, prevAdded do
             for k = 1, (self.igOpStencilWidth-1) do
-               local newIdxInDir = self.fineGridIdx[parIdx][dir]-k
+               local newIdxInDir = self.fineGridIdx[rI][dir]-k
                if newIdxInDir<1 then break end
                fCellCount = fCellCount + 1
-               for d = 1, self.dim do self.fineGridIdx[fCellCount][d] = self.fineGridIdx[parIdx][d] end
+               for d = 1, self.dim do self.fineGridIdx[fCellCount][d] = self.fineGridIdx[rI][d] end
                self.fineGridIdx[fCellCount][dir] = newIdxInDir
             end
-            parIdx = parIdx + self.igOpStencilWidth-1
          end
       end
 
       cFld:fill(cFldIndexer(cIdx), cFldItr)   -- Coarse field pointer.
   
       -- Array of pointers to fine-grid field data by stencil. 
-      for i = 1, self.igOpStencilSize do
+      for i = 1, fCellCount do
          fFld:fill(fFldIndexer(self.fineGridIdx[i]), fFldItr)
          self.fineFldItr[i] = fFldItr:data()
       end
   
-      self._prolongation(cFldItr:data(), self.fineFldItr:data())
+      self._prolongation[self:idxToStencil(cIdx,cellsN)](cFldItr:data(), self.fineFldItr:data())
    end
 end
 

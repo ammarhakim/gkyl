@@ -189,6 +189,13 @@ for bInd : 1 thru length(bName) do (
       printf(fh, "void MGpoissonFEMDampedGaussSeidel~ax~a_P~a(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
       /* Boundary smoothers. */
       findBoundaryStrCombo(fh, "MGpoissonFEMDampedGaussSeidel", "const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi", bName[bInd], ci),
+      printf(fh, "~%"),
+
+      /* Prolongation and restriction operators. */
+      printf(fh, "void MGpoissonFEMProlong~ax~a_P~a(const double *fldC, double **fldF);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonFEMProlong", "const double *fldC, double **fldF", bName[bInd], ci),
+      printf(fh, "void MGpoissonFEMRestrict~ax~a_P~a(double **fldF, double *fldC);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonFEMRestrict", "double **fldF, double *fldC", bName[bInd], ci),
       printf(fh, "~%")
 
     ),
