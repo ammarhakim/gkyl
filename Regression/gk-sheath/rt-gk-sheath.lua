@@ -22,9 +22,9 @@ n0           = 7e18  -- [1/m^3]
 B_axis       = 0.5   -- [T]
 R0           = 0.85  -- [m]
 a0           = 0.15   -- [m]
-R            = R0 + a0
-B0           = B_axis*(R0/R) -- [T]
-Lpol           = 2.4 -- [m]
+Rc           = R0 + a0
+B0           = B_axis*(R0/Rc) -- [T]
+Lpol         = 2.4 -- [m]
 
 -- Parameters for collisions.
 nuFrac = 0.1
@@ -51,7 +51,7 @@ sintheta = 2.4/Lz
 
 -- Source parameters.
 P_SOL = 3.4e6 -- [W], total SOL power, from experimental heating power
-P_src = P_SOL*Ly*Lz/(2*math.pi*R*Lpol) -- [W], fraction of total SOL power into flux tube
+P_src = P_SOL*Ly*Lz/(2*math.pi*Rc*Lpol) -- [W], fraction of total SOL power into flux tube
 xSource = R -- [m], source start coordinate
 lambdaSource = 0.005 -- [m], characteristic length scale of density and temperature
 
