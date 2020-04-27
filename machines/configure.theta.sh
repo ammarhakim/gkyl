@@ -12,7 +12,7 @@ OUT=build
 PREFIX=$HOME/gkylsoft/gkyl
 
 # Compile flags (set optimization/debug flags here)
-CXXFLAGS='-O3,-Wall,-std=c++14,-axMIC-AVX512,-qopt-zmm-usage=high'
+CXXFLAGS='-O3,-Wall,-std=c++17,-axMIC-AVX512,-qopt-zmm-usage=high'
 
 # LuaJIT options
 LUAJIT_INC_DIR=$HOME/gkylsoft/luajit/include/luajit-2.1

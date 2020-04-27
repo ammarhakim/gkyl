@@ -54,8 +54,8 @@ local function buildApplication(self, tbl)
    }
       
    log(date(false):fmt()); log("\n") -- Time-stamp for sim start.
-   if GKYL_HG_CHANGESET then
-      log(string.format("Gkyl built with %s\n", GKYL_HG_CHANGESET))
+   if GKYL_GIT_CHANGESET then
+      log(string.format("Gkyl built with %s\n", GKYL_GIT_CHANGESET))
    end
    if GKYL_BUILD_DATE then
       log(string.format("Gkyl built on %s\n", GKYL_BUILD_DATE))
@@ -111,6 +111,12 @@ local function buildApplication(self, tbl)
 
    -- Number of fields needed for each stepper type
    local stepperNumFields = { rk1 = 3, rk2 = 3, rk3 = 3, rk3s4 = 4, fvDimSplit = 3 }
+
+   -- Tracker for timestep
+   local dtTracker = DataStruct.DynVector {
+      numComponents = 1,
+   }
+   local dtPtr = Lin.Vec(1)
 
    -- Parallel decomposition stuff.
    local useShared = xsys.pickBool(tbl.useShared, false)   
@@ -315,6 +321,8 @@ local function buildApplication(self, tbl)
    -- Function to read from restart frame.
    local function readRestart() --> Time at which restart was written.
       local rTime = 0.0
+      dtTracker:read(string.format("dt.bp"))
+      local _, dtLast = dtTracker:lastData()
       -- Read fields first, in case needed for species init or BCs.
       field:readRestart()
       funcField:readRestart()
@@ -322,6 +330,7 @@ local function buildApplication(self, tbl)
          -- This is a dummy forwardEuler call because some BCs require 
          -- auxFields to be set, which is controlled by species solver.
          s:advance(0, species, {field, funcField}, 1, 2)
+         s:setDtGlobal(dtLast[1])
 	 rTime = s:readRestart()
       end
       return rTime
@@ -353,9 +362,9 @@ local function buildApplication(self, tbl)
       end
       field:combineRk(outIdx, a, aIdx, ...)
    end
-   local function applyBc(tCurr, idx)
+   local function applyBc(tCurr, idx, ...)
       for nm, s in pairs(species) do
-         s:applyBcIdx(tCurr, idx)
+         s:applyBcIdx(tCurr, idx, ...)
       end
       field:applyBcIdx(tCurr, idx)
    end
@@ -409,9 +418,15 @@ local function buildApplication(self, tbl)
          dtSuggested = tbl.tEnd - tCurr + 1e-20
          if tbl.maximumDt then dtSuggested = math.min(dtSuggested, tbl.maximumDt) end
          
+         -- get suggested dt from each field and species
          dtSuggested = math.min(dtSuggested, field:suggestDt())
          for nm, s in pairs(species) do
             dtSuggested = math.min(dtSuggested, s:suggestDt())
+         end
+         
+         -- after deciding global dt, tell species
+         for nm, s in pairs(species) do
+            s:setDtGlobal(dtSuggested)
          end
       else 
          dtSuggested = dt -- From argument list.
@@ -423,7 +438,7 @@ local function buildApplication(self, tbl)
       -- Take forward Euler step in fields and species
       -- NOTE: order of these arguments matters... outIdx must come before inIdx.
       combine(outIdx, dtSuggested, outIdx, 1.0, inIdx)
-      applyBc(tCurr, outIdx)
+      applyBc(tCurr, outIdx, calcCflFlag)
 
       return dtSuggested
    end
@@ -633,14 +648,9 @@ local function buildApplication(self, tbl)
    local tmEnd = Time.clock()
    log(string.format("Initializing completed in %g sec\n\n", tmEnd-tmStart))
 
-   -- Read some info about restarts (default is to write restarts 1/5 of sim).
-   local restartFrameEvery = tbl.restartFrameEvery and tbl.restartFrameEvery or 0.2
-   local restartFrameAfter = tbl.restartFrameAfter and tbl.restartFrameAfter or GKYL_MAX_DOUBLE
-
-   local dtTracker = DataStruct.DynVector {
-      numComponents = 1,
-   }
-   local dtPtr = Lin.Vec(1)
+   -- Read some info about restarts (default is to write restarts 1/20 (5%) of sim, 
+   -- but no need to write restarts more frequently than regular diagnostic output).
+   local restartFrameEvery = tbl.restartFrameEvery and tbl.restartFrameEvery or math.max(1/20.0, 1/tbl.nFrame)
 
    -- Return function that runs main simulation loop.
    return function(self)
@@ -702,6 +712,7 @@ local function buildApplication(self, tbl)
       local tmSimStart = Time.clock()
       local first = true
       local failcount = 0
+      local irestart = 0
       local stopfile = GKYL_OUT_PREFIX .. ".stop"
 
       -- For the fvDimSplit updater, tryInv contains for indicators for each
@@ -730,6 +741,13 @@ local function buildApplication(self, tbl)
             break
          end
 
+         -- Abort simulation if the suggested timestep is 0, which means there are likely NaNs.
+         -- Don't write anything.
+         if (myDt == 0.0) then
+            log(string.format(" ERROR: dt is zero, there are likely NaNs. Terminating without writing files."))
+            break
+         end
+
 	 -- Check status and determine what to do next.
 	 if status and isInv then
             if first then 
@@ -746,7 +764,8 @@ local function buildApplication(self, tbl)
 	    writeData(tCurr+myDt)
 	    if checkWriteRestart(tCurr+myDt) then
 	       writeRestart(tCurr+myDt)
-               dtTracker:write(string.format("dt.bp"), tCurr+myDt, step, false)
+               dtTracker:write(string.format("dt.bp"), tCurr+myDt, irestart)
+               irestart = irestart + 1
 	    end	    
 	    
 	    tCurr = tCurr + myDt
@@ -768,7 +787,7 @@ local function buildApplication(self, tbl)
             log(string.format("WARNING: Timestep dt = %g is below 1e-4*initDt. Fail counter = %d...\n", myDt, failcount))
             if failcount > 20 then
                writeData(tCurr+myDt, true)
-               dtTracker:write(string.format("dt.bp"), tCurr+myDt, step, false)
+               dtTracker:write(string.format("dt.bp"), tCurr+myDt)
                log(string.format("ERROR: Timestep below 1e-4*initDt for 20 consecutive steps. Exiting...\n"))
                break
             end
@@ -916,7 +935,7 @@ return {
    NoField            = Field.NoField,
    Projection         = Projection,
    VlasovSpecies      = Species.VlasovSpecies,
-   VmBGKCollisions    = Collisions.VmLBOCollisions,   
+   VmBGKCollisions    = Collisions.VmBGKCollisions,   
    VmLBOCollisions    = Collisions.VmLBOCollisions,
    VoronovIonization  = Collisions.VoronovIonization,
 
@@ -938,6 +957,7 @@ return {
    VlasovMaxwell = {
       App = App, Species = Species.VlasovSpecies, FuncSpecies = Species.FuncVlasovSpecies,
       Field                = Field.MaxwellField,
+      FuncField            = Field.FuncMaxwellField,
       FunctionProjection   = Projection.VlasovProjection.FunctionProjection, 
       MaxwellianProjection = Projection.VlasovProjection.MaxwellianProjection,
       BGKCollisions        = Collisions.VmBGKCollisions,

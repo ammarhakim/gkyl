@@ -15,6 +15,7 @@ local Proto        = require "Lib.Proto"
 local Range        = require "Lib.Range"
 local UpdaterBase  = require "Updater.Base"
 local ffi          = require "ffi"
+local xsys         = require "xsys"
 
 local ffiC = ffi.C
 ffi.cdef [[
@@ -44,13 +45,20 @@ function CartFieldIntegratedQuantCalc:init(tbl)
    -- Number of components to set.
    self.numComponents = tbl.numComponents and tbl.numComponents or 1
 
-   assert(tbl.quantity == "V" or tbl.quantity == "V2" or tbl.quantity == "AbsV" or tbl.quantity == "GradPerpV2",
+   self.sqrt = false
+
+   assert(tbl.quantity == "V" or tbl.quantity == "V2" or tbl.quantity == "AbsV" or tbl.quantity == "GradPerpV2" or tbl.quantity == "RmsV",
 	  "CartFieldIntegratedQuantCalc: quantity must be one of V, V2, AbsV, GradPerpV2")
+
+   if tbl.quantity == "RmsV" then self.sqrt = true; tbl.quantity = "V2" end
+
    self.updateFunc = ffiC["gkylCartFieldIntQuant"..tbl.quantity]
 
    if tbl.quantity == "GradPerpV2" then assert(self.numComponents==1 and self.basis:polyOrder()==1, 
           "CartFieldIntegratedQuantCalc: GradPerpV2 currently only implemented for p=1 and numComponents=1")
    end
+
+   self.timeIntegrate = xsys.pickBool(tbl.timeIntegrate, false)
 
    -- For use in advance method.
    self.dxv        = Lin.Vec(self.basis:ndim())    -- Cell shape.
@@ -97,9 +105,17 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, inFld, outFld)
    Mpi.Allreduce(
       self.localVals:data(), self.globalVals:data(), nvals, Mpi.DOUBLE, Mpi.SUM, self:getComm())
 
-   if multfac then 
+   if multfac or self.sqrt then 
       for i = 1, nvals do
-         self.globalVals[i] = self.globalVals[i]*multfac
+         if self.sqrt then self.globalVals[i] = math.sqrt(self.globalVals[i]) end
+         if multfac then self.globalVals[i] = self.globalVals[i]*multfac end
+      end
+   end
+
+   if self.timeIntegrate then
+      local tLast, lastVals = vals:lastData()
+      for i = 1, nvals do
+         self.globalVals[i] = lastVals[i] + (tCurr - tLast)*self.globalVals[i]
       end
    end
 

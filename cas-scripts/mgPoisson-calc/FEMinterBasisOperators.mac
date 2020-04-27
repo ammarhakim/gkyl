@@ -1,0 +1,244 @@
+/* Generate kernels for translating a the coefficients of a DG field
+   into coefficients of a continuous Galerkin FEM field, and viceversa. */
+
+load("modal-basis");
+load("out-scripts");
+load("nodalOperations/nodalFunctions");
+fpprec : 24$
+
+boundStrKey : [[-1,"L"],[0,""],[1,"U"]]$
+
+calcDGtoFEM(fh, funcNm, dim, basisFun, pMax) := block([],
+  /* Translate DG coefficients (modal) to FEM coefficients (nodal).
+     Assume this translation involves only nearest neighbors,
+     and that each FEM field (which in Gkeyll actually has the same
+     number of DOFs as DG fields) stores only the value corresponding to
+     the lower corner node(s). */
+
+  kill(varsC, varsP, basisC, basisP),
+
+  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
+
+  for polyOrder : 1 thru pMax do (
+
+
+    bC : basisC[polyOrder],
+    N  : length(bC),
+
+    /* Expansion coefficients of DG field in this (lower corner) cell. */
+    dgC_c : makelist(dgFld[i],i,0,N-1),
+
+    /* Get modal to nodal coefficient transformation matrix.*/
+    modToNod : calcModToNod(basisFun,dim,polyOrder),
+
+    /* Convert to nodal in this cell.*/ 
+    dgNod   : modToNod . dgC_c,
+    dgNod_c : makelist(dgNod[i][1],i,1,length(dgNod)), 
+
+    /* Create a map of which cell is going to save the 
+       contribution from each node. */
+    nodes      : args(getNodes(basisFun, dim, polyOrder)),
+    numNodes   : length(nodes),
+    targetCell : makelist("femFld",i,1,numNodes),
+    keptNodes  : copylist(nodes),
+    for i : 1 thru numNodes do (
+      removeNode : false,
+      for d : 1 thru dim do (
+        if (nodes[i][d] = 1) then (
+          removeNode    : true,
+          targetCell[i] : sconcat(targetCell[i],"U",string(varsC[d]))
+        )
+      ),
+      if removeNode then ( keptNodes : delete(nodes[i],keptNodes) ),
+      targetCell[i] : eval_string(targetCell[i])
+    ),
+    /* Now figure out which coefficient in each cell the
+       contribution from a node should be added to. */
+    nodeToCoef : [],
+    for i : 1 thru length(keptNodes) do (
+      nodeToCoef : append(nodeToCoef,[[keptNodes[i],i-1]])
+    ),
+    targetCoef : makelist(0,i,1,numNodes),
+    for i : 1 thru numNodes do (
+      localNode : copylist(nodes[i]), 
+      for d : 1 thru dim do (
+        if (localNode[d] = 1) then ( localNode[d] : -1 )
+      ),
+      targetCoef[i] : targetCell[i][assoc(localNode,nodeToCoef)]
+    ),
+
+    /* Also, currently it seems that the contributions of colocated DG nodes
+       need to be averaged, so compute this prefactor. This may be revisited. */
+    avFactor : makelist(1,i,1,numNodes),
+    for i : 1 thru numNodes do (
+      numDimsAtBoundary : 0,
+      for d : 1 thru dim do (
+        if (abs(nodes[i][d]) = 1) then ( numDimsAtBoundary : numDimsAtBoundary + 1 )
+      ),
+      avFactor[i] : 1/(2^numDimsAtBoundary)
+    ),
+
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(const double *dgFld, double **femOut) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // dgFld:  DG (modal) field coefficients.~%"),
+    printf(fh, "  // femOut: FEM (nodal) field coefficients.~%"),
+    printf(fh, "~%"),
+
+    /* Pointers to the data in cells pointed to by the stencil. */
+    i : 1,
+    printf(fh, "  double *femFld = femOut[~a]; ~%", i-1),
+    varStrs : [""],
+    for d : 1 thru dim do (
+      for sI : 1 thru 2^(d-1) do (
+        i : i + 1,
+        varStrs : append(varStrs, [sconcat(varStrs[sI],"U",string(varsC[d]))]),
+        printf(fh, sconcat("  double *femFld",varStrs[i]," = femOut[~a]; ~%"), i-1)
+      )
+    ),
+    printf(fh, "~%"),
+
+    writeIncrExprs(targetCoef, avFactor*dgNod_c), 
+    printf(fh, "~%"),
+
+    printf(fh, "}~%"),
+    printf(fh, "~%")
+  )
+)$
+
+calcDGtoFEMboundary(fh, funcNm, dim, basisFun, pMax) := block([],
+  /* Translate DG coefficients (modal) to FEM coefficients (nodal)
+     in the boundary cells when not a periodic BC in that direction.
+     Assume this translation involves only nearest neighbors,
+     and that each FEM field (which in Gkeyll actually has the same
+     number of DOFs as DG fields) stores only the value corresponding to
+     the lower corner node(s). */
+
+  kill(varsC, varsP, basisC, basisP),
+
+  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
+
+  /* Create a list with 3^dim elements. Each element is itself an dim-long
+     list indicating whether the cell is next to a lower (=-1) or upper (=1)
+     boundary, or no boundary (=0) in that direction. */
+  stencilLoc : [makelist(0,i,1,dim)],  /* Lower left stencil, all zeros. */
+  for dir : 1 thru dim do (
+    /* Loop through cells already added to stencilLoc. */
+    for acI : 1 thru 3^(dir-1) do (
+      /* Loop over lower and upper. */
+      for bI : -1 thru 1 step 2 do (
+        stencilLoc : append(stencilLoc, copylist([stencilLoc[acI]])),
+        stencilLoc[length(stencilLoc)][dir] : bI
+      )
+    )
+  ),
+
+  /* This is used in placing (string) variables in kernel boundary names. */
+  sVarsC : copylist(varsC),
+  for d : 1 thru dim do (
+    sVarsC[d] : string(varsC[d])
+  ),
+  condVarsC : [[-1,sVarsC],[0,makelist("",i,1,dim)],[1,sVarsC]],
+
+  for sI : 2 thru length(stencilLoc) do (
+
+    /* Number of non-periodic boundaries. */
+    npBCs : sum(stencilLoc[sI][i],i,1,length(stencilLoc[sI])),
+
+    boundaryStr : "",
+    for d : 1 thru dim do (
+      boundaryStr : sconcat(boundaryStr,assoc(stencilLoc[sI][d],boundStrKey),
+                            assoc(stencilLoc[sI][d],condVarsC)[d])
+    ),
+    boundaryStr : sconcat(boundaryStr,"_"),
+
+    for polyOrder : 1 thru pMax do (
+
+      bC : basisC[polyOrder],
+      N  : length(bC),
+
+      /* Expansion coefficients of DG field in this (lower corner) cell. */
+      dgC_c : makelist(dgFld[i],i,0,N-1),
+
+      /* Get modal to nodal transformation matrix.*/
+      modToNod : calcModToNod(basisFun,dim,polyOrder),
+
+      /* Convert to nodal in this cell.*/ 
+      dgNod   : modToNod . dgC_c,
+      dgNod_c : makelist(dgNod[i][1],i,1,length(dgNod)), 
+
+      /* Create a map of which cell is going to save the 
+         contribution from each node. */
+      nodes      : args(getNodes(basisFun, dim, polyOrder)),
+      numNodes   : length(nodes),
+      targetCell : makelist("femFld",i,1,numNodes),
+      keptNodes  : copylist(nodes),
+      for i : 1 thru numNodes do (
+        removeNode : false,
+        for d : 1 thru dim do (
+          if ((nodes[i][d] = 1) and (stencilLoc[sI][d] # 1)) then (
+            removeNode    : true,
+            targetCell[i] : sconcat(targetCell[i],"U",string(varsC[d]))
+          )
+        ),
+        if removeNode then ( keptNodes : delete(nodes[i],keptNodes) ),
+        targetCell[i] : eval_string(targetCell[i])
+      ),
+      /* Now figure out which coefficient in each cell the
+         contribution from a node should be added to. */
+      nodeToCoef : [],
+      for i : 1 thru length(keptNodes) do (
+        nodeToCoef : append(nodeToCoef,[[keptNodes[i],i-1]])
+      ),
+      targetCoef : makelist(0,i,1,numNodes),
+      for i : 1 thru numNodes do (
+        localNode : copylist(nodes[i]),
+        for d : 1 thru dim do (
+          if ((localNode[d] = 1) and (stencilLoc[sI][d] # 1)) then ( localNode[d] : -1 )
+        ),
+        targetCoef[i] : targetCell[i][assoc(localNode,nodeToCoef)]
+      ),
+
+      /* Also, currently it seems that the contributions of colocated DG nodes
+         need to be averaged, so compute this prefactor. This may be revisited. */
+      avFactor : makelist(1,i,1,numNodes),
+      for i : 1 thru numNodes do (
+        numDimsAtBoundary : 0,
+        for d : 1 thru dim do (
+          if ((nodes[i][d] = 1) and (stencilLoc[sI][d] # 1)) then (
+            numDimsAtBoundary : numDimsAtBoundary + 1
+          ) elseif ((nodes[i][d] = -1) and (stencilLoc[sI][d] # -1)) then (
+            numDimsAtBoundary : numDimsAtBoundary + 1
+          )
+        ),
+        avFactor[i] : 1/(2^numDimsAtBoundary)
+      ),
+
+      /* Function declaration with input/output variables. */
+      printf(fh, "void ~a_~aP~a(const double *dgFld, double **femOut) ~%{ ~%", funcNm, boundaryStr, polyOrder),
+      printf(fh, "  // dgFld:  DG (modal) field coefficients.~%"),
+      printf(fh, "  // femOut: FEM (nodal) field coefficients.~%"),
+      printf(fh, "~%"),
+
+      /* Pointers to the data in cells pointed to by the stencil. */
+      i : 1,
+      printf(fh, "  double *femFld = femOut[~a]; ~%", i-1),
+      varStrs : [""],
+      for d : 1 thru dim do (
+        for sI : 1 thru 2^(d-1) do (
+          i : i + 1,
+          varStrs : append(varStrs, [sconcat(varStrs[sI],"U",string(varsC[d]))]),
+          printf(fh, sconcat("  double *femFld",varStrs[i]," = femOut[~a]; ~%"), i-1)
+        )
+      ),
+      printf(fh, "~%"),
+
+      writeIncrExprs(targetCoef, avFactor*dgNod_c), 
+      printf(fh, "~%"),
+
+      printf(fh, "}~%"),
+      printf(fh, "~%")
+    )
+
+  )
+)$
+

@@ -119,6 +119,7 @@ plasmaApp = Plasma.App {
       fluctuationBCs = true, -- only apply BCs to fluctuations
       evolve = true, -- evolve species?
       diagnosticMoments = {"GkM0", "GkBeta"},
+      diagnosticIntegratedMoments = {"intM0", "intM2"},
    },
 
    -- gyrokinetic ions
@@ -159,7 +160,7 @@ plasmaApp = Plasma.App {
       fluctuationBCs = true, -- only apply BCs to fluctuations
       evolve = true, -- evolve species?
       diagnosticMoments = {"GkM0", "GkBeta"},
-      --diagnosticMoments = {"GkM0", "GkM1", "GkM2", perturbed = true},
+      diagnosticIntegratedMoments = {"intM0", "intM2"},
    },
 
    -- field solver

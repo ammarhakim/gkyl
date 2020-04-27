@@ -41,7 +41,7 @@ elseif args.usage then
    local helpStr = f:read("*a")
    io.write (helpStr .. "\n")
 elseif args.version then
-   io.write("Changeset: " .. GKYL_HG_CHANGESET .. "\nBuild date: " .. GKYL_BUILD_DATE .. "\n")
+   io.write("Changeset: " .. GKYL_GIT_CHANGESET .. "\nBuild date: " .. GKYL_BUILD_DATE .. "\n")
 elseif args.tools then
    io.write("Supported tools: \n")
    for tn, tool in pairs(GKYL_TOOLS) do

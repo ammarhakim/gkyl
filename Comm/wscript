@@ -6,13 +6,11 @@
 import os
 
 def build(bld):
-    bldFunc = bld.shlib
-    
     # only build if in parallel
     if bld.env.MPI_FOUND:
-        bld.objects(
+        bld.shlib(
             source = 'GkMpiFuncs.cpp',
-            target = 'comm',
+            target = 'comm', name = 'comm', vnum = '1.0',
             includes = '.',
             use = 'MPI'
         )    

@@ -1,0 +1,126 @@
+<<
+
+/* Wrap a printf within a gentran literal. */
+genLitPrint(strIn,[dat]) := block([],
+  ldat : length(dat),
+  if (ldat>0) then (
+    if (ldat=1) then (
+      gentran(literal(eval(printf(false,strIn,dat[1])),cr))
+    ) elseif (ldat=2) then (
+      gentran(literal(eval(printf(false,strIn,dat[1],dat[2])),cr))
+    ) elseif (ldat=3) then (
+      gentran(literal(eval(printf(false,strIn,dat[1],dat[2],dat[3])),cr))
+    ) elseif (ldat=4) then (
+      gentran(literal(eval(printf(false,strIn,dat[1],dat[2],dat[3],dat[4])),cr))
+    ) elseif (ldat=5) then (
+      gentran(literal(eval(printf(false,strIn,dat[1],dat[2],dat[3],dat[4],dat[5])),cr))
+    ) elseif (ldat=6) then (
+      gentran(literal(eval(printf(false,strIn,dat[1],dat[2],dat[3],dat[4],dat[5],dat[6])),cr))
+    )
+  ) else (
+    gentran(literal(eval(printf(false,strIn)),cr))
+  )
+)$
+
+/* Setting a (scalar) left-side equal to a right side.
+   The right side is (Maxima) evaluated before it gets passed to gentran. */
+genRsetq(lhs, rhs) := block([],
+  gentran( rsetq(eval(lhs), rhs) )
+)$
+
+genWriteCExprs1(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then genRsetq(sconcat("  ",string(lhs[i-1])), expr[i])
+  )
+)$
+
+genWriteCExprsOffset1(lhs, rhs, offset, nSpaces) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then genRsetq(sconcat(smake(nSpaces," "),string(lhs[offset+i-1])), expr[i])
+  )
+)$
+
+
+load("modal-basis")$ 
+
+
+cdim : c$
+vdim : v$
+basisType : bName[bInd]$
+
+kill(varsC, varsP, basisC, basisP)$
+load(sconcat("basis-precalc/basis", basisType, cdim, "x", vdim, "v"))$
+
+bP : basisP[polyOrder]$
+bC : basisC[polyOrder]$
+NP : length(bP)$
+NC : length(bC)$
+
+
+genLitPrint("__global__ void d_calcMom~ax~av~a_M0_P~a(RectCart_t *grid, Range_t *range, double *fIn, double *out) {",cdim,vdim,basisType,polyOrder)$
+
+>>
+  // In computing moments we will first assign whole configuration-space cells to a single block.
+  // Then one must perform a reduction across a block for each conf-space basis coefficient.
+
+  // Index of the first phase-space memory address to access.
+  unsigned int phaseLinIdx = blockIdx.x*blockDim.x + threadIdx.x;
+<<
+genLitPrint("  GkylCuda::Indexer<~a> phaseIndxr(range);",cdim+vdim)$
+genLitPrint("  int phaseMultiDimIdx[~a];",cdim+vdim)$
+>>
+  phaseIndxr.invIndex(phaseLinIdx, phaseMultiDimIdx);
+
+<<
+genLitPrint("  double localSum[~a];",NC)$
+
+genLitPrint("  for (unsigned int k = 0; k < ~a; k++) {",NC)$
+/* Need to zero this out because kernel below increments. */
+genRsetq("    localSum[k]", 0.0)$
+genLitPrint("  }")$
+>>
+
+  // Pointers to quantities expected by the moment kernel.
+<<
+  genLitPrint("  double *distF       = &fIn[phaseLinIdx*~a];",NP)$
+  genLitPrint("  double cellw[~a];",cdim+vdim)$
+>>
+  grid->cellCenter(phaseMultiDimIdx,cellw);
+  double *cellCenter  = &cellw[0];
+  double *cellSize    = &grid->dx[0];
+  double *localSumPtr = &localSum[0];
+
+<<
+genLitPrint("  MomentCalc~ax~av~a_M0_P~a(cellCenter, cellSize, distF, localSumPtr);",cdim,vdim,basisType,polyOrder)$
+genLitPrint("  ")$
+genLitPrint("  blockReduceComponentsSum(localSumPtr, ~a);",NC)$
+>>
+
+  // Configuration space indexes.
+<<
+genLitPrint("  GkylCuda::Indexer<~a> confIndxr(range);",cdim)$
+genLitPrint("  int confMultiDimIdx[~a];",cdim)$
+genWriteCExprs1(confMultiDimIdx,makelist(phaseMultiDimIdx[i],i,0,cdim-1))$
+genLitPrint("  int confLinMemIdx = ~a*confIndxr.index(confMultiDimIdx);", NC)$
+
+>>
+
+  if (threadIdx.x==0) {
+<<
+genWriteCExprsOffset1(out,makelist(localSumPtr[i],i,0,NC-1),confLinMemIdx,4)$
+
+>>
+  }
+
+}
+<<
+genLitPrint("void calcMom~ax~av~a_M0_P~a(RectCart_t *grid, Range_t *range, GkDeviceProp *prop, int numBlocks, int numThreads, double *fIn, double *out) {",cdim,vdim,basisType,polyOrder)$
+>>
+  int warpSize = prop->warpSize;
+<<
+genLitPrint(" d_calcMom~ax~av~a_M0_P~a<<<numBlocks, numThreads, ~a*(numThreads/warpSize)*sizeof(double)>>>(grid, range, fIn, out);",cdim,vdim,basisType,polyOrder,NC)$
+>>
+}
+

@@ -1,0 +1,16 @@
+## -*- python -*-
+# Build code in this directory
+##    _______     ___
+## + 6 @ |||| # P ||| +
+
+import os
+
+def build(bld):
+    # only build if in parallel
+    if bld.env.CUTOOLS_FOUND:
+        bld.shlib(
+            source = 'GkCudaFuncs.cpp',
+            target = 'gkcuda', name = 'cuda', vnum = '1.0',
+            includes = '.',
+            use = 'CUTOOLS'
+        )    

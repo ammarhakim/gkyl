@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Updater to create the Maxwellian distribution from the coserved
+-- Updater to create the Maxwellian distribution from the conserved
 -- moments and project it on basis functions. Uses Gaussian
 -- quadrature.
 --

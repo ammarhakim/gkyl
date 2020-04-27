@@ -7,7 +7,10 @@
 --------------------------------------------------------------------------------
 
 local ffi = require "ffi"
-local _ = require "Updater.momentCalcData._DistFuncCdef"
+local _   = require "Updater.momentCalcData._DistFuncCdef"
+if GKYL_HAVE_CUDA then
+   _ = require "Updater.momentCalcData._DistFuncCdefDevice"
+end
 
 -- map of basis function name -> function encoding
 local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max", ["tensor"] = "Tensor" }
@@ -15,8 +18,13 @@ local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max", ["tenso
 local _M = {}
 
 -- select function to compute specified moment
-function _M.selectMomCalc(mom, basisNm, CDIM, VDIM, polyOrder)
-   local funcNm = string.format("MomentCalc%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], mom, polyOrder)
+function _M.selectMomCalc(mom, basisNm, CDIM, VDIM, polyOrder, calcOnDevice)
+   local funcNm = nil
+   if not calcOnDevice then
+      funcNm = string.format("MomentCalc%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], mom, polyOrder)
+   else
+      funcNm = string.format("calcMom%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], mom, polyOrder)
+   end
    return ffi.C[funcNm]
 end
 
@@ -33,14 +41,16 @@ function _M.selectIntMomCalc(basisNm, CDIM, VDIM, polyOrder)
 end
 
 -- With piecewise linear selfPrimMoments needs the star moments.
-function _M.selectStarM0Calc(dir, kinSpecies, basisNm, CDIM, VDIM)
+function _M.selectStarM0Calc(dir, kinSpecies, basisNm, CDIM, VDIM, applyPos)
+   local posString = ""
+   if applyPos then posString = "Positivity" end
    local funcNm = ""
    if dir == 1 then
-      funcNm = string.format("%sM0Star%dx%dv%s_VX", kinSpecies, CDIM, VDIM, basisNmMap[basisNm])
-   elseif dir == 2 then
-      funcNm = string.format("%sM0Star%dx%dv%s_VY", kinSpecies, CDIM, VDIM, basisNmMap[basisNm])
-   elseif dir == 3 then
-      funcNm = string.format("%sM0Star%dx%dv%s_VZ", kinSpecies, CDIM, VDIM, basisNmMap[basisNm])
+      funcNm = string.format("%sM0Star%s%dx%dv%s_VX", kinSpecies, posString, CDIM, VDIM, basisNmMap[basisNm])
+   elseif dir == 2 then                                                      
+      funcNm = string.format("%sM0Star%s%dx%dv%s_VY", kinSpecies, posString, CDIM, VDIM, basisNmMap[basisNm])
+   elseif dir == 3 then                                                      
+      funcNm = string.format("%sM0Star%s%dx%dv%s_VZ", kinSpecies, posString, CDIM, VDIM, basisNmMap[basisNm])
    end
    return ffi.C[funcNm]
 end

@@ -1,18 +1,20 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- For accessing projections objects
+-- For accessing projections objects.
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local GkProjection = require "App.Projection.GkProjection"
+local FluidProjection   = require "App.Projection.FluidProjection"
+local GkProjection      = require "App.Projection.GkProjection"
 local KineticProjection = require "App.Projection.KineticProjection"
-local ProjectionBase = require "App.Projection.ProjectionBase"
-local VlasovProjection = require "App.Projection.VlasovProjection"
+local ProjectionBase    = require "App.Projection.ProjectionBase"
+local VlasovProjection  = require "App.Projection.VlasovProjection"
 
 return {
-   GkProjection = GkProjection,
+   FluidProjection   = FluidProjection,
+   GkProjection      = GkProjection,
    KineticProjection = KineticProjection,
-   ProjectionBase = ProjectionBase,
-   VlasovProjection = VlasovProjection,
+   ProjectionBase    = ProjectionBase,
+   VlasovProjection  = VlasovProjection,
 }

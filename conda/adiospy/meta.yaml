@@ -8,11 +8,11 @@ source:
 requirements:
   build:
     - python
-    - numpy
+    - numpy >=1.13
     - adios
   run:
     - python
-    - numpy
+    - numpy >=1.13
     - adios
 
 test:

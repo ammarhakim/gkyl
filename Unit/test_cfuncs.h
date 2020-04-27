@@ -4,6 +4,7 @@
 #include <iostream>
 
 class Adder;
+template <unsigned N> class Dim;
 
 extern "C"
 {
@@ -21,6 +22,9 @@ extern "C"
 
     void setMetricFuncPointer_Adder(Adder *a, void (*gfunc)(double *xc, double *g));
     void printg_Adder(Adder *a, double r, double t);
+
+    void *new_Dim_1();
+    int getDim_Dim_1(void *d);
 }
 
 class Adder {
@@ -60,6 +64,18 @@ class Adder {
     int n;
     int (*f)(int);
     void (*gfunc)(double *, double *);
+};
+
+template <unsigned N>
+class Dim {
+  public:
+    unsigned getDim() {
+      return N;
+    }
+    int addDim(int n) {
+      return N+n;
+    }
+  private:
 };
 
 #endif // GKYL_TEST_CFUNCS_H

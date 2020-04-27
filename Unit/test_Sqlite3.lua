@@ -55,7 +55,7 @@ function test_2(conn)
 	 tm,
 	 nm,
 	 GKYL_EXEC,
-	 GKYL_HG_CHANGESET,
+	 GKYL_GIT_CHANGESET,
 	 GKYL_BUILD_DATE,
 	 status == true and 1 or 0,
 	 runTm):step()

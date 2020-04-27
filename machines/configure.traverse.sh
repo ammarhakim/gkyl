@@ -5,14 +5,14 @@ module load pgi/19.5/64
 module load openmpi/pgi-19.5/3.1.4/64
 
 # Build directory
-OUT=build-par
+OUT=build
 # Install location
 PREFIX=$HOME/gkylsoft/gkyl
 
 # Compile flags (set optimization/debug flags here)
 CC=gcc
 CXX=g++
-CXXFLAGS='-O3,-std=c++14'
+CXXFLAGS='-O3,-std=c++17'
 
 # LuaJIT options
 LUAJIT_INC_DIR=$HOME/gkylsoft/luajit/include/luajit-2.1

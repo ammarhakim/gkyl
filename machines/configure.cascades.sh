@@ -2,18 +2,18 @@
 
 # Edit the paths and options in the following command to suit your system
 module purge
-module load intel/17.0
-module load openmpi/3.1.2
+module load gcc/7.3.0
+module load openmpi/3.0.0
 
 # Build directory
-OUT=build-par
+OUT=build
 # Install location
 PREFIX=$HOME/cascades/gkylsoft/gkyl
 
 # Compile flags (set optimization/debug flags here)
-CC=icc
-CXX=icpc
-CXXFLAGS='-O3,-std=c++14'
+CC=gcc
+CXX=g++
+CXXFLAGS='-O3,-std=c++17'
 
 # LuaJIT options
 LUAJIT_INC_DIR=$HOME/cascades/gkylsoft/luajit/include/luajit-2.1

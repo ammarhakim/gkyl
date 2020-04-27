@@ -9,13 +9,15 @@ def options(opt):
     opt.add_option('-p', type='string', help='Path to Gkyl dependency directory', dest='gkylDepsDir',
                    default=os.path.expandvars('$HOME/gkylsoft'))
     opt.add_option('--cxxflags', type='string', help='Compiler flags', dest='gkcxxflags',
-                   default='-O3,-Wall,-std=c++14')
+                   default='-O3,-Wall,-std=c++17')
     opt.add_option('--cflags', type='string', help='Compiler flags', dest='gkcflags',
                    default='-O3,-Wall')
     opt.add_option('--debug', help='Debug flags', dest='gkdebug',
                    action='store_true', default=False)
     opt.add_option('--prefix', type='string', help='Install path', dest='prefix',
                    default=os.path.expandvars('$HOME/gkylsoft/gkyl'))
+    opt.add_option('--extra-link-libs', type='string', help='Extra libraries to link to', dest='extralibs',
+                   default='')
 
 @conf
 def check_gkyl(conf):
@@ -32,7 +34,9 @@ def check_gkyl(conf):
     if conf.options.gkdebug:
       conf.env.append_value('CXXFLAGS', '-g')
       conf.env.append_value('CFLAGS', '-g')
-     
+
+    conf.env.EXTRALIBS = ' '.join(conf.options.extralibs.split(','))
+      
     #conf.start_msg("Checking if CXXFLAGS work")
     #conf.check_cxx(fragment="""#include<stdio.h>\nint main(){return 0;}\n""", execute=True)
     #conf.end_msg("Flags work (%s)" % conf.options.gkcxxflags)

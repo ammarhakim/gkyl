@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- App support code: Base object for fields
+-- App support code: Base object for fields.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -8,7 +8,7 @@
 
 local Proto = require "Lib.Proto"
 
--- empty shell field base classes
+-- Empty shell field base classes.
 local FieldBase = Proto()
 function FieldBase:init(tbl)
    self.isElliptic = false
@@ -23,12 +23,12 @@ function FuncFieldBase:readRestart() end
 
 -- NoField ---------------------------------------------------------------------
 --
--- Represents no field (nothing is evolved or stored)
+-- Represents no field (nothing is evolved or stored).
 --------------------------------------------------------------------------------
 
 local NoField = Proto(FieldBase)
 
--- methods for no field object
+-- Methods for no field object.
 function NoField:init(tbl)
    NoField.super.init(tbl)
 end
@@ -62,8 +62,8 @@ function NoField:copyRk() end
 function NoField:combineRk() end
 
 return {
-   FieldBase = FieldBase,
+   FieldBase     = FieldBase,
    FuncFieldBase = FuncFieldBase,
-   NoField = NoField
+   NoField       = NoField
 }
 

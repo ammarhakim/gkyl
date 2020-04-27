@@ -118,7 +118,7 @@ kill(varsC, varsP, basisC, basisP),
   )
   else if pureUpwind or i=1 then (
     if positivity then ( 
-      fhatSurf_expd : subst(gkvsub, fhatALgenUpwind2(subst(gkvsubInv,fL_expd), 
+      fhatSurf_expd : subst(gkvsub, fhatALgenUpwind3(subst(gkvsubInv,fL_expd), 
               subst(gkvsubInv,fR_expd), subst(gkvsubInv,alphaUpSurf_expd), 
               subst(gkvsubInv,surfVar), cflL, cflR, cdim, vdim, i)),
       t : surfac*calcInnerProdList(surfIntVars, alphaSurf_expd, subst(surfVar=-1, bP), fhatSurf_expd),
@@ -186,9 +186,9 @@ kill(varsC, varsP, basisC, basisP),
       ),
       flush_output(fh),
       /* use modToNod transformation to get modal surface expansion from nodal quadrature points */
-      modToNod:fullratsimp(calcModToNodPhaseWithNodesAndBasis(nodes,bSurf,surfIntVars)),
-      fupwind_k:invert(transpose(float(modToNod))).makelist(fupwindQuad[i-1],i,1,length(nodes)),
-      fupwind_k:gcfac(makelist(fupwind_k[i][1],i,1,length(fupwind_k))),
+      modToNod:calcModToNodPhaseWithNodesAndBasis(nodes,bSurf,surfIntVars),
+      fupwind_k:gcfac(fullratsimp(invert(transpose(modToNod)).makelist(fupwindQuad[i-1],i,1,length(nodes)))),
+      fupwind_k:makelist(fupwind_k[i][1],i,1,length(fupwind_k)),
       /* write coefficients of modal surface expansion fupwind */
       writeCExprsNoExpand1(fupwind, fupwind_k),
       fhatSurf_expd:doExpand1(fupwind,bSurf),
@@ -427,7 +427,7 @@ calcStep2Update(fh, funcNm, cdim, vdim, basisFun, i,emflag, bvarslist, pureUpwin
       flush_output(fh),
       /* use modToNod transformation to get modal surface expansion from nodal quadrature points */
       modToNod:fullratsimp(calcModToNodPhaseWithNodesAndBasis(nodes,bSurf,surfIntVars)),
-      fupwind_k:invert(transpose(float(modToNod))).makelist(fupwindQuad[i-1],i,1,length(nodes)),
+      fupwind_k:invert(transpose((modToNod))).makelist(fupwindQuad[i-1],i,1,length(nodes)),
       fupwind_k:gcfac(makelist(fupwind_k[i][1],i,1,length(fupwind_k))),
       /* write coefficients of modal surface expansion fupwind */
       writeCExprsNoExpand1(fupwind, fupwind_k),
@@ -527,12 +527,13 @@ calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,p,emflag, bvarslist) := block
   )
 )$
 
-em:true$
-for pos: 0 thru 0 do (
+em:false$
+for pos: 0 thru 1 do (
 if pos=0 then positivity:false
 else positivity:true,
 if positivity then posString : "Positivity"
 else posString : "",
+
 for c : 1 thru 3 do (
 for v: 1 thru 2 do (
 if c=1 or (c>1 and v=2) then (
@@ -561,6 +562,7 @@ calcGKSurfUpdater(fh, funcName, c, v, "Ser", p, false, bvarslist[b])
 )),
 close(fh)
 )))),
+
 if em=false then (
 c:2,
 v:0,

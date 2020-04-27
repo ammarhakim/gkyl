@@ -1,5 +1,6 @@
 module load intel/18.0.2
 module load impi/18.0.2
+export PATH=$PATH:/usr/sbin/
 # if we are in machines directory, go up a directory
 if [ `dirname "$0"` == "." ] 
   then

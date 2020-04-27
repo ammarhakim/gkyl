@@ -101,12 +101,14 @@ function KineticSpecies:fullInit(appTbl)
 
    self.distIoFrame = 0 -- Frame number for distribution function.
    self.diagIoFrame = 0 -- Frame number for diagnostics.
+   self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
 
-   self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
+   self.writeSkin = xsys.pickBool(appTbl.writeSkin, false)
 
    -- Write perturbed moments by subtracting background before moment calc.. false by default.
    self.perturbedMoments = false
    -- Read in which diagnostic moments to compute on output.
+   self.requestedDiagnosticMoments = tbl.diagnosticMoments or {}
    self.diagnosticMoments = { }
    if tbl.diagnosticMoments then
       for i, nm in pairs(tbl.diagnosticMoments) do
@@ -123,6 +125,25 @@ function KineticSpecies:fullInit(appTbl)
    if tbl.diagnosticIntegratedMoments then
       for i, nm in ipairs(tbl.diagnosticIntegratedMoments) do
          self.diagnosticIntegratedMoments[i] = nm
+      end
+   end
+
+   -- Read in which boundary diagnostic moments to compute on output.
+   self.diagnosticBoundaryFluxMoments = { }
+   self.requestedDiagnosticBoundaryFluxMoments = tbl.diagnosticBoundaryFluxMoments or {}
+   if tbl.diagnosticBoundaryFluxMoments then
+      self.boundaryFluxDiagnostics = true
+      for i, nm in pairs(tbl.diagnosticBoundaryFluxMoments) do
+         self.diagnosticBoundaryFluxMoments[i] = nm
+      end
+   end
+
+   -- Read in which boundary diagnostic moments to compute on output.
+   self.diagnosticIntegratedBoundaryFluxMoments = { }
+   if tbl.diagnosticIntegratedBoundaryFluxMoments then
+      self.boundaryFluxDiagnostics = true
+      for i, nm in pairs(tbl.diagnosticIntegratedBoundaryFluxMoments) do
+         self.diagnosticIntegratedBoundaryFluxMoments[i] = nm
       end
    end
 
@@ -162,7 +183,7 @@ function KineticSpecies:fullInit(appTbl)
 	 func = function (t, zn)
 	    return tbl.initBackground(t, zn, self)
 	 end,
-	 isInit = false,
+	 isInit       = false,
 	 isBackground = true,
       }
    end
@@ -171,46 +192,46 @@ function KineticSpecies:fullInit(appTbl)
 	 func = function (t, zn)
 	    return tbl.source(t, zn, self)
 	 end,
-	 isInit = false,
+	 isInit   = false,
 	 isSource = true,
       }
    end
    -- >> LEGACY CODE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
    if type(tbl.init) == "table" and tbl.init[1] == "maxwellian" then 
       self.projections["init"] = Projection.GkProjection.MaxwellianProjection {
-	 density = tbl.init.density,
-	 driftSpeed = tbl.init.driftSpeed,
-	 temperature = tbl.init.temperature,
-	 exactScaleM0 = true,
+	 density         = tbl.init.density,
+	 driftSpeed      = tbl.init.driftSpeed,
+	 temperature     = tbl.init.temperature,
+	 exactScaleM0    = true,
 	 exactLagFixM012 = false,
-	 isInit = true,
+	 isInit          = true,
       }
    end 
    if type(tbl.initBackground) == "table" and tbl.initBackground[1] == "maxwellian" then 
       self.projections["initBackground"] = Projection.GkProjection.MaxwellianProjection {
-	 density = tbl.initBackground.density,
-	 driftSpeed = tbl.initBackground.driftSpeed,
-	 temperature = tbl.initBackground.temperature,
-	 exactScaleM0 = true,
+	 density         = tbl.initBackground.density,
+	 driftSpeed      = tbl.initBackground.driftSpeed,
+	 temperature     = tbl.initBackground.temperature,
+	 exactScaleM0    = true,
 	 exactLagFixM012 = false,
-	 isInit = false,
-	 isBackground = true,
+	 isInit          = false,
+	 isBackground    = true,
       }
    end 
    if type(tbl.source) == "table" and tbl.source[1] == "maxwellian" then 
       self.projections["initSource"] = Projection.GkProjection.MaxwellianProjection {
-	 density = tbl.source.density,
-	 driftSpeed = tbl.source.driftSpeed,
-	 temperature = tbl.source.temperature,
-	 exactScaleM0 = true,
+	 density         = tbl.source.density,
+	 driftSpeed      = tbl.source.driftSpeed,
+	 temperature     = tbl.source.temperature,
+	 exactScaleM0    = true,
 	 exactLagFixM012 = false,
-	 isInit = false,
-	 isSource = true,
+	 isInit          = false,
+	 isSource        = true,
       }
    end 
    -- <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-   self.deltaF = xsys.pickBool(appTbl.deltaF, false)
+   self.deltaF         = xsys.pickBool(appTbl.deltaF, false)
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
    if self.deltaF then self.fluctuationBCs = true end
 
@@ -242,7 +263,7 @@ function KineticSpecies:fullInit(appTbl)
    self.bcTime = 0.0 -- Timer for BCs.
    self.integratedMomentsTime = 0.0 -- Timer for integrated moments.
 
-   -- Collisions/Sources.
+   -- Collisions.
    self.collisions = {}
    for nm, val in pairs(tbl) do
       if Collisions.CollisionsBase.is(val) then
@@ -353,6 +374,7 @@ function KineticSpecies:createGrid(confGridIn)
       end
       GridConstructor = Grid.NonUniformRectCart
    end
+
    self.grid = GridConstructor {
       lower         = lower,
       upper         = upper,
@@ -372,6 +394,18 @@ function KineticSpecies:createBasis(nm, polyOrder)
    for _, c in pairs(self.collisions) do
       c:setPhaseBasis(self.basis)
    end
+
+   -- Output of grid file is placed here because as the file name is associated
+   -- with a species, we wish to save the basisID and polyOrder in it. But these
+   -- can only be extracted from self.basis after this is created.
+   if self.coordinateMap then
+      local metaData = {
+         polyOrder = self.basis:polyOrder(),
+         basisType = self.basis:id(),
+         grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
+      }
+      self.grid:write("grid_" .. self.name .. ".bp", 0.0, metaData)
+   end
 end
 
 function KineticSpecies:allocDistf()
@@ -379,6 +413,10 @@ function KineticSpecies:allocDistf()
 	onGrid        = self.grid,
 	numComponents = self.basis:numBasis(),
 	ghost         = {1, 1},
+        metaData = {
+           polyOrder = self.basis:polyOrder(),
+           basisType = self.basis:id()
+        },
    }
    f:clear(0.0)
    return f
@@ -388,15 +426,23 @@ function KineticSpecies:allocMoment()
 	onGrid        = self.confGrid,
 	numComponents = self.confBasis:numBasis(),
 	ghost         = {1, 1},
+        metaData = {
+           polyOrder = self.basis:polyOrder(),
+           basisType = self.basis:id()
+        },
    }
    m:clear(0.0)
    return m
 end
 function KineticSpecies:allocVectorMoment(dim)
    local m = DataStruct.Field {
-	onGrid = self.confGrid,
+	onGrid        = self.confGrid,
 	numComponents = self.confBasis:numBasis()*dim,
-	ghost = {1, 1},
+	ghost         = {1, 1},
+        metaData = {
+           polyOrder = self.basis:polyOrder(),
+           basisType = self.basis:id()
+        },
    }
    m:clear(0.0)
    return m
@@ -425,15 +471,15 @@ end
 function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop,
 				      hasExtFld)
    return Updater.Bc {
-      onGrid = self.grid,
+      onGrid             = self.grid,
       boundaryConditions = bcList,
-      dir = dir,
-      vdir = vdir,
-      edge = edge,
-      skinLoop = skinLoop,
-      cdim = self.cdim,
-      vdim = self.vdim,
-      hasExtFld = hasExtFld,
+      dir                = dir,
+      vdir               = vdir,
+      edge               = edge,
+      skinLoop           = skinLoop,
+      cdim               = self.cdim,
+      vdim               = self.vdim,
+      hasExtFld          = hasExtFld,
    }
 end
 
@@ -460,6 +506,18 @@ function KineticSpecies:createSolver(funcField)
    for _, c in pairs(self.collisions) do
       c:createSolver(funcField)
    end
+
+   if self.positivity then
+      self.posChecker = Updater.PositivityCheck {
+         onGrid = self.grid,
+         basis = self.basis,
+      }
+
+      self.posRescaler = Updater.PositivityRescale {
+         onGrid = self.grid,
+         basis = self.basis,
+      }
+   end
 end
 
 function KineticSpecies:alloc(nRkDup)
@@ -469,20 +527,33 @@ function KineticSpecies:alloc(nRkDup)
       self.distf[i] = self:allocDistf()
       self.distf[i]:clear(0.0)
    end
+
+   if self.positivity then
+      self.fDelPos = {}
+      for i = 1, nRkDup do
+         self.fDelPos[i] = self:allocDistf()
+         self.fDelPos[i]:clear(0.0)
+      end
+   end
+
    -- Create Adios object for field I/O.
    self.distIo = AdiosCartFieldIo {
-      elemType   = self.distf[1]:elemType(),
-      method     = self.ioMethod,
-      writeGhost = self.writeGhost,
-      metaData = {
+      elemType  = self.distf[1]:elemType(),
+      method    = self.ioMethod,
+      writeSkin = self.writeSkin,
+      metaData  = {
 	 polyOrder = self.basis:polyOrder(),
-	 basisType = self.basis:id()
+	 basisType = self.basis:id(),
+         grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
       },
    }
 
    if self.positivity then
       self.fPos = self:allocDistf()
    end
+
+   self.fPrev = self:allocDistf()
+   self.fPrev:clear(0.0)
 
    -- Array with one component per cell to store cflRate in each cell.
    self.cflRateByCell = DataStruct.Field {
@@ -536,6 +607,7 @@ function KineticSpecies:initDist()
       if pr.isInit then
 	 self.distf[1]:accumulate(1.0, self.distf[2])
 	 initCnt = initCnt + 1
+         if pr.scaleWithSourcePower then self.scaleInitWithSourcePower = true end
       end
       if pr.isBackground then
 	 if not self.f0 then 
@@ -551,7 +623,21 @@ function KineticSpecies:initDist()
 	 end
 	 self.fSource:accumulate(1.0, self.distf[2])
          if self.positivityRescale then
-           self.posRescaler:advance(0.0, {self.fSource}, {self.fSource})
+            self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
+         end
+         if pr.power then
+            local calcInt = Updater.CartFieldIntegratedQuantCalc {
+               onGrid        = self.confGrid,
+               basis         = self.confBasis,
+               numComponents = 1,
+               quantity      = "V",
+            }
+            local intKE = DataStruct.DynVector{numComponents = 1}
+            self.ptclEnergyCalc:advance(0.0, {self.fSource}, {self.ptclEnergyAux})
+            calcInt:advance(0.0, {self.ptclEnergyAux, self.mass/2}, {intKE})
+            local _, intKE_data = intKE:lastData()
+            self.powerScalingFac = pr.power/intKE_data[1]
+            self.fSource:scale(self.powerScalingFac)
          end
       end
       if pr.isReservoir then
@@ -561,6 +647,7 @@ function KineticSpecies:initDist()
 	 self.fReservoir:accumulate(1.0, self.distf[2])
       end
    end
+   if self.scaleInitWithSourcePower then self.distf[1]:scale(self.powerScalingFac) end
    assert(initCnt > 0,
 	  string.format("KineticSpecies: Species '%s' not initialized!", self.name))
    if self.f0 and backgroundCnt == 0 then 
@@ -599,6 +686,16 @@ end
 -- For RK timestepping.
 function KineticSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
+
+   if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
+      for _, bc in ipairs(self.boundaryConditions) do
+         bc:getBoundaryFluxFields()[outIdx]:copy(bc:getBoundaryFluxFields()[aIdx])
+      end
+   end
+
+   if self.positivity then
+      self.fDelPos[outIdx]:copy(self.fDelPos[aIdx])
+   end
 end
 -- For RK timestepping.
 function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
@@ -608,9 +705,27 @@ function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
    for i = 1, nFlds do -- Accumulate rest of the fields.
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end
+
+   if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
+      for _, bc in ipairs(self.boundaryConditions) do
+         bc:getBoundaryFluxFields()[outIdx]:combine(a, bc:getBoundaryFluxFields()[aIdx])
+         for i = 1, nFlds do -- Accumulate rest of the fields.
+            bc:getBoundaryFluxFields()[outIdx]:accumulate(args[2*i-1], bc:getBoundaryFluxFields()[args[2*i]])
+         end
+      end
+   end
+
+   if self.positivity then
+      self.fDelPos[outIdx]:combine(a, self.fDelPos[aIdx])
+      for i = 1, nFlds do -- Accumulate rest of the fields.
+         self.fDelPos[outIdx]:accumulate(args[2*i-1], self.fDelPos[args[2*i]])
+      end
+   end
 end
 
 function KineticSpecies:suggestDt()
+   if not self.evolve then return GKYL_MAX_DOUBLE end
+
    -- Loop over local region. 
    local grid = self.grid
    self.dt[0] = GKYL_MAX_DOUBLE
@@ -629,7 +744,17 @@ function KineticSpecies:suggestDt()
    -- All reduce to get global min dt.
    Mpi.Allreduce(self.dt, self.dtGlobal, 1, Mpi.DOUBLE, Mpi.MIN, grid:commSet().comm)
 
-   return math.min(self.dtGlobal[0], GKYL_MAX_DOUBLE)
+   local dtSuggested = math.min(self.dtGlobal[0], GKYL_MAX_DOUBLE)
+
+   -- If dtSuggested == GKYL_MAX_DOUBLE, it is likely because of NaNs. 
+   -- If so, return 0 so that no timestep is taken, and we will abort the simulation.
+   if dtSuggested == GKYL_MAX_DOUBLE then dtSuggested = 0.0 end
+
+   return dtSuggested
+end
+
+function KineticSpecies:setDtGlobal(dtGlobal)
+   self.dtGlobal[0] = dtGlobal
 end
 
 function KineticSpecies:clearCFL()
@@ -651,10 +776,23 @@ function KineticSpecies:clearMomentFlags(species)
    end
 end
 
-function KineticSpecies:applyBcIdx(tCurr, idx)
-  self:applyBc(tCurr, self:rkStepperFields()[idx])
+function KineticSpecies:checkPositivity(tCurr, idx)
+  local status = true
+  if self.positivity then
+     status = self.posChecker:advance(tCurr, {self:rkStepperFields()[idx]}, {})
+  end
+  return status
+end
+
+function KineticSpecies:applyBcIdx(tCurr, idx, isFirstRk)
   if self.positivityDiffuse then
-     self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]})
+     self.fDelPos[idx]:combine(-1.0, self:rkStepperFields()[idx])
+     self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]}, true, isFirstRk)
+     self.fDelPos[idx]:accumulate(1.0, self:rkStepperFields()[idx])
+  end
+  self:applyBc(tCurr, self:rkStepperFields()[idx])
+  if self.positivity then
+     self:checkPositivity(tCurr, idx)
   end
 end
 
@@ -708,12 +846,16 @@ function KineticSpecies:createDiagnostics()
    }
 end
 
-function KineticSpecies:calcDiagnosticMoments()
+function KineticSpecies:calcDiagnosticMoments(tm)
    local f = self.distf[1]
-   if self.f0 and self.perturbedMoments then f:accumulate(-1, self.f0) end
-   for i, mom in pairs(self.diagnosticMoments) do
+   local tCurr = tm
+   if self.f0 and self.perturbedMoments then 
+      f:accumulate(-1, self.f0)
+      tCurr = -tm-1 -- setting tCurr = -tm-1 will force the updater to recompute moments even if it has already been used on this timestep
+   end
+   for i, mom in ipairs(self.diagnosticMoments) do
       self.diagnosticMomentUpdaters[mom]:advance(
-	 0.0, {f}, {self.diagnosticMomentFields[mom]})
+	 tCurr, {f}, {self.diagnosticMomentFields[mom]})
       -- remove geometric jacobian factor
       if self.jacobGeoInv then
          self.weakMultiplication:advance(
@@ -723,51 +865,67 @@ function KineticSpecies:calcDiagnosticMoments()
    if self.f0 and self.perturbedMoments then f:accumulate(1, self.f0) end
 end
 
-function KineticSpecies:calcDiagnosticWeakMoments()
-   for mom, _ in pairs(self.diagnosticWeakMoments) do
-      self.weakDivision:advance(0.0, self.weakMomentOpFields[mom], {self.diagnosticMomentFields[mom]})
-      if self.weakMomentScaleFac[mom] then self.diagnosticMomentFields[mom]:scale(self.weakMomentScaleFac[mom]) end
+-- Some species-specific parts, but this function still gets called.
+function KineticSpecies:calcDiagnosticWeakMoments(tm, weakMoments, bc)
+   local label = ""
+   if bc then 
+      label = bc:label() 
+   end
+   for i, mom in ipairs(weakMoments) do
+      self.diagnosticMomentUpdaters[mom..label].advance(self, tm)
+   end
+end
+
+function KineticSpecies:calcDiagnosticBoundaryFluxMoments(tm)
+   for _, bc in ipairs(self.boundaryConditions) do
+      for i, mom in ipairs(self.diagnosticBoundaryFluxMoments) do
+         self.diagnosticMomentUpdaters[mom..bc:label()]:advance(
+            tm, {bc:getBoundaryFluxRate()}, {self.diagnosticMomentFields[mom..bc:label()]})
+      end 
    end
 end
 
 -- Species-specific.
-function KineticSpecies:calcDiagnosticAuxMoments()
-end
-
--- Species-specific.
-function KineticSpecies:calcDiagnosticIntegratedMoments()
+function KineticSpecies:calcDiagnosticIntegratedMoments(tm)
 end
 
 function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
-    self:calcDiagnosticMoments()
-    for i, mom in ipairs(self.diagnosticMoments) do
-       -- Should one use AdiosIo object for this?
-       self.diagnosticMomentFields[mom]:write(
-          string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
-    end
-
+    self:calcDiagnosticMoments(tm)
     if self.diagnosticWeakMoments then 
-       self:calcDiagnosticWeakMoments()
-       for mom, _ in pairs(self.diagnosticWeakMoments) do
-          -- Should one use AdiosIo object for this?
-          self.diagnosticMomentFields[mom]:write(
-             string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
+       self:calcDiagnosticWeakMoments(tm, self.diagnosticWeakMoments)
+    end
+    if self.diagnosticBoundaryFluxMoments then
+       self:calcDiagnosticBoundaryFluxMoments(tm)
+    end
+    if self.diagnosticWeakBoundaryFluxMoments then
+       for _, bc in ipairs(self.boundaryConditions) do
+          self:calcDiagnosticWeakMoments(tm, self.diagnosticWeakBoundaryFluxMoments, bc)
        end
     end
 
-    if self.diagnosticAuxMoments then 
-       self:calcDiagnosticAuxMoments()
-       for mom, _ in pairs(self.diagnosticAuxMoments) do
-          -- Should one use AdiosIo object for this?
-          self.diagnosticMomentFields[mom]:write(
-             string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
+    for i, mom in ipairs(self.requestedDiagnosticMoments) do
+       self.diagnosticMomentFields[mom]:write(
+          string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+    end
+
+    for i, mom in ipairs(self.requestedDiagnosticBoundaryFluxMoments) do
+       for _, bc in ipairs(self.boundaryConditions) do
+          self.diagnosticMomentFields[mom..bc:label()]:write(
+             string.format("%s_%s_%d.bp", self.name, mom..bc:label(), self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        end
     end
 
     -- Write integrated moments.
     for i, mom in ipairs(self.diagnosticIntegratedMoments) do
        self.diagnosticIntegratedMomentFields[mom]:write(
-          string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame)
+          string.format("%s_%s.bp", self.name, mom), tm, self.diagIoFrame)
+    end
+
+    for i, mom in ipairs(self.diagnosticIntegratedBoundaryFluxMoments) do
+       for _, bc in ipairs(self.boundaryConditions) do
+          self.diagnosticIntegratedMomentFields[mom..bc:label()]:write(
+             string.format("%s_%s.bp", self.name, mom..bc:label()), tm, self.diagIoFrame)
+       end
     end
 end
 
@@ -777,6 +935,13 @@ end
 
 function KineticSpecies:write(tm, force)
    if self.evolve then
+      if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics and tm > 0 then
+         for _, bc in ipairs(self.boundaryConditions) do
+            bc:getBoundaryFluxRate():combine(1.0/self.dtGlobal[0], bc:getBoundaryFluxFields()[1], -1.0/self.dtGlobal[0], bc:getBoundaryFluxFieldPrev())
+            bc:getBoundaryFluxFieldPrev():copy(bc:getBoundaryFluxFields()[1])
+         end
+      end
+
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.
       if self.calcIntQuantFlag == false then
@@ -802,6 +967,9 @@ function KineticSpecies:write(tm, force)
          end
          if tm == 0.0 and self.fSource then
             self.distIo:write(self.fSource, string.format("%s_fSource_0.bp", self.name), tm, self.distIoFrame)
+            if self.numDensitySrc then self.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.name), tm, self.distIoFrame) end
+            if self.momDensitySrc then self.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.name), tm, self.distIoFrame) end
+            if self.ptclEnergySrc then self.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.name), tm, self.distIoFrame) end
          end
 	 self.distIoFrame = self.distIoFrame+1
       end
@@ -815,6 +983,10 @@ function KineticSpecies:write(tm, force)
             for _, c in pairs(self.collisions) do
                c:write(tm, self.diagIoFrame)
             end
+         end
+
+         if self.positivityDiffuse then
+            self.posRescaler:write(tm, self.diagIoFrame, self.name)
          end
 
          self.diagIoFrame = self.diagIoFrame+1
@@ -834,36 +1006,41 @@ end
 
 function KineticSpecies:writeRestart(tm)
    -- (The final "true/false" determines writing of ghost cells).
-   local writeGhosts = false
-   if self.hasSheathBcs or self.fluctuationBCs then writeGhosts = true end
-   self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, writeGhosts)
+   local writeSkin = false
+   if self.hasSheathBcs or self.fluctuationBCs then writeSkin = true end
+   self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, writeSkin)
    for i, mom in ipairs(self.diagnosticMoments) do
       self.diagnosticMomentFields[mom]:write(
 	 string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
    end   
 
-   -- (The final "false" prevents flushing of data after write).
+   -- Write restart files for integrated moments. Note: these are only needed for the rare case that the
+   -- restart write frequency is higher than the normal write frequency from nFrame.
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
+      -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
       self.diagnosticIntegratedMomentFields[mom]:write(
-         string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
+         string.format("%s_%s_restart.bp", self.name, mom), tm, self.dynVecRestartFrame, false, false)
    end
+   self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
 function KineticSpecies:readRestart()
-   local readGhosts = false
-   if self.hasSheathBcs or self.fluctuationBCs then readGhosts = true end
-   local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name), readGhosts)
+   local readSkin = false
+   if self.hasSheathBcs or self.fluctuationBCs then readSkin = true end
+   local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name), readSkin)
+   self.distIoFrame = fr -- Reset internal frame counter.
 
-   -- Apply BCs and set ghost-cell data (unless ghosts have been read because of special BCs)
+   -- set ghost cells
+   self.distf[1]:sync()
+
+   -- Apply BCs (unless skin cells have been read because of special BCs)
    if not self.hasSheathBcs and not self.fluctuationBCs then 
       self:applyBc(tm, self.distf[1]) 
    end 
    
-   self.distIoFrame = fr -- Reset internal frame counter.
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-      local _, dfr = self.diagnosticIntegratedMomentFields[mom]:read(
+      self.diagnosticIntegratedMomentFields[mom]:read(
          string.format("%s_%s_restart.bp", self.name, mom))
-      self.diagIoFrame = dfr -- Reset internal diagnostic IO frame counter.
    end
 
    for i, mom in ipairs(self.diagnosticMoments) do

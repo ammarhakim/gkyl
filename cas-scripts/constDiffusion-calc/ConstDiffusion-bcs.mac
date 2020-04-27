@@ -1,0 +1,271 @@
+load("modal-basis")$
+load("out-scripts");
+load("recovery-calc/recovery");
+load(stringproc)$
+fpprec : 24$
+
+/* This script generates the kernels needed for filling the ghost
+   cells so that BCs are enforced for the constantDiffusion term.
+   This assumes that ConstantDiffusion is being solved using two
+   differentiations by parts and RDG. */
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 1$
+minCdim_Ser : 1$
+maxCdim_Ser : 2$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 2$
+minCdim_Max : 1$
+maxCdim_Max : 0$
+
+/* ...... END OF USER INPUTS........ */
+
+Cvars : [ X, Y, Z ]$
+sEdge : ["lower","upper"]$
+
+calcConstDiffusionDirichletBCs(fh, funcNm, cdim, basisFun, pMax) := block([],
+  /* Dirichlet BCs: Construct a recovery polynomial. Require that its value
+     at the boundary matches the Dirichlet value, and that all the higher
+     moments are symmetric (odd moments) or antisymmetric (even moments). */
+
+  for polyOrder : 1 thru pMax do (
+
+    kill(varsC, varsP, basisC, basisP),
+    /* Load basis of dimensionality requested. */
+    load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
+
+    /* Polynomial basis and its derivatives. */
+    bC : basisC[polyOrder],
+    NC : length(bC),
+
+    for dir : 1 thru cdim do (
+
+      /* Cell centers and lengths along 'dir' used in recovery. */
+      xcM      : makelist(0,i,1,cdim),
+      xcP      : makelist(0,i,1,cdim),
+      dxM      : makelist(2,i,1,cdim),
+      dxP      : makelist(2,i,1,cdim),
+      intLimsM : makelist([-1,1],i,1,cdim),
+      intLimsP : makelist([-1,1],i,1,cdim),
+      xcM[dir]      : -1/2,
+      xcP[dir]      :  1/2,
+      dxM[dir]      : 1,
+      dxP[dir]      : 1,
+      intLimsM[dir] : [-1,0],
+      intLimsP[dir] : [ 0,1],
+
+      /* Variables. */
+      cv       : varsC[dir],
+      surfVars : delete(cv,varsC),
+
+      /* Left and right cell bases. */
+      bCM : eta(xcM,dxM,bC),
+      bCP : eta(xcP,dxP,bC),
+
+      qM_e : doExpand1(qM,bCM),
+      qP_e : doExpand1(qP,bCP),
+
+      /* Construct recovery polynomial. */
+      h_e : getRecov2CellGen(cv, dxM, polyOrder, qM, qP),
+      /* Make references to qM and qP in h_e zero-indexed. */
+      h_e : psubst(append(makelist(qM[i]=qM[i-1],i,1,NC),makelist(qP[i]=qP[i-1],i,1,NC)),h_e),
+
+      sgns : makelist(1,i,1,NC),
+      for i : 1 thru NC do (
+        sgns[i] : -subst(cv=-1,bC[i])/subst(cv=1,bC[i])
+      ),
+
+      /* Here we impose the conditions that it matches the Dirichlet boundary
+         value, and that the higher moments have the right symmetry. */
+      eqs : append( [subst(cv=0,h_e)=fBC],
+                    makelist(innerProdGen(varsC,intLimsM,1,bCM[i],qM_e) = 
+                      sgns[i]*innerProdGen(varsC,intLimsP,1,bCP[i],qP_e),i,2,NC) ),
+
+      for jEd : 1 thru 2 do (
+    
+        printf(fh,"void ~a_~a~a_P~a(const double dx, const double *fSkin, const double fBC, double *fGhost) ~%{ ~%", funcNm, Cvars[dir], sEdge[jEd], polyOrder),
+        printf(fh,"  // dx:         Cell spacing.~%",cdim),
+        printf(fh,"  // fSkin[~a]:   DG coefficients in skin cell.~%",NC),
+        printf(fh,"  // fBC:        Dirichlet boundary value.~%"),
+        printf(fh,"  // fGhost[~a]:  DG coefficients in ghost cell.~%",NC),
+        printf(fh,"~%"),
+
+        if jEd=1 then (
+          fGhost_c : makelist(subst(makelist(qP[k]=fSkin[k],k,0,NC-1),rhs(solve(eqs,makelist(qM[i],i,0,NC-1))[1][j])),j,1,NC)
+        ) else (
+          fGhost_c : makelist(subst(makelist(qM[k]=fSkin[k],k,0,NC-1),rhs(solve(eqs,makelist(qP[i],i,0,NC-1))[1][j])),j,1,NC)
+        ),
+
+        writeCExprs1(fGhost,fGhost_c),
+        printf(fh,"~%"),
+
+        printf(fh,"};~%"),
+        printf(fh,"~%")
+
+      )
+    )
+  )
+)$
+
+calcConstDiffusionNeumannBCs(fh, funcNm, cdim, basisFun, pMax) := block([],
+  /* Neumann BCs: 
+     In the p=1 vanLeer 2005 test the option that gave the best result was to
+     build a recovery poly that matches the Neumann derivative value at the boundary
+     and the value of the function in the ghost cell (cell average error converged
+     as 1/N^(3.7)).
+     It's not clear what the higher dimensional equivalent version should be, so
+     we will use another option that gave a cell average error convergence of 1/N^(3.5)
+     and easily generalizes to higher dimensions.
+     We wish to construct a polynomial (g) in the skin cell that has one more degree of
+     freedom. We find this polynomial by imposing weak equality and matching the Neumann
+     BC value. However the code assumes recovery with the ghost cell, so we build a
+     skin-ghost recovery (h) and require that all its derivatives match those of g
+     at the boundary. */
+  /* Update: This seems to work for 2x p=1, but not p=2. */
+
+  for polyOrder : 1 thru pMax do (
+
+    kill(varsC, varsP, basisC, basisP),
+    /* Load 1D basis. */
+    load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
+    bC1 : basisC[polyOrder],
+    NC1 : length(bC1),
+    /* Construct a polynomial with 1 more degree of freedom by
+       matching moments and the boundary Neumann value.
+       Will need one for the lower boundary and another for the
+       upper boundary. */
+    g1_e  : doExpand(g,makelist(x^(i-1),i,1,NC1+1)),
+    bCM1  : eta([-1/2],[1],bC1),
+    bCP1  : eta([ 1/2],[1],bC1),
+    qM1_e : doExpand1(qM1,bCM1),
+    qP1_e : doExpand1(qP1,bCP1),
+    eqsM1 : append( makelist(innerProdGen([x],[[-1,0]],1,bCM1[j],g1_e)=innerProdGen([x],[[-1,0]],1,bCM1[j],qM1_e),j,1,NC1),
+                    [subst(x=0,(1/dx)*diff(g1_e,x))=fpBC] ),
+    eqsP1 : append( makelist(innerProdGen([x],[[ 0,1]],1,bCP1[j],g1_e)=innerProdGen([x],[[ 0,1]],1,bCP1[j],qP1_e),j,1,NC1),
+                    [subst(x=0,(1/dx)*diff(g1_e,x))=fpBC] ),
+    gM1_c  : solve(eqsM1,makelist(g[i],i,1,NC1+1))[1],
+    gP1_c  : solve(eqsP1,makelist(g[i],i,1,NC1+1))[1],
+    gM1_e  : subst(gM1_c,g1_e),
+    gP1_e  : subst(gP1_c,g1_e),
+
+    kill(varsC, varsP, basisC, basisP),
+    /* Load basis of dimensionality requested. */
+    load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
+
+    /* Polynomial basis and its derivatives. */
+    bC : basisC[polyOrder],
+    NC : length(bC),
+
+    for dir : 1 thru cdim do (
+
+      /* Cell centers and lengths along 'dir' used in recovery. */
+      xcM      : makelist(0,i,1,cdim),
+      xcP      : makelist(0,i,1,cdim),
+      dxM      : makelist(2,i,1,cdim),
+      dxP      : makelist(2,i,1,cdim),
+      intLimsM : makelist([-1,1],i,1,cdim),
+      intLimsP : makelist([-1,1],i,1,cdim),
+      xcM[dir]      : -1/2,
+      xcP[dir]      :  1/2,
+      dxM[dir]      : 1,
+      dxP[dir]      : 1,
+      intLimsM[dir] : [-1,0],
+      intLimsP[dir] : [ 0,1],
+
+      /* Variables. */
+      cv       : varsC[dir],
+      surfVars : delete(cv,varsC),
+
+      /* Left and right cell bases. */
+      bCM : eta(xcM,dxM,bC),
+      bCP : eta(xcP,dxP,bC),
+
+      qM_e : doExpand1(qM,bCM),
+      qP_e : doExpand1(qP,bCP),
+
+      /* Construct recovery polynomial. */
+      h_e : getRecov2CellGen(cv, dxM, polyOrder, qM, qP),
+      /* Make references to qM and qP in h_e zero-indexed. */
+      h_e : psubst(append(makelist(qM[i]=qM[i-1],i,1,NC),makelist(qP[i]=qP[i-1],i,1,NC)),h_e),
+
+      for jEd : 1 thru 2 do (
+    
+        /* Now construct the multi-dimensional polynomial which has
+           one more degree of freedom. */
+        if jEd=1 then (
+          qP_c  : 2*calcInnerProdListGen([cv],[intLimsP[dir]],1,subst(x=cv,bCP1),qP_e),
+          g_e   : subst(makelist(qP1[i-1]=qP_c[i],i,1,NC1),subst(x=cv,gP1_e))
+        ) else (
+          qM_c  : 2*calcInnerProdListGen([cv],[intLimsM[dir]],1,subst(x=cv,bCM1),qM_e),
+          g_e   : subst(makelist(qM1[i-1]=qM_c[i],i,1,NC1),subst(x=cv,gM1_e))
+        ),
+
+        /* Here we impose the conditions that the g polynomial in the skin cell
+           has all the same derivatives as the h polynomial (across skin-ghost cells)
+           at the boundary. */
+        if cdim=1 then (
+          eqs : append(flatten(makelist(subst(cv=0,diff(h_e,x,i))=subst(cv=0,diff(g_e,x,i)),i,0,polyOrder))),
+          if polyOrder=1 and jEd=2 then print(eqs)
+        ) elseif cdim=2 then (
+          eqs : append(flatten(makelist(makelist(subst(cv=0,diff(h_e,x,i,y,j))=subst(cv=0,diff(g_e,x,i,y,j)),i,0,polyOrder),j,0,polyOrder)))
+        ) elseif cdim=3 then (
+          eqs : append(flatten(flatten(makelist(makelist(makelist(subst(cv=0,diff(h_e,x,i,y,j,z,k))=subst(cv=0,diff(g_e,x,i,y,j,z,k)),i,0,polyOrder),j,0,polyOrder),k,0,polyOrder))))
+        ),
+
+        if jEd=1 then (
+          fGhost_c : makelist(subst(makelist(qP[k]=fSkin[k],k,0,NC-1),rhs(solve(eqs,makelist(qM[i],i,0,NC-1))[1][j])),j,1,NC)
+          
+        ) else (
+          fGhost_c : makelist(subst(makelist(qM[k]=fSkin[k],k,0,NC-1),rhs(solve(eqs,makelist(qP[i],i,0,NC-1))[1][j])),j,1,NC)
+        ),
+
+
+        printf(fh,"void ~a_~a~a_P~a(const double dx, const double *fSkin, const double fpBC, double *fGhost) ~%{ ~%", funcNm, Cvars[dir], sEdge[jEd], polyOrder),
+        printf(fh,"  // dx:         Cell spacing.~%",cdim),
+        printf(fh,"  // fSkin[~a]:   DG coefficients in skin cell.~%",NC),
+        printf(fh,"  // fpBC:       Dirichlet boundary value.~%"),
+        printf(fh,"  // fGhost[~a]:  DG coefficients in ghost cell.~%",NC),
+        printf(fh,"~%"),
+
+        writeCExprs1(fGhost,fGhost_c),
+        printf(fh,"~%"),
+
+        printf(fh,"};~%"),
+        printf(fh,"~%")
+
+      )
+    )
+  )
+)$
+
+
+/* To generate other bases, just add corresponding column to arrays below. */
+bName        : ["Ser","Max"]$
+maxPolyOrder : [maxPolyOrder_Ser,maxPolyOrder_Max]$
+minCdim      : [minCdim_Ser,minCdim_Max]$
+maxCdim      : [maxCdim_Ser,maxCdim_Max]$
+
+for bInd : 1 thru length(bName) do (
+
+  fname : sconcat("~/max-out/ConstDiffusionBCs", bName[bInd], ".cpp"),
+  fh : openw(fname),
+
+  printf(fh, "#include <ConstDiffusionModDecl.h> ~%"),
+
+  for c : 1 thru maxCdim[bInd] do (
+
+    disp(printf(false,sconcat("Creating BC kernel",bName[bInd]," ~ax"),c)),
+
+    funcName : sconcat("ConstDiffusionBC", c, "x", bName[bInd],"Dirichlet"),
+    calcConstDiffusionDirichletBCs(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+
+    funcName : sconcat("ConstDiffusionBC", c, "x", bName[bInd],"Neumann"),
+    calcConstDiffusionNeumannBCs(fh, funcName, c, bName[bInd], maxPolyOrder[bInd])
+
+  ),
+
+  close(fh)
+)$

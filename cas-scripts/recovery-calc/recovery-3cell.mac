@@ -1,0 +1,78 @@
+calcRecov3CellGen(basisNm, dir, dx, polyOrder, lo, ce, up) := block(
+    /* Returns recovered polynomial across three cells in terms of
+     expansion coefficients in the lower cell (qLo), center (qCe), and
+     the upper cell (qUp). Unlike the 'calcRecov3CellGen', this
+     recovery is not constrained and provides a maximal order
+     polynomial defined across all three cells.
+  Inputs:
+    basisNm : name of used basis function ("Ser", "Tensor", or "Max");
+      NOTE: This makes no difference for 1D recoveries so it should
+      ideally be an optional input but I don't see a way around it
+      now. --Petr Cagas
+    dir : direction of the recovery (x, y, or z)
+    dx : a list of cell sizes; if the specified length is greater than
+      zero, the no-recovered direction are backsubstitued to the output
+    polyOrder : polynomial order of the inputs
+    qLo : expansion coefficients of the recovered quantity in the lower
+      cell (or a prescribed BC)
+    qCe : expansion coefficients of the recovered quantity in the central
+      cell
+    qUp : expansion coefficients of the recovered quantity in the upper
+      cell (or a prescribed BC)
+  Outputs:
+    a polynomial in terms of qLo, qCe, and qUp defined across all three cells
+  */
+  [numDims, dIdx, basisC, basis1D, baLo1D, baCe1D, baUp1D, DoF, rExp,
+  recEqList, rSol, rSub, projSubList, basisND, xc, baLoND, baCeND,
+  baUpND, dimProjLo, dimProjCe, dimProjUp],
+  numDims : length(dx),
+  dIdx : getDirIdx(dir, numDims), /* Converting x, y, or z into 1, 2, or 3 */
+  basisC : getBasis(sconcat("basis-precalc/basis", basisNm, "1x"), polyOrder),
+  basis1D : subst(x=dir, basisC),
+  baLo1D : etaDir(dir, -dx[dIdx], dx[dIdx], basis1D),
+  baCe1D : etaDir(dir, 0, dx[dIdx], basis1D),
+  baUp1D : etaDir(dir, dx[dIdx], dx[dIdx], basis1D),
+  
+  /* Forming and solving the equation system */
+  DoF : polyOrder + 1, /* Number of degrees of freedom */
+  rExp : doExpand(r, makelist(dir^i, i, 0, 3*DoF-1)), /* Recovery polynomial */
+  recEqList : append( /* Equations frm the weak equality */
+    calcInnerProdListGen([dir], [[-3*dx[dIdx]/2, -dx[dIdx]/2]], 1, baLo1D, rExp-doExpand(qLo1D, baLo1D)),
+    calcInnerProdListGen([dir], [[-dx[dIdx]/2, dx[dIdx]/2]], 1, baCe1D, rExp-doExpand(qCe1D, baCe1D)),
+    calcInnerProdListGen([dir], [[dx[dIdx]/2, 3*dx[dIdx]/2]], 1, baUp1D, rExp-doExpand(qUp1D, baUp1D))
+  ),
+  rSol : linsolve(recEqList, makelist(r[i], i, 1, 3*N)),
+  rSub : fullratsimp(subst(rSol, rExp)),
+  
+  /* backsubstitute the non-recovered directtions if needed */
+  if numDims > 1 then (
+    basisC : getBasis(sconcat("basis-precalc/basis", basisNm, numDims, "x"), polyOrder),
+    basisND : basisC,
+    xc : [0, 0, 0],
+    baCeND : eta(xc, dx, basisND),
+    xc[dIdx] : -dx[dIdx],
+    baLoND : eta(xc, dx, basisND),
+    xc[dIdx] : dx[dIdx],
+    baUpND : eta(xc, dx, basisND),
+    dimProjLo : calcInnerProdListGen([dir], [[-3*dx[dIdx]/2, -dx[dIdx]/2]], 1,
+      baLo1D, doExpand(args(lo)[1], baLoND)),
+    dimProjCe : calcInnerProdListGen([dir], [[-dx[dIdx]/2, dx[dIdx]/2]], 1,
+      baCe1D, doExpand(args(ce)[1], baCeND)),
+    dimProjUp : calcInnerProdListGen([dir], [[dx[dIdx]/2, 3*dx[dIdx]/2]], 1,
+      baUp1D, doExpand(args(up)[1], baUpND)),
+    projSubList : append ( /* Substitution list fot the backprojection */
+      makelist(qLo1D[i]=dimProjLo[i], i, 1, length(basis1D)),
+      makelist(qCe1D[i]=dimProjCe[i], i, 1, length(basis1D)),
+      makelist(qUp1D[i]=dimProjUp[i], i, 1, length(basis1D))
+    )
+  )
+  else (
+    projSubList : append (
+      makelist(qLo1D[i]=args(lo)[1][i], i, 1, length(basis1D)),
+      makelist(qCe1D[i]=args(ce)[1][i], i, 1, length(basis1D)),
+      makelist(qUp1D[i]=args(up)[1][i], i, 1, length(basis1D))
+    )
+  ),
+
+  return(subst(projSubList, rSub))
+) $

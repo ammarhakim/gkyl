@@ -14,7 +14,7 @@ plasmaApp = Plasma.App {
    basis       = "serendipity",    -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                -- Polynomial order.
    timeStepper = "rk3",            -- One of "rk2" or "rk3".
-   cflFrac     = 0.9,
+   cflFrac     = 1.,
    
    -- Decomposition for configuration space.
    decompCuts = {1,1},    -- Cuts in each configuration direction.
@@ -37,6 +37,8 @@ plasmaApp = Plasma.App {
       end,
       evolve          = true, -- Evolve species?
       applyPositivity = true,
+      positivityDiffuse = true,
+      positivityRescale = false,
    },
 
    -- Field solver.

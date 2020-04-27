@@ -64,3 +64,15 @@ printg_Adder(Adder *a, double r, double t)
 {
   a->printg(r, t);
 }
+
+void *new_Dim_1()
+{
+  Dim<1> *d = new Dim<1>();
+  return reinterpret_cast<void*>(d);
+}
+
+int getDim_Dim_1(void *dv)
+{
+  Dim<1> *d = reinterpret_cast<Dim<1>*>(dv);
+  return d->getDim();
+}

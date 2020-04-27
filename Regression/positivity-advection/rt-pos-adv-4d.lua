@@ -63,7 +63,7 @@ plasmaApp = Plasma.App {
       upper = {4, 4},
       cells = {8, 8},
       -- Initial conditions.
-      init = {"maxwellian",
+      init = Plasma.MaxwellianProjection {
               density     = squareHat,
               temperature = function (t, xn)
                  return 1.0
@@ -78,7 +78,7 @@ plasmaApp = Plasma.App {
    field = Plasma.Field {
       evolve = false, -- Evolve field?
       -- u = {dphi/dy, -dphi/dx}
-      initPhiFunc = function (t, xn)
+      externalPhi = function (t, xn)
          local x, y = xn[1], xn[2]
          return -uy*x + ux*y 
       end, 

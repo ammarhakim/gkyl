@@ -72,7 +72,7 @@ plasmaApp = Plasma.App {
       charge = 1.0, mass = 1.0,
       -- Velocity space grid.
       lower      = {-8.0*vt},
-      upper      = {8.0*vt},
+      upper      = { 8.0*vt},
       cells      = {32},
       -- Initial conditions.
       init = function (t, xn)
@@ -84,7 +84,7 @@ plasmaApp = Plasma.App {
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'square'},
- --        frequencies = {nu, },
+ --        frequencies = {nu},
          normNu      = {nu*math.sqrt(0.11404^3)/1.01036},
       },
    },
@@ -94,7 +94,7 @@ plasmaApp = Plasma.App {
       charge = 1.0, mass = 1.0,
       -- Velocity space grid.
       lower      = {-8.0*vt},
-      upper      = {8.0*vt},
+      upper      = { 8.0*vt},
       cells      = {32},
       -- Initial conditions.
       init = function (t, xn)
@@ -105,29 +105,29 @@ plasmaApp = Plasma.App {
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
---         frequencies = {nu, },
+--         frequencies = {nu},
          normNu      = {nu*math.sqrt(0.39677^3)/1.10187},
       },
    },
 
-   -- field solver
+   -- Field solver.
    field = Plasma.Field {
-      evolve = false, -- evolve fields?
-      initPhiFunc = function (t, xn) return 0.0 end,
-      kperp2 = 0.0
+      evolve      = false, -- Evolve fields?
+      externalPhi = function (t, xn) return 0.0 end,
+      kperp2      = 0.0
    },
    
-   -- magnetic geometry 
+   -- Magnetic geometry.
    funcField = Plasma.Geometry {
-      -- background magnetic field
+      -- Background magnetic field.
       bmag = function (t, xn)
          local x = xn[1]
          return B0
       end,
-      -- geometry is not time-dependent
+      -- Geometry is not time-dependent.
       evolve = false,
    },
 
 }
--- run application
+-- Run application.
 plasmaApp:run()

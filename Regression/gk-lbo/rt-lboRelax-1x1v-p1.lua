@@ -93,14 +93,14 @@ plasmaApp = Plasma.App {
       charge = 1.0, mass = 1.0,
       -- Velocity space grid.
       lower      = {-8.0*vt},
-      upper      = {8.0*vt},
+      upper      = { 8.0*vt},
       cells      = {32},
       -- Initial conditions.
       init = function (t, xn)
 	 local x, v = xn[1], xn[2]
          return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
       end,
-      evolve = true,
+      evolve            = true,
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
@@ -108,24 +108,24 @@ plasmaApp = Plasma.App {
       },
    },
 
-   -- field solver
+   -- Field solver.
    field = Plasma.Field {
-      evolve = false, -- evolve fields?
-      initPhiFunc = function (t, xn) return 0.0 end,
-      kperp2 = 0.0
+      evolve      = false, -- Rvolve fields?
+      externalPhi = function (t, xn) return 0.0 end,
+      kperp2      = 0.0
    },
    
-   -- magnetic geometry 
+   -- Magnetic geometry.
    funcField = Plasma.Geometry {
-      -- background magnetic field
+      -- Background magnetic field.
       bmag = function (t, xn)
          local x = xn[1]
          return B0
       end,
-      -- geometry is not time-dependent
+      -- Geometry is not time-dependent.
       evolve = false,
    },
 
 }
--- run application
+-- Run application.
 plasmaApp:run()

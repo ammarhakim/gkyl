@@ -5,7 +5,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local ffi  = require "ffi"
+local ffi = require "ffi"
 local Mpi = require "Comm.Mpi"
 
 -- Cut and paste from ADIOS header file, comments unchanged: Perhaps
@@ -144,6 +144,8 @@ int64_t adios_define_var (int64_t group_id,
 // Use it if you want to have a new set of variables defined
 // for the next output step.
 int adios_delete_vardefs (int64_t id);
+
+int adios_set_time_aggregation ( int64_t groupid, uint64_t buffersize, int64_t syncgroupid );
 
 // Return the expected size (in bytes) of a defined variable.
 // It is simply the product of local dimensions and byte-size of type.

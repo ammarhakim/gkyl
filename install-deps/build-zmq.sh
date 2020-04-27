@@ -20,7 +20,3 @@ make install
 # softlink to make finding easier
 ln -sf $PREFIX $GKYLSOFT/zeromq
 
-# delete dynamic libraries
-cmd="rm -rf $PREFIX/lib/*.dylib $PREFIX/lib/*.so*"
-echo $cmd
-$cmd

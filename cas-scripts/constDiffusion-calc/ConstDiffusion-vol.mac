@@ -45,14 +45,18 @@ calcConstDiffusionVolUpdater(fh, funcNm, cdim, basisFun, pMax) := block([],
 
     /* Contribution to vector of the boundary. */
     
-    printf(fh, "double ~aP~a(const double *w, const double *dxv, const double *nu, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
-    printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). f: Input distribution function. out: Incremented output ~%"),
+    printf(fh,"double ~aP~a(const double *w, const double *dxv, const double *nu, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh,"  // w[~a]:   Cell-center coordinates.~%",cdim),
+    printf(fh,"  // dxv[~a]: Cell spacing.~%",cdim),
+    printf(fh,"  // nu[~a]:  diffusion coefficient (collisionality).~%",cdim),
+    printf(fh,"  // f:      Input distribution function.~%"),
+    printf(fh,"  // out:    Incremented output ~%"),
     cid : cidx(cdim),
-    printf(fh, "  double rdxSq4nu[~a]; ~%", cdim),
+    printf(fh,"  double rdxSq4nu[~a]; ~%", cdim),
     for dir : 1 thru cdim do (
-      printf(fh, "  rdxSq4nu[~a] = 4.0*nu[~a]/(dxv[~a]*dxv[~a]); ~%", dir-1, dir-1, dir-1, dir-1)
+      printf(fh,"  rdxSq4nu[~a] = 4.0*nu[~a]/(dxv[~a]*dxv[~a]); ~%", dir-1, dir-1, dir-1, dir-1)
     ),
-    printf(fh, "~%"),
+    printf(fh,"~%"),
   
 /*    Don't do coefficients where the increment is zero 
     for i : 1 thru N do (
@@ -60,19 +64,19 @@ calcConstDiffusionVolUpdater(fh, funcNm, cdim, basisFun, pMax) := block([],
         incr_s[i] : 0
     ), */
     writeCIncrExprs1(out, incr),
-    printf(fh, "~%"),
+    printf(fh,"~%"),
 
     if cdim = 1 then (
-      printf(fh, "return rdxSq4nu[0]*0.5; ~%")
+      printf(fh,"  return rdxSq4nu[0]*0.5*~a; ~%",float(((polyOrder+1)**2)/(2*polyOrder+1)))
     ),
     if cdim = 2 then (
-      printf(fh, "return (rdxSq4nu[0]+rdxSq4nu[1])*0.5; ~%")
+      printf(fh,"  return (rdxSq4nu[0]+rdxSq4nu[1])*0.5*~a; ~%",float(((polyOrder+1)**2)/(2*polyOrder+1)))
     ),
     if cdim = 3 then (
-      printf(fh, "return (rdxSq4nu[0]+rdxSq4nu[1]+rdxSq4nu[2])*0.5; ~%")
+      printf(fh,"  return (rdxSq4nu[0]+rdxSq4nu[1]+rdxSq4nu[2])*0.5*~a; ~%",float(((polyOrder+1)**2)/(2*polyOrder+1)))
     ),
-    printf(fh, "~%"),
+    printf(fh,"~%"),
   
-    printf(fh, "} ~%")
+    printf(fh,"} ~%")
 ));
 

@@ -36,7 +36,64 @@ let(dv1^3, dv1_cu)$
 let(dv2^3, dv2_cu)$
 let(dv3^3, dv3_cu)$
 
-writeCIncrExprsCollect1r(lhs, rhs, clst, cdim, vdim) := block([expr],
+writeCExprs1s(lhs, rhs, nSpaces) := block([expr],
+  expr : expand(float(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then (
+      ep : string(expr[i]),
+      ep : ssubst("std::sinh","sinh",ep),
+      for iC : 0 thru Ncp-1 do (
+        ep : ssubst(sconcat("xBarSq[",string(iC),"]"),
+                    sconcat("xBar[",string(iC),"]^2"),ep),
+        ep : ssubst(sconcat("g1Sq"),
+                    sconcat("g1[",string(iC),"]^2"),ep)
+      ),
+      printf(fh,sconcat(smake(nSpaces," "),"  ~a = ~a; ~%"), lhs[i-1], ep)
+    )
+  )
+)$
+
+writeCExprs1sI(lhs, iOut, rhs, nSpaces) := block([expr],
+  expr : expand(float(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then (
+      ep : string(expr[i]),
+      ep : ssubst("std::sinh","sinh",ep),
+      for iC : 0 thru Ncp-1 do (
+        ep : ssubst(sconcat("xBarSq[",string(iC),"]"),
+                    sconcat("xBar[",string(iC),"]^2"),ep),
+        ep : ssubst(sconcat("g1Sq"),
+                    sconcat("g1[",string(iC),"]^2"),ep)
+      ),
+      printf(fh,sconcat(smake(nSpaces," "),"  ~a = ~a; ~%"), lhs[iOut], ep)
+    )
+  )
+)$
+
+writeCExprs1so(lhs, rhs, nSpaces) := block([expr],
+  for i : 1 thru length(rhs) do (
+    expr : float(expand(num(rhs[i]))/denom(rhs[i])),
+    if expr # 0 then (
+      printf(fh,sconcat(smake(nSpaces," "),"  ~a = ~a; ~%"), lhs[i-1], expr)
+    )
+  )
+)$
+
+writeCExprs1sP(lhs, rhs, nSpaces) := block([expr],
+  expr : expand(float(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then (
+      ep : string(expr[i]),
+      for iC : 0 thru Ncp-1 do (
+        ep : ssubst(sconcat("xBar[",string(iC),"]*xBar[",string(iC),"]"),
+                    sconcat("xBar[",string(iC),"]^2"),ep)
+      ),
+      printf(fh,sconcat(smake(nSpaces," "),"  ~a = ~a; ~%"), lhs[i-1], ep)
+    )
+  )
+)$
+
+writeCIncrExprsCollect1r(lhs, rhs, clst, cdim, vdim, nSpaces) := block([expr],
   expr : float(expand(rhs)),
   for i : 1 thru length(expr) do (
     if expr[i] # 0.0 then (
@@ -47,7 +104,7 @@ writeCIncrExprsCollect1r(lhs, rhs, clst, cdim, vdim) := block([expr],
       for vd : 1 thru vdim do (
         ep : ssubst(sconcat("wvSq[",vd-1,"]"),sconcat("w[",cdim+vd-1,"]^2"),ep)
       ),
-      printf(fh, "  ~a += ~a; ~%", lhs[i-1], ep)
+      printf(fh,sconcat(smake(nSpaces," "),"  ~a += ~a; ~%"), lhs[i-1], ep)
     )
   )
 )$
@@ -66,7 +123,7 @@ writeCIncrExprsNoExpand1r(lhs, rhs, cdim, vdim) := block([expr],
   )
 )$
 
-calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun) := block([],
+calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun, applyPos) := block([],
 
   kill(varsC, varsP, basisC, basisP),
 
@@ -132,15 +189,72 @@ calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun) := block([],
      1D recovery polynomial coefficients computed above. */
   hsol : psubst(append(makelist(fl[i]=fls[i], i, 1, N1), makelist(fr[i]=frs[i], i, 1, N1)), hsol1),
 
+  /* Because f's in hsol are index-1, we need to switch to
+     0-indexed for C++. */
+  subList : append(makelist(fr[i]=fr[i-1],i,1,NP),makelist(fl[i]=fl[i-1],i,1,NP)),
+  hsol   : psubst(subList,hsol),
+
   /* Write out the full recovery polynomial and its derivative. */
   h : sum(hsol[i]*vv^(i-1), i, 1, 2*N1),
   /* Evaluate the recovery polynomial at the discontinuity. */
   hsol0 : subst(vv=0,h),
 
-  /* Because f's in hsol are index-1, we need to switch to
-     0-indexed for C++. */
-  subList : append(makelist(fr[i]=fr[i-1],i,1,NP),makelist(fl[i]=fl[i-1],i,1,NP)),
-  hsol0   : psubst(subList,hsol0),
+  /*............. Positivity-preserving recovery .............*/
+
+  if (applyPos) then (
+    /* In order to preserve positivity we will first use an exponential
+       representation to the recovery polynomial when the interface
+       value falls below zero. But in this case the interface is a
+       hypersurface. We will evaluate the recovery polynomial at all
+       the key (positivity control) points for now (other options are
+       corners and quadrature points).*/
+
+
+    /* This function evaluates the coefficients of the recovery polynomial
+        (fIn) in variables evalVars at all combinations of (+/- evalPoint)
+        points, and places it in the list fEvOut. */
+    pointEval(fEvOut,fIn,evalVars,evalPoint,compIn) := block([v1,otherVars,fSub],
+      v1        : evalVars[1],
+      otherVars : delete(v1,evalVars),
+      for iQ : -1 step 2 thru 1 do (
+        fSub : subst(v1=iQ*evalPoint,fIn),
+        if length(otherVars)>0 then (
+          pointEval(fEvOut,fSub,otherVars,evalPoint,compIn)
+        ) else (
+          fEvOut[compIn][iHe] : fSub,
+          iHe : iHe + 1
+        )
+      )
+    ),
+
+    /* Evaluate boundary value of recovery polynomial at key (control) points. */
+    Ncp : 2^(cdim+vdim-1),  /* Number of control points. */
+    hsolKP: [makelist(0,j,1,Ncp)],
+    iHe : 1,
+    pointEval(hsolKP,hsol[1],surfVars,1/3,1),
+
+    /* Evaluate all the coefficients of the recovery polynomial
+       at (surface) positivity control points. */
+    hsolEv : makelist(makelist(0,j,1,Ncp),i,1,4),
+    for iC : 1 thru 4 do (
+      iHe : 1,
+      pointEval(hsolEv,hsol[iC],surfVars,1/3,iC)
+    ),
+
+    /* At each point we evaluated the recovery poly, need to reconstruct
+       an exponential, for which we need xBar, xBarSq and g1. */
+    xBars : makelist(0,i,1,Ncp),
+    for iCP : 1 thru Ncp do (
+      xBars[iCP] : (hsolEv[2][iCP]+3*hsolEv[4][iCP]/5)/(3*hsolEv[1][iCP]+hsolEv[3][iCP])
+    ),
+
+    xBarsSq : makelist(xBar[i]*xBar[i],i,0,Ncp-1),
+    g1s     : makelist(xBar[i]*(3-xBarSq[i])/(1-xBarSq[i]),i,0,Ncp-1)
+
+    /* Building the exponentials out of g1s and the recovery poly is
+       done farther below. */
+
+  ),
 
   /*............. RECOVERY DONE ..............................*/
 
@@ -168,8 +282,87 @@ calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun) := block([],
   ),
   printf(fh, " ~%"),
 
-  iM0star : calcInnerProdList(surfVars, 1, bC, hsol0),
-  writeCIncrExprsCollect1(out, dS*iM0star,[dS]),
+  if (not applyPos) then (
+
+    iM0star : calcInnerProdList(surfVars, 1, bC, hsol0),
+    writeCIncrExprsCollect1(out, dS*iM0star,[dS])
+
+  ) else (
+
+    /* If value of recovery polynomial at the interface, evaluated at key
+       points, is below zero, use its exponential representation. */
+    hsolKPifCond : "(",
+    for iS : 1 thru length(hsolKP[1]) do (
+      hsolKPifCond : sconcat(hsolKPifCond,string(float(expand(hsolKP[1][iS]))),">=0.0)"),
+      if iS<length(hsolKP[1]) then (
+        hsolKPifCond : sconcat(hsolKPifCond," && (")
+      )
+    ),
+    printf(fh,"  if ( ~a ) {~%",hsolKPifCond),
+
+    iM0star : calcInnerProdList(surfVars, 1, bC, hsol0),
+    writeCIncrExprsCollect1r(out, dS*iM0star,[dS], cdim, vdim, 2),
+
+    printf(fh,"  } else {~%"),
+    printf(fh,"~%"),
+
+    printf(fh,"    double xBar[~a];~%",Ncp),
+    writeCExprs1so(xBar,xBars,2),
+    printf(fh,"~%"),
+
+    printf(fh,"    double xBarSq[~a];~%", Ncp),
+    writeCExprs1sP(xBarSq,xBarsSq,2),
+    printf(fh,"~%"),
+
+    printf(fh,"    double g1[~a];~%",Ncp),
+    writeCExprs1s(g1,g1s,2),
+    printf(fh,"~%"),
+
+    printf(fh,"    double gBound[~a];~%",Ncp),
+    printf(fh,"~%"),
+
+    for iCP : 1 thru Ncp do (
+      /* When the function is very flat we need to compute the exponential
+         differently so that 1/sinh(g1) doesn't blow up. */
+      printf(fh,"    if (std::abs(g1[~a]) > 1.0e-15) {~%",iCP-1),
+
+      printf(fh,"      double g1Sq = g1[~a]*g1[~a];~%",iCP-1,iCP-1),
+
+      expg0  : [g1[iCP-1]*(hsolEv[1][iCP]+hsolEv[3][iCP]/3)/sinh(g1[iCP-1])],
+
+      writeCExprs1sI(gBound,iCP-1,expg0,4),
+
+      printf(fh,"    } else {~%"),
+
+      expg0  : [hsolEv[1][iCP]+hsolEv[3][iCP]/3],
+
+      writeCExprs1sI(gBound,iCP-1,expg0,4),
+
+      printf(fh,"    };~%"),
+      printf(fh, "~%")
+    ),
+
+    /*........... Create nodal to modal transform matrix .......... */
+    /* Surface basis: basis of one lower dimensionality w/o surf variable. */
+    bSurf  : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst(vv=0,bP)))*bP),
+    gFsurf : doExpand(gF,bSurf),
+    /* Evaluate the g-Function at various combinations of control points. */
+    gFsurfCP : [makelist(0,i,1,Ncp)],
+    iHe      : 1,
+    pointEval(gFsurfCP,gFsurf,surfVars,1/3,1),
+    /* Construct the nodal-to-modal matrix. */
+    n2m : invert(coefmatrix(gFsurfCP[1],makelist(gF[i],i,1,length(bSurf)))),
+    /*........... Built nodal to modal transform matrix .......... */
+
+    modalV  : n2m . makelist(gBound[i-1],i,1,Ncp),
+    gRec0   : doExpand(makelist(modalV[i][1],i,1,length(bSurf)),bSurf),
+
+    iM0star : calcInnerProdList(surfVars, 1, bC, gRec0),
+    writeCIncrExprsCollect1r(out, dS*iM0star,[dS], cdim, vdim, 2),
+
+    printf(fh,"  };~%")
+
+  ),
   
   printf(fh, " ~%"),
   printf(fh, "} ~%"),
@@ -242,7 +435,7 @@ calcVmStarM1iM2(fh, funcNm, cdim, vdim, basisFun) := block([],
      M0M2 : M0M2+makelist(tempM1i[(vd-1)*NC+i],i,1,NC)*w[cdim+vd-1]
   ),
   clst : append([volFact], makelist(tempM0[i-1], i, 1, NC)),
-  writeCIncrExprsCollect1r(outM2, M0M2, clst, cdim, vdim),
+  writeCIncrExprsCollect1r(outM2, M0M2, clst, cdim, vdim, 0),
 
   printf(fh, " ~%"),
   printf(fh, "} ~%"),
@@ -328,11 +521,12 @@ calcGkStarM1iM2(fh, funcNm, cdim, vdim, basisFun) := block([],
 
 calcStarMomContributions(fh, funcNmRoot, cdim, vdim, basisFun) := block([],
 
-  funcNm : sconcat(funcNmRoot,"M0Star", c, "x", v, "v", basisFun),
   if (sequal(funcNmRoot,"Vm")) then (
 
+    funcNm : sconcat(funcNmRoot,"M0Star", c, "x", v, "v", basisFun),
+
     for dir : 1 thru vdim do (
-      calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun)
+      calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun, false)
     ),
 
     funcNm : sconcat(funcNmRoot,"M1iM2Star", c, "x", v, "v", basisFun),
@@ -340,7 +534,13 @@ calcStarMomContributions(fh, funcNmRoot, cdim, vdim, basisFun) := block([],
 
   ) else (
 
-    calcStarM0Dir(1, fh, funcNm, cdim, vdim, basisFun),
+    funcNm : sconcat(funcNmRoot,"M0Star", c, "x", v, "v", basisFun),
+    calcStarM0Dir(1, fh, funcNm, cdim, vdim, basisFun, false),
+
+    if (basisFun = "Ser") then (
+      funcNm : sconcat(funcNmRoot,"M0StarPositivity", c, "x", v, "v", basisFun),
+      calcStarM0Dir(1, fh, funcNm, cdim, vdim, basisFun, true)
+    ),
 
     funcNm : sconcat(funcNmRoot,"M1iM2Star", c, "x", v, "v", basisFun),
     calcGkStarM1iM2(fh, funcNm, cdim, vdim, basisFun)

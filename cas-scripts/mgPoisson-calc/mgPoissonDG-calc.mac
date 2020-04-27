@@ -1,0 +1,78 @@
+/* Generate kernels for the various elements of a multigrid
+   solve of the simple Poisson equation
+       - L(phi) = rho
+   where L is the Laplacian, using DG. */
+
+load(stringproc)$
+load("mgPoisson-calc/DGintergridOperators")$
+load("mgPoisson-calc/DGsmoothers")$
+load("mgPoisson-calc/DGresidue")$
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 1$
+minCdim_Ser : 1$
+maxCdim_Ser : 2$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 1$
+minCdim_Max : 1$
+maxCdim_Max : 0$
+
+/* Tensor product basis. */
+maxPolyOrder_Tensor : 1$
+minCdim_Tensor : 1$
+maxCdim_Tensor : 0$
+
+/* ...... END OF USER INPUTS........ */
+
+bName        : ["Ser","Max","Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+
+for bInd : 1 thru length(bName) do (
+     
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    fname : sconcat("~/max-out/MGpoissonDG", bName[bInd], c, "x", ".cpp"),
+    fh : openw(fname),
+  
+    disp(printf(false,sconcat("Creating ~ax ", bName[bInd]),c)),
+  
+    printf(fh, "#include <MGpoissonModDecl.h> ~%"),
+    printf(fh, " ~%"),
+    
+    /* Inter-grid operators. */
+    funcName : sconcat("MGpoissonDGProlong", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonDGProlong", c, "x", bName[bInd]))),
+    calcDGProlongationOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    
+    funcName : sconcat("MGpoissonDGRestrict", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonDGRestrict", c, "x", bName[bInd]))),
+    calcDGRestrictionOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    
+    /* Damped Gauss-Seidel. */
+    funcName : sconcat("MGpoissonDGDampedGaussSeidel", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonDGDampedGaussSeidel", c, "x", bName[bInd]))),
+    calcDGGaussSeidelOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    calcDGGaussSeidelOpBoundary(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+
+    /* Damped Jacobi relaxation kernels. */
+    funcName : sconcat("MGpoissonDGDampedJacobi", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonDGDampedJacobi", c, "x", bName[bInd]))),
+    calcDGJacobiOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    calcDGJacobiOpBoundary(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+
+    /* Kernel for computing the residue. */
+    funcName : sconcat("MGpoissonDGResidue", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonDGResidue", c, "x", bName[bInd]))),
+    calcDGResidue(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    calcDGResidueBoundary(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+
+    close(fh)
+  )
+  
+  
+)$
+

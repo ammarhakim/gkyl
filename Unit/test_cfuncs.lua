@@ -35,6 +35,9 @@ ffi.cdef [[
 
   void setMetricFuncPointer_Adder(Adder *a, void (*gfunc)(double *xc, double *g));
   void printg_Adder(Adder *a, double r, double t);
+
+  void *new_Dim_1();
+  int getDim_Dim_1(void *d);
 ]]
 
 ffi.cdef [[
@@ -123,11 +126,17 @@ function test_5()
    
 end
 
+function test_6()
+   local dim1 = ffi.C.new_Dim_1()
+   assert_equal(1, ffi.C.getDim_Dim_1(dim1), "Checking if dim1 object is correct")
+end
+
 test_1()
 test_2()
 test_3()
 test_4()
 test_5()
+test_6()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

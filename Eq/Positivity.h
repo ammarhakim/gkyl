@@ -10,5 +10,3 @@
 
 double patchFit(double r, double x);
 double limTheta(double r, double x);
-double patchFit(double r, double x, double CFL);
-double limTheta(double r, double x, double CFL);

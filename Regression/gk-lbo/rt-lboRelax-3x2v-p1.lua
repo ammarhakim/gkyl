@@ -99,7 +99,7 @@ plasmaApp = Plasma.App {
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'square'},
-         frequencies = {nu, },
+         frequencies = {nu},
       },
    },
 
@@ -109,7 +109,7 @@ plasmaApp = Plasma.App {
    --    upper      = {vMax,muMax},
    --    cells      = Nv,
    --    -- Initial conditions.
-   --    init = {"maxwellian",
+   --    init = Plasma.MaxwellianProjection {
    --            density = nMr,
    -- 	      driftSpeed = {uMr},
    --            temperature = vt2Mr,   
@@ -142,7 +142,7 @@ plasmaApp = Plasma.App {
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
-         frequencies = {nu, },
+         frequencies = {nu},
       },
    },
 
@@ -153,7 +153,7 @@ plasmaApp = Plasma.App {
    --    upper      = {vMax,muMax},
    --    cells      = Nv,
    --    -- Initial conditions.
-   --    init = {"maxwellian",
+   --    init = Plasma.MaxwellianProjection {
    --            density = nMb,
    -- 	      driftSpeed = {uMb},
    --            temperature = vt2Mb,
@@ -164,24 +164,24 @@ plasmaApp = Plasma.App {
    --    diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
    -- },
 
-   -- field solver
+   -- Field solver.
    field = Plasma.Field {
-      evolve = true, -- evolve fields?
-      initPhiFunc = function (t, xn) return 0.0 end,
+      evolve      = false, -- Evolve fields?
+      externalPhi = function (t, xn) return 0.0 end,
    },
    
-   -- magnetic geometry 
+   -- Magnetic geometry.
    funcField = Plasma.Geometry {
-      -- background magnetic field
+      -- Background magnetic field
       bmag = function (t, xn)
          local x = xn[1]
-         return B0
+         return B0*(1+x)
       end,
 
-      -- geometry is not time-dependent
+      -- Geometry is not time-dependent.
       evolve = false,
    },
 
 }
--- run application
+-- Run application.
 plasmaApp:run()

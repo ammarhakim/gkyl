@@ -4,13 +4,35 @@
 ## + 6 @ |||| # P ||| +
 
 import os
+from waflib import Utils
 
 def build(bld):
-    bld.objects(source = r"""
+    sources = r"""
     MomentSrcCommon.cpp
     FiveMomentSrcImpl.cpp
     TenMomentSrcImpl.cpp
     TenMomentRelaxImpl.cpp
+
+    momentCalcData/IntegratedDGMomentSer1x.cpp
+    momentCalcData/IntegratedDGMomentSer2x.cpp
+    momentCalcData/IntegratedDGMomentSer3x.cpp
+    momentCalcData/IntegratedDGMomentSer4x.cpp
+    momentCalcData/IntegratedDGMomentSer5x.cpp
+    momentCalcData/IntegratedDGMomentSer6x.cpp
+    momentCalcData/IntegratedDGMomentSer1x1v.cpp
+    momentCalcData/IntegratedDGMomentSer1x2v.cpp
+    momentCalcData/IntegratedDGMomentSer1x3v.cpp
+    momentCalcData/IntegratedDGMomentSer2x2v.cpp
+    momentCalcData/IntegratedDGMomentSer2x3v.cpp
+    momentCalcData/IntegratedDGMomentSer3x3v.cpp
+
+    interpolateCalcData/CartFieldInterpSer1x.cpp
+    interpolateCalcData/CartFieldInterpSer2x.cpp
+
+    mgPoissonCalcData/MGpoissonDGSer1x.cpp
+    mgPoissonCalcData/MGpoissonDGSer2x.cpp
+    mgPoissonCalcData/MGpoissonFEMSer1x.cpp
+    mgPoissonCalcData/MGpoissonFEMSer2x.cpp
 
     spitzerNuCalcData/SpitzerNuSer1x.cpp
     spitzerNuCalcData/SpitzerNuSer2x.cpp
@@ -91,35 +113,82 @@ def build(bld):
     primMomentsCalcData/GkBGKCrossPrimMomentsMax2x2v.cpp
     primMomentsCalcData/GkBGKCrossPrimMomentsMax3x2v.cpp
 
-    binOpCalcData/CartFieldBinOpSer1x.cpp
-    binOpCalcData/CartFieldBinOpSer2x.cpp
-    binOpCalcData/CartFieldBinOpSer3x.cpp
-    binOpCalcData/CartFieldBinOpSer1x1v.cpp
-    binOpCalcData/CartFieldBinOpSer1x2v.cpp
-    binOpCalcData/CartFieldBinOpSer1x3v.cpp
-    binOpCalcData/CartFieldBinOpSer2x2v.cpp
-    binOpCalcData/CartFieldBinOpSer2x3v.cpp
-    binOpCalcData/CartFieldBinOpSer3x2v.cpp
-    binOpCalcData/CartFieldBinOpSer3x3v.cpp
     binOpCalcData/CartFieldBinOpImpl.cpp
+    binOpCalcData/CartFieldBinOpSer1xP1.cpp
+    binOpCalcData/CartFieldBinOpSer2xP1.cpp
+    binOpCalcData/CartFieldBinOpSer3xP1.cpp
+    binOpCalcData/CartFieldBinOpSer1x1vP1.cpp
+    binOpCalcData/CartFieldBinOpSer1x2vP1.cpp
+    binOpCalcData/CartFieldBinOpSer1x3vP1.cpp
+    binOpCalcData/CartFieldBinOpSer2x2vP1.cpp
+    binOpCalcData/CartFieldBinOpSer2x3vP1.cpp
+    binOpCalcData/CartFieldBinOpSer3x2vP1.cpp
+    binOpCalcData/CartFieldBinOpSer3x3vP1.cpp
 
-    binOpCalcData/CartFieldBinOpMax1x.cpp
-    binOpCalcData/CartFieldBinOpMax2x.cpp
-    binOpCalcData/CartFieldBinOpMax3x.cpp
-    binOpCalcData/CartFieldBinOpMax1x1v.cpp
-    binOpCalcData/CartFieldBinOpMax1x2v.cpp
-    binOpCalcData/CartFieldBinOpMax1x3v.cpp
-    binOpCalcData/CartFieldBinOpMax2x2v.cpp
-    binOpCalcData/CartFieldBinOpMax2x3v.cpp
-    binOpCalcData/CartFieldBinOpMax3x2v.cpp
-    binOpCalcData/CartFieldBinOpMax3x3v.cpp
+    binOpCalcData/CartFieldBinOpMax1xP1.cpp
+    binOpCalcData/CartFieldBinOpMax2xP1.cpp
+    binOpCalcData/CartFieldBinOpMax3xP1.cpp
+    binOpCalcData/CartFieldBinOpMax1x1vP1.cpp
+    binOpCalcData/CartFieldBinOpMax1x2vP1.cpp
+    binOpCalcData/CartFieldBinOpMax1x3vP1.cpp
+    binOpCalcData/CartFieldBinOpMax2x2vP1.cpp
+    binOpCalcData/CartFieldBinOpMax2x3vP1.cpp
+    binOpCalcData/CartFieldBinOpMax3x2vP1.cpp
+    binOpCalcData/CartFieldBinOpMax3x3vP1.cpp
 
-    binOpCalcData/CartFieldBinOpTensor1x.cpp
-    binOpCalcData/CartFieldBinOpTensor2x.cpp
-    binOpCalcData/CartFieldBinOpTensor1x1v.cpp
-    binOpCalcData/CartFieldBinOpTensor1x2v.cpp
-    binOpCalcData/CartFieldBinOpTensor1x3v.cpp
-    binOpCalcData/CartFieldBinOpTensor2x2v.cpp
+    binOpCalcData/CartFieldBinOpTensor1xP1.cpp
+    binOpCalcData/CartFieldBinOpTensor2xP1.cpp
+    binOpCalcData/CartFieldBinOpTensor3xP1.cpp
+    binOpCalcData/CartFieldBinOpTensor1x1vP1.cpp
+    binOpCalcData/CartFieldBinOpTensor1x2vP1.cpp
+    binOpCalcData/CartFieldBinOpTensor1x3vP1.cpp
+    binOpCalcData/CartFieldBinOpTensor2x2vP1.cpp
+
+    binOpCalcData/CartFieldBinOpSer1xP2.cpp
+    binOpCalcData/CartFieldBinOpSer2xP2.cpp
+    binOpCalcData/CartFieldBinOpSer3xP2.cpp
+    binOpCalcData/CartFieldBinOpSer1x1vP2.cpp
+    binOpCalcData/CartFieldBinOpSer1x2vP2.cpp
+    binOpCalcData/CartFieldBinOpSer1x3vP2.cpp
+    binOpCalcData/CartFieldBinOpSer2x2vP2.cpp
+    binOpCalcData/CartFieldBinOpSer2x3vP2.cpp
+    binOpCalcData/CartFieldBinOpSer3x2vP2.cpp
+
+
+    binOpCalcData/CartFieldBinOpMax1xP2.cpp
+    binOpCalcData/CartFieldBinOpMax2xP2.cpp
+    binOpCalcData/CartFieldBinOpMax3xP2.cpp
+    binOpCalcData/CartFieldBinOpMax1x1vP2.cpp
+    binOpCalcData/CartFieldBinOpMax1x2vP2.cpp
+    binOpCalcData/CartFieldBinOpMax1x3vP2.cpp
+    binOpCalcData/CartFieldBinOpMax2x2vP2.cpp
+    binOpCalcData/CartFieldBinOpMax2x3vP2.cpp
+    binOpCalcData/CartFieldBinOpMax3x2vP2.cpp
+
+
+    binOpCalcData/CartFieldBinOpTensor1xP2.cpp
+    binOpCalcData/CartFieldBinOpTensor2xP2.cpp
+    binOpCalcData/CartFieldBinOpTensor3xP2.cpp
+    binOpCalcData/CartFieldBinOpTensor1x1vP2.cpp
+    binOpCalcData/CartFieldBinOpTensor1x2vP2.cpp
+    binOpCalcData/CartFieldBinOpTensor1x3vP2.cpp
+    binOpCalcData/CartFieldBinOpTensor2x2vP2.cpp
+
+    binOpCalcData/CartFieldBinOpSer1xP3.cpp
+    binOpCalcData/CartFieldBinOpSer2xP3.cpp
+    binOpCalcData/CartFieldBinOpSer3xP3.cpp
+    binOpCalcData/CartFieldBinOpSer1x1vP3.cpp
+    binOpCalcData/CartFieldBinOpSer1x2vP3.cpp
+    binOpCalcData/CartFieldBinOpSer1x3vP3.cpp
+    binOpCalcData/CartFieldBinOpSer2x2vP3.cpp
+
+    binOpCalcData/CartFieldBinOpMax1xP3.cpp
+    binOpCalcData/CartFieldBinOpMax2xP3.cpp
+    binOpCalcData/CartFieldBinOpMax3xP3.cpp
+    binOpCalcData/CartFieldBinOpMax1x1vP3.cpp
+    binOpCalcData/CartFieldBinOpMax1x2vP3.cpp
+    binOpCalcData/CartFieldBinOpMax1x3vP3.cpp
+    binOpCalcData/CartFieldBinOpMax2x2vP3.cpp
 
     lagrangeFixData/VlasovLagrangeFixSer1x1v.cpp
     lagrangeFixData/VlasovLagrangeFixSer1x2v.cpp
@@ -179,6 +248,8 @@ def build(bld):
     FemParPoissonImpl.cpp
     FemMatrices.cpp
     FemGyroaverageImpl.cpp
+
+    DiscontPoissonImpl.cpp
   
     confToPhaseData/ConfToPhaseMax1x1v.cpp
     confToPhaseData/ConfToPhaseMax1x2v.cpp
@@ -203,7 +274,20 @@ def build(bld):
 
     ProjectOnBasisImpl.cpp
     EvalOnNodesImpl.cpp
+    """
 
-    """,
-    includes = '. spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='EIGEN MPI', target = 'updater')
+    # CUDA specific code
+    if bld.env['CUTOOLS_FOUND']:
+        cusources = 'momentCalcData/DistFuncMomentCalcSer1x1v.cpp momentCalcData/DistFuncMomentCalcDeviceCommon.cu momentCalcData/DistFuncMomentCalcSer1x1vDevice.cu'
+        
+        bld(source = cusources,
+            name = 'updater_cu', target='updater_cu',
+            includes = '. .. ../Cuda ../Grid ../Lib momentCalcData', features = 'cxx nvcc cushlib'
+        )
+
+    bld.shlib(source = sources,
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='lib EIGEN MPI', target = 'updater', name = 'updater', vum = '1.0')
     
+## Removed the following files from the build for now
+#     binOpCalcData/CartFieldBinOpSer3x3vP2.cpp
+#     binOpCalcData/CartFieldBinOpMax3x3vP2.cpp

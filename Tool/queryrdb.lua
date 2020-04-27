@@ -40,6 +40,9 @@ local statusToString = { [-2] = "create", [-1] = "skip", [0] = "fail", [1] = "pa
 -- Name of configuration file
 local confFile = os.getenv("HOME") .. "/runregression.config.lua"
 
+-- need to change this as it is keyed on input file name
+GKYL_OUT_PREFIX = lfs.currentdir() .. "/" .. "queryrdb"
+
 local log = Logger { logToFile = true }
 local verboseLog = function (msg) end -- default no messages are written
 local verboseLogger = function (msg) log(msg) end
@@ -139,6 +142,9 @@ local function query_action(args, name)
 	 if args.fail_only then
 	    if status == "fail" then return true else return false end
 	 end
+	 if args.pass_only then
+	    if status == "pass" then return true else return false end
+	 end	 
 	 return true
       end
       
@@ -149,13 +155,26 @@ local function query_action(args, name)
 	 print(string.format("=== ")) 
 	 print(dbData[tidx].runlog)
       else
-	 local fmt = "%-4s: %-" .. maxNm+2 .. "s %-7s %-4s"
-	 print(string.format(fmt, "ID", "Name", "Status", "Run-Time"))
-	 local fmt1 = "%-4s: %-" .. maxNm+2 .. "s %-7s %.4g"
-	 for i,d in pairs(dbData) do
-	    if filt(d.status) then
-	       print(string.format(fmt1, i, d.name, d.status, d.runtime))
+	 if args.comma_list then
+	    -- print pass/fail as comma seperated list (unless -f flag
+	    -- is use this list does not distinguish passed and failed
+	    -- tests)
+	    for i,d in pairs(dbData) do
+	       if filt(d.status) then
+		  io.write(d.name .. ',')
+	       end
 	    end
+	    io.write('\n')
+	 else
+	    -- print detailed complete information
+	    local fmt = "%-4s: %-" .. maxNm+2 .. "s %-7s %-4s"
+	    print(string.format(fmt, "ID", "Name", "Status", "Run-Time"))
+	    local fmt1 = "%-4s: %-" .. maxNm+2 .. "s %-7s %.4g"
+	    for i,d in pairs(dbData) do
+	       if filt(d.status) then
+		  print(string.format(fmt1, i, d.name, d.status, d.runtime))
+	       end
+	    end	    
 	 end
       end
    end
@@ -190,21 +209,39 @@ local function history_action(args, name)
       return nm
    end
 
-   local tNm = trimname(args.regression)
-   local dat, nrow = sqlConn:exec(
-      string.format("select * from RegressionData where name=='%s'", tNm)
-   )
-
-   local fmt = "%-20s %-30s %-7s %-4s"
-   print(string.format(fmt, "Time-Stamp", "Changeset", "Status", "Run-Time"))
-   local fmt1 = "%-20s %-30s %-7s %.4g"
-   for i = 1,nrow do
-      local guid = dat['guid'][i]
-      local tstamp, changeset = sqlConn:rowexec(
-	 string.format("select tstamp, GKYL_HG_CHANGESET from RegressionMeta where guid='%s'", guid)
+   if args.time_only then
+      local tNm = trimname(args.regression)
+      local dat, nrow = sqlConn:exec(
+	 string.format("select * from RegressionData where name=='%s' and status==1", tNm)
       )
-      local stat = statusToString[tonumber(dat['status'][i])]
-      print(string.format(fmt1, tstamp, changeset, stat, dat['runtime'][i]))
+      
+      local fmt = "## %-20s %-4s"
+      print(string.format(fmt, "Time-Stamp", "Run-Time"))
+      local fmt1 = "%.4g"
+      for i = 1,nrow do
+	 local guid = dat['guid'][i]
+	 local tstamp, changeset = sqlConn:rowexec(
+	    string.format("select tstamp, GKYL_HG_CHANGESET from RegressionMeta where guid='%s'", guid)
+	 )
+	 print(string.format(fmt1, dat['runtime'][i]))
+      end      
+   else
+      local tNm = trimname(args.regression)
+      local dat, nrow = sqlConn:exec(
+	 string.format("select * from RegressionData where name=='%s'", tNm)
+      )
+      
+      local fmt = "%-20s %-30s %-7s %-4s"
+      print(string.format(fmt, "Time-Stamp", "Changeset", "Status", "Run-Time"))
+      local fmt1 = "%-20s %-30s %-7s %.4g"
+      for i = 1,nrow do
+	 local guid = dat['guid'][i]
+	 local tstamp, changeset = sqlConn:rowexec(
+	    string.format("select tstamp, GKYL_HG_CHANGESET from RegressionMeta where guid='%s'", guid)
+	 )
+	 local stat = statusToString[tonumber(dat['status'][i])]
+	 print(string.format(fmt1, tstamp, changeset, stat, dat['runtime'][i]))
+      end
    end
    
 end
@@ -228,6 +265,8 @@ local c_query = parser:command("query", "Query individual run of regression syst
    :action(query_action)
 c_query:option("-i --id", "Print information for regression run with this ID", 1)
 c_query:flag("-f --fail-only", "Print only failed tests", false)
+c_query:flag("-p --pass-only", "Print only pass tests", false)
+c_query:flag("-l --comma-list", "Print test list as comma seperated list", false)
 c_query:option("-t --test", "Print log for specified test number", 0)
 c_query:flag("--net-time", "Print total time it took to run all tests", false)
 
@@ -240,6 +279,7 @@ c_delete:option("-i --id", "Regression run with this ID will be deleted", 0)
 local c_history = parser:command("history", "Query historical data for a specific test")
    :action(history_action)
 c_history:option("-r --regression", "Print history for specific test")
+c_history:flag("--time-only ", "Print run time only (for when test passed)", false)
 
 -- parse command-line args (functionality encoded in command actions)
 local _ = parser:parse(GKYL_COMMANDS)

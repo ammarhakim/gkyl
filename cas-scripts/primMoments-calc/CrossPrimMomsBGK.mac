@@ -117,25 +117,25 @@ calcCrossPrimMomsBGK(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "  bool cellAvg = false;~%"),
     for iSpec : 1 thru 2 do (
       for v1 : -1 step 2 thru 1 do (
-        cornerA : subst(varsC[1]=v1,doExpand1(m0Spec[iSpec],bC)),
+        cornerX : subst(varsC[1]=v1,doExpand1(m0Spec[iSpec],bC)),
         if cdim > 1 then (
           for v2 : -1 step 2 thru 1 do (
-            cornerA : subst(varsC[2]=v2,cornerA),
+            cornerY : subst(varsC[2]=v2,cornerX),
             if cdim > 2 then (
               for v3 : -1 step 2 thru 1 do (
-                cornerA : subst(varsC[3]=v3,cornerA),
-                printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
+                cornerZ : subst(varsC[3]=v3,cornerY),
+                printf(fh, "  if (~a < 0) { ~%",float(expand(cornerZ))),
                 printf(fh, "    cellAvg = true;~%"),
                 printf(fh, "  }~%")
               )
             ) else (
-              printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
+              printf(fh, "  if (~a < 0) { ~%",float(expand(cornerY))),
               printf(fh, "    cellAvg = true;~%"),
               printf(fh, "  }~%")
             )
           )
         ) else (
-          printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
+          printf(fh, "  if (~a < 0) { ~%",float(expand(cornerX))),
           printf(fh, "    cellAvg = true;~%"),
           printf(fh, "  }~%")
         )
@@ -190,7 +190,7 @@ calcCrossPrimMomsBGK(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       uCrossSelf_c  : makelist(uCrossSelf[i],i,0,NC-1),
       uCrossOther_e : doExpand1(uCrossOther,bC),
       uCrossOther_c : makelist(uCrossOther[i],i,0,NC-1),
-      /* Use the vd component of u, m1 and cM. */
+      /* Use the vd component of u and m1. */
       uSelf_e       : subst(makelist(uSelf[i]=uSelf[(vd-1)*NC+i],i,0,NC-1),uSelf_e),
       uSelf_c       : subst(makelist(uSelf[i]=uSelf[(vd-1)*NC+i],i,0,NC-1),uSelf_c),
       uOther_e      : subst(makelist(uOther[i]=uOther[(vd-1)*NC+i],i,0,NC-1),uOther_e),

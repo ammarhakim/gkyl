@@ -1,0 +1,47 @@
+load("modal-basis") $
+
+load("recovery-calc/recovery-1cell") $
+load("recovery-calc/recovery-2cell") $
+load("recovery-calc/recovery-3cell") $
+load("recovery-calc/recovery-face") $
+
+/* -- Helper Functions -------------------------------------------- */
+
+etaDir(dir, xc, dx, basis) := block(
+  /* A helper function to shift basis functions in only one direction.
+     Example: etaDir(y, dy/2, dy, basis) */
+  return(subst(td=dir, subst(dir=2*(td-xc)/dx, basis)))
+) $
+
+eta(xc, dx, basis) := block(
+  /* A helper function to shift basis functions in all directions
+     together
+     Example: eta([x, y], [dx/2, -dy/2], [dx, dy], basis) */
+  [out, tx, ty, tz],
+  out : subst(tx=x, subst(x=2*(tx-xc[1])/dx[1], basis)),
+  if length(dx) > 1 then out : subst(ty=y, subst(y=2*(ty-xc[2])/dx[2], out)),
+  if length(dx) > 2 then out : subst(tz=z, subst(z=2*(tz-xc[3])/dx[3], out)),
+  return(out)
+) $
+
+/* A simple helper function to convert x, y, or z to indices 1, 2, or 3 respectively */
+getDirIdx(dir, numDims) := block([],
+  if numDims = 1 then return(1),
+  if dir = x then return(1),
+  if dir = y then return(2),
+  if dir = z then return(3)
+) $
+
+getBasis(name, polyOrder) := block(
+  [varsC, basisC, basisConstant],
+  load(name),
+  if polyOrder > 0 then (
+    return(basisC[polyOrder])
+  )
+  else (
+    return([basisC[1][1]])
+  )
+) $
+
+
+/* -- Legacy Wrappers --------------------------------------------- */

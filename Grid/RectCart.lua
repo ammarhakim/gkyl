@@ -8,6 +8,9 @@
 -- system libraries
 local ffi = require "ffi"
 local ffiC = ffi.C
+local xsys = require "xsys"
+local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
+     "new, copy, fill, sizeof, typeof, metatype")
 
 -- Gkyl libraries
 local DecompRegionCalc = require "Lib.CartDecomp"
@@ -16,9 +19,44 @@ local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
 
+local cuda = nil
+if GKYL_HAVE_CUDA then
+   cuda = require "Cuda.RunTime"
+end
+
 ffi.cdef [[
   void cellCenter(int ndim, double* lower, int* currIdx, double* dx, double* xc);
+
+  // Uniform Cartesian grid C representation
+  typedef struct {
+    int32_t ndim;
+    int32_t cells[6];
+    double lower[6], upper[6];
+    double vol, dx[6];
+  } RectCart_t;
 ]]
+
+local rectCartSz = sizeof("RectCart_t")
+
+local function getDevicePointerToGrid(grid)
+   if not GKYL_HAVE_CUDA then return nil end
+
+   -- first copy stuff to a C-struct
+   local g = ffi.new("RectCart_t")
+   g.ndim = grid:ndim()
+   g.vol = grid:cellVolume()
+   for i = 1, grid:ndim() do
+      g.cells[i-1] = grid:numCells(i)
+      g.lower[i-1] = grid:lower(i)
+      g.upper[i-1] = grid:upper(i)
+      g.dx[i-1] = grid:dx(i)
+   end
+   
+   -- copy stuff to device
+   local cuGrid, err = cuda.Malloc(rectCartSz)
+   cuda.Memcpy(cuGrid, g, rectCartSz, cuda.MemcpyHostToDevice)
+   return cuGrid, err
+end
 
 -- Determine local domain index. This is complicated by the fact that
 -- when using MPI-SHM the processes that live in shmComm all have the
@@ -117,6 +155,10 @@ function RectCart:id() return "uniform" end
 function RectCart:commSet() return self._commSet end 
 function RectCart:isShared() return self._isShared end
 function RectCart:subGridId() return self._block end
+function RectCart:subGridIdByDim(idx) 
+   local invIdxr = self._decomposedRange:cutsInvIndexer()
+   invIdxr(self._block, idx)
+end
 function RectCart:numSharedProcs()
    return Mpi.Comm_size(self._commSet.sharedComm)
 end
@@ -207,10 +249,10 @@ function RectCart:calcContraMetric(xc, gOut)
    if self._ndim == 1 then
       gOut[1] = 1.0 -- g_11
    elseif self._ndim == 2 then
-      -- g_11, g_12, g_22
+      -- g^11, g^12, g^22
       gOut[1], gOut[2], gOut[3] = 1.0, 0.0, 1.0
    elseif self._ndim == 3 then
-      -- g_11, g_12, g_13, g_22, g_23, g_33
+      -- g^11, g^12, g^13, g^22, g^23, g^33
       gOut[1], gOut[2], gOut[3], gOut[4], gOut[5], gOut[6] = 1.0, 0.0, 0.0, 1.0, 0.0, 1.0
    else
       assert(false, "RectCart:calcContraMetric does not support more than 3 dimensions!")
@@ -219,6 +261,10 @@ end
 
 function RectCart:calcJacobian(xc)
    return 1.0
+end
+
+function RectCart:copyHostToDevice()
+   return getDevicePointerToGrid(self)
 end
 
 return RectCart

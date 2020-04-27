@@ -1,30 +1,30 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- App support code: VlasovProjection object
+-- App support code: VlasovProjection object.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
---local Time = require "Lib.Time"
-local FunctionProjectionParent = require ("App.Projection.KineticProjection").FunctionProjection
+--local Time = require "Lib.Time".
+local FunctionProjectionParent   = require ("App.Projection.KineticProjection").FunctionProjection
 local MaxwellianProjectionParent = require ("App.Projection.KineticProjection").MaxwellianProjection
-local Proto = require "Lib.Proto"
-local Updater = require "Updater"
-local xsys = require "xsys"
+local Proto                      = require "Lib.Proto"
+local Updater                    = require "Updater"
+local xsys                       = require "xsys"
 
 ----------------------------------------------------------------------
--- Vlasov-specific VlasovProjection.FunctionProjection needs no modifications to FunctionProjection base class
+-- Vlasov-specific VlasovProjection.FunctionProjection needs no modifications to FunctionProjection base class.
 local FunctionProjection = FunctionProjectionParent
 
 ----------------------------------------------------------------------
--- Vlasov-specific VlasovProjection.MaxwellianProjection extends MaxwellianProjection base class
+-- Vlasov-specific VlasovProjection.MaxwellianProjection extends MaxwellianProjection base class.
 local MaxwellianProjection = Proto(MaxwellianProjectionParent)
 
 function MaxwellianProjection:lagrangeFix(distf)
    local M0, dM0 = self.species:allocMoment(), self.species:allocMoment()
-   local M1 = self.species:allocVectorMoment(self.vdim)
-   local dM1 = self.species:allocVectorMoment(self.vdim)
+   local M1      = self.species:allocVectorMoment(self.vdim)
+   local dM1     = self.species:allocVectorMoment(self.vdim)
    local M2, dM2 = self.species:allocMoment(), self.species:allocMoment()
 
    self.species.numDensityCalc:advance(0.0, {distf}, {M0})
@@ -32,9 +32,9 @@ function MaxwellianProjection:lagrangeFix(distf)
       return self.density(t, zn, self.species)
    end
    local project = Updater.ProjectOnBasis {
-      onGrid = self.confGrid,
-      basis = self.confBasis,
-      evaluate = func,
+      onGrid          = self.confGrid,
+      basis           = self.confBasis,
+      evaluate        = func,
       projectOnGhosts = true,
    }
    project:advance(0.0, {}, {dM0})
@@ -52,9 +52,9 @@ function MaxwellianProjection:lagrangeFix(distf)
       end
    end
    project = Updater.ProjectOnBasis {
-      onGrid = self.confGrid,
-      basis = self.confBasis,
-      evaluate = func,
+      onGrid          = self.confGrid,
+      basis           = self.confBasis,
+      evaluate        = func,
       projectOnGhosts = true,
    }
    project:advance(0.0, {}, {dM1})
@@ -72,9 +72,9 @@ function MaxwellianProjection:lagrangeFix(distf)
       return out
    end
    project = Updater.ProjectOnBasis {
-      onGrid = self.confGrid,
-      basis = self.confBasis,
-      evaluate = func,
+      onGrid          = self.confGrid,
+      basis           = self.confBasis,
+      evaluate        = func,
       projectOnGhosts = true,
    }
    project:advance(0.0, {}, {dM2})
@@ -82,11 +82,11 @@ function MaxwellianProjection:lagrangeFix(distf)
 
    
    local lagFix = Updater.LagrangeFix {
-      onGrid = self.phaseGrid,
+      onGrid     = self.phaseGrid,
       phaseBasis = self.phaseBasis,
-      confGrid = self.confGrid,
-      confBasis = self.confBasis,
-      mode = 'Vlasov'
+      confGrid   = self.confGrid,
+      confBasis  = self.confBasis,
+      mode       = 'Vlasov'
    }
    lagFix:advance(0.0, {dM0, dM1, dM2}, {distf})
 end
@@ -103,6 +103,6 @@ end
 
 ----------------------------------------------------------------------
 return {
-   FunctionProjection = FunctionProjection,
+   FunctionProjection   = FunctionProjection,
    MaxwellianProjection = MaxwellianProjection,
 }

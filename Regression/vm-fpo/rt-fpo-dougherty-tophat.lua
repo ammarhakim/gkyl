@@ -2,7 +2,7 @@ local fpo = require "Proto.Fpo"
 
 sim = fpo {
    cflFrac = 0.1,
-   polyOrder = 2,
+   polyOrder = 1,
    tEnd = 10,
    nFrames = 1,
    cells = {12, 12},

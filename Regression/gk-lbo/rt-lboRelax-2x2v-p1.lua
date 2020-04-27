@@ -98,7 +98,7 @@ plasmaApp = Plasma.App {
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'square'},
-         frequencies = {nu, },
+         frequencies = {nu},
       },
    },
 
@@ -124,28 +124,28 @@ plasmaApp = Plasma.App {
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
-         frequencies = {nu, },
+         frequencies = {nu},
       },
    },
 
-   -- field solver
+   -- Field solver.
    field = Plasma.Field {
-      evolve = false, -- evolve fields?
-      initPhiFunc = function (t, xn) return 0.0 end,
+      evolve      = false, -- Evolve fields?
+      externalPhi = function (t, xn) return 0.0 end,
    },
    
-   -- magnetic geometry 
+   -- Magnetic geometry. 
    funcField = Plasma.Geometry {
-      -- background magnetic field
+      -- Background magnetic field.
       bmag = function (t, xn)
          local x = xn[1]
          return B0
       end,
 
-      -- geometry is not time-dependent
+      -- Geometry is not time-dependent.
       evolve = false,
    },
 
 }
--- run application
+-- Run application.
 plasmaApp:run()

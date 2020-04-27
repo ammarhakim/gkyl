@@ -1,0 +1,34 @@
+/* For single integration by parts use ConstDiffusionSIBP-vol,
+   for double integration by parts use ConstDiffusion-vol */
+load("constDiffusion-calc/ConstDiffusion-vol")$
+load(stringproc)$
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 3$
+minCdim_Ser : 1$
+maxCdim_Ser : 3$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 3$
+minCdim_Max : 1$
+maxCdim_Max : 3$
+
+/* ...... END OF USER INPUTS........ */
+
+/* To generate other basis, just add more columns to arrays below. */
+bName        : ["Ser","Max"]$
+maxPolyOrder : [maxPolyOrder_Ser,maxPolyOrder_Max]$
+minCdim      : [minCdim_Ser,minCdim_Max]$
+maxCdim      : [maxCdim_Ser,maxCdim_Max]$
+
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    fname : sconcat("~/max-out/ConstDiffusion", bName[bInd], c, "x", ".cpp"),
+    fh : openw(fname),
+    funcName : sconcat("ConstDiffusionVol", c, "x", bName[bInd]),
+    calcConstDiffusionVolUpdater(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    close(fh)
+  )
+);
