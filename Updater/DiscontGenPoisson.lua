@@ -280,7 +280,7 @@ function DiscontGenPoisson:buildStiffMatrix()
                idxsExtL[ndim+1] = l
                idxL = stiffMatrixIndexer(idxsExtL)
                val = SM[stencilIndexer(stencilIdx)][k][l]
-               if math.abs(val) > 1e-14 then
+               if math.abs(val) > 0.0 then -- 1e-14
                   ffiC.discontPoisson_pushTriplet(self.poisson,
                                                   idxK-1, idxL-1, val)
                end
