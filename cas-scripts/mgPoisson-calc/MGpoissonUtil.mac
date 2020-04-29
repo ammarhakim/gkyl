@@ -1,0 +1,87 @@
+/* A collection of functions commonly used by other Maxima scripts.
+   in generating MGpoisson kernels. */
+
+getStencilCoords(dimIn) := block([cD, dir, acI, bI, stencilLoc],
+  /* Create a list with 3^dim elements. Each element is itself an dim-long
+     list indicating whether the cell has a lower (=-1) or upper (=1)
+     boundary, or no boundary (=0) in that direction. */
+  cD         : 1,
+  stencilLoc : [makelist(0,i,1,dimIn)],  /* Center stencil, all zeros. */
+  for dir : 1 thru dimIn do (
+    for acI : 1 thru 3^(dir-1) do (  /* Loop through cells already added to stencilLoc. */
+      for bI : -1 thru 1 step 2 do (  /* Loop over lower and upper. */
+        stencilLoc : append(stencilLoc, copylist([stencilLoc[acI]])),
+        stencilLoc[length(stencilLoc)][dir] : bI
+      )
+    )
+  ),
+  return(stencilLoc)
+)$
+
+getCoordVarS(varsIn) := block([dim,sVars,d,coordVarS],
+  /* Return an associative list between a stencil location coordinates in
+     one direction and the (string) variables for that dimensionality.
+     Used in placing variables in kernel boundary names. */
+  dim         : length(varsIn),
+  sVars       : copylist(varsIn),
+  for d : 1 thru dim do ( sVarsIn[d] : string(varsIn[d]) ),
+  coordVarS : [[-1,sVarsIn],[0,makelist("",i,1,dim)],[1,sVarsIn]],
+  return(coordVarS)
+)$
+
+getBCcombos(stencilLocIn,bcTypesIn) := block([dim,npBCs,npBCcombos,tmp,l,cI,bcI,d,nInc,bcCombos],
+  /* Given the BC types in bcTypesn and the stencil location
+     stencilLocIn, return a list of of the different combinations of
+     BCs, each of which will produce a separate kernel. */
+  dim : length(stencilLocIn),
+
+  /* Count the number of non-periodic boundaries. */
+  npBCs : 0,
+  for d : 1 thru dim do (
+    if (stencilLocIn[d] # 0) then ( npBCs : npBCs + 1 )
+  ),
+
+  /* Given npBCs non-periodic BCs there are bcN^npBCs possible combinations of
+     of that cell's stencil, assuming there are bcN types of BCs. */
+  npBCcombos : [[]],
+  if (npBCs # 0) then ( npBCcombos : makelist([bcTypesIn[i]],i,2,length(bcTypesIn)) ),
+  for l : 2 thru npBCs do (
+    tmp        : copylist(npBCcombos),
+    npBCcombos : [],
+    for cI : 1 thru length(tmp) do ( for bI : 2 thru length(bcTypesIn) do (
+      npBCcombos : append(npBCcombos,[ append(tmp[cI],[bcTypesIn[bI]]) ])
+    ) )
+  ),
+
+  bcCombos : makelist([],i,1,length(npBCcombos)),
+  for bcI : 1 thru length(npBCcombos) do (
+    bcCombos[bcI] : copylist(npBCcombos[bcI]),
+    /* It's easier to work with a list of dim elements indicating the BC
+       in each direction (rather than npBCcombos), even if it's periodic. */
+    nInc : 0,
+    for d : 1 thru dim do (
+      if (stencilLocIn[d] = 0) then (
+        bcCombos[bcI] : append(firstn(bcCombos[bcI],d+nInc-1),[0],
+                               lastn(bcCombos[bcI],abs(length(bcCombos[bcI])-(d+nInc-1)))),
+        nInc    : nInc+1
+      )
+    ),
+    /* The following is needed for interior stencil. */
+    if (length(bcCombos[bcI])>dim) then (bcCombos[bcI] : makelist(bcCombos[bcI][i],i,1,dim))
+  ),
+  return(bcCombos)
+)$
+
+getStencilStr(stencilLocIn,boundStrKeyIn,coordVarSIn,currBCIn,bcKeyIn) := block([d,dim,stStr],
+  /* Given the stencil location, and BC types/keys, return the string
+     used to name the kernel which identifies location and BC. */
+  dim   : length(stencilLocIn),
+  stStr : "",
+  for d : 1 thru dim do (
+    stStr : sconcat(stStr,assoc(stencilLocIn[d],boundStrKeyIn),
+                    assoc(stencilLocIn[d],coordVarSIn)[d],assoc(currBCIn[d],bcKeyIn))
+  ),
+  if slength(stStr)>1 then ( stStr : sconcat(stStr,"_") ),
+  return(stStr)
+)$
+

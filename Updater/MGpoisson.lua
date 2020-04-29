@@ -345,6 +345,7 @@ function MGpoisson:init(tbl)
       self._calcResidue  = MGpoissonDecl.selectResidueCalc(solverType, basisID, self.dim, polyOrder, bcTypes)
    elseif self.isFEM then
       self._relaxation   = MGpoissonDecl.selectRelaxation(solverType, basisID, self.dim, polyOrder, relaxKind, bcTypes, self.isDG)
+      self._restriction  = MGpoissonDecl.selectRestriction(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
       self._prolongation = MGpoissonDecl.selectProlongation(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
    end
 
@@ -432,11 +433,13 @@ function MGpoisson:init(tbl)
 
    -- Select MG components for FEM or DG solver.
    if self.isDG then
-      self.relax   = function(numRelax, phiFld, rhoFld) MGpoisson['relaxDG'](self, numRelax, phiFld, rhoFld) end
-      self.prolong = function(cFld,fFld) MGpoisson['prolongDG'](self,cFld,fFld) end
+      self.relax    = function(numRelax, phiFld, rhoFld) MGpoisson['relaxDG'](self, numRelax, phiFld, rhoFld) end
+      self.prolong  = function(cFld,fFld) MGpoisson['prolongDG'](self,cFld,fFld) end
+      self.restrict = function(cFld,fFld) MGpoisson['restrictDG'](self,fFld,cFld) end
    else
-      self.relax   = function(numRelax, phiFld, rhoFld) MGpoisson['relaxFEM'](self, numRelax, phiFld, rhoFld) end
-      self.prolong = function(cFld,fFld) MGpoisson['prolongFEM'](self,cFld,fFld) end
+      self.relax    = function(numRelax, phiFld, rhoFld) MGpoisson['relaxFEM'](self, numRelax, phiFld, rhoFld) end
+      self.prolong  = function(cFld,fFld) MGpoisson['prolongFEM'](self,cFld,fFld) end
+      self.restrict = function(cFld,fFld) MGpoisson['restrictFEM'](self,fFld,cFld) end
    end
 
    -- Updater to compute the L2-norm of the residue.
@@ -568,8 +571,8 @@ end
 
 -- ..................................... End of FEM solver functions ...................................... --
 
-function MGpoisson:restrict(fFld,cFld)
-   -- Restriction of a fine-grid field (fFld) to a coarse-grid field (cFld). 
+function MGpoisson:restrictDG(fFld,cFld)
+   -- Restriction of a DG fine-grid field (fFld) to a coarse-grid field (cFld). 
 
    local grid = cFld:grid() 
 
@@ -613,6 +616,56 @@ function MGpoisson:restrict(fFld,cFld)
       end
   
       self._restriction[1](self.fineFldItr:data(), cFldItr:data())
+   end
+end
+
+function MGpoisson:restrictFEM(fFld,cFld)
+   -- FEM restriction of a fine-grid field (fFld) to a coarse-grid field (cFld). 
+
+   local grid   = cFld:grid() 
+   local cellsN = {}
+   for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
+
+   localRangeDecomp  = LinearDecomp.LinearDecompRange {
+      range = cFld:localRange(), numSplit = grid:numSharedProcs() }
+   local tId         = grid:subGridSharedId()    -- Local thread ID.
+
+   cFld:clear(0.0)
+   local cFldIndexer = cFld:genIndexer()
+   local cFldItr     = cFld:get(1)
+
+   local fFldIndexer = fFld:genIndexer()
+   local fFldItr     = fFld:get(1)
+
+   for cIdx in localRangeDecomp:rowMajorIter(tId) do
+
+      grid:setIndex(cIdx)
+
+      -- Array of indexes to fine-grid cells this coarse-grid cell contributes to.
+      for d = 1, self.dim do self.fineGridIdx[1][d] = 2*cIdx[d] end
+      local fCellCount = 1
+      for dir = 1, self.dim do
+         local prevAdded = fCellCount
+         for rI = 1, prevAdded do
+            for k = 1, (self.igOpStencilWidth-1) do
+               local newIdxInDir = self.fineGridIdx[rI][dir]-k
+               if newIdxInDir<1 then break end
+               fCellCount = fCellCount + 1
+               for d = 1, self.dim do self.fineGridIdx[fCellCount][d] = self.fineGridIdx[rI][d] end
+               self.fineGridIdx[fCellCount][dir] = newIdxInDir
+            end
+         end
+      end
+
+      cFld:fill(cFldIndexer(cIdx), cFldItr)   -- Coarse field pointer.
+  
+      -- Array of pointers to fine-grid field data by stencil. 
+      for i = 1, fCellCount do
+         fFld:fill(fFldIndexer(self.fineGridIdx[i]), fFldItr)
+         self.fineFldItr[i] = fFldItr:data()
+      end
+  
+      self._restriction[self:idxToStencil(cIdx,cellsN)](self.fineFldItr:data(), cFldItr:data())
    end
 end
 
@@ -961,7 +1014,7 @@ function MGpoisson:gammaCycle(lCurr)
       self:residue(self.phiAll[lCurr], self.rhoAll[lCurr], self.residueAll[lCurr]) 
 
       -- Restrict the residue to the next coarsest grid.
-      self:restrict(self.residueAll[lCurr], self.rhoAll[lCurr+1])
+      self.restrict(self.residueAll[lCurr], self.rhoAll[lCurr+1])
 
       -- Solve the problem on the coarser grid, gamma times, with an
       -- initial guess of zero.
@@ -1011,7 +1064,7 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
 
       -- FMG requires we restrict the right-side source field to all levels.
       for i = 2, self.mgLevels do
-         self:restrict(self.rhoAll[i-1], self.rhoAll[i])
+         self.restrict(self.rhoAll[i-1], self.rhoAll[i])
       end
 
       -- In FMG we start at the coarsest grid without an initial guess.

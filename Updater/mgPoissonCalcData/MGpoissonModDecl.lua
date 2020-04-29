@@ -65,7 +65,11 @@ function _M.selectRestriction(solverKind, basisNm, dim, polyOrder, bcTypes, isDG
       local tmp = string.format("MGpoisson%sRestrict%dx%s_P%d", solverKind, dim, basisNmMap[basisNm], polyOrder)
       restrictKernels[1] = tmp
    else
-      restrictKernels[1] = nil   -- not available yet.
+      local restrictStencilStr = getStencilStrs(dim, bcTypes, false)
+      for sI = 1, 3^dim do
+         local tmp = ffi.C[string.format("MGpoisson%sRestrict%dx%s_%sP%d", solverKind, dim, basisNmMap[basisNm], restrictStencilStr[sI], polyOrder)]
+         restrictKernels[sI] = tmp
+      end
    end
    return restrictKernels
 end
