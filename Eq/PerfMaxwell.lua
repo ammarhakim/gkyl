@@ -1,13 +1,13 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Perfectly Hyperbolic Maxwell equations. See
+-- Perfectly Hyperbolic Maxwell's equation. See
 -- http://ammar-hakim.org/sj/maxwell-eigensystem.html and references
 -- on that page for details.
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- system libraries
+-- System libraries.
 local BoundaryCondition = require "Updater.BoundaryCondition"
 local EqBase = require "Eq.EqBase"
 local MaxwellModDecl = require "Eq.maxwellData.MaxwellModDecl"
@@ -15,8 +15,8 @@ local Proto = require "Lib.Proto"
 local ffi = require "ffi"
 local xsys = require "xsys"
 
--- Resuffle indices for various direction Riemann problem. The first
--- entry is just a buffer to allow 1-based indexing
+-- Resuffle indices for various direction Riemann problem.
+-- The first entry is just a buffer to allow 1-based indexing.
 local dirShuffle = {
    ffi.new("int32_t[7]", 0, 1, 2, 3, 4, 5, 6),
    ffi.new("int32_t[7]", 0, 2, 3, 1, 5, 6, 4),
@@ -45,7 +45,7 @@ end
 -- function to compute fluctuations using q-wave method
 local qFluctuations = loadstring( qFluctuationsTempl {} )()
 
--- Perfectly hyperbolic Maxwell equations
+-- Perfectly hyperbolic Maxwell's equation
 local PerfMaxwell = Proto(EqBase)
 
 -- ctor
@@ -77,7 +77,7 @@ function PerfMaxwell:init(tbl)
          print("selecting central fluxes")
          self._surfTerms = MaxwellModDecl.selectCentralSurf(nm, ndim, p)
       else
-         assert(self._numFLux, "Eq.PerfMaxwell: Incorrect numerical flux specified, options supported: 'central' and 'upwind' ")
+         assert(self._numFlux, "Eq.PerfMaxwell: Incorrect numerical flux specified, options supported: 'central' and 'upwind' ")
       end
    end
 
@@ -108,7 +108,7 @@ function PerfMaxwell:flux(dir, qIn, fOut)
    fOut[8] = self._cb*c2*qIn[d[4]]
 end
 
--- Riemann problem for Perfectly Hyperbolic Maxwell equations: `delta`
+-- Riemann problem for Perfectly Hyperbolic Maxwell's equation: `delta`
 -- is the vector we wish to split, `ql`/`qr` the left/right states. On
 -- output, `waves` and `s` contain the waves and speeds. waves is a
 -- mwave X meqn matrix. See LeVeque's book for explanations. Note:
@@ -198,7 +198,7 @@ function PerfMaxwell:qFluctuations(dir, ql, qr, waves, s, amdq, apdq)
 end
 
 -- Maximum wave speed
-function PerfMaxwell:maxSpeed(dir, w, dx, q)
+function PerfMaxwell:maxAbsSpeed(dir, qIn)
    return self._maxc
 end       
 -- Volume integral term for use in DG scheme
@@ -210,12 +210,12 @@ function PerfMaxwell:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idx
    return self._surfTerms[dir](self._ceqn, wl:data(), wr:data(), dxl:data(), dxr:data(), self._tau, ql:data(), qr:data(), outl:data(), outr:data())
 end
 
--- Create and add BCs specific to Maxwell equations
+-- Create and add BCs specific to Maxwell's equation
 
--- PEC
-local bcCondWallElc = BoundaryCondition.ZeroTangent { components = {1, 2, 3} }
-local bcCondWallMgn = BoundaryCondition.ZeroNormal { components = {4, 5, 6} }
-local bcCondWallPot = BoundaryCondition.Copy { components = {7, 8}, fact = {-1, 1} }
+-- Perfect electric conductor
+local bcCondWallElc    = BoundaryCondition.ZeroTangent { components = {1, 2, 3} }
+local bcCondWallMgn    = BoundaryCondition.ZeroNormal { components = {4, 5, 6} }
+local bcCondWallPot    = BoundaryCondition.Copy { components = {7, 8}, fact = {-1, 1} }
 PerfMaxwell.bcCondWall = { bcCondWallElc, bcCondWallMgn, bcCondWallPot  }
 
 function PerfMaxwell:setAuxFields(auxFields)

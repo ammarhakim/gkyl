@@ -20,7 +20,7 @@ local BoundaryCondition = require "Updater.BoundaryCondition"
 local xsys             = require "xsys"
 local ffi              = require "ffi"
 
--- MaxwellField ---------------------------------------------------------------------
+-- MaxwellField ----------------------------------------------------------------
 --
 -- Electromagnetic field (Maxwell equation are evolved).
 --------------------------------------------------------------------------------
