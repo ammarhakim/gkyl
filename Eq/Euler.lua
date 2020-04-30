@@ -5,14 +5,15 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- system libraries
+-- System libraries.
 local BoundaryCondition = require "Updater.BoundaryCondition"
+--local EulerModDecl = require "Eq.eulerData.EulerModDecl"
 local Time = require "Lib.Time"
 local ffi = require "ffi"
 local xsys = require "xsys"
 local Proto = require "Lib.Proto"
 
--- C interfaces
+-- C interfaces.
 ffi.cdef [[
 
 /* Euler equation for ideal gas */
@@ -26,15 +27,15 @@ typedef struct {
 
 ]]
 
--- Resuffle indices for various direction Riemann problem. The first
--- entry is just a buffer to allow 1-based indexing
+-- Resuffle indices for various direction Riemann problem.
+-- The first entry is just a buffer to allow 1-based indexing.
 local dirShuffle = {
    ffi.new("int32_t[4]", 0, 2, 3, 4),
    ffi.new("int32_t[4]", 0, 3, 4, 2),
    ffi.new("int32_t[4]", 0, 4, 2, 3)
 }
 
--- helper to check if number is NaN
+-- Helper to check if number is NaN
 local function isNan(x) return x ~= x end
 
 -- Riemann problem for Euler equations: `delta` is the vector we wish
@@ -265,6 +266,29 @@ local Euler = Proto(EqBase)
 function Euler:init(tbl)
    self.gasGamma = tbl.gasGamma
    self.eulerObj = EulerObj(tbl)
+
+   -- -- If running with DG Euler.
+   -- -- Store basis functions.
+   -- self._basis = tbl.basis and tbl.basis or nil
+
+   -- -- Store pointers to C kernels implementing volume and surface terms.
+   -- self._volTerm, self._surfTerms = nil, nil
+   -- if self._basis then
+   --    local nm, ndim, p = self._basis:id(), self._basis:ndim(), self._basis:polyOrder()
+   --    self._volTerm = EulerModDecl.selectVol(nm, ndim, p)
+
+   --    -- numFlux used for selecting which type of numerical flux function to use
+   --    -- default is "HLL," supported options: "HLL,"
+   --    self._numFlux = tbl.numFlux and tbl.numFlux or "HLL"
+   --    if self._numFlux == "HLL" then
+   --       self._surfTerms = EulerModDecl.selectSurf(nm, ndim, p)
+   --    else
+   --       assert(self._numFLux, "Eq.Euler: Incorrect numerical flux specified, options supported: 'HLL' ")
+   --    end
+   -- end
+
+   -- -- Store stuff in C struct for use in DG solvers.
+   -- self._ceqn = ffi.new("EulerEq_t", {self._gasGamma})
 end
 
 function Euler:numEquations()
