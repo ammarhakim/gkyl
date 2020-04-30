@@ -13,7 +13,7 @@ basisNm : ["Ser", "Tensor"] $
 Jxx : 4/dx[1]^2 $
 Jyy : 4/dx[2]^2 $
 Jxy : 4/dx[1]/dx[2] $
-C : 1 $
+C : 0 $
 
 isTop : false $
 isBottom : false $
@@ -102,8 +102,8 @@ for polyOrder : 1 thru 2 do (
                                 dg(fC),
                                 dg(fT)),
       recDxy : calcRecov2CellGen(basisNm[bIdx], y, size, polyOrder,
-                                dg(DxyC),
-                                dg(DxyT)),
+                                 dg(DxyC),
+                                 dg(DxyT)),
       if isRight then
         recf6 : calcRecovFaceGen(basisNm[bIdx], y, 0, size, polyOrder, C,
                                  dg(fL, fTL),
