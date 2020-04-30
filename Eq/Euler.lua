@@ -7,7 +7,7 @@
 
 -- System libraries.
 local BoundaryCondition = require "Updater.BoundaryCondition"
---local EulerModDecl = require "Eq.eulerData.EulerModDecl"
+local EulerModDecl = require "Eq.eulerData.EulerModDecl"
 local Time = require "Lib.Time"
 local ffi = require "ffi"
 local xsys = require "xsys"
@@ -264,31 +264,27 @@ local EulerObj = ffi.metatype(ffi.typeof("EulerEq_t"), euler_mt)
 local Euler = Proto(EqBase)
 
 function Euler:init(tbl)
-   self.gasGamma = tbl.gasGamma
    self.eulerObj = EulerObj(tbl)
 
-   -- -- If running with DG Euler.
-   -- -- Store basis functions.
-   -- self._basis = tbl.basis and tbl.basis or nil
+   -- If running with DG Euler.
+   -- Store basis functions.
+   self._basis = tbl.basis and tbl.basis or nil
 
-   -- -- Store pointers to C kernels implementing volume and surface terms.
-   -- self._volTerm, self._surfTerms = nil, nil
-   -- if self._basis then
-   --    local nm, ndim, p = self._basis:id(), self._basis:ndim(), self._basis:polyOrder()
-   --    self._volTerm = EulerModDecl.selectVol(nm, ndim, p)
+   -- Store pointers to C kernels implementing volume and surface terms.
+   self._volTerm, self._surfTerms = nil, nil
+   if self._basis then
+      local nm, ndim, p = self._basis:id(), self._basis:ndim(), self._basis:polyOrder()
+      self._volTerm = EulerModDecl.selectVol(nm, ndim, p)
 
-   --    -- numFlux used for selecting which type of numerical flux function to use
-   --    -- default is "HLL," supported options: "HLL,"
-   --    self._numFlux = tbl.numFlux and tbl.numFlux or "HLL"
-   --    if self._numFlux == "HLL" then
-   --       self._surfTerms = EulerModDecl.selectSurf(nm, ndim, p)
-   --    else
-   --       assert(self._numFLux, "Eq.Euler: Incorrect numerical flux specified, options supported: 'HLL' ")
-   --    end
-   -- end
-
-   -- -- Store stuff in C struct for use in DG solvers.
-   -- self._ceqn = ffi.new("EulerEq_t", {self._gasGamma})
+      -- numFlux used for selecting which type of numerical flux function to use
+      -- default is "HLL," supported options: "HLL"
+      self._numFlux = tbl.numFlux and tbl.numFlux or "HLL"
+      if self._numFlux == "HLL" then
+         self._surfTerms = EulerModDecl.selectSurf(nm, ndim, p)
+      else
+         assert(self._numFLux, "Eq.Euler: Incorrect numerical flux specified, options supported: 'HLL' ")
+      end
+   end
 end
 
 function Euler:numEquations()
@@ -321,6 +317,15 @@ end
 
 function Euler:qFluctuations(dir, ql, qr, waves, s, amdq, apdq)
    return self.eulerObj:qFluctuations(dir, ql, qr, waves, s, amdq, apdq)
+end
+
+-- Volume integral term for use in DG scheme
+function Euler:volTerm(w, dx, idx, q, out)
+   return self._volTerm(self.eulerObj, w:data(), dx:data(), q:data(), out:data())
+end
+-- Surface integral term for use in DG scheme
+function Euler:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+   return self._surfTerms[dir](self.eulerObj, wl:data(), wr:data(), dxl:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data())
 end
 
 local bcWallCopy = BoundaryCondition.Copy { components = {1, 5} }
