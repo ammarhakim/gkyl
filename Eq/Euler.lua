@@ -7,9 +7,10 @@
 
 -- system libraries
 local BoundaryCondition = require "Updater.BoundaryCondition"
-local Time              = require "Lib.Time"
-local ffi               = require "ffi"
-local xsys              = require "xsys"
+local Time = require "Lib.Time"
+local ffi = require "ffi"
+local xsys = require "xsys"
+local Proto = require "Lib.Proto"
 
 -- C interfaces
 ffi.cdef [[
@@ -43,25 +44,25 @@ local function isNan(x) return x ~= x end
 -- essentially based on code used in my thesis i.e. CLAWPACK and
 -- Miniwarpx. (A. Hakim)
 local function rpRoe(self, dir, delta, ql, qr, waves, s)
-   local d          = dirShuffle[dir] -- shuffle indices for `dir`
-   local g1         = self._gasGamma-1
+   local d = dirShuffle[dir] -- shuffle indices for `dir`
+   local g1 = self._gasGamma-1
    local rhol, rhor = ql[1], qr[1]
-   local pl, pr     = self:pressure(ql), self:pressure(qr)
+   local pl, pr = self:pressure(ql), self:pressure(qr)
 
    -- Roe averages: see Roe's original 1986 paper or LeVeque book
    local srrhol, srrhor = math.sqrt(rhol), math.sqrt(rhor)
    local ravgl1, ravgr1 = 1/srrhol, 1/srrhor
-   local ravg2          = 1/(srrhol+srrhor)
-   local u              = (ql[d[1]]*ravgl1 + qr[d[1]]*ravgr1)*ravg2
-   local v              = (ql[d[2]]*ravgl1 + qr[d[2]]*ravgr1)*ravg2
-   local w              = (ql[d[3]]*ravgl1 + qr[d[3]]*ravgr1)*ravg2
-   local enth           = ((ql[5]+pl)*ravgl1 + (qr[5]+pr)*ravgr1)*ravg2   
+   local ravg2 = 1/(srrhol+srrhor)
+   local u = (ql[d[1]]*ravgl1 + qr[d[1]]*ravgr1)*ravg2
+   local v = (ql[d[2]]*ravgl1 + qr[d[2]]*ravgr1)*ravg2
+   local w = (ql[d[3]]*ravgl1 + qr[d[3]]*ravgr1)*ravg2
+   local enth = ((ql[5]+pl)*ravgl1 + (qr[5]+pr)*ravgr1)*ravg2   
 
    -- See http://ammar-hakim.org/sj/euler-eigensystem.html for
    -- notation and meaning of these terms
-   local q2        = u*u+v*v+w*w
-   local aa2       = g1*(enth-0.5*q2)
-   local a         = math.sqrt(aa2)
+   local q2 = u*u+v*v+w*w
+   local aa2 = g1*(enth-0.5*q2)
+   local a = math.sqrt(aa2)
    local g1a2, euv = g1/aa2, enth-q2
 
    -- Compute projections of jump.
@@ -73,30 +74,30 @@ local function rpRoe(self, dir, delta, ql, qr, waves, s)
 
    -- Wave 1: eigenvalue is u-c.
    local wv = waves[1]
-   wv[1]    = a1
+   wv[1] = a1
    wv[d[1]] = a1*(u-a)
    wv[d[2]] = a1*v
    wv[d[3]] = a1*w
-   wv[5]    = a1*(enth-u*a)
-   s[1]     = u-a
+   wv[5] = a1*(enth-u*a)
+   s[1] = u-a
 
    -- Wave 2: eigenvalue is u, u, u three waves are lumped into one.
    wv = waves[2]
-   wv[1]    = a4
+   wv[1] = a4
    wv[d[1]] = a4*u
    wv[d[2]] = a4*v + a2
    wv[d[3]] = a4*w + a3
-   wv[5]    = a4*0.5*q2 + a2*v + a3*w
-   s[2]     = u
+   wv[5] = a4*0.5*q2 + a2*v + a3*w
+   s[2] = u
 
    -- Wave 3: eigenvalue is u+c.
-   wv       = waves[3]
-   wv[1]    = a5
+   wv = waves[3]
+   wv[1] = a5
    wv[d[1]] = a5*(u+a)
    wv[d[2]] = a5*v
    wv[d[3]] = a5*w
-   wv[5]    = a5*(enth+u*a)
-   s[3]     = u+a
+   wv[5] = a5*(enth+u*a)
+   s[3] = u+a
 end
 
 -- The function to compute fluctuations is implemented as a template
@@ -132,11 +133,11 @@ local function rpLax(self, dir, delta, ql, qr, waves, s)
    wv[5] = qr[5]-ql[5]
 
    local pr, u = self:pressure(ql), ql[d[1]]/ql[1]
-   local cs    = math.sqrt(self._gasGamma*pr/ql[1])
-   local sl    = u+cs
+   local cs = math.sqrt(self._gasGamma*pr/ql[1])
+   local sl = u+cs
 
    pr, u = self:pressure(qr), qr[d[1]]/qr[1]
-   cs    = math.sqrt(self._gasGamma*pr/qr[1])
+   cs = math.sqrt(self._gasGamma*pr/qr[1])
    local sr = u+cs   
 
    s[1] = 0.5*(sl+sr);
@@ -151,26 +152,26 @@ local qFluctuationsLax = function(self, dir, ql, qr, waves, s, amdq, apdq)
 
    -- Left fluxes.
    local pr, u = self:pressure(ql), ql[d[1]]/ql[1]
-   fl[1]    = ql[d[1]] -- rho*u
+   fl[1] = ql[d[1]] -- rho*u
    fl[d[1]] = ql[d[1]]*u + pr -- rho*u*u + p
    fl[d[2]] = ql[d[2]]*u -- rho*v*u
    fl[d[3]] = ql[d[3]]*u -- rho*w*u
-   fl[5]    = (ql[5]+pr)*u -- (E+p)*u
+   fl[5] = (ql[5]+pr)*u -- (E+p)*u
    local absMaxsl = math.abs(u)+math.sqrt(self._gasGamma*pr/ql[1])
 
    -- Right fluxes.
    pr, u = self:pressure(qr), qr[d[1]]/qr[1]
-   fr[1]    = qr[d[1]] -- rho*u
+   fr[1] = qr[d[1]] -- rho*u
    fr[d[1]] = qr[d[1]]*u + pr -- rho*u*u + p
    fr[d[2]] = qr[d[2]]*u -- rho*v*u
    fr[d[3]] = qr[d[3]]*u -- rho*w*u
-   fr[5]    = (qr[5]+pr)*u -- (E+p)*u
+   fr[5] = (qr[5]+pr)*u -- (E+p)*u
    local absMaxsr = math.abs(u)+math.sqrt(self._gasGamma*pr/qr[1])
 
    local absMaxs = math.max(absMaxsl, absMaxsr)
 
    -- Left going fluctuations.
-   amdq[1]  = 0.5*(fr[1]-fl[1] - absMaxs*(qr[1]-ql[1]))
+   amdq[1] = 0.5*(fr[1]-fl[1] - absMaxs*(qr[1]-ql[1]))
    amdq[d[1]] = 0.5*(fr[d[1]]-fl[d[1]] - absMaxs*(qr[d[1]]-ql[d[1]]))
    amdq[d[2]] = 0.5*(fr[d[2]]-fl[d[2]] - absMaxs*(qr[d[2]]-ql[d[2]]))
    amdq[d[3]] = 0.5*(fr[d[3]]-fl[d[3]] - absMaxs*(qr[d[3]]-ql[d[3]]))
@@ -258,18 +259,47 @@ local euler_mt = {
 }
 local EulerObj = ffi.metatype(ffi.typeof("EulerEqn_t"), euler_mt)
 
--- Create a wrapper on Euler eqn object and provide BCs specific to
--- Euler equations.
-local Euler = {}
-function Euler:new(tbl)
-   local self    = setmetatable({}, Euler)
-   self.gasGamma = tbl.gasGamma
-   return EulerObj(tbl)
-end
--- Make object callable, and redirect call to the :new method.
-setmetatable(Euler, { __call = function (self, o) return self.new(self, o) end })
+-- Euler equations object
+local Euler = Proto(EqBase)
 
-local bcWallCopy       = BoundaryCondition.Copy { components = {1, 5} }
+function Euler:init(tbl)
+   self.gasGamma = tbl.gasGamma
+   self.eulerObj = EulerObj(tbl)
+end
+
+function Euler:numEquations()
+   return self.eulerObj:numEquations()
+end
+
+function Euler:numWaves()
+   return self.eulerObj:numWaves()
+end
+
+function Euler:flux(dir, qIn, fOut)
+   self.eulerObj:flux(dir, qIn, fOut)
+end
+
+function Euler:speeds(dir, qIn, sOut)
+   self.eulerObj:speeds(dir, qIn, sOut)
+end
+
+function Euler:maxAbsSpeed(dir, qIn)
+   return self.eulerObj:maxAbsSpeed(dir, qIn)
+end
+
+function Euler:isPositive(q)
+   return self.eulerObj:isPositive(q)
+end
+
+function Euler:rp(dir, delta, ql, qr, waves, s)
+   return self.eulerObj:rp(dir, delta, ql, qr, waves, s)
+end
+
+function Euler:qFluctuations(dir, ql, qr, waves, s, amdq, apdq)
+   return self.eulerObj:qFluctuations(dir, ql, qr, waves, s, amdq, apdq)
+end
+
+local bcWallCopy = BoundaryCondition.Copy { components = {1, 5} }
 local bcWallZeroNormal = BoundaryCondition.ZeroNormal { components = {2, 3, 4} }
 -- Add wall BC specific to Euler equations.
 Euler.bcWall = { bcWallCopy, bcWallZeroNormal }
