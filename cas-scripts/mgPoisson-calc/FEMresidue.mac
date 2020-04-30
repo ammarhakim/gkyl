@@ -1,0 +1,343 @@
+/* Kernels for computing the residue of the DG Poisson equation
+         res = rho + L(phi)
+   where L is the Laplacian. */
+
+load("modal-basis");
+load("out-scripts");
+load("mgPoisson-calc/MGpoissonUtil");
+load("mgPoisson-calc/FEMnodalFuncs");
+fpprec : 24$
+
+/* String used for identifying nearest neighbor cells. */
+neighStrKey : [[-1,"L"],[0,""],[1,"U"]]$
+
+/* Types of boundary conditions for which to generate kernels.
+     =0 periodic
+     =1 Dirichlet
+     =2 Neumann
+     =3 Robin
+   For periodic we'll assume ghost cells are filled accordingly
+   and use an interior stencil. */
+bcTypes  : [0, 1, 2, 3]$
+bcStrs   : ["", "Dirichlet", "Neumann", "Robin"]$
+bcKey    : makelist([bcTypes[i],bcStrs[i]],i,1,length(bcTypes))$
+
+
+poissonContribution(bNIn,varsIn,cellCoefsIn,currBCIn,stencilLocIn,currNodesIn,storedNodesIn,stencilLHSIn,stencilRHSIn) := block(
+  [phi_e,rho_e,k,numB,numNodes,dim,volLHS,volRHS,bNp,phip_e,domSurfs,surfTerm,dI,dir,dirVar,surfVars,idx,pS,cI,numStoredNodes],
+  /* Compute the contribution to the stencil from one of the cells abutting the
+     nodes stored in the cell we are generating a kernel for. */
+
+  numB           : length(bNIn),
+  numNodes       : numB,
+  dim            : length(varsIn),
+  numStoredNodes : length(storedNodesIn),
+
+  phi_e : doExpand(makelist(eval_string(sconcat("phi",cellCoefsIn[k])),k,1,numB),bNIn),
+  rho_e : doExpand(makelist(eval_string(sconcat("rho",cellCoefsIn[k])),k,1,numB),bNIn),
+  /* Volume terms. */
+  volLHS : makelist(0,i,1,numNodes),
+  volRHS : makelist(0,i,1,numNodes),
+  for dI : 1 thru dim do (
+    bNp    : diff(bNIn,varsIn[dI]),
+    phip_e : diff(phi_e,varsIn[dI]),
+
+    volLHS : volLHS+rdx2SqVol[dI-1]*calcInnerProdList(varsIn,1,bNp,phip_e),
+    volRHS : volRHS+volFac*calcInnerProdList(varsIn,1,bN,rho_e)
+  ),
+  /* Surface terms. */
+  /* Only domain surface terms with non-periodic BCs contribute a surface term. */
+  domSurfs : sublist_indices(currBCIn, lambda([x],x # 0)),
+  surfTerm : makelist(0,i,1,numNodes),
+  for dI : 1 thru length(domSurfs) do (
+    dir      : domSurfs[dI],
+    dirVar   : varsIn[dir],
+    surfVars : delete(dirVar,varsIn),
+
+    surfTerm : surfTerm+stencilLocIn[dir]*rdx2SqVol[dir-1]
+              *calcInnerProdList(surfVars,1,subst(dirVar=stencilLocIn[dir],bNIn),
+                                            subst(dirVar=stencilLocIn[dir],phip_e))
+  ),
+  for k : 1 thru numStoredNodes do (
+    idx             : sublist_indices(currNodesIn,lambda([x],x=storedNodesIn[k])),
+    if length(idx)>0 then (
+      idx             : idx[1],
+      stencilLHSIn[k] : stencilLHSIn[k]+volLHS[idx]+surfTerm[idx],
+      stencilRHSIn[k] : stencilRHSIn[k]+volRHS[idx]
+    )
+  ),
+  return([stencilLHSIn,stencilRHSIn])
+)$
+
+calcFEMResidue(fh, funcNm, dim, basisFun, pMax) := block([],
+  /* Residue computation for the Poisson equation using an FEM
+     discretization. */
+
+  kill(varsC, varsP, basisC, basisP),
+
+  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
+
+  /* Associative list between stencil location (-1,0,1) and variable
+     strings used in kernel names. */
+  coordVarS : getCoordVarS(varsC),
+
+  /* List of stencil locations. Each entry is a dim-dimensional list
+     with -1 meaning it is at a lower boundary, 1 upper boundary, or
+     0 away from boundaries in that direction. */
+  stencilLoc : getStencilCoords(dim),
+
+  for sI : 1 thru length(stencilLoc) do (
+
+    /* Obtain the different BC combinations for this stencil.
+       Will generate a separate kernel for each. */
+    bcCombos : getBCcombos(stencilLoc[sI],bcTypes),
+
+    /* Loop over BC combinations. Will create a separate kernel for each. */
+    for bcI : 1 thru length(bcCombos) do (
+
+      currBC : copylist(bcCombos[bcI]),
+
+      /* String used in kernel name, identifying stencil location and BC. */
+      stencilStr : getStencilStr(stencilLoc[sI],boundStrKey,coordVarS,currBC,bcKey),
+
+      /* Count the number of non-periodic boundaries. */
+      npDirs : length(sublist(stencilLoc[sI],lambda([x],x # 0))),
+
+      for polyOrder : 1 thru pMax do (
+        bN   : getNodalBasis(basisFun, dim, polyOrder),
+        numB : length(bN),
+
+        nodes    : args(getNodes(basisFun, dim, polyOrder)),
+        numNodes : length(nodes),
+
+        /* Each cell only stores the lower left nodes. */
+        storedNodes    : getStoredNodes(nodes,stencilLoc[sI]),
+        numStoredNodes : length(storedNodes),
+
+        nodesEx       : getExtendedNodes(basisFun,polyOrder,stencilLoc[sI],makelist([1,0],i,1,dim)),
+        weqNodesEx    : getExtendedWeqNodes(basisFun,polyOrder,stencilLoc[sI],makelist([1,0],i,1,dim)),
+        storedNodesEx : getExtendedStoredNodes(basisFun,polyOrder,stencilLoc[sI],makelist([1,1],i,1,dim)),
+
+        /* Associative list of nodes on extended logical space, and
+           the cell that contributes that node to the weak form. */
+        weqNodeToCell : invertAssocList(weqNodesEx),
+
+        /* Associative list of nodes on extended logical space, and the cell that stores that node. */
+        storedNodeToCell : invertAssocList(storedNodesEx),
+
+        /* Associative list between cell coordinates and a linear (base 1) index. */
+        cellToIdxWeq    : getCellToIdx(stencilLoc[sI],makelist([1,0],i,1,dim)),
+        cellToIdxStored : getCellToIdx(stencilLoc[sI],makelist([1,1],i,1,dim)),
+
+        /* List of strings identifying each cell involved in the stencil. */
+        dataStrs : getDataStr(makelist([1,1],i,1,dim),stencilLoc[sI],varsC),
+
+        /* Associative list of cell coordinate, and the memory location of each node. */
+        currCoord   : makelist(0,i,1,dim),
+        currNodesEx : assoc(currCoord,nodesEx),
+        memLoc      : [],
+        for k : 1 thru numB do (
+          nodeStorer : assoc(currNodesEx[k],storedNodeToCell),
+          memIdx     : sublist_indices(assoc(nodeStorer,storedNodesEx),lambda([x],x=currNodesEx[k]))[1]-1,
+          memLoc     : endcons(sconcat(dataStrs[assoc(nodeStorer,cellToIdxStored)],"[",string(memIdx),"]"),memLoc)
+        ),
+        cellToCoef : [[makelist(0,i,1,dim),memLoc]],
+        for dI: 1 thru dim do (
+          cellsSoFar : length(cellToCoef),
+          for pS : 1 thru cellsSoFar do (
+            if (stencilLoc[sI][dI] > -1) then (
+              /* Add nearest lower cell in dI direction. */
+              currCoord     : copylist(cellToCoef[pS][1]),
+              currCoord[dI] : -1,
+              currNodesEx   : assoc(currCoord,nodesEx),
+              memLoc        : [],
+              for k : 1 thru numB do (
+                nodeStorer : assoc(currNodesEx[k],storedNodeToCell),
+                memIdx     : sublist_indices(assoc(nodeStorer,storedNodesEx),lambda([x],x=currNodesEx[k]))[1]-1,
+                memLoc     : endcons(sconcat(dataStrs[assoc(nodeStorer,cellToIdxStored)],"[",string(memIdx),"]"),memLoc)
+              ),
+              cellToCoef      : endcons([currCoord,memLoc],cellToCoef)
+            )
+          )
+        ),
+
+        /* Lists where we will store the actual stencil.*/
+        stencilLHS : makelist(0,i,1,numStoredNodes),
+        stencilRHS : makelist(0,i,1,numStoredNodes),
+
+        /* Loop over 2^dim cells abutting stored nodes. Each cell adds a
+           contribution to the equation corresponding those stored nodes. */
+        cI : 1,
+        currCoord   : makelist(0,i,1,dim),
+        currNodesEx : assoc(currCoord,nodesEx),
+        stencilLst  : poissonContribution(bN,varsC,cellToCoef[cI][2],currBC,stencilLoc[sI],currNodesEx,storedNodes,stencilLHS,stencilRHS),
+        stencilLHS  : stencilLst[1],
+        stencilRHS  : stencilLst[2],
+
+        for dI : 1 thru dim do (
+          cellsSoFar : cI,
+          for pS : 1 thru cellsSoFar do (
+            if (stencilLoc[sI][dI] > -1) then (
+              /* Add contributions from nearest lower cell in dI direction. */
+              cI : cI+1,
+              currCoord     : copylist(cellToCoef[pS][1]),
+              currCoord[dI] : -1,
+              currNodesEx   : assoc(currCoord,nodesEx),
+              stencilLst    : poissonContribution(bN,varsC,cellToCoef[cI][2],currBC,stencilLoc[sI],currNodesEx,storedNodes,stencilLHS,stencilRHS),
+              stencilLHS    : stencilLst[1],
+              stencilRHS    : stencilLst[2]
+            )
+          )
+        ),
+
+        /* Boundary conditions. */
+        bcEQs    : [],
+        bcCoefs  : [],
+        domSurfs : sublist_indices(currBC, lambda([x],x # 0)),
+        phi_e    : doExpand(makelist(eval_string(sconcat("phi",cellToCoef[1][2][k])),k,1,numB),bN),
+        for dI : 1 thru length(domSurfs) do (
+          dir      : domSurfs[dI],
+          dirVar   : varsC[dir],
+          surfDirs : delete(dir,makelist(i,i,1,dim)),
+          surfVars : delete(dirVar,varsC),
+
+          if currBC[dir]=1 then (
+            /* Dirichlet. */
+            if (stencilLoc[sI][dir] = -1) then (
+              bcValues : [1, 0, bcVals[6*(dir-1)+2]]
+            ) elseif (stencilLoc[sI][dir] = 1) then (
+              bcValues : [1, 0, bcVals[6*(dir-1)+5]]
+            )
+          ) elseif currBC[dir]=2 then (
+            /* Neumman. */
+            if (stencilLoc[sI][dir] = -1) then (
+              bcValues : [0, 1, bcVals[6*(dir-1)+2]]
+            ) elseif (stencilLoc[sI][dir] = 1) then (
+              bcValues : [0, 1, bcVals[6*(dir-1)+5]]
+            )
+          ) elseif currBC[dir]=3 then (
+            /* Robin. */
+            if (stencilLoc[sI][dir] = -1) then (
+              bcValues : [bcVals[6*(dir-1)], bcVals[6*(dir-1)+1], bcVals[6*(dir-1)+2]]
+            ) elseif (stencilLoc[sI][dir] = 1) then (
+              bcValues : [bcVals[6*(dir-1)+3], bcVals[6*(dir-1)+4], bcVals[6*(dir-1)+5]]
+            )
+          ),
+          bcExpr : subst(dirVar=stencilLoc[sI][dir], bcValues[1]*phi_e + bcValues[2]*diff(phi_e,dirVar) = bcValues[3]),
+
+          /* Evaluate at boundary nodes in this direction. */
+          boundNodes  : copylist(sublist(nodes,lambda([x],x[dir]=stencilLoc[sI][dir]))),
+          boundNodesI : sublist_indices(nodes,lambda([x],x[dir]=stencilLoc[sI][dir])),
+          boundCoefs  : makelist(eval_string(sconcat("phi",cellToCoef[1][2][boundNodesI[i]])),i,1,length(boundNodesI)),
+          newCoefs    : [],
+          for k : 1 thru length(boundNodes) do (
+            currBCExpr : bcExpr,
+            currBCExpr : subst(makelist(surfVars[d]=boundNodes[k][surfDirs[d]],d,1,length(surfDirs)),currBCExpr),
+
+            boundDims        : sublist_indices(boundNodes[k],lambda([x],abs(x)=1)),
+            boundNodeBCs     : makelist(currBC[boundDims[i]],i,1,length(boundDims)),
+            numDirichletDirs : length(sublist(boundNodeBCs,lambda([x],x=1))),
+            if (numDirichletDirs>0) then (aDirichletBC : true) else (aDirichletBC : false),
+            if (numDirichletDirs=length(boundNodeBCs)) then (allDirichletBC : true) else (allDirichletBC : false),
+            /* When there is a single Dirichlet BC, we will impose that. When there isn't,
+               or all BCs are Dirichlet, we will weigh the BCs of each boundary at the
+               corner according to the size of the cell length in that direction. */
+            if (npDirs=1) or (length(boundDims)<2) or (aDirichletBC and (not allDirichletBC)) then (
+              cornerFac : 1
+            ) else (
+              cornerFac : dxC[dir-1]/sum(dxC[boundDims[i]-1],i,1,length(boundDims))
+            ),
+
+            if (not aDirichletBC) or (aDirichletBC and (currBC[dir]=1)) then (
+              coefPos : sublist_indices(bcCoefs,lambda([x],x=boundCoefs[k])),
+              if (length(coefPos) > 0) then (
+                bcEQs[coefPos[1]] : bcEQs[coefPos[1]]+cornerFac*currBCExpr
+              ) else (
+                bcEQs    : endcons(cornerFac*currBCExpr,bcEQs),
+                newCoefs : endcons(boundCoefs[k],newCoefs)
+              )
+            )
+          ),
+          bcCoefs : append(bcCoefs, newCoefs)
+        ),
+
+        bcSolv : linsolve(bcEQs,bcCoefs),
+
+        /* The coefficients in bcSol that correspond to this cell will be used
+           to replace equations in the weak stencil. Coefficients that correspond
+           to other cells will be substituted throughout the stencil. */
+        for bI : 1 thru length(bcSolv) do (
+          if (op(lhs(bcSolv[bI]))=phiC) then (
+            /* Replace the corresponding equation the stencil. */
+            stencilLHS[args(bcCoefs[bI])[1]+1] : rhs(bcSolv[bI]) - lhs (bcSolv[bI]),
+            stencilRHS[args(bcCoefs[bI])[1]+1] : 0
+          )
+        ),
+        for bI : 1 thru length(bcSolv) do (
+          if not (op(lhs(bcSolv[bI]))=phiC) then (
+            /* Substitute this node's BC throughout the stencil. */
+            stencilLHS : subst(bcSolv[bI],stencilLHS)
+          )
+        ),
+
+        /* Subtract the LHS from the right-side source to obtain residue. */
+        residue_c : fullratsimp(stencilRHS - stencilLHS),
+
+        printf(fh, "void ~a_~aP~a(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) ~%{ ~%", funcNm, stencilStr, polyOrder),
+        printf(fh, "  // dx:      cell lengths of cells pointed to by the stencil.~%"),
+        printf(fh, "  // bcVals:  values to impose as BCs.~%"),
+        printf(fh, "  // rho:     right-side source in the current cell.~%"),
+        printf(fh, "  // phi:     iterate cells pointed to by the stencil (Gauss-Seidel), or cell we are currently updating (Jacobi).~%"),
+        printf(fh, "  // resOut:  residue in nodes stored in current cell.~%"),
+        printf(fh, "~%"),
+
+        /* Pointers to the cell lengths in cells pointed to by the stencil. */
+        printf(fh, "  double *dxC  = dx[0]; ~%"),
+        printf(fh, "~%"),
+
+        /* This volume factors appears in front of the right-side source term. */
+        volumeFac : (1/2)^dim,
+        for dir : 1 thru dim do (
+          volumeFac : volumeFac*dxC[dir-1]
+        ),
+        printf(fh, "  double volFac = ~a; ~%", float(volumeFac)),
+        printf(fh, "~%"),
+
+        /* Some factors based on cell lengths. */
+        printf(fh, "  double rdx2SqVol[~a]; ~%", dim),
+
+        for dir : 1 thru dim do (
+          printf(fh, "  rdx2SqVol[~a] = volFac*4.0/(dxC[~a]*dxC[~a]); ~%", dir-1, dir-1, dir-1)
+        ),
+        printf(fh, "~%"),
+
+        /* Pointers to the data in cells pointed to by the stencil. */
+        printf(fh, "  double *phiC = phi[0]; ~%"),
+        printf(fh, "  double *rhoC = rho[0]; ~%"),
+        i : 1,
+        varStrs : [""],
+        for d : 1 thru dim do (
+          for sI : 1 thru 3^(d-1) do (
+            for pm : -1 thru 1 step 2 do (
+              i : i + 1,
+              varStrs : append(varStrs, [sconcat(varStrs[sI],assoc(pm,neighStrKey),string(varsC[d]))]),
+              printf(fh, "  double *phi~a = phi[~a]; ~%", varStrs[i], i-1),
+              printf(fh, "  double *rho~a = rho[~a]; ~%", varStrs[i], i-1)
+            )
+          )
+        ),
+        printf(fh, "~%"),
+
+        /* Write the relaxation stencil. */
+        writeCExprs1noPowers(resOut,residue_c,[rdx2SqVol,bcVals],12),
+        printf(fh, "~%"),
+
+        printf(fh, "}~%"),
+        printf(fh, "~%")
+
+      )
+
+    )
+
+  )
+)$

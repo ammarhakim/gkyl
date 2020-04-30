@@ -1,6 +1,22 @@
 /* A collection of functions commonly used by other Maxima scripts.
    in generating MGpoisson kernels. */
 
+invertAssocList(assLstIn) := block([i,k,invALst],
+  /* Invert an associative list, making the first entry of each element
+     the second, and viceversa. */
+  invALst : [],
+  for i : 1 thru length(assLstIn) do (
+    if listp(assLstIn[i][2]) then (
+      for k : 1 thru length(assLstIn[i][2]) do (
+        invALst : endcons([assLstIn[i][2][k],assLstIn[i][1]], invALst)
+      )
+    ) else (
+      invALst : endcons([assLstIn[i][2],assLstIn[i][1]], invALst)
+    )
+  ),
+  return(invALst)
+)$
+
 getStencilCoords(dimIn) := block([cD, dir, acI, bI, stencilLoc],
   /* Create a list with 3^dim elements. Each element is itself an dim-long
      list indicating whether the cell has a lower (=-1) or upper (=1)
@@ -36,10 +52,7 @@ getBCcombos(stencilLocIn,bcTypesIn) := block([dim,npBCs,npBCcombos,tmp,l,cI,bcI,
   dim : length(stencilLocIn),
 
   /* Count the number of non-periodic boundaries. */
-  npBCs : 0,
-  for d : 1 thru dim do (
-    if (stencilLocIn[d] # 0) then ( npBCs : npBCs + 1 )
-  ),
+  npBCs : length(sublist(stencilLocIn,lambda([x],x # 0))),
 
   /* Given npBCs non-periodic BCs there are bcN^npBCs possible combinations of
      of that cell's stencil, assuming there are bcN types of BCs. */
@@ -84,4 +97,36 @@ getStencilStr(stencilLocIn,boundStrKeyIn,coordVarSIn,currBCIn,bcKeyIn) := block(
   if slength(stStr)>1 then ( stStr : sconcat(stStr,"_") ),
   return(stStr)
 )$
+
+getDataStr(stencilSizeIn,stencilLocIn,varsIn) := block([dim,dI,pS,k],
+  /* stencilSizeIn should be a dim-long list, each entry a 2-element list 
+     with the size of the stencil in the lower/upper direction. For each
+     cell linked by the stencil, return a string identifying that cell. */
+ dataStrs : [""],
+ dim      : length(varsIn),
+ for dI: 1 thru dim do (
+   cellsSoFar : length(dataStrs),
+   for pS : 1 thru cellsSoFar do (
+     if (stencilLocIn[dI] > -1) then (
+       /* Add stencilSizeIn[dI][1] nearest lower cells. */
+       for k : 1 thru stencilSizeIn[dI][1] do (
+         dataStrs : endcons(sconcat(dataStrs[pS],"L",smake(k,string(varsIn[dI]))),dataStrs)
+       )
+     ),
+     if (stencilLocIn[dI] < 1) then (
+       /* Add stencilSizeIn[dI][2] nearest upper cells. */
+       for k : 1 thru stencilSizeIn[dI][2] do (
+         dataStrs : endcons(sconcat(dataStrs[pS],"U",smake(k,string(varsIn[dI]))),dataStrs)
+       )
+     )
+   )
+ ),
+ dataStrs[1] : "C",
+ return(dataStrs) 
+)$
+
+
+
+
+
 

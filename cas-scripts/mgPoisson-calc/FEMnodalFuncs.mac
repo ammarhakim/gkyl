@@ -28,6 +28,16 @@ deleteNodes(nodesIn,coordsIn,allTrueIn) := block([numNodes,dimCheck,remNodes,rem
   return(remNodes)
 )$
 
+getNodeIndices(nodeSubsetIn,nodesIn) := block([nodeIdxs,idx],
+  /* Return the indices of a set of nodes (nodeSubsetIn) within the nodesIn list. */
+  nodeIdxs : [],
+  for k : 1 thru length(nodeSubsetIn) do (
+    idx      : sublist_indices(nodesIn,lambda([x],x=nodeSubsetIn[k]))[1],
+    nodeIdxs : append(nodeIdxs,[idx])
+  ),
+  return(nodeIdxs)
+)$
+
 getStoredNodes(nodesIn,cellLoc) := block([numNodes,dim,storedNodes],
   /* Given the nodes abutting a cell, return a list of the nodes
      which this cell actually stores in memory. */
@@ -42,6 +52,199 @@ getStoredNodes(nodesIn,cellLoc) := block([numNodes,dim,storedNodes],
     if removeNode then ( storedNodes : delete(nodesIn[i],storedNodes) )
   ),
   return(storedNodes)
+)$
+
+getExtendedNodes(basisTypeIn,polyOrderIn,stencilLocIn,stencilSizeIn) := block([dim,nodes,nodesEx,dI,cellsSoFar,pS,loc,newNodes,i,k],
+  /* Generate an associative list between cell coordinates (relative to the
+     cell we are building a kernel for) and the nodes in each cell. Each cell has an entry,
+     each entry is a 2-element list; the 1st element is is the cell coordinate, the 2nd
+     is a list of nodes in that cell, with coordinates on the extended logical space.
+     The size of the extended logical space is given by stencilSizeIn, which is a dim-long
+     list, each entry a 2-element list with the size in the lower/upper direction. */
+
+  /* For now assume interior cells are deeply interior, so adding cells in the lower
+     or upper directions does not mean adding boundary cells. */
+  dim   : length(stencilLocIn),
+  nodes : args(getNodes(basisTypeIn, dim, polyOrderIn)),
+
+  nodesEx : [[makelist(0,i,1,dim), copylist(nodes)]],
+  for dI: 1 thru dim do (
+    cellsSoFar : length(nodesEx),
+    for pS : 1 thru cellsSoFar do (
+      prevNodes : nodesEx[pS][2],
+      if (stencilLocIn[dI] > -1) then (
+        /* Add stencilSizeIn[dI][1] nearest lower cells. */
+        for k : 1 thru stencilSizeIn[dI][1] do (
+          loc      : copylist(nodesEx[pS][1]),
+          loc[dI]  : -k,
+  
+          newNodes : copylist(prevNodes),
+          for i : 1 thru length(prevNodes) do ( newNodes[i][dI] : prevNodes[i][dI]-2*k ),
+          nodesEx  : endcons([loc,newNodes],nodesEx)
+        )
+      ),
+      if (stencilLocIn[dI] < 1) then (
+        /* Add stencilSizeIn[dI][2] nearest upper cells. */
+        for k : 1 thru stencilSizeIn[dI][2] do (
+          loc      : copylist(nodesEx[pS][1]),
+          loc[dI]  : k,
+  
+          newNodes : copylist(prevNodes),
+          for i : 1 thru length(prevNodes) do ( newNodes[i][dI] : prevNodes[i][dI]+2*k ),
+          nodesEx  : endcons([loc,newNodes],nodesEx)
+        )
+      )
+    )
+  ),
+  return(nodesEx)
+)$
+
+getExtendedStoredNodes(basisTypeIn,polyOrderIn,stencilLocIn,stencilSizeIn) := block([dim,nodes,storedNodes,nodesEx,storedNodesEx,dI,cellsSoFar,pS,loc,newNodes,i,k],
+  /* Like getExtendedNodes, but for stored nodes (recall
+     that each cell only stores the lower left nodes. */
+  dim   : length(stencilLocIn),
+  nodes : args(getNodes(basisTypeIn, dim, polyOrderIn)),
+
+  /* Each cell only stores the lower left nodes. */
+  storedNodes   : getStoredNodes(nodes,stencilLocIn),
+
+  nodesEx       : getExtendedNodes(basisTypeIn,polyOrderIn,stencilLocIn,stencilSizeIn),
+  storedNodesEx : [[makelist(0,i,1,dim), copylist(storedNodes)]],
+  for dI: 1 thru dim do (
+    cellsSoFar : length(storedNodesEx),
+    for pS : 1 thru cellsSoFar do (
+      prevStoredNodes : deleteNodes(storedNodesEx[pS][2],[[dI,1]],true),
+      if (stencilLocIn[dI] > -1) then (
+        /* Add stencilSizeIn[dI][1] nearest lower cells. */
+        for k : 1 thru stencilSizeIn[dI][1] do (
+          loc           : copylist(nodesEx[pS][1]),
+          loc[dI]       : -k,
+  
+          newNodes      : copylist(prevStoredNodes),
+          for i : 1 thru length(prevStoredNodes) do ( newNodes[i][dI] : prevStoredNodes[i][dI]-2*k ),
+          storedNodesEx : endcons([loc,newNodes],storedNodesEx)
+        )
+      ),
+      if (stencilLocIn[dI] < 1) then (
+        /* Add stencilSizeIn[dI][2] nearest upper cells. */
+        for k : 1 thru stencilSizeIn[dI][2] do (
+          loc           : copylist(nodesEx[pS][1]),
+          loc[dI]       : k,
+  
+          newNodes      : copylist(prevStoredNodes),
+          for i : 1 thru length(prevStoredNodes) do ( newNodes[i][dI] : prevStoredNodes[i][dI]+2*k ),
+          storedNodesEx : endcons([loc,newNodes],storedNodesEx)
+        )
+      )
+    )
+  ),
+  return(storedNodesEx)
+)$
+
+getExtendedWeqNodes(basisTypeIn,polyOrderIn,stencilLocIn,stencilSizeIn) := block([dim,nodes,nodesEx,weqNodesEx,cellsSoFar,pS,loc,newNodes,i,k],
+  /* Like getExtendedNodes, but for nodes used to add contributions to a weak form. */ 
+  dim   : length(stencilLocIn),
+  nodes : args(getNodes(basisTypeIn, dim, polyOrderIn)),
+
+  nodesEx    : getExtendedNodes(basisTypeIn,polyOrderIn,stencilLocIn,stencilSizeIn),
+  weqNodesEx : [[makelist(0,i,1,dim), copylist(nodes)]],
+  /* If cells in the upper direction are requested, then remove
+     from weqNodesEx those nodes in the nearest upper cell. */
+  for dI: 1 thru dim do (
+    if (stencilLocIn[dI] < 1) and (stencilSizeIn[dI][2]>0) then (
+      weqNodes : deleteNodes(weqNodesEx[1][2],[[dI,1]],true)
+    )
+  ),
+  for dI: 1 thru dim do (
+    cellsSoFar : length(weqNodesEx),
+    for pS : 1 thru cellsSoFar do (
+      prevNodes       : nodesEx[pS][2],
+      prevWeqNodes    : deleteNodes(weqNodesEx[pS][2],[[dI,1]],true),
+      if (stencilLocIn[dI] > -1) then (
+        /* Add stencilSizeIn[dI][1] nearest lower cells. */
+        for k : 1 thru stencilSizeIn[dI][1] do (
+          loc        : copylist(nodesEx[pS][1]),
+          loc[dI]    : -k,
+  
+          newNodes   : copylist(prevWeqNodes),
+          for i : 1 thru length(prevWeqNodes) do ( newNodes[i][dI] : prevWeqNodes[i][dI]-2*k ),
+          weqNodesEx : endcons([loc,newNodes],weqNodesEx)
+        )
+      ),
+      if (stencilLocIn[dI] < 1) then (
+        /* Add stencilSizeIn[dI][2] nearest upper cells. */
+        for k : 1 thru stencilSizeIn[dI][2] do (
+          loc        : copylist(nodesEx[pS][1]),
+          loc[dI]    : k,
+          
+          if (k=stencilSizeIn[dI][2]) then (
+            /* For the last upper node, add the nodes initially removed. Preserve order. */
+            addNodesIdx : sublist_indices(nodes,lambda([x],x[dI]=1)),
+            currNodesEx : assoc(loc,nodesEx),
+            addNodes    : makelist(currNodesEx[addNodesIdx[i]],i,1,length(addNodesIdx)),
+            newNodes    : append(prevWeqNodes,addNodes),
+            newNodes    : sort(newNodes,lambda([a,b],sublist_indices(currNodesEx,lambda([x],x=a))[1]<sublist_indices(currNodesEx,lambda([x],x=b))[1]))
+          ) else (
+            newNodes : copylist(prevWeqNodes)
+          ),
+          for i : 1 thru length(prevWeqNodes) do ( newNodes[i][dI] : prevWeqNodes[i][dI]+2*k ),
+          weqNodesEx : endcons([loc,newNodes],weqNodesEx)
+        )
+      )
+    )
+  ),
+  return(weqNodesEx)
+)$
+
+getExtendedNodesAll(basisTypeIn,polyOrderIn,stencilLocIn,stencilSizeIn) := block([nodesEx,weqNodesEx,storedNodesEx],
+  /* Generate 3 associative list of nodes in each cell (nodesEx), nodes involved in the weak
+     problem without duplication (weqNodesEx), and nodes stored in each cell (storedNodesEx).
+     Each cell has an element in these lists. Each element is a 2-entry list; the 1st entry is
+     is the cell coordinate (relative to the cell we are generating a kernel for), the 2nd
+     is a list of nodes in that cell, with coordinates on the extended logical space.
+     The size of the extended logical space is given by stencilSizeIn, which is a dim-long
+     list, each entry a 2-element list with the size in the lower/upper direction. */
+
+  /* For now assume interior cells are deeply interior, so adding cells in the lower
+     or upper directions does not mean adding boundary cells. */
+
+  nodesEx       : getExtendedNodes(basisTypeIn,polyOrderIn,stencilLocIn,stencilSizeIn),
+  weqNodesEx    : getExtendedStoredNodes(basisTypeIn,polyOrderIn,stencilLocIn,stencilSizeIn),
+  storedNodesEx : getExtendedWeqNodes(basisTypeIn,polyOrderIn,stencilLocIn,stencilSizeIn), 
+
+  return([nodesEx,weqNodesEx,storedNodesEx])
+)$
+
+getCellToIdx(stencilLocIn,stencilSizeIn) := block([dim,idx,dI,cellsSoFar,pS,k,cellToIdx],
+  /* Generate an associative list between cell coordinates (relative to the cell we are 
+     generating a kernel for) of the cells considered in the weak form, and a linear index. */
+  dim       : length(stencilSizeIn),
+  idx       : 1,
+  cellToIdx : [[makelist(0,i,1,dim),idx]],
+  for dI : 1 thru dim do (
+    cellsSoFar : length(cellToIdx),
+    for pS : 1 thru cellsSoFar do (
+      if (stencilLocIn[dI] > -1) then (
+        /* Add stencilSizeIn[dI] nearest lower cells. */
+        for k : 1 thru (stencilSizeIn[dI][1]) do (
+          cellToIdx : endcons(copylist(cellToIdx[pS]),cellToIdx),
+          idx       : idx+1,
+          cellToIdx[idx][1][dI] : -k,
+          cellToIdx[idx][2]     : idx
+        )
+      ),
+      if (stencilLocIn[dI] < 1) then (
+        /* Add stencilSizeIn[dI] nearest upper cells. */
+        for k : 1 thru (stencilSizeIn[dI][2]) do (
+          cellToIdx : endcons(copylist(cellToIdx[pS]),cellToIdx),
+          idx       : idx+1,
+          cellToIdx[idx][1][dI] : k,
+          cellToIdx[idx][2]     : idx
+        )
+      )
+    )
+  ),
+  return(cellToIdx)
 )$
 
 getStoredNodesStencil(nodesIn,cellLoc) := block([storedNodes,dim,numStoredNodes,neighStoredNodes],
@@ -83,16 +286,6 @@ getStoredNodesStencil(nodesIn,cellLoc) := block([storedNodes,dim,numStoredNodes,
     )
   ),
   return(neighStoredNodes)
-)$
-
-getNodeIndices(nodeSubsetIn,nodesIn) := block([nodeIdxs,idx],
-  /* Return the indices of a set of nodes (nodeSubsetIn) within the nodesIn list. */
-  nodeIdxs : [],
-  for k : 1 thru length(nodeSubsetIn) do (
-    idx      : sublist_indices(nodesIn,lambda([x],x=nodeSubsetIn[k]))[1],
-    nodeIdxs : append(nodeIdxs,[idx])
-  ),
-  return(nodeIdxs)
 )$
 
 getBasisMap(nodesIn,storedNodesIn,cellLoc,cellBCs) := block([numStoredNodes,dim,prevToNodes,prevFromNodes,prevMap,toNodes,fromNodes,basisMap],

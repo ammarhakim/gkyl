@@ -8,6 +8,7 @@ load(stringproc)$
 load("mgPoisson-calc/FEMinterBasisOperators")$
 load("mgPoisson-calc/FEMsmoothers")$
 load("mgPoisson-calc/FEMinterGridOperators")$
+load("mgPoisson-calc/FEMresidue")$
 /*
 load("mgPoisson-calc/FEMresidue")$
 */
@@ -56,7 +57,7 @@ for bInd : 1 thru length(bName) do (
     disp(printf(false,sconcat("Working on MGpoissonFEMRestrict", c, "x", bName[bInd]))),
     calcFEMRestrictionOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
 
-    /* Kernels to translate a DG field into an CG field, and viceversa. */
+    /* Kernels to translate a DG field into an CG (FEM) field, and viceversa. */
     funcName : sconcat("MGpoissonFEM_DGtoFEM_", c, "x", bName[bInd]),
     disp(printf(false,sconcat("Working on MGpoissonFEM_DGtoFEM_", c, "x", bName[bInd]))),
     calcDGtoFEM(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
@@ -67,6 +68,11 @@ for bInd : 1 thru length(bName) do (
     disp(printf(false,sconcat("Working on MGpoissonFEMDampedGaussSeidel", c, "x", bName[bInd]))),
     calcGaussSeidelOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
     calcGaussSeidelOpBoundary(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+
+    /* Kernel for computing the residue. */
+    funcName : sconcat("MGpoissonFEMResidue", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonFEMResidue", c, "x", bName[bInd]))),
+    calcFEMResidue(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
 
     close(fh)
     
