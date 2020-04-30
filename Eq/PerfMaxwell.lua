@@ -213,9 +213,9 @@ end
 -- Create and add BCs specific to Maxwell's equation
 
 -- Perfect electric conductor
-local bcCondWallElc    = BoundaryCondition.ZeroTangent { components = {1, 2, 3} }
-local bcCondWallMgn    = BoundaryCondition.ZeroNormal { components = {4, 5, 6} }
-local bcCondWallPot    = BoundaryCondition.Copy { components = {7, 8}, fact = {-1, 1} }
+local bcCondWallElc = BoundaryCondition.ZeroTangent { components = {1, 2, 3} }
+local bcCondWallMgn = BoundaryCondition.ZeroNormal { components = {4, 5, 6} }
+local bcCondWallPot = BoundaryCondition.Copy { components = {7, 8}, fact = {-1, 1} }
 PerfMaxwell.bcCondWall = { bcCondWallElc, bcCondWallMgn, bcCondWallPot  }
 
 function PerfMaxwell:setAuxFields(auxFields)

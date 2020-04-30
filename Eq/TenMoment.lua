@@ -24,7 +24,7 @@ typedef struct {
    int useIntermediateWave; /* Flag to indicate intermediate wave use */
    double _rpTime; /* Time spent in RP */
    double _tv[11]; /* To store stuff in flux() function */
-} TenMomentEqn_t;
+} TenMomentEq_t;
 
 /* Ten-moment RP solver */
   void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], double *waves, double s[5]);
@@ -117,7 +117,7 @@ local tenMoment_mt = {
       end,
    }
 }
-local TenMomentObj = metatype(typeof("TenMomentEqn_t"), tenMoment_mt)
+local TenMomentObj = metatype(typeof("TenMomentEq_t"), tenMoment_mt)
 
 -- create a wrapper on Ten-moment eqn object and provide BCs specific
 -- to equations

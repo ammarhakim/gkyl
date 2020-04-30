@@ -23,7 +23,7 @@ typedef struct {
    int _numWaves; /* Number of waves in system */
    int _rpType; /* Type of RP to use */
    double _fl[6], _fr[6]; /* Storage for left/right fluxes ([6] as we want to index from 1) */
-} EulerEqn_t;
+} EulerEq_t;
 
 ]]
 
@@ -35,7 +35,7 @@ local dirShuffle = {
    ffi.new("int32_t[4]", 0, 4, 2, 3)
 }
 
--- Helper to check if number is NaN
+-- Helper to check if number is NaN.
 local function isNan(x) return x ~= x end
 
 -- Riemann problem for Euler equations: `delta` is the vector we wish
@@ -50,7 +50,7 @@ local function rpRoe(self, dir, delta, ql, qr, waves, s)
    local rhol, rhor = ql[1], qr[1]
    local pl, pr = self:pressure(ql), self:pressure(qr)
 
-   -- Roe averages: see Roe's original 1986 paper or LeVeque book
+   -- Roe averages: see Roe's original 1986 paper or LeVeque book.
    local srrhol, srrhor = math.sqrt(rhol), math.sqrt(rhor)
    local ravgl1, ravgr1 = 1/srrhol, 1/srrhor
    local ravg2 = 1/(srrhol+srrhor)
@@ -60,7 +60,7 @@ local function rpRoe(self, dir, delta, ql, qr, waves, s)
    local enth = ((ql[5]+pl)*ravgl1 + (qr[5]+pr)*ravgr1)*ravg2   
 
    -- See http://ammar-hakim.org/sj/euler-eigensystem.html for
-   -- notation and meaning of these terms
+   -- notation and meaning of these terms.
    local q2 = u*u+v*v+w*w
    local aa2 = g1*(enth-0.5*q2)
    local a = math.sqrt(aa2)
@@ -258,7 +258,7 @@ local euler_mt = {
       end,
    }
 }
-local EulerObj = ffi.metatype(ffi.typeof("EulerEqn_t"), euler_mt)
+local EulerObj = ffi.metatype(ffi.typeof("EulerEq_t"), euler_mt)
 
 -- Euler equations object
 local Euler = Proto(EqBase)
