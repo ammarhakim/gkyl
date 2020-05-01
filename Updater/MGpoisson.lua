@@ -427,10 +427,12 @@ function MGpoisson:init(tbl)
    -- Select MG components for FEM or DG solver.
    if self.isDG then
       self.relax    = function(numRelax, phiFld, rhoFld) MGpoisson['relaxDG'](self, numRelax, phiFld, rhoFld) end
+      self.residue  = function(phiFld, rhoFld, resFld) MGpoisson['residueDG'](self, phiFld, rhoFld, resFld) end
       self.restrict = function(fFld,cFld) MGpoisson['restrictDG'](self,fFld,cFld) end
       self.prolong  = function(cFld,fFld) MGpoisson['prolongDG'](self,cFld,fFld) end
    else
       self.relax    = function(numRelax, phiFld, rhoFld) MGpoisson['relaxFEM'](self, numRelax, phiFld, rhoFld) end
+      self.residue  = function(phiFld, rhoFld, resFld) MGpoisson['residueFEM'](self, phiFld, rhoFld, resFld) end
       self.restrict = function(fFld,cFld) MGpoisson['restrictFEM'](self,fFld,cFld) end
       self.prolong  = function(cFld,fFld) MGpoisson['prolongFEM'](self,cFld,fFld) end
    end
@@ -810,8 +812,8 @@ function MGpoisson:relaxFEM(numRelax, phiFld, rhoFld)
    end
 end
 
-function MGpoisson:residue(phiFld, rhoFld, resFld)
-   -- Compute the residue:
+function MGpoisson:residueDG(phiFld, rhoFld, resFld)
+   -- Compute DG the residue:
    --     r = rho + L(phi). 
    -- where L is the Laplacian.
 
@@ -855,6 +857,59 @@ function MGpoisson:residue(phiFld, rhoFld, resFld)
    end
 end
 
+function MGpoisson:residueFEM(phiFld, rhoFld, resFld)
+   -- Compute FEM the residue:
+   --     r = rho + L(phi). 
+   -- where L is the Laplacian.
+
+   local grid   = phiFld:grid() 
+   local cellsN = {}
+   for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
+
+   localRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = phiFld:localRange(), numSplit = grid:numSharedProcs() }
+   local tId        = grid:subGridSharedId()    -- Local thread ID.
+
+   local indexer = phiFld:genIndexer()
+
+   local phiItr = phiFld:get(1)
+   local rhoItr = rhoFld:get(1)
+   local resItr = resFld:get(1)
+
+   for idx in localRangeDecomp:rowMajorIter(tId) do
+   
+      grid:setIndex(idx)
+   
+      -- Cell lengths, right-side source (rho) and residue in this cell.
+      grid:getDx(self.dxBuf)
+      self.dxStencil[1] = self.dxBuf:data()
+      rhoFld:fill(indexer(idx), rhoItr)   
+      resFld:fill(indexer(idx), resItr)   
+   
+      -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
+      self:opStencilIndices(idx,{0,self.threes,self.zeros},self.phiStencilIdx)
+   
+      -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil. 
+      for i = 1, self.phiStencilSize do
+         grid:setIndex(self.phiStencilIdx[i])
+         grid:getDx(self.dxBuf)
+         self.dxStencil[i] = self.dxBuf:data()
+
+         phiFld:fill(indexer(self.phiStencilIdx[i]), phiItr)
+         self.phiStencil[i] = phiItr:data()
+      end
+
+      -- Array of pointers to rho data in cells pointed to by the stencil.
+      for i = 1, self.rhoStencilSize do
+         grid:setIndex(self.rhoStencilIdx[i])
+         rhoFld:fill(indexer(self.rhoStencilIdx[i]), rhoItr)
+         self.rhoStencil[i] = rhoItr:data()
+      end
+   
+      self._calcResidue[self:idxToStencil(idx,cellsN)](self.dxStencil:data(), self.bcValue:data(), self.rhoStencil:data(), self.phiStencil:data(), resItr:data())
+   end
+end
+
 function MGpoisson:relResidueNorm(gamIdx)
    -- Compute the relative norm of the residue: ||rho + L(phi)||/||rho||.
 
@@ -862,7 +917,7 @@ function MGpoisson:relResidueNorm(gamIdx)
    self.l2NormCalc:advance(1,{self.rhoAll[1]},{self.rhoNorm})
    local _, rhsNorm = self.rhoNorm:lastData()
    -- Compute the norm of the residue.
-   self:residue(self.phiAll[1], self.rhoAll[1], self.residueAll[1]) 
+   self.residue(self.phiAll[1], self.rhoAll[1], self.residueAll[1]) 
    self.l2NormCalc:advance(gamIdx,{self.residueAll[1]},{self.residueNorm})
    -- Compute the relative residue norm and store it in self.relResNorm.
    local _, resNorm    = self.residueNorm:lastData()
@@ -1004,7 +1059,7 @@ function MGpoisson:gammaCycle(lCurr)
       self.relax(self.nu1, self.phiAll[lCurr], self.rhoAll[lCurr]) 
 
       -- Compute the residue.
-      self:residue(self.phiAll[lCurr], self.rhoAll[lCurr], self.residueAll[lCurr]) 
+      self.residue(self.phiAll[lCurr], self.rhoAll[lCurr], self.residueAll[lCurr]) 
 
       -- Restrict the residue to the next coarsest grid.
       self.restrict(self.residueAll[lCurr], self.rhoAll[lCurr+1])
@@ -1039,7 +1094,7 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
    elseif self.isFEM then
       -- FEM solver. Translate RHS source DG coefficients to FEM.
       self.rhoAll[1]:clear(0.0)
-      self:DG_FEM_coefTranslate(inFld[1], self.rhoAll[1],-1)
+      self:DG_FEM_coefTranslate(inFld[1], self.rhoAll[1], DG_to_FEM)
    end
    local initialGuess   = inFld[2]
    local relResNormCurr = 1.0e12    -- Current (relative) residue norm.
@@ -1049,7 +1104,7 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
       elseif self.isFEM then
          -- FEM solver. Translate initial guess DG coefficients to FEM.
          self.phiAll[1]:clear(0.0)
-         self:DG_FEM_coefTranslate(initialGuess, self.phiAll[1],DG_to_FEM)
+         self:DG_FEM_coefTranslate(initialGuess, self.phiAll[1], DG_to_FEM)
       end
    else
       -- No initial guess provided. Perform Full Multi-Grid (FMG).
@@ -1089,11 +1144,13 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
       self.relResNorm:write(string.format("relResidue_RmsV.bp"), 0.0, 0)
    end
 
---   if self.isFEM then
---      -- Translate final phi from FEM to DG.
+   if self.isFEM then
+      -- Translate final phi from FEM to DG.
 --      outFld[1]:clear(0.0)
 --      self:DG_FEM_coefTranslate(self.phiAll[1],outFld[1],FEM_to_DG)
---   end
+      print(" FEM_to_DG not yet available. Copying FEM solution to outFld.")
+      outFld[1]:copy(self.phiAll[1])
+   end
 
 end
 
