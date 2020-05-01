@@ -1,11 +1,11 @@
-/* Kernels for the smoothing/relaxation operators for
-   the Poisson equation
-         - L(phi) = rho
-   where L=Laplacian, using an FEM method. */
+/* Kernels for computing the residue of the DG Poisson equation
+         res = rho + L(phi)
+   where L is the Laplacian. */
 
 load("modal-basis");
 load("out-scripts");
-load("nodalOperations/nodalFunctions");
+load("mgPoisson-calc/MGpoissonUtil");
+load("mgPoisson-calc/FEMnodalFuncs");
 fpprec : 24$
 
 /* String used for identifying nearest neighbor cells. */
@@ -23,11 +23,9 @@ bcStrs   : ["", "Dirichlet", "Neumann", "Robin"]$
 bcKey    : makelist([bcTypes[i],bcStrs[i]],i,1,length(bcTypes))$
 
 
-calcGaussSeidelOp(fh, funcNm, dim, basisFun, pMax) := block([],
-  /* Cellwise (damped) Gauss-Seidel relaxation on the Poisson equation using an FEM method. 
-     Beware that cellwise might not mean exactly the cell-wise used in the literature. Here
-     we mean that we are solving the linear system that links the nodes stored in a single
-     single cell, but those are not all the nodes abutting a cell.*/
+calcFEMResidue(fh, funcNm, dim, basisFun, pMax) := block([],
+  /* Residue computation for the Poisson equation using an FEM
+     discretization. */
 
   kill(varsC, varsP, basisC, basisP),
 
@@ -58,29 +56,19 @@ calcGaussSeidelOp(fh, funcNm, dim, basisFun, pMax) := block([],
 
       for polyOrder : 1 thru pMax do (
 
-        /* Each cell only stores the lower left nodes. */
-        numStoredNodes : length(getStoredNodes(args(getNodes(basisFun, dim, polyOrder)),stencilLoc[sI])),
-
-        /* Obtain the weak Poisson equation for the stored nodes. */
         weqPoissonLst : weakPoissonStored(basisFun,varsC,polyOrder,stencilLoc[sI],currBC),
         poissonLHS    : weqPoissonLst[1],
         sourceRHS     : weqPoissonLst[2],
 
-        /* Solve for the coefficients of this cell to get the stencil. */
-        phiC_c  : makelist(phiC[i],i,0,numStoredNodes-1),
-        weqSolv : linsolve(makelist(poissonLHS[i]=sourceRHS[i],i,1,numStoredNodes),phiC_c),
+        /* Subtract the LHS from the right-side source to obtain residue. */
+        residue_c : fullratsimp(sourceRHS - poissonLHS),
 
-        /* (Cellwise) damped Gauss-Seidel method. */
-        gsStencil : (1-omega)*phiC_c + omega*makelist(rhs(weqSolv[i]),i,1,numStoredNodes),
-        gsStencil : fullratsimp(gsStencil),
-
-        printf(fh, "void ~a_~aP~a(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi) ~%{ ~%", funcNm, stencilStr, polyOrder),
-        printf(fh, "  // omega:   relaxation parameter.~%"),
+        printf(fh, "void ~a_~aP~a(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) ~%{ ~%", funcNm, stencilStr, polyOrder),
         printf(fh, "  // dx:      cell lengths of cells pointed to by the stencil.~%"),
         printf(fh, "  // bcVals:  values to impose as BCs.~%"),
         printf(fh, "  // rho:     right-side source in the current cell.~%"),
-        printf(fh, "  // phiPrev: (Jacobi-only) iterate cells pointed to by the stencil (only use neighbor cells).~%"),
-        printf(fh, "  // phi:     iterate cells pointed to by the stencil (Gauss-Seidel), or cell we are currently updating (Jacobi).~%"),
+        printf(fh, "  // phi:     iterate cells pointed to by the stencil.~%"),
+        printf(fh, "  // resOut:  residue in nodes stored in current cell.~%"),
         printf(fh, "~%"),
 
         /* Pointers to the cell lengths in cells pointed to by the stencil. */
@@ -109,10 +97,10 @@ calcGaussSeidelOp(fh, funcNm, dim, basisFun, pMax) := block([],
         i : 1,
         varStrs : [""],
         for d : 1 thru dim do (
-          for sI : 1 thru 3^(d-1) do (
+          for sL : 1 thru 3^(d-1) do (
             for pm : -1 thru 1 step 2 do (
               i : i + 1,
-              varStrs : append(varStrs, [sconcat(varStrs[sI],assoc(pm,neighStrKey),string(varsC[d]))]),
+              varStrs : append(varStrs, [sconcat(varStrs[sL],assoc(pm,neighStrKey),string(varsC[d]))]),
               printf(fh, "  double *phi~a = phi[~a]; ~%", varStrs[i], i-1),
               printf(fh, "  double *rho~a = rho[~a]; ~%", varStrs[i], i-1)
             )
@@ -121,13 +109,15 @@ calcGaussSeidelOp(fh, funcNm, dim, basisFun, pMax) := block([],
         printf(fh, "~%"),
 
         /* Write the relaxation stencil. */
-        writeCExprs1noPowers(phiC,gsStencil,[rdx2SqVol,bcVals],12),
+        writeCExprs1noPowers(resOut,residue_c,[rdx2SqVol,bcVals],12),
         printf(fh, "~%"),
 
         printf(fh, "}~%"),
         printf(fh, "~%")
 
       )
+
     )
+
   )
 )$

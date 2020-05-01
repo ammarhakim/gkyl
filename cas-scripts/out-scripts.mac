@@ -162,3 +162,49 @@ writeCExprsDoubleCollect1lhsc(lhs, rhs, clst) := block([expr],
     )
   )
 )$
+
+writeCExprs1noPowers(lhs, rhs, qPow, numElemMax) := block([expr],
+  /* Search for powers of the quantities in qPow. If one of them is found
+     then define a temporary variable for it before writing out the increment. */
+
+  exprN : length(rhs),
+
+  /* Eliminate the exponents as needed. */
+  subList     : [],
+  maxExponent : 8,
+  for eI : 1 thru length(qPow) do (
+    for d : 0 thru numElemMax-1 do (
+      for f : 2 thru maxExponent do (
+        doSub : false,
+        for k : 1 thru exprN do (
+          if (not freeof(qPow[eI][d]^f,rhs[k])) then ( doSub : true )
+        ),
+        if (doSub) then (
+          /* Define a separate variable. */
+          lhsS : sconcat("  const double ",string(qPow[eI]),d,"R",f),
+          rhsS : sconcat("std::pow(",string(qPow[eI][d]),",",f,");~%"),
+          printf(fh, sconcat(lhsS," = ",rhsS)),
+          /* Add to the string substitution list, used in writing file. */
+          subList : append(subList,[[sconcat(string(qPow[eI][d]), "^",f), sconcat(string(qPow[eI]),d,"R",f)]])
+        )
+      )
+    )
+  ),
+  printf(fh, "~%"),
+
+  expr : float(rhs),
+  for i : 1 thru exprN do (
+    if expr[i] # 0.0 then (
+      ep : string(expr[i]),
+      if (length(subList) > 0) then (
+        outStr : ssubst(subList[1][2],subList[1][1],ep),
+        for s : 2 thru length(subList) do (
+          outStr : ssubst(subList[s][2],subList[s][1],outStr)
+        )
+      ) else (
+        outStr : ep
+      ),
+      printf(fh, "  ~a = ~a; ~%", lhs[i-1], outStr)
+    )
+  )
+)$

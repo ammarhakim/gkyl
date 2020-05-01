@@ -7,18 +7,18 @@
 
 local Unit = require "Unit"
 local Grid = require "Grid"
-local Lin = require "Lib.Linalg"
+local Lin  = require "Lib.Linalg"
 
 local assert_equal = Unit.assert_equal
-local stats = Unit.stats
+local stats        = Unit.stats
 
 function test_1()
    local grid = Grid.RectCart {
       cells = {10, 20}
    }
 
-   -- (just make sure setIndex() method works. For RectCart object
-   -- setting index is not needed)
+   -- Just make sure setIndex() method works. For RectCart object
+   -- setting index is not needed.
    idx = Lin.IntVec(grid:ndim())
    idx[1], idx[2] = 1, 1
    grid:setIndex(idx)
@@ -45,7 +45,7 @@ function test_1()
    assert_equal(0.1, grid:dx(1), "Checking dx")
    assert_equal(0.05, grid:dx(2), "Checking dx")
 
-   -- test cell-center coordinates
+   -- Test cell-center coordinates.
    local lox, dx = grid:lower(1), grid:dx(1)
    local loy, dy = grid:lower(2), grid:dx(2)
 
@@ -87,7 +87,7 @@ function test_2()
    assert_equal(0.2*0.2, grid:cellVolume(), "Checking volume")
 
    local localRange = grid:localRange()
-   -- test cell-center coordinates
+   -- Test cell-center coordinates.
    local lox, dx = grid:lower(1), grid:dx(1)
    local loy, dy = grid:lower(2), grid:dx(2)
 
@@ -141,7 +141,7 @@ function test_3()
 
    assert_equal(0.2*0.2*0.2, grid:cellVolume(), "Checking volume")
 
-   -- test cell-center coordinates
+   -- Test cell-center coordinates.
    local lox, dx = grid:lower(1), grid:dx(1)
    local loy, dy = grid:lower(2), grid:dx(2)
    local loz, dz = grid:lower(3), grid:dx(3)
@@ -212,23 +212,38 @@ function test_5a()
 
    assert_equal(0.2*0.2*0.2, grid:cellVolume(), "Checking volume")
 
-   -- test cell-center coordinates (THIS WORKS AS MESH IS ACTUALLY UNIFORM)
+   -- Test cell-center coordinates (THIS WORKS AS MESH IS ACTUALLY UNIFORM).
    local lox, dx = grid:lower(1), grid:dx(1)
    local loy, dy = grid:lower(2), grid:dx(2)
    local loz, dz = grid:lower(3), grid:dx(3)
 
-   local idx = Lin.IntVec(grid:ndim())
+   local idx        = Lin.IntVec(grid:ndim())
    local localRange = grid:localRange()
-   local xc = Lin.Vec(3)
+   local xc         = Lin.Vec(3)
    for i = localRange:lower(1), localRange:upper(1) do
       for j = localRange:lower(2), localRange:upper(2) do
 	 for k = localRange:lower(3), localRange:upper(3) do
-	    grid:setIndex( idx:setValues {i, j, k} )
-	    grid:cellCenter(xc)
-
-	    assert_equal(lox+(i-0.5)*dx, xc[1], "Testing cell-center x coordinate")
-	    assert_equal(loy+(j-0.5)*dy, xc[2], "Testing cell-center y coordinate")
-	    assert_equal(loz+(k-0.5)*dz, xc[3], "Testing cell-center z coordinate")
+            grid:setIndex( idx:setValues {i, j, k} )
+            grid:cellCenter(xc)
+        
+            assert_equal(lox+(i-0.5)*dx, xc[1], "Testing cell-center x coordinate")
+            assert_equal(loy+(j-0.5)*dy, xc[2], "Testing cell-center y coordinate")
+            assert_equal(loz+(k-0.5)*dz, xc[3], "Testing cell-center z coordinate")
+        
+            local xcDir = {grid:cellCenterInDir(1), grid:cellCenterInDir(2), grid:cellCenterInDir(3)} 
+            assert_equal(xc[1], xcDir[1], "Testing cell center in x direction")
+            assert_equal(xc[2], xcDir[2], "Testing cell center in y direction")
+            assert_equal(xc[3], xcDir[3], "Testing cell center in z direction")
+            
+            local loDir = {grid:cellLowerInDir(1), grid:cellLowerInDir(2), grid:cellLowerInDir(3)} 
+            assert_equal(lox+(i-1)*dx, loDir[1], "Testing cell lower in x direction")
+            assert_equal(loy+(j-1)*dy, loDir[2], "Testing cell lower in y direction")
+            assert_equal(loz+(k-1)*dz, loDir[3], "Testing cell lower in z direction")
+            
+            local upDir = {grid:cellUpperInDir(1), grid:cellUpperInDir(2), grid:cellUpperInDir(3)} 
+            assert_equal(lox+i*dx, upDir[1], "Testing cell upper in x direction")
+            assert_equal(loy+j*dy, upDir[2], "Testing cell upper in y direction")
+            assert_equal(loz+k*dz, upDir[3], "Testing cell upper in z direction")
 	 end
       end
    end
@@ -236,10 +251,10 @@ end
 
 function test_5()
    local grid = Grid.NonUniformRectCart {   
-      lower = {0.0, 1.0, 2.0},
-      upper = {2.0, 5.0, 10.0},
-      cells = {10, 20, 40},
-      -- functions mapping computational space to physical space
+      lower    = {0.0, 1.0, 2.0},
+      upper    = {2.0, 5.0, 10.0},
+      cells    = {10, 20, 40},
+      -- Functions mapping computational space to physical space.
       mappings = {
 	 function (zeta)
 	    return zeta
@@ -273,14 +288,14 @@ function test_5()
 
    assert_equal(0.2*0.2*0.2, grid:cellVolume(), "Checking volume")
 
-   -- test cell-center coordinates (THIS WORKS AS MESH IS ACTUALLY UNIFORM)
+   -- Test cell-center coordinates (THIS WORKS AS MESH IS ACTUALLY UNIFORM).
    local lox, dx = grid:lower(1), grid:dx(1)
    local loy, dy = grid:lower(2), grid:dx(2)
    local loz, dz = grid:lower(3), grid:dx(3)
 
-   local idx = Lin.IntVec(grid:ndim())
+   local idx        = Lin.IntVec(grid:ndim())
    local localRange = grid:localRange()
-   local xc = Lin.Vec(3)
+   local xc         = Lin.Vec(3)
    for i = localRange:lower(1), localRange:upper(1) do
       for j = localRange:lower(2), localRange:upper(2) do
 	 for k = localRange:lower(3), localRange:upper(3) do
@@ -290,6 +305,21 @@ function test_5()
 	    assert_equal(lox+(i-0.5)*dx, xc[1], "Testing cell-center x coordinate")
 	    assert_equal(loy+(j-0.5)*dy, xc[2], "Testing cell-center y coordinate")
 	    assert_equal(loz+(k-0.5)*dz, xc[3], "Testing cell-center z coordinate")
+
+            local xcDir = {grid:cellCenterInDir(1), grid:cellCenterInDir(2), grid:cellCenterInDir(3)} 
+	    assert_equal(xc[1], xcDir[1], "Testing cell center in x direction")
+	    assert_equal(xc[2], xcDir[2], "Testing cell center in y direction")
+	    assert_equal(xc[3], xcDir[3], "Testing cell center in z direction")
+            
+            local loDir = {grid:cellLowerInDir(1), grid:cellLowerInDir(2), grid:cellLowerInDir(3)} 
+            assert_equal(lox+(i-1)*dx, loDir[1], "Testing cell lower in x direction")
+            assert_equal(loy+(j-1)*dy, loDir[2], "Testing cell lower in y direction")
+            assert_equal(loz+(k-1)*dz, loDir[3], "Testing cell lower in z direction")
+            
+            local upDir = {grid:cellUpperInDir(1), grid:cellUpperInDir(2), grid:cellUpperInDir(3)} 
+            assert_equal(lox+i*dx, upDir[1], "Testing cell upper in x direction")
+            assert_equal(loy+j*dy, upDir[2], "Testing cell upper in y direction")
+            assert_equal(loz+k*dz, upDir[3], "Testing cell upper in z direction")
 	 end
       end
    end   
@@ -297,8 +327,8 @@ end
 
 function test_6()
    local grid = Grid.NonUniformRectCart {   
-      cells = {10, 20, 40},
-      -- functions mapping computational space to physical space
+      cells    = {10, 20, 40},
+      -- Functions mapping computational space to physical space.
       mappings = {
 	 function (zeta)
 	    return 2*zeta
@@ -335,8 +365,8 @@ end
 
 function test_7()
    local grid = Grid.NonUniformRectCart {   
-      cells = {3},
-      -- functions mapping computational space to physical space
+      cells    = {3},
+      -- Functions mapping computational space to physical space.
       mappings = {
 	 function (zeta)
 	    return zeta*zeta
@@ -368,13 +398,13 @@ end
 
 function test_8()
    local grid = Grid.NonUniformRectCart { cells = {3} }
-   local xn = grid:nodeCoords(1)
-   -- set nodes manually (this is the mapping zeta^2)
+   local xn   = grid:nodeCoords(1)
+   -- Set nodes manually (this is the mapping zeta^2).
    xn[1] = 0.0
    xn[2] = 1/3*1/3
    xn[3] = 2/3*2/3
    xn[4] = 1*1
-   -- done
+   -- Done.
 
    local idx = Lin.IntVec(grid:ndim())
 
@@ -400,13 +430,13 @@ end
 
 function test_9()
    local grid = Grid.RectCart {
-      lower = {0.0, 1.0, 1.0},
-      upper = {2.0, 5.0, 10.0},
-      cells = {10, 20, 30},
+      lower        = {0.0, 1.0, 1.0},
+      upper        = {2.0, 5.0, 10.0},
+      cells        = {10, 20, 30},
       periodicDirs = {1, 3},
    }
 
-   -- check periodicity
+   -- Check periodicity.
    assert_equal(true, grid:isDirPeriodic(1), "Checking periodicity")
    assert_equal(false, grid:isDirPeriodic(2), "Checking periodicity")
    assert_equal(true, grid:isDirPeriodic(3), "Checking periodicity")
@@ -414,19 +444,19 @@ end
 
 function test_10()
    local grid = Grid.NonUniformRectCart {
-      lower = {0.0, 1.0, 1.0},
-      upper = {2.0, 5.0, 10.0},
-      cells = {10, 20, 30},
+      lower        = {0.0, 1.0, 1.0},
+      upper        = {2.0, 5.0, 10.0},
+      cells        = {10, 20, 30},
       periodicDirs = {2, 3},
    }
 
-   -- check periodicity
+   -- Check periodicity.
    assert_equal(false, grid:isDirPeriodic(1), "Checking periodicity (NU)")
    assert_equal(true, grid:isDirPeriodic(2), "Checking periodicity (NU)")
    assert_equal(true, grid:isDirPeriodic(3), "Checking periodicity (NU)")
 end
 
--- Run tests
+-- Run tests.
 test_1()
 test_2()
 test_3()

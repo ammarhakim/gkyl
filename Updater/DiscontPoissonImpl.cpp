@@ -76,6 +76,9 @@ void DiscontPoisson::solve() {
   //saveMarket(globalSrc, "source");
   x = VectorXd::Zero(N);
   x = solver.solve(globalSrc);
+  if (writeMatrix) {
+    saveMarket(globalSrc, "src.mm");
+  }
   //saveMarket(x, "solution");
 }
 

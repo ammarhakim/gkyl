@@ -1,5 +1,6 @@
 module load intel
-module load intel-mpi
+module unload intel-mpi
+module load openmpi/intel-18.0
 # if we are in machines directory, go up a directory
 if [ `dirname "$0"` == "." ] 
   then

@@ -73,6 +73,7 @@ class DiscontPoisson
   
   /** Eigen solver method */
   //Eigen::BiCGSTAB<Eigen::SparseMatrix<double> > solver;
+  //Eigen::LeastSquaresConjugateGradient<Eigen::SparseMatrix<double> > solver;
   //Eigen::SimplicialLDLT<Eigen::SparseMatrix<double> > solver;
   Eigen::SparseLU<Eigen::SparseMatrix<double> > solver;
 };

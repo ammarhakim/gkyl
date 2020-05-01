@@ -13,12 +13,17 @@ VarsC : [X, Y, Z]$
 boundStrKey : [[-1,"L"],[0,""],[1,"U"]]$
 /* Types of boundary conditions for which to generate kernels.
      =0 periodic
+     =1 Dirichlet
+     =2 Neumann
      =3 Robin
    For periodic we'll assume ghost cells are filled accordingly
    and use an interior stencil. */
-bcTypes  : [0, 3]$
-bcStrs   : ["", "Robin"]$
-bcKey    : [[bcTypes[1],bcStrs[1]],[bcTypes[2],bcStrs[2]]]$
+bcTypesDG  : [0, 3]$
+bcStrsDG   : ["", "Robin"]$
+bcTypesFEM : [0, 1, 2, 3]$
+bcStrsFEM  : ["", "Dirichlet", "Neumann", "Robin"]$
+bcKeyDG    : makelist([bcTypesDG[i],bcStrsDG[i]],i,1,length(bcTypesDG))$
+bcKeyFEM   : makelist([bcTypesFEM[i],bcStrsFEM[i]],i,1,length(bcTypesFEM))$
 
 printf(fh, "#ifndef MG_POISSON_MOD_DECL_H ~%")$
 printf(fh, "#define MG_POISSON_MOD_DECL_H ~%")$
@@ -30,7 +35,7 @@ printf(fh, " ~%")$
 printf(fh, "extern \"C\" { ~%")$
 printf(fh, " ~%")$
 
-findBoundaryStrCombo(fhIn, funcNameStr, funcArgsStr, basisFun, dim) := block([],
+findBoundaryStrCombo(fhIn, funcNameStr, funcArgsStr, basisFun, dim, bcKey) := block([],
   /* Obtain the various string combinations for the names of the
      kernels used near boundaries. */
 
@@ -74,13 +79,13 @@ findBoundaryStrCombo(fhIn, funcNameStr, funcArgsStr, basisFun, dim) := block([],
     /* Given npBCs non-periodic BCs there are bcN^npBCs possible combinations of
        of that cell's stencil, assuming there are bcN types of BCs. For now
        only Robin BCs are supported (also used for Dirichlet/Neumann). */
-    npBCcombos : makelist([bcTypes[i]],i,2,length(bcTypes)),
+    npBCcombos : makelist([bcKey[i][1]],i,2,length(bcKey)),
     for l : 2 thru npBCs do (
       tmp : copylist(npBCcombos),
       npBCcombos : [],
       for cI : 1 thru length(tmp) do (
-        for bI : 2 thru length(bcTypes) do (
-          npBCcombos : append(npBCcombos,[ append(tmp[cI],[bcTypes[bI]]) ])
+        for bI : 2 thru length(bcKey) do (
+          npBCcombos : append(npBCcombos,[ append(tmp[cI],[bcKey[bI][1]]) ])
         )
       )
     ),
@@ -170,13 +175,13 @@ for bInd : 1 thru length(bName) do (
       printf(fh, "void MGpoissonDGDampedGaussSeidel~ax~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
       printf(fh, "void MGpoissonDGDampedJacobi~ax~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
       /* Boundary smoothers. */
-      findBoundaryStrCombo(fh, "MGpoissonDGDampedGaussSeidel", "const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi", bName[bInd], ci),
-      findBoundaryStrCombo(fh, "MGpoissonDGDampedJacobi", "const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi", bName[bInd], ci),
+      findBoundaryStrCombo(fh, "MGpoissonDGDampedGaussSeidel", "const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi", bName[bInd], ci, bcKeyDG),
+      findBoundaryStrCombo(fh, "MGpoissonDGDampedJacobi", "const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi", bName[bInd], ci, bcKeyDG),
       printf(fh, "~%"),
 
       /* Residue kernels. */
       printf(fh, "void MGpoissonDGResidue~ax~a_P~a(double **dx, const double *bcVals, const double *rho, double **phi, double *resOut);~%", ci, bName[bInd], polyOrder),
-      findBoundaryStrCombo(fh, "MGpoissonDGResidue", "double **dx, const double *bcVals, const double *rho, double **phi, double *resOut", bName[bInd], ci),
+      findBoundaryStrCombo(fh, "MGpoissonDGResidue", "double **dx, const double *bcVals, const double *rho, double **phi, double *resOut", bName[bInd], ci, bcKeyDG),
       printf(fh, "~%"),
 
       /* ~~~~~~~~~~~~~~ FEM solver kernels. ~~~~~~~~~~~~~~ */
@@ -188,7 +193,19 @@ for bInd : 1 thru length(bName) do (
       /* Smoothers. */
       printf(fh, "void MGpoissonFEMDampedGaussSeidel~ax~a_P~a(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
       /* Boundary smoothers. */
-      findBoundaryStrCombo(fh, "MGpoissonFEMDampedGaussSeidel", "const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi", bName[bInd], ci),
+      findBoundaryStrCombo(fh, "MGpoissonFEMDampedGaussSeidel", "const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi", bName[bInd], ci, bcKeyFEM),
+      printf(fh, "~%"),
+
+      /* Prolongation and restriction operators. */
+      printf(fh, "void MGpoissonFEMProlong~ax~a_P~a(const double *fldC, double **fldF);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonFEMProlong", "const double *fldC, double **fldF", bName[bInd], ci, bcKeyFEM),
+      printf(fh, "void MGpoissonFEMRestrict~ax~a_P~a(double **fldF, double *fldC);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonFEMRestrict", "double **fldF, double *fldC", bName[bInd], ci, bcKeyFEM),
+      printf(fh, "~%"),
+
+      /* Residue kernels. */
+      printf(fh, "void MGpoissonFEMResidue~ax~a_P~a(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonFEMResidue", "double **dx, const double *bcVals, double **rho, double **phi, double *resOut", bName[bInd], ci, bcKeyFEM),
       printf(fh, "~%")
 
     ),

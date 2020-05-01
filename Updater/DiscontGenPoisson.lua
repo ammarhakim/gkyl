@@ -260,34 +260,34 @@ function DiscontGenPoisson:buildStiffMatrix()
    local stencilRange = Range.Range(lower, upper)
    local stencilIndexer = Range.makeRowMajorGenIndexer(stencilRange)
 
-   local idxsExtK, idxsExtL = Lin.Vec(ndim+1), Lin.Vec(ndim+1)
+   local idxsExtRow, idxsExtCol = Lin.Vec(ndim+1), Lin.Vec(ndim+1)
    local val = 0.0
-   local idxK, idxL = 0, 0
+   local idxRow, idxCol = 0, 0
 
-   for idxs in localRange:colMajorIter() do
+   for idxs in localRange:rowMajorIter() do
       local SM = self:getBlock(idxs)
-      for d = 1,ndim do
-         idxsExtK[d] = idxs[d]
-      end
-      for k = 1,self.nbasis do
-         idxsExtK[ndim+1] = k
-         idxK = stiffMatrixIndexer(idxsExtK)
-         for l = 1,self.basis:numBasis() do
-            for stencilIdx in stencilRange:colMajorIter() do
-               for d = 1,ndim do
-                  idxsExtL[d] = idxs[d] + stencilIdx[d]
-               end
-               idxsExtL[ndim+1] = l
-               idxL = stiffMatrixIndexer(idxsExtL)
-               val = SM[stencilIndexer(stencilIdx)][k][l]
-               if math.abs(val) > 1e-14 then
-                  ffiC.discontPoisson_pushTriplet(self.poisson,
-                                                  idxK-1, idxL-1, val)
+      for stencilIdx in stencilRange:rowMajorIter() do
+         for d = 1,ndim do
+            idxsExtRow[d] = idxs[d]
+            idxsExtCol[d] = idxs[d] + stencilIdx[d]
+         end
+         local SMij = SM[stencilIndexer(stencilIdx)]
+
+         for k = 1,self.nbasis do
+            idxsExtRow[ndim+1] = k
+            idxRow = stiffMatrixIndexer(idxsExtRow)
+            for l = 1,self.basis:numBasis() do
+               idxsExtCol[ndim+1] = l
+               idxCol = stiffMatrixIndexer(idxsExtCol)
+               val = SMij[k][l]
+               if math.abs(val) > 1.e-14 then 
+                  ffiC.discontPoisson_pushTriplet(self.poisson, idxRow-1, idxCol-1, val)
                end
             end
          end
       end
    end
+   
    ffiC.discontPoisson_constructStiffMatrix(self.poisson);
 end
 
@@ -315,7 +315,7 @@ function DiscontGenPoisson:_advance(tCurr, inFld, outFld)
    -- Pushing source to the Eigen matrix.
    local idxsExt = Lin.Vec(ndim+1)
    local srcMod = Lin.Vec(self.nbasis)
-   for idxs in localRange:colMajorIter() do
+   for idxs in localRange:rowMajorIter() do
       local SM = self:getBlock(idxs)
       for k = 1,self.nbasis do
          srcMod[k] = -SM[10][k]
@@ -330,7 +330,7 @@ function DiscontGenPoisson:_advance(tCurr, inFld, outFld)
 
    ffiC.discontPoisson_solve(self.poisson)
 
-   for idxs in localRange:colMajorIter() do
+   for idxs in localRange:rowMajorIter() do
       local solPtr = sol:get(solIndexer(idxs))
       for d = 1,ndim do idxsExt[d] = idxs[d] end
       idxsExt[ndim+1] = 1
