@@ -335,7 +335,7 @@ getBasisMap(nodesIn,storedNodesIn,cellLoc,cellBCs) := block([numStoredNodes,dim,
   return(basisMap)
 )$
 
-poissonContribution(bNIn,varsIn,cellCoefsIn,currBCIn,stencilLocIn,currNodesIn,storedNodesIn,stencilLHSIn,stencilRHSIn) := block(
+poissonContribution(bNIn,varsIn,cellCoefsIn,currBCIn,stencilLocIn,currNodesIn,storedNodesIn,addSurf,stencilLHSIn,stencilRHSIn) := block(
   [phi_e,rho_e,k,numB,numNodes,dim,volLHS,volRHS,bNp,phip_e,domSurfs,surfTerm,dI,dir,dirVar,surfVars,idx,pS,cI,numStoredNodes],
   /* Compute the contribution to the stencil from one of the cells abutting the
      nodes stored in the cell we are generating a kernel for. */
@@ -365,6 +365,7 @@ poissonContribution(bNIn,varsIn,cellCoefsIn,currBCIn,stencilLocIn,currNodesIn,st
     dir      : domSurfs[dI],
     dirVar   : varsIn[dir],
     surfVars : delete(dirVar,varsIn),
+    phip_e   : diff(phi_e,dirVar),
 
     surfTerm : surfTerm+stencilLocIn[dir]*rdx2SqVol[dir-1]
               *calcInnerProdList(surfVars,1,subst(dirVar=stencilLocIn[dir],bNIn),
@@ -374,8 +375,11 @@ poissonContribution(bNIn,varsIn,cellCoefsIn,currBCIn,stencilLocIn,currNodesIn,st
     idx             : sublist_indices(currNodesIn,lambda([x],x=storedNodesIn[k])),
     if length(idx)>0 then (
       idx             : idx[1],
-      stencilLHSIn[k] : stencilLHSIn[k]+volLHS[idx]+surfTerm[idx],
-      stencilRHSIn[k] : stencilRHSIn[k]+volRHS[idx]
+      stencilLHSIn[k] : stencilLHSIn[k]+volLHS[idx],
+      stencilRHSIn[k] : stencilRHSIn[k]+volRHS[idx],
+      if addSurf then ( 
+        stencilLHSIn[k] : stencilLHSIn[k]-surfTerm[idx]
+      )
     )
   ),
   return([stencilLHSIn,stencilRHSIn])
@@ -456,7 +460,7 @@ weakPoissonStored(basisTypeIn,varsIn,polyOrderIn,stencilLocIn,currBCIn) := block
   cI : 1,
   currCoord   : makelist(0,i,1,dim),
   currNodesEx : assoc(currCoord,nodesEx),
-  stencilLst  : poissonContribution(bN,varsIn,cellToCoef[cI][2],currBC,stencilLocIn,currNodesEx,storedNodes,stencilLHS,stencilRHS),
+  stencilLst  : poissonContribution(bN,varsIn,cellToCoef[cI][2],currBC,stencilLocIn,currNodesEx,storedNodes,true,stencilLHS,stencilRHS),
   stencilLHS  : stencilLst[1],
   stencilRHS  : stencilLst[2],
 
@@ -469,7 +473,7 @@ weakPoissonStored(basisTypeIn,varsIn,polyOrderIn,stencilLocIn,currBCIn) := block
         currCoord     : copylist(cellToCoef[pS][1]),
         currCoord[dI] : -1,
         currNodesEx   : assoc(currCoord,nodesEx),
-        stencilLst    : poissonContribution(bN,varsIn,cellToCoef[cI][2],currBC,stencilLocIn,currNodesEx,storedNodes,stencilLHS,stencilRHS),
+        stencilLst    : poissonContribution(bN,varsIn,cellToCoef[cI][2],currBC,stencilLocIn,currNodesEx,storedNodes,false,stencilLHS,stencilRHS),
         stencilLHS    : stencilLst[1],
         stencilRHS    : stencilLst[2]
       )

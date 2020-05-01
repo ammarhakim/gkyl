@@ -303,7 +303,7 @@ function MGpoisson:init(tbl)
          decomposition = decompC,
       }
 
-      if not notAtCoarsest then
+      if (not notAtCoarsest and self.isDG) then
          self.directSolver = DirectDGPoissonSolver {
             onGrid  = self.mgGrids[self.mgLevels],
             basis   = basis,
@@ -526,8 +526,14 @@ end
 -- ................................... Functions specific to FEM solver ................................... --
 
 function MGpoisson:DG_FEM_coefTranslate(dgFld,femFld,dir)
-  -- Translate the DG coefficients of a field into FEM expansion
-  -- coefficients (dir=-1), and viceversa (dir=1).
+   -- Translate the DG coefficients of a field into FEM expansion
+   -- coefficients (dir=-1), and viceversa (dir=1).
+
+   if (dir==DG_to_FEM) then
+      femFld:clear(0.0)
+   else
+      dgFld:clear(0.0)
+   end
 
    local grid   = dgFld:grid()
    local cellsN = {}
@@ -617,6 +623,8 @@ end
 function MGpoisson:restrictFEM(fFld,cFld)
    -- FEM restriction of a fine-grid field (fFld) to a coarse-grid field (cFld). 
 
+   cFld:clear(0.0)
+
    local grid   = cFld:grid() 
    local cellsN = {}
    for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
@@ -625,7 +633,6 @@ function MGpoisson:restrictFEM(fFld,cFld)
       range = cFld:localRange(), numSplit = grid:numSharedProcs() }
    local tId         = grid:subGridSharedId()    -- Local thread ID.
 
-   cFld:clear(0.0)
    local cFldIndexer = cFld:genIndexer()
    local cFldItr     = cFld:get(1)
 
@@ -783,7 +790,8 @@ function MGpoisson:relaxFEM(numRelax, phiFld, rhoFld)
          rhoFld:fill(indexer(idx), rhoItr)   
      
          -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
-         self:opStencilIndices(idx,{0,self.threes,self.zeros},self.phiStencilIdx)
+         self:opStencilIndices(idx,{2,self.threes,self.zeros},self.phiStencilIdx)
+         self:opStencilIndices(idx,{2,self.threes,self.zeros},self.rhoStencilIdx)
    
          -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil. 
          for i = 1, self.phiStencilSize do
@@ -887,7 +895,8 @@ function MGpoisson:residueFEM(phiFld, rhoFld, resFld)
       resFld:fill(indexer(idx), resItr)   
    
       -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
-      self:opStencilIndices(idx,{0,self.threes,self.zeros},self.phiStencilIdx)
+      self:opStencilIndices(idx,{2,self.threes,self.zeros},self.phiStencilIdx)
+      self:opStencilIndices(idx,{2,self.threes,self.zeros},self.rhoStencilIdx)
    
       -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil. 
       for i = 1, self.phiStencilSize do
@@ -987,6 +996,8 @@ end
 function MGpoisson:prolongFEM(cFld,fFld)
    -- FEM prolongation of a coarse-grid field (cFld) to a fine-grid field (fFld). 
 
+   fFld:clear(0.0)
+
    local grid   = cFld:grid() 
    local cellsN = {}
    for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
@@ -998,7 +1009,6 @@ function MGpoisson:prolongFEM(cFld,fFld)
    local cFldIndexer = cFld:genIndexer()
    local cFldItr     = cFld:get(1)
 
-   fFld:clear(0.0)
    local fFldIndexer = fFld:genIndexer()
    local fFldItr     = fFld:get(1)
 
@@ -1093,7 +1103,6 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
       self.rhoAll[1] = inFld[1]
    elseif self.isFEM then
       -- FEM solver. Translate RHS source DG coefficients to FEM.
-      self.rhoAll[1]:clear(0.0)
       self:DG_FEM_coefTranslate(inFld[1], self.rhoAll[1], DG_to_FEM)
    end
    local initialGuess   = inFld[2]
@@ -1103,7 +1112,6 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
          self.phiAll[1] = initialGuess
       elseif self.isFEM then
          -- FEM solver. Translate initial guess DG coefficients to FEM.
-         self.phiAll[1]:clear(0.0)
          self:DG_FEM_coefTranslate(initialGuess, self.phiAll[1], DG_to_FEM)
       end
    else
@@ -1146,7 +1154,6 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
 
    if self.isFEM then
       -- Translate final phi from FEM to DG.
---      outFld[1]:clear(0.0)
 --      self:DG_FEM_coefTranslate(self.phiAll[1],outFld[1],FEM_to_DG)
       print(" FEM_to_DG not yet available. Copying FEM solution to outFld.")
       outFld[1]:copy(self.phiAll[1])
