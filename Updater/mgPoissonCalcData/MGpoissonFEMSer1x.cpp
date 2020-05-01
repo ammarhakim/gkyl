@@ -270,7 +270,7 @@ void MGpoissonFEMDampedGaussSeidel1xSer_LxDirichlet_P1(const double omega, doubl
   double *rhoUx = rho[2]; 
 
 
-  phiC[0] = -(1.0*((2.0*bcVals[2]+(phiC[0]-1.0*phiUx[0])*bcVals[1]-2.0*bcVals[0]*phiC[0])*omega-1.0*phiC[0]*bcVals[1]+2.0*bcVals[0]*phiC[0]))/(bcVals[1]-2.0*bcVals[0]); 
+  phiC[0] = (bcVals[2]-1.0*phiC[0])*omega+phiC[0]; 
 
 }
 
@@ -298,7 +298,7 @@ void MGpoissonFEMDampedGaussSeidel1xSer_LxNeumann_P1(const double omega, double 
   double *rhoUx = rho[2]; 
 
 
-  phiC[0] = -(1.0*((2.0*bcVals[2]+(phiC[0]-1.0*phiUx[0])*bcVals[1]-2.0*bcVals[0]*phiC[0])*omega-1.0*phiC[0]*bcVals[1]+2.0*bcVals[0]*phiC[0]))/(bcVals[1]-2.0*bcVals[0]); 
+  phiC[0] = ((-2.0*bcVals[2])+phiUx[0]-1.0*phiC[0])*omega+phiC[0]; 
 
 }
 
@@ -354,8 +354,8 @@ void MGpoissonFEMDampedGaussSeidel1xSer_UxDirichlet_P1(const double omega, doubl
   double *rhoUx = rho[2]; 
 
 
-  phiC[0] = (((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*bcVals[4]+(4.0*rhoC[1]+4.0*rhoLx[0]+16.0*rhoC[0])*bcVals[3])*omega*volFac+(6.0*rdx2SqVol[0]*bcVals[5]+(3.0*phiLx[0]-3.0*phiC[0])*rdx2SqVol[0]*bcVals[4]+(6.0*phiLx[0]-12.0*phiC[0])*rdx2SqVol[0]*bcVals[3])*omega+3.0*phiC[0]*rdx2SqVol[0]*bcVals[4]+12.0*phiC[0]*rdx2SqVol[0]*bcVals[3])/(3.0*rdx2SqVol[0]*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3]); 
-  phiC[1] = ((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*bcVals[4]*omega*volFac+(12.0*rdx2SqVol[0]*bcVals[5]+(3.0*phiLx[0]*rdx2SqVol[0]-3.0*rdx2SqVol[0]*phiC[1])*bcVals[4]-12.0*rdx2SqVol[0]*phiC[1]*bcVals[3])*omega+3.0*rdx2SqVol[0]*phiC[1]*bcVals[4]+12.0*rdx2SqVol[0]*phiC[1]*bcVals[3])/(3.0*rdx2SqVol[0]*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3]); 
+  phiC[0] = (0.1111111111111111*((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*omega*volFac+(3.0*rdx2SqVol[0]*bcVals[5]+(6.0*phiLx[0]-9.0*phiC[0])*rdx2SqVol[0])*omega+9.0*phiC[0]*rdx2SqVol[0]))/rdx2SqVol[0]; 
+  phiC[1] = (bcVals[5]-1.0*phiC[1])*omega+phiC[1]; 
 
 }
 
@@ -383,8 +383,8 @@ void MGpoissonFEMDampedGaussSeidel1xSer_UxNeumann_P1(const double omega, double 
   double *rhoUx = rho[2]; 
 
 
-  phiC[0] = (((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*bcVals[4]+(4.0*rhoC[1]+4.0*rhoLx[0]+16.0*rhoC[0])*bcVals[3])*omega*volFac+(6.0*rdx2SqVol[0]*bcVals[5]+(3.0*phiLx[0]-3.0*phiC[0])*rdx2SqVol[0]*bcVals[4]+(6.0*phiLx[0]-12.0*phiC[0])*rdx2SqVol[0]*bcVals[3])*omega+3.0*phiC[0]*rdx2SqVol[0]*bcVals[4]+12.0*phiC[0]*rdx2SqVol[0]*bcVals[3])/(3.0*rdx2SqVol[0]*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3]); 
-  phiC[1] = ((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*bcVals[4]*omega*volFac+(12.0*rdx2SqVol[0]*bcVals[5]+(3.0*phiLx[0]*rdx2SqVol[0]-3.0*rdx2SqVol[0]*phiC[1])*bcVals[4]-12.0*rdx2SqVol[0]*phiC[1]*bcVals[3])*omega+3.0*rdx2SqVol[0]*phiC[1]*bcVals[4]+12.0*rdx2SqVol[0]*phiC[1]*bcVals[3])/(3.0*rdx2SqVol[0]*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3]); 
+  phiC[0] = (0.3333333333333333*((rhoC[1]+rhoLx[0]+4.0*rhoC[0])*omega*volFac+(3.0*rdx2SqVol[0]*bcVals[5]+(3.0*phiLx[0]-3.0*phiC[0])*rdx2SqVol[0])*omega+3.0*phiC[0]*rdx2SqVol[0]))/rdx2SqVol[0]; 
+  phiC[1] = (0.3333333333333333*((rhoC[1]+rhoLx[0]+4.0*rhoC[0])*omega*volFac+(9.0*rdx2SqVol[0]*bcVals[5]-3.0*rdx2SqVol[0]*phiC[1]+3.0*phiLx[0]*rdx2SqVol[0])*omega+3.0*rdx2SqVol[0]*phiC[1]))/rdx2SqVol[0]; 
 
 }
 
@@ -412,8 +412,8 @@ void MGpoissonFEMDampedGaussSeidel1xSer_UxRobin_P1(const double omega, double **
   double *rhoUx = rho[2]; 
 
 
-  phiC[0] = (((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*bcVals[4]+(4.0*rhoC[1]+4.0*rhoLx[0]+16.0*rhoC[0])*bcVals[3])*omega*volFac+(6.0*rdx2SqVol[0]*bcVals[5]+(3.0*phiLx[0]-3.0*phiC[0])*rdx2SqVol[0]*bcVals[4]+(6.0*phiLx[0]-12.0*phiC[0])*rdx2SqVol[0]*bcVals[3])*omega+3.0*phiC[0]*rdx2SqVol[0]*bcVals[4]+12.0*phiC[0]*rdx2SqVol[0]*bcVals[3])/(3.0*rdx2SqVol[0]*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3]); 
-  phiC[1] = ((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*bcVals[4]*omega*volFac+(12.0*rdx2SqVol[0]*bcVals[5]+(3.0*phiLx[0]*rdx2SqVol[0]-3.0*rdx2SqVol[0]*phiC[1])*bcVals[4]-12.0*rdx2SqVol[0]*phiC[1]*bcVals[3])*omega+3.0*rdx2SqVol[0]*phiC[1]*bcVals[4]+12.0*rdx2SqVol[0]*phiC[1]*bcVals[3])/(3.0*rdx2SqVol[0]*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3]); 
+  phiC[0] = (((rhoC[1]+rhoLx[0]+4.0*rhoC[0])*bcVals[4]+(2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*bcVals[3])*omega*volFac+(3.0*rdx2SqVol[0]*bcVals[5]+(3.0*phiLx[0]-3.0*phiC[0])*rdx2SqVol[0]*bcVals[4]+(6.0*phiLx[0]-9.0*phiC[0])*rdx2SqVol[0]*bcVals[3])*omega+3.0*phiC[0]*rdx2SqVol[0]*bcVals[4]+9.0*phiC[0]*rdx2SqVol[0]*bcVals[3])/(3.0*rdx2SqVol[0]*bcVals[4]+9.0*rdx2SqVol[0]*bcVals[3]); 
+  phiC[1] = ((rhoC[1]+rhoLx[0]+4.0*rhoC[0])*bcVals[4]*omega*volFac+(9.0*rdx2SqVol[0]*bcVals[5]+(3.0*phiLx[0]*rdx2SqVol[0]-3.0*rdx2SqVol[0]*phiC[1])*bcVals[4]-9.0*rdx2SqVol[0]*phiC[1]*bcVals[3])*omega+3.0*rdx2SqVol[0]*phiC[1]*bcVals[4]+9.0*rdx2SqVol[0]*phiC[1]*bcVals[3])/(3.0*rdx2SqVol[0]*bcVals[4]+9.0*rdx2SqVol[0]*bcVals[3]); 
 
 }
 
@@ -422,7 +422,7 @@ void MGpoissonFEMResidue1xSer_P1(double **dx, const double *bcVals, double **rho
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
-  // phi:     iterate cells pointed to by the stencil (Gauss-Seidel), or cell we are currently updating (Jacobi).
+  // phi:     iterate cells pointed to by the stencil.
   // resOut:  residue in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
@@ -449,7 +449,7 @@ void MGpoissonFEMResidue1xSer_LxDirichlet_P1(double **dx, const double *bcVals, 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
-  // phi:     iterate cells pointed to by the stencil (Gauss-Seidel), or cell we are currently updating (Jacobi).
+  // phi:     iterate cells pointed to by the stencil.
   // resOut:  residue in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
@@ -476,7 +476,7 @@ void MGpoissonFEMResidue1xSer_LxNeumann_P1(double **dx, const double *bcVals, do
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
-  // phi:     iterate cells pointed to by the stencil (Gauss-Seidel), or cell we are currently updating (Jacobi).
+  // phi:     iterate cells pointed to by the stencil.
   // resOut:  residue in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
@@ -503,7 +503,7 @@ void MGpoissonFEMResidue1xSer_LxRobin_P1(double **dx, const double *bcVals, doub
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
-  // phi:     iterate cells pointed to by the stencil (Gauss-Seidel), or cell we are currently updating (Jacobi).
+  // phi:     iterate cells pointed to by the stencil.
   // resOut:  residue in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
@@ -530,7 +530,7 @@ void MGpoissonFEMResidue1xSer_UxDirichlet_P1(double **dx, const double *bcVals, 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
-  // phi:     iterate cells pointed to by the stencil (Gauss-Seidel), or cell we are currently updating (Jacobi).
+  // phi:     iterate cells pointed to by the stencil.
   // resOut:  residue in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
@@ -558,7 +558,7 @@ void MGpoissonFEMResidue1xSer_UxNeumann_P1(double **dx, const double *bcVals, do
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
-  // phi:     iterate cells pointed to by the stencil (Gauss-Seidel), or cell we are currently updating (Jacobi).
+  // phi:     iterate cells pointed to by the stencil.
   // resOut:  residue in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
@@ -586,7 +586,7 @@ void MGpoissonFEMResidue1xSer_UxRobin_P1(double **dx, const double *bcVals, doub
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
-  // phi:     iterate cells pointed to by the stencil (Gauss-Seidel), or cell we are currently updating (Jacobi).
+  // phi:     iterate cells pointed to by the stencil.
   // resOut:  residue in nodes stored in current cell.
 
   double *dxC  = dx[0]; 

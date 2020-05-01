@@ -335,19 +335,12 @@ function MGpoisson:init(tbl)
       end
    end
 
-   if self.isDG then
--- temporary if-statement.
-      -- Select restriction and prolongation operator kernels.
-      self._restriction  = MGpoissonDecl.selectRestriction(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
-      self._prolongation = MGpoissonDecl.selectProlongation(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
-      -- Select kernels for relaxation and computing the residue.
-      self._relaxation   = MGpoissonDecl.selectRelaxation(solverType, basisID, self.dim, polyOrder, relaxKind, bcTypes)
-      self._calcResidue  = MGpoissonDecl.selectResidueCalc(solverType, basisID, self.dim, polyOrder, bcTypes)
-   elseif self.isFEM then
-      self._relaxation   = MGpoissonDecl.selectRelaxation(solverType, basisID, self.dim, polyOrder, relaxKind, bcTypes, self.isDG)
-      self._restriction  = MGpoissonDecl.selectRestriction(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
-      self._prolongation = MGpoissonDecl.selectProlongation(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
-   end
+   -- Select restriction and prolongation operator kernels.
+   self._restriction  = MGpoissonDecl.selectRestriction(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
+   self._prolongation = MGpoissonDecl.selectProlongation(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
+   -- Select kernels for relaxation and computing the residue.
+   self._relaxation   = MGpoissonDecl.selectRelaxation(solverType, basisID, self.dim, polyOrder, relaxKind, bcTypes, self.isDG)
+   self._calcResidue  = MGpoissonDecl.selectResidueCalc(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
 
    -- Intergrid operator stencils: 
    self.igOpStencilWidth = 2
@@ -434,12 +427,12 @@ function MGpoisson:init(tbl)
    -- Select MG components for FEM or DG solver.
    if self.isDG then
       self.relax    = function(numRelax, phiFld, rhoFld) MGpoisson['relaxDG'](self, numRelax, phiFld, rhoFld) end
+      self.restrict = function(fFld,cFld) MGpoisson['restrictDG'](self,fFld,cFld) end
       self.prolong  = function(cFld,fFld) MGpoisson['prolongDG'](self,cFld,fFld) end
-      self.restrict = function(cFld,fFld) MGpoisson['restrictDG'](self,fFld,cFld) end
    else
       self.relax    = function(numRelax, phiFld, rhoFld) MGpoisson['relaxFEM'](self, numRelax, phiFld, rhoFld) end
+      self.restrict = function(fFld,cFld) MGpoisson['restrictFEM'](self,fFld,cFld) end
       self.prolong  = function(cFld,fFld) MGpoisson['prolongFEM'](self,cFld,fFld) end
-      self.restrict = function(cFld,fFld) MGpoisson['restrictFEM'](self,fFld,cFld) end
    end
 
    -- Updater to compute the L2-norm of the residue.

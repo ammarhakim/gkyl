@@ -67,7 +67,6 @@ for bInd : 1 thru length(bName) do (
     funcName : sconcat("MGpoissonFEMDampedGaussSeidel", c, "x", bName[bInd]),
     disp(printf(false,sconcat("Working on MGpoissonFEMDampedGaussSeidel", c, "x", bName[bInd]))),
     calcGaussSeidelOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
-    calcGaussSeidelOpBoundary(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
 
     /* Kernel for computing the residue. */
     funcName : sconcat("MGpoissonFEMResidue", c, "x", bName[bInd]),
