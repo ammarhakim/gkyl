@@ -56,7 +56,7 @@ function DiscontGenPoisson:init(tbl)
 
    local writeMatrix = xsys.pickBool(tbl.writeMatrix, false)
 
-   -- Read the boundary conditions in.
+   -- Read the boundary conditions in
    assert(#tbl.bcLower == self.ndim, "Updater.DiscontGenPoisson: Must provide lower boundary conditions for all the dimesions using 'bcLower'")
    assert(#tbl.bcUpper == self.ndim, "Updater.DiscontGenPoisson: Must provide upper boundary conditions for all the dimesions using 'bcUpper'")
    self.bcLower = tbl.bcLower
@@ -74,6 +74,19 @@ function DiscontGenPoisson:init(tbl)
    self.Dxx = tbl.Dxx
    self.Dyy = tbl.Dyy
    self.Dxy = tbl.Dxy
+
+   local ndim = self.ndim
+   -- create indexer for use in indexing stiffness matrix
+   local localRange = self.Dxx:localRange()
+   local lower, upper = {}, {}
+   for d = 1, self.ndim do
+      lower[d] = localRange:lower(d)
+      upper[d] = localRange:upper(d)
+   end
+   lower[ndim+1] = 1
+   upper[ndim+1] = self.nbasis
+   local stiffMatrixRange = Range.Range(lower, upper)
+   self.stiffMatrixIndexer = Range.makeRowMajorGenIndexer(stiffMatrixRange)
 
    self._matrixFn = require(string.format("Updater.discontGenPoissonData.discontGenPoisson%sStencil%dD_%dp", basisNm, self.ndim, polyOrder))
    self._matrixFn_T = require(string.format("Updater.discontGenPoissonData.discontGenPoisson%sStencil%dD_T_%dp", basisNm, self.ndim, polyOrder))
@@ -94,6 +107,13 @@ function DiscontGenPoisson:init(tbl)
    return self
 end
 
+-- Get list of blocks in stiffness matrix for given index
+-- location. List is returned as a set of 10 blocks:
+--
+-- { BL, L, TL, B, C, T, BR, R, TR, BOUNDARY }
+--
+-- BOUNDARY are boundary term modifications to RHS due to boundary
+-- conditions
 function DiscontGenPoisson:getBlock(idxs)
    local indexer = self.Dxx:genIndexer()
    local localRange = self.Dxx:localRange()
@@ -108,6 +128,8 @@ function DiscontGenPoisson:getBlock(idxs)
    idxsL[1], idxsL[2] = idxs[1]-1, idxs[2]
    idxsR[1], idxsR[2] = idxs[1]+1, idxs[2]
 
+   -- as we only use two-cell recovery for Dij only values in five
+   -- face neighbors of cell idxs are needed
    local DxxCPtr = self.Dxx:get(indexer(idxs))
    local DyyCPtr = self.Dyy:get(indexer(idxs))
    local DxyCPtr = self.Dxy:get(indexer(idxs))
@@ -128,7 +150,9 @@ function DiscontGenPoisson:getBlock(idxs)
    local DyyRPtr = self.Dyy:get(indexer(idxsR))
    local DxyRPtr = self.Dxy:get(indexer(idxsR))
 
-   local SM = {}
+   -- Fetch blocks base on cell index. We need special blocks for each
+   -- corner cell, skin cells and interior cells
+   local SM = nil
    if idxs[1] == localRange:lower(1) and idxs[2] == localRange:lower(2) then
       SM = self._matrixFn_BL(self.dx,
                              DxxCPtr, DyyCPtr, DxyCPtr,
@@ -237,35 +261,28 @@ function DiscontGenPoisson:getBlock(idxs)
    return SM
 end
 
+-- Build stiffness matrix
 function DiscontGenPoisson:buildStiffMatrix()
    local ndim = self.ndim
 
-   local localRange = self.Dxx:localRange()
-
-   local lower, upper = {}, {}
-   for d = 1,ndim do
-      lower[d] = localRange:lower(d)
-      upper[d] = localRange:upper(d)
-   end
-   lower[ndim+1] = 1
-   upper[ndim+1] = self.nbasis
-   local stiffMatrixRange = Range.Range(lower, upper)
-   local stiffMatrixIndexer = Range.makeRowMajorGenIndexer(stiffMatrixRange)
-
+   -- stencil range is a box from [-1,-1] to [1, 1] and used to index
+   -- stencil elements
    lower, upper = {}, {}
    for d = 1,ndim do
       lower[d] = -1
       upper[d] = 1
    end
    local stencilRange = Range.Range(lower, upper)
+   -- we must use rowMajor indexing for stencils to be consistent with
+   -- what getBlock() method returns
    local stencilIndexer = Range.makeRowMajorGenIndexer(stencilRange)
 
+   local stiffMatrixIndexer = self.stiffMatrixIndexer
    local idxsExtRow, idxsExtCol = Lin.Vec(ndim+1), Lin.Vec(ndim+1)
-   local val = 0.0
-   local idxRow, idxCol = 0, 0
 
-   for idxs in localRange:rowMajorIter() do
+   for idxs in self.Dxx:localRange():rowMajorIter() do
       local SM = self:getBlock(idxs)
+      
       for stencilIdx in stencilRange:rowMajorIter() do
          for d = 1,ndim do
             idxsExtRow[d] = idxs[d]
@@ -275,11 +292,11 @@ function DiscontGenPoisson:buildStiffMatrix()
 
          for k = 1,self.nbasis do
             idxsExtRow[ndim+1] = k
-            idxRow = stiffMatrixIndexer(idxsExtRow)
+            local idxRow = stiffMatrixIndexer(idxsExtRow)
             for l = 1,self.basis:numBasis() do
                idxsExtCol[ndim+1] = l
-               idxCol = stiffMatrixIndexer(idxsExtCol)
-               val = SMij[k][l]
+               local idxCol = stiffMatrixIndexer(idxsExtCol)
+               local val = SMij[k][l]
                if math.abs(val) > 1.e-14 then 
                   ffiC.discontPoisson_pushTriplet(self.poisson, idxRow-1, idxCol-1, val)
                end
@@ -298,24 +315,14 @@ function DiscontGenPoisson:_advance(tCurr, inFld, outFld)
    local src = assert(inFld[1], "DiscontGenPoisson.advance: Must specify an input field")
    local sol = assert(outFld[1], "DiscontGenPoisson.advance: Must specify an output field")
 
-   local localRange = src:localRange()
-   local lower, upper = {}, {}
-   for d = 1,ndim do
-      lower[d] = localRange:lower(d)
-      upper[d] = localRange:upper(d)
-   end
-   lower[ndim+1] = 1
-   upper[ndim+1] = self.nbasis
-   local stiffMatrixRange = Range.Range(lower, upper)
-   local stiffMatrixIndexer = Range.makeRowMajorGenIndexer(stiffMatrixRange)
-
+   local stiffMatrixIndexer = self.stiffMatrixIndexer   
    local srcIndexer = src:genIndexer()
    local solIndexer = sol:genIndexer()
 
-   -- Pushing source to the Eigen matrix.
    local idxsExt = Lin.Vec(ndim+1)
    local srcMod = Lin.Vec(self.nbasis)
-   for idxs in localRange:rowMajorIter() do
+   -- construct RHS vector   
+   for idxs in src:localRange():rowMajorIter() do
       local SM = self:getBlock(idxs)
       for k = 1,self.nbasis do
          srcMod[k] = -SM[10][k]
@@ -327,18 +334,18 @@ function DiscontGenPoisson:_advance(tCurr, inFld, outFld)
       local idx = stiffMatrixIndexer(idxsExt)
       ffiC.discontPoisson_pushSource(self.poisson, idx-1, srcPtr:data(), srcMod:data())
    end
-
+   
+   -- solve linear system
    ffiC.discontPoisson_solve(self.poisson)
 
-   for idxs in localRange:rowMajorIter() do
+   -- copy solution to field
+   for idxs in src:localRange():rowMajorIter() do
       local solPtr = sol:get(solIndexer(idxs))
       for d = 1,ndim do idxsExt[d] = idxs[d] end
       idxsExt[ndim+1] = 1
       local idx = stiffMatrixIndexer(idxsExt)
       ffiC.discontPoisson_getSolution(self.poisson, idx-1, solPtr:data())
    end
-
-   self._first = false
 end
 
 function DiscontGenPoisson:delete()
