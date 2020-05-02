@@ -22,7 +22,8 @@ local xsys = require "xsys"
 
 ffi.cdef[[
   typedef struct DiscontPoisson DiscontPoisson;
-  DiscontPoisson* new_DiscontPoisson(int ncells[3], int ndim, int nbasis, int nnonzero, int polyOrder, bool writeMatrix);
+  DiscontPoisson* new_DiscontPoisson(const char* outPrefix, 
+     int ncells[3], int ndim, int nbasis, int nnonzero, int polyOrder, bool writeMatrix);
   void delete_DiscontPoisson(DiscontPoisson* f);
 
   void discontPoisson_pushTriplet(DiscontPoisson* f, int idxK, int idxL, double val);
@@ -121,7 +122,7 @@ function DiscontPoisson:init(tbl)
       self.stencilMatrixUp[d] = stencilMatrixUpFn(dx, bcUpper[d][1], bcUpper[d][2], bcUpper[d][3])
    end
 
-   self.poisson = ffiC.new_DiscontPoisson(self.ncell, self.ndim, self.nbasis,
+   self.poisson = ffiC.new_DiscontPoisson(GKYL_OUT_PREFIX, self.ncell, self.ndim, self.nbasis,
                                           self.nnonzero, polyOrder, writeMatrix)
 
    return self

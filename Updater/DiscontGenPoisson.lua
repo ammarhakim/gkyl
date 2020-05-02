@@ -21,7 +21,8 @@ local xsys = require "xsys"
 
 ffi.cdef[[
   typedef struct DiscontPoisson DiscontPoisson;
-  DiscontPoisson* new_DiscontPoisson(int ncells[3], int ndim, int nbasis, int nnonzero, int polyOrder, bool writeMatrix);
+  DiscontPoisson* new_DiscontPoisson(const char* outPrefix, 
+     int ncells[3], int ndim, int nbasis, int nnonzero, int polyOrder, bool writeMatrix);
   void delete_DiscontPoisson(DiscontPoisson* f);
 
   void discontPoisson_pushTriplet(DiscontPoisson* f, int idxK, int idxL, double val);
@@ -48,7 +49,7 @@ function DiscontGenPoisson:init(tbl)
    local polyOrder = self.basis:polyOrder()
 
    self.ncell = ffi.new("int[3]")
-   self.dx = Lin.Vec(3)    -- Limited to uniform grids for now.
+   self.dx = Lin.Vec(3) -- uniform grids for now
    for d = 1,self.ndim do
       self.ncell[d-1] = self.grid:numCells(d)
       self.dx[d] = self.grid:dx(d)
@@ -56,7 +57,7 @@ function DiscontGenPoisson:init(tbl)
 
    local writeMatrix = xsys.pickBool(tbl.writeMatrix, false)
 
-   -- Read the boundary conditions in
+   -- read boundary conditions
    assert(#tbl.bcLower == self.ndim, "Updater.DiscontGenPoisson: Must provide lower boundary conditions for all the dimesions using 'bcLower'")
    assert(#tbl.bcUpper == self.ndim, "Updater.DiscontGenPoisson: Must provide upper boundary conditions for all the dimesions using 'bcUpper'")
    self.bcLower = tbl.bcLower
@@ -99,7 +100,7 @@ function DiscontGenPoisson:init(tbl)
    self._matrixFn_BR = require(string.format("Updater.discontGenPoissonData.discontGenPoisson%sStencil%dD_B_R_%dp", basisNm, self.ndim, polyOrder))
 
    self.nnonzero = self.nbasis^2
-   self.poisson = ffiC.new_DiscontPoisson(self.ncell, self.ndim, self.nbasis,
+   self.poisson = ffiC.new_DiscontPoisson(GKYL_OUT_PREFIX, self.ncell, self.ndim, self.nbasis,
                                           self.nnonzero, polyOrder, writeMatrix)
 
    self:buildStiffMatrix()
