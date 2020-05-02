@@ -99,7 +99,6 @@ function MGpoisson:init(tbl)
    local basis = assert(
       tbl.basis, "Updater.MGpoisson: Must provide the weak basis object using 'basis'.")
 
-
    -- ~~............................ Multigrid parameters ..............................~~ --
    -- Relaxation method. 
    local relaxKind = ""
@@ -165,6 +164,17 @@ function MGpoisson:init(tbl)
    self.dim        = basis:ndim()        -- Dimension of space.
    local polyOrder = basis:polyOrder()   -- Polynomial order.
    local basisID   = basis:id()          -- Basis kind.
+
+   self.zeros  = {}
+   self.ones   = {}
+   self.threes = {}
+   self.mOnes  = {}
+   for d = 1, self.dim do
+      self.zeros[d]  = 0
+      self.ones[d]   = 1
+      self.threes[d] = 3
+      self.mOnes[d]  = -1
+   end
 
    -- Read boundary conditions.
    -- Assume the inputs are two tables, bcLower and bcUpper, with each table
@@ -365,11 +375,15 @@ function MGpoisson:init(tbl)
       self.phiStencilSize = (self.phiStencilWidth-1)*self.dim+1
       -- DG only needs the source in the current cell.
       self.rhoStencilSize = 1
+      self.phiStencilType = {0, self.threes, self.zeros}
+      self.rhoStencilType = {0, self.ones, self.zeros}
    elseif self.isFEM then
       -- 'Filled' stencils for FEM (see opStencilIndices).
       self.phiStencilSize = self.phiStencilWidth^self.dim
       -- FEM uses the right-side source in neighboring cells as well.
       self.rhoStencilSize = self.phiStencilSize
+      self.phiStencilType = {2, self.threes, self.zeros}
+      self.rhoStencilType = {2, self.threes, self.zeros}
    end
    -- List of cell indices pointed to by the stencils.
    self.phiStencilIdx = {}
@@ -413,26 +427,13 @@ function MGpoisson:init(tbl)
    -- List of pointers to the data in cells pointed to by the stencil.
    self.dgToFEMstencilItr = DoublePtrVec(self.dgToFEMstencilSize)
 
-   self.zeros  = {}
-   self.threes = {}
-   self.mOnes  = {}
-   for d = 1, self.dim do
-      self.zeros[d]  = 0
-      self.threes[d] = 3
-      self.mOnes[d]  = -1
-   end
-
    -- ......................... End of FEM-specific things ............................ --
 
    -- Select MG components for FEM or DG solver.
    if self.isDG then
-      self.relax    = function(numRelax, phiFld, rhoFld) MGpoisson['relaxDG'](self, numRelax, phiFld, rhoFld) end
-      self.residue  = function(phiFld, rhoFld, resFld) MGpoisson['residueDG'](self, phiFld, rhoFld, resFld) end
       self.restrict = function(fFld,cFld) MGpoisson['restrictDG'](self,fFld,cFld) end
       self.prolong  = function(cFld,fFld) MGpoisson['prolongDG'](self,cFld,fFld) end
    else
-      self.relax    = function(numRelax, phiFld, rhoFld) MGpoisson['relaxFEM'](self, numRelax, phiFld, rhoFld) end
-      self.residue  = function(phiFld, rhoFld, resFld) MGpoisson['residueFEM'](self, phiFld, rhoFld, resFld) end
       self.restrict = function(fFld,cFld) MGpoisson['restrictFEM'](self,fFld,cFld) end
       self.prolong  = function(cFld,fFld) MGpoisson['prolongFEM'](self,cFld,fFld) end
    end
@@ -487,9 +488,9 @@ function MGpoisson:opStencilIndices(idxIn, stencilType, stencilIdx)
    if stencilType[1] == 0 then
       local sI = 1
       for d = 1, self.dim do
-         for pm = 1,self.phiStencilWidth-1 do
+         for pm = 1,stencilType[2][d]-1 do
             sI = sI + 1
-            stencilIdx[sI][d] = idxIn[d]+((-1)^(pm % 2))*((self.phiStencilWidth-1)/2)
+            stencilIdx[sI][d] = idxIn[d]+((-1)^(pm % 2))*((stencilType[2][d]-1)/2)
          end
       end
    elseif stencilType[1]==2 then
@@ -497,10 +498,10 @@ function MGpoisson:opStencilIndices(idxIn, stencilType, stencilIdx)
       for d = 1, self.dim do
          local prevDimCells = sI
          for pDC = 1, prevDimCells do
-            for pm = 1-stencilType[3][d],self.phiStencilWidth-1 do
+            for pm = 1-stencilType[3][d],stencilType[2][d]-1 do
                sI = sI + 1
                for _, dr in ipairs(self.dimRemain[d]) do stencilIdx[sI][dr] = stencilIdx[pDC][dr] end
-               stencilIdx[sI][d] = stencilIdx[pDC][d]+((-1)^(pm % 2))*((self.phiStencilWidth-1)/2)
+               stencilIdx[sI][d] = stencilIdx[pDC][d]+((-1)^(pm % 2))*((stencilType[2][d]-1)/2)
             end
          end
       end
@@ -522,8 +523,6 @@ function MGpoisson:idxToStencil(idxIn, nCellsIn)
    end
    return stencilIdx
 end
-
--- ................................... Functions specific to FEM solver ................................... --
 
 function MGpoisson:DG_FEM_coefTranslate(dgFld,femFld,dir)
    -- Translate the DG coefficients of a field into FEM expansion
@@ -569,8 +568,6 @@ function MGpoisson:DG_FEM_coefTranslate(dgFld,femFld,dir)
       self._dgToFEM[self:idxToStencil(idx,cellsN)](dgFldItr:data(), self.dgToFEMstencilItr:data())
    end
 end
-
--- ..................................... End of FEM solver functions ...................................... --
 
 function MGpoisson:restrictDG(fFld,cFld)
    -- Restriction of a DG fine-grid field (fFld) to a coarse-grid field (cFld). 
@@ -698,8 +695,8 @@ function MGpoisson:jacobiCopyField(fldIn,fldOutAll)
    return currLevel
 end
 
-function MGpoisson:relaxDG(numRelax, phiFld, rhoFld)
-   -- Perform numRelax DG relaxations of the Poisson equation.
+function MGpoisson:relax(numRelax, phiFld, rhoFld)
+   -- Perform numRelax relaxations of the Poisson equation.
 
    local grid   = phiFld:grid() 
    local cellsN = {}
@@ -733,65 +730,8 @@ function MGpoisson:relaxDG(numRelax, phiFld, rhoFld)
          rhoFld:fill(indexer(idx), rhoItr)   
      
          -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
-         self:opStencilIndices(idx,{0,self.threes,self.zeros},self.phiStencilIdx)
-   
-         -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil. 
-         for i = 1, self.phiStencilSize do
-            grid:setIndex(self.phiStencilIdx[i])
-            grid:getDx(self.dxBuf)
-            self.dxStencil[i] = self.dxBuf:data()
-
-            phiFld:fill(indexer(self.phiStencilIdx[i]), phiItr)
-            self.phiStencil[i] = phiItr:data()
-
-            if self.isJacobiRelax then
-               self.phiPrevAll[currLevel]:fill(indexer(self.phiStencilIdx[i]), phiPrevItr)
-               self.prevPhiStencil[i] = phiPrevItr:data()
-            end
-         end
-         
-         self._relaxation[self:idxToStencil(idx,cellsN)](self.omega, self.dxStencil:data(), self.bcValue:data(), rhoItr:data(), self.prevPhiStencil:data(), self.phiStencil:data())
-      end
-   end
-end
-
-function MGpoisson:relaxFEM(numRelax, phiFld, rhoFld)
-   -- Perform numRelax FEM relaxations of the Poisson equation.
-
-   local grid   = phiFld:grid() 
-   local cellsN = {}
-   for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
-
-   localRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = phiFld:localRange(), numSplit = grid:numSharedProcs() }
-   local tId        = grid:subGridSharedId()    -- Local thread ID.
-
-   local indexer = phiFld:genIndexer()
-
-   local phiItr = phiFld:get(1)
-   local rhoItr = rhoFld:get(1)
-
-   local phiPrevItr, currLevel
-
-   for nuI = 1, numRelax do    -- Relax numRelax times.
-
-      if self.isJacobiRelax then
-         currLevel  = self:jacobiCopyField(phiFld,self.phiPrevAll) 
-         phiPrevItr = self.phiPrevAll[currLevel]:get(1)
-      end
-
-      for idx in localRangeDecomp:rowMajorIter(tId) do
-   
-         grid:setIndex(idx)
-   
-         -- Cell lengths and right-side source (rho) in this cell.
-         grid:getDx(self.dxBuf)
-         self.dxStencil[1] = self.dxBuf:data()
-         rhoFld:fill(indexer(idx), rhoItr)   
-     
-         -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
-         self:opStencilIndices(idx,{2,self.threes,self.zeros},self.phiStencilIdx)
-         self:opStencilIndices(idx,{2,self.threes,self.zeros},self.rhoStencilIdx)
+         self:opStencilIndices(idx, self.phiStencilType, self.phiStencilIdx)
+         self:opStencilIndices(idx, self.rhoStencilType, self.rhoStencilIdx)
    
          -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil. 
          for i = 1, self.phiStencilSize do
@@ -820,8 +760,8 @@ function MGpoisson:relaxFEM(numRelax, phiFld, rhoFld)
    end
 end
 
-function MGpoisson:residueDG(phiFld, rhoFld, resFld)
-   -- Compute DG the residue:
+function MGpoisson:residue(phiFld, rhoFld, resFld)
+   -- Compute the residue:
    --     r = rho + L(phi). 
    -- where L is the Laplacian.
 
@@ -849,8 +789,9 @@ function MGpoisson:residueDG(phiFld, rhoFld, resFld)
       rhoFld:fill(indexer(idx), rhoItr)   
       resFld:fill(indexer(idx), resItr)   
    
-      -- Get with indices of cells used by stencil.
-      self:opStencilIndices(idx,{0,self.threes,self.zeros},self.phiStencilIdx)
+      -- Get indices of cells used by stencil.
+      self:opStencilIndices(idx, self.phiStencilType, self.phiStencilIdx)
+      self:opStencilIndices(idx, self.rhoStencilType, self.rhoStencilIdx)
    
       -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil. 
       for i = 1, self.phiStencilSize do
@@ -861,60 +802,13 @@ function MGpoisson:residueDG(phiFld, rhoFld, resFld)
          self.phiStencil[i] = phiItr:data()
       end
    
-      self._calcResidue[self:idxToStencil(idx,cellsN)](self.dxStencil:data(), self.bcValue:data(), rhoItr:data(), self.phiStencil:data(), resItr:data())
-   end
-end
-
-function MGpoisson:residueFEM(phiFld, rhoFld, resFld)
-   -- Compute FEM the residue:
-   --     r = rho + L(phi). 
-   -- where L is the Laplacian.
-
-   local grid   = phiFld:grid() 
-   local cellsN = {}
-   for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
-
-   localRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = phiFld:localRange(), numSplit = grid:numSharedProcs() }
-   local tId        = grid:subGridSharedId()    -- Local thread ID.
-
-   local indexer = phiFld:genIndexer()
-
-   local phiItr = phiFld:get(1)
-   local rhoItr = rhoFld:get(1)
-   local resItr = resFld:get(1)
-
-   for idx in localRangeDecomp:rowMajorIter(tId) do
-   
-      grid:setIndex(idx)
-   
-      -- Cell lengths, right-side source (rho) and residue in this cell.
-      grid:getDx(self.dxBuf)
-      self.dxStencil[1] = self.dxBuf:data()
-      rhoFld:fill(indexer(idx), rhoItr)   
-      resFld:fill(indexer(idx), resItr)   
-   
-      -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
-      self:opStencilIndices(idx,{2,self.threes,self.zeros},self.phiStencilIdx)
-      self:opStencilIndices(idx,{2,self.threes,self.zeros},self.rhoStencilIdx)
-   
-      -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil. 
-      for i = 1, self.phiStencilSize do
-         grid:setIndex(self.phiStencilIdx[i])
-         grid:getDx(self.dxBuf)
-         self.dxStencil[i] = self.dxBuf:data()
-
-         phiFld:fill(indexer(self.phiStencilIdx[i]), phiItr)
-         self.phiStencil[i] = phiItr:data()
-      end
-
-      -- Array of pointers to rho data in cells pointed to by the stencil.
+      -- Array of pointers to rho data in cells pointed to by the stencil. 
       for i = 1, self.rhoStencilSize do
          grid:setIndex(self.rhoStencilIdx[i])
          rhoFld:fill(indexer(self.rhoStencilIdx[i]), rhoItr)
          self.rhoStencil[i] = rhoItr:data()
       end
-   
+
       self._calcResidue[self:idxToStencil(idx,cellsN)](self.dxStencil:data(), self.bcValue:data(), self.rhoStencil:data(), self.phiStencil:data(), resItr:data())
    end
 end
@@ -926,7 +820,7 @@ function MGpoisson:relResidueNorm(gamIdx)
    self.l2NormCalc:advance(1,{self.rhoAll[1]},{self.rhoNorm})
    local _, rhsNorm = self.rhoNorm:lastData()
    -- Compute the norm of the residue.
-   self.residue(self.phiAll[1], self.rhoAll[1], self.residueAll[1]) 
+   self:residue(self.phiAll[1], self.rhoAll[1], self.residueAll[1]) 
    self.l2NormCalc:advance(gamIdx,{self.residueAll[1]},{self.residueNorm})
    -- Compute the relative residue norm and store it in self.relResNorm.
    local _, resNorm    = self.residueNorm:lastData()
@@ -1060,16 +954,16 @@ function MGpoisson:gammaCycle(lCurr)
          self.directSolver:advance(0.0, {self.rhoAll[lCurr]}, {self.phiAll[lCurr]})
       else
          -- Relax nu3 times.
-         self.relax(self.nu3, self.phiAll[lCurr], self.rhoAll[lCurr]) 
+         self:relax(self.nu3, self.phiAll[lCurr], self.rhoAll[lCurr]) 
       end
 
    else
 
       -- Relax nu1 times.
-      self.relax(self.nu1, self.phiAll[lCurr], self.rhoAll[lCurr]) 
+      self:relax(self.nu1, self.phiAll[lCurr], self.rhoAll[lCurr]) 
 
       -- Compute the residue.
-      self.residue(self.phiAll[lCurr], self.rhoAll[lCurr], self.residueAll[lCurr]) 
+      self:residue(self.phiAll[lCurr], self.rhoAll[lCurr], self.residueAll[lCurr]) 
 
       -- Restrict the residue to the next coarsest grid.
       self.restrict(self.residueAll[lCurr], self.rhoAll[lCurr+1])
@@ -1086,7 +980,7 @@ function MGpoisson:gammaCycle(lCurr)
       self.phiAll[lCurr]:accumulate(1.0,self.residueAll[lCurr])
 
       -- Relax nu2 times.
-      self.relax(self.nu2, self.phiAll[lCurr], self.rhoAll[lCurr]) 
+      self:relax(self.nu2, self.phiAll[lCurr], self.rhoAll[lCurr]) 
 
    end
    
