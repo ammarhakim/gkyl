@@ -53,15 +53,15 @@ for polyOrder : 1 thru 2 do (
                 dg(fC),
                 bc(D=bcDx, N=bcNx, val=bcValx))
             elseif isLeft then
-                calcRecov1CellGen(basisNm[bIdx], x, size, polyOrder, C,
-                  bc(D=bcDx, N=bcNx, val=bcValx),
-                  dg(fC),
-                  dg(fR))
+              calcRecov1CellGen(basisNm[bIdx], x, size, polyOrder, C,
+                bc(D=bcDx, N=bcNx, val=bcValx),
+                dg(fC),
+                dg(fR))
             else
-                calcRecov1CellGen(basisNm[bIdx], x, size, polyOrder, C,
-                  dg(fL),
-                  dg(fC),
-                  dg(fR)),
+              calcRecov1CellGen(basisNm[bIdx], x, size, polyOrder, C,
+                dg(fL),
+                dg(fC),
+                dg(fR)),
       
    recfy : if isTop then
              calcRecov1CellGen(basisNm[bIdx], y, size, polyOrder, C,
@@ -69,10 +69,10 @@ for polyOrder : 1 thru 2 do (
                dg(fC),
                bc(D=bcDy, N=bcNy, val=bcValy))
            elseif isBottom then
-              calcRecov1CellGen(basisNm[bIdx], y, size, polyOrder, C,
-                bc(D=bcDy, N=bcNy, val=bcValy),
-                dg(fC),
-                dg(fT))
+             calcRecov1CellGen(basisNm[bIdx], y, size, polyOrder, C,
+               bc(D=bcDy, N=bcNy, val=bcValy),
+               dg(fC),
+               dg(fT))
            else
              calcRecov1CellGen(basisNm[bIdx], y, size, polyOrder, C,
                dg(fB),
@@ -80,45 +80,45 @@ for polyOrder : 1 thru 2 do (
                dg(fT)),
 
     vol : calcInnerProdList(dirs, Jxx, diff(ba, x),
-                            doExpand(DxxC, ba)*diff(recfx, x)) +
+            doExpand(DxxC, ba)*diff(recfx, x)) +
           calcInnerProdList(dirs, Jxy, diff(ba, x),
-                            doExpand(DxyC, ba)*diff(recfy, y)) +
+            doExpand(DxyC, ba)*diff(recfy, y)) +
           calcInnerProdList(dirs, Jxy, diff(ba, y),
-                            doExpand(DxyC, ba)*diff(recfx, x)) +
+            doExpand(DxyC, ba)*diff(recfx, x)) +
           calcInnerProdList(dirs, Jyy, diff(ba, y),
-                            doExpand(DyyC, ba)*diff(recfy, y)),
+            doExpand(DyyC, ba)*diff(recfy, y)),
 
     /* Top -------------------------------------------------------- */
     recDyy : calcRecov2CellGen(basisNm[bIdx], y, size, polyOrder,
-                               dg(DyyC),
-                               dg(DyyT)),
+      dg(DyyC),
+      dg(DyyT)),
     if isTop then (
       recf2 : calcRecov2CellGen(basisNm[bIdx], y, size, polyOrder,
-                                dg(fB),
-                                dg(fC, bc(D=bcDy, N=bcNy, val=bcValy))),
+        dg(fB),
+        dg(fC, bc(D=bcDy, N=bcNy, val=bcValy))),
       faceT : subst(y=0, recDyy)*subst(y=2, diff(recf2, y))*Jyy
     ) else (
       recf2 : calcRecov2CellGen(basisNm[bIdx], y, size, polyOrder,
-                                dg(fC),
-                                dg(fT)),
+        dg(fC),
+        dg(fT)),
       recDxy : calcRecov2CellGen(basisNm[bIdx], y, size, polyOrder,
-                                 dg(DxyC),
-                                 dg(DxyT)),
-      if isRight then
-        recf6 : calcRecovFaceGen(basisNm[bIdx], y, 0, size, polyOrder, C,
-                                 dg(fL, fTL),
-                                 dg(fC, fT),
-                                 bc(D=bcDx, N=bcNx, val=bcValx))
-      else if isLeft then
-        recf6 : calcRecovFaceGen(basisNm[bIdx], y, 0, size, polyOrder, C,
-                                 bc(D=bcDx, N=bcNx, val=bcValx),
-                                 dg(fC, fT),
-                                 dg(fR, fTR))
-      else
-        recf6 : calcRecovFaceGen(basisNm[bIdx], y, 0, size, polyOrder, C,
-                                 dg(fL, fTL),
-                                 dg(fC, fT),
-                                 dg(fR, fTR)),
+        dg(DxyC),
+        dg(DxyT)),
+      recf6 : if isRight then
+                calcRecovFaceGen(basisNm[bIdx], y, 0, size, polyOrder, C,
+                  dg(fL, fTL),
+                  dg(fC, fT),
+                  bc(D=bcDx, N=bcNx, val=bcValx))
+              else if isLeft then
+                calcRecovFaceGen(basisNm[bIdx], y, 0, size, polyOrder, C,
+                  bc(D=bcDx, N=bcNx, val=bcValx),
+                  dg(fC, fT),
+                  dg(fR, fTR))
+              else
+                calcRecovFaceGen(basisNm[bIdx], y, 0, size, polyOrder, C,
+                  dg(fL, fTL),
+                  dg(fC, fT),
+                  dg(fR, fTR)),
       faceT : subst(y=0, recDyy)*subst(y=0, diff(recf2, y))*Jyy +
               subst(y=0, recDxy)*diff(recf6, x)*Jxy
     ),
@@ -126,35 +126,35 @@ for polyOrder : 1 thru 2 do (
 
     /* Bottom ----------------------------------------------------- */
     recDyy : calcRecov2CellGen(basisNm[bIdx], y, size, polyOrder,
-                               dg(DyyB),
-                               dg(DyyC)),
+      dg(DyyB),
+      dg(DyyC)),
     if isBottom then (
       recf2 : calcRecov2CellGen(basisNm[bIdx], y, size, polyOrder,
-                                dg(fC, bc(D=bcDy, N=bcNy, val=bcValy)),
-                                dg(fT)),
+        dg(fC, bc(D=bcDy, N=bcNy, val=bcValy)),
+        dg(fT)),
       faceB : subst(y=0, recDyy)*subst(y=-2, diff(recf2, y))*Jyy
     ) else (
       recf2 : calcRecov2CellGen(basisNm[bIdx], y, size, polyOrder,
-                                dg(fB),
-                                dg(fC)),
+        dg(fB),
+        dg(fC)),
       recDxy : calcRecov2CellGen(basisNm[bIdx], y, size, polyOrder,
-                                 dg(DxyB),
-                                 dg(DxyC)),
-      if isRight then
-        recf6 : calcRecovFaceGen(basisNm[bIdx], y, 0, size, polyOrder, C,
-                                 dg(fBL, fL),
-                                 dg(fB, fC),
-                                 bc(D=bcDx, N=bcNx, val=bcValx))
-      else if isLeft then
-        recf6 : calcRecovFaceGen(basisNm[bIdx], y, 0, size, polyOrder, C,
-                                 bc(D=bcDx, N=bcNx, val=bcValx),
-                                 dg(fB, fC),
-                                 dg(fBR, fR))
-      else
-        recf6 : calcRecovFaceGen(basisNm[bIdx], y, 0, size, polyOrder, C,
-                                 dg(fBL, fL),
-                                 dg(fB, fC),
-                                 dg(fBR, fR)),
+        dg(DxyB),
+        dg(DxyC)),
+      recf6 : if isRight then
+                calcRecovFaceGen(basisNm[bIdx], y, 0, size, polyOrder, C,
+                  dg(fBL, fL),
+                  dg(fB, fC),
+                  bc(D=bcDx, N=bcNx, val=bcValx))
+              else if isLeft then
+                calcRecovFaceGen(basisNm[bIdx], y, 0, size, polyOrder, C,
+                  bc(D=bcDx, N=bcNx, val=bcValx),
+                  dg(fB, fC),
+                  dg(fBR, fR))
+              else
+                calcRecovFaceGen(basisNm[bIdx], y, 0, size, polyOrder, C,
+                  dg(fBL, fL),
+                  dg(fB, fC),
+                  dg(fBR, fR)),
       faceB : subst(y=0, recDyy)*subst(y=0, diff(recf2, y))*Jyy +
               subst(y=0, recDxy)*diff(recf6, x)*Jxy
     ),
@@ -162,35 +162,35 @@ for polyOrder : 1 thru 2 do (
 
     /* Left ------------------------------------------------------- */
     recDxx : calcRecov2CellGen(basisNm[bIdx], x, size, polyOrder,
-                               dg(DxxL),
-                               dg(DxxC)),
+      dg(DxxL),
+      dg(DxxC)),
     if isLeft then (
       recf2 : calcRecov2CellGen(basisNm[bIdx], x, size, polyOrder,
-                                dg(fC, bc(D=bcDx, N=bcNx, val=bcValx)),
-                                dg(fR)),
+        dg(fC, bc(D=bcDx, N=bcNx, val=bcValx)),
+        dg(fR)),
       faceL : subst(x=0, recDxx)*subst(x=-2, diff(recf2, x))*Jxx
     ) else (
       recf2 : calcRecov2CellGen(basisNm[bIdx], x, size, polyOrder,
-                                dg(fL),
-                                dg(fC)),
+        dg(fL),
+        dg(fC)),
       recDxy : calcRecov2CellGen(basisNm[bIdx], x, size, polyOrder,
-                                 dg(DxyL),
-                                 dg(DxyC)),
-      if isTop then
-        recf6 : calcRecovFaceGen(basisNm[bIdx], x, 0, size, polyOrder, C,
-                                 dg(fBL, fB),
-                                 dg(fL, fC),
-                                 bc(D=bcDy, N=bcNy, val=bcValy))
-      else if isBottom then
-        recf6 : calcRecovFaceGen(basisNm[bIdx], x, 0, size, polyOrder, C,
-                                 bc(D=bcDy, N=bcNy, val=bcValy),
-                                 dg(fL, fC),
-                                 dg(fTL, fT))
-      else
-        recf6 : calcRecovFaceGen(basisNm[bIdx], x, 0, size, polyOrder, C,
-                                 dg(fBL, fB),
-                                 dg(fL, fC),
-                                 dg(fTL, fT)),
+        dg(DxyL),
+        dg(DxyC)),
+      recf6 : if isTop then
+                calcRecovFaceGen(basisNm[bIdx], x, 0, size, polyOrder, C,
+                  dg(fBL, fB),
+                  dg(fL, fC),
+                  bc(D=bcDy, N=bcNy, val=bcValy))
+              else if isBottom then
+                calcRecovFaceGen(basisNm[bIdx], x, 0, size, polyOrder, C,
+                  bc(D=bcDy, N=bcNy, val=bcValy),
+                  dg(fL, fC),
+                  dg(fTL, fT))
+              else
+                calcRecovFaceGen(basisNm[bIdx], x, 0, size, polyOrder, C,
+                  dg(fBL, fB),
+                  dg(fL, fC),
+                  dg(fTL, fT)),
       faceL : subst(x=0, recDxx)*subst(x=0, diff(recf2, x))*Jxx +
               subst(x=0, recDxy)*diff(recf6, y)*Jxy
     ),
@@ -198,35 +198,35 @@ for polyOrder : 1 thru 2 do (
 
     /* Right ------------------------------------------------------ */
     recDxx : calcRecov2CellGen(basisNm[bIdx], x, size, polyOrder,
-                               dg(DxxC),
-                               dg(DxxR)),
+      dg(DxxC),
+      dg(DxxR)),
     if isRight then (
       recf2 : calcRecov2CellGen(basisNm[bIdx], x, size, polyOrder,
-                                dg(fL),
-                                dg(fC, bc(D=bcDx, N=bcNx, val=bcValx))),
+        dg(fL),
+        dg(fC, bc(D=bcDx, N=bcNx, val=bcValx))),
       faceR : subst(x=0, recDxx)*subst(x=2, diff(recf2, x))*Jxx
     ) else (
       recf2 : calcRecov2CellGen(basisNm[bIdx], x, size, polyOrder,
-                                dg(fC),
-                                dg(fR)),
+        dg(fC),
+        dg(fR)),
       recDxy : calcRecov2CellGen(basisNm[bIdx], x, size, polyOrder,
-                                 dg(DxyC),
-                                 dg(DxyR)),
-      if isTop then
-        recf6 : calcRecovFaceGen(basisNm[bIdx], x, 0, size, polyOrder, C,
-                                 dg(fB, fBR),
-                                 dg(fC, fR),
-                                 bc(D=bcDy, N=bcNy, val=bcValy))
-      else if isBottom then
-        recf6 : calcRecovFaceGen(basisNm[bIdx], x, 0, size, polyOrder, C,
-                                 bc(D=bcDy, N=bcNy, val=bcValy),
-                                 dg(fC, fR),
-                                 dg(fT, fTR))
-      else
-        recf6 : calcRecovFaceGen(basisNm[bIdx], x, 0, size, polyOrder, C,
-                                 dg(fB, fBR),
-                                 dg(fC, fR),
-                                 dg(fT, fTR)),
+        dg(DxyC),
+        dg(DxyR)),
+      recf6 : if isTop then
+                calcRecovFaceGen(basisNm[bIdx], x, 0, size, polyOrder, C,
+                  dg(fB, fBR),
+                  dg(fC, fR),
+                  bc(D=bcDy, N=bcNy, val=bcValy))
+              else if isBottom then
+                calcRecovFaceGen(basisNm[bIdx], x, 0, size, polyOrder, C,
+                  bc(D=bcDy, N=bcNy, val=bcValy),
+                  dg(fC, fR),
+                  dg(fT, fTR))
+              else
+                calcRecovFaceGen(basisNm[bIdx], x, 0, size, polyOrder, C,
+                  dg(fB, fBR),
+                  dg(fC, fR),
+                  dg(fT, fTR)),
       faceR : subst(x=0, recDxx)*subst(x=0, diff(recf2, x))*Jxx +
               subst(x=0, recDxy)*diff(recf6, y)*Jxy
     ),
