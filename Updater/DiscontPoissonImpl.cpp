@@ -14,19 +14,24 @@
 
 using namespace Eigen;
 
-DiscontPoisson::DiscontPoisson(const char* outPrefix, int _ncell[3], int _ndim, int _nbasis,
+DiscontPoisson::DiscontPoisson(const char* _outPrefix, int _ncell[3], int _ndim, int _nbasis,
   int _nnonzero, int _polyOrder, bool _writeMatrix)
-  : outPrefix(outPrefix), ndim(_ndim), nbasis(_nbasis),
+  : outPrefix(_outPrefix), ndim(_ndim), nbasis(_nbasis),
     nnonzero(_nnonzero), polyOrder(_polyOrder),
     writeMatrix(_writeMatrix)
 {
-
   int vol = 1;
   for (int d = 0; d < ndim; ++d) {
     ncell[d] = _ncell[d];
     vol = vol*ncell[d];
   }
   N = vol*nbasis;
+
+  // append shape into matrix output name
+  outPrefix += "-";
+  for (int d = 0; d < ndim-1; ++d)
+    outPrefix += std::to_string(ncell[d]) + "x";
+  outPrefix += std::to_string(ncell[ndim-1]);
 
   stiffMatRowMajor = SparseMatrix<double,RowMajor>(N, N);
   stiffTripletList.reserve(vol*nnonzero); // estimate number of nonzero elements
