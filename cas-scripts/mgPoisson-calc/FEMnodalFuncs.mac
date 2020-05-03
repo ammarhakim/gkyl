@@ -337,7 +337,8 @@ getBasisMap(nodesIn,storedNodesIn,cellLoc,cellBCs) := block([numStoredNodes,dim,
 
 poissonContribution(bNIn,varsIn,cellCoefsIn,currBCIn,stencilLocIn,currNodesIn,storedNodesIn,addSurf,stencilLHSIn,stencilRHSIn) := block(
   [phi_e,rho_e,k,numB,numNodes,dim,volLHS,volRHS,bNp,phip_e,domSurfs,surfTerm,dI,dir,dirVar,surfVars,idx,pS,cI,numStoredNodes],
-  /* Compute the contribution to the stencil from one of the cells abutting the
+  /* Compute the contribution to the stencil for the Poisson equation
+     -Lapacian(phi) = rho, from one of the cells abutting the
      nodes stored in the cell we are generating a kernel for. */
 
   numB           : length(bNIn),
@@ -372,7 +373,7 @@ poissonContribution(bNIn,varsIn,cellCoefsIn,currBCIn,stencilLocIn,currNodesIn,st
                                             subst(dirVar=stencilLocIn[dir],phip_e))
   ),
   for k : 1 thru numStoredNodes do (
-    idx             : sublist_indices(currNodesIn,lambda([x],x=storedNodesIn[k])),
+    idx : sublist_indices(currNodesIn,lambda([x],x=storedNodesIn[k])),
     if length(idx)>0 then (
       idx             : idx[1],
       stencilLHSIn[k] : stencilLHSIn[k]+volLHS[idx],
@@ -386,8 +387,8 @@ poissonContribution(bNIn,varsIn,cellCoefsIn,currBCIn,stencilLocIn,currNodesIn,st
 )$
 
 weakPoissonStored(basisTypeIn,varsIn,polyOrderIn,stencilLocIn,currBCIn) := block([currBC,nodes,numNodes,storedNodes,numStoredNodes],
-  /* Produce the weak form of the Poisson equation, saving only
-     the equations corresponding to the nodes stored in this cell. */
+  /* Produce the weak form of the Poisson equation, -Laplacian(phi)=rho,
+     saving only the equations corresponding to the nodes stored in this cell. */
 
   currBC : currBCIn,
 

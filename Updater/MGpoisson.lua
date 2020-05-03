@@ -222,7 +222,7 @@ function MGpoisson:init(tbl)
    local periodicDirs  = {}
    local isDirPeriodic = {}
    for d = 1, self.dim do
-      if ((bcTypes[d][1] == 0) and (bcTypes[d][2] == 0))then
+      if ((bcTypes[d][1] == 0) and (bcTypes[d][2] == 0)) then
          lume.push(periodicDirs,d)
          isDirPeriodic[d] = true
          bcValues[d]      = {{0.0}, {0.0}}   -- Not used, but a nil could cause problems.
@@ -302,7 +302,7 @@ function MGpoisson:init(tbl)
 
       local decompC = DecompRegionCalc.CartProd {
          cuts      = decompCutsC,
-         useShared = useSharedC,
+         useShared = isSharedC,
       }
 
       self.mgGrids[self.mgLevels] = Grid.RectCart {
@@ -444,9 +444,9 @@ function MGpoisson:init(tbl)
       basis    = basis,
       quantity = "RmsV",
    }
-   self.relResNorm  = DataStruct.DynVector { numComponents = 1, }
-   self.residueNorm = DataStruct.DynVector { numComponents = 1, }
-   self.rhoNorm     = DataStruct.DynVector { numComponents = 1, }
+   self.relResNorm  = DataStruct.DynVector { numComponents = 1 }
+   self.residueNorm = DataStruct.DynVector { numComponents = 1 }
+   self.rhoNorm     = DataStruct.DynVector { numComponents = 1 }
 
 end
 
@@ -526,7 +526,7 @@ end
 
 function MGpoisson:DG_FEM_coefTranslate(dgFld,femFld,dir)
    -- Translate the DG coefficients of a field into FEM expansion
-   -- coefficients (dir=-1), and viceversa (dir=1).
+   -- coefficients (dir=-1,DG_to_FEM), and viceversa (dir=1,FEM_to_DG).
 
    if (dir==DG_to_FEM) then
       femFld:clear(0.0)
@@ -724,10 +724,9 @@ function MGpoisson:relax(numRelax, phiFld, rhoFld)
    
          grid:setIndex(idx)
    
-         -- Cell lengths and right-side source (rho) in this cell.
+         -- Cell lengths in this cell.
          grid:getDx(self.dxBuf)
          self.dxStencil[1] = self.dxBuf:data()
-         rhoFld:fill(indexer(idx), rhoItr)   
      
          -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
          self:opStencilIndices(idx, self.phiStencilType, self.phiStencilIdx)
@@ -765,7 +764,7 @@ function MGpoisson:residue(phiFld, rhoFld, resFld)
    --     r = rho + L(phi). 
    -- where L is the Laplacian.
 
-   local grid = phiFld:grid() 
+   local grid   = phiFld:grid() 
    local cellsN = {}
    for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
 
@@ -783,10 +782,9 @@ function MGpoisson:residue(phiFld, rhoFld, resFld)
    
       grid:setIndex(idx)
    
-      -- Cell lengths, right-side source (rho) and residue in this cell.
+      -- Cell lengths and residue in this cell.
       grid:getDx(self.dxBuf)
       self.dxStencil[1] = self.dxBuf:data()
-      rhoFld:fill(indexer(idx), rhoItr)   
       resFld:fill(indexer(idx), resItr)   
    
       -- Get indices of cells used by stencil.
@@ -824,7 +822,12 @@ function MGpoisson:relResidueNorm(gamIdx)
    self.l2NormCalc:advance(gamIdx,{self.residueAll[1]},{self.residueNorm})
    -- Compute the relative residue norm and store it in self.relResNorm.
    local _, resNorm    = self.residueNorm:lastData()
-   local relResNormOut = resNorm[1]/rhsNorm[1]
+   local relResNormOut
+   if (rhsNorm[1] > 0.0) then
+      relResNormOut = resNorm[1]/rhsNorm[1]
+   else
+      relResNormOut = resNorm[1]
+   end
    self.relResNorm:appendData(gamIdx, {relResNormOut})
 
    return relResNormOut
@@ -1023,7 +1026,6 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
          self:gammaCycle(i)
          if (i > 1) then self.prolong(self.phiAll[i], self.phiAll[i-1]) end
       end
-
    end
 
    local gI = 0         -- gamma cycle index.

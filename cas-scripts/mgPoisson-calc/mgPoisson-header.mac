@@ -191,8 +191,10 @@ for bInd : 1 thru length(bName) do (
       printf(fh, "~%"),
 
       /* Smoothers. */
+      printf(fh, "void MGpoissonFEMDampedJacobi~ax~a_P~a(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
       printf(fh, "void MGpoissonFEMDampedGaussSeidel~ax~a_P~a(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
       /* Boundary smoothers. */
+      findBoundaryStrCombo(fh, "MGpoissonFEMDampedJacobi", "const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi", bName[bInd], ci, bcKeyFEM),
       findBoundaryStrCombo(fh, "MGpoissonFEMDampedGaussSeidel", "const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi", bName[bInd], ci, bcKeyFEM),
       printf(fh, "~%"),
 

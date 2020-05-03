@@ -531,7 +531,7 @@ calcFEMRestrictionOp(fh, funcNm, dim, basisFun, pMax) := block([],
         eqSolv      : eqSolvLst[3],
 
         /* The restriction matrix is the transpose of the prolongation matrix. */
-        newSolv : ((1/2)*transpose(coefmatrix(makelist(rhs(eqSolv[i]),i,1,length(weqLHS)),makelist(weqKnowns[i],i,1,length(weqKnowns)))))
+        newSolv : (transpose(coefmatrix(makelist(rhs(eqSolv[i]),i,1,length(weqLHS)),makelist(weqKnowns[i],i,1,length(weqKnowns)))))
                   . matrix(makelist(weqUnknowns[i],i,1,length(weqUnknowns))),
         eqSolv  : makelist(weqKnowns[i]=newSolv[i][1],i,1,length(weqKnowns)),
         /* Swap knowns and unknowns. */

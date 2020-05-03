@@ -63,10 +63,15 @@ for bInd : 1 thru length(bName) do (
     calcDGtoFEM(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
     calcDGtoFEMboundary(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
     
+    /* Jacobi FEM smoothers, */
+    funcName : sconcat("MGpoissonFEMDampedJacobi", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonFEMDampedJacobi", c, "x", bName[bInd]))),
+    calcJacobiGaussSeidelOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd],true),
+
     /* Gaus-Seidel FEM smoothers, */
     funcName : sconcat("MGpoissonFEMDampedGaussSeidel", c, "x", bName[bInd]),
     disp(printf(false,sconcat("Working on MGpoissonFEMDampedGaussSeidel", c, "x", bName[bInd]))),
-    calcGaussSeidelOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    calcJacobiGaussSeidelOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd],false),
 
     /* Kernel for computing the residue. */
     funcName : sconcat("MGpoissonFEMResidue", c, "x", bName[bInd]),
