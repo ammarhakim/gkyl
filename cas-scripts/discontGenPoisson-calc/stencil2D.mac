@@ -109,7 +109,7 @@ for polyOrder : 1 thru 2 do (
                   dg(fL, fTL),
                   dg(fC, fT),
                   bc(D=bcDx, N=bcNx, val=bcValx))
-              else if isLeft then
+              elseif isLeft then
                 calcRecovFaceGen(basisNm[bIdx], y, 0, size, polyOrder, C,
                   bc(D=bcDx, N=bcNx, val=bcValx),
                   dg(fC, fT),
@@ -145,7 +145,7 @@ for polyOrder : 1 thru 2 do (
                   dg(fBL, fL),
                   dg(fB, fC),
                   bc(D=bcDx, N=bcNx, val=bcValx))
-              else if isLeft then
+              elseif isLeft then
                 calcRecovFaceGen(basisNm[bIdx], y, 0, size, polyOrder, C,
                   bc(D=bcDx, N=bcNx, val=bcValx),
                   dg(fB, fC),
@@ -181,7 +181,7 @@ for polyOrder : 1 thru 2 do (
                   dg(fBL, fB),
                   dg(fL, fC),
                   bc(D=bcDy, N=bcNy, val=bcValy))
-              else if isBottom then
+              elseif isBottom then
                 calcRecovFaceGen(basisNm[bIdx], x, 0, size, polyOrder, C,
                   bc(D=bcDy, N=bcNy, val=bcValy),
                   dg(fL, fC),
@@ -217,7 +217,7 @@ for polyOrder : 1 thru 2 do (
                   dg(fB, fBR),
                   dg(fC, fR),
                   bc(D=bcDy, N=bcNy, val=bcValy))
-              else if isBottom then
+              elseif isBottom then
                 calcRecovFaceGen(basisNm[bIdx], x, 0, size, polyOrder, C,
                   bc(D=bcDy, N=bcNy, val=bcValy),
                   dg(fC, fR),
