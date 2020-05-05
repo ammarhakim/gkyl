@@ -63,8 +63,8 @@ calcRecov2CellGen(basisNm, dir, dx, polyOrder, lo, up) := block(
   else (
     recEqList : append(
       recEqList,
-      [subst(args(lo), val - D*subst(dir=-dx[dIdx], rExp)
-        - N*subst(dir=-dx[dIdx], diff(rExp, dir)))]
+      [subst(args(lo), val - D*subst(dir=0, rExp)
+        - N*subst(dir=0, diff(rExp, dir)))]
     )
   ),
 
@@ -86,8 +86,8 @@ calcRecov2CellGen(basisNm, dir, dx, polyOrder, lo, up) := block(
   else (
     recEqList : append(
       recEqList,
-      [subst(args(up), val - D*subst(dir=dx[dIdx], rExp)
-        - N*subst(dir=dx[dIdx], diff(rExp, dir)))]
+      [subst(args(up), val - D*subst(dir=0, rExp)
+        - N*subst(dir=0, diff(rExp, dir)))]
     )
   ),
 
