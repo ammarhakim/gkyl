@@ -3,7 +3,8 @@ calcRecovFaceGen(basisNm, dir, ndiff, dx, polyOrder, C, lo, ce, up) := block(
   perpDir, perpDirIdx, rLo, rCe, rUp, basisC, baC, rLoCoef, rCeCoef,
   rUpCoef, r,
   ce2,
-  lo2, up2
+  lo2, up2,
+  numDims
   ],
   perpDir : if dir = x then y else x, /* Hard-coded; needs generalization for 3D !! */
   numDims : length(dx),
