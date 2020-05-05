@@ -9,6 +9,7 @@ load("mgPoisson-calc/FEMinterBasisOperators")$
 load("mgPoisson-calc/FEMsmoothers")$
 load("mgPoisson-calc/FEMinterGridOperators")$
 load("mgPoisson-calc/FEMresidue")$
+load("mgPoisson-calc/FEMnorm")$
 /*
 load("mgPoisson-calc/FEMresidue")$
 */
@@ -77,6 +78,11 @@ for bInd : 1 thru length(bName) do (
     funcName : sconcat("MGpoissonFEMResidue", c, "x", bName[bInd]),
     disp(printf(false,sconcat("Working on MGpoissonFEMResidue", c, "x", bName[bInd]))),
     calcFEMResidue(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+
+    /* L2 norm of an FEM field. */
+    funcName : sconcat("MGpoissonFEML2norm", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonFEML2norm", c, "x", bName[bInd]))),
+    calcL2norm(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
 
     close(fh)
     

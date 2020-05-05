@@ -28,6 +28,7 @@ local Lin                   = require "Lib.Linalg"
 local ffi                   = require "ffi"
 local lume                  = require "Lib.lume"
 local IntQuantCalc          = require "Updater.CartFieldIntegratedQuantCalc"
+local Mpi                   = require "Comm.Mpi"
 
 -- Boundary condition ID numbers.
 local BVP_BC_PERIODIC  = 0
@@ -75,6 +76,10 @@ local function createField(grid, basis, vComp)
       onGrid        = grid,
       numComponents = basis:numBasis()*vComp,
       ghost         = {1, 1},
+      metaData      = {
+         polyOrder = basis:polyOrder(),
+         basisType = basis:id()
+      }
    }
    return fld
 end
@@ -333,15 +338,15 @@ function MGpoisson:init(tbl)
    for i = 2, self.mgLevels do
       -- Allocate space for the iterate, right-side source field and
       -- the residue on each grid level.
-      self.phiAll[i]     = createField(self.mgGrids[i],basis)
-      self.rhoAll[i]     = createField(self.mgGrids[i],basis)
-      self.residueAll[i] = createField(self.mgGrids[i],basis)
+      self.phiAll[i]     = createField(self.mgGrids[i], basis)
+      self.rhoAll[i]     = createField(self.mgGrids[i], basis)
+      self.residueAll[i] = createField(self.mgGrids[i], basis)
    end
    if self.isJacobiRelax then
       self.phiPrevAll = {}
       for i = 1, self.mgLevels do
          -- For Jacobi relaxation need an extrac copy of the field iterate.
-         self.phiPrevAll[i] = createField(self.mgGrids[i],basis)
+         self.phiPrevAll[i] = createField(self.mgGrids[i], basis)
       end
    end
 
@@ -438,12 +443,20 @@ function MGpoisson:init(tbl)
       self.prolong  = function(cFld,fFld) MGpoisson['prolongFEM'](self,cFld,fFld) end
    end
 
-   -- Updater to compute the L2-norm of the residue.
-   self.l2NormCalc = IntQuantCalc {
-      onGrid   = grid, 
-      basis    = basis,
-      quantity = "RmsV",
-   }
+   -- Functions to compute the L2-norm of the residue.
+   if self.isDG then
+      self.l2normCalc = IntQuantCalc {
+         onGrid   = grid, 
+         basis    = basis,
+         quantity = "RmsV",
+      }
+      self.l2normCalcAdv = function(tCurr, inFld, outFld) self.l2normCalc:advance(tCurr, inFld, outFld) end
+   else
+      self._femL2norm    = MGpoissonDecl.selectFEML2norm(basisID, self.dim, polyOrder, bcTypes)
+      self.localNorm     = Lin.Vec(1)
+      self.globalNorm    = Lin.Vec(1)
+      self.l2normCalcAdv = function(tCurr, inFld, outFld) MGpoisson['l2normFEM'](self, tCurr, inFld, outFld) end
+   end
    self.relResNorm  = DataStruct.DynVector { numComponents = 1 }
    self.residueNorm = DataStruct.DynVector { numComponents = 1 }
    self.rhoNorm     = DataStruct.DynVector { numComponents = 1 }
@@ -524,6 +537,18 @@ function MGpoisson:idxToStencil(idxIn, nCellsIn)
    return stencilIdx
 end
 
+function MGpoisson:idxToStencilIU(idxIn, nCellsIn)
+   -- Like idxToStencil but only for methods that only have interior
+   -- and upper boundary kernels.
+   local stencilIdx = 1
+   for d = 1, self.dim do
+      if (idxIn[d] == nCellsIn[d]) then  -- Last cell.
+         stencilIdx = stencilIdx + 2^(d-1)
+      end
+   end
+   return stencilIdx
+end
+
 function MGpoisson:DG_FEM_coefTranslate(dgFld,femFld,dir)
    -- Translate the DG coefficients of a field into FEM expansion
    -- coefficients (dir=-1,DG_to_FEM), and viceversa (dir=1,FEM_to_DG).
@@ -567,6 +592,51 @@ function MGpoisson:DG_FEM_coefTranslate(dgFld,femFld,dir)
  
       self._dgToFEM[self:idxToStencil(idx,cellsN)](dgFldItr:data(), self.dgToFEMstencilItr:data())
    end
+end
+
+function MGpoisson:l2normFEM(tCurr,inFld,outDynV)
+   -- Compute the L2 norm of an FEM field.
+   local fld, norm  = inFld[1], outDynV[1] 
+
+   local grid   = fld:grid()
+   local cellsN = {}
+   for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
+
+   local indexer = fld:genIndexer()
+   local fldItr  = fld:get(1)
+
+   self.localNorm[1] = 0.0   -- Clear local values.
+
+   -- Construct range for shared memory.
+   local fldRange       = fld:localRange()
+   local fldRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = fldRange:selectFirst(self.dim), numSplit = grid:numSharedProcs() }
+   local tId = grid:subGridSharedId()    -- Local thread ID.
+
+   for idx in fldRangeDecomp:rowMajorIter(tId) do
+      grid:setIndex(idx)
+
+      -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
+      self:opStencilIndices(idx,{2,self.threes,self.mOnes},self.dgToFEMstencilIdx)
+
+      -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil.
+      for i = 1, self.dgToFEMstencilSize do
+         grid:setIndex(self.dgToFEMstencilIdx[i])
+
+         fld:fill(indexer(self.dgToFEMstencilIdx[i]), fldItr)
+         self.dgToFEMstencilItr[i] = fldItr:data()
+      end
+
+      self._femL2norm[self:idxToStencilIU(idx,cellsN)](self.dgToFEMstencilItr:data(), self.localNorm:data())
+   end
+
+   -- All-reduce across processors and push result into dyn-vector.
+   Mpi.Allreduce(
+      self.localNorm:data(), self.globalNorm:data(), 1, Mpi.DOUBLE, Mpi.SUM, self:getComm())
+
+   self.globalNorm[1] = math.sqrt(self.globalNorm[1])
+
+   norm:appendData(tCurr, self.globalNorm)
 end
 
 function MGpoisson:restrictDG(fFld,cFld)
@@ -815,11 +885,11 @@ function MGpoisson:relResidueNorm(gamIdx)
    -- Compute the relative norm of the residue: ||rho + L(phi)||/||rho||.
 
    -- Compute the norm of the right-side source vector.
-   self.l2NormCalc:advance(1,{self.rhoAll[1]},{self.rhoNorm})
+   self.l2normCalcAdv(1,{self.rhoAll[1]},{self.rhoNorm})
    local _, rhsNorm = self.rhoNorm:lastData()
    -- Compute the norm of the residue.
    self:residue(self.phiAll[1], self.rhoAll[1], self.residueAll[1]) 
-   self.l2NormCalc:advance(gamIdx,{self.residueAll[1]},{self.residueNorm})
+   self.l2normCalcAdv(gamIdx,{self.residueAll[1]},{self.residueNorm})
    -- Compute the relative residue norm and store it in self.relResNorm.
    local _, resNorm    = self.residueNorm:lastData()
    local relResNormOut
@@ -967,6 +1037,7 @@ function MGpoisson:gammaCycle(lCurr)
 
       -- Compute the residue.
       self:residue(self.phiAll[lCurr], self.rhoAll[lCurr], self.residueAll[lCurr]) 
+      self.residueAll[lCurr]:write(string.format("resFEM_%sN%i_p%i_l%i.bp","Ser",16,1,lCurr), 0.0)
 
       -- Restrict the residue to the next coarsest grid.
       self.restrict(self.residueAll[lCurr], self.rhoAll[lCurr+1])
@@ -980,6 +1051,7 @@ function MGpoisson:gammaCycle(lCurr)
 
       -- Prolong the error to the finer grid and correct the iterate.
       self.prolong(self.phiAll[lCurr+1], self.residueAll[lCurr])
+      self.residueAll[lCurr]:write(string.format("errFEM_%sN%i_p%i_l%i.bp","Ser",16,1,lCurr), 0.0)
       self.phiAll[lCurr]:accumulate(1.0,self.residueAll[lCurr])
 
       -- Relax nu2 times.

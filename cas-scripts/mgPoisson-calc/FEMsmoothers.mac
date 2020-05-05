@@ -11,17 +11,6 @@ fpprec : 24$
 /* String used for identifying nearest neighbor cells. */
 neighStrKey : [[-1,"L"],[0,""],[1,"U"]]$
 
-/* Types of boundary conditions for which to generate kernels.
-     =0 periodic
-     =1 Dirichlet
-     =2 Neumann
-     =3 Robin
-   For periodic we'll assume ghost cells are filled accordingly
-   and use an interior stencil. */
-bcTypes  : [0, 1, 2, 3]$
-bcStrs   : ["", "Dirichlet", "Neumann", "Robin"]$
-bcKey    : makelist([bcTypes[i],bcStrs[i]],i,1,length(bcTypes))$
-
 
 calcJacobiGaussSeidelOp(fh, funcNm, dim, basisFun, pMax, isJacobi) := block([],
   /* Cellwise (damped) Gauss-Seidel relaxation on the Poisson equation using an FEM method. 
@@ -41,6 +30,17 @@ calcJacobiGaussSeidelOp(fh, funcNm, dim, basisFun, pMax, isJacobi) := block([],
      with -1 meaning it is at a lower boundary, 1 upper boundary, or
      0 away from boundaries in that direction. */
   stencilLoc : getStencilCoords(dim),
+
+  /* Types of boundary conditions for which to generate kernels.
+       =0 periodic
+       =1 Dirichlet
+       =2 Neumann
+       =3 Robin
+     For periodic we'll assume ghost cells are filled accordingly
+     and use an interior stencil. */
+  bcTypes  : [0, 1, 2, 3],
+  bcStrs   : ["", "Dirichlet", "Neumann", "Robin"],
+  bcKey    : makelist([bcTypes[i],bcStrs[i]],i,1,length(bcTypes)),
 
   for sI : 1 thru length(stencilLoc) do (
 
