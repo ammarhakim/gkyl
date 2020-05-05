@@ -22,7 +22,7 @@ bcNy : 0$
 isTop : false $
 isBottom : true $
 isLeft : false $
-isRight : false $
+isRight : true $
 
 for polyOrder : 1 thru 1 do (
   for bIdx : 1 thru min(length(basisNm),polyOrder) do (
@@ -251,9 +251,10 @@ for polyOrder : 1 thru 1 do (
         )
       )
     ),
-    isZero : makelist(expand(st[i]-stCheck[i][1]),i,1,numBasis), /* Should be all zeros */
     cMatx : coefmatrix(st, [bcValx]),
     cMaty : coefmatrix(st, [bcValy]),
+     /* Santity check: should be all zeros (DOES NOT ABOVE CODE IS BUG FREE!) */
+    isZero : makelist(expand(st[i]-stCheck[i][1]-cMatx[i][1]*bcValx-cMaty[i][1]*bcValy),i,1,numBasis),
     printf(fh, "  _M[10] = Lin.Vec(~a)~%", numBasis),
     for i : 1 thru numBasis do (
       printf(fh, "  _M[10][~a] = ~a*bcValx + ~a*bcValy~%", i,
