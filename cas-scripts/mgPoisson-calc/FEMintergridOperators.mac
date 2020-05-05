@@ -11,15 +11,6 @@ fpprec : 24$
 /* String used for identifying nearest neighbor cells. */
 neighStrKey : [[-1,"L"],[0,""],[1,"U"]]$
 
-/* Types of boundary conditions for which to generate kernels.
-     =0 periodic
-     =3 Robin (also used for Dirichlet and Neumann)
-   For periodic we'll assume ghost cells are filled accordingly
-   and use an interior stencil. */
-bcTypes  : [0, 3]$
-bcStrs   : ["", "Robin"]$
-bcKey    : [[bcTypes[1],bcStrs[1]],[bcTypes[2],bcStrs[2]]]$
-
 solveProlongationWeqEq(varsIn,stencilLocIn,nodBasisIn,nodesIn,storedNodesIn) := block([bN,nodes,storedNodes,numB,dim,numStoredNodes,weqKnowns,weqUnknowns,eqSolv],
 
   bN          : nodBasisIn,
@@ -388,6 +379,15 @@ calcFEMProlongationOp(fh, funcNm, dim, basisFun, pMax) := block([],
      0 away from boundaries in that direction. */ 
   stencilLoc : getStencilCoords(dim),
 
+  /* Types of boundary conditions for which to generate kernels.
+       =0 periodic
+       =9 non-periodic
+     For periodic we'll assume ghost cells are filled accordingly
+     and use an interior stencil. */
+  bcTypes  : [0, 9],
+  bcStrs   : ["", "NonPeriodic"],
+  bcKey    : [[bcTypes[1],bcStrs[1]],[bcTypes[2],bcStrs[2]]],
+
   for sI : 1 thru length(stencilLoc) do (
 
     /* Obtain the different BC combinations for this stencil.
@@ -496,6 +496,15 @@ calcFEMRestrictionOp(fh, funcNm, dim, basisFun, pMax) := block([],
   /* List of stencil locations. */
   stencilLoc : getStencilCoords(dim),
 
+  /* Types of boundary conditions for which to generate kernels.
+       =0 periodic
+       =9 non-periodic
+     For periodic we'll assume ghost cells are filled accordingly
+     and use an interior stencil. */
+  bcTypes  : [0, 9],
+  bcStrs   : ["", "NonPeriodic"],
+  bcKey    : [[bcTypes[1],bcStrs[1]],[bcTypes[2],bcStrs[2]]],
+
   for sI : 1 thru length(stencilLoc) do (
     
     /* Obtain the different BC combinations for this stencil.
@@ -572,6 +581,25 @@ calcFEMRestrictionOp(fh, funcNm, dim, basisFun, pMax) := block([],
         keepIdx   : listify(setdifference(makeset(i,[i],makelist([i],i,1,length(eqSolvRHS))),setify(sublist_indices(eqSolvRHS,lambda([x],x=0))))), 
         eqSolvLHS : makelist(eqSolvLHS[keepIdx[i]],i,1,length(keepIdx)),
         eqSolvRHS : makelist(eqSolvRHS[keepIdx[i]],i,1,length(keepIdx)),
+
+        /* For Dirichlet BCs, the values on the boundary get transferred. */
+        dirichletSurfs : sublist_indices(currBC, lambda([x],x # 0)),
+        for dI : 1 thru length(dirichletSurfs) do (
+          dir         : dirichletSurfs[dI],
+          boundNodes  : copylist(sublist(storedNodes,lambda([x],x[dir]=stencilLoc[sI][dir]))),
+          boundNodesI : sublist_indices(storedNodes,lambda([x],x[dir]=stencilLoc[sI][dir])),
+          if stencilLoc[sI][dir]=-1 then (
+            idx : 2^(dir-1)
+          ) else (
+            idx : 0
+          ),
+          fFldCoefs   : [makelist(eval_string(sconcat("fldF",idx))[boundNodesI[k]-1],k,1,length(boundNodesI))],
+          for k : 1 thru length(boundNodesI) do (
+            idx : sublist_indices(eqSolvLHS,lambda([x],x=fldC[boundNodesI[k]-1]))[1],
+            dummyVars : listify(setdifference(setify(weqKnowns),setify(flatten(fFldCoefs)))),
+            eqSolvRHS[idx] : subst(makelist(dummyVars[i]=0,i,1,length(dummyVars)),eqSolvRHS[idx])
+          )
+        ),
 
         /* Function declaration with input/output variables. */
         printf(fh, "void ~a_~aP~a(double **fldF, double *fldC) ~%{ ~%", funcNm, stencilStr, polyOrder),

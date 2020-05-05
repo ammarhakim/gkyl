@@ -14,7 +14,7 @@ void MGpoissonFEMProlong1xSer_P1(const double *fldC, double **fldF)
   fldF2[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong1xSer_LxDirichlet_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMProlong1xSer_LxNonPeriodic_P1(const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -26,61 +26,7 @@ void MGpoissonFEMProlong1xSer_LxDirichlet_P1(const double *fldC, double **fldF)
   fldF1[0] += fldC[0]; 
 }
 
-void MGpoissonFEMProlong1xSer_LxNeumann_P1(const double *fldC, double **fldF) 
-{ 
-  // fldC: coarse-grid field.
-  // fldF: fine-grid field in cells pointed to by the stencil.
-
-  double *fldF0 = fldF[0];
-  double *fldF1 = fldF[1];
-
-  fldF0[0] += 0.5*fldC[0]; 
-  fldF1[0] += fldC[0]; 
-}
-
-void MGpoissonFEMProlong1xSer_LxRobin_P1(const double *fldC, double **fldF) 
-{ 
-  // fldC: coarse-grid field.
-  // fldF: fine-grid field in cells pointed to by the stencil.
-
-  double *fldF0 = fldF[0];
-  double *fldF1 = fldF[1];
-
-  fldF0[0] += 0.5*fldC[0]; 
-  fldF1[0] += fldC[0]; 
-}
-
-void MGpoissonFEMProlong1xSer_UxDirichlet_P1(const double *fldC, double **fldF) 
-{ 
-  // fldC: coarse-grid field.
-  // fldF: fine-grid field in cells pointed to by the stencil.
-
-  double *fldF0 = fldF[0];
-  double *fldF1 = fldF[1];
-  double *fldF2 = fldF[2];
-
-  fldF0[0] += 0.5*fldC[1]+0.5*fldC[0]; 
-  fldF1[0] += fldC[0]; 
-  fldF0[1] += fldC[1]; 
-  fldF2[0] += 0.5*fldC[0]; 
-}
-
-void MGpoissonFEMProlong1xSer_UxNeumann_P1(const double *fldC, double **fldF) 
-{ 
-  // fldC: coarse-grid field.
-  // fldF: fine-grid field in cells pointed to by the stencil.
-
-  double *fldF0 = fldF[0];
-  double *fldF1 = fldF[1];
-  double *fldF2 = fldF[2];
-
-  fldF0[0] += 0.5*fldC[1]+0.5*fldC[0]; 
-  fldF1[0] += fldC[0]; 
-  fldF0[1] += fldC[1]; 
-  fldF2[0] += 0.5*fldC[0]; 
-}
-
-void MGpoissonFEMProlong1xSer_UxRobin_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMProlong1xSer_UxNonPeriodic_P1(const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -107,40 +53,17 @@ void MGpoissonFEMRestrict1xSer_P1(double **fldF, double *fldC)
   fldC[0] += 0.5*fldF2[0]+fldF1[0]+0.5*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict1xSer_LxDirichlet_P1(double **fldF, double *fldC) 
+void MGpoissonFEMRestrict1xSer_LxNonPeriodic_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
 
-  double *fldF0 = fldF[0];
   double *fldF1 = fldF[1];
 
-  fldC[0] += fldF1[0]+0.5*fldF0[0]; 
+  fldC[0] += fldF1[0]; 
 }
 
-void MGpoissonFEMRestrict1xSer_LxNeumann_P1(double **fldF, double *fldC) 
-{ 
-  // fldF: fine-grid field in cells pointed to by the stencil.
-  // fldC: coarse-grid field.
-
-  double *fldF0 = fldF[0];
-  double *fldF1 = fldF[1];
-
-  fldC[0] += fldF1[0]+0.5*fldF0[0]; 
-}
-
-void MGpoissonFEMRestrict1xSer_LxRobin_P1(double **fldF, double *fldC) 
-{ 
-  // fldF: fine-grid field in cells pointed to by the stencil.
-  // fldC: coarse-grid field.
-
-  double *fldF0 = fldF[0];
-  double *fldF1 = fldF[1];
-
-  fldC[0] += fldF1[0]+0.5*fldF0[0]; 
-}
-
-void MGpoissonFEMRestrict1xSer_UxDirichlet_P1(double **fldF, double *fldC) 
+void MGpoissonFEMRestrict1xSer_UxNonPeriodic_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -150,33 +73,7 @@ void MGpoissonFEMRestrict1xSer_UxDirichlet_P1(double **fldF, double *fldC)
   double *fldF2 = fldF[2];
 
   fldC[0] += 0.5*fldF2[0]+fldF1[0]+0.5*fldF0[0]; 
-  fldC[1] += fldF0[1]+0.5*fldF0[0]; 
-}
-
-void MGpoissonFEMRestrict1xSer_UxNeumann_P1(double **fldF, double *fldC) 
-{ 
-  // fldF: fine-grid field in cells pointed to by the stencil.
-  // fldC: coarse-grid field.
-
-  double *fldF0 = fldF[0];
-  double *fldF1 = fldF[1];
-  double *fldF2 = fldF[2];
-
-  fldC[0] += 0.5*fldF2[0]+fldF1[0]+0.5*fldF0[0]; 
-  fldC[1] += fldF0[1]+0.5*fldF0[0]; 
-}
-
-void MGpoissonFEMRestrict1xSer_UxRobin_P1(double **fldF, double *fldC) 
-{ 
-  // fldF: fine-grid field in cells pointed to by the stencil.
-  // fldC: coarse-grid field.
-
-  double *fldF0 = fldF[0];
-  double *fldF1 = fldF[1];
-  double *fldF2 = fldF[2];
-
-  fldC[0] += 0.5*fldF2[0]+fldF1[0]+0.5*fldF0[0]; 
-  fldC[1] += fldF0[1]+0.5*fldF0[0]; 
+  fldC[1] += fldF0[1]; 
 }
 
 void MGpoissonFEM_DGtoFEM_1xSer_P1(const double *dgFld, double **femOut) 
@@ -813,5 +710,32 @@ void MGpoissonFEMResidue1xSer_UxRobin_P1(double **dx, const double *bcVals, doub
   resOut[0] = 0.1666666666666667*((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*volFac+3.0*rdx2SqVol[0]*phiC[1]+(3.0*phiLx[0]-6.0*phiC[0])*rdx2SqVol[0]); 
   resOut[1] = -(1.0*(2.0*bcVals[5]+(phiC[0]-1.0*phiC[1])*bcVals[4]-2.0*phiC[1]*bcVals[3]))/(bcVals[4]+2.0*bcVals[3]); 
 
+}
+
+void MGpoissonFEML2norm1xSer_P1(double **femFld, double *normOut) 
+{ 
+  // femFld:  FEM field in neighboring cells.
+  // normOut: norm.
+
+  double *femFldC = femFld[0]; 
+  double *femFldUx = femFld[1]; 
+
+  const double femFldC0R2 = std::pow(femFldC[0],2);
+  const double femFldUx0R2 = std::pow(femFldUx[0],2);
+
+  normOut[0] += 0.08333333333333333*(7.0*femFldUx0R2+4.0*femFldC[0]*femFldUx[0]+femFldC0R2)+0.08333333333333333*(femFldUx0R2+4.0*femFldC[0]*femFldUx[0]+7.0*femFldC0R2); 
+}
+
+void MGpoissonFEML2norm1xSer_UxNonPeriodic_P1(double **femFld, double *normOut) 
+{ 
+  // femFld:  FEM field in neighboring cells.
+  // normOut: norm.
+
+  double *femFldC = femFld[0]; 
+
+  const double femFldC0R2 = std::pow(femFldC[0],2);
+  const double femFldC1R2 = std::pow(femFldC[1],2);
+
+  normOut[0] += 0.08333333333333333*(7.0*femFldC1R2+4.0*femFldC[0]*femFldC[1]+femFldC0R2)+0.08333333333333333*(femFldC1R2+4.0*femFldC[0]*femFldC[1]+7.0*femFldC0R2); 
 }
 

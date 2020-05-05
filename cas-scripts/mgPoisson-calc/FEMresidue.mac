@@ -11,17 +11,6 @@ fpprec : 24$
 /* String used for identifying nearest neighbor cells. */
 neighStrKey : [[-1,"L"],[0,""],[1,"U"]]$
 
-/* Types of boundary conditions for which to generate kernels.
-     =0 periodic
-     =1 Dirichlet
-     =2 Neumann
-     =3 Robin
-   For periodic we'll assume ghost cells are filled accordingly
-   and use an interior stencil. */
-bcTypes  : [0, 1, 2, 3]$
-bcStrs   : ["", "Dirichlet", "Neumann", "Robin"]$
-bcKey    : makelist([bcTypes[i],bcStrs[i]],i,1,length(bcTypes))$
-
 
 calcFEMResidue(fh, funcNm, dim, basisFun, pMax) := block([],
   /* Residue computation for the Poisson equation using an FEM
@@ -40,6 +29,17 @@ calcFEMResidue(fh, funcNm, dim, basisFun, pMax) := block([],
      0 away from boundaries in that direction. */
   stencilLoc : getStencilCoords(dim),
 
+  /* Types of boundary conditions for which to generate kernels.
+       =0 periodic
+       =1 Dirichlet
+       =2 Neumann
+       =3 Robin
+     For periodic we'll assume ghost cells are filled accordingly
+     and use an interior stencil. */
+  bcTypes  : [0, 1, 2, 3],
+  bcStrs   : ["", "Dirichlet", "Neumann", "Robin"],
+  bcKey    : makelist([bcTypes[i],bcStrs[i]],i,1,length(bcTypes)),
+
   for sI : 1 thru length(stencilLoc) do (
 
     /* Obtain the different BC combinations for this stencil.
@@ -55,6 +55,9 @@ calcFEMResidue(fh, funcNm, dim, basisFun, pMax) := block([],
       stencilStr : getStencilStr(stencilLoc[sI],boundStrKey,coordVarS,currBC,bcKey),
 
       for polyOrder : 1 thru pMax do (
+
+        /* Each cell only stores the lower left nodes. */
+        numStoredNodes : length(getStoredNodes(args(getNodes(basisFun, dim, polyOrder)),stencilLoc[sI])),
 
         weqPoissonLst : weakPoissonStored(basisFun,varsC,polyOrder,stencilLoc[sI],currBC),
         poissonLHS    : weqPoissonLst[1],

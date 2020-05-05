@@ -386,10 +386,47 @@ poissonContribution(bNIn,varsIn,cellCoefsIn,currBCIn,stencilLocIn,currNodesIn,st
   return([stencilLHSIn,stencilRHSIn])
 )$
 
-weakPoissonStored(basisTypeIn,varsIn,polyOrderIn,stencilLocIn,currBCIn) := block([currBC,nodes,numNodes,storedNodes,numStoredNodes],
+getCellToCoef(numBasisIn,stencilLocIn,nodesExIn,storedNodesExIn,storedNodeToCellIn,cellToIdxStoredIn,dataStrsIn) := block([dim,currCoord,currNodesEx,memLoc,k,cellToCoef,dI,pS,cellsSoFar,nodeStorer],
+  /* Create an associative list between cell coordinate (relative to the cell
+     we are generating a kernel for) and the coefficients used for an expansion
+     in the nodal basis (in that cell). */
+  dim         : length(stencilLocIn),
+
+  currCoord   : makelist(0,i,1,dim),
+  currNodesEx : assoc(currCoord,nodesExIn),
+  memLoc      : [],
+  for k : 1 thru numBasisIn do (
+    nodeStorer : assoc(currNodesEx[k],storedNodeToCellIn),
+    memIdx     : sublist_indices(assoc(nodeStorer,storedNodesExIn),lambda([x],x=currNodesEx[k]))[1]-1,
+    memLoc     : endcons(sconcat(dataStrsIn[assoc(nodeStorer,cellToIdxStoredIn)],"[",string(memIdx),"]"),memLoc)
+  ),
+  cellToCoef : [[makelist(0,i,1,dim),memLoc]],
+  for dI: 1 thru dim do (
+    cellsSoFar : length(cellToCoef),
+    for pS : 1 thru cellsSoFar do (
+      if (stencilLocIn[dI] > -1) then (
+        /* Add nearest lower cell in dI direction. */
+        currCoord     : copylist(cellToCoef[pS][1]),
+        currCoord[dI] : -1,
+        currNodesEx   : assoc(currCoord,nodesExIn),
+        memLoc        : [],
+        for k : 1 thru numBasisIn do (
+          nodeStorer : assoc(currNodesEx[k],storedNodeToCellIn),
+          memIdx     : sublist_indices(assoc(nodeStorer,storedNodesExIn),lambda([x],x=currNodesEx[k]))[1]-1,
+          memLoc     : endcons(sconcat(dataStrsIn[assoc(nodeStorer,cellToIdxStoredIn)],"[",string(memIdx),"]"),memLoc)
+        ),
+        cellToCoef      : endcons([currCoord,memLoc],cellToCoef)
+      )
+    )
+  ),
+  return(cellToCoef)
+)$
+
+weakPoissonStored(basisTypeIn,varsIn,polyOrderIn,stencilLocIn,currBCIn) := block([dim,currBC,nodes,numNodes,storedNodes,numStoredNodes],
   /* Produce the weak form of the Poisson equation, -Laplacian(phi)=rho,
      saving only the equations corresponding to the nodes stored in this cell. */
 
+  dim    : length(varsIn),
   currBC : currBCIn,
 
   /* Count the number of non-periodic boundaries. */
@@ -424,33 +461,7 @@ weakPoissonStored(basisTypeIn,varsIn,polyOrderIn,stencilLocIn,currBCIn) := block
   dataStrs : getDataStr(makelist([1,1],i,1,dim),stencilLocIn,varsIn),
 
   /* Associative list of cell coordinate, and the memory location of each node. */
-  currCoord   : makelist(0,i,1,dim),
-  currNodesEx : assoc(currCoord,nodesEx),
-  memLoc      : [],
-  for k : 1 thru numB do (
-    nodeStorer : assoc(currNodesEx[k],storedNodeToCell),
-    memIdx     : sublist_indices(assoc(nodeStorer,storedNodesEx),lambda([x],x=currNodesEx[k]))[1]-1,
-    memLoc     : endcons(sconcat(dataStrs[assoc(nodeStorer,cellToIdxStored)],"[",string(memIdx),"]"),memLoc)
-  ),
-  cellToCoef : [[makelist(0,i,1,dim),memLoc]],
-  for dI: 1 thru dim do (
-    cellsSoFar : length(cellToCoef),
-    for pS : 1 thru cellsSoFar do (
-      if (stencilLocIn[dI] > -1) then (
-        /* Add nearest lower cell in dI direction. */
-        currCoord     : copylist(cellToCoef[pS][1]),
-        currCoord[dI] : -1,
-        currNodesEx   : assoc(currCoord,nodesEx),
-        memLoc        : [],
-        for k : 1 thru numB do (
-          nodeStorer : assoc(currNodesEx[k],storedNodeToCell),
-          memIdx     : sublist_indices(assoc(nodeStorer,storedNodesEx),lambda([x],x=currNodesEx[k]))[1]-1,
-          memLoc     : endcons(sconcat(dataStrs[assoc(nodeStorer,cellToIdxStored)],"[",string(memIdx),"]"),memLoc)
-        ),
-        cellToCoef      : endcons([currCoord,memLoc],cellToCoef)
-      )
-    )
-  ),
+  cellToCoef : getCellToCoef(numB,stencilLocIn,nodesEx,storedNodesEx,storedNodeToCell,cellToIdxStored,dataStrs),
 
   /* Lists where we will store the actual stencil.*/
   stencilLHS : makelist(0,i,1,numStoredNodes),

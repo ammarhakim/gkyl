@@ -16,14 +16,20 @@ boundStrKey : [[-1,"L"],[0,""],[1,"U"]]$
      =1 Dirichlet
      =2 Neumann
      =3 Robin
+     =9 non-periodic
    For periodic we'll assume ghost cells are filled accordingly
    and use an interior stencil. */
 bcTypesDG  : [0, 3]$
 bcStrsDG   : ["", "Robin"]$
+bcKeyDG    : makelist([bcTypesDG[i],bcStrsDG[i]],i,1,length(bcTypesDG))$
+
 bcTypesFEM : [0, 1, 2, 3]$
 bcStrsFEM  : ["", "Dirichlet", "Neumann", "Robin"]$
-bcKeyDG    : makelist([bcTypesDG[i],bcStrsDG[i]],i,1,length(bcTypesDG))$
 bcKeyFEM   : makelist([bcTypesFEM[i],bcStrsFEM[i]],i,1,length(bcTypesFEM))$
+
+bcTypesFEMig : [0, 9]$ 
+bcStrsFEMig  : ["", "NonPeriodic"]$
+bcKeyFEMig   : makelist([bcTypesFEMig[i],bcStrsFEMig[i]],i,1,length(bcTypesFEMig))$
 
 printf(fh, "#ifndef MG_POISSON_MOD_DECL_H ~%")$
 printf(fh, "#define MG_POISSON_MOD_DECL_H ~%")$
@@ -200,14 +206,19 @@ for bInd : 1 thru length(bName) do (
 
       /* Prolongation and restriction operators. */
       printf(fh, "void MGpoissonFEMProlong~ax~a_P~a(const double *fldC, double **fldF);~%", ci, bName[bInd], polyOrder),
-      findBoundaryStrCombo(fh, "MGpoissonFEMProlong", "const double *fldC, double **fldF", bName[bInd], ci, bcKeyFEM),
+      findBoundaryStrCombo(fh, "MGpoissonFEMProlong", "const double *fldC, double **fldF", bName[bInd], ci, bcKeyFEMig),
       printf(fh, "void MGpoissonFEMRestrict~ax~a_P~a(double **fldF, double *fldC);~%", ci, bName[bInd], polyOrder),
-      findBoundaryStrCombo(fh, "MGpoissonFEMRestrict", "double **fldF, double *fldC", bName[bInd], ci, bcKeyFEM),
+      findBoundaryStrCombo(fh, "MGpoissonFEMRestrict", "double **fldF, double *fldC", bName[bInd], ci, bcKeyFEMig),
       printf(fh, "~%"),
 
       /* Residue kernels. */
       printf(fh, "void MGpoissonFEMResidue~ax~a_P~a(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);~%", ci, bName[bInd], polyOrder),
       findBoundaryStrCombo(fh, "MGpoissonFEMResidue", "double **dx, const double *bcVals, double **rho, double **phi, double *resOut", bName[bInd], ci, bcKeyFEM),
+      printf(fh, "~%"),
+
+      /* L2 norm. */
+      printf(fh, "void MGpoissonFEML2norm~ax~a_P~a(double **femFld, double *normOut);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonFEML2norm", "double **femFld, double *normOut", bName[bInd], ci, bcKeyFEMig),
       printf(fh, "~%")
 
     ),

@@ -465,6 +465,22 @@ function lume.clone(t)
 end
 
 
+function lume.deepclone(t)
+  local ttype = type(t)
+  local rtn 
+  if ttype == 'table' then
+    rtn = {}
+    for k, v in next, t, nil do
+      rtn[lume.deepclone(k)] = lume.deepclone(v)
+    end
+    setmetatable(rtn, lume.deepclone(getmetatable(t)))
+  else -- number, string, boolean, etc
+    rtn = t
+  end
+  return rtn
+end
+
+
 function lume.fn(fn, ...)
   assert(iscallable(fn), "expected a function as the first argument")
   local args = { ... }
