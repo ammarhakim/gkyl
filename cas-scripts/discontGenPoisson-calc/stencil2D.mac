@@ -26,7 +26,7 @@ isRight : false $
 
 for polyOrder : 1 thru 1 do (
   for bIdx : 1 thru min(length(basisNm),polyOrder) do (
-    if polyOrder=1 then bnm : "" else bnm : basisNm[bIdx],
+    bnm  : if polyOrder=1 then "" else basisNm[bIdx],
     fname : sconcat("~/.max-out/discontGenPoisson", bnm,
                     "Stencil2D",
                     if isTop then "_T" else "",
@@ -251,13 +251,14 @@ for polyOrder : 1 thru 1 do (
         )
       )
     ),
-    isZero : makelist(expand(st[i]-stCheck[i][1]),i,1,numBasis), /* Should be all zeros */
     cMatx : coefmatrix(st, [bcValx]),
     cMaty : coefmatrix(st, [bcValy]),
+     /* Santity check: should be all zeros (DOES NOT ABOVE CODE IS BUG FREE!) */
+    isZero : makelist(expand(st[i]-stCheck[i][1]-cMatx[i][1]*bcValx-cMaty[i][1]*bcValy),i,1,numBasis),
     printf(fh, "  _M[10] = Lin.Vec(~a)~%", numBasis),
     for i : 1 thru numBasis do (
-      printf(fh, "  _M[10][~a] = ~a*bcValx + ~a*bcValy~%", i,
-             float(cMatx[i][1]), float(expand(cMaty[i][1])))
+      printf(fh, "  _M[10][~a] = ~a + ~a~%", i,
+             bcValx*float(expand(cMatx[i][1])), bcValy*float(expand(cMaty[i][1])))
     ),
 
     printf(fh, "  return(_M)~%"),
