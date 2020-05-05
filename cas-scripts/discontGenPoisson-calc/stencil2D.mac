@@ -15,6 +15,10 @@ Jyy : 4/dx[2]^2 $
 Jxy : 4/dx[1]/dx[2] $
 C : 0 $
 
+/* For now no Neumann BCs */
+bcNx : 0$
+bcNy : 0$
+
 isTop : false $
 isBottom : false $
 isLeft : false $
@@ -234,10 +238,12 @@ for polyOrder : 1 thru 2 do (
 
     /* Assembly --------------------------------------------------- */
     st : expand(surfT - surfB + surfR - surfL - vol),
+    stCheck : transpose(makelist(0, i, 1, numBasis)), /* Cross-check */
 
     fList : [fBL, fL, fTL, fB, fC, fT, fBR, fR, fTR],
     for m : 1 thru 9 do (
       cMat : coefmatrix(st, makelist(fList[m][i], i, 1, numBasis)),
+      stCheck : stCheck + cMat. transpose(makelist(fList[m][i], i, 1, numBasis)),
       printf(fh, "  _M[~a] = Lin.Mat(~a,~a)~%", m, numBasis, numBasis),
       for i : 1 thru numBasis do (
         for j : 1 thru numBasis do (
@@ -245,6 +251,7 @@ for polyOrder : 1 thru 2 do (
         )
       )
     ),
+    isZero : makelist(expand(st[i]-stCheck[i][1]),i,1,numBasis), /* Should be all zeros */
     cMatx : coefmatrix(st, [bcValx]),
     cMaty : coefmatrix(st, [bcValy]),
     printf(fh, "  _M[10] = Lin.Vec(~a)~%", numBasis),
