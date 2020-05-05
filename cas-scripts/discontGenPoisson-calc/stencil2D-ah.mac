@@ -19,14 +19,14 @@ C : 0 $
 bcNx : 0$
 bcNy : 0$
 
-isTop : false $
-isBottom : true $
+isTop : true $
+isBottom : false $
 isLeft : false $
 isRight : true $
 
 for polyOrder : 1 thru 1 do (
   for bIdx : 1 thru min(length(basisNm),polyOrder) do (
-    if polyOrder=1 then bnm : "" else bnm : basisNm[bIdx],
+    bnm  : if polyOrder=1 then "" else basisNm[bIdx],
     fname : sconcat("~/.max-out/discontGenPoisson", bnm,
                     "Stencil2D",
                     if isTop then "_T" else "",
