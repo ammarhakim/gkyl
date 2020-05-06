@@ -22,9 +22,13 @@ calcRecov3CellGen(basisNm, dir, dx, polyOrder, lo, ce, up) := block(
   Outputs:
     a polynomial in terms of qLo, qCe, and qUp defined across all three cells
   */
-  [numDims, dIdx, basisC, basis1D, baLo1D, baCe1D, baUp1D, DoF, rExp,
+  [
+  numDims, dIdx, basisC, basis1D, baLo1D, baCe1D, baUp1D, DoF, rExp,
   recEqList, rSol, rSub, projSubList, basisND, xc, baLoND, baCeND,
-  baUpND, dimProjLo, dimProjCe, dimProjUp],
+  r, qLo1D, qCe1D, qUp1D,
+  baUpND, dimProjLo, dimProjCe, dimProjUp
+  ],
+  
   numDims : length(dx),
   dIdx : getDirIdx(dir, numDims), /* Converting x, y, or z into 1, 2, or 3 */
   basisC : getBasis(sconcat("basis-precalc/basis", basisNm, "1x"), polyOrder),

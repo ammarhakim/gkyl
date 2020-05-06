@@ -28,9 +28,12 @@ calcRecov1CellGen(basisNm, dir, dx, polyOrder, C, lo, ce, up) := block(
   Outputs:
     a polynomial in terms of qLo, qCe, and qUp defined in the mddle cell
   */
-  [numDims, dIdx, basisC, basis1D, DoF, rExp, rLo, rUp, recEqList, rSol,
+  [
+  numDims, dIdx, basisC, basis1D, DoF, rExp, rLo, rUp, recEqList, rSol,
   rSub, projSubList, baLo1D, baCe1D, baUp1D, basisND, xc, baLoND,
-  baCND, baUpND, dimProjLo, dimProjCe, dimProjUp, bcLo, bcUp],
+  baCND, baUpND, dimProjLo, dimProjCe, dimProjUp, bcLo, bcUp,
+  r, qCe1D
+  ],
 
   numDims : length(dx),
   dIdx : getDirIdx(dir, numDims),
