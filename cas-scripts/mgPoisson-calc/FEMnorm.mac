@@ -144,7 +144,7 @@ calcL2norm(fh, funcNm, dim, basisFun, pMax) := block([],
       
           femFld_e : doExpand(makelist(eval_string(sconcat("femFld",cellToCoef[1][2][k])),k,1,numB),bN),
       
-          normCont : innerProd(varsC,1,1,femFld_e^2),
+          normCont : fullratsimp(innerProd(varsC,1,1,femFld_e^2)),
       
           printf(fh, "void ~a_~aP~a(double **femFld, double *normOut) ~%{ ~%", funcNm, stencilStr, polyOrder),
           printf(fh, "  // femFld:  FEM field in neighboring cells.~%"),
