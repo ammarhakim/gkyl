@@ -15,16 +15,12 @@ Jyy : 4/dx[2]^2 $
 Jxy : 4/dx[1]/dx[2] $
 C : 0 $
 
-/* For now no Neumann BCs */
-bcNx : 0$
-bcNy : 0$
-
 isTop : false $
-isBottom : true $
+isBottom : false $
 isLeft : false $
 isRight : false $
 
-for polyOrder : 1 thru 1 do (
+for polyOrder : 1 thru 2 do (
   for bIdx : 1 thru min(length(basisNm),polyOrder) do (
     bnm  : if polyOrder=1 then "" else basisNm[bIdx],
     fname : sconcat("~/.max-out/discontGenPoisson", bnm,
@@ -237,7 +233,10 @@ for polyOrder : 1 thru 1 do (
     surfR : calcInnerProdList([y], 1, subst(x=1, ba), faceR),
 
     /* Assembly --------------------------------------------------- */
-    st : expand(surfT - surfB + surfR - surfL - vol),
+    /* I'm not sure the expand here is needed and it significantly
+    increases the execution time for higher polynomial cases --Petr */
+    /* st : expand(surfT - surfB + surfR - surfL - vol), */
+    st : surfT - surfB + surfR - surfL - vol,
     stCheck : transpose(makelist(0, i, 1, numBasis)), /* Cross-check */
 
     fList : [fBL, fL, fTL, fB, fC, fT, fBR, fR, fTR],
