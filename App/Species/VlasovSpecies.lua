@@ -715,7 +715,8 @@ function VlasovSpecies:createDiagnostics()
    local function organizeDiagnosticMoments(moments, weakMoments, integratedMoments)
       -- At beginning, all moment names are in the 'moments' list.
       -- We want to remove the weak moments and put them in the 'weakMoments' list
-      for i, mom in ipairs(moments) do
+      for i, mom in pairs(moments) do
+         print(i, mom)
          if isWeakMomentNameGood(mom) then
             -- Remove moment name from moments list, and add it to weakMoments list.
             if mom == "uCross" then
@@ -789,11 +790,18 @@ function VlasovSpecies:createDiagnostics()
             if not contains(moments, "M2") then
                table.insert(moments, "M2")
             end
-            if not contains(weakMoments, "u") then
-               table.insert(weakMoments, "u")
+            if not contains(weakMoments, "M2Thermal") then
+               table.insert(weakMoments, "M2Thermal")
             end
+            if not contains(weakMoments, "M2Flow") then
+               table.insert(weakMoments, "M2Flow")
+            end
+            -- M1i and u are needed for M2Flow
             if not contains(moments, "M1i") then
                table.insert(moments, "M1i")
+            end
+            if not contains(weakMoments, "u") then
+               table.insert(weakMoments, "u")
             end
          end
          if mom == "M2Flow" then -- = n*u^2 = M1.u
@@ -833,7 +841,7 @@ function VlasovSpecies:createDiagnostics()
          confGrid = bc:getConfBoundaryGrid()
       end
 
-      for i, mom in ipairs(moments) do
+      for i, mom in pairs(moments) do
          if isMomentNameGood(mom) then
             self.diagnosticMomentFields[mom..label] = DataStruct.Field {
                onGrid        = confGrid,
@@ -1181,7 +1189,7 @@ end
 
 function VlasovSpecies:momCalcTime()
    local tm = self.tmCouplingMom
-   for i, mom in ipairs(self.diagnosticMoments) do
+   for i, mom in pairs(self.diagnosticMoments) do
       tm = tm + self.diagnosticMomentUpdaters[mom].totalTime
    end
    return tm
