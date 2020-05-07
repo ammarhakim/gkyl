@@ -716,7 +716,6 @@ function VlasovSpecies:createDiagnostics()
       -- At beginning, all moment names are in the 'moments' list.
       -- We want to remove the weak moments and put them in the 'weakMoments' list
       for i, mom in pairs(moments) do
-         print(i, mom)
          if isWeakMomentNameGood(mom) then
             -- Remove moment name from moments list, and add it to weakMoments list.
             if mom == "uCross" then
