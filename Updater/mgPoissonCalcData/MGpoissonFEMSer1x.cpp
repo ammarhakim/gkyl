@@ -89,7 +89,7 @@ void MGpoissonFEM_DGtoFEM_1xSer_P1(const double *dgFld, double **femOut)
 
 }
 
-void MGpoissonFEM_DGtoFEM_1xSer_Lx_P1(const double *dgFld, double **femOut) 
+void MGpoissonFEM_DGtoFEM_1xSer_LxNonPeriodic_P1(const double *dgFld, double **femOut) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femOut: FEM (nodal) field coefficients.
@@ -102,7 +102,7 @@ void MGpoissonFEM_DGtoFEM_1xSer_Lx_P1(const double *dgFld, double **femOut)
 
 }
 
-void MGpoissonFEM_DGtoFEM_1xSer_Ux_P1(const double *dgFld, double **femOut) 
+void MGpoissonFEM_DGtoFEM_1xSer_UxNonPeriodic_P1(const double *dgFld, double **femOut) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femOut: FEM (nodal) field coefficients.
@@ -112,6 +112,61 @@ void MGpoissonFEM_DGtoFEM_1xSer_Ux_P1(const double *dgFld, double **femOut)
 
   femFld[0] += 0.3535533905932737*dgFld[0]-0.6123724356957944*dgFld[1]; 
   femFld[1] += 1.224744871391589*dgFld[1]+0.7071067811865475*dgFld[0]; 
+
+}
+
+void MGpoissonFEMproject1xSer_P1(double **dx, double **femFld, double *out) 
+{ 
+  // dx:      cell lengths of cells pointed to by the projection stencil.
+  // femFld:  FEM field in cells pointed to by the projection stencil.
+  // out:     projection of the FEM field.
+
+  double *dxC  = dx[0]; 
+
+  double volFac = 0.5*dxC[0]; 
+
+  double *femFldC = femFld[0]; 
+  double *femFldLx = femFld[1]; 
+  double *femFldUx = femFld[2]; 
+
+  out[0] = 0.3333333333333333*(femFldUx[0]+femFldLx[0]+4.0*femFldC[0])*volFac; 
+
+}
+
+void MGpoissonFEMproject1xSer_LxNonPeriodic_P1(double **dx, double **femFld, double *out) 
+{ 
+  // dx:      cell lengths of cells pointed to by the projection stencil.
+  // femFld:  FEM field in cells pointed to by the projection stencil.
+  // out:     projection of the FEM field.
+
+  double *dxC  = dx[0]; 
+
+  double volFac = 0.5*dxC[0]; 
+
+  double *femFldC = femFld[0]; 
+  double *femFldLx = femFld[1]; 
+  double *femFldUx = femFld[2]; 
+
+  out[0] = 0.3333333333333333*(femFldUx[0]+2.0*femFldC[0])*volFac; 
+
+}
+
+void MGpoissonFEMproject1xSer_UxNonPeriodic_P1(double **dx, double **femFld, double *out) 
+{ 
+  // dx:      cell lengths of cells pointed to by the projection stencil.
+  // femFld:  FEM field in cells pointed to by the projection stencil.
+  // out:     projection of the FEM field.
+
+  double *dxC  = dx[0]; 
+
+  double volFac = 0.5*dxC[0]; 
+
+  double *femFldC = femFld[0]; 
+  double *femFldLx = femFld[1]; 
+  double *femFldUx = femFld[2]; 
+
+  out[0] = 0.3333333333333333*(femFldC[1]+femFldLx[0]+4.0*femFldC[0])*volFac; 
+  out[1] = 0.3333333333333333*(2.0*femFldC[1]+femFldC[0])*volFac; 
 
 }
 
@@ -135,12 +190,10 @@ void MGpoissonFEMDampedJacobi1xSer_P1(const double omega, double **dx, const dou
   double *phiPrevC = phiPrev[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phiPrev[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phiPrev[2]; 
-  double *rhoUx = rho[2]; 
 
 
-  phiC[0] = (0.1666666666666667*((2.0*rhoUx[0]+2.0*rhoLx[0]+8.0*rhoC[0])*omega*volFac+(3.0*phiUx[0]-6.0*phiPrevC[0]+3.0*phiLx[0])*rdx2SqVol[0]*omega+6.0*phiPrevC[0]*rdx2SqVol[0]))/rdx2SqVol[0]; 
+  phiC[0] = (0.5*((2.0*rhoC[0]+(phiUx[0]-2.0*phiPrevC[0]+phiLx[0])*rdx2SqVol[0])*omega+2.0*phiPrevC[0]*rdx2SqVol[0]))/rdx2SqVol[0]; 
 
 }
 
@@ -164,9 +217,7 @@ void MGpoissonFEMDampedJacobi1xSer_LxDirichlet_P1(const double omega, double **d
   double *phiPrevC = phiPrev[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phiPrev[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phiPrev[2]; 
-  double *rhoUx = rho[2]; 
 
 
   phiC[0] = (bcVals[2]-1.0*phiPrevC[0])*omega+phiPrevC[0]; 
@@ -193,9 +244,7 @@ void MGpoissonFEMDampedJacobi1xSer_LxNeumann_P1(const double omega, double **dx,
   double *phiPrevC = phiPrev[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phiPrev[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phiPrev[2]; 
-  double *rhoUx = rho[2]; 
 
 
   phiC[0] = ((-2.0*bcVals[2])+phiUx[0]-1.0*phiPrevC[0])*omega+phiPrevC[0]; 
@@ -222,9 +271,7 @@ void MGpoissonFEMDampedJacobi1xSer_LxRobin_P1(const double omega, double **dx, c
   double *phiPrevC = phiPrev[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phiPrev[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phiPrev[2]; 
-  double *rhoUx = rho[2]; 
 
 
   phiC[0] = -(1.0*((2.0*bcVals[2]+(phiPrevC[0]-1.0*phiUx[0])*bcVals[1]-2.0*bcVals[0]*phiPrevC[0])*omega-1.0*phiPrevC[0]*bcVals[1]+2.0*bcVals[0]*phiPrevC[0]))/(bcVals[1]-2.0*bcVals[0]); 
@@ -251,12 +298,10 @@ void MGpoissonFEMDampedJacobi1xSer_UxDirichlet_P1(const double omega, double **d
   double *phiPrevC = phiPrev[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phiPrev[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phiPrev[2]; 
-  double *rhoUx = rho[2]; 
 
 
-  phiC[0] = (0.1666666666666667*((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*omega*volFac+(3.0*rdx2SqVol[0]*bcVals[5]+(3.0*phiLx[0]-6.0*phiPrevC[0])*rdx2SqVol[0])*omega+6.0*phiPrevC[0]*rdx2SqVol[0]))/rdx2SqVol[0]; 
+  phiC[0] = (0.5*((rdx2SqVol[0]*bcVals[5]+2.0*rhoC[0]+(phiLx[0]-2.0*phiPrevC[0])*rdx2SqVol[0])*omega+2.0*phiPrevC[0]*rdx2SqVol[0]))/rdx2SqVol[0]; 
   phiC[1] = (bcVals[5]-1.0*phiPrevC[1])*omega+phiPrevC[1]; 
 
 }
@@ -281,13 +326,11 @@ void MGpoissonFEMDampedJacobi1xSer_UxNeumann_P1(const double omega, double **dx,
   double *phiPrevC = phiPrev[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phiPrev[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phiPrev[2]; 
-  double *rhoUx = rho[2]; 
 
 
-  phiC[0] = (0.3333333333333333*((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*omega*volFac+(6.0*rdx2SqVol[0]*bcVals[5]+(3.0*phiLx[0]-3.0*phiPrevC[0])*rdx2SqVol[0])*omega+3.0*phiPrevC[0]*rdx2SqVol[0]))/rdx2SqVol[0]; 
-  phiC[1] = (0.3333333333333333*((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*omega*volFac+(12.0*rdx2SqVol[0]*bcVals[5]-3.0*rdx2SqVol[0]*phiPrevC[1]+3.0*phiLx[0]*rdx2SqVol[0])*omega+3.0*rdx2SqVol[0]*phiPrevC[1]))/rdx2SqVol[0]; 
+  phiC[0] = ((2.0*rdx2SqVol[0]*bcVals[5]+2.0*rhoC[0]+(phiLx[0]-1.0*phiPrevC[0])*rdx2SqVol[0])*omega+phiPrevC[0]*rdx2SqVol[0])/rdx2SqVol[0]; 
+  phiC[1] = ((4.0*rdx2SqVol[0]*bcVals[5]-1.0*rdx2SqVol[0]*phiPrevC[1]+2.0*rhoC[0]+phiLx[0]*rdx2SqVol[0])*omega+rdx2SqVol[0]*phiPrevC[1])/rdx2SqVol[0]; 
 
 }
 
@@ -311,13 +354,11 @@ void MGpoissonFEMDampedJacobi1xSer_UxRobin_P1(const double omega, double **dx, c
   double *phiPrevC = phiPrev[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phiPrev[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phiPrev[2]; 
-  double *rhoUx = rho[2]; 
 
 
-  phiC[0] = (((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*bcVals[4]+(4.0*rhoC[1]+4.0*rhoLx[0]+16.0*rhoC[0])*bcVals[3])*omega*volFac+(6.0*rdx2SqVol[0]*bcVals[5]+(3.0*phiLx[0]-3.0*phiPrevC[0])*rdx2SqVol[0]*bcVals[4]+(6.0*phiLx[0]-12.0*phiPrevC[0])*rdx2SqVol[0]*bcVals[3])*omega+3.0*phiPrevC[0]*rdx2SqVol[0]*bcVals[4]+12.0*phiPrevC[0]*rdx2SqVol[0]*bcVals[3])/(3.0*rdx2SqVol[0]*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3]); 
-  phiC[1] = ((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*bcVals[4]*omega*volFac+(12.0*rdx2SqVol[0]*bcVals[5]+(3.0*phiLx[0]*rdx2SqVol[0]-3.0*rdx2SqVol[0]*phiPrevC[1])*bcVals[4]-12.0*rdx2SqVol[0]*phiPrevC[1]*bcVals[3])*omega+3.0*rdx2SqVol[0]*phiPrevC[1]*bcVals[4]+12.0*rdx2SqVol[0]*phiPrevC[1]*bcVals[3])/(3.0*rdx2SqVol[0]*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3]); 
+  phiC[0] = ((2.0*rdx2SqVol[0]*bcVals[5]+(2.0*rhoC[0]+(phiLx[0]-1.0*phiPrevC[0])*rdx2SqVol[0])*bcVals[4]+(4.0*rhoC[0]+(2.0*phiLx[0]-4.0*phiPrevC[0])*rdx2SqVol[0])*bcVals[3])*omega+phiPrevC[0]*rdx2SqVol[0]*bcVals[4]+4.0*phiPrevC[0]*rdx2SqVol[0]*bcVals[3])/(rdx2SqVol[0]*bcVals[4]+4.0*rdx2SqVol[0]*bcVals[3]); 
+  phiC[1] = ((4.0*rdx2SqVol[0]*bcVals[5]+((-1.0*rdx2SqVol[0]*phiPrevC[1])+2.0*rhoC[0]+phiLx[0]*rdx2SqVol[0])*bcVals[4]-4.0*rdx2SqVol[0]*phiPrevC[1]*bcVals[3])*omega+rdx2SqVol[0]*phiPrevC[1]*bcVals[4]+4.0*rdx2SqVol[0]*phiPrevC[1]*bcVals[3])/(rdx2SqVol[0]*bcVals[4]+4.0*rdx2SqVol[0]*bcVals[3]); 
 
 }
 
@@ -340,12 +381,10 @@ void MGpoissonFEMDampedGaussSeidel1xSer_P1(const double omega, double **dx, cons
   double *phiC = phi[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phi[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phi[2]; 
-  double *rhoUx = rho[2]; 
 
 
-  phiC[0] = (0.1666666666666667*((2.0*rhoUx[0]+2.0*rhoLx[0]+8.0*rhoC[0])*omega*volFac+(3.0*phiUx[0]+3.0*phiLx[0]-6.0*phiC[0])*rdx2SqVol[0]*omega+6.0*phiC[0]*rdx2SqVol[0]))/rdx2SqVol[0]; 
+  phiC[0] = (0.5*((2.0*rhoC[0]+(phiUx[0]+phiLx[0]-2.0*phiC[0])*rdx2SqVol[0])*omega+2.0*phiC[0]*rdx2SqVol[0]))/rdx2SqVol[0]; 
 
 }
 
@@ -368,9 +407,7 @@ void MGpoissonFEMDampedGaussSeidel1xSer_LxDirichlet_P1(const double omega, doubl
   double *phiC = phi[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phi[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phi[2]; 
-  double *rhoUx = rho[2]; 
 
 
   phiC[0] = (bcVals[2]-1.0*phiC[0])*omega+phiC[0]; 
@@ -396,9 +433,7 @@ void MGpoissonFEMDampedGaussSeidel1xSer_LxNeumann_P1(const double omega, double 
   double *phiC = phi[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phi[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phi[2]; 
-  double *rhoUx = rho[2]; 
 
 
   phiC[0] = ((-2.0*bcVals[2])+phiUx[0]-1.0*phiC[0])*omega+phiC[0]; 
@@ -424,9 +459,7 @@ void MGpoissonFEMDampedGaussSeidel1xSer_LxRobin_P1(const double omega, double **
   double *phiC = phi[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phi[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phi[2]; 
-  double *rhoUx = rho[2]; 
 
 
   phiC[0] = -(1.0*((2.0*bcVals[2]+(phiC[0]-1.0*phiUx[0])*bcVals[1]-2.0*bcVals[0]*phiC[0])*omega-1.0*phiC[0]*bcVals[1]+2.0*bcVals[0]*phiC[0]))/(bcVals[1]-2.0*bcVals[0]); 
@@ -452,12 +485,10 @@ void MGpoissonFEMDampedGaussSeidel1xSer_UxDirichlet_P1(const double omega, doubl
   double *phiC = phi[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phi[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phi[2]; 
-  double *rhoUx = rho[2]; 
 
 
-  phiC[0] = (0.1666666666666667*((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*omega*volFac+(3.0*rdx2SqVol[0]*bcVals[5]+(3.0*phiLx[0]-6.0*phiC[0])*rdx2SqVol[0])*omega+6.0*phiC[0]*rdx2SqVol[0]))/rdx2SqVol[0]; 
+  phiC[0] = (0.5*((rdx2SqVol[0]*bcVals[5]+2.0*rhoC[0]+(phiLx[0]-2.0*phiC[0])*rdx2SqVol[0])*omega+2.0*phiC[0]*rdx2SqVol[0]))/rdx2SqVol[0]; 
   phiC[1] = (bcVals[5]-1.0*phiC[1])*omega+phiC[1]; 
 
 }
@@ -481,13 +512,11 @@ void MGpoissonFEMDampedGaussSeidel1xSer_UxNeumann_P1(const double omega, double 
   double *phiC = phi[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phi[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phi[2]; 
-  double *rhoUx = rho[2]; 
 
 
-  phiC[0] = (0.3333333333333333*((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*omega*volFac+(6.0*rdx2SqVol[0]*bcVals[5]+(3.0*phiLx[0]-3.0*phiC[0])*rdx2SqVol[0])*omega+3.0*phiC[0]*rdx2SqVol[0]))/rdx2SqVol[0]; 
-  phiC[1] = (0.3333333333333333*((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*omega*volFac+(12.0*rdx2SqVol[0]*bcVals[5]-3.0*rdx2SqVol[0]*phiC[1]+3.0*phiLx[0]*rdx2SqVol[0])*omega+3.0*rdx2SqVol[0]*phiC[1]))/rdx2SqVol[0]; 
+  phiC[0] = ((2.0*rdx2SqVol[0]*bcVals[5]+2.0*rhoC[0]+(phiLx[0]-1.0*phiC[0])*rdx2SqVol[0])*omega+phiC[0]*rdx2SqVol[0])/rdx2SqVol[0]; 
+  phiC[1] = ((4.0*rdx2SqVol[0]*bcVals[5]-1.0*rdx2SqVol[0]*phiC[1]+2.0*rhoC[0]+phiLx[0]*rdx2SqVol[0])*omega+rdx2SqVol[0]*phiC[1])/rdx2SqVol[0]; 
 
 }
 
@@ -510,13 +539,11 @@ void MGpoissonFEMDampedGaussSeidel1xSer_UxRobin_P1(const double omega, double **
   double *phiC = phi[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phi[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phi[2]; 
-  double *rhoUx = rho[2]; 
 
 
-  phiC[0] = (((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*bcVals[4]+(4.0*rhoC[1]+4.0*rhoLx[0]+16.0*rhoC[0])*bcVals[3])*omega*volFac+(6.0*rdx2SqVol[0]*bcVals[5]+(3.0*phiLx[0]-3.0*phiC[0])*rdx2SqVol[0]*bcVals[4]+(6.0*phiLx[0]-12.0*phiC[0])*rdx2SqVol[0]*bcVals[3])*omega+3.0*phiC[0]*rdx2SqVol[0]*bcVals[4]+12.0*phiC[0]*rdx2SqVol[0]*bcVals[3])/(3.0*rdx2SqVol[0]*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3]); 
-  phiC[1] = ((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*bcVals[4]*omega*volFac+(12.0*rdx2SqVol[0]*bcVals[5]+(3.0*phiLx[0]*rdx2SqVol[0]-3.0*rdx2SqVol[0]*phiC[1])*bcVals[4]-12.0*rdx2SqVol[0]*phiC[1]*bcVals[3])*omega+3.0*rdx2SqVol[0]*phiC[1]*bcVals[4]+12.0*rdx2SqVol[0]*phiC[1]*bcVals[3])/(3.0*rdx2SqVol[0]*bcVals[4]+12.0*rdx2SqVol[0]*bcVals[3]); 
+  phiC[0] = ((2.0*rdx2SqVol[0]*bcVals[5]+(2.0*rhoC[0]+(phiLx[0]-1.0*phiC[0])*rdx2SqVol[0])*bcVals[4]+(4.0*rhoC[0]+(2.0*phiLx[0]-4.0*phiC[0])*rdx2SqVol[0])*bcVals[3])*omega+phiC[0]*rdx2SqVol[0]*bcVals[4]+4.0*phiC[0]*rdx2SqVol[0]*bcVals[3])/(rdx2SqVol[0]*bcVals[4]+4.0*rdx2SqVol[0]*bcVals[3]); 
+  phiC[1] = ((4.0*rdx2SqVol[0]*bcVals[5]+((-1.0*rdx2SqVol[0]*phiC[1])+2.0*rhoC[0]+phiLx[0]*rdx2SqVol[0])*bcVals[4]-4.0*rdx2SqVol[0]*phiC[1]*bcVals[3])*omega+rdx2SqVol[0]*phiC[1]*bcVals[4]+4.0*rdx2SqVol[0]*phiC[1]*bcVals[3])/(rdx2SqVol[0]*bcVals[4]+4.0*rdx2SqVol[0]*bcVals[3]); 
 
 }
 
@@ -538,12 +565,10 @@ void MGpoissonFEMResidue1xSer_P1(double **dx, const double *bcVals, double **rho
   double *phiC = phi[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phi[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phi[2]; 
-  double *rhoUx = rho[2]; 
 
 
-  resOut[0] = 0.1666666666666667*((2.0*rhoUx[0]+2.0*rhoLx[0]+8.0*rhoC[0])*volFac+(3.0*phiUx[0]+3.0*phiLx[0]-6.0*phiC[0])*rdx2SqVol[0]); 
+  resOut[0] = 0.5*(2.0*rhoC[0]+(phiUx[0]+phiLx[0]-2.0*phiC[0])*rdx2SqVol[0]); 
 
 }
 
@@ -565,9 +590,7 @@ void MGpoissonFEMResidue1xSer_LxDirichlet_P1(double **dx, const double *bcVals, 
   double *phiC = phi[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phi[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phi[2]; 
-  double *rhoUx = rho[2]; 
 
 
   resOut[0] = phiC[0]-1.0*bcVals[2]; 
@@ -592,9 +615,7 @@ void MGpoissonFEMResidue1xSer_LxNeumann_P1(double **dx, const double *bcVals, do
   double *phiC = phi[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phi[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phi[2]; 
-  double *rhoUx = rho[2]; 
 
 
   resOut[0] = 2.0*bcVals[2]-1.0*phiUx[0]+phiC[0]; 
@@ -619,9 +640,7 @@ void MGpoissonFEMResidue1xSer_LxRobin_P1(double **dx, const double *bcVals, doub
   double *phiC = phi[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phi[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phi[2]; 
-  double *rhoUx = rho[2]; 
 
 
   resOut[0] = (2.0*bcVals[2]+(phiC[0]-1.0*phiUx[0])*bcVals[1]-2.0*bcVals[0]*phiC[0])/(bcVals[1]-2.0*bcVals[0]); 
@@ -646,12 +665,10 @@ void MGpoissonFEMResidue1xSer_UxDirichlet_P1(double **dx, const double *bcVals, 
   double *phiC = phi[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phi[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phi[2]; 
-  double *rhoUx = rho[2]; 
 
 
-  resOut[0] = 0.1666666666666667*((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*volFac+3.0*rdx2SqVol[0]*phiC[1]+(3.0*phiLx[0]-6.0*phiC[0])*rdx2SqVol[0]); 
+  resOut[0] = 0.5*(rdx2SqVol[0]*phiC[1]+2.0*rhoC[0]+(phiLx[0]-2.0*phiC[0])*rdx2SqVol[0]); 
   resOut[1] = phiC[1]-1.0*bcVals[5]; 
 
 }
@@ -674,12 +691,10 @@ void MGpoissonFEMResidue1xSer_UxNeumann_P1(double **dx, const double *bcVals, do
   double *phiC = phi[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phi[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phi[2]; 
-  double *rhoUx = rho[2]; 
 
 
-  resOut[0] = 0.1666666666666667*((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*volFac+3.0*rdx2SqVol[0]*phiC[1]+(3.0*phiLx[0]-6.0*phiC[0])*rdx2SqVol[0]); 
+  resOut[0] = 0.5*(rdx2SqVol[0]*phiC[1]+2.0*rhoC[0]+(phiLx[0]-2.0*phiC[0])*rdx2SqVol[0]); 
   resOut[1] = (-2.0*bcVals[5])+phiC[1]-1.0*phiC[0]; 
 
 }
@@ -702,12 +717,10 @@ void MGpoissonFEMResidue1xSer_UxRobin_P1(double **dx, const double *bcVals, doub
   double *phiC = phi[0]; 
   double *rhoC = rho[0]; 
   double *phiLx = phi[1]; 
-  double *rhoLx = rho[1]; 
   double *phiUx = phi[2]; 
-  double *rhoUx = rho[2]; 
 
 
-  resOut[0] = 0.1666666666666667*((2.0*rhoC[1]+2.0*rhoLx[0]+8.0*rhoC[0])*volFac+3.0*rdx2SqVol[0]*phiC[1]+(3.0*phiLx[0]-6.0*phiC[0])*rdx2SqVol[0]); 
+  resOut[0] = 0.5*(rdx2SqVol[0]*phiC[1]+2.0*rhoC[0]+(phiLx[0]-2.0*phiC[0])*rdx2SqVol[0]); 
   resOut[1] = -(1.0*(2.0*bcVals[5]+(phiC[0]-1.0*phiC[1])*bcVals[4]-2.0*phiC[1]*bcVals[3]))/(bcVals[4]+2.0*bcVals[3]); 
 
 }

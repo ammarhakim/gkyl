@@ -6,6 +6,7 @@
 
 load(stringproc)$
 load("mgPoisson-calc/FEMinterBasisOperators")$
+load("mgPoisson-calc/FEMproject")$
 load("mgPoisson-calc/FEMsmoothers")$
 load("mgPoisson-calc/FEMinterGridOperators")$
 load("mgPoisson-calc/FEMresidue")$
@@ -19,7 +20,7 @@ load("mgPoisson-calc/FEMresidue")$
 /* Serendipity basis. */
 maxPolyOrder_Ser : 1$
 minCdim_Ser : 1$
-maxCdim_Ser : 2$
+maxCdim_Ser : 3$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 1$
@@ -63,6 +64,11 @@ for bInd : 1 thru length(bName) do (
     disp(printf(false,sconcat("Working on MGpoissonFEM_DGtoFEM_", c, "x", bName[bInd]))),
     calcDGtoFEM(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
     calcDGtoFEMboundary(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+
+    /* Projection of an FEM field onto FEM (nodal) basis. */
+    funcName : sconcat("MGpoissonFEMproject", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonFEMproject", c, "x", bName[bInd]))),
+    calcFEMproject(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
     
     /* Jacobi FEM smoothers, */
     funcName : sconcat("MGpoissonFEMDampedJacobi", c, "x", bName[bInd]),

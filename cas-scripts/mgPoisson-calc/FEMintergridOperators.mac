@@ -8,9 +8,6 @@ load("mgPoisson-calc/FEMnodalFuncs");
 
 fpprec : 24$
 
-/* String used for identifying nearest neighbor cells. */
-neighStrKey : [[-1,"L"],[0,""],[1,"U"]]$
-
 solveProlongationWeqEq(varsIn,stencilLocIn,nodBasisIn,nodesIn,storedNodesIn) := block([bN,nodes,storedNodes,numB,dim,numStoredNodes,weqKnowns,weqUnknowns,eqSolv],
 
   bN          : nodBasisIn,
@@ -405,7 +402,7 @@ calcFEMProlongationOp(fh, funcNm, dim, basisFun, pMax) := block([],
       currBC : copylist(bcCombos[bcI]),
 
       /* String used in kernel name, identifying stencil location and BC. */
-      stencilStr : getStencilStr(stencilLoc[sI],boundStrKey,coordVarS,currBC,bcKey),
+      stencilStr : getStencilStr(stencilLoc[sI],coordVarS,currBC,bcKey),
 
       for polyOrder : 1 thru pMax do (
         bN       : getNodalBasis(basisFun, dim, polyOrder),
@@ -522,7 +519,7 @@ calcFEMRestrictionOp(fh, funcNm, dim, basisFun, pMax) := block([],
       currBC : copylist(bcCombos[bcI]),
 
       /* String used in kernel name, identifying stencil location and BC. */
-      stencilStr : getStencilStr(stencilLoc[sI],boundStrKey,coordVarS,currBC,bcKey),
+      stencilStr : getStencilStr(stencilLoc[sI],coordVarS,currBC,bcKey),
 
       for polyOrder : 1 thru pMax do (
         bN   : getNodalBasis(basisFun, dim, polyOrder),

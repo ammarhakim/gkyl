@@ -1,6 +1,10 @@
 /* A collection of functions commonly used by other Maxima scripts.
    in generating MGpoisson kernels. */
 
+/* String used for identifying nearest neighbor cells,
+   and location of the stencil. */
+locStrKey : [[-1,"L"],[0,""],[1,"U"]]$
+
 invertAssocList(assLstIn) := block([i,k,invALst],
   /* Invert an associative list, making the first entry of each element
      the second, and viceversa. */
@@ -40,58 +44,53 @@ getCoordVarS(varsIn) := block([dim,sVars,d,coordVarS],
      Used in placing variables in kernel boundary names. */
   dim         : length(varsIn),
   sVars       : copylist(varsIn),
-  for d : 1 thru dim do ( sVarsIn[d] : string(varsIn[d]) ),
-  coordVarS : [[-1,sVarsIn],[0,makelist("",i,1,dim)],[1,sVarsIn]],
+  for d : 1 thru dim do ( sVars[d] : string(varsIn[d]) ),
+  coordVarS : [[-1,sVars],[0,makelist("",i,1,dim)],[1,sVars]],
   return(coordVarS)
 )$
 
-getBCcombos(stencilLocIn,bcTypesIn) := block([dim,npBCs,npBCcombos,tmp,l,cI,bcI,d,nInc,bcCombos],
+getBCcombos(stencilLocIn,bcTypesIn) := block([dim,npDirsN,npBCcombos,tmp,l,cI,bcI,d,nInc,bcCombos],
   /* Given the BC types in bcTypesn and the stencil location
      stencilLocIn, return a list of of the different combinations of
      BCs, each of which will produce a separate kernel. */
   dim : length(stencilLocIn),
 
   /* Count the number of non-periodic boundaries. */
-  npBCs : length(sublist(stencilLocIn,lambda([x],x # 0))),
+  npDirs  : sublist_indices(stencilLocIn,lambda([x],x # 0)),
+  npDirsN : length(npDirs),
 
-  /* Given npBCs non-periodic BCs there are bcN^npBCs possible combinations of
+  /* Given npDirsN non-periodic directions there are bcN^npDirsN possible combinations of
      of that cell's stencil, assuming there are bcN types of BCs. */
-  npBCcombos : [[]],
-  if (npBCs # 0) then ( npBCcombos : makelist([bcTypesIn[i]],i,2,length(bcTypesIn)) ),
-  for l : 2 thru npBCs do (
-    tmp        : copylist(npBCcombos),
-    npBCcombos : [],
-    for cI : 1 thru length(tmp) do ( for bI : 2 thru length(bcTypesIn) do (
-      npBCcombos : append(npBCcombos,[ append(tmp[cI],[bcTypesIn[bI]]) ])
-    ) )
+  if (npDirsN # 0) then (
+    npBCcombos : makelist([bcTypesIn[i]],i,2,length(bcTypesIn)),
+    for l : 2 thru npDirsN do (
+      tmp        : copylist(npBCcombos),
+      npBCcombos : [],
+      for cI : 1 thru length(tmp) do ( for bI : 2 thru length(bcTypesIn) do (
+        npBCcombos : append(npBCcombos,[ append(tmp[cI],[bcTypesIn[bI]]) ])
+      ) )
+    ),
+
+    bcCombos : makelist(makelist(0,d,1,dim),i,1,length(npBCcombos)),
+    for iB : 1 thru length(bcCombos) do (
+      for j : 1 thru npDirsN do (
+        bcCombos[iB][npDirs[j]] : npBCcombos[iB][j]
+      )
+    )
+  ) else (
+    bcCombos : [makelist(0,i,1,dim)]
   ),
 
-  bcCombos : makelist([],i,1,length(npBCcombos)),
-  for bcI : 1 thru length(npBCcombos) do (
-    bcCombos[bcI] : copylist(npBCcombos[bcI]),
-    /* It's easier to work with a list of dim elements indicating the BC
-       in each direction (rather than npBCcombos), even if it's periodic. */
-    nInc : 0,
-    for d : 1 thru dim do (
-      if (stencilLocIn[d] = 0) then (
-        bcCombos[bcI] : append(firstn(bcCombos[bcI],d+nInc-1),[0],
-                               lastn(bcCombos[bcI],abs(length(bcCombos[bcI])-(d+nInc-1)))),
-        nInc    : nInc+1
-      )
-    ),
-    /* The following is needed for interior stencil. */
-    if (length(bcCombos[bcI])>dim) then (bcCombos[bcI] : makelist(bcCombos[bcI][i],i,1,dim))
-  ),
   return(bcCombos)
 )$
 
-getStencilStr(stencilLocIn,boundStrKeyIn,coordVarSIn,currBCIn,bcKeyIn) := block([d,dim,stStr],
+getStencilStr(stencilLocIn,coordVarSIn,currBCIn,bcKeyIn) := block([d,dim,stStr],
   /* Given the stencil location, and BC types/keys, return the string
      used to name the kernel which identifies location and BC. */
   dim   : length(stencilLocIn),
   stStr : "",
   for d : 1 thru dim do (
-    stStr : sconcat(stStr,assoc(stencilLocIn[d],boundStrKeyIn),
+    stStr : sconcat(stStr,assoc(stencilLocIn[d],locStrKey),
                     assoc(stencilLocIn[d],coordVarSIn)[d],assoc(currBCIn[d],bcKeyIn))
   ),
   if slength(stStr)>1 then ( stStr : sconcat(stStr,"_") ),

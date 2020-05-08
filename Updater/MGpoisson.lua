@@ -423,14 +423,17 @@ function MGpoisson:init(tbl)
    -- (nodal) FEM coefficients. Preselect the appropriate kernels here.
    self._dgToFEM = MGpoissonDecl.selectDGtoFEM(basisID, self.dim, polyOrder, bcTypes)
 
-   self.dgToFEMstencilWidth = 2
-   self.dgToFEMstencilSize  = self.dgToFEMstencilWidth^self.dim
-   self.dgToFEMstencilIdx   = {}   -- List of cell indices pointed to by the stencil.
-   for i = 1, self.dgToFEMstencilSize do
-      self.dgToFEMstencilIdx[i] = Lin.IntVec(self.dim)
+   -- Some stencils just need the Center and nearest Upper cells.
+   self.cuStencilWidth = 2
+   self.cuStencilSize  = self.cuStencilWidth^self.dim
+   self.cuStencilIdx   = {}   -- List of cell indices pointed to by the stencil.
+   for i = 1, self.cuStencilSize do
+      self.cuStencilIdx[i] = Lin.IntVec(self.dim)
    end
    -- List of pointers to the data in cells pointed to by the stencil.
-   self.dgToFEMstencilItr = DoublePtrVec(self.dgToFEMstencilSize)
+   self.cuStencilItr = DoublePtrVec(self.cuStencilSize)
+
+   self._femProjection = MGpoissonDecl.selectFEMprojection(basisID, self.dim, polyOrder, bcTypes)
 
    -- ......................... End of FEM-specific things ............................ --
 
@@ -580,17 +583,57 @@ function MGpoisson:DG_FEM_coefTranslate(dgFld,femFld,dir)
       femFld:fill(indexer(idx), femFldItr)   -- FEM field pointer.
  
       -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
-      self:opStencilIndices(idx,{2,self.threes,self.mOnes},self.dgToFEMstencilIdx)
+      self:opStencilIndices(idx,{2,self.threes,self.mOnes},self.cuStencilIdx)
  
       -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil.
-      for i = 1, self.dgToFEMstencilSize do
-         grid:setIndex(self.dgToFEMstencilIdx[i])
+      for i = 1, self.cuStencilSize do
+         grid:setIndex(self.cuStencilIdx[i])
  
-         femFld:fill(indexer(self.dgToFEMstencilIdx[i]), femFldItr)
-         self.dgToFEMstencilItr[i] = femFldItr:data()
+         femFld:fill(indexer(self.cuStencilIdx[i]), femFldItr)
+         self.cuStencilItr[i] = femFldItr:data()
       end
  
-      self._dgToFEM[self:idxToStencil(idx,cellsN)](dgFldItr:data(), self.dgToFEMstencilItr:data())
+      self._dgToFEM[self:idxToStencil(idx,cellsN)](dgFldItr:data(), self.cuStencilItr:data())
+   end
+end
+
+function MGpoisson:projectFEM(femFld,fldOut)
+   -- After a DG field is converted to an FEM field, we wish to project the FEM field onto
+   -- the FEM (nodal) basis to obtain the right-side vector. This only happens once, and 
+   -- ideally we would fold this operation in with DGtoFEM (for the righ-side source).
+   femFld:copy(fldOut)
+
+   local grid   = fldOut:grid()
+   local cellsN = {}
+   for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
+
+   local rangeDecomp = LinearDecomp.LinearDecompRange {
+      range = fldOut:localRange(), numSplit = grid:numSharedProcs() }
+   local tId         = grid:subGridSharedId()    -- Local thread ID.
+
+   local indexer     = fldOut:genIndexer()
+
+   local fldOutItr   = fldOut:get(1)
+   local femFldItr   = femFld:get(1)
+
+   for idx in rangeDecomp:rowMajorIter(tId) do
+
+      grid:setIndex(idx)
+      fldOut:fill(indexer(idx), fldOutItr)   -- Projected FEM field pointer.
+
+      -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
+      self:opStencilIndices(idx, self.rhoStencilType, self.rhoStencilIdx)
+
+      for i = 1, self.rhoStencilSize do
+         grid:setIndex(self.rhoStencilIdx[i])
+         grid:getDx(self.dxBuf)
+         self.dxStencil[i] = self.dxBuf:data()
+
+         femFld:fill(indexer(self.rhoStencilIdx[i]), femFldItr)
+         self.rhoStencil[i] = femFldItr:data()   -- FEM field pointers.
+      end
+         
+      self._femProjection[self:idxToStencil(idx,cellsN)](self.dxStencil:data(), self.rhoStencil:data(), fldOutItr:data())
    end
 end
 
@@ -617,17 +660,17 @@ function MGpoisson:l2normFEM(tCurr,inFld,outDynV)
       grid:setIndex(idx)
 
       -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
-      self:opStencilIndices(idx,{2,self.threes,self.mOnes},self.dgToFEMstencilIdx)
+      self:opStencilIndices(idx,{2,self.threes,self.mOnes},self.cuStencilIdx)
 
       -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil.
-      for i = 1, self.dgToFEMstencilSize do
-         grid:setIndex(self.dgToFEMstencilIdx[i])
+      for i = 1, self.cuStencilSize do
+         grid:setIndex(self.cuStencilIdx[i])
 
-         fld:fill(indexer(self.dgToFEMstencilIdx[i]), fldItr)
-         self.dgToFEMstencilItr[i] = fldItr:data()
+         fld:fill(indexer(self.cuStencilIdx[i]), fldItr)
+         self.cuStencilItr[i] = fldItr:data()
       end
 
-      self._femL2norm[self:idxToStencilIU(idx,cellsN)](self.dgToFEMstencilItr:data(), self.localNorm:data())
+      self._femL2norm[self:idxToStencilIU(idx,cellsN)](self.cuStencilItr:data(), self.localNorm:data())
    end
 
    -- All-reduce across processors and push result into dyn-vector.
@@ -1065,6 +1108,9 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
    elseif self.isFEM then
       -- FEM solver. Translate RHS source DG coefficients to FEM.
       self:DG_FEM_coefTranslate(inFld[1], self.rhoAll[1], DG_to_FEM)
+      -- Project right-side source onto FEM (nodal) basis.
+      self.phiAll[1]:copy(self.rhoAll[1])   -- Temporary buffer.
+      self:projectFEM(self.phiAll[1], self.rhoAll[1])
    end
    local initialGuess   = inFld[2]
    local relResNormCurr = 1.0e12    -- Current (relative) residue norm.
@@ -1086,7 +1132,7 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
 
       -- In FMG we start at the coarsest grid without an initial guess.
       self.phiAll[self.mgLevels]:clear(0.0)
-      for i = self.mgLevels, 1, -1 do
+      for i = self.mgLevels, 2, -1 do
          self:gammaCycle(i)
          if (i > 1) then self.prolong(self.phiAll[i], self.phiAll[i-1]) end
       end

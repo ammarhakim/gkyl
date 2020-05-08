@@ -3,10 +3,8 @@
 load("modal-basis");
 load("out-scripts");
 load("nodalOperations/nodalFunctions");
+load("mgPoisson-calc/MGpoissonUtil");
 fpprec : 24$
-
-/* String used for identifying nearest neighbor cells. */
-neighStrKey : [[-1,"L"],[0,""],[1,"U"]]$
 
 writeCIncrExprs1NoPowers(lhs, rhs, qPow, numElemMax) := block([expr],
   /* Search for powers of the quantities in qPow. If one of them is found
@@ -113,7 +111,7 @@ calcL2norm(fh, funcNm, dim, basisFun, pMax) := block([],
         currBC : copylist(bcCombos[bcI]),
   
         /* String used in kernel name, identifying stencil location and BC. */
-        stencilStr : getStencilStr(stencilLoc[sI],boundStrKey,coordVarS,currBC,bcKey),
+        stencilStr : getStencilStr(stencilLoc[sI],coordVarS,currBC,bcKey),
   
         for polyOrder : 1 thru pMax do (
       
@@ -158,7 +156,7 @@ calcL2norm(fh, funcNm, dim, basisFun, pMax) := block([],
           for d : 1 thru dim do (
             for sI : 1 thru 2^(d-1) do (
               i         : i + 1,
-              varStrs   : append(varStrs, [sconcat(varStrs[sI],assoc(1,neighStrKey),string(varsC[d]))]),
+              varStrs   : append(varStrs, [sconcat(varStrs[sI],assoc(1,locStrKey),string(varsC[d]))]),
               isPresent : false,
               for k : 1 thru numB do (
                 if not freeof(eval_string(sconcat("femFld",varStrs[i]))[k-1],normCont) then ( isPresent : true ) 

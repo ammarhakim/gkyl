@@ -8,9 +8,6 @@ load("out-scripts");
 load("nodalOperations/nodalFunctions");
 fpprec : 24$
 
-/* String used for identifying nearest neighbor cells. */
-neighStrKey : [[-1,"L"],[0,""],[1,"U"]]$
-
 
 calcJacobiGaussSeidelOp(fh, funcNm, dim, basisFun, pMax, isJacobi) := block([],
   /* Cellwise (damped) Gauss-Seidel relaxation on the Poisson equation using an FEM method. 
@@ -54,7 +51,7 @@ calcJacobiGaussSeidelOp(fh, funcNm, dim, basisFun, pMax, isJacobi) := block([],
       currBC : copylist(bcCombos[bcI]),
 
       /* String used in kernel name, identifying stencil location and BC. */
-      stencilStr : getStencilStr(stencilLoc[sI],boundStrKey,coordVarS,currBC,bcKey),
+      stencilStr : getStencilStr(stencilLoc[sI],coordVarS,currBC,bcKey),
 
       for polyOrder : 1 thru pMax do (
 
@@ -124,16 +121,15 @@ calcJacobiGaussSeidelOp(fh, funcNm, dim, basisFun, pMax, isJacobi) := block([],
           for sI : 1 thru 3^(d-1) do (
             for pm : -1 thru 1 step 2 do (
               i : i + 1,
-              varStrs : append(varStrs, [sconcat(varStrs[sI],assoc(pm,neighStrKey),string(varsC[d]))]),
-              printf(fh, "  double *phi~a = phi~a[~a]; ~%", varStrs[i], phiStr, i-1),
-              printf(fh, "  double *rho~a = rho[~a]; ~%", varStrs[i], i-1)
+              varStrs : append(varStrs, [sconcat(varStrs[sI],assoc(pm,locStrKey),string(varsC[d]))]),
+              printf(fh, "  double *phi~a = phi~a[~a]; ~%", varStrs[i], phiStr, i-1)
             )
           )
         ),
         printf(fh, "~%"),
 
         /* Write the relaxation stencil. */
-        writeCExprs1noPowers(phiC,relaxStencil,[rdx2SqVol,bcVals],12),
+        writeCExprs1noPowers(phiC,relaxStencil,[rdx2SqVol,bcVals,dxC],18),
         printf(fh, "~%"),
 
         printf(fh, "}~%"),
