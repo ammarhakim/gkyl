@@ -92,18 +92,24 @@ function AdiosCartFieldIo:init(tbl)
 	 if type(v) == "number" then
 	    -- Check if this is an integer or float.
 	    if math.floor(math.abs(v)) == math.abs(v) then
-	       self._metaData[k] = {
-		  value = new("int[1]", v), vType = "integer",
-	       }
+	       self._metaData[k] = { value = new("int[1]", v), vType = "integer", }
 	    else
-	       self._metaData[k] = {
-		  value = new("double[1]", v), vType = "double",
-	       }	       
+	       self._metaData[k] = { value = new("double[1]", v), vType = "double", }
 	    end
 	 elseif type(v) == "string" then
-	    self._metaData[k] = {
-	       value = v, vType = "string"
-	    }
+	    self._metaData[k] = { value = v, vType = "string" }
+	 elseif type(v) == "table" then
+	    assert(type(v[1])=="number", "Io.AdiosCartFieldIo: Metadata table must have elements must be numbers.")
+            isInt = (math.floor(math.abs(v[1])) == math.abs(v[1]))
+            for _, val in pairs(v) do
+	       assert(isInt == (math.floor(math.abs(val)) == math.abs(val)), "Io.AdiosCartFieldIo: Metadata table must have elements of the same type (int or double).")
+            end
+            if isInt then 
+               self._metaData[k] = { value = new("int[?]", #v), vType = "table", numElements = #v, elementType = Adios.integer }
+            else
+               self._metaData[k] = { value = new("double[?]", #v), vType = "table", numElements = #v, elementType = Adios.double }
+            end
+            for i = 1, #v do self._metaData[k].value[i-1] = v[i] end
 	 end
       end
    end
@@ -212,11 +218,13 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeSkin)
       -- Write meta-data for this file.
       for attrNm, v in pairs(self._metaData) do
          if v.vType == "integer" then
-         Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.integer, 1, v.value)
+            Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.integer, 1, v.value)
          elseif v.vType == "double" then
-         Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.double, 1, v.value)
+            Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.double, 1, v.value)
          elseif v.vType == "string" then
-         Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.string, 1, v.value)
+            Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.string, 1, v.value)
+         elseif v.vType == "table" then
+            Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", v.elementType, v.numElements, v.value)
          end
       end
       
@@ -340,11 +348,13 @@ function AdiosCartFieldIo:read(field, fName, readSkin) --> time-stamp, frame-num
          -- Write meta-data for this file.
          for attrNm, v in pairs(self._metaData) do
             if v.vType == "integer" then
-            Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.integer, 1, v.value)
+               Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.integer, 1, v.value)
             elseif v.vType == "double" then
-            Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.double, 1, v.value)
+               Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.double, 1, v.value)
             elseif v.vType == "string" then
-            Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.string, 1, v.value)
+               Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.string, 1, v.value)
+            elseif v.vType == "table" then
+               Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", v.elementType, v.numElements, v.value)
             end
          end
          
