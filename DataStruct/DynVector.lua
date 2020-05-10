@@ -1,23 +1,24 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Dynamically growing 1D vector
+-- Dynamically growing 1D vector.
+--
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- system libraries
-local ffi = require "ffi"
+-- System libraries.
+local ffi  = require "ffi"
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
--- Gkyl libraries
-local Adios = require "Io.Adios"
+-- Gkyl libraries.
+local Adios       = require "Io.Adios"
 local AdiosReader = require "Io.AdiosReader"
-local Alloc = require "Lib.Alloc"
-local Lin = require "Lib.Linalg"
-local Mpi = require "Comm.Mpi"
-local Proto = require "Lib.Proto"
+local Alloc       = require "Lib.Alloc"
+local Lin         = require "Lib.Linalg"
+local Mpi         = require "Comm.Mpi"
+local Proto       = require "Lib.Proto"
 
 -- Code from Lua wiki to convert table to comma-seperated-values
 -- string.
@@ -65,22 +66,64 @@ function DynVector:init(tbl)
       string.format("double[%d]", self._numComponents+1))
    self._timeMesh = Alloc.Double()
    self._data = allocator()
-    -- temp storage for single entry
+   -- Temp storage for single entry.
    self._tmpData  = new(string.format("double[%d]", self._numComponents+1))
    self._tmpTable = {}
    for i = 1, self._numComponents do self._tmpTable[i] = nil end
 
-   -- construct various functions from template representations
+   -- Construct various functions from template representations.
    self._copyToTempData = loadstring( copyTempl {NCOMP=self._numComponents} )()
 
-   -- write only from rank-0: create sub-communicator and use that for
-   -- writing data (perhaps one needs a user-specified write-rank)
-   local ranks = Lin.IntVec(1); ranks[1] = 0
+   -- Write only from rank-0: create sub-communicator and use that for
+   -- writing data (perhaps one needs a user-specified write-rank).
+   local ranks  = Lin.IntVec(1); ranks[1] = 0
    self._ioComm = Mpi.Split_comm(Mpi.COMM_WORLD, ranks)
 
-   -- allocate space for IO buffer
+   -- Allocate space for IO buffer.
    self._ioBuff = Alloc.Double()
-   self.frNum = -1
+   self.frNum   = -1
+
+   -- If we have meta-data to write out, store it.
+   if GKYL_EMBED_INP then
+      self._metaData = {
+         -- Write out input file contents (encoded as base64 string).
+         ["inputfile"] = {
+            value = GKYL_INP_FILE_CONTENTS, vType = "string"
+         }
+   }
+   else
+      -- Write some dummy text otherwise.
+      self._metaData = { ["inputfile"] = { value = "inputfile", vType = "string" } }
+   end
+   if tbl.metaData then
+      -- Store value and its type for each piece of data.
+      for k,v in pairs(tbl.metaData) do
+         if type(v) == "number" then
+            -- Check if this is an integer or float.
+            if math.floor(math.abs(v)) == math.abs(v) then
+               self._metaData[k] = { value = new("int[1]", v), vType = "integer", }
+            else
+               self._metaData[k] = { value = new("double[1]", v), vType = "double", }
+            end
+         elseif type(v) == "string" then
+            self._metaData[k] = { value = v, vType = "string" }
+         elseif type(v) == "table" then
+            assert(type(v[1])=="number", "Io.AdiosCartFieldIo: Metadata table must have elements must be numbers.")
+            isInt = (math.floor(math.abs(v[1])) == math.abs(v[1]))
+            for _, val in pairs(v) do
+               assert(isInt == (math.floor(math.abs(val)) == math.abs(val)), "Io.AdiosCartFieldIo: Metadata table must have elements of the same type (int or double).")
+            end
+            if isInt then
+               self._metaData[k] = { value = new("int[?]", #v), vType = "table", numElements = #v, elementType = Adios.integer }
+            else
+               self._metaData[k] = { value = new("double[?]", #v), vType = "table", numElements = #v, elementType = Adios.double }
+            end
+            for i = 1, #v do self._metaData[k].value[i-1] = v[i] end
+         end
+      end
+   end
+
+   self._isFirst = true
 end
 
 function DynVector:appendData(t, v)
@@ -191,9 +234,9 @@ end
 
 function DynVector:numComponents() return self._numComponents end
 
--- returns time-stamp and frame number
+-- Returns time-stamp and frame number.
 function DynVector:read(fName)
-   local comm = Mpi.COMM_WORLD -- need to read from all processors
+   local comm = Mpi.COMM_WORLD -- Need to read from all processors.
 
    local fullNm = GKYL_OUT_PREFIX .. "_" .. fName
    local reader = AdiosReader.Reader(fullNm, comm)
@@ -201,14 +244,14 @@ function DynVector:read(fName)
    local timeMesh, data
    if reader:hasVar("TimeMesh") then
       timeMesh = reader:getVar("TimeMesh"):read()
-      data = reader:getVar("Data"):read()
+      data     = reader:getVar("Data"):read()
    elseif reader:hasVar("TimeMesh0") then
       timeMesh = reader:getVar("TimeMesh0"):read()
-      data = reader:getVar("Data0"):read()
-      varCnt = 1
+      data     = reader:getVar("Data0"):read()
+      varCnt   = 1
       while reader:hasVar("TimeMesh"..varCnt) do
          local timeMeshN = reader:getVar("TimeMesh"..varCnt):read()
-         local dataN = reader:getVar("Data"..varCnt):read()
+         local dataN     = reader:getVar("Data"..varCnt):read()
          for i = 1, timeMeshN:size() do
             timeMesh:push(timeMeshN[i])
          end
@@ -219,7 +262,7 @@ function DynVector:read(fName)
       end
    end
 
-   -- copy over time-mesh and data
+   -- Copy over time-mesh and data.
    local nVal = data:size()/self._numComponents
    self._timeMesh:expand(nVal)
    for i = 1, self._timeMesh:size() do
@@ -234,7 +277,7 @@ end
 
 function DynVector:removeLast()
    local tm = self._timeMesh:popLast()
-   local v = self._data:popLast()
+   local v  = self._data:popLast()
    return tm, v
 end
 
@@ -256,36 +299,52 @@ function DynVector:timeMesh() return self._timeMesh end
 function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
    local comm = self._ioComm
    local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
-   if rank ~= 0 then  -- only run on rank 0 ...
-      self:clear() -- ... but clear data on all ranks
+   if rank ~= 0 then  -- Only run on rank 0 ...
+      self:clear()    -- ... but clear data on all ranks.
       return
    end
 
-   if not tmStamp then tmStamp = 0.0 end -- default time-stamp
-   local flushData = xsys.pickBool(flushData, true) -- default flush data on write
-   local appendData = xsys.pickBool(appendData, true) -- default append data to single file
+   if not tmStamp then tmStamp = 0.0 end -- Default time-stamp.
+   local flushData  = xsys.pickBool(flushData, true) -- Default flush data on write.
+   local appendData = xsys.pickBool(appendData, true) -- Default append data to single file.
 
    if appendData and (frNum and frNum>=0) then 
       self.frNum = frNum 
    else 
       self.frNum = "" 
-      frNum = frNum or 0
+      frNum      = frNum or 0
    end
 
-   -- create group and set I/O method
+   -- Create group and set I/O method.
    local grpNm = "DynVector"..frNum..outNm
    local grpId = Adios.declare_group(grpNm, "", Adios.flag_no)
    Adios.select_method(grpId, "MPI", "", "")
    
    -- ADIOS expects CSV string to specify data shape
-   local localTmSz = toCSV( {self._data:size()} )
+   local localTmSz  = toCSV( {self._data:size()} )
    local localDatSz = toCSV( {self._data:size(), self._numComponents} )
    
-   -- define data to write
+   -- Define data to write.
    Adios.define_var(
       grpId, "TimeMesh"..self.frNum, "", Adios.double, localTmSz, "", "")
    Adios.define_var(
       grpId, "Data"..self.frNum, "", Adios.double, localDatSz, "", "")
+
+   if self._isFirst then
+      -- Write meta-data for this file.
+      for attrNm, v in pairs(self._metaData) do
+         if v.vType == "integer" then
+            Adios.define_attribute_byvalue(grpId, attrNm, "", Adios.integer, 1, v.value)
+         elseif v.vType == "double" then
+            Adios.define_attribute_byvalue(grpId, attrNm, "", Adios.double, 1, v.value)
+         elseif v.vType == "string" then
+            Adios.define_attribute_byvalue(grpId, attrNm, "", Adios.string, 1, v.value)
+         elseif v.vType == "table" then
+            Adios.define_attribute_byvalue(grpId, attrNm, "", v.elementType, v.numElements, v.value)
+         end
+      end
+      self._isFirst = false
+   end
 
    local fullNm = GKYL_OUT_PREFIX .. "_" .. outNm
    if frNum == 0 or not appendData then
@@ -295,16 +354,16 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
    end
 
    Adios.write(fd, "TimeMesh"..self.frNum, self._timeMesh:data())
-   -- copy data to IO buffer
+   -- Copy data to IO buffer.
    self._ioBuff:expand(self._data:size()*self._numComponents)
    self:_copy_from_dynvector(self._ioBuff)
    Adios.write(fd, "Data"..self.frNum, self._ioBuff:data())
    
    Adios.close(fd)
 
-   -- clear data for next round of IO
+   -- Clear data for next round of IO.
    if flushData then 
-     self.tLast, self.dLast = self:lastData() -- save the last data, in case we need it later
+     self.tLast, self.dLast = self:lastData() -- Save the last data, in case we need it later.
      self:clear()
    end
 end

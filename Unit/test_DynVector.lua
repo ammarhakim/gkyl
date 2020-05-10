@@ -54,7 +54,10 @@ function test_1()
 end
 
 function test_2()
-   local dynVec = DataStruct.DynVector { numComponents = 2 }
+   local dynVec = DataStruct.DynVector {
+      numComponents = 2,
+      metaData      = {testNumber = 2}
+   }
    assert_equal(dynVec:numComponents(), 2, "Testing number of components")
 
    for i = 1, 5 do
