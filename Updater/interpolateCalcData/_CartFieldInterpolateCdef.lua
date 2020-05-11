@@ -9,14 +9,20 @@
 local ffi = require "ffi"
 
 ffi.cdef [[
- 
+
 void CartFieldInterp1xSer_P1(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF);
+void CartFieldInterp1xSer_X_P1(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF);
 
 void CartFieldInterp2xSer_P1(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF);
+void CartFieldInterp2xSer_X_P1(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF);
+void CartFieldInterp2xSer_Y_P1(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF);
 
 
 void CartFieldInterp1xSer_P2(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF);
+void CartFieldInterp1xSer_X_P2(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF);
 
 void CartFieldInterp2xSer_P2(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF);
+void CartFieldInterp2xSer_X_P2(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF);
+void CartFieldInterp2xSer_Y_P2(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF);
 
 ]]
