@@ -79,9 +79,7 @@ function _M.selectRestriction(solverKind, basisNm, dim, polyOrder, bcTypes, isDG
       local tmp = ffi.C[string.format("MGpoisson%sRestrict%dx%s_P%d", solverKind, dim, basisNmMap[basisNm], polyOrder)]
       restrictKernels[1] = tmp
    else
-      local newBCs = lume.deepclone(bcTypes)
-      for d = 1, dim do for bI = 1,2 do if newBCs[d][bI] ~= 0 then newBCs[d][bI]=9 end end end
-      local restrictStencilStr = getStencilStrs(dim, newBCs, isDG)
+      local restrictStencilStr = getStencilStrs(dim, bcTypes, isDG)
       for sI = 1, 3^dim do
          local tmp = ffi.C[string.format("MGpoisson%sRestrict%dx%s_%sP%d", solverKind, dim, basisNmMap[basisNm], restrictStencilStr[sI], polyOrder)]
          restrictKernels[sI] = tmp
@@ -97,9 +95,7 @@ function _M.selectProlongation(solverKind, basisNm, dim, polyOrder, bcTypes, isD
       local tmp = ffi.C[string.format("MGpoisson%sProlong%dx%s_P%d", solverKind, dim, basisNmMap[basisNm], polyOrder)]
       prolongKernels[1] = tmp
    else
-      local newBCs = lume.deepclone(bcTypes)
-      for d = 1, dim do for bI = 1,2 do if newBCs[d][bI] ~= 0 then newBCs[d][bI]=9 end end end
-      local prolongStencilStr = getStencilStrs(dim, newBCs, isDG)
+      local prolongStencilStr = getStencilStrs(dim, bcTypes, isDG)
       for sI = 1, 3^dim do
          local tmp = ffi.C[string.format("MGpoisson%sProlong%dx%s_%sP%d", solverKind, dim, basisNmMap[basisNm], prolongStencilStr[sI], polyOrder)]
          prolongKernels[sI] = tmp

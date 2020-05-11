@@ -378,12 +378,14 @@ calcFEMProlongationOp(fh, funcNm, dim, basisFun, pMax) := block([],
 
   /* Types of boundary conditions for which to generate kernels.
        =0 periodic
-       =9 non-periodic
+       =1 Dirichlet
+       =2 Neumann
+       =3 Robin
      For periodic we'll assume ghost cells are filled accordingly
      and use an interior stencil. */
-  bcTypes  : [0, 9],
-  bcStrs   : ["", "NonPeriodic"],
-  bcKey    : [[bcTypes[1],bcStrs[1]],[bcTypes[2],bcStrs[2]]],
+  bcTypes  : [0, 1, 2, 3],
+  bcStrs   : ["", "Dirichlet", "Neumann", "Robin"],
+  bcKey    : makelist([bcTypes[i],bcStrs[i]],i,1,length(bcTypes)),
 
   for sI : 1 thru length(stencilLoc) do (
 
@@ -495,12 +497,14 @@ calcFEMRestrictionOp(fh, funcNm, dim, basisFun, pMax) := block([],
 
   /* Types of boundary conditions for which to generate kernels.
        =0 periodic
-       =9 non-periodic
+       =1 Dirichlet
+       =2 Neumann
+       =3 Robin
      For periodic we'll assume ghost cells are filled accordingly
      and use an interior stencil. */
-  bcTypes  : [0, 9],
-  bcStrs   : ["", "NonPeriodic"],
-  bcKey    : [[bcTypes[1],bcStrs[1]],[bcTypes[2],bcStrs[2]]],
+  bcTypes  : [0, 1, 2, 3],
+  bcStrs   : ["", "Dirichlet", "Neumann", "Robin"],
+  bcKey    : makelist([bcTypes[i],bcStrs[i]],i,1,length(bcTypes)),
 
   for sI : 1 thru length(stencilLoc) do (
     
@@ -580,7 +584,7 @@ calcFEMRestrictionOp(fh, funcNm, dim, basisFun, pMax) := block([],
         eqSolvRHS : makelist(eqSolvRHS[keepIdx[i]],i,1,length(keepIdx)),
 
         /* For Dirichlet BCs, the values on the boundary get transferred. */
-        dirichletSurfs : sublist_indices(currBC, lambda([x],x # 0)),
+        dirichletSurfs : sublist_indices(currBC, lambda([x],x=1)),
         for dI : 1 thru length(dirichletSurfs) do (
           dir         : dirichletSurfs[dI],
           boundNodes  : copylist(sublist(storedNodes,lambda([x],x[dir]=stencilLoc[sI][dir]))),
