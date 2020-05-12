@@ -55,7 +55,7 @@ function DiscontPoisson:init(tbl)
 
    local writeMatrix = xsys.pickBool(tbl.writeMatrix, false)
 
-   -- Read the boundary conditions in.
+   -- Read the boundary conditions in
    assert(#tbl.bcLower == self.ndim, "Updater.DiscontPoisson: Must provide lower boundary conditions for all the dimesions using 'bcLower'")
    assert(#tbl.bcUpper == self.ndim, "Updater.DiscontPoisson: Must provide upper boundary conditions for all the dimesions using 'bcUpper'")
    local bcLower, bcUpper = {}, {}
@@ -64,24 +64,16 @@ function DiscontPoisson:init(tbl)
          bcLower[d] = {1, 0, tbl.bcLower[d].V}
       elseif tbl.bcLower[d].T == "N" then
          bcLower[d] = {0, 1, tbl.bcLower[d].V}
-      elseif tbl.bcLower[d].T == "R" then
-         bcLower[d] = {tbl.bcLower[d].A, tbl.bcLower[d].B, tbl.bcLower[d].V}
-      elseif tbl.bcLower[d].T == "P" then
-         bcLower[d] = {0,0,0}
       else
-         assert(false, "Updater.DiscontPoisson: The lower BC type must be either 'D' for Dirichlet, 'N' for Neumann, 'R' for Robin, or 'P' for periodic.")
+         bcLower[d] = {tbl.bcLower[d].D, tbl.bcLower[d].N, tbl.bcLower[d].val}
       end
 
       if tbl.bcUpper[d].T == "D" then
          bcUpper[d] = {1, 0, tbl.bcUpper[d].V}
       elseif tbl.bcUpper[d].T == "N" then
          bcUpper[d] = {0, 1, tbl.bcUpper[d].V}
-      elseif tbl.bcUpper[d].T == "R" then
-         bcUpper[d] = {tbl.bcUpper[d].A, tbl.bcUpper[d].B, tbl.bcUpper[d].V}
-      elseif tbl.bcUpper[d].T == "P" then
-         bcUpper[d] = {0,0,0}
       else
-         assert(false, "Updater.DiscontPoisson: The upper BC type must be either 'D' for Dirichlet, 'N' for Neumann, 'R' for Robin, or 'P' for periodic.")
+         bcUpper[d] = {tbl.bcUpper[d].D, tbl.bcUpper[d].N, tbl.bcUpper[d].val}
       end
    end
 

@@ -57,11 +57,26 @@ function DiscontGenPoisson:init(tbl)
 
    local writeMatrix = xsys.pickBool(tbl.writeMatrix, false)
 
-   -- read boundary conditions
+   -- Read boundary conditions in
    assert(#tbl.bcLower == self.ndim, "Updater.DiscontGenPoisson: Must provide lower boundary conditions for all the dimesions using 'bcLower'")
    assert(#tbl.bcUpper == self.ndim, "Updater.DiscontGenPoisson: Must provide upper boundary conditions for all the dimesions using 'bcUpper'")
-   self.bcLower = tbl.bcLower
-   self.bcUpper = tbl.bcUpper
+   self.bcLower, self.bcUpper = {}, {}
+   for d = 1, self.ndim do
+      if tbl.bcLower[d].T == "D" then 
+         self.bcLower[d] = {D=1, N=0, val=tbl.bcLower[d].V}
+      elseif tbl.bcLower[d].T == "N" then
+         self.bcLower[d] = {D=0, N=1, val=tbl.bcLower[d].V}
+      else
+         self.bcLower[d] = tbl.bcLower[d]
+      end
+      if tbl.bcUpper[d].T == "D" then
+         self.bcUpper[d] = {D=1, N=0, val=tbl.bcUpper[d].V}
+      elseif tbl.bcUpper[d].T == "N" then
+         self.bcUpper[d] = {D=0, N=1, val=tbl.bcUpper[d].V}
+      else
+         self.bcUpper[d] = tbl.bcUpper[d]
+      end
+   end
 
    local basisNm = ''
    if self.ndim > 1 and polyOrder > 1 then
