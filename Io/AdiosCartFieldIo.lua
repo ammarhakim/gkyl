@@ -75,7 +75,12 @@ function AdiosCartFieldIo:init(tbl)
    self._writeSkin = xsys.pickBool(tbl.writeSkin, false)
 
    -- If we have meta-data to write out, store it.
-   if GKYL_EMBED_INP then
+   --
+   -- WARNING: For now we are not writing out huge input files dues to
+   -- a limitation in the ADIOS reader in which the size is limited to
+   -- int16_t lenght data. This is an ADIOS problem in the file
+   -- bp_utils.c function bp_read_data_from_buffer(). Ammar, 5/16/2020
+   if GKYL_EMBED_INP and #GKYL_INP_FILE_CONTENTS < GKYL_MAX_INT16 then
       self._metaData = {
 	 -- Write out input file contents (encoded as base64 string).
 	 ["inputfile"] = {
