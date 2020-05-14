@@ -219,6 +219,8 @@ function test_solovev()
       local integral, _ = quad.dblexp(integrand, R, Rout(Psi), 1e-10)
       return math.sign(Z)/norm(Psi)*integral
    end
+   assert_close(theta(0.2, 0.0), math.pi, 1e-8, "Checking theta(R=0.2,Z=0.0)")
+   assert_close(theta(1.2, 0.0), 0, 1e-8, "Checking theta(R=1.2,Z=0.0)")
    --print(string.format("theta(R=0.2,Z=0.0) =\t %.16f", theta(0.2,0.0)))
    --print(string.format("theta(R=1.2,Z=0.0) =\t %.16f", theta(1.2,0.0)))
    --print(string.format("theta(R=1.2,Z=1e-6) =\t %.16f", theta(1.2,1e-6)))
@@ -276,7 +278,7 @@ function test_solovev()
       return norm(Psi(R,Z))*R/math.sqrt(gradPsi_R^2 + gradPsi_Z^2)
    end
    
-   jacob_PsiThetaPhi(0.9,0.5)
+   --jacob_PsiThetaPhi(0.9,0.5)
    
    local function alpha(Ri, Zi, phi)
       local Psi = Psi(Ri,Zi)
@@ -315,7 +317,7 @@ function test_solovev()
 end
 
 -- Run tests.
-test_1()
+test_deriv()
 test_solovev()
 
 if stats.fail > 0 then
