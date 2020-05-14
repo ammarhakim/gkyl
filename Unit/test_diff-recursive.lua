@@ -12,7 +12,7 @@ local assert_close = Unit.assert_close
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
 
-local df = diff.df
+local deriv = diff.deriv
 
 -- test derivatives up to second order of polynomial function
 function test_deriv()
@@ -46,24 +46,24 @@ function test_deriv()
    -- compute derivatives via automatic differentiation
    local function dPsidR(R,Z)
      -- differentiate Psi wrt arg 1 (R)
-     return df(Psi,1)(R,Z)
+     return deriv(Psi,1)(R,Z)
    end
  
    local function dPsidZ(R,Z)
      -- differentiate Psi wrt arg 2 (Z)
-     return df(Psi,2)(R,Z)
+     return deriv(Psi,2)(R,Z)
    end
  
    local function d2PsidR2(R,Z)
-     return df(df(Psi,1),1)(R,Z)
+     return deriv(deriv(Psi,1),1)(R,Z)
    end
  
    local function d2PsidRdZ(R,Z)
-     return df(df(Psi,1),2)(R,Z)
+     return deriv(deriv(Psi,1),2)(R,Z)
    end
  
    local function d2PsidZ2(R,Z)
-     return df(df(Psi,2),2)(R,Z)
+     return deriv(deriv(Psi,2),2)(R,Z)
    end
  
    assert_equal(dPsidR(1.1, .9), _dPsidR(1.1, .9), "Checking dPsidR")
@@ -175,27 +175,27 @@ function test_solovev()
    assert_close(Rin(2.25), Rin_(2.25), tol, "Checking Rin(Psi=2.25)")
    
    local function dRindPsi(Psi)
-      return df(Rin)(Psi)
+      return deriv(Rin)(Psi)
    end
    local function dRindPsi_(Psi)
-      return df(Rin_)(Psi)
+      return deriv(Rin_)(Psi)
    end
    assert_close(dRindPsi(.8), dRindPsi_(.8), 1e-10, "Checking dRindPsi(Psi=0.8)")
    assert_close(dRindPsi(1.1), dRindPsi_(1.1), 1e-10, "Checking dRindPsi(Psi=1.1)")
    assert_close(dRindPsi(2.25), dRindPsi_(2.25), 1e-10, "Checking dRindPsi(Psi=2.25)")
    
    local function dRoutdPsi(Psi)
-      return df(Rout)(Psi)
+      return deriv(Rout)(Psi)
    end
    local function dRoutdPsi_(Psi)
-      return df(Rout_)(Psi)
+      return deriv(Rout_)(Psi)
    end
    assert_close(dRoutdPsi(.8), dRoutdPsi_(.8), 1e-10, "Checking dRoutdPsi(Psi=0.8)")
    assert_close(dRoutdPsi(1.1), dRoutdPsi_(1.1), 1e-10, "Checking dRoutdPsi(Psi=1.1)")
    assert_close(dRoutdPsi(2.25), dRoutdPsi_(2.25), 1e-10, "Checking dRoutdPsi(Psi=2.25)")
    
    local function dZdR(R, Psi)
-      return df(Z,1)(R,Psi)
+      return deriv(Z,1)(R,Psi)
    end
    assert_close(dZdR(.9,1.2), dZdR_(.9,1.2), 1e-10, "Checking dZ/dR(R=0.9,Psi=1.2)")
    assert_close(dZdR(.1,1.2), dZdR_(.1,1.2), 1e-10, "Checking dZ/dR(R=0.1,Psi=1.2)")
@@ -230,12 +230,12 @@ function test_solovev()
    --print(string.format("theta(R=1.0,Z=1.9) =\t %.16f", theta(1.0,1.9)))
    
    local function dthetadR(R, Z)
-      return df(theta,1)(R,Z)
+      return deriv(theta,1)(R,Z)
    end
    --print(string.format("dtheta/dR(R=1.0,Z=1.5) =\t %.16f", dthetadR(1.0,1.5)))
    
    local function dthetadZ(R, Z)
-      return df(theta,2)(R,Z)
+      return deriv(theta,2)(R,Z)
    end
    --print(string.format("dtheta/dZ(R=1.0,Z=1.5) =\t %.16f", dthetadZ(1.0,1.5)))
    
@@ -248,7 +248,7 @@ function test_solovev()
    end
    
    local function dRdPsi(Psi, theta)
-      return df(R,1)(Psi, theta)
+      return deriv(R,1)(Psi, theta)
    end
    
    local function RZ(Psi, theta0)
@@ -266,11 +266,11 @@ function test_solovev()
    end
    
    local function grad_Psi(R, Z)
-      return df(Psi,1)(R,Z), df(Psi,2)(R,Z), 0
+      return deriv(Psi,1)(R,Z), deriv(Psi,2)(R,Z), 0
    end
    
    local function grad_theta(R, Z)
-      return df(theta,1)(R,Z), df(theta,2)(R,Z), 0
+      return deriv(theta,1)(R,Z), deriv(theta,2)(R,Z), 0
    end
    
    local function jacob_PsiThetaPhi(R,Z)
@@ -293,7 +293,7 @@ function test_solovev()
    end
    
    local function grad_alpha(R, Z, phi)
-      return df(alpha,1)(R,Z,phi), df(alpha,2)(R,Z,phi), df(alpha,3)(R,Z,phi)/R
+      return deriv(alpha,1)(R,Z,phi), deriv(alpha,2)(R,Z,phi), deriv(alpha,3)(R,Z,phi)/R
    end
 
    --print(string.format("grad_Psi(R=0.9,Z=0.5) =\t %.16f %.16f %.16f", grad_Psi(0.9,0.5)))
