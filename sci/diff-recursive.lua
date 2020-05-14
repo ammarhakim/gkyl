@@ -117,6 +117,10 @@ dn.round = function(x) return dn(round(x._v), 0) end
 dn.step  = function(x) return dn(step(x._v),  0) end
 dn.sign  = function(x) return dn(sign(x._v),  0) end
 
+-- Function to compute a derivative of an arbitrary function.
+-- Inputs:
+--  f : a function f(x1, x2, ...) that returns one or more value(s)
+--  di: the index of the argument to differentiate f with respect to
 dn.deriv = function(f,di)
   return function(...)
     args = {...}
