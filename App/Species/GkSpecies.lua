@@ -859,7 +859,7 @@ function GkSpecies:createDiagnostics()
    local function organizeDiagnosticMoments(moments, weakMoments, integratedMoments)
       -- At beginning, all moment names are in the 'moments' list.
       -- We want to remove the weak moments and put them in the 'weakMoments' list
-      for i, mom in ipairs(moments) do
+      for i, mom in pairs(moments) do
          if isWeakMomentNameGood(mom) then
             -- Remove moment name from moments list, and add it to weakMoments list.
             if mom == "GkUparCross" then
@@ -993,7 +993,7 @@ function GkSpecies:createDiagnostics()
          bmag = bc.bmag
       end
 
-      for i, mom in ipairs(moments) do
+      for i, mom in pairs(moments) do
          if isMomentNameGood(mom) then
             self.diagnosticMomentFields[mom..label] = DataStruct.Field {
                onGrid        = confGrid,
@@ -1614,7 +1614,7 @@ end
 
 function GkSpecies:momCalcTime()
    local tm = self.tmCouplingMom
-   for i, mom in ipairs(self.diagnosticMoments) do
+   for i, mom in pairs(self.diagnosticMoments) do
       tm = tm + self.diagnosticMomentUpdaters[mom].totalTime
    end
    return tm

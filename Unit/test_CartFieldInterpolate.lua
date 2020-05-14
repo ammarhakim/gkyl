@@ -331,12 +331,12 @@ local basisType    = "Ser"
 local writeFiles   = false
 
 -- These are for 2D and higher dim.
-local numInterpMax = 500   -- Maximum number of different interpolations to test (keep <501).
+local numInterpMax = 200   -- Maximum number of different interpolations to test (keep <201).
 local interpOffset = 0     -- Offset to decide which interpolations to test (start with 0).
 
 -- Due to the high number of possible interpolations, need to only perform one test at a time.
-test_1x( polyOrder, basisType, writeFiles)
---test_2x( polyOrder, basisType, writeFiles, numInterpMax,  interpOffset )
+--test_1x( polyOrder, basisType, writeFiles)
+test_2x( polyOrder, basisType, writeFiles, numInterpMax,  interpOffset )
 
 
 if stats.fail > 0 then

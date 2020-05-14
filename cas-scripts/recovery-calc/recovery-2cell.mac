@@ -18,9 +18,12 @@ calcRecov2CellGen(basisNm, dir, dx, polyOrder, lo, up) := block(
   Outputs:
     a polynomial in terms of qLo and qUp
   */
-  [numDims, dIdx, basisC, basis1D, baLo1D, baUp1D, DoF, rExp, recEqList,
+  [
+  numDims, dIdx, basisC, basis1D, baLo1D, baUp1D, DoF, rExp, recEqList,
   rSol, rSub, projSubList, basisND, xc, baLoND, baUpND, dimProjLo,
-  dimProjUp],
+  r, qLo1D, qUp1D,
+  dimProjUp
+  ],
   numDims : length(dx),
   dIdx : getDirIdx(dir, numDims), /* converting x, y, or z into 1, 2, or 3 */
   basisC : getBasis(sconcat("basis-precalc/basis", basisNm, "1x"), polyOrder),
@@ -63,8 +66,8 @@ calcRecov2CellGen(basisNm, dir, dx, polyOrder, lo, up) := block(
   else (
     recEqList : append(
       recEqList,
-      [subst(args(lo), val - D*subst(dir=-dx[dIdx], rExp)
-        - N*subst(dir=-dx[dIdx], diff(rExp, dir)))]
+      [subst(args(lo), val - D*subst(dir=0, rExp)
+        - N*subst(dir=0, diff(rExp, dir)))]
     )
   ),
 
@@ -86,8 +89,8 @@ calcRecov2CellGen(basisNm, dir, dx, polyOrder, lo, up) := block(
   else (
     recEqList : append(
       recEqList,
-      [subst(args(up), val - D*subst(dir=dx[dIdx], rExp)
-        - N*subst(dir=dx[dIdx], diff(rExp, dir)))]
+      [subst(args(up), val - D*subst(dir=0, rExp)
+        - N*subst(dir=0, diff(rExp, dir)))]
     )
   ),
 

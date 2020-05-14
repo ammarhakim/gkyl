@@ -1,6 +1,9 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Compares two files and write out max/min differences
+-- Compares two files and write out max/min differences.
+--
+-- Use:
+--   gkyl comparefiles -a fileA.bp -fileB.bp
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +

@@ -111,7 +111,7 @@ calcDGGaussSeidelOp(fh, funcNm, dim, basisFun, pMax) := block([],
 
     /* The right-hand-side of the Poisson equation is
        just a projection of the source on the basis. */
-    rho_e     : doExpand1(rho,bC),
+    rho_e     : doExpand1(rhoC,bC),
     sourceRHS : volFac*calcInnerProdList(varsC,1,bC,rho_e),
 
     /* Solve for the coefficients of this cell to get the stencil. */
@@ -121,7 +121,7 @@ calcDGGaussSeidelOp(fh, funcNm, dim, basisFun, pMax) := block([],
     gsStencil : (1-omega)*phiC_c + omega*makelist(rhs(stencilSolve[i]),i,1,N),
     gsStencil : fullratsimp(gsStencil),
 
-    printf(fh, "void ~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "void ~a_P~a(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi) ~%{ ~%", funcNm, polyOrder),
     printf(fh, "  // omega:   relaxation parameter.~%"),
     printf(fh, "  // dx:      cell lengths of cells pointed to by the stencil.~%"),
     printf(fh, "  // bcVals:  values to impose as BCs.~%"),
@@ -130,8 +130,9 @@ calcDGGaussSeidelOp(fh, funcNm, dim, basisFun, pMax) := block([],
     printf(fh, "  // phi:     iterate cells pointed to by the stencil (Gauss-Seidel), or cell we are currently updating (Jacobi).~%"),
     printf(fh, "~%"),
 
-    /* Pointers to the cell lengths in cells pointed to by the stencil. */
+    /* Pointers to the cell lengths and right-side source in cells pointed to by the stencil. */
     printf(fh, "  double *dxC  = dx[0]; ~%"),
+    printf(fh, "  double *rhoC = rho[0]; ~%"),
     printf(fh, "~%"),
 
     /* This volume factors appears in front of the right-side source term. */
@@ -257,7 +258,7 @@ calcDGGaussSeidelOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
       /* Don't forget to loop over polynomial order. */
       for polyOrder : 1 thru pMax do (
 
-        printf(fh, "void ~a_~aP~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) ~%{ ~%", funcNm, boundaryStr, polyOrder),
+        printf(fh, "void ~a_~aP~a(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi) ~%{ ~%", funcNm, boundaryStr, polyOrder),
         printf(fh, "  // omega:   relaxation parameter.~%"),
         printf(fh, "  // dx:      cell lengths of cells pointed to by the stencil.~%"),
         printf(fh, "  // bcVals:  values to impose as BCs.~%"),
@@ -341,7 +342,7 @@ calcDGGaussSeidelOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
 
         /* The right-hand-side of the Poisson equation is
            just a projection of the source on the basis. */
-        rho_e     : doExpand1(rho,bC),
+        rho_e     : doExpand1(rhoC,bC),
         sourceRHS : volFac*calcInnerProdList(varsC,1,bC,rho_e),
 
         /* Solve for the coefficients of this cell to get the stencil. */
@@ -351,8 +352,9 @@ calcDGGaussSeidelOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
         gsStencil : (1-omega)*phiC_c + omega*makelist(rhs(stencilSolve[i]),i,1,N),
         gsStencil : fullratsimp(gsStencil),
 
-        /* Pointers to the cell lengths in cells pointed to by the stencil. */
+        /* Pointers to the cell lengths and right-side source in cells pointed to by the stencil. */
         printf(fh, "  double *dxC  = dx[0]; ~%"),
+        printf(fh, "  double *rhoC = rho[0]; ~%"),
         printf(fh, "~%"),
 
         /* This volume factors appears in front of the right-side source term. */
@@ -487,7 +489,7 @@ calcDGJacobiOp(fh, funcNm, dim, basisFun, pMax) := block([],
 
     /* The right-hand-side of the Poisson equation is
        just a projection of the source on the basis. */
-    rho_e     : doExpand1(rho,bC),
+    rho_e     : doExpand1(rhoC,bC),
     sourceRHS : volFac*calcInnerProdList(varsC,1,bC,rho_e),
 
     /* Solve for the coefficients of this cell to get the stencil. */
@@ -497,7 +499,7 @@ calcDGJacobiOp(fh, funcNm, dim, basisFun, pMax) := block([],
     jacStencil : (1-omega)*phiPrevC_c + omega*makelist(rhs(stencilSolve[i]),i,1,N),
     jacStencil : fullratsimp(jacStencil),
 
-    printf(fh, "void ~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "void ~a_P~a(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi) ~%{ ~%", funcNm, polyOrder),
     printf(fh, "  // omega:   relaxation parameter.~%"),
     printf(fh, "  // dx:      cell lengths of cells pointed to by the stencil.~%"),
     printf(fh, "  // bcVals:  values to impose as BCs.~%"),
@@ -506,8 +508,9 @@ calcDGJacobiOp(fh, funcNm, dim, basisFun, pMax) := block([],
     printf(fh, "  // phi:     iterate cells pointed to by the stencil (Gauss-Seidel), or cell we are currently updating (Jacobi).~%"),
     printf(fh, "~%"),
 
-    /* Pointers to the cell lengths in cells pointed to by the stencil. */
+    /* Pointers to the cell lengths and right-side source in cells pointed to by the stencil. */
     printf(fh, "  double *dxC  = dx[0]; ~%"),
+    printf(fh, "  double *rhoC = rho[0]; ~%"),
     printf(fh, "~%"),
 
     /* This volume factors appears in front of the right-side source term. */
@@ -641,7 +644,7 @@ calcDGJacobiOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
       /* Don't forget to loop over polynomial order. */
       for polyOrder : 1 thru pMax do (
 
-        printf(fh, "void ~a_~aP~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) ~%{ ~%", funcNm, boundaryStr, polyOrder),
+        printf(fh, "void ~a_~aP~a(const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi) ~%{ ~%", funcNm, boundaryStr, polyOrder),
         printf(fh, "  // omega:   relaxation parameter.~%"),
         printf(fh, "  // dx:      cell lengths of cells pointed to by the stencil.~%"),
         printf(fh, "  // bcVals:  values to impose as BCs.~%"),
@@ -724,7 +727,7 @@ calcDGJacobiOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
 
         /* The right-hand-side of the Poisson equation is
            just a projection of the source on the basis. */
-        rho_e     : doExpand1(rho,bC),
+        rho_e     : doExpand1(rhoC,bC),
         sourceRHS : volFac*calcInnerProdList(varsC,1,bC,rho_e),
 
         /* Solve for the coefficients of this cell to get the stencil. */
@@ -734,8 +737,9 @@ calcDGJacobiOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
         jacStencil : (1-omega)*phiPrevC_c + omega*makelist(rhs(stencilSolve[i]),i,1,N),
         jacStencil : fullratsimp(jacStencil),
 
-        /* Pointers to the cell lengths in cells pointed to by the stencil. */
+        /* Pointers to the cell lengths and right-side source in cells pointed to by the stencil. */
         printf(fh, "  double *dxC  = dx[0]; ~%"),
+        printf(fh, "  double *rhoC = rho[0]; ~%"),
         printf(fh, "~%"),
 
         /* This volume factors appears in front of the right-side source term. */

@@ -6,9 +6,11 @@
 
 load(stringproc)$
 load("mgPoisson-calc/FEMinterBasisOperators")$
+load("mgPoisson-calc/FEMproject")$
 load("mgPoisson-calc/FEMsmoothers")$
 load("mgPoisson-calc/FEMinterGridOperators")$
 load("mgPoisson-calc/FEMresidue")$
+load("mgPoisson-calc/FEMnorm")$
 /*
 load("mgPoisson-calc/FEMresidue")$
 */
@@ -62,16 +64,31 @@ for bInd : 1 thru length(bName) do (
     disp(printf(false,sconcat("Working on MGpoissonFEM_DGtoFEM_", c, "x", bName[bInd]))),
     calcDGtoFEM(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
     calcDGtoFEMboundary(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+
+    /* Projection of an FEM field onto FEM (nodal) basis. */
+    funcName : sconcat("MGpoissonFEMproject", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonFEMproject", c, "x", bName[bInd]))),
+    calcFEMproject(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
     
+    /* Jacobi FEM smoothers, */
+    funcName : sconcat("MGpoissonFEMDampedJacobi", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonFEMDampedJacobi", c, "x", bName[bInd]))),
+    calcJacobiGaussSeidelOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd],true),
+
     /* Gaus-Seidel FEM smoothers, */
     funcName : sconcat("MGpoissonFEMDampedGaussSeidel", c, "x", bName[bInd]),
     disp(printf(false,sconcat("Working on MGpoissonFEMDampedGaussSeidel", c, "x", bName[bInd]))),
-    calcGaussSeidelOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    calcJacobiGaussSeidelOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd],false),
 
     /* Kernel for computing the residue. */
     funcName : sconcat("MGpoissonFEMResidue", c, "x", bName[bInd]),
     disp(printf(false,sconcat("Working on MGpoissonFEMResidue", c, "x", bName[bInd]))),
     calcFEMResidue(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+
+    /* L2 norm of an FEM field. */
+    funcName : sconcat("MGpoissonFEML2norm", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonFEML2norm", c, "x", bName[bInd]))),
+    calcL2norm(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
 
     close(fh)
     

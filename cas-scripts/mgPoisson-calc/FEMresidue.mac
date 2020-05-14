@@ -8,20 +8,6 @@ load("mgPoisson-calc/MGpoissonUtil");
 load("mgPoisson-calc/FEMnodalFuncs");
 fpprec : 24$
 
-/* String used for identifying nearest neighbor cells. */
-neighStrKey : [[-1,"L"],[0,""],[1,"U"]]$
-
-/* Types of boundary conditions for which to generate kernels.
-     =0 periodic
-     =1 Dirichlet
-     =2 Neumann
-     =3 Robin
-   For periodic we'll assume ghost cells are filled accordingly
-   and use an interior stencil. */
-bcTypes  : [0, 1, 2, 3]$
-bcStrs   : ["", "Dirichlet", "Neumann", "Robin"]$
-bcKey    : makelist([bcTypes[i],bcStrs[i]],i,1,length(bcTypes))$
-
 
 calcFEMResidue(fh, funcNm, dim, basisFun, pMax) := block([],
   /* Residue computation for the Poisson equation using an FEM
@@ -40,6 +26,17 @@ calcFEMResidue(fh, funcNm, dim, basisFun, pMax) := block([],
      0 away from boundaries in that direction. */
   stencilLoc : getStencilCoords(dim),
 
+  /* Types of boundary conditions for which to generate kernels.
+       =0 periodic
+       =1 Dirichlet
+       =2 Neumann
+       =3 Robin
+     For periodic we'll assume ghost cells are filled accordingly
+     and use an interior stencil. */
+  bcTypes  : [0, 1, 2, 3],
+  bcStrs   : ["", "Dirichlet", "Neumann", "Robin"],
+  bcKey    : makelist([bcTypes[i],bcStrs[i]],i,1,length(bcTypes)),
+
   for sI : 1 thru length(stencilLoc) do (
 
     /* Obtain the different BC combinations for this stencil.
@@ -52,9 +49,12 @@ calcFEMResidue(fh, funcNm, dim, basisFun, pMax) := block([],
       currBC : copylist(bcCombos[bcI]),
 
       /* String used in kernel name, identifying stencil location and BC. */
-      stencilStr : getStencilStr(stencilLoc[sI],boundStrKey,coordVarS,currBC,bcKey),
+      stencilStr : getStencilStr(stencilLoc[sI],coordVarS,currBC,bcKey),
 
       for polyOrder : 1 thru pMax do (
+
+        /* Each cell only stores the lower left nodes. */
+        numStoredNodes : length(getStoredNodes(args(getNodes(basisFun, dim, polyOrder)),stencilLoc[sI])),
 
         weqPoissonLst : weakPoissonStored(basisFun,varsC,polyOrder,stencilLoc[sI],currBC),
         poissonLHS    : weqPoissonLst[1],
@@ -100,16 +100,15 @@ calcFEMResidue(fh, funcNm, dim, basisFun, pMax) := block([],
           for sL : 1 thru 3^(d-1) do (
             for pm : -1 thru 1 step 2 do (
               i : i + 1,
-              varStrs : append(varStrs, [sconcat(varStrs[sL],assoc(pm,neighStrKey),string(varsC[d]))]),
-              printf(fh, "  double *phi~a = phi[~a]; ~%", varStrs[i], i-1),
-              printf(fh, "  double *rho~a = rho[~a]; ~%", varStrs[i], i-1)
+              varStrs : append(varStrs, [sconcat(varStrs[sL],assoc(pm,locStrKey),string(varsC[d]))]),
+              printf(fh, "  double *phi~a = phi[~a]; ~%", varStrs[i], i-1)
             )
           )
         ),
         printf(fh, "~%"),
 
         /* Write the relaxation stencil. */
-        writeCExprs1noPowers(resOut,residue_c,[rdx2SqVol,bcVals],12),
+        writeCExprs1noPowers(resOut,residue_c,[rdx2SqVol,bcVals,dxC],18),
         printf(fh, "~%"),
 
         printf(fh, "}~%"),

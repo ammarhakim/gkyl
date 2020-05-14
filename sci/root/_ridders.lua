@@ -4,17 +4,18 @@
 -- Copyright (C) 2011-2015 Stefano Peluchetti. All rights reserved.
 --------------------------------------------------------------------------------
 
-local math = require "sci.math"
+local math = require "sci.math".generic
+local diff = require "sci.diff-recursive"
 
 local max, abs, sqrt, sign = math.max, math.abs, math.sqrt, math.sign
 
 local function root(f, xl, xu, stop)
-  if not(xl < xu) then
+  if not(diff.lt(xl,xu)) then
     error("xl < xu required: xl="..xl..", xu="..xu)
   end
   local yl, yu = f(xl), f(xu)
-  if not (yl*yu <= 0) then
-    error("root not bracketed by f(xl)="..yl..", f(xu)="..yu)
+  if not (diff.le(yl*yu, 0)) then
+    error(string.format("root not bracketed by f(xl=%f)=%f, f(xu=%f)=%f", tostring(xl), tostring(yl), tostring(xu), tostring(yu)))
   end
   while true do
     local xm = xl + 0.5*(xu - xl) -- Avoid xm > xl or xm < xu.
@@ -22,7 +23,7 @@ local function root(f, xl, xu, stop)
     local x1, y1
     do
       local d = ym^2 - yl*yu
-      if d == 0 then -- Function is flat on xl, xm, xu.
+      if diff.eq(d, 0) then -- Function is flat on xl, xm, xu.
         x1, y1 = xm, ym
       else -- Exponential inversion.
         x1 = xm + (xm - xl)*sign(yl - yu)*ym/sqrt(d)
@@ -32,15 +33,15 @@ local function root(f, xl, xu, stop)
     if stop(x1, y1, xl, xu, yl, yu) then
       return x1, y1, xl, xu, yl, yu
     end
-    if y1*ym <= 0 then
-      if xm < x1 then
+    if diff.le(y1*ym, 0) then
+      if diff.lt(xm, x1) then
         xl, xu = xm, x1
         yl, yu = ym, y1
       else
         xl, xu = x1, xm
         yl, yu = y1, ym
       end
-    elseif ym*yl <= 0 then
+    elseif diff.le(ym*yl, 0) then
       xu, yu = xm, ym
     else
       xl, yl = xm, ym

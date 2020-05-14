@@ -6,8 +6,9 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local ffi = require "ffi"
-local _   = require "Updater.mgPoissonCalcData._MGpoissonCdef"
+local lume = require "Lib.lume"
+local ffi  = require "ffi"
+local _    = require "Updater.mgPoissonCalcData._MGpoissonCdef"
 
 -- Map of basis function name -> function encoding.
 local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max", ["tensor"] = "Tensor" }
@@ -18,7 +19,7 @@ local dirLabelsLC = {'x', 'y', 'z'}
 local dirLabelsUC = {'X', 'Y', 'Z'}
 local boundLabel  = {'L', 'U'}
 
-local function getStencilStrs(dimIn, bcKinds, isDG_FEMtranslation, isDG) 
+local function getStencilStrs(dimIn, bcKinds, isDG, intUpOnly) 
    -- Create a table with the strings that identify each kind of stencil location.
    -- This function assumes bcKinds is a table with dimIn entries, each one
    -- being a 2-element table where the first element is the lower boundary
@@ -32,21 +33,29 @@ local function getStencilStrs(dimIn, bcKinds, isDG_FEMtranslation, isDG)
    -- are filled appropriately. For Dirichlet, Neumann and Robin we will use
    -- Robin kernels with appropriately chosen parameters.
    local translateBCid
-   if isDG_FEMtranslation then
-      translateBCid = {[0] = "", [1] = "", [2] = "", [3] = ""}
+   if isDG then
+      translateBCid = {[0] = "", [1] = "Robin", [2] = "Robin", [3] = "Robin"}
    else
-      if isDG then
-         translateBCid = {[0] = "", [1] = "Robin", [2] = "Robin", [3] = "Robin"}
-      else
-         -- FEM currently has different kernels for Dirichlet/Neumann.
-         translateBCid = {[0] = "", [1] = "Dirichlet", [2] = "Neumann", [3] = "Robin"}
-      end
+      -- FEM currently has different kernels for Dirichlet/Neumann.
+      translateBCid = {[0] = "", [1] = "Dirichlet", [2] = "Neumann", [3] = "Robin", [9] = "NonPeriodic"}
+   end
+
+   local width, loOff, upOff
+   if intUpOnly then
+      -- Only return strings for interior and upper boundary stencils.
+      width = 2
+      loOff = 1
+      upOff = 0
+   else
+      width = 3
+      loOff = 0
+      upOff = 0
    end
 
    stencilStrs[1] = ""
    for d = 1, dimIn do 
-      for prevK = 1, 3^(d-1) do
-         for bI = 1,2 do
+      for prevK = 1, width^(d-1) do
+         for bI = 1+loOff,2-upOff do
             stencilCount = stencilCount+1
             if bcKinds[d][bI] == 0 then
                -- If BC is periodic, don't add another string. Use interior stencil.
@@ -57,7 +66,7 @@ local function getStencilStrs(dimIn, bcKinds, isDG_FEMtranslation, isDG)
          end
       end
    end
-   for sI = 1, 3^dimIn do   -- Append a final underscore if there are non-periodic BCs.
+   for sI = 1, (width)^dimIn do   -- Append a final underscore if there are non-periodic BCs.
       if (#stencilStrs[sI] > 0) then stencilStrs[sI]=stencilStrs[sI] .. "_" end 
    end
    return stencilStrs
@@ -70,7 +79,7 @@ function _M.selectRestriction(solverKind, basisNm, dim, polyOrder, bcTypes, isDG
       local tmp = ffi.C[string.format("MGpoisson%sRestrict%dx%s_P%d", solverKind, dim, basisNmMap[basisNm], polyOrder)]
       restrictKernels[1] = tmp
    else
-      local restrictStencilStr = getStencilStrs(dim, bcTypes, false, isDG)
+      local restrictStencilStr = getStencilStrs(dim, bcTypes, isDG)
       for sI = 1, 3^dim do
          local tmp = ffi.C[string.format("MGpoisson%sRestrict%dx%s_%sP%d", solverKind, dim, basisNmMap[basisNm], restrictStencilStr[sI], polyOrder)]
          restrictKernels[sI] = tmp
@@ -86,7 +95,7 @@ function _M.selectProlongation(solverKind, basisNm, dim, polyOrder, bcTypes, isD
       local tmp = ffi.C[string.format("MGpoisson%sProlong%dx%s_P%d", solverKind, dim, basisNmMap[basisNm], polyOrder)]
       prolongKernels[1] = tmp
    else
-      local prolongStencilStr = getStencilStrs(dim, bcTypes, false, isDG)
+      local prolongStencilStr = getStencilStrs(dim, bcTypes, isDG)
       for sI = 1, 3^dim do
          local tmp = ffi.C[string.format("MGpoisson%sProlong%dx%s_%sP%d", solverKind, dim, basisNmMap[basisNm], prolongStencilStr[sI], polyOrder)]
          prolongKernels[sI] = tmp
@@ -98,8 +107,10 @@ end
 -- Select DG to FEM kernels.
 function _M.selectDGtoFEM(basisNm, dim, polyOrder, bcTypes)
    local dgToFEMkernels = {}
+   local newBCs         = lume.deepclone(bcTypes)
+   for d = 1, dim do for bI = 1,2 do if newBCs[d][bI] ~= 0 then newBCs[d][bI]=9 end end end
    -- Create a 3^dim hypertable to place interior and upper boundary kernels.
-   local dgToFEMstencilStr = getStencilStrs(dim, bcTypes, true)
+   local dgToFEMstencilStr = getStencilStrs(dim, newBCs, false)
    for sI = 1, 3^dim do
       local tmp = ffi.C[string.format("MGpoissonFEM_DGtoFEM_%dx%s_%sP%d", dim, basisNmMap[basisNm], dgToFEMstencilStr[sI], polyOrder)]
       dgToFEMkernels[sI] = tmp
@@ -107,11 +118,24 @@ function _M.selectDGtoFEM(basisNm, dim, polyOrder, bcTypes)
    return dgToFEMkernels
 end
 
+-- Select restriction operator kernel.
+function _M.selectFEMprojection(basisNm, dim, polyOrder, bcTypes)
+   local projectKernels = {}
+   local newBCs         = lume.deepclone(bcTypes)
+   for d = 1, dim do for bI = 1,2 do if newBCs[d][bI] ~= 0 then newBCs[d][bI]=9 end end end
+   local projStencilStr = getStencilStrs(dim, newBCs, false)
+   for sI = 1, 3^dim do
+      local tmp = ffi.C[string.format("MGpoissonFEMproject%dx%s_%sP%d", dim, basisNmMap[basisNm], projStencilStr[sI], polyOrder)]
+      projectKernels[sI] = tmp
+   end
+   return projectKernels
+end
+
 -- Select relaxation kernels.
 function _M.selectRelaxation(solverKind, basisNm, dim, polyOrder, kindOfRelax, bcTypes, isDG)
    local relaxKernels = {}
    -- Create a 3^dim hypertable to place lower boundary, interior and upper boundary kernels.
-   local relaxStencilStr = getStencilStrs(dim, bcTypes, false, isDG)
+   local relaxStencilStr = getStencilStrs(dim, bcTypes, isDG)
    for sI = 1, 3^dim do
       local tmp = ffi.C[string.format("MGpoisson%s%s%dx%s_%sP%d", solverKind, kindOfRelax, dim, basisNmMap[basisNm], relaxStencilStr[sI], polyOrder)]
       relaxKernels[sI] = tmp
@@ -123,12 +147,25 @@ end
 function _M.selectResidueCalc(solverKind, basisNm, dim, polyOrder, bcTypes, isDG)
    local residueKernels = {}
    -- Create a 3^dim hypertable to place lower boundary, interior and upper boundary kernels.
-   local resStencilStr = getStencilStrs(dim, bcTypes, false, isDG)
+   local resStencilStr = getStencilStrs(dim, bcTypes, isDG)
    for sI = 1, 3^dim do
       local tmp = ffi.C[string.format("MGpoisson%sResidue%dx%s_%sP%d", solverKind, dim, basisNmMap[basisNm], resStencilStr[sI], polyOrder)]
       residueKernels[sI] = tmp
    end
    return residueKernels
+end
+
+function _M.selectFEML2norm(basisNm, dim, polyOrder, bcTypes)
+   local normKernels = {}
+   local newBCs      = lume.deepclone(bcTypes)
+   for d = 1, dim do for bI = 1,2 do if newBCs[d][bI] ~= 0 then newBCs[d][bI]=9 end end end
+   -- Create a 2^dim hypertable to place interior (also for lower boundary) and upper boundary kernels.
+   local normStencilStr = getStencilStrs(dim, newBCs, false, true)
+   for sI = 1, 2^dim do
+      local tmp = ffi.C[string.format("MGpoissonFEML2norm%dx%s_%sP%d", dim, basisNmMap[basisNm], normStencilStr[sI], polyOrder)]
+      normKernels[sI] = tmp
+   end
+   return normKernels
 end
 
 return _M

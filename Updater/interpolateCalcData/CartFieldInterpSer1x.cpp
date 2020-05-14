@@ -57,3 +57,56 @@ void CartFieldInterp1xSer_P2(const double *wC, const double *wF, const double *d
 
 }
 
+void CartFieldInterp1xSer_X_P1(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF) 
+{ 
+  // wC:   cell center of coarse-grid cell.
+  // wF:   cell center of fine-grid cell.
+  // dxC:  cell length of coarse-grid cell.
+  // dxF:  cell length of fine-grid cell.
+  // fldC: coarse-grid field.
+  // fldF: fine-grid field in cells pointed to by the stencil.
+
+  double eLo[1];
+  double eUp[1];
+  eLo[0] = std::max(-1.0,-1.0);
+  eUp[0] = std::min( 1.0,1.0);
+
+  double eLo0R2 = std::pow(eLo[0],2);
+  double eLo0R3 = std::pow(eLo[0],3);
+  double eUp0R2 = std::pow(eUp[0],2);
+  double eUp0R3 = std::pow(eUp[0],3);
+
+  fldF[0] += 0.25*((1.732050807568877*eUp0R2-1.732050807568877*eLo0R2)*fldC[1]+(2.0*eUp[0]-2.0*eLo[0])*fldC[0]); 
+  fldF[1] += 0.25*((2.0*eUp0R3-2.0*eLo0R3)*fldC[1]+(1.732050807568877*eUp0R2-1.732050807568877*eLo0R2)*fldC[0]); 
+
+}
+
+void CartFieldInterp1xSer_X_P2(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF) 
+{ 
+  // wC:   cell center of coarse-grid cell.
+  // wF:   cell center of fine-grid cell.
+  // dxC:  cell length of coarse-grid cell.
+  // dxF:  cell length of fine-grid cell.
+  // fldC: coarse-grid field.
+  // fldF: fine-grid field in cells pointed to by the stencil.
+
+  double eLo[1];
+  double eUp[1];
+  eLo[0] = std::max(-1.0,-1.0);
+  eUp[0] = std::min( 1.0,1.0);
+
+  double eLo0R2 = std::pow(eLo[0],2);
+  double eLo0R3 = std::pow(eLo[0],3);
+  double eLo0R4 = std::pow(eLo[0],4);
+  double eLo0R5 = std::pow(eLo[0],5);
+  double eUp0R2 = std::pow(eUp[0],2);
+  double eUp0R3 = std::pow(eUp[0],3);
+  double eUp0R4 = std::pow(eUp[0],4);
+  double eUp0R5 = std::pow(eUp[0],5);
+
+  fldF[0] += 0.25*((2.23606797749979*eUp0R3-2.23606797749979*eUp[0]-2.23606797749979*eLo0R3+2.23606797749979*eLo[0])*fldC[2]+(1.732050807568877*eUp0R2-1.732050807568877*eLo0R2)*fldC[1]+(2.0*eUp[0]-2.0*eLo[0])*fldC[0]); 
+  fldF[1] += 0.0625*((11.61895003862225*eUp0R4-7.745966692414834*eUp0R2-11.61895003862225*eLo0R4+7.745966692414834*eLo0R2)*fldC[2]+(8.0*eUp0R3-8.0*eLo0R3)*fldC[1]+(6.928203230275509*eUp0R2-6.928203230275509*eLo0R2)*fldC[0]); 
+  fldF[2] += 0.0625*((18.0*eUp0R5-20.0*eUp0R3+10.0*eUp[0]-18.0*eLo0R5+20.0*eLo0R3-10.0*eLo[0])*fldC[2]+(11.61895003862225*eUp0R4-7.745966692414834*eUp0R2-11.61895003862225*eLo0R4+7.745966692414834*eLo0R2)*fldC[1]+(8.94427190999916*eUp0R3-8.94427190999916*eUp[0]-8.94427190999916*eLo0R3+8.94427190999916*eLo[0])*fldC[0]); 
+
+}
+
