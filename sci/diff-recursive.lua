@@ -123,28 +123,62 @@ dn.sign  = function(x) return dn(sign(x._v),  0) end
 --  di: the index of the argument to differentiate f with respect to
 dn.deriv = function(f,di)
   return function(...)
-    args = {...}
-    for i=1, #args do
+    xn = {...}
+    for i=1, #xn do
+      -- determine which arg to differentiate w.r.t.
       if i == (di or 1) then 
-        args[i] = dn(args[i],1) 
+        -- for the arg that is differentiated, substitute dn(x,1) for x
+        xn[i] = dn(xn[i],1) 
       else
-        args[i] = dn(args[i],0)
+        -- for other xn, substitute dn(x,0) for x
+        xn[i] = dn(xn[i],0)
       end
     end
-    retvals = {f(unpack(args))}
+    retvals = {f(unpack(xn))}
     for i=1, #retvals do
-      retvals[i] = retvals[i]._a
+      if type(retvals[i])~="number" then
+        retvals[i] = retvals[i]._a
+      else
+        retvals[i] = 0
+      end
     end
     return unpack(retvals)
   end
 end
-  
+
+-- same as deriv, but arguments of f are expected as a table
+dn.derivt = function(f,di)
+  return function(xn)
+    local dxn = {}
+    for i=1, #xn do
+      -- determine which arg to differentiate w.r.t.
+      if i == (di or 1) then 
+        -- for the arg that is differentiated, substitute dn(x,1) for x
+        dxn[i] = dn(xn[i],1) 
+      else
+        -- for other args, substitute dn(x,0) for x
+        dxn[i] = dn(xn[i],0)
+      end
+    end
+    retvals = {f(dxn)}
+    for i=1, #retvals do
+      if type(retvals[i])~="number" then
+        retvals[i] = retvals[i]._a
+      else
+        retvals[i] = 0
+      end
+    end
+    return unpack(retvals)
+  end
+end
+
 local df = dn.deriv
 
 return {
   dn = dn,
   df = dn.deriv,
   deriv = dn.deriv,
+  derivt = dn.derivt,
   eq = dn.eq,
   lt = dn.lt,
   le = dn.le,

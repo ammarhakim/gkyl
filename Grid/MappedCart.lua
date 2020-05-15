@@ -11,7 +11,8 @@ local DataStruct = require "DataStruct"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
 local RectCart = require "Grid.RectCart"
-local diff = require "sci.diff"
+local diff = require "sci.diff-recursive"
+local diff1 = require "sci.diff"
 local math = require("sci.math").generic
 
 -- MappedCartGrid --------------------------------------------------------------
@@ -34,31 +35,6 @@ function MappedCart:init(tbl)
    -- determine how many values mapc2p returns
    self._rdim = #{ self._mapc2p(self._lower) }
 
-   -- analytical differentiation functions for mapc2p
-   self._coordDiff = {
-      diff.gradientf(
-	 function (xc)
-	    local x1, _, _ = self._mapc2p(xc)
-	    return x1
-	 end,
-	 self:ndim()
-      ),
-      diff.gradientf(
-	 function (xc)
-	    local _, x2, _ = self._mapc2p(xc)
-	    return x2
-	 end,
-	 self:ndim()
-      ),
-      diff.gradientf(
-	 function (xc)
-	    local _, _, x3 = self._mapc2p(xc)
-	    return x3
-	 end,
-	 self:ndim()
-      ),
-   }
-
    -- stuff for use in various methods
    self._xc = Lin.Vec(self:ndim())
    self._d1, self._d2, self._d3 = Lin.Vec(self:ndim()), Lin.Vec(self:ndim()), Lin.Vec(self:ndim())
@@ -74,14 +50,15 @@ end
 -- internal methods, not to be used directly by user
 function MappedCart:_calcMetric_1d(xc, g)
    local d1 = self._d1
-   self._coordDiff[1](xc, d1)
+   d1[1] = diff.derivt(self._mapc2p, 1)(xc)
 
    g[1] = d1[1]^2
 end
 function MappedCart:_calcMetric_2d_r2(xc, g)
    local d1, d2 = self._d1, self._d2
-   self._coordDiff[1](xc, d1)
-   self._coordDiff[2](xc, d2)
+    
+   d1[1], d2[1] = diff.derivt(self._mapc2p, 1)(xc)
+   d1[2], d2[2] = diff.derivt(self._mapc2p, 2)(xc)
 
    g[1] = d1[1]^2 + d2[1]^2 -- g_11
    g[2] = d1[1]*d1[2] + d2[1]*d2[2] -- g_12 = g_21
@@ -89,9 +66,9 @@ function MappedCart:_calcMetric_2d_r2(xc, g)
 end
 function MappedCart:_calcMetric_2d_r3(xc, g)
    local d1, d2, d3 = self._d1, self._d2, self._d3
-   self._coordDiff[1](xc, d1)
-   self._coordDiff[2](xc, d2)
-   self._coordDiff[3](xc, d3)
+   d1[1], d2[1] = diff.derivt(self._mapc2p, 1)(xc)
+   d1[2], d2[2] = diff.derivt(self._mapc2p, 2)(xc)
+   d1[3], d2[3] = diff.derivt(self._mapc2p, 3)(xc)
 
    g[1] = d1[1]^2 + d2[1]^2 + d3[1]^2 -- g_11
    g[2] = d1[1]*d1[2] + d2[1]*d2[2] + d3[1]*d3[2] -- g_12 = g_21
@@ -99,9 +76,9 @@ function MappedCart:_calcMetric_2d_r3(xc, g)
 end
 function MappedCart:_calcMetric_3d(xc, g)
    local d1, d2, d3 = self._d1, self._d2, self._d3
-   self._coordDiff[1](xc, d1)
-   self._coordDiff[2](xc, d2)
-   self._coordDiff[3](xc, d3)
+   d1[1], d2[1], d3[1] = diff.derivt(self._mapc2p, 1)(xc)
+   d1[2], d2[2], d3[2] = diff.derivt(self._mapc2p, 2)(xc)
+   d1[3], d2[3], d3[3] = diff.derivt(self._mapc2p, 3)(xc)
 
    g[1] = d1[1]^2 + d2[1]^2 + d3[1]^2 -- g_11
    g[2] = d1[1]*d1[2] + d2[1]*d2[2] + d3[1]*d3[2]  -- g_12 = g_21
@@ -132,13 +109,13 @@ end
 -- calculates gradients for jacobian  ONLY set up for xyz case
 function MappedCart:mapDiff(xv)
    --compute gradients
-    local grad1 = diff.gradientf(function (xc) local x, _, _ = self:mapc2p(xc) return x end, 2)
+    local grad1 = diff1.gradientf(function (xc) local x, _, _ = self:mapc2p(xc) return x end, 2)
     local dx = Lin.Vec(2)
     grad1(xv, dx)
-    local grad2 = diff.gradientf(function (xc) local _, y, _ = self:mapc2p(xc) return y end, 2)
+    local grad2 = diff1.gradientf(function (xc) local _, y, _ = self:mapc2p(xc) return y end, 2)
     local dy = Lin.Vec(2)
     grad2(xv, dy)
-    local grad3 = diff.gradientf(function (xc) local _, _, z = self:mapc2p(xc) return z end, 2)
+    local grad3 = diff1.gradientf(function (xc) local _, _, z = self:mapc2p(xc) return z end, 2)
     local dz = Lin.Vec(2)
     grad3(xv, dz)
 
@@ -164,9 +141,11 @@ end
 
 -- Compute jacobian = det(g_ij)^(1/2)
 function MappedCart:calcJacobian(xc)
+   --print("Calculating jacobian for ", xc[1], xc[2], xc[3])
    local g = {}
    local ndim = self:ndim()
    self:calcMetric(xc, g)
+   --print("Finished calculating metric")
    local jacobian
    if ndim == 1 then 
       jacobian = math.sqrt(g[1]*g[1])

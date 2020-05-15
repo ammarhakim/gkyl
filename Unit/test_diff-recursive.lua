@@ -13,6 +13,7 @@ local assert_equal = Unit.assert_equal
 local stats = Unit.stats
 
 local deriv = diff.deriv
+local derivt = diff.derivt
 
 -- test derivatives up to second order of polynomial function
 function test_deriv()
@@ -71,6 +72,85 @@ function test_deriv()
    assert_equal(d2PsidR2(1.1, .9), _d2PsidR2(1.1, .9), "Checking d2PsidR2")
    assert_equal(d2PsidRdZ(1.1, .9), _d2PsidRdZ(1.1, .9), "Checking d2PsidRdZ")
    assert_equal(d2PsidZ2(1.1, .9), _d2PsidZ2(1.1, .9), "Checking d2PsidZ2")
+end
+
+function test_derivt()
+   local k = 2
+ 
+   local function Psi(RZ)
+     local R, Z = RZ[1], RZ[2]
+     return 4*R^2*Z^2/k^2+(R^2-1)^2
+   end
+ 
+   -- analytical functions for checking
+   local function _dPsidR(R,Z)
+     return 4*R*(R^2-1) + 8*R*Z^2/k^2
+   end
+ 
+   local function _dPsidZ(R,Z)
+     return 8*R^2*Z/k^2
+   end
+ 
+   local function _d2PsidR2(R,Z)
+     return 8*Z^2/k^2 + 12*R^2 - 4
+   end
+ 
+   local function _d2PsidRdZ(R,Z)
+     return 16*R*Z/k^2
+   end
+ 
+   local function _d2PsidZ2(R,Z)
+     return 8*R^2/k^2
+   end
+ 
+   -- compute derivatives via automatic differentiation
+   local function dPsidR(RZ)
+     -- differentiate Psi wrt arg 1 (R)
+     return derivt(Psi,1)(RZ)
+   end
+ 
+   local function dPsidZ(RZ)
+     -- differentiate Psi wrt arg 2 (Z)
+     return derivt(Psi,2)(RZ)
+   end
+ 
+   local function d2PsidR2(RZ)
+     return derivt(derivt(Psi,1),1)(RZ)
+   end
+ 
+   local function d2PsidRdZ(RZ)
+     return derivt(derivt(Psi,1),2)(RZ)
+   end
+ 
+   local function d2PsidZ2(RZ)
+     return derivt(derivt(Psi,2),2)(RZ)
+   end
+ 
+   assert_equal(dPsidR({1.1, .9}), _dPsidR(1.1, .9), "Checking dPsidR")
+   assert_equal(dPsidZ({1.1, .9}), _dPsidZ(1.1, .9), "Checking dPsidZ")
+   assert_equal(d2PsidR2({1.1, .9}), _d2PsidR2(1.1, .9), "Checking d2PsidR2")
+   assert_equal(d2PsidRdZ({1.1, .9}), _d2PsidRdZ(1.1, .9), "Checking d2PsidRdZ")
+   assert_equal(d2PsidZ2({1.1, .9}), _d2PsidZ2(1.1, .9), "Checking d2PsidZ2")
+end
+
+function test_deriv0()
+   local function f(xc)
+      return xc[1], xc[2]*xc[2]
+   end
+   
+   local fp1, fp2
+   fp1, fp2 = derivt(f,1)({0.5,0.35})
+   print(fp1, fp2, type(fp1), type(fp2))
+   fp1, fp2 = derivt(f,2)({0.5,0.35})
+   print(fp1, fp2, type(fp1), type(fp2))
+   --assert_equal(fp1, 1, "Checking fp1")
+   --assert_equal(fp2, 2, "Checking fp2")
+   --local fpp1, fpp2 = deriv(deriv(f,1))(1)
+   --assert_equal(fpp1, 0, "Checking fpp1")
+   --assert_equal(fpp2, 2, "Checking fpp2")
+   --local fppp1, fppp2 = deriv(deriv(deriv(f,1)))(1)
+   --assert_equal(fppp1, 0, "Checking fppp1")
+   --assert_equal(fppp2, 0, "Checking fppp2")
 end
   
 -- start from an analytical Solovev equilibrium and generate a field-aligned coordinate system (Psi, alpha, theta).
@@ -318,6 +398,8 @@ end
 
 -- Run tests.
 test_deriv()
+test_derivt()
+test_deriv0()
 test_solovev()
 
 if stats.fail > 0 then
