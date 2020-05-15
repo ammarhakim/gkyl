@@ -78,7 +78,7 @@ function test_1()
       syncPeriodicDirs = false
    }
 
-   project:advance(0.0, 0.0, {}, {jacob})
+   project:advance(0.0, {}, {jacob})
    
 end
 
