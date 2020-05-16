@@ -83,8 +83,8 @@ void DiscontPoisson::solve() {
   x = solver.solve(globalSrc);
   if (writeMatrix) {
     saveMarket(globalSrc, outPrefix+"-src.mm");
+    saveMarket(x, outPrefix+"-sol.mm");
   }
-  //saveMarket(x, "solution");
 }
 
 
