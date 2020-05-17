@@ -86,9 +86,9 @@ function test_ser_1x1v()
    numDensity:copyDeviceToHost()
 
    numDensity:write("numDensity.bp",0.0)
---   local momIdxr = numDensity:genIndexer()
---   local nItr = numDensity:get(momIdxr( {1} ))
---   assert_equal(1, nItr[1]/math.sqrt(2), "Checking moment")
+   local momIdxr = numDensity:genIndexer()
+   local nItr = numDensity:get(momIdxr( {1} ))
+   assert_equal(1, nItr[1]/math.sqrt(2), "Checking moment")
 
    err = cudaRunTime.DeviceReset()
    

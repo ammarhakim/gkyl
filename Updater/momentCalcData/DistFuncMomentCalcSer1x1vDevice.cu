@@ -12,7 +12,7 @@
 #include "DistFuncMomentCalcDeviceCommon.cu"
 
 
- __global__ void d_calcMom1x1vSer_M0_P1(RectCart_t *grid, Range_t *range, double *fIn, double *out) {
+__global__ void d_calcMom1x1vSer_M0_P1(RectCart_t *grid, Range_t *range, const double *fIn, double *out) {
   // In computing moments we will first assign whole configuration-space cells to a single block.
   // Then one must perform a reduction across a block for each conf-space basis coefficient.
 
@@ -28,7 +28,7 @@
   }
 
   // Pointers to quantities expected by the moment kernel.
-  double *distF       = &fIn[phaseLinIdx*4];
+  const double *distF       = &fIn[phaseLinIdx*4];
   double cellw[2];
   grid->cellCenter(phaseMultiDimIdx,cellw);
   double *cellCenter  = &cellw[0];
@@ -52,7 +52,8 @@
 
 }
 
- void calcMom1x1vSer_M0_P1(RectCart_t *grid, Range_t *range, GkDeviceProp *prop, int numBlocks, int numThreads, double *fIn, double *out) {
+// C function that wraps call to moment calculation global CUDA kernel
+void cuda_MomentCalc1x1vSer_M0_P1(RectCart_t *grid, Range_t *range, GkDeviceProp *prop, int numBlocks, int numThreads, const double *fIn, double *out) {
 
   int warpSize = prop->warpSize;
 

@@ -282,7 +282,7 @@ def build(bld):
         
         bld(source = cusources,
             name = 'updater_cu', target='updater_cu',
-            includes = '. .. ../Cuda ../Grid ../Lib momentCalcData', features = 'cxx nvcc cushlib'
+            includes = '. ../Cuda ../Grid ../Lib momentCalcData', features = 'cxx nvcc cushlib'
         )
 
     bld.shlib(source = sources,

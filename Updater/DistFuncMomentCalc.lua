@@ -177,10 +177,8 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
       end
    end
 
-   local distfItr, mom1Itr = distf:get(1), mom1:get(1)
 
    if GKYL_HAVE_CUDA and self.calcOnDevice then
-      
       local d_PhaseGrid  = grid:copyHostToDevice()
       local d_PhaseRange = Range.copyHostToDevice(phaseRange)
 
@@ -189,15 +187,16 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
 
       local phaseRangeDecomp = LinearDecomp.LinearDecompRange {
          range = phaseRange:selectFirst(pDim), numSplit = grid:numSharedProcs() }
-      local numCellsLocal = phaseRangeDecomp:volume()
+      local numCellsLocal = phaseRange:selectFirst(pDim):volume()
 
       local numThreads = GKYL_DEFAULT_NUM_THREADS
       local numBlocks  = math.floor(numCellsLocal/numThreads)+1
 
-      self._momCalcFun(d_PhaseGrid, d_PhaseRange, deviceProps, numBlocks, numThreads, distfItr:deviceDataPointer(), mom1Itr:deviceDataPointer())
+      self._momCalcFun(d_PhaseGrid, d_PhaseRange, deviceProps, numBlocks, numThreads, distf:deviceDataPointer(), mom1:deviceDataPointer())
 
       cudaRunTime.Free(d_PhaseRange)
    else
+      local distfItr, mom1Itr = distf:get(1), mom1:get(1)
    
       -- Construct ranges for nested loops.
       local confRangeDecomp = LinearDecomp.LinearDecompRange {
