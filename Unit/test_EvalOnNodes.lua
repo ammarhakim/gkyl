@@ -236,7 +236,7 @@ end
 test_1d_1()
 test_1d_2()
 test_2d()
-test_2d_2()  -- MF (03/17/2020): EvalOnNodes seems to fail for vectorial quantities. 
+test_2d_2() 
 test_3()
 
 if stats.fail > 0 then
