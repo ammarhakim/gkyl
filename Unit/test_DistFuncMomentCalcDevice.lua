@@ -23,6 +23,15 @@ local cudaRunTime = require "Cuda.RunTime"
 local assert_equal = Unit.assert_equal
 local stats        = Unit.stats
 
+local function createGrid(lo,up,nCells)
+   local gridOut = Grid.RectCart {
+      lower = lo,
+      upper = up,
+      cells = nCells,
+   }
+   return gridOut
+end
+
 local function createBasis(dim, pOrder, bKind)
    local basis
    if (bKind=="Ser") then
@@ -49,6 +58,10 @@ local function createField(grid, basis, vComp, onDevice, ghosts)
       numComponents    = basis:numBasis()*vComp,
       ghost            = ghostCells,
       createDeviceCopy = onDevice,
+      metaData = {
+         polyOrder = basis:polyOrder(),
+         basisType = basis:id()
+      },
    }
    return fld
 end
@@ -91,13 +104,19 @@ function test_1x1v(pOrder, basis)
    -- Updater to initialize distribution function.
    local project = createProject(phaseGrid,phaseBasis)
    project:setFunc(function (t, xn)
-         x, v = xn[1], xn[2]
-         n0   = 1.0
-         u    = 0.0
-         vt   = 0.8
-         k    = 2.0
-	 return (n0*math.cos(2.0*math.pi*k*x))/math.sqrt(2.0*math.pi*vt^2)
-               *math.exp( -((v-u)^2)/(2.0*(vt^2)) )
+         -- Using a projected Maxwellian does not give exactly 1,
+         -- so would need to use assert_close instead of assert_equal. 
+--         local x, v = xn[1], xn[2]
+--         local n0   = 1.0
+--         local u    = 0.0
+--         local vt   = 0.8
+--         local k    = 2.0
+--         local den = n0 --*math.cos(2.0*math.pi*k*x)
+--	 return (den/math.sqrt(2.0*math.pi*vt^2))
+--               *math.exp( -((v-u)^2)/(2.0*(vt^2)) )
+
+         -- Can instead project a function whose zeroth moment is exactly 1.
+         return 1/(phaseGrid:upper(2)-phaseGrid:lower(2))
       end)
    project:advance(0.0, {}, {distF})
 
@@ -116,13 +135,13 @@ function test_1x1v(pOrder, basis)
    numDensity:write("numDensity.bp",0.0)
    local momIdxr = numDensity:genIndexer()
    local nItr    = numDensity:get(momIdxr( {1} ))
-   assert_equal(1, nItr[1]/math.sqrt(2), "Checking moment")
+   assert_equal(1, nItr[1]/math.sqrt(2), "Checking M0 moment, 1x1v")
 
    err = cudaRunTime.DeviceReset()
    
 end
 
-local polyOrderMax = 2
+local polyOrderMax = 1
 local basisType    = "Ser"
 
 for polyOrder = 1, polyOrderMax do
