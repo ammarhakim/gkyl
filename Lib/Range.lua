@@ -256,6 +256,14 @@ local range_mt = {
 	 end
 	 return false
       end,
+      contains = function (self, idx)
+	 for d = 1, self:ndim() do
+	    if idx[d]<self:lower(d) or idx[d]>self:upper(d) then
+	       return false
+	    end
+	 end
+	 return true
+      end,
       _iter = function (self, iter_func, idxStart, maxBumps)
 	  -- package up iterator state into table
 	 local iterState = {
