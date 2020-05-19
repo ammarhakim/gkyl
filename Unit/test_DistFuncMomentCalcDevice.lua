@@ -1,6 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 -- Test for updater to compute moments on a device.
+--
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
@@ -22,40 +23,74 @@ local cudaRunTime = require "Cuda.RunTime"
 local assert_equal = Unit.assert_equal
 local stats        = Unit.stats
 
-function test_ser_1x1v()
+local function createBasis(dim, pOrder, bKind)
+   local basis
+   if (bKind=="Ser") then
+      basis = Basis.CartModalSerendipity { ndim = dim, polyOrder = pOrder }
+   elseif (bKind=="Max") then
+      basis = Basis.CartModalMaxOrder { ndim = dim, polyOrder = pOrder }
+   elseif (bKind=="Tensor") then
+      basis = Basis.CartModalTensor { ndim = dim, polyOrder = pOrder }
+   else
+      assert(false,"Invalid basis")
+   end
+   return basis
+end
+
+local function createField(grid, basis, vComp, onDevice, ghosts)
+   vComp = vComp or 1
+   if ghost then
+      ghostCells = {1, 1}
+   else
+      ghostCells = {0, 0}
+   end
+   local fld = DataStruct.Field {
+      onGrid           = grid,
+      numComponents    = basis:numBasis()*vComp,
+      ghost            = ghostCells,
+      createDeviceCopy = onDevice,
+   }
+   return fld
+end
+
+local function createProject(grid,basis)
+   local projUp = Updater.ProjectOnBasis {
+      onGrid   = grid,
+      basis    = basis,
+      evaluate = function(t, xn) return 1 end
+   }
+   return projUp
+end
+
+local function distFmoment(grid,pBasis,cBasis,mom,doOnDevice)
+   local momUp = Updater.DistFuncMomentCalc {
+      onGrid     = grid,
+      phaseBasis = pBasis,
+      confBasis  = cBasis,
+      moment     = mom,
+      onDevice   = doOnDevice
+   }
+   return momUp
+end
+
+function test_1x1v(pOrder, basis)
+   local pLower = {0.0, -6.0}
+   local pUpper = {1.0,  6.0}
+   local pN     = {8, 16}
+
    -- Phase-space and config-space grids.
-   local phaseGrid = Grid.RectCart {
-      lower = {0.0, -6.0},
-      upper = {1.0, 6.0},
-      cells = {8, 16},
-   }
-   local confGrid = Grid.RectCart {
-      lower = { phaseGrid:lower(1) },
-      upper = { phaseGrid:upper(1) },
-      cells = { phaseGrid:numCells(1) },
-   }
+   local phaseGrid = createGrid(pLower, pUpper, pN)
+   local confGrid  = createGrid({pLower[1]}, {pUpper[1]}, {pN[1]})
    -- Basis functions.
-   local phaseBasis = Basis.CartModalSerendipity { ndim = 2, polyOrder = 1 }
-   local confBasis  = Basis.CartModalSerendipity { ndim = 1, polyOrder = 1 }
+   local phaseBasis = createBasis(phaseGrid:ndim(), pOrder, basis)
+   local confBasis  = createBasis(confGrid:ndim(), pOrder, basis)
    -- Fields.
-   local distF = DataStruct.Field {
-      onGrid           = phaseGrid,
-      numComponents    = phaseBasis:numBasis(),
-      ghost            = {0, 0},
-      createDeviceCopy = true,
-   }
-   local numDensity = DataStruct.Field {
-      onGrid           = confGrid,
-      numComponents    = confBasis:numBasis(),
-      ghost            = {0, 0},
-      createDeviceCopy = true,
-   }
+   local distF      = createField(phaseGrid, phaseBasis, true, false)
+   local numDensity = createField(confGrid, confBasis, true, false)
 
    -- Updater to initialize distribution function.
-   local project = Updater.ProjectOnBasis {
-      onGrid   = phaseGrid,
-      basis    = phaseBasis,
-      evaluate = function (t, xn)
+   local project = createProject(phaseGrid,phaseBasis)
+   project:setFunc(function (t, xn)
          x, v = xn[1], xn[2]
          n0   = 1.0
          u    = 0.0
@@ -63,21 +98,14 @@ function test_ser_1x1v()
          k    = 2.0
 	 return (n0*math.cos(2.0*math.pi*k*x))/math.sqrt(2.0*math.pi*vt^2)
                *math.exp( -((v-u)^2)/(2.0*(vt^2)) )
-      end
-   }
+      end)
    project:advance(0.0, {}, {distF})
 
    -- Copy distribution function to device.
    local err = distF:copyHostToDevice()
 
    -- Moment updater.
-   local calcNumDensity = Updater.DistFuncMomentCalc {
-      onGrid     = phaseGrid,
-      phaseBasis = phaseBasis,
-      confBasis  = confBasis,
-      moment     = "M0",
-      onDevice   = true,
-   }
+   local calcNumDensity = distFmoment(phaseGrid,phaseBasis,confBasis,"M0",true)
    calcNumDensity:advance(0.0, {distF}, {numDensity})
 
    err = cudaRunTime.DeviceSynchronize()
@@ -87,14 +115,19 @@ function test_ser_1x1v()
 
    numDensity:write("numDensity.bp",0.0)
    local momIdxr = numDensity:genIndexer()
-   local nItr = numDensity:get(momIdxr( {1} ))
+   local nItr    = numDensity:get(momIdxr( {1} ))
    assert_equal(1, nItr[1]/math.sqrt(2), "Checking moment")
 
    err = cudaRunTime.DeviceReset()
    
 end
 
-test_ser_1x1v()
+local polyOrderMax = 2
+local basisType    = "Ser"
+
+for polyOrder = 1, polyOrderMax do
+   test_1x1v( polyOrder, basisType )
+end
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
