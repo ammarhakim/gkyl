@@ -59,8 +59,49 @@ function test_1()
    
 end
 
+function test_2()
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0},
+      upper = {1.0, 1.0},
+      cells = {20, 20},
+   }
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 1,
+      ghost = {1, 1},
+   }
+   field:clear(0.0)
+   
+   local globalRange = grid:globalRange()
+   local idx = Lin.IntVec(globalRange:ndim())
+
+   -- sub-range to index over
+   local localRange = Range.Range ( {3, 5}, {12, 14} )
+   local invIndexer = Range.makeRowMajorInvIndexer(localRange)
+   local indexer = field:genIndexer()
+   
+   -- only update local-range
+   for loc = 1, localRange:volume() do
+      invIndexer(loc, idx)
+      local fitr = field:get(indexer(idx))
+      fitr[1] = 10.5
+   end
+
+   -- check if setting worked
+   for idx in globalRange:colMajorIter() do
+      local fitr = field:get(indexer(idx))
+      if localRange:contains(idx) then
+	 assert_equal(10.5, fitr[1], "Checking interior")
+      else
+	 assert_equal(0.0, fitr[1], "Checking exterior")
+      end
+   end
+   
+end
+
 -- Run tests
 test_1()
+test_2()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
