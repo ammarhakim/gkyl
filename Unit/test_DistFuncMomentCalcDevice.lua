@@ -46,7 +46,7 @@ local function createBasis(dim, pOrder, bKind)
    return basis
 end
 
-local function createField(grid, basis, vComp, onDevice, ghosts)
+local function createField(grid, basis, deviceCopy, ghosts, vComp)
    vComp = vComp or 1
    if ghost then
       ghostCells = {1, 1}
@@ -57,7 +57,7 @@ local function createField(grid, basis, vComp, onDevice, ghosts)
       onGrid           = grid,
       numComponents    = basis:numBasis()*vComp,
       ghost            = ghostCells,
-      createDeviceCopy = onDevice,
+      createDeviceCopy = deviceCopy,
       metaData = {
          polyOrder = basis:polyOrder(),
          basisType = basis:id()
