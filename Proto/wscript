@@ -15,6 +15,7 @@ def build(bld):
 
     Fpo/fpoDragKernelP1.cpp
     Fpo/fpoDragKernelP2.cpp
+    Fpo/fpoDragKernel3xP1.cpp
 
     Fpo/fpoDiffKernelP1.cpp
     """,

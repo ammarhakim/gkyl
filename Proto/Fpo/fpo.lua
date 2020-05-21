@@ -22,7 +22,7 @@ return function(tbl)
    -- Simulation parameters
    local polyOrder = tbl.polyOrder -- polynomial order
 
-   local dragKernelNm = string.format("fpoDragKernelP%d", polyOrder)
+   local dragKernelNm = string.format("fpoDragKernel3xP%d", polyOrder)
    local dragKernelFn = ffi.C[dragKernelNm]
    local diffKernelNm = string.format("fpoDiffKernelP%d", polyOrder)
    local diffKernelFn = ffi.C[diffKernelNm]
@@ -45,10 +45,11 @@ return function(tbl)
    local upper = tbl.upper
 
    local periodicDirs = tbl.periodicDirs and tbl.periodicDirs or {}
-   local periodicX, periodicY = false, false
+   local periodicX, periodicY, periodicZ = false, false, false
    for i = 1, #periodicDirs do
       if periodicDirs[i] == 1 then periodicX = true end
       if periodicDirs[i] == 2 then periodicY = true end
+      if periodicDirs[i] == 3 then periodicZ = true end
    end
 
    local tmRosen, tmFpo = 0.0, 0.0
@@ -58,9 +59,9 @@ return function(tbl)
    -- Grids and Fields --
    ----------------------
    local grid = Grid.RectCart {
-      lower = {lower[1], lower[2]},
-      upper = {upper[1], upper[2]},
-      cells = {cells[1], cells[2]},
+      lower = lower,
+      upper = upper,
+      cells = cells,
       periodicDirs = periodicDirs,
    }
 
@@ -152,33 +153,34 @@ return function(tbl)
       local globalRange = fld:globalRange()
       local xlo, xup = globalRange:lower(1), globalRange:upper(1)
       local ylo, yup = globalRange:lower(2), globalRange:upper(2)
+      local zlo, zup = globalRange:lower(3), globalRange:upper(3)
       
       local indexer = fld:indexer()
       local idxSkin, idxGhost
       
       -- lower-left
-      idxSkin, idxGhost = fld:get(indexer(xup, yup)), fld:get(indexer(xlo-1, ylo-1))
-      for k = 1, fld:numComponents() do
-         idxGhost[k] = idxSkin[k]
-      end
+      -- idxSkin, idxGhost = fld:get(indexer(xup, yup)), fld:get(indexer(xlo-1, ylo-1))
+      -- for k = 1, fld:numComponents() do
+      --    idxGhost[k] = idxSkin[k]
+      -- end
       
-      -- lower-right
-      idxSkin, idxGhost = fld:get(indexer(xlo, yup)), fld:get(indexer(xup+1, ylo-1))
-      for k = 1, fld:numComponents() do
-         idxGhost[k] = idxSkin[k]
-      end
+      -- -- lower-right
+      -- idxSkin, idxGhost = fld:get(indexer(xlo, yup)), fld:get(indexer(xup+1, ylo-1))
+      -- for k = 1, fld:numComponents() do
+      --    idxGhost[k] = idxSkin[k]
+      -- end
       
-      -- upper-left
-      idxSkin, idxGhost = fld:get(indexer(xup, ylo)), fld:get(indexer(xlo-1, yup+1))
-      for k = 1, fld:numComponents() do
-         idxGhost[k] = idxSkin[k]
-      end
+      -- -- upper-left
+      -- idxSkin, idxGhost = fld:get(indexer(xup, ylo)), fld:get(indexer(xlo-1, yup+1))
+      -- for k = 1, fld:numComponents() do
+      --    idxGhost[k] = idxSkin[k]
+      -- end
       
-      -- upper-right
-      idxSkin, idxGhost = fld:get(indexer(xlo, ylo)), fld:get(indexer(xup+1, yup+1))
-      for k = 1, fld:numComponents() do
-         idxGhost[k] = idxSkin[k]
-      end
+      -- -- upper-right
+      -- idxSkin, idxGhost = fld:get(indexer(xlo, ylo)), fld:get(indexer(xup+1, yup+1))
+      -- for k = 1, fld:numComponents() do
+      --    idxGhost[k] = idxSkin[k]
+      -- end
    end
 
    -- projection to apply ICs
@@ -188,14 +190,14 @@ return function(tbl)
       evaluate = tbl.init,
    }
 
-   local poisson = Updater.FemPerpPoisson {
-      onGrid = grid,
-      basis = basis,
-      bcBottom = { T = "D", V = 0.0 },
-      bcTop = { T = "D", V = 0.0 },
-      bcLeft = { T = "D", V = 0.0 },
-      bcRight = { T = "D", V = 0.0 },
-   }
+   -- local poisson = Updater.FemPerpPoisson {
+   --    onGrid = grid,
+   --    basis = basis,
+   --    bcBottom = { T = "D", V = 0.0 },
+   --    bcTop = { T = "D", V = 0.0 },
+   --    bcLeft = { T = "D", V = 0.0 },
+   --    bcRight = { T = "D", V = 0.0 },
+   -- }
 
    local function updateRosenbluthDrag(fIn, hOut)
       local tmStart = Time.clock()
@@ -277,7 +279,7 @@ return function(tbl)
    --------------------
    initDist:advance(0.0, {}, {f})
    applyBc(f)
-   local momVec = calcMoms(0, f, moms)
+   --local momVec = calcMoms(0, f, moms)
 
    -- Check if drag/diff functions are provided
    local initDragFunc = tbl.initDrag and tbl.initDrag or function(t, z) return 0.0 end
@@ -354,24 +356,27 @@ return function(tbl)
       local tmStart = Time.clock()
 
       local dv = Lin.Vec(3)
-      dv[1], dv[2] = grid:dx(1), grid:dx(2)
+      dv[1], dv[2], dv[3] = grid:dx(1), grid:dx(2), grid:dx(3)
       local localRange = fIn:localRange()
       local indexer = fIn:genIndexer()
-      local idxsR, idxsL = {}, {}
-      local idxsT, idxsB = {}, {}
-      local idxsTL, idxsTR, idxsBL, idxsBR = {}, {}, {}, {}
+      local idxs1L, idxs1U = {}, {}
+      local idxs2L, idxs2U = {}, {}
+      local idxs3L, idxs3U = {}, {}
+      --local idxsTL, idxsTR, idxsBL, idxsBR = {}, {}, {}, {}
       local cflFreq, dragFreq, diffFrq = 0.0, 0.0, 0.0
 
       for idxs in localRange:colMajorIter() do
-         idxsR[1], idxsR[2] = idxs[1]+1, idxs[2]
-         idxsL[1], idxsL[2] = idxs[1]-1, idxs[2]
-         idxsT[1], idxsT[2] = idxs[1], idxs[2]+1
-         idxsB[1], idxsB[2] = idxs[1], idxs[2]-1
-
-         idxsTL[1], idxsTL[2] = idxs[1]-1, idxs[2]+1
-         idxsTR[1], idxsTR[2] = idxs[1]+1, idxs[2]+1
-         idxsBL[1], idxsBL[2] = idxs[1]-1, idxs[2]-1
-         idxsBR[1], idxsBR[2] = idxs[1]+1, idxs[2]-1
+         idxs1L[1], idxs1L[2], idxs1L[3] = idxs[1]-1, idxs[2], idxs[3]
+         idxs1U[1], idxs1U[2], idxs1U[3] = idxs[1]+1, idxs[2], idxs[3]
+         idxs2L[1], idxs2L[2], idxs2L[3] = idxs[1], idxs[2]-1, idxs[3]
+         idxs2U[1], idxs2U[2], idxs2U[3] = idxs[1], idxs[2]+1, idxs[3]
+         idxs3L[1], idxs3L[2], idxs3L[3] = idxs[1], idxs[2], idxs[3]-1
+         idxs3U[1], idxs3U[2], idxs3U[3] = idxs[1], idxs[2], idxs[3]+1
+         
+         --idxsTL[1], idxsTL[2] = idxs[1]-1, idxs[2]+1
+         --idxsTR[1], idxsTR[2] = idxs[1]+1, idxs[2]+1
+         --idxsBL[1], idxsBL[2] = idxs[1]-1, idxs[2]-1
+         --idxsBR[1], idxsBR[2] = idxs[1]+1, idxs[2]-1
 
          local isTopEdge, isBotEdge = 0, 0
          local isLeftEdge, isRightEdge = 0, 0
@@ -384,59 +389,65 @@ return function(tbl)
             if idxs[2] == cells[2] then isTopEdge = 1 end
          end
 
-         local fC = fIn:get(indexer(idxs))
-         local fR = fIn:get(indexer(idxsR))
-         local fL = fIn:get(indexer(idxsL))
-         local fT = fIn:get(indexer(idxsT))
-         local fB = fIn:get(indexer(idxsB))
+         local f = fIn:get(indexer(idxs))
+         local f1L = fIn:get(indexer(idxs1L))
+         local f1U = fIn:get(indexer(idxs1U))
+         local f2L = fIn:get(indexer(idxs2L))
+         local f2U = fIn:get(indexer(idxs2U))
+         local f3L = fIn:get(indexer(idxs3L))
+         local f3U = fIn:get(indexer(idxs3U))
+         
+         --local fTL = fIn:get(indexer(idxsTL))
+         --local fTR = fIn:get(indexer(idxsTR))
+         --local fBL = fIn:get(indexer(idxsBL))
+         --local fBR = fIn:get(indexer(idxsBR))
 
-         local fTL = fIn:get(indexer(idxsTL))
-         local fTR = fIn:get(indexer(idxsTR))
-         local fBL = fIn:get(indexer(idxsBL))
-         local fBR = fIn:get(indexer(idxsBR))
+         local h = hIn:get(indexer(idxs))
+         local h1L = hIn:get(indexer(idxs1L))
+         local h1U = hIn:get(indexer(idxs1U))
+         local h2L = hIn:get(indexer(idxs2L))
+         local h2U = hIn:get(indexer(idxs2U))
+         local h3L = hIn:get(indexer(idxs3L))
+         local h3U = hIn:get(indexer(idxs3U))
 
-         local hC = hIn:get(indexer(idxs))
-         local hR = hIn:get(indexer(idxsR))
-         local hL = hIn:get(indexer(idxsL))
-         local hT = hIn:get(indexer(idxsT))
-         local hB = hIn:get(indexer(idxsB))
+         --local gC = gIn:get(indexer(idxs))
+         --local gR = gIn:get(indexer(idxsR))
+         --local gL = gIn:get(indexer(idxsL))
+         --local gT = gIn:get(indexer(idxsT))
+         --local gB = gIn:get(indexer(idxsB))
 
-         local gC = gIn:get(indexer(idxs))
-         local gR = gIn:get(indexer(idxsR))
-         local gL = gIn:get(indexer(idxsL))
-         local gT = gIn:get(indexer(idxsT))
-         local gB = gIn:get(indexer(idxsB))
-
-         local gTL = gIn:get(indexer(idxsTL))
-         local gTR = gIn:get(indexer(idxsTR))
-         local gBL = gIn:get(indexer(idxsBL))
-         local gBR = gIn:get(indexer(idxsBR))
+         --local gTL = gIn:get(indexer(idxsTL))
+         --local gTR = gIn:get(indexer(idxsTR))
+         --local gBL = gIn:get(indexer(idxsBL))
+         --local gBR = gIn:get(indexer(idxsBR))
 
          local srcP = src:get(indexer(idxs))
 
          local fOutP = fOut:get(indexer(idxs))
 
          dragFreq = dragKernelFn(dt, dv:data(),
-				 fC:data(),
-				 fL:data(), fR:data(),
-				 fT:data(), fB:data(),
-				 hC:data(),
-				 hL:data(), hR:data(),
-				 hT:data(), hB:data(),
+				 f:data(),
+				 f1L:data(), f1U:data(),
+				 f2L:data(), f2U:data(),
+                                 f3L:data(), f3U:data(),
+				 h:data(),
+				 h1L:data(), h1U:data(),
+				 h2L:data(), h2U:data(),
+                                 h3L:data(), h3U:data(),
 				 isTopEdge, isBotEdge,
 				 isLeftEdge, isRightEdge,
 				 fOutP:data())
-         diffFreq = diffKernelFn(dt, dv:data(),
-				 fTL:data(), fT:data(), fTR:data(),
-				 fL:data(), fC:data(), fR:data(),
-				 fBL:data(), fB:data(), fBR:data(),
-				 gTL:data(), gT:data(), gTR:data(),
-				 gL:data(), gC:data(), gR:data(),
-				 gBL:data(), gB:data(), gBR:data(),
-				 isTopEdge, isBotEdge,
-				 isLeftEdge, isRightEdge,
-				 fOutP:data())
-	 cflFreq = math.max(cflFreq, diffFreq, dragFreq)
+         -- diffFreq = diffKernelFn(dt, dv:data(),
+	 --        		 fTL:data(), fT:data(), fTR:data(),
+	 --        		 fL:data(), fC:data(), fR:data(),
+	 --        		 fBL:data(), fB:data(), fBR:data(),
+	 --        		 gTL:data(), gT:data(), gTR:data(),
+	 --        		 gL:data(), gC:data(), gR:data(),
+	 --        		 gBL:data(), gB:data(), gBR:data(),
+	 --        		 isTopEdge, isBotEdge,
+	 --        		 isLeftEdge, isRightEdge,
+	 --        		 fOutP:data())
+	 cflFreq = math.max(cflFreq, dragFreq) --diffFreq
       end
 
       if hasConstSource then
