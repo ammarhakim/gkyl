@@ -166,42 +166,23 @@ end
 function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
    if self.oncePerTime and self.tCurr == tCurr then return end -- Do nothing, already computed on this step.
 
-   local grid        = self._onGrid
-   local distf, mom1 = inFld[1], outFld[1]
-
-   local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
-
-   local phaseRange = distf:localRange()
-   if self.onGhosts then -- Extend range to config-space ghosts.
-      local cdirs = {}
-      for dir = 1, cDim do 
-         phaseRange = phaseRange:extendDir(dir, distf:lowerGhost(), distf:upperGhost())
-      end
-   end
-
-
    if GKYL_HAVE_CUDA and self.calcOnDevice then
-      -- MF: current device kernels may be limited to nv>=32 and nv=a power of 2 (nv is the number of velocity-space cells).
-      local confRange    = phaseRange:selectFirst(cDim)
-
-      local d_PhaseGrid  = grid:copyHostToDevice()
-      local d_PhaseRange = Range.copyHostToDevice(phaseRange)
-      local d_ConfRange  = Range.copyHostToDevice(confRange)
-
-      local deviceNumber     = cudaRunTime.GetDevice()
-      local deviceProps, err = cudaRunTime.GetDeviceProperties(deviceNumber)
-
-      local numCellsLocal = phaseRange:selectFirst(pDim):volume()
-
-      local numThreads = math.min(GKYL_DEFAULT_NUM_THREADS, phaseRange:selectLast(vDim):volume())
-      local numBlocks  = math.floor(numCellsLocal/numThreads) --+1
-
-      self._momCalcFun(d_PhaseGrid, d_PhaseRange, d_ConfRange, deviceProps, numBlocks, numThreads, distf:deviceDataPointer(), mom1:deviceDataPointer())
-
-      cudaRunTime.Free(d_ConfRange)
-      cudaRunTime.Free(d_PhaseRange)
-      cudaRunTime.Free(d_PhaseGrid)
+      self:_advanceDevice(tCurr, inFld, outFld)
    else
+
+      local grid        = self._onGrid
+      local distf, mom1 = inFld[1], outFld[1]
+
+      local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
+
+      local phaseRange = distf:localRange()
+      if self.onGhosts then -- Extend range to config-space ghosts.
+         local cdirs = {}
+         for dir = 1, cDim do 
+            phaseRange = phaseRange:extendDir(dir, distf:lowerGhost(), distf:upperGhost())
+         end
+      end
+
       local distfItr, mom1Itr = distf:get(1), mom1:get(1)
    
       -- Construct ranges for nested loops.
@@ -509,6 +490,43 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
    end
 
    if self.oncePerTime then self.tCurr = tCurr end
+end
+
+function DistFuncMomentCalc:_advanceDevice(tCurr, inFld, outFld)
+   -- MF: current device kernels may be limited to nv>=32 and nv=a power of 2 (nv is the number of velocity-space cells).
+
+   local grid        = self._onGrid
+   local distf, mom1 = inFld[1], outFld[1]
+
+   local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
+
+   local phaseRange = distf:localRange()
+   if self.onGhosts then -- Extend range to config-space ghosts.
+      local cdirs = {}
+      for dir = 1, cDim do 
+         phaseRange = phaseRange:extendDir(dir, distf:lowerGhost(), distf:upperGhost())
+      end
+   end
+
+   local confRange = phaseRange:selectFirst(cDim)
+
+   local d_PhaseGrid  = grid:copyHostToDevice()
+   local d_PhaseRange = Range.copyHostToDevice(phaseRange)
+   local d_ConfRange  = Range.copyHostToDevice(confRange)
+
+   local deviceNumber = cudaRunTime.GetDevice()
+   local deviceProps  = cudaRunTime.GetDeviceProperties(deviceNumber)
+
+   local numCellsLocal = phaseRange:selectFirst(pDim):volume()
+
+   local numThreads = math.min(GKYL_DEFAULT_NUM_THREADS, phaseRange:selectLast(vDim):volume())
+   local numBlocks  = math.floor(numCellsLocal/numThreads) --+1
+
+   self._momCalcFun(d_PhaseGrid, d_PhaseRange, d_ConfRange, deviceProps, numBlocks, numThreads, distf:deviceDataPointer(), mom1:deviceDataPointer())
+
+   cudaRunTime.Free(d_ConfRange)
+   cudaRunTime.Free(d_PhaseRange)
+   cudaRunTime.Free(d_PhaseGrid)
 end
 
 return DistFuncMomentCalc
