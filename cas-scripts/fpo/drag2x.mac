@@ -56,7 +56,6 @@ for polyOrder : 1 thru 2 do (
     makelist(dv[i]=dv[i-1], i, 1, 3)
     ),
 
-
   /* Setting up recoveries of h */
   hRecL : calcRecov2CellGen(basisNm, x, [2,2], polyOrder, hL, hC),
   hRecR : calcRecov2CellGen(basisNm, x, [2,2], polyOrder, hC, hR),
