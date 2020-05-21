@@ -89,7 +89,7 @@ end
 function test_1x1v(pOrder, basis)
    local pLower = {0.0, -6.0}
    local pUpper = {1.0,  6.0}
-   local pN     = {8, 16}
+   local pN     = {8, 32}
 
    -- Phase-space and config-space grids.
    local phaseGrid = createGrid(pLower, pUpper, pN)

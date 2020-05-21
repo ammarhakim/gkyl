@@ -31,14 +31,14 @@ genRsetq(lhs, rhs) := block([],
 genWriteCExprs1(lhs, rhs) := block([expr],
   expr : float(expand(rhs)),
   for i : 1 thru length(expr) do (
-    if expr[i] # 0.0 then genRsetq(sconcat("  ",string(lhs[i-1])), expr[i])
+    if expr[i] # 0.0 then genRsetq(sconcat("  ", string(lhs[i-1])), expr[i])
   )
 )$
 
 genWriteCExprsOffset1(lhs, rhs, offset, nSpaces) := block([expr],
   expr : float(expand(rhs)),
   for i : 1 thru length(expr) do (
-    if expr[i] # 0.0 then genRsetq(sconcat(smake(nSpaces," "),string(lhs[offset+i-1])), expr[i])
+    if expr[i] # 0.0 then genRsetq(sconcat(smake(nSpaces," "), string(lhs[offset+i-1])), expr[i])
   )
 )$
 
@@ -59,7 +59,7 @@ NP : length(bP)$
 NC : length(bC)$
 
 
-genLitPrint("__global__ void d_calcMom~ax~av~a_M0_P~a(RectCart_t *grid, Range_t *range, double *fIn, double *out) {",cdim,vdim,basisType,polyOrder)$
+genLitPrint("__global__ void d_calcMom~ax~av~a_M0_P~a(RectCart_t *grid, Range_t *pRange, Range_t *cRange, double *fIn, double *out) {",cdim,vdim,basisType,polyOrder)$
 
 >>
   // In computing moments we will first assign whole configuration-space cells to a single block.
@@ -68,7 +68,7 @@ genLitPrint("__global__ void d_calcMom~ax~av~a_M0_P~a(RectCart_t *grid, Range_t 
   // Index of the first phase-space memory address to access.
   unsigned int phaseLinIdx = blockIdx.x*blockDim.x + threadIdx.x;
 <<
-genLitPrint("  GkylCuda::Indexer<~a> phaseIndxr(range);",cdim+vdim)$
+genLitPrint("  GkylCuda::Indexer<~a> phaseIndxr(pRange);",cdim+vdim)$
 genLitPrint("  int phaseMultiDimIdx[~a];",cdim+vdim)$
 >>
   phaseIndxr.invIndex(phaseLinIdx, phaseMultiDimIdx);
@@ -100,10 +100,10 @@ genLitPrint("  blockReduceComponentsSum(localSumPtr, ~a);",NC)$
 
   // Configuration space indexes.
 <<
-genLitPrint("  GkylCuda::Indexer<~a> confIndxr(range);",cdim)$
+genLitPrint("  GkylCuda::Indexer<~a> confIndxr(cRange);",cdim)$
 genLitPrint("  int confMultiDimIdx[~a];",cdim)$
 genWriteCExprs1(confMultiDimIdx,makelist(phaseMultiDimIdx[i],i,0,cdim-1))$
-genLitPrint("  int confLinMemIdx = ~a*confIndxr.index(confMultiDimIdx);", NC)$
+genLitPrint("  int confLinMemIdx = ~a*confIndxr.index(*confMultiDimIdx);", NC)$
 
 >>
 
@@ -116,11 +116,11 @@ genWriteCExprsOffset1(out,makelist(localSumPtr[i],i,0,NC-1),confLinMemIdx,4)$
 
 }
 <<
-genLitPrint("void calcMom~ax~av~a_M0_P~a(RectCart_t *grid, Range_t *range, GkDeviceProp *prop, int numBlocks, int numThreads, double *fIn, double *out) {",cdim,vdim,basisType,polyOrder)$
+genLitPrint("void calcMom~ax~av~a_M0_P~a(RectCart_t *grid, Range_t *pRange, Range_t *cRange, GkDeviceProp *prop, int numBlocks, int numThreads, double *fIn, double *out) {",cdim,vdim,basisType,polyOrder)$
 >>
   int warpSize = prop->warpSize;
 <<
-genLitPrint(" d_calcMom~ax~av~a_M0_P~a<<<numBlocks, numThreads, ~a*(numThreads/warpSize)*sizeof(double)>>>(grid, range, fIn, out);",cdim,vdim,basisType,polyOrder,NC)$
+genLitPrint(" d_calcMom~ax~av~a_M0_P~a<<<numBlocks, numThreads, ~a*(numThreads/warpSize)*sizeof(double)>>>(grid, pRange, cRange, fIn, out);",cdim,vdim,basisType,polyOrder,NC)$
 >>
 }
 
