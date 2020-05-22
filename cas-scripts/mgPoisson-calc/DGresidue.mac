@@ -109,14 +109,14 @@ calcDGResidue(fh, funcNm, dim, basisFun, pMax) := block([],
 
     /* The right-hand-side of the Poisson equation is
        just a projection of the source on the basis. */
-    rho_e     : doExpand1(rho,bC),
+    rho_e     : doExpand1(rhoC,bC),
     sourceRHS : volFac*calcInnerProdList(varsC,1,bC,rho_e),
 
     /* Subtract the LHS from the right-side source to obtain residue. */
     residue_c : fullratsimp(sourceRHS - poissonLHS),
 
     /* Write kernel. */
-    printf(fh, "void ~a_P~a(double **dx, const double *bcVals, const double *rho, double **phi, double *resOut) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "void ~a_P~a(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) ~%{ ~%", funcNm, polyOrder),
     printf(fh, "  // dx:     cell lengths of cells pointed to by the stencil.~%"),
     printf(fh, "  // rho:    right-side source in the current cell.~%"),
     printf(fh, "  // bcVals: values to impose as BCs.~%"),
@@ -124,8 +124,9 @@ calcDGResidue(fh, funcNm, dim, basisFun, pMax) := block([],
     printf(fh, "  // resOut: residue in current cell.~%"),
     printf(fh, "~%"),
 
-    /* Pointers to the cell lengths in cells pointed to by the stencil. */
+    /* Pointers to the cell lengths and right-side source in cells pointed to by the stencil. */
     printf(fh, "  double *dxC  = dx[0]; ~%"),
+    printf(fh, "  double *rhoC = rho[0]; ~%"),
     printf(fh, "~%"),
 
     /* This volume factors appears in front of the right-side source term. */
@@ -258,7 +259,7 @@ calcDGResidueBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
       /* Don't forget to loop over polynomial order. */
       for polyOrder : 1 thru pMax do (
 
-        printf(fh, "void ~a_~aP~a(double **dx, const double *bcVals, const double *rho, double **phi, double *resOut) ~%{ ~%", funcNm, boundaryStr, polyOrder),
+        printf(fh, "void ~a_~aP~a(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) ~%{ ~%", funcNm, boundaryStr, polyOrder),
         printf(fh, "  // dx:     cell lengths of cells pointed to by the stencil.~%"),
         printf(fh, "  // rho:    right-side source in the current cell.~%"),
         printf(fh, "  // bcVals: values to impose as BCs.~%"),
@@ -333,14 +334,15 @@ calcDGResidueBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
   
         /* The right-hand-side of the Poisson equation is
            just a projection of the source on the basis. */
-        rho_e     : doExpand1(rho,bC),
+        rho_e     : doExpand1(rhoC,bC),
         sourceRHS : volFac*calcInnerProdList(varsC,1,bC,rho_e),
   
         /* Subtract the LHS from the right-side source to obtain residue. */
         residue_c : fullratsimp(sourceRHS - poissonLHS),
 
-        /* Pointers to the cell lengths in cells pointed to by the stencil. */
+        /* Pointers to the cell lengths and right-side source in cells pointed to by the stencil. */
         printf(fh, "  double *dxC  = dx[0]; ~%"),
+        printf(fh, "  double *rhoC = rho[0]; ~%"),
         printf(fh, "~%"),
 
         /* This volume factors appears in front of the right-side source term. */

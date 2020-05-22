@@ -839,7 +839,7 @@ function KineticSpecies:calcDiagnosticMoments(tm)
       f:accumulate(-1, self.f0)
       tCurr = -tm-1 -- setting tCurr = -tm-1 will force the updater to recompute moments even if it has already been used on this timestep
    end
-   for i, mom in ipairs(self.diagnosticMoments) do
+   for i, mom in pairs(self.diagnosticMoments) do
       self.diagnosticMomentUpdaters[mom]:advance(
 	 tCurr, {f}, {self.diagnosticMomentFields[mom]})
    end
@@ -990,7 +990,7 @@ function KineticSpecies:writeRestart(tm)
    local writeSkin = false
    if self.hasSheathBcs or self.fluctuationBCs then writeSkin = true end
    self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, writeSkin)
-   for i, mom in ipairs(self.diagnosticMoments) do
+   for i, mom in pairs(self.diagnosticMoments) do
       self.diagnosticMomentFields[mom]:write(
 	 string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
    end   
@@ -1024,7 +1024,7 @@ function KineticSpecies:readRestart()
          string.format("%s_%s_restart.bp", self.name, mom))
    end
 
-   for i, mom in ipairs(self.diagnosticMoments) do
+   for i, mom in pairs(self.diagnosticMoments) do
       local _, dfr = self.diagnosticMomentFields[mom]:read(
          string.format("%s_%s_restart.bp", self.name, mom))
       self.diagIoFrame = dfr -- Reset internal diagnostic IO frame counter.

@@ -14,9 +14,16 @@ local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max", ["tenso
 
 local _M = {}
 
--- Select prolongation operator kernel.
+-- Select interpolation operator kernel.
 function _M.selectInterpolation(basisNm, dim, polyOrder)
    local funcNm = string.format("CartFieldInterp%dx%s_P%d", dim, basisNmMap[basisNm], polyOrder)
+   return ffi.C[funcNm]
+end
+
+-- Select interpolation kernel for the cases that don't interpolate in one direction.
+function _M.selectInterpolationExcept1dir(basisNm, dim, polyOrder, sameDir)
+   local pDirs  = {"X","Y","Z","VX","VY","VZ"}
+   local funcNm = string.format("CartFieldInterp%dx%s_%s_P%d", dim, basisNmMap[basisNm], pDirs[sameDir], polyOrder)
    return ffi.C[funcNm]
 end
 

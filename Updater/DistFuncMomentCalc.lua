@@ -19,6 +19,8 @@ local Proto        = require "Lib.Proto"
 local UpdaterBase  = require "Updater.Base"
 local lume         = require "Lib.lume"
 local xsys         = require "xsys"
+local Unit = require "Unit"
+local assert_equal = Unit.assert_equal
 
 local Range, cuRunTime
 if GKYL_HAVE_CUDA then
@@ -96,7 +98,7 @@ function DistFuncMomentCalc:init(tbl)
    end
 
    if GKYL_HAVE_CUDA then
-      self.calcOnDevice = tbl.onDevice
+      self.calcOnDevice = assert(tbl.onDevice, "Updater.DistFuncMomentCalc: Must specify whether to compute on device with 'onDevice'.")
    else
       self.calcOnDevice = false
    end
@@ -120,9 +122,9 @@ function DistFuncMomentCalc:init(tbl)
    self.momfac = 1.0
    if tbl.momfac then self.momfac = tbl.momfac end
    if tbl.gkfacs then
-      self.mass        = tbl.gkfacs[1]
-      self.bmag        = assert(tbl.gkfacs[2], "DistFuncMomentCalc: must provide bmag in gkfacs")
-      self.bmagItr     = self.bmag:get(1)
+      self.mass    = tbl.gkfacs[1]
+      self.bmag    = assert(tbl.gkfacs[2], "DistFuncMomentCalc: must provide bmag in gkfacs")
+      self.bmagItr = self.bmag:get(1)
    end
 
    -- Cell index, center and length right of a cell-boundary (also used for current cell for p>1).
@@ -160,44 +162,28 @@ function DistFuncMomentCalc:init(tbl)
    self.oncePerTime = xsys.pickBool(tbl.oncePerTime, false)
 end
 
--- advance method
+-- Advance method.
 function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
-   if self.oncePerTime and self.tCurr == tCurr then return end -- do nothing, already computed on this step
-
-   local grid        = self._onGrid
-   local distf, mom1 = inFld[1], outFld[1]
-
-   local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
-
-   local phaseRange = distf:localRange()
-   if self.onGhosts then -- extend range to config-space ghosts
-      local cdirs = {}
-      for dir = 1, cDim do 
-         phaseRange = phaseRange:extendDir(dir, distf:lowerGhost(), distf:upperGhost())
-      end
-   end
-
-   local distfItr, mom1Itr = distf:get(1), mom1:get(1)
+   if self.oncePerTime and self.tCurr == tCurr then return end -- Do nothing, already computed on this step.
 
    if GKYL_HAVE_CUDA and self.calcOnDevice then
-      
-      local d_PhaseGrid  = grid:copyHostToDevice()
-      local d_PhaseRange = Range.copyHostToDevice(phaseRange)
-
-      local deviceNumber     = cudaRunTime.GetDevice()
-      local deviceProps, err = cudaRunTime.GetDeviceProperties(deviceNumber)
-
-      local phaseRangeDecomp = LinearDecomp.LinearDecompRange {
-         range = phaseRange:selectFirst(pDim), numSplit = grid:numSharedProcs() }
-      local numCellsLocal = phaseRangeDecomp:volume()
-
-      local numThreads = GKYL_DEFAULT_NUM_THREADS
-      local numBlocks  = math.floor(numCellsLocal/numThreads)+1
-
-      self._momCalcFun(d_PhaseGrid, d_PhaseRange, deviceProps, numBlocks, numThreads, distfItr:deviceDataPointer(), mom1Itr:deviceDataPointer())
-
-      cudaRunTime.Free(d_PhaseRange)
+      self:_advanceDevice(tCurr, inFld, outFld)
    else
+
+      local grid        = self._onGrid
+      local distf, mom1 = inFld[1], outFld[1]
+
+      local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
+
+      local phaseRange = distf:localRange()
+      if self.onGhosts then -- Extend range to config-space ghosts.
+         local cdirs = {}
+         for dir = 1, cDim do 
+            phaseRange = phaseRange:extendDir(dir, distf:lowerGhost(), distf:upperGhost())
+         end
+      end
+
+      local distfItr, mom1Itr = distf:get(1), mom1:get(1)
    
       -- Construct ranges for nested loops.
       local confRangeDecomp = LinearDecomp.LinearDecompRange {
@@ -205,8 +191,8 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
       local velRange = phaseRange:selectLast(vDim)
       local tId      = grid:subGridSharedId()    -- Local thread ID.
    
-      local phaseIndexer      = distf:genIndexer()
-      local confIndexer       = mom1:genIndexer()
+      local phaseIndexer = distf:genIndexer()
+      local confIndexer  = mom1:genIndexer()
 
       local mom2, mom3
       local mom2Itr, mom3Itr
@@ -504,6 +490,43 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
    end
 
    if self.oncePerTime then self.tCurr = tCurr end
+end
+
+function DistFuncMomentCalc:_advanceDevice(tCurr, inFld, outFld)
+   -- MF: current device kernels may be limited to nv>=32 and nv=a power of 2 (nv is the number of velocity-space cells).
+
+   local grid        = self._onGrid
+   local distf, mom1 = inFld[1], outFld[1]
+
+   local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
+
+   local phaseRange = distf:localRange()
+   if self.onGhosts then -- Extend range to config-space ghosts.
+      local cdirs = {}
+      for dir = 1, cDim do 
+         phaseRange = phaseRange:extendDir(dir, distf:lowerGhost(), distf:upperGhost())
+      end
+   end
+
+   local confRange = phaseRange:selectFirst(cDim)
+
+   local d_PhaseGrid  = grid:copyHostToDevice()
+   local d_PhaseRange = Range.copyHostToDevice(phaseRange)
+   local d_ConfRange  = Range.copyHostToDevice(confRange)
+
+   local deviceNumber = cudaRunTime.GetDevice()
+   local deviceProps  = cudaRunTime.GetDeviceProperties(deviceNumber)
+
+   local numCellsLocal = phaseRange:selectFirst(pDim):volume()
+
+   local numThreads = math.min(GKYL_DEFAULT_NUM_THREADS, phaseRange:selectLast(vDim):volume())
+   local numBlocks  = math.floor(numCellsLocal/numThreads) --+1
+
+   self._momCalcFun(d_PhaseGrid, d_PhaseRange, d_ConfRange, deviceProps, numBlocks, numThreads, distf:deviceDataPointer(), mom1:deviceDataPointer())
+
+   cudaRunTime.Free(d_ConfRange)
+   cudaRunTime.Free(d_PhaseRange)
+   cudaRunTime.Free(d_PhaseGrid)
 end
 
 return DistFuncMomentCalc

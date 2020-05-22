@@ -9,6 +9,44 @@ Gkeyll Team.
 
 Documentation for the code is available at http://gkeyll.rtfd.io.
 
+# Getting dependencies and building the code
+
+Building Gkeyll requires a modern C/C++ compiler and Python 3 (for use in the `waf` build system and post-processing). The following instructions assume that these tools are present.
+
+For systems on which Gkeyll has been built before, the code can be built in three steps using scripts found in the `machines/` directory.
+1. Install dependencies using a `mkdeps` script from the `machines/` directory:
+```
+./machines/mkdeps.[SYSTEM].sh
+```
+where `[SYSTEM]` should be replaced by the name of the system you are building on, such as `macosx` or `eddy`. By default, installations will be made in `~/gkylsoft/`. 
+
+2. Configure `waf` using a `configure` script from the `machines/` directory: 
+```
+./machines/configure.[SYSTEM].sh
+```
+
+**Steps 1 and 2 should only need to be done on the first build, unless one wishes to change the dependencies.**
+
+3. Build the code using
+```
+./waf build install
+```
+
+## Building on non-native systems.
+
+For systems that do not already have corresponding files in the `machines/` directory, we encourage you to add files for your machine. Instructions can be found in `machines/README.md`.
+
+# Diagnostic tools
+
+The `postgkyl` python package has been developed for plotting diagnostic files from Gkeyll. 
+It can be installed via `conda` using
+
+```
+conda install -c gkyl postgkyl
+```
+
+For more information about `postgkyl` and how to use it, please see https://gkeyll.readthedocs.io/en/latest/postgkyl/usage.html. 
+
 # License
 
 **Gkeyll can be used freely for research at universities, national
@@ -31,26 +69,6 @@ useful to the larger Gkeyll team). You can submit a "pull request" and
 we will try our best to merge your changes into the
 mainline. Contributed code should compile and have sufficient
 unit/regression tests.
-
-# Ghost, Ghouls and Zombies
-
-The Grand CEO of Gkeyll has proclaimed that all code shall be (a)
-comprehensible, (b) tested with regression and/or unit tests, and (c)
-used *somewhere*. To facilitate this we shall define:
-
-- **Ghost** is code that does not have any regression and/or unit
-  tests. Just like their non-virtual cousins such ghost code will not
-  be deemed to exist.
-
-- **Ghoul** is code that is completely incomprehensible, often even to
-  the original author. Much of the CAS-generated kernels (and some
-  code written by the Grand CEO Himself) are ghouls.
-  
-- **Zombie** is code that is not used anywhere and no one knows why it
-  exists and if deleting it is safe.
-  
-The goal is to avoid ghost, ghouls and zombies as much as possible
-using excellent software practices.
 
 # Authors
 

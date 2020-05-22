@@ -8,6 +8,7 @@ bName        : ["Ser"]$
 
 
 VarsC : [X, Y, Z]$
+pVars : [X, Y, Z, VX, VY, VZ]$
 
 printf(fh, "#ifndef CART_FIELD_INTERPOLATE_MOD_DECL_H ~%")$
 printf(fh, "#define CART_FIELD_INTERPOLATE_MOD_DECL_H ~%")$
@@ -26,7 +27,10 @@ for bInd : 1 thru length(bName) do (
     for ci : 1 thru 2 do (
 
       /* Interpolation operator. */
-      printf(fh, "void CartFieldInterp~ax~a_P~a(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF);~%", ci, bName[bInd], polyOrder),
+      for dir : 0 thru ci do (
+        if dir=0 then (dirStr : "") else (dirStr : sconcat("_",string(pVars[dir]))),
+        printf(fh, "void CartFieldInterp~ax~a~a_P~a(const double *wC, const double *wF, const double *dxC, const double *dxF, const double *fldC, double *fldF);~%", ci, bName[bInd], dirStr, polyOrder)
+      ),
       printf(fh, "~%")
 
     ),

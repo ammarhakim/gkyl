@@ -695,6 +695,17 @@ function test_34()
    assert_equal(0, err, "Checking if range object copied to device")
 end
 
+function test_35()
+   local range = Range.Range({1,1,1}, {10,20,30})
+   assert_equal(true, range:contains({1,1,1}), "Checking contains")
+   assert_equal(true, range:contains({10,20,30}), "Checking contains")
+   assert_equal(true, range:contains({3,3,3}), "Checking contains")   
+
+   assert_equal(false, range:contains({0,1,1}), "Checking contains")
+   assert_equal(false, range:contains({10,21,30}), "Checking contains")
+		
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -731,6 +742,7 @@ test_31()
 test_32()
 test_33()
 test_34()
+test_35()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

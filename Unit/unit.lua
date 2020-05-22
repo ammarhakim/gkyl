@@ -72,20 +72,20 @@ local function assert_equal(expected, actual, msg)
 end
 
 local function assert_close(expected, actual, tol, msg)
-   if type(expected) ~= "number" then
+   if type(expected) ~= "number" or type(actual) ~= "number" then
       io.write(string.format("assert_close only works for numbers. Not performing test %s\n", msg))
    end
 
    if math.abs(actual) < 1e-15 then
       if math.abs(expected-actual) > tol then
-	 print( "** Assert_equal FAILED", msg, string.format("expected %s but was %s; diff is greater than tol %s", format_arg(expected), format_arg(actual), format_arg(tol)) )
+	 print( "** Assert_equal FAILED", msg, string.format("expected %s but was %s; diff (%e) is greater than tol %s", format_arg(expected), format_arg(actual), format_arg(math.abs(expected-actual)), format_arg(tol)) )
 	 stats.fail = stats.fail+1
       else
 	 stats.pass = stats.pass+1
       end
    else
-      if math.abs(1-expected/actual) > tol/actual then
-	 print( "** Assert_equal FAILED", msg, string.format("expected %s but was %s; diff is greater than tol %s", format_arg(expected), format_arg(actual), format_arg(tol)) )
+      if math.abs(1-expected/actual) > math.abs(tol/actual) then
+	 print( "** Assert_close FAILED", msg, string.format("expected %s but was %s; diff (%e) is greater than tol %s", format_arg(expected), format_arg(actual), format_arg(math.abs(1-expected/actual)), format_arg(math.abs(tol/actual))) )
 	 stats.fail = stats.fail+1
       else
 	 stats.pass = stats.pass+1

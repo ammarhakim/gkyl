@@ -11,8 +11,10 @@
 -- TODO: Use FFI arrays for abscissas and weights to improve performance.
 -- TODO: Move change of variables code in separate module for re-use.
 
-local data  = require "sci.quad._dblexp_precomputed"
 local gmath = require "sci.math".generic
+local math = require "sci.math".generic
+local diff = require "sci.diff"
+local data  = require "sci.quad._dblexp_precomputed"
 
 local abscissas = data.abscissas
 local weigths   = data.weigths
@@ -61,7 +63,7 @@ end
 
 local function chgedintegrand(f, y, a, b, u, v)
   -- assert(a < b and u < v)
-  local afinite, bfinite = a > -1/0, b < 1/0
+  local afinite, bfinite = tonumber(tostring(a)) > -1/0, tonumber(tostring(b)) < 1/0
   if afinite and bfinite then         -- Case (a, b).
     return chgedfinite (f, y, a, b, u, v)
   elseif afinite and not bfinite then -- Case (a, +oo).
@@ -81,10 +83,10 @@ end
 
 -- Integration on interval (-1, 1).
 local dblexp = function(f, a, b, abserror)
-  if a > b then
+  if tonumber(tostring(a)) > tonumber(tostring(b)) then
     error("a <= b is required, a is "..tostring(a)..", b is "..tostring(b))
   end
-  if a == b then
+  if tonumber(tostring(a)) == tonumber(tostring(b)) then
     return 0
   end
   abserror = abserror or 1e-6
@@ -109,7 +111,7 @@ local dblexp = function(f, a, b, abserror)
     local newintegral = sum*h + integral/2
     absdelta = abs(newintegral - integral)
     integral = newintegral    
-    if absdelta < abserror then break end
+    if tonumber(tostring(absdelta)) < tonumber(tostring(abserror)) then break end
   end  
   return integral, absdelta
 end

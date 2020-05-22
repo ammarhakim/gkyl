@@ -8,7 +8,7 @@ local DataStruct = require "DataStruct"
 local Grid = require "Grid"
 local Updater = require "Updater"
 
-local x0, y0 = 0, 0
+local x0, y0 = 1.0, 0.0
 local bx = function(x, y) return -(y-y0)/math.sqrt((x-x0)^2+(y-y0)^2) end
 local by = function(x, y) return (x-x0)/math.sqrt((x-x0)^2+(y-y0)^2) end
 

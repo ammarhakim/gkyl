@@ -200,6 +200,8 @@ function CartFieldInterpolate:_advance(tCurr, fldIn, fldOut)
    local inFld   = fldIn[1]
    local outFld  = fldOut[1]
 
+   outFld:clear(0.0)
+
    local inGrid  = inFld:grid() 
    local outGrid = outFld:grid() 
 

@@ -23,7 +23,7 @@ function _M.selectMomCalc(mom, basisNm, CDIM, VDIM, polyOrder, calcOnDevice)
    if not calcOnDevice then
       funcNm = string.format("MomentCalc%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], mom, polyOrder)
    else
-      funcNm = string.format("calcMom%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], mom, polyOrder)
+      funcNm = string.format("cuda_MomentCalc%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], mom, polyOrder)
    end
    return ffi.C[funcNm]
 end

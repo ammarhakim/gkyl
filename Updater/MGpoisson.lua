@@ -28,6 +28,7 @@ local Lin                   = require "Lib.Linalg"
 local ffi                   = require "ffi"
 local lume                  = require "Lib.lume"
 local IntQuantCalc          = require "Updater.CartFieldIntegratedQuantCalc"
+local Mpi                   = require "Comm.Mpi"
 
 -- Boundary condition ID numbers.
 local BVP_BC_PERIODIC  = 0
@@ -75,6 +76,10 @@ local function createField(grid, basis, vComp)
       onGrid        = grid,
       numComponents = basis:numBasis()*vComp,
       ghost         = {1, 1},
+      metaData      = {
+         polyOrder = basis:polyOrder(),
+         basisType = basis:id()
+      }
    }
    return fld
 end
@@ -98,7 +103,6 @@ function MGpoisson:init(tbl)
 
    local basis = assert(
       tbl.basis, "Updater.MGpoisson: Must provide the weak basis object using 'basis'.")
-
 
    -- ~~............................ Multigrid parameters ..............................~~ --
    -- Relaxation method. 
@@ -166,6 +170,17 @@ function MGpoisson:init(tbl)
    local polyOrder = basis:polyOrder()   -- Polynomial order.
    local basisID   = basis:id()          -- Basis kind.
 
+   self.zeros  = {}
+   self.ones   = {}
+   self.threes = {}
+   self.mOnes  = {}
+   for d = 1, self.dim do
+      self.zeros[d]  = 0
+      self.ones[d]   = 1
+      self.threes[d] = 3
+      self.mOnes[d]  = -1
+   end
+
    -- Read boundary conditions.
    -- Assume the inputs are two tables, bcLower and bcUpper, with each table
    -- having a two element table for each dimension, For example, for a 2D sim
@@ -212,7 +227,7 @@ function MGpoisson:init(tbl)
    local periodicDirs  = {}
    local isDirPeriodic = {}
    for d = 1, self.dim do
-      if ((bcTypes[d][1] == 0) and (bcTypes[d][2] == 0))then
+      if ((bcTypes[d][1] == 0) and (bcTypes[d][2] == 0)) then
          lume.push(periodicDirs,d)
          isDirPeriodic[d] = true
          bcValues[d]      = {{0.0}, {0.0}}   -- Not used, but a nil could cause problems.
@@ -292,7 +307,7 @@ function MGpoisson:init(tbl)
 
       local decompC = DecompRegionCalc.CartProd {
          cuts      = decompCutsC,
-         useShared = useSharedC,
+         useShared = isSharedC,
       }
 
       self.mgGrids[self.mgLevels] = Grid.RectCart {
@@ -303,7 +318,7 @@ function MGpoisson:init(tbl)
          decomposition = decompC,
       }
 
-      if not notAtCoarsest then
+      if (not notAtCoarsest and self.isDG) then
          self.directSolver = DirectDGPoissonSolver {
             onGrid  = self.mgGrids[self.mgLevels],
             basis   = basis,
@@ -323,31 +338,24 @@ function MGpoisson:init(tbl)
    for i = 2, self.mgLevels do
       -- Allocate space for the iterate, right-side source field and
       -- the residue on each grid level.
-      self.phiAll[i]     = createField(self.mgGrids[i],basis)
-      self.rhoAll[i]     = createField(self.mgGrids[i],basis)
-      self.residueAll[i] = createField(self.mgGrids[i],basis)
+      self.phiAll[i]     = createField(self.mgGrids[i], basis)
+      self.rhoAll[i]     = createField(self.mgGrids[i], basis)
+      self.residueAll[i] = createField(self.mgGrids[i], basis)
    end
    if self.isJacobiRelax then
       self.phiPrevAll = {}
       for i = 1, self.mgLevels do
          -- For Jacobi relaxation need an extrac copy of the field iterate.
-         self.phiPrevAll[i] = createField(self.mgGrids[i],basis)
+         self.phiPrevAll[i] = createField(self.mgGrids[i], basis)
       end
    end
 
-   if self.isDG then
--- temporary if-statement.
-      -- Select restriction and prolongation operator kernels.
-      self._restriction  = MGpoissonDecl.selectRestriction(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
-      self._prolongation = MGpoissonDecl.selectProlongation(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
-      -- Select kernels for relaxation and computing the residue.
-      self._relaxation   = MGpoissonDecl.selectRelaxation(solverType, basisID, self.dim, polyOrder, relaxKind, bcTypes)
-      self._calcResidue  = MGpoissonDecl.selectResidueCalc(solverType, basisID, self.dim, polyOrder, bcTypes)
-   elseif self.isFEM then
-      self._relaxation   = MGpoissonDecl.selectRelaxation(solverType, basisID, self.dim, polyOrder, relaxKind, bcTypes, self.isDG)
-      self._restriction  = MGpoissonDecl.selectRestriction(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
-      self._prolongation = MGpoissonDecl.selectProlongation(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
-   end
+   -- Select restriction and prolongation operator kernels.
+   self._restriction  = MGpoissonDecl.selectRestriction(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
+   self._prolongation = MGpoissonDecl.selectProlongation(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
+   -- Select kernels for relaxation and computing the residue.
+   self._relaxation   = MGpoissonDecl.selectRelaxation(solverType, basisID, self.dim, polyOrder, relaxKind, bcTypes, self.isDG)
+   self._calcResidue  = MGpoissonDecl.selectResidueCalc(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
 
    -- Intergrid operator stencils: 
    self.igOpStencilWidth = 2
@@ -372,11 +380,15 @@ function MGpoisson:init(tbl)
       self.phiStencilSize = (self.phiStencilWidth-1)*self.dim+1
       -- DG only needs the source in the current cell.
       self.rhoStencilSize = 1
+      self.phiStencilType = {0, self.threes, self.zeros}
+      self.rhoStencilType = {0, self.ones, self.zeros}
    elseif self.isFEM then
       -- 'Filled' stencils for FEM (see opStencilIndices).
       self.phiStencilSize = self.phiStencilWidth^self.dim
       -- FEM uses the right-side source in neighboring cells as well.
       self.rhoStencilSize = self.phiStencilSize
+      self.phiStencilType = {2, self.threes, self.zeros}
+      self.rhoStencilType = {2, self.threes, self.zeros}
    end
    -- List of cell indices pointed to by the stencils.
    self.phiStencilIdx = {}
@@ -411,46 +423,46 @@ function MGpoisson:init(tbl)
    -- (nodal) FEM coefficients. Preselect the appropriate kernels here.
    self._dgToFEM = MGpoissonDecl.selectDGtoFEM(basisID, self.dim, polyOrder, bcTypes)
 
-   self.dgToFEMstencilWidth = 2
-   self.dgToFEMstencilSize  = self.dgToFEMstencilWidth^self.dim
-   self.dgToFEMstencilIdx   = {}   -- List of cell indices pointed to by the stencil.
-   for i = 1, self.dgToFEMstencilSize do
-      self.dgToFEMstencilIdx[i] = Lin.IntVec(self.dim)
+   -- Some stencils just need the Center and nearest Upper cells.
+   self.cuStencilWidth = 2
+   self.cuStencilSize  = self.cuStencilWidth^self.dim
+   self.cuStencilIdx   = {}   -- List of cell indices pointed to by the stencil.
+   for i = 1, self.cuStencilSize do
+      self.cuStencilIdx[i] = Lin.IntVec(self.dim)
    end
    -- List of pointers to the data in cells pointed to by the stencil.
-   self.dgToFEMstencilItr = DoublePtrVec(self.dgToFEMstencilSize)
+   self.cuStencilItr = DoublePtrVec(self.cuStencilSize)
 
-   self.zeros  = {}
-   self.threes = {}
-   self.mOnes  = {}
-   for d = 1, self.dim do
-      self.zeros[d]  = 0
-      self.threes[d] = 3
-      self.mOnes[d]  = -1
-   end
+   self._femProjection = MGpoissonDecl.selectFEMprojection(basisID, self.dim, polyOrder, bcTypes)
 
    -- ......................... End of FEM-specific things ............................ --
 
    -- Select MG components for FEM or DG solver.
    if self.isDG then
-      self.relax    = function(numRelax, phiFld, rhoFld) MGpoisson['relaxDG'](self, numRelax, phiFld, rhoFld) end
+      self.restrict = function(fFld,cFld) MGpoisson['restrictDG'](self,fFld,cFld) end
       self.prolong  = function(cFld,fFld) MGpoisson['prolongDG'](self,cFld,fFld) end
-      self.restrict = function(cFld,fFld) MGpoisson['restrictDG'](self,fFld,cFld) end
    else
-      self.relax    = function(numRelax, phiFld, rhoFld) MGpoisson['relaxFEM'](self, numRelax, phiFld, rhoFld) end
+      self.restrict = function(fFld,cFld) MGpoisson['restrictFEM'](self,fFld,cFld) end
       self.prolong  = function(cFld,fFld) MGpoisson['prolongFEM'](self,cFld,fFld) end
-      self.restrict = function(cFld,fFld) MGpoisson['restrictFEM'](self,fFld,cFld) end
    end
 
-   -- Updater to compute the L2-norm of the residue.
-   self.l2NormCalc = IntQuantCalc {
-      onGrid   = grid, 
-      basis    = basis,
-      quantity = "RmsV",
-   }
-   self.relResNorm  = DataStruct.DynVector { numComponents = 1, }
-   self.residueNorm = DataStruct.DynVector { numComponents = 1, }
-   self.rhoNorm     = DataStruct.DynVector { numComponents = 1, }
+   -- Functions to compute the L2-norm of the residue.
+   if self.isDG then
+      self.l2normCalc = IntQuantCalc {
+         onGrid   = grid, 
+         basis    = basis,
+         quantity = "RmsV",
+      }
+      self.l2normCalcAdv = function(tCurr, inFld, outFld) self.l2normCalc:advance(tCurr, inFld, outFld) end
+   else
+      self._femL2norm    = MGpoissonDecl.selectFEML2norm(basisID, self.dim, polyOrder, bcTypes)
+      self.localNorm     = Lin.Vec(1)
+      self.globalNorm    = Lin.Vec(1)
+      self.l2normCalcAdv = function(tCurr, inFld, outFld) MGpoisson['l2normFEM'](self, tCurr, inFld, outFld) end
+   end
+   self.relResNorm  = DataStruct.DynVector { numComponents = 1 }
+   self.residueNorm = DataStruct.DynVector { numComponents = 1 }
+   self.rhoNorm     = DataStruct.DynVector { numComponents = 1 }
 
 end
 
@@ -492,9 +504,9 @@ function MGpoisson:opStencilIndices(idxIn, stencilType, stencilIdx)
    if stencilType[1] == 0 then
       local sI = 1
       for d = 1, self.dim do
-         for pm = 1,self.phiStencilWidth-1 do
+         for pm = 1,stencilType[2][d]-1 do
             sI = sI + 1
-            stencilIdx[sI][d] = idxIn[d]+((-1)^(pm % 2))*((self.phiStencilWidth-1)/2)
+            stencilIdx[sI][d] = idxIn[d]+((-1)^(pm % 2))*((stencilType[2][d]-1)/2)
          end
       end
    elseif stencilType[1]==2 then
@@ -502,10 +514,10 @@ function MGpoisson:opStencilIndices(idxIn, stencilType, stencilIdx)
       for d = 1, self.dim do
          local prevDimCells = sI
          for pDC = 1, prevDimCells do
-            for pm = 1-stencilType[3][d],self.phiStencilWidth-1 do
+            for pm = 1-stencilType[3][d],stencilType[2][d]-1 do
                sI = sI + 1
                for _, dr in ipairs(self.dimRemain[d]) do stencilIdx[sI][dr] = stencilIdx[pDC][dr] end
-               stencilIdx[sI][d] = stencilIdx[pDC][d]+((-1)^(pm % 2))*((self.phiStencilWidth-1)/2)
+               stencilIdx[sI][d] = stencilIdx[pDC][d]+((-1)^(pm % 2))*((stencilType[2][d]-1)/2)
             end
          end
       end
@@ -528,26 +540,42 @@ function MGpoisson:idxToStencil(idxIn, nCellsIn)
    return stencilIdx
 end
 
--- ................................... Functions specific to FEM solver ................................... --
+function MGpoisson:idxToStencilIU(idxIn, nCellsIn)
+   -- Like idxToStencil but only for methods that only have interior
+   -- and upper boundary kernels.
+   local stencilIdx = 1
+   for d = 1, self.dim do
+      if (idxIn[d] == nCellsIn[d]) then  -- Last cell.
+         stencilIdx = stencilIdx + 2^(d-1)
+      end
+   end
+   return stencilIdx
+end
 
 function MGpoisson:DG_FEM_coefTranslate(dgFld,femFld,dir)
-  -- Translate the DG coefficients of a field into FEM expansion
-  -- coefficients (dir=-1), and viceversa (dir=1).
+   -- Translate the DG coefficients of a field into FEM expansion
+   -- coefficients (dir=-1,DG_to_FEM), and viceversa (dir=1,FEM_to_DG).
+
+   if (dir==DG_to_FEM) then
+      femFld:clear(0.0)
+   else
+      dgFld:clear(0.0)
+   end
 
    local grid   = dgFld:grid()
    local cellsN = {}
    for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
 
-   localRangeDecomp = LinearDecomp.LinearDecompRange {
+   local rangeDecomp = LinearDecomp.LinearDecompRange {
       range = dgFld:localRange(), numSplit = grid:numSharedProcs() }
-   local tId        = grid:subGridSharedId()    -- Local thread ID.
+   local tId         = grid:subGridSharedId()    -- Local thread ID.
 
-   local indexer    = dgFld:genIndexer()
+   local indexer     = dgFld:genIndexer()
 
-   local dgFldItr   = dgFld:get(1)
-   local femFldItr  = femFld:get(1)
+   local dgFldItr    = dgFld:get(1)
+   local femFldItr   = femFld:get(1)
 
-   for idx in localRangeDecomp:rowMajorIter(tId) do
+   for idx in rangeDecomp:rowMajorIter(tId) do
 
       grid:setIndex(idx)
 
@@ -555,28 +583,111 @@ function MGpoisson:DG_FEM_coefTranslate(dgFld,femFld,dir)
       femFld:fill(indexer(idx), femFldItr)   -- FEM field pointer.
  
       -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
-      self:opStencilIndices(idx,{2,self.threes,self.mOnes},self.dgToFEMstencilIdx)
+      self:opStencilIndices(idx,{2,self.threes,self.mOnes},self.cuStencilIdx)
  
       -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil.
-      for i = 1, self.dgToFEMstencilSize do
-         grid:setIndex(self.dgToFEMstencilIdx[i])
+      for i = 1, self.cuStencilSize do
+         grid:setIndex(self.cuStencilIdx[i])
  
-         femFld:fill(indexer(self.dgToFEMstencilIdx[i]), femFldItr)
-         self.dgToFEMstencilItr[i] = femFldItr:data()
+         femFld:fill(indexer(self.cuStencilIdx[i]), femFldItr)
+         self.cuStencilItr[i] = femFldItr:data()
       end
  
-      self._dgToFEM[self:idxToStencil(idx,cellsN)](dgFldItr:data(), self.dgToFEMstencilItr:data())
+      self._dgToFEM[self:idxToStencil(idx,cellsN)](dgFldItr:data(), self.cuStencilItr:data())
    end
 end
 
--- ..................................... End of FEM solver functions ...................................... --
+function MGpoisson:projectFEM(femFld,fldOut)
+   -- After a DG field is converted to an FEM field, we wish to project the FEM field onto
+   -- the FEM (nodal) basis to obtain the right-side vector. This only happens once, and 
+   -- ideally we would fold this operation in with DGtoFEM (for the righ-side source).
+   femFld:copy(fldOut)
+
+   local grid   = fldOut:grid()
+   local cellsN = {}
+   for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
+
+   local rangeDecomp = LinearDecomp.LinearDecompRange {
+      range = fldOut:localRange(), numSplit = grid:numSharedProcs() }
+   local tId         = grid:subGridSharedId()    -- Local thread ID.
+
+   local indexer     = fldOut:genIndexer()
+
+   local fldOutItr   = fldOut:get(1)
+   local femFldItr   = femFld:get(1)
+
+   for idx in rangeDecomp:rowMajorIter(tId) do
+
+      grid:setIndex(idx)
+      fldOut:fill(indexer(idx), fldOutItr)   -- Projected FEM field pointer.
+
+      -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
+      self:opStencilIndices(idx, self.rhoStencilType, self.rhoStencilIdx)
+
+      for i = 1, self.rhoStencilSize do
+         grid:setIndex(self.rhoStencilIdx[i])
+         grid:getDx(self.dxBuf)
+         self.dxStencil[i] = self.dxBuf:data()
+
+         femFld:fill(indexer(self.rhoStencilIdx[i]), femFldItr)
+         self.rhoStencil[i] = femFldItr:data()   -- FEM field pointers.
+      end
+         
+      self._femProjection[self:idxToStencil(idx,cellsN)](self.dxStencil:data(), self.rhoStencil:data(), fldOutItr:data())
+   end
+end
+
+function MGpoisson:l2normFEM(tCurr,inFld,outDynV)
+   -- Compute the L2 norm of an FEM field.
+   local fld, norm  = inFld[1], outDynV[1] 
+
+   local grid   = fld:grid()
+   local cellsN = {}
+   for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
+
+   local indexer = fld:genIndexer()
+   local fldItr  = fld:get(1)
+
+   self.localNorm[1] = 0.0   -- Clear local values.
+
+   -- Construct range for shared memory.
+   local fldRange       = fld:localRange()
+   local fldRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = fldRange:selectFirst(self.dim), numSplit = grid:numSharedProcs() }
+   local tId = grid:subGridSharedId()    -- Local thread ID.
+
+   for idx in fldRangeDecomp:rowMajorIter(tId) do
+      grid:setIndex(idx)
+
+      -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
+      self:opStencilIndices(idx,{2,self.threes,self.mOnes},self.cuStencilIdx)
+
+      -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil.
+      for i = 1, self.cuStencilSize do
+         grid:setIndex(self.cuStencilIdx[i])
+
+         fld:fill(indexer(self.cuStencilIdx[i]), fldItr)
+         self.cuStencilItr[i] = fldItr:data()
+      end
+
+      self._femL2norm[self:idxToStencilIU(idx,cellsN)](self.cuStencilItr:data(), self.localNorm:data())
+   end
+
+   -- All-reduce across processors and push result into dyn-vector.
+   Mpi.Allreduce(
+      self.localNorm:data(), self.globalNorm:data(), 1, Mpi.DOUBLE, Mpi.SUM, self:getComm())
+
+   self.globalNorm[1] = math.sqrt(self.globalNorm[1])
+
+   norm:appendData(tCurr, self.globalNorm)
+end
 
 function MGpoisson:restrictDG(fFld,cFld)
    -- Restriction of a DG fine-grid field (fFld) to a coarse-grid field (cFld). 
 
    local grid = cFld:grid() 
 
-   localRangeDecomp  = LinearDecomp.LinearDecompRange {
+   local rangeDecomp = LinearDecomp.LinearDecompRange {
       range = cFld:localRange(), numSplit = grid:numSharedProcs() }
    local tId         = grid:subGridSharedId()    -- Local thread ID.
 
@@ -586,7 +697,7 @@ function MGpoisson:restrictDG(fFld,cFld)
    local fFldIndexer = fFld:genIndexer()
    local fFldItr     = fFld:get(1)
 
-   for cIdx in localRangeDecomp:rowMajorIter(tId) do
+   for cIdx in rangeDecomp:rowMajorIter(tId) do
 
       grid:setIndex(cIdx)
 
@@ -622,22 +733,23 @@ end
 function MGpoisson:restrictFEM(fFld,cFld)
    -- FEM restriction of a fine-grid field (fFld) to a coarse-grid field (cFld). 
 
+   cFld:clear(0.0)
+
    local grid   = cFld:grid() 
    local cellsN = {}
    for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
 
-   localRangeDecomp  = LinearDecomp.LinearDecompRange {
+   local rangeDecomp = LinearDecomp.LinearDecompRange {
       range = cFld:localRange(), numSplit = grid:numSharedProcs() }
    local tId         = grid:subGridSharedId()    -- Local thread ID.
 
-   cFld:clear(0.0)
    local cFldIndexer = cFld:genIndexer()
    local cFldItr     = cFld:get(1)
 
    local fFldIndexer = fFld:genIndexer()
    local fFldItr     = fFld:get(1)
 
-   for cIdx in localRangeDecomp:rowMajorIter(tId) do
+   for cIdx in rangeDecomp:rowMajorIter(tId) do
 
       grid:setIndex(cIdx)
 
@@ -696,21 +808,21 @@ function MGpoisson:jacobiCopyField(fldIn,fldOutAll)
    return currLevel
 end
 
-function MGpoisson:relaxDG(numRelax, phiFld, rhoFld)
-   -- Perform numRelax DG relaxations of the Poisson equation.
+function MGpoisson:relax(numRelax, phiFld, rhoFld)
+   -- Perform numRelax relaxations of the Poisson equation.
 
    local grid   = phiFld:grid() 
    local cellsN = {}
    for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
 
-   localRangeDecomp = LinearDecomp.LinearDecompRange {
+   local rangeDecomp = LinearDecomp.LinearDecompRange {
       range = phiFld:localRange(), numSplit = grid:numSharedProcs() }
-   local tId        = grid:subGridSharedId()    -- Local thread ID.
+   local tId         = grid:subGridSharedId()    -- Local thread ID.
 
-   local indexer = phiFld:genIndexer()
+   local indexer     = phiFld:genIndexer()
 
-   local phiItr = phiFld:get(1)
-   local rhoItr = rhoFld:get(1)
+   local phiItr      = phiFld:get(1)
+   local rhoItr      = rhoFld:get(1)
 
    local phiPrevItr, currLevel
 
@@ -721,74 +833,13 @@ function MGpoisson:relaxDG(numRelax, phiFld, rhoFld)
          phiPrevItr = self.phiPrevAll[currLevel]:get(1)
       end
 
-      for idx in localRangeDecomp:rowMajorIter(tId) do
+      for idx in rangeDecomp:rowMajorIter(tId) do
    
          grid:setIndex(idx)
    
-         -- Cell lengths and right-side source (rho) in this cell.
-         grid:getDx(self.dxBuf)
-         self.dxStencil[1] = self.dxBuf:data()
-         rhoFld:fill(indexer(idx), rhoItr)   
-     
          -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
-         self:opStencilIndices(idx,{0,self.threes,self.zeros},self.phiStencilIdx)
-   
-         -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil. 
-         for i = 1, self.phiStencilSize do
-            grid:setIndex(self.phiStencilIdx[i])
-            grid:getDx(self.dxBuf)
-            self.dxStencil[i] = self.dxBuf:data()
-
-            phiFld:fill(indexer(self.phiStencilIdx[i]), phiItr)
-            self.phiStencil[i] = phiItr:data()
-
-            if self.isJacobiRelax then
-               self.phiPrevAll[currLevel]:fill(indexer(self.phiStencilIdx[i]), phiPrevItr)
-               self.prevPhiStencil[i] = phiPrevItr:data()
-            end
-         end
-         
-         self._relaxation[self:idxToStencil(idx,cellsN)](self.omega, self.dxStencil:data(), self.bcValue:data(), rhoItr:data(), self.prevPhiStencil:data(), self.phiStencil:data())
-      end
-   end
-end
-
-function MGpoisson:relaxFEM(numRelax, phiFld, rhoFld)
-   -- Perform numRelax FEM relaxations of the Poisson equation.
-
-   local grid   = phiFld:grid() 
-   local cellsN = {}
-   for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
-
-   localRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = phiFld:localRange(), numSplit = grid:numSharedProcs() }
-   local tId        = grid:subGridSharedId()    -- Local thread ID.
-
-   local indexer = phiFld:genIndexer()
-
-   local phiItr = phiFld:get(1)
-   local rhoItr = rhoFld:get(1)
-
-   local phiPrevItr, currLevel
-
-   for nuI = 1, numRelax do    -- Relax numRelax times.
-
-      if self.isJacobiRelax then
-         currLevel  = self:jacobiCopyField(phiFld,self.phiPrevAll) 
-         phiPrevItr = self.phiPrevAll[currLevel]:get(1)
-      end
-
-      for idx in localRangeDecomp:rowMajorIter(tId) do
-   
-         grid:setIndex(idx)
-   
-         -- Cell lengths and right-side source (rho) in this cell.
-         grid:getDx(self.dxBuf)
-         self.dxStencil[1] = self.dxBuf:data()
-         rhoFld:fill(indexer(idx), rhoItr)   
-     
-         -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
-         self:opStencilIndices(idx,{0,self.threes,self.zeros},self.phiStencilIdx)
+         self:opStencilIndices(idx, self.phiStencilType, self.phiStencilIdx)
+         self:opStencilIndices(idx, self.rhoStencilType, self.rhoStencilIdx)
    
          -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil. 
          for i = 1, self.phiStencilSize do
@@ -822,43 +873,48 @@ function MGpoisson:residue(phiFld, rhoFld, resFld)
    --     r = rho + L(phi). 
    -- where L is the Laplacian.
 
-   local grid = phiFld:grid() 
+   local grid   = phiFld:grid() 
    local cellsN = {}
    for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
 
-   localRangeDecomp = LinearDecomp.LinearDecompRange {
+   local rangeDecomp = LinearDecomp.LinearDecompRange {
       range = phiFld:localRange(), numSplit = grid:numSharedProcs() }
-   local tId        = grid:subGridSharedId()    -- Local thread ID.
+   local tId         = grid:subGridSharedId()    -- Local thread ID.
 
-   local indexer = phiFld:genIndexer()
+   local indexer     = phiFld:genIndexer()
 
-   local phiItr = phiFld:get(1)
-   local rhoItr = rhoFld:get(1)
-   local resItr = resFld:get(1)
+   local phiItr      = phiFld:get(1)
+   local rhoItr      = rhoFld:get(1)
+   local resItr      = resFld:get(1)
 
-   for idx in localRangeDecomp:rowMajorIter(tId) do
+   for idx in rangeDecomp:rowMajorIter(tId) do
    
       grid:setIndex(idx)
    
-      -- Cell lengths, right-side source (rho) and residue in this cell.
-      grid:getDx(self.dxBuf)
-      self.dxStencil[1] = self.dxBuf:data()
-      rhoFld:fill(indexer(idx), rhoItr)   
-      resFld:fill(indexer(idx), resItr)   
+      resFld:fill(indexer(idx), resItr)   -- Residue in this cell.
    
-      -- Get with indices of cells used by stencil.
-      self:opStencilIndices(idx,{0,self.threes,self.zeros},self.phiStencilIdx)
+      -- Get indices of cells used by stencil.
+      self:opStencilIndices(idx, self.phiStencilType, self.phiStencilIdx)
+      self:opStencilIndices(idx, self.rhoStencilType, self.rhoStencilIdx)
    
       -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil. 
       for i = 1, self.phiStencilSize do
          grid:setIndex(self.phiStencilIdx[i])
          grid:getDx(self.dxBuf)
          self.dxStencil[i] = self.dxBuf:data()
+
          phiFld:fill(indexer(self.phiStencilIdx[i]), phiItr)
          self.phiStencil[i] = phiItr:data()
       end
    
-      self._calcResidue[self:idxToStencil(idx,cellsN)](self.dxStencil:data(), self.bcValue:data(), rhoItr:data(), self.phiStencil:data(), resItr:data())
+      -- Array of pointers to rho data in cells pointed to by the stencil. 
+      for i = 1, self.rhoStencilSize do
+         grid:setIndex(self.rhoStencilIdx[i])
+         rhoFld:fill(indexer(self.rhoStencilIdx[i]), rhoItr)
+         self.rhoStencil[i] = rhoItr:data()
+      end
+
+      self._calcResidue[self:idxToStencil(idx,cellsN)](self.dxStencil:data(), self.bcValue:data(), self.rhoStencil:data(), self.phiStencil:data(), resItr:data())
    end
 end
 
@@ -866,14 +922,19 @@ function MGpoisson:relResidueNorm(gamIdx)
    -- Compute the relative norm of the residue: ||rho + L(phi)||/||rho||.
 
    -- Compute the norm of the right-side source vector.
-   self.l2NormCalc:advance(1,{self.rhoAll[1]},{self.rhoNorm})
+   self.l2normCalcAdv(1,{self.rhoAll[1]},{self.rhoNorm})
    local _, rhsNorm = self.rhoNorm:lastData()
    -- Compute the norm of the residue.
    self:residue(self.phiAll[1], self.rhoAll[1], self.residueAll[1]) 
-   self.l2NormCalc:advance(gamIdx,{self.residueAll[1]},{self.residueNorm})
+   self.l2normCalcAdv(gamIdx,{self.residueAll[1]},{self.residueNorm})
    -- Compute the relative residue norm and store it in self.relResNorm.
    local _, resNorm    = self.residueNorm:lastData()
-   local relResNormOut = resNorm[1]/rhsNorm[1]
+   local relResNormOut
+   if (rhsNorm[1] > 0.0) then
+      relResNormOut = resNorm[1]/rhsNorm[1]
+   else
+      relResNormOut = resNorm[1]
+   end
    self.relResNorm:appendData(gamIdx, {relResNormOut})
 
    return relResNormOut
@@ -893,7 +954,7 @@ function MGpoisson:prolongDG(cFld,fFld)
 
    local grid = fFld:grid() 
 
-   localRangeDecomp  = LinearDecomp.LinearDecompRange {
+   local rangeDecomp = LinearDecomp.LinearDecompRange {
       range = fFld:localRange(), numSplit = grid:numSharedProcs() }
    local tId         = grid:subGridSharedId()    -- Local thread ID.
 
@@ -903,7 +964,7 @@ function MGpoisson:prolongDG(cFld,fFld)
    local fFldIndexer = fFld:genIndexer()
    local fFldItr     = fFld:get(1)
 
-   for fIdx in localRangeDecomp:rowMajorIter(tId) do
+   for fIdx in rangeDecomp:rowMajorIter(tId) do
 
       grid:setIndex(fIdx)
 
@@ -939,22 +1000,23 @@ end
 function MGpoisson:prolongFEM(cFld,fFld)
    -- FEM prolongation of a coarse-grid field (cFld) to a fine-grid field (fFld). 
 
+   fFld:clear(0.0)
+
    local grid   = cFld:grid() 
    local cellsN = {}
    for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
 
-   localRangeDecomp  = LinearDecomp.LinearDecompRange {
+   local rangeDecomp = LinearDecomp.LinearDecompRange {
       range = cFld:localRange(), numSplit = grid:numSharedProcs() }
    local tId         = grid:subGridSharedId()    -- Local thread ID.
 
    local cFldIndexer = cFld:genIndexer()
    local cFldItr     = cFld:get(1)
 
-   fFld:clear(0.0)
    local fFldIndexer = fFld:genIndexer()
    local fFldItr     = fFld:get(1)
 
-   for cIdx in localRangeDecomp:rowMajorIter(tId) do
+   for cIdx in rangeDecomp:rowMajorIter(tId) do
 
       grid:setIndex(cIdx)
 
@@ -1002,13 +1064,13 @@ function MGpoisson:gammaCycle(lCurr)
          self.directSolver:advance(0.0, {self.rhoAll[lCurr]}, {self.phiAll[lCurr]})
       else
          -- Relax nu3 times.
-         self.relax(self.nu3, self.phiAll[lCurr], self.rhoAll[lCurr]) 
+         self:relax(self.nu3, self.phiAll[lCurr], self.rhoAll[lCurr]) 
       end
 
    else
 
       -- Relax nu1 times.
-      self.relax(self.nu1, self.phiAll[lCurr], self.rhoAll[lCurr]) 
+      self:relax(self.nu1, self.phiAll[lCurr], self.rhoAll[lCurr]) 
 
       -- Compute the residue.
       self:residue(self.phiAll[lCurr], self.rhoAll[lCurr], self.residueAll[lCurr]) 
@@ -1028,7 +1090,7 @@ function MGpoisson:gammaCycle(lCurr)
       self.phiAll[lCurr]:accumulate(1.0,self.residueAll[lCurr])
 
       -- Relax nu2 times.
-      self.relax(self.nu2, self.phiAll[lCurr], self.rhoAll[lCurr]) 
+      self:relax(self.nu2, self.phiAll[lCurr], self.rhoAll[lCurr]) 
 
    end
    
@@ -1045,8 +1107,10 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
       self.rhoAll[1] = inFld[1]
    elseif self.isFEM then
       -- FEM solver. Translate RHS source DG coefficients to FEM.
-      self.rhoAll[1]:clear(0.0)
-      self:DG_FEM_coefTranslate(inFld[1], self.rhoAll[1],-1)
+      self:DG_FEM_coefTranslate(inFld[1], self.rhoAll[1], DG_to_FEM)
+      -- Project right-side source onto FEM (nodal) basis.
+      self.phiAll[1]:copy(self.rhoAll[1])   -- Temporary buffer.
+      self:projectFEM(self.phiAll[1], self.rhoAll[1])
    end
    local initialGuess   = inFld[2]
    local relResNormCurr = 1.0e12    -- Current (relative) residue norm.
@@ -1055,8 +1119,7 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
          self.phiAll[1] = initialGuess
       elseif self.isFEM then
          -- FEM solver. Translate initial guess DG coefficients to FEM.
-         self.phiAll[1]:clear(0.0)
-         self:DG_FEM_coefTranslate(initialGuess, self.phiAll[1],DG_to_FEM)
+         self:DG_FEM_coefTranslate(initialGuess, self.phiAll[1], DG_to_FEM)
       end
    else
       -- No initial guess provided. Perform Full Multi-Grid (FMG).
@@ -1069,11 +1132,10 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
 
       -- In FMG we start at the coarsest grid without an initial guess.
       self.phiAll[self.mgLevels]:clear(0.0)
-      for i = self.mgLevels, 1, -1 do
+      for i = self.mgLevels, 2, -1 do
          self:gammaCycle(i)
          if (i > 1) then self.prolong(self.phiAll[i], self.phiAll[i-1]) end
       end
-
    end
 
    local gI = 0         -- gamma cycle index.
@@ -1096,11 +1158,12 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
       self.relResNorm:write(string.format("relResidue_RmsV.bp"), 0.0, 0)
    end
 
---   if self.isFEM then
---      -- Translate final phi from FEM to DG.
---      outFld[1]:clear(0.0)
+   if self.isFEM then
+      -- Translate final phi from FEM to DG.
 --      self:DG_FEM_coefTranslate(self.phiAll[1],outFld[1],FEM_to_DG)
---   end
+      print(" FEM_to_DG not yet available. Copying FEM solution to outFld.")
+      outFld[1]:copy(self.phiAll[1])
+   end
 
 end
 

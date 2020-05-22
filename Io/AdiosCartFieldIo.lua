@@ -75,15 +75,20 @@ function AdiosCartFieldIo:init(tbl)
    self._writeSkin = xsys.pickBool(tbl.writeSkin, false)
 
    -- If we have meta-data to write out, store it.
-   if GKYL_EMBED_INP then
+   --
+   -- WARNING: For now we are not writing out huge input files dues to
+   -- a limitation in the ADIOS reader in which the size is limited to
+   -- int16_t lenght data. This is an ADIOS problem in the file
+   -- bp_utils.c function bp_read_data_from_buffer(). Ammar, 5/16/2020
+   if GKYL_EMBED_INP and #GKYL_INP_FILE_CONTENTS < GKYL_MAX_INT16 then
       self._metaData = {
-	 -- write out input file contents (encoded as base64 string)
+	 -- Write out input file contents (encoded as base64 string).
 	 ["inputfile"] = {
 	    value = GKYL_INP_FILE_CONTENTS, vType = "string"
 	 }
    }
    else
-      -- write some dummy text otherwise
+      -- Write some dummy text otherwise.
       self._metaData = { ["inputfile"] = { value = "inputfile", vType = "string" } }
    end
    if tbl.metaData then
@@ -92,24 +97,28 @@ function AdiosCartFieldIo:init(tbl)
 	 if type(v) == "number" then
 	    -- Check if this is an integer or float.
 	    if math.floor(math.abs(v)) == math.abs(v) then
-	       self._metaData[k] = {
-		  value = new("int[1]", v), vType = "integer",
-	       }
+	       self._metaData[k] = { value = new("int[1]", v), vType = "integer", }
 	    else
-	       self._metaData[k] = {
-		  value = new("double[1]", v), vType = "double",
-	       }	       
+	       self._metaData[k] = { value = new("double[1]", v), vType = "double", }
 	    end
 	 elseif type(v) == "string" then
-	    self._metaData[k] = {
-	       value = v, vType = "string"
-	    }
+	    self._metaData[k] = { value = v, vType = "string" }
+	 elseif type(v) == "table" then
+	    assert(type(v[1])=="number", "Io.AdiosCartFieldIo: Metadata table must have elements must be numbers.")
+            isInt = (math.floor(math.abs(v[1])) == math.abs(v[1]))
+            for _, val in pairs(v) do
+	       assert(isInt == (math.floor(math.abs(val)) == math.abs(val)), "Io.AdiosCartFieldIo: Metadata table must have elements of the same type (int or double).")
+            end
+            if isInt then 
+               self._metaData[k] = { value = new("int[?]", #v), vType = "table", numElements = #v, elementType = Adios.integer }
+            else
+               self._metaData[k] = { value = new("double[?]", #v), vType = "table", numElements = #v, elementType = Adios.double }
+            end
+            for i = 1, #v do self._metaData[k].value[i-1] = v[i] end
 	 end
       end
    end
 
-   self._initOnce = true
-   self._isFirst = true
    self.grpIds = {}
 end
 
@@ -212,11 +221,13 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeSkin)
       -- Write meta-data for this file.
       for attrNm, v in pairs(self._metaData) do
          if v.vType == "integer" then
-         Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.integer, 1, v.value)
+            Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.integer, 1, v.value)
          elseif v.vType == "double" then
-         Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.double, 1, v.value)
+            Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.double, 1, v.value)
          elseif v.vType == "string" then
-         Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.string, 1, v.value)
+            Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.string, 1, v.value)
+         elseif v.vType == "table" then
+            Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", v.elementType, v.numElements, v.value)
          end
       end
       
@@ -340,11 +351,13 @@ function AdiosCartFieldIo:read(field, fName, readSkin) --> time-stamp, frame-num
          -- Write meta-data for this file.
          for attrNm, v in pairs(self._metaData) do
             if v.vType == "integer" then
-            Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.integer, 1, v.value)
+               Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.integer, 1, v.value)
             elseif v.vType == "double" then
-            Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.double, 1, v.value)
+               Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.double, 1, v.value)
             elseif v.vType == "string" then
-            Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.string, 1, v.value)
+               Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", Adios.string, 1, v.value)
+            elseif v.vType == "table" then
+               Adios.define_attribute_byvalue(self.grpIds[grpNm], attrNm, "", v.elementType, v.numElements, v.value)
             end
          end
          

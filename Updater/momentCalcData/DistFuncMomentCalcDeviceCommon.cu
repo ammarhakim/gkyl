@@ -28,20 +28,22 @@ __inline__ __device__ void blockReduceComponentsSum(double *vals, int nComps) {
 
   warpReduceComponentsSum(vals, nComps);            // Each warp performs partial reduction.
 
-  if (lane==0) {
-    // Write reduced value to shared memory.
-    for (unsigned int k = 0; k < nComps; k++) {
-      warpSum[warpID*nComps+k] = vals[k];
+  if (blockDim.x > warpSize) {    // If statement needed in case number of velocity cells<warpSize.
+    if (lane==0) {
+      // Write reduced value to shared memory.
+      for (unsigned int k = 0; k < nComps; k++) {
+        warpSum[warpID*nComps+k] = vals[k];
+      }
     }
+  
+    __syncthreads();                     // Wait for all partial reductions.
+  
+    // Read from shared memory (only for by the first warp).
+    for (unsigned int k = 0; k < nComps; k++) {
+      vals[k] = (threadIdx.x < blockDim.x / warpSize) ? warpSum[lane*nComps+k] : 0;
+    }
+  
+    if (warpID==0) warpReduceComponentsSum(vals, nComps); // Final reduce within first warp.
   }
-
-  __syncthreads();                     // Wait for all partial reductions.
-
-  // Read from shared memory (only for by the first warp).
-  for (unsigned int k = 0; k < nComps; k++) {
-    vals[k] = (threadIdx.x < blockDim.x / warpSize) ? warpSum[lane*nComps+k] : 0;
-  }
-
-  if (warpID==0) warpReduceComponentsSum(vals, nComps); // Final reduce within first warp.
 
 }

@@ -120,7 +120,7 @@ function test_2d()
    local indexer = distf:indexer()
    -- Check evaluation.
    for i = 1, grid:numCells(1) do
-      for j = 2, grid:numCells(2) do
+      for j = 1, grid:numCells(2) do
 	 grid:setIndex( idx:setValues {i, j} )
 	 grid:cellCenter(xc)
 	 local fItr = distf:get(indexer(i,j))
@@ -159,7 +159,7 @@ function test_2d_2()
    local indexer = distf:indexer()
    -- Check evaluation.
    for i = 1, grid:numCells(1) do
-      for j = 2, grid:numCells(2) do
+      for j = 1, grid:numCells(2) do
 	 grid:setIndex( idx:setValues {i, j} )
 	 grid:cellCenter(xc)
 	 local fItr = distf:get(indexer(i,j))
@@ -168,9 +168,9 @@ function test_2d_2()
          assert_equal(math.sqrt(2)*0.1020620726159657, fItr[2], "Checking slope")
          assert_equal(0.0, fItr[3], "Checking second-moment")
 
---         assert_equal(xc[1], fItr[9]/2, "Checking cell average")
---         assert_equal(math.sqrt(2)*0.1020620726159657, fItr[10], "Checking slope")
---         assert_equal(0.0, fItr[11], "Checking second-moment")
+         assert_equal(xc[1], fItr[9]/2, "Checking cell average")
+         assert_equal(math.sqrt(2)*0.1020620726159657, fItr[10], "Checking slope")
+         assert_equal(0.0, fItr[11], "Checking second-moment")
 
       end
    end
@@ -236,7 +236,7 @@ end
 test_1d_1()
 test_1d_2()
 test_2d()
--- test_2d_2()  -- MF (03/17/2020): EvalOnNodes seems to fail for vectorial quantities. 
+test_2d_2() 
 test_3()
 
 if stats.fail > 0 then

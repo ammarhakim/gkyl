@@ -1,6 +1,8 @@
 /* A collection of functions to manipulate nodal data/functions
    in FEM solvers. */
 
+load("mgPoisson-calc/MGpoissonUtil");
+
 deleteNodes(nodesIn,coordsIn,allTrueIn) := block([numNodes,dimCheck,remNodes,removeNode],
   /* Given a list of nodes (nodesIn), delete the nodes that have the all
      coordinates given by coordsIn (allTrueIn=true), or those that have
@@ -28,6 +30,16 @@ deleteNodes(nodesIn,coordsIn,allTrueIn) := block([numNodes,dimCheck,remNodes,rem
   return(remNodes)
 )$
 
+getNodeIndices(nodeSubsetIn,nodesIn) := block([nodeIdxs,idx],
+  /* Return the indices of a set of nodes (nodeSubsetIn) within the nodesIn list. */
+  nodeIdxs : [],
+  for k : 1 thru length(nodeSubsetIn) do (
+    idx      : sublist_indices(nodesIn,lambda([x],x=nodeSubsetIn[k]))[1],
+    nodeIdxs : append(nodeIdxs,[idx])
+  ),
+  return(nodeIdxs)
+)$
+
 getStoredNodes(nodesIn,cellLoc) := block([numNodes,dim,storedNodes],
   /* Given the nodes abutting a cell, return a list of the nodes
      which this cell actually stores in memory. */
@@ -42,6 +54,199 @@ getStoredNodes(nodesIn,cellLoc) := block([numNodes,dim,storedNodes],
     if removeNode then ( storedNodes : delete(nodesIn[i],storedNodes) )
   ),
   return(storedNodes)
+)$
+
+getExtendedNodes(basisTypeIn,polyOrderIn,stencilLocIn,stencilSizeIn) := block([dim,nodes,nodesEx,dI,cellsSoFar,pS,loc,newNodes,i,k],
+  /* Generate an associative list between cell coordinates (relative to the
+     cell we are building a kernel for) and the nodes in each cell. Each cell has an entry,
+     each entry is a 2-element list; the 1st element is is the cell coordinate, the 2nd
+     is a list of nodes in that cell, with coordinates on the extended logical space.
+     The size of the extended logical space is given by stencilSizeIn, which is a dim-long
+     list, each entry a 2-element list with the size in the lower/upper direction. */
+
+  /* For now assume interior cells are deeply interior, so adding cells in the lower
+     or upper directions does not mean adding boundary cells. */
+  dim   : length(stencilLocIn),
+  nodes : args(getNodes(basisTypeIn, dim, polyOrderIn)),
+
+  nodesEx : [[makelist(0,i,1,dim), copylist(nodes)]],
+  for dI: 1 thru dim do (
+    cellsSoFar : length(nodesEx),
+    for pS : 1 thru cellsSoFar do (
+      prevNodes : nodesEx[pS][2],
+      if (stencilLocIn[dI] > -1) then (
+        /* Add stencilSizeIn[dI][1] nearest lower cells. */
+        for k : 1 thru stencilSizeIn[dI][1] do (
+          loc      : copylist(nodesEx[pS][1]),
+          loc[dI]  : -k,
+  
+          newNodes : copylist(prevNodes),
+          for i : 1 thru length(prevNodes) do ( newNodes[i][dI] : prevNodes[i][dI]-2*k ),
+          nodesEx  : endcons([loc,newNodes],nodesEx)
+        )
+      ),
+      if (stencilLocIn[dI] < 1) then (
+        /* Add stencilSizeIn[dI][2] nearest upper cells. */
+        for k : 1 thru stencilSizeIn[dI][2] do (
+          loc      : copylist(nodesEx[pS][1]),
+          loc[dI]  : k,
+  
+          newNodes : copylist(prevNodes),
+          for i : 1 thru length(prevNodes) do ( newNodes[i][dI] : prevNodes[i][dI]+2*k ),
+          nodesEx  : endcons([loc,newNodes],nodesEx)
+        )
+      )
+    )
+  ),
+  return(nodesEx)
+)$
+
+getExtendedStoredNodes(basisTypeIn,polyOrderIn,stencilLocIn,stencilSizeIn) := block([dim,nodes,storedNodes,nodesEx,storedNodesEx,dI,cellsSoFar,pS,loc,newNodes,i,k],
+  /* Like getExtendedNodes, but for stored nodes (recall
+     that each cell only stores the lower left nodes. */
+  dim   : length(stencilLocIn),
+  nodes : args(getNodes(basisTypeIn, dim, polyOrderIn)),
+
+  /* Each cell only stores the lower left nodes. */
+  storedNodes   : getStoredNodes(nodes,stencilLocIn),
+
+  nodesEx       : getExtendedNodes(basisTypeIn,polyOrderIn,stencilLocIn,stencilSizeIn),
+  storedNodesEx : [[makelist(0,i,1,dim), copylist(storedNodes)]],
+  for dI: 1 thru dim do (
+    cellsSoFar : length(storedNodesEx),
+    for pS : 1 thru cellsSoFar do (
+      prevStoredNodes : deleteNodes(storedNodesEx[pS][2],[[dI,1]],true),
+      if (stencilLocIn[dI] > -1) then (
+        /* Add stencilSizeIn[dI][1] nearest lower cells. */
+        for k : 1 thru stencilSizeIn[dI][1] do (
+          loc           : copylist(nodesEx[pS][1]),
+          loc[dI]       : -k,
+  
+          newNodes      : copylist(prevStoredNodes),
+          for i : 1 thru length(prevStoredNodes) do ( newNodes[i][dI] : prevStoredNodes[i][dI]-2*k ),
+          storedNodesEx : endcons([loc,newNodes],storedNodesEx)
+        )
+      ),
+      if (stencilLocIn[dI] < 1) then (
+        /* Add stencilSizeIn[dI][2] nearest upper cells. */
+        for k : 1 thru stencilSizeIn[dI][2] do (
+          loc           : copylist(nodesEx[pS][1]),
+          loc[dI]       : k,
+  
+          newNodes      : copylist(prevStoredNodes),
+          for i : 1 thru length(prevStoredNodes) do ( newNodes[i][dI] : prevStoredNodes[i][dI]+2*k ),
+          storedNodesEx : endcons([loc,newNodes],storedNodesEx)
+        )
+      )
+    )
+  ),
+  return(storedNodesEx)
+)$
+
+getExtendedWeqNodes(basisTypeIn,polyOrderIn,stencilLocIn,stencilSizeIn) := block([dim,nodes,nodesEx,weqNodesEx,cellsSoFar,pS,loc,newNodes,i,k],
+  /* Like getExtendedNodes, but for nodes used to add contributions to a weak form. */ 
+  dim   : length(stencilLocIn),
+  nodes : args(getNodes(basisTypeIn, dim, polyOrderIn)),
+
+  nodesEx    : getExtendedNodes(basisTypeIn,polyOrderIn,stencilLocIn,stencilSizeIn),
+  weqNodesEx : [[makelist(0,i,1,dim), copylist(nodes)]],
+  /* If cells in the upper direction are requested, then remove
+     from weqNodesEx those nodes in the nearest upper cell. */
+  for dI: 1 thru dim do (
+    if (stencilLocIn[dI] < 1) and (stencilSizeIn[dI][2]>0) then (
+      weqNodes : deleteNodes(weqNodesEx[1][2],[[dI,1]],true)
+    )
+  ),
+  for dI: 1 thru dim do (
+    cellsSoFar : length(weqNodesEx),
+    for pS : 1 thru cellsSoFar do (
+      prevNodes       : nodesEx[pS][2],
+      prevWeqNodes    : deleteNodes(weqNodesEx[pS][2],[[dI,1]],true),
+      if (stencilLocIn[dI] > -1) then (
+        /* Add stencilSizeIn[dI][1] nearest lower cells. */
+        for k : 1 thru stencilSizeIn[dI][1] do (
+          loc        : copylist(nodesEx[pS][1]),
+          loc[dI]    : -k,
+  
+          newNodes   : copylist(prevWeqNodes),
+          for i : 1 thru length(prevWeqNodes) do ( newNodes[i][dI] : prevWeqNodes[i][dI]-2*k ),
+          weqNodesEx : endcons([loc,newNodes],weqNodesEx)
+        )
+      ),
+      if (stencilLocIn[dI] < 1) then (
+        /* Add stencilSizeIn[dI][2] nearest upper cells. */
+        for k : 1 thru stencilSizeIn[dI][2] do (
+          loc        : copylist(nodesEx[pS][1]),
+          loc[dI]    : k,
+          
+          if (k=stencilSizeIn[dI][2]) then (
+            /* For the last upper node, add the nodes initially removed. Preserve order. */
+            addNodesIdx : sublist_indices(nodes,lambda([x],x[dI]=1)),
+            currNodesEx : assoc(loc,nodesEx),
+            addNodes    : makelist(currNodesEx[addNodesIdx[i]],i,1,length(addNodesIdx)),
+            newNodes    : append(prevWeqNodes,addNodes),
+            newNodes    : sort(newNodes,lambda([a,b],sublist_indices(currNodesEx,lambda([x],x=a))[1]<sublist_indices(currNodesEx,lambda([x],x=b))[1]))
+          ) else (
+            newNodes : copylist(prevWeqNodes)
+          ),
+          for i : 1 thru length(prevWeqNodes) do ( newNodes[i][dI] : prevWeqNodes[i][dI]+2*k ),
+          weqNodesEx : endcons([loc,newNodes],weqNodesEx)
+        )
+      )
+    )
+  ),
+  return(weqNodesEx)
+)$
+
+getExtendedNodesAll(basisTypeIn,polyOrderIn,stencilLocIn,stencilSizeIn) := block([nodesEx,weqNodesEx,storedNodesEx],
+  /* Generate 3 associative list of nodes in each cell (nodesEx), nodes involved in the weak
+     problem without duplication (weqNodesEx), and nodes stored in each cell (storedNodesEx).
+     Each cell has an element in these lists. Each element is a 2-entry list; the 1st entry is
+     is the cell coordinate (relative to the cell we are generating a kernel for), the 2nd
+     is a list of nodes in that cell, with coordinates on the extended logical space.
+     The size of the extended logical space is given by stencilSizeIn, which is a dim-long
+     list, each entry a 2-element list with the size in the lower/upper direction. */
+
+  /* For now assume interior cells are deeply interior, so adding cells in the lower
+     or upper directions does not mean adding boundary cells. */
+
+  nodesEx       : getExtendedNodes(basisTypeIn,polyOrderIn,stencilLocIn,stencilSizeIn),
+  weqNodesEx    : getExtendedStoredNodes(basisTypeIn,polyOrderIn,stencilLocIn,stencilSizeIn),
+  storedNodesEx : getExtendedWeqNodes(basisTypeIn,polyOrderIn,stencilLocIn,stencilSizeIn), 
+
+  return([nodesEx,weqNodesEx,storedNodesEx])
+)$
+
+getCellToIdx(stencilLocIn,stencilSizeIn) := block([dim,idx,dI,cellsSoFar,pS,k,cellToIdx],
+  /* Generate an associative list between cell coordinates (relative to the cell we are 
+     generating a kernel for) of the cells considered in the weak form, and a linear index. */
+  dim       : length(stencilSizeIn),
+  idx       : 1,
+  cellToIdx : [[makelist(0,i,1,dim),idx]],
+  for dI : 1 thru dim do (
+    cellsSoFar : length(cellToIdx),
+    for pS : 1 thru cellsSoFar do (
+      if (stencilLocIn[dI] > -1) then (
+        /* Add stencilSizeIn[dI] nearest lower cells. */
+        for k : 1 thru (stencilSizeIn[dI][1]) do (
+          cellToIdx : endcons(copylist(cellToIdx[pS]),cellToIdx),
+          idx       : idx+1,
+          cellToIdx[idx][1][dI] : -k,
+          cellToIdx[idx][2]     : idx
+        )
+      ),
+      if (stencilLocIn[dI] < 1) then (
+        /* Add stencilSizeIn[dI] nearest upper cells. */
+        for k : 1 thru (stencilSizeIn[dI][2]) do (
+          cellToIdx : endcons(copylist(cellToIdx[pS]),cellToIdx),
+          idx       : idx+1,
+          cellToIdx[idx][1][dI] : k,
+          cellToIdx[idx][2]     : idx
+        )
+      )
+    )
+  ),
+  return(cellToIdx)
 )$
 
 getStoredNodesStencil(nodesIn,cellLoc) := block([storedNodes,dim,numStoredNodes,neighStoredNodes],
@@ -83,16 +288,6 @@ getStoredNodesStencil(nodesIn,cellLoc) := block([storedNodes,dim,numStoredNodes,
     )
   ),
   return(neighStoredNodes)
-)$
-
-getNodeIndices(nodeSubsetIn,nodesIn) := block([nodeIdxs,idx],
-  /* Return the indices of a set of nodes (nodeSubsetIn) within the nodesIn list. */
-  nodeIdxs : [],
-  for k : 1 thru length(nodeSubsetIn) do (
-    idx      : sublist_indices(nodesIn,lambda([x],x=nodeSubsetIn[k]))[1],
-    nodeIdxs : append(nodeIdxs,[idx])
-  ),
-  return(nodeIdxs)
 )$
 
 getBasisMap(nodesIn,storedNodesIn,cellLoc,cellBCs) := block([numStoredNodes,dim,prevToNodes,prevFromNodes,prevMap,toNodes,fromNodes,basisMap],
@@ -138,4 +333,246 @@ getBasisMap(nodesIn,storedNodesIn,cellLoc,cellBCs) := block([numStoredNodes,dim,
     )
   ),
   return(basisMap)
+)$
+
+getCellToCoef(numBasisIn,stencilLocIn,nodesExIn,storedNodesExIn,storedNodeToCellIn,cellToIdxStoredIn,dataStrsIn) := block([dim,currCoord,currNodesEx,memLoc,k,cellToCoef,dI,pS,cellsSoFar,nodeStorer],
+  /* Create an associative list between cell coordinate (relative to the cell
+     we are generating a kernel for) and the coefficients used for an expansion
+     in the nodal basis (in that cell). */
+  dim         : length(stencilLocIn),
+
+  currCoord   : makelist(0,i,1,dim),
+  currNodesEx : assoc(currCoord,nodesExIn),
+  memLoc      : [],
+  for k : 1 thru numBasisIn do (
+    nodeStorer : assoc(currNodesEx[k],storedNodeToCellIn),
+    memIdx     : sublist_indices(assoc(nodeStorer,storedNodesExIn),lambda([x],x=currNodesEx[k]))[1]-1,
+    memLoc     : endcons(sconcat(dataStrsIn[assoc(nodeStorer,cellToIdxStoredIn)],"[",string(memIdx),"]"),memLoc)
+  ),
+  cellToCoef : [[makelist(0,i,1,dim),memLoc]],
+  for dI: 1 thru dim do (
+    cellsSoFar : length(cellToCoef),
+    for pS : 1 thru cellsSoFar do (
+      if (stencilLocIn[dI] > -1) then (
+        /* Add nearest lower cell in dI direction. */
+        currCoord     : copylist(cellToCoef[pS][1]),
+        currCoord[dI] : -1,
+        currNodesEx   : assoc(currCoord,nodesExIn),
+        memLoc        : [],
+        for k : 1 thru numBasisIn do (
+          nodeStorer : assoc(currNodesEx[k],storedNodeToCellIn),
+          memIdx     : sublist_indices(assoc(nodeStorer,storedNodesExIn),lambda([x],x=currNodesEx[k]))[1]-1,
+          memLoc     : endcons(sconcat(dataStrsIn[assoc(nodeStorer,cellToIdxStoredIn)],"[",string(memIdx),"]"),memLoc)
+        ),
+        cellToCoef      : endcons([currCoord,memLoc],cellToCoef)
+      )
+    )
+  ),
+  return(cellToCoef)
+)$
+
+poissonContribution(bNIn,varsIn,cellCoefsIn,currBCIn,stencilLocIn,currNodesIn,storedNodesIn,addSurf,stencilLHSIn) := block(
+  [phi_e,rho_e,k,numB,numNodes,dim,volLHS,bNp,phip_e,domSurfs,surfTerm,dI,dir,dirVar,surfVars,idx,pS,cI,numStoredNodes],
+  /* Compute the contribution to the stencil for the Poisson equation
+     -Lapacian(phi) = rho, from one of the cells abutting the
+     nodes stored in the cell we are generating a kernel for. */
+
+  numB           : length(bNIn),
+  numNodes       : numB,
+  dim            : length(varsIn),
+  numStoredNodes : length(storedNodesIn),
+
+  phi_e : doExpand(makelist(eval_string(sconcat("phi",cellCoefsIn[k])),k,1,numB),bNIn),
+  /* Volume terms. */
+  volLHS : makelist(0,i,1,numNodes),
+  for dI : 1 thru dim do (
+    bNp    : diff(bNIn,varsIn[dI]),
+    phip_e : diff(phi_e,varsIn[dI]),
+
+    volLHS : volLHS+rdx2SqVol[dI-1]*calcInnerProdList(varsIn,1,bNp,phip_e)
+  ),
+  /* Surface terms. */
+  /* Only domain surface terms with non-periodic BCs contribute a surface term. */
+  domSurfs : sublist_indices(currBCIn, lambda([x],x # 0)),
+  surfTerm : makelist(0,i,1,numNodes),
+  for dI : 1 thru length(domSurfs) do (
+    dir      : domSurfs[dI],
+    dirVar   : varsIn[dir],
+    surfVars : delete(dirVar,varsIn),
+    phip_e   : diff(phi_e,dirVar),
+
+    surfTerm : surfTerm+stencilLocIn[dir]*rdx2SqVol[dir-1]
+              *calcInnerProdList(surfVars,1,subst(dirVar=stencilLocIn[dir],bNIn),
+                                            subst(dirVar=stencilLocIn[dir],phip_e))
+  ),
+  for k : 1 thru numStoredNodes do (
+    idx : sublist_indices(currNodesIn,lambda([x],x=storedNodesIn[k])),
+    if length(idx)>0 then (
+      idx             : idx[1],
+      stencilLHSIn[k] : stencilLHSIn[k]+volLHS[idx],
+      if addSurf then ( 
+        stencilLHSIn[k] : stencilLHSIn[k]-surfTerm[idx]
+      )
+    )
+  ),
+  return(stencilLHSIn)
+)$
+
+weakPoissonStored(basisTypeIn,varsIn,polyOrderIn,stencilLocIn,currBCIn) := block([dim,currBC,nodes,numNodes,storedNodes,numStoredNodes],
+  /* Produce the weak form of the Poisson equation, -Laplacian(phi)=rho,
+     saving only the equations corresponding to the nodes stored in this cell. */
+
+  dim    : length(varsIn),
+  currBC : currBCIn,
+
+  /* Count the number of non-periodic boundaries. */
+  npDirs : length(sublist(stencilLocIn,lambda([x],x # 0))),
+
+  bN   : getNodalBasis(basisTypeIn, dim, polyOrderIn),
+  numB : length(bN),
+
+  nodes    : args(getNodes(basisTypeIn, dim, polyOrderIn)),
+  numNodes : length(nodes),
+
+  /* Each cell only stores the lower left nodes. */
+  storedNodes    : getStoredNodes(nodes,stencilLocIn),
+  numStoredNodes : length(storedNodes),
+
+  nodesEx       : getExtendedNodes(basisTypeIn,polyOrderIn,stencilLocIn,makelist([1,0],i,1,dim)),
+  weqNodesEx    : getExtendedWeqNodes(basisTypeIn,polyOrderIn,stencilLocIn,makelist([1,0],i,1,dim)),
+  storedNodesEx : getExtendedStoredNodes(basisTypeIn,polyOrderIn,stencilLocIn,makelist([1,1],i,1,dim)),
+
+  /* Associative list of nodes on extended logical space, and
+     the cell that contributes that node to the weak form. */
+  weqNodeToCell : invertAssocList(weqNodesEx),
+
+  /* Associative list of nodes on extended logical space, and the cell that stores that node. */
+  storedNodeToCell : invertAssocList(storedNodesEx),
+
+  /* Associative list between cell coordinates and a linear (base 1) index. */
+  cellToIdxWeq    : getCellToIdx(stencilLocIn,makelist([1,0],i,1,dim)),
+  cellToIdxStored : getCellToIdx(stencilLocIn,makelist([1,1],i,1,dim)),
+
+  /* List of strings identifying each cell involved in the stencil. */
+  dataStrs : getDataStr(makelist([1,1],i,1,dim),stencilLocIn,varsIn),
+
+  /* Associative list of cell coordinate, and the memory location of each node. */
+  cellToCoef : getCellToCoef(numB,stencilLocIn,nodesEx,storedNodesEx,storedNodeToCell,cellToIdxStored,dataStrs),
+
+  /* Lists where we will store the actual stencil.*/
+  stencilLHS : makelist(0,i,1,numStoredNodes),
+  stencilRHS : makelist(0,i,1,numStoredNodes),
+
+  /* Loop over 2^dim cells abutting stored nodes. Each cell adds a
+     contribution to the equation corresponding those stored nodes. */
+  cI : 1,
+  currCoord   : makelist(0,i,1,dim),
+  currNodesEx : assoc(currCoord,nodesEx),
+  stencilLHS  : poissonContribution(bN,varsIn,cellToCoef[cI][2],currBC,stencilLocIn,currNodesEx,storedNodes,true,stencilLHS),
+
+  for dI : 1 thru dim do (
+    cellsSoFar : cI,
+    for pS : 1 thru cellsSoFar do (
+      if (stencilLocIn[dI] > -1) then (
+        /* Add contributions from nearest lower cell in dI direction. */
+        cI : cI+1,
+        currCoord     : copylist(cellToCoef[pS][1]),
+        currCoord[dI] : -1,
+        currNodesEx   : assoc(currCoord,nodesEx),
+        stencilLHS    : poissonContribution(bN,varsIn,cellToCoef[cI][2],currBC,stencilLocIn,currNodesEx,storedNodes,false,stencilLHS)
+      )
+    )
+  ),
+  stencilRHS : makelist(rhoC[i-1],i,1,numStoredNodes),
+
+  /* Boundary conditions. */
+  bcEQs    : [],
+  bcCoefs  : [],
+  domSurfs : sublist_indices(currBC, lambda([x],x # 0)),
+  phi_e    : doExpand(makelist(eval_string(sconcat("phi",cellToCoef[1][2][k])),k,1,numB),bN),
+  for dI : 1 thru length(domSurfs) do (
+    dir      : domSurfs[dI],
+    dirVar   : varsIn[dir],
+    surfDirs : delete(dir,makelist(i,i,1,dim)),
+    surfVars : delete(dirVar,varsIn),
+
+    if currBC[dir]=1 then (
+      /* Dirichlet. */
+      if (stencilLocIn[dir] = -1) then (
+        bcValues : [1, 0, bcVals[6*(dir-1)+2]]
+      ) elseif (stencilLocIn[dir] = 1) then (
+        bcValues : [1, 0, bcVals[6*(dir-1)+5]]
+      )
+    ) elseif currBC[dir]=2 then (
+      /* Neumman. */
+      if (stencilLocIn[dir] = -1) then (
+        bcValues : [0, 1, bcVals[6*(dir-1)+2]]
+      ) elseif (stencilLocIn[dir] = 1) then (
+        bcValues : [0, 1, bcVals[6*(dir-1)+5]]
+      )
+    ) elseif currBC[dir]=3 then (
+      /* Robin. */
+      if (stencilLocIn[dir] = -1) then (
+        bcValues : [bcVals[6*(dir-1)], bcVals[6*(dir-1)+1], bcVals[6*(dir-1)+2]]
+      ) elseif (stencilLocIn[dir] = 1) then (
+        bcValues : [bcVals[6*(dir-1)+3], bcVals[6*(dir-1)+4], bcVals[6*(dir-1)+5]]
+      )
+    ),
+    bcExpr : subst(dirVar=stencilLocIn[dir], bcValues[1]*phi_e + bcValues[2]*diff(phi_e,dirVar) = bcValues[3]),
+
+    /* Evaluate at boundary nodes in this direction. */
+    boundNodes  : copylist(sublist(nodes,lambda([x],x[dir]=stencilLocIn[dir]))),
+    boundNodesI : sublist_indices(nodes,lambda([x],x[dir]=stencilLocIn[dir])),
+    boundCoefs  : makelist(eval_string(sconcat("phi",cellToCoef[1][2][boundNodesI[i]])),i,1,length(boundNodesI)),
+    newCoefs    : [],
+    for k : 1 thru length(boundNodes) do (
+      currBCExpr : bcExpr,
+      currBCExpr : subst(makelist(surfVars[d]=boundNodes[k][surfDirs[d]],d,1,length(surfDirs)),currBCExpr),
+
+      boundDims        : sublist_indices(boundNodes[k],lambda([x],abs(x)=1)),
+      boundNodeBCs     : makelist(currBC[boundDims[i]],i,1,length(boundDims)),
+      numDirichletDirs : length(sublist(boundNodeBCs,lambda([x],x=1))),
+      if (numDirichletDirs>0) then (aDirichletBC : true) else (aDirichletBC : false),
+      if (numDirichletDirs=length(boundNodeBCs)) then (allDirichletBC : true) else (allDirichletBC : false),
+      /* When there is a single Dirichlet BC, we will impose that. When there isn't,
+         or all BCs are Dirichlet, we will weigh the BCs of each boundary at the
+         corner according to the size of the cell length in that direction. */
+      if (npDirs=1) or (length(boundDims)<2) or (aDirichletBC and (not allDirichletBC)) then (
+        cornerFac : 1
+      ) else (
+        cornerFac : dxC[dir-1]/sum(dxC[boundDims[i]-1],i,1,length(boundDims))
+      ),
+
+      if (not aDirichletBC) or (aDirichletBC and (currBC[dir]=1)) then (
+        coefPos : sublist_indices(bcCoefs,lambda([x],x=boundCoefs[k])),
+        if (length(coefPos) > 0) then (
+          bcEQs[coefPos[1]] : bcEQs[coefPos[1]]+cornerFac*currBCExpr
+        ) else (
+          bcEQs    : endcons(cornerFac*currBCExpr,bcEQs),
+          newCoefs : endcons(boundCoefs[k],newCoefs)
+        )
+      )
+    ),
+    bcCoefs : append(bcCoefs, newCoefs)
+  ),
+
+  bcSolv : linsolve(bcEQs,bcCoefs),
+
+  /* The coefficients in bcSol that correspond to this cell will be used
+     to replace equations in the weak stencil. Coefficients that correspond
+     to other cells will be substituted throughout the stencil. */
+  for bI : 1 thru length(bcSolv) do (
+    if (op(lhs(bcSolv[bI]))=phiC) then (
+      /* Replace the corresponding equation the stencil. */
+      stencilLHS[args(bcCoefs[bI])[1]+1] : rhs(bcSolv[bI]) - lhs (bcSolv[bI]),
+      stencilRHS[args(bcCoefs[bI])[1]+1] : 0
+    )
+  ),
+  for bI : 1 thru length(bcSolv) do (
+    if not (op(lhs(bcSolv[bI]))=phiC) then (
+      /* Substitute this node's BC throughout the stencil. */
+      stencilLHS : subst(bcSolv[bI],stencilLHS)
+    )
+  ),
+  return([stencilLHS, stencilRHS])
 )$
