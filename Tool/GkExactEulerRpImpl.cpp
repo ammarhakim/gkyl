@@ -1,6 +1,6 @@
 /** Compute exact solution to Euler Riemann problem. */
 
-#include <ExactEulerRpImpl.h>
+#include <GkExactEulerRpImpl.h>
 #include <cmath>
 #include <cstdlib>
 #include <fstream>

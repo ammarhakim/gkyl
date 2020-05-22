@@ -1,6 +1,6 @@
 // Gkyl ------------------------------------------------------------------------
 //
-// Top-level entry point into Gkyl
+// Kernel driver tool: runs various kernels for timing and profiling
 //    _______     ___
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
@@ -17,7 +17,6 @@
 
 int
 main(int argc, char **argv) {
-  Gkyl::VlasovModDecl<1,2,1,Gkyl::G_SERENDIPITY_C> vKernels1x1vp1Ser;
   
   return 0;
 }

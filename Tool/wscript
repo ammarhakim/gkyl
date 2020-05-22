@@ -6,7 +6,7 @@
 import os
 
 def build(bld):
-    bld.shlib(source = 'ExactEulerRpImpl.cpp', includes = '.',
+    bld.shlib(source = 'GkExactEulerRpImpl.cpp', includes = '.',
               name = 'tool',
               vnum = '1.0',
               target = 'tool', features='cxx')

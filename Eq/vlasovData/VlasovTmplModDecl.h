@@ -1,9 +1,10 @@
 #ifndef VLASOV_TMPL_MOD_DECL_H
 #define VLASOV_TMPL_MOD_DECL_H
 
-#include <GkylCudaConfig.h>
+#include <GkBasisTypes.h>
+#include <GkCudaConfig.h>
 #include <VlasovModDecl.h>
-#include <GkylBasisTypes.h>
+
 
 namespace Gkyl {
 
