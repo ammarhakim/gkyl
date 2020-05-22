@@ -28,7 +28,7 @@ namespace Gkyl {
       /**
        * Volume term (total surface + force)
        */
-      double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out);
+      virtual double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out);
 
       /**
        * Surface terms from EM forces
