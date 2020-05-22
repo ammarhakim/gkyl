@@ -2,7 +2,21 @@
 
 #.MF: It's possible this config (and/or the mkdeps) file for Ascent needs to be revised.
 #.    Compilation fails at some medium to large size kernels, with error message:
-#.    fatal error: error writing to /tmp/cc37dAA0.s: Cannot allocate memory.
+#.      fatal error: error writing to /tmp/cc37dAA0.s: Cannot allocate memory.
+#.    To overcome this problem, compile with ./waf build install -j1
+#.    However, this eventually leads the to the following errors:
+#.      [578/602] Compiling DataStruct/CartFieldDeviceImpl.cu
+#.      /autofs/nccsopen-svm1_sw/ascent/gcc/8.1.1/include/c++/8.1.1/type_traits(347): error: identifier "__ieee128" is undefined
+#.
+#.      /autofs/nccsopen-svm1_sw/ascent/gcc/8.1.1/include/c++/8.1.1/bits/std_abs.h(101): error: identifier "__ieee128" is undefined
+#.
+#.      /autofs/nccsopen-svm1_sw/ascent/gcc/8.1.1/include/c++/8.1.1/bits/std_abs.h(102): error: identifier "__ieee128" is undefined
+#.
+#.      3 errors detected in the compilation of "/tmp/tmpxft_000043b2_00000000-6_CartFieldDeviceImpl.cpp1.ii".
+#.
+#.      Waf: Leaving directory `/autofs/nccsopen-svm1_home/manaf/gkeyll/gkyl/build'
+#.      Build failed
+#.       -> task in 'datastruct_cu' failed with exit status 1 (run with -v to display more information)
 
 # Edit the paths and options in the following command to suit your system
 module unload xl/16.1.1-5
