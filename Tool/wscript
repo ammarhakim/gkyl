@@ -20,6 +20,6 @@ def build(bld):
     
     bld.program(
         source = 'kerneldriver.cxx', target = 'kerneldriver',
-        includes = '. .. ../Lib ../Eq/vlasovData',
+        includes = '. .. ../Lib ../Cuda ../Eq/vlasovData',
         use = useList,
     )
