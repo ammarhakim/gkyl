@@ -10,3 +10,16 @@ def build(bld):
               name = 'tool',
               vnum = '1.0',
               target = 'tool', features='cxx')
+
+    # compile stand-alone executable tools
+    
+    useList = ' lib datastruct eq unit comm updater tool proto basis grid M DL '
+    if bld.env['CUTOOLS_FOUND']:
+        useListCuda = ' cuda CUTOOLS lib_cu datastruct_cu eq_cu unit_cu comm_cu updater_cu proto_cu basis_cu grid_cu '
+        useList = useListCuda + useList
+    
+    bld.program(
+        source = 'kerneldriver.cxx', target = 'kerneldriver',
+        includes = '. .. ../Lib ../Eq/vlasovData',
+        use = useList,
+    )
