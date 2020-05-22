@@ -8,10 +8,6 @@
 // gkyl includes
 #include <gkylconfig.h>
 
-#ifdef HAVE_MPI_H
-# include <mpi.h>
-#endif
-
 // std includes
 #include <iostream>
 #include <string>
@@ -21,5 +17,7 @@
 
 int
 main(int argc, char **argv) {
+  Gkyl::VlasovModDecl<1,2,1,Gkyl::G_SERENDIPITY_C> vKernels1x1vp1Ser;
+  
   return 0;
 }

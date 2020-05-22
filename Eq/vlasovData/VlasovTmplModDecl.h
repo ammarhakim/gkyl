@@ -7,10 +7,40 @@
 
 namespace Gkyl {
 
+  // Base class so pointers to children can be stored and used
+  class VlasovModDeclBase {
+    public:
+      /**
+       * Volume streaming term
+       */
+      virtual double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out);
+
+      /**
+       * Surface streaming term
+       */
+      virtual void surfStreamTerm(unsigned dir, const double *wl, const double *wr,
+        const double *dxvl, const double *dxvr, const double *fl, const double *fr,
+        double *outl, double *outr);
+
+      /**
+       * Volume term (total surface + force)
+       */
+      double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out);
+
+      /**
+       * Surface terms from EM forces
+       */
+      virtual void surfElcMagTerm(unsigned dir, const double *wl, const double *wr,
+        const double *dxvl, const double *dxvr,
+        const double amax, const double *E, const
+        double *fl, const double *fr,
+        double *outl, double *outr);
+  };
+
   // Provides a templated wrapper around the low level C-style kernels
   // so they can be called more systematically from C++ code
   template <unsigned CDIM, unsigned VDIM, unsigned POLYORDER, unsigned BASISTYPE>
-  class VlasovModDecl {
+  class VlasovModDecl : public VlasovModDeclBase {
     public:
       /**
        * Volume streaming term
@@ -43,7 +73,7 @@ namespace Gkyl {
 
 
   template <>
-  class VlasovModDecl<1,1,1,G_SERENDIPITY_C> {
+  class VlasovModDecl<1,1,1,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
       double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
         return VlasovVolStream1x1vSerP1(w, dxv, f, out);
@@ -81,7 +111,7 @@ namespace Gkyl {
 
 
   template <>
-  class VlasovModDecl<1,1,2,G_SERENDIPITY_C> {
+  class VlasovModDecl<1,1,2,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
       double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
         return VlasovVolStream1x1vSerP2(w, dxv, f, out);
@@ -119,7 +149,7 @@ namespace Gkyl {
 
 
   template <>
-  class VlasovModDecl<1,2,1,G_SERENDIPITY_C> {
+  class VlasovModDecl<1,2,1,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
       double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
         return VlasovVolStream1x2vSerP1(w, dxv, f, out);
@@ -160,7 +190,7 @@ namespace Gkyl {
 
 
   template <>
-  class VlasovModDecl<1,2,2,G_SERENDIPITY_C> {
+  class VlasovModDecl<1,2,2,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
       double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
         return VlasovVolStream1x2vSerP2(w, dxv, f, out);
@@ -201,7 +231,7 @@ namespace Gkyl {
 
 
   template <>
-  class VlasovModDecl<1,3,1,G_SERENDIPITY_C> {
+  class VlasovModDecl<1,3,1,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
       double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
         return VlasovVolStream1x3vSerP1(w, dxv, f, out);
@@ -245,7 +275,7 @@ namespace Gkyl {
 
 
   template <>
-  class VlasovModDecl<1,3,2,G_SERENDIPITY_C> {
+  class VlasovModDecl<1,3,2,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
       double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
         return VlasovVolStream1x3vSerP2(w, dxv, f, out);
@@ -289,7 +319,7 @@ namespace Gkyl {
 
 
   template <>
-  class VlasovModDecl<2,2,1,G_SERENDIPITY_C> {
+  class VlasovModDecl<2,2,1,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
       double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
         return VlasovVolStream2x2vSerP1(w, dxv, f, out);
@@ -333,7 +363,7 @@ namespace Gkyl {
 
 
   template <>
-  class VlasovModDecl<2,2,2,G_SERENDIPITY_C> {
+  class VlasovModDecl<2,2,2,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
       double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
         return VlasovVolStream2x2vSerP2(w, dxv, f, out);
@@ -377,7 +407,7 @@ namespace Gkyl {
 
 
   template <>
-  class VlasovModDecl<2,3,1,G_SERENDIPITY_C> {
+  class VlasovModDecl<2,3,1,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
       double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
         return VlasovVolStream2x3vSerP1(w, dxv, f, out);
@@ -424,7 +454,7 @@ namespace Gkyl {
 
 
   template <>
-  class VlasovModDecl<2,3,2,G_SERENDIPITY_C> {
+  class VlasovModDecl<2,3,2,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
       double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
         return VlasovVolStream2x3vSerP2(w, dxv, f, out);
