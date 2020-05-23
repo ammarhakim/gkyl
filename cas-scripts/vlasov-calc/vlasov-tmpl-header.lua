@@ -4,31 +4,34 @@ vlasovHeaderTemplateTopString = [[
 #ifndef VLASOV_TMPL_MOD_DECL_H
 #define VLASOV_TMPL_MOD_DECL_H
 
-#include <GkylCudaConfig.h>
+#include <GkCudaConfig.h>
 #include <VlasovModDecl.h>
-#include <GkylBasisTypes.h>
+#include <GkBasisTypes.h>
 
 namespace Gkyl {
 
   // Base class so pointers to children can be stored and used
   class VlasovModDeclBase {
     public:
+
+      virtual ~VlasovModDeclBase() {}
+
       /**
        * Volume streaming term
        */
-      __host__ __device__ virtual double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out);
+      __host__ __device__ virtual double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) = 0;
 
       /**
        * Surface streaming term
        */
       __host__ __device__ virtual void surfStreamTerm(unsigned dir, const double *wl, const double *wr,
         const double *dxvl, const double *dxvr, const double *fl, const double *fr,
-        double *outl, double *outr);
+        double *outl, double *outr) = 0;
 
       /**
        * Volume term (total surface + force)
        */
-      __host__ __device__ virtual double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out);
+      __host__ __device__ virtual double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) = 0;
 
       /**
        * Surface terms from EM forces
@@ -37,7 +40,7 @@ namespace Gkyl {
         const double *dxvl, const double *dxvr,
         const double amax, const double *E, const
         double *fl, const double *fr,
-        double *outl, double *outr);
+        double *outl, double *outr) = 0;
   };
 
   // Provides a templated wrapper around the low level C-style kernels
@@ -156,7 +159,7 @@ vlasovHeaderTemplateString = [[
 local vlasovHeaderTemplate = xsys.template ( vlasovHeaderTemplateString )
 
 -- concatinate various pieces to generate final header
-vlasovHeaderTemplate =
+vlasovHeaderOut =
    vlasovHeaderTemplateTopString
    ..
    vlasovHeaderTemplate {
@@ -194,5 +197,52 @@ vlasovHeaderTemplate =
    vlasovHeaderTemplateBottomString
 
 -- write out string
-io.write( vlasovHeaderTemplate )
-			   
+io.write( vlasovHeaderOut )
+
+vlasovKernelFactoryString = [[
+|for ci = CMIN, CMAX do
+| for vi = ci, VMAX do
+|  for pi = PMIN, PMAX do
+          { makeName(${ci},${vi},${pi}, ${basisNm}), new KernelFactory<${ci},${vi},${pi}, ${basisNm}>() },
+|  end
+| end
+|end
+]]
+
+vlasovKernelFactoryTemplate = xsys.template ( vlasovKernelFactoryString )
+
+-- concatinate various pieces to generate final header
+vlasovKernelFactoryOut =
+   vlasovKernelFactoryTemplate {
+      CMIN = 1, CMAX = 2,
+      VMAX = 3,
+      PMIN = 1, PMAX = 3,
+      basisNm = 'G_MAX_ORDER_C',
+      basisShortNm = 'Max',
+   }
+   ..
+   vlasovKernelFactoryTemplate {
+      CMIN = 3, CMAX = 3,
+      VMAX = 3,
+      PMIN = 1, PMAX = 2,
+      basisNm = 'G_MAX_ORDER_C',
+      basisShortNm = 'Max',
+   }
+   ..
+   vlasovKernelFactoryTemplate {
+      CMIN = 1, CMAX = 2,
+      VMAX = 3,
+      PMIN = 1, PMAX = 2,
+      basisNm = 'G_SERENDIPITY_C',
+      basisShortNm = 'Ser',
+   }
+   ..
+   vlasovKernelFactoryTemplate {
+      CMIN = 3, CMAX = 3,
+      VMAX = 3,
+      PMIN = 1, PMAX = 1,
+      basisNm = 'G_SERENDIPITY_C',
+      basisShortNm = 'Ser',
+   }
+
+--io.write( vlasovKernelFactoryOut )
