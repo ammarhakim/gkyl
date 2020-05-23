@@ -6,10 +6,10 @@ load(stringproc)$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 2$
-minCdim_Ser : 3$
+maxPolyOrder_Ser : 3$
+minCdim_Ser : 1$
 maxCdim_Ser : 3$
-minVdim_Ser : 3$    /* see begining of v loop below though. */
+minVdim_Ser : 1$    /* see begining of v loop below though. */
 maxVdim_Ser : 3$
 
 /* Maximal order basis. */
@@ -23,8 +23,8 @@ maxVdim_Max : 3$
 maxPolyOrder_Tensor : 3$
 minCdim_Tensor : 1$
 maxCdim_Tensor : 1$
-minVdim_Tensor : 1$    /* see begining of v loop below though. */
-maxVdim_Tensor : 2$
+minVdim_Tensor : 0$    /* see begining of v loop below though. */
+maxVdim_Tensor : 0$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -38,13 +38,20 @@ maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
 /* Compute the volume contribution in BOTH real and velocity space (for use in full Vlasov-Maxwell) */
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
-    for v : c thru maxVdim[bInd] do (
-      disp(printf(false,sconcat("Creating volume Vlasov",bName[bInd]," ~ax~av"),c,v)),
-      fname : sconcat("~/max-out/Vlasov", bName[bInd], c, "x", v, "v", ".cpp"),
-      fh : openw(fname),
-      funcName : sconcat("VlasovVol", c, "x", v, "v", bName[bInd]),
-      calcVlasovVolUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
-      close(fh)
+    for v : max(c,minVdim[bInd]) thru maxVdim[bInd] do (
+
+      maxPolyOrderB : maxPolyOrder[bInd],
+      if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+      if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
+
+      for polyOrder : 1 thru maxPolyOrderB do (
+        disp(printf(false,sconcat("Creating volume Vlasov",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
+        fname : sconcat("~/max-out/Vlasov", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
+        fh : openw(fname),
+        funcName : sconcat("VlasovVol", c, "x", v, "v", bName[bInd]),
+        calcVlasovVolUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
+        close(fh)
+      )
     )
   )
 );
@@ -53,13 +60,20 @@ load("vlasov-calc/vlasov-stream-vol")$
 /* Compute the volume contribution from ONLY the streaming term (for use in neutral particle simulations) */
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
-    for v : c thru maxVdim[bInd] do (
-      disp(printf(false,sconcat("Creating volume VlasovStream",bName[bInd]," ~ax~av"),c,v)),
-      fname : sconcat("~/max-out/VlasovStream", bName[bInd], c, "x", v, "v", ".cpp"),
-      fh : openw(fname),
-      funcName : sconcat("VlasovVolStream", c, "x", v, "v", bName[bInd]),
-      calcVlasovStreamVolUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
-      close(fh)
+    for v : max(c,minVdim[bInd]) thru maxVdim[bInd] do (
+
+      maxPolyOrderB : maxPolyOrder[bInd],
+      if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+      if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
+
+      for polyOrder : 1 thru maxPolyOrderB do (
+        disp(printf(false,sconcat("Creating volume VlasovStream",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
+        fname : sconcat("~/max-out/VlasovStream", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
+        fh : openw(fname),
+        funcName : sconcat("VlasovVolStream", c, "x", v, "v", bName[bInd]),
+        calcVlasovStreamVolUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
+        close(fh)
+      )
     )
   )
 );

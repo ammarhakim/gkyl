@@ -44,20 +44,20 @@ vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
-calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
-kill(varsC, varsP, basisC, basisP),
-modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
-load(modNm),
-for i : 1 thru pMax do (
-  bP : basisP[i],
+calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+
+  bP : basisP[p],
   varsC : slcn(varsP, cdim),
-  bC : basisC[i],
+  bC : basisC[p],
   numC : length(bC),
 
   /* specify a point to evaluate alpha at for use global lax fluxes */
   zr : makelist(varsP[d]=0, d, 1, length(varsP)),
 
-  printf(fh, "double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vvars[dir], i),
+  printf(fh, "double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vvars[dir], p),
   printf(fh, "// w: Cell-center coordinates. dxv[NDIM]: Cell spacing. amax: amax in global lax flux. E: EM field. fl/fr: Distribution function in left/right cells ~%"),
   printf(fh, "// outl/outr: output distribution function in left/right cells ~%"),
   printf(fh, "// returns abs(amid) for use in determining amax in cfl and global lax flux ~%"),
@@ -170,9 +170,9 @@ for i : 1 thru pMax do (
   /* return a local estimate of amax */
   printf(fh, "return std::abs(amid); ~%"),
   printf(fh, "} ~%")
-));
+);
 
-calcVlasovSurfUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcVlasovSurfUpdater(fh, funcNm, cdim, vdim, basisFun, p) := block([],
   printf(fh, "#include <VlasovModDecl.h> ~%"),
-  for dir : 1 thru vdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) )
+  for dir : 1 thru vdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) )
 )$
