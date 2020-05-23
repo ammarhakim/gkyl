@@ -165,7 +165,7 @@ vlasovHeaderOut =
    vlasovHeaderTemplate {
       CMIN = 1, CMAX = 2,
       VMAX = 3,
-      PMIN = 1, PMAX = 3,
+      PMIN = 1, PMAX = 2,
       basisNm = 'G_MAX_ORDER_C',
       basisShortNm = 'Max',
    }
@@ -173,7 +173,7 @@ vlasovHeaderOut =
    vlasovHeaderTemplate {
       CMIN = 3, CMAX = 3,
       VMAX = 3,
-      PMIN = 1, PMAX = 2,
+      PMIN = 1, PMAX = 1,
       basisNm = 'G_MAX_ORDER_C',
       basisShortNm = 'Max',
    }
@@ -216,7 +216,7 @@ vlasovKernelFactoryOut =
    vlasovKernelFactoryTemplate {
       CMIN = 1, CMAX = 2,
       VMAX = 3,
-      PMIN = 1, PMAX = 3,
+      PMIN = 1, PMAX = 2,
       basisNm = 'G_MAX_ORDER_C',
       basisShortNm = 'Max',
    }
@@ -224,7 +224,7 @@ vlasovKernelFactoryOut =
    vlasovKernelFactoryTemplate {
       CMIN = 3, CMAX = 3,
       VMAX = 3,
-      PMIN = 1, PMAX = 2,
+      PMIN = 1, PMAX = 1,
       basisNm = 'G_MAX_ORDER_C',
       basisShortNm = 'Max',
    }
