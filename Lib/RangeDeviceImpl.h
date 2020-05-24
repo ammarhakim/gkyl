@@ -1,6 +1,16 @@
-#ifndef RANGE_DEVICE_IMPL_H
-#define RANGE_DEVICE_IMPL_H
+// Gkyl ------------------------------------------------------------------------
+//
+// Range and indexer objects
+//    _______     ___
+// + 6 @ |||| # P ||| +
+//------------------------------------------------------------------------------
 
+#pragma once
+
+// Gkyl includes
+#include <GkCudaConfig.h>
+
+// std includes
 #include <cstdlib>
 
 extern "C"
@@ -11,7 +21,7 @@ extern "C"
     } Range_t;
 }
 
-namespace GkylCuda {
+namespace Gkyl {
   // In the index() methods below the -1 accounts for the fact that
   // the Range_t object's indexer coefficients assume a Lua 1-based
   // indexing
@@ -31,7 +41,7 @@ namespace GkylCuda {
        * @param idx NDIM size index into range
        * @return Linear index (0-start)
        */
-      __device__ __inline__ int index(int *idx) {
+      __host__ __device__ __inline__ int index(int *idx) {
         const int *ac = range->rowMajorIndexerCoeff;
         int loc = -1+ac[0];
         for (int i=0; i<range->ndim; ++i)
@@ -45,7 +55,7 @@ namespace GkylCuda {
        * @param loc Linear location into range
        * @param idx [out] NDIM index object
        */
-      __device__ __inline__ void invIndex(int loc, int *idx) {
+      __host__ __device__ __inline__ void invIndex(int loc, int *idx) {
         const int *ac = range->rowMajorIndexerCoeff;
         int n = loc;
         for (int i=1; i<=range->ndim; ++i) {
@@ -70,7 +80,7 @@ namespace GkylCuda {
        * @param idx NDIM size index into range
        * @return Linear index (0-start)
        */
-      __device__ __inline__ int index(int *idx) {
+      __host__ __device__ __inline__ int index(int *idx) {
         const int *ac = range->rowMajorIndexerCoeff;
         int loc = -1+ac[0];
         for (int i=0; i<NDIM; ++i)
@@ -85,7 +95,7 @@ namespace GkylCuda {
        * @param loc Linear location into range
        * @param idx [out] NDIM index object
        */
-      __device__ __inline__ void invIndex(int loc, int idx[NDIM]) {
+      __host__ __device__ __inline__ void invIndex(int loc, int idx[NDIM]) {
         const int *ac = range->rowMajorIndexerCoeff;
         int n = loc;
         for (int i=1; i<=NDIM; ++i) {
@@ -101,7 +111,7 @@ namespace GkylCuda {
        * 
        * @param range Range object to index
        */
-      __device__ _Indexer(const Range_t *range)
+      __host__ __device__ _Indexer(const Range_t *range)
         : range(range) {
       }
 
@@ -113,11 +123,11 @@ namespace GkylCuda {
   template <unsigned NDIM>
   class Indexer : public _Indexer<NDIM> {
     public:
-      __device__ Indexer(const Range_t *range)
+      __host__ __device__ Indexer(const Range_t *range)
         : _Indexer<NDIM>(range) {
       }
 
-      __device__  __inline__ int index(int idx[NDIM]) {
+      __host__ __device__  __inline__ int index(int idx[NDIM]) {
         const int *ac = this->range->rowMajorIndexerCoeff;
         int loc = -1+ac[0];
         for (int i=0; i<NDIM; ++i)
@@ -130,11 +140,11 @@ namespace GkylCuda {
   template <>
   class Indexer<1> : public _Indexer<1> {
     public:
-      __device__ Indexer(const Range_t *range)
+      __host__ __device__ Indexer(const Range_t *range)
         : _Indexer<1>(range) {
       }
 
-      __device__ __inline__ int index(int i1) {
+      __host__ __device__ __inline__ int index(int i1) {
         const int *ac = this->range->rowMajorIndexerCoeff;
         return -1+ac[0]+i1*ac[1];
       }
@@ -144,11 +154,11 @@ namespace GkylCuda {
   template <>
   class Indexer<2> : public _Indexer<2> {
     public:
-      __device__ Indexer(const Range_t *range)
+      __host__ __device__ Indexer(const Range_t *range)
         : _Indexer<2>(range) {
       }
 
-      __device__ __inline__ int index(int i1, int i2) {
+      __host__ __device__ __inline__ int index(int i1, int i2) {
         const int *ac = this->range->rowMajorIndexerCoeff;
         return -1+ac[0]+i1*ac[1]+i2*ac[2];
       }
@@ -158,11 +168,11 @@ namespace GkylCuda {
   template <>
   class Indexer<3> : public _Indexer<3> {
     public:
-      __device__ Indexer(const Range_t *range)
+      __host__ __device__ Indexer(const Range_t *range)
         : _Indexer<3>(range) {
       }
 
-      __device__ __inline__ int index(int i1, int i2, int i3) {
+      __host__ __device__ __inline__ int index(int i1, int i2, int i3) {
         const int *ac = this->range->rowMajorIndexerCoeff;
         return -1+ac[0]+i1*ac[1]+i2*ac[2]+i3*ac[3];
       }
@@ -172,11 +182,11 @@ namespace GkylCuda {
   template <>
   class Indexer<4> : public _Indexer<4> {
     public:
-      __device__ Indexer(const Range_t *range)
+      __host__ __device__ Indexer(const Range_t *range)
         : _Indexer<4>(range) {
       }
 
-      __device__ __inline__ int index(int i1, int i2, int i3, int i4) {
+      __host__ __device__ __inline__ int index(int i1, int i2, int i3, int i4) {
         const int *ac = this->range->rowMajorIndexerCoeff;
         return -1+ac[0]+i1*ac[1]+i2*ac[2]+i3*ac[3]+i4*ac[4];
       }
@@ -186,11 +196,11 @@ namespace GkylCuda {
   template <>
   class Indexer<5> : public _Indexer<5> {
     public:
-      __device__ Indexer(const Range_t *range)
+      __host__ __device__ Indexer(const Range_t *range)
         : _Indexer<5>(range) {
       }
 
-      __device__ __inline__ int index(int i1, int i2, int i3, int i4, int i5) {
+      __host__ __device__ __inline__ int index(int i1, int i2, int i3, int i4, int i5) {
         const int *ac = this->range->rowMajorIndexerCoeff;
         return -1+ac[0]+i1*ac[1]+i2*ac[2]+i3*ac[3]+i4*ac[4]+i5*ac[5];
       }
@@ -200,15 +210,13 @@ namespace GkylCuda {
   template <>
   class Indexer<6> : public _Indexer<6> {
     public:
-      __device__ Indexer(const Range_t *range)
+      __host__ __device__ Indexer(const Range_t *range)
         : _Indexer<6>(range) {
       }
 
-      __device__ __inline__ int index(int i1, int i2, int i3, int i4, int i5, int i6) {
+      __host__ __device__ __inline__ int index(int i1, int i2, int i3, int i4, int i5, int i6) {
         const int *ac = this->range->rowMajorIndexerCoeff;
         return -1+ac[0]+i1*ac[1]+i2*ac[2]+i3*ac[3]+i4*ac[4]+i5*ac[5]+i6*ac[6];
       }
   };
 }
-
-#endif // RANGE_DEVICE_IMPL_H

@@ -1,5 +1,11 @@
-#ifndef VLASOV_TMPL_MOD_DECL_H
-#define VLASOV_TMPL_MOD_DECL_H
+// Gkyl ------------------------------------------------------------------------
+//
+// Wrappers for calling into Vlasov kernels
+//    _______     ___
+// + 6 @ |||| # P ||| +
+//------------------------------------------------------------------------------
+
+#pragma once
 
 #include <GkCudaConfig.h>
 #include <VlasovModDecl.h>
@@ -1043,5 +1049,4 @@ namespace Gkyl {
 
 
 }
-#endif // VLASOV_TMPL_MOD_DECL_H
 
