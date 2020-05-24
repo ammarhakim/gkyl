@@ -425,7 +425,7 @@ def build(bld):
 
     """,
               name = 'eq',
-              target = 'eq', use='EIGEN', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData ../Cuda',
+              target = 'eq', use='EIGEN CUTOOLS', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData ../Cuda',
               vnum = '1.0',
               
     )

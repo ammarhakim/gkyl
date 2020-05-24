@@ -27,5 +27,5 @@ def build(bld):
     bld.program(
         source = 'ctest_Range.cxx',
         target = 'ctest_Range',
-        includes = '../Lib . ../Cuda'
+        includes = '../Lib . ../Cuda', use = "CUTOOLS"
     )        
