@@ -2,7 +2,7 @@
 
 #include <cstdio>
 #include <RectCartDeviceImpl.h>
-#include <RangeDeviceImpl.h>
+#include <GkRange.h>
 
 extern "C" 
 {

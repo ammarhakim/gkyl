@@ -8,7 +8,7 @@
 //------------------------------------------------------------------------------
 //
 #include <RectCartDeviceImpl.h>
-#include <RangeDeviceImpl.h>
+#include <GkRange.h>
 #include <GkCudaFuncs.h>
 
 #ifndef DIST_FUNC_MOMENT_CALC_DEVICE_WRAPPERS_H 
