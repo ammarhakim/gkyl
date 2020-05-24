@@ -57,7 +57,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([],
   /* specify a point to evaluate alpha at for use global lax fluxes */
   zr : makelist(varsP[d]=0, d, 1, length(varsP)),
 
-  printf(fh, "double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vvars[dir], p),
+  printf(fh, "__host__ __device__ double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vvars[dir], p),
   printf(fh, "// w: Cell-center coordinates. dxv[NDIM]: Cell spacing. amax: amax in global lax flux. E: EM field. fl/fr: Distribution function in left/right cells ~%"),
   printf(fh, "// outl/outr: output distribution function in left/right cells ~%"),
   printf(fh, "// returns abs(amid) for use in determining amax in cfl and global lax flux ~%"),
@@ -68,13 +68,9 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([],
   printf(fh, "  double dv1~al = 2/dxvl[~a]; ~%", dir-1, vid[dir]),
   printf(fh, "  double dv1~ar = 2/dxvr[~a]; ~%", dir-1, vid[dir]),
   printf(fh, "  const double *E~a = &EM[~a]; ~%", dir-1, numC*(dir-1)),
-  printf(fh, "~%"),
-
   for dir : 1 thru vdim do (
     printf(fh, "  const double dv~a = dxvr[~a], wv~a = wr[~a]; ~%", dir, vid[dir], dir, vid[dir])
   ),
-  printf(fh, "~%"),
-
   /* if vdim = 1, then no magnetic field */
   if vdim > 1 then (
       if vdim = 2 then (
@@ -87,36 +83,35 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([],
          )            
       )
   ),
-  printf(fh, "~%"),   
 
+  printf(fh, "~%"),
   /* surface contribution is defined as integral(phi^- Ghat) over the surface */
-  printf(fh, "  double Ghat[~a]; ~%~%", length(bP)),
-
+  printf(fh, "  double Ghat[~a]; ~%", length(bP)),
   /* alpha is the phase space flux at the surface */
-  printf(fh, "  double alpha[~a]; ~%~%", length(bP)),
+  printf(fh, "  double alpha[~a]; ~%", length(bP)),
+  printf(fh, "~%"),
 
   cv : varsP[dir],
   vv : varsV[dir],
-
   /* since Ghat involves both the average and jump of the distribution function, */
   /* we can precompute the appropriate signs of f_left and f_right and store them in temporary variables */
   basisFlip : subst(vv=-1.0*vv, bP),
   signs : fullratsimp(basisFlip/bP),
 
-  printf(fh, "  double favg[~a]; ~%~%", length(bP)),
+  printf(fh, "  double favg[~a]; ~%", length(bP)),
   for c : 1 thru length(bP) do (
     printf(fh, "  favg[~a] = ~a*fr[~a]+fl[~a]; ~%", c-1, signs[c], c-1, c-1)
   ),
-
+  printf(fh, "~%"),
   /* since the maximum acceleration is a constant, accumulate its contribution into fjump a priori */
-  printf(fh, "  double fjump[~a]; ~%~%", length(bP)),
+  printf(fh, "  double fjump[~a]; ~%", length(bP)),
   for c : 1 thru length(bP) do (
     printf(fh, "  fjump[~a] = amax*(~a*fr[~a]-fl[~a]); ~%", c-1, signs[c], c-1, c-1)
   ),
-  
+  printf(fh, "~%"),
+
   /* surface variables to integrate over */
   surfVars : delete(vv,varsP),
-
   /* expand the average and jump of the distribution function in phase space basis functions */
   favg_e : doExpand1(favg, bP),
   fjump_e : doExpand1(fjump, bP),
@@ -134,6 +129,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([],
   /* evaluate acceleration at zr (in this case the midpoint) */
   amid : float(expand(fullratsimp(subst(zr,alpha_e)))),
   printf(fh, "  const double amid = ~a; ~%", amid),
+  printf(fh, "~%"),
 
   /* eliminate the surface variable from the average and jump expansions */
   fhat_average : subst(vv=1, favg_e),
@@ -167,8 +163,9 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([],
   incr_new : makelist(signs[i]*incr_s[i], i, 1, length(bP)),
   writeCIncrExprs1(outl, dv11l[dir]*incr_new),
 
+  printf(fh, "~%"),
   /* return a local estimate of amax */
-  printf(fh, "return std::abs(amid); ~%"),
+  printf(fh, "  return std::abs(amid); ~%"),
   printf(fh, "} ~%")
 );
 

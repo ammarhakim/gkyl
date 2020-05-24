@@ -1,5 +1,5 @@
 #include <VlasovModDecl.h> 
-void VlasovSurfStream3x3vMax_X_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr) 
+__host__ __device__ void VlasovSurfStream3x3vMax_X_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 
@@ -64,7 +64,7 @@ void VlasovSurfStream3x3vMax_X_P1(const double *wl, const double *wr, const doub
   outl[6] += -1.0*incr[6]*dxl; 
   } 
 } 
-void VlasovSurfStream3x3vMax_Y_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr) 
+__host__ __device__ void VlasovSurfStream3x3vMax_Y_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 
@@ -129,7 +129,7 @@ void VlasovSurfStream3x3vMax_Y_P1(const double *wl, const double *wr, const doub
   outl[6] += -1.0*incr[6]*dxl; 
   } 
 } 
-void VlasovSurfStream3x3vMax_Z_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr) 
+__host__ __device__ void VlasovSurfStream3x3vMax_Z_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 

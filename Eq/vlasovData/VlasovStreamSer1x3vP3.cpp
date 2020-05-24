@@ -1,5 +1,5 @@
 #include <VlasovModDecl.h> 
-double VlasovVolStream1x3vSerP3(const double *w, const double *dxv, const double *f, double *out) 
+__host__ __device__ double VlasovVolStream1x3vSerP3(const double *w, const double *dxv, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. f: Input distribution function. out: Incremented output 
   double dv0dx0 = dxv[1]/dxv[0]; 
@@ -53,5 +53,6 @@ double VlasovVolStream1x3vSerP3(const double *w, const double *dxv, const double
   out[77] += 3.464101615137754*f[70]*w0dx0+0.8783100656536798*f[42]*dv0dx0; 
   out[78] += 3.464101615137754*f[72]*w0dx0+f[56]*dv0dx0; 
   out[79] += 3.464101615137754*f[75]*w0dx0+f[59]*dv0dx0; 
+
   return std::abs(w0dx0)+dv0dx0/2; 
 } 

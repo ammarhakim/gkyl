@@ -1,5 +1,5 @@
 #include <VlasovModDecl.h> 
-double VlasovSurfElcMag1x1vSer_VX_P3(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
+__host__ __device__ double VlasovSurfElcMag1x1vSer_VX_P3(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w: Cell-center coordinates. dxv[NDIM]: Cell spacing. amax: amax in global lax flux. E: EM field. fl/fr: Distribution function in left/right cells 
 // outl/outr: output distribution function in left/right cells 
@@ -7,16 +7,12 @@ double VlasovSurfElcMag1x1vSer_VX_P3(const double *wl, const double *wr, const d
   double dv10l = 2/dxvl[1]; 
   double dv10r = 2/dxvr[1]; 
   const double *E0 = &EM[0]; 
-
   const double dv1 = dxvr[1], wv1 = wr[1]; 
 
-
   double Ghat[12]; 
-
   double alpha[12]; 
 
   double favg[12]; 
-
   favg[0] = 1*fr[0]+fl[0]; 
   favg[1] = 1*fr[1]+fl[1]; 
   favg[2] = -1*fr[2]+fl[2]; 
@@ -29,8 +25,8 @@ double VlasovSurfElcMag1x1vSer_VX_P3(const double *wl, const double *wr, const d
   favg[9] = -1*fr[9]+fl[9]; 
   favg[10] = -1*fr[10]+fl[10]; 
   favg[11] = -1*fr[11]+fl[11]; 
-  double fjump[12]; 
 
+  double fjump[12]; 
   fjump[0] = amax*(1*fr[0]-fl[0]); 
   fjump[1] = amax*(1*fr[1]-fl[1]); 
   fjump[2] = amax*(-1*fr[2]-fl[2]); 
@@ -43,11 +39,13 @@ double VlasovSurfElcMag1x1vSer_VX_P3(const double *wl, const double *wr, const d
   fjump[9] = amax*(-1*fr[9]-fl[9]); 
   fjump[10] = amax*(-1*fr[10]-fl[10]); 
   fjump[11] = amax*(-1*fr[11]-fl[11]); 
+
   alpha[0] = 1.414213562373095*E0[0]; 
   alpha[1] = 1.414213562373095*E0[1]; 
   alpha[4] = 1.414213562373095*E0[2]; 
   alpha[8] = 1.414213562373095*E0[3]; 
   const double amid = 0.5*alpha[0]-0.5590169943749475*alpha[4]; 
+
   Ghat[0] = alpha[1]*(0.6614378277661477*favg[11]+0.5590169943749475*favg[7]+0.4330127018922193*favg[3]+0.25*favg[1])+alpha[8]*(0.4330127018922193*favg[10]+0.25*favg[8])-1.322875655532295*fjump[9]+alpha[0]*(0.6614378277661477*favg[9]+0.5590169943749475*favg[5]+0.4330127018922193*favg[2]+0.25*favg[0])+alpha[4]*(0.4330127018922193*favg[6]+0.25*favg[4])-1.118033988749895*fjump[5]-0.8660254037844386*fjump[2]-0.5*fjump[0]; 
   Ghat[1] = (-1.322875655532295*fjump[11])+alpha[0]*(0.6614378277661477*favg[11]+0.5590169943749475*favg[7]+0.4330127018922193*favg[3]+0.25*favg[1])+alpha[4]*(0.5916079783099616*favg[11]+0.3803194146278324*favg[10]+0.2195775164134199*favg[8]+0.5*favg[7]+0.3872983346207416*favg[3]+0.223606797749979*favg[1])+alpha[1]*(0.6614378277661477*favg[9]+0.3872983346207416*favg[6]+0.5590169943749475*favg[5]+0.223606797749979*favg[4]+0.4330127018922193*favg[2]+0.25*favg[0])+(0.3803194146278324*favg[6]+0.2195775164134199*favg[4])*alpha[8]-1.118033988749895*fjump[7]-0.8660254037844386*fjump[3]-0.5*fjump[1]; 
   Ghat[4] = alpha[1]*(0.5916079783099616*favg[11]+0.3803194146278324*favg[10]+0.2195775164134199*favg[8]+0.5*favg[7]+0.3872983346207416*favg[3]+0.223606797749979*favg[1])+alpha[8]*(0.5809475019311124*favg[11]+0.2581988897471612*favg[10]+0.149071198499986*favg[8]+0.4909902530309828*favg[7]+0.3803194146278324*favg[3]+0.2195775164134199*favg[1])+alpha[4]*(0.6614378277661477*favg[9]+0.276641667586244*favg[6]+0.5590169943749475*favg[5]+0.159719141249985*favg[4]+0.4330127018922193*favg[2]+0.25*favg[0])-0.8660254037844386*fjump[6]+alpha[0]*(0.4330127018922193*favg[6]+0.25*favg[4])-0.5*fjump[4]; 
@@ -78,5 +76,6 @@ double VlasovSurfElcMag1x1vSer_VX_P3(const double *wl, const double *wr, const d
   outl[9] += -1.322875655532295*Ghat[0]*dv10l; 
   outl[10] += -0.8660254037844386*Ghat[8]*dv10l; 
   outl[11] += -1.322875655532295*Ghat[1]*dv10l; 
-return std::abs(amid); 
+
+  return std::abs(amid); 
 } 

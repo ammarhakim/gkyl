@@ -219,10 +219,13 @@ def build(bld):
     vlasovData/VlasovStreamSer1x3vP3.cpp
     vlasovData/VlasovStreamSer2x2vP3.cpp
 
-    vlasovData/VlasovStreamTensor1x1v.cpp
-    vlasovData/VlasovStreamTensor1x2v.cpp
-    vlasovData/VlasovStreamTensor1x3v.cpp
-    vlasovData/VlasovStreamTensor2x2v.cpp
+    vlasovData/VlasovStreamTensor1x1vP2.cpp
+    vlasovData/VlasovStreamTensor1x2vP2.cpp
+    vlasovData/VlasovStreamTensor1x3vP2.cpp
+    vlasovData/VlasovStreamTensor2x2vP2.cpp
+
+    vlasovData/VlasovStreamTensor1x1vP3.cpp
+    vlasovData/VlasovStreamTensor1x2vP3.cpp
 
     vlasovData/VlasovSurfStreamMax1x1vP1.cpp
     vlasovData/VlasovSurfStreamMax1x2vP1.cpp
@@ -260,10 +263,13 @@ def build(bld):
     vlasovData/VlasovSurfStreamSer1x3vP3.cpp
     vlasovData/VlasovSurfStreamSer2x2vP3.cpp
 
-    vlasovData/VlasovSurfStreamTensor1x1v.cpp
-    vlasovData/VlasovSurfStreamTensor1x2v.cpp
-    vlasovData/VlasovSurfStreamTensor1x3v.cpp
-    vlasovData/VlasovSurfStreamTensor2x2v.cpp
+    vlasovData/VlasovSurfStreamTensor1x1vP2.cpp
+    vlasovData/VlasovSurfStreamTensor1x2vP2.cpp
+    vlasovData/VlasovSurfStreamTensor1x3vP2.cpp
+    vlasovData/VlasovSurfStreamTensor2x2vP2.cpp
+
+    vlasovData/VlasovSurfStreamTensor1x1vP3.cpp
+    vlasovData/VlasovSurfStreamTensor1x2vP3.cpp
 
     vlasovData/VlasovMax1x1vP1.cpp
     vlasovData/VlasovMax1x2vP1.cpp
@@ -301,10 +307,13 @@ def build(bld):
     vlasovData/VlasovSer1x3vP3.cpp
     vlasovData/VlasovSer2x2vP3.cpp
 
-    vlasovData/VlasovTensor1x1v.cpp
-    vlasovData/VlasovTensor1x2v.cpp
-    vlasovData/VlasovTensor1x3v.cpp
-    vlasovData/VlasovTensor2x2v.cpp
+    vlasovData/VlasovTensor1x1vP2.cpp
+    vlasovData/VlasovTensor1x2vP2.cpp
+    vlasovData/VlasovTensor1x3vP2.cpp
+    vlasovData/VlasovTensor2x2vP2.cpp
+
+    vlasovData/VlasovTensor1x1vP3.cpp
+    vlasovData/VlasovTensor1x2vP3.cpp
 
     vlasovData/VlasovSurfElcMagMax1x1vP1.cpp
     vlasovData/VlasovSurfElcMagMax1x2vP1.cpp
@@ -342,10 +351,13 @@ def build(bld):
     vlasovData/VlasovSurfElcMagSer1x3vP3.cpp
     vlasovData/VlasovSurfElcMagSer2x2vP3.cpp
 
-    vlasovData/VlasovSurfElcMagTensor1x1v.cpp
-    vlasovData/VlasovSurfElcMagTensor1x2v.cpp
-    vlasovData/VlasovSurfElcMagTensor1x3v.cpp
-    vlasovData/VlasovSurfElcMagTensor2x2v.cpp
+    vlasovData/VlasovSurfElcMagTensor1x1vP2.cpp
+    vlasovData/VlasovSurfElcMagTensor1x2vP2.cpp
+    vlasovData/VlasovSurfElcMagTensor1x3vP2.cpp
+    vlasovData/VlasovSurfElcMagTensor2x2vP2.cpp
+
+    vlasovData/VlasovSurfElcMagTensor1x1vP3.cpp
+    vlasovData/VlasovSurfElcMagTensor1x2vP3.cpp
 
     vlasovData/VlasovIncr.cpp
 
@@ -413,7 +425,7 @@ def build(bld):
 
     """,
               name = 'eq',
-              target = 'eq', use='EIGEN', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData',
+              target = 'eq', use='EIGEN', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData ../Cuda',
               vnum = '1.0',
               
     )

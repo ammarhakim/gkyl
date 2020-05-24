@@ -1,5 +1,5 @@
 #include <VlasovModDecl.h> 
-double VlasovSurfElcMag1x1vSer_VX_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
+__host__ __device__ double VlasovSurfElcMag1x1vSer_VX_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w: Cell-center coordinates. dxv[NDIM]: Cell spacing. amax: amax in global lax flux. E: EM field. fl/fr: Distribution function in left/right cells 
 // outl/outr: output distribution function in left/right cells 
@@ -7,16 +7,12 @@ double VlasovSurfElcMag1x1vSer_VX_P2(const double *wl, const double *wr, const d
   double dv10l = 2/dxvl[1]; 
   double dv10r = 2/dxvr[1]; 
   const double *E0 = &EM[0]; 
-
   const double dv1 = dxvr[1], wv1 = wr[1]; 
 
-
   double Ghat[8]; 
-
   double alpha[8]; 
 
   double favg[8]; 
-
   favg[0] = 1*fr[0]+fl[0]; 
   favg[1] = 1*fr[1]+fl[1]; 
   favg[2] = -1*fr[2]+fl[2]; 
@@ -25,8 +21,8 @@ double VlasovSurfElcMag1x1vSer_VX_P2(const double *wl, const double *wr, const d
   favg[5] = 1*fr[5]+fl[5]; 
   favg[6] = -1*fr[6]+fl[6]; 
   favg[7] = 1*fr[7]+fl[7]; 
-  double fjump[8]; 
 
+  double fjump[8]; 
   fjump[0] = amax*(1*fr[0]-fl[0]); 
   fjump[1] = amax*(1*fr[1]-fl[1]); 
   fjump[2] = amax*(-1*fr[2]-fl[2]); 
@@ -35,10 +31,12 @@ double VlasovSurfElcMag1x1vSer_VX_P2(const double *wl, const double *wr, const d
   fjump[5] = amax*(1*fr[5]-fl[5]); 
   fjump[6] = amax*(-1*fr[6]-fl[6]); 
   fjump[7] = amax*(1*fr[7]-fl[7]); 
+
   alpha[0] = 1.414213562373095*E0[0]; 
   alpha[1] = 1.414213562373095*E0[1]; 
   alpha[4] = 1.414213562373095*E0[2]; 
   const double amid = 0.5*alpha[0]-0.5590169943749475*alpha[4]; 
+
   Ghat[0] = alpha[1]*(0.5590169943749475*favg[7]+0.4330127018922193*favg[3]+0.25*favg[1])+alpha[4]*(0.4330127018922193*favg[6]+0.25*favg[4])-1.118033988749895*fjump[5]+alpha[0]*(0.5590169943749475*favg[5]+0.4330127018922193*favg[2]+0.25*favg[0])-0.8660254037844386*fjump[2]-0.5*fjump[0]; 
   Ghat[1] = (-1.118033988749895*fjump[7])+alpha[0]*(0.5590169943749475*favg[7]+0.4330127018922193*favg[3]+0.25*favg[1])+alpha[4]*(0.5*favg[7]+0.3872983346207416*favg[3]+0.223606797749979*favg[1])+alpha[1]*(0.3872983346207416*favg[6]+0.5590169943749475*favg[5]+0.223606797749979*favg[4]+0.4330127018922193*favg[2]+0.25*favg[0])-0.8660254037844386*fjump[3]-0.5*fjump[1]; 
   Ghat[4] = alpha[1]*(0.5*favg[7]+0.3872983346207416*favg[3]+0.223606797749979*favg[1])-0.8660254037844386*fjump[6]+alpha[0]*(0.4330127018922193*favg[6]+0.25*favg[4])+alpha[4]*(0.276641667586244*favg[6]+0.5590169943749475*favg[5]+0.159719141249985*favg[4]+0.4330127018922193*favg[2]+0.25*favg[0])-0.5*fjump[4]; 
@@ -60,5 +58,6 @@ double VlasovSurfElcMag1x1vSer_VX_P2(const double *wl, const double *wr, const d
   outl[5] += -1.118033988749895*Ghat[0]*dv10l; 
   outl[6] += -0.8660254037844387*Ghat[4]*dv10l; 
   outl[7] += -1.118033988749895*Ghat[1]*dv10l; 
-return std::abs(amid); 
+
+  return std::abs(amid); 
 } 

@@ -1,5 +1,5 @@
 #include <VlasovModDecl.h> 
-void VlasovSurfStream2x2vMax_X_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr) 
+__host__ __device__ void VlasovSurfStream2x2vMax_X_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 
@@ -52,7 +52,7 @@ void VlasovSurfStream2x2vMax_X_P1(const double *wl, const double *wr, const doub
   outl[4] += -1.0*incr[4]*dxl; 
   } 
 } 
-void VlasovSurfStream2x2vMax_Y_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr) 
+__host__ __device__ void VlasovSurfStream2x2vMax_Y_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 

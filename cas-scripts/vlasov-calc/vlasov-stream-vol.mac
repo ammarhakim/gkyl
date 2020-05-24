@@ -20,10 +20,11 @@ calcVlasovStreamVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
+
   printf(fh, "#include <VlasovModDecl.h> ~%"),
 
   bP : basisP[polyOrder],
-  printf(fh, "double ~aP~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+  printf(fh, "__host__ __device__ double ~aP~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. f: Input distribution function. out: Incremented output ~%"),
   cid : cidx(cdim),
   vid : vidx(cdim,vdim),
@@ -42,16 +43,19 @@ calcVlasovStreamVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block
   if cdim = 1 then (
     clst : [w0dx0, dv0dx0],
     writeCIncrExprsCollect1(out,t,clst),
+    printf(fh, "~%"),
     printf(fh, "  return std::abs(w0dx0)+dv0dx0/2; ~%")
   ),
   if cdim = 2 then (
     clst : [w0dx0, dv0dx0, w1dx1, dv1dx1],
     writeCIncrExprsCollect1(out,t,clst),
+    printf(fh, "~%"),
     printf(fh, "  return std::abs(w0dx0)+std::abs(w1dx1)+dv0dx0/2+dv1dx1/2; ~%")
   ),
   if cdim = 3 then (
     clst : [w0dx0, dv0dx0, w1dx1, dv1dx1, w2dx2, dv2dx2],
     writeCIncrExprsCollect1(out,t,clst),
+    printf(fh, "~%"),
     printf(fh, "  return std::abs(w0dx0)+std::abs(w1dx1)+std::abs(w2dx2)+dv0dx0/2+dv1dx1/2+dv2dx2/2; ~%")
   ),
   printf(fh, "} ~%")
