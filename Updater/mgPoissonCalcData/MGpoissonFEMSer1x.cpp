@@ -349,7 +349,7 @@ void MGpoissonFEMDampedJacobi1xSer_LxNeumann_P1(const double omega, double **dx,
   double *phiUx = phiPrev[2]; 
 
 
-  phiC[0] = ((-2.0*bcVals[2])+phiUx[0]-1.0*phiPrevC[0])*omega+phiPrevC[0]; 
+  phiC[0] = -(1.0*((2.0*rdx2SqVol[0]*bcVals[2]-2.0*rhoC[0]+(phiPrevC[0]-1.0*phiUx[0])*rdx2SqVol[0])*omega-1.0*phiPrevC[0]*rdx2SqVol[0]))/rdx2SqVol[0]; 
 
 }
 
@@ -376,7 +376,7 @@ void MGpoissonFEMDampedJacobi1xSer_LxRobin_P1(const double omega, double **dx, c
   double *phiUx = phiPrev[2]; 
 
 
-  phiC[0] = -(1.0*((2.0*bcVals[2]+(phiPrevC[0]-1.0*phiUx[0])*bcVals[1]-2.0*bcVals[0]*phiPrevC[0])*omega-1.0*phiPrevC[0]*bcVals[1]+2.0*bcVals[0]*phiPrevC[0]))/(bcVals[1]-2.0*bcVals[0]); 
+  phiC[0] = -(1.0*((2.0*rdx2SqVol[0]*bcVals[2]+((phiPrevC[0]-1.0*phiUx[0])*rdx2SqVol[0]-2.0*rhoC[0])*bcVals[1]-2.0*bcVals[0]*phiPrevC[0]*rdx2SqVol[0])*omega-1.0*phiPrevC[0]*rdx2SqVol[0]*bcVals[1]+2.0*bcVals[0]*phiPrevC[0]*rdx2SqVol[0]))/(rdx2SqVol[0]*bcVals[1]-2.0*bcVals[0]*rdx2SqVol[0]); 
 
 }
 
@@ -431,8 +431,8 @@ void MGpoissonFEMDampedJacobi1xSer_UxNeumann_P1(const double omega, double **dx,
   double *phiUx = phiPrev[2]; 
 
 
-  phiC[0] = ((2.0*rdx2SqVol[0]*bcVals[5]+2.0*rhoC[0]+(phiLx[0]-1.0*phiPrevC[0])*rdx2SqVol[0])*omega+phiPrevC[0]*rdx2SqVol[0])/rdx2SqVol[0]; 
-  phiC[1] = ((4.0*rdx2SqVol[0]*bcVals[5]-1.0*rdx2SqVol[0]*phiPrevC[1]+2.0*rhoC[0]+phiLx[0]*rdx2SqVol[0])*omega+rdx2SqVol[0]*phiPrevC[1])/rdx2SqVol[0]; 
+  phiC[0] = ((2.0*rdx2SqVol[0]*bcVals[5]+2.0*rhoC[1]+2.0*rhoC[0]+(phiLx[0]-1.0*phiPrevC[0])*rdx2SqVol[0])*omega+phiPrevC[0]*rdx2SqVol[0])/rdx2SqVol[0]; 
+  phiC[1] = ((4.0*rdx2SqVol[0]*bcVals[5]+4.0*rhoC[1]-1.0*rdx2SqVol[0]*phiPrevC[1]+2.0*rhoC[0]+phiLx[0]*rdx2SqVol[0])*omega+rdx2SqVol[0]*phiPrevC[1])/rdx2SqVol[0]; 
 
 }
 
@@ -459,8 +459,8 @@ void MGpoissonFEMDampedJacobi1xSer_UxRobin_P1(const double omega, double **dx, c
   double *phiUx = phiPrev[2]; 
 
 
-  phiC[0] = ((2.0*rdx2SqVol[0]*bcVals[5]+(2.0*rhoC[0]+(phiLx[0]-1.0*phiPrevC[0])*rdx2SqVol[0])*bcVals[4]+(4.0*rhoC[0]+(2.0*phiLx[0]-4.0*phiPrevC[0])*rdx2SqVol[0])*bcVals[3])*omega+phiPrevC[0]*rdx2SqVol[0]*bcVals[4]+4.0*phiPrevC[0]*rdx2SqVol[0]*bcVals[3])/(rdx2SqVol[0]*bcVals[4]+4.0*rdx2SqVol[0]*bcVals[3]); 
-  phiC[1] = ((4.0*rdx2SqVol[0]*bcVals[5]+((-1.0*rdx2SqVol[0]*phiPrevC[1])+2.0*rhoC[0]+phiLx[0]*rdx2SqVol[0])*bcVals[4]-4.0*rdx2SqVol[0]*phiPrevC[1]*bcVals[3])*omega+rdx2SqVol[0]*phiPrevC[1]*bcVals[4]+4.0*rdx2SqVol[0]*phiPrevC[1]*bcVals[3])/(rdx2SqVol[0]*bcVals[4]+4.0*rdx2SqVol[0]*bcVals[3]); 
+  phiC[0] = ((2.0*rdx2SqVol[0]*bcVals[5]+(2.0*rhoC[1]+2.0*rhoC[0]+(phiLx[0]-1.0*phiPrevC[0])*rdx2SqVol[0])*bcVals[4]+(4.0*rhoC[0]+(2.0*phiLx[0]-4.0*phiPrevC[0])*rdx2SqVol[0])*bcVals[3])*omega+phiPrevC[0]*rdx2SqVol[0]*bcVals[4]+4.0*phiPrevC[0]*rdx2SqVol[0]*bcVals[3])/(rdx2SqVol[0]*bcVals[4]+4.0*rdx2SqVol[0]*bcVals[3]); 
+  phiC[1] = ((4.0*rdx2SqVol[0]*bcVals[5]+(4.0*rhoC[1]-1.0*rdx2SqVol[0]*phiPrevC[1]+2.0*rhoC[0]+phiLx[0]*rdx2SqVol[0])*bcVals[4]-4.0*rdx2SqVol[0]*phiPrevC[1]*bcVals[3])*omega+rdx2SqVol[0]*phiPrevC[1]*bcVals[4]+4.0*rdx2SqVol[0]*phiPrevC[1]*bcVals[3])/(rdx2SqVol[0]*bcVals[4]+4.0*rdx2SqVol[0]*bcVals[3]); 
 
 }
 
@@ -538,7 +538,7 @@ void MGpoissonFEMDampedGaussSeidel1xSer_LxNeumann_P1(const double omega, double 
   double *phiUx = phi[2]; 
 
 
-  phiC[0] = ((-2.0*bcVals[2])+phiUx[0]-1.0*phiC[0])*omega+phiC[0]; 
+  phiC[0] = -(1.0*((2.0*rdx2SqVol[0]*bcVals[2]-2.0*rhoC[0]+(phiC[0]-1.0*phiUx[0])*rdx2SqVol[0])*omega-1.0*phiC[0]*rdx2SqVol[0]))/rdx2SqVol[0]; 
 
 }
 
@@ -564,7 +564,7 @@ void MGpoissonFEMDampedGaussSeidel1xSer_LxRobin_P1(const double omega, double **
   double *phiUx = phi[2]; 
 
 
-  phiC[0] = -(1.0*((2.0*bcVals[2]+(phiC[0]-1.0*phiUx[0])*bcVals[1]-2.0*bcVals[0]*phiC[0])*omega-1.0*phiC[0]*bcVals[1]+2.0*bcVals[0]*phiC[0]))/(bcVals[1]-2.0*bcVals[0]); 
+  phiC[0] = -(1.0*((2.0*rdx2SqVol[0]*bcVals[2]+((phiC[0]-1.0*phiUx[0])*rdx2SqVol[0]-2.0*rhoC[0])*bcVals[1]-2.0*bcVals[0]*phiC[0]*rdx2SqVol[0])*omega-1.0*phiC[0]*rdx2SqVol[0]*bcVals[1]+2.0*bcVals[0]*phiC[0]*rdx2SqVol[0]))/(rdx2SqVol[0]*bcVals[1]-2.0*bcVals[0]*rdx2SqVol[0]); 
 
 }
 
@@ -617,8 +617,8 @@ void MGpoissonFEMDampedGaussSeidel1xSer_UxNeumann_P1(const double omega, double 
   double *phiUx = phi[2]; 
 
 
-  phiC[0] = ((2.0*rdx2SqVol[0]*bcVals[5]+2.0*rhoC[0]+(phiLx[0]-1.0*phiC[0])*rdx2SqVol[0])*omega+phiC[0]*rdx2SqVol[0])/rdx2SqVol[0]; 
-  phiC[1] = ((4.0*rdx2SqVol[0]*bcVals[5]-1.0*rdx2SqVol[0]*phiC[1]+2.0*rhoC[0]+phiLx[0]*rdx2SqVol[0])*omega+rdx2SqVol[0]*phiC[1])/rdx2SqVol[0]; 
+  phiC[0] = ((2.0*rdx2SqVol[0]*bcVals[5]+2.0*rhoC[1]+2.0*rhoC[0]+(phiLx[0]-1.0*phiC[0])*rdx2SqVol[0])*omega+phiC[0]*rdx2SqVol[0])/rdx2SqVol[0]; 
+  phiC[1] = ((4.0*rdx2SqVol[0]*bcVals[5]+4.0*rhoC[1]-1.0*rdx2SqVol[0]*phiC[1]+2.0*rhoC[0]+phiLx[0]*rdx2SqVol[0])*omega+rdx2SqVol[0]*phiC[1])/rdx2SqVol[0]; 
 
 }
 
@@ -644,8 +644,8 @@ void MGpoissonFEMDampedGaussSeidel1xSer_UxRobin_P1(const double omega, double **
   double *phiUx = phi[2]; 
 
 
-  phiC[0] = ((2.0*rdx2SqVol[0]*bcVals[5]+(2.0*rhoC[0]+(phiLx[0]-1.0*phiC[0])*rdx2SqVol[0])*bcVals[4]+(4.0*rhoC[0]+(2.0*phiLx[0]-4.0*phiC[0])*rdx2SqVol[0])*bcVals[3])*omega+phiC[0]*rdx2SqVol[0]*bcVals[4]+4.0*phiC[0]*rdx2SqVol[0]*bcVals[3])/(rdx2SqVol[0]*bcVals[4]+4.0*rdx2SqVol[0]*bcVals[3]); 
-  phiC[1] = ((4.0*rdx2SqVol[0]*bcVals[5]+((-1.0*rdx2SqVol[0]*phiC[1])+2.0*rhoC[0]+phiLx[0]*rdx2SqVol[0])*bcVals[4]-4.0*rdx2SqVol[0]*phiC[1]*bcVals[3])*omega+rdx2SqVol[0]*phiC[1]*bcVals[4]+4.0*rdx2SqVol[0]*phiC[1]*bcVals[3])/(rdx2SqVol[0]*bcVals[4]+4.0*rdx2SqVol[0]*bcVals[3]); 
+  phiC[0] = ((2.0*rdx2SqVol[0]*bcVals[5]+(2.0*rhoC[1]+2.0*rhoC[0]+(phiLx[0]-1.0*phiC[0])*rdx2SqVol[0])*bcVals[4]+(4.0*rhoC[0]+(2.0*phiLx[0]-4.0*phiC[0])*rdx2SqVol[0])*bcVals[3])*omega+phiC[0]*rdx2SqVol[0]*bcVals[4]+4.0*phiC[0]*rdx2SqVol[0]*bcVals[3])/(rdx2SqVol[0]*bcVals[4]+4.0*rdx2SqVol[0]*bcVals[3]); 
+  phiC[1] = ((4.0*rdx2SqVol[0]*bcVals[5]+(4.0*rhoC[1]-1.0*rdx2SqVol[0]*phiC[1]+2.0*rhoC[0]+phiLx[0]*rdx2SqVol[0])*bcVals[4]-4.0*rdx2SqVol[0]*phiC[1]*bcVals[3])*omega+rdx2SqVol[0]*phiC[1]*bcVals[4]+4.0*rdx2SqVol[0]*phiC[1]*bcVals[3])/(rdx2SqVol[0]*bcVals[4]+4.0*rdx2SqVol[0]*bcVals[3]); 
 
 }
 
@@ -720,7 +720,7 @@ void MGpoissonFEMResidue1xSer_LxNeumann_P1(double **dx, const double *bcVals, do
   double *phiUx = phi[2]; 
 
 
-  resOut[0] = 2.0*bcVals[2]-1.0*phiUx[0]+phiC[0]; 
+  resOut[0] = -0.5*(2.0*rdx2SqVol[0]*bcVals[2]-2.0*rhoC[0]+(phiC[0]-1.0*phiUx[0])*rdx2SqVol[0]); 
 
 }
 
@@ -745,7 +745,7 @@ void MGpoissonFEMResidue1xSer_LxRobin_P1(double **dx, const double *bcVals, doub
   double *phiUx = phi[2]; 
 
 
-  resOut[0] = (2.0*bcVals[2]+(phiC[0]-1.0*phiUx[0])*bcVals[1]-2.0*bcVals[0]*phiC[0])/(bcVals[1]-2.0*bcVals[0]); 
+  resOut[0] = -(0.5*(2.0*rdx2SqVol[0]*bcVals[2]+((phiC[0]-1.0*phiUx[0])*rdx2SqVol[0]-2.0*rhoC[0])*bcVals[1]-2.0*bcVals[0]*phiC[0]*rdx2SqVol[0]))/bcVals[1]; 
 
 }
 
@@ -797,7 +797,7 @@ void MGpoissonFEMResidue1xSer_UxNeumann_P1(double **dx, const double *bcVals, do
 
 
   resOut[0] = 0.5*(rdx2SqVol[0]*phiC[1]+2.0*rhoC[0]+(phiLx[0]-2.0*phiC[0])*rdx2SqVol[0]); 
-  resOut[1] = (-2.0*bcVals[5])+phiC[1]-1.0*phiC[0]; 
+  resOut[1] = 0.5*(2.0*rdx2SqVol[0]*bcVals[5]+2.0*rhoC[1]-1.0*rdx2SqVol[0]*phiC[1]+phiC[0]*rdx2SqVol[0]); 
 
 }
 
@@ -823,7 +823,7 @@ void MGpoissonFEMResidue1xSer_UxRobin_P1(double **dx, const double *bcVals, doub
 
 
   resOut[0] = 0.5*(rdx2SqVol[0]*phiC[1]+2.0*rhoC[0]+(phiLx[0]-2.0*phiC[0])*rdx2SqVol[0]); 
-  resOut[1] = -(1.0*(2.0*bcVals[5]+(phiC[0]-1.0*phiC[1])*bcVals[4]-2.0*phiC[1]*bcVals[3]))/(bcVals[4]+2.0*bcVals[3]); 
+  resOut[1] = (0.5*(2.0*rdx2SqVol[0]*bcVals[5]+(2.0*rhoC[1]-1.0*rdx2SqVol[0]*phiC[1]+phiC[0]*rdx2SqVol[0])*bcVals[4]-2.0*rdx2SqVol[0]*phiC[1]*bcVals[3]))/bcVals[4]; 
 
 }
 

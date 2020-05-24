@@ -401,9 +401,28 @@ poissonContribution(bNIn,varsIn,cellCoefsIn,currBCIn,stencilLocIn,currNodesIn,st
     surfVars : delete(dirVar,varsIn),
     phip_e   : diff(phi_e,dirVar),
 
+    if currBCIn[dir]=1 then (
+      /* Dirichlet. This will zero out the surface term. */
+      bcValues : [0, 1, 0]
+    ) elseif currBCIn[dir]=2 then (
+      /* Neumman. */
+      if (stencilLocIn[dir] = -1) then (
+        bcValues : [0, 1, bcVals[6*(dir-1)+2]]
+      ) elseif (stencilLocIn[dir] = 1) then (
+        bcValues : [0, 1, bcVals[6*(dir-1)+5]]
+      )
+    ) elseif currBCIn[dir]=3 then (
+      /* Robin. */
+      if (stencilLocIn[dir] = -1) then (
+        bcValues : [bcVals[6*(dir-1)], bcVals[6*(dir-1)+1], bcVals[6*(dir-1)+2]]
+      ) elseif (stencilLocIn[dir] = 1) then (
+        bcValues : [bcVals[6*(dir-1)+3], bcVals[6*(dir-1)+4], bcVals[6*(dir-1)+5]]
+      )
+    ),
+    bcDerivative : (bcValues[3] - bcValues[1]*phi_e)/bcValues[2],
     surfTerm : surfTerm+stencilLocIn[dir]*rdx2SqVol[dir-1]
               *calcInnerProdList(surfVars,1,subst(dirVar=stencilLocIn[dir],bNIn),
-                                            subst(dirVar=stencilLocIn[dir],phip_e))
+                                            subst(dirVar=stencilLocIn[dir],bcDerivative))
   ),
   for k : 1 thru numStoredNodes do (
     idx : sublist_indices(currNodesIn,lambda([x],x=storedNodesIn[k])),
@@ -485,94 +504,82 @@ weakPoissonStored(basisTypeIn,varsIn,polyOrderIn,stencilLocIn,currBCIn) := block
   ),
   stencilRHS : makelist(rhoC[i-1],i,1,numStoredNodes),
 
-  /* Boundary conditions. */
-  bcEQs    : [],
-  bcCoefs  : [],
-  domSurfs : sublist_indices(currBC, lambda([x],x # 0)),
-  phi_e    : doExpand(makelist(eval_string(sconcat("phi",cellToCoef[1][2][k])),k,1,numB),bN),
-  for dI : 1 thru length(domSurfs) do (
-    dir      : domSurfs[dI],
-    dirVar   : varsIn[dir],
-    surfDirs : delete(dir,makelist(i,i,1,dim)),
-    surfVars : delete(dirVar,varsIn),
+  /* Dirichlet boundary conditions. */
+  dirichletSurfs : sublist_indices(currBC, lambda([x],x = 1)),
+  if length(dirichletSurfs)>0 then (
 
-    if currBC[dir]=1 then (
+    bcEQs   : [],
+    bcCoefs : [],
+    phi_e   : doExpand(makelist(eval_string(sconcat("phi",cellToCoef[1][2][k])),k,1,numB),bN),
+
+    for dI : 1 thru length(dirichletSurfs) do (
+      dir      : dirichletSurfs[dI],
+      dirVar   : varsIn[dir],
+      surfDirs : delete(dir,makelist(i,i,1,dim)),
+      surfVars : delete(dirVar,varsIn),
+  
       /* Dirichlet. */
       if (stencilLocIn[dir] = -1) then (
         bcValues : [1, 0, bcVals[6*(dir-1)+2]]
       ) elseif (stencilLocIn[dir] = 1) then (
         bcValues : [1, 0, bcVals[6*(dir-1)+5]]
-      )
-    ) elseif currBC[dir]=2 then (
-      /* Neumman. */
-      if (stencilLocIn[dir] = -1) then (
-        bcValues : [0, 1, bcVals[6*(dir-1)+2]]
-      ) elseif (stencilLocIn[dir] = 1) then (
-        bcValues : [0, 1, bcVals[6*(dir-1)+5]]
-      )
-    ) elseif currBC[dir]=3 then (
-      /* Robin. */
-      if (stencilLocIn[dir] = -1) then (
-        bcValues : [bcVals[6*(dir-1)], bcVals[6*(dir-1)+1], bcVals[6*(dir-1)+2]]
-      ) elseif (stencilLocIn[dir] = 1) then (
-        bcValues : [bcVals[6*(dir-1)+3], bcVals[6*(dir-1)+4], bcVals[6*(dir-1)+5]]
-      )
-    ),
-    bcExpr : subst(dirVar=stencilLocIn[dir], bcValues[1]*phi_e + bcValues[2]*diff(phi_e,dirVar) = bcValues[3]),
-
-    /* Evaluate at boundary nodes in this direction. */
-    boundNodes  : copylist(sublist(nodes,lambda([x],x[dir]=stencilLocIn[dir]))),
-    boundNodesI : sublist_indices(nodes,lambda([x],x[dir]=stencilLocIn[dir])),
-    boundCoefs  : makelist(eval_string(sconcat("phi",cellToCoef[1][2][boundNodesI[i]])),i,1,length(boundNodesI)),
-    newCoefs    : [],
-    for k : 1 thru length(boundNodes) do (
-      currBCExpr : bcExpr,
-      currBCExpr : subst(makelist(surfVars[d]=boundNodes[k][surfDirs[d]],d,1,length(surfDirs)),currBCExpr),
-
-      boundDims        : sublist_indices(boundNodes[k],lambda([x],abs(x)=1)),
-      boundNodeBCs     : makelist(currBC[boundDims[i]],i,1,length(boundDims)),
-      numDirichletDirs : length(sublist(boundNodeBCs,lambda([x],x=1))),
-      if (numDirichletDirs>0) then (aDirichletBC : true) else (aDirichletBC : false),
-      if (numDirichletDirs=length(boundNodeBCs)) then (allDirichletBC : true) else (allDirichletBC : false),
-      /* When there is a single Dirichlet BC, we will impose that. When there isn't,
-         or all BCs are Dirichlet, we will weigh the BCs of each boundary at the
-         corner according to the size of the cell length in that direction. */
-      if (npDirs=1) or (length(boundDims)<2) or (aDirichletBC and (not allDirichletBC)) then (
-        cornerFac : 1
-      ) else (
-        cornerFac : dxC[dir-1]/sum(dxC[boundDims[i]-1],i,1,length(boundDims))
       ),
-
-      if (not aDirichletBC) or (aDirichletBC and (currBC[dir]=1)) then (
-        coefPos : sublist_indices(bcCoefs,lambda([x],x=boundCoefs[k])),
-        if (length(coefPos) > 0) then (
-          bcEQs[coefPos[1]] : bcEQs[coefPos[1]]+cornerFac*currBCExpr
+      bcEq : subst(dirVar=stencilLocIn[dir], bcValues[1]*phi_e + bcValues[2]*diff(phi_e,dirVar) = bcValues[3]),
+  
+      /* Evaluate at boundary nodes in this direction. */
+      boundNodes  : copylist(sublist(nodes,lambda([x],x[dir]=stencilLocIn[dir]))),
+      boundNodesI : sublist_indices(nodes,lambda([x],x[dir]=stencilLocIn[dir])),
+      boundCoefs  : makelist(eval_string(sconcat("phi",cellToCoef[1][2][boundNodesI[i]])),i,1,length(boundNodesI)),
+      newCoefs    : [],
+      for k : 1 thru length(boundNodes) do (
+        currBCEq : bcEq,
+        currBCEq : subst(makelist(surfVars[d]=boundNodes[k][surfDirs[d]],d,1,length(surfDirs)),currBCEq),
+  
+        boundDims        : sublist_indices(boundNodes[k],lambda([x],abs(x)=1)),
+        boundNodeBCs     : makelist(currBC[boundDims[i]],i,1,length(boundDims)),
+        numDirichletDirs : length(sublist(boundNodeBCs,lambda([x],x=1))),
+        if (numDirichletDirs=length(boundNodeBCs)) then (allDirichletBC : true) else (allDirichletBC : false),
+        /* When there is a single Dirichlet BC, we will impose that. When all BCs
+           are Dirichlet, we will weigh the BCs of each boundary at the corner
+           according to the size of the cell length in that direction. */
+        if (npDirs=1) or (length(boundDims)<2) or (not allDirichletBC) then (
+          cornerFac : 1
         ) else (
-          bcEQs    : endcons(cornerFac*currBCExpr,bcEQs),
-          newCoefs : endcons(boundCoefs[k],newCoefs)
+          cornerFac : dxC[dir-1]/sum(dxC[boundDims[i]-1],i,1,length(boundDims))
+        ),
+  
+        if (currBC[dir]=1) then (
+          coefPos : sublist_indices(bcCoefs,lambda([x],x=boundCoefs[k])),
+          if (length(coefPos) > 0) then (
+            bcEQs[coefPos[1]] : bcEQs[coefPos[1]]+cornerFac*currBCEq
+          ) else (
+            bcEQs    : endcons(cornerFac*currBCEq,bcEQs),
+            newCoefs : endcons(boundCoefs[k],newCoefs)
+          )
         )
+      ),
+      bcCoefs : append(bcCoefs, newCoefs)
+    ),
+  
+    bcSolv : linsolve(bcEQs,bcCoefs),
+  
+    /* The coefficients in bcSol that correspond to this cell will be used
+       to replace equations in the weak stencil. Coefficients that correspond
+       to other cells will be substituted throughout the stencil. */
+    for bI : 1 thru length(bcSolv) do (
+      if (op(lhs(bcSolv[bI]))=phiC) then (
+        /* Replace the corresponding equation the stencil. */
+        stencilLHS[args(bcCoefs[bI])[1]+1] : rhs(bcSolv[bI]) - lhs (bcSolv[bI]),
+        stencilRHS[args(bcCoefs[bI])[1]+1] : 0
       )
     ),
-    bcCoefs : append(bcCoefs, newCoefs)
-  ),
-
-  bcSolv : linsolve(bcEQs,bcCoefs),
-
-  /* The coefficients in bcSol that correspond to this cell will be used
-     to replace equations in the weak stencil. Coefficients that correspond
-     to other cells will be substituted throughout the stencil. */
-  for bI : 1 thru length(bcSolv) do (
-    if (op(lhs(bcSolv[bI]))=phiC) then (
-      /* Replace the corresponding equation the stencil. */
-      stencilLHS[args(bcCoefs[bI])[1]+1] : rhs(bcSolv[bI]) - lhs (bcSolv[bI]),
-      stencilRHS[args(bcCoefs[bI])[1]+1] : 0
+    for bI : 1 thru length(bcSolv) do (
+      if not (op(lhs(bcSolv[bI]))=phiC) then (
+        /* Substitute this node's BC throughout the stencil. */
+        stencilLHS : subst(bcSolv[bI],stencilLHS)
+      )
     )
   ),
-  for bI : 1 thru length(bcSolv) do (
-    if not (op(lhs(bcSolv[bI]))=phiC) then (
-      /* Substitute this node's BC throughout the stencil. */
-      stencilLHS : subst(bcSolv[bI],stencilLHS)
-    )
-  ),
+
   return([stencilLHS, stencilRHS])
 )$
