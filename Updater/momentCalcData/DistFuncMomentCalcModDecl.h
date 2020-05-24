@@ -1,4 +1,4 @@
-#include <GkCudaConfig.h>
+#include <GkylCudaConfig.h>
 
 #ifndef DIST_FUNC_MOMENT_CALC_MOD_DECL_H 
 #define DIST_FUNC_MOMENT_CALC_MOD_DECL_H 

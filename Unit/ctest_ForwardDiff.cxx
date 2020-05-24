@@ -1,7 +1,8 @@
 #define CATCH_CONFIG_MAIN
 
+#include <GkylForwardAutoDiff.h>
+
 #include <catch.hpp>
-#include <GkForwardAutoDiff.h>
 #include <cmath>
 #include <vector>
 

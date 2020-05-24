@@ -5,10 +5,10 @@
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
-#ifndef GK_MPI_FUNCS_H
-#define GK_MPI_FUNCS_H
+#ifndef GKYL_MPI_FUNCS_H
+#define GKYL_MPI_FUNCS_H
 
-#include <GkMpiMacros.h>
+#include <GkylMpiMacros.h>
 
 extern "C" {
     // Sizes of various objects

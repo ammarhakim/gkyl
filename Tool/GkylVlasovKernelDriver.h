@@ -8,8 +8,8 @@
 #pragma once
 
 // Gkyl includes
-#include <GkBasisTypes.h>
-#include <GkKernelDriver.h>
+#include <GkylBasisTypes.h>
+#include <GkylKernelDriver.h>
 #include <VlasovTmplModDecl.h>
 
 // std includes

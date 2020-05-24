@@ -8,7 +8,7 @@
 #include <iostream>
 
 #include <mpi.h>
-#include <GkMpiFuncs.h>
+#include <GkylMpiFuncs.h>
 
 // Sizeof operators for various objects
 GET_MPI_OBJ_SIZE(MPI_Status);

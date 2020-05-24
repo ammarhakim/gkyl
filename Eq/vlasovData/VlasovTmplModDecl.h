@@ -7,9 +7,9 @@
 
 #pragma once
 
-#include <GkCudaConfig.h>
+#include <GkylCudaConfig.h>
+#include <GkylBasisTypes.h>
 #include <VlasovModDecl.h>
-#include <GkBasisTypes.h>
 
 namespace Gkyl {
 

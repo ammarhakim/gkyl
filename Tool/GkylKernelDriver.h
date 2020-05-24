@@ -8,7 +8,7 @@
 #pragma once
 
 // Gkyl includes
-#include <GkBasisTypes.h>
+#include <GkylBasisTypes.h>
 
 namespace Gkyl {
   class KernelDriver {

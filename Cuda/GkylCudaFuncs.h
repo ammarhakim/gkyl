@@ -5,10 +5,10 @@
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
-#ifndef GK_CUDA_FUNCS_H
-#define GK_CUDA_FUNCS_H
+#ifndef GKYL_CUDA_FUNCS_H
+#define GKYL_CUDA_FUNCS_H
 
-#include <GkCudaMacros.h>
+#include <GkylCudaMacros.h>
 
 extern "C" {
 // Pre-defined objects and constants
@@ -85,4 +85,4 @@ extern "C" {
     int GkCuda_GetDeviceProp(GkDeviceProp *prop, int dev);
 }
 
-#endif // GK_CUDA_FUNCS_H
+#endif // GKYL_CUDA_FUNCS_H

@@ -24,7 +24,7 @@
 
 #ifdef HAVE_MPI_H
 # include <mpi.h>
-# include <GkMpiFuncs.h>
+# include <GkylMpiFuncs.h>
 #endif
 
 #ifdef HAVE_ADIOS_H

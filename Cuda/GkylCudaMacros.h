@@ -5,11 +5,11 @@
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
-#ifndef GK_CUDA_MACROS_H
-#define GK_CUDA_MACROS_H
+#ifndef GKYL_CUDA_MACROS_H
+#define GKYL_CUDA_MACROS_H
 
 // Macros to declare/define functions to get CUDA objects
 #define GET_CUDA_OBJECT(type, value) type get_##value() { return value; }
 #define DECL_GET_CUDA_OBJECT(type, value) type get_##value()
 
-#endif // GK_CUDA_MACROS_H
+#endif // GKYL_CUDA_MACROS_H

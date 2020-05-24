@@ -5,8 +5,8 @@
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
-#ifndef GK_MPI_MACROS_H
-#define GK_MPI_MACROS_H
+#ifndef GKYL_MPI_MACROS_H
+#define GKYL_MPI_MACROS_H
 
 // Macros to declare/define functions to get MPI objects
 #define GET_MPI_OBJECT(type, value) MPI_##type get_##value() { return value; }
@@ -24,4 +24,4 @@
 #define GET_MPI_OBJ_SIZE(type) int sizeof_##type() { return sizeof(type); }
 #define DECL_GET_MPI_OBJ_SIZE(type) int sizeof_##type()
 
-#endif // GK_MPI_MACROS_H
+#endif // GKYL_MPI_MACROS_H

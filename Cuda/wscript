@@ -9,7 +9,7 @@ def build(bld):
     # only build if in parallel
     if bld.env.CUTOOLS_FOUND:
         bld.shlib(
-            source = 'GkCudaFuncs.cpp',
+            source = 'GkylCudaFuncs.cpp',
             target = 'gkcuda', name = 'cuda', vnum = '1.0',
             includes = '.',
             use = 'CUTOOLS'

@@ -8,9 +8,9 @@
 // gkyl includes
 #include <gkylconfig.h>
 
-#include <GkBasisTypes.h>
-#include <GkKernelDriver.h>
-#include <GkVlasovKernelDriver.h>
+#include <GkylBasisTypes.h>
+#include <GkylKernelDriver.h>
+#include <GkylVlasovKernelDriver.h>
 #include <cxxopts.hpp>
 
 // std includes
