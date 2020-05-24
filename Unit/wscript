@@ -10,7 +10,7 @@ def build(bld):
     if bld.env['CUTOOLS_FOUND']:
         bld(source = 'test_SimpleKernel.cpp', 
             name = 'unit_cu', target='unit_cu',
-            includes='../Grid ../Lib', features='cxx nvcc cushlib'
+            includes='../Grid ../Lib ../Cuda', features='cxx nvcc cushlib'
         )
 
     bld.shlib(source = 'test_cfuncs.cpp', includes = '.',

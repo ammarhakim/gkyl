@@ -243,7 +243,7 @@ namespace Gkyl {
       
       inline int volume() const {
         int v = 0;
-        for (auto i=0; i<ndim(); ++i)
+        for (unsigned int i=0; i<ndim(); ++i)
           v *= (upper(i)-lower(i)-1);
         return v;
       }

@@ -8,7 +8,7 @@ extern "C"
 {
     void unit_sumArray(int numBlocks, int numThreads, int n, double a, double *x, double *y);
     void unit_sayHello();
-    void unit_showRange(Range_t *range);
+    void unit_showRange(GkylRange_t *range);
     void unit_showGrid(RectCart_t *grid);
     void unit_getCellCenter(RectCart_t *grid, int *idx, double *xc);
 }
@@ -24,13 +24,13 @@ __global__ void ker_unit_sayHello()
   printf("Hello!\n");
 }
 
-__global__ void ker_unit_showRange(Range_t *range)
+__global__ void ker_unit_showRange(GkylRange_t *range)
 {
   printf("Range ndim: %d\n", range->ndim);
   for (unsigned i=0; i<range->ndim; ++i)
     printf(" %d, %d\n", range->lower[i], range->upper[i]);
 
-  GkylCuda::Indexer<1> idxr(range);
+  Gkyl::Indexer<1> idxr(range);
   int lin1 = idxr.index(range->lower[0]);
   int lin2 = idxr.index(range->upper[0]);
   printf("  --- Calls to indexers %d, %d (%d)\n", lin1, lin2, lin2-lin1);
@@ -64,7 +64,7 @@ void unit_sayHello()
   ker_unit_sayHello<<<1, 1>>>();
 }
 
-void unit_showRange(Range_t *devRange)
+void unit_showRange(GkylRange_t *devRange)
 {
   ker_unit_showRange<<<1, 1>>>(devRange);
 }
