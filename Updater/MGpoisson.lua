@@ -28,6 +28,7 @@ local Lin                   = require "Lib.Linalg"
 local ffi                   = require "ffi"
 local lume                  = require "Lib.lume"
 local IntQuantCalc          = require "Updater.CartFieldIntegratedQuantCalc"
+local IntDGMoment           = require "Updater.IntegratedDGMoment"
 local Mpi                   = require "Comm.Mpi"
 
 -- Boundary condition ID numbers.
@@ -238,7 +239,8 @@ function MGpoisson:init(tbl)
          isDirPeriodic[d] = false
       end
    end
-   local isPeriodicDomain = lume.all(isDirPeriodic)
+   self.isPeriodicDomain = lume.all(isDirPeriodic)
+   self.aPeriodicDir     = lume.any(isDirPeriodic)
 
    -- Translate bcValues to a vector from which we can pass a pointer.
    -- This vector has 3 values for each boundary in order to support a Robin BC like:
@@ -268,9 +270,8 @@ function MGpoisson:init(tbl)
 
    -- Create a grid for each level.
    -- Not sure this is needed, but in general it probably is (e.g. unstructured, or even nonuniform meshes).
-   self.mgGrids     = {}
-   self.mgGrids[1]  = grid
-   periodicDirCount = 0
+   self.mgGrids           = {}
+   self.mgGrids[1]        = grid
    -- Iterate (phi), right-side source and residue fields at each level.
    self.phiAll     = {}
    self.rhoAll     = {}
@@ -283,11 +284,12 @@ function MGpoisson:init(tbl)
       self.mgLevels = self.mgLevels+1
 
       -- Determine parameters of the next coarse grid.
-      local lowerC        = {}
-      local upperC        = {}
-      local cellsC        = {}
-      local periodicDirsC = {}
-      local decompCutsC   = {}
+      local lowerC           = {}
+      local upperC           = {}
+      local cellsC           = {}
+      local periodicDirsC    = {}
+      local decompCutsC      = {}
+      local periodicDirCount = 0
       for d = 1, self.dim do
          lowerC[d] = grid:lower(d)
          upperC[d] = grid:upper(d)
@@ -446,23 +448,41 @@ function MGpoisson:init(tbl)
       self.prolong  = function(cFld,fFld) MGpoisson['prolongFEM'](self,cFld,fFld) end
    end
 
-   -- Functions to compute the L2-norm of the residue.
+   -- Functions to compute the L2-norm of the residue, the integral of the right-side source,
+   -- and accumulate a constant and a (DG or FEM field). The latter two are needed for a periodic domain.
    if self.isDG then
       self.l2normCalc = IntQuantCalc {
          onGrid   = grid, 
          basis    = basis,
          quantity = "RmsV",
       }
-      self.l2normCalcAdv = function(tCurr, inFld, outFld) self.l2normCalc:advance(tCurr, inFld, outFld) end
+      self.l2normCalcAdv = function(tCurr, inFld, outDynV) self.l2normCalc:advance(tCurr, inFld, outDynV) end
+      if self.isPeriodicDomain then
+         self.intCalc = IntDGMoment {
+            onGrid = grid,
+            basis  = basis,
+            moment = "one",
+         }
+         self.intCalcAdv = function(tCurr, inFld, outDynV) self.intCalc:advance(tCurr, inFld, outDynV) end
+      end
    else
-      self._femL2norm    = MGpoissonDecl.selectFEML2norm(basisID, self.dim, polyOrder, bcTypes)
+      self._femNorm       = {}
+      self._femNorm["L2"] = MGpoissonDecl.selectFEMnorm("L2",basisID, self.dim, polyOrder, bcTypes)
+      self.l2normCalcAdv  = function(tCurr, inFld, outDynV) MGpoisson['normFEM'](self, tCurr, "L2", inFld, outDynV) end
+      if self.isPeriodicDomain then
+         self._femNorm["M0"] = MGpoissonDecl.selectFEMnorm("M0",basisID, self.dim, polyOrder, bcTypes)
+         self.intCalcAdv     = function(tCurr, inFld, outFld) MGpoisson['normFEM'](self, tCurr, "M0", inFld, outFld) end
+         self._accuConst     = MGpoissonDecl.selectAccuConst(basisID, self.dim, polyOrder, bcTypes, self.isDG)
+      end
       self.localNorm     = Lin.Vec(1)
       self.globalNorm    = Lin.Vec(1)
-      self.l2normCalcAdv = function(tCurr, inFld, outFld) MGpoisson['l2normFEM'](self, tCurr, inFld, outFld) end
    end
    self.relResNorm  = DataStruct.DynVector { numComponents = 1 }
    self.residueNorm = DataStruct.DynVector { numComponents = 1 }
    self.rhoNorm     = DataStruct.DynVector { numComponents = 1 }
+   if self.isPeriodicDomain then
+      self.dynVbuf = DataStruct.DynVector { numComponents = 1 }
+   end
 
 end
 
@@ -545,7 +565,7 @@ function MGpoisson:idxToStencilIU(idxIn, nCellsIn)
    -- and upper boundary kernels.
    local stencilIdx = 1
    for d = 1, self.dim do
-      if (idxIn[d] == nCellsIn[d]) then  -- Last cell.
+      if (idxIn[d] == nCellsIn[d]) and (not self.isDG) then  -- Last cell.
          stencilIdx = stencilIdx + 2^(d-1)
       end
    end
@@ -595,6 +615,12 @@ function MGpoisson:DG_FEM_coefTranslate(dgFld,femFld,dir)
  
       self._dgToFEM[self:idxToStencil(idx,cellsN)](dgFldItr:data(), self.cuStencilItr:data())
    end
+
+   if self.aPeriodicDir and (dir == DG_to_FEM) then
+      femFld:sync()
+   else
+      dgFld:sync()
+   end
 end
 
 function MGpoisson:projectFEM(femFld,fldOut)
@@ -635,9 +661,11 @@ function MGpoisson:projectFEM(femFld,fldOut)
          
       self._femProjection[self:idxToStencil(idx,cellsN)](self.dxStencil:data(), self.rhoStencil:data(), fldOutItr:data())
    end
+
+   if self.aPeriodicDir then fldOut:sync() end
 end
 
-function MGpoisson:l2normFEM(tCurr,inFld,outDynV)
+function MGpoisson:normFEM(tCurr,normType,inFld,outDynV)
    -- Compute the L2 norm of an FEM field.
    local fld, norm  = inFld[1], outDynV[1] 
 
@@ -658,6 +686,7 @@ function MGpoisson:l2normFEM(tCurr,inFld,outDynV)
 
    for idx in fldRangeDecomp:rowMajorIter(tId) do
       grid:setIndex(idx)
+      grid:getDx(self.dxBuf)
 
       -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
       self:opStencilIndices(idx,{2,self.threes,self.mOnes},self.cuStencilIdx)
@@ -670,16 +699,40 @@ function MGpoisson:l2normFEM(tCurr,inFld,outDynV)
          self.cuStencilItr[i] = fldItr:data()
       end
 
-      self._femL2norm[self:idxToStencilIU(idx,cellsN)](self.cuStencilItr:data(), self.localNorm:data())
+      self._femNorm[normType][self:idxToStencilIU(idx,cellsN)](self.dxBuf:data(), self.cuStencilItr:data(), self.localNorm:data())
    end
 
    -- All-reduce across processors and push result into dyn-vector.
    Mpi.Allreduce(
       self.localNorm:data(), self.globalNorm:data(), 1, Mpi.DOUBLE, Mpi.SUM, self:getComm())
 
-   self.globalNorm[1] = math.sqrt(self.globalNorm[1])
+   if normType=="L2" then self.globalNorm[1] = math.sqrt(self.globalNorm[1]) end
 
    norm:appendData(tCurr, self.globalNorm)
+end
+
+function MGpoisson:accumulateConst(inConst,inFld)
+   -- Accumulate a constant and a (DG or FEM) field.
+   local grid   = inFld:grid()
+   local cellsN = {}
+   for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
+
+   local indexer = inFld:genIndexer()
+   local fldItr  = inFld:get(1)
+
+   -- Construct range for shared memory.
+   local fldRange       = inFld:localRange()
+   local fldRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = fldRange:selectFirst(self.dim), numSplit = grid:numSharedProcs() }
+   local tId = grid:subGridSharedId()    -- Local thread ID.
+
+   for idx in fldRangeDecomp:rowMajorIter(tId) do
+      grid:setIndex(idx)
+      inFld:fill(indexer(idx), fldItr)
+      self._accuConst[self:idxToStencilIU(idx,cellsN)](inConst, fldItr:data())
+   end
+
+   if self.aPeriodicDir then inFld:sync() end
 end
 
 function MGpoisson:restrictDG(fFld,cFld)
@@ -728,6 +781,8 @@ function MGpoisson:restrictDG(fFld,cFld)
   
       self._restriction[1](self.fineFldItr:data(), cFldItr:data())
    end
+
+   if self.aPeriodicDir then cFld:sync() end
 end
 
 function MGpoisson:restrictFEM(fFld,cFld)
@@ -761,7 +816,8 @@ function MGpoisson:restrictFEM(fFld,cFld)
          for rI = 1, prevAdded do
             for k = 1, (self.igOpStencilWidth-1) do
                local newIdxInDir = self.fineGridIdx[rI][dir]-k
-               if newIdxInDir<1 then break end
+               if ((not grid:isDirPeriodic(dir)) and newIdxInDir<1) or 
+                  ((grid:isDirPeriodic(dir) and newIdxInDir<0)) then break end
                fCellCount = fCellCount + 1
                for d = 1, self.dim do self.fineGridIdx[fCellCount][d] = self.fineGridIdx[rI][d] end
                self.fineGridIdx[fCellCount][dir] = newIdxInDir
@@ -779,6 +835,8 @@ function MGpoisson:restrictFEM(fFld,cFld)
   
       self._restriction[self:idxToStencil(cIdx,cellsN)](self.fineFldItr:data(), cFldItr:data())
    end
+   
+   if self.aPeriodicDir then cFld:sync() end
 end
 
 function MGpoisson:jacobiCopyField(fldIn,fldOutAll)
@@ -866,6 +924,8 @@ function MGpoisson:relax(numRelax, phiFld, rhoFld)
          self._relaxation[self:idxToStencil(idx,cellsN)](self.omega, self.dxStencil:data(), self.bcValue:data(), self.rhoStencil:data(), self.prevPhiStencil:data(), self.phiStencil:data())
       end
    end
+
+   if self.aPeriodicDir then phiFld:sync() end
 end
 
 function MGpoisson:residue(phiFld, rhoFld, resFld)
@@ -916,6 +976,8 @@ function MGpoisson:residue(phiFld, rhoFld, resFld)
 
       self._calcResidue[self:idxToStencil(idx,cellsN)](self.dxStencil:data(), self.bcValue:data(), self.rhoStencil:data(), self.phiStencil:data(), resItr:data())
    end
+
+   if self.aPeriodicDir then resFld:sync() end
 end
 
 function MGpoisson:relResidueNorm(gamIdx)
@@ -995,6 +1057,8 @@ function MGpoisson:prolongDG(cFld,fFld)
          self._prolongation[1](cFldItr:data(), self.fineFldItr:data())
       end
    end
+
+   if self.aPeriodicDir then fFld:sync() end
 end
 
 function MGpoisson:prolongFEM(cFld,fFld)
@@ -1028,7 +1092,8 @@ function MGpoisson:prolongFEM(cFld,fFld)
          for rI = 1, prevAdded do
             for k = 1, (self.igOpStencilWidth-1) do
                local newIdxInDir = self.fineGridIdx[rI][dir]-k
-               if newIdxInDir<1 then break end
+               if ((not grid:isDirPeriodic(dir)) and newIdxInDir<1) or 
+                  ((grid:isDirPeriodic(dir) and newIdxInDir<0)) then break end
                fCellCount = fCellCount + 1
                for d = 1, self.dim do self.fineGridIdx[fCellCount][d] = self.fineGridIdx[rI][d] end
                self.fineGridIdx[fCellCount][dir] = newIdxInDir
@@ -1046,6 +1111,8 @@ function MGpoisson:prolongFEM(cFld,fFld)
   
       self._prolongation[self:idxToStencil(cIdx,cellsN)](cFldItr:data(), self.fineFldItr:data())
    end
+
+   if self.aPeriodicDir then fFld:sync() end
 end
 
 function MGpoisson:gammaCycle(lCurr)
@@ -1112,6 +1179,14 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
       self.phiAll[1]:copy(self.rhoAll[1])   -- Temporary buffer.
       self:projectFEM(self.phiAll[1], self.rhoAll[1])
    end
+   if self.isPeriodicDomain then
+      -- Subtract the integral of right-side source from the right side.
+      self.intCalcAdv(tCurr,{self.rhoAll[1]},{self.dynVbuf})
+      local  _, intSrc = self.dynVbuf:lastData()
+      local intSrcVol = intSrc[1]/self.rhoAll[1]:grid():gridVolume()
+      self:accumulateConst(-intSrcVol, self.rhoAll[1])
+   end
+
    local initialGuess   = inFld[2]
    local relResNormCurr = 1.0e12    -- Current (relative) residue norm.
    if initialGuess then

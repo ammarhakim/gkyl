@@ -72,6 +72,14 @@ local function getStencilStrs(dimIn, bcKinds, isDG, intUpOnly)
    return stencilStrs
 end
 
+local function interiorNonPeriodicBCs(bcIn)
+  -- Given the BCs in bcIn, return a new table that only
+  -- differentiates between interior and non-periodic cells.
+  local intUpBCs = lume.deepclone(bcIn)
+  for d = 1, #bcIn do for bI = 1,2 do if intUpBCs[d][bI] ~= 0 then intUpBCs[d][bI]=9 end end end
+  return intUpBCs
+end
+
 -- Select restriction operator kernel.
 function _M.selectRestriction(solverKind, basisNm, dim, polyOrder, bcTypes, isDG)
    local restrictKernels = {}
@@ -107,8 +115,7 @@ end
 -- Select DG to FEM kernels.
 function _M.selectDGtoFEM(basisNm, dim, polyOrder, bcTypes)
    local dgToFEMkernels = {}
-   local newBCs         = lume.deepclone(bcTypes)
-   for d = 1, dim do for bI = 1,2 do if newBCs[d][bI] ~= 0 then newBCs[d][bI]=9 end end end
+   local newBCs         = interiorNonPeriodicBCs(bcTypes)
    -- Create a 3^dim hypertable to place interior and upper boundary kernels.
    local dgToFEMstencilStr = getStencilStrs(dim, newBCs, false)
    for sI = 1, 3^dim do
@@ -121,8 +128,7 @@ end
 -- Select restriction operator kernel.
 function _M.selectFEMprojection(basisNm, dim, polyOrder, bcTypes)
    local projectKernels = {}
-   local newBCs         = lume.deepclone(bcTypes)
-   for d = 1, dim do for bI = 1,2 do if newBCs[d][bI] ~= 0 then newBCs[d][bI]=9 end end end
+   local newBCs         = interiorNonPeriodicBCs(bcTypes)
    local projStencilStr = getStencilStrs(dim, newBCs, false)
    for sI = 1, 3^dim do
       local tmp = ffi.C[string.format("MGpoissonFEMproject%dx%s_%sP%d", dim, basisNmMap[basisNm], projStencilStr[sI], polyOrder)]
@@ -155,17 +161,35 @@ function _M.selectResidueCalc(solverKind, basisNm, dim, polyOrder, bcTypes, isDG
    return residueKernels
 end
 
-function _M.selectFEML2norm(basisNm, dim, polyOrder, bcTypes)
+-- Select kernels to compute norms.
+function _M.selectFEMnorm(normType, basisNm, dim, polyOrder, bcTypes)
    local normKernels = {}
-   local newBCs      = lume.deepclone(bcTypes)
-   for d = 1, dim do for bI = 1,2 do if newBCs[d][bI] ~= 0 then newBCs[d][bI]=9 end end end
+   local newBCs      = interiorNonPeriodicBCs(bcTypes)
    -- Create a 2^dim hypertable to place interior (also for lower boundary) and upper boundary kernels.
    local normStencilStr = getStencilStrs(dim, newBCs, false, true)
    for sI = 1, 2^dim do
-      local tmp = ffi.C[string.format("MGpoissonFEML2norm%dx%s_%sP%d", dim, basisNmMap[basisNm], normStencilStr[sI], polyOrder)]
+      local tmp = ffi.C[string.format("MGpoissonFEM%snorm%dx%s_%sP%d", normType, dim, basisNmMap[basisNm], normStencilStr[sI], polyOrder)]
       normKernels[sI] = tmp
    end
    return normKernels
+end
+
+-- Select kernel that accumulates a field and a const.
+function _M.selectAccuConst(basisNm, dim, polyOrder, bcTypes, isDG)
+   local accuKernels = {}
+   if isDG then
+      local tmp = ffi.C[string.format("MGpoissonDGaccuConst%dx%s_P%d", dim, basisNmMap[basisNm], polyOrder)]
+      accuKernels[1] = tmp
+   else
+      local newBCs = interiorNonPeriodicBCs(bcTypes)
+      -- Create a 2^dim hypertable to place interior (also for lower boundary) and upper boundary kernels.
+      local normStencilStr = getStencilStrs(dim, newBCs, false, true)
+      for sI = 1, 2^dim do
+         local tmp = ffi.C[string.format("MGpoissonFEMaccuConst%dx%s_%sP%d", dim, basisNmMap[basisNm], normStencilStr[sI], polyOrder)]
+         accuKernels[sI] = tmp
+      end
+   end
+   return accuKernels
 end
 
 return _M

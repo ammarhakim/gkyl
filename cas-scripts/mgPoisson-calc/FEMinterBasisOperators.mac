@@ -14,14 +14,14 @@ calcDGtoFEM(fh, funcNm, dim, basisFun, pMax) := block([],
      Assume this translation involves only nearest neighbors,
      and that each FEM field (which in Gkeyll actually has the same
      number of DOFs as DG fields) stores only the value corresponding to
-     the lower corner node(s). */
+     the lower corner node(s) (except for upper boundary cells w/o
+     periodic BCs). */
 
   kill(varsC, varsP, basisC, basisP),
 
   load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
 
   for polyOrder : 1 thru pMax do (
-
 
     bC : basisC[polyOrder],
     N  : length(bC),

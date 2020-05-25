@@ -11,9 +11,7 @@ load("mgPoisson-calc/FEMsmoothers")$
 load("mgPoisson-calc/FEMinterGridOperators")$
 load("mgPoisson-calc/FEMresidue")$
 load("mgPoisson-calc/FEMnorm")$
-/*
-load("mgPoisson-calc/FEMresidue")$
-*/
+load("mgPoisson-calc/FEMdataMethods")$
 
 /* ...... USER INPUTS........ */
 
@@ -89,6 +87,16 @@ for bInd : 1 thru length(bName) do (
     funcName : sconcat("MGpoissonFEML2norm", c, "x", bName[bInd]),
     disp(printf(false,sconcat("Working on MGpoissonFEML2norm", c, "x", bName[bInd]))),
     calcL2norm(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+
+    /* Zeroth moment (integral) of an FEM field. */
+    funcName : sconcat("MGpoissonFEMM0norm", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonFEMM0norm", c, "x", bName[bInd]))),
+    calcM0norm(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+
+    /* Other field data methods. */
+    funcName : sconcat("MGpoissonFEMaccuConst", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonFEMaccuConst", c, "x", bName[bInd]))),
+    calcAccumulateConst(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
 
     close(fh)
     

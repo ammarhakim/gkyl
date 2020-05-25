@@ -827,10 +827,12 @@ void MGpoissonFEMResidue1xSer_UxRobin_P1(double **dx, const double *bcVals, doub
 
 }
 
-void MGpoissonFEML2norm1xSer_P1(double **femFld, double *normOut) 
+void MGpoissonFEML2norm1xSer_P1(const double *dxC, double **femFld, double *normOut) 
 { 
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
+
+  double volFac = 0.5*dxC[0]; 
 
   double *femFldC = femFld[0]; 
   double *femFldUx = femFld[1]; 
@@ -838,19 +840,65 @@ void MGpoissonFEML2norm1xSer_P1(double **femFld, double *normOut)
   const double femFldC0R2 = std::pow(femFldC[0],2);
   const double femFldUx0R2 = std::pow(femFldUx[0],2);
 
-  normOut[0] += 0.3333333333333333*(2.0*femFldUx0R2+2.0*femFldC[0]*femFldUx[0]+2.0*femFldC0R2); 
+  normOut[0] += 0.3333333333333333*(2.0*femFldUx0R2+2.0*femFldC[0]*femFldUx[0]+2.0*femFldC0R2)*volFac; 
 }
 
-void MGpoissonFEML2norm1xSer_UxNonPeriodic_P1(double **femFld, double *normOut) 
+void MGpoissonFEML2norm1xSer_UxNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
+
+  double volFac = 0.5*dxC[0]; 
 
   double *femFldC = femFld[0]; 
 
   const double femFldC0R2 = std::pow(femFldC[0],2);
   const double femFldC1R2 = std::pow(femFldC[1],2);
 
-  normOut[0] += 0.3333333333333333*(2.0*femFldC1R2+2.0*femFldC[0]*femFldC[1]+2.0*femFldC0R2); 
+  normOut[0] += 0.3333333333333333*(2.0*femFldC1R2+2.0*femFldC[0]*femFldC[1]+2.0*femFldC0R2)*volFac; 
+}
+
+void MGpoissonFEMM0norm1xSer_P1(const double *dxC, double **femFld, double *normOut) 
+{ 
+  // femFld:  FEM field in neighboring cells.
+  // normOut: norm.
+
+  double volFac = 0.5*dxC[0]; 
+
+  double *femFldC = femFld[0]; 
+  double *femFldUx = femFld[1]; 
+
+
+  normOut[0] += (femFldUx[0]+femFldC[0])*volFac; 
+}
+
+void MGpoissonFEMM0norm1xSer_UxNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
+{ 
+  // femFld:  FEM field in neighboring cells.
+  // normOut: norm.
+
+  double volFac = 0.5*dxC[0]; 
+
+  double *femFldC = femFld[0]; 
+
+
+  normOut[0] += (femFldC[1]+femFldC[0])*volFac; 
+}
+
+void MGpoissonFEMaccuConst1xSer_P1(const double constIn, double *femFld) 
+{ 
+  // constIn: constant to accumulate.
+  // femFld:  FEM field to accumulate.
+
+  femFld[0] += constIn; 
+}
+
+void MGpoissonFEMaccuConst1xSer_UxNonPeriodic_P1(const double constIn, double *femFld) 
+{ 
+  // constIn: constant to accumulate.
+  // femFld:  FEM field to accumulate.
+
+  femFld[0] += constIn; 
+  femFld[1] += constIn; 
 }
 

@@ -7432,10 +7432,12 @@ void MGpoissonFEMResidue2xSer_UxRobinUyRobin_P1(double **dx, const double *bcVal
 
 }
 
-void MGpoissonFEML2norm2xSer_P1(double **femFld, double *normOut) 
+void MGpoissonFEML2norm2xSer_P1(const double *dxC, double **femFld, double *normOut) 
 { 
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
+
+  double volFac = 0.25*dxC[0]*dxC[1]; 
 
   double *femFldC = femFld[0]; 
   double *femFldUx = femFld[1]; 
@@ -7447,13 +7449,15 @@ void MGpoissonFEML2norm2xSer_P1(double **femFld, double *normOut)
   const double femFldUy0R2 = std::pow(femFldUy[0],2);
   const double femFldUxUy0R2 = std::pow(femFldUxUy[0],2);
 
-  normOut[0] += 0.1111111111111111*(4.0*femFldUy0R2+(4.0*femFldUxUy[0]+2.0*femFldUx[0]+4.0*femFldC[0])*femFldUy[0]+4.0*femFldUxUy0R2+(4.0*femFldUx[0]+2.0*femFldC[0])*femFldUxUy[0]+4.0*femFldUx0R2+4.0*femFldC[0]*femFldUx[0]+4.0*femFldC0R2); 
+  normOut[0] += 0.1111111111111111*(4.0*femFldUy0R2+(4.0*femFldUxUy[0]+2.0*femFldUx[0]+4.0*femFldC[0])*femFldUy[0]+4.0*femFldUxUy0R2+(4.0*femFldUx[0]+2.0*femFldC[0])*femFldUxUy[0]+4.0*femFldUx0R2+4.0*femFldC[0]*femFldUx[0]+4.0*femFldC0R2)*volFac; 
 }
 
-void MGpoissonFEML2norm2xSer_LxNonPeriodic_P1(double **femFld, double *normOut) 
+void MGpoissonFEML2norm2xSer_LxNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
+
+  double volFac = 0.25*dxC[0]*dxC[1]; 
 
   double *femFldC = femFld[0]; 
   double *femFldUx = femFld[1]; 
@@ -7465,13 +7469,15 @@ void MGpoissonFEML2norm2xSer_LxNonPeriodic_P1(double **femFld, double *normOut)
   const double femFldUy0R2 = std::pow(femFldUy[0],2);
   const double femFldUxUy0R2 = std::pow(femFldUxUy[0],2);
 
-  normOut[0] += 0.1111111111111111*(4.0*femFldUy0R2+(4.0*femFldUxUy[0]+2.0*femFldUx[0]+4.0*femFldC[0])*femFldUy[0]+4.0*femFldUxUy0R2+(4.0*femFldUx[0]+2.0*femFldC[0])*femFldUxUy[0]+4.0*femFldUx0R2+4.0*femFldC[0]*femFldUx[0]+4.0*femFldC0R2); 
+  normOut[0] += 0.1111111111111111*(4.0*femFldUy0R2+(4.0*femFldUxUy[0]+2.0*femFldUx[0]+4.0*femFldC[0])*femFldUy[0]+4.0*femFldUxUy0R2+(4.0*femFldUx[0]+2.0*femFldC[0])*femFldUxUy[0]+4.0*femFldUx0R2+4.0*femFldC[0]*femFldUx[0]+4.0*femFldC0R2)*volFac; 
 }
 
-void MGpoissonFEML2norm2xSer_UxNonPeriodic_P1(double **femFld, double *normOut) 
+void MGpoissonFEML2norm2xSer_UxNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
+
+  double volFac = 0.25*dxC[0]*dxC[1]; 
 
   double *femFldC = femFld[0]; 
   double *femFldUy = femFld[2]; 
@@ -7481,13 +7487,15 @@ void MGpoissonFEML2norm2xSer_UxNonPeriodic_P1(double **femFld, double *normOut)
   const double femFldUy0R2 = std::pow(femFldUy[0],2);
   const double femFldUy1R2 = std::pow(femFldUy[1],2);
 
-  normOut[0] += 0.1111111111111111*(4.0*femFldUy1R2+(4.0*femFldC[1]+4.0*femFldUy[0]+2.0*femFldC[0])*femFldUy[1]+4.0*femFldC1R2+(2.0*femFldUy[0]+4.0*femFldC[0])*femFldC[1]+4.0*femFldUy0R2+4.0*femFldC[0]*femFldUy[0]+4.0*femFldC0R2); 
+  normOut[0] += 0.1111111111111111*(4.0*femFldUy1R2+(4.0*femFldC[1]+4.0*femFldUy[0]+2.0*femFldC[0])*femFldUy[1]+4.0*femFldC1R2+(2.0*femFldUy[0]+4.0*femFldC[0])*femFldC[1]+4.0*femFldUy0R2+4.0*femFldC[0]*femFldUy[0]+4.0*femFldC0R2)*volFac; 
 }
 
-void MGpoissonFEML2norm2xSer_LyNonPeriodic_P1(double **femFld, double *normOut) 
+void MGpoissonFEML2norm2xSer_LyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
+
+  double volFac = 0.25*dxC[0]*dxC[1]; 
 
   double *femFldC = femFld[0]; 
   double *femFldUx = femFld[1]; 
@@ -7499,13 +7507,15 @@ void MGpoissonFEML2norm2xSer_LyNonPeriodic_P1(double **femFld, double *normOut)
   const double femFldUy0R2 = std::pow(femFldUy[0],2);
   const double femFldUxUy0R2 = std::pow(femFldUxUy[0],2);
 
-  normOut[0] += 0.1111111111111111*(4.0*femFldUy0R2+(4.0*femFldUxUy[0]+2.0*femFldUx[0]+4.0*femFldC[0])*femFldUy[0]+4.0*femFldUxUy0R2+(4.0*femFldUx[0]+2.0*femFldC[0])*femFldUxUy[0]+4.0*femFldUx0R2+4.0*femFldC[0]*femFldUx[0]+4.0*femFldC0R2); 
+  normOut[0] += 0.1111111111111111*(4.0*femFldUy0R2+(4.0*femFldUxUy[0]+2.0*femFldUx[0]+4.0*femFldC[0])*femFldUy[0]+4.0*femFldUxUy0R2+(4.0*femFldUx[0]+2.0*femFldC[0])*femFldUxUy[0]+4.0*femFldUx0R2+4.0*femFldC[0]*femFldUx[0]+4.0*femFldC0R2)*volFac; 
 }
 
-void MGpoissonFEML2norm2xSer_UyNonPeriodic_P1(double **femFld, double *normOut) 
+void MGpoissonFEML2norm2xSer_UyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
+
+  double volFac = 0.25*dxC[0]*dxC[1]; 
 
   double *femFldC = femFld[0]; 
   double *femFldUx = femFld[1]; 
@@ -7515,13 +7525,15 @@ void MGpoissonFEML2norm2xSer_UyNonPeriodic_P1(double **femFld, double *normOut)
   const double femFldC1R2 = std::pow(femFldC[1],2);
   const double femFldUx1R2 = std::pow(femFldUx[1],2);
 
-  normOut[0] += 0.1111111111111111*(4.0*femFldUx1R2+(4.0*femFldC[1]+4.0*femFldUx[0]+2.0*femFldC[0])*femFldUx[1]+4.0*femFldC1R2+(2.0*femFldUx[0]+4.0*femFldC[0])*femFldC[1]+4.0*femFldUx0R2+4.0*femFldC[0]*femFldUx[0]+4.0*femFldC0R2); 
+  normOut[0] += 0.1111111111111111*(4.0*femFldUx1R2+(4.0*femFldC[1]+4.0*femFldUx[0]+2.0*femFldC[0])*femFldUx[1]+4.0*femFldC1R2+(2.0*femFldUx[0]+4.0*femFldC[0])*femFldC[1]+4.0*femFldUx0R2+4.0*femFldC[0]*femFldUx[0]+4.0*femFldC0R2)*volFac; 
 }
 
-void MGpoissonFEML2norm2xSer_LxNonPeriodicUyNonPeriodic_P1(double **femFld, double *normOut) 
+void MGpoissonFEML2norm2xSer_LxNonPeriodicUyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
+
+  double volFac = 0.25*dxC[0]*dxC[1]; 
 
   double *femFldC = femFld[0]; 
   double *femFldUx = femFld[1]; 
@@ -7531,13 +7543,15 @@ void MGpoissonFEML2norm2xSer_LxNonPeriodicUyNonPeriodic_P1(double **femFld, doub
   const double femFldC1R2 = std::pow(femFldC[1],2);
   const double femFldUx1R2 = std::pow(femFldUx[1],2);
 
-  normOut[0] += 0.1111111111111111*(4.0*femFldUx1R2+(4.0*femFldC[1]+4.0*femFldUx[0]+2.0*femFldC[0])*femFldUx[1]+4.0*femFldC1R2+(2.0*femFldUx[0]+4.0*femFldC[0])*femFldC[1]+4.0*femFldUx0R2+4.0*femFldC[0]*femFldUx[0]+4.0*femFldC0R2); 
+  normOut[0] += 0.1111111111111111*(4.0*femFldUx1R2+(4.0*femFldC[1]+4.0*femFldUx[0]+2.0*femFldC[0])*femFldUx[1]+4.0*femFldC1R2+(2.0*femFldUx[0]+4.0*femFldC[0])*femFldC[1]+4.0*femFldUx0R2+4.0*femFldC[0]*femFldUx[0]+4.0*femFldC0R2)*volFac; 
 }
 
-void MGpoissonFEML2norm2xSer_UxNonPeriodicLyNonPeriodic_P1(double **femFld, double *normOut) 
+void MGpoissonFEML2norm2xSer_UxNonPeriodicLyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
+
+  double volFac = 0.25*dxC[0]*dxC[1]; 
 
   double *femFldC = femFld[0]; 
   double *femFldUy = femFld[2]; 
@@ -7547,13 +7561,15 @@ void MGpoissonFEML2norm2xSer_UxNonPeriodicLyNonPeriodic_P1(double **femFld, doub
   const double femFldUy0R2 = std::pow(femFldUy[0],2);
   const double femFldUy1R2 = std::pow(femFldUy[1],2);
 
-  normOut[0] += 0.1111111111111111*(4.0*femFldUy1R2+(4.0*femFldC[1]+4.0*femFldUy[0]+2.0*femFldC[0])*femFldUy[1]+4.0*femFldC1R2+(2.0*femFldUy[0]+4.0*femFldC[0])*femFldC[1]+4.0*femFldUy0R2+4.0*femFldC[0]*femFldUy[0]+4.0*femFldC0R2); 
+  normOut[0] += 0.1111111111111111*(4.0*femFldUy1R2+(4.0*femFldC[1]+4.0*femFldUy[0]+2.0*femFldC[0])*femFldUy[1]+4.0*femFldC1R2+(2.0*femFldUy[0]+4.0*femFldC[0])*femFldC[1]+4.0*femFldUy0R2+4.0*femFldC[0]*femFldUy[0]+4.0*femFldC0R2)*volFac; 
 }
 
-void MGpoissonFEML2norm2xSer_UxNonPeriodicUyNonPeriodic_P1(double **femFld, double *normOut) 
+void MGpoissonFEML2norm2xSer_UxNonPeriodicUyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
+
+  double volFac = 0.25*dxC[0]*dxC[1]; 
 
   double *femFldC = femFld[0]; 
 
@@ -7562,6 +7578,194 @@ void MGpoissonFEML2norm2xSer_UxNonPeriodicUyNonPeriodic_P1(double **femFld, doub
   const double femFldC2R2 = std::pow(femFldC[2],2);
   const double femFldC3R2 = std::pow(femFldC[3],2);
 
-  normOut[0] += 0.1111111111111111*(4.0*femFldC3R2+(4.0*femFldC[2]+4.0*femFldC[1]+2.0*femFldC[0])*femFldC[3]+4.0*femFldC2R2+(2.0*femFldC[1]+4.0*femFldC[0])*femFldC[2]+4.0*femFldC1R2+4.0*femFldC[0]*femFldC[1]+4.0*femFldC0R2); 
+  normOut[0] += 0.1111111111111111*(4.0*femFldC3R2+(4.0*femFldC[2]+4.0*femFldC[1]+2.0*femFldC[0])*femFldC[3]+4.0*femFldC2R2+(2.0*femFldC[1]+4.0*femFldC[0])*femFldC[2]+4.0*femFldC1R2+4.0*femFldC[0]*femFldC[1]+4.0*femFldC0R2)*volFac; 
+}
+
+void MGpoissonFEMM0norm2xSer_P1(const double *dxC, double **femFld, double *normOut) 
+{ 
+  // femFld:  FEM field in neighboring cells.
+  // normOut: norm.
+
+  double volFac = 0.25*dxC[0]*dxC[1]; 
+
+  double *femFldC = femFld[0]; 
+  double *femFldUx = femFld[1]; 
+  double *femFldUy = femFld[2]; 
+  double *femFldUxUy = femFld[3]; 
+
+
+  normOut[0] += (femFldUy[0]+femFldUxUy[0]+femFldUx[0]+femFldC[0])*volFac; 
+}
+
+void MGpoissonFEMM0norm2xSer_LxNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
+{ 
+  // femFld:  FEM field in neighboring cells.
+  // normOut: norm.
+
+  double volFac = 0.25*dxC[0]*dxC[1]; 
+
+  double *femFldC = femFld[0]; 
+  double *femFldUx = femFld[1]; 
+  double *femFldUy = femFld[2]; 
+  double *femFldUxUy = femFld[3]; 
+
+
+  normOut[0] += (femFldUy[0]+femFldUxUy[0]+femFldUx[0]+femFldC[0])*volFac; 
+}
+
+void MGpoissonFEMM0norm2xSer_UxNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
+{ 
+  // femFld:  FEM field in neighboring cells.
+  // normOut: norm.
+
+  double volFac = 0.25*dxC[0]*dxC[1]; 
+
+  double *femFldC = femFld[0]; 
+  double *femFldUy = femFld[2]; 
+
+
+  normOut[0] += (femFldUy[1]+femFldC[1]+femFldUy[0]+femFldC[0])*volFac; 
+}
+
+void MGpoissonFEMM0norm2xSer_LyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
+{ 
+  // femFld:  FEM field in neighboring cells.
+  // normOut: norm.
+
+  double volFac = 0.25*dxC[0]*dxC[1]; 
+
+  double *femFldC = femFld[0]; 
+  double *femFldUx = femFld[1]; 
+  double *femFldUy = femFld[2]; 
+  double *femFldUxUy = femFld[3]; 
+
+
+  normOut[0] += (femFldUy[0]+femFldUxUy[0]+femFldUx[0]+femFldC[0])*volFac; 
+}
+
+void MGpoissonFEMM0norm2xSer_UyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
+{ 
+  // femFld:  FEM field in neighboring cells.
+  // normOut: norm.
+
+  double volFac = 0.25*dxC[0]*dxC[1]; 
+
+  double *femFldC = femFld[0]; 
+  double *femFldUx = femFld[1]; 
+
+
+  normOut[0] += (femFldUx[1]+femFldC[1]+femFldUx[0]+femFldC[0])*volFac; 
+}
+
+void MGpoissonFEMM0norm2xSer_LxNonPeriodicUyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
+{ 
+  // femFld:  FEM field in neighboring cells.
+  // normOut: norm.
+
+  double volFac = 0.25*dxC[0]*dxC[1]; 
+
+  double *femFldC = femFld[0]; 
+  double *femFldUx = femFld[1]; 
+
+
+  normOut[0] += (femFldUx[1]+femFldC[1]+femFldUx[0]+femFldC[0])*volFac; 
+}
+
+void MGpoissonFEMM0norm2xSer_UxNonPeriodicLyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
+{ 
+  // femFld:  FEM field in neighboring cells.
+  // normOut: norm.
+
+  double volFac = 0.25*dxC[0]*dxC[1]; 
+
+  double *femFldC = femFld[0]; 
+  double *femFldUy = femFld[2]; 
+
+
+  normOut[0] += (femFldUy[1]+femFldC[1]+femFldUy[0]+femFldC[0])*volFac; 
+}
+
+void MGpoissonFEMM0norm2xSer_UxNonPeriodicUyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
+{ 
+  // femFld:  FEM field in neighboring cells.
+  // normOut: norm.
+
+  double volFac = 0.25*dxC[0]*dxC[1]; 
+
+  double *femFldC = femFld[0]; 
+
+
+  normOut[0] += (femFldC[3]+femFldC[2]+femFldC[1]+femFldC[0])*volFac; 
+}
+
+void MGpoissonFEMaccuConst2xSer_P1(const double constIn, double *femFld) 
+{ 
+  // constIn: constant to accumulate.
+  // femFld:  FEM field to accumulate.
+
+  femFld[0] += constIn; 
+}
+
+void MGpoissonFEMaccuConst2xSer_LxNonPeriodic_P1(const double constIn, double *femFld) 
+{ 
+  // constIn: constant to accumulate.
+  // femFld:  FEM field to accumulate.
+
+  femFld[0] += constIn; 
+}
+
+void MGpoissonFEMaccuConst2xSer_UxNonPeriodic_P1(const double constIn, double *femFld) 
+{ 
+  // constIn: constant to accumulate.
+  // femFld:  FEM field to accumulate.
+
+  femFld[0] += constIn; 
+  femFld[1] += constIn; 
+}
+
+void MGpoissonFEMaccuConst2xSer_LyNonPeriodic_P1(const double constIn, double *femFld) 
+{ 
+  // constIn: constant to accumulate.
+  // femFld:  FEM field to accumulate.
+
+  femFld[0] += constIn; 
+}
+
+void MGpoissonFEMaccuConst2xSer_UyNonPeriodic_P1(const double constIn, double *femFld) 
+{ 
+  // constIn: constant to accumulate.
+  // femFld:  FEM field to accumulate.
+
+  femFld[0] += constIn; 
+  femFld[1] += constIn; 
+}
+
+void MGpoissonFEMaccuConst2xSer_LxNonPeriodicUyNonPeriodic_P1(const double constIn, double *femFld) 
+{ 
+  // constIn: constant to accumulate.
+  // femFld:  FEM field to accumulate.
+
+  femFld[0] += constIn; 
+  femFld[1] += constIn; 
+}
+
+void MGpoissonFEMaccuConst2xSer_UxNonPeriodicLyNonPeriodic_P1(const double constIn, double *femFld) 
+{ 
+  // constIn: constant to accumulate.
+  // femFld:  FEM field to accumulate.
+
+  femFld[0] += constIn; 
+  femFld[1] += constIn; 
+}
+
+void MGpoissonFEMaccuConst2xSer_UxNonPeriodicUyNonPeriodic_P1(const double constIn, double *femFld) 
+{ 
+  // constIn: constant to accumulate.
+  // femFld:  FEM field to accumulate.
+
+  femFld[0] += constIn; 
+  femFld[1] += constIn; 
+  femFld[2] += constIn; 
+  femFld[3] += constIn; 
 }
 

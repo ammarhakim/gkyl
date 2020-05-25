@@ -69,10 +69,8 @@ writeCIncrExprs1NoPowers(lhs, rhs, qPow, numElemMax) := block([expr],
   )
 )$
 
-calcL2norm(fh, funcNm, dim, basisFun, pMax) := block([],
-/* Compute the L2 norm 
-     normL2 = \int dx | f |^2
-   of a FEM field. */
+calcNorm(fh, funcNm, dim, basisFun, pMax, whichNorm) := block([],
+/* Compute a norm of a FEM field. */
 
   kill(varsC, varsP, basisC, basisP),
 
@@ -142,11 +140,23 @@ calcL2norm(fh, funcNm, dim, basisFun, pMax) := block([],
       
           femFld_e : doExpand(makelist(eval_string(sconcat("femFld",cellToCoef[1][2][k])),k,1,numB),bN),
       
-          normCont : fullratsimp(innerProd(varsC,1,1,femFld_e^2)),
+          if (whichNorm="L2") then (
+            normCont : volFac*fullratsimp(innerProd(varsC,1,1,femFld_e^2))
+          ) elseif (whichNorm="M0") then (
+            normCont : volFac*fullratsimp(innerProd(varsC,1,1,femFld_e))
+          ),
       
-          printf(fh, "void ~a_~aP~a(double **femFld, double *normOut) ~%{ ~%", funcNm, stencilStr, polyOrder),
+          printf(fh, "void ~a_~aP~a(const double *dxC, double **femFld, double *normOut) ~%{ ~%", funcNm, stencilStr, polyOrder),
           printf(fh, "  // femFld:  FEM field in neighboring cells.~%"),
           printf(fh, "  // normOut: norm.~%"),
+          printf(fh, "~%"),
+
+          /* This volume factors appears in front of the right-side source term. */
+          volumeFac : (1/2)^dim,
+          for dir : 1 thru dim do (
+            volumeFac : volumeFac*dxC[dir-1]
+          ),
+          printf(fh, "  double volFac = ~a; ~%", float(volumeFac)),
           printf(fh, "~%"),
       
           /* Create a pointer to each cell used by stencil. */
@@ -177,4 +187,18 @@ calcL2norm(fh, funcNm, dim, basisFun, pMax) := block([],
       )
     )
   )
+)$
+
+calcL2norm(fh, funcNm, dim, basisFun, pMax) := block([],
+/* Compute the L2 norm 
+     normL2 = \int dx | f |^2
+   of a FEM field. */
+  calcNorm(fh, funcNm, dim, basisFun, pMax, "L2")
+)$
+
+calcM0norm(fh, funcNm, dim, basisFun, pMax) := block([],
+/* Compute the zeroth moment (technically not a norm)
+     m0 = \int dx f
+   of a FEM field. */
+  calcNorm(fh, funcNm, dim, basisFun, pMax, "M0")
 )$
