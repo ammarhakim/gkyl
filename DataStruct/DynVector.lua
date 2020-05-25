@@ -152,12 +152,6 @@ function DynVector:assignLast(fact, dynV)
    self._data:assignLast(self._tmpData)
 end
 
-function DynVector:copyLast(dynV)
-   local tm, lv = dynV:lastData()
-   self._timeMesh:assignLast(tm)
-   self._data:assignLast(lv)
-end
-
 function DynVector:accumulateLastOne(fact, dynV)
    local _, lv = dynV:lastData()
    local selflv
@@ -211,6 +205,31 @@ end
 function DynVector:clear()
    self._data:clear()
    self._timeMesh:clear()
+end
+
+function DynVector:copy(dynV)
+   -- Copy over time-mesh and data. Assumes number of components is the same.
+   local dataIn     = dynV:data()
+   local timeMeshIn = dynV:timeMesh()
+   local nValIn     = dataIn:size()
+
+   self._timeMesh:expand(nValIn-(self:size()-1))
+   for i = 1, self._timeMesh:size() do
+      self._timeMesh[i] = timeMeshIn[i]
+   end
+
+   self._data:expand(nValIn-(self:size()-1))
+   for i = 1, self._data:size() do
+      for n = 1, self._numComponents do
+	 self._data[i][n] = dataIn[i][n]
+      end
+   end
+end
+
+function DynVector:copyLast(dynV)
+   local tm, lv = dynV:lastData()
+   self._timeMesh:assignLast(tm)
+   self._data:assignLast(lv)
 end
 
 function DynVector:data() return self._data end

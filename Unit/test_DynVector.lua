@@ -172,6 +172,21 @@ function test_4()
    assert_equal(7.5, lv[1], "Testing last value after appendLast")
    assert_equal(4.5, lv[2], "Testing last value after appendLast")
 
+   dummyVec:copy(dynVec)
+   -- Check contents.
+   assert_equal(dummyVec:size(), dynVec:size(), "Checking size after copy.")
+   local tmMesh1 = dynVec:timeMesh()
+   local tmMesh2 = dummyVec:timeMesh()
+   local data1   = dynVec:data()
+   local data2   = dummyVec:data()
+   for i = 1, dynVec:size() do
+      assert_equal(tmMesh1[i], tmMesh2[i], "Checking time-mesh after copy.")
+      local v1 = data1[i]
+      local v2 = data2[i]
+      assert_equal(v1[1], v2[1], "Checking contents[1] after copy.")
+      assert_equal(v1[2], v2[2], "Checking contents[2] after copy.")
+   end
+
 end
 
 test_1()
