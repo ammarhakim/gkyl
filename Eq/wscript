@@ -150,38 +150,83 @@ def build(bld):
     constDiffusionData/ConstDiffusionSurfPositivitySer3x.cpp
     constDiffusionData/ConstDiffusionBCsSer.cpp
 
-    maxwellData/MaxwellVolSer1x.cpp
-    maxwellData/MaxwellVolSer2x.cpp
-    maxwellData/MaxwellVolSer3x.cpp
+    maxwellData/MaxwellVolSer1xP1.cpp
+    maxwellData/MaxwellVolSer2xP1.cpp
+    maxwellData/MaxwellVolSer3xP1.cpp
 
-    maxwellData/MaxwellSurfSer1x.cpp
-    maxwellData/MaxwellSurfSer2x.cpp
-    maxwellData/MaxwellSurfSer3x.cpp
+    maxwellData/MaxwellVolSer1xP2.cpp
+    maxwellData/MaxwellVolSer2xP2.cpp
 
-    maxwellData/MaxwellCentralSurfSer1x.cpp
-    maxwellData/MaxwellCentralSurfSer2x.cpp
-    maxwellData/MaxwellCentralSurfSer3x.cpp
+    maxwellData/MaxwellVolSer1xP3.cpp
+    maxwellData/MaxwellVolSer2xP3.cpp
 
-    maxwellData/MaxwellVolMax1x.cpp
-    maxwellData/MaxwellVolMax2x.cpp
-    maxwellData/MaxwellVolMax3x.cpp
+    maxwellData/MaxwellSurfSer1xP1.cpp
+    maxwellData/MaxwellSurfSer2xP1.cpp
+    maxwellData/MaxwellSurfSer3xP1.cpp
 
-    maxwellData/MaxwellSurfMax1x.cpp
-    maxwellData/MaxwellSurfMax2x.cpp
-    maxwellData/MaxwellSurfMax3x.cpp
+    maxwellData/MaxwellSurfSer1xP2.cpp
+    maxwellData/MaxwellSurfSer2xP2.cpp
 
-    maxwellData/MaxwellCentralSurfMax1x.cpp
-    maxwellData/MaxwellCentralSurfMax2x.cpp
-    maxwellData/MaxwellCentralSurfMax3x.cpp
+    maxwellData/MaxwellSurfSer1xP3.cpp
+    maxwellData/MaxwellSurfSer2xP3.cpp
 
-    maxwellData/MaxwellVolTensor1x.cpp
-    maxwellData/MaxwellVolTensor2x.cpp
+    maxwellData/MaxwellCentralSurfSer1xP1.cpp
+    maxwellData/MaxwellCentralSurfSer2xP1.cpp
+    maxwellData/MaxwellCentralSurfSer3xP1.cpp
 
-    maxwellData/MaxwellSurfTensor1x.cpp
-    maxwellData/MaxwellSurfTensor2x.cpp
+    maxwellData/MaxwellCentralSurfSer1xP2.cpp
+    maxwellData/MaxwellCentralSurfSer2xP2.cpp
 
-    maxwellData/MaxwellCentralSurfTensor1x.cpp
-    maxwellData/MaxwellCentralSurfTensor2x.cpp
+    maxwellData/MaxwellCentralSurfSer1xP3.cpp
+    maxwellData/MaxwellCentralSurfSer2xP3.cpp
+
+    maxwellData/MaxwellVolMax1xP1.cpp
+    maxwellData/MaxwellVolMax2xP1.cpp
+    maxwellData/MaxwellVolMax3xP1.cpp
+
+    maxwellData/MaxwellVolMax1xP2.cpp
+    maxwellData/MaxwellVolMax2xP2.cpp
+
+    maxwellData/MaxwellVolMax1xP3.cpp
+    maxwellData/MaxwellVolMax2xP3.cpp
+
+    maxwellData/MaxwellSurfMax1xP1.cpp
+    maxwellData/MaxwellSurfMax2xP1.cpp
+    maxwellData/MaxwellSurfMax3xP1.cpp
+
+    maxwellData/MaxwellSurfMax1xP2.cpp
+    maxwellData/MaxwellSurfMax2xP2.cpp
+
+    maxwellData/MaxwellSurfMax1xP3.cpp
+    maxwellData/MaxwellSurfMax2xP3.cpp
+
+    maxwellData/MaxwellCentralSurfMax1xP1.cpp
+    maxwellData/MaxwellCentralSurfMax2xP1.cpp
+    maxwellData/MaxwellCentralSurfMax3xP1.cpp
+
+    maxwellData/MaxwellCentralSurfMax1xP2.cpp
+    maxwellData/MaxwellCentralSurfMax2xP2.cpp
+
+    maxwellData/MaxwellCentralSurfMax1xP3.cpp
+    maxwellData/MaxwellCentralSurfMax2xP3.cpp
+
+    maxwellData/MaxwellVolTensor1xP2.cpp
+    maxwellData/MaxwellVolTensor2xP2.cpp
+
+    maxwellData/MaxwellVolTensor1xP3.cpp
+    maxwellData/MaxwellVolTensor2xP3.cpp
+
+    maxwellData/MaxwellSurfTensor1xP2.cpp
+    maxwellData/MaxwellSurfTensor2xP2.cpp
+
+    maxwellData/MaxwellSurfTensor1xP3.cpp
+    maxwellData/MaxwellSurfTensor2xP3.cpp
+
+    maxwellData/MaxwellCentralSurfTensor1xP2.cpp
+    maxwellData/MaxwellCentralSurfTensor2xP2.cpp
+
+    maxwellData/MaxwellCentralSurfTensor1xP3.cpp
+    maxwellData/MaxwellCentralSurfTensor2xP3.cpp
 
     vlasovData/VlasovStreamMax1x1vP1.cpp
     vlasovData/VlasovStreamMax1x2vP1.cpp
