@@ -5,6 +5,12 @@
 
 import os
 
+def appendToList(target, val):
+    if type(val) == list:
+        target.extend(val)
+    else:
+        target.append(val)
+
 def build(bld):
     bld.shlib(source = 'GkExactEulerRpImpl.cpp', includes = '.',
               name = 'tool',
@@ -17,9 +23,17 @@ def build(bld):
     if bld.env['CUTOOLS_FOUND']:
         useListCuda = ' cuda CUTOOLS lib_cu datastruct_cu eq_cu unit_cu comm_cu updater_cu proto_cu basis_cu grid_cu '
         useList = useListCuda + useList
+
+    # set RPATH
+    fullRpath = []
+    appendToList(fullRpath, bld.env.RPATH) # user specified RPATH
+    appendToList(fullRpath, bld.env.LIBDIR)
+    appendToList(fullRpath, bld.env.LIBPATH_LUAJIT)
     
     bld.program(
         source = 'kerneldriver.cxx', target = 'kerneldriver',
         includes = '. .. ../Lib ../Cuda ../Eq/vlasovData',
         use = useList,
+        rpath = fullRpath,
+        lib = 'pthread ' + bld.env.EXTRALIBS,
     )
