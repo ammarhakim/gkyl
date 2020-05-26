@@ -1,25 +1,25 @@
 There are two types of scripts in this directory for each machine
 (usually a supercomputer center) that gkyl is supported on:
-
+```
 mkdeps.[machine].sh 
 configure.[machine].sh
-
+```
 The dependencies should be build before configuring gkyl. Dependencies
 need to be built only once. For example, on a Mac, for example you
 will need to first run:
-
+```
  ./machines/mkdeps.macosx.sh
-
+```
 Then once all dependencies are built successfully, do:
-
+```
  ./machines/configure.macosx.sh
-
+```
 These scripts can be run from either within the machines (this)
 directory or the main gkyl directory. Both scripts should should only
 need to be run once, after which gkyl can be built with the usual:
-
+```
   ./waf build install
-
+```
 from the main gkyl directory.
 
 To develop a build on an new machine, copy the mkdeps and configure
@@ -39,3 +39,4 @@ In configure.[machine].sh :
   specify paths and library names needed by the scripts in
   waf_tools. On many systems, this can be aided by loading modules.
 
+**Note: if you would like to build with CUDA, make sure to start from a machine file that includes CUDA, e.g. adroit.**
