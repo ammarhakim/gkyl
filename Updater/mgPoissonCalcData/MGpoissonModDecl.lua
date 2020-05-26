@@ -112,17 +112,19 @@ function _M.selectProlongation(solverKind, basisNm, dim, polyOrder, bcTypes, isD
    return prolongKernels
 end
 
--- Select DG to FEM kernels.
-function _M.selectDGtoFEM(basisNm, dim, polyOrder, bcTypes)
-   local dgToFEMkernels = {}
-   local newBCs         = interiorNonPeriodicBCs(bcTypes)
+-- Select DG<->FEM kernels.
+function _M.selectTransDG_FEM(basisNm, dim, polyOrder, bcTypes)
+   local transDG_FEMkernels = {{},{}}
+   local newBCs             = interiorNonPeriodicBCs(bcTypes)
    -- Create a 3^dim hypertable to place interior and upper boundary kernels.
-   local dgToFEMstencilStr = getStencilStrs(dim, newBCs, false)
+   local stencilStrs = getStencilStrs(dim, newBCs, false)
    for sI = 1, 3^dim do
-      local tmp = ffi.C[string.format("MGpoissonFEM_DGtoFEM_%dx%s_%sP%d", dim, basisNmMap[basisNm], dgToFEMstencilStr[sI], polyOrder)]
-      dgToFEMkernels[sI] = tmp
+      local tmp1 = ffi.C[string.format("MGpoissonFEM_DGtoFEM_%dx%s_%sP%d", dim, basisNmMap[basisNm], stencilStrs[sI], polyOrder)]
+      local tmp2 = ffi.C[string.format("MGpoissonFEM_FEMtoDG_%dx%s_%sP%d", dim, basisNmMap[basisNm], stencilStrs[sI], polyOrder)]
+      transDG_FEMkernels[1][sI] = tmp1
+      transDG_FEMkernels[2][sI] = tmp2
    end
-   return dgToFEMkernels
+   return transDG_FEMkernels
 end
 
 -- Select restriction operator kernel.

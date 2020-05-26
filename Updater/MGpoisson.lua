@@ -38,8 +38,8 @@ local BVP_BC_NEUMANN   = 2
 local BVP_BC_ROBIN     = 3
 
 -- Basis translation direction.
-local DG_to_FEM = -1
-local FEM_to_DG =  1
+local DG_to_FEM = 1
+local FEM_to_DG = 2
 
 -- Multigrid updater object.
 local MGpoisson = Proto(UpdaterBase)
@@ -88,6 +88,7 @@ end
 function MGpoisson:init(tbl)
    MGpoisson.super.init(self, tbl) -- Setup base object.
 
+   self.isFirst = true
    local solverType = assert( 
       tbl.solverType, "Updater.MGpoisson: Must specify 'DG' or 'FEM' using 'solverType'.")
    assert(isSolverTypeGood(solverType), "Updater.MGpoisson: solverType must be one of 'DG' or 'FEM'.")
@@ -164,8 +165,8 @@ function MGpoisson:init(tbl)
    end
    -- ~~.................... End of user-input multigrid parameters ......................~~ --
 
-   -- Diagnostics flag indicates whether to write diagnostic info.
-   if tbl.diagnostics then self.diagnostics=tbl.diagnostics else self.diagnostics=false end
+   -- Diagnostics table allows additional inputs to control outputting of diagnostics.
+   if tbl.diagnostics then self.diagnostics=tbl.diagnostics else self.diagnostics={} end
 
    self.dim        = basis:ndim()        -- Dimension of space.
    local polyOrder = basis:polyOrder()   -- Polynomial order.
@@ -421,9 +422,9 @@ function MGpoisson:init(tbl)
       self.rhoAll[1] = createField(self.mgGrids[1],basis)
    end
 
-   -- For FEM solver, will need to translate (modal) DG coefficients into
-   -- (nodal) FEM coefficients. Preselect the appropriate kernels here.
-   self._dgToFEM = MGpoissonDecl.selectDGtoFEM(basisID, self.dim, polyOrder, bcTypes)
+   -- For FEM solver, will need to translate between (modal) DG coefficients
+   -- and (nodal) FEM coefficients. Preselect the appropriate kernels here.
+   self._transDG_FEM = MGpoissonDecl.selectTransDG_FEM(basisID, self.dim, polyOrder, bcTypes)
 
    -- Some stencils just need the Center and nearest Upper cells.
    self.cuStencilWidth = 2
@@ -572,9 +573,9 @@ function MGpoisson:idxToStencilIU(idxIn, nCellsIn)
    return stencilIdx
 end
 
-function MGpoisson:DG_FEM_coefTranslate(dgFld,femFld,dir)
+function MGpoisson:translateDG_FEM(dgFld,femFld,dir)
    -- Translate the DG coefficients of a field into FEM expansion
-   -- coefficients (dir=-1,DG_to_FEM), and viceversa (dir=1,FEM_to_DG).
+   -- coefficients (dir=1,DG_to_FEM), and viceversa (dir=2,FEM_to_DG).
 
    if (dir==DG_to_FEM) then
       femFld:clear(0.0)
@@ -606,21 +607,30 @@ function MGpoisson:DG_FEM_coefTranslate(dgFld,femFld,dir)
       self:opStencilIndices(idx,{2,self.threes,self.mOnes},self.cuStencilIdx)
  
       -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil.
+      if self.isFirst then 
+         print("idx=",idx[1])
+      end
       for i = 1, self.cuStencilSize do
          grid:setIndex(self.cuStencilIdx[i])
  
+         if self.isFirst then 
+            print("           | stenIdx=",self.cuStencilIdx[i][1])
+         end
          femFld:fill(indexer(self.cuStencilIdx[i]), femFldItr)
          self.cuStencilItr[i] = femFldItr:data()
       end
  
-      self._dgToFEM[self:idxToStencil(idx,cellsN)](dgFldItr:data(), self.cuStencilItr:data())
+      self._transDG_FEM[dir][self:idxToStencil(idx,cellsN)](dgFldItr:data(), self.cuStencilItr:data())
    end
 
-   if self.aPeriodicDir and (dir == DG_to_FEM) then
-      femFld:sync()
-   else
-      dgFld:sync()
+   if self.aPeriodicDir then
+      if (dir == DG_to_FEM) then
+         femFld:sync()
+      else
+         dgFld:sync()
+      end
    end
+   self.isFirst = false
 end
 
 function MGpoisson:projectFEM(femFld,fldOut)
@@ -923,9 +933,9 @@ function MGpoisson:relax(numRelax, phiFld, rhoFld)
          
          self._relaxation[self:idxToStencil(idx,cellsN)](self.omega, self.dxStencil:data(), self.bcValue:data(), self.rhoStencil:data(), self.prevPhiStencil:data(), self.phiStencil:data())
       end
-   end
 
-   if self.aPeriodicDir then phiFld:sync() end
+      if self.aPeriodicDir then phiFld:sync() end
+   end
 end
 
 function MGpoisson:residue(phiFld, rhoFld, resFld)
@@ -1174,7 +1184,7 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
       self.rhoAll[1] = inFld[1]
    elseif self.isFEM then
       -- FEM solver. Translate RHS source DG coefficients to FEM.
-      self:DG_FEM_coefTranslate(inFld[1], self.rhoAll[1], DG_to_FEM)
+      self:translateDG_FEM(inFld[1], self.rhoAll[1], DG_to_FEM)
       -- Project right-side source onto FEM (nodal) basis.
       self.phiAll[1]:copy(self.rhoAll[1])   -- Temporary buffer.
       self:projectFEM(self.phiAll[1], self.rhoAll[1])
@@ -1194,7 +1204,7 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
          self.phiAll[1] = initialGuess
       elseif self.isFEM then
          -- FEM solver. Translate initial guess DG coefficients to FEM.
-         self:DG_FEM_coefTranslate(initialGuess, self.phiAll[1], DG_to_FEM)
+         self:translateDG_FEM(initialGuess, self.phiAll[1], DG_to_FEM)
       end
    else
       -- No initial guess provided. Perform Full Multi-Grid (FMG).
@@ -1228,17 +1238,19 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
       if gI==self.numGammaCycles then break end
    end
 
-   if self.diagnostics then
-      -- Write out residue norm for each iteration.
-      self.relResNorm:write(string.format("relResidue_RmsV.bp"), 0.0, 0)
-   end
-
    if self.isFEM then
       -- Translate final phi from FEM to DG.
---      self:DG_FEM_coefTranslate(self.phiAll[1],outFld[1],FEM_to_DG)
-      print(" FEM_to_DG not yet available. Copying FEM solution to outFld.")
-      outFld[1]:copy(self.phiAll[1])
+      self:translateDG_FEM(outFld[1],self.phiAll[1],FEM_to_DG)
    end
+
+--   if #self.diagnostics>0 then
+--      if self.diagnostics["relResNorm"] then
+--         outFld[2]["relResNorm"]:copy(self.relResNorm)
+--      end
+--      if self.diagnostics["phiFEM"] then
+--         outFld[2]["phiFEM"]:copy(self.phiAll[1])
+--      end
+--   end
 
 end
 
