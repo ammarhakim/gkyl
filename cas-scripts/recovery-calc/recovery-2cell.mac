@@ -1,34 +1,34 @@
-calcRecov2CellGen(basisNm, dir, dx, polyOrder, lo, up) := block(
-  /* Returns recovered polynomial across two neighboring cells in
-     terms of expansion coefficients at the lower (qLo) and the upper
-     (qUp) side.
+calcRecov2CellGen(basisNm, dir, numDims, polyOrder, lo, up) := block(
+  /* Returns recovered polynomial across two neighboring cells.
   Inputs:
     basisNm : name of used basis function ("Ser", "Tensor", or "Max");
       NOTE: This makes no difference for 1D recoveries so it should
       ideally be an optional input but I don't see a way around it
       now. --Petr Cagas
     dir : direction of the recovery (x, y, or z)
-    dx : a list of cell sizes; if the specified length is greater than
-      one, the no-recovered direction are backsubstitued to the output
+    numDims : number of dimensions
     polyOrder : polynomial order of the inputs
-    qLo : an array of expansion coefficients of the recovered quantity
-      at the lower side
-    qUp : an array of expansion coefficients of the recovered quantity
-      at the upper side
+    lo : can be one of the following
+      * dg(A) : A is an array of expansion coefficients corresponding
+        to logical space basis functions
+      * bc(D=_, N=_, val=_) : a boundary condition definition
+        D*f(x)+N*df(x)/dx=val; note that this BC is definided at the
+        interface between the two cells, which makes this a quite
+        weird case that will most likely not see much use
+      * dg(A, bc(D=_, N=_, val=_)) : a constrained recovery where
+        expansion coefficients are used together with boundary
+        conditions at the edge
+    up : equvivalent of `lo` at the upper side
   Outputs:
-    a polynomial in terms of qLo and qUp
+    a polynomial
   */
   [
-  numDims, dIdx, basisC, basis1D, baLo1D, baUp1D, DoF, rExp, recEqList,
-  rSol, rSub, projSubList, basisND, xc, baLoND, baUpND, dimProjLo,
-  r, qLo1D, qUp1D,
-  dimProjUp
+  DoF, r, rExp, rSol, rSub,
+  recEqList, projSubList,
+  baLo1D, baCe1D, baUp1D, baLoND, baCeND, baUpND,
+  dimProjLo, dimProjUp, qLo1D, qUp1D
   ],
-  numDims : length(dx),
-  dIdx : getDirIdx(dir, numDims), /* converting x, y, or z into 1, 2, or 3 */
-  basisC : getBasis(sconcat("basis-precalc/basis", basisNm, "1x"), polyOrder),
-  basis1D : subst(x=dir, basisC),
-  
+ 
   /* forming and solving the equation system */
   DoF : 0,
   if is(op(lo)=dg) then (
@@ -46,20 +46,23 @@ calcRecov2CellGen(basisNm, dir, dx, polyOrder, lo, up) := block(
     DoF : DoF + 1 /* only 1 DoF for BC */
   ),
   rExp : doExpand(r, makelist(dir^i, i, 0, DoF-1)), /* recovery polynomial */
+
+  baCe1D : getBasis(sconcat("basis-precalc/basis", basisNm, "1x"), polyOrder),
+  baCe1D : subst(x=dir, baCe1D),
   
   recEqList : [], /* equation set from the weak equality formulation */
   if is(op(lo)=dg) then (
-    baLo1D : etaDir(dir, -dx[dIdx]/2, dx[dIdx], basis1D),
+    baLo1D : etaDir(dir, -1, 2, baCe1D),
     recEqList : append(
       recEqList,
-      calcInnerProdListGen([dir], [[-dx[dIdx], 0]], 1,
+      calcInnerProdListGen([dir], [[-2, 0]], 1,
         baLo1D, rExp-doExpand(qLo1D, baLo1D))
     ),
     if length(args(lo)) > 1 then (
       recEqList : append(
         recEqList,
-        [subst(args(args(lo)[2]), val - D*subst(dir=-dx[dIdx], rExp)
-          - N*subst(dir=-dx[dIdx], diff(rExp, dir)))]
+        [subst(args(args(lo)[2]), val - D*subst(dir=-2, rExp)
+          - N*subst(dir=-2, diff(rExp, dir)))]
       )
     )
   )
@@ -72,17 +75,17 @@ calcRecov2CellGen(basisNm, dir, dx, polyOrder, lo, up) := block(
   ),
 
   if is(op(up)=dg) then (
-    baUp1D : etaDir(dir, dx[dIdx]/2, dx[dIdx], basis1D),
+    baUp1D : etaDir(dir, 1, 2, baCe1D),
     recEqList : append(
       recEqList,
-      calcInnerProdListGen([dir], [[0, dx[dIdx]]], 1,
+      calcInnerProdListGen([dir], [[0, 2]], 1,
         baUp1D, rExp-doExpand(qUp1D, baUp1D))
     ),
     if length(args(up)) > 1 then (
       recEqList : append(
         recEqList,
-        [subst(args(args(up)[2]), val - D*subst(dir=dx[dIdx], rExp)
-          - N*subst(dir=dx[dIdx], diff(rExp, dir)))]
+        [subst(args(args(up)[2]), val - D*subst(dir=2, rExp)
+          - N*subst(dir=2, diff(rExp, dir)))]
       )
     )
   )
@@ -99,32 +102,25 @@ calcRecov2CellGen(basisNm, dir, dx, polyOrder, lo, up) := block(
   
   /* backsubstitute the non-recovered directtions if needed */
   if numDims > 1 then (
-    basisC : getBasis(sconcat("basis-precalc/basis", basisNm, numDims, "x"), polyOrder),
-    basisND : basisC,
-    xc : [0, 0, 0],
-    
-    xc[dIdx] : dx[dIdx]/2,
-    baUpND : eta(xc, dx, basisND), /* shifting the multi-D basis in only one direction */
+    baND : getBasis(sconcat("basis-precalc/basis", basisNm, numDims, "x"), polyOrder),
     
     projSubList : [],
     if is(op(lo)=dg) then (
-      xc[dIdx] : -dx[dIdx]/2,
-      baLoND : eta(xc, dx, basisND),
+      baLoND : etaDir(dir, -1, 2, baND),
       dimProjLo : calcInnerProdListGen([dir], [[-dx[dIdx], 0]],
         1, baLo1D, doExpand(args(lo)[1], baLoND)),
       projSubList : append (
         projSubList,
-        makelist(qLo1D[i]=dimProjLo[i], i, 1, length(basis1D))
+        makelist(qLo1D[i]=dimProjLo[i], i, 1, length(baCe1D))
       )
     ),
     if is(op(up)=dg) then (
-      xc[dIdx] : dx[dIdx]/2,
-      baUpND : eta(xc, dx, basisND),
+      baUpND : etaDir(dir, -1, 2, baND),
       dimProjUp : calcInnerProdListGen([dir], [[0, dx[dIdx]]],
         1, baUp1D, doExpand(args(up)[1], baUpND)),
       projSubList : append (
         projSubList,
-        makelist(qUp1D[i]=dimProjUp[i], i, 1, length(basis1D))
+        makelist(qUp1D[i]=dimProjUp[i], i, 1, length(baCe1D))
       )
     )
   )
@@ -133,13 +129,13 @@ calcRecov2CellGen(basisNm, dir, dx, polyOrder, lo, up) := block(
     if is(op(lo)=dg) then (
       projSubList : append (
         projSubList,
-        makelist(qLo1D[i]=args(lo)[1][i], i, 1, length(basis1D))
+        makelist(qLo1D[i]=args(lo)[1][i], i, 1, length(baCe1D))
       )
     ),
     if is(op(up)=dg) then (
       projSubList : append (
         projSubList,
-        makelist(qUp1D[i]=args(up)[1][i], i, 1, length(basis1D))
+        makelist(qUp1D[i]=args(up)[1][i], i, 1, length(baCe1D))
       )
     )
   ),
