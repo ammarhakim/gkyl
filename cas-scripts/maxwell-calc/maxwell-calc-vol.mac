@@ -15,16 +15,16 @@ dxInv : [dx0, dx1, dx2]$
 
 lhs : [outEx, outEy, outEz, outBx, outBy, outBz, outPh, outPs]$
 
-calcMaxVolUpdater(fh, funcNm, cdim, basisFun, pMax) := block([],
-kill(varsC, varsP, basisC, basisP, basisConstant),
-modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
-load(modNm),
-printf(fh, "#include <MaxwellModDecl.h> ~%"),
-for p : 1 thru pMax do (
-  bC : if p = 0 then basisConstant else basisC[p],
+calcMaxVolUpdater(fh, funcNm, cdim, basisFun, polyOrder) := block([],
+  kill(varsC, varsP, basisC, basisP, basisConstant),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
+  load(modNm),
+  printf(fh, "#include <MaxwellModDecl.h> ~%"),
+
+  bC : if polyOrder = 0 then basisConstant else basisC[polyOrder],
   nbasis : length(bC),
   
-  printf(fh, "double ~aP~a(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) ~%{ ~%", funcNm, p),
+  printf(fh, "__host__ __device__ double ~aP~a(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) ~%{ ~%", funcNm, polyOrder),
   printf(fh, "  const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; ~%"),
   printf(fh, "  const double c2chi = c2*chi, c2gamma = c2*gamma; ~% ~%"),
 
@@ -50,7 +50,7 @@ for p : 1 thru pMax do (
     printf(fh, "  double dx~a = 2.0/dx[~a]; ~%", d-1, d-1)
   ),
 
-  printf(fh, "~% ~%"),
+  printf(fh, "~%"),
 
   Exl : doExpand1(ex,bC),
   Eyl : doExpand1(ey,bC),
@@ -75,9 +75,4 @@ for p : 1 thru pMax do (
   
   printf(fh, "  return cflFreq; ~%"),
   printf(fh, "} ~%")
-))$
-
-calcMaxwellVolUpdater(fh, funcNm, cdim, basisFun) := block([],
-  printf(fh, "#include <MaxwellModDecl.h> ~%"),
-  for dir : 1 thru cdim do ( calcMaxVolUpdater(dir, fh, funcNm, cdim, basisFun, pMax) )
 )$

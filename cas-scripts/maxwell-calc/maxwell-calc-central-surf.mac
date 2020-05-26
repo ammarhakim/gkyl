@@ -22,15 +22,15 @@ flux : [
  [c^2*By, -c^2*Bx, c^2*chi*phi, -Ey, Ex, gamma*psi, chi*Ez, c^2*gamma*Bz]
 ]$
 
-calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
-kill(varsC, basisC),
-modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
-load(modNm),
-for p : 1 thru pMax do(
-  bC : if p = 0 then basisConstant else basisC[p],
+calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, polyOrder) := block([],
+  kill(varsC, basisC),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
+  load(modNm),
+
+  bC : if polyOrder = 0 then basisConstant else basisC[polyOrder],
   nbasis : length(bC),
   
-  printf(fh, "double ~a_~a_P~a(const MaxwellEq_t *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], p),
+  printf(fh, "__host__ __device__ double ~a_~a_P~a(const MaxwellEq_t *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], polyOrder),
 
   printf(fh, "  const double c = meq->c, chi = meq->chi, gamma = meq->gamma; ~%"),
   printf(fh, "  const double c2 = c*c; ~%"),
@@ -118,14 +118,14 @@ for p : 1 thru pMax do(
     signs : fullratsimp(incr_l/incr_r),
     incr_s : makelist(signs[i]*incr[i-1], i, 1, nbasis),
     writeCIncrExprs1(outl[m], dxl1*incr_s),
-    printf(fh, "~% ~%")
+    printf(fh, "~%")
   ),
 
   printf(fh, "  return c; ~%"),
   printf(fh, "} ~%")
-))$
+)$
 
-calcMaxwellCentralSurfUpdater(fh, funcNm, cdim, basisFun, pMax) := block([],
+calcMaxwellCentralSurfUpdater(fh, funcNm, cdim, basisFun, polyOrder) := block([],
   printf(fh, "#include <MaxwellModDecl.h> ~%"),
-  for dir : 1 thru cdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) )
+  for dir : 1 thru cdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, polyOrder) )
 )$

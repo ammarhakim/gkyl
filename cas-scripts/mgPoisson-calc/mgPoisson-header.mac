@@ -103,8 +103,10 @@ for bInd : 1 thru length(bName) do (
 
       /* ~~~~~~~~~~~~~~ FEM solver kernels. ~~~~~~~~~~~~~~ */
       /* Translating between DG and FEM. */
-      printf(fh, "void MGpoissonFEM_DGtoFEM_~ax~a_P~a(const double *dgFld, double **femOut);~%", ci, bName[bInd], polyOrder),
-      findBoundaryStrCombo(fh, "MGpoissonFEM_DGtoFEM_", "const double *dgFld, double **femOut", bName[bInd], ci, bcKeyNP),
+      printf(fh, "void MGpoissonFEM_DGtoFEM_~ax~a_P~a(double **dgFld, double *femFld);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonFEM_DGtoFEM_", "double **dgFld, double *femFld", bName[bInd], ci, bcKeyNP),
+      printf(fh, "void MGpoissonFEM_FEMtoDG_~ax~a_P~a(double **femFld, double *dgFld);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonFEM_FEMtoDG_", "double **femFld, double *dgFld", bName[bInd], ci, bcKeyNP),
       printf(fh, "~%"),
 
       /* Projecting an FEM field onto the nodal (FEM) basis. */
@@ -133,8 +135,18 @@ for bInd : 1 thru length(bName) do (
       printf(fh, "~%"),
 
       /* L2 norm. */
-      printf(fh, "void MGpoissonFEML2norm~ax~a_P~a(double **femFld, double *normOut);~%", ci, bName[bInd], polyOrder),
-      findBoundaryStrCombo(fh, "MGpoissonFEML2norm", "double **femFld, double *normOut", bName[bInd], ci, bcKeyNP),
+      printf(fh, "void MGpoissonFEML2norm~ax~a_P~a(const double *dxC, double **femFld, double *normOut);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonFEML2norm", "const double *dxC, double **femFld, double *normOut", bName[bInd], ci, bcKeyNP),
+      printf(fh, "~%"),
+
+      /* M0 norm. */
+      printf(fh, "void MGpoissonFEMM0norm~ax~a_P~a(const double *dxC, double **femFld, double *normOut);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonFEMM0norm", "const double *dxC, double **femFld, double *normOut", bName[bInd], ci, bcKeyNP),
+      printf(fh, "~%"),
+
+      /* Accumulate a constant and an FEM field. */
+      printf(fh, "void MGpoissonFEMaccuConst~ax~a_P~a(const double constIn, double *femFld);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonFEMaccuConst", "const double constIn, double *femFld", bName[bInd], ci, bcKeyNP),
       printf(fh, "~%")
 
     ),
