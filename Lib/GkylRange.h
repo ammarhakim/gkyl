@@ -225,26 +225,26 @@ namespace Gkyl {
    */
   class Range {
     public:
-      Range(const GkylRange_t *range)
+      __host__ __device__ Range(const GkylRange_t *range)
         : range(range) {
       }
 
-      inline int ndim() const {
+      __host__ __device__ inline int ndim() const {
         return range->ndim;
       }
       
-      inline int lower(unsigned dir) const {
+      __host__ __device__ inline int lower(unsigned dir) const {
         return range->lower[dir];
       }
       
-      inline int upper(unsigned dir) const {
-        return range->lower[dir];
+      __host__ __device__ inline int upper(unsigned dir) const {
+        return range->upper[dir];
       }
       
-      inline int volume() const {
-        int v = 0;
+      __host__ __device__ inline int volume() const {
+        int v = 1;
         for (unsigned int i=0; i<ndim(); ++i)
-          v *= (upper(i)-lower(i)-1);
+          v *= (upper(i)-lower(i)+1);
         return v;
       }
 

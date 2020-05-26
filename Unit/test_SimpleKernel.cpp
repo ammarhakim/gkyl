@@ -40,6 +40,13 @@ __global__ void ker_unit_showRange(GkylRange_t *range)
     idxr.invIndex(i, idx);
     printf("Lin index %d -> index %d\n", i, idx[0]);
   }
+
+  // can also instantiate a C++ range object using the GkylRange_t range pointer (from Lua)
+  Gkyl::Range range_cpp(range);
+  printf("Range ndim: %d\n", range_cpp.ndim());
+  for (unsigned i=0; i<range_cpp.ndim(); ++i)
+    printf(" %d, %d\n", range_cpp.lower(i), range_cpp.upper(i));
+  printf("Volume = %d\n", range_cpp.volume());
 }
 
 __global__ void ker_unit_showGrid(RectCart_t *grid)
