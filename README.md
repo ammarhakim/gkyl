@@ -36,6 +36,13 @@ where `[SYSTEM]` should be replaced by the name of the system you are building o
 
 For systems that do not already have corresponding files in the `machines/` directory, we encourage you to add files for your machine. Instructions can be found in `machines/README.md`.
 
+## Testing the build.
+
+You can run the full suite of unit tests using
+```
+~/gkylsoft/gkyl/bin/gkyl Tool/runtests.lua rununit
+```
+
 # Diagnostic tools
 
 The `postgkyl` python package has been developed for plotting diagnostic files from Gkeyll. 
