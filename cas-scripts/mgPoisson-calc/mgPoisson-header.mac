@@ -103,10 +103,10 @@ for bInd : 1 thru length(bName) do (
 
       /* ~~~~~~~~~~~~~~ FEM solver kernels. ~~~~~~~~~~~~~~ */
       /* Translating between DG and FEM. */
-      printf(fh, "void MGpoissonFEM_DGtoFEM_~ax~a_P~a(const double *dgFld, double **femFld);~%", ci, bName[bInd], polyOrder),
-      findBoundaryStrCombo(fh, "MGpoissonFEM_DGtoFEM_", "const double *dgFld, double **femFld", bName[bInd], ci, bcKeyNP),
-      printf(fh, "void MGpoissonFEM_FEMtoDG_~ax~a_P~a(double *dgFld, double **femFld);~%", ci, bName[bInd], polyOrder),
-      findBoundaryStrCombo(fh, "MGpoissonFEM_FEMtoDG_", "double *dgFld, double **femFld", bName[bInd], ci, bcKeyNP),
+      printf(fh, "void MGpoissonFEM_DGtoFEM_~ax~a_P~a(double **dgFld, double *femFld);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonFEM_DGtoFEM_", "double **dgFld, double *femFld", bName[bInd], ci, bcKeyNP),
+      printf(fh, "void MGpoissonFEM_FEMtoDG_~ax~a_P~a(double **femFld, double *dgFld);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonFEM_FEMtoDG_", "double **femFld, double *dgFld", bName[bInd], ci, bcKeyNP),
       printf(fh, "~%"),
 
       /* Projecting an FEM field onto the nodal (FEM) basis. */

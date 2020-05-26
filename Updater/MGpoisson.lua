@@ -88,7 +88,6 @@ end
 function MGpoisson:init(tbl)
    MGpoisson.super.init(self, tbl) -- Setup base object.
 
-   self.isFirst = true
    local solverType = assert( 
       tbl.solverType, "Updater.MGpoisson: Must specify 'DG' or 'FEM' using 'solverType'.")
    assert(isSolverTypeGood(solverType), "Updater.MGpoisson: solverType must be one of 'DG' or 'FEM'.")
@@ -174,11 +173,13 @@ function MGpoisson:init(tbl)
 
    self.zeros  = {}
    self.ones   = {}
+   self.twos   = {}
    self.threes = {}
    self.mOnes  = {}
    for d = 1, self.dim do
       self.zeros[d]  = 0
       self.ones[d]   = 1
+      self.twos[d]   = 2
       self.threes[d] = 3
       self.mOnes[d]  = -1
    end
@@ -425,6 +426,7 @@ function MGpoisson:init(tbl)
    -- For FEM solver, will need to translate between (modal) DG coefficients
    -- and (nodal) FEM coefficients. Preselect the appropriate kernels here.
    self._transDG_FEM = MGpoissonDecl.selectTransDG_FEM(basisID, self.dim, polyOrder, bcTypes)
+   self.transBasisStencilType = { {2,self.twos,self.zeros}, {2,self.threes,self.mOnes} }
 
    -- Some stencils just need the Center and nearest Upper cells.
    self.cuStencilWidth = 2
@@ -538,12 +540,12 @@ function MGpoisson:opStencilIndices(idxIn, stencilType, stencilIdx)
             for pm = 1-stencilType[3][d],stencilType[2][d]-1 do
                sI = sI + 1
                for _, dr in ipairs(self.dimRemain[d]) do stencilIdx[sI][dr] = stencilIdx[pDC][dr] end
-               stencilIdx[sI][d] = stencilIdx[pDC][d]+((-1)^(pm % 2))*((stencilType[2][d]-1)/2)
+               stencilIdx[sI][d] = stencilIdx[pDC][d]
+                                  +((-1)^(pm % 2))*((stencilType[2][d]-1)/(1+stencilType[2][d]-stencilType[1]))
             end
          end
       end
    end
-
 end
 
 function MGpoisson:idxToStencil(idxIn, nCellsIn)
@@ -573,64 +575,45 @@ function MGpoisson:idxToStencilIU(idxIn, nCellsIn)
    return stencilIdx
 end
 
-function MGpoisson:translateDG_FEM(dgFld,femFld,dir)
+function MGpoisson:translateDG_FEM(inFld,outFld,dir)
    -- Translate the DG coefficients of a field into FEM expansion
    -- coefficients (dir=1,DG_to_FEM), and viceversa (dir=2,FEM_to_DG).
 
-   if (dir==DG_to_FEM) then
-      femFld:clear(0.0)
-   else
-      dgFld:clear(0.0)
-   end
-
-   local grid   = dgFld:grid()
+   local grid   = outFld:grid()
    local cellsN = {}
    for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
 
    local rangeDecomp = LinearDecomp.LinearDecompRange {
-      range = dgFld:localRange(), numSplit = grid:numSharedProcs() }
+      range = outFld:localRange(), numSplit = grid:numSharedProcs() }
    local tId         = grid:subGridSharedId()    -- Local thread ID.
 
-   local indexer     = dgFld:genIndexer()
+   local indexer     = outFld:genIndexer()
 
-   local dgFldItr    = dgFld:get(1)
-   local femFldItr   = femFld:get(1)
+   local outFldItr   = outFld:get(1)
+   local inFldItr    = inFld:get(1)
 
    for idx in rangeDecomp:rowMajorIter(tId) do
 
       grid:setIndex(idx)
 
-      dgFld:fill(indexer(idx), dgFldItr)     -- DG field pointer.
-      femFld:fill(indexer(idx), femFldItr)   -- FEM field pointer.
+      inFld:fill(indexer(idx), inFldItr)
+      outFld:fill(indexer(idx), outFldItr)
  
-      -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
-      self:opStencilIndices(idx,{2,self.threes,self.mOnes},self.cuStencilIdx)
+      -- Get indices of cells used by stencil.
+      self:opStencilIndices(idx,self.transBasisStencilType[dir],self.cuStencilIdx)
  
       -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil.
-      if self.isFirst then 
-         print("idx=",idx[1])
-      end
       for i = 1, self.cuStencilSize do
          grid:setIndex(self.cuStencilIdx[i])
  
-         if self.isFirst then 
-            print("           | stenIdx=",self.cuStencilIdx[i][1])
-         end
-         femFld:fill(indexer(self.cuStencilIdx[i]), femFldItr)
-         self.cuStencilItr[i] = femFldItr:data()
+         inFld:fill(indexer(self.cuStencilIdx[i]), inFldItr)
+         self.cuStencilItr[i] = inFldItr:data()
       end
  
-      self._transDG_FEM[dir][self:idxToStencil(idx,cellsN)](dgFldItr:data(), self.cuStencilItr:data())
+      self._transDG_FEM[dir][self:idxToStencil(idx,cellsN)](self.cuStencilItr:data(), outFldItr:data())
    end
 
-   if self.aPeriodicDir then
-      if (dir == DG_to_FEM) then
-         femFld:sync()
-      else
-         dgFld:sync()
-      end
-   end
-   self.isFirst = false
+   if self.aPeriodicDir then outFld:sync() end
 end
 
 function MGpoisson:projectFEM(femFld,fldOut)
@@ -1240,7 +1223,7 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
 
    if self.isFEM then
       -- Translate final phi from FEM to DG.
-      self:translateDG_FEM(outFld[1],self.phiAll[1],FEM_to_DG)
+      self:translateDG_FEM(self.phiAll[1],outFld[1],FEM_to_DG)
    end
 
 --   if #self.diagnostics>0 then

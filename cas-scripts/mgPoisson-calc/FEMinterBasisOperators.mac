@@ -69,10 +69,12 @@ calcDGtoFEM(fh, funcNm, dim, basisFun, pMax) := block([],
         dgNod   : modToNod . dgC_c,
         dgNod_c : makelist(dgNod[i][1],i,1,length(dgNod)), 
 
-        nodes         : args(getNodes(basisFun, dim, polyOrder)),
-        numNodes      : length(nodes),
-        nodesEx       : getExtendedNodes(basisFun,polyOrder,stencilLoc[sI],makelist([1,1],i,1,dim)),
-        storedNodesEx : getExtendedStoredNodes(basisFun,polyOrder,stencilLoc[sI],makelist([1,1],i,1,dim)),
+        nodes          : args(getNodes(basisFun, dim, polyOrder)),
+        numNodes       : length(nodes),
+        storedNodes    : getStoredNodes(nodes,stencilLoc[sI]),
+        numStoredNodes : length(storedNodes),
+        nodesEx        : getExtendedNodes(basisFun,polyOrder,stencilLoc[sI],makelist([1,1],i,1,dim)),
+        storedNodesEx  : getExtendedStoredNodes(basisFun,polyOrder,stencilLoc[sI],makelist([1,1],i,1,dim)),
         
         /* Associative list of nodes on extended logical space, and the cell that stores that node. */
         storedNodeToCell : invertAssocList(storedNodesEx),
@@ -85,23 +87,75 @@ calcDGtoFEM(fh, funcNm, dim, basisFun, pMax) := block([],
         dataStrs    : getDataStr(makelist([1,1],i,1,dim),stencilLoc[sI],varsC),
 
         /* Associative list of cell coordinate, and the memory location of each node. */
-        cellToCoef : getCellToCoef(numB,stencilLoc[sI],nodesEx,storedNodesEx,storedNodeToCell,cellToIdxStored,dataStrs),
+        cI         : 1,
+        cellToCoef : [ [makelist(0,i,1,dim),makelist("",i,1,numNodes)] ],
+        for dI : 1 thru dim do (
+          cellsSoFar : cI,
+          for pS : 1 thru cellsSoFar do (
+            if (stencilLoc[sI][dI] > -1) then (
+              cI : cI+1,
+              currCoord     : copylist(cellToCoef[pS][1]),
+              currCoord[dI] : -1,
+              cellToCoef    : endcons([currCoord,makelist(sconcat(cellToCoef[pS][2][i],"L",varsC[dI]),i,1,numNodes)],cellToCoef)
+            )
+          )
+        ),
+        cellToCoef[1][2] : makelist("C",i,1,numNodes),
+        for i : 1 thru length(cellToCoef) do (
+          for k : 1 thru numNodes do (
+            cellToCoef[i][2][k] : sconcat(cellToCoef[i][2][k],"[",k-1,"]")
+          )
+        ),
 
-        /* Append variable name to memory location string. */
-        targetCoef : makelist(0,i,1,numNodes),
-        for i : 1 thru numNodes do (
-          targetCoef[i] : sconcat("femFld",cellToCoef[1][2][i])
+        /* FEM field coefficients stored in this cell. */
+        femFld_c : makelist(0,i,1,numStoredNodes), 
+
+        /* Loop over 2^dim cells abutting stored nodes. */
+        cI : 1, 
+        currCoord   : makelist(0,i,1,dim),
+        currNodesEx : assoc(currCoord,nodesEx),
+        dgC_c       : makelist(eval_string(sconcat("dgFld",cellToCoef[cI][2][k])),k,1,numB),
+        /* Convert to nodal in this cell.*/
+        dgNod   : modToNod . dgC_c,
+        dgNod_c : makelist(dgNod[i][1],i,1,numB),
+        for k : 1 thru numStoredNodes do (
+          idx : sublist_indices(currNodesEx,lambda([x],x=storedNodes[k])),
+          if length(idx)>0 then (
+            femFld_c[k] : femFld_c[k]+dgNod_c[idx[1]] 
+          )
+        ),
+        for dI : 1 thru dim do (
+          cellsSoFar : cI,
+          for pS : 1 thru cellsSoFar do (
+            if (stencilLoc[sI][dI] > -1) then (
+              /* Add contributions from nearest lower cell in dI direction. */
+              cI : cI+1,
+              currCoord     : copylist(cellToCoef[pS][1]),
+              currCoord[dI] : -1,
+              currNodesEx   : assoc(currCoord,nodesEx),
+              dgC_c         : makelist(eval_string(sconcat("dgFld",cellToCoef[cI][2][k])),k,1,numB),
+              /* Convert to nodal in this cell.*/
+              dgNod         : modToNod . dgC_c,
+              dgNod_c       : makelist(dgNod[i][1],i,1,numB),
+              for k : 1 thru numStoredNodes do (
+                idx : sublist_indices(currNodesEx,lambda([x],x=storedNodes[k])),
+                if length(idx)>0 then (
+                  femFld_c[k] : femFld_c[k]+dgNod_c[idx[1]] 
+                )
+              )
+            )
+          )
         ),
 
         /* Also, currently it seems that the contributions of colocated DG nodes
            need to be averaged, so compute this prefactor. This may be revisited. */
-        avFactor : makelist(1,i,1,numNodes),
-        for i : 1 thru numNodes do (
+        avFactor : makelist(1,i,1,numStoredNodes),
+        for i : 1 thru numStoredNodes do (
           numDimsAtBoundary : 0,
           for d : 1 thru dim do (
-            if ((nodes[i][d] = 1) and (stencilLoc[sI][d] # 1)) then (
+            if ((storedNodes[i][d] = 1) and (stencilLoc[sI][d] # 1)) then (
               numDimsAtBoundary : numDimsAtBoundary + 1
-            ) elseif ((nodes[i][d] = -1) and (stencilLoc[sI][d] # -1)) then (
+            ) elseif ((storedNodes[i][d] = -1) and (stencilLoc[sI][d] # -1)) then (
               numDimsAtBoundary : numDimsAtBoundary + 1
             )
           ),
@@ -109,36 +163,36 @@ calcDGtoFEM(fh, funcNm, dim, basisFun, pMax) := block([],
         ),
 
         /* Function declaration with input/output variables. */
-        printf(fh, "void ~a_~aP~a(const double *dgFld, double **femFld) ~%{ ~%", funcNm, stencilStr, polyOrder),
+        printf(fh, "void ~a_~aP~a(double **dgFld, double *femFld) ~%{ ~%", funcNm, stencilStr, polyOrder),
         printf(fh, "  // dgFld:  DG (modal) field coefficients.~%"),
         printf(fh, "  // femFld: FEM (nodal) field coefficients.~%"),
         printf(fh, "~%"),
 
         /* Pointers to the data in cells pointed to by the stencil. */
-        lhs : makelist(eval_string(targetCoef[i]),i,1,numNodes),
-        rhs : makelist(dgNod_c[i],i,1,numNodes),
+        lhs : makelist(femFld[i-1],i,1,numStoredNodes),
+        rhs : makelist(femFld_c[i],i,1,numStoredNodes),
         i : 1,
-        printf(fh, "  double *femFldC = femFld[~a]; ~%", i-1),
+        printf(fh, "  double *dgFldC = dgFld[~a]; ~%", i-1),
         varStrs : [""],
         for d : 1 thru dim do (
           for sI : 1 thru 2^(d-1) do (
-            i : i + 1,
-            varStrs : append(varStrs, [sconcat(varStrs[sI],"U",string(varsC[d]))]),
+            i         : i + 1,
+            varStrs   : append(varStrs, [sconcat(varStrs[sI],"L",string(varsC[d]))]),
             isPresent : false,
             for j : 1 thru numB do (
-              checkFor : eval_string(sconcat("femFld",varStrs[i]))[j-1],
-              for k : 1 thru numB do (
+              checkFor : eval_string(sconcat("dgFld",varStrs[i]))[j-1],
+              for k : 1 thru numStoredNodes do (
                 if not (freeof(checkFor,lhs[k]) and freeof(checkFor,rhs[k])) then ( isPresent : true )
               )
             ),
             if isPresent then (
-              printf(fh, sconcat("  double *femFld",varStrs[i]," = femFld[~a]; ~%"), i-1)
+              printf(fh, sconcat("  double *dgFld",varStrs[i]," = dgFld[~a]; ~%"), i-1)
             )
           )
         ),
         printf(fh, "~%"),
 
-        writeIncrExprs(targetCoef, avFactor*dgNod_c), 
+        writeCExprs1(femFld, avFactor*femFld_c), 
         printf(fh, "~%"),
 
         printf(fh, "}~%"),
@@ -229,7 +283,7 @@ calcFEMtoDG(fh, funcNm, dim, basisFun, pMax) := block([],
         dgMod_c : makelist(dgMod[i][1],i,1,length(dgMod)), 
 
         /* Function declaration with input/output variables. */
-        printf(fh, "void ~a_~aP~a(double *dgFld, double **femFld) ~%{ ~%", funcNm, stencilStr, polyOrder),
+        printf(fh, "void ~a_~aP~a(double **femFld, double *dgFld) ~%{ ~%", funcNm, stencilStr, polyOrder),
         printf(fh, "  // dgFld:  DG (modal) field coefficients.~%"),
         printf(fh, "  // femFld: FEM (nodal) field coefficients.~%"),
         printf(fh, "~%"),

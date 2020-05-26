@@ -1912,149 +1912,129 @@ void MGpoissonFEMRestrict2xSer_UxRobinUyRobin_P1(double **fldF, double *fldC)
   fldC[3] += fldF0[3]+0.5*fldF0[2]+0.5*fldF0[1]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEM_DGtoFEM_2xSer_P1(const double *dgFld, double **femFld) 
+void MGpoissonFEM_DGtoFEM_2xSer_P1(double **dgFld, double *femFld) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femFld: FEM (nodal) field coefficients.
 
-  double *femFldC = femFld[0]; 
-  double *femFldUx = femFld[1]; 
-  double *femFldUy = femFld[2]; 
-  double *femFldUxUy = femFld[3]; 
+  double *dgFldC = dgFld[0]; 
+  double *dgFldLx = dgFld[1]; 
+  double *dgFldLy = dgFld[2]; 
+  double *dgFldLxLy = dgFld[3]; 
 
-  femFldC[0] += 0.375*dgFld[3]-0.2165063509461096*dgFld[2]-0.2165063509461096*dgFld[1]+0.125*dgFld[0]; 
-  femFldUx[0] += (-0.375*dgFld[3])-0.2165063509461096*dgFld[2]+0.2165063509461096*dgFld[1]+0.125*dgFld[0]; 
-  femFldUy[0] += (-0.375*dgFld[3])+0.2165063509461096*dgFld[2]-0.2165063509461096*dgFld[1]+0.125*dgFld[0]; 
-  femFldUxUy[0] += 0.375*dgFld[3]+0.2165063509461096*dgFld[2]+0.2165063509461096*dgFld[1]+0.125*dgFld[0]; 
+  femFld[0] = (-0.375*dgFldLy[3])+0.375*dgFldLxLy[3]-0.375*dgFldLx[3]+0.375*dgFldC[3]+0.2165063509461096*dgFldLy[2]+0.2165063509461096*dgFldLxLy[2]-0.2165063509461096*dgFldLx[2]-0.2165063509461096*dgFldC[2]-0.2165063509461096*dgFldLy[1]+0.2165063509461096*dgFldLxLy[1]+0.2165063509461096*dgFldLx[1]-0.2165063509461096*dgFldC[1]+0.125*dgFldLy[0]+0.125*dgFldLxLy[0]+0.125*dgFldLx[0]+0.125*dgFldC[0]; 
 
 }
 
-void MGpoissonFEM_DGtoFEM_2xSer_LxNonPeriodic_P1(const double *dgFld, double **femFld) 
+void MGpoissonFEM_DGtoFEM_2xSer_LxNonPeriodic_P1(double **dgFld, double *femFld) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femFld: FEM (nodal) field coefficients.
 
-  double *femFldC = femFld[0]; 
-  double *femFldUx = femFld[1]; 
-  double *femFldUy = femFld[2]; 
-  double *femFldUxUy = femFld[3]; 
+  double *dgFldC = dgFld[0]; 
+  double *dgFldLy = dgFld[2]; 
 
-  femFldC[0] += 0.75*dgFld[3]-0.4330127018922193*dgFld[2]-0.4330127018922193*dgFld[1]+0.25*dgFld[0]; 
-  femFldUx[0] += (-0.375*dgFld[3])-0.2165063509461096*dgFld[2]+0.2165063509461096*dgFld[1]+0.125*dgFld[0]; 
-  femFldUy[0] += (-0.75*dgFld[3])+0.4330127018922193*dgFld[2]-0.4330127018922193*dgFld[1]+0.25*dgFld[0]; 
-  femFldUxUy[0] += 0.375*dgFld[3]+0.2165063509461096*dgFld[2]+0.2165063509461096*dgFld[1]+0.125*dgFld[0]; 
+  femFld[0] = (-0.75*dgFldLy[3])+0.75*dgFldC[3]+0.4330127018922193*dgFldLy[2]-0.4330127018922193*dgFldC[2]-0.4330127018922193*dgFldLy[1]-0.4330127018922193*dgFldC[1]+0.25*dgFldLy[0]+0.25*dgFldC[0]; 
 
 }
 
-void MGpoissonFEM_DGtoFEM_2xSer_UxNonPeriodic_P1(const double *dgFld, double **femFld) 
+void MGpoissonFEM_DGtoFEM_2xSer_UxNonPeriodic_P1(double **dgFld, double *femFld) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femFld: FEM (nodal) field coefficients.
 
-  double *femFldC = femFld[0]; 
-  double *femFldUy = femFld[2]; 
+  double *dgFldC = dgFld[0]; 
+  double *dgFldLx = dgFld[1]; 
+  double *dgFldLy = dgFld[2]; 
+  double *dgFldLxLy = dgFld[3]; 
 
-  femFldC[0] += 0.375*dgFld[3]-0.2165063509461096*dgFld[2]-0.2165063509461096*dgFld[1]+0.125*dgFld[0]; 
-  femFldC[1] += (-0.75*dgFld[3])-0.4330127018922193*dgFld[2]+0.4330127018922193*dgFld[1]+0.25*dgFld[0]; 
-  femFldUy[0] += (-0.375*dgFld[3])+0.2165063509461096*dgFld[2]-0.2165063509461096*dgFld[1]+0.125*dgFld[0]; 
-  femFldUy[1] += 0.75*dgFld[3]+0.4330127018922193*dgFld[2]+0.4330127018922193*dgFld[1]+0.25*dgFld[0]; 
+  femFld[0] = (-0.375*dgFldLy[3])+0.375*dgFldLxLy[3]-0.375*dgFldLx[3]+0.375*dgFldC[3]+0.2165063509461096*dgFldLy[2]+0.2165063509461096*dgFldLxLy[2]-0.2165063509461096*dgFldLx[2]-0.2165063509461096*dgFldC[2]-0.2165063509461096*dgFldLy[1]+0.2165063509461096*dgFldLxLy[1]+0.2165063509461096*dgFldLx[1]-0.2165063509461096*dgFldC[1]+0.125*dgFldLy[0]+0.125*dgFldLxLy[0]+0.125*dgFldLx[0]+0.125*dgFldC[0]; 
+  femFld[1] = 0.75*dgFldLy[3]-0.75*dgFldC[3]+0.4330127018922193*dgFldLy[2]-0.4330127018922193*dgFldC[2]+0.4330127018922193*dgFldLy[1]+0.4330127018922193*dgFldC[1]+0.25*dgFldLy[0]+0.25*dgFldC[0]; 
 
 }
 
-void MGpoissonFEM_DGtoFEM_2xSer_LyNonPeriodic_P1(const double *dgFld, double **femFld) 
+void MGpoissonFEM_DGtoFEM_2xSer_LyNonPeriodic_P1(double **dgFld, double *femFld) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femFld: FEM (nodal) field coefficients.
 
-  double *femFldC = femFld[0]; 
-  double *femFldUx = femFld[1]; 
-  double *femFldUy = femFld[2]; 
-  double *femFldUxUy = femFld[3]; 
+  double *dgFldC = dgFld[0]; 
+  double *dgFldLx = dgFld[1]; 
 
-  femFldC[0] += 0.75*dgFld[3]-0.4330127018922193*dgFld[2]-0.4330127018922193*dgFld[1]+0.25*dgFld[0]; 
-  femFldUx[0] += (-0.75*dgFld[3])-0.4330127018922193*dgFld[2]+0.4330127018922193*dgFld[1]+0.25*dgFld[0]; 
-  femFldUy[0] += (-0.375*dgFld[3])+0.2165063509461096*dgFld[2]-0.2165063509461096*dgFld[1]+0.125*dgFld[0]; 
-  femFldUxUy[0] += 0.375*dgFld[3]+0.2165063509461096*dgFld[2]+0.2165063509461096*dgFld[1]+0.125*dgFld[0]; 
+  femFld[0] = (-0.75*dgFldLx[3])+0.75*dgFldC[3]-0.4330127018922193*dgFldLx[2]-0.4330127018922193*dgFldC[2]+0.4330127018922193*dgFldLx[1]-0.4330127018922193*dgFldC[1]+0.25*dgFldLx[0]+0.25*dgFldC[0]; 
 
 }
 
-void MGpoissonFEM_DGtoFEM_2xSer_UyNonPeriodic_P1(const double *dgFld, double **femFld) 
+void MGpoissonFEM_DGtoFEM_2xSer_UyNonPeriodic_P1(double **dgFld, double *femFld) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femFld: FEM (nodal) field coefficients.
 
-  double *femFldC = femFld[0]; 
-  double *femFldUx = femFld[1]; 
+  double *dgFldC = dgFld[0]; 
+  double *dgFldLx = dgFld[1]; 
+  double *dgFldLy = dgFld[2]; 
+  double *dgFldLxLy = dgFld[3]; 
 
-  femFldC[0] += 0.375*dgFld[3]-0.2165063509461096*dgFld[2]-0.2165063509461096*dgFld[1]+0.125*dgFld[0]; 
-  femFldUx[0] += (-0.375*dgFld[3])-0.2165063509461096*dgFld[2]+0.2165063509461096*dgFld[1]+0.125*dgFld[0]; 
-  femFldC[1] += (-0.75*dgFld[3])+0.4330127018922193*dgFld[2]-0.4330127018922193*dgFld[1]+0.25*dgFld[0]; 
-  femFldUx[1] += 0.75*dgFld[3]+0.4330127018922193*dgFld[2]+0.4330127018922193*dgFld[1]+0.25*dgFld[0]; 
+  femFld[0] = (-0.375*dgFldLy[3])+0.375*dgFldLxLy[3]-0.375*dgFldLx[3]+0.375*dgFldC[3]+0.2165063509461096*dgFldLy[2]+0.2165063509461096*dgFldLxLy[2]-0.2165063509461096*dgFldLx[2]-0.2165063509461096*dgFldC[2]-0.2165063509461096*dgFldLy[1]+0.2165063509461096*dgFldLxLy[1]+0.2165063509461096*dgFldLx[1]-0.2165063509461096*dgFldC[1]+0.125*dgFldLy[0]+0.125*dgFldLxLy[0]+0.125*dgFldLx[0]+0.125*dgFldC[0]; 
+  femFld[1] = 0.75*dgFldLx[3]-0.75*dgFldC[3]+0.4330127018922193*dgFldLx[2]+0.4330127018922193*dgFldC[2]+0.4330127018922193*dgFldLx[1]-0.4330127018922193*dgFldC[1]+0.25*dgFldLx[0]+0.25*dgFldC[0]; 
 
 }
 
-void MGpoissonFEM_DGtoFEM_2xSer_LxNonPeriodicLyNonPeriodic_P1(const double *dgFld, double **femFld) 
+void MGpoissonFEM_DGtoFEM_2xSer_LxNonPeriodicLyNonPeriodic_P1(double **dgFld, double *femFld) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femFld: FEM (nodal) field coefficients.
 
-  double *femFldC = femFld[0]; 
-  double *femFldUx = femFld[1]; 
-  double *femFldUy = femFld[2]; 
-  double *femFldUxUy = femFld[3]; 
+  double *dgFldC = dgFld[0]; 
 
-  femFldC[0] += 1.5*dgFld[3]-0.8660254037844386*dgFld[2]-0.8660254037844386*dgFld[1]+0.5*dgFld[0]; 
-  femFldUx[0] += (-0.75*dgFld[3])-0.4330127018922193*dgFld[2]+0.4330127018922193*dgFld[1]+0.25*dgFld[0]; 
-  femFldUy[0] += (-0.75*dgFld[3])+0.4330127018922193*dgFld[2]-0.4330127018922193*dgFld[1]+0.25*dgFld[0]; 
-  femFldUxUy[0] += 0.375*dgFld[3]+0.2165063509461096*dgFld[2]+0.2165063509461096*dgFld[1]+0.125*dgFld[0]; 
+  femFld[0] = 1.5*dgFldC[3]-0.8660254037844386*dgFldC[2]-0.8660254037844386*dgFldC[1]+0.5*dgFldC[0]; 
 
 }
 
-void MGpoissonFEM_DGtoFEM_2xSer_LxNonPeriodicUyNonPeriodic_P1(const double *dgFld, double **femFld) 
+void MGpoissonFEM_DGtoFEM_2xSer_LxNonPeriodicUyNonPeriodic_P1(double **dgFld, double *femFld) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femFld: FEM (nodal) field coefficients.
 
-  double *femFldC = femFld[0]; 
-  double *femFldUx = femFld[1]; 
+  double *dgFldC = dgFld[0]; 
+  double *dgFldLy = dgFld[2]; 
 
-  femFldC[0] += 0.75*dgFld[3]-0.4330127018922193*dgFld[2]-0.4330127018922193*dgFld[1]+0.25*dgFld[0]; 
-  femFldUx[0] += (-0.375*dgFld[3])-0.2165063509461096*dgFld[2]+0.2165063509461096*dgFld[1]+0.125*dgFld[0]; 
-  femFldC[1] += (-1.5*dgFld[3])+0.8660254037844386*dgFld[2]-0.8660254037844386*dgFld[1]+0.5*dgFld[0]; 
-  femFldUx[1] += 0.75*dgFld[3]+0.4330127018922193*dgFld[2]+0.4330127018922193*dgFld[1]+0.25*dgFld[0]; 
+  femFld[0] = (-0.75*dgFldLy[3])+0.75*dgFldC[3]+0.4330127018922193*dgFldLy[2]-0.4330127018922193*dgFldC[2]-0.4330127018922193*dgFldLy[1]-0.4330127018922193*dgFldC[1]+0.25*dgFldLy[0]+0.25*dgFldC[0]; 
+  femFld[1] = (-1.5*dgFldC[3])+0.8660254037844386*dgFldC[2]-0.8660254037844386*dgFldC[1]+0.5*dgFldC[0]; 
 
 }
 
-void MGpoissonFEM_DGtoFEM_2xSer_UxNonPeriodicLyNonPeriodic_P1(const double *dgFld, double **femFld) 
+void MGpoissonFEM_DGtoFEM_2xSer_UxNonPeriodicLyNonPeriodic_P1(double **dgFld, double *femFld) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femFld: FEM (nodal) field coefficients.
 
-  double *femFldC = femFld[0]; 
-  double *femFldUy = femFld[2]; 
+  double *dgFldC = dgFld[0]; 
+  double *dgFldLx = dgFld[1]; 
 
-  femFldC[0] += 0.75*dgFld[3]-0.4330127018922193*dgFld[2]-0.4330127018922193*dgFld[1]+0.25*dgFld[0]; 
-  femFldC[1] += (-1.5*dgFld[3])-0.8660254037844386*dgFld[2]+0.8660254037844386*dgFld[1]+0.5*dgFld[0]; 
-  femFldUy[0] += (-0.375*dgFld[3])+0.2165063509461096*dgFld[2]-0.2165063509461096*dgFld[1]+0.125*dgFld[0]; 
-  femFldUy[1] += 0.75*dgFld[3]+0.4330127018922193*dgFld[2]+0.4330127018922193*dgFld[1]+0.25*dgFld[0]; 
+  femFld[0] = (-0.75*dgFldLx[3])+0.75*dgFldC[3]-0.4330127018922193*dgFldLx[2]-0.4330127018922193*dgFldC[2]+0.4330127018922193*dgFldLx[1]-0.4330127018922193*dgFldC[1]+0.25*dgFldLx[0]+0.25*dgFldC[0]; 
+  femFld[1] = (-1.5*dgFldC[3])-0.8660254037844386*dgFldC[2]+0.8660254037844386*dgFldC[1]+0.5*dgFldC[0]; 
 
 }
 
-void MGpoissonFEM_DGtoFEM_2xSer_UxNonPeriodicUyNonPeriodic_P1(const double *dgFld, double **femFld) 
+void MGpoissonFEM_DGtoFEM_2xSer_UxNonPeriodicUyNonPeriodic_P1(double **dgFld, double *femFld) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femFld: FEM (nodal) field coefficients.
 
-  double *femFldC = femFld[0]; 
+  double *dgFldC = dgFld[0]; 
+  double *dgFldLx = dgFld[1]; 
+  double *dgFldLy = dgFld[2]; 
+  double *dgFldLxLy = dgFld[3]; 
 
-  femFldC[0] += 0.375*dgFld[3]-0.2165063509461096*dgFld[2]-0.2165063509461096*dgFld[1]+0.125*dgFld[0]; 
-  femFldC[1] += (-0.75*dgFld[3])-0.4330127018922193*dgFld[2]+0.4330127018922193*dgFld[1]+0.25*dgFld[0]; 
-  femFldC[2] += (-0.75*dgFld[3])+0.4330127018922193*dgFld[2]-0.4330127018922193*dgFld[1]+0.25*dgFld[0]; 
-  femFldC[3] += 1.5*dgFld[3]+0.8660254037844386*dgFld[2]+0.8660254037844386*dgFld[1]+0.5*dgFld[0]; 
+  femFld[0] = (-0.375*dgFldLy[3])+0.375*dgFldLxLy[3]-0.375*dgFldLx[3]+0.375*dgFldC[3]+0.2165063509461096*dgFldLy[2]+0.2165063509461096*dgFldLxLy[2]-0.2165063509461096*dgFldLx[2]-0.2165063509461096*dgFldC[2]-0.2165063509461096*dgFldLy[1]+0.2165063509461096*dgFldLxLy[1]+0.2165063509461096*dgFldLx[1]-0.2165063509461096*dgFldC[1]+0.125*dgFldLy[0]+0.125*dgFldLxLy[0]+0.125*dgFldLx[0]+0.125*dgFldC[0]; 
+  femFld[1] = 0.75*dgFldLy[3]-0.75*dgFldC[3]+0.4330127018922193*dgFldLy[2]-0.4330127018922193*dgFldC[2]+0.4330127018922193*dgFldLy[1]+0.4330127018922193*dgFldC[1]+0.25*dgFldLy[0]+0.25*dgFldC[0]; 
+  femFld[2] = 0.75*dgFldLx[3]-0.75*dgFldC[3]+0.4330127018922193*dgFldLx[2]+0.4330127018922193*dgFldC[2]+0.4330127018922193*dgFldLx[1]-0.4330127018922193*dgFldC[1]+0.25*dgFldLx[0]+0.25*dgFldC[0]; 
+  femFld[3] = 1.5*dgFldC[3]+0.8660254037844386*dgFldC[2]+0.8660254037844386*dgFldC[1]+0.5*dgFldC[0]; 
 
 }
 
-void MGpoissonFEM_FEMtoDG_2xSer_P1(double *dgFld, double **femFld) 
+void MGpoissonFEM_FEMtoDG_2xSer_P1(double **femFld, double *dgFld) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femFld: FEM (nodal) field coefficients.
@@ -2071,7 +2051,7 @@ void MGpoissonFEM_FEMtoDG_2xSer_P1(double *dgFld, double **femFld)
 
 }
 
-void MGpoissonFEM_FEMtoDG_2xSer_LxNonPeriodic_P1(double *dgFld, double **femFld) 
+void MGpoissonFEM_FEMtoDG_2xSer_LxNonPeriodic_P1(double **femFld, double *dgFld) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femFld: FEM (nodal) field coefficients.
@@ -2088,7 +2068,7 @@ void MGpoissonFEM_FEMtoDG_2xSer_LxNonPeriodic_P1(double *dgFld, double **femFld)
 
 }
 
-void MGpoissonFEM_FEMtoDG_2xSer_UxNonPeriodic_P1(double *dgFld, double **femFld) 
+void MGpoissonFEM_FEMtoDG_2xSer_UxNonPeriodic_P1(double **femFld, double *dgFld) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femFld: FEM (nodal) field coefficients.
@@ -2103,7 +2083,7 @@ void MGpoissonFEM_FEMtoDG_2xSer_UxNonPeriodic_P1(double *dgFld, double **femFld)
 
 }
 
-void MGpoissonFEM_FEMtoDG_2xSer_LyNonPeriodic_P1(double *dgFld, double **femFld) 
+void MGpoissonFEM_FEMtoDG_2xSer_LyNonPeriodic_P1(double **femFld, double *dgFld) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femFld: FEM (nodal) field coefficients.
@@ -2120,7 +2100,7 @@ void MGpoissonFEM_FEMtoDG_2xSer_LyNonPeriodic_P1(double *dgFld, double **femFld)
 
 }
 
-void MGpoissonFEM_FEMtoDG_2xSer_UyNonPeriodic_P1(double *dgFld, double **femFld) 
+void MGpoissonFEM_FEMtoDG_2xSer_UyNonPeriodic_P1(double **femFld, double *dgFld) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femFld: FEM (nodal) field coefficients.
@@ -2135,7 +2115,7 @@ void MGpoissonFEM_FEMtoDG_2xSer_UyNonPeriodic_P1(double *dgFld, double **femFld)
 
 }
 
-void MGpoissonFEM_FEMtoDG_2xSer_LxNonPeriodicLyNonPeriodic_P1(double *dgFld, double **femFld) 
+void MGpoissonFEM_FEMtoDG_2xSer_LxNonPeriodicLyNonPeriodic_P1(double **femFld, double *dgFld) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femFld: FEM (nodal) field coefficients.
@@ -2152,7 +2132,7 @@ void MGpoissonFEM_FEMtoDG_2xSer_LxNonPeriodicLyNonPeriodic_P1(double *dgFld, dou
 
 }
 
-void MGpoissonFEM_FEMtoDG_2xSer_LxNonPeriodicUyNonPeriodic_P1(double *dgFld, double **femFld) 
+void MGpoissonFEM_FEMtoDG_2xSer_LxNonPeriodicUyNonPeriodic_P1(double **femFld, double *dgFld) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femFld: FEM (nodal) field coefficients.
@@ -2167,7 +2147,7 @@ void MGpoissonFEM_FEMtoDG_2xSer_LxNonPeriodicUyNonPeriodic_P1(double *dgFld, dou
 
 }
 
-void MGpoissonFEM_FEMtoDG_2xSer_UxNonPeriodicLyNonPeriodic_P1(double *dgFld, double **femFld) 
+void MGpoissonFEM_FEMtoDG_2xSer_UxNonPeriodicLyNonPeriodic_P1(double **femFld, double *dgFld) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femFld: FEM (nodal) field coefficients.
@@ -2182,7 +2162,7 @@ void MGpoissonFEM_FEMtoDG_2xSer_UxNonPeriodicLyNonPeriodic_P1(double *dgFld, dou
 
 }
 
-void MGpoissonFEM_FEMtoDG_2xSer_UxNonPeriodicUyNonPeriodic_P1(double *dgFld, double **femFld) 
+void MGpoissonFEM_FEMtoDG_2xSer_UxNonPeriodicUyNonPeriodic_P1(double **femFld, double *dgFld) 
 { 
   // dgFld:  DG (modal) field coefficients.
   // femFld: FEM (nodal) field coefficients.
