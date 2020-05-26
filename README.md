@@ -38,6 +38,12 @@ For systems that do not already have corresponding files in the `machines/` dire
 
 ## Testing the build.
 
+As a preliminary test, just to make sure the `gkyl` executable is ok, you can do
+```
+~/gkylsoft/gkyl/bin/gkyl -v
+```
+This will print some version information and the libraries `gkyl` was built with.
+
 You can run the full suite of unit tests using
 ```
 ~/gkylsoft/gkyl/bin/gkyl Tool/runtests.lua rununit
