@@ -194,25 +194,24 @@ local function Field_meta_ctor(elct)
       self._localExtRange = self._localRange:extend(
 	 self._lowerGhost, self._upperGhost)
 
-      self._devData = nil -- by default no device memory
       -- create device memory if needed
       local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, false) -- by default, no device mem allocated
       if createDeviceCopy then
          -- allocate device memory
-	 self._devData = deviceAllocatorFunc(shmComm, sz)
+	 self._devAllocData = deviceAllocatorFunc(shmComm, sz)
          -- package data and info into struct on device
          local f = ffi.new("GkylCartField_t")
          local sz = sizeof("GkylCartField_t")
          f.ndim = self._ndim
          f.numComponents = self._numComponents
-         f._data = self._devData:data()
+         f._data = self._devAllocData:data()
          f.localRange = Range.copyHostToDevice(self._localRange)
          f.localExtRange = Range.copyHostToDevice(self._localExtRange)
          f.grid = self._grid:copyHostToDevice()
          self._onDevice, err = cuda.Malloc(sz)
          cuda.Memcpy(self._onDevice, f, sz, cuda.MemcpyHostToDevice)
       end
-      if not GKYL_HAVE_CUDA then self._devData = nil end
+      if not GKYL_HAVE_CUDA then self._devAllocData = nil end
       
       self._layout = defaultLayout -- default layout is column-major
       if tbl.layout then
@@ -364,27 +363,27 @@ local function Field_meta_ctor(elct)
 	 self:_assign(1.0, fIn)
       end,
       deviceCopy = function (self, fIn)
-         if self._devData then
+         if self._devAllocData then
 	    self:_deviceAssign(1.0, fIn)
 	 end
       end,
       copyHostToDevice = function (self)
-	 if self._devData then
-	    return self._devData:copyHostToDevice(self._allocData)
+	 if self._devAllocData then
+	    return self._devAllocData:copyHostToDevice(self._allocData)
 	 end
 	 return 0
       end,
       copyDeviceToHost = function (self)
-	 if self._devData then
-	    return self._devData:copyDeviceToHost(self._allocData)
+	 if self._devAllocData then
+	    return self._devAllocData:copyDeviceToHost(self._allocData)
 	 end
 	 return 0
       end,
       deviceData = function (self)
-	 return self._devData
+	 return self._devAllocData
       end,
       deviceDataPointer = function (self)
-	 return self._devData:data()
+	 return self._devAllocData:data()
       end,
       dataPointer = function (self)
 	 return self._allocData:data()
@@ -393,7 +392,7 @@ local function Field_meta_ctor(elct)
 	 ffiC.gkylCartFieldAssignAll(self:_localLower(), self:_localShape(), val, self._data)
       end,
       deviceClear = function (self, val)
-         if self._devData then
+         if self._devAllocData then
 	    local numThreads = GKYL_DEFAULT_NUM_THREADS
 	    local shape = self._localExtRangeDecomp:shape(self._shmIndex)
 	    local numBlocks = math.floor(shape/numThreads)+1
@@ -462,7 +461,7 @@ local function Field_meta_ctor(elct)
 	 end,
       deviceAccumulate = isNumberType and
 	 function (self, c1, fld1, ...)
-	    if self._devData then
+	    if self._devAllocData then
 	       local args = {...} -- package up rest of args as table
 	       local nFlds = #args/2
 	       self:_deviceAccumulateOneFld(c1, fld1) -- accumulate first field
@@ -488,7 +487,7 @@ local function Field_meta_ctor(elct)
          end,
       deviceCombine = isNumberType and
 	 function (self, c1, fld1, ...)
-	    if self._devData then
+	    if self._devAllocData then
 	       local args = {...} -- package up rest of args as table
 	       local nFlds = #args/2
 	       self:_deviceAssign(c1, fld1) -- assign first field
@@ -509,7 +508,7 @@ local function Field_meta_ctor(elct)
 	 end,
       deviceScale = isNumberType and
 	 function (self, fact)
-	    if self._devData then
+	    if self._devAllocData then
 	       local numThreads = GKYL_DEFAULT_NUM_THREADS
 	       local shape = self._localExtRangeDecomp:shape(self._shmIndex)
 	       local numBlocks = math.floor(shape/numThreads)+1
@@ -534,7 +533,7 @@ local function Field_meta_ctor(elct)
 	 end,
       deviceAbs = isNumberType and
 	 function (self)
-	    if self._devData then
+	    if self._devAllocData then
 	       local numThreads = GKYL_DEFAULT_NUM_THREADS
 	       local shape = self._localExtRangeDecomp:shape(self._shmIndex)
 	       local numBlocks = math.floor(shape/numThreads)+1
