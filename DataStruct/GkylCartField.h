@@ -18,6 +18,11 @@ extern "C"
         {
            return _data + linIdx*numComponents;
         }
+        __host__ __device__ __inline__ Gkyl::GenIndexer genIndexer()
+        {
+           Gkyl::GenIndexer idxr(localExtRange);
+           return idxr;
+        }
     } GkylCartField_t;
 }
 

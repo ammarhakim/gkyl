@@ -75,6 +75,18 @@ __global__ void ker_unit_showFieldRange(GkylCartField_t *f)
     printf("localRange, d=%d: %d, %d\n", i, range->lower[i], range->upper[i]);
   for (unsigned i=0; i<rangeExt->ndim; ++i)
     printf("localExtRange, d=%d: %d, %d\n", i, rangeExt->lower[i], rangeExt->upper[i]);
+
+  Gkyl::GenIndexer fIdxr = f->genIndexer();
+  Gkyl::GenIndexer idxr = Gkyl::GenIndexer(range);
+  int lin1 = fIdxr.index(rangeExt->lower);
+  int lin2 = fIdxr.index(rangeExt->upper);
+  printf("  --- Calls to indexers %d, %d (%d)\n", lin1, lin2, lin2-lin1);
+
+  int idx[1];
+  for (int i=0; i<range->volume(); ++i) {
+    idxr.invIndex(i, idx);
+    printf("Lin index %d -> index %d\n", i, idx[0]);
+  }
 }
 
 __global__ void ker_unit_showFieldGrid(GkylCartField_t *f)

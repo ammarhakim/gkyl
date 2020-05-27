@@ -38,7 +38,7 @@ namespace Gkyl {
    */
   class GenIndexer {
     public:
-      GenIndexer(const GkylRange_t *range)
+      __host__ __device__ GenIndexer(const GkylRange_t *range)
         : range(range) {
       }
 

@@ -3,7 +3,7 @@
 #include <GkylCartField.h>
 #include <GkylRange.h>
 
-__global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyperData, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
+__global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
 
   unsigned int linIdx = threadIdx.x + blockIdx.x*blockDim.x;
   GkylRange_t *localRange = fIn->localRange;
@@ -11,15 +11,15 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyperData, GkylCartField_t
   unsigned int nComp = fIn->numComponents;
   unsigned int ndim = localRange->ndim;
   
-  Gkyl::GenIndexer idxr(localRange);
-  Gkyl::GenIndexer idxrExt(localExtRange);
+  Gkyl::GenIndexer locIdxr(localRange);
+  Gkyl::GenIndexer fIdxr = fIn->genIndexer();
 
   // get setup data from GkylHyperDisCont_t structure
   GkylRectCart_t *grid = fIn->grid;
-  int *updateDirs = hyperData->updateDirs;
-  int numUpdateDirs = hyperData->numUpdateDirs;
-  bool *zeroFluxFlags = hyperData->zeroFluxFlags;
-  GkylEquation_t *eq = hyperData->equation;
+  int *updateDirs = hyper->updateDirs;
+  int numUpdateDirs = hyper->numUpdateDirs;
+  bool *zeroFluxFlags = hyper->zeroFluxFlags;
+  GkylEquation_t *eq = hyper->equation;
   
   // "loop" over cells in local range
   if(linIdx < localRange->volume()) {
@@ -32,8 +32,8 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyperData, GkylCartField_t
     double *xcR = new double[ndim];
 
     double *dx = grid->dx;
-    idxr.invIndexer(linIdx, idxC);
-    int linIdxC = idxrExt.indexer(idxC);
+    locIdxr.invIndexer(linIdx, idxC);
+    int linIdxC = fIdxr.indexer(idxC);
     grid->cellCenter(idxC, xcC);
     
     double *fInC = fIn->getDevicePtr(linIdxC);
@@ -55,8 +55,8 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyperData, GkylCartField_t
         }
       }
 
-      int linIdxL = idxrExt.indexer(idxL);
-      int linIdxR = idxrExt.indexer(idxR);
+      int linIdxL = fIdxr.indexer(idxL);
+      int linIdxR = fIdxr.indexer(idxR);
       grid->cellCenter(idxL, xcL);
       grid->cellCenter(idxR, xcR);
       double *fInL = fIn->getDevicePtr(linIdxL);

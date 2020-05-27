@@ -78,7 +78,7 @@ function test_2()
    local grid = Grid.RectCart {
       lower = {0.0},
       upper = {1.0},
-      cells = {1000},
+      cells = {20},
    }
    local field = DataStruct.Field {
       onGrid = grid,
