@@ -58,6 +58,8 @@ ffi.cdef [[
       int32_t ndim; 
       GkylRange_t *localRange;
       GkylRange_t *localExtRange;
+      GkylRange_t *globalRange;
+      GkylRange_t *globalExtRange;
       GkylRectCart_t *grid;
       double *_data; 
     } GkylCartField_t;
@@ -207,6 +209,8 @@ local function Field_meta_ctor(elct)
          f._data = self._devAllocData:data()
          f.localRange = Range.copyHostToDevice(self._localRange)
          f.localExtRange = Range.copyHostToDevice(self._localExtRange)
+         f.globalRange = Range.copyHostToDevice(self._globalRange)
+         f.globalExtRange = Range.copyHostToDevice(self._globalExtRange)
          f.grid = self._grid:copyHostToDevice()
          self._onDevice, err = cuda.Malloc(sz)
          cuda.Memcpy(self._onDevice, f, sz, cuda.MemcpyHostToDevice)
