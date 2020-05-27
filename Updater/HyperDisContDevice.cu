@@ -1,5 +1,6 @@
 #include <cstdio>
-#include <RectCartDeviceImpl.h>
+#include <GkylRectCart.h>
+#include <GkylCartField.h>
 #include <GkylRange.h>
 
 __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyperData, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
@@ -7,14 +8,14 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyperData, GkylCartField_t
   unsigned int linIdx = threadIdx.x + blockIdx.x*blockDim.x;
   GkylRange_t *localRange = fIn->localRange;
   GkylRange_t *localExtRange = fIn->localExtRange;
-  unsigned int nComp = fIn->ncomp;
+  unsigned int nComp = fIn->numComponents;
   unsigned int ndim = localRange->ndim;
   
   Gkyl::GenIndexer idxr(localRange);
   Gkyl::GenIndexer idxrExt(localExtRange);
 
   // get setup data from GkylHyperDisCont_t structure
-  GkylRectCart_t *grid = hyperData->grid;
+  GkylRectCart_t *grid = fIn->grid;
   int *updateDirs = hyperData->updateDirs;
   int numUpdateDirs = hyperData->numUpdateDirs;
   bool *zeroFluxFlags = hyperData->zeroFluxFlags;
