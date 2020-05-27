@@ -18,6 +18,12 @@ extern "C"
     typedef struct {
       int32_t ndim; int32_t lower[6]; int32_t upper[6];
       int rowMajorIndexerCoeff[7], colMajorIndexerCoeff[7];
+      __host__ __device__ inline int volume() const {
+        int v = 1;
+        for (unsigned int i=0; i<ndim; ++i)
+          v *= (upper[i]-lower[i]+1);
+        return v;
+      }
     } GkylRange_t;
 }
 

@@ -13,7 +13,7 @@
 
 #include <cstdio>
 
-__global__ void d_calcMom1x1vSer_M0_P1(RectCart_t *grid, GkylRange_t *pRange, GkylRange_t *cRange, const double *fIn, double *out) {
+__global__ void d_calcMom1x1vSer_M0_P1(GkylRectCart_t *grid, GkylRange_t *pRange, GkylRange_t *cRange, const double *fIn, double *out) {
   // In computing moments we will first assign whole configuration-space cells to a single block.
   // Then one must perform a reduction across a block for each conf-space basis coefficient.
 
@@ -54,7 +54,7 @@ __global__ void d_calcMom1x1vSer_M0_P1(RectCart_t *grid, GkylRange_t *pRange, Gk
 }
 
 // C function that wraps call to moment calculation global CUDA kernel
-void cuda_MomentCalc1x1vSer_M0_P1(RectCart_t *grid, GkylRange_t *pRange, GkylRange_t *cRange, GkDeviceProp *prop, int numBlocks, int numThreads, const double *fIn, double *out) {
+void cuda_MomentCalc1x1vSer_M0_P1(GkylRectCart_t *grid, GkylRange_t *pRange, GkylRange_t *cRange, GkDeviceProp *prop, int numBlocks, int numThreads, const double *fIn, double *out) {
 
   int warpSize = prop->warpSize;
 

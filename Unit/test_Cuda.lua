@@ -25,10 +25,10 @@ local stats        = Unit.stats
 ffi.cdef [[
   void unit_sumArray(int numBlocks, int numThreads, int n, double a, double *x, double *y);
   void unit_sayHello();
-  void unit_showRange(Range_t *range);
+  void unit_showRange(GkylRange_t *range);
 
-  void unit_showGrid(RectCart_t *grid);
-  void unit_getCellCenter(RectCart_t *grid, int *idx, double *xc);
+  void unit_showGrid(GkylRectCart_t *grid);
+  void unit_getCellCenter(GkylRectCart_t *grid, int *idx, double *xc);
 ]]
 
 -- basis tests

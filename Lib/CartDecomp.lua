@@ -17,7 +17,7 @@ local Range = require "Lib.Range"
 local xsys = require "xsys"
 
 -- create constructor to store vector of Range objects
-local RangeVec = Lin.new_vec_ct(ffi.typeof("Range_t"))
+local RangeVec = Lin.new_vec_ct(ffi.typeof("GkylRange_t"))
 -- create constructor to store integer pairs
 local PairsVec = Lin.new_vec_ct(ffi.typeof("struct { int32_t lower, upper; } "))
 

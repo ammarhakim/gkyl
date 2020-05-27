@@ -1,7 +1,7 @@
 /* -*- c++ -*- */
 
 #include <cstdio>
-#include <RectCartDeviceImpl.h>
+#include <GkylRectCart.h>
 #include <GkylRange.h>
 
 extern "C" 
@@ -9,8 +9,8 @@ extern "C"
     void unit_sumArray(int numBlocks, int numThreads, int n, double a, double *x, double *y);
     void unit_sayHello();
     void unit_showRange(GkylRange_t *range);
-    void unit_showGrid(RectCart_t *grid);
-    void unit_getCellCenter(RectCart_t *grid, int *idx, double *xc);
+    void unit_showGrid(GkylRectCart_t *grid);
+    void unit_getCellCenter(GkylRectCart_t *grid, int *idx, double *xc);
 }
 
 __global__ void ker_unit_sumArray(int n, double a, double *x, double *y)
@@ -49,14 +49,14 @@ __global__ void ker_unit_showRange(GkylRange_t *range)
   printf("Volume = %d\n", range_cpp.volume());
 }
 
-__global__ void ker_unit_showGrid(RectCart_t *grid)
+__global__ void ker_unit_showGrid(GkylRectCart_t *grid)
 {
   printf("Grid ndim: %d\n", grid->ndim);
   for (unsigned i=0; i<grid->ndim; ++i)
     printf(" %g, %g\n", grid->lower[i], grid->upper[i]);
 }
 
-__global__ void ker_unit_getCellCenter(RectCart_t *grid, int *idx, double *xc)
+__global__ void ker_unit_getCellCenter(GkylRectCart_t *grid, int *idx, double *xc)
 {
   grid->cellCenter(idx, xc);
 }
@@ -76,12 +76,12 @@ void unit_showRange(GkylRange_t *devRange)
   ker_unit_showRange<<<1, 1>>>(devRange);
 }
 
-void unit_showGrid(RectCart_t *devGrid)
+void unit_showGrid(GkylRectCart_t *devGrid)
 {
   ker_unit_showGrid<<<1, 1>>>(devGrid);
 }
 
-void unit_getCellCenter(RectCart_t *devGrid, int *idx, double *xc)
+void unit_getCellCenter(GkylRectCart_t *devGrid, int *idx, double *xc)
 {
   ker_unit_getCellCenter<<<1, 1>>>(devGrid, idx, xc);
 }

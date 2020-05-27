@@ -98,7 +98,7 @@ function DistFuncMomentCalc:init(tbl)
    end
 
    if GKYL_HAVE_CUDA then
-      self.calcOnDevice = assert(tbl.onDevice, "Updater.DistFuncMomentCalc: Must specify whether to compute on device with 'onDevice'.")
+      self.calcOnDevice = false --assert(tbl.onDevice, "Updater.DistFuncMomentCalc: Must specify whether to compute on device with 'onDevice'.")
    else
       self.calcOnDevice = false
    end
