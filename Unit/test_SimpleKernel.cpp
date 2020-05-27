@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <GkylRectCart.h>
 #include <GkylRange.h>
+#include <GkylCartField.h>
 
 extern "C" 
 {
@@ -11,6 +12,9 @@ extern "C"
     void unit_showRange(GkylRange_t *range);
     void unit_showGrid(GkylRectCart_t *grid);
     void unit_getCellCenter(GkylRectCart_t *grid, int *idx, double *xc);
+
+    void unit_showFieldRange(GkylCartField_t *f);
+    void unit_showFieldGrid(GkylCartField_t *f);
 }
 
 __global__ void ker_unit_sumArray(int n, double a, double *x, double *y)
@@ -61,6 +65,26 @@ __global__ void ker_unit_getCellCenter(GkylRectCart_t *grid, int *idx, double *x
   grid->cellCenter(idx, xc);
 }
 
+__global__ void ker_unit_showFieldRange(GkylCartField_t *f)
+{
+  GkylRange_t *range = f->localRange;
+  GkylRange_t *rangeExt = f->localExtRange;
+  printf("Field ndim: %d\n", f->ndim);
+  printf("localRange ndim: %d\n", range->ndim);
+  for (unsigned i=0; i<range->ndim; ++i)
+    printf("localRange, d=%d: %d, %d\n", i, range->lower[i], range->upper[i]);
+  for (unsigned i=0; i<rangeExt->ndim; ++i)
+    printf("localExtRange, d=%d: %d, %d\n", i, rangeExt->lower[i], rangeExt->upper[i]);
+}
+
+__global__ void ker_unit_showFieldGrid(GkylCartField_t *f)
+{
+  GkylRectCart_t *grid = f->grid;
+  printf("Grid ndim: %d\n", grid->ndim);
+  for (unsigned i=0; i<grid->ndim; ++i)
+    printf(" %g, %g\n", grid->lower[i], grid->upper[i]);
+}
+
 void unit_sumArray(int numBlocks, int numThreads, int n, double a, double *x, double *y)
 {
    ker_unit_sumArray<<<numBlocks, numThreads>>>(n, a, x, y);
@@ -84,4 +108,14 @@ void unit_showGrid(GkylRectCart_t *devGrid)
 void unit_getCellCenter(GkylRectCart_t *devGrid, int *idx, double *xc)
 {
   ker_unit_getCellCenter<<<1, 1>>>(devGrid, idx, xc);
+}
+
+void unit_showFieldRange(GkylCartField_t *f)
+{
+  ker_unit_showFieldRange<<<1, 1>>>(f);
+}
+
+void unit_showFieldGrid(GkylCartField_t *f)
+{
+  ker_unit_showFieldGrid<<<1, 1>>>(f);
 }

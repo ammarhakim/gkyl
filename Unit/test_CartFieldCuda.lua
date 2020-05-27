@@ -1,9 +1,15 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Test for fields on cartesian grids
+-- Test for fields on cartesian grids on CUDA device
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
+--
+-- Don't do anything if we were not built with CUDA.
+if GKYL_HAVE_CUDA == false then
+   print("**** Can't run CUDA tests without CUDA enabled GPUs!")
+   return 0
+end
 
 local ffi = require "ffi"
 local Unit = require "Unit"
@@ -12,6 +18,11 @@ local DataStruct = require "DataStruct"
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
+
+ffi.cdef [[
+  void unit_showFieldRange(GkylCartField_t *f);
+  void unit_showFieldGrid(GkylCartField_t *f);
+]]
 
 function test_1()
    local grid = Grid.RectCart {
@@ -63,7 +74,24 @@ function test_1()
    end
 end
 
+function test_2()
+   local grid = Grid.RectCart {
+      lower = {0.0},
+      upper = {1.0},
+      cells = {1000},
+   }
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+      ghost = {1, 1},
+      createDeviceCopy = true,
+   }
+   ffi.C.unit_showFieldRange(field._onDevice)
+   ffi.C.unit_showFieldGrid(field._onDevice)
+end
+
 test_1()
+test_2()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

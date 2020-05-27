@@ -22,9 +22,11 @@ local Mpi = require "Comm.Mpi"
 local Range = require "Lib.Range"
 
 -- load CUDA allocators (or dummy when CUDA is not found)
+local cuda = nil
 local cuAlloc = require "Cuda.AllocDummy"
 if GKYL_HAVE_CUDA then
    cuAlloc = require "Cuda.Alloc"
+   cuda = require "Cuda.RunTime"
 end
 
 -- C interfaces
@@ -50,6 +52,15 @@ ffi.cdef [[
 
     // assign all elements to specified value
     void gkylCartFieldDeviceAssignAll(int numBlocks, int numThreads, unsigned s, unsigned nv, double val, double *out);
+
+    typedef struct {
+      int32_t numComponents; 
+      int32_t ndim; 
+      GkylRange_t *localRange;
+      GkylRange_t *localExtRange;
+      GkylRectCart_t *grid;
+      double *_data; 
+    } GkylCartField_t;
 ]]
 
 -- Local definitions
@@ -164,14 +175,6 @@ local function Field_meta_ctor(elct)
       self._allocData = allocator(shmComm, sz) -- store this so it does not vanish under us
       self._data = self._allocData:data() -- pointer to data
 
-      self._devData = nil -- by default no device memory
-      -- create device memory if needed
-      local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, false) -- by default, no device mem allocated
-      if createDeviceCopy then
-	 self._devData = deviceAllocatorFunc(shmComm, sz)
-      end
-      if not GKYL_HAVE_CUDA then self._devData = nil end
-
       -- for number types fill it with zeros (for others, the
       -- assumption is that users will initialize themselves)
       if isNumberType then self._allocData:fill(0) end
@@ -190,6 +193,26 @@ local function Field_meta_ctor(elct)
       self._localRange = localRange
       self._localExtRange = self._localRange:extend(
 	 self._lowerGhost, self._upperGhost)
+
+      self._devData = nil -- by default no device memory
+      -- create device memory if needed
+      local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, false) -- by default, no device mem allocated
+      if createDeviceCopy then
+         -- allocate device memory
+	 self._devData = deviceAllocatorFunc(shmComm, sz)
+         -- package data and info into struct on device
+         local f = ffi.new("GkylCartField_t")
+         local sz = sizeof("GkylCartField_t")
+         f.ndim = self._ndim
+         f.numComponents = self._numComponents
+         f._data = self._devData:data()
+         f.localRange = Range.copyHostToDevice(self._localRange)
+         f.localExtRange = Range.copyHostToDevice(self._localExtRange)
+         f.grid = self._grid:copyHostToDevice()
+         self._onDevice, err = cuda.Malloc(sz)
+         cuda.Memcpy(self._onDevice, f, sz, cuda.MemcpyHostToDevice)
+      end
+      if not GKYL_HAVE_CUDA then self._devData = nil end
       
       self._layout = defaultLayout -- default layout is column-major
       if tbl.layout then
