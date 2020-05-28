@@ -107,7 +107,7 @@ calcRecov2CellGen(basisNm, dir, numDims, polyOrder, lo, up) := block(
     projSubList : [],
     if is(op(lo)=dg) then (
       baLoND : etaDir(dir, -1, 2, baND),
-      dimProjLo : calcInnerProdListGen([dir], [[-dx[dIdx], 0]],
+      dimProjLo : calcInnerProdListGen([dir], [[-2, 0]],
         1, baLo1D, doExpand(args(lo)[1], baLoND)),
       projSubList : append (
         projSubList,
@@ -116,7 +116,7 @@ calcRecov2CellGen(basisNm, dir, numDims, polyOrder, lo, up) := block(
     ),
     if is(op(up)=dg) then (
       baUpND : etaDir(dir, -1, 2, baND),
-      dimProjUp : calcInnerProdListGen([dir], [[0, dx[dIdx]]],
+      dimProjUp : calcInnerProdListGen([dir], [[0, 2]],
         1, baUp1D, doExpand(args(up)[1], baUpND)),
       projSubList : append (
         projSubList,
