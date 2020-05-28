@@ -1,13 +1,10 @@
 #!/bin/bash
 
 # Edit the paths and options in the following command to suit your system
-#module load gcc/7.3.0
-#module load cuda
 module load gcc
 module load openmpi
-module unload gcc
-export PATH=~/gkylsoft/gcc8/bin:/usr/local/cuda-10.2/bin:/usr/local/cuda-10.2/NsightCompute-2019.1:${PATH}
-export LD_LIBRARY_PATH=~/gkylsoft/gcc8/lib64:/usr/local/cuda-10.2/lib64:${LD_LIBRARY_PATH}
+module swap gcc gcc/8.4.0
+module load cuda/10.2
 
 # Build directory
 OUT=build
@@ -30,8 +27,6 @@ MPICXX=mpicxx
 ENABLE_MPI="--enable-mpi"
 MPI_INC_DIR=/usr/pppl/gcc/9.3-pkgs/openmpi-4.0.3/include
 MPI_LIB_DIR=/usr/pppl/gcc/9.3-pkgs/openmpi-4.0.3/lib
-#MPI_INC_DIR=/usr/pppl/gcc/7.3-pkgs/openmpi-3.0.0/include
-#MPI_LIB_DIR=/usr/pppl/gcc/7.3-pkgs/openmpi-3.0.0/lib
 MPI_LINK_LIBS="mpi"
 
 # ADIOS options
@@ -43,10 +38,8 @@ ADIOS_LIB_DIR=$HOME/gkylsoft/adios/lib
 EIGEN_INC_DIR=$HOME/gkylsoft/eigen3/include/eigen3
 
 # CUDA options
-CUTOOLS_INC_DIR=/usr/local/cuda-10.2/include
-CUTOOLS_LIB_DIR=/usr/local/cuda-10.2/lib64
-#CUTOOLS_INC_DIR=/usr/pppl/cuda/10.1.243/include
-#CUTOOLS_LIB_DIR=/usr/pppl/cuda/10.1.243/lib64
+CUTOOLS_INC_DIR=$CUDA_HOME/include
+CUTOOLS_LIB_DIR=$CUDA_HOME/lib64
 CUTOOLS_LINK_LIBS=cudart
 
 # You probably do not need to modify the command itself
