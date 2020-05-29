@@ -18,9 +18,9 @@ extern "C"
 {
     typedef struct {
       int32_t ndim; int32_t lower[6]; int32_t upper[6];
-      int32_t rowMajorIndexerCoeff[7], colMajorIndexerCoeff[7];
-      __host__ __device__ inline int32_t volume() const {
-        int32_t v = 1;
+      int rowMajorIndexerCoeff[7], colMajorIndexerCoeff[7];
+      __host__ __device__ inline int volume() const {
+        int v = 1;
         for (int32_t i=0; i<ndim; ++i)
           v *= (upper[i]-lower[i]+1);
         return v;
