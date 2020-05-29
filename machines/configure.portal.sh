@@ -1,10 +1,6 @@
 #!/bin/bash
 
 # Edit the paths and options in the following command to suit your system
-module load gcc
-module load openmpi
-module swap gcc gcc/8.4.0
-module load cuda/10.2
 
 # Build directory
 OUT=build
