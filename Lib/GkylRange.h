@@ -12,6 +12,7 @@
 
 // std includes
 #include <cstdlib>
+#include <cmath>
 
 extern "C"
 {
@@ -24,6 +25,9 @@ extern "C"
           v *= (upper[i]-lower[i]+1);
         return v;
       }
+      __host__ __device__ inline int shape(int dir) const {
+        return upper[dir]-lower[dir]+1;
+      }        
     } GkylRange_t;
 }
 
@@ -234,28 +238,52 @@ namespace Gkyl {
       __host__ __device__ Range(const GkylRange_t *range)
         : range(range) {
       }
-
       __host__ __device__ inline int ndim() const {
         return range->ndim;
       }
-      
       __host__ __device__ inline int lower(unsigned dir) const {
         return range->lower[dir];
       }
-      
       __host__ __device__ inline int upper(unsigned dir) const {
         return range->upper[dir];
       }
-      
+      __host__ __device__ inline int shape(unsigned dir) const {
+        return range->shape(dir);
+      }
       __host__ __device__ inline int volume() const {
-        int v = 1;
-        for (unsigned int i=0; i<ndim(); ++i)
-          v *= (upper(i)-lower(i)+1);
-        return v;
+        return range->volume();
       }
 
     private:
-      /* Pointer to range object (created by Lua) */
-      const GkylRange_t *range;      
+      /* Pointer to range object (created elsewhere) */
+      const GkylRange_t *range;
   };
+
+  /**
+   * Private functions (don't use these directly)
+   */
+  void calcRowMajorIndexerCoeff(GkylRange_t& range) {
+    int32_t ndim = range.ndim;
+    range.rowMajorIndexerCoeff[ndim] = 1;
+    for (unsigned i=ndim-1; i>=1; --i)
+      range.rowMajorIndexerCoeff[i] = range.rowMajorIndexerCoeff[i+1]*range.shape(i+1-1);
+    int start = 0;
+    for (unsigned i=0; i<ndim; ++i)
+      start += range.rowMajorIndexerCoeff[i+1]*range.lower[i];
+    range.rowMajorIndexerCoeff[0] = 1-start;
+  }
+  void calcColMajorIndexerCoeff(GkylRange_t& range) {
+  }  
+
+  /**
+   * Function to construct indexer coeff arrays in GkylRange_t
+   * struct. This assumes that the ndim, lower and upper are set
+   * properly.
+   *
+   * @param [in/out] On out, row and col indexer coeffs are constructed
+   */
+  void calcIndexerCoeff(GkylRange_t& range) {
+    calcRowMajorIndexerCoeff(range);
+    calcColMajorIndexerCoeff(range);
+  }
 }
