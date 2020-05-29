@@ -18,14 +18,14 @@ extern "C"
 {
     typedef struct {
       int32_t ndim; int32_t lower[6]; int32_t upper[6];
-      int rowMajorIndexerCoeff[7], colMajorIndexerCoeff[7];
-      __host__ __device__ inline int volume() const {
-        int v = 1;
-        for (unsigned int i=0; i<ndim; ++i)
+      int32_t rowMajorIndexerCoeff[7], colMajorIndexerCoeff[7];
+      __host__ __device__ inline int32_t volume() const {
+        int32_t v = 1;
+        for (int32_t i=0; i<ndim; ++i)
           v *= (upper[i]-lower[i]+1);
         return v;
       }
-      __host__ __device__ inline int shape(int dir) const {
+      __host__ __device__ inline int32_t shape(int dir) const {
         return upper[dir]-lower[dir]+1;
       }        
     } GkylRange_t;
@@ -36,14 +36,24 @@ namespace Gkyl {
   // the GkylRange_t object's indexer coefficients assume a Lua 1-based
   // indexing
 
+  enum class Layout {
+    rowMajor = 1,
+    colMajor = 2,
+  };
+
   /** Provides indexing into a N-dimension box: this class is not
    * templated and perhaps may provide a slightly slower index
    * functions
    */
   class GenIndexer {
     public:
-      __host__ __device__ GenIndexer(const GkylRange_t *range)
+      /**
+       * @param range Range object
+       * @param layout Layout of data: Layout::rowMajor, Layout::colMajor
+       */
+      __host__ __device__ GenIndexer(const GkylRange_t *range, Gkyl::Layout layout=Gkyl::Layout::rowMajor)
         : range(range) {
+        ac = (layout==Gkyl::Layout::rowMajor) ? range->rowMajorIndexerCoeff : range->colMajorIndexerCoeff;
       }
 
       /** Return linear index given an N-dimensional index into range
@@ -52,7 +62,6 @@ namespace Gkyl {
        * @return Linear index (0-start)
        */
       __host__ __device__ inline int index(int *idx) {
-        const int *ac = range->rowMajorIndexerCoeff;
         int loc = -1+ac[0];
         for (int i=0; i<range->ndim; ++i)
           loc += idx[i]*ac[i+1];
@@ -66,7 +75,6 @@ namespace Gkyl {
        * @param idx [out] NDIM index object
        */
       __host__ __device__ inline void invIndex(int loc, int *idx) {
-        const int *ac = range->rowMajorIndexerCoeff;
         int n = loc;
         for (int i=1; i<=range->ndim; ++i) {
           int quot = n/ac[i];
@@ -79,6 +87,8 @@ namespace Gkyl {
     private:
       /* Pointer to range object indexed by this indexer */
       const GkylRange_t *range;
+      /* Pointer to indexing data */
+      const int *ac;
   };
 
   /* Private class that provides NDIM indexer and inverse indexer (not for direct use) */
@@ -91,7 +101,6 @@ namespace Gkyl {
        * @return Linear index (0-start)
        */
       __host__ __device__ inline int index(int *idx) {
-        const int *ac = range->rowMajorIndexerCoeff;
         int loc = -1+ac[0];
         for (int i=0; i<NDIM; ++i)
           loc += idx[i]*ac[i+1];
@@ -106,7 +115,6 @@ namespace Gkyl {
        * @param idx [out] NDIM index object
        */
       __host__ __device__ inline void invIndex(int loc, int idx[NDIM]) {
-        const int *ac = range->rowMajorIndexerCoeff;
         int n = loc;
         for (int i=1; i<=NDIM; ++i) {
           int quot = n/ac[i];
@@ -121,27 +129,29 @@ namespace Gkyl {
        * 
        * @param range Range object to index
        */
-      __host__ __device__ _Indexer(const GkylRange_t *range)
+      __host__ __device__ _Indexer(const GkylRange_t *range, Gkyl::Layout layout=Gkyl::Layout::rowMajor)
         : range(range) {
+        ac = (layout==Gkyl::Layout::rowMajor) ? range->rowMajorIndexerCoeff : range->colMajorIndexerCoeff;        
       }
 
       /* Pointer to range object indexed by this indexer */
       const GkylRange_t *range;
+      /* Pointer to indexing data */
+      const int *ac;
   };
 
   /** Provides indexing into a N-dimension box */
   template <unsigned NDIM>
   class Indexer : public _Indexer<NDIM> {
     public:
-      __host__ __device__ Indexer(const GkylRange_t *range)
-        : _Indexer<NDIM>(range) {
+      __host__ __device__ Indexer(const GkylRange_t *range, Gkyl::Layout layout=Gkyl::Layout::rowMajor)
+        : _Indexer<NDIM>(range, layout) {
       }
 
       __host__ __device__  inline int index(int idx[NDIM]) {
-        const int *ac = this->range->rowMajorIndexerCoeff;
-        int loc = -1+ac[0];
+        int loc = -1+this->ac[0];
         for (int i=0; i<NDIM; ++i)
-          loc += idx[i]*ac[i+1];
+          loc += idx[i]*this->ac[i+1];
         return loc;
       }
   };
@@ -150,13 +160,12 @@ namespace Gkyl {
   template <>
   class Indexer<1> : public _Indexer<1> {
     public:
-      __host__ __device__ Indexer(const GkylRange_t *range)
-        : _Indexer<1>(range) {
+      __host__ __device__ Indexer(const GkylRange_t *range, Gkyl::Layout layout=Gkyl::Layout::rowMajor)
+        : _Indexer<1>(range, layout) {
       }
 
       __host__ __device__ inline int index(int i1) {
-        const int *ac = this->range->rowMajorIndexerCoeff;
-        return -1+ac[0]+i1*ac[1];
+        return -1+this->ac[0]+i1*this->ac[1];
       }
   };
 
@@ -164,13 +173,12 @@ namespace Gkyl {
   template <>
   class Indexer<2> : public _Indexer<2> {
     public:
-      __host__ __device__ Indexer(const GkylRange_t *range)
-        : _Indexer<2>(range) {
+      __host__ __device__ Indexer(const GkylRange_t *range, Gkyl::Layout layout=Gkyl::Layout::rowMajor)
+        : _Indexer<2>(range, layout) {
       }
 
       __host__ __device__ inline int index(int i1, int i2) {
-        const int *ac = this->range->rowMajorIndexerCoeff;
-        return -1+ac[0]+i1*ac[1]+i2*ac[2];
+        return -1+this->ac[0]+i1*this->ac[1]+i2*this->ac[2];
       }
   };
 
@@ -178,13 +186,12 @@ namespace Gkyl {
   template <>
   class Indexer<3> : public _Indexer<3> {
     public:
-      __host__ __device__ Indexer(const GkylRange_t *range)
-        : _Indexer<3>(range) {
+      __host__ __device__ Indexer(const GkylRange_t *range, Gkyl::Layout layout=Gkyl::Layout::rowMajor)
+        : _Indexer<3>(range, layout) {
       }
 
       __host__ __device__ inline int index(int i1, int i2, int i3) {
-        const int *ac = this->range->rowMajorIndexerCoeff;
-        return -1+ac[0]+i1*ac[1]+i2*ac[2]+i3*ac[3];
+        return -1+this->ac[0]+i1*this->ac[1]+i2*this->ac[2]+i3*this->ac[3];
       }
   };
 
@@ -192,13 +199,12 @@ namespace Gkyl {
   template <>
   class Indexer<4> : public _Indexer<4> {
     public:
-      __host__ __device__ Indexer(const GkylRange_t *range)
-        : _Indexer<4>(range) {
+      __host__ __device__ Indexer(const GkylRange_t *range, Gkyl::Layout layout=Gkyl::Layout::rowMajor)
+        : _Indexer<4>(range, layout) {
       }
 
       __host__ __device__ inline int index(int i1, int i2, int i3, int i4) {
-        const int *ac = this->range->rowMajorIndexerCoeff;
-        return -1+ac[0]+i1*ac[1]+i2*ac[2]+i3*ac[3]+i4*ac[4];
+        return -1+this->ac[0]+i1*this->ac[1]+i2*this->ac[2]+i3*this->ac[3]+i4*this->ac[4];
       }
   };
 
@@ -206,13 +212,12 @@ namespace Gkyl {
   template <>
   class Indexer<5> : public _Indexer<5> {
     public:
-      __host__ __device__ Indexer(const GkylRange_t *range)
-        : _Indexer<5>(range) {
+      __host__ __device__ Indexer(const GkylRange_t *range, Gkyl::Layout layout=Gkyl::Layout::rowMajor)
+        : _Indexer<5>(range, layout) {
       }
 
       __host__ __device__ inline int index(int i1, int i2, int i3, int i4, int i5) {
-        const int *ac = this->range->rowMajorIndexerCoeff;
-        return -1+ac[0]+i1*ac[1]+i2*ac[2]+i3*ac[3]+i4*ac[4]+i5*ac[5];
+        return -1+this->ac[0]+i1*this->ac[1]+i2*this->ac[2]+i3*this->ac[3]+i4*this->ac[4]+i5*this->ac[5];
       }
   };
 
@@ -220,13 +225,12 @@ namespace Gkyl {
   template <>
   class Indexer<6> : public _Indexer<6> {
     public:
-      __host__ __device__ Indexer(const GkylRange_t *range)
-        : _Indexer<6>(range) {
+      __host__ __device__ Indexer(const GkylRange_t *range, Gkyl::Layout layout=Gkyl::Layout::rowMajor)
+        : _Indexer<6>(range, layout) {
       }
 
       __host__ __device__ inline int index(int i1, int i2, int i3, int i4, int i5, int i6) {
-        const int *ac = this->range->rowMajorIndexerCoeff;
-        return -1+ac[0]+i1*ac[1]+i2*ac[2]+i3*ac[3]+i4*ac[4]+i5*ac[5]+i6*ac[6];
+        return -1+this->ac[0]+i1*this->ac[1]+i2*this->ac[2]+i3*this->ac[3]+i4*this->ac[4]+i5*this->ac[5]+i6*this->ac[6];
       }
   };
 
@@ -241,13 +245,13 @@ namespace Gkyl {
       __host__ __device__ inline int ndim() const {
         return range->ndim;
       }
-      __host__ __device__ inline int lower(unsigned dir) const {
+      __host__ __device__ inline int lower(int dir) const {
         return range->lower[dir];
       }
-      __host__ __device__ inline int upper(unsigned dir) const {
+      __host__ __device__ inline int upper(int dir) const {
         return range->upper[dir];
       }
-      __host__ __device__ inline int shape(unsigned dir) const {
+      __host__ __device__ inline int shape(int dir) const {
         return range->shape(dir);
       }
       __host__ __device__ inline int volume() const {
@@ -265,10 +269,10 @@ namespace Gkyl {
   void calcRowMajorIndexerCoeff(GkylRange_t& range) {
     int32_t ndim = range.ndim;
     range.rowMajorIndexerCoeff[ndim] = 1;
-    for (unsigned i=ndim-1; i>=1; --i)
+    for (int i=ndim-1; i>=1; --i)
       range.rowMajorIndexerCoeff[i] = range.rowMajorIndexerCoeff[i+1]*range.shape(i+1-1);
     int start = 0;
-    for (unsigned i=0; i<ndim; ++i)
+    for (int i=0; i<ndim; ++i)
       start += range.rowMajorIndexerCoeff[i+1]*range.lower[i];
     range.rowMajorIndexerCoeff[0] = 1-start;
   }
