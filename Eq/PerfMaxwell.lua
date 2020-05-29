@@ -18,9 +18,9 @@ local xsys = require "xsys"
 -- Resuffle indices for various direction Riemann problem. The first
 -- entry is just a buffer to allow 1-based indexing
 local dirShuffle = {
-   ffi.new("int32_t[7]", 0, 1, 2, 3, 4, 5, 6),
-   ffi.new("int32_t[7]", 0, 2, 3, 1, 5, 6, 4),
-   ffi.new("int32_t[7]", 0, 3, 1, 2, 6, 4, 5)
+   ffi.new("int[7]", 0, 1, 2, 3, 4, 5, 6),
+   ffi.new("int[7]", 0, 2, 3, 1, 5, 6, 4),
+   ffi.new("int[7]", 0, 3, 1, 2, 6, 4, 5)
 }
 
 -- The function to compute fluctuations is implemented as a template

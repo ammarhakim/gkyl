@@ -3,8 +3,8 @@
 extern "C" 
 {
     typedef struct {
-        int32_t ndim;
-        int32_t cells[6];
+        int ndim;
+        int cells[6];
         double lower[6], upper[6];
         double vol, dx[6];
         __host__ __device__ __inline__ void cellCenter(int* idx, double* xc)

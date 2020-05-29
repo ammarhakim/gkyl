@@ -26,7 +26,7 @@ _M.colMajor = 2
 --------------------------------------------------------------------------------
 
 ffi.cdef [[ 
-  typedef struct { int32_t _ndim; int32_t _lower[6]; int32_t _upper[6]; 
+  typedef struct { int _ndim; int _lower[6]; int _upper[6]; 
     int _rowMajorIndexerCoeff[7], _colMajorIndexerCoeff[7];
   } GkylRange_t; 
 ]]

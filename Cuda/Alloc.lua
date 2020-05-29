@@ -137,7 +137,7 @@ local function Alloc_meta_ctor(elct, _isManaged)
 	 self:delete()
       end,
    }
-   return metatype(typeof("struct { int32_t _size; int32_t _capacity; $* _data; }", elct), alloc_mt)
+   return metatype(typeof("struct { int _size; int _capacity; $* _data; }", elct), alloc_mt)
 end
 
 -- function to create an allocator for custom type

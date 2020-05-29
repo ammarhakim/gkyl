@@ -17,15 +17,15 @@
 extern "C"
 {
     typedef struct {
-      int32_t ndim; int32_t lower[6]; int32_t upper[6];
+      int ndim; int lower[6]; int upper[6];
       int rowMajorIndexerCoeff[7], colMajorIndexerCoeff[7];
       __host__ __device__ inline int volume() const {
         int v = 1;
-        for (int32_t i=0; i<ndim; ++i)
+        for (int i=0; i<ndim; ++i)
           v *= (upper[i]-lower[i]+1);
         return v;
       }
-      __host__ __device__ inline int32_t shape(int dir) const {
+      __host__ __device__ inline int shape(int dir) const {
         return upper[dir]-lower[dir]+1;
       }        
     } GkylRange_t;
@@ -267,7 +267,7 @@ namespace Gkyl {
    * Private functions (don't use these directly)
    */
   void calcRowMajorIndexerCoeff(GkylRange_t& range) {
-    int32_t ndim = range.ndim;
+    int ndim = range.ndim;
     range.rowMajorIndexerCoeff[ndim] = 1;
     for (int i=ndim-1; i>=1; --i)
       range.rowMajorIndexerCoeff[i] = range.rowMajorIndexerCoeff[i+1]*range.shape(i+1-1);

@@ -29,8 +29,8 @@ ffi.cdef [[
 
   // Uniform Cartesian grid C representation
   typedef struct {
-    int32_t ndim;
-    int32_t cells[6];
+    int ndim;
+    int cells[6];
     double lower[6], upper[6];
     double vol, dx[6];
   } GkylRectCart_t;

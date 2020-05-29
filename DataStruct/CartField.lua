@@ -55,8 +55,8 @@ ffi.cdef [[
     void gkylCartFieldDeviceAssignAll(int numBlocks, int numThreads, unsigned s, unsigned nv, double val, double *out);
 
     typedef struct {
-      int32_t numComponents; 
-      int32_t ndim; 
+      int numComponents; 
+      int ndim; 
       GkylRange_t *localRange;
       GkylRange_t *localExtRange;
       GkylRange_t *globalRange;
@@ -110,7 +110,7 @@ local function new_field_comp_ct(elct)
 	 self._cdata[k-1] = v
       end,
    }
-   return metatype(typeof("struct { int32_t numComponents; $* _cdata; }", elct), field_comp_mt)
+   return metatype(typeof("struct { int numComponents; $* _cdata; }", elct), field_comp_mt)
 end
 
 -- A function to create constructors for Field objects

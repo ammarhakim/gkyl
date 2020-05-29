@@ -29,9 +29,9 @@ typedef struct {
 -- Resuffle indices for various direction Riemann problem. The first
 -- entry is just a buffer to allow 1-based indexing
 local dirShuffle = {
-   ffi.new("int32_t[4]", 0, 2, 3, 4),
-   ffi.new("int32_t[4]", 0, 3, 4, 2),
-   ffi.new("int32_t[4]", 0, 4, 2, 3)
+   ffi.new("int[4]", 0, 2, 3, 4),
+   ffi.new("int[4]", 0, 3, 4, 2),
+   ffi.new("int[4]", 0, 4, 2, 3)
 }
 
 -- helper to check if number is NaN

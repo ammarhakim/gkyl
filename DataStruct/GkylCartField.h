@@ -8,8 +8,8 @@
 extern "C" 
 {
     typedef struct {
-        int32_t numComponents;
-        int32_t ndim;
+        int numComponents;
+        int ndim;
         GkylRange_t *localRange, *localExtRange;
         GkylRange_t *globalRange, *globalExtRange;
         GkylRectCart_t *grid;

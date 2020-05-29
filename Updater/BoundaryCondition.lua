@@ -55,9 +55,9 @@ end
 -- Resuffle indices for various direction normal vectors. The first
 -- entry is just a buffer to allow 1-based indexing
 local dirShuffle = {
-   new("int32_t[4]", 0, 1, 2, 3),
-   new("int32_t[4]", 0, 2, 3, 1),
-   new("int32_t[4]", 0, 3, 1, 2)
+   new("int[4]", 0, 1, 2, 3),
+   new("int[4]", 0, 2, 3, 1),
+   new("int[4]", 0, 3, 1, 2)
 }
 
 -- zero normal
