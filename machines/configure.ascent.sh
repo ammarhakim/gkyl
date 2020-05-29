@@ -24,6 +24,10 @@ module load gcc/8.1.1
 module load spectrum-mpi/10.3.1.2-20200121
 module load adios/1.13.1-py2
 module load cuda/10.1.243
+module load sz
+module load zfp
+module load lz4
+module load c-blosc
 
 # Build directory
 OUT=build
@@ -46,7 +50,7 @@ MPICXX=mpiCC
 ENABLE_MPI="--enable-mpi"
 MPI_INC_DIR=$MPI_ROOT/include64
 MPI_LIB_DIR=$MPI_ROOT/lib64
-MPI_LINK_LIBS="mpi_ibm"
+MPI_LINK_LIBS="mpi_ibm,z,zlib,SZ,zfp,lz4,blosc"
 
 # ADIOS options
 ENABLE_ADIOS="--enable-adios" # set to blank to disable ADIOS

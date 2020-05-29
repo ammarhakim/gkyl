@@ -10,7 +10,7 @@ from waflib.Tools import ccroot, c_preproc
 from waflib.Tools.cxx import cxxprogram
 
 class nvcc(Task.Task):
-        run_str = '${NVCC} -x cu -c -dc -O3 --compiler-options="-fPIC" ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${CPPPATH_ST:INCPATHS} ${DEFINES_ST:DEFINES} ${CXX_SRC_F} ${SRC} -o ${OUT}/${TGT}'
+        run_str = '${NVCC} -x cu -c -dc -O3 -std=c++11 --compiler-options="-fPIC" ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${CPPPATH_ST:INCPATHS} ${DEFINES_ST:DEFINES} ${CXX_SRC_F} ${SRC} -o ${OUT}/${TGT}'
         color   = 'GREEN'
         ext_in  = ['.h']
         vars    = ['CCDEPS']
