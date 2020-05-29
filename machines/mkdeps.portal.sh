@@ -1,5 +1,5 @@
-module load gcc/7.3.0
-module load openmpi
+
+
 # if we are in machines directory, go up a directory
 if [ `dirname "$0"` == "." ] 
   then
