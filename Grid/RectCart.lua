@@ -148,6 +148,8 @@ function RectCart:init(tbl)
       self._block = 1
       self._cuts = cuts
    end
+
+   self._onDevice = self:copyHostToDevice()
 end
 
 -- member functions

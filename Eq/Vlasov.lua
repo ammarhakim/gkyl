@@ -13,6 +13,19 @@ local VlasovModDecl = require "Eq.vlasovData.VlasovModDecl"
 local ffi = require "ffi"
 local ffiC = ffi.C
 local xsys = require "xsys"
+local new, sizeof, typeof, metatype = xsys.from(ffi,
+     "new, sizeof, typeof, metatype")
+
+local cuda = nil
+if GKYL_HAVE_CUDA then
+   cuda = require "Cuda.RunTime"
+end
+
+ffi.cdef [[ 
+  typedef struct Vlasov Vlasov;
+  Vlasov* new_Vlasov(unsigned cdim, unsigned vdim, unsigned polyOrder, const char* basisType, double qbym, bool hasForceTerm);
+  void setAuxFields(GkylEquation_t *eq, GkylCartField_t *emField);
+]]
 
 -- Vlasov equation on a rectangular mesh
 local Vlasov = Proto(EqBase)
@@ -69,6 +82,17 @@ function Vlasov:init(tbl)
 
    -- flag to indicate if we are being called for first time
    self._isFirst = true
+
+   if GKYL_HAVE_CUDA then
+     self:initDevice()
+   end
+end
+
+function Vlasov:initDevice()
+   local eq = ffiC.new_Vlasov(self._cdim, self._vdim, self._phaseBasis:polyOrder(), self._phaseBasis:id(), self._qbym, self._hasForceTerm) 
+   local sz = sizeof(eq)
+   self._onDevice, err = cuda.Malloc(sz)
+   cuda.Memcpy(self._onDevice, eq, sz, cuda.MemcpyHostToDevice)
 end
 
 -- Methods
@@ -147,6 +171,14 @@ function Vlasov:setAuxFields(auxFields)
 	 self._emIdxr = self._emField:genIndexer()
 	 self._isFirst = false -- no longer first time
       end
+   end
+end
+
+function Vlasov:setAuxFieldsOnDevice(auxFields)
+   if self._hasForceTerm then -- (no fields for neutral particles)
+      -- single aux field that has the full EM field
+      self._emField = auxFields[1]
+      ffiC.setAuxFields(self._onDevice, self._emField._onDevice)
    end
 end
 

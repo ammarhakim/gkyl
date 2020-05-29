@@ -1,4 +1,6 @@
 local ffi = require "ffi"
+local RectCart = require "Grid.RectCart"
+local Range = require "Lib.Range"
 
 ffi.cdef [[
 

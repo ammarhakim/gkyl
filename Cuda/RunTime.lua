@@ -84,6 +84,8 @@ ffi.cdef [[
   int cudaMalloc(void **devPtr, size_t size);
   int cudaFree(void *ptr);
   int cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind);
+  int cudaMemcpyFromSymbol(void* dst, const void* src, size_t count, size_t offset, cudaMemcpyKind kind);
+  int cudaMemcpyToSymbol(void* dst, const void* src, size_t count, size_t offset, cudaMemcpyKind kind);
   int cudaMallocManaged(void** devPtr, size_t size, unsigned int flags);
 
   // error codes
@@ -192,6 +194,14 @@ end
 -- cudaMemcpy
 function _M.Memcpy(dst, src, count, kind)
    return ffiC.cudaMemcpy(dst, src, count, kind)
+end
+
+function _M.MemcpyFromSymbol(dst, src, count)
+   return ffiC.cudaMemcpyFromSymbol(dst, src, count, 0, cuda.MemcpyDeviceToHost)
+end
+
+function _M.MemcpyToSymbol(dst, src, count)
+   return ffiC.cudaMemcpyToSymbol(dst, src, count, 0, cuda.MemcpyHostToDevice)
 end
 
 return _M

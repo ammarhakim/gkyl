@@ -7,6 +7,11 @@
 
 -- system libraries
 local Proto = require "Lib.Proto"
+local ffi = require "ffi"
+
+ffi.cdef [[ 
+  typedef struct GkylEquation_t GkylEquation_t; 
+]]
 
 local EqBase = Proto()
 
