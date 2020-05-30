@@ -10,7 +10,9 @@
 
 #include <GkylBasisTypes.h>
 #include <GkylKernelDriver.h>
+#include <GkylRange.h>
 #include <GkylVlasovKernelDriver.h>
+
 #include <cxxopts.hpp>
 
 // std includes
@@ -36,8 +38,7 @@ main(int argc, char **argv) {
 
   auto result = options.parse(argc, argv);
 
-  if (result.count("help"))
-  {
+  if (result.count("help")) {
     std::cout << options.help() << std::endl;
     return 0;
   }

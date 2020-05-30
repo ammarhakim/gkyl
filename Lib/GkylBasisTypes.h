@@ -5,16 +5,19 @@
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
-#ifndef GKYL_BASIS_TYPES_H
-#define GKYL_BASIS_TYPES_H
+#pragma once
 
 // std includes
 #include <string>
 
 namespace Gkyl {
-  const unsigned G_MAX_ORDER_C = 1; // Max-order
-  const unsigned G_SERENDIPITY_C = 2; // serendipity 
-  const unsigned G_TENSOR_C = 3; // tensor-product
+
+  // Basis function types
+  enum BasisTypes {
+    G_MAX_ORDER_C = 1, // Max-order
+    G_SERENDIPITY_C = 2, // serendipity 
+    G_TENSOR_C = 3, // tensor-product
+  };
 
   class BasisInfo {
     public:
@@ -115,5 +118,3 @@ namespace Gkyl {
       unsigned nbasis;
   };  
 }
-
-#endif /// GKYL_BASIS_TYPES_H

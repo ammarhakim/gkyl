@@ -5,8 +5,7 @@
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
-#ifndef GKYL_RANGE_H
-#define GKYL_RANGE_H
+#pragma once
 
 // Gkyl includes
 #include <GkylCudaConfig.h>
@@ -320,7 +319,7 @@ namespace Gkyl {
   /**
    * Private functions (don't use these directly)
    */
-  inline void calcRowMajorIndexerCoeff(GkylRange_t& range) {
+  static void calcRowMajorIndexerCoeff(GkylRange_t& range) {
     int ndim = range.ndim;
     range.rowMajorIndexerCoeff[ndim] = 1;
     for (int i=ndim-1; i>=1; --i)
@@ -331,7 +330,7 @@ namespace Gkyl {
     range.rowMajorIndexerCoeff[0] = 1-start;
   }
   
-  inline void calcColMajorIndexerCoeff(GkylRange_t& range) {
+  static void calcColMajorIndexerCoeff(GkylRange_t& range) {
     int ndim = range.ndim;
     range.colMajorIndexerCoeff[1] = 1;
     for (int i=2; i<=ndim; ++i)
@@ -349,10 +348,8 @@ namespace Gkyl {
    *
    * @param [in/out] On out, row and col indexer coeffs are constructed
    */
-  inline void calcIndexerCoeff(GkylRange_t& range) {
+  static void calcIndexerCoeff(GkylRange_t& range) {
     calcRowMajorIndexerCoeff(range);
     calcColMajorIndexerCoeff(range);
   }
 }
-
-#endif
