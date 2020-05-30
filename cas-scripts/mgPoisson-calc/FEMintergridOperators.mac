@@ -356,7 +356,7 @@ solveProlongationWeqEq(varsIn,stencilLocIn,nodBasisIn,nodesIn,storedNodesIn) := 
   return([weqKnowns,weqUnknowns,eqSolv]) 
 )$
 
-calcFEMProlongationOp(fh, funcNm, dim, basisFun, pMax) := block([],
+calcFEMprolongationOp(fh, funcNm, dim, basisFun, pMax) := block([],
   /* Prolongation operator transferring a coarse-grid field to the
      fine grid. Currently limited to coarsening 2^a grids by a
      factor of 2 in both directions. */
@@ -455,7 +455,7 @@ calcFEMProlongationOp(fh, funcNm, dim, basisFun, pMax) := block([],
   
   
         /* Function declaration with input/output variables. */
-        printf(fh, "void ~a_~aP~a(const double *fldC, double **fldF) ~%{ ~%", funcNm, stencilStr, polyOrder),
+        printf(fh, "void ~a_~aP~a(const int *idxF, double **fldC, double *fldF) ~%{ ~%", funcNm, stencilStr, polyOrder),
         printf(fh, "  // fldC: coarse-grid field.~%"),
         printf(fh, "  // fldF: fine-grid field in cells pointed to by the stencil.~%"),
         printf(fh, "~%"),
@@ -477,7 +477,7 @@ calcFEMProlongationOp(fh, funcNm, dim, basisFun, pMax) := block([],
   )
 )$
 
-calcFEMRestrictionOp(fh, funcNm, dim, basisFun, pMax) := block([],
+calcFEMrestrictionOp(fh, funcNm, dim, basisFun, pMax) := block([],
   /* Restriction operator transferring a fine-grid field to the
      coarse grid. Currently limited to coarsening 2^a grids by a
      factor of 2 in both directions. */

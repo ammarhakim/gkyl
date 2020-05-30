@@ -1,4 +1,4 @@
-/* Kernels for computing the residue of the DG Poisson equation
+/* Kernels for computing the residual of the DG Poisson equation
          res = rho + L(phi)
    where L is the Laplacian. */
 
@@ -44,8 +44,8 @@ writeCExprs1sub(lhs, rhs, sublist) := block([expr],
   )
 )$
 
-calcDGResidue(fh, funcNm, dim, basisFun, pMax) := block([],
-  /* Residue computation for the Poisson equation using an RDG
+calcDGresidual(fh, funcNm, dim, basisFun, pMax) := block([],
+  /* Residual computation for the Poisson equation using an RDG
      discretization. Other options involve LDG and interior
      penalty methods. */
 
@@ -112,8 +112,8 @@ calcDGResidue(fh, funcNm, dim, basisFun, pMax) := block([],
     rho_e     : doExpand1(rhoC,bC),
     sourceRHS : volFac*calcInnerProdList(varsC,1,bC,rho_e),
 
-    /* Subtract the LHS from the right-side source to obtain residue. */
-    residue_c : fullratsimp(sourceRHS - poissonLHS),
+    /* Subtract the LHS from the right-side source to obtain residual. */
+    residual_c : fullratsimp(sourceRHS - poissonLHS),
 
     /* Write kernel. */
     printf(fh, "void ~a_P~a(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) ~%{ ~%", funcNm, polyOrder),
@@ -121,7 +121,7 @@ calcDGResidue(fh, funcNm, dim, basisFun, pMax) := block([],
     printf(fh, "  // rho:    right-side source in the current cell.~%"),
     printf(fh, "  // bcVals: values to impose as BCs.~%"),
     printf(fh, "  // phi:    iterate cells pointed to by the stencil.~%"),
-    printf(fh, "  // resOut: residue in current cell.~%"),
+    printf(fh, "  // resOut: residual in current cell.~%"),
     printf(fh, "~%"),
 
     /* Pointers to the cell lengths and right-side source in cells pointed to by the stencil. */
@@ -167,7 +167,7 @@ calcDGResidue(fh, funcNm, dim, basisFun, pMax) := block([],
     for s : 1 thru dim do (
       sublist[s] : [sconcat("rdx2SqVol[",string(s-1),"]^2"), sconcat("rdx2SqVolSq[",string(s-1),"]")]
     ),
-    writeCExprs1sub(resOut,residue_c,sublist),
+    writeCExprs1sub(resOut,residual_c,sublist),
     printf(fh, "~%"),
 
     printf(fh, "}~%"),
@@ -177,7 +177,7 @@ calcDGResidue(fh, funcNm, dim, basisFun, pMax) := block([],
 )$
 
 
-calcDGResidueBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
+calcDGresidualBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
   /* Kernels for computing the residual near the boundaries. */
 
   kill(varsC, varsP, basisC, basisP),
@@ -264,7 +264,7 @@ calcDGResidueBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
         printf(fh, "  // rho:    right-side source in the current cell.~%"),
         printf(fh, "  // bcVals: values to impose as BCs.~%"),
         printf(fh, "  // phi:    iterate cells pointed to by the stencil.~%"),
-        printf(fh, "  // resOut: residue in current cell.~%"),
+        printf(fh, "  // resOut: residual in current cell.~%"),
         printf(fh, "~%"),
 
         surfTerms : 0,
@@ -337,8 +337,8 @@ calcDGResidueBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
         rho_e     : doExpand1(rhoC,bC),
         sourceRHS : volFac*calcInnerProdList(varsC,1,bC,rho_e),
   
-        /* Subtract the LHS from the right-side source to obtain residue. */
-        residue_c : fullratsimp(sourceRHS - poissonLHS),
+        /* Subtract the LHS from the right-side source to obtain residual. */
+        residual_c : fullratsimp(sourceRHS - poissonLHS),
 
         /* Pointers to the cell lengths and right-side source in cells pointed to by the stencil. */
         printf(fh, "  double *dxC  = dx[0]; ~%"),
@@ -384,7 +384,7 @@ calcDGResidueBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
           sublist[subNum*s-1] : [sconcat("rdx2SqVol[",string(s-1),"]^2"), sconcat("rdx2SqVolSq[",string(s-1),"]")],
           sublist[subNum*s]   : [sconcat("rdx2SqVol[",string(s-1),"]^3"), sconcat("rdx2SqVolCu[",string(s-1),"]")]
         ),
-        writeCExprs1sub(resOut,residue_c,sublist),
+        writeCExprs1sub(resOut,residual_c,sublist),
         printf(fh, "~%"),
 
         printf(fh, "}~%"),

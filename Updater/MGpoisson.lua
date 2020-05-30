@@ -274,10 +274,10 @@ function MGpoisson:init(tbl)
    -- Not sure this is needed, but in general it probably is (e.g. unstructured, or even nonuniform meshes).
    self.mgGrids           = {}
    self.mgGrids[1]        = grid
-   -- Iterate (phi), right-side source and residue fields at each level.
-   self.phiAll     = {}
-   self.rhoAll     = {}
-   self.residueAll = {}
+   -- Iterate (phi), right-side source and residual fields at each level.
+   self.phiAll      = {}
+   self.rhoAll      = {}
+   self.residualAll = {}
 
    self.mgLevels       = 1      -- Number of multigrid levels (grids).
    local notAtCoarsest = true
@@ -333,18 +333,18 @@ function MGpoisson:init(tbl)
    end
 
    -- Allocate space for the iterate, right-side source field and
-   -- the residue on each grid level. For DG don't need to allocate space for
+   -- the residual on each grid level. For DG don't need to allocate space for
    -- phi and rho on the top grid because we'll just use the fields
    -- given to the solver.
-   self.phiAll[1]     = nil 
-   self.rhoAll[1]     = nil
-   self.residueAll[1] = createField(self.mgGrids[1],basis)
+   self.phiAll[1]      = nil 
+   self.rhoAll[1]      = nil
+   self.residualAll[1] = createField(self.mgGrids[1],basis)
    for i = 2, self.mgLevels do
       -- Allocate space for the iterate, right-side source field and
-      -- the residue on each grid level.
-      self.phiAll[i]     = createField(self.mgGrids[i], basis)
-      self.rhoAll[i]     = createField(self.mgGrids[i], basis)
-      self.residueAll[i] = createField(self.mgGrids[i], basis)
+      -- the residual on each grid level.
+      self.phiAll[i]      = createField(self.mgGrids[i], basis)
+      self.rhoAll[i]      = createField(self.mgGrids[i], basis)
+      self.residualAll[i] = createField(self.mgGrids[i], basis)
    end
    if self.isJacobiRelax then
       self.phiPrevAll = {}
@@ -357,25 +357,25 @@ function MGpoisson:init(tbl)
    -- Select restriction and prolongation operator kernels.
    self._restriction  = MGpoissonDecl.selectRestriction(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
    self._prolongation = MGpoissonDecl.selectProlongation(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
-   -- Select kernels for relaxation and computing the residue.
+   -- Select kernels for relaxation and computing the residual.
    self._relaxation   = MGpoissonDecl.selectRelaxation(solverType, basisID, self.dim, polyOrder, relaxKind, bcTypes, self.isDG)
-   self._calcResidue  = MGpoissonDecl.selectResidueCalc(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
+   self._calcResidual = MGpoissonDecl.selectResidualCalc(solverType, basisID, self.dim, polyOrder, bcTypes, self.isDG)
 
    -- Intergrid operator stencils: 
    self.igOpStencilWidth = 2
    if self.isFEM then self.igOpStencilWidth = 4 end
    self.igOpStencilSize  = self.igOpStencilWidth^self.dim
    -- Array of fine grid indexes of cells needed in inter-grid transfer.
-   self.fineGridIdx = {}
+   self.fineGridIdx   = {}
+   self.coarseGridIdx = {}
    for i = 1, self.igOpStencilSize do
-      self.fineGridIdx[i] = Lin.IntVec(self.dim)
+      self.fineGridIdx[i]   = Lin.IntVec(self.dim)
+      self.coarseGridIdx[i] = Lin.IntVec(self.dim)
    end
    -- List of pointers to the data in cells pointed to by the stencil.
    local DoublePtrVec = Lin.new_vec_ct(ffi.typeof("double*"))
    self.fineFldItr    = DoublePtrVec(self.igOpStencilSize)
-
-   -- We'll only need one coarse-grid index.
-   self.coarseGridIdx = Lin.IntVec(self.dim)
+   self.coarseFldItr  = DoublePtrVec(self.igOpStencilSize)
 
    -- Stencil info: restrict ourselves to nearest neighbor stencils.
    self.phiStencilWidth = 3
@@ -405,7 +405,8 @@ function MGpoisson:init(tbl)
    self.rhoStencil     = DoublePtrVec(self.rhoStencilSize)
    self.dxStencil      = DoublePtrVec(self.phiStencilSize)
 
-   self.dxBuf = Lin.Vec(self.dim)    -- A buffer to store cell lengths.
+   self.dxBuf  = Lin.Vec(self.dim)       -- Buffer to store cell lengths.
+   self.idxBuf = Lin.IntVec(self.dim)    -- Buffer to store an index.
 
    -- Dimensions remaining when a dimension is removed.
    self.dimRemain = {}
@@ -451,7 +452,7 @@ function MGpoisson:init(tbl)
       self.prolong  = function(cFld,fFld) MGpoisson['prolongFEM'](self,cFld,fFld) end
    end
 
-   -- Functions to compute the L2-norm of the residue, the integral of the right-side source,
+   -- Functions to compute the L2-norm of the residual, the integral of the right-side source,
    -- and accumulate a constant and a (DG or FEM field). The latter two are needed for a periodic domain.
    if self.isDG then
       self.l2normCalc = IntQuantCalc {
@@ -480,8 +481,8 @@ function MGpoisson:init(tbl)
       self.localNorm     = Lin.Vec(1)
       self.globalNorm    = Lin.Vec(1)
    end
-   self.relResNorm  = DataStruct.DynVector { numComponents = 1 }
-   self.residueNorm = DataStruct.DynVector { numComponents = 1 }
+   self.relResNorm   = DataStruct.DynVector { numComponents = 1 }
+   self.residualNorm = DataStruct.DynVector { numComponents = 1 }
    self.rhoNorm     = DataStruct.DynVector { numComponents = 1 }
    if self.isPeriodicDomain then
       self.dynVbuf = DataStruct.DynVector { numComponents = 1 }
@@ -551,7 +552,7 @@ end
 function MGpoisson:idxToStencil(idxIn, nCellsIn)
    -- Given a multi-dimensional index (idxIn) to a cell in a grid 
    -- with nCellsIn cells, return the index of the stencil needed, 
-   -- within the table that holds relaxation/residue stencils.
+   -- within the table that holds relaxation/residual stencils.
    local stencilIdx = 1
    for d = 1, self.dim do
       if (idxIn[d] == 1) then                -- First cell.
@@ -921,8 +922,8 @@ function MGpoisson:relax(numRelax, phiFld, rhoFld)
    end
 end
 
-function MGpoisson:residue(phiFld, rhoFld, resFld)
-   -- Compute the residue:
+function MGpoisson:residual(phiFld, rhoFld, resFld)
+   -- Compute the residual:
    --     r = rho + L(phi). 
    -- where L is the Laplacian.
 
@@ -944,7 +945,7 @@ function MGpoisson:residue(phiFld, rhoFld, resFld)
    
       grid:setIndex(idx)
    
-      resFld:fill(indexer(idx), resItr)   -- Residue in this cell.
+      resFld:fill(indexer(idx), resItr)   -- Residual in this cell.
    
       -- Get indices of cells used by stencil.
       self:opStencilIndices(idx, self.phiStencilType, self.phiStencilIdx)
@@ -967,23 +968,23 @@ function MGpoisson:residue(phiFld, rhoFld, resFld)
          self.rhoStencil[i] = rhoItr:data()
       end
 
-      self._calcResidue[self:idxToStencil(idx,cellsN)](self.dxStencil:data(), self.bcValue:data(), self.rhoStencil:data(), self.phiStencil:data(), resItr:data())
+      self._calcResidual[self:idxToStencil(idx,cellsN)](self.dxStencil:data(), self.bcValue:data(), self.rhoStencil:data(), self.phiStencil:data(), resItr:data())
    end
 
    if self.aPeriodicDir then resFld:sync() end
 end
 
-function MGpoisson:relResidueNorm(gamIdx)
-   -- Compute the relative norm of the residue: ||rho + L(phi)||/||rho||.
+function MGpoisson:relResidualNorm(gamIdx)
+   -- Compute the relative norm of the residual: ||rho + L(phi)||/||rho||.
 
    -- Compute the norm of the right-side source vector.
    self.l2normCalcAdv(1,{self.rhoAll[1]},{self.rhoNorm})
    local _, rhsNorm = self.rhoNorm:lastData()
-   -- Compute the norm of the residue.
-   self:residue(self.phiAll[1], self.rhoAll[1], self.residueAll[1]) 
-   self.l2normCalcAdv(gamIdx,{self.residueAll[1]},{self.residueNorm})
-   -- Compute the relative residue norm and store it in self.relResNorm.
-   local _, resNorm    = self.residueNorm:lastData()
+   -- Compute the norm of the residual.
+   self:residual(self.phiAll[1], self.rhoAll[1], self.residualAll[1]) 
+   self.l2normCalcAdv(gamIdx,{self.residualAll[1]},{self.residualNorm})
+   -- Compute the relative residual norm and store it in self.relResNorm.
+   local _, resNorm    = self.residualNorm:lastData()
    local relResNormOut
    if (rhsNorm[1] > 0.0) then
       relResNormOut = resNorm[1]/rhsNorm[1]
@@ -1037,9 +1038,9 @@ function MGpoisson:prolongDG(cFld,fFld)
          end
 
          -- Given the fine-grid index, need to obtain the coarse-grid index.
-         for d = 1, self.dim do self.coarseGridIdx[d] = (fIdx[d]-1)/2+1 end
+         for d = 1, self.dim do self.coarseGridIdx[1][d] = (fIdx[d]-1)/2+1 end
   
-         cFld:fill(cFldIndexer(self.coarseGridIdx), cFldItr)   -- Coarse field pointer.
+         cFld:fill(cFldIndexer(self.coarseGridIdx[1]), cFldItr)   -- Coarse field pointer.
   
          -- Array of pointers to fine-grid field data by stencil. 
          for i = 1, self.igOpStencilSize do
@@ -1057,14 +1058,12 @@ end
 function MGpoisson:prolongFEM(cFld,fFld)
    -- FEM prolongation of a coarse-grid field (cFld) to a fine-grid field (fFld). 
 
-   fFld:clear(0.0)
-
-   local grid   = cFld:grid() 
+   local grid   = fFld:grid() 
    local cellsN = {}
    for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
 
    local rangeDecomp = LinearDecomp.LinearDecompRange {
-      range = cFld:localRange(), numSplit = grid:numSharedProcs() }
+      range = fFld:localRange(), numSplit = grid:numSharedProcs() }
    local tId         = grid:subGridSharedId()    -- Local thread ID.
 
    local cFldIndexer = cFld:genIndexer()
@@ -1073,36 +1072,23 @@ function MGpoisson:prolongFEM(cFld,fFld)
    local fFldIndexer = fFld:genIndexer()
    local fFldItr     = fFld:get(1)
 
-   for cIdx in rangeDecomp:rowMajorIter(tId) do
+   for fIdx in rangeDecomp:rowMajorIter(tId) do
 
-      grid:setIndex(cIdx)
+      grid:setIndex(fIdx)
 
       -- Array of indexes to fine-grid cells this coarse-grid cell contributes to.
-      for d = 1, self.dim do self.fineGridIdx[1][d] = 2*cIdx[d] end
-      local fCellCount = 1
-      for dir = 1, self.dim do
-         local prevAdded = fCellCount
-         for rI = 1, prevAdded do
-            for k = 1, (self.igOpStencilWidth-1) do
-               local newIdxInDir = self.fineGridIdx[rI][dir]-k
-               if ((not grid:isDirPeriodic(dir)) and newIdxInDir<1) or 
-                  ((grid:isDirPeriodic(dir) and newIdxInDir<0)) then break end
-               fCellCount = fCellCount + 1
-               for d = 1, self.dim do self.fineGridIdx[fCellCount][d] = self.fineGridIdx[rI][d] end
-               self.fineGridIdx[fCellCount][dir] = newIdxInDir
-            end
-         end
-      end
+      for d = 1, self.dim do self.coarseGridIdx[1][d] = math.ceil(fIdx[d]/2.) end
+      for d = 1, self.dim do self.coarseGridIdx[2][d] = self.coarseGridIdx[1][d]+1 end
 
-      cFld:fill(cFldIndexer(cIdx), cFldItr)   -- Coarse field pointer.
+      fFld:fill(fFldIndexer(fIdx), fFldItr)   -- Fine field pointer.
   
       -- Array of pointers to fine-grid field data by stencil. 
-      for i = 1, fCellCount do
-         fFld:fill(fFldIndexer(self.fineGridIdx[i]), fFldItr)
-         self.fineFldItr[i] = fFldItr:data()
+      for i = 1, 2^self.dim do
+         cFld:fill(fFldIndexer(self.coarseGridIdx[i]), cFldItr)
+         self.coarseFldItr[i] = cFldItr:data()
       end
   
-      self._prolongation[self:idxToStencil(cIdx,cellsN)](cFldItr:data(), self.fineFldItr:data())
+      self._prolongation[self:idxToStencil(fIdx,cellsN)](fIdx:data(), self.coarseFldItr:data(), fFldItr:data())
    end
 
    if self.aPeriodicDir then fFld:sync() end
@@ -1132,11 +1118,11 @@ function MGpoisson:gammaCycle(lCurr)
       -- Relax nu1 times.
       self:relax(self.nu1, self.phiAll[lCurr], self.rhoAll[lCurr]) 
 
-      -- Compute the residue.
-      self:residue(self.phiAll[lCurr], self.rhoAll[lCurr], self.residueAll[lCurr]) 
+      -- Compute the residual.
+      self:residual(self.phiAll[lCurr], self.rhoAll[lCurr], self.residualAll[lCurr]) 
 
-      -- Restrict the residue to the next coarsest grid.
-      self.restrict(self.residueAll[lCurr], self.rhoAll[lCurr+1])
+      -- Restrict the residual to the next coarsest grid.
+      self.restrict(self.residualAll[lCurr], self.rhoAll[lCurr+1])
 
       -- Solve the problem on the coarser grid, gamma times, with an
       -- initial guess of zero.
@@ -1146,8 +1132,8 @@ function MGpoisson:gammaCycle(lCurr)
       end
 
       -- Prolong the error to the finer grid and correct the iterate.
-      self.prolong(self.phiAll[lCurr+1], self.residueAll[lCurr])
-      self.phiAll[lCurr]:accumulate(1.0,self.residueAll[lCurr])
+      self.prolong(self.phiAll[lCurr+1], self.residualAll[lCurr])
+      self.phiAll[lCurr]:accumulate(1.0,self.residualAll[lCurr])
 
       -- Relax nu2 times.
       self:relax(self.nu2, self.phiAll[lCurr], self.rhoAll[lCurr]) 
@@ -1181,7 +1167,7 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
    end
 
    local initialGuess   = inFld[2]
-   local relResNormCurr = 1.0e12    -- Current (relative) residue norm.
+   local relResNormCurr = 1.0e12    -- Current (relative) residual norm.
    if initialGuess then
       if self.isDG then
          self.phiAll[1] = initialGuess
@@ -1207,16 +1193,16 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
    end
 
    local gI = 0         -- gamma cycle index.
-   -- Compute the relative residue norm. It gets stored in self.relResNorm. 
-   relResNormCurr = self:relResidueNorm(gI)
+   -- Compute the relative residual norm. It gets stored in self.relResNorm. 
+   relResNormCurr = self:relResidualNorm(gI)
 
    -- Call MG gamma-cycles starting at the finest grid.
    while relResNormCurr > self.tol do
       gI = gI + 1
       self:gammaCycle(1)
 
-      -- Compute the relative residue norm. It gets stored in self.relResNorm. 
-      relResNormCurr = self:relResidueNorm(gI)
+      -- Compute the relative residual norm. It gets stored in self.relResNorm. 
+      relResNormCurr = self:relResidualNorm(gI)
 
       if gI==self.numGammaCycles then break end
    end

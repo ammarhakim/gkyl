@@ -126,9 +126,6 @@ calcNorm(fh, funcNm, dim, basisFun, pMax, whichNorm) := block([],
           nodesEx       : getExtendedNodes(basisFun,polyOrder,stencilLoc[sI],makelist([1,0],i,1,dim)),
           storedNodesEx : getExtendedStoredNodes(basisFun,polyOrder,stencilLoc[sI],makelist([1,1],i,1,dim)),
         
-          /* Associative list of nodes on extended logical space, and the cell that stores that node. */
-          storedNodeToCell : invertAssocList(storedNodesEx),
-        
           /* Associative list between cell coordinates and a linear (base 1) index. */
           cellToIdxStored : getCellToIdx(stencilLoc[sI],makelist([1,1],i,1,dim)),
         
@@ -136,7 +133,8 @@ calcNorm(fh, funcNm, dim, basisFun, pMax, whichNorm) := block([],
           dataStrs : getDataStr(makelist([1,1],i,1,dim),stencilLoc[sI],varsC),
         
           /* Associative list of cell coordinate, and the memory location of each node. */
-          cellToCoef : getCellToCoef(numB,stencilLoc[sI],nodesEx,storedNodesEx,storedNodeToCell,cellToIdxStored,dataStrs),
+          cellToCoef : getCellToCoef(numB,stencilLoc[sI],nodesEx,storedNodesEx,
+                                     cellToIdxStored,dataStrs,makelist([1,0],i,1,dim)),
       
           femFld_e : doExpand(makelist(eval_string(sconcat("femFld",cellToCoef[1][2][k])),k,1,numB),bN),
       

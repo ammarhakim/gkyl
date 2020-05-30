@@ -63,25 +63,17 @@ calcFEMproject(fh, funcNm, dim, basisFun, pMax) := block([],
         numStoredNodes : length(storedNodes),
       
         nodesEx       : getExtendedNodes(basisFun,polyOrder,stencilLoc[sI],makelist([1,0],i,1,dim)),
-        weqNodesEx    : getExtendedWeqNodes(basisFun,polyOrder,stencilLoc[sI],makelist([1,0],i,1,dim)),
         storedNodesEx : getExtendedStoredNodes(basisFun,polyOrder,stencilLoc[sI],makelist([1,1],i,1,dim)),
       
-        /* Associative list of nodes on extended logical space, and
-           the cell that contributes that node to the weak form. */
-        weqNodeToCell : invertAssocList(weqNodesEx),
-      
-        /* Associative list of nodes on extended logical space, and the cell that stores that node. */
-        storedNodeToCell : invertAssocList(storedNodesEx),
-      
         /* Associative list between cell coordinates and a linear (base 1) index. */
-        cellToIdxWeq    : getCellToIdx(stencilLoc[sI],makelist([1,0],i,1,dim)),
         cellToIdxStored : getCellToIdx(stencilLoc[sI],makelist([1,1],i,1,dim)),
       
         /* List of strings identifying each cell involved in the stencil. */
         dataStrs : getDataStr(makelist([1,1],i,1,dim),stencilLoc[sI],varsC),
       
         /* Associative list of cell coordinate, and the memory location of each node. */
-        cellToCoef : getCellToCoef(numB,stencilLoc[sI],nodesEx,storedNodesEx,storedNodeToCell,cellToIdxStored,dataStrs),
+        cellToCoef : getCellToCoef(numB,stencilLoc[sI],nodesEx,storedNodesEx,
+                                   cellToIdxStored,dataStrs,makelist([1,0],i,1,dim)),
       
         /* Lists where we will store the actual stencil.*/
         projStencil : makelist(0,i,1,numStoredNodes),

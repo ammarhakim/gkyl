@@ -84,12 +84,12 @@ end
 function _M.selectRestriction(solverKind, basisNm, dim, polyOrder, bcTypes, isDG)
    local restrictKernels = {}
    if isDG then
-      local tmp = ffi.C[string.format("MGpoisson%sRestrict%dx%s_P%d", solverKind, dim, basisNmMap[basisNm], polyOrder)]
+      local tmp = ffi.C[string.format("MGpoisson%srestrict%dx%s_P%d", solverKind, dim, basisNmMap[basisNm], polyOrder)]
       restrictKernels[1] = tmp
    else
       local restrictStencilStr = getStencilStrs(dim, bcTypes, isDG)
       for sI = 1, 3^dim do
-         local tmp = ffi.C[string.format("MGpoisson%sRestrict%dx%s_%sP%d", solverKind, dim, basisNmMap[basisNm], restrictStencilStr[sI], polyOrder)]
+         local tmp = ffi.C[string.format("MGpoisson%srestrict%dx%s_%sP%d", solverKind, dim, basisNmMap[basisNm], restrictStencilStr[sI], polyOrder)]
          restrictKernels[sI] = tmp
       end
    end
@@ -100,12 +100,12 @@ end
 function _M.selectProlongation(solverKind, basisNm, dim, polyOrder, bcTypes, isDG)
    local prolongKernels = {}
    if isDG then
-      local tmp = ffi.C[string.format("MGpoisson%sProlong%dx%s_P%d", solverKind, dim, basisNmMap[basisNm], polyOrder)]
+      local tmp = ffi.C[string.format("MGpoisson%sprolong%dx%s_P%d", solverKind, dim, basisNmMap[basisNm], polyOrder)]
       prolongKernels[1] = tmp
    else
       local prolongStencilStr = getStencilStrs(dim, bcTypes, isDG)
       for sI = 1, 3^dim do
-         local tmp = ffi.C[string.format("MGpoisson%sProlong%dx%s_%sP%d", solverKind, dim, basisNmMap[basisNm], prolongStencilStr[sI], polyOrder)]
+         local tmp = ffi.C[string.format("MGpoisson%sprolong%dx%s_%sP%d", solverKind, dim, basisNmMap[basisNm], prolongStencilStr[sI], polyOrder)]
          prolongKernels[sI] = tmp
       end
    end
@@ -151,16 +151,16 @@ function _M.selectRelaxation(solverKind, basisNm, dim, polyOrder, kindOfRelax, b
    return relaxKernels
 end
 
--- Select residue kernels.
-function _M.selectResidueCalc(solverKind, basisNm, dim, polyOrder, bcTypes, isDG)
-   local residueKernels = {}
+-- Select residual kernels.
+function _M.selectResidualCalc(solverKind, basisNm, dim, polyOrder, bcTypes, isDG)
+   local residualKernels = {}
    -- Create a 3^dim hypertable to place lower boundary, interior and upper boundary kernels.
    local resStencilStr = getStencilStrs(dim, bcTypes, isDG)
    for sI = 1, 3^dim do
-      local tmp = ffi.C[string.format("MGpoisson%sResidue%dx%s_%sP%d", solverKind, dim, basisNmMap[basisNm], resStencilStr[sI], polyOrder)]
-      residueKernels[sI] = tmp
+      local tmp = ffi.C[string.format("MGpoisson%sresidual%dx%s_%sP%d", solverKind, dim, basisNmMap[basisNm], resStencilStr[sI], polyOrder)]
+      residualKernels[sI] = tmp
    end
-   return residueKernels
+   return residualKernels
 end
 
 -- Select kernels to compute norms.
