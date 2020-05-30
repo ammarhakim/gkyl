@@ -20,8 +20,7 @@ extern "C"
         }
         __host__ __device__ __inline__ Gkyl::GenIndexer genIndexer()
         {
-           Gkyl::GenIndexer idxr(localExtRange);
-           return idxr;
+           return Gkyl::GenIndexer(localExtRange);
         }
     } GkylCartField_t;
 }

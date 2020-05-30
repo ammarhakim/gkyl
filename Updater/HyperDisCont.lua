@@ -9,6 +9,9 @@
 
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
+local Eq = require "Eq.EqBase"
+local Grid = require "Grid.RectCart"
+local CartField = require "DataStruct.CartField"
 local Lin = require "Lib.Linalg"
 local LinearDecomp = require "Lib.LinearDecomp"
 local Mpi = require "Comm.Mpi"
@@ -16,7 +19,28 @@ local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
 local UpdaterBase = require "Updater.Base"
 local ffi = require "ffi"
+local ffiC = ffi.C
 local xsys = require "xsys"
+local new, sizeof, typeof, metatype = xsys.from(ffi,
+     "new, sizeof, typeof, metatype")
+
+local cuda = nil
+if GKYL_HAVE_CUDA then
+   cuda = require "Cuda.RunTime"
+end
+
+ffi.cdef [[ 
+  typedef struct {
+      int updateDirs[6];
+      bool zeroFluxFlags[6];
+      int32_t numUpdateDirs;
+      bool updateVolumeTerm;
+      GkylEquation_t *equation;
+      GkylCartField_t *cflRateByCell;
+  } GkylHyperDisCont_t; 
+
+  void advanceOnDevice(int numThreads, int numBlocks, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
+]]
 
 -- Hyperbolic DG solver updater object
 local HyperDisCont = Proto(UpdaterBase)
@@ -79,7 +103,23 @@ function HyperDisCont:init(tbl)
    self._auxFields = {} -- auxilliary fields passed to eqn object
    self._perpRangeDecomp = {} -- perp ranges in each direction      
 
+   if GKYL_HAVE_CUDA then
+      self:initDevice()
+   end
+
    return self
+end
+
+function HyperDisCont:initDevice()
+   local hyper = ffi.new("GkylHyperDisCont_t")
+   hyper.updateDirs = ffi.new("int[6]", self._updateDirs)
+   hyper.zeroFluxFlags = ffi.new("bool[6]", self._zeroFluxFlags)
+   hyper.numUpdateDirs = #self._updateDirs
+   hyper.updateVolumeTerm = self._updateVolumeTerm
+   hyper.equation = self._equation._onDevice
+   local sz = sizeof("GkylHyperDisCont_t")
+   self._onDevice, err = cuda.Malloc(sz)
+   cuda.Memcpy(self._onDevice, hyper, sz, cuda.MemcpyHostToDevice)
 end
 
 -- advance method
@@ -219,6 +259,23 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
       self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, self:getComm())
 
    self._isFirst = false
+end
+
+function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
+   local qIn = assert(inFld[1], "HyperDisCont.advanceOnDevice: Must specify an input field")
+   local qRhsOut = assert(outFld[1], "HyperDisCont.advanceOnDevice: Must specify an output field")
+
+   for i = 1, #inFld-1 do
+      self._auxFields[i] = inFld[i+1]
+   end
+
+   self._equation:setAuxFieldsOnDevice(self._auxFields)
+
+   local numCellsLocal = qRhsOut:localExtRange():volume()
+   local numThreads = math.min(GKYL_DEFAULT_NUM_THREADS, numCellsLocal)
+   local numBlocks  = math.floor(numCellsLocal/numThreads) --+1
+
+   ffiC.advanceOnDevice(numThreads, numBlocks, self._onDevice, qIn._onDevice, qRhsOut._onDevice)
 end
 
 return HyperDisCont

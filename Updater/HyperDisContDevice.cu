@@ -2,16 +2,17 @@
 #include <GkylRectCart.h>
 #include <GkylCartField.h>
 #include <GkylRange.h>
+#include <GkylHyperDisCont.h>
+#include <GkylEquation.h>
 
 __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
 
-  unsigned int linIdx = threadIdx.x + blockIdx.x*blockDim.x;
+  unsigned int linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
   GkylRange_t *localRange = fIn->localRange;
-  GkylRange_t *localExtRange = fIn->localExtRange;
-  unsigned int nComp = fIn->numComponents;
   unsigned int ndim = localRange->ndim;
   
-  Gkyl::GenIndexer locIdxr(localRange);
+  // set up indexers for localRange and fIn (localExtRange)
+  Gkyl::GenIndexer localIdxr(localRange);
   Gkyl::GenIndexer fIdxr = fIn->genIndexer();
 
   // get setup data from GkylHyperDisCont_t structure
@@ -19,28 +20,35 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
   int *updateDirs = hyper->updateDirs;
   int numUpdateDirs = hyper->numUpdateDirs;
   bool *zeroFluxFlags = hyper->zeroFluxFlags;
-  GkylEquation_t *eq = hyper->equation;
+  Equation *eq = hyper->equation;
   
-  // "loop" over cells in local range
-  if(linIdx < localRange->volume()) {
-    int *idxC = new int[ndim];
-    int *idxL = new int[ndim];
-    int *idxR = new int[ndim];
+  // CUDA thread "loop" over (non-ghost) cells in local range
+  if(linearIdx < localRange->volume()) {
+    int idxC[6];
+    int idxL[6];
+    int idxR[6];
     
-    double *xcC = new double[ndim];
-    double *xcL = new double[ndim];
-    double *xcR = new double[ndim];
+    double xcC[6];
+    double xcL[6];
+    double xcR[6];
 
-    double *dx = grid->dx;
-    locIdxr.invIndexer(linIdx, idxC);
-    int linIdxC = fIdxr.indexer(idxC);
+    // get i,j,k... index idxC from linear index linearIdx using localRange invIndexer
+    localIdxr.invIndex(linearIdx, idxC);
+    // convert i,j,k... index idxC into a linear index linearIdxC
+    // note that linearIdxC != linearIdx.
+    // this is because linearIdxC will have jumps because of ghost cells
+    int linearIdxC = fIdxr.index(idxC);
+
     grid->cellCenter(idxC, xcC);
+    double *dx = grid->dx;
     
-    double *fInC = fIn->getDevicePtr(linIdxC);
-    double *fRhsOutC = fRhsOut->getDevicePtr(linIdxC);
-    double cflRate = eq->volumeTerm(xcC, dx, idxC, fInC, fRhsOutC);
+    double *fInC = fIn->getDataPtrAt(linearIdxC);
+    double *fRhsOutC = fRhsOut->getDataPtrAt(linearIdxC);
+    double cflRate = eq->volTerm(xcC, dx, idxC, fInC, fRhsOutC);
 
-    double *dummy = new double[nComp];
+    // hard code this size for now. 
+    // should be numComponents, but want to avoid dynamic memory alloc
+    double dummy[32];
  
     for(int i=0; i<numUpdateDirs; i++) {
       int dir = updateDirs[i];
@@ -55,28 +63,32 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
         }
       }
 
-      int linIdxL = fIdxr.indexer(idxL);
-      int linIdxR = fIdxr.indexer(idxR);
+      int linearIdxL = fIdxr.index(idxL);
+      int linearIdxR = fIdxr.index(idxR);
       grid->cellCenter(idxL, xcL);
       grid->cellCenter(idxR, xcR);
-      double *fInL = fIn->getDevicePtr(linIdxL);
-      double *fRhsOutL = fRhsOut->getDevicePtr(linIdxL);
-      double *fInR = fIn->getDevicePtr(linIdxR);
-      double *fRhsOutR = fRhsOut->getDevicePtr(linIdxR);
+      double *fInL = fIn->getDataPtrAt(linearIdxL);
+      double *fRhsOutL = fRhsOut->getDataPtrAt(linearIdxL);
+      double *fInR = fIn->getDataPtrAt(linearIdxR);
+      double *fRhsOutR = fRhsOut->getDataPtrAt(linearIdxR);
       
       // left (of C) surface update. use dummy in place of fRhsOutL (cell to left of surface) so that only current cell (C) is updated.
       if(!(zeroFluxFlags[dir] && idxC[dir] == localRange->lower[dir])) {
-        eq->surfTerm(dir, xcL, xcC, dx, dx, idxL, idxC, fInL, fInC, dummy, fRhsOutC);
-      } else if zeroFluxFlags[dir] {
-        eq->boundarySurfTerm(dir, xcL, xcC, dx, dx, idxL, idxC, fInL, fInC, dummy, fRhsOutC);
+        eq->surfTerm(dir, dummy, dummy, xcL, xcC, dx, dx, 0., idxL, idxC, fInL, fInC, dummy, fRhsOutC);
+      } else if( zeroFluxFlags[dir]) {
+        eq->boundarySurfTerm(dir, dummy, dummy, xcL, xcC, dx, dx, 0., idxL, idxC, fInL, fInC, dummy, fRhsOutC);
       }
 
       // right (of C) surface update. use dummy in place of fRhsOutR (cell to left of surface) so that only current cell (C) is updated.
       if(!(zeroFluxFlags[dir] && idxC[dir] == localRange->lower[dir])) {
-        eq->surfTerm(dir, xcC, xcR, dx, dx, idxC, idxR, fInC, fInR, fRhsOutC, dummy);
-      } else if zeroFluxFlags[dir] {
-        eq->boundarySurfTerm(dir, xcC, xcR, dx, dx, idxC, idxR, fInC, fInR, fRhsOutC, dummy);
+        eq->surfTerm(dir, dummy, dummy, xcC, xcR, dx, dx, 0., idxC, idxR, fInC, fInR, fRhsOutC, dummy);
+      } else if( zeroFluxFlags[dir]) {
+        eq->boundarySurfTerm(dir, dummy, dummy, xcC, xcR, dx, dx, 0., idxC, idxR, fInC, fInR, fRhsOutC, dummy);
       }
     }
   }
 } 
+
+void advanceOnDevice(int numThreads, int numBlocks, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
+  cuda_HyperDisCont<<<numThreads, numBlocks>>>(hyper, fIn, fRhsOut);
+}

@@ -212,7 +212,7 @@ local function Field_meta_ctor(elct)
          f.localExtRange = Range.copyHostToDevice(self._localExtRange)
          f.globalRange = Range.copyHostToDevice(self._globalRange)
          f.globalExtRange = Range.copyHostToDevice(self._globalExtRange)
-         f.grid = self._grid:copyHostToDevice()
+         f.grid = self._grid._onDevice
          self._onDevice, err = cuda.Malloc(sz)
          cuda.Memcpy(self._onDevice, f, sz, cuda.MemcpyHostToDevice)
       end

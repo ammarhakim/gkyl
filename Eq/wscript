@@ -228,6 +228,8 @@ def build(bld):
     maxwellData/MaxwellCentralSurfTensor1xP3.cpp
     maxwellData/MaxwellCentralSurfTensor2xP3.cpp
 
+    GkylVlasov.cpp
+
     vlasovData/VlasovStreamMax1x1vP1.cpp
     vlasovData/VlasovStreamMax1x2vP1.cpp
     vlasovData/VlasovStreamMax1x3vP1.cpp
@@ -470,7 +472,7 @@ def build(bld):
 
     """,
               name = 'eq',
-              target = 'eq', use='EIGEN CUTOOLS', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData ../Cuda',
+              target = 'eq', use='EIGEN CUTOOLS', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData ../Cuda ../Lib ../Grid ../DataStruct',
               vnum = '1.0',
               
     )
