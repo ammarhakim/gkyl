@@ -37,6 +37,7 @@ namespace Gkyl {
   // the GkylRange_t object's indexer coefficients assume a Lua 1-based
   // indexing
 
+  // Layout specifiers for indexers
   enum class Layout {
     rowMajor = 1,
     colMajor = 2,
@@ -75,7 +76,7 @@ namespace Gkyl {
        * @param loc Linear location into range
        * @param idx [out] NDIM index object
        */
-      __host__ __device__ inline void invIndex(int loc, int *idx) {
+      __host__ __device__ inline void invIndex(int64_t loc, int *idx) {
         if (Gkyl::Layout::rowMajor == layout)
           return invIndexRowMajor(loc, idx);
         else
@@ -136,7 +137,7 @@ namespace Gkyl {
        * @param loc Linear location into range
        * @param idx [out] NDIM index object
        */
-      __host__ __device__ inline void invIndex(int loc, int idx[NDIM]) {
+      __host__ __device__ inline void invIndex(int64_t loc, int idx[NDIM]) {
         if (Gkyl::Layout::rowMajor == layout)
           return invIndexRowMajor(loc, idx);
         else
@@ -299,6 +300,15 @@ namespace Gkyl {
       }
       __host__ __device__ inline int volume() const {
         return range->volume();
+      }
+
+      __host__ __device__ inline Gkyl::GenIndexer genIndexer(Gkyl::Layout layout=Gkyl::Layout::rowMajor) {
+        return Gkyl::GenIndexer(range, layout);
+      }
+
+      template<unsigned NDIM>
+      __host__ __device__ inline Gkyl::Indexer<NDIM> indexer(Gkyl::Layout layout=Gkyl::Layout::rowMajor) {
+        return Gkyl::Indexer<NDIM>(range, layout);
       }
 
     private:

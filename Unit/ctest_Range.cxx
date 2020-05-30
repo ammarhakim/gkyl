@@ -198,7 +198,7 @@ TEST_CASE("Tests for 3D range object col-major", "[range3D-col-major]") {
   Gkyl::calcIndexerCoeff(crange);
 
   Gkyl::Range range(&crange);
-  Gkyl::GenIndexer genIdxr(&crange, Gkyl::Layout::colMajor);
+  Gkyl::GenIndexer genIdxr = range.genIndexer(Gkyl::Layout::colMajor);
 
   REQUIRE( range.ndim() == 3 );
   for (unsigned i=0; i<range.ndim(); ++i) {
