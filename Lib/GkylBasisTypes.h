@@ -5,7 +5,8 @@
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
-#pragma once
+#ifndef GKYL_BASIS_TYPES_H
+#define GKYL_BASIS_TYPES_H
 
 // std includes
 #include <string>
@@ -114,3 +115,5 @@ namespace Gkyl {
       unsigned nbasis;
   };  
 }
+
+#endif /// GKYL_BASIS_TYPES_H

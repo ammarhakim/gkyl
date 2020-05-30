@@ -1,4 +1,12 @@
-#pragma once
+// Gkyl ------------------------------------------------------------------------
+//
+// Rectangular grid objects
+//    _______     ___
+// + 6 @ |||| # P ||| +
+//------------------------------------------------------------------------------
+
+#ifndef GKYL_RECT_CART_H
+#define GKYL_RECT_CART_H
 
 extern "C" 
 {
@@ -16,3 +24,4 @@ extern "C"
     } GkylRectCart_t;
 }
 
+#endif // GKYL_RECT_CART_H

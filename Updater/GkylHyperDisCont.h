@@ -1,4 +1,11 @@
-#pragma once
+// Gkyl ------------------------------------------------------------------------
+//
+//    _______     ___
+// + 6 @ |||| # P ||| +
+//------------------------------------------------------------------------------
+
+#ifndef GKYL_HYPER_DISCONT_H
+#define GKYL_HYPER_DISCONT_H
 
 // Gkyl includes
 #include <GkylCudaConfig.h>
@@ -20,3 +27,4 @@ extern "C"
   void advanceOnDevice(int numThreads, int numBlocks, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
 }
 
+#endif // GKYL_HYPER_DISCONT_H

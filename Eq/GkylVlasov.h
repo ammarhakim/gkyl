@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GKYL_VLASOV_H
+#define GKYL_VLASOV_H
 
 // Gkyl includes
 #include <GkylCudaConfig.h>
@@ -49,3 +50,5 @@ class Vlasov: public Equation {
   GkylCartField_t *emField;
   GkylCartField_t *dummy;
 };
+
+#endif

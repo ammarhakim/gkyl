@@ -1,4 +1,6 @@
-#pragma once
+#ifndef GKYL_EQUATION_H
+#define GKYL_EQUATION_H
+
 #include <GkylCudaConfig.h>
 
 class Equation {
@@ -19,3 +21,5 @@ class Equation {
  private:
 
 };
+
+#endif // GKYL_EQUATION_H

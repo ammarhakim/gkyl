@@ -5,7 +5,8 @@
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
-#pragma once
+#ifndef GKYL_RANGE_H
+#define GKYL_RANGE_H
 
 // Gkyl includes
 #include <GkylCudaConfig.h>
@@ -353,3 +354,5 @@ namespace Gkyl {
     calcColMajorIndexerCoeff(range);
   }
 }
+
+#endif

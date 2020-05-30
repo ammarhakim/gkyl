@@ -5,7 +5,8 @@
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
-#pragma once
+#ifndef GKYL_VLASOV_KERNEL_DRIVER_H
+#define GKYL_VLASOV_KERNEL_DRIVER_H
 
 // Gkyl includes
 #include <GkylBasisTypes.h>
@@ -179,3 +180,5 @@ namespace Gkyl {
       }
   };
 }
+
+#endif // GKYL_VLASOV_KERNEL_DRIVER_H

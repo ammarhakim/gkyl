@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GKYL_CART_FIELD_H
+#define GKYL_CART_FIELD_H
 
 // Gkyl includes
 #include <GkylCudaConfig.h>
@@ -25,3 +26,4 @@ extern "C"
     } GkylCartField_t;
 }
 
+#endif // GKYL_CART_FIELD_H

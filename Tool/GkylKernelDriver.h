@@ -5,7 +5,8 @@
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
-#pragma once
+#ifndef GKYL_KERNEL_DRIVER_H
+#define GKYL_KERNEL_DRIVER_H
 
 // Gkyl includes
 #include <GkylBasisTypes.h>
@@ -43,3 +44,5 @@ namespace Gkyl {
       unsigned cdim, vdim, polyOrder, basisType;
   };
 }
+
+#endif // GKYL_KERNEL_DRIVER_H
