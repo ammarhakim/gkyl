@@ -1,4 +1,4 @@
-/* Kernels for computing the residue of the DG Poisson equation
+/* Kernels for computing the residual of the DG Poisson equation
          res = rho + L(phi)
    where L is the Laplacian. */
 
@@ -9,8 +9,8 @@ load("mgPoisson-calc/FEMnodalFuncs");
 fpprec : 24$
 
 
-calcFEMResidue(fh, funcNm, dim, basisFun, pMax) := block([],
-  /* Residue computation for the Poisson equation using an FEM
+calcFEMresidual(fh, funcNm, dim, basisFun, pMax) := block([],
+  /* Residual computation for the Poisson equation using an FEM
      discretization. */
 
   kill(varsC, varsP, basisC, basisP),
@@ -60,15 +60,15 @@ calcFEMResidue(fh, funcNm, dim, basisFun, pMax) := block([],
         poissonLHS    : weqPoissonLst[1],
         sourceRHS     : weqPoissonLst[2],
 
-        /* Subtract the LHS from the right-side source to obtain residue. */
-        residue_c : fullratsimp(sourceRHS - poissonLHS),
+        /* Subtract the LHS from the right-side source to obtain residual. */
+        residual_c : fullratsimp(sourceRHS - poissonLHS),
 
         printf(fh, "void ~a_~aP~a(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) ~%{ ~%", funcNm, stencilStr, polyOrder),
         printf(fh, "  // dx:      cell lengths of cells pointed to by the stencil.~%"),
         printf(fh, "  // bcVals:  values to impose as BCs.~%"),
         printf(fh, "  // rho:     right-side source in the current cell.~%"),
         printf(fh, "  // phi:     iterate cells pointed to by the stencil.~%"),
-        printf(fh, "  // resOut:  residue in nodes stored in current cell.~%"),
+        printf(fh, "  // resOut:  residual in nodes stored in current cell.~%"),
         printf(fh, "~%"),
 
         /* Pointers to the cell lengths in cells pointed to by the stencil. */
@@ -108,7 +108,7 @@ calcFEMResidue(fh, funcNm, dim, basisFun, pMax) := block([],
         printf(fh, "~%"),
 
         /* Write the relaxation stencil. */
-        writeCExprs1noPowers(resOut,residue_c,[rdx2SqVol,bcVals,dxC],18),
+        writeCExprs1noPowers(resOut,residual_c,[rdx2SqVol,bcVals,dxC],18),
         printf(fh, "~%"),
 
         printf(fh, "}~%"),

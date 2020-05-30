@@ -335,17 +335,20 @@ getBasisMap(nodesIn,storedNodesIn,cellLoc,cellBCs) := block([numStoredNodes,dim,
   return(basisMap)
 )$
 
-getCellToCoef(numBasisIn,stencilLocIn,nodesExIn,storedNodesExIn,storedNodeToCellIn,cellToIdxStoredIn,dataStrsIn) := block([dim,currCoord,currNodesEx,memLoc,k,cellToCoef,dI,pS,cellsSoFar,nodeStorer],
+getCellToCoef(numBasisIn,stencilLocIn,nodesExIn,storedNodesExIn,cellToIdxStoredIn,dataStrsIn,stencilSizeIn) := block([dim,currCoord,currNodesEx,memLoc,k,cellToCoef,dI,pS,cellsSoFar,nodeStorer],
   /* Create an associative list between cell coordinate (relative to the cell
      we are generating a kernel for) and the coefficients used for an expansion
      in the nodal basis (in that cell). */
   dim         : length(stencilLocIn),
 
+  /* Associative list of nodes on extended logical space, and the cell that stores that node. */
+  storedNodeToCell : invertAssocList(storedNodesExIn),
+
   currCoord   : makelist(0,i,1,dim),
   currNodesEx : assoc(currCoord,nodesExIn),
   memLoc      : [],
   for k : 1 thru numBasisIn do (
-    nodeStorer : assoc(currNodesEx[k],storedNodeToCellIn),
+    nodeStorer : assoc(currNodesEx[k],storedNodeToCell),
     memIdx     : sublist_indices(assoc(nodeStorer,storedNodesExIn),lambda([x],x=currNodesEx[k]))[1]-1,
     memLoc     : endcons(sconcat(dataStrsIn[assoc(nodeStorer,cellToIdxStoredIn)],"[",string(memIdx),"]"),memLoc)
   ),
@@ -354,17 +357,35 @@ getCellToCoef(numBasisIn,stencilLocIn,nodesExIn,storedNodesExIn,storedNodeToCell
     cellsSoFar : length(cellToCoef),
     for pS : 1 thru cellsSoFar do (
       if (stencilLocIn[dI] > -1) then (
-        /* Add nearest lower cell in dI direction. */
-        currCoord     : copylist(cellToCoef[pS][1]),
-        currCoord[dI] : -1,
-        currNodesEx   : assoc(currCoord,nodesExIn),
-        memLoc        : [],
-        for k : 1 thru numBasisIn do (
-          nodeStorer : assoc(currNodesEx[k],storedNodeToCellIn),
-          memIdx     : sublist_indices(assoc(nodeStorer,storedNodesExIn),lambda([x],x=currNodesEx[k]))[1]-1,
-          memLoc     : endcons(sconcat(dataStrsIn[assoc(nodeStorer,cellToIdxStoredIn)],"[",string(memIdx),"]"),memLoc)
-        ),
-        cellToCoef      : endcons([currCoord,memLoc],cellToCoef)
+        /* Add stencilSizeIn[dI][1] nearest lower cells. */
+        for j : 1 thru stencilSizeIn[dI][1] do (
+          currCoord     : copylist(cellToCoef[pS][1]),
+          currCoord[dI] : -j,
+          currNodesEx   : assoc(currCoord,nodesExIn),
+          memLoc        : [],
+          for k : 1 thru numBasisIn do (
+            nodeStorer : assoc(currNodesEx[k],storedNodeToCell),
+            memIdx     : sublist_indices(assoc(nodeStorer,storedNodesExIn),lambda([x],x=currNodesEx[k]))[1]-1,
+            memLoc     : endcons(sconcat(dataStrsIn[assoc(nodeStorer,cellToIdxStoredIn)],"[",string(memIdx),"]"),memLoc)
+          ),
+          cellToCoef : endcons([currCoord,memLoc],cellToCoef)
+        )
+      ),
+
+      if (stencilLocIn[dI] < 1) then (
+        /* Add stencilSizeIn[dI][2] nearest upper cells. */
+        for j : 1 thru stencilSizeIn[dI][2] do (
+          currCoord     : copylist(cellToCoef[pS][1]),
+          currCoord[dI] : j,
+          currNodesEx   : assoc(currCoord,nodesExIn),
+          memLoc        : [],
+          for k : 1 thru numBasisIn do (
+            nodeStorer : assoc(currNodesEx[k],storedNodeToCell),
+            memIdx     : sublist_indices(assoc(nodeStorer,storedNodesExIn),lambda([x],x=currNodesEx[k]))[1]-1,
+            memLoc     : endcons(sconcat(dataStrsIn[assoc(nodeStorer,cellToIdxStoredIn)],"[",string(memIdx),"]"),memLoc)
+          ),
+          cellToCoef : endcons([currCoord,memLoc],cellToCoef)
+        )
       )
     )
   ),
@@ -458,25 +479,17 @@ weakPoissonStored(basisTypeIn,varsIn,polyOrderIn,stencilLocIn,currBCIn) := block
   numStoredNodes : length(storedNodes),
 
   nodesEx       : getExtendedNodes(basisTypeIn,polyOrderIn,stencilLocIn,makelist([1,0],i,1,dim)),
-  weqNodesEx    : getExtendedWeqNodes(basisTypeIn,polyOrderIn,stencilLocIn,makelist([1,0],i,1,dim)),
   storedNodesEx : getExtendedStoredNodes(basisTypeIn,polyOrderIn,stencilLocIn,makelist([1,1],i,1,dim)),
 
-  /* Associative list of nodes on extended logical space, and
-     the cell that contributes that node to the weak form. */
-  weqNodeToCell : invertAssocList(weqNodesEx),
-
-  /* Associative list of nodes on extended logical space, and the cell that stores that node. */
-  storedNodeToCell : invertAssocList(storedNodesEx),
-
   /* Associative list between cell coordinates and a linear (base 1) index. */
-  cellToIdxWeq    : getCellToIdx(stencilLocIn,makelist([1,0],i,1,dim)),
   cellToIdxStored : getCellToIdx(stencilLocIn,makelist([1,1],i,1,dim)),
 
   /* List of strings identifying each cell involved in the stencil. */
   dataStrs : getDataStr(makelist([1,1],i,1,dim),stencilLocIn,varsIn),
 
   /* Associative list of cell coordinate, and the memory location of each node. */
-  cellToCoef : getCellToCoef(numB,stencilLocIn,nodesEx,storedNodesEx,storedNodeToCell,cellToIdxStored,dataStrs),
+  cellToCoef : getCellToCoef(numB,stencilLocIn,nodesEx,storedNodesEx,
+                             cellToIdxStored,dataStrs,makelist([1,0],i,1,dim)),
 
   /* Lists where we will store the actual stencil.*/
   stencilLHS : makelist(0,i,1,numStoredNodes),

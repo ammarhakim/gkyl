@@ -84,8 +84,8 @@ for bInd : 1 thru length(bName) do (
       /* ~~~~~~~~~~~~~~ DG solver kernels ~~~~~~~~~~~~~~ */
 
       /* Prolongation and restriction operators. */
-      printf(fh, "void MGpoissonDGProlong~ax~a_P~a(const double *fldC, double **fldF);~%", ci, bName[bInd], polyOrder),
-      printf(fh, "void MGpoissonDGRestrict~ax~a_P~a(double **fldF, double *fldC);~%", ci, bName[bInd], polyOrder),
+      printf(fh, "void MGpoissonDGprolong~ax~a_P~a(const double *fldC, double **fldF);~%", ci, bName[bInd], polyOrder),
+      printf(fh, "void MGpoissonDGrestrict~ax~a_P~a(double **fldF, double *fldC);~%", ci, bName[bInd], polyOrder),
       printf(fh, "~%"),
 
       /* Smoothers. */
@@ -96,9 +96,9 @@ for bInd : 1 thru length(bName) do (
       findBoundaryStrCombo(fh, "MGpoissonDGDampedJacobi", "const double omega, double **dx, const double *bcVals, double **rho, double **phiPrev, double **phi", bName[bInd], ci, bcKeyDG),
       printf(fh, "~%"),
 
-      /* Residue kernels. */
-      printf(fh, "void MGpoissonDGResidue~ax~a_P~a(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);~%", ci, bName[bInd], polyOrder),
-      findBoundaryStrCombo(fh, "MGpoissonDGResidue", "double **dx, const double *bcVals, double **rho, double **phi, double *resOut", bName[bInd], ci, bcKeyDG),
+      /* Residual kernels. */
+      printf(fh, "void MGpoissonDGresidual~ax~a_P~a(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonDGresidual", "double **dx, const double *bcVals, double **rho, double **phi, double *resOut", bName[bInd], ci, bcKeyDG),
       printf(fh, "~%"),
 
       /* ~~~~~~~~~~~~~~ FEM solver kernels. ~~~~~~~~~~~~~~ */
@@ -123,15 +123,15 @@ for bInd : 1 thru length(bName) do (
       printf(fh, "~%"),
 
       /* Prolongation and restriction operators. */
-      printf(fh, "void MGpoissonFEMProlong~ax~a_P~a(const double *fldC, double **fldF);~%", ci, bName[bInd], polyOrder),
-      findBoundaryStrCombo(fh, "MGpoissonFEMProlong", "const double *fldC, double **fldF", bName[bInd], ci, bcKeyFEM),
-      printf(fh, "void MGpoissonFEMRestrict~ax~a_P~a(double **fldF, double *fldC);~%", ci, bName[bInd], polyOrder),
-      findBoundaryStrCombo(fh, "MGpoissonFEMRestrict", "double **fldF, double *fldC", bName[bInd], ci, bcKeyFEM),
+      printf(fh, "void MGpoissonFEMprolong~ax~a_P~a(const int *idxF, double **fldC, double *fldF);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonFEMprolong", "const int *idxF, double **fldC, double *fldF", bName[bInd], ci, bcKeyFEM),
+      printf(fh, "void MGpoissonFEMrestrict~ax~a_P~a(double **fldF, double *fldC);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonFEMrestrict", "double **fldF, double *fldC", bName[bInd], ci, bcKeyFEM),
       printf(fh, "~%"),
 
-      /* Residue kernels. */
-      printf(fh, "void MGpoissonFEMResidue~ax~a_P~a(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);~%", ci, bName[bInd], polyOrder),
-      findBoundaryStrCombo(fh, "MGpoissonFEMResidue", "double **dx, const double *bcVals, double **rho, double **phi, double *resOut", bName[bInd], ci, bcKeyFEM),
+      /* Residual kernels. */
+      printf(fh, "void MGpoissonFEMresidual~ax~a_P~a(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonFEMresidual", "double **dx, const double *bcVals, double **rho, double **phi, double *resOut", bName[bInd], ci, bcKeyFEM),
       printf(fh, "~%"),
 
       /* L2 norm. */

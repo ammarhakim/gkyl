@@ -1,0 +1,412 @@
+/*
+   Generate kernels for FEM prolongation operator.
+   This is an attempt at generating kernels that work in general grids,
+   which require passing cell center and cell lengths of participating
+   cells. It consists of considering the weak equality of a coarse grid
+   function across three cells, and projecting it onto 3 consecutive
+   fine-grid cells.
+
+   Some simple limiting cases appear to work in Maxima, but it has not
+   been shown to work once it is plugged into Lua/Gkeyll.
+*/
+
+load("modal-basis");
+load("out-scripts");
+load("nodalOperations/nodalFunctions");
+load("mgPoisson-calc/MGpoissonUtil");
+load("mgPoisson-calc/FEMnodalFuncs");
+
+fpprec : 24$
+
+coarseCellContributions(varsIn,basisIn,stencilLocIn,cellToCoefIn,cellToDataStrsIn,coordFIn,coefToEqLHSIn) := block([dim,
+  numB,fI,cI,coordC,fldC_e,DxF,xcF,varMap,dI,intLims,lhsCont,rhsCont,cellsSoFar,loc,pmC,DxC,xcC],
+  /* Given a fine-grid cell with coordinate coordFIn (relative to the central fine-grid
+     cell we are computing the coefficients of), add the contributions from
+     projecting the necessary coarse-grid cells onto it. */
+
+  dim  : length(varsIn), 
+  numB : length(basisIn),
+
+  fI : sublist_indices(cellToCoefIn,lambda([x],x[1]=coordFIn))[1], /* Linear index of current fine-grid cell. */
+
+  /* Cell center and cell width in this fine-grid cell. */
+  DxF : eval_string(sconcat("dxF",assoc(coordFIn,cellToDataStrsIn))),
+  xcF : eval_string(sconcat("wF",assoc(coordFIn,cellToDataStrsIn))),
+
+  /* Loop over coarse grid cells to compute the LHS contributions. */
+  cI      : 1,
+  coordC  : makelist(0,i,1,dim),
+  /* Expansion of the coarse-grid field, cell center and cell width in this cell. */
+  fldC_e  : doExpand(makelist(eval_string(sconcat("fldC",cellToCoefIn[cI][2][k])),k,1,numB),basisIn),
+  DxC     : eval_string(sconcat("dxC",assoc(coordC,cellToDataStrsIn))),
+  xcC     : eval_string(sconcat("wC",assoc(coordC,cellToDataStrsIn))),
+  /* Contribution to LHS: inner product of coarse field with fine-grid basis. */
+  varMap  : makelist(varsIn[d],d,1,dim),
+  for d : 1 thru dim do ( varMap[d] : (2/DxC[d-1])*(xcF[d-1]-xcC[d-1]+(DxF[d-1]/2)*varsIn[d]) ),
+  intLims : makelist([eval_string(sconcat("lLF",assoc(coordFIn,cellToDataStrsIn),"C",assoc(coordC,cellToDataStrsIn)))[d-1],
+                      eval_string(sconcat("lUF",assoc(coordFIn,cellToDataStrsIn),"C",assoc(coordC,cellToDataStrsIn)))[d-1]],
+                      d,1,dim),
+  lhsCont : fullratsimp(calcInnerProdListGen(varsIn,intLims,1,basisIn,subst(makelist(varsIn[d]=varMap[d],d,1,dim),fldC_e))),
+  /* Check if an entry corresponding to each node of the fine cell exists
+     in the LHS. If it does, add to it. If it doesn't, append a new entry. */
+  for k : 1 thru numB do (
+    unkIdx : sublist_indices(coefToEqLHSIn,lambda([x],x[1]=eval_string(sconcat("fldF",cellToCoefIn[fI][2][k])))),
+    if length(unkIdx)>0 then (
+      coefToEqLHSIn[unkIdx[1]][2] : coefToEqLHSIn[unkIdx[1]][2]+lhsCont[k]
+    ) else (
+      coefToEqLHSIn : endcons([eval_string(sconcat("fldF",cellToCoefIn[fI][2][k])),lhsCont[k]], coefToEqLHSIn)
+    )
+  ),
+  for dI : 1 thru dim do (
+    cellsSoFar : cI,
+    for pS : 1 thru cellsSoFar do (
+      loc : stencilLocIn[dI],
+      for pmC : -1+2*max(0,-loc) thru 1+2*min(0,-loc) step 2-abs(loc) do (
+        coordC     : copylist(cellToCoefIn[pS][1]),
+        coordC[dI] : pmC,
+        cI : cI+1,
+/* ................................................................................................. */
+        /* For 1D interior stencils, for example, the 1st coarse cell does
+           not need to be projected onto the 3rd fine cell, and the 3rd
+           coarse cell does not need to be projected onto the 1st fine cell. */
+        if (coordC[dI]*coordFIn[dI] > -1) then (
+/* ................................................................................................. */
+          /* Expansion of the coarse-grid field, cell center and cell width in this cell. */
+          fldC_e  : doExpand(makelist(eval_string(sconcat("fldC",cellToCoefIn[cI][2][k])),k,1,numB),basisIn),
+          DxC     : eval_string(sconcat("dxC",assoc(coordC,cellToDataStrsIn))),
+          xcC     : eval_string(sconcat("wC",assoc(coordC,cellToDataStrsIn))),
+          /* Contribution to LHS: inner product of coarse field with fine-grid basis. */
+          varMap  : makelist(varsIn[d],d,1,dim),
+          for d : 1 thru dim do ( varMap[d] : (2/DxC[d-1])*(xcF[d-1]-xcC[d-1]+(DxF[d-1]/2)*varsIn[d]) ),
+          intLims : makelist([eval_string(sconcat("lLF",assoc(coordFIn,cellToDataStrsIn),"C",assoc(coordC,cellToDataStrsIn)))[d-1],
+                              eval_string(sconcat("lUF",assoc(coordFIn,cellToDataStrsIn),"C",assoc(coordC,cellToDataStrsIn)))[d-1]],
+                              d,1,dim),
+          lhsCont : fullratsimp(calcInnerProdListGen(varsIn,intLims,1,basisIn,subst(makelist(varsIn[d]=varMap[d],d,1,dim),fldC_e))),
+          /* Check if an entry corresponding to each node of the fine cell exists
+             in the LHS. If it does, add to it. If it doesn't, append a new entry. */
+          for k : 1 thru numB do (
+            unkIdx : sublist_indices(coefToEqLHSIn,lambda([x],x[1]=eval_string(sconcat("fldF",cellToCoefIn[fI][2][k])))),
+            if length(unkIdx)>0 then (
+              coefToEqLHSIn[unkIdx[1]][2] : coefToEqLHSIn[unkIdx[1]][2]+lhsCont[k]
+            ) else (
+              coefToEqLHSIn : endcons([eval_string(sconcat("fldF",cellToCoefIn[fI][2][k])),lhsCont[k]], coefToEqLHSIn)
+            )
+          )
+        )
+      )
+    )
+  ),
+  return(coefToEqLHSIn)
+)$
+
+calcFEMProlongationOp(fh, funcNm, dim, basisFun, pMax) := block([fI,dI,pS],
+  /* Prolongation operator transferring a coarse-grid field to the
+     fine grid. Currently limited to coarsening 2^a grids by a
+     factor of 2 in both directions. */
+
+  kill(varsC, varsP, basisC, basisP),
+
+  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
+
+  /* Associative list between stencil location (-1,0,1) and variable
+     strings used in kernel names. */
+  coordVarS : getCoordVarS(varsC),
+
+  /* List of stencil locations. Each entry is a dim-dimensional list
+     with -1 meaning it is at a lower boundary, 1 upper boundary, or
+     0 away from boundaries in that direction. */ 
+  stencilLoc : getStencilCoords(dim),
+
+  /* Types of boundary conditions for which to generate kernels.
+       =0 periodic
+       =1 Dirichlet
+       =2 Neumann
+       =3 Robin
+     For periodic we'll assume ghost cells are filled accordingly
+     and use an interior stencil. */
+  bcTypes  : [0, 1, 2, 3],
+  bcStrs   : ["", "Dirichlet", "Neumann", "Robin"],
+  bcKey    : makelist([bcTypes[i],bcStrs[i]],i,1,length(bcTypes)),
+
+  for sI : 1 thru length(stencilLoc) do (
+
+    /* Obtain the different BC combinations for this stencil.
+       Will generate a separate kernel for each. */
+    bcCombos : getBCcombos(stencilLoc[sI],bcTypes),
+
+    /* Size of stencil (in coarse grid cells) above and below the central coarse cell. */
+    stencilSizeC : makelist([1,1],i,1,dim),
+    for d : 1 thru dim do (
+      if stencilLoc[sI][d]=-1 then ( stencilSizeC[d][1] : 0 ),
+      if stencilLoc[sI][d]= 1 then ( stencilSizeC[d][2] : 0 )
+    ),
+  
+    /* Loop over BC combinations. Will create a separate kernel for each. */
+    for bcI : 1 thru length(bcCombos) do (
+
+      currBC : copylist(bcCombos[bcI]),
+
+      /* String used in kernel name, identifying stencil location and BC. */
+      stencilStr : getStencilStr(stencilLoc[sI],coordVarS,currBC,bcKey),
+
+      for polyOrder : 1 thru pMax do (
+        bN       : getNodalBasis(basisFun, dim, polyOrder),
+        numBasis : length(bN),
+  
+        nodes : args(getNodes(basisFun, dim, polyOrder)),
+  
+        /* Each cell only stores the lower left nodes (except for upper
+           boundary nodes with non-periodic BCs. */
+        storedNodes    : getStoredNodes(nodes,stencilLoc[sI]),
+        numStoredNodes : length(storedNodes), 
+  
+        /* In 1D: build the weak equality of the functions on the two grids
+           using 3 coarse cells in the case of interior cells, or 2 cells in
+           the case of boundary cells. For each of these coarse cells, we'll
+           loop over 2 fine cells (for dxF/dxC=2). */
+        nodesEx       : getExtendedNodes(basisFun,polyOrder,stencilLoc[sI],makelist([1,2],i,1,dim)),
+        storedNodesEx : getExtendedStoredNodes(basisFun,polyOrder,stencilLoc[sI],makelist([1,2],i,1,dim)),
+
+        /* Associative list between cell coordinates and a linear (base 1) index. */
+        cellToIdx : getCellToIdx(stencilLoc[sI],makelist([1,2],i,1,dim)),
+      
+        /* List of strings identifying each cell involved in the stencil. */
+        dataStrs : getDataStr(makelist([1,2],i,1,dim),stencilLoc[sI],varsC),
+      
+        /* Associative list of cell coordinate, and the memory location of each node. */
+        cellToCoef : getCellToCoef(numBasis,stencilLoc[sI],nodesEx,
+                                   storedNodesEx,cellToIdx,dataStrs,makelist([1,1],i,1,dim)),
+
+        /* Associative list of cell coordinate, and string that identifies that cell. */
+        cellToDataStrs : getCellToDataStr(makelist([1,1],i,1,dim),stencilLoc[sI],varsC),
+
+        /* Associative list where we'll place the weak equality equation to be solved.
+           The key of each entry will be the fine-field coefficient corresponding to each node. */
+        coefToEqLHS : [],
+        coefToEqRHS : [],
+
+        /* Contributions from projecting onto central fine-grid cell. */
+        fI      : 1,
+        coordF  : makelist(0,i,1,dim),
+        /* Contribution to RHS: inner product of fine field with fine-grid basis. */
+        fldF_e  : doExpand(makelist(eval_string(sconcat("fldF",cellToCoef[fI][2][k])),k,1,numBasis),bN),
+        rhsCont : calcInnerProdList(varsC,1,bN,fldF_e),
+        for k : 1 thru numBasis do (
+          coefToEqRHS : endcons([eval_string(sconcat("fldF",cellToCoef[fI][2][k])),rhsCont[k]], coefToEqRHS)
+        ),
+        /* Add contributions from projecting coarse cells onto this fine cell. */
+        coefToEqLHS : coarseCellContributions(varsC,bN,stencilLoc[sI],cellToCoef,cellToDataStrs,coordF,coefToEqLHS),
+         
+        /* Now loop over the rest of the fine-grid cells. */
+        for dI : 1 thru dim do (
+          cellsSoFar : fI,
+          for pS : 1 thru cellsSoFar do (
+            loc : stencilLoc[sI][dI],
+            for pmF : -1+2*max(0,-loc) thru 1+2*min(0,-loc) step 2-abs(loc) do (
+              fI : fI+1,
+              coordF     : copylist(cellToCoef[pS][1]),
+              coordF[dI] : pmF,
+              /* Contribution to RHS: inner product of fine field with fine-grid basis. */
+              fldF_e  : doExpand(makelist(eval_string(sconcat("fldF",cellToCoef[fI][2][k])),k,1,numBasis),bN),
+              rhsCont : calcInnerProdList(varsC,1,bN,fldF_e),
+              for k : 1 thru numBasis do (
+                unkIdx : sublist_indices(coefToEqRHS,lambda([x],x[1]=eval_string(sconcat("fldF",cellToCoef[fI][2][k])))),
+                if length(unkIdx)>0 then (
+                  coefToEqRHS[unkIdx[1]][2] : coefToEqRHS[unkIdx[1]][2]+rhsCont[k]
+                ) else (
+                  coefToEqRHS : endcons([eval_string(sconcat("fldF",cellToCoef[fI][2][k])),rhsCont[k]], coefToEqRHS)
+                )
+              ),
+              /* Add contributions from projecting coarse cells onto this fine cell. */
+              coefToEqLHS : coarseCellContributions(varsC,bN,stencilLoc[sI],cellToCoef,cellToDataStrs,coordF,coefToEqLHS)
+            )
+          )
+        ),
+
+        numEq : length(coefToEqLHS),
+        eqLHS : makelist(coefToEqLHS[i][2],i,1,numEq),
+        eqRHS : makelist(coefToEqRHS[i][2],i,1,numEq),
+
+        unkList : listofvars(eqRHS), 
+        eqSolv  : linsolve(makelist(eqLHS[i]=eqRHS[i],i,1,numEq), unkList),
+
+        fldF_c  : makelist(0,i,1,numStoredNodes),
+        for k : 1 thru numStoredNodes do (
+          nodeIdx   : sublist_indices(nodes,lambda([x],x=storedNodes[k]))[1],
+          idx       : sublist_indices(unkList,lambda([x],x=eval_string(sconcat("fldF",cellToCoef[1][2][nodeIdx]))))[1],
+          fldF_c[k] : rhs(eqSolv[idx])
+        ),
+
+
+        /* ............................................................................ */
+        /* In addition to limiting which projections take place with an
+           if-statement in coarseCellContributions, some important
+           simplifications take place below. */
+
+        /* Simplification for uniform grids. */
+        subList : [],
+        fI      : 1,
+        for dI : 1 thru dim do (
+          cellsSoFar : fI,
+          for pS : 1 thru cellsSoFar do (
+            loc : stencilLoc[sI][dI],
+            for pm : -1+2*max(0,-loc) thru 1+2*min(0,-loc) step 2-abs(loc) do (
+              fI : fI+1,
+              coord     : copylist(cellToCoef[pS][1]),
+              coord[dI] : pm,
+              DxF       : eval_string(sconcat("dxF",assoc(coord,cellToDataStrs))),
+              DxC       : eval_string(sconcat("dxC",assoc(coord,cellToDataStrs))),
+              subList   : append(subList,[DxF=dxFC,DxC=dxCC])
+            )
+          )
+        ),
+        fldF_c : fullratsimp(subst(subList,fldF_c)),
+        /* Simplification for fine cells wholly contained within a coarse
+           cell. In this case the limits of integration when projecting the central
+           coarse cell onto the central fine cell are [-1,+1]. */
+        subList : append(makelist(lLFCCC[d-1]=-1,d,1,dim),makelist(lUFCCC[d-1]=1,d,1,dim)),
+        fldF_c  : fullratsimp(subst(subList,fldF_c)),
+        /* Simplification for 2^a grids, and coarsening by a factor of 2 in every direction. */
+        subList : makelist(dxCC[d-1]=2*dxFC[d-1],d,1,dim),
+        fldF_c  : fullratsimp(subst(subList,fldF_c)),
+
+        if (1=2) then (
+        /* The following is used to test the 1x case with 2^a grids and 2x coarsening. */
+        subList : [
+        /*
+                   */
+        /*
+                   lLFLxCLx[0]=-1,
+                   lUFLxCLx[0]=1,
+                   lLFLxCC[0] =1,
+                   lUFLxCC[0] =1,
+                   lLFCCLx[0] =1,
+                   lUFCCLx[0] =1,
+                   lLFCCC[0]  =-1,
+                   lUFCCC[0]  =1,
+                   lLFCCUx[0] =1,
+                   lUFCCUx[0] =1,
+                   lLFUxCC[0] =-1,
+                   lUFUxCC[0] =1,
+                   lLFUxCUx[0]=1,
+                   lUFUxCUx[0]=1,
+                   wCC[0]=wFC[0]+dxFC[0]/2,
+                   wCLx[0]=wFC[0]-3*dxFC[0]/2,
+                   wCUx[0]=wFC[0]+5*dxFC[0]/2,
+                   wFLx[0]=wFC[0]-dxFC[0],
+                   wFUx[0]=wFC[0]+dxFC[0]
+                   */
+        /*
+                   */
+                   lLFLxCLx[0]=1,
+                   lUFLxCLx[0]=1,
+                   lLFLxCC[0] =-1,
+                   lUFLxCC[0] =1,
+                   lLFCCLx[0] =1,
+                   lUFCCLx[0] =1,
+                   lLFCCC[0]  =-1,
+                   lUFCCC[0]  =1,
+                   lLFCCUx[0] =1,
+                   lUFCCUx[0] =1,
+                   lLFUxCC[0] =1,
+                   lUFUxCC[0] =1,
+                   lLFUxCUx[0]=-1,
+                   lUFUxCUx[0]=1,
+                   wCC[0]=wFC[0]-dxFC[0]/2,
+                   wCLx[0]=wFC[0]-5*dxFC[0]/2,
+                   wCUx[0]=wFC[0]+3*dxFC[0]/2,
+                   wFLx[0]=wFC[0]-dxFC[0],
+                   wFUx[0]=wFC[0]+dxFC[0]
+        ],
+        fldF_c  : fullratsimp(subst(subList,fldF_c))
+        ),
+
+        /* End of simplifications. */
+        /* ............................................................................ */
+
+        /* Function declaration with input/output variables. */
+        printf(fh, "void ~a_~aP~a(double **wC, double **wF, double **dxC, double **dxF, double **fldC, double *fldF) ~%{ ~%", funcNm, stencilStr, polyOrder),
+        printf(fh, "  // wC:   cell center of coarse-grid cells pointed to by the stencil.~%"),
+        printf(fh, "  // wF:   cell center of fine-grid cell.~%"),
+        printf(fh, "  // dxC:  cell length of coarse-grid cells pointed to by the stencil.~%"),
+        printf(fh, "  // dxF:  cell length of fine-grid cell.~%"),
+        printf(fh, "  // fldC: coarse-grid field in cells pointed to by the stencil.~%"),
+        printf(fh, "  // fldF: fine-grid field.~%"),
+        printf(fh, "~%"),
+
+        /* Pointers to fields in cells used by the stencil. */
+        varRoots : ["wC","wF","dxC","dxF","fldC"],
+        for vI : 1 thru length(varRoots) do (
+          for i : 1 thru length(dataStrs) do (
+            isPresent : false,
+            for k : 1 thru numStoredNodes do (
+              if not freeof(eval_string(sconcat(varRoots[vI],dataStrs[i])),fldF_c) then ( isPresent : true )
+            ),
+            if isPresent then (
+              printf(fh, "  double *~a~a = ~a[~a]; ~%", varRoots[vI], dataStrs[i], varRoots[vI], i-1)
+            )
+          )
+        ),
+        printf(fh, "~%"),
+
+        /* Limits of integration in terms of cell centers and lengths. */
+        isDeclared : [],
+        limLetter  : ["L","U"],
+        for d : 1 thru dim do (
+          for i : 1 thru length(dataStrs) do (
+            for j : 1 thru length(dataStrs) do (
+              for k : 1 thru 2 do (
+                isPresent : false,
+                limName   : eval_string(sconcat("l",limLetter[k],"F",dataStrs[i],"C",dataStrs[j])),
+                for k : 1 thru numStoredNodes do (
+                  if not freeof(limName[d-1],fldF_c) then ( isPresent : true )
+                ),
+                if isPresent then (
+                  if (not assoc(limName,isDeclared)) then (
+                    isDeclared : endcons([limName,true],isDeclared),
+                    printf(fh, "  double ~a[~a];~%", limName, dim)
+                  ),
+                  DxF : eval_string(sconcat("dxF",dataStrs[i])),
+                  DxC : eval_string(sconcat("dxC",dataStrs[j])),
+                  xcF : eval_string(sconcat("wF",dataStrs[i])),
+                  xcC : eval_string(sconcat("wC",dataStrs[j])),
+                  if k=1 then (
+                    intLim : 1-(2/DxF[d-1])*(xcF[d-1]+DxF[d-1]/2-(xcC[d-1]-DxC[d-1]/2)),
+/* ................................................................................................. */
+                    intLim : subst([DxF=dxFC,DxC=dxCC],intLim),  /* Simplification for uniform grids. */
+                    intLim : subst(dxCC[d-1]=2*dxFC[d-1],intLim),  /* Simplification for 2^a grids and 2x coarsening in every direction.*/
+/* ................................................................................................. */
+                    printf(fh, "  ~a = std::min( 1.0,std::max(-1.0,~a)); ~%", limName[d-1], float(intLim))
+                  ) else (
+                    intLim : -1+(2/DxF[d-1])*(xcC[d-1]+DxC[d-1]/2-(xcF[d-1]-DxF[d-1]/2)),
+/* ................................................................................................. */
+                    intLim : subst([DxF=dxFC,DxC=dxCC],intLim),  /* Simplification for uniform grids. */
+                    intLim : subst(dxCC[d-1]=2*dxFC[d-1],intLim),  /* Simplification for 2^a grids and 2x coarsening in every direction.*/
+/* ................................................................................................. */
+                    printf(fh, "  ~a = std::max(-1.0,std::min( 1.0,~a)); ~%", limName[d-1], float(intLim))
+                  )
+                )
+              )
+            )
+          )
+        ),
+        printf(fh, "~%"),
+
+        removePowersOf : [],
+        for i : 1 thru length(dataStrs) do (
+          for j : 1 thru length(dataStrs) do (
+            removePowersOf : endcons(eval_string(sconcat("lLF",dataStrs[i],"C",dataStrs[j])),removePowersOf),
+            removePowersOf : endcons(eval_string(sconcat("lUF",dataStrs[i],"C",dataStrs[j])),removePowersOf)
+          )
+        ),
+        writeCExprs1noPowers(fldF, fldF_c, removePowersOf, dim),
+  
+        printf(fh, "~%"),
+        printf(fh, "}~%"),
+        printf(fh, "~%")
+  
+      )
+    )
+  )
+)$
+

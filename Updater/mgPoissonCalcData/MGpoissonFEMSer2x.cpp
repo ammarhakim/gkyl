@@ -1,6 +1,6 @@
 #include <MGpoissonModDecl.h> 
  
-void MGpoissonFEMProlong2xSer_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -26,7 +26,7 @@ void MGpoissonFEMProlong2xSer_P1(const double *fldC, double **fldF)
   fldF11[0] += 0.25*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxDirichlet_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxDirichlet_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -46,7 +46,7 @@ void MGpoissonFEMProlong2xSer_LxDirichlet_P1(const double *fldC, double **fldF)
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxNeumann_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxNeumann_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -66,7 +66,7 @@ void MGpoissonFEMProlong2xSer_LxNeumann_P1(const double *fldC, double **fldF)
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxRobin_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxRobin_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -86,7 +86,7 @@ void MGpoissonFEMProlong2xSer_LxRobin_P1(const double *fldC, double **fldF)
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxDirichlet_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxDirichlet_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -115,7 +115,7 @@ void MGpoissonFEMProlong2xSer_UxDirichlet_P1(const double *fldC, double **fldF)
   fldF11[0] += 0.25*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxNeumann_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxNeumann_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -144,7 +144,7 @@ void MGpoissonFEMProlong2xSer_UxNeumann_P1(const double *fldC, double **fldF)
   fldF11[0] += 0.25*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxRobin_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxRobin_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -173,7 +173,7 @@ void MGpoissonFEMProlong2xSer_UxRobin_P1(const double *fldC, double **fldF)
   fldF11[0] += 0.25*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LyDirichlet_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LyDirichlet_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -193,7 +193,7 @@ void MGpoissonFEMProlong2xSer_LyDirichlet_P1(const double *fldC, double **fldF)
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LyNeumann_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LyNeumann_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -213,7 +213,7 @@ void MGpoissonFEMProlong2xSer_LyNeumann_P1(const double *fldC, double **fldF)
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LyRobin_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LyRobin_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -233,7 +233,7 @@ void MGpoissonFEMProlong2xSer_LyRobin_P1(const double *fldC, double **fldF)
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UyDirichlet_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UyDirichlet_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -262,7 +262,7 @@ void MGpoissonFEMProlong2xSer_UyDirichlet_P1(const double *fldC, double **fldF)
   fldF11[0] += 0.25*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UyNeumann_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UyNeumann_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -291,7 +291,7 @@ void MGpoissonFEMProlong2xSer_UyNeumann_P1(const double *fldC, double **fldF)
   fldF11[0] += 0.25*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UyRobin_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UyRobin_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -320,7 +320,7 @@ void MGpoissonFEMProlong2xSer_UyRobin_P1(const double *fldC, double **fldF)
   fldF11[0] += 0.25*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxDirichletLyDirichlet_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxDirichletLyDirichlet_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -336,7 +336,7 @@ void MGpoissonFEMProlong2xSer_LxDirichletLyDirichlet_P1(const double *fldC, doub
   fldF3[0] += fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxDirichletLyNeumann_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxDirichletLyNeumann_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -352,7 +352,7 @@ void MGpoissonFEMProlong2xSer_LxDirichletLyNeumann_P1(const double *fldC, double
   fldF3[0] += fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxDirichletLyRobin_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxDirichletLyRobin_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -368,7 +368,7 @@ void MGpoissonFEMProlong2xSer_LxDirichletLyRobin_P1(const double *fldC, double *
   fldF3[0] += fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxNeumannLyDirichlet_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxNeumannLyDirichlet_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -384,7 +384,7 @@ void MGpoissonFEMProlong2xSer_LxNeumannLyDirichlet_P1(const double *fldC, double
   fldF3[0] += fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxNeumannLyNeumann_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxNeumannLyNeumann_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -400,7 +400,7 @@ void MGpoissonFEMProlong2xSer_LxNeumannLyNeumann_P1(const double *fldC, double *
   fldF3[0] += fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxNeumannLyRobin_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxNeumannLyRobin_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -416,7 +416,7 @@ void MGpoissonFEMProlong2xSer_LxNeumannLyRobin_P1(const double *fldC, double **f
   fldF3[0] += fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxRobinLyDirichlet_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxRobinLyDirichlet_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -432,7 +432,7 @@ void MGpoissonFEMProlong2xSer_LxRobinLyDirichlet_P1(const double *fldC, double *
   fldF3[0] += fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxRobinLyNeumann_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxRobinLyNeumann_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -448,7 +448,7 @@ void MGpoissonFEMProlong2xSer_LxRobinLyNeumann_P1(const double *fldC, double **f
   fldF3[0] += fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxRobinLyRobin_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxRobinLyRobin_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -464,7 +464,7 @@ void MGpoissonFEMProlong2xSer_LxRobinLyRobin_P1(const double *fldC, double **fld
   fldF3[0] += fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxDirichletUyDirichlet_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxDirichletUyDirichlet_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -486,7 +486,7 @@ void MGpoissonFEMProlong2xSer_LxDirichletUyDirichlet_P1(const double *fldC, doub
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxDirichletUyNeumann_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxDirichletUyNeumann_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -508,7 +508,7 @@ void MGpoissonFEMProlong2xSer_LxDirichletUyNeumann_P1(const double *fldC, double
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxDirichletUyRobin_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxDirichletUyRobin_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -530,7 +530,7 @@ void MGpoissonFEMProlong2xSer_LxDirichletUyRobin_P1(const double *fldC, double *
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxNeumannUyDirichlet_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxNeumannUyDirichlet_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -552,7 +552,7 @@ void MGpoissonFEMProlong2xSer_LxNeumannUyDirichlet_P1(const double *fldC, double
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxNeumannUyNeumann_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxNeumannUyNeumann_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -574,7 +574,7 @@ void MGpoissonFEMProlong2xSer_LxNeumannUyNeumann_P1(const double *fldC, double *
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxNeumannUyRobin_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxNeumannUyRobin_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -596,7 +596,7 @@ void MGpoissonFEMProlong2xSer_LxNeumannUyRobin_P1(const double *fldC, double **f
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxRobinUyDirichlet_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxRobinUyDirichlet_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -618,7 +618,7 @@ void MGpoissonFEMProlong2xSer_LxRobinUyDirichlet_P1(const double *fldC, double *
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxRobinUyNeumann_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxRobinUyNeumann_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -640,7 +640,7 @@ void MGpoissonFEMProlong2xSer_LxRobinUyNeumann_P1(const double *fldC, double **f
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_LxRobinUyRobin_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_LxRobinUyRobin_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -662,7 +662,7 @@ void MGpoissonFEMProlong2xSer_LxRobinUyRobin_P1(const double *fldC, double **fld
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxDirichletLyDirichlet_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxDirichletLyDirichlet_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -684,7 +684,7 @@ void MGpoissonFEMProlong2xSer_UxDirichletLyDirichlet_P1(const double *fldC, doub
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxDirichletLyNeumann_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxDirichletLyNeumann_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -706,7 +706,7 @@ void MGpoissonFEMProlong2xSer_UxDirichletLyNeumann_P1(const double *fldC, double
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxDirichletLyRobin_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxDirichletLyRobin_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -728,7 +728,7 @@ void MGpoissonFEMProlong2xSer_UxDirichletLyRobin_P1(const double *fldC, double *
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxNeumannLyDirichlet_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxNeumannLyDirichlet_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -750,7 +750,7 @@ void MGpoissonFEMProlong2xSer_UxNeumannLyDirichlet_P1(const double *fldC, double
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxNeumannLyNeumann_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxNeumannLyNeumann_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -772,7 +772,7 @@ void MGpoissonFEMProlong2xSer_UxNeumannLyNeumann_P1(const double *fldC, double *
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxNeumannLyRobin_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxNeumannLyRobin_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -794,7 +794,7 @@ void MGpoissonFEMProlong2xSer_UxNeumannLyRobin_P1(const double *fldC, double **f
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxRobinLyDirichlet_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxRobinLyDirichlet_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -816,7 +816,7 @@ void MGpoissonFEMProlong2xSer_UxRobinLyDirichlet_P1(const double *fldC, double *
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxRobinLyNeumann_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxRobinLyNeumann_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -838,7 +838,7 @@ void MGpoissonFEMProlong2xSer_UxRobinLyNeumann_P1(const double *fldC, double **f
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxRobinLyRobin_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxRobinLyRobin_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -860,7 +860,7 @@ void MGpoissonFEMProlong2xSer_UxRobinLyRobin_P1(const double *fldC, double **fld
   fldF6[0] += 0.5*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxDirichletUyDirichlet_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxDirichletUyDirichlet_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -893,7 +893,7 @@ void MGpoissonFEMProlong2xSer_UxDirichletUyDirichlet_P1(const double *fldC, doub
   fldF11[0] += 0.25*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxDirichletUyNeumann_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxDirichletUyNeumann_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -926,7 +926,7 @@ void MGpoissonFEMProlong2xSer_UxDirichletUyNeumann_P1(const double *fldC, double
   fldF11[0] += 0.25*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxDirichletUyRobin_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxDirichletUyRobin_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -959,7 +959,7 @@ void MGpoissonFEMProlong2xSer_UxDirichletUyRobin_P1(const double *fldC, double *
   fldF11[0] += 0.25*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxNeumannUyDirichlet_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxNeumannUyDirichlet_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -992,7 +992,7 @@ void MGpoissonFEMProlong2xSer_UxNeumannUyDirichlet_P1(const double *fldC, double
   fldF11[0] += 0.25*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxNeumannUyNeumann_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxNeumannUyNeumann_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -1025,7 +1025,7 @@ void MGpoissonFEMProlong2xSer_UxNeumannUyNeumann_P1(const double *fldC, double *
   fldF11[0] += 0.25*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxNeumannUyRobin_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxNeumannUyRobin_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -1058,7 +1058,7 @@ void MGpoissonFEMProlong2xSer_UxNeumannUyRobin_P1(const double *fldC, double **f
   fldF11[0] += 0.25*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxRobinUyDirichlet_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxRobinUyDirichlet_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -1091,7 +1091,7 @@ void MGpoissonFEMProlong2xSer_UxRobinUyDirichlet_P1(const double *fldC, double *
   fldF11[0] += 0.25*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxRobinUyNeumann_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxRobinUyNeumann_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -1124,7 +1124,7 @@ void MGpoissonFEMProlong2xSer_UxRobinUyNeumann_P1(const double *fldC, double **f
   fldF11[0] += 0.25*fldC[0]; 
 }
 
-void MGpoissonFEMProlong2xSer_UxRobinUyRobin_P1(const double *fldC, double **fldF) 
+void MGpoissonFEMprolong2xSer_UxRobinUyRobin_P1(const int *idxF, const double *fldC, double **fldF) 
 { 
   // fldC: coarse-grid field.
   // fldF: fine-grid field in cells pointed to by the stencil.
@@ -1157,7 +1157,7 @@ void MGpoissonFEMProlong2xSer_UxRobinUyRobin_P1(const double *fldC, double **fld
   fldF11[0] += 0.25*fldC[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1175,7 +1175,7 @@ void MGpoissonFEMRestrict2xSer_P1(double **fldF, double *fldC)
   fldC[0] += 0.5*fldF8[0]+fldF7[0]+0.25*fldF5[0]+0.5*fldF4[0]+0.25*fldF2[0]+0.25*fldF11[0]+0.5*fldF10[0]+0.5*fldF1[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxDirichlet_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxDirichlet_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1185,7 +1185,7 @@ void MGpoissonFEMRestrict2xSer_LxDirichlet_P1(double **fldF, double *fldC)
   fldC[0] += 0.5*fldF1[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxNeumann_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxNeumann_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1200,7 +1200,7 @@ void MGpoissonFEMRestrict2xSer_LxNeumann_P1(double **fldF, double *fldC)
   fldC[0] += 0.5*fldF6[0]+fldF5[0]+0.25*fldF3[0]+0.5*fldF2[0]+0.5*fldF1[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxRobin_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxRobin_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1215,7 +1215,7 @@ void MGpoissonFEMRestrict2xSer_LxRobin_P1(double **fldF, double *fldC)
   fldC[0] += 0.5*fldF6[0]+fldF5[0]+0.25*fldF3[0]+0.5*fldF2[0]+0.5*fldF1[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxDirichlet_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxDirichlet_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1234,7 +1234,7 @@ void MGpoissonFEMRestrict2xSer_UxDirichlet_P1(double **fldF, double *fldC)
   fldC[1] += 0.5*fldF0[1]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxNeumann_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxNeumann_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1253,7 +1253,7 @@ void MGpoissonFEMRestrict2xSer_UxNeumann_P1(double **fldF, double *fldC)
   fldC[1] += 0.5*fldF5[1]+fldF4[1]+0.5*fldF0[1]+0.25*fldF5[0]+0.5*fldF4[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxRobin_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxRobin_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1272,7 +1272,7 @@ void MGpoissonFEMRestrict2xSer_UxRobin_P1(double **fldF, double *fldC)
   fldC[1] += 0.5*fldF5[1]+fldF4[1]+0.5*fldF0[1]+0.25*fldF5[0]+0.5*fldF4[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LyDirichlet_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LyDirichlet_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1282,7 +1282,7 @@ void MGpoissonFEMRestrict2xSer_LyDirichlet_P1(double **fldF, double *fldC)
   fldC[0] += 0.25*fldF2[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LyNeumann_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LyNeumann_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1297,7 +1297,7 @@ void MGpoissonFEMRestrict2xSer_LyNeumann_P1(double **fldF, double *fldC)
   fldC[0] += 0.5*fldF6[0]+fldF5[0]+0.5*fldF4[0]+0.25*fldF2[0]+0.5*fldF1[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LyRobin_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LyRobin_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1312,7 +1312,7 @@ void MGpoissonFEMRestrict2xSer_LyRobin_P1(double **fldF, double *fldC)
   fldC[0] += 0.5*fldF6[0]+fldF5[0]+0.5*fldF4[0]+0.25*fldF2[0]+0.5*fldF1[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UyDirichlet_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UyDirichlet_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1331,26 +1331,7 @@ void MGpoissonFEMRestrict2xSer_UyDirichlet_P1(double **fldF, double *fldC)
   fldC[1] += 0.5*fldF0[1]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UyNeumann_P1(double **fldF, double *fldC) 
-{ 
-  // fldF: fine-grid field in cells pointed to by the stencil.
-  // fldC: coarse-grid field.
-
-  double *fldF0 = fldF[0];
-  double *fldF1 = fldF[1];
-  double *fldF2 = fldF[2];
-  double *fldF4 = fldF[4];
-  double *fldF5 = fldF[5];
-  double *fldF7 = fldF[7];
-  double *fldF8 = fldF[8];
-  double *fldF10 = fldF[10];
-  double *fldF11 = fldF[11];
-
-  fldC[0] += 0.5*fldF8[0]+fldF7[0]+0.25*fldF5[0]+0.5*fldF4[0]+0.25*fldF2[0]+0.25*fldF11[0]+0.5*fldF10[0]+0.5*fldF1[0]+0.25*fldF0[0]; 
-  fldC[1] += 0.5*fldF2[1]+fldF1[1]+0.5*fldF0[1]+0.25*fldF2[0]+0.5*fldF1[0]+0.25*fldF0[0]; 
-}
-
-void MGpoissonFEMRestrict2xSer_UyRobin_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UyNeumann_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1369,7 +1350,26 @@ void MGpoissonFEMRestrict2xSer_UyRobin_P1(double **fldF, double *fldC)
   fldC[1] += 0.5*fldF2[1]+fldF1[1]+0.5*fldF0[1]+0.25*fldF2[0]+0.5*fldF1[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxDirichletLyDirichlet_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UyRobin_P1(double **fldF, double *fldC) 
+{ 
+  // fldF: fine-grid field in cells pointed to by the stencil.
+  // fldC: coarse-grid field.
+
+  double *fldF0 = fldF[0];
+  double *fldF1 = fldF[1];
+  double *fldF2 = fldF[2];
+  double *fldF4 = fldF[4];
+  double *fldF5 = fldF[5];
+  double *fldF7 = fldF[7];
+  double *fldF8 = fldF[8];
+  double *fldF10 = fldF[10];
+  double *fldF11 = fldF[11];
+
+  fldC[0] += 0.5*fldF8[0]+fldF7[0]+0.25*fldF5[0]+0.5*fldF4[0]+0.25*fldF2[0]+0.25*fldF11[0]+0.5*fldF10[0]+0.5*fldF1[0]+0.25*fldF0[0]; 
+  fldC[1] += 0.5*fldF2[1]+fldF1[1]+0.5*fldF0[1]+0.25*fldF2[0]+0.5*fldF1[0]+0.25*fldF0[0]; 
+}
+
+void MGpoissonFEMrestrict2xSer_LxDirichletLyDirichlet_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1377,7 +1377,7 @@ void MGpoissonFEMRestrict2xSer_LxDirichletLyDirichlet_P1(double **fldF, double *
 
 }
 
-void MGpoissonFEMRestrict2xSer_LxDirichletLyNeumann_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxDirichletLyNeumann_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1387,7 +1387,7 @@ void MGpoissonFEMRestrict2xSer_LxDirichletLyNeumann_P1(double **fldF, double *fl
   fldC[0] += 0.5*fldF1[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxDirichletLyRobin_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxDirichletLyRobin_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1397,7 +1397,7 @@ void MGpoissonFEMRestrict2xSer_LxDirichletLyRobin_P1(double **fldF, double *fldC
   fldC[0] += 0.5*fldF1[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxNeumannLyDirichlet_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxNeumannLyDirichlet_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1407,7 +1407,7 @@ void MGpoissonFEMRestrict2xSer_LxNeumannLyDirichlet_P1(double **fldF, double *fl
   fldC[0] += 0.5*fldF2[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxNeumannLyNeumann_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxNeumannLyNeumann_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1420,7 +1420,7 @@ void MGpoissonFEMRestrict2xSer_LxNeumannLyNeumann_P1(double **fldF, double *fldC
   fldC[0] += fldF3[0]+0.5*fldF2[0]+0.5*fldF1[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxNeumannLyRobin_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxNeumannLyRobin_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1433,7 +1433,7 @@ void MGpoissonFEMRestrict2xSer_LxNeumannLyRobin_P1(double **fldF, double *fldC)
   fldC[0] += fldF3[0]+0.5*fldF2[0]+0.5*fldF1[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxRobinLyDirichlet_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxRobinLyDirichlet_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1443,7 +1443,7 @@ void MGpoissonFEMRestrict2xSer_LxRobinLyDirichlet_P1(double **fldF, double *fldC
   fldC[0] += 0.5*fldF2[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxRobinLyNeumann_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxRobinLyNeumann_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1456,7 +1456,7 @@ void MGpoissonFEMRestrict2xSer_LxRobinLyNeumann_P1(double **fldF, double *fldC)
   fldC[0] += fldF3[0]+0.5*fldF2[0]+0.5*fldF1[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxRobinLyRobin_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxRobinLyRobin_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1469,7 +1469,7 @@ void MGpoissonFEMRestrict2xSer_LxRobinLyRobin_P1(double **fldF, double *fldC)
   fldC[0] += fldF3[0]+0.5*fldF2[0]+0.5*fldF1[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxDirichletUyDirichlet_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxDirichletUyDirichlet_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1479,7 +1479,7 @@ void MGpoissonFEMRestrict2xSer_LxDirichletUyDirichlet_P1(double **fldF, double *
   fldC[0] += 0.5*fldF1[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxDirichletUyNeumann_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxDirichletUyNeumann_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1490,7 +1490,7 @@ void MGpoissonFEMRestrict2xSer_LxDirichletUyNeumann_P1(double **fldF, double *fl
   fldC[1] += fldF1[1]+0.5*fldF1[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxDirichletUyRobin_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxDirichletUyRobin_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1501,7 +1501,7 @@ void MGpoissonFEMRestrict2xSer_LxDirichletUyRobin_P1(double **fldF, double *fldC
   fldC[1] += fldF1[1]+0.5*fldF1[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxNeumannUyDirichlet_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxNeumannUyDirichlet_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1517,7 +1517,7 @@ void MGpoissonFEMRestrict2xSer_LxNeumannUyDirichlet_P1(double **fldF, double *fl
   fldC[1] += 0.5*fldF0[1]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxNeumannUyNeumann_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxNeumannUyNeumann_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1533,7 +1533,7 @@ void MGpoissonFEMRestrict2xSer_LxNeumannUyNeumann_P1(double **fldF, double *fldC
   fldC[1] += fldF1[1]+0.5*fldF0[1]+0.5*fldF1[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxNeumannUyRobin_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxNeumannUyRobin_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1549,7 +1549,7 @@ void MGpoissonFEMRestrict2xSer_LxNeumannUyRobin_P1(double **fldF, double *fldC)
   fldC[1] += fldF1[1]+0.5*fldF0[1]+0.5*fldF1[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxRobinUyDirichlet_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxRobinUyDirichlet_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1565,7 +1565,7 @@ void MGpoissonFEMRestrict2xSer_LxRobinUyDirichlet_P1(double **fldF, double *fldC
   fldC[1] += 0.5*fldF0[1]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxRobinUyNeumann_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxRobinUyNeumann_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1581,7 +1581,7 @@ void MGpoissonFEMRestrict2xSer_LxRobinUyNeumann_P1(double **fldF, double *fldC)
   fldC[1] += fldF1[1]+0.5*fldF0[1]+0.5*fldF1[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_LxRobinUyRobin_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_LxRobinUyRobin_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1597,7 +1597,7 @@ void MGpoissonFEMRestrict2xSer_LxRobinUyRobin_P1(double **fldF, double *fldC)
   fldC[1] += fldF1[1]+0.5*fldF0[1]+0.5*fldF1[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxDirichletLyDirichlet_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxDirichletLyDirichlet_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1607,7 +1607,7 @@ void MGpoissonFEMRestrict2xSer_UxDirichletLyDirichlet_P1(double **fldF, double *
   fldC[0] += 0.25*fldF2[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxDirichletLyNeumann_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxDirichletLyNeumann_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1623,7 +1623,7 @@ void MGpoissonFEMRestrict2xSer_UxDirichletLyNeumann_P1(double **fldF, double *fl
   fldC[1] += 0.5*fldF0[1]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxDirichletLyRobin_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxDirichletLyRobin_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1639,7 +1639,7 @@ void MGpoissonFEMRestrict2xSer_UxDirichletLyRobin_P1(double **fldF, double *fldC
   fldC[1] += 0.5*fldF0[1]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxNeumannLyDirichlet_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxNeumannLyDirichlet_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1649,7 +1649,7 @@ void MGpoissonFEMRestrict2xSer_UxNeumannLyDirichlet_P1(double **fldF, double *fl
   fldC[0] += 0.25*fldF2[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxNeumannLyNeumann_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxNeumannLyNeumann_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1665,7 +1665,7 @@ void MGpoissonFEMRestrict2xSer_UxNeumannLyNeumann_P1(double **fldF, double *fldC
   fldC[1] += fldF4[1]+0.5*fldF0[1]+0.5*fldF4[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxNeumannLyRobin_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxNeumannLyRobin_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1681,7 +1681,7 @@ void MGpoissonFEMRestrict2xSer_UxNeumannLyRobin_P1(double **fldF, double *fldC)
   fldC[1] += fldF4[1]+0.5*fldF0[1]+0.5*fldF4[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxRobinLyDirichlet_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxRobinLyDirichlet_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1691,7 +1691,7 @@ void MGpoissonFEMRestrict2xSer_UxRobinLyDirichlet_P1(double **fldF, double *fldC
   fldC[0] += 0.25*fldF2[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxRobinLyNeumann_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxRobinLyNeumann_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1707,7 +1707,7 @@ void MGpoissonFEMRestrict2xSer_UxRobinLyNeumann_P1(double **fldF, double *fldC)
   fldC[1] += fldF4[1]+0.5*fldF0[1]+0.5*fldF4[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxRobinLyRobin_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxRobinLyRobin_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1723,7 +1723,7 @@ void MGpoissonFEMRestrict2xSer_UxRobinLyRobin_P1(double **fldF, double *fldC)
   fldC[1] += fldF4[1]+0.5*fldF0[1]+0.5*fldF4[0]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxDirichletUyDirichlet_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxDirichletUyDirichlet_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1744,7 +1744,7 @@ void MGpoissonFEMRestrict2xSer_UxDirichletUyDirichlet_P1(double **fldF, double *
   fldC[3] += fldF0[3]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxDirichletUyNeumann_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxDirichletUyNeumann_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1765,7 +1765,7 @@ void MGpoissonFEMRestrict2xSer_UxDirichletUyNeumann_P1(double **fldF, double *fl
   fldC[3] += fldF0[3]+0.5*fldF0[1]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxDirichletUyRobin_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxDirichletUyRobin_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1786,7 +1786,7 @@ void MGpoissonFEMRestrict2xSer_UxDirichletUyRobin_P1(double **fldF, double *fldC
   fldC[3] += fldF0[3]+0.5*fldF0[1]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxNeumannUyDirichlet_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxNeumannUyDirichlet_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1807,7 +1807,7 @@ void MGpoissonFEMRestrict2xSer_UxNeumannUyDirichlet_P1(double **fldF, double *fl
   fldC[3] += fldF0[3]+0.5*fldF0[2]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxNeumannUyNeumann_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxNeumannUyNeumann_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1828,7 +1828,7 @@ void MGpoissonFEMRestrict2xSer_UxNeumannUyNeumann_P1(double **fldF, double *fldC
   fldC[3] += fldF0[3]+0.5*fldF0[2]+0.5*fldF0[1]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxNeumannUyRobin_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxNeumannUyRobin_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1849,7 +1849,7 @@ void MGpoissonFEMRestrict2xSer_UxNeumannUyRobin_P1(double **fldF, double *fldC)
   fldC[3] += fldF0[3]+0.5*fldF0[2]+0.5*fldF0[1]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxRobinUyDirichlet_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxRobinUyDirichlet_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1870,7 +1870,7 @@ void MGpoissonFEMRestrict2xSer_UxRobinUyDirichlet_P1(double **fldF, double *fldC
   fldC[3] += fldF0[3]+0.5*fldF0[2]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxRobinUyNeumann_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxRobinUyNeumann_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -1891,7 +1891,7 @@ void MGpoissonFEMRestrict2xSer_UxRobinUyNeumann_P1(double **fldF, double *fldC)
   fldC[3] += fldF0[3]+0.5*fldF0[2]+0.5*fldF0[1]+0.25*fldF0[0]; 
 }
 
-void MGpoissonFEMRestrict2xSer_UxRobinUyRobin_P1(double **fldF, double *fldC) 
+void MGpoissonFEMrestrict2xSer_UxRobinUyRobin_P1(double **fldF, double *fldC) 
 { 
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
@@ -5924,13 +5924,13 @@ void MGpoissonFEMDampedGaussSeidel2xSer_UxRobinUyRobin_P1(const double omega, do
 
 }
 
-void MGpoissonFEMResidue2xSer_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -5956,13 +5956,13 @@ void MGpoissonFEMResidue2xSer_P1(double **dx, const double *bcVals, double **rho
 
 }
 
-void MGpoissonFEMResidue2xSer_LxDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -5988,13 +5988,13 @@ void MGpoissonFEMResidue2xSer_LxDirichlet_P1(double **dx, const double *bcVals, 
 
 }
 
-void MGpoissonFEMResidue2xSer_LxNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6020,13 +6020,13 @@ void MGpoissonFEMResidue2xSer_LxNeumann_P1(double **dx, const double *bcVals, do
 
 }
 
-void MGpoissonFEMResidue2xSer_LxRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6052,13 +6052,13 @@ void MGpoissonFEMResidue2xSer_LxRobin_P1(double **dx, const double *bcVals, doub
 
 }
 
-void MGpoissonFEMResidue2xSer_UxDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6085,13 +6085,13 @@ void MGpoissonFEMResidue2xSer_UxDirichlet_P1(double **dx, const double *bcVals, 
 
 }
 
-void MGpoissonFEMResidue2xSer_UxNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6118,13 +6118,13 @@ void MGpoissonFEMResidue2xSer_UxNeumann_P1(double **dx, const double *bcVals, do
 
 }
 
-void MGpoissonFEMResidue2xSer_UxRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6151,13 +6151,13 @@ void MGpoissonFEMResidue2xSer_UxRobin_P1(double **dx, const double *bcVals, doub
 
 }
 
-void MGpoissonFEMResidue2xSer_LyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6183,13 +6183,13 @@ void MGpoissonFEMResidue2xSer_LyDirichlet_P1(double **dx, const double *bcVals, 
 
 }
 
-void MGpoissonFEMResidue2xSer_LyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6215,13 +6215,13 @@ void MGpoissonFEMResidue2xSer_LyNeumann_P1(double **dx, const double *bcVals, do
 
 }
 
-void MGpoissonFEMResidue2xSer_LyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6247,13 +6247,13 @@ void MGpoissonFEMResidue2xSer_LyRobin_P1(double **dx, const double *bcVals, doub
 
 }
 
-void MGpoissonFEMResidue2xSer_UyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6280,13 +6280,13 @@ void MGpoissonFEMResidue2xSer_UyDirichlet_P1(double **dx, const double *bcVals, 
 
 }
 
-void MGpoissonFEMResidue2xSer_UyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6313,13 +6313,13 @@ void MGpoissonFEMResidue2xSer_UyNeumann_P1(double **dx, const double *bcVals, do
 
 }
 
-void MGpoissonFEMResidue2xSer_UyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6346,13 +6346,13 @@ void MGpoissonFEMResidue2xSer_UyRobin_P1(double **dx, const double *bcVals, doub
 
 }
 
-void MGpoissonFEMResidue2xSer_LxDirichletLyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxDirichletLyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6378,13 +6378,13 @@ void MGpoissonFEMResidue2xSer_LxDirichletLyDirichlet_P1(double **dx, const doubl
 
 }
 
-void MGpoissonFEMResidue2xSer_LxDirichletLyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxDirichletLyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6410,13 +6410,13 @@ void MGpoissonFEMResidue2xSer_LxDirichletLyNeumann_P1(double **dx, const double 
 
 }
 
-void MGpoissonFEMResidue2xSer_LxDirichletLyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxDirichletLyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6442,13 +6442,13 @@ void MGpoissonFEMResidue2xSer_LxDirichletLyRobin_P1(double **dx, const double *b
 
 }
 
-void MGpoissonFEMResidue2xSer_LxNeumannLyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxNeumannLyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6474,13 +6474,13 @@ void MGpoissonFEMResidue2xSer_LxNeumannLyDirichlet_P1(double **dx, const double 
 
 }
 
-void MGpoissonFEMResidue2xSer_LxNeumannLyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxNeumannLyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6506,13 +6506,13 @@ void MGpoissonFEMResidue2xSer_LxNeumannLyNeumann_P1(double **dx, const double *b
 
 }
 
-void MGpoissonFEMResidue2xSer_LxNeumannLyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxNeumannLyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6538,13 +6538,13 @@ void MGpoissonFEMResidue2xSer_LxNeumannLyRobin_P1(double **dx, const double *bcV
 
 }
 
-void MGpoissonFEMResidue2xSer_LxRobinLyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxRobinLyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6570,13 +6570,13 @@ void MGpoissonFEMResidue2xSer_LxRobinLyDirichlet_P1(double **dx, const double *b
 
 }
 
-void MGpoissonFEMResidue2xSer_LxRobinLyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxRobinLyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6602,13 +6602,13 @@ void MGpoissonFEMResidue2xSer_LxRobinLyNeumann_P1(double **dx, const double *bcV
 
 }
 
-void MGpoissonFEMResidue2xSer_LxRobinLyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxRobinLyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6634,13 +6634,13 @@ void MGpoissonFEMResidue2xSer_LxRobinLyRobin_P1(double **dx, const double *bcVal
 
 }
 
-void MGpoissonFEMResidue2xSer_LxDirichletUyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxDirichletUyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6667,13 +6667,13 @@ void MGpoissonFEMResidue2xSer_LxDirichletUyDirichlet_P1(double **dx, const doubl
 
 }
 
-void MGpoissonFEMResidue2xSer_LxDirichletUyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxDirichletUyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6700,13 +6700,13 @@ void MGpoissonFEMResidue2xSer_LxDirichletUyNeumann_P1(double **dx, const double 
 
 }
 
-void MGpoissonFEMResidue2xSer_LxDirichletUyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxDirichletUyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6733,13 +6733,13 @@ void MGpoissonFEMResidue2xSer_LxDirichletUyRobin_P1(double **dx, const double *b
 
 }
 
-void MGpoissonFEMResidue2xSer_LxNeumannUyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxNeumannUyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6766,13 +6766,13 @@ void MGpoissonFEMResidue2xSer_LxNeumannUyDirichlet_P1(double **dx, const double 
 
 }
 
-void MGpoissonFEMResidue2xSer_LxNeumannUyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxNeumannUyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6799,13 +6799,13 @@ void MGpoissonFEMResidue2xSer_LxNeumannUyNeumann_P1(double **dx, const double *b
 
 }
 
-void MGpoissonFEMResidue2xSer_LxNeumannUyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxNeumannUyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6832,13 +6832,13 @@ void MGpoissonFEMResidue2xSer_LxNeumannUyRobin_P1(double **dx, const double *bcV
 
 }
 
-void MGpoissonFEMResidue2xSer_LxRobinUyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxRobinUyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6865,13 +6865,13 @@ void MGpoissonFEMResidue2xSer_LxRobinUyDirichlet_P1(double **dx, const double *b
 
 }
 
-void MGpoissonFEMResidue2xSer_LxRobinUyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxRobinUyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6898,13 +6898,13 @@ void MGpoissonFEMResidue2xSer_LxRobinUyNeumann_P1(double **dx, const double *bcV
 
 }
 
-void MGpoissonFEMResidue2xSer_LxRobinUyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_LxRobinUyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6931,13 +6931,13 @@ void MGpoissonFEMResidue2xSer_LxRobinUyRobin_P1(double **dx, const double *bcVal
 
 }
 
-void MGpoissonFEMResidue2xSer_UxDirichletLyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxDirichletLyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6964,13 +6964,13 @@ void MGpoissonFEMResidue2xSer_UxDirichletLyDirichlet_P1(double **dx, const doubl
 
 }
 
-void MGpoissonFEMResidue2xSer_UxDirichletLyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxDirichletLyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -6997,13 +6997,13 @@ void MGpoissonFEMResidue2xSer_UxDirichletLyNeumann_P1(double **dx, const double 
 
 }
 
-void MGpoissonFEMResidue2xSer_UxDirichletLyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxDirichletLyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -7030,13 +7030,13 @@ void MGpoissonFEMResidue2xSer_UxDirichletLyRobin_P1(double **dx, const double *b
 
 }
 
-void MGpoissonFEMResidue2xSer_UxNeumannLyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxNeumannLyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -7063,13 +7063,13 @@ void MGpoissonFEMResidue2xSer_UxNeumannLyDirichlet_P1(double **dx, const double 
 
 }
 
-void MGpoissonFEMResidue2xSer_UxNeumannLyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxNeumannLyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -7096,13 +7096,13 @@ void MGpoissonFEMResidue2xSer_UxNeumannLyNeumann_P1(double **dx, const double *b
 
 }
 
-void MGpoissonFEMResidue2xSer_UxNeumannLyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxNeumannLyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -7129,13 +7129,13 @@ void MGpoissonFEMResidue2xSer_UxNeumannLyRobin_P1(double **dx, const double *bcV
 
 }
 
-void MGpoissonFEMResidue2xSer_UxRobinLyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxRobinLyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -7162,13 +7162,13 @@ void MGpoissonFEMResidue2xSer_UxRobinLyDirichlet_P1(double **dx, const double *b
 
 }
 
-void MGpoissonFEMResidue2xSer_UxRobinLyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxRobinLyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -7195,13 +7195,13 @@ void MGpoissonFEMResidue2xSer_UxRobinLyNeumann_P1(double **dx, const double *bcV
 
 }
 
-void MGpoissonFEMResidue2xSer_UxRobinLyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxRobinLyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -7228,13 +7228,13 @@ void MGpoissonFEMResidue2xSer_UxRobinLyRobin_P1(double **dx, const double *bcVal
 
 }
 
-void MGpoissonFEMResidue2xSer_UxDirichletUyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxDirichletUyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -7263,13 +7263,13 @@ void MGpoissonFEMResidue2xSer_UxDirichletUyDirichlet_P1(double **dx, const doubl
 
 }
 
-void MGpoissonFEMResidue2xSer_UxDirichletUyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxDirichletUyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -7298,13 +7298,13 @@ void MGpoissonFEMResidue2xSer_UxDirichletUyNeumann_P1(double **dx, const double 
 
 }
 
-void MGpoissonFEMResidue2xSer_UxDirichletUyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxDirichletUyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -7333,13 +7333,13 @@ void MGpoissonFEMResidue2xSer_UxDirichletUyRobin_P1(double **dx, const double *b
 
 }
 
-void MGpoissonFEMResidue2xSer_UxNeumannUyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxNeumannUyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -7368,13 +7368,13 @@ void MGpoissonFEMResidue2xSer_UxNeumannUyDirichlet_P1(double **dx, const double 
 
 }
 
-void MGpoissonFEMResidue2xSer_UxNeumannUyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxNeumannUyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -7403,13 +7403,13 @@ void MGpoissonFEMResidue2xSer_UxNeumannUyNeumann_P1(double **dx, const double *b
 
 }
 
-void MGpoissonFEMResidue2xSer_UxNeumannUyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxNeumannUyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -7438,13 +7438,13 @@ void MGpoissonFEMResidue2xSer_UxNeumannUyRobin_P1(double **dx, const double *bcV
 
 }
 
-void MGpoissonFEMResidue2xSer_UxRobinUyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxRobinUyDirichlet_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -7473,13 +7473,13 @@ void MGpoissonFEMResidue2xSer_UxRobinUyDirichlet_P1(double **dx, const double *b
 
 }
 
-void MGpoissonFEMResidue2xSer_UxRobinUyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxRobinUyNeumann_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 
@@ -7508,13 +7508,13 @@ void MGpoissonFEMResidue2xSer_UxRobinUyNeumann_P1(double **dx, const double *bcV
 
 }
 
-void MGpoissonFEMResidue2xSer_UxRobinUyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
+void MGpoissonFEMresidual2xSer_UxRobinUyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut) 
 { 
   // dx:      cell lengths of cells pointed to by the stencil.
   // bcVals:  values to impose as BCs.
   // rho:     right-side source in the current cell.
   // phi:     iterate cells pointed to by the stencil.
-  // resOut:  residue in nodes stored in current cell.
+  // resOut:  residual in nodes stored in current cell.
 
   double *dxC  = dx[0]; 
 

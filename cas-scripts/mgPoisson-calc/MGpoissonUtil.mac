@@ -49,7 +49,7 @@ getCoordVarS(varsIn) := block([dim,sVars,d,coordVarS],
   return(coordVarS)
 )$
 
-getBCcombos(stencilLocIn,bcTypesIn) := block([dim,npDirsN,npBCcombos,tmp,l,cI,bcI,d,nInc,bcCombos],
+getBCcombos(stencilLocIn,bcTypesIn) := block([dim,npDirs,npDirsN,npBCcombos,tmp,l,cI,bI,bcCombos],
   /* Given the BC types in bcTypesn and the stencil location
      stencilLocIn, return a list of of the different combinations of
      BCs, each of which will produce a separate kernel. */
@@ -97,7 +97,7 @@ getStencilStr(stencilLocIn,coordVarSIn,currBCIn,bcKeyIn) := block([d,dim,stStr],
   return(stStr)
 )$
 
-getDataStr(stencilSizeIn,stencilLocIn,varsIn) := block([dim,dI,pS,k],
+getDataStr(stencilSizeIn,stencilLocIn,varsIn) := block([dim,dI,cellsSoFar,pS,k,dataStrs],
   /* stencilSizeIn should be a dim-long list, each entry a 2-element list 
      with the size of the stencil in the lower/upper direction. For each
      cell linked by the stencil, return a string identifying that cell. */
@@ -124,6 +124,37 @@ getDataStr(stencilSizeIn,stencilLocIn,varsIn) := block([dim,dI,pS,k],
  return(dataStrs) 
 )$
 
+getCellToDataStr(stencilSizeIn,stencilLocIn,varsIn) := block([dim,dI,cellsSoFar,pS,k,coord,cellToDataStrs],
+  /* stencilSizeIn should be a dim-long list, each entry a 2-element list
+     with the size of the stencil in the lower/upper direction. For each
+     cell linked by the stencil, return a cell coordinate and a
+     string identifying that cell. */
+ dim : length(varsIn),
+ cellToDataStrs : [[makelist(0,i,1,dim),""]],
+ for dI: 1 thru dim do (
+   cellsSoFar : length(cellToDataStrs),
+   for pS : 1 thru cellsSoFar do (
+     if (stencilLocIn[dI] > -1) then (
+       /* Add stencilSizeIn[dI][1] nearest lower cells. */
+       for k : 1 thru stencilSizeIn[dI][1] do (
+         coord     : copylist(cellToDataStrs[pS][1]),
+         coord[dI] : -k, 
+         cellToDataStrs : endcons([coord,sconcat(cellToDataStrs[pS][2],"L",smake(k,string(varsIn[dI])))],cellToDataStrs)
+       )
+     ),
+     if (stencilLocIn[dI] < 1) then (
+       /* Add stencilSizeIn[dI][2] nearest upper cells. */
+       for k : 1 thru stencilSizeIn[dI][2] do (
+         coord     : copylist(cellToDataStrs[pS][1]),
+         coord[dI] : k, 
+         cellToDataStrs : endcons([coord,sconcat(cellToDataStrs[pS][2],"U",smake(k,string(varsIn[dI])))],cellToDataStrs)
+       )
+     )
+   )
+ ),
+ cellToDataStrs[1][2] : "C",
+ return(cellToDataStrs)
+)$
 
 
 
