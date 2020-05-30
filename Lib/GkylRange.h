@@ -319,7 +319,7 @@ namespace Gkyl {
   /**
    * Private functions (don't use these directly)
    */
-  void calcRowMajorIndexerCoeff(GkylRange_t& range) {
+  inline void calcRowMajorIndexerCoeff(GkylRange_t& range) {
     int ndim = range.ndim;
     range.rowMajorIndexerCoeff[ndim] = 1;
     for (int i=ndim-1; i>=1; --i)
@@ -330,7 +330,7 @@ namespace Gkyl {
     range.rowMajorIndexerCoeff[0] = 1-start;
   }
   
-  void calcColMajorIndexerCoeff(GkylRange_t& range) {
+  inline void calcColMajorIndexerCoeff(GkylRange_t& range) {
     int ndim = range.ndim;
     range.colMajorIndexerCoeff[1] = 1;
     for (int i=2; i<=ndim; ++i)
@@ -348,7 +348,7 @@ namespace Gkyl {
    *
    * @param [in/out] On out, row and col indexer coeffs are constructed
    */
-  void calcIndexerCoeff(GkylRange_t& range) {
+  inline void calcIndexerCoeff(GkylRange_t& range) {
     calcRowMajorIndexerCoeff(range);
     calcColMajorIndexerCoeff(range);
   }
