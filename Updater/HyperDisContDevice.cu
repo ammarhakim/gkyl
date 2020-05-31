@@ -1,9 +1,7 @@
 #include <cstdio>
-#include <GkylRectCart.h>
-#include <GkylCartField.h>
-#include <GkylRange.h>
 #include <GkylHyperDisCont.h>
-#include <GkylEquation.h>
+#include <GkylVlasov.h>
+#include <VlasovModDecl.h>
 
 __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
 
@@ -20,7 +18,7 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
   int *updateDirs = hyper->updateDirs;
   int numUpdateDirs = hyper->numUpdateDirs;
   bool *zeroFluxFlags = hyper->zeroFluxFlags;
-  Equation *eq = hyper->equation;
+  Gkyl::Vlasov *eq = hyper->equation;
   
   // CUDA thread "loop" over (non-ghost) cells in local range
   if(linearIdx < localRange->volume()) {
@@ -51,7 +49,7 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
     double dummy[32];
  
     for(int i=0; i<numUpdateDirs; i++) {
-      int dir = updateDirs[i];
+      int dir = updateDirs[i] - 1;
 
       for(int d=0; d<ndim; d++) {
         if(d!=dir) {
@@ -80,7 +78,7 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
       }
 
       // right (of C) surface update. use dummy in place of fRhsOutR (cell to left of surface) so that only current cell (C) is updated.
-      if(!(zeroFluxFlags[dir] && idxC[dir] == localRange->lower[dir])) {
+      if(!(zeroFluxFlags[dir] && idxC[dir] == localRange->upper[dir])) {
         eq->surfTerm(dir, dummy, dummy, xcC, xcR, dx, dx, 0., idxC, idxR, fInC, fInR, fRhsOutC, dummy);
       } else if( zeroFluxFlags[dir]) {
         eq->boundarySurfTerm(dir, dummy, dummy, xcC, xcR, dx, dx, 0., idxC, idxR, fInC, fInR, fRhsOutC, dummy);

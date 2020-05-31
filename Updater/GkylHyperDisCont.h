@@ -9,9 +9,9 @@
 
 // Gkyl includes
 #include <GkylCudaConfig.h>
-#include <GkylRange.h>
-#include <GkylRectCart.h>
 #include <GkylEquation.h>
+#include <GkylVlasov.h>
+#include <GkylCartField.h>
 
 extern "C" 
 {
@@ -20,7 +20,7 @@ extern "C"
       bool zeroFluxFlags[6];
       int32_t numUpdateDirs;
       bool updateVolumeTerm;
-      Equation *equation;
+      Gkyl::Vlasov *equation;
       GkylCartField_t *cflRateByCell;
   } GkylHyperDisCont_t;
     

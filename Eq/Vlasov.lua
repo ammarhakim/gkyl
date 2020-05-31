@@ -6,6 +6,7 @@
 --------------------------------------------------------------------------------
 
 -- system libraries
+local CartField = require "DataStruct.CartField"
 local EqBase = require "Eq.EqBase"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
@@ -22,9 +23,11 @@ if GKYL_HAVE_CUDA then
 end
 
 ffi.cdef [[ 
-  typedef struct Vlasov Vlasov;
-  Vlasov* new_Vlasov(unsigned cdim, unsigned vdim, unsigned polyOrder, const char* basisType, double qbym, bool hasForceTerm);
-  void setAuxFields(GkylEquation_t *eq, GkylCartField_t *emField);
+  typedef struct GkylVlasov GkylVlasov;
+  GkylVlasov* new_Vlasov(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType, double qbym, bool hasForceTerm);
+  GkylVlasov* new_Vlasov_onDevice(GkylVlasov *v);
+  void setAuxFields(GkylVlasov *eq, GkylCartField_t *emField);
+  int getCdim(GkylVlasov *v);
 ]]
 
 -- Vlasov equation on a rectangular mesh
@@ -89,10 +92,16 @@ function Vlasov:init(tbl)
 end
 
 function Vlasov:initDevice()
-   local eq = ffiC.new_Vlasov(self._cdim, self._vdim, self._phaseBasis:polyOrder(), self._phaseBasis:id(), self._qbym, self._hasForceTerm) 
-   local sz = sizeof(eq)
-   self._onDevice, err = cuda.Malloc(sz)
-   cuda.Memcpy(self._onDevice, eq, sz, cuda.MemcpyHostToDevice)
+   local bId = self._phaseBasis:id()
+   local b = 0
+   if bId == "maximal-order" then 
+     b = 1
+   end
+   if bId == "serendipity" then 
+     b = 2
+   end
+   self._onHost = ffiC.new_Vlasov(self._cdim, self._vdim, self._phaseBasis:polyOrder(), b, self._qbym, self._hasForceTerm) 
+   self._onDevice = ffiC.new_Vlasov_onDevice(self._onHost)
 end
 
 -- Methods

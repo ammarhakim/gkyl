@@ -10,9 +10,9 @@ vlasovHeaderTemplateTopString = [[
 
 #pragma once
 
-#include <GkCudaConfig.h>
+#include <GkylCudaConfig.h>
 #include <VlasovModDecl.h>
-#include <GkBasisTypes.h>
+#include <GkylBasisTypes.h>
 
 namespace Gkyl {
 
@@ -42,7 +42,7 @@ namespace Gkyl {
       /**
        * Surface terms from EM forces
        */
-      __host__ __device__ virtual void surfElcMagTerm(unsigned dir, const double *wl, const double *wr,
+      __host__ __device__ virtual double surfElcMagTerm(unsigned dir, const double *wl, const double *wr,
         const double *dxvl, const double *dxvr,
         const double amax, const double *E, const
         double *fl, const double *fr,
@@ -74,7 +74,7 @@ namespace Gkyl {
       /**
        * Surface terms from EM forces
        */
-      __host__ __device__ void surfElcMagTerm(unsigned dir, const double *wl, const double *wr,
+      __host__ __device__ double surfElcMagTerm(unsigned dir, const double *wl, const double *wr,
         const double *dxvl, const double *dxvr,
         const double amax, const double *E, const
         double *fl, const double *fr,
@@ -127,10 +127,10 @@ vlasovHeaderTemplateString = [[
       }
 
       __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
-        return VlasovVol${ci}x${vi}v${basisShortNm}P1(w, dxv, E, f, out);
+        return VlasovVol${ci}x${vi}v${basisShortNm}P${pi}(w, dxv, E, f, out);
       }
 
-      __host__ __device__ void surfElcMagTerm(unsigned dir, const double *wl, const double *wr,
+      __host__ __device__ double surfElcMagTerm(unsigned dir, const double *wl, const double *wr,
         const double *dxvl, const double *dxvr,
         const double amax, const double *E, const
         double *fl, const double *fr,
@@ -138,19 +138,20 @@ vlasovHeaderTemplateString = [[
 
         switch (dir) {
           case 0:
-              VlasovSurfElcMag${ci}x${vi}v${basisShortNm}_VX_P${pi}(wl, wr, dxvl, dxvr, amax, E, fl, fr, outl, outr);
+              return VlasovSurfElcMag${ci}x${vi}v${basisShortNm}_VX_P${pi}(wl, wr, dxvl, dxvr, amax, E, fl, fr, outl, outr);
               break;
 |if vi > 1 then
           case 1:
-              VlasovSurfElcMag${ci}x${vi}v${basisShortNm}_VY_P${pi}(wl, wr, dxvl, dxvr, amax, E, fl, fr, outl, outr);
+              return VlasovSurfElcMag${ci}x${vi}v${basisShortNm}_VY_P${pi}(wl, wr, dxvl, dxvr, amax, E, fl, fr, outl, outr);
               break;
 |end
 |if vi > 2 then
           case 2:
-              VlasovSurfElcMag${ci}x${vi}v${basisShortNm}_VZ_P${pi}(wl, wr, dxvl, dxvr, amax, E, fl, fr, outl, outr);
+              return VlasovSurfElcMag${ci}x${vi}v${basisShortNm}_VZ_P${pi}(wl, wr, dxvl, dxvr, amax, E, fl, fr, outl, outr);
               break;
 |end
         }        
+        return 0;
       }
   };
 

@@ -258,8 +258,20 @@ def buildExec(bld):
 
 
     # build gkyl executable
+
+    source = ['gkyl.cxx']
+    if bld.env['CUTOOLS_FOUND']:
+        bld(
+            target='culink',
+            use = useListCuda,
+            features = 'cxx culink',
+            name = 'culink'
+        )
+        bld.add_group() 
+        appendToList(source, 'culink.o')
+
     bld.program(
-        source = 'gkyl.cxx', target='gkyl',
+        source = source, target='gkyl',
         includes = 'Unit Lib Comm',
         use = useList,
         linkflags = EXTRA_LINK_FLAGS,

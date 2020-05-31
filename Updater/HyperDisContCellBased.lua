@@ -311,7 +311,7 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
             -- left (of C) surface update. use dummy in place of qRhsOutL (cell to left of surface) so that only current cell (C) is updated.
             if not ( self._zeroFluxFlags[dir] and idxC[dir] == localRange:lower(dir) ) then
                local maxs = self._equation:surfTerm(
-                  dir, cflL, cflC, xcL, xcC, dxL, dxC, self._maxsOld[dir], idxL, idxC, qInL, qInC, self.dummy, qRhsOutC)
+                  dir, cflL, cflC, xcL, xcC, dxL, dxC, 0, idxL, idxC, qInL, qInC, self.dummy, qRhsOutC)
                self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
             else
                if self._zeroFluxFlags[dir] then
@@ -326,7 +326,7 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
             -- right (of C) surface update. use dummy in place of qRhsOutR (cell to right of surface) so that only current cell (C) is updated.
             if not ( self._zeroFluxFlags[dir] and idxC[dir] == localRange:upper(dir) ) then
                local maxs = self._equation:surfTerm(
-                  dir, cflC, cflR, xcC, xcR, dxC, dxR, self._maxsOld[dir], idxC, idxR, qInC, qInR, qRhsOutC, self.dummy)
+                  dir, cflC, cflR, xcC, xcR, dxC, dxR, 0, idxC, idxR, qInC, qInR, qRhsOutC, self.dummy)
                self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
             else
                if self._zeroFluxFlags[dir] then

@@ -13,6 +13,10 @@ local Unit = require "Unit"
 local Vlasov = require "Eq.Vlasov"
 local Updater = require "Updater"
 local Lin = require "Lib.Linalg"
+local cuda = nil
+if GKYL_HAVE_CUDA then
+  cuda = require "Cuda.RunTime"
+end
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
@@ -54,6 +58,8 @@ function test_1()
       ghost = {1, 1},
       createDeviceCopy = true,
    }
+   distf:clear(1)
+   distf:copyHostToDevice()
 
    local fRhs = DataStruct.Field {
       onGrid = grid,
@@ -82,12 +88,26 @@ function test_1()
       ghost = {1, 1},
       createDeviceCopy = true,
    }
+   emField:clear(2)
+   emField:copyHostToDevice()
 
    solver:setDtAndCflRate(.1, cflRateByCell)
 
    solver:advance(0.0, {distf, emField}, {fRhs})
    solver:_advanceOnDevice(0.0, {distf, emField}, {d_fRhs})
-   assert_equal(solver._dt, .1)
+   -- Need to synchronize so that kernel actually runs!
+   local err = cuda.DeviceSynchronize()
+   assert_equal(0, err, "cuda error")
+
+   d_fRhs:copyDeviceToHost()
+   
+   local indexer = fRhs:genIndexer()
+   local d_indexer = d_fRhs:genIndexer()
+   for idx in fRhs:localRangeIter() do
+      local fitr = fRhs:get(indexer(idx))
+      local d_fitr = d_fRhs:get(d_indexer(idx))
+      assert_equal(fitr[2], d_fitr[2])
+   end
 end
 
 test_1()

@@ -21,7 +21,7 @@ def build(bld):
     
     useList = ' lib datastruct eq unit comm updater tool proto basis grid M DL '
     if bld.env['CUTOOLS_FOUND']:
-        useListCuda = ' cuda CUTOOLS lib_cu datastruct_cu eq_cu unit_cu comm_cu updater_cu proto_cu basis_cu grid_cu '
+        useListCuda = '  CUTOOLS lib_cu datastruct_cu eq_cu  comm_cu  proto_cu basis_cu grid_cu '
         useList = useListCuda + useList
 
     # set RPATH
@@ -30,8 +30,18 @@ def build(bld):
     appendToList(fullRpath, bld.env.LIBDIR)
     appendToList(fullRpath, bld.env.LIBPATH_LUAJIT)
     
+    source = ['kerneldriver.cxx']
+    if bld.env['CUTOOLS_FOUND']:
+        bld(
+            target='culink2',
+            use = useListCuda,
+            features = 'cxx culink',
+            name = 'culink2'
+        )
+        bld.add_group() 
+        appendToList(source, 'culink2.o')
     bld.program(
-        source = 'kerneldriver.cxx', target = 'kerneldriver',
+        source = source, target = 'kerneldriver',
         includes = '. .. ../Lib ../Cuda ../Eq/vlasovData',
         use = useList,
         rpath = fullRpath,

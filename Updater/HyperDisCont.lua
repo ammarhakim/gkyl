@@ -9,7 +9,7 @@
 
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
-local Eq = require "Eq.EqBase"
+local Eq = require "Eq.Vlasov"
 local Grid = require "Grid.RectCart"
 local CartField = require "DataStruct.CartField"
 local Lin = require "Lib.Linalg"
@@ -35,7 +35,7 @@ ffi.cdef [[
       bool zeroFluxFlags[6];
       int32_t numUpdateDirs;
       bool updateVolumeTerm;
-      GkylEquation_t *equation;
+      GkylVlasov *equation;
       GkylCartField_t *cflRateByCell;
   } GkylHyperDisCont_t; 
 
