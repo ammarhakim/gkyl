@@ -20,7 +20,7 @@ local assert_equal = Unit.assert_equal
 local stats = Unit.stats
 
 ffi.cdef [[
-  void unit_showFieldRange(GkylCartField_t *f);
+  void unit_showFieldRange(GkylCartField_t *f, double *g);
   void unit_showFieldGrid(GkylCartField_t *f);
 ]]
 
@@ -86,7 +86,9 @@ function test_2()
       ghost = {1, 1},
       createDeviceCopy = true,
    }
-   ffi.C.unit_showFieldRange(field._onDevice)
+   field:clear(1.0)
+   field:copyHostToDevice()
+   ffi.C.unit_showFieldRange(field._onDevice, field._devAllocData:data())
    ffi.C.unit_showFieldGrid(field._onDevice)
 end
 

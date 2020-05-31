@@ -13,7 +13,7 @@ extern "C"
     void unit_showGrid(GkylRectCart_t *grid);
     void unit_getCellCenter(GkylRectCart_t *grid, int *idx, double *xc);
 
-    void unit_showFieldRange(GkylCartField_t *f);
+    void unit_showFieldRange(GkylCartField_t *f, double *g);
     void unit_showFieldGrid(GkylCartField_t *f);
 }
 
@@ -65,7 +65,7 @@ __global__ void ker_unit_getCellCenter(GkylRectCart_t *grid, int *idx, double *x
   grid->cellCenter(idx, xc);
 }
 
-__global__ void ker_unit_showFieldRange(GkylCartField_t *f)
+__global__ void ker_unit_showFieldRange(GkylCartField_t *f, double *g)
 {
   GkylRange_t *range = f->localRange;
   GkylRange_t *rangeExt = f->localExtRange;
@@ -85,7 +85,7 @@ __global__ void ker_unit_showFieldRange(GkylCartField_t *f)
   int idx[1];
   for (int i=0; i<range->volume(); ++i) {
     idxr.invIndex(i, idx);
-    printf("Lin index %d -> index %d\n", i, idx[0]);
+    printf("Lin index %d -> index %d, f = %f, g = %f\n", i, idx[0], f->getDataPtrAt(i)[0], g[i*3]);
   }
 }
 
@@ -122,9 +122,9 @@ void unit_getCellCenter(GkylRectCart_t *devGrid, int *idx, double *xc)
   ker_unit_getCellCenter<<<1, 1>>>(devGrid, idx, xc);
 }
 
-void unit_showFieldRange(GkylCartField_t *f)
+void unit_showFieldRange(GkylCartField_t *f, double *g)
 {
-  ker_unit_showFieldRange<<<1, 1>>>(f);
+  ker_unit_showFieldRange<<<1, 1>>>(f, g);
 }
 
 void unit_showFieldGrid(GkylCartField_t *f)
