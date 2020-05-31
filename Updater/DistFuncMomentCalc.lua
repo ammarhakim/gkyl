@@ -19,8 +19,6 @@ local Proto        = require "Lib.Proto"
 local UpdaterBase  = require "Updater.Base"
 local lume         = require "Lib.lume"
 local xsys         = require "xsys"
-local Unit = require "Unit"
-local assert_equal = Unit.assert_equal
 
 local Range, cuRunTime
 if GKYL_HAVE_CUDA then
@@ -98,7 +96,7 @@ function DistFuncMomentCalc:init(tbl)
    end
 
    if GKYL_HAVE_CUDA then
-      self.calcOnDevice = false --assert(tbl.onDevice, "Updater.DistFuncMomentCalc: Must specify whether to compute on device with 'onDevice'.")
+      self.calcOnDevice = assert(tbl.onDevice, "Updater.DistFuncMomentCalc: Must specify whether to compute on device with 'onDevice'.")
    else
       self.calcOnDevice = false
    end
@@ -160,6 +158,13 @@ function DistFuncMomentCalc:init(tbl)
    -- Option to compute moments only once per timestep, based on tCurr input parameter.
    -- NOTE: this should not be used if the updater is used to compute several different quantities in the same timestep.
    self.oncePerTime = xsys.pickBool(tbl.oncePerTime, false)
+
+   if GKYL_HAVE_CUDA and self.calcOnDevice then
+      self:initDevice()
+   end
+end
+
+function DistFuncMomentCalc:initDevice()
 end
 
 -- Advance method.
@@ -492,8 +497,9 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
    if self.oncePerTime then self.tCurr = tCurr end
 end
 
-function DistFuncMomentCalc:_advanceDevice(tCurr, inFld, outFld)
-   -- MF: current device kernels may be limited to nv>=32 and nv=a power of 2 (nv is the number of velocity-space cells).
+function DistFuncMomentCalc:_advanceOnDevice(tCurr, inFld, outFld)
+   -- MF: current device kernels may be limited to number of velocity-space cells
+   -- that are multiples of warpSize(=32), or smaller than the warpSize.
 
    local grid        = self._onGrid
    local distf, mom1 = inFld[1], outFld[1]

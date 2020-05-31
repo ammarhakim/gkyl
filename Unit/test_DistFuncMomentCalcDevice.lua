@@ -125,7 +125,7 @@ function test_1x1v(pOrder, basis)
 
    -- Moment updater.
    local calcNumDensity = distFmoment(phaseGrid,phaseBasis,confBasis,"M0",true)
-   calcNumDensity:advance(0.0, {distF}, {numDensity})
+   calcNumDensity:_advanceOnDevice(0.0, {distF}, {numDensity})
 
    err = cudaRunTime.DeviceSynchronize()
 
