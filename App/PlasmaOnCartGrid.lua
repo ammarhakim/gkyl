@@ -962,6 +962,17 @@ return {
       BgkCollisions        = Collisions.VmBGKCollisions,
       LboCollisions        = Collisions.VmLBOCollisions,
    },
+   VlasovPoisson = {
+      App = App, Species = Species.VlasovSpecies, FuncSpecies = Species.FuncVlasovSpecies,
+      Field                = Field.PoissonField,
+      FuncField            = Field.FuncPoissonField,
+      FunctionProjection   = Projection.VlasovProjection.FunctionProjection, 
+      MaxwellianProjection = Projection.VlasovProjection.MaxwellianProjection,
+      BGKCollisions        = Collisions.VmBGKCollisions,
+      LBOCollisions        = Collisions.VmLBOCollisions,
+      BgkCollisions        = Collisions.VmBGKCollisions,
+      LboCollisions        = Collisions.VmLBOCollisions,
+   },
    Moments = {
       App = App, Species = Species.MomentSpecies, Field = Field.MaxwellField,
       CollisionlessEmSource = Sources.CollisionlessEmSource,
