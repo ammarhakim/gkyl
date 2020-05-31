@@ -1,5 +1,16 @@
 #!/bin/bash
 
+#.Configure file for PPPL's Portal cluster.
+#.As of May 30 2020 one must build on the CentOS 7 nodes:
+#.  ssh ppplusername@portalc7.pppl.gov
+#.and use the following modules
+#.  module load gcc
+#.  module load openmpi
+#.  module swap gcc gcc/8.4.0
+#.  module load cuda/10.2
+#.  module load git
+#.Also ensure that /sbin/ in in your PATH.
+
 # Edit the paths and options in the following command to suit your system
 
 # Build directory
