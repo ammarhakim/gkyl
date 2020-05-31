@@ -13,12 +13,14 @@ local Unit = require "Unit"
 local Vlasov = require "Eq.Vlasov"
 local Updater = require "Updater"
 local Lin = require "Lib.Linalg"
+local Time = require "Lib.Time"
 local cuda = nil
 if GKYL_HAVE_CUDA then
   cuda = require "Cuda.RunTime"
 end
 
 local assert_equal = Unit.assert_equal
+local assert_close = Unit.assert_close
 local stats = Unit.stats
 
 function test_1()
@@ -28,13 +30,13 @@ function test_1()
    local grid = Grid.RectCart {
       lower = {0.0, -6.0, -6.0},
       upper = {1.0, 6.0, 6.0},
-      cells = {10, 8, 8},
+      cells = {16, 8, 8},
    }
 
    local confGrid = Grid.RectCart {
       lower = {0.0},
       upper = {1.0},
-      cells = {10},
+      cells = {16},
    }
    
    local vlasovEq = Vlasov {
@@ -50,6 +52,8 @@ function test_1()
       cfl = 1.0,
       equation = vlasovEq,
       zeroFluxDirections = {2,3},
+      clearOut = true,
+      noPenaltyFlux = true, -- penalty flux not yet implemented on device
    }
 
    local distf = DataStruct.Field {
@@ -93,10 +97,21 @@ function test_1()
 
    solver:setDtAndCflRate(.1, cflRateByCell)
 
-   solver:advance(0.0, {distf, emField}, {fRhs})
-   solver:_advanceOnDevice(0.0, {distf, emField}, {d_fRhs})
+   local N = 1000
+   local tmStart
+   tmStart = Time.clock()
+   for i = 1, N do
+      solver:advance(0.0, {distf, emField}, {fRhs})
+   end
+   local totalCpuTime = (Time.clock()-tmStart)
+
+   tmStart = Time.clock()
+   for i = 1, N do
+      solver:_advanceOnDevice(0.0, {distf, emField}, {d_fRhs})
+   end
    -- Need to synchronize so that kernel actually runs!
    local err = cuda.DeviceSynchronize()
+   local totalGpuTime = (Time.clock()-tmStart)
    assert_equal(0, err, "cuda error")
 
    d_fRhs:copyDeviceToHost()
@@ -106,8 +121,14 @@ function test_1()
    for idx in fRhs:localRangeIter() do
       local fitr = fRhs:get(indexer(idx))
       local d_fitr = d_fRhs:get(d_indexer(idx))
-      assert_equal(fitr[2], d_fitr[2])
+      for i = 0, fRhs:numComponents()-1 do
+         assert_equal(fitr[i], d_fitr[i], string.format("index %d, component %d is incorrect", indexer(idx), i))
+      end
    end
+
+   print(string.format("Total CPU time for %d HyperDisCont calls = %f s", N, totalCpuTime))
+   print(string.format("Total GPU time for %d HyperDisCont calls = %f s", N, totalGpuTime))
+   print(string.format("GPU speed-up = %fx!", totalCpuTime/totalGpuTime))
 end
 
 test_1()

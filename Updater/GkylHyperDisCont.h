@@ -20,6 +20,7 @@ extern "C"
       bool zeroFluxFlags[6];
       int32_t numUpdateDirs;
       bool updateVolumeTerm;
+      bool clearOut;
       Gkyl::Vlasov *equation;
       GkylCartField_t *cflRateByCell;
   } GkylHyperDisCont_t;

@@ -8,6 +8,7 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
   unsigned int linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
   GkylRange_t *localRange = fIn->localRange;
   unsigned int ndim = localRange->ndim;
+  unsigned int numComponents = fRhsOut->numComponents;
   
   // set up indexers for localRange and fIn (localExtRange)
   Gkyl::GenIndexer localIdxr(localRange);
@@ -18,6 +19,7 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
   int *updateDirs = hyper->updateDirs;
   int numUpdateDirs = hyper->numUpdateDirs;
   bool *zeroFluxFlags = hyper->zeroFluxFlags;
+  bool clearOut = hyper->clearOut;
   Gkyl::Vlasov *eq = hyper->equation;
   
   // CUDA thread "loop" over (non-ghost) cells in local range
@@ -42,6 +44,9 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
     
     double *fInC = fIn->getDataPtrAt(linearIdxC);
     double *fRhsOutC = fRhsOut->getDataPtrAt(linearIdxC);
+    if(clearOut) {
+      memset(fRhsOutC, 0., sizeof(double)*numComponents);
+    }
     double cflRate = eq->volTerm(xcC, dx, idxC, fInC, fRhsOutC);
 
     // hard code this size for now. 
@@ -66,9 +71,7 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
       grid->cellCenter(idxL, xcL);
       grid->cellCenter(idxR, xcR);
       double *fInL = fIn->getDataPtrAt(linearIdxL);
-      double *fRhsOutL = fRhsOut->getDataPtrAt(linearIdxL);
       double *fInR = fIn->getDataPtrAt(linearIdxR);
-      double *fRhsOutR = fRhsOut->getDataPtrAt(linearIdxR);
       
       // left (of C) surface update. use dummy in place of fRhsOutL (cell to left of surface) so that only current cell (C) is updated.
       if(!(zeroFluxFlags[dir] && idxC[dir] == localRange->lower[dir])) {

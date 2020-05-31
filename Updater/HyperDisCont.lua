@@ -35,6 +35,7 @@ ffi.cdef [[
       bool zeroFluxFlags[6];
       int32_t numUpdateDirs;
       bool updateVolumeTerm;
+      bool clearOut;
       GkylVlasov *equation;
       GkylCartField_t *cflRateByCell;
   } GkylHyperDisCont_t; 
@@ -98,6 +99,7 @@ function HyperDisCont:init(tbl)
       -- will be used
       self._maxs[d] = 0.0
    end
+   self._noPenaltyFlux = xsys.pickBool(tbl.noPenaltyFlux, false)
 
    self._isFirst = true
    self._auxFields = {} -- auxilliary fields passed to eqn object
@@ -116,6 +118,7 @@ function HyperDisCont:initDevice()
    hyper.zeroFluxFlags = ffi.new("bool[6]", self._zeroFluxFlags)
    hyper.numUpdateDirs = #self._updateDirs
    hyper.updateVolumeTerm = self._updateVolumeTerm
+   hyper.clearOut = self._clearOut
    hyper.equation = self._equation._onDevice
    local sz = sizeof("GkylHyperDisCont_t")
    self._onDevice, err = cuda.Malloc(sz)
@@ -166,7 +169,11 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 
    -- use maximum characteristic speeds from previous step as penalty
    for d = 1, ndim do
-      self._maxsOld[d] = self._maxs[d]
+      if self._noPenaltyFlux then 
+         self._maxsOld[d] = 0.0
+      else
+         self._maxsOld[d] = self._maxs[d]
+      end
       self._maxsLocal[d] = 0.0 -- reset to get new values in this step
    end
 
@@ -273,7 +280,7 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
 
    local numCellsLocal = qRhsOut:localExtRange():volume()
    local numThreads = math.min(GKYL_DEFAULT_NUM_THREADS, numCellsLocal)
-   local numBlocks  = math.floor(numCellsLocal/numThreads) --+1
+   local numBlocks  = math.floor(numCellsLocal/numThreads)+1
 
    ffiC.advanceOnDevice(numThreads, numBlocks, self._onDevice, qIn._onDevice, qRhsOut._onDevice)
 end
