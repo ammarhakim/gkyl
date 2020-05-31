@@ -4,6 +4,7 @@
 module load intel
 module load intel-mpi
 module load cudatoolkit/10.1
+module load rh/devtoolset/8
 
 # Build directory
 OUT=build
