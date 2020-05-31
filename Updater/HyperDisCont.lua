@@ -278,9 +278,9 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
 
    self._equation:setAuxFieldsOnDevice(self._auxFields)
 
-   local numCellsLocal = qRhsOut:localExtRange():volume()
+   local numCellsLocal = qRhsOut:localRange():volume()
    local numThreads = math.min(GKYL_DEFAULT_NUM_THREADS, numCellsLocal)
-   local numBlocks  = math.floor(numCellsLocal/numThreads)+1
+   local numBlocks  = math.floor(numCellsLocal/numThreads)
 
    ffiC.advanceOnDevice(numThreads, numBlocks, self._onDevice, qIn._onDevice, qRhsOut._onDevice)
 end

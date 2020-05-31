@@ -30,13 +30,13 @@ function test_1()
    local grid = Grid.RectCart {
       lower = {0.0, -6.0, -6.0},
       upper = {1.0, 6.0, 6.0},
-      cells = {16, 8, 8},
+      cells = {64, 32, 32},
    }
 
    local confGrid = Grid.RectCart {
       lower = {0.0},
       upper = {1.0},
-      cells = {16},
+      cells = {64},
    }
    
    local vlasovEq = Vlasov {
@@ -97,7 +97,7 @@ function test_1()
 
    solver:setDtAndCflRate(.1, cflRateByCell)
 
-   local N = 1000
+   local N = 100
    local tmStart
    tmStart = Time.clock()
    for i = 1, N do
@@ -122,7 +122,7 @@ function test_1()
       local fitr = fRhs:get(indexer(idx))
       local d_fitr = d_fRhs:get(d_indexer(idx))
       for i = 0, fRhs:numComponents()-1 do
-         assert_equal(fitr[i], d_fitr[i], string.format("index %d, component %d is incorrect", indexer(idx), i))
+         assert_close(fitr[i], d_fitr[i], 1e-11, string.format("index %d, component %d is incorrect", indexer(idx), i))
       end
    end
 
