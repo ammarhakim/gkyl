@@ -28,18 +28,23 @@ calcRecov2CellGen(basisNm, dir, numDims, polyOrder, lo, up) := block(
   baLo1D, baCe1D, baUp1D, baLoND, baCeND, baUpND,
   dimProjLo, dimProjUp, qLo1D, qUp1D
   ],
+  
+  baCe1D : getBasis(sconcat("basis-precalc/basis", basisNm, "1x"), polyOrder),
+  baCe1D : subst(x=dir, baCe1D),  
+  baLo1D : etaDir(dir, -1, 2, baCe1D),
+  baUp1D : etaDir(dir, 1, 2, baCe1D),
  
   /* forming and solving the equation system */
   DoF : 0,
   if is(op(lo)=dg) then (
-    DoF : DoF + polyOrder+1,
+    DoF : DoF + polyOrder + 1,
     if length(args(lo)) > 1 then DoF : DoF + 1 /* aditional DoF for BC */
   )
   else (
     DoF : DoF + 1 /* only 1 DoF for BC */
   ),
   if is(op(up)=dg) then (
-    DoF : DoF + polyOrder+1,
+    DoF : DoF + polyOrder + 1,
     if length(args(up)) > 1 then DoF : DoF + 1 /* aditional DoF for BC */
   )
   else (
@@ -47,12 +52,8 @@ calcRecov2CellGen(basisNm, dir, numDims, polyOrder, lo, up) := block(
   ),
   rExp : doExpand(r, makelist(dir^i, i, 0, DoF-1)), /* recovery polynomial */
 
-  baCe1D : getBasis(sconcat("basis-precalc/basis", basisNm, "1x"), polyOrder),
-  baCe1D : subst(x=dir, baCe1D),
-  
   recEqList : [], /* equation set from the weak equality formulation */
   if is(op(lo)=dg) then (
-    baLo1D : etaDir(dir, -1, 2, baCe1D),
     recEqList : append(
       recEqList,
       calcInnerProdListGen([dir], [[-2, 0]], 1,
@@ -75,7 +76,6 @@ calcRecov2CellGen(basisNm, dir, numDims, polyOrder, lo, up) := block(
   ),
 
   if is(op(up)=dg) then (
-    baUp1D : etaDir(dir, 1, 2, baCe1D),
     recEqList : append(
       recEqList,
       calcInnerProdListGen([dir], [[0, 2]], 1,
@@ -102,11 +102,12 @@ calcRecov2CellGen(basisNm, dir, numDims, polyOrder, lo, up) := block(
   
   /* backsubstitute the non-recovered directtions if needed */
   if numDims > 1 then (
-    baND : getBasis(sconcat("basis-precalc/basis", basisNm, numDims, "x"), polyOrder),
+    baCeND : getBasis(sconcat("basis-precalc/basis", basisNm, numDims, "x"), polyOrder),
+    baLoND : etaDir(dir, -1, 2, baCeND),
+    baUpND : etaDir(dir, 1, 2, baCeND),
     
     projSubList : [],
     if is(op(lo)=dg) then (
-      baLoND : etaDir(dir, -1, 2, baND),
       dimProjLo : calcInnerProdListGen([dir], [[-2, 0]],
         1, baLo1D, doExpand(args(lo)[1], baLoND)),
       projSubList : append (
@@ -115,7 +116,6 @@ calcRecov2CellGen(basisNm, dir, numDims, polyOrder, lo, up) := block(
       )
     ),
     if is(op(up)=dg) then (
-      baUpND : etaDir(dir, -1, 2, baND),
       dimProjUp : calcInnerProdListGen([dir], [[0, 2]],
         1, baUp1D, doExpand(args(up)[1], baUpND)),
       projSubList : append (
