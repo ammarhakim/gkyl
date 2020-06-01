@@ -89,6 +89,6 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
   }
 } 
 
-void advanceOnDevice(int numThreads, int numBlocks, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
-  cuda_HyperDisCont<<<numThreads, numBlocks>>>(hyper, fIn, fRhsOut);
+void advanceOnDevice(int numBlocks, int numThreads, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
+  cuda_HyperDisCont<<<numBlocks, numThreads>>>(hyper, fIn, fRhsOut);
 }

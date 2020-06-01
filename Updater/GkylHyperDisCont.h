@@ -25,7 +25,7 @@ extern "C"
       GkylCartField_t *cflRateByCell;
   } GkylHyperDisCont_t;
     
-  void advanceOnDevice(int numThreads, int numBlocks, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
+  void advanceOnDevice(int numBlocks, int numThreads, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
 }
 
 #endif // GKYL_HYPER_DISCONT_H
