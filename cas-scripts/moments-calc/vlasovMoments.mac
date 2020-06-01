@@ -1,3 +1,6 @@
+/* Functions (called by moment-calc.mac) that compute the
+   moments of the distribution function in Vlasov model. */
+
 load("modal-basis");
 load("out-scripts");
 load(stringproc)$
@@ -32,7 +35,7 @@ calcM0(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     bP : basisP[p],
     bC : basisC[p],
   
-    printf(fh, "void ~a_M0_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+    printf(fh, "__host__ __device__ void ~a_M0_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
     printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
     fl : doExpand1(f, bP),
     M : calcInnerProdList(varsP, 1, bC, fl),
@@ -51,7 +54,7 @@ calcM1i(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     bP : basisP[p],
     bC : basisC[p],
   
-    printf(fh, "void ~a_M1i_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+    printf(fh, "__host__ __device__ void ~a_M1i_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
     printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
     for i : 1 thru vdim do (
       printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1)
@@ -80,7 +83,7 @@ calcM2ij(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     bP : basisP[p],
     bC : basisC[p],
   
-    printf(fh, "void ~a_M2ij_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+    printf(fh, "__host__ __device__ void ~a_M2ij_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
     printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
     for i : 1 thru vdim do (
       printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
@@ -112,7 +115,7 @@ calcM2(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     bP : basisP[p],
     bC : basisC[p],
   
-    printf(fh, "void ~a_M2_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+    printf(fh, "__host__ __device__ void ~a_M2_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
     printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
     for i : 1 thru vdim do (
       printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
@@ -139,7 +142,7 @@ calcM3i(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     bP : basisP[p],
     bC : basisC[p],
   
-    printf(fh, "void ~a_M3i_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+    printf(fh, "__host__ __device__ void ~a_M3i_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
     printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
     for i : 1 thru vdim do (
       printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
@@ -171,7 +174,7 @@ calcFiveMoments(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     bP : basisP[p],
     bC : basisC[p],
   
-    printf(fh, "void ~a_FiveMoments_P~a(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2) ~%{ ~%", funcNm, p),
+    printf(fh, "__host__ __device__ void ~a_FiveMoments_P~a(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2) ~%{ ~%", funcNm, p),
     printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
     for i : 1 thru vdim do (
       printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),

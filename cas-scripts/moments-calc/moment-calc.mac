@@ -1,7 +1,10 @@
-load("moments-calc-c/moment-calc")$
-load("moments-calc-c/gk-moment-calc")$
-load("moments-calc-c/BoundaryEval")$
-load("moments-calc-c/StarMoms")$
+/* Generate kernels that compute the moments of the distribution
+   function in Vlasov and gyrokinetic models. */
+
+load("moments-calc/vlasovMoments")$
+load("moments-calc/gkMoments")$
+load("moments-calc/BoundaryEval")$
+load("moments-calc/StarMoms")$
 load(stringproc)$
 
 /* ...... USER INPUTS........ */
@@ -10,21 +13,21 @@ load(stringproc)$
 maxPolyOrder_Ser : 3$
 minCdim_Ser : 1$
 minVdim_Ser : 1$    /* but see v loop below. */
-maxCdim_Ser : 1$
-maxVdim_Ser : 2$
+maxCdim_Ser : 3$
+maxVdim_Ser : 3$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 3$
 minCdim_Max : 1$
 minVdim_Max : 1$    /* but see v loop below. */
-maxCdim_Max : 1$
-maxVdim_Max : 2$
+maxCdim_Max : 3$
+maxVdim_Max : 3$
 
 /* Tensor order basis. */
 maxPolyOrder_Tensor : 2$    /* BoundaryEval fails for polyOrder>2 for some reason. */
 minCdim_Tensor : 1$
 minVdim_Tensor : 1$    /* but see v loop below. */
-maxCdim_Tensor : 1$
+maxCdim_Tensor : 2$
 maxVdim_Tensor : 2$
 
 gkVdims      : [[1,2], [2], [2]]$
@@ -41,13 +44,17 @@ maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
     for v : c thru maxVdim[bInd] do (
+
+      maxPolyOrderB : maxPolyOrder[bInd],
+      if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+      if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
   
       /* Vlasov moment calculators. */
       disp(printf(false,sconcat("Creating DistFuncMomentCalc ~ax~av", bName[bInd]),c,v)),
       fname : sconcat("~/max-out/DistFuncMomentCalc", bName[bInd], c, "x", v, "v", ".cpp"),
       fh : openw(fname),
       funcName : sconcat("MomentCalc", c, "x", v, "v", bName[bInd]),
-      calcMoments(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+      calcMoments(fh, funcName, c, v, bName[bInd], maxPolyOrderB),
       close(fh),
   
       /* Create a separate file w/ boundary corrections and star moment kernels. */
@@ -58,7 +65,7 @@ for bInd : 1 thru length(bName) do (
       kinSpec : "Vm",
       calcStarMomContributions(fh, kinSpec, c, v, bName[bInd]),
       funcName : sconcat("VmBoundaryIntegral", c, "x", v, "v", bName[bInd]),
-      calcSurfIntegralCorrections(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+      calcSurfIntegralCorrections(fh, funcName, c, v, bName[bInd], maxPolyOrderB),
       close(fh)
   
     ),
@@ -68,12 +75,16 @@ for bInd : 1 thru length(bName) do (
     for gkV : 1 thru length(gkVdims[c]) do (
       v : gkVdims[c][gkV],
 
+      maxPolyOrderB : maxPolyOrder[bInd],
+      if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+      if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
+
       /* Gyrokinetic moment calculators. */
       disp(printf(false,sconcat("Creating DistFuncGkMomentCalc ~ax~av", bName[bInd]),c,v)),
       fname : sconcat("~/max-out/DistFuncGkMomentCalc", bName[bInd], c, "x", v, "v", ".cpp"),
       fh : openw(fname),
       funcName : sconcat("GkMomentCalc", c, "x", v, "v", bName[bInd]),
-      calcGkMoments(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+      calcGkMoments(fh, funcName, c, v, bName[bInd], maxPolyOrderB),
       close(fh),
 
       /* Create a separate file w/ boundary corrections and star moment kernels. */
@@ -85,7 +96,7 @@ for bInd : 1 thru length(bName) do (
       kinSpec : "Gk",
       calcStarMomContributions(fh, kinSpec, c, v, bName[bInd]),
       funcName : sconcat("GkBoundaryIntegral", c, "x", v, "v", bName[bInd]),
-      calcSurfIntegralCorrections(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+      calcSurfIntegralCorrections(fh, funcName, c, v, bName[bInd], maxPolyOrderB),
       close(fh)
 
     )

@@ -1,3 +1,11 @@
+-- Gkyl ------------------------------------------------------------------------
+--
+-- Lua wrapper for C kernels used to compute moments of the distribution function.
+--
+--    _______     ___
+-- + 6 @ |||| # P ||| +
+--------------------------------------------------------------------------------
+
 local ffi = require "ffi"
 
 ffi.cdef [[
