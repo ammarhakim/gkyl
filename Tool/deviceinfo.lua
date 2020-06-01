@@ -22,11 +22,11 @@ print("regsPerBlock", prop.regsPerBlock)
 print("warpSize", prop.warpSize)
 print("memPitch", prop.memPitch)
 print("maxThreadsPerBlock", prop.maxThreadsPerBlock)
-for d = 1, 2 do
+for d = 1, 3 do
   print(string.format(" maxThreadsDim[%d] = %d", d, prop.maxThreadsDim[d-1]))
 end
 for d = 1, 3 do
-  print(string.format(" maxGridSize[%d] = %d", d, prop.maxThreadsDim[d-1]))
+  print(string.format(" maxGridSize[%d] = %d", d, prop.maxGridSize[d-1]))
 end
 print("clockRate", prop.clockRate)
 print("totalConstMem", prop.totalConstMem)
