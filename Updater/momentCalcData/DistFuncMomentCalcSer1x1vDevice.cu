@@ -52,7 +52,7 @@
   for (unsigned int k = 0; k < 1; k++) {
     confIdx[k] = phaseIdx[k];
   }
-  int confLinIdx = outIdxr.index(phaseIdx);
+  int confLinIdx = outIdxr.index(confIdx);
   double *mom    = out->getDataPtrAt(confLinIdx);
   unsigned int numComponents = out->numComponents;
 
@@ -112,7 +112,7 @@
   for (unsigned int k = 0; k < 1; k++) {
     confIdx[k] = phaseIdx[k];
   }
-  int confLinIdx = outIdxr.index(phaseIdx);
+  int confLinIdx = outIdxr.index(confIdx);
   double *mom    = out->getDataPtrAt(confLinIdx);
   unsigned int numComponents = out->numComponents;
 
