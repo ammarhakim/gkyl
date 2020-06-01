@@ -154,7 +154,10 @@ Gkyl::Gkyl(const std::string& luaExpr, const std::string& inpFileNm, const std::
     { "queryrdb", {"queryrdb.lua", "Query/modify regression test DB"} },
     { "runregression", {"runregression.lua", "Run regression/unit tests"} },
     { "comparefiles", {"comparefiles.lua", "Compare two BP files"} },
-    { "exacteulerrp", {"exacteulerrp.lua", "Exact Euler Riemann problem solver"} }
+    { "exacteulerrp", {"exacteulerrp.lua", "Exact Euler Riemann problem solver"} },
+#ifdef HAVE_CUDA_H
+    { "deviceinfo", {"deviceinfo.lua", "Information about device"} },
+#endif
   };
 
   if (hasInpFile) {
@@ -275,7 +278,7 @@ std::string Gkyl::createTopLevelDefs() const {
   varDefs << "GKYL_EMBED_INP = true" << std::endl; // default true
 
   // set some JIT parameters to fiddle around with optimizations
-  varDefs << "jit.opt.start('callunroll=40', 'loopunroll=80', 'maxmcode=40960', 'maxtrace=8000', 'maxrecord=16000', 'minstitch=3')"
+  varDefs << "if jit.opt then jit.opt.start('callunroll=40', 'loopunroll=80', 'maxmcode=40960', 'maxtrace=8000', 'maxrecord=16000', 'minstitch=3') end"
           << std::endl;
 
   // output prefix

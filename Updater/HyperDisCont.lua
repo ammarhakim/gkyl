@@ -40,7 +40,7 @@ ffi.cdef [[
       GkylCartField_t *cflRateByCell;
   } GkylHyperDisCont_t; 
 
-  void advanceOnDevice(int numThreads, int numBlocks, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
+  void advanceOnDevice(int numBlocks, int numThreads, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
 ]]
 
 -- Hyperbolic DG solver updater object
@@ -280,9 +280,9 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
 
    local numCellsLocal = qRhsOut:localRange():volume()
    local numThreads = math.min(GKYL_DEFAULT_NUM_THREADS, numCellsLocal)
-   local numBlocks  = math.floor(numCellsLocal/numThreads)
+   local numBlocks  = math.floor(numCellsLocal/numThreads)+1
 
-   ffiC.advanceOnDevice(numThreads, numBlocks, self._onDevice, qIn._onDevice, qRhsOut._onDevice)
+   ffiC.advanceOnDevice(numBlocks, numThreads, self._onDevice, qIn._onDevice, qRhsOut._onDevice)
 end
 
 return HyperDisCont

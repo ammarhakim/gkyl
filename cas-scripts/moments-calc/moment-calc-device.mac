@@ -3,7 +3,7 @@ load(stringproc)$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 1$
+maxPolyOrder_Ser : 2$
 minCdim_Ser : 1$
 minVdim_Ser : 1$    /* but see v loop below. */
 maxCdim_Ser : 1$
@@ -40,7 +40,7 @@ gentranlang : c$
 disp(printf(false,"Creating CUDA wrappers:"))$
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
-    for v : c thru maxVdim[bInd] do (
+    for v : max(c,minVdim[bInd]) thru maxVdim[bInd] do (
   
       /* Vlasov moment calculators. */
       disp(printf(false,sconcat("  DistFuncMomentCalc", bName[bInd], "~ax~avDevice.cu"),c,v)),
@@ -61,9 +61,13 @@ for bInd : 1 thru length(bName) do (
       printf(fh,"~%"),
       close(fh),
 
-      for polyOrder : 1 thru maxPolyOrder[bInd] do (
+      maxPolyOrderB : maxPolyOrder[bInd],
+      if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+      if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
 
-        gentranin("moments-calc-c/moment-device.mac", [fname]),
+      for polyOrder : 1 thru maxPolyOrderB do (
+
+        gentranin("moments-calc/moment-device.mac", [fname]),
         gentraninshut()
 
       )

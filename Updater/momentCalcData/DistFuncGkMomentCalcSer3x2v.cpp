@@ -1,6 +1,6 @@
 #include <math.h> 
 #include <DistFuncMomentCalcModDecl.h> 
-void GkMomentCalc3x2vSer_M0_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M0_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
   out[0] += 2.0*f[0]*volFact; 
@@ -12,7 +12,7 @@ void GkMomentCalc3x2vSer_M0_P1(const double *w, const double *dxv, const double 
   out[6] += 2.0*f[8]*volFact; 
   out[7] += 2.0*f[16]*volFact; 
 } 
-void GkMomentCalc3x2vSer_M0_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M0_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
   out[0] += 2.0*f[0]*volFact; 
@@ -36,7 +36,7 @@ void GkMomentCalc3x2vSer_M0_P2(const double *w, const double *dxv, const double 
   out[18] += 2.0*f[57]*volFact; 
   out[19] += 2.0*f[58]*volFact; 
 } 
-void GkMomentCalc3x2vSer_M1_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M1_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
   const double wx1 = w[3], dv1 = dxv[3]; 
@@ -50,7 +50,7 @@ void GkMomentCalc3x2vSer_M1_P1(const double *w, const double *dxv, const double 
   out[6] += volFact*(2.0*f[8]*wx1+0.5773502691896258*f[19]*dv1); 
   out[7] += volFact*(2.0*f[16]*wx1+0.5773502691896258*f[26]*dv1); 
 } 
-void GkMomentCalc3x2vSer_M1_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M1_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
   const double wx1 = w[3], dv1 = dxv[3]; 
@@ -76,7 +76,7 @@ void GkMomentCalc3x2vSer_M1_P2(const double *w, const double *dxv, const double 
   out[18] += volFact*(2.0*f[57]*wx1+0.5773502691896257*f[88]*dv1); 
   out[19] += volFact*(2.0*f[58]*wx1+0.5773502691896257*f[89]*dv1); 
 } 
-void GkMomentCalc3x2vSer_M1proj_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M1proj_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
   const double wx1 = w[3], dv1 = dxv[3]; 
@@ -90,7 +90,7 @@ void GkMomentCalc3x2vSer_M1proj_P1(const double *w, const double *dxv, const dou
   out[6] += 2.0*f[8]*volFact*wx1; 
   out[7] += 2.0*f[16]*volFact*wx1; 
 } 
-void GkMomentCalc3x2vSer_M1proj_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M1proj_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
   const double wx1 = w[3], dv1 = dxv[3]; 
@@ -116,7 +116,7 @@ void GkMomentCalc3x2vSer_M1proj_P2(const double *w, const double *dxv, const dou
   out[18] += volFact*(2.0*f[57]*wx1+0.5773502691896257*f[88]*dv1); 
   out[19] += volFact*(2.0*f[58]*wx1+0.5773502691896257*f[89]*dv1); 
 } 
-void GkMomentCalc3x2vSer_M2_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M2_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
   const double wx1 = w[3], dv1 = dxv[3]; 
@@ -149,7 +149,7 @@ void GkMomentCalc3x2vSer_M2_P1(const double *w, const double *dxv, const double 
   out[6] += (2.0*(0.3535533905932737*Bmag[1]*tmp[7]+0.3535533905932737*tmp[1]*Bmag[7]+0.3535533905932737*Bmag[0]*tmp[6]+0.3535533905932737*tmp[0]*Bmag[6]+0.3535533905932737*Bmag[4]*tmp[5]+0.3535533905932737*tmp[4]*Bmag[5]+0.3535533905932737*Bmag[2]*tmp[3]+0.3535533905932737*tmp[2]*Bmag[3])*volFact)/m_; 
   out[7] += (2.0*(0.3535533905932737*Bmag[0]*tmp[7]+0.3535533905932737*tmp[0]*Bmag[7]+0.3535533905932737*Bmag[1]*tmp[6]+0.3535533905932737*tmp[1]*Bmag[6]+0.3535533905932737*Bmag[2]*tmp[5]+0.3535533905932737*tmp[2]*Bmag[5]+0.3535533905932737*Bmag[3]*tmp[4]+0.3535533905932737*tmp[3]*Bmag[4])*volFact)/m_; 
 } 
-void GkMomentCalc3x2vSer_M2_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M2_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
   const double wx1 = w[3], dv1 = dxv[3]; 
@@ -218,7 +218,7 @@ void GkMomentCalc3x2vSer_M2_P2(const double *w, const double *dxv, const double 
   out[18] += (2.0*(0.2529822128134704*Bmag[17]*tmp[19]+0.2828427124746191*Bmag[6]*tmp[19]+0.2529822128134704*tmp[17]*Bmag[19]+0.2828427124746191*tmp[6]*Bmag[19]+0.3162277660168379*Bmag[9]*tmp[18]+0.2258769757263128*Bmag[8]*tmp[18]+0.3162277660168379*Bmag[7]*tmp[18]+0.3535533905932737*Bmag[0]*tmp[18]+0.3162277660168379*tmp[9]*Bmag[18]+0.2258769757263128*tmp[8]*Bmag[18]+0.3162277660168379*tmp[7]*Bmag[18]+0.3535533905932737*tmp[0]*Bmag[18]+0.2828427124746191*Bmag[4]*tmp[17]+0.2828427124746191*tmp[4]*Bmag[17]+0.282842712474619*Bmag[10]*tmp[16]+0.282842712474619*tmp[10]*Bmag[16]+0.3162277660168379*Bmag[14]*tmp[15]+0.3162277660168379*tmp[14]*Bmag[15]+0.2258769757263128*Bmag[12]*tmp[14]+0.3535533905932737*Bmag[1]*tmp[14]+0.2258769757263128*tmp[12]*Bmag[14]+0.3535533905932737*tmp[1]*Bmag[14]+0.3162277660168379*Bmag[12]*tmp[13]+0.3162277660168379*tmp[12]*Bmag[13]+0.3535533905932737*Bmag[3]*tmp[12]+0.3535533905932737*tmp[3]*Bmag[12]+0.282842712474619*Bmag[10]*tmp[11]+0.282842712474619*tmp[10]*Bmag[11]+0.3162277660168379*Bmag[2]*tmp[10]+0.3162277660168379*tmp[2]*Bmag[10]+0.3535533905932737*Bmag[5]*tmp[8]+0.3535533905932737*tmp[5]*Bmag[8]+0.3162277660168379*Bmag[4]*tmp[6]+0.3162277660168379*tmp[4]*Bmag[6])*volFact)/m_; 
   out[19] += (2.0*(0.2258769757263128*Bmag[9]*tmp[19]+0.3162277660168379*Bmag[8]*tmp[19]+0.3162277660168379*Bmag[7]*tmp[19]+0.3535533905932737*Bmag[0]*tmp[19]+0.2258769757263128*tmp[9]*Bmag[19]+0.3162277660168379*tmp[8]*Bmag[19]+0.3162277660168379*tmp[7]*Bmag[19]+0.3535533905932737*tmp[0]*Bmag[19]+0.2529822128134704*Bmag[17]*tmp[18]+0.2828427124746191*Bmag[6]*tmp[18]+0.2529822128134704*tmp[17]*Bmag[18]+0.2828427124746191*tmp[6]*Bmag[18]+0.2828427124746191*Bmag[5]*tmp[17]+0.2828427124746191*tmp[5]*Bmag[17]+0.2258769757263128*Bmag[15]*tmp[16]+0.3162277660168379*Bmag[12]*tmp[16]+0.3535533905932737*Bmag[1]*tmp[16]+0.2258769757263128*tmp[15]*Bmag[16]+0.3162277660168379*tmp[12]*Bmag[16]+0.3535533905932737*tmp[1]*Bmag[16]+0.3162277660168379*Bmag[11]*tmp[15]+0.3535533905932737*Bmag[2]*tmp[15]+0.3162277660168379*tmp[11]*Bmag[15]+0.3535533905932737*tmp[2]*Bmag[15]+0.282842712474619*Bmag[10]*tmp[14]+0.282842712474619*tmp[10]*Bmag[14]+0.282842712474619*Bmag[10]*tmp[13]+0.282842712474619*tmp[10]*Bmag[13]+0.3162277660168379*Bmag[3]*tmp[10]+0.3162277660168379*tmp[3]*Bmag[10]+0.3535533905932737*Bmag[4]*tmp[9]+0.3535533905932737*tmp[4]*Bmag[9]+0.3162277660168379*Bmag[5]*tmp[6]+0.3162277660168379*tmp[5]*Bmag[6])*volFact)/m_; 
 } 
-void GkMomentCalc3x2vSer_M2par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M2par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
   const double wx1 = w[3], dv1 = dxv[3]; 
@@ -234,7 +234,7 @@ void GkMomentCalc3x2vSer_M2par_P1(const double *w, const double *dxv, const doub
   out[6] += volFact*(2.0*f[8]*wx1_sq+1.154700538379252*f[19]*dv1*wx1+0.1666666666666667*f[8]*dv1_sq); 
   out[7] += volFact*(2.0*f[16]*wx1_sq+1.154700538379252*f[26]*dv1*wx1+0.1666666666666667*f[16]*dv1_sq); 
 } 
-void GkMomentCalc3x2vSer_M2par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M2par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
   const double wx1 = w[3], dv1 = dxv[3]; 
@@ -262,7 +262,7 @@ void GkMomentCalc3x2vSer_M2par_P2(const double *w, const double *dxv, const doub
   out[18] += volFact*(2.0*f[57]*wx1_sq+1.154700538379251*f[88]*dv1*wx1+0.1666666666666667*f[57]*dv1_sq); 
   out[19] += volFact*(2.0*f[58]*wx1_sq+1.154700538379251*f[89]*dv1*wx1+0.1666666666666667*f[58]*dv1_sq); 
 } 
-void GkMomentCalc3x2vSer_M2perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M2perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
   const double wx1 = w[3], dv1 = dxv[3]; 
@@ -285,7 +285,7 @@ void GkMomentCalc3x2vSer_M2perp_P1(const double *w, const double *dxv, const dou
   out[6] += ((0.3535533905932737*Bmag[1]*tmp[7]+0.3535533905932737*tmp[1]*Bmag[7]+0.3535533905932737*Bmag[0]*tmp[6]+0.3535533905932737*tmp[0]*Bmag[6]+0.3535533905932737*Bmag[4]*tmp[5]+0.3535533905932737*tmp[4]*Bmag[5]+0.3535533905932737*Bmag[2]*tmp[3]+0.3535533905932737*tmp[2]*Bmag[3])*volFact)/m_; 
   out[7] += ((0.3535533905932737*Bmag[0]*tmp[7]+0.3535533905932737*tmp[0]*Bmag[7]+0.3535533905932737*Bmag[1]*tmp[6]+0.3535533905932737*tmp[1]*Bmag[6]+0.3535533905932737*Bmag[2]*tmp[5]+0.3535533905932737*tmp[2]*Bmag[5]+0.3535533905932737*Bmag[3]*tmp[4]+0.3535533905932737*tmp[3]*Bmag[4])*volFact)/m_; 
 } 
-void GkMomentCalc3x2vSer_M2perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M2perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
   const double wx1 = w[3], dv1 = dxv[3]; 
@@ -332,7 +332,7 @@ void GkMomentCalc3x2vSer_M2perp_P2(const double *w, const double *dxv, const dou
   out[18] += ((0.2529822128134704*Bmag[17]*tmp[19]+0.2828427124746191*Bmag[6]*tmp[19]+0.2529822128134704*tmp[17]*Bmag[19]+0.2828427124746191*tmp[6]*Bmag[19]+0.3162277660168379*Bmag[9]*tmp[18]+0.2258769757263128*Bmag[8]*tmp[18]+0.3162277660168379*Bmag[7]*tmp[18]+0.3535533905932737*Bmag[0]*tmp[18]+0.3162277660168379*tmp[9]*Bmag[18]+0.2258769757263128*tmp[8]*Bmag[18]+0.3162277660168379*tmp[7]*Bmag[18]+0.3535533905932737*tmp[0]*Bmag[18]+0.2828427124746191*Bmag[4]*tmp[17]+0.2828427124746191*tmp[4]*Bmag[17]+0.282842712474619*Bmag[10]*tmp[16]+0.282842712474619*tmp[10]*Bmag[16]+0.3162277660168379*Bmag[14]*tmp[15]+0.3162277660168379*tmp[14]*Bmag[15]+0.2258769757263128*Bmag[12]*tmp[14]+0.3535533905932737*Bmag[1]*tmp[14]+0.2258769757263128*tmp[12]*Bmag[14]+0.3535533905932737*tmp[1]*Bmag[14]+0.3162277660168379*Bmag[12]*tmp[13]+0.3162277660168379*tmp[12]*Bmag[13]+0.3535533905932737*Bmag[3]*tmp[12]+0.3535533905932737*tmp[3]*Bmag[12]+0.282842712474619*Bmag[10]*tmp[11]+0.282842712474619*tmp[10]*Bmag[11]+0.3162277660168379*Bmag[2]*tmp[10]+0.3162277660168379*tmp[2]*Bmag[10]+0.3535533905932737*Bmag[5]*tmp[8]+0.3535533905932737*tmp[5]*Bmag[8]+0.3162277660168379*Bmag[4]*tmp[6]+0.3162277660168379*tmp[4]*Bmag[6])*volFact)/m_; 
   out[19] += ((0.2258769757263128*Bmag[9]*tmp[19]+0.3162277660168379*Bmag[8]*tmp[19]+0.3162277660168379*Bmag[7]*tmp[19]+0.3535533905932737*Bmag[0]*tmp[19]+0.2258769757263128*tmp[9]*Bmag[19]+0.3162277660168379*tmp[8]*Bmag[19]+0.3162277660168379*tmp[7]*Bmag[19]+0.3535533905932737*tmp[0]*Bmag[19]+0.2529822128134704*Bmag[17]*tmp[18]+0.2828427124746191*Bmag[6]*tmp[18]+0.2529822128134704*tmp[17]*Bmag[18]+0.2828427124746191*tmp[6]*Bmag[18]+0.2828427124746191*Bmag[5]*tmp[17]+0.2828427124746191*tmp[5]*Bmag[17]+0.2258769757263128*Bmag[15]*tmp[16]+0.3162277660168379*Bmag[12]*tmp[16]+0.3535533905932737*Bmag[1]*tmp[16]+0.2258769757263128*tmp[15]*Bmag[16]+0.3162277660168379*tmp[12]*Bmag[16]+0.3535533905932737*tmp[1]*Bmag[16]+0.3162277660168379*Bmag[11]*tmp[15]+0.3535533905932737*Bmag[2]*tmp[15]+0.3162277660168379*tmp[11]*Bmag[15]+0.3535533905932737*tmp[2]*Bmag[15]+0.282842712474619*Bmag[10]*tmp[14]+0.282842712474619*tmp[10]*Bmag[14]+0.282842712474619*Bmag[10]*tmp[13]+0.282842712474619*tmp[10]*Bmag[13]+0.3162277660168379*Bmag[3]*tmp[10]+0.3162277660168379*tmp[3]*Bmag[10]+0.3535533905932737*Bmag[4]*tmp[9]+0.3535533905932737*tmp[4]*Bmag[9]+0.3162277660168379*Bmag[5]*tmp[6]+0.3162277660168379*tmp[5]*Bmag[6])*volFact)/m_; 
 } 
-void GkMomentCalc3x2vSer_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
   const double wx1 = w[3], dv1 = dxv[3]; 
@@ -350,7 +350,7 @@ void GkMomentCalc3x2vSer_M3par_P1(const double *w, const double *dxv, const doub
   out[6] += volFact*(2.0*f[8]*wx1*wx1_sq+1.732050807568877*f[19]*dv1*wx1_sq+0.5*f[8]*dv1_sq*wx1+0.08660254037844387*f[19]*dv1*dv1_sq); 
   out[7] += volFact*(2.0*f[16]*wx1*wx1_sq+1.732050807568877*f[26]*dv1*wx1_sq+0.5*f[16]*dv1_sq*wx1+0.08660254037844387*f[26]*dv1*dv1_sq); 
 } 
-void GkMomentCalc3x2vSer_M3par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M3par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
   const double wx1 = w[3], dv1 = dxv[3]; 
@@ -380,7 +380,7 @@ void GkMomentCalc3x2vSer_M3par_P2(const double *w, const double *dxv, const doub
   out[18] += volFact*(2.0*f[57]*wx1*wx1_sq+1.732050807568877*f[88]*dv1*wx1_sq+0.5*f[57]*dv1_sq*wx1+0.08660254037844385*f[88]*dv1*dv1_sq); 
   out[19] += volFact*(2.0*f[58]*wx1*wx1_sq+1.732050807568877*f[89]*dv1*wx1_sq+0.5*f[58]*dv1_sq*wx1+0.08660254037844385*f[89]*dv1*dv1_sq); 
 } 
-void GkMomentCalc3x2vSer_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
   const double wx1 = w[3], dv1 = dxv[3]; 
@@ -394,7 +394,7 @@ void GkMomentCalc3x2vSer_M3perp_P1(const double *w, const double *dxv, const dou
   out[6] += (volFact*(0.7071067811865475*Bmag[1]*f[16]*wx1*wx2+0.7071067811865475*Bmag[0]*f[8]*wx1*wx2+0.7071067811865475*Bmag[4]*f[7]*wx1*wx2+0.7071067811865475*f[1]*Bmag[7]*wx1*wx2+0.7071067811865475*Bmag[5]*f[6]*wx1*wx2+0.7071067811865475*f[0]*Bmag[6]*wx1*wx2+0.7071067811865475*Bmag[2]*f[3]*wx1*wx2+0.7071067811865475*f[2]*Bmag[3]*wx1*wx2+0.2041241452319315*Bmag[1]*f[26]*dv1*wx2+0.2041241452319315*Bmag[0]*f[19]*dv1*wx2+0.2041241452319315*Bmag[4]*f[18]*dv1*wx2+0.2041241452319315*Bmag[5]*f[17]*dv1*wx2+0.2041241452319315*Bmag[2]*f[11]*dv1*wx2+0.2041241452319315*Bmag[3]*f[10]*dv1*wx2+0.2041241452319315*Bmag[7]*f[9]*dv1*wx2+0.2041241452319315*f[4]*Bmag[6]*dv1*wx2+0.2041241452319315*Bmag[1]*f[27]*dv2*wx1+0.2041241452319315*Bmag[0]*f[22]*dv2*wx1+0.2041241452319315*Bmag[4]*f[21]*dv2*wx1+0.2041241452319315*Bmag[5]*f[20]*dv2*wx1+0.2041241452319315*Bmag[2]*f[14]*dv2*wx1+0.2041241452319315*Bmag[3]*f[13]*dv2*wx1+0.2041241452319315*Bmag[7]*f[12]*dv2*wx1+0.2041241452319315*f[5]*Bmag[6]*dv2*wx1+0.05892556509887893*Bmag[1]*f[31]*dv1*dv2+0.05892556509887893*Bmag[0]*f[30]*dv1*dv2+0.05892556509887893*Bmag[4]*f[29]*dv1*dv2+0.05892556509887893*Bmag[5]*f[28]*dv1*dv2+0.05892556509887893*Bmag[2]*f[25]*dv1*dv2+0.05892556509887893*Bmag[3]*f[24]*dv1*dv2+0.05892556509887893*Bmag[7]*f[23]*dv1*dv2+0.05892556509887893*Bmag[6]*f[15]*dv1*dv2))/m_; 
   out[7] += (volFact*(0.7071067811865475*Bmag[0]*f[16]*wx1*wx2+0.7071067811865475*Bmag[1]*f[8]*wx1*wx2+0.7071067811865475*Bmag[2]*f[7]*wx1*wx2+0.7071067811865475*f[0]*Bmag[7]*wx1*wx2+0.7071067811865475*Bmag[3]*f[6]*wx1*wx2+0.7071067811865475*f[1]*Bmag[6]*wx1*wx2+0.7071067811865475*f[2]*Bmag[5]*wx1*wx2+0.7071067811865475*f[3]*Bmag[4]*wx1*wx2+0.2041241452319315*Bmag[0]*f[26]*dv1*wx2+0.2041241452319315*Bmag[1]*f[19]*dv1*wx2+0.2041241452319315*Bmag[2]*f[18]*dv1*wx2+0.2041241452319315*Bmag[3]*f[17]*dv1*wx2+0.2041241452319315*Bmag[4]*f[11]*dv1*wx2+0.2041241452319315*Bmag[5]*f[10]*dv1*wx2+0.2041241452319315*Bmag[6]*f[9]*dv1*wx2+0.2041241452319315*f[4]*Bmag[7]*dv1*wx2+0.2041241452319315*Bmag[0]*f[27]*dv2*wx1+0.2041241452319315*Bmag[1]*f[22]*dv2*wx1+0.2041241452319315*Bmag[2]*f[21]*dv2*wx1+0.2041241452319315*Bmag[3]*f[20]*dv2*wx1+0.2041241452319315*Bmag[4]*f[14]*dv2*wx1+0.2041241452319315*Bmag[5]*f[13]*dv2*wx1+0.2041241452319315*Bmag[6]*f[12]*dv2*wx1+0.2041241452319315*f[5]*Bmag[7]*dv2*wx1+0.05892556509887893*Bmag[0]*f[31]*dv1*dv2+0.05892556509887893*Bmag[1]*f[30]*dv1*dv2+0.05892556509887893*Bmag[2]*f[29]*dv1*dv2+0.05892556509887893*Bmag[3]*f[28]*dv1*dv2+0.05892556509887893*Bmag[4]*f[25]*dv1*dv2+0.05892556509887893*Bmag[5]*f[24]*dv1*dv2+0.05892556509887893*Bmag[6]*f[23]*dv1*dv2+0.05892556509887893*Bmag[7]*f[15]*dv1*dv2))/m_; 
 } 
-void GkMomentCalc3x2vSer_M3perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M3perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
   const double wx1 = w[3], dv1 = dxv[3]; 
@@ -420,7 +420,7 @@ void GkMomentCalc3x2vSer_M3perp_P2(const double *w, const double *dxv, const dou
   out[18] += (volFact*(0.5059644256269408*Bmag[17]*f[58]*wx1*wx2+0.5656854249492381*Bmag[6]*f[58]*wx1*wx2+0.6324555320336759*Bmag[9]*f[57]*wx1*wx2+0.4517539514526256*Bmag[8]*f[57]*wx1*wx2+0.6324555320336759*Bmag[7]*f[57]*wx1*wx2+0.7071067811865475*Bmag[0]*f[57]*wx1*wx2+0.5059644256269408*Bmag[19]*f[56]*wx1*wx2+0.5656854249492381*Bmag[4]*f[56]*wx1*wx2+0.5656854249492382*Bmag[10]*f[36]*wx1*wx2+0.6324555320336759*Bmag[14]*f[35]*wx1*wx2+0.6324555320336759*Bmag[15]*f[34]*wx1*wx2+0.4517539514526256*Bmag[12]*f[34]*wx1*wx2+0.7071067811865475*Bmag[1]*f[34]*wx1*wx2+0.6324555320336759*Bmag[12]*f[33]*wx1*wx2+0.4517539514526256*Bmag[14]*f[32]*wx1*wx2+0.6324555320336759*Bmag[13]*f[32]*wx1*wx2+0.7071067811865475*Bmag[3]*f[32]*wx1*wx2+0.5656854249492382*Bmag[10]*f[31]*wx1*wx2+0.5656854249492382*Bmag[16]*f[21]*wx1*wx2+0.5656854249492382*Bmag[11]*f[21]*wx1*wx2+0.6324555320336759*Bmag[2]*f[21]*wx1*wx2+0.5656854249492381*f[8]*Bmag[19]*wx1*wx2+0.6324555320336759*Bmag[18]*f[18]*wx1*wx2+0.4517539514526256*f[17]*Bmag[18]*wx1*wx2+0.6324555320336759*f[16]*Bmag[18]*wx1*wx2+0.7071067811865475*f[0]*Bmag[18]*wx1*wx2+0.7071067811865475*Bmag[5]*f[17]*wx1*wx2+0.5656854249492381*f[6]*Bmag[17]*wx1*wx2+0.7071067811865475*f[1]*Bmag[14]*wx1*wx2+0.7071067811865475*f[3]*Bmag[12]*wx1*wx2+0.6324555320336759*f[2]*Bmag[10]*wx1*wx2+0.6324555320336759*Bmag[4]*f[8]*wx1*wx2+0.7071067811865475*f[7]*Bmag[8]*wx1*wx2+0.6324555320336759*Bmag[6]*f[6]*wx1*wx2+0.1460593486680443*Bmag[17]*f[89]*dv1*wx2+0.1632993161855452*Bmag[6]*f[89]*dv1*wx2+0.1825741858350553*Bmag[9]*f[88]*dv1*wx2+0.1304101327393253*Bmag[8]*f[88]*dv1*wx2+0.1825741858350553*Bmag[7]*f[88]*dv1*wx2+0.2041241452319315*Bmag[0]*f[88]*dv1*wx2+0.1460593486680443*Bmag[19]*f[87]*dv1*wx2+0.1632993161855452*Bmag[4]*f[87]*dv1*wx2+0.1632993161855452*Bmag[10]*f[64]*dv1*wx2+0.1825741858350553*Bmag[14]*f[63]*dv1*wx2+0.1825741858350553*Bmag[15]*f[62]*dv1*wx2+0.1304101327393253*Bmag[12]*f[62]*dv1*wx2+0.2041241452319315*Bmag[1]*f[62]*dv1*wx2+0.1825741858350553*Bmag[12]*f[61]*dv1*wx2+0.1304101327393253*Bmag[14]*f[60]*dv1*wx2+0.1825741858350553*Bmag[13]*f[60]*dv1*wx2+0.2041241452319315*Bmag[3]*f[60]*dv1*wx2+0.1632993161855452*Bmag[10]*f[59]*dv1*wx2+0.1632993161855452*Bmag[16]*f[51]*dv1*wx2+0.1632993161855452*Bmag[11]*f[51]*dv1*wx2+0.1825741858350554*Bmag[2]*f[51]*dv1*wx2+0.1825741858350553*Bmag[18]*f[39]*dv1*wx2+0.1304101327393253*Bmag[18]*f[38]*dv1*wx2+0.2041241452319315*Bmag[5]*f[38]*dv1*wx2+0.1825741858350553*Bmag[18]*f[37]*dv1*wx2+0.1632993161855452*Bmag[19]*f[24]*dv1*wx2+0.1825741858350554*Bmag[4]*f[24]*dv1*wx2+0.2041241452319315*Bmag[8]*f[23]*dv1*wx2+0.1632993161855452*Bmag[17]*f[22]*dv1*wx2+0.1825741858350554*Bmag[6]*f[22]*dv1*wx2+0.2041241452319315*f[4]*Bmag[18]*dv1*wx2+0.2041241452319315*f[9]*Bmag[14]*dv1*wx2+0.2041241452319315*f[11]*Bmag[12]*dv1*wx2+0.1825741858350554*Bmag[10]*f[10]*dv1*wx2+0.1460593486680443*Bmag[17]*f[93]*dv2*wx1+0.1632993161855452*Bmag[6]*f[93]*dv2*wx1+0.1825741858350553*Bmag[9]*f[92]*dv2*wx1+0.1304101327393253*Bmag[8]*f[92]*dv2*wx1+0.1825741858350553*Bmag[7]*f[92]*dv2*wx1+0.2041241452319315*Bmag[0]*f[92]*dv2*wx1+0.1460593486680443*Bmag[19]*f[91]*dv2*wx1+0.1632993161855452*Bmag[4]*f[91]*dv2*wx1+0.1632993161855452*Bmag[10]*f[73]*dv2*wx1+0.1825741858350553*Bmag[14]*f[72]*dv2*wx1+0.1825741858350553*Bmag[15]*f[71]*dv2*wx1+0.1304101327393253*Bmag[12]*f[71]*dv2*wx1+0.2041241452319315*Bmag[1]*f[71]*dv2*wx1+0.1825741858350553*Bmag[12]*f[70]*dv2*wx1+0.1304101327393253*Bmag[14]*f[69]*dv2*wx1+0.1825741858350553*Bmag[13]*f[69]*dv2*wx1+0.2041241452319315*Bmag[3]*f[69]*dv2*wx1+0.1632993161855452*Bmag[10]*f[68]*dv2*wx1+0.1632993161855452*Bmag[16]*f[52]*dv2*wx1+0.1632993161855452*Bmag[11]*f[52]*dv2*wx1+0.1825741858350554*Bmag[2]*f[52]*dv2*wx1+0.1825741858350553*Bmag[18]*f[45]*dv2*wx1+0.1304101327393253*Bmag[18]*f[44]*dv2*wx1+0.2041241452319315*Bmag[5]*f[44]*dv2*wx1+0.1825741858350553*Bmag[18]*f[43]*dv2*wx1+0.1632993161855452*Bmag[19]*f[27]*dv2*wx1+0.1825741858350554*Bmag[4]*f[27]*dv2*wx1+0.2041241452319315*Bmag[8]*f[26]*dv2*wx1+0.1632993161855452*Bmag[17]*f[25]*dv2*wx1+0.1825741858350554*Bmag[6]*f[25]*dv2*wx1+0.2041241452319315*f[5]*Bmag[18]*dv2*wx1+0.2041241452319315*Bmag[12]*f[14]*dv2*wx1+0.2041241452319315*f[12]*Bmag[14]*dv2*wx1+0.1825741858350554*Bmag[10]*f[13]*dv2*wx1+0.04216370213557839*Bmag[17]*f[109]*dv1*dv2+0.04714045207910316*Bmag[6]*f[109]*dv1*dv2+0.05270462766947297*Bmag[9]*f[108]*dv1*dv2+0.03764616262105212*Bmag[8]*f[108]*dv1*dv2+0.05270462766947297*Bmag[7]*f[108]*dv1*dv2+0.05892556509887893*Bmag[0]*f[108]*dv1*dv2+0.04216370213557839*Bmag[19]*f[107]*dv1*dv2+0.04714045207910316*Bmag[4]*f[107]*dv1*dv2+0.04714045207910317*Bmag[10]*f[99]*dv1*dv2+0.05270462766947297*Bmag[14]*f[98]*dv1*dv2+0.05270462766947297*Bmag[15]*f[97]*dv1*dv2+0.03764616262105212*Bmag[12]*f[97]*dv1*dv2+0.05892556509887895*Bmag[1]*f[97]*dv1*dv2+0.05270462766947297*Bmag[12]*f[96]*dv1*dv2+0.03764616262105212*Bmag[14]*f[95]*dv1*dv2+0.05270462766947297*Bmag[13]*f[95]*dv1*dv2+0.05892556509887895*Bmag[3]*f[95]*dv1*dv2+0.04714045207910317*Bmag[10]*f[94]*dv1*dv2+0.04714045207910317*Bmag[16]*f[86]*dv1*dv2+0.04714045207910317*Bmag[11]*f[86]*dv1*dv2+0.05270462766947297*Bmag[2]*f[86]*dv1*dv2+0.05270462766947297*Bmag[18]*f[76]*dv1*dv2+0.03764616262105212*Bmag[18]*f[75]*dv1*dv2+0.05892556509887893*Bmag[5]*f[75]*dv1*dv2+0.05270462766947297*Bmag[18]*f[74]*dv1*dv2+0.04714045207910316*Bmag[19]*f[55]*dv1*dv2+0.05270462766947297*Bmag[4]*f[55]*dv1*dv2+0.05892556509887893*Bmag[8]*f[54]*dv1*dv2+0.04714045207910316*Bmag[17]*f[53]*dv1*dv2+0.05270462766947297*Bmag[6]*f[53]*dv1*dv2+0.05892556509887895*Bmag[12]*f[30]*dv1*dv2+0.05270462766947297*Bmag[10]*f[29]*dv1*dv2+0.05892556509887895*Bmag[14]*f[28]*dv1*dv2+0.05892556509887893*f[15]*Bmag[18]*dv1*dv2))/m_; 
   out[19] += (volFact*(0.4517539514526256*Bmag[9]*f[58]*wx1*wx2+0.6324555320336759*Bmag[8]*f[58]*wx1*wx2+0.6324555320336759*Bmag[7]*f[58]*wx1*wx2+0.7071067811865475*Bmag[0]*f[58]*wx1*wx2+0.5059644256269408*Bmag[17]*f[57]*wx1*wx2+0.5656854249492381*Bmag[6]*f[57]*wx1*wx2+0.5059644256269408*Bmag[18]*f[56]*wx1*wx2+0.5656854249492381*Bmag[5]*f[56]*wx1*wx2+0.4517539514526256*Bmag[15]*f[36]*wx1*wx2+0.6324555320336759*Bmag[12]*f[36]*wx1*wx2+0.7071067811865475*Bmag[1]*f[36]*wx1*wx2+0.4517539514526256*Bmag[16]*f[35]*wx1*wx2+0.6324555320336759*Bmag[11]*f[35]*wx1*wx2+0.7071067811865475*Bmag[2]*f[35]*wx1*wx2+0.5656854249492382*Bmag[10]*f[34]*wx1*wx2+0.5656854249492382*Bmag[10]*f[33]*wx1*wx2+0.6324555320336759*Bmag[16]*f[32]*wx1*wx2+0.6324555320336759*Bmag[15]*f[31]*wx1*wx2+0.5656854249492382*Bmag[14]*f[21]*wx1*wx2+0.5656854249492382*Bmag[13]*f[21]*wx1*wx2+0.6324555320336759*Bmag[3]*f[21]*wx1*wx2+0.4517539514526256*f[18]*Bmag[19]*wx1*wx2+0.6324555320336759*f[17]*Bmag[19]*wx1*wx2+0.6324555320336759*f[16]*Bmag[19]*wx1*wx2+0.7071067811865475*f[0]*Bmag[19]*wx1*wx2+0.7071067811865475*Bmag[4]*f[18]*wx1*wx2+0.5656854249492381*f[8]*Bmag[18]*wx1*wx2+0.5656854249492381*f[7]*Bmag[17]*wx1*wx2+0.7071067811865475*f[1]*Bmag[16]*wx1*wx2+0.7071067811865475*f[2]*Bmag[15]*wx1*wx2+0.6324555320336759*f[3]*Bmag[10]*wx1*wx2+0.7071067811865475*f[6]*Bmag[9]*wx1*wx2+0.6324555320336759*Bmag[5]*f[8]*wx1*wx2+0.6324555320336759*Bmag[6]*f[7]*wx1*wx2+0.1304101327393253*Bmag[9]*f[89]*dv1*wx2+0.1825741858350553*Bmag[8]*f[89]*dv1*wx2+0.1825741858350553*Bmag[7]*f[89]*dv1*wx2+0.2041241452319315*Bmag[0]*f[89]*dv1*wx2+0.1460593486680443*Bmag[17]*f[88]*dv1*wx2+0.1632993161855452*Bmag[6]*f[88]*dv1*wx2+0.1460593486680443*Bmag[18]*f[87]*dv1*wx2+0.1632993161855452*Bmag[5]*f[87]*dv1*wx2+0.1304101327393253*Bmag[15]*f[64]*dv1*wx2+0.1825741858350553*Bmag[12]*f[64]*dv1*wx2+0.2041241452319315*Bmag[1]*f[64]*dv1*wx2+0.1304101327393253*Bmag[16]*f[63]*dv1*wx2+0.1825741858350553*Bmag[11]*f[63]*dv1*wx2+0.2041241452319315*Bmag[2]*f[63]*dv1*wx2+0.1632993161855452*Bmag[10]*f[62]*dv1*wx2+0.1632993161855452*Bmag[10]*f[61]*dv1*wx2+0.1825741858350553*Bmag[16]*f[60]*dv1*wx2+0.1825741858350553*Bmag[15]*f[59]*dv1*wx2+0.1632993161855452*Bmag[14]*f[51]*dv1*wx2+0.1632993161855452*Bmag[13]*f[51]*dv1*wx2+0.1825741858350554*Bmag[3]*f[51]*dv1*wx2+0.1304101327393253*Bmag[19]*f[39]*dv1*wx2+0.2041241452319315*Bmag[4]*f[39]*dv1*wx2+0.1825741858350553*Bmag[19]*f[38]*dv1*wx2+0.1825741858350553*Bmag[19]*f[37]*dv1*wx2+0.1632993161855452*Bmag[18]*f[24]*dv1*wx2+0.1825741858350554*Bmag[5]*f[24]*dv1*wx2+0.1632993161855452*Bmag[17]*f[23]*dv1*wx2+0.1825741858350554*Bmag[6]*f[23]*dv1*wx2+0.2041241452319315*Bmag[9]*f[22]*dv1*wx2+0.2041241452319315*f[4]*Bmag[19]*dv1*wx2+0.2041241452319315*f[9]*Bmag[16]*dv1*wx2+0.2041241452319315*f[10]*Bmag[15]*dv1*wx2+0.1825741858350554*Bmag[10]*f[11]*dv1*wx2+0.1304101327393253*Bmag[9]*f[93]*dv2*wx1+0.1825741858350553*Bmag[8]*f[93]*dv2*wx1+0.1825741858350553*Bmag[7]*f[93]*dv2*wx1+0.2041241452319315*Bmag[0]*f[93]*dv2*wx1+0.1460593486680443*Bmag[17]*f[92]*dv2*wx1+0.1632993161855452*Bmag[6]*f[92]*dv2*wx1+0.1460593486680443*Bmag[18]*f[91]*dv2*wx1+0.1632993161855452*Bmag[5]*f[91]*dv2*wx1+0.1304101327393253*Bmag[15]*f[73]*dv2*wx1+0.1825741858350553*Bmag[12]*f[73]*dv2*wx1+0.2041241452319315*Bmag[1]*f[73]*dv2*wx1+0.1304101327393253*Bmag[16]*f[72]*dv2*wx1+0.1825741858350553*Bmag[11]*f[72]*dv2*wx1+0.2041241452319315*Bmag[2]*f[72]*dv2*wx1+0.1632993161855452*Bmag[10]*f[71]*dv2*wx1+0.1632993161855452*Bmag[10]*f[70]*dv2*wx1+0.1825741858350553*Bmag[16]*f[69]*dv2*wx1+0.1825741858350553*Bmag[15]*f[68]*dv2*wx1+0.1632993161855452*Bmag[14]*f[52]*dv2*wx1+0.1632993161855452*Bmag[13]*f[52]*dv2*wx1+0.1825741858350554*Bmag[3]*f[52]*dv2*wx1+0.1304101327393253*Bmag[19]*f[45]*dv2*wx1+0.2041241452319315*Bmag[4]*f[45]*dv2*wx1+0.1825741858350553*Bmag[19]*f[44]*dv2*wx1+0.1825741858350553*Bmag[19]*f[43]*dv2*wx1+0.1632993161855452*Bmag[18]*f[27]*dv2*wx1+0.1825741858350554*Bmag[5]*f[27]*dv2*wx1+0.1632993161855452*Bmag[17]*f[26]*dv2*wx1+0.1825741858350554*Bmag[6]*f[26]*dv2*wx1+0.2041241452319315*Bmag[9]*f[25]*dv2*wx1+0.2041241452319315*f[5]*Bmag[19]*dv2*wx1+0.2041241452319315*f[12]*Bmag[16]*dv2*wx1+0.2041241452319315*f[13]*Bmag[15]*dv2*wx1+0.1825741858350554*Bmag[10]*f[14]*dv2*wx1+0.03764616262105212*Bmag[9]*f[109]*dv1*dv2+0.05270462766947297*Bmag[8]*f[109]*dv1*dv2+0.05270462766947297*Bmag[7]*f[109]*dv1*dv2+0.05892556509887893*Bmag[0]*f[109]*dv1*dv2+0.04216370213557839*Bmag[17]*f[108]*dv1*dv2+0.04714045207910316*Bmag[6]*f[108]*dv1*dv2+0.04216370213557839*Bmag[18]*f[107]*dv1*dv2+0.04714045207910316*Bmag[5]*f[107]*dv1*dv2+0.03764616262105212*Bmag[15]*f[99]*dv1*dv2+0.05270462766947297*Bmag[12]*f[99]*dv1*dv2+0.05892556509887895*Bmag[1]*f[99]*dv1*dv2+0.03764616262105212*Bmag[16]*f[98]*dv1*dv2+0.05270462766947297*Bmag[11]*f[98]*dv1*dv2+0.05892556509887895*Bmag[2]*f[98]*dv1*dv2+0.04714045207910317*Bmag[10]*f[97]*dv1*dv2+0.04714045207910317*Bmag[10]*f[96]*dv1*dv2+0.05270462766947297*Bmag[16]*f[95]*dv1*dv2+0.05270462766947297*Bmag[15]*f[94]*dv1*dv2+0.04714045207910317*Bmag[14]*f[86]*dv1*dv2+0.04714045207910317*Bmag[13]*f[86]*dv1*dv2+0.05270462766947297*Bmag[3]*f[86]*dv1*dv2+0.03764616262105212*Bmag[19]*f[76]*dv1*dv2+0.05892556509887893*Bmag[4]*f[76]*dv1*dv2+0.05270462766947297*Bmag[19]*f[75]*dv1*dv2+0.05270462766947297*Bmag[19]*f[74]*dv1*dv2+0.04714045207910316*Bmag[18]*f[55]*dv1*dv2+0.05270462766947297*Bmag[5]*f[55]*dv1*dv2+0.04714045207910316*Bmag[17]*f[54]*dv1*dv2+0.05270462766947297*Bmag[6]*f[54]*dv1*dv2+0.05892556509887893*Bmag[9]*f[53]*dv1*dv2+0.05270462766947297*Bmag[10]*f[30]*dv1*dv2+0.05892556509887895*Bmag[15]*f[29]*dv1*dv2+0.05892556509887895*Bmag[16]*f[28]*dv1*dv2+0.05892556509887893*f[15]*Bmag[19]*dv1*dv2))/m_; 
 } 
-void GkMomentCalc3x2vSer_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *outM0, double *outM1, double *outM2) 
+__host__ __device__ void GkMomentCalc3x2vSer_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *outM0, double *outM1, double *outM2) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
   const double wx1 = w[3], dv1 = dxv[3]; 
@@ -469,7 +469,7 @@ void GkMomentCalc3x2vSer_ThreeMoments_P1(const double *w, const double *dxv, con
   outM2[6] += (2.0*(0.3535533905932737*Bmag[1]*tmp[7]+0.3535533905932737*tmp[1]*Bmag[7]+0.3535533905932737*Bmag[0]*tmp[6]+0.3535533905932737*tmp[0]*Bmag[6]+0.3535533905932737*Bmag[4]*tmp[5]+0.3535533905932737*tmp[4]*Bmag[5]+0.3535533905932737*Bmag[2]*tmp[3]+0.3535533905932737*tmp[2]*Bmag[3])*volFact)/m_; 
   outM2[7] += (2.0*(0.3535533905932737*Bmag[0]*tmp[7]+0.3535533905932737*tmp[0]*Bmag[7]+0.3535533905932737*Bmag[1]*tmp[6]+0.3535533905932737*tmp[1]*Bmag[6]+0.3535533905932737*Bmag[2]*tmp[5]+0.3535533905932737*tmp[2]*Bmag[5]+0.3535533905932737*Bmag[3]*tmp[4]+0.3535533905932737*tmp[3]*Bmag[4])*volFact)/m_; 
 } 
-void GkMomentCalc3x2vSer_ThreeMoments_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *outM0, double *outM1, double *outM2) 
+__host__ __device__ void GkMomentCalc3x2vSer_ThreeMoments_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *outM0, double *outM1, double *outM2) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
   const double wx1 = w[3], dv1 = dxv[3]; 
@@ -578,7 +578,7 @@ void GkMomentCalc3x2vSer_ThreeMoments_P2(const double *w, const double *dxv, con
   outM2[18] += (2.0*(0.2529822128134704*Bmag[17]*tmp[19]+0.2828427124746191*Bmag[6]*tmp[19]+0.2529822128134704*tmp[17]*Bmag[19]+0.2828427124746191*tmp[6]*Bmag[19]+0.3162277660168379*Bmag[9]*tmp[18]+0.2258769757263128*Bmag[8]*tmp[18]+0.3162277660168379*Bmag[7]*tmp[18]+0.3535533905932737*Bmag[0]*tmp[18]+0.3162277660168379*tmp[9]*Bmag[18]+0.2258769757263128*tmp[8]*Bmag[18]+0.3162277660168379*tmp[7]*Bmag[18]+0.3535533905932737*tmp[0]*Bmag[18]+0.2828427124746191*Bmag[4]*tmp[17]+0.2828427124746191*tmp[4]*Bmag[17]+0.282842712474619*Bmag[10]*tmp[16]+0.282842712474619*tmp[10]*Bmag[16]+0.3162277660168379*Bmag[14]*tmp[15]+0.3162277660168379*tmp[14]*Bmag[15]+0.2258769757263128*Bmag[12]*tmp[14]+0.3535533905932737*Bmag[1]*tmp[14]+0.2258769757263128*tmp[12]*Bmag[14]+0.3535533905932737*tmp[1]*Bmag[14]+0.3162277660168379*Bmag[12]*tmp[13]+0.3162277660168379*tmp[12]*Bmag[13]+0.3535533905932737*Bmag[3]*tmp[12]+0.3535533905932737*tmp[3]*Bmag[12]+0.282842712474619*Bmag[10]*tmp[11]+0.282842712474619*tmp[10]*Bmag[11]+0.3162277660168379*Bmag[2]*tmp[10]+0.3162277660168379*tmp[2]*Bmag[10]+0.3535533905932737*Bmag[5]*tmp[8]+0.3535533905932737*tmp[5]*Bmag[8]+0.3162277660168379*Bmag[4]*tmp[6]+0.3162277660168379*tmp[4]*Bmag[6])*volFact)/m_; 
   outM2[19] += (2.0*(0.2258769757263128*Bmag[9]*tmp[19]+0.3162277660168379*Bmag[8]*tmp[19]+0.3162277660168379*Bmag[7]*tmp[19]+0.3535533905932737*Bmag[0]*tmp[19]+0.2258769757263128*tmp[9]*Bmag[19]+0.3162277660168379*tmp[8]*Bmag[19]+0.3162277660168379*tmp[7]*Bmag[19]+0.3535533905932737*tmp[0]*Bmag[19]+0.2529822128134704*Bmag[17]*tmp[18]+0.2828427124746191*Bmag[6]*tmp[18]+0.2529822128134704*tmp[17]*Bmag[18]+0.2828427124746191*tmp[6]*Bmag[18]+0.2828427124746191*Bmag[5]*tmp[17]+0.2828427124746191*tmp[5]*Bmag[17]+0.2258769757263128*Bmag[15]*tmp[16]+0.3162277660168379*Bmag[12]*tmp[16]+0.3535533905932737*Bmag[1]*tmp[16]+0.2258769757263128*tmp[15]*Bmag[16]+0.3162277660168379*tmp[12]*Bmag[16]+0.3535533905932737*tmp[1]*Bmag[16]+0.3162277660168379*Bmag[11]*tmp[15]+0.3535533905932737*Bmag[2]*tmp[15]+0.3162277660168379*tmp[11]*Bmag[15]+0.3535533905932737*tmp[2]*Bmag[15]+0.282842712474619*Bmag[10]*tmp[14]+0.282842712474619*tmp[10]*Bmag[14]+0.282842712474619*Bmag[10]*tmp[13]+0.282842712474619*tmp[10]*Bmag[13]+0.3162277660168379*Bmag[3]*tmp[10]+0.3162277660168379*tmp[3]*Bmag[10]+0.3535533905932737*Bmag[4]*tmp[9]+0.3535533905932737*tmp[4]*Bmag[9]+0.3162277660168379*Bmag[5]*tmp[6]+0.3162277660168379*tmp[5]*Bmag[6])*volFact)/m_; 
 } 
-void GkMomentCalc3x2vSer_M0_step1_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M0_step1_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = dxv[3]/2; 
   out[0] += 1.414213562373095*f[0]*volFact; 
@@ -598,7 +598,7 @@ void GkMomentCalc3x2vSer_M0_step1_P1(const double *w, const double *dxv, const d
   out[14] += 1.414213562373095*f[22]*volFact; 
   out[15] += 1.414213562373095*f[27]*volFact; 
 } 
-void GkMomentCalc3x2vSer_M0_step1_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M0_step1_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = dxv[3]/2; 
   out[0] += 1.414213562373095*f[0]*volFact; 
@@ -650,7 +650,7 @@ void GkMomentCalc3x2vSer_M0_step1_P2(const double *w, const double *dxv, const d
   out[46] += 1.414213562373095*f[93]*volFact; 
   out[47] += 1.414213562373095*f[103]*volFact; 
 } 
-void GkMomentCalc3x2vSer_M0_step2_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M0_step2_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[4]/2; 
   out[0] += 2.828427124746191*f[0]*volFact; 
@@ -662,7 +662,7 @@ void GkMomentCalc3x2vSer_M0_step2_P1(const double *w, const double *dxv, const d
   out[6] += 2.828427124746191*f[7]*volFact; 
   out[7] += 2.828427124746191*f[11]*volFact; 
 } 
-void GkMomentCalc3x2vSer_M0_step2_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+__host__ __device__ void GkMomentCalc3x2vSer_M0_step2_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[4]/2; 
   out[0] += 2.828427124746191*f[0]*volFact; 

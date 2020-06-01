@@ -1,4 +1,5 @@
 #include <DistFuncMomentCalcModDecl.h> 
+#include <cmath> 
 void GkM0Star3x2vMax_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out) 
 { 
   // intFac:  =2pi/m for gyrokinetics (not used in Vlasov). 

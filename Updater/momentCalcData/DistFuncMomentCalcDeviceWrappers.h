@@ -10,13 +10,17 @@
 #include <GkylRectCart.h>
 #include <GkylRange.h>
 #include <GkylCudaFuncs.h>
+#include <GkylCartField.h>
 
 #ifndef DIST_FUNC_MOMENT_CALC_DEVICE_WRAPPERS_H 
 #define DIST_FUNC_MOMENT_CALC_DEVICE_WRAPPERS_H 
 
 extern "C" { 
 
-void cuda_MomentCalc1x1vSer_M0_P1(GkylRectCart_t *grid, GkylRange_t *pRange, GkylRange_t *cRange, GkDeviceProp *prop, int numBlocks, int numThreads, const double *fIn, double *out); 
+void cuda_MomentCalc1x1vSer_M0_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
+void cuda_MomentCalc1x1vSer_M0_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
+void cuda_MomentCalc1x1vSer_M1i_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
+void cuda_MomentCalc1x1vSer_M1i_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 
 } 
 #endif 
