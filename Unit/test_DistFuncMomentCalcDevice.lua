@@ -141,7 +141,7 @@ function test_1x1v(pOrder, basis)
    
 end
 
-local polyOrderMax = 1
+local polyOrderMax = 2
 local basisType    = "Ser"
 
 for polyOrder = 1, polyOrderMax do
