@@ -110,9 +110,9 @@ genLitPrint("  blockReduceComponentsSum(localSumPtr, ~a);",NC)$
 <<
 genLitPrint("  int confIdx[~a];",cdim)$
 genLitPrint("  for (unsigned int k = 0; k < ~a; k++) {",cdim)$
-genRsetq("    confIdx[k]", phaseIdx[k])$
-genLitPrint("  }")$
 >>
+    confIdx[k] = phaseIdx[k];
+  }
   int confLinIdx = outIdxr.index(phaseIdx);
   double *mom    = out->getDataPtrAt(confLinIdx);
   unsigned int numComponents = out->numComponents;
@@ -124,6 +124,7 @@ genLitPrint("  }")$
   }
 
 }
+
 <<
 genLitPrint("void cuda_MomentCalc~ax~av~a_M0_P~a(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out) {",cdim,vdim,basisType,polyOrder)$
 >>
