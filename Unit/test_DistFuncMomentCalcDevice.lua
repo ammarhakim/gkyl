@@ -132,7 +132,7 @@ function test_1x1v(pOrder, basis)
    -- Copy moment from device to host.
    numDensity:copyDeviceToHost()
 
-   numDensity:write("numDensity.bp",0.0)
+--   numDensity:write("numDensity.bp",0.0)
    local momIdxr = numDensity:genIndexer()
    local nItr    = numDensity:get(momIdxr( {1} ))
    assert_equal(1, nItr[1]/math.sqrt(2), "Checking M0 moment, 1x1v")

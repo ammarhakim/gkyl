@@ -13,15 +13,19 @@
 
 #include <cstdio>
 
-__global__ void d_calcMom1x1vSer_M0_P1(GkylRectCart_t *grid, GkylRange_t *pRange, GkylRange_t *cRange, const double *fIn, double *out) {
+__global__ void d_calcMom1x1vSer_M0_P1(GkylCartField_t *fIn, GkylCartField_t *out) {
   // In computing moments we will first assign whole configuration-space cells to a single block.
   // Then one must perform a reduction across a block for each conf-space basis coefficient.
 
   // Index of the first phase-space memory address to access.
-  unsigned int phaseLinIdx = blockIdx.x*blockDim.x + threadIdx.x;
-  Gkyl::Indexer<2> phaseIndxr(pRange);
-  int phaseMultiDimIdx[2];
-  phaseIndxr.invIndex(phaseLinIdx, phaseMultiDimIdx);
+  unsigned int linearIdx = blockIdx.x*blockDim.x + threadIdx.x;
+  GkylRange_t *localPhaseRange = fIn->localRange;
+  Gkyl::GenIndexer localPhaseIdxr(localPhaseRange);
+  Gkyl::GenIndexer fIdxr = fIn->genIndexer();
+
+  int phaseIdx[2];
+  localPhaseIdxr.invIndex(linearIdx, phaseIdx);
+  int phaseLinIdx = fIdxr.index(phaseIdx);
 
   double localSum[2];
   for (unsigned int k = 0; k < 2; k++) {
@@ -29,10 +33,11 @@ __global__ void d_calcMom1x1vSer_M0_P1(GkylRectCart_t *grid, GkylRange_t *pRange
   }
 
   // Pointers to quantities expected by the moment kernel.
-  const double *distF       = &fIn[phaseLinIdx*4];
-  double cellw[2];
-  grid->cellCenter(phaseMultiDimIdx,cellw);
-  double *cellCenter  = &cellw[0];
+  const double *distF = fIn->getDataPtrAt(phaseLinIdx);
+  GkylRectCart_t *grid = fIn->grid;
+  double cellxc[2];
+  grid->cellCenter(phaseIdx,cellxc);
+  double *cellCenter  = &cellxc[0];
   double *cellSize    = &grid->dx[0];
   double *localSumPtr = &localSum[0];
 
@@ -41,23 +46,26 @@ __global__ void d_calcMom1x1vSer_M0_P1(GkylRectCart_t *grid, GkylRange_t *pRange
   blockReduceComponentsSum(localSumPtr, 2);
 
   // Configuration space indexes.
-  Gkyl::Indexer<1> confIndxr(cRange);
-  int confMultiDimIdx[1];
-  confMultiDimIdx[0]=phaseMultiDimIdx[0];
-  int confLinMemIdx = 2*(confIndxr.index(*confMultiDimIdx));
+  GkylRange_t *localConfRange = out->localRange;
+  Gkyl::GenIndexer localConfIdxr(localConfRange);
+  Gkyl::GenIndexer outIdxr = out->genIndexer();
+  int confIdx[1];
+  confIdx[0]=phaseIdx[0];
+  int confLinIdx = outIdxr.index(phaseIdx);
+  double *mom = out->getDataPtrAt(confLinIdx);
 
   if (threadIdx.x==0) {
-    out[confLinMemIdx]=localSumPtr[0];
-    out[confLinMemIdx+1]=localSumPtr[1];
+    mom[confLinIdx]=localSumPtr[0];
+    mom[confLinIdx+1]=localSumPtr[1];
   }
 
 }
 
 // C function that wraps call to moment calculation global CUDA kernel
-void cuda_MomentCalc1x1vSer_M0_P1(GkylRectCart_t *grid, GkylRange_t *pRange, GkylRange_t *cRange, GkDeviceProp *prop, int numBlocks, int numThreads, const double *fIn, double *out) {
+void cuda_MomentCalc1x1vSer_M0_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out) {
 
   int warpSize = prop->warpSize;
 
-  d_calcMom1x1vSer_M0_P1<<<numBlocks, numThreads, 2*(numThreads/warpSize)*sizeof(double)>>>(grid, pRange, cRange, fIn, out);
+  d_calcMom1x1vSer_M0_P1<<<numBlocks, numThreads, 2*(numThreads/warpSize)*sizeof(double)>>>(fIn, out);
 }
 
