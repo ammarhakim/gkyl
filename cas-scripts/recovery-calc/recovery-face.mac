@@ -29,14 +29,14 @@ calcRecovFaceGen(basisNm, recDirs, dirs, face, polyOrder, C, lo, ce, up) := bloc
   ),
   
   /* Center input cannot be a BC */
-  rCe : calcRecov2CellGen(basisNm, recDirs[1], numDims, polyOrder,
+  rCe : calcRecov2CellGen(basisNm, recDirs[1], dirs, polyOrder,
     args(ce)[1], args(ce)[2]),
   /*rCe : diff(rCe, dirs[1], numDer),*/
   rCeCoef : calcInnerProdList(perpDirs, 1, ba, subst(recDirs[1]=face, rCe)),
   ce2 : dg(rCeCoef),
 
   if is(op(up)=dg) then (
-    rUp : calcRecov2CellGen(basisNm, recDirs[1], numDims, polyOrder,
+    rUp : calcRecov2CellGen(basisNm, recDirs[1], dirs, polyOrder,
       args(up)[1], args(up)[2]),
     /*rUp : diff(rUp, dirs[1], numDer),*/
     rUpCoef : calcInnerProdList(perpDirs, 1, ba, subst(recDirs[1]=face, rUp)),
