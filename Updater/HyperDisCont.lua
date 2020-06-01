@@ -280,7 +280,7 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
 
    local numCellsLocal = qRhsOut:localRange():volume()
    local numThreads = math.min(GKYL_DEFAULT_NUM_THREADS, numCellsLocal)
-   local numBlocks  = math.floor(numCellsLocal/numThreads)
+   local numBlocks  = math.min(math.floor(numCellsLocal/numThreads)+1, 256)
 
    ffiC.advanceOnDevice(numThreads, numBlocks, self._onDevice, qIn._onDevice, qRhsOut._onDevice)
 end

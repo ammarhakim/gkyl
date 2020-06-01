@@ -5,7 +5,6 @@
 
 __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
 
-  unsigned int linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
   GkylRange_t *localRange = fIn->localRange;
   unsigned int ndim = localRange->ndim;
   unsigned int numComponents = fRhsOut->numComponents;
@@ -23,7 +22,7 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
   Gkyl::Vlasov *eq = hyper->equation;
   
   // CUDA thread "loop" over (non-ghost) cells in local range
-  if(linearIdx < localRange->volume()) {
+  for(unsigned int linearIdx = threadIdx.x + blockIdx.x*blockDim.x; linearIdx < localRange->volume(); linearIdx += blockDim.x*gridDim.x) {
     int idxC[6];
     int idxL[6];
     int idxR[6];
@@ -51,7 +50,7 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
 
     // hard code this size for now. 
     // should be numComponents, but want to avoid dynamic memory alloc
-    double dummy[32];
+    double dummy[200];
  
     for(int i=0; i<numUpdateDirs; i++) {
       int dir = updateDirs[i] - 1;
