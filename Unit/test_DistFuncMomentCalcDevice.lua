@@ -125,14 +125,14 @@ function test_1x1v(pOrder, basis)
 
    -- Moment updater.
    local calcNumDensity = distFmoment(phaseGrid,phaseBasis,confBasis,"M0",true)
-   calcNumDensity:advance(0.0, {distF}, {numDensity})
+   calcNumDensity:_advanceOnDevice(0.0, {distF}, {numDensity})
 
    err = cudaRunTime.DeviceSynchronize()
 
    -- Copy moment from device to host.
    numDensity:copyDeviceToHost()
 
-   numDensity:write("numDensity.bp",0.0)
+--   numDensity:write("numDensity.bp",0.0)
    local momIdxr = numDensity:genIndexer()
    local nItr    = numDensity:get(momIdxr( {1} ))
    assert_equal(1, nItr[1]/math.sqrt(2), "Checking M0 moment, 1x1v")
@@ -141,7 +141,7 @@ function test_1x1v(pOrder, basis)
    
 end
 
-local polyOrderMax = 1
+local polyOrderMax = 2
 local basisType    = "Ser"
 
 for polyOrder = 1, polyOrderMax do

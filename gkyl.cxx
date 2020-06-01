@@ -150,7 +150,7 @@ main(int argc, char **argv) {
   // requirements are very simple. Sadly, even "sophisticated" tools
   // do not support very special need of gkeyll in which app or tool
   // can have complex command parsers of their own
-  char c;
+  int c;
   while ((c = getopt(argc, argv, "+hvte:")) != -1)
     switch (c)
     {
