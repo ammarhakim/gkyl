@@ -52,6 +52,7 @@ namespace Gkyl {
           return  (POLYORDER+5)*(POLYORDER+4)*(POLYORDER+3)*(POLYORDER+2)*(POLYORDER+1)/120;
         else if (NDIM == 6) 
           return  (POLYORDER+6)*(POLYORDER+5)*(POLYORDER+4)*(POLYORDER+3)*(POLYORDER+2)*(POLYORDER+1)/720;
+        return 1;
       }
 
       /* Basis ID */
@@ -90,6 +91,33 @@ namespace Gkyl {
 
       /* Basis ID */
       __host__ __device__ static std::string id() { return "serendipity"; }
+  };
+
+  /** Number of basis functions in max-order basis */
+  template <int NDIM, int POLYORDER>
+  class BasisCount<NDIM, POLYORDER, G_TENSOR_C> {
+    public:
+      __host__ __device__ constexpr static int numBasis() {
+        // number of basis is = (p+d)! / p! d!
+        if (NDIM == 0) 
+          return 1;
+        else if (NDIM == 1)
+          return  POLYORDER+1;
+        else if (NDIM == 2) 
+          return  (POLYORDER+1)*(POLYORDER+1);
+        else if (NDIM == 3) 
+          return  (POLYORDER+1)*(POLYORDER+1)*(POLYORDER+1);
+        else if (NDIM == 4) 
+          return  (POLYORDER+1)*(POLYORDER+1)*(POLYORDER+1)*(POLYORDER+1);
+        else if (NDIM == 5) 
+          return  (POLYORDER+1)*(POLYORDER+1)*(POLYORDER+1)*(POLYORDER+1)*(POLYORDER+1);
+        else if (NDIM == 6) 
+          return  (POLYORDER+1)*(POLYORDER+1)*(POLYORDER+1)*(POLYORDER+1)*(POLYORDER+1)*(POLYORDER+1);
+        return 1;
+      }
+
+      /* Basis ID */
+      __host__ __device__ static std::string id() { return "tensor"; }
   };
 
   class BasisInfo {
