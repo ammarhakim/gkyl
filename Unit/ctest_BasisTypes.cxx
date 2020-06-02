@@ -31,5 +31,5 @@ TEST_CASE("Tests for BasisTypes[s]", "[serendipity]") {
   REQUIRE( Gkyl::BasisCount<2,1,Gkyl::G_SERENDIPITY_C>::numBasis() == 4 );
   REQUIRE( Gkyl::BasisCount<2,2,Gkyl::G_SERENDIPITY_C>::numBasis() == 8 );
 
-    REQUIRE( Gkyl::BasisCount<1,2,Gkyl::G_SERENDIPITY_C>::id() == "serendipity" );
+  REQUIRE( Gkyl::BasisCount<1,2,Gkyl::G_SERENDIPITY_C>::id() == "serendipity" );
 }
