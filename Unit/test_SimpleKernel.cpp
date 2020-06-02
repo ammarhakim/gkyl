@@ -1,9 +1,10 @@
 /* -*- c++ -*- */
 
 #include <cstdio>
-#include <GkylRectCart.h>
-#include <GkylRange.h>
+#include <GkylBasisTypes.h>
 #include <GkylCartField.h>
+#include <GkylRange.h>
+#include <GkylRectCart.h>
 
 extern "C" 
 {
@@ -15,6 +16,10 @@ extern "C"
 
     void unit_showFieldRange(GkylCartField_t *f, double *g);
     void unit_showFieldGrid(GkylCartField_t *f);
+
+    void unit_test_BasisTypes_1xp1_ser();
+    void unit_test_BasisTypes_2xp2_ser();
+    void unit_test_BasisTypes_5xp2_ser();
 }
 
 __global__ void ker_unit_sumArray(int n, double a, double *x, double *y)
@@ -97,6 +102,13 @@ __global__ void ker_unit_showFieldGrid(GkylCartField_t *f)
     printf(" %g, %g\n", grid->lower[i], grid->upper[i]);
 }
 
+template <int NDIM, int POLYORDER, int BASISTYPE>
+__global__ void ker_test_BasisTypes()
+{
+  int numBasis = Gkyl::BasisCount<NDIM, POLYORDER, BASISTYPE>::numBasis();
+  printf("NDIM = %d, polyOrder = %d : numBasis = %d\n", NDIM, POLYORDER, numBasis);
+}
+
 void unit_sumArray(int numBlocks, int numThreads, int n, double a, double *x, double *y)
 {
    ker_unit_sumArray<<<numBlocks, numThreads>>>(n, a, x, y);
@@ -130,4 +142,19 @@ void unit_showFieldRange(GkylCartField_t *f, double *g)
 void unit_showFieldGrid(GkylCartField_t *f)
 {
   ker_unit_showFieldGrid<<<1, 1>>>(f);
+}
+
+void unit_test_BasisTypes_1xp1_ser()
+{
+  ker_test_BasisTypes<1,1,Gkyl::G_SERENDIPITY_C><<<1,1>>>();
+}
+
+void unit_test_BasisTypes_2xp2_ser()
+{
+  ker_test_BasisTypes<2,2,Gkyl::G_SERENDIPITY_C><<<1,1>>>();
+}
+
+void unit_test_BasisTypes_5xp2_ser()
+{
+  ker_test_BasisTypes<5,2,Gkyl::G_SERENDIPITY_C><<<1,1>>>();
 }

@@ -27,6 +27,10 @@ ffi.cdef [[
   void unit_sayHello();
   void unit_showRange(GkylRange_t *range);
 
+  void unit_test_BasisTypes_1xp1_ser();
+  void unit_test_BasisTypes_2xp2_ser();
+  void unit_test_BasisTypes_5xp2_ser();
+
   void unit_showGrid(GkylRectCart_t *grid);
   void unit_getCellCenter(GkylRectCart_t *grid, int *idx, double *xc);
 ]]
@@ -269,6 +273,12 @@ function test_7()
    assert_equal(h_xc[1]==0.1 and h_xc[2]==1.3, true, "Checking cell centers")
 end
 
+function test_8()
+   ffi.C.unit_test_BasisTypes_1xp1_ser()
+   ffi.C.unit_test_BasisTypes_2xp2_ser()
+   ffi.C.unit_test_BasisTypes_5xp2_ser()
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -277,6 +287,7 @@ test_4()
 test_5()
 test_6()
 test_7()
+test_8()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
