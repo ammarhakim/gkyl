@@ -33,5 +33,5 @@ def build(bld):
     bld.program(
         source = 'ctest_BasisTypes.cxx',
         target = 'ctest_BasisTypes',
-        includes = '../Lib . ../Cuda',
+        includes = '../Lib . ../Cuda', use = "CUTOOLS"
     )
