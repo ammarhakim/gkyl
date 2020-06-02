@@ -1,0 +1,78 @@
+/* 
+   Generate header file for moment device kernels wrappers.
+*/
+
+cvars : [X, Y, Z]$
+
+bName : ["Ser","Max","Tensor"]$
+
+printPrototypes() := block([],
+  for bInd : 1 thru length(bName) do (
+    for ci : 1 thru 3 do (
+      for vi : ci thru 3 do (
+        for pi : 1 thru 3 do (
+          printf(fh, "void cuda_MomentCalc~ax~av~a_M0_P~a(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); ~%", ci, vi, bName[bInd], pi),
+          printf(fh, "void cuda_MomentCalc~ax~av~a_M1i_P~a(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); ~%", ci, vi, bName[bInd], pi),
+          printf(fh, "void cuda_MomentCalc~ax~av~a_M2ij_P~a(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); ~%", ci, vi, bName[bInd], pi),
+          printf(fh, "void cuda_MomentCalc~ax~av~a_M2_P~a(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); ~%", ci, vi, bName[bInd], pi),
+          printf(fh, "void cuda_MomentCalc~ax~av~a_M3i_P~a(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); ~%", ci, vi, bName[bInd], pi),
+          printf(fh, "~%") 
+        ),
+        printf(fh, "~%")
+      )
+    )
+  ),
+  printf(fh, "~% ~%")
+)$
+
+/* Print C header file. */
+fh : openw("~/max-out/DistFuncMomentCalcDeviceModDecl.h")$
+printf(fh, "// Gkyl ------------------------------------------------------------------------~%")$
+printf(fh, "//~%")$
+printf(fh, "// Header to C functions calling CUDA kernels that compute moments of the~%")$
+printf(fh, "// distribution function.~%")$
+printf(fh, "//~%")$
+
+printf(fh, "//    _______     ___~%")$
+printf(fh, "// + 6 @ |||| # P ||| +~%")$
+printf(fh, "//------------------------------------------------------------------------------~%")$
+printf(fh, "~%")$
+
+printf(fh, "#include <GkylRectCart.h>~%")$
+printf(fh, "#include <GkylRange.h>~%")$
+printf(fh, "#include <GkylCudaFuncs.h>~%")$
+printf(fh, "#include <GkylCartField.h>~%")$
+printf(fh, "#include <GkylBasisTypes.h>~%")$
+printf(fh, "~%")$
+
+printf(fh, "#ifndef DIST_FUNC_MOMENT_CALC_DEVICE_MOD_DELC_H ~%")$
+printf(fh, "#define DIST_FUNC_MOMENT_CALC_DEVICE_MOD_DELC_H ~%")$
+
+printf(fh, "~%")$
+printf(fh, "extern \"C\" { ~%")$
+printf(fh, "~%")$
+printPrototypes()$
+printf(fh, "} ~%")$
+printf(fh, "#endif ~%")$
+close(fh)$
+
+
+/* Print Lua Cdef wrapper. */
+fh : openw("~/max-out/_DistFuncMomentCalcDeviceCdef.lua")$
+printf(fh, "-- Gkyl ------------------------------------------------------------------------~%")$
+printf(fh, "--~%")$
+printf(fh, "-- Lua wrapper to C functions calling CUDA kernels that compute moments of the~%")$
+printf(fh, "-- distribution function.~%")$
+printf(fh, "--~%")$
+
+printf(fh, "--    _______     ___~%")$
+printf(fh, "-- + 6 @ |||| # P ||| +~%")$
+printf(fh, "--------------------------------------------------------------------------------~%")$
+printf(fh, "~%")$
+
+printf(fh, "local ffi = require \"ffi\" ~%~%")$
+printf(fh, "ffi.cdef [[~%")$
+printf(fh, "~%")$
+printPrototypes()$
+printf(fh, "]]~%")$
+close(fh)$

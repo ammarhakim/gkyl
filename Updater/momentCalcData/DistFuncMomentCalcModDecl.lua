@@ -9,7 +9,7 @@
 local ffi = require "ffi"
 local _   = require "Updater.momentCalcData._DistFuncCdef"
 if GKYL_HAVE_CUDA then
-   _ = require "Updater.momentCalcData._DistFuncCdefDevice"
+   _ = require "Updater.momentCalcData._DistFuncMomentCalcDeviceCdef"
 end
 
 -- map of basis function name -> function encoding
