@@ -1,5 +1,4 @@
 /** Compute exact solution to Euler Riemann problem. */
-
 #include <GkylExactEulerRpImpl.h>
 #include <cmath>
 #include <cstdlib>
