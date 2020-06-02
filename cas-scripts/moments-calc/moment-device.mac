@@ -49,6 +49,8 @@ load("modal-basis")$
 cdim : c$
 vdim : v$
 basisType : bName[bInd]$
+basisNmLong : bNameLong[bInd]$
+momKind : mom$
 
 kill(varsC, varsP, basisC, basisP)$
 load(sconcat("basis-precalc/basis", basisType, cdim, "x", vdim, "v"))$
@@ -59,78 +61,11 @@ NP : length(bP)$
 NC : length(bC)$
 
 
-genLitPrint("__global__ void d_calcMom~ax~av~a_M0_P~a(GkylCartField_t *fIn, GkylCartField_t *out) {",cdim,vdim,basisType,polyOrder)$
-
->>
-  // In computing moments we will first assign whole configuration-space cells to a single block.
-  // Then one must perform a reduction across a block for each conf-space basis coefficient.
-
-  // Index of the first phase-space memory address to access.
-  unsigned int linearIdx       = blockIdx.x*blockDim.x + threadIdx.x;
-  GkylRange_t *localPhaseRange = fIn->localRange;
-  Gkyl::GenIndexer localPhaseIdxr(localPhaseRange);
-  Gkyl::GenIndexer fIdxr = fIn->genIndexer();
-
-<<
-genLitPrint("  int phaseIdx[~a];",cdim+vdim)$
->>
-  localPhaseIdxr.invIndex(linearIdx, phaseIdx);
-  int phaseLinIdx = fIdxr.index(phaseIdx);
-
-<<
-genLitPrint("  double localSum[~a];",NC)$
-
-genLitPrint("  for (unsigned int k = 0; k < ~a; k++) {",NC)$
-/* Need to zero this out because kernel below increments. */
-genRsetq("    localSum[k]", 0.0)$
-genLitPrint("  }")$
->>
-
-  // Pointers to quantities expected by the moment kernel.
-  const double *distF  = fIn->getDataPtrAt(phaseLinIdx);
-  GkylRectCart_t *grid = fIn->grid;
-<<
-  genLitPrint("  double cellxc[~a];",cdim+vdim)$
->>
-  grid->cellCenter(phaseIdx,cellxc);
-  double *cellCenter  = &cellxc[0];
-  double *cellSize    = &grid->dx[0];
-  double *localSumPtr = &localSum[0];
-
-<<
-genLitPrint("  MomentCalc~ax~av~a_M0_P~a(cellCenter, cellSize, distF, localSumPtr);",cdim,vdim,basisType,polyOrder)$
-genLitPrint("  ")$
-genLitPrint("  blockReduceComponentsSum(localSumPtr, ~a);",NC)$
->>
-
-  // Configuration space indexes.
-  GkylRange_t *localConfRange = out->localRange;
-  Gkyl::GenIndexer localConfIdxr(localConfRange);
-  Gkyl::GenIndexer outIdxr = out->genIndexer();
-<<
-genLitPrint("  int confIdx[~a];",cdim)$
-genLitPrint("  for (unsigned int k = 0; k < ~a; k++) {",cdim)$
->>
-    confIdx[k] = phaseIdx[k];
-  }
-  int confLinIdx = outIdxr.index(phaseIdx);
-  double *mom    = out->getDataPtrAt(confLinIdx);
-  unsigned int numComponents = out->numComponents;
-
-  if (threadIdx.x==0) {
-    for (unsigned int k = 0; k < numComponents; k++) {
-      mom[confLinIdx+k] = localSumPtr[k];
-    }
-  }
-
-}
-
-<<
-genLitPrint("void cuda_MomentCalc~ax~av~a_M0_P~a(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out) {",cdim,vdim,basisType,polyOrder)$
+genLitPrint("void cuda_MomentCalc~ax~av~a_~a_P~a(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out) {",cdim,vdim,basisType,momKind,polyOrder)$
 >>
   int warpSize = prop->warpSize;
 <<
-genLitPrint(" d_calcMom~ax~av~a_M0_P~a<<<numBlocks, numThreads, ~a*(numThreads/warpSize)*sizeof(double)>>>(fIn, out);",cdim,vdim,basisType,polyOrder,NC)$
+genLitPrint(" d_calc~a<~a, ~a, ~a, Gkyl::~a><<<numBlocks, numThreads, ~a*(numThreads/warpSize)*sizeof(double)>>>(fIn, out);",momKind,cdim,vdim,polyOrder,basisNmLong,NC)$
 >>
 }
 

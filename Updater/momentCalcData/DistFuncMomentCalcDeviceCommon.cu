@@ -8,7 +8,7 @@
 //------------------------------------------------------------------------------
 #include "DistFuncMomentCalcModDecl.h"
 #include "DistFuncMomentCalcTmpl.h"
-#include "DistFuncMomentCalcDeviceWrappers.h"
+#include "DistFuncMomentCalcDeviceModDecl.h"
 
 __inline__ __device__ void warpReduceComponentsSum(double *vals, int nComps) {
   // Perform 'nComps' independent (sum) reductions across a warp,
