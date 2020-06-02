@@ -53,15 +53,10 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
     for(int i=0; i<numUpdateDirs; i++) {
       int dir = updateDirs[i] - 1;
 
-      for(int d=0; d<ndim; d++) {
-        if(d!=dir) {
-          idxL[d] = idxC[d];
-          idxR[d] = idxC[d];
-        } else {
-          idxL[d] = idxC[d] - 1;
-          idxR[d] = idxC[d] + 1;
-        }
-      }
+      localIdxr.invIndex(linearIdx, idxL);
+      localIdxr.invIndex(linearIdx, idxR);
+      idxL[dir] = idxC[dir] - 1;
+      idxR[dir] = idxC[dir] + 1;
 
       int linearIdxL = fIdxr.index(idxL);
       int linearIdxR = fIdxr.index(idxR);
