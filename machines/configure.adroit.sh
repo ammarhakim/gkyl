@@ -25,9 +25,9 @@ LUAJIT_SHARE_DIR=$HOME/gkylsoft/luajit/share/luajit-2.1.0-beta3
 MPICC=mpicc
 MPICXX=mpicxx
 ENABLE_MPI="--enable-mpi"
-MPI_INC_DIR=$I_MPI_ROOT/include64
-MPI_LIB_DIR=$I_MPI_ROOT/lib64
-MPI_LINK_LIBS="mpi,mpicxx"
+MPI_INC_DIR=$I_MPI_ROOT/intel64/include
+MPI_LIB_DIR=$I_MPI_ROOT/intel64/lib/release
+MPI_LINK_LIBS="mpi"
 
 # ADIOS options
 ENABLE_ADIOS="--enable-adios" # set to blank to disable ADIOS
