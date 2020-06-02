@@ -25,6 +25,8 @@ namespace Gkyl {
     public:
       /* Number of basis functions */
       static int numBasis();
+      /* Basis ID */
+      static std::string id();
   };    
 
   /** Number of basis functions in max-order basis */
@@ -49,6 +51,9 @@ namespace Gkyl {
         else if (NDIM == 6) 
           return  (POLYORDER+6)*(POLYORDER+5)*(POLYORDER+4)*(POLYORDER+3)*(POLYORDER+2)*(POLYORDER+1)/720;
       }
+
+      /* Basis ID */
+      static std::string id() { return "maximal-order"; }
   };
 
   /** Number of basis functions in max-order basis */
@@ -80,6 +85,9 @@ namespace Gkyl {
         }
         return 1;
       }
+
+      /* Basis ID */
+      static std::string id() { return "serendipity"; }
   };
 
   class BasisInfo {
