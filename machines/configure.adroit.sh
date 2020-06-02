@@ -3,7 +3,7 @@
 # Edit the paths and options in the following command to suit your system
 module load intel
 module load intel-mpi
-module load cudatoolkit/10.1
+module load cudatoolkit/10.2
 module load rh/devtoolset/8
 
 # Build directory
