@@ -10,7 +10,7 @@
 #include "DistFuncMomentCalcDeviceWrappers.h"
 #include "DistFuncMomentCalcModDecl.h"
 #include "DistFuncMomentCalcDeviceCommon.cu"
-#include "MomentTmplModDecl.h"
+#include "DistFuncMomentCalcTmpl.h"
 
 template <int CDIM, int VDIM, int POLYORDER, int BASISTYPE>
 __global__ void d_calcM0(GkylCartField_t *fIn, GkylCartField_t *out) {
