@@ -11,6 +11,7 @@
 #include <GkylRange.h>
 #include <GkylCudaFuncs.h>
 #include <GkylCartField.h>
+#include <GkylBasisTypes.h>
 
 #ifndef DIST_FUNC_MOMENT_CALC_DEVICE_WRAPPERS_H 
 #define DIST_FUNC_MOMENT_CALC_DEVICE_WRAPPERS_H 
