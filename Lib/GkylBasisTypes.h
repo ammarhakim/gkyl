@@ -9,6 +9,8 @@
 
 // std includes
 #include <string>
+// Gkyl includes
+#include <GkylCudaConfig.h>
 
 namespace Gkyl {
 
@@ -24,9 +26,9 @@ namespace Gkyl {
   class BasisCount {
     public:
       /* Number of basis functions */
-      static int numBasis();
+      __host__ __device__ constexpr static int numBasis();
       /* Basis ID */
-      static std::string id();
+      __host__ __device__ static std::string id();
   };    
 
   /** Number of basis functions in max-order basis */
@@ -34,7 +36,7 @@ namespace Gkyl {
   class BasisCount<NDIM, POLYORDER, G_MAX_ORDER_C> {
     public:
       /* Number of basis functions */
-      static int numBasis() {
+      __host__ __device__ constexpr static int numBasis() {
         // number of basis is = (p+d)! / p! d!
         if (NDIM == 0) 
           return 1;
@@ -53,7 +55,7 @@ namespace Gkyl {
       }
 
       /* Basis ID */
-      static std::string id() { return "maximal-order"; }
+      __host__ __device__ static std::string id() { return "maximal-order"; }
   };
 
   /** Number of basis functions in max-order basis */
@@ -61,7 +63,7 @@ namespace Gkyl {
   class BasisCount<NDIM, POLYORDER, G_SERENDIPITY_C> {
     public:
       /* Number of basis functions */
-      static int numBasis() {
+      __host__ __device__ constexpr static int numBasis() {
         // See Arnold, Awanou, F. Comp Math, 2011
         const unsigned numBasis_d2[] = {4, 8, 12};
         const unsigned numBasis_d3[] = {8, 20, 32};
@@ -87,7 +89,7 @@ namespace Gkyl {
       }
 
       /* Basis ID */
-      static std::string id() { return "serendipity"; }
+      __host__ __device__ static std::string id() { return "serendipity"; }
   };
 
   class BasisInfo {
@@ -95,17 +97,17 @@ namespace Gkyl {
       /**
        * Number of basis in this set.
        */
-      virtual unsigned numBasis() const = 0;
+      __host__ __device__ virtual unsigned numBasis() const = 0;
 
       /**
        * Basis function identifier string
        */
-      virtual std::string id() const = 0;
+      __host__ __device__ virtual std::string id() const = 0;
   };
 
   class CartModalMaxOrderBasisInfo : public BasisInfo {
     public:
-      CartModalMaxOrderBasisInfo(unsigned ndim, unsigned polyOrder)
+      __host__ __device__ CartModalMaxOrderBasisInfo(unsigned ndim, unsigned polyOrder)
         : ndim(ndim), polyOrder(polyOrder) {
         // number of basis is = (p+d)! / p! d!
         if (ndim == 0) 
@@ -127,12 +129,12 @@ namespace Gkyl {
       /**
        * Number of basis in this set.
        */
-      unsigned numBasis() const { return nbasis; }
+      __host__ __device__ unsigned numBasis() const { return nbasis; }
 
       /**
        * Basis function identifier string
        */
-      std::string id() const { return "maximal-order"; }
+      __host__ __device__ std::string id() const { return "maximal-order"; }
 
     private:
       /** Dimension */
@@ -145,7 +147,7 @@ namespace Gkyl {
 
   class CartModalSerendipityBasisInfo : public BasisInfo {
     public:
-      CartModalSerendipityBasisInfo(unsigned ndim, unsigned polyOrder)
+      __host__ __device__ CartModalSerendipityBasisInfo(unsigned ndim, unsigned polyOrder)
         : ndim(ndim), polyOrder(polyOrder), nbasis(1) {
         // See Arnold, Awanou, F. Comp Math, 2011
         unsigned numBasis_d2[] = {4, 8, 12};
@@ -173,12 +175,12 @@ namespace Gkyl {
       /**
        * Number of basis in this set.
        */
-      unsigned numBasis() const { return nbasis; }
+      __host__ __device__ unsigned numBasis() const { return nbasis; }
 
       /**
        * Basis function identifier string
        */
-      std::string id() const { return "serendipity"; }
+      __host__ __device__ std::string id() const { return "serendipity"; }
 
     private:
       /** Dimension */

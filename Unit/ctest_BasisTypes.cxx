@@ -4,6 +4,12 @@
 
 #include <GkylBasisTypes.h>
 
+template <int N> class CompileTimeCheck {
+  public:
+    static int val() { return N; }
+};
+
+
 TEST_CASE("Tests for BasisTypes[m]", "[max-order]") {
 
   // 1D
@@ -32,4 +38,14 @@ TEST_CASE("Tests for BasisTypes[s]", "[serendipity]") {
   REQUIRE( Gkyl::BasisCount<2,2,Gkyl::G_SERENDIPITY_C>::numBasis() == 8 );
 
   REQUIRE( Gkyl::BasisCount<1,2,Gkyl::G_SERENDIPITY_C>::id() == "serendipity" );
+}
+
+TEST_CASE("Tests if BasisTypes is compile-time", "[compile-time]") {
+  
+  //std::cout << Gkyl::BasisCount<1,2,Gkyl::G_SERENDIPITY_C>::numBasis() << std::endl;
+  REQUIRE(
+    CompileTimeCheck<Gkyl::BasisCount<1,2,Gkyl::G_SERENDIPITY_C>::numBasis()>::val()
+    ==
+    Gkyl::BasisCount<1,2,Gkyl::G_SERENDIPITY_C>::numBasis()
+  );
 }
