@@ -4,23 +4,23 @@ __global__ void setAuxFieldsOnDevice(Gkyl::Vlasov *v, GkylCartField_t* emField);
 
 namespace Gkyl {
 
-  __host__ __device__ double Vlasov::volTerm(double *xc, double *dx, int *idx, double *qIn, double *qRhsOut) {
+  __host__ __device__ double Vlasov::volTerm(const double *xc, const double *dx, const int *idx, const double *qIn, double *qRhsOut) {
     Gkyl::GenIndexer emIdxr = emField->genIndexer();
-    double *em = emField->getDataPtrAt(emIdxr.index(idx));
+    const double *em = emField->getDataPtrAt(emIdxr.index(idx));
     double amid = kernel.volumeTerm(xc, dx, em, qIn, qRhsOut);
     return amid;
   }
 
-  __host__ __device__ double Vlasov::surfTerm(int dir, double *cflL, double *cflR,
-                  double *xcL, double *xcR, double *dxL, double *dxR,
-                  double maxsOld, int *idxL, int *idxR,
-                  double *qInL, double *qInR, double *qRhsOutL, double *qRhsOutR) {
+  __host__ __device__ double Vlasov::surfTerm(const int dir, const double *cflL, const double *cflR,
+                  const double *xcL, const double *xcR, const double *dxL, const double *dxR,
+                  const double maxsOld, const int *idxL, const int *idxR,
+                  const double *qInL, const double *qInR, double *qRhsOutL, double *qRhsOutR) {
     double amax = 0.0;
     if(dir < cdim) {
       kernel.surfStreamTerm(dir, xcL, xcR, dxL, dxR, qInL, qInR, qRhsOutL, qRhsOutR);
     } else if(hasForceTerm) {
       Gkyl::GenIndexer emIdxr = emField->genIndexer();
-      double *em = emField->getDataPtrAt(emIdxr.index(idxL));
+      const double *em = emField->getDataPtrAt(emIdxr.index(idxL));
       amax = kernel.surfElcMagTerm(dir-cdim, xcL, xcR, dxL, dxR, maxsOld, em, qInL, qInR, qRhsOutL, qRhsOutR);
     }
     return amax;

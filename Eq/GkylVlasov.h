@@ -40,18 +40,18 @@ namespace Gkyl {
   
     __host__ __device__ void setAuxFields(GkylCartField_t *emField);
   
-    __host__ __device__ double volTerm(double *xc, double *dx, int *idx, double *qIn, double *qRhsOut);
+    __host__ __device__ double volTerm(const double *xc, const double *dx, const int *idx, const double *qIn, double *qRhsOut);
 
-    __host__ __device__  double surfTerm(int dir, double *cflL, double *cflR,
-                    double *xcL, double *xcR, double *dxL, double *dxR,
-                    double maxsOld, int *idxL, int *idxR,
-                    double *qInL, double *qInR, double *qRhsOutL, double *qRhsOutR);
+    __host__ __device__  double surfTerm(const int dir, const double *cflL, const double *cflR,
+                    const double *xcL, const double *xcR, const double *dxL, const double *dxR,
+                    const double maxsOld, const int *idxL, const int *idxR,
+                    const double *qInL, const double *qInR, double *qRhsOutL, double *qRhsOutR);
 
-    __host__ __device__ inline double boundarySurfTerm(int dir, double *cflL, double *cflR,
-                            double *xcL, double *xcR, double *dxL, double *dxR,
-                            double maxsOld, int *idxL, int *idxR,
-                            double *qInL, double *qInR, double *qRhsOutL, double *qRhsOutR) {return 0;};
-  
+    __host__ __device__ inline double boundarySurfTerm(const int dir, const double *cflL, const double *cflR,
+                    const double *xcL, const double *xcR, const double *dxL, const double *dxR,
+                    const double maxsOld, const int *idxL, const int *idxR,
+                    const double *qInL, const double *qInR, double *qRhsOutL, double *qRhsOutR) {return 0;};
+
    private:
     /* dimension and basis parameters */
     const unsigned cdim;

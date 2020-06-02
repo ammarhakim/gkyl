@@ -63,7 +63,7 @@ namespace Gkyl {
        * @param idx NDIM size index into range
        * @return Linear index (0-start)
        */
-      __host__ __device__ inline int64_t index(int *idx) {
+      __host__ __device__ inline int64_t index(const int *idx) {
         int loc = -1+ac[0];
         for (int i=0; i<range->ndim; ++i)
           loc += idx[i]*ac[i+1];

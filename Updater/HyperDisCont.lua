@@ -35,7 +35,6 @@ ffi.cdef [[
       bool zeroFluxFlags[6];
       int32_t numUpdateDirs;
       bool updateVolumeTerm;
-      bool clearOut;
       GkylVlasov *equation;
       GkylCartField_t *cflRateByCell;
   } GkylHyperDisCont_t; 
@@ -119,7 +118,6 @@ function HyperDisCont:initDevice()
    hyper.zeroFluxFlags = ffi.new("bool[6]", self._zeroFluxFlags)
    hyper.numUpdateDirs = #self._updateDirs
    hyper.updateVolumeTerm = self._updateVolumeTerm
-   hyper.clearOut = self._clearOut
    hyper.equation = self._equation._onDevice
    local sz = sizeof("GkylHyperDisCont_t")
    self._onDevice, err = cuda.Malloc(sz)
