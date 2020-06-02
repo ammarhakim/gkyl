@@ -24,19 +24,29 @@ local assert_close = Unit.assert_close
 local stats = Unit.stats
 
 function test_1()
-   local confBasis = Basis.CartModalSerendipity { ndim = 1, polyOrder = 2 }
-   local phaseBasis = Basis.CartModalSerendipity { ndim = 3, polyOrder = 2 }
+   local nloop = 1 -- number of HyperDisCont calls to loop over
+   local checkResult = false -- whether to check device result with host one, element-by-element. this can be expensive for large domains.
+
+   -- set up dimensionality and basis parameters. 
+   -- these parameters needs to match what is hard-coded in kernel template at bottom of Eq/GkylVlasov.h for now.
+   local cdim = 1 -- number of configuration space dimensions
+   local vdim = 2 -- number of velocity space dimensions
+   local polyOrder = 2 -- polynomial order of basis (currently 1, 2, or 3 is supported for Vlasov on GPU)
+
+   local pdim = cdim + vdim -- total number of dimensions in phase space
+   local confBasis = Basis.CartModalSerendipity { ndim = cdim, polyOrder = polyOrder }
+   local phaseBasis = Basis.CartModalSerendipity { ndim = pdim, polyOrder = polyOrder }
+
+   -- set up grids. adjust number of cells to increase domain size (more work for GPU).
+   local nx = 64 -- number of configuration space dimensions in x
+   local nvx = 128  -- number of velocity dimensions in vx
+   local nvy = 128  -- number of velocity dimensions in vy 
 
    local grid = Grid.RectCart {
-      lower = {0.0, -6.0, -6.0},
-      upper = {1.0, 6.0, 6.0},
-      cells = {64, 32, 32},
+      cells = {nx, nvx, nvy},
    }
-
    local confGrid = Grid.RectCart {
-      lower = {0.0},
-      upper = {1.0},
-      cells = {64},
+      cells = {nx},
    }
    
    local vlasovEq = Vlasov {
@@ -46,12 +56,16 @@ function test_1()
       mass = 1.0,
    }
 
+   local zfd = { }
+   for d = 1, vdim do
+     table.insert(zfd, cdim+d)
+   end
    local solver = Updater.HyperDisCont {
       onGrid = grid,
       basis = phaseBasis,
       cfl = 1.0,
       equation = vlasovEq,
-      zeroFluxDirections = {2,3},
+      zeroFluxDirections = zfd,
       clearOut = true,
       noPenaltyFlux = true, -- penalty flux not yet implemented on device
    }
@@ -97,16 +111,15 @@ function test_1()
 
    solver:setDtAndCflRate(.1, cflRateByCell)
 
-   local N = 100
    local tmStart
    tmStart = Time.clock()
-   for i = 1, N do
+   for i = 1, nloop do
       solver:advance(0.0, {distf, emField}, {fRhs})
    end
    local totalCpuTime = (Time.clock()-tmStart)
 
    tmStart = Time.clock()
-   for i = 1, N do
+   for i = 1, nloop do
       solver:_advanceOnDevice(0.0, {distf, emField}, {d_fRhs})
    end
    -- Need to synchronize so that kernel actually runs!
@@ -118,16 +131,18 @@ function test_1()
    
    local indexer = fRhs:genIndexer()
    local d_indexer = d_fRhs:genIndexer()
-   for idx in fRhs:localRangeIter() do
-      local fitr = fRhs:get(indexer(idx))
-      local d_fitr = d_fRhs:get(d_indexer(idx))
-      for i = 0, fRhs:numComponents()-1 do
-         assert_close(fitr[i], d_fitr[i], 1e-11, string.format("index %d, component %d is incorrect", indexer(idx), i))
+   if checkResult then 
+      for idx in fRhs:localRangeIter() do
+         local fitr = fRhs:get(indexer(idx))
+         local d_fitr = d_fRhs:get(d_indexer(idx))
+         for i = 0, fRhs:numComponents()-1 do
+            assert_close(fitr[i], d_fitr[i], 1e-11, string.format("index %d, component %d is incorrect", indexer(idx), i))
+         end
       end
    end
 
-   print(string.format("Total CPU time for %d HyperDisCont calls = %f s", N, totalCpuTime))
-   print(string.format("Total GPU time for %d HyperDisCont calls = %f s", N, totalGpuTime))
+   print(string.format("Total CPU time for %d HyperDisCont calls = %f s", nloop, totalCpuTime))
+   print(string.format("Total GPU time for %d HyperDisCont calls = %f s", nloop, totalGpuTime))
    print(string.format("GPU speed-up = %fx!", totalCpuTime/totalGpuTime))
 end
 

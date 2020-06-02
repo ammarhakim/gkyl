@@ -31,42 +31,6 @@ namespace Gkyl {
    public:
     __host__ __device__ Vlasov(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType, double qbym, bool hasForceTerm) 
      : cdim(cdim), vdim(vdim), polyOrder(polyOrder), basisType(basisType), qbym(qbym), hasForceTerm(hasForceTerm) {
-      // populate kernel factory map (Why is this needed? Basic idea
-      // here is to key off kernels based on names created by
-      // makeName. This allows easier construction of needed kernel
-      // pointer, which would otherwise require a really nasty if-
-      // or switch-statement.)
-//      std::map<int, KernelFactoryBase*> kernelFactory = {
-//        { makeName(1,1,1, G_MAX_ORDER_C), new KernelFactory<1,1,1, G_MAX_ORDER_C>() },
-//        { makeName(1,1,2, G_MAX_ORDER_C), new KernelFactory<1,1,2, G_MAX_ORDER_C>() },
-//        { makeName(1,2,1, G_MAX_ORDER_C), new KernelFactory<1,2,1, G_MAX_ORDER_C>() },
-//        { makeName(1,2,2, G_MAX_ORDER_C), new KernelFactory<1,2,2, G_MAX_ORDER_C>() },
-//        { makeName(1,3,1, G_MAX_ORDER_C), new KernelFactory<1,3,1, G_MAX_ORDER_C>() },
-//        { makeName(1,3,2, G_MAX_ORDER_C), new KernelFactory<1,3,2, G_MAX_ORDER_C>() },
-//        { makeName(2,2,1, G_MAX_ORDER_C), new KernelFactory<2,2,1, G_MAX_ORDER_C>() },
-//        { makeName(2,2,2, G_MAX_ORDER_C), new KernelFactory<2,2,2, G_MAX_ORDER_C>() },
-//        { makeName(2,3,1, G_MAX_ORDER_C), new KernelFactory<2,3,1, G_MAX_ORDER_C>() },
-//        { makeName(2,3,2, G_MAX_ORDER_C), new KernelFactory<2,3,2, G_MAX_ORDER_C>() },
-//        { makeName(3,3,1, G_MAX_ORDER_C), new KernelFactory<3,3,1, G_MAX_ORDER_C>() },
-//        { makeName(1,1,1, G_SERENDIPITY_C), new KernelFactory<1,1,1, G_SERENDIPITY_C>() },
-//        { makeName(1,1,2, G_SERENDIPITY_C), new KernelFactory<1,1,2, G_SERENDIPITY_C>() },
-//        { makeName(1,2,1, G_SERENDIPITY_C), new KernelFactory<1,2,1, G_SERENDIPITY_C>() },
-//        { makeName(1,2,2, G_SERENDIPITY_C), new KernelFactory<1,2,2, G_SERENDIPITY_C>() },
-//        { makeName(1,3,1, G_SERENDIPITY_C), new KernelFactory<1,3,1, G_SERENDIPITY_C>() },
-//        { makeName(1,3,2, G_SERENDIPITY_C), new KernelFactory<1,3,2, G_SERENDIPITY_C>() },
-//        { makeName(2,2,1, G_SERENDIPITY_C), new KernelFactory<2,2,1, G_SERENDIPITY_C>() },
-//        { makeName(2,2,2, G_SERENDIPITY_C), new KernelFactory<2,2,2, G_SERENDIPITY_C>() },
-//        { makeName(2,3,1, G_SERENDIPITY_C), new KernelFactory<2,3,1, G_SERENDIPITY_C>() },
-//        { makeName(2,3,2, G_SERENDIPITY_C), new KernelFactory<2,3,2, G_SERENDIPITY_C>() },
-//        { makeName(3,3,1, G_SERENDIPITY_C), new KernelFactory<3,3,1, G_SERENDIPITY_C>() },          
-//      };
-  
-      // now construct pointer to kernel (above horrid mess is to
-      // enable the following one-line construction of the kernel
-      // pointer)
-//      kernel = (VlasovModDeclBase*)
-//        (kernelFactory[makeName(cdim,vdim,polyOrder,basisType)]->create()) ;
-  
     }
     ~Vlasov() = default;
 
@@ -103,27 +67,11 @@ namespace Gkyl {
     GkylCartField_t *emField;
   
     /** Pointer to kernel */
+    // hard-code a specific dimensionality here for now (polymorphism abstraction TBD)
+    // template parameters are 
+    // VlasovModDecl<cdim, vdim, polyOrder, basisType>
+    // this needs to match the basis used to initialize the equation object in Lua 
     VlasovModDecl<1,2,2,G_SERENDIPITY_C> kernel;
-  
-    ///** Private classes to allow making kernel objects */
-    //class KernelFactoryBase {
-    //  public:
-    //    virtual __host__ __device__ Gkyl::VlasovModDeclBase* create() = 0;
-    //};
-    //
-    //template <unsigned CDIM, unsigned VDIM, unsigned POLYORDER, unsigned BASISTYPE>
-    //class KernelFactory : public KernelFactoryBase {
-    //  public:
-    //    __host__ __device__ Gkyl::VlasovModDeclBase* create() {
-    //      return new Gkyl::VlasovModDecl<CDIM, VDIM, POLYORDER, BASISTYPE>();
-    //    }
-    //};
-  
-    ///** Make a unique name */
-    //__host__ __device__ int makeName(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType) {
-    //  
-    //  return cdim+10*vdim+100*polyOrder+1000*basisType;
-    //}
   };
 }
 #endif
