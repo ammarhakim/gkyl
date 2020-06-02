@@ -30,7 +30,7 @@ namespace Gkyl {
       /**
        * Surface streaming term
        */
-      __host__ __device__ virtual void surfStreamTerm(unsigned dir, const double *wl, const double *wr,
+      __host__ __device__ virtual void surfStreamTerm(int dir, const double *wl, const double *wr,
         const double *dxvl, const double *dxvr, const double *fl, const double *fr,
         double *outl, double *outr) = 0;
 
@@ -42,7 +42,7 @@ namespace Gkyl {
       /**
        * Surface terms from EM forces
        */
-      __host__ __device__ virtual double surfElcMagTerm(unsigned dir, const double *wl, const double *wr,
+      __host__ __device__ virtual double surfElcMagTerm(int dir, const double *wl, const double *wr,
         const double *dxvl, const double *dxvr,
         const double amax, const double *E, const
         double *fl, const double *fr,
@@ -51,7 +51,7 @@ namespace Gkyl {
 
   // Provides a templated wrapper around the low level C-style kernels
   // so they can be called more systematically from C++ code
-  template <unsigned CDIM, unsigned VDIM, unsigned POLYORDER, unsigned BASISTYPE>
+  template <int CDIM, int VDIM, int POLYORDER, int BASISTYPE>
   class VlasovModDecl : public VlasovModDeclBase {
     public:
       /**
@@ -62,7 +62,7 @@ namespace Gkyl {
       /**
        * Surface streaming term
        */
-      __host__ __device__ void surfStreamTerm(unsigned dir, const double *wl, const double *wr,
+      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
         const double *dxvl, const double *dxvr, const double *fl, const double *fr,
         double *outl, double *outr);
 
@@ -74,7 +74,7 @@ namespace Gkyl {
       /**
        * Surface terms from EM forces
        */
-      __host__ __device__ double surfElcMagTerm(unsigned dir, const double *wl, const double *wr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
         const double *dxvl, const double *dxvr,
         const double amax, const double *E, const
         double *fl, const double *fr,
@@ -104,7 +104,7 @@ vlasovHeaderTemplateString = [[
         return VlasovVolStream${ci}x${vi}v${basisShortNm}P${pi}(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(unsigned dir, const double *wl, const double *wr,
+      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
         const double *dxvl, const double *dxvr,
         const double *fl, const double *fr,
         double *outl, double *outr) {
@@ -130,7 +130,7 @@ vlasovHeaderTemplateString = [[
         return VlasovVol${ci}x${vi}v${basisShortNm}P${pi}(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(unsigned dir, const double *wl, const double *wr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
         const double *dxvl, const double *dxvr,
         const double amax, const double *E, const
         double *fl, const double *fr,
@@ -222,7 +222,7 @@ vlasovKernelFactoryOut =
    vlasovKernelFactoryTemplate {
       CMIN = 1, CMAX = 2,
       VMAX = 3,
-      PMIN = 1, PMAX = 2,
+      PMIN = 1, PMAX = 3,
       basisNm = 'G_MAX_ORDER_C',
       basisShortNm = 'Max',
    }
@@ -230,7 +230,7 @@ vlasovKernelFactoryOut =
    vlasovKernelFactoryTemplate {
       CMIN = 3, CMAX = 3,
       VMAX = 3,
-      PMIN = 1, PMAX = 1,
+      PMIN = 1, PMAX = 2,
       basisNm = 'G_MAX_ORDER_C',
       basisShortNm = 'Max',
    }
@@ -238,7 +238,7 @@ vlasovKernelFactoryOut =
    vlasovKernelFactoryTemplate {
       CMIN = 1, CMAX = 2,
       VMAX = 3,
-      PMIN = 1, PMAX = 2,
+      PMIN = 1, PMAX = 3,
       basisNm = 'G_SERENDIPITY_C',
       basisShortNm = 'Ser',
    }
@@ -246,7 +246,7 @@ vlasovKernelFactoryOut =
    vlasovKernelFactoryTemplate {
       CMIN = 3, CMAX = 3,
       VMAX = 3,
-      PMIN = 1, PMAX = 1,
+      PMIN = 1, PMAX = 2,
       basisNm = 'G_SERENDIPITY_C',
       basisShortNm = 'Ser',
    }
