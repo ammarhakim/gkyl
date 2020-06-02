@@ -19,6 +19,82 @@ namespace Gkyl {
     G_TENSOR_C = 3, // tensor-product
   };
 
+  /** Function to compute number of basis functions in Max-order basis */
+  constexpr int numMaxBasis(int ndim, int polyOrder) {
+    // number of basis is = (p+d)! / p! d!
+    unsigned nbasis = 1;
+    if (ndim == 0) 
+      nbasis = 1;
+    else if (ndim == 1)
+      nbasis = polyOrder+1;
+    else if (ndim == 2) 
+      nbasis = (polyOrder+2)*(polyOrder+1)/2;
+    else if (ndim == 3) 
+      nbasis = (polyOrder+3)*(polyOrder+2)*(polyOrder+1)/6;
+    else if (ndim == 4) 
+      nbasis = (polyOrder+4)*(polyOrder+3)*(polyOrder+2)*(polyOrder+1)/24;
+    else if (ndim == 5) 
+      nbasis = (polyOrder+5)*(polyOrder+4)*(polyOrder+3)*(polyOrder+2)*(polyOrder+1)/120;
+    else if (ndim == 6) 
+      nbasis = (polyOrder+6)*(polyOrder+5)*(polyOrder+4)*(polyOrder+3)*(polyOrder+2)*(polyOrder+1)/720;
+    return nbasis;
+  }
+
+  /** Function to compute number of basis functions in Max-order basis */
+  constexpr int numSerendipityBasis(int ndim, int polyOrder) {
+    // See Arnold, Awanou, F. Comp Math, 2011
+    unsigned numBasis_d2[] = {4, 8, 12};
+    unsigned numBasis_d3[] = {8, 20, 32};
+    unsigned numBasis_d4[] = {16, 48, 80};
+    unsigned numBasis_d5[] = {32, 112, 192};
+    unsigned numBasis_d6[] = {64, 256};
+
+    unsigned nbasis = 1;
+    if (polyOrder > 0) {
+      if (ndim == 1)
+        nbasis = polyOrder+1;
+      else if (ndim == 2)
+        nbasis = numBasis_d2[polyOrder-1];
+      else if (ndim == 3)
+        nbasis = numBasis_d3[polyOrder-1];
+      else if (ndim == 4)
+        nbasis = numBasis_d4[polyOrder-1];
+      else if (ndim == 5)
+        nbasis = numBasis_d5[polyOrder-1];
+      else if (ndim == 6)
+        nbasis = numBasis_d6[polyOrder-1];
+    }
+    return nbasis;
+  }
+
+  /** Compute number of basis functions (provided by specializations) */
+  template <int NDIM, int POLYORDER, int BASISTYPE>
+  class BasisCount {
+    public:
+      /* Number of basis functions */
+      static int numBasis();
+  };    
+
+  /** Number of basis functions in max-order basis */
+  template <int NDIM, int POLYORDER>
+  class BasisCount<NDIM, POLYORDER, G_MAX_ORDER_C> {
+    public:
+      /* Number of basis functions */
+      static int numBasis() {
+        return numMaxBasis(NDIM, POLYORDER);
+      }
+  };
+
+  /** Number of basis functions in max-order basis */
+  template <int NDIM, int POLYORDER>
+  class BasisCount<NDIM, POLYORDER, G_SERENDIPITY_C> {
+    public:
+      /* Number of basis functions */
+      static int numBasis() {
+        return numSerendipityBasis(NDIM, POLYORDER);
+      }
+  };  
+
   class BasisInfo {
     public:
       /**
