@@ -27,6 +27,11 @@ class MomentModDecl {
     __host__ __device__ static void calcM0(const double *w, const double *dxv, const double *f, double *out);
     // First moment of Vlasov species distribution function.
     __host__ __device__ static void calcM1i(const double *w, const double *dxv, const double *f, double *out);
+    // Second moment of Vlasov species distribution function.
+    __host__ __device__ static void calcM2(const double *w, const double *dxv, const double *f, double *out);
+    __host__ __device__ static void calcM2ij(const double *w, const double *dxv, const double *f, double *out);
+    // Third moment of Vlasov species distribution function.
+    __host__ __device__ static void calcM3i(const double *w, const double *dxv, const double *f, double *out);
 };
 
 ]]
@@ -47,6 +52,15 @@ class MomentModDecl<${ci},${vi},${pi},Gkyl::${basisNm}> {
     }
     __host__ __device__ static void calcM1i(const double *w, const double *dxv, const double *f, double *out) {
       MomentCalc${ci}x${vi}v${basisShortNm}_M1i_P${pi}(w, dxv, f, out);
+    }
+    __host__ __device__ static void calcM2(const double *w, const double *dxv, const double *f, double *out) {
+      MomentCalc${ci}x${vi}v${basisShortNm}_M2_P${pi}(w, dxv, f, out);
+    }
+    __host__ __device__ static void calcM2ij(const double *w, const double *dxv, const double *f, double *out) {
+      MomentCalc${ci}x${vi}v${basisShortNm}_M2ij_P${pi}(w, dxv, f, out);
+    }
+    __host__ __device__ static void calcM3i(const double *w, const double *dxv, const double *f, double *out) {
+      MomentCalc${ci}x${vi}v${basisShortNm}_M3i_P${pi}(w, dxv, f, out);
     }
     
 };
