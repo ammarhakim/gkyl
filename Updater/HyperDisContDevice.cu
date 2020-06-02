@@ -44,9 +44,6 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
     
     double *fInC = fIn->getDataPtrAt(linearIdxC);
     double *fRhsOutC = fRhsOut->getDataPtrAt(linearIdxC);
-    if(clearOut) {
-      memset(fRhsOutC, 0., sizeof(double)*numComponents);
-    }
     double cflRate = eq->volTerm(xcC, dx, idxC, fInC, fRhsOutC);
 
     // hard code this size for now. 

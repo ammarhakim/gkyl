@@ -87,6 +87,7 @@ ffi.cdef [[
   int cudaMemcpyFromSymbol(void* dst, const void* src, size_t count, size_t offset, cudaMemcpyKind kind);
   int cudaMemcpyToSymbol(void* dst, const void* src, size_t count, size_t offset, cudaMemcpyKind kind);
   int cudaMallocManaged(void** devPtr, size_t size, unsigned int flags);
+  int cudaMemset(void *devPtr, int value, size_t size);
 
   // error codes
   int get_cudaSuccess();
@@ -202,6 +203,10 @@ end
 
 function _M.MemcpyToSymbol(dst, src, count)
    return ffiC.cudaMemcpyToSymbol(dst, src, count, 0, cuda.MemcpyHostToDevice)
+end
+
+function _M.Memset(data, val, count)
+   return ffiC.cudaMemset(data, val, count)
 end
 
 return _M

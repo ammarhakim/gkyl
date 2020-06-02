@@ -283,6 +283,10 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
    local numThreads = math.min(self.numThreads, numCellsLocal)
    local numBlocks  = math.floor(numCellsLocal/numThreads)+1
 
+   if self._clearOut then
+     cuda.Memset(qRhsOut:deviceDataPointer(), 0.0, sizeof('double')*qRhsOut:size())
+   end
+
    ffiC.advanceOnDevice(numBlocks, numThreads, self._onDevice, qIn._onDevice, qRhsOut._onDevice)
 end
 
