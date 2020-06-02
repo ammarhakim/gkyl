@@ -107,6 +107,7 @@ function HyperDisCont:init(tbl)
 
    if GKYL_HAVE_CUDA then
       self:initDevice()
+      self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
    end
 
    return self
@@ -279,7 +280,7 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
    self._equation:setAuxFieldsOnDevice(self._auxFields)
 
    local numCellsLocal = qRhsOut:localRange():volume()
-   local numThreads = math.min(GKYL_DEFAULT_NUM_THREADS, numCellsLocal)
+   local numThreads = math.min(self.numThreads, numCellsLocal)
    local numBlocks  = math.floor(numCellsLocal/numThreads)+1
 
    ffiC.advanceOnDevice(numBlocks, numThreads, self._onDevice, qIn._onDevice, qRhsOut._onDevice)

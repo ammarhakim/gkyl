@@ -26,6 +26,7 @@ local stats = Unit.stats
 function test_1()
    local nloop = 1 -- number of HyperDisCont calls to loop over
    local checkResult = false -- whether to check device result with host one, element-by-element. this can be expensive for large domains.
+   local numThreads = 256 -- number of threads to use in HyperDisCont kernel configuration
 
    -- set up dimensionality and basis parameters. 
    -- these parameters needs to match what is hard-coded in kernel template at bottom of Eq/GkylVlasov.h for now.
@@ -68,6 +69,7 @@ function test_1()
       zeroFluxDirections = zfd,
       clearOut = true,
       noPenaltyFlux = true, -- penalty flux not yet implemented on device
+      numThreads = numThreads,
    }
 
    local distf = DataStruct.Field {
