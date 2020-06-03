@@ -6,6 +6,9 @@
 //    _______     ___
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
+
+#pragma once
+
 #include "DistFuncMomentCalcModDecl.h"
 #include "DistFuncMomentCalcTmpl.h"
 #include "DistFuncMomentCalcDeviceModDecl.h"
@@ -308,5 +311,4 @@ __global__ void d_calcM3i(GkylCartField_t *fIn, GkylCartField_t *out) {
       mom[k] = localSumPtr[k];
     }
   }
-
 }

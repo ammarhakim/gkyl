@@ -8,8 +8,7 @@
 //------------------------------------------------------------------------------
 
 #include "DistFuncMomentCalcDeviceModDecl.h"
-#include "DistFuncMomentCalcDeviceCommon.cu"
-
+#include "DistFuncMomentCalcDeviceCommon.h"
 
  void cuda_MomentCalc1x1vSer_M0_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out) {
   int warpSize = prop->warpSize;

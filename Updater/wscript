@@ -375,7 +375,11 @@ def build(bld):
 
     # CUDA specific code
     if bld.env['CUTOOLS_FOUND']:
-        cusources = 'HyperDisContDevice.cu momentCalcData/DistFuncMomentCalcSer1x1v.cpp momentCalcData/DistFuncMomentCalcDeviceCommon.cu momentCalcData/DistFuncMomentCalcDeviceWrappers.cu'
+        cusources = r"""
+        HyperDisContDevice.cu
+        momentCalcData/DistFuncMomentCalcSer1x1v.cpp
+        momentCalcData/DistFuncMomentCalcDeviceWrappers.cu
+        """
         
         bld(source = cusources,
             name = 'updater_cu', target='updater_cu',
@@ -383,7 +387,8 @@ def build(bld):
         )
 
     bld.shlib(source = sources,
-              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', 
+              use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     
 ## Removed the following files from the build for now
 #     binOpCalcData/CartFieldBinOpSer3x3vP2.cpp
