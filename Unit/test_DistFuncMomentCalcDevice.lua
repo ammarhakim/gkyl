@@ -87,23 +87,26 @@ local function distFmoment(grid,pBasis,cBasis,mom,doOnDevice)
    return momUp
 end
 
-function test_1x1v(pOrder, basis)
-   local lower    = {0.0, -6.0}
-   local upper    = {1.0,  6.0}
-   local numCells = {8, 32}
+local function test_moments(phaseLower, phaseUpper, phaseNumCells, 
+                            confLower, confUpper, confNumCells, basis, pOrder)
+
+   local cDim = #confLower
+   local vDim = #phaseLower-cDim
 
    -- Phase-space and config-space grids.
-   local phaseGrid = createGrid(lower, upper, numCells)
-   local confGrid  = createGrid({lower[1]}, {upper[1]}, {numCells[1]})
+   local phaseGrid = createGrid(phaseLower, phaseUpper, phaseNumCells)
+   local confGrid  = createGrid(confLower, confUpper, confNumCells)
    -- Basis functions.
    local phaseBasis = createBasis(phaseGrid:ndim(), pOrder, basis)
    local confBasis  = createBasis(confGrid:ndim(), pOrder, basis)
    -- Fields.
-   local distF          = createField(phaseGrid, phaseBasis, true, false)
-   local numDensity     = createField(confGrid, confBasis, true, false)
-   local momDensity     = createField(confGrid, confBasis, true, false)
-   local numDensityHost = createField(confGrid, confBasis, false, false)
-   local momDensityHost = createField(confGrid, confBasis, false, false)
+   local distF             = createField(phaseGrid, phaseBasis, true, false)
+   local numDensity        = createField(confGrid, confBasis, true, false)
+   local momDensity        = createField(confGrid, confBasis, true, false, vDim)
+   local energyDensity     = createField(confGrid, confBasis, true, false)
+   local numDensityHost    = createField(confGrid, confBasis, false, false)
+   local momDensityHost    = createField(confGrid, confBasis, false, false, vDim)
+   local energyDensityHost = createField(confGrid, confBasis, false, false)
 
    -- Updater to initialize distribution function.
    local project = createProject(phaseGrid,phaseBasis)
@@ -127,6 +130,9 @@ function test_1x1v(pOrder, basis)
    -- Copy distribution function to device.
    local err = distF:copyHostToDevice()
 
+   local confRange    = numDensity:localRange()
+   local confIdxr     = numDensity:genIndexer()
+
    -- ~~~~~~~~~~~~~~~~~~~ Check the number density ~~~~~~~~~~~~~~~~~~~~ --
    local calcNumDensity = distFmoment(phaseGrid,phaseBasis,confBasis,"M0",true)
    calcNumDensity:_advanceOnDevice(0.0, {distF}, {numDensity})
@@ -139,15 +145,19 @@ function test_1x1v(pOrder, basis)
    local calcNumDensityHost = distFmoment(phaseGrid,phaseBasis,confBasis,"M0",false)
    calcNumDensityHost:_advance(0.0, {distF}, {numDensityHost})
 
-   local numIdxr     = numDensity:genIndexer()
-   local numIdxrHost = numDensityHost:genIndexer()
-   for i = 1, numCells[1] do
-      local numItr     = numDensity:get(numIdxr( {i} ))
-      local numItrHost = numDensityHost:get(numIdxr( {i} ))
-      assert_close(numItrHost[1], numItr[1], 1.e-14, "Checking M0 moment, 1x1v")
+   local m0Components = numDensity:numComponents()
+   for idx in confRange:rowMajorIter() do
+      local m0Itr     = numDensity:get(confIdxr( idx ))
+      local m0ItrHost = numDensityHost:get(confIdxr( idx ))
+      for k = 1, m0Components do
+         assert_close(m0ItrHost[k], m0Itr[k], 1.e-11, string.format("Checking M0 moment, %s%dx%dvP%d",basis,cDim,vDim,pOrder))
+      end
    end
 
-   -- ~~~~~~~~~~~~~~~~~~~ Check the momber density ~~~~~~~~~~~~~~~~~~~~ --
+--   numDensity:write("numDensity.bp",0.0)
+--   numDensityHost:write("numDensityHost.bp",0.0)
+
+   -- ~~~~~~~~~~~~~~~~~~~ Check the momentum density ~~~~~~~~~~~~~~~~~~~~ --
    local calcMomDensity = distFmoment(phaseGrid,phaseBasis,confBasis,"M1i",true)
    calcMomDensity:_advanceOnDevice(0.0, {distF}, {momDensity})
 
@@ -159,21 +169,102 @@ function test_1x1v(pOrder, basis)
    local calcMomDensityHost = distFmoment(phaseGrid,phaseBasis,confBasis,"M1i",false)
    calcMomDensityHost:_advance(0.0, {distF}, {momDensityHost})
 
-   local momIdxr     = momDensity:genIndexer()
-   local momIdxrHost = momDensityHost:genIndexer()
-   for i = 1, numCells[1] do
-      local momItr     = momDensity:get(momIdxr( {i} ))
-      local momItrHost = momDensityHost:get(momIdxr( {i} ))
-      assert_close(momItrHost[1], momItr[1], 1.e-14, "Checking M0 moment, 1x1v")
+   local m1iComponents = momDensity:numComponents()
+   for idx in confRange:rowMajorIter() do
+      local m1iItr     = momDensity:get(confIdxr( idx ))
+      local m1iItrHost = momDensityHost:get(confIdxr( idx ))
+      for k = 1, m1iComponents do
+         assert_close(m1iItrHost[k], m1iItr[k], 1.e-11, string.format("Checking M1i moment, %s%dx%dvP%d",basis,cDim,vDim,pOrder))
+      end
    end
 
+--   momDensity:write("momDensity.bp",0.0)
+--   momDensityHost:write("momDensityHost.bp",0.0)
+
+   -- ~~~~~~~~~~~~~~~~~~~ Check the energy density ~~~~~~~~~~~~~~~~~~~~ --
+   local calcEnergyDensity = distFmoment(phaseGrid,phaseBasis,confBasis,"M2",true)
+   calcEnergyDensity:_advanceOnDevice(0.0, {distF}, {energyDensity})
+
+   err = cudaRunTime.DeviceSynchronize()
+
+   energyDensity:copyDeviceToHost()
+
+   -- Compare against CPU calculation.
+   local calcEnergyDensityHost = distFmoment(phaseGrid,phaseBasis,confBasis,"M2",false)
+   calcEnergyDensityHost:_advance(0.0, {distF}, {energyDensityHost})
+
+   local m2Components = energyDensity:numComponents()
+   for idx in confRange:rowMajorIter() do
+      local m2Itr     = energyDensity:get(confIdxr( idx ))
+      local m2ItrHost = energyDensityHost:get(confIdxr( idx ))
+      for k = 1, m2Components do
+         assert_close(m2ItrHost[k], m2Itr[k], 1.e-11, string.format("Checking M2 moment, %s%dx%dvP%d",basis,cDim,vDim,pOrder))
+      end
+   end
+
+--   energyDensity:write("energyDensity.bp",0.0)
+--   energyDensityHost:write("energyDensityHost.bp",0.0)
+end
+
+function test_1x1v(basis, pOrder)
+   local phaseLower    = {0.0, -6.0}
+   local phaseUpper    = {1.0,  6.0}
+   local phaseNumCells = {8, 32}
+   local confLower     = {   phaseLower[1]}
+   local confUpper     = {   phaseUpper[1]}
+   local confNumCells  = {phaseNumCells[1]}
+   test_moments(phaseLower, phaseUpper, phaseNumCells, confLower, confUpper, confNumCells, basis, pOrder)
+end
+
+function test_1x2v(basis, pOrder)
+   local phaseLower    = {0.0, -6.0, -6.0}
+   local phaseUpper    = {1.0,  6.0,  6.0}
+   local phaseNumCells = {8, 32, 32}
+   local confLower     = {   phaseLower[1]}
+   local confUpper     = {   phaseUpper[1]}
+   local confNumCells  = {phaseNumCells[1]}
+   test_moments(phaseLower, phaseUpper, phaseNumCells, confLower, confUpper, confNumCells, basis, pOrder)
+end
+
+function test_1x3v(basis, pOrder)
+   local phaseLower    = {0.0, -6.0, -6.0, -6.0}
+   local phaseUpper    = {1.0,  6.0,  6.0,  6.0}
+   local phaseNumCells = {8, 32, 32, 32}
+   local confLower     = {   phaseLower[1]}
+   local confUpper     = {   phaseUpper[1]}
+   local confNumCells  = {phaseNumCells[1]}
+   test_moments(phaseLower, phaseUpper, phaseNumCells, confLower, confUpper, confNumCells, basis, pOrder)
+end
+
+function test_2x2v(basis, pOrder)
+   local phaseLower    = {0.0, 0.0, -6.0, -6.0}
+   local phaseUpper    = {1.0, 1.0,  6.0,  6.0}
+   local phaseNumCells = {8, 8, 32, 32}
+   local confLower     = {   phaseLower[1],    phaseLower[2]}
+   local confUpper     = {   phaseUpper[1],    phaseUpper[2]}
+   local confNumCells  = {phaseNumCells[1], phaseNumCells[2]}
+   test_moments(phaseLower, phaseUpper, phaseNumCells, confLower, confUpper, confNumCells, basis, pOrder)
+end
+
+function test_2x3v(basis, pOrder)
+   local phaseLower    = {0.0, 0.0, -6.0, -6.0, -6.0}
+   local phaseUpper    = {1.0, 1.0,  6.0,  6.0,  6.0}
+   local phaseNumCells = {8, 8, 32, 32, 32}
+   local confLower     = {   phaseLower[1],    phaseLower[2]}
+   local confUpper     = {   phaseUpper[1],    phaseUpper[2]}
+   local confNumCells  = {phaseNumCells[1], phaseNumCells[2]}
+   test_moments(phaseLower, phaseUpper, phaseNumCells, confLower, confUpper, confNumCells, basis, pOrder)
 end
 
 local polyOrderMax = 2
 local basisType    = "Ser"
 
 for polyOrder = 1, polyOrderMax do
-   test_1x1v( polyOrder, basisType )
+   test_1x1v( basisType, polyOrder )
+   test_1x2v( basisType, polyOrder )
+   test_1x3v( basisType, polyOrder )
+   test_2x2v( basisType, polyOrder )
+   test_2x3v( basisType, polyOrder )
 end
 
 if stats.fail > 0 then

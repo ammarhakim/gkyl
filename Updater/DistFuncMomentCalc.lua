@@ -502,7 +502,7 @@ end
 function DistFuncMomentCalc:_advanceOnDevice(tCurr, inFld, outFld)
    -- MF: current device kernels may be limited to number of velocity-space cells
    -- that are multiples of warpSize(=32), or smaller than the warpSize.
-   local distf, mom1 = inFld[1], outFld[1]
+   local distf, momOut = inFld[1], outFld[1]
 
    local pDim, vDim = self._pDim, self._vDim
 
@@ -514,8 +514,9 @@ function DistFuncMomentCalc:_advanceOnDevice(tCurr, inFld, outFld)
 
    local numThreads = math.min(GKYL_DEFAULT_NUM_THREADS, phaseRange:selectLast(vDim):volume())
    local numBlocks  = math.floor(numCellsLocal/numThreads) --+1
+   momOut:deviceClear(0.0)
 
-   self._momCalcFun(deviceProps, numBlocks, numThreads, distf._onDevice, mom1._onDevice)
+   self._momCalcFun(deviceProps, numBlocks, numThreads, distf._onDevice, momOut._onDevice)
 end
 
 return DistFuncMomentCalc

@@ -13,6 +13,8 @@
 #include "DistFuncMomentCalcTmpl.h"
 #include "DistFuncMomentCalcDeviceModDecl.h"
 
+#include <stdio.h>
+
 __inline__ __device__ void warpReduceComponentsSum(double *vals, int nComps) {
   // Perform 'nComps' independent (sum) reductions across a warp,
   // one for each component in 'vals'.
@@ -69,7 +71,7 @@ __global__ void d_calcM0(GkylCartField_t *fIn, GkylCartField_t *out) {
   localPhaseIdxr.invIndex(linearIdx, phaseIdx);
   int phaseLinIdx = fIdxr.index(phaseIdx);
 
-  double localSum[Gkyl::BasisCount<CDIM+VDIM, POLYORDER, BASISTYPE>::numBasis()];
+  double localSum[Gkyl::BasisCount<CDIM, POLYORDER, BASISTYPE>::numBasis()];
   unsigned int numComponents = out->numComponents;
   for (unsigned int k = 0; k < numComponents; k++) {
     localSum[k] = 0.0;
@@ -80,7 +82,7 @@ __global__ void d_calcM0(GkylCartField_t *fIn, GkylCartField_t *out) {
   GkylRectCart_t *grid = fIn->grid;
   double cellxc[CDIM+VDIM];
   grid->cellCenter(phaseIdx,cellxc);
-  double *cellSize    = &grid->dx[0];
+  double *cellSize    = grid->dx;
   double *localSumPtr = &localSum[0];
 
   MomentModDecl<CDIM, VDIM, POLYORDER, BASISTYPE>::calcM0(cellxc, cellSize, distF, localSumPtr);
@@ -100,7 +102,7 @@ __global__ void d_calcM0(GkylCartField_t *fIn, GkylCartField_t *out) {
 
   if (threadIdx.x==0) {
     for (unsigned int k = 0; k < numComponents; k++) {
-      mom[k] = localSumPtr[k];
+      atomicAdd(&mom[k],localSumPtr[k]);
     }
   }
 
@@ -121,7 +123,7 @@ __global__ void d_calcM1i(GkylCartField_t *fIn, GkylCartField_t *out) {
   localPhaseIdxr.invIndex(linearIdx, phaseIdx);
   int phaseLinIdx = fIdxr.index(phaseIdx);
 
-  double localSum[Gkyl::BasisCount<CDIM+VDIM, POLYORDER, BASISTYPE>::numBasis()];
+  double localSum[VDIM*Gkyl::BasisCount<CDIM, POLYORDER, BASISTYPE>::numBasis()];
   unsigned int numComponents = out->numComponents;
   for (unsigned int k = 0; k < numComponents; k++) {
     localSum[k]=0.0;
@@ -151,8 +153,9 @@ __global__ void d_calcM1i(GkylCartField_t *fIn, GkylCartField_t *out) {
   double *mom    = out->getDataPtrAt(confLinIdx);
 
   if (threadIdx.x==0) {
+//  printf("gridDim=%d | blockDim=%d | linearIdx=%d | phaseLinIdx=%d | phaseIdx=(%d,%d,%d) | confIdx=(%d) | confLinIdx=%d | comps=%d\n",blockDim.x,linearIdx,phaseLinIdx,phaseIdx[0],phaseIdx[1],phaseIdx[2],confIdx[0],confLinIdx,numComponents);
     for (unsigned int k = 0; k < numComponents; k++) {
-      mom[k] = localSumPtr[k];
+      atomicAdd(&mom[k],localSumPtr[k]);
     }
   }
 
@@ -173,7 +176,7 @@ __global__ void d_calcM2(GkylCartField_t *fIn, GkylCartField_t *out) {
   localPhaseIdxr.invIndex(linearIdx, phaseIdx);
   int phaseLinIdx = fIdxr.index(phaseIdx);
 
-  double localSum[Gkyl::BasisCount<CDIM+VDIM, POLYORDER, BASISTYPE>::numBasis()];
+  double localSum[Gkyl::BasisCount<CDIM, POLYORDER, BASISTYPE>::numBasis()];
   unsigned int numComponents = out->numComponents;
   for (unsigned int k = 0; k < numComponents; k++) {
     localSum[k]=0.0;
@@ -204,7 +207,7 @@ __global__ void d_calcM2(GkylCartField_t *fIn, GkylCartField_t *out) {
 
   if (threadIdx.x==0) {
     for (unsigned int k = 0; k < numComponents; k++) {
-      mom[k] = localSumPtr[k];
+      atomicAdd(&mom[k],localSumPtr[k]);
     }
   }
 
@@ -225,7 +228,7 @@ __global__ void d_calcM2ij(GkylCartField_t *fIn, GkylCartField_t *out) {
   localPhaseIdxr.invIndex(linearIdx, phaseIdx);
   int phaseLinIdx = fIdxr.index(phaseIdx);
 
-  double localSum[Gkyl::BasisCount<CDIM+VDIM, POLYORDER, BASISTYPE>::numBasis()];
+  double localSum[Gkyl::BasisCount<CDIM, POLYORDER, BASISTYPE>::numBasis()];
   unsigned int numComponents = out->numComponents;
   for (unsigned int k = 0; k < numComponents; k++) {
     localSum[k]=0.0;
@@ -256,7 +259,7 @@ __global__ void d_calcM2ij(GkylCartField_t *fIn, GkylCartField_t *out) {
 
   if (threadIdx.x==0) {
     for (unsigned int k = 0; k < numComponents; k++) {
-      mom[k] = localSumPtr[k];
+      atomicAdd(&mom[k],localSumPtr[k]);
     }
   }
 
@@ -277,7 +280,7 @@ __global__ void d_calcM3i(GkylCartField_t *fIn, GkylCartField_t *out) {
   localPhaseIdxr.invIndex(linearIdx, phaseIdx);
   int phaseLinIdx = fIdxr.index(phaseIdx);
 
-  double localSum[Gkyl::BasisCount<CDIM+VDIM, POLYORDER, BASISTYPE>::numBasis()];
+  double localSum[Gkyl::BasisCount<CDIM, POLYORDER, BASISTYPE>::numBasis()];
   unsigned int numComponents = out->numComponents;
   for (unsigned int k = 0; k < numComponents; k++) {
     localSum[k]=0.0;
@@ -308,7 +311,7 @@ __global__ void d_calcM3i(GkylCartField_t *fIn, GkylCartField_t *out) {
 
   if (threadIdx.x==0) {
     for (unsigned int k = 0; k < numComponents; k++) {
-      mom[k] = localSumPtr[k];
+      atomicAdd(&mom[k],localSumPtr[k]);
     }
   }
 }
