@@ -13,8 +13,6 @@
 #include "DistFuncMomentCalcTmpl.h"
 #include "DistFuncMomentCalcDeviceModDecl.h"
 
-#include <stdio.h>
-
 __inline__ __device__ void warpReduceComponentsSum(double *vals, int nComps) {
   // Perform 'nComps' independent (sum) reductions across a warp,
   // one for each component in 'vals'.
@@ -153,7 +151,6 @@ __global__ void d_calcM1i(GkylCartField_t *fIn, GkylCartField_t *out) {
   double *mom    = out->getDataPtrAt(confLinIdx);
 
   if (threadIdx.x==0) {
-//  printf("gridDim=%d | blockDim=%d | linearIdx=%d | phaseLinIdx=%d | phaseIdx=(%d,%d,%d) | confIdx=(%d) | confLinIdx=%d | comps=%d\n",blockDim.x,linearIdx,phaseLinIdx,phaseIdx[0],phaseIdx[1],phaseIdx[2],confIdx[0],confLinIdx,numComponents);
     for (unsigned int k = 0; k < numComponents; k++) {
       atomicAdd(&mom[k],localSumPtr[k]);
     }
