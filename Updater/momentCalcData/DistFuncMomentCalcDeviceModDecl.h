@@ -106,30 +106,12 @@ void cuda_MomentCalc2x3vSer_M2ij_P2(GkDeviceProp *prop, int numBlocks, int numTh
 void cuda_MomentCalc2x3vSer_M2_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 void cuda_MomentCalc2x3vSer_M3i_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 
-void cuda_MomentCalc2x3vSer_M0_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vSer_M1i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vSer_M2ij_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vSer_M2_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vSer_M3i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-
 
 void cuda_MomentCalc3x3vSer_M0_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 void cuda_MomentCalc3x3vSer_M1i_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 void cuda_MomentCalc3x3vSer_M2ij_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 void cuda_MomentCalc3x3vSer_M2_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 void cuda_MomentCalc3x3vSer_M3i_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-
-void cuda_MomentCalc3x3vSer_M0_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vSer_M1i_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vSer_M2ij_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vSer_M2_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vSer_M3i_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-
-void cuda_MomentCalc3x3vSer_M0_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vSer_M1i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vSer_M2ij_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vSer_M2_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vSer_M3i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 
 
 void cuda_MomentCalc1x1vMax_M0_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
@@ -220,30 +202,12 @@ void cuda_MomentCalc2x3vMax_M2ij_P2(GkDeviceProp *prop, int numBlocks, int numTh
 void cuda_MomentCalc2x3vMax_M2_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 void cuda_MomentCalc2x3vMax_M3i_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 
-void cuda_MomentCalc2x3vMax_M0_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vMax_M1i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vMax_M2ij_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vMax_M2_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vMax_M3i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-
 
 void cuda_MomentCalc3x3vMax_M0_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 void cuda_MomentCalc3x3vMax_M1i_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 void cuda_MomentCalc3x3vMax_M2ij_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 void cuda_MomentCalc3x3vMax_M2_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 void cuda_MomentCalc3x3vMax_M3i_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-
-void cuda_MomentCalc3x3vMax_M0_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vMax_M1i_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vMax_M2ij_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vMax_M2_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vMax_M3i_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-
-void cuda_MomentCalc3x3vMax_M0_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vMax_M1i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vMax_M2ij_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vMax_M2_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vMax_M3i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 
 
 void cuda_MomentCalc1x1vTensor_M0_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
@@ -258,12 +222,6 @@ void cuda_MomentCalc1x1vTensor_M2ij_P2(GkDeviceProp *prop, int numBlocks, int nu
 void cuda_MomentCalc1x1vTensor_M2_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 void cuda_MomentCalc1x1vTensor_M3i_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 
-void cuda_MomentCalc1x1vTensor_M0_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x1vTensor_M1i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x1vTensor_M2ij_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x1vTensor_M2_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x1vTensor_M3i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-
 
 void cuda_MomentCalc1x2vTensor_M0_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 void cuda_MomentCalc1x2vTensor_M1i_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
@@ -277,31 +235,6 @@ void cuda_MomentCalc1x2vTensor_M2ij_P2(GkDeviceProp *prop, int numBlocks, int nu
 void cuda_MomentCalc1x2vTensor_M2_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 void cuda_MomentCalc1x2vTensor_M3i_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 
-void cuda_MomentCalc1x2vTensor_M0_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x2vTensor_M1i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x2vTensor_M2ij_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x2vTensor_M2_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x2vTensor_M3i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-
-
-void cuda_MomentCalc1x3vTensor_M0_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x3vTensor_M1i_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x3vTensor_M2ij_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x3vTensor_M2_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x3vTensor_M3i_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-
-void cuda_MomentCalc1x3vTensor_M0_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x3vTensor_M1i_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x3vTensor_M2ij_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x3vTensor_M2_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x3vTensor_M3i_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-
-void cuda_MomentCalc1x3vTensor_M0_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x3vTensor_M1i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x3vTensor_M2ij_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x3vTensor_M2_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc1x3vTensor_M3i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-
 
 void cuda_MomentCalc2x2vTensor_M0_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 void cuda_MomentCalc2x2vTensor_M1i_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
@@ -314,50 +247,6 @@ void cuda_MomentCalc2x2vTensor_M1i_P2(GkDeviceProp *prop, int numBlocks, int num
 void cuda_MomentCalc2x2vTensor_M2ij_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 void cuda_MomentCalc2x2vTensor_M2_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 void cuda_MomentCalc2x2vTensor_M3i_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-
-void cuda_MomentCalc2x2vTensor_M0_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x2vTensor_M1i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x2vTensor_M2ij_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x2vTensor_M2_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x2vTensor_M3i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-
-
-void cuda_MomentCalc2x3vTensor_M0_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vTensor_M1i_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vTensor_M2ij_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vTensor_M2_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vTensor_M3i_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-
-void cuda_MomentCalc2x3vTensor_M0_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vTensor_M1i_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vTensor_M2ij_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vTensor_M2_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vTensor_M3i_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-
-void cuda_MomentCalc2x3vTensor_M0_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vTensor_M1i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vTensor_M2ij_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vTensor_M2_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc2x3vTensor_M3i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-
-
-void cuda_MomentCalc3x3vTensor_M0_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vTensor_M1i_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vTensor_M2ij_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vTensor_M2_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vTensor_M3i_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-
-void cuda_MomentCalc3x3vTensor_M0_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vTensor_M1i_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vTensor_M2ij_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vTensor_M2_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vTensor_M3i_P2(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-
-void cuda_MomentCalc3x3vTensor_M0_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vTensor_M1i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vTensor_M2ij_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vTensor_M2_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
-void cuda_MomentCalc3x3vTensor_M3i_P3(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out); 
 
 
 
