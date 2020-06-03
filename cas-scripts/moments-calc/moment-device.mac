@@ -65,7 +65,7 @@ genLitPrint("void cuda_MomentCalc~ax~av~a_~a_P~a(GkDeviceProp *prop, int numBloc
 >>
   int warpSize = prop->warpSize;
 <<
-genLitPrint(" d_calc~a<~a, ~a, ~a, Gkyl::~a><<<numBlocks, numThreads, ~a*(numThreads/warpSize)*sizeof(double)>>>(fIn, out);",momKind,cdim,vdim,polyOrder,basisNmLong,NC)$
+genLitPrint(" d_calc~a<~a, ~a, ~a, Gkyl::~a><<<numBlocks, numThreads, ~a*(numThreads/warpSize)*sizeof(double)>>>(fIn, out);",momKind,cdim,vdim,polyOrder,basisNmLong,vdim*NC)$
 >>
 }
 

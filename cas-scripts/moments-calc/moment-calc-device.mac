@@ -53,7 +53,7 @@ printf(fh,"// + 6 @ |||| # P ||| +~%")$
 printf(fh,"//------------------------------------------------------------------------------~%")$
 printf(fh,"~%")$
 printf(fh,"#include \"DistFuncMomentCalcDeviceModDecl.h\"~%")$
-printf(fh,"#include \"DistFuncMomentCalcDeviceCommon.cu\"~%")$
+printf(fh,"#include \"DistFuncMomentCalcDeviceCommon.h\"~%")$
 printf(fh,"~%")$
 close(fh)$
 
