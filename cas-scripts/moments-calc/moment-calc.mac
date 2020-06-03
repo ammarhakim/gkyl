@@ -43,7 +43,7 @@ maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
 
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
-    for v : c thru maxVdim[bInd] do (
+    for v : max(c,minVidm[bInd]) thru maxVdim[bInd] do (
 
       maxPolyOrderB : maxPolyOrder[bInd],
       if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,

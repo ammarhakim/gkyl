@@ -80,32 +80,80 @@ momentHeaderOut =
    ..
    momentHeaderTemplate {
       CMIN = 1, CMAX = 2,
-      VMAX = 3,
+      VMIN = 1, VMAX = 2,
+      PMIN = 1, PMAX = 3,
+      basisNm = 'G_TENSOR_C',
+      basisShortNm = 'Tensor',
+   }
+   ..
+   momentHeaderTemplate {
+      CMIN = 1, CMAX = 1,
+      VMIN = 3, VMAX = 3,
+      PMIN = 1, PMAX = 3,
+      basisNm = 'G_TENSOR_C',
+      basisShortNm = 'Tensor',
+   }
+   ..
+   momentHeaderTemplate {
+      CMIN = 1, CMAX = 2,
+      VMIN = 1, VMAX = 2,
       PMIN = 1, PMAX = 3,
       basisNm = 'G_MAX_ORDER_C',
       basisShortNm = 'Max',
    }
    ..
    momentHeaderTemplate {
-      CMIN = 3, CMAX = 3,
-      VMAX = 3,
+      CMIN = 1, CMAX = 1,
+      VMIN = 3, VMAX = 3,
+      PMIN = 1, PMAX = 3,
+      basisNm = 'G_MAX_ORDER_C',
+      basisShortNm = 'Max',
+   }
+   ..
+   momentHeaderTemplate {
+      CMIN = 2, CMAX = 2,
+      VMIN = 3, VMAX = 3,
       PMIN = 1, PMAX = 2,
+      basisNm = 'G_MAX_ORDER_C',
+      basisShortNm = 'Max',
+   }
+   ..
+   momentHeaderTemplate {
+      CMIN = 3, CMAX = 3,
+      VMIN = 3, VMAX = 3,
+      PMIN = 1, PMAX = 1,
       basisNm = 'G_MAX_ORDER_C',
       basisShortNm = 'Max',
    }
    ..
    momentHeaderTemplate {
       CMIN = 1, CMAX = 2,
-      VMAX = 3,
+      VMIN = 1, VMAX = 2,
       PMIN = 1, PMAX = 3,
       basisNm = 'G_SERENDIPITY_C',
       basisShortNm = 'Ser',
    }
    ..
    momentHeaderTemplate {
-      CMIN = 3, CMAX = 3,
-      VMAX = 3,
+      CMIN = 1, CMAX = 1,
+      VMIN = 3, VMAX = 3,
+      PMIN = 1, PMAX = 3,
+      basisNm = 'G_SERENDIPITY_C',
+      basisShortNm = 'Ser',
+   }
+   ..
+   momentHeaderTemplate {
+      CMIN = 2, CMAX = 2,
+      VMIN = 3, VMAX = 3,
       PMIN = 1, PMAX = 2,
+      basisNm = 'G_SERENDIPITY_C',
+      basisShortNm = 'Ser',
+   }
+   ..
+   momentHeaderTemplate {
+      CMIN = 3, CMAX = 3,
+      VMIN = 3, VMAX = 3,
+      PMIN = 1, PMAX = 1,
       basisNm = 'G_SERENDIPITY_C',
       basisShortNm = 'Ser',
    }
