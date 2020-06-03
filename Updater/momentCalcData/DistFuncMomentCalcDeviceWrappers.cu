@@ -114,11 +114,11 @@
   d_calcM3i<1, 1, 3, Gkyl::G_SERENDIPITY_C><<<numBlocks, numThreads, 4*(numThreads/warpSize)*sizeof(double)>>>(fIn, out);
 }
 
-// void cuda_MomentCalc1x2vSer_M0_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out) {
-//  int warpSize = prop->warpSize;
-//
-//  d_calcM0<1, 2, 1, Gkyl::G_SERENDIPITY_C><<<numBlocks, numThreads, 2*(numThreads/warpSize)*sizeof(double)>>>(fIn, out);
-//}
+void cuda_MomentCalc1x2vSer_M0_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out) {
+ int warpSize = prop->warpSize;
+
+ d_calcM0<1, 2, 1, Gkyl::G_SERENDIPITY_C><<<numBlocks, numThreads, 2*(numThreads/warpSize)*sizeof(double)>>>(fIn, out);
+}
 // void cuda_MomentCalc1x2vSer_M1i_P1(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out) {
 //  int warpSize = prop->warpSize;
 //

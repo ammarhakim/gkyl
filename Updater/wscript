@@ -378,6 +378,7 @@ def build(bld):
         cusources = r"""
         HyperDisContDevice.cu
         momentCalcData/DistFuncMomentCalcSer1x1v.cpp
+        momentCalcData/DistFuncMomentCalcSer1x2v.cpp
         momentCalcData/DistFuncMomentCalcDeviceWrappers.cu
         """
         
