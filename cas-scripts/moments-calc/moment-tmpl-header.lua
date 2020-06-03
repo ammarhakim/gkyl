@@ -42,7 +42,9 @@ momentHeaderTemplateBottomString = [[
 
 momentHeaderTemplateString = [[
 |for ci = CMIN, CMAX do
-| for vi = ci, VMAX do
+| minV = ci
+| if VMIN>minV then minV=VMIN end
+| for vi = minV, VMAX do
 |  for pi = PMIN, PMAX do
 template <>
 class MomentModDecl<${ci},${vi},${pi},Gkyl::${basisNm}> {
