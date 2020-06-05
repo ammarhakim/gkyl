@@ -51,8 +51,8 @@ calcRecov1CellGen(basisNm, recDir, dirs, polyOrder, C, lo, ce, up) := block(
   /* Forming and solving the equation system */
   rExp : doExpand(r, makelist(recDir^i, i, 0, DoF-1)),
   /* New solution is weakly equal to the original representation */
-  recEqList : calcInnerProdListGen([recDir], [[-1, 2]], 1,
-    baCe1D, rExp-doExpand(qCe1D, baCe1D)),
+  recEqList : calcInnerProdList([recDir], 1, baCe1D,
+    rExp-doExpand(qCe1D, baCe1D)),
   if is(op(lo)=dg) then (
     if length(args(lo)) > 1 then (
       rLo : calcRecov2CellGen(basisNm, recDir, [recDir], polyOrder,
