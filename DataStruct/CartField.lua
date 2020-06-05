@@ -207,8 +207,8 @@ local function Field_meta_ctor(elct)
 	 self._lowerGhost, self._upperGhost)
 
       -- Local and (MPI) global values of a reduction (reduce method).
-      self.localVal  = ffi.new("double[2]")
-      self.globalVal = ffi.new("double[2]")
+      self.localVal  = ffi.new("double[1]")
+      self.globalVal = ffi.new("double[1]")
 
       -- create device memory if needed
       local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, false) -- by default, no device mem allocated
@@ -659,7 +659,7 @@ local function Field_meta_ctor(elct)
          local tId              = grid:subGridSharedId()   -- Local thread ID.
          local localRangeDecomp = LinearDecomp.LinearDecompRange {
                   range = self._localRange, numSplit = grid:numSharedProcs() }
-	 local indexer          = self:genIndexer()
+         local indexer          = self:genIndexer()
          local itr              = self:get(1)
 
          self.localVal[0] = reduceInitialVal[opIn]
