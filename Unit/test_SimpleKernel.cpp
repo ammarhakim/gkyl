@@ -102,6 +102,7 @@ __global__ void ker_unit_showFieldGrid(GkylCartField_t *f)
     printf(" %g, %g\n", grid->lower[i], grid->upper[i]);
 }
 
+// example of templated kernel function
 template <int NDIM, int POLYORDER, int BASISTYPE>
 __global__ void ker_test_BasisTypes()
 {
@@ -109,6 +110,18 @@ __global__ void ker_test_BasisTypes()
   printf("NDIM = %d, polyOrder = %d : numBasis = %d\n", NDIM, POLYORDER, numBasis);
 }
 
+typedef double (*sumFunc_t)(void *self, double a, double b);
+
+struct SimpleEquation {
+    void *child; // pointer to child object
+    sumFunc_t sumFunc; // provided by "children"
+
+    double sum(double a, double b) {
+      return sumFunc(child, a, b);
+    }
+};
+
+// Functions callable from LuaJIT
 void unit_sumArray(int numBlocks, int numThreads, int n, double a, double *x, double *y)
 {
    ker_unit_sumArray<<<numBlocks, numThreads>>>(n, a, x, y);
