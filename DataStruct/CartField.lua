@@ -18,6 +18,7 @@ local Alloc = require "Lib.Alloc"
 local AllocShared = require "Lib.AllocShared"
 local CartDecompNeigh = require "Lib.CartDecompNeigh"
 local Grid = require "Grid.RectCart"
+local Lin = require "Lib.Linalg"
 local LinearDecomp = require "Lib.LinearDecomp"
 local Mpi = require "Comm.Mpi"
 local Range = require "Lib.Range"
@@ -207,8 +208,9 @@ local function Field_meta_ctor(elct)
 	 self._lowerGhost, self._upperGhost)
 
       -- Local and (MPI) global values of a reduction (reduce method).
-      self.localVal  = ffi.new("double[1]")
-      self.globalVal = ffi.new("double[1]")
+      local ElemVec = Lin.new_vec_ct(elct)
+      self.localReductionVal  = ElemVec(1)
+      self.globalReductionVal = ElemVec(1)
 
       -- create device memory if needed
       local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, false) -- by default, no device mem allocated
@@ -653,26 +655,32 @@ local function Field_meta_ctor(elct)
       compatible = function(self, fld)
          return field_compatible(self, fld)
       end,
-      reduce = function(self, opIn)
-         -- Input 'opIn' must be one of the binary operations in binOpFuncs.
-         local grid = self._grid
-         local tId = grid:subGridSharedId() -- Local thread ID.
-         local localRangeDecomp = LinearDecomp.LinearDecompRange {
-	    range = self._localRange, numSplit = grid:numSharedProcs() }
-         local indexer = self:genIndexer()
-         local itr = self:get(1)
+      reduce = isNumberType and
+	 function(self, opIn)
+	    -- Input 'opIn' must be one of the binary operations in binOpFuncs.
+	    local grid = self._grid
+	    local tId = grid:subGridSharedId() -- Local thread ID.
+	    local localRangeDecomp = LinearDecomp.LinearDecompRange {
+	       range = self._localRange, numSplit = grid:numSharedProcs() }
+	    local indexer = self:genIndexer()
+	    local itr = self:get(1)
+	    
+	    local localVal = reduceInitialVal[opIn]
+	    for idx in localRangeDecomp:rowMajorIter(tId) do
+	       self:fill(indexer(idx), itr)
+	       for k = 0, self._numComponents-1 do
+		  localVal = binOpFuncs[opIn](localVal, itr:data()[k])
+	       end
+	    end
 
-         self.localVal[0] = reduceInitialVal[opIn]
-         for idx in localRangeDecomp:rowMajorIter(tId) do
-            self:fill(indexer(idx), itr)
-            for k = 0, self._numComponents-1 do
-               self.localVal[0] = binOpFuncs[opIn](self.localVal[0], itr:data()[k])
-            end
-         end
-	 
-         Mpi.Allreduce(self.localVal, self.globalVal, 1, elctCommType, reduceOpsMPI[opIn], grid:commSet().comm)
-         return self.globalVal[0]
-      end,
+	    self.localReductionVal[1] = localVal
+	    Mpi.Allreduce(self.localReductionVal:data(), self.globalReductionVal:data(),
+			  1, elctCommType, reduceOpsMPI[opIn], grid:commSet().comm)
+	    return self.globalReductionVal[1]
+	 end or
+	 function (self, opIn)
+	    assert(false, "CartField:reduce: Reduce only works on numeric fields")
+	 end,
       _copy_from_field_region = function (self, rgn, data)
 	 local indexer = self:genIndexer()
 	 local c = 0
