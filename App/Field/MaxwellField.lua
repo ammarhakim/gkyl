@@ -198,7 +198,6 @@ function MaxwellField:alloc(nRkDup)
    self.cflRateByCell:clear(0.0)
    self.cflRatePtr  = self.cflRateByCell:get(1)
    self.cflRateIdxr = self.cflRateByCell:genIndexer()
-   self.dt          = ffi.new("double[2]")
    self.dtGlobal    = ffi.new("double[2]")
 end
 
@@ -451,25 +450,7 @@ function MaxwellField:combineRk(outIdx, a, aIdx, ...)
 end
 
 function MaxwellField:suggestDt()
-   -- Loop over local region. 
-   local grid = self.grid
-   self.dt[0] = GKYL_MAX_DOUBLE
-
-   local tId              = grid:subGridSharedId() -- Local thread ID.
-   local localRange       = self.cflRateByCell:localRange()
-   local localRangeDecomp = LinearDecomp.LinearDecompRange {
-	 range = localRange, numSplit = grid:numSharedProcs() }
-
-   for idx in localRangeDecomp:rowMajorIter() do
-      -- Calculate local min dt from local cflRates.
-      self.cflRateByCell:fill(self.cflRateIdxr(idx), self.cflRatePtr)
-      self.dt[0] = math.min(self.dt[0], self.cfl/self.cflRatePtr:data()[0])
-   end
-
-   -- All reduce to get global min dt.
-   Mpi.Allreduce(self.dt, self.dtGlobal, 1, Mpi.DOUBLE, Mpi.MIN, grid:commSet().comm)
-
-   return math.min(self.dtGlobal[0], GKYL_MAX_DOUBLE)
+   return math.min(self.cfl/self.cflRateByCell:reduce('max'), GKYL_MAX_DOUBLE)
 end
 
 function MaxwellField:clearCFL()

@@ -563,7 +563,6 @@ function KineticSpecies:alloc(nRkDup)
    self.cflRateByCell:clear(0.0)
    self.cflRatePtr  = self.cflRateByCell:get(1)
    self.cflRateIdxr = self.cflRateByCell:genIndexer()
-   self.dt          = ffi.new("double[2]")
    self.dtGlobal    = ffi.new("double[2]")
 
    self:createBCs()
@@ -725,25 +724,7 @@ end
 function KineticSpecies:suggestDt()
    if not self.evolve then return GKYL_MAX_DOUBLE end
 
-   -- Loop over local region. 
-   local grid = self.grid
-   self.dt[0] = GKYL_MAX_DOUBLE
-
-   local tId = grid:subGridSharedId() -- Local thread ID.
-   local localRange = self.cflRateByCell:localRange()
-   local localRangeDecomp = LinearDecomp.LinearDecompRange {
-	 range = localRange, numSplit = grid:numSharedProcs() }
-
-   for idx in localRangeDecomp:rowMajorIter(tId) do
-      -- Calculate local min dt from local cflRates on each proc.
-      self.cflRateByCell:fill(self.cflRateIdxr(idx), self.cflRatePtr)
-      self.dt[0] = math.min(self.dt[0], self.cfl/self.cflRatePtr:data()[0])
-   end
-
-   -- All reduce to get global min dt.
-   Mpi.Allreduce(self.dt, self.dtGlobal, 1, Mpi.DOUBLE, Mpi.MIN, grid:commSet().comm)
-
-   local dtSuggested = math.min(self.dtGlobal[0], GKYL_MAX_DOUBLE)
+   local dtSuggested = math.min(self.cfl/self.cflRateByCell:reduce('max'), GKYL_MAX_DOUBLE)
 
    -- If dtSuggested == GKYL_MAX_DOUBLE, it is likely because of NaNs. 
    -- If so, return 0 so that no timestep is taken, and we will abort the simulation.
