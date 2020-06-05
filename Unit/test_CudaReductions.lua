@@ -93,7 +93,7 @@ local pOrder        = 1
 local basis         = "Ser"
 local phaseLower    = {0.0, -6.0}
 local phaseUpper    = {1.0,  6.0}
-local phaseNumCells = {3, 31}
+local phaseNumCells = {37, 3115}
 local confLower     = {   phaseLower[1]}
 local confUpper     = {   phaseUpper[1]}
 local confNumCells  = {phaseNumCells[1]}
@@ -124,11 +124,7 @@ for idx in fldRange:rowMajorIter() do
 end
 p0Field:copyHostToDevice()
 -- Get the maximum on the CPU (for reference).
-maxVal = -9.0e19
-for idx in fldRange:rowMajorIter() do
-   local fldItr = p0Field:get(fldIdxr( idx ))
-   maxVal       = math.max(maxVal,fldItr[1])
-end
+maxVal = p0Field:reduce("max")
 print(string.format(" CPU max = %f",maxVal))
 print("")
 

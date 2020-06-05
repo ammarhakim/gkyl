@@ -113,6 +113,15 @@ local function new_field_comp_ct(elct)
    return metatype(typeof("struct { int numComponents; $* _cdata; }", elct), field_comp_mt)
 end
 
+-- Binary operation functions and reduce MPI types (used in reduce method).
+local binOpFuncs = {
+   max = function(a,b) return math.max(a,b) end,
+   min = function(a,b) return math.min(a,b) end,
+   sum = function(a,b) return a+b end
+}
+local reduceOpsMPI     = {max=Mpi.MAX, min=Mpi.MIN, sum=Mpi.SUM}
+local reduceInitialVal = {max=GKYL_MIN_DOUBLE, min=GKYL_MAX_DOUBLE, sum=0.0}
+
 -- A function to create constructors for Field objects
 local function Field_meta_ctor(elct)
    local fcompct = new_field_comp_ct(elct) -- Ctor for component data
@@ -182,7 +191,7 @@ local function Field_meta_ctor(elct)
       -- assumption is that users will initialize themselves)
       if isNumberType then self._allocData:fill(0) end
       
-      -- setup object
+      -- Setup object.
       self._grid = grid
       self._ndim = grid:ndim()
       self._lowerGhost, self._upperGhost = ghost[1], ghost[2]
@@ -196,6 +205,10 @@ local function Field_meta_ctor(elct)
       self._localRange = localRange
       self._localExtRange = self._localRange:extend(
 	 self._lowerGhost, self._upperGhost)
+
+      -- Local and (MPI) global values of a reduction (reduce method).
+      self.localVal  = ffi.new("double[2]")
+      self.globalVal = ffi.new("double[2]")
 
       -- create device memory if needed
       local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, false) -- by default, no device mem allocated
@@ -350,7 +363,7 @@ local function Field_meta_ctor(elct)
    end
    setmetatable(Field, { __call = function (self, o) return self.new(self, o) end })
 
-   -- set callable methods
+   -- Set callable methods.
    Field.__index = {
       elemType = function (self)
 	 return elct
@@ -639,6 +652,28 @@ local function Field_meta_ctor(elct)
       end,
       compatible = function(self, fld)
          return field_compatible(self, fld)
+      end,
+      reduce = function(self, opIn)
+         -- Input 'opIn' must be one of the binary operations in binOpFuncs.
+         local grid             = self._grid
+         local tId              = grid:subGridSharedId()   -- Local thread ID.
+         local localRangeDecomp = LinearDecomp.LinearDecompRange {
+                  range = self._localRange, numSplit = grid:numSharedProcs() }
+	 local indexer          = self:genIndexer()
+         local itr              = self:get(1)
+
+         self.localVal[0] = reduceInitialVal[opIn]
+      
+         for idx in localRangeDecomp:rowMajorIter(tId) do
+            self:fill(indexer(idx), itr)
+            for k = 0, self._numComponents-1 do
+               self.localVal[0] = binOpFuncs[opIn](self.localVal[0], itr:data()[k])
+            end
+         end
+      
+         Mpi.Allreduce(self.localVal, self.globalVal, 1, Mpi.DOUBLE, reduceOpsMPI[opIn], grid:commSet().comm)
+
+         return self.globalVal[0]
       end,
       _copy_from_field_region = function (self, rgn, data)
 	 local indexer = self:genIndexer()

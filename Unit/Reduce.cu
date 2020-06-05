@@ -13,8 +13,6 @@
 #include <GkylCartField.h>
 #include <GkylRange.h>
 
-#include <stdio.h>
-
 namespace cg = cooperative_groups;
 
 extern "C"
