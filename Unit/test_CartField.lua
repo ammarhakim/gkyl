@@ -552,6 +552,32 @@ function test_14()
       assert_equal(25.0*idx[1], fitr[2], "Checking scaled field value")
       assert_equal(25.0*idx[1], fitr[3], "Checking scaled field value")
    end   
+
+   -- Initialize field to random numbers.
+   math.randomseed(1000*os.time())
+   local fldRange = scalar:localRange()
+   local fldIdxr  = scalar:genIndexer()
+   for idx in fldRange:rowMajorIter() do
+      local fldItr = scalar:get(fldIdxr( idx ))
+      for k = 1, scalar:numComponents() do
+         fldItr[k] = math.random()
+      end
+   end
+   -- Get the maximum by stepping through the scalar.
+   maxVal = GKYL_MIN_DOUBLE
+   minVal = GKYL_MAX_DOUBLE
+   sumVal = 0.0
+   for idx in fldRange:rowMajorIter() do
+      local fldItr = scalar:get(fldIdxr( idx ))
+      for k = 1, scalar:numComponents() do
+         maxVal = math.max(maxVal,fldItr[k])
+         minVal = math.min(minVal,fldItr[k])
+         sumVal = sumVal + fldItr[k]
+      end
+   end
+   assert_equal(maxVal, scalar:reduce("max"), "Checking reduce('max')")
+   assert_equal(minVal, scalar:reduce("min"), "Checking reduce('min')")
+   assert_equal(sumVal, scalar:reduce("sum"), "Checking reduce('sum')")
 end
 
 test_1()

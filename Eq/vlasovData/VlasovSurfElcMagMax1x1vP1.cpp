@@ -9,33 +9,28 @@ __host__ __device__ double VlasovSurfElcMag1x1vMax_VX_P1(const double *wl, const
   const double *E0 = &EM[0]; 
   const double dv1 = dxvr[1], wv1 = wr[1]; 
 
-  double Ghat[3]; 
-  double alpha[3]; 
+  double Ghat[2]; 
+  double favg[2]; 
+  double alpha[2]; 
 
-  double favg[3]; 
-  favg[0] = 1*fr[0]+fl[0]; 
-  favg[1] = 1*fr[1]+fl[1]; 
-  favg[2] = -1*fr[2]+fl[2]; 
+  favg[0] = (-1.224744871391589*fr[2])+1.224744871391589*fl[2]+0.7071067811865475*fr[0]+0.7071067811865475*fl[0]; 
+  favg[1] = 0.7071067811865475*fr[1]+0.7071067811865475*fl[1]; 
 
-  double fjump[3]; 
-  fjump[0] = amax*(1*fr[0]-fl[0]); 
-  fjump[1] = amax*(1*fr[1]-fl[1]); 
-  fjump[2] = amax*(-1*fr[2]-fl[2]); 
+  alpha[0] = E0[0]; 
+  alpha[1] = E0[1]; 
 
-  alpha[0] = 1.414213562373095*E0[0]; 
-  alpha[1] = 1.414213562373095*E0[1]; 
-  const double amid = 0.5*alpha[0]; 
+  const double amid = 0.7071067811865475*alpha[0]; 
 
-  Ghat[0] = (-0.8660254037844386*fjump[2])+alpha[0]*(0.4330127018922193*favg[2]+0.25*favg[0])+0.25*alpha[1]*favg[1]-0.5*fjump[0]; 
-  Ghat[1] = alpha[1]*(0.4330127018922193*favg[2]+0.25*favg[0])-0.5*fjump[1]+0.25*alpha[0]*favg[1]; 
+  Ghat[0] = 0.3535533905932737*((1.732050807568877*(fr[2]+fl[2])-1.0*fr[0]+fl[0])*amax+alpha[1]*favg[1]+alpha[0]*favg[0]); 
+  Ghat[1] = 0.3535533905932737*(alpha[0]*favg[1]+favg[0]*alpha[1])-0.3535533905932737*(fr[1]-1.0*fl[1])*amax; 
 
-  outr[0] += 0.5*Ghat[0]*dv10r; 
-  outr[1] += 0.5*Ghat[1]*dv10r; 
-  outr[2] += -0.8660254037844386*Ghat[0]*dv10r; 
+  outr[0] += 0.7071067811865475*Ghat[0]*dv10r; 
+  outr[1] += 0.7071067811865475*Ghat[1]*dv10r; 
+  outr[2] += -1.224744871391589*Ghat[0]*dv10r; 
 
-  outl[0] += -0.5*Ghat[0]*dv10l; 
-  outl[1] += -0.5*Ghat[1]*dv10l; 
-  outl[2] += -0.8660254037844386*Ghat[0]*dv10l; 
+  outl[0] += -0.7071067811865475*Ghat[0]*dv10l; 
+  outl[1] += -0.7071067811865475*Ghat[1]*dv10l; 
+  outl[2] += -1.224744871391589*Ghat[0]*dv10l; 
 
   return std::abs(amid); 
 } 

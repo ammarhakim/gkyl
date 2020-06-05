@@ -100,24 +100,7 @@ function IncompEulerSpecies:getNumDensity(rkIdx)
 end
 
 function IncompEulerSpecies:suggestDt()
-   -- Loop over local region.
-   local grid             = self.grid
-   self.dt[0]             = GKYL_MAX_DOUBLE
-   local tId              = grid:subGridSharedId() -- Local thread ID.
-   local localRange       = self.cflRateByCell:localRange()
-   local localRangeDecomp = LinearDecomp.LinearDecompRange {
-	 range = localRange, numSplit = grid:numSharedProcs() }
-
-   for idx in localRangeDecomp:rowMajorIter(tId) do
-      -- Calculate local min dt from local cflRates.
-      self.cflRateByCell:fill(self.cflRateIdxr(idx), self.cflRatePtr)
-      self.dt[0] = math.min(self.dt[0], self.cfl/self.cflRatePtr:data()[0])
-   end
-
-   -- All reduce to get global min dt.
-   Mpi.Allreduce(self.dt, self.dtGlobal, 1, Mpi.DOUBLE, Mpi.MIN, grid:commSet().comm)
-
-   return math.min(self.dtGlobal[0], GKYL_MAX_DOUBLE)
+   return math.min(self.cfl/self.cflRateByCell:reduce('max'), GKYL_MAX_DOUBLE)
 end
 
 function IncompEulerSpecies:clearCFL()

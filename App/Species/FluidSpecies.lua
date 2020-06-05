@@ -415,7 +415,6 @@ function FluidSpecies:alloc(nRkDup)
    self.cflRateByCell:clear(0.0)
    self.cflRatePtr  = self.cflRateByCell:get(1)
    self.cflRateIdxr = self.cflRateByCell:genIndexer()
-   self.dt          = ffi.new("double[2]")
    self.dtGlobal    = ffi.new("double[2]")
 
    self:createBCs()
