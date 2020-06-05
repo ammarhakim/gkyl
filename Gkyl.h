@@ -257,11 +257,21 @@ std::string Gkyl::createTopLevelDefs() const {
 #endif
 
 #ifdef HAVE_CUDA_H
-  varDefs << "GKYL_HAVE_CUDA = true" << std::endl;
-  varDefs << "GKYL_DEFAULT_NUM_THREADS = 256" << std::endl;  
-  int cuDriverVersion;
-  cudaDriverGetVersion(&cuDriverVersion);
-  varDefs << "GKYL_CUDA_DRIVER_VERSION = " << cuDriverVersion << std::endl;
+  // it is possible we built with CUDA but are not on a node with a
+  // GPU attached to it
+  int deviceNum;
+  auto err = cudaGetDevice(&deviceNum);
+  if (cudaSuccess == err) {
+    varDefs << "GKYL_HAVE_CUDA = true" << std::endl;
+    varDefs << "GKYL_DEFAULT_NUM_THREADS = 256" << std::endl;  
+    int cuDriverVersion;
+    cudaDriverGetVersion(&cuDriverVersion);
+    varDefs << "GKYL_CUDA_DRIVER_VERSION = " << cuDriverVersion << std::endl;
+  }
+  else {
+    // not on a GPU node and so disable CUDA
+    varDefs << "GKYL_HAVE_CUDA = false" << std::endl;
+  }
 #else
   varDefs << "GKYL_HAVE_CUDA = false" << std::endl;
 #endif

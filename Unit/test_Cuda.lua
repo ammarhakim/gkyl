@@ -38,7 +38,7 @@ ffi.cdef [[
 -- basis tests
 function test_1()
    assert_equal(GKYL_CUDA_DRIVER_VERSION, cuda.DriverGetVersion(), "Checking CUDA driver version")
-   local devNum, _ = cuda.GetDevice()
+   local devNum, err = cuda.GetDevice()
    assert_equal(0, devNum, "Checking device number")
 
    local err = cuda.SetDevice(devNum)

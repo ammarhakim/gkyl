@@ -5,6 +5,12 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+-- Don't do anything if we were not built with CUDA.
+if GKYL_HAVE_CUDA == false then
+   print("**** Can't run CUDA tests without CUDA enabled GPUs!")
+   return 0
+end
+
 local Basis = require "Basis"
 local DataStruct = require "DataStruct"
 local Grid = require "Grid"
