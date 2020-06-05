@@ -160,6 +160,9 @@ local function Field_meta_ctor(elct)
       return alloc(numElem)
    end
 
+   -- ctor for creating vector of element types
+   local ElemVec = Lin.new_vec_ct(elct)
+
    -- make constructor for Field
    local Field = {}
    function Field:new(tbl)
@@ -208,7 +211,6 @@ local function Field_meta_ctor(elct)
 	 self._lowerGhost, self._upperGhost)
 
       -- Local and (MPI) global values of a reduction (reduce method).
-      local ElemVec = Lin.new_vec_ct(elct)
       self.localReductionVal  = ElemVec(1)
       self.globalReductionVal = ElemVec(1)
 
