@@ -119,7 +119,7 @@ local binOpFuncs = {
    min = function(a,b) return math.min(a,b) end,
    sum = function(a,b) return a+b end
 }
-local reduceOpsMPI     = {max=Mpi.MAX, min=Mpi.MIN, sum=Mpi.SUM}
+local reduceOpsMPI = {max=Mpi.MAX, min=Mpi.MIN, sum=Mpi.SUM}
 local reduceInitialVal = {max=GKYL_MIN_DOUBLE, min=GKYL_MAX_DOUBLE, sum=0.0}
 
 -- A function to create constructors for Field objects
@@ -655,24 +655,22 @@ local function Field_meta_ctor(elct)
       end,
       reduce = function(self, opIn)
          -- Input 'opIn' must be one of the binary operations in binOpFuncs.
-         local grid             = self._grid
-         local tId              = grid:subGridSharedId()   -- Local thread ID.
+         local grid = self._grid
+         local tId = grid:subGridSharedId() -- Local thread ID.
          local localRangeDecomp = LinearDecomp.LinearDecompRange {
-                  range = self._localRange, numSplit = grid:numSharedProcs() }
-         local indexer          = self:genIndexer()
-         local itr              = self:get(1)
+	    range = self._localRange, numSplit = grid:numSharedProcs() }
+         local indexer = self:genIndexer()
+         local itr = self:get(1)
 
          self.localVal[0] = reduceInitialVal[opIn]
-      
          for idx in localRangeDecomp:rowMajorIter(tId) do
             self:fill(indexer(idx), itr)
             for k = 0, self._numComponents-1 do
                self.localVal[0] = binOpFuncs[opIn](self.localVal[0], itr:data()[k])
             end
          end
-      
-         Mpi.Allreduce(self.localVal, self.globalVal, 1, Mpi.DOUBLE, reduceOpsMPI[opIn], grid:commSet().comm)
-
+	 
+         Mpi.Allreduce(self.localVal, self.globalVal, 1, elctCommType, reduceOpsMPI[opIn], grid:commSet().comm)
          return self.globalVal[0]
       end,
       _copy_from_field_region = function (self, rgn, data)
