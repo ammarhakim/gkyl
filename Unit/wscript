@@ -8,7 +8,7 @@ import os
 def build(bld):
     # CUDA specific code
     if bld.env['CUTOOLS_FOUND']:
-        bld(source = 'test_SimpleKernel.cpp', 
+        bld(source = 'test_SimpleKernel.cpp Reduce.cu', 
             name = 'unit_cu', target='unit_cu',
             includes='../Grid ../Lib ../DataStruct ../Cuda', features='cxx nvcc cushlib'
         )

@@ -13,10 +13,14 @@
 #include <GkylCartField.h>
 #include <GkylRange.h>
 
+#include <stdio.h>
+
+namespace cg = cooperative_groups;
+
 extern "C"
 {
   void getNumBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlocks,
-                              int maxThreads, int *blocks, int *threads);
+                              int maxThreads, int &blocks, int &threads);
   void cartFieldMax(int numCellsTot, int numBlocks, int numThreads, int maxBlocks, int maxThreads, GkDeviceProp *prop,
                     GkylCartField_t *fIn, double *blockOut, double *intermediate, double *out);
 }
@@ -46,10 +50,10 @@ unsigned int nextPow2(unsigned int x) {
 // We observe the maximum specified number of blocks, because
 // each thread in the kernel can process a variable number of elements.
 void getNumBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlocks,
-                            int maxThreads, int *blocks, int *threads) {
+                            int maxThreads, int &blocks, int &threads) {
 
-  threads[0] = (numElements < maxThreads * 2) ? nextPow2((numElements + 1) / 2) : maxThreads;
-  blocks[0]  = (numElements + (threads * 2 - 1)) / (threads * 2);
+  threads = (numElements < maxThreads * 2) ? nextPow2((numElements + 1) / 2) : maxThreads;
+  blocks  = (numElements + (threads * 2 - 1)) / (threads * 2);
 
   if ((float)threads * blocks >
       (float)(prop->maxGridSize)[0] * prop->maxThreadsPerBlock) {
@@ -75,7 +79,7 @@ void getNumBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlocks,
 // If blockSize > 32, allocate blockSize*sizeof(T) bytes.
 template <unsigned int BLOCKSIZE, bool nIsPow2>
 __global__ void d_reduceCartField(GkylCartField_t *fIn, double *redPerBlock) {
-  // Handle to thread block group
+  // Handle to thread block group.
   cg::thread_block cgThreadBlock = cg::this_thread_block();
   extern __shared__ double sdata[];  // Stores partial reductions.
 
@@ -90,7 +94,7 @@ __global__ void d_reduceCartField(GkylCartField_t *fIn, double *redPerBlock) {
   Gkyl::GenIndexer localIdxr(localRange);
   Gkyl::GenIndexer fIdxr = fIn->genIndexer();
 
-  int idx[2];  // Need to template over CDIM+VDIM
+  int idx[2];  // need to template over CDIM+VDIM
   localIdxr.invIndex(linearIdx, idx);
   int linIdx = fIdxr.index(idx);
 
@@ -145,13 +149,16 @@ __global__ void d_reduceCartField(GkylCartField_t *fIn, double *redPerBlock) {
     // Fetch final intermediate max from 2nd warp.
     if (BLOCKSIZE >= 64) myMax = MAX(myMax, sdata[tID + 32]);
     // Reduce final warp using shuffle.
-    for (int offset = tile32.size() / 2; offset > 0; offset /= 2) {
-      myMax = MAX(myMax, tile32.shfl_down(myMax, offset));
+    for (int offset = tile32.size()/2; offset > 0; offset /= 2) {
+      double shflMax = tile32.shfl_down(myMax, offset);
+      myMax = MAX(myMax, shflMax);
     }
   }
 
   // Write result for this block to global mem.
-  if (cgThreadBlock.thread_rank() == 0) redPerBlock[blockIdx.x] = myMax;
+  if (cgThreadBlock.thread_rank() == 0) {
+    redPerBlock[blockIdx.x] = myMax;
+  }
 }
 
 // This algorithm reduces multiple elements per thread sequentially. This reduces
@@ -185,7 +192,7 @@ __global__ void d_reduceMax(double *dataIn, double *out, unsigned int nElements)
     linearIdx += gridSize;
   }
 
-  // Each thread puts its local sum into shared memory.
+  // Each thread puts its local reduction into shared memory.
   sdata[tID] = myMax;
   cg::sync(cgThreadBlock);
 
@@ -211,11 +218,12 @@ __global__ void d_reduceMax(double *dataIn, double *out, unsigned int nElements)
   cg::thread_block_tile<32> tile32 = cg::tiled_partition<32>(cgThreadBlock);
 
   if (cgThreadBlock.thread_rank() < 32) {
-    // Fetch final intermediate sum from 2nd warp.
+    // Fetch final intermediate reduction from 2nd warp.
     if (BLOCKSIZE >= 64) myMax = MAX(myMax, sdata[tID + 32]);
     // Reduce final warp using shuffle.
     for (int offset = tile32.size() / 2; offset > 0; offset /= 2) {
-      myMax = MAX(myMax, tile32.shfl_down(myMax, offset));
+      double shflMax = tile32.shfl_down(myMax, offset);
+      myMax = MAX(myMax, shflMax);
     }
   }
 
@@ -396,7 +404,7 @@ void cartFieldMax(int numCellsTot, int numBlocks, int numThreads, int maxBlocks,
   while (newNum > 1) {
     int threads = 0, blocks = 0;
 
-    getNumBlocksAndThreads(prop, newNum, maxBlocks, maxThreads, &blocks, &threads);
+    getNumBlocksAndThreads(prop, newNum, maxBlocks, maxThreads, blocks, threads);
 
     checkCudaErrors(cudaMemcpy(intermediate, blockOut, newNum * sizeof(double), cudaMemcpyDeviceToDevice));
 

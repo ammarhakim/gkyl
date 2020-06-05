@@ -26,7 +26,10 @@ local assert_equal = Unit.assert_equal
 local stats        = Unit.stats
 
 ffi.cdef [[
-  double reduceMax(int numBlocks, int numThreads, int maxBlocks, int maxThreads, GkDeviceProp *prop, GkylCartField_t *fIn, double *blockOut, double *intermediate, double *out);
+  void getNumBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlocks,
+                              int maxThreads, int &blocks, int &threads);
+  void cartFieldMax(int numCellsTot, int numBlocks, int numThreads, int maxBlocks, int maxThreads, GkDeviceProp *prop,
+                    GkylCartField_t *fIn, double *blockOut, double *intermediate, double *out);
 ]]
 
 local function createGrid(lo,up,nCells)
@@ -78,38 +81,11 @@ local function createField(grid, basis, deviceCopy, ghosts, isP0, vComp)
 end
 
 local function nextPowerOf2(nIn)
-   return math.floor(2^(math.ceil(math.log(5,2))))
+   return math.floor(2^(math.ceil(math.log(nIn,2))))
 end
 
 local function prevPowerOf2(nIn)
-   return math.floor(2^(math.floor(math.log(5,2))))
-end
-
-local function getNumBlocksAndThreadsReduceP0(numElements, maxBlocks, maxThreads, devProp)
-   -- Given a 1-component field (p=0) with numElements cells, establish how
-   -- many thread blocks and threads/block to use in performing a reduction
-   -- on a GPU with device properties devProp.
-   -- This function follows 'reduce6' (using Cooperative Groups) in cuda-samples:
-   --   https://github.com/NVIDIA/cuda-samples/tree/master/Samples/reduction
-
-   local numBlocks, numThreads
-   if numElements < maxThreads*2 then
-      numThreads = nextPowerOf2(math.floor((numElements+1)/2))
-   else
-      numThreads = maxThreads
-   end
-   
-   numBlocks = math.floor((numElements + (numThreads*2-1))/(numThreads*2))
-
-   if (numBlocks > devProp.maxGridSize[1]) then
-      print(string.format("Grid size <%d> exceeds the device capability <%d>, set block size as %d (original %d)",numBlocks, devProp.maxGridSize[1], numThreads*2, numThreads))
-      numBlocks  = math.floor(numBlocks/2)
-      numThreads = numThreads*2
-   end
-
-   numBlocks = math.min(maxBlocks, numBlocks)
-
-   return numBlocks, numThreads
+   return math.floor(2^(math.floor(math.log(nIn,2))))
 end
 
 
@@ -117,7 +93,7 @@ local pOrder        = 1
 local basis         = "Ser"
 local phaseLower    = {0.0, -6.0}
 local phaseUpper    = {1.0,  6.0}
-local phaseNumCells = {8, 32}
+local phaseNumCells = {3, 31}
 local confLower     = {   phaseLower[1]}
 local confUpper     = {   phaseUpper[1]}
 local confNumCells  = {phaseNumCells[1]}
@@ -146,6 +122,7 @@ for idx in fldRange:rowMajorIter() do
    local fldItr = p0Field:get(fldIdxr( idx ))
    fldItr[1]    = math.random() 
 end
+p0Field:copyHostToDevice()
 -- Get the maximum on the CPU (for reference).
 maxVal = -9.0e19
 for idx in fldRange:rowMajorIter() do
@@ -158,23 +135,27 @@ print("")
 
 print(" Operation on the GPU:")
 -- Establish the number of blocks and threads to use.
-local numBlocks, numThreads = getNumBlocksAndThreadsReduceP0(numCellsTot,numBlocksMAX,numThreadsMAX,devProp) 
+local numBlocksC   = Alloc.Int(1)
+local numThreadsC  = Alloc.Int(1)
+ffi.C.getNumBlocksAndThreads(devProp,numCellsTot,numBlocksMAX,numThreadsMAX,numBlocksC:data(),numThreadsC:data());
+local numBlocks  = numBlocksC[1]
+local numThreads = numThreadsC[1]
 print(string.format("   Use %d blocks of size %d (threads)",numBlocks,numThreads))
 
 -- Allocate device memory needed for intermediate reductions.
 local d_blockRed, d_intermediateRed = cudaAlloc.Double(numBlocks), cudaAlloc.Double(numBlocks)
 local d_maxVal = cudaAlloc.Double(1)
 
---ffi.C.reduceMax(numBlocks, numThreads, numBlocksMAX, numThreadsMAX, devProp,
---                p0Field._onDevice, d_blockRed, d_intermediateRed, d_maxVal)
+ffi.C.cartFieldMax(numCellsTot,numBlocks,numThreads,numBlocksMAX,numThreadsMAX,devProp,
+                   p0Field._onDevice, d_blockRed:data(), d_intermediateRed:data(), d_maxVal:data())
 
 -- Test that the value found is correct.
 local maxVal_gpu = Alloc.Double(1)
 local err        = d_maxVal:copyDeviceToHost(maxVal_gpu)
 
-print(string.format(" GPU max = %f",maxVal_gpu[1]))
+print(string.format("   GPU max = %f",maxVal_gpu[1]))
 print("")
-print(string.format(" Error = %f",maxVal-maxVal_gpu[1]))
+print(string.format(" Error = %e",maxVal-maxVal_gpu[1]))
 
 cudaRunTime.Free(d_blockRed)
 cudaRunTime.Free(d_intermediateRed)
