@@ -1571,6 +1571,19 @@ function GkSpecies:crossPrimitiveMoments(otherSpeciesName)
    return { self.uParCross[otherSpeciesName], self.vtSqCross[otherSpeciesName] }
 end
 
+function GkSpecies:getDistF(rkIdx)
+   print('calling getDistF')
+   if rkIdx == nil then
+      return self:rkStepperFields()[self.activeRKidx]
+   else
+      return self:rkStepperFields()[self.rkIdx]
+   end
+end
+
+function GkSpecies:setActiveRKidx(rkIdx)
+   self.activeRKidx = rkIdx
+end
+
 function GkSpecies:getNumDensity(rkIdx)
    -- If no rkIdx specified, assume numDensity has already been calculated.
    if rkIdx == nil then return self.numDensity end 
