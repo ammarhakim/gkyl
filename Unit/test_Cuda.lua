@@ -33,12 +33,32 @@ ffi.cdef [[
 
   void unit_showGrid(GkylRectCart_t *grid);
   void unit_getCellCenter(GkylRectCart_t *grid, int *idx, double *xc);
+
+  typedef double (*sumFunc_t)(void *self, double a, double b);
+  typedef struct {
+      void *child;
+      sumFunc_t sumFunc;
+  } SimpleEquation_t;
+  typedef struct {
+      double gamma;
+  } SimpleEulerEquation_t;
+
+  double unit_test_SimpleEquation(SimpleEquation_t *eqn, double* ab);
+  sumFunc_t getEulerSumFuncOnDevice();
 ]]
 
--- basis tests
+function test_0()
+  assert_equal(0, cuda.Success, "Checking Success code")
+  assert_equal(1, cuda.ErrorInvalidValue, "Checking ErrorInvalidValue code")
+  assert_equal(2, cuda.ErrorMemoryAllocation, "Checking ErrorMemoryAllocation code")
+  assert_equal(13, cuda.ErrorInvalidSymbol, "Checking ErrorInvalidSymbol code")
+  assert_equal(21, cuda.ErrorInvalidMemcpyDirection, "Checking ErrorInvalidMemcpyDirection code")
+end
+
+-- basic tests
 function test_1()
    assert_equal(GKYL_CUDA_DRIVER_VERSION, cuda.DriverGetVersion(), "Checking CUDA driver version")
-   local devNum, _ = cuda.GetDevice()
+   local devNum, err = cuda.GetDevice()
    assert_equal(0, devNum, "Checking device number")
 
    local err = cuda.SetDevice(devNum)
@@ -279,7 +299,41 @@ function test_8()
    ffi.C.unit_test_BasisTypes_5xp2_ser()
 end
 
+function test_9()
+   -- Create Euler equation object on host
+   local eulerEqn = ffi.new("SimpleEulerEquation_t")
+   eulerEqn.gamma = 1.4
+   -- copy EulerEqn to device
+   local sz = ffi.sizeof("SimpleEulerEquation_t")
+   local d_eulerEqn = cuda.Malloc(sz)
+   local err = cuda.Memcpy(d_eulerEqn, eulerEqn, sz, cuda.MemcpyHostToDevice)
+
+   -- Create Equation object on host
+   local eqn = ffi.new("SimpleEquation_t")
+   eqn.child = d_eulerEqn
+   eqn.sumFunc = ffi.C.getEulerSumFuncOnDevice()
+
+   -- copy equation object to device
+   sz = ffi.sizeof("SimpleEquation_t")
+   local d_eqn = cuda.Malloc(sz)
+   err = cuda.Memcpy(d_eqn, eqn, sz, cuda.MemcpyHostToDevice)
+
+   -- allocate and set a,b values
+   local h_ab = Alloc.Double(2)
+   h_ab[1], h_ab[2] = 1.0, 2.0
+
+   -- allocate and copy to host
+   local d_ab = cuAlloc.Double(2)
+   local err = d_ab:copyHostToDevice(h_ab)
+   
+   local res = ffi.C.unit_test_SimpleEquation(d_eqn, d_ab:data())
+   err = cuda.DeviceSynchronize()
+
+   assert_equal(eulerEqn.gamma*(h_ab[1]+h_ab[2]), res, "Checking function pointer abstraction")
+end
+
 -- Run tests
+test_0()
 test_1()
 test_2()
 test_3()
@@ -288,6 +342,7 @@ test_5()
 test_6()
 test_7()
 test_8()
+test_9()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
