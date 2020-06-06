@@ -288,7 +288,7 @@ local function buildApplication(self, tbl)
    -- Compute the coupling moments.
    for nm, s in pairs(species) do
       s:clearMomentFlags(species)
-      s:calcCouplingMoments(0.0, 1)
+      s:calcCouplingMoments(0.0, 1, species)
    end
    -- Initialize field (sometimes requires species to have been initialized).
    field:createSolver(species, funcField)
