@@ -363,6 +363,13 @@ def build(bld):
     confToPhaseData/ConfToPhaseSer3x2v.cpp
     confToPhaseData/ConfToPhaseSer3x3v.cpp
 
+    ionizationCalcData/VoronovMax1x.cpp
+    ionizationCalcData/VoronovMax2x.cpp
+    ionizationCalcData/VoronovMax3x.cpp
+    ionizationCalcData/VoronovSer1x.cpp
+    ionizationCalcData/VoronovSer2x.cpp
+    ionizationCalcData/VoronovSer3x.cpp
+
     MappedPoissonImpl.cpp
 
     MaxwellianOnBasisImpl.cpp
@@ -405,7 +412,7 @@ def build(bld):
         )
 
     bld.shlib(source = sources,
-              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', 
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData ionizationCalcData', 
               use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     
 ## Removed the following files from the build for now

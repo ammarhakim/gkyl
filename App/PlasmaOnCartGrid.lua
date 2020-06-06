@@ -274,6 +274,7 @@ local function buildApplication(self, tbl)
       local hasE, hasB = field:hasEB()
       local funcHasE, funcHasB = funcField:hasEB()
       s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
+      print('initCrossSpecies complete', s.name)
       s:createSolver(hasE or funcHasE, hasB or funcHasB, funcField)
       s:initDist()
       s:createDiagnostics()
@@ -376,7 +377,6 @@ local function buildApplication(self, tbl)
          s:clearCFL()
          s:clearMomentFlags(species)
       end
-
       -- Compute functional field (if any).
       funcField:advance(tCurr)
       
@@ -924,6 +924,7 @@ return {
    GkField            = Field.GkField,
    GkGeometry         = Field.GkGeometry,
    GkLBOCollisions    = Collisions.GkLBOCollisions,
+   GkIonization       = Collisions.GkIonization,
    GkSpecies          = Species.GkSpecies,
    HamilVlasovSpecies = Species.HamilVlasovSpecies,
    IncompEulerSpecies = Species.IncompEulerSpecies,
@@ -945,6 +946,7 @@ return {
       LBOCollisions        = Collisions.GkLBOCollisions,
       BgkCollisions        = Collisions.GkBGKCollisions,
       LboCollisions        = Collisions.GkLBOCollisions,
+      Ionization           = Collisions.GkIonization,
       AdiabaticSpecies     = Species.AdiabaticSpecies,
    },
    IncompEuler = {

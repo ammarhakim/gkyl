@@ -38,7 +38,7 @@ local SpitzerCollisionality = require "Updater.SpitzerCollisionality"
 local StairSteppedBc = require "Updater.StairSteppedBc"
 local TenMomentRelax = require "Updater.TenMomentRelax"
 local TenMomentSrc = require "Updater.TenMomentSrc"
-local VoronovIonization = require "Updater.VoronovIonization"
+local VoronovReactRateCoef = require "Updater.VoronovReactRateCoef"
 local WavePropagation = require "Updater.WavePropagation"
 
 return {
@@ -74,6 +74,6 @@ return {
    StairSteppedBc = StairSteppedBc,
    TenMomentRelax = TenMomentRelax,
    TenMomentSrc = TenMomentSrc,
-   VoronovIonization = VoronovIonization,
+   VoronovReactRateCoef = VoronovReactRateCoef,
    WavePropagation = WavePropagation,
 }

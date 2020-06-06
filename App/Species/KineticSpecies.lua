@@ -503,9 +503,10 @@ end
 function KineticSpecies:createSolver(funcField)
    -- Create solvers for collisions.
    for _, c in pairs(self.collisions) do
-      c:createSolver(funcField)
+      print('create collision solver', self.name)
+      c:createSolver(funcField, species)
    end
-
+   print('Kinetic species created collision solver', self.name)
    if self.positivity then
       self.posChecker = Updater.PositivityCheck {
          onGrid = self.grid,
@@ -581,7 +582,6 @@ function KineticSpecies:alloc(nRkDup)
    -- a flag for each pair of species colliding.
    self.momentFlags[5] = {}  -- Corresponds to uCross and vtSqCross.
    self.momentFlags[6] = {}  -- Corresponds to varNuXCross.
-
 end
 
 -- Note: do not call applyBc here. it is called later in initialization sequence.
@@ -594,7 +594,6 @@ function KineticSpecies:initDist()
 
    local syncPeriodicDirs = true
    if self.fluctuationBCs then syncPeriodicDirs = false end
-
    local initCnt, backgroundCnt = 0, 0
    for _, pr in pairs(self.projections) do
       pr:fullInit(self)

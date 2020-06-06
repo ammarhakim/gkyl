@@ -51,7 +51,9 @@ function GkSpecies:alloc(nRkDup)
       self.ptclEnergyPos      = self:allocMoment()
    end
    self.polarizationWeight = self:allocMoment() -- not used when using linearized poisson solve
-
+   self.voronovReactRate = self:allocMoment()
+			
+   
    if self.gyavg then
       self.rho1 = self:allocDistf()
       self.rho2 = self:allocDistf()
@@ -552,6 +554,44 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       end
    end
 
+   -- If ionization collision object exists, locate electrons
+   local counter = true
+   for sN, _ in pairs(species) do
+      if species[sN].collisions and next(species[sN].collisions) then 
+         for sO, _ in pairs(species) do
+	    if self.collPairs[sN][sO].on then
+   	       if (self.collPairs[sN][sO].kind == 'Ionization') then
+   		  for collNm, _ in pairs(species[sN].collisions) do
+   		     if self.name==species[sN].collisions[collNm].elcNm and counter then
+   			print('Calc Voronov react rate is true', self.name, species[sN].collisions[collNm].elcNm)
+   			self.neutNmIz = species[sN].collisions[collNm].neutNm
+   			self.needSelfPrimMom  = true
+   			self.calcReactRate    = true
+   			self.collNmIoniz      = collNm
+   			-- self.vtSqIz           = self:allocMoment()
+   			-- --self.tempIz           = self:allocMoment()
+   			-- self.m0fMax           = self:allocMoment()
+   			-- self.m0mod            = self:allocMoment()
+   			-- self.fMaxwellIz       = DataStruct.Field {
+   			--    onGrid        = self.grid,
+   			--    numComponents = self.basis:numBasis(),
+   			--    ghost         = {1, 1},
+   			--    metaData = {
+   			--       polyOrder = self.basis:polyOrder(),
+   			--       basisType = self.basis:id()
+   			--    },
+   			-- }
+			print('voronov loop complete')
+			counter = false
+   		     end
+   		  end
+   	       end
+   	    end
+   	 end
+      end
+   end
+
+   self.needSelfPrimMom = true
    if self.needSelfPrimMom then
       -- Allocate fields to store self-species primitive moments.
       self.uParSelf = self:allocMoment()
@@ -560,7 +600,6 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       -- Allocate fields for boundary corrections.
       self.m1Correction = self:allocMoment()
       self.m2Correction = self:allocMoment()
-
       -- Allocate fields for star moments (only used with polyOrder=1).
       if (self.basis:polyOrder()==1) then
          self.m0Star = self:allocMoment()
@@ -852,6 +891,12 @@ function GkSpecies:createDiagnostics()
       weakBasis  = self.confBasis,
       operation  = "Divide",
       onGhosts   = true,
+   }
+   self.confPhaseMult = Updater.CartFieldBinOp {
+      onGrid     = self.grid,
+      weakBasis  = self.basis,
+      fieldBasis = self.confBasis,
+      operation  = "Multiply",
    }
 
    -- Sort moments into diagnosticMoments, diagnosticWeakMoments.
@@ -1443,13 +1488,11 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    end
 end
 
-function GkSpecies:calcCouplingMoments(tCurr, rkIdx)
+function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    local fIn = self:rkStepperFields()[rkIdx]
-
    -- Compute moments needed in coupling to fields and collisions.
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
-
       if self.deltaF then
         fIn:accumulate(-1.0, self.f0)
       end
@@ -1486,6 +1529,21 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx)
 
       if self.deltaF then
         fIn:accumulate(1.0, self.f0)
+      end
+
+      if self.calcReactRate then
+	 print('Calculating Voronov react rate for', self.name)
+	 local neutU = species[self.neutNmIz]:selfPrimitiveMoments()[1]
+	 local fElc = species[self.name]:getDistF()
+	 
+	 species[self.name].collisions[self.collNmIoniz].calcVoronovReactRate:advance(tCurr, {self.vtSqSelf}, {self.voronovReactRate})
+	 -- species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
+
+	 -- -- Calculate fMaxwell
+	 -- self.calcMaxwellIz:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
+	 -- self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
+	 -- self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
+	 -- self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
       end
 
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
@@ -1609,6 +1667,10 @@ function GkSpecies:getPolarizationWeight(linearized)
    else 
      return self.n0*self.mass/self.B0^2
    end
+end
+
+function GkSpecies:getVoronovReactRate()
+   return self.voronovReactRate
 end
 
 function GkSpecies:momCalcTime()
