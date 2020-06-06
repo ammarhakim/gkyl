@@ -130,17 +130,17 @@ __global__ void ker_test_BasisTypes()
   printf("NDIM = %d, polyOrder = %d : numBasis = %d\n", NDIM, POLYORDER, numBasis);
 }
 
-
 // "add" function specific to Euler equation
-__device__ double simpleEulerSumFunc(SimpleEulerEquation *self, double a, double b) {
-  printf("simpleEulerSumFunc: %g*(%g + %g)\n", self->gamma, a, b);
-  return self->gamma*(a+b);
+__device__ double simpleEulerSumFunc(void *obj, double a, double b) {
+  SimpleEulerEquation *self = (SimpleEulerEquation*) obj;
+  return  self->gamma*(a+b);
 }
+
+__device__ sumFunc_t p_simpleEulerSumFunc = &simpleEulerSumFunc;
 
 sumFunc_t getEulerSumFuncOnDevice() {
   sumFunc_t eulerSumFunc_p;
-  auto err = cudaMemcpyFromSymbol(&eulerSumFunc_p, simpleEulerSumFunc, sizeof(sumFunc_t));
-  std::cout << "getEulerSumFuncOnDevice " << err << std::endl;
+  auto err = cudaMemcpyFromSymbol(&eulerSumFunc_p, p_simpleEulerSumFunc, sizeof(sumFunc_t));
   return eulerSumFunc_p;
 }
 
