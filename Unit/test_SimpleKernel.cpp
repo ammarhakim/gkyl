@@ -17,6 +17,8 @@ extern "C"
 
     void unit_showFieldRange(GkylCartField_t *f, double *g);
     void unit_showFieldGrid(GkylCartField_t *f);
+    void unit_readAndWrite(int numBlocks, int numThreads, GkylCartField_t *f, GkylCartField_t *res);
+    void unit_readAndWrite_shared(int numBlocks, int numThreads, int sharedSize, GkylCartField_t *f, GkylCartField_t *res);
 
     void unit_test_BasisTypes_1xp1_ser();
     void unit_test_BasisTypes_2xp2_ser();
@@ -225,4 +227,57 @@ double unit_test_SimpleEquation(SimpleEquation *eqn, double* ab)
   double retVal = 0;
   cudaMemcpy(&retVal, out, sizeof(double), cudaMemcpyDeviceToHost);
   return retVal;
+}
+
+__global__ void ker_readAndWrite(GkylCartField_t *f, GkylCartField_t *res)
+{
+  int linearIdx = threadIdx.x + blockDim.x*blockIdx.x;
+  int idxC[6];
+  GkylRange_t *localRange = f->localRange;
+  Gkyl::GenIndexer localIdxr(localRange);
+  int numComponents = f->numComponents;
+  Gkyl::GenIndexer fIdxr = f->genIndexer();
+  localIdxr.invIndex(linearIdx, idxC);
+  const int linearIdxC = fIdxr.index(idxC);
+
+  for (int i=0; i<numComponents; i++) {
+     res->getDataPtrAt(linearIdxC)[i] = f->getDataPtrAt(linearIdxC)[i];
+  }
+}
+
+__global__ void ker_readAndWrite_shared(GkylCartField_t *f, GkylCartField_t *res)
+{
+  int linearIdx = threadIdx.x + blockDim.x*blockIdx.x;
+  int idxC[6];
+  GkylRange_t *localRange = f->localRange;
+  Gkyl::GenIndexer localIdxr(localRange);
+  int numComponents = f->numComponents;
+  int ndim = f->ndim;
+  Gkyl::GenIndexer fIdxr = f->genIndexer();
+  localIdxr.invIndex(linearIdx, idxC);
+  const int linearIdxC = fIdxr.index(idxC);
+  idxC[ndim-1] = 1;
+  const int linearIdxC0 = fIdxr.index(idxC);
+
+  extern __shared__ double f_shared[];
+  // read f into shared memory with coalesced memory accesses
+  int blockStart = numComponents*linearIdxC0;
+  for(int j=0; j<numComponents; j++) {
+    f_shared[threadIdx.x + j*blockDim.x] = f->_data[blockStart + threadIdx.x + j*blockDim.x]; 
+  }
+
+  // write result by reading f from shared memory
+  for (int i=0; i<numComponents; i++) {
+    res->getDataPtrAt(linearIdxC)[i] = f_shared[i + numComponents*threadIdx.x];
+  }
+}
+
+void unit_readAndWrite(int numBlocks, int numThreads, GkylCartField_t *f, GkylCartField_t *res)
+{
+  ker_readAndWrite<<<numBlocks, numThreads>>>(f, res);
+}
+
+void unit_readAndWrite_shared(int numBlocks, int numThreads, int sharedSize, GkylCartField_t *f, GkylCartField_t *res)
+{
+  ker_readAndWrite_shared<<<numBlocks, numThreads, sharedSize*sizeof(double)>>>(f, res);
 }

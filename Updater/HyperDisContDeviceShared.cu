@@ -5,7 +5,7 @@
 
 __global__ void cuda_HyperDisCont_shared(GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
 
-  GkylRange_t *localRange = fIn->localExtRange;
+  GkylRange_t *localRange = fIn->localRange;
   unsigned int ndim = localRange->ndim;
   unsigned int numComponents = fIn->numComponents;
   
@@ -21,8 +21,8 @@ __global__ void cuda_HyperDisCont_shared(GkylHyperDisCont_t *hyper, GkylCartFiel
   Gkyl::Vlasov *eq = hyper->equation;
  
   // shared memeory blocks of size blockDim.x * blockDim.y * numComponents
-  extern __shared__ double fIn_shared[];
   __shared__ double dummy[32];
+  extern __shared__ double fIn_shared[];
   unsigned linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
   unsigned linearIdx_shared = threadIdx.x;
 
@@ -36,18 +36,22 @@ __global__ void cuda_HyperDisCont_shared(GkylHyperDisCont_t *hyper, GkylCartFiel
 
     // get i,j,k... index idxC from linear index linearIdx using localRange invIndexer
     localIdxr.invIndex(linearIdx, idxC);
+    grid->cellCenter(idxC, xcC);
+    const double *dx = grid->dx;
     // convert i,j,k... index idxC into a linear index linearIdxC
     // note that linearIdxC != linearIdx.
     // this is because linearIdxC will have jumps because of ghost cells
     const int linearIdxC = fIdxr.index(idxC);
-
-    grid->cellCenter(idxC, xcC);
-    const double *dx = grid->dx;
+    //double tmp = idxC[5];
+    //idxC[5] = 0;
+    //const int linearIdxC0 = fIdxr.index(idxC);
+    //idxC[5] = tmp;
 
     // read fIn into shared memory block
     for(int j=0; j<numComponents; j++) {
       // linearIdxC can have jumps, just needs to be contiguous for max(32, numComponents) elements
-      fIn_shared[j+numComponents*linearIdx_shared] = fIn->_data[linearIdxC + blockIdx.x*j];
+      fIn_shared[threadIdx.x + j*blockDim.x] = fIn->_data[linearIdx + j*blockDim.x]; // fIn->_data[linearIdxC0*numComponents + threadIdx.x + blockDim.x*j];
+      //fIn_shared[j+numComponents*threadIdx.x] = fIn->_data[j+numComponents*linearIdxC];
     }
 
     // sync to make sure all data has been loaded

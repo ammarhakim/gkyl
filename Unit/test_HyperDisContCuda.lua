@@ -32,8 +32,8 @@ local stats = Unit.stats
 
 function test_1()
    local nloop = NLOOP or 1 -- number of HyperDisCont calls to loop over
-   local checkResult = false -- whether to check device result with host one, element-by-element. this can be expensive for large domains.
    local runCPU = xsys.pickBool(RUNCPU, true)
+   local checkResult = runCPU and true -- whether to check device result with host one, element-by-element. this can be expensive for large domains.
    local numThreads = NTHREADS or 128 -- number of threads to use in HyperDisCont kernel configuration
    local useSharedMemory = xsys.pickBool(SHARED, false) -- whether to use device shared memory
 
@@ -48,11 +48,11 @@ function test_1()
    local phaseBasis = Basis.CartModalSerendipity { ndim = pdim, polyOrder = polyOrder }
 
    -- set up grids. adjust number of cells to increase domain size (more work for GPU).
-   local nx = 32 -- number of configuration space dimensions in x
+   local nx = 8 -- number of configuration space dimensions in x
    local ny = 32 -- number of configuration space dimensions in y
    local nvx = 16  -- number of velocity dimensions in vx
    local nvy = 8  -- number of velocity dimensions in vy 
-   local nvz = 8  -- number of velocity dimensions in vz 
+   local nvz = 32  -- number of velocity dimensions in vz 
 
    local grid = Grid.RectCart {
       cells = {nx, ny, nvx, nvy, nvz},
@@ -91,6 +91,13 @@ function test_1()
       createDeviceCopy = true,
    }
    distf:clear(1)
+   local indexer = distf:genIndexer()
+   for idx in distf:localRangeIter() do
+      local fitr = distf:get(indexer(idx))
+      fitr[1] = idx[1]+2*idx[2]+1
+      fitr[2] = idx[1]+2*idx[2]+2
+      fitr[3] = idx[1]+2*idx[2]+3
+   end
    distf:copyHostToDevice()
 
    local fRhs = DataStruct.Field {
@@ -152,7 +159,7 @@ function test_1()
          local fitr = fRhs:get(indexer(idx))
          local d_fitr = d_fRhs:get(d_indexer(idx))
          for i = 0, fRhs:numComponents()-1 do
-            assert_close(fitr[i], d_fitr[i], 1e-11, string.format("index %d, component %d is incorrect", indexer(idx), i))
+            assert_close(fitr[i], d_fitr[i], 1e-10, string.format("index %d, component %d is incorrect", indexer(idx), i))
          end
       end
    end
