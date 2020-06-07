@@ -3,10 +3,11 @@
 #include <GkylVlasov.h>
 #include <VlasovModDecl.h>
 
-__global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
+__global__ void cuda_HyperDisCont_shared(GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
 
-  GkylRange_t *localRange = fIn->localRange;
+  GkylRange_t *localRange = fIn->localExtRange;
   unsigned int ndim = localRange->ndim;
+  unsigned int numComponents = fIn->numComponents;
   
   // set up indexers for localRange and fIn (localExtRange)
   Gkyl::GenIndexer localIdxr(localRange);
@@ -19,9 +20,11 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
   bool *zeroFluxFlags = hyper->zeroFluxFlags;
   Gkyl::Vlasov *eq = hyper->equation;
  
-  // declaring this dummy array shared seems to alleviate register pressure and improve performance a bit
-  extern __shared__ double dummy[];
+  // shared memeory blocks of size blockDim.x * blockDim.y * numComponents
+  extern __shared__ double fIn_shared[];
+  __shared__ double dummy[32];
   unsigned linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
+  unsigned linearIdx_shared = threadIdx.x;
 
     int idxC[6];
     int idxL[6];
@@ -41,9 +44,18 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
     grid->cellCenter(idxC, xcC);
     const double *dx = grid->dx;
 
-    const double *fInC = fIn->getDataPtrAt(linearIdxC);
+    // read fIn into shared memory block
+    for(int j=0; j<numComponents; j++) {
+      // linearIdxC can have jumps, just needs to be contiguous for max(32, numComponents) elements
+      fIn_shared[j+numComponents*linearIdx_shared] = fIn->_data[linearIdxC + blockIdx.x*j];
+    }
+
+    // sync to make sure all data has been loaded
+    __syncthreads();
+    
+    const double *fInC = &fIn_shared[numComponents*linearIdx_shared];
     double *fRhsOutC = fRhsOut->getDataPtrAt(linearIdxC);
-    double cflRate = eq->volTerm(xcC, dx, idxC, fInC, fRhsOutC);
+    double cflRate = eq->volTerm_shared(xcC, dx, idxC, fInC, fRhsOutC);
 
     for(int i=0; i<numUpdateDirs; i++) {
       int dir = updateDirs[i] - 1;
@@ -79,7 +91,7 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
   
 } 
 
-void advanceOnDevice(int numBlocks, int numThreads, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
-  cudaFuncSetAttribute(cuda_HyperDisCont, cudaFuncAttributeMaxDynamicSharedMemorySize, 32*sizeof(double));
-  cuda_HyperDisCont<<<numBlocks, numThreads, 32*sizeof(double)>>>(hyper, fIn, fRhsOut);
+void advanceOnDevice_shared(int numBlocks, int numThreads, int numComponents, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
+  cudaFuncSetAttribute(cuda_HyperDisCont_shared, cudaFuncAttributeMaxDynamicSharedMemorySize, ((numComponents)*numThreads+numComponents)*sizeof(double));
+  cuda_HyperDisCont_shared<<<numBlocks, numThreads, ((numComponents)*numThreads)*sizeof(double)>>>(hyper, fIn, fRhsOut);
 }
