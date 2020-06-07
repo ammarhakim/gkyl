@@ -172,7 +172,7 @@ local function Field_meta_ctor(elct)
       sum = function(a,b) return a+b end
    }
    local reduceOpsMPI = {max = Mpi.MAX, min = Mpi.MIN, sum = Mpi.SUM}
-   local reduceInitialVal = {max = GKYL_MIN_DOUBLE, min = GKYL_MAX_DOUBLE, sum = 0.0}
+   local reduceInitialVal = {max = elctMinValue, min = elctMaxValue , sum = 0}
    
    -- make constructor for Field
    local Field = {}
