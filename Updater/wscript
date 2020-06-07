@@ -402,7 +402,7 @@ def build(bld):
         
         bld(source = cusources,
             name = 'updater_cu', target='updater_cu',
-            includes = '. ../Cuda ../Grid ../Lib ../Eq ../DataStruct momentCalcData ../Eq/vlasovData', features = 'cxx nvcc '
+            includes = '. ../Cuda ../Grid ../Lib ../Basis ../Eq ../DataStruct momentCalcData ../Eq/vlasovData', features = 'cxx nvcc '
         )
 
     bld.shlib(source = sources,
