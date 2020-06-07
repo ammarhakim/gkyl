@@ -34,7 +34,7 @@ function test_1()
    local nloop = NLOOP or 1 -- number of HyperDisCont calls to loop over
    local checkResult = false -- whether to check device result with host one, element-by-element. this can be expensive for large domains.
    local runCPU = xsys.pickBool(RUNCPU, true)
-   local numThreads = NTHREADS or 64 -- number of threads to use in HyperDisCont kernel configuration
+   local numThreads = NTHREADS or 128 -- number of threads to use in HyperDisCont kernel configuration
    local useSharedMemory = xsys.pickBool(SHARED, false) -- whether to use device shared memory
 
    -- set up dimensionality and basis parameters. 

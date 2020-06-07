@@ -281,7 +281,7 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
 
    local numCellsLocal = qRhsOut:localRange():volume()
    local numThreads = math.min(self.numThreads, numCellsLocal)
-   local numBlocks  = math.floor(numCellsLocal/numThreads)+1
+   local numBlocks  = math.ceil(numCellsLocal/numThreads)
 
    if self._clearOut then
      cuda.Memset(qRhsOut:deviceDataPointer(), 0.0, sizeof('double')*qRhsOut:size())
