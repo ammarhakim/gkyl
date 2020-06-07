@@ -33,6 +33,7 @@ local stats = Unit.stats
 function test_1()
    local nloop = NLOOP or 1 -- number of HyperDisCont calls to loop over
    local checkResult = false -- whether to check device result with host one, element-by-element. this can be expensive for large domains.
+   local runCPU = xsys.pickBool(RUNCPU, true)
    local numThreads = NTHREADS or 64 -- number of threads to use in HyperDisCont kernel configuration
    local useSharedMemory = xsys.pickBool(SHARED, false) -- whether to use device shared memory
 
@@ -124,13 +125,6 @@ function test_1()
 
    solver:setDtAndCflRate(.1, cflRateByCell)
 
-   local tmStart
-   tmStart = Time.clock()
---   for i = 1, nloop do
---      solver:advance(0.0, {distf, emField}, {fRhs})
---   end
-   local totalCpuTime = (Time.clock()-tmStart)
-
    tmStart = Time.clock()
    for i = 1, nloop do
       solver:_advanceOnDevice(0.0, {distf, emField}, {d_fRhs})
@@ -139,6 +133,15 @@ function test_1()
    local err = cuda.DeviceSynchronize()
    local totalGpuTime = (Time.clock()-tmStart)
    assert_equal(0, err, "cuda error")
+
+   local tmStart
+   tmStart = Time.clock()
+   if runCPU then
+      for i = 1, nloop do
+         solver:advance(0.0, {distf, emField}, {fRhs})
+      end
+   end
+   local totalCpuTime = (Time.clock()-tmStart)
 
    d_fRhs:copyDeviceToHost()
    
