@@ -56,14 +56,13 @@ ffi.cdef [[
     void gkylCartFieldDeviceAssignAll(int numBlocks, int numThreads, unsigned s, unsigned nv, double val, double *out);
 
     typedef struct {
-      int numComponents; 
-      int ndim; 
-      GkylRange_t *localRange;
-      GkylRange_t *localExtRange;
-      GkylRange_t *globalRange;
-      GkylRange_t *globalExtRange;
-      GkylRectCart_t *grid;
-      double *_data; 
+        int ndim;
+        int elemSize;
+        int numComponents;
+        GkylRange_t *localRange, *localExtRange;
+        GkylRange_t *globalRange, *globalExtRange;
+        GkylRectCart_t *grid;
+        double *_data;
     } GkylCartField_t;
 ]]
 
@@ -114,55 +113,67 @@ local function new_field_comp_ct(elct)
    return metatype(typeof("struct { int numComponents; $* _cdata; }", elct), field_comp_mt)
 end
 
--- Binary operation functions and reduce MPI types (used in reduce method).
-local binOpFuncs = {
-   max = function(a,b) return math.max(a,b) end,
-   min = function(a,b) return math.min(a,b) end,
-   sum = function(a,b) return a+b end
-}
-local reduceOpsMPI = {max=Mpi.MAX, min=Mpi.MIN, sum=Mpi.SUM}
-local reduceInitialVal = {max=GKYL_MIN_DOUBLE, min=GKYL_MAX_DOUBLE, sum=0.0}
 
 -- A function to create constructors for Field objects
 local function Field_meta_ctor(elct)
-   local fcompct = new_field_comp_ct(elct) -- Ctor for component data
+   -- ctor for component data
+   local fcompct = new_field_comp_ct(elct)
+   -- ctor for creating vector of element types
+   local ElemVec = Lin.new_vec_ct(elct)   
 
-   local isNumberType = false
-   -- MPI data-types
-   local elctCommType, elcCommSize = nil, 1
+   local elctSize = sizeof(elct)
+   local elctMinValue, elctMaxValue = 0, 0
+   
+   -- Meta-data for type
+   local isNumberType = false   
+   local elctCommType = nil
    if ffi.istype(new(elct), new("double")) then
       elctCommType = Mpi.DOUBLE
       isNumberType = true
+      elctMinValue, elctMaxValue = GKYL_MIN_DOUBLE, GKYL_MAX_DOUBLE
    elseif ffi.istype(new(elct), new("float")) then
       elctCommType = Mpi.FLOAT
       isNumberType = true
+      elctMinValue, elctMaxValue = GKYL_MIN_FLOAT, GKYL_MAX_FLOAT
    elseif ffi.istype(new(elct), new("int")) then
       elctCommType = Mpi.INT
       isNumberType = true
+      elctMinValue, elctMaxValue = GKYL_MIN_INT, GKYL_MAX_INT
+   elseif ffi.istype(new(elct), new("long")) then
+      elctCommType = Mpi.LONG
+      isNumberType = true
+      elctMinValue, elctMaxValue = GKYL_MIN_LONG, GKYL_MAX_LONG
    else
       elctCommType = Mpi.BYTE -- by default, send stuff as byte array
-      elcCommSize = sizeof(elct)
    end
 
+   -- functions for regular, shared and device memory allocations
+   local allocFunc = Alloc.Alloc_meta_ctor(elct)
+   local allocSharedFunc = AllocShared.AllocShared_meta_ctor(elct)
+   local allocCudaFunc = cuAlloc.Alloc_meta_ctor(elct, false) -- don't used managed memory
+   
    -- allocator for use in non-shared applications
    local function allocatorFunc(comm, numElem)
-      local alloc = Alloc.Alloc_meta_ctor(elct)
-      return alloc(numElem)
+      return allocFunc(numElem)
    end
    -- allocator for use in shared applications
    local function sharedAllocatorFunc(comm, numElem)
-      local alloc = AllocShared.AllocShared_meta_ctor(elct)
-      return alloc(comm, numElem)
+      return allocSharedFunc(comm, numElem)
    end
-   -- allocator for use in memory duplication on device
+   -- allocator for use in memory on device
    local function deviceAllocatorFunc(comm, numElem)
-      local alloc = cuAlloc.Alloc_meta_ctor(elct, false) -- don't used managed memory
-      return alloc(numElem)
+      return allocCudaFunc(numElem)
    end
 
-   -- ctor for creating vector of element types
-   local ElemVec = Lin.new_vec_ct(elct)
-
+   -- Binary operation functions and reduce MPI types (used in reduce method).
+   local binOpFuncs = {
+      max = function(a,b) return math.max(a,b) end,
+      min = function(a,b) return math.min(a,b) end,
+      sum = function(a,b) return a+b end
+   }
+   local reduceOpsMPI = {max = Mpi.MAX, min = Mpi.MIN, sum = Mpi.SUM}
+   local reduceInitialVal = {max = GKYL_MIN_DOUBLE, min = GKYL_MAX_DOUBLE, sum = 0.0}
+   
    -- make constructor for Field
    local Field = {}
    function Field:new(tbl)
@@ -223,6 +234,7 @@ local function Field_meta_ctor(elct)
          local f = ffi.new("GkylCartField_t")
          local sz = sizeof("GkylCartField_t")
          f.ndim = self._ndim
+         f.elemSize = elctSize
          f.numComponents = self._numComponents
          f._data = self._devAllocData:data()
          f.localRange = Range.copyHostToDevice(self._localRange)
@@ -372,6 +384,9 @@ local function Field_meta_ctor(elct)
       elemType = function (self)
 	 return elct
       end,
+      elemSize = function (self)
+	 return elctSize
+      end,      
       ndim = function (self)
 	 return self._ndim
       end,

@@ -9,12 +9,14 @@
 extern "C" 
 {
     typedef struct {
-        int numComponents;
         int ndim;
+        int elemSize;
+        int numComponents;
         GkylRange_t *localRange, *localExtRange;
         GkylRange_t *globalRange, *globalExtRange;
         GkylRectCart_t *grid;
         double *_data;
+        
         __host__ __device__ __inline__ double* getDataPtrAt(int linIdx)
         {
            return _data + linIdx*numComponents;

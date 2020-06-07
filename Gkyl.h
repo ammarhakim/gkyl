@@ -278,9 +278,23 @@ std::string Gkyl::createTopLevelDefs() const {
   
   // numeric limits
   varDefs << "GKYL_MIN_DOUBLE = " << std::numeric_limits<double>::min() << std::endl;
-  varDefs << "GKYL_MIN_FLOAT = " << std::numeric_limits<float>::min() << std::endl;
   varDefs << "GKYL_MAX_DOUBLE = " << std::numeric_limits<double>::max() << std::endl;
+  
+  varDefs << "GKYL_MIN_FLOAT = " << std::numeric_limits<float>::min() << std::endl;
   varDefs << "GKYL_MAX_FLOAT = " << std::numeric_limits<float>::max() << std::endl;
+
+  varDefs << "GKYL_MIN_INT = " << std::numeric_limits<int>::min() << std::endl;
+  varDefs << "GKYL_MAX_INT = " << std::numeric_limits<int>::max() << std::endl;
+
+  varDefs << "GKYL_MIN_LONG = " << std::numeric_limits<long>::min() << std::endl;
+  varDefs << "GKYL_MAX_LONG = " << std::numeric_limits<long>::max() << std::endl;
+
+  varDefs << "GKYL_MIN_LONG_LONG = " << std::numeric_limits<long long>::min() << std::endl;
+  varDefs << "GKYL_MAX_LONG_LONG = " << std::numeric_limits<long long>::max() << std::endl;
+
+  varDefs << "GKYL_MIN_UNSIGNED = " << std::numeric_limits<unsigned>::min() << std::endl;
+  varDefs << "GKYL_MAX_UNSIGNED = " << std::numeric_limits<unsigned>::max() << std::endl;  
+  
   varDefs << "GKYL_EPSILON = " << std::numeric_limits<double>::epsilon() << std::endl;
   varDefs << "GKYL_MAX_INT16 = " << INT16_MAX << std::endl;  
 
