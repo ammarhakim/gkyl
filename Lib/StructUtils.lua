@@ -28,6 +28,11 @@ local function Struct(elct)
 	 ffi.copy(v, self, ffi.sizeof(elct))
 	 return v
       end,
+      copy = function(self, src)
+	 -- copy does a shallow copy: i.e. pointers in original and
+	 -- copied struct point to the same address
+	 ffi.copy(self, src, ffi.sizeof(elct))
+      end,
       cloneOnDevice = GKYL_HAVE_CUDA and
 	 function (self)
 	    local cuObj, err = cuda.Malloc(ffi.sizeof(elct))

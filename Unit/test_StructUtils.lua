@@ -8,6 +8,7 @@
 local ffi  = require "ffi"
 local Unit = require "Unit"
 local StructUtils = require "Lib.StructUtils"
+local Range = require "Lib.Range"
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
@@ -21,9 +22,11 @@ ffi.cdef [[
   typedef struct {
     Particle_t *p1, *p2;
   } TwoParticles_t;
+
+  void unit_showParticle(Particle_t *ptcl);
 ]]
 
--- constructor for structs
+-- constructors for structs
 local Particle = StructUtils.Struct("Particle_t")
 local TwoParticles = StructUtils.Struct("TwoParticles_t")
 
@@ -42,6 +45,11 @@ function test_1()
    assert_equal(10.5, p2.x, "Checking struct clone x")
 
    assert_equal(1.5, p1.x, "Checking struct x")
+
+   p1:copy(p2)
+   assert_equal(10.5, p1.x, "Checking struct x")
+   assert_equal(2.5, p1.y, "Checking struct y")
+   assert_equal(3.5, p1.z, "Checking struct z")
 end
 
 function test_2()
@@ -89,8 +97,18 @@ function test_2()
    assert_equal(3000.5, cloneTwoP.p2.z, "Checking pointers")
 end
 
+function test_3()
+   if not GKYL_HAVE_CUDA then return end
+   local pa = Particle {1.5, 2.5, 3.5 }
+   local paDev = pa:cloneOnDevice()
+   ffi.C.unit_showParticle(paDev)
+end
+
 test_1()
 test_2()
+if GKYL_HAVE_CUDA then
+   test_3()
+end
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

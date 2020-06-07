@@ -106,10 +106,7 @@ local range_mt = {
 	 return self._upper[dir-1]
       end,
       copy = function (self, rng)
-	 self._ndim = rng._ndim
-	 for d = 0, rng:ndim()-1 do
-	    self._lower[d], self._upper[d] = rng._lower[d], rng._upper[d]
-	 end
+         ffi.copy(self, rng, ffi.sizeof("GkylRange_t"))
       end,
       lowerAsVec = function (self)
 	 local v = Lin.IntVec(self:ndim())
