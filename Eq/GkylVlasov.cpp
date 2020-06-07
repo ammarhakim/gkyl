@@ -11,6 +11,18 @@ namespace Gkyl {
     return amid;
   }
 
+  __device__ double Vlasov::volTerm_shared(const double *xc, const double *dx, const int *idx, const double *qIn, double *qRhsOut) {
+    Gkyl::GenIndexer emIdxr = emField->genIndexer();
+    //double *em = shared;
+    //for(int j=0; j<numComponents; j++) {
+    //  // linearIdxC can have jumps, just needs to be contiguous for max(32, numComponents) elements
+    //  em[j+numComponents*threadIdx.x] = emField->_data[emIdxr.index(idx) + blockIdx.x*j];
+    //}
+    const double *em = emField->getDataPtrAt(emIdxr.index(idx));
+    double amid = kernel.volumeTerm(xc, dx, em, qIn, qRhsOut);
+    return amid;
+  }
+
   __host__ __device__ double Vlasov::surfTerm(const int dir, const double *cflL, const double *cflR,
                   const double *xcL, const double *xcR, const double *dxL, const double *dxR,
                   const double maxsOld, const int *idxL, const int *idxR,

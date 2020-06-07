@@ -40,6 +40,7 @@ ffi.cdef [[
   } GkylHyperDisCont_t; 
 
   void advanceOnDevice(int numBlocks, int numThreads, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
+  void advanceOnDevice_shared(int numBlocks, int numThreads, int numComponents, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
 ]]
 
 -- Hyperbolic DG solver updater object
@@ -107,6 +108,7 @@ function HyperDisCont:init(tbl)
    if GKYL_HAVE_CUDA then
       self:initDevice()
       self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
+      self._useSharedDevice = xsys.pickBool(tbl.useSharedDevice, false)
    end
 
    return self
@@ -285,7 +287,11 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
      cuda.Memset(qRhsOut:deviceDataPointer(), 0.0, sizeof('double')*qRhsOut:size())
    end
 
-   ffiC.advanceOnDevice(numBlocks, numThreads, self._onDevice, qIn._onDevice, qRhsOut._onDevice)
+   if self._useSharedDevice then
+      ffiC.advanceOnDevice_shared(numBlocks, numThreads, qIn:numComponents(), self._onDevice, qIn._onDevice, qRhsOut._onDevice)
+   else
+      ffiC.advanceOnDevice(numBlocks, numThreads, self._onDevice, qIn._onDevice, qRhsOut._onDevice)
+   end
 end
 
 return HyperDisCont

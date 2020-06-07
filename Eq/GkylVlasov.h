@@ -41,6 +41,7 @@ namespace Gkyl {
     __host__ __device__ void setAuxFields(GkylCartField_t *emField);
   
     __host__ __device__ double volTerm(const double *xc, const double *dx, const int *idx, const double *qIn, double *qRhsOut);
+    __device__ double volTerm_shared(const double *xc, const double *dx, const int *idx, const double *qIn, double *qRhsOut);
 
     __host__ __device__  double surfTerm(const int dir, const double *cflL, const double *cflR,
                     const double *xcL, const double *xcR, const double *dxL, const double *dxR,
@@ -71,7 +72,7 @@ namespace Gkyl {
     // template parameters are 
     // VlasovModDecl<cdim, vdim, polyOrder, basisType>
     // this needs to match the basis used to initialize the equation object in Lua 
-    VlasovModDecl<1,2,2,G_SERENDIPITY_C> kernel;
+    VlasovModDecl<2,3,1,G_SERENDIPITY_C> kernel;
   };
 }
 #endif

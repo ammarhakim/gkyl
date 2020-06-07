@@ -25,6 +25,7 @@ extern "C"
   } GkylHyperDisCont_t;
     
   void advanceOnDevice(int numBlocks, int numThreads, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
+  void advanceOnDevice_shared(int numBlocks, int numThreads, int numComponents, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
 }
 
 #endif // GKYL_HYPER_DISCONT_H
