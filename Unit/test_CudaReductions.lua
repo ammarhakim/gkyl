@@ -93,10 +93,7 @@ local pOrder        = 1
 local basis         = "Ser"
 local phaseLower    = {0.0, -6.0}
 local phaseUpper    = {1.0,  6.0}
-local phaseNumCells = {37, 3115}
-local confLower     = {   phaseLower[1]}
-local confUpper     = {   phaseUpper[1]}
-local confNumCells  = {phaseNumCells[1]}
+local phaseNumCells = {81, 531}
 
 local devNum, _    = cudaRunTime.GetDevice()
 local err          = cudaRunTime.SetDevice(devNum)
@@ -106,13 +103,10 @@ local numCellsTot   = lume.reduce(phaseNumCells, function(a,b) return a*b end)
 local numBlocksMAX  = 64
 local numThreadsMAX = GKYL_DEFAULT_NUM_THREADS
 
--- Phase-space and config-space grids.
+-- Phase-space grid and basis functions.
 local phaseGrid = createGrid(phaseLower, phaseUpper, phaseNumCells)
-local confGrid  = createGrid(confLower, confUpper, confNumCells)
--- Basis functions.
 local phaseBasis = createBasis(phaseGrid:ndim(), pOrder, basis)
-local confBasis  = createBasis(confGrid:ndim(), pOrder, basis)
--- Fields.
+-- Field with only one component.
 local p0Field = createField(phaseGrid, phaseBasis, true, false, true)
 -- Initialize field to random numbers.
 math.randomseed(1000*os.time())
@@ -122,38 +116,38 @@ for idx in fldRange:rowMajorIter() do
    local fldItr = p0Field:get(fldIdxr( idx ))
    fldItr[1]    = math.random() 
 end
-p0Field:copyHostToDevice()
 -- Get the maximum on the CPU (for reference).
 maxVal = p0Field:reduce("max")
-print(string.format(" CPU max = %f",maxVal))
-print("")
 
+p0Field:copyHostToDevice()
 
-print(" Operation on the GPU:")
 -- Establish the number of blocks and threads to use.
 local numBlocksC   = Alloc.Int(1)
 local numThreadsC  = Alloc.Int(1)
 ffi.C.getNumBlocksAndThreads(devProp,numCellsTot,numBlocksMAX,numThreadsMAX,numBlocksC:data(),numThreadsC:data());
 local numBlocks  = numBlocksC[1]
 local numThreads = numThreadsC[1]
-print(string.format("   Use %d blocks of size %d (threads)",numBlocks,numThreads))
 
 -- Allocate device memory needed for intermediate reductions.
 local d_blockRed, d_intermediateRed = cudaAlloc.Double(numBlocks), cudaAlloc.Double(numBlocks)
 local d_maxVal = cudaAlloc.Double(1)
 
 ffi.C.cartFieldMax(numCellsTot,numBlocks,numThreads,numBlocksMAX,numThreadsMAX,devProp,
-                   p0Field._onDevice, d_blockRed:data(), d_intermediateRed:data(), d_maxVal:data())
+                   p0Field._onDevice,d_blockRed:data(),d_intermediateRed:data(),d_maxVal:data())
 
 -- Test that the value found is correct.
 local maxVal_gpu = Alloc.Double(1)
 local err        = d_maxVal:copyDeviceToHost(maxVal_gpu)
 
-print(string.format("   GPU max = %f",maxVal_gpu[1]))
-print("")
-print(string.format(" Error = %e",maxVal-maxVal_gpu[1]))
+assert_equal(maxVal, maxVal_gpu[1], "Checking max reduce of CartField on GPU.")
 
 cudaRunTime.Free(d_blockRed)
 cudaRunTime.Free(d_intermediateRed)
 cudaRunTime.Free(d_maxVal)
 
+if stats.fail > 0 then
+   print(string.format("\nPASSED %d tests", stats.pass))
+   print(string.format("**** FAILED %d tests", stats.fail))
+else
+   print(string.format("PASSED ALL %d tests!", stats.pass))
+end

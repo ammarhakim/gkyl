@@ -88,26 +88,25 @@ __global__ void d_reduceCartField(GkylCartField_t *fIn, double *redPerBlock) {
 
   double myMax = 0;
 
-  GkylRange_t *localRange = fIn->localRange;
+  GkylRange_t *localRange  = fIn->localRange;
   Gkyl::GenIndexer localIdxr(localRange);
-  Gkyl::GenIndexer fIdxr = fIn->genIndexer();
-
-  int idx[2];  // need to template over CDIM+VDIM
-  localIdxr.invIndex(linearIdx, idx);
-  int linIdx = fIdxr.index(idx);
-
-  const double *fld        = fIn->getDataPtrAt(linIdx);
+  Gkyl::GenIndexer fIdxr   = fIn->genIndexer();
   unsigned int numCellsTot = localRange->volume();
 
   // We reduce multiple elements per thread.  The number is determined by the
   // number of active thread blocks (via gridDim). More blocks will result
   // in a larger gridSize and therefore fewer elements per thread.
   while (linearIdx < numCellsTot) {
+    int idx[2];  // Should be CDIM+VDIM, but onerous to template just for this.
+    localIdxr.invIndex(linearIdx, idx);
+    int linIdx        = fIdxr.index(idx);
+    const double *fld = fIn->getDataPtrAt(linIdx);
+
     myMax = MAX(myMax, fld[0]);
 
     // Ensure we don't read out of bounds (optimized away for powerOf2 sized arrays).
-    if (nIsPow2 || linearIdx + BLOCKSIZE < numCellsTot) {
-      unsigned int newLinearIdx = linearIdx + BLOCKSIZE;
+    unsigned int newLinearIdx = linearIdx+BLOCKSIZE;
+    if (nIsPow2 || newLinearIdx<numCellsTot) {
       localIdxr.invIndex(newLinearIdx, idx);
       linIdx = fIdxr.index(idx);
       fld    = fIn->getDataPtrAt(linIdx);
@@ -155,6 +154,7 @@ __global__ void d_reduceCartField(GkylCartField_t *fIn, double *redPerBlock) {
 
   // Write result for this block to global mem.
   if (cgThreadBlock.thread_rank() == 0) {
+//    printf("max found = %14.12f\n",myMax);
     redPerBlock[blockIdx.x] = myMax;
   }
 }
@@ -185,7 +185,7 @@ __global__ void d_reduceMax(double *dataIn, double *out, unsigned int nElements)
     myMax = MAX(myMax, dataIn[linearIdx]);
 
     // Ensure we don't read out of bounds (optimized away for powerOf2 sized arrays)/
-    if (nIsPow2 || linearIdx + BLOCKSIZE < nElements) myMax = MAX(myMax, dataIn[linearIdx + BLOCKSIZE]);
+    if (nIsPow2 || linearIdx+BLOCKSIZE<nElements) myMax = MAX(myMax, dataIn[linearIdx+BLOCKSIZE]);
 
     linearIdx += gridSize;
   }
@@ -226,7 +226,9 @@ __global__ void d_reduceMax(double *dataIn, double *out, unsigned int nElements)
   }
 
   // Write result for this block to global mem.
-  if (cgThreadBlock.thread_rank() == 0) out[blockIdx.x] = myMax;
+  if (cgThreadBlock.thread_rank() == 0) {
+    out[blockIdx.x] = myMax;
+  }
 }
 
 void reduceCartField(int numCellsTot, int blocks, int threads, GkylCartField_t *fIn, double *blockRed) {
@@ -408,9 +410,10 @@ void cartFieldMax(int numCellsTot, int numBlocks, int numThreads, int maxBlocks,
 
     reduceMax(newNum, blocks, threads, intermediate, blockOut);
 
-    newNum = (newNum + (threads * 2 - 1)) / (threads * 2);
+    newNum = (newNum + (threads*2-1))/(threads*2);
   }
 
+  cudaDeviceSynchronize();
   // Copy final reduction to output variable.
   checkCudaErrors(cudaMemcpy(out, blockOut, sizeof(double), cudaMemcpyDeviceToDevice));
 }
