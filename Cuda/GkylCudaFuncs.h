@@ -19,6 +19,7 @@ extern "C" {
   DECL_GET_CUDA_OBJECT(int, cudaErrorInvalidValue);
   DECL_GET_CUDA_OBJECT(int, cudaErrorMemoryAllocation);
   DECL_GET_CUDA_OBJECT(int, cudaErrorInvalidMemcpyDirection);
+  DECL_GET_CUDA_OBJECT(int, cudaErrorInvalidSymbol);
 
   // Codes for CudaMemcpy (enum cudaMemcpyKind)
   DECL_GET_CUDA_OBJECT(int, cudaMemcpyHostToHost);

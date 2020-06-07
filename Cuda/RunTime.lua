@@ -92,6 +92,7 @@ ffi.cdef [[
   // error codes
   int get_cudaSuccess();
   int get_cudaErrorInvalidValue();
+  int get_cudaErrorInvalidSymbol();
   int get_cudaErrorMemoryAllocation();
   int get_cudaErrorInvalidMemcpyDirection();
 
@@ -110,8 +111,17 @@ ffi.cdef [[
 -- CUDA runtime error codes
 _M.Success = ffi.C.get_cudaSuccess()
 _M.ErrorInvalidValue = ffi.C.get_cudaErrorInvalidValue()
+_M.ErrorInvalidSymbol = ffi.C.get_cudaErrorInvalidSymbol()
 _M.ErrorMemoryAllocation = ffi.C.get_cudaErrorMemoryAllocation()
 _M.ErrorInvalidMemcpyDirection = ffi.C.get_cudaErrorInvalidMemcpyDirection()
+
+_M.ErrorCodes = {
+  [_M.Success] = "Success",
+  [_M.ErrorInvalidValue] = "ErrorInvalidValue",
+  [_M.ErrorInvalidSymbol] = "ErrorInvalidSymbol",
+  [_M.ErrorMemoryAllocation] = "ErrorMemoryAllocation",
+  [_M.ErrorInvalidMemcpyDirection] = "ErrorInvalidMemcpyDirection",
+}
 
 -- CUDA MemcpyKind flags
 _M.MemcpyHostToHost = ffi.C.get_cudaMemcpyHostToHost()
