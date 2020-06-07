@@ -661,6 +661,6 @@ def build(bld):
     if bld.env['CUTOOLS_FOUND']:
         bld(source = cusources,
             name = 'eq_cu', target='eq_cu',
-            includes = '. ../Cuda ../Grid ../Lib ../Eq ../DataStruct vlasovData', features = 'cxx nvcc '
+            includes = '. ../Cuda ../Grid ../Lib ../Basis ../Eq ../DataStruct vlasovData', features = 'cxx nvcc '
         )
 
