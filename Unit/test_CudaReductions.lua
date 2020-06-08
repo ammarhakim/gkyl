@@ -21,6 +21,7 @@ local cudaRunTime = require "Cuda.RunTime"
 local cudaAlloc   = require "Cuda.Alloc"
 local Alloc       = require "Lib.Alloc"
 local ffi         = require "ffi"
+local Time = require "Lib.Time"
 
 local assert_equal = Unit.assert_equal
 local stats        = Unit.stats
@@ -93,7 +94,7 @@ local pOrder        = 1
 local basis         = "Ser"
 local phaseLower    = {0.0, -6.0}
 local phaseUpper    = {1.0,  6.0}
-local phaseNumCells = {81, 531}
+local phaseNumCells = {8100, 531}
 
 local devNum, _    = cudaRunTime.GetDevice()
 local err          = cudaRunTime.SetDevice(devNum)
@@ -136,8 +137,16 @@ local ReduceMIN = 1
 local ReduceMAX = 2
 local ReduceSUM = 3
 
-ffi.C.cuda_cartFieldReduce(ReduceMAX,numCellsTot,numBlocks,numThreads,numBlocksMAX,numThreadsMAX,
-   devProp,p0Field._onDevice,d_blockRed:data(),d_intermediateRed:data(),d_maxVal:data())
+tmStart = Time.clock()
+local nloop = 1000
+for i = 1, nloop do
+   ffi.C.cuda_cartFieldReduce(ReduceMAX,numCellsTot,numBlocks,numThreads,numBlocksMAX,numThreadsMAX,
+      devProp,p0Field._onDevice,d_blockRed:data(),d_intermediateRed:data(),d_maxVal:data())
+end
+local err = cudaRunTime.DeviceSynchronize()
+local totalGpuTime = (Time.clock()-tmStart)
+assert_equal(0, err, "cuda error")
+print(string.format("Total GPU time for %d calls = %f s   (average = %f s)", nloop, totalGpuTime, totalGpuTime/nloop))
 
 -- Test that the value found is correct.
 local maxVal_gpu = Alloc.Double(1)
