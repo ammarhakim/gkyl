@@ -145,7 +145,7 @@ function test_1()
    tmStart = Time.clock()
    if runCPU then
       for i = 1, nloop do
-         solver:advance(0.0, {distf, emField}, {fRhs})
+         solver:_advance(0.0, {distf, emField}, {fRhs})
       end
    end
    local totalCpuTime = (Time.clock()-tmStart)
