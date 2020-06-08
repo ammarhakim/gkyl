@@ -891,6 +891,14 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
              string.format("%s_%s.bp", self.name, mom..bc:label()), tm, self.diagIoFrame)
        end
     end
+
+    -- Write ionization diagnostics
+    if self.calcReactRate then
+       local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
+       --self.fMaxwellIz:write(string.format("%s_fMaxwell_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       self.voronovReactRate:write(string.format("%s_coefIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+    end
 end
 
 function KineticSpecies:isEvolving()

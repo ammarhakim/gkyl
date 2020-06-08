@@ -202,7 +202,7 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
  
       self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       
-      --self.confMult:advance(tCurr, {coefIz, neutM0}, {self.coefM0})
+      self.confMult:advance(tCurr, {coefIz, neutM0}, {self.coefM0})
       --self.collisionSlvr:advance(tCurr, {self.coefM0, self.sumDistF}, {self.ionizSrc})
       -- Uncomment to test without fMaxwellian(Tiz)
       self.collisionSlvr:advance(tCurr, {self.coefM0, elcDistF}, {self.ionizSrc})      
