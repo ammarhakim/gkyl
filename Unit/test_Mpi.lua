@@ -965,26 +965,26 @@ function test_17(comm)
 
    if rank == 0 then
       -- send data from rank 0 to all other ranks
-      for i = 0, nz-1 do
+      for i = 1, vIn:size() do
 	 vIn[i] = i
       end
       -- Copy vIn from host memory (now contains non-zero values).
       local err = d_vIn:copyHostToDevice(vIn)
       assert_equal(cuda.Success, err, "Checking if Memcpy worked")
       for dest = 1, sz-1 do
-	 Mpi.Send(d_vIn, nz, Mpi.DOUBLE, dest, 22, comm)
+	 Mpi.Send(d_vIn:data(), nz, Mpi.DOUBLE, dest, 22, comm)
       end      
    else
       -- copy vOut from host memory.
       local err = d_vOut:copyHostToDevice(vOut)
       assert_equal(cuda.Success, err, "Checking if Memcpy worked")
       -- recv stuff from rank 0
-      Mpi.Recv(d_vOut, nz, Mpi.DOUBLE, 0, 22, comm, nil)
+      Mpi.Recv(d_vOut:data(), nz, Mpi.DOUBLE, 0, 22, comm, nil)
 
       -- Copy from device back to host memory to check communication.
       local err = d_vOut:copyDeviceToHost(vOut)
       assert_equal(cuda.Success, err, "Checking if Memcpy worked")
-      for i = 0, nz-1 do
+      for i = 1, vOut:size() do
 	 assert_equal(vOut[i], i, "Checking recv data")
       end
    end
@@ -1047,7 +1047,7 @@ test_16(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
 test_16(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
 test_16(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
 
---test_17(Mpi.COMM_WORLD)
+test_17(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")

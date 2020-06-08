@@ -1,5 +1,3 @@
-module load intel
-module load intel-mpi
 # if we are in machines directory, go up a directory
 if [ `dirname "$0"` == "." ] 
   then

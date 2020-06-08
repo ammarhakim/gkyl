@@ -1,10 +1,6 @@
 #!/bin/bash
 
 # Edit the paths and options in the following command to suit your system
-module load intel
-module load intel-mpi
-module load cudatoolkit/10.2
-module load rh/devtoolset/8
 
 # Build directory
 OUT=build
@@ -12,8 +8,8 @@ OUT=build
 PREFIX=$HOME/gkylsoft/gkyl
 
 # Compile flags (set optimization/debug flags here)
-CC=icc
-CXX=icpc
+CC=mpicc
+CXX=mpicxx
 CXXFLAGS='-O3,-std=c++17'
 
 # LuaJIT options
@@ -25,8 +21,8 @@ LUAJIT_SHARE_DIR=$HOME/gkylsoft/luajit/share/luajit-2.1.0-beta3
 MPICC=mpicc
 MPICXX=mpicxx
 ENABLE_MPI="--enable-mpi"
-MPI_INC_DIR=$I_MPI_ROOT/intel64/include
-MPI_LIB_DIR=$I_MPI_ROOT/intel64/lib/release
+MPI_INC_DIR=/usr/local/openmpi/cuda-10.2/4.0.3/intel191/x86_64/include
+MPI_LIB_DIR=/usr/local/openmpi/cuda-10.2/4.0.3/intel191/x86_64/lib64
 MPI_LINK_LIBS="mpi"
 
 # ADIOS options
@@ -35,7 +31,7 @@ ADIOS_INC_DIR=$HOME/gkylsoft/adios/include
 ADIOS_LIB_DIR=$HOME/gkylsoft/adios/lib
 
 # EIGEN options
-EIGEN_INC_DIR=$HOME/gkylsoft/eigen/include/eigen3
+EIGEN_INC_DIR=$HOME/gkylsoft/eigen3/include/eigen3
 
 # CUDA options
 CUTOOLS_INC_DIR=$CPATH
