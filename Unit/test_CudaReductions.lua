@@ -26,10 +26,10 @@ local assert_equal = Unit.assert_equal
 local stats        = Unit.stats
 
 ffi.cdef [[
-  void getNumBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlocks,
-                              int maxThreads, int &blocks, int &threads);
-  void cuda_cartFieldReduce(const int reduceOp, int numCellsTot, int numBlocks, int numThreads, int maxBlocks, int maxThreads,
-                    GkDeviceProp *prop, GkylCartField_t *fIn, double *blockOut, double *intermediate, double *out);
+  void reductionBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlocks,
+                                 int maxThreads, int &blocks, int &threads);
+  void gkylCartFieldDeviceReduce(const int reduceOp, int numCellsTot, int numBlocks, int numThreads, int maxBlocks, int maxThreads,
+     GkDeviceProp *prop, GkylCartField_t *fIn, double *blockOut, double *intermediate, double *out);
 ]]
 
 local function createGrid(lo,up,nCells)
@@ -121,23 +121,30 @@ maxVal = p0Field:reduce("max")
 
 p0Field:copyHostToDevice()
 
--- Establish the number of blocks and threads to use.
-local numBlocksC   = Alloc.Int(1)
-local numThreadsC  = Alloc.Int(1)
-ffi.C.getNumBlocksAndThreads(devProp,numCellsTot,numBlocksMAX,numThreadsMAX,numBlocksC:data(),numThreadsC:data());
-local numBlocks  = numBlocksC[1]
-local numThreads = numThreadsC[1]
+---- Establish the number of blocks and threads to use.
+--local numBlocksC   = Alloc.Int(1)
+--local numThreadsC  = Alloc.Int(1)
+--print("here")
+--ffi.C.reductionBlocksAndThreads(devProp,numCellsTot,numBlocksMAX,numThreadsMAX,numBlocksC:data(),numThreadsC:data());
+--print("here too")
+--local numBlocks  = numBlocksC[1]
+--local numThreads = numThreadsC[1]
+--
+---- Allocate device memory needed for intermediate reductions.
+--local d_blockRed, d_intermediateRed = cudaAlloc.Double(numBlocks), cudaAlloc.Double(numBlocks)
+--local d_maxVal = cudaAlloc.Double(1)
+--
+--local ReduceMIN = 1
+--local ReduceMAX = 2
+--local ReduceSUM = 3
+--
+--ffi.C.gkylCartFieldDeviceReduce(ReduceMAX,numCellsTot,numBlocks,numThreads,numBlocksMAX,numThreadsMAX,
+--   devProp,p0Field._onDevice,d_blockRed:data(),d_intermediateRed:data(),d_maxVal:data())
 
--- Allocate device memory needed for intermediate reductions.
-local d_blockRed, d_intermediateRed = cudaAlloc.Double(numBlocks), cudaAlloc.Double(numBlocks)
+print("here")
 local d_maxVal = cudaAlloc.Double(1)
-
-local ReduceMIN = 1
-local ReduceMAX = 2
-local ReduceSUM = 3
-
-ffi.C.cuda_cartFieldReduce(ReduceMAX,numCellsTot,numBlocks,numThreads,numBlocksMAX,numThreadsMAX,
-   devProp,p0Field._onDevice,d_blockRed:data(),d_intermediateRed:data(),d_maxVal:data())
+p0Field:deviceReduce("max",d_maxVal)
+print("here done")
 
 -- Test that the value found is correct.
 local maxVal_gpu = Alloc.Double(1)
@@ -145,8 +152,8 @@ local err        = d_maxVal:copyDeviceToHost(maxVal_gpu)
 
 assert_equal(maxVal, maxVal_gpu[1], "Checking max reduce of CartField on GPU.")
 
-cudaRunTime.Free(d_blockRed)
-cudaRunTime.Free(d_intermediateRed)
+--cudaRunTime.Free(d_blockRed)
+--cudaRunTime.Free(d_intermediateRed)
 cudaRunTime.Free(d_maxVal)
 
 if stats.fail > 0 then

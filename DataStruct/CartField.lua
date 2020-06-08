@@ -52,7 +52,7 @@ ffi.cdef [[
     void gkylCopyFromFieldDevice(int numBlocks, int numThreads, double *data, double *f, unsigned numComponents, unsigned c);
     void gkylCopyToFieldDevice(int numBlocks, int numThreads, double *f, double *data, unsigned numComponents, unsigned c);
 
-    // assign all elements to specified value
+    // Assign all elements to specified value.
     void gkylCartFieldDeviceAssignAll(int numBlocks, int numThreads, unsigned s, unsigned nv, double val, double *out);
 
     typedef struct {
@@ -64,6 +64,12 @@ ffi.cdef [[
         GkylRectCart_t *grid;
         double *_data;
     } GkylCartField_t;
+
+    // Reduction down to a single value (e.g. min, max, sum).
+    void reductionBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlocks,
+                                   int maxThreads, int &blocks, int &threads);
+    void gkylCartFieldDeviceReduce(const int reduceOp, int numCellsTot, int numBlocks, int numThreads, int maxBlocks, int maxThreads,
+       GkDeviceProp *prop, GkylCartField_t *fIn, double *blockOut, double *intermediate, double *out);
 ]]
 
 -- Local definitions
@@ -171,6 +177,8 @@ local function Field_meta_ctor(elct)
       min = function(a,b) return math.min(a,b) end,
       sum = function(a,b) return a+b end
    }
+   local binOpFlags = {min = 1, max = 2, sum = 3}
+            
    local reduceOpsMPI = {max = Mpi.MAX, min = Mpi.MIN, sum = Mpi.SUM}
    local reduceInitialVal = {max = elctMinValue, min = elctMaxValue , sum = 0}
    
@@ -697,6 +705,37 @@ local function Field_meta_ctor(elct)
 	 end or
 	 function (self, opIn)
 	    assert(false, "CartField:reduce: Reduce only works on numeric fields")
+	 end,
+      deviceReduce = isNumberType and
+	 function(self, opIn, d_reduction)
+	    -- Input 'opIn' must be one of the binary operations in binOpFuncs.
+            -- Establish the number of blocks and threads/block for first reduction.
+            local devNum, _     = cuda.GetDevice()
+            local devProp, _    = cuda.GetDeviceProperties(devNum)
+
+            local numCellsTot   = self._localRange:volume()
+
+            local numBlocksMAX  = 64
+            local numThreadsMAX = GKYL_DEFAULT_NUM_THREADS
+            local numBlocksC   = Alloc.Int(1)
+            local numThreadsC  = Alloc.Int(1)
+            ffiC.reductionBlocksAndThreads(devProp,numCellsTot,numBlocksMAX,numThreadsMAX,numBlocksC:data(),numThreadsC:data());
+            local numBlocks  = numBlocksC[1]
+            local numThreads = numThreadsC[1]
+
+            -- Allocate device memory needed for intermediate reductions.
+            local d_blockRed, d_intermediateRed = cuAlloc.Double(numBlocks), cuAlloc.Double(numBlocks)
+            
+            ffi.C.gkylCartFieldDeviceReduce(binOpFlags[opIn],numCellsTot,numBlocks,numThreads,numBlocksMAX,numThreadsMAX,
+               devProp,self._onDevice,d_blockRed:data(),d_intermediateRed:data(),d_reduction:data())
+
+            cuda.Free(d_blockRed)
+            cuda.Free(d_intermediateRed)
+            numBlocksC:delete()
+            numThreadsC:delete()
+	 end or
+	 function (self, opIn)
+	    assert(false, "CartField:deviceReduce: Reduce only works on numeric fields")
 	 end,
       _copy_from_field_region = function (self, rgn, data)
 	 local indexer = self:genIndexer()

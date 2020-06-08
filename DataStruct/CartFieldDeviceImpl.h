@@ -5,8 +5,12 @@
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
-#ifndef GK_CART_FIELD_DEVICE_H
-#define GK_CART_FIELD_DEVICE_H
+#include <GkylCudaFuncs.h>
+#include <GkylCartField.h>
+#include <Reduce.h>
+
+#ifndef GKYL_CART_FIELD_DEVICE_H
+#define GKYL_CART_FIELD_DEVICE_H
 
 extern "C" {
     // s: start index. sv: number of values to copy
@@ -19,8 +23,12 @@ extern "C" {
     void gkylCopyFromFieldDevice(int numBlocks, int numThreads, double *data, double *f, unsigned numComponents, unsigned c);
     void gkylCopyToFieldDevice(int numBlocks, int numThreads, double *f, double *data, unsigned numComponents, unsigned c);
 
-    // assign all elements to specified value
+    // Assign all elements to specified value.
     void gkylCartFieldDeviceAssignAll(int numBlocks, int numThreads, unsigned s, unsigned nv, double val, double *out);
+
+    // Reduction to a single value.
+    void gkylCartFieldDeviceReduce(const int reduceOp, int numCellsTot, int numBlocks, int numThreads, int maxBlocks, int maxThreads,
+       GkDeviceProp *prop, GkylCartField_t *fIn, double *blockOut, double *intermediate, double *out);
 }
 
-#endif // GK_CART_FIELD_DEVICE_H
+#endif // GKYL_CART_FIELD_DEVICE_H
