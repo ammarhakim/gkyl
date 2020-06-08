@@ -9,6 +9,8 @@ local Unit = require "Unit"
 local Lin = require "Lib.Linalg"
 local Mpi = require "Comm.Mpi"
 local Alloc = require "Lib.Alloc"
+local cuda = require "Cuda.RunTime"
+local cuAlloc = require "Cuda.Alloc"
 local Range = require "Lib.Range"
 
 local ffi  = require "ffi"
@@ -944,7 +946,7 @@ end
 -- This test is a repeat of test 2, but communicating device data using CUDA-aware MPI.
 -- We copy a vIn array into rank 0 (one GPU) and the vOut array onto every other rank (every other GPU).
 -- We then check that this communication has occurred correctly and the bandwidth of this communication.
-test_17(comm)
+function test_17(comm)
    if not GKYL_HAVE_CUDA then return end
    local rank = Mpi.Comm_rank(comm)
    local sz = Mpi.Comm_size(comm)
