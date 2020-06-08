@@ -103,9 +103,7 @@ function GkIonization:setPhaseGrid(grid)
 end
 
 function GkIonization:createSolver(funcField)
-   print('GkIonization create solver', self.speciesName)
    if (self.speciesName == self.elcNm) then
-      print(self.speciesName)
       self.calcVoronovReactRate = Updater.VoronovReactRateCoef {
 	 onGrid     = self.confGrid,
 	 confBasis  = self.confBasis,
@@ -132,7 +130,6 @@ function GkIonization:createSolver(funcField)
       -- 	 ghost         = {1, 1},
       -- }
    end
-   print('ionization create solver L135')
    self.confMult = Updater.CartFieldBinOp {
          onGrid     = self.confGrid,
          weakBasis  = self.confBasis,
@@ -158,7 +155,6 @@ function GkIonization:createSolver(funcField)
 	 basisType = self.confBasis:id()
       },
    }
-   print('ionization create solver L161')
    self.coefM0 = DataStruct.Field {
       onGrid        = self.confGrid,
       numComponents = self.confBasis:numBasis(),
@@ -168,7 +164,6 @@ function GkIonization:createSolver(funcField)
 	 basisType = self.confBasis:id()
       },
    }
-   print('ionization create solver L171')
    self.neutDistF = DataStruct.Field {
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
@@ -178,7 +173,6 @@ function GkIonization:createSolver(funcField)
 	 basisType = self.phaseBasis:id()
       },
    }
-   print('ionization create solver L181')
    self.ionizSrc = DataStruct.Field {
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
@@ -188,11 +182,9 @@ function GkIonization:createSolver(funcField)
 	 basisType = self.phaseBasis:id()
       },
    }
-   print('ionization create solver done')
 end
 
 function GkIonization:advance(tCurr, fIn, species, fRhsOut)
-   print('GkIonization advance...')
    local coefIz = species[self.elcNm]:getVoronovReactRate()
    local distFn = species[self.neutNm]:getDistF()
    local elcM0  = species[self.elcNm]:fluidMoments()[1]
@@ -214,7 +206,7 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
       --self.collisionSlvr:advance(tCurr, {self.coefM0, self.sumDistF}, {self.ionizSrc})
       -- Uncomment to test without fMaxwellian(Tiz)
       self.collisionSlvr:advance(tCurr, {self.coefM0, elcDistF}, {self.ionizSrc})      
-      -- species[self.elcNm].distIo:write(self.ionizSrc, string.format("electron_ionizSrc_%d.bp",species[self.elcNm].distIoFrame),0,0)
+      species[self.elcNm].distIo:write(self.ionizSrc, string.format("electron_ionizSrc_%d.bp",species[self.elcNm].distIoFrame),0,0)
       
       fRhsOut:accumulate(1.0,self.ionizSrc)
    elseif (species[self.speciesName].charge == 0) then

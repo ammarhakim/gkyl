@@ -274,7 +274,6 @@ local function buildApplication(self, tbl)
       local hasE, hasB = field:hasEB()
       local funcHasE, funcHasB = funcField:hasEB()
       s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
-      print('initCrossSpecies complete', s.name)
       s:createSolver(hasE or funcHasE, hasB or funcHasB, funcField)
       s:initDist()
       s:createDiagnostics()
@@ -383,7 +382,7 @@ local function buildApplication(self, tbl)
       for nm, s in pairs(species) do
 	 -- Compute moments needed in coupling with fields and
 	 -- collisions (the species should update internal datastructures). 
-         s:calcCouplingMoments(tCurr, inIdx)
+         s:calcCouplingMoments(tCurr, inIdx, species)
       end
 
       -- Update EM field.

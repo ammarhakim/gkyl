@@ -563,7 +563,6 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    	       if (self.collPairs[sN][sO].kind == 'Ionization') then
    		  for collNm, _ in pairs(species[sN].collisions) do
    		     if self.name==species[sN].collisions[collNm].elcNm and counter then
-   			print('Calc Voronov react rate is true', self.name, species[sN].collisions[collNm].elcNm)
    			self.neutNmIz = species[sN].collisions[collNm].neutNm
    			self.needSelfPrimMom  = true
    			self.calcReactRate    = true
@@ -581,7 +580,6 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    			--       basisType = self.basis:id()
    			--    },
    			-- }
-			print('voronov loop complete')
 			counter = false
    		     end
    		  end
@@ -674,6 +672,7 @@ function GkSpecies:initCrossSpeciesCoupling(species)
 end
 
 function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
+   self:setActiveRKidx(inIdx)
    self.tCurr = tCurr
    local fIn = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
@@ -1142,7 +1141,7 @@ function GkSpecies:createDiagnostics()
                end
                Mpi.Barrier(self.grid:commSet().sharedComm)
                -- do weak ops
-               self.diagnosticMomentUpdaters["GkVtSq"..label]:combine(1.0/self.mass, self.diagnosticMomentFields["GkTemp"..label])
+               self.diagnosticMomentFields["GkVtSq"..label]:combine(1.0/self.mass, self.diagnosticMomentFields["GkTemp"..label])
 
                self.diagnosticMomentUpdaters["GkVtSq"..label].tCurr = tm -- mark as complete for this tm
             end
@@ -1532,7 +1531,6 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       end
 
       if self.calcReactRate then
-	 print('Calculating Voronov react rate for', self.name)
 	 local neutU = species[self.neutNmIz]:selfPrimitiveMoments()[1]
 	 local fElc = species[self.name]:getDistF()
 	 
@@ -1572,7 +1570,6 @@ function GkSpecies:crossPrimitiveMoments(otherSpeciesName)
 end
 
 function GkSpecies:getDistF(rkIdx)
-   print('calling getDistF')
    if rkIdx == nil then
       return self:rkStepperFields()[self.activeRKidx]
    else
