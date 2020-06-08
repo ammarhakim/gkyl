@@ -28,8 +28,8 @@ local stats        = Unit.stats
 ffi.cdef [[
   void getNumBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlocks,
                               int maxThreads, int &blocks, int &threads);
-  void cartFieldMax(int numCellsTot, int numBlocks, int numThreads, int maxBlocks, int maxThreads, GkDeviceProp *prop,
-                    GkylCartField_t *fIn, double *blockOut, double *intermediate, double *out);
+  void cuda_cartFieldReduce(const int reduceOp, int numCellsTot, int numBlocks, int numThreads, int maxBlocks, int maxThreads,
+                    GkDeviceProp *prop, GkylCartField_t *fIn, double *blockOut, double *intermediate, double *out);
 ]]
 
 local function createGrid(lo,up,nCells)
@@ -132,8 +132,12 @@ local numThreads = numThreadsC[1]
 local d_blockRed, d_intermediateRed = cudaAlloc.Double(numBlocks), cudaAlloc.Double(numBlocks)
 local d_maxVal = cudaAlloc.Double(1)
 
-ffi.C.cartFieldMax(numCellsTot,numBlocks,numThreads,numBlocksMAX,numThreadsMAX,devProp,
-                   p0Field._onDevice,d_blockRed:data(),d_intermediateRed:data(),d_maxVal:data())
+local ReduceMIN = 1
+local ReduceMAX = 2
+local ReduceSUM = 3
+
+ffi.C.cuda_cartFieldReduce(ReduceMAX,numCellsTot,numBlocks,numThreads,numBlocksMAX,numThreadsMAX,
+   devProp,p0Field._onDevice,d_blockRed:data(),d_intermediateRed:data(),d_maxVal:data())
 
 -- Test that the value found is correct.
 local maxVal_gpu = Alloc.Double(1)
