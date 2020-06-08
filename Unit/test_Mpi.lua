@@ -9,9 +9,14 @@ local Unit = require "Unit"
 local Lin = require "Lib.Linalg"
 local Mpi = require "Comm.Mpi"
 local Alloc = require "Lib.Alloc"
-local cuda = require "Cuda.RunTime"
-local cuAlloc = require "Cuda.Alloc"
 local Range = require "Lib.Range"
+
+local cuda
+local cuAlloc
+if GKYL_HAVE_CUDA then
+   cuda = require "Cuda.RunTime"
+   cuAlloc = require "Cuda.Alloc"
+end
 
 local ffi  = require "ffi"
 local xsys = require "xsys"
@@ -948,6 +953,7 @@ end
 -- We then check that this communication has occurred correctly and the bandwidth of this communication.
 function test_17(comm)
    if not GKYL_HAVE_CUDA then return end
+
    local rank = Mpi.Comm_rank(comm)
    local sz = Mpi.Comm_size(comm)
       
@@ -1041,7 +1047,7 @@ test_16(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
 test_16(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
 test_16(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
 
-test_17(Mpi.COMM_WORLD)
+--test_17(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
