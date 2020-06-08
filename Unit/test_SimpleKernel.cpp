@@ -258,22 +258,23 @@ __global__ void ker_readAndWrite_shared(GkylCartField_t *f, GkylCartField_t *res
 {
   int linearIdx = threadIdx.x + blockDim.x*blockIdx.x;
   GkylRange_t *localRange = f->localRange;
-    int idxC[6];
-    Gkyl::GenIndexer localIdxr(localRange);
-    int numComponents = f->numComponents;
-    int ndim = f->ndim;
-    Gkyl::GenIndexer fIdxr = f->genIndexer();
+  int idxC[6];
+  Gkyl::GenIndexer localIdxr(localRange);
+  int numComponents = f->numComponents;
+  int ndim = f->ndim;
+  Gkyl::GenIndexer fIdxr = f->genIndexer();
 
-    extern __shared__ double f_shared[];
-    // read f into shared memory with coalesced memory accesses
-    for(int j=0; j<numComponents; j++) {
-      const int sharedIdx = blockDim.x/numComponents*j + blockDim.x*blockIdx.x;
-      localIdxr.invIndex(sharedIdx, idxC);
-      const int linearIdxC = fIdxr.index(idxC);
-      if(sharedIdx < localRange->volume()) {
-        f_shared[threadIdx.x + j*blockDim.x] = f->_data[linearIdxC*numComponents + threadIdx.x]; 
-      }
+  extern __shared__ double f_shared[];
+  // read f into shared memory with coalesced memory accesses
+  const int jump = blockDim.x/numComponents;
+  for(int j=0; j<numComponents; j++) {
+    const int sharedIdx = jump*j + blockDim.x*blockIdx.x;
+    localIdxr.invIndex(sharedIdx, idxC);
+    const int linearIdxC = fIdxr.index(idxC);
+    if(sharedIdx < localRange->volume()) {
+      f_shared[threadIdx.x + j*blockDim.x] = f->_data[threadIdx.x + linearIdxC*numComponents]; 
     }
+  }
   __syncthreads();
 
   if(linearIdx < localRange->volume()) {

@@ -24,16 +24,30 @@ __global__ void cuda_HyperDisCont_shared(GkylHyperDisCont_t *hyper, GkylCartFiel
   __shared__ double dummy[32];
   extern __shared__ double fIn_shared[];
   unsigned linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
-  unsigned linearIdx_shared = threadIdx.x;
 
-    int idxC[6];
-    int idxL[6];
-    int idxR[6];
-    
-    double xcC[6];
-    double xcL[6];
-    double xcR[6];
+  int idxC[6];
+  int idxL[6];
+  int idxR[6];
+  
+  double xcC[6];
+  double xcL[6];
+  double xcR[6];
 
+  // read f into shared memory
+  const int jump = blockDim.x/numComponents;
+  for(int j=0; j<numComponents; j++) {
+    const int sharedIdx = jump*j + blockDim.x*blockIdx.x;
+    localIdxr.invIndex(sharedIdx, idxC);
+    const int linearIdxC = fIdxr.index(idxC);
+    if(sharedIdx < localRange->volume()) {
+      fIn_shared[threadIdx.x + j*blockDim.x] = fIn->_data[threadIdx.x + linearIdxC*numComponents]; 
+    }
+  }
+
+  // sync to make sure all data has been loaded
+  __syncthreads();
+
+  if(linearIdx < localRange->volume()) {
     // get i,j,k... index idxC from linear index linearIdx using localRange invIndexer
     localIdxr.invIndex(linearIdx, idxC);
     grid->cellCenter(idxC, xcC);
@@ -42,22 +56,8 @@ __global__ void cuda_HyperDisCont_shared(GkylHyperDisCont_t *hyper, GkylCartFiel
     // note that linearIdxC != linearIdx.
     // this is because linearIdxC will have jumps because of ghost cells
     const int linearIdxC = fIdxr.index(idxC);
-    //double tmp = idxC[5];
-    //idxC[5] = 0;
-    //const int linearIdxC0 = fIdxr.index(idxC);
-    //idxC[5] = tmp;
-
-    // read fIn into shared memory block
-    for(int j=0; j<numComponents; j++) {
-      // linearIdxC can have jumps, just needs to be contiguous for max(32, numComponents) elements
-      fIn_shared[threadIdx.x + j*blockDim.x] = fIn->_data[linearIdx + j*blockDim.x]; // fIn->_data[linearIdxC0*numComponents + threadIdx.x + blockDim.x*j];
-      //fIn_shared[j+numComponents*threadIdx.x] = fIn->_data[j+numComponents*linearIdxC];
-    }
-
-    // sync to make sure all data has been loaded
-    __syncthreads();
     
-    const double *fInC = &fIn_shared[numComponents*linearIdx_shared];
+    const double *fInC = &fIn_shared[numComponents*threadIdx.x];
     double *fRhsOutC = fRhsOut->getDataPtrAt(linearIdxC);
     double cflRate = eq->volTerm_shared(xcC, dx, idxC, fInC, fRhsOutC);
 
@@ -92,7 +92,7 @@ __global__ void cuda_HyperDisCont_shared(GkylHyperDisCont_t *hyper, GkylCartFiel
         eq->boundarySurfTerm(dir, dummy, dummy, xcC, xcR, dx, dx, 0., idxC, idxR, fInC, fInR, fRhsOutC, dummy);
       }
     }
-  
+  } 
 } 
 
 void advanceOnDevice_shared(int numBlocks, int numThreads, int numComponents, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
