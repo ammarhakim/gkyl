@@ -9,7 +9,9 @@
 #include <CartFieldDeviceImpl.h>
 #include <GkylRange.h>
 
-namespace cg = cooperative_groups;
+//namespace cg = cooperative_groups;
+
+extern "C" bool isPow2(unsigned int x);
 
 //extern "C" {
 //  void reductionBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlocks,

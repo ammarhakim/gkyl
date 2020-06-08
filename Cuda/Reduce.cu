@@ -46,19 +46,6 @@ void reductionBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlock
   blocks = MIN(maxBlocks, blocks);
 }
 
-template <unsigned int binOpType>
-__inline__ __device__ double binOp(double a, double b) {
-  double result = 0.0;
-  if (binOpType==binOpMin) {
-    result = MIN(a,b);
-  } else if (binOpType==binOpMax) {
-    result = MAX(a,b);
-  } else if (binOpType==binOpSum) {
-    result = SUM(a,b);
-  }
-  return result;
-}
-
 // This algorithm reduces multiple elements per thread sequentially. This reduces
 // the overall cost of the algorithm while keeping the work complexity O(n) and
 // the step complexity O(log n). (Brent's Theorem optimization)

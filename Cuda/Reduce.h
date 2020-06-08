@@ -49,5 +49,17 @@ extern "C" {
   void reduceDeviceArray(int opIn, int numElements, int blocks, int threads, double *d_dataIn, double *d_dataOut);
 }
 
+template <unsigned int binOpType>
+__inline__ __device__ double binOp(double a, double b) {
+  double result = 0.0;
+  if (binOpType==binOpMin) {
+    result = MIN(a,b);
+  } else if (binOpType==binOpMax) {
+    result = MAX(a,b);
+  } else if (binOpType==binOpSum) {
+    result = SUM(a,b);
+  }
+  return result;
+}
 
 #endif  // GKYL_DEVICE_REDUCE_H

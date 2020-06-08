@@ -11,6 +11,6 @@ def build(bld):
         bld.shlib(
             source = 'GkylCudaFuncs.cpp Reduce.cu',
             target = 'gkcuda', name = 'cuda', vnum = '1.0',
-            includes = '.',
+            includes = '.', features = 'cushlib',
             use = 'CUTOOLS'
         )    
