@@ -9,6 +9,8 @@ local Unit = require "Unit"
 local Lin = require "Lib.Linalg"
 local Mpi = require "Comm.Mpi"
 local Alloc = require "Lib.Alloc"
+local cuda = require "Cuda.RunTime"
+local cuAlloc = require "Cuda.Alloc"
 local Range = require "Lib.Range"
 
 local ffi  = require "ffi"
@@ -941,6 +943,48 @@ function test_16(comm, nlayer, numComponents, ordering)
    end
 end
 
+-- This test is a repeat of test 2, but communicating device data using CUDA-aware MPI.
+-- We copy a vIn array into rank 0 (one GPU) and the vOut array onto every other rank (every other GPU).
+-- We then check that this communication has occurred correctly and the bandwidth of this communication.
+function test_17(comm)
+   if not GKYL_HAVE_CUDA then return end
+   local rank = Mpi.Comm_rank(comm)
+   local sz = Mpi.Comm_size(comm)
+      
+   local nz = 100
+   -- allocate memory on host
+   local vIn, vOut = Alloc.Double(nz), Alloc.Double(nz)
+   -- Allocate memory on device.
+   local d_vIn, d_vOut = cuAlloc.Double(nz), cuAlloc.Double(nz)
+
+   if rank == 0 then
+      -- send data from rank 0 to all other ranks
+      for i = 0, nz-1 do
+	 vIn[i] = i
+      end
+      -- Copy vIn from host memory (now contains non-zero values).
+      local err = d_vIn:copyHostToDevice(vIn)
+      assert_equal(cuda.Success, err, "Checking if Memcpy worked")
+      for dest = 1, sz-1 do
+	 Mpi.Send(d_vIn, nz, Mpi.DOUBLE, dest, 22, comm)
+      end      
+   else
+      -- copy vOut from host memory.
+      local err = d_vOut:copyHostToDevice(vOut)
+      assert_equal(cuda.Success, err, "Checking if Memcpy worked")
+      -- recv stuff from rank 0
+      Mpi.Recv(d_vOut, nz, Mpi.DOUBLE, 0, 22, comm, nil)
+
+      -- Copy from device back to host memory to check communication.
+      local err = d_vOut:copyDeviceToHost(vOut)
+      assert_equal(cuda.Success, err, "Checking if Memcpy worked")
+      for i = 0, nz-1 do
+	 assert_equal(vOut[i], i, "Checking recv data")
+      end
+   end
+   Mpi.Barrier(comm)
+end
+
 -- Run tests
 test_0(Mpi.COMM_WORLD)
 test_1(Mpi.COMM_WORLD)
@@ -996,6 +1040,8 @@ test_16(Mpi.COMM_WORLD, 2, 1, Range.rowMajor)
 test_16(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
 test_16(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
 test_16(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
+
+test_17(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")

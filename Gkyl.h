@@ -263,6 +263,8 @@ std::string Gkyl::createTopLevelDefs() const {
   auto err = cudaGetDevice(&deviceNum);
   if (cudaSuccess == err) {
     varDefs << "GKYL_HAVE_CUDA = true" << std::endl;
+    varDefs << "GKYL_USE_DEVICE = true" << std::endl;
+    
     varDefs << "GKYL_DEFAULT_NUM_THREADS = 256" << std::endl;  
     int cuDriverVersion;
     cudaDriverGetVersion(&cuDriverVersion);
@@ -271,9 +273,11 @@ std::string Gkyl::createTopLevelDefs() const {
   else {
     // not on a GPU node and so disable CUDA
     varDefs << "GKYL_HAVE_CUDA = false" << std::endl;
+    varDefs << "GKYL_USE_DEVICE = false" << std::endl;    
   }
 #else
   varDefs << "GKYL_HAVE_CUDA = false" << std::endl;
+  varDefs << "GKYL_USE_DEVICE = false" << std::endl;
 #endif
   
   // numeric limits

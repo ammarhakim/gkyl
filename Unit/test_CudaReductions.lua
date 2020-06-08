@@ -20,6 +20,7 @@ local lume        = require "Lib.lume"
 local cudaRunTime = require "Cuda.RunTime"
 local cudaAlloc   = require "Cuda.Alloc"
 local Alloc       = require "Lib.Alloc"
+local Time        = require "Lib.Time"
 
 local assert_equal = Unit.assert_equal
 local stats        = Unit.stats
@@ -85,7 +86,7 @@ local pOrder        = 1
 local basis         = "Ser"
 local phaseLower    = {0.0, -6.0}
 local phaseUpper    = {1.0,  6.0}
-local phaseNumCells = {81, 531}
+local phaseNumCells = {8100, 531}
 
 -- Phase-space grid and basis functions.
 local phaseGrid  = createGrid(phaseLower, phaseUpper, phaseNumCells)
@@ -106,7 +107,16 @@ maxVal = p0Field:reduce("max")
 p0Field:copyHostToDevice()
 
 local d_maxVal = cudaAlloc.Double(1)
-p0Field:deviceReduce("max",d_maxVal)
+
+tmStart     = Time.clock()
+local nloop = 1000
+for i = 1, nloop do
+   p0Field:deviceReduce("max",d_maxVal)
+end
+local err          = cudaRunTime.DeviceSynchronize()
+local totalGpuTime = (Time.clock()-tmStart)
+assert_equal(cudaRunTime.Success, err, "Cuda error.")
+print(string.format("Total GPU time for %d calls = %f s   (average = %f s per call)", nloop, totalGpuTime, totalGpuTime/nloop))
 
 -- Test that the value found is correct.
 local maxVal_gpu = Alloc.Double(1)

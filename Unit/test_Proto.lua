@@ -128,7 +128,24 @@ function test_4()
 end
 
 function test_5()
-   local P = Proto()
+   local DevObj = Proto()
+
+   function DevObj:init(a, b)
+      self.a = a
+   end
+
+   function DevObj:initDevice(a, b)
+      self.b = b
+   end
+
+   --local devObj = DevObj(10, 20)
+
+   --assert_equal(10, devObj.a, "Checking init")
+   
+   if GKYL_HAVE_CUDA then
+      --assert_equal(20, devObj.b, "Checking deviceInit")
+   end
+   
 end
 
 test_1()
