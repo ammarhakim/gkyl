@@ -11,11 +11,15 @@ if GKYL_HAVE_CUDA == false then
    return 0
 end
 
-local ffi = require "ffi"
-local Unit = require "Unit"
-local Grid = require "Grid"
+local ffi        = require "ffi"
+local Unit       = require "Unit"
+local Grid       = require "Grid"
+local Basis      = require "Basis"
 local DataStruct = require "DataStruct"
-local cuda = require "Cuda.RunTime"
+local cuda       = require "Cuda.RunTime"
+local cudaAlloc  = require "Cuda.Alloc"
+local Alloc      = require "Lib.Alloc"
+local Time       = require "Lib.Time"
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
@@ -27,6 +31,54 @@ ffi.cdef [[
   void unit_readAndWrite_shared(int numBlocks, int numThreads, int sharedSize, GkylCartField_t *f, GkylCartField_t *res);
   void unit_readAndWrite_shared_offset(int numBlocks, int numThreads, int sharedSize, GkylCartField_t *f, GkylCartField_t *res);
 ]]
+
+local function createGrid(lo,up,nCells)
+   local gridOut = Grid.RectCart {
+      lower = lo,
+      upper = up,
+      cells = nCells,
+   }
+   return gridOut
+end
+
+local function createBasis(dim, pOrder, bKind)
+   local basis
+   if (bKind=="Ser") then
+      basis = Basis.CartModalSerendipity { ndim = dim, polyOrder = pOrder }
+   elseif (bKind=="Max") then
+      basis = Basis.CartModalMaxOrder { ndim = dim, polyOrder = pOrder }
+   elseif (bKind=="Tensor") then
+      basis = Basis.CartModalTensor { ndim = dim, polyOrder = pOrder }
+   else
+      assert(false,"Invalid basis")
+   end
+   return basis
+end
+
+local function createField(grid, basis, deviceCopy, ghosts, isP0, vComp)
+   vComp = vComp or 1
+   if ghost then
+      ghostCells = {1, 1}
+   else
+      ghostCells = {0, 0}
+   end
+   if isP0 then
+      numBasisElements = 1
+   else
+      numBasisElements = basis:numBasis()*vComp
+   end
+   local fld = DataStruct.Field {
+      onGrid           = grid,
+      numComponents    = numBasisElements,
+      ghost            = ghostCells,
+      createDeviceCopy = deviceCopy,
+      metaData = {
+         polyOrder = basis:polyOrder(),
+         basisType = basis:id()
+      },
+   }
+   return fld
+end
 
 function test_1()
    local grid = Grid.RectCart {
@@ -242,11 +294,67 @@ function test_5()
    end
 end
 
+local function test_deviceReduce(nIter, reportTiming)
+   -- Test the reduceDevice method.
+   local pOrder        = 1
+   local basis         = "Ser"
+   local phaseLower    = {0.0, -6.0}
+   local phaseUpper    = {1.0,  6.0}
+   local phaseNumCells = {8100, 531}
+   
+   -- Phase-space grid and basis functions.
+   local phaseGrid  = createGrid(phaseLower, phaseUpper, phaseNumCells)
+   local phaseBasis = createBasis(phaseGrid:ndim(), pOrder, basis)
+   -- Field with only one component.
+   local p0Field = createField(phaseGrid, phaseBasis, true, true, true)
+   -- Initialize field to random numbers.
+   math.randomseed(1000*os.time())
+   local fldRange = p0Field:localRange()
+   local fldIdxr  = p0Field:genIndexer()
+   for idx in fldRange:rowMajorIter() do
+      local fldItr = p0Field:get(fldIdxr( idx ))
+      fldItr[1]    = math.random()
+   end
+   p0Field:copyHostToDevice()
+
+   -- Get the maximum, minimum and sum on the CPU (for reference).
+   local maxVal, minVal, sumVal = p0Field:reduce("max"), p0Field:reduce("min"), p0Field:reduce("sum")
+
+   local d_maxVal, d_minVal, d_sumVal = cudaAlloc.Double(1), cudaAlloc.Double(1), cudaAlloc.Double(1)
+   
+   local tmStart = Time.clock()
+   for i = 1, nIter do
+      p0Field:deviceReduce("max",d_maxVal)
+      p0Field:deviceReduce("min",d_minVal)
+      p0Field:deviceReduce("sum",d_sumVal)
+   end
+   local err          = cuda.DeviceSynchronize()
+   if reportTiming then
+      local totalGpuTime = (Time.clock()-tmStart)
+      print(string.format("Total GPU time for %d calls = %f s   (average = %f s per call)", nIter*3, totalGpuTime, totalGpuTime/(3*nIter)))
+   end
+   
+   -- Test that the value found is correct.
+   local maxVal_gpu, minVal_gpu, sumVal_gpu = Alloc.Double(1), Alloc.Double(1), Alloc.Double(1)
+   local err = d_maxVal:copyDeviceToHost(maxVal_gpu)
+   local err = d_minVal:copyDeviceToHost(minVal_gpu)
+   local err = d_sumVal:copyDeviceToHost(sumVal_gpu)
+   
+   assert_equal(maxVal, maxVal_gpu[1], "Checking max reduce of CartField on GPU.")
+   assert_equal(minVal, minVal_gpu[1], "Checking min reduce of CartField on GPU.")
+   assert_equal(sumVal, sumVal_gpu[1], "Checking sum reduce of CartField on GPU.")
+   
+   cuda.Free(d_maxVal)
+   cuda.Free(d_minVal)
+   cuda.Free(d_sumVal)
+end
+
 test_1()
 test_2()
 test_3()
 test_4()
 test_5()
+test_deviceReduce(1, false)
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
