@@ -239,8 +239,8 @@ local function Field_meta_ctor(elct)
       self.localReductionVal  = ElemVec(1)
       self.globalReductionVal = ElemVec(1)
 
-      -- Create device memory if needed.
-      local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, false) -- by default, no device mem allocated
+      -- create a device copy is needed
+      local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, GKYL_USE_DEVICE)
       if createDeviceCopy then
          -- Allocate device memory.
 	 self._devAllocData = deviceAllocatorFunc(shmComm, sz)

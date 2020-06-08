@@ -205,7 +205,7 @@ test_4()
 test_5()
 test_6()
 test_7()
-test_8()
+--test_8()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

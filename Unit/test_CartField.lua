@@ -119,6 +119,7 @@ function test_3()
    local field = EulerField {
       onGrid = grid,
       ghost = {1, 1},
+      createDeviceCopy = false,
    }
 
    local localRange = field:localRange()
