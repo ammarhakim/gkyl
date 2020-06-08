@@ -9,16 +9,7 @@
 #include <CartFieldDeviceImpl.h>
 #include <GkylRange.h>
 
-//namespace cg = cooperative_groups;
-
 extern "C" bool isPow2(unsigned int x);
-
-//extern "C" {
-//  void reductionBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlocks,
-//                                 int maxThreads, int &blocks, int &threads);
-//  bool isPow2(unsigned int x);
-//  void reduceDeviceArray(int opIn, int numElements, int blocks, int threads, double *d_dataIn, double *d_dataOut);
-//}
 
 // This version adds multiple elements per thread sequentially. This reduces
 // the overall cost of the algorithm while keeping the work complexity O(n) and
