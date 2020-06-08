@@ -20,9 +20,10 @@ extern "C"
     typedef struct {
       int ndim; int lower[6]; int upper[6];
       int rowMajorIndexerCoeff[7], colMajorIndexerCoeff[7];
-      __host__ __device__ inline int64_t volume() const {
-        int64_t v = 1;
-        for (int i=0; i<ndim; ++i)
+      __host__ __device__ inline int volume() const {
+        int v = 1;
+        #pragma unroll
+        for (int i=0; i<6; ++i)
           v *= (upper[i]-lower[i]+1);
         return v;
       }
@@ -63,9 +64,10 @@ namespace Gkyl {
        * @param idx NDIM size index into range
        * @return Linear index (0-start)
        */
-      __host__ __device__ inline int64_t index(const int *idx) {
+      __host__ __device__ inline int index(const int* __restrict__ idx) {
         int loc = -1+ac[0];
-        for (int i=0; i<range->ndim; ++i)
+        #pragma unroll
+        for (int i=0; i<6; ++i)
           loc += idx[i]*ac[i+1];
         return loc;
       }
@@ -76,11 +78,15 @@ namespace Gkyl {
        * @param loc Linear location into range
        * @param idx [out] NDIM index object
        */
-      __host__ __device__ inline void invIndex(int64_t loc, int *idx) {
+      __host__ __device__ inline void invIndex(int loc, int *idx) {
         if (Gkyl::Layout::rowMajor == layout)
           return invIndexRowMajor(loc, idx);
         else
           return invIndexColMajor(loc, idx);
+      }
+
+      __host__ __device__ inline int coeff(int dir) {
+        return ac[dir];
       }
 
     private:
@@ -94,7 +100,8 @@ namespace Gkyl {
       /** Row-major inverse indexer */
       __host__ __device__ inline void invIndexRowMajor(int loc, int *idx) {
         int n = loc;
-        for (int i=1; i<=range->ndim; ++i) {
+        #pragma unroll
+        for (int i=1; i<=6; ++i) {
           int quot = n/ac[i];
           int rem = n % ac[i];
           idx[i-1] = quot + range->lower[i-1];
@@ -105,7 +112,8 @@ namespace Gkyl {
       /** Col-major inverse indexer */
       __host__ __device__ inline void invIndexColMajor(int loc, int *idx) {
         int n = loc;
-        for (int i=range->ndim; i>=1; --i) {
+        #pragma unroll
+        for (int i=6; i>=1; --i) {
           int quot = n/ac[i];
           int rem = n % ac[i];
           idx[i-1] = quot + range->lower[i-1];
@@ -143,6 +151,7 @@ namespace Gkyl {
         else
           return invIndexColMajor(loc, idx);
       }
+
 
     protected:
       /** Ctor: Protected so only for use in derived classes 

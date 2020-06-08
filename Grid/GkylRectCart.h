@@ -15,9 +15,10 @@ extern "C"
         int cells[6];
         double lower[6], upper[6];
         double vol, dx[6];
-        __host__ __device__ __inline__ void cellCenter(int* idx, double* xc)
+        __host__ __device__ __inline__ void cellCenter(const int* __restrict__ idx, double* xc)
         {
-          for(unsigned int d=0; d<ndim; d++) {
+          #pragma unroll
+          for(unsigned int d=0; d<6; d++) {
             xc[d] = lower[d] + (idx[d]-0.5)*dx[d];
           }
         }
