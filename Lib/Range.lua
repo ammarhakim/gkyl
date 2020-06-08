@@ -106,7 +106,7 @@ local range_mt = {
 	 return self._upper[dir-1]
       end,
       copy = function (self, rng)
-         ffi.copy(self, rng, ffi.sizeof("GkylRange_t"))
+         ffi.copy(self, rng, rSz)
       end,
       lowerAsVec = function (self)
 	 local v = Lin.IntVec(self:ndim())
@@ -308,7 +308,23 @@ local range_mt = {
       end,
       genIndexer = function (self, ordering)
 	 return _M.makeGenIndexer(ordering, self)
-      end      
+      end,
+      cloneOnDevice = GKYL_HAVE_CUDA and
+	 function (self)
+	    local r = new(rTy)
+	    ffi.copy(r, self, rSz)
+	    local row_c, col_c = calcRowMajorIndexerCoeff(range), calcColMajorIndexerCoeff(range)
+	    ffi.copy(r._rowMajorIndexerCoeff, row_c, sizeof("int[7]"))
+	    ffi.copy(r._colMajorIndexerCoeff, col_c, sizeof("int[7]"))
+	    
+	    local cuObj, err = cuda.Malloc(rSz)
+	    assert(cuda.Success == err, "Range.cloneOnDevice: unable to allocate device memory!")
+	    cuda.Memcpy(cuObj, r, rSz, cuda.MemcpyHostToDevice)
+	    return cuObj
+	 end or
+	 function (self)
+	    assert(false, "Range.cloneOnDevice: Can't be called without CUDA!")
+	 end      
    }
 }
 -- construct Range object, attaching meta-type to it

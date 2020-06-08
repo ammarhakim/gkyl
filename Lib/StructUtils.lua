@@ -11,6 +11,29 @@ if GKYL_HAVE_CUDA then
    cuda = require "Cuda.RunTime"
 end
 
+-- This function returns a table that implements some methods used in
+-- struct wrappers. This is mainly to allow adding cloneOnDevice
+-- function to C-structs to which a metatype may be already
+-- attached. The table returned by this function should be appended to
+-- the metatype of a struct to provide the cloneOnDevice method
+local function getCloneOnDeviceFunctionTable(elct)
+   return {
+      cloneOnDevice = GKYL_HAVE_CUDA and
+	 function (self)
+	    local cuObj, err = cuda.Malloc(ffi.sizeof(elct))
+	    assert(cuda.Success == err, "StructUtils.Struct: unable to allocate device memory!")
+	    cuda.Memcpy(cuObj, self, ffi.sizeof(elct), cuda.MemcpyHostToDevice)
+	    return cuObj
+	 end or
+	 function (self)
+	    -- when not on device, return clone on host
+	    local v = ffi.new(elct)
+	    ffi.copy(v, self, ffi.sizeof(elct))
+	    return v
+	 end
+   }
+end
+
 -- Struct ----------------------------------------------------------------------
 --
 -- A wrapper around a C-struct to make some functionality cleaner
@@ -64,4 +87,5 @@ end
 
 return {
    Struct = Struct,
+   getCloneOnDeviceFunctionTable = getCloneOnDeviceFunctionTable,
 }
