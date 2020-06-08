@@ -680,9 +680,23 @@ local function Field_meta_ctor(elct)
 	 -- processors will get to the sync method before others
          -- this is especially troublesome in the RK combine step
 	 Mpi.Barrier(self._grid:commSet().sharedComm)
-	 self._field_sync(self)
+	 self._field_sync(self, self:dataPointer())
 	 if self._syncPeriodicDirs and syncPeriodicDirs then
-	    self._field_periodic_sync(self)
+	    self._field_periodic_sync(self, self:dataPointer())
+	 end
+	 -- this barrier is needed as when using MPI-SHM some
+	 -- processors will not participate in sync()
+	 Mpi.Barrier(self._grid:commSet().sharedComm)
+      end,
+      deviceSync = function (self, syncPeriodicDirs_)
+         local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
+	 -- this barrier is needed as when using MPI-SHM some
+	 -- processors will get to the sync method before others
+         -- this is especially troublesome in the RK combine step
+	 Mpi.Barrier(self._grid:commSet().sharedComm)
+	 self._field_sync(self, self:deviceDataPointer())
+	 if self._syncPeriodicDirs and syncPeriodicDirs then
+	    self._field_periodic_sync(self, self:deviceDataPointer())
 	 end
 	 -- this barrier is needed as when using MPI-SHM some
 	 -- processors will not participate in sync()
@@ -755,7 +769,7 @@ local function Field_meta_ctor(elct)
             c = c + self._numComponents
 	 end
       end,
-      _field_sync = function (self)
+      _field_sync = function (self, dataPtr)
 	 local comm = self._grid:commSet().nodeComm -- communicator to use
 	 if not Mpi.Is_comm_valid(comm) then
 	    return -- no need to do anything if communicator is not valid
@@ -776,7 +790,7 @@ local function Field_meta_ctor(elct)
             local dataType = self._recvMPIDataType[recvId]
             local loc = self._recvMPILoc[recvId]
 	    -- recv data: (its from recvId-1 as MPI ranks are zero indexed)
-	    recvReq[recvId] = Mpi.Irecv(self._data+loc, 1, dataType, recvId-1, tag, comm)
+	    recvReq[recvId] = Mpi.Irecv(dataPtr+loc, 1, dataType, recvId-1, tag, comm)
 	 end
 	 
 	 -- do a blocking send (does not really block as recv requests
@@ -785,7 +799,7 @@ local function Field_meta_ctor(elct)
             local dataType = self._sendMPIDataType[sendId]
             local loc = self._sendMPILoc[sendId]
 	    -- send data: (its to sendId-1 as MPI ranks are zero indexed)
-	    Mpi.Send(self._data+loc, 1, dataType, sendId-1, tag, comm)
+	    Mpi.Send(dataPtr+loc, 1, dataType, sendId-1, tag, comm)
 	 end
 
 	 -- complete recv
@@ -795,7 +809,7 @@ local function Field_meta_ctor(elct)
 	    Mpi.Wait(recvReq[recvId], nil)
 	 end
       end,
-      _field_periodic_sync = function (self)
+      _field_periodic_sync = function (self, dataPtr)
 	 local comm = self._grid:commSet().nodeComm -- communicator to use
 	 if not Mpi.Is_comm_valid(comm) then
 	    return -- no need to do anything if communicator is not valid
@@ -837,14 +851,14 @@ local function Field_meta_ctor(elct)
 		     local dataType = self._recvLowerPerMPIDataType[dir]
 		     local loc = self._recvLowerPerMPILoc[dir]
 		     recvLowerReq[dir] = Mpi.Irecv(
-			self._data+loc, 1, dataType, upId-1, loTag, comm)
+			dataPtr+loc, 1, dataType, upId-1, loTag, comm)
 		  end
 		  if myId == upId then
 		     local upTag = basePerTag+dir
 		     local dataType = self._recvUpperPerMPIDataType[dir]
 		     local loc = self._recvUpperPerMPILoc[dir]
 		     recvUpperReq[dir] = Mpi.Irecv(
-			self._data+loc, 1, dataType, loId-1, upTag, comm)
+			dataPtr+loc, 1, dataType, loId-1, upTag, comm)
 		  end
 	       end
 	    end
@@ -862,13 +876,13 @@ local function Field_meta_ctor(elct)
 		     local loTag = basePerTag+dir -- this must match recv tag posted above
 		     local dataType = self._sendLowerPerMPIDataType[dir]
                      local loc = self._sendLowerPerMPILoc[dir]
-		     Mpi.Send(self._data+loc, 1, dataType, upId-1, loTag, comm)
+		     Mpi.Send(dataPtr+loc, 1, dataType, upId-1, loTag, comm)
 		  end
 		  if myId == upId then
 		     local upTag = basePerTag+dir+10 -- this must match recv tag posted above
 		     local dataType = self._sendUpperPerMPIDataType[dir]
 		     local loc = self._sendUpperPerMPILoc[dir]
-		     Mpi.Send(self._data+loc, 1, dataType, loId-1, upTag, comm)
+		     Mpi.Send(dataPtr+loc, 1, dataType, loId-1, upTag, comm)
 		  end
 	       end
 	    end
