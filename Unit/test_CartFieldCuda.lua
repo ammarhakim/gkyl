@@ -139,7 +139,7 @@ end
 
 function test_4()
    local grid = Grid.RectCart {
-      cells = {4, 32},
+      cells = {8, 8},
    }
    local field = DataStruct.Field {
       onGrid = grid,
@@ -176,13 +176,13 @@ function test_4()
       local fitr = field:get(indexer(idx))
       local ritr = result:get(indexer(idx))
       for i = 1, field:numComponents() do
-         assert_equal(fitr[i], ritr[i], string.format("readAndWrite_shared test: incorrect element at index %d, component %d", indexer(idx), i))
+         assert_equal(fitr[i], ritr[i], string.format("readAndWrite_shared test: incorrect element at index %d, component %d", indexer(idx)-1, i))
       end
    end
 end
 
---test_1()
---test_2()
+test_1()
+test_2()
 test_3()
 test_4()
 
