@@ -19,6 +19,7 @@ extern "C"
     void unit_showFieldGrid(GkylCartField_t *f);
     void unit_readAndWrite(int numBlocks, int numThreads, GkylCartField_t *f, GkylCartField_t *res);
     void unit_readAndWrite_shared(int numBlocks, int numThreads, int sharedSize, GkylCartField_t *f, GkylCartField_t *res);
+    void unit_readAndWrite_shared_offset(int numBlocks, int numThreads, int sharedSize, GkylCartField_t *f, GkylCartField_t *res);
 
     void unit_test_BasisTypes_1xp1_ser();
     void unit_test_BasisTypes_2xp2_ser();
@@ -270,9 +271,43 @@ __global__ void ker_readAndWrite_shared(GkylCartField_t *f, GkylCartField_t *res
   for(int j=0; j<numComponents; j++) {
     const int sharedIdx = jump*j + blockDim.x*blockIdx.x;
     localIdxr.invIndex(sharedIdx, idxC);
-    const int linearIdxC = fIdxr.index(idxC);
+    const int sharedIdxC = fIdxr.index(idxC);
     if(sharedIdx < localRange->volume()) {
-      f_shared[threadIdx.x + j*blockDim.x] = f->_data[threadIdx.x + linearIdxC*numComponents]; 
+      f_shared[threadIdx.x + j*blockDim.x] = f->_data[threadIdx.x + sharedIdxC*numComponents]; 
+    }
+  }
+  __syncthreads();
+
+  if(linearIdx < localRange->volume()) {
+    localIdxr.invIndex(linearIdx, idxC);
+    const int linearIdxC = fIdxr.index(idxC);
+    // write result by reading f from shared memory
+    for (int i=0; i<numComponents; i++) {
+      res->getDataPtrAt(linearIdxC)[i] = f_shared[i + numComponents*threadIdx.x];
+    }
+  }
+}
+
+__global__ void ker_readAndWrite_shared_offset(GkylCartField_t *f, GkylCartField_t *res)
+{
+  int linearIdx = threadIdx.x + blockDim.x*blockIdx.x;
+  GkylRange_t *localRange = f->localRange;
+  int idxC[6];
+  Gkyl::GenIndexer localIdxr(localRange);
+  int numComponents = f->numComponents;
+  int ndim = f->ndim;
+  Gkyl::GenIndexer fIdxr = f->genIndexer();
+
+  extern __shared__ double f_shared[];
+  // read f into shared memory with coalesced memory accesses
+  const int jump = blockDim.x/numComponents;
+  for(int j=0; j<numComponents; j++) {
+    const int sharedIdx = jump*j + blockDim.x*blockIdx.x;
+    if(sharedIdx < localRange->volume()) {
+      localIdxr.invIndex(sharedIdx, idxC);
+      const int sharedIdxC = fIdxr.index(idxC);
+      const int offset = numComponents;
+      f_shared[threadIdx.x + j*blockDim.x + offset] = f->_data[threadIdx.x + sharedIdxC*numComponents]; 
     }
   }
   __syncthreads();
@@ -295,4 +330,9 @@ void unit_readAndWrite(int numBlocks, int numThreads, GkylCartField_t *f, GkylCa
 void unit_readAndWrite_shared(int numBlocks, int numThreads, int sharedSize, GkylCartField_t *f, GkylCartField_t *res)
 {
   ker_readAndWrite_shared<<<numBlocks, numThreads, sharedSize*sizeof(double)>>>(f, res);
+}
+
+void unit_readAndWrite_shared_offset(int numBlocks, int numThreads, int sharedSize, GkylCartField_t *f, GkylCartField_t *res)
+{
+  ker_readAndWrite_shared_offset<<<numBlocks, numThreads, sharedSize*sizeof(double)>>>(f, res);
 }

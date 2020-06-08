@@ -22,27 +22,27 @@ namespace Gkyl {
       /**
        * Volume streaming term
        */
-      __host__ __device__ virtual double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) = 0;
+      __host__ __device__ virtual double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) = 0;
 
       /**
        * Surface streaming term
        */
-      __host__ __device__ virtual void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr, const double *fl, const double *fr,
+      __host__ __device__ virtual void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr, const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) = 0;
 
       /**
        * Volume term (total surface + force)
        */
-      __host__ __device__ virtual double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) = 0;
+      __host__ __device__ virtual double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) = 0;
 
       /**
        * Surface terms from EM forces
        */
-      __host__ __device__ virtual double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ virtual double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) = 0;
   };
 
@@ -54,27 +54,27 @@ namespace Gkyl {
       /**
        * Volume streaming term
        */
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out);
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out);
 
       /**
        * Surface streaming term
        */
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr, const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr, const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr);
 
       /**
        * Volume term (total surface + force)
        */
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out);
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out);
 
       /**
        * Surface terms from EM forces
        */
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr);
   };
 
@@ -86,13 +86,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<1,1,1,G_MAX_ORDER_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream1x1vMaxP1(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -102,14 +102,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol1x1vMaxP1(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -125,13 +125,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<1,1,2,G_MAX_ORDER_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream1x1vMaxP2(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -141,14 +141,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol1x1vMaxP2(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -164,13 +164,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<1,2,1,G_MAX_ORDER_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream1x2vMaxP1(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -180,14 +180,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol1x2vMaxP1(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -206,13 +206,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<1,2,2,G_MAX_ORDER_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream1x2vMaxP2(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -222,14 +222,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol1x2vMaxP2(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -248,13 +248,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<1,3,1,G_MAX_ORDER_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream1x3vMaxP1(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -264,14 +264,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol1x3vMaxP1(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -293,13 +293,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<1,3,2,G_MAX_ORDER_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream1x3vMaxP2(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -309,14 +309,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol1x3vMaxP2(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -338,13 +338,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<2,2,1,G_MAX_ORDER_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream2x2vMaxP1(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -357,14 +357,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol2x2vMaxP1(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -383,13 +383,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<2,2,2,G_MAX_ORDER_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream2x2vMaxP2(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -402,14 +402,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol2x2vMaxP2(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -428,13 +428,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<2,3,1,G_MAX_ORDER_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream2x3vMaxP1(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -447,14 +447,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol2x3vMaxP1(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -476,13 +476,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<2,3,2,G_MAX_ORDER_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream2x3vMaxP2(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -495,14 +495,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol2x3vMaxP2(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -527,13 +527,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<3,3,1,G_MAX_ORDER_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream3x3vMaxP1(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -549,14 +549,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol3x3vMaxP1(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -581,13 +581,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<1,1,1,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream1x1vSerP1(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -597,14 +597,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol1x1vSerP1(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -620,13 +620,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<1,1,2,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream1x1vSerP2(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -636,14 +636,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol1x1vSerP2(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -659,13 +659,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<1,2,1,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream1x2vSerP1(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -675,14 +675,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol1x2vSerP1(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -701,13 +701,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<1,2,2,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream1x2vSerP2(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -717,14 +717,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol1x2vSerP2(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -743,13 +743,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<1,3,1,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream1x3vSerP1(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -759,14 +759,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol1x3vSerP1(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -788,13 +788,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<1,3,2,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream1x3vSerP2(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -804,14 +804,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol1x3vSerP2(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -833,13 +833,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<2,2,1,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream2x2vSerP1(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -852,14 +852,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol2x2vSerP1(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -878,13 +878,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<2,2,2,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream2x2vSerP2(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -897,14 +897,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol2x2vSerP2(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -923,13 +923,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<2,3,1,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream2x3vSerP1(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -942,14 +942,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol2x3vSerP1(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -971,13 +971,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<2,3,2,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream2x3vSerP2(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -990,14 +990,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol2x3vSerP2(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {
@@ -1022,13 +1022,13 @@ namespace Gkyl {
   template <>
   class VlasovModDecl<3,3,1,G_SERENDIPITY_C> : public VlasovModDeclBase {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      __host__ __device__ double volumeStreamTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ f, double *out) {
         return VlasovVolStream3x3vSerP1(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double *fl, const double *fr,
+      __host__ __device__ void surfStreamTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double* __restrict__ fl, const double* __restrict__ fr,
         double *outl, double *outr) {
         
         switch (dir) {
@@ -1044,14 +1044,14 @@ namespace Gkyl {
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      __host__ __device__ double volumeTerm(const double* __restrict__ w, const double* __restrict__ dxv, const double* __restrict__ E, const double* __restrict__ f, double *out) {
         return VlasovVol3x3vSerP1(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(int dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
+      __host__ __device__ double surfElcMagTerm(int dir, const double* __restrict__ wl, const double* __restrict__ wr,
+        const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+        const double amax, const double* __restrict__ E, const
+        double *fl, const double* __restrict__ fr,
         double *outl, double *outr) {
 
         switch (dir) {

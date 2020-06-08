@@ -40,18 +40,18 @@ namespace Gkyl {
   
     __host__ __device__ void setAuxFields(GkylCartField_t *emField);
   
-    __host__ __device__ double volTerm(const double *xc, const double *dx, const int *idx, const double *qIn, double *qRhsOut);
-    __device__ double volTerm_shared(const double *xc, const double *dx, const int *idx, const double *qIn, double *qRhsOut);
+    __host__ __device__ double volTerm(const double* __restrict__ xc, const double* __restrict__ dx, const int* __restrict__ idx, const double* __restrict__ qIn, double *qRhsOut);
+    __device__ double volTerm_shared(const double* __restrict__ xc, const double* __restrict__ dx, const int* __restrict__ idx, const double* __restrict__ qIn, double *qRhsOut);
 
-    __host__ __device__  double surfTerm(const int dir, const double *cflL, const double *cflR,
-                    const double *xcL, const double *xcR, const double *dxL, const double *dxR,
-                    const double maxsOld, const int *idxL, const int *idxR,
-                    const double *qInL, const double *qInR, double *qRhsOutL, double *qRhsOutR);
+    __host__ __device__ double surfTerm(const int dir, 
+                    const double* __restrict__ xcL, const double* __restrict__ xcR, const double* __restrict__ dxL, const double* __restrict__ dxR,
+                    const double maxsOld, const int* __restrict__ idxL, const int* __restrict__ idxR,
+                    const double* __restrict__ qInL, const double* __restrict__ qInR, double *qRhsOutL, double *qRhsOutR);
 
-    __host__ __device__ inline double boundarySurfTerm(const int dir, const double *cflL, const double *cflR,
-                    const double *xcL, const double *xcR, const double *dxL, const double *dxR,
-                    const double maxsOld, const int *idxL, const int *idxR,
-                    const double *qInL, const double *qInR, double *qRhsOutL, double *qRhsOutR) {return 0;};
+    __host__ __device__ inline double boundarySurfTerm(const int dir, 
+                    const double* __restrict__ xcL, const double* __restrict__ xcR, const double* __restrict__ dxL, const double* __restrict__ dxR,
+                    const double maxsOld, const int* __restrict__ idxL, const int* __restrict__ idxR,
+                    const double* __restrict__ qInL, const double* __restrict__ qInR, double *qRhsOutL, double *qRhsOutR) {return 0;};
 
    private:
     /* dimension and basis parameters */

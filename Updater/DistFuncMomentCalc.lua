@@ -20,7 +20,7 @@ local UpdaterBase  = require "Updater.Base"
 local lume         = require "Lib.lume"
 local xsys         = require "xsys"
 
-local cuRunTime
+local cudaRunTime
 if GKYL_HAVE_CUDA then
    cudaRunTime = require "Cuda.RunTime"
 end
@@ -161,12 +161,19 @@ function DistFuncMomentCalc:init(tbl)
    -- NOTE: this should not be used if the updater is used to compute several different quantities in the same timestep.
    self.oncePerTime = xsys.pickBool(tbl.oncePerTime, false)
 
-   if GKYL_HAVE_CUDA and self.calcOnDevice then
-      self:initDevice()
-   end
 end
 
 function DistFuncMomentCalc:initDevice()
+   local vDim = self._vDim
+
+   local phaseRange    = self._onGrid:localRange()
+   local numCellsLocal = phaseRange:volume()
+
+   local deviceNumber  = cudaRunTime.GetDevice()
+   self.deviceProps    = cudaRunTime.GetDeviceProperties(deviceNumber)
+
+   self.distFuncMomThreads = math.min(GKYL_DEFAULT_NUM_THREADS, phaseRange:selectLast(vDim):volume())
+   self.distFuncMomBlocks  = math.floor(numCellsLocal/self.distFuncMomThreads) --+1
 end
 
 -- Advance method.
@@ -504,19 +511,9 @@ function DistFuncMomentCalc:_advanceOnDevice(tCurr, inFld, outFld)
    -- that are multiples of warpSize(=32), or smaller than the warpSize.
    local distf, momOut = inFld[1], outFld[1]
 
-   local pDim, vDim = self._pDim, self._vDim
-
-   local deviceNumber = cudaRunTime.GetDevice()
-   local deviceProps  = cudaRunTime.GetDeviceProperties(deviceNumber)
-
-   local phaseRange    = distf:localRange()
-   local numCellsLocal = phaseRange:volume()
-
-   local numThreads = math.min(GKYL_DEFAULT_NUM_THREADS, phaseRange:selectLast(vDim):volume())
-   local numBlocks  = math.floor(numCellsLocal/numThreads) --+1
    momOut:deviceClear(0.0)
 
-   self._momCalcFun(deviceProps, numBlocks, numThreads, distf._onDevice, momOut._onDevice)
+   self._momCalcFun(self.deviceProps, self.distFuncMomBlocks, self.distFuncMomThreads, distf._onDevice, momOut._onDevice)
 end
 
 return DistFuncMomentCalc

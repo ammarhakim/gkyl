@@ -25,6 +25,7 @@ ffi.cdef [[
   void unit_showFieldGrid(GkylCartField_t *f);
   void unit_readAndWrite(int numBlocks, int numThreads, GkylCartField_t *f, GkylCartField_t *res);
   void unit_readAndWrite_shared(int numBlocks, int numThreads, int sharedSize, GkylCartField_t *f, GkylCartField_t *res);
+  void unit_readAndWrite_shared_offset(int numBlocks, int numThreads, int sharedSize, GkylCartField_t *f, GkylCartField_t *res);
 ]]
 
 function test_1()
@@ -139,9 +140,9 @@ end
 
 function test_4()
    local grid = Grid.RectCart {
-      cells = {19, 14},
+      cells = {8, 8},
    }
-   local nComp = 20
+   local nComp = 32
    local field = DataStruct.Field {
       onGrid = grid,
       numComponents = nComp,
@@ -167,7 +168,7 @@ function test_4()
    result:copyHostToDevice()
 
    local numCellsLocal = field:localRange():volume()
-   local numThreads = 140
+   local numThreads = 64
    -- check that numThreads is evenly divisible by numComponents
    assert(numThreads % nComp == 0, string.format("\nshared memory implementation currently requires numThreads (%d) evenly divisible by numComponents (%d)", numThreads, nComp))
    -- check that number of cells in last dimension is evenly divisible by numThreads/numComponents
@@ -188,10 +189,64 @@ function test_4()
    end
 end
 
+function test_5()
+   local grid = Grid.RectCart {
+      cells = {8, 8},
+   }
+   local nComp = 32
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = nComp,
+      ghost = {1, 1},
+      createDeviceCopy = true,
+   }
+   field:clear(-1)
+   local indexer = field:genIndexer()
+   for idx in field:localRangeIter() do
+      local fitr = field:get(indexer(idx))
+      fitr[1] = 5*idx[1] + 2*idx[2]+1
+      fitr[2] = 5*idx[1] + 2*idx[2]+2
+      fitr[3] = 5*idx[1] + 2*idx[2]+3
+   end
+   field:copyHostToDevice()
+   local result = DataStruct.Field {
+      onGrid = grid,
+      numComponents = nComp,
+      ghost = {1, 1},
+      createDeviceCopy = true,
+   }
+   result:clear(10000)
+   result:copyHostToDevice()
+
+   local numCellsLocal = field:localRange():volume()
+   local numThreads = 32
+   -- check that numThreads is evenly divisible by numComponents
+   assert(numThreads % nComp == 0, string.format("\nshared memory implementation currently requires numThreads (%d) evenly divisible by numComponents (%d)", numThreads, nComp))
+   -- check that number of cells in last dimension is evenly divisible by numThreads/numComponents
+   assert(grid:numCells(grid:ndim()) % (numThreads/nComp) == 0, string.format("\nshared memory implementation currently requires number of cells in last dimension (%d) to be evenly divisible by numThreads/numComponents (%d/%d=%d)", grid:numCells(grid:ndim()), numThreads, nComp, numThreads/nComp))
+   local numBlocks = math.ceil(numCellsLocal/numThreads)
+   local sharedSize = 80*field:numComponents()
+   ffi.C.unit_readAndWrite_shared_offset(numBlocks, numThreads, sharedSize, field._onDevice, result._onDevice)
+   local err = cuda.DeviceSynchronize()
+   assert_equal(0, err, "cuda error")
+   result:copyDeviceToHost()
+   local ndim = grid:ndim()
+
+   for idx in field:localRangeIter() do
+      local fitr = field:get(indexer(idx))
+      idx[ndim] = idx[ndim]+1
+      local ritr = result:get(indexer(idx))
+      for i = 1, field:numComponents() do
+         assert_equal(fitr[i], ritr[i], string.format("readAndWrite_shared_offset test: incorrect element at index %d, component %d", indexer(idx)-1, i))
+      end
+   end
+end
+
 test_1()
 test_2()
 test_3()
 test_4()
+test_5()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
