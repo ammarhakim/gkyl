@@ -65,12 +65,19 @@ ffi.cdef [[
         double *_data;
     } GkylCartField_t;
 
+]]
+
+if GKYL_HAVE_CUDA then
+   ffi.cdef [[
     // Reduction down to a single value (e.g. min, max, sum).
     void reductionBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlocks,
                                    int maxThreads, int &blocks, int &threads);
+
     void gkylCartFieldDeviceReduce(const int reduceOp, int numCellsTot, int numBlocks, int numThreads, int maxBlocks, int maxThreads,
        GkDeviceProp *prop, GkylCartField_t *fIn, double *blockOut, double *intermediate, double *out);
-]]
+
+   ]]
+end
 
 -- Local definitions
 local rowMajLayout, colMajLayout = Range.rowMajor, Range.colMajor -- data layout
