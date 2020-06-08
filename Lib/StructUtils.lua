@@ -7,6 +7,8 @@
 --------------------------------------------------------------------------------
 
 local ffi = require "ffi"
+
+local cuda
 if GKYL_HAVE_CUDA then
    cuda = require "Cuda.RunTime"
 end

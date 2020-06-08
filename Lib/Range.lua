@@ -11,10 +11,16 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
+local cuda
+if GKYL_HAVE_CUDA then
+   cuda = require "Cuda.RunTime"
+end
+
 -- Gkyl libraries
 local Lin = require "Lib.Linalg"
 
 local _M = {}
+local _P = {} -- private namespace
 
 -- these are used to fetch consistent indexer and iterators
 _M.rowMajor = 1
@@ -313,7 +319,7 @@ local range_mt = {
 	 function (self)
 	    local r = new(rTy)
 	    ffi.copy(r, self, rSz)
-	    local row_c, col_c = calcRowMajorIndexerCoeff(range), calcColMajorIndexerCoeff(range)
+	    local row_c, col_c = _P.calcRowMajorIndexerCoeff(self), _P.calcColMajorIndexerCoeff(self)
 	    ffi.copy(r._rowMajorIndexerCoeff, row_c, sizeof("int[7]"))
 	    ffi.copy(r._colMajorIndexerCoeff, col_c, sizeof("int[7]"))
 	    
@@ -400,6 +406,7 @@ local function calcRowMajorIndexerCoeff(range)
    ac[0] = 1-start
    return ac
 end
+_P.calcRowMajorIndexerCoeff = calcRowMajorIndexerCoeff
 
 -- create coefficients for column-major indexer  given "range" object
 local function calcColMajorIndexerCoeff(range)
@@ -416,6 +423,7 @@ local function calcColMajorIndexerCoeff(range)
    ac[0] = 1-start
    return ac
 end
+_P.calcColMajorIndexerCoeff = calcColMajorIndexerCoeff
 
 -- Following functions return an indexer function given a range
 -- object. The returned function takes a (i,j,...) index.

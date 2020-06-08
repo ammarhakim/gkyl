@@ -67,18 +67,25 @@ __global__ void ker_unit_showRange(GkylRange_t *range)
   for (unsigned i=0; i<range->ndim; ++i)
     printf(" %d, %d\n", range->lower[i], range->upper[i]);
 
-  Gkyl::GenIndexer idxr(range);
-  int lin1 = idxr.index(range->lower);
-  int lin2 = idxr.index(range->upper);
-  printf("  --- Calls to indexers %d, %d (%d)\n", lin1, lin2, lin2-lin1);
+  printf("Range row-indexing data:\n");
+  for (unsigned i=0; i<range->ndim+1; ++i)
+    printf(" %d\n", range->rowMajorIndexerCoeff[i]);
+  printf("Range col-indexing data:\n");
+  for (unsigned i=0; i<range->ndim+1; ++i)
+    printf(" %d\n", range->colMajorIndexerCoeff[i]);
 
-  int idx[1];
-  for (int i=0; i<range->upper[0]-range->lower[0]+1; ++i) {
-    idxr.invIndex(i, idx);
-    printf("Lin index %d -> index %d\n", i, idx[0]);
-  }
+  Gkyl::GenIndexer idxr_r(range, Gkyl::Layout::rowMajor);
+  int lin1 = idxr_r.index(range->lower);
+  int lin2 = idxr_r.index(range->upper);
+  printf("  --- Calls to row-major indexers %d, %d (%d)\n", lin1, lin2, lin2-lin1);
 
-  // can also instantiate a C++ range object using the GkylRange_t range pointer (from Lua)
+  Gkyl::GenIndexer idxr_c(range, Gkyl::Layout::colMajor);
+  lin1 = idxr_c.index(range->lower);
+  lin2 = idxr_c.index(range->upper);
+  printf("  --- Calls to col-major indexers %d, %d (%d)\n", lin1, lin2, lin2-lin1);
+
+  // can also instantiate a C++ range object using the GkylRange_t
+  // range pointer (from Lua)
   Gkyl::Range range_cpp(range);
   printf("Range ndim: %d\n", range_cpp.ndim());
   for (unsigned i=0; i<range_cpp.ndim(); ++i)
