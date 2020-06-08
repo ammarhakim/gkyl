@@ -1,6 +1,11 @@
 #!/bin/bash
 
 # Edit the paths and options in the following command to suit your system
+# The following modules should be loaded to configure on Adroit.
+# module load intel
+# module load openmpi/cuda-10.2/intel-19.1/4.0.3/64
+# module load cudatoolkit/10.2
+# module load rh/devtoolset/8
 
 # Build directory
 OUT=build
