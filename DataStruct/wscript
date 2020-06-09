@@ -8,7 +8,7 @@ import os
 def build(bld):
     # CUDA specific code
     if bld.env['CUTOOLS_FOUND']:
-        bld(source = 'CartFieldDeviceImpl.cu CartFieldDeviceReduce.cu', 
+        bld(source = 'CartFieldDeviceImpl.cu GkylCartFieldDeviceReduce.cu', 
             name = 'datastruct_cu', target='datastruct_cu',
             includes = '. ../Grid ../Lib ../DataStruct ../Cuda', features = 'cxx cushlib', 
         )
