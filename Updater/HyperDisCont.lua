@@ -9,6 +9,7 @@
 
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
+local DataStruct = require "DataStruct"
 local Eq = require "Eq.Vlasov"
 local Grid = require "Grid.RectCart"
 local CartField = require "DataStruct.CartField"
@@ -38,6 +39,8 @@ ffi.cdef [[
       double dt;
       GkylVlasov *equation;
       GkylCartField_t *cflRateByCell;
+      GkylCartField_t *maxsByCell;
+      double *maxs;
   } GkylHyperDisCont_t; 
 
   void advanceOnDevice(int numBlocks, int numThreads, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
@@ -117,12 +120,21 @@ function HyperDisCont:init(tbl)
 end
 
 function HyperDisCont:initDevice()
+   self.maxsByCell = DataStruct.Field {
+      onGrid = self._onGrid,
+      numComponents = #self._updateDirs,
+      ghost = {1, 1},
+      createDeviceCopy = true,
+   }
+   self.maxs = cuAlloc.Double(6)
    local hyper = ffi.new("GkylHyperDisCont_t")
    hyper.updateDirs = ffi.new("int[6]", self._updateDirs)
    hyper.zeroFluxFlags = ffi.new("bool[6]", self._zeroFluxFlags)
    hyper.numUpdateDirs = #self._updateDirs
    hyper.updateVolumeTerm = self._updateVolumeTerm
    hyper.equation = self._equation._onDevice
+   hyper.maxsByCell = self.maxsByCell._onDevice
+   hyper.maxs = self.maxs:data()
    self._onHost = hyper
    local sz = sizeof("GkylHyperDisCont_t")
    self._onDevice, err = cuda.Malloc(sz)
@@ -295,6 +307,8 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
    else
       ffiC.advanceOnDevice(numBlocks, numThreads, self._onDevice, qIn._onDevice, qRhsOut._onDevice)
    end
+
+   --self.maxsByCell:deviceReduce('max', self.maxs)  
 end
 
 -- set up pointers to dt and cflRateByCell

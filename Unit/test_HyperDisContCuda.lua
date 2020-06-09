@@ -168,9 +168,9 @@ function test_1()
             assert_close(fitr[i], d_fitr[i], 1e-10, string.format("index %d, component %d is incorrect", indexer(idx), i))
          end
       end
+      assert_equal(cflRate, cflRate_from_gpu[1], "Checking max cflRate")
    end
 
-   assert_equal(cflRate, cflRate_from_gpu[1], "Checking max cflRate")
 
    print(string.format("Total CPU time for %d HyperDisCont calls = %f s   (average = %f s)", nloop, totalCpuTime, totalCpuTime/nloop))
    print(string.format("Total GPU time for %d HyperDisCont calls = %f s   (average = %f s)", nloop, totalGpuTime, totalGpuTime/nloop))

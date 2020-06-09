@@ -23,6 +23,8 @@ extern "C"
       double dt;
       Gkyl::Vlasov *equation;
       GkylCartField_t *cflRateByCell;
+      GkylCartField_t *maxsByCell;
+      double *maxs;
   } GkylHyperDisCont_t;
     
   void advanceOnDevice(int numBlocks, int numThreads, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);

@@ -65,18 +65,20 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
       const double *fInR = fIn->getDataPtrAt(linearIdxR);
       
       // left (of C) surface update. use dummy in place of fRhsOutL (cell to left of surface) so that only current cell (C) is updated.
+      double maxsL, maxsR;
       if(!(zeroFluxFlags[dir] && idxC[dir] == localRange->lower[dir])) {
-        eq->surfTerm(dir, xcL, xcC, dx, dx, 0., idxL, idxC, fInL, fInC, dummy, fRhsOutC);
+        maxsL = eq->surfTerm(dir, xcL, xcC, dx, dx, hyper->maxs[i], idxL, idxC, fInL, fInC, dummy, fRhsOutC);
       } else if( zeroFluxFlags[dir]) {
-        eq->boundarySurfTerm(dir, xcL, xcC, dx, dx, 0., idxL, idxC, fInL, fInC, dummy, fRhsOutC);
+        eq->boundarySurfTerm(dir, xcL, xcC, dx, dx, hyper->maxs[i], idxL, idxC, fInL, fInC, dummy, fRhsOutC);
       }
 
       // right (of C) surface update. use dummy in place of fRhsOutR (cell to left of surface) so that only current cell (C) is updated.
       if(!(zeroFluxFlags[dir] && idxC[dir] == localRange->upper[dir])) {
-        eq->surfTerm(dir, xcC, xcR, dx, dx, 0., idxC, idxR, fInC, fInR, fRhsOutC, dummy);
+        maxsR = eq->surfTerm(dir, xcC, xcR, dx, dx, hyper->maxs[i], idxC, idxR, fInC, fInR, fRhsOutC, dummy);
       } else if( zeroFluxFlags[dir]) {
-        eq->boundarySurfTerm(dir, xcC, xcR, dx, dx, 0., idxC, idxR, fInC, fInR, fRhsOutC, dummy);
+        eq->boundarySurfTerm(dir, xcC, xcR, dx, dx, hyper->maxs[i], idxC, idxR, fInC, fInR, fRhsOutC, dummy);
       }
+      hyper->maxsByCell->getDataPtrAt(linearIdxC)[i] = max(maxsL, maxsR);
     }
   
 } 
