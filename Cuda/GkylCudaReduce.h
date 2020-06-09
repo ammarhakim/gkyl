@@ -44,14 +44,13 @@ namespace Gkyl {
 
   template <Gkyl::BinOp binOpType>
   __inline__ __device__ double binOp(double a, double b) {
-    double result = 0.0;
     if (binOpType == BinOp::binOpMin) {
-      result = MIN(a,b);
+      return ((a < b) ? a : b);
     } else if (binOpType == BinOp::binOpMax) {
-      result = MAX(a,b);
+      return ((a > b) ? a : b);
     } else if (binOpType == BinOp::binOpSum) {
-      result = SUM(a,b);
+      return a+b;
     }
-    return result;
+    return 0;
   }
 }
