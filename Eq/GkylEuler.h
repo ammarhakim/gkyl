@@ -40,7 +40,7 @@ namespace Gkyl {
 
       __host__ __device__ void rp(
           const unsigned dir, const double *delta, const double *ql,
-          const double *qr, double **waves, double *s);
+          const double *qr, double *waves, double *s);
 
       __host__ __device__ void qFluctuations(
           const unsigned dir, const double *ql, const double *qr,
@@ -58,7 +58,7 @@ namespace Gkyl {
 
       __host__ __device__ void rpLax(
           const unsigned dir, const double *delta, const double *ql,
-          const double *qr, double **waves, double *s);
+          const double *qr, double *waves, double *s);
 
       __host__ __device__ void qFluctuationsLax(
           const unsigned dir, const double *ql, const double *qr,

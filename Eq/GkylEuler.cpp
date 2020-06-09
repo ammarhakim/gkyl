@@ -26,10 +26,10 @@ namespace Gkyl {
 
   __host__ __device__ void Euler::rpLax(
       const unsigned dir, const double *delta, const double *ql,
-      const double *qr, double **waves, double *s) {
+      const double *qr, double *waves, double *s) {
     const int *d = dirShuffle[dir];
 
-    double *wv = waves[0];
+    double *wv = &waves[0];
     wv[0] = qr[0]-ql[0];
     wv[1] = qr[1]-ql[1];
     wv[2] = qr[2]-ql[2];
@@ -98,7 +98,7 @@ namespace Gkyl {
 
   __host__ __device__ void Euler::rp(
       const unsigned dir, const double *delta, const double *ql,
-      const double *qr, double **waves, double *s) {
+      const double *qr, double *waves, double *s) {
     rpLax(dir, delta, ql, qr, waves, s);
   }
 
