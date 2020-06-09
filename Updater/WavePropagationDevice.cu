@@ -2,17 +2,17 @@
 #include <GkylWavePropagation.h>
 #include <GkylEuler.h>
 
-__global__ void cuda_WavePropagation(GkylWavePropagation_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
+__global__ void cuda_WavePropagation(GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut) {
 
-  GkylRange_t *localRange = fIn->localRange;
+  GkylRange_t *localRange = qIn->localRange;
   unsigned int ndim = localRange->ndim;
 
-  // set up indexers for localRange and fIn (localExtRange)
+  // set up indexers for localRange and qIn (localExtRange)
   Gkyl::GenIndexer localIdxr(localRange);
-  Gkyl::GenIndexer fIdxr = fIn->genIndexer();
+  Gkyl::GenIndexer fIdxr = qIn->genIndexer();
 
   // get setup data from GkylWavePropagation_t structure
-  GkylRectCart_t *grid = fIn->grid;
+  GkylRectCart_t *grid = qIn->grid;
   int *updateDirs = hyper->updateDirs;
   int numUpdateDirs = hyper->numUpdateDirs;
   Gkyl::Euler *eq = hyper->equation;
@@ -40,8 +40,8 @@ __global__ void cuda_WavePropagation(GkylWavePropagation_t *hyper, GkylCartField
   grid->cellCenter(idxC, xcC);
   const double *dx = grid->dx;
 
-  const double *fInC = fIn->getDataPtrAt(linearIdxC);
-  double *fRhsOutC = fRhsOut->getDataPtrAt(linearIdxC);
+  const double *qInC = qIn->getDataPtrAt(linearIdxC);
+  double *qOutC = qOut->getDataPtrAt(linearIdxC);
   // cflRateByCell->getDataPtrAt(linearIdxC)[0] += cflRate;
 
   for(int i=0; i<numUpdateDirs; i++) {
@@ -58,17 +58,17 @@ __global__ void cuda_WavePropagation(GkylWavePropagation_t *hyper, GkylCartField
     const int linearIdxR = fIdxr.index(idxR);
     grid->cellCenter(idxL, xcL);
     grid->cellCenter(idxR, xcR);
-    const double *fInL = fIn->getDataPtrAt(linearIdxL);
-    const double *fInR = fIn->getDataPtrAt(linearIdxR);
+    const double *qInL = qIn->getDataPtrAt(linearIdxL);
+    const double *qInR = qIn->getDataPtrAt(linearIdxR);
 
     // hyper->maxsByCell->getDataPtrAt(linearIdxC)[i] = max(maxsL, maxsR);
   }
 
 }
 
-void wavePropagationAdvanceOnDevice(int numBlocks, int numThreads, GkylWavePropagation_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
+void wavePropagationAdvanceOnDevice(int numBlocks, int numThreads, GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut) {
   cudaFuncSetAttribute(cuda_WavePropagation, cudaFuncAttributeMaxDynamicSharedMemorySize, 32*sizeof(double));
-  cuda_WavePropagation<<<numBlocks, numThreads, 32*sizeof(double)>>>(hyper, fIn, fRhsOut);
+  cuda_WavePropagation<<<numBlocks, numThreads, 32*sizeof(double)>>>(hyper, qIn, qOut);
 }
 
 __global__ void wavePropagationSetDtAndCflRateOnDevice(GkylWavePropagation_t *hyper, double dt, GkylCartField_t *cflRate) {
