@@ -95,4 +95,17 @@ namespace Gkyl {
     apdq[d[3]] = 0.5*(fr[d[3]]-fl[d[3]] + absMaxs*(qr[d[3]]-ql[d[3]]));
     apdq[4] = 0.5*(fr[4]-fl[4] + absMaxs*(qr[4]-ql[4]));
   }
+
+  __host__ __device__ void Euler::rp(
+      const unsigned dir, const double *delta, const double *ql,
+      const double *qr, double **waves, double *s) {
+    rpLax(dir, delta, ql, qr, waves, s);
+  }
+
+  __host__ __device__ void Euler::qFluctuations(
+      const unsigned dir, const double *ql, const double *qr,
+      const double *waves, const double *s, double *amdq,
+      double *apdq) {
+    qFluctuationsLax(dir, ql, qr, waves, s, amdq, apdq);
+  }
 }

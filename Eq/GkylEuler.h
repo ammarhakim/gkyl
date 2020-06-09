@@ -38,6 +38,15 @@ namespace Gkyl {
 
       __host__ __device__ double pressure(const double *q);
 
+      __host__ __device__ void rp(
+          const unsigned dir, const double *delta, const double *ql,
+          const double *qr, double **waves, double *s);
+
+      __host__ __device__ void qFluctuations(
+          const unsigned dir, const double *ql, const double *qr,
+          const double *waves, const double *s, double *amdq,
+          double *apdq);
+
     private:
       /* dimension and basis parameters */
       const double _gasGamma = 5./3.;
