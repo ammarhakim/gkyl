@@ -398,6 +398,8 @@ def build(bld):
         momentCalcData/DistFuncMomentCalcTensor2x2v.cpp
 
         momentCalcData/DistFuncMomentCalcDeviceWrappers.cu
+
+        WavePropagationDevice.cu
         """
         
         bld(source = cusources,
