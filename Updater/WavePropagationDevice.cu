@@ -82,6 +82,8 @@ __global__ void cuda_WavePropagation(
   grid->cellCenter(idxC, xcC);
   const double *dx = grid->dx;
 
+  double cfla = 0;
+
   const double *qInC = qIn->getDataPtrAt(linearIdxC);
   double *qOutC = qOut->getDataPtrAt(linearIdxC);
   // cflRateByCell->getDataPtrAt(linearIdxC)[0] += cflRate;
