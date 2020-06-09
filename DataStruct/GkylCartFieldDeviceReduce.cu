@@ -1,3 +1,4 @@
+/* -*- c++ -*- */
 // Gkyl ------------------------------------------------------------------------
 //
 // Functions to compute reductions of a CartField in GPU (Cuda).
@@ -8,6 +9,8 @@
 
 #include <CartFieldDeviceImpl.h>
 #include <GkylRange.h>
+
+namespace cg = cooperative_groups;
 
 extern "C" bool isPow2(unsigned int x);
 

@@ -7,7 +7,7 @@
 
 #include <GkylCudaFuncs.h>
 #include <GkylCartField.h>
-#include <Reduce.h>
+#include <GkylCudaReduce.h>
 
 #ifndef GKYL_CART_FIELD_DEVICE_H
 #define GKYL_CART_FIELD_DEVICE_H

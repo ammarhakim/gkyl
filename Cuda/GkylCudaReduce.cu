@@ -6,7 +6,9 @@
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
-#include <Reduce.h>
+#include <GkylCudaReduce.h>
+
+namespace cg = cooperative_groups;
 
 bool isPow2(unsigned int x) { return ((x & (x - 1)) == 0); }
 
@@ -21,7 +23,7 @@ unsigned int nextPow2(unsigned int x) {
 }
 
 __device__ double redBinOpMin(double a, double b) {
-  return MIN(a,b);
+  return Gkyl::MIN(a,b);
 }
 __device__ redBinOpFunc_t d_redBinOpMinPtr = &redBinOpMin;
 redBinOpFunc_t getRedMinFuncFromDevice() {
@@ -31,7 +33,7 @@ redBinOpFunc_t getRedMinFuncFromDevice() {
 }
 
 __device__ double redBinOpMax(double a, double b) {
-  return MAX(a,b);
+  return Gkyl::MAX(a,b);
 }
 __device__ redBinOpFunc_t d_redBinOpMaxPtr = &redBinOpMax;
 redBinOpFunc_t getRedMaxFuncFromDevice() {
@@ -41,7 +43,7 @@ redBinOpFunc_t getRedMaxFuncFromDevice() {
 }
 
 __device__ double redBinOpSum(double a, double b) {
-  return SUM(a,b);
+  return Gkyl::SUM(a,b);
 }
 __device__ redBinOpFunc_t d_redBinOpSumPtr = &redBinOpSum;
 redBinOpFunc_t getRedSumFuncFromDevice() {
@@ -68,13 +70,13 @@ void reductionBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlock
 
   if (blocks > (prop->maxGridSize)[0]) {
     printf("Grid size <%d> exceeds the device capability <%d>, set block size as %d (original %d)\n",
-        blocks, (prop->maxGridSize)[0], threads * 2, threads);
+      blocks, (prop->maxGridSize)[0], threads * 2, threads);
 
     blocks  /= 2;
     threads *= 2;
   }
 
-  blocks = MIN(maxBlocks, blocks);
+  blocks = (maxBlocks < blocks) ? maxBlocks : blocks;
 }
 
 // This algorithm reduces multiple elements per thread sequentially. This reduces
