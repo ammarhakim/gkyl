@@ -27,16 +27,17 @@ extern "C"
     
   void advanceOnDevice(int numBlocks, int numThreads, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
   void advanceOnDevice_shared(int numBlocks, int numThreads, int numComponents, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
-  void setDtAndCflRate(GkylHyperDisCont_t *hyper, double dt, GkylCartField_t *cflRate);
+  static void setDtAndCflRate(GkylHyperDisCont_t *hyper, double dt, GkylCartField_t *cflRate);
 }
 
-void setDtAndCflRate(GkylHyperDisCont_t *hyper, double dt, GkylCartField_t *cflRate) {
-  setDtAndCflRateOnDevice<<<1, 1>>>(hyper, emField);
-}
-
-__global__ void setDtAndCflRateOnDevice(GkylHyperDisCont_t *hyper, double dt, GkylCartField_t *cflRate) {
+__global__ static void setDtAndCflRateOnDevice(GkylHyperDisCont_t *hyper, double dt, GkylCartField_t *cflRate) {
   hyper->dt = dt;
   hyper->cflRateByCell = cflRate;
 }
+
+static void setDtAndCflRate(GkylHyperDisCont_t *hyper, double dt, GkylCartField_t *cflRate) {
+  setDtAndCflRateOnDevice<<<1, 1>>>(hyper, dt, cflRate);
+}
+
 
 #endif // GKYL_HYPER_DISCONT_H
