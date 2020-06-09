@@ -48,8 +48,7 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
     for(int i=0; i<numUpdateDirs; i++) {
       int dir = updateDirs[i] - 1;
     
-      #pragma unroll
-      for(int d=0; d<6; d++) {
+      for(int d=0; d<ndim; d++) {
         idxL[d] = idxC[d];
         idxR[d] = idxC[d];
       }
