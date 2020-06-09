@@ -41,18 +41,20 @@ function test_1()
    assert_equal(11, localExtRange:upper(1), "Checking range upper")
 
    local indexer = field:indexer()
-   for i = localRange:lower(1), localRange:upper(1) do
+   for i = localExtRange:lower(1), localExtRange:upper(1) do
       local fitr = field:get(indexer(i))
       fitr[1] = i+1
       fitr[2] = i+2
       fitr[3] = i+3
    end
 
-   for i = localRange:lower(1), localRange:upper(1) do
-      local fitr = field:get(indexer(i))
-      assert_equal(i+1, fitr[1], "Checking field value")
-      assert_equal(i+2, fitr[2], "Checking field value")
-      assert_equal(i+3, fitr[3], "Checking field value")
+   for j = 1, field:numComponents() do
+      for i = localExtRange:lower(1), localExtRange:upper(1) do
+         local idx = indexer(i)
+         assert_equal(i+j, field._data[(j-1)+3*(idx-1)], "Checking values by indexing _data directly")
+         assert_equal(i+j, field:get(idx)[j], "Checking values by using get()")         
+         assert_equal(i+j, field:getDataPtrAt(idx)[j-1], "Checking values by using getDataPtrAt()")         
+      end
    end
 end
 
@@ -119,6 +121,7 @@ function test_3()
    local field = EulerField {
       onGrid = grid,
       ghost = {1, 1},
+      createDeviceCopy = false,
    }
 
    local localRange = field:localRange()

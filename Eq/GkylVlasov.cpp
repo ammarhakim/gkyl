@@ -4,14 +4,14 @@ __global__ void setAuxFieldsOnDevice(Gkyl::Vlasov *v, GkylCartField_t* emField);
 
 namespace Gkyl {
 
-  __host__ __device__ double Vlasov::volTerm(const double *xc, const double *dx, const int *idx, const double *qIn, double *qRhsOut) {
+  __host__ __device__ double Vlasov::volTerm(const double* __restrict__ xc, const double* __restrict__ dx, const int* __restrict__ idx, const double* __restrict__ qIn, double *qRhsOut) {
     Gkyl::GenIndexer emIdxr = emField->genIndexer();
     const double *em = emField->getDataPtrAt(emIdxr.index(idx));
     double amid = kernel.volumeTerm(xc, dx, em, qIn, qRhsOut);
     return amid;
   }
 
-  __device__ double Vlasov::volTerm_shared(const double *xc, const double *dx, const int *idx, const double *qIn, double *qRhsOut) {
+  __device__ double Vlasov::volTerm_shared(const double* __restrict__ xc, const double* __restrict__ dx, const int* __restrict__ idx, const double* __restrict__ qIn, double *qRhsOut) {
     Gkyl::GenIndexer emIdxr = emField->genIndexer();
     //double *em = shared;
     //for(int j=0; j<numComponents; j++) {
@@ -23,10 +23,10 @@ namespace Gkyl {
     return amid;
   }
 
-  __host__ __device__ double Vlasov::surfTerm(const int dir, const double *cflL, const double *cflR,
-                  const double *xcL, const double *xcR, const double *dxL, const double *dxR,
-                  const double maxsOld, const int *idxL, const int *idxR,
-                  const double *qInL, const double *qInR, double *qRhsOutL, double *qRhsOutR) {
+  __host__ __device__ double Vlasov::surfTerm(const int dir, 
+                  const double* __restrict__ xcL, const double* __restrict__ xcR, const double* __restrict__ dxL, const double* __restrict__ dxR,
+                  const double maxsOld, const int* __restrict__ idxL, const int* __restrict__ idxR,
+                  const double* __restrict__ qInL, const double* __restrict__ qInR, double *qRhsOutL, double *qRhsOutR) {
     double amax = 0.0;
     if(dir < cdim) {
       kernel.surfStreamTerm(dir, xcL, xcR, dxL, dxR, qInL, qInR, qRhsOutL, qRhsOutR);
@@ -38,7 +38,7 @@ namespace Gkyl {
     return amax;
   }
 
-  __host__ __device__ void Vlasov::setAuxFields(GkylCartField_t *em) {
+  __host__ __device__ void Vlasov::setAuxFields(GkylCartField_t* em) {
     emField = em;
   }
 
@@ -66,4 +66,21 @@ namespace Gkyl {
 
 __global__ void setAuxFieldsOnDevice(Gkyl::Vlasov *v, GkylCartField_t* emField) {
   v->setAuxFields(emField);
+}
+
+GkylEquation_t*
+new_VlasovEquationOnDevice(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType) {
+  GkylEquation_t *eqn = new GkylEquation_t;
+  GkylVlasovEquation_t *vlasovEqn = new GkylVlasovEquation_t;
+
+  vlasovEqn->cdim = cdim;
+  vlasovEqn->vdim = vdim;
+  vlasovEqn->polyOrder = polyOrder;
+  vlasovEqn->basisType = basisType;
+
+  // setup equation object with Vlasov data and function pointers
+  eqn->equation = vlasovEqn;
+  
+
+  return eqn;
 }

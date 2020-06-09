@@ -11,11 +11,15 @@ if GKYL_HAVE_CUDA == false then
    return 0
 end
 
-local ffi = require "ffi"
-local Unit = require "Unit"
-local Grid = require "Grid"
+local ffi        = require "ffi"
+local Unit       = require "Unit"
+local Grid       = require "Grid"
+local Basis      = require "Basis"
 local DataStruct = require "DataStruct"
-local cuda = require "Cuda.RunTime"
+local cuda       = require "Cuda.RunTime"
+local cudaAlloc  = require "Cuda.Alloc"
+local Alloc      = require "Lib.Alloc"
+local Time       = require "Lib.Time"
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
@@ -25,7 +29,56 @@ ffi.cdef [[
   void unit_showFieldGrid(GkylCartField_t *f);
   void unit_readAndWrite(int numBlocks, int numThreads, GkylCartField_t *f, GkylCartField_t *res);
   void unit_readAndWrite_shared(int numBlocks, int numThreads, int sharedSize, GkylCartField_t *f, GkylCartField_t *res);
+  void unit_readAndWrite_shared_offset(int numBlocks, int numThreads, int sharedSize, GkylCartField_t *f, GkylCartField_t *res);
 ]]
+
+local function createGrid(lo,up,nCells)
+   local gridOut = Grid.RectCart {
+      lower = lo,
+      upper = up,
+      cells = nCells,
+   }
+   return gridOut
+end
+
+local function createBasis(dim, pOrder, bKind)
+   local basis
+   if (bKind=="Ser") then
+      basis = Basis.CartModalSerendipity { ndim = dim, polyOrder = pOrder }
+   elseif (bKind=="Max") then
+      basis = Basis.CartModalMaxOrder { ndim = dim, polyOrder = pOrder }
+   elseif (bKind=="Tensor") then
+      basis = Basis.CartModalTensor { ndim = dim, polyOrder = pOrder }
+   else
+      assert(false,"Invalid basis")
+   end
+   return basis
+end
+
+local function createField(grid, basis, deviceCopy, ghosts, isP0, vComp)
+   vComp = vComp or 1
+   if ghost then
+      ghostCells = {1, 1}
+   else
+      ghostCells = {0, 0}
+   end
+   if isP0 then
+      numBasisElements = 1
+   else
+      numBasisElements = basis:numBasis()*vComp
+   end
+   local fld = DataStruct.Field {
+      onGrid           = grid,
+      numComponents    = numBasisElements,
+      ghost            = ghostCells,
+      createDeviceCopy = deviceCopy,
+      metaData = {
+         polyOrder = basis:polyOrder(),
+         basisType = basis:id()
+      },
+   }
+   return fld
+end
 
 function test_1()
    local grid = Grid.RectCart {
@@ -139,9 +192,9 @@ end
 
 function test_4()
    local grid = Grid.RectCart {
-      cells = {19, 14},
+      cells = {8, 8},
    }
-   local nComp = 20
+   local nComp = 32
    local field = DataStruct.Field {
       onGrid = grid,
       numComponents = nComp,
@@ -167,7 +220,7 @@ function test_4()
    result:copyHostToDevice()
 
    local numCellsLocal = field:localRange():volume()
-   local numThreads = 140
+   local numThreads = 64
    -- check that numThreads is evenly divisible by numComponents
    assert(numThreads % nComp == 0, string.format("\nshared memory implementation currently requires numThreads (%d) evenly divisible by numComponents (%d)", numThreads, nComp))
    -- check that number of cells in last dimension is evenly divisible by numThreads/numComponents
@@ -188,8 +241,116 @@ function test_4()
    end
 end
 
--- This test synchronizes periodic boundary conditions on a single GPU (since we call the sync method even when only using one MPI process).
 function test_5()
+   local grid = Grid.RectCart {
+      cells = {8, 8},
+   }
+   local nComp = 32
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = nComp,
+      ghost = {1, 1},
+      createDeviceCopy = true,
+   }
+   field:clear(-1)
+   local indexer = field:genIndexer()
+   for idx in field:localRangeIter() do
+      local fitr = field:get(indexer(idx))
+      fitr[1] = 5*idx[1] + 2*idx[2]+1
+      fitr[2] = 5*idx[1] + 2*idx[2]+2
+      fitr[3] = 5*idx[1] + 2*idx[2]+3
+   end
+   field:copyHostToDevice()
+   local result = DataStruct.Field {
+      onGrid = grid,
+      numComponents = nComp,
+      ghost = {1, 1},
+      createDeviceCopy = true,
+   }
+   result:clear(10000)
+   result:copyHostToDevice()
+
+   local numCellsLocal = field:localRange():volume()
+   local numThreads = 32
+   -- check that numThreads is evenly divisible by numComponents
+   assert(numThreads % nComp == 0, string.format("\nshared memory implementation currently requires numThreads (%d) evenly divisible by numComponents (%d)", numThreads, nComp))
+   -- check that number of cells in last dimension is evenly divisible by numThreads/numComponents
+   assert(grid:numCells(grid:ndim()) % (numThreads/nComp) == 0, string.format("\nshared memory implementation currently requires number of cells in last dimension (%d) to be evenly divisible by numThreads/numComponents (%d/%d=%d)", grid:numCells(grid:ndim()), numThreads, nComp, numThreads/nComp))
+   local numBlocks = math.ceil(numCellsLocal/numThreads)
+   local sharedSize = 80*field:numComponents()
+   ffi.C.unit_readAndWrite_shared_offset(numBlocks, numThreads, sharedSize, field._onDevice, result._onDevice)
+   local err = cuda.DeviceSynchronize()
+   assert_equal(0, err, "cuda error")
+   result:copyDeviceToHost()
+   local ndim = grid:ndim()
+
+   for idx in field:localRangeIter() do
+      local fitr = field:get(indexer(idx))
+      idx[ndim] = idx[ndim]+1
+      local ritr = result:get(indexer(idx))
+      for i = 1, field:numComponents() do
+         assert_equal(fitr[i], ritr[i], string.format("readAndWrite_shared_offset test: incorrect element at index %d, component %d", indexer(idx)-1, i))
+      end
+   end
+end
+
+local function test_deviceReduce(nIter, reportTiming)
+   -- Test the reduceDevice method.
+   local pOrder        = 1
+   local basis         = "Ser"
+   local phaseLower    = {0.0, -6.0}
+   local phaseUpper    = {1.0,  6.0}
+   local phaseNumCells = {8100, 531}
+   
+   -- Phase-space grid and basis functions.
+   local phaseGrid  = createGrid(phaseLower, phaseUpper, phaseNumCells)
+   local phaseBasis = createBasis(phaseGrid:ndim(), pOrder, basis)
+   -- Field with only one component.
+   local p0Field = createField(phaseGrid, phaseBasis, true, true, true)
+   -- Initialize field to random numbers.
+   math.randomseed(1000*os.time())
+   local fldRange = p0Field:localRange()
+   local fldIdxr  = p0Field:genIndexer()
+   for idx in fldRange:rowMajorIter() do
+      local fldItr = p0Field:get(fldIdxr( idx ))
+      fldItr[1]    = math.random()
+   end
+   p0Field:copyHostToDevice()
+
+   -- Get the maximum, minimum and sum on the CPU (for reference).
+   local maxVal, minVal, sumVal = p0Field:reduce("max"), p0Field:reduce("min"), p0Field:reduce("sum")
+
+   local d_maxVal, d_minVal, d_sumVal = cudaAlloc.Double(1), cudaAlloc.Double(1), cudaAlloc.Double(1)
+   
+   local tmStart = Time.clock()
+   for i = 1, nIter do
+      p0Field:deviceReduce("max",d_maxVal)
+      p0Field:deviceReduce("min",d_minVal)
+      p0Field:deviceReduce("sum",d_sumVal)
+   end
+   local err          = cuda.DeviceSynchronize()
+   if reportTiming then
+      local totalGpuTime = (Time.clock()-tmStart)
+      print(string.format("Total GPU time for %d calls = %f s   (average = %f s per call)", nIter*3, totalGpuTime, totalGpuTime/(3*nIter)))
+   end
+   
+   -- Test that the value found is correct.
+   local maxVal_gpu, minVal_gpu, sumVal_gpu = Alloc.Double(1), Alloc.Double(1), Alloc.Double(1)
+   local err = d_maxVal:copyDeviceToHost(maxVal_gpu)
+   local err = d_minVal:copyDeviceToHost(minVal_gpu)
+   local err = d_sumVal:copyDeviceToHost(sumVal_gpu)
+   
+   assert_equal(maxVal, maxVal_gpu[1], "Checking max reduce of CartField on GPU.")
+   assert_equal(minVal, minVal_gpu[1], "Checking min reduce of CartField on GPU.")
+   assert_equal(sumVal, sumVal_gpu[1], "Checking sum reduce of CartField on GPU.")
+   
+   cuda.Free(d_maxVal)
+   cuda.Free(d_minVal)
+   cuda.Free(d_sumVal)
+end
+
+-- This test synchronizes periodic boundary conditions on a single GPU (since we call the sync method even when only using one MPI process).
+function test_6()
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},
       upper = {1.0, 1.0},
@@ -233,11 +394,13 @@ function test_5()
 
 end
 
-
 test_1()
 test_2()
 test_3()
 test_4()
+test_5()
+test_deviceReduce(1, false)
+test_6()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

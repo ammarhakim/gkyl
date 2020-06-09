@@ -239,8 +239,8 @@ local function Field_meta_ctor(elct)
       self.localReductionVal  = ElemVec(1)
       self.globalReductionVal = ElemVec(1)
 
-      -- Create device memory if needed.
-      local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, false) -- by default, no device mem allocated
+      -- create a device copy is needed
+      local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, GKYL_USE_DEVICE)
       if createDeviceCopy then
          -- Allocate device memory.
 	 self._devAllocData = deviceAllocatorFunc(shmComm, sz)
@@ -261,17 +261,19 @@ local function Field_meta_ctor(elct)
 
          local devNum, _     = cuda.GetDevice()
          self.deviceProps, _ = cuda.GetDeviceProperties(devNum)
-         -- Establish number of blocks and threads/block for deviceReduce, and allocate memory.
-         self.reduceBlocksMAX  = 64
-         self.reduceThreadsMAX = GKYL_DEFAULT_NUM_THREADS
-         local numBlocksC, numThreadsC = Alloc.Int(1), Alloc.Int(1)
-         ffiC.reductionBlocksAndThreads(self.deviceProps,self._localRange:volume(),self.reduceBlocksMAX,
-                                        self.reduceThreadsMAX,numBlocksC:data(),numThreadsC:data());
-         self.reduceBlocks  = numBlocksC[1]
-         self.reduceThreads = numThreadsC[1]
-         numBlocksC:delete()
-         numThreadsC:delete()
-         self.d_blockRed, self.d_intermediateRed = cuAlloc.Double(numBlocks), cuAlloc.Double(numBlocks)
+         if self._numComponents==1 then
+            -- Establish number of blocks and threads/block for deviceReduce, and allocate memory.
+            self.reduceBlocksMAX  = 64
+            self.reduceThreadsMAX = GKYL_DEFAULT_NUM_THREADS
+            local numBlocksC, numThreadsC = Alloc.Int(1), Alloc.Int(1)
+            ffiC.reductionBlocksAndThreads(self.deviceProps,self._localRange:volume(),self.reduceBlocksMAX,
+                                           self.reduceThreadsMAX,numBlocksC:data(),numThreadsC:data());
+            self.reduceBlocks  = numBlocksC[1]
+            self.reduceThreads = numThreadsC[1]
+            numBlocksC:delete()
+            numThreadsC:delete()
+            self.d_blockRed, self.d_intermediateRed = cuAlloc.Double(numBlocks), cuAlloc.Double(numBlocks)
+         end
       end
       if not GKYL_HAVE_CUDA then self._devAllocData = nil end
       
@@ -742,12 +744,13 @@ local function Field_meta_ctor(elct)
 	 end,
       deviceReduce = isNumberType and
 	 function(self, opIn, d_reduction)
+            assert(self._numComponents==1, "CartField:deviceReduce: Reduce only works on fields with numComponents=1.")
 	    -- Input 'opIn' must be one of the binary operations in binOpFuncs.
             ffi.C.gkylCartFieldDeviceReduce(binOpFlags[opIn],self._localRange:volume(),self.reduceBlocks,self.reduceThreads,self.reduceBlocksMAX,self.reduceThreadsMAX,
                self.deviceProps,self._onDevice,self.d_blockRed:data(),self.d_intermediateRed:data(),d_reduction:data())
 	 end or
-	 function (self, opIn)
-	    assert(false, "CartField:deviceReduce: Reduce only works on numeric fields")
+	 function (self, opIn, d_reduction)
+	    assert(false, "CartField:deviceReduce: Reduce only works on numeric fields.")
 	 end,
       _copy_from_field_region = function (self, rgn, data)
 	 local indexer = self:genIndexer()
