@@ -38,13 +38,13 @@ __global__ void cuda_WavePropagation(GkylWavePropagation_t *hyper, GkylCartField
   extern __shared__ double dummy[];
   unsigned linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
 
-  int idxC[6];
-  int idxL[6];
-  int idxR[6];
+  int idxC[3];
+  int idxL[3];
+  int idxR[3];
 
-  double xcC[6];
-  double xcL[6];
-  double xcR[6];
+  double xcC[3];
+  double xcL[3];
+  double xcR[3];
 
   // get i,j,k... index idxC from linear index linearIdx using localRange invIndexer
   localIdxr.invIndex(linearIdx, idxC);
