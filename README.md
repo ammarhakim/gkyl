@@ -60,7 +60,37 @@ It can be installed via `conda` using
 conda install -c gkyl postgkyl
 ```
 
-For more information about `postgkyl` and how to use it, please see https://gkeyll.readthedocs.io/en/latest/postgkyl/usage.html. 
+For more information about `postgkyl` and how to use it, please see
+https://gkeyll.readthedocs.io/en/latest/postgkyl/usage.html.
+
+# Code contribution and formatting guidelines
+
+All contributions to the code that improve the code via new
+functionality and/or refactoring of existing functionality are
+welcomes. Please strive for excellence in your programming and follow
+carefully the rest of the code structure while doing so.
+
+
+## Formatting guidelines
+
+- **Do not** modify existing code alignment or comments unless the code is
+  wrong or the comment is incorrect, or if the formatting is
+  egregiously bad.
+  
+- **Do not** align multiple consecutive statements with = signs.
+
+- **Do not** mix tabs and spaces. Uses **spaces consistently**
+
+- **Leave single space** between LHS and RHS expressions.
+
+- You **may or may not** leave spaces between operators.
+
+- You **may or may not** leave spaces after a comma in a function
+  call.
+
+- **Do not** comment obvious pieces of code.
+
+- **Comment** function call signatures for user-facing functions.
 
 # License
 
@@ -104,3 +134,7 @@ and Ammar Hakim.
 The major contributors to the code are: Noah Mandell, Manaure (Mana)
 Francisquez, Petr Cagas, James (Jimmy) Juno, Liang Wang and Tess
 Bernard.
+
+```
+sed -i '' -e "s/[[:space:]]* =/ =/g"
+```
