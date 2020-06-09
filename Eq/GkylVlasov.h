@@ -21,10 +21,6 @@
 #include <string>
 #include <vector>
 
-namespace Gkyl {
-  class Vlasov;
-}
-
 extern "C" {
 
     typedef struct {
@@ -37,17 +33,23 @@ extern "C" {
         GkylCartField_t *emField;
     } GkylVlasovEquation_t;
 
-    // Return a pointer to an equations object for Vlasov equations
+    // Return a pointer to an equation object for Vlasov equations
     GkylEquation_t *new_VlasovEquationOnDevice(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType);
-
-    /* C wrappers to member functions, so that they can be called from Lua */
-    void* new_Vlasov(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType, double qbym, bool hasForceTerm);
-    void* new_Vlasov_onDevice(Gkyl::Vlasov *v);
-    int getCdim(Gkyl::Vlasov *v);
-    void setAuxFields(Gkyl::Vlasov *eq, GkylCartField_t *emField);
+    // Set the aux fields
+    void VlasovEquation_setAuxFields(GkylEquation_t *eqn, GkylCartField_t* em);
 }
 
 namespace Gkyl {
+
+  class Vlasov;
+
+  extern "C" {
+      /* C wrappers to member functions, so that they can be called from Lua */
+      void* new_Vlasov(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType, double qbym, bool hasForceTerm);
+      void* new_Vlasov_onDevice(Gkyl::Vlasov *v);
+      int getCdim(Vlasov *v);
+      void setAuxFields(Vlasov *eq, GkylCartField_t *emField);
+  }
 
   class Vlasov {
    public:

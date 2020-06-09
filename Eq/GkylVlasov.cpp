@@ -68,6 +68,8 @@ __global__ void setAuxFieldsOnDevice(Gkyl::Vlasov *v, GkylCartField_t* emField) 
   v->setAuxFields(emField);
 }
 
+
+// 
 GkylEquation_t*
 new_VlasovEquationOnDevice(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType) {
   GkylEquation_t *eqn = new GkylEquation_t;
@@ -80,7 +82,15 @@ new_VlasovEquationOnDevice(unsigned cdim, unsigned vdim, unsigned polyOrder, uns
 
   // setup equation object with Vlasov data and function pointers
   eqn->equation = vlasovEqn;
-  
-
   return eqn;
+}
+
+__global__ void VlasovEquation_setAuxFieldsOnDevice(GkylEquation_t *eqn, GkylCartField_t* emField) {
+  GkylVlasovEquation_t *self = (GkylVlasovEquation_t *) eqn->equation;
+  self->emField = emField;
+}
+
+void
+VlasovEquation_setAuxFields(GkylEquation_t *eqn, GkylCartField_t* em) {
+  VlasovEquation_setAuxFieldsOnDevice<<<1,1>>>(eqn, em);
 }
