@@ -156,7 +156,7 @@ function test_1()
       end
    end
    local totalCpuTime = (Time.clock()-tmStart)
-   local cflRate = cflRateByCell:reduce('max')
+   local cflRate = cflRateByCell:reduce('max')[1]
 
    local indexer = fRhs:genIndexer()
    local d_indexer = d_fRhs:genIndexer()

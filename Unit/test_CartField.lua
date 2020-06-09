@@ -556,31 +556,51 @@ function test_14()
       assert_equal(25.0*idx[1], fitr[3], "Checking scaled field value")
    end   
 
-   -- Initialize field to random numbers.
+   -- Initialize fields to random numbers.
    math.randomseed(1000*os.time())
-   local fldRange = scalar:localRange()
-   local fldIdxr  = scalar:genIndexer()
-   for idx in fldRange:rowMajorIter() do
-      local fldItr = scalar:get(fldIdxr( idx ))
-      for k = 1, scalar:numComponents() do
+   local localRange = scalar:localRange()
+   local fldIdxr    = field:genIndexer()
+   local scaIdxr    = scalar:genIndexer()
+   for idx in localRange:rowMajorIter() do
+      local fldItr = field:get(fldIdxr( idx ))
+      local scaItr = scalar:get(scaIdxr( idx ))
+      for k = 1, field:numComponents() do
          fldItr[k] = math.random()
+      end
+      for k = 1, scalar:numComponents() do
+         scaItr[k] = math.random()
       end
    end
    -- Get the maximum by stepping through the scalar.
-   maxVal = GKYL_MIN_DOUBLE
-   minVal = GKYL_MAX_DOUBLE
-   sumVal = 0.0
-   for idx in fldRange:rowMajorIter() do
-      local fldItr = scalar:get(fldIdxr( idx ))
-      for k = 1, scalar:numComponents() do
-         maxVal = math.max(maxVal,fldItr[k])
-         minVal = math.min(minVal,fldItr[k])
-         sumVal = sumVal + fldItr[k]
-      end
+   fldMax, fldMin, fldSum =  {}, {}, {}
+   for k = 1, field:numComponents() do
+      fldMax[k] = GKYL_MIN_DOUBLE
+      fldMin[k] = GKYL_MAX_DOUBLE
+      fldSum[k] = 0.0
    end
-   assert_equal(maxVal, scalar:reduce("max"), "Checking reduce('max')")
-   assert_equal(minVal, scalar:reduce("min"), "Checking reduce('min')")
-   assert_equal(sumVal, scalar:reduce("sum"), "Checking reduce('sum')")
+   scaMax, scaMin, scaSum = GKYL_MIN_DOUBLE, GKYL_MAX_DOUBLE, 0.0
+   for idx in localRange:rowMajorIter() do
+      local fldItr = field:get(fldIdxr( idx ))
+      local scaItr = scalar:get(scaIdxr( idx ))
+      for k = 1, field:numComponents() do
+         fldMax[k] = math.max(fldMax[k],fldItr[k])
+         fldMin[k] = math.min(fldMin[k],fldItr[k])
+         fldSum[k] = fldSum[k] + fldItr[k]
+      end
+      scaMax = math.max(scaMax,scaItr[1])
+      scaMin = math.min(scaMin,scaItr[1])
+      scaSum = scaSum + scaItr[1]
+   end
+   cartFldMax, cartFldMin, cartFldSum = field:reduce("max"), field:reduce("min"), field:reduce("sum")
+   cartScaMax, cartScaMin, cartScaSum = scalar:reduce("max"), scalar:reduce("min"), scalar:reduce("sum")
+   for k = 1, field:numComponents() do
+      assert_equal(fldMax[k], cartFldMax[k], "Checking reduce('max')")
+      assert_equal(fldMin[k], cartFldMin[k], "Checking reduce('min')")
+      assert_equal(fldSum[k], cartFldSum[k], "Checking reduce('sum')")
+   end
+   assert_equal(scaMax, cartScaMax[1], "Checking scalar reduce('max')")
+   assert_equal(scaMin, cartScaMin[1], "Checking scalar reduce('min')")
+   assert_equal(scaSum, cartScaSum[1], "Checking scalar reduce('sum')")
 end
 
 test_1()

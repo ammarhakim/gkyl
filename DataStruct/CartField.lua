@@ -193,7 +193,7 @@ local function Field_meta_ctor(elct)
    }
    local binOpFlags = {min = 1, max = 2, sum = 3}
    local reduceOpsMPI = {max = Mpi.MAX, min = Mpi.MIN, sum = Mpi.SUM}
-   local reduceInitialVal = {max = elctMinValue, min = elctMaxValue , sum = 0}
+   local reduceInitialVal = {max = elctMinValue, min = elctMaxValue , sum = 0.0}
    
    -- make constructor for Field
    local Field = {}
@@ -243,8 +243,8 @@ local function Field_meta_ctor(elct)
 	 self._lowerGhost, self._upperGhost)
 
       -- Local and (MPI) global values of a reduction (reduce method).
-      self.localReductionVal  = ElemVec(1)
-      self.globalReductionVal = ElemVec(1)
+      self.localReductionVal  = ElemVec(self._numComponents)
+      self.globalReductionVal = ElemVec(self._numComponents)
 
       -- create a device copy is needed
       local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, GKYL_USE_DEVICE)
@@ -733,18 +733,21 @@ local function Field_meta_ctor(elct)
 	    local indexer = self:genIndexer()
 	    local itr = self:get(1)
 	    
-	    local localVal = reduceInitialVal[opIn]
+	    local localVal = {}
+	    for k = 1, self._numComponents do localVal[k] = reduceInitialVal[opIn] end
 	    for idx in localRangeDecomp:rowMajorIter(tId) do
 	       self:fill(indexer(idx), itr)
-	       for k = 0, self._numComponents-1 do
-		  localVal = binOpFuncs[opIn](localVal, itr:data()[k])
+	       for k = 1, self._numComponents do
+		  localVal[k] = binOpFuncs[opIn](localVal[k], itr:data()[k-1])
 	       end
 	    end
 
-	    self.localReductionVal[1] = localVal
+	    for k = 1, self._numComponents do self.localReductionVal[k] = localVal[k] end
 	    Mpi.Allreduce(self.localReductionVal:data(), self.globalReductionVal:data(),
-			  1, elctCommType, reduceOpsMPI[opIn], grid:commSet().comm)
-	    return self.globalReductionVal[1]
+			  self._numComponents, elctCommType, reduceOpsMPI[opIn], grid:commSet().comm)
+
+	    for k = 1, self._numComponents do localVal[k] = self.globalReductionVal[k] end
+            return localVal
 	 end or
 	 function (self, opIn)
 	    assert(false, "CartField:reduce: Reduce only works on numeric fields")

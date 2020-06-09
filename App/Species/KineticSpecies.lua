@@ -724,7 +724,7 @@ end
 function KineticSpecies:suggestDt()
    if not self.evolve then return GKYL_MAX_DOUBLE end
 
-   local dtSuggested = math.min(self.cfl/self.cflRateByCell:reduce('max'), GKYL_MAX_DOUBLE)
+   local dtSuggested = math.min(self.cfl/self.cflRateByCell:reduce('max')[1], GKYL_MAX_DOUBLE)
 
    -- If dtSuggested == GKYL_MAX_DOUBLE, it is likely because of NaNs. 
    -- If so, return 0 so that no timestep is taken, and we will abort the simulation.
