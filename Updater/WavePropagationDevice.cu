@@ -2,6 +2,22 @@
 #include <GkylWavePropagation.h>
 #include <GkylEuler.h>
 
+__device__ static void calcDelta(
+    const double *ql, const double *qr, double *delta, const unsigned meqn) {
+  for (int i = 0; i < meqn; i++) {
+    delta[i] = qr[i] - ql[i];
+  }
+}
+
+__device__ static void calcFirstOrderGud(
+    const double dtdx, double *ql, double *qr, const double *amdq,
+    const double *apdq, const unsigned meqn) {
+  for (int i = 0; i< meqn; i++) {
+    qr[i] -= dtdx * apdq[i];
+    ql[i] += dtdx * apdq[i];
+  }
+}
+
 __global__ void cuda_WavePropagation(GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut) {
 
   GkylRange_t *localRange = qIn->localRange;
