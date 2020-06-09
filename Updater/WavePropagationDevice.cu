@@ -34,6 +34,16 @@ __global__ void cuda_WavePropagation(GkylWavePropagation_t *hyper, GkylCartField
   Gkyl::Euler *eq = hyper->equation;
   GkylCartField_t *cflRateByCell = hyper->cflRateByCell;
 
+  const int meqn = eq->getNumEquations();
+  const int mwave = eq->getNumWaves();
+
+  // XXX use meqn and mwave
+  double delta[10];
+  double waves[30];
+  double s[3];
+  double amdq[10];
+  double apdq[10];
+
   // declaring this dummy array shared seems to alleviate register pressure and improve performance a bit
   extern __shared__ double dummy[];
   unsigned linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
@@ -76,6 +86,11 @@ __global__ void cuda_WavePropagation(GkylWavePropagation_t *hyper, GkylCartField
     grid->cellCenter(idxR, xcR);
     const double *qInL = qIn->getDataPtrAt(linearIdxL);
     const double *qInR = qIn->getDataPtrAt(linearIdxR);
+
+    calcDelta(qInL, qInR, delta, meqn); // jump across interface
+
+    eq->rp(dir, delta, qInL, qInR, waves, s); // compute waves and speeds
+    eq->qFluctuations(dir, qInL, qInR, waves, s, amdq, apdq); // compute fluctuations
 
     // hyper->maxsByCell->getDataPtrAt(linearIdxC)[i] = max(maxsL, maxsR);
   }
