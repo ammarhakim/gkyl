@@ -23,6 +23,9 @@ namespace Gkyl {
     void* new_Euler_onDevice(Euler *v);
   }
 
+  // FIXME correct specifier?
+  __device__ __constant__ const int dirShuffle[3][4] = {{0,1,2,3}, {0,2,3,1}, {0,3,1,2}};
+
   class Euler {
     public:
       __host__ __device__ Euler() {}
@@ -41,6 +44,10 @@ namespace Gkyl {
       const double _gasGamma = 5./3.;
       unsigned _numWaves = 3;
       const unsigned _numEquations = 5;
+
+      __host__ __device__ void rpLax(
+          const unsigned dir, const double *delta, const double *ql,
+          const double *qr, double **waves, double *s);
   };
 }
 #endif
