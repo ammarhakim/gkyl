@@ -14,18 +14,6 @@
 
 #include <GkylCudaFuncs.h>
 
-#ifndef binOpMin
-#define binOpMin 1
-#endif
-
-#ifndef binOpMax
-#define binOpMax 2
-#endif
-
-#ifndef binOpSum
-#define binOpSum 3
-#endif
-
 #ifndef MIN
 #define MIN(x, y) ((x < y) ? x : y)
 #endif
@@ -46,17 +34,24 @@ extern "C" {
     void reduceDeviceArray(int opIn, int numElements, int blocks, int threads, double *d_dataIn, double *d_dataOut);
 }
 
-template <unsigned int binOpType>
-__inline__ __device__ double binOp(double a, double b) {
-  double result = 0.0;
-  if (binOpType==binOpMin) {
-    result = MIN(a,b);
-  } else if (binOpType==binOpMax) {
-    result = MAX(a,b);
-  } else if (binOpType==binOpSum) {
-    result = SUM(a,b);
+namespace Gkyl {
+
+  enum class BinOp {
+    binOpMin = 1,
+    binOpMax = 2,
+    binOpSum = 3
+  };
+
+  template <Gkyl::BinOp binOpType>
+  __inline__ __device__ double binOp(double a, double b) {
+    double result = 0.0;
+    if (binOpType == BinOp::binOpMin) {
+      result = MIN(a,b);
+    } else if (binOpType == BinOp::binOpMax) {
+      result = MAX(a,b);
+    } else if (binOpType == BinOp::binOpSum) {
+      result = SUM(a,b);
+    }
+    return result;
   }
-  return result;
 }
-
-
