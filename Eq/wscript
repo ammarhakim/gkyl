@@ -477,6 +477,7 @@ def build(bld):
 
     cusources = """
     GkylVlasov.cpp
+    GkylEuler.cpp
 
     vlasovData/VlasovStreamMax1x1vP1.cpp
     vlasovData/VlasovStreamMax1x2vP1.cpp
