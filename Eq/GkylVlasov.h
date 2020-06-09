@@ -23,6 +23,19 @@
 
 extern "C" {
 
+    typedef double (*Vlasov_volumeStreamTerm_t)(const double*  w, const double*  dxv, const double*  f, double *out);
+    typedef double (*Vlasov_surfSreamTerm_t)(int dir, const double*  wl, const double*  wr,
+      const double*  dxvl, const double*  dxvr, const double*  fl, const double*  fr,
+      double *outl, double *outr);
+
+    typedef double (*Vlasov_volumeTerm_t)(const double*  w, const double*  dxv,
+      const double*  E, const double*  f, double *out);
+    typedef double (*Vlasov_surfElcMagTerm_t)(int dir, const double*  wl, const double*  wr,
+      const double*  dxvl, const double*  dxvr,
+      const double amax, const double*  E, const
+      double *fl, const double*  fr,
+      double *outl, double *outr);
+
     typedef struct {
         // dims, basis info
         unsigned cdim, vdim, polyOrder, basisType;
@@ -31,6 +44,13 @@ extern "C" {
         bool hasForceTerm;
         // pointer to EM field
         GkylCartField_t *emField;
+
+        // Vlasov-specific function pointers
+        Vlasov_volumeStreamTerm_t volumeStreamTerm;
+        Vlasov_surfSreamTerm_t surfStreamTerm;
+        Vlasov_volumeTerm_t volumeTerm;
+        Vlasov_surfElcMagTerm_t surfElcMagTerm;
+
     } GkylVlasovEquation_t;
 
     // Return a pointer to an equation object for Vlasov equations

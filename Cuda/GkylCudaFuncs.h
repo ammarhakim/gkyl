@@ -88,6 +88,19 @@ extern "C" {
 
 }
 
+namespace Gkyl {
+  template <typename T>
+  struct CudaUtils {
+      // Transfers ownership to calling function
+      static T* allocAndCopyToDevice(T* src) {
+        T* dest;
+        cudaMalloc(&dest, sizeof(T));
+        cudaMemcpy(dest, src, sizeof(T), cudaMemcpyHostToDevice);
+        return dest;
+      }
+  };
+}
+
 // CUDA Runtime error messages
 #ifdef __DRIVER_TYPES_H__
 static const char *_cudaGetErrorEnum(cudaError_t error) {
