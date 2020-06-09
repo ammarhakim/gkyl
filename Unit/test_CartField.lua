@@ -51,7 +51,6 @@ function test_1()
    for j = 1, field:numComponents() do
       for i = localExtRange:lower(1), localExtRange:upper(1) do
          local idx = indexer(i)
-         --assert_equal(i+j, field._data[(j-1)+field:numComponents()*(idx-1)], "Checking values by indexing _data directly")
          assert_equal(i+j, field._data[idx-1 + localExtRange:volume()*(j-1)], "Checking values by indexing _data directly")
          assert_equal(i+j, field:get(idx)[j], "Checking values by using get()")         
       end
@@ -383,50 +382,7 @@ function test_10()
    end   
 end
 
-function test_11()
-   local grid = Grid.RectCart {
-      lower = {0.0, 0.0},
-      upper = {1.0, 1.0},
-      cells = {10, 10},
-   }
-   local field = DataStruct.Field {
-      onGrid = grid,
-      numComponents = 3*3,
-      ghost = {1, 2},
-   }
-
-   field:clear(10.0)
-
-   local function set(fIn, val)
-      for i = 1, 3 do fIn[i] = val end
-   end
-
-   local indexer = field:genIndexer()
-   for idx in field:localRangeIter() do
-      local fitr = field:get(indexer(idx))
-      local data = fitr:data()
-      set(data+0-1, 1.5)
-      set(data+3-1, 2.5)
-      set(data+6-1, 3.5)
-   end
-
-   local indexer = field:genIndexer()
-   for idx in field:localRangeIter() do
-      local fitr = field:get(indexer(idx))
-      assert_equal(1.5, fitr[1], "Checking set")
-      assert_equal(1.5, fitr[2], "Checking set")
-      assert_equal(1.5, fitr[3], "Checking set")
-
-      assert_equal(2.5, fitr[4], "Checking set")
-      assert_equal(2.5, fitr[5], "Checking set")
-      assert_equal(2.5, fitr[6], "Checking set")
-
-      assert_equal(3.5, fitr[7], "Checking set")
-      assert_equal(3.5, fitr[8], "Checking set")
-      assert_equal(3.5, fitr[9], "Checking set")
-   end   
-   
-end
+-- test_11 has been removed. it will not be supported.
 
 function test_12()
    local grid = Grid.RectCart {
@@ -593,7 +549,6 @@ test_7()
 test_8()
 test_9()
 test_10()
---test_11()
 test_12()
 test_13()
 --test_14()
