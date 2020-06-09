@@ -18,6 +18,7 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
   int numUpdateDirs = hyper->numUpdateDirs;
   bool *zeroFluxFlags = hyper->zeroFluxFlags;
   Gkyl::Vlasov *eq = hyper->equation;
+  GkylCartField_t *cflRateByCell = hyper->cflRateByCell;
  
   // declaring this dummy array shared seems to alleviate register pressure and improve performance a bit
   extern __shared__ double dummy[];
@@ -44,7 +45,7 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
     const double *fInC = fIn->getDataPtrAt(linearIdxC);
     double *fRhsOutC = fRhsOut->getDataPtrAt(linearIdxC);
     double cflRate = eq->volTerm(xcC, dx, idxC, fInC, fRhsOutC);
-    hyper->cflRateByCell->getDataPtrAt(linearIdxC)[0] += cflRate;
+    cflRateByCell->getDataPtrAt(linearIdxC)[0] += cflRate;
 
     for(int i=0; i<numUpdateDirs; i++) {
       int dir = updateDirs[i] - 1;
@@ -83,4 +84,13 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
 void advanceOnDevice(int numBlocks, int numThreads, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
   cudaFuncSetAttribute(cuda_HyperDisCont, cudaFuncAttributeMaxDynamicSharedMemorySize, 32*sizeof(double));
   cuda_HyperDisCont<<<numBlocks, numThreads, 32*sizeof(double)>>>(hyper, fIn, fRhsOut);
+}
+
+__global__ void setDtAndCflRateOnDevice(GkylHyperDisCont_t *hyper, double dt, GkylCartField_t *cflRate) {
+  hyper->dt = dt;
+  hyper->cflRateByCell = cflRate;
+}
+
+void setDtAndCflRate(GkylHyperDisCont_t *hyper, double dt, GkylCartField_t *cflRate) {
+  setDtAndCflRateOnDevice<<<1, 1>>>(hyper, dt, cflRate);
 }

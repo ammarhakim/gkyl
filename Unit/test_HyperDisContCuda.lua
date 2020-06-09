@@ -116,7 +116,7 @@ function test_1()
 
    local cflRateByCell = DataStruct.Field {
       onGrid = grid,
-      numComponents = phaseBasis:numBasis(),
+      numComponents = 1,
       ghost = {1, 1},
       createDeviceCopy = true,
    }

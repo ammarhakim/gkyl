@@ -35,6 +35,7 @@ ffi.cdef [[
       bool zeroFluxFlags[6];
       int32_t numUpdateDirs;
       bool updateVolumeTerm;
+      double dt;
       GkylVlasov *equation;
       GkylCartField_t *cflRateByCell;
   } GkylHyperDisCont_t; 
@@ -298,7 +299,7 @@ end
 
 -- set up pointers to dt and cflRateByCell
 function HyperDisCont:setDtAndCflRate(dt, cflRateByCell)
-   HyperDisCont.super.init(self, dt, cflRateByCell)
+   HyperDisCont.super.setDtAndCflRate(self, dt, cflRateByCell)
 
    if self._onDevice then
       ffiC.setDtAndCflRate(self._onDevice, dt, cflRateByCell._onDevice)
