@@ -21,9 +21,11 @@ local Updater = require "Updater"
 local Lin = require "Lib.Linalg"
 local Time = require "Lib.Time"
 local xsys = require "xsys"
+local Alloc      = require "Lib.Alloc"
 local cuda = nil
 if GKYL_HAVE_CUDA then
   cuda = require "Cuda.RunTime"
+  cuAlloc = require "Cuda.Alloc"
 end
 
 local assert_equal = Unit.assert_equal
@@ -140,6 +142,11 @@ function test_1()
    local err = cuda.DeviceSynchronize()
    local totalGpuTime = (Time.clock()-tmStart)
    assert_equal(0, err, "cuda error")
+   d_fRhs:copyDeviceToHost()
+   local d_cflRate = cuAlloc.Double(1)
+   cflRateByCell:deviceReduce('max', d_cflRate)
+   local cflRate_from_gpu = Alloc.Double(1)
+   local err = d_cflRate:copyDeviceToHost(cflRate_from_gpu)
 
    local tmStart
    tmStart = Time.clock()
@@ -149,9 +156,8 @@ function test_1()
       end
    end
    local totalCpuTime = (Time.clock()-tmStart)
+   local cflRate = cflRateByCell:reduce('max')
 
-   d_fRhs:copyDeviceToHost()
-   
    local indexer = fRhs:genIndexer()
    local d_indexer = d_fRhs:genIndexer()
    if checkResult then 
@@ -163,6 +169,8 @@ function test_1()
          end
       end
    end
+
+   assert_equal(cflRate, cflRate_from_gpu[1], "Checking max cflRate")
 
    print(string.format("Total CPU time for %d HyperDisCont calls = %f s   (average = %f s)", nloop, totalCpuTime, totalCpuTime/nloop))
    print(string.format("Total GPU time for %d HyperDisCont calls = %f s   (average = %f s)", nloop, totalGpuTime, totalGpuTime/nloop))
