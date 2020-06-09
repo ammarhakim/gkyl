@@ -1,5 +1,11 @@
-#ifndef GKYL_VLASOV_H
-#define GKYL_VLASOV_H
+// Gkyl ------------------------------------------------------------------------
+//
+// Vlasov equation object
+//    _______     ___
+// + 6 @ |||| # P ||| +
+//------------------------------------------------------------------------------
+
+#pragma once
 
 // Gkyl includes
 #include <GkylCudaConfig.h>
@@ -16,17 +22,33 @@
 #include <vector>
 
 namespace Gkyl {
-
   class Vlasov;
-  
-  /* C wrappers to member functions, so that they can be called from Lua */
-  extern "C" {
+}
+
+extern "C" {
+
+    typedef struct {
+        // dims, basis info
+        unsigned cdim, vdim, polyOrder, basisType;
+        // species parameters
+        double qbym;
+        bool hasForceTerm;
+        // pointer to EM field
+        GkylCartField_t *emField;
+    } GkylVlasovEquation_t;
+
+    // Return a pointer to an equations object for Vlasov equations
+    GkylEquation_t *new_VlasovEquationOnDevice(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType);
+
+    /* C wrappers to member functions, so that they can be called from Lua */
     void* new_Vlasov(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType, double qbym, bool hasForceTerm);
-    void* new_Vlasov_onDevice(Vlasov *v);
-    int getCdim(Vlasov *v);
-    void setAuxFields(Vlasov *eq, GkylCartField_t *emField);
-  }
-  
+    void* new_Vlasov_onDevice(Gkyl::Vlasov *v);
+    int getCdim(Gkyl::Vlasov *v);
+    void setAuxFields(Gkyl::Vlasov *eq, GkylCartField_t *emField);
+}
+
+namespace Gkyl {
+
   class Vlasov {
    public:
     __host__ __device__ Vlasov(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType, double qbym, bool hasForceTerm) 
@@ -75,4 +97,4 @@ namespace Gkyl {
     VlasovModDecl<2,3,1,G_SERENDIPITY_C> kernel;
   };
 }
-#endif
+

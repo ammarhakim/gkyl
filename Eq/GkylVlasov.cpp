@@ -67,3 +67,20 @@ namespace Gkyl {
 __global__ void setAuxFieldsOnDevice(Gkyl::Vlasov *v, GkylCartField_t* emField) {
   v->setAuxFields(emField);
 }
+
+GkylEquation_t*
+new_VlasovEquationOnDevice(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType) {
+  GkylEquation_t *eqn = new GkylEquation_t;
+  GkylVlasovEquation_t *vlasovEqn = new GkylVlasovEquation_t;
+
+  vlasovEqn->cdim = cdim;
+  vlasovEqn->vdim = vdim;
+  vlasovEqn->polyOrder = polyOrder;
+  vlasovEqn->basisType = basisType;
+
+  // setup equation object with Vlasov data and function pointers
+  eqn->equation = vlasovEqn;
+  
+
+  return eqn;
+}
