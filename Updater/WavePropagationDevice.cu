@@ -18,6 +18,16 @@ __device__ static void calcFirstOrderGud(
   }
 }
 
+__device__ static double calcCfla(
+    const double cfla, const double dtdx, const double *s,
+    const unsigned mwave) {
+  double c = cfla;
+  for (int i = 0; i < mwave; i ++) {
+    c = max(c, dtdx * abs(s[i]));
+  }
+  return c;
+}
+ 
 __global__ void cuda_WavePropagation(GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut) {
 
   GkylRange_t *localRange = qIn->localRange;
