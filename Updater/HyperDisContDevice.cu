@@ -18,6 +18,7 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
   int numUpdateDirs = hyper->numUpdateDirs;
   bool *zeroFluxFlags = hyper->zeroFluxFlags;
   Gkyl::Vlasov *eq = hyper->equation;
+  GkylCartField_t *cflRateByCell = hyper->cflRateByCell;
  
   // declaring this dummy array shared seems to alleviate register pressure and improve performance a bit
   extern __shared__ double dummy[];
@@ -44,10 +45,11 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
     const double *fInC = fIn->getDataPtrAt(linearIdxC);
     double *fRhsOutC = fRhsOut->getDataPtrAt(linearIdxC);
     double cflRate = eq->volTerm(xcC, dx, idxC, fInC, fRhsOutC);
+    cflRateByCell->getDataPtrAt(linearIdxC)[0] += cflRate;
 
     for(int i=0; i<numUpdateDirs; i++) {
       int dir = updateDirs[i] - 1;
-
+    
       for(int d=0; d<ndim; d++) {
         idxL[d] = idxC[d];
         idxR[d] = idxC[d];
@@ -63,18 +65,20 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
       const double *fInR = fIn->getDataPtrAt(linearIdxR);
       
       // left (of C) surface update. use dummy in place of fRhsOutL (cell to left of surface) so that only current cell (C) is updated.
+      double maxsL, maxsR;
       if(!(zeroFluxFlags[dir] && idxC[dir] == localRange->lower[dir])) {
-        eq->surfTerm(dir, dummy, dummy, xcL, xcC, dx, dx, 0., idxL, idxC, fInL, fInC, dummy, fRhsOutC);
+        maxsL = eq->surfTerm(dir, xcL, xcC, dx, dx, hyper->maxs[i], idxL, idxC, fInL, fInC, dummy, fRhsOutC);
       } else if( zeroFluxFlags[dir]) {
-        eq->boundarySurfTerm(dir, dummy, dummy, xcL, xcC, dx, dx, 0., idxL, idxC, fInL, fInC, dummy, fRhsOutC);
+        eq->boundarySurfTerm(dir, xcL, xcC, dx, dx, hyper->maxs[i], idxL, idxC, fInL, fInC, dummy, fRhsOutC);
       }
 
       // right (of C) surface update. use dummy in place of fRhsOutR (cell to left of surface) so that only current cell (C) is updated.
       if(!(zeroFluxFlags[dir] && idxC[dir] == localRange->upper[dir])) {
-        eq->surfTerm(dir, dummy, dummy, xcC, xcR, dx, dx, 0., idxC, idxR, fInC, fInR, fRhsOutC, dummy);
+        maxsR = eq->surfTerm(dir, xcC, xcR, dx, dx, hyper->maxs[i], idxC, idxR, fInC, fInR, fRhsOutC, dummy);
       } else if( zeroFluxFlags[dir]) {
-        eq->boundarySurfTerm(dir, dummy, dummy, xcC, xcR, dx, dx, 0., idxC, idxR, fInC, fInR, fRhsOutC, dummy);
+        eq->boundarySurfTerm(dir, xcC, xcR, dx, dx, hyper->maxs[i], idxC, idxR, fInC, fInR, fRhsOutC, dummy);
       }
+      hyper->maxsByCell->getDataPtrAt(linearIdxC)[i] = max(maxsL, maxsR);
     }
   
 } 
@@ -82,4 +86,13 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
 void advanceOnDevice(int numBlocks, int numThreads, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
   cudaFuncSetAttribute(cuda_HyperDisCont, cudaFuncAttributeMaxDynamicSharedMemorySize, 32*sizeof(double));
   cuda_HyperDisCont<<<numBlocks, numThreads, 32*sizeof(double)>>>(hyper, fIn, fRhsOut);
+}
+
+__global__ void setDtAndCflRateOnDevice(GkylHyperDisCont_t *hyper, double dt, GkylCartField_t *cflRate) {
+  hyper->dt = dt;
+  hyper->cflRateByCell = cflRate;
+}
+
+void setDtAndCflRate(GkylHyperDisCont_t *hyper, double dt, GkylCartField_t *cflRate) {
+  setDtAndCflRateOnDevice<<<1, 1>>>(hyper, dt, cflRate);
 }

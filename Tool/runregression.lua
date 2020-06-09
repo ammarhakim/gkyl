@@ -340,6 +340,22 @@ local function runLuaUnitTest(test)
    end
 end
 
+-- runs a single CXX unit test
+local function runCxxUnitTest(test)
+   log(string.format("\nRunning test %s ...\n", test))
+
+   local runCmd = string.format("%s", test)
+   local f = io.popen(runCmd, "r")
+   local outPut = f:read("*a")
+   if string.find(outPut, "FAILED") then
+      log(string.format("... %s FAILED!\n", test))
+      numFailedUnitTests = numFailedUnitTests+1
+   else
+      numPassedUnitTests = numPassedUnitTests+1
+      log("... passed.\n")
+   end
+end
+
 local function isLuaRegressionTest(fn)
    return string.find(fn, "/rt%-[^/]-%.lua$") ~= nil
 end
@@ -350,8 +366,14 @@ end
 local function isLuaUnitTest(fn)
    return string.find(fn, "/test_[^/]-%.lua$") ~= nil
 end
-local function isShellUnitTest(fn)
-   return string.find(fn, "/test_[^/]-%.sh$") ~= nil
+local function isCxxUnitTest(fn)
+   if string.find(fn, "/ctest_[^/]+$") ~= nil then
+      local attr = lfs.attributes(fn)
+      if attr and attr.mode == "file" and string.sub(attr.permissions, 3, 3) == "x" then
+	 return true
+      end
+   end
+   return false
 end
 
 -- list of regression tests
@@ -398,19 +420,20 @@ end
 
 -- list of unit tests
 local function list_unit_tests(args)
-   local luaUnitTests, shellUnitTests = {}, {}
+   local luaUnitTests, cxxUnitTests = {}, {}
 
    local function addTest(fn)
       if isLuaUnitTest(fn) then
 	 table.insert(luaUnitTests, fn)
-      elseif isShellUnitTest(fn) then
-	 table.insert(shellUnitTests, fn)
+      elseif isCxxUnitTest(fn) then
+	 table.insert(cxxUnitTests, fn)
       end
    end
 
    for dir, fn, _ in dirtree("../Unit") do addTest(dir .. "/" .. fn) end
+   for dir, fn, _ in dirtree("../build/Unit") do addTest(dir .. "/" .. fn) end
 
-   return luaUnitTests, shellUnitTests
+   return luaUnitTests, cxxUnitTests
 end
 
 -- function to handle "config" command
@@ -701,21 +724,24 @@ end
 local function listunit_action(args, name)
    loadConfigure(args)
    
-   local luaUnitTests, shellUnitTests = list_unit_tests(args)
+   local luaUnitTests, cxxUnitTests = list_unit_tests(args)
    lume.each(luaUnitTests, print)
-   lume.each(shellUnitTests, print)
+   lume.each(cxxUnitTests, print)
 end
 
 -- function to handle "rununit" command
 local function rununit_action(args, name)
    loadConfigure(args)
-   local luaUnitTests, shellUnitTests = list_unit_tests(args)
+   local luaUnitTests, cxxUnitTests = list_unit_tests(args)
 
    log("Running unit tests ...\n\n")
    local tmStart = Time.clock()
    lume.each(
       luaUnitTests, function (f) runLuaUnitTest(f) end)
 
+   lume.each(
+      cxxUnitTests, function (f) runCxxUnitTest(f) end)
+   
    log(string.format("All unit tests completed in %g secs\n", Time.clock()-tmStart))
 end
 
