@@ -145,8 +145,8 @@ function test_2()
    }
    field:clear(1.0)
    field:copyHostToDevice()
-   ffi.C.unit_showFieldRange(field._onDevice, field._devAllocData:data())
-   ffi.C.unit_showFieldGrid(field._onDevice)
+   --ffi.C.unit_showFieldRange(field._onDevice, field._devAllocData:data())
+   --ffi.C.unit_showFieldGrid(field._onDevice)
 end
 
 -- read a CartField, and then write it to a result CartField (basically a copy via a kernel)
