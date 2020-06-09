@@ -39,8 +39,8 @@ ffi.cdef [[
     void gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out);
     void gkylCartFieldScaleByCell(unsigned s, unsigned nv, unsigned ncomp, double *fact, double *out);
     void gkylCartFieldAbs(unsigned s, unsigned nv, double *out);
-    void gkylCopyFromField(double *data, double *f, unsigned numComponents, unsigned c);
-    void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned c);
+    void gkylCopyFromField(double *data, double *f, unsigned numComponents, unsigned stride, unsigned c);
+    void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned stride, unsigned c);
     void gkylCartFieldAssignAll(unsigned s, unsigned nv, double val, double *out);
 
     void gkylCartFieldDeviceAccumulate(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, const double *inp, double *out);
@@ -667,8 +667,7 @@ local function Field_meta_ctor(elct)
 	 return fcompct(self._localExtRange:volume(), self._data+loc)
       end,
       getDataPtrAt = function (self, k) -- k is an integer returned by a linear indexer
-	 local loc = (k-1) -- (k-1) as k is 1-based index
-	 return self._data+loc
+         assert(false, "getDataPtrAt is no longer supported. use get().")
       end,
       write = function (self, fName, tmStamp, frNum, writeSkin)
 	 self._adiosIo:write(self, fName, tmStamp, frNum, writeSkin)
@@ -758,7 +757,7 @@ local function Field_meta_ctor(elct)
          local fitr = self:get(1)
 	 for idx in rgn:rowMajorIter() do
 	    self:fill(indexer(idx), fitr)
-            ffiC.gkylCopyFromField(data:data(), fitr:data(), self._numComponents, c)
+            ffiC.gkylCopyFromField(data:data(), fitr:data(), self._numComponents, self._localExtRange:volume(), c)
             c = c + self._numComponents
 	 end
       end,
@@ -768,7 +767,7 @@ local function Field_meta_ctor(elct)
          local fitr = self:get(1)
 	 for idx in rgn:rowMajorIter() do
 	    self:fill(indexer(idx), fitr)
-            ffiC.gkylCopyToField(fitr:data(), data:data(), self._numComponents, c)
+            ffiC.gkylCopyToField(fitr:data(), data:data(), self._numComponents, self._localExtRange:volume(), c)
             c = c + self._numComponents
 	 end
       end,

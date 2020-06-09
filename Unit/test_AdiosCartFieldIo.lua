@@ -35,7 +35,7 @@ function test_1w(comm)
    }
    local field = DataStruct.Field {
       onGrid = grid,
-      numComponents = 1,
+      numComponents = 3,
       ghost = {1, 1},
    }
    field:clear(10.5)
@@ -60,7 +60,7 @@ function test_1r(comm)
    }
    local field = DataStruct.Field {
       onGrid = grid,
-      numComponents = 1,
+      numComponents = 3,
       ghost = {1, 1},
    }
 
@@ -80,6 +80,8 @@ function test_1r(comm)
       for j = localRange:lower(2), localRange:upper(2) do
 	 local fitr = field:get(indexer(i, j))
 	 assert_equal(10.5, fitr[1], "Checking field value")
+	 assert_equal(10.5, fitr[2], "Checking field value")
+	 assert_equal(10.5, fitr[3], "Checking field value")
       end
    end
 end

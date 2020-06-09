@@ -39,15 +39,15 @@ void gkylCartFieldAbs(unsigned s, unsigned nv, double *out) {
     out[n] = fabs(out[n]);
 }
 
-void gkylCopyFromField(double *data, double *f, unsigned numComponents, unsigned offset) {
+void gkylCopyFromField(double *data, double *f, unsigned numComponents, unsigned stride, unsigned offset) {
   for (unsigned k=0; k<numComponents; k++) {
-    data[k+offset] = f[k];
+    data[k+offset] = f[stride*k];
   }
 }
 
-void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned offset) {
+void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned stride, unsigned offset) {
   for (unsigned k=0; k<numComponents; k++) {
-    f[k] = data[k+offset];
+    f[stride*k] = data[k+offset];
   }
 }
 

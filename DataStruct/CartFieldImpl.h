@@ -24,8 +24,8 @@ extern "C" {
       int ncOut, const int *cOut, double *out);
 
     // copy component data from/to field
-    void gkylCopyFromField(double *data, double *f, unsigned numComponents, unsigned c);
-    void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned c);
+    void gkylCopyFromField(double *data, double *f, unsigned numComponents, unsigned stride, unsigned c);
+    void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned stride, unsigned c);
 
     // assign all elements to specified value
     void gkylCartFieldAssignAll(unsigned s, unsigned nv, double val, double *out);

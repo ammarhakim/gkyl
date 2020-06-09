@@ -54,7 +54,6 @@ function test_1()
          --assert_equal(i+j, field._data[(j-1)+field:numComponents()*(idx-1)], "Checking values by indexing _data directly")
          assert_equal(i+j, field._data[idx-1 + localExtRange:volume()*(j-1)], "Checking values by indexing _data directly")
          assert_equal(i+j, field:get(idx)[j], "Checking values by using get()")         
-         --assert_equal(i+j, field:getDataPtrAt(idx)[j-1], "Checking values by using getDataPtrAt()")         
       end
    end
 end
@@ -595,7 +594,7 @@ test_8()
 test_9()
 test_10()
 --test_11()
---test_12()
+test_12()
 test_13()
 --test_14()
 
