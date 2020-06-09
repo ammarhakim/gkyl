@@ -22,7 +22,8 @@ local Alloc      = require "Lib.Alloc"
 local Time       = require "Lib.Time"
 
 local assert_equal = Unit.assert_equal
-local stats = Unit.stats
+local assert_close = Unit.assert_close
+local stats        = Unit.stats
 
 ffi.cdef [[
   void unit_showFieldRange(GkylCartField_t *f, double *g);
@@ -325,8 +326,8 @@ local function test_deviceReduce(nIter, reportTiming)
    local tmStart = Time.clock()
    for i = 1, nIter do
       p0Field:deviceReduce("max",d_maxVal)
---      p0Field:deviceReduce("min",d_minVal)
---      p0Field:deviceReduce("sum",d_sumVal)
+      p0Field:deviceReduce("min",d_minVal)
+      p0Field:deviceReduce("sum",d_sumVal)
    end
    local err          = cuda.DeviceSynchronize()
    if reportTiming then
@@ -337,12 +338,12 @@ local function test_deviceReduce(nIter, reportTiming)
    -- Test that the value found is correct.
    local maxVal_gpu, minVal_gpu, sumVal_gpu = Alloc.Double(1), Alloc.Double(1), Alloc.Double(1)
    local err = d_maxVal:copyDeviceToHost(maxVal_gpu)
---   local err = d_minVal:copyDeviceToHost(minVal_gpu)
---   local err = d_sumVal:copyDeviceToHost(sumVal_gpu)
+   local err = d_minVal:copyDeviceToHost(minVal_gpu)
+   local err = d_sumVal:copyDeviceToHost(sumVal_gpu)
    
    assert_equal(maxVal, maxVal_gpu[1], "Checking max reduce of CartField on GPU.")
---   assert_equal(minVal, minVal_gpu[1], "Checking min reduce of CartField on GPU.")
---   assert_equal(sumVal, sumVal_gpu[1], "Checking sum reduce of CartField on GPU.")
+   assert_equal(minVal, minVal_gpu[1], "Checking min reduce of CartField on GPU.")
+   assert_close(sumVal, sumVal_gpu[1], 1.e-12*sumVal_gpu[1], "Checking sum reduce of CartField on GPU.")
    
    cuda.Free(d_maxVal)
    cuda.Free(d_minVal)

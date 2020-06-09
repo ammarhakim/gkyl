@@ -77,7 +77,9 @@ if GKYL_HAVE_CUDA then
       double initValue;
       redBinOpFunc_t reduceFunc;
     } baseReduceOp_t; 
-    redBinOpFunc_t getRedBinOpFuncFromDevice(unsigned int redBinOpLabel);
+    redBinOpFunc_t getRedMinFuncFromDevice();
+    redBinOpFunc_t getRedMaxFuncFromDevice();
+    redBinOpFunc_t getRedSumFuncFromDevice();
     void gkylCartFieldDeviceReduce(baseReduceOp_t *redOp, int numCellsTot, int numBlocks, int numThreads, int maxBlocks, int maxThreads,
        GkDeviceProp *prop, GkylCartField_t *fIn, double *blockOut, double *intermediate, double *out);
 
@@ -751,9 +753,12 @@ local function Field_meta_ctor(elct)
 	 function(self, opIn, d_reduction)
             assert(self._numComponents==1, "CartField:deviceReduce: Reduce only works on fields with numComponents=1.")
             -- Create reduction operator on host, and copy to device.
-            local redOp = ffi.new("baseReduceOp_t")
-            redOp.initValue = reduceInitialVal[opIn]
-            redOp.reduceFunc = ffi.C.getRedBinOpFuncFromDevice(binOpFlags[opIn])
+            local redOp       = ffi.new("baseReduceOp_t")
+            redOp.initValue   = reduceInitialVal[opIn]
+            local getRedFuncs = { ffi.C.getRedMinFuncFromDevice(),
+                                  ffi.C.getRedMaxFuncFromDevice(),
+                                  ffi.C.getRedSumFuncFromDevice() }
+            redOp.reduceFunc  = getRedFuncs[binOpFlags[opIn]]
             sz = ffi.sizeof("baseReduceOp_t")
             local d_redOp = cuda.Malloc(sz)
             err = cuda.Memcpy(d_redOp, redOp, sz, cuda.MemcpyHostToDevice)

@@ -89,8 +89,8 @@ __global__ void d_reduceCartField(baseReduceOp *redOpIn, GkylCartField_t *fIn, d
     if (BLOCKSIZE >= 64) myReduc = redOpIn->reduce(myReduc, sdata[tID + 32]);
     // Reduce final warp using shuffle.
     for (int offset = tile32.size()/2; offset > 0; offset /= 2) {
-      double shflMax = tile32.shfl_down(myReduc, offset);
-      myReduc = redOpIn->reduce(myReduc, shflMax);
+      double shflReduc = tile32.shfl_down(myReduc, offset);
+      myReduc = redOpIn->reduce(myReduc, shflReduc);
     }
   }
 

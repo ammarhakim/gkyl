@@ -20,16 +20,36 @@ unsigned int nextPow2(unsigned int x) {
   return ++x;
 }
 
+__device__ double redBinOpMin(double a, double b) {
+  return MIN(a,b);
+}
+__device__ redBinOpFunc_t d_redBinOpMinPtr = &redBinOpMin;
+redBinOpFunc_t getRedMinFuncFromDevice() {
+  redBinOpFunc_t redBinOpFuncPtr; 
+  auto err = cudaMemcpyFromSymbol(&redBinOpFuncPtr, d_redBinOpMinPtr, sizeof(redBinOpFunc_t));
+  return redBinOpFuncPtr;
+}
+
 __device__ double redBinOpMax(double a, double b) {
   return MAX(a,b);
 }
 __device__ redBinOpFunc_t d_redBinOpMaxPtr = &redBinOpMax;
-
-redBinOpFunc_t getRedBinOpFuncFromDevice(unsigned int redBinOpLabel) {
+redBinOpFunc_t getRedMaxFuncFromDevice() {
   redBinOpFunc_t redBinOpFuncPtr; 
   auto err = cudaMemcpyFromSymbol(&redBinOpFuncPtr, d_redBinOpMaxPtr, sizeof(redBinOpFunc_t));
   return redBinOpFuncPtr;
 }
+
+__device__ double redBinOpSum(double a, double b) {
+  return SUM(a,b);
+}
+__device__ redBinOpFunc_t d_redBinOpSumPtr = &redBinOpSum;
+redBinOpFunc_t getRedSumFuncFromDevice() {
+  redBinOpFunc_t redBinOpFuncPtr; 
+  auto err = cudaMemcpyFromSymbol(&redBinOpFuncPtr, d_redBinOpSumPtr, sizeof(redBinOpFunc_t));
+  return redBinOpFuncPtr;
+}
+
 
 // Compute the number of threads and blocks to use for the given reduction
 // kerne. We set threads/block to the minimum of maxThreads and n/2.
@@ -118,8 +138,8 @@ __global__ void d_reduce(baseReduceOp *redOpIn, double *dataIn, double *out, uns
     if (BLOCKSIZE >= 64) myReduc = redOpIn->reduce(myReduc, sdata[tID + 32]);
     // Reduce final warp using shuffle.
     for (int offset = tile32.size() / 2; offset > 0; offset /= 2) {
-      double shflMax = tile32.shfl_down(myReduc, offset);
-      myReduc = redOpIn->reduce(myReduc, shflMax);
+      double shflReduc = tile32.shfl_down(myReduc, offset);
+      myReduc = redOpIn->reduce(myReduc, shflReduc);
     }
   }
 
