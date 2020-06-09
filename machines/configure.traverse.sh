@@ -4,7 +4,7 @@
 # The following modules should be loaded to configure on Traverse.
 # module load cudatoolkit
 # module load rh/devtoolset/8
-# module load openmpi/devtoolset-8/4.0.3rc1/64
+# module load openmpi/cuda-10.2/devtoolset-8/4.0.3/64
 # module load git/2.18
 
 # Build directory
@@ -26,8 +26,8 @@ LUAJIT_SHARE_DIR=$HOME/gkylsoft/luajit/share/luajit-2.1.0-beta3
 MPICC=mpicc
 MPICXX=mpicxx
 ENABLE_MPI="--enable-mpi"
-MPI_INC_DIR=/usr/local/openmpi/4.0.3rc1/devtoolset-8/ppc64le/include
-MPI_LIB_DIR=/usr/local/openmpi/4.0.3rc1/devtoolset-8/ppc64le/lib64
+MPI_INC_DIR=/usr/local/openmpi/cuda-10.2/4.0.3/devtoolset-8/ppc64le/include
+MPI_LIB_DIR=/usr/local/openmpi/cuda-10.2/4.0.3/devtoolset-8/ppc64le/lib64
 MPI_LINK_LIBS="mpi"
 
 # ADIOS options

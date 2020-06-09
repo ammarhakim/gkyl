@@ -20,8 +20,8 @@ extern "C" bool isPow2(unsigned int x);
 // Note, this kernel needs a minimum of 64*sizeof(T) bytes of shared memory.
 // In other words if blockSize <= 32, allocate 64*sizeof(T) bytes.
 // If blockSize > 32, allocate blockSize*sizeof(T) bytes.
-template <unsigned int BLOCKSIZE, bool nIsPow2, Gkyl::BinOp binOpType>
-__global__ void d_reduceCartField(GkylCartField_t *fIn, double *redPerBlock) {
+template <unsigned int BLOCKSIZE, bool nIsPow2>
+__global__ void d_reduceCartField(baseReduceOp *redOpIn, GkylCartField_t *fIn, double *redPerBlock) {
   // Handle to thread block group.
   cg::thread_block cgThreadBlock = cg::this_thread_block();
   extern __shared__ double sdata[];  // Stores partial reductions.
@@ -31,12 +31,7 @@ __global__ void d_reduceCartField(GkylCartField_t *fIn, double *redPerBlock) {
   unsigned int linearIdx = blockIdx.x * BLOCKSIZE * 2 + threadIdx.x;
   unsigned int gridSize  = BLOCKSIZE * 2 * gridDim.x;
 
-  double myReduc = 0;
-  if (binOpType == Gkyl::BinOp::binOpMin) {
-    myReduc = DBL_MAX;
-  } else if (binOpType == Gkyl::BinOp::binOpMax) {
-    myReduc = -DBL_MAX;
-  }
+  double myReduc = redOpIn->initValue;
 
   GkylRange_t *localRange  = fIn->localRange;
   Gkyl::GenIndexer localIdxr(localRange);
@@ -52,7 +47,7 @@ __global__ void d_reduceCartField(GkylCartField_t *fIn, double *redPerBlock) {
     int linIdx        = fIdxr.index(idx);
     const double *fld = fIn->getDataPtrAt(linIdx);
 
-    myReduc = Gkyl::binOp<binOpType>(myReduc, fld[0]);
+    myReduc = redOpIn->reduce(myReduc, fld[0]);
 
     // Ensure we don't read out of bounds (optimized away for powerOf2 sized arrays).
     unsigned int newLinearIdx = linearIdx+BLOCKSIZE;
@@ -61,7 +56,7 @@ __global__ void d_reduceCartField(GkylCartField_t *fIn, double *redPerBlock) {
       linIdx = fIdxr.index(idx);
       fld    = fIn->getDataPtrAt(linIdx);
 
-      myReduc = Gkyl::binOp<binOpType>(myReduc, fld[0]);
+      myReduc = redOpIn->reduce(myReduc, fld[0]);
     }
 
     linearIdx += gridSize;
@@ -73,19 +68,19 @@ __global__ void d_reduceCartField(GkylCartField_t *fIn, double *redPerBlock) {
 
   // Do reduction in shared mem.
   if ((BLOCKSIZE >= 512) && (tID < 256)) {
-    sdata[tID] = myReduc = Gkyl::binOp<binOpType>(myReduc, sdata[tID + 256]);
+    sdata[tID] = myReduc = redOpIn->reduce(myReduc, sdata[tID + 256]);
   }
 
   cg::sync(cgThreadBlock);
 
   if ((BLOCKSIZE >= 256) && (tID < 128)) {
-    sdata[tID] = myReduc = Gkyl::binOp<binOpType>(myReduc, sdata[tID + 128]);
+    sdata[tID] = myReduc = redOpIn->reduce(myReduc, sdata[tID + 128]);
   }
 
   cg::sync(cgThreadBlock);
 
   if ((BLOCKSIZE >= 128) && (tID < 64)) {
-    sdata[tID] = myReduc = Gkyl::binOp<binOpType>(myReduc, sdata[tID + 64]);
+    sdata[tID] = myReduc = redOpIn->reduce(myReduc, sdata[tID + 64]);
   }
 
   cg::sync(cgThreadBlock);
@@ -94,11 +89,11 @@ __global__ void d_reduceCartField(GkylCartField_t *fIn, double *redPerBlock) {
 
   if (cgThreadBlock.thread_rank() < 32) {
     // Fetch final intermediate reduction from 2nd warp.
-    if (BLOCKSIZE >= 64) myReduc = Gkyl::binOp<binOpType>(myReduc, sdata[tID + 32]);
+    if (BLOCKSIZE >= 64) myReduc = redOpIn->reduce(myReduc, sdata[tID + 32]);
     // Reduce final warp using shuffle.
     for (int offset = tile32.size()/2; offset > 0; offset /= 2) {
-      double shflMax = tile32.shfl_down(myReduc, offset);
-      myReduc = Gkyl::binOp<binOpType>(myReduc, shflMax);
+      double shflReduc = tile32.shfl_down(myReduc, offset);
+      myReduc = redOpIn->reduce(myReduc, shflReduc);
     }
   }
 
@@ -106,7 +101,7 @@ __global__ void d_reduceCartField(GkylCartField_t *fIn, double *redPerBlock) {
   if (cgThreadBlock.thread_rank() == 0) { redPerBlock[blockIdx.x] = myReduc; }
 }
 
-void reduceCartField(int opIn, int numCellsTot, int blocks, int threads, GkylCartField_t *fIn, double *blockRed) {
+void reduceCartField(baseReduceOp *opIn, int numCellsTot, int blocks, int threads, GkylCartField_t *fIn, double *blockRed) {
   // Launch the device kernel that reduces a CartField to an array,
   // each element of the array being the reduction performed by a block.
 
@@ -117,275 +112,75 @@ void reduceCartField(int opIn, int numCellsTot, int blocks, int threads, GkylCar
   if (isPow2(numCellsTot)) {
     switch (threads) {
       case 512:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<512,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<512,true,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<512,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<512,true><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
       case 256:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<256,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<256,true,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<256,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<256,true><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
       case 128:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<128,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<128,true,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<128,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<128,true><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
       case 64:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<64,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<64,true,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<64,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<64,true><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
       case 32:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<32,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<32,true,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<32,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<32,true><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
       case 16:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<16,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<16,true,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<16,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<16,true><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
       case 8:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<8,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<8,true,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<8,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<8,true><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
       case 4:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<4,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<4,true,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<4,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<4,true><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
       case 2:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<2,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<2,true,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<2,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<2,true><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
       case 1:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<1,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<1,true,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<1,true,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<1,true><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
     }
   } else {
     switch (threads) {
       case 512:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<512,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<512,false,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<512,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<512,false><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
       case 256:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<256,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<256,false,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<256,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<256,false><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
       case 128:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<128,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<128,false,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<128,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<128,false><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
       case 64:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<64,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<64,false,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<64,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<64,false><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
       case 32:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<32,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<32,false,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<32,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<32,false><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
       case 16:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<16,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<16,false,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<16,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<16,false><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
       case 8:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<8,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<8,false,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<8,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<8,false><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
       case 4:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<4,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<4,false,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<4,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<4,false><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
       case 2:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<2,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<2,false,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<2,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<2,false><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
       case 1:
-        switch (opIn) {
-          case 1:
-            d_reduceCartField<1,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 2:
-            d_reduceCartField<1,false,Gkyl::BinOp::binOpMax><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-          case 3:
-            d_reduceCartField<1,false,Gkyl::BinOp::binOpMin><<<blocks, threads, smemSize>>>(fIn, blockRed);
-            break;
-        }
+        d_reduceCartField<1,false><<<blocks, threads, smemSize>>>(opIn, fIn, blockRed);
         break;
     }
   }
 }
 
-void gkylCartFieldDeviceReduce(const int reduceOp, int numCellsTot, int numBlocks, int numThreads, int maxBlocks, int maxThreads,
+void gkylCartFieldDeviceReduce(baseReduceOp *redOp, int numCellsTot, int numBlocks, int numThreads, int maxBlocks, int maxThreads,
                   GkDeviceProp *prop, GkylCartField_t *fIn, double *blockOut, double *intermediate, double *out) {
-  // Reduce the CartField 'fIn' (type double) according to the operation 'reduceOp'
+  // Reduce the CartField 'fIn' (type double) according to the operation 'redOp'
   // and place it in the device-memory variable 'out'.
   // This function follows 'reduce6' (using Cooperative Groups) in cuda-samples:
   //   https://github.com/NVIDIA/cuda-samples/tree/master/Samples/reduction
@@ -395,7 +190,7 @@ void gkylCartFieldDeviceReduce(const int reduceOp, int numCellsTot, int numBlock
 
   // Call the kernel that reduces a CartField (fIn) into a device array (blockOut)
   // which contains the reduction performed by each block.
-  reduceCartField(reduceOp, numCellsTot, numBlocks, numThreads, fIn, blockOut);
+  reduceCartField(redOp, numCellsTot, numBlocks, numThreads, fIn, blockOut);
 
   // Reduce partial block reductions on GPU.
   int newNum = numBlocks;
@@ -406,7 +201,7 @@ void gkylCartFieldDeviceReduce(const int reduceOp, int numCellsTot, int numBlock
 
     checkCudaErrors(cudaMemcpy(intermediate, blockOut, newNum * sizeof(double), cudaMemcpyDeviceToDevice));
 
-    reduceDeviceArray(reduceOp, newNum, blocks, threads, intermediate, blockOut);
+    reduceDeviceArray(redOp, newNum, blocks, threads, intermediate, blockOut);
 
     newNum = (newNum + (threads*2-1))/(threads*2);
   }
