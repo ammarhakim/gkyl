@@ -46,7 +46,7 @@ void reductionBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlock
     threads *= 2;
   }
 
-  blocks = MIN(maxBlocks, blocks);
+  blocks = (maxBlocks<blocks) ? maxBlocks : blocks;
 }
 
 // This algorithm reduces multiple elements per thread sequentially. This reduces

@@ -14,18 +14,6 @@
 
 #include <GkylCudaFuncs.h>
 
-#ifndef MIN
-#define MIN(x, y) ((x < y) ? x : y)
-#endif
-
-#ifndef MAX
-#define MAX(x, y) ((x > y) ? x : y)
-#endif
-
-#ifndef SUM
-#define SUM(x,y) (x+y)
-#endif
-
 extern "C" {
     void reductionBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlocks,
       int maxThreads, int &blocks, int &threads);
