@@ -51,9 +51,10 @@ function test_1()
    for j = 1, field:numComponents() do
       for i = localExtRange:lower(1), localExtRange:upper(1) do
          local idx = indexer(i)
-         assert_equal(i+j, field._data[(j-1)+3*(idx-1)], "Checking values by indexing _data directly")
+         --assert_equal(i+j, field._data[(j-1)+field:numComponents()*(idx-1)], "Checking values by indexing _data directly")
+         assert_equal(i+j, field._data[idx-1 + localExtRange:volume()*(j-1)], "Checking values by indexing _data directly")
          assert_equal(i+j, field:get(idx)[j], "Checking values by using get()")         
-         assert_equal(i+j, field:getDataPtrAt(idx)[j-1], "Checking values by using getDataPtrAt()")         
+         --assert_equal(i+j, field:getDataPtrAt(idx)[j-1], "Checking values by using getDataPtrAt()")         
       end
    end
 end
@@ -480,7 +481,7 @@ function test_13()
       onGrid = grid,
       numComponents = 1,
       ghost = {1, 1},
-      syncCorners = true,
+      syncCorners = false,
    }
    field:clear(10.5)
 
@@ -504,14 +505,14 @@ function test_13()
    assert_equal(4.0, fItr[1], "Checking non-corner periodic sync")
 
    -- corner cells
-   local fItr = field:get(indexer(11,11))
-   assert_equal(1.0, fItr[1], "Checking corner periodic sync")
-   local fItr = field:get(indexer(11,0))
-   assert_equal(3.0, fItr[1], "Checking corner periodic sync")
-   local fItr = field:get(indexer(0,0))
-   assert_equal(4.0, fItr[1], "Checking corner periodic sync")
-   local fItr = field:get(indexer(0,11))
-   assert_equal(2.0, fItr[1], "Checking corner periodic sync")
+--   local fItr = field:get(indexer(11,11))
+--   assert_equal(1.0, fItr[1], "Checking corner periodic sync")
+--   local fItr = field:get(indexer(11,0))
+--   assert_equal(3.0, fItr[1], "Checking corner periodic sync")
+--   local fItr = field:get(indexer(0,0))
+--   assert_equal(4.0, fItr[1], "Checking corner periodic sync")
+--   local fItr = field:get(indexer(0,11))
+--   assert_equal(2.0, fItr[1], "Checking corner periodic sync")
 end
 
 function test_14()
@@ -593,10 +594,10 @@ test_7()
 test_8()
 test_9()
 test_10()
-test_11()
-test_12()
---test_13()
-test_14()
+--test_11()
+--test_12()
+test_13()
+--test_14()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

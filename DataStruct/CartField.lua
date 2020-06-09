@@ -114,13 +114,13 @@ local function new_field_comp_ct(elct)
    local field_comp_mt = {
       __index = function(self, k)
 	 if type(k) == "number" then
-	    return self._cdata[k-1]
+	    return self._cdata[(k-1)*self.numComponents]
 	 else
 	    return field_comp_mf[k]
 	 end
       end,
       __newindex = function(self, k, v)
-	 self._cdata[k-1] = v
+	 self._cdata[(k-1)*self.numComponents] = v
       end,
    }
    return metatype(typeof("struct { int numComponents; $* _cdata; }", elct), field_comp_mt)
@@ -467,7 +467,7 @@ local function Field_meta_ctor(elct)
 	 end
       end,
       fill = function (self, k, fc)
-	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index	 
+	 local loc = (k-1) -- (k-1) as k is 1-based index	 
 	 fc._cdata = self._data+loc
       end,
       _localLower = function (self)
@@ -663,11 +663,11 @@ local function Field_meta_ctor(elct)
 	 return genIndexerMakerFuncs[self._layout](self:localExtRange())
       end,
       get = function (self, k) -- k is an integer returned by a linear indexer
-	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index
-	 return fcompct(self._numComponents, self._data+loc)
+	 local loc = (k-1) -- (k-1) as k is 1-based index
+	 return fcompct(self._localExtRange:volume(), self._data+loc)
       end,
       getDataPtrAt = function (self, k) -- k is an integer returned by a linear indexer
-	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index
+	 local loc = (k-1) -- (k-1) as k is 1-based index
 	 return self._data+loc
       end,
       write = function (self, fName, tmStamp, frNum, writeSkin)
