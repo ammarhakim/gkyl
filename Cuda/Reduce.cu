@@ -20,7 +20,7 @@ unsigned int nextPow2(unsigned int x) {
   return ++x;
 }
 
-__device__ double redBinOpMax(void *obj, double a, double b) {
+__device__ double redBinOpMax(double a, double b) {
   return MAX(a,b);
 }
 __device__ redBinOpFunc_t d_redBinOpMaxPtr = &redBinOpMax;

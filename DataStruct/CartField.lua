@@ -72,7 +72,7 @@ if GKYL_HAVE_CUDA then
     // Reduction down to a single value (e.g. min, max, sum).
     void reductionBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlocks,
                                    int maxThreads, int &blocks, int &threads);
-    typedef double (*redBinOpFunc_t)(void *self, double a, double b);
+    typedef double (*redBinOpFunc_t)(double a, double b);
     typedef struct {
       void *child;
       double initValue;

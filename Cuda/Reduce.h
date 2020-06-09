@@ -48,7 +48,7 @@ extern "C" {
   unsigned int nextPow2(unsigned int x);
 
   // Type of function that operates on two numbers.
-  typedef double (*redBinOpFunc_t)(void *self, double a, double b);
+  typedef double (*redBinOpFunc_t)(double a, double b);
   // Base reduction operator object.
   struct baseReduceOp {
     void *child { };                // Pointer to child object.
@@ -56,7 +56,7 @@ extern "C" {
     redBinOpFunc_t reduceFunc { };  // Provided by "children".
 
     __host__ __device__ double reduce(double a, double b) {
-      return reduceFunc(child, a, b);
+      return reduceFunc(a, b);
     }
   };
   // Reduction operator object.
