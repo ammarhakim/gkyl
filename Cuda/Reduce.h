@@ -51,17 +51,12 @@ extern "C" {
   typedef double (*redBinOpFunc_t)(double a, double b);
   // Base reduction operator object.
   struct baseReduceOp {
-    void *child { };                // Pointer to child object.
     double initValue;               // Initial value to start with.
     redBinOpFunc_t reduceFunc { };  // Provided by "children".
 
     __host__ __device__ double reduce(double a, double b) {
       return reduceFunc(a, b);
     }
-  };
-  // Reduction operator object.
-  struct reduceOp {
-    double initValFlag { 0.0 };
   };
 
   redBinOpFunc_t getRedBinOpFuncFromDevice(unsigned int redBinOpLabel);
