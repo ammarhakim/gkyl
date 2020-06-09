@@ -1,7 +1,7 @@
 # The following modules should be loaded to build on Traverse.
 # module load cudatoolkit
 # module load rh/devtoolset/8
-# module load openmpi/devtoolset-8/4.0.3rc1/64
+# module load openmpi/cuda-10.2/devtoolset-8/4.0.3/64
 # module load git/2.18
 # In addition, make sure /sbin/ is in your path to link luajit
 # export PATH=$PATH:/sbin/
