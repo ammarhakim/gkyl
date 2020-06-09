@@ -45,9 +45,17 @@ namespace Gkyl {
       unsigned _numWaves = 3;
       const unsigned _numEquations = 5;
 
+
+      double _fl[5], _fr[5]; /* Storage for left/right fluxes */
+
       __host__ __device__ void rpLax(
           const unsigned dir, const double *delta, const double *ql,
           const double *qr, double **waves, double *s);
+
+      __host__ __device__ void qFluctuationsLax(
+          const unsigned dir, const double *ql, const double *qr,
+          const double *waves, const double *s, double *amdq,
+          double *apdq);
   };
 }
 #endif
