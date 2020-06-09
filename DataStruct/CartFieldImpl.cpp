@@ -24,13 +24,11 @@ void gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out) {
     out[n] *= fact;
 }
 
-void gkylCartFieldScaleByCell(unsigned s, unsigned nv, unsigned ncomp, double *fact, double *out) {
-  unsigned icell = 0;
-  for (unsigned n=s; n<(s+nv); n+=ncomp) {
-    for (unsigned c=0; c<ncomp; c++) {
-      out[n+c] *= fact[icell];
+void gkylCartFieldScaleByCell(unsigned s, unsigned ncells, unsigned ncomp, double *fact, double *out) {
+  for (unsigned c=0; c<ncomp; c++) {
+    for (unsigned n=0; n<ncells; n++) {
+      out[s+n+c*ncells] *= fact[n];
     }
-    icell++;
   }
 }
 

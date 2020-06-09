@@ -589,7 +589,7 @@ local function Field_meta_ctor(elct)
          assert(factByCell:numComponents() == 1, "CartField:scaleByCell: scalar must be a 1-component field")
          assert(factByCell:localRange() == self:localRange() and factByCell:layout() == self:layout(), "CartField:scaleByCell: scalar and field must be compatible")
             
-	 ffiC.gkylCartFieldScaleByCell(self:_localLower(), self:_localShape(), self:numComponents(), factByCell._data, self._data)
+	 ffiC.gkylCartFieldScaleByCell(self:_localLower(), self._localExtRange:volume(), self:numComponents(), factByCell._data, self._data)
       end,
       abs = isNumberType and
          function (self)
