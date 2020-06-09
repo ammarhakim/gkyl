@@ -20,6 +20,17 @@ unsigned int nextPow2(unsigned int x) {
   return ++x;
 }
 
+__device__ double redBinOpMax(void *obj, double a, double b) {
+  return MAX(a,b);
+}
+__device__ redBinOpFunc_t d_redBinOpMaxPtr = &redBinOpMax;
+
+redBinOpFunc_t getRedBinOpFuncFromDevice(unsigned int redBinOpLabel) {
+  redBinOpFunc_t redBinOpFuncPtr; 
+  auto err = cudaMemcpyFromSymbol(&redBinOpFuncPtr, d_redBinOpMaxPtr, sizeof(redBinOpFunc_t));
+  return redBinOpFuncPtr;
+}
+
 // Compute the number of threads and blocks to use for the given reduction
 // kerne. We set threads/block to the minimum of maxThreads and n/2.
 // We observe the maximum specified number of blocks, because
@@ -52,8 +63,8 @@ void reductionBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlock
 // Note, this kernel needs a minimum of 64*sizeof(T) bytes of shared memory.
 // In other words if blockSize <= 32, allocate 64*sizeof(T) bytes.
 // If blockSize > 32, allocate blockSize*sizeof(T) bytes.
-template <unsigned int BLOCKSIZE, bool nIsPow2, unsigned int binOpType>
-__global__ void d_reduce(double *dataIn, double *out, unsigned int nElements) {
+template <unsigned int BLOCKSIZE, bool nIsPow2>
+__global__ void d_reduce(baseReduceOp *redOpIn, double *dataIn, double *out, unsigned int nElements) {
   // Handle to thread block group.
   cg::thread_block cgThreadBlock = cg::this_thread_block();
   extern __shared__ double sdata[];  // Stores partial reductions.
@@ -63,21 +74,16 @@ __global__ void d_reduce(double *dataIn, double *out, unsigned int nElements) {
   unsigned int linearIdx = blockIdx.x * BLOCKSIZE * 2 + threadIdx.x;
   unsigned int gridSize  = BLOCKSIZE * 2 * gridDim.x;
 
-  double myReduc = 0.0;
-  if (binOpType==binOpMin) {
-    myReduc = DBL_MAX;
-  } else if (binOpType==binOpMax) {
-    myReduc = -DBL_MAX;
-  }
+  double myReduc = redOpIn->initValue;
 
   // We reduce multiple elements per thread.  The number is determined by the
   // number of active thread blocks (via gridDim).  More blocks will result
   // in a larger gridSize and therefore fewer elements per thread
   while (linearIdx < nElements) {
-    myReduc = binOp<binOpType>(myReduc, dataIn[linearIdx]);
+    myReduc = redOpIn->reduce(myReduc, dataIn[linearIdx]);
 
     // Ensure we don't read out of bounds (optimized away for powerOf2 sized arrays)/
-    if (nIsPow2 || linearIdx+BLOCKSIZE<nElements) myReduc = binOp<binOpType>(myReduc, dataIn[linearIdx+BLOCKSIZE]);
+    if (nIsPow2 || linearIdx+BLOCKSIZE<nElements) myReduc = redOpIn->reduce(myReduc, dataIn[linearIdx+BLOCKSIZE]);
 
     linearIdx += gridSize;
   }
@@ -88,19 +94,19 @@ __global__ void d_reduce(double *dataIn, double *out, unsigned int nElements) {
 
   // Do reduction in shared mem.
   if ((BLOCKSIZE >= 512) && (tID < 256)) {
-    sdata[tID] = myReduc = binOp<binOpType>(myReduc, sdata[tID + 256]);
+    sdata[tID] = myReduc = redOpIn->reduce(myReduc, sdata[tID + 256]);
   }
 
   cg::sync(cgThreadBlock);
 
   if ((BLOCKSIZE >= 256) && (tID < 128)) {
-    sdata[tID] = myReduc = binOp<binOpType>(myReduc, sdata[tID + 128]);
+    sdata[tID] = myReduc = redOpIn->reduce(myReduc, sdata[tID + 128]);
   }
 
   cg::sync(cgThreadBlock);
 
   if ((BLOCKSIZE >= 128) && (tID < 64)) {
-    sdata[tID] = myReduc = binOp<binOpType>(myReduc, sdata[tID + 64]);
+    sdata[tID] = myReduc = redOpIn->reduce(myReduc, sdata[tID + 64]);
   }
 
   cg::sync(cgThreadBlock);
@@ -109,11 +115,11 @@ __global__ void d_reduce(double *dataIn, double *out, unsigned int nElements) {
 
   if (cgThreadBlock.thread_rank() < 32) {
     // Fetch final intermediate reduction from 2nd warp.
-    if (BLOCKSIZE >= 64) myReduc = binOp<binOpType>(myReduc, sdata[tID + 32]);
+    if (BLOCKSIZE >= 64) myReduc = redOpIn->reduce(myReduc, sdata[tID + 32]);
     // Reduce final warp using shuffle.
     for (int offset = tile32.size() / 2; offset > 0; offset /= 2) {
       double shflMax = tile32.shfl_down(myReduc, offset);
-      myReduc = binOp<binOpType>(myReduc, shflMax);
+      myReduc = redOpIn->reduce(myReduc, shflMax);
     }
   }
 
@@ -121,7 +127,7 @@ __global__ void d_reduce(double *dataIn, double *out, unsigned int nElements) {
   if (cgThreadBlock.thread_rank() == 0) { out[blockIdx.x] = myReduc; }
 }
 
-void reduceDeviceArray(int opIn, int numElements, int blocks, int threads, double *d_dataIn, double *d_dataOut) {
+void reduceDeviceArray(baseReduceOp *opIn, int numElements, int blocks, int threads, double *d_dataIn, double *d_dataOut) {
   // Launch the device kernel that reduces a device array 'd_dataIn'
   // containing 'numElements' elements.
 
@@ -132,267 +138,67 @@ void reduceDeviceArray(int opIn, int numElements, int blocks, int threads, doubl
   if (isPow2(numElements)) {
     switch (threads) {
       case 512:
-        switch (opIn) {
-          case 1:
-            d_reduce<512,true,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<512,true,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<512,true,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<512,true><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
       case 256:
-        switch (opIn) {
-          case 1:
-            d_reduce<256,true,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<256,true,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<256,true,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<256,true><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
       case 128:
-        switch (opIn) {
-          case 1:
-            d_reduce<128,true,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<128,true,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<128,true,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<128,true><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
       case 64:
-        switch (opIn) {
-          case 1:
-            d_reduce<64,true,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<64,true,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<64,true,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<64,true><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
       case 32:
-        switch (opIn) {
-          case 1:
-            d_reduce<32,true,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<32,true,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<32,true,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<32,true><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
       case 16:
-        switch (opIn) {
-          case 1:
-            d_reduce<16,true,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<16,true,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<16,true,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<16,true><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
       case 8:
-        switch (opIn) {
-          case 1:
-            d_reduce<8,true,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<8,true,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<8,true,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<8,true><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
       case 4:
-        switch (opIn) {
-          case 1:
-            d_reduce<4,true,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<4,true,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<4,true,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<4,true><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
       case 2:
-        switch (opIn) {
-          case 1:
-            d_reduce<2,true,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<2,true,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<2,true,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<2,true><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
       case 1:
-        switch (opIn) {
-          case 1:
-            d_reduce<1,true,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<1,true,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<1,true,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<1,true><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
     }
   } else {
     switch (threads) {
       case 512:
-        switch (opIn) {
-          case 1:
-            d_reduce<512,false,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<512,false,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<512,false,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<512,false><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
       case 256:
-        switch (opIn) {
-          case 1:
-            d_reduce<256,false,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<256,false,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<256,false,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<256,false><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
       case 128:
-        switch (opIn) {
-          case 1:
-            d_reduce<128,false,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<128,false,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<128,false,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<128,false><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
       case 64:
-        switch (opIn) {
-          case 1:
-            d_reduce<64,false,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<64,false,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<64,false,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<64,false><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
       case 32:
-        switch (opIn) {
-          case 1:
-            d_reduce<32,false,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<32,false,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<32,false,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<32,false><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
       case 16:
-        switch (opIn) {
-          case 1:
-            d_reduce<16,false,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<16,false,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<16,false,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<16,false><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
       case 8:
-        switch (opIn) {
-          case 1:
-            d_reduce<8,false,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<8,false,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<8,false,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<8,false><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
       case 4:
-        switch (opIn) {
-          case 1:
-            d_reduce<4,false,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<4,false,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<4,false,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<4,false><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
       case 2:
-        switch (opIn) {
-          case 1:
-            d_reduce<2,false,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<2,false,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<2,false,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<2,false><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
       case 1:
-        switch (opIn) {
-          case 1:
-            d_reduce<1,false,binOpMin><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 2:
-            d_reduce<1,false,binOpMax><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-          case 3:
-            d_reduce<1,false,binOpSum><<<blocks,threads,smemSize>>>(d_dataIn, d_dataOut, numElements);
-            break;
-        }
+        d_reduce<1,false><<<blocks,threads,smemSize>>>(opIn, d_dataIn, d_dataOut, numElements);
         break;
     }
   }

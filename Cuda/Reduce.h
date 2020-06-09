@@ -46,7 +46,27 @@ extern "C" {
                                  int maxThreads, int &blocks, int &threads);
   bool isPow2(unsigned int x);
   unsigned int nextPow2(unsigned int x);
-  void reduceDeviceArray(int opIn, int numElements, int blocks, int threads, double *d_dataIn, double *d_dataOut);
+
+  // Type of function that operates on two numbers.
+  typedef double (*redBinOpFunc_t)(void *self, double a, double b);
+  // Base reduction operator object.
+  struct baseReduceOp {
+    void *child { };                // Pointer to child object.
+    double initValue;               // Initial value to start with.
+    redBinOpFunc_t reduceFunc { };  // Provided by "children".
+
+    __host__ __device__ double reduce(double a, double b) {
+      return reduceFunc(child, a, b);
+    }
+  };
+  // Reduction operator object.
+  struct reduceOp {
+    double initValFlag { 0.0 };
+  };
+
+  redBinOpFunc_t getRedBinOpFuncFromDevice(unsigned int redBinOpLabel);
+
+  void reduceDeviceArray(baseReduceOp *opIn, int numElements, int blocks, int threads, double *d_dataIn, double *d_dataOut);
 }
 
 template <unsigned int binOpType>

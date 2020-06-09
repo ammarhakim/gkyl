@@ -72,8 +72,17 @@ if GKYL_HAVE_CUDA then
     // Reduction down to a single value (e.g. min, max, sum).
     void reductionBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlocks,
                                    int maxThreads, int &blocks, int &threads);
-
-    void gkylCartFieldDeviceReduce(const int reduceOp, int numCellsTot, int numBlocks, int numThreads, int maxBlocks, int maxThreads,
+    typedef double (*redBinOpFunc_t)(void *self, double a, double b);
+    typedef struct {
+      void *child;
+      double initValue;
+      redBinOpFunc_t reduceFunc;
+    } baseReduceOp_t; 
+    typedef struct {
+      double initValFlag;
+    } reduceOp_t;
+    redBinOpFunc_t getRedBinOpFuncFromDevice(unsigned int redBinOpLabel);
+    void gkylCartFieldDeviceReduce(baseReduceOp_t *redOp, int numCellsTot, int numBlocks, int numThreads, int maxBlocks, int maxThreads,
        GkDeviceProp *prop, GkylCartField_t *fIn, double *blockOut, double *intermediate, double *out);
 
    ]]
@@ -745,8 +754,23 @@ local function Field_meta_ctor(elct)
       deviceReduce = isNumberType and
 	 function(self, opIn, d_reduction)
             assert(self._numComponents==1, "CartField:deviceReduce: Reduce only works on fields with numComponents=1.")
+            -- Create requested reduction operator object on host and copy to device.
+            local reduceOp = ffi.new("reduceOp_t")
+            reduceOp.initValFlag = reduceInitialVal[opIn] 
+            local sz = ffi.sizeof("reduceOp_t")
+            local d_reduceOp = cuda.Malloc(sz)
+            local err = cuda.Memcpy(d_reduceOp, reduceOp, sz, cuda.MemcpyHostToDevice)
+            -- Create reduction operator on host, and copy to device.
+            local redOp = ffi.new("baseReduceOp_t")
+            redOp.child = d_reduceOp
+            redOp.initValue = reduceInitialVal[opIn]
+            redOp.reduceFunc = ffi.C.getRedBinOpFuncFromDevice(binOpFlags[opIn])
+            sz = ffi.sizeof("baseReduceOp_t")
+            local d_redOp = cuda.Malloc(sz)
+            err = cuda.Memcpy(d_redOp, redOp, sz, cuda.MemcpyHostToDevice)
+            
 	    -- Input 'opIn' must be one of the binary operations in binOpFuncs.
-            ffi.C.gkylCartFieldDeviceReduce(binOpFlags[opIn],self._localRange:volume(),self.reduceBlocks,self.reduceThreads,self.reduceBlocksMAX,self.reduceThreadsMAX,
+            ffi.C.gkylCartFieldDeviceReduce(d_redOp,self._localRange:volume(),self.reduceBlocks,self.reduceThreads,self.reduceBlocksMAX,self.reduceThreadsMAX,
                self.deviceProps,self._onDevice,self.d_blockRed:data(),self.d_intermediateRed:data(),d_reduction:data())
 	 end or
 	 function (self, opIn, d_reduction)
