@@ -82,6 +82,7 @@ __global__ void cuda_WavePropagation(GkylWavePropagation_t *hyper, GkylCartField
 
   for(int i=0; i<numUpdateDirs; i++) {
     int dir = updateDirs[i] - 1;
+    const double dtdx = hyper->dt / grid->dx[dir];
 
     for(int d=0; d<ndim; d++) {
       idxL[d] = idxC[d];
@@ -101,6 +102,20 @@ __global__ void cuda_WavePropagation(GkylWavePropagation_t *hyper, GkylCartField
 
     eq->rp(dir, delta, qInL, qInR, waves, s); // compute waves and speeds
     eq->qFluctuations(dir, qInL, qInR, waves, s, amdq, apdq); // compute fluctuations
+
+    // left (of C) surface update. use dummy in place of qOutL (cell to left of
+    // surface) so that only current cell (C) is updated.
+    if(!(idxC[dir] == localRange->lower[dir])) {
+      calcFirstOrderGud(dtdx, dummy, qOutC, amdq, apdq, meqn);
+    }
+
+    // right (of C) surface update. use dummy in place of qOutR (cell to left of
+   //  surface) so that only current cell (C) is updated.
+    if(!(idxC[dir] == localRange->upper[dir])) {
+      calcFirstOrderGud(dtdx, qOutC, dummy, amdq, apdq, meqn);
+    }
+    double cfla = calcCfla(cfla, dtdx, s, mwave);
+    // cflRateByCell->getDataPtrAt(linearIdxC)[0] += cflRate; // FIXME use how?
 
     // hyper->maxsByCell->getDataPtrAt(linearIdxC)[i] = max(maxsL, maxsR);
   }
