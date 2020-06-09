@@ -44,6 +44,7 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
     const double *fInC = fIn->getDataPtrAt(linearIdxC);
     double *fRhsOutC = fRhsOut->getDataPtrAt(linearIdxC);
     double cflRate = eq->volTerm(xcC, dx, idxC, fInC, fRhsOutC);
+    hyper->cflRateByCell->getDataPtrAt(linearIdxC)[0] += cflRate;
 
     for(int i=0; i<numUpdateDirs; i++) {
       int dir = updateDirs[i] - 1;
