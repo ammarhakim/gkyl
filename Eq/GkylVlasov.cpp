@@ -91,33 +91,33 @@ __global__ void setAuxFieldsOnDevice(Gkyl::Vlasov *v, GkylCartField_t* emField) 
 //--------- this stuff works and is hooked into HyperDistCont
 
 
-__global__ void VlasovEquation_setAuxFieldsOnDevice(GkylEquation_t *eqn, GkylCartField_t* emField) {
-  GkylVlasovEquation_t *self = (GkylVlasovEquation_t *) eqn->equation;
+__global__ void Vlasov_setAuxFieldsOnDevice(GkylEquation_t *eqn, GkylCartField_t* emField) {
+  GkylVlasov_t *self = (GkylVlasov_t *) eqn->equation;
   self->emField = emField;
 }
 
 void
-VlasovEquation_setAuxFields(GkylEquation_t *eqn, GkylCartField_t* em) {
-  VlasovEquation_setAuxFieldsOnDevice<<<1,1>>>(eqn, em);
+Vlasov_setAuxFields(GkylEquation_t *eqn, GkylCartField_t* em) {
+  Vlasov_setAuxFieldsOnDevice<<<1,1>>>(eqn, em);
 }
 
-__device__ double VlasovEquation_volTerm(void *eqn, 
+__device__ double Vlasov_volTerm(void *eqn, 
   double *xc, double *dx, int *idx, double *qIn, double *qRhsOut) {
 
-  GkylVlasovEquation_t *self = (GkylVlasovEquation_t *) eqn;
+  GkylVlasov_t *self = (GkylVlasov_t *) eqn;
   Gkyl::GenIndexer emIdxr = self->emField->genIndexer();
   const double *em = self->emField->getDataPtrAt(emIdxr.index(idx));
   double cflFreq = self->volumeTerm(xc, dx, em, qIn, qRhsOut);
   return cflFreq;
 }
-__device__ volTermFunc_t p_VlasovEquation_volTerm = &VlasovEquation_volTerm;
+__device__ volTermFunc_t p_Vlasov_volTerm = &Vlasov_volTerm;
 
-__device__ double VlasovEquation_surfTerm(void *eqn, int dir,
+__device__ double Vlasov_surfTerm(void *eqn, int dir,
   double *xcL, double *xcR, double *dxL, double *dxR,
   double maxsOld, int* idxL, int *idxR,
   double *qInL, double *qInR, double *qRhsOutL, double *qRhsOutR) {
 
-  GkylVlasovEquation_t *self = (GkylVlasovEquation_t *) eqn;
+  GkylVlasov_t *self = (GkylVlasov_t *) eqn;
   double amax = 0.0;
   if (dir < self->cdim) {
     self->surfStreamTerm(dir, xcL, xcR, dxL, dxR, qInL, qInR, qRhsOutL, qRhsOutR);
@@ -128,22 +128,22 @@ __device__ double VlasovEquation_surfTerm(void *eqn, int dir,
   }
   return amax;
 }
-__device__ surfTermFunc_t p_VlasovEquation_surfTerm = &VlasovEquation_surfTerm;
+__device__ surfTermFunc_t p_Vlasov_surfTerm = &Vlasov_surfTerm;
 
-__device__ double VlasovEquation_boundarySurfTerm(void *eqn, int dir,
+__device__ double Vlasov_boundarySurfTerm(void *eqn, int dir,
   double *xcL, double *xcR, double *dxL, double *dxR,
   double maxsOld, int* idxL, int *idxR,
   double *qInL, double *qInR, double *qRhsOutL, double *qRhsOutR) {
 
   return 0;
 }
-__device__ boundarySurfTermFunc_t p_VlasovEquation_boundarySurfTerm = &VlasovEquation_boundarySurfTerm;
+__device__ boundarySurfTermFunc_t p_Vlasov_boundarySurfTerm = &Vlasov_boundarySurfTerm;
 
 GkylEquation_t*
-new_VlasovEquationOnDevice(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType,
+new_VlasovOnDevice(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType,
   double qbym, bool hasForceTerm) {
   GkylEquation_t *eqn = new GkylEquation_t;
-  GkylVlasovEquation_t *vlasovEqn = new GkylVlasovEquation_t;
+  GkylVlasov_t *vlasovEqn = new GkylVlasov_t;
 
   vlasovEqn->cdim = cdim;
   vlasovEqn->vdim = vdim;
@@ -158,15 +158,15 @@ new_VlasovEquationOnDevice(unsigned cdim, unsigned vdim, unsigned polyOrder, uns
   vlasovEqn->surfElcMagTerm = Vlasov_getSurfElcMagTerm(cdim, vdim, polyOrder, basisType);
 
   // setup equation object with Vlasov data and function pointers
-  eqn->equation = Gkyl::CudaUtils<GkylVlasovEquation_t>::allocAndCopyToDevice(vlasovEqn);
+  eqn->equation = Gkyl::CudaUtils<GkylVlasov_t>::allocAndCopyToDevice(vlasovEqn);
   
   // copy functions from device and set them appropriately
   auto err1 = cudaMemcpyFromSymbol(&eqn->equationVolTerm, 
-    p_VlasovEquation_volTerm, sizeof(volTermFunc_t));
+    p_Vlasov_volTerm, sizeof(volTermFunc_t));
   auto err2 = cudaMemcpyFromSymbol(&eqn->equationSurfTerm, 
-    p_VlasovEquation_surfTerm, sizeof(surfTermFunc_t));
+    p_Vlasov_surfTerm, sizeof(surfTermFunc_t));
   auto err3 = cudaMemcpyFromSymbol(&eqn->equationBoundarySurfTerm, 
-    p_VlasovEquation_boundarySurfTerm, sizeof(boundarySurfTermFunc_t));
+    p_Vlasov_boundarySurfTerm, sizeof(boundarySurfTermFunc_t));
 
   return Gkyl::CudaUtils<GkylEquation_t>::allocAndCopyToDevice(eqn);
 }

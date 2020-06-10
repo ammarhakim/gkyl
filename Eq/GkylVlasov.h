@@ -51,13 +51,13 @@ extern "C" {
         Vlasov_volumeTerm_t volumeTerm;
         Vlasov_surfElcMagTerm_t surfElcMagTerm;
 
-    } GkylVlasovEquation_t;
+    } GkylVlasov_t;
 
     // Return a pointer to an equation object for Vlasov equations
-    GkylEquation_t *new_VlasovEquationOnDevice(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType,
+    GkylEquation_t *new_VlasovOnDevice(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType,
       double qbym, bool hasForceTerm);
     // Set the aux fields
-    void VlasovEquation_setAuxFields(GkylEquation_t *eqn, GkylCartField_t* em);
+    void Vlasov_setAuxFields(GkylEquation_t *eqn, GkylCartField_t* em);
 }
 
 namespace Gkyl {
