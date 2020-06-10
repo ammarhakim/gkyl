@@ -24,13 +24,13 @@
 extern "C" {
 
     typedef double (*Vlasov_volumeStreamTerm_t)(const double*  w, const double*  dxv, const double*  f, double *out);
-    typedef double (*Vlasov_surfSreamTerm_t)(int dir, const double*  wl, const double*  wr,
+    typedef void (*Vlasov_surfSreamTerm_t)(unsigned dir, const double*  wl, const double*  wr,
       const double*  dxvl, const double*  dxvr, const double*  fl, const double*  fr,
       double *outl, double *outr);
 
     typedef double (*Vlasov_volumeTerm_t)(const double*  w, const double*  dxv,
       const double*  E, const double*  f, double *out);
-    typedef double (*Vlasov_surfElcMagTerm_t)(int dir, const double*  wl, const double*  wr,
+    typedef double (*Vlasov_surfElcMagTerm_t)(unsigned dir, const double*  wl, const double*  wr,
       const double*  dxvl, const double*  dxvr,
       const double amax, const double*  E, const
       double *fl, const double*  fr,

@@ -1,6 +1,6 @@
 local xsys = require "xsys"
 
-vlasovHeaderTemplateTopString = [[
+local vlasovHeaderTemplateTopString = [[
 // Gkyl ------------------------------------------------------------------------
 //
 // Wrappers for calling into Vlasov kernels
@@ -14,67 +14,49 @@ vlasovHeaderTemplateTopString = [[
 #include <VlasovModDecl.h>
 #include <GkylBasisTypes.h>
 
+extern "C" {
+    typedef double (*Vlasov_volumeStreamTerm_t)(const double*  w, const double*  dxv, const double*  f, double *out);
+    typedef void (*Vlasov_surfSreamTerm_t)(unsigned dir, const double*  wl, const double*  wr,
+      const double*  dxvl, const double*  dxvr, const double*  fl, const double*  fr,
+      double *outl, double *outr);
+
+    typedef double (*Vlasov_volumeTerm_t)(const double*  w, const double*  dxv,
+      const double*  E, const double*  f, double *out);
+    typedef double (*Vlasov_surfElcMagTerm_t)(unsigned dir, const double*  wl, const double*  wr,
+      const double*  dxvl, const double*  dxvr,
+      const double amax, const double*  E, const
+      double *fl, const double*  fr,
+      double *outl, double *outr);    
+}
+
 namespace Gkyl {
-
-  // Base class so pointers to children can be stored and used
-  class VlasovModDeclBase {
-    public:
-
-      virtual ~VlasovModDeclBase() {}
-
-      /**
-       * Volume streaming term
-       */
-      __host__ __device__ virtual double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) = 0;
-
-      /**
-       * Surface streaming term
-       */
-      __host__ __device__ virtual void surfStreamTerm(unsigned dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr, const double *fl, const double *fr,
-        double *outl, double *outr) = 0;
-
-      /**
-       * Volume term (total surface + force)
-       */
-      __host__ __device__ virtual double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) = 0;
-
-      /**
-       * Surface terms from EM forces
-       */
-      __host__ __device__ virtual double surfElcMagTerm(unsigned dir, const double *wl, const double *wr,
-        const double *dxvl, const double *dxvr,
-        const double amax, const double *E, const
-        double *fl, const double *fr,
-        double *outl, double *outr) = 0;
-  };
 
   // Provides a templated wrapper around the low level C-style kernels
   // so they can be called more systematically from C++ code
   template <unsigned CDIM, unsigned VDIM, unsigned POLYORDER, unsigned BASISTYPE>
-  class VlasovModDecl : public VlasovModDeclBase {
+  class VlasovModDecl {
     public:
       /**
        * Volume streaming term
        */
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out);
+      static __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out);
 
       /**
        * Surface streaming term
        */
-      __host__ __device__ void surfStreamTerm(unsigned dir, const double *wl, const double *wr,
+      static __host__ __device__ void surfStreamTerm(unsigned dir, const double *wl, const double *wr,
         const double *dxvl, const double *dxvr, const double *fl, const double *fr,
         double *outl, double *outr);
 
       /**
        * Volume term (total surface + force)
        */
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out);
+      static __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out);
 
       /**
        * Surface terms from EM forces
        */
-      __host__ __device__ double surfElcMagTerm(unsigned dir, const double *wl, const double *wr,
+      static __host__ __device__ double surfElcMagTerm(unsigned dir, const double *wl, const double *wr,
         const double *dxvl, const double *dxvr,
         const double amax, const double *E, const
         double *fl, const double *fr,
@@ -85,12 +67,12 @@ namespace Gkyl {
 
 ]]
 
-vlasovHeaderTemplateBottomString = [[
+local vlasovHeaderTemplateBottomString = [[
 }
 
 ]]
 
-vlasovHeaderTemplateString = [[
+local vlasovHeaderTemplateString = [[
 
 
 |for ci = CMIN, CMAX do
@@ -98,13 +80,13 @@ vlasovHeaderTemplateString = [[
 |  for pi = PMIN, PMAX do
 
   template <>
-  class VlasovModDecl<${ci},${vi},${pi},${basisNm}> : public VlasovModDeclBase {
+  class VlasovModDecl<${ci},${vi},${pi},${basisNm}> {
     public:
-      __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
+      static __host__ __device__ double volumeStreamTerm(const double *w, const double *dxv, const double *f, double *out) {
         return VlasovVolStream${ci}x${vi}v${basisShortNm}P${pi}(w, dxv, f, out);
       }
       
-      __host__ __device__ void surfStreamTerm(unsigned dir, const double *wl, const double *wr,
+      static __host__ __device__ void surfStreamTerm(unsigned dir, const double *wl, const double *wr,
         const double *dxvl, const double *dxvr,
         const double *fl, const double *fr,
         double *outl, double *outr) {
@@ -126,11 +108,11 @@ vlasovHeaderTemplateString = [[
         }
       }
 
-      __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
+      static __host__ __device__ double volumeTerm(const double *w, const double *dxv, const double *E, const double *f, double *out) {
         return VlasovVol${ci}x${vi}v${basisShortNm}P${pi}(w, dxv, E, f, out);
       }
 
-      __host__ __device__ double surfElcMagTerm(unsigned dir, const double *wl, const double *wr,
+      static __host__ __device__ double surfElcMagTerm(unsigned dir, const double *wl, const double *wr,
         const double *dxvl, const double *dxvr,
         const double amax, const double *E, const
         double *fl, const double *fr,
@@ -165,13 +147,13 @@ vlasovHeaderTemplateString = [[
 local vlasovHeaderTemplate = xsys.template ( vlasovHeaderTemplateString )
 
 -- concatinate various pieces to generate final header
-vlasovHeaderOut =
+local vlasovHeaderOut =
    vlasovHeaderTemplateTopString
    ..
    vlasovHeaderTemplate {
       CMIN = 1, CMAX = 2,
       VMAX = 3,
-      PMIN = 1, PMAX = 3,
+      PMIN = 1, PMAX = 2,
       basisNm = 'G_MAX_ORDER_C',
       basisShortNm = 'Max',
    }
@@ -187,7 +169,7 @@ vlasovHeaderOut =
    vlasovHeaderTemplate {
       CMIN = 1, CMAX = 2,
       VMAX = 3,
-      PMIN = 1, PMAX = 3,
+      PMIN = 1, PMAX = 2,
       basisNm = 'G_SERENDIPITY_C',
       basisShortNm = 'Ser',
    }
@@ -195,7 +177,7 @@ vlasovHeaderOut =
    vlasovHeaderTemplate {
       CMIN = 3, CMAX = 3,
       VMAX = 3,
-      PMIN = 1, PMAX = 2,
+      PMIN = 1, PMAX = 1,
       basisNm = 'G_SERENDIPITY_C',
       basisShortNm = 'Ser',
    }
@@ -204,51 +186,3 @@ vlasovHeaderOut =
 
 -- write out string
 io.write( vlasovHeaderOut )
-
-vlasovKernelFactoryString = [[
-|for ci = CMIN, CMAX do
-| for vi = ci, VMAX do
-|  for pi = PMIN, PMAX do
-          { makeName(${ci},${vi},${pi}, ${basisNm}), new KernelFactory<${ci},${vi},${pi}, ${basisNm}>() },
-|  end
-| end
-|end
-]]
-
-vlasovKernelFactoryTemplate = xsys.template ( vlasovKernelFactoryString )
-
--- concatinate various pieces to generate final header
-vlasovKernelFactoryOut =
-   vlasovKernelFactoryTemplate {
-      CMIN = 1, CMAX = 2,
-      VMAX = 3,
-      PMIN = 1, PMAX = 2,
-      basisNm = 'G_MAX_ORDER_C',
-      basisShortNm = 'Max',
-   }
-   ..
-   vlasovKernelFactoryTemplate {
-      CMIN = 3, CMAX = 3,
-      VMAX = 3,
-      PMIN = 1, PMAX = 1,
-      basisNm = 'G_MAX_ORDER_C',
-      basisShortNm = 'Max',
-   }
-   ..
-   vlasovKernelFactoryTemplate {
-      CMIN = 1, CMAX = 2,
-      VMAX = 3,
-      PMIN = 1, PMAX = 2,
-      basisNm = 'G_SERENDIPITY_C',
-      basisShortNm = 'Ser',
-   }
-   ..
-   vlasovKernelFactoryTemplate {
-      CMIN = 3, CMAX = 3,
-      VMAX = 3,
-      PMIN = 1, PMAX = 1,
-      basisNm = 'G_SERENDIPITY_C',
-      basisShortNm = 'Ser',
-   }
-
---io.write( vlasovKernelFactoryOut )
