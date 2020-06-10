@@ -455,7 +455,7 @@ function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)
       --    numBlocks, numThreads, qIn:numComponents(), self._onDevice,
       --    qIn._onDevice, qOut._onDevice)
    else
-      ffiC.advanceOnDevice(
+      ffiC.wavePropagationAdvanceOnDevice(
          numBlocks, numThreads, self._onDevice, qIn._onDevice, qOut._onDevice)
    end
 
