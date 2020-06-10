@@ -591,8 +591,8 @@ function test_14()
       scaMin = math.min(scaMin,scaItr[1])
       scaSum = scaSum + scaItr[1]
    end
-   cartFldMax, cartFldMin, cartFldSum = field:reduce("max"), field:reduce("min"), field:reduce("sum")
-   cartScaMax, cartScaMin, cartScaSum = scalar:reduce("max"), scalar:reduce("min"), scalar:reduce("sum")
+   local cartFldMax, cartFldMin, cartFldSum = field:reduce("max"), field:reduce("min"), field:reduce("sum")
+   local cartScaMax, cartScaMin, cartScaSum = scalar:reduce("max"), scalar:reduce("min"), scalar:reduce("sum")
    for k = 1, field:numComponents() do
       assert_equal(fldMax[k], cartFldMax[k], "Checking reduce('max')")
       assert_equal(fldMin[k], cartFldMin[k], "Checking reduce('min')")

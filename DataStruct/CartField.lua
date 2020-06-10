@@ -447,7 +447,8 @@ local function Field_meta_ctor(elct)
       numComponents = function (self)
 	 return self._numComponents
       end,
-      copy = function (self, fIn)
+      copy = (GKYL_USE_DEVICE and function(self,...) self:deviceCopy(...) end) or function(self,...) self:hostCopy(...) end,
+      hostCopy = function (self, fIn)
 	 self:_assign(1.0, fIn)
       end,
       deviceCopy = function (self, fIn)
@@ -500,14 +501,12 @@ local function Field_meta_ctor(elct)
       end,
       _assign = (GKYL_USE_DEVICE and function(self, ...) self:_deviceAssign(...) end) or function(self, ...) self:_hostAssign(...) end,
       _hostAssign = function(self, fact, fld)
-         print("assigning on host")
 	 assert(field_compatible(self, fld), "CartField:combine: Can only accumulate compatible fields")
 	 assert(type(fact) == "number", "CartField:combine: Factor not a number")
 
 	 ffiC.gkylCartFieldAssign(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
       end,
       _deviceAssign = function(self, fact, fld)
-         print("assigning on device")
 	 assert(field_compatible(self, fld), "CartField:combine: Can only accumulate compatible fields")
 	 assert(type(fact) == "number", "CartField:combine: Factor not a number")
 
@@ -747,7 +746,7 @@ local function Field_meta_ctor(elct)
       compatible = function(self, fld)
          return field_compatible(self, fld)
       end,
-      reduce = (GKYL_USE_DEVICE and function(self,...) self:deviceReduce(...) end) or function(self,...) self:hostReduce(...) end,
+      reduce = (GKYL_USE_DEVICE and function(self,...) self:deviceReduce(...) end) or function(self,...) return self:hostReduce(...) end,
       hostReduce = isNumberType and
 	 function(self, opIn, localVal)
 	    -- Input 'opIn' must be one of the binary operations in binOpFuncs.
@@ -758,6 +757,7 @@ local function Field_meta_ctor(elct)
 	    local indexer = self:genIndexer()
 	    local itr = self:get(1)
 	    
+            local localVal = localVal or {}
 	    for k = 1, self._numComponents do localVal[k] = reduceInitialVal[opIn] end
 	    for idx in localRangeDecomp:rowMajorIter(tId) do
 	       self:fill(indexer(idx), itr)
@@ -771,6 +771,7 @@ local function Field_meta_ctor(elct)
 			  self._numComponents, elctCommType, reduceOpsMPI[opIn], grid:commSet().comm)
 
 	    for k = 1, self._numComponents do localVal[k] = self.globalReductionVal[k] end
+            return localVal
 	 end or
 	 function (self, opIn)
 	    assert(false, "CartField:reduce: Reduce only works on numeric fields")
