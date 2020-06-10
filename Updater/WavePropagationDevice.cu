@@ -90,7 +90,7 @@ __global__ void cuda_WavePropagation(
 
   for(int i=0; i<numUpdateDirs; i++) {
     int dir = updateDirs[i] - 1;
-    const double dtdx = hyper->dt / grid->dx[dir];
+    const double dtdx = hyper->dt / dx[dir];
 
     for(int d=0; d<ndim; d++) {
       idxL[d] = idxC[d];
