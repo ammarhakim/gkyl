@@ -7,25 +7,25 @@ namespace Gkyl {
     return reinterpret_cast<void*>(euler);
   }
 
-  void* new_Euler_onDevice(Euler *v) {
-    Euler *d_v;
-    cudaMalloc((void**)&d_v, sizeof(Euler));
-    cudaMemcpy(d_v, v, sizeof(Euler), cudaMemcpyHostToDevice);
-    return reinterpret_cast<void*>(d_v);
+  void* new_Euler_onDevice(Euler *eq) {
+    Euler *d_eq;
+    cudaMalloc((void**)&d_eq, sizeof(Euler));
+    cudaMemcpy(d_eq, eq, sizeof(Euler), cudaMemcpyHostToDevice);
+    return reinterpret_cast<void*>(d_eq);
   }
 
-  int numEquations_Euler(Euler *v) {
-    return (int) v->numEquations();
+  int numEquations_Euler(Euler *eq) {
+    return (int) eq->numEquations();
   }
 
   void rp_Euler(
-      Euler *v, const int dir, const double *delta, const double *ql,
+      Euler *eq, const int dir, const double *delta, const double *ql,
       const double *qr, double *waves, double *s) {
-    v->rp(dir, delta, ql, qr, waves, s);
+    eq->rp(dir, delta, ql, qr, waves, s);
   }
 
-  void flux_Euler(Euler *v, const int dir, const double *qIn, double *fOut) {
-    v->flux(dir, qIn, fOut);
+  void flux_Euler(Euler *eq, const int dir, const double *qIn, double *fOut) {
+    eq->flux(dir, qIn, fOut);
   }
   
   __host__ __device__ int Euler::numWaves() { return _numWaves; }

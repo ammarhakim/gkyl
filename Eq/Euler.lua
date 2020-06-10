@@ -38,6 +38,7 @@ typedef struct {
   void rp_Euler(
       GkylEuler *v, const int dir, const double *delta,
       const double *ql, const double *qr, double *waves, double *s);
+  void flux_Euler(Euler *eq, const int dir, const double *qIn, double *fOut);
 ]]
 
 -- Resuffle indices for various direction Riemann problem. The first

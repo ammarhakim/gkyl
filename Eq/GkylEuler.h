@@ -25,6 +25,7 @@ namespace Gkyl {
     void rp_Euler(
         Euler *v, const int dir, const double *delta, const double *ql,
         const double *qr, double *waves, double *s);
+    void flux_Euler(Euler *eq, const int dir, const double *qIn, double *fOut);
   }
 
   // FIXME correct specifier?
