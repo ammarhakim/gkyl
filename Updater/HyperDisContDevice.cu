@@ -1,6 +1,8 @@
+/* -*- c++ -*- */
+
 #include <cstdio>
 #include <GkylHyperDisCont.h>
-#include <GkylVlasov.h>
+#include <GkylEquation.h>
 #include <VlasovModDecl.h>
 
 __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
@@ -17,7 +19,7 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
   int *updateDirs = hyper->updateDirs;
   int numUpdateDirs = hyper->numUpdateDirs;
   bool *zeroFluxFlags = hyper->zeroFluxFlags;
-  Gkyl::Vlasov *eq = hyper->equation;
+  GkylEquation_t *eq = hyper->equation;
   GkylCartField_t *cflRateByCell = hyper->cflRateByCell;
  
   // declaring this dummy array shared seems to alleviate register pressure and improve performance a bit
@@ -44,7 +46,7 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
 
     const double *fInC = fIn->getDataPtrAt(linearIdxC);
     double *fRhsOutC = fRhsOut->getDataPtrAt(linearIdxC);
-    double cflRate = eq->volTerm(xcC, dx, idxC, fInC, fRhsOutC);
+    const double cflRate = eq->volTerm(xcC, dx, idxC, fInC, fRhsOutC);
     cflRateByCell->getDataPtrAt(linearIdxC)[0] += cflRate;
 
     for(int i=0; i<numUpdateDirs; i++) {
@@ -83,9 +85,9 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
   
 } 
 
-void advanceOnDevice(int numBlocks, int numThreads, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
-  cudaFuncSetAttribute(cuda_HyperDisCont, cudaFuncAttributeMaxDynamicSharedMemorySize, 32*sizeof(double));
-  cuda_HyperDisCont<<<numBlocks, numThreads, 32*sizeof(double)>>>(hyper, fIn, fRhsOut);
+void advanceOnDevice(int numBlocks, int numThreads, int numComponents, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
+  cudaFuncSetAttribute(cuda_HyperDisCont, cudaFuncAttributeMaxDynamicSharedMemorySize, numComponents*sizeof(double));
+  cuda_HyperDisCont<<<numBlocks, numThreads, numComponents*sizeof(double)>>>(hyper, fIn, fRhsOut);
 }
 
 __global__ void setDtAndCflRateOnDevice(GkylHyperDisCont_t *hyper, double dt, GkylCartField_t *cflRate) {

@@ -31,19 +31,21 @@ if GKYL_HAVE_CUDA then
 end
 
 ffi.cdef [[ 
+  typedef struct GkylEquation_t GkylEquation_t ;
   typedef struct {
       int updateDirs[6];
       bool zeroFluxFlags[6];
       int32_t numUpdateDirs;
       bool updateVolumeTerm;
       double dt;
-      GkylVlasov *equation;
+      //GkylVlasov *equation;
+      GkylEquation_t *equation;
       GkylCartField_t *cflRateByCell;
       GkylCartField_t *maxsByCell;
       double *maxs;
   } GkylHyperDisCont_t; 
 
-  void advanceOnDevice(int numBlocks, int numThreads, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
+  void advanceOnDevice(int numBlocks, int numThreads, int numComponents, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
   void advanceOnDevice_shared(int numBlocks, int numThreads, int numComponents, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
   void setDtAndCflRate(GkylHyperDisCont_t *hyper, double dt, GkylCartField_t *cflRate);
 ]]
@@ -305,7 +307,7 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
    if self._useSharedDevice then
       ffiC.advanceOnDevice_shared(numBlocks, numThreads, qIn:numComponents(), self._onDevice, qIn._onDevice, qRhsOut._onDevice)
    else
-      ffiC.advanceOnDevice(numBlocks, numThreads, self._onDevice, qIn._onDevice, qRhsOut._onDevice)
+      ffiC.advanceOnDevice(numBlocks, numThreads, qIn:numComponents(), self._onDevice, qIn._onDevice, qRhsOut._onDevice)
    end
 
    --self.maxsByCell:deviceReduce('max', self.maxs)  
