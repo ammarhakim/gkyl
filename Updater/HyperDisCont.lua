@@ -31,13 +31,15 @@ if GKYL_HAVE_CUDA then
 end
 
 ffi.cdef [[ 
+  typedef struct GkylEquation_t GkylEquation_t ;
   typedef struct {
       int updateDirs[6];
       bool zeroFluxFlags[6];
       int32_t numUpdateDirs;
       bool updateVolumeTerm;
       double dt;
-      GkylVlasov *equation;
+      //GkylVlasov *equation;
+      GkylEquation_t *equation;
       GkylCartField_t *cflRateByCell;
       GkylCartField_t *maxsByCell;
       double *maxs;

@@ -15,12 +15,12 @@ extern "C"  {
     typedef double (*volTermFunc_t)(void *self, 
       double *xc, double *dx, int *idx, double *qIn, double *qRhsOut);
     
-    typedef double (*surfTermFunc_t)(void *self, int dir, double *cflL, double *cflR,
+    typedef double (*surfTermFunc_t)(void *self, int dir,
       double *xcL, double *xcR, double *dxL, double *dxR,
       double maxsOld, int* idxL, int *idxR,
       double *qInL, double *qInR, double *qRhsOutL, double *qRhsOutR);
 
-    typedef double (*boundarySurfTermFunc_t)(void *self, int dir, double *cflL, double *cflR,
+    typedef double (*boundarySurfTermFunc_t)(void *self, int dir,
       double *xcL, double *xcR, double *dxL, double *dxR,
       double maxsOld, int* idxL, int *idxR,
       double *qInL, double *qInR, double *qRhsOutL, double *qRhsOutR);
@@ -39,21 +39,21 @@ extern "C"  {
           return equationVolTerm(equation, xc, dx, idx, qIn, qRhsOut);
         }
 
-        __host__ __device__ double surfTerm(int dir, double *cflL, double *cflR,
+        __host__ __device__ double surfTerm(int dir,
           double *xcL, double *xcR, double *dxL, double *dxR,
           double maxsOld, int* idxL, int *idxR,
           double *qInL, double *qInR, double *qRhsOutL, double *qRhsOutR) {
-          return equationSurfTerm(equation, dir, cflL, cflR,
+          return equationSurfTerm(equation, dir,
             xcL, xcR, dxL, dxR,
             maxsOld, idxL, idxR,
             qInL, qInR, qRhsOutL, qRhsOutR);
         }
 
-        __host__ __device__ double boundarySurfTerm(int dir, double *cflL, double *cflR,
+        __host__ __device__ double boundarySurfTerm(int dir,
           double *xcL, double *xcR, double *dxL, double *dxR,
           double maxsOld, int* idxL, int *idxR,
           double *qInL, double *qInR, double *qRhsOutL, double *qRhsOutR) {
-          return equationBoundarySurfTerm(equation, dir, cflL, cflR,
+          return equationBoundarySurfTerm(equation, dir,
             xcL, xcR, dxL, dxR,
             maxsOld, idxL, idxR,
             qInL, qInR, qRhsOutL, qRhsOutR);

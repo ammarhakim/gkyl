@@ -112,7 +112,7 @@ __device__ double VlasovEquation_volTerm(void *eqn,
 }
 __device__ volTermFunc_t p_VlasovEquation_volTerm = &VlasovEquation_volTerm;
 
-__device__ double VlasovEquation_surfTerm(void *eqn, int dir, double *cflL, double *cflR,
+__device__ double VlasovEquation_surfTerm(void *eqn, int dir,
   double *xcL, double *xcR, double *dxL, double *dxR,
   double maxsOld, int* idxL, int *idxR,
   double *qInL, double *qInR, double *qRhsOutL, double *qRhsOutR) {
@@ -130,7 +130,7 @@ __device__ double VlasovEquation_surfTerm(void *eqn, int dir, double *cflL, doub
 }
 __device__ surfTermFunc_t p_VlasovEquation_surfTerm = &VlasovEquation_surfTerm;
 
-__device__ double VlasovEquation_boundarySurfTerm(void *eqn, int dir, double *cflL, double *cflR,
+__device__ double VlasovEquation_boundarySurfTerm(void *eqn, int dir,
   double *xcL, double *xcR, double *dxL, double *dxR,
   double maxsOld, int* idxL, int *idxR,
   double *qInL, double *qInR, double *qRhsOutL, double *qRhsOutR) {

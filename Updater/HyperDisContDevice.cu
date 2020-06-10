@@ -1,6 +1,8 @@
+/* -*- c++ -*- */
+
 #include <cstdio>
 #include <GkylHyperDisCont.h>
-#include <GkylVlasov.h>
+#include <GkylEquation.h>
 #include <VlasovModDecl.h>
 
 __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
@@ -17,7 +19,7 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
   int *updateDirs = hyper->updateDirs;
   int numUpdateDirs = hyper->numUpdateDirs;
   bool *zeroFluxFlags = hyper->zeroFluxFlags;
-  Gkyl::Vlasov *eq = hyper->equation;
+  GkylEquation_t *eq = hyper->equation;
   GkylCartField_t *cflRateByCell = hyper->cflRateByCell;
  
   // declaring this dummy array shared seems to alleviate register pressure and improve performance a bit
@@ -37,12 +39,12 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
     // convert i,j,k... index idxC into a linear index linearIdxC
     // note that linearIdxC != linearIdx.
     // this is because linearIdxC will have jumps because of ghost cells
-    const int linearIdxC = fIdxr.index(idxC);
+    int linearIdxC = fIdxr.index(idxC);
 
     grid->cellCenter(idxC, xcC);
-    const double *dx = grid->dx;
+    double *dx = grid->dx;
 
-    const double *fInC = fIn->getDataPtrAt(linearIdxC);
+    double *fInC = fIn->getDataPtrAt(linearIdxC);
     double *fRhsOutC = fRhsOut->getDataPtrAt(linearIdxC);
     double cflRate = eq->volTerm(xcC, dx, idxC, fInC, fRhsOutC);
     cflRateByCell->getDataPtrAt(linearIdxC)[0] += cflRate;
@@ -57,12 +59,12 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
       idxL[dir] = idxC[dir] - 1;
       idxR[dir] = idxC[dir] + 1;
 
-      const int linearIdxL = fIdxr.index(idxL);
-      const int linearIdxR = fIdxr.index(idxR);
+      int linearIdxL = fIdxr.index(idxL);
+      int linearIdxR = fIdxr.index(idxR);
       grid->cellCenter(idxL, xcL);
       grid->cellCenter(idxR, xcR);
-      const double *fInL = fIn->getDataPtrAt(linearIdxL);
-      const double *fInR = fIn->getDataPtrAt(linearIdxR);
+      double *fInL = fIn->getDataPtrAt(linearIdxL);
+      double *fInR = fIn->getDataPtrAt(linearIdxR);
       
       // left (of C) surface update. use dummy in place of fRhsOutL (cell to left of surface) so that only current cell (C) is updated.
       double maxsL, maxsR;

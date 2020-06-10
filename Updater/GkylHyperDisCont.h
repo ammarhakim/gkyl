@@ -10,7 +10,6 @@
 // Gkyl includes
 #include <GkylCudaConfig.h>
 #include <GkylEquation.h>
-#include <GkylVlasov.h>
 #include <GkylCartField.h>
 
 extern "C" 
@@ -21,7 +20,7 @@ extern "C"
       int32_t numUpdateDirs;
       bool updateVolumeTerm;
       double dt;
-      Gkyl::Vlasov *equation;
+      GkylEquation_t *equation;
       GkylCartField_t *cflRateByCell;
       GkylCartField_t *maxsByCell;
       double *maxs;
