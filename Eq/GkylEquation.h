@@ -12,15 +12,15 @@
 extern "C"  {
 
     // Function pointer types for volume and surface terms
-    typedef double (*volTermFunc_t)(void *self, 
+    typedef double (*volTermFunc_t)(const void* __restrict__ self, 
       const double* __restrict__ xc, const double* __restrict__ dx, const int* __restrict__ idx, const double* __restrict__ qIn, double *qRhsOut);
     
-    typedef double (*surfTermFunc_t)(void *self, int dir,
+    typedef double (*surfTermFunc_t)(const void* __restrict__ self, int dir,
       const double* __restrict__ xcL, const double* __restrict__ xcR, const double* __restrict__ dxL, const double* __restrict__ dxR,
       double maxsOld, const int* __restrict__ idxL, const int* __restrict__ idxR,
       const double* __restrict__ qInL, const double* __restrict__ qInR, double *qRhsOutL, double *qRhsOutR);
 
-    typedef double (*boundarySurfTermFunc_t)(void *self, int dir,
+    typedef double (*boundarySurfTermFunc_t)(const void* __restrict__ self, int dir,
       const double* __restrict__ xcL, const double* __restrict__ xcR, const double* __restrict__ dxL, const double* __restrict__ dxR,
       double maxsOld, const int* __restrict__ idxL, const int* __restrict__ idxR,
       const double* __restrict__ qInL, const double* __restrict__ qInR, double *qRhsOutL, double *qRhsOutR);
