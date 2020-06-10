@@ -47,8 +47,8 @@ function test_1()
    local confBasis = Basis.CartModalSerendipity { ndim = cdim, polyOrder = polyOrder }
 
    -- set up grids. adjust number of cells to increase domain size (more work for GPU).
-   local nx = 1024*2 -- number of configuration space dimensions in x
-   local ny = 1024*2 -- number of configuration space dimensions in y
+   local nx = 512 -- number of configuration space dimensions in x
+   local ny = 512 -- number of configuration space dimensions in y
 
    local confGrid = Grid.RectCart {
       cells = {nx, ny},
@@ -109,6 +109,7 @@ function test_1()
 
    solver:setDtAndCflRate(.1, cflRateByCell)
 
+   print("Running GPU kernel")
    tmStart = Time.clock()
    for i = 1, nloop do
       solver:_advanceOnDevice(0.0, {emField}, {d_emFieldRhs})
@@ -116,6 +117,8 @@ function test_1()
    -- Need to synchronize so that kernel actually runs!
    local err = cuda.DeviceSynchronize()
    local totalGpuTime = (Time.clock()-tmStart)
+   print("... done.", totalGpuTime)
+
    assert_equal(0, err, "cuda error")
    d_emFieldRhs:copyDeviceToHost()
    local d_cflRate = cuAlloc.Double(1)
