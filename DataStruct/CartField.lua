@@ -688,7 +688,8 @@ local function Field_meta_ctor(elct)
 	 return fcompct(self._localExtRange:volume(), self._data+loc)
       end,
       getDataPtrAt = function (self, k) -- k is an integer returned by a linear indexer
-         assert(false, "getDataPtrAt is no longer supported. use get().")
+	 local loc = (k-1) -- (k-1) as k is 1-based index
+	 return self._data+loc
       end,
       write = function (self, fName, tmStamp, frNum, writeSkin)
 	 self._adiosIo:write(self, fName, tmStamp, frNum, writeSkin)
@@ -751,7 +752,7 @@ local function Field_meta_ctor(elct)
 	    for idx in localRangeDecomp:rowMajorIter(tId) do
 	       self:fill(indexer(idx), itr)
 	       for k = 1, self._numComponents do
-		  localVal[k] = binOpFuncs[opIn](localVal[k], itr:data()[k-1])
+		  localVal[k] = binOpFuncs[opIn](localVal[k], itr[k])
 	       end
 	    end
 
