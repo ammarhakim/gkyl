@@ -45,7 +45,7 @@ ffi.cdef [[
       double *maxs;
   } GkylHyperDisCont_t; 
 
-  void advanceOnDevice(int numBlocks, int numThreads, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
+  void advanceOnDevice(int numBlocks, int numThreads, int numComponents, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
   void advanceOnDevice_shared(int numBlocks, int numThreads, int numComponents, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
   void setDtAndCflRate(GkylHyperDisCont_t *hyper, double dt, GkylCartField_t *cflRate);
 ]]
@@ -307,7 +307,7 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
    if self._useSharedDevice then
       ffiC.advanceOnDevice_shared(numBlocks, numThreads, qIn:numComponents(), self._onDevice, qIn._onDevice, qRhsOut._onDevice)
    else
-      ffiC.advanceOnDevice(numBlocks, numThreads, self._onDevice, qIn._onDevice, qRhsOut._onDevice)
+      ffiC.advanceOnDevice(numBlocks, numThreads, qIn:numComponents(), self._onDevice, qIn._onDevice, qRhsOut._onDevice)
    end
 
    --self.maxsByCell:deviceReduce('max', self.maxs)  

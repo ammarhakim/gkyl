@@ -85,9 +85,9 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
   
 } 
 
-void advanceOnDevice(int numBlocks, int numThreads, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
-  cudaFuncSetAttribute(cuda_HyperDisCont, cudaFuncAttributeMaxDynamicSharedMemorySize, 32*sizeof(double));
-  cuda_HyperDisCont<<<numBlocks, numThreads, 32*sizeof(double)>>>(hyper, fIn, fRhsOut);
+void advanceOnDevice(int numBlocks, int numThreads, int numComponents, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
+  cudaFuncSetAttribute(cuda_HyperDisCont, cudaFuncAttributeMaxDynamicSharedMemorySize, numComponents*sizeof(double));
+  cuda_HyperDisCont<<<numBlocks, numThreads, numComponents*sizeof(double)>>>(hyper, fIn, fRhsOut);
 }
 
 __global__ void setDtAndCflRateOnDevice(GkylHyperDisCont_t *hyper, double dt, GkylCartField_t *cflRate) {
