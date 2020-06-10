@@ -91,6 +91,11 @@ __global__ void VlasovEquation_setAuxFieldsOnDevice(GkylEquation_t *eqn, GkylCar
   self->emField = emField;
 }
 
+void
+VlasovEquation_setAuxFields(GkylEquation_t *eqn, GkylCartField_t* em) {
+  VlasovEquation_setAuxFieldsOnDevice<<<1,1>>>(eqn, em);
+}
+
 __device__ double VlasovEquation_volTerm(void *eqn, 
   double *xc, double *dx, int *idx, double *qIn, double *qRhsOut) {
 
@@ -109,7 +114,7 @@ __device__ double VlasovEquation_surfTerm(void *eqn, int dir, double *cflL, doub
 
   GkylVlasovEquation_t *self = (GkylVlasovEquation_t *) eqn;
   double amax = 0.0;
-  if(dir < self->cdim) {
+  if (dir < self->cdim) {
     self->surfStreamTerm(dir, xcL, xcR, dxL, dxR, qInL, qInR, qRhsOutL, qRhsOutR);
   } else if (self->hasForceTerm) {
     Gkyl::GenIndexer emIdxr = self->emField->genIndexer();
@@ -128,13 +133,6 @@ __device__ double VlasovEquation_boundarySurfTerm(void *eqn, int dir, double *cf
   return 0;
 }
 __device__ boundarySurfTermFunc_t p_VlasovEquation_boundarySurfTerm = &VlasovEquation_boundarySurfTerm;
-
-void
-VlasovEquation_setAuxFields(GkylEquation_t *eqn, GkylCartField_t* em) {
-  VlasovEquation_setAuxFieldsOnDevice<<<1,1>>>(eqn, em);
-}
-
-
 
 GkylEquation_t*
 new_VlasovEquationOnDevice(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType,

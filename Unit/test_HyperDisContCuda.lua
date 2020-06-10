@@ -164,7 +164,7 @@ function test_1()
       for idx in fRhs:localRangeIter() do
          local fitr = fRhs:get(indexer(idx))
          local d_fitr = d_fRhs:get(d_indexer(idx))
-         for i = 0, fRhs:numComponents()-1 do
+         for i = 1, fRhs:numComponents() do
             assert_close(fitr[i], d_fitr[i], 1e-10, string.format("index %d, component %d is incorrect", indexer(idx), i))
          end
       end

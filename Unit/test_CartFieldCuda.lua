@@ -11,19 +11,27 @@ if GKYL_HAVE_CUDA == false then
    return 0
 end
 
-local ffi        = require "ffi"
-local Unit       = require "Unit"
-local Grid       = require "Grid"
-local Basis      = require "Basis"
+local Alloc = require "Lib.Alloc"
+local Basis = require "Basis"
 local DataStruct = require "DataStruct"
-local cuda       = require "Cuda.RunTime"
-local cudaAlloc  = require "Cuda.Alloc"
-local Alloc      = require "Lib.Alloc"
-local Time       = require "Lib.Time"
+local Grid = require "Grid"
+local Mpi = require "Comm.Mpi"
+local Time = require "Lib.Time"
+local Unit = require "Unit"
+local cuda = require "Cuda.RunTime"
+local cudaAlloc = require "Cuda.Alloc"
+local ffi = require "ffi"
 
 local assert_equal = Unit.assert_equal
 local assert_close = Unit.assert_close
-local stats        = Unit.stats
+local stats = Unit.stats
+
+function log(msg)
+   local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
+   if rank == 0 then
+      print(msg)
+   end
+end
 
 ffi.cdef [[
   void unit_showFieldRange(GkylCartField_t *f, double *g);
@@ -299,6 +307,11 @@ end
 
 -- This test synchronizes periodic boundary conditions on a single GPU (since we call the sync method even when only using one MPI process).
 function test_6()
+   if not Mpi.Query_cuda_support() then
+      log("Test for sync on device not run as no support for CUDA-aware MPI")
+      return
+   end
+   
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},
       upper = {1.0, 1.0},
@@ -347,7 +360,8 @@ test_2()
 test_3()
 --test_4() -- not yet working with new data layout
 test_deviceReduce(1, false)
---test_6()
+
+test_6()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

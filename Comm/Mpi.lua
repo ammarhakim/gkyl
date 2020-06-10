@@ -145,6 +145,9 @@ ffi.cdef [[
   int MPI_Barrier(MPI_Comm comm);
   int MPI_Abort(MPI_Comm comm, int errorcode);
 
+  // CUDA test 
+  int MPIX_Query_cuda_support();
+
   // Gkyl utility functions
   void GkMPI_fillStatus(const MPI_Status* inStatus, int *outStatus);
 ]]
@@ -589,5 +592,13 @@ function _M.getNumBarriers()  return numMpiBarrier end
 
 -- Gets total time spent in barriers
 function _M.getTimeBarriers()  return timeMpiBarrier end
+
+-- MPI_Abort
+function _M.Query_cuda_support()
+   if ffiC.MPIX_Query_cuda_support then
+      return ffiC.MPIX_Query_cuda_support() == 1 and true or false
+   end
+   return false
+end
 
 return _M
