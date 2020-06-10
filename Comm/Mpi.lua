@@ -600,9 +600,9 @@ function _M.getTimeBarriers()  return timeMpiBarrier end
 -- MPI_Abort
 function _M.Query_cuda_support()
    if ffiC.MPIX_Query_cuda_support then
-      return ffiC.MPIX_Query_cuda_support()
+      return ffiC.MPIX_Query_cuda_support() == 1 and true or false
    end
-   return 0
+   return false
 end
 
 return _M

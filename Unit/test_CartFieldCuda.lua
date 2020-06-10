@@ -360,7 +360,7 @@ end
 
 -- This test synchronizes periodic boundary conditions on a single GPU (since we call the sync method even when only using one MPI process).
 function test_6()
-   if Mpi.Query_cuda_support() == 0 then
+   if not Mpi.Query_cuda_support() then
       log("Test for sync on device not run as no support for CUDA-aware MPI")
       return
    end
