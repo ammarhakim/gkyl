@@ -329,7 +329,7 @@ local function Field_meta_ctor(elct)
 	    neighRgn:extend(self._lowerGhost, self._upperGhost))
          local idx = sendRgn:lowerAsVec()
          -- set idx to starting point of region you want to recv
-         self._sendMPILoc[sendId] = (indexer(idx)-1)*self._numComponents
+         self._sendMPILoc[sendId] = (indexer(idx)-1)
          self._sendMPIDataType[sendId] = Mpi.createDataTypeFromRangeAndSubRange(
 	    sendRgn, localExtRange, self._numComponents, self._layout, elctCommType)
       end
@@ -339,7 +339,7 @@ local function Field_meta_ctor(elct)
 	 local recvRgn = localExtRange:intersect(neighRgn)
          local idx = recvRgn:lowerAsVec()
          -- set idx to starting point of region you want to recv
-         self._recvMPILoc[recvId] = (indexer(idx)-1)*self._numComponents
+         self._recvMPILoc[recvId] = (indexer(idx)-1)
          self._recvMPIDataType[recvId] = Mpi.createDataTypeFromRangeAndSubRange(
 	    recvRgn, localExtRange, self._numComponents, self._layout, elctCommType)
       end
