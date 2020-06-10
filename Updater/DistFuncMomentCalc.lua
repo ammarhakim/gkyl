@@ -96,6 +96,16 @@ function DistFuncMomentCalc:init(tbl)
    end
 
    local calcOnDevice = false
+   if GKYL_HAVE_CUDA then
+      -- This allows us to force an updater to run on the host, even for a GPU simulation.
+      self._calcOnHost = tbl.onHost
+      if self._calcOnHost then
+         self._advanceFunc = self._advance 
+      end
+   else
+      self._calcOnHost = true
+   end
+
    -- Function to compute specified moment.
    self._isGk = false
    if self:isMomentNameGood(mom) then
@@ -158,37 +168,39 @@ end
 
 function DistFuncMomentCalc:initDevice(tbl)
 
-   mom = tbl.moment
-
-   if mom == "FiveMoments" or mom == "GkThreeMoments" or
-      mom == "FiveMomentsLBO" or mom == "GkThreeMomentsLBO" then
-      if mom == "FiveMomentsLBO" or mom == "GkThreeMomentsLBO" then
-         if mom == "FiveMomentsLBO" then
-            mom = "FiveMoments"
-         elseif mom == "GkThreeMomentsLBO" then
-            mom = "GkThreeMoments"
+   if not self._calcOnHost then 
+      mom = tbl.moment
+   
+      if mom == "FiveMoments" or mom == "GkThreeMoments" or
+         mom == "FiveMomentsLBO" or mom == "GkThreeMomentsLBO" then
+         if mom == "FiveMomentsLBO" or mom == "GkThreeMomentsLBO" then
+            if mom == "FiveMomentsLBO" then
+               mom = "FiveMoments"
+            elseif mom == "GkThreeMomentsLBO" then
+               mom = "GkThreeMoments"
+            end
          end
       end
+   
+      local calcOnDevice = true
+      -- Select device functions/kernels.
+      if not self._isGk then
+         self._momCalcFun = MomDecl.selectMomCalc(mom, self._basisID, self._cDim, self._vDim, self._polyOrder, calcOnDevice)
+      else
+         self._momCalcFun = MomDecl.selectGkMomCalc(mom, self._basisID, self._cDim, self._vDim, self._polyOrder)
+      end
+   
+      local vDim = self._vDim
+   
+      local phaseRange    = self._onGrid:localRange()
+      local numCellsLocal = phaseRange:volume()
+   
+      local deviceNumber  = cudaRunTime.GetDevice()
+      self.deviceProps    = cudaRunTime.GetDeviceProperties(deviceNumber)
+   
+      self.distFuncMomThreads = math.min(GKYL_DEFAULT_NUM_THREADS, phaseRange:selectLast(vDim):volume())
+      self.distFuncMomBlocks  = math.floor(numCellsLocal/self.distFuncMomThreads) --+1
    end
-
-   local calcOnDevice = true
-   -- Select device functions/kernels.
-   if not self._isGk then
-      self._momCalcFun = MomDecl.selectMomCalc(mom, self._basisID, self._cDim, self._vDim, self._polyOrder, calcOnDevice)
-   else
-      self._momCalcFun = MomDecl.selectGkMomCalc(mom, self._basisID, self._cDim, self._vDim, self._polyOrder)
-   end
-
-   local vDim = self._vDim
-
-   local phaseRange    = self._onGrid:localRange()
-   local numCellsLocal = phaseRange:volume()
-
-   local deviceNumber  = cudaRunTime.GetDevice()
-   self.deviceProps    = cudaRunTime.GetDeviceProperties(deviceNumber)
-
-   self.distFuncMomThreads = math.min(GKYL_DEFAULT_NUM_THREADS, phaseRange:selectLast(vDim):volume())
-   self.distFuncMomBlocks  = math.floor(numCellsLocal/self.distFuncMomThreads) --+1
 end
 
 -- Advance method.
