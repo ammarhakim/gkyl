@@ -21,6 +21,9 @@ namespace Gkyl {
     void* new_Euler();
     void* new_Euler_onDevice(Euler *v);
     int getNumEquations(Euler *v);
+    void rp(
+        Euler *v, const unsigned dir, const double *delta, const double *ql,
+        const double *qr, double *waves, double *s);
   }
 
   // FIXME correct specifier?
@@ -47,6 +50,9 @@ namespace Gkyl {
           const unsigned dir, const double *ql, const double *qr,
           const double *waves, const double *s, double *amdq,
           double *apdq);
+
+      __host__ __device__ void flux(
+          const unsigned dir, const double *qIn, double *fOut);
 
     private:
       /* dimension and basis parameters */

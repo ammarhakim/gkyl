@@ -32,7 +32,12 @@ typedef struct {
   typedef struct GkylEuler GkylEuler;
   GkylEuler* new_Euler();
   GkylEuler* new_Euler_onDevice(GkylEuler *v);
+
+  // for cuda testing
   int getNumEquations(GkylEuler *v);
+  void rp(
+      GkylEuler *v, const unsigned dir, const double *delta,
+      const double *ql, const double *qr, double *waves, double *s);
 ]]
 
 -- Resuffle indices for various direction Riemann problem. The first
@@ -285,8 +290,12 @@ function Euler:initDevice()
    self._onDevice = ffiC.new_Euler_onDevice(self._onHost)
 end
 
-function Euler:getNumEquations()
+function Euler:getNumEquationsWrapperC()
    return ffi.C.getNumEquations(self._onHost)
+end
+
+function Euler:rpWrapperC(dir, delta, ql, qr, waves, s)
+   return ffi.C.rp(self._onHost, dir, delta, ql, qr, waves, s)
 end
 
 function Euler:numEquations()

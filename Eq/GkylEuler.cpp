@@ -17,6 +17,12 @@ namespace Gkyl {
   int getNumEquations(Euler *v) {
     return (int) v->getNumEquations();
   }
+
+  void rp(
+      Euler *v, const unsigned dir, const double *delta, const double *ql,
+      const double *qr, double *waves, double *s) {
+    v->rp(dir, delta, ql, qr, waves, s);
+  }
   
   __host__ __device__ int Euler::getNumWaves() { return _numWaves; }
 
@@ -111,5 +117,17 @@ namespace Gkyl {
       const double *waves, const double *s, double *amdq,
       double *apdq) {
     qFluctuationsLax(dir, ql, qr, waves, s, amdq, apdq);
+  }
+
+  __host__ __device__ void Euler::flux(
+      const unsigned dir, const double *qIn, double *fOut) {
+    const int *d = dirShuffle[dir];
+    double pr = pressure(qIn);
+    double u = qIn[d[1]]/qIn[0];
+    fOut[0] = qIn[d[1]]; // rho*u.
+    fOut[d[1]] = qIn[d[1]]*u + pr; // rho*u*u + p
+    fOut[d[2]] = qIn[d[2]]*u; // rho*v*u
+    fOut[d[3]] = qIn[d[3]]*u; // rho*w*u
+    fOut[4] = (qIn[5]+pr)*u; // (E+p)*u
   }
 }
