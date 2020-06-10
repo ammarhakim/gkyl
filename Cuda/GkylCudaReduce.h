@@ -15,30 +15,38 @@
 #include <GkylCudaFuncs.h>
 
 extern "C" {
-    void reductionBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlocks,
-      int maxThreads, int &blocks, int &threads);
-    bool isPow2(unsigned int x);
-    unsigned int nextPow2(unsigned int x);
-    void reduceDeviceArray(int opIn, int numElements, int blocks, int threads, double *d_dataIn, double *d_dataOut);
+  void reductionBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlocks,
+                                 int maxThreads, int &blocks, int &threads);
+  bool isPow2(unsigned int x);
+  unsigned int nextPow2(unsigned int x);
+  // Type of function that operates on two numbers.
+  typedef double (*redBinOpFunc_t)(double a, double b);
+  // Base reduction operator object.
+  struct baseReduceOp {
+    double initValue;               // Initial value to start with.
+    redBinOpFunc_t reduceFunc { };  // Provided by "children".
+  
+    __host__ __device__ double reduce(double a, double b) {
+      return reduceFunc(a, b);
+    }
+  };
+  
+  redBinOpFunc_t getRedMinFuncFromDevice();
+  redBinOpFunc_t getRedMaxFuncFromDevice();
+  redBinOpFunc_t getRedSumFuncFromDevice();
+  
+  void reduceDeviceArray(baseReduceOp *opIn, int numElements, int blocks,
+                         int threads, double *d_dataIn, double *d_dataOut);
 }
 
 namespace Gkyl {
-
-  enum class BinOp {
-    binOpMin = 1,
-    binOpMax = 2,
-    binOpSum = 3
-  };
-
-  template <Gkyl::BinOp binOpType>
-  __inline__ __device__ double binOp(double a, double b) {
-    if (binOpType == BinOp::binOpMin) {
-      return ((a < b) ? a : b);
-    } else if (binOpType == BinOp::binOpMax) {
-      return ((a > b) ? a : b);
-    } else if (binOpType == BinOp::binOpSum) {
-      return a+b;
-    }
-    return 0;
+  __inline__ __device__ double MIN(double a, double b) {
+    return ((a < b) ? a : b);
+  }
+  __inline__ __device__ double MAX(double a, double b) {
+    return ((a > b) ? a : b);
+  }
+  __inline__ __device__ double SUM(double a, double b) {
+    return a+b;
   }
 }

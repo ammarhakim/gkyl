@@ -22,7 +22,8 @@ local Alloc      = require "Lib.Alloc"
 local Time       = require "Lib.Time"
 
 local assert_equal = Unit.assert_equal
-local stats = Unit.stats
+local assert_close = Unit.assert_close
+local stats        = Unit.stats
 
 ffi.cdef [[
   void unit_showFieldRange(GkylCartField_t *f, double *g);
@@ -144,8 +145,8 @@ function test_2()
    }
    field:clear(1.0)
    field:copyHostToDevice()
-   ffi.C.unit_showFieldRange(field._onDevice, field._devAllocData:data())
-   ffi.C.unit_showFieldGrid(field._onDevice)
+   --ffi.C.unit_showFieldRange(field._onDevice, field._devAllocData:data())
+   --ffi.C.unit_showFieldGrid(field._onDevice)
 end
 
 -- read a CartField, and then write it to a result CartField (basically a copy via a kernel)
@@ -275,7 +276,7 @@ local function test_deviceReduce(nIter, reportTiming)
       p0Field:deviceReduce("min",d_minVal)
       p0Field:deviceReduce("sum",d_sumVal)
    end
-   local err          = cuda.DeviceSynchronize()
+   local err = cuda.DeviceSynchronize()
    if reportTiming then
       local totalGpuTime = (Time.clock()-tmStart)
       print(string.format("Total GPU time for %d calls = %f s   (average = %f s per call)", nIter*3, totalGpuTime, totalGpuTime/(3*nIter)))
@@ -287,13 +288,58 @@ local function test_deviceReduce(nIter, reportTiming)
    local err = d_minVal:copyDeviceToHost(minVal_gpu)
    local err = d_sumVal:copyDeviceToHost(sumVal_gpu)
    
-   assert_equal(maxVal, maxVal_gpu[1], "Checking max reduce of CartField on GPU.")
-   assert_equal(minVal, minVal_gpu[1], "Checking min reduce of CartField on GPU.")
-   assert_equal(sumVal, sumVal_gpu[1], "Checking sum reduce of CartField on GPU.")
+   assert_equal(maxVal[1], maxVal_gpu[1], "Checking max reduce of CartField on GPU.")
+   assert_equal(minVal[1], minVal_gpu[1], "Checking min reduce of CartField on GPU.")
+   assert_close(sumVal[1], sumVal_gpu[1], 1.e-12*sumVal_gpu[1], "Checking sum reduce of CartField on GPU.")
    
    cuda.Free(d_maxVal)
    cuda.Free(d_minVal)
    cuda.Free(d_sumVal)
+end
+
+-- This test synchronizes periodic boundary conditions on a single GPU (since we call the sync method even when only using one MPI process).
+function test_6()
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0},
+      upper = {1.0, 1.0},
+      cells = {10, 10},
+      periodicDirs = {1, 2},
+   }
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 1,
+      ghost = {1, 1},
+      createDeviceCopy = true,
+   }
+   field:clear(10.5)
+
+   -- set corner cells
+   local indexer = field:indexer()
+   local fItr = field:get(indexer(1,1)); fItr[1] = 1.0
+   fItr = field:get(indexer(10,1)); fItr[1] = 2.0
+   fItr = field:get(indexer(1,10)); fItr[1] = 3.0
+   fItr = field:get(indexer(10,10)); fItr[1] = 4.0
+
+   -- copy stuff to device
+   local err = field:copyHostToDevice()
+   assert_equal(0, err, "Checking if copy to device worked")
+
+   -- synchronize periodic directions on device
+   field:deviceSync() -- sync field
+
+   -- copy data back for checking.
+   field:copyDeviceToHost()
+
+   -- check if periodic dirs are sync()-ed properly
+   local fItr = field:get(indexer(11,1))
+   assert_equal(1.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(11,10))
+   assert_equal(3.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(0,1))
+   assert_equal(2.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(0,10))
+   assert_equal(4.0, fItr[1], "Checking non-corner periodic sync")
+
 end
 
 test_1()
@@ -301,6 +347,7 @@ test_2()
 test_3()
 --test_4() -- not yet working with new data layout
 test_deviceReduce(1, false)
+--test_6()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
