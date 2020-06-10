@@ -122,7 +122,7 @@ __global__ void cuda_WavePropagation(
     if(!(idxC[dir] == localRange->upper[dir])) {
       calcFirstOrderGud(dtdx, qOutC, dummy, amdq, apdq, meqn);
     }
-    double cfla = calcCfla(cfla, dtdx, s, mwave);
+    cfla = calcCfla(cfla, dtdx, s, mwave);
     // cflRateByCell->getDataPtrAt(linearIdxC)[0] += cflRate; // FIXME how?
 
     // hyper->maxsByCell->getDataPtrAt(linearIdxC)[i] = max(maxsL, maxsR);
