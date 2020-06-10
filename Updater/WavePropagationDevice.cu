@@ -124,8 +124,6 @@ __global__ void cuda_WavePropagation(
     }
     cfla = calcCfla(cfla, dtdx, s, mwave);
     // cflRateByCell->getDataPtrAt(linearIdxC)[0] += cflRate; // FIXME how?
-
-    // hyper->maxsByCell->getDataPtrAt(linearIdxC)[i] = max(maxsL, maxsR);
   }
 }
 

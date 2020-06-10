@@ -21,8 +21,6 @@ extern "C"
       double dt;
       Gkyl::Euler *equation;
       GkylCartField_t *cflRateByCell;
-      GkylCartField_t *maxsByCell;
-      double *maxs;
   } GkylWavePropagation_t;
     
   void wavePropagationAdvanceOnDevice(int numBlocks, int numThreads, GkylWavePropagation_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
