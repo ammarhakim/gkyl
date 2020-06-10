@@ -18,7 +18,7 @@ extern "C" {
     typedef double (*Maxwell_surfTerm_t)(unsigned dir, const MaxwellEq_t *meq, const double*  wl, const double*  wr,
       const double*  dxl, const double*  dxr,
       const double tau,
-      double *ql, const double*  qr,
+      const double *ql, const double*  qr,
       double *outl, double *outr);
 }
 
@@ -41,7 +41,7 @@ namespace Gkyl {
       static __host__ __device__ double surfTerm(unsigned dir, const MaxwellEq_t *meq, const double*  wl, const double*  wr,
       const double*  dxl, const double*  dxr,
       const double tau,
-      double *ql, const double*  qr,
+      const double *ql, const double* qr,
       double *outl, double *outr);
   };
 
@@ -62,7 +62,7 @@ namespace Gkyl {
       static __host__ __device__ double surfTerm(unsigned dir, const MaxwellEq_t *meq, const double*  wl, const double*  wr,
       const double*  dxl, const double*  dxr,
       const double tau,
-      double *ql, const double*  qr,
+      const double *ql, const double*  qr,
       double *outl, double *outr) {
 
         switch (dir) {
@@ -87,7 +87,7 @@ namespace Gkyl {
       static __host__ __device__ double surfTerm(unsigned dir, const MaxwellEq_t *meq, const double*  wl, const double*  wr,
       const double*  dxl, const double*  dxr,
       const double tau,
-      double *ql, const double*  qr,
+      const double *ql, const double*  qr,
       double *outl, double *outr) {
 
         switch (dir) {
@@ -112,7 +112,7 @@ namespace Gkyl {
       static __host__ __device__ double surfTerm(unsigned dir, const MaxwellEq_t *meq, const double*  wl, const double*  wr,
       const double*  dxl, const double*  dxr,
       const double tau,
-      double *ql, const double*  qr,
+      const double *ql, const double*  qr,
       double *outl, double *outr) {
 
         switch (dir) {
@@ -140,7 +140,7 @@ namespace Gkyl {
       static __host__ __device__ double surfTerm(unsigned dir, const MaxwellEq_t *meq, const double*  wl, const double*  wr,
       const double*  dxl, const double*  dxr,
       const double tau,
-      double *ql, const double*  qr,
+      const double *ql, const double*  qr,
       double *outl, double *outr) {
 
         switch (dir) {
@@ -171,7 +171,7 @@ namespace Gkyl {
       static __host__ __device__ double surfTerm(unsigned dir, const MaxwellEq_t *meq, const double*  wl, const double*  wr,
       const double*  dxl, const double*  dxr,
       const double tau,
-      double *ql, const double*  qr,
+      const double *ql, const double*  qr,
       double *outl, double *outr) {
 
         switch (dir) {
@@ -205,7 +205,7 @@ namespace Gkyl {
       static __host__ __device__ double surfTerm(unsigned dir, const MaxwellEq_t *meq, const double*  wl, const double*  wr,
       const double*  dxl, const double*  dxr,
       const double tau,
-      double *ql, const double*  qr,
+      const double *ql, const double*  qr,
       double *outl, double *outr) {
 
         switch (dir) {
@@ -230,7 +230,7 @@ namespace Gkyl {
       static __host__ __device__ double surfTerm(unsigned dir, const MaxwellEq_t *meq, const double*  wl, const double*  wr,
       const double*  dxl, const double*  dxr,
       const double tau,
-      double *ql, const double*  qr,
+      const double *ql, const double*  qr,
       double *outl, double *outr) {
 
         switch (dir) {
@@ -255,7 +255,7 @@ namespace Gkyl {
       static __host__ __device__ double surfTerm(unsigned dir, const MaxwellEq_t *meq, const double*  wl, const double*  wr,
       const double*  dxl, const double*  dxr,
       const double tau,
-      double *ql, const double*  qr,
+      const double *ql, const double*  qr,
       double *outl, double *outr) {
 
         switch (dir) {
@@ -283,7 +283,7 @@ namespace Gkyl {
       static __host__ __device__ double surfTerm(unsigned dir, const MaxwellEq_t *meq, const double*  wl, const double*  wr,
       const double*  dxl, const double*  dxr,
       const double tau,
-      double *ql, const double*  qr,
+      const double *ql, const double*  qr,
       double *outl, double *outr) {
 
         switch (dir) {
@@ -314,7 +314,7 @@ namespace Gkyl {
       static __host__ __device__ double surfTerm(unsigned dir, const MaxwellEq_t *meq, const double*  wl, const double*  wr,
       const double*  dxl, const double*  dxr,
       const double tau,
-      double *ql, const double*  qr,
+      const double *ql, const double*  qr,
       double *outl, double *outr) {
 
         switch (dir) {

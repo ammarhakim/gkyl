@@ -31,7 +31,7 @@ end
 ffi.cdef [[ 
     typedef struct GkylEquation_t GkylEquation_t ;
     GkylEquation_t *new_MaxwellOnDevice(unsigned cdim, unsigned polyOrder, unsigned basisType,
-      MaxwellEq_t *mdata, double tau)
+      MaxwellEq_t *mdata, double tau);
 ]]
 
 -- The function to compute fluctuations is implemented as a template
@@ -107,10 +107,13 @@ function PerfMaxwell:initDevice(tbl)
    end
    if bId == "serendipity" then 
      b = 2
-   end   
-   self._onDevice = ffiC.new_MaxwellOnDevice(self._cdim, self._phaseBasis:polyOrder(), b, self._ceqn, self._tau)
+   end 
+   self._onDevice = ffi.C.new_MaxwellOnDevice(self._basis:ndim(), self._basis:polyOrder(), b, self._ceqn, self._tau)
 
    return self
+end
+
+function PerfMaxwell:setAuxFieldsOnDevice(auxFields)
 end
 
 -- Methods

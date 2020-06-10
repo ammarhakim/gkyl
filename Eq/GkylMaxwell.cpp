@@ -17,20 +17,20 @@
 Maxwell_volumeTerm_t Maxwell_getVolumeTerm(int cdim, int polyOrder, int basisType);
 Maxwell_surfTerm_t Maxwell_getSurfTerm(int cdim, int polyOrder, int basisType);
 
-__device__ double Maxwell_volTerm(void *self, 
-  double *xc, double *dx, int *idx, double *qIn, double *qRhsOut) {
+__device__ double Maxwell_volTerm(const void* __restrict__ self, 
+      const double* __restrict__ xc, const double* __restrict__ dx, const int* __restrict__ idx, const double* __restrict__ qIn, double *qRhsOut) {
   
-  GkylMaxwell_t *eqn = (GkylMaxwell_t *) self;
+  const GkylMaxwell_t *eqn = (const GkylMaxwell_t *) self;
   return eqn->volumeTerm(&eqn->mdata, xc, dx, qIn, qRhsOut);
 }
 __device__ volTermFunc_t p_Maxwell_volTerm = &Maxwell_volTerm;
 
-__device__ double Maxwell_surfTerm(void *self, int dir,
-  double *xcL, double *xcR, double *dxL, double *dxR,
-  double maxsOld, int* idxL, int *idxR,
-  double *qInL, double *qInR, double *qRhsOutL, double *qRhsOutR) {
+__device__ double Maxwell_surfTerm(const void* __restrict__ self, int dir,
+      const double* __restrict__ xcL, const double* __restrict__ xcR, const double* __restrict__ dxL, const double* __restrict__ dxR,
+      double maxsOld, const int* __restrict__ idxL, const int* __restrict__ idxR,
+      const double* __restrict__ qInL, const double* __restrict__ qInR, double *qRhsOutL, double *qRhsOutR) {
 
-  GkylMaxwell_t *eqn = (GkylMaxwell_t *) self;
+  const GkylMaxwell_t *eqn = (const GkylMaxwell_t *) self;
   return eqn->surfTerm(dir, &eqn->mdata, xcL, xcR, dxL, dxR, eqn->tau, qInL, qInR, qRhsOutL, qRhsOutR);
 }
 __device__ surfTermFunc_t p_Maxwell_surfTerm = &Maxwell_surfTerm;

@@ -28,7 +28,7 @@ extern "C" {
     typedef double (*Maxwell_surfTerm_t)(unsigned dir, const MaxwellEq_t *meq, const double*  wl, const double*  wr,
       const double*  dxl, const double*  dxr,
       const double tau,
-      double *ql, const double*  qr,
+      const double *ql, const double*  qr,
       double *outl, double *outr);
     
     typedef struct {
