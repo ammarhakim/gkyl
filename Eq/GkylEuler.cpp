@@ -2,8 +2,8 @@
 
 namespace Gkyl {
   // C wrappers to member functions
-  void* new_Euler() {
-    Euler *euler = new Euler();
+  void* new_Euler(const double gasGamma) {
+    Euler *euler = new Euler(gasGamma);
     return reinterpret_cast<void*>(euler);
   }
 

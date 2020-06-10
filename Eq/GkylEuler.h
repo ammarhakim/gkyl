@@ -18,7 +18,7 @@ namespace Gkyl {
 
   /* C wrappers to member functions, so that they can be called from Lua */
   extern "C" {
-    void* new_Euler();
+    void* new_Euler(const double gasGamma);
     void* new_Euler_onDevice(Euler *v);
 
     int numEquations_Euler(Euler *v);
@@ -33,7 +33,7 @@ namespace Gkyl {
 
   class Euler {
     public:
-      __host__ __device__ Euler() {}
+      __host__ __device__ Euler(const double gasGamma) :  _gasGamma(gasGamma) {}
       ~Euler() = default;
 
       __host__ __device__ int numWaves();

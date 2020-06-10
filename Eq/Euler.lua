@@ -30,7 +30,7 @@ typedef struct {
 } EulerEqn_t;
 
   typedef struct GkylEuler GkylEuler;
-  GkylEuler* new_Euler();
+  GkylEuler* new_Euler(const double gasGamma);
   GkylEuler* new_Euler_onDevice(GkylEuler *v);
 
   // for cuda testing
@@ -287,7 +287,7 @@ function Euler:init(tbl)
 end
 
 function Euler:initDevice()
-   self._onHost = ffiC.new_Euler()
+   self._onHost = ffiC.new_Euler(self._gasGamma)
    self._onDevice = ffiC.new_Euler_onDevice(self._onHost)
 end
 
