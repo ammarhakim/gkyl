@@ -16,6 +16,11 @@
 
 __global__ void setAuxFieldsOnDevice(Gkyl::Vlasov *v, GkylCartField_t* emField);
 
+Vlasov_volumeStreamTerm_t Vlasov_getVolumeStreamTerm(int cdim, int vdim, int polyOrder, int basisType);
+Vlasov_surfStreamTerm_t Vlasov_getSurfStreamTerm(int cdim, int vdim, int polyOrder, int basisType);
+Vlasov_volumeTerm_t Vlasov_getVolumeTerm(int cdim, int vdim, int polyOrder, int basisType);
+Vlasov_surfElcMagTerm_t Vlasov_getSurfElcMagTerm(int cdim, int vdim, int polyOrder, int basisType);
+
 namespace Gkyl {
 
   __host__ __device__ double Vlasov::volTerm(const double* __restrict__ xc, const double* __restrict__ dx, const int* __restrict__ idx, const double* __restrict__ qIn, double *qRhsOut) {
@@ -146,6 +151,11 @@ new_VlasovEquationOnDevice(unsigned cdim, unsigned vdim, unsigned polyOrder, uns
   vlasovEqn->basisType = basisType;
   vlasovEqn->qbym = qbym;
   vlasovEqn->hasForceTerm = hasForceTerm;
+
+  vlasovEqn->volumeStreamTerm = Vlasov_getVolumeStreamTerm(cdim, vdim, polyOrder, basisType);
+  vlasovEqn->surfStreamTerm = Vlasov_getSurfStreamTerm(cdim, vdim, polyOrder, basisType);
+  vlasovEqn->volumeTerm = Vlasov_getVolumeTerm(cdim, vdim, polyOrder, basisType);
+  vlasovEqn->surfElcMagTerm = Vlasov_getSurfElcMagTerm(cdim, vdim, polyOrder, basisType);
 
   // setup equation object with Vlasov data and function pointers
   eqn->equation = Gkyl::CudaUtils<GkylVlasovEquation_t>::allocAndCopyToDevice(vlasovEqn);

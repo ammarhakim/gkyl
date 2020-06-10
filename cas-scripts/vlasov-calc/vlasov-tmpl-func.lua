@@ -80,7 +80,7 @@ vlasovHeaderOut =
 vlasovFuncCopyTemplateString = [[
 
 Vlasov_volumeStreamTerm_t
-getVolumeStreamTerm(int cdim, int vdim, int polyOrder, int basisType) {
+Vlasov_getVolumeStreamTerm(int cdim, int vdim, int polyOrder, int basisType) {
   Vlasov_volumeStreamTerm_t func;
   
   if (cdim == 1) {
@@ -138,7 +138,7 @@ getVolumeStreamTerm(int cdim, int vdim, int polyOrder, int basisType) {
 }
 
 Vlasov_surfStreamTerm_t
-getSurfStreamTerm(int cdim, int vdim, int polyOrder, int basisType) {
+Vlasov_getSurfStreamTerm(int cdim, int vdim, int polyOrder, int basisType) {
   Vlasov_surfStreamTerm_t func;
   
   if (cdim == 1) {
@@ -196,7 +196,7 @@ getSurfStreamTerm(int cdim, int vdim, int polyOrder, int basisType) {
 }
 
 Vlasov_volumeTerm_t
-getVolumeTerm(int cdim, int vdim, int polyOrder, int basisType) {
+Vlasov_getVolumeTerm(int cdim, int vdim, int polyOrder, int basisType) {
   Vlasov_volumeTerm_t func;
   
   if (cdim == 1) {
@@ -254,7 +254,7 @@ getVolumeTerm(int cdim, int vdim, int polyOrder, int basisType) {
 }
 
 Vlasov_surfElcMagTerm_t
-getSurfElcMagTerm(int cdim, int vdim, int polyOrder, int basisType) {
+Vlasov_getSurfElcMagTerm(int cdim, int vdim, int polyOrder, int basisType) {
   Vlasov_surfElcMagTerm_t func;
   
   if (cdim == 1) {
