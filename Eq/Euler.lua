@@ -36,7 +36,7 @@ typedef struct {
   // for cuda testing
   int getNumEquations(GkylEuler *v);
   void rp(
-      GkylEuler *v, const unsigned dir, const double *delta,
+      GkylEuler *v, const int dir, const double *delta,
       const double *ql, const double *qr, double *waves, double *s);
 ]]
 

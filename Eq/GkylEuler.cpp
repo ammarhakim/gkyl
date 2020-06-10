@@ -19,7 +19,7 @@ namespace Gkyl {
   }
 
   void rp(
-      Euler *v, const unsigned dir, const double *delta, const double *ql,
+      Euler *v, const int dir, const double *delta, const double *ql,
       const double *qr, double *waves, double *s) {
     v->rp(dir, delta, ql, qr, waves, s);
   }
@@ -35,7 +35,7 @@ namespace Gkyl {
   }
 
   __host__ __device__ void Euler::rpLax(
-      const unsigned dir, const double *delta, const double *ql,
+      const int dir, const double *delta, const double *ql,
       const double *qr, double *waves, double *s) {
     const int *d = dirShuffle[dir];
 
@@ -60,7 +60,7 @@ namespace Gkyl {
   }
 
   __host__ __device__ void Euler::qFluctuationsLax(
-      const unsigned dir, const double *ql, const double *qr,
+      const int dir, const double *ql, const double *qr,
       const double *waves, const double *s, double *amdq,
       double *apdq) {
     const int *d = dirShuffle[dir];
@@ -107,20 +107,20 @@ namespace Gkyl {
   }
 
   __host__ __device__ void Euler::rp(
-      const unsigned dir, const double *delta, const double *ql,
+      const int dir, const double *delta, const double *ql,
       const double *qr, double *waves, double *s) {
     rpLax(dir, delta, ql, qr, waves, s);
   }
 
   __host__ __device__ void Euler::qFluctuations(
-      const unsigned dir, const double *ql, const double *qr,
+      const int dir, const double *ql, const double *qr,
       const double *waves, const double *s, double *amdq,
       double *apdq) {
     qFluctuationsLax(dir, ql, qr, waves, s, amdq, apdq);
   }
 
   __host__ __device__ void Euler::flux(
-      const unsigned dir, const double *qIn, double *fOut) {
+      const int dir, const double *qIn, double *fOut) {
     const int *d = dirShuffle[dir];
     double pr = pressure(qIn);
     double u = qIn[d[1]]/qIn[0];

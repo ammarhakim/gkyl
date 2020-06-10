@@ -22,7 +22,7 @@ namespace Gkyl {
     void* new_Euler_onDevice(Euler *v);
     int getNumEquations(Euler *v);
     void rp(
-        Euler *v, const unsigned dir, const double *delta, const double *ql,
+        Euler *v, const int dir, const double *delta, const double *ql,
         const double *qr, double *waves, double *s);
   }
 
@@ -43,32 +43,32 @@ namespace Gkyl {
       __host__ __device__ double pressure(const double *q);
 
       __host__ __device__ void rp(
-          const unsigned dir, const double *delta, const double *ql,
+          const int dir, const double *delta, const double *ql,
           const double *qr, double *waves, double *s);
 
       __host__ __device__ void qFluctuations(
-          const unsigned dir, const double *ql, const double *qr,
+          const int dir, const double *ql, const double *qr,
           const double *waves, const double *s, double *amdq,
           double *apdq);
 
       __host__ __device__ void flux(
-          const unsigned dir, const double *qIn, double *fOut);
+          const int dir, const double *qIn, double *fOut);
 
     private:
       /* dimension and basis parameters */
       const double _gasGamma = 5./3.;
-      unsigned _numWaves = 3;
-      const unsigned _numEquations = 5;
+      int _numWaves = 3;
+      const int _numEquations = 5;
 
 
       double _fl[5], _fr[5]; /* Storage for left/right fluxes */
 
       __host__ __device__ void rpLax(
-          const unsigned dir, const double *delta, const double *ql,
+          const int dir, const double *delta, const double *ql,
           const double *qr, double *waves, double *s);
 
       __host__ __device__ void qFluctuationsLax(
-          const unsigned dir, const double *ql, const double *qr,
+          const int dir, const double *ql, const double *qr,
           const double *waves, const double *s, double *amdq,
           double *apdq);
   };

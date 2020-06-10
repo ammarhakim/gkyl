@@ -3,7 +3,7 @@
 #include <GkylEuler.h>
 
 __device__ static void calcDelta(
-  const double *ql, const double *qr, double *delta, const unsigned meqn)
+  const double *ql, const double *qr, double *delta, const int meqn)
 {
   for (int i = 0; i < meqn; i++) {
     delta[i] = qr[i] - ql[i];
@@ -12,7 +12,7 @@ __device__ static void calcDelta(
 
 __device__ static void calcFirstOrderGud(
   const double dtdx, double *ql, double *qr, const double *amdq,
-  const double *apdq, const unsigned meqn)
+  const double *apdq, const int meqn)
 {
   for (int i = 0; i< meqn; i++) {
     qr[i] -= dtdx * apdq[i];
@@ -21,7 +21,7 @@ __device__ static void calcFirstOrderGud(
 }
 
 __device__ static double calcCfla(
-  const double cfla, const double dtdx, const double *s, const unsigned mwave)
+  const double cfla, const double dtdx, const double *s, const int mwave)
 {
   double c = cfla;
   for (int i = 0; i < mwave; i ++) {
@@ -35,7 +35,7 @@ __global__ void cuda_WavePropagation(
 {
 
   GkylRange_t *localRange = qIn->localRange;
-  unsigned int ndim = localRange->ndim;
+  int ndim = localRange->ndim;
 
   // set up indexers for localRange and qIn (localExtRange)
   Gkyl::GenIndexer localIdxr(localRange);
@@ -61,7 +61,7 @@ __global__ void cuda_WavePropagation(
   // declaring this dummy array shared seems to alleviate register pressure and
   // improve performance a bit
   extern __shared__ double dummy[];
-  unsigned linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
+  int linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
 
   int idxC[3];
   int idxL[3];
