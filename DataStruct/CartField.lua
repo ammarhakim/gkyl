@@ -193,7 +193,7 @@ local function Field_meta_ctor(elct)
    }
    local binOpFlags = {min = 1, max = 2, sum = 3}
    local reduceOpsMPI = {max = Mpi.MAX, min = Mpi.MIN, sum = Mpi.SUM}
-   local reduceInitialVal = {max = elctMinValue, min = elctMaxValue , sum = 0}
+   local reduceInitialVal = {max = elctMinValue, min = elctMaxValue , sum = 0.0}
    
    -- make constructor for Field
    local Field = {}
@@ -243,8 +243,8 @@ local function Field_meta_ctor(elct)
 	 self._lowerGhost, self._upperGhost)
 
       -- Local and (MPI) global values of a reduction (reduce method).
-      self.localReductionVal  = ElemVec(1)
-      self.globalReductionVal = ElemVec(1)
+      self.localReductionVal  = ElemVec(self._numComponents)
+      self.globalReductionVal = ElemVec(self._numComponents)
 
       -- create a device copy is needed
       local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, GKYL_USE_DEVICE)
@@ -280,6 +280,20 @@ local function Field_meta_ctor(elct)
             numBlocksC:delete()
             numThreadsC:delete()
             self.d_blockRed, self.d_intermediateRed = cuAlloc.Double(numBlocks), cuAlloc.Double(numBlocks)
+            -- Create reduction operator on host, and copy to device.
+            local redOp             = {}
+            for k, v in pairs(reduceInitialVal) do
+              redOp[k]            = ffi.new("baseReduceOp_t")
+              redOp[k].initValue  = v
+            end
+            redOp["min"].reduceFunc = ffi.C.getRedMinFuncFromDevice()
+            redOp["max"].reduceFunc = ffi.C.getRedMaxFuncFromDevice()
+            redOp["sum"].reduceFunc = ffi.C.getRedSumFuncFromDevice()
+            local sz = ffi.sizeof("baseReduceOp_t")
+            self.d_redOp = {min = cuda.Malloc(sz), max = cuda.Malloc(sz), sum = cuda.Malloc(sz)}
+            for k, _ in pairs(reduceInitialVal) do
+               err = cuda.Memcpy(self.d_redOp[k], redOp[k], sz, cuda.MemcpyHostToDevice)
+            end
          end
       end
       if not GKYL_HAVE_CUDA then self._devAllocData = nil end
@@ -733,18 +747,21 @@ local function Field_meta_ctor(elct)
 	    local indexer = self:genIndexer()
 	    local itr = self:get(1)
 	    
-	    local localVal = reduceInitialVal[opIn]
+	    local localVal = {}
+	    for k = 1, self._numComponents do localVal[k] = reduceInitialVal[opIn] end
 	    for idx in localRangeDecomp:rowMajorIter(tId) do
 	       self:fill(indexer(idx), itr)
-	       for k = 0, self._numComponents-1 do
-		  localVal = binOpFuncs[opIn](localVal, itr:data()[k])
+	       for k = 1, self._numComponents do
+		  localVal[k] = binOpFuncs[opIn](localVal[k], itr:data()[k-1])
 	       end
 	    end
 
-	    self.localReductionVal[1] = localVal
+	    for k = 1, self._numComponents do self.localReductionVal[k] = localVal[k] end
 	    Mpi.Allreduce(self.localReductionVal:data(), self.globalReductionVal:data(),
-			  1, elctCommType, reduceOpsMPI[opIn], grid:commSet().comm)
-	    return self.globalReductionVal[1]
+			  self._numComponents, elctCommType, reduceOpsMPI[opIn], grid:commSet().comm)
+
+	    for k = 1, self._numComponents do localVal[k] = self.globalReductionVal[k] end
+            return localVal
 	 end or
 	 function (self, opIn)
 	    assert(false, "CartField:reduce: Reduce only works on numeric fields")
@@ -752,19 +769,8 @@ local function Field_meta_ctor(elct)
       deviceReduce = isNumberType and
 	 function(self, opIn, d_reduction)
             assert(self._numComponents==1, "CartField:deviceReduce: Reduce only works on fields with numComponents=1.")
-            -- Create reduction operator on host, and copy to device.
-            local redOp       = ffi.new("baseReduceOp_t")
-            redOp.initValue   = reduceInitialVal[opIn]
-            local getRedFuncs = { ffi.C.getRedMinFuncFromDevice(),
-                                  ffi.C.getRedMaxFuncFromDevice(),
-                                  ffi.C.getRedSumFuncFromDevice() }
-            redOp.reduceFunc  = getRedFuncs[binOpFlags[opIn]]
-            sz = ffi.sizeof("baseReduceOp_t")
-            local d_redOp = cuda.Malloc(sz)
-            err = cuda.Memcpy(d_redOp, redOp, sz, cuda.MemcpyHostToDevice)
-            
 	    -- Input 'opIn' must be one of the binary operations in binOpFuncs.
-            ffi.C.gkylCartFieldDeviceReduce(d_redOp,self._localRange:volume(),self.reduceBlocks,self.reduceThreads,self.reduceBlocksMAX,self.reduceThreadsMAX,
+            ffi.C.gkylCartFieldDeviceReduce(self.d_redOp[opIn],self._localRange:volume(),self.reduceBlocks,self.reduceThreads,self.reduceBlocksMAX,self.reduceThreadsMAX,
                self.deviceProps,self._onDevice,self.d_blockRed:data(),self.d_intermediateRed:data(),d_reduction:data())
 	 end or
 	 function (self, opIn, d_reduction)

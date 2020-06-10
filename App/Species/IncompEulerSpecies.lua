@@ -100,7 +100,7 @@ function IncompEulerSpecies:getNumDensity(rkIdx)
 end
 
 function IncompEulerSpecies:suggestDt()
-   return math.min(self.cfl/self.cflRateByCell:reduce('max'), GKYL_MAX_DOUBLE)
+   return math.min(self.cfl/self.cflRateByCell:reduce('max')[1], GKYL_MAX_DOUBLE)
 end
 
 function IncompEulerSpecies:clearCFL()
