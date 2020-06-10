@@ -272,6 +272,7 @@ std::string Gkyl::createTopLevelDefs() const {
   }
   else {
     // not on a GPU node and so disable CUDA
+    std::cout << "Built with CUDA, but no device found. Running on CPU." << std::endl;
     varDefs << "GKYL_HAVE_CUDA = false" << std::endl;
     varDefs << "GKYL_USE_DEVICE = false" << std::endl;    
   }

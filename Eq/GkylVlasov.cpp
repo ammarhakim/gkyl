@@ -15,13 +15,16 @@
 #include <driver_types.h>
 
 __global__ void setAuxFieldsOnDevice(Gkyl::Vlasov *v, GkylCartField_t* emField);
+__constant__ int STRIDE_F;
+__constant__ int STRIDE_EM;
 
 namespace Gkyl {
 
-  __host__ __device__ double Vlasov::volTerm(const double* __restrict__ xc, const double* __restrict__ dx, const int* __restrict__ idx, const double* __restrict__ qIn, double *qRhsOut) {
+  __host__ __device__ double Vlasov::volTerm(const int stride_f, const double* __restrict__ xc, const double* __restrict__ dx, const int* __restrict__ idx, const double* __restrict__ qIn, double *qRhsOut) {
     Gkyl::GenIndexer emIdxr = emField->genIndexer();
     const double *em = emField->getDataPtrAt(emIdxr.index(idx));
-    double amid = kernel.volumeTerm(xc, dx, em, qIn, qRhsOut);
+    const int stride_em = emField->localExtRange->volume();
+    double amid = VlasovVol2x3vSerP1(stride_f, stride_em, xc, dx, em, qIn, qRhsOut);
     return amid;
   }
 
@@ -33,23 +36,42 @@ namespace Gkyl {
     //  em[j+numComponents*threadIdx.x] = emField->_data[emIdxr.index(idx) + blockIdx.x*j];
     //}
     const double *em = emField->getDataPtrAt(emIdxr.index(idx));
-    double amid = kernel.volumeTerm(xc, dx, em, qIn, qRhsOut);
-    return amid;
+    //double amid = VlasovVol2x3vSerP1(xc, dx, em, qIn, qRhsOut);
+    return 0.0; //amid;
   }
 
-  __host__ __device__ double Vlasov::surfTerm(const int dir, 
+  __host__ __device__ double Vlasov::surfTerm(const int stride_f, const int dir, 
                   const double* __restrict__ xcL, const double* __restrict__ xcR, const double* __restrict__ dxL, const double* __restrict__ dxR,
                   const double maxsOld, const int* __restrict__ idxL, const int* __restrict__ idxR,
                   const double* __restrict__ qInL, const double* __restrict__ qInR, double *qRhsOutL, double *qRhsOutR) {
-    double amax = 0.0;
     if(dir < cdim) {
-      kernel.surfStreamTerm(dir, xcL, xcR, dxL, dxR, qInL, qInR, qRhsOutL, qRhsOutR);
+      switch (dir) {
+        case 0:
+           VlasovSurfStream2x3vSer_X_P1(stride_f, xcL, xcR, dxL, dxR, qInL, qInR, qRhsOutL, qRhsOutR);
+           return 0.;
+           break;
+        case 1:
+           VlasovSurfStream2x3vSer_Y_P1(stride_f, xcL, xcR, dxL, dxR, qInL, qInR, qRhsOutL, qRhsOutR);
+           return 0.;
+           break;
+      }
     } else if(hasForceTerm) {
       Gkyl::GenIndexer emIdxr = emField->genIndexer();
       const double *em = emField->getDataPtrAt(emIdxr.index(idxL));
-      amax = kernel.surfElcMagTerm(dir-cdim, xcL, xcR, dxL, dxR, maxsOld, em, qInL, qInR, qRhsOutL, qRhsOutR);
+      const int stride_em = emField->localExtRange->volume();
+      switch (dir-cdim) {
+        case 0:
+           return VlasovSurfElcMag2x3vSer_VX_P1(stride_f, stride_em, xcL, xcR, dxL, dxR, maxsOld, em, qInL, qInR, qRhsOutL, qRhsOutR);
+           break;
+        case 1:
+           return VlasovSurfElcMag2x3vSer_VY_P1(stride_f, stride_em, xcL, xcR, dxL, dxR, maxsOld, em, qInL, qInR, qRhsOutL, qRhsOutR);
+           break;
+        case 2:
+           return VlasovSurfElcMag2x3vSer_VZ_P1(stride_f, stride_em, xcL, xcR, dxL, dxR, maxsOld, em, qInL, qInR, qRhsOutL, qRhsOutR);
+           break;
+      }
     }
-    return amax;
+    return 0;
   }
 
   __host__ __device__ void Vlasov::setAuxFields(GkylCartField_t* em) {
@@ -71,6 +93,11 @@ namespace Gkyl {
   
   void setAuxFields(Vlasov *v, GkylCartField_t *emField) {
     setAuxFieldsOnDevice<<<1, 1>>>(v, emField);
+  }
+
+  void initStrides(const int stride_f, const int stride_em) {
+    cudaMemcpyToSymbol(STRIDE_F, &stride_f, sizeof(int));
+    cudaMemcpyToSymbol(STRIDE_EM, &stride_em, sizeof(int));
   }
   
   int getCdim(Vlasov *v) {

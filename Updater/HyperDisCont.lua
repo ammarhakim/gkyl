@@ -112,6 +112,7 @@ function HyperDisCont:init(tbl)
 
    if GKYL_HAVE_CUDA then
       self:initDevice()
+      self._isFirstDevice = true
       self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
       self._useSharedDevice = xsys.pickBool(tbl.useSharedDevice, false)
    end
@@ -225,6 +226,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 	 }
       end
       local perpRangeDecomp = self._perpRangeDecomp[dir]
+      local stride = qRhsOut:localExtRange():volume()
 
       -- outer loop is over directions orthogonal to 'dir' and inner
       -- loop is over 1D slice in `dir`.
@@ -251,7 +253,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
             cflRateByCell:fill(cflRateByCellIdxr(idxp), cflRateByCellP)
 
 	    if firstDir and i<=dirUpIdx-1 and self._updateVolumeTerm then
-	       cflRate = self._equation:volTerm(xcp, dxp, idxp, qInP, qRhsOutP)
+	       cflRate = self._equation:volTerm(stride, xcp, dxp, idxp, qInP, qRhsOutP)
                cflRateByCellP:data()[0] = cflRateByCellP:data()[0] + cflRate
 	    end
 	    if i >= dirLoSurfIdx and i <= dirUpSurfIdx then
@@ -260,7 +262,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
                if cflp == 0.0 then cflp = math.min(1.5*cflm, cfl) end
                if cflm == 0.0 then cflm = math.min(1.5*cflp, cfl) end
 	       local maxs = self._equation:surfTerm(
-		  dir, cflm, cflp, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
+	          stride, dir, cflm, cflp, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
 	       self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
             else
 	       if self._zeroFluxFlags[dir] then
@@ -278,8 +280,8 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
    end
 
    -- determine largest amax across processors
-   Mpi.Allreduce(
-      self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, self:getComm())
+   --Mpi.Allreduce(
+   --   self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, self:getComm())
 
    self._isFirst = false
 end
@@ -292,6 +294,10 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
       self._auxFields[i] = inFld[i+1]
    end
 
+   if self._isFirstDevice then 
+      self._equation:initStridesOnDevice(self._auxFields, qRhsOut:localExtRange():volume())
+      self._isFirstDevice = false
+   end
    self._equation:setAuxFieldsOnDevice(self._auxFields)
 
    local numCellsLocal = qRhsOut:localRange():volume()

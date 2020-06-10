@@ -11,7 +11,7 @@
 #include <GkylCudaConfig.h>
 #include <GkylCartField.h>
 #include <GkylEquation.h>
-#include <VlasovTmplModDecl.h>
+//#include <VlasovTmplModDecl.h>
 #include <GkylBasisTypes.h>
 
 // std includes
@@ -70,6 +70,7 @@ namespace Gkyl {
       void* new_Vlasov_onDevice(Gkyl::Vlasov *v);
       int getCdim(Vlasov *v);
       void setAuxFields(Vlasov *eq, GkylCartField_t *emField);
+      void initStrides(const int stride_f, const int stride_em);
   }
 
   class Vlasov {
@@ -85,10 +86,10 @@ namespace Gkyl {
   
     __host__ __device__ void setAuxFields(GkylCartField_t *emField);
   
-    __host__ __device__ double volTerm(const double* __restrict__ xc, const double* __restrict__ dx, const int* __restrict__ idx, const double* __restrict__ qIn, double *qRhsOut);
+    __host__ __device__ double volTerm(const int stride_f, const double* __restrict__ xc, const double* __restrict__ dx, const int* __restrict__ idx, const double* __restrict__ qIn, double *qRhsOut);
     __device__ double volTerm_shared(const double* __restrict__ xc, const double* __restrict__ dx, const int* __restrict__ idx, const double* __restrict__ qIn, double *qRhsOut);
 
-    __host__ __device__ double surfTerm(const int dir, 
+    __host__ __device__ double surfTerm(const int stride_f, const int dir, 
                     const double* __restrict__ xcL, const double* __restrict__ xcR, const double* __restrict__ dxL, const double* __restrict__ dxR,
                     const double maxsOld, const int* __restrict__ idxL, const int* __restrict__ idxR,
                     const double* __restrict__ qInL, const double* __restrict__ qInR, double *qRhsOutL, double *qRhsOutR);
@@ -117,7 +118,7 @@ namespace Gkyl {
     // template parameters are 
     // VlasovModDecl<cdim, vdim, polyOrder, basisType>
     // this needs to match the basis used to initialize the equation object in Lua 
-    VlasovModDecl<2,3,1,G_SERENDIPITY_C> kernel;
+    //VlasovModDecl<2,3,1,G_SERENDIPITY_C> kernel;
   };
 }
 

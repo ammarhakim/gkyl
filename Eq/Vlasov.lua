@@ -27,6 +27,7 @@ ffi.cdef [[
   GkylVlasov* new_Vlasov(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType, double qbym, bool hasForceTerm);
   GkylVlasov* new_Vlasov_onDevice(GkylVlasov *v);
   void setAuxFields(GkylVlasov *eq, GkylCartField_t *emField);
+  void initStrides(const int stride_f, const int stride_em);
   int getCdim(GkylVlasov *v);
 ]]
 
@@ -137,12 +138,12 @@ function Vlasov:maxSpeed(dir, w, dx, q)
 end
 
 -- Volume integral term for use in DG scheme
-function Vlasov:volTerm(w, dx, idx, q, out)
+function Vlasov:volTerm(stride_f, w, dx, idx, q, out)
    -- volume term if has force
    local cflFreq = 0.0
    if self._hasForceTerm then
       self._emField:fill(self._emIdxr(idx), self._emPtr) -- get pointer to EM field
-      cflFreq = self._volUpdate(w:data(), dx:data(), self._emPtr:data(), q:data(), out:data())
+      cflFreq = self._volUpdate(stride_f, self.stride_em, w:data(), dx:data(), self._emPtr:data(), q:data(), out:data())
    else
       -- if no force, only update streaming term
       cflFreq = self._volUpdate(w:data(), dx:data(), q:data(), out:data())
@@ -151,19 +152,19 @@ function Vlasov:volTerm(w, dx, idx, q, out)
 end
 
 -- Surface integral term for use in DG scheme
-function Vlasov:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+function Vlasov:surfTerm(stride_f, dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local amax = 0.0
    if dir <= self._cdim then
       -- streaming term (note that surface streaming kernels don't
       -- return max speed)
       self._surfStreamUpdate[dir](
-	 wl:data(), wr:data(), dxl:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+	 stride_f, wl:data(), wr:data(), dxl:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data())
    else
       if self._hasForceTerm then
 	 -- force term
 	 self._emField:fill(self._emIdxr(idxl), self._emPtr) -- get pointer to EM field 
 	 amax = self._surfForceUpdate[dir-self._cdim](
-	    wl:data(), wr:data(), dxl:data(), dxr:data(), maxs,
+	    stride_f, self.stride_em, wl:data(), wr:data(), dxl:data(), dxr:data(), maxs,
 	    self._emPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
       end
    end
@@ -174,6 +175,7 @@ function Vlasov:setAuxFields(auxFields)
    if self._hasForceTerm then -- (no fields for neutral particles)
       -- single aux field that has the full EM field
       self._emField = auxFields[1]
+      self.stride_em = self._emField:localExtRange():volume()
 
       if self._isFirst then
 	 self._emPtr = self._emField:get(1)
@@ -188,6 +190,14 @@ function Vlasov:setAuxFieldsOnDevice(auxFields)
       -- single aux field that has the full EM field
       self._emField = auxFields[1]
       ffiC.setAuxFields(self._onDevice, self._emField._onDevice)
+   end
+end
+
+function Vlasov:initStridesOnDevice(auxFields, stride_f)
+   if self._hasForceTerm then -- (no fields for neutral particles)
+      -- single aux field that has the full EM field
+      self._emField = auxFields[1]
+      ffiC.initStrides(stride_f, self._emField:localExtRange():volume())
    end
 end
 

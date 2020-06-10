@@ -377,7 +377,6 @@ def build(bld):
     if bld.env['CUTOOLS_FOUND']:
         cusources = r"""
         HyperDisContDevice.cu
-        HyperDisContDeviceShared.cu
         momentCalcData/DistFuncMomentCalcMax1x1v.cpp
         momentCalcData/DistFuncMomentCalcMax1x2v.cpp
         momentCalcData/DistFuncMomentCalcMax1x3v.cpp

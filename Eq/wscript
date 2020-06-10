@@ -478,8 +478,6 @@ def build(bld):
     cusources = """
     GkylVlasov.cpp
 
-    vlasovData/VlasovTmplModDeviceFuncs.cpp
-
     vlasovData/VlasovStreamMax1x1vP1.cpp
     vlasovData/VlasovStreamMax1x2vP1.cpp
     vlasovData/VlasovStreamMax1x3vP1.cpp

@@ -683,13 +683,13 @@ local function Field_meta_ctor(elct)
       genIndexer = function (self) -- linear indexer taking indices as a vector
 	 return genIndexerMakerFuncs[self._layout](self:localExtRange())
       end,
-      get = function (self, k) -- k is an integer returned by a linear indexer
-	 local loc = (k-1) -- (k-1) as k is 1-based index
+      get = function (self, linIndex) -- linIndex is an integer returned by a linear indexer
+	 local loc = (linIndex-1) -- (linIndex-1) as linIndex is 1-based index
 	 return fcompct(self._localExtRange:volume(), self._data+loc)
       end,
-      getDataPtrAt = function (self, k) -- k is an integer returned by a linear indexer
-	 local loc = (k-1) -- (k-1) as k is 1-based index
-	 return self._data+loc
+      getDataPtrAt = function (self, linIndex) -- linIndex is an integer returned by a linear indexer
+	 local loc = (linIndex-1) -- (linIndex-1) as linIndex is 1-based index
+	 return self._data+loc -- WARNING: accesses to the resulting pointer must be manually strided by stride = self._localExtRange:volume()
       end,
       write = function (self, fName, tmStamp, frNum, writeSkin)
 	 self._adiosIo:write(self, fName, tmStamp, frNum, writeSkin)

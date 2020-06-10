@@ -36,7 +36,7 @@ function test_1()
    local nloop = NLOOP or 1 -- number of HyperDisCont calls to loop over
    local runCPU = xsys.pickBool(RUNCPU, true)
    local checkResult = runCPU and true -- whether to check device result with host one, element-by-element. this can be expensive for large domains.
-   local numThreads = NTHREADS or 128 -- number of threads to use in HyperDisCont kernel configuration
+   local numThreads = NTHREADS or 256 -- number of threads to use in HyperDisCont kernel configuration
    local useSharedMemory = xsys.pickBool(SHARED, false) -- whether to use device shared memory
 
    -- set up dimensionality and basis parameters. 
@@ -84,6 +84,7 @@ function test_1()
       noPenaltyFlux = true, -- penalty flux not yet implemented on device
       numThreads = numThreads,
       useSharedDevice = useSharedMemory,
+      --updateDirections = {},
    }
 
    local distf = DataStruct.Field {
@@ -96,9 +97,9 @@ function test_1()
    local indexer = distf:genIndexer()
    for idx in distf:localRangeIter() do
       local fitr = distf:get(indexer(idx))
-      fitr[1] = idx[1]+2*idx[2]+1
-      fitr[2] = idx[1]+2*idx[2]+2
-      fitr[3] = idx[1]+2*idx[2]+3
+      for i = 1, distf:numComponents() do
+        fitr[i] = math.random()
+      end
    end
    distf:copyHostToDevice()
 
@@ -115,6 +116,8 @@ function test_1()
       ghost = {1, 1},
       createDeviceCopy = true,
    }
+   d_fRhs:clear(0.)
+   d_fRhs:copyHostToDevice()
 
    local cflRateByCell = DataStruct.Field {
       onGrid = grid,
@@ -131,7 +134,9 @@ function test_1()
    }
    emField:clear(2)
    emField:copyHostToDevice()
-
+ 
+   --print(distf:localExtRange():volume(), emField:localExtRange():volume())
+ 
    solver:setDtAndCflRate(.1, cflRateByCell)
 
    tmStart = Time.clock()
@@ -161,11 +166,11 @@ function test_1()
    local indexer = fRhs:genIndexer()
    local d_indexer = d_fRhs:genIndexer()
    if checkResult then 
-      for idx in fRhs:localRangeIter() do
-         local fitr = fRhs:get(indexer(idx))
-         local d_fitr = d_fRhs:get(d_indexer(idx))
-         for i = 1, fRhs:numComponents() do
-            assert_close(fitr[i], d_fitr[i], 1e-10, string.format("index %d, component %d is incorrect", indexer(idx), i))
+      for i = 1, fRhs:numComponents() do
+         for idx in fRhs:localRangeIter() do
+            local fitr = fRhs:get(indexer(idx))
+            local d_fitr = d_fRhs:get(d_indexer(idx))
+            assert_close(fitr[i], d_fitr[i], 1e-8, string.format("index %d, component %d is incorrect", indexer(idx), i))
          end
       end
       assert_equal(cflRate, cflRate_from_gpu[1], "Checking max cflRate")

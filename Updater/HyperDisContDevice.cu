@@ -20,8 +20,6 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
   Gkyl::Vlasov *eq = hyper->equation;
   GkylCartField_t *cflRateByCell = hyper->cflRateByCell;
  
-  // declaring this dummy array shared seems to alleviate register pressure and improve performance a bit
-  extern __shared__ double dummy[];
   unsigned linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
 
     int idxC[6];
@@ -44,7 +42,8 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
 
     const double *fInC = fIn->getDataPtrAt(linearIdxC);
     double *fRhsOutC = fRhsOut->getDataPtrAt(linearIdxC);
-    double cflRate = eq->volTerm(xcC, dx, idxC, fInC, fRhsOutC);
+    const int stride_f = fIn->localExtRange->volume();
+    double cflRate = eq->volTerm(stride_f, xcC, dx, idxC, fInC, fRhsOutC);
     cflRateByCell->getDataPtrAt(linearIdxC)[0] += cflRate;
 
     for(int i=0; i<numUpdateDirs; i++) {
@@ -64,21 +63,21 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
       const double *fInL = fIn->getDataPtrAt(linearIdxL);
       const double *fInR = fIn->getDataPtrAt(linearIdxR);
       
-      // left (of C) surface update. use dummy in place of fRhsOutL (cell to left of surface) so that only current cell (C) is updated.
+      // left (of C) surface update. use NULL in place of fRhsOutL (cell to left of surface) so that only current cell (C) is updated.
       double maxsL, maxsR;
       if(!(zeroFluxFlags[dir] && idxC[dir] == localRange->lower[dir])) {
-        maxsL = eq->surfTerm(dir, xcL, xcC, dx, dx, hyper->maxs[i], idxL, idxC, fInL, fInC, dummy, fRhsOutC);
+        maxsL = eq->surfTerm(stride_f, dir, xcL, xcC, dx, dx, 0., idxL, idxC, fInL, fInC, NULL, fRhsOutC);
       } else if( zeroFluxFlags[dir]) {
-        eq->boundarySurfTerm(dir, xcL, xcC, dx, dx, hyper->maxs[i], idxL, idxC, fInL, fInC, dummy, fRhsOutC);
+        eq->boundarySurfTerm(dir, xcL, xcC, dx, dx, hyper->maxs[i], idxL, idxC, fInL, fInC, NULL, fRhsOutC);
       }
 
-      // right (of C) surface update. use dummy in place of fRhsOutR (cell to left of surface) so that only current cell (C) is updated.
+      // right (of C) surface update. use NULL in place of fRhsOutR (cell to left of surface) so that only current cell (C) is updated.
       if(!(zeroFluxFlags[dir] && idxC[dir] == localRange->upper[dir])) {
-        maxsR = eq->surfTerm(dir, xcC, xcR, dx, dx, hyper->maxs[i], idxC, idxR, fInC, fInR, fRhsOutC, dummy);
+        maxsR = eq->surfTerm(stride_f, dir, xcC, xcR, dx, dx, 0, idxC, idxR, fInC, fInR, fRhsOutC, NULL);
       } else if( zeroFluxFlags[dir]) {
-        eq->boundarySurfTerm(dir, xcC, xcR, dx, dx, hyper->maxs[i], idxC, idxR, fInC, fInR, fRhsOutC, dummy);
+        eq->boundarySurfTerm(dir, xcC, xcR, dx, dx, hyper->maxs[i], idxC, idxR, fInC, fInR, fRhsOutC, NULL);
       }
-      hyper->maxsByCell->getDataPtrAt(linearIdxC)[i] = max(maxsL, maxsR);
+      //hyper->maxsByCell->getDataPtrAt(linearIdxC)[i] = max(maxsL, maxsR);
     }
   
 } 
