@@ -341,9 +341,9 @@ local function test_deviceReduce(nIter, reportTiming)
    local err = d_minVal:copyDeviceToHost(minVal_gpu)
    local err = d_sumVal:copyDeviceToHost(sumVal_gpu)
    
-   assert_equal(maxVal, maxVal_gpu[1], "Checking max reduce of CartField on GPU.")
-   assert_equal(minVal, minVal_gpu[1], "Checking min reduce of CartField on GPU.")
-   assert_close(sumVal, sumVal_gpu[1], 1.e-12*sumVal_gpu[1], "Checking sum reduce of CartField on GPU.")
+   assert_equal(maxVal[1], maxVal_gpu[1], "Checking max reduce of CartField on GPU.")
+   assert_equal(minVal[1], minVal_gpu[1], "Checking min reduce of CartField on GPU.")
+   assert_close(sumVal[1], sumVal_gpu[1], 1.e-12*sumVal_gpu[1], "Checking sum reduce of CartField on GPU.")
    
    cuda.Free(d_maxVal)
    cuda.Free(d_minVal)
