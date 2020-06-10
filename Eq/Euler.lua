@@ -12,6 +12,11 @@ local ffi = require "ffi"
 local xsys = require "xsys"
 local Proto = require "Lib.Proto"
 
+local cuda = nil
+if GKYL_HAVE_CUDA then
+   cuda = require "Cuda.RunTime"
+end
+
 -- C interfaces
 ffi.cdef [[
 
@@ -24,6 +29,9 @@ typedef struct {
    double _fl[6], _fr[6]; /* Storage for left/right fluxes ([6] as we want to index from 1) */
 } EulerEqn_t;
 
+  typedef struct GkylEuler GkylEuler;
+  GkylEuler* new_Euler();
+  GkylEuler* new_Euler_onDevice(GkylEuler *v);
 ]]
 
 -- Resuffle indices for various direction Riemann problem. The first
@@ -265,6 +273,15 @@ local Euler = Proto(EqBase)
 function Euler:init(tbl)
    self.gasGamma = tbl.gasGamma
    self.eulerObj = EulerObj(tbl)
+
+   if GKYL_HAVE_CUDA then
+     self:initDevice()
+   end
+end
+
+function Euler:initDevice()
+   self._onHost = ffiC.new_Euler()
+   self._onDevice = ffiC.new_Euler_onDevice(self._onHost)
 end
 
 function Euler:numEquations()
