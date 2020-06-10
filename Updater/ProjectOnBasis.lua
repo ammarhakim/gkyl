@@ -42,7 +42,7 @@ end
 ]])
 
 ffi.cdef[[
-  void projectF(double* f, double* weights, double* basisAtOrdinates, double* fv, int numVal, int numBasis, int numOrd);
+  void projectF(double* f, double* weights, double* basisAtOrdinates, double* fv, int numVal, int numBasis, int numOrd, int stride);
 ]]
 
 -- Projection  updater object.
@@ -170,7 +170,7 @@ function ProjectOnBasis:_advance(tCurr, inFld, outFld)
 
       qOut:fill(indexer(idx), fItr)
       ffiC.projectF(
-	 fItr:data(), self._weights:data(), self._basisAtOrdinates:data(), fv:data(), numVal, numBasis, numOrd)
+	 fItr:data(), self._weights:data(), self._basisAtOrdinates:data(), fv:data(), numVal, numBasis, numOrd, qOut._localExtRange:volume())
    end
 
    -- Set id of output to id of projection basis.

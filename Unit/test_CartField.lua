@@ -53,6 +53,7 @@ function test_1()
          local idx = indexer(i)
          assert_equal(i+j, field._data[idx-1 + localExtRange:volume()*(j-1)], "Checking values by indexing _data directly")
          assert_equal(i+j, field:get(idx)[j], "Checking values by using get()")         
+         assert_equal(i+j, field:get(idx):data()[(j-1)*localExtRange:volume()], "Checking values by using get():data()")         
       end
    end
 end

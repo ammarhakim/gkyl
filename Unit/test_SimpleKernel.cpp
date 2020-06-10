@@ -298,8 +298,3 @@ void unit_readAndWrite_shared(int numBlocks, int numThreads, int sharedSize, Gky
 {
   ker_readAndWrite_shared<<<numBlocks, numThreads, sharedSize*sizeof(double)>>>(f, res);
 }
-
-void unit_readAndWrite_shared_offset(int numBlocks, int numThreads, int sharedSize, GkylCartField_t *f, GkylCartField_t *res)
-{
-  ker_readAndWrite_shared_offset<<<numBlocks, numThreads, sharedSize*sizeof(double)>>>(f, res);
-}
