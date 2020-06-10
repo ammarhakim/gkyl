@@ -14,14 +14,18 @@ namespace Gkyl {
     return reinterpret_cast<void*>(d_v);
   }
 
-  int numEquations(Euler *v) {
+  int numEquations_Euler(Euler *v) {
     return (int) v->numEquations();
   }
 
-  void rp(
+  void rp_Euler(
       Euler *v, const int dir, const double *delta, const double *ql,
       const double *qr, double *waves, double *s) {
     v->rp(dir, delta, ql, qr, waves, s);
+  }
+
+  void flux_Euler(Euler *v, const int dir, const double *qIn, double *fOut) {
+    v->flux(dir, qIn, fOut);
   }
   
   __host__ __device__ int Euler::numWaves() { return _numWaves; }

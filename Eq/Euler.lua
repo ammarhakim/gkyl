@@ -34,8 +34,8 @@ typedef struct {
   GkylEuler* new_Euler_onDevice(GkylEuler *v);
 
   // for cuda testing
-  int numEquations(GkylEuler *v);
-  void rp(
+  int numEquations_Euler(GkylEuler *v);
+  void rp_Euler(
       GkylEuler *v, const int dir, const double *delta,
       const double *ql, const double *qr, double *waves, double *s);
 ]]
@@ -291,11 +291,11 @@ function Euler:initDevice()
 end
 
 function Euler:numEquationsCImpl()
-   return ffi.C.numEquations(self._onHost)
+   return ffi.C.numEquations_Euler(self._onHost)
 end
 
 function Euler:rpCImpl(dir, delta, ql, qr, waves, s)
-   return ffi.C.rp(self._onHost, dir, delta, ql, qr, waves, s)
+   return ffi.C.rp_Euler(self._onHost, dir, delta, ql, qr, waves, s)
 end
 
 function Euler:numEquations()

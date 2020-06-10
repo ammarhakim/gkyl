@@ -20,8 +20,9 @@ namespace Gkyl {
   extern "C" {
     void* new_Euler();
     void* new_Euler_onDevice(Euler *v);
-    int numEquations(Euler *v);
-    void rp(
+
+    int numEquations_Euler(Euler *v);
+    void rp_Euler(
         Euler *v, const int dir, const double *delta, const double *ql,
         const double *qr, double *waves, double *s);
   }
