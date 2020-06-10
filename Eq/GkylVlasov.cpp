@@ -7,6 +7,7 @@
 
 #include <GkylVlasov.h>
 #include <GkylCudaFuncs.h>
+#include <VlasovModDecl.h>
 
 // cuda includes
 #include <cuda.h>
@@ -96,8 +97,8 @@ __device__ double VlasovEquation_volTerm(void *eqn,
   GkylVlasovEquation_t *self = (GkylVlasovEquation_t *) eqn;
   Gkyl::GenIndexer emIdxr = self->emField->genIndexer();
   const double *em = self->emField->getDataPtrAt(emIdxr.index(idx));
-  double amid = self->volumeTerm(xc, dx, em, qIn, qRhsOut);
-  return amid;
+  double cflFreq = self->volumeTerm(xc, dx, em, qIn, qRhsOut);
+  return cflFreq;
 }
 __device__ volTermFunc_t p_VlasovEquation_volTerm = &VlasovEquation_volTerm;
 
@@ -132,6 +133,8 @@ void
 VlasovEquation_setAuxFields(GkylEquation_t *eqn, GkylCartField_t* em) {
   VlasovEquation_setAuxFieldsOnDevice<<<1,1>>>(eqn, em);
 }
+
+
 
 GkylEquation_t*
 new_VlasovEquationOnDevice(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType,
