@@ -39,14 +39,14 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
     // convert i,j,k... index idxC into a linear index linearIdxC
     // note that linearIdxC != linearIdx.
     // this is because linearIdxC will have jumps because of ghost cells
-    int linearIdxC = fIdxr.index(idxC);
+    const int linearIdxC = fIdxr.index(idxC);
 
     grid->cellCenter(idxC, xcC);
-    double *dx = grid->dx;
+    const double *dx = grid->dx;
 
-    double *fInC = fIn->getDataPtrAt(linearIdxC);
+    const double *fInC = fIn->getDataPtrAt(linearIdxC);
     double *fRhsOutC = fRhsOut->getDataPtrAt(linearIdxC);
-    double cflRate = eq->volTerm(xcC, dx, idxC, fInC, fRhsOutC);
+    const double cflRate = eq->volTerm(xcC, dx, idxC, fInC, fRhsOutC);
     cflRateByCell->getDataPtrAt(linearIdxC)[0] += cflRate;
 
     for(int i=0; i<numUpdateDirs; i++) {
@@ -59,12 +59,12 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
       idxL[dir] = idxC[dir] - 1;
       idxR[dir] = idxC[dir] + 1;
 
-      int linearIdxL = fIdxr.index(idxL);
-      int linearIdxR = fIdxr.index(idxR);
+      const int linearIdxL = fIdxr.index(idxL);
+      const int linearIdxR = fIdxr.index(idxR);
       grid->cellCenter(idxL, xcL);
       grid->cellCenter(idxR, xcR);
-      double *fInL = fIn->getDataPtrAt(linearIdxL);
-      double *fInR = fIn->getDataPtrAt(linearIdxR);
+      const double *fInL = fIn->getDataPtrAt(linearIdxL);
+      const double *fInR = fIn->getDataPtrAt(linearIdxR);
       
       // left (of C) surface update. use dummy in place of fRhsOutL (cell to left of surface) so that only current cell (C) is updated.
       double maxsL, maxsR;

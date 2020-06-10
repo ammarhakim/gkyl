@@ -23,17 +23,17 @@
 
 extern "C" {
 
-    typedef double (*Vlasov_volumeStreamTerm_t)(const double*  w, const double*  dxv, const double*  f, double *out);
-    typedef void (*Vlasov_surfSreamTerm_t)(unsigned dir, const double*  wl, const double*  wr,
-      const double*  dxvl, const double*  dxvr, const double*  fl, const double*  fr,
+    typedef double (*Vlasov_volumeStreamTerm_t)(const double* __restrict__  w, const double* __restrict__  dxv, const double* __restrict__  f, double *out);
+    typedef void (*Vlasov_surfSreamTerm_t)(unsigned dir, const double* __restrict__  wl, const double* __restrict__  wr,
+      const double* __restrict__  dxvl, const double* __restrict__  dxvr, const double* __restrict__  fl, const double* __restrict__  fr,
       double *outl, double *outr);
 
-    typedef double (*Vlasov_volumeTerm_t)(const double*  w, const double*  dxv,
-      const double*  E, const double*  f, double *out);
-    typedef double (*Vlasov_surfElcMagTerm_t)(unsigned dir, const double*  wl, const double*  wr,
-      const double*  dxvl, const double*  dxvr,
-      const double amax, const double*  E, const
-      double *fl, const double*  fr,
+    typedef double (*Vlasov_volumeTerm_t)(const double* __restrict__  w, const double* __restrict__  dxv,
+      const double* __restrict__  E, const double* __restrict__  f, double *out);
+    typedef double (*Vlasov_surfElcMagTerm_t)(unsigned dir, const double* __restrict__  wl, const double* __restrict__  wr,
+      const double* __restrict__  dxvl, const double* __restrict__  dxvr,
+      const double amax, const double* __restrict__  E, const
+      double *fl, const double* __restrict__  fr,
       double *outl, double *outr);
 
     typedef struct {

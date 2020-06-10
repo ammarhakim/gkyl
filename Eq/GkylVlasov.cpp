@@ -102,7 +102,7 @@ Vlasov_setAuxFields(GkylEquation_t *eqn, GkylCartField_t* em) {
 }
 
 __device__ double Vlasov_volTerm(void *eqn, 
-  double *xc, double *dx, int *idx, double *qIn, double *qRhsOut) {
+  const double* __restrict__ xc, const double* __restrict__ dx, const int* __restrict__ idx, const double* __restrict__ qIn, double *qRhsOut) {
 
   GkylVlasov_t *self = (GkylVlasov_t *) eqn;
   Gkyl::GenIndexer emIdxr = self->emField->genIndexer();
@@ -113,9 +113,9 @@ __device__ double Vlasov_volTerm(void *eqn,
 __device__ volTermFunc_t p_Vlasov_volTerm = &Vlasov_volTerm;
 
 __device__ double Vlasov_surfTerm(void *eqn, int dir,
-  double *xcL, double *xcR, double *dxL, double *dxR,
-  double maxsOld, int* idxL, int *idxR,
-  double *qInL, double *qInR, double *qRhsOutL, double *qRhsOutR) {
+  const double* __restrict__ xcL, const double* __restrict__ xcR, const double* __restrict__ dxL, const double* __restrict__ dxR,
+  double maxsOld, const int* __restrict__ idxL, const int* __restrict__ idxR,
+  const double* __restrict__ qInL, const double* __restrict__ qInR, double *qRhsOutL, double *qRhsOutR) {
 
   GkylVlasov_t *self = (GkylVlasov_t *) eqn;
   double amax = 0.0;
@@ -131,9 +131,9 @@ __device__ double Vlasov_surfTerm(void *eqn, int dir,
 __device__ surfTermFunc_t p_Vlasov_surfTerm = &Vlasov_surfTerm;
 
 __device__ double Vlasov_boundarySurfTerm(void *eqn, int dir,
-  double *xcL, double *xcR, double *dxL, double *dxR,
-  double maxsOld, int* idxL, int *idxR,
-  double *qInL, double *qInR, double *qRhsOutL, double *qRhsOutR) {
+  const double* __restrict__ xcL, const double* __restrict__ xcR, const double* __restrict__ dxL, const double* __restrict__ dxR,
+  const double maxsOld, const int* __restrict__ idxL, const int* __restrict__ idxR,
+  const double* __restrict__ qInL, const double* __restrict__ qInR, double *qRhsOutL, double *qRhsOutR) {
 
   return 0;
 }
