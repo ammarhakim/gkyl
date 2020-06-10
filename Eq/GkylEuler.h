@@ -20,6 +20,7 @@ namespace Gkyl {
   extern "C" {
     void* new_Euler();
     void* new_Euler_onDevice(Euler *v);
+    int getNumEquations(Euler *v);
   }
 
   // FIXME correct specifier?

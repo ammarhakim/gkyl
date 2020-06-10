@@ -14,6 +14,10 @@ namespace Gkyl {
     return reinterpret_cast<void*>(d_v);
   }
 
+  int getNumEquations(Euler *v) {
+    return (int) v->getNumEquations();
+  }
+  
   __host__ __device__ int Euler::getNumWaves() { return _numWaves; }
 
   __host__ __device__ int Euler::getNumEquations() { return _numEquations; }

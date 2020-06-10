@@ -32,6 +32,7 @@ typedef struct {
   typedef struct GkylEuler GkylEuler;
   GkylEuler* new_Euler();
   GkylEuler* new_Euler_onDevice(GkylEuler *v);
+  int getNumEquations(GkylEuler *v);
 ]]
 
 -- Resuffle indices for various direction Riemann problem. The first
@@ -282,6 +283,10 @@ end
 function Euler:initDevice()
    self._onHost = ffiC.new_Euler()
    self._onDevice = ffiC.new_Euler_onDevice(self._onHost)
+end
+
+function Euler:getNumEquations()
+   return ffi.C.getNumEquations(self._onHost)
 end
 
 function Euler:numEquations()
