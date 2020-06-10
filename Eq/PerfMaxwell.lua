@@ -23,6 +23,17 @@ local dirShuffle = {
    ffi.new("int[7]", 0, 3, 1, 2, 6, 4, 5)
 }
 
+local cuda = nil
+if GKYL_HAVE_CUDA then
+   cuda = require "Cuda.RunTime"
+end
+
+ffi.cdef [[ 
+    typedef struct GkylEquation_t GkylEquation_t ;
+    GkylEquation_t *new_MaxwellOnDevice(unsigned cdim, unsigned polyOrder, unsigned basisType,
+      MaxwellEq_t *mdata, double tau)
+]]
+
 -- The function to compute fluctuations is implemented as a template
 -- which unrolls the inner loop
 local qFluctuationsTempl = xsys.template([[
@@ -86,6 +97,20 @@ function PerfMaxwell:init(tbl)
 
    -- store stuff in C struct for use in DG solvers
    self._ceqn = ffi.new("MaxwellEq_t", {self._c, self._ce, self._cb})
+end
+
+function PerfMaxwell:initDevice(tbl)
+   local bId = self._basis:id()
+   local b = 0
+   if bId == "maximal-order" then 
+     b = 1
+   end
+   if bId == "serendipity" then 
+     b = 2
+   end   
+   self._onDevice = ffiC.new_MaxwellOnDevice(self._cdim, self._phaseBasis:polyOrder(), b, self._ceqn, self._tau)
+
+   return self
 end
 
 -- Methods

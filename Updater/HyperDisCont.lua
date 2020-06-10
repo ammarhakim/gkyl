@@ -112,16 +112,10 @@ function HyperDisCont:init(tbl)
    self._auxFields = {} -- auxilliary fields passed to eqn object
    self._perpRangeDecomp = {} -- perp ranges in each direction      
 
-   if GKYL_HAVE_CUDA then
-      self:initDevice()
-      self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
-      self._useSharedDevice = xsys.pickBool(tbl.useSharedDevice, false)
-   end
-
    return self
 end
 
-function HyperDisCont:initDevice()
+function HyperDisCont:initDevice(tbl)
    self.maxsByCell = DataStruct.Field {
       onGrid = self._onGrid,
       numComponents = #self._updateDirs,
@@ -141,6 +135,11 @@ function HyperDisCont:initDevice()
    local sz = sizeof("GkylHyperDisCont_t")
    self._onDevice, err = cuda.Malloc(sz)
    cuda.Memcpy(self._onDevice, hyper, sz, cuda.MemcpyHostToDevice)
+
+   self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
+   self._useSharedDevice = xsys.pickBool(tbl.useSharedDevice, false)
+
+   return self
 end
 
 -- advance method
