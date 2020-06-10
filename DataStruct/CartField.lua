@@ -476,7 +476,8 @@ local function Field_meta_ctor(elct)
       dataPointer = function (self)
 	 return self._allocData:data()
       end,
-      clear = function (self, val)
+      clear = (GKYL_USE_DEVICE and function(self,...) self:deviceClear(...) end) or function(self,...) self:hostClear(...) end,
+      hostClear = function (self, val)
 	 ffiC.gkylCartFieldAssignAll(self:_localLower(), self:_localShape(), val, self._data)
       end,
       deviceClear = function (self, val)
@@ -497,13 +498,16 @@ local function Field_meta_ctor(elct)
       _localShape = function (self)
 	 return self._localExtRangeDecomp:shape(self._shmIndex)*self:numComponents()
       end,
-      _assign = function(self, fact, fld)
+      _assign = (GKYL_USE_DEVICE and function(self, ...) self:_deviceAssign(...) end) or function(self, ...) self:_hostAssign(...) end,
+      _hostAssign = function(self, fact, fld)
+         print("assigning on host")
 	 assert(field_compatible(self, fld), "CartField:combine: Can only accumulate compatible fields")
 	 assert(type(fact) == "number", "CartField:combine: Factor not a number")
 
 	 ffiC.gkylCartFieldAssign(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
       end,
       _deviceAssign = function(self, fact, fld)
+         print("assigning on device")
 	 assert(field_compatible(self, fld), "CartField:combine: Can only accumulate compatible fields")
 	 assert(type(fact) == "number", "CartField:combine: Factor not a number")
 
@@ -512,7 +516,8 @@ local function Field_meta_ctor(elct)
 	 local numBlocks = math.floor(shape/numThreads)+1
 	 ffiC.gkylCartFieldDeviceAssign(numBlocks, numThreads, self:_localLower(), self:_localShape(), fact, fld:deviceDataPointer(), self:deviceDataPointer())
       end,
-      _accumulateOneFld = function(self, fact, fld)
+      _accumulateOneFld = (GKYL_USE_DEVICE and function(self, ...) self:_deviceAccumulateOneFld(...) end) or function(self, ...) self:_hostAccumulateOneFld(...) end,
+      _hostAccumulateOneFld = function(self, fact, fld)
 	 assert(field_compatible(self, fld),
 		"CartField:accumulate/combine: Can only accumulate/combine compatible fields")
 	 assert(type(fact) == "number",
@@ -535,13 +540,14 @@ local function Field_meta_ctor(elct)
 	 local numBlocks = math.floor(shape/numThreads)+1
 	 ffiC.gkylCartFieldDeviceAccumulate(numBlocks, numThreads, self:_localLower(), self:_localShape(), fact, fld:deviceDataPointer(), self:deviceDataPointer())
       end,
-      accumulate = isNumberType and
+      accumulate = (GKYL_USE_DEVICE and function(self, ...) self:deviceAccumulate(...) end) or function(self, ...) self:hostAccumulate(...) end,
+      hostAccumulate = isNumberType and
 	 function (self, c1, fld1, ...)
 	    local args = {...} -- package up rest of args as table
 	    local nFlds = #args/2
-	    self:_accumulateOneFld(c1, fld1) -- accumulate first field
+	    self:_hostAccumulateOneFld(c1, fld1) -- accumulate first field
 	    for i = 1, nFlds do -- accumulate rest of the fields
-	       self:_accumulateOneFld(args[2*i-1], args[2*i])
+	       self:_hostAccumulateOneFld(args[2*i-1], args[2*i])
 	    end
 	 end or
 	 function (self, c1, fld1, ...)
@@ -561,13 +567,14 @@ local function Field_meta_ctor(elct)
 	 function (self, c1, fld1, ...)
 	    assert(false, "CartField:accumulate: Accumulate only works on numeric fields")
 	 end,
-      combine = isNumberType and
+      combine = (GKYL_USE_DEVICE and function(self, ...) self:deviceCombine(...) end) or function(self, ...) self:hostCombine(...) end,
+      hostCombine = isNumberType and
          function (self, c1, fld1, ...)
             local args = {...} -- package up rest of args as table
             local nFlds = #args/2
-            self:_assign(c1, fld1) -- assign first field
+            self:_hostAssign(c1, fld1) -- assign first field
             for i = 1, nFlds do -- accumulate rest of the fields
-               self:_accumulateOneFld(args[2*i-1], args[2*i])
+               self:_hostAccumulateOneFld(args[2*i-1], args[2*i])
             end
          end or
          function (self, c1, fld1, ...)
@@ -587,7 +594,8 @@ local function Field_meta_ctor(elct)
 	 function (self, c1, fld1, ...)
 	    assert(false, "CartField:combine: Combine only works on numeric fields")
 	 end,
-      scale = isNumberType and
+      scale = (GKYL_USE_DEVICE and function(self, ...) self:deviceScale(...) end) or function(self, ...) self:hostScale(...) end,
+      hostScale = isNumberType and
 	 function (self, fact)
 	    ffiC.gkylCartFieldScale(self:_localLower(), self:_localShape(), fact, self._data)
 	 end or
@@ -612,7 +620,8 @@ local function Field_meta_ctor(elct)
             
 	 ffiC.gkylCartFieldScaleByCell(self:_localLower(), self:_localShape(), self:numComponents(), factByCell._data, self._data)
       end,
-      abs = isNumberType and
+      abs = (GKYL_USE_DEVICE and function(self, ...) self:deviceAbs(...) end) or function(self, ...) self:hostAbs(...) end,
+      hostAbs = isNumberType and
          function (self)
             ffiC.gkylCartFieldAbs(self:_localLower(), self:_localShape(), self._data)
 	 end or
@@ -697,7 +706,8 @@ local function Field_meta_ctor(elct)
       read = function (self, fName) --> time-stamp, frame-number
 	 return self._adiosIo:read(self, fName)
       end,
-      sync = function (self, syncPeriodicDirs_)
+      sync = (GKYL_USE_DEVICE and function(self,...) self:deviceSync(...) end) or function(self,...) self:hostSync(...) end,
+      hostSync = function (self, syncPeriodicDirs_)
          local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
 	 -- this barrier is needed as when using MPI-SHM some
 	 -- processors will get to the sync method before others
@@ -737,8 +747,9 @@ local function Field_meta_ctor(elct)
       compatible = function(self, fld)
          return field_compatible(self, fld)
       end,
-      reduce = isNumberType and
-	 function(self, opIn)
+      reduce = (GKYL_USE_DEVICE and function(self,...) self:deviceReduce(...) end) or function(self,...) self:hostReduce(...) end,
+      hostReduce = isNumberType and
+	 function(self, opIn, localVal)
 	    -- Input 'opIn' must be one of the binary operations in binOpFuncs.
 	    local grid = self._grid
 	    local tId = grid:subGridSharedId() -- Local thread ID.
@@ -747,7 +758,6 @@ local function Field_meta_ctor(elct)
 	    local indexer = self:genIndexer()
 	    local itr = self:get(1)
 	    
-	    local localVal = {}
 	    for k = 1, self._numComponents do localVal[k] = reduceInitialVal[opIn] end
 	    for idx in localRangeDecomp:rowMajorIter(tId) do
 	       self:fill(indexer(idx), itr)
@@ -761,7 +771,6 @@ local function Field_meta_ctor(elct)
 			  self._numComponents, elctCommType, reduceOpsMPI[opIn], grid:commSet().comm)
 
 	    for k = 1, self._numComponents do localVal[k] = self.globalReductionVal[k] end
-            return localVal
 	 end or
 	 function (self, opIn)
 	    assert(false, "CartField:reduce: Reduce only works on numeric fields")

@@ -123,10 +123,10 @@ function test_1()
    assert_equal(0, err, "Checking if copy to device worked")
    assert_equal(0, err2, "Checking if copy to device worked")
 
-   field:deviceScale(-0.5)
-   field:deviceAbs()
-   field2:deviceClear(1.0)
-   field:deviceAccumulate(2.0, field2, 0.5, field2)
+   field:scale(-0.5)
+   field:abs()
+   field2:clear(1.0)
+   field:accumulate(2.0, field2, 0.5, field2)
    field:copyDeviceToHost()
 
    if GKYL_HAVE_CUDA then
@@ -327,15 +327,18 @@ local function test_deviceReduce(nIter, reportTiming)
    p0Field:copyHostToDevice()
 
    -- Get the maximum, minimum and sum on the CPU (for reference).
-   local maxVal, minVal, sumVal = p0Field:reduce("max"), p0Field:reduce("min"), p0Field:reduce("sum")
+   local h_maxVal, h_minVal, h_sumVal = Alloc.Double(1), Alloc.Double(1), Alloc.Double(1)
+   p0Field:hostReduce("max", h_maxVal) 
+   p0Field:hostReduce("min",h_minVal) 
+   p0Field:hostReduce("sum",h_sumVal)
 
    local d_maxVal, d_minVal, d_sumVal = cudaAlloc.Double(1), cudaAlloc.Double(1), cudaAlloc.Double(1)
    
    local tmStart = Time.clock()
    for i = 1, nIter do
-      p0Field:deviceReduce("max",d_maxVal)
-      p0Field:deviceReduce("min",d_minVal)
-      p0Field:deviceReduce("sum",d_sumVal)
+      p0Field:reduce("max",d_maxVal)
+      p0Field:reduce("min",d_minVal)
+      p0Field:reduce("sum",d_sumVal)
    end
    local err = cuda.DeviceSynchronize()
    if reportTiming then
@@ -349,9 +352,9 @@ local function test_deviceReduce(nIter, reportTiming)
    local err = d_minVal:copyDeviceToHost(minVal_gpu)
    local err = d_sumVal:copyDeviceToHost(sumVal_gpu)
    
-   assert_equal(maxVal[1], maxVal_gpu[1], "Checking max reduce of CartField on GPU.")
-   assert_equal(minVal[1], minVal_gpu[1], "Checking min reduce of CartField on GPU.")
-   assert_close(sumVal[1], sumVal_gpu[1], 1.e-12*sumVal_gpu[1], "Checking sum reduce of CartField on GPU.")
+   assert_equal(h_maxVal[1], maxVal_gpu[1], "Checking max reduce of CartField on GPU.")
+   assert_equal(h_minVal[1], minVal_gpu[1], "Checking min reduce of CartField on GPU.")
+   assert_close(h_sumVal[1], sumVal_gpu[1], 1.e-12*sumVal_gpu[1], "Checking sum reduce of CartField on GPU.")
    
    cuda.Free(d_maxVal)
    cuda.Free(d_minVal)
@@ -415,7 +418,7 @@ test_4()
 test_5()
 test_deviceReduce(1, false)
 
-test_6()
+--test_6()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
