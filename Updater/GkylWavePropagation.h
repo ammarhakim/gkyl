@@ -20,10 +20,11 @@ extern "C"
       int32_t numUpdateDirs;
       double dt;
       Gkyl::Euler *equation;
-      GkylCartField_t *cflRateByCell;
   } GkylWavePropagation_t;
     
-  void wavePropagationAdvanceOnDevice(int numBlocks, int numThreads, GkylWavePropagation_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
+  void wavePropagationAdvanceOnDevice(
+      int numBlocks, int numThreads, GkylWavePropagation_t *hyper,
+      GkylCartField_t *qIn, GkylCartField_t *qOut);
 }
 
 #endif // GKYL_WAVE_PROPAGATION_H

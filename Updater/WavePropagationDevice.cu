@@ -46,7 +46,6 @@ __global__ void cuda_WavePropagation(
   int *updateDirs = hyper->updateDirs;
   int numUpdateDirs = hyper->numUpdateDirs;
   Gkyl::Euler *eq = hyper->equation;
-  GkylCartField_t *cflRateByCell = hyper->cflRateByCell;
 
   const int meqn = eq->getNumEquations();
   const int mwave = eq->getNumWaves();
@@ -82,11 +81,10 @@ __global__ void cuda_WavePropagation(
   grid->cellCenter(idxC, xcC);
   const double *dx = grid->dx;
 
-  double cfla = 0;
+  double cfla = 0; // actual CFL number used
 
   const double *qInC = qIn->getDataPtrAt(linearIdxC);
   double *qOutC = qOut->getDataPtrAt(linearIdxC);
-  // cflRateByCell->getDataPtrAt(linearIdxC)[0] += cflRate;
 
   for(int i=0; i<numUpdateDirs; i++) {
     int dir = updateDirs[i] - 1;
@@ -123,7 +121,6 @@ __global__ void cuda_WavePropagation(
       calcFirstOrderGud(dtdx, qOutC, dummy, amdq, apdq, meqn);
     }
     cfla = calcCfla(cfla, dtdx, s, mwave);
-    // cflRateByCell->getDataPtrAt(linearIdxC)[0] += cflRate; // FIXME how?
   }
 }
 
@@ -136,18 +133,5 @@ void wavePropagationAdvanceOnDevice(
     32*sizeof(double));
   cuda_WavePropagation<<<numBlocks, numThreads, 32*sizeof(double)>>>(
     hyper, qIn, qOut);
-}
-
-__global__ void wavePropagationSetDtAndCflRateOnDevice(
-  GkylWavePropagation_t *hyper, double dt, GkylCartField_t *cflRate)
-{
-  hyper->dt = dt;
-  hyper->cflRateByCell = cflRate;
-}
-
-void wavePropagationSetDtAndCflRate(
-  GkylWavePropagation_t *hyper, double dt, GkylCartField_t *cflRate)
-{
-  wavePropagationSetDtAndCflRateOnDevice<<<1, 1>>>(hyper, dt, cflRate);
 }
 
