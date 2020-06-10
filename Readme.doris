@@ -1,0 +1,18 @@
+cd hackathon
+git clone https://github.com/ammarhakim/gkyl.git
+cd gkyl
+export HPCX_HOME=/home/dorisp/Tarballs/hpcx-v2.6.0-gcc-MLNX_OFED_LINUX-4.7-1.0.0.1-redhat7.7-x86_64
+source $HPCX_HOME/hpcx-init.sh
+hpcx_load
+env | grep HPCX
+
+./machines/mkdeps.gcc-and-mpi-psgcluster.sh
+
+./machines/configure.gcc-and-mpi-psgcluster.sh
+
+./waf build install
+
+mpirun -np 1 ~/gkylsoft/gkyl/bin/gkyl Unit/test_HyperDisContCuda.lua
+
+mpirun -np 1 nsys profile -w true -f true -o xx gkyl Unit/test_HyperDisContCuda.lua
+mpirun -np 1 nv-nsight-cu-cli -f-o computexx gkyl Unit/test_HyperDisContCuda.lua
