@@ -20,7 +20,7 @@ namespace Gkyl {
   extern "C" {
     void* new_Euler();
     void* new_Euler_onDevice(Euler *v);
-    int getNumEquations(Euler *v);
+    int numEquations(Euler *v);
     void rp(
         Euler *v, const int dir, const double *delta, const double *ql,
         const double *qr, double *waves, double *s);
@@ -34,9 +34,9 @@ namespace Gkyl {
       __host__ __device__ Euler() {}
       ~Euler() = default;
 
-      __host__ __device__ int getNumWaves();
+      __host__ __device__ int numWaves();
 
-      __host__ __device__ int getNumEquations();
+      __host__ __device__ int numEquations();
 
       __host__ __device__ double gasGamma();
 

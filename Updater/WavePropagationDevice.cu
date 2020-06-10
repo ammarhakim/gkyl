@@ -48,8 +48,8 @@ __global__ void cuda_WavePropagation(
   Gkyl::Euler *eq = hyper->equation;
   GkylCartField_t *dtByCell = hyper->dtByCell;
 
-  const int meqn = eq->getNumEquations();
-  const int mwave = eq->getNumWaves();
+  const int meqn = eq->numEquations();
+  const int mwave = eq->numWaves();
 
   // XXX use meqn and mwave
   double delta[10];

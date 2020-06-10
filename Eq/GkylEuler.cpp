@@ -14,8 +14,8 @@ namespace Gkyl {
     return reinterpret_cast<void*>(d_v);
   }
 
-  int getNumEquations(Euler *v) {
-    return (int) v->getNumEquations();
+  int numEquations(Euler *v) {
+    return (int) v->numEquations();
   }
 
   void rp(
@@ -24,9 +24,9 @@ namespace Gkyl {
     v->rp(dir, delta, ql, qr, waves, s);
   }
   
-  __host__ __device__ int Euler::getNumWaves() { return _numWaves; }
+  __host__ __device__ int Euler::numWaves() { return _numWaves; }
 
-  __host__ __device__ int Euler::getNumEquations() { return _numEquations; }
+  __host__ __device__ int Euler::numEquations() { return _numEquations; }
 
   __host__ __device__ double Euler::gasGamma() { return _gasGamma; }
 
