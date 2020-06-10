@@ -14,82 +14,10 @@
 #include <cuda_runtime.h>
 #include <driver_types.h>
 
-__global__ void setAuxFieldsOnDevice(Gkyl::Vlasov *v, GkylCartField_t* emField);
-
 Vlasov_volumeStreamTerm_t Vlasov_getVolumeStreamTerm(int cdim, int vdim, int polyOrder, int basisType);
 Vlasov_surfStreamTerm_t Vlasov_getSurfStreamTerm(int cdim, int vdim, int polyOrder, int basisType);
 Vlasov_volumeTerm_t Vlasov_getVolumeTerm(int cdim, int vdim, int polyOrder, int basisType);
 Vlasov_surfElcMagTerm_t Vlasov_getSurfElcMagTerm(int cdim, int vdim, int polyOrder, int basisType);
-
-namespace Gkyl {
-
-  __host__ __device__ double Vlasov::volTerm(const double* __restrict__ xc, const double* __restrict__ dx, const int* __restrict__ idx, const double* __restrict__ qIn, double *qRhsOut) {
-    Gkyl::GenIndexer emIdxr = emField->genIndexer();
-    const double *em = emField->getDataPtrAt(emIdxr.index(idx));
-    double amid = kernel.volumeTerm(xc, dx, em, qIn, qRhsOut);
-    return amid;
-  }
-
-  __device__ double Vlasov::volTerm_shared(const double* __restrict__ xc, const double* __restrict__ dx, const int* __restrict__ idx, const double* __restrict__ qIn, double *qRhsOut) {
-    Gkyl::GenIndexer emIdxr = emField->genIndexer();
-    //double *em = shared;
-    //for(int j=0; j<numComponents; j++) {
-    //  // linearIdxC can have jumps, just needs to be contiguous for max(32, numComponents) elements
-    //  em[j+numComponents*threadIdx.x] = emField->_data[emIdxr.index(idx) + blockIdx.x*j];
-    //}
-    const double *em = emField->getDataPtrAt(emIdxr.index(idx));
-    double amid = kernel.volumeTerm(xc, dx, em, qIn, qRhsOut);
-    return amid;
-  }
-
-  __host__ __device__ double Vlasov::surfTerm(const int dir, 
-                  const double* __restrict__ xcL, const double* __restrict__ xcR, const double* __restrict__ dxL, const double* __restrict__ dxR,
-                  const double maxsOld, const int* __restrict__ idxL, const int* __restrict__ idxR,
-                  const double* __restrict__ qInL, const double* __restrict__ qInR, double *qRhsOutL, double *qRhsOutR) {
-    double amax = 0.0;
-    if(dir < cdim) {
-      kernel.surfStreamTerm(dir, xcL, xcR, dxL, dxR, qInL, qInR, qRhsOutL, qRhsOutR);
-    } else if(hasForceTerm) {
-      Gkyl::GenIndexer emIdxr = emField->genIndexer();
-      const double *em = emField->getDataPtrAt(emIdxr.index(idxL));
-      amax = kernel.surfElcMagTerm(dir-cdim, xcL, xcR, dxL, dxR, maxsOld, em, qInL, qInR, qRhsOutL, qRhsOutR);
-    }
-    return amax;
-  }
-
-  __host__ __device__ void Vlasov::setAuxFields(GkylCartField_t* em) {
-    emField = em;
-  }
-
-  // C wrappers to member functions
-  void* new_Vlasov(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType, double qbym, bool hasForceTerm) {
-    Vlasov *vlasov = new Vlasov(cdim, vdim, polyOrder, basisType, qbym, hasForceTerm);
-    return reinterpret_cast<void*>(vlasov);
-  }
-
-  void* new_Vlasov_onDevice(Vlasov *v) {
-    Vlasov *d_v;
-    cudaMalloc((void**)&d_v, sizeof(Vlasov));
-    cudaMemcpy(d_v, v, sizeof(Vlasov), cudaMemcpyHostToDevice);
-    return reinterpret_cast<void*>(d_v);
-  }
-  
-  void setAuxFields(Vlasov *v, GkylCartField_t *emField) {
-    setAuxFieldsOnDevice<<<1, 1>>>(v, emField);
-  }
-  
-  int getCdim(Vlasov *v) {
-    return (int) v->getCdim();
-  }
-}
-
-__global__ void setAuxFieldsOnDevice(Gkyl::Vlasov *v, GkylCartField_t* emField) {
-  v->setAuxFields(emField);
-}
-
-//--------- struct-base stuff (remove this line and other code when
-//--------- this stuff works and is hooked into HyperDistCont
-
 
 __global__ void Vlasov_setAuxFieldsOnDevice(GkylEquation_t *eqn, GkylCartField_t* emField) {
   GkylVlasov_t *self = (GkylVlasov_t *) eqn->equation;
@@ -101,10 +29,10 @@ Vlasov_setAuxFields(GkylEquation_t *eqn, GkylCartField_t* em) {
   Vlasov_setAuxFieldsOnDevice<<<1,1>>>(eqn, em);
 }
 
-__device__ double Vlasov_volTerm(void *eqn, 
-  double *xc, double *dx, int *idx, double *qIn, double *qRhsOut) {
+__device__ double Vlasov_volTerm(const void* __restrict__ eqn, 
+  const double* __restrict__ xc, const double* __restrict__ dx, const int* __restrict__ idx, const double* __restrict__ qIn, double *qRhsOut) {
 
-  GkylVlasov_t *self = (GkylVlasov_t *) eqn;
+  const GkylVlasov_t *self = (GkylVlasov_t *) eqn;
   Gkyl::GenIndexer emIdxr = self->emField->genIndexer();
   const double *em = self->emField->getDataPtrAt(emIdxr.index(idx));
   double cflFreq = self->volumeTerm(xc, dx, em, qIn, qRhsOut);
@@ -112,12 +40,12 @@ __device__ double Vlasov_volTerm(void *eqn,
 }
 __device__ volTermFunc_t p_Vlasov_volTerm = &Vlasov_volTerm;
 
-__device__ double Vlasov_surfTerm(void *eqn, int dir,
-  double *xcL, double *xcR, double *dxL, double *dxR,
-  double maxsOld, int* idxL, int *idxR,
-  double *qInL, double *qInR, double *qRhsOutL, double *qRhsOutR) {
+__device__ double Vlasov_surfTerm(const void* __restrict__ eqn, int dir,
+  const double* __restrict__ xcL, const double* __restrict__ xcR, const double* __restrict__ dxL, const double* __restrict__ dxR,
+  const double maxsOld, const int* __restrict__ idxL, const int* __restrict__ idxR,
+  const double* __restrict__ qInL, const double* __restrict__ qInR, double *qRhsOutL, double *qRhsOutR) {
 
-  GkylVlasov_t *self = (GkylVlasov_t *) eqn;
+  const GkylVlasov_t *self = (GkylVlasov_t *) eqn;
   double amax = 0.0;
   if (dir < self->cdim) {
     self->surfStreamTerm(dir, xcL, xcR, dxL, dxR, qInL, qInR, qRhsOutL, qRhsOutR);
@@ -130,10 +58,10 @@ __device__ double Vlasov_surfTerm(void *eqn, int dir,
 }
 __device__ surfTermFunc_t p_Vlasov_surfTerm = &Vlasov_surfTerm;
 
-__device__ double Vlasov_boundarySurfTerm(void *eqn, int dir,
-  double *xcL, double *xcR, double *dxL, double *dxR,
-  double maxsOld, int* idxL, int *idxR,
-  double *qInL, double *qInR, double *qRhsOutL, double *qRhsOutR) {
+__device__ double Vlasov_boundarySurfTerm(const void* __restrict__ eqn, int dir,
+  const double* __restrict__ xcL, const double* __restrict__ xcR, const double* __restrict__ dxL, const double* __restrict__ dxR,
+  const double maxsOld, const int* __restrict__ idxL, const int* __restrict__ idxR,
+  const double* __restrict__ qInL, const double* __restrict__ qInR, double *qRhsOutL, double *qRhsOutR) {
 
   return 0;
 }

@@ -26,7 +26,7 @@ extern "C"
       double *maxs;
   } GkylHyperDisCont_t;
     
-  void advanceOnDevice(int numBlocks, int numThreads, int numComponents, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
+  void advanceOnDevice(const int numBlocks, const int numThreads, const int numComponents, const GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
   void advanceOnDevice_shared(int numBlocks, int numThreads, int numComponents, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
   void setDtAndCflRate(GkylHyperDisCont_t *hyper, double dt, GkylCartField_t *cflRate);
 }
