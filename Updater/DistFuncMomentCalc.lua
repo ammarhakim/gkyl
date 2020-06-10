@@ -82,7 +82,8 @@ function DistFuncMomentCalc:init(tbl)
    local mom = assert(
       tbl.moment, "Updater.DistFuncMomentCalc: Must provide moment to compute using 'moment'.")
 
-   if mom == "FiveMoments" or mom == "GkThreeMoments" or mom == "FiveMomentsLBO" or mom == "GkThreeMomentsLBO" then
+   if mom == "FiveMoments" or mom == "GkThreeMoments" or
+      mom == "FiveMomentsLBO" or mom == "GkThreeMomentsLBO" then
       self._fiveMoments = true
       if mom == "FiveMomentsLBO" or mom == "GkThreeMomentsLBO" then
          self._fiveMomentsLBO = true
@@ -95,7 +96,6 @@ function DistFuncMomentCalc:init(tbl)
    end
 
    local calcOnDevice = false
-
    -- Function to compute specified moment.
    self._isGk = false
    if self:isMomentNameGood(mom) then
@@ -156,7 +156,20 @@ function DistFuncMomentCalc:init(tbl)
 
 end
 
-function DistFuncMomentCalc:initDevice()
+function DistFuncMomentCalc:initDevice(tbl)
+
+   mom = tbl.moment
+
+   if mom == "FiveMoments" or mom == "GkThreeMoments" or
+      mom == "FiveMomentsLBO" or mom == "GkThreeMomentsLBO" then
+      if mom == "FiveMomentsLBO" or mom == "GkThreeMomentsLBO" then
+         if mom == "FiveMomentsLBO" then
+            mom = "FiveMoments"
+         elseif mom == "GkThreeMomentsLBO" then
+            mom = "GkThreeMoments"
+         end
+      end
+   end
 
    local calcOnDevice = true
    -- Select device functions/kernels.
