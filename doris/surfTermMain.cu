@@ -15,23 +15,22 @@ void cudaErrCheck_(cudaError_t stat, const char *file, int line) {
 }
 
 // forward declaration in case of separate compilation
-__host__ __device__ double VlasovSurfElcMag2x3vSer_VX_P1(const double *wl, const double *wr,
-                                                         const double *dxvl, const double *dxvr,
-                                                         const double amax, const double *EM,
-                                                         const double *fl, const double *fr,
+__host__ __device__ double VlasovSurfElcMag2x3vSer_VX_P1(const double* __restrict__ wl, const double* __restrict__ wr,
+                                                         const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+                                                         const double amax, const double* __restrict__ EM,
+                                                         const double* __restrict__ fl, const double* __restrict__ fr,
                                                          double *outl, double *outr);
-
-__host__ __device__ double VlasovSurfElcMag2x3vSer_VX_P1_v1(const int nCell, const double *wl, const double *wr,
-                                                            const double *dxvl, const double *dxvr,
-                                                            const double amax, const double *EM,
-                                                            const double *fl, const double *fr,
+__host__ __device__ double VlasovSurfElcMag2x3vSer_VX_P1_v1(const int stride_f, const int stride_em,
+                                                            const double* __restrict__ wl, const double* __restrict__ wr,
+                                                            const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+                                                            const double amax, const double* __restrict__ EM,
+                                                            const double* __restrict__ fl, const double* __restrict__ fr,
                                                             double *outl, double *outr);
-    
-__host__ __device__ double VlasovSurfElcMag2x3vSer_VX_P1_v2(const int nCell, const int nSM,  const double *wl,
-                                                            const double *wr,
-                                                            const double *dxvl, const double *dxvr,
-                                                            const double amax, const double *EM,
-                                                            const double *fl, const double *fr,
+__host__ __device__ double VlasovSurfElcMag2x3vSer_VX_P1_v2(const int stride_f, const int stride_em, const int stride_out, 
+                                                            const double* __restrict__ wl, const double* __restrict__ wr,
+                                                            const double* __restrict__ dxvl, const double* __restrict__ dxvr,
+                                                            const double amax, const double* __restrict__ EM,
+                                                            const double* __restrict__ fl, const double* __restrict__ fr,
                                                             double *outl, double *outr);
 
 __global__ void k_surfTerm_org(const int nCells, const int nfPerCell, const int nv, const REAL* xcC, const REAL* dx,
@@ -90,11 +89,11 @@ __global__ void k_surfTerm_v1(const int nCells, const int nfPerCell, const int n
 
   // left (of C) surface update. use dummy in place of fRhsOutL so that only current cell updated.
   //   eq->surfTerm(dir, dummy, dummy, xcL, xcC, dx, dx, 0., idxL, idxC, fInL, fInC, dummy, fRhsOutC);
-  VlasovSurfElcMag2x3vSer_VX_P1_v1(nCells, xcC, xcC, dx, dx, 0, myEM, finL, finC, NULL, foutC);
+  VlasovSurfElcMag2x3vSer_VX_P1_v1(nCells, 1, xcC, xcC, dx, dx, 0, myEM, finL, finC, NULL, foutC);
 
   // right (of C) surface update. use dummy in place of fRhsOutR so that only current cell (C) is updated.
   // eq->surfTerm(dir, dummy, dummy, xcC, xcR, dx, dx, 0., idxC, idxR, fInC, fInR, fRhsOutC, dummy);
-  VlasovSurfElcMag2x3vSer_VX_P1_v1(nCells, xcC, xcC, dx, dx, 0, myEM, finC, finR, foutC, NULL);
+  VlasovSurfElcMag2x3vSer_VX_P1_v1(nCells, 1, xcC, xcC, dx, dx, 0, myEM, finC, finR, foutC, NULL);
 }
 
 __global__ void
@@ -159,11 +158,11 @@ k_surfTerm_v2(const int nCells, const int nfPerCell, const int nv, const REAL* x
   // should be numComponents, but want to avoid dynamic memory alloc
   // left (of C) surface update. use dummy in place of fRhsOutL so that only current cell updated.
   //   eq->surfTerm(dir, dummy, dummy, xcL, xcC, dx, dx, 0., idxL, idxC, fInL, fInC, dummy, fRhsOutC);
-  VlasovSurfElcMag2x3vSer_VX_P1_v2(nCells, sstride, xcC, xcC, dx, dx, 0, myEM, finL, finC, NULL, foutC);
+  VlasovSurfElcMag2x3vSer_VX_P1_v2(sstride, 1, nCells, xcC, xcC, dx, dx, 0, myEM, finL, finC, NULL, foutC);
   
   // right (of C) surface update. use dummy in place of fRhsOutR so that only current cell (C) is updated.
   // eq->surfTerm(dir, dummy, dummy, xcC, xcR, dx, dx, 0., idxC, idxR, fInC, fInR, fRhsOutC, dummy);
-  VlasovSurfElcMag2x3vSer_VX_P1_v2(nCells, sstride, xcC, xcC, dx, dx, 0, myEM, finC, finR, foutC, NULL);
+  VlasovSurfElcMag2x3vSer_VX_P1_v2(sstride, 1, nCells, xcC, xcC, dx, dx, 0, myEM, finC, finR, foutC, NULL);
 }
 
 
@@ -179,11 +178,11 @@ k_surfTerm_v2(const int nCells, const int nfPerCell, const int nv, const REAL* x
 */
 int main(int argc, char **argv)
 {
-  const int nx = 31;
-  const int ny = 31;
+  const int nx = 8;
+  const int ny = 32;
   
   const int nDim = 5;
-  const int nvx = 6, nvy = 6, nvz = 6;
+  const int nvx = 16, nvy = 8, nvz = 32;
   const int nv = nvx*nvy*nvz;
   
   const int nfPerCell = 32;

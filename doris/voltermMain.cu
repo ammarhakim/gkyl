@@ -132,7 +132,7 @@ int main(int argc, char **argv)
   const REAL *xcC = d_const;
   const REAL *dx = &d_const[3];
   
-  dim3 const bdim(256);
+  dim3 const bdim(128);
   dim3 const gdim(nCells/bdim.x + 1);
 
   //****************************
