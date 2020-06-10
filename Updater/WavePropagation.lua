@@ -26,6 +26,29 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 "new, copy, fill, sizeof, typeof, metatype")
 
+local cuda = nil
+if GKYL_HAVE_CUDA then
+   cuda = require "Cuda.RunTime"
+end
+
+ffi.cdef [[ 
+  typedef struct {
+      int updateDirs[6];
+      int32_t numUpdateDirs;
+      double dt;
+      double _cfl;
+      double _cflm;
+      Gkyl::Euler *equation;
+      GkylCartField_t *dtByCell;
+  } GkylWavePropagation_t;
+    
+  void wavePropagationAdvanceOnDevice(
+      int numBlocks, int numThreads, GkylWavePropagation_t *hyper,
+      GkylCartField_t *qIn, GkylCartField_t *qOut);
+
+  void setDt(GkylWavePropagation_t *hyper, double dt);
+]]
+
 -- Template for function to compute jump
 local calcDeltaTempl = xsys.template([[
 return function (ql, qr, delta)
@@ -214,6 +237,33 @@ function WavePropagation:init(tbl)
    self._rescaleWave = loadstring( rescaleWaveTempl {MEQN = meqn} )()
    self._secondOrderFlux = loadstring( secondOrderFluxTempl {MEQN = meqn} )()
    self._secondOrderUpdate = loadstring( secondOrderUpdateTempl {MEQN = meqn} )()
+
+   if GKYL_HAVE_CUDA then
+      self:initDevice()
+      self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
+      self._useSharedDevice = xsys.pickBool(tbl.useSharedDevice, false)
+   end
+end
+
+function WavePropagation:initDevice()
+   self.dtByCell = DataStruct.Field {
+      onGrid = self._onGrid,
+      numComponents = 1,
+      ghost = {1, 1},
+      createDeviceCopy = true,
+   }
+   self.dtPtr = cuAlloc.Double(1)  -- FIXME pass in address of self.dt?
+   local hyper = ffi.new("GkylWavePropagation_t")
+   hyper.updateDirs = ffi.new("int[6]", self._updateDirs)
+   hyper.numUpdateDirs = #self._updateDirs
+   hyper.equation = self._equation._onDevice
+   hyper.cfl = self._cfl
+   hyper.cflm = self._cflm
+   hyper.dtByCell = self.dtByCell._onDevice
+   self._onHost = hyper
+   local sz = sizeof("GkylWavePropagation_t")
+   self._onDevice, err = cuda.Malloc(sz)
+   cuda.Memcpy(self._onDevice, hyper, sz, cuda.MemcpyHostToDevice)
 end
 
 -- Limit waves: this code closely follows the example of CLAWPACK and
@@ -383,6 +433,42 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
 
    self._isFirst = false -- no longer first time
    return true, dt*cfl/cfla
+end
+
+function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)
+   local qIn = assert(
+      inFld[1], "WavePropagation.advanceOnDevice: Must specify an input field")
+   local qOut = assert(
+      outFld[1],
+      "WavePropagation.advanceOnDevice: Must specify an output field")
+
+   local numCellsLocal = qOut:localRange():volume()
+   local numThreads = math.min(self.numThreads, numCellsLocal)
+   local numBlocks  = math.ceil(numCellsLocal/numThreads)
+
+   -- FIXME correct code and place to do device copy?
+   qOut:deviceCopy(qIn)
+
+   if self._useSharedDevice then
+      -- TODO implement
+      -- ffiC.advanceOnDevice_shared(
+      --    numBlocks, numThreads, qIn:numComponents(), self._onDevice,
+      --    qIn._onDevice, qOut._onDevice)
+   else
+      ffiC.advanceOnDevice(
+         numBlocks, numThreads, self._onDevice, qIn._onDevice, qOut._onDevice)
+   end
+
+   self.dtByCell:deviceReduce('min', self.dtPtr)
+end
+
+-- FIXME no cflRate needed here
+function WavePropagation:setDtAndCflRate(dt)
+   WavePropagation.super.setDtAndCflRate(self, dt, nil)
+
+   if self._onDevice then
+      ffiC.setDt(self._onDevice, dt)
+   end
 end
 
 return WavePropagation

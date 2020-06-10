@@ -46,6 +46,7 @@ __global__ void cuda_WavePropagation(
   int *updateDirs = hyper->updateDirs;
   int numUpdateDirs = hyper->numUpdateDirs;
   Gkyl::Euler *eq = hyper->equation;
+  GkylCartField_t *dtByCell = hyper->dtByCell;
 
   const int meqn = eq->getNumEquations();
   const int mwave = eq->getNumWaves();
@@ -81,6 +82,8 @@ __global__ void cuda_WavePropagation(
   grid->cellCenter(idxC, xcC);
   const double *dx = grid->dx;
 
+  double cfl = hyper->_cfl;
+  double cflm = hyper->_cflm;
   double cfla = 0; // actual CFL number used
 
   const double *qInC = qIn->getDataPtrAt(linearIdxC);
@@ -122,6 +125,8 @@ __global__ void cuda_WavePropagation(
     }
     cfla = calcCfla(cfla, dtdx, s, mwave);
   }
+
+  dtByCell->getDataPtrAt(linearIdxC)[0] = hyper->dt * cfl/cfla;
 }
 
 void wavePropagationAdvanceOnDevice(
@@ -135,3 +140,10 @@ void wavePropagationAdvanceOnDevice(
     hyper, qIn, qOut);
 }
 
+__global__ void setDtOnDevice(GkylWavePropagation_t *hyper, double dt) {
+  hyper->dt = dt;
+}
+
+void setDt(GkylWavePropagation_t *hyper, double dt) {
+  setDtOnDevice<<<1, 1>>>(hyper, dt);
+}
