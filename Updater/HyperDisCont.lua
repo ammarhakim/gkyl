@@ -28,6 +28,7 @@ local new, sizeof, typeof, metatype = xsys.from(ffi,
 local cuda = nil
 if GKYL_HAVE_CUDA then
    cuda = require "Cuda.RunTime"
+   cuAlloc = require "Cuda.Alloc"
 end
 
 ffi.cdef [[ 
