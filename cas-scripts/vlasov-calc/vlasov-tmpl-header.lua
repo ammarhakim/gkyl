@@ -16,7 +16,7 @@ local vlasovHeaderTemplateTopString = [[
 
 extern "C" {
     typedef double (*Vlasov_volumeStreamTerm_t)(const double*  w, const double*  dxv, const double*  f, double *out);
-    typedef void (*Vlasov_surfSreamTerm_t)(unsigned dir, const double*  wl, const double*  wr,
+    typedef void (*Vlasov_surfStreamTerm_t)(unsigned dir, const double*  wl, const double*  wr,
       const double*  dxvl, const double*  dxvr, const double*  fl, const double*  fr,
       double *outl, double *outr);
 
