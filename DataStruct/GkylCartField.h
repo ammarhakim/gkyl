@@ -19,7 +19,7 @@ extern "C"
         
         __host__ __device__ __inline__ double* getDataPtrAt(int linIdx)
         {
-           return _data + linIdx*numComponents;
+           return _data + linIdx;
         }
         __host__ __device__ __inline__ Gkyl::GenIndexer genIndexer()
         {
