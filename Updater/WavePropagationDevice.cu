@@ -105,9 +105,9 @@ __global__ void cuda_WavePropagation(
     eq->rp(dir, delta, qInL, qInR, waves, s);
     eq->qFluctuations(dir, qInL, qInR, waves, s, amdq, apdq);
 
-    // FIXME race condition? performance problem?
-    // calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq, meqn);
     calcFirstOrderGud(dtdx, qOutL, dummy, amdq, apdq, meqn);
+    // XXX better way to avoid race condition?
+    __threadfence();
     calcFirstOrderGud(dtdx, dummy, qOutR, amdq, apdq, meqn);
 
     cfla = calcCfla(cfla, dtdx, s, mwave);
