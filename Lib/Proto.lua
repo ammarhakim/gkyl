@@ -10,7 +10,7 @@
 local function newmember(proto, ...)
    local obj = setmetatable({}, proto)
    
-   if GKYL_HAVE_CUDA then
+   if GKYL_USE_DEVICE then
       -- when we are using CUDA we may have a initDevice method to
       -- construct things on a device
       if obj.init then

@@ -28,6 +28,7 @@ local new, sizeof, typeof, metatype = xsys.from(ffi,
 local cuda = nil
 if GKYL_HAVE_CUDA then
    cuda = require "Cuda.RunTime"
+   cuAlloc = require "Cuda.Alloc"
 end
 
 ffi.cdef [[ 
@@ -45,7 +46,7 @@ ffi.cdef [[
       double *maxs;
   } GkylHyperDisCont_t; 
 
-  void advanceOnDevice(int numBlocks, int numThreads, int numComponents, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
+  void advanceOnDevice(const int numBlocks, const int numThreads, const int numComponents, const GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
   void advanceOnDevice_shared(int numBlocks, int numThreads, int numComponents, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
   void setDtAndCflRate(GkylHyperDisCont_t *hyper, double dt, GkylCartField_t *cflRate);
 ]]
@@ -112,16 +113,10 @@ function HyperDisCont:init(tbl)
    self._auxFields = {} -- auxilliary fields passed to eqn object
    self._perpRangeDecomp = {} -- perp ranges in each direction      
 
-   if GKYL_HAVE_CUDA then
-      self:initDevice()
-      self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
-      self._useSharedDevice = xsys.pickBool(tbl.useSharedDevice, false)
-   end
-
    return self
 end
 
-function HyperDisCont:initDevice()
+function HyperDisCont:initDevice(tbl)
    self.maxsByCell = DataStruct.Field {
       onGrid = self._onGrid,
       numComponents = #self._updateDirs,
@@ -141,6 +136,11 @@ function HyperDisCont:initDevice()
    local sz = sizeof("GkylHyperDisCont_t")
    self._onDevice, err = cuda.Malloc(sz)
    cuda.Memcpy(self._onDevice, hyper, sz, cuda.MemcpyHostToDevice)
+
+   self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
+   self._useSharedDevice = xsys.pickBool(tbl.useSharedDevice, false)
+
+   return self
 end
 
 -- advance method

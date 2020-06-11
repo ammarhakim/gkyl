@@ -5,7 +5,7 @@
 #include <GkylEquation.h>
 #include <VlasovModDecl.h>
 
-__global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
+__global__ void cuda_HyperDisCont(const GkylHyperDisCont_t* __restrict__ hyper, GkylCartField_t* __restrict__ fIn, GkylCartField_t *fRhsOut) {
 
   GkylRange_t *localRange = fIn->localRange;
   unsigned int ndim = localRange->ndim;
@@ -16,9 +16,9 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
 
   // get setup data from GkylHyperDisCont_t structure
   GkylRectCart_t *grid = fIn->grid;
-  int *updateDirs = hyper->updateDirs;
-  int numUpdateDirs = hyper->numUpdateDirs;
-  bool *zeroFluxFlags = hyper->zeroFluxFlags;
+  const int *updateDirs = hyper->updateDirs;
+  const int numUpdateDirs = hyper->numUpdateDirs;
+  const bool *zeroFluxFlags = hyper->zeroFluxFlags;
   GkylEquation_t *eq = hyper->equation;
   GkylCartField_t *cflRateByCell = hyper->cflRateByCell;
  
@@ -85,7 +85,7 @@ __global__ void cuda_HyperDisCont(GkylHyperDisCont_t *hyper, GkylCartField_t *fI
   
 } 
 
-void advanceOnDevice(int numBlocks, int numThreads, int numComponents, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
+void advanceOnDevice(const int numBlocks, const int numThreads, const int numComponents, const GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
   cudaFuncSetAttribute(cuda_HyperDisCont, cudaFuncAttributeMaxDynamicSharedMemorySize, numComponents*sizeof(double));
   cuda_HyperDisCont<<<numBlocks, numThreads, numComponents*sizeof(double)>>>(hyper, fIn, fRhsOut);
 }

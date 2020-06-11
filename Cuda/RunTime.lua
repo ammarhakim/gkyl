@@ -161,9 +161,9 @@ function _M.GetDeviceCount()
 end
 -- cudaGetDeviceProperties
 function _M.GetDeviceProperties(device)
-   local prop = ffi.new("GkDeviceProp[1]")
+   local prop = ffi.new("GkDeviceProp")
    local err = ffiC.GkCuda_GetDeviceProp(prop, device)
-   return prop[0], err
+   return prop, err
 end
 
 -- cudaSetDevice

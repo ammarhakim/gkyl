@@ -82,7 +82,8 @@ function DistFuncMomentCalc:init(tbl)
    local mom = assert(
       tbl.moment, "Updater.DistFuncMomentCalc: Must provide moment to compute using 'moment'.")
 
-   if mom == "FiveMoments" or mom == "GkThreeMoments" or mom == "FiveMomentsLBO" or mom == "GkThreeMomentsLBO" then
+   if mom == "FiveMoments" or mom == "GkThreeMoments" or
+      mom == "FiveMomentsLBO" or mom == "GkThreeMomentsLBO" then
       self._fiveMoments = true
       if mom == "FiveMomentsLBO" or mom == "GkThreeMomentsLBO" then
          self._fiveMomentsLBO = true
@@ -94,20 +95,22 @@ function DistFuncMomentCalc:init(tbl)
       end
    end
 
+   local calcOnDevice = false
    if GKYL_HAVE_CUDA then
-      self.calcOnDevice = tbl.onDevice
-      if self.calcOnDevice==nil then
-         assert(false, "Updater.DistFuncMomentCalc: Must specify whether to compute on device with 'onDevice'.")
+      -- This allows us to force an updater to run on the host, even for a GPU simulation.
+      self._calcOnHost = tbl.onHost
+      if self._calcOnHost then
+         self._advanceFunc = self._advance 
       end
    else
-      self.calcOnDevice = false
+      self._calcOnHost = true
    end
 
    -- Function to compute specified moment.
    self._isGk = false
    if self:isMomentNameGood(mom) then
       self._kinSpecies = "Vm"
-      self._momCalcFun = MomDecl.selectMomCalc(mom, self._basisID, self._cDim, self._vDim, self._polyOrder, self.calcOnDevice)
+      self._momCalcFun = MomDecl.selectMomCalc(mom, self._basisID, self._cDim, self._vDim, self._polyOrder, calcOnDevice)
    elseif self:isGkMomentNameGood(mom) then
       self._kinSpecies = "Gk"
       self._momCalcFun = MomDecl.selectGkMomCalc(mom, self._basisID, self._cDim, self._vDim, self._polyOrder)
@@ -163,117 +166,290 @@ function DistFuncMomentCalc:init(tbl)
 
 end
 
-function DistFuncMomentCalc:initDevice()
-   local vDim = self._vDim
+function DistFuncMomentCalc:initDevice(tbl)
 
-   local phaseRange    = self._onGrid:localRange()
-   local numCellsLocal = phaseRange:volume()
-
-   local deviceNumber  = cudaRunTime.GetDevice()
-   self.deviceProps    = cudaRunTime.GetDeviceProperties(deviceNumber)
-
-   self.distFuncMomThreads = math.min(GKYL_DEFAULT_NUM_THREADS, phaseRange:selectLast(vDim):volume())
-   self.distFuncMomBlocks  = math.floor(numCellsLocal/self.distFuncMomThreads) --+1
+   if not self._calcOnHost then 
+      mom = tbl.moment
+   
+      if mom == "FiveMoments" or mom == "GkThreeMoments" or
+         mom == "FiveMomentsLBO" or mom == "GkThreeMomentsLBO" then
+         if mom == "FiveMomentsLBO" or mom == "GkThreeMomentsLBO" then
+            if mom == "FiveMomentsLBO" then
+               mom = "FiveMoments"
+            elseif mom == "GkThreeMomentsLBO" then
+               mom = "GkThreeMoments"
+            end
+         end
+      end
+   
+      local calcOnDevice = true
+      -- Select device functions/kernels.
+      if not self._isGk then
+         self._momCalcFun = MomDecl.selectMomCalc(mom, self._basisID, self._cDim, self._vDim, self._polyOrder, calcOnDevice)
+      else
+         self._momCalcFun = MomDecl.selectGkMomCalc(mom, self._basisID, self._cDim, self._vDim, self._polyOrder)
+      end
+   
+      local vDim = self._vDim
+   
+      local phaseRange    = self._onGrid:localRange()
+      local numCellsLocal = phaseRange:volume()
+   
+      local deviceNumber  = cudaRunTime.GetDevice()
+      self.deviceProps    = cudaRunTime.GetDeviceProperties(deviceNumber)
+   
+      self.distFuncMomThreads = math.min(GKYL_DEFAULT_NUM_THREADS, phaseRange:selectLast(vDim):volume())
+      self.distFuncMomBlocks  = math.floor(numCellsLocal/self.distFuncMomThreads) --+1
+   end
 end
 
 -- Advance method.
 function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
    if self.oncePerTime and self.tCurr == tCurr then return end -- Do nothing, already computed on this step.
 
-   if GKYL_HAVE_CUDA and self.calcOnDevice then
-      self:_advanceDevice(tCurr, inFld, outFld)
-   else
+   local grid        = self._onGrid
+   local distf, mom1 = inFld[1], outFld[1]
 
-      local grid        = self._onGrid
-      local distf, mom1 = inFld[1], outFld[1]
+   local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
 
-      local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
+   local phaseRange = distf:localRange()
+   if self.onGhosts then -- Extend range to config-space ghosts.
+      local cdirs = {}
+      for dir = 1, cDim do 
+         phaseRange = phaseRange:extendDir(dir, distf:lowerGhost(), distf:upperGhost())
+      end
+   end
 
-      local phaseRange = distf:localRange()
-      if self.onGhosts then -- Extend range to config-space ghosts.
-         local cdirs = {}
-         for dir = 1, cDim do 
-            phaseRange = phaseRange:extendDir(dir, distf:lowerGhost(), distf:upperGhost())
+   local distfItr, mom1Itr = distf:get(1), mom1:get(1)
+   
+   -- Construct ranges for nested loops.
+   local confRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = phaseRange:selectFirst(cDim), numSplit = grid:numSharedProcs() }
+   local velRange = phaseRange:selectLast(vDim)
+   local tId      = grid:subGridSharedId()    -- Local thread ID.
+   
+   local phaseIndexer = distf:genIndexer()
+   local confIndexer  = mom1:genIndexer()
+
+   local mom2, mom3
+   local mom2Itr, mom3Itr
+   mom1:clear(0.0) -- Zero out moments.
+   
+   local cMomB, cEnergyB
+   local m0Star, m1Star, m2Star
+   local cMomBItr, cEnergyBItr
+   local m0StarItr, m1StarItr, m2StarItr
+   local distfItrP, distfItrM
+   local uCorrection, vtSqCorrection, StarM0Calc    -- Kernel pointers.
+   if self._fiveMoments then 
+      mom2 = outFld[2]
+      mom3 = outFld[3] 
+   
+      mom2Itr = mom2:get(1)
+      mom3Itr = mom3:get(1) 
+   
+      mom2:clear(0.0)
+      mom3:clear(0.0)
+      if self._fiveMomentsLBO then 
+         cMomB    = outFld[4]
+         cEnergyB = outFld[5] 
+   
+         cMomBItr    = cMomB:get(1) 
+         cEnergyBItr = cEnergyB:get(1) 
+   
+         cMomB:clear(0.0)
+         cEnergyB:clear(0.0)
+   
+         -- Added for corrections and star moments.
+         -- Distribution functions left and right of a cell-boundary.
+         distfItrP = distf:get(1)
+         distfItrM = distf:get(1)
+   
+         if self._polyOrder == 1 then
+            m0Star = outFld[6]
+            m1Star = outFld[7]
+            m2Star = outFld[8]
+   
+            m0StarItr = m0Star:get(1) 
+            m1StarItr = m1Star:get(1) 
+            m2StarItr = m2Star:get(1) 
+   
+            m0Star:clear(0.0)
+            m1Star:clear(0.0)
+            m2Star:clear(0.0)
          end
       end
-
-      local distfItr, mom1Itr = distf:get(1), mom1:get(1)
+   end
    
-      -- Construct ranges for nested loops.
-      local confRangeDecomp = LinearDecomp.LinearDecompRange {
-         range = phaseRange:selectFirst(cDim), numSplit = grid:numSharedProcs() }
-      local velRange = phaseRange:selectLast(vDim)
-      local tId      = grid:subGridSharedId()    -- Local thread ID.
+   -- Separate the case with and without LBO collisions to reduce number of if statements.
+   if (self._fiveMomentsLBO and (self._polyOrder==1)) then 
    
-      local phaseIndexer = distf:genIndexer()
-      local confIndexer  = mom1:genIndexer()
-
-      local mom2, mom3
-      local mom2Itr, mom3Itr
-      mom1:clear(0.0) -- Zero out moments.
+      -- Outer loop is threaded and over configuration space.
+      for cIdx in confRangeDecomp:rowMajorIter(tId) do
    
-      local cMomB, cEnergyB
-      local m0Star, m1Star, m2Star
-      local cMomBItr, cEnergyBItr
-      local m0StarItr, m1StarItr, m2StarItr
-      local distfItrP, distfItrM
-      local uCorrection, vtSqCorrection, StarM0Calc    -- Kernel pointers.
-      if self._fiveMoments then 
-         mom2 = outFld[2]
-         mom3 = outFld[3] 
+         cIdx:copyInto(self.idxP)
    
-         mom2Itr = mom2:get(1)
-         mom3Itr = mom3:get(1) 
+         mom1:fill(confIndexer(cIdx), mom1Itr)
+         mom2:fill(confIndexer(cIdx), mom2Itr)
+         mom3:fill(confIndexer(cIdx), mom3Itr)
    
-         mom2:clear(0.0)
-         mom3:clear(0.0)
-         if self._fiveMomentsLBO then 
-            cMomB    = outFld[4]
-            cEnergyB = outFld[5] 
+         if self._isGk then
+            self.bmag:fill(confIndexer(cIdx), self.bmagItr)
+         end
    
-            cMomBItr    = cMomB:get(1) 
-            cEnergyBItr = cEnergyB:get(1) 
+         -- Now loop over velocity space boundary surfaces to compute boundary corrections.
+         cMomB:fill(confIndexer(cIdx), cMomBItr)
+         cEnergyB:fill(confIndexer(cIdx), cEnergyBItr)
    
-            cMomB:clear(0.0)
-            cEnergyB:clear(0.0)
+         -- Only when the contributions to m0Star from the first direction
+         -- are collected, do we collect contributions to m1Star and m2Star.
+         -- Also, since Gk velocities are organized as (vpar,mu) the velocity
+         -- correction is only computed for the first velocity direction.
+         local firstDir = true
    
-            -- Added for corrections and star moments.
-            -- Distribution functions left and right of a cell-boundary.
-            distfItrP = distf:get(1)
-            distfItrM = distf:get(1)
+         -- isLo=true current cell is the lower boundary cell.
+         -- isLo=false current cell is the upper boundary cell.
+         local isLo = true
    
-            if self._polyOrder == 1 then
-               m0Star = outFld[6]
-               m1Star = outFld[7]
-               m2Star = outFld[8]
+         -- polyOrder=1 and >1 each use separate velocity grid loops to
+         -- avoid evaluating (if polyOrder==1) at each velocity coordinate.
+      
+         -- To have energy conservation with piece-wise linear, we must use
+         -- star moments in the second equation of the weak system solved
+         -- in SelfPrimMoments.
+         m0Star:fill(confIndexer(cIdx), m0StarItr)
+         m1Star:fill(confIndexer(cIdx), m1StarItr)
+         m2Star:fill(confIndexer(cIdx), m2StarItr)
    
-               m0StarItr = m0Star:get(1) 
-               m1StarItr = m1Star:get(1) 
-               m2StarItr = m2Star:get(1) 
-   
-               m0Star:clear(0.0)
-               m1Star:clear(0.0)
-               m2Star:clear(0.0)
+         for vDir = 1, vDim do
+            if (not self._isGk) or (self._isGk and firstDir) then
+               StarM0Calc  = MomDecl.selectStarM0Calc(vDir, self._kinSpecies, self._basisID, cDim, vDim, self.applyPositivity)
+               uCorrection = MomDecl.selectBoundaryFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
             end
-         end
-      end
+            vtSqCorrection = MomDecl.selectBoundaryVFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
    
-      -- Separate the case with and without LBO collisions to reduce number of if statements.
-      if (self._fiveMomentsLBO and (self._polyOrder==1)) then 
+            -- Lower/upper bounds in direction 'vDir': edge indices (including outer edges).
+            local dirLoIdx, dirUpIdx = phaseRange:lower(cDim+vDir), phaseRange:upper(cDim+vDir)+1
    
-         -- Outer loop is threaded and over configuration space.
-         for cIdx in confRangeDecomp:rowMajorIter(tId) do
+            if self._isFirst then
+               -- Restricted velocity range.
+               -- Velocity integral in m0Star does not include last cell.
+               self._perpRange[vDir] = phaseRange
+               for cd = 1, cDim do
+                  self._perpRange[vDir] = self._perpRange[vDir]:shorten(cd) -- shorten configuration range.
+               end
+               self._perpRange[vDir] = self._perpRange[vDir]:shorten(cDim+vDir) -- velocity range orthogonal to 'vDir'.
+            end
+            local perpRange = self._perpRange[vDir]
    
-            cIdx:copyInto(self.idxP)
+            -- Outer loop is over directions orthogonal to 'vDir' and
+            -- inner loop is over 1D slice in 'vDir'.
+            for vPerpIdx in perpRange:rowMajorIter() do
+               vPerpIdx:copyInto(self.idxM); vPerpIdx:copyInto(self.idxP)
+               for d = 1, cDim do self.idxM[d] = cIdx[d] end
+               for d = 1, cDim do self.idxP[d] = cIdx[d] end
+      
+               for i = dirLoIdx, dirUpIdx do     -- This loop is over edges.
+                  self.idxM[cDim+vDir], self.idxP[cDim+vDir] = i-1, i -- Cell left/right of edge 'i'.
+      
+                  grid:setIndex(self.idxM)
+                  grid:getDx(self.dxM)
+                  grid:cellCenter(self.xcM)
+      
+                  grid:setIndex(self.idxP)
+                  grid:getDx(self.dxP)
+                  grid:cellCenter(self.xcP)
+      
+                  distf:fill(phaseIndexer(self.idxM), distfItrM)
+                  distf:fill(phaseIndexer(self.idxP), distfItrP)
+      
+                  if i>dirLoIdx and i<dirUpIdx then
+                     if (self._isGk) then
+                        if (firstDir) then
+                           StarM0Calc(self._intFac[1], self.xcM:data(), self.xcP:data(), self.dxM:data(), self.dxP:data(), distfItrM:data(), distfItrP:data(), m0StarItr:data())
+                        end
+                     else
+                        StarM0Calc(self.xcM:data(), self.xcP:data(), self.dxM:data(), self.dxP:data(), distfItrM:data(), distfItrP:data(), m0StarItr:data())
+                     end
+                  end
+                  if firstDir and i<dirUpIdx then
+                     if self._isGk then
+                        self._momCalcFun(self.xcP:data(), self.dxP:data(), self.mass, self.bmagItr:data(), distfItrP:data(), 
+                         		 mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
+                        self._StarM1iM2Calc(self.xcP:data(), self.dxP:data(), self._intFac[1], self.mass, self.bmagItr:data(), distfItrP:data(), m1StarItr:data(), m2StarItr:data())
+                     else
+                        self._momCalcFun(self.xcP:data(), self.dxP:data(), distfItrP:data(), mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
+                        self._StarM1iM2Calc(self.xcP:data(), self.dxP:data(), distfItrP:data(), m1StarItr:data(), m2StarItr:data())
+                     end
+                  end
    
+                  if i==dirLoIdx or i==dirUpIdx-1 then
+                     local vBound = 0.0
+                     -- Careful: for vBound below we assume idxP was set after idxM above.
+                     if isLo then
+                        vBound = grid:cellLowerInDir(cDim + vDir)
+                     else
+                        vBound = grid:cellUpperInDir(cDim + vDir)
+                     end
+                     if (self._isGk) then
+                        if (firstDir) then
+                           uCorrection(isLo, self._intFac[1], vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
+                        end
+                        vtSqCorrection(isLo, self._intFac[vDir], vBound, self.dxP:data(), distfItrP:data(), cEnergyBItr:data())
+                     else
+                        uCorrection(isLo, vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
+                        vtSqCorrection(isLo, vBound, self.dxP:data(), distfItrP:data(), cEnergyBItr:data())
+                     end
+      
+                     isLo = not isLo
+                  end    -- i==dirLoIdx or i==dirUpIdx-1.
+      
+               end    -- Loop over edges.
+            end    -- Loop over directions perpendicular to vDir.
+            firstDir = false
+   
+         end    -- vDir loop.
+      end    -- Loop over configuration space.
+   
+   
+   else    -- if self._fiveMomentsLBO and self._polyOrder=1. 
+   
+      -- Outer loop is threaded and over configuration space.
+      for cIdx in confRangeDecomp:rowMajorIter(tId) do
+   
+         cIdx:copyInto(self.idxP)
+   
+         -- Inner loop is over velocity space: no threading to avoid race conditions.
+         for vIdx in velRange:rowMajorIter() do
+            for d = 1, vDim do self.idxP[cDim+d] = vIdx[d] end
+         
+            grid:setIndex(self.idxP)
+            grid:cellCenter(self.xcP)
+            grid:getDx(self.dxP)
+         
+            distf:fill(phaseIndexer(self.idxP), distfItr)
             mom1:fill(confIndexer(cIdx), mom1Itr)
-            mom2:fill(confIndexer(cIdx), mom2Itr)
-            mom3:fill(confIndexer(cIdx), mom3Itr)
    
             if self._isGk then
                self.bmag:fill(confIndexer(cIdx), self.bmagItr)
+               if self._fiveMoments then
+                  mom2:fill(confIndexer(cIdx), mom2Itr)
+                  mom3:fill(confIndexer(cIdx), mom3Itr)
+                  self._momCalcFun(self.xcP:data(), self.dxP:data(), self.mass, self.bmagItr:data(), distfItr:data(), 
+                   		mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
+               else
+                  self._momCalcFun(self.xcP:data(), self.dxP:data(), self.mass, self.bmagItr:data(), distfItr:data(), mom1Itr:data())
+               end
+            elseif self._fiveMoments then 
+               mom2:fill(confIndexer(cIdx), mom2Itr)
+               mom3:fill(confIndexer(cIdx), mom3Itr)
+               self._momCalcFun(self.xcP:data(), self.dxP:data(), distfItr:data(), mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
+            else
+               self._momCalcFun(self.xcP:data(), self.dxP:data(), distfItr:data(), mom1Itr:data())
             end
+         end
    
+         if self._fiveMomentsLBO then  -- and polyOrder>1.
             -- Now loop over velocity space boundary surfaces to compute boundary corrections.
             cMomB:fill(confIndexer(cIdx), cMomBItr)
             cEnergyB:fill(confIndexer(cIdx), cEnergyBItr)
@@ -283,34 +459,21 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
             -- Also, since Gk velocities are organized as (vpar,mu) the velocity
             -- correction is only computed for the first velocity direction.
             local firstDir = true
-      
+   
             -- isLo=true current cell is the lower boundary cell.
             -- isLo=false current cell is the upper boundary cell.
             local isLo = true
    
-            -- polyOrder=1 and >1 each use separate velocity grid loops to
-            -- avoid evaluating (if polyOrder==1) at each velocity coordinate.
-         
-            -- To have energy conservation with piece-wise linear, we must use
-            -- star moments in the second equation of the weak system solved
-            -- in SelfPrimMoments.
-            m0Star:fill(confIndexer(cIdx), m0StarItr)
-            m1Star:fill(confIndexer(cIdx), m1StarItr)
-            m2Star:fill(confIndexer(cIdx), m2StarItr)
-   
             for vDir = 1, vDim do
                if (not self._isGk) or (self._isGk and firstDir) then
-                  StarM0Calc  = MomDecl.selectStarM0Calc(vDir, self._kinSpecies, self._basisID, cDim, vDim, self.applyPositivity)
                   uCorrection = MomDecl.selectBoundaryFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
                end
                vtSqCorrection = MomDecl.selectBoundaryVFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
-      
-               -- Lower/upper bounds in direction 'vDir': edge indices (including outer edges).
-               local dirLoIdx, dirUpIdx = phaseRange:lower(cDim+vDir), phaseRange:upper(cDim+vDir)+1
-      
+   
+               -- Lower/upper bounds in direction 'vDir': cell indices.
+               local dirLoIdx, dirUpIdx = phaseRange:lower(cDim+vDir), phaseRange:upper(cDim+vDir)
+   
                if self._isFirst then
-                  -- Restricted velocity range.
-                  -- Velocity integral in m0Star does not include last cell.
                   self._perpRange[vDir] = phaseRange
                   for cd = 1, cDim do
                      self._perpRange[vDir] = self._perpRange[vDir]:shorten(cd) -- shorten configuration range.
@@ -319,189 +482,47 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
                end
                local perpRange = self._perpRange[vDir]
    
-               -- Outer loop is over directions orthogonal to 'vDir' and
-               -- inner loop is over 1D slice in 'vDir'.
                for vPerpIdx in perpRange:rowMajorIter() do
-                  vPerpIdx:copyInto(self.idxM); vPerpIdx:copyInto(self.idxP)
-                  for d = 1, cDim do self.idxM[d] = cIdx[d] end
+                  vPerpIdx:copyInto(self.idxP)
                   for d = 1, cDim do self.idxP[d] = cIdx[d] end
-         
-                  for i = dirLoIdx, dirUpIdx do     -- This loop is over edges.
-                     self.idxM[cDim+vDir], self.idxP[cDim+vDir] = i-1, i -- Cell left/right of edge 'i'.
-         
-                     grid:setIndex(self.idxM)
-                     grid:getDx(self.dxM)
-                     grid:cellCenter(self.xcM)
-         
+      
+                  for _, i in ipairs({dirLoIdx, dirUpIdx}) do     -- This loop is over edges.
+                     self.idxP[cDim+vDir] = i
+      
                      grid:setIndex(self.idxP)
                      grid:getDx(self.dxP)
                      grid:cellCenter(self.xcP)
-         
-                     distf:fill(phaseIndexer(self.idxM), distfItrM)
-                     distf:fill(phaseIndexer(self.idxP), distfItrP)
-         
-                     if i>dirLoIdx and i<dirUpIdx then
-                        if (self._isGk) then
-                           if (firstDir) then
-                              StarM0Calc(self._intFac[1], self.xcM:data(), self.xcP:data(), self.dxM:data(), self.dxP:data(), distfItrM:data(), distfItrP:data(), m0StarItr:data())
-                           end
-                        else
-                           StarM0Calc(self.xcM:data(), self.xcP:data(), self.dxM:data(), self.dxP:data(), distfItrM:data(), distfItrP:data(), m0StarItr:data())
-                        end
-                     end
-                     if firstDir and i<dirUpIdx then
-                        if self._isGk then
-                           self._momCalcFun(self.xcP:data(), self.dxP:data(), self.mass, self.bmagItr:data(), distfItrP:data(), 
-                            		 mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
-                           self._StarM1iM2Calc(self.xcP:data(), self.dxP:data(), self._intFac[1], self.mass, self.bmagItr:data(), distfItrP:data(), m1StarItr:data(), m2StarItr:data())
-                        else
-                           self._momCalcFun(self.xcP:data(), self.dxP:data(), distfItrP:data(), mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
-                           self._StarM1iM2Calc(self.xcP:data(), self.dxP:data(), distfItrP:data(), m1StarItr:data(), m2StarItr:data())
-                        end
-                     end
-   
-                     if i==dirLoIdx or i==dirUpIdx-1 then
-                        local vBound = 0.0
-                        -- Careful: for vBound below we assume idxP was set after idxM above.
-                        if isLo then
-                           vBound = grid:cellLowerInDir(cDim + vDir)
-                        else
-                           vBound = grid:cellUpperInDir(cDim + vDir)
-                        end
-                        if (self._isGk) then
-                           if (firstDir) then
-                              uCorrection(isLo, self._intFac[1], vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
-                           end
-                           vtSqCorrection(isLo, self._intFac[vDir], vBound, self.dxP:data(), distfItrP:data(), cEnergyBItr:data())
-                        else
-                           uCorrection(isLo, vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
-                           vtSqCorrection(isLo, vBound, self.dxP:data(), distfItrP:data(), cEnergyBItr:data())
-                        end
-         
-                        isLo = not isLo
-                     end    -- i==dirLoIdx or i==dirUpIdx-1.
-         
-                  end    -- Loop over edges.
-               end    -- Loop over directions perpendicular to vDir.
-               firstDir = false
-   
-            end    -- vDir loop.
-         end    -- Loop over configuration space.
-   
-   
-      else    -- if self._fiveMomentsLBO and self._polyOrder=1. 
-   
-         -- Outer loop is threaded and over configuration space.
-         for cIdx in confRangeDecomp:rowMajorIter(tId) do
-   
-            cIdx:copyInto(self.idxP)
-   
-            -- Inner loop is over velocity space: no threading to avoid race conditions.
-            for vIdx in velRange:rowMajorIter() do
-               for d = 1, vDim do self.idxP[cDim+d] = vIdx[d] end
-            
-               grid:setIndex(self.idxP)
-               grid:cellCenter(self.xcP)
-               grid:getDx(self.dxP)
-            
-               distf:fill(phaseIndexer(self.idxP), distfItr)
-               mom1:fill(confIndexer(cIdx), mom1Itr)
-   
-               if self._isGk then
-                  self.bmag:fill(confIndexer(cIdx), self.bmagItr)
-                  if self._fiveMoments then
-                     mom2:fill(confIndexer(cIdx), mom2Itr)
-                     mom3:fill(confIndexer(cIdx), mom3Itr)
-                     self._momCalcFun(self.xcP:data(), self.dxP:data(), self.mass, self.bmagItr:data(), distfItr:data(), 
-                      		mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
-                  else
-                     self._momCalcFun(self.xcP:data(), self.dxP:data(), self.mass, self.bmagItr:data(), distfItr:data(), mom1Itr:data())
-                  end
-               elseif self._fiveMoments then 
-                  mom2:fill(confIndexer(cIdx), mom2Itr)
-                  mom3:fill(confIndexer(cIdx), mom3Itr)
-                  self._momCalcFun(self.xcP:data(), self.dxP:data(), distfItr:data(), mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
-               else
-                  self._momCalcFun(self.xcP:data(), self.dxP:data(), distfItr:data(), mom1Itr:data())
-               end
-            end
-   
-            if self._fiveMomentsLBO then  -- and polyOrder>1.
-               -- Now loop over velocity space boundary surfaces to compute boundary corrections.
-               cMomB:fill(confIndexer(cIdx), cMomBItr)
-               cEnergyB:fill(confIndexer(cIdx), cEnergyBItr)
-   
-               -- Only when the contributions to m0Star from the first direction
-               -- are collected, do we collect contributions to m1Star and m2Star.
-               -- Also, since Gk velocities are organized as (vpar,mu) the velocity
-               -- correction is only computed for the first velocity direction.
-               local firstDir = true
       
-               -- isLo=true current cell is the lower boundary cell.
-               -- isLo=false current cell is the upper boundary cell.
-               local isLo = true
-   
-               for vDir = 1, vDim do
-                  if (not self._isGk) or (self._isGk and firstDir) then
-                     uCorrection = MomDecl.selectBoundaryFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
-                  end
-                  vtSqCorrection = MomDecl.selectBoundaryVFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
-   
-                  -- Lower/upper bounds in direction 'vDir': cell indices.
-                  local dirLoIdx, dirUpIdx = phaseRange:lower(cDim+vDir), phaseRange:upper(cDim+vDir)
-   
-                  if self._isFirst then
-                     self._perpRange[vDir] = phaseRange
-                     for cd = 1, cDim do
-                        self._perpRange[vDir] = self._perpRange[vDir]:shorten(cd) -- shorten configuration range.
+                     distf:fill(phaseIndexer(self.idxP), distfItrP)
+      
+                     local vBound = 0.0
+                     if isLo then
+                        vBound = grid:cellLowerInDir(cDim + vDir)
+                     else
+                        vBound = grid:cellUpperInDir(cDim + vDir)
                      end
-                     self._perpRange[vDir] = self._perpRange[vDir]:shorten(cDim+vDir) -- velocity range orthogonal to 'vDir'.
-                  end
-                  local perpRange = self._perpRange[vDir]
-   
-                  for vPerpIdx in perpRange:rowMajorIter() do
-                     vPerpIdx:copyInto(self.idxP)
-                     for d = 1, cDim do self.idxP[d] = cIdx[d] end
-         
-                     for _, i in ipairs({dirLoIdx, dirUpIdx}) do     -- This loop is over edges.
-                        self.idxP[cDim+vDir] = i
-         
-                        grid:setIndex(self.idxP)
-                        grid:getDx(self.dxP)
-                        grid:cellCenter(self.xcP)
-         
-                        distf:fill(phaseIndexer(self.idxP), distfItrP)
-         
-                        local vBound = 0.0
-                        if isLo then
-                           vBound = grid:cellLowerInDir(cDim + vDir)
-                        else
-                           vBound = grid:cellUpperInDir(cDim + vDir)
+      
+                     if (self._isGk) then
+                        if (firstDir) then
+                          uCorrection(isLo, self._intFac[1], vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
                         end
-         
-                        if (self._isGk) then
-                           if (firstDir) then
-                             uCorrection(isLo, self._intFac[1], vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
-                           end
-                           vtSqCorrection(isLo, self._intFac[vDir], vBound, self.dxP:data(), distfItrP:data(), cEnergyBItr:data())
-                        else
-                           uCorrection(isLo, vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
-                           vtSqCorrection(isLo, vBound, self.dxP:data(), distfItrP:data(), cEnergyBItr:data())
-                        end
-         
-                        isLo = not isLo
+                        vtSqCorrection(isLo, self._intFac[vDir], vBound, self.dxP:data(), distfItrP:data(), cEnergyBItr:data())
+                     else
+                        uCorrection(isLo, vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
+                        vtSqCorrection(isLo, vBound, self.dxP:data(), distfItrP:data(), cEnergyBItr:data())
                      end
-                  end    -- vPerpIdx loop.
-                  firstDir = false
-               end    -- vDir loop.
-         
-            end    -- if self._fiveMomentsLBO.
-         end    -- Loop over configuration space.
+      
+                     isLo = not isLo
+                  end
+               end    -- vPerpIdx loop.
+               firstDir = false
+            end    -- vDir loop.
+      
+         end    -- if self._fiveMomentsLBO.
+      end    -- Loop over configuration space.
    
-      end    -- if self._fiveMomentsLBO and polyOrder=1.
-      if self.momfac ~= 1.0 then mom1:scale(self.momfac) end
-
-   end
+   end    -- if self._fiveMomentsLBO and polyOrder=1.
+   if self.momfac ~= 1.0 then mom1:scale(self.momfac) end
 
    if self.oncePerTime then self.tCurr = tCurr end
 end

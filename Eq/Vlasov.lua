@@ -92,7 +92,7 @@ function Vlasov:init(tbl)
    self._isFirst = true
 end
 
-function Vlasov:initDevice()
+function Vlasov:initDevice(tbl)
    local bId = self._phaseBasis:id()
    local b = 0
    if bId == "maximal-order" then 
@@ -104,6 +104,8 @@ function Vlasov:initDevice()
    --self._onHost = ffiC.new_Vlasov(self._cdim, self._vdim, self._phaseBasis:polyOrder(), b, self._qbym, self._hasForceTerm) 
    --self._onDevice = ffiC.new_Vlasov_onDevice(self._onHost)
    self._onDevice = ffiC.new_VlasovOnDevice(self._cdim, self._vdim, self._phaseBasis:polyOrder(), b, self._qbym, self._hasForceTerm)
+
+   return self
 end
 
 -- Methods
