@@ -67,10 +67,6 @@ __global__ void cuda_WavePropagation(
   int idxL[3];
   int idxR[3];
 
-  double xcC[3];
-  double xcL[3];
-  double xcR[3];
-
   // get i,j,k... index idxC from linear index linearIdx using localRange
   // invIndexer
   localIdxr.invIndex(linearIdx, idxC);
@@ -79,7 +75,6 @@ __global__ void cuda_WavePropagation(
   // this is because linearIdxC will have jumps because of ghost cells
   const int linearIdxC = fIdxr.index(idxC);
 
-  grid->cellCenter(idxC, xcC);
   const double *dx = grid->dx;
 
   double cfl = hyper->_cfl;
@@ -102,8 +97,6 @@ __global__ void cuda_WavePropagation(
 
     const int linearIdxL = fIdxr.index(idxL);
     const int linearIdxR = fIdxr.index(idxR);
-    grid->cellCenter(idxL, xcL);
-    grid->cellCenter(idxR, xcR);
     const double *qInL = qIn->getDataPtrAt(linearIdxL);
     const double *qInR = qIn->getDataPtrAt(linearIdxR);
 
