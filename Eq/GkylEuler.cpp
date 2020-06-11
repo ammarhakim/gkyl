@@ -76,8 +76,8 @@ namespace Gkyl {
     const int *d = dirShuffle[dir];
 
     // Arrange fluctuations to sum to jump in physical flux.
-    double *fl = _fl;
-    double *fr = _fr;
+    double fl[10];
+    double fr[10];
 
     // Left fluxes.
     double pr = pressure(ql);
