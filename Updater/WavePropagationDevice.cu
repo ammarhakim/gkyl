@@ -107,7 +107,7 @@ __global__ void cuda_WavePropagation(
 
     calcFirstOrderGud(dtdx, qOutL, dummy, amdq, apdq, meqn);
     // XXX better way to avoid race condition?
-    __threadfence();
+    __threadfence_system();
     calcFirstOrderGud(dtdx, dummy, qOutR, amdq, apdq, meqn);
 
     cfla = calcCfla(cfla, dtdx, s, mwave);
