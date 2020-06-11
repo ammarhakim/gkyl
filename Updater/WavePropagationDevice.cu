@@ -107,22 +107,19 @@ __global__ void cuda_WavePropagation(
     const double *qInL = qIn->getDataPtrAt(linearIdxL);
     const double *qInR = qIn->getDataPtrAt(linearIdxR);
 
+    double *qOutL = qOut->getDataPtrAt(linearIdxL);
+    double *qOutR = qOut->getDataPtrAt(linearIdxR);
+
     calcDelta(qInL, qInR, delta, meqn);
 
     eq->rp(dir, delta, qInL, qInR, waves, s);
     eq->qFluctuations(dir, qInL, qInR, waves, s, amdq, apdq);
 
-    // left (of C) surface update. use dummy in place of qOutL (cell to left of
-    // surface) so that only current cell (C) is updated.
-    if(!(idxC[dir] == localRange->lower[dir])) {
-      calcFirstOrderGud(dtdx, dummy, qOutC, amdq, apdq, meqn);
-    }
+    // FIXME race condition? performance problem?
+    // calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq, meqn);
+    calcFirstOrderGud(dtdx, qOutL, dummy, amdq, apdq, meqn);
+    calcFirstOrderGud(dtdx, dummy, qOutR, amdq, apdq, meqn);
 
-    // right (of C) surface update. use dummy in place of qOutR (cell to left of
-    // surface) so that only current cell (C) is updated.
-    if(!(idxC[dir] == localRange->upper[dir])) {
-      calcFirstOrderGud(dtdx, qOutC, dummy, amdq, apdq, meqn);
-    }
     cfla = calcCfla(cfla, dtdx, s, mwave);
   }
 
