@@ -28,6 +28,11 @@ ffi.cdef [[
   GkylVlasov* new_Vlasov_onDevice(GkylVlasov *v);
   void setAuxFields(GkylVlasov *eq, GkylCartField_t *emField);
   int getCdim(GkylVlasov *v);
+
+  typedef struct GkylEquation_t GkylEquation_t ;
+  GkylEquation_t *new_VlasovOnDevice(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType,
+    double qbym, bool hasForceTerm);
+  void Vlasov_setAuxFields(GkylEquation_t *eqn, GkylCartField_t* em);
 ]]
 
 -- Vlasov equation on a rectangular mesh
@@ -85,13 +90,9 @@ function Vlasov:init(tbl)
 
    -- flag to indicate if we are being called for first time
    self._isFirst = true
-
-   if GKYL_HAVE_CUDA then
-     self:initDevice()
-   end
 end
 
-function Vlasov:initDevice()
+function Vlasov:initDevice(tbl)
    local bId = self._phaseBasis:id()
    local b = 0
    if bId == "maximal-order" then 
@@ -100,8 +101,11 @@ function Vlasov:initDevice()
    if bId == "serendipity" then 
      b = 2
    end
-   self._onHost = ffiC.new_Vlasov(self._cdim, self._vdim, self._phaseBasis:polyOrder(), b, self._qbym, self._hasForceTerm) 
-   self._onDevice = ffiC.new_Vlasov_onDevice(self._onHost)
+   --self._onHost = ffiC.new_Vlasov(self._cdim, self._vdim, self._phaseBasis:polyOrder(), b, self._qbym, self._hasForceTerm) 
+   --self._onDevice = ffiC.new_Vlasov_onDevice(self._onHost)
+   self._onDevice = ffiC.new_VlasovOnDevice(self._cdim, self._vdim, self._phaseBasis:polyOrder(), b, self._qbym, self._hasForceTerm)
+
+   return self
 end
 
 -- Methods
@@ -187,7 +191,8 @@ function Vlasov:setAuxFieldsOnDevice(auxFields)
    if self._hasForceTerm then -- (no fields for neutral particles)
       -- single aux field that has the full EM field
       self._emField = auxFields[1]
-      ffiC.setAuxFields(self._onDevice, self._emField._onDevice)
+      --ffiC.setAuxFields(self._onDevice, self._emField._onDevice)
+      ffiC.Vlasov_setAuxFields(self._onDevice, self._emField._onDevice);
    end
 end
 

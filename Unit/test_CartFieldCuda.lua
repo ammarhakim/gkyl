@@ -11,19 +11,27 @@ if GKYL_HAVE_CUDA == false then
    return 0
 end
 
-local ffi        = require "ffi"
-local Unit       = require "Unit"
-local Grid       = require "Grid"
-local Basis      = require "Basis"
+local Alloc = require "Lib.Alloc"
+local Basis = require "Basis"
 local DataStruct = require "DataStruct"
-local cuda       = require "Cuda.RunTime"
-local cudaAlloc  = require "Cuda.Alloc"
-local Alloc      = require "Lib.Alloc"
-local Time       = require "Lib.Time"
+local Grid = require "Grid"
+local Mpi = require "Comm.Mpi"
+local Time = require "Lib.Time"
+local Unit = require "Unit"
+local cuda = require "Cuda.RunTime"
+local cudaAlloc = require "Cuda.Alloc"
+local ffi = require "ffi"
 
 local assert_equal = Unit.assert_equal
 local assert_close = Unit.assert_close
-local stats        = Unit.stats
+local stats = Unit.stats
+
+function log(msg)
+   local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
+   if rank == 0 then
+      print(msg)
+   end
+end
 
 ffi.cdef [[
   void unit_showFieldRange(GkylCartField_t *f, double *g);
@@ -303,31 +311,34 @@ local function test_deviceReduce(nIter, reportTiming)
    local phaseUpper    = {1.0,  6.0}
    local phaseNumCells = {8100, 531}
    
-   -- Phase-space grid and basis functions.
+   -- Phase-space grid, basis and data field.
    local phaseGrid  = createGrid(phaseLower, phaseUpper, phaseNumCells)
    local phaseBasis = createBasis(phaseGrid:ndim(), pOrder, basis)
-   -- Field with only one component.
-   local p0Field = createField(phaseGrid, phaseBasis, true, true, true)
+   local field      = createField(phaseGrid, phaseBasis, true, true, false)
    -- Initialize field to random numbers.
    math.randomseed(1000*os.time())
-   local fldRange = p0Field:localRange()
-   local fldIdxr  = p0Field:genIndexer()
+   local fldRange = field:localRange()
+   local fldIdxr  = field:genIndexer()
    for idx in fldRange:rowMajorIter() do
-      local fldItr = p0Field:get(fldIdxr( idx ))
-      fldItr[1]    = math.random()
+      local fldItr = field:get(fldIdxr( idx ))
+      for k = 1, field:numComponents() do
+         fldItr[k] = math.random()
+      end
    end
-   p0Field:copyHostToDevice()
+   field:copyHostToDevice()
 
    -- Get the maximum, minimum and sum on the CPU (for reference).
-   local maxVal, minVal, sumVal = p0Field:reduce("max"), p0Field:reduce("min"), p0Field:reduce("sum")
+   local maxVal, minVal, sumVal = field:reduce("max"), field:reduce("min"), field:reduce("sum")
 
-   local d_maxVal, d_minVal, d_sumVal = cudaAlloc.Double(1), cudaAlloc.Double(1), cudaAlloc.Double(1)
+   local d_maxVal = cudaAlloc.Double(field:numComponents())
+   local d_minVal = cudaAlloc.Double(field:numComponents())
+   local d_sumVal = cudaAlloc.Double(field:numComponents())
    
    local tmStart = Time.clock()
    for i = 1, nIter do
-      p0Field:deviceReduce("max",d_maxVal)
-      p0Field:deviceReduce("min",d_minVal)
-      p0Field:deviceReduce("sum",d_sumVal)
+      field:deviceReduce("max",d_maxVal)
+      field:deviceReduce("min",d_minVal)
+      field:deviceReduce("sum",d_sumVal)
    end
    local err = cuda.DeviceSynchronize()
    if reportTiming then
@@ -336,22 +347,35 @@ local function test_deviceReduce(nIter, reportTiming)
    end
    
    -- Test that the value found is correct.
-   local maxVal_gpu, minVal_gpu, sumVal_gpu = Alloc.Double(1), Alloc.Double(1), Alloc.Double(1)
+   local maxVal_gpu = Alloc.Double(field:numComponents())
+   local minVal_gpu = Alloc.Double(field:numComponents())
+   local sumVal_gpu = Alloc.Double(field:numComponents())
    local err = d_maxVal:copyDeviceToHost(maxVal_gpu)
    local err = d_minVal:copyDeviceToHost(minVal_gpu)
    local err = d_sumVal:copyDeviceToHost(sumVal_gpu)
    
-   assert_equal(maxVal[1], maxVal_gpu[1], "Checking max reduce of CartField on GPU.")
-   assert_equal(minVal[1], minVal_gpu[1], "Checking min reduce of CartField on GPU.")
-   assert_close(sumVal[1], sumVal_gpu[1], 1.e-12*sumVal_gpu[1], "Checking sum reduce of CartField on GPU.")
    
-   cuda.Free(d_maxVal)
-   cuda.Free(d_minVal)
-   cuda.Free(d_sumVal)
+   for k = 1, field:numComponents() do
+      assert_equal(maxVal[k], maxVal_gpu[k], "Checking max reduce of CartField on GPU.")
+      assert_equal(minVal[k], minVal_gpu[k], "Checking min reduce of CartField on GPU.")
+      assert_close(sumVal[k], sumVal_gpu[k], 1.e-12*sumVal_gpu[k], "Checking sum reduce of CartField on GPU.")
+   end
+   
+   d_maxVal:delete()
+   d_minVal:delete()
+   d_sumVal:delete()
+   maxVal_gpu:delete()
+   minVal_gpu:delete()
+   sumVal_gpu:delete()
 end
 
 -- This test synchronizes periodic boundary conditions on a single GPU (since we call the sync method even when only using one MPI process).
 function test_6()
+   if not Mpi.Query_cuda_support() then
+      log("Test for sync on device not run as no support for CUDA-aware MPI")
+      return
+   end
+   
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},
       upper = {1.0, 1.0},
@@ -401,7 +425,8 @@ test_3()
 test_4()
 test_5()
 test_deviceReduce(1, false)
---test_6()
+
+test_6()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

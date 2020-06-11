@@ -27,8 +27,7 @@ extern "C" {
     void gkylCartFieldDeviceAssignAll(int numBlocks, int numThreads, unsigned s, unsigned nv, double val, double *out);
 
     // Reduction to a single value.
-    void gkylCartFieldDeviceReduce(baseReduceOp *redOp, int numCellsTot, int numBlocks, int numThreads, int maxBlocks, int maxThreads,
-       GkDeviceProp *prop, GkylCartField_t *fIn, double *blockOut, double *intermediate, double *out);
+    void gkylCartFieldDeviceReduce(baseReduceOp *redOp, int numCellsTot, int numComponents, int numBlocks, int numThreads, int maxBlocks, int maxThreads, GkDeviceProp *prop, GkylCartField_t *fIn, double *blockOut, double *intermediate, double *out);
 }
 
 #endif // GKYL_CART_FIELD_DEVICE_H

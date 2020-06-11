@@ -53,6 +53,7 @@ calcRecov1CellGen(basisNm, recDir, dirs, polyOrder, C, lo, ce, up) := block(
   /* New solution is weakly equal to the original representation */
   recEqList : calcInnerProdList([recDir], 1, baCe1D,
     rExp-doExpand(qCe1D, baCe1D)),
+  
   if is(op(lo)=dg) then (
     if length(args(lo)) > 1 then (
       rLo : calcRecov2CellGen(basisNm, recDir, [recDir], polyOrder,
@@ -60,7 +61,7 @@ calcRecov1CellGen(basisNm, recDir, dirs, polyOrder, C, lo, ce, up) := block(
     ) else (
       rLo : calcRecov2CellGen(basisNm, recDir, [recDir], polyOrder,
         dg(qLo1D), dg(qCe1D))
-      ),
+    ),
     for i : 0 thru C do (
       recEqList : append(
         recEqList,
@@ -73,8 +74,9 @@ calcRecov1CellGen(basisNm, recDir, dirs, polyOrder, C, lo, ce, up) := block(
       recEqList,
       [subst(args(lo), val - D*subst(recDir=-1, rExp)
         - N*subst(recDir=-1, diff(rExp, recDir)))]
-      )
+    )
   ),
+  
   if is(op(up)=dg) then (
     if length(args(up)) > 1 then (
       rUp : calcRecov2CellGen(basisNm, recDir, [recDir], polyOrder,
@@ -114,9 +116,7 @@ calcRecov1CellGen(basisNm, recDir, dirs, polyOrder, C, lo, ce, up) := block(
     baLoND : etaDir(recDir, -2, 2, baCeND),
     baUpND : etaDir(recDir, 2, 2, baCeND),
     
-    dimProjCe : calcInnerProdListGen([recDir], [[-1, 1]],
-      1, baCe1D, doExpand(args(ce)[1], baCeND)),
-    projSubList : makelist(qCe1D[i]=dimProjCe[i], i, 1, length(baCe1D)),
+    projSubList : [],
     if is(op(lo)=dg) then (
       dimProjLo : calcInnerProdListGen([recDir], [[-3, -1]],
         1, baLo1D, doExpand(args(lo)[1], baLoND)),
@@ -125,6 +125,14 @@ calcRecov1CellGen(basisNm, recDir, dirs, polyOrder, C, lo, ce, up) := block(
         makelist(qLo1D[i]=dimProjLo[i], i, 1, length(baCe1D))
       )
     ),
+  
+    dimProjCe : calcInnerProdListGen([recDir], [[-1, 1]],
+      1, baCe1D, doExpand(args(ce)[1], baCeND)),
+    projSubList : append(
+      projSubList,
+      makelist(qCe1D[i]=dimProjCe[i], i, 1, length(baCe1D))
+    ),
+    
     if is(op(up)=dg) then (
       dimProjUp : calcInnerProdListGen([recDir], [[1, 3]],
         1, baUp1D, doExpand(args(up)[1], baUpND)),
@@ -135,12 +143,16 @@ calcRecov1CellGen(basisNm, recDir, dirs, polyOrder, C, lo, ce, up) := block(
     )
   )
   else (
-    projSubList : makelist(qCe1D[i]=args(ce)[1][i], i, 1, length(baCe1D)),
+    projSubList : [],
     if is(op(lo)=dg) then (
       projSubList : append (
         projSubList,
         makelist(qLo1D[i]=args(lo)[1][i], i, 1, length(baCe1D))
       )
+    ),
+    projSubList : append(
+      projSubList,
+      makelist(qCe1D[i]=args(ce)[1][i], i, 1, length(baCe1D))
     ),
     if is(op(up)=dg) then (
       projSubList : append (

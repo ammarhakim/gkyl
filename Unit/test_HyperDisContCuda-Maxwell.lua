@@ -16,7 +16,7 @@ local DataStruct = require "DataStruct"
 local Grid = require "Grid"
 local ffi  = require "ffi"
 local Unit = require "Unit"
-local Vlasov = require "Eq.Vlasov"
+local Maxwell = require "Eq.PerfMaxwell"
 local Updater = require "Updater"
 local Lin = require "Lib.Linalg"
 local Time = require "Lib.Time"
@@ -42,85 +42,32 @@ function test_1()
    -- set up dimensionality and basis parameters. 
    -- these parameters needs to match what is hard-coded in kernel template at bottom of Eq/GkylVlasov.h for now.
    local cdim = 2 -- number of configuration space dimensions
-   local vdim = 3 -- number of velocity space dimensions
-   local polyOrder = 1 -- polynomial order of basis (currently 1, 2, or 3 is supported for Vlasov on GPU)
+   local polyOrder = 2 -- polynomial order of basis (currently 1, 2, or 3 is supported for Vlasov on GPU)
 
-   local pdim = cdim + vdim -- total number of dimensions in phase space
    local confBasis = Basis.CartModalSerendipity { ndim = cdim, polyOrder = polyOrder }
-   local phaseBasis = Basis.CartModalSerendipity { ndim = pdim, polyOrder = polyOrder }
 
    -- set up grids. adjust number of cells to increase domain size (more work for GPU).
-   local nx = 8 -- number of configuration space dimensions in x
-   local ny = 32 -- number of configuration space dimensions in y
-   local nvx = 16  -- number of velocity dimensions in vx
-   local nvy = 8  -- number of velocity dimensions in vy 
-   local nvz = 32  -- number of velocity dimensions in vz 
+   local nx = 512 -- number of configuration space dimensions in x
+   local ny = 512 -- number of configuration space dimensions in y
 
-   local grid = Grid.RectCart {
-      cells = {nx, ny, nvx, nvy, nvz},
-   }
    local confGrid = Grid.RectCart {
       cells = {nx, ny},
    }
    
-   local vlasovEq = Vlasov {
-      confBasis = confBasis,
-      phaseBasis = phaseBasis,
-      charge = -1.0,
-      mass = 1.0,
+   local maxwellEq = Maxwell {
+      basis = confBasis,
+      lightSpeed = 1.0,
    }
 
-   local zfd = { }
-   for d = 1, vdim do
-     table.insert(zfd, cdim+d)
-   end
    local solver = Updater.HyperDisCont {
-      onGrid = grid,
-      basis = phaseBasis,
+      onGrid = confGrid,
+      basis = confBasis,
       cfl = 1.0,
-      equation = vlasovEq,
-      zeroFluxDirections = zfd,
+      equation = maxwellEq,
       clearOut = true,
       noPenaltyFlux = true, -- penalty flux not yet implemented on device
       numThreads = numThreads,
       useSharedDevice = useSharedMemory,
-   }
-
-   local distf = DataStruct.Field {
-      onGrid = grid,
-      numComponents = phaseBasis:numBasis(),
-      ghost = {1, 1},
-      createDeviceCopy = true,
-   }
-   distf:clear(1)
-   local indexer = distf:genIndexer()
-   for idx in distf:localRangeIter() do
-      local fitr = distf:get(indexer(idx))
-      fitr[1] = idx[1]+2*idx[2]+1
-      fitr[2] = idx[1]+2*idx[2]+2
-      fitr[3] = idx[1]+2*idx[2]+3
-   end
-   distf:copyHostToDevice()
-
-   local fRhs = DataStruct.Field {
-      onGrid = grid,
-      numComponents = phaseBasis:numBasis(),
-      ghost = {1, 1},
-      createDeviceCopy = true,
-   }
-
-   local d_fRhs = DataStruct.Field {
-      onGrid = grid,
-      numComponents = phaseBasis:numBasis(),
-      ghost = {1, 1},
-      createDeviceCopy = true,
-   }
-
-   local cflRateByCell = DataStruct.Field {
-      onGrid = grid,
-      numComponents = 1,
-      ghost = {1, 1},
-      createDeviceCopy = true,
    }
 
    local emField = DataStruct.Field {
@@ -129,20 +76,51 @@ function test_1()
       ghost = {1, 1},
       createDeviceCopy = true,
    }
-   emField:clear(2)
+   emField:clear(2)   
+   local indexer = emField:genIndexer()
+   for idx in emField:localRangeIter() do
+      local emitr = emField:get(indexer(idx))
+      emitr[1] = idx[1]+2*idx[2]+1
+      emitr[2] = idx[1]+2*idx[2]+2
+      emitr[3] = idx[1]+2*idx[2]+3
+   end
    emField:copyHostToDevice()
+
+   local emFieldRhs = DataStruct.Field {
+      onGrid = confGrid,
+      numComponents = 8*confBasis:numBasis(),
+      ghost = {1, 1},
+      createDeviceCopy = true,
+   }
+   
+   local d_emFieldRhs = DataStruct.Field {
+      onGrid = confGrid,
+      numComponents = 8*confBasis:numBasis(),
+      ghost = {1, 1},
+      createDeviceCopy = true,
+   }
+
+   local cflRateByCell = DataStruct.Field {
+      onGrid = confGrid,
+      numComponents = 1,
+      ghost = {1, 1},
+      createDeviceCopy = true,
+   }
 
    solver:setDtAndCflRate(.1, cflRateByCell)
 
+   print("Running GPU kernel")
    tmStart = Time.clock()
    for i = 1, nloop do
-      solver:_advanceOnDevice(0.0, {distf, emField}, {d_fRhs})
+      solver:_advanceOnDevice(0.0, {emField}, {d_emFieldRhs})
    end
    -- Need to synchronize so that kernel actually runs!
    local err = cuda.DeviceSynchronize()
    local totalGpuTime = (Time.clock()-tmStart)
+   print("... done.", totalGpuTime)
+
    assert_equal(0, err, "cuda error")
-   d_fRhs:copyDeviceToHost()
+   d_emFieldRhs:copyDeviceToHost()
    local d_cflRate = cuAlloc.Double(1)
    cflRateByCell:deviceReduce('max', d_cflRate)
    local cflRate_from_gpu = Alloc.Double(1)
@@ -152,20 +130,20 @@ function test_1()
    tmStart = Time.clock()
    if runCPU then
       for i = 1, nloop do
-         solver:_advance(0.0, {distf, emField}, {fRhs})
+         solver:_advance(0.0, {emField}, {emFieldRhs})
       end
    end
    local totalCpuTime = (Time.clock()-tmStart)
    local cflRate = cflRateByCell:reduce('max')[1]
 
-   local indexer = fRhs:genIndexer()
-   local d_indexer = d_fRhs:genIndexer()
+   local indexer = emFieldRhs:genIndexer()
+   local d_indexer = d_emFieldRhs:genIndexer()
    if checkResult then 
-      for idx in fRhs:localRangeIter() do
-         local fitr = fRhs:get(indexer(idx))
-         local d_fitr = d_fRhs:get(d_indexer(idx))
-         for i = 1, fRhs:numComponents() do
-            assert_close(fitr[i], d_fitr[i], 1e-10, string.format("index %d, component %d is incorrect", indexer(idx), i))
+      for idx in emFieldRhs:localRangeIter() do
+         local fitr = emFieldRhs:get(indexer(idx))
+         local d_fitr = d_emFieldRhs:get(d_indexer(idx))
+         for i = 1, emFieldRhs:numComponents() do
+            assert_close(fitr[i], d_fitr[i], 1e-6, string.format("index %d, component %d is incorrect", indexer(idx), i))
          end
       end
       assert_equal(cflRate, cflRate_from_gpu[1], "Checking max cflRate")

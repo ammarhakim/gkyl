@@ -1,6 +1,8 @@
+/* -*- c++ -*- */
+
 #include <cstdio>
 #include <GkylHyperDisCont.h>
-#include <GkylVlasov.h>
+#include <GkylEquation.h>
 #include <VlasovModDecl.h>
 
 __global__ void cuda_HyperDisCont_shared(GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut) {
@@ -18,7 +20,7 @@ __global__ void cuda_HyperDisCont_shared(GkylHyperDisCont_t *hyper, GkylCartFiel
   int *updateDirs = hyper->updateDirs;
   int numUpdateDirs = hyper->numUpdateDirs;
   bool *zeroFluxFlags = hyper->zeroFluxFlags;
-  Gkyl::Vlasov *eq = hyper->equation;
+  GkylEquation_t *eq = hyper->equation;
  
   // shared memeory blocks of size blockDim.x * blockDim.y * numComponents
   __shared__ double dummy[32];
