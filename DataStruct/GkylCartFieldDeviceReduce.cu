@@ -186,7 +186,6 @@ void gkylCartFieldDeviceReduce(baseReduceOp *redOp, int numCellsTot, int numComp
   // The algorithm uses two other temporary variables: 'blockOut' and 
   // 'intermediate' have size=numBlocks and were allocated already.
 
-
   // Call the kernel that reduces a CartField (fIn) into a device array (blockOut)
   // which contains the reduction performed by each block.
   for (int kComp=0; kComp<numComponents; kComp++) {
@@ -197,7 +196,6 @@ void gkylCartFieldDeviceReduce(baseReduceOp *redOp, int numCellsTot, int numComp
     while (newNum > 1) {
       int threads = 0, blocks = 0;
   
-      printf("kComp=%d | newNum=%d\n", kComp, newNum);
       reductionBlocksAndThreads(prop, newNum, maxBlocks, maxThreads, blocks, threads);
   
       checkCudaErrors(cudaMemcpy(intermediate, blockOut, newNum * sizeof(double), cudaMemcpyDeviceToDevice));

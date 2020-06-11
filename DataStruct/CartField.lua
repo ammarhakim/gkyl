@@ -275,9 +275,10 @@ local function Field_meta_ctor(elct)
                                         self.reduceThreadsMAX,numBlocksC:data(),numThreadsC:data());
          self.reduceBlocks  = numBlocksC[1]
          self.reduceThreads = numThreadsC[1]
+        
          numBlocksC:delete()
          numThreadsC:delete()
-         self.d_blockRed, self.d_intermediateRed = cuAlloc.Double(numBlocks), cuAlloc.Double(numBlocks)
+         self.d_blockRed, self.d_intermediateRed = deviceAllocatorFunc(self.reduceBlocks), deviceAllocatorFunc(self.reduceBlocks)
          -- Create reduction operator on host, and copy to device.
          local redOp           = {}
          for k, v in pairs(reduceInitialVal) do

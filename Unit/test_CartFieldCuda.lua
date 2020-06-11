@@ -361,9 +361,12 @@ local function test_deviceReduce(nIter, reportTiming)
       assert_close(sumVal[k], sumVal_gpu[k], 1.e-12*sumVal_gpu[k], "Checking sum reduce of CartField on GPU.")
    end
    
-   cuda.Free(d_maxVal)
-   cuda.Free(d_minVal)
-   cuda.Free(d_sumVal)
+   d_maxVal:delete()
+   d_minVal:delete()
+   d_sumVal:delete()
+   maxVal_gpu:delete()
+   minVal_gpu:delete()
+   sumVal_gpu:delete()
 end
 
 -- This test synchronizes periodic boundary conditions on a single GPU (since we call the sync method even when only using one MPI process).
