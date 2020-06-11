@@ -42,7 +42,7 @@ function test_1()
    local useSharedDevice = xsys.pickBool(SHARED, false) -- whether to use device shared memory
 
    -- local nx = 1024 -- number of configuration space dimensions in x
-   local nx = 1024*4 -- number of configuration space dimensions in x
+   local nx = 128*64 -- number of configuration space dimensions in x
 
    local grid = Grid.RectCart {
       cells = {nx},
@@ -106,15 +106,13 @@ function test_1()
    tmStart = Time.clock()
    for i = 1, nloop do
       solver:_advanceOnDevice(0.0, {qIn}, {d_qOut})
-      print("_advanceOnDevice")
    end
    -- Need to synchronize so that kernel actually runs!
    local err = cuda.DeviceSynchronize()
-   print("sync err")
    local totalGpuTime = (Time.clock()-tmStart)
    assert_equal(0, err, "cuda error")
    d_qOut:copyDeviceToHost()
-   print("copyDeviceToHost")
+   d_qOut:sync()
    -- local cflRate_from_gpu = Alloc.Double(1)
    -- local err = solver.dtPtr:copyDeviceToHost(cflRate_from_gpu)
 
@@ -126,6 +124,7 @@ function test_1()
       end
    end
    local totalCpuTime = (Time.clock()-tmStart)
+   qOut:sync()
 
    local indexer = qOut:genIndexer()
    local d_indexer = d_qOut:genIndexer()
