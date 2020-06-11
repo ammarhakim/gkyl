@@ -19,6 +19,7 @@ local LinearDecomp = require "Lib.LinearDecomp"
 local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
 local UpdaterBase = require "Updater.Base"
+local DataStruct = require "DataStruct"
 
 -- system libraries
 local ffi = require "ffi"
@@ -32,13 +33,14 @@ if GKYL_HAVE_CUDA then
 end
 
 ffi.cdef [[ 
+  typedef struct GkylEuler GkylEuler ;
   typedef struct {
       int updateDirs[6];
       int32_t numUpdateDirs;
       double dt;
       double _cfl;
       double _cflm;
-      Gkyl::Euler *equation;
+      GkylEuler *equation;
       GkylCartField_t *dtByCell;
   } GkylWavePropagation_t;
     
@@ -257,8 +259,8 @@ function WavePropagation:initDevice()
    hyper.updateDirs = ffi.new("int[6]", self._updateDirs)
    hyper.numUpdateDirs = #self._updateDirs
    hyper.equation = self._equation._onDevice
-   hyper.cfl = self._cfl
-   hyper.cflm = self._cflm
+   hyper._cfl = self._cfl
+   hyper._cflm = self._cflm
    hyper.dtByCell = self.dtByCell._onDevice
    self._onHost = hyper
    local sz = sizeof("GkylWavePropagation_t")
@@ -451,11 +453,11 @@ function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)
 
    if self._useSharedDevice then
       -- TODO implement
-      -- ffiC.advanceOnDevice_shared(
+      -- ffi.C.advanceOnDevice_shared(
       --    numBlocks, numThreads, qIn:numComponents(), self._onDevice,
       --    qIn._onDevice, qOut._onDevice)
    else
-      ffiC.wavePropagationAdvanceOnDevice(
+      ffi.C.wavePropagationAdvanceOnDevice(
          numBlocks, numThreads, self._onDevice, qIn._onDevice, qOut._onDevice)
    end
 
@@ -467,7 +469,7 @@ function WavePropagation:setDtAndCflRate(dt)
    WavePropagation.super.setDtAndCflRate(self, dt, nil)
 
    if self._onDevice then
-      ffiC.setDt(self._onDevice, dt)
+      ffi.C.setDt(self._onDevice, dt)
    end
 end
 
