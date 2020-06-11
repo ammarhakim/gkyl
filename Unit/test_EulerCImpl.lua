@@ -5,6 +5,11 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+if GKYL_HAVE_CUDA == false then
+   print("**** Can't run kernel tests without CUDA enabled GPUs!")
+   return 0
+end
+
 local ffi  = require "ffi"
 local Unit = require "Unit"
 local Euler = require "Eq.Euler"
