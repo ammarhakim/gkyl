@@ -60,7 +60,7 @@ namespace Gkyl {
     cs = sqrt(_gasGamma*pr/qr[0]);
     double sr = u+cs   ;
 
-    s[1] = 0.5*(sl+sr);
+    s[0] = 0.5*(sl+sr);
   }
 
   __host__ __device__ void Euler::qFluctuationsLax(
@@ -132,6 +132,6 @@ namespace Gkyl {
     fOut[d[1]] = qIn[d[1]]*u + pr; // rho*u*u + p
     fOut[d[2]] = qIn[d[2]]*u; // rho*v*u
     fOut[d[3]] = qIn[d[3]]*u; // rho*w*u
-    fOut[4] = (qIn[5]+pr)*u; // (E+p)*u
+    fOut[4] = (qIn[4]+pr)*u; // (E+p)*u
   }
 }
