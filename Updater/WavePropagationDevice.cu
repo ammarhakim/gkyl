@@ -16,7 +16,7 @@ __device__ static void calcFirstOrderGud(
 {
   for (int i = 0; i< meqn; i++) {
     qr[i] -= dtdx * apdq[i];
-    ql[i] += dtdx * apdq[i];
+    ql[i] -= dtdx * amdq[i];
   }
 }
 
