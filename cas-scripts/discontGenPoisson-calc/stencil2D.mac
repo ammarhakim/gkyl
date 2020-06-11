@@ -32,10 +32,10 @@ for polyOrder : 1 thru 1 do (
     printf(fh, "local Lin = require \"Lib.Linalg\"~%"),
     printf(fh, "local function stencilFn(dx,~%"),
     printf(fh, "                         DxxC, DyyC, DxyC,~%"),
-    printf(fh, "                         DxxLF, DyyLF, DxyLF,~%"),
-    printf(fh, "                         DxxRF, DyyRF, DxyRF,~%"),
-    printf(fh, "                         DxxBF, DyyBF, DxyBF,~%"),
-    printf(fh, "                         DxxTF, DyyTF, DxyTF,~%"),
+    printf(fh, "                         DxxLF, DxyLF,~%"),
+    printf(fh, "                         DxxRF, DxyRF,~%"),
+    printf(fh, "                         DyyBF, DxyBF,~%"),
+    printf(fh, "                         DyyTF, DxyTF,~%"),
     printf(fh, "                         bcDx, bcNx, bcValx,~%"),
     printf(fh, "                         bcDy, bcNy, bcValy)~%"),
     printf(fh, "  local _M = {}~%~%"),
@@ -64,21 +64,21 @@ for polyOrder : 1 thru 1 do (
                 dg(fC),
                 dg(fR)),
       
-   recfy : if isTop then
-             calcRecov1CellGen(basisNm[bIdx], y, dirs, polyOrder, C,
-               dg(fB),
-               dg(fC),
-               bc(D=bcDy, N=bcNy, val=bcValy))
-           elseif isBottom then
-             calcRecov1CellGen(basisNm[bIdx], y, dirs, polyOrder, C,
-               bc(D=bcDy, N=bcNy, val=bcValy),
-               dg(fC),
-               dg(fT))
-           else
-             calcRecov1CellGen(basisNm[bIdx], y, dirs, polyOrder, C,
-               dg(fB),
-               dg(fC),
-               dg(fT)),
+    recfy : if isTop then
+              calcRecov1CellGen(basisNm[bIdx], y, dirs, polyOrder, C,
+                dg(fB),
+                dg(fC),
+                bc(D=bcDy, N=bcNy, val=bcValy))
+            elseif isBottom then
+              calcRecov1CellGen(basisNm[bIdx], y, dirs, polyOrder, C,
+                bc(D=bcDy, N=bcNy, val=bcValy),
+                dg(fC),
+                dg(fT))
+            else
+              calcRecov1CellGen(basisNm[bIdx], y, dirs, polyOrder, C,
+                dg(fB),
+                dg(fC),
+                dg(fT)),
 
     vol : calcInnerProdList(dirs, Jxx, diff(ba, x),
             doExpand(DxxC, ba)*diff(recfx, x)) +

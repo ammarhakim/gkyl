@@ -105,7 +105,8 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
   /* backsubstitute the non-recovered directtions if needed */
   numDims : length(dirs),
   if numDims > 1 then (
-    baCeND : getBasis(sconcat("basis-precalc/basis", basisNm, numDims, "x"), polyOrder),
+    baCeND : getBasis(sconcat("basis-precalc/basis", basisNm, numDims, "x"),
+      polyOrder),
     dirSubList : if numDims=2 then
                    [wx=dirs[1], wy=dirs[2]]
                  else
