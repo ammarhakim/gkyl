@@ -67,12 +67,9 @@ __global__ void cuda_WavePropagation(
   int idxL[3];
   int idxR[3];
 
-  // get i,j,k... index idxC from linear index linearIdx using localRange
-  // invIndexer
+  // get i,j,k... index idxC
   localIdxr.invIndex(linearIdx, idxC);
-  // convert i,j,k... index idxC into a linear index linearIdxC
-  // note that linearIdxC != linearIdx.
-  // this is because linearIdxC will have jumps because of ghost cells
+  // if ndim>1, linearIdxC!=linearIdx since linearIdxC jumps due to ghost cells
   const int linearIdxC = fIdxr.index(idxC);
 
   const double *dx = grid->dx;
