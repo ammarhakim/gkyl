@@ -38,6 +38,9 @@ typedef struct {
   void rp_Euler(
       GkylEuler *eq, const int dir, const double *delta,
       const double *ql, const double *qr, double *waves, double *s);
+ void qFluctuations_Euler(
+     GkylEuler *eq, const int dir, const double *ql, const double *qr,
+     const double *waves, const double *s, double *amdq, double *apdq);
   void flux_Euler(GkylEuler *eq, const int dir, const double *qIn, double *fOut);
 ]]
 
@@ -297,6 +300,15 @@ end
 
 function Euler:rpCImpl(dir, delta, ql, qr, waves, s)
    return ffi.C.rp_Euler(self._onHost, dir, delta, ql, qr, waves, s)
+end
+
+function Euler:qFluctuationsCImpl(dir, ql, qr, waves, s, amdq, apdq)
+   return ffi.C.qFluctuations_Euler(
+   self._onHost, dir, ql, qr, waves, s, amdq, apdq)
+end
+
+function Euler:fluxCImpl(dir, qIn, fOut)
+   return ffi.C.flux_Euler(self._onHost, dir, qIn, fOut)
 end
 
 function Euler:numEquations()

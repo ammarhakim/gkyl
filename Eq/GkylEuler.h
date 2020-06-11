@@ -25,6 +25,9 @@ namespace Gkyl {
     void rp_Euler(
         Euler *v, const int dir, const double *delta, const double *ql,
         const double *qr, double *waves, double *s);
+    void qFluctuations_Euler(
+        Euler *eq, const int dir, const double *ql, const double *qr,
+        const double *waves, const double *s, double *amdq, double *apdq);
     void flux_Euler(Euler *eq, const int dir, const double *qIn, double *fOut);
   }
 

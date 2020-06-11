@@ -24,6 +24,12 @@ namespace Gkyl {
     eq->rp(dir, delta, ql, qr, waves, s);
   }
 
+  void qFluctuations_Euler(
+      Euler *eq, const int dir, const double *ql, const double *qr,
+      const double *waves, const double *s, double *amdq, double *apdq) {
+    eq->qFluctuations(dir, ql, qr, waves, s, amdq, apdq);
+  }
+
   void flux_Euler(Euler *eq, const int dir, const double *qIn, double *fOut) {
     eq->flux(dir, qIn, fOut);
   }
@@ -81,7 +87,7 @@ namespace Gkyl {
     fl[d[2]] = ql[d[2]]*u; // rho*v*u
     fl[d[3]] = ql[d[3]]*u; // rho*w*u
     fl[4] = (ql[4]+pr)*u; // (E+p)*u
-    auto absMaxsl = abs(u)+sqrt(_gasGamma*pr/ql[1]);
+    auto absMaxsl = abs(u)+sqrt(_gasGamma*pr/ql[0]);
 
     // Right fluxes.
     pr = pressure(qr);
@@ -91,7 +97,7 @@ namespace Gkyl {
     fr[d[2]] = qr[d[2]]*u; // rho*v*u
     fr[d[3]] = qr[d[3]]*u; // rho*w*u
     fr[4] = (qr[4]+pr)*u; // (E+p)*u
-    auto absMaxsr =abs(u)+sqrt(_gasGamma*pr/qr[1]);
+    auto absMaxsr =abs(u)+sqrt(_gasGamma*pr/qr[0]);
 
     auto absMaxs = fmaxf(absMaxsl, absMaxsr);
 
