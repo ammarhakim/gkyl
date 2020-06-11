@@ -76,18 +76,18 @@ namespace Gkyl {
     const int *d = dirShuffle[dir];
 
     // Arrange fluctuations to sum to jump in physical flux.
-    auto fl = _fl;
-    auto fr = _fr;
+    double *fl = _fl;
+    double *fr = _fr;
 
     // Left fluxes.
-    auto pr = pressure(ql);
-    auto u = ql[d[1]]/ql[0];
+    double pr = pressure(ql);
+    double u = ql[d[1]]/ql[0];
     fl[0] = ql[d[1]]; // rho*u
     fl[d[1]] = ql[d[1]]*u + pr; // rho*u*u + p
     fl[d[2]] = ql[d[2]]*u; // rho*v*u
     fl[d[3]] = ql[d[3]]*u; // rho*w*u
     fl[4] = (ql[4]+pr)*u; // (E+p)*u
-    auto absMaxsl = abs(u)+sqrt(_gasGamma*pr/ql[0]);
+    double absMaxsl = abs(u)+sqrt(_gasGamma*pr/ql[0]);
 
     // Right fluxes.
     pr = pressure(qr);
@@ -97,9 +97,9 @@ namespace Gkyl {
     fr[d[2]] = qr[d[2]]*u; // rho*v*u
     fr[d[3]] = qr[d[3]]*u; // rho*w*u
     fr[4] = (qr[4]+pr)*u; // (E+p)*u
-    auto absMaxsr =abs(u)+sqrt(_gasGamma*pr/qr[0]);
+    double absMaxsr = abs(u)+sqrt(_gasGamma*pr/qr[0]);
 
-    auto absMaxs = fmaxf(absMaxsl, absMaxsr);
+    double absMaxs = max(absMaxsl, absMaxsr);
 
     // Left going fluctuations.
     amdq[0] = 0.5*(fr[0]-fl[0] - absMaxs*(qr[0]-ql[0]));
