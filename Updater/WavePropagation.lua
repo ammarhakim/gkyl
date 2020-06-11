@@ -444,9 +444,9 @@ function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)
       outFld[1],
       "WavePropagation.advanceOnDevice: Must specify an output field")
 
-   local numCellsLocal = qOut:localRange():volume()
-   local numThreads = math.min(self.numThreads, numCellsLocal)
-   local numBlocks  = math.ceil(numCellsLocal/numThreads)
+   local numEdgesLocal = qOut:localEdgeRange():volume()
+   local numThreads = math.min(self.numThreads, numEdgesLocal)
+   local numBlocks  = math.ceil(numEdgesLocal/numThreads)
 
    -- FIXME correct code and place to do device copy?
    qOut:deviceCopy(qIn)

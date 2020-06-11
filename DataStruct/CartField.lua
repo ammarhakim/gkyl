@@ -240,6 +240,7 @@ local function Field_meta_ctor(elct)
       self._localRange = localRange
       self._localExtRange = self._localRange:extend(
 	 self._lowerGhost, self._upperGhost)
+      self._localEdgeRange = self._localRange:extend(0, 1)
 
       -- Local and (MPI) global values of a reduction (reduce method).
       self.localReductionVal  = ElemVec(self._numComponents)
@@ -652,6 +653,9 @@ local function Field_meta_ctor(elct)
       end,
       localExtRange = function (self) -- includes ghost cells
 	 return self._localExtRange
+      end,      
+      localEdgeRange = function (self)
+	 return self._localEdgeRange
       end,      
       globalRange = function (self)
 	 return self._globalRange
