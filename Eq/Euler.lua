@@ -34,11 +34,11 @@ typedef struct {
   GkylEuler* new_Euler_onDevice(GkylEuler *v);
 
   // for cuda testing
-  int numEquations_Euler(GkylEuler *v);
+  int numEquations_Euler(GkylEuler *eq);
   void rp_Euler(
-      GkylEuler *v, const int dir, const double *delta,
+      GkylEuler *eq, const int dir, const double *delta,
       const double *ql, const double *qr, double *waves, double *s);
-  void flux_Euler(Euler *eq, const int dir, const double *qIn, double *fOut);
+  void flux_Euler(GkylEuler *eq, const int dir, const double *qIn, double *fOut);
 ]]
 
 -- Resuffle indices for various direction Riemann problem. The first
@@ -278,7 +278,7 @@ local EulerObj = ffi.metatype(ffi.typeof("EulerEqn_t"), euler_mt)
 local Euler = Proto(EqBase)
 
 function Euler:init(tbl)
-   self.gasGamma = tbl.gasGamma
+   self._gasGamma = tbl.gasGamma
    self.eulerObj = EulerObj(tbl)
 
    if GKYL_HAVE_CUDA then
@@ -287,8 +287,8 @@ function Euler:init(tbl)
 end
 
 function Euler:initDevice()
-   self._onHost = ffiC.new_Euler(self._gasGamma)
-   self._onDevice = ffiC.new_Euler_onDevice(self._onHost)
+   self._onHost = ffi.C.new_Euler(self._gasGamma)
+   self._onDevice = ffi.C.new_Euler_onDevice(self._onHost)
 end
 
 function Euler:numEquationsCImpl()
@@ -305,6 +305,14 @@ end
 
 function Euler:numWaves()
    return self.eulerObj:numWaves()
+end
+
+function Euler:gasGamma()
+   return self.eulerObj:gasGamma()
+end
+
+function Euler:pressure(q)
+   return self.eulerObj:pressure(q)
 end
 
 function Euler:flux(dir, qIn, fOut)
