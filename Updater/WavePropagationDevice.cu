@@ -98,7 +98,7 @@ __global__ void cuda_WavePropagation(
       idxR[d] = idxC[d];
     }
     idxL[dir] = idxC[dir] - 1;
-    idxR[dir] = idxC[dir] + 1;
+    idxR[dir] = idxC[dir];
 
     const int linearIdxL = fIdxr.index(idxL);
     const int linearIdxR = fIdxr.index(idxR);
