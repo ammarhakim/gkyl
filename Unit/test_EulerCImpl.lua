@@ -66,33 +66,6 @@ end
 function test_2()
    local euler = Euler { gasGamma = 1.4, numericalFlux="lax" }
 
-   local ql = calcq(euler:gasGamma(), {1.0, 1.0, 0.0, 0.0, 1.0})
-   local qr = calcq(euler:gasGamma(), {0.1, 1.0, 0.0, 0.0, 1.0})
-
-   local delta = Lin.Vec(5)
-   for m = 1, 5 do delta[m] = qr[m]-ql[m] end
-
-   local waves = Lin.Mat(euler:numWaves(), euler:numEquations())
-   local s = Lin.Vec(5)
-   euler:rpCImpl(0, delta._p, ql._p, qr._p, waves._p, s._p)
-   local amdq, apdq = Lin.Vec(5), Lin.Vec(5)
-   euler:qFluctuationsCImpl(0, ql._p, qr._p, waves._p, s._p, amdq._p, apdq._p)
-
-   local sumFluct = Lin.Vec(5)
-   for m = 1, 5 do sumFluct[m] = amdq[m]+apdq[m] end
-   local fluxr, fluxl, df = Lin.Vec(5), Lin.Vec(5), Lin.Vec(5)
-   euler:fluxCImpl(0, ql._p, fluxl._p)
-   euler:fluxCImpl(0, qr._p, fluxr._p)
-   for m = 1, 5 do df[m] = fluxr[m]-fluxl[m] end
-
-   for m = 1, 5 do
-      assert_equal(df[m], sumFluct[m], "Checking jump in flux is sum of fluctuations")
-   end
-end
-
-function test_3()
-   local euler = Euler { gasGamma = 1.4, numericalFlux="lax" }
-
    local ql = calcq(euler:gasGamma(), {0.1, 2.0, 3.0, 4.0, 0.1})
    local qr = calcq(euler:gasGamma(), {1.0, 1.0, 2.0, 3.0, 1.0})
 
@@ -104,6 +77,24 @@ function test_3()
    euler:rpCImpl(0, delta._p, ql._p, qr._p, waves._p, s._p)
    local amdq, apdq = Lin.Vec(5), Lin.Vec(5)
    euler:qFluctuationsCImpl(0, ql._p, qr._p, waves._p, s._p, amdq._p, apdq._p)
+
+   local waves0 = Lin.Mat(euler:numWaves(), euler:numEquations())
+   local s0 = Lin.Vec(5)
+   euler:rp(1, delta, ql, qr, waves0, s0)
+   local amdq0, apdq0 = Lin.Vec(5), Lin.Vec(5)
+   euler:qFluctuations(1, ql, qr, waves0, s0, amdq0, apdq0)
+  
+   for m = 1, 1 do
+      assert_equal(s0[m], s[m], "Checking lua vs C s equal")
+   end
+ 
+   for m = 1, 5 do
+      assert_equal(waves0[1][m], waves[1][m], "Checking lua vs C waves[1] equal")
+   end
+  
+   for m = 1, 5 do
+      assert_equal(amdq0[m], amdq[m], "Checking lua vs C amdq equal")
+   end
 
    local sumFluct = Lin.Vec(5)
    for m = 1, 5 do sumFluct[m] = amdq[m]+apdq[m] end
@@ -119,7 +110,6 @@ end
 
 test_1()
 test_2()
-test_3()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
