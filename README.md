@@ -76,7 +76,7 @@ carefully the rest of the code structure while doing so.
 Formatting guidelines given below are meant to reduce the thought
 given to minor (but asthetically important) issues. There are as many
 opionions on how to format code as there are developers. Hence, in
-Gkyell these guidlines have been determined by the lead developer of
+Gkeyll these guidelines have been determined by the lead developer of
 the code and are not open for further discussion.
 
 - **Do not** modify existing code alignment or comments unless the code is
