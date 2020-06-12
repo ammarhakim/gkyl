@@ -117,18 +117,18 @@ function GkIonization:createSolver(funcField)
 	 P = self._P,
 	 X = self._X,
       }
-      -- self.calcIonizationTemp = Updater.IonizationTempCalc {
-      -- 	 onGrid     = self.confGrid,
-      -- 	 confBasis  = self.confBasis,
-      -- 	 elcMass    = self.mass,
-      -- 	 elemCharge = self.charge,
-      -- 	 E          = self._E,
-      -- }
-      -- self.sumDistF    = DataStruct.Field {
-      -- 	 onGrid        = self.phaseGrid,
-      -- 	 numComponents = self.phaseBasis:numBasis(),
-      -- 	 ghost         = {1, 1},
-      -- }
+      self.calcIonizationTemp = Updater.IonizationTempCalc {
+      	 onGrid     = self.confGrid,
+      	 confBasis  = self.confBasis,
+      	 elcMass    = self.mass,
+      	 elemCharge = self.charge,
+      	 E          = self._E,
+      }
+      self.sumDistF    = DataStruct.Field {
+      	 onGrid        = self.phaseGrid,
+      	 numComponents = self.phaseBasis:numBasis(),
+      	 ghost         = {1, 1},
+      }
    end
    self.confMult = Updater.CartFieldBinOp {
          onGrid     = self.confGrid,
@@ -196,17 +196,17 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
       local neutM0     = species[self.neutNm]:fluidMoments()[1]
       local neutU      = species[self.neutNm]:selfPrimitiveMoments()[1]
       local elcDistF   = species[self.speciesName]:getDistF()
-      --local fMaxwellIz = species[self.elcNm]:getFMaxwellIz()
+      local fMaxwellIz = species[self.elcNm]:getFMaxwellIz()
       
-      --self.sumDistF:combine(2.0,fMaxwellIz,-1.0,elcDistF)
+      self.sumDistF:combine(2.0,fMaxwellIz,-1.0,elcDistF)
  
       self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       
       self.confMult:advance(tCurr, {coefIz, neutM0}, {self.coefM0})
-      --self.collisionSlvr:advance(tCurr, {self.coefM0, self.sumDistF}, {self.ionizSrc})
+      self.collisionSlvr:advance(tCurr, {self.coefM0, self.sumDistF}, {self.ionizSrc})
       -- Uncomment to test without fMaxwellian(Tiz)
-      self.collisionSlvr:advance(tCurr, {self.coefM0, elcDistF}, {self.ionizSrc})      
-      species[self.elcNm].distIo:write(self.ionizSrc, string.format("electron_ionizSrc_%d.bp",species[self.elcNm].distIoFrame),0,0)
+      --self.collisionSlvr:advance(tCurr, {self.coefM0, elcDistF}, {self.ionizSrc})      
+      --species[self.elcNm].distIo:write(self.ionizSrc, string.format("electron_ionizSrc_%d.bp",species[self.elcNm].distIoFrame),0,0)
       
       fRhsOut:accumulate(1.0,self.ionizSrc)
    elseif (species[self.speciesName].charge == 0) then

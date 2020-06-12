@@ -300,6 +300,14 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       moment     = "GkThreeMoments",
       gkfacs     = {self.mass, self.bmag},
    }
+   self.calcMaxwellIz = Updater.GkMaxwellianOnBasis {
+      onGrid     = self.grid,
+      confGrid   = self.confGrid,
+      confBasis  = self.confBasis,
+      phaseGrid  = self.grid,
+      phaseBasis = self.basis,
+      gkfacs     = {self.mass, self.bmag},
+   }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
       -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
@@ -567,19 +575,18 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    			self.needSelfPrimMom  = true
    			self.calcReactRate    = true
    			self.collNmIoniz      = collNm
-   			-- self.vtSqIz           = self:allocMoment()
-   			-- --self.tempIz           = self:allocMoment()
-   			-- self.m0fMax           = self:allocMoment()
-   			-- self.m0mod            = self:allocMoment()
-   			-- self.fMaxwellIz       = DataStruct.Field {
-   			--    onGrid        = self.grid,
-   			--    numComponents = self.basis:numBasis(),
-   			--    ghost         = {1, 1},
-   			--    metaData = {
-   			--       polyOrder = self.basis:polyOrder(),
-   			--       basisType = self.basis:id()
-   			--    },
-   			-- }
+   			self.vtSqIz           = self:allocMoment()
+   			self.m0fMax           = self:allocMoment()
+   			self.m0mod            = self:allocMoment()
+   			self.fMaxwellIz       = DataStruct.Field {
+   			   onGrid        = self.grid,
+   			   numComponents = self.basis:numBasis(),
+   			   ghost         = {1, 1},
+   			   metaData = {
+   			      polyOrder = self.basis:polyOrder(),
+   			      basisType = self.basis:id()
+   			   },
+   			}
 			counter = false
    		     end
    		  end
@@ -1535,13 +1542,13 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 local fElc = species[self.name]:getDistF()
 	 
 	 species[self.name].collisions[self.collNmIoniz].calcVoronovReactRate:advance(tCurr, {self.vtSqSelf}, {self.voronovReactRate})
-	 -- species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
+	 species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
 
-	 -- -- Calculate fMaxwell
-	 -- self.calcMaxwellIz:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
-	 -- self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
-	 -- self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
-	 -- self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
+	 -- Calculate fMaxwell
+	 self.calcMaxwellIz:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
+	 self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
+	 self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
+	 self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
       end
 
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
@@ -1681,6 +1688,10 @@ end
 
 function GkSpecies:getVoronovReactRate()
    return self.voronovReactRate
+end
+
+function GkSpecies:getFMaxwellIz()
+   return self.fMaxwellIz
 end
 
 function GkSpecies:momCalcTime()
