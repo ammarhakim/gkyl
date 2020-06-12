@@ -9,6 +9,7 @@ local ffi = require "ffi"
 local Unit = require "Unit"
 local Grid = require "Grid"
 local DataStruct = require "DataStruct"
+local Alloc = GKYL_USE_DEVICE and require "Cuda.Alloc" or require "Lib.Alloc"
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
@@ -193,8 +194,14 @@ function test_5()
       fitr[2] = i+2
       fitr[3] = i+3
    end
+   if GKYL_USE_DEVICE then
+      field1:copyHostToDevice()
+   end
    -- copy and test
    field2:copy(field1)
+   if GKYL_USE_DEVICE then
+      field2:copyDeviceToHost()
+   end
    for i = localRange:lower(1), localRange:upper(1) do
       local fitr1 = field1:get(indexer(i))
       local fitr2 = field2:get(indexer(i))
@@ -230,8 +237,14 @@ function test_6()
       fitr[2] = i+2
       fitr[3] = i+3
    end
+   if GKYL_USE_DEVICE then
+      field1:copyHostToDevice()
+   end
    -- copy and test
    field2:copy(field1)
+   if GKYL_USE_DEVICE then
+      field2:copyDeviceToHost()
+   end
    for i = localRange:lower(1), localRange:upper(1) do
       local fitr1 = field1:get(indexer(i))
       local fitr2 = field2:get(indexer(i))
@@ -257,6 +270,16 @@ function test_7()
 
    -- clear it
    field:clear(1.5)
+   if GKYL_USE_DEVICE then
+      for i = localRange:lower(1), localRange:upper(1) do
+         local fitr = field:get(indexer(i))
+
+         assert_equal(0.0, fitr[1], "Checking if clear only happened on device")
+         assert_equal(0.0, fitr[2], "Checking if clear only happened on device")
+         assert_equal(0.0, fitr[3], "Checking if clear only happened on device")
+      end
+      field:copyDeviceToHost()
+   end
    for i = localRange:lower(1), localRange:upper(1) do
       local fitr = field:get(indexer(i))
 
@@ -266,6 +289,9 @@ function test_7()
    end
 
    field:clear(2.5)
+   if GKYL_USE_DEVICE then
+      field:copyDeviceToHost()
+   end
    for i = localRange:lower(1), localRange:upper(1) do
       local fitr = field:get(indexer(i))
 
@@ -275,6 +301,9 @@ function test_7()
    end
 
    field:clear(0.0)
+   if GKYL_USE_DEVICE then
+      field:copyDeviceToHost()
+   end
    for i = localRange:lower(1), localRange:upper(1) do
       local fitr = field:get(indexer(i))
 
@@ -338,9 +367,15 @@ function test_9()
       fitr[2] = idx[1]+2*idx[2]+2
       fitr[3] = idx[1]+2*idx[2]+3
    end
+   if GKYL_USE_DEVICE then
+      field1:copyHostToDevice()
+   end
 
    -- accumulate stuff
    field:accumulate(1.0, field1, 2.0, field1)
+   if GKYL_USE_DEVICE then
+      field:copyDeviceToHost()
+   end
 
    for idx in field:localExtRangeIter() do
       local fitr = field:get(indexer(idx))
@@ -351,6 +386,9 @@ function test_9()
 
    -- combine stuff
    field:combine(1.0, field1, 2.0, field1)
+   if GKYL_USE_DEVICE then
+      field:copyDeviceToHost()
+   end
 
    for idx in field:localExtRangeIter() do
       local fitr = field:get(indexer(idx))
@@ -374,6 +412,9 @@ function test_10()
    field:clear(10.0)
    field:scale(2.5)
 
+   if GKYL_USE_DEVICE then
+      field:copyDeviceToHost()
+   end
    local indexer = field:genIndexer()
    for idx in field:localExtRangeIter() do
       local fitr = field:get(indexer(idx))
@@ -458,6 +499,9 @@ function test_12()
 
    assert_equal(2.5, tm, "Checking time-stamp")
    assert_equal(50, fr, "Checking frame")
+   if GKYL_USE_DEVICE then
+      field:copyDeviceToHost()
+   end
    
    -- check if fields are identical
    local indexer = field:genIndexer()
@@ -515,6 +559,10 @@ function test_13()
 end
 
 function test_14()
+   if GKYL_USE_DEVICE then
+      print("Can't run test_14 on device yet, scaleByCell not yet implemented")
+      return 0
+   end
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},
       upper = {1.0, 1.0},
@@ -533,6 +581,9 @@ function test_14()
    field:clear(10.0)
    scalar:clear(2.5)
    field:scaleByCell(scalar)
+   if GKYL_USE_DEVICE then
+      field:copyDeviceToHost()
+   end
 
    local indexer = field:genIndexer()
    for idx in field:localExtRangeIter() do
@@ -555,7 +606,24 @@ function test_14()
       assert_equal(25.0*idx[1], fitr[2], "Checking scaled field value")
       assert_equal(25.0*idx[1], fitr[3], "Checking scaled field value")
    end   
+end
 
+function test_15()
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0},
+      upper = {1.0, 1.0},
+      cells = {10, 10},
+   }
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+      ghost = {1, 2},
+   }
+   local scalar = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 1,
+      ghost = {1, 2},
+   }
    -- Initialize fields to random numbers.
    math.randomseed(1000*os.time())
    local localRange = scalar:localRange()
@@ -591,16 +659,44 @@ function test_14()
       scaMin = math.min(scaMin,scaItr[1])
       scaSum = scaSum + scaItr[1]
    end
-   local cartFldMax, cartFldMin, cartFldSum = field:reduce("max"), field:reduce("min"), field:reduce("sum")
-   local cartScaMax, cartScaMin, cartScaSum = scalar:reduce("max"), scalar:reduce("min"), scalar:reduce("sum")
-   for k = 1, field:numComponents() do
-      assert_equal(fldMax[k], cartFldMax[k], "Checking reduce('max')")
-      assert_equal(fldMin[k], cartFldMin[k], "Checking reduce('min')")
-      assert_equal(fldSum[k], cartFldSum[k], "Checking reduce('sum')")
+   if GKYL_USE_DEVICE then
+      field:copyHostToDevice()
+      scalar:copyHostToDevice()
    end
-   assert_equal(scaMax, cartScaMax[1], "Checking scalar reduce('max')")
-   assert_equal(scaMin, cartScaMin[1], "Checking scalar reduce('min')")
-   assert_equal(scaSum, cartScaSum[1], "Checking scalar reduce('sum')")
+
+   local field_maxVal, field_minVal, field_sumVal = Alloc.Double(field:numComponents()), Alloc.Double(field:numComponents()), Alloc.Double(field:numComponents())
+   local scalar_maxVal, scalar_minVal, scalar_sumVal = Alloc.Double(1), Alloc.Double(1), Alloc.Double(1)
+   field:reduce("max", field_maxVal) 
+   field:reduce("min", field_minVal) 
+   field:reduce("sum", field_sumVal)
+   scalar:reduce("max", scalar_maxVal) 
+   scalar:reduce("min", scalar_minVal) 
+   scalar:reduce("sum", scalar_sumVal)
+   if GKYL_USE_DEVICE then
+      local hostAlloc = require "Lib.Alloc"
+      local h_field_maxVal, h_field_minVal, h_field_sumVal = hostAlloc.Double(field:numComponents()), hostAlloc.Double(field:numComponents()), hostAlloc.Double(field:numComponents())
+      local h_scalar_maxVal, h_scalar_minVal, h_scalar_sumVal = hostAlloc.Double(1), hostAlloc.Double(1), hostAlloc.Double(1)
+      field_maxVal:copyDeviceToHost(h_field_maxVal)
+      field_minVal:copyDeviceToHost(h_field_minVal)
+      field_sumVal:copyDeviceToHost(h_field_sumVal)
+      scalar_maxVal:copyDeviceToHost(h_scalar_maxVal)
+      scalar_minVal:copyDeviceToHost(h_scalar_minVal)
+      scalar_sumVal:copyDeviceToHost(h_scalar_sumVal)
+      field_maxVal = h_field_maxVal
+      field_minVal = h_field_minVal
+      field_sumVal = h_field_sumVal
+      scalar_maxVal = h_scalar_maxVal
+      scalar_minVal = h_scalar_minVal
+      scalar_sumVal = h_scalar_sumVal
+   end
+   for k = 1, field:numComponents() do
+      assert_equal(fldMax[k], field_maxVal[k], "Checking reduce('max')")
+      assert_equal(fldMin[k], field_minVal[k], "Checking reduce('min')")
+      assert_equal(fldSum[k], field_sumVal[k], "Checking reduce('sum')")
+   end
+   assert_equal(scaMax, scalar_maxVal[1], "Checking scalar reduce('max')")
+   assert_equal(scaMin, scalar_minVal[1], "Checking scalar reduce('min')")
+   assert_equal(scaSum, scalar_sumVal[1], "Checking scalar reduce('sum')")
 end
 
 test_1()
@@ -617,6 +713,7 @@ test_11()
 test_12()
 --test_13()
 test_14()
+test_15()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
