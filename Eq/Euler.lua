@@ -12,6 +12,11 @@ local ffi = require "ffi"
 local xsys = require "xsys"
 local Proto = require "Lib.Proto"
 
+local cuda = nil
+if GKYL_HAVE_CUDA then
+   cuda = require "Cuda.RunTime"
+end
+
 -- C interfaces
 ffi.cdef [[
 
@@ -24,6 +29,19 @@ typedef struct {
    double _fl[6], _fr[6]; /* Storage for left/right fluxes ([6] as we want to index from 1) */
 } EulerEqn_t;
 
+  typedef struct GkylEuler GkylEuler;
+  GkylEuler* new_Euler(const double gasGamma);
+  GkylEuler* new_Euler_onDevice(GkylEuler *v);
+
+  // for cuda testing
+  int numEquations_Euler(GkylEuler *eq);
+  void rp_Euler(
+      GkylEuler *eq, const int dir, const double *delta,
+      const double *ql, const double *qr, double *waves, double *s);
+ void qFluctuations_Euler(
+     GkylEuler *eq, const int dir, const double *ql, const double *qr,
+     const double *waves, const double *s, double *amdq, double *apdq);
+  void flux_Euler(GkylEuler *eq, const int dir, const double *qIn, double *fOut);
 ]]
 
 -- Resuffle indices for various direction Riemann problem. The first
@@ -263,8 +281,34 @@ local EulerObj = ffi.metatype(ffi.typeof("EulerEqn_t"), euler_mt)
 local Euler = Proto(EqBase)
 
 function Euler:init(tbl)
-   self.gasGamma = tbl.gasGamma
+   self._gasGamma = tbl.gasGamma
    self.eulerObj = EulerObj(tbl)
+
+   if GKYL_HAVE_CUDA then
+     self:initDevice()
+   end
+end
+
+function Euler:initDevice()
+   self._onHost = ffi.C.new_Euler(self._gasGamma)
+   self._onDevice = ffi.C.new_Euler_onDevice(self._onHost)
+end
+
+function Euler:numEquationsCImpl()
+   return ffi.C.numEquations_Euler(self._onHost)
+end
+
+function Euler:rpCImpl(dir, delta, ql, qr, waves, s)
+   return ffi.C.rp_Euler(self._onHost, dir, delta, ql, qr, waves, s)
+end
+
+function Euler:qFluctuationsCImpl(dir, ql, qr, waves, s, amdq, apdq)
+   return ffi.C.qFluctuations_Euler(
+   self._onHost, dir, ql, qr, waves, s, amdq, apdq)
+end
+
+function Euler:fluxCImpl(dir, qIn, fOut)
+   return ffi.C.flux_Euler(self._onHost, dir, qIn, fOut)
 end
 
 function Euler:numEquations()
@@ -273,6 +317,14 @@ end
 
 function Euler:numWaves()
    return self.eulerObj:numWaves()
+end
+
+function Euler:gasGamma()
+   return self.eulerObj:gasGamma()
+end
+
+function Euler:pressure(q)
+   return self.eulerObj:pressure(q)
 end
 
 function Euler:flux(dir, qIn, fOut)

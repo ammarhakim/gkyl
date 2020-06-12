@@ -80,8 +80,7 @@ if GKYL_HAVE_CUDA then
     redBinOpFunc_t getRedMinFuncFromDevice();
     redBinOpFunc_t getRedMaxFuncFromDevice();
     redBinOpFunc_t getRedSumFuncFromDevice();
-    void gkylCartFieldDeviceReduce(baseReduceOp_t *redOp, int numCellsTot, int numBlocks, int numThreads, int maxBlocks, int maxThreads,
-       GkDeviceProp *prop, GkylCartField_t *fIn, double *blockOut, double *intermediate, double *out);
+    void gkylCartFieldDeviceReduce(baseReduceOp_t *redOp, int numCellsTot, int numComponents, int numBlocks, int numThreads, int maxBlocks, int maxThreads, GkDeviceProp *prop, GkylCartField_t *fIn, double *blockOut, double *intermediate, double *out);
 
    ]]
 end
@@ -241,6 +240,7 @@ local function Field_meta_ctor(elct)
       self._localRange = localRange
       self._localExtRange = self._localRange:extend(
 	 self._lowerGhost, self._upperGhost)
+      self._localEdgeRange = self._localRange:extend(0, 1)
 
       -- Local and (MPI) global values of a reduction (reduce method).
       self.localReductionVal  = ElemVec(self._numComponents)
@@ -268,32 +268,31 @@ local function Field_meta_ctor(elct)
 
          local devNum, _     = cuda.GetDevice()
          self.deviceProps, _ = cuda.GetDeviceProperties(devNum)
-         if self._numComponents==1 then
-            -- Establish number of blocks and threads/block for deviceReduce, and allocate memory.
-            self.reduceBlocksMAX  = 64
-            self.reduceThreadsMAX = GKYL_DEFAULT_NUM_THREADS
-            local numBlocksC, numThreadsC = Alloc.Int(1), Alloc.Int(1)
-            ffiC.reductionBlocksAndThreads(self.deviceProps,self._localRange:volume(),self.reduceBlocksMAX,
-                                           self.reduceThreadsMAX,numBlocksC:data(),numThreadsC:data());
-            self.reduceBlocks  = numBlocksC[1]
-            self.reduceThreads = numThreadsC[1]
-            numBlocksC:delete()
-            numThreadsC:delete()
-            self.d_blockRed, self.d_intermediateRed = cuAlloc.Double(numBlocks), cuAlloc.Double(numBlocks)
-            -- Create reduction operator on host, and copy to device.
-            local redOp             = {}
-            for k, v in pairs(reduceInitialVal) do
-              redOp[k]            = ffi.new("baseReduceOp_t")
-              redOp[k].initValue  = v
-            end
-            redOp["min"].reduceFunc = ffi.C.getRedMinFuncFromDevice()
-            redOp["max"].reduceFunc = ffi.C.getRedMaxFuncFromDevice()
-            redOp["sum"].reduceFunc = ffi.C.getRedSumFuncFromDevice()
-            local sz = ffi.sizeof("baseReduceOp_t")
-            self.d_redOp = {min = cuda.Malloc(sz), max = cuda.Malloc(sz), sum = cuda.Malloc(sz)}
-            for k, _ in pairs(reduceInitialVal) do
-               err = cuda.Memcpy(self.d_redOp[k], redOp[k], sz, cuda.MemcpyHostToDevice)
-            end
+         -- Establish number of blocks and threads/block for deviceReduce, and allocate memory.
+         self.reduceBlocksMAX  = 64
+         self.reduceThreadsMAX = GKYL_DEFAULT_NUM_THREADS
+         local numBlocksC, numThreadsC = Alloc.Int(1), Alloc.Int(1)
+         ffiC.reductionBlocksAndThreads(self.deviceProps,self._localRange:volume(),self.reduceBlocksMAX,
+                                        self.reduceThreadsMAX,numBlocksC:data(),numThreadsC:data());
+         self.reduceBlocks  = numBlocksC[1]
+         self.reduceThreads = numThreadsC[1]
+        
+         numBlocksC:delete()
+         numThreadsC:delete()
+         self.d_blockRed, self.d_intermediateRed = deviceAllocatorFunc(self.reduceBlocks), deviceAllocatorFunc(self.reduceBlocks)
+         -- Create reduction operator on host, and copy to device.
+         local redOp           = {}
+         for k, v in pairs(reduceInitialVal) do
+           redOp[k]            = ffi.new("baseReduceOp_t")
+           redOp[k].initValue  = v
+         end
+         redOp["min"].reduceFunc = ffi.C.getRedMinFuncFromDevice()
+         redOp["max"].reduceFunc = ffi.C.getRedMaxFuncFromDevice()
+         redOp["sum"].reduceFunc = ffi.C.getRedSumFuncFromDevice()
+         local sz = ffi.sizeof("baseReduceOp_t")
+         self.d_redOp = {min = cuda.Malloc(sz), max = cuda.Malloc(sz), sum = cuda.Malloc(sz)}
+         for k, _ in pairs(reduceInitialVal) do
+            err = cuda.Memcpy(self.d_redOp[k], redOp[k], sz, cuda.MemcpyHostToDevice)
          end
       end
       if not GKYL_HAVE_CUDA then self._devAllocData = nil end
@@ -663,6 +662,9 @@ local function Field_meta_ctor(elct)
       localExtRange = function (self) -- includes ghost cells
 	 return self._localExtRange
       end,      
+      localEdgeRange = function (self)
+	 return self._localEdgeRange
+      end,      
       globalRange = function (self)
 	 return self._globalRange
       end,
@@ -778,9 +780,8 @@ local function Field_meta_ctor(elct)
 	 end,
       deviceReduce = isNumberType and
 	 function(self, opIn, d_reduction)
-            assert(self._numComponents==1, "CartField:deviceReduce: Reduce only works on fields with numComponents=1.")
 	    -- Input 'opIn' must be one of the binary operations in binOpFuncs.
-            ffi.C.gkylCartFieldDeviceReduce(self.d_redOp[opIn],self._localRange:volume(),self.reduceBlocks,self.reduceThreads,self.reduceBlocksMAX,self.reduceThreadsMAX,
+            ffi.C.gkylCartFieldDeviceReduce(self.d_redOp[opIn],self._localRange:volume(),self._numComponents,self.reduceBlocks,self.reduceThreads,self.reduceBlocksMAX,self.reduceThreadsMAX,
                self.deviceProps,self._onDevice,self.d_blockRed:data(),self.d_intermediateRed:data(),d_reduction:data())
 	 end or
 	 function (self, opIn, d_reduction)

@@ -66,11 +66,12 @@ void reductionBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlock
 
   if ((float)threads * blocks >
       (float)(prop->maxGridSize)[0] * prop->maxThreadsPerBlock) {
-    printf("n is too large, please choose a smaller number!\n");
+//    printf("CudaReduce: numElements %d (t=%d,b=%d) is too large, please choose a smaller number!\n",numElements, threads, blocks);
+    printf("CudaReduce: numElements %d (t=%d x b=%d vs. %d x %d) is too large\n",numElements, threads, blocks, (prop->maxGridSize)[0], prop->maxThreadsPerBlock);
   }
 
   if (blocks > (prop->maxGridSize)[0]) {
-    printf("Grid size <%d> exceeds the device capability <%d>, set block size as %d (original %d)\n",
+    printf("CudaReduce: Grid size <%d> exceeds the device capability <%d>, set block size as %d (original %d)\n",
       blocks, (prop->maxGridSize)[0], threads * 2, threads);
 
     blocks  /= 2;

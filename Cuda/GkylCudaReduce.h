@@ -19,6 +19,7 @@ extern "C" {
                                  int maxThreads, int &blocks, int &threads);
   bool isPow2(unsigned int x);
   unsigned int nextPow2(unsigned int x);
+
   // Type of function that operates on two numbers.
   typedef double (*redBinOpFunc_t)(double a, double b);
   // Base reduction operator object.

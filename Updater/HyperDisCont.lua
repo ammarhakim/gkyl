@@ -310,7 +310,7 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
       ffiC.advanceOnDevice(numBlocks, numThreads, qIn:numComponents(), self._onDevice, qIn._onDevice, qRhsOut._onDevice)
    end
 
-   --self.maxsByCell:deviceReduce('max', self.maxs)  
+   self.maxsByCell:deviceReduce('max', self.maxs)  
 end
 
 -- set up pointers to dt and cflRateByCell

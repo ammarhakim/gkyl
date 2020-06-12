@@ -311,34 +311,37 @@ local function test_deviceReduce(nIter, reportTiming)
    local phaseUpper    = {1.0,  6.0}
    local phaseNumCells = {8100, 531}
    
-   -- Phase-space grid and basis functions.
+   -- Phase-space grid, basis and data field.
    local phaseGrid  = createGrid(phaseLower, phaseUpper, phaseNumCells)
    local phaseBasis = createBasis(phaseGrid:ndim(), pOrder, basis)
-   -- Field with only one component.
-   local p0Field = createField(phaseGrid, phaseBasis, true, true, true)
+   local field      = createField(phaseGrid, phaseBasis, true, true, false)
    -- Initialize field to random numbers.
    math.randomseed(1000*os.time())
-   local fldRange = p0Field:localRange()
-   local fldIdxr  = p0Field:genIndexer()
+   local fldRange = field:localRange()
+   local fldIdxr  = field:genIndexer()
    for idx in fldRange:rowMajorIter() do
-      local fldItr = p0Field:get(fldIdxr( idx ))
-      fldItr[1]    = math.random()
+      local fldItr = field:get(fldIdxr( idx ))
+      for k = 1, field:numComponents() do
+         fldItr[k] = math.random()
+      end
    end
-   p0Field:copyHostToDevice()
+   field:copyHostToDevice()
 
    -- Get the maximum, minimum and sum on the CPU (for reference).
    local h_maxVal, h_minVal, h_sumVal = Alloc.Double(1), Alloc.Double(1), Alloc.Double(1)
-   p0Field:hostReduce("max", h_maxVal) 
-   p0Field:hostReduce("min",h_minVal) 
-   p0Field:hostReduce("sum",h_sumVal)
+   field:hostReduce("max", h_maxVal) 
+   field:hostReduce("min",h_minVal) 
+   field:hostReduce("sum",h_sumVal)
 
-   local d_maxVal, d_minVal, d_sumVal = cudaAlloc.Double(1), cudaAlloc.Double(1), cudaAlloc.Double(1)
+   local d_maxVal = cudaAlloc.Double(field:numComponents())
+   local d_minVal = cudaAlloc.Double(field:numComponents())
+   local d_sumVal = cudaAlloc.Double(field:numComponents())
    
    local tmStart = Time.clock()
    for i = 1, nIter do
-      p0Field:reduce("max",d_maxVal)
-      p0Field:reduce("min",d_minVal)
-      p0Field:reduce("sum",d_sumVal)
+      field:reduce("max",d_maxVal)
+      field:reduce("min",d_minVal)
+      field:reduce("sum",d_sumVal)
    end
    local err = cuda.DeviceSynchronize()
    if reportTiming then
@@ -347,18 +350,25 @@ local function test_deviceReduce(nIter, reportTiming)
    end
    
    -- Test that the value found is correct.
-   local maxVal_gpu, minVal_gpu, sumVal_gpu = Alloc.Double(1), Alloc.Double(1), Alloc.Double(1)
+   local maxVal_gpu = Alloc.Double(field:numComponents())
+   local minVal_gpu = Alloc.Double(field:numComponents())
+   local sumVal_gpu = Alloc.Double(field:numComponents())
    local err = d_maxVal:copyDeviceToHost(maxVal_gpu)
    local err = d_minVal:copyDeviceToHost(minVal_gpu)
    local err = d_sumVal:copyDeviceToHost(sumVal_gpu)
    
-   assert_equal(h_maxVal[1], maxVal_gpu[1], "Checking max reduce of CartField on GPU.")
-   assert_equal(h_minVal[1], minVal_gpu[1], "Checking min reduce of CartField on GPU.")
-   assert_close(h_sumVal[1], sumVal_gpu[1], 1.e-12*sumVal_gpu[1], "Checking sum reduce of CartField on GPU.")
+   for k = 1, field:numComponents() do
+      assert_equal(h_maxVal[k], maxVal_gpu[k], "Checking max reduce of CartField on GPU.")
+      assert_equal(h_minVal[k], minVal_gpu[k], "Checking min reduce of CartField on GPU.")
+      assert_close(h_sumVal[k], sumVal_gpu[k], 1.e-12*sumVal_gpu[k], "Checking sum reduce of CartField on GPU.")
+   end
    
-   cuda.Free(d_maxVal)
-   cuda.Free(d_minVal)
-   cuda.Free(d_sumVal)
+   d_maxVal:delete()
+   d_minVal:delete()
+   d_sumVal:delete()
+   maxVal_gpu:delete()
+   minVal_gpu:delete()
+   sumVal_gpu:delete()
 end
 
 -- This test synchronizes periodic boundary conditions on a single GPU (since we call the sync method even when only using one MPI process).
@@ -394,7 +404,7 @@ function test_6()
    assert_equal(0, err, "Checking if copy to device worked")
 
    -- synchronize periodic directions on device
-   field:deviceSync() -- sync field
+   field:sync() -- sync field
 
    -- copy data back for checking.
    field:copyDeviceToHost()
@@ -418,7 +428,7 @@ test_4()
 test_5()
 test_deviceReduce(1, false)
 
---test_6()
+test_6()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

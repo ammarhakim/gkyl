@@ -36,7 +36,7 @@ function test_1()
    local nloop = NLOOP or 1 -- number of HyperDisCont calls to loop over
    local runCPU = xsys.pickBool(RUNCPU, true)
    local checkResult = runCPU and true -- whether to check device result with host one, element-by-element. this can be expensive for large domains.
-   local numThreads = NTHREADS or 128 -- number of threads to use in HyperDisCont kernel configuration
+   local numThreads = NTHREADS or 256 -- number of threads to use in HyperDisCont kernel configuration
    local useSharedMemory = xsys.pickBool(SHARED, false) -- whether to use device shared memory
 
    -- set up dimensionality and basis parameters. 
@@ -47,8 +47,8 @@ function test_1()
    local confBasis = Basis.CartModalSerendipity { ndim = cdim, polyOrder = polyOrder }
 
    -- set up grids. adjust number of cells to increase domain size (more work for GPU).
-   local nx = 512 -- number of configuration space dimensions in x
-   local ny = 512 -- number of configuration space dimensions in y
+   local nx = 32 -- number of configuration space dimensions in x
+   local ny = 32 -- number of configuration space dimensions in y
 
    local confGrid = Grid.RectCart {
       cells = {nx, ny},
