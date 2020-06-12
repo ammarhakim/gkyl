@@ -495,7 +495,7 @@ local function Field_meta_ctor(elct)
       deviceClear = function (self, val)
          if self._devAllocData then
 	    local numThreads = GKYL_DEFAULT_NUM_THREADS
-	    local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	    local shape = self:_localShape()
 	    local numBlocks = math.floor(shape/numThreads)+1
 	    ffiC.gkylCartFieldDeviceAssignAll(numBlocks, numThreads, self:_localLower(), self:_localShape(), val, self:deviceDataPointer())
 	 end
@@ -522,7 +522,7 @@ local function Field_meta_ctor(elct)
 	 assert(type(fact) == "number", "CartField:combine: Factor not a number")
 
 	 local numThreads = GKYL_DEFAULT_NUM_THREADS
-	 local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	 local shape = self:_localShape()
 	 local numBlocks = math.floor(shape/numThreads)+1
 	 ffiC.gkylCartFieldDeviceAssign(numBlocks, numThreads, self:_localLower(), self:_localShape(), fact, fld:deviceDataPointer(), self:deviceDataPointer())
       end,
@@ -546,7 +546,7 @@ local function Field_meta_ctor(elct)
 		"CartField:accumulate/combine: Fields should have same layout for sums to make sense")
 
 	 local numThreads = GKYL_DEFAULT_NUM_THREADS
-	 local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	 local shape = self:_localShape()
 	 local numBlocks = math.floor(shape/numThreads)+1
 	 ffiC.gkylCartFieldDeviceAccumulate(numBlocks, numThreads, self:_localLower(), self:_localShape(), fact, fld:deviceDataPointer(), self:deviceDataPointer())
       end,
@@ -616,7 +616,7 @@ local function Field_meta_ctor(elct)
 	 function (self, fact)
 	    if self._devAllocData then
 	       local numThreads = GKYL_DEFAULT_NUM_THREADS
-	       local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	       local shape = self:_localShape()
 	       local numBlocks = math.floor(shape/numThreads)+1
 	       ffiC.gkylCartFieldDeviceScale(numBlocks, numThreads,  self:_localLower(), self:_localShape(), fact, self:deviceDataPointer())
 	    end
@@ -642,7 +642,7 @@ local function Field_meta_ctor(elct)
 	 function (self)
 	    if self._devAllocData then
 	       local numThreads = GKYL_DEFAULT_NUM_THREADS
-	       local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	       local shape = self:_localShape() 
 	       local numBlocks = math.floor(shape/numThreads)+1
 	       ffiC.gkylCartFieldDeviceAbs(numBlocks, numThreads,  self:_localLower(), self:_localShape(), self:deviceDataPointer())
 	    end
