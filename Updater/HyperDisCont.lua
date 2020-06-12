@@ -119,11 +119,11 @@ end
 function HyperDisCont:initDevice(tbl)
    self.maxsByCell = DataStruct.Field {
       onGrid = self._onGrid,
-      numComponents = #self._updateDirs,
+      numComponents = self._ndim,
       ghost = {1, 1},
       createDeviceCopy = true,
    }
-   self.maxs = cuAlloc.Double(6)
+   self.maxs = cuAlloc.Double(self._ndim)
    local hyper = ffi.new("GkylHyperDisCont_t")
    hyper.updateDirs = ffi.new("int[6]", self._updateDirs)
    hyper.zeroFluxFlags = ffi.new("bool[6]", self._zeroFluxFlags)

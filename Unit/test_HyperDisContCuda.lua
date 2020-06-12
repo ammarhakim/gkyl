@@ -33,11 +33,12 @@ local assert_close = Unit.assert_close
 local stats = Unit.stats
 
 function test_1()
-   local nloop = NLOOP or 1 -- number of HyperDisCont calls to loop over
+   local nloop = NLOOP or 2 -- number of HyperDisCont calls to loop over
    local runCPU = xsys.pickBool(RUNCPU, true)
    local checkResult = runCPU and true -- whether to check device result with host one, element-by-element. this can be expensive for large domains.
    local numThreads = NTHREADS or 128 -- number of threads to use in HyperDisCont kernel configuration
    local useSharedMemory = xsys.pickBool(SHARED, false) -- whether to use device shared memory
+   local lowres = xsys.pickBool(LOWRES, false)
 
    -- set up dimensionality and basis parameters. 
    -- these parameters needs to match what is hard-coded in kernel template at bottom of Eq/GkylVlasov.h for now.
@@ -55,6 +56,13 @@ function test_1()
    local nvx = 16  -- number of velocity dimensions in vx
    local nvy = 8  -- number of velocity dimensions in vy 
    local nvz = 32  -- number of velocity dimensions in vz 
+   if lowres then
+     nx = 4
+     ny = 2
+     nvx = 2
+     nvy = 2
+     nvz = 4
+   end
 
    local grid = Grid.RectCart {
       cells = {nx, ny, nvx, nvy, nvz},
@@ -81,7 +89,6 @@ function test_1()
       equation = vlasovEq,
       zeroFluxDirections = zfd,
       clearOut = true,
-      noPenaltyFlux = true, -- penalty flux not yet implemented on device
       numThreads = numThreads,
       useSharedDevice = useSharedMemory,
    }
