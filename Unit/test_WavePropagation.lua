@@ -78,10 +78,10 @@ function test_1()
    for idx in qIn:localRangeIter() do
       local fitr = qIn:get(indexer(idx))
       local x = idx[1]
-      fitr[1] = rho
-      fitr[2] = rho*u * (1 + 0.1 * math.sin( x/nx * 2 * math.pi ))
-      fitr[3] = rho*v
-      fitr[4] = rho*w
+      fitr[1] = rho * (1 + 0.1 * math.sin( x/nx * 2 * math.pi ))
+      fitr[2] = rho*u * (1 + 0.11 * math.sin( x/nx * 2 * math.pi ))
+      fitr[3] = rho*v * (1 + 0.12 * math.cos( x/nx * 2 * math.pi ))
+      fitr[4] = rho*w * (1 + 0.13 * math.cos( x/nx * 2 * math.pi ))
       fitr[5] = pr/(gg-1) + 0.5 * (fitr[2]^2 + fitr[3]^2 + fitr[4]^2) / fitr[1]
    end
    qIn:sync()
