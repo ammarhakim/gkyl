@@ -714,17 +714,10 @@ local function Field_meta_ctor(elct)
 	 return self._data+loc
       end,
       write = function (self, fName, tmStamp, frNum, writeSkin)
-         if GKYL_USE_DEVICE then
-            self:copyDeviceToHostAsync(stream)
-         end
 	 self._adiosIo:write(self, fName, tmStamp, frNum, writeSkin)
       end,
       read = function (self, fName) --> time-stamp, frame-number
-	 local retval = self._adiosIo:read(self, fName)
-         if GKYL_USE_DEVICE then
-            self:copyHostToDevice()
-         end
-         return retval
+	 return self._adiosIo:read(self, fName)
       end,
       sync = (GKYL_USE_DEVICE and function(self,...) self:deviceSync(...) end) or function(self,...) self:hostSync(...) end,
       hostSync = function (self, syncPeriodicDirs_)

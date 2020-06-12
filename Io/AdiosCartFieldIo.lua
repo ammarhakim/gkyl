@@ -129,6 +129,10 @@ end
 -- writeSkin: Flag to indicate if we should write skin-cells on boundaries of global domain
 -- 
 function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeSkin)
+   if GKYL_USE_DEVICE then
+      field:copyDeviceToHostAsync(self.ioStream)
+   end
+
    local _writeSkin = self._writeSkin
    if writeSkin ~= nil then _writeSkin = writeSkin end
    local comm = Mpi.getComm(field:grid():commSet().nodeComm)
@@ -402,6 +406,11 @@ function AdiosCartFieldIo:read(field, fName, readSkin) --> time-stamp, frame-num
    -- If running with shared memory, need to broadcast time stamp and frame number.
    Mpi.Bcast(tmStampBuff, 1, Mpi.DOUBLE, 0, shmComm)
    Mpi.Bcast(frNumBuff, 1, Mpi.INT, 0, shmComm)
+
+   if GKYL_USE_DEVICE then
+      field:copyHostToDevice()
+   end
+
    return tmStampBuff[0], frNumBuff[0]
 end
 

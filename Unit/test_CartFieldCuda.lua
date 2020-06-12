@@ -421,6 +421,47 @@ function test_6()
 
 end
 
+function test_read_write()
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0},
+      upper = {1.0, 1.0},
+      cells = {10, 10},
+   }
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+      ghost = {1, 2},
+      metaData = {
+	 polyOrder = 2, basisType = "ms"
+      }
+   }
+   field:clear(10.25)
+
+   -- write field
+   field:write("CartFieldTest_field.bp", 2.5, 50)
+
+   local fieldIn = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+      ghost = {1, 2},
+   }
+   fieldIn:clear(0.0)
+
+   local tm, fr = fieldIn:read("CartFieldTest_field.bp")
+
+   assert_equal(2.5, tm, "Checking time-stamp")
+   assert_equal(50, fr, "Checking frame")
+   
+   -- check if fields are identical
+   local indexer = field:genIndexer()
+   for idx in field:localRangeIter() do
+      local fitr, fitrIn = field:get(indexer(idx)), fieldIn:get(indexer(idx))
+      for k = 1, field:numComponents() do
+	 assert_equal(fitr[k], fitrIn[k], "Checking if field read correctly")
+      end
+   end
+end
+
 test_1()
 test_2()
 test_3()
@@ -429,6 +470,7 @@ test_5()
 test_deviceReduce(1, false)
 
 test_6()
+test_read_write()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
