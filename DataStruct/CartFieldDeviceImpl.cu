@@ -10,25 +10,25 @@
 
 __global__ void ker_gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double *inp, double *out) 
 {
-  for (int n = blockIdx.x*blockDim.x + threadIdx.x + s; n < nv; n += blockDim.x * gridDim.x)
+  for (int n = blockIdx.x*blockDim.x + threadIdx.x + s; n < s + nv; n += blockDim.x * gridDim.x)
      out[n] += fact*inp[n];
 }
 
 __global__  void ker_gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out) 
 {
-  for (int n = blockIdx.x*blockDim.x + threadIdx.x + s; n < nv; n += blockDim.x * gridDim.x)
+  for (int n = blockIdx.x*blockDim.x + threadIdx.x + s; n < s + nv; n += blockDim.x * gridDim.x)
     out[n] = fact*inp[n];
 }
 
 __global__  void ker_gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out) 
 {
-  for (int n = blockIdx.x*blockDim.x + threadIdx.x + s; n < nv; n += blockDim.x * gridDim.x)
+  for (int n = blockIdx.x*blockDim.x + threadIdx.x + s; n < s + nv; n += blockDim.x * gridDim.x)
     out[n] *= fact;
 }
 
 __global__  void ker_gkylCartFieldAbs(unsigned s, unsigned nv, double *out) 
 {
-  for (int n = blockIdx.x*blockDim.x + threadIdx.x + s; n < nv; n += blockDim.x * gridDim.x)
+  for (int n = blockIdx.x*blockDim.x + threadIdx.x + s; n < s + nv; n += blockDim.x * gridDim.x)
     out[n] = fabs(out[n]);
 }
 
@@ -46,7 +46,7 @@ __global__  void ker_gkylCopyToField(double *f, double *data, unsigned numCompon
 
 __global__  void ker_gkylCartFieldAssignAll(unsigned s, unsigned nv, double val, double *out) 
 {
-  for (int n = blockIdx.x*blockDim.x + threadIdx.x + s; n < nv; n += blockDim.x * gridDim.x)
+  for (int n = blockIdx.x*blockDim.x + threadIdx.x + s; n < s + nv; n += blockDim.x * gridDim.x)
     out[n] = val;
 }
 
