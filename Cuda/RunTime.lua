@@ -19,6 +19,7 @@ local _M = {}
 ffi.cdef [[
   // typedefs for use in API below
   typedef int cudaMemcpyKind;
+  typedef int cudaStream_t;
 
   typedef struct {
     char name[256];
@@ -84,6 +85,7 @@ ffi.cdef [[
   int cudaMalloc(void **devPtr, size_t size);
   int cudaFree(void *ptr);
   int cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind);
+  int cudaMemcpyAsync(void* dst, const void* src, size_t count, cudaMemcpyKind kind, cudaStream_t stream);
   int cudaMemcpyFromSymbol(void* dst, const void* src, size_t count, size_t offset, cudaMemcpyKind kind);
   int cudaMemcpyToSymbol(void* dst, const void* src, size_t count, size_t offset, cudaMemcpyKind kind);
   int cudaMallocManaged(void** devPtr, size_t size, unsigned int flags);
@@ -205,6 +207,11 @@ end
 -- cudaMemcpy
 function _M.Memcpy(dst, src, count, kind)
    return ffiC.cudaMemcpy(dst, src, count, kind)
+end
+
+function _M.MemcpyAsync(dst, src, count, kind, stream)
+   local stream = stream or 0
+   return ffiC.cudaMemcpyAsync(dst, src, count, kind, stream)
 end
 
 function _M.MemcpyFromSymbol(dst, src, count)

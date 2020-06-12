@@ -91,6 +91,14 @@ local function Alloc_meta_ctor(elct, _isManaged)
       copyHostToDevice = function(self, hd)
 	 return cuda.Memcpy(self:data(), hd:data(), self:elemSize()*self:size(), cuda.MemcpyHostToDevice)
       end,
+      copyDeviceToHostAsync = function(self, hd, stream)
+         local stream = stream or 0
+	 return cuda.MemcpyAsync(hd:data(), self:data(), self:elemSize()*self:size(), cuda.MemcpyDeviceToHost, stream)
+      end,
+      copyHostToDeviceAsync = function(self, hd, stream)
+         local stream = stream or 0
+	 return cuda.MemcpyAsync(self:data(), hd:data(), self:elemSize()*self:size(), cuda.MemcpyHostToDevice, stream)
+      end,
       delete = function (self)
 	 if self._capacity == 0 then
 	    return false
