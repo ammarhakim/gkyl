@@ -100,15 +100,17 @@ function PerfMaxwell:init(tbl)
 end
 
 function PerfMaxwell:initDevice(tbl)
-   local bId = self._basis:id()
-   local b = 0
-   if bId == "maximal-order" then 
-     b = 1
+   if self._basis then
+      local bId = self._basis:id()
+      local b = 0
+      if bId == "maximal-order" then 
+        b = 1
+      end
+      if bId == "serendipity" then 
+        b = 2
+      end 
+      self._onDevice = ffi.C.new_MaxwellOnDevice(self._basis:ndim(), self._basis:polyOrder(), b, self._ceqn, self._tau)
    end
-   if bId == "serendipity" then 
-     b = 2
-   end 
-   self._onDevice = ffi.C.new_MaxwellOnDevice(self._basis:ndim(), self._basis:polyOrder(), b, self._ceqn, self._tau)
 
    return self
 end

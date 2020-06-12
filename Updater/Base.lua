@@ -49,7 +49,11 @@ function _M:_advanceNoDeviceImpl(tCurr, inFld, outFld)
    -- do update
    self:_advance(tCurr, inFld, outFld)
    -- copy output fields from host -> device
-   for _, fld in ipairs(outFld) do fld:copyHostToDevice() end
+   for _, fld in ipairs(outFld) do 
+      if fld.copyHostToDevice then
+         fld:copyHostToDevice() 
+      end
+   end
 end
 
 -- must be provided by derived objects
