@@ -119,11 +119,11 @@ end
 function HyperDisCont:initDevice(tbl)
    self.maxsByCell = DataStruct.Field {
       onGrid = self._onGrid,
-      numComponents = #self._updateDirs,
+      numComponents = self._ndim,
       ghost = {1, 1},
       createDeviceCopy = true,
    }
-   self.maxs = cuAlloc.Double(6)
+   self.maxs = cuAlloc.Double(self._ndim)
    local hyper = ffi.new("GkylHyperDisCont_t")
    hyper.updateDirs = ffi.new("int[6]", self._updateDirs)
    hyper.zeroFluxFlags = ffi.new("bool[6]", self._zeroFluxFlags)
@@ -310,7 +310,7 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
       ffiC.advanceOnDevice(numBlocks, numThreads, qIn:numComponents(), self._onDevice, qIn._onDevice, qRhsOut._onDevice)
    end
 
-   --self.maxsByCell:deviceReduce('max', self.maxs)  
+   self.maxsByCell:deviceReduce('max', self.maxs)  
 end
 
 -- set up pointers to dt and cflRateByCell
