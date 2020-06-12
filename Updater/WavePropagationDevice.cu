@@ -15,8 +15,12 @@ __device__ static void calcFirstOrderGud(
   const double *apdq, const int meqn)
 {
   for (int i = 0; i< meqn; i++) {
-    qr[i] -= dtdx * apdq[i];
-    ql[i] -= dtdx * amdq[i];
+    /* qr[i] -= dtdx * apdq[i]; */
+    /* ql[i] -= dtdx * amdq[i]; */
+    // XXX calling __threadfence_system() between two calcFirstOrderGud dummy
+    // calls fails occasionally with small numThreads
+    atomicAdd(qr+i, -dtdx * apdq[i]);
+    atomicAdd(ql+i, -dtdx * amdq[i]);
   }
 }
 
@@ -108,10 +112,11 @@ __global__ void cuda_WavePropagation(
     eq->rp(dir, delta, qInL, qInR, waves, s);
     eq->qFluctuations(dir, qInL, qInR, waves, s, amdq, apdq);
 
-    calcFirstOrderGud(dtdx, qOutL, dummy, amdq, apdq, meqn);
-    // XXX better way to avoid race condition?
-    __threadfence_system();
-    calcFirstOrderGud(dtdx, dummy, qOutR, amdq, apdq, meqn);
+    calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq, meqn);
+    // XXX following fails with small numThreads
+    /* calcFirstOrderGud(dtdx, qOutL, dummy, amdq, apdq, meqn); */
+    /* __threadfence_system(); */
+    /* calcFirstOrderGud(dtdx, dummy, qOutR, amdq, apdq, meqn); */
 
     cfla = calcCfla(cfla, dtdx, s, mwave);
   }
