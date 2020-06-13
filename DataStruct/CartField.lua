@@ -59,7 +59,8 @@ ffi.cdef [[
         int ndim;
         int elemSize;
         int numComponents;
-        GkylRange_t *localRange, *localExtRange, *localEdgeRange;
+        GkylRange_t *localRange, *localExtRange;
+        GkylRange_t *localExtEdgeRange;
         GkylRange_t *globalRange, *globalExtRange;
         GkylRectCart_t *grid;
         double *_data;
@@ -241,7 +242,7 @@ local function Field_meta_ctor(elct)
       self._localExtRange = self._localRange:extend(
 	 self._lowerGhost, self._upperGhost)
       -- all cell-cell edges, including those of a ghost cell
-      self._localEdgeRange = self._localRange:extend(1, 2)
+      self._localExtEdgeRange = self._localRange:extend(1, 2)
 
       -- Local and (MPI) global values of a reduction (reduce method).
       self.localReductionVal  = ElemVec(self._numComponents)
@@ -261,7 +262,7 @@ local function Field_meta_ctor(elct)
          f._data = self._devAllocData:data()
          f.localRange = Range.copyHostToDevice(self._localRange)
          f.localExtRange = Range.copyHostToDevice(self._localExtRange)
-         f.localEdgeRange = Range.copyHostToDevice(self._localEdgeRange)
+         f.localExtEdgeRange = Range.copyHostToDevice(self._localExtEdgeRange)
          f.globalRange = Range.copyHostToDevice(self._globalRange)
          f.globalExtRange = Range.copyHostToDevice(self._globalExtRange)
          f.grid = self._grid._onDevice
@@ -656,8 +657,8 @@ local function Field_meta_ctor(elct)
       localExtRange = function (self) -- includes ghost cells
 	 return self._localExtRange
       end,      
-      localEdgeRange = function (self)
-	 return self._localEdgeRange
+      localExtEdgeRange = function (self)
+	 return self._localExtEdgeRange
       end,      
       globalRange = function (self)
 	 return self._globalRange

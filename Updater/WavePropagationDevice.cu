@@ -39,7 +39,7 @@ __global__ void cuda_WavePropagation(
 {
 
   GkylRange_t *localRange = qIn->localRange;
-  GkylRange_t *localEdgeRange = qIn->localEdgeRange;
+  GkylRange_t *localExtEdgeRange = qIn->localExtEdgeRange;
   int ndim = localRange->ndim;
 
   // set up indexers for localRange and qIn (localExtRange)
@@ -108,7 +108,7 @@ __global__ void cuda_WavePropagation(
     double *qOutL = qOut->getDataPtrAt(linearIdxL);
     double *qOutR = qOut->getDataPtrAt(linearIdxR);
 
-    if(linearIdx < localEdgeRange->volume()) {
+    if(linearIdx < localExtEdgeRange->volume()) {
       calcDelta(qInL, qInR, delta, meqn);
 
       eq->rp(dir, delta, qInL, qInR, waves, s);
