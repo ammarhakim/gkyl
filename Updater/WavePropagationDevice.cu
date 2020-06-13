@@ -66,8 +66,6 @@ __global__ void cuda_WavePropagation(
 
   // XXX use meqn and mwave
   double delta[5];
-  double waves[5];
-  double s[1];
   double amdq[5];
   double apdq[5];
 
@@ -75,6 +73,20 @@ __global__ void cuda_WavePropagation(
   // improve performance a bit
   extern __shared__ double dummy[];
   int linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
+
+  // assign buffer space for different usages
+  int base = 0;
+
+  const int baseWaveSlices = base;
+  base += (meqn * mwave) * blockDim.x;
+
+  const int baseSpeedSlices = base;
+  base += (mwave) * blockDim.x;
+
+  // find buffer addresses for each thread
+  // FIXME shall waves and s be created on the fly and then copied into slices
+  double *waves = dummy + (baseWaveSlices + (meqn * mwave) * threadIdx.x);
+  double *s = dummy + (baseSpeedSlices + (mwave) * threadIdx.x);
 
   int idxC[3];
   int idxL[3];
