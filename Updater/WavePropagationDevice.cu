@@ -135,10 +135,17 @@ void wavePropagationAdvanceOnDevice(
   int numBlocks, int numThreads, GkylWavePropagation_t *hyper,
   GkylCartField_t *qIn, GkylCartField_t *qOut)
 {
+  Gkyl::Euler *eq = hyper->equation;
+  // XXX
+  const int meqn = 5; // eq->numEquations();
+  const int mwave = 1; // eq->numWaves();
+  const int nComponents = (mwave + mwave * meqn);
+  const int sharedMemSize = numThreads * nComponents;
+
   cudaFuncSetAttribute(
     cuda_WavePropagation, cudaFuncAttributeMaxDynamicSharedMemorySize,
-    32*sizeof(double));
-  cuda_WavePropagation<<<numBlocks, numThreads, 32*sizeof(double)>>>(
+    sharedMemSize*sizeof(double));
+  cuda_WavePropagation<<<numBlocks, numThreads, sharedMemSize*sizeof(double)>>>(
     hyper, qIn, qOut);
 }
 
