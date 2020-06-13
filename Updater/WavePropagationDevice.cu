@@ -44,6 +44,58 @@ __device__ static double waveDotProd(
   return result;
 }
 
+__device__ static inline double limiter_minMod(const double r) {
+   // return max(0., min(1., r));
+   return 1;
+}
+
+__device__ static void limitWaves(
+    double *waveSlice, const double *speedSlice, const int mwave,
+    const int meqn) {
+  int i = threadIdx.x + 1;  // FIXME
+  int jump = meqn * mwave;
+  for (int mw = 0; mw < mwave; mw++ ){
+    const double wnorm2 = waveDotProd(
+        waveSlice+i*jump, waveSlice+i*jump, mw, meqn);
+    double wlimitr = 1.;
+    if (wnorm2 > 0) {
+      double r;
+      if (speedSlice[i] > 0) {
+        const double dotl = waveDotProd(
+            waveSlice+(i-1)*jump, waveSlice+i*jump, mw, meqn);
+        r = dotl/wnorm2;
+      }
+      else {
+        const double dotr = waveDotProd(
+            waveSlice+(i+1)*jump, waveSlice+i*jump, mw, meqn);
+        r= dotr/wnorm2;
+      }
+      wlimitr = limiter_minMod(r);
+    }
+    __threadfence_block();
+    for (int me = 0; me < meqn; me++) {
+      waveSlice[i*jump+mw*meqn] *= wlimitr;
+    }
+  }
+}
+
+__device__ static void secondOrderFlux(
+  const double dtdx, const double s, const double *wave, double * fs,
+  const int meqn) {
+  double sfact = 0.5 * abs(s) * (1 - abs(s) * dtdx);
+  for (int i = 0; i < meqn; i++) {
+    fs[i] += sfact * wave[i];
+  }
+}
+
+__device__ static void secondOrderUpdate(
+    const double dtdx, const double *fs, const double *fs1, double *q,
+    const int meqn) {
+  for (int i = 0; i < meqn; i++) {
+    q[i] -= dtdx * (fs1[i] - fs[i]);
+  }
+}
+
 __device__ static void copyComponents(
     const double *ptrFrom, double *ptrTo, const int nComponents) {
   for (int i = 0; i < nComponents; i++) {
@@ -159,7 +211,7 @@ __global__ void cuda_WavePropagation(
     }
 
     if(linearIdx < localEdgeRange->volume()) {
-      // limitWaves();
+      limitWaves(waveSlice, speedSlice, mwave, meqn);
     }
 
     if(linearIdx < localEdgeRange->volume()) {
