@@ -448,9 +448,6 @@ function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)
    local numThreads = math.min(self.numThreads, numEdgesLocal)
    local numBlocks  = math.ceil(numEdgesLocal/numThreads)
 
-   -- FIXME correct code and place to do device copy?
-   qOut:deviceCopy(qIn)
-
    if self._useSharedDevice then
       -- TODO implement
       -- ffi.C.advanceOnDevice_shared(
@@ -461,7 +458,7 @@ function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)
          numBlocks, numThreads, self._onDevice, qIn._onDevice, qOut._onDevice)
    end
 
-   self.dtByCell:deviceReduce('min', self.dtPtr)
+   -- self.dtByCell:deviceReduce('min', self.dtPtr)
 end
 
 -- FIXME no cflRate needed here
