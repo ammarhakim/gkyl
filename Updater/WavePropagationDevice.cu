@@ -39,6 +39,7 @@ __global__ void cuda_WavePropagation(
 {
 
   GkylRange_t *localRange = qIn->localRange;
+  GkylRange_t *localEdgeRange = qIn->localEdgeRange;
   int ndim = localRange->ndim;
 
   // set up indexers for localRange and qIn (localExtRange)
@@ -107,18 +108,20 @@ __global__ void cuda_WavePropagation(
     double *qOutL = qOut->getDataPtrAt(linearIdxL);
     double *qOutR = qOut->getDataPtrAt(linearIdxR);
 
-    calcDelta(qInL, qInR, delta, meqn);
+    if(linearIdx < localEdgeRange->volume()) {
+      calcDelta(qInL, qInR, delta, meqn);
 
-    eq->rp(dir, delta, qInL, qInR, waves, s);
-    eq->qFluctuations(dir, qInL, qInR, waves, s, amdq, apdq);
+      eq->rp(dir, delta, qInL, qInR, waves, s);
+      eq->qFluctuations(dir, qInL, qInR, waves, s, amdq, apdq);
 
-    calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq, meqn);
-    // XXX following fails with small numThreads
-    /* calcFirstOrderGud(dtdx, qOutL, dummy, amdq, apdq, meqn); */
-    /* __threadfence_system(); */
-    /* calcFirstOrderGud(dtdx, dummy, qOutR, amdq, apdq, meqn); */
+      calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq, meqn);
+      // XXX following fails with small numThreads
+      /* calcFirstOrderGud(dtdx, qOutL, dummy, amdq, apdq, meqn); */
+      /* __threadfence_system(); */
+      /* calcFirstOrderGud(dtdx, dummy, qOutR, amdq, apdq, meqn); */
 
-    cfla = calcCfla(cfla, dtdx, s, mwave);
+      cfla = calcCfla(cfla, dtdx, s, mwave);
+    }
   }
 
   dtByCell->getDataPtrAt(linearIdxC)[0] = hyper->dt * cfl/cfla;
