@@ -34,6 +34,16 @@ __device__ static double calcCfla(
   return c;
 }
 
+__device__ static double waveDotProd(
+    const double *waves, const double *waves1, const int mw,
+    const int meqn) {
+  double result = 0.;
+  for (int i = 0; i < meqn; i++) {
+    result += waves[meqn*mw+i] * waves[meqn*mw+i];
+  }
+  return result;
+}
+
 __device__ static void copyComponents(
     const double *ptrFrom, double *ptrTo, const int nComponents) {
   for (int i = 0; i < nComponents; i++) {
