@@ -77,16 +77,18 @@ __global__ void cuda_WavePropagation(
   // assign buffer space for different usages
   int base = 0;
 
-  const int baseWaveSlices = base;
+  const int baseWaveSlice = base;
   base += (meqn * mwave) * blockDim.x;
+  double *waveSlice = dummy + baseWaveSlice;
 
-  const int baseSpeedSlices = base;
+  const int baseSpeedSlice = base;
   base += (mwave) * blockDim.x;
+  double *speedSlice = dummy + baseSpeedSlice;
 
   // find buffer addresses for each thread
   // FIXME shall waves and s be created on the fly and then copied into slices
-  double *waves = dummy + (baseWaveSlices + (meqn * mwave) * threadIdx.x);
-  double *s = dummy + (baseSpeedSlices + (mwave) * threadIdx.x);
+  double *waves = waveSlice + (meqn * mwave) * threadIdx.x;
+  double *s = speedSlice + (mwave) * threadIdx.x;
 
   int idxC[3];
   int idxL[3];
