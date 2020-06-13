@@ -65,11 +65,11 @@ __global__ void cuda_WavePropagation(
   const int mwave = eq->numWaves();
 
   // XXX use meqn and mwave
-  double delta[10];
-  double waves[30];
-  double s[3];
-  double amdq[10];
-  double apdq[10];
+  double delta[5];
+  double waves[5];
+  double s[1];
+  double amdq[5];
+  double apdq[5];
 
   // declaring this dummy array shared seems to alleviate register pressure and
   // improve performance a bit
