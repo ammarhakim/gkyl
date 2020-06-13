@@ -46,7 +46,7 @@ __global__ void cuda_WavePropagation(
 {
 
   GkylRange_t *localRange = qIn->localRange;
-  GkylRange_t *localExtRange = qIn->localExtRange;
+  GkylRange_t *localEdgeRange = qIn->localEdgeRange;
   GkylRange_t *localExtEdgeRange = qIn->localExtEdgeRange;
   int ndim = localRange->ndim;
 
@@ -146,6 +146,18 @@ __global__ void cuda_WavePropagation(
       /* calcFirstOrderGud(dtdx, dummy, qOutR, amdq, apdq, meqn); */
 
       cfla = calcCfla(cfla, dtdx, s, mwave);
+    }
+
+    if(linearIdx < localEdgeRange->volume()) {
+      // limitWaves();
+    }
+
+    if(linearIdx < localEdgeRange->volume()) {
+      // secondOrderFlux();
+    }
+
+    if(linearIdx < localRange->volume()) {
+      // secondOrderUpdate();
     }
   }
 
