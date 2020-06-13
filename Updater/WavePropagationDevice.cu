@@ -67,9 +67,6 @@ __global__ void cuda_WavePropagation(
   // improve performance a bit
   extern __shared__ double dummy[];
   int linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
-  /* // TODO */
-  /* if (linearIdx >= numEdgesLocal + 2) */
-  /*   return; */
 
   int idxC[3];
   int idxL[3];
