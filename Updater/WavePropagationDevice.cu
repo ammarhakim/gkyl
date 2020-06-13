@@ -34,6 +34,13 @@ __device__ static double calcCfla(
   return c;
 }
 
+__device__ static void copyComponents(
+    const double *ptrFrom, double *ptrTo, const int nComponents) {
+  for (int i = 0; i < nComponents; i++) {
+    ptrTo[i] = ptrFrom[i];
+  }
+}
+
 __global__ void cuda_WavePropagation(
   GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut)
 {
