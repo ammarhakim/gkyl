@@ -444,9 +444,9 @@ function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)
       outFld[1],
       "WavePropagation.advanceOnDevice: Must specify an output field")
 
-   local numEdgesLocal = qOut:localExtEdgeRange():volume()
-   local numThreads = math.min(self.numThreads, numEdgesLocal)
-   local numBlocks  = math.ceil(numEdgesLocal/numThreads)
+   local numExtEdgesLocal = qOut:localExtEdgeRange():volume()
+   local numThreads = math.min(self.numThreads, numExtEdgesLocal)
+   local numBlocks  = math.ceil(numExtEdgesLocal/numThreads)
 
    if self._useSharedDevice then
       -- TODO implement
