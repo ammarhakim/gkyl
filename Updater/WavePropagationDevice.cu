@@ -190,8 +190,8 @@ __global__ void cuda_WavePropagation(
     }
     // XXX firstOrder stuff is over extended edges, but idxC was calculated
     // from localIdxr.invIndex
-    idxL[dir] = idxC[dir] - 2;
-    idxR[dir] = idxC[dir] - 1;
+    idxL[dir] = idxC[dir] - 1;
+    idxR[dir] = idxC[dir] - 0;
 
     const int linearIdxL = fIdxr.index(idxL);
     const int linearIdxR = fIdxr.index(idxR);
