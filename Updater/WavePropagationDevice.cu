@@ -69,7 +69,7 @@ __device__ static void limitWaves(
       wlimitr = limiter_minMod(r);
     }
     for (int me = 0; me < meqn; me++) {
-      limitedWaveSlice[i*jump+mw*meqn] *= wlimitr;
+      limitedWaveSlice[i*jump+mw*meqn+me] *= wlimitr;
     }
   }
 }
