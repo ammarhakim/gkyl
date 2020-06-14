@@ -80,7 +80,7 @@ __device__ static void limitWaves(
 }
 
 __device__ static void secondOrderFlux(
-  const double dtdx, const double s, const double *wave, double * fs,
+  const double dtdx, const double s, const double *wave, double *fs,
   const int meqn) {
   double sfact = 0.5 * abs(s) * (1 - abs(s) * dtdx);
   for (int i = 0; i < meqn; i++) {
@@ -147,10 +147,15 @@ __global__ void cuda_WavePropagation(
   base += (mwave) * blockDim.x;
   double *speedSlice = dummy + baseSpeedSlice;
 
+  const int baseFluxSlice = base;
+  base += (meqn) * blockDim.x;
+  double *fluxSlice = dummy + baseFluxSlice;
+
   // find buffer addresses for each thread
   // FIXME shall waves and s be created on the fly and then copied into slices
   double *waves = waveSlice + (meqn * mwave) * threadIdx.x;
   double *s = speedSlice + (mwave) * threadIdx.x;
+  double *flux = fluxSlice + (meqn) * threadIdx.x;
 
   int idxC[3];
   int idxL[3];
@@ -214,13 +219,30 @@ __global__ void cuda_WavePropagation(
       limitWaves(waveSlice, speedSlice, mwave, meqn);
     }
 
-    if(linearIdx < localEdgeRange->volume()) {
-      // secondOrderFlux();
-    }
-
-    if(linearIdx < localRange->volume()) {
-      // secondOrderUpdate();
-    }
+    /* if(linearIdx < localEdgeRange->volume()) { */
+    /*   int idx = threadIdx.x + 1; */
+    /*   double *waves = waveSlice + (meqn * mwave) * i; */
+    /*   double *s = speedSlice + (mwave) * i; */
+    /*   double *flux = fluxSlice + (meqn) * i; */
+    /*  */
+    /*   for (int c = 0; c < meqn; c++) { */
+    /*     flux[c] = 0; */
+    /*   } */
+    /*  */
+    /*   for (int mw = 0; mw < mwave; mw++) { */
+    /*     secondOrderFlux(dtdx, s[mw], waves+mw*meqn, flux, meqn); */
+    /*   } */
+    /* } */
+    /*  */
+    /* if(linearIdx < localRange->volume()) { */
+    /*   int idx = threadIdx.x + 1; */
+    /*   double *flux = fluxSlice + (meqn) * i; */
+    /*   double *flux1 = fluxSlice + (meqn) * (i + 1); */
+    /*   idxC[dir] += 1; */
+    /*   const int linearIdxCC = fIdxr.index(idxC); */
+    /*   double *qOutCC = qOut->getDataPtrAt(linearIdxCC); */
+    /*   secondOrderUpdate(dtdx, flux, flux1, qOutCC, meqn); */
+    /* } */
   }
 
   dtByCell->getDataPtrAt(linearIdxC)[0] = hyper->dt * cfl/cfla;
@@ -234,7 +256,7 @@ void wavePropagationAdvanceOnDevice(
   // XXX
   const int meqn = 5; // eq->numEquations();
   const int mwave = 1; // eq->numWaves();
-  const int nComponents = (mwave + mwave * meqn);
+  const int nComponents = (mwave + mwave * meqn + meqn);
   const int sharedMemSize = numThreads * nComponents;
 
   cudaFuncSetAttribute(
