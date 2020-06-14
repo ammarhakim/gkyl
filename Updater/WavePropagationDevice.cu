@@ -215,9 +215,9 @@ __global__ void cuda_WavePropagation(
       cfla = calcCfla(cfla, dtdx, s, mwave);
     }
 
-    if(linearIdx < localEdgeRange->volume()) {
-      limitWaves(waveSlice, speedSlice, mwave, meqn);
-    }
+    /* if(linearIdx < localEdgeRange->volume()) { */
+    /*   limitWaves(waveSlice, speedSlice, mwave, meqn); */
+    /* } */
 
     /* if(linearIdx < localEdgeRange->volume()) { */
     /*   int idx = threadIdx.x + 1; */
