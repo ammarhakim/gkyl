@@ -61,19 +61,13 @@ __device__ static void limitWaves(
     double wlimitr = 1.;
     if (wnorm2 > 0) {
       double r;
-      if (speedSlice[i] > 0) {
         const double dotl = waveDotProd(
             waveSlice+(i-1)*jump, waveSlice+i*jump, mw, meqn);
-        r = dotl/wnorm2;
-      }
-      else {
         const double dotr = waveDotProd(
             waveSlice+(i+1)*jump, waveSlice+i*jump, mw, meqn);
-        r= dotr/wnorm2;
-      }
+        r = speedSlice[i] > 0 ? dotl/wnorm2 : dotr/wnorm2;
       wlimitr = limiter_minMod(r);
     }
-    __threadfence_block();
     for (int me = 0; me < meqn; me++) {
       limitedWaveSlice[i*jump+mw*meqn] *= wlimitr;
     }
