@@ -62,7 +62,7 @@ function test_1()
       equation = eq,
       numThreads = numThreads,
       useSharedDevice = useSharedDevice,
-      limiter = 'no-limiter',
+      limiter = 'zero',
    }
 
    local qIn = DataStruct.Field {
