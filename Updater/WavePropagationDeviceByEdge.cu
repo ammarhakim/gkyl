@@ -151,10 +151,10 @@ __global__ void cuda_WavePropagation(
 
   // find buffer addresses for each thread
   // FIXME shall waves and s be created on the fly and then copied into slices
-  double *waves = waveSlice + (meqn * mwave) * (threadIdx.x+1);
-  double *s = speedSlice + (mwave) * (threadIdx.x+1);
-  double *limitedWaves = limitedWaveSlice + (meqn * mwave) * (threadIdx.x+1);
-  double *flux = fluxSlice + (meqn) * (threadIdx.x+1);
+  double *waves = waveSlice + (meqn * mwave) * threadIdx.x;
+  double *s = speedSlice + (mwave) * threadIdx.x;
+  double *limitedWaves = limitedWaveSlice + (meqn * mwave) * threadIdx.x;
+  double *flux = fluxSlice + (meqn) * threadIdx.x;
 
   int idxC[3];
   int idxL[3];
@@ -201,7 +201,7 @@ __global__ void cuda_WavePropagation(
     double *qOutL = qOut->getDataPtrAt(linearIdxL);
     double *qOutR = qOut->getDataPtrAt(linearIdxR);
 
-    if(linearIdx < localRange->volume()) {
+    if(linearIdx < localExtEdgeRange->volume()) {
       calcDelta(qInL, qInR, delta, meqn);
 
       eq->rp(dir, delta, qInL, qInR, waves, s);
@@ -260,19 +260,14 @@ void wavePropagationAdvanceOnDevice(
   // XXX
   const int meqn = 5; // eq->numEquations();
   const int mwave = 1; // eq->numWaves();
-  int sharedMemSize = 0;
-  // numThreads == numRealCellsPerBlock
-  // s & waves are needed on all real-real, real-ghost, and ghost-ghost faces
-  sharedMemSize += (numThreads+3) * (mwave+mwave*meqn);
-  // limitedWaves and 2nd-order flux are needed on real-real & real-ghost faces
-  sharedMemSize += (numThreads+1) * (meqn+meqn);
-  sharedMemSize *= sizeof(double);
+  const int nComponents = (mwave + mwave * meqn + meqn);
+  const int sharedMemSize = numThreads * nComponents;
 
   cudaFuncSetAttribute(
-      cuda_WavePropagation, cudaFuncAttributeMaxDynamicSharedMemorySize,
-      sharedMemSize);
-  cuda_WavePropagation<<<numBlocks, numThreads, sharedMemSize>>>(
-      hyper, qIn, qOut);
+    cuda_WavePropagation, cudaFuncAttributeMaxDynamicSharedMemorySize,
+    sharedMemSize*sizeof(double));
+  cuda_WavePropagation<<<numBlocks, numThreads, sharedMemSize*sizeof(double)>>>(
+    hyper, qIn, qOut);
 }
 
 __global__ void setDtOnDevice(GkylWavePropagation_t *hyper, double dt) {
