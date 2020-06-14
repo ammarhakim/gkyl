@@ -50,7 +50,8 @@ __device__ static inline double limiter_minMod(const double r) {
 }
 
 __device__ static void limitWaves(
-    double *waveSlice, const double *speedSlice, const int mwave,
+    const double *waveSlice, const double *speedSlice, double *limitedWaveSlice,
+    const int mwave,
     const int meqn) {
   int i = threadIdx.x + 1;  // FIXME
   int jump = meqn * mwave;
@@ -74,7 +75,7 @@ __device__ static void limitWaves(
     }
     __threadfence_block();
     for (int me = 0; me < meqn; me++) {
-      waveSlice[i*jump+mw*meqn] *= wlimitr;
+      limitedWaveSlice[i*jump+mw*meqn] *= wlimitr;
     }
   }
 }
@@ -147,6 +148,10 @@ __global__ void cuda_WavePropagation(
   base += (mwave) * blockDim.x;
   double *speedSlice = dummy + baseSpeedSlice;
 
+  const int baseLimitedWaveSlice = base;
+  base += (meqn * mwave) * blockDim.x;
+  double *limitedWaveSlice = dummy + baseLimitedWaveSlice;
+
   const int baseFluxSlice = base;
   base += (meqn) * blockDim.x;
   double *fluxSlice = dummy + baseFluxSlice;
@@ -155,6 +160,7 @@ __global__ void cuda_WavePropagation(
   // FIXME shall waves and s be created on the fly and then copied into slices
   double *waves = waveSlice + (meqn * mwave) * threadIdx.x;
   double *s = speedSlice + (mwave) * threadIdx.x;
+  double *limitedWaves = limitedWaveSlice + (meqn * mwave) * threadIdx.x;
   double *flux = fluxSlice + (meqn) * threadIdx.x;
 
   int idxC[3];
@@ -215,11 +221,13 @@ __global__ void cuda_WavePropagation(
       /* calcFirstOrderGud(dtdx, dummy, qOutR, amdq, apdq, meqn); */
 
       cfla = calcCfla(cfla, dtdx, s, mwave);
+
+      copyComponents(waves, limitedWaves, meqn * mwave);
     }
 
-    /* if(linearIdx < localEdgeRange->volume()) { */
-    /*   limitWaves(waveSlice, speedSlice, mwave, meqn); */
-    /* } */
+    if(linearIdx < localEdgeRange->volume()) {
+      limitWaves(waveSlice, speedSlice, limitedWaveSlice, mwave, meqn);
+    }
 
     /* if(linearIdx < localEdgeRange->volume()) { */
     /*   int idx = threadIdx.x + 1; */
