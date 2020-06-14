@@ -201,7 +201,7 @@ __global__ void cuda_WavePropagation(
     double *qOutL = qOut->getDataPtrAt(linearIdxL);
     double *qOutR = qOut->getDataPtrAt(linearIdxR);
 
-    if(linearIdx < localRange->volume()) {
+    if(linearIdx < localEdgeRange->volume()) {
       calcDelta(qInL, qInR, delta, meqn);
 
       eq->rp(dir, delta, qInL, qInR, waves, s);
@@ -261,11 +261,11 @@ void wavePropagationAdvanceOnDevice(
   const int meqn = 5; // eq->numEquations();
   const int mwave = 1; // eq->numWaves();
   int sharedMemSize = 0;
-  // numThreads == numRealCellsPerBlock
+  // numThreads == numEdgesPerBlock == numRealCellsPerBlock + 1
   // s & waves are needed on all real-real, real-ghost, and ghost-ghost faces
-  sharedMemSize += (numThreads+3) * (mwave+mwave*meqn);
+  sharedMemSize += (numThreads+2) * (mwave+mwave*meqn);
   // limitedWaves and 2nd-order flux are needed on real-real & real-ghost faces
-  sharedMemSize += (numThreads+1) * (meqn+meqn);
+  sharedMemSize += (numThreads) * (meqn+meqn);
   sharedMemSize *= sizeof(double);
 
   cudaFuncSetAttribute(
