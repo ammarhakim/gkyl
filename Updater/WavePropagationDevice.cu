@@ -51,8 +51,8 @@ __device__ static inline double limiter_minMod(const double r) {
 
 __device__ static void limitWaves(
     const double *waveSlice, const double *speedSlice, double *limitedWaveSlice,
-    const int mwave, const int meqn, const int linearIdx) {
-  int i = linearIdx + 1;  // FIXME
+    const int mwave, const int meqn) {
+  int i = threadIdx.x + 1;  // FIXME
   int jump = meqn * mwave;
   for (int mw = 0; mw < mwave; mw++ ){
     const double wnorm2 = waveDotProd(
@@ -60,11 +60,11 @@ __device__ static void limitWaves(
     double wlimitr = 1.;
     if (wnorm2 > 0) {
       double r;
-        const double dotl = waveDotProd(
-            waveSlice+(i-1)*jump, waveSlice+i*jump, mw, meqn);
-        const double dotr = waveDotProd(
-            waveSlice+(i+1)*jump, waveSlice+i*jump, mw, meqn);
-        r = speedSlice[i] > 0 ? dotl/wnorm2 : dotr/wnorm2;
+      const double dotl = waveDotProd(
+          waveSlice+(i-1)*jump, waveSlice+i*jump, mw, meqn);
+      const double dotr = waveDotProd(
+          waveSlice+(i+1)*jump, waveSlice+i*jump, mw, meqn);
+      r = speedSlice[i] > 0 ? dotl/wnorm2 : dotr/wnorm2;
       wlimitr = limiter_minMod(r);
     }
     for (int me = 0; me < meqn; me++) {
@@ -220,7 +220,7 @@ __global__ void cuda_WavePropagation(
 
     if(linearIdx < localEdgeRange->volume()) {
       limitWaves(
-          waveSlice, speedSlice, limitedWaveSlice, mwave, meqn, linearIdx);
+          waveSlice, speedSlice, limitedWaveSlice, mwave, meqn);
     }
 
     /* if(linearIdx < localEdgeRange->volume()) { */
