@@ -50,25 +50,26 @@ __device__ static inline double limiter_minMod(const double r) {
 }
 
 __device__ static void limitWaves(
-    const double *waveSlice, const double *speedSlice, double *limitedWaveSlice,
+    const double *waves, const double *speeds, double *limitedWaves,
     const int mwave, const int meqn) {
   int i = threadIdx.x + 1;  // FIXME
   int jump = meqn * mwave;
   for (int mw = 0; mw < mwave; mw++ ){
     const double wnorm2 = waveDotProd(
-        waveSlice+i*jump, waveSlice+i*jump, mw, meqn);
+        waves, waves, mw, meqn);
     double wlimitr = 1.;
     if (wnorm2 > 0) {
       double r;
       const double dotl = waveDotProd(
-          waveSlice+(i-1)*jump, waveSlice+i*jump, mw, meqn);
+          waves-jump, waves, mw, meqn);
       const double dotr = waveDotProd(
-          waveSlice+(i+1)*jump, waveSlice+i*jump, mw, meqn);
-      r = speedSlice[i] > 0 ? dotl/wnorm2 : dotr/wnorm2;
+          waves+jump, waves, mw, meqn);
+      r = speeds[i] > 0 ? dotl/wnorm2 : dotr/wnorm2;
+printf("[%2d, %2d] dotl %13g dotr %13g wnorm2 %13g\n", blockIdx.x, threadIdx.x, dotl, dotr, wnorm2);
       wlimitr = limiter_minMod(r);
     }
     for (int me = 0; me < meqn; me++) {
-      limitedWaveSlice[i*jump+mw*meqn+me] *= wlimitr;
+      limitedWaves[mw*meqn+me] *= wlimitr;
     }
   }
 }
@@ -174,6 +175,7 @@ __global__ void cuda_WavePropagation(
   const double *qInC = qIn->getDataPtrAt(linearIdxC);
   double *qOutC = qOut->getDataPtrAt(linearIdxC);
 
+  // XXX still missing ghost cells
   if(linearIdx < localExtEdgeRange->volume()) {
     for(int i = 0; i < meqn; i++) {
       qOutC[i] = qInC[i];
@@ -216,12 +218,39 @@ __global__ void cuda_WavePropagation(
       cfla = calcCfla(cfla, dtdx, s, mwave);
 
       copyComponents(waves, limitedWaves, meqn * mwave);
+
+      if (threadIdx.x==0 || threadIdx.x==blockDim.x-1) {
+        int inc = 1;
+        if (threadIdx.x==0) {
+          inc = -1;
+        }
+        idxL[dir] += inc;
+        idxR[dir] += inc;
+        const int linearIdxL = fIdxr.index(idxL);
+        const int linearIdxR = fIdxr.index(idxR);
+        const double *qInL = qIn->getDataPtrAt(linearIdxL);
+        const double *qInR = qIn->getDataPtrAt(linearIdxR);
+        calcDelta(qInL, qInR, delta, meqn);
+        eq->rp(dir, delta, qInL, qInR, waves+inc*meqn*mwave, s+inc*mwave);
+        idxL[dir] -= inc;
+        idxR[dir] -= inc;
+        printf("[%2d, %2d] inc %d\n", blockIdx.x, threadIdx.x, inc);
+      }
     }
 
+    /* __syncthreads(); */
+    /* if(linearIdx < localExtEdgeRange->volume()) */
+    /* printf("[%2d] after  L [%2d] %13g, R [%2d] %13g; wave %13g; amdq %13g; qOutL %13g\n", */
+    /*     linearIdxC, idxL[dir], qInL[0], idxR[dir], qInR[0], waves[0], amdq[0], qOutL[0]); */
+
     if(linearIdx < localEdgeRange->volume()) {
-      limitWaves(
-          waveSlice, speedSlice, limitedWaveSlice, mwave, meqn);
+      limitWaves(waves, s, limitedWaves, mwave, meqn);
     }
+
+    /* __syncthreads(); */
+    /* if(linearIdx < localExtEdgeRange->volume()) */
+    /* printf("[%2d] limited L [%2d] %13g, R [%2d] %13g; wave %13g; amdq %13g; qOutL %13g\n", */
+    /*     linearIdxC, idxL[dir], qInL[0], idxR[dir], qInR[0], waves[0], amdq[0], qOutL[0]); */
 
     /* if(linearIdx < localEdgeRange->volume()) { */
     /*   int idx = threadIdx.x + 1; */
