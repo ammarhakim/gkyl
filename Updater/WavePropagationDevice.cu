@@ -232,6 +232,7 @@ __global__ void cuda_WavePropagation(
         const double *qInR = qIn->getDataPtrAt(linearIdxR);
         calcDelta(qInL, qInR, delta, meqn);
         eq->rp(dir, delta, qInL, qInR, waves+inc*meqn*mwave, s+inc*mwave);
+        cfla = calcCfla(cfla, dtdx, s+inc*mwave, mwave);
         idxL[dir] -= inc;
         idxR[dir] -= inc;
       }
@@ -248,6 +249,7 @@ __global__ void cuda_WavePropagation(
           const double *qInR = qIn->getDataPtrAt(linearIdxR);
           calcDelta(qInL, qInR, delta, meqn);
           eq->rp(dir, delta, qInL, qInR, waves+inc*meqn*mwave, s+inc*mwave);
+          cfla = calcCfla(cfla, dtdx, s+inc*mwave, mwave);
           copyComponents(waves+inc*meqn*mwave, limitedWaves+inc*meqn*mwave, meqn * mwave);
 
           if (linearIdx==localRange->volume()-1 && inc==1) {
