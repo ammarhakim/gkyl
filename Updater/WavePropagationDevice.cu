@@ -216,11 +216,23 @@ __global__ void cuda_WavePropagation(
 
       copyComponents(waves, limitedWaves, meqn * mwave);
 
-      if (threadIdx.x==0 || threadIdx.x==blockDim.x-1) {
+      // can we avoid branching?
+      if (threadIdx.x==0) {
+        int inc = -1;
+        idxL[dir] += inc;
+        idxR[dir] += inc;
+        const int linearIdxL = fIdxr.index(idxL);
+        const int linearIdxR = fIdxr.index(idxR);
+        const double *qInL = qIn->getDataPtrAt(linearIdxL);
+        const double *qInR = qIn->getDataPtrAt(linearIdxR);
+        calcDelta(qInL, qInR, delta, meqn);
+        eq->rp(dir, delta, qInL, qInR, waves+inc*meqn*mwave, s+inc*mwave);
+        idxL[dir] -= inc;
+        idxR[dir] -= inc;
+        printf("[%2d, %2d] inc %d\n", blockIdx.x, threadIdx.x, inc);
+      }
+      if (threadIdx.x==blockDim.x-1 || linearIdx==localEdgeRange->volume()-1) {
         int inc = 1;
-        if (threadIdx.x==0) {
-          inc = -1;
-        }
         idxL[dir] += inc;
         idxR[dir] += inc;
         const int linearIdxL = fIdxr.index(idxL);
@@ -245,7 +257,7 @@ __global__ void cuda_WavePropagation(
     }
 
     /* __syncthreads(); */
-    /* if(linearIdx < localExtEdgeRange->volume()) */
+    /* if(linearIdx < localEdgeRange->volume()) */
     /* printf("[%2d] limited L [%2d] %13g, R [%2d] %13g; wave %13g; amdq %13g; qOutL %13g\n", */
     /*     linearIdxC, idxL[dir], qInL[0], idxR[dir], qInR[0], waves[0], amdq[0], qOutL[0]); */
 
