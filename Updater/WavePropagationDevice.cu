@@ -177,6 +177,8 @@ __global__ void cuda_WavePropagation(
   const double *qInC = qIn->getDataPtrAt(linearIdxC);
   double *qOutC = qOut->getDataPtrAt(linearIdxC);
 
+  // ghost cells are not copied, but this is OK because the waves and s are
+  // computed using qIn anyway
   if(linearIdx < localRange->volume()) {
     for(int i = 0; i < meqn; i++) {
             qOutC[i] = qInC[i];
