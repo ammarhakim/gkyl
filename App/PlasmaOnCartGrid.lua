@@ -933,6 +933,7 @@ return {
    Projection         = Projection,
    VlasovSpecies      = Species.VlasovSpecies,
    VmBGKCollisions    = Collisions.VmBGKCollisions,   
+   VmIonization       = Collisions.VmIonization,
    VmLBOCollisions    = Collisions.VmLBOCollisions,
    VoronovIonization  = Collisions.VoronovIonization,
 
@@ -962,6 +963,7 @@ return {
       LBOCollisions        = Collisions.VmLBOCollisions,
       BgkCollisions        = Collisions.VmBGKCollisions,
       LboCollisions        = Collisions.VmLBOCollisions,
+      Ionization           = Collisions.VmIonization,
    },
    Moments = {
       App = App, Species = Species.MomentSpecies, Field = Field.MaxwellField,

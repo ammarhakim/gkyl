@@ -171,6 +171,7 @@ function VmIonization:advance(tCurr, fIn, species, fRhsOut)
    local coefIz = species[self.elcNm]:getVoronovReactRate()
    local distFn = species[self.neutNm]:getDistF()
    local elcM0  = species[self.elcNm]:fluidMoments()[1]
+--   distFn:write(string.format("neutDistF.bp"),0.0,0,false)
 
    -- Check whether particle is electron, neutral or ion species
    if (self.speciesName == self.elcNm) then
@@ -191,7 +192,6 @@ function VmIonization:advance(tCurr, fIn, species, fRhsOut)
       tmEvalMomStart = Time.clock()
       self.m0elc:copy(elcM0)
       self.neutDistF:copy(distFn)
-      
       self.confMult:advance(tCurr, {coefIz, self.m0elc}, {self.coefM0})
       self.collisionSlvr:advance(tCurr, {self.coefM0, self.neutDistF}, {self.ionizSrc})
       self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
@@ -212,6 +212,10 @@ function VmIonization:advance(tCurr, fIn, species, fRhsOut)
 end
    
 function VmIonization:write(tm, frame)
+end
+
+function VmIonization:getIonizSrc()
+   return self.ionizSrc
 end
 
 function VmIonization:slvrTime()

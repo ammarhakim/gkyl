@@ -12,6 +12,7 @@ local GkLBOCollisions   = require "App.Collisions.GkLBOCollisions"
 local GkIonization      = require "App.Collisions.GkIonization"
 local VmBGKCollisions   = require "App.Collisions.VmBGKCollisions"
 local VmLBOCollisions   = require "App.Collisions.VmLBOCollisions"
+local VmIonization      = require "App.Collisions.VmIonization"
 local VoronovIonization = require "App.Collisions.VoronovIonization"
 
 return {
@@ -22,5 +23,6 @@ return {
   GkIonization      = GkIonization,
   VmBGKCollisions   = VmBGKCollisions,
   VmLBOCollisions   = VmLBOCollisions,
+  VmIonization      = VmIonization,
   VoronovIonization = VoronovIonization,
 }

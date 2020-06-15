@@ -148,6 +148,13 @@ function VlasovSpecies:createSolver(hasE, hasB)
       confBasis  = self.confBasis,
       moment     = "FiveMoments",
    }
+   self.calcMaxwellIz = Updater.MaxwellianOnBasis {
+      onGrid     = self.grid,
+      confGrid   = self.confGrid,
+      confBasis  = self.confBasis,
+      phaseGrid  = self.grid,
+      phaseBasis = self.basis,
+   }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
       -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
@@ -404,6 +411,41 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
       end
    end
 
+   -- If ionization collision object exists, locate electrons
+   local counter = true
+   for sN, _ in pairs(species) do
+      if species[sN].collisions and next(species[sN].collisions) then 
+         for sO, _ in pairs(species) do
+	    if self.collPairs[sN][sO].on then
+   	       if (self.collPairs[sN][sO].kind == 'Ionization') then
+   		  for collNm, _ in pairs(species[sN].collisions) do
+   		     if self.name==species[sN].collisions[collNm].elcNm and counter then
+   			self.neutNmIz = species[sN].collisions[collNm].neutNm
+   			self.needSelfPrimMom  = true
+   			self.calcReactRate    = true
+   			self.collNmIoniz      = collNm
+			self.voronovReactRate = self:allocMoment()
+   			self.vtSqIz           = self:allocMoment()
+   			self.m0fMax           = self:allocMoment()
+   			self.m0mod            = self:allocMoment()
+   			self.fMaxwellIz       = DataStruct.Field {
+   			   onGrid        = self.grid,
+   			   numComponents = self.basis:numBasis(),
+   			   ghost         = {1, 1},
+   			   metaData = {
+   			      polyOrder = self.basis:polyOrder(),
+   			      basisType = self.basis:id()
+   			   },
+   			}
+			counter = false
+   		     end
+   		  end
+   	       end
+   	    end
+   	 end
+      end
+   end
+
    if self.needSelfPrimMom then
       -- Allocate fields to store self-species primitive moments.
       self.uSelf    = self:allocVectorMoment(self.vdim)
@@ -486,7 +528,12 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
 
 end
 
+function VlasovSpecies:setActiveRKidx(rkIdx)
+   self.activeRKidx = rkIdx
+end
+
 function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
+   self:setActiveRKidx(inIdx)
    local fIn     = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
@@ -709,6 +756,12 @@ function VlasovSpecies:createDiagnostics()
       weakBasis = self.confBasis,
       operation = "Divide",
       onGhosts  = true,
+   }
+   self.confPhaseMult = Updater.CartFieldBinOp {
+      onGrid     = self.grid,
+      weakBasis  = self.basis,
+      fieldBasis = self.confBasis,
+      operation  = "Multiply",
    }
 
    -- Sort moments into diagnosticWeakMoments.
@@ -1100,7 +1153,7 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
    end
 end
 
-function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx)
+function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 
    local tmStart = Time.clock()
    -- Compute moments needed in coupling to fields and collisions.
@@ -1134,6 +1187,21 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx)
       -- Indicate that first moment has been computed.
       self.momentFlags[1] = true
    end
+
+   if self.calcReactRate then
+      local neutU = species[self.neutNmIz]:selfPrimitiveMoments()[1]
+      local fElc = species[self.name]:getDistF()
+      
+      species[self.name].collisions[self.collNmIoniz].calcVoronovReactRate:advance(tCurr, {self.vtSqSelf}, {self.voronovReactRate})
+      species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
+      
+      -- Calculate fMaxwell
+      self.calcMaxwellIz:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
+      self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
+      self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
+      self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
+   end
+   
    self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
 
 end
@@ -1156,6 +1224,14 @@ end
 
 function VlasovSpecies:crossPrimitiveMoments(otherSpeciesName)
    return { self.uCross[otherSpeciesName], self.vtSqCross[otherSpeciesName] }
+end
+
+function VlasovSpecies:getDistF(rkIdx)
+   if rkIdx == nil then
+      return self:rkStepperFields()[self.activeRKidx]
+   else
+      return self:rkStepperFields()[self.rkIdx]
+   end
 end
 
 function VlasovSpecies:getNumDensity(rkIdx)
@@ -1192,6 +1268,14 @@ function VlasovSpecies:momCalcTime()
       tm = tm + self.diagnosticMomentUpdaters[mom].totalTime
    end
    return tm
+end
+
+function VlasovSpecies:getVoronovReactRate()
+   return self.voronovReactRate
+end
+
+function VlasovSpecies:getFMaxwellIz()
+   return self.fMaxwellIz
 end
 
 -- please test this for higher than 1x1v... 
