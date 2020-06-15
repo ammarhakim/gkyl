@@ -54,21 +54,21 @@ __device__ static void limitWaves(
   int jump = meqn * mwave;
   for (int mw = 0; mw < mwave; mw++ ){
     const double wnorm2 = waveDotProd(waves, waves, mw, meqn);
-    double wlimitr = 1.;
     if (wnorm2 > 0) {
+      double wlimitr = 1.;
       const double dotl = waveDotProd(waves-jump, waves, mw, meqn);
       const double dotr = waveDotProd(waves+jump, waves, mw, meqn);
       const double r = speeds[mw] > 0 ? dotl/wnorm2 : dotr/wnorm2;
       wlimitr = limiter_minMod(r);
+      for (int me = 0; me < meqn; me++) {
+        limitedWaves[mw*meqn+me] *= wlimitr;
+      }
 
 /* printf("[%2d, %2d] r %13g limitr %13g dotl %13g dotr %13g wnorm2 %13g waves %13g %13g; wavesr %13g %13g\n", */
 /*     blockIdx.x, threadIdx.x, r, wlimitr, dotl, dotr, wnorm2, */
 /*     waves[0], waves[4], */
 /*     (waves+jump)[0], (waves+jump)[4] */
 /*     ); */
-    }
-    for (int me = 0; me < meqn; me++) {
-      limitedWaves[mw*meqn+me] *= wlimitr;
     }
   }
 }
