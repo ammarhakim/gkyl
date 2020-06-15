@@ -25,11 +25,11 @@ __device__ static void calcFirstOrderGud(
 }
 
 __device__ static double calcCfla(
-  const double cfla, const double dtdx, const double *s, const int mwave)
+  const double cfla, const double dtdx, const double *speeds, const int mwave)
 {
   double c = cfla;
   for (int i = 0; i < mwave; i ++) {
-    c = max(c, dtdx * abs(s[i]));
+    c = max(c, dtdx * abs(speeds[i]));
   }
   return c;
 }
@@ -67,19 +67,19 @@ __device__ static void limitWaves(
 }
 
 __device__ static void secondOrderFluxOneWave(
-  const double dtdx, const double s, const double *wave, double *fs,
+  const double dtdx, const double speed, const double *wave, double *fs,
   const int meqn) {
-  double sfact = 0.5 * abs(s) * (1 - abs(s) * dtdx);
+  double sfact = 0.5 * abs(speed) * (1 - abs(speed) * dtdx);
   for (int i = 0; i < meqn; i++) {
     fs[i] += sfact * wave[i];
   }
 }
 
 __device__ static void secondOrderFlux(
-  const double dtdx, const double *s, const double *waves, double *fs,
+  const double dtdx, const double *speeds, const double *waves, double *fs,
   const int meqn, const int mwave) {
     for (int mw = 0; mw < mwave; mw++) {
-      secondOrderFluxOneWave(dtdx, s[mw], waves+mw*meqn, fs, meqn);
+      secondOrderFluxOneWave(dtdx, speeds[mw], waves+mw*meqn, fs, meqn);
     }
 }
 
@@ -155,7 +155,7 @@ __global__ void cuda_WavePropagation(
 
   // find buffer addresses for each thread
   double *waves = waveSlice + (meqn * mwave) * (threadIdx.x+1);
-  double *s = speedSlice + (mwave) * (threadIdx.x+1);
+  double *speeds = speedSlice + (mwave) * (threadIdx.x+1);
   double *limitedWaves = limitedWaveSlice + (meqn * mwave) * (threadIdx.x);
   double *flux = fluxSlice + (meqn) * (threadIdx.x);
 
@@ -177,7 +177,7 @@ __global__ void cuda_WavePropagation(
   const double *qInC = qIn->getDataPtrAt(linearIdxC);
   double *qOutC = qOut->getDataPtrAt(linearIdxC);
 
-  // ghost cells are not copied, but this is OK because the waves and s are
+  // ghost cells are not copied, but this is OK because the waves and speeds are
   // computed using qIn anyway
   if(linearIdx < localRange->volume()) {
     for(int i = 0; i < meqn; i++) {
@@ -209,8 +209,8 @@ __global__ void cuda_WavePropagation(
     if(linearIdx < localRange->volume()) {
       calcDelta(qInL, qInR, delta, meqn);
 
-      eq->rp(dir, delta, qInL, qInR, waves, s);
-      eq->qFluctuations(dir, qInL, qInR, waves, s, amdq, apdq);
+      eq->rp(dir, delta, qInL, qInR, waves, speeds);
+      eq->qFluctuations(dir, qInL, qInR, waves, speeds, amdq, apdq);
 
       calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq, meqn);
       // XXX following fails with small numThreads
@@ -218,7 +218,7 @@ __global__ void cuda_WavePropagation(
       /* __threadfence_system(); */
       /* calcFirstOrderGud(dtdx, dummy, qOutR, amdq, apdq, meqn); */
 
-      cfla = calcCfla(cfla, dtdx, s, mwave);
+      cfla = calcCfla(cfla, dtdx, speeds, mwave);
 
       copyComponents(waves, limitedWaves, meqn * mwave);
 
@@ -233,8 +233,8 @@ __global__ void cuda_WavePropagation(
         const double *qInL = qIn->getDataPtrAt(linearIdxL);
         const double *qInR = qIn->getDataPtrAt(linearIdxR);
         calcDelta(qInL, qInR, delta, meqn);
-        eq->rp(dir, delta, qInL, qInR, waves+inc*meqn*mwave, s+inc*mwave);
-        cfla = calcCfla(cfla, dtdx, s+inc*mwave, mwave);
+        eq->rp(dir, delta, qInL, qInR, waves+inc*meqn*mwave, speeds+inc*mwave);
+        cfla = calcCfla(cfla, dtdx, speeds+inc*mwave, mwave);
         idxL[dir] -= inc;
         idxR[dir] -= inc;
       }
@@ -250,14 +250,16 @@ __global__ void cuda_WavePropagation(
           const double *qInL = qIn->getDataPtrAt(linearIdxL);
           const double *qInR = qIn->getDataPtrAt(linearIdxR);
           calcDelta(qInL, qInR, delta, meqn);
-          eq->rp(dir, delta, qInL, qInR, waves+inc*meqn*mwave, s+inc*mwave);
-          cfla = calcCfla(cfla, dtdx, s+inc*mwave, mwave);
+          eq->rp(dir, delta, qInL, qInR, waves+inc*meqn*mwave, speeds+inc*mwave);
+          cfla = calcCfla(cfla, dtdx, speeds+inc*mwave, mwave);
           copyComponents(waves+inc*meqn*mwave, limitedWaves+inc*meqn*mwave, meqn * mwave);
 
           if (linearIdx==localRange->volume()-1 && inc==1) {
             double *qOutL = qOut->getDataPtrAt(linearIdxL);
             double *qOutR = qOut->getDataPtrAt(linearIdxR);
-            eq->qFluctuations(dir, qInL, qInR, waves+inc*meqn*mwave, s+inc*mwave, amdq, apdq);
+            eq->qFluctuations(
+                dir, qInL, qInR, waves+inc*meqn*mwave, speeds+inc*mwave, amdq,
+                apdq);
             calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq, meqn);
           }
           idxL[dir] -= inc;
@@ -268,11 +270,12 @@ __global__ void cuda_WavePropagation(
 
     __syncthreads();
     if(linearIdx < localRange->volume()) {
-      limitWaves(waves, s, limitedWaves, mwave, meqn);
+      limitWaves(waves, speeds, limitedWaves, mwave, meqn);
 
       if (threadIdx.x==blockDim.x-1 || linearIdx==localRange->volume()-1) {
         limitWaves(
-            waves+meqn*mwave, s+mwave, limitedWaves+meqn*mwave, mwave, meqn);
+            waves+meqn*mwave, speeds+mwave, limitedWaves+meqn*mwave, mwave,
+            meqn);
       }
     }
 
@@ -281,14 +284,15 @@ __global__ void cuda_WavePropagation(
       for (int c = 0; c < meqn; c++) {
         flux[c] = 0;
       }
-      secondOrderFlux(dtdx, s, limitedWaves, flux, meqn, mwave);
+      secondOrderFlux(dtdx, speeds, limitedWaves, flux, meqn, mwave);
 
       if (threadIdx.x==blockDim.x-1 || linearIdx==localRange->volume()-1) {
         for (int c = 0; c < meqn; c++) {
           (flux+meqn)[c] = 0;
         }
         secondOrderFlux(
-            dtdx, s+mwave, limitedWaves+meqn*mwave, flux+meqn, meqn, mwave);
+            dtdx, speeds+mwave, limitedWaves+meqn*mwave, flux+meqn, meqn,
+            mwave);
       }
     }
 
@@ -310,7 +314,8 @@ void wavePropagationAdvanceOnDevice(
   const int mwave = 1; // eq->numWaves();
   int sharedMemSize = 0;
   // numThreads == numRealCellsPerBlock
-  // s & waves are needed on all real-real, real-ghost, and ghost-ghost faces
+  // speeds & waves are needed on all real-real, real-ghost, and ghost-ghost
+  // cell faces
   sharedMemSize += (numThreads+3) * (mwave+mwave*meqn);
   // limitedWaves and 2nd-order flux are needed on real-real & real-ghost faces
   sharedMemSize += (numThreads+1) * (meqn+meqn);
