@@ -21,6 +21,8 @@ local Time = require "Lib.Time"
 local UpdaterBase = require "Updater.Base"
 local DataStruct = require "DataStruct"
 
+local function printf(...) io.write(string.format(...)) end
+
 -- system libraries
 local ffi = require "ffi"
 local xsys = require "xsys"
@@ -444,9 +446,10 @@ function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)
       outFld[1],
       "WavePropagation.advanceOnDevice: Must specify an output field")
 
-   local numExtEdgesLocal = qOut:localExtEdgeRange():volume()
-   local numThreads = math.min(self.numThreads, numExtEdgesLocal)
-   local numBlocks  = math.ceil(numExtEdgesLocal/numThreads)
+   local numCellsLocal = qOut:localRange():volume()
+   local numEdgesLocal = qOut:localEdgeRange():volume()
+   local numThreads = math.min(self.numThreads, numCellsLocal)
+   local numBlocks  = math.ceil(numCellsLocal/numThreads)
 
    if self._useSharedDevice then
       -- TODO implement
