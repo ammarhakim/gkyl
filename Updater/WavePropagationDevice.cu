@@ -177,6 +177,12 @@ __global__ void cuda_WavePropagation(
   const double *qInC = qIn->getDataPtrAt(linearIdxC);
   double *qOutC = qOut->getDataPtrAt(linearIdxC);
 
+  if(linearIdx < localRange->volume()) {
+    for(int i = 0; i < meqn; i++) {
+            qOutC[i] = qInC[i];
+    }
+  }
+
   for(int i=0; i<numUpdateDirs; i++) {
     int dir = updateDirs[i] - 1;
     const double dtdx = hyper->dt / dx[dir];
