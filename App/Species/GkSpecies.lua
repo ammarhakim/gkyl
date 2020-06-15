@@ -1097,7 +1097,7 @@ function GkSpecies:createDiagnostics()
                end
                Mpi.Barrier(self.grid:commSet().sharedComm)
                -- do weak ops
-               self.diagnosticMomentUpdaters["GkVtSq"..label]:combine(1.0/self.mass, self.diagnosticMomentFields["GkTemp"..label])
+               self.diagnosticMomentFields["GkVtSq"..label]:combine(1.0/self.mass, self.diagnosticMomentFields["GkTemp"..label])
 
                self.diagnosticMomentUpdaters["GkVtSq"..label].tCurr = tm -- mark as complete for this tm
             end
