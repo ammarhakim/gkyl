@@ -38,7 +38,7 @@ __device__ static double waveDotProd(
     const double *waves, const double *waves1, const int mw, const int meqn) {
   double result = 0.;
   for (int i = 0; i < meqn; i++) {
-    result += waves[meqn*mw+i] * waves[meqn*mw+i];
+    result += waves[meqn*mw+i] * waves1[meqn*mw+i];
   }
   return result;
 }
@@ -59,7 +59,8 @@ __device__ static void limitWaves(
       const double dotl = waveDotProd(waves-jump, waves, mw, meqn);
       const double dotr = waveDotProd(waves+jump, waves, mw, meqn);
       const double r = speeds[mw] > 0 ? dotl/wnorm2 : dotr/wnorm2;
-printf("[%2d, %2d] dotl %13g dotr %13g wnorm2 %13g\n", blockIdx.x, threadIdx.x, dotl, dotr, wnorm2);
+printf("[%2d, %2d] dotl %13g dotr %13g wnorm2 %13g waves %13g %13g; wavesr %13g %13g\n",
+    blockIdx.x, threadIdx.x, dotl, dotr, wnorm2, waves[0], waves[4], (waves+jump)[0], (waves+jump)[4]);
       wlimitr = limiter_minMod(r);
     }
     for (int me = 0; me < meqn; me++) {
@@ -128,12 +129,14 @@ __global__ void cuda_WavePropagation(
   // assign buffer space for different usages
   int base = 0;
 
+  // numThreads == numRealEdges (real-real and real-ghost faces)
+  // waveSlice and speedSlice contain ghost-ghost faces, thus the +2
   const int baseWaveSlice = base;
-  base += (meqn * mwave) * blockDim.x;
+  base += (meqn * mwave) * (blockDim.x + 2);
   double *waveSlice = dummy + baseWaveSlice;
 
   const int baseSpeedSlice = base;
-  base += (mwave) * blockDim.x;
+  base += (mwave) * (blockDim.x + 2);
   double *speedSlice = dummy + baseSpeedSlice;
 
   const int baseLimitedWaveSlice = base;
@@ -148,8 +151,8 @@ __global__ void cuda_WavePropagation(
   // FIXME shall waves and s be created on the fly and then copied into slices
   double *waves = waveSlice + (meqn * mwave) * (threadIdx.x+1);
   double *s = speedSlice + (mwave) * (threadIdx.x+1);
-  double *limitedWaves = limitedWaveSlice + (meqn * mwave) * (threadIdx.x+1);
-  double *flux = fluxSlice + (meqn) * (threadIdx.x+1);
+  double *limitedWaves = limitedWaveSlice + (meqn * mwave) * (threadIdx.x);
+  double *flux = fluxSlice + (meqn) * (threadIdx.x);
 
   int idxC[3];
   int idxL[3];
@@ -232,10 +235,10 @@ __global__ void cuda_WavePropagation(
       }
     }
 
-    /* __syncthreads(); */
-    /* if(linearIdx < localExtEdgeRange->volume()) */
-    /* printf("[%2d] after  L [%2d] %13g, R [%2d] %13g; wave %13g; amdq %13g; qOutL %13g\n", */
-    /*     linearIdxC, idxL[dir], qInL[0], idxR[dir], qInR[0], waves[0], amdq[0], qOutL[0]); */
+    __syncthreads();
+    if(linearIdx < localEdgeRange->volume())
+    printf("[%2d; %2d, %2d] after  L [%2d] %13g, R [%2d] %13g; wave %13g %13g; amdq %13g; qOutL %13g\n",
+        linearIdxC, blockIdx.x, threadIdx.x, idxL[dir], qInL[0], idxR[dir], qInR[0], waves[0], waves[4], amdq[0], qOutL[0]);
 
     if(linearIdx < localEdgeRange->volume()) {
       limitWaves(waves, s, limitedWaves, mwave, meqn);
@@ -284,7 +287,7 @@ void wavePropagationAdvanceOnDevice(
   const int meqn = 5; // eq->numEquations();
   const int mwave = 1; // eq->numWaves();
   int sharedMemSize = 0;
-  // numThreads == numEdgesPerBlock == numRealCellsPerBlock + 1
+  // numThreads == numRealEdgesPerBlock == numRealCellsPerBlock + 1
   // s & waves are needed on all real-real, real-ghost, and ghost-ghost faces
   sharedMemSize += (numThreads+2) * (mwave+mwave*meqn);
   // limitedWaves and 2nd-order flux are needed on real-real & real-ghost faces
