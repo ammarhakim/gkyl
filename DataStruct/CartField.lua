@@ -242,8 +242,8 @@ local function Field_meta_ctor(elct)
       self._localExtRange = self._localRange:extend(
 	 self._lowerGhost, self._upperGhost)
 
-      -- all real-cell edges 
-      self._localEdgeRange = self._localRange:extend(1, 1)
+      -- all real-cell edges
+      self._localEdgeRange = self._localRange:extend(1, 0) -- or (1, 0)?
 
       -- all cell-cell edges, including those of a ghost cell
       self._localExtEdgeRange = self._localRange:extend(
