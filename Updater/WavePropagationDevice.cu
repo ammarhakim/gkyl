@@ -45,7 +45,6 @@ __device__ static double waveDotProd(
 
 __device__ static inline double limiter_minMod(const double r) {
    return max(0., min(1., r));
-   // return 1;
 }
 
 __device__ static void limitWaves(
@@ -67,13 +66,21 @@ __device__ static void limitWaves(
   }
 }
 
-__device__ static void secondOrderFlux(
+__device__ static void secondOrderFluxOneWave(
   const double dtdx, const double s, const double *wave, double *fs,
   const int meqn) {
   double sfact = 0.5 * abs(s) * (1 - abs(s) * dtdx);
   for (int i = 0; i < meqn; i++) {
     fs[i] += sfact * wave[i];
   }
+}
+
+__device__ static void secondOrderFlux(
+  const double dtdx, const double *s, const double *waves, double *fs,
+  const int meqn, const int mwave) {
+    for (int mw = 0; mw < mwave; mw++) {
+      secondOrderFluxOneWave(dtdx, s[mw], waves+mw*meqn, fs, meqn);
+    }
 }
 
 __device__ static void secondOrderUpdate(
@@ -96,8 +103,6 @@ __global__ void cuda_WavePropagation(
 {
 
   GkylRange_t *localRange = qIn->localRange;
-  GkylRange_t *localEdgeRange = qIn->localEdgeRange;
-  GkylRange_t *localExtEdgeRange = qIn->localExtEdgeRange;
   int ndim = localRange->ndim;
 
   // set up indexers for localRange and qIn (localExtRange)
@@ -210,6 +215,7 @@ __global__ void cuda_WavePropagation(
       copyComponents(waves, limitedWaves, meqn * mwave);
 
       // can we avoid branching?
+      // solve one additional Riemann problem on the lower side
       if (threadIdx.x==0) {
         int inc = -1;
         idxL[dir] += inc;
@@ -223,6 +229,9 @@ __global__ void cuda_WavePropagation(
         idxL[dir] -= inc;
         idxR[dir] -= inc;
       }
+
+      // solve two additional Riemann problems on the higher side and update the
+      // last real cell
       if (threadIdx.x==blockDim.x-1 || linearIdx==localRange->volume()-1) {
         for (int inc = 1; inc < 3; inc++) {
           idxL[dir] += inc;
@@ -250,9 +259,10 @@ __global__ void cuda_WavePropagation(
     __syncthreads();
     if(linearIdx < localRange->volume()) {
       limitWaves(waves, s, limitedWaves, mwave, meqn);
+
       if (threadIdx.x==blockDim.x-1 || linearIdx==localRange->volume()-1) {
-        int inc = +1;
-        limitWaves(waves+inc*meqn*mwave, s+inc*mwave, limitedWaves+inc*meqn*mwave, mwave, meqn);
+        limitWaves(
+            waves+meqn*mwave, s+mwave, limitedWaves+meqn*mwave, mwave, meqn);
       }
     }
 
@@ -261,19 +271,14 @@ __global__ void cuda_WavePropagation(
       for (int c = 0; c < meqn; c++) {
         flux[c] = 0;
       }
-
-      for (int mw = 0; mw < mwave; mw++) {
-        secondOrderFlux(dtdx, s[mw], limitedWaves+mw*meqn, flux, meqn);
-      }
+      secondOrderFlux(dtdx, s, limitedWaves, flux, meqn, mwave);
 
       if (threadIdx.x==blockDim.x-1 || linearIdx==localRange->volume()-1) {
         for (int c = 0; c < meqn; c++) {
           (flux+meqn)[c] = 0;
         }
-
-        for (int mw = 0; mw < mwave; mw++) {
-          secondOrderFlux(dtdx, (s+mwave)[mw], limitedWaves+meqn*mwave+mw*meqn, (flux+meqn), meqn);
-        }
+        secondOrderFlux(
+            dtdx, s+mwave, limitedWaves+meqn*mwave, flux+meqn, meqn, mwave);
       }
     }
 
