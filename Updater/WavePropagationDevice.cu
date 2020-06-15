@@ -283,10 +283,7 @@ __global__ void cuda_WavePropagation(
     }
 
     if(linearIdx < localRange->volume()) {
-      //idxC[dir] -= 1;
-      const int linearIdxCC = fIdxr.index(idxC);
-      double *qOutCC = qOut->getDataPtrAt(linearIdxCC);
-      secondOrderUpdate(dtdx, flux, flux+meqn, qOutCC, meqn);
+      secondOrderUpdate(dtdx, flux, flux+meqn, qOutC, meqn);
     }
   }
 
