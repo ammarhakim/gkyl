@@ -35,8 +35,7 @@ __device__ static double calcCfla(
 }
 
 __device__ static double waveDotProd(
-    const double *waves, const double *waves1, const int mw,
-    const int meqn) {
+    const double *waves, const double *waves1, const int mw, const int meqn) {
   double result = 0.;
   for (int i = 0; i < meqn; i++) {
     result += waves[meqn*mw+i] * waves[meqn*mw+i];
@@ -54,16 +53,12 @@ __device__ static void limitWaves(
     const int mwave, const int meqn) {
   int jump = meqn * mwave;
   for (int mw = 0; mw < mwave; mw++ ){
-    const double wnorm2 = waveDotProd(
-        waves, waves, mw, meqn);
+    const double wnorm2 = waveDotProd(waves, waves, mw, meqn);
     double wlimitr = 1.;
     if (wnorm2 > 0) {
-      double r;
-      const double dotl = waveDotProd(
-          waves-jump, waves, mw, meqn);
-      const double dotr = waveDotProd(
-          waves+jump, waves, mw, meqn);
-      r = speeds[mw] > 0 ? dotl/wnorm2 : dotr/wnorm2;
+      const double dotl = waveDotProd(waves-jump, waves, mw, meqn);
+      const double dotr = waveDotProd(waves+jump, waves, mw, meqn);
+      const double r = speeds[mw] > 0 ? dotl/wnorm2 : dotr/wnorm2;
 printf("[%2d, %2d] dotl %13g dotr %13g wnorm2 %13g\n", blockIdx.x, threadIdx.x, dotl, dotr, wnorm2);
       wlimitr = limiter_minMod(r);
     }
