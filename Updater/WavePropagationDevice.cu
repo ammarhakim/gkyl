@@ -63,12 +63,6 @@ __device__ static void limitWaves(
       for (int me = 0; me < meqn; me++) {
         limitedWaves[mw*meqn+me] *= wlimitr;
       }
-
-/* printf("[%2d, %2d] r %13g limitr %13g dotl %13g dotr %13g wnorm2 %13g waves %13g %13g; wavesr %13g %13g\n", */
-/*     blockIdx.x, threadIdx.x, r, wlimitr, dotl, dotr, wnorm2, */
-/*     waves[0], waves[4], */
-/*     (waves+jump)[0], (waves+jump)[4] */
-/*     ); */
     }
   }
 }
@@ -133,8 +127,9 @@ __global__ void cuda_WavePropagation(
   // assign buffer space for different usages
   int base = 0;
 
-  // numThreads == numRealEdges (real-real and real-ghost faces)
-  // waveSlice and speedSlice contain ghost-ghost faces, thus the +2
+  // numThreads == numRealCells
+  // waveSlice and speedSlice are defined on ghost-ghost, ghost-real, and
+  // real-real faces, thus the +3
   const int baseWaveSlice = base;
   base += (meqn * mwave) * (blockDim.x + 3);
   double *waveSlice = dummy + baseWaveSlice;
@@ -143,6 +138,8 @@ __global__ void cuda_WavePropagation(
   base += (mwave) * (blockDim.x + 3);
   double *speedSlice = dummy + baseSpeedSlice;
 
+  // limitedWaves and second-order fluxSlice are defiend on ghost-real and
+  // real-real faces, thus the +1
   const int baseLimitedWaveSlice = base;
   base += (meqn * mwave) * (blockDim.x + 1);
   double *limitedWaveSlice = dummy + baseLimitedWaveSlice;
@@ -152,7 +149,6 @@ __global__ void cuda_WavePropagation(
   double *fluxSlice = dummy + baseFluxSlice;
 
   // find buffer addresses for each thread
-  // FIXME shall waves and s be created on the fly and then copied into slices
   double *waves = waveSlice + (meqn * mwave) * (threadIdx.x+1);
   double *s = speedSlice + (mwave) * (threadIdx.x+1);
   double *limitedWaves = limitedWaveSlice + (meqn * mwave) * (threadIdx.x);
@@ -175,13 +171,6 @@ __global__ void cuda_WavePropagation(
 
   const double *qInC = qIn->getDataPtrAt(linearIdxC);
   double *qOutC = qOut->getDataPtrAt(linearIdxC);
-
-  // XXX still missing ghost cells
-  /* if(linearIdx < localEdgeRange->volume()) { */
-  /*   for(int i = 0; i < meqn; i++) { */
-  /*     qOutC[i] = qInC[i]; */
-  /*   } */
-  /* } */
 
   for(int i=0; i<numUpdateDirs; i++) {
     int dir = updateDirs[i] - 1;
@@ -233,7 +222,6 @@ __global__ void cuda_WavePropagation(
         eq->rp(dir, delta, qInL, qInR, waves+inc*meqn*mwave, s+inc*mwave);
         idxL[dir] -= inc;
         idxR[dir] -= inc;
-        // printf("[%2d, %2d] inc %d\n", blockIdx.x, threadIdx.x, inc);
       }
       if (threadIdx.x==blockDim.x-1 || linearIdx==localRange->volume()-1) {
         for (int inc = 1; inc < 3; inc++) {
@@ -247,7 +235,7 @@ __global__ void cuda_WavePropagation(
           eq->rp(dir, delta, qInL, qInR, waves+inc*meqn*mwave, s+inc*mwave);
           copyComponents(waves+inc*meqn*mwave, limitedWaves+inc*meqn*mwave, meqn * mwave);
 
-          if (inc==1 && linearIdx==localRange->volume()-1) {
+          if (linearIdx==localRange->volume()-1 && inc==1) {
             double *qOutL = qOut->getDataPtrAt(linearIdxL);
             double *qOutR = qOut->getDataPtrAt(linearIdxR);
             eq->qFluctuations(dir, qInL, qInR, waves+inc*meqn*mwave, s+inc*mwave, amdq, apdq);
@@ -255,22 +243,13 @@ __global__ void cuda_WavePropagation(
           }
           idxL[dir] -= inc;
           idxR[dir] -= inc;
-          // printf("[%2d, %2d] inc %d\n", blockIdx.x, threadIdx.x, inc);
         }
       }
     }
 
-    /* __syncthreads(); */
-    /* if(linearIdx < localEdgeRange->volume()) */
-    /* printf("[%2d; %2d, %2d] after  L [%2d] %13g, R [%2d] %13g; wave %13g %13g; amdq %13g; qOutL %13g\n", */
-    /*     linearIdxC, blockIdx.x, threadIdx.x, idxL[dir], qInL[0], idxR[dir], qInR[0], waves[0], waves[4], amdq[0], qOutL[0]); */
-
+    __syncthreads();
     if(linearIdx < localRange->volume()) {
       limitWaves(waves, s, limitedWaves, mwave, meqn);
-      /* if (threadIdx.x==0) { */
-      /*   int inc = -1; */
-      /*   limitWaves(waves+inc*meqn*mwave, s+inc*mwave, limitedWaves+inc*meqn*mwave, mwave, meqn); */
-      /* } */
       if (threadIdx.x==blockDim.x-1 || linearIdx==localRange->volume()-1) {
         int inc = +1;
         limitWaves(waves+inc*meqn*mwave, s+inc*mwave, limitedWaves+inc*meqn*mwave, mwave, meqn);
@@ -278,23 +257,6 @@ __global__ void cuda_WavePropagation(
     }
 
     __syncthreads();
-    /* if(linearIdx < localEdgeRange->volume()) */
-    /* printf("[%2d] limited wave %13g %13g %13g %13g %13g\n", */
-    /*     linearIdx+1, limitedWaves[0], */
-    /*     limitedWaves[1], */
-    /*     limitedWaves[2], */
-    /*     limitedWaves[3], */
-    /*     limitedWaves[4]); */
-    /* if (threadIdx.x==blockDim.x-1 || linearIdx==localRange->volume()-1) { */
-    /* printf("[%2d] limited wave %13g %13g %13g %13g %13g\n", */
-    /*     linearIdx+2, (limitedWaves+meqn*mwave)[0], */
-    /*     (limitedWaves+meqn*mwave)[1], */
-    /*     (limitedWaves+meqn*mwave)[2], */
-    /*     (limitedWaves+meqn*mwave)[3], */
-    /*     (limitedWaves+meqn*mwave)[4]); */
-    /*  */
-    /* } */
-
     if(linearIdx < localRange->volume()) {
       for (int c = 0; c < meqn; c++) {
         flux[c] = 0;
@@ -315,45 +277,11 @@ __global__ void cuda_WavePropagation(
       }
     }
 
-    /* __syncthreads(); */
-    /* if(linearIdx < localEdgeRange->volume()) */
-    /* printf("[%2d] fluxes %13g %13g %13g %13g %13g\n", */
-    /*     linearIdx+1, flux[0], */
-    /*     flux[1], */
-    /*     flux[2], */
-    /*     flux[3], */
-    /*     flux[4]); */
-
     if(linearIdx < localRange->volume()) {
       //idxC[dir] -= 1;
       const int linearIdxCC = fIdxr.index(idxC);
       double *qOutCC = qOut->getDataPtrAt(linearIdxCC);
-    /* printf("[%2d] cpp before fl %13g %13g fr %13g %13g; qOut %13g %13g %13g %13g %13g\n", */
-    /*     linearIdx+1, */
-    /*     flux[0], */
-    /*     flux[4], */
-    /*     (flux+meqn)[0], */
-    /*     (flux+meqn)[4], */
-    /*     qOutCC[0], */
-    /*     qOutCC[1], */
-    /*     qOutCC[2], */
-    /*     qOutCC[3], */
-    /*     qOutCC[4] */
-    /*     ); */
       secondOrderUpdate(dtdx, flux, flux+meqn, qOutCC, meqn);
-    /* printf("[%2d] after fl %13g %13g fr %13g %13g; qOut %13g %13g %13g %13g %13g\n", */
-    /*     linearIdx+1, */
-    /*     flux[0], */
-    /*     flux[4], */
-    /*     (flux+meqn)[0], */
-    /*     (flux+meqn)[4], */
-    /*     qOutCC[0], */
-    /*     qOutCC[1], */
-    /*     qOutCC[2], */
-    /*     qOutCC[3], */
-    /*     qOutCC[4] */
-    /*     ); */
-
     }
   }
 
@@ -369,7 +297,7 @@ void wavePropagationAdvanceOnDevice(
   const int meqn = 5; // eq->numEquations();
   const int mwave = 1; // eq->numWaves();
   int sharedMemSize = 0;
-  // numThreads == numRealEdgesPerBlock == numRealCellsPerBlock + 1
+  // numThreads == numRealCellsPerBlock
   // s & waves are needed on all real-real, real-ghost, and ghost-ghost faces
   sharedMemSize += (numThreads+3) * (mwave+mwave*meqn);
   // limitedWaves and 2nd-order flux are needed on real-real & real-ghost faces
