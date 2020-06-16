@@ -595,7 +595,7 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       end
    end
 
-   If Charge Exchange collision object exists, locate ions
+   -- If Charge Exchange collision object exists, locate ions
    local counterCX_ion = true
    local counterCX_neut = true
    for sN, _ in pairs(species) do

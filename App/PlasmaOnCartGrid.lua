@@ -277,6 +277,7 @@ local function buildApplication(self, tbl)
       print('initCrossSpeciesCoupling complete', s.name)	    
       s:createSolver(hasE or funcHasE, hasB or funcHasB, funcField)
       s:initDist()
+      print('initDist complete', s.name)
       s:createDiagnostics()
       print('diagnostics complete', s.name)
    end
