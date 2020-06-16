@@ -376,6 +376,23 @@ def build(bld):
     ionizationCalcData/VoronovSer2x.cpp
     ionizationCalcData/VoronovSer3x.cpp
 
+    chargeExchangeCalcData/GkProdCXcellAvMax1x1v.cpp
+    chargeExchangeCalcData/GkProdCXcellAvMax1x2v.cpp
+    chargeExchangeCalcData/GkProdCXcellAvMax2x2v.cpp
+    chargeExchangeCalcData/GkProdCXcellAvMax3x2v.cpp
+    chargeExchangeCalcData/GkProdCXcellAvSer1x1v.cpp
+    chargeExchangeCalcData/GkProdCXcellAvSer1x2v.cpp
+    chargeExchangeCalcData/GkProdCXcellAvSer2x2v.cpp
+    chargeExchangeCalcData/GkProdCXcellAvSer3x2v.cpp
+    chargeExchangeCalcData/GkSigmaCXcellAvMax1x1v.cpp
+    chargeExchangeCalcData/GkSigmaCXcellAvMax1x2v.cpp
+    chargeExchangeCalcData/GkSigmaCXcellAvMax2x2v.cpp
+    chargeExchangeCalcData/GkSigmaCXcellAvMax3x2v.cpp
+    chargeExchangeCalcData/GkSigmaCXcellAvSer1x1v.cpp
+    chargeExchangeCalcData/GkSigmaCXcellAvSer1x2v.cpp
+    chargeExchangeCalcData/GkSigmaCXcellAvSer2x2v.cpp
+    chargeExchangeCalcData/GkSigmaCXcellAvSer3x2v.cpp
+
     GkMaxwellianOnBasisImpl.cpp
 
     MappedPoissonImpl.cpp
@@ -424,7 +441,7 @@ def build(bld):
         )
 
     bld.shlib(source = sources,
-              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData ionizationCalcData', 
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData', 
               use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     
 ## Removed the following files from the build for now

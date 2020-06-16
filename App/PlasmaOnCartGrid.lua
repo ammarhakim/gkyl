@@ -274,9 +274,11 @@ local function buildApplication(self, tbl)
       local hasE, hasB = field:hasEB()
       local funcHasE, funcHasB = funcField:hasEB()
       s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
+      print('initCrossSpeciesCoupling complete', s.name)	    
       s:createSolver(hasE or funcHasE, hasB or funcHasB, funcField)
       s:initDist()
       s:createDiagnostics()
+      print('diagnostics complete', s.name)
    end
 
    -- Initialize source solvers.
@@ -292,7 +294,6 @@ local function buildApplication(self, tbl)
    -- Initialize field (sometimes requires species to have been initialized).
    field:createSolver(species, funcField)
    field:initField(species)
-
    -- Apply species BCs.
    for nm, s in pairs(species) do
       -- This is a dummy forwardEuler call because some BCs require 
@@ -923,6 +924,7 @@ return {
    GkField            = Field.GkField,
    GkGeometry         = Field.GkGeometry,
    GkLBOCollisions    = Collisions.GkLBOCollisions,
+   GkChargeExchange   = Collisions.GkChargeExchange,
    GkIonization       = Collisions.GkIonization,
    GkSpecies          = Species.GkSpecies,
    HamilVlasovSpecies = Species.HamilVlasovSpecies,
@@ -946,6 +948,7 @@ return {
       LBOCollisions        = Collisions.GkLBOCollisions,
       BgkCollisions        = Collisions.GkBGKCollisions,
       LboCollisions        = Collisions.GkLBOCollisions,
+      ChargeExchange       = Collisions.GkChargeExchange,
       Ionization           = Collisions.GkIonization,
       AdiabaticSpecies     = Species.AdiabaticSpecies,
    },
