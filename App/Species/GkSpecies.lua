@@ -596,7 +596,6 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       end
    end
 
-   self.needSelfPrimMom = true
    if self.needSelfPrimMom then
       -- Allocate fields to store self-species primitive moments.
       self.uParSelf = self:allocMoment()
