@@ -263,6 +263,8 @@ std::string Gkyl::createTopLevelDefs() const {
   auto err = cudaGetDevice(&deviceNum);
   if (cudaSuccess == err) {
     varDefs << "GKYL_HAVE_CUDA = true" << std::endl;
+    varDefs << "GKYL_USE_DEVICE = true" << std::endl;
+    
     varDefs << "GKYL_DEFAULT_NUM_THREADS = 256" << std::endl;  
     int cuDriverVersion;
     cudaDriverGetVersion(&cuDriverVersion);
@@ -271,16 +273,32 @@ std::string Gkyl::createTopLevelDefs() const {
   else {
     // not on a GPU node and so disable CUDA
     varDefs << "GKYL_HAVE_CUDA = false" << std::endl;
+    varDefs << "GKYL_USE_DEVICE = false" << std::endl;    
   }
 #else
   varDefs << "GKYL_HAVE_CUDA = false" << std::endl;
+  varDefs << "GKYL_USE_DEVICE = false" << std::endl;
 #endif
   
   // numeric limits
   varDefs << "GKYL_MIN_DOUBLE = " << std::numeric_limits<double>::min() << std::endl;
-  varDefs << "GKYL_MIN_FLOAT = " << std::numeric_limits<float>::min() << std::endl;
   varDefs << "GKYL_MAX_DOUBLE = " << std::numeric_limits<double>::max() << std::endl;
+  
+  varDefs << "GKYL_MIN_FLOAT = " << std::numeric_limits<float>::min() << std::endl;
   varDefs << "GKYL_MAX_FLOAT = " << std::numeric_limits<float>::max() << std::endl;
+
+  varDefs << "GKYL_MIN_INT = " << std::numeric_limits<int>::min() << std::endl;
+  varDefs << "GKYL_MAX_INT = " << std::numeric_limits<int>::max() << std::endl;
+
+  varDefs << "GKYL_MIN_LONG = " << std::numeric_limits<long>::min() << std::endl;
+  varDefs << "GKYL_MAX_LONG = " << std::numeric_limits<long>::max() << std::endl;
+
+  varDefs << "GKYL_MIN_LONG_LONG = " << std::numeric_limits<long long>::min() << std::endl;
+  varDefs << "GKYL_MAX_LONG_LONG = " << std::numeric_limits<long long>::max() << std::endl;
+
+  varDefs << "GKYL_MIN_UNSIGNED = " << std::numeric_limits<unsigned>::min() << std::endl;
+  varDefs << "GKYL_MAX_UNSIGNED = " << std::numeric_limits<unsigned>::max() << std::endl;  
+  
   varDefs << "GKYL_EPSILON = " << std::numeric_limits<double>::epsilon() << std::endl;
   varDefs << "GKYL_MAX_INT16 = " << INT16_MAX << std::endl;  
 

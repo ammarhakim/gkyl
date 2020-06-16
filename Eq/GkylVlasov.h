@@ -1,5 +1,11 @@
-#ifndef GKYL_VLASOV_H
-#define GKYL_VLASOV_H
+// Gkyl ------------------------------------------------------------------------
+//
+// Vlasov equation object
+//    _______     ___
+// + 6 @ |||| # P ||| +
+//------------------------------------------------------------------------------
+
+#pragma once
 
 // Gkyl includes
 #include <GkylCudaConfig.h>
@@ -15,63 +21,41 @@
 #include <string>
 #include <vector>
 
-namespace Gkyl {
+extern "C" {
 
-  class Vlasov;
-  
-  /* C wrappers to member functions, so that they can be called from Lua */
-  extern "C" {
-    void* new_Vlasov(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType, double qbym, bool hasForceTerm);
-    void* new_Vlasov_onDevice(Vlasov *v);
-    int getCdim(Vlasov *v);
-    void setAuxFields(Vlasov *eq, GkylCartField_t *emField);
-  }
-  
-  class Vlasov {
-   public:
-    __host__ __device__ Vlasov(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType, double qbym, bool hasForceTerm) 
-     : cdim(cdim), vdim(vdim), polyOrder(polyOrder), basisType(basisType), qbym(qbym), hasForceTerm(hasForceTerm) {
-    }
-    ~Vlasov() = default;
+    typedef double (*Vlasov_volumeStreamTerm_t)(const double* __restrict__  w, const double* __restrict__  dxv, const double* __restrict__  f, double *out);
+    typedef void (*Vlasov_surfSreamTerm_t)(unsigned dir, const double* __restrict__  wl, const double* __restrict__  wr,
+      const double* __restrict__  dxvl, const double* __restrict__  dxvr, const double* __restrict__  fl, const double* __restrict__  fr,
+      double *outl, double *outr);
 
-    __host__ __device__ int getCdim() { return cdim; }
+    typedef double (*Vlasov_volumeTerm_t)(const double* __restrict__  w, const double* __restrict__  dxv,
+      const double* __restrict__  E, const double* __restrict__  f, double *out);
+    typedef double (*Vlasov_surfElcMagTerm_t)(unsigned dir, const double* __restrict__  wl, const double* __restrict__  wr,
+      const double* __restrict__  dxvl, const double* __restrict__  dxvr,
+      const double amax, const double* __restrict__  E, const
+      double *fl, const double* __restrict__  fr,
+      double *outl, double *outr);
 
-    __host__ __device__ GkylCartField_t* getEmField() { return emField; }
-  
-    __host__ __device__ void setAuxFields(GkylCartField_t *emField);
-  
-    __host__ __device__ double volTerm(const double *xc, const double *dx, const int *idx, const double *qIn, double *qRhsOut);
+    typedef struct {
+        // dims, basis info
+        unsigned cdim, vdim, polyOrder, basisType;
+        // species parameters
+        double qbym;
+        bool hasForceTerm;
+        // pointer to EM field
+        GkylCartField_t *emField;
 
-    __host__ __device__  double surfTerm(const int dir, const double *cflL, const double *cflR,
-                    const double *xcL, const double *xcR, const double *dxL, const double *dxR,
-                    const double maxsOld, const int *idxL, const int *idxR,
-                    const double *qInL, const double *qInR, double *qRhsOutL, double *qRhsOutR);
+        // Vlasov-specific function pointers
+        Vlasov_volumeStreamTerm_t volumeStreamTerm;
+        Vlasov_surfSreamTerm_t surfStreamTerm;
+        Vlasov_volumeTerm_t volumeTerm;
+        Vlasov_surfElcMagTerm_t surfElcMagTerm;
 
-    __host__ __device__ inline double boundarySurfTerm(const int dir, const double *cflL, const double *cflR,
-                    const double *xcL, const double *xcR, const double *dxL, const double *dxR,
-                    const double maxsOld, const int *idxL, const int *idxR,
-                    const double *qInL, const double *qInR, double *qRhsOutL, double *qRhsOutR) {return 0;};
+    } GkylVlasov_t;
 
-   private:
-    /* dimension and basis parameters */
-    const unsigned cdim;
-    const unsigned vdim;
-    const unsigned polyOrder;
-    const unsigned basisType;
-  
-    /* species parameters */
-    const double qbym;
-    const bool hasForceTerm;
-   
-    /* pointers to fields */
-    GkylCartField_t *emField;
-  
-    /** Pointer to kernel */
-    // hard-code a specific dimensionality here for now (polymorphism abstraction TBD)
-    // template parameters are 
-    // VlasovModDecl<cdim, vdim, polyOrder, basisType>
-    // this needs to match the basis used to initialize the equation object in Lua 
-    VlasovModDecl<1,2,2,G_SERENDIPITY_C> kernel;
-  };
+    // Return a pointer to an equation object for Vlasov equations
+    GkylEquation_t *new_VlasovOnDevice(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType,
+      double qbym, bool hasForceTerm);
+    // Set the aux fields
+    void Vlasov_setAuxFields(GkylEquation_t *eqn, GkylCartField_t* em);
 }
-#endif

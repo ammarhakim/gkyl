@@ -6,15 +6,15 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Unit       = require "Unit"
-local Grid       = require "Grid"
+local Unit = require "Unit"
+local Grid = require "Grid"
 local DataStruct = require "DataStruct"
-local Basis      = require "Basis"
-local Updater    = require "Updater"
-local Lin        = require "Lib.Linalg"
+local Basis = require "Basis"
+local Updater = require "Updater"
+local Lin = require "Lib.Linalg"
 
 local assert_equal = Unit.assert_equal
-local stats        = Unit.stats
+local stats = Unit.stats
 
 function test_1d_1()
    local grid = Grid.RectCart {
@@ -24,13 +24,13 @@ function test_1d_1()
    }
    local basis = Basis.CartModalSerendipity { ndim = 1, polyOrder = 2 }
    local distf = DataStruct.Field {
-      onGrid        = grid,
+      onGrid = grid,
       numComponents = basis:numBasis(),
-      ghost         = {0, 0},
+      ghost = {0, 0},
    }
    local project = Updater.ProjectOnBasis {
-      onGrid   = grid,
-      basis    = basis,
+      onGrid = grid,
+      basis = basis,
       evaluate = function (t, xn)
 	 return xn[1]
       end
@@ -39,8 +39,8 @@ function test_1d_1()
    -- Do projection.
    project:advance(0.0, {}, {distf})
 
-   local idx     = Lin.IntVec(grid:ndim())
-   local xc      = Lin.Vec(1)
+   local idx = Lin.IntVec(grid:ndim())
+   local xc = Lin.Vec(1)
    local indexer = distf:indexer()
    -- Check projection.
    for i = 1, grid:numCells(1) do
@@ -62,13 +62,13 @@ function test_1d_2()
    }
    local basis = Basis.CartModalSerendipity { ndim = 1, polyOrder = 2 }
    local distf = DataStruct.Field {
-      onGrid        = grid,
+      onGrid = grid,
       numComponents = basis:numBasis(),
-      ghost         = {0, 0},
+      ghost = {0, 0},
    }
    local project = Updater.ProjectOnBasis {
-      onGrid   = grid,
-      basis    = basis,
+      onGrid = grid,
+      basis = basis,
       evaluate = function (t, xn)
 	 return xn[1]^2
       end
@@ -77,8 +77,8 @@ function test_1d_2()
    -- Do projection.
    project:advance(0.0, {}, {distf})
 
-   local idx     = Lin.IntVec(grid:ndim())
-   local xc      = Lin.Vec(1)
+   local idx = Lin.IntVec(grid:ndim())
+   local xc = Lin.Vec(1)
    local indexer = distf:indexer()
    -- Check projection.
    for i = 1, grid:numCells(1) do
@@ -100,13 +100,13 @@ function test_2d()
    }
    local basis = Basis.CartModalSerendipity { ndim = 2, polyOrder = 2 }
    local distf = DataStruct.Field {
-      onGrid        = grid,
+      onGrid = grid,
       numComponents = basis:numBasis(),
-      ghost         = {0, 0},
+      ghost = {0, 0},
    }
    local project = Updater.ProjectOnBasis {
-      onGrid   = grid,
-      basis    = basis,
+      onGrid = grid,
+      basis = basis,
       evaluate = function (t, xn)
 	 return xn[1]
       end
@@ -115,8 +115,8 @@ function test_2d()
    -- Do projection.
    project:advance(0.0, {}, {distf})
 
-   local idx     = Lin.IntVec(grid:ndim())
-   local xc      = Lin.Vec(grid:ndim())
+   local idx = Lin.IntVec(grid:ndim())
+   local xc = Lin.Vec(grid:ndim())
    local indexer = distf:indexer()
    -- Check projection.
    for i = 1, grid:numCells(1) do
@@ -139,13 +139,13 @@ function test_2d_2()
    }
    local basis = Basis.CartModalSerendipity { ndim = 2, polyOrder = 2 }
    local distf = DataStruct.Field {
-      onGrid        = grid,
+      onGrid = grid,
       numComponents = 2*basis:numBasis(),
-      ghost         = {0, 0},
+      ghost = {0, 0},
    }
    local project = Updater.ProjectOnBasis {
-      onGrid   = grid,
-      basis    = basis,
+      onGrid = grid,
+      basis = basis,
       evaluate = function (t, xn)
 	 return xn[1], xn[1]
       end
@@ -154,8 +154,8 @@ function test_2d_2()
    -- Do projection.
    project:advance(0.0, {}, {distf})
 
-   local idx     = Lin.IntVec(grid:ndim())
-   local xc      = Lin.Vec(grid:ndim())
+   local idx = Lin.IntVec(grid:ndim())
+   local xc = Lin.Vec(grid:ndim())
    local indexer = distf:indexer()
    -- Check projection.
    for i = 1, grid:numCells(1) do
@@ -184,13 +184,13 @@ function test_3()
    }
    local basis = Basis.CartModalSerendipity { ndim = 1, polyOrder = 2 }
    local distf = DataStruct.Field {
-      onGrid        = grid,
+      onGrid = grid,
       numComponents = basis:numBasis(),
-      ghost         = {0, 0},
+      ghost = {0, 0},
    }
    local project = Updater.ProjectOnBasis {
-      onGrid   = grid,
-      basis    = basis,
+      onGrid = grid,
+      basis = basis,
       evaluate = function (t, xn)
 	 return xn[1]
       end
@@ -199,8 +199,8 @@ function test_3()
    -- Do projection.
    project:advance(0.0, {}, {distf})
 
-   local idx     = Lin.IntVec(grid:ndim())
-   local xc      = Lin.Vec(1)
+   local idx = Lin.IntVec(grid:ndim())
+   local xc = Lin.Vec(1)
    local indexer = distf:indexer()
    -- Check projection.
    for i = 1, grid:numCells(1) do
@@ -217,8 +217,8 @@ function test_3()
    -- Do projection.
    project:advance(0.0, {}, {distf})
 
-   local idx     = Lin.IntVec(grid:ndim())
-   local xc      = Lin.Vec(1)
+   local idx = Lin.IntVec(grid:ndim())
+   local xc = Lin.Vec(1)
    local indexer = distf:indexer()
    -- Check projection.
    for i = 1, grid:numCells(1) do

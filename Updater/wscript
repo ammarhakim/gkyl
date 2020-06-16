@@ -388,10 +388,12 @@ def build(bld):
     EvalOnNodesImpl.cpp
     """
 
+    ## HyperDisContDeviceShared.cu
     # CUDA specific code
     if bld.env['CUTOOLS_FOUND']:
         cusources = r"""
         HyperDisContDevice.cu
+        
         momentCalcData/DistFuncMomentCalcMax1x1v.cpp
         momentCalcData/DistFuncMomentCalcMax1x2v.cpp
         momentCalcData/DistFuncMomentCalcMax1x3v.cpp
@@ -412,11 +414,13 @@ def build(bld):
         momentCalcData/DistFuncMomentCalcTensor2x2v.cpp
 
         momentCalcData/DistFuncMomentCalcDeviceWrappers.cu
+
+        WavePropagationDevice.cu
         """
         
         bld(source = cusources,
             name = 'updater_cu', target='updater_cu',
-            includes = '. ../Cuda ../Grid ../Lib ../Eq ../DataStruct momentCalcData ../Eq/vlasovData', features = 'cxx nvcc '
+            includes = '. ../Cuda ../Grid ../Lib ../Basis ../Eq ../DataStruct momentCalcData ../Eq/vlasovData', features = 'cxx nvcc '
         )
 
     bld.shlib(source = sources,

@@ -24,6 +24,38 @@ local assert_equal = Unit.assert_equal
 local assert_close = Unit.assert_close
 local stats        = Unit.stats
 
+local function sign(a)
+   return math.abs(a)/a
+end
+
+-- Calculates maximum value in supplied field.
+local function maxValueInField(fld)
+   local maxVal        = 0.0
+   local range         = fld:localRange()
+   local idxr          = fld:genIndexer()
+   local numComponents = fld:numComponents()
+   for idx in range:rowMajorIter() do
+      local itr = fld:get(idxr( idx ))
+      for k = 1, numComponents do
+         maxVal = math.max(maxVal, math.abs(itr[k]))
+      end
+   end
+   return maxVal
+end
+
+-- Function to compare floats: the comparison is normalized to the
+-- maximum value of the field being compared. Perhaps this is too
+-- "coarse" but a direct comparison of floats is very tricky.
+local function check_equal_numeric(expected, actual, maxVal)
+   if maxVal < GKYL_MIN_DOUBLE then
+      return math.abs(expected-actual) > 10*GKYL_MIN_DOUBLE
+   end
+   if math.abs(expected-actual)/maxVal > 1e-12 then
+      return false
+   end
+   return true
+end
+
 local function createGrid(lo,up,nCells)
    local gridOut = Grid.RectCart {
       lower = lo,
@@ -76,13 +108,13 @@ local function createProject(grid,basis)
    return projUp
 end
 
-local function distFmoment(grid,pBasis,cBasis,mom,doOnDevice)
+local function distFmoment(grid,pBasis,cBasis,mom,doOnHost)
    local momUp = Updater.DistFuncMomentCalc {
       onGrid     = grid,
       phaseBasis = pBasis,
       confBasis  = cBasis,
       moment     = mom,
-      onDevice   = doOnDevice
+      onHost     = doOnHost
    }
    return momUp
 end
@@ -113,15 +145,16 @@ local function test_moments(phaseLower, phaseUpper, phaseNumCells,
    project:setFunc(function (t, xn)
          -- Using a projected Maxwellian does not give exactly 1,
          -- so would need to use assert_close instead of assert_equal. 
-         local x, v = xn[1], xn[2]
          local n0   = 1.0
-         local u    = 1.0
+         local u    = {1.0, 1.0, 1.0}
          local vt   = 0.8
          local k    = 2.0
-         local den = n0 --*math.cos(2.0*math.pi*k*x)
-	 return (den/math.sqrt(2.0*math.pi*vt^2))
-               *math.exp( -((v-u)^2)/(2.0*(vt^2)) )
-
+         local fOut = n0 --*math.cos(2.0*math.pi*k*x)
+	 for vd = 1, vDim do
+            fOut = fOut*(1/math.sqrt(2.0*math.pi*vt^2))
+                   *math.exp( -((xn[cDim+vd]-u[vd])^2)/(2.0*(vt^2)) )
+         end
+         return fOut
 --         -- Can instead project a function whose zeroth moment is exactly 1.
 --         return 1/(phaseGrid:upper(2)-phaseGrid:lower(2))
       end)
@@ -134,7 +167,7 @@ local function test_moments(phaseLower, phaseUpper, phaseNumCells,
    local confIdxr     = numDensity:genIndexer()
 
    -- ~~~~~~~~~~~~~~~~~~~ Check the number density ~~~~~~~~~~~~~~~~~~~~ --
-   local calcNumDensity = distFmoment(phaseGrid,phaseBasis,confBasis,"M0",true)
+   local calcNumDensity = distFmoment(phaseGrid,phaseBasis,confBasis,"M0",false)
    calcNumDensity:_advanceOnDevice(0.0, {distF}, {numDensity})
 
    err = cudaRunTime.DeviceSynchronize()
@@ -142,23 +175,26 @@ local function test_moments(phaseLower, phaseUpper, phaseNumCells,
    numDensity:copyDeviceToHost()
 
    -- Compare against CPU calculation.
-   local calcNumDensityHost = distFmoment(phaseGrid,phaseBasis,confBasis,"M0",false)
+   local calcNumDensityHost = distFmoment(phaseGrid,phaseBasis,confBasis,"M0",true)
    calcNumDensityHost:_advance(0.0, {distF}, {numDensityHost})
 
+   local maxVal       = maxValueInField(numDensityHost)
    local m0Components = numDensity:numComponents()
    for idx in confRange:rowMajorIter() do
       local m0Itr     = numDensity:get(confIdxr( idx ))
       local m0ItrHost = numDensityHost:get(confIdxr( idx ))
       for k = 1, m0Components do
-         assert_close(m0ItrHost[k], m0Itr[k], 1.e-11, string.format("Checking M0 moment, %s%dx%dvP%d",basis,cDim,vDim,pOrder))
+         assert_close(m0ItrHost[k], m0Itr[k], 1.e-12, string.format("Checking M2 moment, %s%dx%dvP%d",basis,cDim,vDim,pOrder))
+--         if check_equal_numeric(m0ItrHost[k], m0Itr[k], maxVal) == false then
+--            assert_equal(m0ItrHost[k], m0Itr[k], string.format("Checking M0 moment, %s%dx%dvP%d",basis,cDim,vDim,pOrder))
+--         else
+--            assert_equal(1.0, 1.0, "M0 is correct")
+--         end
       end
    end
 
---   numDensity:write("numDensity.bp",0.0)
---   numDensityHost:write("numDensityHost.bp",0.0)
-
    -- ~~~~~~~~~~~~~~~~~~~ Check the momentum density ~~~~~~~~~~~~~~~~~~~~ --
-   local calcMomDensity = distFmoment(phaseGrid,phaseBasis,confBasis,"M1i",true)
+   local calcMomDensity = distFmoment(phaseGrid,phaseBasis,confBasis,"M1i",false)
    calcMomDensity:_advanceOnDevice(0.0, {distF}, {momDensity})
 
    err = cudaRunTime.DeviceSynchronize()
@@ -166,23 +202,26 @@ local function test_moments(phaseLower, phaseUpper, phaseNumCells,
    momDensity:copyDeviceToHost()
 
    -- Compare against CPU calculation.
-   local calcMomDensityHost = distFmoment(phaseGrid,phaseBasis,confBasis,"M1i",false)
+   local calcMomDensityHost = distFmoment(phaseGrid,phaseBasis,confBasis,"M1i",true)
    calcMomDensityHost:_advance(0.0, {distF}, {momDensityHost})
 
+   local maxVal        = maxValueInField(momDensityHost)
    local m1iComponents = momDensity:numComponents()
    for idx in confRange:rowMajorIter() do
       local m1iItr     = momDensity:get(confIdxr( idx ))
       local m1iItrHost = momDensityHost:get(confIdxr( idx ))
       for k = 1, m1iComponents do
-         assert_close(m1iItrHost[k], m1iItr[k], 1.e-11, string.format("Checking M1i moment, %s%dx%dvP%d",basis,cDim,vDim,pOrder))
+         assert_close(m1iItrHost[k], m1iItr[k], 1.e-12, string.format("Checking M2 moment, %s%dx%dvP%d",basis,cDim,vDim,pOrder))
+         --if check_equal_numeric(m1iItrHost[k], m1iItr[k], maxVal) == false then
+         --   assert_equal(m1iItrHost[k], m1iItr[k], string.format("Checking M1i moment, %s%dx%dvP%d",basis,cDim,vDim,pOrder))
+         --else
+         --   assert_equal(1.0, 1.0, "M1i is correct")
+         --end
       end
    end
 
---   momDensity:write("momDensity.bp",0.0)
---   momDensityHost:write("momDensityHost.bp",0.0)
-
    -- ~~~~~~~~~~~~~~~~~~~ Check the energy density ~~~~~~~~~~~~~~~~~~~~ --
-   local calcEnergyDensity = distFmoment(phaseGrid,phaseBasis,confBasis,"M2",true)
+   local calcEnergyDensity = distFmoment(phaseGrid,phaseBasis,confBasis,"M2",false)
    calcEnergyDensity:_advanceOnDevice(0.0, {distF}, {energyDensity})
 
    err = cudaRunTime.DeviceSynchronize()
@@ -190,7 +229,7 @@ local function test_moments(phaseLower, phaseUpper, phaseNumCells,
    energyDensity:copyDeviceToHost()
 
    -- Compare against CPU calculation.
-   local calcEnergyDensityHost = distFmoment(phaseGrid,phaseBasis,confBasis,"M2",false)
+   local calcEnergyDensityHost = distFmoment(phaseGrid,phaseBasis,confBasis,"M2",true)
    calcEnergyDensityHost:_advance(0.0, {distF}, {energyDensityHost})
 
    local m2Components = energyDensity:numComponents()
@@ -198,12 +237,15 @@ local function test_moments(phaseLower, phaseUpper, phaseNumCells,
       local m2Itr     = energyDensity:get(confIdxr( idx ))
       local m2ItrHost = energyDensityHost:get(confIdxr( idx ))
       for k = 1, m2Components do
-         assert_close(m2ItrHost[k], m2Itr[k], 1.e-11, string.format("Checking M2 moment, %s%dx%dvP%d",basis,cDim,vDim,pOrder))
+         assert_close(m2ItrHost[k], m2Itr[k], 1.e-12, string.format("Checking M2 moment, %s%dx%dvP%d",basis,cDim,vDim,pOrder))
+         --if check_equal_numeric(m2ItrHost[k], m2Itr[k], maxVal) == false then
+         --   assert_equal(m2ItrHost[k], m2Itr[k], string.format("Checking M2 moment, %s%dx%dvP%d",basis,cDim,vDim,pOrder))
+         --else
+         --   assert_equal(1.0, 1.0, "M2 is correct")
+         --end
       end
    end
 
---   energyDensity:write("energyDensity.bp",0.0)
---   energyDensityHost:write("energyDensityHost.bp",0.0)
 end
 
 function test_1x1v(basis, pOrder)
@@ -256,7 +298,7 @@ function test_2x3v(basis, pOrder)
    test_moments(phaseLower, phaseUpper, phaseNumCells, confLower, confUpper, confNumCells, basis, pOrder)
 end
 
-local polyOrderMax = 2
+local polyOrderMax = 1
 local basisType    = "Ser"
 
 for polyOrder = 1, polyOrderMax do

@@ -450,7 +450,7 @@ function MaxwellField:combineRk(outIdx, a, aIdx, ...)
 end
 
 function MaxwellField:suggestDt()
-   return math.min(self.cfl/self.cflRateByCell:reduce('max'), GKYL_MAX_DOUBLE)
+   return math.min(self.cfl/self.cflRateByCell:reduce('max')[1], GKYL_MAX_DOUBLE)
 end
 
 function MaxwellField:clearCFL()

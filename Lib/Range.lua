@@ -11,10 +11,16 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
+local cuda
+if GKYL_HAVE_CUDA then
+   cuda = require "Cuda.RunTime"
+end
+
 -- Gkyl libraries
 local Lin = require "Lib.Linalg"
 
 local _M = {}
+local _P = {} -- private namespace
 
 -- these are used to fetch consistent indexer and iterators
 _M.rowMajor = 1
@@ -106,10 +112,7 @@ local range_mt = {
 	 return self._upper[dir-1]
       end,
       copy = function (self, rng)
-	 self._ndim = rng._ndim
-	 for d = 0, rng:ndim()-1 do
-	    self._lower[d], self._upper[d] = rng._lower[d], rng._upper[d]
-	 end
+         ffi.copy(self, rng, rSz)
       end,
       lowerAsVec = function (self)
 	 local v = Lin.IntVec(self:ndim())
@@ -311,7 +314,23 @@ local range_mt = {
       end,
       genIndexer = function (self, ordering)
 	 return _M.makeGenIndexer(ordering, self)
-      end      
+      end,
+      cloneOnDevice = GKYL_HAVE_CUDA and
+	 function (self)
+	    local r = new(rTy)
+	    ffi.copy(r, self, rSz)
+	    local row_c, col_c = _P.calcRowMajorIndexerCoeff(self), _P.calcColMajorIndexerCoeff(self)
+	    ffi.copy(r._rowMajorIndexerCoeff, row_c, sizeof("int[7]"))
+	    ffi.copy(r._colMajorIndexerCoeff, col_c, sizeof("int[7]"))
+	    
+	    local cuObj, err = cuda.Malloc(rSz)
+	    assert(cuda.Success == err, "Range.cloneOnDevice: unable to allocate device memory!")
+	    cuda.Memcpy(cuObj, r, rSz, cuda.MemcpyHostToDevice)
+	    return cuObj
+	 end or
+	 function (self)
+	    assert(false, "Range.cloneOnDevice: Can't be called without CUDA!")
+	 end      
    }
 }
 -- construct Range object, attaching meta-type to it
@@ -387,6 +406,7 @@ local function calcRowMajorIndexerCoeff(range)
    ac[0] = 1-start
    return ac
 end
+_P.calcRowMajorIndexerCoeff = calcRowMajorIndexerCoeff
 
 -- create coefficients for column-major indexer  given "range" object
 local function calcColMajorIndexerCoeff(range)
@@ -403,6 +423,7 @@ local function calcColMajorIndexerCoeff(range)
    ac[0] = 1-start
    return ac
 end
+_P.calcColMajorIndexerCoeff = calcColMajorIndexerCoeff
 
 -- Following functions return an indexer function given a range
 -- object. The returned function takes a (i,j,...) index.

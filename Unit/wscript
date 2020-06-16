@@ -8,9 +8,9 @@ import os
 def build(bld):
     # CUDA specific code
     if bld.env['CUTOOLS_FOUND']:
-        bld(source = 'test_SimpleKernel.cpp Reduce.cu', 
+        bld(source = 'test_SimpleKernel.cpp', 
             name = 'unit_cu', target='unit_cu',
-            includes='../Grid ../Lib ../DataStruct ../Cuda', features='cxx nvcc cushlib'
+            includes='../Grid ../Lib ../Basis ../DataStruct ../Cuda', features='cxx nvcc cushlib'
         )
 
     bld.shlib(source = 'test_cfuncs.cpp', includes = '.',
@@ -33,5 +33,5 @@ def build(bld):
     bld.program(
         source = 'ctest_BasisTypes.cxx',
         target = 'ctest_BasisTypes',
-        includes = '../Lib . ../Cuda', use = "CUTOOLS"
+        includes = '. ../Lib ../Basis ../Cuda', use = "CUTOOLS"
     )

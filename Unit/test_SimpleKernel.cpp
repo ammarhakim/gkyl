@@ -17,6 +17,9 @@ extern "C"
 
     void unit_showFieldRange(GkylCartField_t *f, double *g);
     void unit_showFieldGrid(GkylCartField_t *f);
+    void unit_readAndWrite(int numBlocks, int numThreads, GkylCartField_t *f, GkylCartField_t *res);
+    void unit_readAndWrite_shared(int numBlocks, int numThreads, int sharedSize, GkylCartField_t *f, GkylCartField_t *res);
+    void unit_readAndWrite_shared_offset(int numBlocks, int numThreads, int sharedSize, GkylCartField_t *f, GkylCartField_t *res);
 
     void unit_test_BasisTypes_1xp1_ser();
     void unit_test_BasisTypes_2xp2_ser();
@@ -40,6 +43,12 @@ extern "C"
 
     double unit_test_SimpleEquation(SimpleEquation *eqn, double* ab);
     sumFunc_t getEulerSumFuncOnDevice();
+
+    typedef struct {
+        double x, y, z;
+    } GkylTestParticle_t;
+
+    void unit_showParticle(GkylTestParticle_t *ptcl);
 }
 
 __global__ void ker_unit_sumArray(int n, double a, double *x, double *y)
@@ -59,23 +68,35 @@ __global__ void ker_unit_showRange(GkylRange_t *range)
   for (unsigned i=0; i<range->ndim; ++i)
     printf(" %d, %d\n", range->lower[i], range->upper[i]);
 
-  Gkyl::Indexer<1> idxr(range);
-  int lin1 = idxr.index(range->lower[0]);
-  int lin2 = idxr.index(range->upper[0]);
-  printf("  --- Calls to indexers %d, %d (%d)\n", lin1, lin2, lin2-lin1);
+  printf("Range row-indexing data:\n");
+  for (unsigned i=0; i<range->ndim+1; ++i)
+    printf(" %d\n", range->rowMajorIndexerCoeff[i]);
+  printf("Range col-indexing data:\n");
+  for (unsigned i=0; i<range->ndim+1; ++i)
+    printf(" %d\n", range->colMajorIndexerCoeff[i]);
 
-  int idx[1];
-  for (int i=0; i<range->upper[0]-range->lower[0]+1; ++i) {
-    idxr.invIndex(i, idx);
-    printf("Lin index %d -> index %d\n", i, idx[0]);
-  }
+  Gkyl::GenIndexer idxr_r(range, Gkyl::Layout::rowMajor);
+  int lin1 = idxr_r.index(range->lower);
+  int lin2 = idxr_r.index(range->upper);
+  printf("  --- Calls to row-major indexers %d, %d (%d)\n", lin1, lin2, lin2-lin1);
 
-  // can also instantiate a C++ range object using the GkylRange_t range pointer (from Lua)
+  Gkyl::GenIndexer idxr_c(range, Gkyl::Layout::colMajor);
+  lin1 = idxr_c.index(range->lower);
+  lin2 = idxr_c.index(range->upper);
+  printf("  --- Calls to col-major indexers %d, %d (%d)\n", lin1, lin2, lin2-lin1);
+
+  // can also instantiate a C++ range object using the GkylRange_t
+  // range pointer (from Lua)
   Gkyl::Range range_cpp(range);
   printf("Range ndim: %d\n", range_cpp.ndim());
   for (unsigned i=0; i<range_cpp.ndim(); ++i)
     printf(" %d, %d\n", range_cpp.lower(i), range_cpp.upper(i));
   printf("Volume = %d\n", range_cpp.volume());
+}
+
+__global__ void ker_unit_showParticle(GkylTestParticle_t *ptcl)
+{
+  printf("Particle: %g %g %g\n", ptcl->x, ptcl->y, ptcl->z);
 }
 
 __global__ void ker_unit_showGrid(GkylRectCart_t *grid)
@@ -165,6 +186,11 @@ void unit_showRange(GkylRange_t *devRange)
   ker_unit_showRange<<<1, 1>>>(devRange);
 }
 
+void unit_showParticle(GkylTestParticle_t *ptcl)
+{
+  ker_unit_showParticle<<<1, 1>>>(ptcl);
+}
+
 void unit_showGrid(GkylRectCart_t *devGrid)
 {
   ker_unit_showGrid<<<1, 1>>>(devGrid);
@@ -209,4 +235,104 @@ double unit_test_SimpleEquation(SimpleEquation *eqn, double* ab)
   double retVal = 0;
   cudaMemcpy(&retVal, out, sizeof(double), cudaMemcpyDeviceToHost);
   return retVal;
+}
+
+__global__ void ker_readAndWrite(GkylCartField_t *f, GkylCartField_t *res)
+{
+  int linearIdx = threadIdx.x + blockDim.x*blockIdx.x;
+  GkylRange_t *localRange = f->localRange;
+  if(linearIdx < localRange->volume()) {
+    int idxC[6];
+    Gkyl::GenIndexer localIdxr(localRange);
+    int numComponents = f->numComponents;
+    Gkyl::GenIndexer fIdxr = f->genIndexer();
+    localIdxr.invIndex(linearIdx, idxC);
+    const int linearIdxC = fIdxr.index(idxC);
+  
+    for (int i=0; i<numComponents; i++) {
+      res->getDataPtrAt(linearIdxC)[i] = f->getDataPtrAt(linearIdxC)[i];
+    }
+  }
+}
+
+__global__ void ker_readAndWrite_shared(GkylCartField_t *f, GkylCartField_t *res)
+{
+  int linearIdx = threadIdx.x + blockDim.x*blockIdx.x;
+  GkylRange_t *localRange = f->localRange;
+  int idxC[6];
+  Gkyl::GenIndexer localIdxr(localRange);
+  int numComponents = f->numComponents;
+  int ndim = f->ndim;
+  Gkyl::GenIndexer fIdxr = f->genIndexer();
+
+  extern __shared__ double f_shared[];
+  // read f into shared memory with coalesced memory accesses
+  const int jump = blockDim.x/numComponents;
+  for(int j=0; j<numComponents; j++) {
+    const int sharedIdx = jump*j + blockDim.x*blockIdx.x;
+    localIdxr.invIndex(sharedIdx, idxC);
+    const int sharedIdxC = fIdxr.index(idxC);
+    if(sharedIdx < localRange->volume()) {
+      f_shared[threadIdx.x + j*blockDim.x] = f->_data[threadIdx.x + sharedIdxC*numComponents]; 
+    }
+  }
+  __syncthreads();
+
+  if(linearIdx < localRange->volume()) {
+    localIdxr.invIndex(linearIdx, idxC);
+    const int linearIdxC = fIdxr.index(idxC);
+    // write result by reading f from shared memory
+    for (int i=0; i<numComponents; i++) {
+      res->getDataPtrAt(linearIdxC)[i] = f_shared[i + numComponents*threadIdx.x];
+    }
+  }
+}
+
+__global__ void ker_readAndWrite_shared_offset(GkylCartField_t *f, GkylCartField_t *res)
+{
+  int linearIdx = threadIdx.x + blockDim.x*blockIdx.x;
+  GkylRange_t *localRange = f->localRange;
+  int idxC[6];
+  Gkyl::GenIndexer localIdxr(localRange);
+  int numComponents = f->numComponents;
+  int ndim = f->ndim;
+  Gkyl::GenIndexer fIdxr = f->genIndexer();
+
+  extern __shared__ double f_shared[];
+  // read f into shared memory with coalesced memory accesses
+  const int jump = blockDim.x/numComponents;
+  for(int j=0; j<numComponents; j++) {
+    const int sharedIdx = jump*j + blockDim.x*blockIdx.x;
+    if(sharedIdx < localRange->volume()) {
+      localIdxr.invIndex(sharedIdx, idxC);
+      const int sharedIdxC = fIdxr.index(idxC);
+      const int offset = numComponents;
+      f_shared[threadIdx.x + j*blockDim.x + offset] = f->_data[threadIdx.x + sharedIdxC*numComponents]; 
+    }
+  }
+  __syncthreads();
+
+  if(linearIdx < localRange->volume()) {
+    localIdxr.invIndex(linearIdx, idxC);
+    const int linearIdxC = fIdxr.index(idxC);
+    // write result by reading f from shared memory
+    for (int i=0; i<numComponents; i++) {
+      res->getDataPtrAt(linearIdxC)[i] = f_shared[i + numComponents*threadIdx.x];
+    }
+  }
+}
+
+void unit_readAndWrite(int numBlocks, int numThreads, GkylCartField_t *f, GkylCartField_t *res)
+{
+  ker_readAndWrite<<<numBlocks, numThreads>>>(f, res);
+}
+
+void unit_readAndWrite_shared(int numBlocks, int numThreads, int sharedSize, GkylCartField_t *f, GkylCartField_t *res)
+{
+  ker_readAndWrite_shared<<<numBlocks, numThreads, sharedSize*sizeof(double)>>>(f, res);
+}
+
+void unit_readAndWrite_shared_offset(int numBlocks, int numThreads, int sharedSize, GkylCartField_t *f, GkylCartField_t *res)
+{
+  ker_readAndWrite_shared_offset<<<numBlocks, numThreads, sharedSize*sizeof(double)>>>(f, res);
 }
