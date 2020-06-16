@@ -13,14 +13,26 @@ local assert_equal = Unit.assert_equal
 local stats = Unit.stats
 
 function test_1()
-   local a = Array.Array {10, 20}
+   local arr = Array.Array( {10, 20}, Array.double)
 
-   assert_equal(2, a.r, "Testing array rank")
-   assert_equal(10, a.s[0], "Testing array shape")
-   assert_equal(20, a.s[1], "Testing array shape")
-   assert_equal(1, a.c, "Use count")
-   assert_equal(200, a.N, "Total N")
-   assert_equal(true, a.d == a:data(), "Checking if pointer addresses are same")
+   assert_equal(2, arr.r, "Testing array rank")
+   assert_equal(10, arr.d[0], "Testing array shape")
+   assert_equal(20, arr.d[1], "Testing array shape")
+   assert_equal(1, arr.c, "Use count")
+   assert_equal(200, arr.n, "Total n")
+   assert_equal(ffi.sizeof("double"), arr.s, "Size of element")
+   local arrData = Array.dataPtr(arr, Array.double)
+   assert_equal(true, arrData == arr.d+arr.r)
+
+   local brr = arr:clone()
+   assert_equal(2, brr.r, "Testing array rank")
+   assert_equal(10, brr.d[0], "Testing array shape")
+   assert_equal(20, brr.d[1], "Testing array shape")
+   assert_equal(1, brr.c, "Use count")
+   assert_equal(200, brr.n, "Total n")
+   assert_equal(ffi.sizeof("double"), brr.s, "Size of element")
+   local brrData = Array.dataPtr(brr, Array.double)
+   assert_equal(true, brrData == brr.d+brr.r)
 end
 
 -- Run tests
