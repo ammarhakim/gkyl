@@ -274,12 +274,9 @@ local function buildApplication(self, tbl)
       local hasE, hasB = field:hasEB()
       local funcHasE, funcHasB = funcField:hasEB()
       s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
-      print('initCrossSpeciesCoupling complete', s.name)	    
       s:createSolver(hasE or funcHasE, hasB or funcHasB, funcField)
       s:initDist()
-      print('initDist complete', s.name)
       s:createDiagnostics()
-      print('diagnostics complete', s.name)
    end
 
    -- Initialize source solvers.

@@ -684,7 +684,7 @@ function GkSpecies:initCrossSpeciesCoupling(species)
          end
       end
    end
-   print('stuff completed for', self.name)
+
    if needVarNu then
       self.nuVarXCross = {}    -- Collisionality varying in configuration space.
       local projectNuX = nil
