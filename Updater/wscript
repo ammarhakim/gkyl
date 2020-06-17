@@ -401,6 +401,7 @@ def build(bld):
         momentCalcData/DistFuncMomentCalcDeviceWrappers.cu
 
         WavePropagationDevice.cu
+        MomentSrcCommonDevice.cu
         """
         
         bld(source = cusources,
