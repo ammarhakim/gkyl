@@ -1226,14 +1226,6 @@ function VlasovSpecies:crossPrimitiveMoments(otherSpeciesName)
    return { self.uCross[otherSpeciesName], self.vtSqCross[otherSpeciesName] }
 end
 
-function VlasovSpecies:getDistF(rkIdx)
-   if rkIdx == nil then
-      return self:rkStepperFields()[self.activeRKidx]
-   else
-      return self:rkStepperFields()[self.rkIdx]
-   end
-end
-
 function VlasovSpecies:getNumDensity(rkIdx)
    -- If no rkIdx specified, assume numDensity has already been calculated.
    if rkIdx == nil then return self.numDensity end 

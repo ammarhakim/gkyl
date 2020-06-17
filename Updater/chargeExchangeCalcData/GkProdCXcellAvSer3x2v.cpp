@@ -1,4 +1,4 @@
-#include <ChargeExchangeModDecl.h> 
+#include <RelativeVelocityModDecl.h> 
 #include <math.h> 
 void GkProdCXcellAvSer3x2v_P1(const double *w, const double *m0, const double *uPar, const double *vtSq, const double *fOther, double *prodCX) 
 { 

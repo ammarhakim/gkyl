@@ -71,6 +71,7 @@ end
 function GkChargeExchange:setName(nm)
    self.name = nm
 end
+
 function GkChargeExchange:setSpeciesName(nm)
    self.speciesName = nm
 end
@@ -82,6 +83,7 @@ end
 function GkChargeExchange:setConfBasis(basis)
    self.confBasis = basis
 end
+
 function GkChargeExchange:setConfGrid(grid)
    self.confGrid = grid
 end
@@ -111,21 +113,34 @@ function GkChargeExchange:createSolver(funcField) --species)
 	 a              = self.a,
 	 b              = self.b,
    }
+   self.sourceCX = DataStruct.Field {
+      onGrid        = self.phaseGrid,
+      numComponents = self.phaseBasis:numBasis(),
+      ghost         = {1, 1},
+      metaData = {
+	 polyOrder = self.phaseBasis:polyOrder(),
+	 basisType = self.phaseBasis:id()
+      },
+   }
 end
 
 function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
    -- get CX source term from Vlasov species
-   local sourceCX = species[self.ionNm]:getSrcCX()
+   self.sourceCX = species[self.ionNm]:getSrcCX()
    
    -- identify species and accumulate
    if (self.speciesName == self.ionNm) then
-      fRhsOut:accumulate(1.0,sourceCX)
+      fRhsOut:accumulate(1.0,self.sourceCX)
    elseif (self.speciesName == self.neutNm) then
-      fRhsOut:accumulate(-self.iMass/self.nMass,sourceCX)
+      fRhsOut:accumulate(-self.iMass/self.nMass,self.sourceCX)
    end
    
 end
    
+function GkChargeExchange:getSrcCX()
+   return self.sourceCX
+end
+
 function GkChargeExchange:write(tm, frame)
 end
 

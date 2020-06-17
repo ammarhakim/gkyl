@@ -582,7 +582,14 @@ function KineticSpecies:alloc(nRkDup)
    self.momentFlags[6] = {}  -- Corresponds to varNuXCross.
 end
 
- -- may want to move getDistF here, too?
+function KineticSpecies:getDistF(rkIdx)
+   if rkIdx == nil then
+      return self:rkStepperFields()[self.activeRKidx]
+   else
+      return self:rkStepperFields()[self.rkIdx]
+   end
+end
+
 function KineticSpecies:setActiveRKidx(rkIdx)
    self.activeRKidx = rkIdx
 end
@@ -659,6 +666,8 @@ function KineticSpecies:initDist()
    end
 
    self.distf[2]:clear(0.0)
+   
+   self:setActiveRKidx(1)
 
    -- Calculate initial density averaged over simulation domain.
    --self.n0 = nil
@@ -898,6 +907,12 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        --self.fMaxwellIz:write(string.format("%s_fMaxwell_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        self.voronovReactRate:write(string.format("%s_coefIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+    end
+
+    if self.calcCXSrc then
+       print('writing CX source...')
+       local sourceCX = self.collisions[self.collNmCX]:getSrcCX()
+       sourceCX:write(string.format("%s_sourceCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
     end
 end
 

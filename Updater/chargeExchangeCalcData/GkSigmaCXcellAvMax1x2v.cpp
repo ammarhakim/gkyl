@@ -1,4 +1,4 @@
-#include <ChargeExchangeModDecl.h> 
+#include <SigmaCXModDecl.h> 
 #include <math.h> 
 void GkSigmaCXcellAvMax1x2v_P1(const double a, const double b, const double *uParIon, const double *uParNeut, const double *vtSqIon, const double *vtSqNeut, double *sigmaCX) 
 { 

@@ -1586,7 +1586,6 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 
       if self.calcReactRate then
 	 local neutU = species[self.neutNmIz]:selfPrimitiveMoments()[1]
-	 local fElc = species[self.name]:getDistF()
 	 
 	 species[self.name].collisions[self.collNmIoniz].calcVoronovReactRate:advance(tCurr, {self.vtSqSelf}, {self.voronovReactRate})
 	 species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
@@ -1602,16 +1601,13 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 -- right now :getDistF() is not working...
 	 local fIon  = species[self.name]:getDistF()
 	 local fNeut = species[self.neutNmCX]:getDistF()
-	 fIon:write(string.format("fIon.bp"),0.0,0,false)
-	 fNeut:write(string.format("fNeut.bp"),0.0,0,false)
 	 
 	 -- calculate CX cross section
 	 species[self.name].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {self.uParSelf, species[self.neutNmCX].uParSelf, self.vtSqSelf, species[self.neutNmCX].vtSqSelf}, {self.sigmaCX})
-      
+
 	 -- calculate relative velocities products
 	 species[self.name].collisions[self.collNmCX].calcVrelProdCX:advance(tCurr, {self.numDensity, self.uParSelf, self.vtSqSelf, fNeut}, {self.vrelProdCX})
 	 species[self.neutNmCX].collisions[self.collNmCX].calcVrelProdCX:advance(tCurr, {species[self.neutNmCX].numDensity, species[self.neutNmCX].uParSelf, species[self.neutNmCX].vtSqSelf, fIon}, {species[self.neutNmCX].vrelProdCX})
-
 	 self.diffDistF:combine(1.0, self.vrelProdCX, -1.0, species[self.neutNmCX].vrelProdCX)
 	 self.confPhaseMult:advance(tCurr, {self.sigmaCX, self.diffDistF}, {self.srcCX})
       end
@@ -1639,18 +1635,6 @@ end
 
 function GkSpecies:crossPrimitiveMoments(otherSpeciesName)
    return { self.uParCross[otherSpeciesName], self.vtSqCross[otherSpeciesName] }
-end
-
-function GkSpecies:getDistF(rkIdx)
-   if rkIdx == nil then
-      return self:rkStepperFields()[self.activeRKidx]
-   else
-      return self:rkStepperFields()[self.rkIdx]
-   end
-end
-
-function GkSpecies:setActiveRKidx(rkIdx)
-   self.activeRKidx = rkIdx
 end
 
 function GkSpecies:getNumDensity(rkIdx)

@@ -1,0 +1,39 @@
+maccvars : [X, Y, Z]$
+
+polyOrderMax : 3$
+
+fh : openw("~/max-out/ChargeExchangeModDecl.h")$
+
+printf(fh, "#ifndef CHARGEEXCHANGE_MOD_DELC_H ~%")$
+printf(fh, "#define CHARGEEXCHANGE_MOD_DELC_H ~%")$
+printf(fh, "#include <cmath> ~%~%")$
+printf(fh, "#include <algorithm> ~%~%")$
+printf(fh, "extern \"C\" { ~%")$
+
+bName   : ["Ser","Max"]$
+gkVdims : [[1,2], [2], [2]]$
+
+for bInd : 1 thru length(bName) do (
+
+   for pi : 1 thru polyOrderMax do (
+      for ci : 1 thru 3 do (
+      for gkV : 1 thru length(gkVdims[ci]) do (
+         vi : gkVdims[ci][gkV],
+       	 printf(fh, "void GkProdCXcellAv~a~ax~av_P~a(const double *w, const double *m0, const double *uPar, const double *vtSq, const double *fOther, double *prodCX); ~%", bName[bInd], ci, vi, pi),
+       	 printf(fh, "~%"),
+
+	 printf(fh, "void GkSigmaCXcellAv~a~ax~av_P~a(const double a, const double b, const double *uParIon, const double *uParNeut, const double *vtSqIon, const double *vtSqNeut, double *sigmaCX); ~%", bName[bInd], ci, vi, pi),
+       	 printf(fh, "~%")
+         ),
+      printf(fh, "~%")
+      )
+   )
+)$
+
+printf(fh, "~% ~%")$
+
+printf(fh, "} ~%")$
+
+printf(fh, "#endif ~%")$
+
+close(fh)$

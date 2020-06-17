@@ -1,0 +1,116 @@
+/* Generate CX cross section (sigmaCX) kernels for charge
+   exchange operator */
+
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 3$
+/* Maximal order basis. */
+maxPolyOrder_Max : 3$
+
+declareWriteCExprsC(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  if expr # 0.0 then (
+    ep : string(expr),
+    for i : 0 thru 60 do (
+    	ep : ssubst(string(pow(uIon[i],2)),string(uIon[i]^2),ep),
+    	ep : ssubst(string(pow(uNeut[i],2)),string(uNeut[i]^2),ep)	
+    ),
+    printf(fh, "  double ~a = ~a; ~%", lhs, ep)
+  )
+)$
+
+writeCExprsCs(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (	
+    if expr[i] # 0.0 then (
+      ep : string(expr[i]),
+      ep : ssubst("log(","ln(",ep),	
+      printf(fh, "  ~a = ~a; ~%", lhs[i-1], ep)	
+    )
+  )
+)$
+
+writeCExprsC(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  if expr # 0.0 then (
+     ep : string(expr),
+     printf(fh, "  ~a = ~a; ~%", lhs, ep)	
+  )
+)$
+
+/* sigmaCX for charge exchange cross section */
+calcVmSigmaCXcellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+  for p : 1 thru pMax do (
+    bP : basisP[p],
+    print(basisFun, cdim, vdim, p, length(basisP)),
+    bC : basisC[p],
+    NC : length(bC),
+  
+    printf(fh, "void ~a_P~a(const double a, const double b, const double *uIon, const double *uNeut, const double *vtSqIon, const double *vtSqNeut, double *sigmaCX) ~%{ ~%", funcNm, p),
+    printf(fh, "  // a               constant in fitting function. ~%"),
+    printf(fh, "  // b               constant in fitting function. ~%"),
+    printf(fh, "  // uIon[~a]:        ion fluid velocity. ~%", NC*vdim),
+    printf(fh, "  // uNeut[~a]:       neutral fluid velocity. ~%", NC*vdim),
+    printf(fh, "  // vtSqIon[~a]:     ion squared thermal speed, sqrt(T/m). ~%", NC),
+    printf(fh, "  // vtSqNeut[~a]:    neutral squared thermal speed, sqrt(T/m). ~%", NC),
+    printf(fh, "  // sigmaCX:          cell ave cross section fitting eqn. ~%"),
+    printf(fh, " ~%"),
+
+    uIonAv_c : subst(makelist(uIon[i]=uIon[i+a0],i,0,NC-1),innerProd(varsC,1.0,1.0,doExpand1(uIon,bC))/innerProd(varsC,1.0,1.0,1.0)),
+    uNeutAv_c : subst(makelist(uNeut[i]=uNeut[i+a0],i,0,NC-1),innerProd(varsC,1.0,1.0,doExpand1(uNeut,bC))/innerProd(varsC,1.0,1.0,1.0)),
+
+    uIonAv : makelist(0,i,1,vdim),
+    uNeutAv : makelist(0,i,1,vdim),
+    for vi : 1 thru vdim do (
+    	uIonAv[vi] : fullratsimp(subst(a0=(vi-1)*NC,uIonAv_c)),
+   	uNeutAv[vi] : fullratsimp(subst(a0=(vi-1)*NC,uNeutAv_c))	
+	),
+
+    vtSqIonAv_c : innerProd(varsC,1.0,1.0, doExpand1(vtSqIon,bC))/innerProd(varsC,1.0,1.0,1.0),
+    vtSqNeutAv_c : innerProd(varsC,1.0,1.0, doExpand1(vtSqNeut,bC))/innerProd(varsC,1.0,1.0,1.0),
+
+    declareWriteCExprsC(vtSqIonAv, vtSqIonAv_c),
+    declareWriteCExprsC(vtSqNeutAv, vtSqNeutAv_c),
+    
+    /* Define v_IN variable: vINSq = |uIon - uNeut|^2 */
+    vINSq_c    : innerProd(varsC,1.0,1.0,sum((uIonAv[d] - uNeutAv[d])^2,d,1,vdim))/innerProd(varsC,1.0,1.0,1.0),
+
+    declareWriteCExprsC(vINSqAv, vINSq_c),
+    
+    /* Define and write sigmaCX */
+
+    sigmaCX_c : calcInnerProdList(varsC,1.0,bC,a - b*ln(sqrt(4/%pi*vtSqIonAv + 4/%pi*vtSqNeutAv + vINSqAv))),
+
+    writeCExprsCs(sigmaCX, sigmaCX_c),
+    printf(fh, " ~%"),
+    printf(fh, "} ~%")
+))$
+
+bName        : ["Ser","Max"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
+
+for bInd : 1 thru length(bName) do (
+  for c : 1 thru 2 do (
+      for v : c thru 3 do (
+      	  disp(printf(false,sconcat("Creating sigmaCX ", bName[bInd]," ~ax~av"),c,v)),
+    	  fname : sconcat("~/max-out/VmSigmaCXcellAv", bName[bInd], c, "x", v, "v", ".cpp"),
+    	  fh : openw(fname),
+
+    	  printf(fh, "#include <ChargeExchangeModDecl.h> ~%"),
+    	  printf(fh, "#include <math.h> ~%"),
+
+	  print("attempting to print",c,"x",v,"v functions..."),
+    	  /*. Calculate CX cross section. */
+    	  funcNm : sconcat("VmSigmaCXcellAv", bName[bInd], c, "x", v, "v"),
+    	  calcVmSigmaCXcellAv(fh, funcNm, c, v, bName[bInd], maxPolyOrder[bInd]),
+    	  close(fh)
+  	  )
+  )	
+)$

@@ -1,0 +1,116 @@
+/* Generate v^* (relative velocity) kernels for charge
+   exchange operator */
+
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 2$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 2$
+
+declareWriteCExprsC(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  if expr # 0.0 then (
+    ep : string(expr),
+    for i : 0 thru 60 do (
+    	ep : ssubst(string(pow(uPar[i],2)),string(uPar[i]^2),ep),
+    	ep : ssubst(string(pow(w[i],2)),string(w[i]^2),ep)	
+    ),
+    printf(fh, "  double ~a = ~a; ~%", lhs, ep)
+  )
+)$
+
+declareWriteCExprsC1(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+  if expr[i] # 0.0 then (
+      ep : string(expr[i]),
+      printf(fh, "  double ~a = ~a; ~%", lhs, ep)	
+    )
+  )
+)$
+
+writeCExprsCs(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (	
+    if expr[i] # 0.0 then (
+      ep : string(expr[i]),
+      printf(fh, "  ~a = ~a; ~%", lhs[i-1], ep)	
+    )
+  )
+)$
+
+/* Relative velocity for Pauls charge exchange */
+calcGkProdCXcellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  print("inside function"),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+  for p : 1 thru pMax do (
+    bP : basisP[p],
+    print(basisFun, cdim, vdim, p, length(basisP)),
+    bC : basisC[p],
+    NC : length(bC),
+  
+    printf(fh, "void ~a_P~a(const double *w, const double *m0, const double *uPar, const double *vtSq, const double *fOther, double *prodCX) ~%{ ~%", funcNm, p),
+    printf(fh, "  // w[~a]:      cell-center coordinates. ~%", cdim+vdim),
+    printf(fh, "  // m0[~a]:     density. ~%", cdim),
+    printf(fh, "  // uPar[~a]:    velocity. ~%", cdim),
+    printf(fh, "  // vtSq[~a]:   squared thermal speed, sqrt(T/m). ~%", cdim),
+    printf(fh, "  // fOther:     distribution function of other CX species. ~%"),
+    printf(fh, "  // prodCX:  produce of v^*, m0, and f in Pauls CX model. ~%"),
+    printf(fh, " ~%"),
+
+    uParAv_c : innerProd(varsC,1.0,1.0, doExpand1(uPar,bC))/innerProd(varsC,1.0,1.0,1.0),	
+    vtSqAv_c : innerProd(varsC,1.0,1.0, doExpand1(vtSq,bC))/innerProd(varsC,1.0,1.0,1.0),
+
+    declareWriteCExprsC(vtSqAv, vtSqAv_c),
+    
+    /* Define x variable xSq = (v - u)^2/vtSq */
+    xSq_c    : fullratsimp(innerProd(varsP,1/vtSqAv,1.0,(w[cdim] - uParAv_c)^2)/innerProd(varsP,1.0,1.0,1.0)),
+
+    declareWriteCExprsC(xSqAv, xSq_c),
+    
+    /* Define relative velocity */
+    vrelCX_c  : fullratsimp(innerProd(varsP,1,1,sqrt(vtSqAv)*sqrt(4/%pi + xSqAv))/innerProd(varsP,1.0,1.0,1.0)),
+
+    declareWriteCExprsC(vrelCX, vrelCX_c),
+    
+    /* Multiply by density and distribution function. */
+    m0_e     : doExpand1(m0,bC),
+    fOther_e : doExpand1(fOther,bP),
+    prodCX_c : calcInnerProdList(varsP,1,bP,vrelCX*m0_e*fOther_e),
+
+    printf(fh, " ~%"),
+    writeCExprsCs(prodCX, prodCX_c), 
+
+    printf(fh, " ~%"),
+    printf(fh, "} ~%")
+))$
+
+bName        : ["Ser","Max"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
+
+for bInd : 1 thru length(bName) do (
+  for c : 3 thru 3 do (
+      for v : 2 thru 2 do (
+      	  
+      	  disp(printf(false,sconcat("Creating PaulsCX product  ", bName[bInd]," ~ax~av"),c,v)),
+    	  fname : sconcat("~/max-out/GkProdCXcellAv", bName[bInd], c, "x", v, "v", ".cpp"),
+    	  fh : openw(fname),
+
+    	  printf(fh, "#include <RelativeVelocityModDecl.h> ~%"),
+    	  printf(fh, "#include <math.h> ~%"),
+
+	  print("attempting to print",c,"x",v,"v functions..."),
+    	  /*. Calculate relative velocity. */
+    	  funcNm : sconcat("GkProdCXcellAv", bName[bInd], c, "x", v, "v"),
+    	  calcGkProdCXcellAv(fh, funcNm, c, v, bName[bInd], maxPolyOrder[bInd]),
+    	  close(fh)
+  	  )
+  )	
+)$
