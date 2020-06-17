@@ -62,7 +62,7 @@ namespace Gkyl {
     private:
       /* dimension and basis parameters */
       const double _gasGamma = 5./3.;
-      int _numWaves = 3;
+      int _numWaves = 1;
       const int _numEquations = 5;
 
 
