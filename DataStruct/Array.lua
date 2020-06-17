@@ -113,10 +113,11 @@ local array_fn = {
       local n = 1
       for i = 1, #shape do n = n*shape[i] end
       assert(n == self.n, "Array.reshape: Can't change size of array on reshape!")
-      self.r = #shape -- new rank
       if #shape > self.r then
-	 self.s = Alloc.realloc(self.s, #shape*longSz)
+	 Alloc.free(self.s)
+	 self.s = Alloc.malloc(#shape*longSz)
       end
+      self.r = #shape -- new rank
       for i = 1, #shape do self.s[i-1] = shape[i] end
       return self
    end,
