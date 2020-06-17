@@ -35,7 +35,8 @@
 
 __global__ void cuda_gkylMomentSrcSetMat(
     MomentSrcData_t *sd, FluidData_t *fd, double dt, GkylCartField_t **fluidFlds,
-    GkylCartField_t *emFld, double *d_lhs, double *d_rhs) {
+    GkylCartField_t *emFld, double *d_lhs, double *d_rhs, double **d_lhs_ptr,
+    double **d_rhs_ptr) {
   GkylRange_t *localRange = emFld->localRange;
   Gkyl::GenIndexer localIdxr(localRange);
   Gkyl::GenIndexer fIdxr = emFld->genIndexer();
@@ -47,8 +48,10 @@ __global__ void cuda_gkylMomentSrcSetMat(
   const int linearIdxC = fIdxr.index(idxC);
   const double *em = emFld->getDataPtrAt(linearIdxC);
 
-  double *lhs = d_lhs + (N*N)*sizeof(double)*linearIdx;
-  double *rhs = d_rhs + (N)*sizeof(double)*linearIdx;
+  double *lhs = d_lhs + (N*N)*linearIdx;
+  double *rhs = d_rhs + (N)*linearIdx;
+  d_lhs_ptr[linearIdx] = lhs;
+  d_rhs_ptr[linearIdx] = rhs;
 
   unsigned nFluids = sd->nFluids;
   double dt1 = 0.5 * dt;
@@ -110,6 +113,9 @@ static int cuda_gkylMomentSrcTimeCentered(
   cublasStatus_t status;
   double *d_lhs = 0;
   double *d_rhs = 0;
+  double **d_lhs_ptr = 0;
+  double **d_rhs_ptr = 0;
+  int *d_info = 0;
   cublasHandle_t handle;
 
   int batchSize = numThreads*numBlocks;
@@ -120,35 +126,55 @@ static int cuda_gkylMomentSrcTimeCentered(
     return EXIT_FAILURE;
   }
 
-  if (cudaMalloc(reinterpret_cast<void **>(&d_lhs), N*N * sizeof(d_lhs[0])) !=
+  // memory for actuall arrays and vectors
+  if (cudaMalloc(reinterpret_cast<void **>(&d_lhs), batchSize * N*N * sizeof(double)) !=
       cudaSuccess) {
-    fprintf(stderr, "!!!! device memory allocation error (allocate A)\n");
+    fprintf(stderr, "!!!! device memory allocation error (d_lhs)\n");
     return EXIT_FAILURE;
   }
 
-  if (cudaMalloc(reinterpret_cast<void **>(&d_rhs), N * sizeof(d_rhs[0])) !=
+  if (cudaMalloc(reinterpret_cast<void **>(&d_rhs), batchSize * N * sizeof(double)) !=
       cudaSuccess) {
-    fprintf(stderr, "!!!! device memory allocation error (allocate A)\n");
+    fprintf(stderr, "!!!! device memory allocation error (d_rhs)\n");
+    return EXIT_FAILURE;
+  }
+
+  // memory for pointers to the actuall arrays and vectors
+  if (cudaMalloc<double*>((&d_lhs_ptr), batchSize*sizeof(double*)) !=
+      cudaSuccess) {
+    fprintf(stderr, "!!!! device memory allocation error (d_lhs_ptr)\n");
+    return EXIT_FAILURE;
+  }
+
+  if (cudaMalloc(reinterpret_cast<void **>(&d_rhs_ptr), batchSize * sizeof(double*)) !=
+      cudaSuccess) {
+    fprintf(stderr, "!!!! device memory allocation error (d_rhs_ptr)\n");
+    return EXIT_FAILURE;
+  }
+
+  if (cudaMalloc(reinterpret_cast<void **>(&d_info), batchSize * sizeof(int)) !=
+      cudaSuccess) {
+    fprintf(stderr, "!!!! device memory allocation error (d_info)\n");
     return EXIT_FAILURE;
   }
 
   cuda_gkylMomentSrcSetMat<<<numBlocks, numThreads>>>(
-      sd, fd, dt, fluidFlds, emFld, d_lhs, d_rhs);
+      sd, fd, dt, fluidFlds, emFld, d_lhs, d_rhs, d_lhs_ptr, d_rhs_ptr);
 
-  /* status = cublasDgetrfBatched( */
-  /*     handle, */
-  /*     N,  // n */
-  /*     &d_lhs,  // A */
-  /*     N,  // lda */
-  /*     NULL,  // int *PivotArray */
-  /*     NULL,  // int *infoArray */
-  /*     batchSize // number of pointers contained in A */
-  /*     ); */
-  /* if (status != CUBLAS_STATUS_SUCCESS) { */
-  /*   fprintf(stderr, "!!!! LU decomposition kernel execution error.\n"); */
-  /*   return EXIT_FAILURE; */
-  /* } */
-  /*  */
+  status = cublasDgetrfBatched(
+      handle,
+      N,  // n
+      d_lhs_ptr,  // A
+      N,  // lda
+      NULL,  // int *PivotArray
+      d_info,  // int *infoArray
+      batchSize // number of pointers contained in A
+      );
+  if (status != CUBLAS_STATUS_SUCCESS) {
+    fprintf(stderr, "!!!! LU decomposition kernel execution error.\n");
+    return EXIT_FAILURE;
+  }
+
   /* status = cublasDgetrsBatched( */
   /*     handle, */
   /*     CUBLAS_OP_N,  // trans */
@@ -178,10 +204,25 @@ static int cuda_gkylMomentSrcTimeCentered(
     fprintf(stderr, "!!!! memory free error (d_rhs)\n");
     return EXIT_FAILURE;
   }
+
+  if (cudaFree(d_lhs_ptr) != cudaSuccess) {
+    fprintf(stderr, "!!!! memory free error (d_lhs_ptr)\n");
+    return EXIT_FAILURE;
+  }
+
+  if (cudaFree(d_rhs_ptr) != cudaSuccess) {
+    fprintf(stderr, "!!!! memory free error (d_rhs_ptr)\n");
+    return EXIT_FAILURE;
+  }
+
+  if (cudaFree(d_info) != cudaSuccess) {
+    fprintf(stderr, "!!!! memory free error (d_info)\n");
+    return EXIT_FAILURE;
+  }
  
   status = cublasDestroy(handle);
   if (status != CUBLAS_STATUS_SUCCESS) {
-    fprintf(stderr, "!!!! shutdown error (A)\n");
+    fprintf(stderr, "!!!! shutdown error (handle)\n");
     return EXIT_FAILURE;
   }
  
