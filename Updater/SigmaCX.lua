@@ -5,13 +5,13 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local UpdaterBase        = require "Updater.Base"
-local LinearDecomp       = require "Lib.LinearDecomp"
-local Proto              = require "Lib.Proto"
-local ChargeExchangeDecl = require "Updater.chargeExchangeCalcData.ChargeExchangeModDecl"
-local xsys               = require "xsys"
-local Lin                = require "Lib.Linalg"
-local Time               = require "Lib.Time"
+local UpdaterBase = require "Updater.Base"
+local LinearDecomp = require "Lib.LinearDecomp"
+local Proto = require "Lib.Proto"
+local SigmaCXDecl = require "Updater.chargeExchangeCalcData.SigmaCXModDecl"
+local xsys = require "xsys"
+local Lin = require "Lib.Linalg"
+local Time = require "Lib.Time"
 
 -- Charge exchange collisions updater object.
 local SigmaCX = Proto(UpdaterBase)
@@ -21,9 +21,9 @@ local SigmaCX = Proto(UpdaterBase)
 function SigmaCX:init(tbl)
    SigmaCX.super.init(self, tbl) -- setup base object
 
-   self._onGrid     = assert(tbl.onGrid,
+   self._onGrid = assert(tbl.onGrid,
 			     "Updater.SigmaCX: Must provide grid object using 'onGrid'")
-   self._confBasis  = assert(tbl.confBasis,
+   self._confBasis = assert(tbl.confBasis,
 			     "Updater.SigmaCX: Must provide configuration space basis object using 'confBasis'")
    self._phaseBasis = assert(tbl.phaseBasis,
 			     "Updater.SigmaCX: Must provide phase space basis object using 'phaseBasis'")
@@ -40,7 +40,7 @@ function SigmaCX:init(tbl)
    self._vDim = self._pDim - self._cDim
 
    -- Basis name and polynomial order.
-   self._basisID   = self._phaseBasis:id()
+   self._basisID = self._phaseBasis:id()
    self._polyOrder = self._phaseBasis:polyOrder()
 
    -- Number of basis functions.
@@ -48,9 +48,9 @@ function SigmaCX:init(tbl)
 
    -- Define CX cross section calculation
    if self._kineticSpecies == "Vm" then
-      self._calcSigmaCX = ChargeExchangeDecl.VmSigmaCX(self._basisID, self._cDim, self._vDim, self._polyOrder)
+      self._calcSigmaCX = SigmaCXDecl.VmSigmaCX(self._basisID, self._cDim, self._vDim, self._polyOrder)
    elseif self._kineticSpecies == "Gk" then 
-      self._calcSigmaCX = ChargeExchangeDecl.GkSigmaCX(self._basisID, self._cDim, self._vDim, self._polyOrder)
+      self._calcSigmaCX = SigmaCXDecl.GkSigmaCX(self._basisID, self._cDim, self._vDim, self._polyOrder)
    else
       print("Updater.SigmaCX: 'kineticSpecies must be 'Vm' or 'Gk'")
    end

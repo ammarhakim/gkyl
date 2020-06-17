@@ -7,30 +7,30 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local UpdaterBase        = require "Updater.Base"
-local LinearDecomp       = require "Lib.LinearDecomp"
-local Proto              = require "Lib.Proto"
-local ChargeExchangeDecl = require "Updater.chargeExchangeCalcData.ChargeExchangeModDecl"
-local xsys               = require "xsys"
-local Lin                = require "Lib.Linalg"
-local Time               = require "Lib.Time"
+local UpdaterBase = require "Updater.Base"
+local LinearDecomp = require "Lib.LinearDecomp"
+local Proto = require "Lib.Proto"
+local RelativeVelocityDecl = require "Updater.chargeExchangeCalcData.RelativeVelocityModDecl"
+local xsys = require "xsys"
+local Lin = require "Lib.Linalg"
+local Time = require "Lib.Time"
 
 -- Charge exchange collisions updater object.
-local RelVelProdCX = Proto(UpdaterBase)
+local VrelProductCX = Proto(UpdaterBase)
 
 ----------------------------------------------------------------------
 -- Updater Initialization --------------------------------------------
-function RelVelProdCX:init(tbl)
-   RelVelProdCX.super.init(self, tbl) -- setup base object
+function VrelProductCX:init(tbl)
+   VrelProductCX.super.init(self, tbl) -- setup base object
 
    self._onGrid     = assert(tbl.onGrid,
-			     "Updater.RelVelProdCX: Must provide grid object using 'onGrid'")
+			     "Updater.VrelProductCX: Must provide grid object using 'onGrid'")
    self._confBasis  = assert(tbl.confBasis,
-			     "Updater.RelVelProdCX: Must provide configuration space basis object using 'confBasis'")
+			     "Updater.VrelProductCX: Must provide configuration space basis object using 'confBasis'")
    self._phaseBasis = assert(tbl.phaseBasis,
-			     "Updater.RelVelProdCX: Must provide phase space basis object using 'phaseBasis'")
+			     "Updater.VrelProductCX: Must provide phase space basis object using 'phaseBasis'")
    self._kineticSpecies = assert(tbl.kineticSpecies,
-			   "Updater.RelVelProdCX: Must provide solver type (Vm or Gk) using 'kineticSpecies'")   
+			   "Updater.VrelProductCX: Must provide solver type (Vm or Gk) using 'kineticSpecies'")   
    -- Dimension of spaces.
    self._pDim = self._phaseBasis:ndim()
    self._cDim = self._confBasis:ndim()
@@ -48,9 +48,9 @@ function RelVelProdCX:init(tbl)
 
    -- Define relative velocity calculation
    if self._kineticSpecies == "Vm" then
-      self._calcRelVelProdCX = ChargeExchangeDecl.VmVrelProdCX(self._basisID, self._cDim, self._vDim, self._polyOrder)
+      self._calcVrelProductCX = RelativeVelocityDecl.VmVrelProdCX(self._basisID, self._cDim, self._vDim, self._polyOrder)
    elseif self._kineticSpecies == "Gk" then 
-      self._calcRelVelProdCX = ChargeExchangeDecl.GkVrelProdCX(self._basisID, self._cDim, self._vDim, self._polyOrder)
+      self._calcVrelProductCX = RelativeVelocityDecl.GkVrelProdCX(self._basisID, self._cDim, self._vDim, self._polyOrder)
    else
       print("Updater.SigmaCX: 'kineticSpecies must be 'Vm' or 'Gk'")
    end
@@ -62,16 +62,16 @@ end
 
 ----------------------------------------------------------------------
 -- Updater Advance ---------------------------------------------------
-function RelVelProdCX:_advance(tCurr, inFld, outFld)
+function VrelProductCX:_advance(tCurr, inFld, outFld)
    local tmEvalMomStart = Time.clock()
    local grid = self._onGrid
    local pDim = self._pDim
 
-   local m0     = assert(inFld[1], "RelVelProdCX.advance: Must specify particle density as input[1]")
-   local u      = assert(inFld[2], "RelVelProdCX.advance: Must specify fluid velocity as input[2]")
-   local vtSq   = assert(inFld[3], "RelVelProdCX.advance: Must specify squared thermal velocity as input[3]")
-   local fOther = assert(inFld[4], "RelVelProdCX.advance: Must specify distF of other species as input[4]")
-   local prodCX = assert(outFld[1], "RelVelProdCX.advance: Must specify an output field")
+   local m0     = assert(inFld[1], "VrelProductCX.advance: Must specify particle density as input[1]")
+   local u      = assert(inFld[2], "VrelProductCX.advance: Must specify fluid velocity as input[2]")
+   local vtSq   = assert(inFld[3], "VrelProductCX.advance: Must specify squared thermal velocity as input[3]")
+   local fOther = assert(inFld[4], "VrelProductCX.advance: Must specify distF of other species as input[4]")
+   local prodCX = assert(outFld[1], "VrelProductCX.advance: Must specify an output field")
    
    local confIndexer  = vtSq:genIndexer()
    local phaseIndexer = prodCX:genIndexer()
@@ -99,12 +99,12 @@ function RelVelProdCX:_advance(tCurr, inFld, outFld)
       fOther:fill(phaseIndexer(pIdx), fOtherItr)
       prodCX:fill(phaseIndexer(pIdx),prodCXItr)
 
-      self._calcRelVelProdCX(self.xc:data(), m0Itr:data(), uItr:data(), vtSqItr:data(), fOtherItr:data(), prodCXItr:data())
+      self._calcVrelProductCX(self.xc:data(), m0Itr:data(), uItr:data(), vtSqItr:data(), fOtherItr:data(), prodCXItr:data())
      
    end
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
 end
 
-function RelVelProdCX:evalMomTime() return self._tmEvalMom end
+function VrelProductCX:evalMomTime() return self._tmEvalMom end
 
-return RelVelProdCX
+return VrelProductCX

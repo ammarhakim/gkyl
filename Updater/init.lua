@@ -34,15 +34,15 @@ local MaxwellianOnBasis = require "Updater.MaxwellianOnBasis"
 local PositivityCheck = require "Updater.PositivityCheck"
 local PositivityRescale = require "Updater.PositivityRescale"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
-local RelVelProdCX = require "Updater.RelVelProdCX"
 local SelfPrimMoments = require "Updater.SelfPrimMoments"
-local SigmaCXcalc = require "Updater.SigmaCXcalc"
+local SigmaCX = require "Updater.SigmaCX"
 local SolidSurface = require "Updater.SolidSurface"
 local SpitzerCollisionality = require "Updater.SpitzerCollisionality"
 local StairSteppedBc = require "Updater.StairSteppedBc"
 local TenMomentRelax = require "Updater.TenMomentRelax"
 local TenMomentSrc = require "Updater.TenMomentSrc"
 local VoronovReactRateCoef = require "Updater.VoronovReactRateCoef"
+local VrelProductCX = require "Updater.VrelProductCX"
 local WavePropagation = require "Updater.WavePropagation"
 
 return {
@@ -74,14 +74,14 @@ return {
    PositivityCheck = PositivityCheck,
    PositivityRescale = PositivityRescale,
    ProjectOnBasis = ProjectOnBasis,
-   RelVelProdCX = RelVelProdCX,
    SelfPrimMoments = SelfPrimMoments,
-   SigmaCXcalc = SigmaCXcalc,
+   SigmaCX = SigmaCX,
    SolidSurface = SolidSurface,
    SpitzerCollisionality = SpitzerCollisionality,
    StairSteppedBc = StairSteppedBc,
    TenMomentRelax = TenMomentRelax,
    TenMomentSrc = TenMomentSrc,
    VoronovReactRateCoef = VoronovReactRateCoef,
+   VrelProductCX = VrelProductCX,
    WavePropagation = WavePropagation,
 }

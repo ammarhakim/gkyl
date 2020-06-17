@@ -96,14 +96,14 @@ end
 
 function GkChargeExchange:createSolver(funcField) --species)
 
-   self.calcVrelProdCX = Updater.RelVelProdCX {
+   self.calcVrelProdCX = Updater.VrelProductCX {
 	 onGrid         = self.phaseGrid,
 	 confBasis      = self.confBasis,
 	 phaseBasis     = self.phaseBasis,
 	 kineticSpecies = 'Gk',
    }
 
-   self.collisionSlvr = Updater.SigmaCXcalc {
+   self.collisionSlvr = Updater.SigmaCX {
          onGrid         = self.confGrid,
          confBasis      = self.confBasis,
 	 phaseBasis     = self.phaseBasis,
