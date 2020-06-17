@@ -48,7 +48,14 @@ function test_2()
    -- check values
    for i = 0, tonumber(brr.s[0])-1 do
       assert_equal(i+0.5, brr_d[i], "Checking clone")
-   end   
+   end
+
+   local crr = Array.Array(arr:shape(), Array.double)
+   crr:copy(arr)
+   crr_d = ffi.cast("double *", crr.d)
+   for i = 0, tonumber(brr.s[0])-1 do
+      assert_equal(arr_d[i], crr_d[i], "Checking copy " .. i)
+   end
 end
 
 function test_3()
@@ -99,12 +106,33 @@ function test_5()
    dptr[0].x, dptr[0].y, dptr[0].z = 1.0, 2.0, 3.0
 end
 
+function test_6()
+   local a = Array.Array( {10, 15, 20}, Array.int)
+
+   a:reshape { 10*15, 20 }
+
+   assert_equal(2, a:rank(), "Checking new rank")
+   local shape = a:shape()
+   assert_equal(10*15, shape[1], "Checking new shape")
+   assert_equal(20, shape[2], "Checking new shape")
+
+   a:reshape { 10, 3, 5, 4, 5 }
+   assert_equal(5, a:rank(), "Checking new rank")
+   shape = a:shape()
+   assert_equal(10, shape[1], "Checking new shape")
+   assert_equal(3, shape[2], "Checking new shape")
+   assert_equal(5, shape[3], "Checking new shape")
+   assert_equal(4, shape[4], "Checking new shape")
+   assert_equal(5, shape[5], "Checking new shape")
+end
+
 -- Run tests
 test_1()
 test_2()
 test_3()
 test_4()
 test_5()
+test_6()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

@@ -15,6 +15,10 @@ local new, sizeof, typeof, metatype = xsys.from(ffi,
      "new, sizeof, typeof, metatype")
 
 local Alloc = require "Lib.Alloc"
+local cuda
+if GKYL_HAVE_CUDA then
+   cuda = require "Cuda.RunTime"
+end
 
 _M = {}
 
@@ -74,6 +78,16 @@ _M.int = typeof('int')
 _M.long = typeof('long')
 _M.char = typeof('char')
 
+local function cmpRankAndShape(a, b)
+   if a.n ~= b.n or a.sz ~= b.sz or a.r ~= b.r then
+      return false
+   end
+   for i = 1, a:rank() do
+      if a.s[i-1] ~= b.s[i-1] then return false end
+   end
+   return true
+end
+
 -- Array ctype
 local ArrayCt = typeof("GkylArray_t")
 
@@ -94,18 +108,31 @@ local array_fn = {
    elemSize = function (self)
       return self.sz
    end,
+   reshape = function (self, shape)
+      -- ensure total number of elements remains unchanged
+      local n = 1
+      for i = 1, #shape do n = n*shape[i] end
+      assert(n == self.n, "Array.reshape: Can't change size of array on reshape!")
+      self.r = #shape -- new rank
+      if #shape > self.r then
+	 self.s = Alloc.realloc(self.s, #shape*longSz)
+      end
+      for i = 1, #shape do self.s[i-1] = shape[i] end
+      return self
+   end,
+   copy = function (self, src)
+      assert(cmpRankAndShape(self, src),
+	     "Array.copy: Can only copy arrays with same shape and element size!")
+      ffi.copy(self.d, src.d, src.n*src.sz)
+   end,
    clone = function (self)
       local a = new(self)
       a.r, a.n, a.sz = self.r, self.n, self.sz
-      
       a.d = Alloc.calloc(self.n, self.sz)
       ffi.copy(a.d, self.d, self.n*self.sz)
-
       a.s = Alloc.malloc(self.r*longSz)
       ffi.copy(a.s, self.s, self.r*longSz)
-
       a.c = 1 -- newly created
-
       return a
    end,
    aquire = function (self)
@@ -125,17 +152,14 @@ local array_mt = {
    __new = function (self, shape, atype)
       local a = new(self)
       a.r = #shape
-      -- compute total number of elements
-      a.n = 1
-      for i = 1, #shape do a.n = a.n*shape[i] end
-      a.c, a.sz = 1, sizeof(atype)
-
-      -- allocate memory
-      a.d = Alloc.calloc(a.n, a.sz)
-
-      -- set shape of array
       a.s = Alloc.malloc(a.r*longSz)
-      for i = 1, #shape do a.s[i-1] = shape[i] end
+      a.n = 1
+      for i = 1, #shape do
+	 a.n = a.n*shape[i]
+	 a.s[i-1] = shape[i]
+      end
+      a.c, a.sz = 1, sizeof(atype)
+      a.d = Alloc.calloc(a.n, a.sz)
       return a
    end,
    __gc = function(self)
