@@ -171,27 +171,28 @@ static int cuda_gkylMomentSrcTimeCentered(
       batchSize // number of pointers contained in A
       );
   if (status != CUBLAS_STATUS_SUCCESS) {
-    fprintf(stderr, "!!!! LU decomposition kernel execution error.\n");
+    fprintf(stderr, "!!!! LU decomposition kernel getrf execution error.\n");
     return EXIT_FAILURE;
   }
 
-  /* status = cublasDgetrsBatched( */
-  /*     handle, */
-  /*     CUBLAS_OP_N,  // trans */
-  /*     N,  // n */
-  /*     1,  // nrhs */
-  /*     &d_lhs,  // matrix A */
-  /*     N,  // lda */
-  /*     NULL,  // const int *devIpiv */
-  /*     &d_rhs,  // double *Barray[] */
-  /*     N,  // ldb */
-  /*     NULL,  // int *info */
-  /*     batchSize // number of pointers contained in A */
-  /*     ); */
-  /* if (status != CUBLAS_STATUS_SUCCESS) { */
-  /*   fprintf(stderr, "!!!! solve kernel execution error.\n"); */
-  /*   return EXIT_FAILURE; */
-  /* } */
+  int info;
+  status = cublasDgetrsBatched(
+      handle,
+      CUBLAS_OP_N,  // trans
+      N,  // n
+      1,  // nrhs
+      d_lhs_ptr,  // matrix A
+      N,  // lda
+      NULL,  // const int *devIpiv
+      d_rhs_ptr,  // double *Barray[]
+      N,  // ldb
+      &info,  // int *info
+      batchSize // number of pointers contained in A
+      );
+  if (status != CUBLAS_STATUS_SUCCESS) {
+    fprintf(stderr, "!!!! solve kernel getrs execution error.\n");
+    return EXIT_FAILURE;
+  }
 
   // update solution
 
