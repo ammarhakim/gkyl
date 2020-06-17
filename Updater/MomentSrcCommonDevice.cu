@@ -33,6 +33,72 @@
 
 #define F2(base,i,j) (base)[(j)*N+(i)]
 
+
+// FIXME simplify; separate out pressure part
+__global__ void cuda_gkylMomentSrcUpdateRhovE(
+    MomentSrcData_t *sd, FluidData_t *fd, double dt, GkylCartField_t **fluidFlds,
+    GkylCartField_t *emFld, double *d_lhs, double *d_rhs, double **d_lhs_ptr,
+    double **d_rhs_ptr) {
+  GkylRange_t *localRange = emFld->localRange;
+  Gkyl::GenIndexer localIdxr(localRange);
+  Gkyl::GenIndexer fIdxr = emFld->genIndexer();
+
+  // numThreads*numBlocks == numRealCells
+  int linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
+  int idxC[3];
+  localIdxr.invIndex(linearIdx, idxC);
+  const int linearIdxC = fIdxr.index(idxC);
+  double *em = emFld->getDataPtrAt(linearIdxC);
+
+  double *sol = d_rhs_ptr[linearIdx];
+  unsigned nFluids = sd->nFluids;
+
+  double keOld[2]; // XXX
+  for (int n = 0; n < nFluids; ++n)
+  {
+    double *f = fluidFlds[n]->getDataPtrAt(linearIdxC);
+    if (!fd[n].evolve)
+      continue;
+    keOld[n] = 0.5 * (sq(f[MX]) + sq(f[MY]) + sq(f[MZ])) / f[RHO];
+  }
+
+  //------------> update solution for fluids
+  double chargeDens = 0.0;
+  for (int n=0; n<nFluids; ++n)
+  {
+    double *f = fluidFlds[n]->getDataPtrAt(linearIdxC);
+    double qbym = fd[n].charge/fd[n].mass;
+
+    chargeDens += qbym*f[RHO];
+
+    f[MX] = 2*sol[fidx(n,X)]/qbym - f[MX];
+    f[MY] = 2*sol[fidx(n,Y)]/qbym - f[MY];
+    f[MZ] = 2*sol[fidx(n,Z)]/qbym - f[MZ];
+  }
+
+  //------------> update electric field
+  em[EX] = 2*sol[eidx(X)] - em[EX];
+  em[EY] = 2*sol[eidx(Y)] - em[EY];
+  em[EZ] = 2*sol[eidx(Z)] - em[EZ];
+
+  //------------> update correction potential
+  double crhoc = sd->chi_e*chargeDens/sd->epsilon0;
+  em[PHIE] += dt*crhoc;
+
+  if (sd->hasPressure)
+  {
+    for (int n = 0; n < nFluids; ++n)
+    {
+      if (!fd[n].evolve)
+        continue;
+      double *f = fluidFlds[n]->getDataPtrAt(linearIdxC);
+      double keNew = 0.5 * (sq(f[MX]) + sq(f[MY]) + sq(f[MZ])) / f[RHO];
+      f[ER] += keNew - keOld[n];
+    }
+  } 
+
+}
+
 __global__ void cuda_gkylMomentSrcSetMat(
     MomentSrcData_t *sd, FluidData_t *fd, double dt, GkylCartField_t **fluidFlds,
     GkylCartField_t *emFld, double *d_lhs, double *d_rhs, double **d_lhs_ptr,
@@ -195,6 +261,8 @@ static int cuda_gkylMomentSrcTimeCentered(
   }
 
   // update solution
+  cuda_gkylMomentSrcUpdateRhovE<<<numBlocks, numThreads>>>(
+      sd, fd, dt, fluidFlds, emFld, d_lhs, d_rhs, d_lhs_ptr, d_rhs_ptr);
 
   if (cudaFree(d_lhs) != cudaSuccess) {
     fprintf(stderr, "!!!! memory free error (d_lhs)\n");
@@ -226,8 +294,6 @@ static int cuda_gkylMomentSrcTimeCentered(
     fprintf(stderr, "!!!! shutdown error (handle)\n");
     return EXIT_FAILURE;
   }
- 
-  exit(EXIT_SUCCESS);
 }
 
 void momentSrcAdvanceOnDevice(
