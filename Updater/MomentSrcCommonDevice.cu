@@ -172,7 +172,7 @@ __global__ void cuda_gkylMomentSrcSetMat(
   rhs[eidx(EZ)] = em[EZ];
 }
 
-static int cuda_gkylMomentSrcTimeCentered(
+static cudaError_t cuda_gkylMomentSrcTimeCentered(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
     double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld) {
   // FIXME save d_lhs and avoid reallocating?
@@ -240,6 +240,8 @@ static int cuda_gkylMomentSrcTimeCentered(
   cudacall(cudaFree(d_info));
 
   cublascall(cublasDestroy(handle));
+
+  return cudaSuccess;
 }
 
 void momentSrcAdvanceOnDevice(
