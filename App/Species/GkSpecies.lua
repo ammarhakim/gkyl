@@ -1599,19 +1599,21 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       end
 
       if self.calcCXSrc then
+	 -- right now :getDistF() is not working...
+	 local fIon  = species[self.name]:getDistF()
+	 local fNeut = species[self.neutNmCX]:getDistF()
+	 fIon:write(string.format("fIon.bp"),0.0,0,false)
+	 fNeut:write(string.format("fNeut.bp"),0.0,0,false)
+	 
 	 -- calculate CX cross section
 	 species[self.name].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {self.uParSelf, species[self.neutNmCX].uParSelf, self.vtSqSelf, species[self.neutNmCX].vtSqSelf}, {self.sigmaCX})
       
 	 -- calculate relative velocities products
-	 local fIon  = species[self.name]:getDistF()
-	 local fNeut = species[self.neutNmCX]:getDistF()
-      
 	 species[self.name].collisions[self.collNmCX].calcVrelProdCX:advance(tCurr, {self.numDensity, self.uParSelf, self.vtSqSelf, fNeut}, {self.vrelProdCX})
 	 species[self.neutNmCX].collisions[self.collNmCX].calcVrelProdCX:advance(tCurr, {species[self.neutNmCX].numDensity, species[self.neutNmCX].uParSelf, species[self.neutNmCX].vtSqSelf, fIon}, {species[self.neutNmCX].vrelProdCX})
 
 	 self.diffDistF:combine(1.0, self.vrelProdCX, -1.0, species[self.neutNmCX].vrelProdCX)
 	 self.confPhaseMult:advance(tCurr, {self.sigmaCX, self.diffDistF}, {self.srcCX})
-
       end
 
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
