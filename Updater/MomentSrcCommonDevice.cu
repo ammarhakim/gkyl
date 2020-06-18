@@ -189,17 +189,13 @@ static cudaError_t cuda_gkylMomentSrcTimeCentered(
   cublascall(cublasCreate(&handle));
 
   // memory for actuall arrays and vectors
-  cudacall(cudaMalloc(
-        reinterpret_cast<void **>(&d_lhs), batchSize*N*N*sizeof(double)));
-  cudacall(cudaMalloc(
-        reinterpret_cast<void **>(&d_rhs), batchSize*N*sizeof(double)));
-  cudacall(cudaMalloc(
-        reinterpret_cast<void **>(&d_info), batchSize*sizeof(int)));
+  cudacall(cudaMalloc(&d_lhs, batchSize*N*N*sizeof(double)));
+  cudacall(cudaMalloc(&d_rhs, batchSize*N*sizeof(double)));
+  cudacall(cudaMalloc(&d_info, batchSize*sizeof(int)));
 
   // memory for pointers to the actuall arrays and vectors
-  cudacall(cudaMalloc<double*>((&d_lhs_ptr), batchSize*sizeof(double*)));
-  cudacall(cudaMalloc(
-        reinterpret_cast<void **>(&d_rhs_ptr), batchSize*sizeof(double*)));
+  cudacall(cudaMalloc(&d_lhs_ptr, batchSize*sizeof(double*)));
+  cudacall(cudaMalloc(&d_rhs_ptr, batchSize*sizeof(double*)));
 
   cuda_gkylMomentSrcSetMat<<<numBlocks, numThreads>>>(
       sd, fd, dt, fluidFlds, emFld, d_lhs, d_rhs, d_lhs_ptr, d_rhs_ptr);
