@@ -14,13 +14,14 @@ local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max" }
 local _M = {}
 
 -- Kernel function to compute relative velocity for Pauls CX model. 
--- function _M.VmVrelProdCX(basisNm, CDIM, VDIM, polyOrder)
---    local funcNm = string.format("VmProdCXcellAv%s%dx%dv_P%d", basisNmMap[basisNm], CDIM, VDIM, polyOrder)
---    return ffi.C[funcNm]
--- end
--- Kernel function to compute relative velocity for Pauls CX model. 
 function _M.GkVrelProdCX(basisNm, CDIM, VDIM, polyOrder)
    local funcNm = string.format("GkProdCXcellAv%s%dx%dv_P%d", basisNmMap[basisNm], CDIM, VDIM, polyOrder)
+   return ffi.C[funcNm]
+end
+
+-- Kernel function to compute relative velocity for Pauls CX model. 
+function _M.VmVrelProdCX(basisNm, CDIM, VDIM, polyOrder)
+   local funcNm = string.format("VmProdCXcellAv%s%dx%dv_P%d", basisNmMap[basisNm], CDIM, VDIM, polyOrder)
    return ffi.C[funcNm]
 end
 

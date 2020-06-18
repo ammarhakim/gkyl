@@ -19,4 +19,9 @@ function _M.GkSigmaCX(basisNm, CDIM, VDIM, polyOrder)
    return ffi.C[funcNm]
 end
 
+function _M.VmSigmaCX(basisNm, CDIM, VDIM, polyOrder)
+   local funcNm = string.format("VmSigmaCXcellAv%s%dx%dv_P%d", basisNmMap[basisNm], CDIM, VDIM, polyOrder)
+   return ffi.C[funcNm]
+end
+
 return _M

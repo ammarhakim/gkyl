@@ -392,6 +392,28 @@ def build(bld):
     chargeExchangeCalcData/GkSigmaCXcellAvSer1x2v.cpp
     chargeExchangeCalcData/GkSigmaCXcellAvSer2x2v.cpp
     chargeExchangeCalcData/GkSigmaCXcellAvSer3x2v.cpp
+    chargeExchangeCalcData/VmProdCXcellAvMax1x1v.cpp
+    chargeExchangeCalcData/VmProdCXcellAvMax1x2v.cpp
+    chargeExchangeCalcData/VmProdCXcellAvMax1x3v.cpp
+    chargeExchangeCalcData/VmProdCXcellAvMax2x2v.cpp
+    chargeExchangeCalcData/VmProdCXcellAvMax2x3v.cpp
+    chargeExchangeCalcData/VmProdCXcellAvSer1x1v.cpp
+    chargeExchangeCalcData/VmProdCXcellAvSer1x2v.cpp
+    chargeExchangeCalcData/VmProdCXcellAvSer1x3v.cpp
+    chargeExchangeCalcData/VmProdCXcellAvSer2x2v.cpp
+    chargeExchangeCalcData/VmProdCXcellAvSer2x3v.cpp
+    chargeExchangeCalcData/VmSigmaCXcellAvMax1x1v.cpp
+    chargeExchangeCalcData/VmSigmaCXcellAvMax1x2v.cpp
+    chargeExchangeCalcData/VmSigmaCXcellAvMax1x3v.cpp
+    chargeExchangeCalcData/VmSigmaCXcellAvMax2x2v.cpp
+    chargeExchangeCalcData/VmSigmaCXcellAvMax2x3v.cpp
+    chargeExchangeCalcData/VmSigmaCXcellAvMax3x3v.cpp
+    chargeExchangeCalcData/VmSigmaCXcellAvSer1x1v.cpp
+    chargeExchangeCalcData/VmSigmaCXcellAvSer1x2v.cpp
+    chargeExchangeCalcData/VmSigmaCXcellAvSer1x3v.cpp
+    chargeExchangeCalcData/VmSigmaCXcellAvSer2x2v.cpp
+    chargeExchangeCalcData/VmSigmaCXcellAvSer2x3v.cpp
+    chargeExchangeCalcData/VmSigmaCXcellAvSer3x3v.cpp
 
     GkMaxwellianOnBasisImpl.cpp
 

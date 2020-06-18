@@ -7,7 +7,7 @@ load(stringproc)$
 fpprec : 24$
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 3$
+maxPolyOrder_Ser : 2$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 3$
@@ -103,14 +103,14 @@ bName        : ["Ser","Max"]$
 maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
 
 for bInd : 1 thru length(bName) do (
-  for c : 1 thru 2 do (
+  for c : 3 thru 3 do (
       for v : c  thru 3 do (
       	  
       	  disp(printf(false,sconcat("Creating PaulsCX product  ", bName[bInd]," ~ax~av"),c,v)),
     	  fname : sconcat("~/max-out/VmProdCXcellAv", bName[bInd], c, "x", v, "v", ".cpp"),
     	  fh : openw(fname),
 
-    	  printf(fh, "#include <ChargeExchangeModDecl.h> ~%"),
+    	  printf(fh, "#include <RelativeVelocityModDecl.h> ~%"),
     	  printf(fh, "#include <math.h> ~%"),
 
 	  print("attempting to print",c,"x",v,"v functions..."),

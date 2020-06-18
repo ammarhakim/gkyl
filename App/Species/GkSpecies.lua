@@ -1590,7 +1590,6 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 species[self.name].collisions[self.collNmIoniz].calcVoronovReactRate:advance(tCurr, {self.vtSqSelf}, {self.voronovReactRate})
 	 species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
 
-	 -- Calculate fMaxwell
 	 self.calcMaxwellIz:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
 	 self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
 	 self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
@@ -1598,7 +1597,6 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       end
 
       if self.calcCXSrc then
-	 -- right now :getDistF() is not working...
 	 local fIon  = species[self.name]:getDistF()
 	 local fNeut = species[self.neutNmCX]:getDistF()
 	 
@@ -1746,7 +1744,6 @@ end
 function GkSpecies:getSrcCX()
    return self.srcCX
 end
-
 
 function GkSpecies:momCalcTime()
    local tm = self.tmCouplingMom

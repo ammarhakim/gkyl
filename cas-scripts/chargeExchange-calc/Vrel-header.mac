@@ -22,6 +22,11 @@ for bInd : 1 thru length(bName) do (
        	 printf(fh, "void GkProdCXcellAv~a~ax~av_P~a(const double *w, const double *m0, const double *uPar, const double *vtSq, const double *fOther, double *prodCX); ~%", bName[bInd], ci, vi, pi),
        	 printf(fh, "~%")
          ),
+
+      for vi : ci thru 3 do (
+       	 printf(fh, "void VmProdCXcellAv~a~ax~av_P~a(const double *w, const double *m0, const double *u, const double *vtSq, const double *fOther, double *prodCX); ~%", bName[bInd], ci, vi, pi),
+       	 printf(fh, "~%")
+	 ),
       printf(fh, "~%")
       )
    )

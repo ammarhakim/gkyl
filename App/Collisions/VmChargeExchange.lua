@@ -71,6 +71,7 @@ end
 function VmChargeExchange:setName(nm)
    self.name = nm
 end
+
 function VmChargeExchange:setSpeciesName(nm)
    self.speciesName = nm
 end
@@ -82,6 +83,7 @@ end
 function VmChargeExchange:setConfBasis(basis)
    self.confBasis = basis
 end
+
 function VmChargeExchange:setConfGrid(grid)
    self.confGrid = grid
 end
@@ -96,14 +98,14 @@ end
 
 function VmChargeExchange:createSolver(funcField) --species)
 
-   self.calcVrelProdCX = Updater.RelVelProdCX {
+   self.calcVrelProdCX = Updater.VrelProductCX {
 	 onGrid         = self.phaseGrid,
 	 confBasis      = self.confBasis,
 	 phaseBasis     = self.phaseBasis,
 	 kineticSpecies = 'Vm',
    }
 
-   self.collisionSlvr = Updater.SigmaCXcalc {
+   self.collisionSlvr = Updater.SigmaCX {
          onGrid         = self.confGrid,
          confBasis      = self.confBasis,
 	 phaseBasis     = self.phaseBasis,
@@ -111,21 +113,34 @@ function VmChargeExchange:createSolver(funcField) --species)
 	 a              = self.a,
 	 b              = self.b,
    }
+   self.sourceCX = DataStruct.Field {
+      onGrid        = self.phaseGrid,
+      numComponents = self.phaseBasis:numBasis(),
+      ghost         = {1, 1},
+      metaData = {
+	 polyOrder = self.phaseBasis:polyOrder(),
+	 basisType = self.phaseBasis:id()
+      },
+   }
 end
 
 function VmChargeExchange:advance(tCurr, fIn, species, fRhsOut)
    -- get CX source term from Vlasov species
-   local sourceCX = species[self.ionNm]:getSrcCX()
+   self.sourceCX = species[self.ionNm]:getSrcCX()
    
    -- identify species and accumulate
    if (self.speciesName == self.ionNm) then
-      fRhsOut:accumulate(1.0,sourceCX)
+      fRhsOut:accumulate(1.0,self.sourceCX)
    elseif (self.speciesName == self.neutNm) then
-      fRhsOut:accumulate(-self.iMass/self.nMass,sourceCX)
+      fRhsOut:accumulate(-self.iMass/self.nMass,self.sourceCX)
    end
    
 end
    
+function VmChargeExchange:getSrcCX()
+   return self.sourceCX
+end
+
 function VmChargeExchange:write(tm, frame)
 end
 

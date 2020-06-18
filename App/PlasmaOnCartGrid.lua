@@ -932,7 +932,8 @@ return {
    NoField            = Field.NoField,
    Projection         = Projection,
    VlasovSpecies      = Species.VlasovSpecies,
-   VmBGKCollisions    = Collisions.VmBGKCollisions,   
+   VmBGKCollisions    = Collisions.VmBGKCollisions,
+   VmChargeExchange   = Collisions.VmChargeExchange,
    VmIonization       = Collisions.VmIonization,
    VmLBOCollisions    = Collisions.VmLBOCollisions,
    VoronovIonization  = Collisions.VoronovIonization,
@@ -964,6 +965,7 @@ return {
       LBOCollisions        = Collisions.VmLBOCollisions,
       BgkCollisions        = Collisions.VmBGKCollisions,
       LboCollisions        = Collisions.VmLBOCollisions,
+      ChargeExchange       = Collisions.VmChargeExchange,
       Ionization           = Collisions.VmIonization,
    },
    Moments = {

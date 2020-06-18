@@ -446,6 +446,55 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
       end
    end
 
+   -- If Charge Exchange collision object exists, locate ions
+   local counterCX_ion = true
+   local counterCX_neut = true
+   for sN, _ in pairs(species) do
+      if species[sN].collisions and next(species[sN].collisions) then 
+         for sO, _ in pairs(species) do
+   	    if self.collPairs[sN][sO].on then
+   	       if (self.collPairs[sN][sO].kind == 'CX') then
+   		  for collNm, _ in pairs(species[sN].collisions) do
+   		     if self.name==species[sN].collisions[collNm].ionNm and counterCX_ion then
+   			self.collNmCX         = collNm
+   			self.neutNmCX         = species[sN].collisions[collNm].neutNm
+   			self.calcCXSrc        = true			
+   			self.needSelfPrimMom  = true
+   			self.sigmaCX          = self:allocMoment()
+   			-- Define fields needed to calculate source term
+   			self.vrelProdCX   = DataStruct.Field {
+   			   onGrid        = self.grid,
+   			   numComponents = self.basis:numBasis(),
+   			   ghost         = {1, 1},
+   			}
+   			self.diffDistF   =  DataStruct.Field {
+   			   onGrid        = self.grid,
+   			   numComponents = self.basis:numBasis(),
+   			   ghost         = {1, 1},
+   			}
+   			self.srcCX    = DataStruct.Field {
+   			   onGrid        = self.grid,
+   			   numComponents = self.basis:numBasis(),
+   			   ghost         = {1, 1},
+   			}
+   			counterCX_ion = false
+   		     elseif self.name==species[sN].collisions[collNm].neutNm and counterCX_neut then
+   			self.needSelfPrimMom  = true
+   			-- Define fields needed to calculate source term
+   			self.vrelProdCX   = DataStruct.Field {
+   			   onGrid        = self.grid,
+   			   numComponents = self.basis:numBasis(),
+   			   ghost         = {1, 1},
+   			}
+   			counterCX_neut = false
+   		     end
+   		  end
+   	       end
+   	    end
+   	 end
+      end
+   end
+
    if self.needSelfPrimMom then
       -- Allocate fields to store self-species primitive moments.
       self.uSelf    = self:allocVectorMoment(self.vdim)
@@ -1188,6 +1237,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       self.momentFlags[1] = true
    end
 
+   -- for ionization
    if self.calcReactRate then
       local neutU = species[self.neutNmIz]:selfPrimitiveMoments()[1]
       local fElc = species[self.name]:getDistF()
@@ -1195,11 +1245,25 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       species[self.name].collisions[self.collNmIoniz].calcVoronovReactRate:advance(tCurr, {self.vtSqSelf}, {self.voronovReactRate})
       species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
       
-      -- Calculate fMaxwell
       self.calcMaxwellIz:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
       self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
       self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
       self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
+   end
+
+   -- for charge exchange
+   if self.calcCXSrc then
+	 local fIon  = species[self.name]:getDistF()
+	 local fNeut = species[self.neutNmCX]:getDistF()
+	 
+	 -- calculate CX cross section
+	 species[self.name].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {self.uSelf, species[self.neutNmCX].uSelf, self.vtSqSelf, species[self.neutNmCX].vtSqSelf}, {self.sigmaCX})
+
+	 -- calculate relative velocities products
+	 species[self.name].collisions[self.collNmCX].calcVrelProdCX:advance(tCurr, {self.numDensity, self.uSelf, self.vtSqSelf, fNeut}, {self.vrelProdCX})
+	 species[self.neutNmCX].collisions[self.collNmCX].calcVrelProdCX:advance(tCurr, {species[self.neutNmCX].numDensity, species[self.neutNmCX].uSelf, species[self.neutNmCX].vtSqSelf, fIon}, {species[self.neutNmCX].vrelProdCX})
+	 self.diffDistF:combine(1.0, self.vrelProdCX, -1.0, species[self.neutNmCX].vrelProdCX)
+	 self.confPhaseMult:advance(tCurr, {self.sigmaCX, self.diffDistF}, {self.srcCX})
    end
    
    self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
@@ -1268,6 +1332,10 @@ end
 
 function VlasovSpecies:getFMaxwellIz()
    return self.fMaxwellIz
+end
+
+function VlasovSpecies:getSrcCX()
+   return self.srcCX
 end
 
 -- please test this for higher than 1x1v... 
