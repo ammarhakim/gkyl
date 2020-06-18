@@ -1,6 +1,6 @@
 -- Gkyl --------------------------------------------------------------
 -- Basic sheath simulation -------------------------------------------
-local Plasma    = require("App.PlasmaOnCartGrid").VlasovMaxwell
+local Plasma    = require("App.PlasmaOnCartGrid").VlasovMaxwell()
 local Constants = require "Lib.Constants"
 
 -- SI units.
@@ -33,8 +33,8 @@ end
 sim = Plasma.App {
    logToFile = false,
 
-   tEnd        = 10/omega_pe,  --1000/omega_pe,    -- End time.
-   nFrame      = 10,                -- Number of output frames.
+   tEnd        = 1/omega_pe,  --1000/omega_pe,    -- End time.
+   nFrame      = 1,                -- Number of output frames.
    lower       = {0.0},            -- Configuration space lower left.
    upper       = {128.0*lambda_D}, -- Configuration space upper right.
    cells       = {128},            -- Configuration space cells.

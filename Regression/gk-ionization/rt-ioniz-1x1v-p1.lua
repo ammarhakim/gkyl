@@ -3,7 +3,7 @@
 -- For runs in parallel use:
 -- ~/gkylsoft/openmpi/bin/mpirun -n 4 ~/gkylsoft/gkyl/bin/gkyl *lua
 
-local Plasma    = require("App.PlasmaOnCartGrid").Gyrokinetic
+local Plasma    = require("App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
 
 -- Universal parameters.

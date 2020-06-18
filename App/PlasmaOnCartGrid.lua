@@ -931,7 +931,7 @@ return {
 	 LBOCollisions = require "App.Collisions.GkLBOCollisions",
 	 BgkCollisions = require "App.Collisions.GkBGKCollisions",
 	 LboCollisions = require "App.Collisions.GkLBOCollisions",
-	 ChargeExchange = requre "App.Collisions.GkChargeExchange",
+	 ChargeExchange = require "App.Collisions.GkChargeExchange",
 	 Ionization = require "App.Collisions.GkIonization",
       }
    end,

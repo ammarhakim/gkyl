@@ -1,7 +1,7 @@
 -- Gkyl --------------------------------------------------------------
 -- Basic sheath simulation -------------------------------------------
 
-local Plasma    = require("App.PlasmaOnCartGrid").Gyrokinetic
+local Plasma    = require("App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
 
 -- Universal parameters.

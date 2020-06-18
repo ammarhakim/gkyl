@@ -39,7 +39,7 @@ sim = Plasma.App {
    upper       = {128.0*lambda_D}, -- Configuration space upper right.
    cells       = {128},            -- Configuration space cells.
    basis       = "serendipity",    -- One of "serendipity" or "maximal-order".
-   polyOrder   = 2,                -- Polynomial order.
+   polyOrder   = 3,                -- Polynomial order.
    cflFrac     = 1,                -- CFL "fraction". Usually 1.0.
    timeStepper = "rk3",            -- One of "rk2" or "rk3".
 
@@ -56,7 +56,7 @@ sim = Plasma.App {
       -- Velocity space grid.
       lower = {-6.0*vth_e},
       upper = {6.0*vth_e},
-      cells = {128},
+      cells = {32},
       decompCuts = {1},
       -- Initial conditions.
       init = function (t, xn)
@@ -75,7 +75,7 @@ sim = Plasma.App {
       -- Velocity space grid.
       lower = {-6.0*uB},
       upper = {6.0*uB},
-      cells = {128},
+      cells = {32},
       decompCuts = {1},
       -- Initial conditions.
       init = function (t, xn)
@@ -101,7 +101,7 @@ sim = Plasma.App {
       -- Velocity space grid
       lower = {-6.0*uB},
       upper = {6.0*uB},
-      cells = {128},
+      cells = {32},
       decompCuts = {1},
       -- Initial conditions.
       init = function (t, xn)
