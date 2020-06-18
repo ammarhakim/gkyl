@@ -1,6 +1,6 @@
 -- Gkyl --------------------------------------------------------------
 -- BGK Relexation test -----------------------------------------------
-local Plasma = require ("App.PlasmaOnCartGrid").VlasovMaxwell
+local Plasma = require ("App.PlasmaOnCartGrid").VlasovMaxwell()
 
 -- left/right state for shock
 nl, ul, pl = 1.0, 0.0, 1.0

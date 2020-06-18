@@ -1,7 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 --
-local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell
+local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell()
 
 local n1, u1, p1 = 1.0, 0.0, 0.1
 local n2, u2, p2 = 1.0, 1.0, 1.0

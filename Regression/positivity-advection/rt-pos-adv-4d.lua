@@ -1,5 +1,5 @@
 -- Plasma ------------------------------------------------------------------------
-local Plasma = require("App.PlasmaOnCartGrid").Gyrokinetic
+local Plasma = require("App.PlasmaOnCartGrid").Gyrokinetic()
 
 local ux = 1
 local uy = 1

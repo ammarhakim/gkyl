@@ -133,7 +133,7 @@ local function test_one(pOrder, basis)
    local _, NP = intF:lastData()
    local _, NC = intM0:lastData()
 
-   -- Compute integral of f and of zeroth with IntegratedDGMoment.
+   -- Compute integral of f and of zeroth moment with IntegratedDGMoment.
    local intFn   = DataStruct.DynVector {numComponents = 1,}
    local intM0n  = DataStruct.DynVector {numComponents = 1,}
    local intMomP = intDGmom(phaseGrid,phaseBasis,"one")

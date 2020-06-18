@@ -1,6 +1,6 @@
 -- Gkyl --------------------------------------------------------------
 -- BGK Relexation test -----------------------------------------------
-local Plasma = require ("App.PlasmaOnCartGrid").VlasovMaxwell
+local Plasma = require ("App.PlasmaOnCartGrid").VlasovMaxwell()
 
 sim = Plasma.App {
    logToFile = false,

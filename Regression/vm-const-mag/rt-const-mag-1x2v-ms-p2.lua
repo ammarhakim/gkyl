@@ -1,5 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
-local Plasma = require "App.PlasmaOnCartGrid"
+local Plasma = require ("App.PlasmaOnCartGrid").VlasovMaxwell()
 
 -- Constants
 chargeElc = -1.0
@@ -53,7 +53,7 @@ vlasovApp = Plasma.App {
    periodicDirs = {1}, -- periodic directions
 
    -- electrons
-   elc = Plasma.VlasovMaxwell.Species {
+   elc = Plasma.Species {
       charge = -1.0, mass = 1.0,
       -- velocity space grid
       lower = {-1.0, -1.0},
@@ -71,7 +71,7 @@ vlasovApp = Plasma.App {
    },
 
    -- field solver
-   field = Plasma.VlasovMaxwell.Field {
+   field = Plasma.Field {
       epsilon0 = 1.0, mu0 = 1.0,
       init = function (t, xn)
 	 local x = xn[1]

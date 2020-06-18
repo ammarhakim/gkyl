@@ -12,11 +12,19 @@ local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
 
+local cuda = nil
+if GKYL_HAVE_CUDA then
+   cuda = require "Cuda.RunTime"
+end
+
 local COL_PIV_HOUSEHOLDER_QR = 0;
 local PARTIAL_PIV_LU = 1;
 
 -- system libraries
 local ffi = require "ffi"
+local xsys = require "xsys"
+local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
+"new, copy, fill, sizeof, typeof, metatype")
 
 -- Define C types for storing private data for use in updater
 ffi.cdef [[
@@ -44,6 +52,11 @@ typedef struct {
   void gkylFiveMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm, double *sigma, double *auxSrc);
   void gkylFiveMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm, double *sigma, double *auxSrc);
   void gkylFiveMomentSrcExact(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma, double *auxSrc);
+
+  /* CUDA GPU */
+  void momentSrcAdvanceOnDevice(
+    int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
+    double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld);
 ]]
 
 -- Explicit, SSP RK3 scheme
@@ -150,11 +163,33 @@ function FiveMomentSrc:init(tbl)
       self._updateSrc = updateSrcTimeCenteredDirect2
    elseif scheme == "exact" then
       self._updateSrc = updateSrcExact
+   else
+      assert(false, string.format("scheme %s not supported", scheme))
+   end
+
+   if GKYL_HAVE_CUDA then
+      self:initDevice()
+      self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
    end
 end
 
--- advance method
-function FiveMomentSrc:_advance(tCurr, inFld, outFld)
+
+function FiveMomentSrc:initDevice()
+   local sz_sd = sizeof("MomentSrcData_t")
+   self.sd_onDevice, err = cuda.Malloc(sz_sd)
+   cuda.Memcpy(self.sd_onDevice, self._sd, sz_sd, cuda.MemcpyHostToDevice)
+
+   local sz_fd = sizeof("FluidData_t") * self._sd.nFluids
+   self.fd_onDevice, err = cuda.Malloc(sz_fd)
+   cuda.Memcpy(
+      self.fd_onDevice, self._fd, sz_fd , cuda.MemcpyHostToDevice)
+
+   local sz_fluidFlds = sizeof("GkylCartField_t*") * self._sd.nFluids
+   self.d_fluidFlds, err = cuda.Malloc(sz_fluidFlds)
+end
+
+
+function FiveMomentSrc:_advanceDispatch(tCurr, inFld, outFld, target)
    local grid = self._onGrid
    local dt = self._dt
    local nFluids = self._sd.nFluids
@@ -188,40 +223,75 @@ function FiveMomentSrc:_advance(tCurr, inFld, outFld)
       sigmaIdxr = self._sigmaFld:genIndexer()
    end
 
-   -- allocate stuff to pass to C
-   local fDp = ffi.new("double*[?]", nFluids)
-   local emDp = ffi.new("double*")
-   local staticEmDp = ffi.new("double*")
-   local sigmaDp = ffi.new("double*")
-   local auxSrcDp = ffi.new("double[?]", 3*(nFluids+1))
-
-   -- loop over local range, updating source in each cell
-   for idx in emFld:localRangeIter() do
-      grid:setIndex(idx)
-      grid:cellCenter(xc)
-
-      -- set pointers to fluids and field
-      for i = 1, nFluids do
-	 fDp[i-1] = outFld[i]:getDataPtrAt(fIdxr[i](idx))
-      end
-      emDp = emFld:getDataPtrAt(emIdxr(idx))
-      if (self._sd.hasStatic) then
-         staticEmDp = staticEmFld:getDataPtrAt(staticEmIdxr(idx))
-      end
-      if (self._sd.hasSigma) then
-         sigmaDp = self._sigmaFld:getDataPtrAt(sigmaIdxr(idx))
+   if target=="gpu" then
+      local fluidFlds = ffi.new("GkylCartField_t*[?]", nFluids)
+      for n = 1, nFluids do
+         fluidFlds[n-1] = outFld[n]._onDevice
       end
 
-      if (self._sd.hasAuxSrc) then
-         self:_auxSrcFunc(
-            xc, tCurr, self._sd.epsilon0, self._qbym, fDp, emDp, auxSrcDp)
+      -- pre-compute d_fluidFlds
+      local sz_fluidFlds = sizeof("GkylCartField_t*") * self._sd.nFluids
+      cuda.Memcpy(
+         self.d_fluidFlds, fluidFlds, sz_fluidFlds, cuda.MemcpyHostToDevice)
+      local d_emFld = emFld._onDevice
+
+      local numCellsLocal = emFld:localRange():volume()
+      local numThreads = math.min(self.numThreads, numCellsLocal)
+      local numBlocks  = math.ceil(numCellsLocal/numThreads)
+
+      ffi.C.momentSrcAdvanceOnDevice(
+       numBlocks, numThreads, self.sd_onDevice, self.fd_onDevice, dt,
+       self.d_fluidFlds, d_emFld)
+
+      return true, GKYL_MAX_DOUBLE
+   elseif target=="cpu" then
+      -- allocate stuff to pass to C
+      local fDp = ffi.new("double*[?]", nFluids)
+      local emDp = ffi.new("double*")
+      local staticEmDp = ffi.new("double*")
+      local sigmaDp = ffi.new("double*")
+      local auxSrcDp = ffi.new("double[?]", 3*(nFluids+1))
+
+      -- loop over local range, updating source in each cell
+      for idx in emFld:localRangeIter() do
+         grid:setIndex(idx)
+         grid:cellCenter(xc)
+
+         -- set pointers to fluids and field
+         for i = 1, nFluids do
+       fDp[i-1] = outFld[i]:getDataPtrAt(fIdxr[i](idx))
+         end
+         emDp = emFld:getDataPtrAt(emIdxr(idx))
+         if (self._sd.hasStatic) then
+            staticEmDp = staticEmFld:getDataPtrAt(staticEmIdxr(idx))
+         end
+         if (self._sd.hasSigma) then
+            sigmaDp = self._sigmaFld:getDataPtrAt(sigmaIdxr(idx))
+         end
+
+         if (self._sd.hasAuxSrc) then
+            self:_auxSrcFunc(
+               xc, tCurr, self._sd.epsilon0, self._qbym, fDp, emDp, auxSrcDp)
+         end
+
+         -- update sources
+         self._updateSrc(self, dt, fDp, emDp, staticEmDp, sigmaDp, auxSrcDp)
       end
 
-      -- update sources
-      self._updateSrc(self, dt, fDp, emDp, staticEmDp, sigmaDp, auxSrcDp)
+      return true, GKYL_MAX_DOUBLE
+   else
+      assert(false, string.format("target %s not recognized", target))
    end
+end
 
-   return true, GKYL_MAX_DOUBLE
+-- advance method
+function FiveMomentSrc:_advance(tCurr, inFld, outFld)
+   return self:_advanceDispatch(tCurr, inFld, outFld, "cpu")
+end
+
+-- advance method
+function FiveMomentSrc:_advanceDevice(tCurr, inFld, outFld)
+   return self:_advanceDispatch(tCurr, inFld, outFld, "gpu")
 end
 
 return FiveMomentSrc
