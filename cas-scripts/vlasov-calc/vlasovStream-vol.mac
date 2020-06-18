@@ -1,29 +1,31 @@
-load("vlasov-calc/vlasov-maxwell-vol")$
+load("vlasov-calc/vlasovStreamFuncs-vol")$
 load(stringproc)$
 /* This script calls the functions which calculate the
-   updates from the volume term contributions. */
+   updates from the volume term due to the streaming
+   term v.grad(f) in the Vlasov-Poisson and Vlasov-Maxwell
+   equations. */
 
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 3$
 minCdim_Ser : 1$
-maxCdim_Ser : 3$
 minVdim_Ser : 1$    /* see begining of v loop below though. */
+maxCdim_Ser : 3$
 maxVdim_Ser : 3$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 3$
 minCdim_Max : 1$
-maxCdim_Max : 3$
 minVdim_Max : 1$    /* see begining of v loop below though. */
+maxCdim_Max : 3$
 maxVdim_Max : 3$
 
 /* Tensor product basis. */
 maxPolyOrder_Tensor : 3$
 minCdim_Tensor : 1$
-maxCdim_Tensor : 1$
 minVdim_Tensor : 0$    /* see begining of v loop below though. */
+maxCdim_Tensor : 1$
 maxVdim_Tensor : 0$
 
 /* ...... END OF USER INPUTS........ */
@@ -35,28 +37,7 @@ minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
 maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
 maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
 
-/* Compute the volume contribution in BOTH real and velocity space (for use in full Vlasov-Maxwell) */
-for bInd : 1 thru length(bName) do (
-  for c : minCdim[bInd] thru maxCdim[bInd] do (
-    for v : max(c,minVdim[bInd]) thru maxVdim[bInd] do (
 
-      maxPolyOrderB : maxPolyOrder[bInd],
-      if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
-      if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
-
-      for polyOrder : 1 thru maxPolyOrderB do (
-        disp(printf(false,sconcat("Creating volume Vlasov",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
-        fname : sconcat("~/max-out/Vlasov", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
-        fh : openw(fname),
-        funcName : sconcat("VlasovVol", c, "x", v, "v", bName[bInd]),
-        calcVlasovVolUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
-        close(fh)
-      )
-    )
-  )
-);
-
-load("vlasov-calc/vlasov-stream-vol")$
 /* Compute the volume contribution from ONLY the streaming term (for use in neutral particle simulations) */
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (

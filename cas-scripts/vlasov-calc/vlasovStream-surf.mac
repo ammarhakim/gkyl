@@ -1,30 +1,32 @@
-load("vlasov-calc/vlasov-maxwell-surf")$
+load("vlasov-calc/vlasovStreamFuncs-surf")$
 load(stringproc)$
 /* This script calls the functions which calculate the
-   updates from the surface term contributions. */
+   updates from the surface term due to the streaming
+   term v.grad(f) in the Vlasov-Poisson and Vlasov-Maxwell
+   equations. */
 
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 3$
 minCdim_Ser : 1$
-maxCdim_Ser : 3$
 minVdim_Ser : 1$    /* see begining of v loop below though. */
+maxCdim_Ser : 3$
 maxVdim_Ser : 3$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 3$
 minCdim_Max : 1$
-maxCdim_Max : 3$
 minVdim_Max : 1$    /* see begining of v loop below though. */
+maxCdim_Max : 3$
 maxVdim_Max : 3$
 
 /* Tensor product basis. */
-maxPolyOrder_Tensor : 3$
+maxPolyOrder_Tensor : 2$
 minCdim_Tensor : 1$
-maxCdim_Tensor : 1$
-minVdim_Tensor : 0$    /* see begining of v loop below though. */
-maxVdim_Tensor : 0$
+minVdim_Tensor : 1$    /* see begining of v loop below though. */
+maxCdim_Tensor : 2$
+maxVdim_Tensor : 2$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -35,28 +37,7 @@ minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
 maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
 maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
 
-/* Compute the surface contribution in velocity space from the acceleration term */
-for bInd : 1 thru length(bName) do (
-  for c : minCdim[bInd] thru maxCdim[bInd] do (
-    for v : max(c,minVdim[bInd]) thru maxVdim[bInd] do (
 
-      maxPolyOrderB : maxPolyOrder[bInd],
-      if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
-      if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
-
-      for polyOrder : 1 thru maxPolyOrderB do (
-        disp(printf(false,sconcat("Creating surface Vlasov",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
-        fname : sconcat("~/max-out/VlasovSurfElcMag", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
-        fh : openw(fname),
-        funcName : sconcat("VlasovSurfElcMag", c, "x", v, "v", bName[bInd]),
-        calcVlasovSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
-        close(fh)
-      )
-    )
-  )
-);
-
-load("vlasov-calc/vlasov-stream-surf")$
 /* Compute the surface contribution in configuration space from the streaming term */
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
@@ -71,7 +52,7 @@ for bInd : 1 thru length(bName) do (
         fname : sconcat("~/max-out/VlasovSurfStream", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
         fh : openw(fname),
         funcName : sconcat("VlasovSurfStream", c, "x", v, "v", bName[bInd]),
-        calcVlasovSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
+        calcVlasovStreamSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
         close(fh)
       )
     )

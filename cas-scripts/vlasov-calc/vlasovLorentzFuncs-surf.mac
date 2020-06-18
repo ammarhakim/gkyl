@@ -1,21 +1,21 @@
+/* This script generates the kernels for the surface term of the E + v x B 
+   advection in velocity space for the Vlasov equation (full EM) */
+
 load("modal-basis");
 load("out-scripts");
 load(stringproc)$
 fpprec : 24$
 
-/* This script generates the kernels for the surface term of the E + v x B 
-   advection in velocity space for the Vlasov equation (full EM) */
-
 varsV : [vx, vy, vz]$
 cvars : [X, Y, Z]$
 vvars : [VX, VY, VZ]$
 
-dvdx : [dv0dx0, dv1dx1, dv2dx2]$
-wdx : [w0dx0, w1dx1, w2dx2]$
+dvdx  : [dv0dx0, dv1dx1, dv2dx2]$
+wdx   : [w0dx0, w1dx1, w2dx2]$
 dv11l : [dv10l, dv11l, dv12l]$
 dv11r : [dv10r, dv11r, dv12r]$
-Efld : [E0, E1, E2]$
-Bfld : [B0, B1, B2]$
+Efld  : [E0, E1, E2]$
+Bfld  : [B0, B1, B2]$
 
 /* Helper function for switching to eta = (v - w)/(dv/2) coordinates */
 vTransSubs : [vvx=vx*dv1/2+wv1, vvy=vy*dv2/2+wv2, vvz=vz*dv3/2+wv3]$
@@ -36,7 +36,7 @@ calcAccel(vdir, vdim, bc) :=
 
 slcn(lst, n) := makelist(lst[i], i, 1, n)$
 
-cidx(cdim) := makelist(i,i,0,cdim-1)$
+cidx(cdim)      := makelist(i,i,0,cdim-1)$
 vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 
 /* Helper functions for expanding in basis functions a quantity we know should be sparse  */
@@ -44,7 +44,7 @@ vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
-calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([],
+calcVlasovLorentzUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -169,7 +169,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([],
   printf(fh, "} ~%")
 );
 
-calcVlasovSurfUpdater(fh, funcNm, cdim, vdim, basisFun, p) := block([],
+calcVlasovLorentzSurfUpdater(fh, funcNm, cdim, vdim, basisFun, p) := block([dir],
   printf(fh, "#include <VlasovModDecl.h> ~%"),
-  for dir : 1 thru vdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) )
+  for dir : 1 thru vdim do ( calcVlasovLorentzUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) )
 )$

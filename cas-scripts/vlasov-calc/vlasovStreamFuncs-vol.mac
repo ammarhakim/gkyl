@@ -1,4 +1,5 @@
-/* Compute the volume term for Vlasov-Poisson equation. */
+/* Compute the volume term for ONLY the streaming (v . grad(f)) term
+   in the Vlasov-Poisson and Vlasov-Maxwell equations. */
 
 load("modal-basis");
 load("out-scripts");
@@ -10,9 +11,7 @@ varsV : [vx, vy, vz]$
 cidx(cdim)      := makelist(i,i,0,cdim-1)$
 vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 
-calcVlasovPoissonStreamVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,cid,vid,wDdx,dvDdx,dir,volTerm,clst,strOut],
-  /* Compute the volume term for ONLY the streaming (v . grad(f)) term
-     in the Vlasov-Poisson equation. */
+calcVlasovStreamVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,cid,vid,wDdx,dvDdx,dir,volTerm,clst,strOut],
 
   kill(varsC, varsP, basisC, basisP),
 
@@ -21,6 +20,7 @@ calcVlasovPoissonStreamVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) :
   printf(fh, "#include <VlasovPoissonModDecl.h> ~%"),
 
   bP : basisP[polyOrder],
+
   printf(fh, "__host__ __device__ double ~aP~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
   printf(fh, "  // w[NDIM]: Cell-center coordinates.~%"),
   printf(fh, "  // dxv[NDIM]: Cell spacing.~%"),
@@ -54,7 +54,7 @@ calcVlasovPoissonStreamVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) :
   writeCIncrExprsCollect1(out,volTerm,clst),
   printf(fh, "~%"),
 
-  strOut : "std::abs(w0Ddx0)+0.5*dv0Ddx0", 
+  strOut : "std::abs(w0Ddx0)+0.5*dv0Ddx0",
   for d : 1 thru cdim-1 do (
     strOut : sconcat(strOut,"+std::abs(w",i,"Ddx",i,")+0.5*dv",i,"Ddx",i)
   ),

@@ -1,5 +1,5 @@
-/* Compute the surface term for the Vlasov-Poisson equation. */
-
+/* Compute the surf term for ONLY the streaming term (v . grad(f))
+   in the Vlasov-Poisson and Vlasov-Maxwell equations. */
 load("modal-basis")$
 load("out-scripts")$
 load(stringproc)$
@@ -12,9 +12,7 @@ vvars : [VX, VY, VZ]$
 cidx(cdim)      := makelist(i,i,0,cdim-1)$
 vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 
-calcStreamUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([],
-  /* Compute the surf term for ONLY the streaming (v . grad(f)) term
-     in the Vlasov-Poisson equation. */
+calcStreamUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([bP,numBasisP,cid,vid,wvl,wvr,dvl,dvr,cv,vv,surfVars,fL_e,fR_e,fhat,surfTerm,incr_r,clst,incr_s],
 
   kill(varsC, varsP, basisC, basisP),
 
@@ -49,7 +47,7 @@ calcStreamUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([],
   fL_e : doExpand1(fl, bP),
   fR_e : doExpand1(fr, bP),
   
-  printf(fh, "  if (wvr>0) { ~%"),
+  printf(fh, "  if (wxr>0) { ~%"),
   
   fhat     : subst(cv=1, fL_e),
   surfTerm : calcInnerProdList(surfVars, wvl+(dvl/2)*vv, subst(cv=-1, bP), fhat),
@@ -60,7 +58,7 @@ calcStreamUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([],
   printf(fh, "~%"),
 
   incr_s : makelist(incr[i-1], i, 1, numBasisP),
-  writeCIncrExprs1(outr, incr_s*rdxr2),  
+  writeCIncrExprs1(outr, incr_s*rdxr2),
   printf(fh, "~%"),
   
   surfTerm : calcInnerProdList(surfVars, wvl+(dvl/2)*vv, subst(cv=1, bP), fhat),
@@ -83,7 +81,7 @@ calcStreamUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([],
   incr_s : makelist(incr[i-1], i, 1, numBasisP),
   writeCIncrExprs1(outr, incr_s*rdxr2),
   printf(fh, "~%"),
-  
+
   surfTerm : calcInnerProdList(surfVars, wvr+(dvr/2)*vv, subst(cv=1, bP), fhat),
 
   incr_l : -surfTerm,
@@ -93,10 +91,10 @@ calcStreamUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([],
   
   printf(fh, "  } ~%"),
   printf(fh, "} ~%")
-)$
+);
 
-calcVlasovPoissonStreamSurfUpdater(fh, funcNm, cdim, vdim, basisFun, p) := block([],
-  printf(fh, "#include <VlasovPoissonModDecl.h> ~%"),
+calcVlasovStreamSurfUpdater(fh, funcNm, cdim, vdim, basisFun, p) := block([dir],
+  printf(fh, "#include <VlasovModDecl.h> ~%"),
   for dir : 1 thru cdim do ( calcStreamUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) )
 )$
 

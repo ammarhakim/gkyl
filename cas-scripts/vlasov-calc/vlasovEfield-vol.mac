@@ -1,0 +1,59 @@
+load("vlasov-calc/vlasovEfieldFuncs-vol")$
+load(stringproc)$
+/* This script calls the functions which calculate the
+   updates from the volume term due to the (q/m)*E . del_v(f) term
+   in the Vlasov equation. */
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 3$
+minCdim_Ser : 1$
+maxCdim_Ser : 3$
+minVdim_Ser : 1$    /* see begining of v loop below though. */
+maxVdim_Ser : 3$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 3$
+minCdim_Max : 1$
+maxCdim_Max : 3$
+minVdim_Max : 1$    /* see begining of v loop below though. */
+maxVdim_Max : 3$
+
+/* Tensor product basis. */
+maxPolyOrder_Tensor : 3$
+minCdim_Tensor : 1$
+maxCdim_Tensor : 1$
+minVdim_Tensor : 0$    /* see begining of v loop below though. */
+maxVdim_Tensor : 0$
+
+/* ...... END OF USER INPUTS........ */
+
+bName        : ["Ser","Max","Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
+minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
+
+/* Compute the volume contribution in BOTH real and velocity space (for use in full Vlasov-Maxwell) */
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : max(c,minVdim[bInd]) thru maxVdim[bInd] do (
+
+      maxPolyOrderB : maxPolyOrder[bInd],
+      if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+      if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
+
+      for polyOrder : 1 thru maxPolyOrderB do (
+        disp(printf(false,sconcat("Creating volume VlasovElc",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
+        fname : sconcat("~/max-out/VlasovElc", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
+        fh : openw(fname),
+        funcName : sconcat("VlasovVolElc", c, "x", v, "v", bName[bInd]),
+        calcVlasovEfieldVolUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
+        close(fh)
+      )
+    )
+  )
+);
+
