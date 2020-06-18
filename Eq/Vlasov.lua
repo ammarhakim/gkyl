@@ -74,10 +74,10 @@ function Vlasov:init(tbl)
    if self._hasForceTerm then
       -- functions to perform force updates
       if hasMagField then 
-	 self._volUpdate = VlasovModDecl.selectVolElcMag(
-	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-	 self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
-	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+         self._volUpdate = VlasovModDecl.selectVolElcMag(
+            self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+         self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
+            self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       else
 	 assert(false, "Vlasov: Pure ES kernels NYI!")
       end

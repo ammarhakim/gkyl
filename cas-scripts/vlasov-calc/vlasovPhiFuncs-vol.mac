@@ -1,5 +1,5 @@
 /* Functions called to generate the kernels for the volume terms due
-   to the streaming (v.grad(f)) and (q/m)*(-grad(phi) + v x B) . del_v(f) terms
+   to the streaming (v.grad(f)) and (q/m)*(-grad(phi) + E + v x B) . del_v(f) terms
    in the Vlasov equation. */
 
 load("modal-basis")$
@@ -16,12 +16,8 @@ dvdx : [dv0dx0, dv1dx1, dv2dx2]$
 wdx  : [w0dx0, w1dx1, w2dx2]$
 dv11 : [dv10, dv11, dv12]$
 
+Efld : [E0, E1, E2]$
 Bfld : [B0, B1, B2]$
-
-/* Helper function for switching to eta = (v - w)/(dv/2) coordinates */
-vTransSubs : [vvx=vx*dv1/2+wv1, vvy=vy*dv2/2+wv2, vvz=vz*dv3/2+wv3]$
-
-vzero(vdim) := if vdim = 1 then [vvy=0, vvz=0] elseif vdim = 2 then [vvz=0] else [] $
 
 cidx(cdim)      := makelist(i,i,0,cdim-1)$
 vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
@@ -31,7 +27,7 @@ vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[a0+i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
-calcVlasovPhiVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([],
+calcVlasovPhiVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,bC,numC,numP,cflPt,cid,vid,dir,f_e,phi_e,cdir,vdir,alpha_cdim_c,alpha_vdim_c,i,expr,incr_cdim,incr_vdim],
 
   kill(varsC, varsP, basisC, basisP),
 
@@ -47,11 +43,11 @@ calcVlasovPhiVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([]
   /* Point at which to evaluate alpha for use in computing CFL. */
   cflPt : makelist(varsP[d]=0, d, 1, cdim+vdim),
 
-  printf(fh, "__host__ __device__ double ~aP~a(const double *w, const double *dxv, const double *phi, const double *Bvec, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+  printf(fh, "__host__ __device__ double ~aP~a(const double *w, const double *dxv, const double *phi, const double *EM, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
   printf(fh, "  // w[NDIM]:   Cell-center coordinates.~%"),
   printf(fh, "  // dxv[NDIM]: Cell spacing.~%"),
   printf(fh, "  // phi:       Input phi-field.~%"),
-  printf(fh, "  // Bvec:      Input magnetic field vector.~%"),
+  printf(fh, "  // EM:        Input (external) EM field vectors.~%"),
   printf(fh, "  // f:         Input distribution function.~%"),
   printf(fh, "  // out:       Incremented output.~%"),
 
@@ -64,26 +60,30 @@ calcVlasovPhiVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([]
     printf(fh, "  const double w~adx~a = w[~a]/dxv[~a]; ~%", dir-1, dir-1, vid[dir], cid[dir])
   ),
 
-  /* Common expressions in (q/m)*(-grad(phi) + v x B). del_v(f) term. */
+  /* Common expressions in (q/m)*(-grad(phi) + E + v x B). del_v(f) term. */
   for dir : 1 thru vdim do (
     printf(fh, "  const double dv1~a = 2./dxv[~a]; ~%", dir-1, vid[dir]),
     printf(fh, "  const double dv~a = dxv[~a], wv~a = w[~a]; ~%", dir, vid[dir], dir, vid[dir])
   ),
   printf(fh, "~%"),
 
-  /* Magnetic field components.*/
+  /* External EM field components.*/
+  for dir : 1 thru vdim do (
+    printf(fh, "  const double *E~a = &EM[~a]; ~%", dir-1, numC*(dir-1))
+  ),
   if vdim > 1 then (
     /* If vdim = 1, then no magnetic field. */
     if vdim = 2 then (
       /* In 2 velocity dimensions, only Bz. */
-      printf(fh, "  const double *B~a = &Bvec[~a]; ~%", 2, numC*2)
+      printf(fh, "  const double *B~a = &EM[~a]; ~%", 2, numC*2+3*numC)
     ),
     if vdim = 3 then (
       for dir : 1 thru 3 do (
-        printf(fh, "  const double *B~a = &Bvec[~a]; ~%", dir-1, numC*(dir-1))
+        printf(fh, "  const double *B~a = &EM[~a]; ~%", dir-1, numC*(dir-1)+3*numC)
       )
     )
   ),
+  printf(fh, "~%"),
 
   /* alpha_mid is our approximation of sum_i max(abs(alpha_i))/dx_i */
   printf(fh, "  double alpha_mid = 0.0; ~%"),
@@ -119,17 +119,19 @@ calcVlasovPhiVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([]
   ),
 
   incr_vdim : 0,
-  /* alpha_vdim = (q/m)*(-grad(phi) + v x B) . grad_v(f) */
+  /* alpha_vdim = (q/m)*(-grad(phi) + E + v x B) . grad_v(f) */
   for vdir : 1 thru vdim do (
 
     /* Calculate the acceleration. */
     if (vdir = 1) then (
-      acc_e : -diff(phi_e,varsCall[1]) + vvy*doExpand1(Bfld[3],bC) - vvz*doExpand1(Bfld[2],bC)
+      acc_e : -diff(phi_e,varsCall[1]) + doExpand1(Efld[1],bC) + vvy*doExpand1(Bfld[3],bC) - vvz*doExpand1(Bfld[2],bC)
     ) elseif (vdir = 2) then (
-      acc_e : -diff(phi_e,varsCall[2]) + vvz*doExpand1(Bfld[1],bC) - vvx*doExpand1(Bfld[3],bC)
+      acc_e : -diff(phi_e,varsCall[2]) + doExpand1(Efld[2],bC) + vvz*doExpand1(Bfld[1],bC) - vvx*doExpand1(Bfld[3],bC)
     ) else (
-      acc_e : -diff(phi_e,varsCall[3]) + vvx*doExpand1(Bfld[2],bC) - vvy*doExpand1(Bfld[1],bC)
+      acc_e : -diff(phi_e,varsCall[3]) + doExpand1(Efld[3],bC) + vvx*doExpand1(Bfld[2],bC) - vvy*doExpand1(Bfld[1],bC)
     ),
+    vzero(vdim)  := if vdim = 1 then [vvy=0, vvz=0] elseif vdim = 2 then [vvz=0] else [],
+    vTransSubs   : [vvx=vx*dv1/2+wv1, vvy=vy*dv2/2+wv2, vvz=vz*dv3/2+wv3],
     acc_e        : subst(append(vzero(vdim),vTransSubs), acc_e),
 
     alpha_vdim_c : calcInnerProdList(varsP, 1, bP, dv11[vdir]*acc_e),

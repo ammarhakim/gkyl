@@ -1,8 +1,8 @@
-load("vlasov-calc/vlasovMaxwellFuncs-vol")$
+load("vlasov-calc/vlasovPhiFuncs-surf")$
 load(stringproc)$
 /* This script calls the functions which calculate the
-   updates from the volume term contributions in the
-   Vlasov Maxwell kinetic equation. */
+   updates from the surface term for the
+   (1/m)*(-grad(phi) + v x B) . grad_v(f) term in the Vlasov equation. */
 
 /* ...... USER INPUTS........ */
 
@@ -10,15 +10,15 @@ load(stringproc)$
 maxPolyOrder_Ser : 3$
 minCdim_Ser : 1$
 minVdim_Ser : 1$    /* see begining of v loop below though. */
-maxCdim_Ser : 0$
-maxVdim_Ser : 0$
+maxCdim_Ser : 3$
+maxVdim_Ser : 3$
 
 /* Maximal order basis. */
-maxPolyOrder_Max : 3$
+maxPolyOrder_Max : 2$
 minCdim_Max : 1$
 minVdim_Max : 1$    /* see begining of v loop below though. */
-maxCdim_Max : 3$
-maxVdim_Max : 3$
+maxCdim_Max : 0$
+maxVdim_Max : 0$
 
 /* Tensor product basis. */
 maxPolyOrder_Tensor : 2$
@@ -36,7 +36,7 @@ minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
 maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
 maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
 
-/* Compute the volume contribution in BOTH real and velocity space (for use in full Vlasov-Maxwell) */
+/* Compute the surface contribution in velocity space from the acceleration term */
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
     for v : max(c,minVdim[bInd]) thru maxVdim[bInd] do (
@@ -46,11 +46,11 @@ for bInd : 1 thru length(bName) do (
       if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
 
       for polyOrder : 1 thru maxPolyOrderB do (
-        disp(printf(false,sconcat("Creating volume Vlasov",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
-        fname : sconcat("~/max-out/Vlasov", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
+        disp(printf(false,sconcat("Creating surface VlasovPhi",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
+        fname : sconcat("~/max-out/VlasovPhiSurf", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
         fh : openw(fname),
-        funcName : sconcat("VlasovVol", c, "x", v, "v", bName[bInd]),
-        calcVlasovMaxwellVolUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
+        funcName : sconcat("VlasovPhiSurf", c, "x", v, "v", bName[bInd]),
+        calcVlasovPhiSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
         close(fh)
       )
     )

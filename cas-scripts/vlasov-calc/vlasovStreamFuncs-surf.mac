@@ -47,7 +47,7 @@ calcStreamUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([bP,num
   fL_e : doExpand1(fl, bP),
   fR_e : doExpand1(fr, bP),
   
-  printf(fh, "  if (wxr>0) { ~%"),
+  printf(fh, "  if (~a>0) { ~%",wvr),
   
   fhat     : subst(cv=1, fL_e),
   surfTerm : calcInnerProdList(surfVars, wvl+(dvl/2)*vv, subst(cv=-1, bP), fhat),

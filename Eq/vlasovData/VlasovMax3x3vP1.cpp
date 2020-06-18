@@ -1,7 +1,11 @@
 #include <VlasovModDecl.h> 
 __host__ __device__ double VlasovVol3x3vMaxP1(const double *w, const double *dxv, const double *EM, const double *f, double *out) 
 { 
-// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. EM/f: Input EM-field/distribution function. out: Incremented output 
+  // w[NDIM]:   Cell-center coordinates.
+  // dxv[NDIM]: Cell spacing.
+  // EM:        Input EM-field.
+  // f:         Input distribution function.
+  // out:       Incremented output.
   double dv0dx0 = dxv[3]/dxv[0]; 
   double w0dx0 = w[3]/dxv[0]; 
   double dv1dx1 = dxv[4]/dxv[1]; 

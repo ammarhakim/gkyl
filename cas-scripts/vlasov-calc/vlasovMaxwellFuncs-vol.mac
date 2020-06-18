@@ -42,7 +42,7 @@ vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[a0+i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
-calcVlasovMaxwellVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([],
+calcVlasovMaxwellVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,bC,NP,NC,cflPt,cid,vid,dir,f_e,incr_cdim,incr_vdim,cdir,vdir,expr,alpha_cdim_c,alpha_vdim_c,amid],
 
   kill(varsC, varsP, basisC, basisP),
   /* Load basis of dimensionality requested. */
@@ -106,7 +106,6 @@ calcVlasovMaxwellVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := bloc
   f_e : doExpand1(f, bP),
 
   incr_cdim : 0,
-  incr_vdim : 0,
   /* alpha_cdim = v dot grad(f) */
   for cdir : 1 thru cdim do (
     alpha_cdim_c : calcInnerProdList(varsP, 1, bP, 2*wdx[cdir]+dvdx[cdir]*varsV[cdir]),
@@ -126,6 +125,7 @@ calcVlasovMaxwellVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := bloc
     incr_cdim : incr_cdim+subst(a0=NP*(cdir-1),calcInnerProdList(varsP, 1, diff(bP,varsP[cdir]), alpha_cdim_NoZero_e*f_e))
   ),
 
+  incr_vdim : 0,
   /* alpha_vdim = (q/m)*(E + v x B) dot grad_v(f) */
   for vdir : 1 thru vdim do (
     acc : calcAccel(vdir, vdim, bC),
