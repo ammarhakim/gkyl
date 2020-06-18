@@ -13,6 +13,10 @@ local Lin = require "Lib.Linalg"
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
 
+ffi.cdef [[
+  void unit_showRange(GkylRange_t *range);
+]]
+
 function test_1()
    local range = Range.Range({0, 0}, {1, 5})
 
@@ -706,6 +710,13 @@ function test_35()
 		
 end
 
+function test_36()
+   if not GKYL_HAVE_CUDA then return end
+   local range = Range.Range({0, 0}, {1, 5})
+   local devRange = range:cloneOnDevice()
+   ffi.C.unit_showRange(devRange)   
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -743,6 +754,10 @@ test_32()
 test_33()
 test_34()
 test_35()
+
+if GKYL_HAVE_CUDA then
+   test_36()
+end
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

@@ -9,6 +9,7 @@
 
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
+local DataStruct = require "DataStruct"
 local Eq = require "Eq.Vlasov"
 local Grid = require "Grid.RectCart"
 local CartField = require "DataStruct.CartField"
@@ -27,19 +28,27 @@ local new, sizeof, typeof, metatype = xsys.from(ffi,
 local cuda = nil
 if GKYL_HAVE_CUDA then
    cuda = require "Cuda.RunTime"
+   cuAlloc = require "Cuda.Alloc"
 end
 
 ffi.cdef [[ 
+  typedef struct GkylEquation_t GkylEquation_t ;
   typedef struct {
       int updateDirs[6];
       bool zeroFluxFlags[6];
       int32_t numUpdateDirs;
       bool updateVolumeTerm;
-      GkylVlasov *equation;
+      double dt;
+      //GkylVlasov *equation;
+      GkylEquation_t *equation;
       GkylCartField_t *cflRateByCell;
+      GkylCartField_t *maxsByCell;
+      double *maxs;
   } GkylHyperDisCont_t; 
 
-  void advanceOnDevice(int numThreads, int numBlocks, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
+  void advanceOnDevice(const int numBlocks, const int numThreads, const int numComponents, const GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
+  void advanceOnDevice_shared(int numBlocks, int numThreads, int numComponents, GkylHyperDisCont_t *hyper, GkylCartField_t *fIn, GkylCartField_t *fRhsOut);
+  void setDtAndCflRate(GkylHyperDisCont_t *hyper, double dt, GkylCartField_t *cflRate);
 ]]
 
 -- Hyperbolic DG solver updater object
@@ -98,28 +107,40 @@ function HyperDisCont:init(tbl)
       -- will be used
       self._maxs[d] = 0.0
    end
+   self._noPenaltyFlux = xsys.pickBool(tbl.noPenaltyFlux, false)
 
    self._isFirst = true
    self._auxFields = {} -- auxilliary fields passed to eqn object
    self._perpRangeDecomp = {} -- perp ranges in each direction      
 
-   if GKYL_HAVE_CUDA then
-      self:initDevice()
-   end
-
    return self
 end
 
-function HyperDisCont:initDevice()
+function HyperDisCont:initDevice(tbl)
+   self.maxsByCell = DataStruct.Field {
+      onGrid = self._onGrid,
+      numComponents = self._ndim,
+      ghost = {1, 1},
+      createDeviceCopy = true,
+   }
+   self.maxs = cuAlloc.Double(self._ndim)
    local hyper = ffi.new("GkylHyperDisCont_t")
    hyper.updateDirs = ffi.new("int[6]", self._updateDirs)
    hyper.zeroFluxFlags = ffi.new("bool[6]", self._zeroFluxFlags)
    hyper.numUpdateDirs = #self._updateDirs
    hyper.updateVolumeTerm = self._updateVolumeTerm
    hyper.equation = self._equation._onDevice
+   hyper.maxsByCell = self.maxsByCell._onDevice
+   hyper.maxs = self.maxs:data()
+   self._onHost = hyper
    local sz = sizeof("GkylHyperDisCont_t")
    self._onDevice, err = cuda.Malloc(sz)
    cuda.Memcpy(self._onDevice, hyper, sz, cuda.MemcpyHostToDevice)
+
+   self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
+   self._useSharedDevice = xsys.pickBool(tbl.useSharedDevice, false)
+
+   return self
 end
 
 -- advance method
@@ -166,7 +187,11 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 
    -- use maximum characteristic speeds from previous step as penalty
    for d = 1, ndim do
-      self._maxsOld[d] = self._maxs[d]
+      if self._noPenaltyFlux then 
+         self._maxsOld[d] = 0.0
+      else
+         self._maxsOld[d] = self._maxs[d]
+      end
       self._maxsLocal[d] = 0.0 -- reset to get new values in this step
    end
 
@@ -271,11 +296,30 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
 
    self._equation:setAuxFieldsOnDevice(self._auxFields)
 
-   local numCellsLocal = qRhsOut:localExtRange():volume()
-   local numThreads = math.min(GKYL_DEFAULT_NUM_THREADS, numCellsLocal)
-   local numBlocks  = math.floor(numCellsLocal/numThreads) --+1
+   local numCellsLocal = qRhsOut:localRange():volume()
+   local numThreads = math.min(self.numThreads, numCellsLocal)
+   local numBlocks  = math.ceil(numCellsLocal/numThreads)
 
-   ffiC.advanceOnDevice(numThreads, numBlocks, self._onDevice, qIn._onDevice, qRhsOut._onDevice)
+   if self._clearOut then
+     cuda.Memset(qRhsOut:deviceDataPointer(), 0.0, sizeof('double')*qRhsOut:size())
+   end
+
+   if self._useSharedDevice then
+      ffiC.advanceOnDevice_shared(numBlocks, numThreads, qIn:numComponents(), self._onDevice, qIn._onDevice, qRhsOut._onDevice)
+   else
+      ffiC.advanceOnDevice(numBlocks, numThreads, qIn:numComponents(), self._onDevice, qIn._onDevice, qRhsOut._onDevice)
+   end
+
+   self.maxsByCell:deviceReduce('max', self.maxs)  
+end
+
+-- set up pointers to dt and cflRateByCell
+function HyperDisCont:setDtAndCflRate(dt, cflRateByCell)
+   HyperDisCont.super.setDtAndCflRate(self, dt, cflRateByCell)
+
+   if self._onDevice then
+      ffiC.setDtAndCflRate(self._onDevice, dt, cflRateByCell._onDevice)
+   end
 end
 
 return HyperDisCont

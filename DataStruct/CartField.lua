@@ -18,6 +18,7 @@ local Alloc = require "Lib.Alloc"
 local AllocShared = require "Lib.AllocShared"
 local CartDecompNeigh = require "Lib.CartDecompNeigh"
 local Grid = require "Grid.RectCart"
+local Lin = require "Lib.Linalg"
 local LinearDecomp = require "Lib.LinearDecomp"
 local Mpi = require "Comm.Mpi"
 local Range = require "Lib.Range"
@@ -51,20 +52,39 @@ ffi.cdef [[
     void gkylCopyFromFieldDevice(int numBlocks, int numThreads, double *data, double *f, unsigned numComponents, unsigned c);
     void gkylCopyToFieldDevice(int numBlocks, int numThreads, double *f, double *data, unsigned numComponents, unsigned c);
 
-    // assign all elements to specified value
+    // Assign all elements to specified value.
     void gkylCartFieldDeviceAssignAll(int numBlocks, int numThreads, unsigned s, unsigned nv, double val, double *out);
 
     typedef struct {
-      int numComponents; 
-      int ndim; 
-      GkylRange_t *localRange;
-      GkylRange_t *localExtRange;
-      GkylRange_t *globalRange;
-      GkylRange_t *globalExtRange;
-      GkylRectCart_t *grid;
-      double *_data; 
+        int ndim;
+        int elemSize;
+        int numComponents;
+        GkylRange_t *localRange, *localExtRange;
+        GkylRange_t *localEdgeRange, *localExtEdgeRange;
+        GkylRange_t *globalRange, *globalExtRange;
+        GkylRectCart_t *grid;
+        double *_data;
     } GkylCartField_t;
+
 ]]
+
+if GKYL_HAVE_CUDA then
+   ffi.cdef [[
+    // Reduction down to a single value (e.g. min, max, sum).
+    void reductionBlocksAndThreads(GkDeviceProp *prop, int numElements, int maxBlocks,
+                                   int maxThreads, int &blocks, int &threads);
+    typedef double (*redBinOpFunc_t)(double a, double b);
+    typedef struct {
+      double initValue;
+      redBinOpFunc_t reduceFunc;
+    } baseReduceOp_t; 
+    redBinOpFunc_t getRedMinFuncFromDevice();
+    redBinOpFunc_t getRedMaxFuncFromDevice();
+    redBinOpFunc_t getRedSumFuncFromDevice();
+    void gkylCartFieldDeviceReduce(baseReduceOp_t *redOp, int numCellsTot, int numComponents, int numBlocks, int numThreads, int maxBlocks, int maxThreads, GkDeviceProp *prop, GkylCartField_t *fIn, double *blockOut, double *intermediate, double *out);
+
+   ]]
+end
 
 -- Local definitions
 local rowMajLayout, colMajLayout = Range.rowMajor, Range.colMajor -- data layout
@@ -113,43 +133,68 @@ local function new_field_comp_ct(elct)
    return metatype(typeof("struct { int numComponents; $* _cdata; }", elct), field_comp_mt)
 end
 
+
 -- A function to create constructors for Field objects
 local function Field_meta_ctor(elct)
-   local fcompct = new_field_comp_ct(elct) -- Ctor for component data
+   -- ctor for component data
+   local fcompct = new_field_comp_ct(elct)
+   -- ctor for creating vector of element types
+   local ElemVec = Lin.new_vec_ct(elct)   
 
-   local isNumberType = false
-   -- MPI data-types
-   local elctCommType, elcCommSize = nil, 1
+   local elctSize = sizeof(elct)
+   local elctMinValue, elctMaxValue = 0, 0
+   
+   -- Meta-data for type
+   local isNumberType = false   
+   local elctCommType = nil
    if ffi.istype(new(elct), new("double")) then
       elctCommType = Mpi.DOUBLE
       isNumberType = true
+      elctMinValue, elctMaxValue = GKYL_MIN_DOUBLE, GKYL_MAX_DOUBLE
    elseif ffi.istype(new(elct), new("float")) then
       elctCommType = Mpi.FLOAT
       isNumberType = true
+      elctMinValue, elctMaxValue = GKYL_MIN_FLOAT, GKYL_MAX_FLOAT
    elseif ffi.istype(new(elct), new("int")) then
       elctCommType = Mpi.INT
       isNumberType = true
+      elctMinValue, elctMaxValue = GKYL_MIN_INT, GKYL_MAX_INT
+   elseif ffi.istype(new(elct), new("long")) then
+      elctCommType = Mpi.LONG
+      isNumberType = true
+      elctMinValue, elctMaxValue = GKYL_MIN_LONG, GKYL_MAX_LONG
    else
       elctCommType = Mpi.BYTE -- by default, send stuff as byte array
-      elcCommSize = sizeof(elct)
    end
 
+   -- functions for regular, shared and device memory allocations
+   local allocFunc = Alloc.Alloc_meta_ctor(elct)
+   local allocSharedFunc = AllocShared.AllocShared_meta_ctor(elct)
+   local allocCudaFunc = cuAlloc.Alloc_meta_ctor(elct, false) -- don't used managed memory
+   
    -- allocator for use in non-shared applications
    local function allocatorFunc(comm, numElem)
-      local alloc = Alloc.Alloc_meta_ctor(elct)
-      return alloc(numElem)
+      return allocFunc(numElem)
    end
    -- allocator for use in shared applications
    local function sharedAllocatorFunc(comm, numElem)
-      local alloc = AllocShared.AllocShared_meta_ctor(elct)
-      return alloc(comm, numElem)
+      return allocSharedFunc(comm, numElem)
    end
-   -- allocator for use in memory duplication on device
+   -- allocator for use in memory on device
    local function deviceAllocatorFunc(comm, numElem)
-      local alloc = cuAlloc.Alloc_meta_ctor(elct, false) -- don't used managed memory
-      return alloc(numElem)
+      return allocCudaFunc(numElem)
    end
 
+   -- Binary operation functions and reduce MPI types (used in reduce method).
+   local binOpFuncs = {
+      max = function(a,b) return math.max(a,b) end,
+      min = function(a,b) return math.min(a,b) end,
+      sum = function(a,b) return a+b end
+   }
+   local binOpFlags = {min = 1, max = 2, sum = 3}
+   local reduceOpsMPI = {max = Mpi.MAX, min = Mpi.MIN, sum = Mpi.SUM}
+   local reduceInitialVal = {max = elctMinValue, min = elctMaxValue , sum = 0.0}
+   
    -- make constructor for Field
    local Field = {}
    function Field:new(tbl)
@@ -182,7 +227,7 @@ local function Field_meta_ctor(elct)
       -- assumption is that users will initialize themselves)
       if isNumberType then self._allocData:fill(0) end
       
-      -- setup object
+      -- Setup object.
       self._grid = grid
       self._ndim = grid:ndim()
       self._lowerGhost, self._upperGhost = ghost[1], ghost[2]
@@ -197,24 +242,67 @@ local function Field_meta_ctor(elct)
       self._localExtRange = self._localRange:extend(
 	 self._lowerGhost, self._upperGhost)
 
-      -- create device memory if needed
-      local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, false) -- by default, no device mem allocated
+      -- all real-cell edges
+      self._localEdgeRange = self._localRange:extend(1, 0) -- or (1, 0)?
+
+      -- all cell-cell edges, including those of a ghost cell
+      self._localExtEdgeRange = self._localRange:extend(
+	 self._lowerGhost-1, self._upperGhost)
+
+      -- Local and (MPI) global values of a reduction (reduce method).
+      self.localReductionVal  = ElemVec(self._numComponents)
+      self.globalReductionVal = ElemVec(self._numComponents)
+
+      -- create a device copy is needed
+      local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, GKYL_USE_DEVICE)
       if createDeviceCopy then
-         -- allocate device memory
+         -- Allocate device memory.
 	 self._devAllocData = deviceAllocatorFunc(shmComm, sz)
-         -- package data and info into struct on device
+         -- Package data and info into struct on device.
          local f = ffi.new("GkylCartField_t")
          local sz = sizeof("GkylCartField_t")
          f.ndim = self._ndim
+         f.elemSize = elctSize
          f.numComponents = self._numComponents
          f._data = self._devAllocData:data()
          f.localRange = Range.copyHostToDevice(self._localRange)
          f.localExtRange = Range.copyHostToDevice(self._localExtRange)
+         f.localEdgeRange = Range.copyHostToDevice(self._localEdgeRange)
+         f.localExtEdgeRange = Range.copyHostToDevice(self._localExtEdgeRange)
          f.globalRange = Range.copyHostToDevice(self._globalRange)
          f.globalExtRange = Range.copyHostToDevice(self._globalExtRange)
          f.grid = self._grid._onDevice
          self._onDevice, err = cuda.Malloc(sz)
          cuda.Memcpy(self._onDevice, f, sz, cuda.MemcpyHostToDevice)
+
+         local devNum, _     = cuda.GetDevice()
+         self.deviceProps, _ = cuda.GetDeviceProperties(devNum)
+         -- Establish number of blocks and threads/block for deviceReduce, and allocate memory.
+         self.reduceBlocksMAX  = 64
+         self.reduceThreadsMAX = GKYL_DEFAULT_NUM_THREADS
+         local numBlocksC, numThreadsC = Alloc.Int(1), Alloc.Int(1)
+         ffiC.reductionBlocksAndThreads(self.deviceProps,self._localRange:volume(),self.reduceBlocksMAX,
+                                        self.reduceThreadsMAX,numBlocksC:data(),numThreadsC:data());
+         self.reduceBlocks  = numBlocksC[1]
+         self.reduceThreads = numThreadsC[1]
+        
+         numBlocksC:delete()
+         numThreadsC:delete()
+         self.d_blockRed, self.d_intermediateRed = deviceAllocatorFunc(self.reduceBlocks), deviceAllocatorFunc(self.reduceBlocks)
+         -- Create reduction operator on host, and copy to device.
+         local redOp           = {}
+         for k, v in pairs(reduceInitialVal) do
+           redOp[k]            = ffi.new("baseReduceOp_t")
+           redOp[k].initValue  = v
+         end
+         redOp["min"].reduceFunc = ffi.C.getRedMinFuncFromDevice()
+         redOp["max"].reduceFunc = ffi.C.getRedMaxFuncFromDevice()
+         redOp["sum"].reduceFunc = ffi.C.getRedSumFuncFromDevice()
+         local sz = ffi.sizeof("baseReduceOp_t")
+         self.d_redOp = {min = cuda.Malloc(sz), max = cuda.Malloc(sz), sum = cuda.Malloc(sz)}
+         for k, _ in pairs(reduceInitialVal) do
+            err = cuda.Memcpy(self.d_redOp[k], redOp[k], sz, cuda.MemcpyHostToDevice)
+         end
       end
       if not GKYL_HAVE_CUDA then self._devAllocData = nil end
       
@@ -350,11 +438,14 @@ local function Field_meta_ctor(elct)
    end
    setmetatable(Field, { __call = function (self, o) return self.new(self, o) end })
 
-   -- set callable methods
+   -- Set callable methods.
    Field.__index = {
       elemType = function (self)
 	 return elct
       end,
+      elemSize = function (self)
+	 return elctSize
+      end,      
       ndim = function (self)
 	 return self._ndim
       end,
@@ -399,7 +490,7 @@ local function Field_meta_ctor(elct)
       deviceClear = function (self, val)
          if self._devAllocData then
 	    local numThreads = GKYL_DEFAULT_NUM_THREADS
-	    local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	    local shape = self:_localShape()
 	    local numBlocks = math.floor(shape/numThreads)+1
 	    ffiC.gkylCartFieldDeviceAssignAll(numBlocks, numThreads, self:_localLower(), self:_localShape(), val, self:deviceDataPointer())
 	 end
@@ -425,7 +516,7 @@ local function Field_meta_ctor(elct)
 	 assert(type(fact) == "number", "CartField:combine: Factor not a number")
 
 	 local numThreads = GKYL_DEFAULT_NUM_THREADS
-	 local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	 local shape = self:_localShape()
 	 local numBlocks = math.floor(shape/numThreads)+1
 	 ffiC.gkylCartFieldDeviceAssign(numBlocks, numThreads, self:_localLower(), self:_localShape(), fact, fld:deviceDataPointer(), self:deviceDataPointer())
       end,
@@ -448,7 +539,7 @@ local function Field_meta_ctor(elct)
 		"CartField:accumulate/combine: Fields should have same layout for sums to make sense")
 
 	 local numThreads = GKYL_DEFAULT_NUM_THREADS
-	 local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	 local shape = self:_localShape()
 	 local numBlocks = math.floor(shape/numThreads)+1
 	 ffiC.gkylCartFieldDeviceAccumulate(numBlocks, numThreads, self:_localLower(), self:_localShape(), fact, fld:deviceDataPointer(), self:deviceDataPointer())
       end,
@@ -515,7 +606,7 @@ local function Field_meta_ctor(elct)
 	 function (self, fact)
 	    if self._devAllocData then
 	       local numThreads = GKYL_DEFAULT_NUM_THREADS
-	       local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	       local shape = self:_localShape()
 	       local numBlocks = math.floor(shape/numThreads)+1
 	       ffiC.gkylCartFieldDeviceScale(numBlocks, numThreads,  self:_localLower(), self:_localShape(), fact, self:deviceDataPointer())
 	    end
@@ -540,7 +631,7 @@ local function Field_meta_ctor(elct)
 	 function (self)
 	    if self._devAllocData then
 	       local numThreads = GKYL_DEFAULT_NUM_THREADS
-	       local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	       local shape = self:_localShape() 
 	       local numBlocks = math.floor(shape/numThreads)+1
 	       ffiC.gkylCartFieldDeviceAbs(numBlocks, numThreads,  self:_localLower(), self:_localShape(), self:deviceDataPointer())
 	    end
@@ -571,6 +662,12 @@ local function Field_meta_ctor(elct)
       end,
       localExtRange = function (self) -- includes ghost cells
 	 return self._localExtRange
+      end,      
+      localEdgeRange = function (self)
+	 return self._localEdgeRange
+      end,      
+      localExtEdgeRange = function (self)
+	 return self._localExtEdgeRange
       end,      
       globalRange = function (self)
 	 return self._globalRange
@@ -620,9 +717,23 @@ local function Field_meta_ctor(elct)
 	 -- processors will get to the sync method before others
          -- this is especially troublesome in the RK combine step
 	 Mpi.Barrier(self._grid:commSet().sharedComm)
-	 self._field_sync(self)
+	 self._field_sync(self, self:dataPointer())
 	 if self._syncPeriodicDirs and syncPeriodicDirs then
-	    self._field_periodic_sync(self)
+	    self._field_periodic_sync(self, self:dataPointer())
+	 end
+	 -- this barrier is needed as when using MPI-SHM some
+	 -- processors will not participate in sync()
+	 Mpi.Barrier(self._grid:commSet().sharedComm)
+      end,
+      deviceSync = function (self, syncPeriodicDirs_)
+         local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
+	 -- this barrier is needed as when using MPI-SHM some
+	 -- processors will get to the sync method before others
+         -- this is especially troublesome in the RK combine step
+	 Mpi.Barrier(self._grid:commSet().sharedComm)
+	 self._field_sync(self, self:deviceDataPointer())
+	 if self._syncPeriodicDirs and syncPeriodicDirs then
+	    self._field_periodic_sync(self, self:deviceDataPointer())
 	 end
 	 -- this barrier is needed as when using MPI-SHM some
 	 -- processors will not participate in sync()
@@ -640,6 +751,44 @@ local function Field_meta_ctor(elct)
       compatible = function(self, fld)
          return field_compatible(self, fld)
       end,
+      reduce = isNumberType and
+	 function(self, opIn)
+	    -- Input 'opIn' must be one of the binary operations in binOpFuncs.
+	    local grid = self._grid
+	    local tId = grid:subGridSharedId() -- Local thread ID.
+	    local localRangeDecomp = LinearDecomp.LinearDecompRange {
+	       range = self._localRange, numSplit = grid:numSharedProcs() }
+	    local indexer = self:genIndexer()
+	    local itr = self:get(1)
+	    
+	    local localVal = {}
+	    for k = 1, self._numComponents do localVal[k] = reduceInitialVal[opIn] end
+	    for idx in localRangeDecomp:rowMajorIter(tId) do
+	       self:fill(indexer(idx), itr)
+	       for k = 1, self._numComponents do
+		  localVal[k] = binOpFuncs[opIn](localVal[k], itr:data()[k-1])
+	       end
+	    end
+
+	    for k = 1, self._numComponents do self.localReductionVal[k] = localVal[k] end
+	    Mpi.Allreduce(self.localReductionVal:data(), self.globalReductionVal:data(),
+			  self._numComponents, elctCommType, reduceOpsMPI[opIn], grid:commSet().comm)
+
+	    for k = 1, self._numComponents do localVal[k] = self.globalReductionVal[k] end
+            return localVal
+	 end or
+	 function (self, opIn)
+	    assert(false, "CartField:reduce: Reduce only works on numeric fields")
+	 end,
+      deviceReduce = isNumberType and
+	 function(self, opIn, d_reduction)
+	    -- Input 'opIn' must be one of the binary operations in binOpFuncs.
+            ffi.C.gkylCartFieldDeviceReduce(self.d_redOp[opIn],self._localRange:volume(),self._numComponents,self.reduceBlocks,self.reduceThreads,self.reduceBlocksMAX,self.reduceThreadsMAX,
+               self.deviceProps,self._onDevice,self.d_blockRed:data(),self.d_intermediateRed:data(),d_reduction:data())
+	 end or
+	 function (self, opIn, d_reduction)
+	    assert(false, "CartField:deviceReduce: Reduce only works on numeric fields.")
+	 end,
       _copy_from_field_region = function (self, rgn, data)
 	 local indexer = self:genIndexer()
 	 local c = 0
@@ -660,7 +809,7 @@ local function Field_meta_ctor(elct)
             c = c + self._numComponents
 	 end
       end,
-      _field_sync = function (self)
+      _field_sync = function (self, dataPtr)
 	 local comm = self._grid:commSet().nodeComm -- communicator to use
 	 if not Mpi.Is_comm_valid(comm) then
 	    return -- no need to do anything if communicator is not valid
@@ -681,7 +830,7 @@ local function Field_meta_ctor(elct)
             local dataType = self._recvMPIDataType[recvId]
             local loc = self._recvMPILoc[recvId]
 	    -- recv data: (its from recvId-1 as MPI ranks are zero indexed)
-	    recvReq[recvId] = Mpi.Irecv(self._data+loc, 1, dataType, recvId-1, tag, comm)
+	    recvReq[recvId] = Mpi.Irecv(dataPtr+loc, 1, dataType, recvId-1, tag, comm)
 	 end
 	 
 	 -- do a blocking send (does not really block as recv requests
@@ -690,7 +839,7 @@ local function Field_meta_ctor(elct)
             local dataType = self._sendMPIDataType[sendId]
             local loc = self._sendMPILoc[sendId]
 	    -- send data: (its to sendId-1 as MPI ranks are zero indexed)
-	    Mpi.Send(self._data+loc, 1, dataType, sendId-1, tag, comm)
+	    Mpi.Send(dataPtr+loc, 1, dataType, sendId-1, tag, comm)
 	 end
 
 	 -- complete recv
@@ -700,7 +849,7 @@ local function Field_meta_ctor(elct)
 	    Mpi.Wait(recvReq[recvId], nil)
 	 end
       end,
-      _field_periodic_sync = function (self)
+      _field_periodic_sync = function (self, dataPtr)
 	 local comm = self._grid:commSet().nodeComm -- communicator to use
 	 if not Mpi.Is_comm_valid(comm) then
 	    return -- no need to do anything if communicator is not valid
@@ -742,14 +891,14 @@ local function Field_meta_ctor(elct)
 		     local dataType = self._recvLowerPerMPIDataType[dir]
 		     local loc = self._recvLowerPerMPILoc[dir]
 		     recvLowerReq[dir] = Mpi.Irecv(
-			self._data+loc, 1, dataType, upId-1, loTag, comm)
+			dataPtr+loc, 1, dataType, upId-1, loTag, comm)
 		  end
 		  if myId == upId then
 		     local upTag = basePerTag+dir
 		     local dataType = self._recvUpperPerMPIDataType[dir]
 		     local loc = self._recvUpperPerMPILoc[dir]
 		     recvUpperReq[dir] = Mpi.Irecv(
-			self._data+loc, 1, dataType, loId-1, upTag, comm)
+			dataPtr+loc, 1, dataType, loId-1, upTag, comm)
 		  end
 	       end
 	    end
@@ -767,13 +916,13 @@ local function Field_meta_ctor(elct)
 		     local loTag = basePerTag+dir -- this must match recv tag posted above
 		     local dataType = self._sendLowerPerMPIDataType[dir]
                      local loc = self._sendLowerPerMPILoc[dir]
-		     Mpi.Send(self._data+loc, 1, dataType, upId-1, loTag, comm)
+		     Mpi.Send(dataPtr+loc, 1, dataType, upId-1, loTag, comm)
 		  end
 		  if myId == upId then
 		     local upTag = basePerTag+dir+10 -- this must match recv tag posted above
 		     local dataType = self._sendUpperPerMPIDataType[dir]
 		     local loc = self._sendUpperPerMPILoc[dir]
-		     Mpi.Send(self._data+loc, 1, dataType, loId-1, upTag, comm)
+		     Mpi.Send(dataPtr+loc, 1, dataType, loId-1, upTag, comm)
 		  end
 	       end
 	    end

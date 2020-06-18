@@ -339,6 +339,7 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
             end
          end
       end
+      if firstDir then cflRateByCell:sync() end
    end
 
    -- determine largest amax across processors

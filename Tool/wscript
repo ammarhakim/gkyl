@@ -29,21 +29,4 @@ def build(bld):
     appendToList(fullRpath, bld.env.RPATH) # user specified RPATH
     appendToList(fullRpath, bld.env.LIBDIR)
     appendToList(fullRpath, bld.env.LIBPATH_LUAJIT)
-    
-    source = ['kerneldriver.cxx']
-    if bld.env['CUTOOLS_FOUND']:
-        bld(
-            target='culink2',
-            use = useListCuda,
-            features = 'cxx culink',
-            name = 'culink2'
-        )
-        bld.add_group() 
-        appendToList(source, 'culink2.o')
-    bld.program(
-        source = source, target = 'kerneldriver',
-        includes = '. .. ../Lib ../Cuda ../Eq/vlasovData',
-        use = useList,
-        rpath = fullRpath,
-        lib = 'pthread ' + bld.env.EXTRALIBS,
-    )
+

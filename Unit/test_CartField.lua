@@ -41,18 +41,20 @@ function test_1()
    assert_equal(11, localExtRange:upper(1), "Checking range upper")
 
    local indexer = field:indexer()
-   for i = localRange:lower(1), localRange:upper(1) do
+   for i = localExtRange:lower(1), localExtRange:upper(1) do
       local fitr = field:get(indexer(i))
       fitr[1] = i+1
       fitr[2] = i+2
       fitr[3] = i+3
    end
 
-   for i = localRange:lower(1), localRange:upper(1) do
-      local fitr = field:get(indexer(i))
-      assert_equal(i+1, fitr[1], "Checking field value")
-      assert_equal(i+2, fitr[2], "Checking field value")
-      assert_equal(i+3, fitr[3], "Checking field value")
+   for j = 1, field:numComponents() do
+      for i = localExtRange:lower(1), localExtRange:upper(1) do
+         local idx = indexer(i)
+         assert_equal(i+j, field._data[(j-1)+3*(idx-1)], "Checking values by indexing _data directly")
+         assert_equal(i+j, field:get(idx)[j], "Checking values by using get()")         
+         assert_equal(i+j, field:getDataPtrAt(idx)[j-1], "Checking values by using getDataPtrAt()")         
+      end
    end
 end
 
@@ -119,6 +121,7 @@ function test_3()
    local field = EulerField {
       onGrid = grid,
       ghost = {1, 1},
+      createDeviceCopy = false,
    }
 
    local localRange = field:localRange()
@@ -552,6 +555,52 @@ function test_14()
       assert_equal(25.0*idx[1], fitr[2], "Checking scaled field value")
       assert_equal(25.0*idx[1], fitr[3], "Checking scaled field value")
    end   
+
+   -- Initialize fields to random numbers.
+   math.randomseed(1000*os.time())
+   local localRange = scalar:localRange()
+   local fldIdxr    = field:genIndexer()
+   local scaIdxr    = scalar:genIndexer()
+   for idx in localRange:rowMajorIter() do
+      local fldItr = field:get(fldIdxr( idx ))
+      local scaItr = scalar:get(scaIdxr( idx ))
+      for k = 1, field:numComponents() do
+         fldItr[k] = math.random()
+      end
+      for k = 1, scalar:numComponents() do
+         scaItr[k] = math.random()
+      end
+   end
+   -- Get the maximum by stepping through the scalar.
+   fldMax, fldMin, fldSum =  {}, {}, {}
+   for k = 1, field:numComponents() do
+      fldMax[k] = GKYL_MIN_DOUBLE
+      fldMin[k] = GKYL_MAX_DOUBLE
+      fldSum[k] = 0.0
+   end
+   scaMax, scaMin, scaSum = GKYL_MIN_DOUBLE, GKYL_MAX_DOUBLE, 0.0
+   for idx in localRange:rowMajorIter() do
+      local fldItr = field:get(fldIdxr( idx ))
+      local scaItr = scalar:get(scaIdxr( idx ))
+      for k = 1, field:numComponents() do
+         fldMax[k] = math.max(fldMax[k],fldItr[k])
+         fldMin[k] = math.min(fldMin[k],fldItr[k])
+         fldSum[k] = fldSum[k] + fldItr[k]
+      end
+      scaMax = math.max(scaMax,scaItr[1])
+      scaMin = math.min(scaMin,scaItr[1])
+      scaSum = scaSum + scaItr[1]
+   end
+   cartFldMax, cartFldMin, cartFldSum = field:reduce("max"), field:reduce("min"), field:reduce("sum")
+   cartScaMax, cartScaMin, cartScaSum = scalar:reduce("max"), scalar:reduce("min"), scalar:reduce("sum")
+   for k = 1, field:numComponents() do
+      assert_equal(fldMax[k], cartFldMax[k], "Checking reduce('max')")
+      assert_equal(fldMin[k], cartFldMin[k], "Checking reduce('min')")
+      assert_equal(fldSum[k], cartFldSum[k], "Checking reduce('sum')")
+   end
+   assert_equal(scaMax, cartScaMax[1], "Checking scalar reduce('max')")
+   assert_equal(scaMin, cartScaMin[1], "Checking scalar reduce('min')")
+   assert_equal(scaSum, cartScaSum[1], "Checking scalar reduce('sum')")
 end
 
 test_1()

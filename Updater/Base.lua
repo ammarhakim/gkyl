@@ -9,9 +9,8 @@
 local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
-
--- system libraries
 local ffi = require "ffi"
+local xsys = require "xsys"
 
 local _M = Proto()
 
@@ -26,6 +25,31 @@ function _M:init(tbl)
 
    self._dt = 0.0
    self._cflRateByCell = nil
+
+   -- check if we should skip the device update for this specific
+   -- updater
+   local skipDevice = xsys.pickBool(tbl.skipDevice, false)
+
+   -- store advance method to use
+   self._advanceFunc = self._advance
+   if GKYL_USE_DEVICE then
+      if self._advanceOnDevice then
+	 self._advanceFunc = self._advanceOnDevice
+      else
+	 -- this means we don't really have a GPU implementation of
+	 -- the updater: needs to be handled carefully
+	 self._advanceFunc = self._advanceNoDeviceImpl
+      end
+   end
+end
+
+function _M:_advanceNoDeviceImpl(tCurr, inFld, outFld)
+   -- copy input fields from device -> host
+   for _, fld in ipairs(inFld) do fld:copyDeviceToHost() end
+   -- do update
+   self:_advance(tCurr, inFld, outFld)
+   -- copy output fields from host -> device
+   for _, fld in ipairs(outFld) do fld:copyHostToDevice() end
 end
 
 -- must be provided by derived objects
@@ -39,7 +63,7 @@ function _M:getNodeComm() return self._nodeComm end
 function _M:getSharedComm() return self._sharedComm end
 
 -- This function wraps derived updater's _advance() function and
--- computes a "totalTime", and also synchronizes the status and
+-- computes a "total Time", and also synchronizes the status and
 -- time-step suggestion across processors.
 function _M:advance(tCurr, inFld, outFld)
 
@@ -52,7 +76,7 @@ function _M:advance(tCurr, inFld, outFld)
    
    -- Advance updater, measuring how long it took
    local tmStart = Time.clock()
-   local status, dtSuggested = self:_advance(tCurr, inFld, outFld)
+   local status, dtSuggested = self:_advanceFunc(tCurr, inFld, outFld)
    self.totalTime = self.totalTime + (Time.clock()-tmStart)
 
    -- reduce across processors ...

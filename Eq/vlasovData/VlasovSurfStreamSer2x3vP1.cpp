@@ -1,5 +1,5 @@
 #include <VlasovModDecl.h> 
-__host__ __device__ void VlasovSurfStream2x3vSer_X_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr) 
+__host__ __device__ void VlasovSurfStream2x3vSer_X_P1(const double* __restrict__ wl, const double* __restrict__ wr, const double* __restrict__ dxvl, const double* __restrict__ dxvr, const double* __restrict__ fl, const double* __restrict__ fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 
@@ -214,7 +214,7 @@ __host__ __device__ void VlasovSurfStream2x3vSer_X_P1(const double *wl, const do
   outl[31] += incr[31]*dxl; 
   } 
 } 
-__host__ __device__ void VlasovSurfStream2x3vSer_Y_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr) 
+__host__ __device__ void VlasovSurfStream2x3vSer_Y_P1(const double* __restrict__ wl, const double* __restrict__ wr, const double* __restrict__ dxvl, const double* __restrict__ dxvr, const double* __restrict__ fl, const double* __restrict__ fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 

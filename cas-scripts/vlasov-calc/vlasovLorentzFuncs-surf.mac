@@ -4,6 +4,7 @@
 load("modal-basis");
 load("out-scripts");
 load(stringproc)$
+load("scifac")$
 fpprec : 24$
 
 varsV : [vx, vy, vz]$
@@ -90,76 +91,75 @@ calcVlasovLorentzUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block(
 
   printf(fh, "~%"),
   /* surface contribution is defined as integral(phi^- Ghat) over the surface */
-  printf(fh, "  double Ghat[~a]; ~%", length(bP)),
-  /* alpha is the phase space flux at the surface */
-  printf(fh, "  double alpha[~a]; ~%", length(bP)),
-  printf(fh, "~%"),
 
-  cv : varsP[dir],
+  /* vv = variable in direction of surface update */
   vv : varsV[dir],
-  /* since Ghat involves both the average and jump of the distribution function, */
-  /* we can precompute the appropriate signs of f_left and f_right and store them in temporary variables */
-  basisFlip : subst(vv=-1.0*vv, bP),
-  signs : fullratsimp(basisFlip/bP),
-
-  printf(fh, "  double favg[~a]; ~%", length(bP)),
-  for c : 1 thru length(bP) do (
-    printf(fh, "  favg[~a] = ~a*fr[~a]+fl[~a]; ~%", c-1, signs[c], c-1, c-1)
-  ),
-  printf(fh, "~%"),
-  /* since the maximum acceleration is a constant, accumulate its contribution into fjump a priori */
-  printf(fh, "  double fjump[~a]; ~%", length(bP)),
-  for c : 1 thru length(bP) do (
-    printf(fh, "  fjump[~a] = amax*(~a*fr[~a]-fl[~a]); ~%", c-1, signs[c], c-1, c-1)
-  ),
-  printf(fh, "~%"),
 
   /* surface variables to integrate over */
   surfVars : delete(vv,varsP),
-  /* expand the average and jump of the distribution function in phase space basis functions */
-  favg_e : doExpand1(favg, bP),
-  fjump_e : doExpand1(fjump, bP),
+
+  /* generate surface basis. this produces the ndim-1 orthogonal basis with no vv dependence. */
+  bSurf : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst([vv^2=var2,var2=1/3,vv=0],bP)))*bP),
+
+  /* create expansions of f_left and f_right on volume basis */
+  fl_e : doExpand1(fl, bP),
+  fr_e : doExpand1(fr, bP),
+
+  /* Ghat involves both the average and jump of the distribution function across the surface boundary, favg, and fjump */
+  printf(fh, "  double Ghat[~a]; ~%", length(bSurf)),
+  printf(fh, "  double favg[~a]; ~%", length(bSurf)),
+  /* alpha is the phase space flux at the surface */
+  printf(fh, "  double alpha[~a]; ~%", length(bSurf)),
+  printf(fh, "~%"),
+
+  /* print C exprs for average of distribution across surface boundary, favg = f_right(vv=-1) + f_left(vv=1), projected onto surface basis */
+  favg_c : gcfac(fullratsimp(innerProd(surfVars, 1, bSurf, subst(vv=-1, fr_e)+subst(vv=1, fl_e)))),
+  writeCExprs1(favg, favg_c),
+  printf(fh, "~%"),
+  favgNoZero_c : doMakeExprLst(favg_c, favg),
+  favg_e : doExpandLst(favgNoZero_c, bSurf),
+  flush_output(fh),
+
+  /* project fjump = fr(sv=-1) - fl(sv=1) onto surface basis. */
+  /* don't need to print it out because it is just part of Ghat (see note below), */
+  /* unlike favg which appears in Ghat in an inner product with alpha */
+  fjump_c : gcfac(fullratsimp(innerProd(surfVars, 1, bSurf, subst(vv=-1, fr_e)-subst(vv=1, fl_e)))),
 
   /* alpha_v = q/m*(E + v x B) dot d/dv(f) */
-  acc : calcAccel(dir, vdim, bC),
-  alpha_v : calcInnerProdList(varsP, 1, bP, acc),
-  writeCExprsCollect1lhsc(alpha, radcan(alpha_v)),
-
+  acc_e : calcAccel(dir, vdim, bC),
+  /* project alpha_v onto surface basis, and print resulting coefficients */
+  alphaV_c : calcInnerProdList(surfVars, 1, bSurf, subst(vv=1, acc_e)),
+  writeCExprsCollect1lhsc(alpha, radcan(alphaV_c)),
+  printf(fh, "~%"),
+  flush_output(fh),
   /* zero out components of alpha which are empty */
-  alphaNoZero : doMakeExprLst(alpha_v, alpha),
-  alpha_e : doExpandLst(alphaNoZero, bP),
-  alpha_expd : subst(vv=1, alpha_e),
+  alphaNoZero : doMakeExprLst(alphaV_c, alpha),
+  alpha_e : doExpandLst(alphaNoZero, bSurf),
 
   /* evaluate acceleration at zr (in this case the midpoint) */
   amid : float(expand(fullratsimp(subst(zr,alpha_e)))),
   printf(fh, "  const double amid = ~a; ~%", amid),
   printf(fh, "~%"),
+  flush_output(fh),
 
-  /* eliminate the surface variable from the average and jump expansions */
-  fhat_average : subst(vv=1, favg_e),
-  fhat_jump : subst(vv=1, fjump_e),
-
-  /* compute Ghat = 1/2 alpha*(f_left + f_right) - 1/2*amax*(f_right - f_left) */
-  t : 0.5*calcInnerProdList(varsP, 1.0, bP, alpha_expd*fhat_average-fhat_jump),
-  incr_r : t,
-  clst : makelist(alpha[i-1], i, 1, length(bP)),
-
-  /* use both gcfac, and the fact that there are common alpha terms to simplify Ghat */
-  writeCExprsDoubleCollect1lhsc(Ghat, radcan(incr_r), clst),
+  /* evaluate surface projection of Ghat = (alpha*favg - amax*fjump)/2 */
+  alphafavg_c : calcInnerProdList(surfVars, favg_e, bSurf, alpha_e),
+  /* here we see why we didn't need to print out fjump_c. it appears directly in Ghat_c */
+  Ghat_c : 0.5*alphafavg_c - 0.5*amax*fjump_c,
+  writeCExprsNoExpand1(Ghat, Ghat_c),
   printf(fh, "~%"),
-
+  flush_output(fh),
   /* zero out components of Ghat which are empty */
-  glst1 : doMakeExprLst(incr_r, Ghat),
-  Ghat_e : doExpandLst(glst1, bP),
-  Ghat_final : subst(vv=1, Ghat_e),
+  GhatNoZero : doMakeExprLst(Ghat_c, Ghat),
+  Ghat_e : doExpandLst(GhatNoZero, bSurf),
 
   /* compute surface contribution integral(phi^- Ghat) on the right */
-  incr_s : calcInnerProdList(surfVars, 1, subst(vv=-1.0, bP), Ghat_final),
+  incr_s : calcInnerProdList(surfVars, 1, subst(vv=-1.0, bP), Ghat_e),
   writeCIncrExprs1(outr, dv11r[dir]*incr_s),  
   printf(fh, "~%"),
 
   /* compute surface contribution integral(phi^- Ghat) on the left */
-  incr_l : calcInnerProdList(surfVars, -1, subst(vv=1.0, bP), Ghat_final),
+  incr_l : calcInnerProdList(surfVars, -1, subst(vv=1.0, bP), Ghat_e),
 
   /* left contribution is the same as the right contribution up to sign changes */
   /* can exploit this fact that reduce the number of multiplications */

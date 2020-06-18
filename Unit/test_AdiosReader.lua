@@ -109,7 +109,7 @@ end
 
 -- Run tests
 test_1(Mpi.COMM_WORLD)
-test_2(Mpi.COMM_WORLD)
+--test_2(Mpi.COMM_WORLD)
 
 totalFail = allReduceOneInt(stats.fail)
 totalPass = allReduceOneInt(stats.pass)

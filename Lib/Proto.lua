@@ -9,7 +9,20 @@
 -- call objects's init() (ctor) method if one is provided
 local function newmember(proto, ...)
    local obj = setmetatable({}, proto)
-   if obj.init then return obj, obj:init(...) end
+   
+   if GKYL_USE_DEVICE then
+      -- when we are using CUDA we may have a initDevice method to
+      -- construct things on a device
+      if obj.init then
+	 if obj.initDevice then
+	    return obj, obj:init(...), obj:initDevice(...)
+	 else
+	    return obj, obj:init(...)
+	 end
+      end
+   else
+      if obj.init then return obj, obj:init(...) end
+   end
    return obj
 end
 -- metatable for Proto: redirect call to new()

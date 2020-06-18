@@ -87,10 +87,12 @@ ffi.cdef [[
   int cudaMemcpyFromSymbol(void* dst, const void* src, size_t count, size_t offset, cudaMemcpyKind kind);
   int cudaMemcpyToSymbol(void* dst, const void* src, size_t count, size_t offset, cudaMemcpyKind kind);
   int cudaMallocManaged(void** devPtr, size_t size, unsigned int flags);
+  int cudaMemset(void *devPtr, int value, size_t size);
 
   // error codes
   int get_cudaSuccess();
   int get_cudaErrorInvalidValue();
+  int get_cudaErrorInvalidSymbol();
   int get_cudaErrorMemoryAllocation();
   int get_cudaErrorInvalidMemcpyDirection();
 
@@ -109,8 +111,17 @@ ffi.cdef [[
 -- CUDA runtime error codes
 _M.Success = ffi.C.get_cudaSuccess()
 _M.ErrorInvalidValue = ffi.C.get_cudaErrorInvalidValue()
+_M.ErrorInvalidSymbol = ffi.C.get_cudaErrorInvalidSymbol()
 _M.ErrorMemoryAllocation = ffi.C.get_cudaErrorMemoryAllocation()
 _M.ErrorInvalidMemcpyDirection = ffi.C.get_cudaErrorInvalidMemcpyDirection()
+
+_M.ErrorCodes = {
+  [_M.Success] = "Success",
+  [_M.ErrorInvalidValue] = "ErrorInvalidValue",
+  [_M.ErrorInvalidSymbol] = "ErrorInvalidSymbol",
+  [_M.ErrorMemoryAllocation] = "ErrorMemoryAllocation",
+  [_M.ErrorInvalidMemcpyDirection] = "ErrorInvalidMemcpyDirection",
+}
 
 -- CUDA MemcpyKind flags
 _M.MemcpyHostToHost = ffi.C.get_cudaMemcpyHostToHost()
@@ -150,9 +161,9 @@ function _M.GetDeviceCount()
 end
 -- cudaGetDeviceProperties
 function _M.GetDeviceProperties(device)
-   local prop = ffi.new("GkDeviceProp[1]")
+   local prop = ffi.new("GkDeviceProp")
    local err = ffiC.GkCuda_GetDeviceProp(prop, device)
-   return prop[0], err
+   return prop, err
 end
 
 -- cudaSetDevice
@@ -202,6 +213,10 @@ end
 
 function _M.MemcpyToSymbol(dst, src, count)
    return ffiC.cudaMemcpyToSymbol(dst, src, count, 0, cuda.MemcpyHostToDevice)
+end
+
+function _M.Memset(data, val, count)
+   return ffiC.cudaMemset(data, val, count)
 end
 
 return _M
