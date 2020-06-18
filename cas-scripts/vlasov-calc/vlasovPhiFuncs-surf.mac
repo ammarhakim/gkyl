@@ -59,7 +59,7 @@ calcVlasovPhiUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([bP,
   printf(fh, "  double dv1~al = 2./dxvl[~a]; ~%", dir-1, vid[dir]),
   printf(fh, "  double dv1~ar = 2./dxvr[~a]; ~%", dir-1, vid[dir]),
   for d : 1 thru vdim do (
-    printf(fh, "  const double dv~a = dxvr[~a], wv~a = wr[~a]; ~%", d, vid[d], dir, vid[d])
+    printf(fh, "  const double dv~a = dxvr[~a], wv~a = wr[~a]; ~%", d, vid[d], d, vid[d])
   ),
   printf(fh, "~%"),
 
