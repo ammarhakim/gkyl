@@ -222,10 +222,6 @@ local function Field_meta_ctor(elct)
       local sz = localRange:extend(ghost[1], ghost[2]):volume()*nc -- amount of data in field
       self._allocData = allocator(shmComm, sz) -- store this so it does not vanish under us
       self._data = self._allocData:data() -- pointer to data
-
-      -- for number types fill it with zeros (for others, the
-      -- assumption is that users will initialize themselves)
-      if isNumberType then self._allocData:fill(0) end
       
       -- Setup object.
       self._grid = grid

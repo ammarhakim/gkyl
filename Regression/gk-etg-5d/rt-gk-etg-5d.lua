@@ -2,7 +2,7 @@
 -- parameters taken from Fig 2.4 of Beer's thesis.
 --
 -- Plasma ------------------------------------------------------------------------
-local Plasma = require "App.PlasmaOnCartGrid"
+local Plasma = require ("App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
 
 -- physical parameters
@@ -68,7 +68,7 @@ plasmaApp = Plasma.App {
    deltaF = true, -- only apply BCs to fluctuations, and use perturbed moments in field solve
 
    -- gyrokinetic electrons
-   electron = Plasma.GkSpecies {
+   electron = Plasma.Species {
       charge = qe,
       mass = me,
       -- velocity space grid
@@ -76,7 +76,7 @@ plasmaApp = Plasma.App {
       upper = {VPAR_UPPER, MU_UPPER},
       cells = {N_VPAR, N_MU},
       -- initial conditions
-      initBackground = Plasma.Gyrokinetic.MaxwellianProjection {
+      initBackground = Plasma.MaxwellianProjection {
               density = function (t, xn)
                  local x = xn[1]
                  return n0*(1-(x-r0)/L_n)
@@ -87,7 +87,7 @@ plasmaApp = Plasma.App {
               end,
               isBackground = true,
              },
-      init = Plasma.Gyrokinetic.MaxwellianProjection {
+      init = Plasma.MaxwellianProjection {
               density = function (t, xn)
                  local x, y, z = xn[1], xn[2], xn[3]
                  local perturb = 1e-5*rho_e/L_T*math.cos(ky_min*y+kz_min*z)
@@ -116,13 +116,13 @@ plasmaApp = Plasma.App {
    },
 
    -- field solver
-   field = Plasma.GkField {
+   field = Plasma.Field {
       evolve = true, -- evolve fields?
       --polarizationWeight = 0.0,
    },
 
    -- magnetic geometry 
-   funcField = Plasma.GkGeometry {
+   funcField = Plasma.Geometry {
       -- background magnetic field
       bmag = function (t, xn)
          local x, y, z = xn[1], xn[2], xn[3]

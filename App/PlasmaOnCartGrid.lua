@@ -8,27 +8,32 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+-- Infrastructure loads
 local Alloc = require "Alloc"
 local AllocShared = require "AllocShared"
 local Basis = require "Basis"
-local Collisions = require "App.Collisions"
 local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
-local Field = require "App.Field"
 local Grid = require "Grid"
 local Lin = require "Lib.Linalg"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Logger = require "Lib.Logger"
 local Mpi = require "Comm.Mpi"
-local Projection = require "App.Projection"
 local Proto = require "Lib.Proto"
-local Sources = require "App.Sources"
-local Species = require "App.Species"
 local Time = require "Lib.Time"
 local date = require "xsys.date"
 local lfs = require "lfs"
 local lume = require "Lib.lume"
 local xsys = require "xsys"
+
+-- App loads (do not load specific app objects here, but only things
+-- needed to run the App itself. Specific objects should be loaded in
+-- the  methods defined at the botto of this file)
+local SpeciesBase = require "App.Species.SpeciesBase"
+local SourceBase = require "App.Sources.SourceBase"
+local FieldBase = require ("App.Field.FieldBase").FieldBase
+local FuncFieldBase = require ("App.Field.FieldBase").FuncFieldBase
+local NoField = require ("App.Field.FieldBase").NoField
 
 -- Function to create basis functions.
 local function createBasis(nm, ndim, polyOrder)
@@ -147,7 +152,7 @@ local function buildApplication(self, tbl)
    -- Read in information about each species.
    local species = {}
    for nm, val in pairs(tbl) do
-      if Species.SpeciesBase.is(val) then
+      if SpeciesBase.is(val) then
 	 species[nm] = val
 	 species[nm]:setName(nm)
 	 species[nm]:setIoMethod(ioMethod)
@@ -166,7 +171,7 @@ local function buildApplication(self, tbl)
    -- Read in information about each species.
    local sources = {}
    for nm, val in pairs(tbl) do
-      if Sources.SourceBase.is(val) then
+      if SourceBase.is(val) then
 	 sources[nm] = val
 	 sources[nm]:setName(nm)
 	 val:fullInit(tbl) -- Initialize sources.
@@ -245,27 +250,27 @@ local function buildApplication(self, tbl)
    local field = nil
    local nfields = 0
    for _, val in pairs(tbl) do
-      if Field.FieldBase.is(val) then
+      if FieldBase.is(val) then
         field = val
         completeFieldSetup(field)
         nfields = nfields + 1
       end
    end
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one Field object!")
-   if field == nil then field = Field.NoField {} end
+   if field == nil then field = NoField {} end
 
    -- Initialize funcField, which is sometimes needed to initialize species.
    local funcField = nil
    nfields = 0
    for _, val in pairs(tbl) do
-      if Field.FuncFieldBase.is(val) then
+      if FuncFieldBase.is(val) then
         funcField = val
         completeFieldSetup(funcField)
         nfields = nfields + 1
       end
    end
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one FuncField object!")
-   if funcField == nil then funcField = Field.NoField {} end
+   if funcField == nil then funcField = NoField {} end
    funcField:createSolver()
    funcField:initField()
    
@@ -287,12 +292,11 @@ local function buildApplication(self, tbl)
    -- Compute the coupling moments.
    for nm, s in pairs(species) do
       s:clearMomentFlags(species)
-      s:calcCouplingMoments(0.0, 1)
+      s:calcCouplingMoments(0.0, 1, species)
    end
    -- Initialize field (sometimes requires species to have been initialized).
    field:createSolver(species, funcField)
    field:initField(species)
-
    -- Apply species BCs.
    for nm, s in pairs(species) do
       -- This is a dummy forwardEuler call because some BCs require 
@@ -376,14 +380,13 @@ local function buildApplication(self, tbl)
          s:clearCFL()
          s:clearMomentFlags(species)
       end
-
       -- Compute functional field (if any).
       funcField:advance(tCurr)
       
       for nm, s in pairs(species) do
 	 -- Compute moments needed in coupling with fields and
 	 -- collisions (the species should update internal datastructures). 
-         s:calcCouplingMoments(tCurr, inIdx)
+         s:calcCouplingMoments(tCurr, inIdx, species)
       end
 
       -- Update EM field.
@@ -915,67 +918,56 @@ function App:run()
 end
 
 return {
-   AdiabaticSpecies   = Species.AdiabaticSpecies,
-   App                = App,
-   FluidDiffusion     = Collisions.FluidDiffusion,
-   FuncMaxwellField   = Field.FuncMaxwellField,
-   FuncVlasovSpecies  = Species.FuncVlasovSpecies,
-   GkBGKCollisions    = Collisions.GKLBOCollisions,   
-   GkField            = Field.GkField,
-   GkGeometry         = Field.GkGeometry,
-   GkLBOCollisions    = Collisions.GkLBOCollisions,
-   GkSpecies          = Species.GkSpecies,
-   HamilVlasovSpecies = Species.HamilVlasovSpecies,
-   IncompEulerSpecies = Species.IncompEulerSpecies,
-   MaxwellField       = Field.MaxwellField,
-   MomentSpecies      = Species.MomentSpecies,
-   NoField            = Field.NoField,
-   Projection         = Projection,
-   VlasovSpecies      = Species.VlasovSpecies,
-   VmBGKCollisions    = Collisions.VmBGKCollisions,   
-   VmLBOCollisions    = Collisions.VmLBOCollisions,
-   VoronovIonization  = Collisions.VoronovIonization,
-
-   -- Valid pre-packaged species-field systems.
-   Gyrokinetic = {
-      App = App, Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry,
-      FunctionProjection   = Projection.GkProjection.FunctionProjection, 
-      MaxwellianProjection = Projection.GkProjection.MaxwellianProjection,
-      BGKCollisions        = Collisions.GkBGKCollisions,
-      LBOCollisions        = Collisions.GkLBOCollisions,
-      BgkCollisions        = Collisions.GkBGKCollisions,
-      LboCollisions        = Collisions.GkLBOCollisions,
-      AdiabaticSpecies     = Species.AdiabaticSpecies,
-   },
-   IncompEuler = {
-      App = App, Species = Species.IncompEulerSpecies, Field = Field.GkField,
-      Diffusion = Collisions.FluidDiffusion,
-   },
-   VlasovMaxwell = {
-      App = App, Species = Species.VlasovSpecies, FuncSpecies = Species.FuncVlasovSpecies,
-      Field                = Field.MaxwellField,
-      FuncField            = Field.FuncMaxwellField,
-      FunctionProjection   = Projection.VlasovProjection.FunctionProjection, 
-      MaxwellianProjection = Projection.VlasovProjection.MaxwellianProjection,
-      BGKCollisions        = Collisions.VmBGKCollisions,
-      LBOCollisions        = Collisions.VmLBOCollisions,
-      BgkCollisions        = Collisions.VmBGKCollisions,
-      LboCollisions        = Collisions.VmLBOCollisions,
-   },
-   VlasovPoisson = {
-      App = App, Species = Species.VlasovSpecies, FuncSpecies = Species.FuncVlasovSpecies,
-      Field                = Field.PoissonField,
-      FuncField            = Field.FuncPoissonField,
-      FunctionProjection   = Projection.VlasovProjection.FunctionProjection, 
-      MaxwellianProjection = Projection.VlasovProjection.MaxwellianProjection,
-      BGKCollisions        = Collisions.VmBGKCollisions,
-      LBOCollisions        = Collisions.VmLBOCollisions,
-      BgkCollisions        = Collisions.VmBGKCollisions,
-      LboCollisions        = Collisions.VmLBOCollisions,
-   },
-   Moments = {
-      App = App, Species = Species.MomentSpecies, Field = Field.MaxwellField,
-      CollisionlessEmSource = Sources.CollisionlessEmSource,
-      TenMomentRelaxSource  = Sources.TenMomentRelaxSource
-   } 
+   Gyrokinetic = function ()
+      return  {
+	 App = App,
+	 Species = require "App.Species.GkSpecies",
+	 AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
+	 Field = require ("App.Field.GkField").GkField,
+	 Geometry = require ("App.Field.GkField").GkGeometry,
+	 FunctionProjection = require ("App.Projection.GkProjection").FunctionProjection, 
+	 MaxwellianProjection = require ("App.Projection.GkProjection").MaxwellianProjection,
+	 BGKCollisions = require "App.Collisions.GkBGKCollisions",
+	 LBOCollisions = require "App.Collisions.GkLBOCollisions",
+	 BgkCollisions = require "App.Collisions.GkBGKCollisions",
+	 LboCollisions = require "App.Collisions.GkLBOCollisions",
+      }
+   end,
+   
+   IncompEuler = function ()
+      return {
+	 App = App,
+	 Species = require "App.Species.IncompEulerSpecies",
+	 Field = require "App.Field.GkField",
+	 Diffusion = require "App.Collisions.FluidDiffusion",
+      }
+   end,
+   
+   VlasovMaxwell = function ()
+      return {
+	 App = App,
+	 Species = require "App.Species.VlasovSpecies",
+	 FuncSpecies = require "App.Species.FuncVlasovSpecies",
+	 Field = require ("App.Field.MaxwellField").MaxwellField,
+	 FuncField = require ("App.Field.MaxwellField").FuncMaxwellField,
+	 FunctionProjection = require ("App.Projection.VlasovProjection").FunctionProjection,
+	 MaxwellianProjection = require ("App.Projection.VlasovProjection").MaxwellianProjection,
+	 BGKCollisions = require "App.Collisions.VmBGKCollisions",
+	 LBOCollisions = require "App.Collisions.VmLBOCollisions",
+	 BgkCollisions = require "App.Collisions.VmBGKCollisions",
+	 LboCollisions = require "App.Collisions.VmLBOCollisions",
+	 ChargeExchange = require "App.Collisions.VmChargeExchange",
+	 Ionization = require "App.Collisions.VmIonization",
+      }
+   end,
+   
+   Moments = function ()
+      return {
+	 App = App,
+	 Species = require "App.Species.MomentSpecies",
+	 Field = require ("App.Field.MaxwellField").MaxwellField,
+	 CollisionlessEmSource = require "App.Sources.CollisionlessEmSource",
+	 TenMomentRelaxSource  = require "App.Sources.TenMomentRelaxSource",
+      }
+   end
 }

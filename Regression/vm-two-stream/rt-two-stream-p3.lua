@@ -1,5 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
-local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell
+local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell()
 
 knumber = 0.5 -- wave-number
 elVTerm = 0.2 -- electron thermal velocity

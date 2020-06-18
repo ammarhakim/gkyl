@@ -1,5 +1,5 @@
 -- Plasma ------------------------------------------------------------------------
-local Plasma = require "App.PlasmaOnCartGrid"
+local Plasma = require ("App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
 
 -- physical parameters
@@ -71,7 +71,7 @@ plasmaApp = Plasma.App {
    periodicDirs = {1}, -- periodic directions
 
    -- gyrokinetic electrons
-   electron = Plasma.GkSpecies {
+   electron = Plasma.Species {
       charge = qe,
       mass = me,
       -- velocity space grid
@@ -79,7 +79,7 @@ plasmaApp = Plasma.App {
       upper = {6*vte},
       cells = {32},
       -- initial conditions
-      initBackground = Plasma.Gyrokinetic.MaxwellianProjection {
+      initBackground = Plasma.MaxwellianProjection {
          density = function (t, xn)
             local x = xn[1]
             return ne0
@@ -92,7 +92,7 @@ plasmaApp = Plasma.App {
          exactScaleM0 = true,
          isBackground = true,
       },
-      init = Plasma.Gyrokinetic.MaxwellianProjection {
+      init = Plasma.MaxwellianProjection {
          density = function (t, xn)
 	    local x = xn[1]
             return ne0*(1 + 1e-6*math.cos(kz_min*x))
@@ -108,14 +108,14 @@ plasmaApp = Plasma.App {
       diagnosticMoments = {"GkM0", "GkM1", perturbed=true},
    },
 
-   ion = Plasma.GkSpecies {
+   ion = Plasma.Species {
       charge = qi,
       mass = mi,
       -- velocity space grid
       lower = {-6*vti},
       upper = {6*vti},
       cells = {32},
-      init = Plasma.Gyrokinetic.MaxwellianProjection {
+      init = Plasma.MaxwellianProjection {
          density = function (t, xn)
 	    local x = xn[1]
             return ni0
@@ -132,14 +132,14 @@ plasmaApp = Plasma.App {
    },
 
    -- field solver
-   field = Plasma.GkField {
+   field = Plasma.Field {
       evolve = true, -- evolve field?
       isElectromagnetic = true,
       kperp2 = ky_min^2,
    },
 
    -- magnetic geometry 
-   funcField = Plasma.GkGeometry {
+   funcField = Plasma.Geometry {
       -- background magnetic field
       bmag = function (t, xn)
          return B

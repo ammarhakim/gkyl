@@ -1,7 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 --
-local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell
+local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell()
 
 -- This test relaxes a rectangular/square IC and a bump in tail IC.
 -- Maxwellian's for comparison with each are also created.

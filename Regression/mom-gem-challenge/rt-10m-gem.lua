@@ -1,5 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
-local Moments = require("App.PlasmaOnCartGrid").Moments
+local Moments = require("App.PlasmaOnCartGrid").Moments()
 local TenMoment = require "Eq.TenMoment"
 
 -- physical parameters
