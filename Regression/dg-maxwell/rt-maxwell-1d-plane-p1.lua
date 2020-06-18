@@ -2,7 +2,7 @@
 --
 -- 
 
-local Vlasov = require("App.PlasmaOnCartGrid").VlasovMaxwell
+local Vlasov = require("App.PlasmaOnCartGrid").VlasovMaxwell()
 local Constants = require "Lib.Constants"
 
 -- Physical parameters

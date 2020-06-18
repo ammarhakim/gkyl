@@ -5,7 +5,7 @@
 -- This test is meant to test the infrastructure that supports one species
 -- colliding but not the other.
 
-local Plasma    = require("App.PlasmaOnCartGrid").Gyrokinetic
+local Plasma    = require("App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
 
 -- This test initializes Maxwellian electrons and ions with different

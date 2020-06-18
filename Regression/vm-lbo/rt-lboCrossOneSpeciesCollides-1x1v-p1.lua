@@ -1,7 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 --
-local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell
+local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell()
 
 -- Might help to think of species 1 as the ions.
 local n1, u1, p1, m1 = 1.0, 0.10, 1.0, 1.0
