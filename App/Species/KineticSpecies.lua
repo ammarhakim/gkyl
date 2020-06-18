@@ -910,7 +910,6 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
     end
 
     if self.calcCXSrc then
-       print('writing CX source...')
        local sourceCX = self.collisions[self.collNmCX]:getSrcCX()
        sourceCX:write(string.format("%s_sourceCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
     end
