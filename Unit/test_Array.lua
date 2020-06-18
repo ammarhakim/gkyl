@@ -126,6 +126,65 @@ function test_6()
    assert_equal(5, shape[5], "Checking new shape")
 end
 
+function test_7()
+   local a = Array.Array( {10}, Array.double)
+   local a_d = ffi.cast("double*", a.d)
+   for i = 1, a:size() do
+      a_d[i-1] = i+0.5
+   end
+   local prevShape = a:shape()
+
+   -- grow array
+   a:reshape { 20 }
+   assert_equal(20, a:size(), "Checking reshaped array")
+   
+   local a_d = ffi.cast("double*", a.d)
+   for i = 1, prevShape[1] do
+      assert_equal(i+0.5, a_d[i-1], "Checking reshaped values " .. i)
+   end
+
+   -- shrink array
+   a:reshape { 5 }
+   assert_equal(5, a:size(), "Checking reshaped array")
+   
+   local a_d = ffi.cast("double*", a.d)
+   for i = 1, a:size() do
+      assert_equal(i+0.5, a_d[i-1], "Checking reshaped values " .. i)
+   end   
+end
+
+function test_8()
+   local a = Array.Array( {10}, Array.double)
+   local a_d = ffi.cast("double*", a.d)
+   for i = 1, a:size() do
+      a_d[i-1] = i+0.5
+   end
+
+   local b = Array.Array( {20}, Array.double)
+   -- note 'b' is larger than 'a'
+   b:copy(a)
+   local b_d = ffi.cast("double*", b.d)
+   for i = 1, a:size() do
+      assert_equal(i+0.5, b_d[i-1], "Checking copying")
+   end
+
+   local c = Array.Array( {5}, Array.double)
+   -- note 'c' is smaller than 'a'
+   c:copy(a)
+   local c_d = ffi.cast("double*", c.d)
+   for i = 1, c:size() do
+      assert_equal(i+0.5, c_d[i-1], "Checking copying")
+   end
+
+   local d = Array.Array( {2, 5}, Array.double)
+   -- note 'd' is not same shape as 'a'
+   d:copy(a)
+   local d_d = ffi.cast("double*", d.d)
+   for i = 1, d:size() do
+      assert_equal(i+0.5, d_d[i-1], "Checking copying")
+   end   
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -133,6 +192,8 @@ test_3()
 test_4()
 test_5()
 test_6()
+test_7()
+test_8()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

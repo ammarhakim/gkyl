@@ -109,22 +109,31 @@ local array_fn = {
       return self.sz
    end,
    reshape = function (self, shape)
-      -- ensure total number of elements remains unchanged
       local n = 1
       for i = 1, #shape do n = n*shape[i] end
-      assert(n == self.n, "Array.reshape: Can't change size of array on reshape!")
       if #shape > self.r then
-	 Alloc.free(self.s)
-	 self.s = Alloc.malloc(#shape*longSz)
+	 self.s = Alloc.realloc(self.s, #shape*longSz)
       end
       self.r = #shape -- new rank
       for i = 1, #shape do self.s[i-1] = shape[i] end
+
+      -- If reshaped size does not match, the memory is reallocated:
+      -- this means array can shrink or grow. In general, this may not
+      -- be what you want, but it allows flexibility in creating
+      -- dynamic arrays. (I think for anything but rank-1 (1D) arrays
+      -- this is very confusing).
+      if n ~= self.n then
+	 self.n = n
+	 self.d = Alloc.realloc(self.d, self.n*self.sz)
+      end
       return self
    end,
    copy = function (self, src)
-      assert(cmpRankAndShape(self, src),
-	     "Array.copy: Can only copy arrays with same shape and element size!")
-      ffi.copy(self.d, src.d, src.n*src.sz)
+      assert(src.sz == self.sz, "Can't copy arrays of different types!")
+      -- if array sizes do not match then only appropriate number of
+      -- elements are copied
+      local ncopy = src.n < self.n and src.n or self.n
+      ffi.copy(self.d, src.d, ncopy*src.sz)
    end,
    clone = function (self)
       local a = new(self)

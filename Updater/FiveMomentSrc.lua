@@ -242,6 +242,8 @@ function FiveMomentSrc:_advanceDispatch(tCurr, inFld, outFld, target)
       ffi.C.momentSrcAdvanceOnDevice(
        numBlocks, numThreads, self.sd_onDevice, self.fd_onDevice, dt,
        self.d_fluidFlds, d_emFld)
+
+      return true, GKYL_MAX_DOUBLE
    elseif target=="cpu" then
       -- allocate stuff to pass to C
       local fDp = ffi.new("double*[?]", nFluids)
@@ -284,12 +286,12 @@ end
 
 -- advance method
 function FiveMomentSrc:_advance(tCurr, inFld, outFld)
-   self:_advanceDispatch(tCurr, inFld, outFld, "cpu")
+   return self:_advanceDispatch(tCurr, inFld, outFld, "cpu")
 end
 
 -- advance method
 function FiveMomentSrc:_advanceDevice(tCurr, inFld, outFld)
-   self:_advanceDispatch(tCurr, inFld, outFld, "gpu")
+   return self:_advanceDispatch(tCurr, inFld, outFld, "gpu")
 end
 
 return FiveMomentSrc
