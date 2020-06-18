@@ -58,9 +58,13 @@ calcVlasovLorentzUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block(
   zr : makelist(varsP[d]=0, d, 1, length(varsP)),
 
   printf(fh, "__host__ __device__ double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vvars[dir], p),
-  printf(fh, "// w: Cell-center coordinates. dxv[NDIM]: Cell spacing. amax: amax in global lax flux. E: EM field. fl/fr: Distribution function in left/right cells ~%"),
-  printf(fh, "// outl/outr: output distribution function in left/right cells ~%"),
-  printf(fh, "// returns abs(amid) for use in determining amax in cfl and global lax flux ~%"),
+  printf(fh, "  // w:         Cell-center coordinates.~%"),
+  printf(fh, "  // dxv[NDIM]: Cell spacing.~%"),
+  printf(fh, "  // amax:      amax in global lax flux.~%"),
+  printf(fh, "  // EM:        EM field.~%"),
+  printf(fh, "  // fl/fr:     Distribution function in left/right cells ~%"),
+  printf(fh, "  // outl/outr: output distribution function in left/right cells ~%"),
+  printf(fh, "  // returns abs(amid) for use in determining amax in cfl and global lax flux ~%"),
 
   cid : cidx(cdim),
   vid : vidx(cdim,vdim),

@@ -57,14 +57,14 @@ calcVlasovMaxwellVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := bloc
   NC : length(bC),
 
   /* specify a point to evaluate alpha at for use in computing CFL */
-  zr : makelist(varsP[d]=0, d, 1, length(varsP)),
+  cflPt : makelist(varsP[d]=0, d, 1, length(varsP)),
 
   printf(fh, "__host__ __device__ double ~aP~a(const double *w, const double *dxv, const double *EM, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
-  printf(fh, "// w[NDIM]:   Cell-center coordinates.~%"),
-  printf(fh, "// dxv[NDIM]: Cell spacing.~%"),
-  printf(fh, "// EM:        Input EM-field.~%"),
-  printf(fh, "// f:         Input distribution function.~%"),
-  printf(fh, "// out:       Incremented output.~%"),
+  printf(fh, "  // w[NDIM]:   Cell-center coordinates.~%"),
+  printf(fh, "  // dxv[NDIM]: Cell spacing.~%"),
+  printf(fh, "  // EM:        Input EM-field.~%"),
+  printf(fh, "  // f:         Input distribution function.~%"),
+  printf(fh, "  // out:       Incremented output.~%"),
 
   cid : cidx(cdim),
   vid : vidx(cdim,vdim),
@@ -109,8 +109,8 @@ calcVlasovMaxwellVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := bloc
   incr_vdim : 0,
   /* alpha_cdim = v dot grad(f) */
   for cdir : 1 thru cdim do (
-    alpha_cdim_e : calcInnerProdList(varsP, 1, bP, 2*wdx[cdir]+dvdx[cdir]*varsV[cdir]),
-    expr : gcfac(float(expand(radcan(alpha_cdim_e)))),
+    alpha_cdim_c : calcInnerProdList(varsP, 1, bP, 2*wdx[cdir]+dvdx[cdir]*varsV[cdir]),
+    expr : gcfac(float(expand(radcan(alpha_cdim_c)))),
 
     /* Write out the component of alpha_cdim's phase space expansion */
     for i : 1 thru NP do (
@@ -119,18 +119,18 @@ calcVlasovMaxwellVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := bloc
     printf(fh, "  alpha_mid += std::abs(~a)+~a; ~%", wdx[cdir], 0.5*dvdx[cdir]),
     printf(fh, "~%"),
     /* zero out components of alpha which are empty */
-    alpha_cdim_NoZero : doMakeExprLst(alpha_cdim_e, alpha_cdim),
-    alpha_cdim_NoZero_expd : doExpandLst(alpha_cdim_NoZero, bP),
+    alpha_cdim_NoZero   : doMakeExprLst(alpha_cdim_c, alpha_cdim),
+    alpha_cdim_NoZero_e : doExpandLst(alpha_cdim_NoZero, bP),
 
     /* Volume increment from configuration space. */
-    incr_cdim : incr_cdim+subst(a0=NP*(cdir-1),calcInnerProdList(varsP, 1, diff(bP,varsP[cdir]), alpha_cdim_NoZero_expd*f_e))
+    incr_cdim : incr_cdim+subst(a0=NP*(cdir-1),calcInnerProdList(varsP, 1, diff(bP,varsP[cdir]), alpha_cdim_NoZero_e*f_e))
   ),
 
-  /* alpha_vdim = q/m (E + v x B) dot grad_v(f) */
+  /* alpha_vdim = (q/m)*(E + v x B) dot grad_v(f) */
   for vdir : 1 thru vdim do (
     acc : calcAccel(vdir, vdim, bC),
-    alpha_vdim_e : calcInnerProdList(varsP, 1, bP, dv11[vdir]*acc),
-    expr : gcfac(float(expand(radcan(alpha_vdim_e)))),
+    alpha_vdim_c : calcInnerProdList(varsP, 1, bP, dv11[vdir]*acc),
+    expr : gcfac(float(expand(radcan(alpha_vdim_c)))),
 
     /* Write out the component of alpha_vdim's phase space expansion */
     for i : 1 thru NP do (
@@ -138,15 +138,15 @@ calcVlasovMaxwellVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := bloc
     ),
 
     /* zero out components of alpha which are empty */
-    alpha_vdim_NoZero : doMakeExprLst(alpha_vdim_e, alpha_vdim),
-    alpha_vdim_NoZero_expd : doExpandLst(alpha_vdim_NoZero, bP),
+    alpha_vdim_NoZero   : doMakeExprLst(alpha_vdim_c, alpha_vdim),
+    alpha_vdim_NoZero_e : doExpandLst(alpha_vdim_NoZero, bP),
 
-    /* evaluate alpha_vdim at zr to approximate max(abs(alpha_vdim))/dv_i */
-    amid : gcfac(float(expand(subst(zr,0.5*subst(a0=NP*(vdir-1),alpha_vdim_NoZero_expd))))),
+    /* evaluate alpha_vdim at cflPt to approximate max(abs(alpha_vdim))/dv_i */
+    amid : gcfac(float(expand(subst(cflPt,0.5*subst(a0=NP*(vdir-1),alpha_vdim_NoZero_e))))),
     printf(fh, "  alpha_mid += std::abs(~a); ~%", amid),
     printf(fh, "~%"),
     /* Volume increment from configuration space. */
-    incr_vdim : incr_vdim+subst(a0=NP*(vdir-1),calcInnerProdList(varsP, 1, diff(bP,varsP[cdim+vdir]), alpha_vdim_NoZero_expd*f_e))
+    incr_vdim : incr_vdim+subst(a0=NP*(vdir-1),calcInnerProdList(varsP, 1, diff(bP,varsP[cdim+vdir]), alpha_vdim_NoZero_e*f_e))
   ),
 
   /* write out first attempts to simplify the radicals with radcan, e.g. force sqrt(3)*sqrt(5) = sqrt(15) */
