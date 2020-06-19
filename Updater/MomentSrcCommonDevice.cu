@@ -157,6 +157,9 @@ __global__ void cuda_gkylMomentSrcSetMat(
   d_lhs_ptr[linearIdx] = lhs;
   d_rhs_ptr[linearIdx] = rhs;
 
+  for (int c=0; c<N*N; c++)
+    lhs[c] = 0;
+
   unsigned nFluids = sd->nFluids;
   double dt1 = 0.5 * dt;
   double dt2 = 0.5 * dt / sd->epsilon0;
