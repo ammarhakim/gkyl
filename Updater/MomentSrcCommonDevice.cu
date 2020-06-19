@@ -1,9 +1,5 @@
-#include <cstdio>
 #include <GkylMomentSrc.h>
-#include <GkylCudaConfig.h>
-
-#include <cublas_v2.h>
-#include <cuda_runtime.h>
+#include <cstdio>
 
 // Makes indexing cleaner
 #define X (0)
