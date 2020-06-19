@@ -30,6 +30,44 @@
 #define F2(base,i,j) (base)[(j)*N+(i)]
 
 
+__global__ void cuda_gkylMomentSrcSetPtrs(
+    double *d_lhs, double *d_rhs, double **d_lhs_ptr, double **d_rhs_ptr) {
+  // numThreads*numBlocks == numRealCells
+  int linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
+  d_lhs_ptr[linearIdx] = d_lhs + (N*N)*linearIdx;
+  d_rhs_ptr[linearIdx] = d_rhs + (N)*linearIdx;
+}
+
+void *cuda_gkylMomentSrcTimeCenteredInit(
+    int numBlocks, int numThreads) {
+  GkylMomentSrcDeviceCUBLAS_t *context = new GkylMomentSrcDeviceCUBLAS_t[1];
+  cublascall(cublasCreate(&(context->handle)));
+
+  int batchSize = numThreads*numBlocks;
+  // device memory for actuall arrays and vectors
+  cudacall(cudaMalloc(&context->d_lhs, batchSize*N*N*sizeof(double)));
+  cudacall(cudaMalloc(&context->d_rhs, batchSize*N*sizeof(double)));
+  cudacall(cudaMalloc(&context->d_info, batchSize*sizeof(int)));
+  // device memory for pointers to the actuall arrays and vectors
+  cudacall(cudaMalloc(&context->d_lhs_ptr, batchSize*sizeof(double*)));
+  cudacall(cudaMalloc(&context->d_rhs_ptr, batchSize*sizeof(double*)));
+
+  cuda_gkylMomentSrcSetPtrs<<<numBlocks, numThreads>>>(
+      context->d_lhs, context->d_rhs, context->d_lhs_ptr, context->d_rhs_ptr);
+
+  return (void *)context;
+}
+
+void cuda_gkylMomentSrcTimeCenteredDestroy(
+    GkylMomentSrcDeviceCUBLAS_t *context) {
+  cudacall(cudaFree(context->d_lhs_ptr));
+  cudacall(cudaFree(context->d_rhs_ptr));
+  cudacall(cudaFree(context->d_lhs));
+  cudacall(cudaFree(context->d_rhs));
+  cudacall(cudaFree(context->d_info));
+  cublascall(cublasDestroy(context->handle));
+}
+
 // FIXME simplify; separate out pressure part
 __global__ void cuda_gkylMomentSrcUpdateRhovE(
     MomentSrcData_t *sd, FluidData_t *fd, double dt, GkylCartField_t **fluidFlds,
@@ -166,6 +204,65 @@ __global__ void cuda_gkylMomentSrcSetMat(
   rhs[eidx(EX)] = em[EX];
   rhs[eidx(EY)] = em[EY];
   rhs[eidx(EZ)] = em[EZ];
+}
+
+
+static void cuda_gkylMomentSrcTimeCenteredV1(
+    int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
+    double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
+    GkylMomentSrcDeviceCUBLAS_t *context) {
+  // FIXME save d_lhs and avoid reallocating?
+  double *d_lhs = context->d_lhs;
+  double *d_rhs = context->d_rhs;
+  double **d_lhs_ptr = context->d_lhs_ptr;
+  double **d_rhs_ptr = context->d_rhs_ptr;
+  int *d_info = context->d_info;
+  cublasHandle_t &handle = context->handle;
+
+  int batchSize = numThreads*numBlocks;
+
+  cuda_gkylMomentSrcSetMat<<<numBlocks, numThreads>>>(
+      sd, fd, dt, fluidFlds, emFld, d_lhs, d_rhs, d_lhs_ptr, d_rhs_ptr);
+
+  cublascall(cublasDgetrfBatched(
+      handle,
+      N,  // n
+      d_lhs_ptr,  // A
+      N,  // lda
+      NULL,  // int *PivotArray
+      d_info,  // int *infoArray
+      batchSize // number of pointers contained in A
+      ));
+
+  int info;
+  cublascall(cublasDgetrsBatched(
+      handle,
+      CUBLAS_OP_N,  // trans
+      N,  // n
+      1,  // nrhs
+      d_lhs_ptr,  // matrix A
+      N,  // lda
+      NULL,  // const int *devIpiv
+      d_rhs_ptr,  // double *Barray[]
+      N,  // ldb
+      &info,  // int *info
+      batchSize // number of pointers contained in A
+      ));
+
+  // update solution
+  cuda_gkylMomentSrcUpdateRhovE<<<numBlocks, numThreads>>>(
+      sd, fd, dt, fluidFlds, emFld, d_lhs, d_rhs, d_lhs_ptr, d_rhs_ptr);
+}
+
+
+void momentSrcAdvanceOnDevicePreAlloc(
+    int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
+    double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
+    void *context)
+{
+  cuda_gkylMomentSrcTimeCenteredV1(
+      numBlocks, numThreads, sd, fd, dt, fluidFlds, emFld,
+      (GkylMomentSrcDeviceCUBLAS_t*)(context));
 }
 
 static cudaError_t cuda_gkylMomentSrcTimeCentered(
