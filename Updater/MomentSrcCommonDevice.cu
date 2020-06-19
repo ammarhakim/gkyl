@@ -74,8 +74,7 @@ void cuda_gkylMomentSrcTimeCenteredDestroy(
 // FIXME simplify; separate out pressure part
 __global__ void cuda_gkylMomentSrcUpdateRhovE(
     MomentSrcData_t *sd, FluidData_t *fd, double dt, GkylCartField_t **fluidFlds,
-    GkylCartField_t *emFld, double *d_lhs, double *d_rhs, double **d_lhs_ptr,
-    double **d_rhs_ptr) {
+    GkylCartField_t *emFld, double **d_rhs_ptr) {
   GkylRange_t *localRange = emFld->localRange;
   Gkyl::GenIndexer localIdxr(localRange);
   Gkyl::GenIndexer fIdxr = emFld->genIndexer();
@@ -139,8 +138,7 @@ __global__ void cuda_gkylMomentSrcUpdateRhovE(
 
 __global__ void cuda_gkylMomentSrcSetMat(
     MomentSrcData_t *sd, FluidData_t *fd, double dt, GkylCartField_t **fluidFlds,
-    GkylCartField_t *emFld, double *d_lhs, double *d_rhs, double **d_lhs_ptr,
-    double **d_rhs_ptr) {
+    GkylCartField_t *emFld, double **d_lhs_ptr, double **d_rhs_ptr) {
   GkylRange_t *localRange = emFld->localRange;
   Gkyl::GenIndexer localIdxr(localRange);
   Gkyl::GenIndexer fIdxr = emFld->genIndexer();
@@ -152,10 +150,8 @@ __global__ void cuda_gkylMomentSrcSetMat(
   const int linearIdxC = fIdxr.index(idxC);
   const double *em = emFld->getDataPtrAt(linearIdxC);
 
-  double *lhs = d_lhs + (N*N)*linearIdx;
-  double *rhs = d_rhs + (N)*linearIdx;
-  d_lhs_ptr[linearIdx] = lhs;
-  d_rhs_ptr[linearIdx] = rhs;
+  double *lhs = d_lhs_ptr[linearIdx];
+  double *rhs = d_rhs_ptr[linearIdx];
 
   for (int c=0; c<N*N; c++)
     lhs[c] = 0;
@@ -229,7 +225,7 @@ static void cuda_gkylMomentSrcTimeCenteredPreAlloc(
   int batchSize = numThreads*numBlocks;
 
   cuda_gkylMomentSrcSetMat<<<numBlocks, numThreads>>>(
-      sd, fd, dt, fluidFlds, emFld, d_lhs, d_rhs, d_lhs_ptr, d_rhs_ptr);
+      sd, fd, dt, fluidFlds, emFld, d_lhs_ptr, d_rhs_ptr);
 
   cublascall(cublasDgetrfBatched(
       handle,
@@ -258,7 +254,7 @@ static void cuda_gkylMomentSrcTimeCenteredPreAlloc(
 
   // update solution
   cuda_gkylMomentSrcUpdateRhovE<<<numBlocks, numThreads>>>(
-      sd, fd, dt, fluidFlds, emFld, d_lhs, d_rhs, d_lhs_ptr, d_rhs_ptr);
+      sd, fd, dt, fluidFlds, emFld, d_rhs_ptr);
 }
 
 
@@ -296,7 +292,7 @@ static cudaError_t cuda_gkylMomentSrcTimeCentered(
   cudacall(cudaMalloc(&d_rhs_ptr, batchSize*sizeof(double*)));
 
   cuda_gkylMomentSrcSetMat<<<numBlocks, numThreads>>>(
-      sd, fd, dt, fluidFlds, emFld, d_lhs, d_rhs, d_lhs_ptr, d_rhs_ptr);
+      sd, fd, dt, fluidFlds, emFld, d_lhs_ptr, d_rhs_ptr);
 
   cublascall(cublasDgetrfBatched(
       handle,
@@ -325,7 +321,7 @@ static cudaError_t cuda_gkylMomentSrcTimeCentered(
 
   // update solution
   cuda_gkylMomentSrcUpdateRhovE<<<numBlocks, numThreads>>>(
-      sd, fd, dt, fluidFlds, emFld, d_lhs, d_rhs, d_lhs_ptr, d_rhs_ptr);
+      sd, fd, dt, fluidFlds, emFld, d_rhs_ptr);
 
   cudacall(cudaFree(d_lhs_ptr));
   cudacall(cudaFree(d_rhs_ptr));
