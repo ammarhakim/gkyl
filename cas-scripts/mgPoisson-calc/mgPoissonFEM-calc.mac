@@ -12,6 +12,7 @@ load("mgPoisson-calc/FEMinterGridOperators")$
 load("mgPoisson-calc/FEMresidual")$
 load("mgPoisson-calc/FEMnorm")$
 load("mgPoisson-calc/FEMdataMethods")$
+load("mgPoisson-calc/esEnergyFuncs")$
 
 /* ...... USER INPUTS........ */
 
@@ -100,6 +101,18 @@ for bInd : 1 thru length(bName) do (
     disp(printf(false,sconcat("Working on MGpoissonFEMaccuConst", c, "x", bName[bInd]))),
     calcAccumulateConst(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
 
+    close(fh)
+    
+    /* Electrostatic energy kernels. */
+    fname : sconcat("~/max-out/MGpoissonESenergy", bName[bInd], c, "x", ".cpp"),
+    fh : openw(fname),
+    disp(printf(false,sconcat("Creating ~ax ", bName[bInd]),c)),
+    printf(fh, "#include <MGpoissonModDecl.h> ~%"),
+    printf(fh, " ~%"),
+
+    funcName : sconcat("MGpoissonESenergyDG", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonESenergyDG", c, "x", bName[bInd]))),
+    esEnergyDGCalc(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
     close(fh)
     
   )

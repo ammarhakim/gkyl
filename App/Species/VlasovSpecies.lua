@@ -47,9 +47,6 @@ function VlasovSpecies:alloc(nRkDup)
    self.momDensity = self:allocVectorMoment(self.vdim)
    self.ptclEnergy = self:allocMoment()
 
-   -- Allocate field to accumulate funcField if any.
-   self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
-
    -- Allocate field for external forces if any.
    if self.hasExtForce then 
       self.vExtForce = self:allocVectorMoment(self.vdim)
@@ -84,7 +81,7 @@ function VlasovSpecies:allocMomCouplingFields()
 end
 
 
-function VlasovSpecies:createSolver(hasE, hasB)
+function VlasovSpecies:createSolver(hasE, hasB, plasmaB)
    -- Run the KineticSpecies 'createSolver()' to initialize the
    -- collisions solver.
    VlasovSpecies.super.createSolver(self)
@@ -96,6 +93,15 @@ function VlasovSpecies:createSolver(hasE, hasB)
       hasB = true
    end
 
+   -- Allocate field to accumulate funcField if any.
+   if hasB then
+      self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
+   else
+      self.totalEmField = self:allocVectorMoment(3)     -- Electric field only.
+   end
+
+   self.computePlasmaB = true and plasmaB
+
    -- Create updater to advance solution by one time-step.
    self.equation = VlasovEq {
       onGrid           = self.grid,
@@ -105,6 +111,7 @@ function VlasovSpecies:createSolver(hasE, hasB)
       mass             = self.mass,
       hasElectricField = hasE,
       hasMagneticField = hasB,
+      plasmaMagField   = plasmaB,
    }
 
    -- Must apply zero-flux BCs in velocity directions.
@@ -498,7 +505,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    local qbym = self.charge/self.mass
 
-   if emField then totalEmField:accumulate(qbym, emField) end
+   if emField and self.computePlasmaB then totalEmField:accumulate(qbym, emField) end
    if emFuncField then totalEmField:accumulate(qbym, emFuncField) end
 
    -- If external force present (gravity, body force, etc.) accumulate it to electric field.
@@ -510,7 +517,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       Mpi.Barrier(self.grid:commSet().sharedComm)
 
       -- Analogous to the current, the external force only gets accumulated onto the electric field.
-      local vItr, eItr = vExtForce:get(1), totalEmField:get(1)
+      local vItr, eItr   = vExtForce:get(1), totalEmField:get(1)
       local vIdxr, eIdxr = vExtForce:genIndexer(), totalEmField:genIndexer()
 
       for idx in totalEmField:localRangeIter() do
@@ -524,7 +531,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solver:advance(tCurr, {fIn, totalEmField}, {fRhsOut})
+      self.solver:advance(tCurr, {fIn, totalEmField, emField}, {fRhsOut})
    else
       fRhsOut:clear(0.0)    -- No RHS.
    end
@@ -532,9 +539,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
          c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-         c:advance(tCurr, fIn, species, fRhsOut)
-         -- The full 'species' list is needed for the cross-species
-         -- collisions.
+         c:advance(tCurr, fIn, species, fRhsOut)   -- 'species' needed for cross-species collisions.
       end
    end
    if self.sourceSteadyState and self.evolveSources then
@@ -1126,12 +1131,14 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx)
       end
       -- Indicate that moments, boundary corrections, star moments
       -- and self-primitive moments have been computed.
-      for iF=1,4 do
-         self.momentFlags[iF] = true
-      end
+      for iF=1,4 do self.momentFlags[iF] = true end
    else
-      self.momDensityCalc:advance(tCurr, {fIn}, { self.momDensity })
-      -- Indicate that first moment has been computed.
+      if self.computePlasmaB then
+         self.momDensityCalc:advance(tCurr, {fIn}, { self.momDensity })
+      else
+         self.nummDensityCalc:advance(tCurr, {fIn}, { self.numDensity })
+      end
+      -- Indicate that the coupling moment has been computed.
       self.momentFlags[1] = true
    end
    self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart

@@ -251,9 +251,9 @@ local function buildApplication(self, tbl)
    local nfields = 0
    for _, val in pairs(tbl) do
       if FieldBase.is(val) then
-        field = val
-        completeFieldSetup(field)
-        nfields = nfields + 1
+         field = val
+         completeFieldSetup(field)
+         nfields = nfields + 1
       end
    end
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one Field object!")
@@ -264,9 +264,9 @@ local function buildApplication(self, tbl)
    nfields = 0
    for _, val in pairs(tbl) do
       if FuncFieldBase.is(val) then
-        funcField = val
-        completeFieldSetup(funcField)
-        nfields = nfields + 1
+         funcField = val
+         completeFieldSetup(funcField)
+         nfields = nfields + 1
       end
    end
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one FuncField object!")
@@ -279,7 +279,7 @@ local function buildApplication(self, tbl)
       local hasE, hasB = field:hasEB()
       local funcHasE, funcHasB = funcField:hasEB()
       s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
-      s:createSolver(hasE or funcHasE, hasB or funcHasB, funcField)
+      s:createSolver(hasE or funcHasE, hasB or funcHasB, funcField, hasB)
       s:initDist()
       s:createDiagnostics()
    end

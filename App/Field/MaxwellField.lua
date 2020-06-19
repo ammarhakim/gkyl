@@ -2,6 +2,9 @@
 --
 -- App support code: Maxwell field objects.
 --
+-- Contains functions needed by Maxwell equations' solvers, and the
+-- funcField capability to impose external fields.
+--
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
@@ -22,8 +25,9 @@ local ffi              = require "ffi"
 
 -- MaxwellField ---------------------------------------------------------------------
 --
--- Electromagnetic field (Maxwell equation are evolved).
---------------------------------------------------------------------------------
+-- Faraday's and Ampere's equations are evolved (electromagnetic), or the
+-- Poisson equation is solved (electrostatic).
+-------------------------------------------------------------------------------------
 
 local MaxwellField = Proto(FieldBase.FieldBase)
 
@@ -69,18 +73,40 @@ function MaxwellField:fullInit(appTbl)
    -- By default, do not write data if evolve is false.
    self.forceWrite = xsys.pickBool(tbl.forceWrite, false)
 
-   self.ce = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
-   self.cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 1.0
-
    self.hasMagField = xsys.pickBool(tbl.hasMagneticField, true) -- By default there is a magnetic field.
 
-   self.lightSpeed = 1/math.sqrt(self.epsilon0*self.mu0)
+   if self.hasMagField then   -- Things not needed for Poisson solve.
+      self.ce = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
+      self.cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 1.0
+   
+      self.lightSpeed = 1/math.sqrt(self.epsilon0*self.mu0)
+   
+      -- tau parameter used for adding extra (less) diffusion to
+      -- Ampere-Maxwell, while adding less (more) diffusion to Faraday
+      -- equation if no tau parameter is specified, Eq object defaults to
+      -- the speed of light.
+      self.tau = tbl.tau
 
-   -- tau parameter used for adding extra (less) diffusion to
-   -- Ampere-Maxwell, while adding less (more) diffusion to Faraday
-   -- equation if no tau parameter is specified, Eq object defaults to
-   -- the speed of light.
-   self.tau = tbl.tau
+      self._hasSsBnd = tbl.hasSsBnd
+      self._inOutFunc = tbl.inOutFunc
+
+      -- No ghost current by default.
+      self.useGhostCurrent = xsys.pickBool(tbl.useGhostCurrent, false)
+
+      self.limiter = self.tbl.limiter and self.tbl.limiter or "monotonized-centered"
+
+      -- numFlux used for selecting which type of numerical flux function to use
+      -- defaults to "upwind" in Eq object, supported options: "central," "upwind"
+      -- only used for DG Maxwell.
+      self.numFlux = tbl.numFlux
+
+      -- Store initial condition function (this is a wrapper around user
+      -- supplied function as we need to add correction potential ICs here).
+      self.initFunc = function (t, xn)
+         local ex, ey, ez, bx, by, bz = tbl.init(t, xn)
+         return ex, ey, ez, bx, by, bz, 0.0, 0.0
+      end
+   end
 
    -- Create triggers to write fields.
    if tbl.nFrame then
@@ -91,20 +117,6 @@ function MaxwellField:fullInit(appTbl)
 
    self.ioFrame = 0 -- Frame number for IO.
    self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
-
-   self._hasSsBnd = tbl.hasSsBnd
-   self._inOutFunc = tbl.inOutFunc
-
-   -- No ghost current by default.
-   self.useGhostCurrent = xsys.pickBool(tbl.useGhostCurrent, false)
-
-   -- Store initial condition function (this is a wrapper around user
-   -- supplied function as we need to add correction potential ICs
-   -- here).
-   self.initFunc = function (t, xn)
-      local ex, ey, ez, bx, by, bz = tbl.init(t, xn)
-      return ex, ey, ez, bx, by, bz, 0.0, 0.0
-   end
 
    self.hasNonPeriodicBc = false -- To indicate if we have non-periodic BCs.
    self.bcx, self.bcy, self.bcz = { }, { }, { }
@@ -126,9 +138,6 @@ function MaxwellField:fullInit(appTbl)
       self.hasNonPeriodicBc = true
    end
 
-   -- For storing integrated energy components.
-   self.emEnergy = DataStruct.DynVector { numComponents = 8 }
-
    self.tmCurrentAccum   = 0.0 -- Time spent in current accumulate.
    self.integratedEMTime = 0.0 -- Time spent integrating EM fields.
 
@@ -139,13 +148,6 @@ function MaxwellField:fullInit(appTbl)
    else
       self.calcIntEMQuantFlag = true
    end
-
-   self.limiter = self.tbl.limiter and self.tbl.limiter or "monotonized-centered"
-
-   -- numFlux used for selecting which type of numerical flux function to use
-   -- defaults to "upwind" in Eq object, supported options: "central," "upwind"
-   -- only used for DG Maxwell.
-   self.numFlux = tbl.numFlux
 
    self._isFirst = true
 end
@@ -169,95 +171,153 @@ function MaxwellField:alloc(nRkDup)
       nGhost = 1
    end
    
-   -- Allocate fields needed in RK update.
    self.em = {}
-   for i = 1, nRkDup do
-      self.em[i] = DataStruct.Field {
-	 onGrid        = self.grid,
-	 numComponents = 8*self.basis:numBasis(),
-	 ghost         = {nGhost, nGhost}
+   if self.hasMagField then   -- Maxwell's induction equations.
+      -- Allocate fields needed in RK update.
+      for i = 1, nRkDup do
+         self.em[i] = DataStruct.Field {
+            onGrid        = self.grid,
+            numComponents = 8*self.basis:numBasis(),
+            ghost         = {nGhost, nGhost}
+         }
+      end
+
+      -- Array with one component per cell to store cflRate in each cell.
+      self.cflRateByCell = DataStruct.Field {
+           onGrid        = self.grid,
+           numComponents = 1,
+           ghost         = {1, 1},
       }
-   end
+      self.cflRateByCell:clear(0.0)
+      self.cflRatePtr  = self.cflRateByCell:get(1)
+      self.cflRateIdxr = self.cflRateByCell:genIndexer()
+      self.dtGlobal    = ffi.new("double[2]")
       
+      -- For storing integrated energy components.
+      self.emEnergy = DataStruct.DynVector { numComponents = 8 }
+
+   else   -- Poisson equation.
+      -- Electrostatic potential, phi.
+      local phiFld = DataStruct.Field {
+         onGrid        = self.grid,
+         numComponents = self.basis:numBasis(),
+         ghost         = {1, 1}
+      }
+      for i = 1, nRkDup do
+         self.em[i] = phiFld
+      end
+      -- Create fields for total charge and current densities.
+      self.chargeDens = DataStruct.Field {
+         onGrid        = self.grid,
+         numComponents = self.basis:numBasis(),
+         ghost         = {1, 1}
+      }
+
+      -- For storing integrated energy components.
+      self.emEnergy = DataStruct.DynVector { numComponents = self.grid:ndim() }
+   end
+
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
       elemType = self.em[1]:elemType(),
       method   = self.ioMethod,
       metaData = {
-	 polyOrder = self.basis:polyOrder(),
-	 basisType = self.basis:id()
+         polyOrder = self.basis:polyOrder(),
+         basisType = self.basis:id()
       },
    }
-
-   -- Array with one component per cell to store cflRate in each cell.
-   self.cflRateByCell = DataStruct.Field {
-	onGrid        = self.grid,
-	numComponents = 1,
-	ghost         = {1, 1},
-   }
-   self.cflRateByCell:clear(0.0)
-   self.cflRatePtr  = self.cflRateByCell:get(1)
-   self.cflRateIdxr = self.cflRateByCell:genIndexer()
-   self.dtGlobal    = ffi.new("double[2]")
 end
 
 function MaxwellField:createSolver()
-   self.equation = PerfMaxwell {
-      lightSpeed          = self.lightSpeed,
-      elcErrorSpeedFactor = self.ce,
-      mgnErrorSpeedFactor = self.cb,
-      tau                 = self.tau,
-      numFlux             = self.numFlux,
-      basis               = self.basis:numBasis() > 1 and self.basis or nil,
-   }
+   if self.hasMagField then   -- Maxwell's induction equations.
 
-   self.fieldSlvr, self.fieldHyperSlvr = nil, {}
-   if self.basis:numBasis() > 1 then
-      -- Using DG scheme.
-      self.fieldSlvr = Updater.HyperDisCont {
-	 onGrid   = self.grid,
-	 basis    = self.basis,
-	 cfl      = self.cfl,
-	 equation = self.equation,
+      self.equation = PerfMaxwell {
+         lightSpeed          = self.lightSpeed,
+         elcErrorSpeedFactor = self.ce,
+         mgnErrorSpeedFactor = self.cb,
+         tau                 = self.tau,
+         numFlux             = self.numFlux,
+         basis               = self.basis:numBasis() > 1 and self.basis or nil,
       }
-   else
-      -- Using FV scheme.
-   if self._hasSsBnd then
-      self._inOut = DataStruct.Field {
-         onGrid        = self.grid,
-         numComponents = 1,
-         ghost         = {2, 2}
-      }
-      local project = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         evaluate        = self._inOutFunc,
-         projectOnGhosts = true,
-      }
-      project:advance(0.0, {}, {self._inOut})
-      self.fieldIo:write(self._inOut, string.format("%s_inOut.bp", self.name), 0, 0)
-   end
 
-      local ndim = self.grid:ndim()
-      for d = 1, ndim do
-	 self.fieldHyperSlvr[d] = Updater.WavePropagation {
-	    onGrid           = self.grid,
-	    equation         = self.equation,
-	    limiter          = self.limiter,
-	    cfl              = self.cfl,
-	    updateDirections = {d},
-            hasSsBnd         = self._hasSsBnd,
-            inOut            = self._inOut
-	 }
+      self.fieldSlvr, self.fieldHyperSlvr = nil, {}
+      if self.basis:numBasis() > 1 then
+         -- Using DG scheme.
+         self.fieldSlvr = Updater.HyperDisCont {
+            onGrid   = self.grid,
+            basis    = self.basis,
+            cfl      = self.cfl,
+            equation = self.equation,
+         }
+      else
+         -- Using FV scheme.
+         if self._hasSsBnd then
+            self._inOut = DataStruct.Field {
+               onGrid        = self.grid,
+               numComponents = 1,
+               ghost         = {2, 2}
+            }
+            local project = Updater.ProjectOnBasis {
+               onGrid          = self.grid,
+               basis           = self.basis,
+               evaluate        = self._inOutFunc,
+               projectOnGhosts = true,
+            }
+            project:advance(0.0, {}, {self._inOut})
+            self.fieldIo:write(self._inOut, string.format("%s_inOut.bp", self.name), 0, 0)
+         end
+
+         local ndim = self.grid:ndim()
+         for d = 1, ndim do
+            self.fieldHyperSlvr[d] = Updater.WavePropagation {
+               onGrid           = self.grid,
+               equation         = self.equation,
+               limiter          = self.limiter,
+               cfl              = self.cfl,
+               updateDirections = {d},
+               hasSsBnd         = self._hasSsBnd,
+               inOut            = self._inOut
+            }
+         end
       end
-   end
 
-   self.emEnergyCalc = Updater.CartFieldIntegratedQuantCalc {
-      onGrid        = self.grid,
-      basis         = self.basis,
-      numComponents = 8,
-      quantity      = "V2"
-   }
+      self.emEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
+         onGrid        = self.grid,
+         basis         = self.basis,
+         numComponents = 8,
+         quantity      = "V2"
+      }
+      self.emEnergyCalc = function(tCurr, inFld, outDynV) self.emEnergyUpd:advance(tCurr, inFld, outDynV) end
+
+   else   -- Poisson equation.
+
+      self.isElliptic = true
+
+      -- Boundary conditions.
+      assert(not self.hasNonPeriodicBc,"MaxwellField: only periodic BCs supported if hasMagField=false.")
+      local bcLower    = { {T="P", V=0.0} }
+      local bcUpper    = { {T="P", V=0.0} }
+      -- Multigrid parameters (hardcoded for now).
+      local gamma      = 1                 -- V-cycles=1, W-cycles=2.
+      local relaxType  = 'DampedJacobi'    -- DampedJacobi or DampedGaussSeidel
+      local relaxNum   = {1,2,1000}        -- Number of pre,post and coarsest-grid smoothings.
+      local relaxOmega = 2./3.             -- Relaxation damping parameter.
+      local tolerance  = 1.e-6             -- Do cycles until reaching this relative residue norm.
+      self.fieldSlvr = Updater.MGpoisson {
+         solverType = 'FEM',
+         onGrid     = self.grid,
+         basis      = self.basis,
+         bcLower    = bcLower,
+         bcUpper    = bcUpper,
+         gamma      = gamma,         -- V-cycles=1, W-cycles=2.
+         relaxType  = relaxType,     -- DampedJacobi or DampedGaussSeidel
+         relaxNum   = relaxNum,      -- Number of pre,post and coarsest-grid smoothings.
+         relaxOmega = relaxOmega,    -- Relaxation damping parameter.
+         tolerance  = tolerance,     -- Do cycles until reaching this relative residue norm.
+      }
+
+      self.emEnergyCalc = function(tCurr, inFld, outDynV) self.fieldSlvr:esEnergy(tCurr, inFld, outDynV) end
+   end
 
    -- Function to construct a BC updater.
    local function makeBcUpdater(dir, edge, bcList)
@@ -368,14 +428,18 @@ end
 function MaxwellField:createDiagnostics()
 end
 
-function MaxwellField:initField()
+function MaxwellField:initField(species)
    local project = Updater.ProjectOnBasis {
       onGrid = self.grid,
       basis = self.basis,
       evaluate = self.initFunc
    }
-   project:advance(0.0, {}, {self.em[1]})
-   self:applyBc(0.0, self.em[1])
+   if self.hasMagField then   -- Maxwell's induction equations.
+      project:advance(0.0, {}, {self.em[1]})
+      self:applyBc(0.0, self.em[1])
+   else   -- Poisson equation. Solve for initial phi.
+      self:advance(0.0, species, 1, 1)
+   end
 end
 
 function MaxwellField:write(tm, force)
@@ -384,10 +448,10 @@ function MaxwellField:write(tm, force)
       -- Compute EM energy integrated over domain.
       if self.calcIntEMQuantFlag == false then
          if self.calcIntEMQuantTrigger(tm) then
-            self.emEnergyCalc:advance(tm, { self.em[1] }, { self.emEnergy })
+            self.emEnergyCalc(tm, { self.em[1] }, { self.emEnergy })
          end
       else
-         self.emEnergyCalc:advance(tm, { self.em[1] }, { self.emEnergy })
+         self.emEnergyCalc(tm, { self.em[1] }, { self.emEnergy })
       end
       -- Time computation of integrated moments.
       self.integratedEMTime = self.integratedEMTime + Time.clock() - tmStart
@@ -495,35 +559,45 @@ function MaxwellField:accumulateCurrent(current, emRhs)
 end
 
 function MaxwellField:advance(tCurr, species, inIdx, outIdx)
-   if self._isFirst then
-      -- Create field for total current density. need to do this here because
-      -- field object does not know about vdim.
-      do
-         local c = 0
-         for _, s in pairs(species) do
-            if c == 0 then
-               self.currentDens = s:allocMomCouplingFields().currentDensity
-            end
-            c = c+1
-         end
-      end
-      self._isFirst = false
-   end
-
    local emIn     = self:rkStepperFields()[inIdx]
    local emRhsOut = self:rkStepperFields()[outIdx]
-   if self.evolve then
-      self.fieldSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.fieldSlvr:advance(tCurr, {emIn}, {emRhsOut})
-      if self.currentDens then -- No currents for source-free Maxwell.
-	 self.currentDens:clear(0.0)
-	 for nm, s in pairs(species) do
-	    self.currentDens:accumulate(s:getCharge(), s:getMomDensity())
-	 end
-	 self:accumulateCurrent(self.currentDens, emRhsOut)
+
+   if self.hasMagField then   -- Maxwell's induction equations.
+      if self._isFirst then
+         -- Create field for total current density. Need to do this
+         -- here because field object does not know about vdim.
+         do
+            local c = 0
+            for _, s in pairs(species) do
+               if c == 0 then
+                  self.currentDens = s:allocMomCouplingFields().currentDensity
+               end
+               c = c+1
+            end
+         end
+         self._isFirst = false
       end
-   else
-      emRhsOut:clear(0.0) -- no RHS
+
+      if self.evolve then
+         self.fieldSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+         self.fieldSlvr:advance(tCurr, {emIn}, {emRhsOut})
+         if self.currentDens then -- No currents for source-free Maxwell.
+            self.currentDens:clear(0.0)
+            for _, s in pairs(species) do
+               self.currentDens:accumulate(s:getCharge(), s:getMomDensity())
+            end
+            self:accumulateCurrent(self.currentDens, emRhsOut)
+         end
+      else
+         emRhsOut:clear(0.0)   -- No RHS.
+      end
+   else   -- Poisson equation. Solve for phi.
+      self.chargeDens:clear(0.0)
+      for _, s in pairs(species) do
+         self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
+      end
+      self.chargeDens:scale(1.0/self.epsilon0)
+      self.fieldSlvr:advance(tCurr, {self.chargeDens,emIn}, {emIn})
    end
 end
 
@@ -584,8 +658,8 @@ end
 
 -- FuncMaxwellField ---------------------------------------------------------------------
 --
--- A field object with EM fields specified as a time-dependent function.
---------------------------------------------------------------------------------
+-- A field object with external EM fields specified as a time-dependent function.
+-----------------------------------------------------------------------------------------
 
 local FuncMaxwellField = Proto(FieldBase.FuncFieldBase)
 
@@ -601,6 +675,8 @@ function FuncMaxwellField:fullInit(appTbl)
    self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- By default evolve field.
 
+   self.hasMagField = xsys.pickBool(tbl.hasMagneticField, true) -- By default there is a magnetic field.
+
    -- Create triggers to write fields.
    if tbl.nFrame then
       self.ioTrigger = LinearTrigger(0, appTbl.tEnd, tbl.nFrame)
@@ -611,9 +687,16 @@ function FuncMaxwellField:fullInit(appTbl)
    self.ioFrame = 0 -- Frame number for IO.
    
    -- Store function to compute EM field.
-   self.emFunc = function (t, xn)
-      local ex, ey, ez, bx, by, bz = tbl.emFunc(t, xn)
-      return ex, ey, ez, bx, by, bz, 0.0, 0.0
+   if self.hasMagField then
+      self.emFunc = function (t, xn)
+         local ex, ey, ez, bx, by, bz = tbl.emFunc(t, xn)
+         return ex, ey, ez, bx, by, bz, 0.0, 0.0
+      end
+   else
+      self.emFunc = function (t, xn)
+         local ex, ey, ez = tbl.emFunc(t, xn)
+         return ex, ey, ez
+      end
    end
 end
 
@@ -627,10 +710,12 @@ function FuncMaxwellField:setBasis(basis) self.basis = basis end
 function FuncMaxwellField:setGrid(grid) self.grid = grid end
 
 function FuncMaxwellField:alloc(nField)
-   -- Allocate fields needed in RK update.
+   -- Allocate external fields.
+   local emVecComp = 8
+   if not self.hasMagField then emVecComp = 3 end  -- Electric field only.
    self.em = DataStruct.Field {
       onGrid        = self.grid,
-      numComponents = 8*self.basis:numBasis(),
+      numComponents = emVecComp*self.basis:numBasis(),
       ghost         = {1, 1}
    }
       
@@ -639,8 +724,8 @@ function FuncMaxwellField:alloc(nField)
       elemType = self.em:elemType(),
       method   = self.ioMethod,
       metaData = {
-	 polyOrder = self.basis:polyOrder(),
-	 basisType = self.basis:id()
+         polyOrder = self.basis:polyOrder(),
+         basisType = self.basis:id()
       },
 
    }   
@@ -665,14 +750,14 @@ end
 function FuncMaxwellField:write(tm, force)
    if self.evolve or self.forceWrite then
       if self.ioTrigger(tm) or force then
-	 self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm, self.ioFrame)
-	 
-	 self.ioFrame = self.ioFrame+1
+         self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm, self.ioFrame)
+         
+         self.ioFrame = self.ioFrame+1
       end
    else
       -- If not evolving species, don't write anything except initial conditions.
       if self.ioFrame == 0 then
-	 self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm, self.ioFrame)
+         self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm, self.ioFrame)
       end
       self.ioFrame = self.ioFrame+1
    end

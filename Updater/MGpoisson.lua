@@ -488,6 +488,11 @@ function MGpoisson:init(tbl)
       self.dynVbuf = DataStruct.DynVector { numComponents = 1 }
    end
 
+   -- Kernels and buffers used in computing electrostatic field energy.
+   self.localEnergy   = Lin.Vec(self.dim)
+   self.globalEnergy  = Lin.Vec(self.dim)
+   self._esEnergyCalc = MGpoissonDecl.selectESenergy(basisID, self.dim, polyOrder, bcTypes)
+
 end
 
 function MGpoisson:opStencilIndices(idxIn, stencilType, stencilIdx)
@@ -727,6 +732,42 @@ function MGpoisson:accumulateConst(inConst,inFld)
    end
 
    if self.aPeriodicDir then inFld:sync() end
+end
+
+function MGpoisson:esEnergy(tCurr,fldIn,outDynV)
+   -- Compute the electrostatic field energy given the potential. Here outDynV must
+   -- be a DynVector with the same number of components as there are dimensions.
+   local phiIn, esE = fldIn[1], outDynV[1]
+
+   local grid = phiIn:grid()
+
+   local indexer = phiIn:genIndexer()
+   local phiItr  = phiIn:get(1)
+
+   for d = 1, self.dim do
+      self.localEnergy[d] = 0.0   -- Clear local values.
+   end
+
+   -- Construct range for shared memory.
+   local phiRange       = phiIn:localRange()
+   local phiRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = phiRange:selectFirst(self.dim), numSplit = grid:numSharedProcs() }
+   local tId = grid:subGridSharedId()    -- Local thread ID.
+
+   for idx in phiRangeDecomp:rowMajorIter(tId) do
+      grid:setIndex(idx)
+      grid:getDx(self.dxBuf)
+
+      fld:fill(indexer(idx), phiItr)
+
+      self._esEnergyCalc(self.dxBuf:data(), phiItr:data(), self.localEnergy:data())
+   end
+
+   -- All-reduce across processors and push result into dyn-vector.
+   Mpi.Allreduce(
+      self.localEnergy:data(), self.globalEnergy:data(), self.dim, Mpi.DOUBLE, Mpi.SUM, self:getComm())
+
+   esE:appendData(tCurr, self.globalEnergy)
 end
 
 function MGpoisson:restrictDG(fFld,cFld)

@@ -1,0 +1,48 @@
+/* Compute the electrostatic energy in each direction given the electrostatic potential.
+   This takes the derivative of phi along each direction and squares them. */
+
+load("modal-basis");
+load("out-scripts");
+
+fpprec : 24$
+
+esEnergyDGCalc(fh, funcNm, dim, basisFun, pMax) := block([bC,numBC,phi_e,dir,Efld_e,out],
+
+  kill(varsC, basisC),
+  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
+
+  for polyOrder : 1 thru pMax do (
+
+    printf(fh, "void ~a_P~a(const double *dx, double *phi, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // dx:     cell lengths.~%"),
+    printf(fh, "  // phiFld: electrostatic potential.~%"),
+    printf(fh, "  // out:    energy out.~%"),
+    printf(fh, "~%"),
+  
+    bC    : basisC[polyOrder],
+    numBC : length(bC),
+  
+    phi_e : doExpand1(phi,bC),
+  
+    for dir : 1 thru dim do (
+      Efld_e : -(2./dx[dir-1])*diff(phi_e,varsC[dir]),
+      esEnergyInDir : fullratsimp(innerProd(varsC,1,1,Efld_e^2)),
+      exprStr : string(float(expand(esEnergyInDir))),
+      /* Replace exponentials. */
+      subList : [],
+      for k : 0 thru numBC-1 do (
+        subList : endcons([sconcat("phi[",k,"]^2"),sconcat("(phi[",k,"]*phi[",k,"])")],subList)
+      ),
+      for d : 0 thru dim-1 do (
+        subList : endcons([sconcat("dx[",d,"]^2"),sconcat("(dx[",d,"]*dx[",d,"])")],subList)
+      ),
+      for s : 1 thru length(subList) do (
+        exprStr : ssubst(subList[s][2],subList[s][1],exprStr)
+      ),
+      if expr # 0.0 then printf(fh, "  ~a += ~a; ~%", out[dir-1], exprStr)
+    ),
+  
+    printf(fh, "}~%"),
+    printf(fh, "~%")
+  )
+)$

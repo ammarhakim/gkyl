@@ -64,24 +64,26 @@ function _M.selectSurfElcMag(basisNm, CDIM, VDIM, polyOrder)
 end
 
 -- Select function to compute volume Vlasov-Poisson acceleration terms.
-function _M.selectVolPhi(basisNm, CDIM, VDIM, polyOrder)
-   local funcNm = string.format("VlasovPhiVol%dx%dv%sP%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+function _M.selectVolPhi(hasB, basisNm, CDIM, VDIM, polyOrder)
+   if hasB then magStr="Bext" else magStr="" end
+   local funcNm = string.format("VlasovPhi~aLorentzVol%dx%dv%sP%d", magStr, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
    return ffi.C[funcNm]
 end
 
 -- Select functions to compute surface EM field acceleration  terms (output is a table of functions).
-function _M.selectSurfPhi(basisNm, CDIM, VDIM, polyOrder)
+function _M.selectSurfPhi(hasB, basisNm, CDIM, VDIM, polyOrder)
+   if hasB then magStr="Bext" else magStr="" end
    if VDIM == 1 then
-      local funcNmX = string.format("VlasovPhiSurf%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmX = string.format("VlasovPhi~aSurf%dx%dv%s_VX_P%d", magStr, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       return { ffi.C[funcNmX], nullFunc, nullFunc }
    elseif VDIM == 2 then
-      local funcNmX = string.format("VlasovPhiSurf%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmY = string.format("VlasovPhiSurf%dx%dv%s_VY_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmX = string.format("VlasovPhi~aSurf%dx%dv%s_VX_P%d", magStr, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmY = string.format("VlasovPhi~aSurf%dx%dv%s_VY_P%d", magStr, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       return { ffi.C[funcNmX], ffi.C[funcNmY], nullFunc }
    elseif VDIM == 3 then
-      local funcNmX = string.format("VlasovPhiSurf%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmY = string.format("VlasovPhiSurf%dx%dv%s_VY_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmZ = string.format("VlasovPhiSurf%dx%dv%s_VZ_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmX = string.format("VlasovPhi~aSurf%dx%dv%s_VX_P%d", magStr, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmY = string.format("VlasovPhi~aSurf%dx%dv%s_VY_P%d", magStr, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmZ = string.format("VlasovPhi~aSurf%dx%dv%s_VZ_P%d", magStr, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       return { ffi.C[funcNmX], ffi.C[funcNmY], ffi.C[funcNmZ] }
    end
 end

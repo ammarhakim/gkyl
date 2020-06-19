@@ -49,8 +49,19 @@ for bInd : 1 thru length(bName) do (
         disp(printf(false,sconcat("Creating surface VlasovPhi",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
         fname : sconcat("~/max-out/VlasovPhiSurf", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
         fh : openw(fname),
+        printf(fh, "#include <VlasovModDecl.h> ~%"),
+        printf(fh, "~%"),
+
+        /* Kernels without an external magnetic field. */
+        hasB     : false,
         funcName : sconcat("VlasovPhiSurf", c, "x", v, "v", bName[bInd]),
-        calcVlasovPhiSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
+        calcVlasovPhiSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, hasB),
+
+        /* Kernels wit external magnetic field. */
+        hasB     : true,
+        funcName : sconcat("VlasovPhiBextSurf", c, "x", v, "v", bName[bInd]),
+        calcVlasovPhiSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, hasB),
+
         close(fh)
       )
     )

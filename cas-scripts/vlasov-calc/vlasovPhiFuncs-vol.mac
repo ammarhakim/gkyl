@@ -27,13 +27,11 @@ vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[a0+i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
-calcVlasovPhiVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([bP,bC,numC,numP,cflPt,cid,vid,dir,f_e,phi_e,cdir,vdir,alpha_cdim_c,alpha_vdim_c,i,expr,incr_cdim,incr_vdim],
+calcVlasovPhiVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder, hasB) := block([bP,bC,numC,numP,cflPt,cid,vid,dir,f_e,phi_e,cdir,vdir,alpha_cdim_c,alpha_vdim_c,i,expr,incr_cdim,incr_vdim],
 
   kill(varsC, varsP, basisC, basisP),
 
   load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
-
-  printf(fh, "#include <VlasovModDecl.h> ~%"),
 
   bP   : basisP[polyOrder],
   bC   : basisC[polyOrder],
@@ -71,15 +69,17 @@ calcVlasovPhiVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([b
   for dir : 1 thru vdim do (
     printf(fh, "  const double *E~a = &EM[~a]; ~%", dir-1, numC*(dir-1))
   ),
-  if vdim > 1 then (
-    /* If vdim = 1, then no magnetic field. */
-    if vdim = 2 then (
-      /* In 2 velocity dimensions, only Bz. */
-      printf(fh, "  const double *B~a = &EM[~a]; ~%", 2, numC*2+3*numC)
-    ),
-    if vdim = 3 then (
-      for dir : 1 thru 3 do (
-        printf(fh, "  const double *B~a = &EM[~a]; ~%", dir-1, numC*(dir-1)+3*numC)
+  if (hasB) then (
+    if vdim > 1 then (
+      /* If vdim = 1, then no magnetic field. */
+      if vdim = 2 then (
+        /* In 2 velocity dimensions, only Bz. */
+        printf(fh, "  const double *B~a = &EM[~a]; ~%", 2, numC*2+3*numC)
+      ),
+      if vdim = 3 then (
+        for dir : 1 thru 3 do (
+          printf(fh, "  const double *B~a = &EM[~a]; ~%", dir-1, numC*(dir-1)+3*numC)
+        )
       )
     )
   ),
@@ -124,11 +124,14 @@ calcVlasovPhiVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([b
 
     /* Calculate the acceleration. */
     if (vdir = 1) then (
-      acc_e : -diff(phi_e,varsCall[1]) + doExpand1(Efld[1],bC) + vvy*doExpand1(Bfld[3],bC) - vvz*doExpand1(Bfld[2],bC)
+      acc_e : -diff(phi_e,varsCall[1]) + doExpand1(Efld[1],bC),
+      if (hasB) then ( acc_e : acc_e + vvy*doExpand1(Bfld[3],bC) - vvz*doExpand1(Bfld[2],bC) )
     ) elseif (vdir = 2) then (
-      acc_e : -diff(phi_e,varsCall[2]) + doExpand1(Efld[2],bC) + vvz*doExpand1(Bfld[1],bC) - vvx*doExpand1(Bfld[3],bC)
+      acc_e : -diff(phi_e,varsCall[2]) + doExpand1(Efld[2],bC),
+      if (hasB) then ( acc_e : acc_e + vvz*doExpand1(Bfld[1],bC) - vvx*doExpand1(Bfld[3],bC) )
     ) else (
-      acc_e : -diff(phi_e,varsCall[3]) + doExpand1(Efld[3],bC) + vvx*doExpand1(Bfld[2],bC) - vvy*doExpand1(Bfld[1],bC)
+      acc_e : -diff(phi_e,varsCall[3]) + doExpand1(Efld[3],bC),
+      if (hasB) then ( acc_e : acc_e + vvx*doExpand1(Bfld[2],bC) - vvy*doExpand1(Bfld[1],bC) )
     ),
     vzero(vdim)  := if vdim = 1 then [vvy=0, vvz=0] elseif vdim = 2 then [vvz=0] else [],
     vTransSubs   : [vvx=vx*dv1/2+wv1, vvy=vy*dv2/2+wv2, vvz=vz*dv3/2+wv3],
@@ -162,5 +165,6 @@ calcVlasovPhiVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([b
 
   printf(fh, "~%"),
   printf(fh, "  return alpha_mid; ~%"),
-  printf(fh, "} ~%")
+  printf(fh, "} ~%"),
+  printf(fh, "~%")
 )$

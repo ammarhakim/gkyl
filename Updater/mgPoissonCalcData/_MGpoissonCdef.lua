@@ -24,6 +24,8 @@ void MGpoissonDGresidual1xSer_P1(double **dx, const double *bcVals, double **rho
 void MGpoissonDGresidual1xSer_LxRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);
 void MGpoissonDGresidual1xSer_UxRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);
 
+void MGpoissonESenergyDG1xSer_P1(const double *dx, double *phi, double *out);
+
 void MGpoissonFEM_DGtoFEM_1xSer_P1(double **dgFld, double *femFld);
 void MGpoissonFEM_DGtoFEM_1xSer_LxNonPeriodic_P1(double **dgFld, double *femFld);
 void MGpoissonFEM_DGtoFEM_1xSer_UxNonPeriodic_P1(double **dgFld, double *femFld);
@@ -116,6 +118,8 @@ void MGpoissonDGresidual2xSer_LxRobinLyRobin_P1(double **dx, const double *bcVal
 void MGpoissonDGresidual2xSer_LxRobinUyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);
 void MGpoissonDGresidual2xSer_UxRobinLyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);
 void MGpoissonDGresidual2xSer_UxRobinUyRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);
+
+void MGpoissonESenergyDG2xSer_P1(const double *dx, double *phi, double *out);
 
 void MGpoissonFEM_DGtoFEM_2xSer_P1(double **dgFld, double *femFld);
 void MGpoissonFEM_DGtoFEM_2xSer_LxNonPeriodic_P1(double **dgFld, double *femFld);
@@ -509,6 +513,8 @@ void MGpoissonDGresidual3xSer_UxRobinLyRobinLzRobin_P1(double **dx, const double
 void MGpoissonDGresidual3xSer_UxRobinLyRobinUzRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);
 void MGpoissonDGresidual3xSer_UxRobinUyRobinLzRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);
 void MGpoissonDGresidual3xSer_UxRobinUyRobinUzRobin_P1(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);
+
+void MGpoissonESenergyDG3xSer_P1(const double *dx, double *phi, double *out);
 
 void MGpoissonFEM_DGtoFEM_3xSer_P1(double **dgFld, double *femFld);
 void MGpoissonFEM_DGtoFEM_3xSer_LxNonPeriodic_P1(double **dgFld, double *femFld);
@@ -2410,6 +2416,8 @@ void MGpoissonDGresidual1xSer_P2(double **dx, const double *bcVals, double **rho
 void MGpoissonDGresidual1xSer_LxRobin_P2(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);
 void MGpoissonDGresidual1xSer_UxRobin_P2(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);
 
+void MGpoissonESenergyDG1xSer_P2(const double *dx, double *phi, double *out);
+
 void MGpoissonFEM_DGtoFEM_1xSer_P2(double **dgFld, double *femFld);
 void MGpoissonFEM_DGtoFEM_1xSer_LxNonPeriodic_P2(double **dgFld, double *femFld);
 void MGpoissonFEM_DGtoFEM_1xSer_UxNonPeriodic_P2(double **dgFld, double *femFld);
@@ -2502,6 +2510,8 @@ void MGpoissonDGresidual2xSer_LxRobinLyRobin_P2(double **dx, const double *bcVal
 void MGpoissonDGresidual2xSer_LxRobinUyRobin_P2(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);
 void MGpoissonDGresidual2xSer_UxRobinLyRobin_P2(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);
 void MGpoissonDGresidual2xSer_UxRobinUyRobin_P2(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);
+
+void MGpoissonESenergyDG2xSer_P2(const double *dx, double *phi, double *out);
 
 void MGpoissonFEM_DGtoFEM_2xSer_P2(double **dgFld, double *femFld);
 void MGpoissonFEM_DGtoFEM_2xSer_LxNonPeriodic_P2(double **dgFld, double *femFld);
@@ -2895,6 +2905,8 @@ void MGpoissonDGresidual3xSer_UxRobinLyRobinLzRobin_P2(double **dx, const double
 void MGpoissonDGresidual3xSer_UxRobinLyRobinUzRobin_P2(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);
 void MGpoissonDGresidual3xSer_UxRobinUyRobinLzRobin_P2(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);
 void MGpoissonDGresidual3xSer_UxRobinUyRobinUzRobin_P2(double **dx, const double *bcVals, double **rho, double **phi, double *resOut);
+
+void MGpoissonESenergyDG3xSer_P2(const double *dx, double *phi, double *out);
 
 void MGpoissonFEM_DGtoFEM_3xSer_P2(double **dgFld, double *femFld);
 void MGpoissonFEM_DGtoFEM_3xSer_LxNonPeriodic_P2(double **dgFld, double *femFld);
