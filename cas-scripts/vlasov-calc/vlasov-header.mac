@@ -47,8 +47,10 @@ printPrototype(deco, ci, vi, bStr, pi) := block([si],
   ),
 
   printf(fh, "~adouble VlasovPhiVol~ax~av~aP~a(const double *w, const double *dxv, const double *phi, const double *EM, const double *f, double *out); ~%", deco, ci, vi, bStr, pi),
+  printf(fh, "~adouble VlasovPhiBextVol~ax~av~aP~a(const double *w, const double *dxv, const double *phi, const double *EM, const double *f, double *out); ~%", deco, ci, vi, bStr, pi),
   for si : 1 thru vi do (
-    printf(fh, "~adouble VlasovPhiSurf~ax~av~a_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr); ~%", deco, ci, vi, bStr, cvars[si], pi)
+    printf(fh, "~adouble VlasovPhiSurf~ax~av~a_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr); ~%", deco, ci, vi, bStr, cvars[si], pi),
+    printf(fh, "~adouble VlasovPhiBextSurf~ax~av~a_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr); ~%", deco, ci, vi, bStr, cvars[si], pi)
   ),
 
   printf(fh, "~%")
