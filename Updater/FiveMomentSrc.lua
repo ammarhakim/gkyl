@@ -211,9 +211,12 @@ function FiveMomentSrc:initDevice(tbl)
    -- yet; also numThreds could be different from actual values to be used
    self.first = true
 
+   -- callback into proxy.__gc when the proxy becomes free
+   -- FIXME Is this the correct way?
    local prox = newproxy(true)
    getmetatable(prox).__gc = function()
       ffi.C.cuda_gkylMomentSrcTimeCenteredDestroy(self.cublas_context)
+      self[prox] = true
    end
 end
 
