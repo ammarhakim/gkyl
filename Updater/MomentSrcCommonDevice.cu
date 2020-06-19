@@ -39,9 +39,9 @@ __global__ static void cuda_gkylMomentSrcSetPtrs(
 }
 
 
-GkylMomentSrcDeviceCUBLAS_t *cuda_gkylMomentSrcTimeCenteredInit(
+GkylMomentSrcDeviceData_t *cuda_gkylMomentSrcTimeCenteredInit(
     int numBlocks, int numThreads) {
-  GkylMomentSrcDeviceCUBLAS_t *context = new GkylMomentSrcDeviceCUBLAS_t[1];
+  GkylMomentSrcDeviceData_t *context = new GkylMomentSrcDeviceData_t[1];
   cublascall(cublasCreate(&(context->handle)));
 
   int batchSize = numThreads*numBlocks;
@@ -61,7 +61,7 @@ GkylMomentSrcDeviceCUBLAS_t *cuda_gkylMomentSrcTimeCenteredInit(
 
 
 void cuda_gkylMomentSrcTimeCenteredDestroy(
-    GkylMomentSrcDeviceCUBLAS_t *context) {
+    GkylMomentSrcDeviceData_t *context) {
   cudacall(cudaFree(context->d_lhs_ptr));
   cudacall(cudaFree(context->d_rhs_ptr));
   cudacall(cudaFree(context->d_lhs));
@@ -213,7 +213,7 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredSetMat(
 static void cuda_gkylMomentSrcTimeCenteredPreAlloc(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
     double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
-    GkylMomentSrcDeviceCUBLAS_t *context) {
+    GkylMomentSrcDeviceData_t *context) {
   double **d_lhs_ptr = context->d_lhs_ptr;
   double **d_rhs_ptr = context->d_rhs_ptr;
   int *d_info = context->d_info;
@@ -258,7 +258,7 @@ static void cuda_gkylMomentSrcTimeCenteredPreAlloc(
 void momentSrcAdvanceOnDevicePreAlloc(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
     double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
-    GkylMomentSrcDeviceCUBLAS_t *context)
+    GkylMomentSrcDeviceData_t *context)
 {
   cuda_gkylMomentSrcTimeCenteredPreAlloc(
       numBlocks, numThreads, sd, fd, dt, fluidFlds, emFld, context);

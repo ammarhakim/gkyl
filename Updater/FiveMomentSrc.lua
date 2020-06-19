@@ -59,24 +59,23 @@ typedef struct {
   typedef struct cublasContext *cublasHandle_t;
 
   typedef struct {
-    // TODO domain decomposition info
     double *d_lhs;
     double *d_rhs;
     double **d_lhs_ptr;
     double **d_rhs_ptr;
     int *d_info;
     cublasHandle_t handle;
-  } GkylMomentSrcDeviceCUBLAS_t;
+  } GkylMomentSrcDeviceData_t;
 
 
-  GkylMomentSrcDeviceCUBLAS_t *cuda_gkylMomentSrcTimeCenteredInit(
+  GkylMomentSrcDeviceData_t *cuda_gkylMomentSrcTimeCenteredInit(
       int numBlocks, int numThreads);
   void cuda_gkylMomentSrcTimeCenteredDestroy(
-      GkylMomentSrcDeviceCUBLAS_t *context);
+      GkylMomentSrcDeviceData_t *context);
   void momentSrcAdvanceOnDevicePreAlloc(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
     double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
-    GkylMomentSrcDeviceCUBLAS_t *context);
+    GkylMomentSrcDeviceData_t *context);
 ]]
 
 -- Explicit, SSP RK3 scheme
