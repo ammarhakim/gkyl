@@ -938,7 +938,7 @@ return {
       return {
 	 App = App,
 	 Species = require "App.Species.IncompEulerSpecies",
-	 Field = require "App.Field.GkField",
+	 Field = require ("App.Field.GkField").GkField,
 	 Diffusion = require "App.Collisions.FluidDiffusion",
       }
    end,
