@@ -14,6 +14,22 @@ void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double 
     out[n] += fact*inp[n];
 }
 
+void gkylCartFieldAccumulateOffsetLeft(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out) {
+   for (unsigned i=0; i<nCells; ++i) {
+      for (unsigned c=0; c<nCompInp; ++c) {
+         out[sOut + i*nCompOut + compStart + c] += fact*inp[sInp + i*nCompInp + c];
+      }
+   }
+}
+
+void gkylCartFieldAccumulateOffsetRight(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out) {
+   for (unsigned i=0; i<nCells; ++i) {
+      for (unsigned c=0; c<nCompOut; ++c) {
+         out[sOut + i*nCompOut + c] += fact*inp[sInp + i*nCompInp + compStart + c];
+      }
+   }
+}
+
 void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out) {
   for (unsigned n=s; n<(s+nv); ++n)
     out[n] = fact*inp[n];
