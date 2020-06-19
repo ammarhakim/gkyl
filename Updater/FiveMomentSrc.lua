@@ -71,6 +71,8 @@ typedef struct {
 
   GkylMomentSrcDeviceCUBLAS_t *cuda_gkylMomentSrcTimeCenteredInit(
       int numBlocks, int numThreads);
+  void cuda_gkylMomentSrcTimeCenteredDestroy(
+      GkylMomentSrcDeviceCUBLAS_t *context);
   void momentSrcAdvanceOnDevicePreAlloc(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
     double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
@@ -208,6 +210,11 @@ function FiveMomentSrc:initDevice(tbl)
    -- FIXME not initializing cublas_context here because numBlocks is not known
    -- yet; also numThreds could be different from actual values to be used
    self.first = true
+
+   local prox = newproxy(true)
+   getmetatable(prox).__gc = function()
+      ffi.C.cuda_gkylMomentSrcTimeCenteredDestroy(self.cublas_context)
+   end
 end
 
 
