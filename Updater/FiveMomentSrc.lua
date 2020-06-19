@@ -68,11 +68,11 @@ typedef struct {
   } GkylMomentSrcDeviceData_t;
 
 
-  GkylMomentSrcDeviceData_t *cuda_gkylMomentSrcTimeCenteredInit(
+  GkylMomentSrcDeviceData_t *cuda_gkylMomentSrcInit(
       int numBlocks, int numThreads);
-  void cuda_gkylMomentSrcTimeCenteredDestroy(
+  void cuda_gkylMomentSrcDestroy(
       GkylMomentSrcDeviceData_t *context);
-  void momentSrcAdvanceOnDevicePreAlloc(
+  void momentSrcAdvanceOnDevice(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
     double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
     GkylMomentSrcDeviceData_t *context);
@@ -206,7 +206,7 @@ function FiveMomentSrc:initDevice(tbl)
    local numCellsLocal = self._onGrid:localRange():volume()
    local numThreads = math.min(self.numThreads, numCellsLocal)
    local numBlocks  = math.ceil(numCellsLocal/numThreads)
-   self.cublas_context = ffi.C.cuda_gkylMomentSrcTimeCenteredInit(
+   self.device_context = ffi.C.cuda_gkylMomentSrcInit(
       numBlocks, numThreads)
    self.numThreads = numThreads
    self.numBlocks = numBlocks
@@ -215,12 +215,12 @@ function FiveMomentSrc:initDevice(tbl)
    -- callback into proxy.__gc when the proxy becomes free
    -- FIXME Is this the correct way?
    local prox = newproxy(true)
-   self.cublas_freed = false
+   self.deviceContextDestroyed = false
    getmetatable(prox).__gc = function()
-      if self.cublas_freed  then
-        ffi.C.cuda_gkylMomentSrcTimeCenteredDestroy(self.cublas_context)
+      if not self.deviceContextDestroyed  then
+        ffi.C.cuda_gkylMomentSrcDestroy(self.device_context)
      end
-     self.cublas_freed = true
+     self.deviceContextDestroyed = true
    end
    self[prox] = true
 end
@@ -275,9 +275,9 @@ function FiveMomentSrc:_advanceDispatch(tCurr, inFld, outFld, target)
       local numCellsLocal = emFld:localRange():volume()
       assert(numCellsLocal == self.numCellsLocal)
 
-      ffi.C.momentSrcAdvanceOnDevicePreAlloc(
+      ffi.C.momentSrcAdvanceOnDevice(
        self.numBlocks, self.numThreads, self.sd_onDevice, self.fd_onDevice, dt,
-       self.d_fluidFlds, d_emFld, self.cublas_context)
+       self.d_fluidFlds, d_emFld, self.device_context)
 
       return true, GKYL_MAX_DOUBLE
    elseif target=="cpu" then

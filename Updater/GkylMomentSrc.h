@@ -20,11 +20,11 @@ extern "C" {
     cublasHandle_t handle;
   } GkylMomentSrcDeviceData_t;
 
-  GkylMomentSrcDeviceData_t *cuda_gkylMomentSrcTimeCenteredInit(
+  GkylMomentSrcDeviceData_t *cuda_gkylMomentSrcInit(
       int numBlocks, int numThreads);
-  void cuda_gkylMomentSrcTimeCenteredDestroy(
+  void cuda_gkylMomentSrcDestroy(
       GkylMomentSrcDeviceData_t *context);
-  void momentSrcAdvanceOnDevicePreAlloc(
+  void momentSrcAdvanceOnDevice(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
     double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
     GkylMomentSrcDeviceData_t *context);
