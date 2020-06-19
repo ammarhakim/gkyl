@@ -207,9 +207,14 @@ function FiveMomentSrc:initDevice(tbl)
 
    self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
 
-   -- FIXME not initializing cublas_context here because numBlocks is not known
-   -- yet; also numThreds could be different from actual values to be used
-   self.first = true
+   local numCellsLocal = self._onGrid:localRange():volume()
+   local numThreads = math.min(self.numThreads, numCellsLocal)
+   local numBlocks  = math.ceil(numCellsLocal/numThreads)
+   self.cublas_context = ffi.C.cuda_gkylMomentSrcTimeCenteredInit(
+      numBlocks, numThreads)
+   self.numThreads = numThreads
+   self.numBlocks = numBlocks
+   self.numCellsLocal = numCellsLocal
 
    -- callback into proxy.__gc when the proxy becomes free
    -- FIXME Is this the correct way?
@@ -272,20 +277,10 @@ function FiveMomentSrc:_advanceDispatch(tCurr, inFld, outFld, target)
       local d_emFld = emFld._onDevice
 
       local numCellsLocal = emFld:localRange():volume()
-      local numThreads = math.min(self.numThreads, numCellsLocal)
-      local numBlocks  = math.ceil(numCellsLocal/numThreads)
+      assert(numCellsLocal == self.numCellsLocal)
 
-      if self.first then
-         self.cublas_context = ffi.C.cuda_gkylMomentSrcTimeCenteredInit(
-            numBlocks, numThreads)
-         self.first = false
-      end
-
-      -- ffi.C.momentSrcAdvanceOnDevice(
-      --  numBlocks, numThreads, self.sd_onDevice, self.fd_onDevice, dt,
-      --  self.d_fluidFlds, d_emFld)
       ffi.C.momentSrcAdvanceOnDevicePreAlloc(
-       numBlocks, numThreads, self.sd_onDevice, self.fd_onDevice, dt,
+       self.numBlocks, self.numThreads, self.sd_onDevice, self.fd_onDevice, dt,
        self.d_fluidFlds, d_emFld, self.cublas_context)
 
       return true, GKYL_MAX_DOUBLE
