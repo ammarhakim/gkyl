@@ -38,7 +38,8 @@ __global__ void cuda_gkylMomentSrcSetPtrs(
   d_rhs_ptr[linearIdx] = d_rhs + (N)*linearIdx;
 }
 
-void *cuda_gkylMomentSrcTimeCenteredInit(
+
+GkylMomentSrcDeviceCUBLAS_t *cuda_gkylMomentSrcTimeCenteredInit(
     int numBlocks, int numThreads) {
   GkylMomentSrcDeviceCUBLAS_t *context = new GkylMomentSrcDeviceCUBLAS_t[1];
   cublascall(cublasCreate(&(context->handle)));
@@ -55,8 +56,9 @@ void *cuda_gkylMomentSrcTimeCenteredInit(
   cuda_gkylMomentSrcSetPtrs<<<numBlocks, numThreads>>>(
       context->d_lhs, context->d_rhs, context->d_lhs_ptr, context->d_rhs_ptr);
 
-  return (void *)context;
+  return context;
 }
+
 
 void cuda_gkylMomentSrcTimeCenteredDestroy(
     GkylMomentSrcDeviceCUBLAS_t *context) {
@@ -67,6 +69,7 @@ void cuda_gkylMomentSrcTimeCenteredDestroy(
   cudacall(cudaFree(context->d_info));
   cublascall(cublasDestroy(context->handle));
 }
+
 
 // FIXME simplify; separate out pressure part
 __global__ void cuda_gkylMomentSrcUpdateRhovE(
@@ -132,6 +135,7 @@ __global__ void cuda_gkylMomentSrcUpdateRhovE(
   } 
 
 }
+
 
 __global__ void cuda_gkylMomentSrcSetMat(
     MomentSrcData_t *sd, FluidData_t *fd, double dt, GkylCartField_t **fluidFlds,
@@ -207,7 +211,7 @@ __global__ void cuda_gkylMomentSrcSetMat(
 }
 
 
-static void cuda_gkylMomentSrcTimeCenteredV1(
+static void cuda_gkylMomentSrcTimeCenteredPreAlloc(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
     double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
     GkylMomentSrcDeviceCUBLAS_t *context) {
@@ -258,11 +262,10 @@ static void cuda_gkylMomentSrcTimeCenteredV1(
 void momentSrcAdvanceOnDevicePreAlloc(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
     double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
-    void *context)
+    GkylMomentSrcDeviceCUBLAS_t *context)
 {
-  cuda_gkylMomentSrcTimeCenteredV1(
-      numBlocks, numThreads, sd, fd, dt, fluidFlds, emFld,
-      (GkylMomentSrcDeviceCUBLAS_t*)(context));
+  cuda_gkylMomentSrcTimeCenteredPreAlloc(
+      numBlocks, numThreads, sd, fd, dt, fluidFlds, emFld, context);
 }
 
 static cudaError_t cuda_gkylMomentSrcTimeCentered(
@@ -331,6 +334,7 @@ static cudaError_t cuda_gkylMomentSrcTimeCentered(
 
   return cudaSuccess;
 }
+
 
 void momentSrcAdvanceOnDevice(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,

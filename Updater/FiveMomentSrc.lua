@@ -54,10 +54,27 @@ typedef struct {
   void gkylFiveMomentSrcExact(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma, double *auxSrc);
 
   /* CUDA GPU */
-  void *cuda_gkylMomentSrcTimeCenteredInit(int numBlocks, int numThreads);
+  /* Opaque structure holding CUBLAS library context */
+  struct cublasContext;
+  typedef struct cublasContext *cublasHandle_t;
+
+  typedef struct {
+    // TODO domain decomposition info
+    double *d_lhs;
+    double *d_rhs;
+    double **d_lhs_ptr;
+    double **d_rhs_ptr;
+    int *d_info;
+    cublasHandle_t handle;
+  } GkylMomentSrcDeviceCUBLAS_t;
+
+
+  GkylMomentSrcDeviceCUBLAS_t *cuda_gkylMomentSrcTimeCenteredInit(
+      int numBlocks, int numThreads);
   void momentSrcAdvanceOnDevicePreAlloc(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
-    double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld, void*);
+    double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
+    GkylMomentSrcDeviceCUBLAS_t *context);
   void momentSrcAdvanceOnDevice(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
     double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld);

@@ -18,12 +18,12 @@ extern "C" {
     cublasHandle_t handle;
   } GkylMomentSrcDeviceCUBLAS_t;
 
-  // FIXME lua doesn't know cublasHandle_t; otherwise it is nicer to return
-  // GkylMomentSrcDeviceCUBLAS_t *
-  void *cuda_gkylMomentSrcTimeCenteredInit(int numBlocks, int numThreads);
+  GkylMomentSrcDeviceCUBLAS_t *cuda_gkylMomentSrcTimeCenteredInit(
+      int numBlocks, int numThreads);
   void momentSrcAdvanceOnDevicePreAlloc(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
-    double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld, void*);
+    double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
+    GkylMomentSrcDeviceCUBLAS_t *context);
   void momentSrcAdvanceOnDevice(
       int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
       double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld);
