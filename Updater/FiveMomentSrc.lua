@@ -214,10 +214,14 @@ function FiveMomentSrc:initDevice(tbl)
    -- callback into proxy.__gc when the proxy becomes free
    -- FIXME Is this the correct way?
    local prox = newproxy(true)
+   self.cublas_freed = false
    getmetatable(prox).__gc = function()
-      ffi.C.cuda_gkylMomentSrcTimeCenteredDestroy(self.cublas_context)
-      self[prox] = true
+      if self.cublas_freed  then
+        ffi.C.cuda_gkylMomentSrcTimeCenteredDestroy(self.cublas_context)
+     end
+     self.cublas_freed = true
    end
+   self[prox] = true
 end
 
 
