@@ -166,15 +166,10 @@ function FiveMomentSrc:init(tbl)
    else
       assert(false, string.format("scheme %s not supported", scheme))
    end
-
-   if GKYL_HAVE_CUDA then
-      self:initDevice()
-      self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
-   end
 end
 
 
-function FiveMomentSrc:initDevice()
+function FiveMomentSrc:initDevice(tbl)
    local sz_sd = sizeof("MomentSrcData_t")
    self.sd_onDevice, err = cuda.Malloc(sz_sd)
    cuda.Memcpy(self.sd_onDevice, self._sd, sz_sd, cuda.MemcpyHostToDevice)
@@ -186,6 +181,8 @@ function FiveMomentSrc:initDevice()
 
    local sz_fluidFlds = sizeof("GkylCartField_t*") * self._sd.nFluids
    self.d_fluidFlds, err = cuda.Malloc(sz_fluidFlds)
+
+   self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
 end
 
 

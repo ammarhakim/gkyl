@@ -241,15 +241,9 @@ function WavePropagation:init(tbl)
    self._rescaleWave = loadstring( rescaleWaveTempl {MEQN = meqn} )()
    self._secondOrderFlux = loadstring( secondOrderFluxTempl {MEQN = meqn} )()
    self._secondOrderUpdate = loadstring( secondOrderUpdateTempl {MEQN = meqn} )()
-
-   if GKYL_HAVE_CUDA then
-      self:initDevice()
-      self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
-      self._useSharedDevice = xsys.pickBool(tbl.useSharedDevice, false)
-   end
 end
 
-function WavePropagation:initDevice()
+function WavePropagation:initDevice(tbl)
    self.dtByCell = DataStruct.Field {
       onGrid = self._onGrid,
       numComponents = 1,
@@ -268,6 +262,9 @@ function WavePropagation:initDevice()
    local sz = sizeof("GkylWavePropagation_t")
    self._onDevice, err = cuda.Malloc(sz)
    cuda.Memcpy(self._onDevice, hyper, sz, cuda.MemcpyHostToDevice)
+
+   self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
+   self._useSharedDevice = xsys.pickBool(tbl.useSharedDevice, false)
 end
 
 -- Limit waves: this code closely follows the example of CLAWPACK and
