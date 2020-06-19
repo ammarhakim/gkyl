@@ -1,5 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
-local Plasma = require ("App.PlasmaOnCartGrid").VlasovMaxwell
+local Plasma = require ("App.PlasmaOnCartGrid").VlasovMaxwell()
 
 nCells = 4
 

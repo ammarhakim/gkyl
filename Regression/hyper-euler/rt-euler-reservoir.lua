@@ -1,5 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
-local Moments = require("App.PlasmaOnCartGrid").Moments
+local Moments = require("App.PlasmaOnCartGrid").Moments()
 local Euler = require "Eq.Euler"
 
 gasGamma = 3.0 -- gas adiabatic constant

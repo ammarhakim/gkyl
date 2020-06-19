@@ -1,5 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
-local Vlasov = require("App.PlasmaOnCartGrid").VlasovMaxwell
+local Vlasov = require("App.PlasmaOnCartGrid").VlasovMaxwell()
 
 -- Physical parameters
 epsilon0 = 1.0

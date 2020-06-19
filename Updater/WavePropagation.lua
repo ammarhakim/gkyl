@@ -21,6 +21,8 @@ local Time = require "Lib.Time"
 local UpdaterBase = require "Updater.Base"
 local DataStruct = require "DataStruct"
 
+local function printf(...) io.write(string.format(...)) end
+
 -- system libraries
 local ffi = require "ffi"
 local xsys = require "xsys"
@@ -444,12 +446,10 @@ function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)
       outFld[1],
       "WavePropagation.advanceOnDevice: Must specify an output field")
 
+   local numCellsLocal = qOut:localRange():volume()
    local numEdgesLocal = qOut:localEdgeRange():volume()
-   local numThreads = math.min(self.numThreads, numEdgesLocal)
-   local numBlocks  = math.ceil(numEdgesLocal/numThreads)
-
-   -- FIXME correct code and place to do device copy?
-   qOut:deviceCopy(qIn)
+   local numThreads = math.min(self.numThreads, numCellsLocal)
+   local numBlocks  = math.ceil(numCellsLocal/numThreads)
 
    if self._useSharedDevice then
       -- TODO implement
@@ -461,7 +461,7 @@ function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)
          numBlocks, numThreads, self._onDevice, qIn._onDevice, qOut._onDevice)
    end
 
-   self.dtByCell:deviceReduce('min', self.dtPtr)
+   -- self.dtByCell:deviceReduce('min', self.dtPtr)
 end
 
 -- FIXME no cflRate needed here

@@ -1,5 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
-local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell
+local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell()
 
 -- Normalization parameters.
 epsilon0   = 1.0                       -- Permittivity of free space.
