@@ -77,9 +77,6 @@ typedef struct {
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
     double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
     GkylMomentSrcDeviceCUBLAS_t *context);
-  void momentSrcAdvanceOnDevice(
-    int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
-    double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld);
 ]]
 
 -- Explicit, SSP RK3 scheme
