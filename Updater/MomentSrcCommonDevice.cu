@@ -2,31 +2,31 @@
 #include <cstdio>
 
 // Makes indexing cleaner
-#define X (0)
-#define Y (1)
-#define Z (2)
+static const unsigned X = 0;
+static const unsigned Y = 1;
+static const unsigned Z = 2;
 
-#define RHO (0)
-#define MX (1)
-#define MY (2)
-#define MZ (3)
-#define ER (4)
+static const unsigned RHO = 0;
+static const unsigned MX = 1;
+static const unsigned MY = 2;
+static const unsigned MZ = 3;
+static const unsigned ER = 4;
 
-#define EX (0)
-#define EY (1)
-#define EZ (2)
-#define BX (3)
-#define BY (4)
-#define BZ (5)
-#define PHIE (6)
-#define PHIM (7)
+static const unsigned EX = 0;
+static const unsigned EY = 1;
+static const unsigned EZ = 2;
+static const unsigned BX = 3;
+static const unsigned BY = 4;
+static const unsigned BZ = 5;
+static const unsigned PHIE = 6;
+static const unsigned PHIM = 7;
 
 #define fidx(n, c) (3 * (n) + (c))
 #define eidx(c) (3 * nFluids + (c))
 
-#define N (9)
 #define sq(x) ((x) * (x))
 
+#define N (9)
 #define F2(base,i,j) (base)[(j)*N+(i)]
 
 
