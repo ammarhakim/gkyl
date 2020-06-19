@@ -176,7 +176,6 @@ static cudaError_t cuda_gkylMomentSrcTimeCentered(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
     double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld) {
   // FIXME save d_lhs and avoid reallocating?
-  cublasStatus_t status;
   double *d_lhs = 0;
   double *d_rhs = 0;
   double **d_lhs_ptr = 0;
