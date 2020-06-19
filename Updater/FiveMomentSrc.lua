@@ -189,16 +189,18 @@ end
 
 
 function FiveMomentSrc:initDevice(tbl)
+   local nFluids = self._sd.nFluids
+
    local sz_sd = sizeof("MomentSrcData_t")
    self.sd_onDevice, err = cuda.Malloc(sz_sd)
    cuda.Memcpy(self.sd_onDevice, self._sd, sz_sd, cuda.MemcpyHostToDevice)
 
-   local sz_fd = sizeof("FluidData_t") * self._sd.nFluids
+   local sz_fd = sizeof("FluidData_t") * nFluids
    self.fd_onDevice, err = cuda.Malloc(sz_fd)
    cuda.Memcpy(
       self.fd_onDevice, self._fd, sz_fd , cuda.MemcpyHostToDevice)
 
-   local sz_fluidFlds = sizeof("GkylCartField_t*") * self._sd.nFluids
+   local sz_fluidFlds = sizeof("GkylCartField_t*") * nFluids
    self.d_fluidFlds, err = cuda.Malloc(sz_fluidFlds)
 
    self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
@@ -207,7 +209,7 @@ function FiveMomentSrc:initDevice(tbl)
    local numThreads = math.min(self.numThreads, numCellsLocal)
    local numBlocks  = math.ceil(numCellsLocal/numThreads)
    self.device_context = ffi.C.cuda_gkylMomentSrcInit(
-      numBlocks, numThreads)
+      nFluids, numBlocks, numThreads)
    self.numThreads = numThreads
    self.numBlocks = numBlocks
    self.numCellsLocal = numCellsLocal
