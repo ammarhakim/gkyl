@@ -261,6 +261,170 @@ static void cuda_gkylMomentSrcTimeCenteredCublas(
 }
 
 
+__global__ static void cuda_gkylMomentSrcTimeCenteredDirect(
+    int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
+    double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
+    GkylMomentSrcDeviceData_t *context) {
+  GkylRange_t *localRange = emFld->localRange;
+  Gkyl::GenIndexer localIdxr(localRange);
+  Gkyl::GenIndexer fIdxr = emFld->genIndexer();
+
+  // numThreads*numBlocks == numRealCells
+  const int linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
+  int idxC[3];
+  localIdxr.invIndex(linearIdx, idxC);
+  const int linearIdxC = fIdxr.index(idxC);
+  double *em = emFld->getDataPtrAt(linearIdxC);
+
+  const int nFluids = sd->nFluids;
+  const double epsilon0 = sd->epsilon0;
+
+  const double Bx = (em[BX]);
+  const double By = (em[BY]);
+  const double Bz = (em[BZ]);
+  const double Bmag = std::sqrt(Bx*Bx + By*By + Bz*Bz);
+  double b[] = {0, 0, 0};
+  if (Bmag > 0)
+  {
+    b[0] = Bx / Bmag;
+    b[1] = By / Bmag;
+    b[2] = Bz / Bmag;
+  }
+
+  extern __shared__ double dummy[];
+  int base = 0;
+
+  base += nFluids*blockDim.x;
+  double *qbym = dummy + base + threadIdx.x;
+
+  base += nFluids*3*blockDim.x;
+  double *JJ = dummy + base + threadIdx.x;
+
+  base += nFluids*blockDim.x;
+  double *Wc_dt = dummy + base + threadIdx.x;
+
+  base += nFluids*blockDim.x;
+  double *wp_dt2 = dummy + base + threadIdx.x;
+
+  double K[] = {0, 0, 0};
+  double w02 = 0.;
+  double gam2 = 0.;
+  double delta = 0.;
+
+  for (int n=0; n < nFluids; ++n)
+  {
+    qbym[n] = fd[n].charge / fd[n].mass;
+    const double *f = fluidFlds[n]->getDataPtrAt(linearIdxC);
+    double *J = JJ+n*3;
+    J[0] = f[MX] * qbym[n];
+    J[1] = f[MY] * qbym[n];
+    J[2] = f[MZ] * qbym[n];
+    if (!fd[n].evolve)
+      continue;
+    Wc_dt[n] = qbym[n] * Bmag * dt;
+    wp_dt2[n] = f[RHO] * sq(qbym[n]) / epsilon0 * sq(dt);
+    double tmp = 1. + sq(Wc_dt[n]) / 4.;
+    w02 += wp_dt2[n] / tmp;
+    gam2 += wp_dt2[n] * sq(Wc_dt[n]) / tmp;
+    delta += wp_dt2[n] * Wc_dt[n] / tmp;
+
+    double bDotJ = b[0]*J[0] + b[1]*J[1] + b[2]*J[2];
+    double bCrossJ[] = {
+      b[1]*J[2]-b[2]*J[1], // by*Jz-bz*Jy
+      b[2]*J[0]-b[0]*J[2], // bz*Jx-bx*Jz
+      b[0]*J[1]-b[1]*J[0], // bx*Jy-by*Jx
+    };
+
+#pragma unroll
+    for(int c=0; c<3; c++) {
+      K[c] -= dt / tmp * (J[c] + sq(Wc_dt[c] / 2.) * b[c] * bDotJ
+              - (Wc_dt[n] / 2.) * bCrossJ[c]);
+    }
+  }
+  double Delta2 = sq(delta) / (1. + w02 / 4.);
+
+  const double F[] = {em[EX] * epsilon0, em[EY] * epsilon0, em[EZ] * epsilon0};
+  double F_halfK[3];
+#pragma unroll
+  for (int c=0; c<3; c++) {
+    F_halfK[c] = F[c] + 0.5 * K[c];
+    for (int n=0; n < nFluids; ++n)
+    {
+      if (fd[n].evolve)
+        continue;
+      F_halfK[c] -= (0.5 * dt) * JJ[n*3+c];
+    }
+  }
+
+  const double tmp = 1. / (1. + w02 / 4. + Delta2 / 64.);
+  double bDotF_halfK = b[0]*F_halfK[0] + b[1]*F_halfK[1] + b[2]*F_halfK[2];
+  double bCrossF_halfK[] = {
+    b[1]*F_halfK[2]-b[2]*F_halfK[1], // by*Fz-bz*Fy
+    b[2]*F_halfK[0]-b[0]*F_halfK[2], // bz*Fx-bx*Fz
+    b[0]*F_halfK[1]-b[1]*F_halfK[0], // bx*Fy-by*Fx
+  };
+
+  double Fbar[3];
+#pragma unroll
+  for (int c=0; c<3; c++) {
+    Fbar[c] = tmp * (
+      F_halfK[c]
+      + ((Delta2 / 64. - gam2 / 16.) / (1. + w02 / 4. + gam2 / 16.))
+         * b[c] * bDotF_halfK
+      + (delta / 8. / (1. + w02 / 4.)) * bCrossF_halfK[c]
+      );
+  } 
+
+  double F_new[3];
+#pragma unroll
+  for (int c=0; c<3; c++) {
+    F_new[c] = 2. * Fbar[c] - F[c];
+  }
+  em[EX] = F_new[0] / epsilon0;
+  em[EY] = F_new[1] / epsilon0;
+  em[EZ] = F_new[2] / epsilon0;
+
+  double chargeDens = 0.0;
+  for (int n = 0; n < nFluids; ++n)
+  {
+    double *f = fluidFlds[n]->getDataPtrAt(linearIdxC);
+    chargeDens += qbym[n] * f[RHO];
+    if (!fd[n].evolve)
+      continue;
+
+    double *J = JJ+n*3;
+    double Jstar[3];
+    double J_new[3];
+
+#pragma unroll
+    for (int c=0; c<3; c++) {
+      Jstar[c] = J[c] + Fbar[c] * (wp_dt2[n] / dt / 2.);
+    }
+    double bDotJstar = b[0]*Jstar[0] + b[1]*Jstar[1] + b[2]*Jstar[2];
+    double bCrossJstar[] = {
+      b[1]*Jstar[2]-b[2]*Jstar[1], // by*Jz-bz*Jy
+      b[2]*Jstar[0]-b[0]*Jstar[2], // bz*Jx-bx*Jz
+      b[0]*Jstar[1]-b[1]*Jstar[0], // bx*Jy-by*Jx
+    };
+
+#pragma unroll
+    for (int c=0; c<3; c++) {
+      J_new[c] = 2. * (Jstar[c] + sq(Wc_dt[n] / 2.) * b[c] * bDotJstar
+                 - (Wc_dt[n] / 2.) * bCrossJstar[c]) / (1. + sq(Wc_dt[n] / 2.))
+                 - J[c];
+    }
+
+    f[MX] = J_new[0] / qbym[n];
+    f[MY] = J_new[1] / qbym[n];
+    f[MZ] = J_new[2] / qbym[n];
+  } 
+
+  //------------> update correction potential
+  double crhoc = sd->chi_e * chargeDens/sd->epsilon0;
+  em[PHIE] += dt * crhoc;
+}
+
+
 void momentSrcAdvanceOnDevice(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
     double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
