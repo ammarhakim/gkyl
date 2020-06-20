@@ -214,6 +214,8 @@ function FiveMomentSrc:initDevice(tbl)
    self.numBlocks = numBlocks
    self.numCellsLocal = numCellsLocal
 
+   self.first = true
+
    -- callback into proxy.__gc when the proxy becomes free
    -- FIXME Is this the correct way?
    local prox = newproxy(true)
@@ -263,23 +265,24 @@ function FiveMomentSrc:_advanceDispatch(tCurr, inFld, outFld, target)
    end
 
    if target=="gpu" then
-      local fluidFlds = ffi.new("GkylCartField_t*[?]", nFluids)
-      for n = 1, nFluids do
-         fluidFlds[n-1] = outFld[n]._onDevice
+      if self.first then
+         local fluidFlds = ffi.new("GkylCartField_t*[?]", nFluids)
+         for n = 1, nFluids do
+            fluidFlds[n-1] = outFld[n]._onDevice
+         end
+         local sz_fluidFlds = sizeof("GkylCartField_t*") * self._sd.nFluids
+         cuda.Memcpy(
+            self.d_fluidFlds, fluidFlds, sz_fluidFlds, cuda.MemcpyHostToDevice)
+         self.d_emFld = emFld._onDevice
+         self.first = false
       end
-
-      -- pre-compute d_fluidFlds
-      local sz_fluidFlds = sizeof("GkylCartField_t*") * self._sd.nFluids
-      cuda.Memcpy(
-         self.d_fluidFlds, fluidFlds, sz_fluidFlds, cuda.MemcpyHostToDevice)
-      local d_emFld = emFld._onDevice
 
       local numCellsLocal = emFld:localRange():volume()
       assert(numCellsLocal == self.numCellsLocal)
 
       ffi.C.momentSrcAdvanceOnDevice(
-       self.numBlocks, self.numThreads, self.sd_onDevice, self.fd_onDevice, dt,
-       self.d_fluidFlds, d_emFld, self.device_context)
+         self.numBlocks, self.numThreads, self.sd_onDevice, self.fd_onDevice,
+         dt, self.d_fluidFlds, self.d_emFld, self.device_context)
 
       return true, GKYL_MAX_DOUBLE
    elseif target=="cpu" then
