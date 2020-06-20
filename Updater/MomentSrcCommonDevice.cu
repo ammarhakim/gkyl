@@ -487,16 +487,19 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredDirect(
 
 
 void momentSrcAdvanceOnDevice(
-    const int nFluids, const int numBlocks, const int numThreads,
     const MomentSrcData_t *sd, const FluidData_t *fd, const double dt,
-    GkylCartField_t **fluidFlds, GkylCartField_t *emFld, const char *scheme,
+    GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
     const GkylMomentSrcDeviceData_t *context)
 {
-  if (strcmp(scheme, "time-centered")==0) {
+  const int nFluids = context->nFluids;
+  const int numThreads = context->numThreads;
+  const int numBlocks = context->numBlocks;
+
+  if (strcmp(context->scheme, "time-centered")==0) {
     cuda_gkylMomentSrcTimeCenteredCublas(
         nFluids, numBlocks, numThreads, sd, fd, dt, fluidFlds, emFld, context);
-  } else if (strcmp(scheme, "time-centered-direct")==0
-             || strcmp(scheme, "direct")==0) {
+  } else if (strcmp(context->scheme, "time-centered-direct")==0
+             || strcmp(context->scheme, "direct")==0) {
     int sharedMemSize = 0;
     // qbym, J, Wc_dt, wp_dt2
     sharedMemSize += numThreads * nFluids * (1 + 3 + 1 + 1);
