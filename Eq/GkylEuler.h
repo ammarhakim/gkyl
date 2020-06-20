@@ -36,7 +36,7 @@ namespace Gkyl {
 
   class Euler {
     public:
-      __host__ __device__ Euler(const double gasGamma) :  _gasGamma(gasGamma) {}
+      __host__ __device__ Euler(const double gasGamma);
       ~Euler() = default;
 
       __host__ __device__ int numWaves();
@@ -60,13 +60,9 @@ namespace Gkyl {
           const int dir, const double *qIn, double *fOut);
 
     private:
-      /* dimension and basis parameters */
-      const double _gasGamma = 5./3.;
       int _numWaves = 1;
       const int _numEquations = 5;
-
-
-      double _fl[5], _fr[5]; /* Storage for left/right fluxes */
+      const double _gasGamma = 5./3.;
 
       __host__ __device__ void rpLax(
           const int dir, const double *delta, const double *ql,

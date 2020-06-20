@@ -1,7 +1,6 @@
 #include <GkylEuler.h>
 
 namespace Gkyl {
-  // C wrappers to member functions
   void* new_Euler(const double gasGamma) {
     Euler *euler = new Euler(gasGamma);
     return reinterpret_cast<void*>(euler);
@@ -33,7 +32,10 @@ namespace Gkyl {
   void flux_Euler(Euler *eq, const int dir, const double *qIn, double *fOut) {
     eq->flux(dir, qIn, fOut);
   }
-  
+
+  __host__ __device__ Euler::Euler(const double gasGamma) :
+    _gasGamma(gasGamma) {}
+
   __host__ __device__ int Euler::numWaves() { return _numWaves; }
 
   __host__ __device__ int Euler::numEquations() { return _numEquations; }
