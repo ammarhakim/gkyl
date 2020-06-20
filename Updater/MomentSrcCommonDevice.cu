@@ -44,7 +44,7 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredCublasSetPtrs(
 GkylMomentSrcDeviceData_t *cuda_gkylMomentSrcInit(
     const char *scheme, const int nFluids, const int numBlocks,
     const int numThreads) {
-  GkylMomentSrcDeviceData_t *context = new GkylMomentSrcDeviceData_t[1];
+  GkylMomentSrcDeviceData_t *context = new GkylMomentSrcDeviceData_t;
   context->scheme = scheme;
   context->nFluids = nFluids;
   context->numThreads = numThreads;
