@@ -67,15 +67,14 @@ typedef struct {
     cublasHandle_t handle;
   } GkylMomentSrcDeviceData_t;
 
-
   GkylMomentSrcDeviceData_t *cuda_gkylMomentSrcInit(
-      int numBlocks, int numThreads);
-  void cuda_gkylMomentSrcDestroy(
-      GkylMomentSrcDeviceData_t *context);
+    const int nFluids, const int numBlocks, const int numThreads);
+  void cuda_gkylMomentSrcDestroy(const GkylMomentSrcDeviceData_t *context);
   void momentSrcAdvanceOnDevice(
-    int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
-    double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
-    GkylMomentSrcDeviceData_t *context);
+      const int nFluids, const int numBlocks, const int numThreads,
+      const MomentSrcData_t *sd, const FluidData_t *fd, const double dt,
+      GkylCartField_t **fluidFlds, GkylCartField_t *emFld, const char *scheme,
+      const GkylMomentSrcDeviceData_t *context);
 ]]
 
 -- Explicit, SSP RK3 scheme
@@ -185,6 +184,7 @@ function FiveMomentSrc:init(tbl)
    else
       assert(false, string.format("scheme %s not supported", scheme))
    end
+   self.scheme = scheme
 end
 
 
@@ -213,6 +213,18 @@ function FiveMomentSrc:initDevice(tbl)
    self.numThreads = numThreads
    self.numBlocks = numBlocks
    self.numCellsLocal = numCellsLocal
+
+   self.first = true
+
+   local scheme = self.scheme
+   self.gpu_scheme = "time-centered"
+   if (scheme=="time-centered" or scheme=="time-centered-direct" or
+      scheme=="direct") then
+      self.gpu_scheme = scheme
+   else
+      print(string.format("scheme %s is not supported on gpu", scheme))
+      print(string.format("falling back to %s", self.gpu_scheme))
+   end
 
    -- callback into proxy.__gc when the proxy becomes free
    -- FIXME Is this the correct way?
@@ -263,23 +275,25 @@ function FiveMomentSrc:_advanceDispatch(tCurr, inFld, outFld, target)
    end
 
    if target=="gpu" then
-      local fluidFlds = ffi.new("GkylCartField_t*[?]", nFluids)
-      for n = 1, nFluids do
-         fluidFlds[n-1] = outFld[n]._onDevice
+      if self.first then
+         local fluidFlds = ffi.new("GkylCartField_t*[?]", nFluids)
+         for n = 1, nFluids do
+            fluidFlds[n-1] = outFld[n]._onDevice
+         end
+         local sz_fluidFlds = sizeof("GkylCartField_t*") * self._sd.nFluids
+         cuda.Memcpy(
+            self.d_fluidFlds, fluidFlds, sz_fluidFlds, cuda.MemcpyHostToDevice)
+         self.d_emFld = emFld._onDevice
+         self.first = false
       end
-
-      -- pre-compute d_fluidFlds
-      local sz_fluidFlds = sizeof("GkylCartField_t*") * self._sd.nFluids
-      cuda.Memcpy(
-         self.d_fluidFlds, fluidFlds, sz_fluidFlds, cuda.MemcpyHostToDevice)
-      local d_emFld = emFld._onDevice
 
       local numCellsLocal = emFld:localRange():volume()
       assert(numCellsLocal == self.numCellsLocal)
 
       ffi.C.momentSrcAdvanceOnDevice(
-       self.numBlocks, self.numThreads, self.sd_onDevice, self.fd_onDevice, dt,
-       self.d_fluidFlds, d_emFld, self.device_context)
+         nFluids, self.numBlocks, self.numThreads, self.sd_onDevice,
+         self.fd_onDevice, dt, self.d_fluidFlds, self.d_emFld, self.gpu_scheme,
+         self.device_context)
 
       return true, GKYL_MAX_DOUBLE
    elseif target=="cpu" then

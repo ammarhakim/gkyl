@@ -22,11 +22,12 @@ extern "C" {
 
   GkylMomentSrcDeviceData_t *cuda_gkylMomentSrcInit(
     const int nFluids, const int numBlocks, const int numThreads);
-  void cuda_gkylMomentSrcDestroy(GkylMomentSrcDeviceData_t *context);
+  void cuda_gkylMomentSrcDestroy(const GkylMomentSrcDeviceData_t *context);
   void momentSrcAdvanceOnDevice(
-    int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
-    double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
-    GkylMomentSrcDeviceData_t *context);
+      const int nFluids, const int numBlocks, const int numThreads,
+      const MomentSrcData_t *sd, const FluidData_t *fd, const double dt,
+      GkylCartField_t **fluidFlds, GkylCartField_t *emFld, const char *scheme,
+      const GkylMomentSrcDeviceData_t *context);
   
 }
 
