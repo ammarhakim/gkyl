@@ -27,7 +27,7 @@ local stats = Unit.stats
 local nx = 128*64 -- number of configuration space dimensions in x
 local nloop = NLOOP or 3 -- number of WavePropagation calls to loop over
 local numThreads = NTHREADS or 128 -- number of threads to use in WavePropagation kernel configuration
-local checkResult = xsys.pickBool(CHECK, true) and false
+local checkResult = xsys.pickBool(CHECK, true)
 
 local grid = Grid.RectCart {
    lower = {0.0},
