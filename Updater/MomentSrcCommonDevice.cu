@@ -72,32 +72,12 @@ void cuda_gkylMomentSrcDestroy(GkylMomentSrcDeviceData_t *context) {
 }
 
 
-// FIXME simplify; separate out pressure part
-__global__ static void cuda_gkylMomentSrcTimeCenteredUpdateRhovE(
-    MomentSrcData_t *sd, FluidData_t *fd, double dt,
-    GkylCartField_t **fluidFlds, GkylCartField_t *emFld, double **d_rhs_ptr) {
-  GkylRange_t *localRange = emFld->localRange;
-  Gkyl::GenIndexer localIdxr(localRange);
-  Gkyl::GenIndexer fIdxr = emFld->genIndexer();
-
-  // numThreads*numBlocks == numRealCells
-  const int linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
-  int idxC[3];
-  localIdxr.invIndex(linearIdx, idxC);
-  const int linearIdxC = fIdxr.index(idxC);
-  double *em = emFld->getDataPtrAt(linearIdxC);
-
-  double *sol = d_rhs_ptr[linearIdx];
+__device__ static void cuda_gkylMomentSrcTimeCenteredUpdateRhovE(
+    const int linearIdx, const int linearIdxC, MomentSrcData_t *sd,
+    FluidData_t *fd, double dt, GkylCartField_t **fluidFlds,
+    GkylCartField_t *emFld, double **d_rhs_ptr) {
+  const double *sol = d_rhs_ptr[linearIdx];
   const int nFluids = sd->nFluids;
-
-  double keOld[2]; // XXX
-  for (int n = 0; n < nFluids; ++n)
-  {
-    double *f = fluidFlds[n]->getDataPtrAt(linearIdxC);
-    if (!fd[n].evolve)
-      continue;
-    keOld[n] = 0.5 * (sq(f[MX]) + sq(f[MY]) + sq(f[MZ])) / f[RHO];
-  }
 
   //------------> update solution for fluids
   double chargeDens = 0.0;
@@ -114,6 +94,7 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredUpdateRhovE(
   }
 
   //------------> update electric field
+  double *em = emFld->getDataPtrAt(linearIdxC);
   em[EX] = 2*sol[eidx(X)] - em[EX];
   em[EY] = 2*sol[eidx(Y)] - em[EY];
   em[EZ] = 2*sol[eidx(Z)] - em[EZ];
@@ -121,6 +102,35 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredUpdateRhovE(
   //------------> update correction potential
   const double crhoc = sd->chi_e*chargeDens/sd->epsilon0;
   em[PHIE] += dt*crhoc;
+}
+
+
+__global__ static void cuda_gkylMomentSrcTimeCenteredUpdate(
+    MomentSrcData_t *sd, FluidData_t *fd, double dt,
+    GkylCartField_t **fluidFlds, GkylCartField_t *emFld, double **d_rhs_ptr) {
+  GkylRange_t *localRange = emFld->localRange;
+  Gkyl::GenIndexer localIdxr(localRange);
+  Gkyl::GenIndexer fIdxr = emFld->genIndexer();
+
+  // numThreads*numBlocks == numRealCells
+  const int linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
+  int idxC[3];
+  localIdxr.invIndex(linearIdx, idxC);
+  const int linearIdxC = fIdxr.index(idxC);
+  
+  const int nFluids = sd->nFluids;
+
+  double keOld[2]; // XXX
+  for (int n = 0; n < nFluids; ++n)
+  {
+    double *f = fluidFlds[n]->getDataPtrAt(linearIdxC);
+    if (!fd[n].evolve)
+      continue;
+    keOld[n] = 0.5 * (sq(f[MX]) + sq(f[MY]) + sq(f[MZ])) / f[RHO];
+  }
+
+  cuda_gkylMomentSrcTimeCenteredUpdateRhovE(
+      linearIdx, linearIdxC, sd, fd, dt, fluidFlds, emFld, d_rhs_ptr);
 
   if (sd->hasPressure)
   {
@@ -256,7 +266,7 @@ static void cuda_gkylMomentSrcTimeCenteredCublas(
       ));
 
   // update solution
-  cuda_gkylMomentSrcTimeCenteredUpdateRhovE<<<numBlocks, numThreads>>>(
+  cuda_gkylMomentSrcTimeCenteredUpdate<<<numBlocks, numThreads>>>(
       sd, fd, dt, fluidFlds, emFld, d_rhs_ptr);
 }
 
