@@ -33,7 +33,7 @@ end
 
 -- C interfaces
 ffi.cdef [[
-    // s: start index. nv: number of values
+    // s: start index. nv: number of values.
     void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out);
@@ -42,6 +42,10 @@ ffi.cdef [[
     void gkylCopyFromField(double *data, double *f, unsigned numComponents, unsigned c);
     void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned c);
     void gkylCartFieldAssignAll(unsigned s, unsigned nv, double val, double *out);
+
+    // sInp/sOut: start index for input/output fields. nCells: number of cells being looped over. 
+    // compStart: starting component for offset. nCompInp/nCompOut: input/output field's number of components.
+    void gkylCartFieldAccumulateOffset(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out);
 
     void gkylCartFieldDeviceAccumulate(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldDeviceAssign(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, const double *inp, double *out);
@@ -98,9 +102,14 @@ local genIndexerMakerFuncs = {} -- list of functions that make generic indexers
 genIndexerMakerFuncs[rowMajLayout] = Range.makeRowMajorGenIndexer
 genIndexerMakerFuncs[colMajLayout] = Range.makeColMajorGenIndexer
 
--- helper to check if two field are compatible
+-- Helper function to check if two fields are compatible.
 local function field_compatible(y, x)
    return y:localRange() == x:localRange() and y:numComponents() == x:numComponents()
+end
+-- Helper function to check if two fields have the same range.
+-- Useful when manipulating two fields with different number of components, but same range.
+local function field_check_range(y, x)
+   return y:localRange() == x:localRange()
 end
 
 -- return local start and num times to bump
@@ -526,6 +535,24 @@ local function Field_meta_ctor(elct)
 
 	 ffiC.gkylCartFieldAccumulate(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
       end,
+      -- This accumulate method assumes the one side of the accumulation has a fewer number of components than the other side.
+      -- It presumes that the user wants to accumulate all of one side with part of the other side.
+      -- In other words, the field with fewer components will be completely accumulated onto the field with more components.
+      -- The user can specify an offset for where to start the accumulation component-wise onto the field with more components,
+      -- and then that the components being summed are continuous.
+      _accumulateOffsetOneFld = function(self, fact, fld, compStart)
+	 assert(field_check_range(self, fld),
+		"CartField:accumulateOffset: Can only accumulate fields with the same range")
+	 assert(type(fact) == "number",
+		"CartField:accumulateOffset: Factor not a number")
+         assert(self:layout() == fld:layout(),
+		"CartField:accumulateOffset: Fields should have same layout for sums to make sense")
+
+         -- Get number of cells for outer loop.
+         -- We do not need to use an indexer since we are simply accumulating cell-wise a subset of the components.
+         local numCells = self:_localShape()/self:numComponents()
+	 ffiC.gkylCartFieldAccumulateOffset(fld:_localLower(), self:_localLower(), numCells, compStart, fld:numComponents(), self:numComponents(), fact, fld._data, self._data)
+      end,
       _deviceAccumulateOneFld = function(self, fact, fld)
 	 assert(field_compatible(self, fld),
 		"CartField:deviceAccumulateOneFld: Can only accumulate compatible fields")
@@ -550,6 +577,18 @@ local function Field_meta_ctor(elct)
 	 end or
 	 function (self, c1, fld1, ...)
 	    assert(false, "CartField:accumulate: Accumulate only works on numeric fields")
+	 end,
+      accumulateOffset = isNumberType and
+	 function (self, c1, fld1, compStart1, ...)
+	    local args = {...} -- package up rest of args as table
+	    local nFlds = #args/3
+	    self:_accumulateOffsetOneFld(c1, fld1, compStart1) -- accumulate first field
+	    for i = 1, nFlds do -- accumulate rest of the fields
+	       self:_accumulateOffsetOneFld(args[3*i-2], args[3*i-1], args[3*i])
+	    end
+	 end or
+	 function (self, c1, fld1, compStart1, ...)
+	    assert(false, "CartField:accumulateOffset: Accumulate only works on numeric fields")
 	 end,
       deviceAccumulate = isNumberType and
 	 function (self, c1, fld1, ...)
@@ -746,6 +785,9 @@ local function Field_meta_ctor(elct)
       end,
       compatible = function(self, fld)
          return field_compatible(self, fld)
+      end,
+      checkRange = function(self, fld)
+         return field_check_range(self, fld)
       end,
       reduce = isNumberType and
 	 function(self, opIn)
