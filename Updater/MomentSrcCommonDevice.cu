@@ -228,10 +228,9 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredCublasSetMat(
 
 
 static void cuda_gkylMomentSrcTimeCenteredCublas(
-    int numBlocks, int numThreads, const MomentSrcData_t *sd, const FluidData_t *fd,
+    const int nFluids, int numBlocks, int numThreads, const MomentSrcData_t *sd, const FluidData_t *fd,
     const double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
     const GkylMomentSrcDeviceData_t *context) {
-  const int nFluids = sd->nFluids;
   const int matSize = 3 * nFluids + 3;
 
   double **d_lhs_ptr = context->d_lhs_ptr;
@@ -300,17 +299,17 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
   extern __shared__ double dummy[];
   int base = 0;
 
-  base += nFluids*blockDim.x;
   double *qbym = dummy + base + threadIdx.x;
+  base += nFluids*blockDim.x;
 
-  base += nFluids*3*blockDim.x;
   double *JJ = dummy + base + threadIdx.x;
+  base += nFluids*3*blockDim.x;
 
-  base += nFluids*blockDim.x;
   double *Wc_dt = dummy + base + threadIdx.x;
-
   base += nFluids*blockDim.x;
+
   double *wp_dt2 = dummy + base + threadIdx.x;
+  base += nFluids*blockDim.x;
 
   double K[] = {0, 0, 0};
   double w02 = 0.;
@@ -485,7 +484,7 @@ void momentSrcAdvanceOnDevice(
 {
   if (strcmp(scheme, "time-centered")==0) {
     cuda_gkylMomentSrcTimeCenteredCublas(
-        numBlocks, numThreads, sd, fd, dt, fluidFlds, emFld, context);
+        nFluids, numBlocks, numThreads, sd, fd, dt, fluidFlds, emFld, context);
   } else if (strcmp(scheme, "time-centered-direct")==0
              || strcmp(scheme, "direct")==0) {
     int sharedMemSize = 0;
