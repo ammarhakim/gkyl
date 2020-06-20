@@ -9,12 +9,16 @@
 #define GK_CART_FIELD_H
 
 extern "C" {
-    // s: start index. sv: number of values to copy
+    // s: start index. nv: number of values to copy
     void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out);
     void gkylCartFieldScaleByCell(unsigned s, unsigned nv, unsigned ncomp, double *fact, double *out);
     void gkylCartFieldAbs(unsigned s, unsigned nv, double *out);
+
+    // sInp/sOut: start index for input/output fields. nCells: number of cells being looped over. 
+    // compStart: starting component for offset. nCompInp/nCompOut: input/output field's number of components.
+    void gkylCartFieldAccumulateOffset(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out);
 
     // ncopy: number of components to copy (size of cInp and cOut arrays)
     // ncInp: number of components in input field. cInp: list of components to copy from
