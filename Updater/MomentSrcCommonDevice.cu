@@ -432,5 +432,17 @@ void momentSrcAdvanceOnDevice(
 {
   cuda_gkylMomentSrcTimeCenteredCublas(
       numBlocks, numThreads, sd, fd, dt, fluidFlds, emFld, context);
+
+  if (false) {  // XXX
+    const int nFluids = 2;
+    int sharedMemSize = 0;
+    // qbym, J, Wc_dt, wp_dt2
+    sharedMemSize += numThreads * nFluids * (1 + 3 + 1 + 1);
+    sharedMemSize *= sizeof(double);
+
+    cuda_gkylMomentSrcTimeCenteredDirect
+      <<<numBlocks, numThreads, sharedMemSize>>>(
+      numBlocks, numThreads, sd, fd, dt, fluidFlds, emFld, context);
+  }
 }
 
