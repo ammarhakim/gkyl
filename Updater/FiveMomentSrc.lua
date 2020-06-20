@@ -73,9 +73,10 @@ typedef struct {
   void cuda_gkylMomentSrcDestroy(
       GkylMomentSrcDeviceData_t *context);
   void momentSrcAdvanceOnDevice(
-    int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
-    double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
-    const char *scheme, GkylMomentSrcDeviceData_t *context);
+      const int nFluids, const int numBlocks, const int numThreads,
+      MomentSrcData_t *sd, FluidData_t *fd, double dt,
+      GkylCartField_t **fluidFlds, GkylCartField_t *emFld, const char *scheme,
+      GkylMomentSrcDeviceData_t *context);
 ]]
 
 -- Explicit, SSP RK3 scheme
@@ -292,8 +293,8 @@ function FiveMomentSrc:_advanceDispatch(tCurr, inFld, outFld, target)
       assert(numCellsLocal == self.numCellsLocal)
 
       ffi.C.momentSrcAdvanceOnDevice(
-         self.numBlocks, self.numThreads, self.sd_onDevice, self.fd_onDevice,
-         dt, self.d_fluidFlds, self.d_emFld, self.gpu_scheme,
+         nFluids, self.numBlocks, self.numThreads, self.sd_onDevice,
+         self.fd_onDevice, dt, self.d_fluidFlds, self.d_emFld, self.gpu_scheme,
          self.device_context)
 
       return true, GKYL_MAX_DOUBLE

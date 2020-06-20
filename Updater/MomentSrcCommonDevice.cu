@@ -420,23 +420,22 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredDirect(
     f[MZ] = J_new[2] / qbym[n];
   } 
 
-  //------------> update correction potential
   double crhoc = sd->chi_e * chargeDens/sd->epsilon0;
   em[PHIE] += dt * crhoc;
 }
 
 
 void momentSrcAdvanceOnDevice(
-    int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
-    double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
-    const char *scheme, GkylMomentSrcDeviceData_t *context)
+    const int nFluids, const int numBlocks, const int numThreads,
+    MomentSrcData_t *sd, FluidData_t *fd, double dt,
+    GkylCartField_t **fluidFlds, GkylCartField_t *emFld, const char *scheme,
+    GkylMomentSrcDeviceData_t *context)
 {
   if (strcmp(scheme, "time-centered")==0) {
     cuda_gkylMomentSrcTimeCenteredCublas(
         numBlocks, numThreads, sd, fd, dt, fluidFlds, emFld, context);
   } else if (strcmp(scheme, "time-centered-direct")==0
              || strcmp(scheme, "direct")==0) {
-    const int nFluids = 2;
     int sharedMemSize = 0;
     // qbym, J, Wc_dt, wp_dt2
     sharedMemSize += numThreads * nFluids * (1 + 3 + 1 + 1);
