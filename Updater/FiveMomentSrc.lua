@@ -75,7 +75,7 @@ typedef struct {
   void momentSrcAdvanceOnDevice(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
     double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
-    GkylMomentSrcDeviceData_t *context);
+    const char *scheme, GkylMomentSrcDeviceData_t *context);
 ]]
 
 -- Explicit, SSP RK3 scheme
@@ -185,6 +185,7 @@ function FiveMomentSrc:init(tbl)
    else
       assert(false, string.format("scheme %s not supported", scheme))
    end
+   self.scheme = scheme
 end
 
 
@@ -215,6 +216,16 @@ function FiveMomentSrc:initDevice(tbl)
    self.numCellsLocal = numCellsLocal
 
    self.first = true
+
+   local scheme = self.scheme
+   self.gpu_scheme = "time-centered"
+   if (scheme=="time-centered" or scheme=="time-centered-direct" or
+      scheme=="direct") then
+      self.gpu_scheme = scheme
+   else
+      print(string.format("scheme %s is not supported on gpu", scheme))
+      print(string.format("falling back to %s", self.gpu_scheme))
+   end
 
    -- callback into proxy.__gc when the proxy becomes free
    -- FIXME Is this the correct way?
@@ -282,7 +293,8 @@ function FiveMomentSrc:_advanceDispatch(tCurr, inFld, outFld, target)
 
       ffi.C.momentSrcAdvanceOnDevice(
          self.numBlocks, self.numThreads, self.sd_onDevice, self.fd_onDevice,
-         dt, self.d_fluidFlds, self.d_emFld, self.device_context)
+         dt, self.d_fluidFlds, self.d_emFld, self.gpu_scheme,
+         self.device_context)
 
       return true, GKYL_MAX_DOUBLE
    elseif target=="cpu" then

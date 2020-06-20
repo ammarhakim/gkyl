@@ -26,7 +26,7 @@ extern "C" {
   void momentSrcAdvanceOnDevice(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
     double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
-    GkylMomentSrcDeviceData_t *context);
+    const char *scheme, GkylMomentSrcDeviceData_t *context);
   
 }
 

@@ -1,4 +1,5 @@
 #include <GkylMomentSrc.h>
+#include <string.h>
 #include <cstdio>
 
 // Makes indexing cleaner
@@ -428,12 +429,13 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredDirect(
 void momentSrcAdvanceOnDevice(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
     double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
-    GkylMomentSrcDeviceData_t *context)
+    const char *scheme, GkylMomentSrcDeviceData_t *context)
 {
-  cuda_gkylMomentSrcTimeCenteredCublas(
-      numBlocks, numThreads, sd, fd, dt, fluidFlds, emFld, context);
-
-  if (false) {  // XXX
+  if (strcmp(scheme, "time-centered")==0) {
+    cuda_gkylMomentSrcTimeCenteredCublas(
+        numBlocks, numThreads, sd, fd, dt, fluidFlds, emFld, context);
+  } else if (strcmp(scheme, "time-centered-direct")==0
+             || strcmp(scheme, "direct")==0) {
     const int nFluids = 2;
     int sharedMemSize = 0;
     // qbym, J, Wc_dt, wp_dt2
