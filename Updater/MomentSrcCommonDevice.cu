@@ -299,16 +299,16 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
   extern __shared__ double dummy[];
   int base = 0;
 
-  double *qbym = dummy + base + threadIdx.x;
+  double *qbym = dummy + base + threadIdx.x*nFluids;
   base += nFluids*blockDim.x;
 
-  double *JJ = dummy + base + threadIdx.x;
+  double *JJ = dummy + base + threadIdx.x*nFluids*3;
   base += nFluids*3*blockDim.x;
 
-  double *Wc_dt = dummy + base + threadIdx.x;
+  double *Wc_dt = dummy + base + threadIdx.x*nFluids;
   base += nFluids*blockDim.x;
 
-  double *wp_dt2 = dummy + base + threadIdx.x;
+  double *wp_dt2 = dummy + base + threadIdx.x*nFluids;
   base += nFluids*blockDim.x;
 
   double K[] = {0, 0, 0};
