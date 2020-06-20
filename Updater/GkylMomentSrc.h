@@ -10,6 +10,10 @@
 extern "C" {
   typedef struct {
     // TODO domain decomposition info
+    const char *scheme;
+    int nFluids;
+    int numThreads;
+    int numBlocks;
 
     // for time-centered scheme using cublas batched getrf and getrs
     double *d_lhs;
@@ -21,7 +25,7 @@ extern "C" {
   } GkylMomentSrcDeviceData_t;
 
   GkylMomentSrcDeviceData_t *cuda_gkylMomentSrcInit(
-    const int nFluids, const int numBlocks, const int numThreads);
+    const char *scheme, const int nFluids, const int numBlocks, const int numThreads);
   void cuda_gkylMomentSrcDestroy(const GkylMomentSrcDeviceData_t *context);
   void momentSrcAdvanceOnDevice(
       const int nFluids, const int numBlocks, const int numThreads,

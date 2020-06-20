@@ -42,37 +42,47 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredCublasSetPtrs(
 // FIXME simplify by returning by reference?
 // XXX don't init for direct solver!!!
 GkylMomentSrcDeviceData_t *cuda_gkylMomentSrcInit(
-    const int nFluids, const int numBlocks, const int numThreads) {
-  const int matSize = 3 * nFluids + 3;
+    const char *scheme, const int nFluids, const int numBlocks,
+    const int numThreads) {
   GkylMomentSrcDeviceData_t *context = new GkylMomentSrcDeviceData_t[1];
-  cublascall(cublasCreate(&(context->handle)));
+  context->scheme = scheme;
+  context->nFluids = nFluids;
+  context->numThreads = numThreads;
+  context->numBlocks = numBlocks;
 
-  const int batchSize = numThreads*numBlocks;
-  // device memory for actuall arrays and vectors
-  cudacall(cudaMalloc(&context->d_lhs, batchSize*sq(matSize)*sizeof(double)));
-  cudacall(cudaMalloc(&context->d_rhs, batchSize*matSize*sizeof(double)));
-  cudacall(cudaMalloc(&context->d_info, batchSize*sizeof(int)));
-  // device memory for pointers to the actuall arrays and vectors
-  cudacall(cudaMalloc(&context->d_lhs_ptr, batchSize*sizeof(double*)));
-  cudacall(cudaMalloc(&context->d_rhs_ptr, batchSize*sizeof(double*)));
+  if (strcmp(scheme, "time-centered")==0) {
+    cublascall(cublasCreate(&(context->handle)));
 
-  cuda_gkylMomentSrcTimeCenteredCublasSetPtrs<<<numBlocks, numThreads>>>(
-      matSize, context->d_lhs, context->d_rhs, context->d_lhs_ptr,
-      context->d_rhs_ptr);
+    const int matSize = 3 * nFluids + 3;
+    const int batchSize = numThreads*numBlocks;
+    // device memory for actuall arrays and vectors
+    cudacall(cudaMalloc(&context->d_lhs, batchSize*sq(matSize)*sizeof(double)));
+    cudacall(cudaMalloc(&context->d_rhs, batchSize*matSize*sizeof(double)));
+    cudacall(cudaMalloc(&context->d_info, batchSize*sizeof(int)));
+    // device memory for pointers to the actuall arrays and vectors
+    cudacall(cudaMalloc(&context->d_lhs_ptr, batchSize*sizeof(double*)));
+    cudacall(cudaMalloc(&context->d_rhs_ptr, batchSize*sizeof(double*)));
+
+    cuda_gkylMomentSrcTimeCenteredCublasSetPtrs<<<numBlocks, numThreads>>>(
+        matSize, context->d_lhs, context->d_rhs, context->d_lhs_ptr,
+        context->d_rhs_ptr);
+  }
 
   return context;
 }
 
 
 void cuda_gkylMomentSrcDestroy(const GkylMomentSrcDeviceData_t *context) {
-  cudacall(cudaFree(context->d_lhs_ptr));
-  cudacall(cudaFree(context->d_rhs_ptr));
-  cudacall(cudaFree(context->d_lhs));
-  cudacall(cudaFree(context->d_rhs));
-  cudacall(cudaFree(context->d_info));
-  cublascall(cublasDestroy(context->handle));
+  if (strcmp(context->scheme, "time-centered")==0) {
+    cudacall(cudaFree(context->d_lhs_ptr));
+    cudacall(cudaFree(context->d_rhs_ptr));
+    cudacall(cudaFree(context->d_lhs));
+    cudacall(cudaFree(context->d_rhs));
+    cudacall(cudaFree(context->d_info));
+    cublascall(cublasDestroy(context->handle));
 
-  delete(context);
+    delete(context);
+  }
 }
 
 

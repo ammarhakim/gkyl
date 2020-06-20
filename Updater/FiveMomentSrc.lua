@@ -68,7 +68,7 @@ typedef struct {
   } GkylMomentSrcDeviceData_t;
 
   GkylMomentSrcDeviceData_t *cuda_gkylMomentSrcInit(
-    const int nFluids, const int numBlocks, const int numThreads);
+    const char *scheme, const int nFluids, const int numBlocks, const int numThreads);
   void cuda_gkylMomentSrcDestroy(const GkylMomentSrcDeviceData_t *context);
   void momentSrcAdvanceOnDevice(
       const int nFluids, const int numBlocks, const int numThreads,
@@ -189,6 +189,16 @@ end
 
 
 function FiveMomentSrc:initDevice(tbl)
+   local scheme = self.scheme
+   self.gpu_scheme = "time-centered"
+   if (scheme=="time-centered" or scheme=="time-centered-direct" or
+      scheme=="direct") then
+      self.gpu_scheme = scheme
+   else
+      print(string.format("scheme %s is not supported on gpu", scheme))
+      print(string.format("falling back to %s", self.gpu_scheme))
+   end
+
    local nFluids = self._sd.nFluids
 
    local sz_sd = sizeof("MomentSrcData_t")
@@ -209,22 +219,12 @@ function FiveMomentSrc:initDevice(tbl)
    local numThreads = math.min(self.numThreads, numCellsLocal)
    local numBlocks  = math.ceil(numCellsLocal/numThreads)
    self.device_context = ffi.C.cuda_gkylMomentSrcInit(
-      nFluids, numBlocks, numThreads)
+      self.gpu_scheme, nFluids, numBlocks, numThreads)
    self.numThreads = numThreads
    self.numBlocks = numBlocks
    self.numCellsLocal = numCellsLocal
 
    self.first = true
-
-   local scheme = self.scheme
-   self.gpu_scheme = "time-centered"
-   if (scheme=="time-centered" or scheme=="time-centered-direct" or
-      scheme=="direct") then
-      self.gpu_scheme = scheme
-   else
-      print(string.format("scheme %s is not supported on gpu", scheme))
-      print(string.format("falling back to %s", self.gpu_scheme))
-   end
 
    -- callback into proxy.__gc when the proxy becomes free
    -- FIXME Is this the correct way?
