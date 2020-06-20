@@ -1,44 +1,80 @@
-#include <cstdio>
 #include <GkylMomentSrc.h>
-#include <GkylCudaConfig.h>
-
-#include <cublas_v2.h>
-#include <cuda_runtime.h>
+#include <cstdio>
 
 // Makes indexing cleaner
-#define X (0)
-#define Y (1)
-#define Z (2)
+static const unsigned X = 0;
+static const unsigned Y = 1;
+static const unsigned Z = 2;
 
-#define RHO (0)
-#define MX (1)
-#define MY (2)
-#define MZ (3)
-#define ER (4)
+static const unsigned RHO = 0;
+static const unsigned MX = 1;
+static const unsigned MY = 2;
+static const unsigned MZ = 3;
+static const unsigned ER = 4;
 
-#define EX (0)
-#define EY (1)
-#define EZ (2)
-#define BX (3)
-#define BY (4)
-#define BZ (5)
-#define PHIE (6)
-#define PHIM (7)
+static const unsigned EX = 0;
+static const unsigned EY = 1;
+static const unsigned EZ = 2;
+static const unsigned BX = 3;
+static const unsigned BY = 4;
+static const unsigned BZ = 5;
+static const unsigned PHIE = 6;
 
 #define fidx(n, c) (3 * (n) + (c))
 #define eidx(c) (3 * nFluids + (c))
 
-#define N (9)
 #define sq(x) ((x) * (x))
 
-#define F2(base,i,j) (base)[(j)*N+(i)]
+#define F2(base,i,j) (base)[(j)*matSize+(i)]
+
+
+__global__ static void cuda_gkylMomentSrcTimeCenteredCublasSetPtrs(
+   const int matSize,  double *d_lhs, double *d_rhs, double **d_lhs_ptr, double **d_rhs_ptr) {
+  // numThreads*numBlocks == numRealCells
+  int linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
+  d_lhs_ptr[linearIdx] = d_lhs + (matSize*matSize)*linearIdx;
+  d_rhs_ptr[linearIdx] = d_rhs + (matSize)*linearIdx;
+}
+
+
+GkylMomentSrcDeviceData_t *cuda_gkylMomentSrcInit(
+    const int nFluids, const int numBlocks, const int numThreads) {
+  const int matSize = 3 * nFluids + 3;
+  GkylMomentSrcDeviceData_t *context = new GkylMomentSrcDeviceData_t[1];
+  cublascall(cublasCreate(&(context->handle)));
+
+  int batchSize = numThreads*numBlocks;
+  // device memory for actuall arrays and vectors
+  cudacall(cudaMalloc(&context->d_lhs,
+        batchSize*matSize*matSize*sizeof(double)));
+  cudacall(cudaMalloc(&context->d_rhs, batchSize*matSize*sizeof(double)));
+  cudacall(cudaMalloc(&context->d_info, batchSize*sizeof(int)));
+  // device memory for pointers to the actuall arrays and vectors
+  cudacall(cudaMalloc(&context->d_lhs_ptr, batchSize*sizeof(double*)));
+  cudacall(cudaMalloc(&context->d_rhs_ptr, batchSize*sizeof(double*)));
+
+  cuda_gkylMomentSrcTimeCenteredCublasSetPtrs<<<numBlocks, numThreads>>>(
+      matSize, context->d_lhs, context->d_rhs, context->d_lhs_ptr,
+      context->d_rhs_ptr);
+
+  return context;
+}
+
+
+void cuda_gkylMomentSrcDestroy(GkylMomentSrcDeviceData_t *context) {
+  cudacall(cudaFree(context->d_lhs_ptr));
+  cudacall(cudaFree(context->d_rhs_ptr));
+  cudacall(cudaFree(context->d_lhs));
+  cudacall(cudaFree(context->d_rhs));
+  cudacall(cudaFree(context->d_info));
+  cublascall(cublasDestroy(context->handle));
+}
 
 
 // FIXME simplify; separate out pressure part
-__global__ void cuda_gkylMomentSrcUpdateRhovE(
+__global__ static void cuda_gkylMomentSrcUpdateRhovE(
     MomentSrcData_t *sd, FluidData_t *fd, double dt, GkylCartField_t **fluidFlds,
-    GkylCartField_t *emFld, double *d_lhs, double *d_rhs, double **d_lhs_ptr,
-    double **d_rhs_ptr) {
+    GkylCartField_t *emFld, double **d_rhs_ptr) {
   GkylRange_t *localRange = emFld->localRange;
   Gkyl::GenIndexer localIdxr(localRange);
   Gkyl::GenIndexer fIdxr = emFld->genIndexer();
@@ -99,13 +135,16 @@ __global__ void cuda_gkylMomentSrcUpdateRhovE(
 
 }
 
-__global__ void cuda_gkylMomentSrcSetMat(
+
+__global__ static void cuda_gkylMomentSrcTimeCenteredCublasSetMat(
     MomentSrcData_t *sd, FluidData_t *fd, double dt, GkylCartField_t **fluidFlds,
-    GkylCartField_t *emFld, double *d_lhs, double *d_rhs, double **d_lhs_ptr,
-    double **d_rhs_ptr) {
+    GkylCartField_t *emFld, double **d_lhs_ptr, double **d_rhs_ptr) {
   GkylRange_t *localRange = emFld->localRange;
   Gkyl::GenIndexer localIdxr(localRange);
   Gkyl::GenIndexer fIdxr = emFld->genIndexer();
+
+  unsigned nFluids = sd->nFluids;
+  const int matSize = 3 * nFluids + 3;
 
   // numThreads*numBlocks == numRealCells
   int linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
@@ -114,12 +153,12 @@ __global__ void cuda_gkylMomentSrcSetMat(
   const int linearIdxC = fIdxr.index(idxC);
   const double *em = emFld->getDataPtrAt(linearIdxC);
 
-  double *lhs = d_lhs + (N*N)*linearIdx;
-  double *rhs = d_rhs + (N)*linearIdx;
-  d_lhs_ptr[linearIdx] = lhs;
-  d_rhs_ptr[linearIdx] = rhs;
+  double *lhs = d_lhs_ptr[linearIdx];
+  double *rhs = d_rhs_ptr[linearIdx];
 
-  unsigned nFluids = sd->nFluids;
+  for (int c=0; c<matSize*matSize; c++)
+    lhs[c] = 0;
+
   double dt1 = 0.5 * dt;
   double dt2 = 0.5 * dt / sd->epsilon0;
 
@@ -172,43 +211,29 @@ __global__ void cuda_gkylMomentSrcSetMat(
   rhs[eidx(EZ)] = em[EZ];
 }
 
-static cudaError_t cuda_gkylMomentSrcTimeCentered(
+
+static void cuda_gkylMomentSrcTimeCenteredCublas(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
-    double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld) {
-  // FIXME save d_lhs and avoid reallocating?
-  cublasStatus_t status;
-  double *d_lhs = 0;
-  double *d_rhs = 0;
-  double **d_lhs_ptr = 0;
-  double **d_rhs_ptr = 0;
-  int *d_info = 0;
-  cublasHandle_t handle;
+    double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
+    GkylMomentSrcDeviceData_t *context) {
+  unsigned nFluids = sd->nFluids;
+  const int matSize = 3 * nFluids + 3;
+
+  double **d_lhs_ptr = context->d_lhs_ptr;
+  double **d_rhs_ptr = context->d_rhs_ptr;
+  int *d_info = context->d_info;
+  cublasHandle_t &handle = context->handle;
 
   int batchSize = numThreads*numBlocks;
 
-  cublascall(cublasCreate(&handle));
-
-  // memory for actuall arrays and vectors
-  cudacall(cudaMalloc(
-        reinterpret_cast<void **>(&d_lhs), batchSize*N*N*sizeof(double)));
-  cudacall(cudaMalloc(
-        reinterpret_cast<void **>(&d_rhs), batchSize*N*sizeof(double)));
-  cudacall(cudaMalloc(
-        reinterpret_cast<void **>(&d_info), batchSize*sizeof(int)));
-
-  // memory for pointers to the actuall arrays and vectors
-  cudacall(cudaMalloc<double*>((&d_lhs_ptr), batchSize*sizeof(double*)));
-  cudacall(cudaMalloc(
-        reinterpret_cast<void **>(&d_rhs_ptr), batchSize*sizeof(double*)));
-
-  cuda_gkylMomentSrcSetMat<<<numBlocks, numThreads>>>(
-      sd, fd, dt, fluidFlds, emFld, d_lhs, d_rhs, d_lhs_ptr, d_rhs_ptr);
+  cuda_gkylMomentSrcTimeCenteredCublasSetMat<<<numBlocks, numThreads>>>(
+      sd, fd, dt, fluidFlds, emFld, d_lhs_ptr, d_rhs_ptr);
 
   cublascall(cublasDgetrfBatched(
       handle,
-      N,  // n
+      matSize,  // n
       d_lhs_ptr,  // A
-      N,  // lda
+      matSize,  // lda
       NULL,  // int *PivotArray
       d_info,  // int *infoArray
       batchSize // number of pointers contained in A
@@ -218,36 +243,29 @@ static cudaError_t cuda_gkylMomentSrcTimeCentered(
   cublascall(cublasDgetrsBatched(
       handle,
       CUBLAS_OP_N,  // trans
-      N,  // n
+      matSize,  // n
       1,  // nrhs
       d_lhs_ptr,  // matrix A
-      N,  // lda
+      matSize,  // lda
       NULL,  // const int *devIpiv
       d_rhs_ptr,  // double *Barray[]
-      N,  // ldb
+      matSize,  // ldb
       &info,  // int *info
       batchSize // number of pointers contained in A
       ));
 
   // update solution
   cuda_gkylMomentSrcUpdateRhovE<<<numBlocks, numThreads>>>(
-      sd, fd, dt, fluidFlds, emFld, d_lhs, d_rhs, d_lhs_ptr, d_rhs_ptr);
-
-  cudacall(cudaFree(d_lhs_ptr));
-  cudacall(cudaFree(d_rhs_ptr));
-  cudacall(cudaFree(d_lhs));
-  cudacall(cudaFree(d_rhs));
-  cudacall(cudaFree(d_info));
-
-  cublascall(cublasDestroy(handle));
-
-  return cudaSuccess;
+      sd, fd, dt, fluidFlds, emFld, d_rhs_ptr);
 }
+
 
 void momentSrcAdvanceOnDevice(
     int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
-    double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld)
+    double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
+    GkylMomentSrcDeviceData_t *context)
 {
-  cuda_gkylMomentSrcTimeCentered(
-      numBlocks, numThreads, sd, fd, dt, fluidFlds, emFld);
+  cuda_gkylMomentSrcTimeCenteredCublas(
+      numBlocks, numThreads, sd, fd, dt, fluidFlds, emFld, context);
 }
+

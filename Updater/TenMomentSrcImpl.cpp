@@ -13,10 +13,6 @@
 #include <Eigen/Eigen>
 
 // Makes indexing cleaner
-static const unsigned X = 0;
-static const unsigned Y = 1;
-static const unsigned Z = 2;
-
 static const unsigned RHO = 0;
 static const unsigned MX = 1;
 static const unsigned MY = 2;
@@ -29,14 +25,9 @@ static const unsigned P22 = 7;
 static const unsigned P23 = 8;
 static const unsigned P33 = 9;
 
-static const unsigned EX = 0;
-static const unsigned EY = 1;
-static const unsigned EZ = 2;
 static const unsigned BX = 3;
 static const unsigned BY = 4;
 static const unsigned BZ = 5;
-static const unsigned PHIE = 6;
-static const unsigned PHIM = 7;
 
 static const int COL_PIV_HOUSEHOLDER_QR = 0;
 static const int PARTIAL_PIV_LU = 1;
