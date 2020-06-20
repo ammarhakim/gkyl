@@ -39,6 +39,8 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredCublasSetPtrs(
 }
 
 
+// FIXME simplify by returning by reference?
+// XXX don't init for direct solver!!!
 GkylMomentSrcDeviceData_t *cuda_gkylMomentSrcInit(
     const int nFluids, const int numBlocks, const int numThreads) {
   const int matSize = 3 * nFluids + 3;
@@ -69,6 +71,8 @@ void cuda_gkylMomentSrcDestroy(const GkylMomentSrcDeviceData_t *context) {
   cudacall(cudaFree(context->d_rhs));
   cudacall(cudaFree(context->d_info));
   cublascall(cublasDestroy(context->handle));
+
+  delete(context);
 }
 
 
