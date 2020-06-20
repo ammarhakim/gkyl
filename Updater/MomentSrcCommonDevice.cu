@@ -343,7 +343,7 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
 
 #pragma unroll
     for(int c=0; c<3; c++) {
-      K[c] -= dt / tmp * (J[c] + sq(Wc_dt[c] / 2.) * b[c] * bDotJ
+      K[c] -= dt / tmp * (J[c] + sq(Wc_dt[n] / 2.) * b[c] * bDotJ
               - (Wc_dt[n] / 2.) * bCrossJ[c]);
     }
   }
