@@ -1,15 +1,17 @@
 #include <VlasovModDecl.h> 
 
-__host__ __device__ double VlasovPhiVol1x1vSerP2(const double *w, const double *dxv, const double *phi, const double *EM, const double *f, double *out) 
+__host__ __device__ double VlasovPhiVol1x1vSerP2(const double *w, const double *dxv, const double qDm, const double *phi, const double *EM, const double *f, double *out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
+  // qDm:       Species charge (q) divided by its mass (m).
   // phi:       Input phi-field.
   // EM:        Input (external) EM field vectors.
   // f:         Input distribution function.
   // out:       Incremented output.
   const double dv0dx0 = dxv[1]/dxv[0]; 
   const double w0dx0 = w[1]/dxv[0]; 
+  const double rdx2qDm = 2.*qDm/dxv[0]; 
   const double dv10 = 2./dxv[1]; 
   const double dv1 = dxv[1], wv1 = w[1]; 
 
@@ -23,8 +25,8 @@ __host__ __device__ double VlasovPhiVol1x1vSerP2(const double *w, const double *
   alpha_cdim[2] = 1.154700538379252*dv0dx0; 
   alpha_mid += std::abs(w0dx0)+0.5*dv0dx0; 
 
-  alpha_vdim[0] = (1.414213562373095*E0[0]-2.449489742783178*phi[1])*dv10; 
-  alpha_vdim[1] = (1.414213562373095*E0[1]-5.477225575051662*phi[2])*dv10; 
+  alpha_vdim[0] = dv10*(1.414213562373095*E0[0]-2.449489742783178*phi[1]*rdx2qDm); 
+  alpha_vdim[1] = dv10*(1.414213562373095*E0[1]-5.477225575051662*phi[2]*rdx2qDm); 
   alpha_vdim[4] = 1.414213562373095*E0[2]*dv10; 
   alpha_mid += std::abs(0.25*alpha_vdim[0]-0.2795084971874737*alpha_vdim[4]); 
 
@@ -39,16 +41,18 @@ __host__ __device__ double VlasovPhiVol1x1vSerP2(const double *w, const double *
   return alpha_mid; 
 } 
 
-__host__ __device__ double VlasovPhiBextVol1x1vSerP2(const double *w, const double *dxv, const double *phi, const double *EM, const double *f, double *out) 
+__host__ __device__ double VlasovPhiBextVol1x1vSerP2(const double *w, const double *dxv, const double qDm, const double *phi, const double *EM, const double *f, double *out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
+  // qDm:       Species charge (q) divided by its mass (m).
   // phi:       Input phi-field.
   // EM:        Input (external) EM field vectors.
   // f:         Input distribution function.
   // out:       Incremented output.
   const double dv0dx0 = dxv[1]/dxv[0]; 
   const double w0dx0 = w[1]/dxv[0]; 
+  const double rdx2qDm = 2.*qDm/dxv[0]; 
   const double dv10 = 2./dxv[1]; 
   const double dv1 = dxv[1], wv1 = w[1]; 
 
@@ -62,8 +66,8 @@ __host__ __device__ double VlasovPhiBextVol1x1vSerP2(const double *w, const doub
   alpha_cdim[2] = 1.154700538379252*dv0dx0; 
   alpha_mid += std::abs(w0dx0)+0.5*dv0dx0; 
 
-  alpha_vdim[0] = (1.414213562373095*E0[0]-2.449489742783178*phi[1])*dv10; 
-  alpha_vdim[1] = (1.414213562373095*E0[1]-5.477225575051662*phi[2])*dv10; 
+  alpha_vdim[0] = dv10*(1.414213562373095*E0[0]-2.449489742783178*phi[1]*rdx2qDm); 
+  alpha_vdim[1] = dv10*(1.414213562373095*E0[1]-5.477225575051662*phi[2]*rdx2qDm); 
   alpha_vdim[4] = 1.414213562373095*E0[2]*dv10; 
   alpha_mid += std::abs(0.25*alpha_vdim[0]-0.2795084971874737*alpha_vdim[4]); 
 

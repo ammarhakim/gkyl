@@ -1,15 +1,18 @@
 #include <VlasovModDecl.h> 
 
-__host__ __device__ double VlasovPhiSurf2x2vSer_VX_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
+__host__ __device__ double VlasovPhiSurf2x2vSer_VX_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double qDm, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
   // amax:      amax in global lax flux.
+  // qDm:       Species charge (q) divided by its mass (m).
   // phi:       electrostatic potential.
   // EM:        external EM field vectors.
   // fl/fr:     Distribution function in left/right cells 
   // outl/outr: output distribution function in left/right cells 
   // returns abs(amid) for use in determining amax in cfl and global lax flux 
+  const double rdx2qDm = 2.*qDm/dxvl[0]; 
+  const double rdy2qDm = 2.*qDm/dxvl[1]; 
   double dv10l = 2./dxvl[2]; 
   double dv10r = 2./dxvr[2]; 
   const double dv1 = dxvr[2], wv1 = wr[2]; 
@@ -42,12 +45,12 @@ __host__ __device__ double VlasovPhiSurf2x2vSer_VX_P2(const double *wl, const do
   favg[18] = (-1.224744871391589*fr[45])+1.224744871391589*fl[45]+0.7071067811865475*fr[36]+0.7071067811865475*fl[36]; 
   favg[19] = (-1.224744871391589*fr[47])+1.224744871391589*fl[47]+0.7071067811865475*fr[41]+0.7071067811865475*fl[41]; 
 
-  alpha[0] = 1.414213562373095*E0[0]-2.449489742783178*phi[1]; 
-  alpha[1] = 1.414213562373095*E0[1]-5.477225575051662*phi[4]; 
-  alpha[2] = 1.414213562373095*E0[2]-2.449489742783178*phi[3]; 
-  alpha[4] = 1.414213562373095*E0[3]-5.477225575051662*phi[6]; 
+  alpha[0] = 1.414213562373095*E0[0]-2.449489742783178*phi[1]*rdx2qDm; 
+  alpha[1] = 1.414213562373095*E0[1]-5.477225575051662*phi[4]*rdx2qDm; 
+  alpha[2] = 1.414213562373095*E0[2]-2.449489742783178*phi[3]*rdx2qDm; 
+  alpha[4] = 1.414213562373095*E0[3]-5.477225575051662*phi[6]*rdx2qDm; 
   alpha[7] = 1.414213562373095*E0[4]; 
-  alpha[8] = 1.414213562373095*E0[5]-2.449489742783178*phi[7]; 
+  alpha[8] = 1.414213562373095*E0[5]-2.449489742783178*phi[7]*rdx2qDm; 
   alpha[11] = 1.414213562373095*E0[6]; 
   alpha[12] = 1.414213562373095*E0[7]; 
 
@@ -175,16 +178,19 @@ __host__ __device__ double VlasovPhiSurf2x2vSer_VX_P2(const double *wl, const do
   return std::abs(amid); 
 } 
 
-__host__ __device__ double VlasovPhiSurf2x2vSer_VY_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
+__host__ __device__ double VlasovPhiSurf2x2vSer_VY_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double qDm, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
   // amax:      amax in global lax flux.
+  // qDm:       Species charge (q) divided by its mass (m).
   // phi:       electrostatic potential.
   // EM:        external EM field vectors.
   // fl/fr:     Distribution function in left/right cells 
   // outl/outr: output distribution function in left/right cells 
   // returns abs(amid) for use in determining amax in cfl and global lax flux 
+  const double rdx2qDm = 2.*qDm/dxvl[0]; 
+  const double rdy2qDm = 2.*qDm/dxvl[1]; 
   double dv11l = 2./dxvl[3]; 
   double dv11r = 2./dxvr[3]; 
   const double dv1 = dxvr[2], wv1 = wr[2]; 
@@ -217,11 +223,11 @@ __host__ __device__ double VlasovPhiSurf2x2vSer_VY_P2(const double *wl, const do
   favg[18] = (-1.224744871391589*fr[45])+1.224744871391589*fl[45]+0.7071067811865475*fr[33]+0.7071067811865475*fl[33]; 
   favg[19] = (-1.224744871391589*fr[46])+1.224744871391589*fl[46]+0.7071067811865475*fr[34]+0.7071067811865475*fl[34]; 
 
-  alpha[0] = 1.414213562373095*E1[0]-2.449489742783178*phi[2]; 
-  alpha[1] = 1.414213562373095*E1[1]-2.449489742783178*phi[3]; 
-  alpha[2] = 1.414213562373095*E1[2]-5.477225575051662*phi[5]; 
-  alpha[4] = 1.414213562373095*E1[3]-5.477225575051662*phi[7]; 
-  alpha[7] = 1.414213562373095*E1[4]-2.449489742783178*phi[6]; 
+  alpha[0] = 1.414213562373095*E1[0]-2.449489742783178*phi[2]*rdy2qDm; 
+  alpha[1] = 1.414213562373095*E1[1]-2.449489742783178*phi[3]*rdy2qDm; 
+  alpha[2] = 1.414213562373095*E1[2]-5.477225575051662*phi[5]*rdy2qDm; 
+  alpha[4] = 1.414213562373095*E1[3]-5.477225575051662*phi[7]*rdy2qDm; 
+  alpha[7] = 1.414213562373095*E1[4]-2.449489742783178*phi[6]*rdy2qDm; 
   alpha[8] = 1.414213562373095*E1[5]; 
   alpha[11] = 1.414213562373095*E1[6]; 
   alpha[12] = 1.414213562373095*E1[7]; 
@@ -350,16 +356,19 @@ __host__ __device__ double VlasovPhiSurf2x2vSer_VY_P2(const double *wl, const do
   return std::abs(amid); 
 } 
 
-__host__ __device__ double VlasovPhiBextSurf2x2vSer_VX_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
+__host__ __device__ double VlasovPhiBextSurf2x2vSer_VX_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double qDm, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
   // amax:      amax in global lax flux.
+  // qDm:       Species charge (q) divided by its mass (m).
   // phi:       electrostatic potential.
   // EM:        external EM field vectors.
   // fl/fr:     Distribution function in left/right cells 
   // outl/outr: output distribution function in left/right cells 
   // returns abs(amid) for use in determining amax in cfl and global lax flux 
+  const double rdx2qDm = 2.*qDm/dxvl[0]; 
+  const double rdy2qDm = 2.*qDm/dxvl[1]; 
   double dv10l = 2./dxvl[2]; 
   double dv10r = 2./dxvr[2]; 
   const double dv1 = dxvr[2], wv1 = wr[2]; 
@@ -393,15 +402,15 @@ __host__ __device__ double VlasovPhiBextSurf2x2vSer_VX_P2(const double *wl, cons
   favg[18] = (-1.224744871391589*fr[45])+1.224744871391589*fl[45]+0.7071067811865475*fr[36]+0.7071067811865475*fl[36]; 
   favg[19] = (-1.224744871391589*fr[47])+1.224744871391589*fl[47]+0.7071067811865475*fr[41]+0.7071067811865475*fl[41]; 
 
-  alpha[0] = 1.414213562373095*B2[0]*wv2-2.449489742783178*phi[1]+1.414213562373095*E0[0]; 
-  alpha[1] = 1.414213562373095*B2[1]*wv2-5.477225575051662*phi[4]+1.414213562373095*E0[1]; 
-  alpha[2] = 1.414213562373095*B2[2]*wv2-2.449489742783178*phi[3]+1.414213562373095*E0[2]; 
+  alpha[0] = 1.414213562373095*B2[0]*wv2-2.449489742783178*phi[1]*rdx2qDm+1.414213562373095*E0[0]; 
+  alpha[1] = 1.414213562373095*B2[1]*wv2-5.477225575051662*phi[4]*rdx2qDm+1.414213562373095*E0[1]; 
+  alpha[2] = 1.414213562373095*B2[2]*wv2-2.449489742783178*phi[3]*rdx2qDm+1.414213562373095*E0[2]; 
   alpha[3] = 0.408248290463863*B2[0]*dv2; 
-  alpha[4] = 1.414213562373095*B2[3]*wv2-5.477225575051662*phi[6]+1.414213562373095*E0[3]; 
+  alpha[4] = 1.414213562373095*B2[3]*wv2-5.477225575051662*phi[6]*rdx2qDm+1.414213562373095*E0[3]; 
   alpha[5] = 0.408248290463863*B2[1]*dv2; 
   alpha[6] = 0.408248290463863*B2[2]*dv2; 
   alpha[7] = 1.414213562373095*(B2[4]*wv2+E0[4]); 
-  alpha[8] = 1.414213562373095*B2[5]*wv2-2.449489742783178*phi[7]+1.414213562373095*E0[5]; 
+  alpha[8] = 1.414213562373095*B2[5]*wv2-2.449489742783178*phi[7]*rdx2qDm+1.414213562373095*E0[5]; 
   alpha[10] = 0.408248290463863*B2[3]*dv2; 
   alpha[11] = 1.414213562373095*(B2[6]*wv2+E0[6]); 
   alpha[12] = 1.414213562373095*(B2[7]*wv2+E0[7]); 
@@ -534,16 +543,19 @@ __host__ __device__ double VlasovPhiBextSurf2x2vSer_VX_P2(const double *wl, cons
   return std::abs(amid); 
 } 
 
-__host__ __device__ double VlasovPhiBextSurf2x2vSer_VY_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
+__host__ __device__ double VlasovPhiBextSurf2x2vSer_VY_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double qDm, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
   // amax:      amax in global lax flux.
+  // qDm:       Species charge (q) divided by its mass (m).
   // phi:       electrostatic potential.
   // EM:        external EM field vectors.
   // fl/fr:     Distribution function in left/right cells 
   // outl/outr: output distribution function in left/right cells 
   // returns abs(amid) for use in determining amax in cfl and global lax flux 
+  const double rdx2qDm = 2.*qDm/dxvl[0]; 
+  const double rdy2qDm = 2.*qDm/dxvl[1]; 
   double dv11l = 2./dxvl[3]; 
   double dv11r = 2./dxvr[3]; 
   const double dv1 = dxvr[2], wv1 = wr[2]; 
@@ -577,14 +589,14 @@ __host__ __device__ double VlasovPhiBextSurf2x2vSer_VY_P2(const double *wl, cons
   favg[18] = (-1.224744871391589*fr[45])+1.224744871391589*fl[45]+0.7071067811865475*fr[33]+0.7071067811865475*fl[33]; 
   favg[19] = (-1.224744871391589*fr[46])+1.224744871391589*fl[46]+0.7071067811865475*fr[34]+0.7071067811865475*fl[34]; 
 
-  alpha[0] = (-1.414213562373095*B2[0]*wv1)-2.449489742783178*phi[2]+1.414213562373095*E1[0]; 
-  alpha[1] = (-1.414213562373095*B2[1]*wv1)-2.449489742783178*phi[3]+1.414213562373095*E1[1]; 
-  alpha[2] = (-1.414213562373095*B2[2]*wv1)-5.477225575051662*phi[5]+1.414213562373095*E1[2]; 
+  alpha[0] = (-1.414213562373095*B2[0]*wv1)-2.449489742783178*phi[2]*rdy2qDm+1.414213562373095*E1[0]; 
+  alpha[1] = (-1.414213562373095*B2[1]*wv1)-2.449489742783178*phi[3]*rdy2qDm+1.414213562373095*E1[1]; 
+  alpha[2] = (-1.414213562373095*B2[2]*wv1)-5.477225575051662*phi[5]*rdy2qDm+1.414213562373095*E1[2]; 
   alpha[3] = -0.408248290463863*B2[0]*dv1; 
-  alpha[4] = (-1.414213562373095*B2[3]*wv1)-5.477225575051662*phi[7]+1.414213562373095*E1[3]; 
+  alpha[4] = (-1.414213562373095*B2[3]*wv1)-5.477225575051662*phi[7]*rdy2qDm+1.414213562373095*E1[3]; 
   alpha[5] = -0.408248290463863*B2[1]*dv1; 
   alpha[6] = -0.408248290463863*B2[2]*dv1; 
-  alpha[7] = (-1.414213562373095*B2[4]*wv1)-2.449489742783178*phi[6]+1.414213562373095*E1[4]; 
+  alpha[7] = (-1.414213562373095*B2[4]*wv1)-2.449489742783178*phi[6]*rdy2qDm+1.414213562373095*E1[4]; 
   alpha[8] = 1.414213562373095*E1[5]-1.414213562373095*B2[5]*wv1; 
   alpha[10] = -0.408248290463863*B2[3]*dv1; 
   alpha[11] = 1.414213562373095*E1[6]-1.414213562373095*B2[6]*wv1; 

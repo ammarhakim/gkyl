@@ -27,7 +27,7 @@ vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[a0+i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
-calcVlasovPhiVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder, hasB) := block([bP,bC,numC,numP,cflPt,cid,vid,dir,f_e,phi_e,cdir,vdir,alpha_cdim_c,alpha_vdim_c,i,expr,incr_cdim,incr_vdim],
+calcVlasovPhiVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder, hasB) := block([bP,bC,numC,numP,cflPt,cid,vid,f_e,phi_e,cdir,vdir,alpha_cdim_c,alpha_vdim_c,i,expr,incr_cdim,incr_vdim],
 
   kill(varsC, varsP, basisC, basisP),
 
@@ -41,9 +41,10 @@ calcVlasovPhiVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder, hasB) := bl
   /* Point at which to evaluate alpha for use in computing CFL. */
   cflPt : makelist(varsP[d]=0, d, 1, cdim+vdim),
 
-  printf(fh, "__host__ __device__ double ~aP~a(const double *w, const double *dxv, const double *phi, const double *EM, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+  printf(fh, "__host__ __device__ double ~aP~a(const double *w, const double *dxv, const double qDm, const double *phi, const double *EM, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
   printf(fh, "  // w[NDIM]:   Cell-center coordinates.~%"),
   printf(fh, "  // dxv[NDIM]: Cell spacing.~%"),
+  printf(fh, "  // qDm:       Species charge (q) divided by its mass (m).~%"),
   printf(fh, "  // phi:       Input phi-field.~%"),
   printf(fh, "  // EM:        Input (external) EM field vectors.~%"),
   printf(fh, "  // f:         Input distribution function.~%"),
@@ -53,21 +54,24 @@ calcVlasovPhiVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder, hasB) := bl
   vid : vidx(cdim,vdim),
 
   /* Common expressions in streaming (v . grad(f)) term. */
-  for dir : 1 thru cdim do (
-    printf(fh, "  const double dv~adx~a = dxv[~a]/dxv[~a]; ~%", dir-1, dir-1, vid[dir], cid[dir]),
-    printf(fh, "  const double w~adx~a = w[~a]/dxv[~a]; ~%", dir-1, dir-1, vid[dir], cid[dir])
+  for d : 1 thru cdim do (
+    printf(fh, "  const double dv~adx~a = dxv[~a]/dxv[~a]; ~%", d-1, d-1, vid[d], cid[d]),
+    printf(fh, "  const double w~adx~a = w[~a]/dxv[~a]; ~%", d-1, d-1, vid[d], cid[d])
   ),
 
   /* Common expressions in (q/m)*(-grad(phi) + E + v x B). del_v(f) term. */
-  for dir : 1 thru vdim do (
-    printf(fh, "  const double dv1~a = 2./dxv[~a]; ~%", dir-1, vid[dir]),
-    printf(fh, "  const double dv~a = dxv[~a], wv~a = w[~a]; ~%", dir, vid[dir], dir, vid[dir])
+  for d : 1 thru cdim do (
+    printf(fh, "  const double rd~a2qDm = 2.*qDm/dxv[~a]; ~%", varsC[d], d-1)
+  ),
+  for d : 1 thru vdim do (
+    printf(fh, "  const double dv1~a = 2./dxv[~a]; ~%", d-1, vid[d]),
+    printf(fh, "  const double dv~a = dxv[~a], wv~a = w[~a]; ~%", d, vid[d], d, vid[d])
   ),
   printf(fh, "~%"),
 
   /* External EM field components.*/
-  for dir : 1 thru vdim do (
-    printf(fh, "  const double *E~a = &EM[~a]; ~%", dir-1, numC*(dir-1))
+  for d : 1 thru vdim do (
+    printf(fh, "  const double *E~a = &EM[~a]; ~%", d-1, numC*(d-1))
   ),
   if (hasB) then (
     if vdim > 1 then (
@@ -77,8 +81,8 @@ calcVlasovPhiVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder, hasB) := bl
         printf(fh, "  const double *B~a = &EM[~a]; ~%", 2, numC*2+3*numC)
       ),
       if vdim = 3 then (
-        for dir : 1 thru 3 do (
-          printf(fh, "  const double *B~a = &EM[~a]; ~%", dir-1, numC*(dir-1)+3*numC)
+        for d : 1 thru 3 do (
+          printf(fh, "  const double *B~a = &EM[~a]; ~%", d-1, numC*(d-1)+3*numC)
         )
       )
     )
@@ -124,13 +128,13 @@ calcVlasovPhiVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder, hasB) := bl
 
     /* Calculate the acceleration. */
     if (vdir = 1) then (
-      acc_e : -diff(phi_e,varsCall[1]) + doExpand1(Efld[1],bC),
+      acc_e : -rdx2qDm*diff(phi_e,varsCall[1]) + doExpand1(Efld[1],bC),
       if (hasB) then ( acc_e : acc_e + vvy*doExpand1(Bfld[3],bC) - vvz*doExpand1(Bfld[2],bC) )
     ) elseif (vdir = 2) then (
-      acc_e : -diff(phi_e,varsCall[2]) + doExpand1(Efld[2],bC),
+      acc_e : -rdy2qDm*diff(phi_e,varsCall[2]) + doExpand1(Efld[2],bC),
       if (hasB) then ( acc_e : acc_e + vvz*doExpand1(Bfld[1],bC) - vvx*doExpand1(Bfld[3],bC) )
     ) else (
-      acc_e : -diff(phi_e,varsCall[3]) + doExpand1(Efld[3],bC),
+      acc_e : -rdz2qDm*diff(phi_e,varsCall[3]) + doExpand1(Efld[3],bC),
       if (hasB) then ( acc_e : acc_e + vvx*doExpand1(Bfld[2],bC) - vvy*doExpand1(Bfld[1],bC) )
     ),
     vzero(vdim)  := if vdim = 1 then [vvy=0, vvz=0] elseif vdim = 2 then [vvz=0] else [],

@@ -758,7 +758,7 @@ function MGpoisson:esEnergy(tCurr,fldIn,outDynV)
       grid:setIndex(idx)
       grid:getDx(self.dxBuf)
 
-      fld:fill(indexer(idx), phiItr)
+      phiIn:fill(indexer(idx), phiItr)
 
       self._esEnergyCalc(self.dxBuf:data(), phiItr:data(), self.localEnergy:data())
    end

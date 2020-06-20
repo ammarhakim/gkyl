@@ -18,6 +18,13 @@ esEnergyDGCalc(fh, funcNm, dim, basisFun, pMax) := block([bC,numBC,phi_e,dir,Efl
     printf(fh, "  // phiFld: electrostatic potential.~%"),
     printf(fh, "  // out:    energy out.~%"),
     printf(fh, "~%"),
+
+    volumeFac : (1/2)^dim,
+    for dir : 1 thru dim do (
+      volumeFac : volumeFac*dx[dir-1]
+    ),
+    printf(fh, "  const double volFac = ~a; ~%", float(volumeFac)),
+    printf(fh, "~%"),
   
     bC    : basisC[polyOrder],
     numBC : length(bC),
@@ -25,9 +32,9 @@ esEnergyDGCalc(fh, funcNm, dim, basisFun, pMax) := block([bC,numBC,phi_e,dir,Efl
     phi_e : doExpand1(phi,bC),
   
     for dir : 1 thru dim do (
-      Efld_e : -(2./dx[dir-1])*diff(phi_e,varsC[dir]),
-      esEnergyInDir : fullratsimp(innerProd(varsC,1,1,Efld_e^2)),
-      exprStr : string(float(expand(esEnergyInDir))),
+      Efld_e        : -(2./dx[dir-1])*diff(phi_e,varsC[dir]),
+      esEnergyInDir : fullratsimp(volFac*innerProd(varsC,1,1,Efld_e^2)),
+      exprStr       : string(float(expand(esEnergyInDir))),
       /* Replace exponentials. */
       subList : [],
       for k : 0 thru numBC-1 do (

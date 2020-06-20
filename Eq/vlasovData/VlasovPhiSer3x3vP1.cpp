@@ -1,9 +1,10 @@
 #include <VlasovModDecl.h> 
 
-__host__ __device__ double VlasovPhiVol3x3vSerP1(const double *w, const double *dxv, const double *phi, const double *EM, const double *f, double *out) 
+__host__ __device__ double VlasovPhiVol3x3vSerP1(const double *w, const double *dxv, const double qDm, const double *phi, const double *EM, const double *f, double *out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
+  // qDm:       Species charge (q) divided by its mass (m).
   // phi:       Input phi-field.
   // EM:        Input (external) EM field vectors.
   // f:         Input distribution function.
@@ -14,6 +15,9 @@ __host__ __device__ double VlasovPhiVol3x3vSerP1(const double *w, const double *
   const double w1dx1 = w[4]/dxv[1]; 
   const double dv2dx2 = dxv[5]/dxv[2]; 
   const double w2dx2 = w[5]/dxv[2]; 
+  const double rdx2qDm = 2.*qDm/dxv[0]; 
+  const double rdy2qDm = 2.*qDm/dxv[1]; 
+  const double rdz2qDm = 2.*qDm/dxv[2]; 
   const double dv10 = 2./dxv[3]; 
   const double dv1 = dxv[3], wv1 = w[3]; 
   const double dv11 = 2./dxv[4]; 
@@ -41,31 +45,31 @@ __host__ __device__ double VlasovPhiVol3x3vSerP1(const double *w, const double *
   alpha_cdim[134] = 4.618802153517007*dv2dx2; 
   alpha_mid += std::abs(w2dx2)+0.5*dv2dx2; 
 
-  alpha_vdim[0] = (2.828427124746191*E0[0]-4.898979485566357*phi[1])*dv10; 
+  alpha_vdim[0] = dv10*(2.828427124746191*E0[0]-4.898979485566357*phi[1]*rdx2qDm); 
   alpha_vdim[1] = 2.828427124746191*E0[1]*dv10; 
-  alpha_vdim[2] = (2.828427124746191*E0[2]-4.898979485566357*phi[4])*dv10; 
-  alpha_vdim[3] = (2.828427124746191*E0[3]-4.898979485566357*phi[5])*dv10; 
+  alpha_vdim[2] = dv10*(2.828427124746191*E0[2]-4.898979485566357*phi[4]*rdx2qDm); 
+  alpha_vdim[3] = dv10*(2.828427124746191*E0[3]-4.898979485566357*phi[5]*rdx2qDm); 
   alpha_vdim[7] = 2.828427124746191*E0[4]*dv10; 
   alpha_vdim[8] = 2.828427124746191*E0[5]*dv10; 
-  alpha_vdim[9] = (2.828427124746191*E0[6]-4.898979485566357*phi[7])*dv10; 
+  alpha_vdim[9] = dv10*(2.828427124746191*E0[6]-4.898979485566357*phi[7]*rdx2qDm); 
   alpha_vdim[22] = 2.828427124746191*E0[7]*dv10; 
   alpha_mid += std::abs(0.0625*alpha_vdim[0]); 
 
-  alpha_vdim[64] = (2.828427124746191*E1[0]-4.898979485566357*phi[2])*dv11; 
-  alpha_vdim[65] = (2.828427124746191*E1[1]-4.898979485566357*phi[4])*dv11; 
+  alpha_vdim[64] = dv11*(2.828427124746191*E1[0]-4.898979485566357*phi[2]*rdy2qDm); 
+  alpha_vdim[65] = dv11*(2.828427124746191*E1[1]-4.898979485566357*phi[4]*rdy2qDm); 
   alpha_vdim[66] = 2.828427124746191*E1[2]*dv11; 
-  alpha_vdim[67] = (2.828427124746191*E1[3]-4.898979485566357*phi[6])*dv11; 
+  alpha_vdim[67] = dv11*(2.828427124746191*E1[3]-4.898979485566357*phi[6]*rdy2qDm); 
   alpha_vdim[71] = 2.828427124746191*E1[4]*dv11; 
-  alpha_vdim[72] = (2.828427124746191*E1[5]-4.898979485566357*phi[7])*dv11; 
+  alpha_vdim[72] = dv11*(2.828427124746191*E1[5]-4.898979485566357*phi[7]*rdy2qDm); 
   alpha_vdim[73] = 2.828427124746191*E1[6]*dv11; 
   alpha_vdim[86] = 2.828427124746191*E1[7]*dv11; 
   alpha_mid += std::abs(0.0625*alpha_vdim[64]); 
 
-  alpha_vdim[128] = (2.828427124746191*E2[0]-4.898979485566357*phi[3])*dv12; 
-  alpha_vdim[129] = (2.828427124746191*E2[1]-4.898979485566357*phi[5])*dv12; 
-  alpha_vdim[130] = (2.828427124746191*E2[2]-4.898979485566357*phi[6])*dv12; 
+  alpha_vdim[128] = dv12*(2.828427124746191*E2[0]-4.898979485566357*phi[3]*rdz2qDm); 
+  alpha_vdim[129] = dv12*(2.828427124746191*E2[1]-4.898979485566357*phi[5]*rdz2qDm); 
+  alpha_vdim[130] = dv12*(2.828427124746191*E2[2]-4.898979485566357*phi[6]*rdz2qDm); 
   alpha_vdim[131] = 2.828427124746191*E2[3]*dv12; 
-  alpha_vdim[135] = (2.828427124746191*E2[4]-4.898979485566357*phi[7])*dv12; 
+  alpha_vdim[135] = dv12*(2.828427124746191*E2[4]-4.898979485566357*phi[7]*rdz2qDm); 
   alpha_vdim[136] = 2.828427124746191*E2[5]*dv12; 
   alpha_vdim[137] = 2.828427124746191*E2[6]*dv12; 
   alpha_vdim[150] = 2.828427124746191*E2[7]*dv12; 
@@ -138,10 +142,11 @@ __host__ __device__ double VlasovPhiVol3x3vSerP1(const double *w, const double *
   return alpha_mid; 
 } 
 
-__host__ __device__ double VlasovPhiBextVol3x3vSerP1(const double *w, const double *dxv, const double *phi, const double *EM, const double *f, double *out) 
+__host__ __device__ double VlasovPhiBextVol3x3vSerP1(const double *w, const double *dxv, const double qDm, const double *phi, const double *EM, const double *f, double *out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
+  // qDm:       Species charge (q) divided by its mass (m).
   // phi:       Input phi-field.
   // EM:        Input (external) EM field vectors.
   // f:         Input distribution function.
@@ -152,6 +157,9 @@ __host__ __device__ double VlasovPhiBextVol3x3vSerP1(const double *w, const doub
   const double w1dx1 = w[4]/dxv[1]; 
   const double dv2dx2 = dxv[5]/dxv[2]; 
   const double w2dx2 = w[5]/dxv[2]; 
+  const double rdx2qDm = 2.*qDm/dxv[0]; 
+  const double rdy2qDm = 2.*qDm/dxv[1]; 
+  const double rdz2qDm = 2.*qDm/dxv[2]; 
   const double dv10 = 2./dxv[3]; 
   const double dv1 = dxv[3], wv1 = w[3]; 
   const double dv11 = 2./dxv[4]; 
@@ -182,15 +190,15 @@ __host__ __device__ double VlasovPhiBextVol3x3vSerP1(const double *w, const doub
   alpha_cdim[134] = 4.618802153517007*dv2dx2; 
   alpha_mid += std::abs(w2dx2)+0.5*dv2dx2; 
 
-  alpha_vdim[0] = dv10*((-2.828427124746191*B1[0]*wv3)+2.828427124746191*B2[0]*wv2-4.898979485566357*phi[1]+2.828427124746191*E0[0]); 
+  alpha_vdim[0] = dv10*((-2.828427124746191*B1[0]*wv3)+2.828427124746191*B2[0]*wv2-4.898979485566357*phi[1]*rdx2qDm+2.828427124746191*E0[0]); 
   alpha_vdim[1] = dv10*(2.828427124746191*(B2[1]*wv2+E0[1])-2.828427124746191*B1[1]*wv3); 
-  alpha_vdim[2] = dv10*((-2.828427124746191*B1[2]*wv3)+2.828427124746191*B2[2]*wv2-4.898979485566357*phi[4]+2.828427124746191*E0[2]); 
-  alpha_vdim[3] = dv10*((-2.828427124746191*B1[3]*wv3)+2.828427124746191*B2[3]*wv2-4.898979485566357*phi[5]+2.828427124746191*E0[3]); 
+  alpha_vdim[2] = dv10*((-2.828427124746191*B1[2]*wv3)+2.828427124746191*B2[2]*wv2-4.898979485566357*phi[4]*rdx2qDm+2.828427124746191*E0[2]); 
+  alpha_vdim[3] = dv10*((-2.828427124746191*B1[3]*wv3)+2.828427124746191*B2[3]*wv2-4.898979485566357*phi[5]*rdx2qDm+2.828427124746191*E0[3]); 
   alpha_vdim[5] = 0.8164965809277261*B2[0]*dv10*dv2; 
   alpha_vdim[6] = -0.8164965809277261*B1[0]*dv10*dv3; 
   alpha_vdim[7] = dv10*(2.828427124746191*(B2[4]*wv2+E0[4])-2.828427124746191*B1[4]*wv3); 
   alpha_vdim[8] = dv10*(2.828427124746191*(B2[5]*wv2+E0[5])-2.828427124746191*B1[5]*wv3); 
-  alpha_vdim[9] = dv10*((-2.828427124746191*B1[6]*wv3)+2.828427124746191*B2[6]*wv2-4.898979485566357*phi[7]+2.828427124746191*E0[6]); 
+  alpha_vdim[9] = dv10*((-2.828427124746191*B1[6]*wv3)+2.828427124746191*B2[6]*wv2-4.898979485566357*phi[7]*rdx2qDm+2.828427124746191*E0[6]); 
   alpha_vdim[13] = 0.8164965809277261*B2[1]*dv10*dv2; 
   alpha_vdim[14] = 0.8164965809277261*B2[2]*dv10*dv2; 
   alpha_vdim[15] = 0.8164965809277261*B2[3]*dv10*dv2; 
@@ -208,14 +216,14 @@ __host__ __device__ double VlasovPhiBextVol3x3vSerP1(const double *w, const doub
   alpha_vdim[47] = -0.8164965809277261*B1[7]*dv10*dv3; 
   alpha_mid += std::abs(0.0625*alpha_vdim[0]); 
 
-  alpha_vdim[64] = dv11*(2.828427124746191*B0[0]*wv3-2.828427124746191*B2[0]*wv1-4.898979485566357*phi[2]+2.828427124746191*E1[0]); 
-  alpha_vdim[65] = dv11*(2.828427124746191*B0[1]*wv3-2.828427124746191*B2[1]*wv1-4.898979485566357*phi[4]+2.828427124746191*E1[1]); 
+  alpha_vdim[64] = dv11*(2.828427124746191*B0[0]*wv3-2.828427124746191*B2[0]*wv1-4.898979485566357*phi[2]*rdy2qDm+2.828427124746191*E1[0]); 
+  alpha_vdim[65] = dv11*(2.828427124746191*B0[1]*wv3-2.828427124746191*B2[1]*wv1-4.898979485566357*phi[4]*rdy2qDm+2.828427124746191*E1[1]); 
   alpha_vdim[66] = dv11*(2.828427124746191*B0[2]*wv3-2.828427124746191*B2[2]*wv1+2.828427124746191*E1[2]); 
-  alpha_vdim[67] = dv11*(2.828427124746191*B0[3]*wv3-2.828427124746191*B2[3]*wv1-4.898979485566357*phi[6]+2.828427124746191*E1[3]); 
+  alpha_vdim[67] = dv11*(2.828427124746191*B0[3]*wv3-2.828427124746191*B2[3]*wv1-4.898979485566357*phi[6]*rdy2qDm+2.828427124746191*E1[3]); 
   alpha_vdim[68] = -0.8164965809277261*B2[0]*dv1*dv11; 
   alpha_vdim[70] = 0.8164965809277261*B0[0]*dv11*dv3; 
   alpha_vdim[71] = dv11*(2.828427124746191*B0[4]*wv3-2.828427124746191*B2[4]*wv1+2.828427124746191*E1[4]); 
-  alpha_vdim[72] = dv11*(2.828427124746191*B0[5]*wv3-2.828427124746191*B2[5]*wv1-4.898979485566357*phi[7]+2.828427124746191*E1[5]); 
+  alpha_vdim[72] = dv11*(2.828427124746191*B0[5]*wv3-2.828427124746191*B2[5]*wv1-4.898979485566357*phi[7]*rdy2qDm+2.828427124746191*E1[5]); 
   alpha_vdim[73] = dv11*(2.828427124746191*B0[6]*wv3-2.828427124746191*B2[6]*wv1+2.828427124746191*E1[6]); 
   alpha_vdim[74] = -0.8164965809277261*B2[1]*dv1*dv11; 
   alpha_vdim[75] = -0.8164965809277261*B2[2]*dv1*dv11; 
@@ -234,13 +242,13 @@ __host__ __device__ double VlasovPhiBextVol3x3vSerP1(const double *w, const doub
   alpha_vdim[111] = 0.8164965809277261*B0[7]*dv11*dv3; 
   alpha_mid += std::abs(0.0625*alpha_vdim[64]); 
 
-  alpha_vdim[128] = dv12*((-2.828427124746191*B0[0]*wv2)+2.828427124746191*B1[0]*wv1-4.898979485566357*phi[3]+2.828427124746191*E2[0]); 
-  alpha_vdim[129] = dv12*((-2.828427124746191*B0[1]*wv2)+2.828427124746191*B1[1]*wv1-4.898979485566357*phi[5]+2.828427124746191*E2[1]); 
-  alpha_vdim[130] = dv12*((-2.828427124746191*B0[2]*wv2)+2.828427124746191*B1[2]*wv1-4.898979485566357*phi[6]+2.828427124746191*E2[2]); 
+  alpha_vdim[128] = dv12*((-2.828427124746191*B0[0]*wv2)+2.828427124746191*B1[0]*wv1-4.898979485566357*phi[3]*rdz2qDm+2.828427124746191*E2[0]); 
+  alpha_vdim[129] = dv12*((-2.828427124746191*B0[1]*wv2)+2.828427124746191*B1[1]*wv1-4.898979485566357*phi[5]*rdz2qDm+2.828427124746191*E2[1]); 
+  alpha_vdim[130] = dv12*((-2.828427124746191*B0[2]*wv2)+2.828427124746191*B1[2]*wv1-4.898979485566357*phi[6]*rdz2qDm+2.828427124746191*E2[2]); 
   alpha_vdim[131] = dv12*(2.828427124746191*(B1[3]*wv1+E2[3])-2.828427124746191*B0[3]*wv2); 
   alpha_vdim[132] = 0.8164965809277261*B1[0]*dv1*dv12; 
   alpha_vdim[133] = -0.8164965809277261*B0[0]*dv12*dv2; 
-  alpha_vdim[135] = dv12*((-2.828427124746191*B0[4]*wv2)+2.828427124746191*B1[4]*wv1-4.898979485566357*phi[7]+2.828427124746191*E2[4]); 
+  alpha_vdim[135] = dv12*((-2.828427124746191*B0[4]*wv2)+2.828427124746191*B1[4]*wv1-4.898979485566357*phi[7]*rdz2qDm+2.828427124746191*E2[4]); 
   alpha_vdim[136] = dv12*(2.828427124746191*(B1[5]*wv1+E2[5])-2.828427124746191*B0[5]*wv2); 
   alpha_vdim[137] = dv12*(2.828427124746191*(B1[6]*wv1+E2[6])-2.828427124746191*B0[6]*wv2); 
   alpha_vdim[138] = 0.8164965809277261*B1[1]*dv1*dv12; 

@@ -159,7 +159,7 @@ function Vlasov:volTerm(w, dx, idx, q, out)
          cflFreq = self._volUpdate(w:data(), dx:data(), self._emPtr:data(), q:data(), out:data())
       else
          self._phiField:fill(self._phiIdxr(idx), self._phiPtr)   -- Get pointer to the electrostatic potential.
-         cflFreq = self._volUpdate(w:data(), dx:data(), self._phiPtr:data(), self._emPtr:data(), q:data(), out:data())
+         cflFreq = self._volUpdate(w:data(), dx:data(), self._qbym, self._phiPtr:data(), self._emPtr:data(), q:data(), out:data())
       end
    else
       -- If no force, only update streaming term.
@@ -186,7 +186,7 @@ function Vlasov:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql
          else
 	   self._phiField:fill(self._phiIdxr(idxl), self._phiPtr)   -- Get pointer to the electrostatic potential.
 	    amax = self._surfForceUpdate[dir-self._cdim](
-	       wl:data(), wr:data(), dxl:data(), dxr:data(), maxs, self._phiPtr:data(),
+	       wl:data(), wr:data(), dxl:data(), dxr:data(), maxs, self._qbym, self._phiPtr:data(),
 	       self._emPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
          end
       end

@@ -43,10 +43,11 @@ calcVlasovPhiUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p, hasB) := bloc
   /* Specify a point to evaluate alpha at for use global Lax fluxes. */
   cflPt : makelist(varsP[d]=0, d, 1, length(varsP)),
 
-  printf(fh, "__host__ __device__ double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vvars[dir], p),
+  printf(fh, "__host__ __device__ double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double qDm, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vvars[dir], p),
   printf(fh, "  // w:         Cell-center coordinates.~%"),
   printf(fh, "  // dxv[NDIM]: Cell spacing.~%"),
   printf(fh, "  // amax:      amax in global lax flux.~%"),
+  printf(fh, "  // qDm:       Species charge (q) divided by its mass (m).~%"),
   printf(fh, "  // phi:       electrostatic potential.~%"),
   printf(fh, "  // EM:        external EM field vectors.~%"),
   printf(fh, "  // fl/fr:     Distribution function in left/right cells ~%"),
@@ -56,6 +57,9 @@ calcVlasovPhiUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p, hasB) := bloc
   cid : cidx(cdim),
   vid : vidx(cdim,vdim),
 
+  for d : 1 thru cdim do (
+    printf(fh, "  const double rd~a2qDm = 2.*qDm/dxvl[~a]; ~%", varsC[d], d-1)
+  ),
   printf(fh, "  double dv1~al = 2./dxvl[~a]; ~%", dir-1, vid[dir]),
   printf(fh, "  double dv1~ar = 2./dxvr[~a]; ~%", dir-1, vid[dir]),
   for d : 1 thru vdim do (
@@ -120,13 +124,13 @@ calcVlasovPhiUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p, hasB) := bloc
   /* Calculate the acceleration. */
   phi_e : doExpand1(phi,bC),
   if (dir = 1) then (
-    acc_e : -diff(phi_e,varsCall[1]) + doExpand1(Efld[1],bC),
+    acc_e : -rdx2qDm*diff(phi_e,varsCall[1]) + doExpand1(Efld[1],bC),
     if (hasB) then ( acc_e : acc_e + vvy*doExpand1(Bfld[3],bC) - vvz*doExpand1(Bfld[2],bC) )
   ) elseif (dir = 2) then (
-    acc_e : -diff(phi_e,varsCall[2]) + doExpand1(Efld[2],bC),
+    acc_e : -rdy2qDm*diff(phi_e,varsCall[2]) + doExpand1(Efld[2],bC),
     if (hasB) then ( acc_e : acc_e + vvz*doExpand1(Bfld[1],bC) - vvx*doExpand1(Bfld[3],bC) )
   ) else (
-    acc_e : -diff(phi_e,varsCall[3]) + doExpand1(Efld[3],bC),
+    acc_e : -rdz2qDm*diff(phi_e,varsCall[3]) + doExpand1(Efld[3],bC),
     if (hasB) then ( acc_e : acc_e + vvx*doExpand1(Bfld[2],bC) - vvy*doExpand1(Bfld[1],bC) )
   ),
   vzero(vdim) := if vdim = 1 then [vvy=0, vvz=0] elseif vdim = 2 then [vvz=0] else [],

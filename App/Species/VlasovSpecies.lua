@@ -81,7 +81,7 @@ function VlasovSpecies:allocMomCouplingFields()
 end
 
 
-function VlasovSpecies:createSolver(hasE, hasB, plasmaB)
+function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
    -- Run the KineticSpecies 'createSolver()' to initialize the
    -- collisions solver.
    VlasovSpecies.super.createSolver(self)
@@ -1136,7 +1136,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx)
       if self.computePlasmaB then
          self.momDensityCalc:advance(tCurr, {fIn}, { self.momDensity })
       else
-         self.nummDensityCalc:advance(tCurr, {fIn}, { self.numDensity })
+         self.numDensityCalc:advance(tCurr, {fIn}, { self.numDensity })
       end
       -- Indicate that the coupling moment has been computed.
       self.momentFlags[1] = true

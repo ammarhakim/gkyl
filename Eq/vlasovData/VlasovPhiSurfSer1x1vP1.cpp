@@ -1,15 +1,17 @@
 #include <VlasovModDecl.h> 
 
-__host__ __device__ double VlasovPhiSurf1x1vSer_VX_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
+__host__ __device__ double VlasovPhiSurf1x1vSer_VX_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double qDm, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
   // amax:      amax in global lax flux.
+  // qDm:       Species charge (q) divided by its mass (m).
   // phi:       electrostatic potential.
   // EM:        external EM field vectors.
   // fl/fr:     Distribution function in left/right cells 
   // outl/outr: output distribution function in left/right cells 
   // returns abs(amid) for use in determining amax in cfl and global lax flux 
+  const double rdx2qDm = 2.*qDm/dxvl[0]; 
   double dv10l = 2./dxvl[1]; 
   double dv10r = 2./dxvr[1]; 
   const double dv1 = dxvr[1], wv1 = wr[1]; 
@@ -23,7 +25,7 @@ __host__ __device__ double VlasovPhiSurf1x1vSer_VX_P1(const double *wl, const do
   favg[0] = (-1.224744871391589*fr[2])+1.224744871391589*fl[2]+0.7071067811865475*fr[0]+0.7071067811865475*fl[0]; 
   favg[1] = (-1.224744871391589*fr[3])+1.224744871391589*fl[3]+0.7071067811865475*fr[1]+0.7071067811865475*fl[1]; 
 
-  alpha[0] = E0[0]-1.732050807568877*phi[1]; 
+  alpha[0] = E0[0]-1.732050807568877*phi[1]*rdx2qDm; 
   alpha[1] = E0[1]; 
 
   const double amid = 0.7071067811865475*alpha[0]; 
@@ -44,16 +46,18 @@ __host__ __device__ double VlasovPhiSurf1x1vSer_VX_P1(const double *wl, const do
   return std::abs(amid); 
 } 
 
-__host__ __device__ double VlasovPhiBextSurf1x1vSer_VX_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
+__host__ __device__ double VlasovPhiBextSurf1x1vSer_VX_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double qDm, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
   // amax:      amax in global lax flux.
+  // qDm:       Species charge (q) divided by its mass (m).
   // phi:       electrostatic potential.
   // EM:        external EM field vectors.
   // fl/fr:     Distribution function in left/right cells 
   // outl/outr: output distribution function in left/right cells 
   // returns abs(amid) for use in determining amax in cfl and global lax flux 
+  const double rdx2qDm = 2.*qDm/dxvl[0]; 
   double dv10l = 2./dxvl[1]; 
   double dv10r = 2./dxvr[1]; 
   const double dv1 = dxvr[1], wv1 = wr[1]; 
@@ -67,7 +71,7 @@ __host__ __device__ double VlasovPhiBextSurf1x1vSer_VX_P1(const double *wl, cons
   favg[0] = (-1.224744871391589*fr[2])+1.224744871391589*fl[2]+0.7071067811865475*fr[0]+0.7071067811865475*fl[0]; 
   favg[1] = (-1.224744871391589*fr[3])+1.224744871391589*fl[3]+0.7071067811865475*fr[1]+0.7071067811865475*fl[1]; 
 
-  alpha[0] = E0[0]-1.732050807568877*phi[1]; 
+  alpha[0] = E0[0]-1.732050807568877*phi[1]*rdx2qDm; 
   alpha[1] = E0[1]; 
 
   const double amid = 0.7071067811865475*alpha[0]; 

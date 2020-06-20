@@ -1,15 +1,17 @@
 #include <VlasovModDecl.h> 
 
-__host__ __device__ double VlasovPhiVol1x2vSerP1(const double *w, const double *dxv, const double *phi, const double *EM, const double *f, double *out) 
+__host__ __device__ double VlasovPhiVol1x2vSerP1(const double *w, const double *dxv, const double qDm, const double *phi, const double *EM, const double *f, double *out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
+  // qDm:       Species charge (q) divided by its mass (m).
   // phi:       Input phi-field.
   // EM:        Input (external) EM field vectors.
   // f:         Input distribution function.
   // out:       Incremented output.
   const double dv0dx0 = dxv[1]/dxv[0]; 
   const double w0dx0 = w[1]/dxv[0]; 
+  const double rdx2qDm = 2.*qDm/dxv[0]; 
   const double dv10 = 2./dxv[1]; 
   const double dv1 = dxv[1], wv1 = w[1]; 
   const double dv11 = 2./dxv[2]; 
@@ -26,7 +28,7 @@ __host__ __device__ double VlasovPhiVol1x2vSerP1(const double *w, const double *
   alpha_cdim[2] = 1.632993161855453*dv0dx0; 
   alpha_mid += std::abs(w0dx0)+0.5*dv0dx0; 
 
-  alpha_vdim[0] = (2.0*E0[0]-3.464101615137754*phi[1])*dv10; 
+  alpha_vdim[0] = dv10*(2.0*E0[0]-3.464101615137754*phi[1]*rdx2qDm); 
   alpha_vdim[1] = 2.0*E0[1]*dv10; 
   alpha_mid += std::abs(0.1767766952966368*alpha_vdim[0]); 
 
@@ -45,16 +47,18 @@ __host__ __device__ double VlasovPhiVol1x2vSerP1(const double *w, const double *
   return alpha_mid; 
 } 
 
-__host__ __device__ double VlasovPhiBextVol1x2vSerP1(const double *w, const double *dxv, const double *phi, const double *EM, const double *f, double *out) 
+__host__ __device__ double VlasovPhiBextVol1x2vSerP1(const double *w, const double *dxv, const double qDm, const double *phi, const double *EM, const double *f, double *out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
+  // qDm:       Species charge (q) divided by its mass (m).
   // phi:       Input phi-field.
   // EM:        Input (external) EM field vectors.
   // f:         Input distribution function.
   // out:       Incremented output.
   const double dv0dx0 = dxv[1]/dxv[0]; 
   const double w0dx0 = w[1]/dxv[0]; 
+  const double rdx2qDm = 2.*qDm/dxv[0]; 
   const double dv10 = 2./dxv[1]; 
   const double dv1 = dxv[1], wv1 = w[1]; 
   const double dv11 = 2./dxv[2]; 
@@ -72,7 +76,7 @@ __host__ __device__ double VlasovPhiBextVol1x2vSerP1(const double *w, const doub
   alpha_cdim[2] = 1.632993161855453*dv0dx0; 
   alpha_mid += std::abs(w0dx0)+0.5*dv0dx0; 
 
-  alpha_vdim[0] = dv10*(2.0*B2[0]*wv2-3.464101615137754*phi[1]+2.0*E0[0]); 
+  alpha_vdim[0] = dv10*(2.0*B2[0]*wv2-3.464101615137754*phi[1]*rdx2qDm+2.0*E0[0]); 
   alpha_vdim[1] = 2.0*dv10*(B2[1]*wv2+E0[1]); 
   alpha_vdim[3] = 0.5773502691896258*B2[0]*dv10*dv2; 
   alpha_vdim[5] = 0.5773502691896258*B2[1]*dv10*dv2; 

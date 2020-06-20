@@ -6,6 +6,8 @@ void MGpoissonESenergyDG1xSer_P1(const double *dx, double *phi, double *out)
   // phiFld: electrostatic potential.
   // out:    energy out.
 
-  out[0] += (12.0*(phi[1]*phi[1]))/(dx[0]*dx[0]); 
+  const double volFac = 0.5*dx[0]; 
+
+  out[0] += (12.0*(phi[1]*phi[1])*volFac)/(dx[0]*dx[0]); 
 }
 

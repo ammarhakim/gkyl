@@ -429,12 +429,12 @@ function MaxwellField:createDiagnostics()
 end
 
 function MaxwellField:initField(species)
-   local project = Updater.ProjectOnBasis {
-      onGrid = self.grid,
-      basis = self.basis,
-      evaluate = self.initFunc
-   }
    if self.hasMagField then   -- Maxwell's induction equations.
+      local project = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = self.initFunc
+      }
       project:advance(0.0, {}, {self.em[1]})
       self:applyBc(0.0, self.em[1])
    else   -- Poisson equation. Solve for initial phi.
@@ -503,7 +503,7 @@ function MaxwellField:copyRk(outIdx, aIdx)
 end
 -- For RK timestepping
 function MaxwellField:combineRk(outIdx, a, aIdx, ...)
-   if self:rkStepperFields()[aIdx] then 
+   if self:rkStepperFields()[aIdx] and self.hasMagField then 
       local args  = {...} -- Package up rest of args as table.
       local nFlds = #args/2
       self:rkStepperFields()[outIdx]:combine(a, self:rkStepperFields()[aIdx])
@@ -514,12 +514,16 @@ function MaxwellField:combineRk(outIdx, a, aIdx, ...)
 end
 
 function MaxwellField:suggestDt()
-   return math.min(self.cfl/self.cflRateByCell:reduce('max')[1], GKYL_MAX_DOUBLE)
+   if self.hasMagField then 
+      return math.min(self.cfl/self.cflRateByCell:reduce('max')[1], GKYL_MAX_DOUBLE)
+   else
+      return GKYL_MAX_DOUBLE
+   end
 end
 
 function MaxwellField:clearCFL()
    -- Clear cflRateByCell for next cfl calculation.
-   self.cflRateByCell:clear(0.0)
+   if self.hasMagField then self.cflRateByCell:clear(0.0) end
 end
 
 function MaxwellField:accumulateCurrent(current, emRhs)
