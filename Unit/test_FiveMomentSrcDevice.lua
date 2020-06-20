@@ -230,7 +230,7 @@ function doTest1(scheme, dtFrac)
       end
    end
 
-   print("cpu scheme", scheme)
+   print("cpu scheme", scheme, "gpu scheme", srcUpdater.gpu_scheme)
    print(string.format("Total CPU time for %d FiveMomentSrc calls = %f s   (average = %f s)", nx, totalCpuTime, totalCpuTime/nx))
    print(string.format("Total GPU time for %d FiveMomentSrc calls = %f s   (average = %f s)", nx, totalGpuTime, totalGpuTime/nx))
    print(string.format("GPU speed-up = %fx!", totalCpuTime/totalGpuTime))
