@@ -286,7 +286,7 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
   const double Bx = (em[BX]);
   const double By = (em[BY]);
   const double Bz = (em[BZ]);
-  const double Bmag = std::sqrt(Bx*Bx + By*By + Bz*Bz);
+  const double Bmag = sqrt(Bx*Bx + By*By + Bz*Bz);
   double b[] = {0, 0, 0};
   if (Bmag > 0)
   {
