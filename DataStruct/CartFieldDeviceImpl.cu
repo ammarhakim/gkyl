@@ -108,7 +108,7 @@ void gkylCartFieldDeviceAbs(int numBlocks, int numThreads, unsigned s, unsigned 
   ker_gkylCartFieldAbs<<<numBlocks, numThreads>>>(s, nv, out);
 }
 
-void gkylPeriodicCopy(int numBlocks, int numThreads, GkylRange_t *rangeSkin, GkylRange_t *rangeGhost, GkylCartField_t *f, unsigned numComponents)
+void gkylDevicePeriodicCopy(int numBlocks, int numThreads, GkylRange_t *rangeSkin, GkylRange_t *rangeGhost, GkylCartField_t *f, unsigned numComponents)
 {
   ker_gkylPeriodicCopy<<<numBlocks, numThreads>>>(rangeSkin, rangeGhost, f, numComponents);
 }

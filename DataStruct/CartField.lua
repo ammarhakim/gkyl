@@ -33,6 +33,17 @@ end
 
 -- C interfaces
 ffi.cdef [[
+    typedef struct {
+        int ndim;
+        int elemSize;
+        int numComponents;
+        GkylRange_t *localRange, *localExtRange;
+        GkylRange_t *localEdgeRange, *localExtEdgeRange;
+        GkylRange_t *globalRange, *globalExtRange;
+        GkylRectCart_t *grid;
+        double *_data;
+    } GkylCartField_t;
+
     // s: start index. nv: number of values.
     void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out);
@@ -48,28 +59,16 @@ ffi.cdef [[
     void gkylCartFieldAccumulateOffset(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out);
 
     void gkylCartFieldDeviceAccumulate(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, const double *inp, double *out);
+    void gkylCartFieldDeviceAccumulateOffset(int numBlocks, int numThreads, unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out);
     void gkylCartFieldDeviceAssign(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldDeviceScale(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, double *out);
     void gkylCartFieldDeviceAbs(int numBlocks, int numThreads, unsigned s, unsigned nv, double *out);
 
-    // copy component data from/to field
-    void gkylCopyFromFieldDevice(int numBlocks, int numThreads, double *data, double *f, unsigned numComponents, unsigned c);
-    void gkylCopyToFieldDevice(int numBlocks, int numThreads, double *f, double *data, unsigned numComponents, unsigned c);
+    // copy periodic boundary conditions when using only one GPU
+    void gkylDevicePeriodicCopy(int numBlocks, int numThreads, GkylRange_t *rangeSkin, GkylRange_t *rangeGhost, GkylCartField_t *f, unsigned numComponents);
 
     // Assign all elements to specified value.
     void gkylCartFieldDeviceAssignAll(int numBlocks, int numThreads, unsigned s, unsigned nv, double val, double *out);
-
-    typedef struct {
-        int ndim;
-        int elemSize;
-        int numComponents;
-        GkylRange_t *localRange, *localExtRange;
-        GkylRange_t *localEdgeRange, *localExtEdgeRange;
-        GkylRange_t *globalRange, *globalExtRange;
-        GkylRectCart_t *grid;
-        double *_data;
-    } GkylCartField_t;
-
 ]]
 
 if GKYL_HAVE_CUDA then
@@ -387,8 +386,9 @@ local function Field_meta_ctor(elct)
       self._sendUpperPerMPILoc, self._recvUpperPerMPILoc = {}, {}
 
       -- create buffers for periodic copy if Mpi.Comm_size(nodeComm) = 1
-      if Mpi.Comm_size(nodeComm) == 1 then
-          self._lowerPeriodicBuff, self._upperPeriodicBuff = {}, {}
+      -- note that since nodeComm is only valid on shmComm = 0, need to check whether this is a valid comm
+      if Mpi.Is_comm_valid(nodeComm) and Mpi.Comm_size(nodeComm) == 1 then
+         self._lowerPeriodicBuff, self._upperPeriodicBuff = {}, {}
       end
 
       -- Following loop creates Datatypes for periodic
@@ -407,7 +407,7 @@ local function Field_meta_ctor(elct)
                -- memory needed for periodic boundary conditions and we do not need MPI Datatypes.
 	       if myId == loId then
 		  local rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
-                  if Mpi.Comm_size(nodeComm) == 1 then
+                  if Mpi.Is_comm_valid(nodeComm) and Mpi.Comm_size(nodeComm) == 1 then
                      local szSend = rgnSend:volume()*self._numComponents
                      self._lowerPeriodicBuff[dir] = allocator(shmComm, szSend)
                   end
@@ -426,7 +426,7 @@ local function Field_meta_ctor(elct)
 	       end
 	       if myId == upId then
 		  local rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
-                  if Mpi.Comm_size(nodeComm) == 1 then
+                  if Mpi.Is_comm_valid(nodeComm) and Mpi.Comm_size(nodeComm) == 1 then
                      local szSend = rgnSend:volume()*self._numComponents
                      self._upperPeriodicBuff[dir] = allocator(shmComm, szSend)
                   end
@@ -634,7 +634,21 @@ local function Field_meta_ctor(elct)
 	    end
 	 end or
 	 function (self, c1, fld1, ...)
-	    assert(false, "CartField:accumulate: Accumulate only works on numeric fields")
+	    assert(false, "CartField:deviceAccumulate: Accumulate only works on numeric fields")
+	 end,
+      deviceAccumulateOffset = isNumberType and
+	 function (self, c1, fld1, compStart1, ...)
+            if self._devAllocData then
+	       local args = {...} -- package up rest of args as table
+	       local nFlds = #args/3
+	       self:_deviceAccumulateOffsetOneFld(c1, fld1, compStart1) -- accumulate first field
+	       for i = 1, nFlds do -- accumulate rest of the fields
+	          self:_deviceAccumulateOffsetOneFld(args[3*i-2], args[3*i-1], args[3*i])
+	       end
+            end
+	 end or
+	 function (self, c1, fld1, compStart1, ...)
+	    assert(false, "CartField:deviceAccumulateOffset: Accumulate only works on numeric fields")
 	 end,
       combine = isNumberType and
          function (self, c1, fld1, ...)
@@ -842,7 +856,7 @@ local function Field_meta_ctor(elct)
                   local numBlocks = math.floor(shape/numThreads)+1
 
                   -- Copy lower skin cells into upper ghost cells.
-                  ffiC.gkylPeriodicCopy(numBlocks, numThreads, skinRgnUpper, ghostRgnUpper, self:deviceDataPointer(), self._numComponents)
+                  ffiC.gkylDevicePeriodicCopy(numBlocks, numThreads, skinRgnUpper, ghostRgnUpper, self._onDevice, self._numComponents)
 
 	          -- Now do the same, but for the skin cells for the lower ghost region (the upper skin cells).
                   local skinRgnLower = decomposedRange:subDomain(1):upperSkin(dir, self._lowerGhost)
@@ -854,7 +868,7 @@ local function Field_meta_ctor(elct)
                   numBlocks = math.floor(shape/numThreads)+1
 
                   -- Copy lower skin cells into upper ghost cells.
-                  ffiC.gkylPeriodicCopy(numBlocks, numThreads, skinRgnLower, ghostRgnLower, self:deviceDataPointer(), self._numComponents)
+                  ffiC.gkylDevicePeriodicCopy(numBlocks, numThreads, skinRgnLower, ghostRgnLower, self._onDevice, self._numComponents)
                end
             end
          end
