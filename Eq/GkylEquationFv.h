@@ -39,12 +39,12 @@ extern "C"  {
       double * __restrict__ fOut);
 
   typedef struct {
+    int numWaves;
+    int numEquations;
     void *equation;
     rp_t equationRp;
     qFluctuations_t equationQFluctuations;
     flux_t equationFlux;
-    int numWaves;
-    int numEquations;
 
     __host__ __device__ void rp(
         const int dir,

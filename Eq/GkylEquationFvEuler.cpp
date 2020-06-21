@@ -7,14 +7,14 @@
 
 #include <GkylEquationFvEuler.h>
 
-__device__ inline static double Euler_pressure(
+__host__ __device__ inline double Euler_pressure(
     const double gasGamma,
     const double * __restrict__ q)
 {
   return (gasGamma-1)*(q[4]-0.5*(q[1]*q[1]+q[2]*q[2]+q[3]*q[3])/q[0]);
 }
 
-__device__ static void Euler_rp(
+__host__ __device__ void Euler_rp(
     const void * __restrict__ eqn,
     const int dir,
     const double * __restrict__ ql,
@@ -46,7 +46,7 @@ __device__ static void Euler_rp(
 }
 __device__ static const rp_t p_Euler_rp = &Euler_rp;
 
-__device__ static void Euler_qFluctuations(
+__host__ __device__ void Euler_qFluctuations(
     const void * __restrict__ eqn,
     const int dir,
     const double * __restrict__ ql,
@@ -98,7 +98,7 @@ __device__ static void Euler_qFluctuations(
 __device__ static const qFluctuations_t p_Euler_qFluctuations = 
   &Euler_qFluctuations;
 
-__device__ static void Euler_flux(
+__host__ __device__ void Euler_flux(
     const void * __restrict__ eqn,
     const int dir,
     const double * __restrict__ qIn,
@@ -116,6 +116,20 @@ __device__ static void Euler_flux(
 }
 __device__ static const flux_t p_Euler_flux = &Euler_flux;
 
+GkylEquationFvEuler_t *new_EquationFvEulerOnHost(const double gasGamma)
+{
+  const int numEquations = 5; 
+  const int numWaves = 1;
+
+  GkylEquationFvEuler_t *eulerEqn = new GkylEquationFvEuler_t;
+
+  eulerEqn->numWaves = numWaves;
+  eulerEqn->numEquations = numEquations;
+  eulerEqn->gasGamma = gasGamma;
+
+  return eulerEqn;
+}
+
 GkylEquationFv_t *new_EquationFvEulerOnDevice(const double gasGamma)
 {
   const int numEquations = 5; 
@@ -124,6 +138,8 @@ GkylEquationFv_t *new_EquationFvEulerOnDevice(const double gasGamma)
   GkylEquationFv_t *eqn = new GkylEquationFv_t;
   GkylEquationFvEuler_t *eulerEqn = new GkylEquationFvEuler_t;
 
+  eulerEqn->numWaves = numWaves;
+  eulerEqn->numEquations = numEquations;
   eulerEqn->gasGamma = gasGamma;
 
   eqn->numWaves = numWaves;
