@@ -106,12 +106,6 @@ __global__ void cuda_WavePropagation(
   const int meqn = eq->numEquations;
   const int mwave = eq->numWaves;
 
-  // XXX use meqn and mwave
-  double amdq[5];
-  double apdq[5];
-
-  // declaring this dummy array shared seems to alleviate register pressure and
-  // improve performance a bit
   extern __shared__ double dummy[];
   int linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
 
@@ -139,11 +133,21 @@ __global__ void cuda_WavePropagation(
   base += (meqn) * (blockDim.x + 1);
   double *fluxSlice = dummy + baseFluxSlice;
 
+  const int baseAmdqSlice = base;
+  base += (meqn) * (blockDim.x);
+  double *amdqSlice = dummy + baseAmdqSlice;
+
+  const int baseApdqSlice = base;
+  base += (meqn) * (blockDim.x);
+  double *apdqSlice = dummy + baseApdqSlice;
+
   // find buffer addresses for each thread
   double *waves = waveSlice + (meqn * mwave) * (threadIdx.x+1);
   double *speeds = speedSlice + (mwave) * (threadIdx.x+1);
   double *limitedWaves = limitedWaveSlice + (meqn * mwave) * (threadIdx.x);
   double *flux = fluxSlice + (meqn) * (threadIdx.x);
+  double *amdq = amdqSlice + (meqn) * (threadIdx.x);
+  double *apdq = apdqSlice + (meqn) * (threadIdx.x);
 
   int idxC[3];
   int idxL[3];
@@ -279,12 +283,9 @@ __global__ void cuda_WavePropagation(
 }
 
 void wavePropagationAdvanceOnDevice(
-  int numBlocks, int numThreads, GkylWavePropagation_t *hyper,
-  GkylCartField_t *qIn, GkylCartField_t *qOut)
+  const int meqn, const int mwave, const int numBlocks, const int numThreads,
+  GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut)
 {
-  // XXX
-  const int meqn = 5; // eq->numEquations();
-  const int mwave = 1; // eq->numWaves();
   int sharedMemSize = 0;
   // numThreads == numRealCellsPerBlock
   // speeds & waves are needed on all real-real, real-ghost, and ghost-ghost
@@ -292,6 +293,8 @@ void wavePropagationAdvanceOnDevice(
   sharedMemSize += (numThreads+3) * (mwave+mwave*meqn);
   // limitedWaves and 2nd-order flux are needed on real-real & real-ghost faces
   sharedMemSize += (numThreads+1) * (meqn+meqn);
+  // amdq & apdq
+  sharedMemSize += (numThreads) * (2*meqn);
   sharedMemSize *= sizeof(double);
 
   cudaFuncSetAttribute(
