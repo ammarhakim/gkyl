@@ -9,8 +9,7 @@
 
 // Gkyl includes
 #include <GkylCudaConfig.h>
-#include <GkylEquation.h>
-#include <GkylEuler.h>
+#include <GkylEquationFv.h>
 #include <GkylCartField.h>
 
 extern "C" 
@@ -21,7 +20,7 @@ extern "C"
       double dt;
       double _cfl;
       double _cflm;
-      Gkyl::Euler *equation;
+      GkylEquationFv_t *equation;
       GkylCartField_t *dtByCell;
   } GkylWavePropagation_t;
     

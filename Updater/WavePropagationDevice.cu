@@ -1,6 +1,6 @@
 #include <cstdio>
 #include <GkylWavePropagation.h>
-#include <GkylEuler.h>
+#include <GkylEquationFv.h>
 
 __device__ static void calcDelta(
   const double *ql, const double *qr, double *delta, const int meqn)
@@ -113,11 +113,11 @@ __global__ void cuda_WavePropagation(
   GkylRectCart_t *grid = qIn->grid;
   int *updateDirs = hyper->updateDirs;
   int numUpdateDirs = hyper->numUpdateDirs;
-  Gkyl::Euler *eq = hyper->equation;
+  GkylEquationFv_t *eq = hyper->equation;
   GkylCartField_t *dtByCell = hyper->dtByCell;
 
-  const int meqn = eq->numEquations();
-  const int mwave = eq->numWaves();
+  const int meqn = eq->numEquations;
+  const int mwave = eq->numWaves;
 
   // XXX use meqn and mwave
   double delta[5];
@@ -308,7 +308,6 @@ void wavePropagationAdvanceOnDevice(
   int numBlocks, int numThreads, GkylWavePropagation_t *hyper,
   GkylCartField_t *qIn, GkylCartField_t *qOut)
 {
-  Gkyl::Euler *eq = hyper->equation;
   // XXX
   const int meqn = 5; // eq->numEquations();
   const int mwave = 1; // eq->numWaves();

@@ -42,6 +42,10 @@ typedef struct {
      GkylEuler *eq, const int dir, const double *ql, const double *qr,
      const double *waves, const double *s, double *amdq, double *apdq);
   void flux_Euler(GkylEuler *eq, const int dir, const double *qIn, double *fOut);
+
+  // new EquatioFv
+  typedef struct GkylEquationFv_t GkylEquationFv_t;
+  GkylEquationFv_t *new_EquationFvEulerOnDevice(const int gasGamma);
 ]]
 
 -- Resuffle indices for various direction Riemann problem. The first
@@ -287,7 +291,8 @@ end
 
 function Euler:initDevice(tbl)
    self._onHost = ffi.C.new_Euler(self._gasGamma)
-   self._onDevice = ffi.C.new_Euler_onDevice(self._onHost)
+   self._onDeviceOld = ffi.C.new_Euler_onDevice(self._onHost)
+   self._onDevice = ffi.C.new_EquationFvEulerOnDevice(tbl.gasGamma)
 end
 
 function Euler:numEquationsCImpl()
