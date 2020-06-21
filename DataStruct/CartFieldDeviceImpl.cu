@@ -49,7 +49,7 @@ __global__ void ker_gkylCartFieldAbs(unsigned s, unsigned nv, double *out)
     out[n] = fabs(out[n]);
 }
 
-__global__ void ker_gkylPeriodicCopy(GkylRange_t *rangeSkin, GkylRange_t *rangeGhost, double *f, unsigned numComponents) 
+__global__ void ker_gkylPeriodicCopy(GkylRange_t *rangeSkin, GkylRange_t *rangeGhost, GkylCartField_t *f, unsigned numComponents) 
 {
   // set up indexers for prescribed rangeSkin, rangeGhost, and f
   Gkyl::GenIndexer localIdxrSkin(rangeSkin);
@@ -69,7 +69,7 @@ __global__ void ker_gkylPeriodicCopy(GkylRange_t *rangeSkin, GkylRange_t *rangeG
   const int linearIdxGhost = fIdxr.index(idxGhost);
 
   const double *fSkin = f->getDataPtrAt(linearIdxSkin);
-  const double *fGhost = f->getDataPtrAt(linearIdxGhost);
+  double *fGhost = f->getDataPtrAt(linearIdxGhost);
 
   // Copy the appropriate skin cell data into the corresponding ghost cells.
   for (unsigned k=0; k<numComponents; ++k) {
@@ -108,7 +108,7 @@ void gkylCartFieldDeviceAbs(int numBlocks, int numThreads, unsigned s, unsigned 
   ker_gkylCartFieldAbs<<<numBlocks, numThreads>>>(s, nv, out);
 }
 
-void gkylPeriodicCopy(int numBlocks, int numThreads, GkylRange_t *rangeSkin, GkylRange_t *rangeGhost, double *f, unsigned numComponents)
+void gkylPeriodicCopy(int numBlocks, int numThreads, GkylRange_t *rangeSkin, GkylRange_t *rangeGhost, GkylCartField_t *f, unsigned numComponents)
 {
   ker_gkylPeriodicCopy<<<numBlocks, numThreads>>>(rangeSkin, rangeGhost, f, numComponents);
 }
