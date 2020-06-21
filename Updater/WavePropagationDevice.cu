@@ -1,6 +1,5 @@
 #include <cstdio>
 #include <GkylWavePropagation.h>
-#include <GkylEquationFv.h>
 
 __device__ static void calcFirstOrderGud(
   const double dtdx, double *ql, double *qr, const double *amdq,
@@ -9,8 +8,7 @@ __device__ static void calcFirstOrderGud(
   for (int i = 0; i< meqn; i++) {
     /* qr[i] -= dtdx * apdq[i]; */
     /* ql[i] -= dtdx * amdq[i]; */
-    // XXX calling __threadfence_system() between two calcFirstOrderGud dummy
-    // calls fails occasionally with small numThreads
+    // XXX
     atomicAdd(qr+i, -dtdx * apdq[i]);
     atomicAdd(ql+i, -dtdx * amdq[i]);
   }
@@ -93,18 +91,15 @@ __device__ static void copyComponents(
 __global__ void cuda_WavePropagation(
   GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut)
 {
-
   GkylRange_t *localRange = qIn->localRange;
-  int ndim = localRange->ndim;
-
-  // set up indexers for localRange and qIn (localExtRange)
-  Gkyl::GenIndexer localIdxr(localRange);
   Gkyl::GenIndexer fIdxr = qIn->genIndexer();
-
-  // get setup data from GkylWavePropagation_t structure
   GkylRectCart_t *grid = qIn->grid;
-  int *updateDirs = hyper->updateDirs;
-  int numUpdateDirs = hyper->numUpdateDirs;
+
+  const int ndim = localRange->ndim;
+  Gkyl::GenIndexer localIdxr(localRange);
+
+  const int *updateDirs = hyper->updateDirs;
+  const int numUpdateDirs = hyper->numUpdateDirs;
   GkylEquationFv_t *eq = hyper->equation;
   GkylCartField_t *dtByCell = hyper->dtByCell;
 
@@ -184,10 +179,8 @@ __global__ void cuda_WavePropagation(
       idxL[d] = idxC[d];
       idxR[d] = idxC[d];
     }
-    // XXX firstOrder stuff is over extended edges, but idxC was calculated
-    // from localIdxr.invIndex
     idxL[dir] = idxC[dir] - 1;
-    idxR[dir] = idxC[dir] - 0;
+    idxR[dir] = idxC[dir];
 
     const int linearIdxL = fIdxr.index(idxL);
     const int linearIdxR = fIdxr.index(idxR);
@@ -200,15 +193,8 @@ __global__ void cuda_WavePropagation(
     if(linearIdx < localRange->volume()) {
       eq->rp(dir, qInL, qInR, waves, speeds);
       eq->qFluctuations(dir, qInL, qInR, waves, speeds, amdq, apdq);
-
       calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq, meqn);
-      // XXX following fails with small numThreads
-      /* calcFirstOrderGud(dtdx, qOutL, dummy, amdq, apdq, meqn); */
-      /* __threadfence_system(); */
-      /* calcFirstOrderGud(dtdx, dummy, qOutR, amdq, apdq, meqn); */
-
       cfla = calcCfla(cfla, dtdx, speeds, mwave);
-
       copyComponents(waves, limitedWaves, meqn * mwave);
 
       // can we avoid branching?
@@ -237,6 +223,7 @@ __global__ void cuda_WavePropagation(
           const int linearIdxR = fIdxr.index(idxR);
           const double *qInL = qIn->getDataPtrAt(linearIdxL);
           const double *qInR = qIn->getDataPtrAt(linearIdxR);
+
           eq->rp(dir, qInL, qInR, waves+inc*meqn*mwave, speeds+inc*mwave);
           cfla = calcCfla(cfla, dtdx, speeds+inc*mwave, mwave);
           copyComponents(waves+inc*meqn*mwave, limitedWaves+inc*meqn*mwave, meqn * mwave);

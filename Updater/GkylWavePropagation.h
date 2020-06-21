@@ -9,14 +9,14 @@
 
 // Gkyl includes
 #include <GkylCudaConfig.h>
-#include <GkylEquationFv.h>
 #include <GkylCartField.h>
+#include <GkylEquationFv.h>
 
 extern "C" 
 {
   typedef struct {
       int updateDirs[6];
-      int32_t numUpdateDirs;
+      int numUpdateDirs;
       double dt;
       double _cfl;
       double _cflm;
