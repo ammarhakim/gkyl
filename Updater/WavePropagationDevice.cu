@@ -106,48 +106,36 @@ __global__ void cuda_WavePropagation(
   const int meqn = eq->numEquations;
   const int mwave = eq->numWaves;
 
-  extern __shared__ double dummy[];
   int linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
 
   // assign buffer space for different usages
+  extern __shared__ double dummy[];
   int base = 0;
 
   // numThreads == numRealCells
-  // waveSlice and speedSlice are defined on ghost-ghost, ghost-real, and
-  // real-real faces, thus the +3
-  const int baseWaveSlice = base;
+  // waves and speeds are defined on ghost-ghost, ghost-real, and
+  // real-real faces, thus the jump is blockDim.x+3;
+  // also, the 0th thread will work on one more Rp on its left, thus the address
+  // for its own waves/speeds is threadIdx.x+1 (not threadIdx.x)
+  double *waves = dummy + base + (meqn * mwave) * (threadIdx.x+1);
   base += (meqn * mwave) * (blockDim.x + 3);
-  double *waveSlice = dummy + baseWaveSlice;
 
-  const int baseSpeedSlice = base;
+  double *speeds = dummy + base + (mwave) * (threadIdx.x+1);
   base += (mwave) * (blockDim.x + 3);
-  double *speedSlice = dummy + baseSpeedSlice;
 
-  // limitedWaves and second-order fluxSlice are defiend on ghost-real and
-  // real-real faces, thus the +1
-  const int baseLimitedWaveSlice = base;
+  // limitedWaves and second-order fluxs are defiend on ghost-real and
+  // real-real faces, thus the jump is blockDim.x+1
+  double *limitedWaves = dummy + base + (meqn * mwave) * (threadIdx.x);
   base += (meqn * mwave) * (blockDim.x + 1);
-  double *limitedWaveSlice = dummy + baseLimitedWaveSlice;
 
-  const int baseFluxSlice = base;
+  double *flux = dummy + base + (meqn) * (threadIdx.x);
   base += (meqn) * (blockDim.x + 1);
-  double *fluxSlice = dummy + baseFluxSlice;
 
-  const int baseAmdqSlice = base;
+  double *amdq = dummy + base + (meqn) * (threadIdx.x);
   base += (meqn) * (blockDim.x);
-  double *amdqSlice = dummy + baseAmdqSlice;
 
-  const int baseApdqSlice = base;
+  double *apdq = dummy + base + (meqn) * (threadIdx.x);
   base += (meqn) * (blockDim.x);
-  double *apdqSlice = dummy + baseApdqSlice;
-
-  // find buffer addresses for each thread
-  double *waves = waveSlice + (meqn * mwave) * (threadIdx.x+1);
-  double *speeds = speedSlice + (mwave) * (threadIdx.x+1);
-  double *limitedWaves = limitedWaveSlice + (meqn * mwave) * (threadIdx.x);
-  double *flux = fluxSlice + (meqn) * (threadIdx.x);
-  double *amdq = amdqSlice + (meqn) * (threadIdx.x);
-  double *apdq = apdqSlice + (meqn) * (threadIdx.x);
 
   int idxC[3];
   int idxL[3];
