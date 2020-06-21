@@ -15,7 +15,6 @@ local Alloc = require "Lib.Alloc"
 local Basis = require "Basis"
 local DataStruct = require "DataStruct"
 local Grid = require "Grid"
-local Mpi = require "Comm.Mpi"
 local Time = require "Lib.Time"
 local Unit = require "Unit"
 local cuda = require "Cuda.RunTime"
@@ -25,13 +24,6 @@ local ffi = require "ffi"
 local assert_equal = Unit.assert_equal
 local assert_close = Unit.assert_close
 local stats = Unit.stats
-
-function log(msg)
-   local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
-   if rank == 0 then
-      print(msg)
-   end
-end
 
 ffi.cdef [[
   void unit_showFieldRange(GkylCartField_t *f, double *g);
@@ -369,12 +361,8 @@ local function test_deviceReduce(nIter, reportTiming)
    sumVal_gpu:delete()
 end
 
--- This test synchronizes periodic boundary conditions on a single GPU (since we call the sync method even when only using one MPI process).
+-- This test synchronizes periodic boundary conditions on a single GPU (performs a copy from the skin cells to the ghost cells).
 function test_6()
-   if not Mpi.Query_cuda_support() then
-      log("Test for sync on device not run as no support for CUDA-aware MPI")
-      return
-   end
    
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},
@@ -402,7 +390,7 @@ function test_6()
    assert_equal(0, err, "Checking if copy to device worked")
 
    -- synchronize periodic directions on device
-   field:deviceSync() -- sync field
+   field:devicePeriodicCopy() -- sync field
 
    -- copy data back for checking.
    field:copyDeviceToHost()
@@ -419,6 +407,66 @@ function test_6()
 
 end
 
+function test_7()
+   local grid = Grid.RectCart {
+      lower = {0.0},
+      upper = {1.0},
+      cells = {1000},
+   }
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 8,
+      ghost = {1, 2},
+      createDeviceCopy = true,
+   }
+   local field2 = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+      ghost = {1, 2},
+      createDeviceCopy = true,
+   }
+
+   local localRange = field:localRange()
+   local indexer = field:indexer()
+   for i = localRange:lower(1), localRange:upper(1) do
+      local fitr = field:get(indexer(i))
+      fitr[1] = i+1
+      fitr[2] = i+2
+      fitr[3] = i+3
+      fitr[4] = i+4
+      fitr[5] = i+5
+      fitr[6] = i+6
+      fitr[7] = i+7
+      fitr[8] = i+8
+   end
+
+   -- copy stuff to device
+   local err = field:copyHostToDevice()
+   local err2 = field2:copyHostToDevice()
+   assert_equal(0, err, "Checking if copy to device worked")
+   assert_equal(0, err2, "Checking if copy to device worked")
+
+   field:deviceScale(-0.5)
+   field:deviceAbs()
+   field2:deviceClear(1.0)
+   field:deviceAccumulateOffset(2.0, field2, 0, 0.5, field2, 5)
+   field:copyDeviceToHost()
+
+   if GKYL_HAVE_CUDA then
+      for i = localRange:lower(1), localRange:upper(1) do
+	 local fitr = field:get(indexer(i))
+	 assert_equal(0.5*(i+1)+2.0, fitr[1], "Checking deviceScale")
+	 assert_equal(0.5*(i+2)+2.0, fitr[2], "Checking deviceScale")
+	 assert_equal(0.5*(i+3)+2.0, fitr[3], "Checking deviceScale")
+	 assert_equal(0.5*(i+4), fitr[4], "Checking deviceScale")
+	 assert_equal(0.5*(i+5), fitr[5], "Checking deviceScale")
+	 assert_equal(0.5*(i+6)+0.5, fitr[6], "Checking deviceScale")
+	 assert_equal(0.5*(i+7)+0.5, fitr[7], "Checking deviceScale")
+	 assert_equal(0.5*(i+8)+0.5, fitr[8], "Checking deviceScale")
+      end
+   end
+end
+
 test_1()
 test_2()
 test_3()
@@ -427,6 +475,7 @@ test_5()
 test_deviceReduce(1, false)
 
 test_6()
+test_7()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
