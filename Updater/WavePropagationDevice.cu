@@ -2,14 +2,6 @@
 #include <GkylWavePropagation.h>
 #include <GkylEquationFv.h>
 
-__device__ static void calcDelta(
-  const double *ql, const double *qr, double *delta, const int meqn)
-{
-  for (int i = 0; i < meqn; i++) {
-    delta[i] = qr[i] - ql[i];
-  }
-}
-
 __device__ static void calcFirstOrderGud(
   const double dtdx, double *ql, double *qr, const double *amdq,
   const double *apdq, const int meqn)
@@ -120,7 +112,6 @@ __global__ void cuda_WavePropagation(
   const int mwave = eq->numWaves;
 
   // XXX use meqn and mwave
-  double delta[5];
   double amdq[5];
   double apdq[5];
 
@@ -207,9 +198,7 @@ __global__ void cuda_WavePropagation(
     double *qOutR = qOut->getDataPtrAt(linearIdxR);
 
     if(linearIdx < localRange->volume()) {
-      calcDelta(qInL, qInR, delta, meqn);
-
-      eq->rp(dir, delta, qInL, qInR, waves, speeds);
+      eq->rp(dir, qInL, qInR, waves, speeds);
       eq->qFluctuations(dir, qInL, qInR, waves, speeds, amdq, apdq);
 
       calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq, meqn);
@@ -232,8 +221,7 @@ __global__ void cuda_WavePropagation(
         const int linearIdxR = fIdxr.index(idxR);
         const double *qInL = qIn->getDataPtrAt(linearIdxL);
         const double *qInR = qIn->getDataPtrAt(linearIdxR);
-        calcDelta(qInL, qInR, delta, meqn);
-        eq->rp(dir, delta, qInL, qInR, waves+inc*meqn*mwave, speeds+inc*mwave);
+        eq->rp(dir, qInL, qInR, waves+inc*meqn*mwave, speeds+inc*mwave);
         cfla = calcCfla(cfla, dtdx, speeds+inc*mwave, mwave);
         idxL[dir] -= inc;
         idxR[dir] -= inc;
@@ -249,8 +237,7 @@ __global__ void cuda_WavePropagation(
           const int linearIdxR = fIdxr.index(idxR);
           const double *qInL = qIn->getDataPtrAt(linearIdxL);
           const double *qInR = qIn->getDataPtrAt(linearIdxR);
-          calcDelta(qInL, qInR, delta, meqn);
-          eq->rp(dir, delta, qInL, qInR, waves+inc*meqn*mwave, speeds+inc*mwave);
+          eq->rp(dir, qInL, qInR, waves+inc*meqn*mwave, speeds+inc*mwave);
           cfla = calcCfla(cfla, dtdx, speeds+inc*mwave, mwave);
           copyComponents(waves+inc*meqn*mwave, limitedWaves+inc*meqn*mwave, meqn * mwave);
 

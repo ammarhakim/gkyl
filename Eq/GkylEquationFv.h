@@ -17,7 +17,6 @@ extern "C"  {
   typedef void (*rp_t)(
       const void * __restrict__ eqn,
       const int dir,
-      const double * __restrict__ delta,
       const double * __restrict__ ql,
       const double * __restrict__ qr,
       double * __restrict__ waves,
@@ -49,13 +48,12 @@ extern "C"  {
 
     __host__ __device__ void rp(
         const int dir,
-        const double * __restrict__ delta,
         const double * __restrict__ ql,
         const double * __restrict__ qr,
         double * __restrict__ waves,
         double * __restrict__ s)
     {
-      equationRp(equation, dir, delta, ql, qr, waves, s);
+      equationRp(equation, dir, ql, qr, waves, s);
     }
 
     __host__ __device__ void qFluctuations(

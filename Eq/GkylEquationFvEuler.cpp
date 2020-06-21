@@ -17,7 +17,6 @@ __device__ inline static double Euler_pressure(
 __device__ static void Euler_rp(
     const void * __restrict__ eqn,
     const int dir,
-    const double * __restrict__ delta,
     const double * __restrict__ ql,
     const double * __restrict__ qr,
     double * __restrict__ waves,
