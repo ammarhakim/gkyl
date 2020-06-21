@@ -38,7 +38,7 @@ ffi.cdef [[
   typedef struct GkylEquationFv_t GkylEquationFv_t;
   typedef struct {
       int updateDirs[6];
-      int32_t numUpdateDirs;
+      int numUpdateDirs;
       double dt;
       double _cfl;
       double _cflm;
@@ -47,8 +47,8 @@ ffi.cdef [[
   } GkylWavePropagation_t;
     
   void wavePropagationAdvanceOnDevice(
-      int numBlocks, int numThreads, GkylWavePropagation_t *hyper,
-      GkylCartField_t *qIn, GkylCartField_t *qOut);
+    const int meqn, const int mwave, const int numBlocks, const int numThreads,
+    GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut);
 
   void setDt(GkylWavePropagation_t *hyper, double dt);
 ]]
@@ -447,6 +447,7 @@ function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)
    local numEdgesLocal = qOut:localEdgeRange():volume()
    local numThreads = math.min(self.numThreads, numCellsLocal)
    local numBlocks  = math.ceil(numCellsLocal/numThreads)
+   local meqn, mwave = self._equation:numEquations(), self._equation:numWaves()
 
    if self._useSharedDevice then
       -- TODO implement
@@ -455,7 +456,8 @@ function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)
       --    qIn._onDevice, qOut._onDevice)
    else
       ffi.C.wavePropagationAdvanceOnDevice(
-         numBlocks, numThreads, self._onDevice, qIn._onDevice, qOut._onDevice)
+         meqn, mwave, numBlocks, numThreads, self._onDevice, qIn._onDevice,
+         qOut._onDevice)
    end
 
    -- self.dtByCell:deviceReduce('min', self.dtPtr)

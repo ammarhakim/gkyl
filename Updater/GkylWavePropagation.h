@@ -25,8 +25,8 @@ extern "C"
   } GkylWavePropagation_t;
     
   void wavePropagationAdvanceOnDevice(
-      int numBlocks, int numThreads, GkylWavePropagation_t *hyper,
-      GkylCartField_t *qIn, GkylCartField_t *qOut);
+    const int meqn, const int mwave, const int numBlocks, const int numThreads,
+    GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut);
 
   void setDt(GkylWavePropagation_t *hyper, double dt);
 }
