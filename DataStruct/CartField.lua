@@ -822,10 +822,15 @@ local function Field_meta_ctor(elct)
 	 -- processors will get to the sync method before others
          -- this is especially troublesome in the RK combine step
 	 Mpi.Barrier(self._grid:commSet().sharedComm)
-	 self._field_sync(self, self:dataPointer())
-	 if self._syncPeriodicDirs and syncPeriodicDirs then
-	    self._field_periodic_sync(self, self:dataPointer())
-	 end
+	 local nodeComm = self._grid:commSet().nodeComm -- communicator to use
+         if Mpi.Is_comm_valid(nodeComm) and Mpi.Comm_size(nodeComm) == 1 then
+            self._field_periodic_copy(self)
+         else
+	    self._field_sync(self, self:dataPointer())
+	    if self._syncPeriodicDirs and syncPeriodicDirs then
+	       self._field_periodic_sync(self, self:dataPointer())
+	    end
+         end
 	 -- this barrier is needed as when using MPI-SHM some
 	 -- processors will not participate in sync()
 	 Mpi.Barrier(self._grid:commSet().sharedComm)
@@ -836,10 +841,32 @@ local function Field_meta_ctor(elct)
 	 -- processors will get to the sync method before others
          -- this is especially troublesome in the RK combine step
 	 Mpi.Barrier(self._grid:commSet().sharedComm)
-	 self._field_sync(self, self:deviceDataPointer())
-	 if self._syncPeriodicDirs and syncPeriodicDirs then
-	    self._field_periodic_sync(self, self:deviceDataPointer())
-	 end
+	 local nodeComm = self._grid:commSet().nodeComm -- communicator to use
+         if Mpi.Is_comm_valid(nodeComm) and Mpi.Comm_size(nodeComm) == 1 then
+            if self._syncPeriodicDirs and syncPeriodicDirs then
+               local numThreads = GKYL_DEFAULT_NUM_THREADS
+
+               local grid = self._grid
+               local localRange = self:localRange()
+               for dir = 1, self._ndim do
+                  if grid:isDirPeriodic(dir) then
+                     -- Get one of the regions so we can compute shape and numBlocks.
+                     -- NOTE: This function currently assumes upper and lower have the same number of ghost cells.
+                     local skinRgnUpper = localRange:lowerSkin(dir, self._upperGhost)
+                     local shape = skinRgnUpper:volume()
+                     local numBlocks = math.floor(shape/numThreads)+1
+
+                     -- Copy appropriate skin cell data into corresponding ghost cells.
+                     ffiC.gkylDevicePeriodicCopy(numBlocks, numThreads, dir, self._onDevice)
+                  end
+               end
+            end
+         else
+	    self._field_sync(self, self:deviceDataPointer())
+	    if self._syncPeriodicDirs and syncPeriodicDirs then
+	       self._field_periodic_sync(self, self:deviceDataPointer())
+	    end
+         end
 	 -- this barrier is needed as when using MPI-SHM some
 	 -- processors will not participate in sync()
 	 Mpi.Barrier(self._grid:commSet().sharedComm)
@@ -847,7 +874,8 @@ local function Field_meta_ctor(elct)
       -- This method is an alternative function for applying periodic boundary
       -- conditions when Mpi.Comm_size(nodeComm) = 1 and we do not need to call
       -- Send/Recv to copy the skin cell data into ghost cells.
-      periodicCopy = function (self, syncPeriodicDirs_)
+      periodicCopy = (GKYL_USE_DEVICE and function(self,...) self:devicePeriodicCopy(...) end) or function(self,...) self:hostPeriodicCopy(...) end,
+      hostPeriodicCopy = function (self, syncPeriodicDirs_)
          local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
 	 -- this barrier is needed as when using MPI-SHM some
 	 -- processors could apply periodic boundary conditions before others

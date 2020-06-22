@@ -763,8 +763,16 @@ function test_16()
       fitr[3] = idx[1]+2*idx[2]+3
    end
 
+   if GKYL_USE_DEVICE then
+      field1:copyHostToDevice()
+   end
+
    -- accumulate stuff
    field:accumulateOffset(1.0, field1, 0, 2.0, field1, 5)
+
+   if GKYL_USE_DEVICE then
+      field:copyDeviceToHost()
+   end
 
    for idx in field:localExtRangeIter() do
       local fitr = field:get(indexer(idx))

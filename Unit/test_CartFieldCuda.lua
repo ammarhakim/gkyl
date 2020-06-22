@@ -392,7 +392,7 @@ function test_6()
    assert_equal(0, err, "Checking if copy to device worked")
 
    -- synchronize periodic directions on device
-   field:devicePeriodicCopy() -- sync field
+   field:sync() -- sync field
 
    -- copy data back for checking.
    field:copyDeviceToHost()
@@ -489,10 +489,10 @@ function test_7()
    assert_equal(0, err, "Checking if copy to device worked")
    assert_equal(0, err2, "Checking if copy to device worked")
 
-   field:deviceScale(-0.5)
-   field:deviceAbs()
-   field2:deviceClear(1.0)
-   field:deviceAccumulateOffset(2.0, field2, 0, 0.5, field2, 5)
+   field:scale(-0.5)
+   field:abs()
+   field2:clear(1.0)
+   field:accumulateOffset(2.0, field2, 0, 0.5, field2, 5)
    field:copyDeviceToHost()
 
    if GKYL_HAVE_CUDA then
