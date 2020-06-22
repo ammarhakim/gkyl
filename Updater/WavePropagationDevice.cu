@@ -5,7 +5,7 @@ __device__ static void calcFirstOrderGud(
   const double dtdx, double *ql, double *qr, const double *amdq,
   const double *apdq, const int meqn)
 {
-  for (int i = 0; i< meqn; i++) {
+  for (int i = 0; i < meqn; i++) {
     /* qr[i] -= dtdx * apdq[i]; */
     /* ql[i] -= dtdx * amdq[i]; */
     // XXX
@@ -159,9 +159,7 @@ __global__ void cuda_WavePropagation(
   // ghost cells are not copied, but this is OK because the waves and speeds are
   // computed using qIn anyway
   if(linearIdx < localRange->volume()) {
-    for(int i = 0; i < meqn; i++) {
-            qOutC[i] = qInC[i];
-    }
+    copyComponents(qInC, qOutC, meqn);
   }
 
   for(int i=0; i<numUpdateDirs; i++) {
