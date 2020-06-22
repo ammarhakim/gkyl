@@ -66,7 +66,7 @@ ffi.cdef [[
     void gkylCartFieldDeviceAbs(int numBlocks, int numThreads, unsigned s, unsigned nv, double *out);
 
     // copy periodic boundary conditions when using only one GPU
-    void gkylDevicePeriodicCopy(int numBlocks, int numThreads, int dir, int nGhost, GkylCartField_t *f);
+    void gkylDevicePeriodicCopy(int numBlocks, int numThreads, int dir, GkylCartField_t *f);
 
     // Assign all elements to specified value.
     void gkylCartFieldDeviceAssignAll(int numBlocks, int numThreads, unsigned s, unsigned nv, double val, double *out);

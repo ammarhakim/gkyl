@@ -49,22 +49,23 @@ __global__ void ker_gkylCartFieldAbs(unsigned s, unsigned nv, double *out)
     out[n] = fabs(out[n]);
 }
 
-__global__ void ker_gkylPeriodicCopy(int dir, int nGhost, GkylCartField_t *f) 
+__global__ void ker_gkylPeriodicCopy(int dir, GkylCartField_t *f) 
 {
-  // Get numComponents
+  // Get numComponents and number of ghost cells
   unsigned numComponents = f->numComponents;
-
+  int lowerGhost = f->lowerGhost;
+  int upperGhost = f->upperGhost;
   // Get local range and compute skin cell and ghost cell ranges
   GkylRange_t *localRange = f->localRange;
-  GkylRange_t lowerSkin = localRange.lowerSkin(dir, nGhost);
-  GkylRange_t upperSkin = localRange.upperSkin(dir, nGhost);
-  GkylRange_t lowerGhost = localRange.lowerGhost(dir, nGhost);
-  GkylRange_t upperGhost = localRange.upperGhost(dir, nGhost);
+  GkylRange_t lowerSkinRange = localRange.lowerSkin(dir, upperGhost);
+  GkylRange_t upperSkinRange = localRange.upperSkin(dir, lowerGhost);
+  GkylRange_t lowerGhostRange = localRange.lowerGhost(dir, lowerGhost);
+  GkylRange_t upperGhostRange = localRange.upperGhost(dir, upperGhost);
   // Set up indexers for prescribed skin and ghost ranges, and f
-  Gkyl::GenIndexer localIdxrLowerSkin(lowerSkin);
-  Gkyl::GenIndexer localIdxrUpperSkin(upperSkin);
-  Gkyl::GenIndexer localIdxrLowerGhost(lowerGhost);
-  Gkyl::GenIndexer localIdxrUpperGhost(upperGhost);
+  Gkyl::GenIndexer localIdxrLowerSkin(lowerSkinRange);
+  Gkyl::GenIndexer localIdxrUpperSkin(upperSkinRange);
+  Gkyl::GenIndexer localIdxrLowerGhost(lowerGhostRange);
+  Gkyl::GenIndexer localIdxrUpperGhost(upperGhostRange);
   Gkyl::GenIndexer fIdxr = f->genIndexer();
 
   unsigned linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
@@ -128,9 +129,9 @@ void gkylCartFieldDeviceAbs(int numBlocks, int numThreads, unsigned s, unsigned 
   ker_gkylCartFieldAbs<<<numBlocks, numThreads>>>(s, nv, out);
 }
 
-void gkylDevicePeriodicCopy(int numBlocks, int numThreads, int dir, int nGhost, GkylCartField_t *f)
+void gkylDevicePeriodicCopy(int numBlocks, int numThreads, int dir, GkylCartField_t *f)
 {
-  ker_gkylPeriodicCopy<<<numBlocks, numThreads>>>(dir, nGhost, f);
+  ker_gkylPeriodicCopy<<<numBlocks, numThreads>>>(dir, f);
 }
 
 void gkylCartFieldDeviceAssignAll(int numBlocks, int numThreads, unsigned s, unsigned nv, double val, double *out)
