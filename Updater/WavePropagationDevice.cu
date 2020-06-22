@@ -175,6 +175,11 @@ __global__ void cuda_WavePropagation(
     idxL[dir] = idxC[dir] - 1;
     idxR[dir] = idxC[dir];
 
+    bool isLoDevice = idxC[dir] == 1;
+    bool isHiDevice = idxC[dir] == localRange->shape(dir);
+    bool isLoBlock = threadIdx.x==0;
+    bool isHiBlock = threadIdx.x==blockDim.x-1;
+
     const int linearIdxL = fIdxr.index(idxL);
     const int linearIdxR = fIdxr.index(idxR);
     const double *qInL = qIn->getDataPtrAt(linearIdxL);
@@ -192,7 +197,7 @@ __global__ void cuda_WavePropagation(
 
       // can we avoid branching?
       // solve one additional Riemann problem on the lower side
-      if (threadIdx.x==0) {
+      if (isLoBlock || isLoDevice) {
         int inc = -1;
         idxL[dir] += inc;
         idxR[dir] += inc;
@@ -210,7 +215,7 @@ __global__ void cuda_WavePropagation(
 
       // solve two additional Riemann problems on the higher side and update the
       // last real cell
-      if (threadIdx.x==blockDim.x-1 || linearIdx==localRange->volume()-1) {
+      if (isHiBlock || isHiDevice) {
         for (int inc = 1; inc < 3; inc++) {
           idxL[dir] += inc;
           idxR[dir] += inc;
@@ -226,7 +231,7 @@ __global__ void cuda_WavePropagation(
             copyComponents(
                 waves+inc*meqn*mwave, limitedWaves+inc*meqn*mwave, meqn*mwave);
 
-            if (linearIdx==localRange->volume()-1) {
+            if (isHiDevice) {
               double *qOutL = qOut->getDataPtrAt(linearIdxL);
               double *qOutR = qOut->getDataPtrAt(linearIdxR);
               eq->qFluctuations(
@@ -246,7 +251,7 @@ __global__ void cuda_WavePropagation(
     if(linearIdx < localRange->volume()) {
       limitWaves(waves, speeds, limitedWaves, mwave, meqn);
 
-      if (threadIdx.x==blockDim.x-1 || linearIdx==localRange->volume()-1) {
+      if (isHiBlock || isHiDevice) {
         limitWaves(
             waves+meqn*mwave, speeds+mwave, limitedWaves+meqn*mwave, mwave,
             meqn);
@@ -260,7 +265,7 @@ __global__ void cuda_WavePropagation(
       }
       secondOrderFlux(dtdx, speeds, limitedWaves, flux, meqn, mwave);
 
-      if (threadIdx.x==blockDim.x-1 || linearIdx==localRange->volume()-1) {
+      if (isHiBlock || isHiDevice) {
         for (int c = 0; c < meqn; c++) {
           (flux+meqn)[c] = 0;
         }
