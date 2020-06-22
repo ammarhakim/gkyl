@@ -88,26 +88,35 @@ end
 -- Select function to compute volume Vlasov-Poisson acceleration terms.
 function _M.selectVolPhi(hasB, basisNm, CDIM, VDIM, polyOrder)
    if hasB then magStr="Bext" else magStr="" end
+
+   local funcType = "double"
+   local funcSign = "(const double *w, const double *dxv, const double qDm, const double *phi, const double *EM, const double *f, double *out)"
+
    local funcNm = string.format("VlasovPhi%sVol%dx%dv%sP%d", magStr, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+
+   ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]
 end
 
 -- Select functions to compute surface EM field acceleration  terms (output is a table of functions).
 function _M.selectSurfPhi(hasB, basisNm, CDIM, VDIM, polyOrder)
    if hasB then magStr="Bext" else magStr="" end
-   if VDIM == 1 then
-      local funcNmX = string.format("VlasovPhi%sSurf%dx%dv%s_VX_P%d", magStr, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      return { ffi.C[funcNmX], nullFunc, nullFunc }
-   elseif VDIM == 2 then
-      local funcNmX = string.format("VlasovPhi%sSurf%dx%dv%s_VX_P%d", magStr, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmY = string.format("VlasovPhi%sSurf%dx%dv%s_VY_P%d", magStr, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      return { ffi.C[funcNmX], ffi.C[funcNmY], nullFunc }
-   elseif VDIM == 3 then
-      local funcNmX = string.format("VlasovPhi%sSurf%dx%dv%s_VX_P%d", magStr, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmY = string.format("VlasovPhi%sSurf%dx%dv%s_VY_P%d", magStr, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmZ = string.format("VlasovPhi%sSurf%dx%dv%s_VZ_P%d", magStr, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      return { ffi.C[funcNmX], ffi.C[funcNmY], ffi.C[funcNmZ] }
+
+   local funcNm = {}
+   for d = 1, VDIM do
+      funcNm[d] = string.format("VlasovPhi%sSurf%dx%dv%s_%s_P%d", magStr, CDIM, VDIM, basisNmMap[basisNm], vvars[d], polyOrder)
    end
+
+   local CDefStr = ""
+   for d = 1, VDIM do CDefStr = CDefStr .. (funcType .. " " .. funcNm[d] .. funcSign .. ";\n") end
+   ffi.cdef(CDefStr)
+
+   local kernels = {}
+   for d = 1, VDIM do
+      local tmp = ffi.C[funcNm[d]]
+      kernels[d] = tmp
+   end
+   return kernels
 end
 
 return _M
