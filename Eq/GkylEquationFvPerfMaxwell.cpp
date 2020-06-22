@@ -55,7 +55,6 @@ __host__ __device__ void PerfMaxwell_rp(
   speeds[0] = -c*cb;
 
   // wave 2:
-  // XXX jump
   w += 8;
   w[d[3]] = a2;
   w[7] = a2*c;
@@ -101,25 +100,32 @@ __host__ __device__ void PerfMaxwell_qFluctuations(
     double * __restrict__ amdq,
     double * __restrict__ apdq)
 {
-  // FIXME check codes
-  double c = speeds[6];
-  double v = c;
-  const int *d = dirShufflePerfMaxwell[dir]; // shuffle indices for `dir`
-  // for _,i in ipairs({2, 3, 5, 6}) do
-  // for _,i in ipairs({5, 6}) do
-  for (int i=4; i<6; i++) {
-     apdq[d[i]] = apdq[d[i]] + 0.5 * (v-c) * (qr[d[i]] - ql[d[i]]);
-     amdq[d[i]] = amdq[d[i]] - 0.5 * (v-c) * (qr[d[i]] - ql[d[i]]);
+  {
+    const double *w1p = waves+1*8;
+    const double *w2p = waves+3*8;
+    const double *w3p = waves+5*8;
+    const double s1p = speeds[1];
+    const double s2p = speeds[3];
+    const double s3p = speeds[5];
+
+    for (int i=0; i<8; i++)
+    {
+      apdq[i] = s1p*w1p[i] + s2p*w2p[i] + s3p*w3p[i];
+    }
   }
 
-  v = c;
-  d = dirShufflePerfMaxwell[dir]; // shuffle indices for `dir`
-  // for _,i in ipairs({2, 3, 5, 6}) do
-  // for _,i in ipairs({5, 6}) do
-  // for _,i in ipairs({2, 3}) do
-  for (int i=1; i<3; i++) {
-     apdq[d[i]] = apdq[d[i]] + 0.5 * (v-c) * (qr[d[i]] - ql[d[i]]);
-     amdq[d[i]] = amdq[d[i]] - 0.5 * (v-c) * (qr[d[i]] - ql[d[i]]);
+  {
+    const double *w1m = waves+0*8;
+    const double *w2m = waves+2*8;
+    const double *w3m = waves+4*8;
+    const double s1m = speeds[0];
+    const double s2m = speeds[2];
+    const double s3m = speeds[4];
+
+    for (int i=0; i<8; i++)
+    {
+      amdq[i] = s1m*w1m[i] + s2m*w2m[i] + s3m*w3m[i];
+    }
   }
 }
 __device__ static const qFluctuations_t p_PerfMaxwell_qFluctuations = 
