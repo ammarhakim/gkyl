@@ -199,8 +199,10 @@ __global__ void cuda_WavePropagation(
         const int linearIdxR = fIdxr.index(idxR);
         const double *qInL = qIn->getDataPtrAt(linearIdxL);
         const double *qInR = qIn->getDataPtrAt(linearIdxR);
+
         eq->rp(dir, qInL, qInR, waves+inc*meqn*mwave, speeds+inc*mwave);
         cfla = calcCfla(cfla, dtdx, speeds+inc*mwave, mwave);
+
         idxL[dir] -= inc;
         idxR[dir] -= inc;
       }
@@ -218,16 +220,21 @@ __global__ void cuda_WavePropagation(
 
           eq->rp(dir, qInL, qInR, waves+inc*meqn*mwave, speeds+inc*mwave);
           cfla = calcCfla(cfla, dtdx, speeds+inc*mwave, mwave);
-          copyComponents(waves+inc*meqn*mwave, limitedWaves+inc*meqn*mwave, meqn * mwave);
 
-          if (linearIdx==localRange->volume()-1 && inc==1) {
-            double *qOutL = qOut->getDataPtrAt(linearIdxL);
-            double *qOutR = qOut->getDataPtrAt(linearIdxR);
-            eq->qFluctuations(
-                dir, qInL, qInR, waves+inc*meqn*mwave, speeds+inc*mwave, amdq,
-                apdq);
-            calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq, meqn);
+          if (inc==1) {
+            copyComponents(
+                waves+inc*meqn*mwave, limitedWaves+inc*meqn*mwave, meqn*mwave);
+
+            if (linearIdx==localRange->volume()-1) {
+              double *qOutL = qOut->getDataPtrAt(linearIdxL);
+              double *qOutR = qOut->getDataPtrAt(linearIdxR);
+              eq->qFluctuations(
+                  dir, qInL, qInR, waves+inc*meqn*mwave, speeds+inc*mwave, amdq,
+                  apdq);
+              calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq, meqn);
+            }
           }
+
           idxL[dir] -= inc;
           idxR[dir] -= inc;
         }
