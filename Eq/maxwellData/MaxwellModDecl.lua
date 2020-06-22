@@ -12,6 +12,8 @@ local ffi = require "ffi"
 -- Map of basis function name -> function encoding.
 local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max", ["tensor"] = "Tensor" }
 
+local cvars = {"X","Y","Z"}
+
 local _M = {}
 
 -- Select function to compute volume streaming terms.
@@ -29,50 +31,44 @@ end
 function _M.selectSurf(basisNm, CDIM, polyOrder)
    local funcType = "double"
    local funcSign = "(const MaxwellEq_t *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr)"
-   if CDIM == 1 then
-      local funcNmX = string.format("MaxwellSurf%dx%s_X_P%d", CDIM, basisNmMap[basisNm], polyOrder)
-      ffi.cdef(funcType .. " " .. funcNmX .. funcSign .. ";\n")
-      return { ffi.C[funcNmX] }
-   elseif CDIM == 2 then
-      local funcNmX = string.format("MaxwellSurf%dx%s_X_P%d", CDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmY = string.format("MaxwellSurf%dx%s_Y_P%d", CDIM, basisNmMap[basisNm], polyOrder)
-      ffi.cdef(funcType .. " " .. funcNmX .. funcSign .. ";\n" ..
-               funcType .. " " .. funcNmY .. funcSign .. ";\n")
-      return { ffi.C[funcNmX], ffi.C[funcNmY] }
-   elseif CDIM == 3 then
-      local funcNmX = string.format("MaxwellSurf%dx%s_X_P%d", CDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmY = string.format("MaxwellSurf%dx%s_Y_P%d", CDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmZ = string.format("MaxwellSurf%dx%s_Z_P%d", CDIM, basisNmMap[basisNm], polyOrder)
-      ffi.cdef(funcType .. " " .. funcNmX .. funcSign .. ";\n" ..
-               funcType .. " " .. funcNmY .. funcSign .. ";\n" ..
-               funcType .. " " .. funcNmZ .. funcSign .. ";\n")
-      return { ffi.C[funcNmX], ffi.C[funcNmY], ffi.C[funcNmZ] }
+
+   local funcNm = {}
+   for d = 1, CDIM do
+      funcNm[d] = string.format("MaxwellSurf%dx%s_%s_P%d", CDIM, basisNmMap[basisNm], cvars[d], polyOrder)
    end
+
+   local CDefStr = ""
+   for d = 1, CDIM do CDefStr = CDefStr .. (funcType .. " " .. funcNm[d] .. funcSign .. ";\n") end
+   ffi.cdef(CDefStr)
+
+   local kernels = {}
+   for d = 1, CDIM do
+      local tmp = ffi.C[funcNm[d]]
+      kernels[d] = tmp 
+   end
+   return kernels
 end
 
 -- Select functions to compute surface streaming terms using central fluxes.
 function _M.selectCentralSurf(basisNm, CDIM, polyOrder)
    local funcType = "double"
    local funcSign = "(const MaxwellEq_t *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr)"
-   if CDIM == 1 then
-      local funcNmX = string.format("MaxwellCentralSurf%dx%s_X_P%d", CDIM, basisNmMap[basisNm], polyOrder)
-      ffi.cdef(funcType .. " " .. funcNmX .. funcSign .. ";\n")
-      return { ffi.C[funcNmX] }
-   elseif CDIM == 2 then
-      local funcNmX = string.format("MaxwellCentralSurf%dx%s_X_P%d", CDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmY = string.format("MaxwellCentralSurf%dx%s_Y_P%d", CDIM, basisNmMap[basisNm], polyOrder)
-      ffi.cdef(funcType .. " " .. funcNmX .. funcSign .. ";\n" ..
-               funcType .. " " .. funcNmY .. funcSign .. ";\n")
-      return { ffi.C[funcNmX], ffi.C[funcNmY] }
-   elseif CDIM == 3 then
-      local funcNmX = string.format("MaxwellCentralSurf%dx%s_X_P%d", CDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmY = string.format("MaxwellCentralSurf%dx%s_Y_P%d", CDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmZ = string.format("MaxwellCentralSurf%dx%s_Z_P%d", CDIM, basisNmMap[basisNm], polyOrder)
-      ffi.cdef(funcType .. " " .. funcNmX .. funcSign .. ";\n" ..
-               funcType .. " " .. funcNmY .. funcSign .. ";\n" ..
-               funcType .. " " .. funcNmZ .. funcSign .. ";\n")
-      return { ffi.C[funcNmX], ffi.C[funcNmY], ffi.C[funcNmZ] }
+
+   local funcNm = {}
+   for d = 1, CDIM do
+      funcNm[d] = string.format("MaxwellCentralSurf%dx%s_%s_P%d", CDIM, basisNmMap[basisNm], cvars[d], polyOrder)
    end
+
+   local CDefStr = ""
+   for d = 1, CDIM do CDefStr = CDefStr .. (funcType .. " " .. funcNm[d] .. funcSign .. ";\n") end
+   ffi.cdef(CDefStr)
+
+   local kernels = {}
+   for d = 1, CDIM do
+      local tmp = ffi.C[funcNm[d]]
+      kernels[d] = tmp 
+   end
+   return kernels
 end
 
 return _M
