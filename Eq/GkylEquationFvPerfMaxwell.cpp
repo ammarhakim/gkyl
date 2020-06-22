@@ -8,6 +8,12 @@
 
 #include <GkylEquationFvPerfMaxwell.h>
 
+__constant__ const int dirShufflePerfMaxwell[3][7] = {
+  {0,1,2,3,4,5,6},
+  {0,2,3,1,5,6,4},
+  {0,3,1,2,6,4,5}
+};
+
 __host__ __device__ void PerfMaxwell_rp(
     const void * __restrict__ eqn,
     const int dir,

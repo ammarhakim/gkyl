@@ -11,15 +11,6 @@
 #include <GkylCudaFuncs.h>
 
 extern "C"  {
-  // XXX do not create these if not needed
-  __device__ __constant__ const int dirShuffle[3][4] = {
-    {0,1,2,3}, {0,2,3,1}, {0,3,1,2}};
-  __device__ __constant__ const int dirShufflePerfMaxwell[3][7] = {
-    {0,1,2,3,4,5,6},
-    {0,2,3,1,5,6,4},
-    {0,3,1,2,6,4,5}
-  };
-
   typedef void (*rp_t)(
       const void * __restrict__ eqn,
       const int dir,

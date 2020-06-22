@@ -7,6 +7,9 @@
 
 #include <GkylEquationFvEuler.h>
 
+__constant__ const int dirShuffle[3][4] = {
+  {0,1,2,3}, {0,2,3,1}, {0,3,1,2}};
+
 __host__ __device__ inline double Euler_pressure(
     const double gasGamma,
     const double * __restrict__ q)
