@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <GkylWavePropagation.h>
 
-__device__ static void calcFirstOrderGud(
+__device__ inline  static void calcFirstOrderGud(
   const double dtdx, double *ql, double *qr, const double *amdq,
   const double *apdq, const int meqn)
 {
@@ -14,7 +14,7 @@ __device__ static void calcFirstOrderGud(
   }
 }
 
-__device__ static double calcCfla(
+__device__ static inline double calcCfla(
   const double cfla, const double dtdx, const double *speeds, const int mwave)
 {
   double c = cfla;
@@ -24,7 +24,7 @@ __device__ static double calcCfla(
   return c;
 }
 
-__device__ static double waveDotProd(
+__device__ static inline double waveDotProd(
     const double *waves, const double *waves1, const int mw, const int meqn) {
   double result = 0.;
   for (int i = 0; i < meqn; i++) {
@@ -56,7 +56,7 @@ __device__ static void limitWaves(
   }
 }
 
-__device__ static void secondOrderFluxOneWave(
+__device__ static inline void secondOrderFluxOneWave(
   const double dtdx, const double speed, const double *wave, double *fs,
   const int meqn) {
   double sfact = 0.5 * abs(speed) * (1 - abs(speed) * dtdx);
@@ -73,7 +73,7 @@ __device__ static void secondOrderFlux(
     }
 }
 
-__device__ static void secondOrderUpdate(
+__device__ static inline void secondOrderUpdate(
     const double dtdx, const double *fs, const double *fs1, double *q,
     const int meqn) {
   for (int i = 0; i < meqn; i++) {
@@ -82,7 +82,7 @@ __device__ static void secondOrderUpdate(
   }
 }
 
-__device__ static void copyComponents(
+__device__ static inline void copyComponents(
     const double *ptrFrom, double *ptrTo, const int nComponents) {
   for (int i = 0; i < nComponents; i++) {
     ptrTo[i] = ptrFrom[i];

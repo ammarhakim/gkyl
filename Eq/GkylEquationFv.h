@@ -43,7 +43,7 @@ extern "C"  {
     qFluctuations_t equationQFluctuations;
     flux_t equationFlux;
 
-    __host__ __device__ void rp(
+    __host__ __device__ inline void rp(
         const int dir,
         const double * __restrict__ ql,
         const double * __restrict__ qr,
@@ -53,7 +53,7 @@ extern "C"  {
       equationRp(equation, dir, ql, qr, waves, s);
     }
 
-    __host__ __device__ void qFluctuations(
+    __host__ __device__ inline void qFluctuations(
         const int dir,
         const double * __restrict__ ql,
         const double * __restrict__ qr,
@@ -65,7 +65,7 @@ extern "C"  {
       equationQFluctuations(equation, dir, ql, qr, waves, s, amdq, apdq);
     }
 
-    __host__ __device__ void flux(
+    __host__ __device__ inline void flux(
         const int dir,
         const double * __restrict__ qIn,
         double * __restrict__ fOut)
