@@ -275,6 +275,7 @@ __global__ void cuda_WavePropagation(
       }
     }
 
+    __syncthreads();
     if(linearIdx < localRange->volume()) {
       secondOrderUpdate(dtdx, flux, flux+meqn, qOutC, meqn);
     }
