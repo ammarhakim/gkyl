@@ -36,6 +36,7 @@ ffi.cdef [[
     typedef struct {
         int ndim;
         int elemSize;
+        int lowerGhost, upperGhost;
         int numComponents;
         GkylRange_t *localRange, *localExtRange;
         GkylRange_t *localEdgeRange, *localExtEdgeRange;
@@ -269,6 +270,7 @@ local function Field_meta_ctor(elct)
          f.ndim = self._ndim
          f.elemSize = elctSize
          f.numComponents = self._numComponents
+         f.lowerGhost, f.upperGhost = self._lowerGhost, self._upperGhost
          f._data = self._devAllocData:data()
          f.localRange = Range.copyHostToDevice(self._localRange)
          f.localExtRange = Range.copyHostToDevice(self._localExtRange)

@@ -12,6 +12,7 @@ extern "C"
         int ndim;
         int elemSize;
         int numComponents;
+        int lowerGhost, upperGhost;
         GkylRange_t *localRange, *localExtRange;
         GkylRange_t *localEdgeRange, *localExtEdgeRange;
         GkylRange_t *globalRange, *globalExtRange;
