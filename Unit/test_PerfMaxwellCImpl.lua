@@ -27,8 +27,16 @@ function test_1()
 
    local ql = Lin.Vec(8)
    local qr = Lin.Vec(8)
-   ql[1], ql[2], ql[3], ql[4], ql[5], ql[6], ql[7], ql[8] = 1.0, 1.0, 0.0, 1.0, 1.0, 2.0, 0.0, 4.0
-   qr[1], qr[2], qr[3], qr[4], qr[5], qr[6], qr[7], qr[8] = 0.1, 0.1, 0.0, 2.0, 3.0, 3.0, 0.0, 3.0
+   for m = 1, 8 do
+      ql[m] = math.random()
+      qr[m] = math.random()
+   end
+   -- local _ql = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0}
+   -- local _qr = {2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0}
+   -- for m = 1, 8 do
+   --    ql[m] = _ql[m]
+   --    qr[m] = _qr[m]
+   -- end
 
    local delta = Lin.Vec(8)
    for m = 1, 8 do delta[m] = qr[m]-ql[m] end
