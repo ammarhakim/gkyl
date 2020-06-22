@@ -113,6 +113,12 @@ __global__ void cuda_WavePropagation(
   extern __shared__ double dummy[];
   int base = 0;
 
+  double *amdq = dummy + base + (meqn) * (threadIdx.x);
+  base += (meqn) * (blockDim.x);
+
+  double *apdq = dummy + base + (meqn) * (threadIdx.x);
+  base += (meqn) * (blockDim.x);
+
   // numThreads == numRealCells
   // waves and speeds are defined on ghost-ghost, ghost-real, and
   // real-real faces, thus the jump is blockDim.x+3;
@@ -129,14 +135,10 @@ __global__ void cuda_WavePropagation(
   double *limitedWaves = dummy + base + (meqn * mwave) * (threadIdx.x);
   base += (meqn * mwave) * (blockDim.x + 1);
 
+  base = 0; // reusing the shared memory since amdq/apdq are not longer needed
+
   double *flux = dummy + base + (meqn) * (threadIdx.x);
   base += (meqn) * (blockDim.x + 1);
-
-  double *amdq = dummy + base + (meqn) * (threadIdx.x);
-  base += (meqn) * (blockDim.x);
-
-  double *apdq = dummy + base + (meqn) * (threadIdx.x);
-  base += (meqn) * (blockDim.x);
 
   int idxC[3];
   int idxL[3];
@@ -287,14 +289,14 @@ void wavePropagationAdvanceOnDevice(
   GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut)
 {
   int sharedMemSize = 0;
+  // amdq andapdq
+  sharedMemSize += (numThreads) * (meqn+meqn);
   // numThreads == numRealCellsPerBlock
   // waves & speeds are needed on all real-real, real-ghost, and ghost-ghost
   // cell faces
   sharedMemSize += (numThreads+3) * (mwave*meqn+mwave);
   // limitedWaves and 2nd-order flux are needed on real-real & real-ghost faces
-  sharedMemSize += (numThreads+1) * (mwave*meqn+meqn);
-  // amdq & apdq
-  sharedMemSize += (numThreads) * (meqn+meqn);
+  sharedMemSize += (numThreads+1) * (mwave*meqn+meqn*0);
   sharedMemSize *= sizeof(double);
 
   cudaFuncSetAttribute(
