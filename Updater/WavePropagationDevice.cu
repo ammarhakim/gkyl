@@ -77,7 +77,8 @@ __device__ static void secondOrderUpdate(
     const double dtdx, const double *fs, const double *fs1, double *q,
     const int meqn) {
   for (int i = 0; i < meqn; i++) {
-    q[i] -= dtdx * (fs1[i] - fs[i]);
+    // q[i] -= dtdx * (fs1[i] - fs[i]);
+    atomicAdd(q+i, -dtdx * (fs1[i] - fs[i]));
   }
 }
 
