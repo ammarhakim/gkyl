@@ -855,7 +855,7 @@ local function Field_meta_ctor(elct)
                   local numBlocks = math.floor(shape/numThreads)+1
 
                   -- Copy appropriate skin cell data into corresponding ghost cells.
-                  ffiC.gkylDevicePeriodicCopy(numBlocks, numThreads, dir, self._upperGhost, self._onDevice)
+                  ffiC.gkylDevicePeriodicCopy(numBlocks, numThreads, dir, self._onDevice)
                end
             end
          end

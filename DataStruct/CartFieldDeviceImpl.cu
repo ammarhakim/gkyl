@@ -57,15 +57,15 @@ __global__ void ker_gkylPeriodicCopy(int dir, GkylCartField_t *f)
   int upperGhost = f->upperGhost;
   // Get local range and compute skin cell and ghost cell ranges
   GkylRange_t *localRange = f->localRange;
-  GkylRange_t lowerSkinRange = localRange.lowerSkin(dir, upperGhost);
-  GkylRange_t upperSkinRange = localRange.upperSkin(dir, lowerGhost);
-  GkylRange_t lowerGhostRange = localRange.lowerGhost(dir, lowerGhost);
-  GkylRange_t upperGhostRange = localRange.upperGhost(dir, upperGhost);
+  GkylRange_t lowerSkinRange = localRange->lowerSkin(dir, upperGhost);
+  GkylRange_t upperSkinRange = localRange->upperSkin(dir, lowerGhost);
+  GkylRange_t lowerGhostRange = localRange->lowerGhost(dir, lowerGhost);
+  GkylRange_t upperGhostRange = localRange->upperGhost(dir, upperGhost);
   // Set up indexers for prescribed skin and ghost ranges, and f
-  Gkyl::GenIndexer localIdxrLowerSkin(lowerSkinRange);
-  Gkyl::GenIndexer localIdxrUpperSkin(upperSkinRange);
-  Gkyl::GenIndexer localIdxrLowerGhost(lowerGhostRange);
-  Gkyl::GenIndexer localIdxrUpperGhost(upperGhostRange);
+  Gkyl::GenIndexer localIdxrLowerSkin(&lowerSkinRange);
+  Gkyl::GenIndexer localIdxrUpperSkin(&upperSkinRange);
+  Gkyl::GenIndexer localIdxrLowerGhost(&lowerGhostRange);
+  Gkyl::GenIndexer localIdxrUpperGhost(&upperGhostRange);
   Gkyl::GenIndexer fIdxr = f->genIndexer();
 
   unsigned linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
