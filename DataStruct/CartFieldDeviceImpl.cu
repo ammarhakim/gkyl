@@ -49,31 +49,51 @@ __global__ void ker_gkylCartFieldAbs(unsigned s, unsigned nv, double *out)
     out[n] = fabs(out[n]);
 }
 
-__global__ void ker_gkylPeriodicCopy(GkylRange_t *rangeSkin, GkylRange_t *rangeGhost, GkylCartField_t *f, unsigned numComponents) 
+__global__ void ker_gkylPeriodicCopy(int dir, int nGhost, GkylCartField_t *f) 
 {
-  // set up indexers for prescribed rangeSkin, rangeGhost, and f
-  Gkyl::GenIndexer localIdxrSkin(rangeSkin);
-  Gkyl::GenIndexer localIdxrGhost(rangeGhost);
+  // Get numComponents
+  unsigned numComponents = f->numComponents;
+
+  // Get local range and compute skin cell and ghost cell ranges
+  GkylRange_t *localRange = f->localRange;
+  GkylRange_t lowerSkin = localRange.lowerSkin(dir, nGhost);
+  GkylRange_t upperSkin = localRange.upperSkin(dir, nGhost);
+  GkylRange_t lowerGhost = localRange.lowerGhost(dir, nGhost);
+  GkylRange_t upperGhost = localRange.upperGhost(dir, nGhost);
+  // Set up indexers for prescribed skin and ghost ranges, and f
+  Gkyl::GenIndexer localIdxrLowerSkin(lowerSkin);
+  Gkyl::GenIndexer localIdxrUpperSkin(upperSkin);
+  Gkyl::GenIndexer localIdxrLowerGhost(lowerGhost);
+  Gkyl::GenIndexer localIdxrUpperGhost(upperGhost);
   Gkyl::GenIndexer fIdxr = f->genIndexer();
 
   unsigned linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
-  int idxSkin[6];
-  int idxGhost[6];
+  int idxLowerSkin[6];
+  int idxUpperSkin[6];
+  int idxLowerGhost[6];
+  int idxUpperGhost[6];
 
-  // get i,j,k... index idxSkin and idxGhost from linear index linearIdx using range invIndexer
-  localIdxrSkin.invIndex(linearIdx, idxSkin);
-  localIdxrGhost.invIndex(linearIdx, idxGhost);
+  // Get i,j,k... index idxLower/UpperSkin and idxLower/UpperGhost from linear index linearIdx using range invIndexer
+  localIdxrLowerSkin.invIndex(linearIdx, idxLowerSkin);
+  localIdxrUpperSkin.invIndex(linearIdx, idxUpperSkin);
+  localIdxrLowerGhost.invIndex(linearIdx, idxLowerGhost);
+  localIdxrUpperGhost.invIndex(linearIdx, idxUpperGhost);
 
-  // convert i,j,k... index idxSkin and idxGhost into a linear index linearIdxSkin/Ghost
-  const int linearIdxSkin = fIdxr.index(idxSkin);
-  const int linearIdxGhost = fIdxr.index(idxGhost);
+  // convert i,j,k... index idxLower/UpperSkin and idxLower/UpperGhost into a linear index linearIdxLower/UpperSkin/Ghost
+  const int linearIdxLowerSkin = fIdxr.index(idxLowerSkin);
+  const int linearIdxUpperSkin = fIdxr.index(idxUpperSkin);
+  const int linearIdxLowerGhost = fIdxr.index(idxLowerGhost);
+  const int linearIdxUpperGhost = fIdxr.index(idxUpperGhost);
 
-  const double *fSkin = f->getDataPtrAt(linearIdxSkin);
-  double *fGhost = f->getDataPtrAt(linearIdxGhost);
+  const double *fLowerSkin = f->getDataPtrAt(linearIdxLowerSkin);
+  const double *fUpperSkin = f->getDataPtrAt(linearIdxUpperSkin);
+  double *fLowerGhost = f->getDataPtrAt(linearIdxLowerGhost);
+  double *fUpperGhost = f->getDataPtrAt(linearIdxUpperGhost);
 
   // Copy the appropriate skin cell data into the corresponding ghost cells.
   for (unsigned k=0; k<numComponents; ++k) {
-    fGhost[k] = fSkin[k];
+    fUpperGhost[k] = fLowerSkin[k];
+    fLowerGhost[k] = fUpperSkin[k];
   }
 }
 
@@ -108,9 +128,9 @@ void gkylCartFieldDeviceAbs(int numBlocks, int numThreads, unsigned s, unsigned 
   ker_gkylCartFieldAbs<<<numBlocks, numThreads>>>(s, nv, out);
 }
 
-void gkylDevicePeriodicCopy(int numBlocks, int numThreads, GkylRange_t *rangeSkin, GkylRange_t *rangeGhost, GkylCartField_t *f, unsigned numComponents)
+void gkylDevicePeriodicCopy(int numBlocks, int numThreads, int dir, int nGhost, GkylCartField_t *f)
 {
-  ker_gkylPeriodicCopy<<<numBlocks, numThreads>>>(rangeSkin, rangeGhost, f, numComponents);
+  ker_gkylPeriodicCopy<<<numBlocks, numThreads>>>(dir, nGhost, f);
 }
 
 void gkylCartFieldDeviceAssignAll(int numBlocks, int numThreads, unsigned s, unsigned nv, double val, double *out)

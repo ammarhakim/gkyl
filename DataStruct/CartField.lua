@@ -65,7 +65,7 @@ ffi.cdef [[
     void gkylCartFieldDeviceAbs(int numBlocks, int numThreads, unsigned s, unsigned nv, double *out);
 
     // copy periodic boundary conditions when using only one GPU
-    void gkylDevicePeriodicCopy(int numBlocks, int numThreads, GkylRange_t *rangeSkin, GkylRange_t *rangeGhost, GkylCartField_t *f, unsigned numComponents);
+    void gkylDevicePeriodicCopy(int numBlocks, int numThreads, int dir, int nGhost, GkylCartField_t *f);
 
     // Assign all elements to specified value.
     void gkylCartFieldDeviceAssignAll(int numBlocks, int numThreads, unsigned s, unsigned nv, double val, double *out);
@@ -843,32 +843,17 @@ local function Field_meta_ctor(elct)
             local numThreads = GKYL_DEFAULT_NUM_THREADS
 
             local grid = self._grid
-            local decomposedRange = grid:decomposedRange()
+            local localRange = self:localRange()
             for dir = 1, self._ndim do
                if grid:isDirPeriodic(dir) then
-                  -- First get region for skin cells for upper ghost region (the lower skin cells).
-                  local skinRgnUpper = decomposedRange:subDomain(1):lowerSkin(dir, self._upperGhost)
-                  local ghostRgnUpper = decomposedRange:subDomain(1):upperGhost(dir, self._upperGhost)
-
-                  -- Both skinRgnUpper and ghostRgnUpper have the same shape, so pick one to set shape.
-                  -- and thus the number of blocks and threads
+                  -- Get one of the regions so we can compute shape and numBlocks.
+                  -- NOTE: This function currently assumes upper and lower have the same number of ghost cells.
+                  local skinRgnUpper = localRange:lowerSkin(dir, self._upperGhost)
                   local shape = skinRgnUpper:shape(self._shmIndex)
                   local numBlocks = math.floor(shape/numThreads)+1
 
-                  -- Copy lower skin cells into upper ghost cells.
-                  ffiC.gkylDevicePeriodicCopy(numBlocks, numThreads, skinRgnUpper, ghostRgnUpper, self._onDevice, self._numComponents)
-
-	          -- Now do the same, but for the skin cells for the lower ghost region (the upper skin cells).
-                  local skinRgnLower = decomposedRange:subDomain(1):upperSkin(dir, self._lowerGhost)
-                  local ghostRgnLower = decomposedRange:subDomain(1):lowerGhost(dir, self._lowerGhost)
-
-                  -- skinRgnLower and ghostRgnLower have the same shape, and potentially a different shape than skin/ghostRgnUpper.
-                  -- Pick one to set shape and thus the number of blocks and threads.
-                  shape = skinRgnLower:shape(self._shmIndex)
-                  numBlocks = math.floor(shape/numThreads)+1
-
-                  -- Copy lower skin cells into upper ghost cells.
-                  ffiC.gkylDevicePeriodicCopy(numBlocks, numThreads, skinRgnLower, ghostRgnLower, self._onDevice, self._numComponents)
+                  -- Copy appropriate skin cell data into corresponding ghost cells.
+                  ffiC.gkylDevicePeriodicCopy(numBlocks, numThreads, dir, self._upperGhost, self._onDevice)
                end
             end
          end
@@ -1095,23 +1080,23 @@ local function Field_meta_ctor(elct)
       end,
       _field_periodic_copy = function (self)
          local grid = self._grid
-         local decomposedRange = grid:decomposedRange()
+         local localRange = self:localRange()
          for dir = 1, self._ndim do
             if grid:isDirPeriodic(dir) then
                -- First get region for skin cells for upper ghost region (the lower skin cells).
-               local skinRgnUpper = decomposedRange:subDomain(1):lowerSkin(dir, self._upperGhost)
+               local skinRgnUpper = localRange:lowerSkin(dir, self._upperGhost)
                local periodicBuffUpper = self._upperPeriodicBuff[dir]
                -- Copy skin cells into temporary buffer.
                self:_copy_from_field_region(skinRgnUpper, periodicBuffUpper)
                -- Get region for looping over upper ghost cells and copy lower skin cells into upper ghost cells.
-               local ghostRgnUpper = decomposedRange:subDomain(1):upperGhost(dir, self._upperGhost)
+               local ghostRgnUpper = localRange:upperGhost(dir, self._upperGhost)
                self:_copy_to_field_region(ghostRgnUpper, periodicBuffUpper)
 
-	       -- Now do the same, but for the skin cells for the lower ghost region (the upper skin cells).
-               local skinRgnLower = decomposedRange:subDomain(1):upperSkin(dir, self._lowerGhost)
+	              -- Now do the same, but for the skin cells for the lower ghost region (the upper skin cells).
+               local skinRgnLower = localRange:upperSkin(dir, self._lowerGhost)
                local periodicBuffLower = self._lowerPeriodicBuff[dir]
                self:_copy_from_field_region(skinRgnLower, periodicBuffLower)
-               local ghostRgnLower = decomposedRange:subDomain(1):lowerGhost(dir, self._lowerGhost)
+               local ghostRgnLower = localRange:lowerGhost(dir, self._lowerGhost)
                self:_copy_to_field_region(ghostRgnLower, periodicBuffLower)
             end
          end

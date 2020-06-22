@@ -301,6 +301,48 @@ namespace Gkyl {
       __host__ __device__ inline int volume() const {
         return range->volume();
       }
+      __host__ __device__ inline GkylRange_t lowerSkin(int dir, int nGhost) {
+	GkylRange_t r;
+        r.ndim = range->ndim;
+	for (unsigned d = 0; d < r.ndim; ++d){
+	  r.lower[d] = range->lower[d];
+          r.upper[d] = range->upper[d];
+	}
+	r.upper[dir] = range->lower[dir]+nGhost-1;
+	return r;
+      }
+      __host__ __device__ inline GkylRange_t upperSkin(int dir, int nGhost) {
+	GkylRange_t r;
+        r.ndim = range->ndim;
+	for (unsigned d = 0; d < r.ndim; ++d){
+	  r.lower[d] = range->lower[d];
+          r.upper[d] = range->upper[d];
+	}
+	r.lower[dir] = range->upper[dir]-nGhost+1;
+	return r;
+      }
+      __host__ __device__ inline GkylRange_t lowerGhost(int dir, int nGhost) {
+        GkylRange_t r;
+        r.ndim = range->ndim;
+        for (unsigned d = 0; d < r.ndim; ++d){
+          r.lower[d] = range->lower[d];
+          r.upper[d] = range->upper[d];
+        }
+        r.lower[dir] = range->lower[dir]-nGhost;
+        r.upper[dir] = range->lower[dir]-1;
+        return r;
+      }
+      __host__ __device__ inline GkylRange_t upperGhost(int dir, int nGhost) {
+        GkylRange_t r;
+        r.ndim = range->ndim;
+        for (unsigned d = 0; d < r.ndim; ++d){
+          r.lower[d] = range->lower[d];
+          r.upper[d] = range->upper[d];
+        }
+        r.lower[dir] = range->upper[dir]+1;
+        r.upper[dir] = range->upper[dir]+nGhost;
+        return r;
+      }
 
       __host__ __device__ inline Gkyl::GenIndexer genIndexer(Gkyl::Layout layout=Gkyl::Layout::rowMajor) {
         return Gkyl::GenIndexer(range, layout);
