@@ -477,7 +477,8 @@ def build(bld):
 
     cusources = """
     GkylVlasov.cpp
-    GkylEuler.cpp
+    GkylEquationFvEuler.cpp
+    GkylEquationFvPerfMaxwell.cpp
 
     vlasovData/VlasovTmplModDeviceFuncs.cpp
 

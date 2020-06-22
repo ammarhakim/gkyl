@@ -9,25 +9,24 @@
 
 // Gkyl includes
 #include <GkylCudaConfig.h>
-#include <GkylEquation.h>
-#include <GkylEuler.h>
 #include <GkylCartField.h>
+#include <GkylEquationFv.h>
 
 extern "C" 
 {
   typedef struct {
       int updateDirs[6];
-      int32_t numUpdateDirs;
+      int numUpdateDirs;
       double dt;
       double _cfl;
       double _cflm;
-      Gkyl::Euler *equation;
+      GkylEquationFv_t *equation;
       GkylCartField_t *dtByCell;
   } GkylWavePropagation_t;
     
   void wavePropagationAdvanceOnDevice(
-      int numBlocks, int numThreads, GkylWavePropagation_t *hyper,
-      GkylCartField_t *qIn, GkylCartField_t *qOut);
+    const int meqn, const int mwave, const int numBlocks, const int numThreads,
+    GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut);
 
   void setDt(GkylWavePropagation_t *hyper, double dt);
 }
