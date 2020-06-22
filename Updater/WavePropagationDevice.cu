@@ -276,13 +276,13 @@ void wavePropagationAdvanceOnDevice(
 {
   int sharedMemSize = 0;
   // numThreads == numRealCellsPerBlock
-  // speeds & waves are needed on all real-real, real-ghost, and ghost-ghost
+  // waves & speeds are needed on all real-real, real-ghost, and ghost-ghost
   // cell faces
-  sharedMemSize += (numThreads+3) * (mwave+mwave*meqn);
+  sharedMemSize += (numThreads+3) * (mwave*meqn+mwave);
   // limitedWaves and 2nd-order flux are needed on real-real & real-ghost faces
-  sharedMemSize += (numThreads+1) * (meqn+meqn);
+  sharedMemSize += (numThreads+1) * (mwave*meqn+meqn);
   // amdq & apdq
-  sharedMemSize += (numThreads) * (2*meqn);
+  sharedMemSize += (numThreads) * (meqn+meqn);
   sharedMemSize *= sizeof(double);
 
   cudaFuncSetAttribute(
