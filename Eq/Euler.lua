@@ -283,13 +283,9 @@ local Euler = Proto(EqBase)
 function Euler:init(tbl)
    self._gasGamma = tbl.gasGamma
    self.eulerObj = EulerObj(tbl)
-
-   if GKYL_HAVE_CUDA then
-     self:initDevice()
-   end
 end
 
-function Euler:initDevice()
+function Euler:initDevice(tbl)
    self._onHost = ffi.C.new_Euler(self._gasGamma)
    self._onDevice = ffi.C.new_Euler_onDevice(self._onHost)
 end

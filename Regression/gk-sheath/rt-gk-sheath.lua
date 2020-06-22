@@ -1,6 +1,6 @@
 -- This test is based off NSTX-like SOL simulation
 -- Plasma ------------------------------------------------------------------------
-local Plasma = (require "App.PlasmaOnCartGrid").Gyrokinetic
+local Plasma = (require "App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
 local Mpi = require "Comm.Mpi"
 

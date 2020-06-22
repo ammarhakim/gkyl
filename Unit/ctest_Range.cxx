@@ -245,3 +245,70 @@ TEST_CASE("Tests for 3D range object col-major", "[range3D-col-major]") {
       
 }
 
+TEST_CASE("Tests for lower/upperSkin/Ghost range object methods", "[range-skin-ghost]") {
+  GkylRange_t crange;
+  crange.ndim = 2;
+  crange.lower[0] = 1; crange.upper[0] = 10;
+  crange.lower[1] = 1; crange.upper[1] = 10;
+  Gkyl::calcIndexerCoeff(crange);
+
+  // Test skin cell ranges
+  GkylRange_t lowerSkinRange1 = crange.lowerSkin(0, 1);
+  REQUIRE( lowerSkinRange1.volume() == 10 );
+  REQUIRE( lowerSkinRange1.lower[0] == 1 );
+  REQUIRE( lowerSkinRange1.upper[0] == 1 );
+  REQUIRE( lowerSkinRange1.lower[1] == 1 );
+  REQUIRE( lowerSkinRange1.upper[1] == 10 );
+
+  GkylRange_t lowerSkinRange2 = crange.lowerSkin(1, 1);
+  REQUIRE( lowerSkinRange2.volume() == 10 );
+  REQUIRE( lowerSkinRange2.lower[0] == 1 );
+  REQUIRE( lowerSkinRange2.upper[0] == 10 );
+  REQUIRE( lowerSkinRange2.lower[1] == 1 );
+  REQUIRE( lowerSkinRange2.upper[1] == 1 );
+
+  GkylRange_t upperSkinRange1 = crange.upperSkin(0, 1);
+  REQUIRE( upperSkinRange1.volume() == 10 );
+  REQUIRE( upperSkinRange1.lower[0] == 10 );
+  REQUIRE( upperSkinRange1.upper[0] == 10 );
+  REQUIRE( upperSkinRange1.lower[1] == 1 );
+  REQUIRE( upperSkinRange1.upper[1] == 10 );
+
+  GkylRange_t upperSkinRange2 = crange.upperSkin(1, 1);
+  REQUIRE( upperSkinRange2.volume() == 10 );
+  REQUIRE( upperSkinRange2.lower[0] == 1 );
+  REQUIRE( upperSkinRange2.upper[0] == 10 );
+  REQUIRE( upperSkinRange2.lower[1] == 10 );
+  REQUIRE( upperSkinRange2.upper[1] == 10 );
+
+  // Test ghost cell ranges
+  GkylRange_t lowerGhostRange1 = crange.lowerGhost(0, 1);
+  REQUIRE( lowerGhostRange1.volume() == 10 );
+  REQUIRE( lowerGhostRange1.lower[0] == 0 );
+  REQUIRE( lowerGhostRange1.upper[0] == 0 );
+  REQUIRE( lowerGhostRange1.lower[1] == 1 );
+  REQUIRE( lowerGhostRange1.upper[1] == 10 );
+
+  GkylRange_t lowerGhostRange2 = crange.lowerGhost(1, 1);
+  REQUIRE( lowerGhostRange2.volume() == 10 );
+  REQUIRE( lowerGhostRange2.lower[0] == 1 );
+  REQUIRE( lowerGhostRange2.upper[0] == 10 );
+  REQUIRE( lowerGhostRange2.lower[1] == 0 );
+  REQUIRE( lowerGhostRange2.upper[1] == 0 );
+
+  GkylRange_t upperGhostRange1 = crange.upperGhost(0, 1);
+  REQUIRE( upperGhostRange1.volume() == 10 );
+  REQUIRE( upperGhostRange1.lower[0] == 11 );
+  REQUIRE( upperGhostRange1.upper[0] == 11 );
+  REQUIRE( upperGhostRange1.lower[1] == 1 );
+  REQUIRE( upperGhostRange1.upper[1] == 10 );
+
+  GkylRange_t upperGhostRange2 = crange.upperGhost(1, 1);
+  REQUIRE( upperGhostRange2.volume() == 10 );
+  REQUIRE( upperGhostRange2.lower[0] == 1 );
+  REQUIRE( upperGhostRange2.upper[0] == 10 );
+  REQUIRE( upperGhostRange2.lower[1] == 11 );
+  REQUIRE( upperGhostRange2.upper[1] == 11 );
+
+}
+

@@ -15,21 +15,93 @@
 #include <cmath>
 #include <stdint.h>
 
+
 extern "C"
 {
-    typedef struct {
-      int ndim; int lower[6]; int upper[6];
-      int rowMajorIndexerCoeff[7], colMajorIndexerCoeff[7];
-      __host__ __device__ inline int64_t volume() const {
+  typedef struct GkylRange_t GkylRange_t;
+  struct GkylRange_t {
+     int ndim; int lower[6]; int upper[6];
+     int rowMajorIndexerCoeff[7], colMajorIndexerCoeff[7];
+     __host__ __device__ inline int64_t volume() const {
         int64_t v = 1;
         for (int i=0; i<ndim; ++i)
           v *= (upper[i]-lower[i]+1);
         return v;
-      }
-      __host__ __device__ inline int shape(int dir) const {
+     }
+     __host__ __device__ inline int shape(int dir) const {
         return upper[dir]-lower[dir]+1;
-      }        
-    } GkylRange_t;
+     }
+     __host__ __device__ void calcRowMajorIndexerCoeff(GkylRange_t& range) {
+       int ndim = range.ndim;
+       range.rowMajorIndexerCoeff[ndim] = 1;
+       for (int i=ndim-1; i>=1; --i)
+         range.rowMajorIndexerCoeff[i] = range.rowMajorIndexerCoeff[i+1]*range.shape(i+1-1);
+       int start = 0;
+       for (int i=0; i<ndim; ++i)
+         start += range.rowMajorIndexerCoeff[i+1]*range.lower[i];
+       range.rowMajorIndexerCoeff[0] = 1-start;
+     }
+     __host__ __device__ void calcColMajorIndexerCoeff(GkylRange_t& range) {
+       int ndim = range.ndim;
+       range.colMajorIndexerCoeff[1] = 1;
+       for (int i=2; i<=ndim; ++i)
+         range.colMajorIndexerCoeff[i] = range.colMajorIndexerCoeff[i-1]*range.shape(i-1-1);
+       int start = 0;
+       for (int i=0; i<ndim; ++i)
+         start += range.colMajorIndexerCoeff[i+1]*range.lower[i];
+       range.colMajorIndexerCoeff[0] = 1-start;
+     }
+     __host__ __device__ inline void calcIndexerCoeff(GkylRange_t& range) {
+        calcRowMajorIndexerCoeff(range);
+        calcColMajorIndexerCoeff(range);
+     }
+     __host__ __device__ inline GkylRange_t lowerSkin(int dir, int nGhost) {
+        GkylRange_t r;
+        r.ndim = ndim;
+	for (unsigned d = 0; d < ndim; ++d){
+	  r.lower[d] = lower[d];
+          r.upper[d] = upper[d];
+	}
+	r.upper[dir] = lower[dir]+nGhost-1;
+        calcIndexerCoeff(r);
+        return r;
+     }
+     __host__ __device__ inline GkylRange_t upperSkin(int dir, int nGhost) {
+	GkylRange_t r;
+        r.ndim = ndim;
+	for (unsigned d = 0; d < ndim; ++d){
+	  r.lower[d] = lower[d];
+          r.upper[d] = upper[d];
+	}
+	r.lower[dir] = upper[dir]-nGhost+1;
+        calcIndexerCoeff(r);
+	return r;
+     }
+     __host__ __device__ inline GkylRange_t lowerGhost(int dir, int nGhost) {
+        GkylRange_t r;
+        r.ndim = ndim;
+        for (unsigned d = 0; d < ndim; ++d){
+          r.lower[d] = lower[d];
+          r.upper[d] = upper[d];
+        }
+        r.lower[dir] = lower[dir]-nGhost;
+        r.upper[dir] = lower[dir]-1;
+        calcIndexerCoeff(r);
+        return r;
+     }
+     __host__ __device__ inline GkylRange_t upperGhost(int dir, int nGhost) {
+        GkylRange_t r;
+        r.ndim = ndim;
+        for (unsigned d = 0; d < ndim; ++d){
+          r.lower[d] = lower[d];
+          r.upper[d] = upper[d];
+        }
+        r.lower[dir] = upper[dir]+1;
+        r.upper[dir] = upper[dir]+nGhost;
+        calcIndexerCoeff(r);
+        return r;
+     }
+  };
 }
 
 namespace Gkyl {
@@ -301,7 +373,6 @@ namespace Gkyl {
       __host__ __device__ inline int volume() const {
         return range->volume();
       }
-
       __host__ __device__ inline Gkyl::GenIndexer genIndexer(Gkyl::Layout layout=Gkyl::Layout::rowMajor) {
         return Gkyl::GenIndexer(range, layout);
       }

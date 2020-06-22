@@ -1,7 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 --
-local Plasma    = require("App.PlasmaOnCartGrid").Gyrokinetic
+local Plasma    = require("App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
 
 -- This test initializes Maxwellian electrons and ions with different

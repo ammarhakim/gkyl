@@ -62,7 +62,7 @@ function test_1()
       equation = eq,
       numThreads = numThreads,
       useSharedDevice = useSharedDevice,
-      limiter = 'no-limiter',
+      limiter = 'min-mod',
    }
 
    local qIn = DataStruct.Field {
@@ -101,7 +101,7 @@ function test_1()
       createDeviceCopy = true,
    }
 
-   solver:setDtAndCflRate(.1, nil)
+   solver:setDtAndCflRate(1e-5, nil)
 
    tmStart = Time.clock()
    for i = 1, nloop do

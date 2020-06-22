@@ -567,6 +567,42 @@ function test_14()
       lower = {0.0, 0.0},
       upper = {1.0, 1.0},
       cells = {10, 10},
+      periodicDirs = {1, 2},
+   }
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 1,
+      ghost = {1, 1},
+      syncCorners = true,
+   }
+   field:clear(10.5)
+
+   -- set corner cells
+   local indexer = field:indexer()
+   local fItr = field:get(indexer(1,1)); fItr[1] = 1.0
+   fItr = field:get(indexer(10,1)); fItr[1] = 2.0
+   fItr = field:get(indexer(1,10)); fItr[1] = 3.0
+   fItr = field:get(indexer(10,10)); fItr[1] = 4.0
+
+   field:periodicCopy() -- copy periodic boundary conditions for field
+
+   -- check if periodic dirs are sync()-ed properly
+   local fItr = field:get(indexer(11,1))
+   assert_equal(1.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(11,10))
+   assert_equal(3.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(0,1))
+   assert_equal(2.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(0,10))
+   assert_equal(4.0, fItr[1], "Checking non-corner periodic sync")
+
+end
+
+function test_15()
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0},
+      upper = {1.0, 1.0},
+      cells = {10, 10},
    }
    local field = DataStruct.Field {
       onGrid = grid,
@@ -699,6 +735,50 @@ function test_15()
    assert_equal(scaSum, scalar_sumVal[1], "Checking scalar reduce('sum')")
 end
 
+function test_16()
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0},
+      upper = {1.0, 1.0},
+      cells = {10, 10},
+   }
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 8,
+      ghost = {1, 2},
+   }
+   field:clear(10.0)
+
+   -- field1 has a different number of components than field
+   local field1 = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+      ghost = {1, 2},
+   }
+
+   local indexer = field1:genIndexer()
+   for idx in field1:localExtRangeIter() do
+      local fitr = field1:get(indexer(idx))
+      fitr[1] = idx[1]+2*idx[2]+1
+      fitr[2] = idx[1]+2*idx[2]+2
+      fitr[3] = idx[1]+2*idx[2]+3
+   end
+
+   -- accumulate stuff
+   field:accumulateOffset(1.0, field1, 0, 2.0, field1, 5)
+
+   for idx in field:localExtRangeIter() do
+      local fitr = field:get(indexer(idx))
+      assert_equal(10+(idx[1]+2*idx[2]+1), fitr[1], "Checking field value")
+      assert_equal(10+(idx[1]+2*idx[2]+2), fitr[2], "Checking field value")
+      assert_equal(10+(idx[1]+2*idx[2]+3), fitr[3], "Checking field value")
+      assert_equal(10, fitr[4], "Checking field value")
+      assert_equal(10, fitr[5], "Checking field value")
+      assert_equal(10+2*(idx[1]+2*idx[2]+1), fitr[6], "Checking field value")
+      assert_equal(10+2*(idx[1]+2*idx[2]+2), fitr[7], "Checking field value")
+      assert_equal(10+2*(idx[1]+2*idx[2]+3), fitr[8], "Checking field value")
+   end
+end
+
 test_1()
 test_2()
 test_3()
@@ -714,6 +794,7 @@ test_12()
 --test_13()
 test_14()
 test_15()
+test_16()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

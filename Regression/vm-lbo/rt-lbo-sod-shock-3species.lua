@@ -7,7 +7,7 @@
 -- The actual parameters may need to be adjusted later to make sure they
 -- are consistent with some underlying assumptions in cross-collisions.
 
-local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell
+local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell()
 
 -- Left/right state for shock.
 local nl, ul, pl = 1.0, 0.0, 1.0

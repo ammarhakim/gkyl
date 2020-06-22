@@ -14,6 +14,23 @@ void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double 
     out[n] += fact*inp[n];
 }
 
+void gkylCartFieldAccumulateOffset(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out) {
+   if (nCompInp < nCompOut) {
+      for (unsigned i=0; i<nCells; ++i) {
+         for (unsigned c=0; c<nCompInp; ++c) {
+            out[sOut + i*nCompOut + compStart + c] += fact*inp[sInp + i*nCompInp + c];
+         }
+      }
+   }
+   else {
+      for (unsigned i=0; i<nCells; ++i) {
+         for (unsigned c=0; c<nCompOut; ++c) {
+            out[sOut + i*nCompOut + c] += fact*inp[sInp + i*nCompInp + compStart + c];
+         }
+      }
+   }
+}
+
 void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out) {
   for (unsigned n=s; n<(s+nv); ++n)
     out[n] = fact*inp[n];
@@ -40,13 +57,13 @@ void gkylCartFieldAbs(unsigned s, unsigned nv, double *out) {
 }
 
 void gkylCopyFromField(double *data, double *f, unsigned numComponents, unsigned offset) {
-  for (unsigned k=0; k<numComponents; k++) {
+  for (unsigned k=0; k<numComponents; ++k) {
     data[k+offset] = f[k];
   }
 }
 
 void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned offset) {
-  for (unsigned k=0; k<numComponents; k++) {
+  for (unsigned k=0; k<numComponents; ++k) {
     f[k] = data[k+offset];
   }
 }

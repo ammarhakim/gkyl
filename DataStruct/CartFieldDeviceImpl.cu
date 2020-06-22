@@ -14,37 +14,94 @@ __global__ void ker_gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact
      out[n] += fact*inp[n];
 }
 
-__global__  void ker_gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out) 
+__global__ void ker_gkylCartFieldAccumulateOffset(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out) {
+   if (nCompInp < nCompOut) {
+      for (unsigned i=blockIdx.x*blockDim.x + threadIdx.x; i<nCells; i += blockDim.x * gridDim.x) {
+         for (unsigned c=0; c<nCompInp; ++c) {
+            out[sOut + i*nCompOut + compStart + c] += fact*inp[sInp + i*nCompInp + c];
+         }
+      }
+   }
+   else {
+      for (unsigned i=blockIdx.x*blockDim.x + threadIdx.x; i<nCells; i += blockDim.x * gridDim.x) {
+         for (unsigned c=0; c<nCompOut; ++c) {
+            out[sOut + i*nCompOut + c] += fact*inp[sInp + i*nCompInp + compStart + c];
+         }
+      }
+   }
+}
+
+__global__ void ker_gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out) 
 {
   for (int n = blockIdx.x*blockDim.x + threadIdx.x + s; n < s + nv; n += blockDim.x * gridDim.x)
     out[n] = fact*inp[n];
 }
 
-__global__  void ker_gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out) 
+__global__ void ker_gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out) 
 {
   for (int n = blockIdx.x*blockDim.x + threadIdx.x + s; n < s + nv; n += blockDim.x * gridDim.x)
     out[n] *= fact;
 }
 
-__global__  void ker_gkylCartFieldAbs(unsigned s, unsigned nv, double *out) 
+__global__ void ker_gkylCartFieldAbs(unsigned s, unsigned nv, double *out) 
 {
   for (int n = blockIdx.x*blockDim.x + threadIdx.x + s; n < s + nv; n += blockDim.x * gridDim.x)
     out[n] = fabs(out[n]);
 }
 
-__global__  void ker_gkylCopyFromField(double *data, double *f, unsigned numComponents, unsigned offset) 
+__global__ void ker_gkylPeriodicCopy(int dir, GkylCartField_t *f) 
 {
-  for (int n = blockIdx.x*blockDim.x + threadIdx.x; n < numComponents; n += blockDim.x * gridDim.x)
-    data[n+offset] = f[n];
+  // Get numComponents and number of ghost cells
+  unsigned numComponents = f->numComponents;
+  int lowerGhost = f->lowerGhost;
+  int upperGhost = f->upperGhost;
+  // Get local range and compute skin cell and ghost cell ranges
+  GkylRange_t *localRange = f->localRange;
+  GkylRange_t lowerSkinRange = localRange->lowerSkin(dir-1, upperGhost);
+  GkylRange_t upperSkinRange = localRange->upperSkin(dir-1, lowerGhost);
+  GkylRange_t lowerGhostRange = localRange->lowerGhost(dir-1, lowerGhost);
+  GkylRange_t upperGhostRange = localRange->upperGhost(dir-1, upperGhost);
+
+  // Set up indexers for prescribed skin and ghost ranges, and f
+  Gkyl::GenIndexer localIdxrLowerSkin(&lowerSkinRange);
+  Gkyl::GenIndexer localIdxrUpperSkin(&upperSkinRange);
+  Gkyl::GenIndexer localIdxrLowerGhost(&lowerGhostRange);
+  Gkyl::GenIndexer localIdxrUpperGhost(&upperGhostRange);
+  Gkyl::GenIndexer fIdxr = f->genIndexer();
+
+  unsigned linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
+  if (linearIdx < lowerSkinRange.volume()) {
+    int idxLowerSkin[6];
+    int idxUpperSkin[6];
+    int idxLowerGhost[6];
+    int idxUpperGhost[6];
+
+    // Get i,j,k... index idxLower/UpperSkin and idxLower/UpperGhost from linear index linearIdx using range invIndexer
+    localIdxrLowerSkin.invIndex(linearIdx, idxLowerSkin);
+    localIdxrUpperSkin.invIndex(linearIdx, idxUpperSkin);
+    localIdxrLowerGhost.invIndex(linearIdx, idxLowerGhost);
+    localIdxrUpperGhost.invIndex(linearIdx, idxUpperGhost);
+
+    // convert i,j,k... index idxLower/UpperSkin and idxLower/UpperGhost into a linear index linearIdxLower/UpperSkin/Ghost
+    const int linearIdxLowerSkin = fIdxr.index(idxLowerSkin);
+    const int linearIdxUpperSkin = fIdxr.index(idxUpperSkin);
+    const int linearIdxLowerGhost = fIdxr.index(idxLowerGhost);
+    const int linearIdxUpperGhost = fIdxr.index(idxUpperGhost);
+
+    const double *fLowerSkin = f->getDataPtrAt(linearIdxLowerSkin);
+    const double *fUpperSkin = f->getDataPtrAt(linearIdxUpperSkin);
+    double *fLowerGhost = f->getDataPtrAt(linearIdxLowerGhost);
+    double *fUpperGhost = f->getDataPtrAt(linearIdxUpperGhost);
+    
+    // Copy the appropriate skin cell data into the corresponding ghost cells.
+    for (unsigned k=0; k<numComponents; ++k) {
+      fUpperGhost[k] = fLowerSkin[k];
+      fLowerGhost[k] = fUpperSkin[k];
+    }
+  }
 }
 
-__global__  void ker_gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned offset) 
-{
-  for (int n = blockIdx.x*blockDim.x + threadIdx.x; n < numComponents; n += blockDim.x * gridDim.x)
-    f[n] = data[n+offset];
-}
-
-__global__  void ker_gkylCartFieldAssignAll(unsigned s, unsigned nv, double val, double *out) 
+__global__ void ker_gkylCartFieldAssignAll(unsigned s, unsigned nv, double val, double *out) 
 {
   for (int n = blockIdx.x*blockDim.x + threadIdx.x + s; n < s + nv; n += blockDim.x * gridDim.x)
     out[n] = val;
@@ -53,6 +110,11 @@ __global__  void ker_gkylCartFieldAssignAll(unsigned s, unsigned nv, double val,
 void gkylCartFieldDeviceAccumulate(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, const double *inp, double *out)
 {
   ker_gkylCartFieldAccumulate<<<numBlocks, numThreads>>>(s, nv, fact, inp, out);
+}
+
+void gkylCartFieldDeviceAccumulateOffset(int numBlocks, int numThreads, unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out)
+{
+  ker_gkylCartFieldAccumulateOffset<<<numBlocks, numThreads>>>(sInp, sOut, nCells, compStart, nCompInp, nCompOut, fact, inp, out);
 }
 
 void gkylCartFieldDeviceAssign(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, const double *inp, double *out)
@@ -70,14 +132,9 @@ void gkylCartFieldDeviceAbs(int numBlocks, int numThreads, unsigned s, unsigned 
   ker_gkylCartFieldAbs<<<numBlocks, numThreads>>>(s, nv, out);
 }
 
-void gkylCopyFromFieldDevice(int numBlocks, int numThreads, double *data, double *f, unsigned numComponents, unsigned c)
+void gkylDevicePeriodicCopy(int numBlocks, int numThreads, int dir, GkylCartField_t *f)
 {
-  ker_gkylCopyFromField<<<numBlocks, numThreads>>>(data, f, numComponents, c);
-}
-
-void gkylCopyToFieldDevice(int numBlocks, int numThreads, double *f, double *data, unsigned numComponents, unsigned c)
-{
-  ker_gkylCopyToField<<<numBlocks, numThreads>>>(f, data, numComponents, c);
+  ker_gkylPeriodicCopy<<<numBlocks, numThreads>>>(dir, f);
 }
 
 void gkylCartFieldDeviceAssignAll(int numBlocks, int numThreads, unsigned s, unsigned nv, double val, double *out)

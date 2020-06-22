@@ -1,5 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
-local Plasma = require "App.PlasmaOnCartGrid"
+local Plasma = require ("App.PlasmaOnCartGrid").VlasovMaxwell()
 
 -- Constants
 chargeElc = -1.0
@@ -42,7 +42,7 @@ vlasovApp = Plasma.App {
    upper = { 1.0 }, -- configuration space upper right
    cells = {4}, -- configuration space cells
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
-   polyOrder = 1, -- polynomial order
+   polyOrder = 2, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
 
    -- decomposition for configuration space
@@ -53,12 +53,12 @@ vlasovApp = Plasma.App {
    periodicDirs = {1}, -- periodic directions
 
    -- electrons
-   elc = Plasma.VlasovMaxwell.Species {
+   elc = Plasma.Species {
       charge = -1.0, mass = 1.0,
       -- velocity space grid
       lower = {-1.0, -1.0},
       upper = {1.0, 1.0},
-      cells = {32, 32},
+      cells = {16, 16},
       -- initial conditions
       init = function (t, xn)
 	 local x, vx, vy = xn[1], xn[2], xn[3]
@@ -71,7 +71,7 @@ vlasovApp = Plasma.App {
    },
 
    -- field solver
-   field = Plasma.VlasovMaxwell.Field {
+   field = Plasma.Field {
       epsilon0 = 1.0, mu0 = 1.0,
       init = function (t, xn)
 	 local x = xn[1]

@@ -60,7 +60,7 @@ end
 
 local function assert_equal(expected, actual, msg)
    if type(expected) == "number" then
-      assert_equal_numeric(expected, actual, msg)
+      assert_equal_numeric(tonumber(expected), tonumber(actual), msg)
    elseif  type(expected) == "string" then
       assert_equal_string(expected, actual, msg)
    elseif  type(expected) == "boolean" then

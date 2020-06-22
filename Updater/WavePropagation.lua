@@ -21,6 +21,8 @@ local Time = require "Lib.Time"
 local UpdaterBase = require "Updater.Base"
 local DataStruct = require "DataStruct"
 
+local function printf(...) io.write(string.format(...)) end
+
 -- system libraries
 local ffi = require "ffi"
 local xsys = require "xsys"
@@ -239,15 +241,9 @@ function WavePropagation:init(tbl)
    self._rescaleWave = loadstring( rescaleWaveTempl {MEQN = meqn} )()
    self._secondOrderFlux = loadstring( secondOrderFluxTempl {MEQN = meqn} )()
    self._secondOrderUpdate = loadstring( secondOrderUpdateTempl {MEQN = meqn} )()
-
-   if GKYL_HAVE_CUDA then
-      self:initDevice()
-      self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
-      self._useSharedDevice = xsys.pickBool(tbl.useSharedDevice, false)
-   end
 end
 
-function WavePropagation:initDevice()
+function WavePropagation:initDevice(tbl)
    self.dtByCell = DataStruct.Field {
       onGrid = self._onGrid,
       numComponents = 1,
@@ -266,6 +262,9 @@ function WavePropagation:initDevice()
    local sz = sizeof("GkylWavePropagation_t")
    self._onDevice, err = cuda.Malloc(sz)
    cuda.Memcpy(self._onDevice, hyper, sz, cuda.MemcpyHostToDevice)
+
+   self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
+   self._useSharedDevice = xsys.pickBool(tbl.useSharedDevice, false)
 end
 
 -- Limit waves: this code closely follows the example of CLAWPACK and
@@ -444,12 +443,10 @@ function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)
       outFld[1],
       "WavePropagation.advanceOnDevice: Must specify an output field")
 
+   local numCellsLocal = qOut:localRange():volume()
    local numEdgesLocal = qOut:localEdgeRange():volume()
-   local numThreads = math.min(self.numThreads, numEdgesLocal)
-   local numBlocks  = math.ceil(numEdgesLocal/numThreads)
-
-   -- FIXME correct code and place to do device copy?
-   qOut:deviceCopy(qIn)
+   local numThreads = math.min(self.numThreads, numCellsLocal)
+   local numBlocks  = math.ceil(numCellsLocal/numThreads)
 
    if self._useSharedDevice then
       -- TODO implement
@@ -461,7 +458,7 @@ function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)
          numBlocks, numThreads, self._onDevice, qIn._onDevice, qOut._onDevice)
    end
 
-   self.dtByCell:deviceReduce('min', self.dtPtr)
+   -- self.dtByCell:deviceReduce('min', self.dtPtr)
 end
 
 -- FIXME no cflRate needed here

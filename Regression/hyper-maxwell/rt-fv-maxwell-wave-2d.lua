@@ -1,5 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
-local Moments = require("App.PlasmaOnCartGrid").Moments
+local Moments = require("App.PlasmaOnCartGrid").Moments()
 local Constants = require "Lib.Constants"
 
 L = 1.0

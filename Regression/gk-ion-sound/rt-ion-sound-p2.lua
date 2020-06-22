@@ -2,7 +2,7 @@
 -- to check result, use 
 -- pgkyl -f ion-sound_phi2_ -f ion-sound_phi2-correct.h5 log plot
 
-local Plasma = require "App.PlasmaOnCartGrid"
+local Plasma = require ("App.PlasmaOnCartGrid").Gyrokinetic()
 
 TiTe = 1.0
 knumber = 0.5
@@ -35,7 +35,7 @@ plasmaApp = Plasma.App {
    periodicDirs = {1}, -- periodic directions
 
    -- gyrokinetic ions
-   ion = Plasma.GkSpecies {
+   ion = Plasma.Species {
       charge = 1.0,
       mass = 1.0,
       -- velocity space grid
@@ -44,7 +44,7 @@ plasmaApp = Plasma.App {
       cells = {32},
       -- initial conditions
       -- specify background so that we can plot perturbed distribution and moments
-      initBackground = Plasma.Gyrokinetic.MaxwellianProjection {
+      initBackground = Plasma.MaxwellianProjection {
               density = function (t, xn)
                  return ni0
               end,
@@ -53,7 +53,7 @@ plasmaApp = Plasma.App {
               end,
               isBackground = true,
              },
-      init = Plasma.Gyrokinetic.MaxwellianProjection {
+      init = Plasma.MaxwellianProjection {
               density = function (t, xn)
                  local x, v = xn[1], xn[2]
                  local k = knumber
@@ -81,13 +81,13 @@ plasmaApp = Plasma.App {
    },
 
    -- field solver
-   field = Plasma.GkField {
+   field = Plasma.Field {
       evolve = true, -- evolve field?
       kperp2 = 0.0,
    },
 
    -- magnetic geometry 
-   funcField = Plasma.GkGeometry {
+   funcField = Plasma.Geometry {
       -- background magnetic field
       bmag = function (t, xn)
          return B0
