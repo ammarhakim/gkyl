@@ -15,6 +15,7 @@
 #include <cmath>
 #include <stdint.h>
 
+
 extern "C"
 {
   typedef struct GkylRange_t GkylRange_t;
@@ -30,6 +31,30 @@ extern "C"
      __host__ __device__ inline int shape(int dir) const {
         return upper[dir]-lower[dir]+1;
      }
+     __host__ __device__ void calcRowMajorIndexerCoeff(GkylRange_t& range) {
+       int ndim = range.ndim;
+       range.rowMajorIndexerCoeff[ndim] = 1;
+       for (int i=ndim-1; i>=1; --i)
+         range.rowMajorIndexerCoeff[i] = range.rowMajorIndexerCoeff[i+1]*range.shape(i+1-1);
+       int start = 0;
+       for (int i=0; i<ndim; ++i)
+         start += range.rowMajorIndexerCoeff[i+1]*range.lower[i];
+       range.rowMajorIndexerCoeff[0] = 1-start;
+     }
+     __host__ __device__ void calcColMajorIndexerCoeff(GkylRange_t& range) {
+       int ndim = range.ndim;
+       range.colMajorIndexerCoeff[1] = 1;
+       for (int i=2; i<=ndim; ++i)
+         range.colMajorIndexerCoeff[i] = range.colMajorIndexerCoeff[i-1]*range.shape(i-1-1);
+       int start = 0;
+       for (int i=0; i<ndim; ++i)
+         start += range.colMajorIndexerCoeff[i+1]*range.lower[i];
+       range.colMajorIndexerCoeff[0] = 1-start;
+     }
+     __host__ __device__ inline void calcIndexerCoeff(GkylRange_t& range) {
+        calcRowMajorIndexerCoeff(range);
+        calcColMajorIndexerCoeff(range);
+     }
      __host__ __device__ inline GkylRange_t lowerSkin(int dir, int nGhost) {
         GkylRange_t r;
         r.ndim = ndim;
@@ -38,6 +63,7 @@ extern "C"
           r.upper[d] = upper[d];
 	}
 	r.upper[dir] = lower[dir]+nGhost-1;
+        calcIndexerCoeff(r);
         return r;
      }
      __host__ __device__ inline GkylRange_t upperSkin(int dir, int nGhost) {
@@ -48,6 +74,7 @@ extern "C"
           r.upper[d] = upper[d];
 	}
 	r.lower[dir] = upper[dir]-nGhost+1;
+        calcIndexerCoeff(r);
 	return r;
      }
      __host__ __device__ inline GkylRange_t lowerGhost(int dir, int nGhost) {
@@ -59,6 +86,7 @@ extern "C"
         }
         r.lower[dir] = lower[dir]-nGhost;
         r.upper[dir] = lower[dir]-1;
+        calcIndexerCoeff(r);
         return r;
      }
      __host__ __device__ inline GkylRange_t upperGhost(int dir, int nGhost) {
@@ -70,6 +98,7 @@ extern "C"
         }
         r.lower[dir] = upper[dir]+1;
         r.upper[dir] = upper[dir]+nGhost;
+        calcIndexerCoeff(r);
         return r;
      }
   };

@@ -851,7 +851,7 @@ local function Field_meta_ctor(elct)
                   -- Get one of the regions so we can compute shape and numBlocks.
                   -- NOTE: This function currently assumes upper and lower have the same number of ghost cells.
                   local skinRgnUpper = localRange:lowerSkin(dir, self._upperGhost)
-                  local shape = skinRgnUpper:shape(self._shmIndex)
+                  local shape = skinRgnUpper:volume()
                   local numBlocks = math.floor(shape/numThreads)+1
 
                   -- Copy appropriate skin cell data into corresponding ghost cells.

@@ -69,32 +69,34 @@ __global__ void ker_gkylPeriodicCopy(int dir, GkylCartField_t *f)
   Gkyl::GenIndexer fIdxr = f->genIndexer();
 
   unsigned linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
-  int idxLowerSkin[6];
-  int idxUpperSkin[6];
-  int idxLowerGhost[6];
-  int idxUpperGhost[6];
+  if (linearIdx < lowerSkinRange.volume()) {
+    int idxLowerSkin[6];
+    int idxUpperSkin[6];
+    int idxLowerGhost[6];
+    int idxUpperGhost[6];
 
-  // Get i,j,k... index idxLower/UpperSkin and idxLower/UpperGhost from linear index linearIdx using range invIndexer
-  localIdxrLowerSkin.invIndex(linearIdx, idxLowerSkin);
-  localIdxrUpperSkin.invIndex(linearIdx, idxUpperSkin);
-  localIdxrLowerGhost.invIndex(linearIdx, idxLowerGhost);
-  localIdxrUpperGhost.invIndex(linearIdx, idxUpperGhost);
+    // Get i,j,k... index idxLower/UpperSkin and idxLower/UpperGhost from linear index linearIdx using range invIndexer
+    localIdxrLowerSkin.invIndex(linearIdx, idxLowerSkin);
+    localIdxrUpperSkin.invIndex(linearIdx, idxUpperSkin);
+    localIdxrLowerGhost.invIndex(linearIdx, idxLowerGhost);
+    localIdxrUpperGhost.invIndex(linearIdx, idxUpperGhost);
 
-  // convert i,j,k... index idxLower/UpperSkin and idxLower/UpperGhost into a linear index linearIdxLower/UpperSkin/Ghost
-  const int linearIdxLowerSkin = fIdxr.index(idxLowerSkin);
-  const int linearIdxUpperSkin = fIdxr.index(idxUpperSkin);
-  const int linearIdxLowerGhost = fIdxr.index(idxLowerGhost);
-  const int linearIdxUpperGhost = fIdxr.index(idxUpperGhost);
+    // convert i,j,k... index idxLower/UpperSkin and idxLower/UpperGhost into a linear index linearIdxLower/UpperSkin/Ghost
+    const int linearIdxLowerSkin = fIdxr.index(idxLowerSkin);
+    const int linearIdxUpperSkin = fIdxr.index(idxUpperSkin);
+    const int linearIdxLowerGhost = fIdxr.index(idxLowerGhost);
+    const int linearIdxUpperGhost = fIdxr.index(idxUpperGhost);
 
-  const double *fLowerSkin = f->getDataPtrAt(linearIdxLowerSkin);
-  const double *fUpperSkin = f->getDataPtrAt(linearIdxUpperSkin);
-  double *fLowerGhost = f->getDataPtrAt(linearIdxLowerGhost);
-  double *fUpperGhost = f->getDataPtrAt(linearIdxUpperGhost);
+    const double *fLowerSkin = f->getDataPtrAt(linearIdxLowerSkin);
+    const double *fUpperSkin = f->getDataPtrAt(linearIdxUpperSkin);
+    double *fLowerGhost = f->getDataPtrAt(linearIdxLowerGhost);
+    double *fUpperGhost = f->getDataPtrAt(linearIdxUpperGhost);
 
-  // Copy the appropriate skin cell data into the corresponding ghost cells.
-  for (unsigned k=0; k<numComponents; ++k) {
-    fUpperGhost[k] = fLowerSkin[k];
-    fLowerGhost[k] = fUpperSkin[k];
+    // Copy the appropriate skin cell data into the corresponding ghost cells.
+    for (unsigned k=0; k<numComponents; ++k) {
+      fUpperGhost[k] = fLowerSkin[k];
+      fLowerGhost[k] = fUpperSkin[k];
+    }
   }
 }
 
