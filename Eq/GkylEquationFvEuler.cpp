@@ -54,14 +54,14 @@ __host__ __device__ void Euler_qFluctuations(
     const double * __restrict__ waves,
     const double * __restrict__ speeds,
     double * __restrict__ amdq,
-    double * __restrict__ apdq) {
+    double * __restrict__ apdq)
+{
   const GkylEquationFvEuler_t *eulerEqn = (GkylEquationFvEuler_t *)eqn;
   const int *d = dirShuffle[dir];
   const double gasGamma = eulerEqn->gasGamma;
 
-  // XXX TODO set size to numEquations
-  double fl[10];
-  double fr[10];
+  double fl[5];
+  double fr[5];
 
   double pr = Euler_pressure(gasGamma, ql);
   double u = ql[d[1]]/ql[0];
