@@ -57,10 +57,11 @@ __global__ void ker_gkylPeriodicCopy(int dir, GkylCartField_t *f)
   int upperGhost = f->upperGhost;
   // Get local range and compute skin cell and ghost cell ranges
   GkylRange_t *localRange = f->localRange;
-  GkylRange_t lowerSkinRange = localRange->lowerSkin(dir, upperGhost);
-  GkylRange_t upperSkinRange = localRange->upperSkin(dir, lowerGhost);
-  GkylRange_t lowerGhostRange = localRange->lowerGhost(dir, lowerGhost);
-  GkylRange_t upperGhostRange = localRange->upperGhost(dir, upperGhost);
+  GkylRange_t lowerSkinRange = localRange->lowerSkin(dir-1, upperGhost);
+  GkylRange_t upperSkinRange = localRange->upperSkin(dir-1, lowerGhost);
+  GkylRange_t lowerGhostRange = localRange->lowerGhost(dir-1, lowerGhost);
+  GkylRange_t upperGhostRange = localRange->upperGhost(dir-1, upperGhost);
+
   // Set up indexers for prescribed skin and ghost ranges, and f
   Gkyl::GenIndexer localIdxrLowerSkin(&lowerSkinRange);
   Gkyl::GenIndexer localIdxrUpperSkin(&upperSkinRange);
@@ -91,7 +92,7 @@ __global__ void ker_gkylPeriodicCopy(int dir, GkylCartField_t *f)
     const double *fUpperSkin = f->getDataPtrAt(linearIdxUpperSkin);
     double *fLowerGhost = f->getDataPtrAt(linearIdxLowerGhost);
     double *fUpperGhost = f->getDataPtrAt(linearIdxUpperGhost);
-
+    
     // Copy the appropriate skin cell data into the corresponding ghost cells.
     for (unsigned k=0; k<numComponents; ++k) {
       fUpperGhost[k] = fLowerSkin[k];
