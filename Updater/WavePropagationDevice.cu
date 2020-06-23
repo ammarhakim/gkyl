@@ -305,7 +305,7 @@ __global__ void cuda_WavePropagation(
 }
 
 static int calcSharedMemSize(
-    const int meqn, const int mwave, const int numBlocks, const int numThreads)
+    const int meqn, const int mwave, const int numThreads)
 {
   int sharedMemSize = 0;
   // numThreads == numRealCellsPerBlock
@@ -325,13 +325,26 @@ void wavePropagationAdvanceOnDevice(
     GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut)
 {
   const int sharedMemSize = calcSharedMemSize(
-      meqn, mwave, numBlocks, numThreads);
+      meqn, mwave, numThreads);
 
   cudaFuncSetAttribute(
       cuda_WavePropagation, cudaFuncAttributeMaxDynamicSharedMemorySize,
       sharedMemSize);
   cuda_WavePropagation<<<numBlocks, numThreads, sharedMemSize>>>(
       hyper, qIn, qOut);
+}
+
+void wavePropagationInitOnDevice(
+    const int meqn, const int mwave, const int numBlocks, const int numThreads,
+    GkylWavePropagation_t *hyper)
+{
+  const int sharedMemSize = calcSharedMemSize(meqn, mwave, numThreads);
+  cudacall(cudaMalloc(&hyper->buf, sharedMemSize*numBlocks));
+  hyper->sharedMemSize = sharedMemSize;
+}
+
+void wavePropagationDestroyOnDevice(GkylWavePropagation_t *hyper) {
+    cudacall(cudaFree(hyper->buf));
 }
 
 __global__ void setDtOnDevice(GkylWavePropagation_t *hyper, double dt)

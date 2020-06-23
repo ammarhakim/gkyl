@@ -22,8 +22,16 @@ extern "C"
       double _cflm;
       GkylEquationFv_t *equation;
       GkylCartField_t *dtByCell;
+      double *buf;
+      int sharedMemSize;
   } GkylWavePropagation_t;
-    
+
+  void wavePropagationInitOnDevice(
+      const int meqn, const int mwave, const int numBlocks, const int numThreads,
+      GkylWavePropagation_t *hyper);
+
+  void wavePropagationDestroyOnDevice(GkylWavePropagation_t *hyper);
+
   void wavePropagationAdvanceOnDevice(
     const int meqn, const int mwave, const int numBlocks, const int numThreads,
     GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut);
