@@ -35,14 +35,14 @@ local assert_close = Unit.assert_close
 local stats = Unit.stats
 
 function test_1()
-   local nloop = NLOOP or 1 -- number of WavePropagation calls to loop over
+   local nloop = NLOOP or 1
    local runCPU = xsys.pickBool(RUNCPU, true)
-   local checkResult = runCPU and true -- whether to check device result with host one, element-by-element. this can be expensive for large domains.
-   local useGlobalMemory = xsys.pickBool(GLOBALMEM, true)
-   local numThreads = NTHREADS or 128 -- number of threads to use in WavePropagation kernel configuration
+   local check = xsys.pickBool(CHECK, runCPU and true) -- check & report bad values
+   local count = xsys.pickBool(COUNT, false) -- count bad/good values
+   local useGlobalMemory = xsys.pickBool(GLOBALMEM, true)  -- global vs. shared mem
+   local numThreads = NTHREADS or 128
 
-   -- local nx = 1024 -- number of configuration space dimensions in x
-   local nx = 128*64 -- number of configuration space dimensions in x
+   local nx = 128*64
 
    local grid = Grid.RectCart {
       cells = {nx},
@@ -128,15 +128,32 @@ function test_1()
 
    local indexer = qOut:genIndexer()
    local d_indexer = d_qOut:genIndexer()
-   if checkResult then 
+   if check or count then 
+      local good =0
+      local bad = 0
       for idx in qOut:localRangeIter() do
          local fitr = qOut:get(indexer(idx))
          local d_fitr = d_qOut:get(d_indexer(idx))
          for i = 1, qOut:numComponents() do
-            assert_close(fitr[i], d_fitr[i], 1e-10, string.format("index %d, component %d is incorrect", indexer(idx), i))
+            if count then
+               if math.abs(fitr[i]-d_fitr[i])>1e-10 then
+                  bad = bad+1
+               else
+                  good = good+1
+               end
+            end
+            if check then
+               assert_close(
+                  fitr[i], d_fitr[i], 1e-10, 
+                  string.format(
+                  "index %d, component %d is incorrect", indexer(idx), i))
+            end
          end
       end
       --assert_equal(cflRate, cflRate_from_gpu[1], "Checking max cflRate")
+      if count then
+         print("# good values:", good, "; # bad values", bad)
+      end
    end
 
 

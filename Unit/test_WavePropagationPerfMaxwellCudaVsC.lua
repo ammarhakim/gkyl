@@ -38,7 +38,8 @@ local stats = Unit.stats
 function test_1()
    local nloop = NLOOP or 1
    local runCPU = xsys.pickBool(RUNCPU, true)
-   local checkResult = runCPU and true
+   local check = xsys.pickBool(CHECK, runCPU and true) -- check & report bad values
+   local count = xsys.pickBool(COUNT, true) -- count bad/good values
    local useGlobalMemory = xsys.pickBool(GLOBALMEM, true)
    local numThreads = NTHREADS or 64
    local nx = NX or 64*64
@@ -132,15 +133,33 @@ function test_1()
 
    local indexer = qOut:genIndexer()
    local d_indexer = d_qOut:genIndexer()
-   if checkResult then 
+   if check or count then 
+      local good =0
+      local bad = 0
       for idx in qOut:localRangeIter() do
          local fitr = qOut:get(indexer(idx))
          local d_fitr = d_qOut:get(d_indexer(idx))
          for i = 1, qOut:numComponents() do
-            assert_close(fitr[i], d_fitr[i], 1e-10, string.format("index %d, component %d is incorrect", indexer(idx), i))
+            if count then
+               if math.abs(fitr[i]-d_fitr[i])>1e-10 then
+                  bad = bad+1
+               else
+                  good = good+1
+               end
+            end
+            if check then
+               assert_close(
+                  fitr[i], d_fitr[i], 1e-10, 
+                  string.format(
+                  "index %d, component %d is incorrect", indexer(idx), i))
+            end
+
          end
       end
       --assert_equal(cflRate, cflRate_from_gpu[1], "Checking max cflRate")
+      if count then
+         print("# good values:", good, "; # bad values", bad)
+      end
    end
 
 
