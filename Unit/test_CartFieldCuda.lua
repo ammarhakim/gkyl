@@ -320,20 +320,18 @@ local function test_deviceReduce(nIter, reportTiming)
    field:copyHostToDevice()
 
    -- Get the maximum, minimum and sum on the CPU (for reference).
-   local h_maxVal, h_minVal, h_sumVal = Alloc.Double(1), Alloc.Double(1), Alloc.Double(1)
-   field:hostReduce("max", h_maxVal) 
-   field:hostReduce("min",h_minVal) 
-   field:hostReduce("sum",h_sumVal)
+   local h_maxVal = field:hostReduce("max") 
+   local h_minVal = field:hostReduce("min") 
+   local h_sumVal = field:hostReduce("sum")
 
-   local d_maxVal = cudaAlloc.Double(field:numComponents())
-   local d_minVal = cudaAlloc.Double(field:numComponents())
-   local d_sumVal = cudaAlloc.Double(field:numComponents())
+   local d_maxVal, d_minVal, d_sumVal
    
    local tmStart = Time.clock()
    for i = 1, nIter do
-      field:reduce("max",d_maxVal)
-      field:reduce("min",d_minVal)
-      field:reduce("sum",d_sumVal)
+      -- Calling (device) reduce without a second argument will return a host array.
+      d_maxVal = field:reduce("max")
+      d_minVal = field:reduce("min")
+      d_sumVal = field:reduce("sum")
    end
    local err = cuda.DeviceSynchronize()
    if reportTiming then
@@ -342,25 +340,11 @@ local function test_deviceReduce(nIter, reportTiming)
    end
    
    -- Test that the value found is correct.
-   local maxVal_gpu = Alloc.Double(field:numComponents())
-   local minVal_gpu = Alloc.Double(field:numComponents())
-   local sumVal_gpu = Alloc.Double(field:numComponents())
-   local err = d_maxVal:copyDeviceToHost(maxVal_gpu)
-   local err = d_minVal:copyDeviceToHost(minVal_gpu)
-   local err = d_sumVal:copyDeviceToHost(sumVal_gpu)
-   
    for k = 1, field:numComponents() do
-      assert_equal(h_maxVal[k], maxVal_gpu[k], "Checking max reduce of CartField on GPU.")
-      assert_equal(h_minVal[k], minVal_gpu[k], "Checking min reduce of CartField on GPU.")
-      assert_close(h_sumVal[k], sumVal_gpu[k], 1.e-12*sumVal_gpu[k], "Checking sum reduce of CartField on GPU.")
+      assert_equal(h_maxVal[k], d_maxVal[k], "Checking max reduce of CartField on GPU.")
+      assert_equal(h_minVal[k], d_minVal[k], "Checking min reduce of CartField on GPU.")
+      assert_close(h_sumVal[k], d_sumVal[k], 1.e-12*d_sumVal[k], "Checking sum reduce of CartField on GPU.")
    end
-   
-   d_maxVal:delete()
-   d_minVal:delete()
-   d_sumVal:delete()
-   maxVal_gpu:delete()
-   minVal_gpu:delete()
-   sumVal_gpu:delete()
 end
 
 -- This test synchronizes periodic boundary conditions on a single GPU (performs a copy from the skin cells to the ghost cells).

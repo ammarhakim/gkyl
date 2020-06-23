@@ -227,6 +227,7 @@ local function Field_meta_ctor(elct)
 
       -- allocator function
       local allocator = grid:isShared() and sharedAllocatorFunc or allocatorFunc
+      self.allocator = allocator
       
       -- allocate memory: this is NOT managed by the LuaJIT GC, allowing fields to be arbitrarly large
       local sz = localRange:extend(ghost[1], ghost[2]):volume()*nc -- amount of data in field
@@ -295,7 +296,8 @@ local function Field_meta_ctor(elct)
         
          numBlocksC:delete()
          numThreadsC:delete()
-         self.d_blockRed, self.d_intermediateRed = deviceAllocatorFunc(self.reduceBlocks), deviceAllocatorFunc(self.reduceBlocks)
+         self.d_blockRed, self.d_intermediateRed = deviceAllocatorFunc(shmComm, self.reduceBlocks), deviceAllocatorFunc(shmComm, self.reduceBlocks)
+         self.d_reduction = deviceAllocatorFunc(shmComm, self._numComponents)
          -- Create reduction operator on host, and copy to device.
          local redOp           = {}
          for k, v in pairs(reduceInitialVal) do
@@ -925,7 +927,7 @@ local function Field_meta_ctor(elct)
       checkRange = function(self, fld)
          return field_check_range(self, fld)
       end,
-      reduce = (GKYL_USE_DEVICE and function(self,...) self:deviceReduce(...) end) or function(self,...) return self:hostReduce(...) end,
+      reduce = (GKYL_USE_DEVICE and function(self,...) return self:deviceReduce(...) end) or function(self,...) return self:hostReduce(...) end,
       hostReduce = isNumberType and
 	 function(self, opIn, localVal)
 	    -- Input 'opIn' must be one of the binary operations in binOpFuncs.
@@ -958,8 +960,18 @@ local function Field_meta_ctor(elct)
       deviceReduce = isNumberType and
 	 function(self, opIn, d_reduction)
 	    -- Input 'opIn' must be one of the binary operations in binOpFuncs.
+	    local returnHost = true
+	    if d_reduction then 
+               returnHost = false
+            end
+	    local d_reduction = d_reduction or self.d_reduction
             ffi.C.gkylCartFieldDeviceReduce(self.d_redOp[opIn],self._localRange:volume(),self._numComponents,self.reduceBlocks,self.reduceThreads,self.reduceBlocksMAX,self.reduceThreadsMAX,
                self.deviceProps,self._onDevice,self.d_blockRed:data(),self.d_intermediateRed:data(),d_reduction:data())
+            if returnHost then 
+               local h_reduction = self.allocator(shmComm, self._numComponents)
+               d_reduction:copyDeviceToHost(h_reduction)
+               return h_reduction
+            end
 	 end or
 	 function (self, opIn, d_reduction)
 	    assert(false, "CartField:deviceReduce: Reduce only works on numeric fields.")

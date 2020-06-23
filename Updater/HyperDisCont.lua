@@ -301,7 +301,7 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
    local numBlocks  = math.ceil(numCellsLocal/numThreads)
 
    if self._clearOut then
-     cuda.Memset(qRhsOut:deviceDataPointer(), 0.0, sizeof('double')*qRhsOut:size())
+     qRhsOut:clear(0.0)
    end
 
    if self._useSharedDevice then
@@ -310,7 +310,7 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
       ffiC.advanceOnDevice(numBlocks, numThreads, qIn:numComponents(), self._onDevice, qIn._onDevice, qRhsOut._onDevice)
    end
 
-   self.maxsByCell:deviceReduce('max', self.maxs)  
+   self.maxsByCell:reduce('max', self.maxs)  
 end
 
 -- set up pointers to dt and cflRateByCell
