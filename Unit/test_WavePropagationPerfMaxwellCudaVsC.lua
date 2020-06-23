@@ -38,11 +38,11 @@ local stats = Unit.stats
 function test_1()
    local nloop = NLOOP or 1
    local runCPU = xsys.pickBool(RUNCPU, true)
-   local check = xsys.pickBool(CHECK, runCPU and true) -- check & report bad values
+   local check = xsys.pickBool(CHECK, runCPU and truex) -- check & report bad values
    local count = xsys.pickBool(COUNT, true) -- count bad/good values
    local useGlobalMemory = xsys.pickBool(GLOBALMEM, true)
-   local numThreads = NTHREADS or 64
-   local nx = NX or 64*64
+   local numThreads = NTHREADS or 128
+   local nx = NX or 128*32
 
    local grid = Grid.RectCart {
       cells = {nx},
