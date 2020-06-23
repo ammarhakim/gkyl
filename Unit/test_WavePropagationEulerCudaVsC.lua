@@ -38,8 +38,8 @@ function test_1()
    local nloop = NLOOP or 1 -- number of WavePropagation calls to loop over
    local runCPU = xsys.pickBool(RUNCPU, true)
    local checkResult = runCPU and true -- whether to check device result with host one, element-by-element. this can be expensive for large domains.
+   local useGlobalMemory = xsys.pickBool(GLOBALMEM, true)
    local numThreads = NTHREADS or 128 -- number of threads to use in WavePropagation kernel configuration
-   local useSharedDevice = xsys.pickBool(SHARED, false) -- whether to use device shared memory
 
    -- local nx = 1024 -- number of configuration space dimensions in x
    local nx = 128*64 -- number of configuration space dimensions in x
@@ -60,9 +60,9 @@ function test_1()
       updateDirections = {1},
       cfl = 1.0,
       equation = eq,
-      numThreads = numThreads,
-      useSharedDevice = useSharedDevice,
       limiter = 'min-mod',
+      numThreads = numThreads,
+      useGlobalMemory = useGlobalMemory,
    }
 
    local qIn = DataStruct.Field {

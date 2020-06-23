@@ -39,6 +39,7 @@ function test_1()
    local nloop = NLOOP or 1
    local runCPU = xsys.pickBool(RUNCPU, true)
    local checkResult = runCPU and true
+   local useGlobalMemory = xsys.pickBool(GLOBALMEM, true)
    local numThreads = NTHREADS or 64
    local nx = NX or 64*64
 
@@ -59,8 +60,9 @@ function test_1()
       updateDirections = {1},
       cfl = 1.0,
       equation = eq,
-      numThreads = numThreads,
       limiter = 'min-mod',
+      numThreads = numThreads,
+      useGlobalMemory = useGlobalMemory,
    }
 
    local qIn = DataStruct.Field {
