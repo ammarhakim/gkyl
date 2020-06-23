@@ -465,7 +465,7 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredDirect(
     double *f = fluidFlds[n]->getDataPtrAt(linearIdxC);
     if (!fd[n].evolve)
       continue;
-    keOld[n] = 0.5 * (sq(f[MX]) + sq(f[MY]) + sq(f[MZ])) / f[RHO];
+    keOld[n] = (sq(f[MX]) + sq(f[MY]) + sq(f[MZ]));
   }
 
   cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
@@ -479,8 +479,8 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredDirect(
       if (!fd[n].evolve)
         continue;
       double *f = fluidFlds[n]->getDataPtrAt(linearIdxC);
-      const double keNew = 0.5 * (sq(f[MX]) + sq(f[MY]) + sq(f[MZ])) / f[RHO];
-      f[ER] += keNew - keOld[n];
+      const double keNew = (sq(f[MX]) + sq(f[MY]) + sq(f[MZ]));
+      f[ER] += 0.5 * (keNew - keOld[n]) / f[RHO];
     }
   } 
 }
