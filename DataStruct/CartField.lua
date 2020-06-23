@@ -961,6 +961,7 @@ local function Field_meta_ctor(elct)
 	 function(self, opIn, d_reduction)
 	    -- Input 'opIn' must be one of the binary operations in binOpFuncs.
 	    local returnHost = true
+            -- If a device array argument is provided, don't return a host array.
 	    if d_reduction then 
                returnHost = false
             end
@@ -968,6 +969,7 @@ local function Field_meta_ctor(elct)
             ffi.C.gkylCartFieldDeviceReduce(self.d_redOp[opIn],self._localRange:volume(),self._numComponents,self.reduceBlocks,self.reduceThreads,self.reduceBlocksMAX,self.reduceThreadsMAX,
                self.deviceProps,self._onDevice,self.d_blockRed:data(),self.d_intermediateRed:data(),d_reduction:data())
             if returnHost then 
+               -- Allocate a host array, copy the device result into it, and return the host array.
                local h_reduction = self.allocator(shmComm, self._numComponents)
                d_reduction:copyDeviceToHost(h_reduction)
                return h_reduction
