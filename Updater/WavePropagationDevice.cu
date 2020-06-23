@@ -117,7 +117,14 @@ __global__ void cuda_WavePropagation(
   const int linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
 
   // assign buffer space for different usages
-  extern __shared__ double dummy[];
+  double *dummy;
+  extern __shared__ double dummy_sharedMem[];
+  if (hyper->sharedMemSize>0) {
+    dummy = hyper->buf + hyper->sharedMemSize * blockIdx.x;
+  } else {
+    dummy = dummy_sharedMem;
+  }
+
   int base = 0;
 
   double *amdq = dummy + base + (meqn)*(threadIdx.x);
@@ -316,22 +323,27 @@ static int calcSharedMemSize(
   sharedMemSize += (numThreads+3) * (mwave*meqn+mwave);
   // limitedWaves and 2nd-order flux are needed on real-real & real-ghost faces
   sharedMemSize += (numThreads+1) * (mwave*meqn+meqn*0);
-  sharedMemSize *= sizeof(double);
   return sharedMemSize;
 }
 
 void wavePropagationAdvanceOnDevice(
     const int meqn, const int mwave, const int numBlocks, const int numThreads,
-    GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut)
+    GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut,
+    const bool useGlobalMem)
 {
-  const int sharedMemSize = calcSharedMemSize(
-      meqn, mwave, numThreads);
+  if (useGlobalMem)
+  {
+    cuda_WavePropagation<<<numBlocks, numThreads>>>(hyper, qIn, qOut);
+  } else {
+    const int sharedMemSize = calcSharedMemSize(
+        meqn, mwave, numThreads)*sizeof(double);
 
-  cudaFuncSetAttribute(
-      cuda_WavePropagation, cudaFuncAttributeMaxDynamicSharedMemorySize,
-      sharedMemSize);
-  cuda_WavePropagation<<<numBlocks, numThreads, sharedMemSize>>>(
-      hyper, qIn, qOut);
+    cudaFuncSetAttribute(
+        cuda_WavePropagation, cudaFuncAttributeMaxDynamicSharedMemorySize,
+        sharedMemSize);
+    cuda_WavePropagation<<<numBlocks, numThreads, sharedMemSize>>>(
+        hyper, qIn, qOut);
+  }
 }
 
 void wavePropagationInitOnDevice(
@@ -339,7 +351,7 @@ void wavePropagationInitOnDevice(
     GkylWavePropagation_t *hyper)
 {
   const int sharedMemSize = calcSharedMemSize(meqn, mwave, numThreads);
-  cudacall(cudaMalloc(&hyper->buf, sharedMemSize*numBlocks));
+  cudacall(cudaMalloc(&hyper->buf, sharedMemSize*numBlocks*sizeof(double)));
   hyper->sharedMemSize = sharedMemSize;
 }
 

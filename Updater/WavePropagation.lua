@@ -56,7 +56,8 @@ ffi.cdef [[
 
   void wavePropagationAdvanceOnDevice(
     const int meqn, const int mwave, const int numBlocks, const int numThreads,
-    GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut);
+    GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut,
+    const bool useGlobalMem);
 
   void setDt(GkylWavePropagation_t *hyper, double dt);
 ]]
@@ -266,13 +267,38 @@ function WavePropagation:initDevice(tbl)
    hyper._cfl = self._cfl
    hyper._cflm = self._cflm
    hyper.dtByCell = self.dtByCell._onDevice
+   hyper.sharedMemSize = -1
    self._onHost = hyper
+
+   self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
+   local numCellsLocal = self._onGrid:localRange():volume()
+   local numThreads = math.min(self.numThreads, numCellsLocal)
+   local numBlocks  = math.ceil(numCellsLocal/numThreads)
+   self.numThreads = numThreads
+   self.numBlocks = numBlocks
+   self.numCellsLocal = numCellsLocal
+
+   self._useGlobalMemory = xsys.pickBool(tbl.useGlobalMemory, false)
+   if self._useGlobalMemory then
+      local meqn = self._equation:numEquations()
+      local mwave = self._equation:numWaves()
+      ffi.C.wavePropagationInitOnDevice(
+         meqn, mwave, numBlocks, numThreads, self._onHost)
+
+      local prox = newproxy(true)
+      self.deviceContextDestroyed = false
+      getmetatable(prox).__gc = function()
+         if not self.deviceContextDestroyed  then
+            ffi.C.wavePropagationDestroyOnDevice(self._onHost)
+        end
+        self.deviceContextDestroyed = true
+      end
+      self[prox] = true
+   end
+
    local sz = sizeof("GkylWavePropagation_t")
    self._onDevice, err = cuda.Malloc(sz)
    cuda.Memcpy(self._onDevice, hyper, sz, cuda.MemcpyHostToDevice)
-
-   self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
-   self._useSharedDevice = xsys.pickBool(tbl.useSharedDevice, false)
 end
 
 -- Limit waves: this code closely follows the example of CLAWPACK and
@@ -457,16 +483,9 @@ function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)
    local numBlocks  = math.ceil(numCellsLocal/numThreads)
    local meqn, mwave = self._equation:numEquations(), self._equation:numWaves()
 
-   if self._useSharedDevice then
-      -- TODO implement
-      -- ffi.C.advanceOnDevice_shared(
-      --    numBlocks, numThreads, qIn:numComponents(), self._onDevice,
-      --    qIn._onDevice, qOut._onDevice)
-   else
-      ffi.C.wavePropagationAdvanceOnDevice(
-         meqn, mwave, numBlocks, numThreads, self._onDevice, qIn._onDevice,
-         qOut._onDevice)
-   end
+   ffi.C.wavePropagationAdvanceOnDevice(
+      meqn, mwave, numBlocks, numThreads, self._onDevice, qIn._onDevice,
+      qOut._onDevice, self._useGlobalMemory)
 
    -- self.dtByCell:deviceReduce('min', self.dtPtr)
 end
