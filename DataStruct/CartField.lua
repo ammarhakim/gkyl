@@ -390,8 +390,8 @@ local function Field_meta_ctor(elct)
       self._sendUpperPerMPILoc, self._recvUpperPerMPILoc = {}, {}
 
       -- create buffers for periodic copy if Mpi.Comm_size(nodeComm) = 1
-      -- note that since nodeComm is only valid on shmComm = 0, need to check whether this is a valid comm
-      if Mpi.Is_comm_valid(nodeComm) and Mpi.Comm_size(nodeComm) == 1 then
+      -- NOTE: this copy method is not SHM safe and therefore only works when Mpi.Comm_size(shmComm) = 1
+      if Mpi.Comm_size(shmComm) == 1 and Mpi.Comm_size(nodeComm) == 1 then
          self._lowerPeriodicBuff, self._upperPeriodicBuff = {}, {}
       end
 
@@ -411,7 +411,7 @@ local function Field_meta_ctor(elct)
                -- memory needed for periodic boundary conditions and we do not need MPI Datatypes.
 	       if myId == loId then
 		  local rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
-                  if Mpi.Is_comm_valid(nodeComm) and Mpi.Comm_size(nodeComm) == 1 then
+                  if Mpi.Comm_size(shmComm) == 1 and Mpi.Comm_size(nodeComm) == 1 then
                      local szSend = rgnSend:volume()*self._numComponents
                      self._lowerPeriodicBuff[dir] = allocator(shmComm, szSend)
                   end
@@ -430,7 +430,7 @@ local function Field_meta_ctor(elct)
 	       end
 	       if myId == upId then
 		  local rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
-                  if Mpi.Is_comm_valid(nodeComm) and Mpi.Comm_size(nodeComm) == 1 then
+                  if Mpi.Comm_size(shmComm) == 1 and Mpi.Comm_size(nodeComm) == 1 then
                      local szSend = rgnSend:volume()*self._numComponents
                      self._upperPeriodicBuff[dir] = allocator(shmComm, szSend)
                   end
@@ -842,12 +842,14 @@ local function Field_meta_ctor(elct)
       sync = (GKYL_USE_DEVICE and function(self,...) self:deviceSync(...) end) or function(self,...) self:hostSync(...) end,
       hostSync = function (self, syncPeriodicDirs_)
          local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
+         -- Communicators to use.
+         local nodeComm = self._grid:commSet().nodeComm
+         local shmComm = self._grid:commSet().sharedComm
 	 -- this barrier is needed as when using MPI-SHM some
 	 -- processors will get to the sync method before others
          -- this is especially troublesome in the RK combine step
-	 Mpi.Barrier(self._grid:commSet().sharedComm)
-	 local nodeComm = self._grid:commSet().nodeComm -- communicator to use
-         if Mpi.Is_comm_valid(nodeComm) and Mpi.Comm_size(nodeComm) == 1 then
+	 Mpi.Barrier(shmComm)
+         if Mpi.Comm_size(shmComm) == 1 and Mpi.Comm_size(nodeComm) == 1 then
             self._field_periodic_copy(self)
          else
 	    self._field_sync(self, self:dataPointer())
@@ -857,7 +859,7 @@ local function Field_meta_ctor(elct)
          end
 	 -- this barrier is needed as when using MPI-SHM some
 	 -- processors will not participate in sync()
-	 Mpi.Barrier(self._grid:commSet().sharedComm)
+	 Mpi.Barrier(shmComm)
       end,
       deviceSync = function (self, syncPeriodicDirs_)
          if self._devAllocData then
@@ -905,17 +907,10 @@ local function Field_meta_ctor(elct)
       periodicCopy = (GKYL_USE_DEVICE and function(self,...) self:devicePeriodicCopy(...) end) or function(self,...) self:hostPeriodicCopy(...) end,
       hostPeriodicCopy = function (self, syncPeriodicDirs_)
          local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
-	 -- this barrier is needed as when using MPI-SHM some
-	 -- processors could apply periodic boundary conditions before others
-         -- this is especially troublesome in the RK combine step
-	 Mpi.Barrier(self._grid:commSet().sharedComm)
+         -- NOTE: This method is not currently MPI-SHM safe, so no need to barrier
 	 if self._syncPeriodicDirs and syncPeriodicDirs then
             self._field_periodic_copy(self)
 	 end
-	 -- This barrier is needed as when using MPI-SHM some
-	 -- processors will not participate in applying periodic
-         -- boundary conditions
-	 Mpi.Barrier(self._grid:commSet().sharedComm)
       end,
       devicePeriodicCopy = function (self, syncPeriodicDirs_)
          if self._devAllocData then 
@@ -1013,30 +1008,20 @@ local function Field_meta_ctor(elct)
 	    assert(false, "CartField:deviceReduce: Reduce only works on numeric fields.")
 	 end,
       _copy_from_field_region = function (self, rgn, data)
-         local grid = self._grid
 	 local indexer = self:genIndexer()
 	 local c = 0
-         -- Object to iterate over only region owned by local SHM thread.
-         local rangeDecomp = LinearDecomp.LinearDecompRange {
-	    range = rgn, numSplit = grid:numSharedProcs() }
-         local tId = grid:subGridSharedId() -- Local thread ID.
          local fitr = self:get(1)
-	 for idx in rangeDecomp:rowMajorIter(tId) do
+	 for idx in rgn:rowMajorIter() do
 	    self:fill(indexer(idx), fitr)
             ffiC.gkylCopyFromField(data:data(), fitr:data(), self._numComponents, c)
             c = c + self._numComponents
 	 end
       end,
       _copy_to_field_region = function (self, rgn, data)
-         local grid = self._grid
 	 local indexer = self:genIndexer()
 	 local c = 0
-         -- Object to iterate over only region owned by local SHM thread.
-         local rangeDecomp = LinearDecomp.LinearDecompRange {
-	    range = rgn, numSplit = grid:numSharedProcs() }
-         local tId = grid:subGridSharedId() -- Local thread ID.
          local fitr = self:get(1)
-	 for idx in rangeDecomp:rowMajorIter(tId) do
+	 for idx in rgn:rowMajorIter() do
 	    self:fill(indexer(idx), fitr)
             ffiC.gkylCopyToField(fitr:data(), data:data(), self._numComponents, c)
             c = c + self._numComponents
@@ -1193,7 +1178,7 @@ local function Field_meta_ctor(elct)
                local ghostRgnUpper = localRange:upperGhost(dir, self._upperGhost)
                self:_copy_to_field_region(ghostRgnUpper, periodicBuffUpper)
 
-	              -- Now do the same, but for the skin cells for the lower ghost region (the upper skin cells).
+	       -- Now do the same, but for the skin cells for the lower ghost region (the upper skin cells).
                local skinRgnLower = localRange:upperSkin(dir, self._lowerGhost)
                local periodicBuffLower = self._lowerPeriodicBuff[dir]
                self:_copy_from_field_region(skinRgnLower, periodicBuffLower)
