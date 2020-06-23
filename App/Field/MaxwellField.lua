@@ -472,25 +472,13 @@ function MaxwellField:accumulateCurrent(current, emRhs)
    -- If we are to use ghost currents, compute mean current first.
    local ghostCurrent = 0.0
    if self.useGhostCurrent then
-      local nx               = self.grid:numCells(1)
-      local localMeanCurrent = ffi.new("double[2]")
-      for idx in emRhs:localRangeIter() do
-	 current:fill(cIdxr(idx), cItr)
-	 localMeanCurrent[0] = localMeanCurrent[0]+cItr[1]
-      end
-      local globalMeanCurrent = ffi.new("double[2]")
-      Mpi.Allreduce(localMeanCurrent, globalMeanCurrent, 1, Mpi.DOUBLE, Mpi.SUM, self.grid:commSet().comm)
-      ghostCurrent = globalMeanCurrent[0]/nx
+      local nx = self.grid:numCells(1)
+      ghostCurrent = current:reduce("sum")[1]/nx
    end
 
-   for idx in emRhs:localRangeIter() do
-      current:fill(cIdxr(idx), cItr)
-      emRhs:fill(eIdxr(idx), eItr)
-      eItr[1] = eItr[1]-1.0/self.epsilon0*(cItr[1]-ghostCurrent)
-      for i = 2, current:numComponents() do
-         eItr[i] = eItr[i]-1.0/self.epsilon0*cItr[i]
-      end
-   end
+   emRhs:accumulateOffset(-1.0/self.epsilon0, current, 0)
+   -- NOTE: need to find a way to subtract ghost current (a scalar value) from first component for all cells.
+
    self.tmCurrentAccum = self.tmCurrentAccum + Time.clock()-tmStart
 end
 
