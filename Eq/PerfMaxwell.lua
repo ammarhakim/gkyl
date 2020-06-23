@@ -29,6 +29,7 @@ if GKYL_HAVE_CUDA then
 end
 
 ffi.cdef [[ 
+    typedef struct { double c, chi, gamma; } MaxwellEq_t;
     typedef struct GkylEquation_t GkylEquation_t ;
     GkylEquation_t *new_MaxwellOnDevice(unsigned cdim, unsigned polyOrder, unsigned basisType,
       MaxwellEq_t *mdata, double tau);
