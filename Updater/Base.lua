@@ -45,12 +45,16 @@ end
 
 function _M:_advanceNoDeviceImpl(tCurr, inFld, outFld)
    -- copy input fields from device -> host
-   for _, fld in ipairs(inFld) do fld:copyDeviceToHost() end
+   for _, fld in ipairs(inFld) do
+      if fld._devAllocData then
+         fld:copyDeviceToHost() 
+      end
+   end
    -- do update
    self:_advance(tCurr, inFld, outFld)
    -- copy output fields from host -> device
    for _, fld in ipairs(outFld) do 
-      if fld.copyHostToDevice then
+      if fld._devAllocData then
          fld:copyHostToDevice() 
       end
    end

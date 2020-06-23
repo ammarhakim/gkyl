@@ -261,7 +261,7 @@ local function Field_meta_ctor(elct)
       self.globalReductionVal = ElemVec(self._numComponents)
 
       -- create a device copy is needed
-      local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, GKYL_USE_DEVICE)
+      local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, GKYL_USE_DEVICE) and GKYL_USE_DEVICE
       if createDeviceCopy then
          -- Allocate device memory.
 	 self._devAllocData = deviceAllocatorFunc(shmComm, sz)
@@ -487,7 +487,9 @@ local function Field_meta_ctor(elct)
       deviceCopy = function (self, fIn)
          if self._devAllocData then
 	    self:_deviceAssign(1.0, fIn)
-	 end
+	 else
+            self:hostCopy(fIn)
+         end
       end,
       copyHostToDevice = function (self)
 	 if self._devAllocData then
@@ -532,7 +534,9 @@ local function Field_meta_ctor(elct)
 	    local shape = self:_localShape()
 	    local numBlocks = math.floor(shape/numThreads)+1
 	    ffiC.gkylCartFieldDeviceAssignAll(numBlocks, numThreads, self:_localLower(), self:_localShape(), val, self:deviceDataPointer())
-	 end
+	 else
+            self:hostClear(val)
+         end
       end,
       fill = function (self, k, fc)
 	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index	 
@@ -552,13 +556,17 @@ local function Field_meta_ctor(elct)
 	 ffiC.gkylCartFieldAssign(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
       end,
       _deviceAssign = function(self, fact, fld)
-	 assert(field_compatible(self, fld), "CartField:combine: Can only accumulate compatible fields")
-	 assert(type(fact) == "number", "CartField:combine: Factor not a number")
+         if self._devAllocData then
+	    assert(field_compatible(self, fld), "CartField:combine: Can only accumulate compatible fields")
+	    assert(type(fact) == "number", "CartField:combine: Factor not a number")
 
-	 local numThreads = GKYL_DEFAULT_NUM_THREADS
-	 local shape = self:_localShape()
-	 local numBlocks = math.floor(shape/numThreads)+1
-	 ffiC.gkylCartFieldDeviceAssign(numBlocks, numThreads, self:_localLower(), self:_localShape(), fact, fld:deviceDataPointer(), self:deviceDataPointer())
+	    local numThreads = GKYL_DEFAULT_NUM_THREADS
+	    local shape = self:_localShape()
+	    local numBlocks = math.floor(shape/numThreads)+1
+	    ffiC.gkylCartFieldDeviceAssign(numBlocks, numThreads, self:_localLower(), self:_localShape(), fact, fld:deviceDataPointer(), self:deviceDataPointer())
+         else 
+            self:_hostAssign(fact, fld)
+         end
       end,
       _accumulateOneFld = (GKYL_USE_DEVICE and function(self, ...) self:_deviceAccumulateOneFld(...) end) or function(self, ...) self:_hostAccumulateOneFld(...) end,
       _hostAccumulateOneFld = function(self, fact, fld)
@@ -570,6 +578,23 @@ local function Field_meta_ctor(elct)
 		"CartField:accumulate/combine: Fields should have same layout for sums to make sense")
 
 	 ffiC.gkylCartFieldAccumulate(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
+      end,
+      _deviceAccumulateOneFld = function(self, fact, fld)
+         if self._devAllocData then
+	    assert(field_compatible(self, fld),
+	           "CartField:accumulate/combine: Can only accumulate/combine compatible fields")
+	    assert(type(fact) == "number",
+	           "CartField:accumulate/combine: Factor not a number")
+            assert(self:layout() == fld:layout(),
+	           "CartField:accumulate/combine: Fields should have same layout for sums to make sense")
+
+	    local numThreads = GKYL_DEFAULT_NUM_THREADS
+	    local shape = self:_localShape()
+	    local numBlocks = math.floor(shape/numThreads)+1
+	    ffiC.gkylCartFieldDeviceAccumulate(numBlocks, numThreads, self:_localLower(), self:_localShape(), fact, fld:deviceDataPointer(), self:deviceDataPointer())
+         else
+            self:_hostAccumulateOneFld(fact, fld)
+         end
       end,
       -- This accumulate method assumes the one side of the accumulation has a fewer number of components than the other side.
       -- It presumes that the user wants to accumulate all of one side with part of the other side.
@@ -588,19 +613,6 @@ local function Field_meta_ctor(elct)
          -- We do not need to use an indexer since we are simply accumulating cell-wise a subset of the components.
          local numCells = self:_localShape()/self:numComponents()
 	 ffiC.gkylCartFieldAccumulateOffset(fld:_localLower(), self:_localLower(), numCells, compStart, fld:numComponents(), self:numComponents(), fact, fld._data, self._data)
-      end,
-      _deviceAccumulateOneFld = function(self, fact, fld)
-	 assert(field_compatible(self, fld),
-		"CartField:accumulate/combine: Can only accumulate/combine compatible fields")
-	 assert(type(fact) == "number",
-		"CartField:accumulate/combine: Factor not a number")
-         assert(self:layout() == fld:layout(),
-		"CartField:accumulate/combine: Fields should have same layout for sums to make sense")
-
-	 local numThreads = GKYL_DEFAULT_NUM_THREADS
-	 local shape = self:_localShape()
-	 local numBlocks = math.floor(shape/numThreads)+1
-	 ffiC.gkylCartFieldDeviceAccumulate(numBlocks, numThreads, self:_localLower(), self:_localShape(), fact, fld:deviceDataPointer(), self:deviceDataPointer())
       end,
       _deviceAccumulateOffsetOneFld = function(self, fact, fld, compStart)
 	 assert(field_check_range(self, fld),
@@ -640,6 +652,8 @@ local function Field_meta_ctor(elct)
 	       for i = 1, nFlds do -- accumulate rest of the fields
 	          self:_deviceAccumulateOneFld(args[2*i-1], args[2*i])
 	       end
+            else
+               self:hostAccumulate(c1, fld1, ...)
 	    end
 	 end or
 	 function (self, c1, fld1, ...)
@@ -667,6 +681,8 @@ local function Field_meta_ctor(elct)
 	       for i = 1, nFlds do -- accumulate rest of the fields
 	          self:_deviceAccumulateOffsetOneFld(args[3*i-2], args[3*i-1], args[3*i])
 	       end
+            else
+               self:hostAccumulateOffset(c1, fld1, compStart1, ...)
             end
 	 end or
 	 function (self, c1, fld1, compStart1, ...)
@@ -694,6 +710,8 @@ local function Field_meta_ctor(elct)
 	       for i = 1, nFlds do -- accumulate rest of the fields
 	          self:_deviceAccumulateOneFld(args[2*i-1], args[2*i])
 	       end
+            else
+               self:hostCombine(c1, fld1, ...)
 	    end
 	 end or
 	 function (self, c1, fld1, ...)
@@ -714,6 +732,8 @@ local function Field_meta_ctor(elct)
 	       local shape = self:_localShape()
 	       local numBlocks = math.floor(shape/numThreads)+1
 	       ffiC.gkylCartFieldDeviceScale(numBlocks, numThreads,  self:_localLower(), self:_localShape(), fact, self:deviceDataPointer())
+            else
+               self:hostScale(fact)
 	    end
 	 end or
 	 function (self, fact)
@@ -740,6 +760,8 @@ local function Field_meta_ctor(elct)
 	       local shape = self:_localShape() 
 	       local numBlocks = math.floor(shape/numThreads)+1
 	       ffiC.gkylCartFieldDeviceAbs(numBlocks, numThreads,  self:_localLower(), self:_localShape(), self:deviceDataPointer())
+            else
+               self:hostAbs()
 	    end
 	 end or
 	 function (self, fact)
@@ -838,40 +860,44 @@ local function Field_meta_ctor(elct)
 	 Mpi.Barrier(self._grid:commSet().sharedComm)
       end,
       deviceSync = function (self, syncPeriodicDirs_)
-         local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
-	 -- this barrier is needed as when using MPI-SHM some
-	 -- processors will get to the sync method before others
-         -- this is especially troublesome in the RK combine step
-	 Mpi.Barrier(self._grid:commSet().sharedComm)
-	 local nodeComm = self._grid:commSet().nodeComm -- communicator to use
-         if Mpi.Is_comm_valid(nodeComm) and Mpi.Comm_size(nodeComm) == 1 then
-            if self._syncPeriodicDirs and syncPeriodicDirs then
-               local numThreads = GKYL_DEFAULT_NUM_THREADS
+         if self._devAllocData then
+            local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
+	    -- this barrier is needed as when using MPI-SHM some
+	    -- processors will get to the sync method before others
+            -- this is especially troublesome in the RK combine step
+	    Mpi.Barrier(self._grid:commSet().sharedComm)
+	    local nodeComm = self._grid:commSet().nodeComm -- communicator to use
+            if Mpi.Is_comm_valid(nodeComm) and Mpi.Comm_size(nodeComm) == 1 then
+               if self._syncPeriodicDirs and syncPeriodicDirs then
+                  local numThreads = GKYL_DEFAULT_NUM_THREADS
 
-               local grid = self._grid
-               local localRange = self:localRange()
-               for dir = 1, self._ndim do
-                  if grid:isDirPeriodic(dir) then
-                     -- Get one of the regions so we can compute shape and numBlocks.
-                     -- NOTE: This function currently assumes upper and lower have the same number of ghost cells.
-                     local skinRgnUpper = localRange:lowerSkin(dir, self._upperGhost)
-                     local shape = skinRgnUpper:volume()
-                     local numBlocks = math.floor(shape/numThreads)+1
+                  local grid = self._grid
+                  local localRange = self:localRange()
+                  for dir = 1, self._ndim do
+                     if grid:isDirPeriodic(dir) then
+                        -- Get one of the regions so we can compute shape and numBlocks.
+                        -- NOTE: This function currently assumes upper and lower have the same number of ghost cells.
+                        local skinRgnUpper = localRange:lowerSkin(dir, self._upperGhost)
+                        local shape = skinRgnUpper:volume()
+                        local numBlocks = math.floor(shape/numThreads)+1
 
-                     -- Copy appropriate skin cell data into corresponding ghost cells.
-                     ffiC.gkylDevicePeriodicCopy(numBlocks, numThreads, dir, self._onDevice)
+                        -- Copy appropriate skin cell data into corresponding ghost cells.
+                        ffiC.gkylDevicePeriodicCopy(numBlocks, numThreads, dir, self._onDevice)
+                     end
                   end
                end
+            else
+	       self._field_sync(self, self:deviceDataPointer())
+	       if self._syncPeriodicDirs and syncPeriodicDirs then
+	          self._field_periodic_sync(self, self:deviceDataPointer())
+	       end
             end
+	    -- this barrier is needed as when using MPI-SHM some
+	    -- processors will not participate in sync()
+	    Mpi.Barrier(self._grid:commSet().sharedComm)
          else
-	    self._field_sync(self, self:deviceDataPointer())
-	    if self._syncPeriodicDirs and syncPeriodicDirs then
-	       self._field_periodic_sync(self, self:deviceDataPointer())
-	    end
+            self:hostSync(syncPeriodicDirs_)
          end
-	 -- this barrier is needed as when using MPI-SHM some
-	 -- processors will not participate in sync()
-	 Mpi.Barrier(self._grid:commSet().sharedComm)
       end,
       -- This method is an alternative function for applying periodic boundary
       -- conditions when Mpi.Comm_size(nodeComm) = 1 and we do not need to call
@@ -892,24 +918,28 @@ local function Field_meta_ctor(elct)
 	 Mpi.Barrier(self._grid:commSet().sharedComm)
       end,
       devicePeriodicCopy = function (self, syncPeriodicDirs_)
-         local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
-         if self._syncPeriodicDirs and syncPeriodicDirs then
-            local numThreads = GKYL_DEFAULT_NUM_THREADS
+         if self._devAllocData then 
+            local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
+            if self._syncPeriodicDirs and syncPeriodicDirs then
+               local numThreads = GKYL_DEFAULT_NUM_THREADS
 
-            local grid = self._grid
-            local localRange = self:localRange()
-            for dir = 1, self._ndim do
-               if grid:isDirPeriodic(dir) then
-                  -- Get one of the regions so we can compute shape and numBlocks.
-                  -- NOTE: This function currently assumes upper and lower have the same number of ghost cells.
-                  local skinRgnUpper = localRange:lowerSkin(dir, self._upperGhost)
-                  local shape = skinRgnUpper:volume()
-                  local numBlocks = math.floor(shape/numThreads)+1
+               local grid = self._grid
+               local localRange = self:localRange()
+               for dir = 1, self._ndim do
+                  if grid:isDirPeriodic(dir) then
+                     -- Get one of the regions so we can compute shape and numBlocks.
+                     -- NOTE: This function currently assumes upper and lower have the same number of ghost cells.
+                     local skinRgnUpper = localRange:lowerSkin(dir, self._upperGhost)
+                     local shape = skinRgnUpper:volume()
+                     local numBlocks = math.floor(shape/numThreads)+1
 
-                  -- Copy appropriate skin cell data into corresponding ghost cells.
-                  ffiC.gkylDevicePeriodicCopy(numBlocks, numThreads, dir, self._onDevice)
+                     -- Copy appropriate skin cell data into corresponding ghost cells.
+                     ffiC.gkylDevicePeriodicCopy(numBlocks, numThreads, dir, self._onDevice)
+                  end
                end
             end
+         else
+            self:hostPeriodicCopy(syncPeriodicDirs_)
          end
       end,
       setBasisId = function(self, basisId)
@@ -959,20 +989,24 @@ local function Field_meta_ctor(elct)
 	 end,
       deviceReduce = isNumberType and
 	 function(self, opIn, d_reduction)
-	    -- Input 'opIn' must be one of the binary operations in binOpFuncs.
-	    local returnHost = true
-            -- If a device array argument is provided, don't return a host array.
-	    if d_reduction then 
-               returnHost = false
-            end
-	    local d_reduction = d_reduction or self.d_reduction
-            ffi.C.gkylCartFieldDeviceReduce(self.d_redOp[opIn],self._localRange:volume(),self._numComponents,self.reduceBlocks,self.reduceThreads,self.reduceBlocksMAX,self.reduceThreadsMAX,
-               self.deviceProps,self._onDevice,self.d_blockRed:data(),self.d_intermediateRed:data(),d_reduction:data())
-            if returnHost then 
-               -- Allocate a host array, copy the device result into it, and return the host array.
-               local h_reduction = self.allocator(shmComm, self._numComponents)
-               d_reduction:copyDeviceToHost(h_reduction)
-               return h_reduction
+            if self._devAllocData then
+	       -- Input 'opIn' must be one of the binary operations in binOpFuncs.
+	       local returnHost = true
+               -- If a device array argument is provided, don't return a host array.
+	       if d_reduction then 
+                  returnHost = false
+               end
+	       local d_reduction = d_reduction or self.d_reduction
+               ffi.C.gkylCartFieldDeviceReduce(self.d_redOp[opIn],self._localRange:volume(),self._numComponents,self.reduceBlocks,self.reduceThreads,self.reduceBlocksMAX,self.reduceThreadsMAX,
+                  self.deviceProps,self._onDevice,self.d_blockRed:data(),self.d_intermediateRed:data(),d_reduction:data())
+               if returnHost then 
+                  -- Allocate a host array, copy the device result into it, and return the host array.
+                  local h_reduction = self.allocator(shmComm, self._numComponents)
+                  d_reduction:copyDeviceToHost(h_reduction)
+                  return h_reduction
+               end
+            else
+               return self:hostReduce(opIn, d_reduction)
             end
 	 end or
 	 function (self, opIn, d_reduction)
