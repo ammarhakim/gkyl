@@ -45,7 +45,7 @@ ffi.cdef [[
       GkylEquationFv_t *equation;
       GkylCartField_t *dtByCell;
       double *buf;
-      int sharedMemSize;
+      int bufValNumPerBlock;
   } GkylWavePropagation_t;
     
   void wavePropagationInitOnDevice(
@@ -267,7 +267,7 @@ function WavePropagation:initDevice(tbl)
    hyper._cfl = self._cfl
    hyper._cflm = self._cflm
    hyper.dtByCell = self.dtByCell._onDevice
-   hyper.sharedMemSize = -1
+   hyper.bufValNumPerBlock = -1
    self._onHost = hyper
 
    self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS

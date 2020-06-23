@@ -119,8 +119,8 @@ __global__ void cuda_WavePropagation(
   // assign buffer space for different usages
   double *dummy;
   extern __shared__ double dummy_sharedMem[];
-  if (hyper->sharedMemSize>0) {
-    dummy = hyper->buf + hyper->sharedMemSize * blockIdx.x;
+  if (hyper->bufValNumPerBlock>0) {
+    dummy = hyper->buf + hyper->bufValNumPerBlock * blockIdx.x;
   } else {
     dummy = dummy_sharedMem;
   }
@@ -313,19 +313,19 @@ __global__ void cuda_WavePropagation(
   dtByCell->getDataPtrAt(linearIdxC)[0] = hyper->dt * cfl/cfla;
 }
 
-static int calcSharedMemSize(
+static int calcBufValNumPerBlock(
     const int meqn, const int mwave, const int numThreads)
 {
-  int sharedMemSize = 0;
+  int bufValNumPerBlock = 0;
   // numThreads == numRealCellsPerBlock
   // amdq and apdq
-  sharedMemSize += (numThreads) * (meqn+meqn);
+  bufValNumPerBlock += (numThreads) * (meqn+meqn);
   // waves & speeds are needed on all real-real, real-ghost, and ghost-ghost
   // cell faces
-  sharedMemSize += (numThreads+3) * (mwave*meqn+mwave);
+  bufValNumPerBlock += (numThreads+3) * (mwave*meqn+mwave);
   // limitedWaves and 2nd-order flux are needed on real-real & real-ghost faces
-  sharedMemSize += (numThreads+1) * (mwave*meqn+meqn*0);
-  return sharedMemSize;
+  bufValNumPerBlock += (numThreads+1) * (mwave*meqn+meqn*0);
+  return bufValNumPerBlock;
 }
 
 void wavePropagationAdvanceOnDevice(
@@ -337,13 +337,13 @@ void wavePropagationAdvanceOnDevice(
   {
     cuda_WavePropagation<<<numBlocks, numThreads>>>(hyper, qIn, qOut);
   } else {
-    const int sharedMemSize = calcSharedMemSize(
+    const int bufSizePerBlock = calcBufValNumPerBlock(
         meqn, mwave, numThreads)*sizeof(double);
 
     cudaFuncSetAttribute(
         cuda_WavePropagation, cudaFuncAttributeMaxDynamicSharedMemorySize,
-        sharedMemSize);
-    cuda_WavePropagation<<<numBlocks, numThreads, sharedMemSize>>>(
+        bufSizePerBlock);
+    cuda_WavePropagation<<<numBlocks, numThreads, bufSizePerBlock>>>(
         hyper, qIn, qOut);
   }
 }
@@ -352,9 +352,9 @@ void wavePropagationInitOnDevice(
     const int meqn, const int mwave, const int numBlocks, const int numThreads,
     GkylWavePropagation_t *hyper)
 {
-  const int sharedMemSize = calcSharedMemSize(meqn, mwave, numThreads);
-  cudacall(cudaMalloc(&hyper->buf, sharedMemSize*numBlocks*sizeof(double)));
-  hyper->sharedMemSize = sharedMemSize;
+  const int bufValNumPerBlock = calcBufValNumPerBlock(meqn, mwave, numThreads);
+  cudacall(cudaMalloc(&hyper->buf, bufValNumPerBlock*numBlocks*sizeof(double)));
+  hyper->bufValNumPerBlock = bufValNumPerBlock;
 }
 
 void wavePropagationDestroyOnDevice(GkylWavePropagation_t *hyper) {

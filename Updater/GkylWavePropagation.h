@@ -23,7 +23,7 @@ extern "C"
       GkylEquationFv_t *equation;
       GkylCartField_t *dtByCell;
       double *buf;
-      int sharedMemSize;
+      int bufValNumPerBlock;
   } GkylWavePropagation_t;
 
   void wavePropagationInitOnDevice(
