@@ -287,12 +287,11 @@ static void cuda_gkylMomentSrcTimeCenteredCublas(
 __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
     const int linearIdx, const int linearIdxC, const int numBlocks,
     const int numThreads, const MomentSrcData_t *sd, const FluidData_t *fd,
-    const double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
+    const double dt, double **ff, double *em,
     const GkylMomentSrcDeviceData_t *context) {
   const int nFluids = sd->nFluids;
   const double epsilon0 = sd->epsilon0;
 
-  double *em = emFld->getDataPtrAt(linearIdxC);
   const double Bx = (em[BX]);
   const double By = (em[BY]);
   const double Bz = (em[BZ]);
@@ -329,7 +328,7 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
   for (int n=0; n < nFluids; ++n)
   {
     qbym[n] = fd[n].charge / fd[n].mass;
-    const double *f = fluidFlds[n]->getDataPtrAt(linearIdxC);
+    const double *f = ff[n];
     double *J = JJ+n*3;
     J[0] = f[MX] * qbym[n];
     J[1] = f[MY] * qbym[n];
@@ -405,7 +404,7 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
   double chargeDens = 0.0;
   for (int n = 0; n < nFluids; ++n)
   {
-    double *f = fluidFlds[n]->getDataPtrAt(linearIdxC);
+    double *f = ff[n];
     chargeDens += qbym[n] * f[RHO];
     if (!fd[n].evolve)
       continue;
@@ -459,6 +458,9 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredDirect(
 
   const int nFluids = sd->nFluids;
 
+  double *em = emFld->getDataPtrAt(linearIdxC);
+  double *ff[2]; // XXX
+
   double keOld[2]; // XXX
   for (int n = 0; n < nFluids; ++n)
   {
@@ -466,11 +468,11 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredDirect(
     if (!fd[n].evolve)
       continue;
     keOld[n] = (sq(f[MX]) + sq(f[MY]) + sq(f[MZ]));
+    ff[n] = f;
   }
 
   cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
-    linearIdx, linearIdxC, numBlocks, numThreads, sd, fd, dt, fluidFlds,
-    emFld, context);
+    linearIdx, linearIdxC, numBlocks, numThreads, sd, fd, dt, ff, em, context);
 
   if (sd->hasPressure)
   {
@@ -478,7 +480,7 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredDirect(
     {
       if (!fd[n].evolve)
         continue;
-      double *f = fluidFlds[n]->getDataPtrAt(linearIdxC);
+      double *f = ff[n];
       const double keNew = (sq(f[MX]) + sq(f[MY]) + sq(f[MZ]));
       f[ER] += 0.5 * (keNew - keOld[n]) / f[RHO];
     }
