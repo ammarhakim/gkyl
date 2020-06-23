@@ -285,10 +285,8 @@ static void cuda_gkylMomentSrcTimeCenteredCublas(
 
 
 __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
-    const int linearIdx, const int linearIdxC, const int numBlocks,
-    const int numThreads, const MomentSrcData_t *sd, const FluidData_t *fd,
-    const double dt, double **ff, double *em,
-    const GkylMomentSrcDeviceData_t *context) {
+    const MomentSrcData_t *sd, const FluidData_t *fd, const double dt,
+    double **ff, double *em) {
   const int nFluids = sd->nFluids;
   const double epsilon0 = sd->epsilon0;
 
@@ -437,8 +435,7 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
   } 
 
   //------------> update correction potential
-  double crhoc = sd->chi_e * chargeDens/sd->epsilon0;
-  em[PHIE] += dt * crhoc;
+  em[PHIE] += dt * sd->chi_e * chargeDens/epsilon0;
 }
 
 
@@ -471,8 +468,7 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredDirect(
     ff[n] = f;
   }
 
-  cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
-    linearIdx, linearIdxC, numBlocks, numThreads, sd, fd, dt, ff, em, context);
+  cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(sd, fd, dt, ff, em);
 
   if (sd->hasPressure)
   {
