@@ -88,7 +88,7 @@ function test_1()
       cfl = 1.0,
       equation = vlasovEq,
       zeroFluxDirections = zfd,
-      clearOut = true,
+      clearOut = false,
       numThreads = numThreads,
       useSharedDevice = useSharedMemory,
    }
@@ -99,7 +99,7 @@ function test_1()
       ghost = {1, 1},
       createDeviceCopy = true,
    }
-   distf:clear(1)
+   distf:hostClear(1)
    local indexer = distf:genIndexer()
    for idx in distf:localRangeIter() do
       local fitr = distf:get(indexer(idx))
@@ -136,7 +136,7 @@ function test_1()
       ghost = {1, 1},
       createDeviceCopy = true,
    }
-   emField:clear(2)
+   emField:hostClear(2)
    emField:copyHostToDevice()
 
    solver:setDtAndCflRate(.1, cflRateByCell)
@@ -163,7 +163,7 @@ function test_1()
       end
    end
    local totalCpuTime = (Time.clock()-tmStart)
-   local cflRate = cflRateByCell:reduce('max')[1]
+   --local cflRate = cflRateByCell:reduce('max')[1]
 
    local indexer = fRhs:genIndexer()
    local d_indexer = d_fRhs:genIndexer()
