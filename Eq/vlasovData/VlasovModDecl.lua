@@ -7,60 +7,82 @@
 --------------------------------------------------------------------------------
 
 local ffi = require "ffi"
-local _ = require "Eq.vlasovData._VlasovCdef"
 
 -- "do nothing" function
 local function nullFunc(...) end
 
--- map of basis function name -> function encoding
+-- Map of basis function name -> function encoding.
 local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max", ["tensor"] = "Tensor" }
+
+local cvars = {"X","Y","Z"}
+local vvars = {"VX","VY","VZ"}
 
 local _M = {}
 
--- select function to compute volume streaming terms
+-- Select function to compute volume streaming terms.
 function _M.selectVolStream(basisNm, CDIM, VDIM, polyOrder)
+   local funcType = "double"
+   local funcSign = "(const double *w, const double *dxv, const double *f, double *out)"
+
    local funcNm = string.format("VlasovVolStream%dx%dv%sP%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+
+   ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]
 end
 
--- select functions to compute surface streaming terms (output is a table of functions)
+-- Select functions to compute surface streaming terms (output is a table of functions).
 function _M.selectSurfStream(basisNm, CDIM, VDIM, polyOrder)
-   if CDIM == 1 then
-      local funcNmX = string.format("VlasovSurfStream%dx%dv%s_X_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      return { ffi.C[funcNmX] }
-   elseif CDIM == 2 then
-      local funcNmX = string.format("VlasovSurfStream%dx%dv%s_X_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmY = string.format("VlasovSurfStream%dx%dv%s_Y_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      return { ffi.C[funcNmX], ffi.C[funcNmY] }
-   elseif CDIM == 3 then
-      local funcNmX = string.format("VlasovSurfStream%dx%dv%s_X_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmY = string.format("VlasovSurfStream%dx%dv%s_Y_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmZ = string.format("VlasovSurfStream%dx%dv%s_Z_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      return { ffi.C[funcNmX], ffi.C[funcNmY], ffi.C[funcNmZ] }
+   local funcType = "double"
+   local funcSign = "(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr)"
+
+   local funcNm = {}
+   for d = 1, CDIM do
+      funcNm[d] = string.format("VlasovSurfStream%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], cvars[d], polyOrder)
    end
+
+   local CDefStr = ""
+   for d = 1, CDIM do CDefStr = CDefStr .. (funcType .. " " .. funcNm[d] .. funcSign .. ";\n") end
+   ffi.cdef(CDefStr)
+
+   local kernels = {}
+   for d = 1, CDIM do
+      local tmp = ffi.C[funcNm[d]]
+      kernels[d] = tmp
+   end
+   return kernels
 end
 
--- select function to compute volume EM field acceleration terms
+-- Select function to compute volume EM field acceleration terms.
 function _M.selectVolElcMag(basisNm, CDIM, VDIM, polyOrder)
+   local funcType = "double"
+   local funcSign = "(const double *w, const double *dxv, const double *E, const double *f, double *out)"
+
    local funcNm = string.format("VlasovVol%dx%dv%sP%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+
+   ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]
 end
 
--- select functions to compute surface EM field acceleration  terms (output is a table of functions)
+-- Select functions to compute surface EM field acceleration  terms (output is a table of functions).
 function _M.selectSurfElcMag(basisNm, CDIM, VDIM, polyOrder)
-   if VDIM == 1 then
-      local funcNmX = string.format("VlasovSurfElcMag%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      return { ffi.C[funcNmX], nullFunc, nullFunc }
-   elseif VDIM == 2 then
-      local funcNmX = string.format("VlasovSurfElcMag%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmY = string.format("VlasovSurfElcMag%dx%dv%s_VY_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      return { ffi.C[funcNmX], ffi.C[funcNmY], nullFunc }
-   elseif VDIM == 3 then
-      local funcNmX = string.format("VlasovSurfElcMag%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmY = string.format("VlasovSurfElcMag%dx%dv%s_VY_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmZ = string.format("VlasovSurfElcMag%dx%dv%s_VZ_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      return { ffi.C[funcNmX], ffi.C[funcNmY], ffi.C[funcNmZ] }
+   local funcType = "double"
+   local funcSign = "(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *E, const double *fl, const double *fr, double *outl, double *outr)"
+
+   local funcNm = {}
+   for d = 1, VDIM do
+      funcNm[d] = string.format("VlasovSurfElcMag%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], vvars[d], polyOrder)
    end
+
+   local CDefStr = ""
+   for d = 1, VDIM do CDefStr = CDefStr .. (funcType .. " " .. funcNm[d] .. funcSign .. ";\n") end
+   ffi.cdef(CDefStr)
+
+   local kernels = {}
+   for d = 1, VDIM do
+      local tmp = ffi.C[funcNm[d]]
+      kernels[d] = tmp
+   end
+   return kernels
 end
 
 
