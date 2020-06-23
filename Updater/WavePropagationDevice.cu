@@ -304,9 +304,8 @@ __global__ void cuda_WavePropagation(
   dtByCell->getDataPtrAt(linearIdxC)[0] = hyper->dt * cfl/cfla;
 }
 
-void wavePropagationAdvanceOnDevice(
-    const int meqn, const int mwave, const int numBlocks, const int numThreads,
-    GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut)
+static int calcSharedMemSize(
+    const int meqn, const int mwave, const int numBlocks, const int numThreads)
 {
   int sharedMemSize = 0;
   // numThreads == numRealCellsPerBlock
@@ -318,6 +317,15 @@ void wavePropagationAdvanceOnDevice(
   // limitedWaves and 2nd-order flux are needed on real-real & real-ghost faces
   sharedMemSize += (numThreads+1) * (mwave*meqn+meqn*0);
   sharedMemSize *= sizeof(double);
+  return sharedMemSize;
+}
+
+void wavePropagationAdvanceOnDevice(
+    const int meqn, const int mwave, const int numBlocks, const int numThreads,
+    GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut)
+{
+  const int sharedMemSize = calcSharedMemSize(
+      meqn, mwave, numBlocks, numThreads);
 
   cudaFuncSetAttribute(
       cuda_WavePropagation, cudaFuncAttributeMaxDynamicSharedMemorySize,
