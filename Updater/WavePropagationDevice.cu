@@ -203,6 +203,7 @@ __global__ void cuda_WavePropagation(
     double *qOutL = qOut->getDataPtrAt(linearIdxL);
     double *qOutR = qOut->getDataPtrAt(linearIdxR);
 
+    __syncthreads();
     if(linearIdx < localRange->volume())
     {
       eq->rp(dir, qInL, qInR, waves, speeds);
@@ -211,6 +212,7 @@ __global__ void cuda_WavePropagation(
       cfla = calcCfla(cfla, dtdx, speeds, mwave);
       copyComponents(waves, limitedWaves, meqn*mwave);
 
+      __syncthreads();
       // can we avoid branching?
       // solve one additional Riemann problem on the lower side
       if (isLoBlockOrDevice)
