@@ -356,47 +356,43 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
   const double Delta2 = sq(delta) / (1. + w02 / 4.);
 
   const double F[] = {em[EX] * epsilon0, em[EY] * epsilon0, em[EZ] * epsilon0};
-  double F_halfK[3];
+  double Fbar[3];
+  {
+    double F_halfK[3];
 #pragma unroll
-  for (int c=0; c<3; c++) {
-    F_halfK[c] = F[c] + 0.5 * K[c];
-    for (int n=0; n < nFluids; ++n)
-    {
-      if (fd[n].evolve)
-        continue;
-      F_halfK[c] -= (0.5 * dt) * JJ[n*3+c];
+    for (int c=0; c<3; c++) {
+      F_halfK[c] = F[c] + 0.5 * K[c];
+      for (int n=0; n < nFluids; ++n)
+      {
+        if (fd[n].evolve)
+          continue;
+        F_halfK[c] -= (0.5 * dt) * JJ[n*3+c]; // from the un-evolved fluid
+      }
     }
+
+    const double tmp = 1. / (1. + w02 / 4. + Delta2 / 64.);
+    const double bDotF_halfK = b[0]*F_halfK[0] + b[1]*F_halfK[1] + b[2]*F_halfK[2];
+    const double bCrossF_halfK[] = {
+      b[1]*F_halfK[2]-b[2]*F_halfK[1], // by*Fz-bz*Fy
+      b[2]*F_halfK[0]-b[0]*F_halfK[2], // bz*Fx-bx*Fz
+      b[0]*F_halfK[1]-b[1]*F_halfK[0], // bx*Fy-by*Fx
+    };
+
+#pragma unroll
+    for (int c=0; c<3; c++) {
+      Fbar[c] = tmp * (
+        F_halfK[c]
+        + ((Delta2 / 64. - gam2 / 16.) / (1. + w02 / 4. + gam2 / 16.))
+           * b[c] * bDotF_halfK
+        + (delta / 8. / (1. + w02 / 4.)) * bCrossF_halfK[c]
+        );
+    } 
   }
 
-  const double tmp = 1. / (1. + w02 / 4. + Delta2 / 64.);
-  const double bDotF_halfK = b[0]*F_halfK[0] + b[1]*F_halfK[1] + b[2]*F_halfK[2];
-  const double bCrossF_halfK[] = {
-    b[1]*F_halfK[2]-b[2]*F_halfK[1], // by*Fz-bz*Fy
-    b[2]*F_halfK[0]-b[0]*F_halfK[2], // bz*Fx-bx*Fz
-    b[0]*F_halfK[1]-b[1]*F_halfK[0], // bx*Fy-by*Fx
-  };
-
-  double Fbar[3];
-#pragma unroll
-  for (int c=0; c<3; c++) {
-    Fbar[c] = tmp * (
-      F_halfK[c]
-      + ((Delta2 / 64. - gam2 / 16.) / (1. + w02 / 4. + gam2 / 16.))
-         * b[c] * bDotF_halfK
-      + (delta / 8. / (1. + w02 / 4.)) * bCrossF_halfK[c]
-      );
-  } 
-
-  double F_new[] = {
-    F_new[0] = 2. * Fbar[0] - F[0],
-    F_new[1] = 2. * Fbar[1] - F[1],
-    F_new[2] = 2. * Fbar[2] - F[2],
-  };
-
   //------------> update electric field
-  em[EX] = F_new[0] / epsilon0;
-  em[EY] = F_new[1] / epsilon0;
-  em[EZ] = F_new[2] / epsilon0;
+  em[EX] = (2*Fbar[0]-F[0]) / epsilon0;
+  em[EY] = (2*Fbar[1]-F[1]) / epsilon0;
+  em[EZ] = (2*Fbar[2]-F[2]) / epsilon0;
 
   //------------> update solution for fluids
   double chargeDens = 0.0;
