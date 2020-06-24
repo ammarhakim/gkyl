@@ -29,8 +29,6 @@ __host__ __device__ void PerfMaxwell_rp(
   const double cb = perfMaxwellEqn->mgnErrorSpeedFactor;
 
   const double c1 = 1/c;
-  double v = c;
-  double a = 0.5 * (v/c-1);
 
   double delta[8];
 #pragma unroll
@@ -39,14 +37,14 @@ __host__ __device__ void PerfMaxwell_rp(
   }
 
   // compute projections of jump (generated from Maxima)
-  double a1 = 0.5*(delta[d[3]]-delta[7]*c1);
-  double a2 = 0.5*(delta[7]*c1+delta[d[3]]);
-  double a3 = 0.5*(delta[d[0]]-delta[6]*c);
-  double a4 = 0.5*(delta[6]*c+delta[d[0]]);
-  double a5 = 0.5*(delta[d[1]]-delta[d[5]]*c);
-  double a6 = 0.5*(delta[d[4]]*c+delta[d[2]]);
-  double a7 = 0.5*(delta[d[5]]*c+delta[d[1]]);
-  double a8 = 0.5*(delta[d[2]]-delta[d[4]]*c);
+  const double a1 = 0.5*(delta[d[3]]-delta[7]*c1);
+  const double a2 = 0.5*(delta[7]*c1+delta[d[3]]);
+  const double a3 = 0.5*(delta[d[0]]-delta[6]*c);
+  const double a4 = 0.5*(delta[6]*c+delta[d[0]]);
+  const double a5 = 0.5*(delta[d[1]]-delta[d[5]]*c);
+  const double a6 = 0.5*(delta[d[4]]*c+delta[d[2]]);
+  const double a7 = 0.5*(delta[d[5]]*c+delta[d[1]]);
+  const double a8 = 0.5*(delta[d[2]]-delta[d[4]]*c);
 
   // set waves to 0.0 as most entries vanish
 #pragma unroll
@@ -82,16 +80,16 @@ __host__ __device__ void PerfMaxwell_rp(
   w += 8;
   w[d[1]] = a5;
   w[d[2]] = a6;
-  w[d[4]] = a6*c1 + a * delta[d[4]];
-  w[d[5]] = -a5*c1 + a * delta[d[5]];
+  w[d[4]] = a6*c1;
+  w[d[5]] = -a5*c1;
   speeds[4] = -c;
 
   // wave 6: (two waves with EV c, c lumped into one)
   w += 8;
   w[d[1]] = a7;
   w[d[2]] = a8;
-  w[d[4]] = -a8*c1 + a * delta[d[4]];
-  w[d[5]] = a7*c1 + a * delta[d[5]];
+  w[d[4]] = -a8*c1;
+  w[d[5]] = a7*c1;
   speeds[5] = c;
 }
 __device__ static const rp_t p_PerfMaxwell_rp = &PerfMaxwell_rp;
