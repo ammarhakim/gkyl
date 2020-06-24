@@ -23,5 +23,6 @@ Eq/.DS_Store
 cas-scripts/.DS_Store
 Regression/runregression.config.lua
 Regression/*/*.bp
+Benchmarks/*/*.bp
 runregression.config.lua
 waf_tools/__pycache__/

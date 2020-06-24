@@ -47,7 +47,7 @@ EIGEN_INC_DIR=$HOME/gkylsoft/eigen3/include/eigen3
 # CUDA options
 CUTOOLS_INC_DIR=$CUDA_HOME/include
 CUTOOLS_LIB_DIR=$CUDA_HOME/lib64
-CUTOOLS_LINK_LIBS=cudart
+CUTOOLS_LINK_LIBS=cudart,cublas
 
 # You probably do not need to modify the command itself
 cmd="./waf CC=$CC CXX=$CXX MPICC=$MPICC MPICXX=$MPICXX --out=$OUT --prefix=$PREFIX --cxxflags=$CXXFLAGS --luajit-inc-dir=$LUAJIT_INC_DIR --luajit-lib-dir=$LUAJIT_LIB_DIR --luajit-share-dir=$LUAJIT_SHARE_DIR $ENABLE_MPI --mpi-inc-dir=$MPI_INC_DIR --mpi-lib-dir=$MPI_LIB_DIR --mpi-link-libs=$MPI_LINK_LIBS $ENABLE_ADIOS --adios-inc-dir=$ADIOS_INC_DIR --adios-lib-dir=$ADIOS_LIB_DIR --cuda-inc-dir=$CUTOOLS_INC_DIR --cuda-lib-dir=$CUTOOLS_LIB_DIR --cuda-link-libs=$CUTOOLS_LINK_LIBS configure"
