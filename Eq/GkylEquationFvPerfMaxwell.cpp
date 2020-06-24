@@ -51,6 +51,7 @@ __host__ __device__ void PerfMaxwell_rp(
   for (int i=0; i<8*6; i++) {
     waves[i] = 0;
   }
+  // memset(waves, 0, sizeof(double)*48);
 
   // wave 1:
   double *w = waves;
