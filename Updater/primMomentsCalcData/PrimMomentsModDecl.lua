@@ -7,7 +7,6 @@
 --------------------------------------------------------------------------------
 
 local ffi = require "ffi"
-local _ = require "Updater.primMomentsCalcData._PrimMomentsCdef"
 
 -- Map of basis function name -> function encoding.
 local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max" }
