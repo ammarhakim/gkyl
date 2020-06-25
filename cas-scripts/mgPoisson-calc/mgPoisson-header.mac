@@ -123,10 +123,10 @@ for bInd : 1 thru length(bName) do (
       printf(fh, "~%"),
 
       /* Prolongation and restriction operators. */
-      printf(fh, "void MGpoissonFEMprolong~ax~a_P~a(const int *idxF, double **fldC, double *fldF);~%", ci, bName[bInd], polyOrder),
-      findBoundaryStrCombo(fh, "MGpoissonFEMprolong", "const int *idxF, double **fldC, double *fldF", bName[bInd], ci, bcKeyFEM),
-      printf(fh, "void MGpoissonFEMrestrict~ax~a_P~a(double **fldF, double *fldC);~%", ci, bName[bInd], polyOrder),
-      findBoundaryStrCombo(fh, "MGpoissonFEMrestrict", "double **fldF, double *fldC", bName[bInd], ci, bcKeyFEM),
+      printf(fh, "void MGpoissonFEMprolong~ax~a_P~a(double *fldCC, double **fldF);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonFEMprolong", "double *fldCC, double **fldF", bName[bInd], ci, bcKeyFEM),
+      printf(fh, "void MGpoissonFEMrestrict~ax~a_P~a(double **fldF, double *fldCC);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonFEMrestrict", "double **fldF, double *fldCC", bName[bInd], ci, bcKeyFEM),
       printf(fh, "~%"),
 
       /* Residual kernels. */
