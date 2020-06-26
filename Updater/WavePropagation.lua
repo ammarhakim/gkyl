@@ -478,7 +478,6 @@ function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)
       "WavePropagation.advanceOnDevice: Must specify an output field")
 
    local numCellsLocal = qOut:localRange():volume()
-   local numEdgesLocal = qOut:localEdgeRange():volume()
    local numThreads = math.min(self.numThreads, numCellsLocal)
    local numBlocks  = math.ceil(numCellsLocal/numThreads)
    local meqn, mwave = self._equation:numEquations(), self._equation:numWaves()
