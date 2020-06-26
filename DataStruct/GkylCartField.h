@@ -13,7 +13,7 @@ extern "C"
         int elemSize;
         int numComponents;
         GkylRange_t *localRange, *localExtRange;
-        GkylRange_t *localExtEdgeRange;
+        GkylRange_t *localExtFaceRange;
         GkylRange_t *globalRange, *globalExtRange;
         GkylRectCart_t *grid;
         double *_data;
