@@ -15,6 +15,24 @@ __device__ inline  static void calcFirstOrderGud(
   }
 }
 
+/* __device__ inline  static void calcFirstOrderGudL( */
+/*     const double dtdx, double *ql, const double *amdq, const int meqn) */
+/* { */
+/*   for (int i = 0; i < meqn; i++) */
+/*   { */
+/*     ql[i] -= dtdx * amdq[i]; */
+/*   } */
+/* } */
+/*  */
+/* __device__ inline  static void calcFirstOrderGudR( */
+/*     const double dtdx, double *qr, const double *apdq, const int meqn) */
+/* { */
+/*   for (int i = 0; i < meqn; i++) */
+/*   { */
+/*     qr[i] -= dtdx * apdq[i]; */
+/*   } */
+/* } */
+
 __device__ static inline double calcCfla(
     const double cfla, const double dtdx, const double *speeds, const int mwave)
 {
