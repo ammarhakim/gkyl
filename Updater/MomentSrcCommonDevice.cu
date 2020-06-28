@@ -302,21 +302,20 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
     b[2] = Bz / Bmag;
   }
 
-  // FIXME right place?
   extern __shared__ double dummy[];
-  int base = 0;
+  double *ptr = dummy + threadIdx.x * nFluids * (1 + 3 + 1 + 1);
 
-  double *qbym = dummy + base + threadIdx.x*nFluids;
-  base += nFluids*blockDim.x;
+  double *qbym = ptr;
+  ptr += nFluids;
 
-  double *JJ = dummy + base + threadIdx.x*nFluids*3;
-  base += nFluids*3*blockDim.x;
+  double *JJ = ptr;
+  ptr += nFluids*3;
 
-  double *Wc_dt = dummy + base + threadIdx.x*nFluids;
-  base += nFluids*blockDim.x;
+  double *Wc_dt = ptr;
+  ptr += nFluids;
 
-  double *wp_dt2 = dummy + base + threadIdx.x*nFluids;
-  base += nFluids*blockDim.x;
+  double *wp_dt2 = ptr;
+  ptr += nFluids;
 
   double K[] = {0, 0, 0};
   double w02 = 0.;
