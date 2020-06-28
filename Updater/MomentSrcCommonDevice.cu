@@ -28,6 +28,8 @@ static const int PHIE = 6;
 
 #define F2(base,i,j) (base)[(j)*(matSize)+(i)]
 
+#define sharedPad (1)
+
 
 __global__ static void cuda_gkylMomentSrcTimeCenteredCublasSetPtrs(
    const int matSize,  double *d_lhs, double *d_rhs, double **d_lhs_ptr,
@@ -303,7 +305,7 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
   }
 
   extern __shared__ double dummy[];
-  double *ptr = dummy + threadIdx.x * nFluids * (1 + 3 + 1 + 1);
+  double *ptr = dummy + threadIdx.x * (nFluids * (1 + 3 + 1 + 1) + sharedPad);
 
   double *qbym = ptr;
   ptr += nFluids;
@@ -495,7 +497,7 @@ void momentSrcAdvanceOnDevice(
              || strcmp(context->scheme, "direct")==0) {
     int sharedMemSize = 0;
     // qbym, J, Wc_dt, wp_dt2
-    sharedMemSize += numThreads * nFluids * (1 + 3 + 1 + 1);
+    sharedMemSize += numThreads * (nFluids * (1 + 3 + 1 + 1) + sharedPad);
     sharedMemSize *= sizeof(double);
 
     cuda_gkylMomentSrcTimeCenteredDirect
