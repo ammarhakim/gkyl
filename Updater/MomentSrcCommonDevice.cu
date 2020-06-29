@@ -336,10 +336,10 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
       continue;
     Wc_dt[n] = qbym[n] * Bmag * dt;
     wp_dt2[n] = f[RHO] * sq(qbym[n]) / epsilon0 * sq(dt);
-    const double tmp = 1. + sq(Wc_dt[n]) / 4.;
-    w02 += wp_dt2[n] / tmp;
-    gam2 += wp_dt2[n] * sq(Wc_dt[n]) / tmp;
-    delta += wp_dt2[n] * Wc_dt[n] / tmp;
+    const double tmp = 1. / (1. + sq(Wc_dt[n]) / 4.);
+    w02 += wp_dt2[n] * tmp;
+    gam2 += wp_dt2[n] * sq(Wc_dt[n]) * tmp;
+    delta += wp_dt2[n] * Wc_dt[n] * tmp;
 
     const double bDotJ = b[0]*J[0] + b[1]*J[1] + b[2]*J[2];
     const double bCrossJ[] = {
@@ -350,7 +350,7 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
 
 #pragma unroll
     for(int c=0; c<3; c++) {
-      K[c] -= dt / tmp * (J[c] + sq(Wc_dt[n] / 2.) * b[c] * bDotJ
+      K[c] -= dt * tmp * (J[c] + sq(Wc_dt[n] / 2.) * b[c] * bDotJ
               - (Wc_dt[n] / 2.) * bCrossJ[c]);
     }
   }
