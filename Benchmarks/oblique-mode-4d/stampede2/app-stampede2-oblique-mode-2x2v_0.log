@@ -1,0 +1,43 @@
+Tue Jun 23 2020 19:59:12.000000000
+Gkyl built with 8901a4c395af
+Gkyl built on Jun 23 2020 19:53:18
+Initializing PlasmaOnCartGrid simulation ...
+Using CFL number 0.2
+Initializing completed in 9.0685 sec
+
+Starting main loop of PlasmaOnCartGrid simulation ...
+
+ Step 0 at time 0. Time step 0.01. Completed 0%
+0123456789 Step   100 at time 1. Time step 0.01. Completed 10%
+0123456789 Step   200 at time 2. Time step 0.01. Completed 20%
+0123456789 Step   301 at time 3.01. Time step 0.01. Completed 30%
+0123456789 Step   401 at time 4.01. Time step 0.01. Completed 40%
+0123456789 Step   501 at time 5.01. Time step 0.01. Completed 50%
+0123456789 Step   601 at time 6.01. Time step 0.01. Completed 60%
+0123456789 Step   701 at time 7.01. Time step 0.01. Completed 70%
+0123456789 Step   801 at time 8.01. Time step 0.01. Completed 80%
+0123456789 Step   901 at time 9.01. Time step 0.01. Completed 90%
+0123456789 Step  1000 at time 10. Time step 0.01. Completed 100%
+0 Step  1001 at time 10. Time step 1.68754e-13. Completed 110%
+1
+Total number of time-steps 1002
+Number of barriers 57079 barriers (56.9651 barriers/step)
+
+Solver took				1272.94343 sec   (1.270403 s/step)   (67.405%)
+Solver BCs took 			127.49555 sec   (0.127241 s/step)   ( 6.751%)
+Field solver took 			  1.32408 sec   (0.001321 s/step)   ( 0.070%)
+Field solver BCs took			  0.58558 sec   (0.000584 s/step)   ( 0.031%)
+Function field solver took		  0.00000 sec   (0.000000 s/step)   ( 0.000%)
+Moment calculations took		 69.04407 sec   (0.068906 s/step)   ( 3.656%)
+Integrated moment calculations took	  0.00640 sec   (0.000006 s/step)   ( 0.000%)
+Field energy calculations took		  4.03115 sec   (0.004023 s/step)   ( 0.213%)
+Collision solver(s) took		  0.00000 sec   (0.000000 s/step)   ( 0.000%)
+Collision moments(s) took		  0.00000 sec   (0.000000 s/step)   ( 0.000%)
+Source updaters took 			  0.00000 sec   (0.000000 s/step)   ( 0.000%)
+Stepper combine/copy took		178.26461 sec   (0.177909 s/step)   ( 9.439%)
+Time spent in barrier function		 47.42335 sec   (0.047329 s/step)   (     3%)
+[Unaccounted for]			234.81771 sec   (0.234349 s/step)   (12.434%)
+
+Main loop completed in			1888.51258 sec   (1.884743 s/step)   (   100%)
+
+Tue Jun 23 2020 20:30:50.000000000

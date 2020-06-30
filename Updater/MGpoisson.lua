@@ -227,11 +227,11 @@ function MGpoisson:init(tbl)
       end
    end
    -- Establish periodic directions.
-   local periodicDirs  = {}
+   self.periodicDirs   = {}
    local isDirPeriodic = {}
    for d = 1, self.dim do
       if ((bcTypes[d][1] == 0) and (bcTypes[d][2] == 0)) then
-         lume.push(periodicDirs,d)
+         lume.push(self.periodicDirs,d)
          isDirPeriodic[d] = true
          bcValues[d]      = {{0.0}, {0.0}}   -- Not used, but a nil could cause problems.
       elseif ( ((bcTypes[d][1] == 0) and (bcTypes[d][2] ~= 0)) or 
@@ -440,6 +440,8 @@ function MGpoisson:init(tbl)
    self.cuStencilItr = DoublePtrVec(self.cuStencilSize)
 
    self._femProjection = MGpoissonDecl.selectFEMprojection(basisID, self.dim, polyOrder, bcTypes)
+
+   self.cellBuf = Lin.Vec(basis:numBasis()) 
 
    -- ......................... End of FEM-specific things ............................ --
 
@@ -1099,12 +1101,18 @@ end
 function MGpoisson:prolongFEM(cFld,fFld)
    -- FEM prolongation of a coarse-grid field (cFld) to a fine-grid field (fFld). 
 
-   local grid   = fFld:grid() 
+   fFld:clear(0.0)
+
+   local grid   = cFld:grid() 
    local cellsN = {}
    for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
 
+   -- For periodic BCs extend the range at the upper boundary by 1 cell.
+   local fLocalRange  = fFld:localRange()
+   local cFldExtRange = cFld:localRange():extendDirs(self.periodicDirs,0,1)
+
    local rangeDecomp = LinearDecomp.LinearDecompRange {
-      range = fFld:localRange(), numSplit = grid:numSharedProcs() }
+      range = cFldExtRange, numSplit = grid:numSharedProcs() }
    local tId         = grid:subGridSharedId()    -- Local thread ID.
 
    local cFldIndexer = cFld:genIndexer()
@@ -1113,23 +1121,40 @@ function MGpoisson:prolongFEM(cFld,fFld)
    local fFldIndexer = fFld:genIndexer()
    local fFldItr     = fFld:get(1)
 
-   for fIdx in rangeDecomp:rowMajorIter(tId) do
+   for cIdx in rangeDecomp:rowMajorIter(tId) do
 
-      grid:setIndex(fIdx)
+      grid:setIndex(cIdx)
 
       -- Array of indexes to fine-grid cells this coarse-grid cell contributes to.
-      for d = 1, self.dim do self.coarseGridIdx[1][d] = math.ceil(fIdx[d]/2.) end
-      for d = 1, self.dim do self.coarseGridIdx[2][d] = self.coarseGridIdx[1][d]+1 end
+      for d = 1, self.dim do self.fineGridIdx[1][d] = 2*cIdx[d] end
+      local fCellCount = 1
+      for dir = 1, self.dim do
+         local prevAdded = fCellCount
+         for rI = 1, prevAdded do
+            for k = 1, (self.igOpStencilWidth-1) do
+               local newIdxInDir = self.fineGridIdx[rI][dir]-k
+               if (newIdxInDir<1 and not grid:isDirPeriodic(dir)) or
+                  (newIdxInDir<0 and grid:isDirPeriodic(dir)) then break end
+               fCellCount = fCellCount + 1
+               for d = 1, self.dim do self.fineGridIdx[fCellCount][d] = self.fineGridIdx[rI][d] end
+               self.fineGridIdx[fCellCount][dir] = newIdxInDir
+            end
+         end
+      end
 
-      fFld:fill(fFldIndexer(fIdx), fFldItr)   -- Fine field pointer.
+      cFld:fill(cFldIndexer(cIdx), cFldItr)   -- Coarse field pointer.
   
-      -- Array of pointers to fine-grid field data by stencil. 
-      for i = 1, 2^self.dim do
-         cFld:fill(fFldIndexer(self.coarseGridIdx[i]), cFldItr)
-         self.coarseFldItr[i] = cFldItr:data()
+      -- Array of pointers to fine-grid field data by stencil.
+      for i = 1, fCellCount do
+         if fLocalRange:contains(self.fineGridIdx[i]) then
+            fFld:fill(fFldIndexer(self.fineGridIdx[i]), fFldItr)
+            self.fineFldItr[i] = fFldItr:data()
+         else
+            self.fineFldItr[i] = self.cellBuf:data()
+         end
       end
   
-      self._prolongation[self:idxToStencil(fIdx,cellsN)](fIdx:data(), self.coarseFldItr:data(), fFldItr:data())
+      self._prolongation[self:idxToStencil(cIdx,cellsN)](cFldItr:data(), self.fineFldItr:data())
    end
 
    if self.aPeriodicDir then fFld:sync() end

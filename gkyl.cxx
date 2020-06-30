@@ -196,6 +196,7 @@ main(int argc, char **argv) {
     status = app.run();
   }
   catch (const std::runtime_error& e) {
+    status = 1;
     std::cout << e.what() << std::endl;
   }
   return finish(status);

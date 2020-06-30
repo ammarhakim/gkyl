@@ -387,7 +387,7 @@ local function Field_meta_ctor(elct)
 
       -- create buffers for periodic copy if Mpi.Comm_size(nodeComm) = 1
       -- note that since nodeComm is only valid on shmComm = 0, need to check whether this is a valid comm
-      if Mpi.Is_comm_valid(nodeComm) and Mpi.Comm_size(nodeComm) == 1 then
+      if Mpi.Comm_size(shmComm) == 1 and Mpi.Comm_size(nodeComm) == 1 then
          self._lowerPeriodicBuff, self._upperPeriodicBuff = {}, {}
       end
 
@@ -407,7 +407,7 @@ local function Field_meta_ctor(elct)
                -- memory needed for periodic boundary conditions and we do not need MPI Datatypes.
 	       if myId == loId then
 		  local rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
-                  if Mpi.Is_comm_valid(nodeComm) and Mpi.Comm_size(nodeComm) == 1 then
+                  if Mpi.Comm_size(shmComm) == 1 and Mpi.Comm_size(nodeComm) == 1 then
                      local szSend = rgnSend:volume()*self._numComponents
                      self._lowerPeriodicBuff[dir] = allocator(shmComm, szSend)
                   end
@@ -426,7 +426,7 @@ local function Field_meta_ctor(elct)
 	       end
 	       if myId == upId then
 		  local rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
-                  if Mpi.Is_comm_valid(nodeComm) and Mpi.Comm_size(nodeComm) == 1 then
+                  if Mpi.Comm_size(shmComm) == 1 and Mpi.Comm_size(nodeComm) == 1 then
                      local szSend = rgnSend:volume()*self._numComponents
                      self._upperPeriodicBuff[dir] = allocator(shmComm, szSend)
                   end
@@ -927,30 +927,20 @@ local function Field_meta_ctor(elct)
 	    assert(false, "CartField:deviceReduce: Reduce only works on numeric fields.")
 	 end,
       _copy_from_field_region = function (self, rgn, data)
-         local grid = self._grid
 	 local indexer = self:genIndexer()
 	 local c = 0
-         -- Object to iterate over only region owned by local SHM thread.
-         local rangeDecomp = LinearDecomp.LinearDecompRange {
-	    range = rgn, numSplit = grid:numSharedProcs() }
-         local tId = grid:subGridSharedId() -- Local thread ID.
          local fitr = self:get(1)
-	 for idx in rangeDecomp:rowMajorIter(tId) do
+	 for idx in rgn:rowMajorIter() do
 	    self:fill(indexer(idx), fitr)
             ffiC.gkylCopyFromField(data:data(), fitr:data(), self._numComponents, c)
             c = c + self._numComponents
 	 end
       end,
       _copy_to_field_region = function (self, rgn, data)
-         local grid = self._grid
 	 local indexer = self:genIndexer()
 	 local c = 0
-         -- Object to iterate over only region owned by local SHM thread.
-         local rangeDecomp = LinearDecomp.LinearDecompRange {
-	    range = rgn, numSplit = grid:numSharedProcs() }
-         local tId = grid:subGridSharedId() -- Local thread ID.
          local fitr = self:get(1)
-	 for idx in rangeDecomp:rowMajorIter(tId) do
+	 for idx in rgn:rowMajorIter() do
 	    self:fill(indexer(idx), fitr)
             ffiC.gkylCopyToField(fitr:data(), data:data(), self._numComponents, c)
             c = c + self._numComponents

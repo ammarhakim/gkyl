@@ -16,3 +16,14 @@ add details for that machine and the log-file to that directory.
 collisions. Ions are not evolved. See ApJ Letters (2019) for details
 of the physics studied.
 
+# oblique-mode-4d: Vlasov-Maxwell System (Oblique, Hybrid Two-Stream-Weibel, mode)
+
+4D oblique, hybrid two-stream-weibel, mode simulation. Solves the VM system with
+no collision operator. Ions are not evolved. The no-app input file in the portal-V100
+folder can be run on a GPU.
+
+Performance benchmarks for 1000 time-steps
+Nvidia V100 GPU - 884.368 seconds
+Stampede 2 Intel Skylake (Intel Xeon Platinum 8160, 48 cores per node) - 1888.513 seconds
+Frontera Intel Cascade Lake (Intel Xeon Platinum 8280, 56 cores per node) - 1697.106 seconds
+

@@ -158,6 +158,20 @@ function DistFuncMomentCalc:init(tbl)
 
    self.applyPositivity = xsys.pickBool(tbl.positivity,false)   -- Positivity preserving option.
 
+   self._StarM0Calc = {} 
+   self._uCorrection = {}
+   self._vtSqCorrection = {}
+   local uDim = self._vDim
+   if (self._isGk) then uDim=1 end
+   for vDir = 1, uDim do
+      self._StarM0Calc[vDir] = MomDecl.selectStarM0Calc(vDir, self._kinSpecies, self._basisID, self._cDim, self._vDim, self.applyPositivity)
+      self._uCorrection[vDir] = MomDecl.selectBoundaryFintegral(vDir, self._kinSpecies, self._basisID, self._cDim, self._vDim, self._polyOrder)
+      self._vtSqCorrection[vDir] = MomDecl.selectBoundaryVFintegral(vDir, self._kinSpecies, self._basisID, self._cDim, self._vDim, self._polyOrder)
+   end
+   for vDir = 1, self._vDim do
+      self._vtSqCorrection[vDir] = MomDecl.selectBoundaryVFintegral(vDir, self._kinSpecies, self._basisID, self._cDim, self._vDim, self._polyOrder)
+   end
+
    self.onGhosts = xsys.pickBool(tbl.onGhosts, true)
 
    -- Option to compute moments only once per timestep, based on tCurr input parameter.
@@ -189,6 +203,7 @@ function DistFuncMomentCalc:initDevice(tbl)
       else
          self._momCalcFun = MomDecl.selectGkMomCalc(mom, self._basisID, self._cDim, self._vDim, self._polyOrder)
       end
+
    
       local vDim = self._vDim
    
@@ -240,7 +255,6 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
    local cMomBItr, cEnergyBItr
    local m0StarItr, m1StarItr, m2StarItr
    local distfItrP, distfItrM
-   local uCorrection, vtSqCorrection, StarM0Calc    -- Kernel pointers.
    if self._fiveMoments then 
       mom2 = outFld[2]
       mom3 = outFld[3] 
@@ -322,12 +336,6 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
          m2Star:fill(confIndexer(cIdx), m2StarItr)
    
          for vDir = 1, vDim do
-            if (not self._isGk) or (self._isGk and firstDir) then
-               StarM0Calc  = MomDecl.selectStarM0Calc(vDir, self._kinSpecies, self._basisID, cDim, vDim, self.applyPositivity)
-               uCorrection = MomDecl.selectBoundaryFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
-            end
-            vtSqCorrection = MomDecl.selectBoundaryVFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
-   
             -- Lower/upper bounds in direction 'vDir': edge indices (including outer edges).
             local dirLoIdx, dirUpIdx = phaseRange:lower(cDim+vDir), phaseRange:upper(cDim+vDir)+1
    
@@ -366,10 +374,10 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
                   if i>dirLoIdx and i<dirUpIdx then
                      if (self._isGk) then
                         if (firstDir) then
-                           StarM0Calc(self._intFac[1], self.xcM:data(), self.xcP:data(), self.dxM:data(), self.dxP:data(), distfItrM:data(), distfItrP:data(), m0StarItr:data())
+                           self._StarM0Calc[vDir](self._intFac[1], self.xcM:data(), self.xcP:data(), self.dxM:data(), self.dxP:data(), distfItrM:data(), distfItrP:data(), m0StarItr:data())
                         end
                      else
-                        StarM0Calc(self.xcM:data(), self.xcP:data(), self.dxM:data(), self.dxP:data(), distfItrM:data(), distfItrP:data(), m0StarItr:data())
+                        self._StarM0Calc[vDir](self.xcM:data(), self.xcP:data(), self.dxM:data(), self.dxP:data(), distfItrM:data(), distfItrP:data(), m0StarItr:data())
                      end
                   end
                   if firstDir and i<dirUpIdx then
@@ -393,12 +401,12 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
                      end
                      if (self._isGk) then
                         if (firstDir) then
-                           uCorrection(isLo, self._intFac[1], vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
+                           self._uCorrection[vDir](isLo, self._intFac[1], vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
                         end
-                        vtSqCorrection(isLo, self._intFac[vDir], vBound, self.dxP:data(), distfItrP:data(), cEnergyBItr:data())
+                        self._vtSqCorrection[vDir](isLo, self._intFac[vDir], vBound, self.dxP:data(), distfItrP:data(), cEnergyBItr:data())
                      else
-                        uCorrection(isLo, vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
-                        vtSqCorrection(isLo, vBound, self.dxP:data(), distfItrP:data(), cEnergyBItr:data())
+                        self._uCorrection[vDir](isLo, vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
+                        self._vtSqCorrection[vDir](isLo, vBound, self.dxP:data(), distfItrP:data(), cEnergyBItr:data())
                      end
       
                      isLo = not isLo
@@ -465,11 +473,6 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
             local isLo = true
    
             for vDir = 1, vDim do
-               if (not self._isGk) or (self._isGk and firstDir) then
-                  uCorrection = MomDecl.selectBoundaryFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
-               end
-               vtSqCorrection = MomDecl.selectBoundaryVFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
-   
                -- Lower/upper bounds in direction 'vDir': cell indices.
                local dirLoIdx, dirUpIdx = phaseRange:lower(cDim+vDir), phaseRange:upper(cDim+vDir)
    
@@ -504,12 +507,12 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
       
                      if (self._isGk) then
                         if (firstDir) then
-                          uCorrection(isLo, self._intFac[1], vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
+                          self._uCorrection[vDir](isLo, self._intFac[1], vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
                         end
-                        vtSqCorrection(isLo, self._intFac[vDir], vBound, self.dxP:data(), distfItrP:data(), cEnergyBItr:data())
+                        self._vtSqCorrection[vDir](isLo, self._intFac[vDir], vBound, self.dxP:data(), distfItrP:data(), cEnergyBItr:data())
                      else
-                        uCorrection(isLo, vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
-                        vtSqCorrection(isLo, vBound, self.dxP:data(), distfItrP:data(), cEnergyBItr:data())
+                        self._uCorrection[vDir](isLo, vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
+                        self._vtSqCorrection[vDir](isLo, vBound, self.dxP:data(), distfItrP:data(), cEnergyBItr:data())
                      end
       
                      isLo = not isLo

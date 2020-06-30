@@ -139,10 +139,6 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeSkin)
    -- No need to do anything if communicator is not valid.
    if not Mpi.Is_comm_valid(comm) then return end
    local rank = Mpi.Comm_rank(comm)
-   -- Also don't do anything if the rank of the communicator does not match the rank of the global communicator.
-   -- This is for cases when the communicator has been split, and the write only happens over
-   -- a subset of the domain (and a subset of the global ranks).
-   if rank ~= Mpi.Comm_rank(Mpi.COMM_WORLD) then return end
 
    local ndim = field:ndim()
    local localRange, globalRange = field:localRange(), field:globalRange()
@@ -240,12 +236,21 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeSkin)
          self.grpIds[grpNm], "CartGridField", "", self._elctIoType, adLocalSz, adGlobalSz, adOffset)
    end
 
+   local writeRank = field:grid():commSet().writeRank
+   -- Don't do anything if the writeRank of the field (which is the rank from which data should be written)
+   -- does not match the rank of the global communicator.
+   -- This is for cases when the communicator has been split, and the write only happens over
+   -- a subset of the domain (and a subset of the global ranks).
+   if writeRank ~= Mpi.Comm_rank(Mpi.COMM_WORLD) then return end
+
    -- Copy field into output buffer (this copy is needed as
    -- field also contains ghost-cell data, and, in addition,
    -- ADIOS expects data to be laid out in row-major order).
    field:_copy_from_field_region(localRange, self._outBuff)
 
    local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- Concatenate prefix.
+
+
    -- Open file to write out group.
    local fd = Adios.open(grpNm, fullNm, "w", comm)
 
