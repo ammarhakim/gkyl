@@ -500,6 +500,9 @@ void momentSrcAdvanceOnDevice(
     sharedMemSize += numThreads * (nFluids * (1 + 3 + 1 + 1) + sharedPad);
     sharedMemSize *= sizeof(double);
 
+    cudaFuncSetSharedMemConfig(cuda_gkylMomentSrcTimeCenteredDirect,
+        cudaSharedMemBankSizeEightByte);
+
     cuda_gkylMomentSrcTimeCenteredDirect
       <<<numBlocks, numThreads, sharedMemSize>>>(
       numBlocks, numThreads, sd, fd, dt, fluidFlds, emFld, context);
