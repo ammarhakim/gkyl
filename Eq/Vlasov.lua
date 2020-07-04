@@ -75,7 +75,7 @@ function Vlasov:init(tbl)
       self._onlyForceUpdate = true
    end
 
-   self._surfForceUpdate = nil, nil
+   self._surfForceUpdate = nil
    if self._hasForceTerm then
       -- functions to perform force updates
       if hasMagField then 
