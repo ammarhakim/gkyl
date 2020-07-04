@@ -326,7 +326,7 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
 
   for (int n=0; n < nFluids; ++n)
   {
-    qbym[n] = fd[n].charge / fd[n].mass;
+    qbym[n] = fd[n].qbym;
     const double *f = ff[n];
     double *J = JJ+n*3;
     J[0] = f[MX] * qbym[n];
