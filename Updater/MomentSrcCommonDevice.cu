@@ -35,7 +35,7 @@ static const int PHIE = 6;
 #if MOMENTSRC_SHM_LAYOUT == AOS
 #define SHAREDPAD (1)
 #else
-#define SHAREDPAD (0)
+#define SHAREDPAD (1)
 #endif
 
 __global__ static void cuda_gkylMomentSrcTimeCenteredCublasSetPtrs(
@@ -338,14 +338,14 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
   double *wp_dt2 = ptr;
   ptr += nFluids;
 #else
-  double *JJ = dummy + base + threadIdx.x * (nFluids * 3);
-  base += blockDim.x * nFluids * 3;
+  double *JJ = dummy + base + threadIdx.x * (nFluids * 3 + SHAREDPAD);
+  base += blockDim.x * (nFluids * 3 + SHAREDPAD);
 
-  double *Wc_dt = dummy + base + threadIdx.x * nFluids;
-  base += blockDim.x * nFluids;
+  double *Wc_dt = dummy + base + threadIdx.x * (nFluids + SHAREDPAD);
+  base += blockDim.x * (nFluids + SHAREDPAD);
 
-  double *wp_dt2 = dummy + base + threadIdx.x * nFluids;
-  base += blockDim.x * nFluids;
+  double *wp_dt2 = dummy + base + threadIdx.x * (nFluids + SHAREDPAD);
+  base += blockDim.x * (nFluids + SHAREDPAD);
 #endif
 
   double K[] = {0, 0, 0};
@@ -530,7 +530,7 @@ void momentSrcAdvanceOnDevice(
     sharedMemSize += numThreads * (nFluids * (3 + 1 + 1) + SHAREDPAD) + nFluids;
 #else
     // J, Wc_dt, wp_dt2 and shared qbym
-    sharedMemSize += numThreads * (nFluids * (3 + 1 + 1) + SHAREDPAD) + nFluids;
+    sharedMemSize += numThreads * (nFluids * (3 + 1 + 1) + SHAREDPAD*3) + nFluids;
 #endif
     sharedMemSize *= sizeof(double);
 
