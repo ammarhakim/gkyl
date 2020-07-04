@@ -303,6 +303,7 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
   const int nFluids = sd->nFluids;
   const double epsilon0 = sd->epsilon0;
 
+  const double F[] = {em[EX] * epsilon0, em[EY] * epsilon0, em[EZ] * epsilon0};
   const double Bx = (em[BX]);
   const double By = (em[BY]);
   const double Bz = (em[BZ]);
@@ -388,7 +389,6 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
   }
   const double Delta2 = sq(delta) / (1. + w02 / 4.);
 
-  const double F[] = {em[EX] * epsilon0, em[EY] * epsilon0, em[EZ] * epsilon0};
   double Fbar[3];
   {
     double F_halfK[3];
@@ -453,9 +453,12 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
                  - J[c];
     }
 
+    const double keOld = (sq(f[MX]) + sq(f[MY]) + sq(f[MZ]));
     f[MX] = J_new[0] / qbym[n];
     f[MY] = J_new[1] / qbym[n];
     f[MZ] = J_new[2] / qbym[n];
+    const double keNew = (sq(f[MX]) + sq(f[MY]) + sq(f[MZ]));
+    f[ER] += 0.5 * (keNew - keOld) / f[RHO];
   } 
 
   //------------> update correction potential
@@ -487,29 +490,15 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredDirect(
   double *em = emFld->getDataPtrAt(linearIdxC);
   double *ff[2]; // XXX
 
-  double keOld[2]; // XXX
   for (int n = 0; n < nFluids; ++n)
   {
     double *f = fluidFlds[n]->getDataPtrAt(linearIdxC);
     if (!fd[n].evolve)
       continue;
-    keOld[n] = (sq(f[MX]) + sq(f[MY]) + sq(f[MZ]));
     ff[n] = f;
   }
 
   cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(sd, fd, dt, ff, em);
-
-  if (sd->hasPressure)
-  {
-    for (int n = 0; n < nFluids; ++n)
-    {
-      if (!fd[n].evolve)
-        continue;
-      double *f = ff[n];
-      const double keNew = (sq(f[MX]) + sq(f[MY]) + sq(f[MZ]));
-      f[ER] += 0.5 * (keNew - keOld[n]) / f[RHO];
-    }
-  } 
 }
 
 
