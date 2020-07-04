@@ -64,17 +64,27 @@ function Vlasov:init(tbl)
    -- check if we have a electric and magnetic field
    local hasElcField = xsys.pickBool(tbl.hasElectricField, true)
    local hasMagField = xsys.pickBool(tbl.hasMagneticField, true)
+   local onlyForceUpdate = xsys.pickBool(tbl.onlyForceUpdate, false)
 
    self._hasForceTerm = false -- flag to indicate if we have any force terms at all
    if hasElcField or hasMagField then
       self._hasForceTerm = true
    end
+   self._onlyForceUpdate = false -- flag to indicate if updating force separately from streaming
+   if onlyForceUpdate then
+      self._onlyForceUpdate = true
+   end
 
-   self._volForceUpdate, self._surfForceUpdate = nil, nil
+   self._surfForceUpdate = nil, nil
    if self._hasForceTerm then
       -- functions to perform force updates
       if hasMagField then 
 	 self._volUpdate = VlasovModDecl.selectVolElcMag(
+	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+	 self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
+	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      elseif onlyForceUpdate then
+	 self._volUpdate = VlasovModDecl.selectVolForce(
 	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
 	 self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
 	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
@@ -158,10 +168,12 @@ end
 function Vlasov:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local amax = 0.0
    if dir <= self._cdim then
-      -- streaming term (note that surface streaming kernels don't
-      -- return max speed)
-      self._surfStreamUpdate[dir](
-	 wl:data(), wr:data(), dxl:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+      if not self._onlyForceUpdate then
+         -- streaming term (note that surface streaming kernels don't
+         -- return max speed)
+         self._surfStreamUpdate[dir](
+	    wl:data(), wr:data(), dxl:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+      end
    else
       if self._hasForceTerm then
 	 -- force term

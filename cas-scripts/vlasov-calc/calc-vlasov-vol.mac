@@ -77,3 +77,18 @@ for bInd : 1 thru length(bName) do (
     )
   )
 );
+
+load("vlasov-calc/vlasov-elc-vol")$
+/* Compute the volume contribution from ONLY the force term (for use in driven simulations) */
+/* Hard-coded to 1x1v for now, since this is only being used in 1x1v */
+for bInd : 1 thru length(bName) do (
+   maxPolyOrderB : maxPolyOrder[bInd],
+   for polyOrder : 1 thru maxPolyOrderB do (
+      disp(printf(false,sconcat("Creating volume VlasovForce",bName[bInd]," ~ax~avP~a"),1,1,polyOrder)),
+      fname : sconcat("~/max-out/VlasovForce", bName[bInd], 1, "x", 1, "vP", polyOrder, ".cpp"),
+      fh : openw(fname),
+      funcName : sconcat("VlasovVolForce", 1, "x", 1, "v", bName[bInd]),
+      calcVlasovForceVolUpdater(fh, funcName, 1, 1, bName[bInd], polyOrder),
+      close(fh)
+   )
+);

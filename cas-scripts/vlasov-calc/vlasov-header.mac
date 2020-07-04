@@ -96,6 +96,37 @@ for ci : 1 thru 2 do (
   )
 )$
 
+for ci : 1 thru 1 do (
+  for vi : ci thru 1 do (
+    for pi : 1 thru 3 do (
+      printf(fh, "__host__ __device__ double  VlasovVolForce~ax~avMaxP~a(const double *w, const double *dxv, const double *E, const double *f, double *out); ~%", ci, vi, pi) 
+    ),
+    printf(fh, "~%")
+  )
+)$
+
+printf(fh, "~% ~%")$
+
+for ci : 1 thru 1 do (
+  for vi : ci thru 1 do (
+    for pi : 1 thru 3 do (
+      printf(fh, "__host__ __device__ double  VlasovVolForce~ax~avSerP~a(const double *w, const double *dxv, const double *E, const double *f, double *out); ~%", ci, vi, pi) 
+    ),
+    printf(fh, "~%")
+  )
+)$
+
+printf(fh, "~% ~%")$
+
+for ci : 1 thru 1 do (
+  for vi : ci thru 1 do (
+    for pi : 2 thru 3 do (
+      printf(fh, "__host__ __device__ double  VlasovVolForce~ax~avTensorP~a(const double *w, const double *dxv, const double *E, const double *f, double *out); ~%", ci, vi, pi)
+    ),
+    printf(fh, "~%")
+  )
+)$
+
 printf(fh, "~% ~%")$
 
 printf(fh, "} ~%")$

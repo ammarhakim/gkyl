@@ -321,6 +321,17 @@ __host__ __device__ double VlasovSurfElcMag1x3vTensor_VZ_P2(const double *wl, co
 __host__ __device__ double VlasovVol2x2vTensorP2(const double *w, const double *dxv, const double *E, const double *f, double *out); 
 __host__ __device__ double VlasovSurfElcMag2x2vTensor_VX_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *E, const double *fl, const double *fr, double *outl, double *outr); 
 __host__ __device__ double VlasovSurfElcMag2x2vTensor_VY_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *E, const double *fl, const double *fr, double *outl, double *outr);
+
+__host__ __device__ double  VlasovVolForce1x1vMaxP1(const double *w, const double *dxv, const double *E, const double *f, double *out); 
+__host__ __device__ double  VlasovVolForce1x1vMaxP2(const double *w, const double *dxv, const double *E, const double *f, double *out); 
+__host__ __device__ double  VlasovVolForce1x1vMaxP3(const double *w, const double *dxv, const double *E, const double *f, double *out); 
+
+__host__ __device__ double  VlasovVolForce1x1vSerP1(const double *w, const double *dxv, const double *E, const double *f, double *out); 
+__host__ __device__ double  VlasovVolForce1x1vSerP2(const double *w, const double *dxv, const double *E, const double *f, double *out); 
+__host__ __device__ double  VlasovVolForce1x1vSerP3(const double *w, const double *dxv, const double *E, const double *f, double *out); 
+
+__host__ __device__ double  VlasovVolForce1x1vTensorP2(const double *w, const double *dxv, const double *E, const double *f, double *out); 
+__host__ __device__ double  VlasovVolForce1x1vTensorP3(const double *w, const double *dxv, const double *E, const double *f, double *out); 
  
 } 
 #endif 
