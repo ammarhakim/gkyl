@@ -81,7 +81,8 @@ GkylMomentSrcDeviceData_t *cuda_gkylMomentSrcInit(
 }
 
 
-void cuda_gkylMomentSrcDestroy(const GkylMomentSrcDeviceData_t *context) {
+void cuda_gkylMomentSrcDestroy(
+    const __restrict__ GkylMomentSrcDeviceData_t *context) {
   if (strcmp(context->scheme, "time-centered")==0) {
     cudacall(cudaFree(context->d_lhs_ptr));
     cudacall(cudaFree(context->d_rhs_ptr));
@@ -96,8 +97,9 @@ void cuda_gkylMomentSrcDestroy(const GkylMomentSrcDeviceData_t *context) {
 
 
 __device__ static void cuda_gkylMomentSrcTimeCenteredUpdateRhovE(
-    const int linearIdx, const int linearIdxC, const MomentSrcData_t *sd,
-    const FluidData_t *fd, const double dt, GkylCartField_t **fluidFlds,
+    const int linearIdx, const int linearIdxC,
+    const __restrict__ MomentSrcData_t *sd, const __restrict__ FluidData_t *fd,
+    const double dt, GkylCartField_t **fluidFlds,
     GkylCartField_t *emFld, double **d_rhs_ptr) {
   const double *sol = d_rhs_ptr[linearIdx];
   const int nFluids = sd->nFluids;
@@ -129,8 +131,9 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredUpdateRhovE(
 
 
 __global__ static void cuda_gkylMomentSrcTimeCenteredCublasUpdate(
-    const MomentSrcData_t *sd, const FluidData_t *fd, const double dt,
-    GkylCartField_t **fluidFlds, GkylCartField_t *emFld, double **d_rhs_ptr) {
+    const __restrict__ MomentSrcData_t *sd, const __restrict__ FluidData_t *fd,
+    const double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
+    double **d_rhs_ptr) {
   GkylRange_t *localRange = emFld->localRange;
   Gkyl::GenIndexer localIdxr(localRange);
   Gkyl::GenIndexer fIdxr = emFld->genIndexer();
@@ -170,9 +173,9 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredCublasUpdate(
 
 
 __global__ static void cuda_gkylMomentSrcTimeCenteredCublasSetMat(
-    const MomentSrcData_t *sd, const FluidData_t *fd, const double dt,
-    GkylCartField_t **fluidFlds, GkylCartField_t *emFld, double **d_lhs_ptr,
-    double **d_rhs_ptr) {
+    const __restrict__ MomentSrcData_t *sd, const __restrict__ FluidData_t *fd,
+    const double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
+    double **d_lhs_ptr, double **d_rhs_ptr) {
   GkylRange_t *localRange = emFld->localRange;
   Gkyl::GenIndexer localIdxr(localRange);
   Gkyl::GenIndexer fIdxr = emFld->genIndexer();
@@ -247,9 +250,10 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredCublasSetMat(
 
 
 static void cuda_gkylMomentSrcTimeCenteredCublas(
-    const int nFluids, int numBlocks, int numThreads, const MomentSrcData_t *sd, const FluidData_t *fd,
+    const int nFluids, int numBlocks, int numThreads,
+    const __restrict__ MomentSrcData_t *sd, const __restrict__ FluidData_t *fd,
     const double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
-    const GkylMomentSrcDeviceData_t *context) {
+    const __restrict__ GkylMomentSrcDeviceData_t *context) {
   const int matSize = 3 * nFluids + 3;
 
   double **d_lhs_ptr = context->d_lhs_ptr;
@@ -294,8 +298,8 @@ static void cuda_gkylMomentSrcTimeCenteredCublas(
 
 
 __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
-    const MomentSrcData_t *sd, const FluidData_t *fd, const double dt,
-    double **ff, double *em) {
+    const __restrict__ MomentSrcData_t *sd, const __restrict__ FluidData_t *fd,
+    const double dt, double **ff, double *em) {
   const int nFluids = sd->nFluids;
   const double epsilon0 = sd->epsilon0;
 
@@ -465,9 +469,10 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
 
 
 __global__ static void cuda_gkylMomentSrcTimeCenteredDirect(
-    int numBlocks, int numThreads, const MomentSrcData_t *sd, const FluidData_t *fd,
+    int numBlocks, int numThreads, const __restrict__ MomentSrcData_t *sd,
+    const __restrict__ FluidData_t *fd,
     const double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
-    const GkylMomentSrcDeviceData_t *context) {
+    const __restrict__ GkylMomentSrcDeviceData_t *context) {
   GkylRange_t *localRange = emFld->localRange;
   Gkyl::GenIndexer localIdxr(localRange);
   Gkyl::GenIndexer fIdxr = emFld->genIndexer();
@@ -510,9 +515,9 @@ __global__ static void cuda_gkylMomentSrcTimeCenteredDirect(
 
 
 void momentSrcAdvanceOnDevice(
-    const MomentSrcData_t *sd, const FluidData_t *fd, const double dt,
-    GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
-    const GkylMomentSrcDeviceData_t *context)
+    const __restrict__ MomentSrcData_t *sd, const __restrict__ FluidData_t *fd,
+    const double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
+    const __restrict__ GkylMomentSrcDeviceData_t *context)
 {
   const int nFluids = context->nFluids;
   const int numThreads = context->numThreads;

@@ -25,12 +25,15 @@ extern "C" {
   } GkylMomentSrcDeviceData_t;
 
   GkylMomentSrcDeviceData_t *cuda_gkylMomentSrcInit(
-    const char *scheme, const int nFluids, const int numBlocks, const int numThreads);
-  void cuda_gkylMomentSrcDestroy(const GkylMomentSrcDeviceData_t *context);
+    const char *scheme, const int nFluids, const int numBlocks,
+    const int numThreads);
+  void cuda_gkylMomentSrcDestroy(
+      const __restrict__ GkylMomentSrcDeviceData_t *context);
   void momentSrcAdvanceOnDevice(
-      const MomentSrcData_t *sd, const FluidData_t *fd, const double dt,
+      const __restrict__ MomentSrcData_t *sd,
+      const __restrict__ FluidData_t *fd, const double dt,
       GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
-      const GkylMomentSrcDeviceData_t *context);
+      const __restrict__ GkylMomentSrcDeviceData_t *context);
   
 }
 
