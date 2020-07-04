@@ -422,11 +422,6 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
     } 
   }
 
-  //------------> update electric field
-  em[EX] = (2*Fbar[0]-F[0]) / epsilon0;
-  em[EY] = (2*Fbar[1]-F[1]) / epsilon0;
-  em[EZ] = (2*Fbar[2]-F[2]) / epsilon0;
-
   //------------> update solution for fluids
   double chargeDens = 0.0;
   for (int n = 0; n < nFluids; ++n)
@@ -465,6 +460,10 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
 
   //------------> update correction potential
   em[PHIE] += dt * sd->chi_e * chargeDens/epsilon0;
+  //------------> update electric field
+  em[EX] = (2*Fbar[0]-F[0]) / epsilon0;
+  em[EY] = (2*Fbar[1]-F[1]) / epsilon0;
+  em[EZ] = (2*Fbar[2]-F[2]) / epsilon0;
 }
 
 
