@@ -28,12 +28,15 @@ static const int PHIE = 6;
 
 #define F2(base,i,j) (base)[(j)*(matSize)+(i)]
 
-#define sharedPad (1)
-
-#define MOMENTSRC_SHM_LAYOUT AOS
+#define MOMENTSRC_SHM_LAYOUT SOA
 #define SOA (1)
 #define AOS (2)
 
+#if MOMENTSRC_SHM_LAYOUT == AOS
+#define SHAREDPAD (1)
+#else
+#define SHAREDPAD (0)
+#endif
 
 __global__ static void cuda_gkylMomentSrcTimeCenteredCublasSetPtrs(
    const int matSize,  double *d_lhs, double *d_rhs, double **d_lhs_ptr,
@@ -324,7 +327,7 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
   __syncthreads();
 
 #if MOMENTSRC_SHM_LAYOUT == AOS
-  double *ptr = dummy + base + threadIdx.x * (nFluids * (3 + 1 + 1) + sharedPad);
+  double *ptr = dummy + base + threadIdx.x * (nFluids * (3 + 1 + 1) + SHAREDPAD);
 
   double *JJ = ptr;
   ptr += nFluids*3;
@@ -524,10 +527,10 @@ void momentSrcAdvanceOnDevice(
 
 #if MOMENTSRC_SHM_LAYOUT == AOS
     // qbym, J, Wc_dt, wp_dt2
-    sharedMemSize += numThreads * (nFluids * (3 + 1 + 1) + sharedPad) + nFluids;
+    sharedMemSize += numThreads * (nFluids * (3 + 1 + 1) + SHAREDPAD) + nFluids;
 #else
     // J, Wc_dt, wp_dt2 and shared qbym
-    sharedMemSize += numThreads * (nFluids * (3 + 1 + 1)) + nFluids;
+    sharedMemSize += numThreads * (nFluids * (3 + 1 + 1) + SHAREDPAD) + nFluids;
 #endif
     sharedMemSize *= sizeof(double);
 
@@ -540,3 +543,7 @@ void momentSrcAdvanceOnDevice(
   }
 }
 
+#undef SHAREDPAD
+#undef MOMENTSRC_SHM_LAYOUT
+#undef SOA
+#undef AOS
