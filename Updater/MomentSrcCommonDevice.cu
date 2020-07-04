@@ -30,6 +30,10 @@ static const int PHIE = 6;
 
 #define sharedPad (1)
 
+#define MOMENTSRC_SHM_LAYOUT AOS
+#define SOA 1
+#define AOS 2
+
 
 __global__ static void cuda_gkylMomentSrcTimeCenteredCublasSetPtrs(
    const int matSize,  double *d_lhs, double *d_rhs, double **d_lhs_ptr,
@@ -305,6 +309,8 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
   }
 
   extern __shared__ double dummy[];
+
+#if MOMENTSRC_SHM_LAYOUT == AOS
   double *ptr = dummy + threadIdx.x * (nFluids * (1 + 3 + 1 + 1) + sharedPad);
 
   double *qbym = ptr;
@@ -319,6 +325,35 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
   double *wp_dt2 = ptr;
   ptr += nFluids;
 
+  for (int n=0; n<nFluids; ++n)
+  {
+    qbym[n] = fd[n].qbym;
+  }
+#else
+  int base = 0;
+
+  double *qbym = dummy + base;
+  base += nFluids;
+
+  double *JJ = dummy + base + threadIdx.x * (nFluids * 3);
+  base += blockDim.x * nFluids * 3;
+
+  double *Wc_dt = dummy + base + threadIdx.x * nFluids;
+  base += blockDim.x * nFluids;
+
+  double *wp_dt2 = dummy + base + threadIdx.x * nFluids;
+  base += blockDim.x * nFluids;
+
+  if (threadIdx.x==0)
+  {
+    for (int n=0; n<nFluids; ++n)
+    {
+      qbym[n] = fd[n].qbym;
+    }
+  }
+  __syncthreads();
+#endif
+
   double K[] = {0, 0, 0};
   double w02 = 0.;
   double gam2 = 0.;
@@ -326,7 +361,6 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
 
   for (int n=0; n < nFluids; ++n)
   {
-    qbym[n] = fd[n].qbym;
     const double *f = ff[n];
     double *J = JJ+n*3;
     J[0] = f[MX] * qbym[n];
@@ -496,8 +530,14 @@ void momentSrcAdvanceOnDevice(
   } else if (strcmp(context->scheme, "time-centered-direct")==0
              || strcmp(context->scheme, "direct")==0) {
     int sharedMemSize = 0;
+
+#if MOMENTSRC_SHM_LAYOUT == AOS
     // qbym, J, Wc_dt, wp_dt2
     sharedMemSize += numThreads * (nFluids * (1 + 3 + 1 + 1) + sharedPad);
+#else
+    // J, Wc_dt, wp_dt2 and shared qbym
+    sharedMemSize += numThreads * (nFluids * (3 + 1 + 1)) + nFluids;
+#endif
     sharedMemSize *= sizeof(double);
 
     cudaFuncSetSharedMemConfig(cuda_gkylMomentSrcTimeCenteredDirect,
