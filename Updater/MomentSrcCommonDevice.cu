@@ -31,8 +31,8 @@ static const int PHIE = 6;
 #define sharedPad (1)
 
 #define MOMENTSRC_SHM_LAYOUT AOS
-#define SOA 1
-#define AOS 2
+#define SOA (1)
+#define AOS (2)
 
 
 __global__ static void cuda_gkylMomentSrcTimeCenteredCublasSetPtrs(
@@ -310,39 +310,9 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
 
   extern __shared__ double dummy[];
 
-#if MOMENTSRC_SHM_LAYOUT == AOS
-  double *ptr = dummy + threadIdx.x * (nFluids * (1 + 3 + 1 + 1) + sharedPad);
-
-  double *qbym = ptr;
-  ptr += nFluids;
-
-  double *JJ = ptr;
-  ptr += nFluids*3;
-
-  double *Wc_dt = ptr;
-  ptr += nFluids;
-
-  double *wp_dt2 = ptr;
-  ptr += nFluids;
-
-  for (int n=0; n<nFluids; ++n)
-  {
-    qbym[n] = fd[n].qbym;
-  }
-#else
   int base = 0;
-
   double *qbym = dummy + base;
   base += nFluids;
-
-  double *JJ = dummy + base + threadIdx.x * (nFluids * 3);
-  base += blockDim.x * nFluids * 3;
-
-  double *Wc_dt = dummy + base + threadIdx.x * nFluids;
-  base += blockDim.x * nFluids;
-
-  double *wp_dt2 = dummy + base + threadIdx.x * nFluids;
-  base += blockDim.x * nFluids;
 
   if (threadIdx.x==0)
   {
@@ -352,6 +322,27 @@ __device__ static void cuda_gkylMomentSrcTimeCenteredDirectUpdateRhovE(
     }
   }
   __syncthreads();
+
+#if MOMENTSRC_SHM_LAYOUT == AOS
+  double *ptr = dummy + base + threadIdx.x * (nFluids * (3 + 1 + 1) + sharedPad);
+
+  double *JJ = ptr;
+  ptr += nFluids*3;
+
+  double *Wc_dt = ptr;
+  ptr += nFluids;
+
+  double *wp_dt2 = ptr;
+  ptr += nFluids;
+#else
+  double *JJ = dummy + base + threadIdx.x * (nFluids * 3);
+  base += blockDim.x * nFluids * 3;
+
+  double *Wc_dt = dummy + base + threadIdx.x * nFluids;
+  base += blockDim.x * nFluids;
+
+  double *wp_dt2 = dummy + base + threadIdx.x * nFluids;
+  base += blockDim.x * nFluids;
 #endif
 
   double K[] = {0, 0, 0};
@@ -533,7 +524,7 @@ void momentSrcAdvanceOnDevice(
 
 #if MOMENTSRC_SHM_LAYOUT == AOS
     // qbym, J, Wc_dt, wp_dt2
-    sharedMemSize += numThreads * (nFluids * (1 + 3 + 1 + 1) + sharedPad);
+    sharedMemSize += numThreads * (nFluids * (3 + 1 + 1) + sharedPad) + nFluids;
 #else
     // J, Wc_dt, wp_dt2 and shared qbym
     sharedMemSize += numThreads * (nFluids * (3 + 1 + 1)) + nFluids;
