@@ -905,10 +905,12 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
     if self.calcReactRate then
        local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
        --self.fMaxwellIz:write(string.format("%s_fMaxwell_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       self.vtSqIz:write(string.format("%s_vtSqIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        self.voronovReactRate:write(string.format("%s_coefIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
     end
 
+    -- Write CX diagnostics
     if self.calcCXSrc then
        local sourceCX = self.collisions[self.collNmCX]:getSrcCX()
        sourceCX:write(string.format("%s_sourceCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
