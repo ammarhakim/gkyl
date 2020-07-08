@@ -72,7 +72,7 @@ function SigmaCX:_advance(tCurr, inFld, outFld)
    local uNeut      = assert(inFld[2], "SigmaCX.advance: Must specify neutral fluid velocity as input[2]")
    local vtSqIon    = assert(inFld[3], "SigmaCX.advance: Must specify ion squared thermal velocity as input[3]")
    local vtSqNeut   = assert(inFld[4], "SigmaCX.advance: Must specify neutral squared thermal velocity as input[4]")
-   local sigmaCX    = assert(outFld[1], "SigmaCX.advance: Must specify an output field")
+   local vSigmaCX    = assert(outFld[1], "SigmaCX.advance: Must specify an output field")
    
    local confIndexer  = uIon:genIndexer()
 
@@ -81,8 +81,8 @@ function SigmaCX:_advance(tCurr, inFld, outFld)
    local vtSqIonItr   = vtSqIon:get(1)
    local vtSqNeutItr  = vtSqNeut:get(1)
  
-   local sigmaCXItr   = sigmaCX:get(1)
-
+   local vSigmaCXItr   = vSigmaCX:get(1)
+   
    local confRange = vtSqIon:localRange()
 
    local confRangeDecomp = LinearDecomp.LinearDecompRange {
@@ -97,9 +97,9 @@ function SigmaCX:_advance(tCurr, inFld, outFld)
       uNeut:fill(confIndexer(cIdx), uNeutItr)      
       vtSqIon:fill(confIndexer(cIdx), vtSqIonItr)
       vtSqNeut:fill(confIndexer(cIdx), vtSqNeutItr)
-      sigmaCX:fill(confIndexer(cIdx), sigmaCXItr)
-
-      self._calcSigmaCX(self._a, self._b, uIonItr:data(), uNeutItr:data(), vtSqIonItr:data(), vtSqNeutItr:data(), sigmaCXItr:data())
+      vSigmaCX:fill(confIndexer(cIdx), vSigmaCXItr)
+      
+      self._calcSigmaCX(self._a, self._b, uIonItr:data(), uNeutItr:data(), vtSqIonItr:data(), vtSqNeutItr:data(), vSigmaCXItr:data())
      
    end
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart

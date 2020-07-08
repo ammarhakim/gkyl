@@ -53,14 +53,14 @@ calcGkSigmaCXcellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     bC : basisC[p],
     NC : length(bC),
   
-    printf(fh, "void ~a_P~a(const double a, const double b, const double *uParIon, const double *uParNeut, const double *vtSqIon, const double *vtSqNeut, double *sigmaCX) ~%{ ~%", funcNm, p),
+    printf(fh, "void ~a_P~a(const double a, const double b, const double *uParIon, const double *uParNeut, const double *vtSqIon, const double *vtSqNeut, double *vSigmaCX) ~%{ ~%", funcNm, p),
     printf(fh, "  // a               constant in fitting function. ~%"),
     printf(fh, "  // b               constant in fitting function. ~%"),
     printf(fh, "  // uParIon[~a]:    ion fluid velocity. ~%", NC*vdim),
-    printf(fh, "  // uParNeut[~a]:    neutral fluid velocity. ~%", NC*vdim),
-    printf(fh, "  // vtSqIon[~a]:     ion squared thermal speed, sqrt(T/m). ~%", NC),
-    printf(fh, "  // vtSqNeut[~a]:    neutral squared thermal speed, sqrt(T/m). ~%", NC),
-    printf(fh, "  // sigmaCX:          cell ave cross section fitting eqn. ~%"),
+    printf(fh, "  // uParNeut[~a]:   neutral fluid velocity. ~%", NC*vdim),
+    printf(fh, "  // vtSqIon[~a]:    ion squared thermal speed, sqrt(T/m). ~%", NC),
+    printf(fh, "  // vtSqNeut[~a]:   neutral squared thermal speed, sqrt(T/m). ~%", NC),
+    printf(fh, "  // vSigmaCX:       cell ave cross section fitting eqn. ~%"),
     printf(fh, " ~%"),
 
     uIonAv_c : subst(makelist(uIon[i]=uIon[i+a0],i,0,NC-1),innerProd(varsC,1.0,1.0,doExpand1(uIon,bC))/innerProd(varsC,1.0,1.0,1.0)),
@@ -86,11 +86,11 @@ calcGkSigmaCXcellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     declareWriteCExprsC(vINSqAv, vINSq_c),
     
-    /* Define and write sigmaCX */
+    /* Define and write vSigmaCX */
 
-    sigmaCX_c : calcInnerProdList(varsC,1.0,bC,a - b*ln(sqrt(4/%pi*vtSqIonAv + 4/%pi*vtSqNeutAv + vINSqAv))),
+    vSigmaCX_c : calcInnerProdList(varsC,1.0,bC,sqrt(4/%pi*vtSqIonAv + 4/%pi*vtSqNeutAv + vINSqAv)*(a - b*ln(sqrt(4/%pi*vtSqIonAv + 4/%pi*vtSqNeutAv + vINSqAv)))),
+    writeCExprsCs(vSigmaCX, vSigmaCX_c),
 
-    writeCExprsCs(sigmaCX, sigmaCX_c),
     printf(fh, " ~%"),
     printf(fh, "} ~%")
 ))$
