@@ -1747,6 +1747,10 @@ function GkSpecies:getSrcCX()
    return self.srcCX
 end
 
+function GkSpecies:getVSigmaCX()
+   return self.vSigmaCX
+end
+
 function GkSpecies:momCalcTime()
    local tm = self.tmCouplingMom
    for i, mom in pairs(self.diagnosticMoments) do
