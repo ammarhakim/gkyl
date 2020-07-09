@@ -17,41 +17,22 @@ local Unit = require "Unit"
 local Grid = require "Grid"
 local DataStruct = require "DataStruct"
 local Updater = require "Updater"
+local Time = require "Lib.Time"
+local xsys = require "xsys"
 
 local assert_equal = Unit.assert_equal
 local assert_close = Unit.assert_close
 local stats = Unit.stats
 
-local computeMaxFreq = function(charge, mass, rho, Bmag, epsilon0, show)
-   local wp_tot = 0
-   local wc_max = 0
-   for species,_ in ipairs(charge)  do
-      local wp2 = rho[species] * (charge[species] / mass[species])^2 / epsilon0
-      wp_tot = wp_tot + wp2
-      wc_max = math.max(wc_max, math.abs(charge[species] * Bmag / mass[species]))
-   end
-   wp_tot = math.sqrt(wp_tot)
-
-   if show then
-      for species = 1,#charge do
-         print(string.format("species [%d] charge=%g, mass=%g, rho=%g",
-            species, charge[species], mass[species], rho[species]))
-      end
-      print('Bmag=%g, epsilon0=%g')
-
-      print('wp_tot', wp_tot)
-      print('2*pi/wp_tot', 2*math.pi/wp_tot)
-      print('wc_max', wc_max)
-      print('2*pi/wc_max', 2*math.pi/wc_max)
-   end
-
-   return math.max(wp_tot, wc_max)
-end
+local nx = 128*64 -- number of configuration space dimensions in x
+local nloop = NLOOP or 3 -- number of WavePropagation calls to loop over
+local numThreads = NTHREADS or 128 -- number of threads to use in WavePropagation kernel configuration
+local checkResult = xsys.pickBool(CHECK, true)
 
 local grid = Grid.RectCart {
    lower = {0.0},
    upper = {1.0},
-   cells = {1},
+   cells = {nx},
 }
 
 local fluid1 = DataStruct.Field {
@@ -86,6 +67,31 @@ local d_emf = DataStruct.Field {
 local epsilon0 = 1.0
 local gasGamma = 5. / 3.
 
+local computeMaxFreq = function(charge, mass, rho, Bmag, epsilon0, show)
+   local wp_tot = 0
+   local wc_max = 0
+   for species,_ in ipairs(charge)  do
+      local wp2 = rho[species] * (charge[species] / mass[species])^2 / epsilon0
+      wp_tot = wp_tot + wp2
+      wc_max = math.max(wc_max, math.abs(charge[species] * Bmag / mass[species]))
+   end
+   wp_tot = math.sqrt(wp_tot)
+
+   if show then
+      for species = 1,#charge do
+         print(string.format("species [%d] charge=%g, mass=%g, rho=%g",
+            species, charge[species], mass[species], rho[species]))
+      end
+      print('Bmag=%g, epsilon0=%g')
+
+      print('wp_tot', wp_tot)
+      print('2*pi/wp_tot', 2*math.pi/wp_tot)
+      print('wc_max', wc_max)
+      print('2*pi/wc_max', 2*math.pi/wc_max)
+   end
+
+   return math.max(wp_tot, wc_max)
+end
 
 function init(
    fluid1, fluid2, emf,
@@ -175,47 +181,63 @@ function doTest1(scheme, dtFrac)
    }
    srcUpdater:setDtAndCflRate(dt, nil)
 
-   srcUpdater:advance(0.0, {}, {fluid1, fluid2, emf})
+   tmStart = Time.clock()
+   for i = 1, nloop do
+      srcUpdater:_advanceDevice(0.0, {}, {d_fluid1, d_fluid2, d_emf})
+   end
+   local err = cuda.DeviceSynchronize()
+   local totalGpuTime = (Time.clock()-tmStart)
 
-   srcUpdater:_advanceDevice(0.0, {}, {d_fluid1, d_fluid2, d_emf})
    d_fluid1:copyDeviceToHost()
    d_fluid2:copyDeviceToHost()
    d_emf:copyDeviceToHost()
 
-   local f1Idxr = fluid1:genIndexer()   
-   local f2Idxr = fluid2:genIndexer()   
-   local emIdxr = emf:genIndexer() 
-   local d_f1Idxr = d_fluid1:genIndexer()   
-   local d_f2Idxr = d_fluid2:genIndexer()   
-   local d_emIdxr = d_emf:genIndexer() 
-
-   for idx in fluid1:localRangeIter() do
-      local f1 = fluid1:get(f1Idxr(idx))
-      local d_f1 = d_fluid1:get(d_f1Idxr(idx))
-      for comp = 1,5 do
-         assert_close(f1[comp], d_f1[comp], 1e-10, string.format(
-         "fluid1 index %d component %d is incorrect", f1Idxr(idx), comp))
-      end
-
-      local f2 = fluid1:get(f2Idxr(idx))
-      local d_f2 = d_fluid1:get(d_f2Idxr(idx))
-      for comp = 1,5 do
-         assert_close(f2[comp], d_f2[comp], 1e-10, string.format(
-         "fluid2 index %d component %d is incorrect", f2Idxr(idx), comp))
-      end
-
-      local em = fluid1:get(emIdxr(idx))
-      local d_em = d_fluid1:get(d_emIdxr(idx))
-      for comp = 1,8 do
-         assert_close(em[comp], d_em[comp], 1e-10, string.format(
-         "emf index %d component %d is incorrect", emIdxr(idx), comp))
-      end
-
+   tmStart = Time.clock()
+   for i = 1, nloop do
+      srcUpdater:advance(0.0, {}, {fluid1, fluid2, emf})
    end
+   local totalCpuTime = (Time.clock()-tmStart)
+
+   if checkResult then
+      local f1Idxr = fluid1:genIndexer()   
+      local f2Idxr = fluid2:genIndexer()   
+      local emIdxr = emf:genIndexer() 
+      local d_f1Idxr = d_fluid1:genIndexer()   
+      local d_f2Idxr = d_fluid2:genIndexer()   
+      local d_emIdxr = d_emf:genIndexer() 
+
+      for idx in fluid1:localRangeIter() do
+         local f1 = fluid1:get(f1Idxr(idx))
+         local d_f1 = d_fluid1:get(d_f1Idxr(idx))
+         for comp = 1,5 do
+            assert_close(f1[comp], d_f1[comp], 1e-10, string.format(
+            "fluid1 index %d component %d is incorrect", f1Idxr(idx), comp))
+         end
+
+         local f2 = fluid1:get(f2Idxr(idx))
+         local d_f2 = d_fluid1:get(d_f2Idxr(idx))
+         for comp = 1,5 do
+            assert_close(f2[comp], d_f2[comp], 1e-10, string.format(
+            "fluid2 index %d component %d is incorrect", f2Idxr(idx), comp))
+         end
+
+         local em = fluid1:get(emIdxr(idx))
+         local d_em = d_fluid1:get(d_emIdxr(idx))
+         for comp = 1,8 do
+            assert_close(em[comp], d_em[comp], 1e-10, string.format(
+            "emf index %d component %d is incorrect", emIdxr(idx), comp))
+         end
+      end
+   end
+
+   print("cpu scheme", scheme, "gpu scheme", srcUpdater.gpu_scheme)
+   print(string.format("Total CPU time for %d FiveMomentSrc calls = %f s   (average = %f s)", nx, totalCpuTime, totalCpuTime/nx))
+   print(string.format("Total GPU time for %d FiveMomentSrc calls = %f s   (average = %f s)", nx, totalGpuTime, totalGpuTime/nx))
+   print(string.format("GPU speed-up = %fx!", totalCpuTime/totalGpuTime))
 
 end
 
-doTest1("time-centered", 0.1)
+doTest1("time-centered", 1)
 doTest1("direct", 1)
 
 -- TODO Do automatic check.

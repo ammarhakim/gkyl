@@ -940,7 +940,7 @@ return {
       return {
 	 App = App,
 	 Species = require "App.Species.IncompEulerSpecies",
-	 Field = require "App.Field.GkField",
+	 Field = require ("App.Field.GkField").GkField,
 	 Diffusion = require "App.Collisions.FluidDiffusion",
       }
    end,
@@ -958,8 +958,6 @@ return {
 	 LBOCollisions = require "App.Collisions.VmLBOCollisions",
 	 BgkCollisions = require "App.Collisions.VmBGKCollisions",
 	 LboCollisions = require "App.Collisions.VmLBOCollisions",
-	 ChargeExchange = require "App.Collisions.VmChargeExchange",
-	 Ionization = require "App.Collisions.VmIonization",
       }
    end,
    

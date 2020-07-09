@@ -31,7 +31,7 @@ function test_1()
    local euler = Euler { gasGamma = 1.4 }
 
    assert_equal(5, euler:numEquationsCImpl(), "No of equations")
-   assert_equal(3, euler:numWaves(), "No of wave")
+   assert_equal(1, euler:numWavesCImpl(), "No of wave")
 
    local rho, u, v, w, pr = 1.0, 2.1, 3.1, 4.1, 0.1
    local q = Lin.Vec(5)

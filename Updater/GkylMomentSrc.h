@@ -2,42 +2,36 @@
 #ifndef GKYL_MOMENT_SRC_H
 #define GKYL_MOMENT_SRC_H
 
-#include <GkylCudaConfig.h>
 #include <MomentSrcCommon.h>
 #include <GkylCartField.h>
+#include <GkylCudaConfig.h>
+#include <cublas_v2.h>
 
 extern "C" {
-    /* CUDA GPU */
-    void momentSrcAdvanceOnDevice(
-        int numBlocks, int numThreads, MomentSrcData_t *sd, FluidData_t *fd,
-        double dt, GkylCartField_t **fluidFlds, GkylCartField_t *emFld);
+  typedef struct {
+    // TODO domain decomposition info
+    const char *scheme;
+    int nFluids;
+    int numThreads;
+    int numBlocks;
+
+    // for time-centered scheme using cublas batched getrf and getrs
+    double *d_lhs;
+    double *d_rhs;
+    double **d_lhs_ptr;
+    double **d_rhs_ptr;
+    int *d_info;
+    cublasHandle_t handle;
+  } GkylMomentSrcDeviceData_t;
+
+  GkylMomentSrcDeviceData_t *cuda_gkylMomentSrcInit(
+    const char *scheme, const int nFluids, const int numBlocks, const int numThreads);
+  void cuda_gkylMomentSrcDestroy(const GkylMomentSrcDeviceData_t *context);
+  void momentSrcAdvanceOnDevice(
+      const MomentSrcData_t *sd, const FluidData_t *fd, const double dt,
+      GkylCartField_t **fluidFlds, GkylCartField_t *emFld,
+      const GkylMomentSrcDeviceData_t *context);
+  
 }
-
-#define cudacall(call)                                                                                                          \
-    do                                                                                                                          \
-    {                                                                                                                           \
-        cudaError_t err = (call);                                                                                               \
-        if(cudaSuccess != err)                                                                                                  \
-        {                                                                                                                       \
-            fprintf(stderr,"CUDA Error:\nFile = %s\nLine = %d\nReason = %s\n", __FILE__, __LINE__, cudaGetErrorString(err));    \
-            cudaDeviceReset();                                                                                                  \
-            exit(EXIT_FAILURE);                                                                                                 \
-        }                                                                                                                       \
-    }                                                                                                                           \
-    while (0)
-
-#define cublascall(call)                                                                                        \
-    do                                                                                                          \
-    {                                                                                                           \
-        cublasStatus_t status = (call);                                                                         \
-        if(CUBLAS_STATUS_SUCCESS != status)                                                                     \
-        {                                                                                                       \
-            fprintf(stderr,"CUBLAS Error:\nFile = %s\nLine = %d\nCode = %d\n", __FILE__, __LINE__, status);     \
-            cudaDeviceReset();                                                                                  \
-            exit(EXIT_FAILURE);                                                                                 \
-        }                                                                                                       \
-                                                                                                                \
-    }                                                                                                           \
-    while(0)
 
 #endif // GKYL_MOMENT_SRC_H

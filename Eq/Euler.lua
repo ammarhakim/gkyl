@@ -29,19 +29,46 @@ typedef struct {
    double _fl[6], _fr[6]; /* Storage for left/right fluxes ([6] as we want to index from 1) */
 } EulerEqn_t;
 
-  typedef struct GkylEuler GkylEuler;
-  GkylEuler* new_Euler(const double gasGamma);
-  GkylEuler* new_Euler_onDevice(GkylEuler *v);
+  // c/cuda implementation
+  typedef struct {
+    int numWaves;
+    int numEquations;
+    double gasGamma;
+  } GkylEquationFvEuler_t;
 
-  // for cuda testing
-  int numEquations_Euler(GkylEuler *eq);
-  void rp_Euler(
-      GkylEuler *eq, const int dir, const double *delta,
-      const double *ql, const double *qr, double *waves, double *s);
- void qFluctuations_Euler(
-     GkylEuler *eq, const int dir, const double *ql, const double *qr,
-     const double *waves, const double *s, double *amdq, double *apdq);
-  void flux_Euler(GkylEuler *eq, const int dir, const double *qIn, double *fOut);
+  typedef struct GkylEquationFv_t GkylEquationFv_t;
+  GkylEquationFv_t *new_EquationFvEulerOnDevice(const int gasGamma);
+
+  // following are exposed to be called without gpu for unit test
+  GkylEquationFvEuler_t *new_EquationFvEulerOnHost(const double gasGamma);
+
+  inline double Euler_pressure(
+      const double gasGamma,
+      const double *q);
+
+  void Euler_rp(
+      const void *eqn,
+      const int dir,
+      const double *ql,
+      const double *qr,
+      double *waves,
+      double *speeds);
+
+  void Euler_qFluctuations(
+      const void *eqn,
+      const int dir,
+      const double *ql,
+      const double *qr,
+      const double *waves,
+      const double *speeds,
+      double *amdq,
+      double *apdq);
+
+  void Euler_flux(
+      const void *eqn,
+      const int dir,
+      const double *qIn,
+      double *fOut);
 ]]
 
 -- Resuffle indices for various direction Riemann problem. The first
@@ -283,32 +310,32 @@ local Euler = Proto(EqBase)
 function Euler:init(tbl)
    self._gasGamma = tbl.gasGamma
    self.eulerObj = EulerObj(tbl)
-
-   if GKYL_HAVE_CUDA then
-     self:initDevice()
-   end
 end
 
-function Euler:initDevice()
-   self._onHost = ffi.C.new_Euler(self._gasGamma)
-   self._onDevice = ffi.C.new_Euler_onDevice(self._onHost)
+function Euler:initDevice(tbl)
+   self._onHost = ffi.C.new_EquationFvEulerOnHost(tbl.gasGamma)
+   self._onDevice = ffi.C.new_EquationFvEulerOnDevice(tbl.gasGamma)
 end
 
 function Euler:numEquationsCImpl()
-   return ffi.C.numEquations_Euler(self._onHost)
+   return self._onHost.numEquations
+end
+
+function Euler:numWavesCImpl()
+   return self._onHost.numWaves
 end
 
 function Euler:rpCImpl(dir, delta, ql, qr, waves, s)
-   return ffi.C.rp_Euler(self._onHost, dir, delta, ql, qr, waves, s)
+   return ffi.C.Euler_rp(self._onHost, dir, ql, qr, waves, s)
 end
 
 function Euler:qFluctuationsCImpl(dir, ql, qr, waves, s, amdq, apdq)
-   return ffi.C.qFluctuations_Euler(
+   return ffi.C.Euler_qFluctuations(
    self._onHost, dir, ql, qr, waves, s, amdq, apdq)
 end
 
 function Euler:fluxCImpl(dir, qIn, fOut)
-   return ffi.C.flux_Euler(self._onHost, dir, qIn, fOut)
+   return ffi.C.Euler_flux(self._onHost, dir, qIn, fOut)
 end
 
 function Euler:numEquations()

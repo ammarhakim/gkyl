@@ -13,36 +13,13 @@
 #include <Eigen/Eigen>
 
 // Makes indexing cleaner
-static const unsigned X = 0;
-static const unsigned Y = 1;
-static const unsigned Z = 2;
-
 static const unsigned RHO = 0;
 static const unsigned MX = 1;
 static const unsigned MY = 2;
 static const unsigned MZ = 3;
 static const unsigned ER = 4;
 
-static const unsigned EX = 0;
-static const unsigned EY = 1;
-static const unsigned EZ = 2;
-static const unsigned BX = 3;
-static const unsigned BY = 4;
-static const unsigned BZ = 5;
-static const unsigned PHIE = 6;
-static const unsigned PHIM = 7;
-
 #define sq(x) ((x) * (x))
-#define cube(x) ((x) * (x) * (x))
-template <typename T> static T sgn(T val) {
-    return (T(0) < val) - (val < T(0));
-}
-
-static const int COL_PIV_HOUSEHOLDER_QR = 0;
-static const int PARTIAL_PIV_LU = 1;
-
-#define fidx(n, c) (3 * (n) + (c))
-#define eidx(c) (3 * nFluids + (c))
 
 void
 gkylFiveMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma, double *auxSrc)

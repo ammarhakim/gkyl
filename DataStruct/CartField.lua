@@ -33,28 +33,6 @@ end
 
 -- C interfaces
 ffi.cdef [[
-    // s: start index. nv: number of values
-    void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double *inp, double *out);
-    void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out);
-    void gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out);
-    void gkylCartFieldScaleByCell(unsigned s, unsigned nv, unsigned ncomp, double *fact, double *out);
-    void gkylCartFieldAbs(unsigned s, unsigned nv, double *out);
-    void gkylCopyFromField(double *data, double *f, unsigned numComponents, unsigned c);
-    void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned c);
-    void gkylCartFieldAssignAll(unsigned s, unsigned nv, double val, double *out);
-
-    void gkylCartFieldDeviceAccumulate(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, const double *inp, double *out);
-    void gkylCartFieldDeviceAssign(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, const double *inp, double *out);
-    void gkylCartFieldDeviceScale(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, double *out);
-    void gkylCartFieldDeviceAbs(int numBlocks, int numThreads, unsigned s, unsigned nv, double *out);
-
-    // copy component data from/to field
-    void gkylCopyFromFieldDevice(int numBlocks, int numThreads, double *data, double *f, unsigned numComponents, unsigned c);
-    void gkylCopyToFieldDevice(int numBlocks, int numThreads, double *f, double *data, unsigned numComponents, unsigned c);
-
-    // Assign all elements to specified value.
-    void gkylCartFieldDeviceAssignAll(int numBlocks, int numThreads, unsigned s, unsigned nv, double val, double *out);
-
     typedef struct {
         int ndim;
         int elemSize;
@@ -66,6 +44,31 @@ ffi.cdef [[
         double *_data;
     } GkylCartField_t;
 
+    // s: start index. nv: number of values.
+    void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double *inp, double *out);
+    void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out);
+    void gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out);
+    void gkylCartFieldScaleByCell(unsigned s, unsigned nv, unsigned ncomp, double *fact, double *out);
+    void gkylCartFieldAbs(unsigned s, unsigned nv, double *out);
+    void gkylCopyFromField(double *data, double *f, unsigned numComponents, unsigned c);
+    void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned c);
+    void gkylCartFieldAssignAll(unsigned s, unsigned nv, double val, double *out);
+
+    // sInp/sOut: start index for input/output fields. nCells: number of cells being looped over. 
+    // compStart: starting component for offset. nCompInp/nCompOut: input/output field's number of components.
+    void gkylCartFieldAccumulateOffset(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out);
+
+    void gkylCartFieldDeviceAccumulate(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, const double *inp, double *out);
+    void gkylCartFieldDeviceAccumulateOffset(int numBlocks, int numThreads, unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out);
+    void gkylCartFieldDeviceAssign(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, const double *inp, double *out);
+    void gkylCartFieldDeviceScale(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, double *out);
+    void gkylCartFieldDeviceAbs(int numBlocks, int numThreads, unsigned s, unsigned nv, double *out);
+
+    // copy periodic boundary conditions when using only one GPU
+    void gkylDevicePeriodicCopy(int numBlocks, int numThreads, GkylRange_t *rangeSkin, GkylRange_t *rangeGhost, GkylCartField_t *f, unsigned numComponents);
+
+    // Assign all elements to specified value.
+    void gkylCartFieldDeviceAssignAll(int numBlocks, int numThreads, unsigned s, unsigned nv, double val, double *out);
 ]]
 
 if GKYL_HAVE_CUDA then
@@ -98,9 +101,14 @@ local genIndexerMakerFuncs = {} -- list of functions that make generic indexers
 genIndexerMakerFuncs[rowMajLayout] = Range.makeRowMajorGenIndexer
 genIndexerMakerFuncs[colMajLayout] = Range.makeColMajorGenIndexer
 
--- helper to check if two field are compatible
+-- Helper function to check if two fields are compatible.
 local function field_compatible(y, x)
    return y:localRange() == x:localRange() and y:numComponents() == x:numComponents()
+end
+-- Helper function to check if two fields have the same range.
+-- Useful when manipulating two fields with different number of components, but same range.
+local function field_check_range(y, x)
+   return y:localRange() == x:localRange()
 end
 
 -- return local start and num times to bump
@@ -213,6 +221,7 @@ local function Field_meta_ctor(elct)
       local localRange = grid:localRange()
 
       -- various communicators for use in shared allocator
+      local nodeComm = grid:commSet().nodeComm
       local shmComm = grid:commSet().sharedComm
 
       -- allocator function
@@ -284,7 +293,7 @@ local function Field_meta_ctor(elct)
         
          numBlocksC:delete()
          numThreadsC:delete()
-         self.d_blockRed, self.d_intermediateRed = deviceAllocatorFunc(self.reduceBlocks), deviceAllocatorFunc(self.reduceBlocks)
+         self.d_blockRed, self.d_intermediateRed = deviceAllocatorFunc(shmComm, self.reduceBlocks), deviceAllocatorFunc(shmComm, self.reduceBlocks)
          -- Create reduction operator on host, and copy to device.
          local redOp           = {}
          for k, v in pairs(reduceInitialVal) do
@@ -376,6 +385,12 @@ local function Field_meta_ctor(elct)
       self._sendLowerPerMPILoc, self._recvLowerPerMPILoc = {}, {}
       self._sendUpperPerMPILoc, self._recvUpperPerMPILoc = {}, {}
 
+      -- create buffers for periodic copy if Mpi.Comm_size(nodeComm) = 1
+      -- note that since nodeComm is only valid on shmComm = 0, need to check whether this is a valid comm
+      if Mpi.Comm_size(shmComm) == 1 and Mpi.Comm_size(nodeComm) == 1 then
+         self._lowerPeriodicBuff, self._upperPeriodicBuff = {}, {}
+      end
+
       -- Following loop creates Datatypes for periodic
       -- directions. This is complicated as one needs to treat lower
       -- -> upper transfers differently than upper -> lower as the
@@ -387,9 +402,15 @@ local function Field_meta_ctor(elct)
 	    for i = 1, #skelIds do
 	       local loId, upId = skelIds[i].lower, skelIds[i].upper
 
-	       -- only create if we are on proper ranks
+	       -- Only create if we are on proper ranks.
+               -- Note that if the node communicator has rank size of 1, then we can access all the 
+               -- memory needed for periodic boundary conditions and we do not need MPI Datatypes.
 	       if myId == loId then
 		  local rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
+                  if Mpi.Comm_size(shmComm) == 1 and Mpi.Comm_size(nodeComm) == 1 then
+                     local szSend = rgnSend:volume()*self._numComponents
+                     self._lowerPeriodicBuff[dir] = allocator(shmComm, szSend)
+                  end
 		  local idx = rgnSend:lowerAsVec()
 		  -- set idx to starting point of region you want to recv
 		  self._sendLowerPerMPILoc[dir] = (indexer(idx)-1)*self._numComponents
@@ -405,6 +426,10 @@ local function Field_meta_ctor(elct)
 	       end
 	       if myId == upId then
 		  local rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
+                  if Mpi.Comm_size(shmComm) == 1 and Mpi.Comm_size(nodeComm) == 1 then
+                     local szSend = rgnSend:volume()*self._numComponents
+                     self._upperPeriodicBuff[dir] = allocator(shmComm, szSend)
+                  end
 		  local idx = rgnSend:lowerAsVec()
 		  -- set idx to starting point of region you want to recv
 		  self._sendUpperPerMPILoc[dir] = (indexer(idx)-1)*self._numComponents
@@ -526,6 +551,24 @@ local function Field_meta_ctor(elct)
 
 	 ffiC.gkylCartFieldAccumulate(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
       end,
+      -- This accumulate method assumes the one side of the accumulation has a fewer number of components than the other side.
+      -- It presumes that the user wants to accumulate all of one side with part of the other side.
+      -- In other words, the field with fewer components will be completely accumulated onto the field with more components.
+      -- The user can specify an offset for where to start the accumulation component-wise onto the field with more components,
+      -- and then that the components being summed are continuous.
+      _accumulateOffsetOneFld = function(self, fact, fld, compStart)
+	 assert(field_check_range(self, fld),
+		"CartField:accumulateOffset: Can only accumulate fields with the same range")
+	 assert(type(fact) == "number",
+		"CartField:accumulateOffset: Factor not a number")
+         assert(self:layout() == fld:layout(),
+		"CartField:accumulateOffset: Fields should have same layout for sums to make sense")
+
+         -- Get number of cells for outer loop.
+         -- We do not need to use an indexer since we are simply accumulating cell-wise a subset of the components.
+         local numCells = self:_localShape()/self:numComponents()
+	 ffiC.gkylCartFieldAccumulateOffset(fld:_localLower(), self:_localLower(), numCells, compStart, fld:numComponents(), self:numComponents(), fact, fld._data, self._data)
+      end,
       _deviceAccumulateOneFld = function(self, fact, fld)
 	 assert(field_compatible(self, fld),
 		"CartField:accumulate/combine: Can only accumulate/combine compatible fields")
@@ -539,6 +582,22 @@ local function Field_meta_ctor(elct)
 	 local numBlocks = math.floor(shape/numThreads)+1
 	 ffiC.gkylCartFieldDeviceAccumulate(numBlocks, numThreads, self:_localLower(), self:_localShape(), fact, fld:deviceDataPointer(), self:deviceDataPointer())
       end,
+      _deviceAccumulateOffsetOneFld = function(self, fact, fld, compStart)
+	 assert(field_check_range(self, fld),
+		"CartField:accumulateOffset: Can only accumulate fields with the same range")
+	 assert(type(fact) == "number",
+		"CartField:accumulateOffset: Factor not a number")
+         assert(self:layout() == fld:layout(),
+		"CartField:accumulateOffset: Fields should have same layout for sums to make sense")
+
+         -- Get number of cells for outer loop.
+         -- We do not need to use an indexer since we are simply accumulating cell-wise a subset of the components.
+         local numCells = self:_localShape()/self:numComponents()
+
+         local numThreads = GKYL_DEFAULT_NUM_THREADS
+         local numBlocks = math.floor(numCells/numThreads)+1
+	 ffiC.gkylCartFieldDeviceAccumulateOffset(numBlocks, numThreads, fld:_localLower(), self:_localLower(), numCells, compStart, fld:numComponents(), self:numComponents(), fact, fld:deviceDataPointer(), self:deviceDataPointer())
+      end,
       accumulate = isNumberType and
 	 function (self, c1, fld1, ...)
 	    local args = {...} -- package up rest of args as table
@@ -550,6 +609,18 @@ local function Field_meta_ctor(elct)
 	 end or
 	 function (self, c1, fld1, ...)
 	    assert(false, "CartField:accumulate: Accumulate only works on numeric fields")
+	 end,
+      accumulateOffset = isNumberType and
+	 function (self, c1, fld1, compStart1, ...)
+	    local args = {...} -- package up rest of args as table
+	    local nFlds = #args/3
+	    self:_accumulateOffsetOneFld(c1, fld1, compStart1) -- accumulate first field
+	    for i = 1, nFlds do -- accumulate rest of the fields
+	       self:_accumulateOffsetOneFld(args[3*i-2], args[3*i-1], args[3*i])
+	    end
+	 end or
+	 function (self, c1, fld1, compStart1, ...)
+	    assert(false, "CartField:accumulateOffset: Accumulate only works on numeric fields")
 	 end,
       deviceAccumulate = isNumberType and
 	 function (self, c1, fld1, ...)
@@ -563,7 +634,21 @@ local function Field_meta_ctor(elct)
 	    end
 	 end or
 	 function (self, c1, fld1, ...)
-	    assert(false, "CartField:accumulate: Accumulate only works on numeric fields")
+	    assert(false, "CartField:deviceAccumulate: Accumulate only works on numeric fields")
+	 end,
+      deviceAccumulateOffset = isNumberType and
+	 function (self, c1, fld1, compStart1, ...)
+            if self._devAllocData then
+	       local args = {...} -- package up rest of args as table
+	       local nFlds = #args/3
+	       self:_deviceAccumulateOffsetOneFld(c1, fld1, compStart1) -- accumulate first field
+	       for i = 1, nFlds do -- accumulate rest of the fields
+	          self:_deviceAccumulateOffsetOneFld(args[3*i-2], args[3*i-1], args[3*i])
+	       end
+            end
+	 end or
+	 function (self, c1, fld1, compStart1, ...)
+	    assert(false, "CartField:deviceAccumulateOffset: Accumulate only works on numeric fields")
 	 end,
       combine = isNumberType and
          function (self, c1, fld1, ...)
@@ -735,6 +820,59 @@ local function Field_meta_ctor(elct)
 	 -- processors will not participate in sync()
 	 Mpi.Barrier(self._grid:commSet().sharedComm)
       end,
+      -- This method is an alternative function for applying periodic boundary
+      -- conditions when Mpi.Comm_size(nodeComm) = 1 and we do not need to call
+      -- Send/Recv to copy the skin cell data into ghost cells.
+      periodicCopy = function (self, syncPeriodicDirs_)
+         local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
+	 -- this barrier is needed as when using MPI-SHM some
+	 -- processors could apply periodic boundary conditions before others
+         -- this is especially troublesome in the RK combine step
+	 Mpi.Barrier(self._grid:commSet().sharedComm)
+	 if self._syncPeriodicDirs and syncPeriodicDirs then
+            self._field_periodic_copy(self)
+	 end
+	 -- This barrier is needed as when using MPI-SHM some
+	 -- processors will not participate in applying periodic
+         -- boundary conditions
+	 Mpi.Barrier(self._grid:commSet().sharedComm)
+      end,
+      devicePeriodicCopy = function (self, syncPeriodicDirs_)
+         local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
+         if self._syncPeriodicDirs and syncPeriodicDirs then
+            local numThreads = GKYL_DEFAULT_NUM_THREADS
+
+            local grid = self._grid
+            local decomposedRange = grid:decomposedRange()
+            for dir = 1, self._ndim do
+               if grid:isDirPeriodic(dir) then
+                  -- First get region for skin cells for upper ghost region (the lower skin cells).
+                  local skinRgnUpper = decomposedRange:subDomain(1):lowerSkin(dir, self._upperGhost)
+                  local ghostRgnUpper = decomposedRange:subDomain(1):upperGhost(dir, self._upperGhost)
+
+                  -- Both skinRgnUpper and ghostRgnUpper have the same shape, so pick one to set shape.
+                  -- and thus the number of blocks and threads
+                  local shape = skinRgnUpper:shape(self._shmIndex)
+                  local numBlocks = math.floor(shape/numThreads)+1
+
+                  -- Copy lower skin cells into upper ghost cells.
+                  ffiC.gkylDevicePeriodicCopy(numBlocks, numThreads, skinRgnUpper, ghostRgnUpper, self._onDevice, self._numComponents)
+
+	          -- Now do the same, but for the skin cells for the lower ghost region (the upper skin cells).
+                  local skinRgnLower = decomposedRange:subDomain(1):upperSkin(dir, self._lowerGhost)
+                  local ghostRgnLower = decomposedRange:subDomain(1):lowerGhost(dir, self._lowerGhost)
+
+                  -- skinRgnLower and ghostRgnLower have the same shape, and potentially a different shape than skin/ghostRgnUpper.
+                  -- Pick one to set shape and thus the number of blocks and threads.
+                  shape = skinRgnLower:shape(self._shmIndex)
+                  numBlocks = math.floor(shape/numThreads)+1
+
+                  -- Copy lower skin cells into upper ghost cells.
+                  ffiC.gkylDevicePeriodicCopy(numBlocks, numThreads, skinRgnLower, ghostRgnLower, self._onDevice, self._numComponents)
+               end
+            end
+         end
+      end,
       setBasisId = function(self, basisId)
          self._basisId = basisId
       end,
@@ -746,6 +884,9 @@ local function Field_meta_ctor(elct)
       end,
       compatible = function(self, fld)
          return field_compatible(self, fld)
+      end,
+      checkRange = function(self, fld)
+         return field_check_range(self, fld)
       end,
       reduce = isNumberType and
 	 function(self, opIn)
@@ -941,7 +1082,30 @@ local function Field_meta_ctor(elct)
 	       end
 	    end
 	 end
-      end,      
+      end,
+      _field_periodic_copy = function (self)
+         local grid = self._grid
+         local decomposedRange = grid:decomposedRange()
+         for dir = 1, self._ndim do
+            if grid:isDirPeriodic(dir) then
+               -- First get region for skin cells for upper ghost region (the lower skin cells).
+               local skinRgnUpper = decomposedRange:subDomain(1):lowerSkin(dir, self._upperGhost)
+               local periodicBuffUpper = self._upperPeriodicBuff[dir]
+               -- Copy skin cells into temporary buffer.
+               self:_copy_from_field_region(skinRgnUpper, periodicBuffUpper)
+               -- Get region for looping over upper ghost cells and copy lower skin cells into upper ghost cells.
+               local ghostRgnUpper = decomposedRange:subDomain(1):upperGhost(dir, self._upperGhost)
+               self:_copy_to_field_region(ghostRgnUpper, periodicBuffUpper)
+
+	       -- Now do the same, but for the skin cells for the lower ghost region (the upper skin cells).
+               local skinRgnLower = decomposedRange:subDomain(1):upperSkin(dir, self._lowerGhost)
+               local periodicBuffLower = self._lowerPeriodicBuff[dir]
+               self:_copy_from_field_region(skinRgnLower, periodicBuffLower)
+               local ghostRgnLower = decomposedRange:subDomain(1):lowerGhost(dir, self._lowerGhost)
+               self:_copy_to_field_region(ghostRgnLower, periodicBuffLower)
+            end
+         end
+      end,
    }
    
    return Field

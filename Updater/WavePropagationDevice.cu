@@ -1,30 +1,20 @@
 #include <cstdio>
 #include <GkylWavePropagation.h>
-#include <GkylEuler.h>
 
-__device__ static void calcDelta(
-  const double *ql, const double *qr, double *delta, const int meqn)
-{
-  for (int i = 0; i < meqn; i++) {
-    delta[i] = qr[i] - ql[i];
-  }
-}
-
-__device__ static void calcFirstOrderGud(
+__device__ inline  static void calcFirstOrderGud(
   const double dtdx, double *ql, double *qr, const double *amdq,
   const double *apdq, const int meqn)
 {
-  for (int i = 0; i< meqn; i++) {
+  for (int i = 0; i < meqn; i++) {
     /* qr[i] -= dtdx * apdq[i]; */
     /* ql[i] -= dtdx * amdq[i]; */
-    // XXX calling __threadfence_system() between two calcFirstOrderGud dummy
-    // calls fails occasionally with small numThreads
+    // XXX
     atomicAdd(qr+i, -dtdx * apdq[i]);
     atomicAdd(ql+i, -dtdx * amdq[i]);
   }
 }
 
-__device__ static double calcCfla(
+__device__ static inline double calcCfla(
   const double cfla, const double dtdx, const double *speeds, const int mwave)
 {
   double c = cfla;
@@ -34,7 +24,7 @@ __device__ static double calcCfla(
   return c;
 }
 
-__device__ static double waveDotProd(
+__device__ static inline double waveDotProd(
     const double *waves, const double *waves1, const int mw, const int meqn) {
   double result = 0.;
   for (int i = 0; i < meqn; i++) {
@@ -66,7 +56,7 @@ __device__ static void limitWaves(
   }
 }
 
-__device__ static void secondOrderFluxOneWave(
+__device__ static inline void secondOrderFluxOneWave(
   const double dtdx, const double speed, const double *wave, double *fs,
   const int meqn) {
   double sfact = 0.5 * abs(speed) * (1 - abs(speed) * dtdx);
@@ -83,15 +73,16 @@ __device__ static void secondOrderFlux(
     }
 }
 
-__device__ static void secondOrderUpdate(
+__device__ static inline void secondOrderUpdate(
     const double dtdx, const double *fs, const double *fs1, double *q,
     const int meqn) {
   for (int i = 0; i < meqn; i++) {
-    q[i] -= dtdx * (fs1[i] - fs[i]);
+    // q[i] -= dtdx * (fs1[i] - fs[i]);
+    atomicAdd(q+i, -dtdx * (fs1[i] - fs[i]));
   }
 }
 
-__device__ static void copyComponents(
+__device__ static inline void copyComponents(
     const double *ptrFrom, double *ptrTo, const int nComponents) {
   for (int i = 0; i < nComponents; i++) {
     ptrTo[i] = ptrFrom[i];
@@ -101,63 +92,51 @@ __device__ static void copyComponents(
 __global__ void cuda_WavePropagation(
   GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut)
 {
-
   GkylRange_t *localRange = qIn->localRange;
-  int ndim = localRange->ndim;
-
-  // set up indexers for localRange and qIn (localExtRange)
-  Gkyl::GenIndexer localIdxr(localRange);
   Gkyl::GenIndexer fIdxr = qIn->genIndexer();
-
-  // get setup data from GkylWavePropagation_t structure
   GkylRectCart_t *grid = qIn->grid;
-  int *updateDirs = hyper->updateDirs;
-  int numUpdateDirs = hyper->numUpdateDirs;
-  Gkyl::Euler *eq = hyper->equation;
+
+  const int ndim = localRange->ndim;
+  Gkyl::GenIndexer localIdxr(localRange);
+
+  const int *updateDirs = hyper->updateDirs;
+  const int numUpdateDirs = hyper->numUpdateDirs;
+  GkylEquationFv_t *eq = hyper->equation;
   GkylCartField_t *dtByCell = hyper->dtByCell;
 
-  const int meqn = eq->numEquations();
-  const int mwave = eq->numWaves();
+  const int meqn = eq->numEquations;
+  const int mwave = eq->numWaves;
 
-  // XXX use meqn and mwave
-  double delta[5];
-  double amdq[5];
-  double apdq[5];
-
-  // declaring this dummy array shared seems to alleviate register pressure and
-  // improve performance a bit
-  extern __shared__ double dummy[];
   int linearIdx = threadIdx.x + blockIdx.x*blockDim.x;
 
   // assign buffer space for different usages
+  extern __shared__ double dummy[];
   int base = 0;
 
   // numThreads == numRealCells
-  // waveSlice and speedSlice are defined on ghost-ghost, ghost-real, and
-  // real-real faces, thus the +3
-  const int baseWaveSlice = base;
+  // waves and speeds are defined on ghost-ghost, ghost-real, and
+  // real-real faces, thus the jump is blockDim.x+3;
+  // also, the 0th thread will work on one more Rp on its left, thus the address
+  // for its own waves/speeds is threadIdx.x+1 (not threadIdx.x)
+  double *waves = dummy + base + (meqn * mwave) * (threadIdx.x+1);
   base += (meqn * mwave) * (blockDim.x + 3);
-  double *waveSlice = dummy + baseWaveSlice;
 
-  const int baseSpeedSlice = base;
+  double *speeds = dummy + base + (mwave) * (threadIdx.x+1);
   base += (mwave) * (blockDim.x + 3);
-  double *speedSlice = dummy + baseSpeedSlice;
 
-  // limitedWaves and second-order fluxSlice are defiend on ghost-real and
-  // real-real faces, thus the +1
-  const int baseLimitedWaveSlice = base;
+  // limitedWaves and second-order fluxs are defiend on ghost-real and
+  // real-real faces, thus the jump is blockDim.x+1
+  double *limitedWaves = dummy + base + (meqn * mwave) * (threadIdx.x);
   base += (meqn * mwave) * (blockDim.x + 1);
-  double *limitedWaveSlice = dummy + baseLimitedWaveSlice;
 
-  const int baseFluxSlice = base;
+  double *flux = dummy + base + (meqn) * (threadIdx.x);
   base += (meqn) * (blockDim.x + 1);
-  double *fluxSlice = dummy + baseFluxSlice;
 
-  // find buffer addresses for each thread
-  double *waves = waveSlice + (meqn * mwave) * (threadIdx.x+1);
-  double *speeds = speedSlice + (mwave) * (threadIdx.x+1);
-  double *limitedWaves = limitedWaveSlice + (meqn * mwave) * (threadIdx.x);
-  double *flux = fluxSlice + (meqn) * (threadIdx.x);
+  double *amdq = dummy + base + (meqn) * (threadIdx.x);
+  base += (meqn) * (blockDim.x);
+
+  double *apdq = dummy + base + (meqn) * (threadIdx.x);
+  base += (meqn) * (blockDim.x);
 
   int idxC[3];
   int idxL[3];
@@ -180,9 +159,7 @@ __global__ void cuda_WavePropagation(
   // ghost cells are not copied, but this is OK because the waves and speeds are
   // computed using qIn anyway
   if(linearIdx < localRange->volume()) {
-    for(int i = 0; i < meqn; i++) {
-            qOutC[i] = qInC[i];
-    }
+    copyComponents(qInC, qOutC, meqn);
   }
 
   for(int i=0; i<numUpdateDirs; i++) {
@@ -193,10 +170,13 @@ __global__ void cuda_WavePropagation(
       idxL[d] = idxC[d];
       idxR[d] = idxC[d];
     }
-    // XXX firstOrder stuff is over extended edges, but idxC was calculated
-    // from localIdxr.invIndex
     idxL[dir] = idxC[dir] - 1;
-    idxR[dir] = idxC[dir] - 0;
+    idxR[dir] = idxC[dir];
+
+    bool isLoDevice = idxC[dir] == 1;
+    bool isHiDevice = idxC[dir] == localRange->shape(dir);
+    bool isLoBlock = threadIdx.x==0;
+    bool isHiBlock = threadIdx.x==blockDim.x-1;
 
     const int linearIdxL = fIdxr.index(idxL);
     const int linearIdxR = fIdxr.index(idxR);
@@ -207,24 +187,15 @@ __global__ void cuda_WavePropagation(
     double *qOutR = qOut->getDataPtrAt(linearIdxR);
 
     if(linearIdx < localRange->volume()) {
-      calcDelta(qInL, qInR, delta, meqn);
-
-      eq->rp(dir, delta, qInL, qInR, waves, speeds);
+      eq->rp(dir, qInL, qInR, waves, speeds);
       eq->qFluctuations(dir, qInL, qInR, waves, speeds, amdq, apdq);
-
       calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq, meqn);
-      // XXX following fails with small numThreads
-      /* calcFirstOrderGud(dtdx, qOutL, dummy, amdq, apdq, meqn); */
-      /* __threadfence_system(); */
-      /* calcFirstOrderGud(dtdx, dummy, qOutR, amdq, apdq, meqn); */
-
       cfla = calcCfla(cfla, dtdx, speeds, mwave);
-
       copyComponents(waves, limitedWaves, meqn * mwave);
 
       // can we avoid branching?
       // solve one additional Riemann problem on the lower side
-      if (threadIdx.x==0) {
+      if (isLoBlock || isLoDevice) {
         int inc = -1;
         idxL[dir] += inc;
         idxR[dir] += inc;
@@ -232,16 +203,17 @@ __global__ void cuda_WavePropagation(
         const int linearIdxR = fIdxr.index(idxR);
         const double *qInL = qIn->getDataPtrAt(linearIdxL);
         const double *qInR = qIn->getDataPtrAt(linearIdxR);
-        calcDelta(qInL, qInR, delta, meqn);
-        eq->rp(dir, delta, qInL, qInR, waves+inc*meqn*mwave, speeds+inc*mwave);
+
+        eq->rp(dir, qInL, qInR, waves+inc*meqn*mwave, speeds+inc*mwave);
         cfla = calcCfla(cfla, dtdx, speeds+inc*mwave, mwave);
+
         idxL[dir] -= inc;
         idxR[dir] -= inc;
       }
 
       // solve two additional Riemann problems on the higher side and update the
       // last real cell
-      if (threadIdx.x==blockDim.x-1 || linearIdx==localRange->volume()-1) {
+      if (isHiBlock || isHiDevice) {
         for (int inc = 1; inc < 3; inc++) {
           idxL[dir] += inc;
           idxR[dir] += inc;
@@ -249,19 +221,24 @@ __global__ void cuda_WavePropagation(
           const int linearIdxR = fIdxr.index(idxR);
           const double *qInL = qIn->getDataPtrAt(linearIdxL);
           const double *qInR = qIn->getDataPtrAt(linearIdxR);
-          calcDelta(qInL, qInR, delta, meqn);
-          eq->rp(dir, delta, qInL, qInR, waves+inc*meqn*mwave, speeds+inc*mwave);
-          cfla = calcCfla(cfla, dtdx, speeds+inc*mwave, mwave);
-          copyComponents(waves+inc*meqn*mwave, limitedWaves+inc*meqn*mwave, meqn * mwave);
 
-          if (linearIdx==localRange->volume()-1 && inc==1) {
-            double *qOutL = qOut->getDataPtrAt(linearIdxL);
-            double *qOutR = qOut->getDataPtrAt(linearIdxR);
-            eq->qFluctuations(
-                dir, qInL, qInR, waves+inc*meqn*mwave, speeds+inc*mwave, amdq,
-                apdq);
-            calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq, meqn);
+          eq->rp(dir, qInL, qInR, waves+inc*meqn*mwave, speeds+inc*mwave);
+          cfla = calcCfla(cfla, dtdx, speeds+inc*mwave, mwave);
+
+          if (inc==1) {
+            copyComponents(
+                waves+inc*meqn*mwave, limitedWaves+inc*meqn*mwave, meqn*mwave);
+
+            if (isHiDevice) {
+              double *qOutL = qOut->getDataPtrAt(linearIdxL);
+              double *qOutR = qOut->getDataPtrAt(linearIdxR);
+              eq->qFluctuations(
+                  dir, qInL, qInR, waves+inc*meqn*mwave, speeds+inc*mwave, amdq,
+                  apdq);
+              calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq, meqn);
+            }
           }
+
           idxL[dir] -= inc;
           idxR[dir] -= inc;
         }
@@ -272,7 +249,7 @@ __global__ void cuda_WavePropagation(
     if(linearIdx < localRange->volume()) {
       limitWaves(waves, speeds, limitedWaves, mwave, meqn);
 
-      if (threadIdx.x==blockDim.x-1 || linearIdx==localRange->volume()-1) {
+      if (isHiBlock || isHiDevice) {
         limitWaves(
             waves+meqn*mwave, speeds+mwave, limitedWaves+meqn*mwave, mwave,
             meqn);
@@ -286,7 +263,7 @@ __global__ void cuda_WavePropagation(
       }
       secondOrderFlux(dtdx, speeds, limitedWaves, flux, meqn, mwave);
 
-      if (threadIdx.x==blockDim.x-1 || linearIdx==localRange->volume()-1) {
+      if (isHiBlock || isHiDevice) {
         for (int c = 0; c < meqn; c++) {
           (flux+meqn)[c] = 0;
         }
@@ -296,6 +273,7 @@ __global__ void cuda_WavePropagation(
       }
     }
 
+    __syncthreads();
     if(linearIdx < localRange->volume()) {
       secondOrderUpdate(dtdx, flux, flux+meqn, qOutC, meqn);
     }
@@ -305,20 +283,18 @@ __global__ void cuda_WavePropagation(
 }
 
 void wavePropagationAdvanceOnDevice(
-  int numBlocks, int numThreads, GkylWavePropagation_t *hyper,
-  GkylCartField_t *qIn, GkylCartField_t *qOut)
+  const int meqn, const int mwave, const int numBlocks, const int numThreads,
+  GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut)
 {
-  Gkyl::Euler *eq = hyper->equation;
-  // XXX
-  const int meqn = 5; // eq->numEquations();
-  const int mwave = 1; // eq->numWaves();
   int sharedMemSize = 0;
   // numThreads == numRealCellsPerBlock
-  // speeds & waves are needed on all real-real, real-ghost, and ghost-ghost
+  // waves & speeds are needed on all real-real, real-ghost, and ghost-ghost
   // cell faces
-  sharedMemSize += (numThreads+3) * (mwave+mwave*meqn);
+  sharedMemSize += (numThreads+3) * (mwave*meqn+mwave);
   // limitedWaves and 2nd-order flux are needed on real-real & real-ghost faces
-  sharedMemSize += (numThreads+1) * (meqn+meqn);
+  sharedMemSize += (numThreads+1) * (mwave*meqn+meqn);
+  // amdq & apdq
+  sharedMemSize += (numThreads) * (meqn+meqn);
   sharedMemSize *= sizeof(double);
 
   cudaFuncSetAttribute(

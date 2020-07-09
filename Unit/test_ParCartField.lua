@@ -570,6 +570,55 @@ function test_11(comm)
    Mpi.Barrier(comm)
 end
 
+function test_12(comm)
+   if not GKYL_HAVE_CUDA then return end
+
+   local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
+   if nz ~= 16 then
+      log("Not running test_12 as numProcs not exactly 16")
+      return
+   end
+
+   local decomp = DecompRegionCalc.CartProd { cuts = {2, 2, 2, 2} }
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0, 0.0, 0.0},
+      upper = {1.0, 1.0, 1.0, 1.0},
+      cells = {64, 64, 64, 64},
+      decomposition = decomp,
+   }
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+      ghost = {1, 1},
+      syncCorners = true,
+      createDeviceCopy = true,
+   }
+
+   local localRange = field:localRange()
+   local indexer = field:genIndexer()
+   for idx in localRange:colMajorIter() do
+      local fitr = field:get(indexer(idx))
+      fitr[1] = idx[1]+2*idx[2]+1
+   end
+
+   -- copy stuff to device
+   local err = field:copyHostToDevice()
+   assert_equal(0, err, "Checking if copy to device worked")
+
+   -- synchronize ghost cells on device
+   field:deviceSync() -- sync field
+
+   -- copy data back for checking.
+   field:copyDeviceToHost()
+
+   local localExtRange = field:localExtRange():intersect(field:globalRange())
+   for idx in localExtRange:colMajorIter() do
+      local fitr = field:get(indexer(idx))
+      assert_equal(idx[1]+2*idx[2]+1, fitr[1], string.format("Checking field value at (%d, %d)", idx[1], idx[2]))
+   end
+   Mpi.Barrier(comm)
+end
+
 comm = Mpi.COMM_WORLD
 test_1(comm)
 test_2(comm)
@@ -582,6 +631,7 @@ test_8(comm)
 test_9(comm)
 test_10(comm)
 test_11(comm)
+test_12(comm)
 
 totalFail = allReduceOneInt(stats.fail)
 totalPass = allReduceOneInt(stats.pass)

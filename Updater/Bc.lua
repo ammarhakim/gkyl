@@ -97,6 +97,7 @@ function Bc:init(tbl)
       local cutsX = self._grid:cuts(1) or 1
       local cutsY = self._grid:cuts(2) or 1
       local cutsZ = self._grid:cuts(3) or 1
+      local writeRank = -1
       if self._dir == 1 then 
          dirRank = nodeRank % (cutsX*cutsY) % cutsX
       elseif self._dir == 2 then 
@@ -105,9 +106,17 @@ function Bc:init(tbl)
          dirRank = math.floor(nodeRank/cutsX/cutsY)
       end
       self._splitComm = Mpi.Comm_split(worldComm, dirRank, nodeRank)
+      -- set up which ranks to write from 
+      if self._edge == "lower" and dirRank == 0 then 
+         writeRank = nodeRank
+      elseif self._edge == "upper" and dirRank == self._grid:cuts(self._dir)-1 then
+         writeRank = nodeRank
+      end
+      self.writeRank = writeRank
       
       local reducedDecomp = CartDecomp.CartProd {
          comm = self._splitComm,
+         writeRank = writeRank,
          cuts = reducedCuts,
          useShared = self._grid:isShared(),
       }
@@ -370,6 +379,7 @@ function Bc:initBcDiagnostics(cdim)
       end
       local reducedDecomp = CartDecomp.CartProd {
          comm = self._splitComm,
+         writeRank = self.writeRank,
          cuts = reducedCuts,
          useShared = self._grid:isShared(),
       }

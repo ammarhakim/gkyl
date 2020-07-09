@@ -91,6 +91,9 @@ function CrossPrimMoments:init(tbl)
    self._binOpData    = ffiC.new_binOpData_t(self._numBasisC*2*(uDim+1), 0)
    self._binOpDataDiv = ffiC.new_binOpData_t(self._numBasisC, 0)
 
+   -- Select C kernel to be used.
+   self._crossPrimMomentsCalc = PrimMomentsDecl.selectCrossPrimMomentsCalc(self._operator, self._basisID, self._cDim, self._vDim, self._polyOrder)
+
    -- To obtain the cell average, multiply the zeroth coefficient by this factor.
    self._cellAvFac = 1.0/math.sqrt(2.0^self._cDim)
 
@@ -101,7 +104,6 @@ end
 function CrossPrimMoments:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
 
-   local crossPrimMomentsCalc = PrimMomentsDecl.selectCrossPrimMomentsCalc(self._operator, self._basisID, self._cDim, self._vDim, self._polyOrder)
 
    local mSelf, nuSelfIn, m0Self, uSelf, vtSqSelf
    local mOther, nuOtherIn, m0Other, uOther, vtSqOther
@@ -227,7 +229,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
                   nuOther = nuOtherIn
                end
          
-               crossPrimMomentsCalc(self._binOpData, self._binOpDataDiv, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), m1SelfItr:data(), m2SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), m1CorrectionSelfItr:data(), m2CorrectionSelfItr:data(), mOther, nuOther, m0OtherItr:data(), m1OtherItr:data(), m2OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), m1CorrectionOtherItr:data(), m2CorrectionOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
+               self._crossPrimMomentsCalc(self._binOpData, self._binOpDataDiv, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), m1SelfItr:data(), m2SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), m1CorrectionSelfItr:data(), m2CorrectionSelfItr:data(), mOther, nuOther, m0OtherItr:data(), m1OtherItr:data(), m2OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), m1CorrectionOtherItr:data(), m2CorrectionOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
             end
 
          else    -- Piecewise linear polynomial basis below.
@@ -273,7 +275,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
                   nuOther = nuOtherIn
                end
          
-               crossPrimMomentsCalc(self._binOpData, self._binOpDataDiv, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), m1SelfItr:data(), m2SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), m1CorrectionSelfItr:data(), m2CorrectionSelfItr:data(), m0StarSelfItr:data(), m1StarSelfItr:data(), m2StarSelfItr:data(), mOther, nuOther, m0OtherItr:data(), m1OtherItr:data(), m2OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), m1CorrectionOtherItr:data(), m2CorrectionOtherItr:data(), m0StarOtherItr:data(), m1StarOtherItr:data(), m2StarOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
+               self._crossPrimMomentsCalc(self._binOpData, self._binOpDataDiv, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), m1SelfItr:data(), m2SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), m1CorrectionSelfItr:data(), m2CorrectionSelfItr:data(), m0StarSelfItr:data(), m1StarSelfItr:data(), m2StarSelfItr:data(), mOther, nuOther, m0OtherItr:data(), m1OtherItr:data(), m2OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), m1CorrectionOtherItr:data(), m2CorrectionOtherItr:data(), m0StarOtherItr:data(), m1StarOtherItr:data(), m2StarOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
             end
 
          end    -- end if polyOrder>1.
@@ -306,7 +308,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
                nuOther = nuOtherIn
             end
          
-            crossPrimMomentsCalc(self._binOpDataDiv, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), mOther, nuOther, m0OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
+            self._crossPrimMomentsCalc(self._binOpDataDiv, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), mOther, nuOther, m0OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
          end
 
       end    -- end if self._isLBO.

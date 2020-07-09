@@ -35,20 +35,20 @@ if GKYL_HAVE_CUDA then
 end
 
 ffi.cdef [[ 
-  typedef struct GkylEuler GkylEuler ;
+  typedef struct GkylEquationFv_t GkylEquationFv_t;
   typedef struct {
       int updateDirs[6];
-      int32_t numUpdateDirs;
+      int numUpdateDirs;
       double dt;
       double _cfl;
       double _cflm;
-      GkylEuler *equation;
+      GkylEquationFv_t *equation;
       GkylCartField_t *dtByCell;
   } GkylWavePropagation_t;
     
   void wavePropagationAdvanceOnDevice(
-      int numBlocks, int numThreads, GkylWavePropagation_t *hyper,
-      GkylCartField_t *qIn, GkylCartField_t *qOut);
+    const int meqn, const int mwave, const int numBlocks, const int numThreads,
+    GkylWavePropagation_t *hyper, GkylCartField_t *qIn, GkylCartField_t *qOut);
 
   void setDt(GkylWavePropagation_t *hyper, double dt);
 ]]
@@ -241,15 +241,9 @@ function WavePropagation:init(tbl)
    self._rescaleWave = loadstring( rescaleWaveTempl {MEQN = meqn} )()
    self._secondOrderFlux = loadstring( secondOrderFluxTempl {MEQN = meqn} )()
    self._secondOrderUpdate = loadstring( secondOrderUpdateTempl {MEQN = meqn} )()
-
-   if GKYL_HAVE_CUDA then
-      self:initDevice()
-      self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
-      self._useSharedDevice = xsys.pickBool(tbl.useSharedDevice, false)
-   end
 end
 
-function WavePropagation:initDevice()
+function WavePropagation:initDevice(tbl)
    self.dtByCell = DataStruct.Field {
       onGrid = self._onGrid,
       numComponents = 1,
@@ -268,6 +262,9 @@ function WavePropagation:initDevice()
    local sz = sizeof("GkylWavePropagation_t")
    self._onDevice, err = cuda.Malloc(sz)
    cuda.Memcpy(self._onDevice, hyper, sz, cuda.MemcpyHostToDevice)
+
+   self.numThreads = tbl.numThreads or GKYL_DEFAULT_NUM_THREADS
+   self._useSharedDevice = xsys.pickBool(tbl.useSharedDevice, false)
 end
 
 -- Limit waves: this code closely follows the example of CLAWPACK and
@@ -450,6 +447,7 @@ function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)
    local numEdgesLocal = qOut:localEdgeRange():volume()
    local numThreads = math.min(self.numThreads, numCellsLocal)
    local numBlocks  = math.ceil(numCellsLocal/numThreads)
+   local meqn, mwave = self._equation:numEquations(), self._equation:numWaves()
 
    if self._useSharedDevice then
       -- TODO implement
@@ -458,7 +456,8 @@ function WavePropagation:_advanceOnDevice(tCurr, inFld, outFld)
       --    qIn._onDevice, qOut._onDevice)
    else
       ffi.C.wavePropagationAdvanceOnDevice(
-         numBlocks, numThreads, self._onDevice, qIn._onDevice, qOut._onDevice)
+         meqn, mwave, numBlocks, numThreads, self._onDevice, qIn._onDevice,
+         qOut._onDevice)
    end
 
    -- self.dtByCell:deviceReduce('min', self.dtPtr)
