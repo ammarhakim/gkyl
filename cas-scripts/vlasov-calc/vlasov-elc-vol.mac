@@ -17,29 +17,47 @@ slcn(lst, n) := makelist(lst[i], i, 1, n)$
 cidx(cdim) := makelist(i,i,0,cdim-1)$
 vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 
-calcVlasovVolUpdater(fh, funcNm, cdim, vdim, basisFun) := block([],
-kill(varsC, varsP, basisC, basisP),
-modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
-load(modNm),
-printf(fh, "#include <VlasovModDecl.h> ~%"),
-for i : 1 thru 4 do (
-  bP : basisP[i],
-  bC : basisC[i],
+calcVlasovForceVolUpdater(fh, funcNm, cdim, vdim, basisFun, p) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+  printf(fh, "#include <VlasovModDecl.h> ~%"),
+
+  bP : basisP[p],
+  bC : basisC[p],
   numC : length(bC),
-  printf(fh, "void ~aP~a(const double *w, const double *dxv, const double *E, const double *f, double *out) ~%{ ~%", funcNm, i),
-  printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. E/f: Input electric-field/distribution function. out: Incremented output ~%"),
+  printf(fh, "__host__ __device__ double ~aP~a(const double *w, const double *dxv, const double *E, const double *f, double *out) ~%{ ~%", funcNm, p),
+  printf(fh, "  // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. E/f: Input force/distribution function. out: Incremented output ~%"),
   cid : cidx(cdim),
   vid : vidx(cdim,vdim),
   for dir : 1 thru cdim do (
     printf(fh, "  double dv1~a = 2/dxv[~a]; ~%", dir-1, vid[dir]),
     printf(fh, "  const double *E~a = &E[~a]; ~%", dir-1, numC*(dir-1))
   ),
+
   fl : doExpand1(f, bP),
   t : (t : 0, for dir : 1 thru cdim do (
      El : doExpand1(Efld[dir], bC),
      t : t + dv1[dir]*calcInnerProdList(varsP, El, diff(bP,varsV[dir]), fl)
      ),
   t),
-  writeCIncrExprs(t),
+  if cdim = 1 then (
+    clst : [dv10],
+    writeCIncrExprsCollect1(out,t,clst),
+    printf(fh, "~%"),
+    printf(fh, "  return std::abs(E0[0])*dv10*0.5; ~%")
+  ),
+  if cdim = 2 then (
+    clst : [dv10, dv11],
+    writeCIncrExprsCollect1(out,t,clst),
+    printf(fh, "~%"),
+    printf(fh, "  return (std::abs(E0[0])*dv10+std::abs(E1[0])*dv11)*0.5; ~%")
+  ),
+  if cdim = 3 then (
+    clst : [dv10, dv11, dv12],
+    writeCIncrExprsCollect1(out,t,clst),
+    printf(fh, "~%"),
+    printf(fh, "  return (std::abs(E0[0])*dv10+std::abs(E1[0])*dv11+std::abs(E2[0])*dv12)*0.5; ~%")
+  ),
   printf(fh, "} ~%")
-));
+);
