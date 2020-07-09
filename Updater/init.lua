@@ -26,7 +26,6 @@ local GkMaxwellianOnBasis = require "Updater.GkMaxwellianOnBasis"
 local HyperDisCont = require "Updater.HyperDisCont"
 local HyperDisContCellBased = require "Updater.HyperDisContCellBased"
 local Ionization = require "Updater.Ionization"
-local IonizationTempCalc = require "Updater.IonizationTempCalc"
 local IntegratedDGMoment = require "Updater.IntegratedDGMoment"
 local LagrangeFix = require "Updater.LagrangeFix"
 local MGpoisson = require "Updater.MGpoisson"
@@ -42,7 +41,6 @@ local SpitzerCollisionality = require "Updater.SpitzerCollisionality"
 local StairSteppedBc = require "Updater.StairSteppedBc"
 local TenMomentRelax = require "Updater.TenMomentRelax"
 local TenMomentSrc = require "Updater.TenMomentSrc"
-local VoronovReactRateCoef = require "Updater.VoronovReactRateCoef"
 local VrelProductCX = require "Updater.VrelProductCX"
 local WavePropagation = require "Updater.WavePropagation"
 
@@ -67,7 +65,6 @@ return {
    HyperDisCont = HyperDisCont,
    HyperDisContCellBased = HyperDisContCellBased,
    Ionization = Ionization,
-   IonizationTempCalc = IonizationTempCalc,
    IntegratedDGMoment = IntegratedDGMoment,
    LagrangeFix = LagrangeFix,
    MGpoisson = MGpoisson,
@@ -83,7 +80,6 @@ return {
    StairSteppedBc = StairSteppedBc,
    TenMomentRelax = TenMomentRelax,
    TenMomentSrc = TenMomentSrc,
-   VoronovReactRateCoef = VoronovReactRateCoef,
    VrelProductCX = VrelProductCX,
    WavePropagation = WavePropagation,
 }
