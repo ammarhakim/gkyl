@@ -104,11 +104,12 @@ end
 
 function GkIonization:createSolver(funcField)
    if (self.speciesName == self.elcNm) then
-      self.calcVoronovReactRate = Updater.VoronovReactRateCoef {
+      self.calcVoronovReactRate = Updater.Ionization {
 	 onGrid     = self.confGrid,
 	 confBasis  = self.confBasis,
 	 elcMass    = self.mass,
 	 elemCharge = self.charge,
+	 reactRate  = true,
       
 	 -- Voronov parameters
 	 A = self._A,
@@ -117,11 +118,12 @@ function GkIonization:createSolver(funcField)
 	 P = self._P,
 	 X = self._X,
       }
-      self.calcIonizationTemp = Updater.IonizationTempCalc {
+      self.calcIonizationTemp = Updater.Ionization {
       	 onGrid     = self.confGrid,
       	 confBasis  = self.confBasis,
       	 elcMass    = self.mass,
       	 elemCharge = self.charge,
+	 reactRate  = false, 
       	 E          = self._E,
       }
       self.sumDistF    = DataStruct.Field {

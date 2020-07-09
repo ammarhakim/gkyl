@@ -25,6 +25,7 @@ local FiveMomentSrc = require "Updater.FiveMomentSrc"
 local GkMaxwellianOnBasis = require "Updater.GkMaxwellianOnBasis"
 local HyperDisCont = require "Updater.HyperDisCont"
 local HyperDisContCellBased = require "Updater.HyperDisContCellBased"
+local Ionization = require "Updater.Ionization"
 local IonizationTempCalc = require "Updater.IonizationTempCalc"
 local IntegratedDGMoment = require "Updater.IntegratedDGMoment"
 local LagrangeFix = require "Updater.LagrangeFix"
@@ -65,6 +66,7 @@ return {
    GkMaxwellianOnBasis = GkMaxwellianOnBasis,
    HyperDisCont = HyperDisCont,
    HyperDisContCellBased = HyperDisContCellBased,
+   Ionization = Ionization,
    IonizationTempCalc = IonizationTempCalc,
    IntegratedDGMoment = IntegratedDGMoment,
    LagrangeFix = LagrangeFix,
