@@ -460,13 +460,17 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    			self.neutNmCX         = species[sN].collisions[collNm].neutNm
    			self.calcCXSrc        = true			
    			self.needSelfPrimMom  = true
-   			self.sigmaCX          = self:allocMoment()
+   			self.vSigmaCX         = self:allocMoment()
    			-- Define fields needed to calculate source term
-   			self.vrelProdCX   = DataStruct.Field {
+   			self.M0distF   = DataStruct.Field {
    			   onGrid        = self.grid,
    			   numComponents = self.basis:numBasis(),
    			   ghost         = {1, 1},
-   			}
+   			   metaData = {
+   			      polyOrder = self.basis:polyOrder(),
+   			      basisType = self.basis:id()
+   			   },
+			}
    			self.diffDistF   =  DataStruct.Field {
    			   onGrid        = self.grid,
    			   numComponents = self.basis:numBasis(),
@@ -476,6 +480,10 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    			   onGrid        = self.grid,
    			   numComponents = self.basis:numBasis(),
    			   ghost         = {1, 1},
+			   metaData = {
+   			      polyOrder = self.basis:polyOrder(),
+   			      basisType = self.basis:id()
+   			   },
    			}
    			counterCX_ion = false
    		     elseif self.name==species[sN].collisions[collNm].neutNm and counterCX_neut then
@@ -1240,7 +1248,6 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    -- for ionization
    if self.calcReactRate then
       local neutU = species[self.neutNmIz]:selfPrimitiveMoments()[1]
-      local fElc = species[self.name]:getDistF()
       
       species[self.name].collisions[self.collNmIoniz].calcVoronovReactRate:advance(tCurr, {self.vtSqSelf}, {self.voronovReactRate})
       species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})

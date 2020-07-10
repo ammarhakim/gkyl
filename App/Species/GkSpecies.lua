@@ -51,7 +51,6 @@ function GkSpecies:alloc(nRkDup)
       self.ptclEnergyPos      = self:allocMoment()
    end
    self.polarizationWeight = self:allocMoment() -- not used when using linearized poisson solve
-   self.voronovReactRate = self:allocMoment()
 			
    if self.gyavg then
       self.rho1 = self:allocDistf()
@@ -574,6 +573,7 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    			self.needSelfPrimMom  = true
    			self.calcReactRate    = true
    			self.collNmIoniz      = collNm
+			self.voronovReactRate = self:allocMoment()
    			self.vtSqIz           = self:allocMoment()
    			self.m0fMax           = self:allocMoment()
    			self.m0mod            = self:allocMoment()
@@ -617,16 +617,28 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    			   onGrid        = self.grid,
    			   numComponents = self.basis:numBasis(),
    			   ghost         = {1, 1},
-   			}
+   			   metaData = {
+   			      polyOrder = self.basis:polyOrder(),
+   			      basisType = self.basis:id()
+   			   },
+			}
    			self.diffDistF   =  DataStruct.Field {
    			   onGrid        = self.grid,
    			   numComponents = self.basis:numBasis(),
    			   ghost         = {1, 1},
+			   metaData = {
+   			      polyOrder = self.basis:polyOrder(),
+   			      basisType = self.basis:id()
+   			   },
    			}
    			self.srcCX    = DataStruct.Field {
    			   onGrid        = self.grid,
    			   numComponents = self.basis:numBasis(),
    			   ghost         = {1, 1},
+			   metaData = {
+   			      polyOrder = self.basis:polyOrder(),
+   			      basisType = self.basis:id()
+   			   },
    			}
    			counterCX_ion = false
    		     elseif self.name==species[sN].collisions[collNm].neutNm and counterCX_neut then
@@ -1586,6 +1598,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
         fIn:accumulate(1.0, self.f0)
       end
 
+      -- for ionization
       if self.calcReactRate then
 	 local neutU = species[self.neutNmIz]:selfPrimitiveMoments()[1]
 	 
