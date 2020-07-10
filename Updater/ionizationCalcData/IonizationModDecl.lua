@@ -6,7 +6,6 @@
 --------------------------------------------------------------------------------
 
 local ffi = require "ffi"
-local _ = require "Updater.ionizationCalcData._IonizationCdef"
 
 -- Map of basis function name -> function encoding.
 local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max" }

@@ -8,18 +8,18 @@
 local UpdaterBase = require "Updater.Base"
 local LinearDecomp = require "Lib.LinearDecomp"
 local Proto = require "Lib.Proto"
-local SigmaCXDecl = require "Updater.chargeExchangeCalcData.SigmaCXModDecl"
+local ChargeExchangeDecl = require "Updater.chargeExchangeCalcData.ChargeExchangeModDecl"
 local xsys = require "xsys"
 local Lin = require "Lib.Linalg"
 local Time = require "Lib.Time"
 
 -- Charge exchange collisions updater object.
-local SigmaCX = Proto(UpdaterBase)
+local ChargeExchange = Proto(UpdaterBase)
 
 ----------------------------------------------------------------------
 -- Updater Initialization --------------------------------------------
-function SigmaCX:init(tbl)
-   SigmaCX.super.init(self, tbl) -- setup base object
+function ChargeExchange:init(tbl)
+   ChargeExchange.super.init(self, tbl) -- setup base object
 
    self._onGrid = assert(tbl.onGrid,
 			     "Updater.SigmaCX: Must provide grid object using 'onGrid'")
@@ -48,9 +48,9 @@ function SigmaCX:init(tbl)
 
    -- Define CX cross section calculation
    if self._kineticSpecies == "Vm" then
-      self._calcSigmaCX = SigmaCXDecl.VmSigmaCX(self._basisID, self._cDim, self._vDim, self._polyOrder)
+      self._calcSigmaCX = ChargeExchangeDecl.VmSigmaCX(self._basisID, self._cDim, self._vDim, self._polyOrder)
    elseif self._kineticSpecies == "Gk" then 
-      self._calcSigmaCX = SigmaCXDecl.GkSigmaCX(self._basisID, self._cDim, self._vDim, self._polyOrder)
+      self._calcSigmaCX = ChargeExchangeDecl.GkSigmaCX(self._basisID, self._cDim, self._vDim, self._polyOrder)
    else
       print("Updater.SigmaCX: 'kineticSpecies must be 'Vm' or 'Gk'")
    end
@@ -62,7 +62,7 @@ end
 
 ----------------------------------------------------------------------
 -- Updater Advance ---------------------------------------------------
-function SigmaCX:_advance(tCurr, inFld, outFld)
+function ChargeExchange:_advance(tCurr, inFld, outFld)
    local tmEvalMomStart = Time.clock()
    local grid = self._onGrid
    local numPhaseBasis = self._phaseBasis:numBasis()
@@ -105,6 +105,6 @@ function SigmaCX:_advance(tCurr, inFld, outFld)
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
 end
 
-function SigmaCX:evalMomTime() return self._tmEvalMom end
+function ChargeExchange:evalMomTime() return self._tmEvalMom end
 
-return SigmaCX
+return ChargeExchange

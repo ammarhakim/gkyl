@@ -98,14 +98,7 @@ end
 
 function VmChargeExchange:createSolver(funcField) --species)
 
-   self.calcVrelProdCX = Updater.VrelProductCX {
-	 onGrid         = self.phaseGrid,
-	 confBasis      = self.confBasis,
-	 phaseBasis     = self.phaseBasis,
-	 kineticSpecies = 'Vm',
-   }
-
-   self.collisionSlvr = Updater.SigmaCX {
+   self.collisionSlvr = Updater.ChargeExchange {
          onGrid         = self.confGrid,
          confBasis      = self.confBasis,
 	 phaseBasis     = self.phaseBasis,
@@ -125,6 +118,7 @@ function VmChargeExchange:createSolver(funcField) --species)
 end
 
 function VmChargeExchange:advance(tCurr, fIn, species, fRhsOut)
+   
    -- get CX source term from Vlasov species
    self.sourceCX = species[self.ionNm]:getSrcCX()
    
@@ -135,10 +129,6 @@ function VmChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       fRhsOut:accumulate(-self.iMass/self.nMass,self.sourceCX)
    end
    
-end
-   
-function VmChargeExchange:getSrcCX()
-   return self.sourceCX
 end
 
 function VmChargeExchange:write(tm, frame)

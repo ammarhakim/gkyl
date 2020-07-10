@@ -1,4 +1,4 @@
-#include <SigmaCXModDecl.h> 
+#include <ChargeExchangeModDecl.h> 
 #include <math.h> 
 void GkSigmaCXcellAvSer1x1v_P1(const double a, const double b, const double *uParIon, const double *uParNeut, const double *vtSqIon, const double *vtSqNeut, double *vSigmaCX) 
 { 

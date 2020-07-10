@@ -475,6 +475,10 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    			   onGrid        = self.grid,
    			   numComponents = self.basis:numBasis(),
    			   ghost         = {1, 1},
+			   metaData = {
+   			      polyOrder = self.basis:polyOrder(),
+   			      basisType = self.basis:id()
+   			   },
    			}
    			self.srcCX    = DataStruct.Field {
    			   onGrid        = self.grid,
@@ -488,11 +492,15 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    			counterCX_ion = false
    		     elseif self.name==species[sN].collisions[collNm].neutNm and counterCX_neut then
    			self.needSelfPrimMom  = true
-   			-- Define fields needed to calculate source term
-   			self.vrelProdCX   = DataStruct.Field {
+  			-- Define fields needed to calculate source term
+   			self.M0distF   = DataStruct.Field {
    			   onGrid        = self.grid,
    			   numComponents = self.basis:numBasis(),
    			   ghost         = {1, 1},
+			   metaData = {
+   			      polyOrder = self.basis:polyOrder(),
+   			      basisType = self.basis:id()
+			   },
    			}
    			counterCX_neut = false
    		     end
@@ -1262,15 +1270,16 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    if self.calcCXSrc then
 	 local fIon  = species[self.name]:getDistF()
 	 local fNeut = species[self.neutNmCX]:getDistF()
-	 
-	 -- calculate CX cross section
-	 species[self.name].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {self.uSelf, species[self.neutNmCX].uSelf, self.vtSqSelf, species[self.neutNmCX].vtSqSelf}, {self.sigmaCX})
 
-	 -- calculate relative velocities products
-	 species[self.name].collisions[self.collNmCX].calcVrelProdCX:advance(tCurr, {self.numDensity, self.uSelf, self.vtSqSelf, fNeut}, {self.vrelProdCX})
-	 species[self.neutNmCX].collisions[self.collNmCX].calcVrelProdCX:advance(tCurr, {species[self.neutNmCX].numDensity, species[self.neutNmCX].uSelf, species[self.neutNmCX].vtSqSelf, fIon}, {species[self.neutNmCX].vrelProdCX})
-	 self.diffDistF:combine(1.0, self.vrelProdCX, -1.0, species[self.neutNmCX].vrelProdCX)
-	 self.confPhaseMult:advance(tCurr, {self.sigmaCX, self.diffDistF}, {self.srcCX})
+	 -- calculate vCX*SigmaCX
+	 species[self.name].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {self.uSelf, species[self.neutNmCX].uSelf, self.vtSqSelf, species[self.neutNmCX].vtSqSelf}, {self.vSigmaCX})
+
+	 -- multiply M0 by distFother and take the difference
+	 self.confPhaseMult:advance(tCurr, {self.numDensity, fNeut}, {self.M0distF})
+	 self.confPhaseMult:advance(tCurr, {species[self.neutNmCX].numDensity, fIon}, {species[self.neutNmCX].M0distF})
+	 self.diffDistF:combine(1.0, self.M0distF, -1.0, species[self.neutNmCX].M0distF)
+	 self.confPhaseMult:advance(tCurr, {self.vSigmaCX, self.diffDistF}, {self.srcCX})
+
    end
    
    self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart

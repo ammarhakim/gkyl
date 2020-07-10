@@ -98,14 +98,7 @@ end
 
 function GkChargeExchange:createSolver(funcField) --species)
 
-   self.calcVrelProdCX = Updater.VrelProductCX {
-	 onGrid         = self.phaseGrid,
-	 confBasis      = self.confBasis,
-	 phaseBasis     = self.phaseBasis,
-	 kineticSpecies = 'Gk',
-   }
-
-   self.collisionSlvr = Updater.SigmaCX {
+   self.collisionSlvr = Updater.ChargeExchange {
          onGrid         = self.confGrid,
          confBasis      = self.confBasis,
 	 phaseBasis     = self.phaseBasis,
@@ -135,10 +128,6 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       fRhsOut:accumulate(-self.iMass/self.nMass,self.sourceCX)
    end
    
-end
-   
-function GkChargeExchange:getSrcCX()
-   return self.sourceCX
 end
 
 function GkChargeExchange:write(tm, frame)

@@ -11,6 +11,7 @@ local BgkCollisions = require "Updater.BgkCollisions"
 local CartFieldBinOp = require "Updater.CartFieldBinOp"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local CartFieldInterpolate = require "Updater.CartFieldInterpolate"
+local ChargeExchange = require "Updater.ChargeExchange"
 local ConfToPhase = require "Updater.ConfToPhase"
 local CrossPrimMoments = require "Updater.CrossPrimMoments"
 local DiscontGenPoisson = require "Updater.DiscontGenPoisson"
@@ -41,7 +42,6 @@ local SpitzerCollisionality = require "Updater.SpitzerCollisionality"
 local StairSteppedBc = require "Updater.StairSteppedBc"
 local TenMomentRelax = require "Updater.TenMomentRelax"
 local TenMomentSrc = require "Updater.TenMomentSrc"
-local VrelProductCX = require "Updater.VrelProductCX"
 local WavePropagation = require "Updater.WavePropagation"
 
 return {
@@ -50,6 +50,7 @@ return {
    CartFieldBinOp = CartFieldBinOp,
    CartFieldIntegratedQuantCalc = CartFieldIntegratedQuantCalc,
    CartFieldInterpolate = CartFieldInterpolate,
+   ChargeExchange = ChargeExchange,
    ConfToPhase = ConfToPhase,
    CrossPrimMoments = CrossPrimMoments,
    DiscontGenPoisson = DiscontGenPoisson,
@@ -74,12 +75,10 @@ return {
    PositivityRescale = PositivityRescale,
    ProjectOnBasis = ProjectOnBasis,
    SelfPrimMoments = SelfPrimMoments,
-   SigmaCX = SigmaCX,
    SolidSurface = SolidSurface,
    SpitzerCollisionality = SpitzerCollisionality,
    StairSteppedBc = StairSteppedBc,
    TenMomentRelax = TenMomentRelax,
    TenMomentSrc = TenMomentSrc,
-   VrelProductCX = VrelProductCX,
    WavePropagation = WavePropagation,
 }

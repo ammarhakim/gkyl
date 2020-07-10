@@ -648,6 +648,10 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    			   onGrid        = self.grid,
    			   numComponents = self.basis:numBasis(),
    			   ghost         = {1, 1},
+			   metaData = {
+   			      polyOrder = self.basis:polyOrder(),
+   			      basisType = self.basis:id()
+			   },
    			}
    			counterCX_neut = false
    		     end
