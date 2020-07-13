@@ -1,20 +1,28 @@
 #include <math.h>
 #include <fpoKernelsDecl.h>
 
-double fpoDragKernel3xP1(const double dt, const double *dv,
-                         const double *f,
-                         const double *f1L, const double *f1U,
-                         const double *f2L, const double *f2U,
-                         const double *f3L, const double *f3U,
-                         const double *h,
-                         const double *h1L, const double *h1U,
-                         const double *h2L, const double *h2U,
-                         const double *h3L, const double *h3U,
-                         const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge,
-                         double *fOut) {
-  double Jx = 4/(dv[0]*dv[0]);
-  double Jy = 4/(dv[1]*dv[1]);
-  double Jz = 4/(dv[2]*dv[2]);
+double fpoDragKernel3xP1(const double dt, const double* dv,
+                         const stencil7* fStencil, const stencil7* hStencil,
+                         double* fOut) {
+  const double Jx = 4/(dv[0]*dv[0]);
+  const double Jy = 4/(dv[1]*dv[1]);
+  const double Jz = 4/(dv[2]*dv[2]);
+ 
+  const double* f = fStencil->C;
+  const double* f1L = fStencil->xL;
+  const double* f1U = fStencil->xU;
+  const double* f2L = fStencil->yL;
+  const double* f2U = fStencil->yU;
+  const double* f3L = fStencil->zL;
+  const double* f3U = fStencil->zU;
+
+  const double* h = hStencil->C;
+  const double* h1L = hStencil->xL;
+  const double* h1U = hStencil->xU;
+  const double* h2L = hStencil->yL;
+  const double* h2U = hStencil->yU;
+  const double* h3L = hStencil->zL;
+  const double* h3U = hStencil->zU; 
 
   double hxfLL[8];
   hxfLL[0] = (-0.8396893026590247*f1L[7]*h1L[7])+0.6889189901577683*f1L[6]*h1L[7]-0.4861359120657511*f1L[7]*h[7]+0.07654655446197427*f1L[6]*h[7]-0.3827327723098713*h1L[6]*f1L[7]+0.3827327723098713*h[6]*f1L[7]+0.0441941738241592*f1L[6]*h1L[6]-0.0441941738241592*f1L[6]*h[6]-0.8396893026590247*f1L[5]*h1L[5]+0.6889189901577683*f1L[3]*h1L[5]-0.4861359120657511*f1L[5]*h[5]+0.07654655446197427*f1L[3]*h[5]-0.3827327723098713*h1L[3]*f1L[5]+0.3827327723098713*h[3]*f1L[5]-0.8396893026590247*f1L[4]*h1L[4]+0.6889189901577683*f1L[2]*h1L[4]-0.4861359120657511*f1L[4]*h[4]+0.07654655446197427*f1L[2]*h[4]-0.3827327723098713*h1L[2]*f1L[4]+0.3827327723098713*h[2]*f1L[4]+0.0441941738241592*f1L[3]*h1L[3]-0.0441941738241592*f1L[3]*h[3]+0.0441941738241592*f1L[2]*h1L[2]-0.0441941738241592*f1L[2]*h[2]-0.8396893026590247*f1L[1]*h1L[1]+0.6889189901577683*f1L[0]*h1L[1]-0.4861359120657511*f1L[1]*h[1]+0.07654655446197427*f1L[0]*h[1]-0.3827327723098713*h1L[0]*f1L[1]+0.3827327723098713*h[0]*f1L[1]+0.0441941738241592*f1L[0]*h1L[0]-0.0441941738241592*f1L[0]*h[0];
