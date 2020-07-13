@@ -92,6 +92,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       end
       self.bmag    = assert(funcField.geo.bmag, "nil bmag")
       self.bmagInv = funcField.geo.bmagInv
+      self.jacobGeo = funcField.geo.jacobGeo
       self.jacobGeoInv = funcField.geo.jacobGeoInv
    end
 

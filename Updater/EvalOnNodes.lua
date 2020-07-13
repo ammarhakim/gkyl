@@ -83,7 +83,7 @@ function EvalOnNodes:_advance(tCurr, inFld, outFld)
    local ndim      = grid:ndim()
    local numBasis  = self._basis:numBasis()
    local polyOrder = self._basis:polyOrder()
-   local numVal    = qOut:numComponents()/numBasis
+   local numVal = qOut:numComponents()/numBasis
 
    if self._isFirst then
       -- Construct function to evaluate function at specified coordinate.

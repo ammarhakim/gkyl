@@ -33,6 +33,7 @@ local PositivityCheck = require "Updater.PositivityCheck"
 local PositivityRescale = require "Updater.PositivityRescale"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local SelfPrimMoments = require "Updater.SelfPrimMoments"
+local SeparateVectorComponents = require "Updater.SeparateVectorComponents"
 local SolidSurface = require "Updater.SolidSurface"
 local SpitzerCollisionality = require "Updater.SpitzerCollisionality"
 local StairSteppedBc = require "Updater.StairSteppedBc"
@@ -69,6 +70,7 @@ return {
    PositivityRescale = PositivityRescale,
    ProjectOnBasis = ProjectOnBasis,
    SelfPrimMoments = SelfPrimMoments,
+   SeparateVectorComponents = SeparateVectorComponents,
    SolidSurface = SolidSurface,
    SpitzerCollisionality = SpitzerCollisionality,
    StairSteppedBc = StairSteppedBc,

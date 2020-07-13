@@ -1139,6 +1139,13 @@ function GkGeometry:alloc()
       ghost = {1, 1},
       syncPeriodicDirs = false
    }
+
+   self.geo.allGeo = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis()*16,
+      ghost = {1, 1},
+      syncPeriodicDirs = false,
+   }
       
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
@@ -1312,129 +1319,161 @@ function GkGeometry:createSolver()
       return 1.0/(self.jacobGeoFunc(t, xn)*self.bmagFunc(t, xn))
    end
 
+   -- calculate all geometry quantities at once to avoid repeated metric calculations
+   self.calcAllGeo = function(t, xn)
+      local g = {}
+      self.grid:calcMetric(xn, g)
+      local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
+      local jacobian = math.sqrt(-g[3]^2*g[4] + 2*g[2]*g[3]*g[5] - g[1]*g[5]^2 - g[2]^2*g[6] + g[1]*g[4]*g[6])
+      local geoX = g_xz/math.sqrt(g_zz)
+      local geoY = g_yz/math.sqrt(g_zz)
+      local geoZ = math.sqrt(g_zz)
+
+      local det = jacobian^2
+      local gxx = (g[4]*g[6]-g[5]^2)/det
+      local gxy = (g[3]*g[5]-g[2]*g[6])/det
+      local gxz = (g[2]*g[5]-g[3]*g[4])/det
+      local gyy = (g[1]*g[6]-g[3]^2)/det
+      local gyz = (g[2]*g[3]-g[1]*g[5])/det
+      local gzz = (g[1]*g[4]-g[2]^2)/det
+
+      local bmag = math.sqrt(g_zz)/jacobian
+      local gradpar = jacobian*bmag/math.sqrt(g_zz)
+
+      return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, gradpar, 
+             geoX, geoY, geoZ, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
+   end
+
    -- projection updaters
+   self.setAllGeo = Updater.EvalOnNodes {
+      onGrid = self.grid,
+      basis = self.basis,
+      evaluate = self.calcAllGeo,
+      projectOnGhosts = false,
+   }
    self.setBmag = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
       evaluate = self.bmagFunc,
-      projectOnGhosts = true,
+      projectOnGhosts = false,
    }
    self.setBmagInv = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = true,
+      projectOnGhosts = false,
       evaluate        = self.bmagInvFunc
    }
    self.setGradpar = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = true,
+      projectOnGhosts = false,
       evaluate = self.gradparFunc
    }
    self.setJacobGeo = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = true,
+      projectOnGhosts = false,
       evaluate = self.jacobGeoFunc
    }
    self.setJacobGeoInv = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = true,
+      projectOnGhosts = false,
       evaluate = self.jacobGeoInvFunc
    }
    self.setJacobTot = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = true,
+      projectOnGhosts = false,
       evaluate = self.jacobTotFunc
    }
    self.setJacobTotInv = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = true,
+      projectOnGhosts = false,
       evaluate = self.jacobTotInvFunc
    }
    self.setGeoX = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = true,
+      projectOnGhosts = false,
       evaluate = self.geoXFunc
    }
    self.setGeoY = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = true,
+      projectOnGhosts = false,
       evaluate = self.geoYFunc
    }
    self.setGeoZ = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = true,
+      projectOnGhosts = false,
       evaluate = self.geoZFunc
    }
    self.setGxx = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = true,
+      projectOnGhosts = false,
       evaluate = self.gxx_Func
    }
    self.setGxy = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = true,
+      projectOnGhosts = false,
       evaluate = self.gxy_Func
    }
    self.setGyy = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = true,
+      projectOnGhosts = false,
       evaluate = self.gyy_Func
    }
    self.setGxxJ = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = true,
+      projectOnGhosts = false,
       evaluate = self.gxxJ_Func
    }
    self.setGxyJ = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = true,
+      projectOnGhosts = false,
       evaluate = self.gxyJ_Func
    }
    self.setGyyJ = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = true,
+      projectOnGhosts = false,
       evaluate = self.gyyJ_Func
    }
    if self.phiWallFunc then 
       self.setPhiWall = Updater.EvalOnNodes {
          onGrid = self.grid,
          basis = self.basis,
-         projectOnGhosts = true,
+         projectOnGhosts = false,
          evaluate        = self.phiWallFunc
       }
    end
 
    -- Determine which variables bmag depends on by checking if setting a variable to nan results in nan.
-   local gridCenter = {}
-   for dir = 1, self.ndim do
-      gridCenter[dir] = self.grid:mid(dir)
-   end
-   self.bmagVars = {}
-   for dir = 1, self.ndim do
-      gridCenter[dir] = 0/0 -- set this var to nan 
-      -- test if result is nan.. nan is the only value that doesn't equal itself
-      if self.bmagFunc(0, gridCenter) ~= self.bmagFunc(0, gridCenter) then 
-        -- if result is nan, bmag must depend on this var
-        table.insert(self.bmagVars, dir) 
-      end
-      gridCenter[dir] = self.grid:mid(dir) -- reset so we can check other vars
-   end
-   if self.bmagVars[1] == nil then self.bmagVars[1] = 0 end
-   if self.ndim == 3 then self.bmagVars = {1,3} end
+   --local gridCenter = {}
+   --for dir = 1, self.ndim do
+   --   gridCenter[dir] = self.grid:mid(dir)
+   --end
+   --self.bmagVars = {}
+   --for dir = 1, self.ndim do
+   --   gridCenter[dir] = 0/0 -- set this var to nan 
+   --   -- test if result is nan.. nan is the only value that doesn't equal itself
+   --   if self.bmagFunc(0, gridCenter) ~= self.bmagFunc(0, gridCenter) then 
+   --     -- if result is nan, bmag must depend on this var
+   --     table.insert(self.bmagVars, dir) 
+   --   end
+   --   gridCenter[dir] = self.grid:mid(dir) -- reset so we can check other vars
+   --end
+   --if self.bmagVars[1] == nil then self.bmagVars[1] = 0 end
+   if self.ndim == 3 then self.bmagVars = {1,3} 
+   else self.bmagVars = {1} end
 
    self.smoother = Updater.FemPoisson {
      onGrid = self.grid,
@@ -1464,28 +1503,55 @@ function GkGeometry:createSolver()
       projectOnGhosts = true,
    }
    initUnit:advance(0.,{},{self.unitWeight})
+
+   self.separateComponents = Updater.SeparateVectorComponents {
+      onGrid = self.grid,
+      basis = self.basis,
+   }
 end
 
 function GkGeometry:createDiagnostics()
 end
 
 function GkGeometry:initField()
-   self.setBmag:advance(0.0, {}, {self.geo.bmag})
-   self.setBmagInv:advance(0.0, {}, {self.geo.bmagInv})
-   self.setGradpar:advance(0.0, {}, {self.geo.gradpar})
-   self.setJacobGeo:advance(0.0, {}, {self.geo.jacobGeo})
-   self.setJacobGeoInv:advance(0.0, {}, {self.geo.jacobGeoInv})
-   self.setJacobTot:advance(0.0, {}, {self.geo.jacobTot})
-   self.setJacobTotInv:advance(0.0, {}, {self.geo.jacobTotInv})
-   self.setGxx:advance(0.0, {}, {self.geo.gxx})
-   self.setGxy:advance(0.0, {}, {self.geo.gxy})
-   self.setGyy:advance(0.0, {}, {self.geo.gyy})
-   self.setGxxJ:advance(0.0, {}, {self.geo.gxxJ})
-   self.setGxyJ:advance(0.0, {}, {self.geo.gxyJ})
-   self.setGyyJ:advance(0.0, {}, {self.geo.gyyJ})
-   self.setGeoX:advance(0.0, {}, {self.geo.geoX})
-   self.setGeoY:advance(0.0, {}, {self.geo.geoY})
-   self.setGeoZ:advance(0.0, {}, {self.geo.geoZ})
+   self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
+   self.fieldIo:write(self.geo.allGeo, string.format("allGeo_%d.bp", 0), 0, 0)
+   self.separateComponents:advance(0, {self.geo.allGeo}, {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
+                                    self.geo.bmag, self.geo.bmagInv, self.geo.gradpar, self.geo.geoX, self.geo.geoY, self.geo.geoZ,
+                                    self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
+   print("Finished GkGeo init")
+   --self.setBmag:advance(0.0, {}, {self.geo.bmag})
+   --self.fieldIo:write(self.geo.bmag, string.format("bmag_%d.bp", 0), 0, 0)
+   --self.setBmagInv:advance(0.0, {}, {self.geo.bmagInv})
+   --self.fieldIo:write(self.geo.bmagInv, string.format("bmagInv_%d.bp", 0), 0, 0)
+   --self.setGradpar:advance(0.0, {}, {self.geo.gradpar})
+   --self.fieldIo:write(self.geo.gradpar, string.format("gradpar_%d.bp", 0), 0, 0)
+   --self.setJacobGeo:advance(0.0, {}, {self.geo.jacobGeo})
+   --self.fieldIo:write(self.geo.jacobGeo, string.format("jacobGeo_%d.bp", 0), 0, 0)
+   --self.setJacobGeoInv:advance(0.0, {}, {self.geo.jacobGeoInv})
+   --self.fieldIo:write(self.geo.jacobGeoInv, string.format("jacobGeoInv_%d.bp", 0), 0, 0)
+   --self.setJacobTot:advance(0.0, {}, {self.geo.jacobTot})
+   --self.fieldIo:write(self.geo.jacobTot, string.format("jacobTot_%d.bp", 0), 0, 0)
+   --self.setJacobTotInv:advance(0.0, {}, {self.geo.jacobTotInv})
+   --self.fieldIo:write(self.geo.jacobTotInv, string.format("jacobTotInv_%d.bp", 0), 0, 0)
+   --self.setGxx:advance(0.0, {}, {self.geo.gxx})
+   --self.fieldIo:write(self.geo.gxx, string.format("gxx_%d.bp", 0), 0, 0)
+   --self.setGxy:advance(0.0, {}, {self.geo.gxy})
+   --self.fieldIo:write(self.geo.gxy, string.format("gxy_%d.bp", 0), 0, 0)
+   --self.setGyy:advance(0.0, {}, {self.geo.gyy})
+   --self.fieldIo:write(self.geo.gyy, string.format("gyy_%d.bp", 0), 0, 0)
+   --self.setGxxJ:advance(0.0, {}, {self.geo.gxxJ})
+   --self.fieldIo:write(self.geo.gxxJ, string.format("gxxJ_%d.bp", 0), 0, 0)
+   --self.setGxyJ:advance(0.0, {}, {self.geo.gxyJ})
+   --self.fieldIo:write(self.geo.gxyJ, string.format("gxyJ_%d.bp", 0), 0, 0)
+   --self.setGyyJ:advance(0.0, {}, {self.geo.gyyJ})
+   --self.fieldIo:write(self.geo.gyyJ, string.format("gyyJ_%d.bp", 0), 0, 0)
+   --self.setGeoX:advance(0.0, {}, {self.geo.geoX})
+   --self.fieldIo:write(self.geo.geoX, string.format("geoX_%d.bp", 0), 0, 0)
+   --self.setGeoY:advance(0.0, {}, {self.geo.geoY})
+   --self.fieldIo:write(self.geo.geoY, string.format("geoY_%d.bp", 0), 0, 0)
+   --self.setGeoZ:advance(0.0, {}, {self.geo.geoZ})
+   --self.fieldIo:write(self.geo.geoZ, string.format("geoZ_%d.bp", 0), 0, 0)
    if self.setPhiWall then self.setPhiWall:advance(0.0, {}, {self.geo.phiWall})
    else self.geo.phiWall:clear(0.0) end
 
