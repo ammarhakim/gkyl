@@ -1,7 +1,7 @@
 #include <math.h>
 #include <fpoKernelsDecl.h>
 
-void fpoDiffSurfXUSer3xP1(const double dt, const double *dv,
+void fpoDiffSurfXUSer3xP1(const double dt, const double* dv,
                           const double* fCCC,
                           const double* fCLC,
                           const double* fCUC,
@@ -22,7 +22,7 @@ void fpoDiffSurfXUSer3xP1(const double dt, const double *dv,
                           const double* gUUC,
                           const double* gUCL,
                           const double* gUCU,
-                          double *fOut) {
+                          double* fOut) {
   double Jxx = 16/(dv[0]*dv[0]*dv[0]*dv[0]);
   double Jxy = 16/(dv[0]*dv[0]*dv[1]*dv[1]);
   double Jyx = Jxy;
