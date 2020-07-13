@@ -21,6 +21,7 @@ out = 'build'
 EXTRA_LINK_FLAGS = []
 
 from waflib import TaskGen
+from waflib.Options import options
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
@@ -66,6 +67,9 @@ def build(bld):
     gitTip = GitTip(env=bld.env)
     gitTip.set_outputs(bld.path.find_or_declare('gkylgittip.h'))
     bld.add_to_group(gitTip)
+
+    if bld.jobs > 16:
+      bld.jobs = 16
     
     # recurse down directories and build C++ code
     bld.recurse("Comm")
@@ -254,8 +258,20 @@ def buildExec(bld):
 
 
     # build gkyl executable
+
+    source = ['gkyl.cxx']
+    if bld.env['CUTOOLS_FOUND']:
+        bld(
+            target='culink',
+            use = useListCuda,
+            features = 'cxx culink',
+            name = 'culink'
+        )
+        bld.add_group() 
+        appendToList(source, 'culink.o')
+
     bld.program(
-        source = 'gkyl.cxx', target='gkyl',
+        source = source, target='gkyl',
         includes = 'Unit Lib Comm',
         use = useList,
         linkflags = EXTRA_LINK_FLAGS,

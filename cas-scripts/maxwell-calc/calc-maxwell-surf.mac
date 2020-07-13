@@ -1,4 +1,4 @@
-load("maxwell-calc/maxwell-calc-central-surf")$
+load("maxwell-calc/maxwell-calc-surf-mod")$
 load(stringproc)$
 /* This script calls the functions which calculate the
    updates from the volume term contributions. */
@@ -18,7 +18,7 @@ maxCdim_Max : 3$
 /* Tensor product basis. */
 maxPolyOrder_Tensor : 3$
 minCdim_Tensor : 1$
-maxCdim_Tensor : 2$
+maxCdim_Tensor : 3$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -31,11 +31,33 @@ maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
 
 for bInd : 1 thru length(bName) do (
   for d : minCdim[bInd] thru maxCdim[bInd] do (
-      disp(printf(false,sconcat("Creating surface Maxwell",bName[bInd]," ~ax"),d)),
-      fname : sconcat("~/max-out/MaxwellCentralSurf", bName[bInd], d, "x", ".cpp"),
+    maxPolyOrderB : maxPolyOrder[bInd],
+    if (d=3 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
+
+    for polyOrder : 1 thru maxPolyOrderB do (
+      disp(printf(false,sconcat("Creating surface Maxwell",bName[bInd]," ~axP~a"),d,polyOrder)),
+      fname : sconcat("~/max-out/MaxwellSurf", bName[bInd], d, "xP", polyOrder, ".cpp"),
+      fh : openw(fname),
+      funcName : sconcat("MaxwellSurf", d, "x", bName[bInd]),
+      calcMaxwellSurfUpdater(fh, funcName, d, bName[bInd], polyOrder),
+      close(fh)
+    )
+  )
+);
+
+load("maxwell-calc/maxwell-calc-central-surf")$
+for bInd : 1 thru length(bName) do (
+  for d : minCdim[bInd] thru maxCdim[bInd] do (
+    maxPolyOrderB : maxPolyOrder[bInd],
+    if (d=3 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
+
+    for polyOrder : 1 thru maxPolyOrderB do (
+      disp(printf(false,sconcat("Creating surface Maxwell",bName[bInd]," ~axP~a"),d,polyOrder)),
+      fname : sconcat("~/max-out/MaxwellCentralSurf", bName[bInd], d, "xP", polyOrder, ".cpp"),
       fh : openw(fname),
       funcName : sconcat("MaxwellCentralSurf", d, "x", bName[bInd]),
-      calcMaxwellCentralSurfUpdater(fh, funcName, d, bName[bInd], maxPolyOrder[bInd]),
+      calcMaxwellCentralSurfUpdater(fh, funcName, d, bName[bInd], polyOrder),
       close(fh)
+    )
   )
 );

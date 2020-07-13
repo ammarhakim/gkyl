@@ -1,0 +1,71 @@
+<<
+
+/* Wrap a printf within a gentran literal. */
+genLitPrint(strIn,[dat]) := block([],
+  ldat : length(dat),
+  if (ldat>0) then (
+    if (ldat=1) then (
+      gentran(literal(eval(printf(false,strIn,dat[1])),cr))
+    ) elseif (ldat=2) then (
+      gentran(literal(eval(printf(false,strIn,dat[1],dat[2])),cr))
+    ) elseif (ldat=3) then (
+      gentran(literal(eval(printf(false,strIn,dat[1],dat[2],dat[3])),cr))
+    ) elseif (ldat=4) then (
+      gentran(literal(eval(printf(false,strIn,dat[1],dat[2],dat[3],dat[4])),cr))
+    ) elseif (ldat=5) then (
+      gentran(literal(eval(printf(false,strIn,dat[1],dat[2],dat[3],dat[4],dat[5])),cr))
+    ) elseif (ldat=6) then (
+      gentran(literal(eval(printf(false,strIn,dat[1],dat[2],dat[3],dat[4],dat[5],dat[6])),cr))
+    )
+  ) else (
+    gentran(literal(eval(printf(false,strIn)),cr))
+  )
+)$
+
+/* Setting a (scalar) left-side equal to a right side.
+   The right side is (Maxima) evaluated before it gets passed to gentran. */
+genRsetq(lhs, rhs) := block([],
+  gentran( rsetq(eval(lhs), rhs) )
+)$
+
+genWriteCExprs1(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then genRsetq(sconcat("  ", string(lhs[i-1])), expr[i])
+  )
+)$
+
+genWriteCExprsOffset1(lhs, rhs, offset, nSpaces) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then genRsetq(sconcat(smake(nSpaces," "), string(lhs[offset+i-1])), expr[i])
+  )
+)$
+
+
+load("modal-basis")$ 
+
+
+cdim : c$
+vdim : v$
+basisType : bName[bInd]$
+basisNmLong : bNameLong[bInd]$
+momKind : mom$
+
+kill(varsC, varsP, basisC, basisP)$
+load(sconcat("basis-precalc/basis", basisType, cdim, "x", vdim, "v"))$
+
+bP : basisP[polyOrder]$
+bC : basisC[polyOrder]$
+NP : length(bP)$
+NC : length(bC)$
+
+
+genLitPrint("void cuda_MomentCalc~ax~av~a_~a_P~a(GkDeviceProp *prop, int numBlocks, int numThreads, GkylCartField_t *fIn, GkylCartField_t *out) {",cdim,vdim,basisType,momKind,polyOrder)$
+>>
+  int warpSize = prop->warpSize;
+<<
+genLitPrint(" d_calc~a<~a, ~a, ~a, Gkyl::~a><<<numBlocks, numThreads, ~a*(numThreads/warpSize)*sizeof(double)>>>(fIn, out);",momKind,cdim,vdim,polyOrder,basisNmLong,vdim*NC)$
+>>
+}
+

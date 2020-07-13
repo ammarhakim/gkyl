@@ -1,4 +1,5 @@
 #include <DistFuncMomentCalcModDecl.h> 
+#include <cmath> 
 void GkM0Star2x2vMax_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out) 
 { 
   // intFac:  =2pi/m for gyrokinetics (not used in Vlasov). 
@@ -108,6 +109,47 @@ void GkBoundaryIntegral2x2vMax_F_VX_P2(const bool atLower, const double intFac, 
  
 } 
  
+void GkBoundaryIntegral2x2vMax_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out) 
+{ 
+  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
+  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
+  // vBoundary: velocity at the boundary of the velocity grid. 
+  // dxv[4]:    cell length in each direciton. 
+  // fIn[35]:    distribution function at velocity boundaries. 
+  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
+ 
+  const double dS = 0.5*dxv[3]*intFac; 
+ 
+  if (atLower) {
+ 
+    out[0] += (2.645751311064591*fIn[33]-2.23606797749979*fIn[13]+1.732050807568877*fIn[3]-1.0*fIn[0])*dS; 
+    out[1] += ((-2.23606797749979*fIn[23])+1.732050807568877*fIn[6]-1.0*fIn[1])*dS; 
+    out[2] += ((-2.23606797749979*fIn[24])+1.732050807568877*fIn[7]-1.0*fIn[2])*dS; 
+    out[3] += (1.732050807568877*fIn[15]-1.0*fIn[5])*dS; 
+    out[4] += (1.732050807568877*fIn[21]-1.0*fIn[11])*dS; 
+    out[5] += (1.732050807568877*fIn[22]-1.0*fIn[12])*dS; 
+    out[6] += -1.0*fIn[19]*dS; 
+    out[7] += -1.0*fIn[20]*dS; 
+    out[8] += -1.0*fIn[31]*dS; 
+    out[9] += -1.0*fIn[32]*dS; 
+ 
+  } else {
+ 
+    out[0] += (2.645751311064591*fIn[33]+2.23606797749979*fIn[13]+1.732050807568877*fIn[3]+fIn[0])*dS; 
+    out[1] += (2.23606797749979*fIn[23]+1.732050807568877*fIn[6]+fIn[1])*dS; 
+    out[2] += (2.23606797749979*fIn[24]+1.732050807568877*fIn[7]+fIn[2])*dS; 
+    out[3] += (1.732050807568877*fIn[15]+fIn[5])*dS; 
+    out[4] += (1.732050807568877*fIn[21]+fIn[11])*dS; 
+    out[5] += (1.732050807568877*fIn[22]+fIn[12])*dS; 
+    out[6] += fIn[19]*dS; 
+    out[7] += fIn[20]*dS; 
+    out[8] += fIn[31]*dS; 
+    out[9] += fIn[32]*dS; 
+ 
+  }
+ 
+} 
+ 
 void GkBoundaryIntegral2x2vMax_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out) 
 { 
   // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
@@ -168,6 +210,47 @@ void GkBoundaryIntegral2x2vMax_vF_VX_P2(const bool atLower, const double intFac,
  
 } 
  
+void GkBoundaryIntegral2x2vMax_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out) 
+{ 
+  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
+  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
+  // vBoundary: velocity at the boundary of the velocity grid. 
+  // dxv[4]:    cell length in each direciton. 
+  // fIn[35]:    distribution function at velocity boundaries. 
+  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
+ 
+  const double dS = 0.5*dxv[3]*intFac; 
+ 
+  if (atLower) {
+ 
+    out[0] += (2.645751311064591*fIn[33]-2.23606797749979*fIn[13]+1.732050807568877*fIn[3]-1.0*fIn[0])*dS*vBoundary; 
+    out[1] += ((-2.23606797749979*fIn[23])+1.732050807568877*fIn[6]-1.0*fIn[1])*dS*vBoundary; 
+    out[2] += ((-2.23606797749979*fIn[24])+1.732050807568877*fIn[7]-1.0*fIn[2])*dS*vBoundary; 
+    out[3] += (1.732050807568877*fIn[15]-1.0*fIn[5])*dS*vBoundary; 
+    out[4] += (1.732050807568877*fIn[21]-1.0*fIn[11])*dS*vBoundary; 
+    out[5] += (1.732050807568877*fIn[22]-1.0*fIn[12])*dS*vBoundary; 
+    out[6] += -1.0*fIn[19]*dS*vBoundary; 
+    out[7] += -1.0*fIn[20]*dS*vBoundary; 
+    out[8] += -1.0*fIn[31]*dS*vBoundary; 
+    out[9] += -1.0*fIn[32]*dS*vBoundary; 
+ 
+  } else {
+ 
+    out[0] += (2.645751311064591*fIn[33]+2.23606797749979*fIn[13]+1.732050807568877*fIn[3]+fIn[0])*dS*vBoundary; 
+    out[1] += (2.23606797749979*fIn[23]+1.732050807568877*fIn[6]+fIn[1])*dS*vBoundary; 
+    out[2] += (2.23606797749979*fIn[24]+1.732050807568877*fIn[7]+fIn[2])*dS*vBoundary; 
+    out[3] += (1.732050807568877*fIn[15]+fIn[5])*dS*vBoundary; 
+    out[4] += (1.732050807568877*fIn[21]+fIn[11])*dS*vBoundary; 
+    out[5] += (1.732050807568877*fIn[22]+fIn[12])*dS*vBoundary; 
+    out[6] += fIn[19]*dS*vBoundary; 
+    out[7] += fIn[20]*dS*vBoundary; 
+    out[8] += fIn[31]*dS*vBoundary; 
+    out[9] += fIn[32]*dS*vBoundary; 
+ 
+  }
+ 
+} 
+ 
 void GkBoundaryIntegral2x2vMax_vF_VY_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out) 
 { 
   // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
@@ -223,6 +306,47 @@ void GkBoundaryIntegral2x2vMax_vF_VY_P2(const bool atLower, const double intFac,
     out[3] += fIn[5]*dS*vBoundary; 
     out[4] += fIn[11]*dS*vBoundary; 
     out[5] += fIn[12]*dS*vBoundary; 
+ 
+  }
+ 
+} 
+ 
+void GkBoundaryIntegral2x2vMax_vF_VY_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out) 
+{ 
+  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
+  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
+  // vBoundary: velocity at the boundary of the velocity grid. 
+  // dxv[4]:    cell length in each direciton. 
+  // fIn[35]:    distribution function at velocity boundaries. 
+  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
+ 
+  const double dS = 0.5*dxv[2]*intFac; 
+ 
+  if (atLower) {
+ 
+    out[0] += (2.645751311064591*fIn[34]-2.23606797749979*fIn[14]+1.732050807568877*fIn[4]-1.0*fIn[0])*dS*vBoundary; 
+    out[1] += ((-2.23606797749979*fIn[28])+1.732050807568877*fIn[8]-1.0*fIn[1])*dS*vBoundary; 
+    out[2] += ((-2.23606797749979*fIn[29])+1.732050807568877*fIn[9]-1.0*fIn[2])*dS*vBoundary; 
+    out[3] += (1.732050807568877*fIn[16]-1.0*fIn[5])*dS*vBoundary; 
+    out[4] += (1.732050807568877*fIn[25]-1.0*fIn[11])*dS*vBoundary; 
+    out[5] += (1.732050807568877*fIn[26]-1.0*fIn[12])*dS*vBoundary; 
+    out[6] += -1.0*fIn[19]*dS*vBoundary; 
+    out[7] += -1.0*fIn[20]*dS*vBoundary; 
+    out[8] += -1.0*fIn[31]*dS*vBoundary; 
+    out[9] += -1.0*fIn[32]*dS*vBoundary; 
+ 
+  } else {
+ 
+    out[0] += (2.645751311064591*fIn[34]+2.23606797749979*fIn[14]+1.732050807568877*fIn[4]+fIn[0])*dS*vBoundary; 
+    out[1] += (2.23606797749979*fIn[28]+1.732050807568877*fIn[8]+fIn[1])*dS*vBoundary; 
+    out[2] += (2.23606797749979*fIn[29]+1.732050807568877*fIn[9]+fIn[2])*dS*vBoundary; 
+    out[3] += (1.732050807568877*fIn[16]+fIn[5])*dS*vBoundary; 
+    out[4] += (1.732050807568877*fIn[25]+fIn[11])*dS*vBoundary; 
+    out[5] += (1.732050807568877*fIn[26]+fIn[12])*dS*vBoundary; 
+    out[6] += fIn[19]*dS*vBoundary; 
+    out[7] += fIn[20]*dS*vBoundary; 
+    out[8] += fIn[31]*dS*vBoundary; 
+    out[9] += fIn[32]*dS*vBoundary; 
  
   }
  

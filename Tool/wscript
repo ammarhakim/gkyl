@@ -5,8 +5,28 @@
 
 import os
 
+def appendToList(target, val):
+    if type(val) == list:
+        target.extend(val)
+    else:
+        target.append(val)
+
 def build(bld):
-    bld.shlib(source = 'ExactEulerRpImpl.cpp', includes = '.',
+    bld.shlib(source = 'GkExactEulerRpImpl.cpp', includes = '.',
               name = 'tool',
               vnum = '1.0',
               target = 'tool', features='cxx')
+
+    # compile stand-alone executable tools
+    
+    useList = ' lib datastruct eq unit comm updater tool proto basis grid M DL '
+    if bld.env['CUTOOLS_FOUND']:
+        useListCuda = '  CUTOOLS lib_cu datastruct_cu eq_cu  comm_cu  proto_cu basis_cu grid_cu '
+        useList = useListCuda + useList
+
+    # set RPATH
+    fullRpath = []
+    appendToList(fullRpath, bld.env.RPATH) # user specified RPATH
+    appendToList(fullRpath, bld.env.LIBDIR)
+    appendToList(fullRpath, bld.env.LIBPATH_LUAJIT)
+

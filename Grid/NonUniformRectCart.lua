@@ -10,13 +10,13 @@
 local ffi = require "ffi"
 
 -- Gkyl libraries.
-local DataStruct       = require "DataStruct"
+local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
-local Lin              = require "Lib.Linalg"
-local Mpi              = require "Comm.Mpi"
-local Proto            = require "Lib.Proto"
-local Range            = require "Lib.Range"
-local RectCart         = require "Grid.RectCart"
+local Lin = require "Lib.Linalg"
+local Mpi = require "Comm.Mpi"
+local Proto = require "Lib.Proto"
+local Range = require "Lib.Range"
+local RectCart = require "Grid.RectCart"
 
 -- NonUniformRectCartGrid ------------------------------------------------------
 --
@@ -141,9 +141,9 @@ function NonUniformRectCart:write(fName, tmStamp, metaData)
       cells = cells,
    }
    local nodalCoords = DataStruct.Field {
-      onGrid        = grid,
+      onGrid = grid,
       numComponents = self:ndim(),
-      metaData      = metaData
+      metaData = metaData
    }
 
    local xnc, xnp = Lin.Vec(self:ndim()), Lin.Vec(self:ndim())

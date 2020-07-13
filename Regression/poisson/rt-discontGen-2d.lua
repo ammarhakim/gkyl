@@ -79,43 +79,13 @@ local initSol = Updater.ProjectOnBasis {
 }
 initSol:advance(0.0, {}, {solExact})
 
-local Dxx = getField()
-local initDxx = Updater.ProjectOnBasis {
-   onGrid = grid,
-   basis = basis,
-   numQuad = numQuad,
-   evaluate = DxxFn,
-   projectOnGhosts = true,
-}
-initDxx:advance(0.0, {}, {Dxx})
-
-local Dyy = getField()
-local initDyy = Updater.ProjectOnBasis {
-   onGrid = grid,
-   basis = basis,
-   numQuad = numQuad,
-   evaluate = DyyFn,
-   projectOnGhosts = true,
-}
-initDyy:advance(0.0, {}, {Dyy})
-
-local Dxy = getField()
-local initDxy = Updater.ProjectOnBasis {
-   onGrid = grid,
-   basis = basis,
-   numQuad = numQuad,
-   evaluate = DxyFn,
-   projectOnGhosts = true,
-}
-initDxy:advance(0.0, {}, {Dxy})
-
 local solSim = getField()
 local discontPoisson = Updater.DiscontGenPoisson {
    onGrid = grid,
    basis = basis,
-   Dxx = Dxx,
-   Dyy = Dyy,
-   Dxy = Dxy,
+   Dxx = DxxFn,
+   Dyy = DyyFn,
+   Dxy = DxyFn,
    bcLower = { {D=1, N=0, val=0.0}, {D=1, N=0, val=0.0} },
    bcUpper = { {D=1, N=0, val=0.0}, {D=1, N=0, val=0.0} },
    writeMatrix = false,
@@ -125,6 +95,3 @@ discontPoisson:advance(0.0, {src}, {solSim})
 src:write(string.format('src.bp'), 0.0, 0)
 solExact:write(string.format('solExact.bp'), 0.0, 0)
 solSim:write(string.format('solSim.bp'), 0.0, 0)
-Dxx:write(string.format('Dxx.bp'), 0.0, 0)
-Dyy:write(string.format('Dyy.bp'), 0.0, 0)
-Dxy:write(string.format('Dxy.bp'), 0.0, 0)

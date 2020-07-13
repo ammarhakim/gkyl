@@ -8,355 +8,96 @@ load("mgPoisson-calc/FEMnodalFuncs");
 
 fpprec : 24$
 
-solveProlongationWeqEq(varsIn,stencilLocIn,nodBasisIn,nodesIn,storedNodesIn) := block([bN,nodes,storedNodes,numB,dim,numStoredNodes,weqKnowns,weqUnknowns,eqSolv],
+solveProlongationWeqEq(varsIn,nodBasisIn,cellToIdxStoredCIn,cellToCoefCIn,nodesExFIn,cellToIdxStoredFIn,cellToCoefFIn) := block([vars,bN,numNodes,numBasis,dim,cellToIdxStoredC,cellToCoefC,nodesExF,cellToIdxStoredF,cellToCoefF,i,fldF_cEx,lhsF,lhsC,dxF,dxC,iF,iC,fldF_e,lhsFcont,rhsCcont,idx,k,cellCoordC,cellCoordF,fldC_e,wF,wC,varTrans,subList],
 
-  bN          : nodBasisIn,
-  nodes       : nodesIn,
-  storedNodes : storedNodesIn,
+  vars : varsIn,
+  bN   : nodBasisIn,
 
-  dim            : length(varsIn),
-  numB           : length(bN),
-  numStoredNodes : length(storedNodes), 
+  cellToIdxStoredC : cellToIdxStoredCIn,
+  cellToCoefC      : cellToCoefCIn,
+  nodesExF         : nodesExFIn,
+  cellToIdxStoredF : cellToIdxStoredFIn,
+  cellToCoefF      : cellToCoefFIn,
 
-  /* Create a table of the relationship between the logical coordinates
-     in each direction of the coarse and fine grids. */
-  wFsten  : [makelist(wF[d],d,0,dim-1)],
-  wCsten  : [makelist(wF[d]-dxC[d]/4,d,0,dim-1)],
-  dxFsten : [makelist(dxC[d]/2,d,0,dim-1)],
-  dxCsten : [makelist(dxC[d],d,0,dim-1)],
-  eLo     : fullratsimp(makelist(max(-1,1-(2/dxFsten[1][d])*(wFsten[1][d]+dxFsten[1][d]/2-(wCsten[1][d]-dxCsten[1][d]/2))),d,1,dim)),
-  eUp     : fullratsimp(makelist(min(1,-1+(2/dxFsten[1][d])*(wCsten[1][d]+dxCsten[1][d]/2-(wFsten[1][d]-dxFsten[1][d]/2))),d,1,dim)),
-  intLims : [makelist([eLo[d], eUp[d]],d,1,dim)],
-  varMap  : [fullratsimp(makelist((2/dxCsten[1][d])*(wFsten[1][d]-wCsten[1][d]+(dxFsten[1][d]/2)*varsIn[d]),d,1,dim))],
-  for dI : 1 thru dim do (
-    numVarMap : length(varMap),
-    for pS : 1 thru numVarMap do (
-      for k : 1 thru (stencilSizeF[dI]-1) do (  /* Add stencilSizeF[dI]-1 nearest lower cells. */
-        /* Add the variable transformation in nearest upper cell. */
-        wCsten  : endcons(copylist(wCsten[pS]),wCsten),
-        dxCsten : endcons(copylist(dxCsten[pS]),dxCsten),
-        wFsten  : endcons(copylist(wFsten[pS]),wFsten),
-        dxFsten : endcons(copylist(dxFsten[pS]),dxFsten),
-  
-        curr : length(wCsten),
-  
-        wFsten[curr][dI] : wFsten[curr][dI]-k*dxC[dI-1]/2,
-        wCsten[curr][dI] : wCsten[curr][dI]-floor(k/2)*dxC[dI-1],
-  
-        wFp  : wFsten[curr],
-        wCp  : wCsten[curr],
-        dxFp : dxFsten[curr],
-        dxCp : dxCsten[curr],
-  
-        eLo     : fullratsimp(makelist(max(-1,1-(2/dxFp[d])*(wFp[d]+dxFp[d]/2-(wCp[d]-dxCp[d]/2))),d,1,dim)),
-        eUp     : fullratsimp(makelist(min(1,-1+(2/dxFp[d])*(wCp[d]+dxCp[d]/2-(wFp[d]-dxFp[d]/2))),d,1,dim)),
-        intLims : endcons(makelist([eLo[d], eUp[d]],d,1,dim),intLims),
-  
-        varMap  : endcons(copylist(varMap[pS]),varMap),
-        varMap[curr][dI] : fullratsimp((2/dxCp[dI])*(wFp[dI]-wCp[dI]+(dxFp[dI]/2)*varsIn[dI]))
-      )
-    )
-  ),
-  
-  /* Associative list of nodes in each fine-grid cell nodesExF, nodes involved in the weak equality
-     without duplication (weqNodesExF), and nodes stored in each cell (storedNodesExF).
-     Each fine-grid cell has an element in these lists. Each element is a 2-entry list;
-     the 1st entry is the cell coordinate (relative to the upper-right corner), the 2nd
-     is a list of nodes in that cell, with coordinates on the extended [-7,1] logical space. */
-  nodesExF       : [[makelist(0,i,1,dim), nodes]],
-  weqNodesExF    : [[makelist(0,i,1,dim), nodes]],
-  storedNodesExF : [[makelist(0,i,1,dim), storedNodes]],
-  for dI: 1 thru dim do (
-    cellsSoFar : length(nodesExF),
-    for pS : 1 thru cellsSoFar do (
-      prevNodes       : nodesExF[pS][2],
-      prevWeqNodes    : deleteNodes(weqNodesExF[pS][2],[[dI,1]],true),
-      prevStoredNodes : deleteNodes(storedNodesExF[pS][2],[[dI,1]],true),
-      /* Add stencilSizeF[dI]-1 nearest lower cells. */
-      for k : 1 thru (stencilSizeF[dI]-1) do (
-  
-        loc            : copylist(nodesExF[pS][1]),
-        loc[dI]        : -1*k,
-  
-        newNodes       : copylist(prevNodes),
-        for i : 1 thru length(prevNodes) do ( newNodes[i][dI] : prevNodes[i][dI]-2*k ),
-        nodesExF       : endcons([loc,newNodes],nodesExF),
-  
-        newNodes       : copylist(prevWeqNodes),
-        for i : 1 thru length(prevWeqNodes) do ( newNodes[i][dI] : prevWeqNodes[i][dI]-2*k ),
-        weqNodesExF    : endcons([loc,newNodes],weqNodesExF),
-  
-        newNodes       : copylist(prevStoredNodes),
-        for i : 1 thru length(prevStoredNodes) do ( newNodes[i][dI] : prevStoredNodes[i][dI]-2*k ),
-        storedNodesExF : endcons([loc,newNodes],storedNodesExF)
-      )
-    )
-  ),
-  /* Associative list of fine-grid nodes on [-7,1] logical space, and
-     the cell that contributes that node to the weak equality. */
-  weqNodeToCellF : [],
-  for i : 1 thru length(weqNodesExF) do (
-    for k : 1 thru length(weqNodesExF[i][2]) do (
-      weqNodeToCellF : endcons([weqNodesExF[i][2][k],weqNodesExF[i][1]],weqNodeToCellF)
-    )
-  ),
-  /* Associative list of nodes on [-7,1] logical space, and the cell that stores that node. */
-  storedNodeToCellF : [],
-  for i : 1 thru length(storedNodesExF) do (
-    for k : 1 thru length(storedNodesExF[i][2]) do (
-      storedNodeToCellF : endcons([storedNodesExF[i][2][k],storedNodesExF[i][1]],storedNodeToCellF)
-    )
-  ),
-  /* Associative list between fine cell coordinates and a linear index. */
-  idx        : 0,
-  cellToIdxF : [[makelist(0,i,1,dim),idx]],
-  for dI : 1 thru dim do (
-    cellsSoFar : length(cellToIdxF),
-    for pS : 1 thru cellsSoFar do (
-      for k : 1 thru (stencilSizeF[dI]-1) do ( /* Add stencilSizeF[dI]-1 nearest lower cells. */
-        cellToIdxF : endcons(copylist(cellToIdxF[pS]),cellToIdxF),
-        idx        : idx+1,
-        cellToIdxF[idx+1][1][dI] : -k,
-        cellToIdxF[idx+1][2]     : idx
-      )
-    )
-  ),
-  /* Associative list of fine-grid cell coordinate, and the memory location of each node. */
-  weqOwnerIdx      : 0,
-  currCoord        : makelist(0,i,1,dim),
-  locNodesEx       : assoc(currCoord,nodesExF),
-  fakeMemIdx       : numStoredNodes,
-  memLoc           : [],
-  storedNodeCoefsF : [[]],
-  for k : 1 thru numB do (
-    memIdx : sublist_indices(assoc(currCoord,storedNodesExF),lambda([x],x=locNodesEx[k])),
-    if length(memIdx)>0 then (
-      memIdx     : memIdx[1]-1
-    ) else (
-      memIdx     : fakeMemIdx,
-      fakeMemIdx : fakeMemIdx+1
+  dim      : length(vars),
+  numBasis : length(bN),
+  numNodes : numBasis,
+
+
+  /* Count the number of unknowns. */
+  fldF_cEx : [],
+  for i : 1 thru length(cellToCoefF) do ( fldF_cEx : unique(append(fldF_cEx,cellToCoefF[i][2]) ) ),
+  numUnknown : length(fldF_cEx),
+
+  /* Lists to store the weak equality system of equations. Each fine-grid
+     node has a 2-element list, the first element are the coordinates of
+     that node. */
+  lhsF : makelist([makelist(9,d,1,dim),0],i,1,numUnknown),
+  rhsC : makelist([makelist(9,d,1,dim),0],i,1,numUnknown),
+
+  /* Fine- and coarse-grid cell lengths. */
+  dxF : makelist(1,d,1,dim), 
+  dxC : makelist(2,d,1,dim), 
+
+  /* Loop through the fine-grid cells. For each of these project the
+     corresponding coarse-grid cell on to it. Each projection contributes
+     to the weak equality system of equations. */
+  for iF : 1 thru length(cellToCoefF) do (
+
+    cellCoordF   : copylist(cellToCoefF[iF][1]),
+    currNodesExF : assoc(cellCoordF,nodesExF),
+
+    /* Add contribution from projecting the fine-grid function onto its
+       own basis to the left side of the weak system of equations. */
+    fldF_e   : doExpand(makelist(eval_string(sconcat("fldF",cellToCoefF[iF][2][k])),k,1,numBasis),bN),
+    lhsFcont : calcInnerProdList(vars,1,bN,fldF_e), 
+    for k : 1 thru numNodes do (
+       idx : sublist_indices(lhsF, lambda([x],x[1]=currNodesExF[k])),
+       if length(idx)>0 then (
+         idx : idx[1]
+       ) else (
+         idx          : sublist_indices(lhsF, lambda([x],x[1]=makelist(9,d,1,dim)))[1],
+         lhsF[idx][1] : currNodesExF[k]
+       ),
+       lhsF[idx][2] : lhsF[idx][2]+lhsFcont[k]
     ),
-    storedNodeCoefsF[1] : endcons(memIdx,storedNodeCoefsF[1]), 
-    memLoc : endcons(eval_string(sconcat("fldF",weqOwnerIdx))[memIdx],memLoc)
-  ),
-  cellToCoefF : [[makelist(0,i,1,dim),memLoc]],
-  for dI: 1 thru dim do (
-    cellsSoFar : length(cellToCoefF),
-    for pS : 1 thru cellsSoFar do (
-      for j : 1 thru (stencilSizeF[dI]-1) do (  /* Add stencilSizeF[dI]-1 nearest lower cells. */
-        currCoord     : copylist(cellToCoefF[pS][1]),
-        currCoord[dI] : -j,
-        locNodesEx    : assoc(currCoord,nodesExF),
-        fakeMemIdx    : numStoredNodes,
-        memLoc        : [],
-        memIdxs       : [],
-        for k : 1 thru numB do (
-          weqCell            : assoc(locNodesEx[k],weqNodeToCellF),
-          weqCellStoredNodes : assoc(weqCell,storedNodesExF),
-          memIdx             : sublist_indices(weqCellStoredNodes,lambda([x],x=locNodesEx[k])),
-          if length(memIdx)>0 then (
-            memIdx     : memIdx[1]-1
-          ) elseif weqCell=currCoord then (
-            memIdx     : fakeMemIdx,
-            fakeMemIdx : fakeMemIdx+1
-          ) else (
-            memIdx     : storedNodeCoefsF[assoc(weqCell,cellToIdxF)+1][sublist_indices(assoc(weqCell,nodesExF),lambda([x],x=locNodesEx[k]))[1]]
-          ),
-          memIdxs : endcons(memIdx,memIdxs),
-          memLoc  : endcons(eval_string(sconcat("fldF",assoc(assoc(locNodesEx[k],weqNodeToCellF),cellToIdxF)))[memIdx],memLoc)
-        ),
-        storedNodeCoefsF : endcons(memIdxs,storedNodeCoefsF), 
-        cellToCoefF      : endcons([currCoord,memLoc],cellToCoefF)
-      )
+
+
+    /* Project the coarse-grid field in the corresponding cell onto this
+       fine-grid cell, and add this contribution to the right-side. */
+    cellCoordC : makelist(signum(cellCoordF[d])*floor(abs(cellCoordF[d]/2)),d,1,dim),
+    coefsC     : assoc(cellCoordC,cellToCoefC),
+    fldC_e     : doExpand(makelist(eval_string(sconcat("fldC",coefsC[k])),k,1,numBasis),bN),
+
+    /* Fine- and coarse-grid cell centers. */
+    wF         : cellCoordF,
+    wC         : makelist(2*cellCoordC[d]-dxF[d]/2,d,1,dim),
+
+    /* Substitute coarse-grid logical variable to do integration in fine-grid logical variable. */
+    varTrans   : fullratsimp(makelist((2/dxC[d])*(wF[d]-wC[d]+(dxF[d]/2)*vars[d]),d,1,dim)),
+    subList    : makelist(vars[d]=varTrans[d],d,1,dim),
+    rhsCcont   : calcInnerProdList(vars,1,bN,subst(subList,fldC_e)),
+
+    for k : 1 thru numNodes do (
+       idx : sublist_indices(rhsC, lambda([x],x[1]=currNodesExF[k])),
+       if length(idx)>0 then (
+         idx : idx[1]
+       ) else (
+         idx          : sublist_indices(rhsC, lambda([x],x[1]=makelist(9,d,1,dim)))[1],
+         rhsC[idx][1] : currNodesExF[k]
+       ),
+       rhsC[idx][2] : rhsC[idx][2]+rhsCcont[k]
     )
+
   ),
-  
-  /* Associative list of nodes in each coarse-grid cell nodesExC, nodes involved in the weak equality
-     without duplication (weqNodesExC), and nodes stored in each cell (storedNodesExC). Each element
-     in these lists is itself a 2-entry list; the 1st entry is the cell coordinate (relative to the
-     upper-right corner), the 2nd is a list of nodes in that cell, with coordinates on the extended
-     [-3,1] logical space. */
-  nodesExC       : [[makelist(0,i,1,dim), nodes]],
-  weqNodesExC    : [[makelist(0,i,1,dim), nodes]],
-  storedNodesExC : [[makelist(0,i,1,dim), storedNodes]],
-  for dI: 1 thru dim do (
-    cellsSoFar : length(nodesExC),
-    for pS : 1 thru cellsSoFar do (
-      if (stencilLocIn[dI] > -1) then (
-        prevNodes       : nodesExC[pS][2],
-        prevWeqNodes    : deleteNodes(weqNodesExC[pS][2],[[dI,1]],true),
-        prevStoredNodes : deleteNodes(storedNodesExC[pS][2],[[dI,1]],true),
-  
-        loc            : copylist(nodesExC[pS][1]),
-        loc[dI]        : -1,
-  
-        newNodes       : copylist(prevNodes),
-        for i : 1 thru length(prevNodes) do ( newNodes[i][dI] : prevNodes[i][dI]-2 ),
-        nodesExC       : endcons([loc,newNodes],nodesExC),
-  
-        newNodes       : copylist(prevWeqNodes),
-        for i : 1 thru length(prevWeqNodes) do ( newNodes[i][dI] : prevWeqNodes[i][dI]-2 ),
-        weqNodesExC    : endcons([loc,newNodes],weqNodesExC),
-  
-        newNodes       : copylist(prevStoredNodes),
-        for i : 1 thru length(prevStoredNodes) do ( newNodes[i][dI] : prevStoredNodes[i][dI]-2 ),
-        storedNodesExC : endcons([loc,newNodes],storedNodesExC)
-      )
-    )
-  ),
-  /* Associative list of coarse-grid nodes on [-3,1] logical space, and
-     the cell that contributes that node to the weak equality. */
-  weqNodeToCellC : [],
-  for i : 1 thru length(weqNodesExC) do (
-    for k : 1 thru length(weqNodesExC[i][2]) do (
-      weqNodeToCellC : endcons([weqNodesExC[i][2][k],weqNodesExC[i][1]],weqNodeToCellC)
-    )
-  ),
-  /* Associative list of coarse-grid nodes on [-3,1] logical space, and the cell that stores that node. */
-  storedNodeToCellC : [],
-  for i : 1 thru length(storedNodesExC) do (
-    for k : 1 thru length(storedNodesExC[i][2]) do (
-      storedNodeToCellC : endcons([storedNodesExC[i][2][k],storedNodesExC[i][1]],storedNodeToCellC)
-    )
-  ),
-  /* Associative list between coarse cell coordinates and a linear index. */
-  idx        : 0,
-  cellToIdxC : [[makelist(0,i,1,dim),idx]],
-  for dI : 1 thru dim do (
-    numCoordIdx : length(cellToIdxC),
-    for pS : 1 thru numCoordIdx do (
-      if (stencilLocIn[dI] > -1) then (
-        /* Add nearest lower cell. */
-        cellToIdxC : endcons(copylist(cellToIdxC[pS]),cellToIdxC),
-        idx        : idx+1,
-        cellToIdxC[idx+1][1][dI] : -1,
-        cellToIdxC[idx+1][2]     : idx
-      )
-    )
-  ),
-  /* Associative list of coarse-grid cell coordinate, and the memory location of each node. */
-  weqOwnerIdx      : 0,
-  currCoord        : makelist(0,i,1,dim),
-  locNodesEx       : assoc(currCoord,nodesExC),
-  fakeMemIdx       : numStoredNodes,
-  memLoc           : [],
-  storedNodeCoefsC : [[]],
-  for k : 1 thru numB do (
-    memIdx : sublist_indices(assoc(currCoord,storedNodesExC),lambda([x],x=locNodesEx[k])),
-    if length(memIdx)>0 then (
-      memIdx     : memIdx[1]-1
-    ) else (
-      memIdx     : fakeMemIdx,
-      fakeMemIdx : fakeMemIdx+1
-    ),
-    storedNodeCoefsC[1] : endcons(memIdx,storedNodeCoefsC[1]),
-    memLoc : endcons(eval_string(sconcat("fldC",weqOwnerIdx))[memIdx],memLoc)
-  ),
-  cellToCoefC : [[makelist(0,i,1,dim),memLoc]],
-  for dI: 1 thru dim do (
-    cellsSoFar : length(cellToCoefC),
-    for pS : 1 thru cellsSoFar do (
-      if (stencilLocIn[dI] > -1) then (
-        currCoord     : copylist(cellToCoefC[pS][1]),
-        currCoord[dI] : -1,
-        locNodesEx    : assoc(currCoord,nodesExC),
-        fakeMemIdx    : numStoredNodes,
-        memLoc        : [],
-        memIdxs       : [],
-        for k : 1 thru numB do (
-          weqCell            : assoc(locNodesEx[k],weqNodeToCellC),
-          weqCellStoredNodes : assoc(weqCell,storedNodesExC),
-          memIdx             : sublist_indices(weqCellStoredNodes,lambda([x],x=locNodesEx[k])),
-          if length(memIdx)>0 then (
-            memIdx     : memIdx[1]-1
-          ) elseif weqCell=currCoord then (
-            memIdx     : fakeMemIdx,
-            fakeMemIdx : fakeMemIdx+1
-          ) else (
-            memIdx     : storedNodeCoefsC[assoc(weqCell,cellToIdxC)+1][sublist_indices(assoc(weqCell,nodesExC),lambda([x],x=locNodesEx[k]))[1]]
-          ),
-          memIdxs : endcons(memIdx,memIdxs),
-          memLoc  : endcons(eval_string(sconcat("fldC",assoc(assoc(locNodesEx[k],weqNodeToCellC),cellToIdxC)))[memIdx],memLoc)
-        ),
-        storedNodeCoefsC : endcons(memIdxs,storedNodeCoefsC),
-        cellToCoefC      : endcons([currCoord,memLoc],cellToCoefC)
-      )
-    )
-  ),
-  
-  /* Associative list of coordinates of the fine-grid cell, and the
-     coarse-grid cell that overlaps with it. */
-  coordFtoC : [[makelist(0,i,1,dim),makelist(0,i,1,dim)]],
-  for dI : 1 thru dim do (
-    cellsSoFar : length(coordFtoC),
-    for pS : 1 thru cellsSoFar do (
-      for k : 1 thru (stencilSizeF[dI]-1) do (  /* Add stencilSizeF[dI]-1 nearest lower fine-grid cells. */
-        coordF     : copylist(coordFtoC[pS][1]),
-        coordC     : copylist(coordFtoC[pS][2]),
-        coordF[dI] : -k,
-        coordC[dI] : -floor(k/2),
-        coordFtoC  : endcons([coordF,coordC],coordFtoC)
-      )
-    )
-  ),
-  
-  /* Loop over fine cells involved in weak equality. Each cell either adds a
-     new equation to the system (for nodes it owns), or contributes to existing
-     equations (for nodes owned by another cell). */
-  cFld_e : doExpand(assoc(coordFtoC[1][2],cellToCoefC),bN),
-  fFld_e : doExpand(cellToCoefF[1][2],bN),
-  weqLHS : [calcInnerProdListGen(varsIn,intLims[1],1,bN,subst(makelist(varsIn[i]=varMap[1][i],i,1,dim),cFld_e))],
-  weqRHS : [calcInnerProdList(varsIn,1,bN,fFld_e)],
-  cI     : 1,
-  for dir : 1 thru dim do (
-    numWeq : length(weqLHS),
-    for pS : 1 thru numWeq do (
-      /* Add contributions from stencilSizeF[dI]-1 nearest lower cells. */
-      for s : 1 thru (stencilSizeF[dir]-1) do (
-        cI : cI+1,
-  
-        /* Create three lists. One indicates which contributions should be
-           appended as new equations. The other two are to/from lists indicating
-           where this new contribution gets added to/from. */
-        parentNodes : nodesExF[pS][2],
-        childNodes  : nodesExF[cI][2],
-  
-        newEqI   : makelist(sublist_indices(childNodes,lambda([x],x=weqNodesExF[cI][2][i]))[1],i,1,length(weqNodesExF[cI][2])),
-        contFrom : listify(setdifference(makeset(i,[i],makelist([i],i,1,numB)),setify(newEqI))),
-        contFromNodes : makelist(nodesExF[cI][2][contFrom[i]],i,1,length(contFrom)),
-        weqOwnersIdx  : makelist(assoc(assoc(contFromNodes[i],weqNodeToCellF),cellToIdxF),i,1,length(contFromNodes)),
-        contTo : makelist(sublist_indices(weqNodesExF[weqOwnersIdx[i]+1][2],lambda([x],x=contFromNodes[i]))[1],i,1,length(contFromNodes)),
-  
-        /* Use the local expansion coefficients, with. */
-        cFld_e : doExpand(assoc(coordFtoC[cI][2],cellToCoefC),bN),
-        fFld_e : doExpand(cellToCoefF[cI][2],bN),
-  
-        /* Compute the inner product, on fine grid of current cell,
-           of the coarse field times the basis fine-grid functions. */
-        innerProdLHS : calcInnerProdListGen(varsIn,intLims[cI],1,bN,subst(makelist(varsIn[i]=varMap[cI][i],i,1,dim),cFld_e)),
-        innerProdRHS : calcInnerProdListGen(varsIn,intLims[cI],1,bN,fFld_e),
-  
-        /* New equations. */
-        weqLHS : endcons(makelist(innerProdLHS[newEqI[k]],k,1,length(newEqI)),weqLHS),
-        weqRHS : endcons(makelist(innerProdRHS[newEqI[k]],k,1,length(newEqI)),weqRHS),
-        /* Contributions to existing equations. */
-        for k : 1 thru length(contTo) do (
-          weqLHS[weqOwnersIdx[k]+1][contTo[k]] : weqLHS[weqOwnersIdx[k]+1][contTo[k]]+innerProdLHS[contFrom[k]],
-          weqRHS[weqOwnersIdx[k]+1][contTo[k]] : weqRHS[weqOwnersIdx[k]+1][contTo[k]]+innerProdRHS[contFrom[k]]
-        )
-  
-      )
-    )
-  ),
-  weqLHS      : flatten(weqLHS),
-  weqRHS      : flatten(weqRHS),
-  weqUnknowns : listofvars(weqRHS),
-  weqKnowns   : listofvars(weqLHS),
-  eqSolv      : linsolve(makelist(weqLHS[i]=weqRHS[i],i,1,length(weqLHS)),weqUnknowns),
-  return([weqKnowns,weqUnknowns,eqSolv]) 
+
+  fldF_cEx : makelist(eval_string(sconcat("fldF",fldF_cEx[i])),i,1,numUnknown),
+  weqSolv  : linsolve(makelist(lhsF[i][2]=rhsC[i][2],i,1,numUnknown),fldF_cEx),
+
+  return(weqSolv)
 )$
 
-calcFEMProlongationOp(fh, funcNm, dim, basisFun, pMax) := block([],
+calcFEMprolongationOp(fh, funcNm, dim, basisFun, pMax) := block([beta,coordVarS,stencilLoc,bcTypes,bcStrs,bcKey,sI,bcCombos,stencilSizeF,bcI,d,currBC,bN,numBasis,nodes,numNodes,weqMemSizeC,nodesExC,storedNodesExC,cellToIdxStoredC,dataStrsC,weqSizeC,cellToCoefC,weqMemSizeF,nodesExF,storedNodesExF,cellToIdxStoredF,dataStrsF,weqSizeF,cellToCoefF,weqSolv,weqSolvLHS,weqSolvRHS],
   /* Prolongation operator transferring a coarse-grid field to the
      fine grid. Currently limited to coarsening 2^a grids by a
      factor of 2 in both directions. */
@@ -410,74 +151,96 @@ calcFEMProlongationOp(fh, funcNm, dim, basisFun, pMax) := block([],
         bN       : getNodalBasis(basisFun, dim, polyOrder),
         numBasis : length(bN),
   
-        nodes : args(getNodes(basisFun, dim, polyOrder)),
-  
-        /* Each cell only stores the lower left nodes. */
-        storedNodes    : getStoredNodes(nodes,stencilLoc[sI]),
-        numStoredNodes : length(storedNodes), 
-  
-        eqSolvLst   : solveProlongationWeqEq(varsC,stencilLoc[sI],bN,nodes,storedNodes),
-        weqKnowns   : eqSolvLst[1],
-        weqUnknowns : eqSolvLst[2],
-        eqSolv      : eqSolvLst[3],
+        nodes          : args(getNodes(basisFun, dim, polyOrder)),
+        numNodes       : length(nodes),
 
-        eqSolvLHS : makelist(lhs(eqSolv[i]),i,1,length(eqSolv)),
-        eqSolvRHS : makelist(rhs(eqSolv[i]),i,1,length(eqSolv)),
-  
-        /* Remove contributions to memory locations in fine-grid
-           cells not passed to the kernel. */
-        fFldCoefs : [makelist(fldF0[i],i,0,numStoredNodes-1)],
-        idx       : 1,
-        for dI : 1 thru dim do (
-          cellsSoFar : length(fFldCoefs),
-          for pS : 1 thru cellsSoFar do (
-            for k : 1 thru (stencilSizeF[dI]-1) do (  /* Add stencilSizeF[dI]-1 nearest lower fine-grid cells. */
-              fFldCoefs : endcons([makelist(eval_string(sconcat("fldF",idx))[i],i,0,numStoredNodes-1)],fFldCoefs),
-              idx       : idx+1
-            )
+        weqMemSizeC    : makelist([1,1],i,1,dim),
+        nodesExC       : getExtendedNodes(basisFun,polyOrder,stencilLoc[sI],weqMemSizeC),
+        storedNodesExC : getExtendedStoredNodes(basisFun,polyOrder,stencilLoc[sI],weqMemSizeC),
+
+        /* Associative list between cell coordinates and a linear (base 1) index. */
+        cellToIdxStoredC : getCellToIdx(stencilLoc[sI],weqMemSizeC),
+
+        /* Create a map of which cell is going to save the contribution from each node. */
+        dataStrsC : getDataStr(weqMemSizeC,stencilLoc[sI],varsC),
+
+        /* Associative list of cell coordinate, and the memory location of each node. */
+        weqSizeC    : makelist([1,0],i,1,dim),
+        cellToCoefC : getCellToCoef(numBasis,stencilLoc[sI],nodesExC,storedNodesExC,
+                                    cellToIdxStoredC,dataStrsC,weqSizeC),
+
+        /* Now do the fine-grid cells. */
+        weqMemSizeF      : makelist([3,1],i,1,dim),
+        weqSizeF         : makelist([3,0],i,1,dim),
+        stencilLocF      : copylist(stencilLoc[sI]),
+        for d : 1 thru dim do (
+          if stencilLoc[sI][d] < 0 then (
+            stencilLocF[d] : 0,
+            weqMemSizeF[d] : [1,1],
+            weqSizeF[d]    : [1,0]
           )
         ),
-        dummyVars : listify(setdifference(setify(weqUnknowns),setify(flatten(fFldCoefs)))),
-        keepIdx   : listify(setdifference(makeset(i,[i],makelist([i],i,1,length(eqSolvRHS))),
-                                          setify(makelist(sublist_indices(weqUnknowns,lambda([x],x=dummyVars[i]))[1],i,1,length(dummyVars))))),
-        eqSolvLHS : makelist(eqSolvLHS[keepIdx[i]],i,1,length(keepIdx)),
-        eqSolvRHS : makelist(eqSolvRHS[keepIdx[i]],i,1,length(keepIdx)),
-  
-        /* Only retain the contributions from the coarse cell passed to the kernel. */
-        cFldCoefs : makelist(fldC0[i],i,0,numStoredNodes-1),
-        dummyVars : listify(setdifference(setify(weqKnowns),setify(cFldCoefs))),
-        eqSolvRHS : subst(makelist(dummyVars[i]=0,i,1,length(dummyVars)),eqSolvRHS),
-        keepIdx   : listify(setdifference(makeset(i,[i],makelist([i],i,1,length(eqSolvRHS))),setify(sublist_indices(eqSolvRHS,lambda([x],x=0))))), 
-        eqSolvLHS : makelist(eqSolvLHS[keepIdx[i]],i,1,length(keepIdx)),
-        eqSolvRHS : makelist(eqSolvRHS[keepIdx[i]],i,1,length(keepIdx)),
-        /* Also need to remove the number from the coarse-grid field variable name. */
-        eqSolvRHS : subst(makelist(fldC0[i]=fldC[i],i,0,numStoredNodes-1),eqSolvRHS),
-  
-  
+        nodesExF         : getExtendedNodes(basisFun,polyOrder,stencilLocF,weqMemSizeF),
+        storedNodesExF   : getExtendedStoredNodes(basisFun,polyOrder,stencilLocF,weqMemSizeF),
+        cellToIdxStoredF : getCellToIdx(stencilLocF,weqMemSizeF),
+        dataStrsF        : getDataStr(weqMemSizeF,stencilLocF,varsC),
+        cellToCoefF      : getCellToCoef(numBasis,stencilLocF,nodesExF,storedNodesExF,
+                                         cellToIdxStoredF,dataStrsF,weqSizeF),
+                                         /*
+        if (dim=2) then (
+          print("loc=",stencilLoc[sI]," | cellToCoefC="),
+          for i : 1 thru length(cellToCoefC) do (
+            print("              |            =",cellToCoefC[i])
+          ),
+          print("           | cellToCoefF="),
+          for i : 1 thru length(cellToCoefF) do (
+            print("              |            =",cellToCoefF[i])
+          )
+        ),
+        */
+
+        weqSolv : solveProlongationWeqEq(varsC,bN,cellToIdxStoredC,cellToCoefC,nodesExF,cellToIdxStoredF,cellToCoefF),
+
+        /* Remove contributions from the auxiliary coarse-cells we used to
+           form the weak equality system of equations. */
+        for iC : 1 thru length(cellToCoefC) do (
+          strsC : sublist(makelist(eval_string(cellToCoefC[iC][2][k]),k,1,numBasis),lambda([x],op(x) # C)),
+          if length(strsC)>0 then (
+            subList : makelist(eval_string(sconcat("fldC",string(strsC[k])))=0,k,1,length(strsC)),
+            weqSolv : subst(subList,weqSolv)
+          )
+        ),
+
+        weqSolvLHS : makelist(lhs(weqSolv[i]),i,1,length(weqSolv)),
+        weqSolvRHS : makelist(rhs(weqSolv[i]),i,1,length(weqSolv)),
+
         /* Function declaration with input/output variables. */
-        printf(fh, "void ~a_~aP~a(const double *fldC, double **fldF) ~%{ ~%", funcNm, stencilStr, polyOrder),
+        printf(fh, "void ~a_~aP~a(double *fldCC, double **fldF) ~%{ ~%", funcNm, stencilStr, polyOrder),
         printf(fh, "  // fldC: coarse-grid field.~%"),
         printf(fh, "  // fldF: fine-grid field in cells pointed to by the stencil.~%"),
         printf(fh, "~%"),
   
         /* Create a pointer to each cell used by stencil. */
-        ptrIdxsF : unique(makelist(eval_string(split(strim("fldF",string(eqSolvLHS[i])),"[")[1]),i,1,length(eqSolvLHS))),
-        for i : 1 thru length(ptrIdxsF) do (
-          printf(fh, "  double *fldF~a = fldF[~a];~%", ptrIdxsF[i], ptrIdxsF[i])
+        for iF : 1 thru length(dataStrsF) do (
+          idx : sublist_indices(weqSolvLHS, lambda([x],op(x)=eval_string(sconcat("fldF",dataStrsF[iF])))),
+          if (length(idx)>0) then (
+            if (weqSolvRHS[idx[1]] # 0) then (
+              printf(fh, "  double *fldF~a = fldF[~a];~%", dataStrsF[iF], iF-1)
+            )
+          )
         ),
         printf(fh, "~%"),
   
-        writeIncrExprs(eqSolvLHS,eqSolvRHS),
+        writeIncrExprs(weqSolvLHS,weqSolvRHS),
   
         printf(fh, "}~%"),
         printf(fh, "~%")
-  
       )
     )
   )
 )$
 
-calcFEMRestrictionOp(fh, funcNm, dim, basisFun, pMax) := block([],
+calcFEMrestrictionOp(fh, funcNm, dim, basisFun, pMax) := block([beta,coordVarS,stencilLoc,bcTypes,bcStrs,bcKey,sI,bcCombos,stencilSizeF,bcI,d,currBC,bN,numBasis,nodes,numNodes,weqMemSizeC,nodesExC,storedNodesExC,cellToIdxStoredC,dataStrsC,weqSizeC,cellToCoefC,weqMemSizeF,nodesExF,storedNodesExF,cellToIdxStoredF,dataStrsF,weqSizeF,cellToCoefF,weqSolv,weqSolvLHS,weqSolvRHS,weqUnknowns,weqKnowns,newSolv,dxF,dxC,dirichletSurfs,cellCoordC,cellCoordF,storedNodeToCellF,boundNodesC,boundNodesCI,boundNodeF,boundCellF,iF,nodeIdxF],
   /* Restriction operator transferring a fine-grid field to the
      coarse grid. Currently limited to coarsening 2^a grids by a
      factor of 2 in both directions. */
@@ -516,7 +279,7 @@ calcFEMRestrictionOp(fh, funcNm, dim, basisFun, pMax) := block([],
     for d : 1 thru dim do (
       if stencilLoc[sI][d] < 0 then ( stencilSizeF[d] : beta )
     ),
-
+  
     /* Loop over BC combinations. Will create a separate kernel for each. */
     for bcI : 1 thru length(bcCombos) do (
 
@@ -526,104 +289,125 @@ calcFEMRestrictionOp(fh, funcNm, dim, basisFun, pMax) := block([],
       stencilStr : getStencilStr(stencilLoc[sI],coordVarS,currBC,bcKey),
 
       for polyOrder : 1 thru pMax do (
-        bN   : getNodalBasis(basisFun, dim, polyOrder),
-        numB : length(bN),
+        bN       : getNodalBasis(basisFun, dim, polyOrder),
+        numBasis : length(bN),
   
-        nodes : args(getNodes(basisFun, dim, polyOrder)),
-  
-        /* Each cell only stores the lower left nodes. */
-        storedNodes    : getStoredNodes(nodes,stencilLoc[sI]),
-        numStoredNodes : length(storedNodes), 
-  
-        eqSolvLst   : solveProlongationWeqEq(varsC,stencilLoc[sI],bN,nodes,storedNodes),
-        weqKnowns   : eqSolvLst[1],
-        weqUnknowns : eqSolvLst[2],
-        eqSolv      : eqSolvLst[3],
+        nodes          : args(getNodes(basisFun, dim, polyOrder)),
+        numNodes       : length(nodes),
+
+        weqMemSizeC    : makelist([1,1],i,1,dim),
+        nodesExC       : getExtendedNodes(basisFun,polyOrder,stencilLoc[sI],weqMemSizeC),
+        storedNodesExC : getExtendedStoredNodes(basisFun,polyOrder,stencilLoc[sI],weqMemSizeC),
+
+        /* Associative list between cell coordinates and a linear (base 1) index. */
+        cellToIdxStoredC : getCellToIdx(stencilLoc[sI],weqMemSizeC),
+
+        /* Create a map of which cell is going to save the contribution from each node. */
+        dataStrsC : getDataStr(weqMemSizeC,stencilLoc[sI],varsC),
+
+        /* Associative list of cell coordinate, and the memory location of each node. */
+        weqSizeC    : makelist([1,0],i,1,dim),
+        cellToCoefC : getCellToCoef(numBasis,stencilLoc[sI],nodesExC,storedNodesExC,
+                                    cellToIdxStoredC,dataStrsC,weqSizeC),
+
+        /* Now do the fine-grid cells. */
+        weqMemSizeF      : makelist([3,1],i,1,dim),
+        weqSizeF         : makelist([3,0],i,1,dim),
+        stencilLocF      : copylist(stencilLoc[sI]),
+        for d : 1 thru dim do (
+          if stencilLoc[sI][d] < 0 then (
+            stencilLocF[d] : 0,
+            weqMemSizeF[d] : [1,1],
+            weqSizeF[d]    : [1,0]
+          )
+        ),
+        nodesExF         : getExtendedNodes(basisFun,polyOrder,stencilLocF,weqMemSizeF),
+        storedNodesExF   : getExtendedStoredNodes(basisFun,polyOrder,stencilLocF,weqMemSizeF),
+        cellToIdxStoredF : getCellToIdx(stencilLocF,weqMemSizeF),
+        dataStrsF        : getDataStr(weqMemSizeF,stencilLocF,varsC),
+        cellToCoefF      : getCellToCoef(numBasis,stencilLocF,nodesExF,storedNodesExF,
+                                         cellToIdxStoredF,dataStrsF,weqSizeF),
+
+        weqSolv : solveProlongationWeqEq(varsC,bN,cellToIdxStoredC,cellToCoefC,nodesExF,cellToIdxStoredF,cellToCoefF),
+
+        weqSolvLHS : makelist(lhs(weqSolv[i]),i,1,length(weqSolv)),
+        weqSolvRHS : makelist(rhs(weqSolv[i]),i,1,length(weqSolv)),
+
+        weqUnknowns : listofvars(weqSolvLHS),
+        weqKnowns   : listofvars(weqSolvRHS),
 
         /* The restriction matrix is the transpose of the prolongation matrix. */
-        newSolv : (transpose(coefmatrix(makelist(rhs(eqSolv[i]),i,1,length(weqLHS)),makelist(weqKnowns[i],i,1,length(weqKnowns)))))
-                  . matrix(makelist(weqUnknowns[i],i,1,length(weqUnknowns))),
-        eqSolv  : makelist(weqKnowns[i]=newSolv[i][1],i,1,length(weqKnowns)),
+        newSolv : (transpose(coefmatrix(weqSolvRHS,weqKnowns))) . matrix(weqUnknowns),
+        weqSolv : makelist(weqKnowns[i]=newSolv[i][1],i,1,length(weqKnowns)),
+
         /* Swap knowns and unknowns. */
         tmp         : copylist(weqUnknowns),
         weqUnknowns : copylist(weqKnowns),
         weqKnowns   : copylist(tmp),
         kill(tmp),
 
-        eqSolvLHS : makelist(lhs(eqSolv[i]),i,1,length(eqSolv)),
-        eqSolvRHS : makelist(rhs(eqSolv[i]),i,1,length(eqSolv)),
-  
-        /* Only retain the contributions from the coarse cell passed to the kernel. */
-        cFldCoefs : makelist(fldC0[i],i,0,numStoredNodes-1),
-        dummyVars : listify(setdifference(setify(weqUnknowns),setify(cFldCoefs))),
-        keepIdx   : listify(setdifference(makeset(i,[i],makelist([i],i,1,length(eqSolvRHS))),
-                                          setify(makelist(sublist_indices(weqUnknowns,lambda([x],x=dummyVars[i]))[1],i,1,length(dummyVars))))),
-        eqSolvLHS : makelist(eqSolvLHS[keepIdx[i]],i,1,length(keepIdx)),
-        eqSolvRHS : makelist(eqSolvRHS[keepIdx[i]],i,1,length(keepIdx)),
+        /* Remove contributions from the auxiliary coarse-cells we used to
+           form the weak equality system of equations. */
+        weqSolv : sublist(weqSolv,lambda([x],op(lhs(x))=fldCC)),
 
-        /* Also need to remove the number from the coarse-grid field variable name. */
-        eqSolvLHS : subst(makelist(fldC0[i]=fldC[i],i,0,numStoredNodes-1),eqSolvLHS),
+        weqSolvLHS : makelist(lhs(weqSolv[i]),i,1,length(weqSolv)),
+        weqSolvRHS : makelist(rhs(weqSolv[i]),i,1,length(weqSolv)),
 
-        /* Remove contributions to memory locations in coarse-grid
-           cells not passed to the kernel. */
-        fFldCoefs : [makelist(fldF0[i],i,0,numStoredNodes-1)],
-        idx       : 1,
-        for dI : 1 thru dim do (
-          cellsSoFar : length(fFldCoefs),
-          for pS : 1 thru cellsSoFar do (
-            for k : 1 thru (stencilSizeF[dI]-1) do (  /* Add stencilSizeF[dI]-1 nearest lower fine-grid cells. */
-              fFldCoefs : endcons([makelist(eval_string(sconcat("fldF",idx))[i],i,0,numStoredNodes-1)],fFldCoefs),
-              idx       : idx+1
-            )
-          )
-        ),
-        dummyVars : listify(setdifference(setify(weqKnowns),setify(flatten(fFldCoefs)))),
-        eqSolvRHS : subst(makelist(dummyVars[i]=0,i,1,length(dummyVars)),eqSolvRHS),
-        keepIdx   : listify(setdifference(makeset(i,[i],makelist([i],i,1,length(eqSolvRHS))),setify(sublist_indices(eqSolvRHS,lambda([x],x=0))))), 
-        eqSolvLHS : makelist(eqSolvLHS[keepIdx[i]],i,1,length(keepIdx)),
-        eqSolvRHS : makelist(eqSolvRHS[keepIdx[i]],i,1,length(keepIdx)),
+        /* Fine- and coarse-grid cell lengths. */
+        dxF : makelist(1,d,1,dim), 
+        dxC : makelist(2,d,1,dim), 
 
         /* For Dirichlet BCs, the values on the boundary get transferred. */
         dirichletSurfs : sublist_indices(currBC, lambda([x],x=1)),
+
+        cellCoordC : makelist(0,i,1,dim),
+        cellCoordF : makelist(0,i,1,dim),
         for dI : 1 thru length(dirichletSurfs) do (
-          dir         : dirichletSurfs[dI],
-          boundNodes  : copylist(sublist(storedNodes,lambda([x],x[dir]=stencilLoc[sI][dir]))),
-          boundNodesI : sublist_indices(storedNodes,lambda([x],x[dir]=stencilLoc[sI][dir])),
-          if stencilLoc[sI][dir]=-1 then (
-            idx : 2^(dir-1)
-          ) else (
-            idx : 0
-          ),
-          fFldCoefs   : [makelist(eval_string(sconcat("fldF",idx))[boundNodesI[k]-1],k,1,length(boundNodesI))],
-          for k : 1 thru length(boundNodesI) do (
-            idx : sublist_indices(eqSolvLHS,lambda([x],x=fldC[boundNodesI[k]-1]))[1],
-            dummyVars : listify(setdifference(setify(weqKnowns),setify(flatten(fFldCoefs)))),
-            eqSolvRHS[idx] : subst(makelist(dummyVars[i]=0,i,1,length(dummyVars)),eqSolvRHS[idx])
+          dir : dirichletSurfs[dI],
+          if (stencilLoc[sI][dir]=-1) then ( cellCoordF[dir] : -1 )
+        ),
+
+        /* Associative list of nodes on extended logical space, and the cell that stores that node. */
+        storedNodeToCellF : invertAssocList(storedNodesExF),
+
+        for dI : 1 thru length(dirichletSurfs) do (
+          dir          : dirichletSurfs[dI],
+          boundNodesC  : copylist(sublist(storedNodesExC[1][2],lambda([x],x[dir]=stencilLoc[sI][dir]))),
+          boundNodesCI : sublist_indices(storedNodesExC[1][2],lambda([x],x[dir]=stencilLoc[sI][dir])),
+
+          /* Fine- and coarse-grid cell centers. */
+          for k : 1 thru length(boundNodesC) do (
+            boundNodeF : fullratsimp(makelist((dxC[d]/dxF[d])*boundNodesC[k][d]-dxF[d],d,1,dim)),
+            boundCellF : assoc(boundNodeF,storedNodeToCellF),
+            iF         : assoc(boundCellF,cellToIdxStoredF),
+            nodeIdxF   : sublist_indices(storedNodesExF[iF][2],lambda([x],x=boundNodeF))[1],
+            coefsF     : assoc(boundCellF,cellToCoefF),
+            weqSolvRHS[boundNodesCI[k]] : eval_string(sconcat("fldF",coefsF[nodeIdxF]))
           )
         ),
 
         /* Function declaration with input/output variables. */
-        printf(fh, "void ~a_~aP~a(double **fldF, double *fldC) ~%{ ~%", funcNm, stencilStr, polyOrder),
+        printf(fh, "void ~a_~aP~a(double **fldF, double *fldCC) ~%{ ~%", funcNm, stencilStr, polyOrder),
         printf(fh, "  // fldF: fine-grid field in cells pointed to by the stencil.~%"),
         printf(fh, "  // fldC: coarse-grid field.~%"),
         printf(fh, "~%"),
   
         /* Create a pointer to each cell used by stencil. */
-        fFldVars : [],
-        for i : 1 thru length(eqSolvRHS) do (
-          fFldVars : unique(append(fFldVars,listofvars(eqSolvRHS[i])))
-        ),
-        ptrIdxsF : unique(makelist(eval_string(split(strim("fldF",string(fFldVars[i])),"[")[1]),i,1,length(fFldVars))),
-        for i : 1 thru length(ptrIdxsF) do (
-          printf(fh, "  double *fldF~a = fldF[~a];~%", ptrIdxsF[i], ptrIdxsF[i])
+        for iF : 1 thru length(dataStrsF) do (
+          nodeNotIn : true,
+          for k : 1 thru length(weqSolvRHS) do (
+            nodeNotIn : nodeNotIn and freeof(eval_string(sconcat("fldF",dataStrsF[iF])),weqSolvRHS[k])
+          ),
+          if not nodeNotIn then (
+            printf(fh, "  double *fldF~a = fldF[~a];~%", dataStrsF[iF], iF-1)
+          )
         ),
         printf(fh, "~%"),
   
-        writeIncrExprs(eqSolvLHS,eqSolvRHS),
+        writeIncrExprs(weqSolvLHS,weqSolvRHS),
   
         printf(fh, "}~%"),
         printf(fh, "~%")
-
       )
     )
 

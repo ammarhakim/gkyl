@@ -29,20 +29,20 @@ ffi.cdef [[
 
   // Uniform Cartesian grid C representation
   typedef struct {
-    int32_t ndim;
-    int32_t cells[6];
+    int ndim;
+    int cells[6];
     double lower[6], upper[6];
     double vol, dx[6];
-  } RectCart_t;
+  } GkylRectCart_t;
 ]]
 
-local rectCartSz = sizeof("RectCart_t")
+local rectCartSz = sizeof("GkylRectCart_t")
 
 local function getDevicePointerToGrid(grid)
    if not GKYL_HAVE_CUDA then return nil end
 
    -- first copy stuff to a C-struct
-   local g = ffi.new("RectCart_t")
+   local g = ffi.new("GkylRectCart_t")
    g.ndim = grid:ndim()
    g.vol = grid:cellVolume()
    for i = 1, grid:ndim() do
@@ -148,6 +148,8 @@ function RectCart:init(tbl)
       self._block = 1
       self._cuts = cuts
    end
+
+   self._onDevice = self:copyHostToDevice()
 end
 
 -- member functions

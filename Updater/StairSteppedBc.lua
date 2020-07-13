@@ -41,7 +41,7 @@ local createSliceData = function (dtype)
          Alloc.free(self._data)
       end,
    }
-   return metatype(typeof(string.format("struct {int32_t _sz, _stride, _lower; %s *_data; }", dtype)), slice_mt)
+   return metatype(typeof(string.format("struct {int _sz, _stride, _lower; %s *_data; }", dtype)), slice_mt)
 end
 local SliceDataBool = createSliceData("bool")
 

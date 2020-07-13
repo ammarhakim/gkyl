@@ -35,23 +35,27 @@ for bInd : 1 thru length(bName) do (
     /* Vlasov primitive moments. */
     for v : max(c,minVdim[bInd]) thru maxVdim[bInd] do (
       maxPolyOrderB : maxPolyOrder[bInd],
-      if(c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
-    
-      disp(printf(false,sconcat("Creating VmSelfPrimMoments ~ax~av", bName[bInd]),c,v)),
-      fname : sconcat("~/max-out/VmSelfPrimMoments", bName[bInd], c, "x", v, "v", ".cpp"),
-      fh : openw(fname),
-  
-      printf(fh, "#include <PrimMomentsModDecl.h> ~%"),
-      printf(fh, " ~%"),
+      if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+      if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
 
-      printf(fh, "using namespace Eigen; ~%"),
-      printf(fh, " ~%"),
+      for polyOrder : 1 thru maxPolyOrderB do (
+    
+        disp(printf(false,sconcat("Creating VmSelfPrimMoments ~ax~av", bName[bInd]),c,v)),
+        fname : sconcat("~/max-out/VmSelfPrimMoments", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
+        fh : openw(fname),
   
-      kinSpec : "Vm",
-      funcName : sconcat("VmSelfPrimMoments", c, "x", v, "v", bName[bInd]),
-      calcSelfPrimMoms(fh, funcName, c, v, bName[bInd], maxPolyOrderB),
+        printf(fh, "#include <PrimMomentsModDecl.h> ~%"),
+        printf(fh, " ~%"),
+
+        printf(fh, "using namespace Eigen; ~%"),
+        printf(fh, " ~%"),
   
-      close(fh)
+        kinSpec : "Vm",
+        funcName : sconcat("VmSelfPrimMoments", c, "x", v, "v", bName[bInd]),
+        calcSelfPrimMoms(fh, funcName, c, v, bName[bInd], polyOrder),
+  
+        close(fh)
+      )
     ),
 
     /* For gyrokinetic need 1x1v, 1x2v, 2x2v and 3x2v. However each
@@ -61,23 +65,27 @@ for bInd : 1 thru length(bName) do (
       v : gkVdims[c][gkV],
 
       maxPolyOrderB : maxPolyOrder[bInd],
-      if(c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+      if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+      if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
 
-      disp(printf(false,sconcat("Creating GkSelfPrimMoments ~ax~av", bName[bInd]),c,v)),
-      fname : sconcat("~/max-out/GkSelfPrimMoments", bName[bInd], c, "x", v, "v", ".cpp"),
-      fh : openw(fname),
+      for polyOrder : 1 thru maxPolyOrderB do (
+
+        disp(printf(false,sconcat("Creating GkSelfPrimMoments ~ax~av", bName[bInd]),c,v)),
+        fname : sconcat("~/max-out/GkSelfPrimMoments", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
+        fh : openw(fname),
     
-      printf(fh, "#include <PrimMomentsModDecl.h> ~%"),
-      printf(fh, " ~%"),
-      printf(fh, "using namespace Eigen; ~%"),
-      printf(fh, " ~%"),
+        printf(fh, "#include <PrimMomentsModDecl.h> ~%"),
+        printf(fh, " ~%"),
+        printf(fh, "using namespace Eigen; ~%"),
+        printf(fh, " ~%"),
     
-      kinSpec : "Gk",
+        kinSpec : "Gk",
   
-      funcName : sconcat("GkSelfPrimMoments", c, "x", v, "v", bName[bInd]),
-      calcSelfPrimMoms(fh, funcName, c, v, bName[bInd], maxPolyOrderB),
+        funcName : sconcat("GkSelfPrimMoments", c, "x", v, "v", bName[bInd]),
+        calcSelfPrimMoms(fh, funcName, c, v, bName[bInd], polyOrder),
   
-      close(fh)
+        close(fh)
+      )
     )
   )
 );

@@ -1,6 +1,6 @@
 -- Gkyl --------------------------------------------------------------
 -- Basic sheath simulation -------------------------------------------
-local Plasma = (require "App.PlasmaOnCartGrid").VlasovMaxwell
+local Plasma = (require "App.PlasmaOnCartGrid").VlasovMaxwell()
 
 -- SI units
 local epsilon_0, mu_0 = 8.854e-12, 1.257e-6

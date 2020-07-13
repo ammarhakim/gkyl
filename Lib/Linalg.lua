@@ -77,7 +77,7 @@ local function new_vec_ct(elct)
 	 self._p[k-1] = v
       end,
    }
-   local ct = typeof("struct { int32_t _n; $* _p; $ _a[?]; }", elct, elct)
+   local ct = typeof("struct { int _n; $* _p; $ _a[?]; }", elct, elct)
    return metatype(ct, vec_mt)
 end
 
@@ -114,7 +114,7 @@ local function new_mat_row_ct(elct)
 	 self._cdata[k-1] = v
       end,
    }
-   return metatype(typeof("struct { int32_t ncols; $* _cdata; }", elct), mat_row_mt)
+   return metatype(typeof("struct { int ncols; $* _cdata; }", elct), mat_row_mt)
 end
 
 -- Matrix meta-object creator
@@ -160,22 +160,24 @@ local function new_mat_ct(elct)
 	 end
       end,
    }
-   local ct = typeof("struct { int32_t _n, _m; $* _p; $ _a[?]; }", elct, elct)
+   local ct = typeof("struct { int _n, _m; $* _p; $ _a[?]; }", elct, elct)
    return metatype(ct, mat_mt)
 end
 
 return {
    new_vec_ct = new_vec_ct,
    Vec = new_vec_ct(typeof("double")),
-   UIntVec = new_vec_ct(typeof("uint32_t")),
-   IntVec = new_vec_ct(typeof("int32_t")),
+   UIntVec = new_vec_ct(typeof("unsigned")),
+   IntVec = new_vec_ct(typeof("int")),
    FloatVec = new_vec_ct(typeof("float")),
    -- some specialized types
    UInt64Vec = new_vec_ct(typeof("uint64_t")),
    Int64Vec = new_vec_ct(typeof("int64_t")),
+   UInt32Vec = new_vec_ct(typeof("uint32_t")),
+   Int32ec = new_vec_ct(typeof("int32_t")),   
 
    new_mat_ct = new_mat_ct,
    Mat = new_mat_ct(typeof("double")),
-   IntMat = new_mat_ct(typeof("int32_t")),
+   IntMat = new_mat_ct(typeof("int")),
    FloatMat = new_mat_ct(typeof("float")),
 }

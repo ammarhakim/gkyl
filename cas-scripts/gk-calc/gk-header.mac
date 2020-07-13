@@ -55,9 +55,3 @@ printf(fh, "} ~%")$
 printf(fh, "#endif ~%")$
 close(fh)$
 
-fh : openw("~/max-out/_GyrokineticCdef.lua")$
-printf(fh, "local ffi = require \"ffi\" ~%~%")$
-printf(fh, "ffi.cdef [[~%")$
-printPrototypes()$
-printf(fh, "]]~%")$
-close(fh)$

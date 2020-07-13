@@ -12,9 +12,9 @@ local Updater = require "Updater"
 local ffi = require "ffi"
 local xsys = require "xsys"
 
-local _ = require "Proto.Fpo.fpoKernelsCdef"
-
 return function(tbl)
+   local _ = require "Proto.Fpo.fpoKernelsCdef"
+
    local numKeys, keysUsed = 0, 0
    for key, value in pairs(tbl) do
       numKeys = numKeys + 1
@@ -22,14 +22,34 @@ return function(tbl)
    -- Simulation parameters
    local polyOrder = tbl.polyOrder -- polynomial order
 
-   local dragKernelNm = string.format("fpoDragKernelP%d", polyOrder)
+   local dragKernelNm = string.format("fpoDragKernel3xP%d", polyOrder)
    local dragKernelFn = ffi.C[dragKernelNm]
-   local diffKernelNm = string.format("fpoDiffKernelP%d", polyOrder)
-   local diffKernelFn = ffi.C[diffKernelNm]
+   
+   local diffSurfXLSerNm = string.format("fpoDiffSurfXLSer3xP%d", polyOrder)
+   local diffSurfXLSerFn = ffi.C[diffSurfXLSerNm]
+   local diffSurfXUSerNm = string.format("fpoDiffSurfXUSer3xP%d", polyOrder)
+   local diffSurfXUSerFn = ffi.C[diffSurfXUSerNm]
+   
+   local diffSurfYLSerNm = string.format("fpoDiffSurfYLSer3xP%d", polyOrder)
+   local diffSurfYLSerFn = ffi.C[diffSurfYLSerNm]
+   local diffSurfYUSerNm = string.format("fpoDiffSurfYUSer3xP%d", polyOrder)
+   local diffSurfYUSerFn = ffi.C[diffSurfYUSerNm]
+   
+   local diffSurfZLSerNm = string.format("fpoDiffSurfZLSer3xP%d", polyOrder)
+   local diffSurfZLSerFn = ffi.C[diffSurfZLSerNm]
+   local diffSurfZUSerNm = string.format("fpoDiffSurfZUSer3xP%d", polyOrder)
+   local diffSurfZUSerFn = ffi.C[diffSurfZUSerNm]
+   
+   local diffVolSerNm = string.format("fpoDiffVolSer3xP%d", polyOrder)
+   local diffVolSerFn = ffi.C[diffVolSerNm]
+
    local momsKernelNm = string.format("fpoMomsKernelP%d", polyOrder)
    local momsKernelFn = ffi.C[momsKernelNm]
    local diagKernelNm = string.format("fpoDiagKernelP%d", polyOrder)
    local diagKernelFn = ffi.C[diagKernelNm]
+
+   local fStencil7 = ffi.new("stencil7")
+   local hStencil7 = ffi.new("stencil7")
 
    local cflFrac = tbl.cflFrac and tbl.cflFrac or 1.0
    local fixedDt = tbl.fixedDt
@@ -45,10 +65,11 @@ return function(tbl)
    local upper = tbl.upper
 
    local periodicDirs = tbl.periodicDirs and tbl.periodicDirs or {}
-   local periodicX, periodicY = false, false
+   local periodicX, periodicY, periodicZ = false, false, false
    for i = 1, #periodicDirs do
       if periodicDirs[i] == 1 then periodicX = true end
       if periodicDirs[i] == 2 then periodicY = true end
+      if periodicDirs[i] == 3 then periodicZ = true end
    end
 
    local tmRosen, tmFpo = 0.0, 0.0
@@ -58,9 +79,9 @@ return function(tbl)
    -- Grids and Fields --
    ----------------------
    local grid = Grid.RectCart {
-      lower = {lower[1], lower[2]},
-      upper = {upper[1], upper[2]},
-      cells = {cells[1], cells[2]},
+      lower = lower,
+      upper = upper,
+      cells = cells,
       periodicDirs = periodicDirs,
    }
 
@@ -152,33 +173,34 @@ return function(tbl)
       local globalRange = fld:globalRange()
       local xlo, xup = globalRange:lower(1), globalRange:upper(1)
       local ylo, yup = globalRange:lower(2), globalRange:upper(2)
+      local zlo, zup = globalRange:lower(3), globalRange:upper(3)
       
       local indexer = fld:indexer()
       local idxSkin, idxGhost
       
       -- lower-left
-      idxSkin, idxGhost = fld:get(indexer(xup, yup)), fld:get(indexer(xlo-1, ylo-1))
-      for k = 1, fld:numComponents() do
-         idxGhost[k] = idxSkin[k]
-      end
+      -- idxSkin, idxGhost = fld:get(indexer(xup, yup)), fld:get(indexer(xlo-1, ylo-1))
+      -- for k = 1, fld:numComponents() do
+      --    idxGhost[k] = idxSkin[k]
+      -- end
       
-      -- lower-right
-      idxSkin, idxGhost = fld:get(indexer(xlo, yup)), fld:get(indexer(xup+1, ylo-1))
-      for k = 1, fld:numComponents() do
-         idxGhost[k] = idxSkin[k]
-      end
+      -- -- lower-right
+      -- idxSkin, idxGhost = fld:get(indexer(xlo, yup)), fld:get(indexer(xup+1, ylo-1))
+      -- for k = 1, fld:numComponents() do
+      --    idxGhost[k] = idxSkin[k]
+      -- end
       
-      -- upper-left
-      idxSkin, idxGhost = fld:get(indexer(xup, ylo)), fld:get(indexer(xlo-1, yup+1))
-      for k = 1, fld:numComponents() do
-         idxGhost[k] = idxSkin[k]
-      end
+      -- -- upper-left
+      -- idxSkin, idxGhost = fld:get(indexer(xup, ylo)), fld:get(indexer(xlo-1, yup+1))
+      -- for k = 1, fld:numComponents() do
+      --    idxGhost[k] = idxSkin[k]
+      -- end
       
-      -- upper-right
-      idxSkin, idxGhost = fld:get(indexer(xlo, ylo)), fld:get(indexer(xup+1, yup+1))
-      for k = 1, fld:numComponents() do
-         idxGhost[k] = idxSkin[k]
-      end
+      -- -- upper-right
+      -- idxSkin, idxGhost = fld:get(indexer(xlo, ylo)), fld:get(indexer(xup+1, yup+1))
+      -- for k = 1, fld:numComponents() do
+      --    idxGhost[k] = idxSkin[k]
+      -- end
    end
 
    -- projection to apply ICs
@@ -188,14 +210,14 @@ return function(tbl)
       evaluate = tbl.init,
    }
 
-   local poisson = Updater.FemPerpPoisson {
-      onGrid = grid,
-      basis = basis,
-      bcBottom = { T = "D", V = 0.0 },
-      bcTop = { T = "D", V = 0.0 },
-      bcLeft = { T = "D", V = 0.0 },
-      bcRight = { T = "D", V = 0.0 },
-   }
+   -- local poisson = Updater.FemPerpPoisson {
+   --    onGrid = grid,
+   --    basis = basis,
+   --    bcBottom = { T = "D", V = 0.0 },
+   --    bcTop = { T = "D", V = 0.0 },
+   --    bcLeft = { T = "D", V = 0.0 },
+   --    bcRight = { T = "D", V = 0.0 },
+   -- }
 
    local function updateRosenbluthDrag(fIn, hOut)
       local tmStart = Time.clock()
@@ -277,7 +299,7 @@ return function(tbl)
    --------------------
    initDist:advance(0.0, {}, {f})
    applyBc(f)
-   local momVec = calcMoms(0, f, moms)
+   --local momVec = calcMoms(0, f, moms)
 
    -- Check if drag/diff functions are provided
    local initDragFunc = tbl.initDrag and tbl.initDrag or function(t, z) return 0.0 end
@@ -329,7 +351,7 @@ return function(tbl)
       h:write(string.format('h_%d.bp', 0), 0.0, 0)
       g:write(string.format('g_%d.bp', 0), 0.0, 0)
    end
-
+ 
    -- source
    local hasConstSource = false
    if tbl.constSource then
@@ -354,89 +376,177 @@ return function(tbl)
       local tmStart = Time.clock()
 
       local dv = Lin.Vec(3)
-      dv[1], dv[2] = grid:dx(1), grid:dx(2)
+      dv[1], dv[2], dv[3] = grid:dx(1), grid:dx(2), grid:dx(3)
       local localRange = fIn:localRange()
       local indexer = fIn:genIndexer()
-      local idxsR, idxsL = {}, {}
-      local idxsT, idxsB = {}, {}
-      local idxsTL, idxsTR, idxsBL, idxsBR = {}, {}, {}, {}
-      local cflFreq, dragFreq, diffFrq = 0.0, 0.0, 0.0
+      local idxs_LLC = {}
+      local idxs_LCL = {}
+      local idxs_LCC = {}
+      local idxs_LCU = {}
+      local idxs_LUC = {}
+      local idxs_CLL = {}
+      local idxs_CLC = {}
+      local idxs_CLU = {}
+      local idxs_CCL = {}
+      local idxs_CCC = {}
+      local idxs_CCU = {}
+      local idxs_CUL = {}
+      local idxs_CUC = {}
+      local idxs_CUU = {}
+      local idxs_ULC = {}
+      local idxs_UCL = {}
+      local idxs_UCC = {}
+      local idxs_UCU = {}
+      local idxs_UUC = {}
+
+      local cflFreq, dragFreq, diffFreq = 0.0, 0.0, 0.0
 
       for idxs in localRange:colMajorIter() do
-         idxsR[1], idxsR[2] = idxs[1]+1, idxs[2]
-         idxsL[1], idxsL[2] = idxs[1]-1, idxs[2]
-         idxsT[1], idxsT[2] = idxs[1], idxs[2]+1
-         idxsB[1], idxsB[2] = idxs[1], idxs[2]-1
+         idxs_LLC[1], idxs_LLC[2], idxs_LLC[3] = idxs[1]-1, idxs[2]-1, idxs[3]
+         idxs_LCL[1], idxs_LCL[2], idxs_LCL[3] = idxs[1]-1, idxs[2], idxs[3]-1
+         idxs_LCC[1], idxs_LCC[2], idxs_LCC[3] = idxs[1]-1, idxs[2], idxs[3]
+         idxs_LCU[1], idxs_LCU[2], idxs_LCU[3] = idxs[1]-1, idxs[2], idxs[3]+1
+         idxs_LUC[1], idxs_LUC[2], idxs_LUC[3] = idxs[1]-1, idxs[2]+1, idxs[3]
+         
+         idxs_CLL[1], idxs_CLL[2], idxs_CLL[3] = idxs[1], idxs[2]-1, idxs[3]-1
+         idxs_CLC[1], idxs_CLC[2], idxs_CLC[3] = idxs[1], idxs[2]-1, idxs[3]
+         idxs_CLU[1], idxs_CLU[2], idxs_CLU[3] = idxs[1], idxs[2]-1, idxs[3]+1
+         idxs_CCL[1], idxs_CCL[2], idxs_CCL[3] = idxs[1], idxs[2], idxs[3]-1
+         idxs_CCC[1], idxs_CCC[2], idxs_CCC[3] = idxs[1], idxs[2], idxs[3]
+         idxs_CCU[1], idxs_CCU[2], idxs_CCU[3] = idxs[1], idxs[2], idxs[3]+1
+         idxs_CUL[1], idxs_CUL[2], idxs_CUL[3] = idxs[1], idxs[2]+1, idxs[3]-1
+         idxs_CUC[1], idxs_CUC[2], idxs_CUC[3] = idxs[1], idxs[2]+1, idxs[3]
+         idxs_CUU[1], idxs_CUU[2], idxs_CUU[3] = idxs[1], idxs[2]+1, idxs[3]+1
+         
+         idxs_ULC[1], idxs_ULC[2], idxs_ULC[3] = idxs[1]+1, idxs[2]-1, idxs[3]
+         idxs_UCL[1], idxs_UCL[2], idxs_UCL[3] = idxs[1]+1, idxs[2], idxs[3]-1
+         idxs_UCC[1], idxs_UCC[2], idxs_UCC[3] = idxs[1]+1, idxs[2], idxs[3]
+         idxs_UCU[1], idxs_UCU[2], idxs_UCU[3] = idxs[1]+1, idxs[2], idxs[3]+1
+         idxs_UUC[1], idxs_UUC[2], idxs_UUC[3] = idxs[1]+1, idxs[2]+1, idxs[3]
 
-         idxsTL[1], idxsTL[2] = idxs[1]-1, idxs[2]+1
-         idxsTR[1], idxsTR[2] = idxs[1]+1, idxs[2]+1
-         idxsBL[1], idxsBL[2] = idxs[1]-1, idxs[2]-1
-         idxsBR[1], idxsBR[2] = idxs[1]+1, idxs[2]-1
+         -- local isTopEdge, isBotEdge = 0, 0
+         -- local isLeftEdge, isRightEdge = 0, 0
+         -- if periodicX == false then
+         --    if idxs[1] == 1 then isLeftEdge = 1 end
+         --    if idxs[1] == cells[1] then isRightEdge = 1 end
+         -- end
+         -- if periodicY == false then
+         --    if idxs[2] == 1 then isBotEdge = 1 end
+         --    if idxs[2] == cells[2] then isTopEdge = 1 end
+         -- end
+         
 
-         local isTopEdge, isBotEdge = 0, 0
-         local isLeftEdge, isRightEdge = 0, 0
-         if periodicX == false then
-            if idxs[1] == 1 then isLeftEdge = 1 end
-            if idxs[1] == cells[1] then isRightEdge = 1 end
-         end
-         if periodicY == false then
-            if idxs[2] == 1 then isBotEdge = 1 end
-            if idxs[2] == cells[2] then isTopEdge = 1 end
-         end
+         fStencil7.C = fIn:get(indexer(idxs)):data()
+         fStencil7.xL = fIn:get(indexer(idxs_LCC)):data()
+         fStencil7.xU = fIn:get(indexer(idxs_UCC)):data()
+         fStencil7.yL = fIn:get(indexer(idxs_CLC)):data()
+         fStencil7.yU = fIn:get(indexer(idxs_CUC)):data()
+         fStencil7.zL = fIn:get(indexer(idxs_CCL)):data()
+         fStencil7.zU = fIn:get(indexer(idxs_CCU)):data()
 
-         local fC = fIn:get(indexer(idxs))
-         local fR = fIn:get(indexer(idxsR))
-         local fL = fIn:get(indexer(idxsL))
-         local fT = fIn:get(indexer(idxsT))
-         local fB = fIn:get(indexer(idxsB))
+         hStencil7.C = hIn:get(indexer(idxs)):data()
+         hStencil7.xL = hIn:get(indexer(idxs_LCC)):data()
+         hStencil7.xU = hIn:get(indexer(idxs_UCC)):data()
+         hStencil7.yL = hIn:get(indexer(idxs_CLC)):data()
+         hStencil7.yU = hIn:get(indexer(idxs_CUC)):data()
+         hStencil7.zL = hIn:get(indexer(idxs_CCL)):data()
+         hStencil7.zU = hIn:get(indexer(idxs_CCU)):data()
 
-         local fTL = fIn:get(indexer(idxsTL))
-         local fTR = fIn:get(indexer(idxsTR))
-         local fBL = fIn:get(indexer(idxsBL))
-         local fBR = fIn:get(indexer(idxsBR))
 
-         local hC = hIn:get(indexer(idxs))
-         local hR = hIn:get(indexer(idxsR))
-         local hL = hIn:get(indexer(idxsL))
-         local hT = hIn:get(indexer(idxsT))
-         local hB = hIn:get(indexer(idxsB))
+         local f_LLC = fIn:get(indexer(idxs_LLC)):data()
+         local f_LCL = fIn:get(indexer(idxs_LCL)):data()
+         local f_LCC = fIn:get(indexer(idxs_LCC)):data()
+         local f_LCU = fIn:get(indexer(idxs_LCU)):data()
+         local f_LUC = fIn:get(indexer(idxs_LUC)):data()
+         
+         local f_CLL = fIn:get(indexer(idxs_CLL)):data()
+         local f_CLC = fIn:get(indexer(idxs_CLC)):data()
+         local f_CLU = fIn:get(indexer(idxs_CLU)):data()
+         local f_CCL = fIn:get(indexer(idxs_CCL)):data()
+         local f_CCC = fIn:get(indexer(idxs)):data()
+         local f_CCU = fIn:get(indexer(idxs_CCU)):data()
+         local f_CUL = fIn:get(indexer(idxs_CUL)):data()
+         local f_CUC = fIn:get(indexer(idxs_CUC)):data()
+         local f_CUU = fIn:get(indexer(idxs_CUU)):data()
+         
+         local f_ULC = fIn:get(indexer(idxs_ULC)):data()
+         local f_UCL = fIn:get(indexer(idxs_UCL)):data()
+         local f_UCC = fIn:get(indexer(idxs_UCC)):data()
+         local f_UCU = fIn:get(indexer(idxs_UCU)):data()
+         local f_UUC = fIn:get(indexer(idxs_UUC)):data()
+         
+         
+         local g_LLC = gIn:get(indexer(idxs_LLC)):data()
+         local g_LCL = gIn:get(indexer(idxs_LCL)):data()
+         local g_LCC = gIn:get(indexer(idxs_LCC)):data()
+         local g_LCU = gIn:get(indexer(idxs_LCU)):data()
+         local g_LUC = gIn:get(indexer(idxs_LUC)):data()
 
-         local gC = gIn:get(indexer(idxs))
-         local gR = gIn:get(indexer(idxsR))
-         local gL = gIn:get(indexer(idxsL))
-         local gT = gIn:get(indexer(idxsT))
-         local gB = gIn:get(indexer(idxsB))
+         local g_CLL = gIn:get(indexer(idxs_CLL)):data()
+         local g_CLC = gIn:get(indexer(idxs_CLC)):data()
+         local g_CLU = gIn:get(indexer(idxs_CLU)):data()
+         local g_CCL = gIn:get(indexer(idxs_CCL)):data()
+         local g_CCC = gIn:get(indexer(idxs)):data()
+         local g_CCU = gIn:get(indexer(idxs_CCU)):data()
+         local g_CUL = gIn:get(indexer(idxs_CUL)):data()
+         local g_CUC = gIn:get(indexer(idxs_CUC)):data()
+         local g_CUU = gIn:get(indexer(idxs_CUU)):data()
+         
+         local g_ULC = gIn:get(indexer(idxs_ULC)):data()
+         local g_UCL = gIn:get(indexer(idxs_UCL)):data()
+         local g_UCC = gIn:get(indexer(idxs_UCC)):data()
+         local g_UCU = gIn:get(indexer(idxs_UCU)):data()
+         local g_UUC = gIn:get(indexer(idxs_UUC)):data()
 
-         local gTL = gIn:get(indexer(idxsTL))
-         local gTR = gIn:get(indexer(idxsTR))
-         local gBL = gIn:get(indexer(idxsBL))
-         local gBR = gIn:get(indexer(idxsBR))
 
          local srcP = src:get(indexer(idxs))
 
-         local fOutP = fOut:get(indexer(idxs))
+         local f_out = fOut:get(indexer(idxs)):data()
 
          dragFreq = dragKernelFn(dt, dv:data(),
-				 fC:data(),
-				 fL:data(), fR:data(),
-				 fT:data(), fB:data(),
-				 hC:data(),
-				 hL:data(), hR:data(),
-				 hT:data(), hB:data(),
-				 isTopEdge, isBotEdge,
-				 isLeftEdge, isRightEdge,
-				 fOutP:data())
-         diffFreq = diffKernelFn(dt, dv:data(),
-				 fTL:data(), fT:data(), fTR:data(),
-				 fL:data(), fC:data(), fR:data(),
-				 fBL:data(), fB:data(), fBR:data(),
-				 gTL:data(), gT:data(), gTR:data(),
-				 gL:data(), gC:data(), gR:data(),
-				 gBL:data(), gB:data(), gBR:data(),
-				 isTopEdge, isBotEdge,
-				 isLeftEdge, isRightEdge,
-				 fOutP:data())
-	 cflFreq = math.max(cflFreq, diffFreq, dragFreq)
+				 fStencil7, hStencil7,
+				 f_out)
+         
+         diffSurfXLSerFn(dt, dv:data(),
+                         f_LCC, f_LLC, f_LUC, f_LCL, f_LCU,
+                         f_CCC, f_CLC, f_CUC, f_CCL, f_CCU,
+                         g_LCC, g_LLC, g_LUC, g_LCL, g_LCU,
+                         g_CCC, g_CLC, g_CUC, g_CCL, g_CCU,
+                         f_out)
+         diffSurfXUSerFn(dt, dv:data(),
+                         f_CCC, f_CLC, f_CUC, f_CCL, f_CCU,
+                         f_UCC, f_ULC, f_UUC, f_UCL, f_UCU,
+                         g_CCC, g_CLC, g_CUC, g_CCL, g_CCU,
+                         g_UCC, g_ULC, g_UUC, g_UCL, g_UCU,
+                         f_out)         
+         diffSurfYLSerFn(dt, dv:data(),
+                         f_CLC, f_LLC, f_ULC, f_CLL, f_CLU,
+                         f_CCC, f_LCC, f_UCC, f_CCL, f_CCU,
+                         g_CLC, g_LLC, g_ULC, g_CLL, g_CLU,
+                         g_CCC, g_LCC, g_UCC, g_CCL, g_CCU,
+                         f_out)
+         diffSurfYUSerFn(dt, dv:data(),
+                         f_CCC, f_LCC, f_UCC, f_CCL, f_CCU,
+                         f_CUC, f_LUC, f_UUC, f_CUL, f_CUU,
+                         g_CCC, g_LCC, g_UCC, g_CCL, g_CCU,
+                         g_CUC, g_LUC, g_UUC, g_CUL, g_CUU,
+                         f_out)
+         diffSurfZLSerFn(dt, dv:data(),
+                         f_CCL, f_LCL, f_UCL, f_CLL, f_CUL,
+                         f_CCC, f_LCC, f_UCC, f_CLC, f_CUC,
+                         g_CCL, g_LCL, g_UCL, g_CLL, g_CUL,
+                         g_CCC, g_LCC, g_UCC, g_CLC, g_CUC,
+                         f_out)
+         diffSurfZUSerFn(dt, dv:data(),
+                         f_CCC, f_LCC, f_UCC, f_CLC, f_CUC,
+                         f_CCU, f_LCU, f_UCU, f_CLU, f_CUU,
+                         g_CCC, g_LCC, g_UCC, g_CLC, g_CUC,
+                         g_CCU, g_LCU, g_UCU, g_CLU, g_CUU,
+                         f_out)
+         diffFreq = diffVolSerFn(dt, dv:data(),
+                                 f_CCC, g_CCC,
+                                 f_out)
+	 cflFreq = math.max(cflFreq, dragFreq, diffFreq)
       end
 
       if hasConstSource then

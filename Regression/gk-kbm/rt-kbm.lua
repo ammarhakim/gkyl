@@ -1,5 +1,5 @@
 -- Plasma ------------------------------------------------------------------------
-local Plasma = require "App.PlasmaOnCartGrid"
+local Plasma = require ("App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
 local Logger = require "Lib.Logger"
 local math = require("sci.math").generic
@@ -82,7 +82,7 @@ plasmaApp = Plasma.App {
    periodicDirs = {1,2,3}, -- periodic directions
 
    -- gyrokinetic electrons
-   electron = Plasma.GkSpecies {
+   electron = Plasma.Species {
       charge = qe,
       mass = me,
       -- velocity space grid
@@ -90,7 +90,7 @@ plasmaApp = Plasma.App {
       upper = {VPAR_UPPER, MU_UPPER},
       cells = {N_VPAR, N_MU},
       -- initial conditions
-      initBackground = Plasma.Gyrokinetic.MaxwellianProjection {
+      initBackground = Plasma.MaxwellianProjection {
               density = function (t, xn)
                  local x = xn[1]
                  return n0*(1-(x-r0)/L_n)
@@ -103,7 +103,7 @@ plasmaApp = Plasma.App {
               exactScaleM012 = true,
               isBackground = true,
              },
-      init = Plasma.Gyrokinetic.MaxwellianProjection {
+      init = Plasma.MaxwellianProjection {
               density = function (t, xn)
                  local x, y, z = xn[1], xn[2], xn[3]
                  local perturb = 1e-5*rho_s/L_n*math.cos(ky_min*y+kz_min*z)
@@ -123,7 +123,7 @@ plasmaApp = Plasma.App {
    },
 
    -- gyrokinetic ions
-   ion = Plasma.GkSpecies {
+   ion = Plasma.Species {
       charge = qi,
       mass = mi,
       -- velocity space grid
@@ -131,7 +131,7 @@ plasmaApp = Plasma.App {
       upper = {VPAR_UPPER*vti/vte, MU_UPPER*mi*vti*vti/me/vte/vte},
       cells = {N_VPAR, N_MU},
       -- initial conditions
-      initBackground = Plasma.Gyrokinetic.MaxwellianProjection {
+      initBackground = Plasma.MaxwellianProjection {
               density = function (t, xn)
                  local x = xn[1]
                  return n0*(1-(x-r0)/L_n)
@@ -144,7 +144,7 @@ plasmaApp = Plasma.App {
               exactScaleM012 = true,
               isBackground = true,
              },
-      init = Plasma.Gyrokinetic.MaxwellianProjection {
+      init = Plasma.MaxwellianProjection {
               density = function (t, xn)
                  local x, y, z = xn[1], xn[2], xn[3]
                  local perturb = 1e-5*rho_s/L_n*math.cos(ky_min*y+kz_min*z)
@@ -164,13 +164,13 @@ plasmaApp = Plasma.App {
    },
 
    -- field solver
-   field = Plasma.GkField {
+   field = Plasma.Field {
       evolve = true, -- evolve fields?
       isElectromagnetic = true,
    },
 
    -- magnetic geometry 
-   funcField = Plasma.GkGeometry {
+   funcField = Plasma.Geometry {
       -- background magnetic field
       bmag = function (t, xn)
          local x, y, z = xn[1], xn[2], xn[3]

@@ -143,7 +143,7 @@ local function AllocShared_meta_ctor(elct)
 	 self:delete()
       end,
    }
-   return metatype(typeof("struct { int32_t _size; int32_t _s, _e; MPI_Win *_win; $* _data; }", elct), alloc_mt)
+   return metatype(typeof("struct { int _size; int _s, _e; MPI_Win *_win; $* _data; }", elct), alloc_mt)
 end
 
 -- function to create an allocator for custom type

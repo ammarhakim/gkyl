@@ -6,6 +6,7 @@
 --------------------------------------------------------------------------------
 
 -- system libraries
+local CartField = require "DataStruct.CartField"
 local EqBase = require "Eq.EqBase"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
@@ -13,6 +14,26 @@ local VlasovModDecl = require "Eq.vlasovData.VlasovModDecl"
 local ffi = require "ffi"
 local ffiC = ffi.C
 local xsys = require "xsys"
+local new, sizeof, typeof, metatype = xsys.from(ffi,
+     "new, sizeof, typeof, metatype")
+
+local cuda = nil
+if GKYL_HAVE_CUDA then
+   cuda = require "Cuda.RunTime"
+end
+
+ffi.cdef [[ 
+  typedef struct GkylVlasov GkylVlasov;
+  GkylVlasov* new_Vlasov(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType, double qbym, bool hasForceTerm);
+  GkylVlasov* new_Vlasov_onDevice(GkylVlasov *v);
+  void setAuxFields(GkylVlasov *eq, GkylCartField_t *emField);
+  int getCdim(GkylVlasov *v);
+
+  typedef struct GkylEquation_t GkylEquation_t ;
+  GkylEquation_t *new_VlasovOnDevice(unsigned cdim, unsigned vdim, unsigned polyOrder, unsigned basisType,
+    double qbym, bool hasForceTerm);
+  void Vlasov_setAuxFields(GkylEquation_t *eqn, GkylCartField_t* em);
+]]
 
 -- Vlasov equation on a rectangular mesh
 local Vlasov = Proto(EqBase)
@@ -43,17 +64,27 @@ function Vlasov:init(tbl)
    -- check if we have a electric and magnetic field
    local hasElcField = xsys.pickBool(tbl.hasElectricField, true)
    local hasMagField = xsys.pickBool(tbl.hasMagneticField, true)
+   local onlyForceUpdate = xsys.pickBool(tbl.onlyForceUpdate, false)
 
    self._hasForceTerm = false -- flag to indicate if we have any force terms at all
    if hasElcField or hasMagField then
       self._hasForceTerm = true
    end
+   self._onlyForceUpdate = false -- flag to indicate if updating force separately from streaming
+   if onlyForceUpdate then
+      self._onlyForceUpdate = true
+   end
 
-   self._volForceUpdate, self._surfForceUpdate = nil, nil
+   self._surfForceUpdate = nil
    if self._hasForceTerm then
       -- functions to perform force updates
       if hasMagField then 
 	 self._volUpdate = VlasovModDecl.selectVolElcMag(
+	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+	 self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
+	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      elseif onlyForceUpdate then
+	 self._volUpdate = VlasovModDecl.selectVolForce(
 	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
 	 self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
 	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
@@ -69,6 +100,22 @@ function Vlasov:init(tbl)
 
    -- flag to indicate if we are being called for first time
    self._isFirst = true
+end
+
+function Vlasov:initDevice(tbl)
+   local bId = self._phaseBasis:id()
+   local b = 0
+   if bId == "maximal-order" then 
+     b = 1
+   end
+   if bId == "serendipity" then 
+     b = 2
+   end
+   --self._onHost = ffiC.new_Vlasov(self._cdim, self._vdim, self._phaseBasis:polyOrder(), b, self._qbym, self._hasForceTerm) 
+   --self._onDevice = ffiC.new_Vlasov_onDevice(self._onHost)
+   self._onDevice = ffiC.new_VlasovOnDevice(self._cdim, self._vdim, self._phaseBasis:polyOrder(), b, self._qbym, self._hasForceTerm)
+
+   return self
 end
 
 -- Methods
@@ -121,10 +168,12 @@ end
 function Vlasov:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local amax = 0.0
    if dir <= self._cdim then
-      -- streaming term (note that surface streaming kernels don't
-      -- return max speed)
-      self._surfStreamUpdate[dir](
-	 wl:data(), wr:data(), dxl:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+      if not self._onlyForceUpdate then
+         -- streaming term (note that surface streaming kernels don't
+         -- return max speed)
+         self._surfStreamUpdate[dir](
+	    wl:data(), wr:data(), dxl:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+      end
    else
       if self._hasForceTerm then
 	 -- force term
@@ -147,6 +196,15 @@ function Vlasov:setAuxFields(auxFields)
 	 self._emIdxr = self._emField:genIndexer()
 	 self._isFirst = false -- no longer first time
       end
+   end
+end
+
+function Vlasov:setAuxFieldsOnDevice(auxFields)
+   if self._hasForceTerm then -- (no fields for neutral particles)
+      -- single aux field that has the full EM field
+      self._emField = auxFields[1]
+      --ffiC.setAuxFields(self._onDevice, self._emField._onDevice)
+      ffiC.Vlasov_setAuxFields(self._onDevice, self._emField._onDevice);
    end
 end
 

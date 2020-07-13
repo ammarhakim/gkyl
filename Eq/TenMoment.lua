@@ -38,14 +38,14 @@ local R, U, V, W, PXX, PXY, PXZ, PYY, PYZ, PZZ = 1, 1, 2, 3, 1, 2, 3, 4, 5, 6
 -- Resuffle indices for various direction Riemann problem. The first
 -- entry is just a buffer to allow 1-based indexing
 local dirShuffle = {
-   new("int32_t[4]", 0, 2, 3, 4),
-   new("int32_t[4]", 0, 3, 4, 2),
-   new("int32_t[4]", 0, 4, 2, 3)
+   new("int[4]", 0, 2, 3, 4),
+   new("int[4]", 0, 3, 4, 2),
+   new("int[4]", 0, 4, 2, 3)
 }
 local dirShufflePr = {
-   new("int32_t[7]", 0, 5, 6, 7, 8, 9, 10),
-   new("int32_t[7]", 0, 8, 9, 6, 10, 7, 5),
-   new("int32_t[7]", 0, 10, 7, 9, 5, 6, 8)
+   new("int[7]", 0, 5, 6, 7, 8, 9, 10),
+   new("int[7]", 0, 8, 9, 6, 10, 7, 5),
+   new("int[7]", 0, 10, 7, 9, 5, 6, 8)
 }
 
 -- helper to check if number is NaN

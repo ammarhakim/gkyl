@@ -9,7 +9,7 @@ def build(bld):
     # only build if in parallel
     if bld.env.MPI_FOUND:
         bld.shlib(
-            source = 'GkMpiFuncs.cpp',
+            source = 'GkylMpiFuncs.cpp',
             target = 'comm', name = 'comm', vnum = '1.0',
             includes = '.',
             use = 'MPI'

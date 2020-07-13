@@ -2,7 +2,7 @@
 -- using 'pgkyl -f etg4d_elecEnergy_ growth' should approximately give growth rate printed at end of run
 --
 -- Plasma ------------------------------------------------------------------------
-local Plasma = require "App.PlasmaOnCartGrid"
+local Plasma = require ("App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
 
 -- physical parameters
@@ -61,7 +61,7 @@ plasmaApp = Plasma.App {
    deltaF = true,
 
    -- gyrokinetic electrons
-   electron = Plasma.GkSpecies {
+   electron = Plasma.Species {
       charge = qe,
       mass = me,
       -- velocity space grid
@@ -69,7 +69,7 @@ plasmaApp = Plasma.App {
       upper = {VPAR_UPPER, MU_UPPER},
       cells = {N_VPAR, N_MU},
       -- initial conditions
-      initBackground = Plasma.Gyrokinetic.MaxwellianProjection {
+      initBackground = Plasma.MaxwellianProjection {
               density = function (t, xn)
                  return n0
               end,
@@ -79,7 +79,7 @@ plasmaApp = Plasma.App {
               end,
               isBackground = true,
              },
-      init = Plasma.Gyrokinetic.MaxwellianProjection {
+      init = Plasma.MaxwellianProjection {
               density = function (t, xn)
                  local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
                  local perturb = 1e-3*rho_e/L_T*math.cos(ky_min*y)
@@ -107,12 +107,12 @@ plasmaApp = Plasma.App {
    },
 
    -- field solver
-   field = Plasma.GkField {
+   field = Plasma.Field {
       evolve = true, -- evolve fields?
    },
 
    -- magnetic geometry 
-   funcField = Plasma.GkGeometry {
+   funcField = Plasma.Geometry {
       -- background magnetic field
       bmag = function (t, xn)
          local x = xn[1]

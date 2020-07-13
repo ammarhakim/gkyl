@@ -12,6 +12,11 @@ local ffi = require "ffi"
 local xsys = require "xsys"
 local Proto = require "Lib.Proto"
 
+local cuda = nil
+if GKYL_HAVE_CUDA then
+   cuda = require "Cuda.RunTime"
+end
+
 -- C interfaces
 ffi.cdef [[
 
@@ -24,14 +29,54 @@ typedef struct {
    double _fl[6], _fr[6]; /* Storage for left/right fluxes ([6] as we want to index from 1) */
 } EulerEqn_t;
 
+  // c/cuda implementation
+  typedef struct {
+    int numWaves;
+    int numEquations;
+    double gasGamma;
+  } GkylEquationFvEuler_t;
+
+  typedef struct GkylEquationFv_t GkylEquationFv_t;
+  GkylEquationFv_t *new_EquationFvEulerOnDevice(const int gasGamma);
+
+  // following are exposed to be called without gpu for unit test
+  GkylEquationFvEuler_t *new_EquationFvEulerOnHost(const double gasGamma);
+
+  inline double Euler_pressure(
+      const double gasGamma,
+      const double *q);
+
+  void Euler_rp(
+      const void *eqn,
+      const int dir,
+      const double *ql,
+      const double *qr,
+      double *waves,
+      double *speeds);
+
+  void Euler_qFluctuations(
+      const void *eqn,
+      const int dir,
+      const double *ql,
+      const double *qr,
+      const double *waves,
+      const double *speeds,
+      double *amdq,
+      double *apdq);
+
+  void Euler_flux(
+      const void *eqn,
+      const int dir,
+      const double *qIn,
+      double *fOut);
 ]]
 
 -- Resuffle indices for various direction Riemann problem. The first
 -- entry is just a buffer to allow 1-based indexing
 local dirShuffle = {
-   ffi.new("int32_t[4]", 0, 2, 3, 4),
-   ffi.new("int32_t[4]", 0, 3, 4, 2),
-   ffi.new("int32_t[4]", 0, 4, 2, 3)
+   ffi.new("int[4]", 0, 2, 3, 4),
+   ffi.new("int[4]", 0, 3, 4, 2),
+   ffi.new("int[4]", 0, 4, 2, 3)
 }
 
 -- helper to check if number is NaN
@@ -263,8 +308,34 @@ local EulerObj = ffi.metatype(ffi.typeof("EulerEqn_t"), euler_mt)
 local Euler = Proto(EqBase)
 
 function Euler:init(tbl)
-   self.gasGamma = tbl.gasGamma
+   self._gasGamma = tbl.gasGamma
    self.eulerObj = EulerObj(tbl)
+end
+
+function Euler:initDevice(tbl)
+   self._onHost = ffi.C.new_EquationFvEulerOnHost(tbl.gasGamma)
+   self._onDevice = ffi.C.new_EquationFvEulerOnDevice(tbl.gasGamma)
+end
+
+function Euler:numEquationsCImpl()
+   return self._onHost.numEquations
+end
+
+function Euler:numWavesCImpl()
+   return self._onHost.numWaves
+end
+
+function Euler:rpCImpl(dir, delta, ql, qr, waves, s)
+   return ffi.C.Euler_rp(self._onHost, dir, ql, qr, waves, s)
+end
+
+function Euler:qFluctuationsCImpl(dir, ql, qr, waves, s, amdq, apdq)
+   return ffi.C.Euler_qFluctuations(
+   self._onHost, dir, ql, qr, waves, s, amdq, apdq)
+end
+
+function Euler:fluxCImpl(dir, qIn, fOut)
+   return ffi.C.Euler_flux(self._onHost, dir, qIn, fOut)
 end
 
 function Euler:numEquations()
@@ -273,6 +344,14 @@ end
 
 function Euler:numWaves()
    return self.eulerObj:numWaves()
+end
+
+function Euler:gasGamma()
+   return self.eulerObj:gasGamma()
+end
+
+function Euler:pressure(q)
+   return self.eulerObj:pressure(q)
 end
 
 function Euler:flux(dir, qIn, fOut)

@@ -24,7 +24,7 @@
 
 #ifdef HAVE_MPI_H
 # include <mpi.h>
-# include <GkMpiFuncs.h>
+# include <GkylMpiFuncs.h>
 #endif
 
 #ifdef HAVE_ADIOS_H
@@ -154,7 +154,10 @@ Gkyl::Gkyl(const std::string& luaExpr, const std::string& inpFileNm, const std::
     { "queryrdb", {"queryrdb.lua", "Query/modify regression test DB"} },
     { "runregression", {"runregression.lua", "Run regression/unit tests"} },
     { "comparefiles", {"comparefiles.lua", "Compare two BP files"} },
-    { "exacteulerrp", {"exacteulerrp.lua", "Exact Euler Riemann problem solver"} }
+    { "exacteulerrp", {"exacteulerrp.lua", "Exact Euler Riemann problem solver"} },
+#ifdef HAVE_CUDA_H
+    { "deviceinfo", {"deviceinfo.lua", "Information about device"} },
+#endif
   };
 
   if (hasInpFile) {
@@ -254,20 +257,48 @@ std::string Gkyl::createTopLevelDefs() const {
 #endif
 
 #ifdef HAVE_CUDA_H
-  varDefs << "GKYL_HAVE_CUDA = true" << std::endl;
-  varDefs << "GKYL_DEFAULT_NUM_THREADS = 256" << std::endl;  
-  int cuDriverVersion;
-  cudaDriverGetVersion(&cuDriverVersion);
-  varDefs << "GKYL_CUDA_DRIVER_VERSION = " << cuDriverVersion << std::endl;
+  // it is possible we built with CUDA but are not on a node with a
+  // GPU attached to it
+  int deviceNum;
+  auto err = cudaGetDevice(&deviceNum);
+  if (cudaSuccess == err) {
+    varDefs << "GKYL_HAVE_CUDA = true" << std::endl;
+    varDefs << "GKYL_USE_DEVICE = true" << std::endl;
+    
+    varDefs << "GKYL_DEFAULT_NUM_THREADS = 256" << std::endl;  
+    int cuDriverVersion;
+    cudaDriverGetVersion(&cuDriverVersion);
+    varDefs << "GKYL_CUDA_DRIVER_VERSION = " << cuDriverVersion << std::endl;
+  }
+  else {
+    // not on a GPU node and so disable CUDA
+    varDefs << "GKYL_HAVE_CUDA = false" << std::endl;
+    varDefs << "GKYL_USE_DEVICE = false" << std::endl;    
+  }
 #else
   varDefs << "GKYL_HAVE_CUDA = false" << std::endl;
+  varDefs << "GKYL_USE_DEVICE = false" << std::endl;
 #endif
   
   // numeric limits
   varDefs << "GKYL_MIN_DOUBLE = " << std::numeric_limits<double>::min() << std::endl;
-  varDefs << "GKYL_MIN_FLOAT = " << std::numeric_limits<float>::min() << std::endl;
   varDefs << "GKYL_MAX_DOUBLE = " << std::numeric_limits<double>::max() << std::endl;
+  
+  varDefs << "GKYL_MIN_FLOAT = " << std::numeric_limits<float>::min() << std::endl;
   varDefs << "GKYL_MAX_FLOAT = " << std::numeric_limits<float>::max() << std::endl;
+
+  varDefs << "GKYL_MIN_INT = " << std::numeric_limits<int>::min() << std::endl;
+  varDefs << "GKYL_MAX_INT = " << std::numeric_limits<int>::max() << std::endl;
+
+  varDefs << "GKYL_MIN_LONG = " << std::numeric_limits<long>::min() << std::endl;
+  varDefs << "GKYL_MAX_LONG = " << std::numeric_limits<long>::max() << std::endl;
+
+  varDefs << "GKYL_MIN_LONG_LONG = " << std::numeric_limits<long long>::min() << std::endl;
+  varDefs << "GKYL_MAX_LONG_LONG = " << std::numeric_limits<long long>::max() << std::endl;
+
+  varDefs << "GKYL_MIN_UNSIGNED = " << std::numeric_limits<unsigned>::min() << std::endl;
+  varDefs << "GKYL_MAX_UNSIGNED = " << std::numeric_limits<unsigned>::max() << std::endl;  
+  
   varDefs << "GKYL_EPSILON = " << std::numeric_limits<double>::epsilon() << std::endl;
   varDefs << "GKYL_MAX_INT16 = " << INT16_MAX << std::endl;  
 
@@ -275,7 +306,7 @@ std::string Gkyl::createTopLevelDefs() const {
   varDefs << "GKYL_EMBED_INP = true" << std::endl; // default true
 
   // set some JIT parameters to fiddle around with optimizations
-  varDefs << "jit.opt.start('callunroll=40', 'loopunroll=80', 'maxmcode=40960', 'maxtrace=8000', 'maxrecord=16000', 'minstitch=3')"
+  varDefs << "if jit.opt then jit.opt.start('callunroll=40', 'loopunroll=80', 'maxmcode=40960', 'maxtrace=8000', 'maxrecord=16000', 'minstitch=3') end"
           << std::endl;
 
   // output prefix

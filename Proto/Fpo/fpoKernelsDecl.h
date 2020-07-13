@@ -5,19 +5,195 @@
 
 extern "C" {
 
-  void fpoMomsKernelP1(const double *dv, const double *vc, const double *f, double *out);
+  typedef struct {
+    double* C;
+    double* xL;
+    double* xU;
+    double* yL;
+    double* yU;
+    double* zL;
+    double* zU;
+  } stencil7;
 
-  void fpoMomsKernelP2(const double *dv, const double *vc, const double *f, double *out);
+  typedef struct {
+    double* xLyLzC;
+    double* xLyCzL;
+    double* xLyCzC;
+    double* xLyCzU;
+    double* xLyUzC;
+    double* xCyLzL;
+    double* xCyLzC;
+    double* xCyLzU;
+    double* xCyCzL;
+    double* xCyCzC;
+    double* xCyCzU;
+    double* xCyUzL;
+    double* xCyUzC;
+    double* xCyUzU;
+    double* xUyLzC;
+    double* xUyCzL;
+    double* xUyCzC;
+    double* xUyCzU;
+    double* xUyUzC;
+  } stencil19;
+
+  void fpoMomsKernelP1(const double* dv, const double* vc, const double* f, double* out);
+
+  void fpoMomsKernelP2(const double* dv, const double* vc, const double* f, double* out);
   
-  void fpoDiagKernelP1(const double *dv, const double *vc, const double *f, const double *h, double *out);
+  void fpoDiagKernelP1(const double* dv, const double* vc, const double* f, const double* h, double* out);
   
-  void fpoDiagKernelP2(const double *dv, const double *vc, const double *f, const double *h, double *out);
+  void fpoDiagKernelP2(const double* dv, const double* vc, const double* f, const double* h, double* out);
 
-  double fpoDragKernelP1(const double dt, const double *dv, const double *fC, const double *fL, const double *fR, const double *fT, const double *fB, const double *hC, const double *hL, const double *hR, const double *hT, const double *hB, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, double *fOut);
+  double fpoDragKernel3xP1(const double dt, const double* dv,
+                           const stencil7* fStencil, const stencil7* hStencil,
+                           double* fOut);
 
-  double fpoDragKernelP2(const double dt, const double *dv, const double *fC, const double *fL, const double *fR, const double *fT, const double *fB, const double *hC, const double *hL, const double *hR, const double *hT, const double *hB, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, double *fOut);
+  /* double fpoDiffKernel3xP1(const double dt, const double* dv, */
+  /*                          const stencil19 fStencil, const stencil19 gStencil, */
+  /*                          double* fOut); */
 
-  double fpoDiffKernelP1(const double dt, const double *dv, const double *fTL, const double *fT, const double *fTR, const double *fL, const double *fC, const double *fR, const double *fBL, const double *fB, const double *fBR, const double *gTL, const double *gT, const double *gTR, const double *gL, const double *gC, const double *gR, const double *gBL, const double *gB, const double *gBR, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, double *fOut);
+  void fpoDiffSurfXLSer3xP1(const double dt, const double* dv,
+                            const double* fLCC,
+                            const double* fLLC,
+                            const double* fLUC,
+                            const double* fLCL,
+                            const double* fLCU,
+                            const double* fCCC,
+                            const double* fCLC,
+                            const double* fCUC,
+                            const double* fCCL,
+                            const double* fCCU,
+                            const double* gLCC,
+                            const double* gLLC,
+                            const double* gLUC,
+                            const double* gLCL,
+                            const double* gLCU,
+                            const double* gCCC,
+                            const double* gCLC,
+                            const double* gCUC,
+                            const double* gCCL,
+                            const double* gCCU,
+                            double *fOut);
+
+  void fpoDiffSurfXUSer3xP1(const double dt, const double* dv,
+                            const double* fCCC,
+                            const double* fCLC,
+                            const double* fCUC,
+                            const double* fCCL,
+                            const double* fCCU,
+                            const double* fUCC,
+                            const double* fULC,
+                            const double* fUUC,
+                            const double* fUCL,
+                            const double* fUCU,
+                            const double* gCCC,
+                            const double* gCLC,
+                            const double* gCUC,
+                            const double* gCCL,
+                            const double* gCCU,
+                            const double* gUCC,
+                            const double* gULC,
+                            const double* gUUC,
+                            const double* gUCL,
+                            const double* gUCU,
+                            double *fOut);
+
+  void fpoDiffSurfYLSer3xP1(const double dt, const double* dv,
+                            const double* fCLC,
+                            const double* fLLC,
+                            const double* fULC,
+                            const double* fCLL,
+                            const double* fCLU,
+                            const double* fCCC,
+                            const double* fLCC,
+                            const double* fUCC,
+                            const double* fCCL,
+                            const double* fCCU,
+                            const double* gCLC,
+                            const double* gLLC,
+                            const double* gULC,
+                            const double* gCLL,
+                            const double* gCLU,
+                            const double* gCCC,
+                            const double* gLCC,
+                            const double* gUCC,
+                            const double* gCCL,
+                            const double* gCCU,
+                            double* fOut);
   
+  void fpoDiffSurfYUSer3xP1(const double dt, const double* dv,
+                            const double* fCCC,
+                            const double* fLCC,
+                            const double* fUCC,
+                            const double* fCCL,
+                            const double* fCCU,
+                            const double* fCUC,
+                            const double* fLUC,
+                            const double* fUUC,
+                            const double* fCUL,
+                            const double* fCUU,
+                            const double* gCCC,
+                            const double* gLCC,
+                            const double* gUCC,
+                            const double* gCCL,
+                            const double* gCCU,
+                            const double* gCUC,
+                            const double* gLUC,
+                            const double* gUUC,
+                            const double* gCUL,
+                            const double* gCUU,
+                            double* fOut);
+  
+  void fpoDiffSurfZLSer3xP1(const double dt, const double* dv,
+                            const double* fCCL,
+                            const double* fLCL,
+                            const double* fUCL,
+                            const double* fCLL,
+                            const double* fCUL,
+                            const double* fCCC,
+                            const double* fLCC,
+                            const double* fUCC,
+                            const double* fCLC,
+                            const double* fCUC,
+                            const double* gCCL,
+                            const double* gLCL,
+                            const double* gUCL,
+                            const double* gCLL,
+                            const double* gCUL,
+                            const double* gCCC,
+                            const double* gLCC,
+                            const double* gUCC,
+                            const double* gCLC,
+                            const double* gCUC,
+                            double* fOut);
+  
+  void fpoDiffSurfZUSer3xP1(const double dt, const double* dv,
+                            const double* fCCC,
+                            const double* fLCC,
+                            const double* fUCC,
+                            const double* fCLC,
+                            const double* fCUC,
+                            const double* fCCU,
+                            const double* fLCU,
+                            const double* fUCU,
+                            const double* fCLU,
+                            const double* fCUU,
+                            const double* gCCC,
+                            const double* gLCC,
+                            const double* gUCC,
+                            const double* gCLC,
+                            const double* gCUC,
+                            const double* gCCU,
+                            const double* gLCU,
+                            const double* gUCU,
+                            const double* gCLU,
+                            const double* gCUU,
+                            double* fOut);
+  
+  double fpoDiffVolSer3xP1(const double dt, const double *dv,
+                           const double *fxCyCzC,
+                           const double *gxCyCzC,
+                           double *fOut);
 }
 #endif

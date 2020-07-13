@@ -18,10 +18,63 @@ local xsys = require "xsys"
 -- Resuffle indices for various direction Riemann problem. The first
 -- entry is just a buffer to allow 1-based indexing
 local dirShuffle = {
-   ffi.new("int32_t[7]", 0, 1, 2, 3, 4, 5, 6),
-   ffi.new("int32_t[7]", 0, 2, 3, 1, 5, 6, 4),
-   ffi.new("int32_t[7]", 0, 3, 1, 2, 6, 4, 5)
+   ffi.new("int[7]", 0, 1, 2, 3, 4, 5, 6),
+   ffi.new("int[7]", 0, 2, 3, 1, 5, 6, 4),
+   ffi.new("int[7]", 0, 3, 1, 2, 6, 4, 5)
 }
+
+local cuda = nil
+if GKYL_HAVE_CUDA then
+   cuda = require "Cuda.RunTime"
+end
+
+ffi.cdef [[ 
+    typedef struct { double c, chi, gamma; } MaxwellEq_t;
+    typedef struct GkylEquation_t GkylEquation_t ;
+    GkylEquation_t *new_MaxwellOnDevice(unsigned cdim, unsigned polyOrder, unsigned basisType,
+      MaxwellEq_t *mdata, double tau);
+
+  typedef struct {
+    int numWaves;
+    int numEquations;
+    double lightSpeed;
+    double elcErrorSpeedFactor;
+    double mgnErrorSpeedFactor;
+  } GkylEquationFvPerfMaxwell_t;
+
+  void PerfMaxwell_rp(
+      const void *eqn,
+      const int dir,
+      const double *ql,
+      const double *qr,
+      double *waves,
+      double *speeds);
+
+  void PerfMaxwell_qFluctuations(
+      const void *eqn,
+      const int dir,
+      const double *ql,
+      const double *qr,
+      const double *waves,
+      const double *speeds,
+      double *amdq,
+      double *apdq);
+
+  void PerfMaxwell_flux(
+      const void *eqn,
+      const int dir,
+      const double *qIn,
+      double *fOut);
+
+  GkylEquationFvPerfMaxwell_t *new_EquationFvPerfMaxwellOnHost(
+      const double lightSpeed, const double elcErrorSpeedFactor,
+      const double mgnErrorSpeedFactor);
+
+  typedef struct GkylEquationFv_t GkylEquationFv_t;
+  GkylEquationFv_t *new_EquationFvPerfMaxwellOnDevice(
+      const double lightSpeed, const double elcErrorSpeedFactor,
+      const double mgnErrorSpeedFactor);
+]]
 
 -- The function to compute fluctuations is implemented as a template
 -- which unrolls the inner loop
@@ -88,10 +141,55 @@ function PerfMaxwell:init(tbl)
    self._ceqn = ffi.new("MaxwellEq_t", {self._c, self._ce, self._cb})
 end
 
+function PerfMaxwell:initDevice(tbl)
+   if self._basis then
+      local bId = self._basis:id()
+      local b = 0
+      if bId == "maximal-order" then 
+        b = 1
+      end
+      if bId == "serendipity" then 
+        b = 2
+      end 
+      self._onDevice = ffi.C.new_MaxwellOnDevice(
+         self._basis:ndim(), self._basis:polyOrder(), b, self._ceqn, self._tau)
+   end
+
+   self._onHost = ffi.C.new_EquationFvPerfMaxwellOnHost(self._c, self._ce, self._cb)
+   self._onDevice = ffi.C.new_EquationFvPerfMaxwellOnDevice(
+      self._c, self._ce, self._cb)
+
+   return self
+end
+
+function PerfMaxwell:setAuxFieldsOnDevice(auxFields)
+end
+
 -- Methods
 function PerfMaxwell:numEquations() return 8 end
 function PerfMaxwell:numWaves() return 6 end
 function PerfMaxwell:isPositive(q) return true end
+
+function PerfMaxwell:numEquationsCImpl()
+   return self._onHost.numEquations
+end
+
+function PerfMaxwell:numWavesCImpl()
+   return self._onHost.numWaves
+end
+
+function PerfMaxwell:rpCImpl(dir, delta, ql, qr, waves, s)
+   return ffi.C.PerfMaxwell_rp(self._onHost, dir, ql, qr, waves, s)
+end
+
+function PerfMaxwell:qFluctuationsCImpl(dir, ql, qr, waves, s, amdq, apdq)
+   return ffi.C.PerfMaxwell_qFluctuations(
+   self._onHost, dir, ql, qr, waves, s, amdq, apdq)
+end
+
+function PerfMaxwell:fluxCImpl(dir, qIn, fOut)
+   return ffi.C.PerfMaxwell_flux(self._onHost, dir, qIn, fOut)
+end
 
 -- flux in direction dir
 function PerfMaxwell:flux(dir, qIn, fOut)

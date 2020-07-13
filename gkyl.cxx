@@ -150,7 +150,7 @@ main(int argc, char **argv) {
   // requirements are very simple. Sadly, even "sophisticated" tools
   // do not support very special need of gkeyll in which app or tool
   // can have complex command parsers of their own
-  char c;
+  int c;
   while ((c = getopt(argc, argv, "+hvte:")) != -1)
     switch (c)
     {
@@ -196,6 +196,7 @@ main(int argc, char **argv) {
     status = app.run();
   }
   catch (const std::runtime_error& e) {
+    status = 1;
     std::cout << e.what() << std::endl;
   }
   return finish(status);

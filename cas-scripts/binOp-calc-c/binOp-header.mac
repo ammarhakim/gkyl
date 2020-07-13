@@ -74,21 +74,3 @@ printf(fh, "~%")$
 printf(fh, "#endif ~%")$
 close(fh)$
 
-/* Write the declarations in Lua. */
-fh : openw("~/max-out/_CartFieldBinOpCdef.lua")$
-printf(fh,"-- Gkyl ------------------------------------------------------------------------~%")$
-printf(fh,"--~%")$
-printf(fh,"-- Lua wrapper for C BinOp kernels.~%")$
-printf(fh,"--    _______     ___~%")$
-printf(fh,"-- + 6 @ |||| # P ||| +~%")$
-printf(fh,"--------------------------------------------------------------------------------~%")$
-printf(fh, "~%")$
-printf(fh, "local ffi = require \"ffi\" ~%~%")$
-printf(fh, "ffi.cdef [[~%")$
-printf(fh, "~%")$
-printf(fh, "typedef struct binOpData_t binOpData_t;~%")$
-printf(fh, "binOpData_t* new_binOpData_t(int nbasis_S, int nbasis_D);~%")$
-printf(fh, "~%")$
-printKernelSignatures()$
-printf(fh, "]]~%")$
-close(fh)$

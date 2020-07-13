@@ -12,13 +12,13 @@ doExpand(f, basis) := sum(f[i-1]*basis[i], i, 1, length(basis))$
 cidx(cdim) := makelist(i,i,0,cdim-1)$
 vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 
-calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
-kill(varsC, varsP, basisC, basisP),
-modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
-load(modNm),
-for i : 1 thru pMax do (
-  bP : basisP[i],
-  printf(fh, "void ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], i),
+calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+
+  bP : basisP[p],
+  printf(fh, "__host__ __device__ void ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], p),
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells ~%"),
   printf(fh, "// outl/outr: Incremented distribution function in left/right cells ~%"),
   cid : cidx(cdim),
@@ -77,10 +77,10 @@ for i : 1 thru pMax do (
   
   printf(fh, "  } ~%"),
   printf(fh, "} ~%")
-));
+);
 
-calcVlasovSurfUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcVlasovSurfUpdater(fh, funcNm, cdim, vdim, basisFun, p) := block([],
   printf(fh, "#include <VlasovModDecl.h> ~%"),
-  for dir : 1 thru cdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) )
+  for dir : 1 thru cdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) )
 )$
 

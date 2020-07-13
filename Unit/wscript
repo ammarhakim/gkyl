@@ -10,7 +10,7 @@ def build(bld):
     if bld.env['CUTOOLS_FOUND']:
         bld(source = 'test_SimpleKernel.cpp', 
             name = 'unit_cu', target='unit_cu',
-            includes='../Grid ../Lib', features='cxx nvcc cushlib'
+            includes='../Grid ../Lib ../Basis ../DataStruct ../Cuda', features='cxx nvcc cushlib'
         )
 
     bld.shlib(source = 'test_cfuncs.cpp', includes = '.',
@@ -19,7 +19,19 @@ def build(bld):
               target = 'unit', features='cxx')
 
     bld.program(
-        source = 'test_ForwardDiff.cxx',
-        target = 'test_ForwardDiff',
+        source = 'ctest_ForwardDiff.cxx',
+        target = 'ctest_ForwardDiff',
         includes = '../Lib .'
-    )    
+    )
+    
+    bld.program(
+        source = 'ctest_Range.cxx',
+        target = 'ctest_Range',
+        includes = '../Lib . ../Cuda', use = "CUTOOLS"
+    )
+
+    bld.program(
+        source = 'ctest_BasisTypes.cxx',
+        target = 'ctest_BasisTypes',
+        includes = '. ../Lib ../Basis ../Cuda', use = "CUTOOLS"
+    )

@@ -6,19 +6,19 @@ load(stringproc)$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 1$
-minCdim_Ser : 3$
+maxPolyOrder_Ser : 3$
+minCdim_Ser : 1$
 maxCdim_Ser : 3$
 
 /* Maximal order basis. */
-maxPolyOrder_Max : 2$
-minCdim_Max : 3$
+maxPolyOrder_Max : 3$
+minCdim_Max : 1$
 maxCdim_Max : 3$
 
 /* Tensor product basis. */
-maxPolyOrder_Tensor : 2$
-minCdim_Tensor : 2$
-maxCdim_Tensor : 2$
+maxPolyOrder_Tensor : 3$
+minCdim_Tensor : 1$
+maxCdim_Tensor : 3$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -31,11 +31,16 @@ maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
 
 for bInd : 1 thru length(bName) do (
   for d : minCdim[bInd] thru maxCdim[bInd] do (
-      disp(printf(false,sconcat("Creating volume Maxwell",bName[bInd]," ~ax"),d)),
-      fname : sconcat("~/max-out/MaxwellVol", bName[bInd], d, "x", ".cpp"),
+    maxPolyOrderB : maxPolyOrder[bInd],
+    if (d=3 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
+
+    for polyOrder : 1 thru maxPolyOrderB do (
+      disp(printf(false,sconcat("Creating volume Maxwell",bName[bInd]," ~axP~a"),d,polyOrder)),
+      fname : sconcat("~/max-out/MaxwellVol", bName[bInd], d, "xP", polyOrder, ".cpp"),
       fh : openw(fname),
       funcName : sconcat("MaxwellVol", d, "x", bName[bInd]),
-      calcMaxVolUpdater(fh, funcName, d, bName[bInd], maxPolyOrder[bInd]),
+      calcMaxVolUpdater(fh, funcName, d, bName[bInd], polyOrder),
       close(fh)
+    )
   )
 );

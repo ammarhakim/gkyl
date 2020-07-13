@@ -15,60 +15,126 @@ def build(bld):
     incompEulerData/IncompEulerSurfSer2xP2.cpp
     incompEulerData/IncompEulerSurfPositivitySer2xP1.cpp
 
-    lboData/GkLBOconstNuSer1x1v.cpp
-    lboData/GkLBOconstNuSer1x2v.cpp
-    lboData/GkLBOconstNuSer2x2v.cpp
-    lboData/GkLBOconstNuSer3x2v.cpp
-    lboData/GkLBOconstNuSurfSer1x1v.cpp
-    lboData/GkLBOconstNuSurfSer1x2v.cpp
-    lboData/GkLBOconstNuSurfSer2x2v.cpp   
-    lboData/GkLBOconstNuSurfSer3x2v.cpp
-    lboData/GkLBOconstNuBoundarySurfSer1x1v.cpp
-    lboData/GkLBOconstNuBoundarySurfSer1x2v.cpp
-    lboData/GkLBOconstNuBoundarySurfSer2x2v.cpp
-    lboData/GkLBOconstNuBoundarySurfSer3x2v.cpp
-    lboData/GkLBOconstNuSurfPositivitySer1x1v.cpp
-    lboData/GkLBOconstNuSurfPositivitySer1x2v.cpp
-    lboData/GkLBOconstNuSurfPositivitySer2x2v.cpp
-    lboData/GkLBOconstNuSurfPositivitySer3x2v.cpp
+    lboData/GkLBOconstNuSer1x1vP1.cpp
+    lboData/GkLBOconstNuSer1x2vP1.cpp
+    lboData/GkLBOconstNuSer2x2vP1.cpp
+    lboData/GkLBOconstNuSer3x2vP1.cpp
+    lboData/GkLBOconstNuSurfSer1x1vP1.cpp
+    lboData/GkLBOconstNuSurfSer1x2vP1.cpp
+    lboData/GkLBOconstNuSurfSer2x2vP1.cpp   
+    lboData/GkLBOconstNuSurfSer3x2vP1.cpp
+    lboData/GkLBOconstNuBoundarySurfSer1x1vP1.cpp
+    lboData/GkLBOconstNuBoundarySurfSer1x2vP1.cpp
+    lboData/GkLBOconstNuBoundarySurfSer2x2vP1.cpp
+    lboData/GkLBOconstNuBoundarySurfSer3x2vP1.cpp
+    lboData/GkLBOconstNuSurfPositivitySer1x1vP1.cpp
+    lboData/GkLBOconstNuSurfPositivitySer1x2vP1.cpp
+    lboData/GkLBOconstNuSurfPositivitySer2x2vP1.cpp
+    lboData/GkLBOconstNuSurfPositivitySer3x2vP1.cpp
+    lboData/GkLBOconstNuSer1x1vP2.cpp
+    lboData/GkLBOconstNuSer1x2vP2.cpp
+    lboData/GkLBOconstNuSer2x2vP2.cpp
+    lboData/GkLBOconstNuSer3x2vP2.cpp
+    lboData/GkLBOconstNuSurfSer1x1vP2.cpp
+    lboData/GkLBOconstNuSurfSer1x2vP2.cpp
+    lboData/GkLBOconstNuSurfSer2x2vP2.cpp   
+    lboData/GkLBOconstNuSurfSer3x2vP2.cpp
+    lboData/GkLBOconstNuBoundarySurfSer1x1vP2.cpp
+    lboData/GkLBOconstNuBoundarySurfSer1x2vP2.cpp
+    lboData/GkLBOconstNuBoundarySurfSer2x2vP2.cpp
+    lboData/GkLBOconstNuBoundarySurfSer3x2vP2.cpp
     
-    lboData/VmLBOconstNuSer1x1v.cpp
-    lboData/VmLBOconstNuSer1x2v.cpp
-    lboData/VmLBOconstNuSer1x3v.cpp
-    lboData/VmLBOconstNuSer2x2v.cpp
-    lboData/VmLBOconstNuSer2x3v.cpp
-    lboData/VmLBOconstNuSer3x3v.cpp
-    lboData/VmLBOconstNuSurfSer1x1v.cpp
-    lboData/VmLBOconstNuSurfSer1x2v.cpp
-    lboData/VmLBOconstNuSurfSer1x3v.cpp
-    lboData/VmLBOconstNuSurfSer2x2v.cpp
-    lboData/VmLBOconstNuSurfSer2x3v.cpp
-    lboData/VmLBOconstNuSurfSer3x3v.cpp
-    lboData/VmLBOconstNuBoundarySurfSer1x1v.cpp
-    lboData/VmLBOconstNuBoundarySurfSer1x2v.cpp
-    lboData/VmLBOconstNuBoundarySurfSer1x3v.cpp
-    lboData/VmLBOconstNuBoundarySurfSer2x2v.cpp
-    lboData/VmLBOconstNuBoundarySurfSer2x3v.cpp
-    lboData/VmLBOconstNuBoundarySurfSer3x3v.cpp
+    lboData/VmLBOconstNuSer1x1vP1.cpp
+    lboData/VmLBOconstNuSer1x2vP1.cpp
+    lboData/VmLBOconstNuSer1x3vP1.cpp
+    lboData/VmLBOconstNuSer2x2vP1.cpp
+    lboData/VmLBOconstNuSer2x3vP1.cpp
+    lboData/VmLBOconstNuSer3x3vP1.cpp
+    lboData/VmLBOconstNuSurfSer1x1vP1.cpp
+    lboData/VmLBOconstNuSurfSer1x2vP1.cpp
+    lboData/VmLBOconstNuSurfSer1x3vP1.cpp
+    lboData/VmLBOconstNuSurfSer2x2vP1.cpp
+    lboData/VmLBOconstNuSurfSer2x3vP1.cpp
+    lboData/VmLBOconstNuSurfSer3x3vP1.cpp
+    lboData/VmLBOconstNuBoundarySurfSer1x1vP1.cpp
+    lboData/VmLBOconstNuBoundarySurfSer1x2vP1.cpp
+    lboData/VmLBOconstNuBoundarySurfSer1x3vP1.cpp
+    lboData/VmLBOconstNuBoundarySurfSer2x2vP1.cpp
+    lboData/VmLBOconstNuBoundarySurfSer2x3vP1.cpp
+    lboData/VmLBOconstNuBoundarySurfSer3x3vP1.cpp
+    lboData/VmLBOconstNuSer1x1vP2.cpp
+    lboData/VmLBOconstNuSer1x2vP2.cpp
+    lboData/VmLBOconstNuSer1x3vP2.cpp
+    lboData/VmLBOconstNuSer2x2vP2.cpp
+    lboData/VmLBOconstNuSer2x3vP2.cpp
+    lboData/VmLBOconstNuSurfSer1x1vP2.cpp
+    lboData/VmLBOconstNuSurfSer1x2vP2.cpp
+    lboData/VmLBOconstNuSurfSer1x3vP2.cpp
+    lboData/VmLBOconstNuSurfSer2x2vP2.cpp
+    lboData/VmLBOconstNuSurfSer2x3vP2.cpp
+    lboData/VmLBOconstNuBoundarySurfSer1x1vP2.cpp
+    lboData/VmLBOconstNuBoundarySurfSer1x2vP2.cpp
+    lboData/VmLBOconstNuBoundarySurfSer1x3vP2.cpp
+    lboData/VmLBOconstNuBoundarySurfSer2x2vP2.cpp
+    lboData/VmLBOconstNuBoundarySurfSer2x3vP2.cpp
+    lboData/VmLBOconstNuSer1x1vP3.cpp
+    lboData/VmLBOconstNuSer1x2vP3.cpp
+    lboData/VmLBOconstNuSer1x3vP3.cpp
+    lboData/VmLBOconstNuSer2x2vP3.cpp
+    lboData/VmLBOconstNuSurfSer1x1vP3.cpp
+    lboData/VmLBOconstNuSurfSer1x2vP3.cpp
+    lboData/VmLBOconstNuSurfSer1x3vP3.cpp
+    lboData/VmLBOconstNuSurfSer2x2vP3.cpp
+    lboData/VmLBOconstNuBoundarySurfSer1x1vP3.cpp
+    lboData/VmLBOconstNuBoundarySurfSer1x2vP3.cpp
+    lboData/VmLBOconstNuBoundarySurfSer1x3vP3.cpp
+    lboData/VmLBOconstNuBoundarySurfSer2x2vP3.cpp
 
-    lboData/VmLBOconstNuMax1x1v.cpp
-    lboData/VmLBOconstNuMax1x2v.cpp
-    lboData/VmLBOconstNuMax1x3v.cpp
-    lboData/VmLBOconstNuMax2x2v.cpp
-    lboData/VmLBOconstNuMax2x3v.cpp
-    lboData/VmLBOconstNuMax3x3v.cpp
-    lboData/VmLBOconstNuSurfMax1x1v.cpp
-    lboData/VmLBOconstNuSurfMax1x2v.cpp
-    lboData/VmLBOconstNuSurfMax1x3v.cpp
-    lboData/VmLBOconstNuSurfMax2x2v.cpp
-    lboData/VmLBOconstNuSurfMax2x3v.cpp
-    lboData/VmLBOconstNuSurfMax3x3v.cpp
-    lboData/VmLBOconstNuBoundarySurfMax1x1v.cpp
-    lboData/VmLBOconstNuBoundarySurfMax1x2v.cpp
-    lboData/VmLBOconstNuBoundarySurfMax1x3v.cpp
-    lboData/VmLBOconstNuBoundarySurfMax2x2v.cpp
-    lboData/VmLBOconstNuBoundarySurfMax2x3v.cpp
-    lboData/VmLBOconstNuBoundarySurfMax3x3v.cpp
+    lboData/VmLBOconstNuMax1x1vP1.cpp
+    lboData/VmLBOconstNuMax1x2vP1.cpp
+    lboData/VmLBOconstNuMax1x3vP1.cpp
+    lboData/VmLBOconstNuMax2x2vP1.cpp
+    lboData/VmLBOconstNuMax2x3vP1.cpp
+    lboData/VmLBOconstNuMax3x3vP1.cpp
+    lboData/VmLBOconstNuSurfMax1x1vP1.cpp
+    lboData/VmLBOconstNuSurfMax1x2vP1.cpp
+    lboData/VmLBOconstNuSurfMax1x3vP1.cpp
+    lboData/VmLBOconstNuSurfMax2x2vP1.cpp
+    lboData/VmLBOconstNuSurfMax2x3vP1.cpp
+    lboData/VmLBOconstNuSurfMax3x3vP1.cpp
+    lboData/VmLBOconstNuBoundarySurfMax1x1vP1.cpp
+    lboData/VmLBOconstNuBoundarySurfMax1x2vP1.cpp
+    lboData/VmLBOconstNuBoundarySurfMax1x3vP1.cpp
+    lboData/VmLBOconstNuBoundarySurfMax2x2vP1.cpp
+    lboData/VmLBOconstNuBoundarySurfMax2x3vP1.cpp
+    lboData/VmLBOconstNuBoundarySurfMax3x3vP1.cpp
+    lboData/VmLBOconstNuMax1x1vP2.cpp
+    lboData/VmLBOconstNuMax1x2vP2.cpp
+    lboData/VmLBOconstNuMax1x3vP2.cpp
+    lboData/VmLBOconstNuMax2x2vP2.cpp
+    lboData/VmLBOconstNuMax2x3vP2.cpp
+    lboData/VmLBOconstNuSurfMax1x1vP2.cpp
+    lboData/VmLBOconstNuSurfMax1x2vP2.cpp
+    lboData/VmLBOconstNuSurfMax1x3vP2.cpp
+    lboData/VmLBOconstNuSurfMax2x2vP2.cpp
+    lboData/VmLBOconstNuSurfMax2x3vP2.cpp
+    lboData/VmLBOconstNuBoundarySurfMax1x1vP2.cpp
+    lboData/VmLBOconstNuBoundarySurfMax1x2vP2.cpp
+    lboData/VmLBOconstNuBoundarySurfMax1x3vP2.cpp
+    lboData/VmLBOconstNuBoundarySurfMax2x2vP2.cpp
+    lboData/VmLBOconstNuBoundarySurfMax2x3vP2.cpp
+    lboData/VmLBOconstNuMax1x1vP3.cpp
+    lboData/VmLBOconstNuMax1x2vP3.cpp
+    lboData/VmLBOconstNuMax1x3vP3.cpp
+    lboData/VmLBOconstNuMax2x2vP3.cpp
+    lboData/VmLBOconstNuSurfMax1x1vP3.cpp
+    lboData/VmLBOconstNuSurfMax1x2vP3.cpp
+    lboData/VmLBOconstNuSurfMax1x3vP3.cpp
+    lboData/VmLBOconstNuSurfMax2x2vP3.cpp
+    lboData/VmLBOconstNuBoundarySurfMax1x1vP3.cpp
+    lboData/VmLBOconstNuBoundarySurfMax1x2vP3.cpp
+    lboData/VmLBOconstNuBoundarySurfMax1x3vP3.cpp
+    lboData/VmLBOconstNuBoundarySurfMax2x2vP3.cpp
 
     constDiffusionData/ConstDiffusionSer1x.cpp
     constDiffusionData/ConstDiffusionSer2x.cpp
@@ -84,114 +150,270 @@ def build(bld):
     constDiffusionData/ConstDiffusionSurfPositivitySer3x.cpp
     constDiffusionData/ConstDiffusionBCsSer.cpp
 
-    maxwellData/MaxwellVolSer1x.cpp
-    maxwellData/MaxwellVolSer2x.cpp
-    maxwellData/MaxwellVolSer3x.cpp
+    maxwellData/MaxwellVolSer1xP1.cpp
+    maxwellData/MaxwellVolSer2xP1.cpp
+    maxwellData/MaxwellVolSer3xP1.cpp
 
-    maxwellData/MaxwellSurfSer1x.cpp
-    maxwellData/MaxwellSurfSer2x.cpp
-    maxwellData/MaxwellSurfSer3x.cpp
+    maxwellData/MaxwellVolSer1xP2.cpp
+    maxwellData/MaxwellVolSer2xP2.cpp
 
-    maxwellData/MaxwellCentralSurfSer1x.cpp
-    maxwellData/MaxwellCentralSurfSer2x.cpp
-    maxwellData/MaxwellCentralSurfSer3x.cpp
+    maxwellData/MaxwellVolSer1xP3.cpp
+    maxwellData/MaxwellVolSer2xP3.cpp
 
-    maxwellData/MaxwellVolMax1x.cpp
-    maxwellData/MaxwellVolMax2x.cpp
-    maxwellData/MaxwellVolMax3x.cpp
+    maxwellData/MaxwellSurfSer1xP1.cpp
+    maxwellData/MaxwellSurfSer2xP1.cpp
+    maxwellData/MaxwellSurfSer3xP1.cpp
 
-    maxwellData/MaxwellSurfMax1x.cpp
-    maxwellData/MaxwellSurfMax2x.cpp
-    maxwellData/MaxwellSurfMax3x.cpp
+    maxwellData/MaxwellSurfSer1xP2.cpp
+    maxwellData/MaxwellSurfSer2xP2.cpp
 
-    maxwellData/MaxwellCentralSurfMax1x.cpp
-    maxwellData/MaxwellCentralSurfMax2x.cpp
-    maxwellData/MaxwellCentralSurfMax3x.cpp
+    maxwellData/MaxwellSurfSer1xP3.cpp
+    maxwellData/MaxwellSurfSer2xP3.cpp
 
-    maxwellData/MaxwellVolTensor1x.cpp
-    maxwellData/MaxwellVolTensor2x.cpp
+    maxwellData/MaxwellCentralSurfSer1xP1.cpp
+    maxwellData/MaxwellCentralSurfSer2xP1.cpp
+    maxwellData/MaxwellCentralSurfSer3xP1.cpp
 
-    maxwellData/MaxwellSurfTensor1x.cpp
-    maxwellData/MaxwellSurfTensor2x.cpp
+    maxwellData/MaxwellCentralSurfSer1xP2.cpp
+    maxwellData/MaxwellCentralSurfSer2xP2.cpp
 
-    maxwellData/MaxwellCentralSurfTensor1x.cpp
-    maxwellData/MaxwellCentralSurfTensor2x.cpp
+    maxwellData/MaxwellCentralSurfSer1xP3.cpp
+    maxwellData/MaxwellCentralSurfSer2xP3.cpp
 
-    vlasovData/VlasovStreamMax1x1v.cpp
-    vlasovData/VlasovStreamMax1x2v.cpp
-    vlasovData/VlasovStreamMax1x3v.cpp
-    vlasovData/VlasovStreamMax2x2v.cpp
-    vlasovData/VlasovStreamMax2x3v.cpp
-    vlasovData/VlasovStreamMax3x3v.cpp
+    maxwellData/MaxwellVolMax1xP1.cpp
+    maxwellData/MaxwellVolMax2xP1.cpp
+    maxwellData/MaxwellVolMax3xP1.cpp
 
-    vlasovData/VlasovStreamSer1x1v.cpp
-    vlasovData/VlasovStreamSer1x2v.cpp
-    vlasovData/VlasovStreamSer1x3v.cpp
-    vlasovData/VlasovStreamSer2x2v.cpp
-    vlasovData/VlasovStreamSer2x3v.cpp
-    vlasovData/VlasovStreamSer3x3v.cpp
+    maxwellData/MaxwellVolMax1xP2.cpp
+    maxwellData/MaxwellVolMax2xP2.cpp
 
-    vlasovData/VlasovStreamTensor1x1v.cpp
-    vlasovData/VlasovStreamTensor1x2v.cpp
-    vlasovData/VlasovStreamTensor1x3v.cpp
-    vlasovData/VlasovStreamTensor2x2v.cpp
+    maxwellData/MaxwellVolMax1xP3.cpp
+    maxwellData/MaxwellVolMax2xP3.cpp
 
-    vlasovData/VlasovSurfStreamMax1x1v.cpp
-    vlasovData/VlasovSurfStreamMax1x2v.cpp
-    vlasovData/VlasovSurfStreamMax1x3v.cpp
-    vlasovData/VlasovSurfStreamMax2x2v.cpp
-    vlasovData/VlasovSurfStreamMax2x3v.cpp
-    vlasovData/VlasovSurfStreamMax3x3v.cpp
+    maxwellData/MaxwellSurfMax1xP1.cpp
+    maxwellData/MaxwellSurfMax2xP1.cpp
+    maxwellData/MaxwellSurfMax3xP1.cpp
 
-    vlasovData/VlasovSurfStreamSer1x1v.cpp
-    vlasovData/VlasovSurfStreamSer1x2v.cpp
-    vlasovData/VlasovSurfStreamSer1x3v.cpp
-    vlasovData/VlasovSurfStreamSer2x2v.cpp
-    vlasovData/VlasovSurfStreamSer2x3v.cpp
-    vlasovData/VlasovSurfStreamSer3x3v.cpp
+    maxwellData/MaxwellSurfMax1xP2.cpp
+    maxwellData/MaxwellSurfMax2xP2.cpp
 
-    vlasovData/VlasovSurfStreamTensor1x1v.cpp
-    vlasovData/VlasovSurfStreamTensor1x2v.cpp
-    vlasovData/VlasovSurfStreamTensor1x3v.cpp
-    vlasovData/VlasovSurfStreamTensor2x2v.cpp
+    maxwellData/MaxwellSurfMax1xP3.cpp
+    maxwellData/MaxwellSurfMax2xP3.cpp
 
-    vlasovData/VlasovMax1x1v.cpp
-    vlasovData/VlasovMax1x2v.cpp
-    vlasovData/VlasovMax1x3v.cpp
-    vlasovData/VlasovMax2x2v.cpp
-    vlasovData/VlasovMax2x3v.cpp
-    vlasovData/VlasovMax3x3v.cpp
+    maxwellData/MaxwellCentralSurfMax1xP1.cpp
+    maxwellData/MaxwellCentralSurfMax2xP1.cpp
+    maxwellData/MaxwellCentralSurfMax3xP1.cpp
 
-    vlasovData/VlasovSer1x1v.cpp
-    vlasovData/VlasovSer1x2v.cpp
-    vlasovData/VlasovSer1x3v.cpp
-    vlasovData/VlasovSer2x2v.cpp
-    vlasovData/VlasovSer2x3v.cpp
-    vlasovData/VlasovSer3x3v.cpp
+    maxwellData/MaxwellCentralSurfMax1xP2.cpp
+    maxwellData/MaxwellCentralSurfMax2xP2.cpp
 
-    vlasovData/VlasovTensor1x1v.cpp
-    vlasovData/VlasovTensor1x2v.cpp
-    vlasovData/VlasovTensor1x3v.cpp
-    vlasovData/VlasovTensor2x2v.cpp
+    maxwellData/MaxwellCentralSurfMax1xP3.cpp
+    maxwellData/MaxwellCentralSurfMax2xP3.cpp
 
-    vlasovData/VlasovSurfElcMagMax1x1v.cpp
-    vlasovData/VlasovSurfElcMagMax1x2v.cpp
-    vlasovData/VlasovSurfElcMagMax1x3v.cpp
-    vlasovData/VlasovSurfElcMagMax2x2v.cpp
-    vlasovData/VlasovSurfElcMagMax2x3v.cpp
-    vlasovData/VlasovSurfElcMagMax3x3v.cpp
+    maxwellData/MaxwellVolTensor1xP2.cpp
+    maxwellData/MaxwellVolTensor2xP2.cpp
 
-    vlasovData/VlasovSurfElcMagSer1x1v.cpp
-    vlasovData/VlasovSurfElcMagSer1x2v.cpp
-    vlasovData/VlasovSurfElcMagSer1x3v.cpp
-    vlasovData/VlasovSurfElcMagSer2x2v.cpp
-    vlasovData/VlasovSurfElcMagSer2x3v.cpp
-    vlasovData/VlasovSurfElcMagSer3x3v.cpp
+    maxwellData/MaxwellVolTensor1xP3.cpp
+    maxwellData/MaxwellVolTensor2xP3.cpp
 
-    vlasovData/VlasovSurfElcMagTensor1x1v.cpp
-    vlasovData/VlasovSurfElcMagTensor1x2v.cpp
-    vlasovData/VlasovSurfElcMagTensor1x3v.cpp
-    vlasovData/VlasovSurfElcMagTensor2x2v.cpp
+    maxwellData/MaxwellSurfTensor1xP2.cpp
+    maxwellData/MaxwellSurfTensor2xP2.cpp
+
+    maxwellData/MaxwellSurfTensor1xP3.cpp
+    maxwellData/MaxwellSurfTensor2xP3.cpp
+
+    maxwellData/MaxwellCentralSurfTensor1xP2.cpp
+    maxwellData/MaxwellCentralSurfTensor2xP2.cpp
+
+    maxwellData/MaxwellCentralSurfTensor1xP3.cpp
+    maxwellData/MaxwellCentralSurfTensor2xP3.cpp
+
+    vlasovData/VlasovStreamMax1x1vP1.cpp
+    vlasovData/VlasovStreamMax1x2vP1.cpp
+    vlasovData/VlasovStreamMax1x3vP1.cpp
+    vlasovData/VlasovStreamMax2x2vP1.cpp
+    vlasovData/VlasovStreamMax2x3vP1.cpp
+    vlasovData/VlasovStreamMax3x3vP1.cpp
+
+    vlasovData/VlasovStreamMax1x1vP2.cpp
+    vlasovData/VlasovStreamMax1x2vP2.cpp
+    vlasovData/VlasovStreamMax1x3vP2.cpp
+    vlasovData/VlasovStreamMax2x2vP2.cpp
+    vlasovData/VlasovStreamMax2x3vP2.cpp
+
+    vlasovData/VlasovStreamMax1x1vP3.cpp
+    vlasovData/VlasovStreamMax1x2vP3.cpp
+    vlasovData/VlasovStreamMax1x3vP3.cpp
+    vlasovData/VlasovStreamMax2x2vP3.cpp
+
+    vlasovData/VlasovStreamSer1x1vP1.cpp
+    vlasovData/VlasovStreamSer1x2vP1.cpp
+    vlasovData/VlasovStreamSer1x3vP1.cpp
+    vlasovData/VlasovStreamSer2x2vP1.cpp
+    vlasovData/VlasovStreamSer2x3vP1.cpp
+    vlasovData/VlasovStreamSer3x3vP1.cpp
+
+    vlasovData/VlasovStreamSer1x1vP2.cpp
+    vlasovData/VlasovStreamSer1x2vP2.cpp
+    vlasovData/VlasovStreamSer1x3vP2.cpp
+    vlasovData/VlasovStreamSer2x2vP2.cpp
+    vlasovData/VlasovStreamSer2x3vP2.cpp
+
+    vlasovData/VlasovStreamSer1x1vP3.cpp
+    vlasovData/VlasovStreamSer1x2vP3.cpp
+    vlasovData/VlasovStreamSer1x3vP3.cpp
+    vlasovData/VlasovStreamSer2x2vP3.cpp
+
+    vlasovData/VlasovStreamTensor1x1vP2.cpp
+    vlasovData/VlasovStreamTensor1x2vP2.cpp
+    vlasovData/VlasovStreamTensor1x3vP2.cpp
+    vlasovData/VlasovStreamTensor2x2vP2.cpp
+
+    vlasovData/VlasovStreamTensor1x1vP3.cpp
+    vlasovData/VlasovStreamTensor1x2vP3.cpp
+
+    vlasovData/VlasovSurfStreamMax1x1vP1.cpp
+    vlasovData/VlasovSurfStreamMax1x2vP1.cpp
+    vlasovData/VlasovSurfStreamMax1x3vP1.cpp
+    vlasovData/VlasovSurfStreamMax2x2vP1.cpp
+    vlasovData/VlasovSurfStreamMax2x3vP1.cpp
+    vlasovData/VlasovSurfStreamMax3x3vP1.cpp
+
+    vlasovData/VlasovSurfStreamMax1x1vP2.cpp
+    vlasovData/VlasovSurfStreamMax1x2vP2.cpp
+    vlasovData/VlasovSurfStreamMax1x3vP2.cpp
+    vlasovData/VlasovSurfStreamMax2x2vP2.cpp
+    vlasovData/VlasovSurfStreamMax2x3vP2.cpp
+
+    vlasovData/VlasovSurfStreamMax1x1vP3.cpp
+    vlasovData/VlasovSurfStreamMax1x2vP3.cpp
+    vlasovData/VlasovSurfStreamMax1x3vP3.cpp
+    vlasovData/VlasovSurfStreamMax2x2vP3.cpp
+
+    vlasovData/VlasovSurfStreamSer1x1vP1.cpp
+    vlasovData/VlasovSurfStreamSer1x2vP1.cpp
+    vlasovData/VlasovSurfStreamSer1x3vP1.cpp
+    vlasovData/VlasovSurfStreamSer2x2vP1.cpp
+    vlasovData/VlasovSurfStreamSer2x3vP1.cpp
+    vlasovData/VlasovSurfStreamSer3x3vP1.cpp
+
+    vlasovData/VlasovSurfStreamSer1x1vP2.cpp
+    vlasovData/VlasovSurfStreamSer1x2vP2.cpp
+    vlasovData/VlasovSurfStreamSer1x3vP2.cpp
+    vlasovData/VlasovSurfStreamSer2x2vP2.cpp
+    vlasovData/VlasovSurfStreamSer2x3vP2.cpp
+
+    vlasovData/VlasovSurfStreamSer1x1vP3.cpp
+    vlasovData/VlasovSurfStreamSer1x2vP3.cpp
+    vlasovData/VlasovSurfStreamSer1x3vP3.cpp
+    vlasovData/VlasovSurfStreamSer2x2vP3.cpp
+
+    vlasovData/VlasovSurfStreamTensor1x1vP2.cpp
+    vlasovData/VlasovSurfStreamTensor1x2vP2.cpp
+    vlasovData/VlasovSurfStreamTensor1x3vP2.cpp
+    vlasovData/VlasovSurfStreamTensor2x2vP2.cpp
+
+    vlasovData/VlasovSurfStreamTensor1x1vP3.cpp
+    vlasovData/VlasovSurfStreamTensor1x2vP3.cpp
+
+    vlasovData/VlasovMax1x1vP1.cpp
+    vlasovData/VlasovMax1x2vP1.cpp
+    vlasovData/VlasovMax1x3vP1.cpp
+    vlasovData/VlasovMax2x2vP1.cpp
+    vlasovData/VlasovMax2x3vP1.cpp
+    vlasovData/VlasovMax3x3vP1.cpp
+
+    vlasovData/VlasovMax1x1vP2.cpp
+    vlasovData/VlasovMax1x2vP2.cpp
+    vlasovData/VlasovMax1x3vP2.cpp
+    vlasovData/VlasovMax2x2vP2.cpp
+    vlasovData/VlasovMax2x3vP2.cpp
+
+    vlasovData/VlasovMax1x1vP3.cpp
+    vlasovData/VlasovMax1x2vP3.cpp
+    vlasovData/VlasovMax1x3vP3.cpp
+    vlasovData/VlasovMax2x2vP3.cpp
+
+    vlasovData/VlasovSer1x1vP1.cpp
+    vlasovData/VlasovSer1x2vP1.cpp
+    vlasovData/VlasovSer1x3vP1.cpp
+    vlasovData/VlasovSer2x2vP1.cpp
+    vlasovData/VlasovSer2x3vP1.cpp
+    vlasovData/VlasovSer3x3vP1.cpp
+
+    vlasovData/VlasovSer1x1vP2.cpp
+    vlasovData/VlasovSer1x2vP2.cpp
+    vlasovData/VlasovSer1x3vP2.cpp
+    vlasovData/VlasovSer2x2vP2.cpp
+    vlasovData/VlasovSer2x3vP2.cpp
+
+    vlasovData/VlasovSer1x1vP3.cpp
+    vlasovData/VlasovSer1x2vP3.cpp
+    vlasovData/VlasovSer1x3vP3.cpp
+    vlasovData/VlasovSer2x2vP3.cpp
+
+    vlasovData/VlasovTensor1x1vP2.cpp
+    vlasovData/VlasovTensor1x2vP2.cpp
+    vlasovData/VlasovTensor1x3vP2.cpp
+    vlasovData/VlasovTensor2x2vP2.cpp
+
+    vlasovData/VlasovTensor1x1vP3.cpp
+    vlasovData/VlasovTensor1x2vP3.cpp
+
+    vlasovData/VlasovForceMax1x1vP1.cpp
+    vlasovData/VlasovForceMax1x1vP2.cpp
+    vlasovData/VlasovForceMax1x1vP3.cpp
+
+    vlasovData/VlasovForceSer1x1vP1.cpp
+    vlasovData/VlasovForceSer1x1vP2.cpp
+    vlasovData/VlasovForceSer1x1vP3.cpp
+
+    vlasovData/VlasovForceTensor1x1vP2.cpp
+    vlasovData/VlasovForceTensor1x1vP3.cpp
+
+    vlasovData/VlasovSurfElcMagMax1x1vP1.cpp
+    vlasovData/VlasovSurfElcMagMax1x2vP1.cpp
+    vlasovData/VlasovSurfElcMagMax1x3vP1.cpp
+    vlasovData/VlasovSurfElcMagMax2x2vP1.cpp
+    vlasovData/VlasovSurfElcMagMax2x3vP1.cpp
+    vlasovData/VlasovSurfElcMagMax3x3vP1.cpp
+
+    vlasovData/VlasovSurfElcMagMax1x1vP2.cpp
+    vlasovData/VlasovSurfElcMagMax1x2vP2.cpp
+    vlasovData/VlasovSurfElcMagMax1x3vP2.cpp
+    vlasovData/VlasovSurfElcMagMax2x2vP2.cpp
+    vlasovData/VlasovSurfElcMagMax2x3vP2.cpp
+
+    vlasovData/VlasovSurfElcMagMax1x1vP3.cpp
+    vlasovData/VlasovSurfElcMagMax1x2vP3.cpp
+    vlasovData/VlasovSurfElcMagMax1x3vP3.cpp
+    vlasovData/VlasovSurfElcMagMax2x2vP3.cpp
+
+    vlasovData/VlasovSurfElcMagSer1x1vP1.cpp
+    vlasovData/VlasovSurfElcMagSer1x2vP1.cpp
+    vlasovData/VlasovSurfElcMagSer1x3vP1.cpp
+    vlasovData/VlasovSurfElcMagSer2x2vP1.cpp
+    vlasovData/VlasovSurfElcMagSer2x3vP1.cpp
+    vlasovData/VlasovSurfElcMagSer3x3vP1.cpp
+
+    vlasovData/VlasovSurfElcMagSer1x1vP2.cpp
+    vlasovData/VlasovSurfElcMagSer1x2vP2.cpp
+    vlasovData/VlasovSurfElcMagSer1x3vP2.cpp
+    vlasovData/VlasovSurfElcMagSer2x2vP2.cpp
+    vlasovData/VlasovSurfElcMagSer2x3vP2.cpp
+
+    vlasovData/VlasovSurfElcMagSer1x1vP3.cpp
+    vlasovData/VlasovSurfElcMagSer1x2vP3.cpp
+    vlasovData/VlasovSurfElcMagSer1x3vP3.cpp
+    vlasovData/VlasovSurfElcMagSer2x2vP3.cpp
+
+    vlasovData/VlasovSurfElcMagTensor1x1vP2.cpp
+    vlasovData/VlasovSurfElcMagTensor1x2vP2.cpp
+    vlasovData/VlasovSurfElcMagTensor1x3vP2.cpp
+    vlasovData/VlasovSurfElcMagTensor2x2vP2.cpp
+
+    vlasovData/VlasovSurfElcMagTensor1x1vP3.cpp
+    vlasovData/VlasovSurfElcMagTensor1x2vP3.cpp
 
     vlasovData/VlasovIncr.cpp
 
@@ -259,8 +481,284 @@ def build(bld):
 
     """,
               name = 'eq',
-              target = 'eq', use='EIGEN', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData',
+              target = 'eq', use='EIGEN CUTOOLS', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct',
               vnum = '1.0',
               
     )
+
+    cusources = """
+    GkylVlasov.cpp
+    GkylEquationFvEuler.cpp
+    GkylEquationFvPerfMaxwell.cpp
+
+    vlasovData/VlasovTmplModDeviceFuncs.cpp
+
+    vlasovData/VlasovStreamMax1x1vP1.cpp
+    vlasovData/VlasovStreamMax1x2vP1.cpp
+    vlasovData/VlasovStreamMax1x3vP1.cpp
+    vlasovData/VlasovStreamMax2x2vP1.cpp
+    vlasovData/VlasovStreamMax2x3vP1.cpp
+    vlasovData/VlasovStreamMax3x3vP1.cpp
+
+    vlasovData/VlasovStreamMax1x1vP2.cpp
+    vlasovData/VlasovStreamMax1x2vP2.cpp
+    vlasovData/VlasovStreamMax1x3vP2.cpp
+    vlasovData/VlasovStreamMax2x2vP2.cpp
+    vlasovData/VlasovStreamMax2x3vP2.cpp
+
+    vlasovData/VlasovStreamMax1x1vP3.cpp
+    vlasovData/VlasovStreamMax1x2vP3.cpp
+    vlasovData/VlasovStreamMax1x3vP3.cpp
+    vlasovData/VlasovStreamMax2x2vP3.cpp
+
+    vlasovData/VlasovStreamSer1x1vP1.cpp
+    vlasovData/VlasovStreamSer1x2vP1.cpp
+    vlasovData/VlasovStreamSer1x3vP1.cpp
+    vlasovData/VlasovStreamSer2x2vP1.cpp
+    vlasovData/VlasovStreamSer2x3vP1.cpp
+    vlasovData/VlasovStreamSer3x3vP1.cpp
+
+    vlasovData/VlasovStreamSer1x1vP2.cpp
+    vlasovData/VlasovStreamSer1x2vP2.cpp
+    vlasovData/VlasovStreamSer1x3vP2.cpp
+    vlasovData/VlasovStreamSer2x2vP2.cpp
+    vlasovData/VlasovStreamSer2x3vP2.cpp
+
+    vlasovData/VlasovStreamSer1x1vP3.cpp
+    vlasovData/VlasovStreamSer1x2vP3.cpp
+    vlasovData/VlasovStreamSer1x3vP3.cpp
+    vlasovData/VlasovStreamSer2x2vP3.cpp
+
+    vlasovData/VlasovStreamTensor1x1vP2.cpp
+    vlasovData/VlasovStreamTensor1x2vP2.cpp
+    vlasovData/VlasovStreamTensor1x3vP2.cpp
+    vlasovData/VlasovStreamTensor2x2vP2.cpp
+
+    vlasovData/VlasovStreamTensor1x1vP3.cpp
+    vlasovData/VlasovStreamTensor1x2vP3.cpp
+
+    vlasovData/VlasovSurfStreamMax1x1vP1.cpp
+    vlasovData/VlasovSurfStreamMax1x2vP1.cpp
+    vlasovData/VlasovSurfStreamMax1x3vP1.cpp
+    vlasovData/VlasovSurfStreamMax2x2vP1.cpp
+    vlasovData/VlasovSurfStreamMax2x3vP1.cpp
+    vlasovData/VlasovSurfStreamMax3x3vP1.cpp
+
+    vlasovData/VlasovSurfStreamMax1x1vP2.cpp
+    vlasovData/VlasovSurfStreamMax1x2vP2.cpp
+    vlasovData/VlasovSurfStreamMax1x3vP2.cpp
+    vlasovData/VlasovSurfStreamMax2x2vP2.cpp
+    vlasovData/VlasovSurfStreamMax2x3vP2.cpp
+
+    vlasovData/VlasovSurfStreamMax1x1vP3.cpp
+    vlasovData/VlasovSurfStreamMax1x2vP3.cpp
+    vlasovData/VlasovSurfStreamMax1x3vP3.cpp
+    vlasovData/VlasovSurfStreamMax2x2vP3.cpp
+
+    vlasovData/VlasovSurfStreamSer1x1vP1.cpp
+    vlasovData/VlasovSurfStreamSer1x2vP1.cpp
+    vlasovData/VlasovSurfStreamSer1x3vP1.cpp
+    vlasovData/VlasovSurfStreamSer2x2vP1.cpp
+    vlasovData/VlasovSurfStreamSer2x3vP1.cpp
+    vlasovData/VlasovSurfStreamSer3x3vP1.cpp
+
+    vlasovData/VlasovSurfStreamSer1x1vP2.cpp
+    vlasovData/VlasovSurfStreamSer1x2vP2.cpp
+    vlasovData/VlasovSurfStreamSer1x3vP2.cpp
+    vlasovData/VlasovSurfStreamSer2x2vP2.cpp
+    vlasovData/VlasovSurfStreamSer2x3vP2.cpp
+
+    vlasovData/VlasovSurfStreamSer1x1vP3.cpp
+    vlasovData/VlasovSurfStreamSer1x2vP3.cpp
+    vlasovData/VlasovSurfStreamSer1x3vP3.cpp
+    vlasovData/VlasovSurfStreamSer2x2vP3.cpp
+
+    vlasovData/VlasovSurfStreamTensor1x1vP2.cpp
+    vlasovData/VlasovSurfStreamTensor1x2vP2.cpp
+    vlasovData/VlasovSurfStreamTensor1x3vP2.cpp
+    vlasovData/VlasovSurfStreamTensor2x2vP2.cpp
+
+    vlasovData/VlasovSurfStreamTensor1x1vP3.cpp
+    vlasovData/VlasovSurfStreamTensor1x2vP3.cpp
+
+    vlasovData/VlasovMax1x1vP1.cpp
+    vlasovData/VlasovMax1x2vP1.cpp
+    vlasovData/VlasovMax1x3vP1.cpp
+    vlasovData/VlasovMax2x2vP1.cpp
+    vlasovData/VlasovMax2x3vP1.cpp
+    vlasovData/VlasovMax3x3vP1.cpp
+
+    vlasovData/VlasovMax1x1vP2.cpp
+    vlasovData/VlasovMax1x2vP2.cpp
+    vlasovData/VlasovMax1x3vP2.cpp
+    vlasovData/VlasovMax2x2vP2.cpp
+    vlasovData/VlasovMax2x3vP2.cpp
+
+    vlasovData/VlasovMax1x1vP3.cpp
+    vlasovData/VlasovMax1x2vP3.cpp
+    vlasovData/VlasovMax1x3vP3.cpp
+    vlasovData/VlasovMax2x2vP3.cpp
+
+    vlasovData/VlasovSer1x1vP1.cpp
+    vlasovData/VlasovSer1x2vP1.cpp
+    vlasovData/VlasovSer1x3vP1.cpp
+    vlasovData/VlasovSer2x2vP1.cpp
+    vlasovData/VlasovSer2x3vP1.cpp
+    vlasovData/VlasovSer3x3vP1.cpp
+
+    vlasovData/VlasovSer1x1vP2.cpp
+    vlasovData/VlasovSer1x2vP2.cpp
+    vlasovData/VlasovSer1x3vP2.cpp
+    vlasovData/VlasovSer2x2vP2.cpp
+    vlasovData/VlasovSer2x3vP2.cpp
+
+    vlasovData/VlasovSer1x1vP3.cpp
+    vlasovData/VlasovSer1x2vP3.cpp
+    vlasovData/VlasovSer1x3vP3.cpp
+    vlasovData/VlasovSer2x2vP3.cpp
+
+    vlasovData/VlasovTensor1x1vP2.cpp
+    vlasovData/VlasovTensor1x2vP2.cpp
+    vlasovData/VlasovTensor1x3vP2.cpp
+    vlasovData/VlasovTensor2x2vP2.cpp
+
+    vlasovData/VlasovTensor1x1vP3.cpp
+    vlasovData/VlasovTensor1x2vP3.cpp
+
+    vlasovData/VlasovSurfElcMagMax1x1vP1.cpp
+    vlasovData/VlasovSurfElcMagMax1x2vP1.cpp
+    vlasovData/VlasovSurfElcMagMax1x3vP1.cpp
+    vlasovData/VlasovSurfElcMagMax2x2vP1.cpp
+    vlasovData/VlasovSurfElcMagMax2x3vP1.cpp
+    vlasovData/VlasovSurfElcMagMax3x3vP1.cpp
+
+    vlasovData/VlasovSurfElcMagMax1x1vP2.cpp
+    vlasovData/VlasovSurfElcMagMax1x2vP2.cpp
+    vlasovData/VlasovSurfElcMagMax1x3vP2.cpp
+    vlasovData/VlasovSurfElcMagMax2x2vP2.cpp
+    vlasovData/VlasovSurfElcMagMax2x3vP2.cpp
+
+    vlasovData/VlasovSurfElcMagMax1x1vP3.cpp
+    vlasovData/VlasovSurfElcMagMax1x2vP3.cpp
+    vlasovData/VlasovSurfElcMagMax1x3vP3.cpp
+    vlasovData/VlasovSurfElcMagMax2x2vP3.cpp
+
+    vlasovData/VlasovSurfElcMagSer1x1vP1.cpp
+    vlasovData/VlasovSurfElcMagSer1x2vP1.cpp
+    vlasovData/VlasovSurfElcMagSer1x3vP1.cpp
+    vlasovData/VlasovSurfElcMagSer2x2vP1.cpp
+    vlasovData/VlasovSurfElcMagSer2x3vP1.cpp
+    vlasovData/VlasovSurfElcMagSer3x3vP1.cpp
+
+    vlasovData/VlasovSurfElcMagSer1x1vP2.cpp
+    vlasovData/VlasovSurfElcMagSer1x2vP2.cpp
+    vlasovData/VlasovSurfElcMagSer1x3vP2.cpp
+    vlasovData/VlasovSurfElcMagSer2x2vP2.cpp
+    vlasovData/VlasovSurfElcMagSer2x3vP2.cpp
+
+    vlasovData/VlasovSurfElcMagSer1x1vP3.cpp
+    vlasovData/VlasovSurfElcMagSer1x2vP3.cpp
+    vlasovData/VlasovSurfElcMagSer1x3vP3.cpp
+    vlasovData/VlasovSurfElcMagSer2x2vP3.cpp
+
+    vlasovData/VlasovSurfElcMagTensor1x1vP2.cpp
+    vlasovData/VlasovSurfElcMagTensor1x2vP2.cpp
+    vlasovData/VlasovSurfElcMagTensor1x3vP2.cpp
+    vlasovData/VlasovSurfElcMagTensor2x2vP2.cpp
+
+    vlasovData/VlasovSurfElcMagTensor1x1vP3.cpp
+    vlasovData/VlasovSurfElcMagTensor1x2vP3.cpp
+
+    vlasovData/VlasovIncr.cpp
+
+    GkylMaxwell.cpp
+
+    maxwellData/MaxwellTmplModDeviceFuncs.cpp
+
+    maxwellData/MaxwellVolSer1xP1.cpp
+    maxwellData/MaxwellVolSer2xP1.cpp
+    maxwellData/MaxwellVolSer3xP1.cpp
+
+    maxwellData/MaxwellVolSer1xP2.cpp
+    maxwellData/MaxwellVolSer2xP2.cpp
+
+    maxwellData/MaxwellVolSer1xP3.cpp
+    maxwellData/MaxwellVolSer2xP3.cpp
+
+    maxwellData/MaxwellSurfSer1xP1.cpp
+    maxwellData/MaxwellSurfSer2xP1.cpp
+    maxwellData/MaxwellSurfSer3xP1.cpp
+
+    maxwellData/MaxwellSurfSer1xP2.cpp
+    maxwellData/MaxwellSurfSer2xP2.cpp
+
+    maxwellData/MaxwellSurfSer1xP3.cpp
+    maxwellData/MaxwellSurfSer2xP3.cpp
+
+    maxwellData/MaxwellCentralSurfSer1xP1.cpp
+    maxwellData/MaxwellCentralSurfSer2xP1.cpp
+    maxwellData/MaxwellCentralSurfSer3xP1.cpp
+
+    maxwellData/MaxwellCentralSurfSer1xP2.cpp
+    maxwellData/MaxwellCentralSurfSer2xP2.cpp
+
+    maxwellData/MaxwellCentralSurfSer1xP3.cpp
+    maxwellData/MaxwellCentralSurfSer2xP3.cpp
+
+    maxwellData/MaxwellVolMax1xP1.cpp
+    maxwellData/MaxwellVolMax2xP1.cpp
+    maxwellData/MaxwellVolMax3xP1.cpp
+
+    maxwellData/MaxwellVolMax1xP2.cpp
+    maxwellData/MaxwellVolMax2xP2.cpp
+
+    maxwellData/MaxwellVolMax1xP3.cpp
+    maxwellData/MaxwellVolMax2xP3.cpp
+
+    maxwellData/MaxwellSurfMax1xP1.cpp
+    maxwellData/MaxwellSurfMax2xP1.cpp
+    maxwellData/MaxwellSurfMax3xP1.cpp
+
+    maxwellData/MaxwellSurfMax1xP2.cpp
+    maxwellData/MaxwellSurfMax2xP2.cpp
+
+    maxwellData/MaxwellSurfMax1xP3.cpp
+    maxwellData/MaxwellSurfMax2xP3.cpp
+
+    maxwellData/MaxwellCentralSurfMax1xP1.cpp
+    maxwellData/MaxwellCentralSurfMax2xP1.cpp
+    maxwellData/MaxwellCentralSurfMax3xP1.cpp
+
+    maxwellData/MaxwellCentralSurfMax1xP2.cpp
+    maxwellData/MaxwellCentralSurfMax2xP2.cpp
+
+    maxwellData/MaxwellCentralSurfMax1xP3.cpp
+    maxwellData/MaxwellCentralSurfMax2xP3.cpp
+
+    maxwellData/MaxwellVolTensor1xP2.cpp
+    maxwellData/MaxwellVolTensor2xP2.cpp
+
+    maxwellData/MaxwellVolTensor1xP3.cpp
+    maxwellData/MaxwellVolTensor2xP3.cpp
+
+    maxwellData/MaxwellSurfTensor1xP2.cpp
+    maxwellData/MaxwellSurfTensor2xP2.cpp
+
+    maxwellData/MaxwellSurfTensor1xP3.cpp
+    maxwellData/MaxwellSurfTensor2xP3.cpp
+
+    maxwellData/MaxwellCentralSurfTensor1xP2.cpp
+    maxwellData/MaxwellCentralSurfTensor2xP2.cpp
+
+    maxwellData/MaxwellCentralSurfTensor1xP3.cpp
+    maxwellData/MaxwellCentralSurfTensor2xP3.cpp
+    """
+
+    # CUDA specific code
+    if bld.env['CUTOOLS_FOUND']:
+        bld(source = cusources,
+            name = 'eq_cu', target='eq_cu',
+            includes = '. ../Cuda ../Grid ../Lib ../Basis ../Eq ../DataStruct vlasovData maxwellData',
+	    features = 'cxx nvcc '
+        )
 

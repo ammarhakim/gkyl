@@ -17,9 +17,9 @@ local Range = require "Lib.Range"
 local xsys = require "xsys"
 
 -- create constructor to store vector of Range objects
-local RangeVec = Lin.new_vec_ct(ffi.typeof("Range_t"))
+local RangeVec = Lin.new_vec_ct(ffi.typeof("GkylRange_t"))
 -- create constructor to store integer pairs
-local PairsVec = Lin.new_vec_ct(ffi.typeof("struct { int32_t lower, upper; } "))
+local PairsVec = Lin.new_vec_ct(ffi.typeof("struct { int lower, upper; } "))
 
 -- DecomposedRange --------------------------------------------------------------
 --
@@ -94,7 +94,10 @@ function CartProdDecomp:init(tbl)
    self._useShared = xsys.pickBool(tbl.useShared, false)
 
    local comm, shmComm = Mpi.COMM_WORLD, nil
+   -- use a different communicator if one is specified
    if tbl.comm then comm = tbl.comm end
+   -- denote specific ranks from which writes should happen (defaults to all ranks)
+   local writeRank = tbl.writeRank or Mpi.Comm_rank(Mpi.COMM_WORLD)
    -- create various communicators
    if self._useShared then
       shmComm = Mpi.Comm_split_type(comm, Mpi.COMM_TYPE_SHARED, 0, Mpi.INFO_NULL)
@@ -150,7 +153,7 @@ function CartProdDecomp:init(tbl)
 
    -- store various communicators in a table
    self._commSet = {
-      comm = comm, sharedComm = shmComm, nodeComm = nodeComm
+      comm = comm, sharedComm = shmComm, nodeComm = nodeComm, writeRank = writeRank
    }
 end
 

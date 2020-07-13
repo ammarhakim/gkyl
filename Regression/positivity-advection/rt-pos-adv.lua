@@ -1,5 +1,5 @@
 -- Plasma ------------------------------------------------------------------------
-local Plasma = require("App.PlasmaOnCartGrid").IncompEuler
+local Plasma = require("App.PlasmaOnCartGrid").IncompEuler()
 
 local ux = 1
 local uy = 1
