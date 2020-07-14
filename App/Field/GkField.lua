@@ -1349,109 +1349,109 @@ function GkGeometry:createSolver()
       onGrid = self.grid,
       basis = self.basis,
       evaluate = self.calcAllGeo,
-      projectOnGhosts = false,
+      projectOnGhosts = true,
    }
    self.setBmag = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
       evaluate = self.bmagFunc,
-      projectOnGhosts = false,
+      projectOnGhosts = true,
    }
    self.setBmagInv = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = false,
+      projectOnGhosts = true,
       evaluate        = self.bmagInvFunc
    }
    self.setGradpar = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = false,
+      projectOnGhosts = true,
       evaluate = self.gradparFunc
    }
    self.setJacobGeo = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = false,
+      projectOnGhosts = true,
       evaluate = self.jacobGeoFunc
    }
    self.setJacobGeoInv = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = false,
+      projectOnGhosts = true,
       evaluate = self.jacobGeoInvFunc
    }
    self.setJacobTot = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = false,
+      projectOnGhosts = true,
       evaluate = self.jacobTotFunc
    }
    self.setJacobTotInv = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = false,
+      projectOnGhosts = true,
       evaluate = self.jacobTotInvFunc
    }
    self.setGeoX = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = false,
+      projectOnGhosts = true,
       evaluate = self.geoXFunc
    }
    self.setGeoY = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = false,
+      projectOnGhosts = true,
       evaluate = self.geoYFunc
    }
    self.setGeoZ = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = false,
+      projectOnGhosts = true,
       evaluate = self.geoZFunc
    }
    self.setGxx = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = false,
+      projectOnGhosts = true,
       evaluate = self.gxx_Func
    }
    self.setGxy = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = false,
+      projectOnGhosts = true,
       evaluate = self.gxy_Func
    }
    self.setGyy = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = false,
+      projectOnGhosts = true,
       evaluate = self.gyy_Func
    }
    self.setGxxJ = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = false,
+      projectOnGhosts = true,
       evaluate = self.gxxJ_Func
    }
    self.setGxyJ = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = false,
+      projectOnGhosts = true,
       evaluate = self.gxyJ_Func
    }
    self.setGyyJ = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
-      projectOnGhosts = false,
+      projectOnGhosts = true,
       evaluate = self.gyyJ_Func
    }
    if self.phiWallFunc then 
       self.setPhiWall = Updater.EvalOnNodes {
          onGrid = self.grid,
          basis = self.basis,
-         projectOnGhosts = false,
+         projectOnGhosts = true,
          evaluate        = self.phiWallFunc
       }
    end
