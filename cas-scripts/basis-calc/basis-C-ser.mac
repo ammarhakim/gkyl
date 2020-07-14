@@ -3,16 +3,16 @@ load("out-scripts");
 load(stringproc)$
 fpprec : 24$
 
+let(z1^3, z1_cu)$
+let(z2^3, z2_cu)$
+let(z3^3, z3_cu)$
+let(z4^3, z4_cu)$
+
 let(z1^2, z1_sq)$
 let(z2^2, z2_sq)$
 let(z3^2, z3_sq)$
 let(z4^2, z4_sq)$
 let(z5^2, z5_sq)$
-
-let(z1^3, z1_cu)$
-let(z2^3, z2_cu)$
-let(z3^3, z3_cu)$
-let(z4^3, z4_cu)$
 
 maxPolyOrder : 3$
 minDim : 1$
@@ -40,6 +40,7 @@ for d : minDim thru maxDim do (
             printf(fh, " const double z~a_sq = z~a*z~a;", dim, dim, dim)
          ),
          if p = 3 then (
+            printf(fh, " const double z~a_sq = z~a*z~a;", dim, dim, dim),
             printf(fh, " const double z~a_cu = z~a*z~a*z~a;", dim, dim, dim, dim)
          ),
       printf(fh, "~%")
