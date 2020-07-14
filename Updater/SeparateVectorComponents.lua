@@ -29,7 +29,7 @@ function SeparateVectorComponents:_advance(tCurr, inFld, outFld)
    local tId = grid:subGridSharedId() -- Local thread ID.
    -- Object to iterate over only region owned by local SHM thread.
    local localRangeDecomp = LinearDecomp.LinearDecompRange {
-	 range = fIn:localRange(), numSplit = grid:numSharedProcs() }
+	 range = fIn:localExtRange(), numSplit = grid:numSharedProcs() }
 
    local indexer = fIn:genIndexer()
    local outIndexer = outFld[1]:genIndexer()
