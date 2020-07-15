@@ -297,11 +297,16 @@ local function buildApplication(self, tbl)
    -- Initialize field (sometimes requires species to have been initialized).
    field:createSolver(species, funcField)
    field:initField(species)
+
    -- Apply species BCs.
    for nm, s in pairs(species) do
-      -- This is a dummy forwardEuler call because some BCs require 
+       -- This is a dummy forwardEuler call because some BCs require 
       -- auxFields to be set, which is controlled by species solver.
-      s:advance(0, species, {field, funcField}, 1, 2)
+      if s.name == 'neut' then
+	 s:advance(0, species, {NoField {}, NoField {}}, 1, 2)
+      else
+	 s:advance(0, species, {field, funcField}, 1, 2)
+      end
       s:applyBc(0, s:rkStepperFields()[1])
    end
 
@@ -396,7 +401,11 @@ local function buildApplication(self, tbl)
 
       -- Update species.
       for nm, s in pairs(species) do
-         s:advance(tCurr, species, {field, funcField}, inIdx, outIdx)
+	 if s.name == 'neut' then
+	    s:advance(tCurr, species, {NoField {}, NoField {}}, inIdx, outIdx)
+	 else
+	    s:advance(tCurr, species, {field, funcField}, inIdx, outIdx)
+	 end
       end
 
       -- Some systems (e.g. EM GK) require additional step(s) to complete the forward Euler.

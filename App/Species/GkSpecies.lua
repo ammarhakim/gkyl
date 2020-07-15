@@ -16,6 +16,7 @@ local Time           = require "Lib.Time"
 local Constants      = require "Lib.Constants"
 local Lin            = require "Lib.Linalg"
 local xsys           = require "xsys"
+local VlasovEq       = require "Eq.Vlasov"
 
 local GkSpecies = Proto(KineticSpecies)
 
@@ -171,6 +172,17 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       gyavgSlvr    = self.emGyavgSlvr,
    }
 
+   -- Vlasov solver for neutrals
+   self.vmEquation = VlasovEq {
+      onGrid           = self.grid,
+      phaseBasis       = self.basis,
+      confBasis        = self.confBasis,
+      charge           = self.charge,
+      mass             = self.mass,
+      hasElectricField = false,
+      hasMagneticField = false,
+   }
+
    -- No update in mu direction (last velocity direction if present)
    local upd = {}
    if hasApar then    -- If electromagnetic only update conf dir surface terms on first step.
@@ -187,6 +199,16 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       basis              = self.basis,
       cfl                = self.cfl,
       equation           = self.equation,
+      zeroFluxDirections = self.zeroFluxDirections,
+      updateDirections   = upd,
+      clearOut           = false,   -- Continue accumulating into output field.
+   }
+
+   self.vmSolver = Updater.HyperDisCont {
+      onGrid             = self.grid,
+      basis              = self.basis,
+      cfl                = self.cfl,
+      equation           = self.vmEquation,
       zeroFluxDirections = self.zeroFluxDirections,
       updateDirections   = upd,
       clearOut           = false,   -- Continue accumulating into output field.
@@ -772,8 +794,13 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       end
    end
    if self.evolveCollisionless then
-      self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
+      if self.name == 'neut' then
+            self.vmSolver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+	    self.vmSolver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
+      else
+	 self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+	 self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
+      end
    else
       self.equation:setAuxFields({em, emFunc, dApardtProv})  -- Set auxFields in case they are needed by BCs/collisions.
    end
