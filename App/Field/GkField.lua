@@ -1337,7 +1337,7 @@ function GkGeometry:createSolver()
       local gyz = (g[2]*g[3]-g[1]*g[5])/det
       local gzz = (g[1]*g[4]-g[2]^2)/det
 
-      local bmag = math.sqrt(g_zz)/jacobian
+      local bmag = self.bmagFunc(t, xn)
       local gradpar = jacobian*bmag/math.sqrt(g_zz)
 
       return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, gradpar, 
