@@ -908,6 +908,22 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        self.vtSqIz:write(string.format("%s_vtSqIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        self.voronovReactRate:write(string.format("%s_coefIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       -- include dynvector for zeroth vector of ionization source
+       local srcIzM0 = self:allocMoment()
+       self.numDensityCalc:advance(tm, {sourceIz}, {srcIzM0})
+       self.intSrcIzM0 = DataStruct.DynVector {
+	  numComponents = 1,
+       }
+       local intCalc = Updater.CartFieldIntegratedQuantCalc {
+	  onGrid        = self.confGrid,
+	  basis         = self.confBasis,
+	  numComponents = 1,
+	  quantity      = "V",
+	  timeIntegrate = true,
+       }
+       intCalc:advance( tm, {srcIzM0, self.sourceTimeDependence(tm)}, {self.intSrcIzM0} )
+       self.intSrcIzM0:write(
+          string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)       
     end
 
     -- Write CX diagnostics
