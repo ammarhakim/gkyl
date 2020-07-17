@@ -38,20 +38,13 @@ extern "C" {
   } stencil19;
 
   void fpoMomsKernelP1(const double* dv, const double* vc, const double* f, double* out);
-
-  void fpoMomsKernelP2(const double* dv, const double* vc, const double* f, double* out);
   
   void fpoDiagKernelP1(const double* dv, const double* vc, const double* f, const double* h, double* out);
   
-  void fpoDiagKernelP2(const double* dv, const double* vc, const double* f, const double* h, double* out);
 
   double fpoDragKernel3xP1(const double dt, const double* dv,
                            const stencil7* fStencil, const stencil7* hStencil,
                            double* fOut);
-
-  /* double fpoDiffKernel3xP1(const double dt, const double* dv, */
-  /*                          const stencil19 fStencil, const stencil19 gStencil, */
-  /*                          double* fOut); */
 
   void fpoDiffSurfXLSer3xP1(const double dt, const double* dv,
                             const double* fLCC,

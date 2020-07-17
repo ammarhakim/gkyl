@@ -107,17 +107,17 @@ return function(tbl)
    local f1 = getField()
    local f2 = getField()
    local fe = getField()
-   local fs = getField()
    local fNew = getField()
    local h = getField()
+   local hTmp = getField()
    local g = getField()
 
    local test = getField()
 
    local src = getField()
 
-   local moms = DataStruct.DynVector { numComponents = 4 }
-   local diag = DataStruct.DynVector { numComponents = 3 }
+   local momVec = DataStruct.DynVector { numComponents = 5 }
+   local diagVec = DataStruct.DynVector { numComponents = 4 }
 
 
    --------------
@@ -210,27 +210,29 @@ return function(tbl)
       evaluate = tbl.init,
    }
 
-   -- local poisson = Updater.FemPerpPoisson {
-   --    onGrid = grid,
-   --    basis = basis,
-   --    bcBottom = { T = "D", V = 0.0 },
-   --    bcTop = { T = "D", V = 0.0 },
-   --    bcLeft = { T = "D", V = 0.0 },
-   --    bcRight = { T = "D", V = 0.0 },
-   -- }
+   local poisson = Updater.DiscontPoisson {
+      onGrid = grid,
+      basis = basis,
+      bcLower = {{D = 1, N = 0, val = 0.0},
+         {D = 1, N = 0, val = 0.0},
+         {D = 1, N = 0, val = 0.0}},
+      bcUpper = {{D = 1, N = 0, val = 0.0},
+         {D = 1, N = 0, val = 0.0},
+         {D = 1, N = 0, val = 0.0}},
+   }
 
    local function updateRosenbluthDrag(fIn, hOut)
       local tmStart = Time.clock()
-      fs:combine(-1.0, fIn)
       if updatePotentials then
-         poisson:advance(0.0, {fs}, {hOut})
+         poisson:advance(0.0, {fIn}, {hOut})
       end
       tmRosen = tmRosen + Time.clock()-tmStart
    end
    local function updateRosenbluthDiffusion(hIn, gOut)
       local tmStart = Time.clock()
       if updatePotentials then
-         poisson:advance(0.0, {hIn}, {gOut})
+         hTmp:combine(-1.0, hIn)
+         poisson:advance(0.0, {hTmp}, {gOut})
       end
       tmRosen = tmRosen + Time.clock()-tmStart
    end
@@ -238,9 +240,32 @@ return function(tbl)
    -----------------
    -- Diagnostics --
    -----------------
-   local function calcMoms(tCurr, fIn, momVec)
+   local function calcMoms(tCurr, fIn, vec)
       local dv = Lin.Vec(3)
-      dv[1], dv[2] = grid:dx(1), grid:dx(2)
+      dv[1], dv[2], dv[3] = grid:dx(1), grid:dx(2), grid:dx(3)
+      local vc = Lin.Vec(3)
+      local localRange = fIn:localRange()
+      local indexer = fIn:genIndexer()
+      local out = Lin.Vec(5)
+      out[1] = 0.0
+      out[2] = 0.0
+      out[3] = 0.0
+      out[4] = 0.0
+      out[5] = 0.0
+
+      for idxs in localRange:colMajorIter() do
+         grid:setIndex(idxs)
+         grid:cellCenter(vc)
+         local fPtr = fIn:get(indexer(idxs))
+         momsKernelFn(dv:data(), vc:data(), fPtr:data(), out:data())
+      end
+      vec:appendData(tCurr, out)
+      return out
+   end
+
+   local function calcDiag(tCurr, fIn, hIn, vec)
+      local dv = Lin.Vec(3)
+      dv[1], dv[2], dv[3] = grid:dx(1), grid:dx(2), grid:dx(3)
       local vc = Lin.Vec(3)
       local localRange = fIn:localRange()
       local indexer = fIn:genIndexer()
@@ -254,31 +279,10 @@ return function(tbl)
          grid:setIndex(idxs)
          grid:cellCenter(vc)
          local fPtr = fIn:get(indexer(idxs))
-         momsKernelFn(dv:data(), vc:data(), fPtr:data(), out:data())
-      end
-      momVec:appendData(tCurr, out)
-      return out
-   end
-
-   local function calcDiag(tCurr, fIn, hIn, diagVec)
-      local dv = Lin.Vec(3)
-      dv[1], dv[2] = grid:dx(1), grid:dx(2)
-      local vc = Lin.Vec(3)
-      local localRange = fIn:localRange()
-      local indexer = fIn:genIndexer()
-      local out = Lin.Vec(3)
-      out[1] = 0.0
-      out[2] = 0.0
-      out[3] = 0.0
-
-      for idxs in localRange:colMajorIter() do
-         grid:setIndex(idxs)
-         grid:cellCenter(vc)
-         local fPtr = fIn:get(indexer(idxs))
          local hPtr = hIn:get(indexer(idxs))
          diagKernelFn(dv:data(), vc:data(), fPtr:data(), hPtr:data(), out:data())
       end
-      diagVec:appendData(tCurr, out)
+      vec:appendData(tCurr, out)
    end
 
    local function writeData(fr, tm)
@@ -287,9 +291,11 @@ return function(tbl)
          h:write(string.format('h_%d.bp', fr), tm, fr)
          g:write(string.format('g_%d.bp', fr), tm, fr)
       end
+
       if writeDiagnostics then
-         moms:write(string.format("moms_%d.bp", fr), tm, fr)
-         diag:write(string.format("diag_%d.bp", fr), tm, fr)
+         
+         momVec:write("moms.bp", tm, fr)
+         diagVec:write("diag.bp", tm, fr)
       end
    end
 
@@ -299,7 +305,7 @@ return function(tbl)
    --------------------
    initDist:advance(0.0, {}, {f})
    applyBc(f)
-   --local momVec = calcMoms(0, f, moms)
+   local momVec0 = calcMoms(0, f, momVec)
 
    -- Check if drag/diff functions are provided
    local initDragFunc = tbl.initDrag and tbl.initDrag or function(t, z) return 0.0 end
@@ -308,15 +314,17 @@ return function(tbl)
    -- Overwrite the init functions if the the Dougherty potentials are turned on
    if doughertyPotentials then
       initDragFunc = function (t, z)
-         local ux = momVec[2]/momVec[1]
-         local uy = momVec[3]/momVec[1]
-         return -0.5*((z[1]-ux)^2 + (z[2]-uy)^2)
+         local ux = momVec0[2]/momVec0[1]
+         local uy = momVec0[3]/momVec0[1]
+         local uz = momVec0[4]/momVec0[1]
+         return -0.5*((z[1]-ux)^2 + (z[2]-uy)^2 + (z[3]-uz)^2)
       end
       initDiffFunc = function (t, z)
-         local ux = momVec[2]/momVec[1]
-         local uy = momVec[3]/momVec[1]
-         local dvth2 = momVec[4]/momVec[1] - (ux^2 + uy^2)
-         return dvth2/2 * (z[1]^2 + z[2]^2) -- /2 is for dimensions
+         local ux = momVec0[2]/momVec0[1]
+         local uy = momVec0[3]/momVec0[1]
+         local uz = momVec0[4]/momVec0[1]
+         local dvth2 = momVec0[5]/momVec0[1] - (ux^2 + uy^2 + uz^2)
+         return dvth2/3 * (z[1]^2 + z[2]^2 + z[3]^2) -- /3 is for dimensions
       end
    end
 
@@ -344,7 +352,7 @@ return function(tbl)
 
    -- write initial conditions
    if writeDiagnostics then
-      calcDiag(0, f, h, diag)
+      calcDiag(0, f, h, diagVec)
    end
    writeData(0, 0.0)
    if updatePotentials == false then
@@ -369,8 +377,8 @@ return function(tbl)
          src:write('src.bp', 0.0, 0)
       end
    end
-   test:accumulate(1, src)
-   test:write('test.bp', 0.0, 0)
+   --test:accumulate(1, src)
+   --test:write('test.bp', 0.0, 0)
 
    local function forwardEuler(dt, fIn, hIn, gIn, fOut)
       local tmStart = Time.clock()
@@ -630,9 +638,9 @@ return function(tbl)
 	    f:copy(fNew)
 	    
 	    if writeDiagnostics then
-	       calcMoms(tCurr+dt, f, moms)
+	       calcMoms(tCurr+dt, f, momVec)
 	       updateRosenbluthDrag(f, h)
-	       calcDiag(tCurr+dt, f, h, diag)
+	       calcDiag(tCurr+dt, f, h, diagVec)
 	    end
 	    
 	    tCurr = tCurr+dt
@@ -646,6 +654,7 @@ return function(tbl)
 	    print("dt too big, retaking")
 	 end
       end
+
       local tmTotal = Time.clock()-tmStart
 
       print("")

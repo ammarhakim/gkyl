@@ -8,10 +8,7 @@ import os
 def build(bld):
     bld.shlib(source = r"""
     Fpo/fpoMomsKernelP1.cpp
-    Fpo/fpoMomsKernelP2.cpp
-
     Fpo/fpoDiagKernelP1.cpp
-    Fpo/fpoDiagKernelP2.cpp
 
     Fpo/fpoDragKernel3xP1.cpp
 
