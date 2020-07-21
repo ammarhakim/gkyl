@@ -15,6 +15,7 @@ local stats = Unit.stats
 function test_1()
    local arr = Array.Array( {10, 20}, Array.double)
 
+   assert_equal(2, arr.t, "Testing data type in array")
    assert_equal(2, arr:rank(), "Testing array rank")
    local shape = arr:shape()
    assert_equal(10, shape[1], "Testing array shape")
@@ -60,7 +61,8 @@ end
 
 function test_3()
    local a = Array.Array( {10, 15, 20}, Array.float)
-   
+
+   assert_equal(1, a.t, "Testing data type in array")
    -- Aquire pointer and store in a C-struct
    local ds = ffi.new(ffi.typeof("struct { GkylArray_t *d; } "), a:aquire())
    assert_equal(2, a.c, "Checking use-count")
@@ -100,6 +102,7 @@ function test_5()
    local a = Array.Array( {10},
       ffi.typeof("struct { double x, y, z;}")
    )
+   assert_equal(42, a.t, "Testing data type in array")
    assert_equal(3*ffi.sizeof("double"), a:elemSize(), "Checking size of custom type")
 
    local dptr = ffi.cast(ffi.typeof("struct { double x, y, z;} *"), a.d)
