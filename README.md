@@ -46,9 +46,11 @@ This will print some version information and the libraries `gkyl` was built with
 
 You can run the full suite of unit tests using
 ```
-~/gkylsoft/gkyl/bin/gkyl Tool/runtests.lua config
+cd Regression/
 
-~/gkylsoft/gkyl/bin/gkyl Tool/runtests.lua rununit
+~/gkylsoft/gkyl/bin/gkyl runregression config
+
+~/gkylsoft/gkyl/bin/gkyl runregression rununit
 ```
 
 # Diagnostic tools
