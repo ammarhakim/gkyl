@@ -1,9 +1,9 @@
-Thu Jul 16 2020 12:13:52.000000000
-Gkyl built with e47714c53672
-Gkyl built on Jul 16 2020 10:03:35
+Thu Jul 23 2020 11:30:13.000000000
+Gkyl built with 5623a7d082f6+
+Gkyl built on Jul 23 2020 11:07:01
 Initializing PlasmaOnCartGrid simulation ...
 Using CFL number 0.4
-Initializing completed in 1.35083 sec
+Initializing completed in 0.669357 sec
 
 Starting main loop of PlasmaOnCartGrid simulation ...
 
@@ -22,21 +22,21 @@ Starting main loop of PlasmaOnCartGrid simulation ...
 Total number of time-steps 1388
 Number of barriers 154925 barriers (111.617 barriers/step)
 
-Solver took				1058.84266 sec   (0.762855 s/step)   (40.109%)
-Solver BCs took 			 10.51647 sec   (0.007577 s/step)   ( 0.398%)
-Field solver took 			  2.67954 sec   (0.001931 s/step)   ( 0.101%)
-Field solver BCs took			  0.41078 sec   (0.000296 s/step)   ( 0.016%)
+Solver took				 40.21617 sec   (0.028974 s/step)   (29.224%)
+Solver BCs took 			 11.95221 sec   (0.008611 s/step)   ( 8.685%)
+Field solver took 			  1.27080 sec   (0.000916 s/step)   ( 0.923%)
+Field solver BCs took			  0.52319 sec   (0.000377 s/step)   ( 0.380%)
 Function field solver took		  0.00000 sec   (0.000000 s/step)   ( 0.000%)
-Moment calculations took		313.30117 sec   (0.225721 s/step)   (11.868%)
-Integrated moment calculations took	 96.70684 sec   (0.069674 s/step)   ( 3.663%)
-Field energy calculations took		  0.08218 sec   (0.000059 s/step)   ( 0.003%)
-Collision solver(s) took		1137.21616 sec   (0.819320 s/step)   (43.077%)
-Collision moments(s) took		  0.00260 sec   (0.000002 s/step)   ( 0.000%)
+Moment calculations took		 19.68806 sec   (0.014184 s/step)   (14.307%)
+Integrated moment calculations took	  4.68295 sec   (0.003374 s/step)   ( 3.403%)
+Field energy calculations took		  0.20283 sec   (0.000146 s/step)   ( 0.147%)
+Collision solver(s) took		 42.53182 sec   (0.030643 s/step)   (30.907%)
+Collision moments(s) took		  0.00227 sec   (0.000002 s/step)   ( 0.002%)
 Source updaters took 			  0.00000 sec   (0.000000 s/step)   ( 0.000%)
-Stepper combine/copy took		 46.98846 sec   (0.033853 s/step)   ( 1.780%)
-Time spent in barrier function		  1.56148 sec   (0.001125 s/step)   (     0%)
-[Unaccounted for]			-26.80476 sec   (-0.019312 s/step)   (-1.015%)
+Stepper combine/copy took		  9.68747 sec   (0.006979 s/step)   ( 7.040%)
+Time spent in barrier function		 21.66877 sec   (0.015612 s/step)   (    16%)
+[Unaccounted for]			  6.85598 sec   (0.004939 s/step)   ( 4.982%)
 
-Main loop completed in			2639.94210 sec   (1.901976 s/step)   (   100%)
+Main loop completed in			137.61375 sec   (0.099145 s/step)   (   100%)
 
-Thu Jul 16 2020 12:57:53.000000000
+Thu Jul 23 2020 11:32:31.000000000
