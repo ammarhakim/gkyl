@@ -63,7 +63,7 @@ loops).
 
 ffi.cdef [[
   typedef struct {
-    int r, c, sz; // rank, use-count, element-size
+    int t, r, c, sz; // type, rank, use-count, element-size
     long n, *s; // total number of elements and shape
     void *d; // pointer to data
   } GkylArray_t;
@@ -77,6 +77,21 @@ _M.double = typeof('double')
 _M.int = typeof('int')
 _M.long = typeof('long')
 _M.char = typeof('char')
+
+local function getArrayTypeCode(atype)
+   if atype == typeof("float") then
+      return 1
+   elseif atype == typeof("double") then
+      return 2
+   elseif atype == typeof("int") then
+      return 3
+   elseif atype == typeof("long") then
+      return 4
+   elseif atype == typeof("char") then
+      return 5
+   end
+   return 42 -- user-defined type
+end
 
 local function cmpRankAndShape(a, b)
    if a.n ~= b.n or a.sz ~= b.sz or a.r ~= b.r then
@@ -129,7 +144,7 @@ local array_fn = {
       return self
    end,
    copy = function (self, src)
-      assert(src.sz == self.sz, "Can't copy arrays of different types!")
+      assert(src.t == self.t, "Can't copy arrays of different types!")
       -- if array sizes do not match then only appropriate number of
       -- elements are copied
       local ncopy = src.n < self.n and src.n or self.n
@@ -161,6 +176,7 @@ local array_fn = {
 local array_mt = {
    __new = function (self, shape, atype)
       local a = new(self)
+      a.t = getArrayTypeCode(atype)
       a.r = #shape
       a.s = Alloc.malloc(a.r*longSz)
       a.n = 1

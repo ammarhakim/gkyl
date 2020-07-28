@@ -1,0 +1,42 @@
+Thu Jul 23 2020 12:45:33.000000000
+Gkyl built with 5623a7d082f6+
+Gkyl built on Jul 23 2020 11:07:01
+Initializing PlasmaOnCartGrid simulation ...
+Using CFL number 0.4
+Initializing completed in 3.20723 sec
+
+Starting main loop of PlasmaOnCartGrid simulation ...
+
+ Step 0 at time 0. Time step 0.0180326. Completed 0%
+0123456789 Step   278 at time 5.01307. Time step 0.0180326. Completed 10%
+0123456789 Step   555 at time 10.0081. Time step 0.0180326. Completed 20%
+0123456789 Step   832 at time 15.0031. Time step 0.0180326. Completed 30%
+0123456789 Step  1110 at time 20.0162. Time step 0.0180326. Completed 40%
+0123456789 Step  1387 at time 25.0112. Time step 0.0180326. Completed 50%
+0123456789 Step  1664 at time 30.0063. Time step 0.0180326. Completed 60%
+0123456789 Step  1941 at time 35.0013. Time step 0.0180326. Completed 70%
+0123456789 Step  2219 at time 40.0144. Time step 0.0180326. Completed 80%
+0123456789 Step  2496 at time 45.0094. Time step 0.0180326. Completed 90%
+0123456789 Step  2773 at time 50. Time step 0.0136003. Completed 100%
+0
+Total number of time-steps 2774
+Number of barriers 297683 barriers (107.312 barriers/step)
+
+Solver took				1701.68805 sec   (0.613442 s/step)   (37.778%)
+Solver BCs took 			259.12321 sec   (0.093411 s/step)   ( 5.753%)
+Field solver took 			  3.17223 sec   (0.001144 s/step)   ( 0.070%)
+Field solver BCs took			  1.42312 sec   (0.000513 s/step)   ( 0.032%)
+Function field solver took		  0.00000 sec   (0.000000 s/step)   ( 0.000%)
+Moment calculations took		242.94344 sec   (0.087579 s/step)   ( 5.393%)
+Integrated moment calculations took	 44.29688 sec   (0.015969 s/step)   ( 0.983%)
+Field energy calculations took		  0.24642 sec   (0.000089 s/step)   ( 0.005%)
+Collision solver(s) took		1420.83341 sec   (0.512197 s/step)   (31.543%)
+Collision moments(s) took		  0.00767 sec   (0.000003 s/step)   ( 0.000%)
+Source updaters took 			  0.00000 sec   (0.000000 s/step)   ( 0.000%)
+Stepper combine/copy took		380.42884 sec   (0.137141 s/step)   ( 8.446%)
+Time spent in barrier function		320.80364 sec   (0.115647 s/step)   (     7%)
+[Unaccounted for]			450.25009 sec   (0.162311 s/step)   ( 9.996%)
+
+Main loop completed in			4504.41334 sec   (1.623797 s/step)   (   100%)
+
+Thu Jul 23 2020 14:00:41.000000000

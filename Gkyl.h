@@ -306,7 +306,7 @@ std::string Gkyl::createTopLevelDefs() const {
   varDefs << "GKYL_EMBED_INP = true" << std::endl; // default true
 
   // set some JIT parameters to fiddle around with optimizations
-  varDefs << "if jit.opt then jit.opt.start('callunroll=40', 'loopunroll=80', 'maxmcode=40960', 'maxtrace=8000', 'maxrecord=16000', 'minstitch=3') end"
+  varDefs << "if jit.opt then jit.opt.start('callunroll=40', 'loopunroll=80', 'maxmcode=40960', 'maxtrace=100000', 'maxrecord=40000', 'maxside=1000', 'minstitch=3') end"
           << std::endl;
 
   // output prefix
