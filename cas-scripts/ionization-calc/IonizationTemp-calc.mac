@@ -106,17 +106,18 @@ calcIonizationTemp(fh, funcNm, cdim, basisFun, pMax) := block([],
 
     vtSq_e  : doExpand1(vtSq,bC),
     vtSqAve : innerProd(varsC,1.0,1.0,vtSq_e)/innerProd(varsC,1.0,1.0,1.0),
-    declareWriteCExprsC(vtSq0, vtSqAve),	
+    declareWriteCExprsC(vtSq0, vtSqAve), 
 
-    vtSqIz_c : calcInnerProdList(varsC,1.0,bC, (0.5*vtSq_e - (1/3)*E*elemCharge/m_)),
+    /* vtSqIz_c : calcInnerProdList(varsC,1.0,bC, (0.5*vtSq_e - (1/3)*E*elemCharge/m_)), */
+    vtSqIzAve : calcInnerProdList(varsC,1.0,bC,0.5*vtSqAve - (1/3)*E*elemCharge),
 
     printf(fh, "  if (vtSq0 > 2.0/3.0*E*elemCharge/m_) { ~%"),
-    writeCExprsCs(vtSqIz, vtSqIz_c),
+    writeCExprsCs(vtSqIz, vtSqIzAve),
     printf(fh, "  }~%"),
     printf(fh, " ~%"),
 
     printf(fh, "  else { ~%"),
-    writeCExprsCs(vtSqIz,calcInnerProdList(varsC,1.0,bC,1e-10*vtSq_e)),
+    writeCExprsCs(vtSqIz,calcInnerProdList(varsC,1.0,bC,1e-10)),
     printf(fh, "  }~%"),
     printf(fh, " ~%"),
 
