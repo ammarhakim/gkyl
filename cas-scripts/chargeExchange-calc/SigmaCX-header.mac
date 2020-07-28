@@ -24,7 +24,7 @@ for bInd : 1 thru length(bName) do (
          ),
 
       for vi : ci thru 3 do (
-	 printf(fh, "void VmSigmaCXcellAv~a~ax~av_P~a(const double a, const double b, const double *uIon, const double *uNeut, const double *vtSqIon, const double *vtSqNeut, double *sigmaCX); ~%", bName[bInd], ci, vi, pi),
+	 printf(fh, "void VmSigmaCXcellAv~a~ax~av_P~a(const double a, const double b, const double *uIon, const double *uNeut, const double *vtSqIon, const double *vtSqNeut, double *vSigmaCX); ~%", bName[bInd], ci, vi, pi),
        	 printf(fh, "~%")
 	 ),
       printf(fh, "~%")
