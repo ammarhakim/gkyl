@@ -60,7 +60,7 @@ function GkMaxwellianOnBasis:init(tbl)
    local N = tbl.numConfQuad and tbl.numConfQuad or self.confBasis:polyOrder() + 1
    assert(N<=8, "Updater.GkMaxwellianOnBasis: Gaussian quadrature only implemented for numQuad<=8 in each dimension")
 
-   self.onGhosts = xsys.pickBool(tbl.projectOnGhosts, true)
+   self.onGhosts = xsys.pickBool(tbl.projectOnGhosts, false)
 
    -- 1D weights and ordinates
    local ordinates = GaussQuadRules.ordinates[N]

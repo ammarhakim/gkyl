@@ -599,15 +599,7 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    			self.vtSqIz           = self:allocMoment()
    			self.m0fMax           = self:allocMoment()
    			self.m0mod            = self:allocMoment()
-   			self.fMaxwellIz       = DataStruct.Field {
-   			   onGrid        = self.grid,
-   			   numComponents = self.basis:numBasis(),
-   			   ghost         = {1, 1},
-   			   metaData = {
-   			      polyOrder = self.basis:polyOrder(),
-   			      basisType = self.basis:id()
-   			   },
-   			}
+   			self.fMaxwellIz       = self:allocDistf()
    			counterIz = false
    		     end
    		  end
@@ -635,46 +627,14 @@ function GkSpecies:initCrossSpeciesCoupling(species)
 			self.ionCXM0 = self:allocMoment()
 			self.neutCXM0 = self:allocMoment()
    			-- Define fields needed to calculate source term
-   			self.M0distF   = DataStruct.Field {
-   			   onGrid        = self.grid,
-   			   numComponents = self.basis:numBasis(),
-   			   ghost         = {1, 1},
-   			   metaData = {
-   			      polyOrder = self.basis:polyOrder(),
-   			      basisType = self.basis:id()
-   			   },
-			}
-   			self.diffDistF   =  DataStruct.Field {
-   			   onGrid        = self.grid,
-   			   numComponents = self.basis:numBasis(),
-   			   ghost         = {1, 1},
-			   metaData = {
-   			      polyOrder = self.basis:polyOrder(),
-   			      basisType = self.basis:id()
-   			   },
-   			}
-   			self.srcCX    = DataStruct.Field {
-   			   onGrid        = self.grid,
-   			   numComponents = self.basis:numBasis(),
-   			   ghost         = {1, 1},
-			   metaData = {
-   			      polyOrder = self.basis:polyOrder(),
-   			      basisType = self.basis:id()
-   			   },
-   			}
+   			self.M0distF = self:allocDistf()
+   			self.diffDistF = self:allocDistf()
+   			self.srcCX = self:allocDistf()
    			counterCX_ion = false
    		     elseif self.name==species[sN].collisions[collNm].neutNm and counterCX_neut then
    			self.needSelfPrimMom  = true
    			-- Define fields needed to calculate source term
-   			self.M0distF   = DataStruct.Field {
-   			   onGrid        = self.grid,
-   			   numComponents = self.basis:numBasis(),
-   			   ghost         = {1, 1},
-			   metaData = {
-   			      polyOrder = self.basis:polyOrder(),
-   			      basisType = self.basis:id()
-			   },
-   			}
+   			self.M0distF = self:allocDistf()
    			counterCX_neut = false
    		     end
    		  end
@@ -794,13 +754,13 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       end
    end
    if self.evolveCollisionless then
-      if self.name == 'neut' then
-            self.vmSolver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-	    self.vmSolver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
-      else
-	 self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-	 self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
-      end
+      -- if self.name == 'neut' then
+      --       self.vmSolver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      -- 	    self.vmSolver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
+      -- else
+      self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
+      --end
    else
       self.equation:setAuxFields({em, emFunc, dApardtProv})  -- Set auxFields in case they are needed by BCs/collisions.
    end
@@ -1592,14 +1552,14 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
       if self.deltaF then
-        fIn:accumulate(-1.0, self.f0)
+	 fIn:accumulate(-1.0, self.f0)
       end
       
       if self.needSelfPrimMom then
          self.threeMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy,
                                                           self.m1Correction, self.m2Correction,
                                                           self.m0Star, self.m1Star, self.m2Star })
-         if self.needCorrectedSelfPrimMom then
+	 if self.needCorrectedSelfPrimMom then
             -- Also compute self-primitive moments uPar and vtSq.
             self.primMomSelf:advance(tCurr, {self.numDensity, self.momDensity, self.ptclEnergy,
                                              self.m1Correction, self.m2Correction,
@@ -1640,6 +1600,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
 	 self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
 	 self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
+	 -- self.fMaxwellIz:write(string.format("%s_fMaxOut_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
       end
 
       if self.calcCXSrc then

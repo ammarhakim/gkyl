@@ -904,7 +904,7 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
     -- Write ionization diagnostics
     if self.calcReactRate then
        local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
-       --self.fMaxwellIz:write(string.format("%s_fMaxwell_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       self.fMaxwellIz:write(string.format("%s_fMaxwell_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        self.vtSqIz:write(string.format("%s_vtSqIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        self.voronovReactRate:write(string.format("%s_coefIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
@@ -919,9 +919,9 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
 	  basis         = self.confBasis,
 	  numComponents = 1,
 	  quantity      = "V",
-	  timeIntegrate = true,
+	  timeIntegrate = timeIntegrate,
        }
-       intCalc:advance( tm, {srcIzM0, self.sourceTimeDependence(tm)}, {self.intSrcIzM0} )
+       intCalc:advance( tm, {srcIzM0}, {self.intSrcIzM0} )
        self.intSrcIzM0:write(
           string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)       
     end
@@ -1028,6 +1028,11 @@ function KineticSpecies:writeRestart(tm)
       self.diagnosticIntegratedMomentFields[mom]:write(
          string.format("%s_%s_restart.bp", self.name, mom), tm, self.dynVecRestartFrame, false, false)
    end
+
+   if self.calcReactRate then
+      self.intSrcIzM0:write(
+	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
+   end
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
@@ -1048,6 +1053,11 @@ function KineticSpecies:readRestart()
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
       self.diagnosticIntegratedMomentFields[mom]:read(
          string.format("%s_%s_restart.bp", self.name, mom))
+   end
+   
+   if self.calcReactRate then
+      self.intSrcIzM0:read(
+         string.format("%s_intSrcIzM0_restart.bp", self.name))
    end
 
    for i, mom in pairs(self.diagnosticMoments) do
