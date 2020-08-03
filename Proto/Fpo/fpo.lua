@@ -109,7 +109,7 @@ return function(tbl)
    local fe = getField()
    local fNew = getField()
    local h = getField()
-   local hTmp = getField()
+   local tmp = getField()
    local g = getField()
 
    local test = getField()
@@ -163,10 +163,6 @@ return function(tbl)
    }
 
    local function applyBc(fld)
-      -- bcT:advance(0.0, {}, {fld})
-      -- bcB:advance(0.0, {}, {fld})
-      -- bcL:advance(0.0, {}, {fld})
-      -- bcR:advance(0.0, {}, {fld})
       fld:sync()
 
       -- need to manually sync corners for now
@@ -178,29 +174,113 @@ return function(tbl)
       local indexer = fld:indexer()
       local idxSkin, idxGhost
       
-      -- lower-left
-      -- idxSkin, idxGhost = fld:get(indexer(xup, yup)), fld:get(indexer(xlo-1, ylo-1))
-      -- for k = 1, fld:numComponents() do
-      --    idxGhost[k] = idxSkin[k]
-      -- end
+      -- corner LLL
+      idxGhost, idxSkin = fld:get(indexer(xlo-1, ylo-1, zlo-1)), fld:get(indexer(xup, yup, zup))
+      for k = 1, fld:numComponents() do
+         idxGhost[k] = idxSkin[k]
+      end
       
-      -- -- lower-right
-      -- idxSkin, idxGhost = fld:get(indexer(xlo, yup)), fld:get(indexer(xup+1, ylo-1))
-      -- for k = 1, fld:numComponents() do
-      --    idxGhost[k] = idxSkin[k]
-      -- end
-      
-      -- -- upper-left
-      -- idxSkin, idxGhost = fld:get(indexer(xup, ylo)), fld:get(indexer(xlo-1, yup+1))
-      -- for k = 1, fld:numComponents() do
-      --    idxGhost[k] = idxSkin[k]
-      -- end
-      
-      -- -- upper-right
-      -- idxSkin, idxGhost = fld:get(indexer(xlo, ylo)), fld:get(indexer(xup+1, yup+1))
-      -- for k = 1, fld:numComponents() do
-      --    idxGhost[k] = idxSkin[k]
-      -- end
+      -- corner ULL
+      idxGhost, idxSkin = fld:get(indexer(xup+1, ylo-1, zlo-1)), fld:get(indexer(xlo, yup, zup))
+      for k = 1, fld:numComponents() do
+         idxGhost[k] = idxSkin[k]
+      end
+
+      -- corner LUL
+      idxGhost, idxSkin = fld:get(indexer(xlo-1, yup+1, zlo-1)), fld:get(indexer(xup, ylo, zup))
+      for k = 1, fld:numComponents() do
+         idxGhost[k] = idxSkin[k]
+      end
+
+      -- corner LLU
+      idxGhost, idxSkin = fld:get(indexer(xlo-1, ylo-1, zup+1)), fld:get(indexer(xup, yup, zlo))
+      for k = 1, fld:numComponents() do
+         idxGhost[k] = idxSkin[k]
+      end
+
+      -- corner LUU
+      idxGhost, idxSkin = fld:get(indexer(xlo-1, yup+1, zup+1)), fld:get(indexer(xup, ylo, zlo))
+      for k = 1, fld:numComponents() do
+         idxGhost[k] = idxSkin[k]
+      end
+
+      -- corner ULU
+      idxGhost, idxSkin = fld:get(indexer(xup+1, ylo-1, zup+1)), fld:get(indexer(xlo, yup, zlo))
+      for k = 1, fld:numComponents() do
+         idxGhost[k] = idxSkin[k]
+      end
+
+      -- corner UUL
+      idxGhost, idxSkin = fld:get(indexer(xup+1, yup+1, zlo-1)), fld:get(indexer(xlo, ylo, zup))
+      for k = 1, fld:numComponents() do
+         idxGhost[k] = idxSkin[k]
+      end
+
+      -- corner UUU
+      idxGhost, idxSkin = fld:get(indexer(xup+1, yup+1, zup+1)), fld:get(indexer(xlo, ylo, zlo))
+      for k = 1, fld:numComponents() do
+         idxGhost[k] = idxSkin[k]
+      end
+
+      -- x-edges
+      for i = xlo, xup do
+         idxGhost, idxSkin = fld:get(indexer(i, ylo-1, zlo-1)), fld:get(indexer(i, yup, zup))
+         for k = 1, fld:numComponents() do
+            idxGhost[k] = idxSkin[k]
+         end
+         idxGhost, idxSkin = fld:get(indexer(i, yup+1, zlo-1)), fld:get(indexer(i, ylo, zup))
+         for k = 1, fld:numComponents() do
+            idxGhost[k] = idxSkin[k]
+         end
+         idxGhost, idxSkin = fld:get(indexer(i, ylo-1, zup+1)), fld:get(indexer(i, yup, zlo))
+         for k = 1, fld:numComponents() do
+            idxGhost[k] = idxSkin[k]
+         end
+         idxGhost, idxSkin = fld:get(indexer(i, yup+1, zup+1)), fld:get(indexer(i, ylo, zlo))
+         for k = 1, fld:numComponents() do
+            idxGhost[k] = idxSkin[k]
+         end
+      end
+
+      -- y-edges
+      for i = ylo, yup do
+         idxGhost, idxSkin = fld:get(indexer(xlo-1, i, zlo-1)), fld:get(indexer(xup, i, zup))
+         for k = 1, fld:numComponents() do
+            idxGhost[k] = idxSkin[k]
+         end
+         idxGhost, idxSkin = fld:get(indexer(xup+1, i, zlo-1)), fld:get(indexer(xlo, i, zup))
+         for k = 1, fld:numComponents() do
+            idxGhost[k] = idxSkin[k]
+         end
+         idxGhost, idxSkin = fld:get(indexer(xlo-1, i, zup+1)), fld:get(indexer(xup, i, zlo))
+         for k = 1, fld:numComponents() do
+            idxGhost[k] = idxSkin[k]
+         end
+         idxGhost, idxSkin = fld:get(indexer(xup+1, i, zup+1)), fld:get(indexer(xlo, i, zlo))
+         for k = 1, fld:numComponents() do
+            idxGhost[k] = idxSkin[k]
+         end
+      end
+
+      -- z-edges
+      for i = zlo, zup do
+         idxGhost, idxSkin = fld:get(indexer(xlo-1, ylo-1, i)), fld:get(indexer(xup, yup, i))
+         for k = 1, fld:numComponents() do
+            idxGhost[k] = idxSkin[k]
+         end
+         idxGhost, idxSkin = fld:get(indexer(xup+1, ylo-1, i)), fld:get(indexer(xlo, yup, i))
+         for k = 1, fld:numComponents() do
+            idxGhost[k] = idxSkin[k]
+         end
+         idxGhost, idxSkin = fld:get(indexer(xlo-1, yup+1, i)), fld:get(indexer(xup, ylo, i))
+         for k = 1, fld:numComponents() do
+            idxGhost[k] = idxSkin[k]
+         end
+         idxGhost, idxSkin = fld:get(indexer(xup+1, yup+1, i)), fld:get(indexer(xlo, ylo, i))
+         for k = 1, fld:numComponents() do
+            idxGhost[k] = idxSkin[k]
+         end
+      end
    end
 
    -- projection to apply ICs
@@ -224,15 +304,16 @@ return function(tbl)
    local function updateRosenbluthDrag(fIn, hOut)
       local tmStart = Time.clock()
       if updatePotentials then
-         poisson:advance(0.0, {fIn}, {hOut})
+         tmp:combine(1.0, fIn)
+         poisson:advance(0.0, {tmp}, {hOut})
       end
       tmRosen = tmRosen + Time.clock()-tmStart
    end
    local function updateRosenbluthDiffusion(hIn, gOut)
       local tmStart = Time.clock()
       if updatePotentials then
-         hTmp:combine(-1.0, hIn)
-         poisson:advance(0.0, {hTmp}, {gOut})
+         tmp:combine(-1.0, hIn)
+         poisson:advance(0.0, {tmp}, {gOut})
       end
       tmRosen = tmRosen + Time.clock()-tmStart
    end
@@ -431,19 +512,7 @@ return function(tbl)
          idxs_UCC[1], idxs_UCC[2], idxs_UCC[3] = idxs[1]+1, idxs[2], idxs[3]
          idxs_UCU[1], idxs_UCU[2], idxs_UCU[3] = idxs[1]+1, idxs[2], idxs[3]+1
          idxs_UUC[1], idxs_UUC[2], idxs_UUC[3] = idxs[1]+1, idxs[2]+1, idxs[3]
-
-         -- local isTopEdge, isBotEdge = 0, 0
-         -- local isLeftEdge, isRightEdge = 0, 0
-         -- if periodicX == false then
-         --    if idxs[1] == 1 then isLeftEdge = 1 end
-         --    if idxs[1] == cells[1] then isRightEdge = 1 end
-         -- end
-         -- if periodicY == false then
-         --    if idxs[2] == 1 then isBotEdge = 1 end
-         --    if idxs[2] == cells[2] then isTopEdge = 1 end
-         -- end
          
-
          fStencil7.C = fIn:get(indexer(idxs)):data()
          fStencil7.xL = fIn:get(indexer(idxs_LCC)):data()
          fStencil7.xU = fIn:get(indexer(idxs_UCC)):data()
