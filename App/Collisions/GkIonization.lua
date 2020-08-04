@@ -60,7 +60,7 @@ function GkIonization:fullInit(speciesTbl)
    if self.plasma == "H" then
       self._E = 13.6
       self._P = 0
-      self._A = 2.91e-14
+      self._A = 0.291e-7
       self._K = 0.39
       self._X = 0.232
    end
@@ -175,6 +175,15 @@ function GkIonization:createSolver(funcField)
 	 basisType = self.phaseBasis:id()
       },
    }
+   self.fNeutMax = DataStruct.Field {
+      onGrid        = self.phaseGrid,
+      numComponents = self.phaseBasis:numBasis(),
+      ghost         = {1, 1},
+      metaData = {
+	 polyOrder = self.phaseBasis:polyOrder(),
+	 basisType = self.phaseBasis:id()
+      },
+   }
    self.ionizSrc = DataStruct.Field {
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
@@ -188,16 +197,14 @@ end
 
 function GkIonization:advance(tCurr, fIn, species, fRhsOut)
    local coefIz = species[self.elcNm]:getVoronovReactRate()
-   local distFn = species[self.neutNm]:getDistF()
-   local elcM0  = species[self.elcNm]:fluidMoments()[1]
+   local elcM0 = species[self.elcNm]:fluidMoments()[1]
 
    -- Check whether particle is electron, neutral or ion species
    if (self.speciesName == self.elcNm) then
       -- electrons
       tmEvalMomStart   = Time.clock()
       local neutM0     = species[self.neutNm]:fluidMoments()[1]
-      local neutU      = species[self.neutNm]:selfPrimitiveMoments()[1]
-      local elcDistF   = species[self.speciesName]:getDistF()
+      local elcDistF   = species[self.elcNm]:getDistF()
       local fMaxwellIz = species[self.elcNm]:getFMaxwellIz()
       
       self.sumDistF:combine(2.0,fMaxwellIz,-1.0,elcDistF)
@@ -212,26 +219,33 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
       
       fRhsOut:accumulate(1.0,self.ionizSrc)
    elseif (species[self.speciesName].charge == 0) then
-      -- neutrals
-      tmEvalMomStart = Time.clock()
+      -- neutrals, on Vlasov grid
+      local neutDistF = species[self.neutNm]:getDistF()
+      tmEvalMomStart  = Time.clock()
       self.m0elc:copy(elcM0)
-      self.neutDistF:copy(distFn)
       
       self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       
       self.confMult:advance(tCurr, {coefIz, self.m0elc}, {self.coefM0})
-      self.collisionSlvr:advance(tCurr, {self.coefM0, self.neutDistF}, {self.ionizSrc})
+      self.collisionSlvr:advance(tCurr, {self.coefM0, neutDistF}, {self.ionizSrc})
       fRhsOut:accumulate(-1.0,self.ionizSrc)  
    else
       -- ions 
       tmEvalMomStart = Time.clock()
       self.m0elc:copy(elcM0)
-      self.neutDistF:copy(distFn)
-      
+      local neutM0   = species[self.neutNm]:fluidMoments()[1]
+      local neutU    = species[self.neutNm]:selfPrimitiveMoments()[1] 
+      local neutVtSq = species[self.neutNm]:selfPrimitiveMoments()[2]
+      -- Include only z-component of neutU
+
+      --species[self.elcNm].distIo:write(neutU, string.format("%s_neutU_%d.bp",self.speciesName,species[self.elcNm].distIoFrame),0,0)
+      --species[self.elcNm].distIo:write(neutVtSq, string.format("%s_neutVtSq_%d.bp",self.speciesName,species[self.elcNm].distIoFrame),0,0)
       self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
 
       self.confMult:advance(tCurr, {coefIz, self.m0elc}, {self.coefM0})
-      self.collisionSlvr:advance(tCurr, {self.coefM0, self.neutDistF}, {self.ionizSrc})
+      species[self.speciesName].calcMaxwell:advance(tCurr, {neutM0, neutU, neutVtSq}, {self.fNeutMax})
+      self.collisionSlvr:advance(tCurr, {self.coefM0, self.fNeutMax}, {self.ionizSrc})
+      --species[self.elcNm].distIo:write(self.fNeutMax, string.format("%s_fNeutMax_%d.bp",self.speciesName,species[self.elcNm].distIoFrame),0,0)
       fRhsOut:accumulate(1.0,self.ionizSrc)
    end
 end

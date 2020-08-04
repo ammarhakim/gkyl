@@ -320,7 +320,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       moment     = "GkThreeMoments",
       gkfacs     = {self.mass, self.bmag},
    }
-   self.calcMaxwellIz = Updater.GkMaxwellianOnBasis {
+   self.calcMaxwell = Updater.GkMaxwellianOnBasis {
       onGrid     = self.grid,
       confGrid   = self.confGrid,
       confBasis  = self.confBasis,
@@ -754,13 +754,8 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       end
    end
    if self.evolveCollisionless then
-      -- if self.name == 'neut' then
-      --       self.vmSolver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      -- 	    self.vmSolver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
-      -- else
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
-      --end
    else
       self.equation:setAuxFields({em, emFunc, dApardtProv})  -- Set auxFields in case they are needed by BCs/collisions.
    end
@@ -1554,7 +1549,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       if self.deltaF then
 	 fIn:accumulate(-1.0, self.f0)
       end
-      
+
       if self.needSelfPrimMom then
          self.threeMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy,
                                                           self.m1Correction, self.m2Correction,
@@ -1574,6 +1569,9 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
                                        -1.0/self.vDegFreedom, self.numDensityAux )
             self.confDiv:advance(tCurr, {self.numDensity, self.momDensityAux}, {self.vtSqSelf})
          end
+	 --self.vtSqSelf:write(string.format("%s_ccmVtSq_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	 --self.uParSelf:write(string.format("%s_ccmUpar_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+
          -- Indicate that moments, boundary corrections, star moments
          -- and self-primitive moments have been computed.
          for iF=1,4 do
@@ -1596,7 +1594,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 species[self.name].collisions[self.collNmIoniz].calcVoronovReactRate:advance(tCurr, {self.vtSqSelf}, {self.voronovReactRate})
 	 species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
 
-	 self.calcMaxwellIz:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
+ 	 self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
 	 self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
 	 self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
 	 self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})

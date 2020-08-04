@@ -101,7 +101,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
 
    -- Moments used for all polyOrders.
    local m0, m1 = inFld[1], inFld[2]
-   local confIndexer   = m0:genIndexer()
+   local confIndexer = m0:genIndexer()
    local m0Itr       = m0:get(1)
    local m1Itr       = m1:get(1)
 
