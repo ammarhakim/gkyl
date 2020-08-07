@@ -129,6 +129,7 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
    local fOut   = assert(outFld[1], "MaxwellianOnBasis.advance: Must specify an output field 'outFld[1]'")
 
    local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
+   local uDim = uIn:numComponents()/self.numConfBasis -- number of dimensions in u
 
    local nItr, nOrd       = nIn:get(1), Lin.Vec(self.numConfOrds)
    local uItr, uOrd       = uIn:get(1), Lin.Mat(self.numConfOrds, vDim)
@@ -167,11 +168,20 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 	    nOrd[ordIdx] = nOrd[ordIdx] + nItr[k]*self.confBasisAtOrds[ordIdx][k]
 	    vth2Ord[ordIdx] = vth2Ord[ordIdx] + vth2Itr[k]*self.confBasisAtOrds[ordIdx][k]
 	 end
-	 for d = 1, vDim do
-	    for k = 1, self.numConfBasis do
-	       uOrd[ordIdx][d] = uOrd[ordIdx][d] +
-		  uItr[self.numConfBasis*(d-1)+k]*self.confBasisAtOrds[ordIdx][k]
+	 if uDim == vDim then
+	    for d = 1, vDim do
+	       for k = 1, self.numConfBasis do
+		  uOrd[ordIdx][d] = uOrd[ordIdx][d] +
+		     uItr[self.numConfBasis*(d-1)+k]*self.confBasisAtOrds[ordIdx][k]
+	       end
 	    end
+	 elseif uDim == 1 and vDim==3 then -- if uPar passed from GkSpecies, fill d=3 component of u
+	    for k = 1, self.numConfBasis do
+	       uOrd[ordIdx][vDim] = uOrd[ordIdx][vDim] +
+		  uItr[self.numConfBasis*(vDim-1)+k]*self.confBasisAtOrds[ordIdx][k]
+	    end
+	 else
+	    print("Updater.MaxwellianOnBasis: incorrect uDim")	 
 	 end
       end
 
@@ -198,7 +208,6 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 				   self.numConfOrds, self.numPhaseOrds,
 				   cDim, pDim)
       end
-
    end
 
    -- set id of output to id of projection basis

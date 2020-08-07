@@ -1,6 +1,6 @@
 #include <ChargeExchangeModDecl.h> 
 #include <math.h> 
-void VmSigmaCXcellAvMax1x1v_P1(const double a, const double b, const double *uIon, const double *uNeut, const double *vtSqIon, const double *vtSqNeut, double *vSigmaCX) 
+void SigmaCXcellAvSer1x1v_P1(const double a, const double b, const double *uIon, const double *uNeut, const double *vtSqIon, const double *vtSqNeut, double *vSigmaCX) 
 { 
   // a               constant in fitting function. 
   // b               constant in fitting function. 
@@ -16,7 +16,7 @@ void VmSigmaCXcellAvMax1x1v_P1(const double a, const double b, const double *uIo
   vSigmaCX[0] = 0.7978845608028654*a*sqrt(4.0*vtSqNeutAv+4.0*vtSqIonAv+3.141592653589793*vINSqAv)-0.7978845608028654*b*sqrt(4.0*vtSqNeutAv+4.0*vtSqIonAv+3.141592653589793*vINSqAv)*log(0.5641895835477563*sqrt(4.0*vtSqNeutAv+4.0*vtSqIonAv+3.141592653589793*vINSqAv)); 
  
 } 
-void VmSigmaCXcellAvMax1x1v_P2(const double a, const double b, const double *uIon, const double *uNeut, const double *vtSqIon, const double *vtSqNeut, double *vSigmaCX) 
+void SigmaCXcellAvSer1x1v_P2(const double a, const double b, const double *uIon, const double *uNeut, const double *vtSqIon, const double *vtSqNeut, double *vSigmaCX) 
 { 
   // a               constant in fitting function. 
   // b               constant in fitting function. 

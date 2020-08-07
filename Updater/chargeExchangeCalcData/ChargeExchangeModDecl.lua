@@ -13,17 +13,9 @@ local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max" }
 local _M = {}
 
 -- Kernel function to compute charge exchange cross section based on fitting function.
-function _M.GkSigmaCX(basisNm, CDIM, VDIM, polyOrder)
+function _M.SigmaCX(basisNm, CDIM, VDIM, polyOrder)
    local funcType = "void"
-   local funcNm = string.format("GkSigmaCXcellAv%s%dx%dv_P%d", basisNmMap[basisNm], CDIM, VDIM, polyOrder)
-   local funcSign = "(const double a, const double b, const double *uParIon, const double *uParNeut, const double *vtSqIon, const double *vtSqNeut, double *vSigmaCX)"
-   ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
-   return ffi.C[funcNm]
-end
-
-function _M.VmSigmaCX(basisNm, CDIM, VDIM, polyOrder)
-   local funcType = "void"
-   local funcNm = string.format("VmSigmaCXcellAv%s%dx%dv_P%d", basisNmMap[basisNm], CDIM, VDIM, polyOrder)
+   local funcNm = string.format("SigmaCXcellAv%s%dx%dv_P%d", basisNmMap[basisNm], CDIM, VDIM, polyOrder)
    local funcSign = "(const double a, const double b, const double *uIon, const double *uNeut, const double *vtSqIon, const double *vtSqNeut, double *vSigmaCX)"
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]

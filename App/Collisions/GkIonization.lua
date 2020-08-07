@@ -126,11 +126,7 @@ function GkIonization:createSolver(funcField)
 	 reactRate  = false, 
       	 E          = self._E,
       }
-      self.sumDistF    = DataStruct.Field {
-      	 onGrid        = self.phaseGrid,
-      	 numComponents = self.phaseBasis:numBasis(),
-      	 ghost         = {1, 1},
-      }
+      self.sumDistF = species[self.speciesName]:allocDistf()
    end
    self.confMult = Updater.CartFieldBinOp {
          onGrid     = self.confGrid,
@@ -166,16 +162,7 @@ function GkIonization:createSolver(funcField)
 	 basisType = self.confBasis:id()
       },
    }
-   self.neutDistF = DataStruct.Field {
-      onGrid        = self.phaseGrid,
-      numComponents = self.phaseBasis:numBasis(),
-      ghost         = {1, 1},
-      metaData = {
-	 polyOrder = self.phaseBasis:polyOrder(),
-	 basisType = self.phaseBasis:id()
-      },
-   }
-   self.fNeutMax = DataStruct.Field {
+   self.fMaxNeut = DataStruct.Field {
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
@@ -243,9 +230,9 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
       self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
 
       self.confMult:advance(tCurr, {coefIz, self.m0elc}, {self.coefM0})
-      species[self.speciesName].calcMaxwell:advance(tCurr, {neutM0, neutU, neutVtSq}, {self.fNeutMax})
-      self.collisionSlvr:advance(tCurr, {self.coefM0, self.fNeutMax}, {self.ionizSrc})
-      --species[self.elcNm].distIo:write(self.fNeutMax, string.format("%s_fNeutMax_%d.bp",self.speciesName,species[self.elcNm].distIoFrame),0,0)
+      species[self.speciesName].calcMaxwell:advance(tCurr, {neutM0, neutU, neutVtSq}, {self.fMaxNeut})
+      self.collisionSlvr:advance(tCurr, {self.coefM0, self.fMaxNeut}, {self.ionizSrc})
+      --species[self.elcNm].distIo:write(self.fMaxNeut, string.format("%s_fMaxNeut_%d.bp",self.speciesName,species[self.elcNm].distIoFrame),0,0)
       fRhsOut:accumulate(1.0,self.ionizSrc)
    end
 end

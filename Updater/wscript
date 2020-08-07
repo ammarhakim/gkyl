@@ -376,26 +376,18 @@ def build(bld):
     ionizationCalcData/VoronovSer2x.cpp
     ionizationCalcData/VoronovSer3x.cpp
 
-    chargeExchangeCalcData/GkSigmaCXcellAvMax1x1v.cpp
-    chargeExchangeCalcData/GkSigmaCXcellAvMax1x2v.cpp
-    chargeExchangeCalcData/GkSigmaCXcellAvMax2x2v.cpp
-    chargeExchangeCalcData/GkSigmaCXcellAvMax3x2v.cpp
-    chargeExchangeCalcData/GkSigmaCXcellAvSer1x1v.cpp
-    chargeExchangeCalcData/GkSigmaCXcellAvSer1x2v.cpp
-    chargeExchangeCalcData/GkSigmaCXcellAvSer2x2v.cpp
-    chargeExchangeCalcData/GkSigmaCXcellAvSer3x2v.cpp
-    chargeExchangeCalcData/VmSigmaCXcellAvMax1x1v.cpp
-    chargeExchangeCalcData/VmSigmaCXcellAvMax1x2v.cpp
-    chargeExchangeCalcData/VmSigmaCXcellAvMax1x3v.cpp
-    chargeExchangeCalcData/VmSigmaCXcellAvMax2x2v.cpp
-    chargeExchangeCalcData/VmSigmaCXcellAvMax2x3v.cpp
-    chargeExchangeCalcData/VmSigmaCXcellAvMax3x3v.cpp
-    chargeExchangeCalcData/VmSigmaCXcellAvSer1x1v.cpp
-    chargeExchangeCalcData/VmSigmaCXcellAvSer1x2v.cpp
-    chargeExchangeCalcData/VmSigmaCXcellAvSer1x3v.cpp
-    chargeExchangeCalcData/VmSigmaCXcellAvSer2x2v.cpp
-    chargeExchangeCalcData/VmSigmaCXcellAvSer2x3v.cpp
-    chargeExchangeCalcData/VmSigmaCXcellAvSer3x3v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvMax1x1v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvMax1x2v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvMax1x3v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvMax2x2v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvMax2x3v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvMax3x3v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvSer1x1v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvSer1x2v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvSer1x3v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvSer2x2v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvSer2x3v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvSer3x3v.cpp
 
     GkMaxwellianOnBasisImpl.cpp
 

@@ -148,7 +148,7 @@ function VlasovSpecies:createSolver(hasE, hasB)
       confBasis  = self.confBasis,
       moment     = "FiveMoments",
    }
-   self.calcMaxwellIz = Updater.MaxwellianOnBasis {
+   self.calcMaxwell = Updater.MaxwellianOnBasis {
       onGrid     = self.grid,
       confGrid   = self.confGrid,
       confBasis  = self.confBasis,
@@ -1260,7 +1260,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       species[self.name].collisions[self.collNmIoniz].calcVoronovReactRate:advance(tCurr, {self.vtSqSelf}, {self.voronovReactRate})
       species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
       
-      self.calcMaxwellIz:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
+      self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
       self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
       self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
       self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})

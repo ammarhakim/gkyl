@@ -4,8 +4,8 @@ polyOrderMax : 3$
 
 fh : openw("~/max-out/ChargeExchangeModDecl.h")$
 
-printf(fh, "#ifndef SIGMACX_MOD_DELC_H ~%")$
-printf(fh, "#define SIGMACX_MOD_DELC_H ~%")$
+printf(fh, "#ifndef CHARGEEXCHANGE_MOD_DELC_H ~%")$
+printf(fh, "#define CHARGEEXCHANGE_MOD_DELC_H ~%")$
 printf(fh, "#include <cmath> ~%~%")$
 printf(fh, "#include <algorithm> ~%~%")$
 printf(fh, "extern \"C\" { ~%")$
@@ -17,17 +17,11 @@ for bInd : 1 thru length(bName) do (
 
    for pi : 1 thru polyOrderMax do (
       for ci : 1 thru 3 do (
-      for gkV : 1 thru length(gkVdims[ci]) do (
-         vi : gkVdims[ci][gkV],
-	 printf(fh, "void GkSigmaCXcellAv~a~ax~av_P~a(const double a, const double b, const double *uParIon, const double *uParNeut, const double *vtSqIon, const double *vtSqNeut, double *vSigmaCX); ~%", bName[bInd], ci, vi, pi),
-       	 printf(fh, "~%")
-         ),
-
-      for vi : ci thru 3 do (
-	 printf(fh, "void VmSigmaCXcellAv~a~ax~av_P~a(const double a, const double b, const double *uIon, const double *uNeut, const double *vtSqIon, const double *vtSqNeut, double *vSigmaCX); ~%", bName[bInd], ci, vi, pi),
-       	 printf(fh, "~%")
+         for vi : ci thru 3 do (
+	    printf(fh, "void SigmaCXcellAv~a~ax~av_P~a(const double a, const double b, const double *uIon, const double *uNeut, const double *vtSqIon, const double *vtSqNeut, double *vSigmaCX); ~%", bName[bInd], ci, vi, pi),
+       	    printf(fh, "~%")
 	 ),
-      printf(fh, "~%")
+      	 printf(fh, "~%")
       )
    )
 )$

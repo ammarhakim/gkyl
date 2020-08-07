@@ -27,8 +27,8 @@ function ChargeExchange:init(tbl)
 			     "Updater.SigmaCX: Must provide configuration space basis object using 'confBasis'")
    self._phaseBasis = assert(tbl.phaseBasis,
 			     "Updater.SigmaCX: Must provide phase space basis object using 'phaseBasis'")
-   self._kineticSpecies = assert(tbl.kineticSpecies,
-			   "Updater.SigmaCX: Must provide solver type (Vm or Gk) using 'kineticSpecies'")
+   -- self._kineticSpecies = assert(tbl.kineticSpecies,
+   -- 			   "Updater.SigmaCX: Must provide solver type (Vm or Gk) using 'kineticSpecies'")
    self._a = assert(tbl.a,
 		    "Updater.SigmaCX: Must provide fitting constant a using 'a'")
    self._b = assert(tbl.b,
@@ -47,13 +47,7 @@ function ChargeExchange:init(tbl)
    self._numBasis = self._confBasis:numBasis()
 
    -- Define CX cross section calculation
-   if self._kineticSpecies == "Vm" then
-      self._calcSigmaCX = ChargeExchangeDecl.VmSigmaCX(self._basisID, self._cDim, self._vDim, self._polyOrder)
-   elseif self._kineticSpecies == "Gk" then 
-      self._calcSigmaCX = ChargeExchangeDecl.GkSigmaCX(self._basisID, self._cDim, self._vDim, self._polyOrder)
-   else
-      print("Updater.SigmaCX: 'kineticSpecies must be 'Vm' or 'Gk'")
-   end
+   self._calcSigmaCX = ChargeExchangeDecl.SigmaCX(self._basisID, self._cDim, self._vDim, self._polyOrder)
    
    self.onGhosts = xsys.pickBool(false, tbl.onGhosts)
 
@@ -65,23 +59,26 @@ end
 function ChargeExchange:_advance(tCurr, inFld, outFld)
    local tmEvalMomStart = Time.clock()
    local grid = self._onGrid
+   local numConfBasis = self._confBasis:numBasis()
    local numPhaseBasis = self._phaseBasis:numBasis()
-   local cDim = self._cDim
-
+   local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
+   
    local uIon       = assert(inFld[1], "SigmaCX.advance: Must specify ion fluid velocity as input[1]")
    local uNeut      = assert(inFld[2], "SigmaCX.advance: Must specify neutral fluid velocity as input[2]")
    local vtSqIon    = assert(inFld[3], "SigmaCX.advance: Must specify ion squared thermal velocity as input[3]")
    local vtSqNeut   = assert(inFld[4], "SigmaCX.advance: Must specify neutral squared thermal velocity as input[4]")
-   local vSigmaCX    = assert(outFld[1], "SigmaCX.advance: Must specify an output field")
+   local vSigmaCX   = assert(outFld[1], "SigmaCX.advance: Must specify an output field")
    
-   local confIndexer  = uIon:genIndexer()
+   local confIndexer  = vtSqIon:genIndexer()
 
-   local uIonItr      = uIon:get(1)
-   local uNeutItr     = uNeut:get(1)
-   local vtSqIonItr   = vtSqIon:get(1)
-   local vtSqNeutItr  = vtSqNeut:get(1)
- 
-   local vSigmaCXItr   = vSigmaCX:get(1)
+   local uIonDim = uIon:numComponents()/numConfBasis -- number of dimensions in uIon, needed for GkSpecies
+
+   local uIonItr = uNeut:get(1) -- use shape of uNeut
+   local uParIonItr = uIon:get(1)
+   local uNeutItr = uNeut:get(1)
+   local vtSqIonItr = vtSqIon:get(1)
+   local vtSqNeutItr = vtSqNeut:get(1)
+   local vSigmaCXItr = vSigmaCX:get(1)
    
    local confRange = vtSqIon:localRange()
 
@@ -92,13 +89,27 @@ function ChargeExchange:_advance(tCurr, inFld, outFld)
    -- Phase space loop
    for cIdx in confRangeDecomp:rowMajorIter(tId) do
       grid:setIndex(cIdx)
-      
-      uIon:fill(confIndexer(cIdx), uIonItr)
-      uNeut:fill(confIndexer(cIdx), uNeutItr)      
+
+      if uIonDim < vDim and uIonDim == 1 then
+	 uIon:fill(confIndexer(cIdx), uParIonItr)
+	 for d = 1, vDim-1 do
+	    for k = 1, self.numConfBasis do
+	       uIonItr[self.numConfBasis*(d-1)+k] = 0.0
+	    end
+	 end
+	 for k = 1, self.numConfBasis do
+	    uIonItr[self.numConfBasis*(vDim-1)+k] = uParIonItr[k]
+	 end
+      elseif uIonDim == vDim then
+	 uIon:fill(confIndexer(cIdx), uIonItr)
+      else
+	 print("Updater.SigmaCX: incorrect uIonDim")
+      end
+      uNeut:fill(confIndexer(cIdx), uNeutItr)
       vtSqIon:fill(confIndexer(cIdx), vtSqIonItr)
       vtSqNeut:fill(confIndexer(cIdx), vtSqNeutItr)
       vSigmaCX:fill(confIndexer(cIdx), vSigmaCXItr)
-      
+
       self._calcSigmaCX(self._a, self._b, uIonItr:data(), uNeutItr:data(), vtSqIonItr:data(), vtSqNeutItr:data(), vSigmaCXItr:data())
      
    end

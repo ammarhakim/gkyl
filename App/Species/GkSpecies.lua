@@ -619,24 +619,14 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    	       if (self.collPairs[sN][sO].kind == 'CX') then
    		  for collNm, _ in pairs(species[sN].collisions) do
    		     if self.name==species[sN].collisions[collNm].ionNm and counterCX_ion then
-   			self.collNmCX         = collNm
+  			self.calcCXSrc        = true			
+			self.collNmCX         = collNm
    			self.neutNmCX         = species[sN].collisions[collNm].neutNm
-   			self.calcCXSrc        = true			
    			self.needSelfPrimMom  = true
    			self.vSigmaCX         = self:allocMoment()
-			self.ionCXM0 = self:allocMoment()
-			self.neutCXM0 = self:allocMoment()
-   			-- Define fields needed to calculate source term
-   			self.M0distF = self:allocDistf()
-   			self.diffDistF = self:allocDistf()
-   			self.srcCX = self:allocDistf()
+			species[self.neutNmCX].needSelfPrimMom = true
    			counterCX_ion = false
-   		     elseif self.name==species[sN].collisions[collNm].neutNm and counterCX_neut then
-   			self.needSelfPrimMom  = true
-   			-- Define fields needed to calculate source term
-   			self.M0distF = self:allocDistf()
-   			counterCX_neut = false
-   		     end
+    		     end
    		  end
    	       end
    	    end
@@ -1602,17 +1592,11 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       end
 
       if self.calcCXSrc then
-	 local fIon  = species[self.name]:getDistF()
-	 local fNeut = species[self.neutNmCX]:getDistF()
-	 
-	 -- calculate vCX*SigmaCX
-	 species[self.name].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {self.uParSelf, species[self.neutNmCX].uParSelf, self.vtSqSelf, species[self.neutNmCX].vtSqSelf}, {self.vSigmaCX})
+	 -- calculate Vcx*SigmaCX
+	 local neutU = species[self.neutNmCX]:selfPrimitiveMoments()[1]
+	 local neutVtSq = species[self.neutNmCX]:selfPrimitiveMoments()[2]
 
-	 -- multiply M0 by distFother and take the difference
-	 self.confPhaseMult:advance(tCurr, {self.numDensity, fNeut}, {self.M0distF})
-	 self.confPhaseMult:advance(tCurr, {species[self.neutNmCX].numDensity, fIon}, {species[self.neutNmCX].M0distF})
-	 self.diffDistF:combine(1.0, self.M0distF, -1.0, species[self.neutNmCX].M0distF)
-	 self.confPhaseMult:advance(tCurr, {self.vSigmaCX, self.diffDistF}, {self.srcCX})
+	 species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {self.uParSelf, species[self.neutNmCX]:selfPrimitiveMoments()[1],  self.vtSqSelf, species[self.neutNmCX]:selfPrimitiveMoments()[2]}, {self.vSigmaCX})
       end
 
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart

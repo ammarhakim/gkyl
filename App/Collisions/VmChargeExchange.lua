@@ -102,7 +102,6 @@ function VmChargeExchange:createSolver(funcField) --species)
          onGrid         = self.confGrid,
          confBasis      = self.confBasis,
 	 phaseBasis     = self.phaseBasis,
-	 kineticSpecies = 'Vm',
 	 a              = self.a,
 	 b              = self.b,
    }

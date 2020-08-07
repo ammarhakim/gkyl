@@ -97,16 +97,7 @@ function GkChargeExchange:setPhaseGrid(grid)
 end
 
 function GkChargeExchange:createSolver(funcField) --species)
-
-   self.collisionSlvr = Updater.ChargeExchange {
-         onGrid         = self.confGrid,
-         confBasis      = self.confBasis,
-	 phaseBasis     = self.phaseBasis,
-	 kineticSpecies = 'Gk',
-	 a              = self.a,
-	 b              = self.b,
-   }
-   self.sourceCX = DataStruct.Field {
+   self.sourceCX =  DataStruct.Field {
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
@@ -115,16 +106,95 @@ function GkChargeExchange:createSolver(funcField) --species)
 	 basisType = self.phaseBasis:id()
       },
    }
+   self.M0iDistFn =  DataStruct.Field {
+      onGrid        = self.phaseGrid,
+      numComponents = self.phaseBasis:numBasis(),
+      ghost         = {1, 1},
+      metaData = {
+	 polyOrder = self.phaseBasis:polyOrder(),
+	 basisType = self.phaseBasis:id()
+      },
+   }
+   self.M0nDistFi =  DataStruct.Field {
+      onGrid        = self.phaseGrid,
+      numComponents = self.phaseBasis:numBasis(),
+      ghost         = {1, 1},
+      metaData = {
+	 polyOrder = self.phaseBasis:polyOrder(),
+	 basisType = self.phaseBasis:id()
+      },
+   }
+   self.diffDistF =  DataStruct.Field {
+      onGrid        = self.phaseGrid,
+      numComponents = self.phaseBasis:numBasis(),
+      ghost         = {1, 1},
+      metaData = {
+	 polyOrder = self.phaseBasis:polyOrder(),
+	 basisType = self.phaseBasis:id()
+      },
+   }
+   self.collisionSlvr = Updater.ChargeExchange {
+      onGrid         = self.confGrid,
+      confBasis      = self.confBasis,
+      phaseBasis     = self.phaseBasis,
+      a              = self.a,
+      b              = self.b,
+   }
+
+   if (self.speciesName == self.ionNm) then --ions
+      self.fMaxNeut =  DataStruct.Field {
+	 onGrid        = self.phaseGrid,
+	 numComponents = self.phaseBasis:numBasis(),
+	 ghost         = {1, 1},
+	 metaData = {
+	    polyOrder = self.phaseBasis:polyOrder(),
+	    basisType = self.phaseBasis:id()
+	 },
+      }
+   else --neutrals
+      self.fMaxIon =  DataStruct.Field {
+	 onGrid        = self.phaseGrid,
+	 numComponents = self.phaseBasis:numBasis(),
+	 ghost         = {1, 1},
+	 metaData = {
+	    polyOrder = self.phaseBasis:polyOrder(),
+	    basisType = self.phaseBasis:id()
+	 },
+      }
+   end
 end
 
 function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
-   -- get CX source term from Vlasov species
-   self.sourceCX = species[self.ionNm]:getSrcCX()
    
    -- identify species and accumulate
    if (self.speciesName == self.ionNm) then
+      local neutM0 = species[self.neutNm]:fluidMoments()[1]
+      local neutU = species[self.neutNm]:selfPrimitiveMoments()[1] 
+      local neutVtSq = species[self.neutNm]:selfPrimitiveMoments()[2]
+      local ionM0 = species[self.ionNm]:fluidMoments()[1]
+      local ionDistF = species[self.ionNm]:getDistF()
+      
+      species[self.speciesName].calcMaxwell:advance(tCurr, {neutM0, neutU, neutVtSq}, {self.fMaxNeut})
+      species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, self.fMaxNeut}, {self.M0iDistFn})
+      species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
+      self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
+      species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})      
+
       fRhsOut:accumulate(1.0,self.sourceCX)
+
    elseif (self.speciesName == self.neutNm) then
+      local ionM0 = species[self.ionNm]:fluidMoments()[1]
+      local ionU = species[self.ionNm]:selfPrimitiveMoments()[1] 
+      local ionVtSq = species[self.ionNm]:selfPrimitiveMoments()[2]
+      local neutM0 = species[self.neutNm]:fluidMoments()[1]
+      local neutDistF = species[self.neutNm]:getDistF()
+      
+      species[self.speciesName].calcMaxwell:advance(tCurr, {ionM0, ionU, ionVtSq}, {self.fMaxIon})
+      species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
+      species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, self.fMaxIon}, {self.M0nDistFi})
+      self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
+      species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
+      
       fRhsOut:accumulate(-self.iMass/self.nMass,self.sourceCX)
    end
    

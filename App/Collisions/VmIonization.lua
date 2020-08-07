@@ -60,7 +60,7 @@ function VmIonization:fullInit(speciesTbl)
    if self.plasma == "H" then
       self._E = 13.6
       self._P = 0
-      self._A = 2.91e-14
+      self._A = 0.291e-7
       self._K = 0.39
       self._X = 0.232
    end
@@ -139,21 +139,37 @@ function VmIonization:createSolver(funcField)
       onGrid        = self.confGrid,
       numComponents = self.confBasis:numBasis(),
       ghost         = {1, 1},
+      metaData = {
+	 polyOrder = self.confBasis:polyOrder(),
+	 basisType = self.confBasis:id()
+      },
    }
    self.coefM0 = DataStruct.Field {
       onGrid        = self.confGrid,
       numComponents = self.confBasis:numBasis(),
       ghost         = {1, 1},
+      metaData = {
+	 polyOrder = self.confBasis:polyOrder(),
+	 basisType = self.confBasis:id()
+      },
    }
    self.neutDistF = DataStruct.Field {
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
+      metaData = {
+	 polyOrder = self.phaseBasis:polyOrder(),
+	 basisType = self.phaseBasis:id()
+      },
    }
    self.ionizSrc = DataStruct.Field {
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
+      metaData = {
+	 polyOrder = self.phaseBasis:polyOrder(),
+	 basisType = self.phaseBasis:id()
+      },
    }
    -- For testing and debugging purposes
    self.numDensityCalc = Updater.DistFuncMomentCalc {
@@ -166,6 +182,10 @@ function VmIonization:createSolver(funcField)
       onGrid        = self.confGrid,
       numComponents = self.confBasis:numBasis(),
       ghost         = {1, 1},
+      metaData = {
+	 polyOrder = self.phaseBasis:polyOrder(),
+	 basisType = self.phaseBasis:id()
+      },
    }
 end
 
@@ -173,7 +193,7 @@ function VmIonization:advance(tCurr, fIn, species, fRhsOut)
    local coefIz = species[self.elcNm]:getVoronovReactRate()
    local distFn = species[self.neutNm]:getDistF()
    local elcM0  = species[self.elcNm]:fluidMoments()[1]
---   distFn:write(string.format("neutDistF.bp"),0.0,0,false)
+   --distFn:write(string.format("neutDistF.bp"),0.0,0,false)
 
    -- Check whether particle is electron, neutral or ion species
    if (self.speciesName == self.elcNm) then
