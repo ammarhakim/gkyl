@@ -126,7 +126,15 @@ function GkIonization:createSolver(funcField)
 	 reactRate  = false, 
       	 E          = self._E,
       }
-      self.sumDistF = species[self.speciesName]:allocDistf()
+      self.sumDistF =  DataStruct.Field {
+	 onGrid        = self.phaseGrid,
+	 numComponents = self.phaseBasis:numBasis(),
+	 ghost         = {1, 1},
+	 metaData = {
+	    polyOrder = self.phaseBasis:polyOrder(),
+	    basisType = self.phaseBasis:id()
+	 },
+      }
    end
    self.confMult = Updater.CartFieldBinOp {
          onGrid     = self.confGrid,
