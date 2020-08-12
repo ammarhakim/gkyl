@@ -1,4 +1,5 @@
 #include <cmath>
+#include <stdio.h>
 extern "C" {
   void MaxwellianInnerLoop(double * n, double * u, double * vth2,
 			   double * fItr,

@@ -14,9 +14,9 @@ local _M = {}
 
 -- Kernel function to compute Voronov reaction rate. 
 function _M.voronovCoef(basisNm, CDIM, polyOrder)
-   local funcType = "void"
+   local funcType = "double"
    local funcNm = string.format("VoronovReactRateCellAv%dx%s_P%d", CDIM, basisNmMap[basisNm], polyOrder)
-   local funcSign = "(const double elemCharge, const double m_, const double *vtSq, const double E, const double A, const double K, const double P, const double X, double *coefIz)"
+   local funcSign = "(const double elemCharge, const double m_, const double *m0, const double *vtSq, const double E, const double A, const double K, const double P, const double X, double *coefIz)"
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]

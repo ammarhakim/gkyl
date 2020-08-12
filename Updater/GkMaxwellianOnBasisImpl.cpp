@@ -62,7 +62,11 @@ void GkMaxwellianInnerLoop(/* Number density, drift speed, and thermal velocity 
       v = 0.5*v*dz[numConfDims] + zc[numConfDims] - uPar[confOrdIdx];
       v2 += v*v;
 
-      maxwellian *= exp(-0.5*v2/vtSq[confOrdIdx]);
+      if (vtSq[confOrdIdx] < 0)
+	//printf("GkMaxwellian: vtSq is less than 0! \n");
+	maxwellian *= 0; 
+      else
+	maxwellian *= exp(-0.5*v2/vtSq[confOrdIdx]);
     
       for (int k = 0; k < numPhaseBasis; ++k) 
 	fItr[k] +=

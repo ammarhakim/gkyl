@@ -737,8 +737,10 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
+	 --print('Collision advance start', c.name)
          c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
          c:advance(tCurr, fIn, species, fRhsOut)
+	 --print('Collision advance complete', c.name)
          -- the full 'species' list is needed for the cross-species
          -- collisions
       end
@@ -1580,14 +1582,22 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       -- for ionization
       if self.calcReactRate then
 	 local neutU = species[self.neutNmIz]:selfPrimitiveMoments()[1]
-	 
-	 species[self.name].collisions[self.collNmIoniz].calcVoronovReactRate:advance(tCurr, {self.vtSqSelf}, {self.voronovReactRate})
+	 local neutM0 = species[self.neutNmIz]:fluidMoments()[1]
+
+	 if tCurr == 0.0 then
+	    species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+	 end
+	 species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, self.vtSqSelf}, {self.voronovReactRate})
 	 species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
 
- 	 self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
-	 self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
-	 self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
-	 self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
+	 --self.vtSqSelf:write(string.format("%s_ccmVtSq_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	 --self.vtSqIz:write(string.format("%s_ccmVtSqIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	 --self.voronovReactRate:write(string.format("%s_ccmCoefIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	 
+ 	 -- self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
+	 -- self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
+	 -- self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
+	 -- self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
 	 -- self.fMaxwellIz:write(string.format("%s_fMaxOut_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
       end
 

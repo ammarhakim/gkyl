@@ -1,6 +1,6 @@
 #include <IonizationModDecl.h> 
 #include <math.h> 
-void VoronovReactRateCellAv3xMax_P1(const double elemCharge, const double m_, const double *vtSq, const double E, const double A, const double K, const double P, const double X, double *coefIz) 
+double VoronovReactRateCellAv3xMax_P1(const double elemCharge, const double m_, const double *m0, const double *vtSq, const double E, const double A, const double K, const double P, const double X, double *coefIz) 
 { 
   // elemCharge: elementary charge (J - eV conversion factor). 
   // E:   	  Voronov ionization energy. 
@@ -9,7 +9,8 @@ void VoronovReactRateCellAv3xMax_P1(const double elemCharge, const double m_, co
   // P:   	  Voronov constant. 
   // X:   	  Voronov constant. 
   // m_:          mass of electron. 
-  // vtSq[4]:    squared thermal speed, sqrt(T/m) 
+  // m0[4]:      neutral density. 
+  // vtSq[4]:    elc squared thermal speed, sqrt(T/m). 
   // coefIz[4]:  ionization reaction rate. 
  
   double vtSq0 = 0.3535533905932738*vtSq[0]; 
@@ -21,9 +22,10 @@ void VoronovReactRateCellAv3xMax_P1(const double elemCharge, const double m_, co
   if (U > 3.0/2.0) { 
     coefIz[0] = 0.0;
   }
+  return 0.04166666666666666*coefIz[0]*m0[0]; 
 } 
  
-void VoronovReactRateCellAv3xMax_P2(const double elemCharge, const double m_, const double *vtSq, const double E, const double A, const double K, const double P, const double X, double *coefIz) 
+double VoronovReactRateCellAv3xMax_P2(const double elemCharge, const double m_, const double *m0, const double *vtSq, const double E, const double A, const double K, const double P, const double X, double *coefIz) 
 { 
   // elemCharge: elementary charge (J - eV conversion factor). 
   // E:   	  Voronov ionization energy. 
@@ -32,7 +34,8 @@ void VoronovReactRateCellAv3xMax_P2(const double elemCharge, const double m_, co
   // P:   	  Voronov constant. 
   // X:   	  Voronov constant. 
   // m_:          mass of electron. 
-  // vtSq[10]:    squared thermal speed, sqrt(T/m) 
+  // m0[10]:      neutral density. 
+  // vtSq[10]:    elc squared thermal speed, sqrt(T/m). 
   // coefIz[10]:  ionization reaction rate. 
  
   double vtSq0 = 0.3535533905932738*vtSq[0]; 
@@ -44,9 +47,10 @@ void VoronovReactRateCellAv3xMax_P2(const double elemCharge, const double m_, co
   if (U > 3.0/2.0) { 
     coefIz[0] = 0.0;
   }
+  return 0.025*coefIz[0]*m0[0]; 
 } 
  
-void VoronovReactRateCellAv3xMax_P3(const double elemCharge, const double m_, const double *vtSq, const double E, const double A, const double K, const double P, const double X, double *coefIz) 
+double VoronovReactRateCellAv3xMax_P3(const double elemCharge, const double m_, const double *m0, const double *vtSq, const double E, const double A, const double K, const double P, const double X, double *coefIz) 
 { 
   // elemCharge: elementary charge (J - eV conversion factor). 
   // E:   	  Voronov ionization energy. 
@@ -55,7 +59,8 @@ void VoronovReactRateCellAv3xMax_P3(const double elemCharge, const double m_, co
   // P:   	  Voronov constant. 
   // X:   	  Voronov constant. 
   // m_:          mass of electron. 
-  // vtSq[20]:    squared thermal speed, sqrt(T/m) 
+  // m0[20]:      neutral density. 
+  // vtSq[20]:    elc squared thermal speed, sqrt(T/m). 
   // coefIz[20]:  ionization reaction rate. 
  
   double vtSq0 = 0.3535533905932738*vtSq[0]; 
@@ -67,5 +72,6 @@ void VoronovReactRateCellAv3xMax_P3(const double elemCharge, const double m_, co
   if (U > 3.0/2.0) { 
     coefIz[0] = 0.0;
   }
+  return 0.01785714285714286*coefIz[0]*m0[0]; 
 } 
  

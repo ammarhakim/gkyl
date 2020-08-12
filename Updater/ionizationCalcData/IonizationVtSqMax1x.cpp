@@ -9,7 +9,7 @@ void IonizationTemp1xMax_P1(const double elemCharge, const double m_, const doub
  
   double vtSq0 = 0.7071067811865476*vtSq[0]; 
   if (vtSq0 > 2.0/3.0*E*elemCharge/m_) { 
-     vtSqIz[0] = 0.5*vtSq[0]-0.4714045207910317*E*elemCharge; 
+     vtSqIz[0] = 0.5*vtSq[0]-(0.4714045207910317*E*elemCharge)/m_; 
   }
  
   else { 
@@ -27,7 +27,7 @@ void IonizationTemp1xMax_P2(const double elemCharge, const double m_, const doub
  
   double vtSq0 = 0.7071067811865476*vtSq[0]; 
   if (vtSq0 > 2.0/3.0*E*elemCharge/m_) { 
-     vtSqIz[0] = 0.5*vtSq[0]-0.4714045207910317*E*elemCharge; 
+     vtSqIz[0] = 0.5*vtSq[0]-(0.4714045207910317*E*elemCharge)/m_; 
   }
  
   else { 
@@ -45,7 +45,7 @@ void IonizationTemp1xMax_P3(const double elemCharge, const double m_, const doub
  
   double vtSq0 = 0.7071067811865476*vtSq[0]; 
   if (vtSq0 > 2.0/3.0*E*elemCharge/m_) { 
-     vtSqIz[0] = 0.5*vtSq[0]-0.4714045207910317*E*elemCharge; 
+     vtSqIz[0] = 0.5*vtSq[0]-(0.4714045207910317*E*elemCharge)/m_; 
   }
  
   else { 
