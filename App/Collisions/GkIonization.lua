@@ -37,6 +37,7 @@ end
 function GkIonization:fullInit(speciesTbl)
    local tbl = self.tbl -- Previously store table.
 
+   self.cfl = 0.1
    self.collKind = "Ionization"
 
    self.collidingSpecies = assert(tbl.collideWith, "App.GkIonization: Must specify names of species to collide with in 'collideWith'.")
@@ -103,24 +104,28 @@ function GkIonization:setPhaseGrid(grid)
 end
 
 function GkIonization:createSolver(funcField)
+   self.collisionSlvr = Updater.Ionization {
+      onGrid     = self.confGrid,
+      confBasis  = self.confBasis,
+      phaseGrid     = self.phaseGrid,
+      phaseBasis  = self.phaseBasis,
+      elcMass    = self.mass,
+      elemCharge = self.charge,
+      reactRate  = true,
+	 
+      -- Voronov parameters
+      A = self._A,
+      E = self._E,
+      K = self._K,
+      P = self._P,
+      X = self._X,
+   }
    if (self.speciesName == self.elcNm) then
-      self.calcVoronovReactRate = Updater.Ionization {
+      self.calcIonizationTemp = Updater.Ionization {
 	 onGrid     = self.confGrid,
 	 confBasis  = self.confBasis,
-	 elcMass    = self.mass,
-	 elemCharge = self.charge,
-	 reactRate  = true,
-      
-	 -- Voronov parameters
-	 A = self._A,
-	 E = self._E,
-	 K = self._K,
-	 P = self._P,
-	 X = self._X,
-      }
-      self.calcIonizationTemp = Updater.Ionization {
-      	 onGrid     = self.confGrid,
-      	 confBasis  = self.confBasis,
+	 phaseGrid     = self.phaseGrid,
+	 phaseBasis  = self.phaseBasis,
       	 elcMass    = self.mass,
       	 elemCharge = self.charge,
 	 reactRate  = false, 
@@ -146,7 +151,7 @@ function GkIonization:createSolver(funcField)
       weakBasis  = self.confBasis,
       operation = "Divide",
    }
-   self.collisionSlvr = Updater.CartFieldBinOp {
+   self.confPhaseMult = Updater.CartFieldBinOp {
          onGrid     = self.phaseGrid,
          weakBasis  = self.phaseBasis,
          fieldBasis = self.confBasis,
@@ -207,9 +212,9 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
       self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       
       self.confMult:advance(tCurr, {coefIz, neutM0}, {self.coefM0})
-      self.collisionSlvr:advance(tCurr, {self.coefM0, self.sumDistF}, {self.ionizSrc})
+      self.confPhaseMult:advance(tCurr, {self.coefM0, self.sumDistF}, {self.ionizSrc})
       -- Uncomment to test without fMaxwellian(Tiz)
-      --self.collisionSlvr:advance(tCurr, {self.coefM0, elcDistF}, {self.ionizSrc})      
+      --self.confPhaseMult:advance(tCurr, {self.coefM0, elcDistF}, {self.ionizSrc})      
       --species[self.elcNm].distIo:write(self.ionizSrc, string.format("electron_ionizSrc_%d.bp",species[self.elcNm].distIoFrame),0,0)
       
       fRhsOut:accumulate(1.0,self.ionizSrc)
@@ -222,7 +227,7 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
       self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       
       self.confMult:advance(tCurr, {coefIz, self.m0elc}, {self.coefM0})
-      self.collisionSlvr:advance(tCurr, {self.coefM0, neutDistF}, {self.ionizSrc})
+      self.confPhaseMult:advance(tCurr, {self.coefM0, neutDistF}, {self.ionizSrc})
       fRhsOut:accumulate(-1.0,self.ionizSrc)  
    else
       -- ions 
@@ -239,7 +244,7 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
 
       self.confMult:advance(tCurr, {coefIz, self.m0elc}, {self.coefM0})
       species[self.speciesName].calcMaxwell:advance(tCurr, {neutM0, neutU, neutVtSq}, {self.fMaxNeut})
-      self.collisionSlvr:advance(tCurr, {self.coefM0, self.fMaxNeut}, {self.ionizSrc})
+      self.confPhaseMult:advance(tCurr, {self.coefM0, self.fMaxNeut}, {self.ionizSrc})
       --species[self.elcNm].distIo:write(self.fMaxNeut, string.format("%s_fMaxNeut_%d.bp",self.speciesName,species[self.elcNm].distIoFrame),0,0)
       fRhsOut:accumulate(1.0,self.ionizSrc)
    end
@@ -248,19 +253,23 @@ end
 function GkIonization:write(tm, frame)
 end
 
+function GkIonization:setCfl(cfl)
+   self.cfl = cfl
+end
+
 function GkIonization:getIonizSrc()
    return self.ionizSrc
 end
 
 function GkIonization:slvrTime()
    local time = self.confMult.totalTime
-   time = time + self.collisionSlvr.totalTime
+   time = time + self.confPhaseMult.totalTime
    return time
 end
 
 function GkIonization:momTime()
     if (self.speciesName == self.elcNm) then 
-       return self.calcVoronovReactRate:evalMomTime() + self._tmEvalMom
+       return self.collisionSlvr:evalMomTime() + self._tmEvalMom
     else
        return self._tmEvalMom
     end
@@ -268,7 +277,7 @@ end
 
 function GkIonization:projectMaxwellTime()
    local time = self.confMult.projectMaxwellTime()
-   time = time + self.collisionSlvr.projectMaxwellTime
+   time = time + self.confPhaseMult.projectMaxwellTime
    return time
 end
 

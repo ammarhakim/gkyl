@@ -21,11 +21,15 @@ local Ionization = Proto(UpdaterBase)
 -- Updater Initialization --------------------------------------------
 function Ionization:init(tbl)
    Ionization.super.init(self, tbl) -- setup base object
-
+   
    self._onGrid = assert(tbl.onGrid,
 			  "Updater.Ionization: Must provide grid object using 'onGrid'")
    self._confBasis = assert(tbl.confBasis,
 			    "Updater.Ionization: Must provide configuration space basis object using 'confBasis'")
+   self._phaseGrid = assert(tbl.phaseGrid,
+			  "Updater.Ionization: Must provide grid object using 'phaseGrid'")
+   self._phaseBasis = assert(tbl.phaseBasis,
+			    "Updater.Ionization: Must provide configuration space basis object using 'phaseBasis'")
    self._elcMass = assert(tbl.elcMass,
 			  "Updater.Ionization: Must provide electron mass using 'elcMass'")
    self._elemCharge = assert(tbl.elemCharge,
@@ -45,11 +49,14 @@ function Ionization:init(tbl)
 		       "Updater.Ionization: Must provide Voronov constant X using 'X'")
    end
       
+   -- Dimension of phase space.
+   self._pDim = self._phaseBasis:ndim()      
    -- Dimension of configuration space.
    self._cDim = self._confBasis:ndim()
    -- Basis name and polynomial order.
    self._basisID = self._confBasis:id()
    self._polyOrder = self._confBasis:polyOrder()
+   self.idxP = Lin.IntVec(self._pDim)
 
    -- Number of basis functions.
    self._numBasisC = self._confBasis:numBasis()
@@ -67,14 +74,14 @@ end
 function Ionization:ionizationTemp(elcVtSq, vtSqIz)
    local tmEvalMomStart = Time.clock()
    local grid = self._onGrid
-
+   
    local confIndexer = elcVtSq:genIndexer()
    local elcVtSqItr = elcVtSq:get(1)
    local vtSqIzItr = vtSqIz:get(1)
 
    local confRange = elcVtSq:localRange()
    if self.onGhosts then confRange = elcVtSq:localExtRange() end
-
+   
    -- Construct ranges for nested loops.
    local confRangeDecomp = LinearDecomp.LinearDecompRange {
       range = confRange:selectFirst(self._cDim), numSplit = grid:numSharedProcs() }
@@ -93,32 +100,53 @@ function Ionization:ionizationTemp(elcVtSq, vtSqIz)
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
 end
 
-function Ionization:reactRateCoef(elcVtSq, coefIz)
+function Ionization:reactRateCoef(neutM0, elcVtSq, coefIz, cflRateByCell)
    local tmEvalMomStart = Time.clock()
    local grid = self._onGrid
+   local vDim = self._pDim - self._cDim
 
    local confIndexer = elcVtSq:genIndexer()
+   local neutM0Itr = neutM0:get(1)
    local elcVtSqItr = elcVtSq:get(1)
    local coefIzItr = coefIz:get(1)
 
    local confRange = elcVtSq:localRange()
    if self.onGhosts then confRange = elcVtSq:localExtRange() end
 
+   -- Get the interface for setting global CFL frequencies
+   local cflRateByCell     = self._cflRateByCell
+   local cflRateByCellIdxr = cflRateByCell:genIndexer()
+   local cflRateByCellPtr  = cflRateByCell:get(1)
+   local cflRange = cflRateByCell:localRange()
+   local velRange = cflRange:selectLast(vDim)
+   
    -- Construct ranges for nested loops.
    local confRangeDecomp = LinearDecomp.LinearDecompRange {
       range = confRange:selectFirst(self._cDim), numSplit = grid:numSharedProcs() }
    local tId = grid:subGridSharedId() -- Local thread ID.
-   
+
+   local cflRate
    -- Configuration space loop
    for cIdx in confRangeDecomp:rowMajorIter(tId) do
       grid:setIndex(cIdx)
 
+      neutM0:fill(confIndexer(cIdx), neutM0Itr)
       elcVtSq:fill(confIndexer(cIdx), elcVtSqItr)
       coefIz:fill(confIndexer(cIdx), coefIzItr)
 
-      self._VoronovReactRateCalc(self._elemCharge, self._elcMass, elcVtSqItr:data(), self._E, self._A, self._K, self._P, self._X, coefIzItr:data())
+      cflRate = self._VoronovReactRateCalc(self._elemCharge, self._elcMass, neutM0Itr:data(), elcVtSqItr:data(), self._E, self._A, self._K, self._P, self._X, coefIzItr:data())
+      --print('cflRate = ', cflRate)
+      for vIdx in velRange:rowMajorIter() do
+      	 -- Construct the phase space index ot of the configuration
+      	 -- space and velocity space indices
+         cIdx:copyInto(self.idxP)
+         for d = 1, vDim do self.idxP[self._cDim+d] = vIdx[d] end
+      	 cflRateByCell:fill(cflRateByCellIdxr(self.idxP), cflRateByCellPtr)
+      	 cflRateByCellPtr:data()[0] = cflRateByCellPtr:data()[0] + cflRate
+      end
      
    end
+   --print("Ionization dt = ", 3/cflRate)
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
 end
 
@@ -126,13 +154,16 @@ end
 -- Updater Advance ---------------------------------------------------
 function Ionization:_advance(tCurr, inFld, outFld)
 
-   local elcVtSq = inFld[1]
    if not self._reactRate then
+      local elcVtSq = inFld[1]
       local vtSqIz  = outFld[1]
       self:ionizationTemp(elcVtSq, vtSqIz)
    else
+      --local cflRateByCell = self._cflRateByCell
+      local neutM0 = inFld[1]
+      local elcVtSq = inFld[2]
       local coefIz = outFld[1]
-      self:reactRateCoef(elcVtSq, coefIz)
+      self:reactRateCoef(neutM0, elcVtSq, coefIz)
    end
    
 end

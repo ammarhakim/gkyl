@@ -188,7 +188,7 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
       -- The velocity space loop
       for vIdx in velRange:rowMajorIter() do
 	 -- Construct the phase space index ot of the configuration
-	 -- space a velocity space indices
+	 -- space and velocity space indices
          cIdx:copyInto(self.idxP)
          for d = 1, vDim do self.idxP[cDim+d] = vIdx[d] end
 	 fOut:fill(phaseIndexer(self.idxP), fItr)
