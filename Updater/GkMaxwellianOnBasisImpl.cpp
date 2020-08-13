@@ -63,8 +63,8 @@ void GkMaxwellianInnerLoop(/* Number density, drift speed, and thermal velocity 
       v2 += v*v;
 
       if (vtSq[confOrdIdx] < 0)
-	//printf("GkMaxwellian: vtSq is less than 0! \n");
-	maxwellian *= 0; 
+      	//printf("GkMaxwellian: vtSq is less than 0! \n");
+      	maxwellian *= 0; 
       else
 	maxwellian *= exp(-0.5*v2/vtSq[confOrdIdx]);
     

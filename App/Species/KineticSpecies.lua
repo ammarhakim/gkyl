@@ -878,7 +878,7 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
 
     for i, mom in ipairs(self.requestedDiagnosticMoments) do
        self.diagnosticMomentFields[mom]:write(
-          string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, true) --self.writeSkin)
+          string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
     end
 
     for i, mom in ipairs(self.requestedDiagnosticBoundaryFluxMoments) do
@@ -904,10 +904,10 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
     -- Write ionization diagnostics
     if self.calcReactRate then
        local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
-       self.fMaxwellIz:write(string.format("%s_fMaxwell_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, true) --self.writeSkin)
-       self.vtSqIz:write(string.format("%s_vtSqIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, true) --self.writeSkin)
-       self.voronovReactRate:write(string.format("%s_coefIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, true) --self.writeSkin)
-       sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, true) --self.writeSkin)
+       self.fMaxwellIz:write(string.format("%s_fMaxwell_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       self.vtSqIz:write(string.format("%s_vtSqIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       self.voronovReactRate:write(string.format("%s_coefIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        -- include dynvector for zeroth vector of ionization source
        local srcIzM0 = self:allocMoment()
        self.numDensityCalc:advance(tm, {sourceIz}, {srcIzM0})
@@ -928,8 +928,8 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
 
     -- Write CX diagnostics
     if self.calcCXSrc then
-       self.vSigmaCX:write(string.format("%s_vSigmaCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, true) --self.writeSkin)
-       self.collisions[self.collNmCX]:write(string.format("%s_sourceCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, true) --self.writeSkin)
+       self.vSigmaCX:write(string.format("%s_vSigmaCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       self.collisions[self.collNmCX]:write(string.format("%s_sourceCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        --self.vCX:write(string.format("vCX_%d.bp", self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        --self.ionCXM0:write(string.format("%s_CXM0_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        --self.neutCXM0:write(string.format("neut_CXM0_%d.bp", self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
@@ -963,7 +963,7 @@ function KineticSpecies:write(tm, force)
 
       -- Only write stuff if triggered.
       if self.distIoTrigger(tm) or force then
-	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame, true)
+	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
          if self.f0 then
             if tm == 0.0 then
 	       self.distIo:write(self.f0, string.format("%s_f0_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)

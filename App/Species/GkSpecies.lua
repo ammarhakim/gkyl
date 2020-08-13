@@ -1594,10 +1594,10 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 --self.vtSqIz:write(string.format("%s_ccmVtSqIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
 	 --self.voronovReactRate:write(string.format("%s_ccmCoefIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
 	 
- 	 -- self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
-	 -- self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
-	 -- self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
-	 -- self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
+ 	 self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
+	 self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
+	 self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
+	 self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
 	 -- self.fMaxwellIz:write(string.format("%s_fMaxOut_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
       end
 
