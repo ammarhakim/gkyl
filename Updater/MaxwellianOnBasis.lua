@@ -53,7 +53,7 @@ function MaxwellianOnBasis:init(tbl)
    local N = tbl.numConfQuad and tbl.numConfQuad or self.confBasis:polyOrder() + 1
    assert(N<=8, "Updater.MaxwellianOnBasis: Gaussian quadrature only implemented for numQuad<=8 in each dimension")
 
-   self.projectOnGhosts = xsys.pickBool(tbl.projectOnGhosts, false)
+   self.projectOnGhosts = xsys.pickBool(tbl.projectOnGhosts, true)
 
    -- 1D weights and ordinates
    local ordinates = GaussQuadRules.ordinates[N]
@@ -140,6 +140,12 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
    local confRange    = nIn:localRange()
    local confIndexer  = nIn:genIndexer()
    local phaseRange   = fOut:localRange()
+      if self.onGhosts then -- extend range to config-space ghosts
+      local cdirs = {}
+      for dir = 1, cDim do 
+         phaseRange = phaseRange:extendDir(dir, fOut:lowerGhost(), fOut:upperGhost())
+      end
+   end
    local phaseIndexer = fOut:genIndexer()
 
    -- Additional preallocated variables
@@ -176,9 +182,9 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 	       end
 	    end
 	 elseif uDim == 1 and vDim==3 then -- if uPar passed from GkSpecies, fill d=3 component of u
+	    --print("MaxwellianOnBasis: udim = 1 and vdim = 3")
 	    for k = 1, self.numConfBasis do
-	       uOrd[ordIdx][vDim] = uOrd[ordIdx][vDim] +
-		  uItr[self.numConfBasis*(vDim-1)+k]*self.confBasisAtOrds[ordIdx][k]
+	       uOrd[ordIdx][vDim] = uOrd[ordIdx][vDim] + uItr[k]*self.confBasisAtOrds[ordIdx][k]
 	    end
 	 else
 	    print("Updater.MaxwellianOnBasis: incorrect uDim")	 
