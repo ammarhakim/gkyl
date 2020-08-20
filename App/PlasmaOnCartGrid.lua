@@ -323,7 +323,7 @@ local function buildApplication(self, tbl)
       field:writeRestart(tCurr)
       funcField:writeRestart(tCurr)
    end
-
+   
    -- Function to read from restart frame.
    local function readRestart() --> Time at which restart was written.
       local rTime = 0.0
@@ -335,7 +335,11 @@ local function buildApplication(self, tbl)
       for _, s in pairs(species) do
          -- This is a dummy forwardEuler call because some BCs require 
          -- auxFields to be set, which is controlled by species solver.
-         s:advance(0, species, {field, funcField}, 1, 2)
+	 if s.charge == 0 then
+	    s:advance(0, species, {NoField {}, NoField {}}, 1, 2)
+	 else
+	    s:advance(0, species, {field, funcField}, 1, 2)
+	 end
          s:setDtGlobal(dtLast[1])
 	 rTime = s:readRestart()
       end

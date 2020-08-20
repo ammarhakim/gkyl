@@ -600,6 +600,9 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    			self.m0fMax           = self:allocMoment()
    			self.m0mod            = self:allocMoment()
    			self.fMaxwellIz       = self:allocDistf()
+			self.intSrcIzM0 = DataStruct.DynVector {
+			   numComponents = 1,
+			}
    			counterIz = false
    		     end
    		  end
@@ -697,7 +700,9 @@ function GkSpecies:initCrossSpeciesCoupling(species)
             -- only if some other species collides with it.
             if (sN ~= sO) and (self.collPairs[sN][sO].on or self.collPairs[sO][sN].on) then
                otherNm = string.gsub(sO .. sN, self.name, "")
-               if self.nuVarXCross[otherNm] == nil then
+	       if species[sN].charge == 0 or species[sO].charge == 0 then
+		  -- do nothing
+               elseif self.nuVarXCross[otherNm] == nil then
                   self.nuVarXCross[otherNm] = self:allocMoment()
                   if (userInputNuProfile and (not self.collPairs[sN][sO].timeDepNu) or (not self.collPairs[sO][sN].timeDepNu)) then
                      projectNuX:setFunc(self.collPairs[self.name][otherNm].nu)
@@ -1542,6 +1547,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 fIn:accumulate(-1.0, self.f0)
       end
 
+      --fIn:write(string.format("%s_ccmDistF_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
       if self.needSelfPrimMom then
          self.threeMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy,
                                                           self.m1Correction, self.m2Correction,
@@ -1598,7 +1604,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
 	 self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
 	 self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
-	 -- self.fMaxwellIz:write(string.format("%s_fMaxOut_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	 --self.fMaxwellIz:write(string.format("%s_fMaxOut_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
       end
 
       if self.calcCXSrc then

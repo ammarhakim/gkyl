@@ -911,9 +911,6 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        -- include dynvector for zeroth vector of ionization source
        local srcIzM0 = self:allocMoment()
        self.numDensityCalc:advance(tm, {sourceIz}, {srcIzM0})
-       self.intSrcIzM0 = DataStruct.DynVector {
-	  numComponents = 1,
-       }
        local intCalc = Updater.CartFieldIntegratedQuantCalc {
 	  onGrid        = self.confGrid,
 	  basis         = self.confBasis,
@@ -1057,7 +1054,7 @@ function KineticSpecies:readRestart()
    
    if self.calcReactRate then
       self.intSrcIzM0:read(
-         string.format("%s_intSrcIzM0_restart.bp", self.name))
+	 string.format("%s_intSrcIzM0_restart.bp", self.name))
    end
 
    for i, mom in pairs(self.diagnosticMoments) do
