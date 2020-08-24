@@ -447,63 +447,22 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    end
 
    -- If Charge Exchange collision object exists, locate ions
-   local counterCX_ion = true
-   local counterCX_neut = true
+   local counterCX = true
    for sN, _ in pairs(species) do
       if species[sN].collisions and next(species[sN].collisions) then 
          for sO, _ in pairs(species) do
    	    if self.collPairs[sN][sO].on then
    	       if (self.collPairs[sN][sO].kind == 'CX') then
    		  for collNm, _ in pairs(species[sN].collisions) do
-   		     if self.name==species[sN].collisions[collNm].ionNm and counterCX_ion then
-   			self.collNmCX         = collNm
+   		     if self.name==species[sN].collisions[collNm].ionNm and counterCX then
+  			self.calcCXSrc        = true			
+			self.collNmCX         = collNm
    			self.neutNmCX         = species[sN].collisions[collNm].neutNm
-   			self.calcCXSrc        = true			
    			self.needSelfPrimMom  = true
    			self.vSigmaCX         = self:allocMoment()
-   			-- Define fields needed to calculate source term
-   			self.M0distF   = DataStruct.Field {
-   			   onGrid        = self.grid,
-   			   numComponents = self.basis:numBasis(),
-   			   ghost         = {1, 1},
-   			   metaData = {
-   			      polyOrder = self.basis:polyOrder(),
-   			      basisType = self.basis:id()
-   			   },
-			}
-   			self.diffDistF   =  DataStruct.Field {
-   			   onGrid        = self.grid,
-   			   numComponents = self.basis:numBasis(),
-   			   ghost         = {1, 1},
-			   metaData = {
-   			      polyOrder = self.basis:polyOrder(),
-   			      basisType = self.basis:id()
-   			   },
-   			}
-   			self.srcCX    = DataStruct.Field {
-   			   onGrid        = self.grid,
-   			   numComponents = self.basis:numBasis(),
-   			   ghost         = {1, 1},
-			   metaData = {
-   			      polyOrder = self.basis:polyOrder(),
-   			      basisType = self.basis:id()
-   			   },
-   			}
-   			counterCX_ion = false
-   		     elseif self.name==species[sN].collisions[collNm].neutNm and counterCX_neut then
-   			self.needSelfPrimMom  = true
-  			-- Define fields needed to calculate source term
-   			self.M0distF   = DataStruct.Field {
-   			   onGrid        = self.grid,
-   			   numComponents = self.basis:numBasis(),
-   			   ghost         = {1, 1},
-			   metaData = {
-   			      polyOrder = self.basis:polyOrder(),
-   			      basisType = self.basis:id()
-			   },
-   			}
-   			counterCX_neut = false
-   		     end
+			species[self.neutNmCX].needSelfPrimMom = true
+   			counterCX = false
+    		     end
    		  end
    	       end
    	    end
@@ -1268,19 +1227,13 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 
    -- for charge exchange
    if self.calcCXSrc then
-	 local fIon  = species[self.name]:getDistF()
-	 local fNeut = species[self.neutNmCX]:getDistF()
-
-	 -- calculate vCX*SigmaCX
-	 species[self.name].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {self.uSelf, species[self.neutNmCX].uSelf, self.vtSqSelf, species[self.neutNmCX].vtSqSelf}, {self.vSigmaCX})
-
-	 -- multiply M0 by distFother and take the difference
-	 self.confPhaseMult:advance(tCurr, {self.numDensity, fNeut}, {self.M0distF})
-	 self.confPhaseMult:advance(tCurr, {species[self.neutNmCX].numDensity, fIon}, {species[self.neutNmCX].M0distF})
-	 self.diffDistF:combine(1.0, self.M0distF, -1.0, species[self.neutNmCX].M0distF)
-	 self.confPhaseMult:advance(tCurr, {self.vSigmaCX, self.diffDistF}, {self.srcCX})
-
+      -- calculate Vcx*SigmaCX
+      local ionU = species[self.ionNmCX]:selfPrimitiveMoments()[1]
+      local ionVtSq = species[self.ionNmCX]:selfPrimitiveMoments()[2]
+      
+      species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {ionU, self.uParSelf, ionVtSq, self.vtSqSelf}, {self.vSigmaCX})
    end
+
    
    self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
 

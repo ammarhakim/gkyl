@@ -50,6 +50,7 @@ function VmChargeExchange:fullInit(speciesTbl)
    self.neutNm      = tbl.neutrals
    self.iMass       = tbl.ionMass
    self.nMass       = tbl.neutMass
+   self.charge      = tbl.charge
 
    -- Set these values to be consistent with other collision apps
    self.selfCollisions  = false
@@ -64,6 +65,9 @@ function VmChargeExchange:fullInit(speciesTbl)
    elseif self.plasma=='D' then 
       self.a = 1.09e-18
       self.b = 7.15e-20
+   elseif self.plasma =='Ne' then
+      self.a = 7.95e-19
+      self.b = 5.65e-20
    end
 
 end
@@ -102,6 +106,7 @@ function VmChargeExchange:createSolver(funcField) --species)
          onGrid         = self.confGrid,
          confBasis      = self.confBasis,
 	 phaseBasis     = self.phaseBasis,
+	 charge         = self.charge,
 	 a              = self.a,
 	 b              = self.b,
    }
@@ -117,17 +122,23 @@ function VmChargeExchange:createSolver(funcField) --species)
 end
 
 function VmChargeExchange:advance(tCurr, fIn, species, fRhsOut)
-   
-   -- get CX source term from Vlasov species
-   self.sourceCX = species[self.ionNm]:getSrcCX()
-   
-   -- identify species and accumulate
-   if (self.speciesName == self.ionNm) then
-      fRhsOut:accumulate(1.0,self.sourceCX)
-   elseif (self.speciesName == self.neutNm) then
-      fRhsOut:accumulate(-self.iMass/self.nMass,self.sourceCX)
-   end
-   
+
+      local neutM0 = species[self.neutNm]:fluidMoments()[1]
+      local neutDistF = species[self.neutNm]:getDistF()
+      local ionM0 = species[self.ionNm]:fluidMoments()[1]
+      local ionDistF = species[self.ionNm]:getDistF()
+      
+      species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, }, {self.M0iDistFn})
+      species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
+      self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
+      species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
+      
+      if (self.speciesName == self.ionNm) then
+	 fRhsOut:accumulate(1.0,self.sourceCX)
+      else
+	 fRhsOut:accumulate(-self.iMass/self.nMass,self.sourceCX)
+      end
+    
 end
 
 function VmChargeExchange:write(tm, frame)

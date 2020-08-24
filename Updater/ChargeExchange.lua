@@ -33,6 +33,7 @@ function ChargeExchange:init(tbl)
 		    "Updater.SigmaCX: Must provide fitting constant a using 'a'")
    self._b = assert(tbl.b,
 		    "Updater.SigmaCX: Must provide fitting constant b using 'b'")
+   self._charge = tbl.charge
    
    -- Dimension of spaces.
    self._cDim = self._confBasis:ndim()
@@ -47,7 +48,9 @@ function ChargeExchange:init(tbl)
    self._numBasis = self._confBasis:numBasis()
 
    -- Define CX cross section calculation
-   self._calcSigmaCX = ChargeExchangeDecl.SigmaCX(self._basisID, self._cDim, self._vDim, self._polyOrder)
+   if self._charge == 0 then
+      self._calcSigmaCX = ChargeExchangeDecl.SigmaCX(self._basisID, self._cDim, self._vDim, self._polyOrder)
+   end
    
    self.onGhosts = xsys.pickBool(false, tbl.onGhosts)
 

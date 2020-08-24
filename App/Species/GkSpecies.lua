@@ -172,17 +172,6 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       gyavgSlvr    = self.emGyavgSlvr,
    }
 
-   -- Vlasov solver for neutrals
-   self.vmEquation = VlasovEq {
-      onGrid           = self.grid,
-      phaseBasis       = self.basis,
-      confBasis        = self.confBasis,
-      charge           = self.charge,
-      mass             = self.mass,
-      hasElectricField = false,
-      hasMagneticField = false,
-   }
-
    -- No update in mu direction (last velocity direction if present)
    local upd = {}
    if hasApar then    -- If electromagnetic only update conf dir surface terms on first step.
@@ -203,16 +192,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       updateDirections   = upd,
       clearOut           = false,   -- Continue accumulating into output field.
    }
-
-   self.vmSolver = Updater.HyperDisCont {
-      onGrid             = self.grid,
-      basis              = self.basis,
-      cfl                = self.cfl,
-      equation           = self.vmEquation,
-      zeroFluxDirections = self.zeroFluxDirections,
-      updateDirections   = upd,
-      clearOut           = false,   -- Continue accumulating into output field.
-   }
+   
    if hasApar and self.basis:polyOrder()==1 then 
       -- This solver calculates vpar surface terms for Ohm's law. p=1 only!
       self.solverStep2 = Updater.HyperDisCont {
@@ -614,7 +594,6 @@ function GkSpecies:initCrossSpeciesCoupling(species)
 
    -- If Charge Exchange collision object exists, locate ions
    local counterCX_ion = true
-   local counterCX_neut = true
    for sN, _ in pairs(species) do
       if species[sN].collisions and next(species[sN].collisions) then 
          for sO, _ in pairs(species) do
@@ -622,12 +601,12 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    	       if (self.collPairs[sN][sO].kind == 'CX') then
    		  for collNm, _ in pairs(species[sN].collisions) do
    		     if self.name==species[sN].collisions[collNm].ionNm and counterCX_ion then
-  			self.calcCXSrc        = true			
-			self.collNmCX         = collNm
+   			self.calcCXSrc        = true			
+   			self.collNmCX         = collNm
    			self.neutNmCX         = species[sN].collisions[collNm].neutNm
    			self.needSelfPrimMom  = true
    			self.vSigmaCX         = self:allocMoment()
-			species[self.neutNmCX].needSelfPrimMom = true
+   			species[self.neutNmCX].needSelfPrimMom = true
    			counterCX_ion = false
     		     end
    		  end
@@ -1608,13 +1587,13 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       end
 
       if self.calcCXSrc then
-	 -- calculate Vcx*SigmaCX
-	 local neutU = species[self.neutNmCX]:selfPrimitiveMoments()[1]
-	 local neutVtSq = species[self.neutNmCX]:selfPrimitiveMoments()[2]
+      	 -- calculate Vcx*SigmaCX
+      	 local neutU = species[self.neutNmCX]:selfPrimitiveMoments()[1]
+      	 local neutVtSq = species[self.neutNmCX]:selfPrimitiveMoments()[2]
 
-	 species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {self.uParSelf, species[self.neutNmCX]:selfPrimitiveMoments()[1],  self.vtSqSelf, species[self.neutNmCX]:selfPrimitiveMoments()[2]}, {self.vSigmaCX})
+      	 species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {self.uParSelf, species[self.neutNmCX]:selfPrimitiveMoments()[1],  self.vtSqSelf, species[self.neutNmCX]:selfPrimitiveMoments()[2]}, {self.vSigmaCX})
       end
-
+      
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end

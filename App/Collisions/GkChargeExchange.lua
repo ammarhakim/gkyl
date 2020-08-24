@@ -50,6 +50,7 @@ function GkChargeExchange:fullInit(speciesTbl)
    self.neutNm      = tbl.neutrals
    self.iMass       = tbl.ionMass
    self.nMass       = tbl.neutMass
+   self.charge      = tbl.charge
 
    -- Set these values to be consistent with other collision apps
    self.selfCollisions  = false
@@ -64,6 +65,9 @@ function GkChargeExchange:fullInit(speciesTbl)
    elseif self.plasma=='D' then 
       self.a = 1.09e-18
       self.b = 7.15e-20
+   elseif self.plasma =='Ne' then
+      self.a = 7.95e-19
+      self.b = 5.65e-20
    end
 
 end
@@ -96,7 +100,7 @@ function GkChargeExchange:setPhaseGrid(grid)
    self.phaseGrid = grid
 end
 
-function GkChargeExchange:createSolver(funcField) --species)
+function GkChargeExchange:createSolver(funcField)
    self.sourceCX =  DataStruct.Field {
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
@@ -137,10 +141,10 @@ function GkChargeExchange:createSolver(funcField) --species)
       onGrid         = self.confGrid,
       confBasis      = self.confBasis,
       phaseBasis     = self.phaseBasis,
+      charge         = self.charge, 
       a              = self.a,
       b              = self.b,
    }
-
    if (self.speciesName == self.ionNm) then --ions
       self.fMaxNeut =  DataStruct.Field {
 	 onGrid        = self.phaseGrid,
