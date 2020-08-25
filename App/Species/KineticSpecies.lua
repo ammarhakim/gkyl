@@ -627,10 +627,6 @@ function KineticSpecies:initDist()
       if pr.isSource then
 	 if not self.fSource then 
 	    self.fSource = self:allocDistf()
-	    self.numDensitySrc = self:allocMoment()
-	    self.momDensitySrc = self:allocMoment()
-	    self.ptclEnergySrc = self:allocMoment()
-	    self.threeMomentsCalc:advance(0.0, {self.fSource}, {self.numDensitySrc, self.momDensitySrc, self.ptclEnergySrc})
 	 end
 	 self.fSource:accumulate(1.0, self.distf[2])
          if self.positivityRescale then
