@@ -75,6 +75,21 @@ function NonUniformRectCart:init(tbl)
    end
 end
 
+-- Determine local domain index. This is complicated by the fact that
+-- when using MPI-SHM the processes that live in shmComm all have the
+-- same domain index. Hence, we need to use rank from nodeComm and
+-- broadcast it to everyone in shmComm.
+local function getSubDomIndex(nodeComm, shmComm)
+   local idx = ffi.new("int[1]")
+   if Mpi.Is_comm_valid(nodeComm) then
+      idx[0] = Mpi.Comm_rank(nodeComm)+1 -- sub-domains are indexed from 1
+   end
+   -- send from rank 0 of shmComm to everyone else: this works as rank
+   -- 0 of shmComm is contained in nodeComm
+   Mpi.Bcast(idx, 1, Mpi.INT, 0, shmComm)
+   return idx[0]
+end
+
 -- Member functions.
 function NonUniformRectCart:id() return "mapped" end
 function NonUniformRectCart:lower(dir) return self._nodeCoords[dir][1] end

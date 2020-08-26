@@ -397,14 +397,14 @@ function KineticSpecies:createBasis(nm, polyOrder)
    -- Output of grid file is placed here because as the file name is associated
    -- with a species, we wish to save the basisID and polyOrder in it. But these
    -- can only be extracted from self.basis after this is created.
-   if self.coordinateMap then
-      local metaData = {
-         polyOrder = self.basis:polyOrder(),
-         basisType = self.basis:id(),
-         grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
-      }
-      self.grid:write("grid_" .. self.name .. ".bp", 0.0, metaData)
-   end
+   -- if self.coordinateMap then
+   --    local metaData = {
+   --       polyOrder = self.basis:polyOrder(),
+   --       basisType = self.basis:id(),
+   --       grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
+   --    }
+   --    self.grid:write("grid_" .. self.name .. ".bp", 0.0, metaData)
+   -- end
 end
 
 function KineticSpecies:allocDistf()
