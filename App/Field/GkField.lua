@@ -52,7 +52,9 @@ function GkField:fullInit(appTbl)
    self.ioFrame = 0 -- Frame number for IO.
    self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
 
-   self.writeSkin = xsys.pickBool(appTbl.writeSkin, false)
+   
+   -- write ghost cells on boundaries of global domain (for BCs)
+   self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 
    -- Get boundary condition settings.
    -- These will be checked for consistency when the solver is initialized.
@@ -541,7 +543,7 @@ function GkField:createDiagnostics()
    self.fieldIo = AdiosCartFieldIo {
       elemType   = self.potentials[1].phi:elemType(),
       method     = self.ioMethod,
-      writeSkin = self.writeSkin,
+      writeGhost = self.writeGhost,
       metaData   = {
 	 polyOrder = self.basis:polyOrder(),
 	 basisType = self.basis:id()

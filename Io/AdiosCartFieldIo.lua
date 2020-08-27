@@ -71,8 +71,8 @@ function AdiosCartFieldIo:init(tbl)
    -- Allocate memory buffer for use in ADIOS I/O.
    self._outBuff   = self._allocator(1) -- This will be resized on an actual write().
 
-   -- write skin cells on boundaries of global domain (for BCs)
-   self._writeSkin = xsys.pickBool(tbl.writeSkin, false)
+   -- write ghost cells on boundaries of global domain (for BCs)
+   self._writeGhost = xsys.pickBool(tbl.writeGhost, false)
 
    -- If we have meta-data to write out, store it.
    --
