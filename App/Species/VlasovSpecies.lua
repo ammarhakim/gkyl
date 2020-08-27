@@ -73,10 +73,17 @@ function VlasovSpecies:fullInit(appTbl)
    end
 
    local externalBC = tbl.externalBC
+   local numExternalBCFiles = tbl.numExternalBCFiles
    if externalBC then
-      self.wallFunction = require(externalBC)
+      self.wallFunction = {}
+      if numExternalBCFiles then
+         for i = 1, numExternalBCFiles do
+            self.wallFunction[i] = require(externalBC .. "_" .. tostring(i))
+         end
+      else
+         self.wallFunction = require(externalBC)
+      end
    end
-   self.emissionFn = tbl.emissionFn
 end
 
 function VlasovSpecies:allocMomCouplingFields()
@@ -1052,6 +1059,20 @@ end
 
 function VlasovSpecies:bcExternFunc(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "flip".
+   local tbl = self.tbl
+   local numFiles = tbl.numExternalBCFiles
+   local velIdx = {}
+   for d = 1, self.vdim do
+      velIdx[d] = idxIn[self.cdim + d]
+   end
+   if numFiles then
+      if velIdx[1] ~= 0 and velIdx[1] ~= self.grid:numCells(2) + 1 then
+         self.wallFunction[velIdx[1]](velIdx, fIn, fOut)
+      end
+   else
+      self.wallFunction(velIdx, fIn, fOut)
+   end
+   
    local velIdx = {}
    for d = 1, self.vdim do
       velIdx[d] = idxIn[self.cdim + d]
