@@ -300,7 +300,7 @@ function MaxwellField:createSolver()
       -- Multigrid parameters (hardcoded for now).
       local gamma      = 1                 -- V-cycles=1, W-cycles=2.
       local relaxType  = 'DampedJacobi'    -- DampedJacobi or DampedGaussSeidel
-      local relaxNum   = {1,2,1000}        -- Number of pre,post and coarsest-grid smoothings.
+      local relaxNum   = {1,2,300}        -- Number of pre,post and coarsest-grid smoothings.
       local relaxOmega = 2./3.             -- Relaxation damping parameter.
       local tolerance  = 1.e-6             -- Do cycles until reaching this relative residue norm.
       self.fieldSlvr = Updater.MGpoisson {

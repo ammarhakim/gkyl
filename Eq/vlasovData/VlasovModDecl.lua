@@ -98,6 +98,9 @@ end
 function _M.selectSurfPhi(hasB, basisNm, CDIM, VDIM, polyOrder)
    if hasB then magStr="Bext" else magStr="" end
 
+   local funcType = "double"
+   local funcSign = "(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double qDm, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr)"
+
    local funcNm = {}
    for d = 1, VDIM do
       funcNm[d] = string.format("VlasovPhi%sSurf%dx%dv%s_%s_P%d", magStr, CDIM, VDIM, basisNmMap[basisNm], vvars[d], polyOrder)
