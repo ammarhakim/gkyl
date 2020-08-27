@@ -6,15 +6,16 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Proto          = require "Lib.Proto"
-local KineticSpecies = require "App.Species.KineticSpecies"
-local Mpi            = require "Comm.Mpi"
-local VlasovEq       = require "Eq.Vlasov"
-local Updater        = require "Updater"
 local DataStruct     = require "DataStruct"
-local Time           = require "Lib.Time"
-local ffi            = require "ffi"
+local Grid           = require "Grid"
+local KineticSpecies = require "App.Species.KineticSpecies"
 local Lin            = require "Lib.Linalg"
+local Mpi            = require "Comm.Mpi"
+local Proto          = require "Lib.Proto"
+local Time           = require "Lib.Time"
+local Updater        = require "Updater"
+local VlasovEq       = require "Eq.Vlasov"
+local ffi            = require "ffi"
 local xsys           = require "xsys"
 
 local VlasovSpecies = Proto(KineticSpecies)
@@ -27,7 +28,6 @@ local SP_BC_COPY    = 5
 -- AHH: This was 2 but seems that is unstable. So using plain copy.
 local SP_BC_OPEN      = SP_BC_COPY
 local SP_BC_ZEROFLUX  = 6
-local SP_BC_RESERVOIR = 7
 
 VlasovSpecies.bcAbsorb    = SP_BC_ABSORB     -- Absorb all particles.
 VlasovSpecies.bcOpen      = SP_BC_OPEN       -- Zero gradient.
@@ -35,7 +35,6 @@ VlasovSpecies.bcCopy      = SP_BC_COPY       -- Copy stuff.
 VlasovSpecies.bcReflect   = SP_BC_REFLECT    -- Specular reflection.
 VlasovSpecies.bcExternal  = SP_BC_EXTERN     -- Load external BC file.
 VlasovSpecies.bcZeroFlux  = SP_BC_ZEROFLUX
-VlasovSpecies.bcReservoir = SP_BC_RESERVOIR
 
 function VlasovSpecies:alloc(nRkDup)
    -- Allocate distribution function.
@@ -77,6 +76,7 @@ function VlasovSpecies:fullInit(appTbl)
    if externalBC then
       self.wallFunction = require(externalBC)
    end
+   self.emissionFn = tbl.emissionFn
 end
 
 function VlasovSpecies:allocMomCouplingFields()
@@ -1059,6 +1059,64 @@ function VlasovSpecies:bcExternFunc(dir, tm, idxIn, fIn, fOut)
    self.wallFunction[1](velIdx, fIn, fOut)
 end
 
+
+-- function VlasovSpecies:applyBc(tCurr, fIn)
+--    if self.bcx[2] == SP_BC_MAXWELLIAN then
+--       local numConfDims = self.confBasis:ndim()
+--       assert(numConfDims==1, "VlasovSpecies: The emission BC is available only for 1X.")
+--       local numConfBasis = self.confBasis:numBasis()
+--       local upper = Lin.Vec(numConfDims)
+--       upper[1] = 1.0
+--       local basisUpper = Lin.Vec(numConfBasis)
+--       self.confBasis:evalBasis(upper, basisUpper)
+
+--       local M0 = self:fluidMoments()[1]
+--       local M1 = self:fluidMoments()[2]
+--       local M2 = self:fluidMoments()[3]
+
+--       local localWallMoments = ffi.new("double[3]")
+--       local indexer = M0:genIndexer()
+--       for idx in M0:localRangeIter() do
+--          if idx[1] == self.grid:numCells(1) then
+--             local M0Ptr = M0:get(indexer(idx))
+--             local M1Ptr = M1:get(indexer(idx)) 
+--             local M2Ptr = M2:get(indexer(idx))
+
+--             localWallMoments[0] = 0.0
+--             localWallMoments[1] = 0.0
+--             localWallMoments[2] = 0.0
+--             for k = 1, numConfBasis do
+--                print(M0Ptr[k])
+--                localWallMoments[0] = localWallMoments[0] + M0Ptr[k]*basisUpper[k]
+--                localWallMoments[1] = localWallMoments[1] + M1Ptr[k]*basisUpper[k]
+--                localWallMoments[2] = localWallMoments[2] + M2Ptr[k]*basisUpper[k]
+--             end
+--          end
+--       end
+      
+--       local globalWallMoments = ffi.new("double[3]")
+--       Mpi.Allreduce(localWallMoments, globalWallMoments, 1,
+-- 		    Mpi.DOUBLE, Mpi.MAX, self.grid:commSet().comm)
+
+--       local emissionFn = function(t, z)
+--          return self.emissionFn(t, z,
+--                                 globalWallMoments[0],
+--                                 globalWallMoments[1],
+--                                 globalWallMoments[2])
+--       end
+     
+--       local projectEmission = Updater.ProjectOnBasis {
+--          onGrid = self.skinGrid,
+--          basis = self.basis,
+--          evaluate = emissionFn,
+--       }
+--       projectEmission:advance(tCurr, {}, {self.emissionFld})
+--       --self.emissionFld:write("ghost.bp", tCurr)
+--    end
+   
+--    VlasovSpecies.super.applyBc(self, tCurr, fIn)
+-- end
+
 function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
    -- Need to wrap member functions so that self is passed.
    local function bcAbsorbFunc(...)  return self:bcAbsorbFunc(...) end
@@ -1069,32 +1127,32 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
 
    local vdir = dir + self.cdim
 
-   if bcType == SP_BC_ABSORB then
+   if type(bcType) == "function" then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcAbsorbFunc }, "pointwise", false))
+				      { bcCopyFunc }, "pointwise", bcType))
+   elseif bcType == SP_BC_ABSORB then
+      table.insert(self.boundaryConditions,
+		   self:makeBcUpdater(dir, vdir, edge,
+				      { bcAbsorbFunc }, "pointwise"))
    elseif bcType == SP_BC_OPEN then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcCopyFunc }, "pointwise", false))
+				      { bcCopyFunc }, "pointwise"))
    elseif bcType == SP_BC_COPY then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcCopyFunc }, "pointwise", false))
+				      { bcCopyFunc }, "pointwise"))
    elseif bcType == SP_BC_REFLECT then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcReflectFunc }, "flip", false))
+				      { bcReflectFunc }, "flip"))
    elseif bcType == SP_BC_EXTERN then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcExternFunc }, "flip", false))
+				      { bcExternFunc }, "flip"))
    elseif bcType == SP_BC_ZEROFLUX then
       table.insert(self.zeroFluxDirections, dir)
-   elseif bcType == SP_BC_RESERVOIR then
-      table.insert(self.boundaryConditions,
-		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcCopyFunc }, "pointwise", true))
    else
       assert(false, "VlasovSpecies: Unsupported BC type!")
    end

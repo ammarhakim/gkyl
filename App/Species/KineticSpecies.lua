@@ -468,7 +468,7 @@ end
 
 -- Function to construct a BC updater.
 function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop,
-				      hasExtFld)
+				      evaluateFn)
    return Updater.Bc {
       onGrid             = self.grid,
       boundaryConditions = bcList,
@@ -478,7 +478,8 @@ function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop,
       skinLoop           = skinLoop,
       cdim               = self.cdim,
       vdim               = self.vdim,
-      hasExtFld          = hasExtFld,
+      basis = self.basis,
+      evaluate = evaluateFn,
    }
 end
 
@@ -638,12 +639,12 @@ function KineticSpecies:initDist()
             self.fSource:scale(self.powerScalingFac)
          end
       end
-      if pr.isReservoir then
-	 if not self.fReservoir then 
-	    self.fReservoir = self:allocDistf()
-	 end
-	 self.fReservoir:accumulate(1.0, self.distf[2])
-      end
+      -- if pr.isReservoir then
+      --    if not self.fReservoir then 
+      --       self.fReservoir = self:allocDistf()
+      --    end
+      --    self.fReservoir:accumulate(1.0, self.distf[2])
+      -- end
    end
    if self.scaleInitWithSourcePower then self.distf[1]:scale(self.powerScalingFac) end
    assert(initCnt > 0,
@@ -791,7 +792,7 @@ function KineticSpecies:applyBc(tCurr, fIn)
       -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
       if self.hasNonPeriodicBc then
          for _, bc in ipairs(self.boundaryConditions) do
-            bc:advance(tCurr, {self.fReservoir}, {fIn})
+            bc:advance(tCurr, {}, {fIn})
          end
       end
 

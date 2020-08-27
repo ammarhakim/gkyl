@@ -9,18 +9,19 @@
 local xsys = require "xsys"
 
 -- Gkyl libraries.
-local CartDecomp   = require "Lib.CartDecomp"
-local DataStruct   = require "DataStruct"
-local Grid         = require "Grid"
-local Lin          = require "Lib.Linalg"
-local LinearDecomp = require "Lib.LinearDecomp"
-local Proto        = require "Lib.Proto"
-local Range        = require "Lib.Range"
-local UpdaterBase  = require "Updater.Base"
-local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
+local CartDecomp = require "Lib.CartDecomp"
 local CartFieldBinOp = require "Updater.CartFieldBinOp"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
+local DataStruct = require "DataStruct"
+local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
+local Grid = require "Grid"
+local Lin = require "Lib.Linalg"
+local LinearDecomp = require "Lib.LinearDecomp"
 local Mpi = require "Comm.Mpi"
+local ProjectOnBasis = require "Updater.ProjectOnBasis"
+local Proto = require "Lib.Proto"
+local Range = require "Lib.Range"
+local UpdaterBase  = require "Updater.Base"
 
 -- Boundary condition updater.
 local Bc = Proto(UpdaterBase)
@@ -45,30 +46,17 @@ function Bc:init(tbl)
       tbl.boundaryConditions, "Updater.Bc: Must specify boundary conditions to apply with 'boundaryConditions'")
 
    self._skinLoop = tbl.skinLoop and tbl.skinLoop or "pointwise"
-   if self._skinLoop == "flip" or self._skinLoop == "integrate" then
+   if self._skinLoop == "flip" then
       self._cdim = assert(
 	 tbl.cdim,
 	 "Updater.Bc: Must specify configuration space dimensions to apply with 'cdim'")
-   end
-   if self._skinLoop == "flip" then
       self._vdir = assert(
 	 tbl.vdir,
 	 "Updater.Bc: Must specify velocity direction to flip with 'vdir'")
    end
-   if self._skinLoop == "integrate" then
-      self._vdim = assert(
-	 tbl.vdim,
-	 "Updater.Bc: Must specify velocity space dimensions to apply with 'vdim'")
-      self._numComps = assert(
-	 tbl.numComps,
-	 "Updater.Bc: Must specify the number of components of the field using 'numComps'")
-   end
 
    self._ghostRangeDecomp = nil -- Will be constructed on first call to advance.
 
-   self.idxS = Lin.IntVec(self._grid:ndim()) -- Prealloc this.
-
-   self.hasExtFld = xsys.pickBool(tbl.hasExtFld, false)
 
    -- For diagnostics: create reduced boundary grid with 1 cell in dimension of self._dir.
    if self._grid:isShared() then 
@@ -128,6 +116,13 @@ function Bc:init(tbl)
          decomposition = reducedDecomp,
       }
    end
+
+   -- A function can be specied in the ghost cell layer to be used as
+   -- a boundary condition.
+   self._evaluateFn = tbl.evaluate
+   if self._evaluateFn then
+      self._basis = assert(tbl.basis, "Bc.init: Evaluate is currently implemented only for DG; 'basis' must be specified.")
+   end
 end
 
 function Bc:getGhostRange(global, globalExt)
@@ -143,7 +138,6 @@ end
 function Bc:_advance(tCurr, inFld, outFld)
    local grid = self._grid
    local qOut = assert(outFld[1], "Bc.advance: Must-specify an output field")
-   local qIn  = inFld[1]
 
    local dir, edge = self._dir, self._edge
    local vdir      = self._vdir
@@ -154,54 +148,60 @@ function Bc:_advance(tCurr, inFld, outFld)
       local localExtRange = qOut:localExtRange()
       self._ghostRng      = localExtRange:intersect(
    	 self:getGhostRange(global, globalExt)) -- Range spanning ghost cells.
-      if self._skinLoop == "integrate" then
-   	 self._skin = qOut:localRange():selectLast(self._vdim)
-      end
       -- Decompose ghost region into threads.
       self._ghostRangeDecomp = LinearDecomp.LinearDecompRange {
    	 range = self._ghostRng, numSplit = grid:numSharedProcs() }
+
+      -- Project the 'evaluate' function onto the boundary grid
+      if self._evaluateFn then
+         local projectEvaluateFn = ProjectOnBasis {
+            onGrid = self._boundaryGrid,
+            basis = self._basis,
+            evaluate = self._evaluateFn,
+         }
+         self._ghostFld = DataStruct.Field {
+           onGrid = self._boundaryGrid,
+           numComponents = qOut:numComponents(),
+           ghost = {1,1},
+           metaData = qOut:getMetaData(),
+         }
+         projectEvaluateFn:advance(tCurr, {}, {self._ghostFld})
+      end
    end
 
-   local qG, qS = qOut:get(1), qOut:get(1) -- Get pointers to (re)use inside inner loop [G: Ghost, S: Skin].
-   if self.hasExtFld then qS = qIn:get(1) end
-   self.idxS = Lin.IntVec(grid:ndim()) -- Prealloc this.
-   local indexer = qOut:genIndexer()
-
    local tId = self._grid:subGridSharedId() -- Local thread ID.
-   for idxG in self._ghostRangeDecomp:rowMajorIter(tId) do -- Loop, applying BCs.
-      idxG:copyInto(self.idxS)
+   
+   -- Get the in and out pointers
+   local ptrOut, ptrIn = qOut:get(1), qOut:get(1)
+   local indexerOut, indexerIn = qOut:genIndexer(), qOut:genIndexer()
+   if self._evaluateFn then
+      ptrIn = self._ghostFld:get(1)
+      indexerIn = self._ghostFld:genIndexer()
+   end
 
-      qOut:fill(indexer(idxG), qG) 
+   local idxIn = Lin.IntVec(self._grid:ndim()) -- Prealloc this
+   for idxOut in self._ghostRangeDecomp:rowMajorIter(tId) do 
+      qOut:fill(indexerOut(idxOut), ptrOut)
 
-      -- If an in-field is specified the same indexes are used (gS
-      -- points to the ghost layer of the in-field); otherwise, move
-      -- the ghost index to point into the skin layer.
-      if not self.hasExtFld then
-	 self.idxS[dir] = edge == "lower" and global:lower(dir) or global:upper(dir)
-	 if self._skinLoop == "flip" then
-	    self.idxS[vdir] = global:upper(vdir) + 1 - self.idxS[vdir]
-	 end
+      -- Copy out index into in index
+      idxOut:copyInto(idxIn)
+      -- Reverse the in velocity index if needed
+      if self._skinLoop == "flip" then
+         idxIn[vdir] = global:upper(vdir) + 1 - idxIn[vdir]
+      end
+      if self._evaluateFn then
+         idxIn[dir] = 1 -- the boundaryGrid has only 1 cell in dir
+         self._ghostFld:fill(indexerIn(idxIn), ptrIn)
+      else
+         idxIn[dir] = edge == "lower" and global:lower(dir) or global:upper(dir)
+         qOut:fill(indexerIn(idxIn), ptrIn)
       end
 
-      if self._skinLoop == "integrate" then 
-   	 for c = 1, self._numComponents do qG[c] = 0 end
-
-         for idx in self._skin:rowMajorIter() do
-   	    for d = 1, self._vdim do self.idxS[self._cdim + d] = idx[d] end
-   	    qOut:fill(indexer(self.idxS), qS)
-            for _, bc in ipairs(self._bcList) do
-               bc(dir, tCurr, self.idxS, qS, qG, self._bcList)
-            end
-         end
-      else
-	 if not self.hasExtFld then
-	    qOut:fill(indexer(self.idxS), qS)
-	 else
-	    qIn:fill(indexer(self.idxS), qS)
-	 end
-         for _, bc in ipairs(self._bcList) do
-            bc(dir, tCurr, self.idxS, qS, qG) -- TODO: PASS COORDINATES.
-         end
+      for _, bc in ipairs(self._bcList) do
+         -- Apply the 'bc' function. This can represent many boundary
+         -- condition types ranging from a simple copy or a reflection
+         -- with the sign flit to QM based electron emission model.
+         bc(dir, tCurr, idxIn, ptrIn, ptrOut)
       end
    end
 
@@ -267,20 +267,22 @@ function Bc:storeBoundaryFlux(tCurr, rkIdx, qOut)
    	 range = self._ghostRng, numSplit = self._grid:numSharedProcs() }
    end
 
-   local qG = qOut:get(1) -- Get pointers to (re)use inside inner loop [G: Ghost].
+   local ptrOut = qOut:get(1) -- Get pointers to (re)use inside inner loop.
    local indexer = qOut:genIndexer()
 
    local tId = self._grid:subGridSharedId() -- Local thread ID.
-   for idxG in self._ghostRangeDecomp:rowMajorIter(tId) do -- Loop, applying BCs.
-      idxG:copyInto(self.idxS)
+   
+   local idxIn = Lin.IntVec(self._grid:ndim())
+   for idxOut in self._ghostRangeDecomp:rowMajorIter(tId) do
+      idxOut:copyInto(idxIn)
 
-      qOut:fill(indexer(idxG), qG) 
+      qOut:fill(indexer(idxOut), ptrOut) 
 
       -- Before operating on ghosts, store ghost values for later flux diagnostics
-      self.idxS[self._dir] = 1
-      self._boundaryFluxFields[rkIdx]:fill(self._boundaryIdxr(self.idxS), self._boundaryPtr[rkIdx])
+      idxIn[self._dir] = 1
+      self._boundaryFluxFields[rkIdx]:fill(self._boundaryIdxr(idxIn), self._boundaryPtr[rkIdx])
       for c = 1, qOut:numComponents() do
-         self._boundaryPtr[rkIdx][c] = qG[c]
+         self._boundaryPtr[rkIdx][c] = ptrOut[c]
       end
    end
 end
@@ -307,15 +309,16 @@ function Bc:evalOnConfBoundary(inFld)
    local indexer = inFld:genIndexer()
 
    local tId = self._grid:subGridSharedId() -- Local thread ID.
+   local idxIn = Lin.IntVec(self._grid:ndim())
    for idxOut in localRangeDecomp:rowMajorIter(tId) do
-      idxOut:copyInto(self.idxS)
+      idxOut:copyInto(idxIn)
       if edge == "lower" then
-         self.idxS[dir] = global:lower(dir)-inFld:lowerGhost() 
+         idxIn[dir] = global:lower(dir)-inFld:lowerGhost() 
       else
-         self.idxS[dir] = global:upper(dir)+inFld:upperGhost()
+         idxIn[dir] = global:upper(dir)+inFld:upperGhost()
       end
       
-      inFld:fill(indexer(self.idxS), inFldPtr) 
+      inFld:fill(indexer(idxIn), inFldPtr) 
       self._confBoundaryField:fill(self._confBoundaryIdxr(idxOut), self._confBoundaryFieldPtr)
        
       for c = 1, inFld:numComponents() do

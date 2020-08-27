@@ -12,6 +12,12 @@ local vthr = math.sqrt(pr/nr)
 
 local K = 0.1
 
+local maxwellianL = function(t, z)
+   return nl/math.sqrt(2*math.pi*vthl^2)*math.exp(-(z[2]-ul)^2/(2*vthl^2))
+end
+local maxwellianR = function(t, z)
+   return nr/math.sqrt(2*math.pi*vthr^2)*math.exp(-(z[2]-ur)^2/(2*vthr^2))
+end
 
 sim = Plasma.App {
    logToFile = false,
@@ -47,20 +53,19 @@ sim = Plasma.App {
 	 driftSpeed = {0.5*(nl+nr)},
 	 temperature = 0.5*(vthl^2+vthr^2),
       },
-      reservoir = Plasma.MaxwellianProjection {
-	 density = function (t, z)
-	    if math.abs(z[1]) < 0.5 then return nl else return nr end
-	 end,
-	 driftSpeed = function (t, z)
-	    if math.abs(z[1]) < 0.5 then return {ul} else return {ur} end
-	 end,
-	 temperature = function (t, z)
-	    if math.abs(z[1]) < 0.5 then return vthl^2 else return vthr^2 end
-	 end,
-	 isReservoir = true,
-      },
-      bcx = { Plasma.Species.bcReservoir,
-	      Plasma.Species.bcReservoir },
+      -- reservoir = Plasma.MaxwellianProjection {
+      --    density = function (t, z)
+      --       if math.abs(z[1]) < 0.5 then return nl else return nr end
+      --    end,
+      --    driftSpeed = function (t, z)
+      --       if math.abs(z[1]) < 0.5 then return {ul} else return {ur} end
+      --    end,
+      --    temperature = function (t, z)
+      --       if math.abs(z[1]) < 0.5 then return vthl^2 else return vthr^2 end
+      --    end,
+      --    isReservoir = true,
+      -- },
+      bcx = { maxwellianL, maxwellianR },
        -- evolve species?
       evolve = true,
       --evolveCollisions = false,

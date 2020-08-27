@@ -22,7 +22,7 @@ void fpoDiffSurfXLSer3xP1(const double dt, const double* dv,
                           const double* gCUC,
                           const double* gCCL,
                           const double* gCCU,
-                          double *fOut) {
+                          double* fOut) {
   double Jxx = 16/(dv[0]*dv[0]*dv[0]*dv[0]);
   double Jxy = 16/(dv[0]*dv[0]*dv[1]*dv[1]);
   double Jyx = Jxy;

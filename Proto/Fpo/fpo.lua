@@ -304,7 +304,7 @@ return function(tbl)
    local function updateRosenbluthDrag(fIn, hOut)
       local tmStart = Time.clock()
       if updatePotentials then
-         tmp:combine(1.0, fIn)
+         tmp:combine(4*math.pi, fIn)
          poisson:advance(0.0, {tmp}, {hOut})
       end
       tmRosen = tmRosen + Time.clock()-tmStart
@@ -312,7 +312,7 @@ return function(tbl)
    local function updateRosenbluthDiffusion(hIn, gOut)
       local tmStart = Time.clock()
       if updatePotentials then
-         tmp:combine(-1.0, hIn)
+         tmp:combine(-2.0, hIn)
          poisson:advance(0.0, {tmp}, {gOut})
       end
       tmRosen = tmRosen + Time.clock()-tmStart
