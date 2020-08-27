@@ -155,7 +155,7 @@ function Bc:_advance(tCurr, inFld, outFld)
 
       -- Project the 'evaluate' function onto the boundary grid
       if self._evaluateFn then
-         local projectEvaluateFn = ProjectOnBasis {
+         self._projectEvaluateFn = ProjectOnBasis {
             onGrid = self._boundaryGrid,
             basis = self._basis,
             evaluate = self._evaluateFn,
@@ -170,7 +170,7 @@ function Bc:_advance(tCurr, inFld, outFld)
    end
 
    if self._evaluateFn and (self._isFirst or self._evolveFn) then
-      projectEvaluateFn:advance(tCurr, {}, {self._ghostFld})
+      self._projectEvaluateFn:advance(tCurr, {}, {self._ghostFld})
    end
 
    local tId = self._grid:subGridSharedId() -- Local thread ID.
