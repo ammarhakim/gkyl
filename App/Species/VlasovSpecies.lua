@@ -1072,12 +1072,6 @@ function VlasovSpecies:bcExternFunc(dir, tm, idxIn, fIn, fOut)
    else
       self.wallFunction(velIdx, fIn, fOut)
    end
-   
-   local velIdx = {}
-   for d = 1, self.vdim do
-      velIdx[d] = idxIn[self.cdim + d]
-   end
-   self.wallFunction[1](velIdx, fIn, fOut)
 end
 
 
