@@ -122,6 +122,7 @@ function Bc:init(tbl)
    self._evaluateFn = tbl.evaluate
    if self._evaluateFn then
       self._basis = assert(tbl.basis, "Bc.init: Evaluate is currently implemented only for DG; 'basis' must be specified.")
+      self._evolveFn = xsys.pickBool(tbl.evolveFn, true)
    end
 end
 
@@ -165,8 +166,11 @@ function Bc:_advance(tCurr, inFld, outFld)
            ghost = {1,1},
            metaData = qOut:getMetaData(),
          }
-         projectEvaluateFn:advance(tCurr, {}, {self._ghostFld})
       end
+   end
+
+   if self._evaluateFn and (self._isFirst or self._evolveFn) then
+      projectEvaluateFn:advance(tCurr, {}, {self._ghostFld})
    end
 
    local tId = self._grid:subGridSharedId() -- Local thread ID.
