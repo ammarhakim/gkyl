@@ -23,6 +23,10 @@ diffList : [D(n), D(u(1)), D(u(2)), D(u(3))]$
 /* Construct coefficient matrix */
 AIsoEuler : coefmatrix(eqList, diffList)$
 
+/* Source for momentum equations (needs a background flow term also) */
+momSrc(i) := qbym*(E(i) + sum(sum(B(m)*u(k)*levi_civita([k,m,i]), k, 1, 3), m, 1, 3))$
+momSrcList : map(canform, [momSrc(1), momSrc(2), momSrc(3)])$
+
 /**** Tenmoment equations */
 decsym(P,2,0,[sym(all)],[]);
 decsym(Q,3,0,[sym(all)],[]);
@@ -42,6 +46,12 @@ diffList : map(D, [n,
 
 /* Construct coefficient matrix */
 ATenMoment : coefmatrix(eqList, diffList)$
+
+/** Source terms for pressure equations */
+prSrc(i,j) := sum(sum(Om(m)*levi_civita([k,m,i])*P([j,k]), m, 1, 3), k, 1, 3)
+   + sum(sum(Om(m)*levi_civita([k,m,j])*P([k,i]), m, 1, 3), k, 1, 3);
+
+prSrcList : map(canform, [prSrc(1,1), prSrc(1,2), prSrc(1,3), prSrc(2,2), prSrc(2,3), prSrc(3,3)]);
 
 /**** Maxwell equations */
 eqList : [0, c^2*dB(3), -c^2*dB(2), 0, -dE(3), dE(2)]$
