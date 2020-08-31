@@ -579,7 +579,6 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       local globalEdgeFlux = ffi.new("double[3]")
       Mpi.Allreduce(localEdgeFlux, globalEdgeFlux, 1,
 		    Mpi.DOUBLE, Mpi.MAX, self.grid:commSet().comm)
-
       local densFactor = globalEdgeFlux[0]/self.sourceSteadyStateLength
       fRhsOut:accumulate(densFactor, self.fSource)
    elseif self.fSource and self.evolveSources then
@@ -1073,64 +1072,6 @@ function VlasovSpecies:bcExternFunc(dir, tm, idxIn, fIn, fOut)
       self.wallFunction(velIdx, fIn, fOut)
    end
 end
-
-
--- function VlasovSpecies:applyBc(tCurr, fIn)
---    if self.bcx[2] == SP_BC_MAXWELLIAN then
---       local numConfDims = self.confBasis:ndim()
---       assert(numConfDims==1, "VlasovSpecies: The emission BC is available only for 1X.")
---       local numConfBasis = self.confBasis:numBasis()
---       local upper = Lin.Vec(numConfDims)
---       upper[1] = 1.0
---       local basisUpper = Lin.Vec(numConfBasis)
---       self.confBasis:evalBasis(upper, basisUpper)
-
---       local M0 = self:fluidMoments()[1]
---       local M1 = self:fluidMoments()[2]
---       local M2 = self:fluidMoments()[3]
-
---       local localWallMoments = ffi.new("double[3]")
---       local indexer = M0:genIndexer()
---       for idx in M0:localRangeIter() do
---          if idx[1] == self.grid:numCells(1) then
---             local M0Ptr = M0:get(indexer(idx))
---             local M1Ptr = M1:get(indexer(idx)) 
---             local M2Ptr = M2:get(indexer(idx))
-
---             localWallMoments[0] = 0.0
---             localWallMoments[1] = 0.0
---             localWallMoments[2] = 0.0
---             for k = 1, numConfBasis do
---                print(M0Ptr[k])
---                localWallMoments[0] = localWallMoments[0] + M0Ptr[k]*basisUpper[k]
---                localWallMoments[1] = localWallMoments[1] + M1Ptr[k]*basisUpper[k]
---                localWallMoments[2] = localWallMoments[2] + M2Ptr[k]*basisUpper[k]
---             end
---          end
---       end
-      
---       local globalWallMoments = ffi.new("double[3]")
---       Mpi.Allreduce(localWallMoments, globalWallMoments, 1,
--- 		    Mpi.DOUBLE, Mpi.MAX, self.grid:commSet().comm)
-
---       local emissionFn = function(t, z)
---          return self.emissionFn(t, z,
---                                 globalWallMoments[0],
---                                 globalWallMoments[1],
---                                 globalWallMoments[2])
---       end
-     
---       local projectEmission = Updater.ProjectOnBasis {
---          onGrid = self.skinGrid,
---          basis = self.basis,
---          evaluate = emissionFn,
---       }
---       projectEmission:advance(tCurr, {}, {self.emissionFld})
---       --self.emissionFld:write("ghost.bp", tCurr)
---    end
-   
---    VlasovSpecies.super.applyBc(self, tCurr, fIn)
--- end
 
 function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
    -- Need to wrap member functions so that self is passed.

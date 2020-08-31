@@ -240,6 +240,9 @@ function KineticSpecies:fullInit(appTbl)
 
    self.hasNonPeriodicBc = false -- To indicate if we have non-periodic BCs.
    self.bcx, self.bcy, self.bcz = { }, { }, { }
+   -- Functional BCs
+   self.evolveFnBC = xsys.pickBool(tbl.evolveFnBC, true)
+   self.feedbackBC = xsys.pickBool(tbl.feedbackBC, false)
 
    -- Read in boundary conditions.
    -- Check to see if bc type is good is now done in createBc.
@@ -481,6 +484,9 @@ function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop,
       vdim               = self.vdim,
       basis = self.basis,
       evaluate = evaluateFn,
+      evolveFn = self.evolveFnBC,
+      feedback = self.feedbackBC,
+      confBasis = self.confBasis,
    }
 end
 
@@ -792,8 +798,17 @@ function KineticSpecies:applyBc(tCurr, fIn)
 
       -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
       if self.hasNonPeriodicBc then
-         for _, bc in ipairs(self.boundaryConditions) do
-            bc:advance(tCurr, {}, {fIn})
+         if self.feedbackBC then
+            self.numDensityCalc:advance(nil, {fIn}, { self.numDensity })
+            self.momDensityCalc:advance(nil, {fIn}, { self.momDensity })
+            self.ptclEnergyCalc:advance(nil, {fIn}, { self.ptclEnergy })
+            for _, bc in ipairs(self.boundaryConditions) do
+               bc:advance(tCurr, {self.numDensity, self.momDensity, self.ptclEnergy}, {fIn})
+            end
+         else
+            for _, bc in ipairs(self.boundaryConditions) do
+               bc:advance(tCurr, {}, {fIn})
+            end
          end
       end
 

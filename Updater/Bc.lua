@@ -118,11 +118,23 @@ function Bc:init(tbl)
    end
 
    -- A function can be specied in the ghost cell layer to be used as
-   -- a boundary condition.
+   -- a boundary condition. Additionally, a feedback function of fluid
+   -- moments at the boundary can be set up.
    self._evaluateFn = tbl.evaluate
    if self._evaluateFn then
       self._basis = assert(tbl.basis, "Bc.init: Evaluate is currently implemented only for DG; 'basis' must be specified.")
       self._evolveFn = xsys.pickBool(tbl.evolveFn, true)
+      self._feedback = xsys.pickBool(tbl.feedback, false)
+      if self._feedback then
+         assert(tbl.cdim == 1, "Bc.init: Feedback boundary condition is implemented only for 1X simulations.")
+         local confBasis = assert(tbl.confBasis, "Bc.init: Must specify 'confBasis' when 'feedback' is true.")
+         local numConfDims = confBasis:ndim()
+         self.numConfBasis = confBasis:numBasis()
+         local node = Lin.Vec(numConfDims)
+         if self._edge == "lower" then node[1] = -1.0 else node[1] = 1.0 end
+         self._confBasisEdge = Lin.Vec(self.numConfBasis)
+         confBasis:evalBasis(node, self._confBasisEdge)
+      end
    end
 end
 
@@ -153,13 +165,8 @@ function Bc:_advance(tCurr, inFld, outFld)
       self._ghostRangeDecomp = LinearDecomp.LinearDecompRange {
    	 range = self._ghostRng, numSplit = grid:numSharedProcs() }
 
-      -- Project the 'evaluate' function onto the boundary grid
+      -- Get the unction onto the boundary grid
       if self._evaluateFn then
-         self._projectEvaluateFn = ProjectOnBasis {
-            onGrid = self._boundaryGrid,
-            basis = self._basis,
-            evaluate = self._evaluateFn,
-         }
          self._ghostFld = DataStruct.Field {
            onGrid = self._boundaryGrid,
            numComponents = qOut:numComponents(),
@@ -169,6 +176,37 @@ function Bc:_advance(tCurr, inFld, outFld)
       end
    end
 
+   if self._evaluateFn and (self._isFirst or self._feedback) then
+      local myEvaluateFn = self._evaluateFn
+      if self._feedback then
+         local M0, M1, M2 = inFld[1], inFld[2], inFld[3]
+         local indexer = M0:genIndexer()
+         local ptrM0, ptrM1, ptrM2 = M0:get(1), M1:get(1), M2:get(1)
+         local edgeM0, edgeM1, edgeM2 = 0.0, 0.0, 0.0
+         for idx in self._ghostRangeDecomp:rowMajorIter(tId) do
+            idx[1] = self._edge == "lower" and global:lower(dir) or global:upper(dir)
+            M0:fill(indexer(idx), ptrM0)
+            M1:fill(indexer(idx), ptrM1)
+            M2:fill(indexer(idx), ptrM2)
+            for k = 1, self.numConfBasis do
+               edgeM0 = edgeM0 + ptrM0[k]*self._confBasisEdge[k]
+               edgeM1 = edgeM1 + ptrM1[k]*self._confBasisEdge[k]
+               edgeM2 = edgeM2 + ptrM2[k]*self._confBasisEdge[k]
+            end
+            myEvaluateFn = function(t, z)
+               return self._evaluateFn(t, z, edgeM0, edgeM1, edgeM2)
+            end
+            break -- Hack, this need just a conf space loop
+         end
+      end
+      
+      self._projectEvaluateFn = ProjectOnBasis {
+         onGrid = self._boundaryGrid,
+         basis = self._basis,
+         evaluate = myEvaluateFn,
+      }
+   end
+   
    if self._evaluateFn and (self._isFirst or self._evolveFn) then
       self._projectEvaluateFn:advance(tCurr, {}, {self._ghostFld})
    end

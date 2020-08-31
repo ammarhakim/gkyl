@@ -66,6 +66,7 @@ sim = Plasma.App {
       --    isReservoir = true,
       -- },
       bcx = { maxwellianL, maxwellianR },
+      evolveFnBC = false,
        -- evolve species?
       evolve = true,
       --evolveCollisions = false,
