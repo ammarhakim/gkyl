@@ -155,6 +155,7 @@ Gkyl::Gkyl(const std::string& luaExpr, const std::string& inpFileNm, const std::
     { "runregression", {"runregression.lua", "Run regression/unit tests"} },
     { "comparefiles", {"comparefiles.lua", "Compare two BP files"} },
     { "exacteulerrp", {"exacteulerrp.lua", "Exact Euler Riemann problem solver"} },
+    { "multimomlinear", {"multimomlinear.lua", "Linear dispersion solver for multi-moment, multifluid equations"} },
 #ifdef HAVE_CUDA_H
     { "deviceinfo", {"deviceinfo.lua", "Information about device"} },
 #endif
