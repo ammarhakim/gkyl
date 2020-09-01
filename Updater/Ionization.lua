@@ -100,7 +100,7 @@ function Ionization:ionizationTemp(elcVtSq, vtSqIz)
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
 end
 
-function Ionization:reactRateCoef(neutM0, elcVtSq, coefIz, cflRateByCell)
+function Ionization:reactRateCoef(neutM0, elcVtSq, coefIz) --, cflRateByCell)
    local tmEvalMomStart = Time.clock()
    local grid = self._onGrid
    local vDim = self._pDim - self._cDim

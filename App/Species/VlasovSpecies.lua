@@ -412,14 +412,16 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    end
 
    -- If ionization collision object exists, locate electrons
-   local counter = true
+   local counterIz_elc = true
+   local counterIz_neut = true
    for sN, _ in pairs(species) do
       if species[sN].collisions and next(species[sN].collisions) then 
          for sO, _ in pairs(species) do
 	    if self.collPairs[sN][sO].on then
    	       if (self.collPairs[sN][sO].kind == 'Ionization') then
    		  for collNm, _ in pairs(species[sN].collisions) do
-   		     if self.name==species[sN].collisions[collNm].elcNm and counter then
+   		     if self.name==species[sN].collisions[collNm].elcNm and counterIz_elc then
+			print("Vlasov species: calc Voronov = true")
    			self.neutNmIz = species[sN].collisions[collNm].neutNm
    			self.needSelfPrimMom  = true
    			self.calcReactRate    = true
@@ -437,7 +439,10 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    			      basisType = self.basis:id()
    			   },
    			}
-			counter = false
+			counterIz_elc = false
+		     elseif self.name==species[sN].collisions[collNm].neutNm and counterIz_neut then
+			self.needSelfPrimMom = true
+			counterIz_neut = false
    		     end
    		  end
    	       end
@@ -1221,9 +1226,18 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    -- for ionization
    if self.calcReactRate then
       local neutU = species[self.neutNmIz]:selfPrimitiveMoments()[1]
+      local neutM0 = species[self.neutNmIz]:fluidMoments()[1]
+      --neutM0:write(string.format("%s_neutM0_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
       
-      species[self.name].collisions[self.collNmIoniz].calcVoronovReactRate:advance(tCurr, {self.vtSqSelf}, {self.voronovReactRate})
+      if tCurr == 0.0 then
+	 species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      end
+      species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, self.vtSqSelf}, {self.voronovReactRate})
       species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
+      
+      --self.vtSqSelf:write(string.format("%s_ccmVtSq_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+      --self.vtSqIz:write(string.format("%s_ccmVtSqIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+      --self.voronovReactRate:write(string.format("%s_ccmCoefIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
       
       self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
       self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
@@ -1234,10 +1248,11 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    -- for charge exchange
    if self.calcCXSrc then
       -- calculate Vcx*SigmaCX
-      local ionU = species[self.ionNmCX]:selfPrimitiveMoments()[1]
-      local ionVtSq = species[self.ionNmCX]:selfPrimitiveMoments()[2]
+      local m0 = species[self.neutNmCX]:fluidMoments()[1]
+      local neutU = species[self.neutNmCX]:selfPrimitiveMoments()[1]
+      local neutVtSq = species[self.neutNmCX]:selfPrimitiveMoments()[2]
       
-      species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {ionU, self.uParSelf, ionVtSq, self.vtSqSelf}, {self.vSigmaCX})
+      species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uParSelf, neutU, self.vtSqSelf, neutVtSq}, {self.vSigmaCX})
    end
 
    

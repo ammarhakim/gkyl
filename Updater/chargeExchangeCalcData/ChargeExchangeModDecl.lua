@@ -16,7 +16,7 @@ local _M = {}
 function _M.SigmaCX(basisNm, CDIM, VDIM, polyOrder)
    local funcType = "void"
    local funcNm = string.format("SigmaCXcellAv%s%dx%dv_P%d", basisNmMap[basisNm], CDIM, VDIM, polyOrder)
-   local funcSign = "(const double a, const double b, const double *uIon, const double *uNeut, const double *vtSqIon, const double *vtSqNeut, double *vSigmaCX)"
+   local funcSign = "(const double a, const double b, const double *m0, const double *uIon, const double *uNeut, const double *vtSqIon, const double *vtSqNeut, double *vSigmaCX)"
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]
 end

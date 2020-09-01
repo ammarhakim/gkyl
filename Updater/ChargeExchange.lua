@@ -65,17 +65,19 @@ function ChargeExchange:_advance(tCurr, inFld, outFld)
    local numConfBasis = self._confBasis:numBasis()
    local numPhaseBasis = self._phaseBasis:numBasis()
    local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
-   
-   local uIon       = assert(inFld[1], "SigmaCX.advance: Must specify ion fluid velocity as input[1]")
-   local uNeut      = assert(inFld[2], "SigmaCX.advance: Must specify neutral fluid velocity as input[2]")
-   local vtSqIon    = assert(inFld[3], "SigmaCX.advance: Must specify ion squared thermal velocity as input[3]")
-   local vtSqNeut   = assert(inFld[4], "SigmaCX.advance: Must specify neutral squared thermal velocity as input[4]")
+
+   local m0         = assert(inFld[1], "SigmaCX.advance: Must specify neutral particle density as input[1]")
+   local uIon       = assert(inFld[2], "SigmaCX.advance: Must specify ion fluid velocity as input[2]")
+   local uNeut      = assert(inFld[3], "SigmaCX.advance: Must specify neutral fluid velocity as input[3]")
+   local vtSqIon    = assert(inFld[4], "SigmaCX.advance: Must specify ion squared thermal velocity as input[4]")
+   local vtSqNeut   = assert(inFld[5], "SigmaCX.advance: Must specify neutral squared thermal velocity as input[5]")
    local vSigmaCX   = assert(outFld[1], "SigmaCX.advance: Must specify an output field")
    
    local confIndexer  = vtSqIon:genIndexer()
 
    local uIonDim = uIon:numComponents()/numConfBasis -- number of dimensions in uIon, needed for GkSpecies
 
+   local m0Itr = m0:get(1)
    local uIonItr = uNeut:get(1) -- use shape of uNeut
    local uParIonItr = uIon:get(1)
    local uNeutItr = uNeut:get(1)
@@ -108,12 +110,13 @@ function ChargeExchange:_advance(tCurr, inFld, outFld)
       else
 	 print("Updater.SigmaCX: incorrect uIonDim")
       end
+      m0:fill(confIndexer(cIdx), m0Itr)
       uNeut:fill(confIndexer(cIdx), uNeutItr)
       vtSqIon:fill(confIndexer(cIdx), vtSqIonItr)
       vtSqNeut:fill(confIndexer(cIdx), vtSqNeutItr)
       vSigmaCX:fill(confIndexer(cIdx), vSigmaCXItr)
 
-      self._calcSigmaCX(self._a, self._b, uIonItr:data(), uNeutItr:data(), vtSqIonItr:data(), vtSqNeutItr:data(), vSigmaCXItr:data())
+      self._calcSigmaCX(self._a, self._b, m0Itr:data(), uIonItr:data(), uNeutItr:data(), vtSqIonItr:data(), vtSqNeutItr:data(), vSigmaCXItr:data())
      
    end
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart

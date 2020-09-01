@@ -53,15 +53,20 @@ calcSigmaCXcellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     bC : basisC[p],
     NC : length(bC),
   
-    printf(fh, "void ~a_P~a(const double a, const double b, const double *uIon, const double *uNeut, const double *vtSqIon, const double *vtSqNeut, double *vSigmaCX) ~%{ ~%", funcNm, p),
+    printf(fh, "void ~a_P~a(const double a, const double b, const double *m0, const double *uIon, const double *uNeut, const double *vtSqIon, const double *vtSqNeut, double *vSigmaCX) ~%{ ~%", funcNm, p),
     printf(fh, "  // a               constant in fitting function. ~%"),
     printf(fh, "  // b               constant in fitting function. ~%"),
+    printf(fh, "  // m0[~a]:         neutral particle density. ~%", NC),
     printf(fh, "  // uIon[~a]:        ion fluid velocity. ~%", NC*vdim),
     printf(fh, "  // uNeut[~a]:       neutral fluid velocity. ~%", NC*vdim),
     printf(fh, "  // vtSqIon[~a]:     ion squared thermal speed, sqrt(T/m). ~%", NC),
     printf(fh, "  // vtSqNeut[~a]:    neutral squared thermal speed, sqrt(T/m). ~%", NC),
     printf(fh, "  // vSigmaCX:          cell ave cross section fitting eqn. ~%"),
     printf(fh, " ~%"),
+
+    m0_e : doExpand1(m0,bC),
+    m0Av :  innerProd(varsC,1.0,1.0,m0_e)/innerProd(varsC,1.0,1.0,1.0),
+    declareWriteCExprsC(m0NeutAv, m0Av),	
 
     uIonAv_c : subst(makelist(uIon[i]=uIon[i+a0],i,0,NC-1),innerProd(varsC,1.0,1.0,doExpand1(uIon,bC))/innerProd(varsC,1.0,1.0,1.0)),
     uNeutAv_c : subst(makelist(uNeut[i]=uNeut[i+a0],i,0,NC-1),innerProd(varsC,1.0,1.0,doExpand1(uNeut,bC))/innerProd(varsC,1.0,1.0,1.0)),
@@ -83,6 +88,7 @@ calcSigmaCXcellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     vINSq_c    : innerProd(varsC,1.0,1.0,sum((uIonAv[d] - uNeutAv[d])^2,d,1,vdim))/innerProd(varsC,1.0,1.0,1.0),
 
     declareWriteCExprsC(vINSqAv, vINSq_c),
+    printf(fh, " ~%"),
     
     /* Define and write vSigmaCX */
 
@@ -90,6 +96,10 @@ calcSigmaCXcellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     writeCExprsCs(vSigmaCX, vSigmaCX_c),
     printf(fh, " ~%"),
+
+    printf(fh, "  if (m0NeutAv <= 0) { ~%"),
+    printf(fh, "    vSigmaCX[0] = 0.0;~%"),
+    printf(fh, "  }~%"),
     printf(fh, "} ~%")
 ))$
 

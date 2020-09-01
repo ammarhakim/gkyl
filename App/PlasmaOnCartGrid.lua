@@ -290,9 +290,17 @@ local function buildApplication(self, tbl)
    end   
 
    -- Compute the coupling moments.
+   -- for nm, s in pairs(species) do
+   --    if s.charge == 0 then
+   -- 	 s:clearMomentFlags(species)
+   -- 	 s:calcCouplingMoments(0.0, 1, species)
+   --    end
+   -- end
    for nm, s in pairs(species) do
-      s:clearMomentFlags(species)
-      s:calcCouplingMoments(0.0, 1, species)
+--      if s.charge ~= 0 then
+	 s:clearMomentFlags(species)
+	 s:calcCouplingMoments(0.0, 1, species)
+--      end
    end
    -- Initialize field (sometimes requires species to have been initialized).
    field:createSolver(species, funcField)
@@ -352,7 +360,7 @@ local function buildApplication(self, tbl)
       -- and adjust tStart accordingly.
       tStart = readRestart()
    else
-      writeData(0.0) -- Write initial conditions.
+      writeData(0.0) -- Write inital conditions.
    end
 
    -- Determine whether we need two steps in forwardEuler.

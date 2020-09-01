@@ -121,6 +121,7 @@ calcVoronovReactRateCellAv(fh, funcNm, cdim, basisFun, pMax) := block([],
     coef_e : doExpand1(coefIz,bC),
     coefAv : innerProd(varsC,1.0,1.0,coef_e)/innerProd(varsC,1.0,1.0,1.0),
 
+    declareWriteCExprsC(m0NeutAv, m0Av),
     declareWriteCExprsC(vtSq0, vtSqAv),
     declareWriteCExprsC(T0, vtSqAv*m_/elemCharge),
 
@@ -133,7 +134,7 @@ calcVoronovReactRateCellAv(fh, funcNm, cdim, basisFun, pMax) := block([],
     writeCExprsCs(coefIz, coefIz_c),
     printf(fh, " ~%"),
     
-    printf(fh, "  if (U > 3.0/2.0) { ~%"), /* Add limit to dt here */
+    printf(fh, "  if (U >= 3.0/2.0 || m0NeutAv <= 0) { ~%"),
     printf(fh, "    coefIz[0] = 0.0;~%"),
     printf(fh, "  }~%"),
 
