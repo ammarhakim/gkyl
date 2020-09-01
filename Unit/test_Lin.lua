@@ -9,6 +9,7 @@
 local ffi  = require "ffi"
 local Unit = require "Unit"
 local Lin = require "Lib.Linalg"
+local complex = require "sci.complex"
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
@@ -256,6 +257,30 @@ function test_10()
    end   
 end
 
+function test_11()
+   local m = Lin.ComplexMat(2, 2)
+
+   for i = 1, m:numRows() do
+      for j = 1, m:numCols() do
+	 m[i][j] = 1.0*i + j*2.0i
+      end
+   end
+
+   for i = 1, m:numRows() do
+      for j = 1, m:numCols() do
+	 m[i][j] = m[i][j]*m[i][j]
+      end
+   end
+
+   for i = 1, m:numRows() do
+      for j = 1, m:numCols() do
+	 assert_equal(i^2-4*j^2, m[i][j].re, "Complex number")
+	 assert_equal(4*i*j, m[i][j].im, "Complex number")
+      end
+   end
+   
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -267,6 +292,7 @@ test_7()
 test_8()
 test_9()
 test_10()
+test_11()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
