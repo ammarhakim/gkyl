@@ -6,13 +6,13 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local argparse = require "Lib.argparse"
 local DataStruct = require "DataStruct"
-local lfs = require "Lib.lfs"
-local ffi = require "ffi"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
+local argparse = require "Lib.argparse"
 local complex = require "sci.complex"
+local ffi = require "ffi"
+local lfs = require "Lib.lfs"
 
 -- Create CLI parser to handle commands and options
 local parser = argparse()
@@ -32,6 +32,16 @@ Documentation on Gkeyll RTD website.
 
 -- parse command line parameters
 local args = parser:parse(GKYL_COMMANDS)
+
+-- clear out contents of matrix
+local function matrixClear(m, val)
+   for i = 1, m:numRows() do
+      for j = 1, m:numCols() do
+	 m[i][j] = val
+      end
+   end
+end
+
 
 -- Base species type
 local Species = Proto()
@@ -84,13 +94,13 @@ end
 -- block
 function Euler:calcMomDispMat(k, E, B)
    local D = Lin.ComplexMat(5, 5)
+   matrixClear(D, 0.0)
 
    local gamma = self.gasGamma
    local n, p = self.density, self.pressure
    local u = self.velocity
    local m, qbym = self.mass, self.charge/self.mass
 
-   -- auto-generated
    D[1][1] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i 
    D[1][2] = k[1]*n + 0*1i 
    D[1][3] = k[2]*n + 0*1i 
@@ -125,41 +135,21 @@ end
 -- equations)
 function Euler:calcFieldDispMat(k, E, B)
    local D = Lin.ComplexMat(5, 6)
+   matrixClear(D, 0.0)
 
    local u = self.velocity
    local qbym = self.charge/self.mass
 
-   D[1][1] = 0*1i 
-   D[1][2] = 0*1i 
-   D[1][3] = 0*1i 
-   D[1][4] = 0*1i 
-   D[1][5] = 0*1i 
-   D[1][6] = 0*1i 
    D[2][1] = qbym*1i 
-   D[2][2] = 0*1i 
-   D[2][3] = 0*1i 
-   D[2][4] = 0*1i 
    D[2][5] = -u[3]*qbym*1i 
    D[2][6] = u[2]*qbym*1i 
-   D[3][1] = 0*1i 
    D[3][2] = qbym*1i 
-   D[3][3] = 0*1i 
    D[3][4] = u[3]*qbym*1i 
-   D[3][5] = 0*1i 
    D[3][6] = -u[1]*qbym*1i 
-   D[4][1] = 0*1i 
-   D[4][2] = 0*1i 
    D[4][3] = qbym*1i 
    D[4][4] = -u[2]*qbym*1i 
-   D[4][5] = u[1]*qbym*1i 
-   D[4][6] = 0*1i 
-   D[5][1] = 0*1i 
-   D[5][2] = 0*1i 
-   D[5][3] = 0*1i 
-   D[5][4] = 0*1i 
-   D[5][5] = 0*1i 
-   D[5][6] = 0*1i    
-   
+   D[4][5] = u[1]*qbym*1i
+ 
    return D
 end
 
@@ -203,13 +193,10 @@ end
 
 -- Calculate contribution to field part of dispersion matrix
 function Maxwell:calcFieldDispMat(k)
-
    local D = Lin.ComplexMat(6, 6)
+   matrixClear(D, 0.0)
+   
    local c = self.epsilon0*self.mu0
-
-   for i = 1, 6 do
-      for j = 1, 6 do D[i][j] = 0.0 end
-   end
 
    D[1][5] = k[3]*c^2
    D[1][6] = -k[2]*c^2
@@ -227,9 +214,10 @@ end
 
 -- Calculate contribution to moment part of dispersion matrix
 function Maxwell:calcMomDispMat(k, q, n, u)
-
    -- 3 components of current, contributing to n and u[1..3]
-   local D = Lin.ComplexMat(3, 4) 
+   local D = Lin.ComplexMat(3, 4)
+   matrixClear(D, 0.0)
+   
    local epsilon0 = self.epsilon0
 
    D[1][1] = -(u[1]*q)/epsilon0*1i 
@@ -270,6 +258,7 @@ local field = Maxwell {
    magneticField = {0.0, 0.0, 1.0},
 }
 
+
 -- construct list of species
 local speciesList = {elc, ion}
 local kvec = {0.5, 0.0, 0.0} -- wavevector
@@ -279,16 +268,10 @@ local numEqn = field:numEquations()
 for _, s in ipairs(speciesList) do
    numEqn = numEqn + s:numEquations()
 end
-print(numEqn)
 
 -- Allocate space for dispersion matrix
 local dispMat = Lin.ComplexMat(numEqn, numEqn)
-
-for i = 1, dispMat:numRows() do
-   for j = 1, dispMat:numCols() do
-      dispMat[i][j] = 0.0 
-   end
-end
+matrixClear(dispMat, 0.0)
 
 -- compute starting index into each species sub-matrices in dispMat
 local speciesIdx = {}
@@ -309,18 +292,17 @@ for sidx, s in ipairs(speciesList) do
    local i0, j0 = speciesIdx[sidx]-1, speciesIdx[sidx]-1
    for i = 1, s:numEquations() do
       for j = 1, s:numEquations() do
-	 dispMat[i+i0][j+j0] = Dmom[i][j]
+	 dispMat[i+i0][j+j0] = dispMat[i+i0][j+j0] + Dmom[i][j]
       end
    end
 
    -- get species' contribution to field part of dispersion matrix
    local Dfld = s:calcFieldDispMat(kvec, field.electricFld, field.magneticFld)
-   i0, j0 = speciesIdx[sidx]-1, fieldIdx-1
+   local i0, j0 = speciesIdx[sidx]-1, fieldIdx-1
    for i = 1, s:numEquations() do
       for j = 1, field:numEquations() do
-	 dispMat[i+i0][j+j0] = Dfld[i][j]
+	 dispMat[i+i0][j+j0] = dispMat[i+i0][j+j0] + Dfld[i][j]
       end
    end
    
 end
-
