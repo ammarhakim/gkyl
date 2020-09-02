@@ -199,7 +199,6 @@ function Bc:_advance(tCurr, inFld, outFld)
             break -- Hack, this need just a conf space loop
          end
       end
-      
       self._projectEvaluateFn = ProjectOnBasis {
          onGrid = self._boundaryGrid,
          basis = self._basis,
@@ -208,7 +207,10 @@ function Bc:_advance(tCurr, inFld, outFld)
    end
    
    if self._evaluateFn and (self._isFirst or self._evolveFn) then
-      self._projectEvaluateFn:advance(tCurr, {}, {self._ghostFld})
+      for idx in self._ghostRangeDecomp:rowMajorIter(tId) do
+         self._projectEvaluateFn:advance(tCurr, {}, {self._ghostFld})
+         break
+      end
    end
 
    local tId = self._grid:subGridSharedId() -- Local thread ID.
