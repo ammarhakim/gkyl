@@ -1,8 +1,10 @@
 #!/bin/bash
 
 # Edit the paths and options in the following command to suit your system
-module reset;  module list 
+module reset
 module load foss
+#module load gcc/8.2.0
+#module load openmpi/gcc/64/4.0.4
 
 # Build directory
 OUT=build
