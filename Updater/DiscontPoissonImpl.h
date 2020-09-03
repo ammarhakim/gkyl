@@ -24,7 +24,6 @@
 class DiscontPoisson;
 
 extern "C" {
-/** Structure to store BC data. */
   // C wrappers for interfacing with DiscontPoisson class
     void* new_DiscontPoisson(const char* outPrefix, int ncell[3], int ndim, int nbasis,
       int nnonzero, int polyOrder, bool writeMatrix);
