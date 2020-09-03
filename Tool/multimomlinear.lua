@@ -125,6 +125,11 @@ local function createEigenSolver(D)
    return ffi.C.new_EigenEigen(D:numRows(), Dre:data(), Dim:data())
 end
 
+-- Delete eigen solver
+local function deleteEigenSolver(slvr)
+   ffi.C.delete_EigenEigen(slvr)
+end
+
 -- Computes eigensystem from created solver
 local function computeEigenSystem(N, solver)
    local ere, eim = Lin.Vec(N), Lin.Vec(N)
@@ -181,9 +186,8 @@ local function solveDispEM(kvec, speciesList, field, eigValues)
       matrixSubIncr(dispMat, Dmom, fieldIdx, speciesIdx[sidx])
    end
 
-   -- create eigenvalue solver
+   -- create eigenvalue solver and solve system
    local eigSolver = createEigenSolver(dispMat)
-   -- compute eigensystem
    local evr, evi = computeEigenSystem(dispMat:numRows(), eigSolver)
 
    -- append to output field
@@ -193,6 +197,8 @@ local function solveDispEM(kvec, speciesList, field, eigValues)
    end
    eigValues:appendData(count, kw )
    count = count+1
+
+   deleteEigenSolver(eigSolver)
 end
 
 -- open input file and read contents: this loads 'speciesList' and
@@ -221,8 +227,10 @@ end
 -- kx, ky, kz, w1r, w1i, w2r, w2i, ...
 local eigValues = DataStruct.DynVector { numComponents = 3 + 2*numEqn }
 
--- solve dispersion relation
-solveDispEM(kvector, speciesList, field, eigValues)
+-- solve dispersion relation for each kvector
+for _, kv in ipairs(kvectors) do
+   solveDispEM(kv, speciesList, field, eigValues)
+end
 
 -- write out eigenvaules
 eigValues:write("frequencies.bp", 0.0, 0)
