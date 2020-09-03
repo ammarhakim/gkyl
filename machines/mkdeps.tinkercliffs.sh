@@ -1,5 +1,9 @@
-module reset;  module list 
+#!/bin/bash
+
+module reset
 module load foss
+#module load gcc/8.2.0
+#module load openmpi/gcc/64/4.0.4
 
 # if we are in machines directory, go up a directory
 if [ `dirname "$0"` == "." ] 
