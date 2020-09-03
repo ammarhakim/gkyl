@@ -81,8 +81,6 @@ kvector = {1.0, 0.0, 0.0}
    return
 end
 
-
-
 -- FFI call prototypes 
 ffi.cdef [[
   typedef struct EigenEigen EigenEigen;

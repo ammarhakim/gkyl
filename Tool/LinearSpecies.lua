@@ -26,11 +26,13 @@ function Species:init(tbl)
    self.mass, self.charge = tbl.mass, tbl.charge
 end
 
--- Isothermal species type
-local IsoThermal = Proto(Species)
+--------------------------------------------------------------------------------
+-- Isothermal species type -----------------------------------------------------
+--------------------------------------------------------------------------------
+local Isothermal = Proto(Species)
 
-function IsoThermal:init(tbl)
-   IsoThermal.super.init(self, tbl)
+function Isothermal:init(tbl)
+   Isothermal.super.init(self, tbl)
    
    self.density = tbl.density -- number density
    
@@ -41,11 +43,68 @@ function IsoThermal:init(tbl)
 end
 
 -- Number of equations in system
-function IsoThermal:numEquations()
+function Isothermal:numEquations()
    return 4
 end
 
--- Euler (5M) species type
+-- Construct matrix with contributions to moment-equation part of
+-- dispersion matrix: this is a numEquations X numEquations sized
+-- block
+function Isothermal:calcMomDispMat(k, E, B)
+
+   local D = Lin.ComplexMat(4, 4)
+   matrixClear(D, 0.0)
+
+   local n, T = self.density, self.temperature
+   local u = self.velocity
+   local m, qbym = self.mass, self.charge/self.mass   
+   
+   D[1][1] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i 
+   D[1][2] = k[1]*n + 0*1i 
+   D[1][3] = k[2]*n + 0*1i 
+   D[1][4] = k[3]*n + 0*1i 
+   D[2][1] = (k[1]*T)/(m*n) + 0*1i 
+   D[2][2] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i 
+   D[2][3] = 0 + B[3]*qbym*1i 
+   D[2][4] = 0 + -B[2]*qbym*1i 
+   D[3][1] = (k[2]*T)/(m*n) + 0*1i 
+   D[3][2] = 0 + -B[3]*qbym*1i 
+   D[3][3] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i 
+   D[3][4] = 0 + B[1]*qbym*1i 
+   D[4][1] = (k[3]*T)/(m*n) + 0*1i 
+   D[4][2] = 0 + B[2]*qbym*1i 
+   D[4][3] = 0 + -B[1]*qbym*1i 
+   D[4][4] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i
+
+   return D
+end
+
+-- Construct matrix with contributions to field part of dispersion
+-- matrix: this is a numEquations X 6 sized block (there are 6 maxwell
+-- equations)
+function Isothermal:calcFieldDispMat(k, E, B)
+   local D = Lin.ComplexMat(4, 6)
+   matrixClear(D, 0.0)
+
+   local u = self.velocity
+   local qbym = self.charge/self.mass
+
+   D[2][1] = qbym*1i 
+   D[2][5] = -u[3]*qbym*1i 
+   D[2][6] = u[2]*qbym*1i 
+   D[3][2] = qbym*1i 
+   D[3][4] = u[3]*qbym*1i 
+   D[3][6] = -u[1]*qbym*1i 
+   D[4][3] = qbym*1i 
+   D[4][4] = -u[2]*qbym*1i 
+   D[4][5] = u[1]*qbym*1i
+ 
+   return D
+end
+
+--------------------------------------------------------------------------------
+-- Euler (5M) species type -----------------------------------------------------
+--------------------------------------------------------------------------------
 local Euler = Proto(Species)
 
 function Euler:init(tbl)
@@ -129,7 +188,9 @@ function Euler:calcFieldDispMat(k, E, B)
    return D
 end
 
--- Ten-moment species type
+--------------------------------------------------------------------------------
+-- Ten-moment species type -----------------------------------------------------
+--------------------------------------------------------------------------------
 local TenMoment = Proto(Species)
 
 function TenMoment:init(tbl)
@@ -149,7 +210,9 @@ function TenMoment:numEquations()
    return 10
 end
 
--- Field equations
+--------------------------------------------------------------------------------
+-- Maxwell equations -----------------------------------------------------------
+--------------------------------------------------------------------------------
 local Maxwell = Proto()
 
 function Maxwell:init(tbl)
@@ -215,7 +278,7 @@ function Maxwell:calcMomDispMat(k, q, n, u)
 end
 
 return {
-   IsoThermal = IsoThermal,
+   Isothermal = Isothermal,
    Euler = Euler,
    TenMoment = TenMoment,
    Maxwell = Maxwell
