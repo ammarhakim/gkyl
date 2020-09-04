@@ -201,13 +201,168 @@ function TenMoment:init(tbl)
    assert(#tbl.velocity == 3, "Must provide all 3 components of velocity")
    self.velocity = tbl.velocity -- velocity vector
 
-   assert(#tbl.pressure == 6, "All six components of pressure (Pxx, Pxy, Pxz, Pyy, Pyz, Pzz) must be provided")
-   self.pressureTensor = tbl.pressueTensor -- pressure
+   assert(#tbl.pressureTensor == 6, "All six components of pressure (Pxx, Pxy, Pxz, Pyy, Pyz, Pzz) must be provided")
+   self.pressureTensor = tbl.pressureTensor -- pressure
 end
 
 -- Number of equations in system
 function TenMoment:numEquations()
    return 10
+end
+
+-- Construct matrix with contributions to moment-equation part of
+-- dispersion matrix: this is a numEquations X numEquations sized
+-- block
+function TenMoment:calcMomDispMat(k, E, B)
+
+   local D = Lin.ComplexMat(10, 10)
+   matrixClear(D, 0.0)
+
+   local n, p = self.density, self.pressureTensor
+   local u = self.velocity
+   local m, qbym = self.mass, self.charge/self.mass
+
+   D[1][1] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i 
+   D[1][2] = k[1]*n + 0*1i 
+   D[1][3] = k[2]*n + 0*1i 
+   D[1][4] = k[3]*n + 0*1i 
+   D[1][5] = 0 + 0*1i 
+   D[1][6] = 0 + 0*1i 
+   D[1][7] = 0 + 0*1i 
+   D[1][8] = 0 + 0*1i 
+   D[1][9] = 0 + 0*1i 
+   D[1][10] = 0 + 0*1i 
+   D[2][1] = 0 + 0*1i 
+   D[2][2] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i 
+   D[2][3] = 0 + B[3]*qbym*1i 
+   D[2][4] = 0 + -B[2]*qbym*1i 
+   D[2][5] = k[1]/(m*n) + 0*1i 
+   D[2][6] = k[2]/(m*n) + 0*1i 
+   D[2][7] = k[3]/(m*n) + 0*1i 
+   D[2][8] = 0 + 0*1i 
+   D[2][9] = 0 + 0*1i 
+   D[2][10] = 0 + 0*1i 
+   D[3][1] = 0 + 0*1i 
+   D[3][2] = 0 + -B[3]*qbym*1i 
+   D[3][3] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i 
+   D[3][4] = 0 + B[1]*qbym*1i 
+   D[3][5] = 0 + 0*1i 
+   D[3][6] = k[1]/(m*n) + 0*1i 
+   D[3][7] = 0 + 0*1i 
+   D[3][8] = k[2]/(m*n) + 0*1i 
+   D[3][9] = k[3]/(m*n) + 0*1i 
+   D[3][10] = 0 + 0*1i 
+   D[4][1] = 0 + 0*1i 
+   D[4][2] = 0 + B[2]*qbym*1i 
+   D[4][3] = 0 + -B[1]*qbym*1i 
+   D[4][4] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i 
+   D[4][5] = 0 + 0*1i 
+   D[4][6] = 0 + 0*1i 
+   D[4][7] = k[1]/(m*n) + 0*1i 
+   D[4][8] = 0 + 0*1i 
+   D[4][9] = k[2]/(m*n) + 0*1i 
+   D[4][10] = k[3]/(m*n) + 0*1i 
+   D[5][1] = 0 + 0*1i 
+   D[5][2] = 2*k[3]*p[3]+2*k[2]*p[2]+3*k[1]*p[1] + 0*1i 
+   D[5][3] = p[1]*k[2] + 0*1i 
+   D[5][4] = p[1]*k[3] + 0*1i 
+   D[5][5] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i 
+   D[5][6] = 0 + 2*B[3]*qbym*1i 
+   D[5][7] = 0 + -2*B[2]*qbym*1i 
+   D[5][8] = 0 + 0*1i 
+   D[5][9] = 0 + 0*1i 
+   D[5][10] = 0 + 0*1i 
+   D[6][1] = 0 + 0*1i 
+   D[6][2] = k[3]*p[5]+k[2]*p[4]+2*k[1]*p[2] + 0*1i 
+   D[6][3] = k[3]*p[3]+2*k[2]*p[2]+k[1]*p[1] + 0*1i 
+   D[6][4] = p[2]*k[3] + 0*1i 
+   D[6][5] = 0 + -B[3]*qbym*1i 
+   D[6][6] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i 
+   D[6][7] = 0 + B[1]*qbym*1i 
+   D[6][8] = 0 + B[3]*qbym*1i 
+   D[6][9] = 0 + -B[2]*qbym*1i 
+   D[6][10] = 0 + 0*1i 
+   D[7][1] = 0 + 0*1i 
+   D[7][2] = k[3]*p[6]+k[2]*p[5]+2*k[1]*p[3] + 0*1i 
+   D[7][3] = k[2]*p[3] + 0*1i 
+   D[7][4] = 2*k[3]*p[3]+k[2]*p[2]+k[1]*p[1] + 0*1i 
+   D[7][5] = 0 + B[2]*qbym*1i 
+   D[7][6] = 0 + -B[1]*qbym*1i 
+   D[7][7] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i 
+   D[7][8] = 0 + 0*1i 
+   D[7][9] = 0 + B[3]*qbym*1i 
+   D[7][10] = 0 + -B[2]*qbym*1i 
+   D[8][1] = 0 + 0*1i 
+   D[8][2] = k[1]*p[4] + 0*1i 
+   D[8][3] = 2*k[3]*p[5]+3*k[2]*p[4]+2*k[1]*p[2] + 0*1i 
+   D[8][4] = k[3]*p[4] + 0*1i 
+   D[8][5] = 0 + 0*1i 
+   D[8][6] = 0 + -2*B[3]*qbym*1i 
+   D[8][7] = 0 + 0*1i 
+   D[8][8] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i 
+   D[8][9] = 0 + 2*B[1]*qbym*1i 
+   D[8][10] = 0 + 0*1i 
+   D[9][1] = 0 + 0*1i 
+   D[9][2] = k[1]*p[5] + 0*1i 
+   D[9][3] = k[3]*p[6]+2*k[2]*p[5]+k[1]*p[3] + 0*1i 
+   D[9][4] = 2*k[3]*p[5]+k[2]*p[4]+k[1]*p[2] + 0*1i 
+   D[9][5] = 0 + 0*1i 
+   D[9][6] = 0 + B[2]*qbym*1i 
+   D[9][7] = 0 + -B[3]*qbym*1i 
+   D[9][8] = 0 + -B[1]*qbym*1i 
+   D[9][9] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i 
+   D[9][10] = 0 + B[1]*qbym*1i 
+   D[10][1] = 0 + 0*1i 
+   D[10][2] = k[1]*p[6] + 0*1i 
+   D[10][3] = k[2]*p[6] + 0*1i 
+   D[10][4] = 3*k[3]*p[6]+2*k[2]*p[5]+2*k[1]*p[3] + 0*1i 
+   D[10][5] = 0 + 0*1i 
+   D[10][6] = 0 + 0*1i 
+   D[10][7] = 0 + 2*B[2]*qbym*1i 
+   D[10][8] = 0 + 0*1i 
+   D[10][9] = 0 + -2*B[1]*qbym*1i 
+   D[10][10] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i    
+   
+   return D
+end
+
+-- Construct matrix with contributions to field part of dispersion
+-- matrix: this is a numEquations X 6 sized block (there are 6 maxwell
+-- equations)
+function TenMoment:calcFieldDispMat(k, E, B)
+   local D = Lin.ComplexMat(10, 6)
+   matrixClear(D, 0.0)
+
+   local n, p = self.density, self.pressureTensor
+   local u = self.velocity
+   local m, qbym = self.mass, self.charge/self.mass
+
+   D[2][1] = qbym*1i 
+   D[2][5] = -u[3]*qbym*1i 
+   D[2][6] = u[2]*qbym*1i 
+   D[3][2] = qbym*1i 
+   D[3][4] = u[3]*qbym*1i 
+   D[3][6] = -u[1]*qbym*1i 
+   D[4][3] = qbym*1i 
+   D[4][4] = -u[2]*qbym*1i 
+   D[4][5] = u[1]*qbym*1i 
+   D[5][5] = -2*p[3]*qbym*1i 
+   D[5][6] = 2*p[2]*qbym*1i 
+   D[6][4] = p[3]*qbym*1i 
+   D[6][5] = -p[5]*qbym*1i 
+   D[6][6] = p[4]*qbym-p[1]*qbym*1i 
+   D[7][4] = -p[2]*qbym*1i 
+   D[7][5] = p[1]*qbym-p[6]*qbym*1i 
+   D[7][6] = p[5]*qbym*1i 
+   D[8][4] = 2*p[5]*qbym*1i 
+   D[8][6] = -2*p[2]*qbym*1i 
+   D[9][4] = p[6]*qbym-p[4]*qbym*1i 
+   D[9][5] = p[2]*qbym*1i 
+   D[9][6] = -p[3]*qbym*1i 
+   D[10][4] = -2*p[5]*qbym*1i 
+   D[10][5] = 2*p[3]*qbym*1i    
+
+   return D
 end
 
 --------------------------------------------------------------------------------
