@@ -165,11 +165,11 @@ local function solveDispEM(kvec, speciesList, field, eigValues)
    -- loop over each species, inserting contribution to dispersion matrix
    for sidx, s in ipairs(speciesList) do
       -- species' contribution to moment equations
-      local Dmom = s:calcMomDispMat(kvec, field.electricFld, field.magneticFld)
+      local Dmom = s:calcMomDispMat(kvec, field)
       matrixSubIncr(dispMat, Dmom, speciesIdx[sidx], speciesIdx[sidx])
 
       -- species' contribution to field equations
-      local Dfld = s:calcFieldDispMat(kvec, field.electricFld, field.magneticFld)
+      local Dfld = s:calcFieldDispMat(kvec, field)
       matrixSubIncr(dispMat, Dfld, speciesIdx[sidx], fieldIdx)
    end
 

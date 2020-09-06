@@ -50,14 +50,15 @@ end
 -- Construct matrix with contributions to moment-equation part of
 -- dispersion matrix: this is a numEquations X numEquations sized
 -- block
-function Isothermal:calcMomDispMat(k, E, B)
+function Isothermal:calcMomDispMat(k, field)
 
-   local D = Lin.ComplexMat(4, 4)
+   local D = Lin.ComplexMat(self:numEquations(), self:numEquations())
    matrixClear(D, 0.0)
 
    local n, T = self.density, self.temperature
    local u = self.velocity
-   local m, qbym = self.mass, self.charge/self.mass   
+   local m, qbym = self.mass, self.charge/self.mass
+   local E, B = field.electricField, field.magneticField
    
    D[1][1] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i 
    D[1][2] = k[1]*n + 0*1i 
@@ -82,12 +83,13 @@ end
 -- Construct matrix with contributions to field part of dispersion
 -- matrix: this is a numEquations X 6 sized block (there are 6 maxwell
 -- equations)
-function Isothermal:calcFieldDispMat(k, E, B)
-   local D = Lin.ComplexMat(4, 6)
+function Isothermal:calcFieldDispMat(k, field)
+   local D = Lin.ComplexMat(self:numEquations(), field:numEquations())
    matrixClear(D, 0.0)
 
    local u = self.velocity
    local qbym = self.charge/self.mass
+   local E, B = field.electricField, field.magneticField
 
    D[2][1] = qbym*1i 
    D[2][5] = -u[3]*qbym*1i 
@@ -127,14 +129,15 @@ end
 -- Construct matrix with contributions to moment-equation part of
 -- dispersion matrix: this is a numEquations X numEquations sized
 -- block
-function Euler:calcMomDispMat(k, E, B)
-   local D = Lin.ComplexMat(5, 5)
+function Euler:calcMomDispMat(k, field)
+   local D = Lin.ComplexMat(self:numEquations(), self:numEquations())
    matrixClear(D, 0.0)
 
    local gamma = self.gasGamma
    local n, p = self.density, self.pressure
    local u = self.velocity
    local m, qbym = self.mass, self.charge/self.mass
+   local E, B = field.electricField, field.magneticField
 
    D[1][1] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i 
    D[1][2] = k[1]*n + 0*1i 
@@ -168,12 +171,13 @@ end
 -- Construct matrix with contributions to field part of dispersion
 -- matrix: this is a numEquations X 6 sized block (there are 6 maxwell
 -- equations)
-function Euler:calcFieldDispMat(k, E, B)
-   local D = Lin.ComplexMat(5, 6)
+function Euler:calcFieldDispMat(k, field)
+   local D = Lin.ComplexMat(self:numEquations(), field:numEquations())
    matrixClear(D, 0.0)
 
    local u = self.velocity
    local qbym = self.charge/self.mass
+   local E, B = field.electricField, field.magneticField
 
    D[2][1] = qbym*1i 
    D[2][5] = -u[3]*qbym*1i 
@@ -213,14 +217,15 @@ end
 -- Construct matrix with contributions to moment-equation part of
 -- dispersion matrix: this is a numEquations X numEquations sized
 -- block
-function TenMoment:calcMomDispMat(k, E, B)
+function TenMoment:calcMomDispMat(k, field)
 
-   local D = Lin.ComplexMat(10, 10)
+   local D = Lin.ComplexMat(self:numEquations(), self:numEquations())
    matrixClear(D, 0.0)
 
    local n, p = self.density, self.pressureTensor
    local u = self.velocity
    local m, qbym = self.mass, self.charge/self.mass
+   local E, B = field.electricField, field.magneticField
 
    D[1][1] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i 
    D[1][2] = k[1]*n + 0*1i 
@@ -329,13 +334,14 @@ end
 -- Construct matrix with contributions to field part of dispersion
 -- matrix: this is a numEquations X 6 sized block (there are 6 maxwell
 -- equations)
-function TenMoment:calcFieldDispMat(k, E, B)
-   local D = Lin.ComplexMat(10, 6)
+function TenMoment:calcFieldDispMat(k, field)
+   local D = Lin.ComplexMat(self:numEquations(), field:numEquations())
    matrixClear(D, 0.0)
 
    local n, p = self.density, self.pressureTensor
    local u = self.velocity
    local m, qbym = self.mass, self.charge/self.mass
+   local E, B = field.electricField, field.magneticField
 
    D[2][1] = qbym*1i 
    D[2][5] = -u[3]*qbym*1i 
@@ -374,10 +380,10 @@ function Maxwell:init(tbl)
    self.epsilon0, self.mu0 = tbl.epsilon0, tbl.mu0
 
    assert(#tbl.electricField == 3, "Must all 3 components of equilibrium electric field")
-   self.electricFld = tbl.electricField
+   self.electricField = tbl.electricField
 
    assert(#tbl.magneticField == 3, "Must all 3 components of equilibrium magnetic field")
-   self.magneticFld = tbl.magneticField
+   self.magneticField = tbl.magneticField
 end
 
 -- Number of equations in system
@@ -432,9 +438,44 @@ function Maxwell:calcMomDispMat(k, q, n, u)
    return D
 end
 
+--------------------------------------------------------------------------------
+-- Poisson equations -----------------------------------------------------------
+--------------------------------------------------------------------------------
+local Poisson = Proto()
+
+function Poisson:init(tbl)
+   self.epsilon0 = tbl.epsilon0
+
+   assert(#tbl.electricField == 3, "Must all 3 components of equilibrium electric field")
+   self.electricField = tbl.electricField
+
+   assert(#tbl.magneticField == 3, "Must all 3 components of equilibrium magnetic field")
+   self.magneticField = tbl.magneticField
+end
+
+-- Number of equations in system
+function Poisson:numEquations()
+   -- Poisson equation does not contribute any time-dependent terms to
+   -- the D matrix
+   return 0 
+end
+
+-- Calculate contribution to field part of dispersion matrix
+function Poisson:calcFieldDispMat(k)
+   local D = Lin.ComplexMat(0, 0)
+   return D
+end
+
+-- Calculate contribution to moment part of dispersion matrix
+function Poisson:calcMomDispMat(k, q, n, u)
+   local D = Lin.ComplexMat(0, 0)
+   return D
+end
+
 return {
    Isothermal = Isothermal,
    Euler = Euler,
    TenMoment = TenMoment,
-   Maxwell = Maxwell
+   Maxwell = Maxwell,
+   Poisson = Poisson,
 }

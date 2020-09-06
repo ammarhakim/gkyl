@@ -15,6 +15,9 @@ local assert_equal = Unit.assert_equal
 local stats = Unit.stats
 
 function test_1()
+   local v0 = Lin.Vec(0)
+   assert_equal(0, #v0, "Checking zero length vector")
+   
    local v = Lin.Vec(3)
    assert_equal(3, #v, "Checking length of vector")
    -- set values
@@ -88,6 +91,10 @@ function test_2()
 end
 
 function test_3()
+   local m0 = Lin.Mat(0, 0)
+   assert_equal(0, m0:numRows(), "Zero row matrix")
+   assert_equal(0, m0:numCols(), "Zero col matrix")
+   
    local m = Lin.Mat(3, 4)
    assert_equal(3, m:numRows(), "Num rows")
    assert_equal(4, m:numCols(), "Num cols")
