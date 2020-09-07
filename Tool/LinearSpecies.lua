@@ -9,6 +9,7 @@
 local Proto = require "Lib.Proto"
 local complex = require "sci.complex"
 local Lin = require "Lib.Linalg"
+local xsys = require "xsys"
 
 -- clear out contents of matrix
 local function matrixClear(m, val)
@@ -128,6 +129,9 @@ local Species = Proto()
 
 function Species:init(tbl)
    self.mass, self.charge = tbl.mass, tbl.charge
+   self.ignoreBackgroundField = xsys.pickBool(tbl.ignoreBackgroundField, false)
+
+   self.zeroField = {0.0, 0.0, 0.0} -- when ignoreBackgroundField = true
 end
 
 -- Contribution for ES terms are the same for every species
@@ -149,6 +153,15 @@ function Species:calcElectroStaticDispMat(kvec, sp, field)
    end
 
    return D
+end
+
+-- get background field, accounting for the case in which species
+-- should ignore the background
+function Species:getFields(field)
+   if self.ignoreBackgroundField then
+      return self.zeroField, self.zeroField
+   end
+   return field.electricField, field.magneticField
 end
 
 --------------------------------------------------------------------------------
@@ -183,7 +196,7 @@ function Isothermal:calcMomDispMat(k, field)
    local n, T = self.density, self.temperature
    local u = self.velocity
    local m, qbym = self.mass, self.charge/self.mass
-   local E, B = field.electricField, field.magneticField
+   local E, B = self:getFields(field)
    
    D[1][1] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i 
    D[1][2] = k[1]*n + 0*1i 
@@ -217,7 +230,7 @@ function Isothermal:calcFieldDispMat(k, field)
 
    local u = self.velocity
    local qbym = self.charge/self.mass
-   local E, B = field.electricField, field.magneticField
+   local E, B = self:getFields(field)
 
    D[2][1] = qbym*1i 
    D[2][5] = -u[3]*qbym*1i 
@@ -265,7 +278,7 @@ function Euler:calcMomDispMat(k, field)
    local n, p = self.density, self.pressure
    local u = self.velocity
    local m, qbym = self.mass, self.charge/self.mass
-   local E, B = field.electricField, field.magneticField
+   local E, B = self:getFields(field)
 
    D[1][1] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i 
    D[1][2] = k[1]*n + 0*1i 
@@ -308,7 +321,7 @@ function Euler:calcFieldDispMat(k, field)
 
    local u = self.velocity
    local qbym = self.charge/self.mass
-   local E, B = field.electricField, field.magneticField
+   local E, B = self:getFields(field)
 
    D[2][1] = qbym*1i 
    D[2][5] = -u[3]*qbym*1i 
@@ -356,7 +369,7 @@ function TenMoment:calcMomDispMat(k, field)
    local n, p = self.density, self.pressureTensor
    local u = self.velocity
    local m, qbym = self.mass, self.charge/self.mass
-   local E, B = field.electricField, field.magneticField
+   local E, B = self:getFields(field)
 
    D[1][1] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + 0*1i 
    D[1][2] = k[1]*n + 0*1i 
@@ -475,7 +488,7 @@ function TenMoment:calcFieldDispMat(k, field)
    local n, p = self.density, self.pressureTensor
    local u = self.velocity
    local m, qbym = self.mass, self.charge/self.mass
-   local E, B = field.electricField, field.magneticField
+   local E, B = self:getFields(field)
 
    D[2][1] = qbym*1i 
    D[2][5] = -u[3]*qbym*1i 
