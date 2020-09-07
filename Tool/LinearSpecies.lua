@@ -19,11 +19,136 @@ local function matrixClear(m, val)
    end
 end
 
--- Base species type
+
+--------------------------------------------------------------------------------
+-- Maxwell equations -----------------------------------------------------------
+--------------------------------------------------------------------------------
+local Maxwell = Proto()
+
+function Maxwell:init(tbl)
+   self.epsilon0, self.mu0 = tbl.epsilon0, tbl.mu0
+
+   assert(#tbl.electricField == 3, "Must all 3 components of equilibrium electric field")
+   self.electricField = tbl.electricField
+
+   assert(#tbl.magneticField == 3, "Must all 3 components of equilibrium magnetic field")
+   self.magneticField = tbl.magneticField
+end
+
+-- Number of equations in system
+function Maxwell:numEquations()
+   return 6
+end
+
+-- Calculate contribution to field part of dispersion matrix
+function Maxwell:calcFieldDispMat(k)
+   local D = Lin.ComplexMat(6, 6)
+   matrixClear(D, 0.0)
+   
+   local c = 1/math.sqrt(self.epsilon0*self.mu0)
+
+   D[1][5] = k[3]*c^2
+   D[1][6] = -k[2]*c^2
+   D[2][4] = -k[3]*c^2 
+   D[2][6] = k[1]*c^2 
+   D[3][4] = k[2]*c^2 
+   D[3][5] = -k[1]*c^2
+   D[4][2] = -k[3]
+   D[4][3] = k[2]
+   D[5][1] = k[3]
+   D[5][3] = -k[1] 
+   D[6][1] = -k[2]
+   D[6][2] = k[1]
+
+   return D
+end
+
+-- Calculate contribution to moment part of dispersion matrix
+function Maxwell:calcMomDispMat(k, q, n, u)
+   -- 3 components of current, contributing to n and u[1..3]
+   local D = Lin.ComplexMat(3, 4)
+   matrixClear(D, 0.0)
+   
+   local epsilon0 = self.epsilon0
+
+   D[1][1] = -(u[1]*q)/epsilon0*1i 
+   D[1][2] = -(n*q)/epsilon0*1i 
+   D[1][3] = 0*1i 
+   D[1][4] = 0*1i 
+   D[2][1] = -(u[2]*q)/epsilon0*1i 
+   D[2][2] = 0*1i 
+   D[2][3] = -(n*q)/epsilon0*1i 
+   D[2][4] = 0*1i 
+   D[3][1] = -(u[3]*q)/epsilon0*1i 
+   D[3][2] = 0*1i 
+   D[3][3] = 0*1i 
+   D[3][4] = -(n*q)/epsilon0*1i
+
+   return D
+end
+
+--------------------------------------------------------------------------------
+-- Poisson equations -----------------------------------------------------------
+--------------------------------------------------------------------------------
+local Poisson = Proto()
+
+function Poisson:init(tbl)
+   self.epsilon0, self.mu0 = tbl.epsilon0, tbl.mu0
+
+   assert(#tbl.electricField == 3, "Must all 3 components of equilibrium electric field")
+   self.electricField = tbl.electricField
+
+   assert(#tbl.magneticField == 3, "Must all 3 components of equilibrium magnetic field")
+   self.magneticField = tbl.magneticField
+end
+
+-- Number of equations in system
+function Poisson:numEquations()
+   -- Poisson equation does not contribute any time-dependent terms to
+   -- the D matrix
+   return 0 
+end
+
+-- Calculate contribution to field part of dispersion matrix
+function Poisson:calcFieldDispMat(k)
+   local D = Lin.ComplexMat(0, 0)
+   return D
+end
+
+-- Calculate contribution to moment part of dispersion matrix
+function Poisson:calcMomDispMat(k, q, n, u)
+   local D = Lin.ComplexMat(0, 0)
+   return D
+end
+
+--------------------------------------------------------------------------------
+-- Base species type -----------------------------------------------------------
+--------------------------------------------------------------------------------
 local Species = Proto()
 
 function Species:init(tbl)
    self.mass, self.charge = tbl.mass, tbl.charge
+end
+
+-- Contribution for ES terms are the same for every species
+function Species:calcElectroStaticDispMat(kvec, sp, field)
+   local epsilon0 = field.epsilon0
+   local q, qp = self.charge, sp.charge -- q, qprime
+   local np = sp.density
+   local mass = self.mass
+
+   local D = Lin.ComplexMat(self:numEquations(), 1)
+   matrixClear(D, 0.0)
+
+   local k2 = kvec[1]^2 + kvec[2]^2 + kvec[3]^2 + 1e-8
+   
+   -- ES contribution is to momentum equation by other species's
+   -- density
+   for i = 1, 3 do
+      D[i+1][1] = kvec[i]/(k2*epsilon0)*q*qp*np/mass
+   end
+
+   return D
 end
 
 --------------------------------------------------------------------------------
@@ -86,6 +211,9 @@ end
 function Isothermal:calcFieldDispMat(k, field)
    local D = Lin.ComplexMat(self:numEquations(), field:numEquations())
    matrixClear(D, 0.0)
+
+   -- no contributions for electrostatic fields
+   if field:isa(Poisson) then return D end
 
    local u = self.velocity
    local qbym = self.charge/self.mass
@@ -174,6 +302,9 @@ end
 function Euler:calcFieldDispMat(k, field)
    local D = Lin.ComplexMat(self:numEquations(), field:numEquations())
    matrixClear(D, 0.0)
+
+   -- no contributions for electrostatic fields
+   if field:isa(Poisson) then return D end
 
    local u = self.velocity
    local qbym = self.charge/self.mass
@@ -338,6 +469,9 @@ function TenMoment:calcFieldDispMat(k, field)
    local D = Lin.ComplexMat(self:numEquations(), field:numEquations())
    matrixClear(D, 0.0)
 
+   -- no contributions for electrostatic fields
+   if field:isa(Poisson) then return D end
+
    local n, p = self.density, self.pressureTensor
    local u = self.velocity
    local m, qbym = self.mass, self.charge/self.mass
@@ -371,111 +505,10 @@ function TenMoment:calcFieldDispMat(k, field)
    return D
 end
 
---------------------------------------------------------------------------------
--- Maxwell equations -----------------------------------------------------------
---------------------------------------------------------------------------------
-local Maxwell = Proto()
-
-function Maxwell:init(tbl)
-   self.epsilon0, self.mu0 = tbl.epsilon0, tbl.mu0
-
-   assert(#tbl.electricField == 3, "Must all 3 components of equilibrium electric field")
-   self.electricField = tbl.electricField
-
-   assert(#tbl.magneticField == 3, "Must all 3 components of equilibrium magnetic field")
-   self.magneticField = tbl.magneticField
-end
-
--- Number of equations in system
-function Maxwell:numEquations()
-   return 6
-end
-
--- Calculate contribution to field part of dispersion matrix
-function Maxwell:calcFieldDispMat(k)
-   local D = Lin.ComplexMat(6, 6)
-   matrixClear(D, 0.0)
-   
-   local c = 1/math.sqrt(self.epsilon0*self.mu0)
-
-   D[1][5] = k[3]*c^2
-   D[1][6] = -k[2]*c^2
-   D[2][4] = -k[3]*c^2 
-   D[2][6] = k[1]*c^2 
-   D[3][4] = k[2]*c^2 
-   D[3][5] = -k[1]*c^2
-   D[4][2] = -k[3]
-   D[4][3] = k[2]
-   D[5][1] = k[3]
-   D[5][3] = -k[1] 
-   D[6][1] = -k[2]
-   D[6][2] = k[1]
-
-   return D
-end
-
--- Calculate contribution to moment part of dispersion matrix
-function Maxwell:calcMomDispMat(k, q, n, u)
-   -- 3 components of current, contributing to n and u[1..3]
-   local D = Lin.ComplexMat(3, 4)
-   matrixClear(D, 0.0)
-   
-   local epsilon0 = self.epsilon0
-
-   D[1][1] = -(u[1]*q)/epsilon0*1i 
-   D[1][2] = -(n*q)/epsilon0*1i 
-   D[1][3] = 0*1i 
-   D[1][4] = 0*1i 
-   D[2][1] = -(u[2]*q)/epsilon0*1i 
-   D[2][2] = 0*1i 
-   D[2][3] = -(n*q)/epsilon0*1i 
-   D[2][4] = 0*1i 
-   D[3][1] = -(u[3]*q)/epsilon0*1i 
-   D[3][2] = 0*1i 
-   D[3][3] = 0*1i 
-   D[3][4] = -(n*q)/epsilon0*1i
-
-   return D
-end
-
---------------------------------------------------------------------------------
--- Poisson equations -----------------------------------------------------------
---------------------------------------------------------------------------------
-local Poisson = Proto()
-
-function Poisson:init(tbl)
-   self.epsilon0 = tbl.epsilon0
-
-   assert(#tbl.electricField == 3, "Must all 3 components of equilibrium electric field")
-   self.electricField = tbl.electricField
-
-   assert(#tbl.magneticField == 3, "Must all 3 components of equilibrium magnetic field")
-   self.magneticField = tbl.magneticField
-end
-
--- Number of equations in system
-function Poisson:numEquations()
-   -- Poisson equation does not contribute any time-dependent terms to
-   -- the D matrix
-   return 0 
-end
-
--- Calculate contribution to field part of dispersion matrix
-function Poisson:calcFieldDispMat(k)
-   local D = Lin.ComplexMat(0, 0)
-   return D
-end
-
--- Calculate contribution to moment part of dispersion matrix
-function Poisson:calcMomDispMat(k, q, n, u)
-   local D = Lin.ComplexMat(0, 0)
-   return D
-end
-
 return {
+   Maxwell = Maxwell,
+   Poisson = Poisson,   
    Isothermal = Isothermal,
    Euler = Euler,
    TenMoment = TenMoment,
-   Maxwell = Maxwell,
-   Poisson = Poisson,
 }

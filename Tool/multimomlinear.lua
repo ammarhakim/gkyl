@@ -9,6 +9,7 @@
 local DataStruct = require "DataStruct"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
+local Species = require "Tool.LinearSpecies"
 local argparse = require "Lib.argparse"
 local complex = require "sci.complex"
 local ffi = require "ffi"
@@ -171,6 +172,15 @@ local function solveDispEM(kvec, speciesList, field, eigValues)
       -- species' contribution to field equations
       local Dfld = s:calcFieldDispMat(kvec, field)
       matrixSubIncr(dispMat, Dfld, speciesIdx[sidx], fieldIdx)
+
+      if field:isa(Species.Poisson) then
+	 -- for ES problems we need an additional contribution to this
+	 -- species from every other species, including itself
+	 for spidx, sp in ipairs(speciesList) do
+	    local Des = s:calcElectroStaticDispMat(kvec, sp, field)
+	    matrixSubIncr(dispMat, Des, speciesIdx[sidx], speciesIdx[spidx])
+	 end
+      end
    end
 
    -- get field contribution to field equation
