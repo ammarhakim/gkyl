@@ -14,6 +14,8 @@ local argparse = require "Lib.argparse"
 local complex = require "sci.complex"
 local ffi = require "ffi"
 local lfs = require "Lib.lfs"
+local xsys = require "xsys"
+local Time = require "Lib.Time"
 
 -- Create CLI parser to handle commands and options
 local parser = argparse()
@@ -57,7 +59,7 @@ elc = Species.Euler {
 -- Ions
 ion = Species.Euler {
    mass = 25.0, -- mass
-   charge = -.0, -- charge
+   charge = 1.0, -- charge
    density = 1.0, -- number density
    velocity = {0.0, 0.0, 0.0}, -- velocity vector
    pressure = 0.1, -- pressure
@@ -74,8 +76,11 @@ field = Species.Maxwell {
 -- list of species to include in dispersion relation
 speciesList = { elc, ion }
 
--- Wave vector
-kvector = {1.0, 0.0, 0.0}
+-- Wave vectors for which to compute dispersion 
+kvectors = { {1.0, 0.0, 0.0}, {2.0, 0.0, 0.0} }
+
+-- flag to indicate if eigenvectors should be computed
+calcEigenVectors = false
 ]]
    )
    
@@ -86,7 +91,7 @@ end
 ffi.cdef [[
   typedef struct EigenEigen EigenEigen;
 
-  EigenEigen* new_EigenEigen(int N, double *mre, double *mim);
+  EigenEigen* new_EigenEigen(int N, double *mre, double *mim, int calcVec);
   void delete_EigenEigen(EigenEigen *ee);
   void compute_EigenEigen(EigenEigen* ee, double *ere, double *eim);
 ]]
@@ -111,7 +116,7 @@ local function matrixSubIncr(dest, src, row, col)
 end
 
 -- Creates eigenvalue solver from given complex matrix
-local function createEigenSolver(D)
+local function createEigenSolver(D, calcVec)
    local N = D:numRows() -- matrix is square
    local Dre, Dim = Lin.Mat(N,N), Lin.Mat(N,N)
 
@@ -121,7 +126,8 @@ local function createEigenSolver(D)
       end
    end
 
-   return ffi.C.new_EigenEigen(D:numRows(), Dre:data(), Dim:data())
+   return ffi.C.new_EigenEigen(
+      D:numRows(), Dre:data(), Dim:data(), calcVec == true and 1 or 0)
 end
 
 -- Delete eigen solver
@@ -195,7 +201,7 @@ local function solveDispEM(kvec, speciesList, field, eigValues)
    end
 
    -- create eigenvalue solver and solve system
-   local eigSolver = createEigenSolver(dispMat)
+   local eigSolver = createEigenSolver(dispMat, calcEigVec)
    local evr, evi = computeEigenSystem(dispMat:numRows(), eigSolver)
 
    -- append to output field
@@ -222,6 +228,23 @@ end
 assert(speciesList, "Input file must have a 'speciesList' table!")
 assert(field, "Input file must have a 'field'!")
 
+-- check if we should compute eigenvectors
+local calcEigVec = xsys.pickBool(calcEigenVectors, false)
+
+-- print some info about run
+io.write(string.format("Number of species %d:", #speciesList))
+for _, s in ipairs(speciesList) do
+   io.write(string.format(" %s", s:type()))
+end
+io.write("\n")
+io.write(string.format("Field type is %s\n", field:type()))
+io.write(string.format("Computing dispersion relation for %d wave-vectors\n", #kvectors))
+if calcEigVec then
+   io.write("Eigenvectors will be computed\n")
+else
+   io.write("Eigenvectors will NOT be computed\n")
+end
+
 -- modify the output prefix to ensure files are written to the proper
 -- place
 GKYL_OUT_PREFIX = lfs.currentdir() .. "/" .. args.input:sub(1, args.input:len()-4)
@@ -235,6 +258,8 @@ end
 -- kx, ky, kz, w1r, w1i, w2r, w2i, ...
 local eigValues = DataStruct.DynVector { numComponents = 3 + 2*numEqn }
 
+local tmStart = Time.clock()
+
 -- solve dispersion relation for each kvector
 for _, kv in ipairs(kvectors) do
    solveDispEM(kv, speciesList, field, eigValues)
@@ -243,5 +268,6 @@ end
 -- write out eigenvaules
 eigValues:write("frequencies.bp", 0.0, 0)
 
+io.write(string.format("Completed in %g seconds\n", Time.clock()-tmStart))
 
 

@@ -11,9 +11,8 @@
 #include <iostream>
 
 namespace Gkyl {
-  EigenEigen::EigenEigen(int N, double *mre, double *mim)
-    : D(N,N) {
-    
+  EigenEigen::EigenEigen(int N, double *mre, double *mim, int cv)
+    : D(N,N), calcVec(cv == 0 ? false : true) {
     for (unsigned r=0; r<N; ++r)
       for (unsigned c=0; c<N; ++c) {
         D(r,c).real(mre[r*N+c]);
@@ -25,9 +24,15 @@ namespace Gkyl {
     Eigen::ComplexEigenSolver<Eigen::MatrixXcd> solver;
 
     // compute the eigensystem
-    solver.compute(D, false);
+    solver.compute(D, calcVec);
     Eigen::ComplexEigenSolver<Eigen::MatrixXcd>::EigenvalueType ev
       = solver.eigenvalues();
+
+    Eigen::ComputationInfo info = solver.info();
+    if (info != Eigen::ComputationInfo::Success) {
+      // should throw an error
+      std::cout << "Eigenvalue computation failed!" << std::endl;
+    }
 
     // copy into output arrays (ev is a column vector of eigenvalues)
     for (unsigned i=0; i<ev.rows(); ++i) {
@@ -38,8 +43,8 @@ namespace Gkyl {
   
 }
 
-extern "C" void* new_EigenEigen(int N, double *mre, double *mim) {
-  Gkyl::EigenEigen *ee = new Gkyl::EigenEigen(N, mre, mim);
+extern "C" void* new_EigenEigen(int N, double *mre, double *mim, int calcVec) {
+  Gkyl::EigenEigen *ee = new Gkyl::EigenEigen(N, mre, mim, calcVec);
   return reinterpret_cast<void*>(ee);
 }
 

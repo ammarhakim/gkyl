@@ -41,7 +41,7 @@ fh : openw("~/max-out/maxwell-lin-mom-D.lua")$
 [nrow, ncol] : matrix_size(momSrcJac)$
 for i : 1 thru nrow do (
   for j : 1 thru ncol do (
-    printf(fh, " D[~a][~a] = ~a*1i ~%", i, j, momSrcJac[i,j])
+    printf(fh, " D[~a][~a] = (~a)*1i ~%", i, j, momSrcJac[i,j])
     )
   )$
 

@@ -19,7 +19,7 @@ namespace Gkyl { class EigenEigen; }
 
 extern "C" {
     // C wrappers for interfacing with EigenEigen class
-    void* new_EigenEigen(int N, double *mre, double *mim);
+    void* new_EigenEigen(int N, double *mre, double *mim, int calcVec);
     void delete_EigenEigen(Gkyl::EigenEigen* ee);
     void compute_EigenEigen(Gkyl::EigenEigen* ee, double *ere, double *eim);
 }
@@ -36,8 +36,9 @@ namespace Gkyl {
        * @param N Rows and columns of square matrix
        * @param mre Real part of matrix, arranged in row-major order
        * @param mim Imaginary part of matrix, arranged in row-major order
+       * @param calcVec Set to 1 to also compute eigenvalues.
        */
-      EigenEigen(int N, double *mre, double *mim);
+      EigenEigen(int N, double *mre, double *mim, int calcVec);
 
       /**
        * Computes eigenvalues of system.
@@ -50,5 +51,7 @@ namespace Gkyl {
     private:
       /** Dispersion matrix (complex double type) */
       Eigen::MatrixXcd D;
+      /** Flag to indicate if eigenvectors should be computed */
+      bool calcVec;
   };
 }

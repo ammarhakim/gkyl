@@ -67,7 +67,7 @@ kA : subst(piSubList, subst(pSubList, sum(k[i]*ATen[i], i, 1, 3) ))$
 [nrow, ncol] : matrix_size(ATen[1])$
 for i : 1 thru nrow do (
   for j : 1 thru ncol do (
-    printf(fh, " D[~a][~a] = ~a + ~a*1i ~%", i, j, kA[i][j], srcJac[i][j] )
+    printf(fh, " D[~a][~a] = ~a + (~a)*1i ~%", i, j, kA[i][j], srcJac[i][j] )
     )
   )$
 
@@ -80,7 +80,7 @@ emSrcJac_o : subst(piSubList, subst(pSubList, emSrcJac))$
 [nrow, ncol] : matrix_size(emSrcJac)$
 for i : 1 thru nrow do (
   for j : 1 thru ncol do (
-    if emSrcJac[i,j] # 0 then printf(fh, " D[~a][~a] = ~a*1i ~%", i, j, emSrcJac_o[i,j] )
+    if emSrcJac[i,j] # 0 then printf(fh, " D[~a][~a] = (~a)*1i ~%", i, j, emSrcJac_o[i,j] )
     )
   )$
 
