@@ -139,7 +139,7 @@ function Species:init(tbl)
 end
 
 -- Contribution for ES terms are the same for every species
-function Species:calcElectroStaticDispMat(kvec, sp, field)
+function Species:calcElectrostaticDispMat(kvec, sp, field)
    local epsilon0 = field.epsilon0
    local q, qp = self.charge, sp.charge -- q, qprime
    local np = sp.density

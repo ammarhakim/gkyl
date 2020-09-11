@@ -183,7 +183,7 @@ local function solveDispEM(kvec, speciesList, field, eigValues)
 	 -- for ES problems we need an additional contribution to this
 	 -- species from every other species, including itself
 	 for spidx, sp in ipairs(speciesList) do
-	    local Des = s:calcElectroStaticDispMat(kvec, sp, field)
+	    local Des = s:calcElectrostaticDispMat(kvec, sp, field)
 	    matrixSubIncr(dispMat, Des, speciesIdx[sidx], speciesIdx[spidx])
 	 end
       end
