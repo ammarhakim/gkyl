@@ -20,6 +20,15 @@ local function matrixClear(m, val)
    end
 end
 
+-- Increment src matrix in sub-region by dest matrix starting from
+-- row,col location
+local function matrixSubIncr(dest, src, row, col)
+   for r = 1, src:numRows() do
+      for c = 1, src:numCols() do
+	 dest[r+row-1][c+col-1] = dest[r+row-1][c+col-1] + src[r][c]
+      end
+   end
+end
 
 --------------------------------------------------------------------------------
 -- Maxwell equations -----------------------------------------------------------
@@ -263,10 +272,13 @@ function Euler:type() return "Euler" end
 function Euler:init(tbl)
    Euler.super.init(self, tbl)
 
+   assert(tbl.density, "Euler::init: Must specify backrground density!")
    self.density = tbl.density -- number density
    
    assert(#tbl.velocity == 3, "Must provide all 3 components of velocity")
    self.velocity = tbl.velocity -- velocity vector
+
+   assert(tbl.pressure, "Euler::init: Must specify backrground pressure!")
    self.pressure = tbl.pressure  -- pressure
    
    self.gasGamma = tbl.gasGamma and tbl.gasGamma or 5.0/3.0
@@ -363,11 +375,57 @@ function TenMoment:init(tbl)
 
    assert(#tbl.pressureTensor == 6, "All six components of pressure (Pxx, Pxy, Pxz, Pyy, Pyz, Pzz) must be provided")
    self.pressureTensor = tbl.pressureTensor -- pressure
+
+   -- flag to indicate if we are to use a closure
+   self.useClosure = xsys.pickBool(tbl.useClosure, false)
+
+   -- default value is based on Ng, Hakim et. al. PoP 2019
+   self.chi = self.chi and self.chi or math.sqrt(4/(9*math.pi))
 end
 
 -- Number of equations in system
 function TenMoment:numEquations()
    return 10
+end
+
+-- Contribution to closure to dispersion matrix
+function TenMoment:closureContrib(k, field)
+   local D = Lin.ComplexMat(6, 6)
+   matrixClear(D, 0.0)
+
+   local n, p = self.density, self.pressureTensor
+   local m = self.mass
+   local pr = (p[1]+p[4]+p[6])/3 -- scalar pressure
+   local vth = math.sqrt(pr/(n*m)) -- thermal speed
+   local kabs = math.sqrt(k[1]^2+k[2]^2+k[3]^2)
+   local vtzk = vth*self.chi/(kabs + 1e-6)
+   
+   D[1][1] = -vtzk*(k[3]^2+k[2]^2+3*k[1]^2)*1i 
+   D[1][2] = -vtzk*(2*k[1]*k[2])*1i 
+   D[1][3] = -vtzk*(2*k[1]*k[3])*1i 
+   D[2][1] = -vtzk*(k[1]*k[2])*1i 
+   D[2][2] = -vtzk*(k[3]^2+2*k[2]^2+2*k[1]^2)*1i 
+   D[2][3] = -vtzk*(k[2]*k[3])*1i 
+   D[2][4] = -vtzk*(k[1]*k[2])*1i 
+   D[2][5] = -vtzk*(k[1]*k[3])*1i 
+   D[3][1] = -vtzk*(k[1]*k[3])*1i 
+   D[3][2] = -vtzk*(k[2]*k[3])*1i 
+   D[3][3] = -vtzk*(2*k[3]^2+k[2]^2+2*k[1]^2)*1i 
+   D[3][5] = -vtzk*(k[1]*k[2])*1i 
+   D[3][6] = -vtzk*(k[1]*k[3])*1i 
+   D[4][2] = -vtzk*(2*k[1]*k[2])*1i 
+   D[4][4] = -vtzk*(k[3]^2+3*k[2]^2+k[1]^2)*1i 
+   D[4][5] = -vtzk*(2*k[2]*k[3])*1i 
+   D[5][2] = -vtzk*(k[1]*k[3])*1i 
+   D[5][3] = -vtzk*(k[1]*k[2])*1i 
+   D[5][4] = -vtzk*(k[2]*k[3])*1i 
+   D[5][5] = -vtzk*(2*k[3]^2+2*k[2]^2+k[1]^2)*1i 
+   D[5][6] = -vtzk*(k[2]*k[3])*1i 
+   D[6][3] = -vtzk*(2*k[1]*k[3])*1i 
+   D[6][5] = -vtzk*(2*k[2]*k[3])*1i 
+   D[6][6] = -vtzk*(3*k[3]^2+k[2]^2+k[1]^2)*1i
+
+   return D
 end
 
 -- Construct matrix with contributions to moment-equation part of
@@ -482,7 +540,12 @@ function TenMoment:calcMomDispMat(k, field)
    D[10][7] = 0 + (2*B[2]*qbym)*1i 
    D[10][8] = 0 + (0)*1i 
    D[10][9] = 0 + (-2*B[1]*qbym)*1i 
-   D[10][10] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + (0)*1i    
+   D[10][10] = k[3]*u[3]+k[2]*u[2]+k[1]*u[1] + (0)*1i
+
+   if self.useClosure then
+      local Dclosure = self:closureContrib(k, field)
+      matrixSubIncr(D, Dclosure, 5, 5) -- Pxx is the 5th equation
+   end
    
    return D
 end

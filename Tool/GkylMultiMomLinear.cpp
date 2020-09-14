@@ -31,7 +31,7 @@ namespace Gkyl {
     Eigen::ComputationInfo info = solver.info();
     if (info != Eigen::ComputationInfo::Success) {
       // should throw an error
-      std::cout << "Eigenvalue computation failed!" << std::endl;
+      std::cout << "!!!***!!! Eigenvalue computation failed!" << std::endl;
     }
 
     // copy into output arrays (ev is a column vector of eigenvalues)
