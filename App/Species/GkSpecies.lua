@@ -1422,7 +1422,9 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
       vdir=self.cdim+1 
    end
 
-   if bcType == SP_BC_ABSORB then
+   if type(bcType) == "function" then
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcCopyFunc }, "pointwise", bcType))
+   elseif bcType == SP_BC_ABSORB then
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcAbsorbFunc }, "pointwise"))
    elseif bcType == SP_BC_OPEN then
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcOpenFunc }, "pointwise"))

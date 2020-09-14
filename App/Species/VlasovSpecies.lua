@@ -6,15 +6,16 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Proto          = require "Lib.Proto"
-local KineticSpecies = require "App.Species.KineticSpecies"
-local Mpi            = require "Comm.Mpi"
-local VlasovEq       = require "Eq.Vlasov"
-local Updater        = require "Updater"
 local DataStruct     = require "DataStruct"
-local Time           = require "Lib.Time"
-local ffi            = require "ffi"
+local Grid           = require "Grid"
+local KineticSpecies = require "App.Species.KineticSpecies"
 local Lin            = require "Lib.Linalg"
+local Mpi            = require "Comm.Mpi"
+local Proto          = require "Lib.Proto"
+local Time           = require "Lib.Time"
+local Updater        = require "Updater"
+local VlasovEq       = require "Eq.Vlasov"
+local ffi            = require "ffi"
 local xsys           = require "xsys"
 
 local VlasovSpecies = Proto(KineticSpecies)
@@ -27,7 +28,6 @@ local SP_BC_COPY    = 5
 -- AHH: This was 2 but seems that is unstable. So using plain copy.
 local SP_BC_OPEN      = SP_BC_COPY
 local SP_BC_ZEROFLUX  = 6
-local SP_BC_RESERVOIR = 7
 
 VlasovSpecies.bcAbsorb    = SP_BC_ABSORB     -- Absorb all particles.
 VlasovSpecies.bcOpen      = SP_BC_OPEN       -- Zero gradient.
@@ -35,7 +35,6 @@ VlasovSpecies.bcCopy      = SP_BC_COPY       -- Copy stuff.
 VlasovSpecies.bcReflect   = SP_BC_REFLECT    -- Specular reflection.
 VlasovSpecies.bcExternal  = SP_BC_EXTERN     -- Load external BC file.
 VlasovSpecies.bcZeroFlux  = SP_BC_ZEROFLUX
-VlasovSpecies.bcReservoir = SP_BC_RESERVOIR
 
 function VlasovSpecies:alloc(nRkDup)
    -- Allocate distribution function.
@@ -71,8 +70,16 @@ function VlasovSpecies:fullInit(appTbl)
    end
 
    local externalBC = tbl.externalBC
+   local numExternalBCFiles = tbl.numExternalBCFiles
    if externalBC then
-      self.wallFunction = require(externalBC)
+      self.wallFunction = {}
+      if numExternalBCFiles then
+         for i = 1, numExternalBCFiles do
+            self.wallFunction[i] = require(externalBC .. "_" .. tostring(i))
+         end
+      else
+         self.wallFunction = require(externalBC)
+      end
    end
 end
 
@@ -577,7 +584,6 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       local globalEdgeFlux = ffi.new("double[3]")
       Mpi.Allreduce(localEdgeFlux, globalEdgeFlux, 1,
 		    Mpi.DOUBLE, Mpi.MAX, self.grid:commSet().comm)
-
       local densFactor = globalEdgeFlux[0]/self.sourceSteadyStateLength
       fRhsOut:accumulate(densFactor, self.fSource)
    elseif self.fSource and self.evolveSources then
@@ -1057,11 +1063,19 @@ end
 
 function VlasovSpecies:bcExternFunc(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "flip".
+   local tbl = self.tbl
+   local numFiles = tbl.numExternalBCFiles
    local velIdx = {}
    for d = 1, self.vdim do
       velIdx[d] = idxIn[self.cdim + d]
    end
-   self.wallFunction[1](velIdx, fIn, fOut)
+   if numFiles then
+      if velIdx[1] ~= 0 and velIdx[1] ~= self.grid:numCells(2) + 1 then
+         self.wallFunction[velIdx[1]](velIdx, fIn, fOut)
+      end
+   else
+      self.wallFunction(velIdx, fIn, fOut)
+   end
 end
 
 function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
@@ -1074,32 +1088,32 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
 
    local vdir = dir + self.cdim
 
-   if bcType == SP_BC_ABSORB then
+   if type(bcType) == "function" then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcAbsorbFunc }, "pointwise", false))
+				      { bcCopyFunc }, "pointwise", bcType))
+   elseif bcType == SP_BC_ABSORB then
+      table.insert(self.boundaryConditions,
+		   self:makeBcUpdater(dir, vdir, edge,
+				      { bcAbsorbFunc }, "pointwise"))
    elseif bcType == SP_BC_OPEN then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcCopyFunc }, "pointwise", false))
+				      { bcCopyFunc }, "pointwise"))
    elseif bcType == SP_BC_COPY then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcCopyFunc }, "pointwise", false))
+				      { bcCopyFunc }, "pointwise"))
    elseif bcType == SP_BC_REFLECT then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcReflectFunc }, "flip", false))
+				      { bcReflectFunc }, "flip"))
    elseif bcType == SP_BC_EXTERN then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcExternFunc }, "flip", false))
+				      { bcExternFunc }, "flip"))
    elseif bcType == SP_BC_ZEROFLUX then
       table.insert(self.zeroFluxDirections, dir)
-   elseif bcType == SP_BC_RESERVOIR then
-      table.insert(self.boundaryConditions,
-		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcCopyFunc }, "pointwise", true))
    else
       assert(false, "VlasovSpecies: Unsupported BC type!")
    end

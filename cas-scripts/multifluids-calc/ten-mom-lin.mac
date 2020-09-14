@@ -1,0 +1,107 @@
+/** Linearization of 10M equations */
+
+load(itensor)$
+
+/** Compute Jacobian matrix J[i,j] : diff(F[i],Q[j]) */
+calcJac(F, Q) := genmatrix(lambda([i,j], diff(F[i],Q[j])), length(F), length(Q))$
+
+/** Declare P and Q as symmetric tensors */
+decsym(P,2,0,[sym(all)],[]);
+decsym(Q,3,0,[sym(all)],[]);
+
+/**** Ten-moment equations in primitive form */
+dn(dir) := u[dir]*D(n) + n*D(u[dir])$ /* Density */
+du(dir, i) := u[dir]*D(u[i]) + 1/(m*n)*D(canform(P([dir,i],[])))$ /* Velocity */
+dP(dir, i,j) := canform(P([i,j],[])*D(u[dir]) + D(u[i])*P([j,dir],[]) + D(u[j])*P([i,dir],[]) + u[dir]*D(P([i,j],[])))$
+
+/* Equations in directon dir */
+eqList(dir) := map(canform,
+  [dn(dir),
+  du(dir,1), du(dir,2), du(dir,3),
+  dP(dir,1,1), dP(dir,1,2), dP(dir,1,3), dP(dir,2,2), dP(dir,2,3), dP(dir,3,3)]
+  )$
+
+/* Differentials */
+diffList : map(D, [n, 
+  u[1], u[2], u[3], 
+  P([1,1],[]), P([1,2],[]), P([1,3],[]), P([2,2],[]), P([2,3],[]), P([3,3],[])])$
+
+/* Construct the A[i] matrices for use in dispersion matrix */
+ATen[1] : coefmatrix(eqList(1), diffList)$
+ATen[2] : coefmatrix(eqList(2), diffList)$
+ATen[3] : coefmatrix(eqList(3), diffList)$
+
+/* Source for momentum equations  */
+momSrc(i) := qbym*(E[i] + sum(sum(levi_civita([k,m,i])*u[k]*B[m], k, 1, 3), m, 1, 3))$
+
+/** Source terms for pressure equations */
+prSrc(i,j) := qbym*sum(sum(B[m]*levi_civita([k,m,i])*P([j,k],[]), m, 1, 3), k, 1, 3)
+  + qbym*sum(sum(B[m]*levi_civita([k,m,j])*P([i,k],[]), m, 1, 3), k, 1, 3)$
+
+srcList : map(canform, [0, momSrc(1), momSrc(2), momSrc(3),
+  prSrc(1,1), prSrc(1,2), prSrc(1,3), prSrc(2,2), prSrc(2,3), prSrc(3,3)]
+  )$
+
+pSubList : [P([1,1],[])=P[1,1], P([1,2],[])=P[1,2], P([1,3],[])=P[1,3], P([2,2],[])=P[2,2], P([2,3],[])=P[2,3], P([3,3],[])=P[3,3] ]$
+
+/* List of 10M variables */
+varList : [n, u[1], u[2], u[3], P[1,1], P[1,2], P[1,3], P[2,2], P[2,3], P[3,3] ]$
+
+/* Compute source Jacobian */
+srcJac : calcJac(subst(pSubList, srcList), varList)$
+
+/* List of EM variables */
+emVarList : [E[1], E[2], E[3], B[1], B[2], B[3]]$
+
+/* Compute contribution of sources to EM terms */
+emSrcJac : calcJac(subst(pSubList, srcList), emVarList)$
+
+/* Substitution list for independent components of pressure */
+piSubList : [P[1,1]=p[1], P[1,2]=p[2], P[1,3]=p[3], P[2,2]=p[4], P[2,3]=p[5], P[3,3]=p[6]]$
+
+/** Compute the Hammett-Perkin closure (unmagnetized for now) */
+
+/* Gradient of perturbed heat-flux (constants are missing and added on later) */
+dq(j,m) := sum(k[i]*(k[i]*P([j,m],[]) + k[j]*P([m,i],[])+k[m]*P([i,j],[])), i, 1, 3)$
+dqClosure : canform([dq(1,1), dq(1,2), dq(1,3), dq(2,2), dq(2,3), dq(3,3)])$
+Pij : [P([1,1],[]), P([1,2],[]), P([1,3],[]), P([2,2],[]), P([2,3],[]), P([3,3],[])]$
+closureJac : coefmatrix(dqClosure, Pij)$
+
+/* Write contribution to moment part of D to file */
+fh : openw("~/max-out/ten-mom-lin-mom-D.lua")$
+
+kA : subst(piSubList, subst(pSubList, sum(k[i]*ATen[i], i, 1, 3) ))$
+
+[nrow, ncol] : matrix_size(ATen[1])$
+for i : 1 thru nrow do (
+  for j : 1 thru ncol do (
+    printf(fh, " D[~a][~a] = ~a + (~a)*1i ~%", i, j, kA[i][j], srcJac[i][j] )
+    )
+  )$
+
+close(fh)$
+
+/* Write contribution to field part of D to file */
+fh : openw("~/max-out/ten-mom-lin-fld-D.lua")$
+
+emSrcJac_o : subst(piSubList, subst(pSubList, emSrcJac))$
+[nrow, ncol] : matrix_size(emSrcJac)$
+for i : 1 thru nrow do (
+  for j : 1 thru ncol do (
+    if emSrcJac[i,j] # 0 then printf(fh, " D[~a][~a] = (~a)*1i ~%", i, j, emSrcJac_o[i,j] )
+    )
+  )$
+
+close(fh)$
+
+/* Write contribution of closure to D to file */
+fh : openw("~/max-out/ten-mom-lin-closure-D.lua")$
+
+[nrow, ncol] : matrix_size(closureJac)$
+for i : 1 thru nrow do (
+  for j : 1 thru ncol do (
+    if closureJac[i,j] # 0 then printf(fh, " D[~a][~a] = -vtzk*(~a)*1i ~%", i, j, closureJac[i,j] )
+    )
+  )$
+
+close(fh)$

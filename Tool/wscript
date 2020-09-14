@@ -12,10 +12,11 @@ def appendToList(target, val):
         target.append(val)
 
 def build(bld):
-    bld.shlib(source = 'GkExactEulerRpImpl.cpp', includes = '.',
+    bld.shlib(source = 'GkExactEulerRpImpl.cpp GkylMultiMomLinear.cpp',
+              includes = '.',
               name = 'tool',
               vnum = '1.0',
-              target = 'tool', features='cxx')
+              target = 'tool', use='EIGEN', features='cxx')
 
     # compile stand-alone executable tools
     

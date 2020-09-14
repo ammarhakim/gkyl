@@ -53,6 +53,8 @@ printPrototype(deco, ci, vi, bStr, pi) := block([si],
     printf(fh, "~adouble VlasovPhiBextSurf~ax~av~a_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double qDm, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr); ~%", deco, ci, vi, bStr, cvars[si], pi)
   ),
 
+  printf(fh, "~adouble VlasovVolForce~ax~av~aP~a(const double *w, const double *dxv, const double *E, const double *f, double *out); ~%", deco, ci, vi, bStr, pi),
+
   printf(fh, "~%")
 )$
 
@@ -96,41 +98,8 @@ printf(fh, "~% ~%")$
 printf(fh, "} ~%")$
 printf(fh, "#endif ~%")$
 close(fh)$
+/* ............ Finished writing out the C header file ............ */
 
 
-/* ............ Write out the Lua Cdef file ............ */
-fh : openw("~/max-out/_VlasovCdef.lua")$
-printf(fh, "-- Gkyl ------------------------------------------------------------------------~%")$
-printf(fh, "--~%")$
-printf(fh, "-- Lua wrapper for various C functions used in the Vlasov solver~%")$
-printf(fh, "--~%")$
-printf(fh, "--    _______     ___~%")$
-printf(fh, "-- + 6 @ |||| # P ||| +~%")$
-printf(fh, "--------------------------------------------------------------------------------~%")$
-printf(fh, "~%")$
-printf(fh, "local ffi  = require \"ffi\"~%")$
-printf(fh, "~%")$
-printf(fh, "ffi.cdef [[~%")$
-printf(fh, "~%")$
-
-decorator : ""$
-for bInd : 1 thru length(bName) do (
-  for c : minCdim[bInd] thru maxCdim[bInd] do (
-    for v : max(c,minVdim[bInd]) thru maxVdim[bInd] do (
-
-      maxPolyOrderB : maxPolyOrder[bInd],
-      if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
-      if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
-
-      for polyOrder : 1 thru maxPolyOrderB do (
-        printPrototype(decorator, c, v, bName[bInd], polyOrder)
-      )
-    )
-  )
-);
-
-printf(fh, "~% ~%")$
-printf(fh, "]]~%")$
-close(fh)$
 
 

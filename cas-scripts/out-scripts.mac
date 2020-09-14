@@ -7,6 +7,13 @@ writeBasis(fh, basisIn) := block([basis],
   )
 )$
 
+writeCBasis(basisIn) := block([basis],
+  basis : float(expand(basisIn)),
+  for i : 1 thru length(basis) do (
+    printf(fh, "   ~a = ~a; ~%", b[i-1], basis[i])
+  )
+)$
+
 writeExprs(rhs) := block([expr],
   expr : float(expand(rhs)),
   for i : 1 thru length(expr) do (

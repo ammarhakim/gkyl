@@ -84,8 +84,13 @@ rightState = { 0.125, 0.0, 0.1 }
 end
 
 -- open input file and read contents
-local inpFile = assert(loadfile(args.input))
-inpFile() -- load contents of input file
+if args.input then
+   local inpFile = assert(loadfile(args.input))
+   inpFile() -- load contents of input file
+else
+   print("Must specify an input file to run!")
+   return
+end
 
 -- construct grid and allocate data for fields
 local grid = Grid.RectCart {

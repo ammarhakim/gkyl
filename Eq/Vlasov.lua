@@ -62,17 +62,21 @@ function Vlasov:init(tbl)
    self._surfStreamUpdate = VlasovModDecl.selectSurfStream(
       self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
 
-   -- Check if we have a electric and magnetic field.
+   -- Check if we have an electric and magnetic field.
    local hasElcField    = xsys.pickBool(tbl.hasElectricField, true)
    local hasMagField    = xsys.pickBool(tbl.hasMagneticField, true)
    self._plasmaMagField = xsys.pickBool(tbl.plasmaMagField, true)
 
-   self._hasForceTerm = false -- flag to indicate if we have any force terms at all
-   if hasElcField or self._hasMagField then
-      self._hasForceTerm = true
-   end
+   -- Option to perform only the force volume update (e.g. for stochastic forces).
+   local onlyForceUpdate = xsys.pickBool(tbl.onlyForceUpdate, false)
 
-   self._volForceUpdate, self._surfForceUpdate = nil, nil
+   self._hasForceTerm = false -- flag to indicate if we have any force terms at all
+   if hasElcField or self._hasMagField then self._hasForceTerm = true end
+
+   self._onlyForceUpdate = false -- flag to indicate if updating force separately from streaming
+   if onlyForceUpdate then self._onlyForceUpdate = true end
+
+   self._surfForceUpdate = nil
    if self._hasForceTerm then
       -- Functions to perform force updates.
       if self._plasmaMagField then 
@@ -80,6 +84,11 @@ function Vlasov:init(tbl)
             self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
          self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
             self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      elseif self._onlyForceUpdate then
+	 self._volUpdate = VlasovModDecl.selectVolForce(
+	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+	 self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
+	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       else
          self._volUpdate = VlasovModDecl.selectVolPhi(hasMagField,
             self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
@@ -172,9 +181,11 @@ end
 function Vlasov:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local amax = 0.0
    if dir <= self._cdim then
-      -- Streaming term (note that surface streaming kernels don't return max speed).
-      self._surfStreamUpdate[dir](
-	 wl:data(), wr:data(), dxl:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+      if not self._onlyForceUpdate then
+         -- Streaming term (note that surface streaming kernels don't return max speed).
+         self._surfStreamUpdate[dir](
+           wl:data(), wr:data(), dxl:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+      end
    else
       if self._hasForceTerm then
 	 -- Force term.

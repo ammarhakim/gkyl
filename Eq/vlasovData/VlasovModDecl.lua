@@ -2,6 +2,7 @@
 --
 -- Dispatch into Vlasov C++ kernel functions based on CDIM, VDIM,
 -- basis functions and polyOrder.
+--
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
@@ -19,7 +20,7 @@ local vvars = {"VX","VY","VZ"}
 
 local _M = {}
 
--- Select function to compute volume streaming terms.
+-- Select function to compute only volume streaming terms.
 function _M.selectVolStream(basisNm, CDIM, VDIM, polyOrder)
    local funcType = "double"
    local funcNm = string.format("VlasovVolStream%dx%dv%sP%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
@@ -50,7 +51,7 @@ function _M.selectSurfStream(basisNm, CDIM, VDIM, polyOrder)
    return kernels
 end
 
--- Select function to compute volume EM field acceleration terms.
+-- Select function to compute total volume (streaming + EM field acceleration) term.
 function _M.selectVolElcMag(basisNm, CDIM, VDIM, polyOrder)
    local funcType = "double"
    local funcNm = string.format("VlasovVol%dx%dv%sP%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
@@ -79,6 +80,16 @@ function _M.selectSurfElcMag(basisNm, CDIM, VDIM, polyOrder)
       kernels[d] = tmp
    end
    return kernels
+end
+
+-- Select function to compute only volume EM field acceleration terms.
+function _M.selectVolForce(basisNm, CDIM, VDIM, polyOrder)
+   local funcType = "double"
+   local funcNm   = string.format("VlasovVolForce%dx%dv%sP%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   local funcSign = "(const double *w, const double *dxv, const double *E, const double *f, double *out)"
+
+   ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
+   return ffi.C[funcNm]
 end
 
 -- Select function to compute volume Vlasov-Poisson acceleration terms.

@@ -107,13 +107,18 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
   if numDims > 1 then (
     baCeND : getBasis(sconcat("basis-precalc/basis", basisNm, numDims, "x"),
       polyOrder),
-    dirSubList : if numDims=2 then
-                   [wx=dirs[1], wy=dirs[2]]
-                 else
-                   [wx=dirs[1], wy=dirs[2], wz=dirs[3]],
-    baCeND : subst(dirSubList, subst([x=wx,y=wy,z=wz], baCeND)),  
+    dirSubList : makelist(w[i]=dirs[i], i, 1, numDims),
+    baCeND : subst(dirSubList, subst([x=w[1],y=w[2],z=w[3]], baCeND)),  
     baLoND : etaDir(recDir, -1, 2, baCeND),
     baUpND : etaDir(recDir, 1, 2, baCeND),
+    /* prepare for the case where expansion coefficients at a wall are
+    given; i.e., a basis function set with one less dimension is
+    needed */
+    perpDirs : delete(recDir, dirs),
+    baCeNDw : getBasis(sconcat("basis-precalc/basis", basisNm, numDims-1, "x"),
+      polyOrder),
+    dirSubList : makelist(w[i]=perpDirs[i], i, 1, numDims-1),
+    baCeNDw : subst(dirSubList, subst([x=w[1],y=w[2]], baCeNDw)), 
     
     projSubList : [],
     if is(op(lo)=dg) then (
@@ -122,6 +127,12 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
       projSubList : append (
         projSubList,
         makelist(qLo1D[i]=dimProjLo[i], i, 1, length(baCe1D))
+      ),
+      if length(args(lo)) > 1 then (
+        projSubList : append(
+          projSubList,
+          [val=doExpand(subst(args(args(lo)[2]), ec), baCeNDw)]
+        )
       )
     ),
     if is(op(up)=dg) then (
@@ -130,6 +141,12 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
       projSubList : append (
         projSubList,
         makelist(qUp1D[i]=dimProjUp[i], i, 1, length(baCe1D))
+      ),
+      if length(args(up)) > 1 then (
+        projSubList : append(
+          projSubList,
+          [val=doExpand(subst(args(args(lo)[2]), ec), baCeNDw)]
+        )
       )
     )
   )
