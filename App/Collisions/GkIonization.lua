@@ -198,6 +198,7 @@ end
 function GkIonization:advance(tCurr, fIn, species, fRhsOut)
    local coefIz = species[self.elcNm]:getVoronovReactRate()
    local elcM0 = species[self.elcNm]:fluidMoments()[1]
+   local writeOut = false
 
    -- Check whether particle is electron, neutral or ion species
    if (self.speciesName == self.elcNm) then
@@ -215,7 +216,9 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
       self.confPhaseMult:advance(tCurr, {self.coefM0, self.sumDistF}, {self.ionizSrc})
       -- Uncomment to test without fMaxwellian(Tiz)
       --self.confPhaseMult:advance(tCurr, {self.coefM0, elcDistF}, {self.ionizSrc})      
-      --species[self.elcNm].distIo:write(self.ionizSrc, string.format("electron_ionizSrc_%d.bp",species[self.elcNm].distIoFrame),0,0)
+      if writeOut then
+	 species[self.speciesName].distIo:write(self.ionizSrc, string.format("%s_izSrc_%d.bp",self.speciesName,tCurr*1e10),0,0,true)
+      end
       
       fRhsOut:accumulate(1.0,self.ionizSrc)
    elseif (species[self.speciesName].charge == 0) then
@@ -228,6 +231,10 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
       
       self.confMult:advance(tCurr, {coefIz, self.m0elc}, {self.coefM0})
       self.confPhaseMult:advance(tCurr, {self.coefM0, neutDistF}, {self.ionizSrc})
+      if writeOut then
+	 species[self.speciesName].distIo:write(self.ionizSrc, string.format("%s_izSrc_%d.bp",self.speciesName,tCurr*1e10),0,0,true)
+      end
+
       fRhsOut:accumulate(-1.0,self.ionizSrc)  
    else
       -- ions 
@@ -238,14 +245,18 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
       local neutVtSq = species[self.neutNm]:selfPrimitiveMoments()[2]
       -- Include only z-component of neutU
 
-      --species[self.elcNm].distIo:write(neutU, string.format("%s_neutU_%d.bp",self.speciesName,species[self.elcNm].distIoFrame),0,0)
-      --species[self.elcNm].distIo:write(neutVtSq, string.format("%s_neutVtSq_%d.bp",self.speciesName,species[self.elcNm].distIoFrame),0,0)
       self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
 
       self.confMult:advance(tCurr, {coefIz, self.m0elc}, {self.coefM0})
       species[self.speciesName].calcMaxwell:advance(tCurr, {neutM0, neutU, neutVtSq}, {self.fMaxNeut})
       self.confPhaseMult:advance(tCurr, {self.coefM0, self.fMaxNeut}, {self.ionizSrc})
-      --species[self.elcNm].distIo:write(self.fMaxNeut, string.format("%s_fMaxNeut_%d.bp",self.speciesName,species[self.elcNm].distIoFrame),0,0)
+
+      if writeOut then
+	 species[self.elcNm].distIo:write(neutVtSq, string.format("%s_neutVtSq_%d.bp",self.speciesName,tCurr*1e10),0,0)
+	 species[self.speciesName].distIo:write(self.fMaxNeut, string.format("%s_fMaxNeut_%d.bp",self.speciesName,tCurr*1e10),0,0, true)
+	 species[self.speciesName].distIo:write(self.ionizSrc, string.format("%s_izSrc_%d.bp",self.speciesName,tCurr*1e10),0,0, true)
+      end
+      
       fRhsOut:accumulate(1.0,self.ionizSrc)
    end
 end

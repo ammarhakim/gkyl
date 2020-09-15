@@ -169,7 +169,8 @@ function GkChargeExchange:createSolver(funcField)
 end
 
 function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
-   
+
+   local writeOut = false
    -- identify species and accumulate
    if (self.speciesName == self.ionNm) then
       local neutM0 = species[self.neutNm]:fluidMoments()[1]
@@ -182,8 +183,14 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, self.fMaxNeut}, {self.M0iDistFn})
       species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
       self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
-      species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})      
+      species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
 
+      if writeOut then
+	 species[self.speciesName].distIo:write(self.fMaxNeut, string.format("%s_fMaxNeut_%d.bp",self.speciesName,tCurr*1e10),0,0,true)
+	 species[self.speciesName].distIo:write(neutVtSq, string.format("%s_neutVtSq_%d.bp",self.speciesName,tCurr*1e10),0,0, true)
+	 species[self.speciesName].distIo:write(self.sourceCX, string.format("%s_srcCX_%d.bp",self.speciesName,tCurr*1e10),0,0,true)
+      end
+      
       fRhsOut:accumulate(1.0,self.sourceCX)
 
    elseif (self.speciesName == self.neutNm) then
@@ -199,6 +206,12 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
       species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
       
+      
+      if writeOut then
+	 species[self.speciesName].distIo:write(neutDistF, string.format("%s_neutDistF_%d.bp",self.speciesName,tCurr*1e10),0,0)
+	 species[self.speciesName].distIo:write(ionVtSq, string.format("%s_ionVtSq_%d.bp",self.speciesName,tCurr*1e10),0,0)
+      end
+
       fRhsOut:accumulate(-self.iMass/self.nMass,self.sourceCX)
    end
    

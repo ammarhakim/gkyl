@@ -1522,6 +1522,7 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
 end
 
 function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
+   local writeOut = false
    local fIn = self:rkStepperFields()[rkIdx]
    -- Compute moments needed in coupling to fields and collisions.
    if self.evolve or self._firstMomentCalc then
@@ -1530,7 +1531,10 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 fIn:accumulate(-1.0, self.f0)
       end
 
-      --fIn:write(string.format("%s_ccmDistF_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+      if writeOut then
+	 fIn:write(string.format("%s_ccmDistF_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+      end
+
       if self.needSelfPrimMom then
          self.threeMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy,
                                                           self.m1Correction, self.m2Correction,
@@ -1572,25 +1576,24 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       if self.calcReactRate then
 	 local neutM0 = species[self.neutNmIz]:fluidMoments()[1]
       	 local neutU = species[self.neutNmIz]:selfPrimitiveMoments()[1]
- 	 --neutM0:write(string.format("%s_neutM0_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
-	 --self.vtSqSelf:write(string.format("%s_vtSq_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
-	 
+	    
 	 if tCurr == 0.0 then
 	    species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
 	 end
-	 --print(self.name, " calcReactRate for t = ", tCurr)
 	 species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, self.vtSqSelf}, {self.voronovReactRate})
 	 species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
 
-	 --self.vtSqSelf:write(string.format("%s_ccmVtSq_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
-	 --self.vtSqIz:write(string.format("%s_ccmVtSqIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
-	 --self.voronovReactRate:write(string.format("%s_ccmCoefIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
-	 
  	 self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
 	 self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
 	 self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
 	 self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
-	 --self.fMaxwellIz:write(string.format("%s_fMaxOut_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+
+	 if writeOut then
+	    neutM0:write(string.format("%s_izNeutM0_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	    --self.vtSqSelf:write(string.format("%s_vtSq_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	    self.voronovReactRate:write(string.format("%s_ccmCoefIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	    self.fMaxwellIz:write(string.format("%s_ccmfMax_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	 end
       end
 
       if self.calcCXSrc then
@@ -1601,6 +1604,10 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 --neutVtSq:write(string.format("%s_neutVtSq_%d.bp",self.name,tCurr*1e10),tCurr,0,true)	 
 	 
       	 species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uParSelf, neutU, self.vtSqSelf, neutVtSq}, {self.vSigmaCX})
+	 if writeOut then
+	    m0:write(string.format("%s_cxNeutM0_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	    self.vSigmaCX:write(string.format("%s_ccmVSigmaCX_%d.bp",self.name,tCurr*1e10),tCurr,0,true)	 
+	 end
       end
       
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
