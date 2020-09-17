@@ -72,7 +72,7 @@ local function buildApplication(self, tbl)
       return default
    end
 
-   log("Initializing PlasmaOnCartGrid simulation ...\n")
+   log(string.format("Initializing %s simulation ...\n", self.label))
    local tmStart = Time.clock()
 
    local cdim = #tbl.lower -- Configuration space dimensions.
@@ -236,7 +236,6 @@ local function buildApplication(self, tbl)
 	 cflMin = math.min(cflMin, myCfl)
 	 fld:setCfl(myCfl)
       end
-      log(string.format("Using CFL number %g\n", cflMin))
       
       -- Allocate field data.
       fld:alloc(stepperNumFields[timeStepperNm])
@@ -654,7 +653,7 @@ local function buildApplication(self, tbl)
 
    -- Return function that runs main simulation loop.
    return function(self)
-      log("Starting main loop of PlasmaOnCartGrid simulation ...\n\n")
+      log(string.format("Starting main loop of %s simulation ...\n\n", self.label))
       local tStart, tEnd = tStart, tbl.tEnd
 
       -- Sanity check: don't run if not needed.
@@ -825,9 +824,9 @@ local function buildApplication(self, tbl)
       local tmTotal = tmSimEnd-tmSimStart
       local tmAccounted = 0.0
       log(string.format("\nTotal number of time-steps %s\n", step))
-      log(string.format(
-	     "Number of barriers %d barriers (%g barriers/step)\n\n",
-	     Mpi.getNumBarriers(), Mpi.getNumBarriers()/step))
+      --log(string.format(
+	--     "Number of barriers %d barriers (%g barriers/step)\n\n",
+	--     Mpi.getNumBarriers(), Mpi.getNumBarriers()/step))
       
       log(string.format(
 	     "Solver took				%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
@@ -877,7 +876,7 @@ local function buildApplication(self, tbl)
 	     "Stepper combine/copy took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
       log(string.format(
-      	     "Time spent in barrier function		%9.5f sec   (%7.6f s/step)   (%6.f%%)\n",
+      	     "Time spent in barrier function		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
       	     Mpi.getTimeBarriers(), Mpi.getTimeBarriers()/step, 100*Mpi.getTimeBarriers()/tmTotal))      
       tmAccounted = tmAccounted + stepperTime
       tmUnaccounted = tmTotal - tmAccounted
@@ -919,6 +918,7 @@ end
 
 return {
    Gyrokinetic = function ()
+      App.label = "Gyrokinetic"
       return  {
 	 App = App,
 	 Species = require "App.Species.GkSpecies",
@@ -935,6 +935,7 @@ return {
    end,
    
    IncompEuler = function ()
+      App.label = "Incompressible Euler"
       return {
 	 App = App,
 	 Species = require "App.Species.IncompEulerSpecies",
@@ -944,6 +945,7 @@ return {
    end,
    
    VlasovMaxwell = function ()
+      App.label = "Vlasov-Maxwell"
       return {
 	 App = App,
 	 Species = require "App.Species.VlasovSpecies",
@@ -960,6 +962,7 @@ return {
    end,
    
    Moments = function ()
+      App.label = "Multi-fluid"
       return {
 	 App = App,
 	 Species = require "App.Species.MomentSpecies",
