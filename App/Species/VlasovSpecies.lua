@@ -421,7 +421,6 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    	       if (self.collPairs[sN][sO].kind == 'Ionization') then
    		  for collNm, _ in pairs(species[sN].collisions) do
    		     if self.name==species[sN].collisions[collNm].elcNm and counterIz_elc then
-			print("Vlasov species: calc Voronov = true")
    			self.neutNmIz = species[sN].collisions[collNm].neutNm
    			self.needSelfPrimMom  = true
    			self.calcReactRate    = true
@@ -430,15 +429,10 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    			self.vtSqIz           = self:allocMoment()
    			self.m0fMax           = self:allocMoment()
    			self.m0mod            = self:allocMoment()
-   			self.fMaxwellIz       = DataStruct.Field {
-   			   onGrid        = self.grid,
-   			   numComponents = self.basis:numBasis(),
-   			   ghost         = {1, 1},
-   			   metaData = {
-   			      polyOrder = self.basis:polyOrder(),
-   			      basisType = self.basis:id()
-   			   },
-   			}
+   			self.fMaxwellIz       = self:allocDistf()
+			self.intSrcIzM0 = DataStruct.DynVector {
+			   numComponents = 1,
+			}
 			counterIz_elc = false
 		     elseif self.name==species[sN].collisions[collNm].neutNm and counterIz_neut then
 			self.needSelfPrimMom = true

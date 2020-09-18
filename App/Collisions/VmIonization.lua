@@ -21,8 +21,8 @@ local xsys           = require "xsys"
 
 -- VmIonization -----------------------------------------------------------
 --
--- Ionization operator.
---------------------------------------------------------------------------------
+-- Voronov ionization operator.
+---------------------------------------------------------------------------
 
 local VmIonization = Proto(CollisionsBase)
 
@@ -37,6 +37,7 @@ end
 function VmIonization:fullInit(speciesTbl)
    local tbl = self.tbl -- Previously store table.
 
+   self.cfl = 0.1
    self.collKind = "Ionization"
 
    self.collidingSpecies = assert(tbl.collideWith, "App.VmIonization: Must specify names of species to collide with in 'collideWith'.")
@@ -63,6 +64,14 @@ function VmIonization:fullInit(speciesTbl)
       self._A = 0.291e-7
       self._K = 0.39
       self._X = 0.232
+   end
+
+   if self.plasma == "Ar" then
+      self._E = 15.8
+      self._P = 1
+      self._A = 0.599e-7
+      self._K = 0.26
+      self._X = 0.136
    end
 
    self._tmEvalMom = 0.0 
@@ -95,33 +104,41 @@ function VmIonization:setPhaseGrid(grid)
 end
 
 function VmIonization:createSolver(funcField)
+   self.collisionSlvr = Updater.Ionization {
+      onGrid     = self.confGrid,
+      confBasis  = self.confBasis,
+      phaseGrid     = self.phaseGrid,
+      phaseBasis  = self.phaseBasis,
+      elcMass    = self.mass,
+      elemCharge = self.charge,
+      reactRate  = true,
+	 
+      -- Voronov parameters
+      A = self._A,
+      E = self._E,
+      K = self._K,
+      P = self._P,
+      X = self._X,
+   }
    if (self.speciesName == self.elcNm) then
-      self.calcVoronovReactRate = Updater.Ionization {
-	 onGrid     = self.confGrid,
-	 confBasis  = self.confBasis,
-	 elcMass    = self.mass,
-	 elemCharge = self.charge,
-	 reactRate  = true,
-      
-	 -- Voronov parameters
-	 A = self._A,
-	 E = self._E,
-	 K = self._K,
-	 P = self._P,
-	 X = self._X,
-      }
       self.calcIonizationTemp = Updater.Ionization {
 	 onGrid     = self.confGrid,
 	 confBasis  = self.confBasis,
-	 elcMass    = self.mass,
-	 elemCharge = self.charge,
-	 reactRate  = false,
-      	 E          = self._E,       -- ionization energy
+	 phaseGrid     = self.phaseGrid,
+	 phaseBasis  = self.phaseBasis,
+      	 elcMass    = self.mass,
+      	 elemCharge = self.charge,
+	 reactRate  = false, 
+      	 E          = self._E,
       }
-      self.sumDistF    = DataStruct.Field {
+      self.sumDistF =  DataStruct.Field {
 	 onGrid        = self.phaseGrid,
 	 numComponents = self.phaseBasis:numBasis(),
 	 ghost         = {1, 1},
+	 metaData = {
+	    polyOrder = self.phaseBasis:polyOrder(),
+	    basisType = self.phaseBasis:id()
+	 },
       }
    end
    self.confMult = Updater.CartFieldBinOp {
@@ -129,7 +146,12 @@ function VmIonization:createSolver(funcField)
          weakBasis  = self.confBasis,
          operation  = "Multiply",
    }
-   self.collisionSlvr = Updater.CartFieldBinOp {
+   self.confDiv = Updater.CartFieldBinOp {
+      onGrid     = self.confGrid,
+      weakBasis  = self.confBasis,
+      operation = "Divide",
+   }
+   self.confPhaseMult = Updater.CartFieldBinOp {
          onGrid     = self.phaseGrid,
          weakBasis  = self.phaseBasis,
          fieldBasis = self.confBasis,
@@ -153,34 +175,9 @@ function VmIonization:createSolver(funcField)
 	 basisType = self.confBasis:id()
       },
    }
-   self.neutDistF = DataStruct.Field {
-      onGrid        = self.phaseGrid,
-      numComponents = self.phaseBasis:numBasis(),
-      ghost         = {1, 1},
-      metaData = {
-	 polyOrder = self.phaseBasis:polyOrder(),
-	 basisType = self.phaseBasis:id()
-      },
-   }
    self.ionizSrc = DataStruct.Field {
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
-      ghost         = {1, 1},
-      metaData = {
-	 polyOrder = self.phaseBasis:polyOrder(),
-	 basisType = self.phaseBasis:id()
-      },
-   }
-   -- For testing and debugging purposes
-   self.numDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.phaseGrid,
-      phaseBasis = self.phaseBasis,
-      confBasis  = self.confBasis,
-      moment     = "M0",
-   }
-   self.sumDistFM0  = DataStruct.Field {
-      onGrid        = self.confGrid,
-      numComponents = self.confBasis:numBasis(),
       ghost         = {1, 1},
       metaData = {
 	 polyOrder = self.phaseBasis:polyOrder(),
@@ -191,49 +188,70 @@ end
 
 function VmIonization:advance(tCurr, fIn, species, fRhsOut)
    local coefIz = species[self.elcNm]:getVoronovReactRate()
-   local distFn = species[self.neutNm]:getDistF()
-   local elcM0  = species[self.elcNm]:fluidMoments()[1]
-   --distFn:write(string.format("neutDistF.bp"),0.0,0,false)
+   local elcM0 = species[self.elcNm]:fluidMoments()[1]
+   local writeOut = false
 
    -- Check whether particle is electron, neutral or ion species
    if (self.speciesName == self.elcNm) then
       -- electrons
-      tmEvalMomStart = Time.clock()
-      local neutM0   = species[self.neutNm]:fluidMoments()[1]
-      local neutU    = species[self.neutNm]:selfPrimitiveMoments()[1]
-      local elcDistF = species[self.speciesName]:getDistF()
+      tmEvalMomStart   = Time.clock()
+      local neutM0     = species[self.neutNm]:fluidMoments()[1]
+      local elcDistF   = species[self.elcNm]:getDistF()
       local fMaxwellIz = species[self.elcNm]:getFMaxwellIz()
-
-      self.sumDistF:combine(2.0,fMaxwellIz,-1.0,elcDistF)      
-      self.confMult:advance(tCurr, {coefIz, neutM0}, {self.coefM0})
-      self.collisionSlvr:advance(tCurr, {self.coefM0, self.sumDistF}, {self.ionizSrc})
+      
+      self.sumDistF:combine(2.0,fMaxwellIz,-1.0,elcDistF)
+ 
       self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
+      
+      self.confMult:advance(tCurr, {coefIz, neutM0}, {self.coefM0})
+      self.confPhaseMult:advance(tCurr, {self.coefM0, self.sumDistF}, {self.ionizSrc})
+      -- Uncomment to test without fMaxwellian(Tiz)
+      --self.confPhaseMult:advance(tCurr, {self.coefM0, elcDistF}, {self.ionizSrc})      
+      if writeOut then
+	 species[self.speciesName].distIo:write(self.ionizSrc, string.format("%s_izSrc_%d.bp",self.speciesName,tCurr*1e10),0,0,true)
+      end
+      
       fRhsOut:accumulate(1.0,self.ionizSrc)
    elseif (species[self.speciesName].charge == 0) then
       -- neutrals
-      tmEvalMomStart = Time.clock()
+      local neutDistF = species[self.neutNm]:getDistF()
+      tmEvalMomStart  = Time.clock()
       self.m0elc:copy(elcM0)
-      self.neutDistF:copy(distFn)
-      self.confMult:advance(tCurr, {coefIz, self.m0elc}, {self.coefM0})
-      self.collisionSlvr:advance(tCurr, {self.coefM0, self.neutDistF}, {self.ionizSrc})
+      
       self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
+      
+      self.confMult:advance(tCurr, {coefIz, self.m0elc}, {self.coefM0})
+      self.confPhaseMult:advance(tCurr, {self.coefM0, neutDistF}, {self.ionizSrc})
+      if writeOut then
+	 species[self.speciesName].distIo:write(self.ionizSrc, string.format("%s_izSrc_%d.bp",self.speciesName,tCurr*1e10),0,0,true)
+      end
 
       fRhsOut:accumulate(-1.0,self.ionizSrc)  
    else
       -- ions 
       tmEvalMomStart = Time.clock()
       self.m0elc:copy(elcM0)
-      self.neutDistF:copy(distFn)
+      local neutDistF = species[self.neutNm]:getDistF()
 
-      self.confMult:advance(tCurr, {coefIz, self.m0elc}, {self.coefM0})
-      self.collisionSlvr:advance(tCurr, {self.coefM0, self.neutDistF}, {self.ionizSrc})
       self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
 
+      self.confMult:advance(tCurr, {coefIz, self.m0elc}, {self.coefM0})
+      self.confPhaseMult:advance(tCurr, {self.coefM0, neutDistF}, {self.ionizSrc})
+
+      if writeOut then
+	 species[self.elcNm].distIo:write(neutVtSq, string.format("%s_neutVtSq_%d.bp",self.speciesName,tCurr*1e10),0,0)
+	 species[self.speciesName].distIo:write(self.ionizSrc, string.format("%s_izSrc_%d.bp",self.speciesName,tCurr*1e10),0,0, true)
+      end
+      
       fRhsOut:accumulate(1.0,self.ionizSrc)
    end
 end
    
 function VmIonization:write(tm, frame)
+end
+
+function VmIonization:setCfl(cfl)
+   self.cfl = cfl
 end
 
 function VmIonization:getIonizSrc()
@@ -242,13 +260,13 @@ end
 
 function VmIonization:slvrTime()
    local time = self.confMult.totalTime
-   time = time + self.collisionSlvr.totalTime
+   time = time + self.confPhaseMult.totalTime
    return time
 end
 
 function VmIonization:momTime()
     if (self.speciesName == self.elcNm) then 
-       return self.calcVoronovReactRate:evalMomTime() + self._tmEvalMom
+       return self.collisionSlvr:evalMomTime() + self._tmEvalMom
     else
        return self._tmEvalMom
     end
@@ -256,7 +274,7 @@ end
 
 function VmIonization:projectMaxwellTime()
    local time = self.confMult.projectMaxwellTime()
-   time = time + self.collisionSlvr.projectMaxwellTime
+   time = time + self.confPhaseMult.projectMaxwellTime
    return time
 end
 

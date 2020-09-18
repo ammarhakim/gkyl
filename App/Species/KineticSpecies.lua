@@ -912,15 +912,16 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        local srcIzM0 = self:allocMoment()
        self.numDensityCalc:advance(tm, {sourceIz}, {srcIzM0})
        local intCalc = Updater.CartFieldIntegratedQuantCalc {
-	  onGrid        = self.confGrid,
-	  basis         = self.confBasis,
-	  numComponents = 1,
-	  quantity      = "V",
-	  timeIntegrate = timeIntegrate,
+       	  onGrid        = self.confGrid,
+       	  basis         = self.confBasis,
+       	  numComponents = 1,
+       	  quantity      = "V",
+       	  timeIntegrate = timeIntegrate,
        }
        intCalc:advance( tm, {srcIzM0}, {self.intSrcIzM0} )
        self.intSrcIzM0:write(
-          string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)       
+          string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)   
+       
     end
 
     -- Write CX diagnostics
