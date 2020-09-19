@@ -380,7 +380,7 @@ function TenMoment:init(tbl)
    self.useClosure = xsys.pickBool(tbl.useClosure, false)
 
    -- see Ng, Hakim et. al. PoP 24, 082112 (2017)
-   self.chi = self.chi and self.chi or math.sqrt(4/(9*math.pi))
+   self.chi = tbl.chi and tbl.chi or math.sqrt(4/(9*math.pi))
 end
 
 -- Number of equations in system
