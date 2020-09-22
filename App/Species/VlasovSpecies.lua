@@ -1221,7 +1221,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    if self.calcReactRate then
       local neutU = species[self.neutNmIz]:selfPrimitiveMoments()[1]
       local neutM0 = species[self.neutNmIz]:fluidMoments()[1]
-      local neutVtSq = species[self.neutNmCX]:selfPrimitiveMoments()[2]
+      local neutVtSq = species[self.neutNmIz]:selfPrimitiveMoments()[2]
       --neutM0:write(string.format("%s_neutM0_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
       
       if tCurr == 0.0 then
