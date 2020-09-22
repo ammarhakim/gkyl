@@ -1576,11 +1576,12 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       if self.calcReactRate then
 	 local neutM0 = species[self.neutNmIz]:fluidMoments()[1]
       	 local neutU = species[self.neutNmIz]:selfPrimitiveMoments()[1]
+	 local neutVtSq = species[self.neutNmCX]:selfPrimitiveMoments()[2]
 	    
 	 if tCurr == 0.0 then
 	    species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
 	 end
-	 species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, self.vtSqSelf}, {self.voronovReactRate})
+	 species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {self.voronovReactRate})
 	 species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
 
  	 self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})

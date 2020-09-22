@@ -97,7 +97,7 @@ calcSigmaCXcellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     writeCExprsCs(vSigmaCX, vSigmaCX_c),
     printf(fh, " ~%"),
 
-    printf(fh, "  if (m0NeutAv <= 0) { ~%"),
+    printf(fh, "  if (m0NeutAv <= 0 || vtSqNeutAv <= 0 || vtSqIonAv <= 0) { ~%"),
     printf(fh, "    vSigmaCX[0] = 0.0;~%"),
     printf(fh, "  }~%"),
     printf(fh, "} ~%")

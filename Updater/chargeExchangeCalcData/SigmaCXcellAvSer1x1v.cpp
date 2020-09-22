@@ -18,7 +18,7 @@ void SigmaCXcellAvSer1x1v_P1(const double a, const double b, const double *m0, c
  
   vSigmaCX[0] = 1.414213562373095*a*sqrt(1.273239544735163*vtSqNeutAv+1.273239544735163*vtSqIonAv+vINSqAv)-1.414213562373095*b*sqrt(1.273239544735163*vtSqNeutAv+1.273239544735163*vtSqIonAv+vINSqAv)*log(sqrt(1.273239544735163*vtSqNeutAv+1.273239544735163*vtSqIonAv+vINSqAv)); 
  
-  if (m0NeutAv <= 0) { 
+  if (m0NeutAv <= 0 || vtSqNeutAv <= 0 || vtSqIonAv <= 0) { 
     vSigmaCX[0] = 0.0;
   }
 } 
@@ -40,7 +40,7 @@ void SigmaCXcellAvSer1x1v_P2(const double a, const double b, const double *m0, c
  
   vSigmaCX[0] = 1.414213562373095*a*sqrt(1.273239544735163*vtSqNeutAv+1.273239544735163*vtSqIonAv+vINSqAv)-1.414213562373095*b*sqrt(1.273239544735163*vtSqNeutAv+1.273239544735163*vtSqIonAv+vINSqAv)*log(sqrt(1.273239544735163*vtSqNeutAv+1.273239544735163*vtSqIonAv+vINSqAv)); 
  
-  if (m0NeutAv <= 0) { 
+  if (m0NeutAv <= 0 || vtSqNeutAv <= 0 || vtSqIonAv <= 0) { 
     vSigmaCX[0] = 0.0;
   }
 } 
