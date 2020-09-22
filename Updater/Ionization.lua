@@ -100,13 +100,14 @@ function Ionization:ionizationTemp(elcVtSq, vtSqIz)
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
 end
 
-function Ionization:reactRateCoef(neutM0, elcVtSq, coefIz) --, cflRateByCell)
+function Ionization:reactRateCoef(neutM0, neutVtSq, elcVtSq, coefIz) --, cflRateByCell)
    local tmEvalMomStart = Time.clock()
    local grid = self._onGrid
    local vDim = self._pDim - self._cDim
 
    local confIndexer = elcVtSq:genIndexer()
    local neutM0Itr = neutM0:get(1)
+   local neutVtSqItr = neutVtSq:get(1)
    local elcVtSqItr = elcVtSq:get(1)
    local coefIzItr = coefIz:get(1)
 
@@ -131,10 +132,11 @@ function Ionization:reactRateCoef(neutM0, elcVtSq, coefIz) --, cflRateByCell)
       grid:setIndex(cIdx)
 
       neutM0:fill(confIndexer(cIdx), neutM0Itr)
+      neutVtSq:fill(confIndexer(cIdx), neutVtSqItr)
       elcVtSq:fill(confIndexer(cIdx), elcVtSqItr)
       coefIz:fill(confIndexer(cIdx), coefIzItr)
 
-      cflRate = self._VoronovReactRateCalc(self._elemCharge, self._elcMass, neutM0Itr:data(), elcVtSqItr:data(), self._E, self._A, self._K, self._P, self._X, coefIzItr:data())
+      cflRate = self._VoronovReactRateCalc(self._elemCharge, self._elcMass, neutM0Itr:data(), neutVtSqItr:data(), elcVtSqItr:data(), self._E, self._A, self._K, self._P, self._X, coefIzItr:data())
       --print('cflRate = ', cflRate)
       for vIdx in velRange:rowMajorIter() do
       	 -- Construct the phase space index ot of the configuration
@@ -161,9 +163,10 @@ function Ionization:_advance(tCurr, inFld, outFld)
    else
       --local cflRateByCell = self._cflRateByCell
       local neutM0 = inFld[1]
-      local elcVtSq = inFld[2]
+      local neutVtSq = inFld[2]
+      local elcVtSq = inFld[3]
       local coefIz = outFld[1]
-      self:reactRateCoef(neutM0, elcVtSq, coefIz)
+      self:reactRateCoef(neutM0, neutVtSq, elcVtSq, coefIz)
    end
    
 end
