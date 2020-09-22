@@ -916,7 +916,7 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        	  basis         = self.confBasis,
        	  numComponents = 1,
        	  quantity      = "V",
-       	  timeIntegrate = timeIntegrate,
+       	  timeIntegrate = true,
        }
        intCalc:advance( tm, {srcIzM0}, {self.intSrcIzM0} )
        self.intSrcIzM0:write(
