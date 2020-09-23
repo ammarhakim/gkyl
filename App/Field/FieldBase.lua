@@ -64,6 +64,7 @@ function NoField:combineRk() end
 return {
    FieldBase     = FieldBase,
    ExternalFieldBase = ExternalFieldBase,
+   FuncFieldBase = ExternalFieldBase, -- for backwards compat
    NoField       = NoField
 }
 

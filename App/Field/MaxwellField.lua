@@ -719,4 +719,5 @@ function ExternalMaxwellField:energyCalcTime() return 0.0 end
 return {
    MaxwellField     = MaxwellField,
    ExternalMaxwellField = ExternalMaxwellField,
+   FuncMaxwellField = ExternalMaxwellField, -- for backwards compat
 }
