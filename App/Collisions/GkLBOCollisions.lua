@@ -203,7 +203,7 @@ function GkLBOCollisions:setPhaseGrid(grid)
    self.phaseGrid = grid
 end
 
-function GkLBOCollisions:createSolver(funcField)
+function GkLBOCollisions:createSolver(externalField)
    self.vDim = self.phaseGrid:ndim() - self.confGrid:ndim()
 
    -- Number of physical velocity dimensions.
@@ -236,9 +236,9 @@ function GkLBOCollisions:createSolver(funcField)
    }
 
    -- Inverse of background magnetic field.
-   self.bmag    = funcField.geo.bmag
+   self.bmag    = externalField.geo.bmag
    -- Inverse of background magnetic field.
-   self.bmagInv = funcField.geo.bmagInv
+   self.bmagInv = externalField.geo.bmagInv
       
    -- Zero-flux BCs in the velocity dimensions.
    local zfd = { }

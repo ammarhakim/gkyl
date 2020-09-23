@@ -46,7 +46,7 @@ sim = Plasma.App {
    },
 
    -- Specified, time-dependent electromagnetic fields.
-   funcField = Plasma.FuncField {
+   externalField = Plasma.ExternalField {
       emFunc = function (t, xn)
          -- Units for frequency and magnetic field chosen such that OmegaC = 1.0,
 	 -- where OmegaC is the cyclotron frequency.

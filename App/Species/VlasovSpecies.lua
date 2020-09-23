@@ -46,7 +46,7 @@ function VlasovSpecies:alloc(nRkDup)
    self.momDensity = self:allocVectorMoment(self.vdim)
    self.ptclEnergy = self:allocMoment()
 
-   -- Allocate field to accumulate funcField if any.
+   -- Allocate field to accumulate externalField if any.
    self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
 
    -- Allocate field for external forces if any.
@@ -499,14 +499,14 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    -- Accumulate functional Maxwell fields (if needed).
    local emField      = emIn[1]:rkStepperFields()[inIdx]
-   local emFuncField  = emIn[2]:rkStepperFields()[1]
+   local emExternalField  = emIn[2]:rkStepperFields()[1]
    local totalEmField = self.totalEmField
    totalEmField:clear(0.0)
 
    local qbym = self.charge/self.mass
 
    if emField then totalEmField:accumulate(qbym, emField) end
-   if emFuncField then totalEmField:accumulate(qbym, emFuncField) end
+   if emExternalField then totalEmField:accumulate(qbym, emExternalField) end
 
    -- If external force present (gravity, body force, etc.) accumulate it to electric field.
    if self.hasExtForce then

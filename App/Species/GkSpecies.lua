@@ -71,42 +71,42 @@ function GkSpecies:allocMomCouplingFields()
    assert(false, "GkSpecies:allocMomCouplingFields should not be called. Field object should allocate its own coupling fields")
 end
 
-function GkSpecies:createSolver(hasPhi, hasApar, funcField)
+function GkSpecies:createSolver(hasPhi, hasApar, externalField)
    -- Run the KineticSpecies 'createSolver()' to initialize the
    -- collisions solver.
-   GkSpecies.super.createSolver(self,funcField)
+   GkSpecies.super.createSolver(self,externalField)
 
    -- Set up jacobian.
-   if funcField then
+   if externalField then
       -- Save bmagFunc for later...
-      self.bmagFunc = funcField.bmagFunc
+      self.bmagFunc = externalField.bmagFunc
       -- If vdim>1, get jacobian=bmag from geo.
       self.jacobPhaseFunc = self.bmagFunc
-      self.jacobGeoFunc   = funcField.jacobGeoFunc
+      self.jacobGeoFunc   = externalField.jacobGeoFunc
       if self.cdim == 1 then 
-         self.B0 = funcField.bmagFunc(0.0, {self.grid:mid(1)})
+         self.B0 = externalField.bmagFunc(0.0, {self.grid:mid(1)})
       elseif self.cdim == 2 then 
-         self.B0 = funcField.bmagFunc(0.0, {self.grid:mid(1), self.grid:mid(2)})
+         self.B0 = externalField.bmagFunc(0.0, {self.grid:mid(1), self.grid:mid(2)})
       else
-         self.B0 = funcField.bmagFunc(0.0, {self.grid:mid(1), self.grid:mid(2), self.grid:mid(3)})
+         self.B0 = externalField.bmagFunc(0.0, {self.grid:mid(1), self.grid:mid(2), self.grid:mid(3)})
       end
-      self.bmag    = assert(funcField.geo.bmag, "nil bmag")
-      self.bmagInv = funcField.geo.bmagInv
+      self.bmag    = assert(externalField.geo.bmag, "nil bmag")
+      self.bmagInv = externalField.geo.bmagInv
    end
 
    if self.gyavg then
       -- Set up geo fields needed for gyroaveraging.
       local rho1Func = function (t, xn)
          local mu = xn[self.ndim]
-         return math.sqrt(2*mu*self.mass*funcField.gxxFunc(t, xn)/(self.charge^2*funcField.bmagFunc(t, xn)))
+         return math.sqrt(2*mu*self.mass*externalField.gxxFunc(t, xn)/(self.charge^2*externalField.bmagFunc(t, xn)))
       end
       local rho2Func = function (t, xn)
          local mu = xn[self.ndim]
-         return funcField.gxyFunc(t,xn)*math.sqrt(2*mu*self.mass/(self.charge^2*funcField.gxxFunc(t, xn)*funcField.bmagFunc(t, xn)))
+         return externalField.gxyFunc(t,xn)*math.sqrt(2*mu*self.mass/(self.charge^2*externalField.gxxFunc(t, xn)*externalField.bmagFunc(t, xn)))
       end
       local rho3Func = function (t, xn)
          local mu = xn[self.ndim]
-         return math.sqrt(2*mu*self.mass*(funcField.gxxFunc(t,xn)*funcField.gyyFunc(t,xn)-funcField.gxyFunc(t,xn)^2)/(self.charge^2*funcField.gxxFunc(t, xn)*funcField.bmagFunc(t, xn)))
+         return math.sqrt(2*mu*self.mass*(externalField.gxxFunc(t,xn)*externalField.gyyFunc(t,xn)-externalField.gxyFunc(t,xn)^2)/(self.charge^2*externalField.gxxFunc(t, xn)*externalField.bmagFunc(t, xn)))
       end
       local project1 = Updater.ProjectOnBasis {
          onGrid          = self.grid,
@@ -165,7 +165,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       mass         = self.mass,
       hasPhi       = hasPhi,
       hasApar      = hasApar,
-      Bvars        = funcField.bmagVars,
+      Bvars        = externalField.bmagVars,
       hasSheathBcs = self.hasSheathBcs,
       positivity   = self.positivity,
       gyavgSlvr    = self.emGyavgSlvr,
@@ -210,7 +210,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          confBasis  = self.confBasis,
          charge     = self.charge,
          mass       = self.mass,
-         Bvars      = funcField.bmagVars,
+         Bvars      = externalField.bmagVars,
          positivity = self.positivity,
       }
       -- Note that the surface update for this term only involves the vpar direction.
@@ -231,7 +231,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          confBasis  = self.confBasis,
          charge     = self.charge,
          mass       = self.mass,
-         Bvars      = funcField.bmagVars,
+         Bvars      = externalField.bmagVars,
          positivity = self.positivity,
       }
       -- Note that the surface update for this term only involves the vpar direction.

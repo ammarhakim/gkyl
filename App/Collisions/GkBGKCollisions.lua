@@ -203,7 +203,7 @@ function GkBGKCollisions:setPhaseGrid(grid)
    self.phaseGrid = grid
 end
 
-function GkBGKCollisions:createSolver(funcField)
+function GkBGKCollisions:createSolver(externalField)
    self.numVelDims = self.phaseGrid:ndim() - self.confGrid:ndim()
 
    local function createConfFieldCompV()
@@ -268,7 +268,7 @@ function GkBGKCollisions:createSolver(funcField)
             nuFrac           = self.nuFrac,
          }
          -- Background magnetic field.
-         self.bmag = funcField.geo.bmag
+         self.bmag = externalField.geo.bmag
       elseif self.selfCollisions then
          local projectUserNu = Updater.ProjectOnBasis {
             onGrid          = self.confGrid,

@@ -14,7 +14,7 @@ return {
    App             = Plasma.App,
    Species         = Plasma.VlasovSpecies,
    EmField         = Plasma.MaxwellField,
-   FuncField       = Plasma.FuncMaxwellField,
+   ExternalField       = Plasma.ExternalMaxwellField,
    NoField         = Plasma.NoField,
    BgkCollisions   = Plasma.BgkCollisions,   
    VmLBOCollisions = Plasma.VmLBOCollisions,   

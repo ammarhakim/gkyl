@@ -582,20 +582,20 @@ function MaxwellField:energyCalcTime()
    return self.integratedEMTime
 end
 
--- FuncMaxwellField ---------------------------------------------------------------------
+-- ExternalMaxwellField ---------------------------------------------------------------------
 --
 -- A field object with EM fields specified as a time-dependent function.
 --------------------------------------------------------------------------------
 
-local FuncMaxwellField = Proto(FieldBase.FuncFieldBase)
+local ExternalMaxwellField = Proto(FieldBase.ExternalFieldBase)
 
 -- Methods for no field object.
-function FuncMaxwellField:init(tbl)
-   FuncMaxwellField.super.init(self, tbl)
+function ExternalMaxwellField:init(tbl)
+   ExternalMaxwellField.super.init(self, tbl)
    self.tbl = tbl
 end
 
-function FuncMaxwellField:fullInit(appTbl)
+function ExternalMaxwellField:fullInit(appTbl)
    local tbl = self.tbl -- Previously store table.
 
    self.ioMethod = "MPI"
@@ -617,16 +617,16 @@ function FuncMaxwellField:fullInit(appTbl)
    end
 end
 
-function FuncMaxwellField:hasEB()
+function ExternalMaxwellField:hasEB()
    return true, true
 end
 
-function FuncMaxwellField:setCfl() end
-function FuncMaxwellField:setIoMethod(ioMethod) self.ioMethod = ioMethod end
-function FuncMaxwellField:setBasis(basis) self.basis = basis end
-function FuncMaxwellField:setGrid(grid) self.grid = grid end
+function ExternalMaxwellField:setCfl() end
+function ExternalMaxwellField:setIoMethod(ioMethod) self.ioMethod = ioMethod end
+function ExternalMaxwellField:setBasis(basis) self.basis = basis end
+function ExternalMaxwellField:setGrid(grid) self.grid = grid end
 
-function FuncMaxwellField:alloc(nField)
+function ExternalMaxwellField:alloc(nField)
    -- Allocate fields needed in RK update.
    self.em = DataStruct.Field {
       onGrid        = self.grid,
@@ -646,7 +646,7 @@ function FuncMaxwellField:alloc(nField)
    }   
 end
 
-function FuncMaxwellField:createSolver()
+function ExternalMaxwellField:createSolver()
    self.fieldSlvr = Updater.ProjectOnBasis {
       onGrid   = self.grid,
       basis    = self.basis,
@@ -654,46 +654,46 @@ function FuncMaxwellField:createSolver()
    }
 end
 
-function FuncMaxwellField:createDiagnostics()
+function ExternalMaxwellField:createDiagnostics()
 end
 
-function FuncMaxwellField:initField()
+function ExternalMaxwellField:initField()
    self.fieldSlvr:advance(0.0, {}, {self.em})
    self:applyBc(0.0, self.em)
 end
 
-function FuncMaxwellField:write(tm, force)
+function ExternalMaxwellField:write(tm, force)
    if self.evolve or self.forceWrite then
       if self.ioTrigger(tm) or force then
-	 self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm, self.ioFrame)
+	 self.fieldIo:write(self.em, string.format("externalField_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 
 	 self.ioFrame = self.ioFrame+1
       end
    else
       -- If not evolving species, don't write anything except initial conditions.
       if self.ioFrame == 0 then
-	 self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm, self.ioFrame)
+	 self.fieldIo:write(self.em, string.format("externalField_%d.bp", self.ioFrame), tm, self.ioFrame)
       end
       self.ioFrame = self.ioFrame+1
    end
 end
 
-function FuncMaxwellField:writeRestart(tm)
-   self.fieldIo:write(self.em, "func_field_restart.bp", tm, self.ioFrame)
+function ExternalMaxwellField:writeRestart(tm)
+   self.fieldIo:write(self.em, "externalField_restart.bp", tm, self.ioFrame)
 end
 
-function FuncMaxwellField:readRestart()
-   local tm, fr = self.fieldIo:read(self.em, "func_field_restart.bp")
+function ExternalMaxwellField:readRestart()
+   local tm, fr = self.fieldIo:read(self.em, "externalField_restart.bp")
    self.em:sync() -- Must get all ghost-cell data correct.
    
    self.ioFrame = fr
 end
 
-function FuncMaxwellField:rkStepperFields()
+function ExternalMaxwellField:rkStepperFields()
    return { self.em, self.em, self.em, self.em }
 end
 
-function FuncMaxwellField:advance(tCurr)
+function ExternalMaxwellField:advance(tCurr)
    local emOut = self:rkStepperFields()[1]
    if self.evolve then
       self.fieldSlvr:advance(tCurr, {}, {emOut})
@@ -701,22 +701,22 @@ function FuncMaxwellField:advance(tCurr)
    end
 end
 
-function FuncMaxwellField:applyBcIdx(tCurr, idx)
+function ExternalMaxwellField:applyBcIdx(tCurr, idx)
    self:applyBc(tCurr, self:rkStepperFields()[1])
 end
 
-function FuncMaxwellField:applyBc(tCurr, emIn)
+function ExternalMaxwellField:applyBc(tCurr, emIn)
    emIn:sync()
 end
 
-function FuncMaxwellField:totalSolverTime()
+function ExternalMaxwellField:totalSolverTime()
    return self.fieldSlvr.totalTime
 end
 
-function FuncMaxwellField:totalBcTime() return 0.0 end
-function FuncMaxwellField:energyCalcTime() return 0.0 end
+function ExternalMaxwellField:totalBcTime() return 0.0 end
+function ExternalMaxwellField:energyCalcTime() return 0.0 end
 
 return {
    MaxwellField     = MaxwellField,
-   FuncMaxwellField = FuncMaxwellField,
+   ExternalMaxwellField = ExternalMaxwellField,
 }

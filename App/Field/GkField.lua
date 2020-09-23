@@ -315,7 +315,7 @@ end
 function GkField:clearCFL()
 end
 
-function GkField:createSolver(species, funcField)
+function GkField:createSolver(species, externalField)
    -- Get adiabatic species info.
    for nm, s in pairs(species) do
       if Species.AdiabaticSpecies.is(s) then
@@ -327,10 +327,10 @@ function GkField:createSolver(species, funcField)
 
    -- Set up FEM solver for Poisson equation to solve for phi.
    local gxx, gxy, gyy
-   if funcField.geo then 
-     gxx = funcField.geo.gxx
-     gxy = funcField.geo.gxy
-     gyy = funcField.geo.gyy
+   if externalField.geo then 
+     gxx = externalField.geo.gxx
+     gxy = externalField.geo.gxy
+     gyy = externalField.geo.gyy
    end
    self.phiSlvr = Updater.FemPoisson {
      onGrid   = self.grid,
@@ -950,7 +950,7 @@ end
 -- A field object with fields specifying the magnetic geometry for GK.
 --------------------------------------------------------------------------------
 
-local GkGeometry = Proto(FieldBase.FuncFieldBase)
+local GkGeometry = Proto(FieldBase.ExternalFieldBase)
 
 -- Methods for no field object.
 function GkGeometry:init(tbl)
