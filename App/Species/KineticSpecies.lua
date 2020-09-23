@@ -103,7 +103,8 @@ function KineticSpecies:fullInit(appTbl)
    self.diagIoFrame = 0 -- Frame number for diagnostics.
    self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
 
-   self.writeSkin = xsys.pickBool(appTbl.writeSkin, false)
+   -- write ghost cells on boundaries of global domain (for BCs)
+   self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 
    -- Write perturbed moments by subtracting background before moment calc.. false by default.
    self.perturbedMoments = false
@@ -239,6 +240,9 @@ function KineticSpecies:fullInit(appTbl)
 
    self.hasNonPeriodicBc = false -- To indicate if we have non-periodic BCs.
    self.bcx, self.bcy, self.bcz = { }, { }, { }
+   -- Functional BCs
+   self.evolveFnBC = xsys.pickBool(tbl.evolveFnBC, true)
+   self.feedbackBC = xsys.pickBool(tbl.feedbackBC, false)
 
    -- Read in boundary conditions.
    -- Check to see if bc type is good is now done in createBc.
@@ -468,7 +472,7 @@ end
 
 -- Function to construct a BC updater.
 function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop,
-				      hasExtFld)
+				      evaluateFn)
    return Updater.Bc {
       onGrid             = self.grid,
       boundaryConditions = bcList,
@@ -478,7 +482,11 @@ function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop,
       skinLoop           = skinLoop,
       cdim               = self.cdim,
       vdim               = self.vdim,
-      hasExtFld          = hasExtFld,
+      basis = self.basis,
+      evaluate = evaluateFn,
+      evolveFn = self.evolveFnBC,
+      feedback = self.feedbackBC,
+      confBasis = self.confBasis,
    }
 end
 
@@ -500,10 +508,11 @@ function KineticSpecies:createBCs()
    handleBc(3, self.bcz)
 end
 
-function KineticSpecies:createSolver(funcField)
+function KineticSpecies:createSolver(externalField)
    -- Create solvers for collisions.
    for _, c in pairs(self.collisions) do
-      c:createSolver(funcField, species)
+      -- c:createSolver(funcField, species) -- from fixNeutrals HEAD
+      c:createSolver(externalField)
    end
    if self.positivity then
       self.posChecker = Updater.PositivityCheck {
@@ -538,7 +547,7 @@ function KineticSpecies:alloc(nRkDup)
    self.distIo = AdiosCartFieldIo {
       elemType  = self.distf[1]:elemType(),
       method    = self.ioMethod,
-      writeSkin = self.writeSkin,
+      writeGhost = self.writeGhost,
       metaData  = {
 	 polyOrder = self.basis:polyOrder(),
 	 basisType = self.basis:id(),
@@ -647,12 +656,12 @@ function KineticSpecies:initDist()
             self.fSource:scale(self.powerScalingFac)
          end
       end
-      if pr.isReservoir then
-	 if not self.fReservoir then 
-	    self.fReservoir = self:allocDistf()
-	 end
-	 self.fReservoir:accumulate(1.0, self.distf[2])
-      end
+      -- if pr.isReservoir then
+      --    if not self.fReservoir then 
+      --       self.fReservoir = self:allocDistf()
+      --    end
+      --    self.fReservoir:accumulate(1.0, self.distf[2])
+      -- end
    end
    if self.scaleInitWithSourcePower then self.distf[1]:scale(self.powerScalingFac) end
    assert(initCnt > 0,
@@ -801,8 +810,17 @@ function KineticSpecies:applyBc(tCurr, fIn)
 
       -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
       if self.hasNonPeriodicBc then
-         for _, bc in ipairs(self.boundaryConditions) do
-            bc:advance(tCurr, {self.fReservoir}, {fIn})
+         if self.feedbackBC then
+            self.numDensityCalc:advance(nil, {fIn}, { self.numDensity })
+            self.momDensityCalc:advance(nil, {fIn}, { self.momDensity })
+            self.ptclEnergyCalc:advance(nil, {fIn}, { self.ptclEnergy })
+            for _, bc in ipairs(self.boundaryConditions) do
+               bc:advance(tCurr, {self.numDensity, self.momDensity, self.ptclEnergy}, {fIn})
+            end
+         else
+            for _, bc in ipairs(self.boundaryConditions) do
+               bc:advance(tCurr, {}, {fIn})
+            end
          end
       end
 
@@ -878,13 +896,13 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
 
     for i, mom in ipairs(self.requestedDiagnosticMoments) do
        self.diagnosticMomentFields[mom]:write(
-          string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+          string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
     end
 
     for i, mom in ipairs(self.requestedDiagnosticBoundaryFluxMoments) do
        for _, bc in ipairs(self.boundaryConditions) do
           self.diagnosticMomentFields[mom..bc:label()]:write(
-             string.format("%s_%s_%d.bp", self.name, mom..bc:label(), self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+             string.format("%s_%s_%d.bp", self.name, mom..bc:label(), self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
        end
     end
 
@@ -1008,9 +1026,9 @@ end
 
 function KineticSpecies:writeRestart(tm)
    -- (The final "true/false" determines writing of ghost cells).
-   local writeSkin = false
-   if self.hasSheathBcs or self.fluctuationBCs then writeSkin = true end
-   self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, writeSkin)
+   local writeGhost = false
+   if self.hasSheathBcs or self.fluctuationBCs then writeGhost = true end
+   self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, writeGhost)
    for i, mom in pairs(self.diagnosticMoments) do
       self.diagnosticMomentFields[mom]:write(
 	 string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
@@ -1032,9 +1050,9 @@ function KineticSpecies:writeRestart(tm)
 end
 
 function KineticSpecies:readRestart()
-   local readSkin = false
-   if self.hasSheathBcs or self.fluctuationBCs then readSkin = true end
-   local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name), readSkin)
+   local readGhost = false
+   if self.hasSheathBcs or self.fluctuationBCs then readGhost = true end
+   local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name), readGhost)
    self.distIoFrame = fr -- Reset internal frame counter.
 
    -- set ghost cells

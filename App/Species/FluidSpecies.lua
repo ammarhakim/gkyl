@@ -364,10 +364,10 @@ function FluidSpecies:createBCs()
    handleBc(3, self.bcz)
 end
 
-function FluidSpecies:createSolver(funcField)
+function FluidSpecies:createSolver(externalField)
    -- Create solvers for collisions (diffusion).
    for _, c in pairs(self.collisions) do
-      c:createSolver(funcField)
+      c:createSolver(externalField)
    end
 
    if self.positivity then

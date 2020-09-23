@@ -72,42 +72,42 @@ function GkSpecies:allocMomCouplingFields()
    assert(false, "GkSpecies:allocMomCouplingFields should not be called. Field object should allocate its own coupling fields")
 end
 
-function GkSpecies:createSolver(hasPhi, hasApar, funcField)
+function GkSpecies:createSolver(hasPhi, hasApar, externalField)
    -- Run the KineticSpecies 'createSolver()' to initialize the
    -- collisions solver.
-   GkSpecies.super.createSolver(self,funcField)
+   GkSpecies.super.createSolver(self,externalField)
 
    -- Set up jacobian.
-   if funcField then
+   if externalField then
       -- Save bmagFunc for later...
-      self.bmagFunc = funcField.bmagFunc
+      self.bmagFunc = externalField.bmagFunc
       -- If vdim>1, get jacobian=bmag from geo.
       self.jacobPhaseFunc = self.bmagFunc
-      self.jacobGeoFunc   = funcField.jacobGeoFunc
+      self.jacobGeoFunc   = externalField.jacobGeoFunc
       if self.cdim == 1 then 
-         self.B0 = funcField.bmagFunc(0.0, {self.grid:mid(1)})
+         self.B0 = externalField.bmagFunc(0.0, {self.grid:mid(1)})
       elseif self.cdim == 2 then 
-         self.B0 = funcField.bmagFunc(0.0, {self.grid:mid(1), self.grid:mid(2)})
+         self.B0 = externalField.bmagFunc(0.0, {self.grid:mid(1), self.grid:mid(2)})
       else
-         self.B0 = funcField.bmagFunc(0.0, {self.grid:mid(1), self.grid:mid(2), self.grid:mid(3)})
+         self.B0 = externalField.bmagFunc(0.0, {self.grid:mid(1), self.grid:mid(2), self.grid:mid(3)})
       end
-      self.bmag    = assert(funcField.geo.bmag, "nil bmag")
-      self.bmagInv = funcField.geo.bmagInv
+      self.bmag    = assert(externalField.geo.bmag, "nil bmag")
+      self.bmagInv = externalField.geo.bmagInv
    end
 
    if self.gyavg then
       -- Set up geo fields needed for gyroaveraging.
       local rho1Func = function (t, xn)
          local mu = xn[self.ndim]
-         return math.sqrt(2*mu*self.mass*funcField.gxxFunc(t, xn)/(self.charge^2*funcField.bmagFunc(t, xn)))
+         return math.sqrt(2*mu*self.mass*externalField.gxxFunc(t, xn)/(self.charge^2*externalField.bmagFunc(t, xn)))
       end
       local rho2Func = function (t, xn)
          local mu = xn[self.ndim]
-         return funcField.gxyFunc(t,xn)*math.sqrt(2*mu*self.mass/(self.charge^2*funcField.gxxFunc(t, xn)*funcField.bmagFunc(t, xn)))
+         return externalField.gxyFunc(t,xn)*math.sqrt(2*mu*self.mass/(self.charge^2*externalField.gxxFunc(t, xn)*externalField.bmagFunc(t, xn)))
       end
       local rho3Func = function (t, xn)
          local mu = xn[self.ndim]
-         return math.sqrt(2*mu*self.mass*(funcField.gxxFunc(t,xn)*funcField.gyyFunc(t,xn)-funcField.gxyFunc(t,xn)^2)/(self.charge^2*funcField.gxxFunc(t, xn)*funcField.bmagFunc(t, xn)))
+         return math.sqrt(2*mu*self.mass*(externalField.gxxFunc(t,xn)*externalField.gyyFunc(t,xn)-externalField.gxyFunc(t,xn)^2)/(self.charge^2*externalField.gxxFunc(t, xn)*externalField.bmagFunc(t, xn)))
       end
       local project1 = Updater.ProjectOnBasis {
          onGrid          = self.grid,
@@ -166,7 +166,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       mass         = self.mass,
       hasPhi       = hasPhi,
       hasApar      = hasApar,
-      Bvars        = funcField.bmagVars,
+      Bvars        = externalField.bmagVars,
       hasSheathBcs = self.hasSheathBcs,
       positivity   = self.positivity,
       gyavgSlvr    = self.emGyavgSlvr,
@@ -212,7 +212,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          confBasis  = self.confBasis,
          charge     = self.charge,
          mass       = self.mass,
-         Bvars      = funcField.bmagVars,
+         Bvars      = externalField.bmagVars,
          positivity = self.positivity,
       }
       -- Note that the surface update for this term only involves the vpar direction.
@@ -233,7 +233,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          confBasis  = self.confBasis,
          charge     = self.charge,
          mass       = self.mass,
-         Bvars      = funcField.bmagVars,
+         Bvars      = externalField.bmagVars,
          positivity = self.positivity,
       }
       -- Note that the surface update for this term only involves the vpar direction.
@@ -905,7 +905,7 @@ function GkSpecies:createDiagnostics()
    -- Check if diagnostic name is correct.
    local function isWeakMomentNameGood(nm)
       return nm == "GkUpar" or nm == "GkVtSq" or nm == "GkTpar" or nm == "GkTperp"
-          or nm == "GkTemp" or nm == "GkBeta" or nm == "GkHamilEnergy" or nm == "GkUparCross" or nm == "GkVtSqCross"
+          or nm == "GkTemp" or nm == "GkBeta" or nm == "GkEnergy" or nm == "GkUparCross" or nm == "GkVtSqCross"
    end
 
    self.diagnosticMomentFields   = { }
@@ -980,8 +980,8 @@ function GkSpecies:createDiagnostics()
          end
          -- integrated Hamiltonian energy (HE)
          if mom == "intHE" then
-            if not contains(weakMoments, "GkHamilEnergy") then
-               table.insert(weakMoments, "GkHamilEnergy")
+            if not contains(weakMoments, "GkEnergy") then
+               table.insert(weakMoments, "GkEnergy")
             end
          end
       end
@@ -1046,7 +1046,7 @@ function GkSpecies:createDiagnostics()
             if not contains(moments, "GkM0") then
                table.insert(moments, "GkM0")
             end
-         elseif mom == "GkHamilEnergy" then
+         elseif mom == "GkEnergy" then
             if not contains(moments, "GkM0") then
                table.insert(moments, "GkM0")
             end
@@ -1266,9 +1266,9 @@ function GkSpecies:createDiagnostics()
 
                self.diagnosticMomentUpdaters["GkBeta"..label].tCurr = tm -- mark as complete for this tm
             end
-         elseif mom == "GkHamilEnergy" then
-            self.diagnosticMomentUpdaters["GkHamilEnergy"..label].advance = function (self, tm)
-               if self.diagnosticMomentUpdaters["GkHamilEnergy"..label].tCurr == tm then return end -- return if already computed for this tm
+         elseif mom == "GkEnergy" then
+            self.diagnosticMomentUpdaters["GkEnergy"..label].advance = function (self, tm)
+               if self.diagnosticMomentUpdaters["GkEnergy"..label].tCurr == tm then return end -- return if already computed for this tm
                local phi = self.equation.phi
                if bc then
                   phi = bc:evalOnConfBoundary(self.equation.phi)
@@ -1293,11 +1293,11 @@ function GkSpecies:createDiagnostics()
                -- do weak ops
                self.weakMultiplication:advance(tm,
                     {self.diagnosticMomentFields["GkM0"..label], phi},
-                    {self.diagnosticMomentFields["GkHamilEnergy"..label]})
-               self.diagnosticMomentFields["GkHamilEnergy"..label]:scale(self.charge)
-               self.diagnosticMomentFields["GkHamilEnergy"..label]:accumulate(self.mass/2, self.diagnosticMomentFields["GkM2"..label])
+                    {self.diagnosticMomentFields["GkEnergy"..label]})
+               self.diagnosticMomentFields["GkEnergy"..label]:scale(self.charge)
+               self.diagnosticMomentFields["GkEnergy"..label]:accumulate(self.mass/2, self.diagnosticMomentFields["GkM2"..label])
 
-               self.diagnosticMomentUpdaters["GkHamilEnergy"..label].tCurr = tm -- mark as complete for this tm
+               self.diagnosticMomentUpdaters["GkEnergy"..label].tCurr = tm -- mark as complete for this tm
             end
          elseif string.find(mom, "GkUparCross") then
             self.diagnosticMomentUpdaters["GkUparCross"..label].advance = function (self, tm)
@@ -1380,9 +1380,9 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tm)
             self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
                tm, {self.diagnosticMomentFields["GkM2"..label], self.mass/2}, {self.diagnosticIntegratedMomentFields[mom..label]})
          elseif mom == "intHE" then
-            self.diagnosticMomentUpdaters["GkHamilEnergy"..label].advance(self, tm)
+            self.diagnosticMomentUpdaters["GkEnergy"..label].advance(self, tm)
             self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
-               tm, {self.diagnosticMomentFields["GkHamilEnergy"..label]}, {self.diagnosticIntegratedMomentFields[mom..label]})
+               tm, {self.diagnosticMomentFields["GkEnergy"..label]}, {self.diagnosticIntegratedMomentFields[mom..label]})
          elseif mom == "intL1" then
             self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
                tm, {fIn}, {self.diagnosticIntegratedMomentFields[mom..label]})
@@ -1500,7 +1500,9 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
       vdir=self.cdim+1 
    end
 
-   if bcType == SP_BC_ABSORB then
+   if type(bcType) == "function" then
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcCopyFunc }, "pointwise", bcType))
+   elseif bcType == SP_BC_ABSORB then
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcAbsorbFunc }, "pointwise"))
    elseif bcType == SP_BC_OPEN then
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcOpenFunc }, "pointwise"))

@@ -203,7 +203,7 @@ function GkLBOCollisions:setPhaseGrid(grid)
    self.phaseGrid = grid
 end
 
-function GkLBOCollisions:createSolver(funcField)
+function GkLBOCollisions:createSolver(externalField)
    self.vDim = self.phaseGrid:ndim() - self.confGrid:ndim()
 
    -- Number of physical velocity dimensions.
@@ -236,9 +236,9 @@ function GkLBOCollisions:createSolver(funcField)
    }
 
    -- Inverse of background magnetic field.
-   self.bmag    = funcField.geo.bmag
+   self.bmag    = externalField.geo.bmag
    -- Inverse of background magnetic field.
-   self.bmagInv = funcField.geo.bmagInv
+   self.bmagInv = externalField.geo.bmagInv
       
    -- Zero-flux BCs in the velocity dimensions.
    local zfd = { }
@@ -381,7 +381,8 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
          if self.timeDepNu then
             -- Compute the Spitzer collisionality.
             self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2],
-                                           self.charge, self.mass, selfMom[1], primMomSelf[2], self.normNuSelf}, {self.nuSum})
+                                           self.charge, self.mass, selfMom[1], primMomSelf[2], 
+                                           self.normNuSelf, self.bmag}, {self.nuSum})
          else
             self.nuSum:copy(self.nuVarXSelf)
          end
@@ -413,13 +414,15 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
                local chargeOther = species[otherNm]:getCharge()
                if (not species[self.speciesName].momentFlags[6][otherNm]) then
                   self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2],
-                                                 chargeOther, mOther, otherMom[1], primMomOther[2], self.normNuCross[sInd]},
+                                                 chargeOther, mOther, otherMom[1], primMomOther[2],
+                                                 self.normNuCross[sInd], self.bmag},
                                                 {species[self.speciesName].nuVarXCross[otherNm]})
                   species[self.speciesName].momentFlags[6][otherNm] = true
                end
                if (not species[otherNm].momentFlags[6][self.speciesName]) then
                   self.spitzerNu:advance(tCurr, {chargeOther, mOther, otherMom[1], primMomOther[2],
-                                                 self.charge, self.mass, selfMom[1], primMomSelf[2], species[otherNm].collPairs[otherNm][self.speciesName].normNu},
+                                                 self.charge, self.mass, selfMom[1], primMomSelf[2],
+                                                 species[otherNm].collPairs[otherNm][self.speciesName].normNu, self.bmag},
                                                 {species[otherNm].nuVarXCross[self.speciesName]})
                   species[otherNm].momentFlags[6][self.speciesName] = true
                end

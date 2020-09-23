@@ -16,37 +16,33 @@ local topics = {
 local parser = argparse()
    :name("help")
    :description [[Run Gkeyll help system]]
-parser:flag("-v --version", "Gkeyll version information")
-parser:flag("-u --usage", "Print usage information")
-parser:flag("-l --list", "Show list of help topics")
-parser:option("-t --topic", "Show help for topic")
-parser:flag("--tools", "Show help for topic")
 
 -- parse command line parameters
 local args = parser:parse(GKYL_COMMANDS)
 
--- do stuff
-if args.list then
-   io.write("Help topics: \n")
-   for tn, _ in pairs(topics) do
-      io.write(string.format(" %s ", tn))
+-- Attempts to open a given URL in the system default browser, regardless of Operating System.
+local open_cmd -- this needs to stay outside the function, or it'll re-sniff every time...
+function open_url(url)
+   if not open_cmd then
+      if package.config:sub(1,1) == '\\' then -- windows
+	 open_cmd = function(url)
+	    -- Should work on anything since (and including) win'95
+	    os.execute(string.format('start "%s"', url))
+	 end
+	 -- the only systems left should understand uname...
+      elseif io.popen("uname -s"):read'*a' == "Darwin\n" then -- OSX/Darwin
+	 open_cmd = function(url)
+	    -- I cannot test, but this should work on modern Macs.
+	    os.execute(string.format('open "%s"', url))
+	 end
+      else -- that ought to only leave Linux
+	 open_cmd = function(url)
+	    -- should work on X-based distros.
+	    os.execute(string.format('xdg-open "%s"', url))
+	 end
+      end
    end
-   io.write("\n")
-elseif topics[args.topic] then
-   local f = io.open(GKYL_EXEC_PATH .. "/Tool/" .. topics[args.topic], "r")
-   local helpStr = f:read("*a")
-   io.write (helpStr .. "\n")
-elseif args.usage then
-   local f = io.open(GKYL_EXEC_PATH .. "/Tool/" .. topics['usage'], "r")
-   local helpStr = f:read("*a")
-   io.write (helpStr .. "\n")
-elseif args.version then
-   io.write("Changeset: " .. GKYL_GIT_CHANGESET .. "\nBuild date: " .. GKYL_BUILD_DATE .. "\n")
-elseif args.tools then
-   io.write("Supported tools: \n")
-   for tn, tool in pairs(GKYL_TOOLS) do
-      io.write(string.format(" %s: %s\n", tn, tool[2]))
-   end
-else
-   io.write(parser:get_help() .. "\n")
+   open_cmd(url)
 end
+
+open_url("https://gkeyll.readthedocs.io/en/latest/")

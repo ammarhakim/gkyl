@@ -170,6 +170,9 @@ return {
    UIntVec = new_vec_ct(typeof("unsigned")),
    IntVec = new_vec_ct(typeof("int")),
    FloatVec = new_vec_ct(typeof("float")),
+   ComplexVec = new_vec_ct(typeof("double complex")),
+   FloatComplexVec = new_vec_ct(typeof("float complex")),
+   
    -- some specialized types
    UInt64Vec = new_vec_ct(typeof("uint64_t")),
    Int64Vec = new_vec_ct(typeof("int64_t")),
@@ -180,4 +183,6 @@ return {
    Mat = new_mat_ct(typeof("double")),
    IntMat = new_mat_ct(typeof("int")),
    FloatMat = new_mat_ct(typeof("float")),
+   ComplexMat = new_mat_ct(typeof("double complex")),
+   FloatComplexMat = new_mat_ct(typeof("float complex")),
 }

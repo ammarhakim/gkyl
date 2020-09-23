@@ -210,7 +210,7 @@ createKernelSurfXL(basisNm, polyOrder) := block(
   printf(fh, "                          const double* gCCL,~%"),
   printf(fh, "                          const double* gCCU,~%"),
   
-  printf(fh, "                          double *fOut) {~%"),
+  printf(fh, "                          double* fOut) {~%"),
   
   ba : getBasis(sconcat("basis-precalc/basis", basisNm, "3x"), polyOrder),
   createIndexShiftList(ba),
