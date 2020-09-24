@@ -417,7 +417,6 @@ local function buildApplication(self, tbl)
 	 else
 	    s:advance(tCurr, species, {field, externalField}, inIdx, outIdx)
 	 end
-         s:advance(tCurr, species, {field, externalField}, inIdx, outIdx)
       end
 
       -- Some systems (e.g. EM GK) require additional step(s) to complete the forward Euler.
