@@ -152,15 +152,17 @@ function MGpoisson:init(tbl)
       self.gamma = 1
    end
 
-   if (tbl.tolerance) then
-      -- User-defined tolerance (stopping point) if given.
-      self.tol            = tbl.tolerance
-      self.numGammaCycles = 1000
+   -- MG cycles will continue until the self.tol relative residual norm tolerance
+   -- is reached, or until the self.numGammaCycles number of MG cycles is performed.
+   if tbl.tolerance then
+      self.tol = tbl.tolerance
    else
-      -- If not given perform the user-defined number of cycles
-      -- or stop when the relative residual norm is 1e-12.
-      self.numGammaCycles = assert(tbl.numCycles, "Updater.MGpoisson: if 'tolerance' is not specified, must provide the number of cycles with 'numCycles'.")
-      self.tol = 1.0e-12
+      self.tol = 1.0e-12   -- Default tolerance.
+   end
+   if tbl.numCycles then
+      self.numGammaCycles = tbl.numCycles
+   else
+      self.numGammaCycles = 1000   -- Default number of MG cycles.
    end
    -- ~~.................... End of user-input multigrid parameters ......................~~ --
 
@@ -622,6 +624,13 @@ function MGpoisson:translateDG_FEM(inFld,outFld,dir)
    end
 
    if self.aPeriodicDir then outFld:sync() end
+end
+-- The following two are specializations of translateDG_FEM.
+function MGpoisson:translateDGtoFEM(inFld,outFld)
+   self:translateDG_FEM(inFld, outFld, DG_to_FEM)
+end
+function MGpoisson:translateFEMtoDG(inFld,outFld)
+   self:translateDG_FEM(inFld, outFld, FEM_to_DG)
 end
 
 function MGpoisson:projectFEM(femFld,fldOut)
@@ -1219,7 +1228,7 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
       self.rhoAll[1] = inFld[1]
    elseif self.isFEM then
       -- FEM solver. Translate RHS source DG coefficients to FEM.
-      self:translateDG_FEM(inFld[1], self.rhoAll[1], DG_to_FEM)
+      self:translateDGtoFEM(inFld[1], self.rhoAll[1])
       -- Project right-side source onto FEM (nodal) basis.
       self.phiAll[1]:copy(self.rhoAll[1])   -- Temporary buffer.
       self:projectFEM(self.phiAll[1], self.rhoAll[1])
@@ -1239,7 +1248,7 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
          self.phiAll[1] = initialGuess
       elseif self.isFEM then
          -- FEM solver. Translate initial guess DG coefficients to FEM.
-         self:translateDG_FEM(initialGuess, self.phiAll[1], DG_to_FEM)
+         self:translateDGtoFEM(initialGuess, self.phiAll[1])
       end
    else
       -- No initial guess provided. Perform Full Multi-Grid (FMG).
@@ -1275,7 +1284,7 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
 
    if self.isFEM then
       -- Translate final phi from FEM to DG.
-      self:translateDG_FEM(self.phiAll[1],outFld[1],FEM_to_DG)
+      self:translateFEMtoDG(self.phiAll[1],outFld[1])
    end
 
 --   if #self.diagnostics>0 then
