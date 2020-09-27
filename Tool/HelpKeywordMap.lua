@@ -10,6 +10,7 @@ return {
    -- outside links
    { "simj", "http://ammar-hakim.org/sj/index.html" },
    { "github", "https://github.com/ammarhakim/gkyl" },
+   { "contrib", "https://github.com/ammarhakim/gkyl/graphs/contributors" },
    
    { "jekyll", "https://www.gutenberg.org/files/43/43-h/43-h.htm" },
    { "hyde", "https://www.gutenberg.org/files/43/43-h/43-h.htm" },
@@ -54,7 +55,6 @@ return {
 
    -- tools
    { "tools", "https://gkeyll.readthedocs.io/en/latest/gkyl/tools.html" },
-   { "tools", "https://gkeyll.readthedocs.io/en/latest/gkyl/tools.html" },
    { "exacteulerrp", "https://gkeyll.readthedocs.io/en/latest/gkyl/tools.html#solving-the-exact-reimann-problem-for-euler-equations-exacteulerrp" },
    { "multimomlinear", "https://gkeyll.readthedocs.io/en/latest/gkyl/tools.html#linear-dispersion-relation-solver-multimomlinear" },
 
@@ -84,7 +84,6 @@ return {
 
    -- publications
    { "publications", "https://gkeyll.readthedocs.io/en/latest/gkyl/pubs.html" },
-   { "pubs", "https://gkeyll.readthedocs.io/en/latest/gkyl/pubs.html" },
    { "thesis", "https://gkeyll.readthedocs.io/en/latest/gkyl/pubs.html#doctoral-dissertations"},
    { "papers", "https://gkeyll.readthedocs.io/en/latest/gkyl/pubs.html#algorithms-papers" },
 }

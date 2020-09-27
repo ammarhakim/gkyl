@@ -6,7 +6,7 @@
 --------------------------------------------------------------------------------
 
 local argparse = require "Lib.argparse"
-local KeywordMap = "require Tool.HelpKeywordMap"
+local keywordMap = require "Tool.HelpKeywordMap"
 
 -- table of help topics to doc file names
 local topics = {
@@ -46,9 +46,43 @@ function open_url(url)
    open_cmd(url)
 end
 
+-- list of matching keywords
+local function getMatchingKeywords(keyword)
+   local matches = {}
+   local count = 1
+   for _, kv in ipairs(keywordMap) do
+      --if string.match(kv[1], "^" .. keyword) then
+      if string.match(kv[1], keyword) then
+	 matches[count] = kv
+	 count = count+1
+      end
+   end
+   return matches
+end
+
 if not args.optional then
    open_url("https://gkeyll.readthedocs.io/en/latest/")
 else
    local kw = args.optional
-   print("Looking for keyword: ", kw)
+   local matches = getMatchingKeywords(kw:lower())
+
+   -- take action based on how many matches were returned
+   if #matches == 0 then
+      print(string.format("No such keyword '%s'. Opening main page.", args.optional))
+      open_url("https://gkeyll.readthedocs.io/en/latest/")
+   elseif #matches == 1 then
+      open_url(matches[1][2])
+   else
+      -- display matches to user
+      print("Multiple matches. Choose one:")
+      for i, ma in ipairs(matches) do
+	 print(string.format("%d: %s", i, ma[1]))
+      end
+      io.write(">: ")
+      local n = io.read("*number")
+      if n <= #matches then
+	 -- open corresponding URL
+	 open_url(matches[n][2])
+      end
+   end
 end
