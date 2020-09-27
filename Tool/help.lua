@@ -6,6 +6,7 @@
 --------------------------------------------------------------------------------
 
 local argparse = require "Lib.argparse"
+local KeywordMap = "require Tool.HelpKeywordMap"
 
 -- table of help topics to doc file names
 local topics = {
