@@ -605,6 +605,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    else
       fRhsOut:clear(0.0)    -- No RHS.
    end
+
    -- Perform the collision update.
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
@@ -614,6 +615,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          -- collisions.
       end
    end
+
    if self.sourceSteadyState and self.evolveSources then
       local localEdgeFlux = ffi.new("double[3]")
       localEdgeFlux[0] = 0.0
@@ -1260,8 +1262,9 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       local m0 = species[self.neutNmCX]:fluidMoments()[1]
       local neutU = species[self.neutNmCX]:selfPrimitiveMoments()[1]
       local neutVtSq = species[self.neutNmCX]:selfPrimitiveMoments()[2]
+      --self.uSelf:write(string.format("%s_uCX_%d.bp",self.name,tCurr*1e10),tCurr,0,true)	 	 
       
-      species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uParSelf, neutU, self.vtSqSelf, neutVtSq}, {self.vSigmaCX})
+      species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uSelf, neutU, self.vtSqSelf, neutVtSq}, {self.vSigmaCX})
    end
 
    

@@ -119,6 +119,33 @@ function VmChargeExchange:createSolver(funcField) --species)
 	 basisType = self.phaseBasis:id()
       },
    }
+      self.M0iDistFn =  DataStruct.Field {
+      onGrid        = self.phaseGrid,
+      numComponents = self.phaseBasis:numBasis(),
+      ghost         = {1, 1},
+      metaData = {
+	 polyOrder = self.phaseBasis:polyOrder(),
+	 basisType = self.phaseBasis:id()
+      },
+   }
+   self.M0nDistFi =  DataStruct.Field {
+      onGrid        = self.phaseGrid,
+      numComponents = self.phaseBasis:numBasis(),
+      ghost         = {1, 1},
+      metaData = {
+	 polyOrder = self.phaseBasis:polyOrder(),
+	 basisType = self.phaseBasis:id()
+      },
+   }
+   self.diffDistF =  DataStruct.Field {
+      onGrid        = self.phaseGrid,
+      numComponents = self.phaseBasis:numBasis(),
+      ghost         = {1, 1},
+      metaData = {
+	 polyOrder = self.phaseBasis:polyOrder(),
+	 basisType = self.phaseBasis:id()
+      },
+   }
 end
 
 function VmChargeExchange:advance(tCurr, fIn, species, fRhsOut)
@@ -128,7 +155,7 @@ function VmChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       local ionM0 = species[self.ionNm]:fluidMoments()[1]
       local ionDistF = species[self.ionNm]:getDistF()
       
-      species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, }, {self.M0iDistFn})
+      species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
       species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
       self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
       species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})

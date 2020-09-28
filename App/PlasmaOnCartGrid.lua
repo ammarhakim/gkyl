@@ -296,11 +296,12 @@ local function buildApplication(self, tbl)
    --    end
    -- end
    for nm, s in pairs(species) do
---      if s.charge ~= 0 then
-	 s:clearMomentFlags(species)
-	 s:calcCouplingMoments(0.0, 1, species)
---      end
+      -- if s.charge ~= 0 then
+      s:clearMomentFlags(species)
+      s:calcCouplingMoments(0.0, 1, species)
+      -- end
    end
+
    -- Initialize field (sometimes requires species to have been initialized).
    field:createSolver(species, externalField)
    field:initField(species)
