@@ -38,7 +38,7 @@ return {
 
    -- vlasov-maxwell
    { "vlasov", "https://gkeyll.readthedocs.io/en/latest/gkyl/App/Vlasov/VlasovMaxwell.html" },
-   { "vm", "https://gkeyll.readthedocs.io/en/latest/gkyl/App/Vlasov/VlasovMaxwell.html" },
+   { "vm app", "https://gkeyll.readthedocs.io/en/latest/gkyl/App/Vlasov/VlasovMaxwell.html" },
 
    -- gyrokinetics
    { "gyrokinetics", "https://gkeyll.readthedocs.io/en/latest/gkyl/App/Gk/Gyrokinetics.html" },

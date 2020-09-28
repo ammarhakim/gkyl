@@ -8,11 +8,6 @@
 local argparse = require "Lib.argparse"
 local keywordMap = require "Tool.HelpKeywordMap"
 
--- table of help topics to doc file names
-local topics = {
-   ['usage'] = 'helpdocs/usage.md',
-}
-
 -- Create CLI parser to handle commands and options
 local parser = argparse()
    :name("help")
@@ -26,7 +21,7 @@ local args = parser:parse(GKYL_COMMANDS)
 
 -- Attempts to open a given URL in the system default browser
 local open_cmd
-function open_url(url)
+local function open_url(url)
    if not open_cmd then
       if package.config:sub(1,1) == '\\' then -- windows
 	 open_cmd = function(url)
@@ -51,7 +46,6 @@ local function getMatchingKeywords(keyword)
    local matches = {}
    local count = 1
    for _, kv in ipairs(keywordMap) do
-      --if string.match(kv[1], "^" .. keyword) then
       if string.match(kv[1], keyword) then
 	 matches[count] = kv
 	 count = count+1
