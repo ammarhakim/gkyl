@@ -6,12 +6,12 @@
 --------------------------------------------------------------------------------
 
 -- System libraries.
-local Lin                   = require "Lib.Linalg"
-local Proto                 = require "Lib.Proto"
+local Lin = require "Lib.Linalg"
+local Proto = require "Lib.Proto"
 local ConstDiffusionModDecl = require "Eq.constDiffusionData.ConstDiffusionModDecl"
-local ffi                   = require "ffi"
-local xsys                  = require "xsys"
-local EqBase                = require "Eq.EqBase"
+local ffi = require "ffi"
+local xsys = require "xsys"
+local EqBase = require "Eq.EqBase"
 
 -- ConstDiffusion equation on a rectangular mesh
 local ConstDiffusion = Proto(EqBase)
@@ -30,14 +30,14 @@ function ConstDiffusion:init(tbl)
    self._basis = assert(
       tbl.basis, "Eq.constDiffusion: Must specify basis functions to use using 'basis'")
 
-   local applyPositivity = xsys.pickBool(tbl.positivity,false)   -- Positivity preserving option.
+   local applyPositivity = xsys.pickBool(tbl.positivity, false)   -- Positivity preserving option.
 
    -- Store pointers to C kernels implementing volume and surface terms.
    self._volTerm, self._surfTerms = nil, nil
    if self._basis then
       local nm, ndim, p = self._basis:id(), self._basis:ndim(), self._basis:polyOrder()
-      self._volTerm           = ConstDiffusionModDecl.selectVol(nm, ndim, p)
-      self._surfTerms         = ConstDiffusionModDecl.selectSurf(nm, ndim, p, applyPositivity)
+      self._volTerm = ConstDiffusionModDecl.selectVol(nm, ndim, p)
+      self._surfTerms = ConstDiffusionModDecl.selectSurf(nm, ndim, p, applyPositivity)
       self._boundarySurfTerms = ConstDiffusionModDecl.selectBoundarySurf(nm, ndim, p, applyPositivity)
    end
 
