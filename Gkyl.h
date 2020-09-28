@@ -163,12 +163,14 @@ Gkyl::checkToolIfExist(const std::string& inp) {
     return;
   }
 
-  std::vector<std::string> toolMatch; // store matched names
+  std::vector<std::string> toolMatch, toolMatchNm; // store matched names
   // check for abbreviations
   for (const auto &[toolNm, toolInfo] : toolList) {
     std::size_t pos = toolNm.find(inp);
-    if (pos == 0)
+    if (pos == 0) {
       toolMatch.push_back(toolInfo.first);
+      toolMatchNm.push_back(toolNm);
+    }
   }
 
   if (toolMatch.size() == 0) {
@@ -180,9 +182,8 @@ Gkyl::checkToolIfExist(const std::string& inp) {
     return;
   }
   std::cout << "Multiple tools match '" << inpFile << "':" << std::endl;
-  for (const auto &v : toolMatch) {
+  for (const auto &v : toolMatchNm)
     std::cout << v << " ";
-  }
   std::cout << std::endl;
   throw std::runtime_error("Disambiguate tool name!");
 }
