@@ -6,7 +6,7 @@
 --------------------------------------------------------------------------------
 
 local CollisionsBase    = require "App.Collisions.CollisionsBase"
-local FluidDiffusion    = require "App.Collisions.FluidDiffusion"
+local Diffusion         = require "App.Collisions.Diffusion"
 local GkBGKCollisions   = require "App.Collisions.GkBGKCollisions"
 local GkLBOCollisions   = require "App.Collisions.GkLBOCollisions"
 local VmBGKCollisions   = require "App.Collisions.VmBGKCollisions"
@@ -15,7 +15,7 @@ local VoronovIonization = require "App.Collisions.VoronovIonization"
 
 return {
   CollisionsBase    = CollisionsBase,
-  FluidDiffusion    = FluidDiffusion,
+  Diffusion         = Diffusion,
   GkBGKCollisions   = GkBGKCollisions,
   GkLBOCollisions   = GkLBOCollisions,
   VmBGKCollisions   = VmBGKCollisions,
