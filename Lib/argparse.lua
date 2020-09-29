@@ -19,8 +19,6 @@
 -- COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 -- IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 -- CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
---
--- See https://argparse.readthedocs.io/en/stable/ for docs
 
 local function deep_update(t1, t2)
    for k, v in pairs(t2) do
@@ -2093,7 +2091,7 @@ end
 
 local argparse = {}
 
-argparse.version = "0.7.0"
+argparse.version = "0.7.1"
 
 setmetatable(argparse, {__call = function(_, ...)
    return Parser(default_cmdline[0]):add_help(true)(...)

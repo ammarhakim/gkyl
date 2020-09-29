@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- PlasmaOnCartGrid support code: Fluid diffusion term.
+-- PlasmaOnCartGrid support code: a diffusion term.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -16,52 +16,52 @@ local xsys             = require "xsys"
 local Lin              = require "Lib.Linalg"
 local Mpi              = require "Comm.Mpi"
 
--- FluidDiffusion ---------------------------------------------------------------
+-- Diffusion ---------------------------------------------------------------
 --
--- Add a diffusion term to the right side of a fluid equation.
+-- Add a diffusion term to the right side of an equation.
 --------------------------------------------------------------------------------
 
-local FluidDiffusion = Proto(CollisionsBase)
+local Diffusion = Proto(CollisionsBase)
 
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
-function FluidDiffusion:init(tbl)
+function Diffusion:init(tbl)
    self.tbl = tbl
 end
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
-function FluidDiffusion:fullInit(speciesTbl)
+function Diffusion:fullInit(speciesTbl)
    local tbl = self.tbl -- Previously stored table.
 
    self.cfl = 0.0    -- Will be replaced.
 
    self.diffCoeff = assert(tbl.coefficient, 
-      "App.FluidDiffusion: Must specify the diffusion coefficient (vector) in 'coefficient'.")
+      "App.Diffusion: Must specify the diffusion coefficient (vector) in 'coefficient'.")
 
    self.usePositivity = speciesTbl.applyPositivity    -- Use positivity preserving algorithms.
 
    self.tmEvalMom = 0.0
 end
 
-function FluidDiffusion:setName(nm)
+function Diffusion:setName(nm)
    self.name = nm
 end
-function FluidDiffusion:setSpeciesName(nm)
+function Diffusion:setSpeciesName(nm)
    self.speciesName = nm
 end
 
-function FluidDiffusion:setCfl(cfl)
+function Diffusion:setCfl(cfl)
    self.cfl = cfl
 end
-function FluidDiffusion:setConfBasis(basis)
+function Diffusion:setConfBasis(basis)
    self.confBasis = basis
 end
-function FluidDiffusion:setConfGrid(grid)
+function Diffusion:setConfGrid(grid)
    self.confGrid = grid
 end
 
-function FluidDiffusion:createSolver()
+function Diffusion:createSolver()
    self.cDim      = self.confBasis:ndim()
    self.cNumBasis = self.confBasis:numBasis()
 
@@ -94,7 +94,7 @@ function FluidDiffusion:createSolver()
    }
 end
 
-function FluidDiffusion:advance(tCurr, fIn, species, fRhsOut)
+function Diffusion:advance(tCurr, fIn, species, fRhsOut)
 
    -- Compute increment from collisions and accumulate it into output.
    self.diffusionSlvr:advance(tCurr, {fIn}, {self.collOut})
@@ -103,21 +103,21 @@ function FluidDiffusion:advance(tCurr, fIn, species, fRhsOut)
 
 end
 
-function FluidDiffusion:write(tm, frame)
+function Diffusion:write(tm, frame)
 -- Since this doesn't seem to be as big a problem in Vm as in Gk, we comment this out for now.
 --   self.primMomLimitCrossings:write(string.format("%s_%s_%d.bp", self.speciesName, "primMomLimitCrossings", frame), tm, frame)
 end
 
-function FluidDiffusion:totalTime()
+function Diffusion:totalTime()
    return self.diffusionSlvr.totalTime + self.tmEvalMom
 end
 
-function FluidDiffusion:slvrTime()
+function Diffusion:slvrTime()
    return self.diffusionSlvr.totalTime
 end
 
-function FluidDiffusion:momTime()
+function Diffusion:momTime()
    return self.tmEvalMom
 end
 
-return FluidDiffusion
+return Diffusion

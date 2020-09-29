@@ -63,17 +63,15 @@ _adios_read_open_file(const char *fname, enum ADIOS_READ_METHOD method, MPI_Comm
 // Finish simulation
 int finish(int err) {
   int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  if (0 != err)
-    MPI_Abort(MPI_COMM_WORLD, err);
-  else 
-    adios_finalize(rank);
-    MPI_Finalize();
+  adios_finalize(rank);
+  MPI_Finalize();
   return err;
 }
 
 // show usage
 void showUsage() {
   std::cout << "This is the Gkeyll code. See gkeyll.rtfd.io for details." << std::endl;
+  std::cout << "Also see documentation for the 'h' tool by typing gkyl h -h." << std::endl;
   std::cout << std::endl;
 
   std::cout << "gkyl [OPTIONS] app/tool [APP-OPTIONS]" << std::endl;

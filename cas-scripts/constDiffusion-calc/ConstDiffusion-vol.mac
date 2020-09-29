@@ -15,36 +15,25 @@ calcConstDiffusionVolUpdater(fh, funcNm, cdim, basisFun, pMax) := block([],
 
     kill(varsC, varsP, basisC, basisP),
     /* Load basis of dimensionality requested. */
-    modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
-    load(modNm),
+    load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
 
     /* Polynomial basis and its derivatives. */
     bC : basisC[polyOrder],
-    N : length(bC),
-/*    bCp : diff(bC,x), */
+    NC : length(bC),
 
     fg : doExpand(f, bC),	/* Function expanded in basis. */
-    fg : subst(makelist(f[i]=f[i-1],i,1,N),fg),
+    fg : subst(makelist(f[i]=f[i-1],i,1,NC),fg),
     
-    /* Mass matrix. Not needed. */
-/*    M : calcMassMatrix(varsC,1,bC),
-    invM : invert(M), */
-
     /* Volume matrix (convolution of derivatives). */
-/*    sgen[i,j] := innerProd(varsC,1,bCp[i],bCp[j]),
-    S : genmatrix(sgen,N,N), 
-    incr : S.fg, */
     incr : (
       incr : 0,
       for dir : 1 thru cdim do (
-        cv : varsC[dir],
+        cv   : varsC[dir],
         incr : incr+calcInnerProdList(varsC,rdxSq4nu[dir-1],diff(bC,cv,2),fg)
       ),
       incr
     ),
 
-    /* Contribution to vector of the boundary. */
-    
     printf(fh,"double ~aP~a(const double *w, const double *dxv, const double *nu, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
     printf(fh,"  // w[~a]:   Cell-center coordinates.~%",cdim),
     printf(fh,"  // dxv[~a]: Cell spacing.~%",cdim),
@@ -58,11 +47,6 @@ calcConstDiffusionVolUpdater(fh, funcNm, cdim, basisFun, pMax) := block([],
     ),
     printf(fh,"~%"),
   
-/*    Don't do coefficients where the increment is zero 
-    for i : 1 thru N do (
-      if (incr_r[i] = 0) then
-        incr_s[i] : 0
-    ), */
     writeCIncrExprs1(out, incr),
     printf(fh,"~%"),
 

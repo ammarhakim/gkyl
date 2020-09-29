@@ -1,6 +1,7 @@
 load("modal-basis")$
 load("out-scripts");
 load(stringproc)$
+load("recovery")$
 fpprec : 24$
 
 /* This script generates the kernels needed for adding the
@@ -116,10 +117,10 @@ compWriteIncr(fRec, fRecP, nSpaces) := block([incr_s1,incr_s2],
     ** by parts, another from evaluating at upper surface Minus lower
     ** surface, and the last one from evaluating at cv=-1. */
     incr_l1 : calcInnerProdList(surfVars,1,subst(cv=1,bC),fRecP),
-    incr_l2 : calcInnerProdList(surfVars,-2,subst(cv=1,bCp),fRec),
+    incr_l2 : calcInnerProdList(surfVars,-1,subst(cv=1,bCp),fRec),
 
     incr_r1 : -calcInnerProdList(surfVars,1,subst(cv=-1,bC),fRecP),
-    incr_r2 : -calcInnerProdList(surfVars,-2,subst(cv=-1,bCp),fRec),
+    incr_r2 : -calcInnerProdList(surfVars,-1,subst(cv=-1,bCp),fRec),
     
     clst : [wxr, dvxr],
     writeCExprsCollect1s(incr1, incr_r1, clst, nSpaces),
@@ -127,21 +128,21 @@ compWriteIncr(fRec, fRecP, nSpaces) := block([incr_s1,incr_s2],
     writeCExprsCollect1s(incr2, incr_r2, clst, nSpaces),
     printf(fh, "~%"),
 
-    incr_s1 : makelist(incr1[i-1], i, 1, N),
-    incr_s2 : makelist(incr2[i-1], i, 1, N),
+    incr_s1 : makelist(incr1[i-1], i, 1, NC),
+    incr_s2 : makelist(incr2[i-1], i, 1, NC),
     /* Don't do coefficients where the increment is zero */
-    for i : 1 thru N do (
+    for i : 1 thru NC do (
       if (incr_r1[i] = 0) then
         incr_s1[i] : 0,
       if (incr_r2[i] = 0) then
         incr_s2[i] : 0
     ), 
-    writeCIncrExprs1s(outr, rdxSq2nur*(incr_s1+incr_s2), nSpaces),
+    writeCIncrExprs1s(outr, rdxSq4nur*(incr_s1+incr_s2), nSpaces),
     printf(fh, "~%"),
   
-    signs1 : makelist(1,i,1,N),
-    signs2 : makelist(1,i,1,N),
-    for i : 1 thru N do (
+    signs1 : makelist(1,i,1,NC),
+    signs2 : makelist(1,i,1,NC),
+    for i : 1 thru NC do (
         if (incr_r1[i] = 0) then
           false
         else
@@ -151,18 +152,18 @@ compWriteIncr(fRec, fRecP, nSpaces) := block([incr_s1,incr_s2],
         else
           signs2[i] : fullratsimp(incr_l2[i]/incr_r2[i])
     ),
-    incr_s1 : makelist(signs1[i]*incr1[i-1], i, 1, N),
-    incr_s2 : makelist(signs2[i]*incr2[i-1], i, 1, N),
+    incr_s1 : makelist(signs1[i]*incr1[i-1], i, 1, NC),
+    incr_s2 : makelist(signs2[i]*incr2[i-1], i, 1, NC),
     /* Don't do coefficients where the increment is zero */
-    for i : 1 thru N do (
+    for i : 1 thru NC do (
       if (incr_r1[i] = 0) then
         incr_s1[i] : 0
     ), 
-    for i : 1 thru N do (
+    for i : 1 thru NC do (
       if (incr_r2[i] = 0) then
         incr_s2[i] : 0
     ), 
-    writeCIncrExprs1s(outl, rdxSq2nul*(incr_s1+incr_s2),nSpaces)
+    writeCIncrExprs1s(outl, rdxSq4nul*(incr_s1+incr_s2),nSpaces)
 )$
 
 calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax, applyPos) := block([],
@@ -178,72 +179,23 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax, applyPos) := block([],
 
     kill(varsC, varsP, basisC, basisP),
 
-    /*... Compute  1D recovery polynomial coefficients into hsol ...*/
-    /* Load 1D basis. */
-    load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
-    bC1 : basisC[polyOrder],
-    N1 : length(bC1),
-
-    eta(xc,dx,b) := subst(x=(w-xc)/(dx/2), b),
-
-    /* Construct the 1D recovery polynomial */
-    hOrder : 2*polyOrder+1,
-    /* Left and right (of the boundary) basis sets */ 
-    pL : eta(-1/2,1,bC1),
-    pR : eta(1/2,1,bC1),
-    /* Recovery polynomial expanded in z */
-    h1 : doExpand1(hn,makelist(w^i,i,0,hOrder)),
-    
-    /* LHS of system of equations arising from weak equivalence relations */
-    eqL : makelist(integrate(h1*pL[i],w,-1,0), i,1,polyOrder+1),
-    eqR : makelist(integrate(h1*pR[i],w,0,1), i,1,polyOrder+1),
-    LHS : append(eqL,eqR),
-    A : coefmatrix(LHS, makelist(hn[i],i,0,hOrder)),
-    
-    /* RHS is similar to the mass matrix */
-    RHS : transpose(append(makelist(fl[i]/2,i,1,N1), makelist(fr[i]/2,i,1,N1))),
-    
-    /* solve system of equations for coefficients of h */
-    S : fullratsimp(invert(A) . RHS),
-    hsol1 : makelist(S[i][1],i,1,hOrder+1),
-
-    /*... Recovery polynomial coefficients of requested dimensionality ...*/
-    kill(varsC, basisC),
-    /* Load basis of dimensionality requested. */
-    modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
-    load(modNm),
+    load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
 
     /* Variables. */
-    cv : varsC[dir],
+    cv       : varsC[dir],
     surfVars : delete(cv,varsC),
 
     /* Polynomial basis and its derivatives. */
-    bC : basisC[polyOrder],
-    N : length(bC),
+    bC  : basisC[polyOrder],
+    NC  : length(bC),
     bCp : diff(bC,cv),
 
-    fg : doExpand(f, bC),	/* Function expanded in basis. */
-
-    /* Obtain the left and right function coefficients
-       by projecting the function onto the direction of interest. */
-    hcoeff : calcInnerProdList([cv], 1, subst(x=cv,bC1), fg),
-    fls : subst(makelist(f[i]=fl[i],i,N), hcoeff),
-    frs : subst(makelist(f[i]=fr[i],i,N), hcoeff),
-
-    /* Substitute these "left" and "right" function coefficients,
-       which contain variation along other dimensions, into the
-       1D recovery polynomial coefficients computed above. */
-    hsol : psubst(append(makelist(fl[i]=fls[i], i, 1, N1), makelist(fr[i]=frs[i], i, 1, N1)), hsol1),
-    
-    /* Write out the full recovery polynomial. */
-    h : sum(hsol[i]*cv^(i-1), i, 1, 2*N1),
+    /* Recovery polynomial and its coefficients. */
+    hOrder : 2*polyOrder+1,
+    h      : calcRecov2CellGen(basisFun,cv,varsC,polyOrder,dg(makelist(fl[i],i,0,NC)), dg(makelist(fr[i],i,0,NC))),
+    hsol   : cons(subst(cv=0,h),makelist(subst(cv=0,diff(h,cv,ord)/(ord!)),ord,1,hOrder)),
     /* Evaluate the recovery polynomial at the discontinuity. */
     hsolp0 : subst(cv=0,diff(h,cv)),
-
-    /*............. RECOVERY DONE ..............................*/
-
-    /* Make references to fl and fr in hsol zero-indexed. */
-    hsol : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),hsol),
 
     printf(fh,"void ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], polyOrder),
     printf(fh,"  // w[~a]:      Cell-center coordinates.~%",cdim),
@@ -252,8 +204,8 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax, applyPos) := block([],
     printf(fh,"  // fl/fr:     Distribution function in left/right cells.~%"),
     printf(fh,"  // outl/outr: Incremented distribution function in left/right cells ~%"),
     cid : cidx(cdim),
-    printf(fh,"  double rdxSq2nul = 2.0*nu[~a]/(dxvl[~a]*dxvl[~a]); ~%", cid[dir], cid[dir], cid[dir]),
-    printf(fh,"  double rdxSq2nur = 2.0*nu[~a]/(dxvr[~a]*dxvr[~a]); ~%", cid[dir], cid[dir], cid[dir]),
+    printf(fh,"  double rdxSq4nul = 4.0*nu[~a]/(dxvl[~a]*dxvl[~a]); ~%", cid[dir], cid[dir], cid[dir]),
+    printf(fh,"  double rdxSq4nur = 4.0*nu[~a]/(dxvr[~a]*dxvr[~a]); ~%", cid[dir], cid[dir], cid[dir]),
     printf(fh,"~%"),
   
     printf(fh,"  double incr1[~a]; ~%", length(bC)),
@@ -418,72 +370,23 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax, applyPos) := bloc
 
     kill(varsC, varsP, basisC, basisP),
 
-    /*... Compute  1D recovery polynomial coefficients into hsol ...*/
-    /* Load 1D basis. */
-    load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
-    bC1 : basisC[polyOrder],
-    N1 : length(bC1),
-
-    eta(xc,dx,b) := subst(x=(w-xc)/(dx/2), b),
-
-    /* Construct the 1D recovery polynomial */
-    hOrder : 2*polyOrder+1,
-    /* Left and right (of the boundary) basis sets */
-    pL : eta(-1/2,1,bC1),
-    pR : eta(1/2,1,bC1),
-    /* Recovery polynomial expanded in z */
-    h1 : doExpand1(hn,makelist(w^i,i,0,hOrder)),
-
-    /* LHS of system of equations arising from weak equivalence relations */
-    eqL : makelist(integrate(h1*pL[i],w,-1,0), i,1,polyOrder+1),
-    eqR : makelist(integrate(h1*pR[i],w,0,1), i,1,polyOrder+1),
-    LHS : append(eqL,eqR),
-    A : coefmatrix(LHS, makelist(hn[i],i,0,hOrder)),
-
-    /* RHS is similar to the mass matrix */
-    RHS : transpose(append(makelist(fl[i]/2,i,1,N1), makelist(fr[i]/2,i,1,N1))),
-
-    /* solve system of equations for coefficients of h */
-    S : fullratsimp(invert(A) . RHS),
-    hsol1 : makelist(S[i][1],i,1,hOrder+1),
-
-    /*... Recovery polynomial coefficients of requested dimensionality ...*/
-    kill(varsC, basisC),
-    /* Load basis of dimensionality requested. */
-    modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
-    load(modNm),
+    load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
 
     /* Variables. */
-    cv : varsC[dir],
+    cv       : varsC[dir],
     surfVars : delete(cv,varsC),
 
     /* Polynomial basis and its derivatives. */
     bC  : basisC[polyOrder],
-    N   : length(bC),
+    NC  : length(bC),
     bCp : diff(bC,cv),
 
-    fg : doExpand(f, bC),       /* Function expanded in basis. */
-
-    /* Obtain the left and right function coefficients
-       by projecting the function onto the direction of interest. */
-    hcoeff : calcInnerProdList([cv], 1, subst(x=cv,bC1), fg),
-    fls : subst(makelist(f[i]=fl[i],i,N), hcoeff),
-    frs : subst(makelist(f[i]=fr[i],i,N), hcoeff),
-
-    /* Substitute these "left" and "right" function coefficients,
-       which contain variation along other dimensions, into the
-       1D recovery polynomial coefficients computed above. */
-    hsol : psubst(append(makelist(fl[i]=fls[i], i, 1, N1), makelist(fr[i]=frs[i], i, 1, N1)), hsol1),
-
-    /* Write out the full recovery polynomial. */
-    h : sum(hsol[i]*cv^(i-1), i, 1, 2*N1),
+    /* Recovery polynomial and its coefficients. */
+    hOrder : 2*polyOrder+1,
+    h      : calcRecov2CellGen(basisFun,cv,varsC,polyOrder,dg(makelist(fl[i],i,0,NC)), dg(makelist(fr[i],i,0,NC))),
+    hsol   : cons(subst(cv=0,h),makelist(subst(cv=0,diff(h,cv,ord)/(ord!)),ord,1,hOrder)),
     /* Evaluate the recovery polynomial at the discontinuity. */
     hsolp0 : subst(cv=0,diff(h,cv)),
-
-    /*............. RECOVERY DONE ..............................*/
-
-    /* Make references to fl and fr in hsol zero-indexed. */
-    hsol : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),hsol),
 
     printf(fh,"void ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], polyOrder),
     printf(fh,"  // w[~a]:      Cell-center coordinates.~%",cdim),
@@ -493,8 +396,8 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax, applyPos) := bloc
     printf(fh,"  // fl/fr:     Distribution function in left/right cells.~%"),
     printf(fh,"  // outl/outr: Incremented distribution function in left/right cells ~%"),
     cid : cidx(cdim),
-    printf(fh,"  double rdxSq2nul = 2.0*nu[~a]/(dxvl[~a]*dxvl[~a]); ~%", cid[dir], cid[dir], cid[dir]),
-    printf(fh,"  double rdxSq2nur = 2.0*nu[~a]/(dxvr[~a]*dxvr[~a]); ~%", cid[dir], cid[dir], cid[dir]),
+    printf(fh,"  double rdxSq4nul = 4.0*nu[~a]/(dxvl[~a]*dxvl[~a]); ~%", cid[dir], cid[dir], cid[dir]),
+    printf(fh,"  double rdxSq4nur = 4.0*nu[~a]/(dxvr[~a]*dxvr[~a]); ~%", cid[dir], cid[dir], cid[dir]),
     printf(fh,"~%"),
   
     printf(fh,"  double incr1[~a]; ~%", length(bC)),
