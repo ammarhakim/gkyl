@@ -1,7 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Test the 1D ConstDiffusion equation object to solve a diffusion equation
---    u_t = D*u_{xx}.
+-- Test the 3D ConstDiffusion equation object to solve a diffusion equation
+--    u_t = D_x*u_{xx}+D_y*u_{yy}+D_z*u_{zz}.
 -- with constant diffusion coefficient D.
 --
 --    _______     ___
@@ -17,24 +17,24 @@ local Eq         = require "Eq.ConstDiffusion"
 local Updater    = require "Updater"
 
 
-local pOrder       = 1                 -- Polynomial order.
-local basisName    = "Ser"             -- Type of polynomial basis.
-local numCells     = {8}               -- Number of cells.
-local lower        = {-1./2.}          -- Lower domain boundaries.
-local upper        = { 1./2.}          -- Upper domain boundaries.
+local pOrder       = 1                          -- Polynomial order.
+local basisName    = "Ser"                      -- Type of polynomial basis.
+local numCells     = {8, 8, 8}                  -- Number of cells.
+local lower        = {-1./2., -1./2., -1./2.}   -- Lower domain boundaries.
+local upper        = { 1./2.,  1./2.,  1./2.}   -- Upper domain boundaries.
 
-local periodicDirs = {1}               -- Periodic directions.
+local periodicDirs = {1, 2, 3}            -- Periodic directions.
 
-local diffCoeff    = {0.01}            -- Diffusion coefficient.
+local diffCoeff    = {0.01, 0.01, 0.01}   -- Diffusion coefficient.
 
-local tStart       = 0.0               -- Start time.
-local tEnd         = 1.5               -- End time.
-local nFrames      = 1                 -- Number of frames to write out.
-local cflNum       = 1./(2*pOrder+1)   -- CFL factor.
+local tStart       = 0.0                  -- Start time.
+local tEnd         = 1.5                  -- End time.
+local nFrames      = 1                    -- Number of frames to write out.
+local cflNum       = 1.0/(2*pOrder+1)     -- CFL factor. 
 
 -- .................. end of user inputs (MAYBE) .................... --
 
-local initDt     = 0.00976563/384 --tEnd-tStart -- initial time-step
+local initDt     =  0.00976563/384 --tEnd-tStart -- initial time-step
 local frame      = 1
 local step       = 1
 local tCurr      = tStart
@@ -116,30 +116,23 @@ local project = Updater.ProjectOnBasis {
 
 -- Initial condition to apply, centered at L/2 where L=1.0.
 local function fInitial(xn, lower, upper)
-   local x    = xn[1]
-   local Pi   = math.pi
-   local Lx   = {upper[1] - lower[1]}
-   local kNum = {2*Pi/Lx[1]}
-   -- Single sine mode
---   return 2.0*(1.0+math.sin(kNum[1]*x+0.05))+1.0e-7
-   return math.sin(kNum[1]*x)
-
---   -- Square top
---   if math.abs(x)<0.1 then
---      return 1.0
---   else
---      return 1e-5
---   end
+   local x, y, z = xn[1], xn[2], xn[3]
+   local Pi      = math.pi
+   local Lx      = {upper[1] - lower[1], upper[2] - lower[2], upper[3] - lower[3]}
+   local kNum    = {2*Pi/Lx[1], 2*Pi/Lx[2], 2*Pi/Lx[3]}
+   -- Single sine mode.
+   return math.sin(kNum[1]*x)*math.cos(kNum[2]*y)*math.sin(kNum[3]*z)
 end
 
 -- Analytic answer to diffusing a sine wave.
 function fAnalytic(t, xn, lower, upper, Dcoeff)
-   local x    = xn[1]
-   local Pi   = math.pi
-   local Lx   = {upper[1] - lower[1]}
-   local kNum = {2*Pi/Lx[1]}
-   -- Single sine mode
-   return math.sin(kNum[1]*x)*math.exp(-Dcoeff[1]*(kNum[1]^2)*t)
+   local x, y, z = xn[1], xn[2], xn[3]
+   local Pi      = math.pi
+   local Lx      = {upper[1] - lower[1], upper[2] - lower[2], upper[3] - lower[3]}
+   local kNum    = {2*Pi/Lx[1], 2*Pi/Lx[2], 2*Pi/Lx[3]}
+   -- Single sine mode.
+   return math.sin(kNum[1]*x)*math.cos(kNum[2]*y)*math.sin(kNum[3]*z)
+         *math.exp(-(Dcoeff[1]*kNum[1]^2+Dcoeff[2]*kNum[2]^2+Dcoeff[3]*kNum[3]^2)*t)
 end
 
 -- Project initial condition.
@@ -217,25 +210,23 @@ local tmSimStart = Time.clock()
 while true do
    -- If needed adjust dt to hit tEnd exactly.
    if tCurr+myDt > tEnd then myDt = tEnd-tCurr end
-      local status, dtSuggested = rk3(tCurr, myDt)   -- Take a time-step.
-      if status then   -- Check if step was successful.
-         tCurr = tCurr + myDt
-         -- We comment this out to take more steps and get more frames.
-         myDt = dtSuggested
-         step = step + 1
-         if tCurr >= frameCount*frameT or math.abs(tCurr-frameCount*frameT) < 1e-10 then
-            distf:write(string.format("distf_%d.bp",frameCount), tCurr, frameCount)
-            project:advance(tCurr, {}, {distfA})
-            distfA:write(string.format("distfA_%d.bp",frameCount), tCurr, frameCount)
-            frameCount = frameCount+1
-         end
-	 if (tCurr >= tEnd) then
-	    break
-         end
-      else
-         print(string.format(" ** Time step %g too large! Will retake with dt %g\n", myDt, dtSuggested))
-         myDt = dtSuggested
+   local status, dtSuggested = rk3(tCurr, myDt)   -- Take a time-step.
+   if status then   -- Check if step was successful.
+      tCurr = tCurr + myDt
+      -- We comment this out to take more steps and get more frames.
+      myDt = dtSuggested
+      step = step + 1
+      if tCurr >= frameCount*frameT or math.abs(tCurr-frameCount*frameT) < 1e-10 then
+         distf:write(string.format("distf_%d.bp",frameCount), tCurr, frameCount)
+         project:advance(tCurr, {}, {distfA})
+         distfA:write(string.format("distfA_%d.bp",frameCount), tCurr, frameCount)
+         frameCount = frameCount+1
       end
+      if (tCurr >= tEnd) then break end
+   else
+      print(string.format(" ** Time step %g too large! Will retake with dt %g\n", myDt, dtSuggested))
+      myDt = dtSuggested
+   end
 end -- End of time-step loop.
 local tmSimEnd = Time.clock()
 print(string.format(" Number of steps taken: %i", step))
