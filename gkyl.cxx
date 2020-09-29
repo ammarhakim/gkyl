@@ -71,6 +71,7 @@ int finish(int err) {
 // show usage
 void showUsage() {
   std::cout << "This is the Gkeyll code. See gkeyll.rtfd.io for details." << std::endl;
+  std::cout << "Also see documentation for the 'h' tool by typing gkyl h -h." << std::endl;
   std::cout << std::endl;
 
   std::cout << "gkyl [OPTIONS] app/tool [APP-OPTIONS]" << std::endl;

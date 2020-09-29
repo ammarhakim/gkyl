@@ -11,13 +11,52 @@ local keywordMap = require "Tool.HelpKeywordMap"
 -- Create CLI parser to handle commands and options
 local parser = argparse()
    :name("help")
-   :description [[Run Gkeyll help system]]
+   :description [[
+Open Gkeyll documentation webpage at gkeyll.rtfd.io and optionally
+search within it via keywords. To just open the documentation page
+type:
+
+ gkyl h
+
+For example, to open documentation for basis functions do:
+
+ gkyl h basis
+
+or
+
+ gkyl h modal
+
+The keywords don't need to be completely spelled out. For example the
+following will also work:
+
+ gkyl h bas
+
+If there are more than one keywork matches the tool will display
+options for the user to choose from. If no keyword matches are found
+the home page is opened.
+]]
+
+parser:flag("-k --keywords", "List available keywords")
 
 parser:argument("optional", "Keyword to search")
    :args("?")
 
 -- parse command line parameters
 local args = parser:parse(GKYL_COMMANDS)
+
+if args.keywords then
+   kwds = {}
+   for i, kv in ipairs(keywordMap) do
+      kwds[i] = kv[1]
+   end
+   table.sort(kwds)
+   for _, kv in ipairs(kwds) do
+      io.write(string.format("'%s' ", kv))
+   end
+   
+   print("")
+   return
+end
 
 -- Attempts to open a given URL in the system default browser
 local open_cmd

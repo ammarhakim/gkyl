@@ -192,7 +192,7 @@ Gkyl::Gkyl(const std::string& luaExpr, const std::string& inpFileNm, const std::
   : hasInpFile(!inpFileNm.empty()), luaExpr(luaExpr), inpFile(inpFileNm), args(args), execPath(findExecPath())
 {
   toolList = {
-    { "help", { "help.lua", "Gkeyll help system" } },
+    { "h", { "help.lua", "Gkeyll help system" } },
     { "examples", {"examples.lua", "Example input files"} },
     { "queryrdb", {"queryrdb.lua", "Query/modify regression test DB"} },
     { "runregression", {"runregression.lua", "Run regression/unit tests"} },
