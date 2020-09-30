@@ -221,11 +221,13 @@ calcFEMprolongationOp(fh, funcNm, dim, basisFun, pMax) := block([beta,coordVarS,
         printf(fh, "~%"),
   
         /* Create a pointer to each cell used by stencil. */
-        for iF : 1 thru length(dataStrsF) do (
-          idx : sublist_indices(weqSolvLHS, lambda([x],op(x)=eval_string(sconcat("fldF",dataStrsF[iF])))),
+        weqSizeFused  : makelist([2,0],i,1,dim),
+        dataStrsFused : getDataStr(weqSizeF,stencilLocF,varsC),
+        for iF : 1 thru length(dataStrsFused) do (
+          idx : sublist_indices(weqSolvLHS, lambda([x],op(x)=eval_string(sconcat("fldF",dataStrsFused[iF])))),
           if (length(idx)>0) then (
             if (weqSolvRHS[idx[1]] # 0) then (
-              printf(fh, "  double *fldF~a = fldF[~a];~%", dataStrsF[iF], iF-1)
+              printf(fh, "  double *fldF~a = fldF[~a];~%", dataStrsFused[iF], iF-1)
             )
           )
         ),
@@ -393,13 +395,16 @@ calcFEMrestrictionOp(fh, funcNm, dim, basisFun, pMax) := block([beta,coordVarS,s
         printf(fh, "~%"),
   
         /* Create a pointer to each cell used by stencil. */
-        for iF : 1 thru length(dataStrsF) do (
+        weqSizeFused  : makelist([2,0],i,1,dim),
+        dataStrsFused : getDataStr(weqSizeF,stencilLocF,varsC),
+        print("loc = ",stencilLoc[sI]," BC = ",currBC, dataStrsFused),
+        for iF : 1 thru length(dataStrsFused) do (
           nodeNotIn : true,
           for k : 1 thru length(weqSolvRHS) do (
-            nodeNotIn : nodeNotIn and freeof(eval_string(sconcat("fldF",dataStrsF[iF])),weqSolvRHS[k])
+            nodeNotIn : nodeNotIn and freeof(eval_string(sconcat("fldF",dataStrsFused[iF])),weqSolvRHS[k])
           ),
           if not nodeNotIn then (
-            printf(fh, "  double *fldF~a = fldF[~a];~%", dataStrsF[iF], iF-1)
+            printf(fh, "  double *fldF~a = fldF[~a];~%", dataStrsFused[iF], iF-1)
           )
         ),
         printf(fh, "~%"),

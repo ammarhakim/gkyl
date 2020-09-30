@@ -101,7 +101,7 @@ for bInd : 1 thru length(bName) do (
     disp(printf(false,sconcat("Working on MGpoissonFEMaccuConst", c, "x", bName[bInd]))),
     calcAccumulateConst(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
 
-    close(fh)
+    close(fh),
     
     /* Electrostatic energy kernels. */
     fname : sconcat("~/max-out/MGpoissonESenergy", bName[bInd], c, "x", ".cpp"),

@@ -840,6 +840,8 @@ function MGpoisson:restrictFEM(fFld,cFld)
    local cellsN = {}
    for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
 
+   local fLocalRange = fFld:localRange()
+
    local rangeDecomp = LinearDecomp.LinearDecompRange {
       range = cFld:localRange(), numSplit = grid:numSharedProcs() }
    local tId         = grid:subGridSharedId()    -- Local thread ID.
@@ -862,8 +864,7 @@ function MGpoisson:restrictFEM(fFld,cFld)
          for rI = 1, prevAdded do
             for k = 1, (self.igOpStencilWidth-1) do
                local newIdxInDir = self.fineGridIdx[rI][dir]-k
-               if ((not grid:isDirPeriodic(dir)) and newIdxInDir<1) or 
-                  ((grid:isDirPeriodic(dir) and newIdxInDir<0)) then break end
+               if ((not grid:isDirPeriodic(dir)) and newIdxInDir<1) then break end
                fCellCount = fCellCount + 1
                for d = 1, self.dim do self.fineGridIdx[fCellCount][d] = self.fineGridIdx[rI][d] end
                self.fineGridIdx[fCellCount][dir] = newIdxInDir
@@ -875,8 +876,12 @@ function MGpoisson:restrictFEM(fFld,cFld)
   
       -- Array of pointers to fine-grid field data by stencil. 
       for i = 1, fCellCount do
-         fFld:fill(fFldIndexer(self.fineGridIdx[i]), fFldItr)
-         self.fineFldItr[i] = fFldItr:data()
+         if fLocalRange:contains(self.fineGridIdx[i]) then
+            fFld:fill(fFldIndexer(self.fineGridIdx[i]), fFldItr)
+            self.fineFldItr[i] = fFldItr:data()
+         else
+            self.fineFldItr[i] = self.cellBuf:data()
+         end
       end
   
       self._restriction[self:idxToStencil(cIdx,cellsN)](self.fineFldItr:data(), cFldItr:data())
@@ -1142,8 +1147,7 @@ function MGpoisson:prolongFEM(cFld,fFld)
          for rI = 1, prevAdded do
             for k = 1, (self.igOpStencilWidth-1) do
                local newIdxInDir = self.fineGridIdx[rI][dir]-k
-               if (newIdxInDir<1 and not grid:isDirPeriodic(dir)) or
-                  (newIdxInDir<0 and grid:isDirPeriodic(dir)) then break end
+               if (newIdxInDir<1 and not grid:isDirPeriodic(dir)) then break end
                fCellCount = fCellCount + 1
                for d = 1, self.dim do self.fineGridIdx[fCellCount][d] = self.fineGridIdx[rI][d] end
                self.fineGridIdx[fCellCount][dir] = newIdxInDir
@@ -1152,7 +1156,7 @@ function MGpoisson:prolongFEM(cFld,fFld)
       end
 
       cFld:fill(cFldIndexer(cIdx), cFldItr)   -- Coarse field pointer.
-  
+
       -- Array of pointers to fine-grid field data by stencil.
       for i = 1, fCellCount do
          if fLocalRange:contains(self.fineGridIdx[i]) then
