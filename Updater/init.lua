@@ -11,6 +11,7 @@ local BgkCollisions = require "Updater.BgkCollisions"
 local CartFieldBinOp = require "Updater.CartFieldBinOp"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local CartFieldInterpolate = require "Updater.CartFieldInterpolate"
+local ChargeExchange = require "Updater.ChargeExchange"
 local ConfToPhase = require "Updater.ConfToPhase"
 local CrossPrimMoments = require "Updater.CrossPrimMoments"
 local DiscontGenPoisson = require "Updater.DiscontGenPoisson"
@@ -22,8 +23,10 @@ local FemParPoisson = require "Updater.FemParPoisson"
 local FemPerpPoisson = require "Updater.FemPerpPoisson"
 local FemPoisson = require "Updater.FemPoisson"
 local FiveMomentSrc = require "Updater.FiveMomentSrc"
+local GkMaxwellianOnBasis = require "Updater.GkMaxwellianOnBasis"
 local HyperDisCont = require "Updater.HyperDisCont"
 local HyperDisContCellBased = require "Updater.HyperDisContCellBased"
+local Ionization = require "Updater.Ionization"
 local IntegratedDGMoment = require "Updater.IntegratedDGMoment"
 local LagrangeFix = require "Updater.LagrangeFix"
 local MGpoisson = require "Updater.MGpoisson"
@@ -38,7 +41,6 @@ local SpitzerCollisionality = require "Updater.SpitzerCollisionality"
 local StairSteppedBc = require "Updater.StairSteppedBc"
 local TenMomentRelax = require "Updater.TenMomentRelax"
 local TenMomentSrc = require "Updater.TenMomentSrc"
-local VoronovIonization = require "Updater.VoronovIonization"
 local WavePropagation = require "Updater.WavePropagation"
 
 return {
@@ -47,6 +49,7 @@ return {
    CartFieldBinOp = CartFieldBinOp,
    CartFieldIntegratedQuantCalc = CartFieldIntegratedQuantCalc,
    CartFieldInterpolate = CartFieldInterpolate,
+   ChargeExchange = ChargeExchange,
    ConfToPhase = ConfToPhase,
    CrossPrimMoments = CrossPrimMoments,
    DiscontGenPoisson = DiscontGenPoisson,
@@ -58,8 +61,10 @@ return {
    FemPerpPoisson = FemPerpPoisson,
    FemPoisson = FemPoisson,
    FiveMomentSrc = FiveMomentSrc,
+   GkMaxwellianOnBasis = GkMaxwellianOnBasis,
    HyperDisCont = HyperDisCont,
    HyperDisContCellBased = HyperDisContCellBased,
+   Ionization = Ionization,
    IntegratedDGMoment = IntegratedDGMoment,
    LagrangeFix = LagrangeFix,
    MGpoisson = MGpoisson,
@@ -74,6 +79,5 @@ return {
    StairSteppedBc = StairSteppedBc,
    TenMomentRelax = TenMomentRelax,
    TenMomentSrc = TenMomentSrc,
-   VoronovIonization = VoronovIonization,
    WavePropagation = WavePropagation,
 }

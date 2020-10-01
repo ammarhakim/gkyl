@@ -363,6 +363,34 @@ def build(bld):
     confToPhaseData/ConfToPhaseSer3x2v.cpp
     confToPhaseData/ConfToPhaseSer3x3v.cpp
 
+    ionizationCalcData/IonizationVtSqMax1x.cpp
+    ionizationCalcData/IonizationVtSqMax2x.cpp
+    ionizationCalcData/IonizationVtSqMax3x.cpp
+    ionizationCalcData/IonizationVtSqSer1x.cpp
+    ionizationCalcData/IonizationVtSqSer2x.cpp
+    ionizationCalcData/IonizationVtSqSer3x.cpp
+    ionizationCalcData/VoronovMax1x.cpp
+    ionizationCalcData/VoronovMax2x.cpp
+    ionizationCalcData/VoronovMax3x.cpp
+    ionizationCalcData/VoronovSer1x.cpp
+    ionizationCalcData/VoronovSer2x.cpp
+    ionizationCalcData/VoronovSer3x.cpp
+
+    chargeExchangeCalcData/SigmaCXcellAvMax1x1v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvMax1x2v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvMax1x3v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvMax2x2v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvMax2x3v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvMax3x3v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvSer1x1v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvSer1x2v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvSer1x3v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvSer2x2v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvSer2x3v.cpp
+    chargeExchangeCalcData/SigmaCXcellAvSer3x3v.cpp
+
+    GkMaxwellianOnBasisImpl.cpp
+
     MappedPoissonImpl.cpp
 
     MaxwellianOnBasisImpl.cpp
@@ -410,7 +438,7 @@ def build(bld):
         )
 
     bld.shlib(source = sources,
-              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', 
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData', 
               use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     
 ## Removed the following files from the build for now

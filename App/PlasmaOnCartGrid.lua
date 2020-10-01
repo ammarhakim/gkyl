@@ -289,18 +289,32 @@ local function buildApplication(self, tbl)
    end   
 
    -- Compute the coupling moments.
+   -- for nm, s in pairs(species) do
+   --    if s.charge == 0 then
+   -- 	 s:clearMomentFlags(species)
+   -- 	 s:calcCouplingMoments(0.0, 1, species)
+   --    end
+   -- end
    for nm, s in pairs(species) do
+      -- if s.charge ~= 0 then
       s:clearMomentFlags(species)
       s:calcCouplingMoments(0.0, 1, species)
+      -- end
    end
+
    -- Initialize field (sometimes requires species to have been initialized).
    field:createSolver(species, externalField)
    field:initField(species)
+
    -- Apply species BCs.
    for nm, s in pairs(species) do
       -- This is a dummy forwardEuler call because some BCs require 
       -- auxFields to be set, which is controlled by species solver.
-      s:advance(0, species, {field, externalField}, 1, 2)
+      if s.charge == 0.0 then
+      	 s:advance(0, species, {NoField {}, NoField {}}, 1, 2)
+      else
+	 s:advance(0, species, {field, externalField}, 1, 2)
+      end
       s:applyBc(0, s:rkStepperFields()[1])
    end
 
@@ -317,7 +331,7 @@ local function buildApplication(self, tbl)
       field:writeRestart(tCurr)
       externalField:writeRestart(tCurr)
    end
-
+   
    -- Function to read from restart frame.
    local function readRestart() --> Time at which restart was written.
       local rTime = 0.0
@@ -329,7 +343,11 @@ local function buildApplication(self, tbl)
       for _, s in pairs(species) do
          -- This is a dummy forwardEuler call because some BCs require 
          -- auxFields to be set, which is controlled by species solver.
-         s:advance(0, species, {field, externalField}, 1, 2)
+	 if s.charge == 0 then
+	    s:advance(0, species, {NoField {}, NoField {}}, 1, 2)
+	 else
+	    s:advance(0, species, {field, externalField}, 1, 2)
+	 end
          s:setDtGlobal(dtLast[1])
 	 rTime = s:readRestart()
       end
@@ -342,7 +360,7 @@ local function buildApplication(self, tbl)
       -- and adjust tStart accordingly.
       tStart = readRestart()
    else
-      writeData(0.0) -- Write initial conditions.
+      writeData(0.0) -- Write inital conditions.
    end
 
    -- Determine whether we need two steps in forwardEuler.
@@ -395,7 +413,11 @@ local function buildApplication(self, tbl)
 
       -- Update species.
       for nm, s in pairs(species) do
-         s:advance(tCurr, species, {field, externalField}, inIdx, outIdx)
+	 if s.charge == 0 then
+	    s:advance(tCurr, species, {NoField {}, NoField {}}, inIdx, outIdx)
+	 else
+	    s:advance(tCurr, species, {field, externalField}, inIdx, outIdx)
+	 end
       end
 
       -- Some systems (e.g. EM GK) require additional step(s) to complete the forward Euler.
@@ -931,6 +953,8 @@ return {
 	 LBOCollisions = require "App.Collisions.GkLBOCollisions",
 	 BgkCollisions = require "App.Collisions.GkBGKCollisions",
 	 LboCollisions = require "App.Collisions.GkLBOCollisions",
+	 ChargeExchange = require "App.Collisions.GkChargeExchange",
+	 Ionization = require "App.Collisions.GkIonization",
       }
    end,
    
@@ -959,6 +983,8 @@ return {
 	 LBOCollisions = require "App.Collisions.VmLBOCollisions",
 	 BgkCollisions = require "App.Collisions.VmBGKCollisions",
 	 LboCollisions = require "App.Collisions.VmLBOCollisions",
+	 ChargeExchange = require "App.Collisions.VmChargeExchange",
+	 Ionization = require "App.Collisions.VmIonization",
       }
    end,
    

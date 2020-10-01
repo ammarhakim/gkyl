@@ -82,8 +82,8 @@ function SelfPrimMoments:init(tbl)
    end
 
    self._SelfPrimMomentsCalc = PrimMomentsDecl.selectSelfPrimMomentsCalc(self._kinSpecies, self._basisID, self._cDim, self._vDim, self._polyOrder)
-   self.onGhosts = xsys.pickBool(false, tbl.onGhosts)
-   
+   self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
+
    self._binOpData = ffiC.new_binOpData_t(self._numBasisC*(uDim+1), 0) 
 end
 
@@ -101,7 +101,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
 
    -- Moments used for all polyOrders.
    local m0, m1 = inFld[1], inFld[2]
-   local confIndexer   = m0:genIndexer()
+   local confIndexer = m0:genIndexer()
    local m0Itr       = m0:get(1)
    local m1Itr       = m1:get(1)
 

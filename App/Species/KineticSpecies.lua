@@ -511,9 +511,9 @@ end
 function KineticSpecies:createSolver(externalField)
    -- Create solvers for collisions.
    for _, c in pairs(self.collisions) do
+      -- c:createSolver(funcField, species) -- from fixNeutrals HEAD
       c:createSolver(externalField)
    end
-
    if self.positivity then
       self.posChecker = Updater.PositivityCheck {
          onGrid = self.grid,
@@ -589,7 +589,18 @@ function KineticSpecies:alloc(nRkDup)
    -- a flag for each pair of species colliding.
    self.momentFlags[5] = {}  -- Corresponds to uCross and vtSqCross.
    self.momentFlags[6] = {}  -- Corresponds to varNuXCross.
+end
 
+function KineticSpecies:getDistF(rkIdx)
+   if rkIdx == nil then
+      return self:rkStepperFields()[self.activeRKidx]
+   else
+      return self:rkStepperFields()[self.rkIdx]
+   end
+end
+
+function KineticSpecies:setActiveRKidx(rkIdx)
+   self.activeRKidx = rkIdx
 end
 
 -- Note: do not call applyBc here. it is called later in initialization sequence.
@@ -602,7 +613,6 @@ function KineticSpecies:initDist()
 
    local syncPeriodicDirs = true
    if self.fluctuationBCs then syncPeriodicDirs = false end
-
    local initCnt, backgroundCnt = 0, 0
    for _, pr in pairs(self.projections) do
       pr:fullInit(self)
@@ -665,6 +675,8 @@ function KineticSpecies:initDist()
    end
 
    self.distf[2]:clear(0.0)
+   
+   self:setActiveRKidx(1)
 
    -- Calculate initial density averaged over simulation domain.
    --self.n0 = nil
@@ -906,6 +918,35 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
              string.format("%s_%s.bp", self.name, mom..bc:label()), tm, self.diagIoFrame)
        end
     end
+
+    -- Write ionization diagnostics
+    if self.calcReactRate then
+       local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
+       self.fMaxwellIz:write(string.format("%s_fMaxwell_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       self.vtSqIz:write(string.format("%s_vtSqIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       self.voronovReactRate:write(string.format("%s_coefIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       -- include dynvector for zeroth vector of ionization source
+       local srcIzM0 = self:allocMoment()
+       self.numDensityCalc:advance(tm, {sourceIz}, {srcIzM0})
+       local intCalc = Updater.CartFieldIntegratedQuantCalc {
+       	  onGrid        = self.confGrid,
+       	  basis         = self.confBasis,
+       	  numComponents = 1,
+       	  quantity      = "V",
+       	  timeIntegrate = true,
+       }
+       intCalc:advance( tm, {srcIzM0}, {self.intSrcIzM0} )
+       self.intSrcIzM0:write(
+          string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)   
+       
+    end
+
+    -- Write CX diagnostics
+    if self.calcCXSrc then
+       self.vSigmaCX:write(string.format("%s_vSigmaCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       self.collisions[self.collNmCX].sourceCX:write(string.format("%s_sourceCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+    end
 end
 
 function KineticSpecies:isEvolving()
@@ -1000,6 +1041,11 @@ function KineticSpecies:writeRestart(tm)
       self.diagnosticIntegratedMomentFields[mom]:write(
          string.format("%s_%s_restart.bp", self.name, mom), tm, self.dynVecRestartFrame, false, false)
    end
+
+   if self.calcReactRate then
+      self.intSrcIzM0:write(
+	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
+   end
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
@@ -1020,6 +1066,11 @@ function KineticSpecies:readRestart()
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
       self.diagnosticIntegratedMomentFields[mom]:read(
          string.format("%s_%s_restart.bp", self.name, mom))
+   end
+   
+   if self.calcReactRate then
+      self.intSrcIzM0:read(
+	 string.format("%s_intSrcIzM0_restart.bp", self.name))
    end
 
    for i, mom in pairs(self.diagnosticMoments) do

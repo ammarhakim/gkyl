@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Updater to create the Maxwellian distribution from the conserved
+-- Updater to create the Maxwellian distribution from the coserved
 -- moments and project it on basis functions. Uses Gaussian
 -- quadrature.
 --
@@ -21,7 +21,8 @@ local ffiC = ffi.C
 local xsys = require "xsys"
 
 ffi.cdef [[
-  void MaxwellianInnerLoop(double * n, double * u, double * vth2,
+  void GkMaxwellianInnerLoop(double * n, double * u, double * vtSq,
+                           double * bmag, double m_,
 			   double * fItr,
 			   double * weights, double * dz, double * zc,
 			   double * ordinates,
@@ -30,30 +31,36 @@ ffi.cdef [[
 			   int numPhaseBasis, 
                            int numConfOrds, int numPhaseOrds,
 			   int numConfDims, int numPhaseDims);
+
 ]]
 
 -- Inherit the base Updater from UpdaterBase updater object
-local MaxwellianOnBasis = Proto(UpdaterBase)
+local GkMaxwellianOnBasis = Proto(UpdaterBase)
 
 ----------------------------------------------------------------------
 -- Updater Initialization --------------------------------------------
-function MaxwellianOnBasis:init(tbl)
-   MaxwellianOnBasis.super.init(self, tbl) -- setup base object
+function GkMaxwellianOnBasis:init(tbl)
+   GkMaxwellianOnBasis.super.init(self, tbl) -- setup base object
 
    self.confGrid = assert(tbl.confGrid,
-			  "Updater.MaxwellianOnBasis: Must provide configuration space grid object 'confGrid'")
+			  "Updater.GkMaxwellianOnBasis: Must provide configuration space grid object 'confGrid'")
    self.confBasis = assert(tbl.confBasis,
-			   "Updater.MaxwellianOnBasis: Must provide configuration space basis object 'confBasis'")
+			   "Updater.GkMaxwellianOnBasis: Must provide configuration space basis object 'confBasis'")
    self.phaseGrid = assert(tbl.onGrid,
-			   "Updater.MaxwellianOnBasis: Must provide phase space grid object 'onGrid'")
+			   "Updater.GkMaxwellianOnBasis: Must provide phase space grid object 'onGrid'")
    self.phaseBasis = assert(tbl.phaseBasis,
-			    "Updater.MaxwellianOnBasis: Must provide phase space basis object 'phaseBasis'")
+			    "Updater.GkMaxwellianOnBasis: Must provide phase space basis object 'phaseBasis'")
+   self.mass = assert(tbl.gkfacs[1],
+		      "Updater.GkMaxwellianOnBasis: Must provide mass object in 'gkfacs'")
+   self.bmag = assert(tbl.gkfacs[2],
+		      "Updater.GkMaxwellianOnBasis: Must provide bmag object in 'gkfacs'")
+   self.bmagItr = self.bmag:get(1)
 
    -- Number of quadrature points in each direction
    local N = tbl.numConfQuad and tbl.numConfQuad or self.confBasis:polyOrder() + 1
-   assert(N<=8, "Updater.MaxwellianOnBasis: Gaussian quadrature only implemented for numQuad<=8 in each dimension")
+   assert(N<=8, "Updater.GkMaxwellianOnBasis: Gaussian quadrature only implemented for numQuad<=8 in each dimension")
 
-   self.projectOnGhosts = xsys.pickBool(tbl.projectOnGhosts, true)
+   self.onGhosts = xsys.pickBool(tbl.projectOnGhosts, true)
 
    -- 1D weights and ordinates
    local ordinates = GaussQuadRules.ordinates[N]
@@ -121,80 +128,93 @@ end
 
 ----------------------------------------------------------------------
 -- Updater Advance ---------------------------------------------------
-function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
+function GkMaxwellianOnBasis:_advance(tCurr, inFld, outFld)
+
    -- Get the inputs and outputs
-   local nIn    = assert(inFld[1], "MaxwellianOnBasis.advance: Must specify density 'inFld[1]'")
-   local uIn    = assert(inFld[2], "MaxwellianOnBasis.advance: Must specify drift speed 'inFld[2]'")
-   local vth2In = assert(inFld[3], "MaxwellianOnBasis.advance: Must specify thermal velocity squared 'inFld[3]'")
-   local fOut   = assert(outFld[1], "MaxwellianOnBasis.advance: Must specify an output field 'outFld[1]'")
+   local nIn    = assert(inFld[1], "GkMaxwellianOnBasis.advance: Must specify density 'inFld[1]'")
+   local uIn = assert(inFld[2], "GkMaxwellianOnBasis.advance: Must specify drift speed 'inFld[2]'")
+   local vtSqIn = assert(inFld[3], "GkMaxwellianOnBasis.advance: Must specify thermal velocity squared 'inFld[3]'")
+   local fOut   = assert(outFld[1], "GkMaxwellianOnBasis.advance: Must specify an output field 'outFld[1]'")
 
    local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
    local uDim = uIn:numComponents()/self.numConfBasis -- number of dimensions in u
+   
+   -- OLD CODE before projecting on ghosts --
+   -- Move these declarations below self.onGhosts 
+   -- local bmagItr, bmagOrd = self.bmag:get(1), Lin.Vec(self.numConfOrds)
+   -- local nItr, nOrd       = nIn:get(1), Lin.Vec(self.numConfOrds)
+   -- local uItr, uOrd = uIn:get(1), Lin.Vec(self.numConfOrds)
+   -- local vtSqItr, vtSqOrd = vtSqIn:get(1), Lin.Vec(self.numConfOrds)
+   -- local fItr             = fOut:get(1)
+ 
+   -- Get the Ranges to loop over the domain (always project on ghosts)
+   -- local confRange    = nIn:localExtRange()
+   -- local confIndexer  = nIn:genIndexer()
+   -- local phaseRange   = fOut:localExtRange()
+   -- local phaseIndexer = fOut:genIndexer()
 
-   local nItr, nOrd       = nIn:get(1), Lin.Vec(self.numConfOrds)
-   local uItr, uOrd       = uIn:get(1), Lin.Mat(self.numConfOrds, vDim)
-   local vth2Itr, vth2Ord = vth2In:get(1), Lin.Vec(self.numConfOrds)
-   local fItr             = fOut:get(1)
+   -- -- construct ranges for nested loops
+   -- local confRangeDecomp = LinearDecomp.LinearDecompRange {
+   --    range = phaseRange:selectFirst(cDim), numSplit = self.phaseGrid:numSharedProcs() }
+   --    -- range = nIn:localExtRange(), numSplit = self.phaseGrid:numSharedProcs() }
+   -- local velRange = phaseRange:selectLast(vDim)
+   -- local tId = self.phaseGrid:subGridSharedId() -- local thread ID
 
-   -- Get the Ranges to loop over the domain
-   local confRange    = nIn:localRange()
-   local confIndexer  = nIn:genIndexer()
-   local phaseRange   = fOut:localRange()
-      if self.onGhosts then -- extend range to config-space ghosts
+   local ordIdx = nil
+   local phaseRange = fOut:localRange()
+   if self.onGhosts then -- extend range to config-space ghosts
       local cdirs = {}
       for dir = 1, cDim do 
          phaseRange = phaseRange:extendDir(dir, fOut:lowerGhost(), fOut:upperGhost())
       end
    end
-   local phaseIndexer = fOut:genIndexer()
 
-   -- Additional preallocated variables
-   local ordIdx = nil
+   --local bmagItr, bmagOrd = self.bmag:get(1), Lin.Vec(self.numConfOrds)
+   local bmagOrd = Lin.Vec(self.numConfOrds)
+   local nItr, nOrd = nIn:get(1), Lin.Vec(self.numConfOrds)
+   local uItr, uOrd = uIn:get(1), Lin.Vec(self.numConfOrds)
+   local vtSqItr, vtSqOrd = vtSqIn:get(1), Lin.Vec(self.numConfOrds)
+   local fItr             = fOut:get(1)
 
-   -- construct ranges for nested loops
+   -- Construct ranges for nested loops.
    local confRangeDecomp = LinearDecomp.LinearDecompRange {
       range = phaseRange:selectFirst(cDim), numSplit = self.phaseGrid:numSharedProcs() }
    local velRange = phaseRange:selectLast(vDim)
-   local tId = self.phaseGrid:subGridSharedId() -- local thread ID
+   local tId      = self.phaseGrid:subGridSharedId()    -- Local thread ID.
 
+   local confIndexer = nIn:genIndexer()
+   local phaseIndexer = fOut:genIndexer()
+   
    -- The configuration space loop
    for cIdx in confRangeDecomp:rowMajorIter(tId) do
+      self.bmag:fill(confIndexer(cIdx), self.bmagItr)
       nIn:fill(confIndexer(cIdx), nItr)
       uIn:fill(confIndexer(cIdx), uItr)
-      vth2In:fill(confIndexer(cIdx), vth2Itr)
-
-      -- Evaluate the the primitive variables (given as expansion
+      vtSqIn:fill(confIndexer(cIdx), vtSqItr)
+      
+      -- Evaluate the primitive variables (given as expansion
       -- coefficients) on the ordinates
       for ordIndexes in self.confQuadRange:rowMajorIter() do
 	 ordIdx = self.confQuadIndexer(ordIndexes)
-	 nOrd[ordIdx], vth2Ord[ordIdx] = 0.0, 0.0
-	 for d = 1, vDim do uOrd[ordIdx][d] = 0.0 end
-
+	 bmagOrd[ordIdx],nOrd[ordIdx],uOrd[ordIdx],vtSqOrd[ordIdx] = 0.0, 0.0, 0.0, 0.0
+	 
 	 for k = 1, self.numConfBasis do
+	    bmagOrd[ordIdx] = bmagOrd[ordIdx] + self.bmagItr[k]*self.confBasisAtOrds[ordIdx][k]
 	    nOrd[ordIdx] = nOrd[ordIdx] + nItr[k]*self.confBasisAtOrds[ordIdx][k]
-	    vth2Ord[ordIdx] = vth2Ord[ordIdx] + vth2Itr[k]*self.confBasisAtOrds[ordIdx][k]
-	 end
-	 if uDim == vDim then
-	    for d = 1, vDim do
-	       for k = 1, self.numConfBasis do
-		  uOrd[ordIdx][d] = uOrd[ordIdx][d] +
-		     uItr[self.numConfBasis*(d-1)+k]*self.confBasisAtOrds[ordIdx][k]
-	       end
+	    vtSqOrd[ordIdx] = vtSqOrd[ordIdx] + vtSqItr[k]*self.confBasisAtOrds[ordIdx][k]
+
+	    if uDim > 1 then -- get z-component of fluid velocity
+	       uOrd[ordIdx] = uOrd[ordIdx] + uItr[self.numConfBasis*2+k]*self.confBasisAtOrds[ordIdx][k]
+	    else 
+	       uOrd[ordIdx] = uOrd[ordIdx] + uItr[k]*self.confBasisAtOrds[ordIdx][k]
 	    end
-	 elseif uDim == 1 and vDim==3 then -- if uPar passed from GkSpecies, fill d=3 component of u
-	    --print("MaxwellianOnBasis: udim = 1 and vdim = 3")
-	    for k = 1, self.numConfBasis do
-	       uOrd[ordIdx][vDim] = uOrd[ordIdx][vDim] + uItr[k]*self.confBasisAtOrds[ordIdx][k]
-	    end
-	 else
-	    print("Updater.MaxwellianOnBasis: incorrect uDim")	 
 	 end
       end
 
       -- The velocity space loop
       for vIdx in velRange:rowMajorIter() do
-	 -- Construct the phase space index ot of the configuration
-	 -- space and velocity space indices
+	 -- Construct the phase space index out of the configuration
+	 -- space a velocity space indices
          cIdx:copyInto(self.idxP)
          for d = 1, vDim do self.idxP[cDim+d] = vIdx[d] end
 	 fOut:fill(phaseIndexer(self.idxP), fItr)
@@ -204,20 +224,22 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
          self.phaseGrid:getDx(self.dxP)
          self.phaseGrid:cellCenter(self.xcP)
 
-	 ffiC.MaxwellianInnerLoop(nOrd:data(), uOrd:data(), vth2Ord:data(),
-				   fItr:data(),
-				   self.phaseWeights:data(), self.dxP:data(), self.xcP:data(),
-				   self.phaseOrdinates:data(),
-				   self.phaseBasisAtOrds:data(),
-				   self.phaseToConfOrdMap:data(),
-				   self.numPhaseBasis,
-				   self.numConfOrds, self.numPhaseOrds,
-				   cDim, pDim)
+	 ffiC.GkMaxwellianInnerLoop(nOrd:data(), uOrd:data(), vtSqOrd:data(),
+				    bmagOrd:data(), self.mass,
+				    fItr:data(),
+				    self.phaseWeights:data(), self.dxP:data(), self.xcP:data(),
+				    self.phaseOrdinates:data(),
+				    self.phaseBasisAtOrds:data(),
+				    self.phaseToConfOrdMap:data(),
+				    self.numPhaseBasis,
+				    self.numConfOrds, self.numPhaseOrds,
+				    cDim, pDim)
       end
+
    end
 
    -- set id of output to id of projection basis
    fOut:setBasisId(self.phaseBasis:id())
 end
 
-return MaxwellianOnBasis
+return GkMaxwellianOnBasis
