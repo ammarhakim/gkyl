@@ -1238,17 +1238,12 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       local neutU = species[self.neutNmIz]:selfPrimitiveMoments()[1]
       local neutM0 = species[self.neutNmIz]:fluidMoments()[1]
       local neutVtSq = species[self.neutNmIz]:selfPrimitiveMoments()[2]
-      --neutM0:write(string.format("%s_neutM0_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
       
       if tCurr == 0.0 then
 	 species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       end
       species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {self.voronovReactRate})
       species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
-      
-      --self.vtSqSelf:write(string.format("%s_ccmVtSq_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
-      --self.vtSqIz:write(string.format("%s_ccmVtSqIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
-      --self.voronovReactRate:write(string.format("%s_ccmCoefIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
       
       self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
       self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
@@ -1262,7 +1257,6 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       local m0 = species[self.neutNmCX]:fluidMoments()[1]
       local neutU = species[self.neutNmCX]:selfPrimitiveMoments()[1]
       local neutVtSq = species[self.neutNmCX]:selfPrimitiveMoments()[2]
-      --self.uSelf:write(string.format("%s_uCX_%d.bp",self.name,tCurr*1e10),tCurr,0,true)	 	 
       
       species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uSelf, neutU, self.vtSqSelf, neutVtSq}, {self.vSigmaCX})
    end
