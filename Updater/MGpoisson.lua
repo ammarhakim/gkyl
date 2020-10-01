@@ -698,10 +698,29 @@ function MGpoisson:normFEM(tCurr,normType,inFld,outDynV)
       grid:setIndex(idx)
       grid:getDx(self.dxBuf)
 
-      -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
+      -- Get indices of cells used by stencil. Store them in self.cuStencilIdx.
       self:opStencilIndices(idx,{2,self.threes,self.mOnes},self.cuStencilIdx)
+      if (self.isPeriodicDomain and (self.dim > 1)) then
+         -- Kernels need the upper-right corner ghost cells. Flip cell index to lower left.
+         for nI = 1, #self.cuStencilIdx do
+            local changeIdxInDir = {}
+            for d = 1, self.dim do
+               if (self.cuStencilIdx[nI][d] == cellsN[d]+1) then  -- Last cell in this direction.
+                  for _, dr in ipairs(self.dimRemain[d]) do
+                     if (self.cuStencilIdx[nI][dr] == cellsN[dr]+1) then  -- Last cell in another direction too.
+                        table.insert(changeIdxInDir, d)
+                        break
+                     end
+                  end
+               end
+            end
+            for _, d in ipairs(changeIdxInDir) do
+               self.cuStencilIdx[nI][d] = 1
+            end
+         end
+      end
 
-      -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil.
+      -- Array of pointers to cell lengths and field data in cells pointed to by the stencil.
       for i = 1, self.cuStencilSize do
          grid:setIndex(self.cuStencilIdx[i])
 

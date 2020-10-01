@@ -13,7 +13,7 @@ local Updater    = require "Updater"
 
 -- .......................... User inputs ............................ --
 
-local pOrder = 1                   -- Polynomial order.
+local pOrder    = 1                -- Polynomial order.
 local basisName = "Ser"            -- Type of polynomial basis.
  
 local numCells  = {8, 8}           -- Number of cells.
