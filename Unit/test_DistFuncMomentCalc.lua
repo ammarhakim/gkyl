@@ -58,8 +58,9 @@ end
 
 function test_ser_1x1v()
    local polyOrder = 2 
-   local lower     = {0.0, -6.0}
-   local upper     = {1.0, 6.0}
+   -- Note that for partial moments the v=0 point has to lie on a cell boundary.
+   local lower     = {0.0, -4.0}
+   local upper     = {1.0, 12.0}
    local numCells  = {4, 16}
    -- Phase-space and config-space grids.
    local phaseGrid = createGrid(lower, upper, numCells)
@@ -70,6 +71,7 @@ function test_ser_1x1v()
    -- Fields.
    local distf      = createField(phaseGrid, phaseBasis)
    local numDensity = createField(confGrid, confBasis)
+   local momDensity = createField(confGrid, confBasis, phaseGrid:ndim()-confGrid:ndim())
 
    -- Updater to initialize distribution function.
    local project = Updater.ProjectOnBasis {
@@ -93,20 +95,52 @@ function test_ser_1x1v()
       confBasis  = confBasis,
       moment     = "M0Pvx",
    }
+   local calcMomDensity = Updater.DistFuncMomentCalc {
+      onGrid     = phaseGrid,
+      phaseBasis = phaseBasis,
+      confBasis  = confBasis,
+      moment     = "M1i",
+   }
+   local calcMomDensityPvx = Updater.DistFuncMomentCalc {
+      onGrid     = phaseGrid,
+      phaseBasis = phaseBasis,
+      confBasis  = confBasis,
+      moment     = "M1iPvx",
+   }
 
    -- Check M0, number density.
    calcNumDensity:advance(0.0, {distf}, {numDensity})
    local momIdxr = numDensity:genIndexer()
    local nItr    = numDensity:get(momIdxr( {1} ))
-   assert_equal(1, nItr[1]/math.sqrt(2), "Checking moment")
+   assert_equal(1, nItr[1]/math.sqrt(2), "Checking M0")
 
-   -- Check M0vx, number density of positive particles only.
+   -- Check M0Pvx, number density of positive particles only.
    project:setFunc(function (t, xn) return 1/(phaseGrid:upper(2)-0.0) end)
    project:advance(0.0, {}, {distf})
    calcNumDensityPvx:advance(0.0, {distf}, {numDensity})
    nItr    = numDensity:get(momIdxr( {1} ))
-   assert_equal(1, nItr[1]/math.sqrt(2), "Checking moment")
+   assert_equal(1, nItr[1]/math.sqrt(2), "Checking M0Pvx")
    
+   -- Check M1i, momentum density.
+   project:setFunc(function (t, xn) 
+         return 2./(phaseGrid:upper(2)^2-phaseGrid:lower(2)^2)
+      end)
+   project:advance(0.0, {}, {distf})
+   calcMomDensity:advance(0.0, {distf}, {momDensity})
+   momDensity:write("momDensity.bp",0.0)
+   local momIdxr = momDensity:genIndexer()
+   local nItr    = momDensity:get(momIdxr( {1} ))
+   assert_equal(1, nItr[1]/math.sqrt(2), "Checking M1i")
+
+   -- Check M1iPvx, momentum density of positive particles only.
+   project:setFunc(function (t, xn)
+         return 2./(phaseGrid:upper(2)^2-0.0^2)
+      end)
+   project:advance(0.0, {}, {distf})
+   calcMomDensityPvx:advance(0.0, {distf}, {momDensity})
+   momDensity:write("momDensityPvx.bp",0.0)
+   local momItr = momDensity:get(momIdxr( {1} ))
+   assert_equal(1, momItr[1]/math.sqrt(2), "Checking M1iPvx")
 end
 
 function test_max_1x1v()

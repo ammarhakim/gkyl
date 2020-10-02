@@ -134,19 +134,6 @@ function Bc:init(tbl)
          if self._edge == "lower" then node[1] = -1.0 else node[1] = 1.0 end
          self._confBasisEdge = Lin.Vec(self.numConfBasis)
          confBasis:evalBasis(node, self._confBasisEdge)
-         self.partialM1Pvx = DataStruct.Field {
-            onGrid        = tbl.confGrid,
-            numComponents = confBasis:numBasis()*(self._grid:ndim()-tbl.confGrid:ndim()),
-            ghost         = {1, 1},
-            metaData      = { polyOrder = confBasis:polyOrder(),
-                              basisType = confBasis:id() }
-         }
-         self.partialM1PvxCalc = DistFuncMomentCalc {
-            onGrid     = self._grid,
-            phaseBasis = self._basis,
-            confBasis  = confBasis,
-            moment     = "M1iPvx",
-         }
       end
    end
 end
@@ -192,9 +179,7 @@ function Bc:_advance(tCurr, inFld, outFld)
    if self._evaluateFn and (self._isFirst or self._feedback) then
       local myEvaluateFn = self._evaluateFn
       if self._feedback then
-         local M0, M2 = inFld[1], inFld[3]
-         local M1Pvx  = self.partialM1Pvx 
-         self.partialM1PvxCalc:advance(tCurr,{qOut},{M1Pvx})
+         local M0, M1Pvx, M2          = inFld[1], inFld[2], inFld[3]
          local indexer                = M0:genIndexer()
          local ptrM0, ptrM1Pvx, ptrM2 = M0:get(1), M1Pvx:get(1), M2:get(1)
          local edgeM0, edgeM1, edgeM2 = 0.0, 0.0, 0.0

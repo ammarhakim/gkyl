@@ -180,6 +180,13 @@ function VlasovSpecies:createSolver(hasE, hasB)
          }
       end
    end
+   -- Compute partial moments (over positive or negative velocity in one direction only).
+   self.calcPartialM1Pvx = Updater.DistFuncMomentCalc {
+      onGrid     = self.grid,
+      phaseBasis = self.basis,
+      confBasis  = self.confBasis,
+      moment     = "M1iPvx",
+   }
 
    -- Updaters for the primitive moments.
    -- These will be used to compute n*u^2 and n*T for computing integrated moments.
