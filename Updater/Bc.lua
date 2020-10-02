@@ -165,13 +165,13 @@ function Bc:_advance(tCurr, inFld, outFld)
       self._ghostRangeDecomp = LinearDecomp.LinearDecompRange {
    	 range = self._ghostRng, numSplit = grid:numSharedProcs() }
 
-      -- Get the unction onto the boundary grid
+      -- Get the function onto the boundary grid.
       if self._evaluateFn then
          self._ghostFld = DataStruct.Field {
-           onGrid = self._boundaryGrid,
+           onGrid        = self._boundaryGrid,
            numComponents = qOut:numComponents(),
-           ghost = {1,1},
-           metaData = qOut:getMetaData(),
+           ghost         = {1,1},
+           metaData      = qOut:getMetaData(),
          }
       end
    end
