@@ -240,6 +240,7 @@ for iT = 1, #tests do
          return testFunction(xn, a, b, c, d, mu, periodicDirs)
       end)
    project:advance(0.0, {}, {phiDG})
+   phiDG:sync()
    phiDG:write(string.format("phiDGin_%sP%i_Nx%iNy%i_%s.bp",basisName,pOrder,numCells[1],numCells[2],tests[iT]["bcStr"]), 0.0)
    
    -- Create the MG Poisson solver.

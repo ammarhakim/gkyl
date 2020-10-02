@@ -612,6 +612,39 @@ function MGpoisson:translateDG_FEM(inFld,outFld,dir)
       -- Get indices of cells used by stencil.
       self:opStencilIndices(idx,self.transBasisStencilType[dir],self.cuStencilIdx)
  
+      if (self.isPeriodicDomain and (self.dim > 1)) then
+         -- Kernels need the upper-right (lower-left) corner ghost cells.
+         -- Flip cell index to lower-left (upper-right).
+         local checkFor, setTo = {}, {}
+         if dir == DG_to_FEM then
+            for d = 1, self.dim do
+               checkFor[d] = 0
+               setTo[d]    = cellsN[d]
+            end
+         else
+            for d = 1, self.dim do
+               checkFor[d] = cellsN[d]+1
+               setTo[d]    = 1
+            end
+         end
+         for nI = 1, #self.cuStencilIdx do
+            local changeIdxInDir = {}
+            for d = 1, self.dim do
+               if (self.cuStencilIdx[nI][d] == checkFor[d]) then  -- Upper ghost cell in this direction.
+                  for _, dr in ipairs(self.dimRemain[d]) do
+                     if (self.cuStencilIdx[nI][dr] == checkFor[dr]) then  -- Upper ghost cell in another direction too.
+                        table.insert(changeIdxInDir, d)
+                        break
+                     end
+                  end
+               end
+            end
+            for _, d in ipairs(changeIdxInDir) do
+               self.cuStencilIdx[nI][d] = setTo[d]
+            end
+         end
+      end
+
       -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil.
       for i = 1, self.cuStencilSize do
          grid:setIndex(self.cuStencilIdx[i])
@@ -660,6 +693,43 @@ function MGpoisson:projectFEM(femFld,fldOut)
       -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
       self:opStencilIndices(idx, self.rhoStencilType, self.rhoStencilIdx)
 
+      if (self.isPeriodicDomain and (self.dim > 1)) then
+         -- Kernels need the upper-right (lower-left) corner ghost cells.
+         -- Flip cell index to lower-left (upper-right).
+         local checkFor, setTo = {{},{}}, {{},{}}
+         for d = 1, self.dim do
+            checkFor[1][d] = 0
+            setTo[1][d]    = cellsN[d]
+            checkFor[2][d] = cellsN[d]+1
+            setTo[2][d]    = 1
+         end
+         for nI = 1, #self.rhoStencilIdx do
+            local changeIdxInDir = {}
+            for d = 1, self.dim do
+               if (self.rhoStencilIdx[nI][d] == checkFor[1][d]) then  -- Lower ghost cell in this direction.
+                  for _, dr in ipairs(self.dimRemain[d]) do
+                     if (self.rhoStencilIdx[nI][dr] == checkFor[1][dr]) or
+                        (self.rhoStencilIdx[nI][dr] == checkFor[2][dr]) then  -- Lower/upper ghost cell in another direction too.
+                        table.insert(changeIdxInDir, {d, setTo[1][d]})
+                        break
+                     end
+                  end
+               elseif (self.rhoStencilIdx[nI][d] == checkFor[2][d]) then  -- Lower ghost cell in this direction.
+                  for _, dr in ipairs(self.dimRemain[d]) do
+                     if (self.rhoStencilIdx[nI][dr] == checkFor[1][dr]) or
+                        (self.rhoStencilIdx[nI][dr] == checkFor[2][dr]) then  -- Lower/upper ghost cell in another direction too.
+                        table.insert(changeIdxInDir, {d, setTo[2][d]})
+                        break
+                     end
+                  end
+               end
+            end
+            for _, dC in ipairs(changeIdxInDir) do
+               self.rhoStencilIdx[nI][dC[1]] = dC[2]
+            end
+         end
+      end
+
       for i = 1, self.rhoStencilSize do
          grid:setIndex(self.rhoStencilIdx[i])
          grid:getDx(self.dxBuf)
@@ -700,14 +770,15 @@ function MGpoisson:normFEM(tCurr,normType,inFld,outDynV)
 
       -- Get indices of cells used by stencil. Store them in self.cuStencilIdx.
       self:opStencilIndices(idx,{2,self.threes,self.mOnes},self.cuStencilIdx)
+
       if (self.isPeriodicDomain and (self.dim > 1)) then
          -- Kernels need the upper-right corner ghost cells. Flip cell index to lower left.
          for nI = 1, #self.cuStencilIdx do
             local changeIdxInDir = {}
             for d = 1, self.dim do
-               if (self.cuStencilIdx[nI][d] == cellsN[d]+1) then  -- Last cell in this direction.
+               if (self.cuStencilIdx[nI][d] == cellsN[d]+1) then  -- Upper ghost cell in this direction.
                   for _, dr in ipairs(self.dimRemain[d]) do
-                     if (self.cuStencilIdx[nI][dr] == cellsN[dr]+1) then  -- Last cell in another direction too.
+                     if (self.cuStencilIdx[nI][dr] == cellsN[dr]+1) then  -- Upper ghost cell in another direction too.
                         table.insert(changeIdxInDir, d)
                         break
                      end
@@ -859,7 +930,8 @@ function MGpoisson:restrictFEM(fFld,cFld)
    local cellsN = {}
    for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
 
-   local fLocalRange = fFld:localRange()
+   -- For periodic BCs extend the range at the lower boundary by 1 cell.
+   local fLocalRange  = fFld:localRange():extendDirs(self.periodicDirs,1,0)
 
    local rangeDecomp = LinearDecomp.LinearDecompRange {
       range = cFld:localRange(), numSplit = grid:numSharedProcs() }
@@ -887,6 +959,26 @@ function MGpoisson:restrictFEM(fFld,cFld)
                fCellCount = fCellCount + 1
                for d = 1, self.dim do self.fineGridIdx[fCellCount][d] = self.fineGridIdx[rI][d] end
                self.fineGridIdx[fCellCount][dir] = newIdxInDir
+            end
+         end
+      end
+
+      if (self.isPeriodicDomain and (self.dim > 1)) then
+         -- Kernels need the lower-left corner ghost cells. Flip cell index to upper right.
+         for nI = 1, #self.fineGridIdx do
+            local changeIdxInDir = {}
+            for d = 1, self.dim do
+               if (self.fineGridIdx[nI][d] == 0) then  -- Lower ghost cell in this direction.
+                  for _, dr in ipairs(self.dimRemain[d]) do
+                     if (self.fineGridIdx[nI][dr] == 0) then  -- Lower ghost cell in another direction too.
+                        table.insert(changeIdxInDir, d)
+                        break
+                     end
+                  end
+               end
+            end
+            for _, d in ipairs(changeIdxInDir) do
+               self.fineGridIdx[nI][d] = cellsN[d]
             end
          end
       end
@@ -969,6 +1061,42 @@ function MGpoisson:relax(numRelax, phiFld, rhoFld)
          self:opStencilIndices(idx, self.phiStencilType, self.phiStencilIdx)
          self:opStencilIndices(idx, self.rhoStencilType, self.rhoStencilIdx)
    
+         if (self.isFEM and self.isPeriodicDomain and (self.dim > 1)) then
+            -- Kernels need the corner ghost cells. Flip cell index to opposite corner.
+            local checkFor, setTo = {{},{}}, {{},{}}
+            for d = 1, self.dim do
+               checkFor[1][d] = 0
+               setTo[1][d]    = cellsN[d]
+               checkFor[2][d] = cellsN[d]+1
+               setTo[2][d]    = 1
+            end
+            for nI = 1, #self.phiStencilIdx do
+               local changeIdxInDir = {}
+               for d = 1, self.dim do
+                  if (self.phiStencilIdx[nI][d] == checkFor[1][d]) then  -- Lower ghost cell in this direction.
+                     for _, dr in ipairs(self.dimRemain[d]) do
+                        if (self.phiStencilIdx[nI][dr] == checkFor[1][dr]) or
+                           (self.phiStencilIdx[nI][dr] == checkFor[2][dr]) then  -- Lower/upper ghost cell in another direction too.
+                           table.insert(changeIdxInDir, {d, setTo[1][d]})
+                           break
+                        end
+                     end
+                  elseif (self.phiStencilIdx[nI][d] == checkFor[2][d]) then  -- Lower ghost cell in this direction.
+                     for _, dr in ipairs(self.dimRemain[d]) do
+                        if (self.phiStencilIdx[nI][dr] == checkFor[1][dr]) or
+                           (self.phiStencilIdx[nI][dr] == checkFor[2][dr]) then  -- Lower/upper ghost cell in another direction too.
+                           table.insert(changeIdxInDir, {d, setTo[2][d]})
+                           break
+                        end
+                     end
+                  end
+               end
+               for _, dC in ipairs(changeIdxInDir) do
+                  self.phiStencilIdx[nI][dC[1]] = dC[2]
+               end
+            end
+         end
+
          -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil. 
          for i = 1, self.phiStencilSize do
             grid:setIndex(self.phiStencilIdx[i])
@@ -1027,6 +1155,43 @@ function MGpoisson:residual(phiFld, rhoFld, resFld)
       self:opStencilIndices(idx, self.phiStencilType, self.phiStencilIdx)
       self:opStencilIndices(idx, self.rhoStencilType, self.rhoStencilIdx)
    
+      if (self.isFEM and self.isPeriodicDomain and (self.dim > 1)) then
+         -- Kernels need the upper-right (lower-left) corner ghost cells.
+         -- Flip cell index to lower-left (upper-right).
+         local checkFor, setTo = {{},{}}, {{},{}}
+         for d = 1, self.dim do
+            checkFor[1][d] = 0
+            setTo[1][d]    = cellsN[d]
+            checkFor[2][d] = cellsN[d]+1
+            setTo[2][d]    = 1
+         end
+         for nI = 1, #self.phiStencilIdx do
+            local changeIdxInDir = {}
+            for d = 1, self.dim do
+               if (self.phiStencilIdx[nI][d] == checkFor[1][d]) then  -- Lower ghost cell in this direction.
+                  for _, dr in ipairs(self.dimRemain[d]) do
+                     if (self.phiStencilIdx[nI][dr] == checkFor[1][dr]) or
+                        (self.phiStencilIdx[nI][dr] == checkFor[2][dr]) then  -- Lower/upper ghost cell in another direction too.
+                        table.insert(changeIdxInDir, {d, setTo[1][d]})
+                        break
+                     end
+                  end
+               elseif (self.phiStencilIdx[nI][d] == checkFor[2][d]) then  -- Lower ghost cell in this direction.
+                  for _, dr in ipairs(self.dimRemain[d]) do
+                     if (self.phiStencilIdx[nI][dr] == checkFor[1][dr]) or
+                        (self.phiStencilIdx[nI][dr] == checkFor[2][dr]) then  -- Lower/upper ghost cell in another direction too.
+                        table.insert(changeIdxInDir, {d, setTo[2][d]})
+                        break
+                     end
+                  end
+               end
+            end
+            for _, dC in ipairs(changeIdxInDir) do
+               self.phiStencilIdx[nI][dC[1]] = dC[2]
+            end
+         end
+      end
+         
       -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil. 
       for i = 1, self.phiStencilSize do
          grid:setIndex(self.phiStencilIdx[i])
@@ -1172,6 +1337,22 @@ function MGpoisson:prolongFEM(cFld,fFld)
                self.fineGridIdx[fCellCount][dir] = newIdxInDir
             end
          end
+      end
+
+      if (self.isPeriodicDomain and (self.dim > 1)) then
+         -- Kernels need the upper-right corner ghost cells. Flip cell index to lower left.
+         local changeIdxInDir = {}
+         for d = 1, self.dim do
+            if (cIdx[d] == cellsN[d]+1) then  -- Upper ghost cell in this direction.
+               for _, dr in ipairs(self.dimRemain[d]) do
+                  if (cIdx[dr] == cellsN[dr]+1) then  -- Upper ghost cell in another direction too.
+                     table.insert(changeIdxInDir, d)
+                     break
+                  end
+               end
+            end
+         end
+         for _, d in ipairs(changeIdxInDir) do cIdx[d] = 1 end
       end
 
       cFld:fill(cFldIndexer(cIdx), cFldItr)   -- Coarse field pointer.

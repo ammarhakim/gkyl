@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Test 2D FEM relaxation in the MGpoisson updater.
+-- Test whole FEM MGpoisson solver in 2D.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -13,19 +13,21 @@ local Updater    = require "Updater"
 
 -- .......................... User inputs ............................ --
 
-local testLaplace = true  -- Choose whether to test a Laplace solver, else solve Poisson.
+local testLaplace = false  -- Choose whether to test a Laplace solver, else solve Poisson.
 
-local pOrder    = 1                -- Polynomial order.
-local basisName = "Ser"            -- Type of polynomial basis.
+local pOrder    = 1       -- Polynomial order.
+local basisName = "Ser"   -- Type of polynomial basis.
 
-local numCells  = {16, 16}         -- Number of cells.
-local lower     = {0.0, 0.0}       -- Lower boundary of the domain.
-local upper     = {1.0, 1.0}       -- Upper boundary of the domain.
+local numCells  = {16, 16}     -- Number of cells.
+local lower     = {0.0, 0.0}   -- Lower boundary of the domain.
+local upper     = {1.0, 1.0}   -- Upper boundary of the domain.
 
-local relaxType  = {'DampedJacobi','DampedGaussSeidel'}   -- Types of relaxations to test.
-local numRelax   = {16, 16}                               -- Number of relaxations.
+local gamma      = 1                 -- V-cycles=1, W-cycles=2.
+local relaxType  = {'DampedJacobi','DampedGaussSeidel'}   -- Types of relaxations to test. 
+local numRelax   = {{1,2,1000},{1,1,1000}}                  -- Number of pre,post and coarsest-grid smoothings.
+local tolerance  = 1.e-6                                  -- Do cycles until reaching this relative residue norm.
 local relaxOmega = {4./5., 1.0}                           -- Damping parameter.
-
+ 
 -- .................. end of user inputs (MAYBE) .................... --
 
 -- Length of the simulation domain.
@@ -369,7 +371,7 @@ local function createBasis(dim, pOrder, bKind)
    return basis
 end
 
-local function createField(grid, basis, rlxKind, numRlx, rlxOmega, vComp)
+local function createField(grid, basis, gam, rlxKind, numRlx, rlxOmega, tol, vComp)
    vComp = vComp or 1
    local fld = DataStruct.Field {
       onGrid        = grid,
@@ -379,9 +381,11 @@ local function createField(grid, basis, rlxKind, numRlx, rlxOmega, vComp)
          polyOrder  = basis:polyOrder(),
          basisType  = basis:id(),
          -- Metadata for post-processing during development.
+         gamma      = gam,        -- V-cycles=1, W-cycles=2.
          relaxType  = rlxKind,     -- Type of relaxation algorithm.
          relaxNum   = numRlx,      -- Number of pre,post and coarsest-grid smoothings.
          relaxOmega = rlxOmega,    -- Relaxation damping parameter.
+         tolerance  = tol          -- Do cycles until reaching this relative residue norm.
       }
    }
    return fld
@@ -397,6 +401,7 @@ local function createProject(grid, basis)
    return projUp
 end
 
+
 for rlxI = 1, #relaxType do   -- Loop over types of relaxation.
    local relaxKind      = relaxType[rlxI]
    local numRelaxations = numRelax[rlxI]
@@ -404,15 +409,15 @@ for rlxI = 1, #relaxType do   -- Loop over types of relaxation.
    local relaxStr       = relaxShortNm[relaxKind]
 
    for iT = 1, #tests do   -- Loop over various boundary condition tests.
-
+   
       -- Grids and basis.
       local grid  = createGrid(lower, upper, numCells, tests[iT]["periodicDirs"])
       local basis = createBasis(grid:ndim(), pOrder, basisName)
       
       -- Fields.
       local phiDG  = createField(grid, basis, relaxKind, numRelaxations, omegaRelax)
-      local phiFEM = createField(grid, basis, relaxKind, numRelaxations, omegaRelax)
       local rhoDG  = createField(grid, basis, relaxKind, numRelaxations, omegaRelax)
+      local phiFEM = createField(grid, basis, relaxKind, numRelaxations, omegaRelax)
       local rhoFEM = createField(grid, basis, relaxKind, numRelaxations, omegaRelax)
       
       local project = createProject(grid,basis)
@@ -441,37 +446,27 @@ for rlxI = 1, #relaxType do   -- Loop over types of relaxation.
       end
       phiDG:sync()
       rhoDG:sync()
-      
+
       -- Create the MG Poisson solver.
       local poissonSlv = Updater.MGpoisson {
-         solverType     = 'FEM',
-         onGrid         = grid,
-         basis          = basis,
-         bcLower        = tests[iT]["bcLower"],
-         bcUpper        = tests[iT]["bcUpper"],
-         relaxType      = relaxKind,
-         relaxNum       = {1,1,1},   -- Call the relaxations in a separate loop below.
-         relaxOmega     = omegaRelax,
+         solverType  = 'FEM',
+         onGrid      = grid,
+         basis       = basis,
+         bcLower     = tests[iT]["bcLower"],
+         bcUpper     = tests[iT]["bcUpper"],
+         relaxType   = relaxKind,        -- DampedJacobi or DampedGaussSeidel
+         relaxNum    = numRelaxations,   -- Number of pre,post and coarsest-grid smoothings.
+         relaxOmega  = omegaRelax,       -- Relaxation damping parameter.
+         gamma       = gamma,            -- V-cycles=1, W-cycles=2.
+         tolerance   = tolerance,        -- Do cycles until reaching this relative residue norm.
       }
-      -- Translate phi and right side source to FEM.
-      poissonSlv:translateDGtoFEM(phiDG, phiFEM)
-      poissonSlv:translateDGtoFEM(rhoDG, rhoFEM)
-
-      -- Output initial FEM guess.
-      phiFEM:write(string.format("phiFEM_%sP%i_Nx%iNy%i_%s_%s_relax%i.bp",basisName,pOrder,numCells[1],numCells[2],tests[iT]["bcStr"],relaxStr,0), 0.0)
-
-      -- Project right side source onto FEM basis.
-      rhoDG:copy(rhoFEM)   -- Use rhoDG as a temporary buffer.
-      poissonSlv:projectFEM(rhoDG,rhoFEM)
+   
+      poissonSlv:advance(0.0,{rhoDG,phiDG},{phiDG})   -- Call the MG solver.
       
-      -- Relaxations.
-      for nR = 1, numRelaxations do
-         poissonSlv:relax(1, phiFEM, rhoFEM)
-      
-         -- Output the latest iterate.
-         phiFEM:write(string.format("phiFEM_%sP%i_Nx%iNy%i_%s_%s_relax%i.bp",basisName,pOrder,numCells[1],numCells[2],tests[iT]["bcStr"],relaxStr,nR), nR)
-      end
-
+      -- Output numerical solution and the realtive residue norm.
+      phiDG:write(string.format("phiDG_%sP%i_Nx%iNy%i_%s_%sV%i%i_final.bp",basisName,pOrder,numCells[1],numCells[2],tests[iT]["bcStr"],relaxStr,numRelaxations[1],numRelaxations[2]), 0.0)
+      poissonSlv.relResNorm:write(string.format("relResidue_RmsV_%sP%i_Nx%iNy%i_%s_%sV%i%i_final.bp",basisName,pOrder,numCells[1],numCells[2],tests[iT]["bcStr"],relaxStr,numRelaxations[1],numRelaxations[2]),0.0)
+   
       -- Project the solution (phi) onto the basis and write it out (may not be needed).
       if testLaplace then
          phiFEM:clear(0.0)
@@ -487,12 +482,10 @@ for rlxI = 1, #relaxType do   -- Loop over types of relaxation.
                return phiFunction(xn, a, b, c, d, mu, periodicDirs)
             end)
          project:advance(0.0, {}, {phiDG})
-         poissonSlv:translateDGtoFEM(phiDG, phiFEM)
       end
-      phiFEM:write(string.format("phiFEManalyticSol_%sP%i_Nx%iNy%i_%s.bp",basisName,pOrder,numCells[1],numCells[2],tests[iT]["bcStr"]), 0.0)
-
+      phiDG:write(string.format("phiDGanalyticSol_%sP%i_Nx%iNy%i_%s.bp",basisName,pOrder,numCells[1],numCells[2],tests[iT]["bcStr"]), 0.0)
+   
    end
+
 end
-
-
 

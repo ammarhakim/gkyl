@@ -154,6 +154,7 @@ for iT = 1, #tests do
          return testFunction(xn, periodicDirs)
       end) 
    project:advance(0.0, {}, {phiDG})
+   phiDG:sync()
    
    -- Create the MG Poisson solver.
    local poissonSlv = Updater.MGpoisson {

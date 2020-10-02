@@ -138,8 +138,8 @@ local function testFunction(xIn, aIn, bIn, cIn, dIn, muIn, pDirs)
          fx, fy = 0.0, 1.0
          for m = 0,2 do
             for n = 0,2 do
-               cosT = amn[m+1][n+1]*math.cos(2.*math.pi*m*x)*math.cos(2.*math.pi*n*y)
-               sinT = bmn[m+1][n+1]*math.sin(2.*math.pi*m*x)*math.sin(2.*math.pi*n*y)
+               cosT = amn[m+1][n+1]*math.cos(2.*math.pi*m*x) --*math.cos(2.*math.pi*n*y)
+               sinT = bmn[m+1][n+1]*math.sin(2.*math.pi*m*x) --*math.sin(2.*math.pi*n*y)
                fx   = fx + cosT + sinT
             end
          end
@@ -221,6 +221,7 @@ local fromIdx, toIdx = 1, 2
 local fineGridIdx = fromIdx
 if numCells[toIdx][1] > numCells[fromIdx][1] then fineGridIdx = toIdx end
 
+local poissonSlv = {}
 for iT = 1, #tests do
 
    -- Grids and basis.
@@ -232,10 +233,21 @@ for iT = 1, #tests do
    local phiDG  = {createField(grid[fromIdx],basis), createField(grid[toIdx],basis)}
    local phiFEM = {createField(grid[fromIdx],basis), createField(grid[toIdx],basis)}
    
+   -- Create the MG Poisson solver.
+   poissonSlv[iT] = Updater.MGpoisson {
+      solverType = 'FEM',
+      onGrid     = grid[fineGridIdx],
+      basis      = basis,
+      bcLower    = tests[iT]["bcLower"],
+      bcUpper    = tests[iT]["bcUpper"],
+   }
+
    for i = 1,2 do
       fromIdx = i
       toIdx   = 3-i
 
+      for j = 1,#phiDG do phiDG[j]:clear(0.0) end
+      for j = 1,#phiFEM do phiFEM[j]:clear(0.0) end
       -- Project the test function onto the first grid.
       local project = createProject(grid[fromIdx], basis)
       project:setFunc(
@@ -249,30 +261,22 @@ for iT = 1, #tests do
             return testFunction(xn, a, b, c, d, mu, periodicDirs)
          end)
       project:advance(0.0, {}, {phiDG[fromIdx]})
+      phiDG[fromIdx]:sync()
       phiDG[fromIdx]:write(string.format("phiDGin_%sP%i_Nx%iNy%i-Nx%iNy%i_%s.bp",basisName,pOrder,
                                          numCells[fromIdx][1],numCells[fromIdx][2],
                                          numCells[toIdx][1],numCells[toIdx][2],tests[iT]["bcStr"]),0.0)
 
-      -- Create the MG Poisson solver.
-      local poissonSlv = Updater.MGpoisson {
-         solverType = 'FEM',
-         onGrid     = grid[fineGridIdx],
-         basis      = basis,
-         bcLower    = tests[iT]["bcLower"],
-         bcUpper    = tests[iT]["bcUpper"],
-      }
-
       -- Translate the DG field to an FEM field, and output the FEM field.
-      poissonSlv:translateDGtoFEM(phiDG[fromIdx], phiFEM[fromIdx])
+      poissonSlv[iT]:translateDGtoFEM(phiDG[fromIdx], phiFEM[fromIdx])
       phiFEM[fromIdx]:write(string.format("phiFEMin_%sP%i_Nx%iNy%i-Nx%iNy%i_%s.bp",basisName,pOrder,
                                           numCells[fromIdx][1],numCells[fromIdx][2],
                                           numCells[toIdx][1],numCells[toIdx][2],tests[iT]["bcStr"]),0.0)
 
       -- Restrict/prolong the FEM field.
       if i==1 then
-         poissonSlv:prolongFEM(phiFEM[fromIdx], phiFEM[toIdx])
+         poissonSlv[iT]:prolongFEM(phiFEM[fromIdx], phiFEM[toIdx])
       elseif i==2 then
-         poissonSlv:restrictFEM(phiFEM[fromIdx], phiFEM[toIdx])
+         poissonSlv[iT]:restrictFEM(phiFEM[fromIdx], phiFEM[toIdx])
       end
 
       -- Output the data on the finer mesh.
