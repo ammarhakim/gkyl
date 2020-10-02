@@ -9,19 +9,19 @@
 local xsys = require "xsys"
 
 -- Gkyl libraries.
-local CartDecomp = require "Lib.CartDecomp"
-local CartFieldBinOp = require "Updater.CartFieldBinOp"
-local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
-local DataStruct = require "DataStruct"
+local CartDecomp         = require "Lib.CartDecomp"
+local CartFieldBinOp     = require "Updater.CartFieldBinOp"
+local DataStruct         = require "DataStruct"
 local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
-local Grid = require "Grid"
-local Lin = require "Lib.Linalg"
-local LinearDecomp = require "Lib.LinearDecomp"
-local Mpi = require "Comm.Mpi"
-local ProjectOnBasis = require "Updater.ProjectOnBasis"
-local Proto = require "Lib.Proto"
-local Range = require "Lib.Range"
-local UpdaterBase  = require "Updater.Base"
+local Grid               = require "Grid"
+local Lin                = require "Lib.Linalg"
+local LinearDecomp       = require "Lib.LinearDecomp"
+local Mpi                = require "Comm.Mpi"
+local ProjectOnBasis     = require "Updater.ProjectOnBasis"
+local Proto              = require "Lib.Proto"
+local Range              = require "Lib.Range"
+local UpdaterBase        = require "Updater.Base"
+local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 
 -- Boundary condition updater.
 local Bc = Proto(UpdaterBase)
@@ -33,8 +33,8 @@ function Bc:init(tbl)
 
    self._isFirst = true -- Will be reset first time _advance() is called.
 
-   self._grid = assert(tbl.onGrid, "Updater.Bc: Must specify grid to use with 'onGrid''")
-   self._dir  = assert(tbl.dir, "Updater.Bc: Must specify direction to apply BCs with 'dir'")
+   self._grid     = assert(tbl.onGrid, "Updater.Bc: Must specify grid to use with 'onGrid''")
+   self._dir      = assert(tbl.dir, "Updater.Bc: Must specify direction to apply BCs with 'dir'")
    self._dirlabel = dirlabel[self._dir]
 
    self._edge = assert(
@@ -77,11 +77,11 @@ function Bc:init(tbl)
             table.insert(reducedCuts, self._grid:cuts(d))
          end
       end
-      local commSet = self._grid:commSet()
+      local commSet   = self._grid:commSet()
       local worldComm = commSet.comm
-      local nodeComm = commSet.nodeComm
-      local nodeRank = Mpi.Comm_rank(nodeComm)
-      local dirRank = nodeRank
+      local nodeComm  = commSet.nodeComm
+      local nodeRank  = Mpi.Comm_rank(nodeComm)
+      local dirRank   = nodeRank
       local cutsX = self._grid:cuts(1) or 1
       local cutsY = self._grid:cuts(2) or 1
       local cutsZ = self._grid:cuts(3) or 1
@@ -103,9 +103,9 @@ function Bc:init(tbl)
       self.writeRank = writeRank
       
       local reducedDecomp = CartDecomp.CartProd {
-         comm = self._splitComm,
+         comm      = self._splitComm,
          writeRank = writeRank,
-         cuts = reducedCuts,
+         cuts      = reducedCuts,
          useShared = self._grid:isShared(),
       }
 
@@ -122,18 +122,31 @@ function Bc:init(tbl)
    -- moments at the boundary can be set up.
    self._evaluateFn = tbl.evaluate
    if self._evaluateFn then
-      self._basis = assert(tbl.basis, "Bc.init: Evaluate is currently implemented only for DG; 'basis' must be specified.")
+      self._basis    = assert(tbl.basis, "Bc.init: Evaluate is currently implemented only for DG; 'basis' must be specified.")
       self._evolveFn = xsys.pickBool(tbl.evolveFn, true)
       self._feedback = xsys.pickBool(tbl.feedback, false)
       if self._feedback then
          assert(tbl.cdim == 1, "Bc.init: Feedback boundary condition is implemented only for 1X simulations.")
-         local confBasis = assert(tbl.confBasis, "Bc.init: Must specify 'confBasis' when 'feedback' is true.")
+         local confBasis   = assert(tbl.confBasis, "Bc.init: Must specify 'confBasis' when 'feedback' is true.")
          local numConfDims = confBasis:ndim()
          self.numConfBasis = confBasis:numBasis()
          local node = Lin.Vec(numConfDims)
          if self._edge == "lower" then node[1] = -1.0 else node[1] = 1.0 end
          self._confBasisEdge = Lin.Vec(self.numConfBasis)
          confBasis:evalBasis(node, self._confBasisEdge)
+         self.partialM1Pvx = DataStruct.Field {
+            onGrid        = tbl.confGrid,
+            numComponents = confBasis:numBasis()*(self._grid:ndim()-tbl.confGrid:ndim()),
+            ghost         = {1, 1},
+            metaData      = { polyOrder = confBasis:polyOrder(),
+                              basisType = confBasis:id() }
+         }
+         self.partialM1PvxCalc = DistFuncMomentCalc {
+            onGrid     = self._grid,
+            phaseBasis = self._basis,
+            confBasis  = confBasis,
+            moment     = "M1iPvx",
+         }
       end
    end
 end
@@ -179,18 +192,20 @@ function Bc:_advance(tCurr, inFld, outFld)
    if self._evaluateFn and (self._isFirst or self._feedback) then
       local myEvaluateFn = self._evaluateFn
       if self._feedback then
-         local M0, M1, M2 = inFld[1], inFld[2], inFld[3]
-         local indexer = M0:genIndexer()
-         local ptrM0, ptrM1, ptrM2 = M0:get(1), M1:get(1), M2:get(1)
+         local M0, M2 = inFld[1], inFld[3]
+         local M1Pvx  = self.partialM1Pvx 
+         self.partialM1PvxCalc:advance(tCurr,{qOut},{M1Pvx})
+         local indexer                = M0:genIndexer()
+         local ptrM0, ptrM1Pvx, ptrM2 = M0:get(1), M1Pvx:get(1), M2:get(1)
          local edgeM0, edgeM1, edgeM2 = 0.0, 0.0, 0.0
          for idx in self._ghostRangeDecomp:rowMajorIter(tId) do
             idx[1] = self._edge == "lower" and global:lower(dir) or global:upper(dir)
             M0:fill(indexer(idx), ptrM0)
-            M1:fill(indexer(idx), ptrM1)
+            M1Pvx:fill(indexer(idx), ptrM1Pvx)
             M2:fill(indexer(idx), ptrM2)
             for k = 1, self.numConfBasis do
                edgeM0 = edgeM0 + ptrM0[k]*self._confBasisEdge[k]
-               edgeM1 = edgeM1 + ptrM1[k]*self._confBasisEdge[k]
+               edgeM1 = edgeM1 + ptrM1Pvx[k]*self._confBasisEdge[k]
                edgeM2 = edgeM2 + ptrM2[k]*self._confBasisEdge[k]
             end
             myEvaluateFn = function(t, z)
@@ -200,8 +215,8 @@ function Bc:_advance(tCurr, inFld, outFld)
          end
       end
       self._projectEvaluateFn = ProjectOnBasis {
-         onGrid = self._boundaryGrid,
-         basis = self._basis,
+         onGrid   = self._boundaryGrid,
+         basis    = self._basis,
          evaluate = myEvaluateFn,
       }
    end
