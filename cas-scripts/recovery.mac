@@ -32,21 +32,33 @@ getDirIdx(dir, numDims) := block([],
   if dir = z then return(3)
 ) $
 
-getBasis(basisType, dimTot, polyOrder) := block(
-  [varsC, basisC, varsP, basisP],
-  if (dimTot < 4) then (
-    load(sconcat("basis-precalc/basis", basisType, dimTot, "x"))
+getBasis(basisType, varsIn, polyOrder) := block(
+  [varsC, basisC, varsP, basisP, cDim, vDim, confVars, velVars],
+  /* Determine dimensionality from a list of variables. */
+  confVars : [x,y,z],
+  velVars  : [vx,vy,vz],
+  cDim     : 0,
+  vDim     : 0,
+  for v in varsIn do (
+    if (length(sublist_indices(confVars,lambda([a],a=v))) > 0) then (
+      cDim : cDim+1
+    ) else if (length(sublist_indices(velVars,lambda([a],a=v))) > 0) then (
+      vDim : vDim+1
+    )
+  ),
+  if (vDim = 0) then (
+    load(sconcat("basis-precalc/basis", basisType, cDim, "x"))
   ) else (
-    load(sconcat("basis-precalc/basis", basisType, dimTot-3, "x", 3, "v"))
+    load(sconcat("basis-precalc/basis", basisType, cDim, "x", vDim, "v"))
   ),
   if polyOrder > 0 then (
-    if (dimTot < 4) then (
+    if (vDim = 0) then (
       return(basisC[polyOrder])
     ) else (
       return(basisP[polyOrder])
     )
   ) else (
-    if (dimTot < 4) then (
+    if (vDim = 0) then (
       return([basisC[1][1]])
     ) else (
       return([basisP[1][1]])
