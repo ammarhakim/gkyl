@@ -46,19 +46,30 @@ getBasis(basisType, varsIn, polyOrder) := block(
       vDim : vDim+1
     )
   ),
-  if (vDim = 0) then (
+  dimTot       : cDim+vDim,
+  useConfBasis : true,
+  if (dimTot # length(varsIn)) then (
+    /* Using variables other than x,y,z,vx,vy,vz. */
+    if (dimTot < 4) then (
+      load(sconcat("basis-precalc/basis", basisType, dimTot, "x"))
+    ) else (
+      useConfBasis : false,
+      load(sconcat("basis-precalc/basis", basisType, dimTot-3, "x", 3, "v"))
+    )
+  ) else if (vDim = 0) then (
     load(sconcat("basis-precalc/basis", basisType, cDim, "x"))
   ) else (
+    useConfBasis : false,
     load(sconcat("basis-precalc/basis", basisType, cDim, "x", vDim, "v"))
   ),
   if polyOrder > 0 then (
-    if (vDim = 0) then (
+    if useConfBasis then (
       return(basisC[polyOrder])
     ) else (
       return(basisP[polyOrder])
     )
   ) else (
-    if (vDim = 0) then (
+    if useConfBasis then (
       return([basisC[1][1]])
     ) else (
       return([basisP[1][1]])

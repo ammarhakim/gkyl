@@ -5,17 +5,14 @@ calcRecovFaceGen(basisNm, recDirs, dirs, face, polyOrder, C, lo, ce, up) := bloc
   rLoCoef, rCeCoef, rUpCoef, r,
   lo2, ce2, up2,
   wx, wy,
-  numDims, dirSubList
+  numDims
   ],
 
-  numDims : length(dirs),
+  numDims  : length(dirs),
   perpDirs : delete(recDirs[1], dirs),
-  ba : getBasis(basisNm, perpDirs, polyOrder),
-  dirSubList : if numDims=2 then
-                 [wx=perpDirs[1]]
-               else
-                 [wx=perpDirs[1], wy=perpDirs[2]],
-  ba : subst(dirSubList, subst([x=wx, y=wy], ba)),
+  ba       : getBasis(basisNm, delete(dirs[numDims], dirs), polyOrder),
+  baVars   : listofvars(ba),
+  ba       : subst(makelist(baVars[i]=perpDirs[i],i,1,numDims-1), ba),  
 
   if is(op(lo)=dg) then (
     rLo : calcRecov2CellGen(basisNm, recDirs[1], dirs, polyOrder,

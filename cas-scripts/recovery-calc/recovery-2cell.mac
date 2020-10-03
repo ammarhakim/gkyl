@@ -28,7 +28,7 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
   baLo1D, baCe1D, baUp1D, baLoND, baCeND, baUpND,
   dimProjLo, dimProjUp, qLo1D, qUp1D,
   wx, wy, wz,
-  numDims, dirSubList
+  numDims
   ],
   
   baCe1D : getBasis(basisNm, [x], polyOrder),
@@ -106,17 +106,17 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
   numDims : length(dirs),
   if numDims > 1 then (
     baCeND : getBasis(basisNm, dirs, polyOrder),
-    dirSubList : makelist(w[i]=dirs[i], i, 1, numDims),
-    baCeND : subst(dirSubList, subst([x=w[1],y=w[2],z=w[3]], baCeND)),  
+    baVars : listofvars(baCeND),
+    baCeND : subst(makelist(baVars[i]=dirs[i],i,1,numDims), baCeND),  
     baLoND : etaDir(recDir, -1, 2, baCeND),
     baUpND : etaDir(recDir, 1, 2, baCeND),
     /* prepare for the case where expansion coefficients at a wall are
     given; i.e., a basis function set with one less dimension is
     needed */
     perpDirs : delete(recDir, dirs),
-    baCeNDw : getBasis(basisNm, perpDirs, polyOrder),
-    dirSubList : makelist(w[i]=perpDirs[i], i, 1, numDims-1),
-    baCeNDw : subst(dirSubList, subst([x=w[1],y=w[2]], baCeNDw)), 
+    baCeNDw  : getBasis(basisNm, delete(dirs[numDims], dirs), polyOrder),
+    baVars   : listofvars(baCeNDw),
+    baCeNDw  : subst(makelist(baVars[i]=perpDirs[i],i,1,numDims-1), baCeNDw), 
     
     projSubList : [],
     if is(op(lo)=dg) then (
