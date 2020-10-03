@@ -120,7 +120,7 @@ for p : 1 thru pmax do (
             "(((b*(3*b*xc*xc-(6*xc+b))+6)*std::exp(b*xc))/3-(2*(b*b+3*(b+1))*std::exp(-b))/3)/(-4*b*std::cosh(b) + 4/3*(3 + b*b)*std::sinh(b))"],
         for k:1 thru length(bVp) do (
         printf(fh, "    fac = ~a; ~%", fReflfacs[k]),
-        printf(fh, "    if(isnan(fac) || isinf(fac)) {printf(\"reflect fac = \%LG, b=\%LG, xbarVal=\%LG \\n\", fac, b, xbarVal); fac=0.;} ~%"),
+        printf(fh, "    if(std::isnan(fac) || std::isinf(fac)) {printf(\"reflect fac = \%LG, b=\%LG, xbarVal=\%LG \\n\", fac, b, xbarVal); fac=0.;} ~%"),
         printf(fh, "    fReflZQuad[~a][~a] = (~a)*fac; ~%", j-1, k-1, gcfac(float(fZQ_Vp_c[k])))
         ),
         printf(fh, "   } else { ~%"),
@@ -130,7 +130,7 @@ for p : 1 thru pmax do (
             "((2*(b*b+3*(1-b))*std::exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*std::exp(b*xc))/3)/(-4*b*std::cosh(b) + 4/3*(3 + b*b)*std::sinh(b))"],
         for k:1 thru length(bVp) do (
         printf(fh, "    fac = ~a; ~%", fReflfacs[k]),
-        printf(fh, "    if(isnan(fac) || isinf(fac)) {printf(\"reflect fac = \%LG, b=\%LG, xbarVal=\%LG \\n\", fac, b, xbarVal); fac=0.;} ~%"),
+        printf(fh, "    if(std::isnan(fac) || std::isinf(fac)) {printf(\"reflect fac = \%LG, b=\%LG, xbarVal=\%LG \\n\", fac, b, xbarVal); fac=0.;} ~%"),
         printf(fh, "    fReflZQuad[~a][~a] = (~a)*fac; ~%", j-1, k-1, gcfac(float(fZQ_Vp_c[k])))
         ),
         printf(fh, "   } ~%"),
