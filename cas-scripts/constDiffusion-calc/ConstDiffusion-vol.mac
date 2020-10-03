@@ -7,60 +7,93 @@ fpprec : 24$
    volume contributions from second order diffusion in all
    directions using two integrations by parts. */
 
-cidx(cdim) := makelist(i,i,0,cdim-1)$
+loadBasisX(dimTot, basisType, pOrder) := block([basis,vars],
+  /* Load a basis based on dimensionality and basis type alone. */
+  kill(varsC, varsP, basisC, basisP),
+  if (dimTot < 4) then (
+    load(sconcat("basis-precalc/basis", basisType, dimTot, "x"))
+  ) else (
+    load(sconcat("basis-precalc/basis", basisType, dimTot-3, "x", 3, "v"))
+  ),
 
-calcConstDiffusionVolUpdater(fh, funcNm, cdim, basisFun, pMax) := block([],
+  if (dimTot < 4) then (
+    basis : basisC[pOrder],
+    vars  : varsC
+  ) else (
+    basis : basisP[pOrder],
+    vars  : varsP
+  ),
+  return([basis,vars])
+)$
+
+getDirCombos(varsIn) := block([dirCombosSet,dirCombos,d],
+  dirCombosSet : setify([]),
+  for d : 1 thru length(varsIn) do (
+    dirCombosSet : union(dirCombosSet,powerset(setify(varsIn),d))
+  ),
+  dirCombos : full_listify(dirCombosSet),
+  dirCombos : makelist(sort(dirCombos[i],lambda([a,b],slength(string(a)) < slength(string(b)))),i,1,length(dirCombos)),
+  return(dirCombos)
+)$
+
+calcConstDiffusionVolUpdater(fh, funcNm, dim, basisFun, polyOrder) := block([tmpLst,basis,vars,numB,diffDirCombos,diffDirs],
+  /* Generate the volume kernels for adding constant diffusion in all
+     or a subset of dimensions. */
   printf(fh, "#include <ConstDiffusionModDecl.h> ~%"),
-  for polyOrder : 1 thru pMax do (
 
-    kill(varsC, varsP, basisC, basisP),
-    /* Load basis of dimensionality requested. */
-    load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
+  tmpLst : loadBasisX(dim, basisFun, polyOrder),
+  basis  : tmpLst[1], 
+  vars   : tmpLst[2], 
 
-    /* Polynomial basis and its derivatives. */
-    bC : basisC[polyOrder],
-    NC : length(bC),
+  numB : length(basis),
 
-    fg : doExpand(f, bC),	/* Function expanded in basis. */
-    fg : subst(makelist(f[i]=f[i-1],i,1,NC),fg),
+  fg : doExpand1(f, basis),	/* Function expanded in basis. */
     
+  /* For a given dimensionality get the combinations of
+     directions in which to apply diffusion. */
+  diffDirCombos : getDirCombos(vars),
+
+  for diffDirs in diffDirCombos do (
+
+    diffDirNum : length(diffDirs),
+    diffDirInP : makelist(sublist_indices(vars,lambda([x], x=diffDirs[i]))[1],i,1,diffDirNum),
+
+    diffDirsStr :"",
+    for dI in diffDirInP do (diffDirsStr : sconcat(diffDirsStr,string(dI))),
+
+    printf(fh,"double ~aP~a_diffDirs~a(const double *w, const double *dx, const double *nu, const double *f, double *out) ~%{ ~%", funcNm, polyOrder,diffDirsStr),
+    printf(fh,"  // w[~a]:   Cell-center coordinates.~%",dim),
+    printf(fh,"  // dx[~a]:  Cell spacing.~%",dim),
+    printf(fh,"  // nu[~a]:  diffusion coefficient (collisionality).~%",dim),
+    printf(fh,"  // f:      Input distribution function.~%"),
+    printf(fh,"  // out:    Incremented output ~%"),
+    printf(fh,"  double rdxSq4nu[~a]; ~%", diffDirNum),
+    for d : 1 thru diffDirNum do (
+      printf(fh,"  rdxSq4nu[~a] = 4.0*nu[~a]/(dx[~a]*dx[~a]); ~%", d-1, d-1, diffDirInP[d]-1, diffDirInP[d]-1)
+    ),
+    printf(fh,"~%"),
+
     /* Volume matrix (convolution of derivatives). */
     incr : (
       incr : 0,
-      for dir : 1 thru cdim do (
-        cv   : varsC[dir],
-        incr : incr+calcInnerProdList(varsC,rdxSq4nu[dir-1],diff(bC,cv,2),fg)
+      for d : 1 thru diffDirNum do (
+        cv   : vars[diffDirInP[d]],
+        incr : incr+calcInnerProdList(vars,rdxSq4nu[d-1],diff(basis,cv,2),fg)
       ),
       incr
     ),
 
-    printf(fh,"double ~aP~a(const double *w, const double *dxv, const double *nu, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
-    printf(fh,"  // w[~a]:   Cell-center coordinates.~%",cdim),
-    printf(fh,"  // dxv[~a]: Cell spacing.~%",cdim),
-    printf(fh,"  // nu[~a]:  diffusion coefficient (collisionality).~%",cdim),
-    printf(fh,"  // f:      Input distribution function.~%"),
-    printf(fh,"  // out:    Incremented output ~%"),
-    cid : cidx(cdim),
-    printf(fh,"  double rdxSq4nu[~a]; ~%", cdim),
-    for dir : 1 thru cdim do (
-      printf(fh,"  rdxSq4nu[~a] = 4.0*nu[~a]/(dxv[~a]*dxv[~a]); ~%", dir-1, dir-1, dir-1, dir-1)
-    ),
-    printf(fh,"~%"),
-  
     writeCIncrExprs1(out, incr),
     printf(fh,"~%"),
 
-    if cdim = 1 then (
-      printf(fh,"  return rdxSq4nu[0]*0.5*~a; ~%",float(((polyOrder+1)**2)/(2*polyOrder+1)))
-    ),
-    if cdim = 2 then (
-      printf(fh,"  return (rdxSq4nu[0]+rdxSq4nu[1])*0.5*~a; ~%",float(((polyOrder+1)**2)/(2*polyOrder+1)))
-    ),
-    if cdim = 3 then (
-      printf(fh,"  return (rdxSq4nu[0]+rdxSq4nu[1]+rdxSq4nu[2])*0.5*~a; ~%",float(((polyOrder+1)**2)/(2*polyOrder+1)))
-    ),
+    /* Return the value used in the CFL calculation. */
+    pstr : "  return (rdxSq4nu[0]",
+    for d : 2 thru diffDirNum do ( pstr : sconcat(pstr,"+rdxSq4nu[",d-1,"]") ),
+    pstr : sconcat(pstr,")*~a;~%"),
+    printf(fh, pstr, 0.5*float(((polyOrder+1)**2)/(2*polyOrder+1))),
     printf(fh,"~%"),
   
     printf(fh,"} ~%")
-));
+  )
+);
 

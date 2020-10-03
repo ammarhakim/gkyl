@@ -5,30 +5,44 @@ load(stringproc)$
 
 /* ...... USER INPUTS........ */
 
+/* Indicate the mininimum and maximum dimensinality for which
+   you wish to generate kernels. The smalles possible is 1 and
+   the largest 6. This will generate a multitude of kernels
+   to allow the user to add diffusion in any subset of directions. */
+
 /* Serendipity basis. */
-maxPolyOrder_Ser : 3$
-minCdim_Ser : 1$
-maxCdim_Ser : 3$
+maxPolyOrder_Ser : 2$
+minDim_Ser : 1$
+maxDim_Ser : 4$
 
 /* Maximal order basis. */
-maxPolyOrder_Max : 3$
-minCdim_Max : 1$
-maxCdim_Max : 3$
+maxPolyOrder_Max : 2$
+minDim_Max : 1$
+maxDim_Max : 3$
 
 /* ...... END OF USER INPUTS........ */
 
 /* To generate other basis, just add more columns to arrays below. */
 bName        : ["Ser","Max"]$
 maxPolyOrder : [maxPolyOrder_Ser,maxPolyOrder_Max]$
-minCdim      : [minCdim_Ser,minCdim_Max]$
-maxCdim      : [maxCdim_Ser,maxCdim_Max]$
+minDim       : [minDim_Ser,minDim_Max]$
+maxDim       : [maxDim_Ser,maxDim_Max]$
 
 for bInd : 1 thru length(bName) do (
-  for c : minCdim[bInd] thru maxCdim[bInd] do (
-    fname : sconcat("~/max-out/ConstDiffusion", bName[bInd], c, "x", ".cpp"),
-    fh : openw(fname),
-    funcName : sconcat("ConstDiffusionVol", c, "x", bName[bInd]),
-    calcConstDiffusionVolUpdater(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
-    close(fh)
+  for cD : minDim[bInd] thru maxDim[bInd] do (
+    maxPolyOrderB : maxPolyOrder[bInd],
+    if (cD>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+    if (cD=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
+
+    for polyOrder : 1 thru maxPolyOrderB do (
+
+      disp(printf(false,sconcat(" Creating volume ConstDiffusion", bName[bInd], " ~axP~a"),cD,polyOrder)),
+      fname    : sconcat("~/max-out/ConstDiffusion", bName[bInd], cD, "xP", polyOrder, ".cpp"),
+      fh       : openw(fname),
+      funcName : sconcat("ConstDiffusionVol", cD, "x", bName[bInd]),
+      calcConstDiffusionVolUpdater(fh, funcName, cD, bName[bInd], polyOrder),
+      close(fh)
+
+    )
   )
 );
