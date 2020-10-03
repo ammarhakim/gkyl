@@ -51,8 +51,13 @@ testRecov(mode) := block(
       label : readline(fh),
       s : readline(fh),
       difference : fullratsimp(expand(tests[i][2]-eval_string(s))),
-      print(sconcat(label, ": ", difference)),
-      if difference # 0 then nFailed : nFailed + 1
+      if difference # 0 then (
+        nFailed : nFailed + 1,
+        print(sconcat(label, ": Failed")),
+        print(difference)
+      ) else (
+        print(sconcat(label, ": OK"))
+      )
     ),
     print(sconcat("Number of failed tests: ", nFailed, "/", length(tests)))
   ),
