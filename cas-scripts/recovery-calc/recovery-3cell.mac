@@ -29,7 +29,7 @@ calcRecov3CellGen(basisNm, recDir, dirs, polyOrder, lo, ce, up) := block(
   baLo1D, baCe1D, baUp1D, baLoND, baCeND, baUpND,
   dimProjLo, dimProjCe, dimProjUp, qLo1D, qCe1D, qUp1D,
   wx, wy, wz,
-  numDims, dirSubList
+  numDims
   ],
   
   baCe1D : getBasis(basisNm, [x], polyOrder),
@@ -113,11 +113,8 @@ calcRecov3CellGen(basisNm, recDir, dirs, polyOrder, lo, ce, up) := block(
   numDims : length(dirs),
   if numDims > 1 then (
     baCeND : getBasis(basisNm, dirs, polyOrder),
-    dirSubList : if numDims=2 then
-                   [wx=dirs[1], wy=dirs[2]]
-                 else
-                 [wx=dirs[1], wy=dirs[2], wz=dirs[3]],
-    baCeND : subst(dirSubList, subst([x=wx,y=wy,z=wz], baCeND)),
+    baVars : listofvars(baCeND),
+    baCeND : subst(makelist(baVars[i]=dirs[i],i,1,numDims), baCeND),
     baLoND : etaDir(recDir, -2, 2, baCeND),
     baUpND : etaDir(recDir, 2, 2, baCeND),
 
