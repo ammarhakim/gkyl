@@ -7,21 +7,22 @@ fpprec : 24$
 /* This script generates the kernels needed for filling the ghost
    cells so that BCs are enforced for the constantDiffusion term.
    This assumes that ConstantDiffusion is being solved using two
-   differentiations by parts and RDG. */
+   differentiations by parts and RDG (i.e. the surface kernels and
+   the BC kernels would preferably be consistent with each other). */
 
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 1$
-minCdim_Ser : 1$
-maxCdim_Ser : 2$
+minDim_Ser : 1$
+maxDim_Ser : 2$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 2$
-minCdim_Max : 1$
-maxCdim_Max : 0$
+minDim_Max : 1$
+maxDim_Max : 0$
 
-/* ...... END OF USER INPUTS........ */
+/* ...... END OF USER INPUTS (maybe) ........ */
 
 Cvars : [ X, Y, Z ]$
 sEdge : ["lower","upper"]$
@@ -245,8 +246,8 @@ calcConstDiffusionNeumannBCs(fh, funcNm, cdim, basisFun, pMax) := block([],
 /* To generate other bases, just add corresponding column to arrays below. */
 bName        : ["Ser","Max"]$
 maxPolyOrder : [maxPolyOrder_Ser,maxPolyOrder_Max]$
-minCdim      : [minCdim_Ser,minCdim_Max]$
-maxCdim      : [maxCdim_Ser,maxCdim_Max]$
+minDim       : [minDim_Ser,minDim_Max]$
+maxDim       : [maxDim_Ser,maxDim_Max]$
 
 for bInd : 1 thru length(bName) do (
 
@@ -255,7 +256,7 @@ for bInd : 1 thru length(bName) do (
 
   printf(fh, "#include <ConstDiffusionModDecl.h> ~%"),
 
-  for c : 1 thru maxCdim[bInd] do (
+  for c : 1 thru maxDim[bInd] do (
 
     disp(printf(false,sconcat("Creating BC kernel",bName[bInd]," ~ax"),c)),
 

@@ -105,6 +105,9 @@ writeCExprs1sP(lhs, rhs, nSpaces) := block([expr],
   )
 )$
 
+/* Functions loadBasisX and getDirCombos ought to match those in the
+   header-generating script. */
+
 loadBasisX(dimTot, basisType, pOrder) := block([basis,vars],
   /* Load a basis based on dimensionality and basis type alone. */
   kill(varsC, varsP, basisC, basisP),
@@ -573,11 +576,11 @@ calcConstDiffusionSurfUpdater(fh, funcNm, dim, basisFun, polyOrder, usePos) := b
 
     diffDirsStr :"",
     for dI in diffDirInP do (diffDirsStr : sconcat(diffDirsStr,string(dI))),
-    funcNm : sconcat(funcNm, "P", polyOrder, "_diffDirs", diffDirsStr),
+    funcNmNew : sconcat(funcNm, "P", polyOrder, "_diffDirs", diffDirsStr),
 
     for d : 1 thru diffDirNum do (
       dir : diffDirInP[d],
-      calcUpdateInDir(dir, d, fh, funcNm, dim, basisFun, polyOrder, usePos)
+      calcUpdateInDir(dir, d, fh, funcNmNew, dim, basisFun, polyOrder, usePos)
     )
   )
 )$
@@ -593,11 +596,11 @@ calcConstDiffusionBoundarySurfUpdater(fh, funcNm, dim, basisFun, polyOrder, useP
 
     diffDirsStr :"",
     for dI in diffDirInP do (diffDirsStr : sconcat(diffDirsStr,string(dI))),
-    funcNm : sconcat(funcNm, "P", polyOrder, "_diffDirs", diffDirsStr),
+    funcNmNew : sconcat(funcNm, "P", polyOrder, "_diffDirs", diffDirsStr),
 
     for d : 1 thru diffDirNum do (
       dir : diffDirInP[d],
-      calcBoundaryUpdateInDir(dir, d, fh, funcNm, dim, basisFun, polyOrder, usePos)
+      calcBoundaryUpdateInDir(dir, d, fh, funcNmNew, dim, basisFun, polyOrder, usePos)
     )
   )
 )$

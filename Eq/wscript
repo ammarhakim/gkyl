@@ -136,18 +136,34 @@ def build(bld):
     lboData/VmLBOconstNuBoundarySurfMax1x3vP3.cpp
     lboData/VmLBOconstNuBoundarySurfMax2x2vP3.cpp
 
-    constDiffusionData/ConstDiffusionSer1x.cpp
-    constDiffusionData/ConstDiffusionSer2x.cpp
-    constDiffusionData/ConstDiffusionSer3x.cpp
-    constDiffusionData/ConstDiffusionSurfSer1x.cpp
-    constDiffusionData/ConstDiffusionSurfSer2x.cpp
-    constDiffusionData/ConstDiffusionSurfSer3x.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer1x.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer2x.cpp
-    constDiffusionData/ConstDiffusionBoundarySurfSer3x.cpp
-    constDiffusionData/ConstDiffusionSurfPositivitySer1x.cpp
-    constDiffusionData/ConstDiffusionSurfPositivitySer2x.cpp
-    constDiffusionData/ConstDiffusionSurfPositivitySer3x.cpp
+    constDiffusionData/ConstDiffusionSer1xP1.cpp
+    constDiffusionData/ConstDiffusionSer2xP1.cpp
+    constDiffusionData/ConstDiffusionSer3xP1.cpp
+    constDiffusionData/ConstDiffusionSer4xP1.cpp
+    constDiffusionData/ConstDiffusionSurfSer1xP1.cpp
+    constDiffusionData/ConstDiffusionSurfSer2xP1.cpp
+    constDiffusionData/ConstDiffusionSurfSer3xP1.cpp
+    constDiffusionData/ConstDiffusionSurfSer4xP1.cpp
+    constDiffusionData/ConstDiffusionBoundarySurfSer1xP1.cpp
+    constDiffusionData/ConstDiffusionBoundarySurfSer2xP1.cpp
+    constDiffusionData/ConstDiffusionBoundarySurfSer3xP1.cpp
+    constDiffusionData/ConstDiffusionBoundarySurfSer4xP1.cpp
+    constDiffusionData/ConstDiffusionSer1xP2.cpp
+    constDiffusionData/ConstDiffusionSer2xP2.cpp
+    constDiffusionData/ConstDiffusionSer3xP2.cpp
+    constDiffusionData/ConstDiffusionSer4xP2.cpp
+    constDiffusionData/ConstDiffusionSurfSer1xP2.cpp
+    constDiffusionData/ConstDiffusionSurfSer2xP2.cpp
+    constDiffusionData/ConstDiffusionSurfSer3xP2.cpp
+    constDiffusionData/ConstDiffusionSurfSer4xP2.cpp
+    constDiffusionData/ConstDiffusionBoundarySurfSer1xP2.cpp
+    constDiffusionData/ConstDiffusionBoundarySurfSer2xP2.cpp
+    constDiffusionData/ConstDiffusionBoundarySurfSer3xP2.cpp
+    constDiffusionData/ConstDiffusionBoundarySurfSer4xP2.cpp
+    constDiffusionData/ConstDiffusionSurfPositivitySer1xP1.cpp
+    constDiffusionData/ConstDiffusionSurfPositivitySer2xP1.cpp
+    constDiffusionData/ConstDiffusionSurfPositivitySer3xP1.cpp
+    constDiffusionData/ConstDiffusionSurfPositivitySer4xP1.cpp
     constDiffusionData/ConstDiffusionBCsSer.cpp
 
     maxwellData/MaxwellVolSer1xP1.cpp

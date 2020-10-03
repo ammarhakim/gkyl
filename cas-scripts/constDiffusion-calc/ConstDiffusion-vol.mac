@@ -7,6 +7,9 @@ fpprec : 24$
    volume contributions from second order diffusion in all
    directions using two integrations by parts. */
 
+/* Functions loadBasisX and getDirCombos ought to match those in the
+   header-generating script. */
+
 loadBasisX(dimTot, basisType, pOrder) := block([basis,vars],
   /* Load a basis based on dimensionality and basis type alone. */
   kill(varsC, varsP, basisC, basisP),
@@ -61,7 +64,7 @@ calcConstDiffusionVolUpdater(fh, funcNm, dim, basisFun, polyOrder) := block([tmp
     diffDirsStr :"",
     for dI in diffDirInP do (diffDirsStr : sconcat(diffDirsStr,string(dI))),
 
-    printf(fh,"double ~aP~a_diffDirs~a(const double *w, const double *dx, const double *nu, const double *f, double *out) ~%{ ~%", funcNm, polyOrder,diffDirsStr),
+    printf(fh,"double ~aP~a_diffDirs~a(const double *w, const double *dx, const double *nu, const double *f, double *out) ~%{ ~%", funcNm, polyOrder, diffDirsStr),
     printf(fh,"  // w[~a]:   Cell-center coordinates.~%",dim),
     printf(fh,"  // dx[~a]:  Cell spacing.~%",dim),
     printf(fh,"  // nu[~a]:  diffusion coefficient (collisionality).~%",dim),

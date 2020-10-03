@@ -1,59 +1,119 @@
-cvars : [X, Y, Z]$
+/* Generate the header file for the ConsDiffusion kernels. */
 
-fh : openw("~/max-out/ConstDiffusionModDecl.h")$
+/* ...... USER INPUTS........ */
 
-polyOrderMax : 3$
-
-printf(fh, "#ifndef CONSTDIFFUSION_MOD_DELC_H ~%")$
-printf(fh, "#define CONSTDIFFUSION_MOD_DELC_H ~%")$
-printf(fh, "#include <cmath> ~%")$
-printf(fh, "extern \"C\" { ~%")$
-
-/* Maximal order basis. */
-for ci : 1 thru 3 do (
-    for pi : 1 thru polyOrderMax do (
-      printf(fh, "double ConstDiffusionVol~axMaxP~a(const double *w, const double *dxv, const double *nu, const double *f, double *out); ~%", ci, pi),
-      for si : 1 thru ci do (
-        printf(fh, "void ConstDiffusionSurf~axMax_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, cvars[si], pi),
-        printf(fh, "void ConstDiffusionBoundarySurf~axMax_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, cvars[si], pi),
-          if pi=1 then (
-            /* Add kernels for positivity preserving algorithm. */
-            printf(fh, "void ConstDiffusionSurfPositivity~axMax_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, cvars[si], pi)
-          ),
-
-        /* Kernels that implement BCs for constDiffusion term. */
-        printf(fh, "void ConstDiffusionBC~axSerDirichlet_~alower_P~a(const double dx, const double *fSkin, const double fBC, double *fGhost);~%", ci, cvars[si], pi),
-        printf(fh, "void ConstDiffusionBC~axSerDirichlet_~aupper_P~a(const double dx, const double *fSkin, const double fBC, double *fGhost);~%", ci, cvars[si], pi),
-        printf(fh, "void ConstDiffusionBC~axSerNeumann_~alower_P~a(const double dx, const double *fSkin, const double fpBC, double *fGhost);~%", ci, cvars[si], pi),
-        printf(fh, "void ConstDiffusionBC~axSerNeumann_~aupper_P~a(const double dx, const double *fSkin, const double fpBC, double *fGhost);~%", ci, cvars[si], pi)
-      ),
-      printf(fh, "~%")      
-    ),
-    printf(fh, "~%")
-)$
-
-printf(fh, "~% ~%")$
+/* Indicate the mininimum and maximum dimensinality for which
+   you wish to generate kernels. The smalles possible is 1 and
+   the largest 6. This will generate a multitude of kernels
+   to allow the user to add diffusion in any subset of directions. */
 
 /* Serendipity basis. */
-for ci : 1 thru 3 do (
-    for pi : 1 thru 4 do (
-      printf(fh, "double ConstDiffusionVol~axSerP~a(const double *w, const double *dxv, const double *nu, const double *f, double *out); ~%", ci, pi),
-      for si : 1 thru ci do (
-        printf(fh, "void ConstDiffusionSurf~axSer_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, cvars[si], pi),
-        printf(fh, "void ConstDiffusionBoundarySurf~axSer_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, cvars[si], pi),
-          if pi=1 then (
+maxPolyOrder_Ser : 2$
+minDim_Ser : 1$
+maxDim_Ser : 6$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 2$
+minDim_Max : 1$
+maxDim_Max : 6$
+
+/* ...... END OF USER INPUTS (maybe)........ */
+
+surfLabels : [X1, X2, X3, X4, X5, X6]$
+
+/* To generate other bases, just add corresponding column to arrays below. */
+bName        : ["Ser","Max"]$
+maxPolyOrder : [maxPolyOrder_Ser,maxPolyOrder_Max]$
+minDim       : [minDim_Ser,minDim_Max]$
+maxDim       : [maxDim_Ser,maxDim_Max]$
+
+/* Functions loadBasisX and getDirCombos ought to match those in the
+   kernel-generating scripts. */
+
+loadBasisX(dimTot, basisType, pOrder) := block([basis,vars],
+  /* Load a basis based on dimensionality and basis type alone. */
+  kill(varsC, varsP, basisC, basisP),
+  if (dimTot < 4) then (
+    load(sconcat("basis-precalc/basis", basisType, dimTot, "x"))
+  ) else (
+    load(sconcat("basis-precalc/basis", basisType, dimTot-3, "x", 3, "v"))
+  ),
+
+  if (dimTot < 4) then (
+    basis : basisC[pOrder],
+    vars  : varsC
+  ) else (
+    basis : basisP[pOrder],
+    vars  : varsP
+  ),
+  return([basis,vars])
+)$
+
+getDirCombos(varsIn) := block([dirCombosSet,dirCombos,d],
+  dirCombosSet : setify([]),
+  for d : 1 thru length(varsIn) do (
+    dirCombosSet : union(dirCombosSet,powerset(setify(varsIn),d))
+  ),
+  dirCombos : full_listify(dirCombosSet),
+  dirCombos : makelist(sort(dirCombos[i],lambda([a,b],slength(string(a)) < slength(string(b)))),i,1,length(dirCombos)),
+  return(dirCombos)
+)$
+
+/* Open new header file. */
+fh : openw("~/max-out/ConstDiffusionModDecl.h")$
+
+printf(fh, "#ifndef CONSTDIFFUSION_MOD_DECL_H ~%")$
+printf(fh, "#define CONSTDIFFUSION_MOD_DECL_H ~%")$
+printf(fh, "~%"),
+printf(fh, "#include <cmath> ~%")$
+printf(fh, "~%"),
+printf(fh, "extern \"C\" { ~%")$
+printf(fh, "~%"),
+
+for bInd : 1 thru length(bName) do (
+  for cD : 1 thru maxDim[bInd] do (
+
+    maxPolyOrderB : maxPolyOrder[bInd],
+    if (cD>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+    if (cD=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
+
+    for polyOrder : 1 thru maxPolyOrderB do (
+
+      tmpLst : loadBasisX(cD,  bName[bInd], polyOrder),
+      vars   : tmpLst[2],
+      /* For a given dimensionality get the combinations of
+         directions in which to apply diffusion. */
+      diffDirCombos : getDirCombos(vars),
+
+      for diffDirs in diffDirCombos do (
+
+        diffDirNum : length(diffDirs),
+        diffDirInP : makelist(sublist_indices(vars,lambda([x], x=diffDirs[i]))[1],i,1,diffDirNum),
+    
+        diffDirsStr :"",
+        for dI in diffDirInP do (diffDirsStr : sconcat(diffDirsStr,string(dI))),
+
+        printf(fh, "double ConstDiffusionVol~ax~aP~a_diffDirs~a(const double *w, const double *dx, const double *nu, const double *f, double *out); ~%", cD, bName[bInd], polyOrder, diffDirsStr),
+        for d : 1 thru diffDirNum do (
+          dir : diffDirInP[d],
+          printf(fh, "void ConstDiffusionSurf~ax~aP~a_diffDirs~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, diffDirsStr, surfLabels[dir]),
+          printf(fh, "void ConstDiffusionBoundarySurf~ax~aP~a_diffDirs~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, diffDirsStr, surfLabels[dir]),
+          if polyOrder=1 then (
             /* Add kernels for positivity preserving algorithm. */
-            printf(fh, "void ConstDiffusionSurfPositivity~axSer_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, cvars[si], pi)
+            printf(fh, "void ConstDiffusionSurfPositivity~ax~aP~a_diffDirs~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, diffDirsStr, surfLabels[dir])
           )
+        ),
+        printf(fh, "~%")
       ),
       printf(fh, "~%")
     ),
     printf(fh, "~%")
+  ),
+  printf(fh, "~%")
 )$
 
-printf(fh, "~% ~%")$
-
 printf(fh, "} ~%")$
+printf(fh, "~%"),
 
 printf(fh, "#endif ~%")$
 
