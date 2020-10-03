@@ -1,4 +1,4 @@
-#include <cmath>
+#include <math.h>
 #include <GyrokineticModDecl.h> 
 // approximation for inverse Langevin function 
 long double invL(long double x) { 
