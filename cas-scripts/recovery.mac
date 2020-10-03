@@ -32,14 +32,25 @@ getDirIdx(dir, numDims) := block([],
   if dir = z then return(3)
 ) $
 
-getBasis(name, polyOrder) := block(
-  [varsC, basisC, basisConstant],
-  load(name),
+getBasis(basisType, dimTot, polyOrder) := block(
+  [varsC, basisC, varsP, basisP],
+  if (dimTot < 4) then (
+    load(sconcat("basis-precalc/basis", basisType, dimTot, "x"))
+  ) else (
+    load(sconcat("basis-precalc/basis", basisType, dimTot-3, "x", 3, "v"))
+  ),
   if polyOrder > 0 then (
-    return(basisC[polyOrder])
-  )
-  else (
-    return([basisC[1][1]])
+    if (dimTot < 4) then (
+      return(basisC[polyOrder])
+    ) else (
+      return(basisP[polyOrder])
+    )
+  ) else (
+    if (dimTot < 4) then (
+      return([basisC[1][1]])
+    ) else (
+      return([basisP[1][1]])
+    )
   )
 ) $
 
