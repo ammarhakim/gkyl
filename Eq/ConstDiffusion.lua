@@ -40,17 +40,18 @@ function ConstDiffusion:init(tbl)
    local nuIn     = assert(tbl.coefficient,
                            "Eq.constDiffusion: must specify diffusion coefficient (or vector) using 'coefficient' ")
    local nuInType = type(nuIn)
-   self._nu       = Lin.Vec(#self.diffDirs)
+   self._nu       = Lin.Vec(dim)
+   for d = 1, dim do self._nu[d] = 0.0 end
    if (nuInType == "number") then
       -- Set the diffusion coefficient to the same amplitude in all directions.
-      for d = 1, #self.diffDirs do self._nu[d] = nuIn end
+      for d = 1, dim do self._nu[d] = nuIn end
    elseif (nuInType == "table") then
       if diffDirsIn then
          assert(#nuIn==#diffDirsIn, "Eq.constDiffusion: 'coefficient' table must have the same number of entries as 'diffusiveDirs'.")
       else
          assert(#nuIn==dim, "Eq.constDiffusion: 'coefficient' table must have the same number of entries as the simulation's dimensions if 'diffusiveDirs' is not given.")
       end
-      for d = 1, #self.diffDirs do self._nu[d] = nuIn[d] end
+      for d = 1, #self.diffDirs do self._nu[self.diffDirs[d]] = nuIn[d] end
    else
       assert(false, "Eq.constDiffusion: 'coefficient' must be a number or a table.")
    end

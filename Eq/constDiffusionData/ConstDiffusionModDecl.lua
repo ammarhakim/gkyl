@@ -38,14 +38,11 @@ function _M.selectSurf(basisNm, DIM, polyOrder, diffDirsIn, diffOrder, applyPos)
    local posStr = ""
    if applyPos then posStr = "Positivity" end
 
-   local diffDirsStr = ""
-   for _, d in ipairs(diffDirsIn) do diffDirsStr = diffDirsStr .. d end
-
    local funcType = "void"
    local funcNm   = {}
    for d = 1, #diffDirsIn do
-      funcNm[d] = string.format("Const%sSurf%s%dx%sP%d_diffDirs%s_X%d", diffStr, posStr, DIM, 
-                                basisNmMap[basisNm], polyOrder, diffDirsStr, diffDirsIn[d])
+      funcNm[d] = string.format("Const%sSurf%s%dx%sP%d_X%d", diffStr, posStr, DIM, 
+                                basisNmMap[basisNm], polyOrder, diffDirsIn[d])
    end
    local funcSign = "(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr)"
 
@@ -67,14 +64,11 @@ function _M.selectBoundarySurf(basisNm, DIM, polyOrder, diffDirsIn, diffOrder, a
    diffStr = "Diffusion"
    if diffOrder > 2 then diffStr = "HyperDiffusion" .. diffOrder end
 
-   local diffDirsStr = ""
-   for _, d in ipairs(diffDirsIn) do diffDirsStr = diffDirsStr .. d end
-
    local funcType = "void"
    local funcNm   = {}
    for d = 1, #diffDirsIn do
-      funcNm[d] = string.format("Const%sBoundarySurf%dx%sP%d_diffDirs%s_X%d", diffStr, DIM, 
-                                basisNmMap[basisNm], polyOrder, diffDirsStr, diffDirsIn[d])
+      funcNm[d] = string.format("Const%sBoundarySurf%dx%sP%d_X%d", diffStr, DIM, 
+                                basisNmMap[basisNm], polyOrder, diffDirsIn[d])
    end
    local funcSign = "(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr)"
 

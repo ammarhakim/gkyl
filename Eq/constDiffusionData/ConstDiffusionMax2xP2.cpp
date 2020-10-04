@@ -39,7 +39,7 @@ double ConstDiffusionVol2xMaxP2_diffDirs2(const double *w, const double *dx, con
   // f:      Input distribution function.
   // out:    Incremented output 
   double rdxFnu[1]; 
-  rdxFnu[0] = 4.0*nu[0]/(dx[1]*dx[1]); 
+  rdxFnu[0] = 4.0*nu[1]/(dx[1]*dx[1]); 
 
   out[5] += 6.708203932499369*f[0]*rdxFnu[0]; 
 
@@ -83,7 +83,7 @@ double ConstHyperDiffusion4Vol2xMaxP2_diffDirs2(const double *w, const double *d
   // f:      Input distribution function.
   // out:    Incremented output 
   double rdxFnu[1]; 
-  rdxFnu[0] = 16.0*nu[0]/(dx[1]*dx[1]*dx[1]*dx[1]); 
+  rdxFnu[0] = 16.0*nu[1]/(dx[1]*dx[1]*dx[1]*dx[1]); 
 
 
   return (rdxFnu[0])*0.9;
@@ -126,7 +126,7 @@ double ConstHyperDiffusion6Vol2xMaxP2_diffDirs2(const double *w, const double *d
   // f:      Input distribution function.
   // out:    Incremented output 
   double rdxFnu[1]; 
-  rdxFnu[0] = 64.0*nu[0]/(dx[1]*dx[1]*dx[1]*dx[1]*dx[1]*dx[1]); 
+  rdxFnu[0] = 64.0*nu[1]/(dx[1]*dx[1]*dx[1]*dx[1]*dx[1]*dx[1]); 
 
 
   return (rdxFnu[0])*0.9;

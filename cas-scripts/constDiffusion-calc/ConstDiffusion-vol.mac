@@ -77,7 +77,7 @@ calcConstDiffusionVolUpdater(fh, funcNm, dim, basisFun, polyOrder, diffOrder) :=
       for ef : 2 thru diffOrder/2 do (
         denFac : sconcat(denFac,"*dx[", diffDirInP[d]-1,"]*dx[", diffDirInP[d]-1,"]")
       ),
-      printf(fh,"  rdxFnu[~a] = ~a*nu[~a]/(~a); ~%", d-1, numFac, d-1, denFac)
+      printf(fh,"  rdxFnu[~a] = ~a*nu[~a]/(~a); ~%", d-1, numFac, diffDirInP[d]-1, denFac)
     ),
     printf(fh,"~%"),
 

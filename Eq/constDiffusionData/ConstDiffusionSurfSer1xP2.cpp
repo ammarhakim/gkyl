@@ -1,5 +1,5 @@
 #include <ConstDiffusionModDecl.h> 
-void ConstDiffusionSurf1xSerP2_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionSurf1xSerP2_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[1]:      Cell-center coordinates.
   // dx[1]:     Cell spacing.
@@ -28,7 +28,7 @@ void ConstDiffusionSurf1xSerP2_diffDirs1_X1(const double *wl, const double *wr, 
   outl[2] += incr2[2]*rdxFnul-1.0*incr1[2]*rdxFnul; 
 
 } 
-void ConstHyperDiffusion4Surf1xSerP2_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstHyperDiffusion4Surf1xSerP2_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[1]:      Cell-center coordinates.
   // dx[1]:     Cell spacing.
@@ -62,7 +62,7 @@ void ConstHyperDiffusion4Surf1xSerP2_diffDirs1_X1(const double *wl, const double
   outl[2] += incr3[2]*rdxFnul-1.0*incr2[2]*rdxFnul+incr1[2]*rdxFnul; 
 
 } 
-void ConstHyperDiffusion6Surf1xSerP2_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstHyperDiffusion6Surf1xSerP2_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[1]:      Cell-center coordinates.
   // dx[1]:     Cell spacing.

@@ -36,7 +36,7 @@ double ConstDiffusionVol2xMaxP1_diffDirs2(const double *w, const double *dx, con
   // f:      Input distribution function.
   // out:    Incremented output 
   double rdxFnu[1]; 
-  rdxFnu[0] = 4.0*nu[0]/(dx[1]*dx[1]); 
+  rdxFnu[0] = 4.0*nu[1]/(dx[1]*dx[1]); 
 
 
   return (rdxFnu[0])*0.6666666666666666;

@@ -1,5 +1,5 @@
 #include <ConstDiffusionModDecl.h> 
-void ConstDiffusionBoundarySurf1xMaxP1_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionBoundarySurf1xMaxP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[1]:      Cell-center coordinates.
   // dx[1]:     Cell spacing.
@@ -7,8 +7,8 @@ void ConstDiffusionBoundarySurf1xMaxP1_diffDirs1_X1(const double *wl, const doub
   // nu[1]:     diffusion coefficient (collisionality).
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
-  rdxFnul = 4.0*nu[0]/(dxl[0]*dxl[0]); 
-  rdxFnur = 4.0*nu[0]/(dxr[0]*dxr[0]); 
+  double rdxFnul = 4.0*nu[0]/(dxl[0]*dxl[0]); 
+  double rdxFnur = 4.0*nu[0]/(dxr[0]*dxr[0]); 
 
   double incr1[2]; 
   double incr2[2]; 

@@ -6,11 +6,11 @@ double ConstDiffusionVol3xMaxP1_diffDirs1(const double *w, const double *dx, con
   // nu[3]:  diffusion coefficient (collisionality).
   // f:      Input distribution function.
   // out:    Incremented output 
-  double rdxSq4nu[1]; 
-  rdxSq4nu[0] = 4.0*nu[0]/(dx[0]*dx[0]); 
+  double rdxFnu[1]; 
+  rdxFnu[0] = 4.0*nu[0]/(dx[0]*dx[0]); 
 
 
-  return (rdxSq4nu[0])*0.6666666666666666;
+  return (rdxFnu[0])*0.6666666666666666;
 
 } 
 double ConstDiffusionVol3xMaxP1_diffDirs12(const double *w, const double *dx, const double *nu, const double *f, double *out) 
@@ -20,12 +20,12 @@ double ConstDiffusionVol3xMaxP1_diffDirs12(const double *w, const double *dx, co
   // nu[3]:  diffusion coefficient (collisionality).
   // f:      Input distribution function.
   // out:    Incremented output 
-  double rdxSq4nu[2]; 
-  rdxSq4nu[0] = 4.0*nu[0]/(dx[0]*dx[0]); 
-  rdxSq4nu[1] = 4.0*nu[1]/(dx[1]*dx[1]); 
+  double rdxFnu[2]; 
+  rdxFnu[0] = 4.0*nu[0]/(dx[0]*dx[0]); 
+  rdxFnu[1] = 4.0*nu[1]/(dx[1]*dx[1]); 
 
 
-  return (rdxSq4nu[0]+rdxSq4nu[1])*0.6666666666666666;
+  return (rdxFnu[0]+rdxFnu[1])*0.6666666666666666;
 
 } 
 double ConstDiffusionVol3xMaxP1_diffDirs123(const double *w, const double *dx, const double *nu, const double *f, double *out) 
@@ -35,13 +35,13 @@ double ConstDiffusionVol3xMaxP1_diffDirs123(const double *w, const double *dx, c
   // nu[3]:  diffusion coefficient (collisionality).
   // f:      Input distribution function.
   // out:    Incremented output 
-  double rdxSq4nu[3]; 
-  rdxSq4nu[0] = 4.0*nu[0]/(dx[0]*dx[0]); 
-  rdxSq4nu[1] = 4.0*nu[1]/(dx[1]*dx[1]); 
-  rdxSq4nu[2] = 4.0*nu[2]/(dx[2]*dx[2]); 
+  double rdxFnu[3]; 
+  rdxFnu[0] = 4.0*nu[0]/(dx[0]*dx[0]); 
+  rdxFnu[1] = 4.0*nu[1]/(dx[1]*dx[1]); 
+  rdxFnu[2] = 4.0*nu[2]/(dx[2]*dx[2]); 
 
 
-  return (rdxSq4nu[0]+rdxSq4nu[1]+rdxSq4nu[2])*0.6666666666666666;
+  return (rdxFnu[0]+rdxFnu[1]+rdxFnu[2])*0.6666666666666666;
 
 } 
 double ConstDiffusionVol3xMaxP1_diffDirs13(const double *w, const double *dx, const double *nu, const double *f, double *out) 
@@ -51,12 +51,12 @@ double ConstDiffusionVol3xMaxP1_diffDirs13(const double *w, const double *dx, co
   // nu[3]:  diffusion coefficient (collisionality).
   // f:      Input distribution function.
   // out:    Incremented output 
-  double rdxSq4nu[2]; 
-  rdxSq4nu[0] = 4.0*nu[0]/(dx[0]*dx[0]); 
-  rdxSq4nu[1] = 4.0*nu[1]/(dx[2]*dx[2]); 
+  double rdxFnu[2]; 
+  rdxFnu[0] = 4.0*nu[0]/(dx[0]*dx[0]); 
+  rdxFnu[1] = 4.0*nu[2]/(dx[2]*dx[2]); 
 
 
-  return (rdxSq4nu[0]+rdxSq4nu[1])*0.6666666666666666;
+  return (rdxFnu[0]+rdxFnu[1])*0.6666666666666666;
 
 } 
 double ConstDiffusionVol3xMaxP1_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out) 
@@ -66,11 +66,11 @@ double ConstDiffusionVol3xMaxP1_diffDirs2(const double *w, const double *dx, con
   // nu[3]:  diffusion coefficient (collisionality).
   // f:      Input distribution function.
   // out:    Incremented output 
-  double rdxSq4nu[1]; 
-  rdxSq4nu[0] = 4.0*nu[0]/(dx[1]*dx[1]); 
+  double rdxFnu[1]; 
+  rdxFnu[0] = 4.0*nu[1]/(dx[1]*dx[1]); 
 
 
-  return (rdxSq4nu[0])*0.6666666666666666;
+  return (rdxFnu[0])*0.6666666666666666;
 
 } 
 double ConstDiffusionVol3xMaxP1_diffDirs23(const double *w, const double *dx, const double *nu, const double *f, double *out) 
@@ -80,12 +80,12 @@ double ConstDiffusionVol3xMaxP1_diffDirs23(const double *w, const double *dx, co
   // nu[3]:  diffusion coefficient (collisionality).
   // f:      Input distribution function.
   // out:    Incremented output 
-  double rdxSq4nu[2]; 
-  rdxSq4nu[0] = 4.0*nu[0]/(dx[1]*dx[1]); 
-  rdxSq4nu[1] = 4.0*nu[1]/(dx[2]*dx[2]); 
+  double rdxFnu[2]; 
+  rdxFnu[0] = 4.0*nu[1]/(dx[1]*dx[1]); 
+  rdxFnu[1] = 4.0*nu[2]/(dx[2]*dx[2]); 
 
 
-  return (rdxSq4nu[0]+rdxSq4nu[1])*0.6666666666666666;
+  return (rdxFnu[0]+rdxFnu[1])*0.6666666666666666;
 
 } 
 double ConstDiffusionVol3xMaxP1_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out) 
@@ -95,10 +95,10 @@ double ConstDiffusionVol3xMaxP1_diffDirs3(const double *w, const double *dx, con
   // nu[3]:  diffusion coefficient (collisionality).
   // f:      Input distribution function.
   // out:    Incremented output 
-  double rdxSq4nu[1]; 
-  rdxSq4nu[0] = 4.0*nu[0]/(dx[2]*dx[2]); 
+  double rdxFnu[1]; 
+  rdxFnu[0] = 4.0*nu[2]/(dx[2]*dx[2]); 
 
 
-  return (rdxSq4nu[0])*0.6666666666666666;
+  return (rdxFnu[0])*0.6666666666666666;
 
 } 

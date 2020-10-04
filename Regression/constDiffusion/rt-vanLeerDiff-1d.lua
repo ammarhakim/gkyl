@@ -17,7 +17,7 @@ end
 local function vanLeerSource(t, xn)
    local x = xn[1]
    local k = 2.0*math.pi
-   return 4.0*(math.pi^2)*diffCoefficient[1]*math.sin(k*x)
+   return 4.0*(math.pi^2)*diffCoefficient*math.sin(k*x)
 end
 
 plasmaApp = Plasma.App {

@@ -36,7 +36,7 @@ perturbation = 1e-4
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = 5.0/wpe,              -- End time.
+   tEnd        = 2.50/wpe,              -- End time.
    nFrame      = 1,                    -- Number of output frames.
    lower       = {-math.pi/knumber},   -- Configuration space lower left.
    upper       = { math.pi/knumber},   -- Configuration space upper right.
@@ -80,7 +80,7 @@ plasmaApp = Plasma.App {
          coefficient   = 0.0025,
          -- Optional inputs:
          diffusiveDirs = {2},
---         order         = 2,   -- Diffusion order: 2, 4, or 6.
+--         order         = 4,   -- Diffusion order: 2, 4, or 6.
       },
    },
 

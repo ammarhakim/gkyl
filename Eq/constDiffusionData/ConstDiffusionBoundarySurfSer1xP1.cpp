@@ -1,5 +1,5 @@
 #include <ConstDiffusionModDecl.h> 
-void ConstDiffusionBoundarySurf1xSerP1_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionBoundarySurf1xSerP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[1]:      Cell-center coordinates.
   // dx[1]:     Cell spacing.

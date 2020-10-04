@@ -232,7 +232,7 @@ compWriteIncr(varsIn, basisIn, dirIn, fRecOrd, nSpaces) := block([cv,surfVars,in
   writeCIncrExprs1s(outl, nuSign*rdxFnul*incr_sOut,nSpaces)
 )$
 
-calcUpdateInDir(dir, diffDir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, applyPos) := block([hsolOrder],
+calcUpdateInDir(dir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, applyPos) := block([hsolOrder],
 
   /* Positivity preserving algorithm only for p=1 for now. */
   if applyPos then (
@@ -254,7 +254,7 @@ calcUpdateInDir(dir, diffDir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, a
   h_e    : calcRecov2CellGen(basisFun,cv,vars,polyOrder,dg(makelist(fl[i],i,0,numB)), dg(makelist(fr[i],i,0,numB))),
   hsol   : cons(subst(cv=0,h_e),makelist(subst(cv=0,diff(h_e,cv,ord)/(ord!)),ord,1,hOrder)),
 
-  printf(fh,"void ~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, surfLabels[dir]),
+  printf(fh,"void ~aP~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, polyOrder, surfLabels[dir]),
   printf(fh,"  // w[~a]:      Cell-center coordinates.~%",dim),
   printf(fh,"  // dx[~a]:     Cell spacing.~%",dim),
   printf(fh,"  // nu[~a]:     diffusion coefficient (collisionality).~%",dim),
@@ -267,7 +267,7 @@ calcUpdateInDir(dir, diffDir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, a
     for ef : 2 thru diffOrder/2 do (
       denFac : sconcat(denFac,"*dx",side[sI],"[", dir-1,"]*dx",side[sI],"[", dir-1,"]")
     ),
-    printf(fh,sconcat("  double rdxFnu",side[sI]," = ~a*nu[~a]/(~a); ~%"), numFac, diffDir-1, denFac)
+    printf(fh,sconcat("  double rdxFnu",side[sI]," = ~a*nu[~a]/(~a); ~%"), numFac, dir-1, denFac)
   ),
   printf(fh,"~%"),
   
@@ -435,7 +435,7 @@ calcUpdateInDir(dir, diffDir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, a
   printf(fh, "} ~%")
 );
 
-calcBoundaryUpdateInDir(dir, diffDir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, applyPos) := block([hsolOrder],
+calcBoundaryUpdateInDir(dir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, applyPos) := block([hsolOrder],
 
   /* Positivity preserving algorithm only for p=1 for now. */
   if applyPos then (
@@ -457,7 +457,7 @@ calcBoundaryUpdateInDir(dir, diffDir, fh, funcNm, dim, basisFun, polyOrder, diff
   h_e    : calcRecov2CellGen(basisFun,cv,vars,polyOrder,dg(makelist(fl[i],i,0,numB)), dg(makelist(fr[i],i,0,numB))),
   hsol   : cons(subst(cv=0,h_e),makelist(subst(cv=0,diff(h_e,cv,ord)/(ord!)),ord,1,hOrder)),
 
-  printf(fh,"void ~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, surfLabels[dir]),
+  printf(fh,"void ~aP~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, polyOrder, surfLabels[dir]),
   printf(fh,"  // w[~a]:      Cell-center coordinates.~%",dim),
   printf(fh,"  // dx[~a]:     Cell spacing.~%",dim),
   printf(fh,"  // idx[~a]:    current grid index.~%",dim),
@@ -471,7 +471,7 @@ calcBoundaryUpdateInDir(dir, diffDir, fh, funcNm, dim, basisFun, polyOrder, diff
     for ef : 2 thru diffOrder/2 do (
       denFac : sconcat(denFac,"*dx",side[sI],"[", dir-1,"]*dx",side[sI],"[", dir-1,"]")
     ),
-    printf(fh,sconcat("  double rdxFnu",side[sI]," = ~a*nu[~a]/(~a); ~%"), numFac, diffDir-1, denFac)
+    printf(fh,sconcat("  double rdxFnu",side[sI]," = ~a*nu[~a]/(~a); ~%"), numFac, dir-1, denFac)
   ),
   printf(fh,"~%"),
   
@@ -638,43 +638,15 @@ calcBoundaryUpdateInDir(dir, diffDir, fh, funcNm, dim, basisFun, polyOrder, diff
   printf(fh, "} ~%")
 );
 
-calcConstDiffusionSurfUpdater(fh, funcNm, dim, basisFun, polyOrder, diffOrder, usePos) := block([tmpLst,vars,diffDirCombos,d,dir],
-  /* For a given dimensionality get the combinations of
-     directions in which to apply diffusion. */
-  tmpLst        : loadBasisX(dim, basisFun, polyOrder),
-  vars          : tmpLst[2],
-  diffDirCombos : getDirCombos(vars),
-  for diffDirs in diffDirCombos do (
-    diffDirNum : length(diffDirs),
-    diffDirInP : makelist(sublist_indices(vars,lambda([x], x=diffDirs[i]))[1],i,1,diffDirNum),
-
-    diffDirsStr :"",
-    for dI in diffDirInP do (diffDirsStr : sconcat(diffDirsStr,string(dI))),
-    funcNmNew : sconcat(funcNm, "P", polyOrder, "_diffDirs", diffDirsStr),
-
-    for d : 1 thru diffDirNum do (
-      dir : diffDirInP[d],
-      calcUpdateInDir(dir, d, fh, funcNmNew, dim, basisFun, polyOrder, diffOrder, usePos)
-    )
+calcConstDiffusionSurfUpdater(fh, funcNm, dim, basisFun, polyOrder, diffOrder, usePos) := block([dir],
+  for dir : 1 thru dim do (
+    calcUpdateInDir(dir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, usePos)
   )
 )$
 
-calcConstDiffusionBoundarySurfUpdater(fh, funcNm, dim, basisFun, polyOrder, diffOrder, usePos) := block([tmpLst,vars,diffDirCombos,d,dir],
-  tmpLst        : loadBasisX(dim, basisFun, polyOrder),
-  vars          : tmpLst[2],
-  diffDirCombos : getDirCombos(vars),
-  for diffDirs in diffDirCombos do (
-    diffDirNum : length(diffDirs),
-    diffDirInP : makelist(sublist_indices(vars,lambda([x], x=diffDirs[i]))[1],i,1,diffDirNum),
-
-    diffDirsStr :"",
-    for dI in diffDirInP do (diffDirsStr : sconcat(diffDirsStr,string(dI))),
-    funcNmNew : sconcat(funcNm, "P", polyOrder, "_diffDirs", diffDirsStr),
-
-    for d : 1 thru diffDirNum do (
-      dir : diffDirInP[d],
-      calcBoundaryUpdateInDir(dir, d, fh, funcNmNew, dim, basisFun, polyOrder, diffOrder, usePos)
-    )
+calcConstDiffusionBoundarySurfUpdater(fh, funcNm, dim, basisFun, polyOrder, diffOrder, usePos) := block([dir],
+  for dir : 1 thru dim do (
+    calcBoundaryUpdateInDir(dir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, usePos)
   )
 )$
 

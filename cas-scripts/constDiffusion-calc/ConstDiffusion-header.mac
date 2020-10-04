@@ -93,35 +93,31 @@ for bInd : 1 thru length(bName) do (
         diffDirsStr :"",
         for dI in diffDirInP do (diffDirsStr : sconcat(diffDirsStr,string(dI))),
 
-        printf(fh, "double ConstDiffusionVol~ax~aP~a_diffDirs~a(const double *w, const double *dx, const double *nu, const double *f, double *out); ~%", cD, bName[bInd], polyOrder, diffDirsStr),
-        if (polyOrder>1) then (
-          printf(fh, "double ConstHyperDiffusion4Vol~ax~aP~a_diffDirs~a(const double *w, const double *dx, const double *nu, const double *f, double *out); ~%", cD, bName[bInd], polyOrder, diffDirsStr),
-          printf(fh, "double ConstHyperDiffusion6Vol~ax~aP~a_diffDirs~a(const double *w, const double *dx, const double *nu, const double *f, double *out); ~%", cD, bName[bInd], polyOrder, diffDirsStr)
-        ),
-        for d : 1 thru diffDirNum do (
-          dir : diffDirInP[d],
-          printf(fh, "void ConstDiffusionSurf~ax~aP~a_diffDirs~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, diffDirsStr, surfLabels[dir]),
-          printf(fh, "void ConstDiffusionBoundarySurf~ax~aP~a_diffDirs~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, diffDirsStr, surfLabels[dir]),
-          if (polyOrder>1) then (
-            printf(fh, "void ConstHyperDiffusion4Surf~ax~aP~a_diffDirs~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, diffDirsStr, surfLabels[dir]),
-            printf(fh, "void ConstHyperDiffusion6Surf~ax~aP~a_diffDirs~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, diffDirsStr, surfLabels[dir]),
-            printf(fh, "void ConstHyperDiffusion4BoundarySurf~ax~aP~a_diffDirs~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, diffDirsStr, surfLabels[dir]),
-            printf(fh, "void ConstHyperDiffusion6BoundarySurf~ax~aP~a_diffDirs~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, diffDirsStr, surfLabels[dir])
-          ),
-          if polyOrder=1 then (
-            /* Add kernels for positivity preserving algorithm. */
-            printf(fh, "void ConstDiffusionSurfPositivity~ax~aP~a_diffDirs~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, diffDirsStr, surfLabels[dir])
-          )
-        ),
-        printf(fh, "~%")
+        printf(fh, "double ConstDiffusionVol~ax~aP~a_diffDirs~a(const double *w, const double *dx, const double *nu, const double *f, double *out); ~%", cD, bName[bInd], polyOrder, diffDirsStr)
+      ),
+      if (polyOrder>1) then (
+        printf(fh, "double ConstHyperDiffusion4Vol~ax~aP~a_diffDirs~a(const double *w, const double *dx, const double *nu, const double *f, double *out); ~%", cD, bName[bInd], polyOrder, diffDirsStr),
+        printf(fh, "double ConstHyperDiffusion6Vol~ax~aP~a_diffDirs~a(const double *w, const double *dx, const double *nu, const double *f, double *out); ~%", cD, bName[bInd], polyOrder, diffDirsStr)
       ),
 
-      /* Kernels that implement BCs for constDiffusion term. */
-      for si : 1 thru cD do (
-        printf(fh, "void ConstDiffusionBC~ax~aP~a_Dirichlet_~alower(const double dx, const double *fSkin, const double fBC, double *fGhost);~%", cD, bName[bInd], polyOrder, surfLabels[si]),
-        printf(fh, "void ConstDiffusionBC~ax~aP~a_Dirichlet_~aupper(const double dx, const double *fSkin, const double fBC, double *fGhost);~%", cD, bName[bInd], polyOrder, surfLabels[si]),
-        printf(fh, "void ConstDiffusionBC~ax~aP~a_Neumann_~alower(const double dx, const double *fSkin, const double fpBC, double *fGhost);~%", cD, bName[bInd], polyOrder, surfLabels[si]),
-        printf(fh, "void ConstDiffusionBC~ax~aP~a_Neumann_~aupper(const double dx, const double *fSkin, const double fpBC, double *fGhost);~%", cD, bName[bInd], polyOrder, surfLabels[si])
+      for dir : 1 thru cD do (
+        printf(fh, "void ConstDiffusionSurf~ax~aP~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, surfLabels[dir]),
+        printf(fh, "void ConstDiffusionBoundarySurf~ax~aP~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, surfLabels[dir]),
+        if (polyOrder>1) then (
+          printf(fh, "void ConstHyperDiffusion4Surf~ax~aP~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, surfLabels[dir]),
+          printf(fh, "void ConstHyperDiffusion6Surf~ax~aP~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, surfLabels[dir]),
+          printf(fh, "void ConstHyperDiffusion4BoundarySurf~ax~aP~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, surfLabels[dir]),
+          printf(fh, "void ConstHyperDiffusion6BoundarySurf~ax~aP~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, surfLabels[dir])
+        ),
+        if polyOrder=1 then (
+          /* Add kernels for positivity preserving algorithm. */
+          printf(fh, "void ConstDiffusionSurfPositivity~ax~aP~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, surfLabels[dir])
+        ),
+        /* Kernels that implement BCs for constDiffusion term. */
+        printf(fh, "void ConstDiffusionBC~ax~aP~a_Dirichlet_~alower(const double dx, const double *fSkin, const double fBC, double *fGhost);~%", cD, bName[bInd], polyOrder, surfLabels[dir]),
+        printf(fh, "void ConstDiffusionBC~ax~aP~a_Dirichlet_~aupper(const double dx, const double *fSkin, const double fBC, double *fGhost);~%", cD, bName[bInd], polyOrder, surfLabels[dir]),
+        printf(fh, "void ConstDiffusionBC~ax~aP~a_Neumann_~alower(const double dx, const double *fSkin, const double fpBC, double *fGhost);~%", cD, bName[bInd], polyOrder, surfLabels[dir]),
+        printf(fh, "void ConstDiffusionBC~ax~aP~a_Neumann_~aupper(const double dx, const double *fSkin, const double fpBC, double *fGhost);~%", cD, bName[bInd], polyOrder, surfLabels[dir])
       ),
       printf(fh, "~%")
     ),

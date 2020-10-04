@@ -1,5 +1,5 @@
 #include <ConstDiffusionModDecl.h> 
-void ConstDiffusionBoundarySurf1xSerP2_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionBoundarySurf1xSerP2_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[1]:      Cell-center coordinates.
   // dx[1]:     Cell spacing.
@@ -29,7 +29,7 @@ void ConstDiffusionBoundarySurf1xSerP2_diffDirs1_X1(const double *wl, const doub
   outl[2] += incr2[2]*rdxFnul-1.0*incr1[2]*rdxFnul; 
 
 } 
-void ConstHyperDiffusion4BoundarySurf1xSerP2_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstHyperDiffusion4BoundarySurf1xSerP2_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[1]:      Cell-center coordinates.
   // dx[1]:     Cell spacing.
@@ -64,7 +64,7 @@ void ConstHyperDiffusion4BoundarySurf1xSerP2_diffDirs1_X1(const double *wl, cons
   outl[2] += incr3[2]*rdxFnul-1.0*incr2[2]*rdxFnul+incr1[2]*rdxFnul; 
 
 } 
-void ConstHyperDiffusion6BoundarySurf1xSerP2_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstHyperDiffusion6BoundarySurf1xSerP2_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[1]:      Cell-center coordinates.
   // dx[1]:     Cell spacing.
