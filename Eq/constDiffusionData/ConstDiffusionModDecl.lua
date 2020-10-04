@@ -15,12 +15,15 @@ local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max", ["tenso
 local _M = {}
 
 -- Select function to compute volume terms.
-function _M.selectVol(basisNm, DIM, polyOrder, diffDirsIn)
+function _M.selectVol(basisNm, DIM, polyOrder, diffDirsIn, diffOrder)
+   diffStr = "Diffusion"
+   if diffOrder > 2 then diffStr = "HyperDiffusion" .. diffOrder end
+
    local diffDirsStr = ""
    for _, d in ipairs(diffDirsIn) do diffDirsStr = diffDirsStr .. d end
 
    local funcType = "double"
-   local funcNm   = string.format("ConstDiffusionVol%dx%sP%d_diffDirs%s", DIM, basisNmMap[basisNm], polyOrder, diffDirsStr)
+   local funcNm   = string.format("Const%sVol%dx%sP%d_diffDirs%s", diffStr, DIM, basisNmMap[basisNm], polyOrder, diffDirsStr)
    local funcSign = "(const double *w, const double *dx, const double *nu, const double *f, double *out)"
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
@@ -28,7 +31,10 @@ function _M.selectVol(basisNm, DIM, polyOrder, diffDirsIn)
 end
 
 -- Select functions to compute surface terms (output is a table of functions).
-function _M.selectSurf(basisNm, DIM, polyOrder, diffDirsIn, applyPos)
+function _M.selectSurf(basisNm, DIM, polyOrder, diffDirsIn, diffOrder, applyPos)
+   diffStr = "Diffusion"
+   if diffOrder > 2 then diffStr = "HyperDiffusion" .. diffOrder end
+
    local posStr = ""
    if applyPos then posStr = "Positivity" end
 
@@ -38,8 +44,8 @@ function _M.selectSurf(basisNm, DIM, polyOrder, diffDirsIn, applyPos)
    local funcType = "void"
    local funcNm   = {}
    for d = 1, #diffDirsIn do
-      funcNm[d] = string.format("ConstDiffusionSurf%s%dx%sP%d_diffDirs%s_X%d", 
-                                posStr, DIM, basisNmMap[basisNm], polyOrder, diffDirsStr, diffDirsIn[d])
+      funcNm[d] = string.format("Const%sSurf%s%dx%sP%d_diffDirs%s_X%d", diffStr, posStr, DIM, 
+                                basisNmMap[basisNm], polyOrder, diffDirsStr, diffDirsIn[d])
    end
    local funcSign = "(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr)"
 
@@ -57,15 +63,18 @@ function _M.selectSurf(basisNm, DIM, polyOrder, diffDirsIn, applyPos)
 end
 
 -- Select functions to compute boundary surface terms (output is a table of functions).
-function _M.selectBoundarySurf(basisNm, DIM, polyOrder, diffDirsIn, applyPos)
+function _M.selectBoundarySurf(basisNm, DIM, polyOrder, diffDirsIn, diffOrder, applyPos)
+   diffStr = "Diffusion"
+   if diffOrder > 2 then diffStr = "HyperDiffusion" .. diffOrder end
+
    local diffDirsStr = ""
    for _, d in ipairs(diffDirsIn) do diffDirsStr = diffDirsStr .. d end
 
    local funcType = "void"
    local funcNm   = {}
    for d = 1, #diffDirsIn do
-      funcNm[d] = string.format("ConstDiffusionBoundarySurf%dx%sP%d_diffDirs%s_X%d",
-                                DIM, basisNmMap[basisNm], polyOrder, diffDirsStr, diffDirsIn[d])
+      funcNm[d] = string.format("Const%sBoundarySurf%dx%sP%d_diffDirs%s_X%d", diffStr, DIM, 
+                                basisNmMap[basisNm], polyOrder, diffDirsStr, diffDirsIn[d])
    end
    local funcSign = "(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr)"
 
@@ -83,14 +92,17 @@ function _M.selectBoundarySurf(basisNm, DIM, polyOrder, diffDirsIn, applyPos)
 end
 
 -- Select kernels that implement BCs specific to constDiffusion term (output is a table of functions).
-function _M.selectBCs(basisNm, DIM, polyOrder, bcType)
+function _M.selectBCs(basisNm, DIM, polyOrder, diffOrder, bcType)
+   diffStr = "Diffusion"
+   if diffOrder > 2 then diffStr = "HyperDiffusion" .. diffOrder end
+
    local funcType = "void"
    local funcNm   = {}
    for d = 1, DIM do
-      funcNm[d] = {string.format("ConstDiffusionBC%dx%sP%d_%s_X%dlower",
-                                DIM, basisNmMap[basisNm], polyOrder, bcType, d),
-                   string.format("ConstDiffusionBC%dx%sP%d_%s_X%dupper",
-                                DIM, basisNmMap[basisNm], polyOrder, bcType, d)}
+      funcNm[d] = {string.format("Const%sBC%dx%sP%d_%s_X%dlower", diffStr, DIM, 
+                                 basisNmMap[basisNm], polyOrder, bcType, d),
+                   string.format("Const%sBC%dx%sP%d_%s_X%dupper", diffStr, DIM, 
+                                 basisNmMap[basisNm], polyOrder, bcType, d)}
    end
    local funcSign = "(const double dx, const double *fSkin, const double fBC, double *fGhost)"
 

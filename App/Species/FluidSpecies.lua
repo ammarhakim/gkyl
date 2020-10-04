@@ -305,11 +305,11 @@ function FluidSpecies:makeBcUpdater(dir, edge, bcList, skinLoop,
    -- If BC is Dirichlet or Neumann select appropriate kernels.
    if (bcList[2] == 5) then
       local nm, ndim, p = self.basis:id(), self.basis:ndim(), self.basis:polyOrder()
-      self.constDiffDirichletBCs = ConstDiffusionModDecl.selectBCs(nm, ndim, p, "Dirichlet")
+      self.constDiffDirichletBCs = ConstDiffusionModDecl.selectBCs(nm, ndim, p, 2, "Dirichlet")
       table.remove(bcList,2) -- Remove the bcType. Updater.Bc expects a table with just a function.
    elseif (bcList[2] == 6) then
       local nm, ndim, p = self.basis:id(), self.basis:ndim(), self.basis:polyOrder()
-      self.constDiffNeumannBCs = ConstDiffusionModDecl.selectBCs(nm, ndim, p, "Neumann")
+      self.constDiffNeumannBCs = ConstDiffusionModDecl.selectBCs(nm, ndim, p, 2, "Neumann")
       table.remove(bcList,2) -- Remove the bcType. Updater.Bc expects a table with just a function.
    end
 
@@ -502,7 +502,7 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    -- Perform the collision (diffusion) update.
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
-         c.diffusionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+         c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
          c:advance(tCurr, fIn, species, fRhsOut)
          -- The full 'species' list is needed for the cross-species
          -- collisions.

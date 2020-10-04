@@ -55,12 +55,20 @@ function ConstDiffusion:init(tbl)
       assert(false, "Eq.constDiffusion: 'coefficient' must be a number or a table.")
    end
 
+   local diffOrder
+   if tbl.order then
+      diffOrder = tbl.order
+      assert(not (diffOrder > 2 and pOrder < 2), "Eq.constDiffusion: hyperdiffusion (order>2) requires polyOrder > 1.")
+   else
+      diffOrder = 2
+   end
+
    local applyPositivity = xsys.pickBool(tbl.positivity, false)   -- Positivity preserving option.
 
    -- Store pointers to C kernels implementing volume and surface terms.
-   self._volTerm           = ConstDiffusionModDecl.selectVol(nm, dim, pOrder, self.diffDirs)
-   self._surfTerms         = ConstDiffusionModDecl.selectSurf(nm, dim, pOrder, self.diffDirs, applyPositivity)
-   self._boundarySurfTerms = ConstDiffusionModDecl.selectBoundarySurf(nm, dim, pOrder, self.diffDirs, applyPositivity)
+   self._volTerm           = ConstDiffusionModDecl.selectVol(nm, dim, pOrder, self.diffDirs, diffOrder)
+   self._surfTerms         = ConstDiffusionModDecl.selectSurf(nm, dim, pOrder, self.diffDirs, diffOrder, applyPositivity)
+   self._boundarySurfTerms = ConstDiffusionModDecl.selectBoundarySurf(nm, dim, pOrder, self.diffDirs, diffOrder, applyPositivity)
 end
 
 -- Methods.
