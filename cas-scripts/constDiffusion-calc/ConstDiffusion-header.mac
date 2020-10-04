@@ -105,6 +105,14 @@ for bInd : 1 thru length(bName) do (
         ),
         printf(fh, "~%")
       ),
+
+      /* Kernels that implement BCs for constDiffusion term. */
+      for si : 1 thru cD do (
+        printf(fh, "void ConstDiffusionBC~ax~aP~a_Dirichlet_~alower(const double dx, const double *fSkin, const double fBC, double *fGhost);~%", cD, bName[bInd], polyOrder, surfLabels[si]),
+        printf(fh, "void ConstDiffusionBC~ax~aP~a_Dirichlet_~aupper(const double dx, const double *fSkin, const double fBC, double *fGhost);~%", cD, bName[bInd], polyOrder, surfLabels[si]),
+        printf(fh, "void ConstDiffusionBC~ax~aP~a_Neumann_~alower(const double dx, const double *fSkin, const double fpBC, double *fGhost);~%", cD, bName[bInd], polyOrder, surfLabels[si]),
+        printf(fh, "void ConstDiffusionBC~ax~aP~a_Neumann_~aupper(const double dx, const double *fSkin, const double fpBC, double *fGhost);~%", cD, bName[bInd], polyOrder, surfLabels[si])
+      ),
       printf(fh, "~%")
     ),
     printf(fh, "~%")

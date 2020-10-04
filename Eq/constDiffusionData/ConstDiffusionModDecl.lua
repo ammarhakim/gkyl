@@ -84,30 +84,27 @@ end
 
 -- Select kernels that implement BCs specific to constDiffusion term (output is a table of functions).
 function _M.selectBCs(basisNm, DIM, polyOrder, bcType)
-   local diffDirsStr = ""
-   for _, d in ipairs(diffDirsIn) do diffDirsStr = diffDirsStr .. d end
-
    local funcType = "void"
    local funcNm   = {}
-   for d = 1, #diffDirsIn do
-      funcNm[d] = {string.format("ConstDiffusionBC%dx%sP%d_diffDirs%s_%s_X%dlower",
-                                DIM, basisNmMap[basisNm], polyOrder, diffDirsStr, bcType, diffDirsIn[d]),
-                   string.format("ConstDiffusionBC%dx%sP%d_diffDirs%s_%s_X%dupper",
-                                DIM, basisNmMap[basisNm], polyOrder, diffDirsStr, bcType, diffDirsIn[d])}
+   for d = 1, DIM do
+      funcNm[d] = {string.format("ConstDiffusionBC%dx%sP%d_%s_X%dlower",
+                                DIM, basisNmMap[basisNm], polyOrder, bcType, d),
+                   string.format("ConstDiffusionBC%dx%sP%d_%s_X%dupper",
+                                DIM, basisNmMap[basisNm], polyOrder, bcType, d)}
    end
    local funcSign = "(const double dx, const double *fSkin, const double fBC, double *fGhost)"
 
    local CDefStr = ""
-   for d = 1, #diffDirsIn do
+   for d = 1, DIM do
       for bI = 1,2 do CDefStr = CDefStr .. (funcType .. " " .. funcNm[d][bI] .. funcSign .. ";\n") end
    end
    ffi.cdef(CDefStr)
 
    local kernels = {}
    for d = 1, DIM do kernels[d] = nil end
-   for d = 1, #diffDirsIn do
-      local tmp = {ffi.C[funcNm[d][1]], ffi.C[funcNm[d][2]]}
-      kernels[diffDirsIn[d]] = tmp
+   for d = 1, DIM do
+      local tmp  = {ffi.C[funcNm[d][1]], ffi.C[funcNm[d][2]]}
+      kernels[d] = tmp
    end
    return kernels
 end

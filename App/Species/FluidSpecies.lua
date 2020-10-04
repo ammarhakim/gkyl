@@ -282,7 +282,7 @@ end
 
 function FluidSpecies:bcDirichletFunc(dir, tm, idxIn, fIn, fOut)
    -- Impose f=fBC at the boundary.
-   if (idxIn == 1) then
+   if (idxIn[dir] == 1) then
       self.constDiffDirichletBCs[dir][1](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][1],fOut:data())
    else
       self.constDiffDirichletBCs[dir][2](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][2],fOut:data())
@@ -291,7 +291,7 @@ end
 
 function FluidSpecies:bcNeumannFunc(dir, tm, idxIn, fIn, fOut)
    -- Impose f'=fpBC at the boundary.
-   if (idxIn == 1) then
+   if (idxIn[dir] == 1) then
       self.constDiffNeumannBCs[dir][1](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][1],fOut:data())
    else
       self.constDiffNeumannBCs[dir][2](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][2],fOut:data())

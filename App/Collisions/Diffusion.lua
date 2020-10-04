@@ -80,9 +80,9 @@ function Diffusion:createSolver()
 
    -- Diffusion equation.
    self.equation = ConstDiffusionEq {
-      Dcoeff = self.diffCoeff,
-      basis  = self.confBasis,
-      positivity = self.usePositivity,
+      coefficient = self.diffCoeff,
+      basis       = self.confBasis,
+      positivity  = self.usePositivity,
    }
    self.diffusionSlvr = Updater.HyperDisCont {
       onGrid             = self.confGrid,

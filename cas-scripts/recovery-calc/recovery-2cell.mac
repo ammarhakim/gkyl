@@ -18,7 +18,7 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
       * dg(A, bc(D=_, N=_, val=_)) : a constrained recovery where
         expansion coefficients are used together with boundary
         conditions at the edge
-    up : equvivalent of `lo` at the upper side
+    up : equivalent of `lo` at the upper side
   Outputs:
     a polynomial
   */

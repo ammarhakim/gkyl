@@ -9,11 +9,19 @@ void ConstDiffusionSurf1xSerP1_diffDirs1_X1(const double *wl, const double *wr, 
 void ConstDiffusionBoundarySurf1xSerP1_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionSurfPositivity1xSerP1_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC1xSerP1_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC1xSerP1_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC1xSerP1_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC1xSerP1_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 double ConstDiffusionVol1xSerP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 void ConstDiffusionSurf1xSerP2_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionBoundarySurf1xSerP2_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC1xSerP2_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC1xSerP2_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC1xSerP2_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC1xSerP2_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 
 double ConstDiffusionVol2xSerP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -34,6 +42,14 @@ void ConstDiffusionSurf2xSerP1_diffDirs2_X2(const double *wl, const double *wr, 
 void ConstDiffusionBoundarySurf2xSerP1_diffDirs2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionSurfPositivity2xSerP1_diffDirs2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC2xSerP1_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xSerP1_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xSerP1_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xSerP1_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xSerP1_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xSerP1_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xSerP1_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xSerP1_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 double ConstDiffusionVol2xSerP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 void ConstDiffusionSurf2xSerP2_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
@@ -49,6 +65,14 @@ double ConstDiffusionVol2xSerP2_diffDirs2(const double *w, const double *dx, con
 void ConstDiffusionSurf2xSerP2_diffDirs2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionBoundarySurf2xSerP2_diffDirs2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC2xSerP2_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xSerP2_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xSerP2_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xSerP2_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xSerP2_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xSerP2_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xSerP2_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xSerP2_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 
 double ConstDiffusionVol3xSerP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -101,6 +125,18 @@ void ConstDiffusionSurf3xSerP1_diffDirs3_X3(const double *wl, const double *wr, 
 void ConstDiffusionBoundarySurf3xSerP1_diffDirs3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionSurfPositivity3xSerP1_diffDirs3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC3xSerP1_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xSerP1_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xSerP1_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xSerP1_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xSerP1_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xSerP1_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xSerP1_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xSerP1_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xSerP1_Dirichlet_X3lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xSerP1_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xSerP1_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xSerP1_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 double ConstDiffusionVol3xSerP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 void ConstDiffusionSurf3xSerP2_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
@@ -140,6 +176,18 @@ double ConstDiffusionVol3xSerP2_diffDirs3(const double *w, const double *dx, con
 void ConstDiffusionSurf3xSerP2_diffDirs3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionBoundarySurf3xSerP2_diffDirs3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC3xSerP2_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xSerP2_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xSerP2_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xSerP2_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xSerP2_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xSerP2_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xSerP2_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xSerP2_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xSerP2_Dirichlet_X3lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xSerP2_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xSerP2_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xSerP2_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 
 double ConstDiffusionVol4xSerP1_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -268,6 +316,22 @@ void ConstDiffusionSurf4xSerP1_diffDirs1_X1(const double *wl, const double *wr, 
 void ConstDiffusionBoundarySurf4xSerP1_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionSurfPositivity4xSerP1_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC4xSerP1_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP1_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP1_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xSerP1_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xSerP1_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP1_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP1_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xSerP1_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xSerP1_Dirichlet_X3lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP1_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP1_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xSerP1_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xSerP1_Dirichlet_X4lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP1_Dirichlet_X4upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP1_Neumann_X4lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xSerP1_Neumann_X4upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 double ConstDiffusionVol4xSerP2_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 void ConstDiffusionSurf4xSerP2_diffDirs2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
@@ -363,6 +427,22 @@ double ConstDiffusionVol4xSerP2_diffDirs1(const double *w, const double *dx, con
 void ConstDiffusionSurf4xSerP2_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionBoundarySurf4xSerP2_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC4xSerP2_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP2_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP2_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xSerP2_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xSerP2_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP2_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP2_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xSerP2_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xSerP2_Dirichlet_X3lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP2_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP2_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xSerP2_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xSerP2_Dirichlet_X4lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP2_Dirichlet_X4upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP2_Neumann_X4lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xSerP2_Neumann_X4upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 
 double ConstDiffusionVol5xSerP1_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -667,6 +747,26 @@ void ConstDiffusionSurf5xSerP1_diffDirs2_X2(const double *wl, const double *wr, 
 void ConstDiffusionBoundarySurf5xSerP1_diffDirs2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionSurfPositivity5xSerP1_diffDirs2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC5xSerP1_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP1_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP1_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xSerP1_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xSerP1_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP1_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP1_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xSerP1_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xSerP1_Dirichlet_X3lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP1_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP1_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xSerP1_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xSerP1_Dirichlet_X4lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP1_Dirichlet_X4upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP1_Neumann_X4lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xSerP1_Neumann_X4upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xSerP1_Dirichlet_X5lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP1_Dirichlet_X5upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP1_Neumann_X5lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xSerP1_Neumann_X5upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 double ConstDiffusionVol5xSerP2_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 void ConstDiffusionSurf5xSerP2_diffDirs3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
@@ -890,6 +990,26 @@ double ConstDiffusionVol5xSerP2_diffDirs2(const double *w, const double *dx, con
 void ConstDiffusionSurf5xSerP2_diffDirs2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionBoundarySurf5xSerP2_diffDirs2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC5xSerP2_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP2_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP2_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xSerP2_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xSerP2_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP2_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP2_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xSerP2_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xSerP2_Dirichlet_X3lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP2_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP2_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xSerP2_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xSerP2_Dirichlet_X4lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP2_Dirichlet_X4upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP2_Neumann_X4lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xSerP2_Neumann_X4upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xSerP2_Dirichlet_X5lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP2_Dirichlet_X5upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xSerP2_Neumann_X5lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xSerP2_Neumann_X5upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 
 double ConstDiffusionVol6xSerP1_diffDirs4(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -1594,6 +1714,30 @@ void ConstDiffusionSurf6xSerP1_diffDirs3_X3(const double *wl, const double *wr, 
 void ConstDiffusionBoundarySurf6xSerP1_diffDirs3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionSurfPositivity6xSerP1_diffDirs3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC6xSerP1_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Dirichlet_X3lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Dirichlet_X4lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Dirichlet_X4upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Neumann_X4lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Neumann_X4upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Dirichlet_X5lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Dirichlet_X5upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Neumann_X5lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Neumann_X5upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Dirichlet_X6lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Dirichlet_X6upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Neumann_X6lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xSerP1_Neumann_X6upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 
 
@@ -1602,11 +1746,19 @@ void ConstDiffusionSurf1xMaxP1_diffDirs1_X1(const double *wl, const double *wr, 
 void ConstDiffusionBoundarySurf1xMaxP1_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionSurfPositivity1xMaxP1_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC1xMaxP1_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC1xMaxP1_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC1xMaxP1_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC1xMaxP1_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 double ConstDiffusionVol1xMaxP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 void ConstDiffusionSurf1xMaxP2_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionBoundarySurf1xMaxP2_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC1xMaxP2_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC1xMaxP2_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC1xMaxP2_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC1xMaxP2_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 
 double ConstDiffusionVol2xMaxP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -1627,6 +1779,14 @@ void ConstDiffusionSurf2xMaxP1_diffDirs2_X2(const double *wl, const double *wr, 
 void ConstDiffusionBoundarySurf2xMaxP1_diffDirs2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionSurfPositivity2xMaxP1_diffDirs2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC2xMaxP1_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xMaxP1_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xMaxP1_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xMaxP1_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xMaxP1_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xMaxP1_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xMaxP1_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xMaxP1_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 double ConstDiffusionVol2xMaxP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 void ConstDiffusionSurf2xMaxP2_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
@@ -1642,6 +1802,14 @@ double ConstDiffusionVol2xMaxP2_diffDirs2(const double *w, const double *dx, con
 void ConstDiffusionSurf2xMaxP2_diffDirs2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionBoundarySurf2xMaxP2_diffDirs2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC2xMaxP2_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xMaxP2_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xMaxP2_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xMaxP2_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xMaxP2_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xMaxP2_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xMaxP2_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xMaxP2_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 
 double ConstDiffusionVol3xMaxP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -1694,6 +1862,18 @@ void ConstDiffusionSurf3xMaxP1_diffDirs3_X3(const double *wl, const double *wr, 
 void ConstDiffusionBoundarySurf3xMaxP1_diffDirs3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionSurfPositivity3xMaxP1_diffDirs3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC3xMaxP1_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xMaxP1_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xMaxP1_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xMaxP1_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xMaxP1_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xMaxP1_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xMaxP1_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xMaxP1_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xMaxP1_Dirichlet_X3lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xMaxP1_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xMaxP1_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xMaxP1_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 double ConstDiffusionVol3xMaxP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 void ConstDiffusionSurf3xMaxP2_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
@@ -1733,6 +1913,18 @@ double ConstDiffusionVol3xMaxP2_diffDirs3(const double *w, const double *dx, con
 void ConstDiffusionSurf3xMaxP2_diffDirs3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionBoundarySurf3xMaxP2_diffDirs3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC3xMaxP2_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xMaxP2_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xMaxP2_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xMaxP2_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xMaxP2_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xMaxP2_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xMaxP2_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xMaxP2_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xMaxP2_Dirichlet_X3lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xMaxP2_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xMaxP2_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xMaxP2_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 
 double ConstDiffusionVol4xMaxP1_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -1861,6 +2053,22 @@ void ConstDiffusionSurf4xMaxP1_diffDirs1_X1(const double *wl, const double *wr, 
 void ConstDiffusionBoundarySurf4xMaxP1_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionSurfPositivity4xMaxP1_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC4xMaxP1_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xMaxP1_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xMaxP1_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xMaxP1_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xMaxP1_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xMaxP1_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xMaxP1_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xMaxP1_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xMaxP1_Dirichlet_X3lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xMaxP1_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xMaxP1_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xMaxP1_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xMaxP1_Dirichlet_X4lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xMaxP1_Dirichlet_X4upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xMaxP1_Neumann_X4lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xMaxP1_Neumann_X4upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 double ConstDiffusionVol4xMaxP2_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 void ConstDiffusionSurf4xMaxP2_diffDirs2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
@@ -1956,6 +2164,22 @@ double ConstDiffusionVol4xMaxP2_diffDirs1(const double *w, const double *dx, con
 void ConstDiffusionSurf4xMaxP2_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionBoundarySurf4xMaxP2_diffDirs1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC4xMaxP2_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xMaxP2_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xMaxP2_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xMaxP2_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xMaxP2_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xMaxP2_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xMaxP2_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xMaxP2_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xMaxP2_Dirichlet_X3lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xMaxP2_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xMaxP2_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xMaxP2_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xMaxP2_Dirichlet_X4lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xMaxP2_Dirichlet_X4upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xMaxP2_Neumann_X4lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xMaxP2_Neumann_X4upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 
 double ConstDiffusionVol5xMaxP1_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -2260,6 +2484,26 @@ void ConstDiffusionSurf5xMaxP1_diffDirs2_X2(const double *wl, const double *wr, 
 void ConstDiffusionBoundarySurf5xMaxP1_diffDirs2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionSurfPositivity5xMaxP1_diffDirs2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC5xMaxP1_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP1_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP1_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xMaxP1_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xMaxP1_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP1_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP1_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xMaxP1_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xMaxP1_Dirichlet_X3lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP1_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP1_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xMaxP1_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xMaxP1_Dirichlet_X4lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP1_Dirichlet_X4upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP1_Neumann_X4lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xMaxP1_Neumann_X4upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xMaxP1_Dirichlet_X5lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP1_Dirichlet_X5upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP1_Neumann_X5lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xMaxP1_Neumann_X5upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 double ConstDiffusionVol5xMaxP2_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 void ConstDiffusionSurf5xMaxP2_diffDirs3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
@@ -2483,6 +2727,26 @@ double ConstDiffusionVol5xMaxP2_diffDirs2(const double *w, const double *dx, con
 void ConstDiffusionSurf5xMaxP2_diffDirs2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionBoundarySurf5xMaxP2_diffDirs2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC5xMaxP2_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP2_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP2_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xMaxP2_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xMaxP2_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP2_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP2_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xMaxP2_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xMaxP2_Dirichlet_X3lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP2_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP2_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xMaxP2_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xMaxP2_Dirichlet_X4lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP2_Dirichlet_X4upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP2_Neumann_X4lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xMaxP2_Neumann_X4upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xMaxP2_Dirichlet_X5lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP2_Dirichlet_X5upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC5xMaxP2_Neumann_X5lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC5xMaxP2_Neumann_X5upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 
 double ConstDiffusionVol6xMaxP1_diffDirs4(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -3187,6 +3451,30 @@ void ConstDiffusionSurf6xMaxP1_diffDirs3_X3(const double *wl, const double *wr, 
 void ConstDiffusionBoundarySurf6xMaxP1_diffDirs3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 void ConstDiffusionSurfPositivity6xMaxP1_diffDirs3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
 
+void ConstDiffusionBC6xMaxP1_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Dirichlet_X3lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Dirichlet_X4lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Dirichlet_X4upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Neumann_X4lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Neumann_X4upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Dirichlet_X5lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Dirichlet_X5upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Neumann_X5lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Neumann_X5upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Dirichlet_X6lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Dirichlet_X6upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Neumann_X6lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC6xMaxP1_Neumann_X6upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 
 
