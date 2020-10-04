@@ -39,10 +39,9 @@ getDirCombos(varsIn) := block([dirCombosSet,dirCombos,d],
   return(dirCombos)
 )$
 
-calcConstDiffusionVolUpdater(fh, funcNm, dim, basisFun, polyOrder) := block([tmpLst,basis,vars,numB,diffDirCombos,diffDirs],
+calcConstDiffusionVolUpdater(fh, funcNm, dim, basisFun, polyOrder, diffOrder) := block([tmpLst,basis,vars,numB,diffDirCombos,diffDirs],
   /* Generate the volume kernels for adding constant diffusion in all
      or a subset of dimensions. */
-  printf(fh, "#include <ConstDiffusionModDecl.h> ~%"),
 
   tmpLst : loadBasisX(dim, basisFun, polyOrder),
   basis  : tmpLst[1], 
@@ -70,9 +69,15 @@ calcConstDiffusionVolUpdater(fh, funcNm, dim, basisFun, polyOrder) := block([tmp
     printf(fh,"  // nu[~a]:  diffusion coefficient (collisionality).~%",dim),
     printf(fh,"  // f:      Input distribution function.~%"),
     printf(fh,"  // out:    Incremented output ~%"),
-    printf(fh,"  double rdxSq4nu[~a]; ~%", diffDirNum),
+    printf(fh,"  double rdxFnu[~a]; ~%", diffDirNum),
+    nuSign : (-1)^(diffOrder/2+1),
+    numFac : 2.0^diffOrder,
     for d : 1 thru diffDirNum do (
-      printf(fh,"  rdxSq4nu[~a] = 4.0*nu[~a]/(dx[~a]*dx[~a]); ~%", d-1, d-1, diffDirInP[d]-1, diffDirInP[d]-1)
+      denFac : sconcat("dx[", diffDirInP[d]-1,"]*dx[", diffDirInP[d]-1,"]"),
+      for ef : 2 thru diffOrder/2 do (
+        denFac : sconcat(denFac,"*dx[", diffDirInP[d]-1,"]*dx[", diffDirInP[d]-1,"]")
+      ),
+      printf(fh,"  rdxFnu[~a] = ~a*nu[~a]/(~a); ~%", d-1, numFac, d-1, denFac)
     ),
     printf(fh,"~%"),
 
@@ -81,7 +86,7 @@ calcConstDiffusionVolUpdater(fh, funcNm, dim, basisFun, polyOrder) := block([tmp
       incr : 0,
       for d : 1 thru diffDirNum do (
         cv   : vars[diffDirInP[d]],
-        incr : incr+calcInnerProdList(vars,rdxSq4nu[d-1],diff(basis,cv,2),fg)
+        incr : incr+calcInnerProdList(vars,nuSign*rdxFnu[d-1],diff(basis,cv,diffOrder),fg)
       ),
       incr
     ),
@@ -90,8 +95,8 @@ calcConstDiffusionVolUpdater(fh, funcNm, dim, basisFun, polyOrder) := block([tmp
     printf(fh,"~%"),
 
     /* Return the value used in the CFL calculation. */
-    pstr : "  return (rdxSq4nu[0]",
-    for d : 2 thru diffDirNum do ( pstr : sconcat(pstr,"+rdxSq4nu[",d-1,"]") ),
+    pstr : "  return (rdxFnu[0]",
+    for d : 2 thru diffDirNum do ( pstr : sconcat(pstr,"+rdxFnu[",d-1,"]") ),
     pstr : sconcat(pstr,")*~a;~%"),
     printf(fh, pstr, 0.5*float(((polyOrder+1)**2)/(2*polyOrder+1))),
     printf(fh,"~%"),

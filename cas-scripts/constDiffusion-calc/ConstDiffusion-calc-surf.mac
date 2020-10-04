@@ -38,35 +38,58 @@ for bInd : 1 thru length(bName) do (
     for polyOrder : 1 thru maxPolyOrderB do (
       /* Kernels without positivity fix. */
       usePositivity : false,
-      /*
+
       disp(printf(false,sconcat("Creating surface ConstDiffusion",bName[bInd]," ~axP~a"),cD,polyOrder)),
       fname    : sconcat("~/max-out/ConstDiffusionSurf", bName[bInd], cD, "xP", polyOrder, ".cpp"),
       fh       : openw(fname),
-      funcName : sconcat("ConstDiffusionSurf", cD, "x", bName[bInd]),
-      calcConstDiffusionSurfUpdater(fh, funcName, cD, bName[bInd], polyOrder, usePositivity),
+      printf(fh, "#include <ConstDiffusionModDecl.h> ~%"),
+      /* Second order diffusion. */
+      diffOrder : 2,
+      funcName  : sconcat("ConstDiffusionSurf", cD, "x", bName[bInd]),
+      calcConstDiffusionSurfUpdater(fh, funcName, cD, bName[bInd], polyOrder, diffOrder, usePositivity),
+      if (polyOrder > 1) then (
+        /* Hyperdiffusion. */
+        diffOrder : 4,
+        funcName  : sconcat("ConstHyperDiffusion",diffOrder,"Surf", cD, "x", bName[bInd]),
+        calcConstDiffusionSurfUpdater(fh, funcName, cD, bName[bInd], polyOrder, diffOrder, usePositivity),
+        diffOrder : 6,
+        funcName  : sconcat("ConstHyperDiffusion",diffOrder,"Surf", cD, "x", bName[bInd]),
+        calcConstDiffusionSurfUpdater(fh, funcName, cD, bName[bInd], polyOrder, diffOrder, usePositivity)
+      ),
       close(fh),
-      */
   
       /* boundarySurf kernels compute surface contribution that we
          do not want to zero-out at the boundary. */
-      /*
       disp(printf(false,sconcat("Creating boundary surface ConstDiffusion",bName[bInd]," ~axP~a"),cD,polyOrder)),
       fname    : sconcat("~/max-out/ConstDiffusionBoundarySurf", bName[bInd], cD, "xP", polyOrder, ".cpp"),
       fh       : openw(fname),
-      funcName : sconcat("ConstDiffusionBoundarySurf", cD, "x", bName[bInd]),
-      calcConstDiffusionBoundarySurfUpdater(fh, funcName, cD, bName[bInd], polyOrder, usePositivity),
+      printf(fh, "#include <ConstDiffusionModDecl.h> ~%"),
+      /* Second order diffusion. */
+      diffOrder : 2,
+      funcName  : sconcat("ConstDiffusionBoundarySurf", cD, "x", bName[bInd]),
+      calcConstDiffusionBoundarySurfUpdater(fh, funcName, cD, bName[bInd], polyOrder, diffOrder, usePositivity),
+      if (polyOrder > 1) then (
+        /* Hyperdiffusion. */
+        diffOrder : 4,
+        funcName  : sconcat("ConstHyperDiffusion",diffOrder,"BoundarySurf", cD, "x", bName[bInd]),
+        calcConstDiffusionBoundarySurfUpdater(fh, funcName, cD, bName[bInd], polyOrder, diffOrder, usePositivity),
+        diffOrder : 6,
+        funcName  : sconcat("ConstHyperDiffusion",diffOrder,"BoundarySurf", cD, "x", bName[bInd]),
+        calcConstDiffusionBoundarySurfUpdater(fh, funcName, cD, bName[bInd], polyOrder, diffOrder, usePositivity)
+      ),
       close(fh),
-      */
     
       /* Positivity preserving kernels. */
       if (bName[bInd]="Ser") and (polyOrder=1) then (
         usePositivity : true,
   
         disp(printf(false,sconcat("Creating positivity surface ConstDiffusion",bName[bInd]," ~axP~a"),cD,polyOrder)),
-        fname    : sconcat("~/max-out/ConstDiffusionSurfPositivity", bName[bInd], cD, "xP", polyOrder, ".cpp"),
-        fh       : openw(fname),
-        funcName : sconcat("ConstDiffusionSurfPositivity", cD, "x", bName[bInd]),
-        calcConstDiffusionSurfUpdater(fh, funcName, cD, bName[bInd], polyOrder, usePositivity),
+        fname     : sconcat("~/max-out/ConstDiffusionSurfPositivity", bName[bInd], cD, "xP", polyOrder, ".cpp"),
+        fh        : openw(fname),
+        printf(fh, "#include <ConstDiffusionModDecl.h> ~%"),
+        diffOrder : 2,
+        funcName  : sconcat("ConstDiffusionSurfPositivity", cD, "x", bName[bInd]),
+        calcConstDiffusionSurfUpdater(fh, funcName, cD, bName[bInd], polyOrder, diffOrder, usePositivity),
         close(fh)
   
         /*

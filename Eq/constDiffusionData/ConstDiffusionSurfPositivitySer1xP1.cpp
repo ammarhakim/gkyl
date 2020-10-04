@@ -6,8 +6,8 @@ void ConstDiffusionSurfPositivity1xSerP1_diffDirs1_X1(const double *wl, const do
   // nu[1]:     diffusion coefficient (collisionality).
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
-  double rdxSq4nul = 4.0*nu[0]/(dxl[0]*dxl[0]); 
-  double rdxSq4nur = 4.0*nu[0]/(dxr[0]*dxr[0]); 
+  double rdxFnul = 4.0*nu[0]/(dxl[0]*dxl[0]); 
+  double rdxFnur = 4.0*nu[0]/(dxr[0]*dxr[0]); 
 
   double incr1[2]; 
   double incr2[2]; 
@@ -18,11 +18,11 @@ void ConstDiffusionSurfPositivity1xSerP1_diffDirs1_X1(const double *wl, const do
 
     incr2[1] = (-0.5*fr[1])+0.5*fl[1]+0.4330127018922193*fr[0]+0.4330127018922193*fl[0]; 
 
-    outr[0] += incr1[0]*rdxSq4nur; 
-    outr[1] += incr2[1]*rdxSq4nur+incr1[1]*rdxSq4nur; 
+    outr[0] += incr1[0]*rdxFnur; 
+    outr[1] += incr2[1]*rdxFnur+incr1[1]*rdxFnur; 
 
-    outl[0] += -1.0*incr1[0]*rdxSq4nul; 
-    outl[1] += incr1[1]*rdxSq4nul-1.0*incr2[1]*rdxSq4nul; 
+    outl[0] += -1.0*incr1[0]*rdxFnul; 
+    outl[1] += incr1[1]*rdxFnul-1.0*incr2[1]*rdxFnul; 
   } else {
 
     double xBar[1];
@@ -50,11 +50,11 @@ void ConstDiffusionSurfPositivity1xSerP1_diffDirs1_X1(const double *wl, const do
 
     incr2[1] = 1.224744871391589*gBound[0]; 
 
-    outr[0] += incr1[0]*rdxSq4nur; 
-    outr[1] += incr2[1]*rdxSq4nur+incr1[1]*rdxSq4nur; 
+    outr[0] += incr1[0]*rdxFnur; 
+    outr[1] += incr2[1]*rdxFnur+incr1[1]*rdxFnur; 
 
-    outl[0] += -1.0*incr1[0]*rdxSq4nul; 
-    outl[1] += incr1[1]*rdxSq4nul-1.0*incr2[1]*rdxSq4nul; 
+    outl[0] += -1.0*incr1[0]*rdxFnul; 
+    outl[1] += incr1[1]*rdxFnul-1.0*incr2[1]*rdxFnul; 
   };
 
 } 

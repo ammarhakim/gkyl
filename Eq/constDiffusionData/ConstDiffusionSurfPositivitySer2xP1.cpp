@@ -6,8 +6,8 @@ void ConstDiffusionSurfPositivity2xSerP1_diffDirs1_X1(const double *wl, const do
   // nu[2]:     diffusion coefficient (collisionality).
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
-  double rdxSq4nul = 4.0*nu[0]/(dxl[0]*dxl[0]); 
-  double rdxSq4nur = 4.0*nu[0]/(dxr[0]*dxr[0]); 
+  double rdxFnul = 4.0*nu[0]/(dxl[0]*dxl[0]); 
+  double rdxFnur = 4.0*nu[0]/(dxr[0]*dxr[0]); 
 
   double incr1[4]; 
   double incr2[4]; 
@@ -21,15 +21,15 @@ void ConstDiffusionSurfPositivity2xSerP1_diffDirs1_X1(const double *wl, const do
     incr2[1] = (-0.5*fr[1])+0.5*fl[1]+0.4330127018922193*fr[0]+0.4330127018922193*fl[0]; 
     incr2[3] = (-0.5*fr[3])+0.5*fl[3]+0.4330127018922193*fr[2]+0.4330127018922193*fl[2]; 
 
-    outr[0] += incr1[0]*rdxSq4nur; 
-    outr[1] += incr2[1]*rdxSq4nur+incr1[1]*rdxSq4nur; 
-    outr[2] += incr1[2]*rdxSq4nur; 
-    outr[3] += incr2[3]*rdxSq4nur+incr1[3]*rdxSq4nur; 
+    outr[0] += incr1[0]*rdxFnur; 
+    outr[1] += incr2[1]*rdxFnur+incr1[1]*rdxFnur; 
+    outr[2] += incr1[2]*rdxFnur; 
+    outr[3] += incr2[3]*rdxFnur+incr1[3]*rdxFnur; 
 
-    outl[0] += -1.0*incr1[0]*rdxSq4nul; 
-    outl[1] += incr1[1]*rdxSq4nul-1.0*incr2[1]*rdxSq4nul; 
-    outl[2] += -1.0*incr1[2]*rdxSq4nul; 
-    outl[3] += incr1[3]*rdxSq4nul-1.0*incr2[3]*rdxSq4nul; 
+    outl[0] += -1.0*incr1[0]*rdxFnul; 
+    outl[1] += incr1[1]*rdxFnul-1.0*incr2[1]*rdxFnul; 
+    outl[2] += -1.0*incr1[2]*rdxFnul; 
+    outl[3] += incr1[3]*rdxFnul-1.0*incr2[3]*rdxFnul; 
   } else {
 
     double xBar[2];
@@ -71,15 +71,15 @@ void ConstDiffusionSurfPositivity2xSerP1_diffDirs1_X1(const double *wl, const do
     incr2[1] = 0.8660254037844386*gBound[1]+0.8660254037844386*gBound[0]; 
     incr2[3] = 1.5*gBound[1]-1.5*gBound[0]; 
 
-    outr[0] += incr1[0]*rdxSq4nur; 
-    outr[1] += incr2[1]*rdxSq4nur+incr1[1]*rdxSq4nur; 
-    outr[2] += incr1[2]*rdxSq4nur; 
-    outr[3] += incr2[3]*rdxSq4nur+incr1[3]*rdxSq4nur; 
+    outr[0] += incr1[0]*rdxFnur; 
+    outr[1] += incr2[1]*rdxFnur+incr1[1]*rdxFnur; 
+    outr[2] += incr1[2]*rdxFnur; 
+    outr[3] += incr2[3]*rdxFnur+incr1[3]*rdxFnur; 
 
-    outl[0] += -1.0*incr1[0]*rdxSq4nul; 
-    outl[1] += incr1[1]*rdxSq4nul-1.0*incr2[1]*rdxSq4nul; 
-    outl[2] += -1.0*incr1[2]*rdxSq4nul; 
-    outl[3] += incr1[3]*rdxSq4nul-1.0*incr2[3]*rdxSq4nul; 
+    outl[0] += -1.0*incr1[0]*rdxFnul; 
+    outl[1] += incr1[1]*rdxFnul-1.0*incr2[1]*rdxFnul; 
+    outl[2] += -1.0*incr1[2]*rdxFnul; 
+    outl[3] += incr1[3]*rdxFnul-1.0*incr2[3]*rdxFnul; 
   };
 
 } 
@@ -90,8 +90,8 @@ void ConstDiffusionSurfPositivity2xSerP1_diffDirs12_X1(const double *wl, const d
   // nu[2]:     diffusion coefficient (collisionality).
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
-  double rdxSq4nul = 4.0*nu[0]/(dxl[0]*dxl[0]); 
-  double rdxSq4nur = 4.0*nu[0]/(dxr[0]*dxr[0]); 
+  double rdxFnul = 4.0*nu[0]/(dxl[0]*dxl[0]); 
+  double rdxFnur = 4.0*nu[0]/(dxr[0]*dxr[0]); 
 
   double incr1[4]; 
   double incr2[4]; 
@@ -105,15 +105,15 @@ void ConstDiffusionSurfPositivity2xSerP1_diffDirs12_X1(const double *wl, const d
     incr2[1] = (-0.5*fr[1])+0.5*fl[1]+0.4330127018922193*fr[0]+0.4330127018922193*fl[0]; 
     incr2[3] = (-0.5*fr[3])+0.5*fl[3]+0.4330127018922193*fr[2]+0.4330127018922193*fl[2]; 
 
-    outr[0] += incr1[0]*rdxSq4nur; 
-    outr[1] += incr2[1]*rdxSq4nur+incr1[1]*rdxSq4nur; 
-    outr[2] += incr1[2]*rdxSq4nur; 
-    outr[3] += incr2[3]*rdxSq4nur+incr1[3]*rdxSq4nur; 
+    outr[0] += incr1[0]*rdxFnur; 
+    outr[1] += incr2[1]*rdxFnur+incr1[1]*rdxFnur; 
+    outr[2] += incr1[2]*rdxFnur; 
+    outr[3] += incr2[3]*rdxFnur+incr1[3]*rdxFnur; 
 
-    outl[0] += -1.0*incr1[0]*rdxSq4nul; 
-    outl[1] += incr1[1]*rdxSq4nul-1.0*incr2[1]*rdxSq4nul; 
-    outl[2] += -1.0*incr1[2]*rdxSq4nul; 
-    outl[3] += incr1[3]*rdxSq4nul-1.0*incr2[3]*rdxSq4nul; 
+    outl[0] += -1.0*incr1[0]*rdxFnul; 
+    outl[1] += incr1[1]*rdxFnul-1.0*incr2[1]*rdxFnul; 
+    outl[2] += -1.0*incr1[2]*rdxFnul; 
+    outl[3] += incr1[3]*rdxFnul-1.0*incr2[3]*rdxFnul; 
   } else {
 
     double xBar[2];
@@ -155,15 +155,15 @@ void ConstDiffusionSurfPositivity2xSerP1_diffDirs12_X1(const double *wl, const d
     incr2[1] = 0.8660254037844386*gBound[1]+0.8660254037844386*gBound[0]; 
     incr2[3] = 1.5*gBound[1]-1.5*gBound[0]; 
 
-    outr[0] += incr1[0]*rdxSq4nur; 
-    outr[1] += incr2[1]*rdxSq4nur+incr1[1]*rdxSq4nur; 
-    outr[2] += incr1[2]*rdxSq4nur; 
-    outr[3] += incr2[3]*rdxSq4nur+incr1[3]*rdxSq4nur; 
+    outr[0] += incr1[0]*rdxFnur; 
+    outr[1] += incr2[1]*rdxFnur+incr1[1]*rdxFnur; 
+    outr[2] += incr1[2]*rdxFnur; 
+    outr[3] += incr2[3]*rdxFnur+incr1[3]*rdxFnur; 
 
-    outl[0] += -1.0*incr1[0]*rdxSq4nul; 
-    outl[1] += incr1[1]*rdxSq4nul-1.0*incr2[1]*rdxSq4nul; 
-    outl[2] += -1.0*incr1[2]*rdxSq4nul; 
-    outl[3] += incr1[3]*rdxSq4nul-1.0*incr2[3]*rdxSq4nul; 
+    outl[0] += -1.0*incr1[0]*rdxFnul; 
+    outl[1] += incr1[1]*rdxFnul-1.0*incr2[1]*rdxFnul; 
+    outl[2] += -1.0*incr1[2]*rdxFnul; 
+    outl[3] += incr1[3]*rdxFnul-1.0*incr2[3]*rdxFnul; 
   };
 
 } 
@@ -174,8 +174,8 @@ void ConstDiffusionSurfPositivity2xSerP1_diffDirs12_X2(const double *wl, const d
   // nu[2]:     diffusion coefficient (collisionality).
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
-  double rdxSq4nul = 4.0*nu[1]/(dxl[1]*dxl[1]); 
-  double rdxSq4nur = 4.0*nu[1]/(dxr[1]*dxr[1]); 
+  double rdxFnul = 4.0*nu[1]/(dxl[1]*dxl[1]); 
+  double rdxFnur = 4.0*nu[1]/(dxr[1]*dxr[1]); 
 
   double incr1[4]; 
   double incr2[4]; 
@@ -189,15 +189,15 @@ void ConstDiffusionSurfPositivity2xSerP1_diffDirs12_X2(const double *wl, const d
     incr2[2] = (-0.5*fr[2])+0.5*fl[2]+0.4330127018922193*fr[0]+0.4330127018922193*fl[0]; 
     incr2[3] = (-0.5*fr[3])+0.5*fl[3]+0.4330127018922193*fr[1]+0.4330127018922193*fl[1]; 
 
-    outr[0] += incr1[0]*rdxSq4nur; 
-    outr[1] += incr1[1]*rdxSq4nur; 
-    outr[2] += incr2[2]*rdxSq4nur+incr1[2]*rdxSq4nur; 
-    outr[3] += incr2[3]*rdxSq4nur+incr1[3]*rdxSq4nur; 
+    outr[0] += incr1[0]*rdxFnur; 
+    outr[1] += incr1[1]*rdxFnur; 
+    outr[2] += incr2[2]*rdxFnur+incr1[2]*rdxFnur; 
+    outr[3] += incr2[3]*rdxFnur+incr1[3]*rdxFnur; 
 
-    outl[0] += -1.0*incr1[0]*rdxSq4nul; 
-    outl[1] += -1.0*incr1[1]*rdxSq4nul; 
-    outl[2] += incr1[2]*rdxSq4nul-1.0*incr2[2]*rdxSq4nul; 
-    outl[3] += incr1[3]*rdxSq4nul-1.0*incr2[3]*rdxSq4nul; 
+    outl[0] += -1.0*incr1[0]*rdxFnul; 
+    outl[1] += -1.0*incr1[1]*rdxFnul; 
+    outl[2] += incr1[2]*rdxFnul-1.0*incr2[2]*rdxFnul; 
+    outl[3] += incr1[3]*rdxFnul-1.0*incr2[3]*rdxFnul; 
   } else {
 
     double xBar[2];
@@ -239,15 +239,15 @@ void ConstDiffusionSurfPositivity2xSerP1_diffDirs12_X2(const double *wl, const d
     incr2[2] = 0.8660254037844386*gBound[1]+0.8660254037844386*gBound[0]; 
     incr2[3] = 1.5*gBound[1]-1.5*gBound[0]; 
 
-    outr[0] += incr1[0]*rdxSq4nur; 
-    outr[1] += incr1[1]*rdxSq4nur; 
-    outr[2] += incr2[2]*rdxSq4nur+incr1[2]*rdxSq4nur; 
-    outr[3] += incr2[3]*rdxSq4nur+incr1[3]*rdxSq4nur; 
+    outr[0] += incr1[0]*rdxFnur; 
+    outr[1] += incr1[1]*rdxFnur; 
+    outr[2] += incr2[2]*rdxFnur+incr1[2]*rdxFnur; 
+    outr[3] += incr2[3]*rdxFnur+incr1[3]*rdxFnur; 
 
-    outl[0] += -1.0*incr1[0]*rdxSq4nul; 
-    outl[1] += -1.0*incr1[1]*rdxSq4nul; 
-    outl[2] += incr1[2]*rdxSq4nul-1.0*incr2[2]*rdxSq4nul; 
-    outl[3] += incr1[3]*rdxSq4nul-1.0*incr2[3]*rdxSq4nul; 
+    outl[0] += -1.0*incr1[0]*rdxFnul; 
+    outl[1] += -1.0*incr1[1]*rdxFnul; 
+    outl[2] += incr1[2]*rdxFnul-1.0*incr2[2]*rdxFnul; 
+    outl[3] += incr1[3]*rdxFnul-1.0*incr2[3]*rdxFnul; 
   };
 
 } 
@@ -258,8 +258,8 @@ void ConstDiffusionSurfPositivity2xSerP1_diffDirs2_X2(const double *wl, const do
   // nu[2]:     diffusion coefficient (collisionality).
   // fl/fr:     Distribution function in left/right cells.
   // outl/outr: Incremented distribution function in left/right cells 
-  double rdxSq4nul = 4.0*nu[0]/(dxl[1]*dxl[1]); 
-  double rdxSq4nur = 4.0*nu[0]/(dxr[1]*dxr[1]); 
+  double rdxFnul = 4.0*nu[0]/(dxl[1]*dxl[1]); 
+  double rdxFnur = 4.0*nu[0]/(dxr[1]*dxr[1]); 
 
   double incr1[4]; 
   double incr2[4]; 
@@ -273,15 +273,15 @@ void ConstDiffusionSurfPositivity2xSerP1_diffDirs2_X2(const double *wl, const do
     incr2[2] = (-0.5*fr[2])+0.5*fl[2]+0.4330127018922193*fr[0]+0.4330127018922193*fl[0]; 
     incr2[3] = (-0.5*fr[3])+0.5*fl[3]+0.4330127018922193*fr[1]+0.4330127018922193*fl[1]; 
 
-    outr[0] += incr1[0]*rdxSq4nur; 
-    outr[1] += incr1[1]*rdxSq4nur; 
-    outr[2] += incr2[2]*rdxSq4nur+incr1[2]*rdxSq4nur; 
-    outr[3] += incr2[3]*rdxSq4nur+incr1[3]*rdxSq4nur; 
+    outr[0] += incr1[0]*rdxFnur; 
+    outr[1] += incr1[1]*rdxFnur; 
+    outr[2] += incr2[2]*rdxFnur+incr1[2]*rdxFnur; 
+    outr[3] += incr2[3]*rdxFnur+incr1[3]*rdxFnur; 
 
-    outl[0] += -1.0*incr1[0]*rdxSq4nul; 
-    outl[1] += -1.0*incr1[1]*rdxSq4nul; 
-    outl[2] += incr1[2]*rdxSq4nul-1.0*incr2[2]*rdxSq4nul; 
-    outl[3] += incr1[3]*rdxSq4nul-1.0*incr2[3]*rdxSq4nul; 
+    outl[0] += -1.0*incr1[0]*rdxFnul; 
+    outl[1] += -1.0*incr1[1]*rdxFnul; 
+    outl[2] += incr1[2]*rdxFnul-1.0*incr2[2]*rdxFnul; 
+    outl[3] += incr1[3]*rdxFnul-1.0*incr2[3]*rdxFnul; 
   } else {
 
     double xBar[2];
@@ -323,15 +323,15 @@ void ConstDiffusionSurfPositivity2xSerP1_diffDirs2_X2(const double *wl, const do
     incr2[2] = 0.8660254037844386*gBound[1]+0.8660254037844386*gBound[0]; 
     incr2[3] = 1.5*gBound[1]-1.5*gBound[0]; 
 
-    outr[0] += incr1[0]*rdxSq4nur; 
-    outr[1] += incr1[1]*rdxSq4nur; 
-    outr[2] += incr2[2]*rdxSq4nur+incr1[2]*rdxSq4nur; 
-    outr[3] += incr2[3]*rdxSq4nur+incr1[3]*rdxSq4nur; 
+    outr[0] += incr1[0]*rdxFnur; 
+    outr[1] += incr1[1]*rdxFnur; 
+    outr[2] += incr2[2]*rdxFnur+incr1[2]*rdxFnur; 
+    outr[3] += incr2[3]*rdxFnur+incr1[3]*rdxFnur; 
 
-    outl[0] += -1.0*incr1[0]*rdxSq4nul; 
-    outl[1] += -1.0*incr1[1]*rdxSq4nul; 
-    outl[2] += incr1[2]*rdxSq4nul-1.0*incr2[2]*rdxSq4nul; 
-    outl[3] += incr1[3]*rdxSq4nul-1.0*incr2[3]*rdxSq4nul; 
+    outl[0] += -1.0*incr1[0]*rdxFnul; 
+    outl[1] += -1.0*incr1[1]*rdxFnul; 
+    outl[2] += incr1[2]*rdxFnul-1.0*incr2[2]*rdxFnul; 
+    outl[3] += incr1[3]*rdxFnul-1.0*incr2[3]*rdxFnul; 
   };
 
 } 
