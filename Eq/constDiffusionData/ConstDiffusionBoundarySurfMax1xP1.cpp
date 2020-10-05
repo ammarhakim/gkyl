@@ -13,15 +13,18 @@ void ConstDiffusionBoundarySurf1xMaxP1_X1(const double *wl, const double *wr, co
   double incr1[2]; 
   double incr2[2]; 
 
-  incr1[0] = 0.5412658773652741*fr[1]+0.5412658773652741*fl[1]-0.5625*fr[0]+0.5625*fl[0]; 
-  incr1[1] = (-0.9375*fr[1])-0.9375*fl[1]+0.9742785792574932*fr[0]-0.9742785792574932*fl[0]; 
+  if (idxr[0] == 1) {
 
-  incr2[1] = (-0.5*fr[1])+0.5*fl[1]+0.4330127018922193*fr[0]+0.4330127018922193*fl[0]; 
+  incr2[1] = 0.8660254037844386*fr[0]-1.5*fr[1]; 
 
-  outr[0] += incr1[0]*rdxFnur; 
-  outr[1] += incr2[1]*rdxFnur+incr1[1]*rdxFnur; 
+  outr[1] += incr2[1]*rdxFnur; 
 
-  outl[0] += -1.0*incr1[0]*rdxFnul; 
-  outl[1] += incr1[1]*rdxFnul-1.0*incr2[1]*rdxFnul; 
+  } else {
+
+  incr2[1] = 1.5*fl[1]+0.8660254037844386*fl[0]; 
+
+  outl[1] += -1.0*incr2[1]*rdxFnul; 
+
+  }
 
 } 

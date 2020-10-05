@@ -11,14 +11,14 @@ load(stringproc)$
    to allow the user to add diffusion in any subset of directions. */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 2$
+maxPolyOrder_Ser : 3$
 minDim_Ser : 1$
 maxDim_Ser : 4$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 2$
 minDim_Max : 1$
-maxDim_Max : 3$
+maxDim_Max : 4$
 
 /* ...... END OF USER INPUTS........ */
 

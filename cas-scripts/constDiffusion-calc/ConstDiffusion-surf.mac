@@ -141,7 +141,7 @@ getDirCombos(varsIn) := block([dirCombosSet,dirCombos,d],
 /* Given the value of the recovery polynomial (fRec) and its derivative
    (frecP) at the interface, this function computes the increments and
    writes them to the kernel file. */
-compWriteIncr(varsIn, basisIn, dirIn, fRecOrd, nSpaces) := block([cv,surfVars,incr_s1,incr_s2,clst,i,numB,diffOrder],
+compWriteIncr(varsIn, basisIn, dirIn, fRecOrd, isBoundSurf, nSpaces) := block([cv,surfVars,incr_s1,incr_s2,clst,i,numB,diffOrder],
 
   cv       : varsIn[dirIn],
   surfVars : delete(cv,varsIn),
@@ -194,42 +194,69 @@ compWriteIncr(varsIn, basisIn, dirIn, fRecOrd, nSpaces) := block([cv,surfVars,in
       -calcInnerProdList(surfVars,-1,subst(cv=-1,diff(basisIn,cv,5)),subst(cv=0,fRec))]
   ),
   
-  clst : [wxr, dvxr],
-  incr_sOut : makelist(0,i,1,numB),
-  for oI : 1 thru diffOrder do (
-    incrVar : eval_string(sconcat("incr",oI)),
-    writeCExprsCollect1s(incrVar, incr_r[oI], clst, nSpaces),
-    printf(fh,"~%"),
-
-    incr_s : makelist(incrVar[i-1], i, 1, numB),
-    /* Don't do coefficients where the increment is zero */
-    for i : 1 thru numB do (
-      if (incr_r[oI][i] = 0) then incr_s[i] : 0
-    ), 
-    incr_sOut : incr_sOut+incr_s
-  ),
-  writeCIncrExprs1s(outr, nuSign*rdxFnur*incr_sOut, nSpaces),
-  printf(fh, "~%"),
+  writeIncr(incr_l,incr_r,subList,incrList) := block([clst,ilI,oI,incrVar,incr_s,i,incr_rOut,incr_lOut],
+    /* Perform a last minute substitution (subList) and write the
+       increments in incrl_l,incr_r that are listed in incrList. */
+    clst      : [wxr, dvxr],
+    incr_rOut : makelist(0,i,1,numB),
+    incr_lOut : makelist(0,i,1,numB),
+    /* Here we will loop over the increments we wish to apply since, for example, in the
+       boundarySurf terms we may wish to not apply the flux term (for zero-flux BCs). */
+    for ilI : 1 thru length(incrList) do (
+      oI : incrList[ilI],
   
-  incr_sOut : makelist(0,i,1,numB),
-  for oI : 1 thru diffOrder do (
-    incrVar : eval_string(sconcat("incr",oI)),
-    signs : makelist(1,i,1,numB),
-    for i : 1 thru numB do (
-      if (incr_r[oI][i] = 0) then
-        false
-      else
-        signs[i] : fullratsimp(incr_l[oI][i]/incr_r[oI][i])
+      incrVar : eval_string(sconcat("incr",oI)),
+      writeCExprsCollect1s(incrVar, subst(subList,incr_r[oI]), clst, nSpaces),
+      printf(fh,"~%"),
+  
+      incr_s : makelist(incrVar[i-1], i, 1, numB),
+      /* Don't do coefficients where the increment is zero */
+      for i : 1 thru numB do (
+        if (incr_r[oI][i] = 0) then incr_s[i] : 0
+      ), 
+      incr_rOut : incr_rOut+incr_s,
+  
+      signs : makelist(1,i,1,numB),
+      for i : 1 thru numB do (
+        if (incr_r[oI][i] = 0) then
+          false
+        else
+          signs[i] : fullratsimp(incr_l[oI][i]/incr_r[oI][i])
+      ),
+      incr_s : makelist(signs[i]*incrVar[i-1], i, 1, numB),
+      /* Don't do coefficients where the increment is zero */
+      for i : 1 thru numB do (
+        if (incr_r[oI][i] = 0) then
+          incr_s[i] : 0
+      ), 
+      incr_lOut : incr_lOut+incr_s
     ),
-    incr_s : makelist(signs[i]*incrVar[i-1], i, 1, numB),
-    /* Don't do coefficients where the increment is zero */
-    for i : 1 thru numB do (
-      if (incr_r[oI][i] = 0) then
-        incr_s[i] : 0
-    ), 
-    incr_sOut : incr_sOut+incr_s
+    return([incr_rOut,incr_lOut])
   ),
-  writeCIncrExprs1s(outl, nuSign*rdxFnul*incr_sOut,nSpaces)
+
+  if isBoundSurf then (
+    addIncrs : makelist(i,i,2,diffOrder),
+    printf(fh, "  if (idxr[~a] == 1) {~%~%", dir-1),
+
+    subList    : cons(pmOne=-1,makelist(fSkin[i]=fr[i],i,0,numB-1)),
+    incrOutLst : writeIncr(incr_l,incr_r,subList,addIncrs),
+    writeCIncrExprs1s(outr, nuSign*rdxFnur*incrOutLst[1], nSpaces),
+
+    printf(fh, "~%  } else {~%~%"),
+
+    subList    : cons(pmOne=1,makelist(fSkin[i]=fl[i],i,0,numB-1)),
+    incrOutLst : writeIncr(incr_l,incr_r,subList,addIncrs),
+    writeCIncrExprs1s(outl, nuSign*rdxFnul*incrOutLst[2],nSpaces),
+
+    printf(fh, "~%  }~%")
+  ) else (
+    addIncrs   : makelist(i,i,1,diffOrder),
+    subList    : [],
+    incrOutLst : writeIncr(incr_l,incr_r,subList,addIncrs),
+    writeCIncrExprs1s(outr, nuSign*rdxFnur*incrOutLst[1], nSpaces),
+    printf(fh, "~%"),
+    writeCIncrExprs1s(outl, nuSign*rdxFnul*incrOutLst[2],nSpaces)
+  )
 )$
 
 calcUpdateInDir(dir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, applyPos) := block([hsolOrder],
@@ -283,7 +310,7 @@ calcUpdateInDir(dir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, applyPos) 
     ) else (
       hsolOrder : [diffOrder, h_e]
     ),
-    compWriteIncr(vars, basis, dir, hsolOrder, 0)
+    compWriteIncr(vars, basis, dir, hsolOrder, false, 0)
 
   ) else (
 
@@ -329,7 +356,7 @@ calcUpdateInDir(dir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, applyPos) 
     if (diffOrder = 2) then (
       hsolOrder : [diffOrder, hsol[1], hsol[2]]
     ),
-    compWriteIncr(vars, basis, dir, hsolOrder, 2),
+    compWriteIncr(vars, basis, dir, hsolOrder, false, 2),
 
     printf(fh,"  } else {~%"),
     printf(fh,"~%"),
@@ -400,7 +427,7 @@ calcUpdateInDir(dir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, applyPos) 
       if (diffOrder = 2) then (
         hsolOrder : [diffOrder, gBound[0], gBoundP[0]]
       ),
-      compWriteIncr(vars, basis, dir, hsolOrder, 2)
+      compWriteIncr(vars, basis, dir, hsolOrder, false, 2)
     ) else (
 
       /*........... Create nodal to modal transform matrix .......... */
@@ -424,7 +451,7 @@ calcUpdateInDir(dir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, applyPos) 
       if (diffOrder = 2) then (
         hsolOrder : [diffOrder, gRec0, gRecP0]
       ),
-      compWriteIncr(vars, basis, dir, hsolOrder, 2)
+      compWriteIncr(vars, basis, dir, hsolOrder, false, 2)
     ), 
 
     printf(fh,"  };~%")
@@ -453,8 +480,11 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, ap
   surfVars : delete(cv,vars),
 
   /* Recovery polynomial and its coefficients. */
-  hOrder : 2*polyOrder+1,
-  h_e    : calcRecov2CellGen(basisFun,cv,vars,polyOrder,dg(makelist(fl[i],i,0,numB)), dg(makelist(fr[i],i,0,numB))),
+  hOrder : polyOrder,
+  h_e    : doExpand1(fSkin,basis),
+  /* Make the following substitution so that at the boundaries
+     evaluation at cv=0 is equivalent to evaluating at cv=+1,-1. */
+  h_e    : subst(cv=cv+pmOne,h_e),
   hsol   : cons(subst(cv=0,h_e),makelist(subst(cv=0,diff(h_e,cv,ord)/(ord!)),ord,1,hOrder)),
 
   printf(fh,"void ~aP~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, polyOrder, surfLabels[dir]),
@@ -487,7 +517,7 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, ap
     ) else (
       hsolOrder : [diffOrder, h_e]
     ),
-    compWriteIncr(vars, basis, dir, hsolOrder, 0)
+    compWriteIncr(vars, basis, dir, hsolOrder, true, 0)
 
   ) else (
 
@@ -533,7 +563,7 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, ap
     if (diffOrder = 2) then (
       hsolOrder : [diffOrder, hsol[1], hsol[2]]
     ),
-    compWriteIncr(vars, basis, dir, hsolOrder, 2),
+    compWriteIncr(vars, basis, dir, hsolOrder, true, 2),
 
     printf(fh,"  } else {~%"),
     printf(fh,"~%"),
@@ -604,7 +634,7 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, ap
       if (diffOrder = 2) then (
         hsolOrder : [diffOrder, gBound[0], gBoundP[0]]
       ),
-      compWriteIncr(vars, basis, dir, hsolOrder, 2)
+      compWriteIncr(vars, basis, dir, hsolOrder, true, 2)
     ) else (
 
       /*........... Create nodal to modal transform matrix .......... */
@@ -628,7 +658,7 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, ap
       if (diffOrder = 2) then (
         hsolOrder : [diffOrder, gRec0, gRecP0]
       ),
-      compWriteIncr(vars, basis, dir, hsolOrder, 2)
+      compWriteIncr(vars, basis, dir, hsolOrder, true, 2)
     ),
 
     printf(fh,"  };~%")

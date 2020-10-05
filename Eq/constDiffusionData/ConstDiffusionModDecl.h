@@ -27,6 +27,20 @@ void ConstDiffusionBC1xSerP2_Dirichlet_X1upper(const double dx, const double *fS
 void ConstDiffusionBC1xSerP2_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC1xSerP2_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
+double ConstDiffusionVol1xSerP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstHyperDiffusion4Vol1xSerP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstHyperDiffusion6Vol1xSerP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+void ConstDiffusionSurf1xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBoundarySurf1xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4Surf1xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6Surf1xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4BoundarySurf1xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6BoundarySurf1xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBC1xSerP3_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC1xSerP3_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC1xSerP3_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC1xSerP3_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
 
 double ConstDiffusionVol2xSerP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstDiffusionVol2xSerP1_diffDirs12(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -71,6 +85,32 @@ void ConstDiffusionBC2xSerP2_Dirichlet_X2lower(const double dx, const double *fS
 void ConstDiffusionBC2xSerP2_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC2xSerP2_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC2xSerP2_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
+double ConstDiffusionVol2xSerP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol2xSerP3_diffDirs12(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol2xSerP3_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstHyperDiffusion4Vol2xSerP3_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstHyperDiffusion6Vol2xSerP3_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+void ConstDiffusionSurf2xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBoundarySurf2xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4Surf2xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6Surf2xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4BoundarySurf2xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6BoundarySurf2xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBC2xSerP3_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xSerP3_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xSerP3_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xSerP3_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionSurf2xSerP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBoundarySurf2xSerP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4Surf2xSerP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6Surf2xSerP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4BoundarySurf2xSerP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6BoundarySurf2xSerP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBC2xSerP3_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xSerP3_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xSerP3_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xSerP3_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 
 double ConstDiffusionVol3xSerP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -141,6 +181,46 @@ void ConstDiffusionBC3xSerP2_Dirichlet_X3lower(const double dx, const double *fS
 void ConstDiffusionBC3xSerP2_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC3xSerP2_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC3xSerP2_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
+double ConstDiffusionVol3xSerP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol3xSerP3_diffDirs12(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol3xSerP3_diffDirs123(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol3xSerP3_diffDirs13(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol3xSerP3_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol3xSerP3_diffDirs23(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol3xSerP3_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstHyperDiffusion4Vol3xSerP3_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstHyperDiffusion6Vol3xSerP3_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+void ConstDiffusionSurf3xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBoundarySurf3xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4Surf3xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6Surf3xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4BoundarySurf3xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6BoundarySurf3xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBC3xSerP3_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xSerP3_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xSerP3_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xSerP3_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionSurf3xSerP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBoundarySurf3xSerP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4Surf3xSerP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6Surf3xSerP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4BoundarySurf3xSerP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6BoundarySurf3xSerP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBC3xSerP3_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xSerP3_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xSerP3_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xSerP3_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionSurf3xSerP3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBoundarySurf3xSerP3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4Surf3xSerP3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6Surf3xSerP3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4BoundarySurf3xSerP3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6BoundarySurf3xSerP3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBC3xSerP3_Dirichlet_X3lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xSerP3_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC3xSerP3_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC3xSerP3_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 
 double ConstDiffusionVol4xSerP1_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -244,6 +324,64 @@ void ConstDiffusionBC4xSerP2_Dirichlet_X4lower(const double dx, const double *fS
 void ConstDiffusionBC4xSerP2_Dirichlet_X4upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC4xSerP2_Neumann_X4lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC4xSerP2_Neumann_X4upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
+double ConstDiffusionVol4xSerP3_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol4xSerP3_diffDirs23(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol4xSerP3_diffDirs234(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol4xSerP3_diffDirs1234(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol4xSerP3_diffDirs123(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol4xSerP3_diffDirs24(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol4xSerP3_diffDirs124(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol4xSerP3_diffDirs12(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol4xSerP3_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol4xSerP3_diffDirs34(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol4xSerP3_diffDirs134(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol4xSerP3_diffDirs13(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol4xSerP3_diffDirs4(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol4xSerP3_diffDirs14(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol4xSerP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstHyperDiffusion4Vol4xSerP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstHyperDiffusion6Vol4xSerP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+void ConstDiffusionSurf4xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBoundarySurf4xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4Surf4xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6Surf4xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4BoundarySurf4xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6BoundarySurf4xSerP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBC4xSerP3_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP3_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP3_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xSerP3_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionSurf4xSerP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBoundarySurf4xSerP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4Surf4xSerP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6Surf4xSerP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4BoundarySurf4xSerP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6BoundarySurf4xSerP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBC4xSerP3_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP3_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP3_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xSerP3_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionSurf4xSerP3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBoundarySurf4xSerP3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4Surf4xSerP3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6Surf4xSerP3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4BoundarySurf4xSerP3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6BoundarySurf4xSerP3_X3(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBC4xSerP3_Dirichlet_X3lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP3_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP3_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xSerP3_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionSurf4xSerP3_X4(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBoundarySurf4xSerP3_X4(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4Surf4xSerP3_X4(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6Surf4xSerP3_X4(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4BoundarySurf4xSerP3_X4(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6BoundarySurf4xSerP3_X4(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBC4xSerP3_Dirichlet_X4lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP3_Dirichlet_X4upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC4xSerP3_Neumann_X4lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC4xSerP3_Neumann_X4upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
 
 double ConstDiffusionVol5xSerP1_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out); 

@@ -8,7 +8,7 @@
    to allow the user to add diffusion in any subset of directions. */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 2$
+maxPolyOrder_Ser : 3$
 minDim_Ser : 1$
 maxDim_Ser : 6$
 
