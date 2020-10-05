@@ -28,7 +28,8 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
   baLo1D, baCe1D, baUp1D, baLoND, baCeND, baUpND,
   dimProjLo, dimProjUp, qLo1D, qUp1D,
   wx, wy, wz,
-  numDims
+  numDims,
+  baCeNDw, perpDirs
   ],
   
   baCe1D : getBasis(basisNm, [x], polyOrder),
