@@ -64,8 +64,8 @@ return {
 
    -- Devel stuff
    { "maxima", "http://maxima.sourceforge.net/docs/manual/maxima_0.html" },
-   { "modal", "https://gkeyll.readthedocs.io/en/latest/dev/modalbasis.html" },
-   { "basis", "https://gkeyll.readthedocs.io/en/latest/dev/modalbasis.html" },
+   { "modal basis", "https://gkeyll.readthedocs.io/en/latest/dev/modalbasis.html" },
+   { "recovery", "https://gkeyll.readthedocs.io/en/latest/dev/recovery.html" },
    
    { "ssp", "https://gkeyll.readthedocs.io/en/latest/dev/ssp-rk.html" },
    
@@ -73,14 +73,11 @@ return {
    { "denormalization", "https://gkeyll.readthedocs.io/en/latest/dev/vlasov-denorm.html" },
    
    { "maxwell eigensystem", "https://gkeyll.readthedocs.io/en/latest/dev/maxwell-eigensystem.html" },
-   { "eig maxwell", "https://gkeyll.readthedocs.io/en/latest/dev/maxwell-eigensystem.html" },
 
    { "euler eigensystem", "https://gkeyll.readthedocs.io/en/latest/dev/euler-eigensystem.html" },
-   { "eig euler", "https://gkeyll.readthedocs.io/en/latest/dev/euler-eigensystem.html" },
 
    { "tenmoment eigensystem", "https://gkeyll.readthedocs.io/en/latest/dev/tenmom-eigensystem.html" },
    { "tenmom eigensystem", "https://gkeyll.readthedocs.io/en/latest/dev/tenmom-eigensystem.html" },
-   { "eig tenmoment", "https://gkeyll.readthedocs.io/en/latest/dev/tenmom-eigensystem.html" },
 
    -- publications
    { "publications", "https://gkeyll.readthedocs.io/en/latest/gkyl/pubs.html" },

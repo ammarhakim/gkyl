@@ -37,6 +37,7 @@ the home page is opened.
 ]]
 
 parser:flag("-k --keywords", "List available keywords")
+parser:option("-s --search", "Search documentation instead")
 
 parser:argument("optional", "Keyword to search")
    :args("?")
@@ -101,8 +102,10 @@ else
 
    -- take action based on how many matches were returned
    if #matches == 0 then
-      print(string.format("No such keyword '%s'. Opening main page.", args.optional))
-      open_url("https://gkeyll.readthedocs.io/en/latest/")
+      print(string.format("No such keyword '%s'. Launching search.", args.optional))
+      open_url(string.format(
+		  "https://gkeyll.readthedocs.io/en/latest/search.html?q=%s", args.optional)
+      )
    elseif #matches == 1 then
       open_url(matches[1][2])
    else
