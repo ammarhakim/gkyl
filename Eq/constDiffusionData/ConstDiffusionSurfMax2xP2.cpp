@@ -189,11 +189,11 @@ void ConstHyperDiffusion6Surf2xMaxP2_X1(const double *wl, const double *wr, cons
   incr1[4] = (-78.75*fr[4])+78.75*fl[4]+76.2493596284585*fr[1]+76.2493596284585*fl[1]-44.02258830702712*fr[0]+44.02258830702712*fl[0]; 
   incr1[5] = 19.6875*fl[5]-19.6875*fr[5]; 
 
-  incr2[1] = (-9.531169953557313*fr[4])-9.531169953557313*fl[4]+2.4609375*fr[1]-2.4609375*fl[1]; 
-  incr2[3] = 2.4609375*fr[3]-2.4609375*fl[3]; 
-  incr2[4] = 36.9140625*fr[4]+36.9140625*fl[4]-9.531169953557313*fr[1]+9.531169953557313*fl[1]; 
+  incr2[1] = 9.531169953557313*fr[4]+9.531169953557313*fl[4]-2.4609375*fr[1]+2.4609375*fl[1]; 
+  incr2[3] = 2.4609375*fl[3]-2.4609375*fr[3]; 
+  incr2[4] = (-36.9140625*fr[4])-36.9140625*fl[4]+9.531169953557313*fr[1]-9.531169953557313*fl[1]; 
 
-  incr3[4] = (-45.0*fr[4])+45.0*fl[4]+54.4638283060418*fr[1]+54.4638283060418*fl[1]-31.4447059335908*fr[0]+31.4447059335908*fl[0]; 
+  incr3[4] = 45.0*fr[4]-45.0*fl[4]-54.4638283060418*fr[1]-54.4638283060418*fl[1]+31.4447059335908*fr[0]-31.4447059335908*fl[0]; 
 
 
 
@@ -206,10 +206,10 @@ void ConstHyperDiffusion6Surf2xMaxP2_X1(const double *wl, const double *wr, cons
   outr[5] += incr1[5]*rdxFnur; 
 
   outl[0] += -1.0*incr1[0]*rdxFnul; 
-  outl[1] += incr2[1]*rdxFnul+incr1[1]*rdxFnul; 
+  outl[1] += incr1[1]*rdxFnul-1.0*incr2[1]*rdxFnul; 
   outl[2] += -1.0*incr1[2]*rdxFnul; 
-  outl[3] += incr2[3]*rdxFnul+incr1[3]*rdxFnul; 
-  outl[4] += incr3[4]*rdxFnul-1.0*incr2[4]*rdxFnul-1.0*incr1[4]*rdxFnul; 
+  outl[3] += incr1[3]*rdxFnul-1.0*incr2[3]*rdxFnul; 
+  outl[4] += (-1.0*incr3[4]*rdxFnul)+incr2[4]*rdxFnul-1.0*incr1[4]*rdxFnul; 
   outl[5] += -1.0*incr1[5]*rdxFnul; 
 
 } 
@@ -237,11 +237,11 @@ void ConstHyperDiffusion6Surf2xMaxP2_X2(const double *wl, const double *wr, cons
   incr1[4] = 19.6875*fl[4]-19.6875*fr[4]; 
   incr1[5] = (-78.75*fr[5])+78.75*fl[5]+76.2493596284585*fr[2]+76.2493596284585*fl[2]-44.02258830702712*fr[0]+44.02258830702712*fl[0]; 
 
-  incr2[2] = (-9.531169953557313*fr[5])-9.531169953557313*fl[5]+2.4609375*fr[2]-2.4609375*fl[2]; 
-  incr2[3] = 2.4609375*fr[3]-2.4609375*fl[3]; 
-  incr2[5] = 36.9140625*fr[5]+36.9140625*fl[5]-9.531169953557313*fr[2]+9.531169953557313*fl[2]; 
+  incr2[2] = 9.531169953557313*fr[5]+9.531169953557313*fl[5]-2.4609375*fr[2]+2.4609375*fl[2]; 
+  incr2[3] = 2.4609375*fl[3]-2.4609375*fr[3]; 
+  incr2[5] = (-36.9140625*fr[5])-36.9140625*fl[5]+9.531169953557313*fr[2]-9.531169953557313*fl[2]; 
 
-  incr3[5] = (-45.0*fr[5])+45.0*fl[5]+54.4638283060418*fr[2]+54.4638283060418*fl[2]-31.4447059335908*fr[0]+31.4447059335908*fl[0]; 
+  incr3[5] = 45.0*fr[5]-45.0*fl[5]-54.4638283060418*fr[2]-54.4638283060418*fl[2]+31.4447059335908*fr[0]-31.4447059335908*fl[0]; 
 
 
 
@@ -255,9 +255,9 @@ void ConstHyperDiffusion6Surf2xMaxP2_X2(const double *wl, const double *wr, cons
 
   outl[0] += -1.0*incr1[0]*rdxFnul; 
   outl[1] += -1.0*incr1[1]*rdxFnul; 
-  outl[2] += incr2[2]*rdxFnul+incr1[2]*rdxFnul; 
-  outl[3] += incr2[3]*rdxFnul+incr1[3]*rdxFnul; 
+  outl[2] += incr1[2]*rdxFnul-1.0*incr2[2]*rdxFnul; 
+  outl[3] += incr1[3]*rdxFnul-1.0*incr2[3]*rdxFnul; 
   outl[4] += -1.0*incr1[4]*rdxFnul; 
-  outl[5] += incr3[5]*rdxFnul-1.0*incr2[5]*rdxFnul-1.0*incr1[5]*rdxFnul; 
+  outl[5] += (-1.0*incr3[5]*rdxFnul)+incr2[5]*rdxFnul-1.0*incr1[5]*rdxFnul; 
 
 } 
