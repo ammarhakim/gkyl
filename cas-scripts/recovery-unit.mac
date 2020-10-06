@@ -36,7 +36,8 @@ testRecov(mode) := block(
     [["Face 2D p2 C2 xy", calcRecovFaceGen("Ser", [x,y], [x,y], 1, 2, 2, dg(dg(qBL),dg(qBR)), dg(dg(qCL),dg(qCR)), dg(dg(qTL),dg(qTR)))]],
     [["Face 2D p1 C1 BC", calcRecovFaceGen("Ser", [y,x], [x,y], 1, 1, 1, bc(D=DL,N=NL,val=valL), dg(dg(qBC),dg(qTC)), bc(D=DR,N=NR,val=valR))]],
     [["Face 2D p2 C1 BC", calcRecovFaceGen("Ser", [y,x], [x,y], 1, 2, 1, bc(D=DL,N=NL,val=valL), dg(dg(qBC),dg(qTC)), bc(D=DR,N=NR,val=valR))]],
-    [["Face 3D p1 C1 yx", calcRecovFaceGen("Ser", [y,x], [x,y,z], 1, 1, 1, dg(dg(qBL),dg(qTL)), dg(dg(qBC),dg(qTC)), dg(dg(qBR),dg(qTR)))]]
+    [["Face 3D p1 C1 yx", calcRecovFaceGen("Ser", [y,x], [x,y,z], 1, 1, 1, dg(dg(qBL),dg(qTL)), dg(dg(qBC),dg(qTC)), dg(dg(qBR),dg(qTR)))]],
+    [["Face 3D p1 C1 xy", calcRecovFaceGen("Ser", [x,y], [x,y,z], 1, 1, 1, dg(dg(qBL),dg(qTL)), dg(dg(qBC),dg(qTC)), dg(dg(qBR),dg(qTR)))]]
   ),
   
   if mode="create" then (
