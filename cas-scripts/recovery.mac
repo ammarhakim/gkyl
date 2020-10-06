@@ -25,23 +25,24 @@ eta(xc, dx, fn) := block(
 ) $
 
 /* A simple helper function to convert x, y, or z to indices 1, 2, or 3 respectively */
-getDirIdx(dir, numDims) := block([],
-  if numDims = 1 then return(1),
-  if dir = x then return(1),
-  if dir = y then return(2),
-  if dir = z then return(3)
-) $
+/* getDirIdx(dir, numDims) := block([], */
+/*   if numDims = 1 then return(1), */
+/*   if dir = x then return(1), */
+/*   if dir = y then return(2), */
+/*   if dir = z then return(3) */
+/* ) $ */
 
-getBasis(name, polyOrder) := block(
-  [varsC, basisC, basisConstant],
-  load(name),
+getBasis(basisType, numDims, polyOrder) := block(
+  [basis, varsC, basisC, varsP, basisP, basisConstant],
+  if (numDims < 4) then (
+    load(sconcat("basis-precalc/basis", basisType, numDims, "x"))
+  ) else (
+    load(sconcat("basis-precalc/basis", basisType, numDims-3, "x", 3, "v"))
+  ),
   if polyOrder > 0 then (
-    return(basisC[polyOrder])
-  )
-  else (
-    return([basisC[1][1]])
-  )
+    basis : if (numDims<4) then basisC[polyOrder] else basisP[polyOrder]
+  ) else (
+    basis : basisConstant
+  ),
+  return(basis)
 ) $
-
-
-/* -- Legacy Wrappers --------------------------------------------- */

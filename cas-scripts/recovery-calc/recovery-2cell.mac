@@ -18,7 +18,7 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
       * dg(A, bc(D=_, N=_, val=_)) : a constrained recovery where
         expansion coefficients are used together with boundary
         conditions at the edge
-    up : equvivalent of `lo` at the upper side
+    up : equivalent of `lo` at the upper side
   Outputs:
     a polynomial
   */
@@ -28,10 +28,11 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
   baLo1D, baCe1D, baUp1D, baLoND, baCeND, baUpND,
   dimProjLo, dimProjUp, qLo1D, qUp1D,
   wx, wy, wz,
-  numDims, dirSubList
+  numDims,
+  baCeNDw, perpDirs
   ],
   
-  baCe1D : getBasis(sconcat("basis-precalc/basis", basisNm, "1x"), polyOrder),
+  baCe1D : getBasis(basisNm, 1, polyOrder),
   baCe1D : subst(x=recDir, baCe1D),
   baLo1D : etaDir(recDir, -1, 2, baCe1D),
   baUp1D : etaDir(recDir, 1, 2, baCe1D),
@@ -105,20 +106,18 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
   /* backsubstitute the non-recovered directtions if needed */
   numDims : length(dirs),
   if numDims > 1 then (
-    baCeND : getBasis(sconcat("basis-precalc/basis", basisNm, numDims, "x"),
-      polyOrder),
-    dirSubList : makelist(w[i]=dirs[i], i, 1, numDims),
-    baCeND : subst(dirSubList, subst([x=w[1],y=w[2],z=w[3]], baCeND)),  
+    baCeND : getBasis(basisNm, numDims, polyOrder),
+    baVars : listofvars(baCeND),
+    baCeND : psubst(makelist(baVars[i]=dirs[i],i,1,numDims), baCeND),  
     baLoND : etaDir(recDir, -1, 2, baCeND),
     baUpND : etaDir(recDir, 1, 2, baCeND),
     /* prepare for the case where expansion coefficients at a wall are
     given; i.e., a basis function set with one less dimension is
     needed */
     perpDirs : delete(recDir, dirs),
-    baCeNDw : getBasis(sconcat("basis-precalc/basis", basisNm, numDims-1, "x"),
-      polyOrder),
-    dirSubList : makelist(w[i]=perpDirs[i], i, 1, numDims-1),
-    baCeNDw : subst(dirSubList, subst([x=w[1],y=w[2]], baCeNDw)), 
+    baCeNDw  : getBasis(basisNm, delete(dirs[numDims], dirs), polyOrder),
+    baVars   : listofvars(baCeNDw),
+    baCeNDw  : subst(makelist(baVars[i]=perpDirs[i],i,1,numDims-1), baCeNDw), 
     
     projSubList : [],
     if is(op(lo)=dg) then (

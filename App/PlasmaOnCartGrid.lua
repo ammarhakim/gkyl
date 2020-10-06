@@ -985,6 +985,7 @@ return {
 	 LboCollisions = require "App.Collisions.VmLBOCollisions",
 	 ChargeExchange = require "App.Collisions.VmChargeExchange",
 	 Ionization = require "App.Collisions.VmIonization",
+	 Diffusion = require "App.Collisions.Diffusion",
       }
    end,
    

@@ -282,7 +282,7 @@ end
 
 function FluidSpecies:bcDirichletFunc(dir, tm, idxIn, fIn, fOut)
    -- Impose f=fBC at the boundary.
-   if (idxIn == 1) then
+   if (idxIn[dir] == 1) then
       self.constDiffDirichletBCs[dir][1](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][1],fOut:data())
    else
       self.constDiffDirichletBCs[dir][2](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][2],fOut:data())
@@ -291,7 +291,7 @@ end
 
 function FluidSpecies:bcNeumannFunc(dir, tm, idxIn, fIn, fOut)
    -- Impose f'=fpBC at the boundary.
-   if (idxIn == 1) then
+   if (idxIn[dir] == 1) then
       self.constDiffNeumannBCs[dir][1](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][1],fOut:data())
    else
       self.constDiffNeumannBCs[dir][2](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][2],fOut:data())
@@ -305,11 +305,11 @@ function FluidSpecies:makeBcUpdater(dir, edge, bcList, skinLoop,
    -- If BC is Dirichlet or Neumann select appropriate kernels.
    if (bcList[2] == 5) then
       local nm, ndim, p = self.basis:id(), self.basis:ndim(), self.basis:polyOrder()
-      self.constDiffDirichletBCs = ConstDiffusionModDecl.selectBCs(nm, ndim, p, "Dirichlet")
+      self.constDiffDirichletBCs = ConstDiffusionModDecl.selectBCs(nm, ndim, p, 2, "Dirichlet")
       table.remove(bcList,2) -- Remove the bcType. Updater.Bc expects a table with just a function.
    elseif (bcList[2] == 6) then
       local nm, ndim, p = self.basis:id(), self.basis:ndim(), self.basis:polyOrder()
-      self.constDiffNeumannBCs = ConstDiffusionModDecl.selectBCs(nm, ndim, p, "Neumann")
+      self.constDiffNeumannBCs = ConstDiffusionModDecl.selectBCs(nm, ndim, p, 2, "Neumann")
       table.remove(bcList,2) -- Remove the bcType. Updater.Bc expects a table with just a function.
    end
 
@@ -502,7 +502,7 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    -- Perform the collision (diffusion) update.
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
-         c.diffusionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+         c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
          c:advance(tCurr, fIn, species, fRhsOut)
          -- The full 'species' list is needed for the cross-species
          -- collisions.

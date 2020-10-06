@@ -123,7 +123,7 @@ function Bc:init(tbl)
    self._evaluateFn = tbl.evaluate
    if self._evaluateFn then
       self._basis = assert(tbl.basis, "Bc.init: Evaluate is currently implemented only for DG; 'basis' must be specified.")
-      self._evolveFn = xsys.pickBool(tbl.evolveFn, true)
+      self._evolveFn = xsys.pickBool(tbl.evolveFn, false)
       self._feedback = xsys.pickBool(tbl.feedback, false)
       if self._feedback then
          assert(tbl.cdim == 1, "Bc.init: Feedback boundary condition is implemented only for 1X simulations.")

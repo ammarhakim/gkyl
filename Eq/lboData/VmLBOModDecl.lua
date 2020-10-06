@@ -8,9 +8,6 @@
 
 local ffi = require "ffi"
 
--- "do nothing" function.
-local function nullFunc(...) end
-
 -- Map of basis function name -> function encoding.
 local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max", ["tensor"] = "Tensor" }
 
@@ -39,7 +36,7 @@ end
 -- Select functions to compute surface terms (output is a table of functions).
 function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder)
    local funcType = "double"
-   local funcNm = {}
+   local funcNm   = {}
    for d = 1, VDIM do
       funcNm[d] = string.format("VmLBOSurf%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], vvars[d], polyOrder)
    end

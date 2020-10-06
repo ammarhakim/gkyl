@@ -51,8 +51,6 @@ function VmLBOCollisions:fullInit(speciesTbl)
 
    self.collKind = "VmLBO"    -- Type of collisions model. Useful at the species app level.
 
-   self.cfl = 0.0    -- Will be replaced.
-
    self.collidingSpecies = assert(tbl.collideWith, "App.VmLBOCollisions: Must specify names of species to collide with in 'collideWith'.")
 
    -- First determine if self-species and/or cross-species collisions take place,
@@ -175,6 +173,8 @@ function VmLBOCollisions:fullInit(speciesTbl)
       self.nuFrac = 1.0
    end
 
+   self.cfl = 0.0    -- Will be replaced.
+
    self.tmEvalMom = 0.0
 end
 
@@ -184,9 +184,8 @@ end
 function VmLBOCollisions:setSpeciesName(nm)
    self.speciesName = nm
 end
-
 function VmLBOCollisions:setCfl(cfl)
-   self.cfl = cfl -- what should this be? - AHH
+   self.cfl = cfl
 end
 function VmLBOCollisions:setConfBasis(basis)
    self.confBasis = basis
