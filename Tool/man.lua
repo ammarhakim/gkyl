@@ -16,20 +16,20 @@ Open Gkeyll documentation webpage at gkeyll.rtfd.io and optionally
 search within it via keywords. To just open the documentation page
 type:
 
- gkyl h
+ gkyl man
 
 For example, to open documentation for basis functions do:
 
- gkyl h basis
+ gkyl man basis
 
 or
 
- gkyl h modal
+ gkyl man modal
 
 The keywords don't need to be completely spelled out. For example the
 following will also work:
 
- gkyl h bas
+ gkyl man bas
 
 If there are more than one keywork matches the tool will display
 options for the user to choose from. If no keyword matches are found
