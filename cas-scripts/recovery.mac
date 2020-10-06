@@ -33,7 +33,7 @@ eta(xc, dx, fn) := block(
 /* ) $ */
 
 getBasis(basisType, numDims, polyOrder) := block(
-  [basis, varsC, basisC, varsP, basisP],
+  [basis, varsC, basisC, varsP, basisP, basisConstant],
   if (numDims < 4) then (
     load(sconcat("basis-precalc/basis", basisType, numDims, "x"))
   ) else (
@@ -42,7 +42,7 @@ getBasis(basisType, numDims, polyOrder) := block(
   if polyOrder > 0 then (
     basis : if (numDims<4) then basisC[polyOrder] else basisP[polyOrder]
   ) else (
-    basis : if (numDims<4) then basisC[1][1] else basisP[1][1]
+    basis : basisConstant
   ),
   return(basis)
 ) $
