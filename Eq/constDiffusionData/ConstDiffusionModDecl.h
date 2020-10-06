@@ -1146,6 +1146,116 @@ void ConstDiffusionBC6xMaxP1_Neumann_X6upper(const double dx, const double *fSki
 
 
 
+double ConstDiffusionVol1xTensorP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+void ConstDiffusionSurf1xTensorP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBoundarySurf1xTensorP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionSurfPositivity1xTensorP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBC1xTensorP1_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC1xTensorP1_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC1xTensorP1_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC1xTensorP1_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
+double ConstDiffusionVol1xTensorP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstHyperDiffusion4Vol1xTensorP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstHyperDiffusion6Vol1xTensorP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+void ConstDiffusionSurf1xTensorP2_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBoundarySurf1xTensorP2_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4Surf1xTensorP2_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6Surf1xTensorP2_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4BoundarySurf1xTensorP2_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6BoundarySurf1xTensorP2_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBC1xTensorP2_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC1xTensorP2_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC1xTensorP2_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC1xTensorP2_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
+double ConstDiffusionVol1xTensorP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstHyperDiffusion4Vol1xTensorP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstHyperDiffusion6Vol1xTensorP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+void ConstDiffusionSurf1xTensorP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBoundarySurf1xTensorP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4Surf1xTensorP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6Surf1xTensorP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4BoundarySurf1xTensorP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6BoundarySurf1xTensorP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBC1xTensorP3_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC1xTensorP3_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC1xTensorP3_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC1xTensorP3_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
+
+double ConstDiffusionVol2xTensorP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol2xTensorP1_diffDirs12(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol2xTensorP1_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+void ConstDiffusionSurf2xTensorP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBoundarySurf2xTensorP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionSurfPositivity2xTensorP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBC2xTensorP1_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xTensorP1_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xTensorP1_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xTensorP1_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionSurf2xTensorP1_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBoundarySurf2xTensorP1_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionSurfPositivity2xTensorP1_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBC2xTensorP1_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xTensorP1_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xTensorP1_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xTensorP1_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
+double ConstDiffusionVol2xTensorP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol2xTensorP2_diffDirs12(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol2xTensorP2_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstHyperDiffusion4Vol2xTensorP2_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstHyperDiffusion6Vol2xTensorP2_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+void ConstDiffusionSurf2xTensorP2_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBoundarySurf2xTensorP2_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4Surf2xTensorP2_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6Surf2xTensorP2_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4BoundarySurf2xTensorP2_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6BoundarySurf2xTensorP2_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBC2xTensorP2_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xTensorP2_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xTensorP2_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xTensorP2_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionSurf2xTensorP2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBoundarySurf2xTensorP2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4Surf2xTensorP2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6Surf2xTensorP2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4BoundarySurf2xTensorP2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6BoundarySurf2xTensorP2_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBC2xTensorP2_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xTensorP2_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xTensorP2_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xTensorP2_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
+double ConstDiffusionVol2xTensorP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol2xTensorP3_diffDirs12(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstDiffusionVol2xTensorP3_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstHyperDiffusion4Vol2xTensorP3_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+double ConstHyperDiffusion6Vol2xTensorP3_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
+void ConstDiffusionSurf2xTensorP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBoundarySurf2xTensorP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4Surf2xTensorP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6Surf2xTensorP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4BoundarySurf2xTensorP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6BoundarySurf2xTensorP3_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBC2xTensorP3_Dirichlet_X1lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xTensorP3_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xTensorP3_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xTensorP3_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionSurf2xTensorP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBoundarySurf2xTensorP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4Surf2xTensorP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6Surf2xTensorP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion4BoundarySurf2xTensorP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstHyperDiffusion6BoundarySurf2xTensorP3_X2(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
+void ConstDiffusionBC2xTensorP3_Dirichlet_X2lower(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xTensorP3_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
+void ConstDiffusionBC2xTensorP3_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+void ConstDiffusionBC2xTensorP3_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
+
+
 
 } 
 #endif 

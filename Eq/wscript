@@ -160,11 +160,24 @@ def build(bld):
     constDiffusionData/ConstDiffusionBoundarySurfSer2xP2.cpp
     constDiffusionData/ConstDiffusionBoundarySurfSer3xP2.cpp
     constDiffusionData/ConstDiffusionBoundarySurfSer4xP2.cpp
+    constDiffusionData/ConstDiffusionSer1xP3.cpp
+    constDiffusionData/ConstDiffusionSer2xP3.cpp
+    constDiffusionData/ConstDiffusionSurfSer1xP3.cpp
+    constDiffusionData/ConstDiffusionSurfSer2xP3.cpp
+    constDiffusionData/ConstDiffusionBoundarySurfSer1xP3.cpp
+    constDiffusionData/ConstDiffusionBoundarySurfSer2xP3.cpp
     constDiffusionData/ConstDiffusionSurfPositivitySer1xP1.cpp
     constDiffusionData/ConstDiffusionSurfPositivitySer2xP1.cpp
     constDiffusionData/ConstDiffusionSurfPositivitySer3xP1.cpp
     constDiffusionData/ConstDiffusionSurfPositivitySer4xP1.cpp
     constDiffusionData/ConstDiffusionBCsSer.cpp
+
+    constDiffusionData/ConstDiffusionTensor2xP2.cpp
+    constDiffusionData/ConstDiffusionSurfTensor2xP2.cpp
+    constDiffusionData/ConstDiffusionBoundarySurfTensor2xP2.cpp
+    constDiffusionData/ConstDiffusionTensor2xP3.cpp
+    constDiffusionData/ConstDiffusionSurfTensor2xP3.cpp
+    constDiffusionData/ConstDiffusionBoundarySurfTensor2xP3.cpp
 
     maxwellData/MaxwellVolSer1xP1.cpp
     maxwellData/MaxwellVolSer2xP1.cpp
