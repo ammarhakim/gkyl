@@ -32,7 +32,7 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
   baCeNDw, perpDirs
   ],
   
-  baCe1D : getBasis(basisNm, [x], polyOrder),
+  baCe1D : getBasis(basisNm, 1, polyOrder),
   baCe1D : subst(x=recDir, baCe1D),
   baLo1D : etaDir(recDir, -1, 2, baCe1D),
   baUp1D : etaDir(recDir, 1, 2, baCe1D),
@@ -106,9 +106,9 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
   /* backsubstitute the non-recovered directtions if needed */
   numDims : length(dirs),
   if numDims > 1 then (
-    baCeND : getBasis(basisNm, dirs, polyOrder),
+    baCeND : getBasis(basisNm, numDims, polyOrder),
     baVars : listofvars(baCeND),
-    baCeND : subst(makelist(baVars[i]=dirs[i],i,1,numDims), baCeND),  
+    baCeND : psubst(makelist(baVars[i]=dirs[i],i,1,numDims), baCeND),  
     baLoND : etaDir(recDir, -1, 2, baCeND),
     baUpND : etaDir(recDir, 1, 2, baCeND),
     /* prepare for the case where expansion coefficients at a wall are
