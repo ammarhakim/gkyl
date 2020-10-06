@@ -608,7 +608,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    debugNans = true
    -- test for nans after collisionless solve
-   if debugNans = true then
+   if debugNans == true then
       local testFunc      = fRhsOut
       local testFuncRange = testFunc:localRange()
       local phaseIndexer  = testFunc:genIndexer()
@@ -618,7 +618,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 	 testFunc:fill(phaseIndexer(idx), testFuncPtr)
 	 for cI = 1,self.basis:numBasis() do
 	    if (testFuncPtr[cI] ~= testFuncPtr[cI]) or (testFuncPtr[cI] == 1/0) then
-	       print("after colless update, at", idx[1], idx[2], idx[3], idx[4], idx[5], idx[6])
+	       print("t = ", tcurr, "\ncolless update, at", idx[1], idx[2], idx[3], idx[4], idx[5], idx[6])
 	       os.exit(0)
 	    end
 	 end
@@ -636,7 +636,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
 
    -- test for nans after collisions update
-   if debugNans = true then
+   if debugNans == true then
       local testFunc      = fRhsOut
       local testFuncRange = testFunc:localRange()
       local phaseIndexer  = testFunc:genIndexer()
@@ -646,7 +646,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 	 testFunc:fill(phaseIndexer(idx), testFuncPtr)
 	 for cI = 1,self.basis:numBasis() do
 	    if (testFuncPtr[cI] ~= testFuncPtr[cI]) or (testFuncPtr[cI] == 1/0) then
-	       print("after coll update, at", idx[1], idx[2], idx[3], idx[4], idx[5], idx[6])
+	       print("t =", tCurr, "\ncoll update, at", idx[1], idx[2], idx[3], idx[4], idx[5], idx[6])
 	       os.exit(0)
 	    end
 	 end
