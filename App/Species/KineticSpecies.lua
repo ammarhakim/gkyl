@@ -927,6 +927,7 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        self.voronovReactRate:write(string.format("%s_coefIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        -- include dynvector for zeroth vector of ionization source
+       tmStart = Time.clock()
        local srcIzM0 = self:allocMoment()
        self.numDensityCalc:advance(tm, {sourceIz}, {srcIzM0})
        local intCalc = Updater.CartFieldIntegratedQuantCalc {
@@ -938,7 +939,8 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        }
        intCalc:advance( tm, {srcIzM0}, {self.intSrcIzM0} )
        self.intSrcIzM0:write(
-          string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)   
+          string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
+       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
        
     end
 

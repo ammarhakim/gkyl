@@ -70,6 +70,7 @@ function GkChargeExchange:fullInit(speciesTbl)
       self.b = 5.65e-20
    end
 
+   self._tmEvalMom = 0
 end
 
 function GkChargeExchange:setName(nm)
@@ -173,6 +174,7 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
    local writeOut = false
    -- identify species and accumulate
    if (self.speciesName == self.ionNm) then
+      tmEvalMomStart   = Time.clock()
       local neutM0 = species[self.neutNm]:fluidMoments()[1]
       local neutU = species[self.neutNm]:selfPrimitiveMoments()[1] 
       local neutVtSq = species[self.neutNm]:selfPrimitiveMoments()[2]
@@ -190,10 +192,12 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
 	 species[self.speciesName].distIo:write(neutVtSq, string.format("%s_neutVtSq_%d.bp",self.speciesName,tCurr*1e10),0,0, true)
 	 species[self.speciesName].distIo:write(self.sourceCX, string.format("%s_srcCX_%d.bp",self.speciesName,tCurr*1e10),0,0,true)
       end
-      
+
+      self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       fRhsOut:accumulate(1.0,self.sourceCX)
 
    elseif (self.speciesName == self.neutNm) then
+      tmEvalMomStart   = Time.clock()      
       local ionM0 = species[self.ionNm]:fluidMoments()[1]
       local ionU = species[self.ionNm]:selfPrimitiveMoments()[1] 
       local ionVtSq = species[self.ionNm]:selfPrimitiveMoments()[2]
@@ -211,7 +215,8 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
 	 species[self.speciesName].distIo:write(neutDistF, string.format("%s_neutDistF_%d.bp",self.speciesName,tCurr*1e10),0,0)
 	 species[self.speciesName].distIo:write(ionVtSq, string.format("%s_ionVtSq_%d.bp",self.speciesName,tCurr*1e10),0,0)
       end
-
+      
+      self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       fRhsOut:accumulate(-self.iMass/self.nMass,self.sourceCX)
    end
    
@@ -221,11 +226,11 @@ function GkChargeExchange:write(tm, frame)
 end
 
 function GkChargeExchange:slvrTime()
-   return self.collisionSlvr.totalTime
+   return 0
 end
 
 function GkChargeExchange:momTime()
-   return 0
+   return self._tmEvalMom
 end
 
 function GkChargeExchange:projectMaxwellTime()
