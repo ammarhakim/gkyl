@@ -76,14 +76,14 @@ function Diffusion:setPhaseGrid(grid)
 end
 
 function Diffusion:createSolver()
-   local grid, basis, zfd
+   local grid, basis
+   local zfd = {}
    if self.phaseGrid then
       -- Running a phase-space simulation.
       grid  = self.phaseGrid
       basis = self.phaseBasis
       local vdim = self.phaseGrid:ndim()-self.confGrid:ndim()
       -- Zero-flux BCs.
-      local zfd = { }
       for d = 1, vdim do
          zfd[d] = self.confGrid:ndim() + d
       end
@@ -108,7 +108,6 @@ function Diffusion:createSolver()
       numComponents = basis:numBasis(),
       ghost         = {1, 1},
    }
-
    -- Diffusion equation.
    self.equation = ConstDiffusionEq {
       basis         = basis,
