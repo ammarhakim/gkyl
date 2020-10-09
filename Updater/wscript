@@ -399,6 +399,19 @@ def build(bld):
     chargeExchangeCalcData/SigmaCXcellAvSer2x3v.cpp
     chargeExchangeCalcData/SigmaCXcellAvSer3x3v.cpp
 
+    cellAveMaxwellianCalcData/MaxwellianCellAvMax1x1v.cpp
+    cellAveMaxwellianCalcData/MaxwellianCellAvMax1x2v.cpp
+    cellAveMaxwellianCalcData/MaxwellianCellAvMax1x3v.cpp
+    cellAveMaxwellianCalcData/MaxwellianCellAvMax2x2v.cpp
+    cellAveMaxwellianCalcData/MaxwellianCellAvMax2x3v.cpp
+    cellAveMaxwellianCalcData/MaxwellianCellAvMax3x3v.cpp
+    cellAveMaxwellianCalcData/MaxwellianCellAvSer1x1v.cpp
+    cellAveMaxwellianCalcData/MaxwellianCellAvSer1x2v.cpp
+    cellAveMaxwellianCalcData/MaxwellianCellAvSer1x3v.cpp
+    cellAveMaxwellianCalcData/MaxwellianCellAvSer2x2v.cpp
+    cellAveMaxwellianCalcData/MaxwellianCellAvSer2x3v.cpp
+    cellAveMaxwellianCalcData/MaxwellianCellAvSer3x3v.cpp
+
     GkMaxwellianOnBasisImpl.cpp
 
     MappedPoissonImpl.cpp

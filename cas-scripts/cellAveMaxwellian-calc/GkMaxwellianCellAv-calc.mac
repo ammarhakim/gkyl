@@ -1,0 +1,123 @@
+/* Generate Maxwellian on Vlasov grid based on cell averaged moments */
+
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 2$
+/* Maximal order basis. */
+maxPolyOrder_Max : 2$
+
+declareWriteCExprsC(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  if expr # 0.0 then (
+    ep : string(expr),
+    for i : 0 thru 60 do (
+    	ep : ssubst(string(pow(u[i],2)),string(u[i]^2),ep),
+    	ep : ssubst(string(pow(w[i],2)),string(w[i]^2),ep)
+    ),
+    printf(fh, "  double ~a = ~a; ~%", lhs, ep)
+  )
+)$
+
+writeCExprsCs(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (	
+    if expr[i] # 0.0 then (
+      ep : string(expr[i]),
+      ep : ssubst("log(","ln(",ep),
+      ep : ssubst(string(exp(vSqAv/(2*vtSqAv))),string(2.718281828459045^(vSqAv/(2*vtSqAv))),ep),
+      printf(fh, "  ~a = ~a; ~%", lhs[i-1], ep)	
+    )
+  )
+)$
+
+writeCExprsC(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  if expr # 0.0 then (
+     ep : string(expr),
+     printf(fh, "  ~a = ~a; ~%", lhs, ep)	
+  )
+)$
+
+/* cell-average Maxwellian calculation */
+calcMaxwellianCellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+  for p : 1 thru pMax do (
+    bP : basisP[p],
+    print(basisFun, cdim, vdim, p, length(basisP)),
+    bC : basisC[p],
+    NC : length(bC),
+  
+    printf(fh, "void ~a_P~a(const double *w, const double *m0, const double *u, const double *vtSq, double *fMax) ~%{ ~%", funcNm, p),
+    printf(fh, "  // w[~a]:      cell-center coordinates. ~%", cdim+vdim),
+    printf(fh, "  // m0[~a]:     particle density. ~%", NC),
+    printf(fh, "  // u[~a]:      fluid velocity. ~%", NC*vdim),
+    printf(fh, "  // vtSq[~a]:   squared thermal speed, sqrt(T/m). ~%", NC),
+    printf(fh, "  // fMax: 	cell ave Maxwellian ~%"),
+    printf(fh, " ~%"),
+
+    m0_e : doExpand1(m0,bC),
+    m0Av_c : innerProd(varsC,1.0,1.0,m0_e)/innerProd(varsC,1.0,1.0,1.0),
+    declareWriteCExprsC(m0Av, m0Av_c),	
+
+    vtSq_e : doExpand1(m0,bC),
+    vtSqAv_c : innerProd(varsC,1.0,1.0,m0_e)/innerProd(varsC,1.0,1.0,1.0),
+    declareWriteCExprsC(vtSqAv, vtSqAv_c),
+
+    uAv_c : subst(makelist(u[i]=u[i+a0],i,0,NC-1),innerProd(varsC,1.0,1.0,doExpand1(u,bC))/innerProd(varsC,1.0,1.0,1.0)),
+    uAv : makelist(0,i,1,vdim),
+    for vi : 1 thru vdim do (
+    	uAv[vi] : fullratsimp(subst(a0=(vi-1)*NC,uAv_c))
+	),
+    
+    /* Define vSq for exponent */
+    vSq_c : fullratsimp(innerProd(varsP,1,1.0,sum((w[d+cdim-1] - uAv[d])^2,d,1,vdim))/innerProd(varsP,1.0,1.0,1.0)),
+
+    declareWriteCExprsC(vSqAv, vSq_c),
+    printf(fh, " ~%"),
+
+    denom : 1.0,
+    for vi : 1 thru vdim do (
+    	denom : denom*2*%pi*vtSqAv 
+	),
+    maxNorm : m0Av/sqrt(denom),
+    
+    /* Define and write fMax */
+
+    fMax_c : calcInnerProdList(varsC,maxNorm,bC,exp(-0.5*vSqAv/vtSqAv)),
+
+    writeCExprsCs(fMax, fMax_c),
+    printf(fh, " ~%"),
+
+    printf(fh, "  if (m0Av <= 0 || vtSqAv <= 0 ) { ~%"),
+    printf(fh, "    fmax[0] = 0.0;~%"),
+    printf(fh, "  }~%"),
+    printf(fh, "} ~%")
+))$
+
+bName        : ["Ser","Max"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
+
+for bInd : 1 thru length(bName) do (
+  for c : 1 thru 3 do (
+      for v : c thru 3 do (
+      	  disp(printf(false,sconcat("Creating fMaxAv ", bName[bInd]," ~ax~av"),c,v)),
+    	  fname : sconcat("~/max-out/MaxwellianCellAv", bName[bInd], c, "x", v, "v", ".cpp"),
+    	  fh : openw(fname),
+
+    	  printf(fh, "#include <MaxwellianCellAv.h> ~%"),
+    	  printf(fh, "#include <math.h> ~%"),
+
+	  print("attempting to print",c,"x",v,"v functions..."),
+    	  /*. Calculate cell average fMax. */
+    	  funcNm : sconcat("MaxwellianCellAv", bName[bInd], c, "x", v, "v"),
+    	  calcMaxwellianCellAv(fh, funcNm, c, v, bName[bInd], maxPolyOrder[bInd]),
+    	  close(fh)
+  	  )
+  )	
+)$

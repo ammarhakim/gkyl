@@ -11,6 +11,7 @@ local BgkCollisions = require "Updater.BgkCollisions"
 local CartFieldBinOp = require "Updater.CartFieldBinOp"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local CartFieldInterpolate = require "Updater.CartFieldInterpolate"
+local CellAveMaxwellian = require "Updater.CellAveMaxwellian"
 local ChargeExchange = require "Updater.ChargeExchange"
 local ConfToPhase = require "Updater.ConfToPhase"
 local CrossPrimMoments = require "Updater.CrossPrimMoments"
@@ -50,6 +51,7 @@ return {
    CartFieldIntegratedQuantCalc = CartFieldIntegratedQuantCalc,
    CartFieldInterpolate = CartFieldInterpolate,
    ChargeExchange = ChargeExchange,
+   CellAveMaxwellian = CellAveMaxwellian,
    ConfToPhase = ConfToPhase,
    CrossPrimMoments = CrossPrimMoments,
    DiscontGenPoisson = DiscontGenPoisson,
