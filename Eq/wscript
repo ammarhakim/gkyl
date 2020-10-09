@@ -444,6 +444,14 @@ def build(bld):
     vlasovData/VlasovSurfElcMagTensor1x1vP3.cpp
     vlasovData/VlasovSurfElcMagTensor1x2vP3.cpp
 
+    vlasovData/VlasovRecoverySurfElcMagSer1x1vP1.cpp
+
+    vlasovData/VlasovRecoverySurfElcMagSer1x1vP2.cpp
+    vlasovData/VlasovRecoverySurfElcMagTensor1x1vP2.cpp
+
+    vlasovData/VlasovRecoverySurfElcMagSer1x1vP3.cpp
+    vlasovData/VlasovRecoverySurfElcMagTensor1x1vP3.cpp
+
     vlasovData/VlasovIncr.cpp
 
     pbData/CanonicalMax1x1v.cpp

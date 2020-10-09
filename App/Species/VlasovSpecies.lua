@@ -84,6 +84,10 @@ function VlasovSpecies:fullInit(appTbl)
          self.wallFunction = require(externalBC)
       end
    end
+   -- numVelFlux used for selecting which type of numerical flux function to use in velocity space
+   -- defaults to "penalty" in Eq object, supported options: "penalty," "recovery"
+   -- only used for DG Maxwell.
+   self.numVelFlux = tbl.numVelFlux
 end
 
 function VlasovSpecies:allocMomCouplingFields()
@@ -112,6 +116,7 @@ function VlasovSpecies:createSolver(hasE, hasB)
       mass             = self.mass,
       hasElectricField = hasE,
       hasMagneticField = hasB,
+      numVelFlux       = self.numVelFlux,
    }
 
    -- Must apply zero-flux BCs in velocity directions.
