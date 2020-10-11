@@ -9,7 +9,7 @@ void MaxwellianCellAvSer2x2v_P1(const double *w, const double *m0, const double 
   // fMax: 	cell ave Maxwellian 
  
   double m0Av = 0.5*m0[0]; 
-  double vtSqAv = 0.5*m0[0]; 
+  double vtSqAv = 0.5*vtSq[0]; 
   double vSqAv = 0.25*pow(u[4],2)-1.0*w[3]*u[4]+pow(w[3],2)+pow(w[2],2)-1.0*u[0]*w[2]+0.25*pow(u[0],2); 
  
   fMax[0] = (0.3183098861837907*m0Av)/(exp(vSqAv/(2*vtSqAv))*abs(vtSqAv)); 
@@ -27,7 +27,7 @@ void MaxwellianCellAvSer2x2v_P2(const double *w, const double *m0, const double 
   // fMax: 	cell ave Maxwellian 
  
   double m0Av = 0.5*m0[0]; 
-  double vtSqAv = 0.5*m0[0]; 
+  double vtSqAv = 0.5*vtSq[0]; 
   double vSqAv = 0.25*pow(u[8],2)-1.0*w[3]*u[8]+pow(w[3],2)+pow(w[2],2)-1.0*u[0]*w[2]+0.25*pow(u[0],2); 
  
   fMax[0] = (0.3183098861837907*m0Av)/(exp(vSqAv/(2*vtSqAv))*abs(vtSqAv)); 

@@ -66,8 +66,8 @@ calcMaxwellianCellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     m0Av_c : innerProd(varsC,1.0,1.0,m0_e)/innerProd(varsC,1.0,1.0,1.0),
     declareWriteCExprsC(m0Av, m0Av_c),	
 
-    vtSq_e : doExpand1(m0,bC),
-    vtSqAv_c : innerProd(varsC,1.0,1.0,m0_e)/innerProd(varsC,1.0,1.0,1.0),
+    vtSq_e : doExpand1(vtSq,bC),
+    vtSqAv_c : innerProd(varsC,1.0,1.0,vtSq_e)/innerProd(varsC,1.0,1.0,1.0),
     declareWriteCExprsC(vtSqAv, vtSqAv_c),
 
     uAv_c : subst(makelist(u[i]=u[i+a0],i,0,NC-1),innerProd(varsC,1.0,1.0,doExpand1(u,bC))/innerProd(varsC,1.0,1.0,1.0)),
