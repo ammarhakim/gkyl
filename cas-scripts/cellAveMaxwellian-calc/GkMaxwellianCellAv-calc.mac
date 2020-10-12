@@ -53,7 +53,7 @@ calcGkMaxwellianCellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     bC : basisC[p],
     NC : length(bC),
   
-    printf(fh, "void ~a_P~a(const double m_, const double *w, const double *m0, const double *uPar, const double *vtSq, double *bmag, double *fMax) ~%{ ~%", funcNm, p),
+    printf(fh, "void ~a_P~a(const double m_, const double *w, const double *m0, const double *uPar, const double *vtSq, const double *bmag, double *fMax) ~%{ ~%", funcNm, p),
     printf(fh, "  // w[~a]:      cell-center coordinates. ~%", cdim+vdim),
     printf(fh, "  // m0[~a]:     particle density. ~%", NC),
     printf(fh, "  // uPar[~a]:   fluid velocity. ~%", NC*vdim),
@@ -110,13 +110,13 @@ bName        : ["Ser","Max"]$
 maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
 
 for bInd : 1 thru length(bName) do (
-  for c : 1 thru 2 do (
-      for v : c thru 2 do (
+  for c : 3 thru 3 do (
+      for v : 2 thru 2 do (
       	  disp(printf(false,sconcat("Creating fMaxAv ", bName[bInd]," ~ax~av"),c,v)),
     	  fname : sconcat("~/max-out/GkMaxwellianCellAv", bName[bInd], c, "x", v, "v", ".cpp"),
     	  fh : openw(fname),
 
-    	  printf(fh, "#include \"MaxwellianCellAvModDecl.h\" ~%"),
+    	  printf(fh, "#include <MaxwellianCellAvModDecl.h> ~%"),
     	  printf(fh, "#include <math.h> ~%"),
 
 	  print("attempting to print",c,"x",v,"v functions..."),

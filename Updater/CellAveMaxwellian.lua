@@ -105,12 +105,6 @@ function CellAveMaxwellian:gyrokinetic(m0, u, vtSq, bmag, fMax)
    local tmEvalMomStart = Time.clock()
    local grid = self._onGrid
    local pDim = self._pDim
-
-   local m0 = assert(inFld[1], "GkCellAveMaxwellian: Must specify particle density as input[1]")
-   local u = assert(inFld[2], "GkCellAveMaxwellian: Must specify fluid velocity as input[2]")
-   local vtSq = assert(inFld[3], "GkCellAveMaxwellian: Must specify squared thermal velocity as input[3]")   
-   local bmag = assert(inFld[4], "GkCellAveMaxwellian: Must specify magnetic field as input[4]")
-   local fMax = assert(outFld[1], "GkCellAveMaxwellian: Must specify an output field")
    
    local confIndexer = m0:genIndexer()
    local phaseIndexer = fMax:genIndexer()
@@ -118,7 +112,6 @@ function CellAveMaxwellian:gyrokinetic(m0, u, vtSq, bmag, fMax)
    local m0Itr = m0:get(1)
    local uItr = u:get(1)
    local vtSqItr = vtSq:get(1)
-   local bmagItr = bmag:get(1)
    local fMaxItr = fMax:get(1)
    
    local phaseRange = fMax:localRange()
@@ -138,7 +131,7 @@ function CellAveMaxwellian:gyrokinetic(m0, u, vtSq, bmag, fMax)
       self.bmag:fill(confIndexer(pIdx), self.bmagItr)
       fMax:fill(phaseIndexer(pIdx), fMaxItr)
 
-      self._calcGkMax(self._mass, self.xc:data(), m0Itr:data(), uItr:data(), vtSqItr:data(), self.bmagItr:data(), fMaxItr:data())     
+      self._calcGkMax(self.mass, self.xc:data(), m0Itr:data(), uItr:data(), vtSqItr:data(), self.bmagItr:data(), fMaxItr:data())     
    end
    
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart

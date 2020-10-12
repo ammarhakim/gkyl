@@ -1,6 +1,6 @@
-#include "MaxwellianCellAvModDecl.h" 
+#include <MaxwellianCellAvModDecl.h> 
 #include <math.h> 
-void GkMaxwellianCellAvSer3x2v_P1(const double m_, const double *w, const double *m0, const double *uPar, const double *vtSq, double *bmag, double *fMax) 
+void GkMaxwellianCellAvSer3x2v_P1(const double m_, const double *w, const double *m0, const double *uPar, const double *vtSq, const double *bmag, double *fMax) 
 { 
   // w[5]:      cell-center coordinates. 
   // m0[8]:     particle density. 
@@ -20,7 +20,7 @@ void GkMaxwellianCellAvSer3x2v_P1(const double m_, const double *w, const double
     fMax[0] = 0.0;
   }
 } 
-void GkMaxwellianCellAvSer3x2v_P2(const double m_, const double *w, const double *m0, const double *uPar, const double *vtSq, double *bmag, double *fMax) 
+void GkMaxwellianCellAvSer3x2v_P2(const double m_, const double *w, const double *m0, const double *uPar, const double *vtSq, const double *bmag, double *fMax) 
 { 
   // w[5]:      cell-center coordinates. 
   // m0[20]:     particle density. 
