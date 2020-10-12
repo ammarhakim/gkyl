@@ -15,7 +15,7 @@ declareWriteCExprsC(lhs, rhs) := block([expr],
   if expr # 0.0 then (
     ep : string(expr),
     for i : 0 thru 60 do (
-    	ep : ssubst(string(pow(u[i],2)),string(u[i]^2),ep),
+    	ep : ssubst(string(pow(uParAv,2)),string(uParAv^2),ep),
     	ep : ssubst(string(pow(w[i],2)),string(w[i]^2),ep)
     ),
     printf(fh, "  double ~a = ~a; ~%", lhs, ep)
@@ -28,7 +28,7 @@ writeCExprsCs(lhs, rhs) := block([expr],
     if expr[i] # 0.0 then (
       ep : string(expr[i]),
       ep : ssubst("log(","ln(",ep),
-      ep : ssubst(string(exp(vSqAv/(2*vtSqAv))),string(2.718281828459045^(vSqAv/(2*vtSqAv))),ep),
+      ep : ssubst("exp(","2.718281828459045^(",ep),
       printf(fh, "  ~a = ~a; ~%", lhs[i-1], ep)	
     )
   )
@@ -42,8 +42,8 @@ writeCExprsC(lhs, rhs) := block([expr],
   )
 )$
 
-/* cell-average Maxwellian calculation */
-calcMaxwellianCellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+/* cell-average GkMaxwellian calculation */
+calcGkMaxwellianCellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -53,30 +53,32 @@ calcMaxwellianCellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     bC : basisC[p],
     NC : length(bC),
   
-    printf(fh, "void ~a_P~a(const double *w, const double *m0, const double *u, const double *vtSq, double *fMax) ~%{ ~%", funcNm, p),
+    printf(fh, "void ~a_P~a(const double m_, const double *w, const double *m0, const double *uPar, const double *vtSq, double *bmag, double *fMax) ~%{ ~%", funcNm, p),
     printf(fh, "  // w[~a]:      cell-center coordinates. ~%", cdim+vdim),
     printf(fh, "  // m0[~a]:     particle density. ~%", NC),
-    printf(fh, "  // u[~a]:      fluid velocity. ~%", NC*vdim),
+    printf(fh, "  // uPar[~a]:   fluid velocity. ~%", NC*vdim),
     printf(fh, "  // vtSq[~a]:   squared thermal speed, sqrt(T/m). ~%", NC),
     printf(fh, "  // fMax: 	cell ave Maxwellian ~%"),
     printf(fh, " ~%"),
 
     m0_e : doExpand1(m0,bC),
     m0Av_c : innerProd(varsC,1.0,1.0,m0_e)/innerProd(varsC,1.0,1.0,1.0),
-    declareWriteCExprsC(m0Av, m0Av_c),	
+    declareWriteCExprsC(m0Av, m0Av_c),
 
-    vtSq_e : doExpand1(m0,bC),
-    vtSqAv_c : innerProd(varsC,1.0,1.0,m0_e)/innerProd(varsC,1.0,1.0,1.0),
+    uPar_e : doExpand1(uPar,bC),
+    uParAv_c : innerProd(varsC,1.0,1.0,uPar_e)/innerProd(varsC,1.0,1.0,1.0),
+    declareWriteCExprsC(uParAv, uParAv_c),
+
+    vtSq_e : doExpand1(vtSq,bC),
+    vtSqAv_c : innerProd(varsC,1.0,1.0,vtSq_e)/innerProd(varsC,1.0,1.0,1.0),
     declareWriteCExprsC(vtSqAv, vtSqAv_c),
 
-    uAv_c : subst(makelist(u[i]=u[i+a0],i,0,NC-1),innerProd(varsC,1.0,1.0,doExpand1(u,bC))/innerProd(varsC,1.0,1.0,1.0)),
-    uAv : makelist(0,i,1,vdim),
-    for vi : 1 thru vdim do (
-    	uAv[vi] : fullratsimp(subst(a0=(vi-1)*NC,uAv_c))
-	),
+    bmag_e : doExpand1(bmag,bC),
+    bmagAv_c : innerProd(varsC,1.0,1.0,bmag_e)/innerProd(varsC,1.0,1.0,1.0),
+    declareWriteCExprsC(bmagAv, bmagAv_c),
     
     /* Define vSq for exponent */
-    vSq_c : fullratsimp(innerProd(varsP,1,1.0,sum((w[d+cdim-1] - uAv[d])^2,d,1,vdim))/innerProd(varsP,1.0,1.0,1.0)),
+    vSq_c : fullratsimp(innerProd(varsP,1,1.0,(w[cdim] - uParAv)^2)/innerProd(varsP,1.0,1.0,1.0)),
 
     declareWriteCExprsC(vSqAv, vSq_c),
     printf(fh, " ~%"),
@@ -85,17 +87,21 @@ calcMaxwellianCellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     for vi : 1 thru vdim do (
     	denom : denom*2*%pi*vtSqAv 
 	),
-    maxNorm : m0Av/sqrt(denom),
+    maxNorm : bmagAv*m0Av/sqrt(denom),
     
     /* Define and write fMax */
-
-    fMax_c : calcInnerProdList(varsC,maxNorm,bC,exp(-0.5*vSqAv/vtSqAv)),
+    if vdim = 1 then (
+        fMax_c : calcInnerProdList(varsC,maxNorm,bC,exp(-0.5*vSqAv/vtSqAv))
+	)
+    else (
+    	 fMax_c : calcInnerProdList(varsC,maxNorm,bC,exp((-0.5*vSqAv-w[cdim+1]*bmagAv/m_)/vtSqAv))
+	 ),
 
     writeCExprsCs(fMax, fMax_c),
     printf(fh, " ~%"),
 
     printf(fh, "  if (m0Av <= 0 || vtSqAv <= 0 ) { ~%"),
-    printf(fh, "    fmax[0] = 0.0;~%"),
+    printf(fh, "    fMax[0] = 0.0;~%"),
     printf(fh, "  }~%"),
     printf(fh, "} ~%")
 ))$
@@ -104,19 +110,19 @@ bName        : ["Ser","Max"]$
 maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
 
 for bInd : 1 thru length(bName) do (
-  for c : 1 thru 3 do (
-      for v : c thru 3 do (
+  for c : 1 thru 2 do (
+      for v : c thru 2 do (
       	  disp(printf(false,sconcat("Creating fMaxAv ", bName[bInd]," ~ax~av"),c,v)),
-    	  fname : sconcat("~/max-out/MaxwellianCellAv", bName[bInd], c, "x", v, "v", ".cpp"),
+    	  fname : sconcat("~/max-out/GkMaxwellianCellAv", bName[bInd], c, "x", v, "v", ".cpp"),
     	  fh : openw(fname),
 
-    	  printf(fh, "#include <MaxwellianCellAv.h> ~%"),
+    	  printf(fh, "#include \"MaxwellianCellAvModDecl.h\" ~%"),
     	  printf(fh, "#include <math.h> ~%"),
 
 	  print("attempting to print",c,"x",v,"v functions..."),
     	  /*. Calculate cell average fMax. */
-    	  funcNm : sconcat("MaxwellianCellAv", bName[bInd], c, "x", v, "v"),
-    	  calcMaxwellianCellAv(fh, funcNm, c, v, bName[bInd], maxPolyOrder[bInd]),
+    	  funcNm : sconcat("GkMaxwellianCellAv", bName[bInd], c, "x", v, "v"),
+    	  calcGkMaxwellianCellAv(fh, funcNm, c, v, bName[bInd], maxPolyOrder[bInd]),
     	  close(fh)
   	  )
   )	

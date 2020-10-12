@@ -28,7 +28,14 @@ function CellAveMaxwellian:init(tbl)
    self._phaseBasis = assert(tbl.phaseBasis,
 			     "Updater.CellAvMaxw: Must provide phase space basis object using 'phaseBasis'")
    self._kineticSpecies = assert(tbl.kineticSpecies,
- 			   "Updater.CellAvMaxwellian: Must provide solver type (Vm or Gk) using 'kineticSpecies'")
+				 "Updater.CellAvMaxwellian: Must provide solver type (Vm or Gk) using 'kineticSpecies'")
+   if self._kineticSpecies == 'Gk' then
+      self.mass = assert(tbl.gkfacs[1],
+			 "Updater.CellAvMaxwellian: Must provide mass object in 'gkfacs'")
+      self.bmag = assert(tbl.gkfacs[2],
+			 "Updater.CellAvMaxwellian: Must provide bmag object in 'gkfacs'")
+      self.bmagItr = self.bmag:get(1)
+   end
    
    -- Dimension of spaces.
    self._cDim = self._confBasis:ndim()
@@ -46,8 +53,11 @@ function CellAveMaxwellian:init(tbl)
    self.xc  = Lin.Vec(self._pDim)
 
    -- Define functions
-   self._calcMax = CellAveMaxwellianDecl.CellAvMax(self._basisID, self._cDim, self._vDim, self._polyOrder)
-   --self._calcGkMax = CellAveMaxwellianDecl.GkCellAvMax(self._basisID, self._cDim, self._vDim, self._polyOrder)
+   if self._kineticSpecies == 'Vm' then
+      self._calcMax = CellAveMaxwellianDecl.CellAvMax(self._basisID, self._cDim, self._vDim, self._polyOrder)
+   else
+      self._calcGkMax = CellAveMaxwellianDecl.GkCellAvMax(self._basisID, self._cDim, self._vDim, self._polyOrder)
+   end
    
    self.onGhosts = xsys.pickBool(false, tbl.onGhosts)
 
@@ -125,10 +135,10 @@ function CellAveMaxwellian:gyrokinetic(m0, u, vtSq, bmag, fMax)
       m0:fill(confIndexer(pIdx), m0Itr)
       u:fill(confIndexer(pIdx), uItr)
       vtSq:fill(confIndexer(pIdx), vtSqItr)
-      bmag:fill(confIndexer(pIdx), bmagItr)
+      self.bmag:fill(confIndexer(pIdx), self.bmagItr)
       fMax:fill(phaseIndexer(pIdx), fMaxItr)
 
-      self._calcGkMax(self.xc:data(), m0Itr:data(), uItr:data(), vtSqItr:data(), bmagItr:data(), fMaxItr:data())     
+      self._calcGkMax(self._mass, self.xc:data(), m0Itr:data(), uItr:data(), vtSqItr:data(), self.bmagItr:data(), fMaxItr:data())     
    end
    
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
@@ -146,7 +156,6 @@ function CellAveMaxwellian:_advance(tCurr, inFld, outFld)
       local m0 = assert(inFld[1], "GkCellAveMaxwellian: Must specify particle density as input[1]")
       local u = assert(inFld[2], "GkCellAveMaxwellian: Must specify fluid velocity as input[2]")
       local vtSq = assert(inFld[3], "GkCellAveMaxwellian: Must specify squared thermal velocity as input[3]")
-      local bmag = assert(inFld[4], "GkCellAveMaxwellian: Must specify magnetic field as input[4]")
       local fMax = assert(outFld[1], "GkCellAveMaxwellian: Must specify an output field")
       self:gyrokinetic(m0, u, vtSq, bmag, fMax)
    else

@@ -23,7 +23,7 @@ for bInd : 1 thru length(bName) do (
 	 ),	 
 	 for gkV : 1 thru length(gkVdims[ci]) do (
              vi : gkVdims[ci][gkV],
-       	     printf(fh, "void GkMaxwellianCellAv~a~ax~av_P~a(const double *w, const double *m0, const double *uPar, const double *vtSq, const double *bmag, double *fMax); ~%", bName[bInd], ci, vi, pi),
+       	     printf(fh, "void GkMaxwellianCellAv~a~ax~av_P~a(const double m_, const double *w, const double *m0, const double *uPar, const double *vtSq, const double *bmag, double *fMax); ~%", bName[bInd], ci, vi, pi),
        	     printf(fh, "~%")
          ),
 	 printf(fh, "~%")

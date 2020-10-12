@@ -411,6 +411,14 @@ def build(bld):
     cellAveMaxwellianCalcData/MaxwellianCellAvSer2x2v.cpp
     cellAveMaxwellianCalcData/MaxwellianCellAvSer2x3v.cpp
     cellAveMaxwellianCalcData/MaxwellianCellAvSer3x3v.cpp
+    cellAveMaxwellianCalcData/GkMaxwellianCellAvMax1x1v.cpp
+    cellAveMaxwellianCalcData/GkMaxwellianCellAvMax1x2v.cpp
+    cellAveMaxwellianCalcData/GkMaxwellianCellAvMax2x2v.cpp
+    cellAveMaxwellianCalcData/GkMaxwellianCellAvMax3x2v.cpp
+    cellAveMaxwellianCalcData/GkMaxwellianCellAvSer1x1v.cpp
+    cellAveMaxwellianCalcData/GkMaxwellianCellAvSer1x2v.cpp
+    cellAveMaxwellianCalcData/GkMaxwellianCellAvSer2x2v.cpp
+    cellAveMaxwellianCalcData/GkMaxwellianCellAvSer3x2v.cpp
 
     GkMaxwellianOnBasisImpl.cpp
 
@@ -461,7 +469,7 @@ def build(bld):
         )
 
     bld.shlib(source = sources,
-              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData', 
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData cellAveMaxwellianCalcData', 
               use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     
 ## Removed the following files from the build for now

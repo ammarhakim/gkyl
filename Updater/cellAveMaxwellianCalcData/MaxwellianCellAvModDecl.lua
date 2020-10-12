@@ -17,17 +17,19 @@ function _M.CellAvMax(basisNm, CDIM, VDIM, polyOrder)
    local funcType = "void"
    local funcNm = string.format("MaxwellianCellAv%s%dx%dv_P%d", basisNmMap[basisNm], CDIM, VDIM, polyOrder)
    local funcSign = "(const double *w, const double *m0, const double *u, const double *vtSq, double *fMax)"
+   
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]
 end
 
--- Kernel function to compute cell-average Maxwellian for Vlasov grid.
--- function _M.GkCellAvMax(basisNm, CDIM, VDIM, polyOrder)
---    local funcType = "void"
---    local funcNm = string.format("GkMaxwellianCellAv%s%dx%dv_P%d", basisNmMap[basisNm], CDIM, VDIM, polyOrder)
---    local funcSign = "(const double *w, const double *m0, const double *uPar, const double *vtSq, const double *bmag, double *fMax)"
---    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
---    return ffi.C[funcNm]
--- end
+-- Kernel function to compute cell-average Maxwellian for Gyrokinetic grid.
+function _M.GkCellAvMax(basisNm, CDIM, VDIM, polyOrder)
+   local funcType = "void"
+   local funcNm = string.format("GkMaxwellianCellAv%s%dx%dv_P%d", basisNmMap[basisNm], CDIM, VDIM, polyOrder)
+   local funcSign = "(const double m_, const double *w, const double *m0, const double *uPar, const double *vtSq, const double *bmag, double *fMax)"
+     
+   ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
+   return ffi.C[funcNm]
+end
 
 return _M
