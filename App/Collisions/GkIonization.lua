@@ -246,7 +246,11 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
       -- Include only z-component of neutU
 
       self.confMult:advance(tCurr, {coefIz, self.m0elc}, {self.coefM0})
-      species[self.speciesName].calcMaxwell:advance(tCurr, {neutM0, neutU, neutVtSq}, {self.fMaxNeut})
+      if species[self.speciesName].useCellAvMaxwell == true then
+	 species[self.speciesName].calcCellAvMaxwell:advance(tCurr, {neutM0, neutU, neutVtSq}, {self.fMaxNeut})
+      else
+	 species[self.speciesName].calcMaxwell:advance(tCurr, {neutM0, neutU, neutVtSq}, {self.fMaxNeut})
+      end
       self.confPhaseMult:advance(tCurr, {self.coefM0, self.fMaxNeut}, {self.ionizSrc})
 
       if writeOut then

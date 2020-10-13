@@ -114,8 +114,8 @@ function VlasovSpecies:createSolver(hasE, hasB)
       confBasis        = self.confBasis,
       charge           = self.charge,
       mass             = self.mass,
-      hasElectricField = hasE,
-      hasMagneticField = hasB,
+      hasElectricField = false,
+      hasMagneticField = false,
       numVelFlux       = self.numVelFlux,
    }
 
@@ -166,6 +166,13 @@ function VlasovSpecies:createSolver(hasE, hasB)
       confBasis  = self.confBasis,
       phaseGrid  = self.grid,
       phaseBasis = self.basis,
+   }
+   self.calcCellAvMaxwell = Updater.CellAveMaxwellian {
+      onGrid     = self.grid,
+      confGrid   = self.confGrid,
+      confBasis  = self.confBasis,
+      phaseBasis = self.basis,
+      kineticSpecies = 'Vm'
    }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
@@ -423,6 +430,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
       end
    end
 
+   self.useCellAvMaxwell = false
    -- If ionization collision object exists, locate electrons
    local counterIz_elc = true
    local counterIz_neut = true
@@ -646,15 +654,16 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       local testFuncRange = testFunc:localRange()
       local phaseIndexer  = testFunc:genIndexer()
       local testFuncPtr   = testFunc:get(1)
+      local endRun = false
       for idx in testFuncRange:rowMajorIter(tId) do
-	 self.grid:setIndex(idx)
-	 testFunc:fill(phaseIndexer(idx), testFuncPtr)
-	 for cI = 1,self.basis:numBasis() do
-	    if (testFuncPtr[cI] ~= testFuncPtr[cI]) or (testFuncPtr[cI] == 1/0) then
-	       print("t =", tCurr, "\ncoll update, at", idx[1], idx[2], idx[3], idx[4], idx[5], idx[6])
+   	 self.grid:setIndex(idx)
+   	 testFunc:fill(phaseIndexer(idx), testFuncPtr)
+   	 for cI = 1,self.basis:numBasis() do
+   	    if (testFuncPtr[cI] ~= testFuncPtr[cI]) or (testFuncPtr[cI] == 1/0) then
+   	       print("t =", tCurr, "\ncoll update, at", idx[1], idx[2], idx[3], idx[4], idx[5], idx[6])
 	       os.exit(0)
-	    end
-	 end
+   	    end
+   	 end
       end
    end
 
@@ -1286,8 +1295,13 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       end
       species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {self.voronovReactRate})
       species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
+
+      if self.useCellAvMaxwell == true then
+	 self.calcCellAvMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
+      else
+	 self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
+      end
       
-      self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
       self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
       self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
       self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})

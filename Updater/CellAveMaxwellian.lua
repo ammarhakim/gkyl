@@ -9,6 +9,7 @@ local UpdaterBase = require "Updater.Base"
 local LinearDecomp = require "Lib.LinearDecomp"
 local Proto = require "Lib.Proto"
 local CellAveMaxwellianDecl = require "Updater.cellAveMaxwellianCalcData.MaxwellianCellAvModDecl"
+local DataStruct = require "DataStruct"
 local xsys = require "xsys"
 local Lin = require "Lib.Linalg"
 local Time = require "Lib.Time"
@@ -22,7 +23,9 @@ function CellAveMaxwellian:init(tbl)
    CellAveMaxwellian.super.init(self, tbl) -- setup base object
 
    self._onGrid = assert(tbl.onGrid,
-			     "Updater.CellAvMaxw: Must provide grid object using 'onGrid'")
+			 "Updater.CellAvMax: Must provide grid object using 'onGrid'")
+   self._confGrid = assert(tbl.confGrid,
+			   "Updater.CellAvMax: Must provide confGrid object using 'confGrid'")
    self._confBasis = assert(tbl.confBasis,
 			     "Updater.CellAvMax: Must provide configuration space basis object using 'confBasis'")
    self._phaseBasis = assert(tbl.phaseBasis,
@@ -59,7 +62,7 @@ function CellAveMaxwellian:init(tbl)
       self._calcGkMax = CellAveMaxwellianDecl.GkCellAvMax(self._basisID, self._cDim, self._vDim, self._polyOrder)
    end
    
-   self.onGhosts = xsys.pickBool(false, tbl.onGhosts)
+   self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
 
    self._tmEvalMom = 0.0
 end
@@ -70,16 +73,36 @@ function CellAveMaxwellian:vlasov(m0, u, vtSq, fMax)
    local tmEvalMomStart = Time.clock()
    local grid = self._onGrid
    local pDim = self._pDim
+   local vDim = self._vDim
    
    local confIndexer = m0:genIndexer()
    local phaseIndexer = fMax:genIndexer()
+   local numConfBasis = self._confBasis:numBasis()
+
+   local uDim = u:numComponents()/numConfBasis
    
    local m0Itr = m0:get(1)
-   local uItr = u:get(1)
+   if vDim == uDim then
+      self.uItr = u:get(1)
+   elseif uDim < vDim and uDim == 1 then -- GK uPar has been passed
+      -- create vector moment for u 
+      self.u = DataStruct.Field {
+	 onGrid        = self._confGrid,
+	 numComponents = self._confBasis:numBasis()*vDim,
+	 ghost         = {1, 1},
+	 metaData = {
+	    polyOrder = self._phaseBasis:polyOrder(),
+	    basisType = self._phaseBasis:id()
+	 },
+      }
+      self.uParItr = u:get(1)
+      self.uItr = self.u:get(1)
+   end
    local vtSqItr = vtSq:get(1)
    local fMaxItr = fMax:get(1)
    
    local phaseRange = fMax:localRange()
+   if self.onGhosts == true then phaseRange = fMax:localExtRange() end
 
    local phaseRangeDecomp = LinearDecomp.LinearDecompRange {
       range = phaseRange:selectFirst(pDim), numSplit = grid:numSharedProcs() }
@@ -91,11 +114,24 @@ function CellAveMaxwellian:vlasov(m0, u, vtSq, fMax)
       grid:cellCenter(self.xc)
 
       m0:fill(confIndexer(pIdx), m0Itr)
-      u:fill(confIndexer(pIdx), uItr)
       vtSq:fill(confIndexer(pIdx), vtSqItr)
       fMax:fill(phaseIndexer(pIdx), fMaxItr)
 
-      self._calcMax(self.xc:data(), m0Itr:data(), uItr:data(), vtSqItr:data(), fMaxItr:data())     
+      if vDim == uDim then
+	 u:fill(confIndexer(pIdx), self.uItr)
+      elseif uDim < vDim and uDim == 1 then
+	 u:fill(confIndexer(pIdx), self.uParItr)
+	 for d = 1, vDim-1 do
+	    for k = 1, numConfBasis do
+	       self.uItr[numConfBasis*(d-1)+k] = 0.0
+	    end
+	 end
+	 for k = 1, numConfBasis do
+	    self.uItr[numConfBasis*(vDim-1)+k] = self.uParItr[k]
+	 end
+      end
+	 
+      self._calcMax(self.xc:data(), m0Itr:data(), self.uItr:data(), vtSqItr:data(), fMaxItr:data())     
    end
    
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
@@ -108,14 +144,24 @@ function CellAveMaxwellian:gyrokinetic(m0, u, vtSq, bmag, fMax)
    
    local confIndexer = m0:genIndexer()
    local phaseIndexer = fMax:genIndexer()
+   local numConfBasis = self._confBasis:numBasis()
+
+   local uDim = u:numComponents()/numConfBasis
    
    local m0Itr = m0:get(1)
-   local uItr = u:get(1)
    local vtSqItr = vtSq:get(1)
    local fMaxItr = fMax:get(1)
+
+   if uDim == 1 then
+      self.uItr = u:get(1)
+   else
+      self.uItr = m0:get(1)
+      self.uInItr = u:get(1)
+   end
    
    local phaseRange = fMax:localRange()
-
+   if self.onGhosts == true then phaseRange = fMax:localExtRange() end
+   
    local phaseRangeDecomp = LinearDecomp.LinearDecompRange {
       range = phaseRange:selectFirst(pDim), numSplit = grid:numSharedProcs() }
    local tId = grid:subGridSharedId()    -- Local thread ID.
@@ -126,12 +172,20 @@ function CellAveMaxwellian:gyrokinetic(m0, u, vtSq, bmag, fMax)
       grid:cellCenter(self.xc)
 
       m0:fill(confIndexer(pIdx), m0Itr)
-      u:fill(confIndexer(pIdx), uItr)
       vtSq:fill(confIndexer(pIdx), vtSqItr)
       self.bmag:fill(confIndexer(pIdx), self.bmagItr)
       fMax:fill(phaseIndexer(pIdx), fMaxItr)
 
-      self._calcGkMax(self.mass, self.xc:data(), m0Itr:data(), uItr:data(), vtSqItr:data(), self.bmagItr:data(), fMaxItr:data())     
+      if uDim == 1 then
+	 u:fill(confIndexer(pIdx), self.uItr)
+      else
+	 u:fill(confIndexer(pIdx), self.uInItr)
+	 for k = 1, numConfBasis do
+	    self.uItr[k] = self.uInItr[numConfBasis*(uDim-1)+k]
+	 end
+      end
+      
+      self._calcGkMax(self.mass, self.xc:data(), m0Itr:data(), self.uItr:data(), vtSqItr:data(), self.bmagItr:data(), fMaxItr:data())     
    end
    
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
