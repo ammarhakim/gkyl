@@ -12,9 +12,9 @@ void GkMaxwellianCellAvMax2x2v_P1(const double m_, const double *w, const double
   double uParAv = 0.5*uPar[0]; 
   double vtSqAv = 0.5*vtSq[0]; 
   double bmagAv = 0.5*bmag[0]; 
-  double vSqAv = pow(uParAv,2)-2.0*w[2]*uParAv+pow(w[2],2); 
+  double vSqAv = 0.5*pow(uParAv,2)-1.0*w[2]*uParAv+(w[3]*bmagAv)/m_+0.5*pow(w[2],2); 
  
-  fMax[0] = (0.3183098861837907*bmagAv*m0Av*exp((-vSqAv/(2*vtSqAv))-(w[3]*bmagAv)/(m_*vtSqAv)))/abs(vtSqAv); 
+  fMax[0] = (0.253974543736964*bmagAv*m0Av)/(pow(vtSqAv,3/2)*exp(vSqAv/vtSqAv)); 
  
   if (m0Av <= 0 || vtSqAv <= 0 ) { 
     fMax[0] = 0.0;
@@ -32,9 +32,9 @@ void GkMaxwellianCellAvMax2x2v_P2(const double m_, const double *w, const double
   double uParAv = 0.5*uPar[0]; 
   double vtSqAv = 0.5*vtSq[0]; 
   double bmagAv = 0.5*bmag[0]; 
-  double vSqAv = pow(uParAv,2)-2.0*w[2]*uParAv+pow(w[2],2); 
+  double vSqAv = 0.5*pow(uParAv,2)-1.0*w[2]*uParAv+(w[3]*bmagAv)/m_+0.5*pow(w[2],2); 
  
-  fMax[0] = (0.3183098861837907*bmagAv*m0Av*exp((-vSqAv/(2*vtSqAv))-(w[3]*bmagAv)/(m_*vtSqAv)))/abs(vtSqAv); 
+  fMax[0] = (0.253974543736964*bmagAv*m0Av)/(pow(vtSqAv,3/2)*exp(vSqAv/vtSqAv)); 
  
   if (m0Av <= 0 || vtSqAv <= 0 ) { 
     fMax[0] = 0.0;

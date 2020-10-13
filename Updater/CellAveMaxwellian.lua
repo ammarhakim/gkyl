@@ -137,7 +137,7 @@ function CellAveMaxwellian:vlasov(m0, u, vtSq, fMax)
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
 end
 
-function CellAveMaxwellian:gyrokinetic(m0, u, vtSq, bmag, fMax)
+function CellAveMaxwellian:gyrokinetic(m0, u, vtSq, fMax)
    local tmEvalMomStart = Time.clock()
    local grid = self._onGrid
    local pDim = self._pDim
@@ -193,20 +193,14 @@ end
 
 function CellAveMaxwellian:_advance(tCurr, inFld, outFld)
 
+   local m0 = assert(inFld[1], "cellAveMaxwellian: Must specify particle density as input[1]")
+   local u = assert(inFld[2], "cellAveMaxwellian: Must specify fluid velocity as input[2]")
+   local vtSq = assert(inFld[3], "cellAveMaxwellian: Must specify squared thermal velocity as input[3]")
+   local fMax = assert(outFld[1], "cellAveMaxwellian: Must specify an output field")
    if self._kineticSpecies == 'Vm' then
-      local m0 = assert(inFld[1], "cellAveMaxwellian: Must specify particle density as input[1]")
-      local u = assert(inFld[2], "cellAveMaxwellian: Must specify fluid velocity as input[2]")
-      local vtSq = assert(inFld[3], "cellAveMaxwellian: Must specify squared thermal velocity as input[3]")
-      local fMax = assert(outFld[1], "cellAveMaxwellian: Must specify an output field")
       self:vlasov(m0, u, vtSq, fMax)
    elseif self._kineticSpecies == 'Gk' then
-      local m0 = assert(inFld[1], "GkCellAveMaxwellian: Must specify particle density as input[1]")
-      local u = assert(inFld[2], "GkCellAveMaxwellian: Must specify fluid velocity as input[2]")
-      local vtSq = assert(inFld[3], "GkCellAveMaxwellian: Must specify squared thermal velocity as input[3]")
-      local fMax = assert(outFld[1], "GkCellAveMaxwellian: Must specify an output field")
-      self:gyrokinetic(m0, u, vtSq, bmag, fMax)
-   else
-      print("Updater.CellAveMaxwellian: kineticSpecies must be 'Vm' or 'Gk'")
+      self:gyrokinetic(m0, u, vtSq, fMax)
    end
    
 end

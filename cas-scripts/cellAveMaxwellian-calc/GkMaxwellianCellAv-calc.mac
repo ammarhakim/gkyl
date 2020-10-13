@@ -29,6 +29,7 @@ writeCExprsCs(lhs, rhs) := block([expr],
       ep : string(expr[i]),
       ep : ssubst("log(","ln(",ep),
       ep : ssubst("exp(","2.718281828459045^(",ep),
+      ep : ssubst("pow(vtSqAv,3/2)","vtSqAv^(3/2)", ep),
       printf(fh, "  ~a = ~a; ~%", lhs[i-1], ep)	
     )
   )
@@ -77,26 +78,28 @@ calcGkMaxwellianCellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     bmagAv_c : innerProd(varsC,1.0,1.0,bmag_e)/innerProd(varsC,1.0,1.0,1.0),
     declareWriteCExprsC(bmagAv, bmagAv_c),
     
-    /* Define vSq for exponent */
-    vSq_c : fullratsimp(innerProd(varsP,1,1.0,(w[cdim] - uParAv)^2)/innerProd(varsP,1.0,1.0,1.0)),
-
-    declareWriteCExprsC(vSqAv, vSq_c),
-    printf(fh, " ~%"),
-
-    denom : 1.0,
-    for vi : 1 thru vdim do (
-    	denom : denom*2*%pi*vtSqAv 
-	),
-    maxNorm : bmagAv*m0Av/sqrt(denom),
-    
     /* Define and write fMax */
     if vdim = 1 then (
-        fMax_c : calcInnerProdList(varsC,maxNorm,bC,exp(-0.5*vSqAv/vtSqAv))
-	)
+	denom : 2*%pi*vtSqAv,
+	maxNorm : m0Av/sqrt(denom),
+	
+       /* Define vSq for exponent */
+    	vSq_c : fullratsimp(innerProd(varsP,1,1.0,0.5*(w[cdim] - uParAv)^2)/innerProd(varsP,1.0,1.0,1.0)),
+	declareWriteCExprsC(vSqAv, vSq_c),
+    	printf(fh, " ~%")
+        )
     else (
-    	 fMax_c : calcInnerProdList(varsC,maxNorm,bC,exp((-0.5*vSqAv-w[cdim+1]*bmagAv/m_)/vtSqAv))
-	 ),
+    	denom : (2*%pi*vtSqAv)^3,
+	maxNorm : bmagAv*m0Av/sqrt(denom),
 
+       /* Define vSq for exponent */
+    	vSq_c : fullratsimp(innerProd(varsP,1,1.0,0.5*(w[cdim] - uParAv)^2
+	      	+ w[cdim+1]*bmagAv/m_)/innerProd(varsP,1.0,1.0,1.0)),
+	declareWriteCExprsC(vSqAv, vSq_c),
+    	printf(fh, " ~%")
+ 	),
+
+    fMax_c : calcInnerProdList(varsP,maxNorm,bP,exp(-vSqAv/vtSqAv)),
     writeCExprsCs(fMax, fMax_c),
     printf(fh, " ~%"),
 
@@ -110,8 +113,8 @@ bName        : ["Ser","Max"]$
 maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
 
 for bInd : 1 thru length(bName) do (
-  for c : 3 thru 3 do (
-      for v : 2 thru 2 do (
+  for c : 1 thru 2 do (
+      for v : c thru 2 do (
       	  disp(printf(false,sconcat("Creating fMaxAv ", bName[bInd]," ~ax~av"),c,v)),
     	  fname : sconcat("~/max-out/GkMaxwellianCellAv", bName[bInd], c, "x", v, "v", ".cpp"),
     	  fh : openw(fname),

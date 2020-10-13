@@ -90,7 +90,7 @@ calcMaxwellianCellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     
     /* Define and write fMax */
 
-    fMax_c : calcInnerProdList(varsC,maxNorm,bC,exp(-0.5*vSqAv/vtSqAv)),
+    fMax_c : calcInnerProdList(varsP,maxNorm,bP,exp(-0.5*vSqAv/vtSqAv)),
 
     writeCExprsCs(fMax, fMax_c),
     printf(fh, " ~%"),

@@ -12,7 +12,7 @@ void MaxwellianCellAvMax3x3v_P1(const double *w, const double *m0, const double 
   double vtSqAv = 0.3535533905932738*vtSq[0]; 
   double vSqAv = 0.125*pow(u[8],2)-0.7071067811865475*w[5]*u[8]+pow(w[5],2)+pow(w[4],2)-0.7071067811865475*u[4]*w[4]+0.125*pow(u[4],2)+pow(w[3],2)-0.7071067811865475*u[0]*w[3]+0.125*pow(u[0],2); 
  
-  fMax[0] = (0.1795871221251665*m0Av)/(pow(vtSqAv,3/2)*exp(vSqAv/(2*vtSqAv))); 
+  fMax[0] = (0.5079490874739284*m0Av)/(pow(vtSqAv,3/2)*exp(vSqAv/(2*vtSqAv))); 
  
   if (m0Av <= 0 || vtSqAv <= 0 ) { 
     fMax[0] = 0.0;
@@ -30,7 +30,7 @@ void MaxwellianCellAvMax3x3v_P2(const double *w, const double *m0, const double 
   double vtSqAv = 0.3535533905932738*vtSq[0]; 
   double vSqAv = 0.125*pow(u[20],2)-0.7071067811865475*w[5]*u[20]+0.125*pow(u[10],2)-0.7071067811865475*w[4]*u[10]+pow(w[5],2)+pow(w[4],2)+pow(w[3],2)-0.7071067811865475*u[0]*w[3]+0.125*pow(u[0],2); 
  
-  fMax[0] = (0.1795871221251665*m0Av)/(pow(vtSqAv,3/2)*exp(vSqAv/(2*vtSqAv))); 
+  fMax[0] = (0.5079490874739284*m0Av)/(pow(vtSqAv,3/2)*exp(vSqAv/(2*vtSqAv))); 
  
   if (m0Av <= 0 || vtSqAv <= 0 ) { 
     fMax[0] = 0.0;
