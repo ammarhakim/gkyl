@@ -200,6 +200,7 @@ Gkyl::Gkyl(const std::string& luaExpr, const std::string& inpFileNm, const std::
     { "comparefiles", {"comparefiles.lua", "Compare two BP files"} },
     { "exacteulerrp", {"exacteulerrp.lua", "Exact Euler Riemann problem solver"} },
     { "multimomlinear", {"multimomlinear.lua", "Linear dispersion solver for multi-moment, multifluid equations"} },
+    { "eqdskreader", {"eqdskreader.lua", "Read eqdsk file, writing to ADIOS-BP files"} },
 #ifdef HAVE_CUDA_H
     { "deviceinfo", {"deviceinfo.lua", "Information about device"} },
 #endif

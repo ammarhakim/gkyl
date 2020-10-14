@@ -619,7 +619,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       fRhsOut:clear(0.0)    -- No RHS.
    end
 
-   debugNans = true
+   debugNans = false
    -- test for nans after collisionless solve
    if debugNans == true then
       local testFunc      = fRhsOut
