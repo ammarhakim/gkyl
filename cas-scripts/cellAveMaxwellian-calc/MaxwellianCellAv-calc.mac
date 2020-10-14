@@ -15,8 +15,8 @@ declareWriteCExprsC(lhs, rhs) := block([expr],
   if expr # 0.0 then (
     ep : string(expr),
     for i : 0 thru 60 do (
-    	ep : ssubst(string(pow(u[i],2)),string(u[i]^2),ep),
-    	ep : ssubst(string(pow(w[i],2)),string(w[i]^2),ep)
+    	ep : ssubst(string(pow(u[i],2.0)),string(u[i]^2),ep),
+    	ep : ssubst(string(pow(w[i],2.0)),string(w[i]^2),ep)
     ),
     printf(fh, "  double ~a = ~a; ~%", lhs, ep)
   )
@@ -28,8 +28,8 @@ writeCExprsCs(lhs, rhs) := block([expr],
     if expr[i] # 0.0 then (
       ep : string(expr[i]),
       ep : ssubst("log(","ln(",ep),
-      ep : ssubst("exp(vSqAv/(2*vtSqAv))",string(2.718281828459045^(vSqAv/(2*vtSqAv))),ep),
-      ep : ssubst(string(pow(vtSqAv,3/2)),string(vtSqAv^(3/2)),ep),
+      ep : ssubst("exp(vSqAv/(2.0*vtSqAv))",string(2.718281828459045^(vSqAv/(2*vtSqAv))),ep),
+      ep : ssubst(string(pow(vtSqAv,1.5)),string(vtSqAv^(3/2)),ep),
       printf(fh, "  ~a = ~a; ~%", lhs[i-1], ep)
     )
   )

@@ -15,8 +15,8 @@ declareWriteCExprsC(lhs, rhs) := block([expr],
   if expr # 0.0 then (
     ep : string(expr),
     for i : 0 thru 60 do (
-    	ep : ssubst(string(pow(uParAv,2)),string(uParAv^2),ep),
-    	ep : ssubst(string(pow(w[i],2)),string(w[i]^2),ep)
+    	ep : ssubst(string(pow(uParAv,2.0)),string(uParAv^2),ep),
+    	ep : ssubst(string(pow(w[i],2.0)),string(w[i]^2),ep)
     ),
     printf(fh, "  double ~a = ~a; ~%", lhs, ep)
   )
@@ -29,7 +29,7 @@ writeCExprsCs(lhs, rhs) := block([expr],
       ep : string(expr[i]),
       ep : ssubst("log(","ln(",ep),
       ep : ssubst("exp(","2.718281828459045^(",ep),
-      ep : ssubst("pow(vtSqAv,3/2)","vtSqAv^(3/2)", ep),
+      ep : ssubst("pow(vtSqAv,1.5)","vtSqAv^(3/2)", ep),
       printf(fh, "  ~a = ~a; ~%", lhs[i-1], ep)	
     )
   )
@@ -84,7 +84,7 @@ calcGkMaxwellianCellAv(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 	maxNorm : m0Av/sqrt(denom),
 	
        /* Define vSq for exponent */
-    	vSq_c : fullratsimp(innerProd(varsP,1,1.0,0.5*(w[cdim] - uParAv)^2)/innerProd(varsP,1.0,1.0,1.0)),
+    	vSq_c : fullratsimp(innerProd(varsP,1,1.0,0.5*(w[cdim] - uParAv)^2.0)/innerProd(varsP,1.0,1.0,1.0)),
 	declareWriteCExprsC(vSqAv, vSq_c),
     	printf(fh, " ~%")
         )
