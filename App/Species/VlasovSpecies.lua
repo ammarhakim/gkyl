@@ -430,7 +430,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
       end
    end
 
-   self.useCellAvMaxwell = false
+   self.useCellAvMaxwell = true
    -- If ionization collision object exists, locate electrons
    local counterIz_elc = true
    local counterIz_neut = true
