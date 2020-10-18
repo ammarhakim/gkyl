@@ -2,7 +2,6 @@ kill(all) $
 load("modal-basis") $
 load("recovery") $
 assume(dv[0]>0, dv[1]>0, dv[2]>0) $
-numDims : 2 $
 
 basisNm : "Ser"$
 for polyOrder : 1 thru 1 do (

@@ -95,8 +95,8 @@ local distfA   = createField(phaseGrid, phaseBasis)
 
 -- Constant diffusion equation object.
 local constDiffusionCalc = Eq {
-   Dcoeff     = diffCoeff,
-   basis      = phaseBasis,
+   coefficient = diffCoeff,
+   basis       = phaseBasis,
 }
 
 -- Updater to solve the (parabolic) diffusion equation.

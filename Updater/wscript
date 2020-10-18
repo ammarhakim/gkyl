@@ -52,6 +52,11 @@ def build(bld):
     momentCalcData/DistFuncGkMomentLBOCalcSer2x2v.cpp
     momentCalcData/DistFuncGkMomentLBOCalcSer3x2v.cpp
 
+    momentCalcData/DistFuncMomentLBOCalcTensor1x1v.cpp
+    momentCalcData/DistFuncMomentLBOCalcTensor1x2v.cpp
+    momentCalcData/DistFuncMomentLBOCalcTensor1x3v.cpp
+    momentCalcData/DistFuncMomentLBOCalcTensor2x2v.cpp
+
     primMomentsCalcData/VmSelfPrimMomentsSer1x1vP1.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer1x2vP1.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer1x3vP1.cpp
@@ -286,6 +291,11 @@ def build(bld):
     binOpCalcData/CartFieldBinOpMax1x2vP3.cpp
     binOpCalcData/CartFieldBinOpMax1x3vP3.cpp
     binOpCalcData/CartFieldBinOpMax2x2vP3.cpp
+
+    binOpCalcData/CartFieldBinOpTensor1xP3.cpp
+    binOpCalcData/CartFieldBinOpTensor2xP3.cpp
+    binOpCalcData/CartFieldBinOpTensor1x1vP3.cpp
+    binOpCalcData/CartFieldBinOpTensor1x2vP3.cpp
 
     lagrangeFixData/VlasovLagrangeFixSer1x1v.cpp
     lagrangeFixData/VlasovLagrangeFixSer1x2v.cpp

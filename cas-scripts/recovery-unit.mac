@@ -1,0 +1,67 @@
+load("recovery") $
+
+testRecov(mode) := block(
+  [fn, fh, tests, label, s, difference, nFailed],
+  fn : "~/max-unit/recovResults.txt",
+
+  tests : append(
+    [["2-cell 1D p1", calcRecov2CellGen("Ser", x, [x], 1, dg(qL), dg(qR))]],
+    [["2-cell 1D p2", calcRecov2CellGen("Ser", x, [x], 2, dg(qL), dg(qR))]],
+    [["2-cell 1D p3", calcRecov2CellGen("Ser", x, [x], 3, dg(qL), dg(qR))]],
+    [["2-cell 1D p1 y-direction", calcRecov2CellGen("Ser", y, [y], 1, dg(qL), dg(qR))]],
+    [["2-cell 2D p1", calcRecov2CellGen("Ser", x, [x,y], 1, dg(qL), dg(qR))]],
+    [["2-cell 2D p1", calcRecov2CellGen("Ser", x, [x,y], 1, dg(qL), dg(qR))]],
+    [["2-cell 2D p2 Ser", calcRecov2CellGen("Ser", x, [x,y], 2, dg(qL), dg(qR))]],
+    [["2-cell 2D p2 Tensor", calcRecov2CellGen("Tensor", x, [x,y], 2, dg(qL), dg(qR))]],
+    [["2-cell 2D p2 y-direction", calcRecov2CellGen("Ser", y, [x,y], 2, dg(qL), dg(qR))]],
+    [["2-cell 3D p1", calcRecov2CellGen("Ser", x, [x,y,z], 1, dg(qL), dg(qR))]],
+    [["2-cell 1D p1 BC", calcRecov2CellGen("Ser", x, [x], 1, dg(qL, bc(D=DL, N=NL, val=valL)), dg(qR, bc(D=DR, N=NR, val=valR)))]],
+    [["2-cell 2D p1 BC", calcRecov2CellGen("Ser", x, [x,y], 1, dg(qL, bc(D=DL, N=NL, val=valL)), dg(qR, bc(D=DR, N=NR, val=valR)))]],
+    [["1-cell 1D p1 C0", calcRecov1CellGen("Ser", x, [x], 1, 0, dg(qL), dg(qC), dg(qR))]],
+    [["1-cell 1D p1 C1", calcRecov1CellGen("Ser", x, [x], 1, 1, dg(qL), dg(qC), dg(qR))]],
+    [["1-cell 1D p2 C2", calcRecov1CellGen("Ser", x, [x], 2, 2, dg(qL), dg(qC), dg(qR))]],
+    [["1-cell 2D p1 C1", calcRecov1CellGen("Ser", x, [x,y], 1, 1, dg(qL), dg(qC), dg(qR))]],
+    [["1-cell 2D p2 C1 Ser", calcRecov1CellGen("Ser", x, [x,y], 2, 1, dg(qL), dg(qC), dg(qR))]],
+    [["1-cell 2D p2 C1 Tensor", calcRecov1CellGen("Tensor", x, [x,y], 2, 1, dg(qL), dg(qC), dg(qR))]],
+    [["1-cell 2D p2 C1 y-direction", calcRecov1CellGen("Ser", y, [x,y], 2, 1, dg(qL), dg(qC), dg(qR))]],
+    [["1-cell 3D p1 C1 z-direction", calcRecov1CellGen("Ser", z, [x,y,z], 1, 1, dg(qL), dg(qC), dg(qR))]],
+    [["1-cell 1D p1 BC", calcRecov1CellGen("Ser", x, [x], 1, 0, bc(D=DL,N=NL,val=valL), dg(qC), bc(D=DR,N=NR,val=valR))]],
+    [["1-cell 2D p1 BC", calcRecov1CellGen("Ser", x, [x,y], 1, 0, bc(D=DL,N=NL,val=valL), dg(qC), bc(D=DR,N=NR,val=valR))]],
+    [["3-cell 1D p1", calcRecov3CellGen("Ser", x, [x], 1, dg(qL), dg(qC), dg(qR))]],
+    [["3-cell 1D p2", calcRecov3CellGen("Ser", x, [x], 2, dg(qL), dg(qC), dg(qR))]],
+    [["3-cell 2D p2", calcRecov3CellGen("Ser", x, [x,y], 2, dg(qL), dg(qC), dg(qR))]],
+    [["Face 2D p1 C1 yx", calcRecovFaceGen("Ser", [y,x], [x,y], 1, 1, 1, dg(dg(qBL),dg(qTL)), dg(dg(qBC),dg(qTC)), dg(dg(qBR),dg(qTR)))]],
+    [["Face 2D p1 C1 xy", calcRecovFaceGen("Ser", [x,y], [x,y], 1, 1, 1, dg(dg(qBL),dg(qBR)), dg(dg(qCL),dg(qCR)), dg(dg(qTL),dg(qTR)))]],
+    [["Face 2D p2 C2 yx", calcRecovFaceGen("Ser", [y,x], [x,y], 1, 2, 2, dg(dg(qBL),dg(qTL)), dg(dg(qBC),dg(qTC)), dg(dg(qBR),dg(qTR)))]],
+    [["Face 2D p2 C2 xy", calcRecovFaceGen("Ser", [x,y], [x,y], 1, 2, 2, dg(dg(qBL),dg(qBR)), dg(dg(qCL),dg(qCR)), dg(dg(qTL),dg(qTR)))]],
+    [["Face 2D p1 C1 BC", calcRecovFaceGen("Ser", [y,x], [x,y], 1, 1, 1, bc(D=DL,N=NL,val=valL), dg(dg(qBC),dg(qTC)), bc(D=DR,N=NR,val=valR))]],
+    [["Face 2D p2 C1 BC", calcRecovFaceGen("Ser", [y,x], [x,y], 1, 2, 1, bc(D=DL,N=NL,val=valL), dg(dg(qBC),dg(qTC)), bc(D=DR,N=NR,val=valR))]],
+    [["Face 3D p1 C1 yx", calcRecovFaceGen("Ser", [y,x], [x,y,z], 1, 1, 1, dg(dg(qBL),dg(qTL)), dg(dg(qBC),dg(qTC)), dg(dg(qBR),dg(qTR)))]],
+    [["Face 3D p1 C1 xy", calcRecovFaceGen("Ser", [x,y], [x,y,z], 1, 1, 1, dg(dg(qBL),dg(qTL)), dg(dg(qBC),dg(qTC)), dg(dg(qBR),dg(qTR)))]]
+  ),
+  
+  if mode="create" then (
+    fh : openw(fn),
+    for i : 1 thru length(tests) do (
+      printf(fh, "~a~%~a~%", tests[i][1], tests[i][2])
+    )
+  ) else (
+    fh : openr(fn),
+    nFailed : 0,
+    for i : 1 thru length(tests) do (
+      label : readline(fh),
+      s : readline(fh),
+      difference : fullratsimp(expand(tests[i][2]-eval_string(s))),
+      if difference # 0 then (
+        nFailed : nFailed + 1,
+        print(sconcat(label, ": Failed")),
+        print(difference)
+      ) else (
+        print(sconcat(label, ": OK"))
+      )
+    ),
+    print(sconcat("Number of failed tests: ", nFailed, "/", length(tests)))
+  ),
+
+  close(fh)
+)$

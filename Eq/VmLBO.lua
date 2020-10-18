@@ -90,7 +90,7 @@ function VmLBO:init(tbl)
    self._nuUSumPtr, self._nuUSumIdxr       = nil, nil
    self._nuVtSqSumPtr, self._nuVtSqSumIdxr = nil, nil
 
-   -- flag to indicate if we are being called for first time.
+   -- Flag to indicate if we are being called for first time.
    self._isFirst = true
 end
 

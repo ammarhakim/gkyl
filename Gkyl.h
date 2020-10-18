@@ -192,13 +192,15 @@ Gkyl::Gkyl(const std::string& luaExpr, const std::string& inpFileNm, const std::
   : hasInpFile(!inpFileNm.empty()), luaExpr(luaExpr), inpFile(inpFileNm), args(args), execPath(findExecPath())
 {
   toolList = {
-    { "h", { "help.lua", "Gkeyll help system" } },
+    { "man", { "man.lua", "Gkeyll online man page" } },
+    { "woman", { "man.lua", "Gkeyll online man (Woe without man)" } },
     { "examples", {"examples.lua", "Example input files"} },
     { "queryrdb", {"queryrdb.lua", "Query/modify regression test DB"} },
     { "runregression", {"runregression.lua", "Run regression/unit tests"} },
     { "comparefiles", {"comparefiles.lua", "Compare two BP files"} },
     { "exacteulerrp", {"exacteulerrp.lua", "Exact Euler Riemann problem solver"} },
     { "multimomlinear", {"multimomlinear.lua", "Linear dispersion solver for multi-moment, multifluid equations"} },
+    { "eqdskreader", {"eqdskreader.lua", "Read eqdsk file, writing to ADIOS-BP files"} },
 #ifdef HAVE_CUDA_H
     { "deviceinfo", {"deviceinfo.lua", "Information about device"} },
 #endif

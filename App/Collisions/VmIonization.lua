@@ -201,8 +201,6 @@ function VmIonization:advance(tCurr, fIn, species, fRhsOut)
       
       self.sumDistF:combine(2.0,fMaxwellIz,-1.0,elcDistF)
  
-      self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
-      
       self.confMult:advance(tCurr, {coefIz, neutM0}, {self.coefM0})
       self.confPhaseMult:advance(tCurr, {self.coefM0, self.sumDistF}, {self.ionizSrc})
       -- Uncomment to test without fMaxwellian(Tiz)
@@ -210,30 +208,28 @@ function VmIonization:advance(tCurr, fIn, species, fRhsOut)
       if writeOut then
 	 species[self.speciesName].distIo:write(self.ionizSrc, string.format("%s_izSrc_%d.bp",self.speciesName,tCurr*1e10),0,0,true)
       end
-      
+
+      self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       fRhsOut:accumulate(1.0,self.ionizSrc)
    elseif (species[self.speciesName].charge == 0) then
       -- neutrals
       local neutDistF = species[self.neutNm]:getDistF()
       tmEvalMomStart  = Time.clock()
       self.m0elc:copy(elcM0)
-      
-      self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
-      
+            
       self.confMult:advance(tCurr, {coefIz, self.m0elc}, {self.coefM0})
       self.confPhaseMult:advance(tCurr, {self.coefM0, neutDistF}, {self.ionizSrc})
       if writeOut then
 	 species[self.speciesName].distIo:write(self.ionizSrc, string.format("%s_izSrc_%d.bp",self.speciesName,tCurr*1e10),0,0,true)
       end
 
+      self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       fRhsOut:accumulate(-1.0,self.ionizSrc)  
    else
       -- ions 
       tmEvalMomStart = Time.clock()
       self.m0elc:copy(elcM0)
       local neutDistF = species[self.neutNm]:getDistF()
-
-      self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
 
       self.confMult:advance(tCurr, {coefIz, self.m0elc}, {self.coefM0})
       self.confPhaseMult:advance(tCurr, {self.coefM0, neutDistF}, {self.ionizSrc})
@@ -243,6 +239,7 @@ function VmIonization:advance(tCurr, fIn, species, fRhsOut)
 	 species[self.speciesName].distIo:write(self.ionizSrc, string.format("%s_izSrc_%d.bp",self.speciesName,tCurr*1e10),0,0, true)
       end
       
+      self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       fRhsOut:accumulate(1.0,self.ionizSrc)
    end
 end
@@ -259,17 +256,12 @@ function VmIonization:getIonizSrc()
 end
 
 function VmIonization:slvrTime()
-   local time = self.confMult.totalTime
-   time = time + self.confPhaseMult.totalTime
+   local time = 0
    return time
 end
 
 function VmIonization:momTime()
-    if (self.speciesName == self.elcNm) then 
-       return self.collisionSlvr:evalMomTime() + self._tmEvalMom
-    else
-       return self._tmEvalMom
-    end
+
 end
 
 function VmIonization:projectMaxwellTime()

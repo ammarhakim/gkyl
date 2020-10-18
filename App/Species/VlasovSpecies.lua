@@ -84,6 +84,10 @@ function VlasovSpecies:fullInit(appTbl)
          self.wallFunction = require(externalBC)
       end
    end
+   -- numVelFlux used for selecting which type of numerical flux function to use in velocity space
+   -- defaults to "penalty" in Eq object, supported options: "penalty," "recovery"
+   -- only used for DG Maxwell.
+   self.numVelFlux = tbl.numVelFlux
 end
 
 function VlasovSpecies:allocMomCouplingFields()
@@ -112,6 +116,7 @@ function VlasovSpecies:createSolver(hasE, hasB)
       mass             = self.mass,
       hasElectricField = hasE,
       hasMagneticField = hasB,
+      numVelFlux       = self.numVelFlux,
    }
 
    -- Must apply zero-flux BCs in velocity directions.
@@ -606,6 +611,25 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       fRhsOut:clear(0.0)    -- No RHS.
    end
 
+   debugNans = false
+   -- test for nans after collisionless solve
+   if debugNans == true then
+      local testFunc      = fRhsOut
+      local testFuncRange = testFunc:localRange()
+      local phaseIndexer  = testFunc:genIndexer()
+      local testFuncPtr   = testFunc:get(1)
+      for idx in testFuncRange:rowMajorIter(tId) do
+	 self.grid:setIndex(idx)
+	 testFunc:fill(phaseIndexer(idx), testFuncPtr)
+	 for cI = 1,self.basis:numBasis() do
+	    if (testFuncPtr[cI] ~= testFuncPtr[cI]) or (testFuncPtr[cI] == 1/0) then
+	       print("t = ", tcurr, "\ncolless update, at", idx[1], idx[2], idx[3], idx[4], idx[5], idx[6])
+	       os.exit(0)
+	    end
+	 end
+      end
+   end
+
    -- Perform the collision update.
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
@@ -613,6 +637,24 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          c:advance(tCurr, fIn, species, fRhsOut)
          -- The full 'species' list is needed for the cross-species
          -- collisions.
+      end
+   end
+
+   -- test for nans after collisions update
+   if debugNans == true then
+      local testFunc      = fRhsOut
+      local testFuncRange = testFunc:localRange()
+      local phaseIndexer  = testFunc:genIndexer()
+      local testFuncPtr   = testFunc:get(1)
+      for idx in testFuncRange:rowMajorIter(tId) do
+	 self.grid:setIndex(idx)
+	 testFunc:fill(phaseIndexer(idx), testFuncPtr)
+	 for cI = 1,self.basis:numBasis() do
+	    if (testFuncPtr[cI] ~= testFuncPtr[cI]) or (testFuncPtr[cI] == 1/0) then
+	       print("t =", tCurr, "\ncoll update, at", idx[1], idx[2], idx[3], idx[4], idx[5], idx[6])
+	       os.exit(0)
+	    end
+	 end
       end
    end
 
