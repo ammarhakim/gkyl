@@ -270,7 +270,6 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
 
    local phaseRange = distf:localRange()
    if self.onGhosts then -- Extend range to config-space ghosts.
-      local cdirs = {}
       for dir = 1, cDim do 
          phaseRange = phaseRange:extendDir(dir, distf:lowerGhost(), distf:upperGhost())
       end

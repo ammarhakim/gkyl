@@ -812,11 +812,8 @@ function KineticSpecies:applyBc(tCurr, fIn)
       -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
       if self.hasNonPeriodicBc then
          if self.feedbackBC then
-            self.numDensityCalc:advance(nil, {fIn}, { self.numDensity })
-            self.calcPartialM1Pvx:advance(nil, {fIn}, { self.momDensity })
-            self.ptclEnergyCalc:advance(nil, {fIn}, { self.ptclEnergy })
             for _, bc in ipairs(self.boundaryConditions) do
-               bc:advance(tCurr, {self.numDensity, self.momDensity, self.ptclEnergy}, {fIn})
+               bc:advance(tCurr, {fIn}, {fIn})
             end
          else
             for _, bc in ipairs(self.boundaryConditions) do
