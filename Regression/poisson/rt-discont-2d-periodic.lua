@@ -9,9 +9,9 @@ local Grid = require "Grid"
 local Updater = require "Updater"
 
 local polyOrder = 1
-local lower = {0, 0}
+local lower = {-1, -1}
 local upper = {1, 1}
-local cells = {16, 16}
+local cells = {32, 32}
 local periodicDirs = {1,2}
 
 local grid = Grid.RectCart {
@@ -41,35 +41,29 @@ local fOut = getField()
 local fExact = getField()
 
 -- Initial conditions from:
--- http://ammar-hakim.org/sj/je/je11/je11-fem-poisson.html
-local initDist = Updater.ProjectOnBasis {
+-- http://ammar-hakim.org/sj/je/je1/je1-periodic-poisson.html
+local initSource = Updater.ProjectOnBasis {
    onGrid = grid,
    basis = basis,
    evaluate = function(t, z)
       local x, y = z[1], z[2]
-      local a, b = 2, 5
-      local c1, d0 = 0, 0
-      local c0 = a/12 - 1/2
-      local d1 = b/12 - 1/2
-      local t1 = (1-a*x^2)*(-b*y^4/12 + y^2/2 + d0*y + d1)
-      local t2 = (1-b*y^2)*(-a*x^4/12 + x^2/2 + c0*x + c1)
-      return -t1-t2
+      return -math.exp(-10*(2*x*x+4*x*y+5*y*y))
    end,
 }
-local initExact = Updater.ProjectOnBasis {
-   onGrid = grid,
-   basis = basis,
-   evaluate = function(t, z)
-      local x, y = z[1], z[2]
-      local a, b = 2, 5
-      local c1, d0 = 0, 0
-      local c0 = a/12 - 1/2
-      local d1 = b/12 - 1/2
-      local t1 = x^2/2 - a*x^4/12 + c0*x + c1
-      local t2 = y^2/2 - b*y^4/12 + d0*y + d1
-      return t1*t2
-   end,
-}
+-- local initExact = Updater.ProjectOnBasis {
+--    onGrid = grid,
+--    basis = basis,
+--    evaluate = function(t, z)
+--       local x, y = z[1], z[2]
+--       local a, b = 2, 5
+--       local c1, d0 = 0, 0
+--       local c0 = a/12 - 1/2
+--       local d1 = b/12 - 1/2
+--       local t1 = x^2/2 - a*x^4/12 + c0*x + c1
+--       local t2 = y^2/2 - b*y^4/12 + d0*y + d1
+--       return t1*t2
+--    end,
+-- }
 
 local discontPoisson = Updater.DiscontPoisson {
    onGrid = grid,
@@ -78,7 +72,7 @@ local discontPoisson = Updater.DiscontPoisson {
    bcUpper = { { }, { } },
 }
 
-initDist:advance(0.0, {}, {fIn})
+initSource:advance(0.0, {}, {fIn})
 --initExact:advance(0.0, {}, {fExact})
 discontPoisson:advance(0.0, {fIn}, {fOut})
 
