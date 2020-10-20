@@ -66,7 +66,7 @@ function GkField:fullInit(appTbl)
    if tbl.aparBcRight then self.aparBcRight      = tbl.aparBcRight end
    if tbl.aparBcBottom then self.aparBcBottom    = tbl.aparBcBottom end
    if tbl.aparBcTop then self.aparBcTop          = tbl.aparBcTop end
-   if appTbl.periodicDirs then self.periodicDirs = appTbl.periodicDirs end
+   if appTbl.periodicDirs then self.periodicDirs = appTbl.periodicDirs else self.periodicDirs = {} end
 
    -- For storing integrated energies.
    self.phi2     = DataStruct.DynVector { numComponents = 1 }
@@ -614,6 +614,13 @@ function GkField:write(tm, force)
       if self.ioFrame == 0 then 
          self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeight_0.bp", tm, self.ioFrame, false)
          self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_0.bp", tm, self.ioFrame, false)
+         -- Write a grid file when using MappedCart.
+         local metaData = {
+            polyOrder = self.basis:polyOrder(),
+            basisType = self.basis:id(),
+            grid      = GKYL_OUT_PREFIX .. "_grid.bp"
+         }
+         self.grid:write("grid.bp", 0.0, metaData)
       end
       
       if self.ioTrigger(tm) or force then
@@ -1319,29 +1326,79 @@ function GkGeometry:createSolver()
       return 1.0/(self.jacobGeoFunc(t, xn)*self.bmagFunc(t, xn))
    end
 
-   -- calculate all geometry quantities at once to avoid repeated metric calculations
-   self.calcAllGeo = function(t, xn)
-      local g = {}
-      self.grid:calcMetric(xn, g)
-      local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
-      local jacobian = math.sqrt(-g[3]^2*g[4] + 2*g[2]*g[3]*g[5] - g[1]*g[5]^2 - g[2]^2*g[6] + g[1]*g[4]*g[6])
-      local geoX = g_xz/math.sqrt(g_zz)
-      local geoY = g_yz/math.sqrt(g_zz)
-      local geoZ = math.sqrt(g_zz)
+   -- Calculate all geometry quantities at once to avoid repeated metric calculations.
+   if self.ndim == 1 then
+      self.calcAllGeo = function(t, xn)
+         local g = {}
+         self.grid:calcMetric(xn, g)
+         local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = 1.0, 0.0, 0.0, 1.0, 0.0, g[1]
+         local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
+         local geoX     = g_xz/math.sqrt(g_zz)
+         local geoY     = g_yz/math.sqrt(g_zz)
+         local geoZ     = math.sqrt(g_zz)
 
-      local det = jacobian^2
-      local gxx = (g[4]*g[6]-g[5]^2)/det
-      local gxy = (g[3]*g[5]-g[2]*g[6])/det
-      local gxz = (g[2]*g[5]-g[3]*g[4])/det
-      local gyy = (g[1]*g[6]-g[3]^2)/det
-      local gyz = (g[2]*g[3]-g[1]*g[5])/det
-      local gzz = (g[1]*g[4]-g[2]^2)/det
+         local det = jacobian^2
+         local gxx = (g_yy*g_zz-g_yz^2)/det
+         local gxy = (g_xz*g_yz-g_xy*g_zz)/det
+         local gxz = (g_xy*g_yz-g_xz*g_yy)/det
+         local gyy = (g_xx*g_zz-g_xz^2)/det
+         local gyz = (g_xy*g_xz-g_xx*g_yz)/det
+         local gzz = (g_xx*g_yy-g_xy^2)/det
 
-      local bmag = self.bmagFunc(t, xn)
-      local gradpar = jacobian*bmag/math.sqrt(g_zz)
+         local bmag    = self.bmagFunc(t, xn)
+         local gradpar = jacobian*bmag/math.sqrt(g_zz)
 
-      return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, gradpar, 
-             geoX, geoY, geoZ, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
+         return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, gradpar, 
+                geoX, geoY, geoZ, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
+      end
+   elseif self.ndim == 2 then
+      self.calcAllGeo = function(t, xn)
+         local g = {}
+         self.grid:calcMetric(xn, g)
+         local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], 0.0, g[3], 0.0, 1.0
+         local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
+         local geoX     = g_xz/math.sqrt(g_zz)
+         local geoY     = g_yz/math.sqrt(g_zz)
+         local geoZ     = math.sqrt(g_zz)
+
+         local det = jacobian^2
+         local gxx = (g_yy*g_zz-g_yz^2)/det
+         local gxy = (g_xz*g_yz-g_xy*g_zz)/det
+         local gxz = (g_xy*g_yz-g_xz*g_yy)/det
+         local gyy = (g_xx*g_zz-g_xz^2)/det
+         local gyz = (g_xy*g_xz-g_xx*g_yz)/det
+         local gzz = (g_xx*g_yy-g_xy^2)/det
+
+         local bmag    = self.bmagFunc(t, xn)
+         local gradpar = jacobian*bmag/math.sqrt(g_zz)
+
+         return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, gradpar, 
+                geoX, geoY, geoZ, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
+       end
+   else
+      self.calcAllGeo = function(t, xn)
+         local g = {}
+         self.grid:calcMetric(xn, g)
+         local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
+         local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
+         local geoX     = g_xz/math.sqrt(g_zz)
+         local geoY     = g_yz/math.sqrt(g_zz)
+         local geoZ     = math.sqrt(g_zz)
+
+         local det = jacobian^2
+         local gxx = (g_yy*g_zz-g_yz^2)/det
+         local gxy = (g_xz*g_yz-g_xy*g_zz)/det
+         local gxz = (g_xy*g_yz-g_xz*g_yy)/det
+         local gyy = (g_xx*g_zz-g_xz^2)/det
+         local gyz = (g_xy*g_xz-g_xx*g_yz)/det
+         local gzz = (g_xx*g_yy-g_xy^2)/det
+
+         local bmag    = self.bmagFunc(t, xn)
+         local gradpar = jacobian*bmag/math.sqrt(g_zz)
+
+         return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, gradpar, 
+                geoX, geoY, geoZ, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
+       end
    end
 
    -- projection updaters
@@ -1519,7 +1576,7 @@ function GkGeometry:initField()
    self.separateComponents:advance(0, {self.geo.allGeo}, {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
                                     self.geo.bmag, self.geo.bmagInv, self.geo.gradpar, self.geo.geoX, self.geo.geoY, self.geo.geoZ,
                                     self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
-   print("Finished GkGeo init")
+   print("Finished initializing the geometry")
    --self.setBmag:advance(0.0, {}, {self.geo.bmag})
    --self.fieldIo:write(self.geo.bmag, string.format("bmag_%d.bp", 0), 0, 0)
    --self.setBmagInv:advance(0.0, {}, {self.geo.bmagInv})

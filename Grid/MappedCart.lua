@@ -35,7 +35,6 @@ function MappedCart:init(tbl)
    -- determine how many values mapc2p returns
    self._rdim = #{ self._mapc2p(self._lower) }
 
-   -- stuff for use in various methods
    self._xc = Lin.Vec(self:ndim())
    self._d1, self._d2, self._d3 = Lin.Vec(self:ndim()), Lin.Vec(self:ndim()), Lin.Vec(self:ndim())
 end
@@ -48,11 +47,23 @@ function MappedCart:mapc2p(xc)
 end
 
 -- internal methods, not to be used directly by user
-function MappedCart:_calcMetric_1d(xc, g)
+function MappedCart:_calcMetric_1d_r1(xc, g)
    local d1 = self._d1
    d1[1] = diff.derivt(self._mapc2p, 1)(xc)
 
    g[1] = d1[1]^2
+end
+function MappedCart:_calcMetric_1d_r2(xc, g)
+   local d1, d2 = self._d1, self._d2
+   d1[1], d2[1] = diff.derivt(self._mapc2p, 1)(xc)
+
+   g[1] = d1[1]^2 + d2[1]^2
+end
+function MappedCart:_calcMetric_1d_r3(xc, g)
+   local d1, d2, d3 = self._d1, self._d2, self._d3
+   d1[1], d2[1], d3[1] = diff.derivt(self._mapc2p, 1)(xc)
+
+   g[1] = d1[1]^2 + d2[1]^2 + d3[1]^2
 end
 function MappedCart:_calcMetric_2d_r2(xc, g)
    local d1, d2 = self._d1, self._d2
@@ -92,7 +103,13 @@ end
 function MappedCart:calcMetric(xc, gOut)
    local ndim = self:ndim()
    if ndim == 1 then
-      self:_calcMetric_1d(xc, gOut)
+      if self._rdim == 1 then
+	 self:_calcMetric_1d_r1(xc, gOut)
+      elseif self._rdim == 2 then
+	 self:_calcMetric_1d_r2(xc, gOut)
+      elseif self._rdim == 3 then
+	 self:_calcMetric_1d_r3(xc, gOut)
+      end
    elseif ndim == 2 then
       if self._rdim == 2 then
 	 self:_calcMetric_2d_r2(xc, gOut)
@@ -199,7 +216,7 @@ function MappedCart:cellCenterPhys(xp)
 end
 
 function MappedCart:write(fName)
-   -- create a grid over nodes and a field to store nodal coordinates
+   -- Create a grid over nodes and a field to store nodal coordinates.
    local cells, lower, upper = {}, {}, {}
    for d = 1, self:ndim() do
       cells[d] = self:numCells(d)+1 -- one more layer of nodes than cells

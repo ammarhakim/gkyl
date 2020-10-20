@@ -346,7 +346,8 @@ local function buildApplication(self, tbl)
       -- and adjust tStart accordingly.
       tStart = readRestart()
    else
-      writeData(0.0) -- Write initial conditions.
+      writeData(0.0)      -- Write initial conditions.
+      writeRestart(0.0)   -- Write initial conditions as a restart file.
    end
 
    -- Determine whether we need two steps in forwardEuler.

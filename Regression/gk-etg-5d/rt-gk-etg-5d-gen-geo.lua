@@ -2,7 +2,7 @@
 -- parameters taken from Fig 2.4 of Beer's thesis.
 --
 -- Plasma ------------------------------------------------------------------------
-local Plasma = require "App.PlasmaOnCartGrid"
+local Plasma = require("App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
 local math = require("sci.math").generic
 
@@ -81,7 +81,7 @@ plasmaApp = Plasma.App {
    deltaF = true,
 
    -- gyrokinetic electrons
-   electron = Plasma.GkSpecies {
+   electron = Plasma.Species {
       charge = qe,
       mass = me,
       -- velocity space grid
@@ -129,13 +129,13 @@ plasmaApp = Plasma.App {
    },
 
    -- field solver
-   field = Plasma.GkField {
+   field = Plasma.Field {
       evolve = true, -- evolve fields?
       --polarizationWeight = 0.0,
    },
 
    -- magnetic geometry 
-   funcField = Plasma.GkGeometry {
+   funcField = Plasma.Geometry {
       -- background magnetic field
       bmag = function (t, xn)
          local x, y, z = xn[1], xn[2], xn[3]
