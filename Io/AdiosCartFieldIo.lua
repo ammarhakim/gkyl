@@ -73,7 +73,7 @@ function AdiosCartFieldIo:init(tbl)
    self._outBuff   = {}
    self._maxFields = 50
    for i = 1, self._maxFields do
-      self._outBuff[i] = self._allocator(1) -- This will be resized on an actual write().
+      self._outBuff[i] = self._allocator(1) -- This will be resized on an actual read/write.
    end
 
    -- write skin cells on boundaries of global domain (for BCs)

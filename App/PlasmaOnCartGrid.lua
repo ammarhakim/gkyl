@@ -650,7 +650,7 @@ local function buildApplication(self, tbl)
    end
 
    local tmEnd = Time.clock()
-   log(string.format("Initializing completed in %g sec\n\n", tmEnd-tmStart))
+   log(string.format("Initialization completed in %g sec\n\n", tmEnd-tmStart))
 
    -- Read some info about restarts (default is to write restarts 1/20 (5%) of sim, 
    -- but no need to write restarts more frequently than regular diagnostic output).

@@ -1,6 +1,6 @@
 -- This test is based off NSTX-like SOL simulation
 -- Plasma ------------------------------------------------------------------------
-local Plasma    = (require "App.PlasmaOnCartGrid").Gyrokinetic
+local Plasma    = (require "App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
 local Mpi       = require "Comm.Mpi"
 local math      = require("sci.math").generic
@@ -258,7 +258,7 @@ plasmaApp = Plasma.App {
    nFrame      = 1,                     -- Number of output frames.
    lower       = {.06, -math.pi, -math.pi}, -- Configuration space lower left.
    upper       = {.1, math.pi, math.pi},   -- Configuration space upper right.
-   cells       = {8, 1, 8},              -- Configuration space cells.
+   cells       = {4, 1, 4},              -- Configuration space cells.
    mapc2p = function(xc)
       -- field-aligned coordinates (x,y,z)
       local x, y, z = xc[1], xc[2], xc[3]
@@ -277,7 +277,7 @@ plasmaApp = Plasma.App {
    timeStepper = "rk3",                    -- One of "rk2" or "rk3".
    cflFrac     = 0.4,
    restartFrameEvery = .5,
-   decompCuts = {4, 1, 2},
+   decompCuts = {1, 1, 1},
 
    -- Boundary conditions for configuration space.
    periodicDirs = {2},     -- Periodic in y only.
@@ -287,8 +287,8 @@ plasmaApp = Plasma.App {
       charge = qe,
       mass  = me,
       lower = {-4*vte, 0},
-      upper = {4*vte, 12*me*vte^2/(2*B0)},
-      cells = {6, 3},
+      upper = { 4*vte, 12*me*vte^2/(2*B0)},
+      cells = {3, 3},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
               density = function (t, xn)
@@ -341,8 +341,8 @@ plasmaApp = Plasma.App {
       mass   = mi,
       -- Velocity space grid.
       lower = {-4*vti, 0},
-      upper = {4*vti, 12*mi*vti^2/(2*B0)},
-      cells = {6, 3},
+      upper = { 4*vti, 12*mi*vti^2/(2*B0)},
+      cells = {3, 3},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
               density = function (t, xn)
