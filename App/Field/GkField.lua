@@ -356,7 +356,7 @@ function GkField:createSolver(species, funcField)
    if self.ndim == 3 and not self.discontinuousPhi then
       self.phiZSmoother = Updater.FemParPoisson {
         onGrid = self.grid,
-        basis = self.basis,
+        basis  = self.basis,
         smooth = true,
       }
    end
@@ -551,7 +551,7 @@ function GkField:createDiagnostics()
    self.fieldIo = AdiosCartFieldIo {
       elemType   = self.potentials[1].phi:elemType(),
       method     = self.ioMethod,
-      writeSkin = self.writeSkin,
+      writeSkin  = self.writeSkin,
       metaData   = {
 	 polyOrder = self.basis:polyOrder(),
 	 basisType = self.basis:id()
@@ -1003,6 +1003,10 @@ function GkGeometry:fullInit(appTbl)
    -- Wall potential for sheath BCs.
    self.phiWallFunc = tbl.phiWall
    if self.phiWallFunc then assert(type(self.phiWallFunc)=="function", "GkGeometry: phiWall must be a function (t, xn)") end
+
+   -- File containing geometry quantities that go into equations.
+   self.allGeoFile = tbl.allGeoFile
+
 end
 
 function GkGeometry:hasEB() end
@@ -1147,12 +1151,14 @@ function GkGeometry:alloc()
       syncPeriodicDirs = false
    }
 
-   self.geo.allGeo = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis()*16,
-      ghost = {1, 1},
-      syncPeriodicDirs = false,
-   }
+   if self.allGeoFile == nil then
+      self.geo.allGeo = DataStruct.Field {
+         onGrid = self.grid,
+         numComponents = self.basis:numBasis()*16,
+         ghost = {1, 1},
+         syncPeriodicDirs = false,
+      }
+   end
       
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
@@ -1402,12 +1408,14 @@ function GkGeometry:createSolver()
    end
 
    -- projection updaters
-   self.setAllGeo = Updater.EvalOnNodes {
-      onGrid = self.grid,
-      basis = self.basis,
-      evaluate = self.calcAllGeo,
-      projectOnGhosts = true,
-   }
+   if self.allGeoFile == nil then
+      self.setAllGeo = Updater.EvalOnNodes {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = self.calcAllGeo,
+         projectOnGhosts = true,
+      }
+   end
    self.setBmag = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
@@ -1506,8 +1514,8 @@ function GkGeometry:createSolver()
    }
    if self.phiWallFunc then 
       self.setPhiWall = Updater.EvalOnNodes {
-         onGrid = self.grid,
-         basis = self.basis,
+         onGrid          = self.grid,
+         basis           = self.basis,
          projectOnGhosts = true,
          evaluate        = self.phiWallFunc
       }
@@ -1533,10 +1541,10 @@ function GkGeometry:createSolver()
    else self.bmagVars = {1} end
 
    self.smoother = Updater.FemPoisson {
-     onGrid = self.grid,
-     basis = self.basis,
-     periodicDirs = self.periodicDirs,
-     smooth = true,
+      onGrid = self.grid,
+      basis = self.basis,
+      periodicDirs = self.periodicDirs,
+      smooth = true,
    }
 
    self.weakDivision = Updater.CartFieldBinOp {
@@ -1547,9 +1555,9 @@ function GkGeometry:createSolver()
    }
 
    self.unitWeight = DataStruct.Field {
-        onGrid = self.grid,
-        numComponents = self.basis:numBasis(),
-        ghost = {1, 1},
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
    }
    local initUnit = Updater.ProjectOnBasis {
       onGrid = self.grid,
@@ -1571,11 +1579,26 @@ function GkGeometry:createDiagnostics()
 end
 
 function GkGeometry:initField()
-   self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
-   self.fieldIo:write(self.geo.allGeo, string.format("allGeo_%d.bp", 0), 0, 0)
-   self.separateComponents:advance(0, {self.geo.allGeo}, {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
-                                    self.geo.bmag, self.geo.bmagInv, self.geo.gradpar, self.geo.geoX, self.geo.geoY, self.geo.geoZ,
-                                    self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
+   if self.allGeoFile then
+      -- Read the geometry quantities from a file.
+      local tm, fr = self.fieldIo:read({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
+         jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+         gradpar=self.geo.gradpar, geoX=self.geo.geoX, geoY=self.geo.geoY, geoZ=self.geo.geoZ, gxx=self.geo.gxx,
+         gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
+         self.allGeoFile)
+   else
+      self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
+      self.separateComponents:advance(0, {self.geo.allGeo},
+         {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
+          self.geo.bmag, self.geo.bmagInv, self.geo.gradpar, self.geo.geoX, self.geo.geoY, self.geo.geoZ,
+          self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
+      -- Write the geometry quantities to a file.
+      self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
+         jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+         gradpar=self.geo.gradpar, geoX=self.geo.geoX, geoY=self.geo.geoY, geoZ=self.geo.geoZ, gxx=self.geo.gxx,
+         gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
+         string.format("allGeo_%d.bp", 0), 0, 0)
+   end
    print("Finished initializing the geometry")
    --self.setBmag:advance(0.0, {}, {self.geo.bmag})
    --self.fieldIo:write(self.geo.bmag, string.format("bmag_%d.bp", 0), 0, 0)

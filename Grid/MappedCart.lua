@@ -150,9 +150,9 @@ end
 -- Computes jacobian components
 function MappedCart:calcDiffLen(xcv, hOut)
 
-    --get derivatives, physical coordinates
+    -- Get derivatives, physical coordinates.
     local dxdxc, dydxc, dzdxc, dxdyc, dydyc, dzdyc = self:mapDiff(xcv)
-    --assign to input vector
+    -- Assign to input vector.
     hOut[1], hOut[2], hOut[3], hOut[4], hOut[5], hOut[6] = dxdxc, dydxc, dzdxc, dxdyc, dydyc, dzdyc
 end
 
