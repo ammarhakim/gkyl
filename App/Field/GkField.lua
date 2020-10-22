@@ -71,8 +71,8 @@ function GkField:fullInit(appTbl)
    if appTbl.periodicDirs then self.periodicDirs = appTbl.periodicDirs else self.periodicDirs = {} end
 
    -- For storing integrated energies.
-   self.phiSq     = DataStruct.DynVector { numComponents = 1 }
-   self.aparSq    = DataStruct.DynVector { numComponents = 1 }
+   self.phiSq    = DataStruct.DynVector { numComponents = 1 }
+   self.aparSq   = DataStruct.DynVector { numComponents = 1 }
    self.esEnergy = DataStruct.DynVector { numComponents = 1 }
    self.emEnergy = DataStruct.DynVector { numComponents = 1 }
 
@@ -182,9 +182,7 @@ function GkField:alloc(nRkDup)
    local initUnit = Updater.ProjectOnBasis {
       onGrid   = self.grid,
       basis    = self.basis,
-      evaluate = function (t,xn)
-                    return 1.0
-                 end,
+      evaluate = function (t,xn) return 1.0 end,
       projectOnGhosts = true,
    }
    initUnit:advance(0.,{},{self.unitWeight})
@@ -328,17 +326,19 @@ function GkField:createSolver(species, externalField)
    -- Set up FEM solver for Poisson equation to solve for phi.
    local gxx, gxy, gyy, jacobGeo
    if externalField.geo then 
-     -- include jacobian factor in metric coefficients if using linearized polarization density
-     if self.linearizedPolarization then
-        gxx = externalField.geo.gxxJ
-        gxy = externalField.geo.gxyJ
-        gyy = externalField.geo.gyyJ
-     else  -- if not, jacobian already included in polarization density
-        gxx = externalField.geo.gxx
-        gxy = externalField.geo.gxy
-        gyy = externalField.geo.gyy
-     end
-     jacobGeo = externalField.geo.jacobGeo
+      -- include jacobian factor in metric coefficients if using linearized polarization density
+      if self.linearizedPolarization then
+         gxx = externalField.geo.gxxJ
+         gxy = externalField.geo.gxyJ
+         gyy = externalField.geo.gyyJ
+      else  -- if not, jacobian already included in polarization density
+         gxx = externalField.geo.gxx
+         gxy = externalField.geo.gxy
+         gyy = externalField.geo.gyy
+      end
+      jacobGeo = externalField.geo.jacobGeo
+   else
+      jacobGeo = self.unitWeight
    end
    self.phiSlvr = Updater.FemPoisson {
      onGrid   = self.grid,
@@ -346,9 +346,9 @@ function GkField:createSolver(species, externalField)
      bcLeft   = self.phiBcLeft,
      bcRight  = self.phiBcRight,
      bcBottom = self.phiBcBottom,
-     bcTop = self.phiBcTop,
-     bcBack = self.phiBcBack,
-     bcFront = self.phiBcFront,
+     bcTop    = self.phiBcTop,
+     bcBack   = self.phiBcBack,
+     bcFront  = self.phiBcFront,
      periodicDirs = self.periodicDirs,
      zContinuous  = not self.discontinuousPhi,
      gxx = gxx,
@@ -393,7 +393,7 @@ function GkField:createSolver(species, externalField)
          modifierConstant = modifierConstant + self.adiabSpec:getQneutFac() 
       end
 
-      self.laplacianWeight:combine(laplacianConstant, self.unitWeight) -- no jacobian here
+      self.laplacianWeight:combine(laplacianConstant, self.unitWeight)   -- No jacobian here.
       self.modifierWeight:combine(modifierConstant, jacobGeo)
 
       if laplacianConstant ~= 0 then self.phiSlvr:setLaplacianWeight(self.laplacianWeight) end
@@ -421,10 +421,10 @@ function GkField:createSolver(species, externalField)
      }
      if ndim==1 then
         laplacianConstant = 0.0
-        modifierConstant = self.kperp2/self.mu0
+        modifierConstant  = self.kperp2/self.mu0
      else
         laplacianConstant = -1.0/self.mu0
-        modifierConstant = 0.0
+        modifierConstant  = 0.0
      end
      self.laplacianWeight:combine(laplacianConstant, self.unitWeight)
      self.modifierWeight:combine(modifierConstant, self.unitWeight)
@@ -1562,18 +1562,16 @@ function GkGeometry:createSolver()
       ghost = {1, 1},
    }
    local initUnit = Updater.ProjectOnBasis {
-      onGrid = self.grid,
-      basis = self.basis,
-      evaluate = function (t,xn)
-                    return 1.0
-                 end,
+      onGrid   = self.grid,
+      basis    = self.basis,
+      evaluate = function (t,xn) return 1.0 end,
       projectOnGhosts = true,
    }
    initUnit:advance(0.,{},{self.unitWeight})
 
    self.separateComponents = Updater.SeparateVectorComponents {
       onGrid = self.grid,
-      basis = self.basis,
+      basis  = self.basis,
    }
 end
 
