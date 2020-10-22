@@ -547,10 +547,10 @@ function KineticSpecies:alloc(nRkDup)
 
    -- Create Adios object for field I/O.
    self.distIo = AdiosCartFieldIo {
-      elemType  = self.distf[1]:elemType(),
-      method    = self.ioMethod,
+      elemType   = self.distf[1]:elemType(),
+      method     = self.ioMethod,
       writeGhost = self.writeGhost,
-      metaData  = {
+      metaData   = {
 	 polyOrder = self.basis:polyOrder(),
 	 basisType = self.basis:id(),
          grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"

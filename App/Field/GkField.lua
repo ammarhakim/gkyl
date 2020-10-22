@@ -121,6 +121,22 @@ function GkField:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 function GkField:setBasis(basis) self.basis = basis end
 function GkField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() end
 
+local function createField(grid, basis, ghostCells, vComp, periodicSync)
+   vComp = vComp or 1
+   local fld = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = basis:numBasis()*vComp,
+      ghost         = ghostCells,
+      metaData = {
+         polyOrder = basis:polyOrder(),
+         basisType = basis:id()
+      },
+      syncPeriodicDirs = periodicSync,
+   }
+   fld:clear(0.0)
+   return fld
+end
+
 function GkField:alloc(nRkDup)
    -- Allocate fields needed in RK update.
    -- nField is related to number of RK stages.
@@ -128,57 +144,25 @@ function GkField:alloc(nRkDup)
    self.nRkDup = nRkDup
    for i = 1, nRkDup do
       self.potentials[i] = {}
-      self.potentials[i].phi = DataStruct.Field {
-         onGrid        = self.grid,
-         numComponents = self.basis:numBasis(),
-         ghost         = {1, 1}
-      }
+      self.potentials[i].phi    = createField(self.grid,self.basis,{1,1})
+      self.potentials[i].phiAux = createField(self.grid,self.basis,{1,1})
       self.potentials[i].phi:clear(0.0)
-      self.potentials[i].phiAux = DataStruct.Field {
-         onGrid        = self.grid,
-         numComponents = self.basis:numBasis(),
-         ghost         = {1, 1}
-      }
       self.potentials[i].phiAux:clear(0.0)
       if self.isElectromagnetic then
-         self.potentials[i].apar = DataStruct.Field {
-            onGrid        = self.grid,
-            numComponents = self.basis:numBasis(),
-            ghost         = {1, 1}
-         }
-         self.potentials[i].dApardt = DataStruct.Field {
-            onGrid        = self.grid,
-            numComponents = self.basis:numBasis(),
-            ghost         = {1, 1}
-         }
+         self.potentials[i].apar    = createField(self.grid,self.basis,{1,1})
+         self.potentials[i].dApardt = createField(self.grid,self.basis,{1,1})
          self.potentials[i].apar:clear(0.0)
          self.potentials[i].dApardt:clear(0.0)
       end
    end
 
-   self.dApardtProv = DataStruct.Field {
-      onGrid        = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost         = {1, 1}
-   }
+   self.dApardtProv = createField(self.grid,self.basis,{1,1})
 
    -- Create fields for total charge and current densities.
-   self.chargeDens = DataStruct.Field {
-      onGrid        = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost         = {1, 1}
-   }
-   self.currentDens = DataStruct.Field {
-      onGrid        = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost         = {1, 1}
-   }
+   self.chargeDens  = createField(self.grid,self.basis,{1,1})
+   self.currentDens = createField(self.grid,self.basis,{1,1})
    -- Set up constant dummy field.
-   self.unitWeight = DataStruct.Field {
-      onGrid        = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost         = {1, 1},
-   }
+   self.unitWeight = createField(self.grid,self.basis,{1,1})
    local initUnit = Updater.ProjectOnBasis {
       onGrid   = self.grid,
       basis    = self.basis,
@@ -188,21 +172,9 @@ function GkField:alloc(nRkDup)
    initUnit:advance(0.,{},{self.unitWeight})
 
    -- Set up some other fields.
-   self.weight = DataStruct.Field {
-      onGrid        = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost         = {1, 1},
-   }
-   self.laplacianWeight = DataStruct.Field {
-      onGrid        = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost         = {1, 1},
-   }
-   self.modifierWeight = DataStruct.Field {
-      onGrid        = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost         = {1, 1},
-   }
+   self.weight          = createField(self.grid,self.basis,{1,1})
+   self.laplacianWeight = createField(self.grid,self.basis,{1,1})
+   self.modifierWeight  = createField(self.grid,self.basis,{1,1})
 end
 
 -- Solve for initial fields self-consistently 
@@ -215,11 +187,7 @@ function GkField:initField(species)
          evaluate        = self.externalPhi,
          projectOnGhosts = true
       }
-      self.externalPhiFld = DataStruct.Field {
-         onGrid        = self.grid,
-         numComponents = self.basis:numBasis(),
-         ghost         = {1, 1}
-      }
+      self.externalPhiFld = createField(self.grid,self.basis,{1,1})
       evalOnNodes:advance(0.0, {}, {self.externalPhiFld})
       for i = 1, self.nRkDup do
          if self.externalPhiTimeDependence then
@@ -1007,7 +975,7 @@ function GkGeometry:fullInit(appTbl)
    if self.phiWallFunc then assert(type(self.phiWallFunc)=="function", "GkGeometry: phiWall must be a function (t, xn)") end
 
    -- File containing geometry quantities that go into equations.
-   self.allGeoFile = tbl.allGeoFile
+   self.fromFile = tbl.fromFile
 
 end
 
@@ -1022,151 +990,62 @@ function GkGeometry:alloc()
    self.geo = {}
 
    -- Background magnetic field.
-   self.geo.bmag = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false,
-   }
+   self.geo.bmag = createField(self.grid,self.basis,{1,1},1,false)
 
    -- bmagInv ~ 1/B.
-   self.geo.bmagInv = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
+   self.geo.bmagInv = createField(self.grid,self.basis,{1,1},1,false)
 
    -- gradpar = J B / sqrt(g_zz)
-   self.geo.gradpar = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
+   self.geo.gradpar = createField(self.grid,self.basis,{1,1},1,false)
 
    -- jacobian of coordinate transformation
-   self.geo.jacobGeo = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
+   self.geo.jacobGeo = createField(self.grid,self.basis,{1,1},1,false)
 
    -- inverse of jacobian of coordinate transformation
-   self.geo.jacobGeoInv = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
+   self.geo.jacobGeoInv = createField(self.grid,self.basis,{1,1},1,false)
 
    -- total jacobian, including phase space jacobian
    -- jacobTot = J B 
-   self.geo.jacobTot = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
+   self.geo.jacobTot = createField(self.grid,self.basis,{1,1},1,false)
 
    -- inverse of total jacobian, including phase space jacobian
    -- jacobTotInv = 1 / ( J B )
-   self.geo.jacobTotInv = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
+   self.geo.jacobTotInv = createField(self.grid,self.basis,{1,1},1,false)
 
    -- functions for magnetic drifts 
    -- geoX = g_xz / ( sqrt(g_zz) )
-   self.geo.geoX = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
+   self.geo.geoX = createField(self.grid,self.basis,{1,1},1,false)
    -- geoY = g_yz / ( sqrt(g_zz) )
-   self.geo.geoY = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
+   self.geo.geoY = createField(self.grid,self.basis,{1,1},1,false)
    -- geoZ = sqrt(g_zz)
-   self.geo.geoZ = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
+   self.geo.geoZ = createField(self.grid,self.basis,{1,1},1,false)
  
    -- Functions for Laplacian.
    -- g^xx = |grad x|**2.
-   self.geo.gxx = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
+   self.geo.gxx = createField(self.grid,self.basis,{1,1},1,false)
    -- g^xy = grad x . grad y.
-   self.geo.gxy = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
+   self.geo.gxy = createField(self.grid,self.basis,{1,1},1,false)
    -- g^yy = |grad y|**2.
-   self.geo.gyy = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
+   self.geo.gyy = createField(self.grid,self.basis,{1,1},1,false)
 
    -- functions for laplacian, including jacobian factor
-   self.geo.gxxJ = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
-   self.geo.gxyJ = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
-   self.geo.gyyJ = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
+   self.geo.gxxJ = createField(self.grid,self.basis,{1,1},1,false)
+   self.geo.gxyJ = createField(self.grid,self.basis,{1,1},1,false)
+   self.geo.gyyJ = createField(self.grid,self.basis,{1,1},1,false)
    
    -- Wall potential for sheath BCs.
-   self.geo.phiWall = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
+   self.geo.phiWall = createField(self.grid,self.basis,{1,1},1,false)
 
-   if self.allGeoFile == nil then
-      self.geo.allGeo = DataStruct.Field {
-         onGrid = self.grid,
-         numComponents = self.basis:numBasis()*16,
-         ghost = {1, 1},
-         syncPeriodicDirs = false,
-      }
+   if self.fromFile == nil then
+      self.geo.allGeo = createField(self.grid,self.basis,{1,1},16,false)
    end
       
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
-      elemType = self.geo.bmag:elemType(),
-      method = self.ioMethod,
-      metaData = {
+      elemType   = self.geo.bmag:elemType(),
+      method     = self.ioMethod,
+      writeGhost = true,
+      metaData   = {
 	 polyOrder = self.basis:polyOrder(),
 	 basisType = self.basis:id()
       },
@@ -1410,10 +1289,10 @@ function GkGeometry:createSolver()
    end
 
    -- projection updaters
-   if self.allGeoFile == nil then
+   if self.fromFile == nil then
       self.setAllGeo = Updater.EvalOnNodes {
-         onGrid = self.grid,
-         basis = self.basis,
+         onGrid   = self.grid,
+         basis    = self.basis,
          evaluate = self.calcAllGeo,
          projectOnGhosts = true,
       }
@@ -1556,11 +1435,7 @@ function GkGeometry:createSolver()
       onGhosts = true,
    }
 
-   self.unitWeight = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-   }
+   self.unitWeight = createField(self.grid,self.basis,{1,1})
    local initUnit = Updater.ProjectOnBasis {
       onGrid   = self.grid,
       basis    = self.basis,
@@ -1579,25 +1454,19 @@ function GkGeometry:createDiagnostics()
 end
 
 function GkGeometry:initField()
-   if self.allGeoFile then
+   if self.fromFile then
       -- Read the geometry quantities from a file.
       local tm, fr = self.fieldIo:read({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
          jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
          gradpar=self.geo.gradpar, geoX=self.geo.geoX, geoY=self.geo.geoY, geoZ=self.geo.geoZ, gxx=self.geo.gxx,
          gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
-         self.allGeoFile)
+         self.fromFile)
    else
       self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
       self.separateComponents:advance(0, {self.geo.allGeo},
          {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
           self.geo.bmag, self.geo.bmagInv, self.geo.gradpar, self.geo.geoX, self.geo.geoY, self.geo.geoZ,
           self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
-      -- Write the geometry quantities to a file.
-      self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
-         jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-         gradpar=self.geo.gradpar, geoX=self.geo.geoX, geoY=self.geo.geoY, geoZ=self.geo.geoZ, gxx=self.geo.gxx,
-         gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
-         string.format("allGeo_%d.bp", 0), 0, 0)
    end
    print("Finished initializing the geometry")
    --self.setBmag:advance(0.0, {}, {self.geo.bmag})
@@ -1681,16 +1550,12 @@ end
 function GkGeometry:write(tm)
    -- Not evolving geometry, so only write geometry at beginning.
    if self.ioFrame == 0 then
-      self.fieldIo:write(self.geo.bmag, string.format("bmag_%d.bp", self.ioFrame), tm, self.ioFrame)
-      self.fieldIo:write(self.geo.gradpar, string.format("gradpar_%d.bp", self.ioFrame), tm, self.ioFrame)
-      self.fieldIo:write(self.geo.geoX, string.format("geoX_%d.bp", self.ioFrame), tm, self.ioFrame)
-      self.fieldIo:write(self.geo.geoY, string.format("geoY_%d.bp", self.ioFrame), tm, self.ioFrame)
-      self.fieldIo:write(self.geo.geoZ, string.format("geoZ_%d.bp", self.ioFrame), tm, self.ioFrame)
-      self.fieldIo:write(self.geo.gxx, string.format("gxx_%d.bp", self.ioFrame), tm, self.ioFrame)
-      self.fieldIo:write(self.geo.gxy, string.format("gxy_%d.bp", self.ioFrame), tm, self.ioFrame)
-      self.fieldIo:write(self.geo.gyy, string.format("gyy_%d.bp", self.ioFrame), tm, self.ioFrame)
-      self.fieldIo:write(self.geo.jacobGeo, string.format("jacobGeo_%d.bp", self.ioFrame), tm, self.ioFrame)
-      self.fieldIo:write(self.geo.jacobTotInv, string.format("jacobTotInv_%d.bp", self.ioFrame), tm, self.ioFrame)
+      -- Write the geometry quantities to a file.
+      self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
+         jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+         gradpar=self.geo.gradpar, geoX=self.geo.geoX, geoY=self.geo.geoY, geoZ=self.geo.geoZ, gxx=self.geo.gxx,
+         gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
+         string.format("allGeo_%d.bp", self.ioFrame), tm, self.ioFrame)
    end
    self.ioFrame = self.ioFrame+1
 end
