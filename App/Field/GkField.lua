@@ -1054,7 +1054,10 @@ end
 
 function GkGeometry:createSolver()
 
-   -- get needed metric functions from grid or defaults
+   -- Get needed metric functions from grid or defaults.
+   self.jacobGeoFunc = function (t, xn)
+      return self.grid:calcJacobian(xn)
+   end
    if self.ndim == 1 then
       self.g_zzFunc = function (t, xn)
          local g = {}
@@ -1075,9 +1078,6 @@ function GkGeometry:createSolver()
       end
       self.gyy_Func = function (t, xn)
          return 1
-      end
-      self.jacobGeoFunc = function (t, xn)
-         return self.grid:calcJacobian(xn)
       end
       self.gxxJ_Func = function (t, xn)
          return self.jacobGeoFunc(t,xn)
@@ -1113,9 +1113,6 @@ function GkGeometry:createSolver()
          self.grid:calcContraMetric(xn, g)
          return g[3]
       end
-      self.jacobGeoFunc = function (t, xn)
-         return self.grid:calcJacobian(xn)
-      end
       self.gxxJ_Func = function (t, xn)
          local g = {}
          self.grid:calcContraMetric(xn, g)
@@ -1132,9 +1129,6 @@ function GkGeometry:createSolver()
          return g[3]*self.jacobGeoFunc(t,xn)
       end
    elseif self.ndim == 3 then
-      self.jacobGeoFunc = function (t, xn)
-         return self.grid:calcJacobian(xn)
-      end
       self.g_zzFunc = function (t, xn)
          local g = {}
          self.grid:calcMetric(xn, g)
@@ -1198,17 +1192,17 @@ function GkGeometry:createSolver()
       return math.sqrt(self.g_zzFunc(t,xn))
    end
 
-   -- inverse of jacobGeo, for removing jacobGeo factor from output quantities, e.g. density
+   -- Inverse of jacobGeo, for removing jacobGeo factor from output quantities, e.g. density.
    self.jacobGeoInvFunc = function (t, xn)
       return 1.0/self.jacobGeoFunc(t, xn)
    end
 
-   -- total jacobian, including geo jacobian and phase jacobian
+   -- Total jacobian, including geo jacobian and phase jacobian.
    self.jacobTotFunc = function (t, xn)
       return self.jacobGeoFunc(t, xn)*self.bmagFunc(t, xn)
    end
 
-   -- inverse of total jacobian, including geo jacobian and phase jacobian
+   -- Inverse of total jacobian, including geo jacobian and phase jacobian.
    self.jacobTotInvFunc = function (t, xn)
       return 1.0/(self.jacobGeoFunc(t, xn)*self.bmagFunc(t, xn))
    end
@@ -1218,7 +1212,14 @@ function GkGeometry:createSolver()
       self.calcAllGeo = function(t, xn)
          local g = {}
          self.grid:calcMetric(xn, g)
-         local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = 1.0, 0.0, 0.0, 1.0, 0.0, g[1]
+         local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz
+         if self.grid._inDim==1 then
+            g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = 1.0, 0.0, 0.0, 1.0, 0.0, g[1]
+         elseif self.grid._inDim==2 then
+            g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], 0.0, g[3], 0.0, 1.0
+         elseif self.grid._inDim==3 then
+            g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
+         end
          local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
          local geoX     = g_xz/math.sqrt(g_zz)
          local geoY     = g_yz/math.sqrt(g_zz)
@@ -1242,7 +1243,12 @@ function GkGeometry:createSolver()
       self.calcAllGeo = function(t, xn)
          local g = {}
          self.grid:calcMetric(xn, g)
-         local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], 0.0, g[3], 0.0, 1.0
+         local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz
+         if self.grid._inDim==2 then
+            g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], 0.0, g[3], 0.0, 1.0
+         elseif self.grid._inDim==3 then
+            g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
+         end
          local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
          local geoX     = g_xz/math.sqrt(g_zz)
          local geoY     = g_yz/math.sqrt(g_zz)

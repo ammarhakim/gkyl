@@ -169,10 +169,11 @@ local function buildApplication(self, tbl)
       lower = tbl.lower,
       upper = tbl.upper,
       cells = tbl.cells,
-      periodicDirs = periodicDirs,
+      periodicDirs  = periodicDirs,
       decomposition = decomp,
-      mappings = tbl.coordinateMap,
-      mapc2p = tbl.mapc2p,
+      mappings      = tbl.coordinateMap,
+      mapc2p        = tbl.mapc2p,
+      world         = tbl.world,
    }
    --confGrid:write("grid.bp")
 
