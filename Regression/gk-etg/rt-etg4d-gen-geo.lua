@@ -1,10 +1,12 @@
+-- Gkyl ------------------------------------------------------------------------
+--
 -- 4D GK ETG linear instability calculation
 -- using 'pgkyl -f etg4d_elecEnergy_ growth' should approximately give growth rate printed at end of run
 --
--- Plasma ------------------------------------------------------------------------
-local Plasma = require("App.PlasmaOnCartGrid").Gyrokinetic()
+--------------------------------------------------------------------------------
+local Plasma    = require("App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
-local math = require("sci.math").generic
+local math      = require("sci.math").generic
 
 -- physical parameters
 eV = Constants.ELEMENTARY_CHARGE
@@ -72,7 +74,7 @@ plasmaApp = Plasma.App {
    deltaF = true, -- only apply BCs to fluctuations, and use perturbed moments in field solve
 
    -- gyrokinetic electrons
-   electron = Plasma.GkSpecies {
+   electron = Plasma.Species {
       charge = qe,
       mass = me,
       -- velocity space grid
@@ -124,12 +126,12 @@ plasmaApp = Plasma.App {
    },
 
    -- field solver
-   field = Plasma.GkField {
+   field = Plasma.Field {
       evolve = true, -- evolve fields?
    },
 
    -- magnetic geometry 
-   funcField = Plasma.GkGeometry {
+   funcField = Plasma.Geometry {
       -- background magnetic field
       bmag = function (t, xn)
          local x = xn[1]

@@ -414,10 +414,10 @@ function GkField:createSolver(species, externalField)
        bcBottom = self.aparBcBottom,
        bcTop    = self.aparBcTop,
        periodicDirs = self.periodicDirs,
-       zContinuous = not self.discontinuousApar,
-       gxx = funcField.geo.gxxJ,
-       gxy = funcField.geo.gxyJ,
-       gyy = funcField.geo.gyyJ,
+       zContinuous  = not self.discontinuousApar,
+       gxx = externalField.geo.gxxJ,
+       gxy = externalField.geo.gxyJ,
+       gyy = externalField.geo.gyyJ,
      }
      if ndim==1 then
         laplacianConstant = 0.0
@@ -439,10 +439,10 @@ function GkField:createSolver(species, externalField)
        bcBottom = self.aparBcBottom,
        bcTop    = self.aparBcTop,
        periodicDirs = self.periodicDirs,
-       zContinuous = not self.discontinuousApar,
-       gxx = funcField.geo.gxxJ,
-       gxy = funcField.geo.gxyJ,
-       gyy = funcField.geo.gyyJ,
+       zContinuous  = not self.discontinuousApar,
+       gxx = externalField.geo.gxxJ,
+       gxy = externalField.geo.gxyJ,
+       gyy = externalField.geo.gyyJ,
      }
      if ndim==1 then
         laplacianConstant = 0.0
@@ -466,10 +466,10 @@ function GkField:createSolver(species, externalField)
           bcBottom = self.aparBcBottom,
           bcTop    = self.aparBcTop,
           periodicDirs = self.periodicDirs,
-          zContinuous = not self.discontinuousApar,
-          gxx = funcField.geo.gxxJ,
-          gxy = funcField.geo.gxyJ,
-          gyy = funcField.geo.gyyJ,
+          zContinuous  = not self.discontinuousApar,
+          gxx = externalField.geo.gxxJ,
+          gxy = externalField.geo.gxyJ,
+          gyy = externalField.geo.gyyJ,
         }
         if ndim==1 then
            laplacianConstant = 0.0
