@@ -15,7 +15,7 @@ fgConvolution(basisNm, dir, der, polyOrder, fL, fU, gL, gU) := block(
   outL : calcInnerProdListGen([dir, perpDirs[1], perpDirs[2]],
     [[-2,0], [-1,1], [-1,1]], 1, baL, gDer*doExpand(fL, baL)),
   outU : calcInnerProdListGen([dir, perpDirs[1], perpDirs[2]],
-    [[0,2], [-1,1], [-1,1]], 1, baU, gDer*doExpand(fU, baU)),
+    [ [0,2], [-1,1], [-1,1]], 1, baU, gDer*doExpand(fU, baU)),
   return([outL, outU])
 ) $
 
@@ -54,10 +54,13 @@ getSurfTerm(basisNm, dir, edge, polyOrder,
   
   rec2 : calcRecov2CellGen(basisNm, dir, [x,y,z], polyOrder, dg(gijfC[1]), dg(gijfC[2])),
   gijf : subst(dir=0, rec2),
+  /*gijfj : subst(dir=0, diff(rec2, perpDirs[1])),*/
+  
   rec2 : calcRecov2CellGen(basisNm, dir, [x,y,z], polyOrder, dg(gikfC[1]), dg(gikfC[2])),
   gikf : subst(dir=0, rec2),
+  /*gikfk : subst(dir=0, diff(rec2, perpDirs[2])),*/
 
-  C : 0,
+  C : 1,
   rec6 : calcRecovFaceGen(basisNm, [dir, perpDirs[1]], [x,y,z], 0, polyOrder, C,
     dg(dg(gijfL[1]), dg(gijfL[2])),
     dg(dg(gijfC[1]), dg(gijfC[2])),
@@ -183,7 +186,6 @@ createKernelSurfXL(basisNm, polyOrder) := block(
   printf(fh, "#include <fpoKernelsDecl.h>~%~%"),
   
   printf(fh, "void fpoDiffSurfXL~a3xP~a(const double dt, const double* dv,~%", basisNm, polyOrder),
-  
   printf(fh, "                          const double* fLCC,~%"),
   printf(fh, "                          const double* fLLC,~%"),
   printf(fh, "                          const double* fLUC,~%"),
@@ -208,7 +210,7 @@ createKernelSurfXL(basisNm, polyOrder) := block(
   printf(fh, "                          const double* gCCL,~%"),
   printf(fh, "                          const double* gCCU,~%"),
   
-  printf(fh, "                          double *fOut) {~%"),
+  printf(fh, "                          double* fOut) {~%"),
   
   ba : getBasis(sconcat("basis-precalc/basis", basisNm, "3x"), polyOrder),
   createIndexShiftList(ba),
@@ -584,7 +586,7 @@ createKernelVol(basisNm, polyOrder) := block(
   gxyfPhixyVol : calcInnerProdList([x,y,z], Jxy, diff(diff(ba, x), y),
     diff(diff(doExpand(gListCCC, ba), x), y)*doExpand(fListCCC, ba)),
   gxzfPhixzVol : calcInnerProdList([x,y,z], Jxz, diff(diff(ba, x), z),
-    diff(diff(doExpand(gListCCC, ba), x), y)*doExpand(fListCCC, ba)),
+    diff(diff(doExpand(gListCCC, ba), x), z)*doExpand(fListCCC, ba)),
   gyzfPhiyzVol : calcInnerProdList([x,y,z], Jyz, diff(diff(ba, y), z),
     diff(diff(doExpand(gListCCC, ba), y), z)*doExpand(fListCCC, ba)),
  

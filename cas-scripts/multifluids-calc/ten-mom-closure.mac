@@ -1,0 +1,88 @@
+/** Linearization of 10M equations */
+
+load(itensor)$
+
+/** Compute Jacobian matrix J[i,j] : diff(F[i],Q[j]) */
+calcJac(F, Q) := genmatrix(lambda([i,j], diff(F[i],Q[j])), length(F), length(Q))$
+
+/** Declare P and Q as symmetric tensors */
+decsym(P,2,0,[sym(all)],[]);
+decsym(P0,2,0,[sym(all)],[]);
+
+/**** Ten-moment equations in primitive form */
+dn(dir) := u[dir]*D(n) + n*D(u[dir])$ /* Density */
+du(dir, i) := u[dir]*D(u[i]) + 1/(m*n)*D(canform(P([dir,i],[])))$ /* Velocity */
+dP(dir, i,j) := canform(P([i,j],[])*D(u[dir]) + D(u[i])*P([j,dir],[]) + D(u[j])*P([i,dir],[]) + u[dir]*D(P([i,j],[])))$
+
+/* Equations in directon dir */
+eqList(dir) := map(canform,
+  [dn(dir),
+  du(dir,1), du(dir,2), du(dir,3),
+  dP(dir,1,1), dP(dir,1,2), dP(dir,1,3), dP(dir,2,2), dP(dir,2,3), dP(dir,3,3)]
+  )$
+
+/* Differentials */
+diffList : map(D, [n,
+  u[1], u[2], u[3], 
+  P([1,1],[]), P([1,2],[]), P([1,3],[]), P([2,2],[]), P([2,3],[]), P([3,3],[])])$
+
+/* Construct A matrix for use in dispersion matrix */
+ATen : coefmatrix(eqList(1), diffList)$
+
+/* Heat-flux closure */
+dq1(j,m) := sum(k[i]*(k[i]*P([j,m],[]) + k[j]*P([m,i],[])+k[m]*P([i,j],[])), i, 1, 3)$
+dq2(j,m) := sum(k[i]*(k[i]*P0([j,m],[]) + k[j]*P0([m,i],[])+k[m]*P0([i,j],[])), i, 1, 3)*n/n0$
+
+dq(j,m) := expand(dq1(j,m)-dq2(j,m))$
+
+dqClosure : canform([dq(1,1), dq(1,2), dq(1,3), dq(2,2), dq(2,3), dq(3,3)])$
+/** Jacbibian of closure */
+closureJac : coefmatrix(dqClosure, 
+  [n, u[1], u[2], u[3], P([1,1],[]), P([1,2],[]), P([1,3],[]), P([2,2],[]), P([2,3],[]), P([3,3],[]) ]
+  )$
+
+/* Substitution lists */
+pSubList : [ P([1,1],[])=P[1,1], P([1,2],[])=P[1,2], P([1,3],[])=P[1,3], P([2,2],[])=P[2,2], P([2,3],[])=P[2,3], P([3,3],[])=P[3,3] ]$
+p0SubList : [ n0=n, P0([1,1],[])=P[1,1], P0([1,2],[])=P[1,2], P0([1,3],[])=P[1,3], P0([2,2],[])=P[2,2], P0([2,3],[])=P[2,3], P0([3,3],[])=P[3,3] ]$
+
+ATen : k[1]*subst(append(pSubList, p0SubList), ATen)$
+closureJac : subst(append(pSubList, p0SubList), closureJac)$
+
+vth : sqrt((P[1,1]+P[2,2]+P[3,3])/(m*n))$
+kabs : sqrt(k[1]^2+k[2]^2+k[3]^2)$
+
+/* Add up the closure stuff to A */
+for i : 1 thru 6 do (
+  for j : 1 thru 10 do (
+    ATen[i+4,j] : ATen[i+4,j] - %i*C*vth/kabs*closureJac[i,j]
+    )
+  )$
+
+pijDiagList : [u[1] = 0, P[1,1]=p, P[2,2]=p, P[3,3]=p, P[1,2] = 0, P[1,3] = 0, P[2,3] = 0]$
+k1list : [k[2]=0, k[3]=0]$
+assume(k[1]>0, p>0, m>0, n>0)$
+
+/* Special case */
+ARed : subst(append(pijDiagList, k1list), ATen)$
+[vals, vects] : eigenvectors(ARed)$
+
+/** Matrix of right and left eigenvectors */
+Rev : (Rev : matrix([]), for i from 1 thru length (vals[1]) 
+  do (for j from 1 thru vals[2][i] 
+    do ( (Rev : addcol(Rev, transpose(matrix(vects[i][j])))))), Rev)$
+Lev : fullratsimp( invert(Rev) )$
+
+evs : []$
+for i : 1 thru length(vals[1]) do (
+  for r : 1 thru vals[2][i] do (
+    evs : endcons(vals[1][i],evs)
+    )
+  )$
+
+/** Perturbation */
+pert : [n, 0, 0, 0, 0, 0, 0, 0, 0, 0]$
+
+/** Compute expansion coefficients */
+expandCoeff : Lev . transpose( alpha*pert );
+/** Express general solution in terms of expansion coefficients */
+sol : sum( expandCoeff[i][1]*exp(-%i*evs[i]*t)*col(Rev,i), i, 1, 10 );

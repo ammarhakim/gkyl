@@ -76,8 +76,8 @@ function AdiosCartFieldIo:init(tbl)
       self._outBuff[i] = self._allocator(1) -- This will be resized on an actual read/write.
    end
 
-   -- write skin cells on boundaries of global domain (for BCs)
-   self._writeSkin = xsys.pickBool(tbl.writeSkin, false)
+   -- write ghost cells on boundaries of global domain (for BCs)
+   self._writeGhost = xsys.pickBool(tbl.writeGhost, false)
 
    -- If we have meta-data to write out, store it.
    --
@@ -134,10 +134,10 @@ end
 --   fName:    file name
 --   tmStamp:  time-stamp
 --   frNum:    frame number
---   writeSkin: Flag to indicate if we should write skin-cells on boundaries of global domain
-function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeSkin)
-   local _writeSkin = self._writeSkin
-   if writeSkin ~= nil then _writeSkin = writeSkin end
+--   writeGhost: Flag to indicate if we should write skin-cells on boundaries of global domain
+function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
+   local _writeGhost = self._writeGhost
+   if writeGhost ~= nil then _writeGhost = writeGhost end
 
    -- Identify if fieldsIn is a CartField using the self._ndim variable (MF: there ought to be a better way).
    local fieldsTbl = type(fieldsIn._ndim)=="number" and {CartGridField = fieldsIn} or fieldsIn
@@ -166,13 +166,13 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeSkin)
 
    local ndim = field:ndim()
    local localRange, globalRange = field:localRange(), field:globalRange()
-   if _writeSkin then 
-      -- extend localRange to include skin cells if on edge of global domain
+   if _writeGhost then 
+      -- extend localRange to include ghost cells if on edge of global domain
       for d = 1, ndim do
          if localRange:lower(d) == globalRange:lower(d) then localRange = localRange:extendDir(d, field:lowerGhost(), 0) end
          if localRange:upper(d) == globalRange:upper(d) then localRange = localRange:extendDir(d, 0, field:upperGhost()) end
       end
-      -- extend globalRange to include skin cells
+      -- extend globalRange to include ghost cells
       globalRange = field:globalExtRange() 
    end
    
@@ -182,7 +182,7 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeSkin)
       _adLocalSz[d]  = localRange:shape(d)
       _adGlobalSz[d] = globalRange:shape(d)
       _adOffset[d]   = localRange:lower(d)-1
-      if _writeSkin then _adOffset[d] = _adOffset[d] + field:lowerGhost() end
+      if _writeGhost then _adOffset[d] = _adOffset[d] + field:lowerGhost() end
    end
    _adLocalSz[ndim+1]  = field:numComponents()
    _adGlobalSz[ndim+1] = field:numComponents()
@@ -227,14 +227,14 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeSkin)
       local lower = new("double[?]", ndim)
       for d = 1, ndim do 
          lower[d-1] = field:grid():lower(d) 
-         if _writeSkin then lower[d-1] = lower[d-1] - field:lowerGhost()*field:grid():dx(d) end
+         if _writeGhost then lower[d-1] = lower[d-1] - field:lowerGhost()*field:grid():dx(d) end
       end
       Adios.define_attribute_byvalue(self.grpIds[grpNm], "lowerBounds", "", Adios.double, ndim, lower)
       
       local upper = new("double[?]", ndim)
       for d = 1, ndim do 
          upper[d-1] = field:grid():upper(d) 
-         if _writeSkin then upper[d-1] = upper[d-1] + field:upperGhost()*field:grid():dx(d) end
+         if _writeGhost then upper[d-1] = upper[d-1] + field:upperGhost()*field:grid():dx(d) end
       end
       Adios.define_attribute_byvalue(self.grpIds[grpNm], "upperBounds", "", Adios.double, ndim, upper)
       
@@ -297,10 +297,10 @@ end
 --   fieldsOut: single field or table of key-value pairs of fields to
 --              be read in. Fields must live on the same grid.
 --   fName:     file name.
---   readSkin:  Flag to indicate if we should read skin-cells on boundaries of global domain.
-function AdiosCartFieldIo:read(fieldsOut, fName, readSkin) --> time-stamp, frame-number
-   local _readSkin = self._writeSkin
-   if readSkin ~= nil then _readSkin = readSkin end
+--   readGhost:  Flag to indicate if we should read skin-cells on boundaries of global domain.
+function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, frame-number
+   local _readGhost = self._writeGhost
+   if readGhost ~= nil then _readGhost = readGhost end
 
    -- Identify if fieldsIn is a CartField using the self._ndim variable (MF: there ought to be a better way).
    local fieldsTbl = type(fieldsOut._ndim)=="number" and {CartGridField = fieldsOut} or fieldsOut
@@ -331,13 +331,13 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readSkin) --> time-stamp, frame
 
       local ndim = field:ndim()
       local localRange, globalRange = field:localRange(), field:globalRange()
-      if _readSkin then 
-         -- extend localRange to include skin cells if on edge of global domain
+      if _readGhost then 
+         -- extend localRange to include ghost cells if on edge of global domain
          for d = 1, ndim do
             if localRange:lower(d) == globalRange:lower(d) then localRange = localRange:extendDir(d, field:lowerGhost(), 0) end
             if localRange:upper(d) == globalRange:upper(d) then localRange = localRange:extendDir(d, 0, field:upperGhost()) end
          end
-         -- extend globalRange to include skin cells
+         -- extend globalRange to include ghost cells
          globalRange = field:globalExtRange() 
       end
       
@@ -347,7 +347,7 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readSkin) --> time-stamp, frame
          _adLocalSz[d]  = localRange:shape(d)
          _adGlobalSz[d] = globalRange:shape(d)
          _adOffset[d]   = localRange:lower(d)-1
-         if _readSkin then _adOffset[d] = _adOffset[d] + field:lowerGhost() end
+         if _readGhost then _adOffset[d] = _adOffset[d] + field:lowerGhost() end
       end
       _adLocalSz[ndim+1] = field:numComponents()
       _adGlobalSz[ndim+1] = field:numComponents()
@@ -393,14 +393,14 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readSkin) --> time-stamp, frame
          local lower = new("double[?]", ndim)
          for d = 1, ndim do 
             lower[d-1] = field:grid():lower(d) 
-            if _writeSkin then lower[d-1] = lower[d-1] - field:lowerGhost()*field:grid():dx(d) end
+            if _writeGhost then lower[d-1] = lower[d-1] - field:lowerGhost()*field:grid():dx(d) end
          end
          Adios.define_attribute_byvalue(self.grpIds[grpNm], "lowerBounds", "", Adios.double, ndim, lower)
          
          local upper = new("double[?]", ndim)
          for d = 1, ndim do 
             upper[d-1] = field:grid():upper(d) 
-            if _writeSkin then upper[d-1] = upper[d-1] + field:upperGhost()*field:grid():dx(d) end
+            if _writeGhost then upper[d-1] = upper[d-1] + field:upperGhost()*field:grid():dx(d) end
          end
          Adios.define_attribute_byvalue(self.grpIds[grpNm], "upperBounds", "", Adios.double, ndim, upper)
          
@@ -441,7 +441,7 @@ function AdiosCartFieldIo:read(fieldsOut, fName, readSkin) --> time-stamp, frame
       for d = 1, ndim do
          local st = localRange:lower(d)-1
          local ct = localRange:shape(d)
-         if _readSkin then st = st + field:lowerGhost() end
+         if _readGhost then st = st + field:lowerGhost() end
          start[d] = st
          count[d] = ct
       end

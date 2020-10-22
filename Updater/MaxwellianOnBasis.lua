@@ -53,7 +53,7 @@ function MaxwellianOnBasis:init(tbl)
    local N = tbl.numConfQuad and tbl.numConfQuad or self.confBasis:polyOrder() + 1
    assert(N<=8, "Updater.MaxwellianOnBasis: Gaussian quadrature only implemented for numQuad<=8 in each dimension")
 
-   self.projectOnGhosts = xsys.pickBool(tbl.projectOnGhosts, false)
+   self.projectOnGhosts = xsys.pickBool(tbl.projectOnGhosts, true)
 
    -- 1D weights and ordinates
    local ordinates = GaussQuadRules.ordinates[N]
@@ -129,6 +129,7 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
    local fOut   = assert(outFld[1], "MaxwellianOnBasis.advance: Must specify an output field 'outFld[1]'")
 
    local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
+   local uDim = uIn:numComponents()/self.numConfBasis -- number of dimensions in u
 
    local nItr, nOrd       = nIn:get(1), Lin.Vec(self.numConfOrds)
    local uItr, uOrd       = uIn:get(1), Lin.Mat(self.numConfOrds, vDim)
@@ -139,6 +140,12 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
    local confRange    = nIn:localRange()
    local confIndexer  = nIn:genIndexer()
    local phaseRange   = fOut:localRange()
+      if self.onGhosts then -- extend range to config-space ghosts
+      local cdirs = {}
+      for dir = 1, cDim do 
+         phaseRange = phaseRange:extendDir(dir, fOut:lowerGhost(), fOut:upperGhost())
+      end
+   end
    local phaseIndexer = fOut:genIndexer()
 
    -- Additional preallocated variables
@@ -167,18 +174,27 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 	    nOrd[ordIdx] = nOrd[ordIdx] + nItr[k]*self.confBasisAtOrds[ordIdx][k]
 	    vth2Ord[ordIdx] = vth2Ord[ordIdx] + vth2Itr[k]*self.confBasisAtOrds[ordIdx][k]
 	 end
-	 for d = 1, vDim do
-	    for k = 1, self.numConfBasis do
-	       uOrd[ordIdx][d] = uOrd[ordIdx][d] +
-		  uItr[self.numConfBasis*(d-1)+k]*self.confBasisAtOrds[ordIdx][k]
+	 if uDim == vDim then
+	    for d = 1, vDim do
+	       for k = 1, self.numConfBasis do
+		  uOrd[ordIdx][d] = uOrd[ordIdx][d] +
+		     uItr[self.numConfBasis*(d-1)+k]*self.confBasisAtOrds[ordIdx][k]
+	       end
 	    end
+	 elseif uDim == 1 and vDim==3 then -- if uPar passed from GkSpecies, fill d=3 component of u
+	    --print("MaxwellianOnBasis: udim = 1 and vdim = 3")
+	    for k = 1, self.numConfBasis do
+	       uOrd[ordIdx][vDim] = uOrd[ordIdx][vDim] + uItr[k]*self.confBasisAtOrds[ordIdx][k]
+	    end
+	 else
+	    print("Updater.MaxwellianOnBasis: incorrect uDim")	 
 	 end
       end
 
       -- The velocity space loop
       for vIdx in velRange:rowMajorIter() do
 	 -- Construct the phase space index ot of the configuration
-	 -- space a velocity space indices
+	 -- space and velocity space indices
          cIdx:copyInto(self.idxP)
          for d = 1, vDim do self.idxP[cDim+d] = vIdx[d] end
 	 fOut:fill(phaseIndexer(self.idxP), fItr)
@@ -198,7 +214,6 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 				   self.numConfOrds, self.numPhaseOrds,
 				   cDim, pDim)
       end
-
    end
 
    -- set id of output to id of projection basis

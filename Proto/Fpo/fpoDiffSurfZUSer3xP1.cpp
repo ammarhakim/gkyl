@@ -1,7 +1,7 @@
 #include <math.h>
 #include <fpoKernelsDecl.h>
 
-void fpoDiffSurfZUSer3xP1(const double dt, const double *dv,
+void fpoDiffSurfZUSer3xP1(const double dt, const double* dv,
                           const double* fCCC,
                           const double* fLCC,
                           const double* fUCC,

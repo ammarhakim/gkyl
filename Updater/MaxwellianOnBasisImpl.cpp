@@ -58,7 +58,10 @@ void MaxwellianInnerLoop(/* Number density, drift speed, and thermal velocity sq
       v = 0.5*v*dz[numConfDims+d] + zc[numConfDims+d] - u[uIdx.get(confOrdIdx, d)];
       v2 += v*v;
     }
-    maxwellian *= exp(-0.5*v2/vth2[confOrdIdx]);
+    if (vth2[confOrdIdx] <= 0)
+      maxwellian *= 0;
+    else
+      maxwellian *= exp(-0.5*v2/vth2[confOrdIdx]);
     
     for (int k = 0; k < numPhaseBasis; ++k) 
       fItr[k] +=

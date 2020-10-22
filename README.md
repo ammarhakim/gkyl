@@ -32,6 +32,8 @@ where `[SYSTEM]` should be replaced by the name of the system you are building o
 ./waf build install
 ```
 
+The final result will be a `gkyl` executable located in the `~/gkylsoft/gkyl/bin/` directory.
+
 ## Building on non-native systems.
 
 For systems that do not already have corresponding files in the `machines/` directory, we encourage you to add files for your machine. Instructions can be found in `machines/README.md`.
@@ -46,9 +48,11 @@ This will print some version information and the libraries `gkyl` was built with
 
 You can run the full suite of unit tests using
 ```
-~/gkylsoft/gkyl/bin/gkyl Tool/runtests.lua config
+cd Regression/
 
-~/gkylsoft/gkyl/bin/gkyl Tool/runtests.lua rununit
+~/gkylsoft/gkyl/bin/gkyl runregression config
+
+~/gkylsoft/gkyl/bin/gkyl runregression rununit
 ```
 
 # Diagnostic tools

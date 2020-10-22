@@ -7,5 +7,9 @@ export GKYLSOFT='~/gkylsoft'
 cd install-deps
 # first build OpenMPI
 ./mkdeps.sh CC=clang CXX=clang++ --build-openmpi=yes
+# get OSX version (XX.XX.X)
+vers=`sw_vers -productVersion`   
+# remove patch version, so that only XX.XX
+export MACOSX_DEPLOYMENT_TARGET=${vers%.*}
 # now build rest of packages
 ./mkdeps.sh CC=clang CXX=clang++ MPICC=$GKYLSOFT/openmpi-3.1.2/bin/mpicc MPICXX=$GKYLSOFT/openmpi-3.1.2/bin/mpicxx --build-luajit=yes --build-adios=yes --build-eigen=yes

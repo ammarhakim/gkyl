@@ -1,0 +1,151 @@
+/* Generate kernels for the updater that computes the
+   ionization temperature for electrons. */
+
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+load("scifac")$
+fpprec : 24$
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 3$
+minCdim_Ser : 1$
+maxCdim_Ser : 3$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 3$
+minCdim_Max : 1$
+maxCdim_Max : 3$
+
+/* ...... END OF USER INPUTS........ */
+
+
+writeCExprsCollect1r(lhs, rhs, clst) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then (
+      param : cons(expr[i], clst),
+      e : apply(collectterms, param),
+      ep : string(e),
+      outStr : ssubst("pow(U,K)","U^K",ep),
+      outStr : ssubst("pow(2,3/2)","2^(3/2)",outStr),
+      outStr : ssubst("pow(U,K+1/2)","U^(K+1/2)",outStr),
+      outStr : ssubst("exp(U)","e^U",outStr),      
+      printf(fh, "    ~a = ~a; ~%", lhs[i-1], outStr)
+    )
+  )
+)$
+
+declareWriteCExprsC(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  if expr # 0.0 then (
+    ep : string(expr),
+    outStr : ssubst("pow(U,K)","U^K",ep),
+    outStr : ssubst("pow(2,3/2)","2^(3/2)",outStr),
+    outStr : ssubst("pow(U,K+1/2)","U^(K+1/2)",outStr),
+    outStr : ssubst("exp(U)","e^U",outStr), 
+    printf(fh, "  double ~a = ~a; ~%", lhs, outStr)
+  )
+)$
+
+writeCExprsC(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  if expr # 0.0 then (
+    ep : string(expr),
+    outStr : ssubst("pow(U,K)","U^K",ep),
+    outStr : ssubst("pow(2,3/2)","2^(3/2)",outStr),
+    outStr : ssubst("pow(U,K+1/2)","U^(K+1/2)",outStr),
+    outStr : ssubst("exp(U)","e^U",outStr), 
+    printf(fh, "  ~a = ~a; ~%", lhs, outStr)
+  )
+)$
+
+writeCExprsCs(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (	
+    if expr[i] # 0.0 then (
+      ep : string(expr[i]),
+      outStr : ssubst("pow(U,K)","U^K",ep),
+      outStr : ssubst("pow(2,3/2)","2^(3/2)",outStr),
+      outStr : ssubst("pow(U,K+1/2)","U^(K+1/2)",outStr),
+      outStr : ssubst("exp(U)","e^U",outStr), 
+      printf(fh, "     ~a = ~a; ~%", lhs[i-1], outStr)	
+    )
+  )
+)$
+
+writeCExprsCnos(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  if expr # 0.0 then (
+    ep : string(expr),
+    outStr : ssubst("pow(U,K)","U^K",ep),
+    outStr : ssubst("pow(2,3/2)","2^(3/2)",outStr),
+    outStr : ssubst("pow(U,K+1/2)","U^(K+1/2)",outStr),
+    outStr : ssubst("exp(U)","e^U",outStr), 
+    printf(fh, "  ~a = ~a; ~%", lhs, outStr)
+  )
+)$
+
+calcIonizationTemp(fh, funcNm, cdim, basisFun, pMax) := block([],
+
+  kill(varsC, varsP, basisC, basisP),
+
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
+
+  for polyOrder : 1 thru pMax do (
+    bC  : basisC[polyOrder],
+    NC  : length(bC),
+  
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(const double elemCharge, const double m_, const double *vtSq, const double E, double *vtSqIz) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // E:   	   Voronov ionization energy [eV]. ~%"),
+    printf(fh, "  // m_:           mass of electron. ~%"),
+    printf(fh, "  // vtSq[~a]:     electron squared thermal speed, sqrt(T/m) ~%", NC),
+    printf(fh, "  // vtSqIz[~a]:   ionization squared thermal speed. ~%", NC),
+    printf(fh, " ~%"),
+
+    vtSq_e  : doExpand1(vtSq,bC),
+    vtSqAve : innerProd(varsC,1.0,1.0,vtSq_e)/innerProd(varsC,1.0,1.0,1.0),
+    declareWriteCExprsC(vtSq0, vtSqAve), 
+
+    /* vtSqIz_c : calcInnerProdList(varsC,1.0,bC, (0.5*vtSq_e - (1/3)*E*elemCharge/m_)), */
+    vtSqIzAve : calcInnerProdList(varsC,1.0,bC,0.5*vtSqAve - (1/3)*E*elemCharge/m_),
+
+    printf(fh, "  if (vtSq0 > 2.0/3.0*E*elemCharge/m_) { ~%"),
+    writeCExprsCs(vtSqIz, vtSqIzAve),
+    printf(fh, "  }~%"),
+    printf(fh, " ~%"),
+
+    printf(fh, "  else { ~%"),
+    writeCExprsCs(vtSqIz,calcInnerProdList(varsC,1.0,bC,1e-10)),
+    printf(fh, "  }~%"),
+    printf(fh, " ~%"),
+
+    printf(fh, "} ~%"),
+    printf(fh, " ~%")
+  )
+)$
+
+bName        : ["Ser","Max"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
+minCdim      : [minCdim_Ser, minCdim_Max]$
+minVdim      : [minVdim_Ser, minVdim_Max]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max]$
+maxVdim      : [maxVdim_Ser, maxVdim_Max]$
+
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    disp(printf(false,sconcat("Creating ionization temp calc",bName[bInd]," ~ax"),c)),
+    fname : sconcat("~/max-out/IonizationVtSq", bName[bInd], c, "x", ".cpp"),
+    fh : openw(fname),
+
+    printf(fh, "#include <IonizationModDecl.h> ~%"),
+    printf(fh, "#include <math.h> ~%"),
+
+    /*. Calculate ionization temp for electrons. */
+    funcName : sconcat("IonizationTemp", c, "x", bName[bInd]),
+    calcIonizationTemp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    close(fh)
+  )
+)$
+

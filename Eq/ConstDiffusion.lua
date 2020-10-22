@@ -1,48 +1,75 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Constant Diffusion equation on a rectangular mesh.
+-- Constant diffusion equation on a rectangular mesh.
+--
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
 -- System libraries.
-local Lin                   = require "Lib.Linalg"
-local Proto                 = require "Lib.Proto"
+local Lin    = require "Lib.Linalg"
+local Proto  = require "Lib.Proto"
+local ffi    = require "ffi"
+local xsys   = require "xsys"
+local EqBase = require "Eq.EqBase"
 local ConstDiffusionModDecl = require "Eq.constDiffusionData.ConstDiffusionModDecl"
-local ffi                   = require "ffi"
-local xsys                  = require "xsys"
-local EqBase                = require "Eq.EqBase"
 
--- ConstDiffusion equation on a rectangular mesh
+-- ConstDiffusion equation on a rectangular mesh.
 local ConstDiffusion = Proto(EqBase)
 
 -- ctor
 function ConstDiffusion:init(tbl)
+
+   self._basis = assert(tbl.basis,
+      "Eq.constDiffusion: Must specify basis functions to use using 'basis'")
+
+   local nm, dim, pOrder = self._basis:id(), self._basis:ndim(), self._basis:polyOrder()
+
+   -- Read the directions in which to apply diffusion. 
+   local diffDirsIn = tbl.diffusiveDirs
+   if diffDirsIn then
+      assert(#diffDirsIn<=dim, "Eq.constDiffusion: 'diffusiveDirs' cannot have more entries than the simulation's dimensions.")
+      self.diffDirs = diffDirsIn
+   else
+      -- Apply diffusion in all directions.
+      self.diffDirs = {}
+      for d = 1, dim do self.diffDirs[d] = d end
+   end
    
-   -- Read diffusion coefficient vector
-   self._nu = Lin.Vec(3)
-   assert(tbl.Dcoeff, "Eq.constDiffusion: must specify diffusion coefficient vector using 'Dcoeff' ")
-   for d = 1, #tbl.Dcoeff do
-      self._nu[d] = tbl.Dcoeff[d]
+   -- Read diffusion coefficient (or vector).
+   local nuIn     = assert(tbl.coefficient,
+                           "Eq.constDiffusion: must specify diffusion coefficient (or vector) using 'coefficient' ")
+   local nuInType = type(nuIn)
+   self._nu       = Lin.Vec(dim)
+   for d = 1, dim do self._nu[d] = 0.0 end
+   if (nuInType == "number") then
+      -- Set the diffusion coefficient to the same amplitude in all directions.
+      for d = 1, dim do self._nu[d] = nuIn end
+   elseif (nuInType == "table") then
+      if diffDirsIn then
+         assert(#nuIn==#diffDirsIn, "Eq.constDiffusion: 'coefficient' table must have the same number of entries as 'diffusiveDirs'.")
+      else
+         assert(#nuIn==dim, "Eq.constDiffusion: 'coefficient' table must have the same number of entries as the simulation's dimensions if 'diffusiveDirs' is not given.")
+      end
+      for d = 1, #self.diffDirs do self._nu[self.diffDirs[d]] = nuIn[d] end
+   else
+      assert(false, "Eq.constDiffusion: 'coefficient' must be a number or a table.")
    end
 
-   -- If specified, store basis functions.
-   self._basis = assert(
-      tbl.basis, "Eq.constDiffusion: Must specify basis functions to use using 'basis'")
+   local diffOrder
+   if tbl.order then
+      diffOrder = tbl.order
+      assert(not (diffOrder > 2 and pOrder < 2), "Eq.constDiffusion: hyperdiffusion (order>2) requires polyOrder > 1.")
+   else
+      diffOrder = 2
+   end
 
-   local applyPositivity = xsys.pickBool(tbl.positivity,false)   -- Positivity preserving option.
+   local applyPositivity = xsys.pickBool(tbl.positivity, false)   -- Positivity preserving option.
 
    -- Store pointers to C kernels implementing volume and surface terms.
-   self._volTerm, self._surfTerms = nil, nil
-   if self._basis then
-      local nm, ndim, p = self._basis:id(), self._basis:ndim(), self._basis:polyOrder()
-      self._volTerm           = ConstDiffusionModDecl.selectVol(nm, ndim, p)
-      self._surfTerms         = ConstDiffusionModDecl.selectSurf(nm, ndim, p, applyPositivity)
-      self._boundarySurfTerms = ConstDiffusionModDecl.selectBoundarySurf(nm, ndim, p, applyPositivity)
-   end
-
-   -- Flag to indicate if we are being called for first time.
-   self._isFirst = true
+   self._volTerm           = ConstDiffusionModDecl.selectVol(nm, dim, pOrder, self.diffDirs, diffOrder)
+   self._surfTerms         = ConstDiffusionModDecl.selectSurf(nm, dim, pOrder, self.diffDirs, diffOrder, applyPositivity)
+   self._boundarySurfTerms = ConstDiffusionModDecl.selectBoundarySurf(nm, dim, pOrder, self.diffDirs, diffOrder, applyPositivity)
 end
 
 -- Methods.

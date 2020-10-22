@@ -33,7 +33,7 @@ math = require("sci.math").generic -- this is global so that it affects input fi
 local SpeciesBase = require "App.Species.SpeciesBase"
 local SourceBase = require "App.Sources.SourceBase"
 local FieldBase = require ("App.Field.FieldBase").FieldBase
-local FuncFieldBase = require ("App.Field.FieldBase").FuncFieldBase
+local ExternalFieldBase = require ("App.Field.FieldBase").ExternalFieldBase
 local NoField = require ("App.Field.FieldBase").NoField
 
 -- Function to create basis functions.
@@ -73,7 +73,7 @@ local function buildApplication(self, tbl)
       return default
    end
 
-   log("Initializing PlasmaOnCartGrid simulation ...\n")
+   log(string.format("Initializing %s simulation ...\n", self.label))
    local tmStart = Time.clock()
 
    local cdim = #tbl.lower -- Configuration space dimensions.
@@ -239,7 +239,6 @@ local function buildApplication(self, tbl)
 	 cflMin = math.min(cflMin, myCfl)
 	 fld:setCfl(myCfl)
       end
-      log(string.format("Using CFL number %g\n", cflMin))
       
       -- Allocate field data.
       fld:alloc(stepperNumFields[timeStepperNm])
@@ -262,27 +261,27 @@ local function buildApplication(self, tbl)
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one Field object!")
    if field == nil then field = NoField {} end
 
-   -- Initialize funcField, which is sometimes needed to initialize species.
-   local funcField = nil
+   -- Initialize externalField, which is sometimes needed to initialize species.
+   local externalField = nil
    nfields = 0
    for _, val in pairs(tbl) do
-      if FuncFieldBase.is(val) then
-        funcField = val
-        completeFieldSetup(funcField)
+      if ExternalFieldBase.is(val) then
+        externalField = val
+        completeFieldSetup(externalField)
         nfields = nfields + 1
       end
    end
-   assert(nfields<=1, "PlasmaOnCartGrid: can only specify one FuncField object!")
-   if funcField == nil then funcField = NoField {} end
-   funcField:createSolver()
-   funcField:initField()
+   assert(nfields<=1, "PlasmaOnCartGrid: can only specify one ExternalField object!")
+   if externalField == nil then externalField = NoField {} end
+   externalField:createSolver()
+   externalField:initField()
    
    -- Initialize species solvers and diagnostics.
    for nm, s in pairs(species) do
       local hasE, hasB = field:hasEB()
-      local funcHasE, funcHasB = funcField:hasEB()
+      local extHasE, extHasB = externalField:hasEB()
       s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
-      s:createSolver(hasE or funcHasE, hasB or funcHasB, funcField)
+      s:createSolver(hasE or extHasE, hasB or extHasB, externalField)
       s:initDist()
       s:createDiagnostics()
    end
@@ -293,18 +292,32 @@ local function buildApplication(self, tbl)
    end   
 
    -- Compute the coupling moments.
+   -- for nm, s in pairs(species) do
+   --    if s.charge == 0 then
+   -- 	 s:clearMomentFlags(species)
+   -- 	 s:calcCouplingMoments(0.0, 1, species)
+   --    end
+   -- end
    for nm, s in pairs(species) do
+      -- if s.charge ~= 0 then
       s:clearMomentFlags(species)
       s:calcCouplingMoments(0.0, 1, species)
+      -- end
    end
+
    -- Initialize field (sometimes requires species to have been initialized).
-   field:createSolver(species, funcField)
+   field:createSolver(species, externalField)
    field:initField(species)
+
    -- Apply species BCs.
    for nm, s in pairs(species) do
       -- This is a dummy forwardEuler call because some BCs require 
       -- auxFields to be set, which is controlled by species solver.
-      s:advance(0, species, {field, funcField}, 1, 2)
+      if s.charge == 0.0 then
+      	 s:advance(0, species, {NoField {}, NoField {}}, 1, 2)
+      else
+	 s:advance(0, species, {field, externalField}, 1, 2)
+      end
       s:applyBc(0, s:rkStepperFields()[1])
    end
 
@@ -312,16 +325,16 @@ local function buildApplication(self, tbl)
    local function writeData(tCurr, force)
       for _, s in pairs(species) do s:write(tCurr, force) end
       field:write(tCurr, force)
-      funcField:write(tCurr, force)
+      externalField:write(tCurr, force)
    end
 
    -- Function to write restart frames to file.
    local function writeRestart(tCurr)
       for _, s in pairs(species) do s:writeRestart(tCurr) end
       field:writeRestart(tCurr)
-      funcField:writeRestart(tCurr)
+      externalField:writeRestart(tCurr)
    end
-
+   
    -- Function to read from restart frame.
    local function readRestart() --> Time at which restart was written.
       local rTime = 0.0
@@ -329,11 +342,15 @@ local function buildApplication(self, tbl)
       local _, dtLast = dtTracker:lastData()
       -- Read fields first, in case needed for species init or BCs.
       field:readRestart()
-      funcField:readRestart()
+      externalField:readRestart()
       for _, s in pairs(species) do
          -- This is a dummy forwardEuler call because some BCs require 
          -- auxFields to be set, which is controlled by species solver.
-         s:advance(0, species, {field, funcField}, 1, 2)
+	 if s.charge == 0 then
+	    s:advance(0, species, {NoField {}, NoField {}}, 1, 2)
+	 else
+	    s:advance(0, species, {field, externalField}, 1, 2)
+	 end
          s:setDtGlobal(dtLast[1])
 	 rTime = s:readRestart()
       end
@@ -385,7 +402,7 @@ local function buildApplication(self, tbl)
          s:clearMomentFlags(species)
       end
       -- Compute functional field (if any).
-      funcField:advance(tCurr)
+      externalField:advance(tCurr)
       
       for nm, s in pairs(species) do
 	 -- Compute moments needed in coupling with fields and
@@ -400,7 +417,11 @@ local function buildApplication(self, tbl)
 
       -- Update species.
       for nm, s in pairs(species) do
-         s:advance(tCurr, species, {field, funcField}, inIdx, outIdx)
+	 if s.charge == 0 then
+	    s:advance(tCurr, species, {NoField {}, NoField {}}, inIdx, outIdx)
+	 else
+	    s:advance(tCurr, species, {field, externalField}, inIdx, outIdx)
+	 end
       end
 
       -- Some systems (e.g. EM GK) require additional step(s) to complete the forward Euler.
@@ -414,7 +435,7 @@ local function buildApplication(self, tbl)
 
          -- Update species.. step 2 (if necessary).
          for nm, s in pairs(species) do
-            s[advanceString](s, tCurr, species, {field, funcField}, inIdx, outIdx)
+            s[advanceString](s, tCurr, species, {field, externalField}, inIdx, outIdx)
          end
       end
 
@@ -658,7 +679,7 @@ local function buildApplication(self, tbl)
 
    -- Return function that runs main simulation loop.
    return function(self)
-      log("Starting main loop of PlasmaOnCartGrid simulation ...\n\n")
+      log(string.format("Starting main loop of %s simulation ...\n\n", self.label))
       local tStart, tEnd = tStart, tbl.tEnd
 
       -- Sanity check: don't run if not needed.
@@ -829,9 +850,9 @@ local function buildApplication(self, tbl)
       local tmTotal = tmSimEnd-tmSimStart
       local tmAccounted = 0.0
       log(string.format("\nTotal number of time-steps %s\n", step))
-      log(string.format(
-	     "Number of barriers %d barriers (%g barriers/step)\n\n",
-	     Mpi.getNumBarriers(), Mpi.getNumBarriers()/step))
+      --log(string.format(
+	--     "Number of barriers %d barriers (%g barriers/step)\n\n",
+	--     Mpi.getNumBarriers(), Mpi.getNumBarriers()/step))
       
       log(string.format(
 	     "Solver took				%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
@@ -851,8 +872,8 @@ local function buildApplication(self, tbl)
       tmAccounted = tmAccounted + field:totalBcTime()
       log(string.format(
 	     "Function field solver took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
-	     funcField:totalSolverTime(), funcField:totalSolverTime()/step, 100*funcField:totalSolverTime()/tmTotal))
-      tmAccounted = tmAccounted + funcField:totalSolverTime()
+	     externalField:totalSolverTime(), externalField:totalSolverTime()/step, 100*externalField:totalSolverTime()/tmTotal))
+      tmAccounted = tmAccounted + externalField:totalSolverTime()
       log(string.format(
 	     "Moment calculations took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmMom, tmMom/step, 100*tmMom/tmTotal))
@@ -881,7 +902,7 @@ local function buildApplication(self, tbl)
 	     "Stepper combine/copy took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
       log(string.format(
-      	     "Time spent in barrier function		%9.5f sec   (%7.6f s/step)   (%6.f%%)\n",
+      	     "Time spent in barrier function		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
       	     Mpi.getTimeBarriers(), Mpi.getTimeBarriers()/step, 100*Mpi.getTimeBarriers()/tmTotal))      
       tmAccounted = tmAccounted + stepperTime
       tmUnaccounted = tmTotal - tmAccounted
@@ -923,6 +944,7 @@ end
 
 return {
    Gyrokinetic = function ()
+      App.label = "Gyrokinetic"
       return  {
 	 App = App,
 	 Species = require "App.Species.GkSpecies",
@@ -935,35 +957,44 @@ return {
 	 LBOCollisions = require "App.Collisions.GkLBOCollisions",
 	 BgkCollisions = require "App.Collisions.GkBGKCollisions",
 	 LboCollisions = require "App.Collisions.GkLBOCollisions",
+	 ChargeExchange = require "App.Collisions.GkChargeExchange",
+	 Ionization = require "App.Collisions.GkIonization",
       }
    end,
    
    IncompEuler = function ()
+      App.label = "Incompressible Euler"
       return {
 	 App = App,
 	 Species = require "App.Species.IncompEulerSpecies",
 	 Field = require ("App.Field.GkField").GkField,
-	 Diffusion = require "App.Collisions.FluidDiffusion",
+	 Diffusion = require "App.Collisions.Diffusion",
       }
    end,
    
    VlasovMaxwell = function ()
+      App.label = "Vlasov-Maxwell"
       return {
 	 App = App,
 	 Species = require "App.Species.VlasovSpecies",
 	 FuncSpecies = require "App.Species.FuncVlasovSpecies",
 	 Field = require ("App.Field.MaxwellField").MaxwellField,
-	 FuncField = require ("App.Field.MaxwellField").FuncMaxwellField,
+	 ExternalField = require ("App.Field.MaxwellField").ExternalMaxwellField,
+	 FuncField = require ("App.Field.MaxwellField").ExternalMaxwellField, -- for backwards compat
 	 FunctionProjection = require ("App.Projection.VlasovProjection").FunctionProjection,
 	 MaxwellianProjection = require ("App.Projection.VlasovProjection").MaxwellianProjection,
 	 BGKCollisions = require "App.Collisions.VmBGKCollisions",
 	 LBOCollisions = require "App.Collisions.VmLBOCollisions",
 	 BgkCollisions = require "App.Collisions.VmBGKCollisions",
 	 LboCollisions = require "App.Collisions.VmLBOCollisions",
+	 ChargeExchange = require "App.Collisions.VmChargeExchange",
+	 Ionization = require "App.Collisions.VmIonization",
+	 Diffusion = require "App.Collisions.Diffusion",
       }
    end,
    
    Moments = function ()
+      App.label = "Multi-fluid"
       return {
 	 App = App,
 	 Species = require "App.Species.MomentSpecies",

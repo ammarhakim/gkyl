@@ -11,7 +11,7 @@ local Time = require "Lib.Time"
 local Updater = require "Updater"
 local ffi = require "ffi"
 local xsys = require "xsys"
-
+      
 return function(tbl)
    local _ = require "Proto.Fpo.fpoKernelsCdef"
 
@@ -107,17 +107,17 @@ return function(tbl)
    local f1 = getField()
    local f2 = getField()
    local fe = getField()
-   local fs = getField()
    local fNew = getField()
    local h = getField()
+   local tmp = getField()
    local g = getField()
 
    local test = getField()
 
    local src = getField()
 
-   local moms = DataStruct.DynVector { numComponents = 4 }
-   local diag = DataStruct.DynVector { numComponents = 3 }
+   local momVec = DataStruct.DynVector { numComponents = 5 }
+   local diagVec = DataStruct.DynVector { numComponents = 4 }
 
 
    --------------
@@ -163,10 +163,6 @@ return function(tbl)
    }
 
    local function applyBc(fld)
-      -- bcT:advance(0.0, {}, {fld})
-      -- bcB:advance(0.0, {}, {fld})
-      -- bcL:advance(0.0, {}, {fld})
-      -- bcR:advance(0.0, {}, {fld})
       fld:sync()
 
       -- need to manually sync corners for now
@@ -176,31 +172,149 @@ return function(tbl)
       local zlo, zup = globalRange:lower(3), globalRange:upper(3)
       
       local indexer = fld:indexer()
-      local idxSkin, idxGhost
+      local idxSkin, idxGhost = 0, 0
+      local ptrSkin, ptrGhost = fld:get(1), fld:get(1)
       
-      -- lower-left
-      -- idxSkin, idxGhost = fld:get(indexer(xup, yup)), fld:get(indexer(xlo-1, ylo-1))
-      -- for k = 1, fld:numComponents() do
-      --    idxGhost[k] = idxSkin[k]
-      -- end
+      -- corner LLL
+      idxGhost, idxSkin = indexer(xlo-1, ylo-1, zlo-1), indexer(xup, yup, zup)
+      fld:fill(idxGhost, ptrGhost)
+      fld:fill(idxSkin, ptrSkin)
+      for k = 1, fld:numComponents() do
+         ptrGhost[k] = ptrSkin[k]
+      end
+      -- corner ULL
+      idxGhost, idxSkin = indexer(xup+1, ylo-1, zlo-1), indexer(xlo, yup, zup)
+      fld:fill(idxGhost, ptrGhost)
+      fld:fill(idxSkin, ptrSkin)
+      for k = 1, fld:numComponents() do
+         ptrGhost[k] = ptrSkin[k]
+      end
+      -- corner LUL
+      idxGhost, idxSkin = indexer(xlo-1, yup+1, zlo-1), indexer(xup, ylo, zup)
+      fld:fill(idxGhost, ptrGhost)
+      fld:fill(idxSkin, ptrSkin)
+      for k = 1, fld:numComponents() do
+         ptrGhost[k] = ptrSkin[k]
+      end
+      -- corner LLU
+      idxGhost, idxSkin = indexer(xlo-1, ylo-1, zup+1), indexer(xup, yup, zlo)
+      fld:fill(idxGhost, ptrGhost)
+      fld:fill(idxSkin, ptrSkin)
+      for k = 1, fld:numComponents() do
+         ptrGhost[k] = ptrSkin[k]
+      end
+      -- corner LUU
+      idxGhost, idxSkin = indexer(xlo-1, yup+1, zup+1), indexer(xup, ylo, zlo)
+      fld:fill(idxGhost, ptrGhost)
+      fld:fill(idxSkin, ptrSkin)
+      for k = 1, fld:numComponents() do
+         ptrGhost[k] = ptrSkin[k]
+      end
+      -- corner ULU
+      idxGhost, idxSkin = indexer(xup+1, ylo-1, zup+1), indexer(xlo, yup, zlo)
+      fld:fill(idxGhost, ptrGhost)
+      fld:fill(idxSkin, ptrSkin)
+      for k = 1, fld:numComponents() do
+         ptrGhost[k] = ptrSkin[k]
+      end
+      -- corner UUL
+      idxGhost, idxSkin = indexer(xup+1, yup+1, zlo-1), indexer(xlo, ylo, zup)
+      fld:fill(idxGhost, ptrGhost)
+      fld:fill(idxSkin, ptrSkin)
+      for k = 1, fld:numComponents() do
+         ptrGhost[k] = ptrSkin[k]
+      end
+      -- corner UUU
+      idxGhost, idxSkin = indexer(xup+1, yup+1, zup+1), indexer(xlo, ylo, zlo)
+      fld:fill(idxGhost, ptrGhost)
+      fld:fill(idxSkin, ptrSkin)
+      for k = 1, fld:numComponents() do
+         ptrGhost[k] = ptrSkin[k]
+      end
       
-      -- -- lower-right
-      -- idxSkin, idxGhost = fld:get(indexer(xlo, yup)), fld:get(indexer(xup+1, ylo-1))
-      -- for k = 1, fld:numComponents() do
-      --    idxGhost[k] = idxSkin[k]
-      -- end
-      
-      -- -- upper-left
-      -- idxSkin, idxGhost = fld:get(indexer(xup, ylo)), fld:get(indexer(xlo-1, yup+1))
-      -- for k = 1, fld:numComponents() do
-      --    idxGhost[k] = idxSkin[k]
-      -- end
-      
-      -- -- upper-right
-      -- idxSkin, idxGhost = fld:get(indexer(xlo, ylo)), fld:get(indexer(xup+1, yup+1))
-      -- for k = 1, fld:numComponents() do
-      --    idxGhost[k] = idxSkin[k]
-      -- end
+      -- x-edges
+      for i = xlo, xup do
+         idxGhost, idxSkin = indexer(i, ylo-1, zlo-1), indexer(i, yup, zup)
+         fld:fill(idxGhost, ptrGhost)
+         fld:fill(idxSkin, ptrSkin)
+         for k = 1, fld:numComponents() do
+            ptrGhost[k] = ptrSkin[k]
+         end
+         idxGhost, idxSkin = indexer(i, yup+1, zlo-1), indexer(i, ylo, zup)
+         fld:fill(idxGhost, ptrGhost)
+         fld:fill(idxSkin, ptrSkin)
+         for k = 1, fld:numComponents() do
+            ptrGhost[k] = ptrSkin[k]
+         end
+         idxGhost, idxSkin = indexer(i, ylo-1, zup+1), indexer(i, yup, zlo)
+         fld:fill(idxGhost, ptrGhost)
+         fld:fill(idxSkin, ptrSkin)
+         for k = 1, fld:numComponents() do
+            ptrGhost[k] = ptrSkin[k]
+         end
+         idxGhost, idxSkin = indexer(i, yup+1, zup+1), indexer(i, ylo, zlo)
+         fld:fill(idxGhost, ptrGhost)
+         fld:fill(idxSkin, ptrSkin)
+         for k = 1, fld:numComponents() do
+            ptrGhost[k] = ptrSkin[k]
+         end
+      end
+
+      -- y-edges
+      for i = ylo, yup do
+         idxGhost, idxSkin = indexer(xlo-1, i, zlo-1), indexer(xup, i, zup)
+         fld:fill(idxGhost, ptrGhost)
+         fld:fill(idxSkin, ptrSkin)
+         for k = 1, fld:numComponents() do
+            ptrGhost[k] = ptrSkin[k]
+         end
+         idxGhost, idxSkin = indexer(xup+1, i, zlo-1), indexer(xlo, i, zup)
+         fld:fill(idxGhost, ptrGhost)
+         fld:fill(idxSkin, ptrSkin)
+         for k = 1, fld:numComponents() do
+            ptrGhost[k] = ptrSkin[k]
+         end
+         idxGhost, idxSkin = indexer(xlo-1, i, zup+1), indexer(xup, i, zlo)
+         fld:fill(idxGhost, ptrGhost)
+         fld:fill(idxSkin, ptrSkin)
+         for k = 1, fld:numComponents() do
+            ptrGhost[k] = ptrSkin[k]
+         end
+         idxGhost, idxSkin = indexer(xup+1, i, zup+1), indexer(xlo, i, zlo)
+         fld:fill(idxGhost, ptrGhost)
+         fld:fill(idxSkin, ptrSkin)
+         for k = 1, fld:numComponents() do
+            ptrGhost[k] = ptrSkin[k]
+         end
+      end
+
+      -- z-edges
+      for i = zlo, zup do
+         idxGhost, idxSkin = indexer(xlo-1, ylo-1, i), indexer(xup, yup, i)
+         fld:fill(idxGhost, ptrGhost)
+         fld:fill(idxSkin, ptrSkin)
+         for k = 1, fld:numComponents() do
+            ptrGhost[k] = ptrSkin[k]
+         end
+         idxGhost, idxSkin = indexer(xup+1, ylo-1, i), indexer(xlo, yup, i)
+         fld:fill(idxGhost, ptrGhost)
+         fld:fill(idxSkin, ptrSkin)
+         for k = 1, fld:numComponents() do
+            ptrGhost[k] = ptrSkin[k]
+         end
+         idxGhost, idxSkin = indexer(xlo-1, yup+1, i), indexer(xup, ylo, i)
+         fld:fill(idxGhost, ptrGhost)
+         fld:fill(idxSkin, ptrSkin)
+         for k = 1, fld:numComponents() do
+            ptrGhost[k] = ptrSkin[k]
+         end
+         idxGhost, idxSkin = indexer(xup+1, yup+1, i), indexer(xlo, ylo, i)
+         fld:fill(idxGhost, ptrGhost)
+         fld:fill(idxSkin, ptrSkin)
+         for k = 1, fld:numComponents() do
+            ptrGhost[k] = ptrSkin[k]
+         end
+      end
    end
 
    -- projection to apply ICs
@@ -210,27 +324,30 @@ return function(tbl)
       evaluate = tbl.init,
    }
 
-   -- local poisson = Updater.FemPerpPoisson {
-   --    onGrid = grid,
-   --    basis = basis,
-   --    bcBottom = { T = "D", V = 0.0 },
-   --    bcTop = { T = "D", V = 0.0 },
-   --    bcLeft = { T = "D", V = 0.0 },
-   --    bcRight = { T = "D", V = 0.0 },
-   -- }
+   local poisson = Updater.DiscontPoisson {
+      onGrid = grid,
+      basis = basis,
+      bcLower = {{D = 1, N = 0, val = 0.0},
+         {D = 1, N = 0, val = 0.0},
+         {D = 1, N = 0, val = 0.0}},
+      bcUpper = {{D = 1, N = 0, val = 0.0},
+         {D = 1, N = 0, val = 0.0},
+         {D = 1, N = 0, val = 0.0}},
+   }
 
    local function updateRosenbluthDrag(fIn, hOut)
       local tmStart = Time.clock()
-      fs:combine(-1.0, fIn)
       if updatePotentials then
-         poisson:advance(0.0, {fs}, {hOut})
+         tmp:combine(1, fIn)
+         poisson:advance(0.0, {tmp}, {hOut})
       end
       tmRosen = tmRosen + Time.clock()-tmStart
    end
    local function updateRosenbluthDiffusion(hIn, gOut)
       local tmStart = Time.clock()
       if updatePotentials then
-         poisson:advance(0.0, {hIn}, {gOut})
+         tmp:combine(-1, hIn)
+         poisson:advance(0.0, {tmp}, {gOut})
       end
       tmRosen = tmRosen + Time.clock()-tmStart
    end
@@ -238,9 +355,32 @@ return function(tbl)
    -----------------
    -- Diagnostics --
    -----------------
-   local function calcMoms(tCurr, fIn, momVec)
+   local function calcMoms(tCurr, fIn, vec)
       local dv = Lin.Vec(3)
-      dv[1], dv[2] = grid:dx(1), grid:dx(2)
+      dv[1], dv[2], dv[3] = grid:dx(1), grid:dx(2), grid:dx(3)
+      local vc = Lin.Vec(3)
+      local localRange = fIn:localRange()
+      local indexer = fIn:genIndexer()
+      local out = Lin.Vec(5)
+      out[1] = 0.0
+      out[2] = 0.0
+      out[3] = 0.0
+      out[4] = 0.0
+      out[5] = 0.0
+
+      for idxs in localRange:colMajorIter() do
+         grid:setIndex(idxs)
+         grid:cellCenter(vc)
+         local fPtr = fIn:get(indexer(idxs))
+         momsKernelFn(dv:data(), vc:data(), fPtr:data(), out:data())
+      end
+      vec:appendData(tCurr, out)
+      return out
+   end
+
+   local function calcDiag(tCurr, fIn, hIn, vec)
+      local dv = Lin.Vec(3)
+      dv[1], dv[2], dv[3] = grid:dx(1), grid:dx(2), grid:dx(3)
       local vc = Lin.Vec(3)
       local localRange = fIn:localRange()
       local indexer = fIn:genIndexer()
@@ -254,31 +394,10 @@ return function(tbl)
          grid:setIndex(idxs)
          grid:cellCenter(vc)
          local fPtr = fIn:get(indexer(idxs))
-         momsKernelFn(dv:data(), vc:data(), fPtr:data(), out:data())
-      end
-      momVec:appendData(tCurr, out)
-      return out
-   end
-
-   local function calcDiag(tCurr, fIn, hIn, diagVec)
-      local dv = Lin.Vec(3)
-      dv[1], dv[2] = grid:dx(1), grid:dx(2)
-      local vc = Lin.Vec(3)
-      local localRange = fIn:localRange()
-      local indexer = fIn:genIndexer()
-      local out = Lin.Vec(3)
-      out[1] = 0.0
-      out[2] = 0.0
-      out[3] = 0.0
-
-      for idxs in localRange:colMajorIter() do
-         grid:setIndex(idxs)
-         grid:cellCenter(vc)
-         local fPtr = fIn:get(indexer(idxs))
          local hPtr = hIn:get(indexer(idxs))
          diagKernelFn(dv:data(), vc:data(), fPtr:data(), hPtr:data(), out:data())
       end
-      diagVec:appendData(tCurr, out)
+      vec:appendData(tCurr, out)
    end
 
    local function writeData(fr, tm)
@@ -287,9 +406,11 @@ return function(tbl)
          h:write(string.format('h_%d.bp', fr), tm, fr)
          g:write(string.format('g_%d.bp', fr), tm, fr)
       end
+
       if writeDiagnostics then
-         moms:write(string.format("moms_%d.bp", fr), tm, fr)
-         diag:write(string.format("diag_%d.bp", fr), tm, fr)
+         
+         momVec:write("moms.bp", tm, fr)
+         diagVec:write("diag.bp", tm, fr)
       end
    end
 
@@ -299,7 +420,7 @@ return function(tbl)
    --------------------
    initDist:advance(0.0, {}, {f})
    applyBc(f)
-   --local momVec = calcMoms(0, f, moms)
+   local momVec0 = calcMoms(0, f, momVec)
 
    -- Check if drag/diff functions are provided
    local initDragFunc = tbl.initDrag and tbl.initDrag or function(t, z) return 0.0 end
@@ -308,15 +429,17 @@ return function(tbl)
    -- Overwrite the init functions if the the Dougherty potentials are turned on
    if doughertyPotentials then
       initDragFunc = function (t, z)
-         local ux = momVec[2]/momVec[1]
-         local uy = momVec[3]/momVec[1]
-         return -0.5*((z[1]-ux)^2 + (z[2]-uy)^2)
+         local ux = momVec0[2]/momVec0[1]
+         local uy = momVec0[3]/momVec0[1]
+         local uz = momVec0[4]/momVec0[1]
+         return -0.5*((z[1]-ux)^2 + (z[2]-uy)^2 + (z[3]-uz)^2)
       end
       initDiffFunc = function (t, z)
-         local ux = momVec[2]/momVec[1]
-         local uy = momVec[3]/momVec[1]
-         local dvth2 = momVec[4]/momVec[1] - (ux^2 + uy^2)
-         return dvth2/2 * (z[1]^2 + z[2]^2) -- /2 is for dimensions
+         local ux = momVec0[2]/momVec0[1]
+         local uy = momVec0[3]/momVec0[1]
+         local uz = momVec0[4]/momVec0[1]
+         local dvth2 = momVec0[5]/momVec0[1] - (ux^2 + uy^2 + uz^2)
+         return dvth2/3 * (z[1]^2 + z[2]^2 + z[3]^2) -- /3 is for dimensions
       end
    end
 
@@ -344,7 +467,7 @@ return function(tbl)
 
    -- write initial conditions
    if writeDiagnostics then
-      calcDiag(0, f, h, diag)
+      calcDiag(0, f, h, diagVec)
    end
    writeData(0, 0.0)
    if updatePotentials == false then
@@ -369,8 +492,8 @@ return function(tbl)
          src:write('src.bp', 0.0, 0)
       end
    end
-   test:accumulate(1, src)
-   test:write('test.bp', 0.0, 0)
+   --test:accumulate(1, src)
+   --test:write('test.bp', 0.0, 0)
 
    local function forwardEuler(dt, fIn, hIn, gIn, fOut)
       local tmStart = Time.clock()
@@ -423,19 +546,7 @@ return function(tbl)
          idxs_UCC[1], idxs_UCC[2], idxs_UCC[3] = idxs[1]+1, idxs[2], idxs[3]
          idxs_UCU[1], idxs_UCU[2], idxs_UCU[3] = idxs[1]+1, idxs[2], idxs[3]+1
          idxs_UUC[1], idxs_UUC[2], idxs_UUC[3] = idxs[1]+1, idxs[2]+1, idxs[3]
-
-         -- local isTopEdge, isBotEdge = 0, 0
-         -- local isLeftEdge, isRightEdge = 0, 0
-         -- if periodicX == false then
-         --    if idxs[1] == 1 then isLeftEdge = 1 end
-         --    if idxs[1] == cells[1] then isRightEdge = 1 end
-         -- end
-         -- if periodicY == false then
-         --    if idxs[2] == 1 then isBotEdge = 1 end
-         --    if idxs[2] == cells[2] then isTopEdge = 1 end
-         -- end
          
-
          fStencil7.C = fIn:get(indexer(idxs)):data()
          fStencil7.xL = fIn:get(indexer(idxs_LCC)):data()
          fStencil7.xU = fIn:get(indexer(idxs_UCC)):data()
@@ -504,8 +615,8 @@ return function(tbl)
          local f_out = fOut:get(indexer(idxs)):data()
 
          dragFreq = dragKernelFn(dt, dv:data(),
-				 fStencil7, hStencil7,
-				 f_out)
+	        		 fStencil7, hStencil7,
+	        		 f_out)
          
          diffSurfXLSerFn(dt, dv:data(),
                          f_LCC, f_LLC, f_LUC, f_LCL, f_LCU,
@@ -546,6 +657,7 @@ return function(tbl)
          diffFreq = diffVolSerFn(dt, dv:data(),
                                  f_CCC, g_CCC,
                                  f_out)
+         
 	 cflFreq = math.max(cflFreq, dragFreq, diffFreq)
       end
 
@@ -630,9 +742,9 @@ return function(tbl)
 	    f:copy(fNew)
 	    
 	    if writeDiagnostics then
-	       calcMoms(tCurr+dt, f, moms)
+	       calcMoms(tCurr+dt, f, momVec)
 	       updateRosenbluthDrag(f, h)
-	       calcDiag(tCurr+dt, f, h, diag)
+	       calcDiag(tCurr+dt, f, h, diagVec)
 	    end
 	    
 	    tCurr = tCurr+dt
@@ -646,6 +758,7 @@ return function(tbl)
 	    print("dt too big, retaking")
 	 end
       end
+
       local tmTotal = Time.clock()-tmStart
 
       print("")

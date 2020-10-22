@@ -132,17 +132,18 @@ function GkMaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 
    -- Get the inputs and outputs
    local nIn    = assert(inFld[1], "GkMaxwellianOnBasis.advance: Must specify density 'inFld[1]'")
-   local uParIn = assert(inFld[2], "GkMaxwellianOnBasis.advance: Must specify drift speed 'inFld[2]'")
+   local uIn = assert(inFld[2], "GkMaxwellianOnBasis.advance: Must specify drift speed 'inFld[2]'")
    local vtSqIn = assert(inFld[3], "GkMaxwellianOnBasis.advance: Must specify thermal velocity squared 'inFld[3]'")
    local fOut   = assert(outFld[1], "GkMaxwellianOnBasis.advance: Must specify an output field 'outFld[1]'")
 
    local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
-
+   local uDim = uIn:numComponents()/self.numConfBasis -- number of dimensions in u
+   
    -- OLD CODE before projecting on ghosts --
    -- Move these declarations below self.onGhosts 
    -- local bmagItr, bmagOrd = self.bmag:get(1), Lin.Vec(self.numConfOrds)
    -- local nItr, nOrd       = nIn:get(1), Lin.Vec(self.numConfOrds)
-   -- local uParItr, uParOrd = uParIn:get(1), Lin.Vec(self.numConfOrds)
+   -- local uItr, uOrd = uIn:get(1), Lin.Vec(self.numConfOrds)
    -- local vtSqItr, vtSqOrd = vtSqIn:get(1), Lin.Vec(self.numConfOrds)
    -- local fItr             = fOut:get(1)
  
@@ -170,8 +171,8 @@ function GkMaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 
    --local bmagItr, bmagOrd = self.bmag:get(1), Lin.Vec(self.numConfOrds)
    local bmagOrd = Lin.Vec(self.numConfOrds)
-   local nItr, nOrd       = nIn:get(1), Lin.Vec(self.numConfOrds)
-   local uParItr, uParOrd = uParIn:get(1), Lin.Vec(self.numConfOrds)
+   local nItr, nOrd = nIn:get(1), Lin.Vec(self.numConfOrds)
+   local uItr, uOrd = uIn:get(1), Lin.Vec(self.numConfOrds)
    local vtSqItr, vtSqOrd = vtSqIn:get(1), Lin.Vec(self.numConfOrds)
    local fItr             = fOut:get(1)
 
@@ -188,20 +189,25 @@ function GkMaxwellianOnBasis:_advance(tCurr, inFld, outFld)
    for cIdx in confRangeDecomp:rowMajorIter(tId) do
       self.bmag:fill(confIndexer(cIdx), self.bmagItr)
       nIn:fill(confIndexer(cIdx), nItr)
-      uParIn:fill(confIndexer(cIdx), uParItr)
+      uIn:fill(confIndexer(cIdx), uItr)
       vtSqIn:fill(confIndexer(cIdx), vtSqItr)
       
       -- Evaluate the primitive variables (given as expansion
       -- coefficients) on the ordinates
       for ordIndexes in self.confQuadRange:rowMajorIter() do
 	 ordIdx = self.confQuadIndexer(ordIndexes)
-	 bmagOrd[ordIdx],nOrd[ordIdx],uParOrd[ordIdx],vtSqOrd[ordIdx] = 0.0, 0.0, 0.0, 0.0
+	 bmagOrd[ordIdx],nOrd[ordIdx],uOrd[ordIdx],vtSqOrd[ordIdx] = 0.0, 0.0, 0.0, 0.0
 	 
 	 for k = 1, self.numConfBasis do
 	    bmagOrd[ordIdx] = bmagOrd[ordIdx] + self.bmagItr[k]*self.confBasisAtOrds[ordIdx][k]
 	    nOrd[ordIdx] = nOrd[ordIdx] + nItr[k]*self.confBasisAtOrds[ordIdx][k]
-	    uParOrd[ordIdx] = uParOrd[ordIdx] + uParItr[k]*self.confBasisAtOrds[ordIdx][k]
 	    vtSqOrd[ordIdx] = vtSqOrd[ordIdx] + vtSqItr[k]*self.confBasisAtOrds[ordIdx][k]
+
+	    if uDim > 1 then -- get z-component of fluid velocity
+	       uOrd[ordIdx] = uOrd[ordIdx] + uItr[self.numConfBasis*2+k]*self.confBasisAtOrds[ordIdx][k]
+	    else 
+	       uOrd[ordIdx] = uOrd[ordIdx] + uItr[k]*self.confBasisAtOrds[ordIdx][k]
+	    end
 	 end
       end
 
@@ -218,7 +224,7 @@ function GkMaxwellianOnBasis:_advance(tCurr, inFld, outFld)
          self.phaseGrid:getDx(self.dxP)
          self.phaseGrid:cellCenter(self.xcP)
 
-	 ffiC.GkMaxwellianInnerLoop(nOrd:data(), uParOrd:data(), vtSqOrd:data(),
+	 ffiC.GkMaxwellianInnerLoop(nOrd:data(), uOrd:data(), vtSqOrd:data(),
 				    bmagOrd:data(), self.mass,
 				    fItr:data(),
 				    self.phaseWeights:data(), self.dxP:data(), self.xcP:data(),

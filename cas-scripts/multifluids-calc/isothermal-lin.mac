@@ -1,0 +1,64 @@
+/** Linearization of 5M (euler) equations */
+
+load(itensor)$
+
+/** Compute Jacobian matrix J[i,j] : diff(F[i],Q[j]) */
+calcJac(F, Q) := genmatrix(lambda([i,j], diff(F[i],Q[j])), length(F), length(Q))$
+
+/**** Euler Equations in primitive form */
+dn(dir) := u[dir]*D(n) + n*D(u[dir])$ /* Density */
+du(dir, i) := u[dir]*D(u[i]) + T/(m*n)*D(n)*kdelta([],[i,dir])$ /* Velocity */
+
+/* Equations in directon dir */
+eqList(dir) := [dn(dir), du(dir,1), du(dir,2), du(dir,3)]$
+
+/* Differentials */
+diffList : [D(n), D(u[1]), D(u[2]), D(u[3])]$
+
+/* Construct the A[i] matrices for use in dispersion matrix */
+AIso[1] : coefmatrix(eqList(1), diffList)$
+AIso[2] : coefmatrix(eqList(2), diffList)$
+AIso[3] : coefmatrix(eqList(3), diffList)$
+
+/* Source for momentum equations  */
+momSrc(i) := qbym*(E[i] + sum(sum(levi_civita([k,m,i])*u[k]*B[m], k, 1, 3), m, 1, 3))$
+
+/* List of source terms (no source for density) */
+srcList : map(canform, [0, momSrc(1), momSrc(2), momSrc(3)])$
+
+/* List of variables */
+varList : [n, u[1], u[2], u[3]]$
+
+/* Compute source Jacobian */
+srcJac : calcJac(srcList, varList)$
+
+/* List of EM variables */
+emVarList : [E[1], E[2], E[3], B[1], B[2], B[3]]$
+
+/* Compute contribution of sources to EM terms */
+emSrcJac : calcJac(srcList, emVarList)$
+
+/* Write contribution to moment part of D to file */
+fh : openw("~/max-out/iso-lin-mom-D.lua")$
+
+kA : sum(k[i]*AIso[i], i, 1, 3)$
+[nrow, ncol] : matrix_size(AIso[1])$
+for i : 1 thru nrow do (
+  for j : 1 thru ncol do (
+    printf(fh, " D[~a][~a] = ~a + (~a)*1i ~%", i, j, kA[i][j], srcJac[i][j] )
+    )
+  )$
+
+close(fh)$
+
+/* Write contribution to field part of D to file */
+fh : openw("~/max-out/iso-mom-lin-fld-D.lua")$
+
+[nrow, ncol] : matrix_size(emSrcJac)$
+for i : 1 thru nrow do (
+  for j : 1 thru ncol do (
+    if emSrcJac[i,j] # 0 then printf(fh, " D[~a][~a] = (~a)*1i ~%", i, j, emSrcJac[i,j] )
+    )
+  )$
+
+close(fh)$

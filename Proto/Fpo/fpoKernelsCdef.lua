@@ -35,12 +35,7 @@ typedef struct {
 
 void fpoMomsKernelP1(const double* dv, const double* vc, const double* f, double* out);
 
-void fpoMomsKernelP2(const double* dv, const double* vc, const double* f, double* out);
-
-
 void fpoDiagKernelP1(const double* dv, const double* vc, const double* f, const double* h, double* out);
-
-void fpoDiagKernelP2(const double* dv, const double* vc, const double* f, const double* h, double* out);
 
 
 double fpoDragKernel3xP1(const double dt, const double* dv,

@@ -52,7 +52,9 @@ function GkField:fullInit(appTbl)
    self.ioFrame = 0 -- Frame number for IO.
    self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
 
-   self.writeSkin = xsys.pickBool(appTbl.writeSkin, false)
+   
+   -- write ghost cells on boundaries of global domain (for BCs)
+   self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 
    -- Get boundary condition settings.
    -- These will be checked for consistency when the solver is initialized.
@@ -69,8 +71,8 @@ function GkField:fullInit(appTbl)
    if appTbl.periodicDirs then self.periodicDirs = appTbl.periodicDirs else self.periodicDirs = {} end
 
    -- For storing integrated energies.
-   self.phi2     = DataStruct.DynVector { numComponents = 1 }
-   self.apar2    = DataStruct.DynVector { numComponents = 1 }
+   self.phiSq     = DataStruct.DynVector { numComponents = 1 }
+   self.aparSq    = DataStruct.DynVector { numComponents = 1 }
    self.esEnergy = DataStruct.DynVector { numComponents = 1 }
    self.emEnergy = DataStruct.DynVector { numComponents = 1 }
 
@@ -313,7 +315,7 @@ end
 function GkField:clearCFL()
 end
 
-function GkField:createSolver(species, funcField)
+function GkField:createSolver(species, externalField)
    -- Get adiabatic species info.
    for nm, s in pairs(species) do
       if Species.AdiabaticSpecies.is(s) then
@@ -325,18 +327,18 @@ function GkField:createSolver(species, funcField)
 
    -- Set up FEM solver for Poisson equation to solve for phi.
    local gxx, gxy, gyy, jacobGeo
-   if funcField.geo then 
+   if externalField.geo then 
      -- include jacobian factor in metric coefficients if using linearized polarization density
      if self.linearizedPolarization then
-        gxx = funcField.geo.gxxJ
-        gxy = funcField.geo.gxyJ
-        gyy = funcField.geo.gyyJ
+        gxx = externalField.geo.gxxJ
+        gxy = externalField.geo.gxyJ
+        gyy = externalField.geo.gyyJ
      else  -- if not, jacobian already included in polarization density
-        gxx = funcField.geo.gxx
-        gxy = funcField.geo.gxy
-        gyy = funcField.geo.gyy
+        gxx = externalField.geo.gxx
+        gxy = externalField.geo.gxy
+        gyy = externalField.geo.gyy
      end
-     jacobGeo = funcField.geo.jacobGeo
+     jacobGeo = externalField.geo.jacobGeo
    end
    self.phiSlvr = Updater.FemPoisson {
      onGrid   = self.grid,
@@ -551,7 +553,7 @@ function GkField:createDiagnostics()
    self.fieldIo = AdiosCartFieldIo {
       elemType   = self.potentials[1].phi:elemType(),
       method     = self.ioMethod,
-      writeSkin  = self.writeSkin,
+      writeGhost = self.writeGhost,
       metaData   = {
 	 polyOrder = self.basis:polyOrder(),
 	 basisType = self.basis:id()
@@ -582,9 +584,9 @@ end
 function GkField:write(tm, force)
    if self.evolve then
       -- Compute integrated quantities over domain.
-      self.int2Calc:advance(tm, { self.potentials[1].phi }, { self.phi2 })
+      self.int2Calc:advance(tm, { self.potentials[1].phi }, { self.phiSq })
       if self.isElectromagnetic then 
-        self.int2Calc:advance(tm, { self.potentials[1].apar }, { self.apar2 })
+        self.int2Calc:advance(tm, { self.potentials[1].apar }, { self.aparSq })
       end
       if self.energyCalc then 
          if self.linearizedPolarization then
@@ -598,8 +600,8 @@ function GkField:write(tm, force)
             self.energyCalc:advance(tm, { self.potentials[1].phiAux, esEnergyFac }, { self.esEnergy })
             if self.adiabatic and self.ndim > 1 then
                local tm, energyVal = self.esEnergy:lastData()
-               local _, phi2Val = self.phi2:lastData()
-               energyVal[1] = energyVal[1] + .5*self.adiabSpec:getQneutFac()*phi2Val[1]
+               local _, phiSqVal = self.phiSq:lastData()
+               energyVal[1] = energyVal[1] + .5*self.adiabSpec:getQneutFac()*phiSqVal[1]
             end
          else
             -- Something.
@@ -629,10 +631,10 @@ function GkField:write(tm, force)
 	   self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
 	   self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
          end
-	 self.phi2:write(string.format("phi2.bp"), tm, self.ioFrame)
+	 self.phiSq:write(string.format("phiSq.bp"), tm, self.ioFrame)
 	 self.esEnergy:write(string.format("esEnergy.bp"), tm, self.ioFrame)
 	 if self.isElectromagnetic then
-	    self.apar2:write(string.format("apar2.bp"), tm, self.ioFrame)
+	    self.aparSq:write(string.format("aparSq.bp"), tm, self.ioFrame)
 	    self.emEnergy:write(string.format("emEnergy.bp"), tm, self.ioFrame)
 	 end
 	 
@@ -661,7 +663,7 @@ function GkField:writeRestart(tm)
    end
 
    -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
-   self.phi2:write("phi2_restart.bp", tm, self.dynVecRestartFrame, false, false)
+   self.phiSq:write("phiSq_restart.bp", tm, self.dynVecRestartFrame, false, false)
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 
 end
@@ -671,7 +673,7 @@ function GkField:readRestart()
    -- numbering correct. The forward Euler recomputes the potential
    -- before updating the hyperbolic part.
    local tm, fr = self.fieldIo:read(self.potentials[1].phi, "phi_restart.bp")
-   self.phi2:read("phi2_restart.bp", tm)
+   self.phiSq:read("phiSq_restart.bp", tm)
 
    self.fieldIo:read(self.laplacianWeight, "laplacianWeight_restart.bp")
    self.fieldIo:read(self.modifierWeight, "modifierWeight_restart.bp")
@@ -970,7 +972,7 @@ end
 -- A field object with fields specifying the magnetic geometry for GK.
 --------------------------------------------------------------------------------
 
-local GkGeometry = Proto(FieldBase.FuncFieldBase)
+local GkGeometry = Proto(FieldBase.ExternalFieldBase)
 
 -- Methods for no field object.
 function GkGeometry:init(tbl)

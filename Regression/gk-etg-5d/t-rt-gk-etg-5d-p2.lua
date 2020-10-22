@@ -121,7 +121,7 @@ plasmaApp = Plasma.App {
    },
 
    -- magnetic geometry 
-   funcField = Plasma.Geometry {
+   externalField = Plasma.Geometry {
       -- background magnetic field
       bmag = function (t, xn)
          local x, y, z = xn[1], xn[2], xn[3]
