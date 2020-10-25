@@ -980,6 +980,9 @@ function GkGeometry:fullInit(appTbl)
    -- For s-alpha geometry.
    self.salpha = tbl.salpha
 
+   -- Specify which geometry to use.
+   self.geoType = tbl.geometryType and tbl.geometryType or "SimpleHelical"
+
    -- Wall potential for sheath BCs.
    self.phiWallFunc = tbl.phiWall
    if self.phiWallFunc then assert(type(self.phiWallFunc)=="function", "GkGeometry: phiWall must be a function (t, xn)") end
@@ -994,6 +997,8 @@ function GkGeometry:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim()
 function GkGeometry:alloc()
    -- Allocate fields.
    self.geo = {}
+
+   self.geo.name = self.geoType
 
    -- Background magnetic field.
    self.geo.bmag = DataStruct.Field {

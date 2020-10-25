@@ -1,6 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- gyrokinetic equation using Hamiltonian formulation
+-- Gyrokinetic equation using Hamiltonian formulation.
+--
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
@@ -37,13 +38,15 @@ function Gyrokinetic:init(tbl)
 
    self.Bvars = tbl.Bvars
 
+   self.geoType = tbl.geometry and tbl.geometry or "SimpleHelical"
+
    self._ndim = self._basis:ndim()
    self._cdim = self._confBasis:ndim()
    self._vdim = self._ndim - self._cdim
 
    local nm, p = self._basis:id(), self._basis:polyOrder()
-   self._volTerm = GyrokineticModDecl.selectVol(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self.Bvars)
-   self._surfTerms = GyrokineticModDecl.selectSurf(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self._positivity, self.Bvars)
+   self._volTerm = GyrokineticModDecl.selectVol(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self.Bvars, self.geoType)
+   self._surfTerms = GyrokineticModDecl.selectSurf(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self._positivity, self.Bvars, self.geoType)
 
    -- for sheath BCs
    if tbl.hasSheathBcs then
@@ -238,9 +241,11 @@ function GyrokineticStep2:init(tbl)
    self._positivity = xsys.pickBool(tbl.positivity,false)
    self.Bvars = tbl.Bvars
 
+   self.geoType = tbl.geometry and tbl.geometry or "SimpleHelical"
+
    local nm, p = self._basis:id(), self._basis:polyOrder()
-   self._volTerm = GyrokineticModDecl.selectStep2Vol(nm, self._cdim, self._vdim, p)
-   self._surfTerm = GyrokineticModDecl.selectStep2Surf(nm, self._cdim, self._vdim, p, self._positivity, self.Bvars)
+   self._volTerm = GyrokineticModDecl.selectStep2Vol(nm, self._cdim, self._vdim, p, self.geoType)
+   self._surfTerm = GyrokineticModDecl.selectStep2Surf(nm, self._cdim, self._vdim, p, self._positivity, self.Bvars, self.geoType)
 
    self._isFirst = true
 end

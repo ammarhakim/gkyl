@@ -9,7 +9,7 @@
 local Proto          = require "Lib.Proto"
 local KineticSpecies = require "App.Species.KineticSpecies"
 local Mpi            = require "Comm.Mpi"
-local Gk             = require "Eq.Gyrokinetic"
+local GyrokineticEq  = require "Eq.Gyrokinetic"
 local Updater        = require "Updater"
 local DataStruct     = require "DataStruct"
 local Time           = require "Lib.Time"
@@ -157,7 +157,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
    end
 
    -- Create updater to advance solution by one time-step.
-   self.equation = Gk.GkEq {
+   self.equation = GyrokineticEq.GkEq {
       onGrid       = self.grid,
       confGrid     = self.confGrid,
       phaseBasis   = self.basis,
@@ -170,6 +170,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       hasSheathBcs = self.hasSheathBcs,
       positivity   = self.positivity,
       gyavgSlvr    = self.emGyavgSlvr,
+      geometry     = externalField.geo.name,
    }
 
    -- No update in mu direction (last velocity direction if present)
@@ -206,7 +207,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
          clearOut           = false,            -- Continue accumulating into output field.
       }
       -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
-      self.equationStep2 = Gk.GkEqStep2 {
+      self.equationStep2 = GyrokineticEq.GkEqStep2 {
          onGrid     = self.grid,
          phaseBasis = self.basis,
          confBasis  = self.confBasis,
@@ -214,6 +215,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
          mass       = self.mass,
          Bvars      = externalField.bmagVars,
          positivity = self.positivity,
+         geometry   = externalField.geo.name,
       }
       -- Note that the surface update for this term only involves the vpar direction.
       self.solverStep3 = Updater.HyperDisCont {
@@ -227,7 +229,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       }
    elseif hasApar and self.basis:polyOrder()>1 then
       -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
-      self.equationStep2 = Gk.GkEqStep2 {
+      self.equationStep2 = GyrokineticEq.GkEqStep2 {
          onGrid     = self.grid,
          phaseBasis = self.basis,
          confBasis  = self.confBasis,
@@ -235,6 +237,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
          mass       = self.mass,
          Bvars      = externalField.bmagVars,
          positivity = self.positivity,
+         geometry   = externalField.geo.name,
       }
       -- Note that the surface update for this term only involves the vpar direction.
       self.solverStep2 = Updater.HyperDisCont {
