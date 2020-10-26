@@ -157,14 +157,14 @@ local function buildApplication(self, tbl)
       useShared = useShared,
    }
 
-   -- pick grid ctor based on uniform/non-uniform grid
+   -- Pick grid ctor based on uniform/non-uniform grid.
    local GridConstructor = Grid.RectCart
    if tbl.coordinateMap then
       GridConstructor = Grid.NonUniformRectCart
    elseif tbl.mapc2p then 
       GridConstructor = Grid.MappedCart
    end
-   -- setup configuration space grid
+   -- Setup configuration space grid.
    local confGrid = GridConstructor {
       lower = tbl.lower,
       upper = tbl.upper,
@@ -191,10 +191,10 @@ local function buildApplication(self, tbl)
 
    -- Setup each species.
    for _, s in pairs(species) do
-      -- set up conf grid and basis
+      -- Set up conf grid and basis.
       s:setConfGrid(confGrid)
       s:setConfBasis(confBasis)
-      -- set up phase grid and basis
+      -- Set up phase grid and basis.
       s:createGrid(confGrid)
       s:createBasis(basisNm, polyOrder)
       s:alloc(stepperNumFields[timeStepperNm])
@@ -210,7 +210,7 @@ local function buildApplication(self, tbl)
       end
    end
 
-   -- add grid to app object
+   -- Add grid to app object.
    self._confGrid = confGrid
 
    -- Set conf grid for each source.

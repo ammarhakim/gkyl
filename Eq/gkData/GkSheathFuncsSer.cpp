@@ -1,5 +1,4 @@
-#include <cmath>
-#include <GyrokineticModDecl.h> 
+#include <GkSheathModDecl.h>
 // approximation for inverse Langevin function 
 long double invL(long double x) { 
   // from Kroger 

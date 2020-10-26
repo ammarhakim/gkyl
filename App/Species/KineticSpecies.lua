@@ -876,7 +876,7 @@ function KineticSpecies:calcDiagnosticMoments(tm)
    for i, mom in pairs(self.diagnosticMoments) do
       self.diagnosticMomentUpdaters[mom]:advance(
 	 tCurr, {f}, {self.diagnosticMomentFields[mom]})
-      -- remove geometric jacobian factor
+      -- Remove geometric jacobian factor.
       if self.jacobGeoInv then
          self.weakMultiplication:advance(
             0.0, {self.diagnosticMomentFields[mom], self.jacobGeoInv}, {self.diagnosticMomentFields[mom]})

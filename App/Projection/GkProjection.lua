@@ -6,14 +6,14 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+local Proto   = require "Lib.Proto"
+local Updater = require "Updater"
+local xsys    = require "xsys"
 local FunctionProjectionParent   = require ("App.Projection.KineticProjection").FunctionProjection
 local MaxwellianProjectionParent = require ("App.Projection.KineticProjection").MaxwellianProjection
-local Proto                      = require "Lib.Proto"
-local Updater                    = require "Updater"
-local xsys                       = require "xsys"
 
 ----------------------------------------------------------------------
--- Gk-specific GkProjection.FunctionProjection includes jacobian factors in initFunc.
+-- Gk-specific GkProjection.FunctionProjection includes Jacobian factors in initFunc.
 local FunctionProjection = Proto(FunctionProjectionParent)
 function FunctionProjection:run(tProj, distf)
    if self.fromFile then
@@ -135,7 +135,7 @@ function MaxwellianProjection:scaleM012(distf)
    local M02par_mod, M02perp_mod                   = sp:allocMoment(), sp:allocMoment() 
    local distf0_mod, distf2par_mod, distf2perp_mod = sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
 
-   -- initialize maxwellian distribution distf0 = FM, along with 
+   -- Initialize maxwellian distribution distf0 = FM, along with 
    -- distf2par = m*vpar^2/2*FM and distf2perp = mu*B*FM.
    local distf0, distf2par, distf2perp = sp:allocDistf(), sp:allocDistf(), sp:allocDistf()
    distf0:copy(distf)
@@ -465,15 +465,15 @@ function MaxwellianProjection:run(tProj, distf)
                xconf[d] = xn[d]
             end
             local J = 1 --self.species.jacobPhaseFunc(t,xconf)
-            -- divide the initial maxwellian by the density to get a unit density
+            -- Divide the initial maxwellian by the density to get a unit density
             -- because we are going to rescale the density anyways, and it is easier
-            -- to weak-divide by something close to unity
+            -- to weak-divide by something close to unity.
             local f = initFuncWithoutJacobian(t,xn)/self.density(t, xn, sp)
             return J*f
          end
       end
-      -- for geometry jacobian, scale density function so that jacobian factor
-      -- is retained even after rescaling distf
+      -- For geometry jacobian, scale density function so that jacobian factor
+      -- is retained even after rescaling distf.
       if self.species.jacobGeoFunc then
          local densityWithoutJacobian = self.density
          self.density = function (t, xn, sp)
