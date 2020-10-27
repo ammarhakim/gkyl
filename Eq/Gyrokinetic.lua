@@ -353,7 +353,7 @@ function GyrokineticStep2:setAuxFields(auxFields)
    self.dApardtProv = auxFields[3]
 
    -- Get magnetic geometry fields.
-   self.bmag = geo.bmag
+   self.bmag    = geo.bmag
    self.gradpar = geo.gradpar
    if self.geoType == "SimpleHelical" then
       self.bmagInv = geo.bmagInv

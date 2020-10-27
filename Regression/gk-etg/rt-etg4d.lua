@@ -126,8 +126,7 @@ plasmaApp = Plasma.App {
          local x = xn[1]
          return B0*R0/(R0 + x)
       end,
-      -- geometry is not time-dependent
-      evolve = false,
+      evolve = false,   -- Geometry is not time-dependent.
    },
 }
 -- run application

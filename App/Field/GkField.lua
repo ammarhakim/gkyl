@@ -983,6 +983,7 @@ function GkGeometry:fullInit(appTbl)
    --assert(self.bmagFunc and type(self.bmagFunc)=="function", "GkGeometry: must specify background magnetic field function with 'bmag'")
 
    -- Specify which geometry to use. This gets redefined in :alloc method if mapc2p is detected.
+   -- NOTE: for must purposes one must use geo.name, defined in the :alloc method.
    self.geoType = tbl.geometryType and tbl.geometryType or "SimpleHelical"
 
    -- Wall potential for sheath BCs.
@@ -1031,7 +1032,7 @@ function GkGeometry:alloc()
    -- g^yy = |grad y|**2.
    self.geo.gyy = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
-   if self.geoType == "SimpleHelical" then
+   if self.geo.name == "SimpleHelical" then
 
       -- Functions for magnetic drifts.
       -- bdriftX = 1/B*curl(bhat).grad x.
@@ -1045,7 +1046,7 @@ function GkGeometry:alloc()
          self.geo.allGeo = createField(self.grid,self.basis,ghostNum,8,syncPeriodic)
       end
 
-   elseif self.geoType == "GenGeo" then
+   elseif self.geo.name == "GenGeo" then
 
       -- Jacobian of coordinate transformation.
       self.geo.jacobGeo = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
@@ -1077,6 +1078,7 @@ function GkGeometry:alloc()
       if self.fromFile == nil then
          self.geo.allGeo = createField(self.grid,self.basis,ghostNum,16,syncPeriodic)
       end
+
    end
 
    -- Wall potential for sheath BCs.
@@ -1102,7 +1104,7 @@ function GkGeometry:createSolver()
       return self.grid:calcJacobian(xn)
    end
 
-   if self.geoType == "SimpleHelical" then
+   if self.geo.name == "SimpleHelical" then
 
       -- Calculate magnetic drift functions.
       if self.ndim > 1 then
@@ -1135,7 +1137,7 @@ function GkGeometry:createSolver()
             local gxx, gxy, gyy = 1.0, 0.0, 1.0
 
             local bmag    = self.bmagFunc(t, xn)
-            local gradpar = bmag
+            local gradpar = 1.0
 
             return bmag, 1/bmag, gradpar, gxx, gxy, gyy
           end
@@ -1144,13 +1146,22 @@ function GkGeometry:createSolver()
             local gxx, gxy, gyy = 1.0, 0.0, 1.0
 
             local bmag    = self.bmagFunc(t, xn)
-            local gradpar = bmag
+            local gradpar = 1.0
 
             local bdriftX = self.bdriftXFunc(t, xn)
             local bdriftY = self.bdriftYFunc(t, xn)
 
             return bmag, 1/bmag, gradpar, gxx, gxy, gyy, bdriftX, bdriftY
           end
+      end
+
+      if self.fromFile == nil then
+         self.setAllGeo = Updater.ProjectOnBasis {
+            onGrid   = self.grid,
+            basis    = self.basis,
+            evaluate = self.calcAllGeo,
+            projectOnGhosts = true,
+         }
       end
 
       -- Determine which variables bmag depends on by checking if setting a variable to nan results in nan.
@@ -1168,7 +1179,7 @@ function GkGeometry:createSolver()
       end
       if self.bmagVars[1] == nil then self.bmagVars[1] = 0 end
 
-   elseif self.geoType == "GenGeo" then
+   elseif self.geo.name == "GenGeo" then
 
       -- Calculate all geometry quantities at once to avoid repeated metric calculations.
       if self.ndim == 1 then
@@ -1263,17 +1274,16 @@ function GkGeometry:createSolver()
          self.bmagVars = {1}
       end
 
-   end   -- End of if geoType == "..." statement.
+      if self.fromFile == nil then
+         self.setAllGeo = Updater.EvalOnNodes {
+            onGrid   = self.grid,
+            basis    = self.basis,
+            evaluate = self.calcAllGeo,
+            projectOnGhosts = true,
+         }
+      end
 
-   -- Projection updaters.
-   if self.fromFile == nil then
-      self.setAllGeo = Updater.EvalOnNodes {
-         onGrid   = self.grid,
-         basis    = self.basis,
-         evaluate = self.calcAllGeo,
-         projectOnGhosts = true,
-      }
-   end
+   end   -- End of if geo.name == "..." statement.
 
    if self.phiWallFunc then 
       self.setPhiWall = Updater.EvalOnNodes {
@@ -1305,7 +1315,7 @@ function GkGeometry:createDiagnostics()
 end
 
 function GkGeometry:initField()
-   if self.geoType == "SimpleHelical" then
+   if self.geo.name == "SimpleHelical" then
       if self.fromFile then
          -- Read the geometry quantities from a file.
          if self.ndim == 1 then
@@ -1328,7 +1338,7 @@ function GkGeometry:initField()
                 self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.bdriftX, self.geo.bdriftY})
          end
       end
-   elseif self.geoType == "GenGeo" then
+   elseif self.geo.name == "GenGeo" then
       if self.fromFile then
          -- Read the geometry quantities from a file.
          local tm, fr = self.fieldIo:read({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
@@ -1357,7 +1367,12 @@ function GkGeometry:initField()
    self.geo.gxx:sync(false)
    self.geo.gxy:sync(false)
    self.geo.gyy:sync(false)
-   if self.geoType == "GenGeo" then
+   if self.geo.name == "SimpleHelical" then
+      if self.ndim > 1 then
+         self.geo.bdriftX:sync(false)
+         self.geo.bdriftY:sync(false)
+      end
+   elseif self.geo.name == "GenGeo" then
       self.geo.gxxJ:sync(false)
       self.geo.gxyJ:sync(false)
       self.geo.gyyJ:sync(false)
@@ -1378,7 +1393,7 @@ function GkGeometry:write(tm)
    -- Not evolving geometry, so only write geometry at beginning.
    if self.ioFrame == 0 then
       -- Write the geometry quantities to a file.
-      if self.geoType == "SimpleHelical" then
+      if self.geo.name == "SimpleHelical" then
          if self.ndim == 1 then
             self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
                gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy},
@@ -1389,7 +1404,7 @@ function GkGeometry:write(tm)
                bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY},
                string.format("allGeo_%d.bp", self.ioFrame), tm, self.ioFrame)
          end
-      elseif self.geoType == "GenGeo" then
+      elseif self.geo.name == "GenGeo" then
          self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
             jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
             gradpar=self.geo.gradpar, geoX=self.geo.geoX, geoY=self.geo.geoY, geoZ=self.geo.geoZ, gxx=self.geo.gxx,
