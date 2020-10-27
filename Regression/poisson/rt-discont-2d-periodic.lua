@@ -41,9 +41,7 @@ local fOut = getField()
 local fExact = getField()
 
 -- Initial conditions from:
--- http://ammar-hakim.org/sj/je/je1/je1-periodic-poisson.html
--- Initial conditions from:
--- http://ammar-hakim.org/sj/je/je1/je1-periodic-poisson.html
+-- http://ammar-hakim.org/sj/je/je11/je11-fem-poisson.html#convergence-of-2d-solver
 local initSource = Updater.ProjectOnBasis {
    onGrid = grid,
    basis = basis,
