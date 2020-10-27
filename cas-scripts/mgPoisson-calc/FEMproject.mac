@@ -84,10 +84,7 @@ calcFEMproject(fh, funcNm, dim, basisFun, pMax) := block([],
         currCoord   : makelist(0,i,1,dim),
         currNodesEx : assoc(currCoord,nodesEx),
         femFld_e    : doExpand(makelist(eval_string(sconcat("femFld",cellToCoef[cI][2][k])),k,1,numB),bN),
-        cellCont    : makelist(0,i,1,numNodes),
-        for dI : 1 thru dim do (
-          cellCont : cellCont+volFac*calcInnerProdList(varsC,1,bN,femFld_e)
-        ),
+        cellCont    : volFac*calcInnerProdList(varsC,1,bN,femFld_e),
         for k : 1 thru numStoredNodes do (
           idx : sublist_indices(currNodesEx,lambda([x],x=storedNodes[k])),
           if length(idx)>0 then (
@@ -104,11 +101,8 @@ calcFEMproject(fh, funcNm, dim, basisFun, pMax) := block([],
               currCoord     : copylist(cellToCoef[pS][1]),
               currCoord[dI] : -1,
               currNodesEx   : assoc(currCoord,nodesEx),
-              femFld_e    : doExpand(makelist(eval_string(sconcat("femFld",cellToCoef[cI][2][k])),k,1,numB),bN),
-              cellCont    : makelist(0,i,1,numNodes),
-              for dI : 1 thru dim do (
-                cellCont : cellCont+volFac*calcInnerProdList(varsC,1,bN,femFld_e)
-              ),
+              femFld_e      : doExpand(makelist(eval_string(sconcat("femFld",cellToCoef[cI][2][k])),k,1,numB),bN),
+              cellCont      : volFac*calcInnerProdList(varsC,1,bN,femFld_e),
               for k : 1 thru numStoredNodes do (
                 idx : sublist_indices(currNodesEx,lambda([x],x=storedNodes[k])),
                 if length(idx)>0 then (

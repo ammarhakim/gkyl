@@ -18,7 +18,7 @@ load("mgPoisson-calc/esEnergyFuncs")$
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 1$
-minCdim_Ser : 1$
+minCdim_Ser : 2$
 maxCdim_Ser : 2$
 
 /* Maximal order basis. */

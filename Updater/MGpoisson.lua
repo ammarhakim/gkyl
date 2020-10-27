@@ -1433,9 +1433,6 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
    elseif self.isFEM then
       -- FEM solver. Translate RHS source DG coefficients to FEM.
       self:translateDGtoFEM(inFld[1], self.rhoAll[1])
-      -- Project right-side source onto FEM (nodal) basis.
-      self.phiAll[1]:copy(self.rhoAll[1])   -- Temporary buffer.
-      self:projectFEM(self.phiAll[1], self.rhoAll[1])
    end
    if self.isPeriodicDomain then
       -- Subtract the integral of right-side source from the right side.
@@ -1443,6 +1440,12 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
       local  _, intSrc = self.dynVbuf:lastData()
       local intSrcVol = intSrc[1]/self.rhoAll[1]:grid():gridVolume()
       self:accumulateConst(-intSrcVol, self.rhoAll[1])
+   end
+
+   if self.isFEM then
+      -- Project right-side source onto FEM (nodal) basis.
+      self.phiAll[1]:copy(self.rhoAll[1])   -- Temporary buffer.
+      self:projectFEM(self.phiAll[1], self.rhoAll[1])
    end
 
    local initialGuess   = inFld[2]

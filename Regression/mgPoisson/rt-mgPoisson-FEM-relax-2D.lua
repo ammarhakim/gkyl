@@ -460,6 +460,14 @@ for rlxI = 1, #relaxType do   -- Loop over types of relaxation.
       -- Output initial FEM guess.
       phiFEM:write(string.format("phiFEM_%sP%i_Nx%iNy%i_%s_%s_relax%i.bp",basisName,pOrder,numCells[1],numCells[2],tests[iT]["bcStr"],relaxStr,0), 0.0)
 
+      if (#tests[iT]["periodicDirs"] == grid:ndim()) then
+         -- For periodic domains subtract the integral of right-side source from the right side.
+         poissonSlv.intCalcAdv(0.0,{rhoFEM},{poissonSlv.dynVbuf})
+         local  _, intSrc = poissonSlv.dynVbuf:lastData()
+         local intSrcVol = intSrc[1]/rhoFEM:grid():gridVolume()
+         poissonSlv:accumulateConst(-intSrcVol, rhoFEM)
+      end
+
       -- Project right side source onto FEM basis.
       rhoDG:copy(rhoFEM)   -- Use rhoDG as a temporary buffer.
       poissonSlv:projectFEM(rhoDG,rhoFEM)

@@ -397,7 +397,6 @@ calcFEMrestrictionOp(fh, funcNm, dim, basisFun, pMax) := block([beta,coordVarS,s
         /* Create a pointer to each cell used by stencil. */
         weqSizeFused  : makelist([2,0],i,1,dim),
         dataStrsFused : getDataStr(weqSizeF,stencilLocF,varsC),
-        print("loc = ",stencilLoc[sI]," BC = ",currBC, dataStrsFused),
         for iF : 1 thru length(dataStrsFused) do (
           nodeNotIn : true,
           for k : 1 thru length(weqSolvRHS) do (
