@@ -42,8 +42,6 @@ local fExact = getField()
 
 -- Initial conditions from:
 -- http://ammar-hakim.org/sj/je/je1/je1-periodic-poisson.html
--- Initial conditions from:
--- http://ammar-hakim.org/sj/je/je1/je1-periodic-poisson.html
 local initSource = Updater.ProjectOnBasis {
    onGrid = grid,
    basis = basis,
@@ -64,15 +62,13 @@ local initSource = Updater.ProjectOnBasis {
    end,
 }
 
-local discontPoisson = Updater.DiscontPoisson {
+local iterPoisson = Updater.IterPoisson {
    onGrid = grid,
    basis = basis,
-   bcLower = { { }, { } },
-   bcUpper = { { }, { } },
 }
 
 initSource:advance(0.0, {}, {fIn})
-discontPoisson:advance(0.0, {fIn}, {fOut})
+iterPoisson:advance(0.0, {fIn}, {fOut})
 
 fIn:write('fIn.bp', 0.0, 0)
 fOut:write('fOut.bp', 0.0, 0)
