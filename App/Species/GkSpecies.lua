@@ -727,8 +727,10 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
+	 --print('Collision advance start', c.name)
          c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
          c:advance(tCurr, fIn, species, fRhsOut)
+	 --print('Collision advance complete', c.name)
          -- the full 'species' list is needed for the cross-species
          -- collisions
       end
@@ -1574,8 +1576,8 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 
       -- For ionization.
       if self.calcReactRate then
-	 local neutM0   = species[self.neutNmIz]:fluidMoments()[1]
-      	 local neutU    = species[self.neutNmIz]:selfPrimitiveMoments()[1]
+	 local neutM0 = species[self.neutNmIz]:fluidMoments()[1]
+      	 local neutU  = species[self.neutNmIz]:selfPrimitiveMoments()[1]
 	 local neutVtSq = species[self.neutNmIz]:selfPrimitiveMoments()[2]
 	    
 	 if tCurr == 0.0 then

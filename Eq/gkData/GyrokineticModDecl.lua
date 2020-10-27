@@ -160,6 +160,7 @@ function _M.selectSheathDeltaPhi(basisNm, CDIM, polyOrder)
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]
 end
+
 function _M.selectSheathPartialReflection(basisNm, CDIM, VDIM, polyOrder)
    local funcType = "void"
    local funcNm = string.format("calcSheathPartialReflectionScaled%dx%dv%s_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
@@ -168,6 +169,7 @@ function _M.selectSheathPartialReflection(basisNm, CDIM, VDIM, polyOrder)
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]
 end
+
 function _M.selectSheathReflection(basisNm, CDIM, VDIM, polyOrder)
    local funcType = "void"
    local funcNm = string.format("calcSheathReflection%dx%dv%s_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)

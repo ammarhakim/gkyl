@@ -853,16 +853,16 @@ end
 function KineticSpecies:createDiagnostics()
    -- set up weak multiplication and division operators
    self.weakMultiplication = Updater.CartFieldBinOp {
-      onGrid = self.confGrid,
+      onGrid    = self.confGrid,
       weakBasis = self.confBasis,
       operation = "Multiply",
-      onGhosts = true,
+      onGhosts  = true,
    }
    self.weakDivision = Updater.CartFieldBinOp {
-      onGrid = self.confGrid,
+      onGrid    = self.confGrid,
       weakBasis = self.confBasis,
       operation = "Divide",
-      onGhosts = true,
+      onGhosts  = true,
    }
 end
 

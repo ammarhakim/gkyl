@@ -40,7 +40,7 @@ local fIn = getField()
 local fOut = getField()
 local fExact = getField()
 
--- Initial conditions from:
+-- Initial conditions from
 -- http://ammar-hakim.org/sj/je/je11/je11-fem-poisson.html#convergence-of-2d-solver
 local initSource = Updater.ProjectOnBasis {
    onGrid = grid,
@@ -62,15 +62,25 @@ local initSource = Updater.ProjectOnBasis {
    end,
 }
 
-local discontPoisson = Updater.DiscontPoisson {
+local iterPoisson = Updater.IterPoisson {
    onGrid = grid,
    basis = basis,
-   bcLower = { { }, { } },
-   bcUpper = { { }, { } },
+
+   -- there parameters will eventually be replaced by internal
+   -- heuristics
+   
+   errEps = 1e-8, -- maximum residual error
+   factor = 120, -- factor over explicit scheme
+   extraStages = 3, -- extra stages
+   cflFrac = 1.0, -- CFL frac for internal iterations
+   stepper = 'RKL1', -- stepper to use 'RKL1' or 'RKL2'
+   extrapolateInterval = 2, -- extrapolate every these many steps
 }
 
 initSource:advance(0.0, {}, {fIn})
-discontPoisson:advance(0.0, {fIn}, {fOut})
+iterPoisson:advance(0.0, {fIn}, {fOut})
 
 fIn:write('fIn.bp', 0.0, 0)
 fOut:write('fOut.bp', 0.0, 0)
+
+iterPoisson:writeDiagnostics()

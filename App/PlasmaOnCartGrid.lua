@@ -632,7 +632,7 @@ local function buildApplication(self, tbl)
 		  isInv = false
 		  tryInv[s] = true
 		  log(string.format(
-			 "\n ** Invalid values in %s; Will re-update using Lax flux!", nm))
+			 "\n ** Invalid values in %s; Will re-update using Lax flux!\n", nm))
 	       end
 	    end
 	    -- Break the loop if any species is invalid.
