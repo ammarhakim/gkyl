@@ -65,6 +65,16 @@ local initSource = Updater.ProjectOnBasis {
 local iterPoisson = Updater.IterPoisson {
    onGrid = grid,
    basis = basis,
+
+   -- there parameters will eventually be replaced by internal
+   -- heuristics
+   
+   errEps = 1e-8, -- maximum residual error
+   factor = 120, -- factor over explicit scheme
+   extraStages = 3, -- extra stages
+   cflFrac = 1.0, -- CFL frac for internal iterations
+   stepper = 'RKL1', -- stepper to use 'RKL1' or 'RKL2'
+   extrapolateInterval = 2, -- extrapolate every these many steps
 }
 
 initSource:advance(0.0, {}, {fIn})
@@ -72,3 +82,5 @@ iterPoisson:advance(0.0, {fIn}, {fOut})
 
 fIn:write('fIn.bp', 0.0, 0)
 fOut:write('fOut.bp', 0.0, 0)
+
+iterPoisson:writeDiagnostics()
