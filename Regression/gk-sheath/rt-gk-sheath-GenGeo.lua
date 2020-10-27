@@ -3,6 +3,7 @@
 local Plasma = (require "App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
 local Mpi = require "Comm.Mpi"
+local math = require("sci.math").generic
 
 -- Universal constant parameters.
 eps0 = Constants.EPSILON0
@@ -21,8 +22,8 @@ n0 = 7e18  -- [1/m^3]
 B_axis = 0.5   -- [T]
 R0 = 0.85  -- [m]
 a0 = 0.15   -- [m]
-R = R0 + a0
-B0 = B_axis*(R0/R) -- [T]
+Rc = R0 + a0
+B0 = B_axis*(R0/Rc) -- [T]
 Lpol = 2.4 -- [m]
 
 -- Parameters for collisions.
@@ -36,7 +37,7 @@ nuIon = nuFrac*logLambdaIon*eV^4*n0/(12*math.pi^(3/2)*eps0^2*math.sqrt(mi)*(Ti0)
 
 -- Derived parameters
 vti = math.sqrt(Ti0/mi)
-vte  	 = math.sqrt(Te0/me)
+vte = math.sqrt(Te0/me)
 c_s = math.sqrt(Te0/mi)
 omega_ci = math.abs(qi*B0/mi)
 rho_s = c_s/omega_ci
@@ -44,12 +45,14 @@ rho_s = c_s/omega_ci
 -- Box size.
 Lx = 50*rho_s
 Ly = 100*rho_s
-Lz = 4 -- [m]
+Lz = 8 -- [m]
+
+sintheta = 2.4/Lz
 
 -- Source parameters.
 P_SOL = 3.4e6 -- [W], total SOL power, from experimental heating power
-P_src = P_SOL*Ly*Lz/(2*math.pi*R*Lpol) -- [W], fraction of total SOL power into flux tube
-xSource = R -- [m], source start coordinate
+P_src = P_SOL*Ly*Lz/(2*math.pi*Rc*Lpol) -- [W], fraction of total SOL power into flux tube
+xSource = Rc -- [m], source start coordinate
 lambdaSource = 0.005 -- [m], characteristic length scale of density and temperature
 
 -- Source profiles.
@@ -78,11 +81,24 @@ randomseed = 100000*Mpi.Comm_rank(Mpi.COMM_WORLD)+63--os.time()
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd = .5e-6,                     -- End time.
+   tEnd = 1e-6,                     -- End time.
    nFrame = 1,                     -- Number of output frames.
-   lower = {R - Lx/2, -Ly/2, -Lz/2}, -- Configuration space lower left.
-   upper = {R + Lx/2, Ly/2, Lz/2},   -- Configuration space upper right.
+   lower = {Rc - Lx/2, -Ly/2, -Lz/2}, -- Configuration space lower left.
+   upper = {Rc + Lx/2, Ly/2, Lz/2},   -- Configuration space upper right.
    cells = {4, 1, 8},              -- Configuration space cells.
+   mapc2p = function(xc)
+      -- field-aligned coordinates (x,y,z)
+      -- use "eric" mapping, which includes no magnetic shear
+      local x, y, z = xc[1], xc[2], xc[3]
+      -- cylindrical coordinates (R,phi,Z)
+      local R = x
+      local Z = z*sintheta
+      local phi = y/sintheta/Rc + z*math.sqrt(1-sintheta^2)/R
+      -- cartesian coordinates (X,Y,Z)
+      local X = R*math.cos(phi)
+      local Y = R*math.sin(phi)
+      return X, Y, Z
+   end,
    basis = "serendipity",            -- One of "serendipity" or "maximal-order".
    polyOrder = 1,                        -- Polynomial order.
    timeStepper = "rk3",                    -- One of "rk2" or "rk3".
@@ -219,7 +235,7 @@ plasmaApp = Plasma.App {
       -- Background magnetic field.
       bmag = function (t, xn)
          local x = xn[1]
-         return B0*R/x
+         return B0*Rc/x
       end,
 
       -- Geometry is not time-dependent.

@@ -1,9 +1,12 @@
+-- Gkyl ------------------------------------------------------------------------
+--
 -- 4D GK ETG linear instability calculation
 -- using 'pgkyl -f etg4d_elecEnergy_ growth' should approximately give growth rate printed at end of run
 --
--- Plasma ------------------------------------------------------------------------
-local Plasma = require ("App.PlasmaOnCartGrid").Gyrokinetic()
+--------------------------------------------------------------------------------
+local Plasma    = require ("App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
+local math      = require("sci.math").generic
 
 -- physical parameters
 eV = Constants.ELEMENTARY_CHARGE
@@ -46,6 +49,12 @@ plasmaApp = Plasma.App {
    lower = {r0 - 0.001*dr/2, -dr/2}, -- configuration space lower left
    upper = {r0 + 0.001*dr/2,  dr/2}, -- configuration space upper right
    cells = {1, 8}, -- configuration space cells
+   mapc2p = function(xc)
+      local r, y = xc[1], xc[2]
+      local X = r+R0
+      local Y = y
+      return X, Y
+   end,
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
    polyOrder = 1, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
@@ -119,8 +128,7 @@ plasmaApp = Plasma.App {
          local x = xn[1]
          return B0*R0/(R0 + x)
       end,
-      -- geometry is not time-dependent
-      evolve = false,
+      evolve = false,   -- Geometry is not time-dependent.
    },
 }
 -- run application
