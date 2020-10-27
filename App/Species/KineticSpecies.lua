@@ -513,7 +513,6 @@ end
 function KineticSpecies:createSolver(externalField)
    -- Create solvers for collisions.
    for _, c in pairs(self.collisions) do
-      -- c:createSolver(funcField, species) -- from fixNeutrals HEAD
       c:createSolver(externalField)
    end
    if self.positivity then
