@@ -7,17 +7,18 @@ local Basis = require "Basis"
 local DataStruct = require "DataStruct"
 local Grid = require "Grid"
 local Updater = require "Updater"
+local Time = require "Lib.Time"
 
 local polyOrder = 1
 local lower = {0, 0}
 local upper = {2*math.pi, 2*math.pi}
 local cells = {32, 32}
-local periodicDirs = {1,2}
+local periodicDirs = {1, 2}
 
 local grid = Grid.RectCart {
-   lower = {lower[1], lower[2]},
-   upper = {upper[1], upper[2]},
-   cells = {cells[1], cells[2]},
+   lower = lower,
+   upper = upper,
+   cells = cells,
    periodicDirs = periodicDirs,
 }
 local basis = Basis.CartModalSerendipity {
@@ -70,15 +71,18 @@ local iterPoisson = Updater.IterPoisson {
    -- heuristics
    
    errEps = 1e-8, -- maximum residual error
-   factor = 120, -- factor over explicit scheme
-   extraStages = 3, -- extra stages
+   factor = 160, -- factor over explicit scheme
+   extraStages = 4, -- extra stages
    cflFrac = 1.0, -- CFL frac for internal iterations
    stepper = 'RKL1', -- stepper to use 'RKL1' or 'RKL2'
    extrapolateInterval = 2, -- extrapolate every these many steps
 }
 
 initSource:advance(0.0, {}, {fIn})
+
+local tmStart = Time.clock()
 iterPoisson:advance(0.0, {fIn}, {fOut})
+print(string.format("Simulation took %g", Time.clock()-tmStart))
 
 fIn:write('fIn.bp', 0.0, 0)
 fOut:write('fOut.bp', 0.0, 0)
