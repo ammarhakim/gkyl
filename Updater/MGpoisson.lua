@@ -16,20 +16,22 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local MGpoissonDecl         = require "Updater.mgPoissonCalcData.MGpoissonModDecl"
-local Proto                 = require "Lib.Proto"
-local DirectDGPoissonSolver = require "Updater.DiscontPoisson"
-local UpdaterBase           = require "Updater.Base"
-local Grid                  = require "Grid"
-local DataStruct            = require "DataStruct"
-local DecompRegionCalc      = require "Lib.CartDecomp"
-local LinearDecomp          = require "Lib.LinearDecomp"
-local Lin                   = require "Lib.Linalg"
-local ffi                   = require "ffi"
-local lume                  = require "Lib.lume"
-local IntQuantCalc          = require "Updater.CartFieldIntegratedQuantCalc"
-local IntDGMoment           = require "Updater.IntegratedDGMoment"
-local Mpi                   = require "Comm.Mpi"
+local MGpoissonDecl    = require "Updater.mgPoissonCalcData.MGpoissonModDecl"
+local Proto            = require "Lib.Proto"
+local DirectDGSolver   = require "Updater.DiscontPoisson"
+local DirectFEMSolver  = require "Updater.FemPerpPoisson"
+local UpdaterBase      = require "Updater.Base"
+local Grid             = require "Grid"
+local DataStruct       = require "DataStruct"
+local DecompRegionCalc = require "Lib.CartDecomp"
+local LinearDecomp     = require "Lib.LinearDecomp"
+local Lin              = require "Lib.Linalg"
+local ffi              = require "ffi"
+local lume             = require "Lib.lume"
+local IntQuantCalc     = require "Updater.CartFieldIntegratedQuantCalc"
+local IntDGMoment      = require "Updater.IntegratedDGMoment"
+local Mpi              = require "Comm.Mpi"
+local Time             = require "Lib.Time"
 
 -- Boundary condition ID numbers.
 local BVP_BC_PERIODIC  = 0
@@ -324,13 +326,21 @@ function MGpoisson:init(tbl)
          decomposition = decompC,
       }
 
-      if (not notAtCoarsest and self.isDG) then
-         self.directSolver = DirectDGPoissonSolver {
-            onGrid  = self.mgGrids[self.mgLevels],
-            basis   = basis,
-            bcLower = bcLower,
-            bcUpper = bcUpper,
-         }
+      if not notAtCoarsest then
+         if self.isDG then
+            self.directSolver = DirectDGSolver {
+               onGrid  = self.mgGrids[self.mgLevels],
+               basis   = basis,
+               bcLower = bcLower,
+               bcUpper = bcUpper,
+            }
+         elseif self.isFEM and (self.dim==2) then
+            self.directSolver = DirectFEMSolver {
+               onGrid       = self.mgGrids[self.mgLevels],
+               basis        = basis,
+               periodicDirs = periodicDirsC,
+            }
+         end
       end
    end
 
@@ -482,12 +492,12 @@ function MGpoisson:init(tbl)
          self.intCalcAdv     = function(tCurr, inFld, outFld) MGpoisson['normFEM'](self, tCurr, "M0", inFld, outFld) end
          self._accuConst     = MGpoissonDecl.selectAccuConst(basisID, self.dim, polyOrder, bcTypes, self.isDG)
       end
-      self.localNorm     = Lin.Vec(1)
-      self.globalNorm    = Lin.Vec(1)
+      self.localNorm  = Lin.Vec(1)
+      self.globalNorm = Lin.Vec(1)
    end
    self.relResNorm   = DataStruct.DynVector { numComponents = 1 }
    self.residualNorm = DataStruct.DynVector { numComponents = 1 }
-   self.rhoNorm     = DataStruct.DynVector { numComponents = 1 }
+   self.rhoNorm      = DataStruct.DynVector { numComponents = 1 }
    if self.isPeriodicDomain then
       self.dynVbuf = DataStruct.DynVector { numComponents = 1 }
    end
@@ -496,6 +506,18 @@ function MGpoisson:init(tbl)
    self.localEnergy   = Lin.Vec(self.dim)
    self.globalEnergy  = Lin.Vec(self.dim)
    self._esEnergyCalc = MGpoissonDecl.selectESenergy(basisID, self.dim, polyOrder, bcTypes)
+
+   -- Timers.
+   self.relaxTime            = 0.0
+   self.residualTime         = 0.0
+   self.restrictTime         = 0.0
+   self.prolongTime          = 0.0
+   self.coarsestSolveTime    = 0.0
+   self.basisTranslationTime = 0.0
+   self.projectTime          = 0.0
+   self.residualNormTime     = 0.0
+   self.normTime             = 0.0
+   self.gammaCycleTime       = 0.0
 
 end
 
@@ -588,6 +610,7 @@ end
 function MGpoisson:translateDG_FEM(inFld,outFld,dir)
    -- Translate the DG coefficients of a field into FEM expansion
    -- coefficients (dir=1,DG_to_FEM), and viceversa (dir=2,FEM_to_DG).
+   local tmStart = Time.clock()
 
    local grid   = outFld:grid()
    local cellsN = {}
@@ -657,6 +680,7 @@ function MGpoisson:translateDG_FEM(inFld,outFld,dir)
    end
 
    if self.aPeriodicDir then outFld:sync() end
+   self.basisTranslationTime = self.basisTranslationTime + Time.clock() - tmStart
 end
 -- The following two are specializations of translateDG_FEM.
 function MGpoisson:translateDGtoFEM(inFld,outFld)
@@ -670,6 +694,8 @@ function MGpoisson:projectFEM(femFld,fldOut)
    -- After a DG field is converted to an FEM field, we wish to project the FEM field onto
    -- the FEM (nodal) basis to obtain the right-side vector. This only happens once, and 
    -- ideally we would fold this operation in with DGtoFEM (for the righ-side source).
+   local tmStart = Time.clock()
+
    femFld:copy(fldOut)
 
    local grid   = fldOut:grid()
@@ -743,10 +769,13 @@ function MGpoisson:projectFEM(femFld,fldOut)
    end
 
    if self.aPeriodicDir then fldOut:sync() end
+   self.projectTime = self.projectTime + Time.clock() - tmStart
 end
 
 function MGpoisson:normFEM(tCurr,normType,inFld,outDynV)
    -- Compute the L2 norm of an FEM field.
+   local tmStart = Time.clock()
+
    local fld, norm  = inFld[1], outDynV[1] 
 
    local grid   = fld:grid()
@@ -809,6 +838,7 @@ function MGpoisson:normFEM(tCurr,normType,inFld,outDynV)
    if normType=="L2" then self.globalNorm[1] = math.sqrt(self.globalNorm[1]) end
 
    norm:appendData(tCurr, self.globalNorm)
+   self.normTime = self.normTime + Time.clock() - tmStart
 end
 
 function MGpoisson:accumulateConst(inConst,inFld)
@@ -873,6 +903,7 @@ end
 
 function MGpoisson:restrictDG(fFld,cFld)
    -- Restriction of a DG fine-grid field (fFld) to a coarse-grid field (cFld). 
+   local tmStart = Time.clock()
 
    local grid = cFld:grid() 
 
@@ -919,10 +950,12 @@ function MGpoisson:restrictDG(fFld,cFld)
    end
 
    if self.aPeriodicDir then cFld:sync() end
+   self.restrictTime = self.restrictTime + Time.clock() - tmStart
 end
 
 function MGpoisson:restrictFEM(fFld,cFld)
    -- FEM restriction of a fine-grid field (fFld) to a coarse-grid field (cFld). 
+   local tmStart = Time.clock()
 
    cFld:clear(0.0)
 
@@ -999,6 +1032,7 @@ function MGpoisson:restrictFEM(fFld,cFld)
    end
    
    if self.aPeriodicDir then cFld:sync() end
+   self.restrictTime = self.restrictTime + Time.clock() - tmStart
 end
 
 function MGpoisson:jacobiCopyField(fldIn,fldOutAll)
@@ -1030,6 +1064,7 @@ end
 
 function MGpoisson:relax(numRelax, phiFld, rhoFld)
    -- Perform numRelax relaxations of the Poisson equation.
+   local tmStart = Time.clock()
 
    local grid   = phiFld:grid() 
    local cellsN = {}
@@ -1124,12 +1159,14 @@ function MGpoisson:relax(numRelax, phiFld, rhoFld)
 
       if self.aPeriodicDir then phiFld:sync() end
    end
+   self.relaxTime = self.relaxTime + Time.clock() - tmStart
 end
 
 function MGpoisson:residual(phiFld, rhoFld, resFld)
    -- Compute the residual:
    --     r = rho + L(phi). 
    -- where L is the Laplacian.
+   local tmStart = Time.clock()
 
    local grid   = phiFld:grid() 
    local cellsN = {}
@@ -1213,10 +1250,13 @@ function MGpoisson:residual(phiFld, rhoFld, resFld)
    end
 
    if self.aPeriodicDir then resFld:sync() end
+
+   self.residualTime = self.residualTime + Time.clock() - tmStart
 end
 
 function MGpoisson:relResidualNorm(gamIdx)
    -- Compute the relative norm of the residual: ||rho + L(phi)||/||rho||.
+   local tmStart = Time.clock()
 
    -- Compute the norm of the right-side source vector.
    self.l2normCalcAdv(1,{self.rhoAll[1]},{self.rhoNorm})
@@ -1234,6 +1274,7 @@ function MGpoisson:relResidualNorm(gamIdx)
    end
    self.relResNorm:appendData(gamIdx, {relResNormOut})
 
+   self.residualNormTime = self.residualNormTime + Time.clock() - tmStart
    return relResNormOut
 end
 
@@ -1248,6 +1289,7 @@ end
 
 function MGpoisson:prolongDG(cFld,fFld)
    -- DG prolongation of a coarse-grid field (cFld) to a fine-grid field (fFld). 
+   local tmStart = Time.clock()
 
    local grid = fFld:grid() 
 
@@ -1294,10 +1336,12 @@ function MGpoisson:prolongDG(cFld,fFld)
    end
 
    if self.aPeriodicDir then fFld:sync() end
+   self.prolongTime = self.prolongTime + Time.clock() - tmStart
 end
 
 function MGpoisson:prolongFEM(cFld,fFld)
    -- FEM prolongation of a coarse-grid field (cFld) to a fine-grid field (fFld). 
+   local tmStart = Time.clock()
 
    fFld:clear(0.0)
 
@@ -1371,6 +1415,7 @@ function MGpoisson:prolongFEM(cFld,fFld)
    end
 
    if self.aPeriodicDir then fFld:sync() end
+   self.prolongTime = self.prolongTime + Time.clock() - tmStart
 end
 
 function MGpoisson:gammaCycle(lCurr)
@@ -1384,6 +1429,7 @@ function MGpoisson:gammaCycle(lCurr)
       -- Coarsest grid. Use a direct solver or many iterations.
       -- The latter is useful if the coarsest grid is large still.
 
+      local tmStart = Time.clock()
       if self.directSolver then
          -- Call the direct solver.
          self.directSolver:advance(0.0, {self.rhoAll[lCurr]}, {self.phiAll[lCurr]})
@@ -1391,6 +1437,7 @@ function MGpoisson:gammaCycle(lCurr)
          -- Relax nu3 times.
          self:relax(self.nu3, self.phiAll[lCurr], self.rhoAll[lCurr]) 
       end
+      self.coarsestSolveTime = self.coarsestSolveTime + Time.clock() - tmStart
 
    else
 
@@ -1481,7 +1528,10 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
    -- Call MG gamma-cycles starting at the finest grid.
    while relResNormCurr > self.tol do
       gI = gI + 1
+
+      local tmStart = Time.clock()
       self:gammaCycle(1)
+      self.gammaCycleTime = self.gammaCycleTime + Time.clock() - tmStart
 
       -- Compute the relative residual norm. It gets stored in self.relResNorm. 
       relResNormCurr = self:relResidualNorm(gI)
@@ -1502,6 +1552,20 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
 --         outFld[2]["phiFEM"]:copy(self.phiAll[1])
 --      end
 --   end
+
+   -- Package the timers.
+   self.timers = {
+      relaxTime            = self.relaxTime,           
+      residualTime         = self.residualTime,        
+      restrictTime         = self.restrictTime,        
+      prolongTime          = self.prolongTime,         
+      coarsestSolveTime    = self.coarsestSolveTime,
+      basisTranslationTime = self.basisTranslationTime,
+      projectTime          = self.projectTime,         
+      residualNormTime     = self.residualNormTime,    
+      normTime             = self.normTime,            
+      gammaCycleTime       = self.gammaCycleTime,      
+   }
 
 end
 
