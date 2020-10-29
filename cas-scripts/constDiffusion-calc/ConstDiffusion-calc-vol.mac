@@ -51,12 +51,11 @@ for bInd : 1 thru length(bName) do (
       diffOrder : 2,
       funcName  : sconcat("ConstDiffusionVol", cD, "x", bName[bInd]),
       calcConstDiffusionVolUpdater(fh, funcName, cD, bName[bInd], polyOrder, diffOrder),
-
+      /* Fourth order hyperdiffusion. */
+      diffOrder : 4,
+      funcName  : sconcat("ConstHyperDiffusion",diffOrder,"Vol", cD, "x", bName[bInd]),
+      calcConstDiffusionVolUpdater(fh, funcName, cD, bName[bInd], polyOrder, diffOrder),
       if (polyOrder > 1) then (
-        /* Fourth order hyperdiffusion. */
-        diffOrder : 4,
-        funcName  : sconcat("ConstHyperDiffusion",diffOrder,"Vol", cD, "x", bName[bInd]),
-        calcConstDiffusionVolUpdater(fh, funcName, cD, bName[bInd], polyOrder, diffOrder),
         diffOrder : 6,
         funcName  : sconcat("ConstHyperDiffusion",diffOrder,"Vol", cD, "x", bName[bInd]),
         calcConstDiffusionVolUpdater(fh, funcName, cD, bName[bInd], polyOrder, diffOrder)
