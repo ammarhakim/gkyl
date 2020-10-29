@@ -16,6 +16,7 @@ local LinearDecomp = require "Lib.LinearDecomp"
 local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
 local UpdaterBase = require "Updater.Base"
+local xsys = require "xsys"
 
 -- this set of functions determines factors which feed into RK scheme
 -- (see Meyer, C. D., Balsara, D. S., & Aslam, T. D. (2014). Journal
@@ -79,10 +80,13 @@ function IterPoisson:init(tbl)
    self.fact = tbl.factor and tbl.factor or 100 -- time-step factor over explicit
    self.extraStages = tbl.extraStages and tbl.extraStages or 1 -- extra stages
    -- extrapolate every these many steps
-   self.extrapolateInterval = tbl.extrapolateInterval and tbl.extrapolateInterval or maxSteps+1 
+   self.extrapolateInterval = tbl.extrapolateInterval and tbl.extrapolateInterval or self.maxSteps+1 
 
    -- one of 'RKL2' or 'RKL1', 'Richardson2'
    self.stepper = tbl.stepper and tbl.stepper or 'RKL1'
+
+   -- flag to print internal iteration steps
+   self.verbose = xsys.pickBool(tbl.verbose, false)
    
    self.cfl = self.fact*cflFrac/(2*polyOrder+1)/self.onGrid:ndim()
 
@@ -274,9 +278,15 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
       numStages = calcNumStagesRKL1(self.fact, self.extraStages)
    end
 
+   if self.verbose then
+      print(string.format(" Number of stages per-step are %d", numStages))
+   end
+
    local f, fNew = self.f, self.fNew
    local fE1, fE2 = self.fE1, self.fE2
    local errHist, extraHist = self.errHist, self.extraHist
+
+   local tmStart = Time.clock()
    
    f:copy(fOut)
    local cfl = self.cfl
@@ -290,7 +300,10 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
       
       local err = self:l2diff(f, fNew)
       local resNorm = err/dt/srcL2
-      --print(string.format("Step %d, dt = %g. Error = %g (Res. norm = %g)", step, dt, err, resNorm))
+
+      if self.verbose then
+	 print(string.format("  Step %d, dt = %g. Error = %g (Res. norm = %g)", step, dt, err, resNorm))
+      end
 
       f:copy(fNew)      
 
@@ -312,6 +325,14 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
       end
       errHist:appendData(numStages*step, { err } )
       step = step+1
+   end
+
+   if self.verbose then
+      print(
+	 string.format(
+	    " IterPoisson took %g sec, %d stages", Time.clock()-tmStart, (step-1)*numStages
+	 )
+      )      
    end
 
    if step>self.maxSteps then
