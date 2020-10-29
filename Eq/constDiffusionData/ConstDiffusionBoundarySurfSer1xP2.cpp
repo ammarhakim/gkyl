@@ -50,25 +50,25 @@ void ConstHyperDiffusion4BoundarySurf1xSerP2_X1(const double *wl, const double *
 
   if (idxr[0] == 1) {
 
-  incr2[1] = 5.809475019311125*fr[2]; 
-  incr2[2] = -22.5*fr[2]; 
 
-  incr3[2] = 22.5*fr[2]-5.809475019311125*fr[1]; 
+  incr2[1] = 2.8125*fr[1]-5.083290641897234*fr[2]; 
+  incr2[2] = 19.6875*fr[2]-10.89276566120836*fr[1]; 
+
 
 
   outr[1] += -1.0*incr2[1]*rdxFnur; 
-  outr[2] += (-1.0*incr3[2]*rdxFnur)-1.0*incr2[2]*rdxFnur; 
+  outr[2] += -1.0*incr2[2]*rdxFnur; 
 
   } else {
 
-  incr2[1] = 5.809475019311125*fl[2]; 
-  incr2[2] = -22.5*fl[2]; 
 
-  incr3[2] = (-22.5*fl[2])-5.809475019311125*fl[1]; 
+  incr2[1] = 5.083290641897234*fl[2]+2.8125*fl[1]; 
+  incr2[2] = 19.6875*fl[2]+10.89276566120836*fl[1]; 
 
 
-  outl[1] += incr2[1]*rdxFnul; 
-  outl[2] += incr3[2]*rdxFnul-1.0*incr2[2]*rdxFnul; 
+
+  outl[1] += -1.0*incr2[1]*rdxFnul; 
+  outl[2] += -1.0*incr2[2]*rdxFnul; 
 
   }
 
@@ -94,18 +94,28 @@ void ConstHyperDiffusion6BoundarySurf1xSerP2_X1(const double *wl, const double *
   if (idxr[0] == 1) {
 
 
+  incr2[1] = 19.06233990711463*fr[2]-4.921875*fr[1]; 
+  incr2[2] = 19.06233990711463*fr[1]-73.828125*fr[2]; 
 
 
 
 
+
+  outr[1] += incr2[1]*rdxFnur; 
+  outr[2] += incr2[2]*rdxFnur; 
 
   } else {
 
 
+  incr2[1] = (-19.06233990711463*fl[2])-4.921875*fl[1]; 
+  incr2[2] = (-73.828125*fl[2])-19.06233990711463*fl[1]; 
 
 
 
 
+
+  outl[1] += incr2[1]*rdxFnul; 
+  outl[2] += incr2[2]*rdxFnul; 
 
   }
 

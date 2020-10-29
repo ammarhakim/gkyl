@@ -59,7 +59,7 @@ function ConstDiffusion:init(tbl)
    local diffOrder
    if tbl.order then
       diffOrder = tbl.order
-      assert(not (diffOrder > 2 and pOrder < 2), "Eq.constDiffusion: hyperdiffusion (order>2) requires polyOrder > 1.")
+      assert(not (diffOrder > 4 and pOrder < 2), "Eq.constDiffusion: grad^6 requires polyOrder > 1.")
    else
       diffOrder = 2
    end
