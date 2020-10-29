@@ -22,43 +22,18 @@ local xsys = require "xsys"
 -- (see Meyer, C. D., Balsara, D. S., & Aslam, T. D. (2014). Journal
 -- of Computational Physics, 257(PA),
 -- 594–626. doi:10.1016/j.jcp.2013.08.021)
-local function b(j)
-   if (j<2) then 
-      return 1.0/3.0
-   else 
-      return (j^2+j-2)/(2*j*(j+1))
-   end
-end
-local function a(j) return 1-b(j) end
-local function w1(s) return 4/(s^2+s-2) end
-local function mubar(s,j) 
-   if (j<2) then 
-      return 4/(3*(s^2+s-2)) 
-   else 
-      return 4*(2*j-1)/(j*(s^2+s-2))*b(j)/b(j-1)
-   end
-end
 
--- For RKL2 scheme
-local function mu(j) return (2*j-1)/j*b(j)/b(j-1) end
-local function nu(j) return -(j-1)/j*b(j)/b(j-2) end
-local function gbar(s,j) return -a(j-1)*mubar(s,j) end
-
-local function calcNumStagesRKL2(dhdp, extraStages) 
-   return math.ceil(math.sqrt(4*dhdp+9/4) - 1/2) + extraStages
-end
-
--- For RKL1 scheme
 local function muRKL1(j) return (2*j-1)/j end
 local function nuRKL1(j) return (1-j)/j end
 local function mubarRKL1(s,j) return (2*j-1)/j*2/(s^2+s) end
 
-local function calcNumStagesRKL1(dhdp, extraStages)
-   return math.ceil(1/2*(math.sqrt(1+8*dhdp)-1)) + extraStages
-end
 
 -- Iterative Poisson solver updater object
 local IterPoisson = Proto(UpdaterBase)
+
+function IterPoisson:calcNumStages(dhdp, extraStages)
+   return math.ceil(1/2*(math.sqrt(1+8*dhdp)-1)) + extraStages
+end
 
 -- constructor
 function IterPoisson:init(tbl)
@@ -77,8 +52,10 @@ function IterPoisson:init(tbl)
    local cflFrac = tbl.cflFrac and tbl.cflFrac or 1.0 -- for internal use
    self.errEps = tbl.errEps and tbl.errEps or 1.0e-8 -- residual norm
    self.maxSteps = tbl.maxSteps and tbl.maxSteps or 10000 -- max number of steps
+
    self.fact = tbl.factor and tbl.factor or 100 -- time-step factor over explicit
    self.extraStages = tbl.extraStages and tbl.extraStages or 1 -- extra stages
+   
    -- extrapolate every these many steps
    self.extrapolateInterval = tbl.extrapolateInterval and tbl.extrapolateInterval or self.maxSteps+1 
 
@@ -208,7 +185,7 @@ end
 function IterPoisson:stsRKL1(dt, fIn, fOut, fact)
    local mu, nu, mubar = muRKL1, nuRKL1, mubarRKL1
       
-   local numStages = calcNumStagesRKL1(fact, self.extraStages)
+   local numStages = self:calcNumStages(fact, self.extraStages)
    local fDiff0, fDiff = self.fDiff0, self.fDiff
    local fJ, fJ1, fJ2 = self.fJ, self.fJ1, self.fJ2
 
@@ -273,10 +250,7 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
    local numPrevStored = 0 -- flag to check if we are ready to extrapolate
    local errE1, errE2 = 1e10, 1e10 -- errors for use in extrapolation
    
-   local numStages = calcNumStagesRKL2(self.fact, self.extraStages)
-   if self.stepper == 'RKL1' then
-      numStages = calcNumStagesRKL1(self.fact, self.extraStages)
-   end
+   numStages = self:calcNumStages(self.fact, self.extraStages)
 
    if self.verbose then
       print(string.format(" Number of stages per-step are %d", numStages))
