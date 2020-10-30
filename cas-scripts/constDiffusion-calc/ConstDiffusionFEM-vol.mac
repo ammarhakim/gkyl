@@ -5,6 +5,8 @@
 load("modal-basis");
 load("out-scripts");
 load("nodalOperations/nodalFunctions");
+load("mgPoisson-calc/MGpoissonUtil");
+load("mgPoisson-calc/FEMnodalFuncs");
 fpprec : 24$
 
 

@@ -16,6 +16,14 @@ void ConstDiffusionBC1xSerP1_Dirichlet_X1upper(const double dx, const double *fS
 void ConstDiffusionBC1xSerP1_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC1xSerP1_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
+void ConstDiffusionFEM1xSer_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM1xSer_LxDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM1xSer_LxNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM1xSer_LxRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM1xSer_UxDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM1xSer_UxNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM1xSer_UxRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+
 double ConstDiffusionVol1xSerP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol1xSerP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion6Vol1xSerP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -30,6 +38,7 @@ void ConstDiffusionBC1xSerP2_Dirichlet_X1upper(const double dx, const double *fS
 void ConstDiffusionBC1xSerP2_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC1xSerP2_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
+
 double ConstDiffusionVol1xSerP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol1xSerP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion6Vol1xSerP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -43,6 +52,7 @@ void ConstDiffusionBC1xSerP3_Dirichlet_X1lower(const double dx, const double *fS
 void ConstDiffusionBC1xSerP3_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC1xSerP3_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC1xSerP3_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
 
 
 double ConstDiffusionVol2xSerP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -69,6 +79,56 @@ void ConstDiffusionBC2xSerP1_Dirichlet_X2lower(const double dx, const double *fS
 void ConstDiffusionBC2xSerP1_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC2xSerP1_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC2xSerP1_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
+void ConstDiffusionFEM2xSer_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxDirichletLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxDirichletLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxDirichletLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxNeumannLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxNeumannLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxNeumannLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxRobinLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxRobinLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxRobinLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxDirichletUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxDirichletUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxDirichletUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxNeumannUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxNeumannUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxNeumannUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxRobinUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxRobinUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_LxRobinUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxDirichletLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxDirichletLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxDirichletLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxNeumannLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxNeumannLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxNeumannLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxRobinLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxRobinLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxRobinLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxDirichletUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxDirichletUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxDirichletUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxNeumannUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxNeumannUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxNeumannUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxRobinUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxRobinUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xSer_UxRobinUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
 
 double ConstDiffusionVol2xSerP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol2xSerP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -100,6 +160,7 @@ void ConstDiffusionBC2xSerP2_Dirichlet_X2upper(const double dx, const double *fS
 void ConstDiffusionBC2xSerP2_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC2xSerP2_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
+
 double ConstDiffusionVol2xSerP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol2xSerP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion6Vol2xSerP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -129,6 +190,7 @@ void ConstDiffusionBC2xSerP3_Dirichlet_X2lower(const double dx, const double *fS
 void ConstDiffusionBC2xSerP3_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC2xSerP3_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC2xSerP3_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
 
 
 double ConstDiffusionVol3xSerP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -172,6 +234,350 @@ void ConstDiffusionBC3xSerP1_Dirichlet_X3lower(const double dx, const double *fS
 void ConstDiffusionBC3xSerP1_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC3xSerP1_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC3xSerP1_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
+void ConstDiffusionFEM3xSer_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletLyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannLyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinLyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxDirichletUyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxNeumannUyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_LxRobinUyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletLyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannLyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinLyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxDirichletUyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxNeumannUyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xSer_UxRobinUyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
 
 double ConstDiffusionVol3xSerP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol3xSerP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -225,6 +631,7 @@ void ConstDiffusionBC3xSerP2_Dirichlet_X3upper(const double dx, const double *fS
 void ConstDiffusionBC3xSerP2_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC3xSerP2_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
+
 double ConstDiffusionVol3xSerP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol3xSerP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion6Vol3xSerP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -276,6 +683,7 @@ void ConstDiffusionBC3xSerP3_Dirichlet_X3lower(const double dx, const double *fS
 void ConstDiffusionBC3xSerP3_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC3xSerP3_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC3xSerP3_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
 
 
 double ConstDiffusionVol4xSerP1_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -344,6 +752,7 @@ void ConstDiffusionBC4xSerP1_Dirichlet_X4lower(const double dx, const double *fS
 void ConstDiffusionBC4xSerP1_Dirichlet_X4upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC4xSerP1_Neumann_X4lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC4xSerP1_Neumann_X4upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
 
 double ConstDiffusionVol4xSerP2_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol4xSerP2_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -431,6 +840,7 @@ void ConstDiffusionBC4xSerP2_Dirichlet_X4upper(const double dx, const double *fS
 void ConstDiffusionBC4xSerP2_Neumann_X4lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC4xSerP2_Neumann_X4upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
+
 double ConstDiffusionVol4xSerP3_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol4xSerP3_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion6Vol4xSerP3_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -516,6 +926,7 @@ void ConstDiffusionBC4xSerP3_Dirichlet_X4lower(const double dx, const double *fS
 void ConstDiffusionBC4xSerP3_Dirichlet_X4upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC4xSerP3_Neumann_X4lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC4xSerP3_Neumann_X4upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
 
 
 double ConstDiffusionVol5xSerP1_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -625,6 +1036,7 @@ void ConstDiffusionBC5xSerP1_Dirichlet_X5lower(const double dx, const double *fS
 void ConstDiffusionBC5xSerP1_Dirichlet_X5upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC5xSerP1_Neumann_X5lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC5xSerP1_Neumann_X5upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
 
 double ConstDiffusionVol5xSerP2_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol5xSerP2_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -769,6 +1181,7 @@ void ConstDiffusionBC5xSerP2_Dirichlet_X5lower(const double dx, const double *fS
 void ConstDiffusionBC5xSerP2_Dirichlet_X5upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC5xSerP2_Neumann_X5lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC5xSerP2_Neumann_X5upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
 
 
 double ConstDiffusionVol6xSerP1_diffDirs4(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -954,6 +1367,7 @@ void ConstDiffusionBC6xSerP1_Neumann_X6upper(const double dx, const double *fSki
 
 
 
+
 double ConstDiffusionVol1xMaxP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol1xMaxP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 void ConstDiffusionSurf1xMaxP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
@@ -965,6 +1379,14 @@ void ConstDiffusionBC1xMaxP1_Dirichlet_X1lower(const double dx, const double *fS
 void ConstDiffusionBC1xMaxP1_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC1xMaxP1_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC1xMaxP1_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
+void ConstDiffusionFEM1xMax_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM1xMax_LxDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM1xMax_LxNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM1xMax_LxRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM1xMax_UxDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM1xMax_UxNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM1xMax_UxRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
 
 double ConstDiffusionVol1xMaxP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol1xMaxP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -979,6 +1401,7 @@ void ConstDiffusionBC1xMaxP2_Dirichlet_X1lower(const double dx, const double *fS
 void ConstDiffusionBC1xMaxP2_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC1xMaxP2_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC1xMaxP2_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
 
 
 double ConstDiffusionVol2xMaxP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -1005,6 +1428,56 @@ void ConstDiffusionBC2xMaxP1_Dirichlet_X2lower(const double dx, const double *fS
 void ConstDiffusionBC2xMaxP1_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC2xMaxP1_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC2xMaxP1_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
+void ConstDiffusionFEM2xMax_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxDirichletLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxDirichletLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxDirichletLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxNeumannLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxNeumannLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxNeumannLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxRobinLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxRobinLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxRobinLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxDirichletUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxDirichletUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxDirichletUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxNeumannUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxNeumannUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxNeumannUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxRobinUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxRobinUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_LxRobinUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxDirichletLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxDirichletLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxDirichletLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxNeumannLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxNeumannLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxNeumannLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxRobinLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxRobinLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxRobinLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxDirichletUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxDirichletUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxDirichletUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxNeumannUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxNeumannUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxNeumannUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxRobinUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxRobinUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xMax_UxRobinUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
 
 double ConstDiffusionVol2xMaxP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol2xMaxP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -1035,6 +1508,7 @@ void ConstDiffusionBC2xMaxP2_Dirichlet_X2lower(const double dx, const double *fS
 void ConstDiffusionBC2xMaxP2_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC2xMaxP2_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC2xMaxP2_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
 
 
 double ConstDiffusionVol3xMaxP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -1078,6 +1552,350 @@ void ConstDiffusionBC3xMaxP1_Dirichlet_X3lower(const double dx, const double *fS
 void ConstDiffusionBC3xMaxP1_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC3xMaxP1_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC3xMaxP1_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
+void ConstDiffusionFEM3xMax_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletLyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannLyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinLyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxDirichletUyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxNeumannUyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_LxRobinUyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletLyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannLyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinLyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyDirichletLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyDirichletLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyDirichletLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyNeumannLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyNeumannLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyNeumannLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyRobinLzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyRobinLzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyRobinLzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxDirichletUyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxNeumannUyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyDirichletUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyDirichletUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyDirichletUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyNeumannUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyNeumannUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyNeumannUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyRobinUzDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyRobinUzNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM3xMax_UxRobinUyRobinUzRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
 
 double ConstDiffusionVol3xMaxP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol3xMaxP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -1130,6 +1948,7 @@ void ConstDiffusionBC3xMaxP2_Dirichlet_X3lower(const double dx, const double *fS
 void ConstDiffusionBC3xMaxP2_Dirichlet_X3upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC3xMaxP2_Neumann_X3lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC3xMaxP2_Neumann_X3upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
 
 
 double ConstDiffusionVol4xMaxP1_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -1198,6 +2017,7 @@ void ConstDiffusionBC4xMaxP1_Dirichlet_X4lower(const double dx, const double *fS
 void ConstDiffusionBC4xMaxP1_Dirichlet_X4upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC4xMaxP1_Neumann_X4lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC4xMaxP1_Neumann_X4upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
 
 double ConstDiffusionVol4xMaxP2_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol4xMaxP2_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -1284,6 +2104,7 @@ void ConstDiffusionBC4xMaxP2_Dirichlet_X4lower(const double dx, const double *fS
 void ConstDiffusionBC4xMaxP2_Dirichlet_X4upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC4xMaxP2_Neumann_X4lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC4xMaxP2_Neumann_X4upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
 
 
 double ConstDiffusionVol5xMaxP1_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -1393,6 +2214,7 @@ void ConstDiffusionBC5xMaxP1_Dirichlet_X5lower(const double dx, const double *fS
 void ConstDiffusionBC5xMaxP1_Dirichlet_X5upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC5xMaxP1_Neumann_X5lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC5xMaxP1_Neumann_X5upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
 
 double ConstDiffusionVol5xMaxP2_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol5xMaxP2_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -1537,6 +2359,7 @@ void ConstDiffusionBC5xMaxP2_Dirichlet_X5lower(const double dx, const double *fS
 void ConstDiffusionBC5xMaxP2_Dirichlet_X5upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC5xMaxP2_Neumann_X5lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC5xMaxP2_Neumann_X5upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
 
 
 double ConstDiffusionVol6xMaxP1_diffDirs4(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -1722,6 +2545,7 @@ void ConstDiffusionBC6xMaxP1_Neumann_X6upper(const double dx, const double *fSki
 
 
 
+
 double ConstDiffusionVol1xTensorP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol1xTensorP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 void ConstDiffusionSurf1xTensorP1_X1(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); 
@@ -1733,6 +2557,14 @@ void ConstDiffusionBC1xTensorP1_Dirichlet_X1lower(const double dx, const double 
 void ConstDiffusionBC1xTensorP1_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC1xTensorP1_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC1xTensorP1_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
+void ConstDiffusionFEM1xTensor_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM1xTensor_LxDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM1xTensor_LxNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM1xTensor_LxRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM1xTensor_UxDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM1xTensor_UxNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM1xTensor_UxRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
 
 double ConstDiffusionVol1xTensorP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol1xTensorP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -1748,6 +2580,7 @@ void ConstDiffusionBC1xTensorP2_Dirichlet_X1upper(const double dx, const double 
 void ConstDiffusionBC1xTensorP2_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC1xTensorP2_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
+
 double ConstDiffusionVol1xTensorP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol1xTensorP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion6Vol1xTensorP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -1761,6 +2594,7 @@ void ConstDiffusionBC1xTensorP3_Dirichlet_X1lower(const double dx, const double 
 void ConstDiffusionBC1xTensorP3_Dirichlet_X1upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC1xTensorP3_Neumann_X1lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC1xTensorP3_Neumann_X1upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
 
 
 double ConstDiffusionVol2xTensorP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -1787,6 +2621,56 @@ void ConstDiffusionBC2xTensorP1_Dirichlet_X2lower(const double dx, const double 
 void ConstDiffusionBC2xTensorP1_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC2xTensorP1_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC2xTensorP1_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
+void ConstDiffusionFEM2xTensor_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxDirichletLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxDirichletLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxDirichletLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxNeumannLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxNeumannLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxNeumannLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxRobinLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxRobinLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxRobinLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxDirichletUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxDirichletUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxDirichletUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxNeumannUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxNeumannUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxNeumannUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxRobinUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxRobinUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_LxRobinUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxDirichletLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxDirichletLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxDirichletLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxNeumannLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxNeumannLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxNeumannLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxRobinLyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxRobinLyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxRobinLyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxDirichletUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxDirichletUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxDirichletUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxNeumannUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxNeumannUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxNeumannUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxRobinUyDirichlet_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxRobinUyNeumann_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
+void ConstDiffusionFEM2xTensor_UxRobinUyRobin_P1(double **dx, const double *bcVals, double **phi, double *diffOut);
 
 double ConstDiffusionVol2xTensorP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol2xTensorP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -1818,6 +2702,7 @@ void ConstDiffusionBC2xTensorP2_Dirichlet_X2upper(const double dx, const double 
 void ConstDiffusionBC2xTensorP2_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC2xTensorP2_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 
+
 double ConstDiffusionVol2xTensorP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion4Vol2xTensorP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
 double ConstHyperDiffusion6Vol2xTensorP3_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out); 
@@ -1847,6 +2732,7 @@ void ConstDiffusionBC2xTensorP3_Dirichlet_X2lower(const double dx, const double 
 void ConstDiffusionBC2xTensorP3_Dirichlet_X2upper(const double dx, const double *fSkin, const double fBC, double *fGhost);
 void ConstDiffusionBC2xTensorP3_Neumann_X2lower(const double dx, const double *fSkin, const double fpBC, double *fGhost);
 void ConstDiffusionBC2xTensorP3_Neumann_X2upper(const double dx, const double *fSkin, const double fpBC, double *fGhost);
+
 
 
 

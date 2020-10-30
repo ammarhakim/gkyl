@@ -1,4 +1,5 @@
 /* Generate the header file for the ConsDiffusion kernels. */
+load("mgPoisson-calc/MGpoissonUtil");
 
 /* ...... USER INPUTS........ */
 
@@ -64,6 +65,44 @@ getDirCombos(varsIn) := block([dirCombosSet,dirCombos,d],
   return(dirCombos)
 )$
 
+bcTypesFEM : [0, 1, 2, 3]$
+bcStrsFEM  : ["", "Dirichlet", "Neumann", "Robin"]$
+bcKeyFEM   : makelist([bcTypesFEM[i],bcStrsFEM[i]],i,1,length(bcTypesFEM))$
+
+findBoundaryStrCombo(fhIn, funcNameStr, funcArgsStr, basisFun, dim, bcKey) := block([coordVarS,stencilLoc,sI,bcCombos,bcI,currBC,stencilStr,i],
+  /* Obtain the various string combinations for the names of the
+     kernels used near boundaries. */
+
+  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
+
+  /* Associative list between stencil location (-1,0,1) and variable
+     strings used in kernel names. */
+  coordVarS : getCoordVarS(varsC),
+
+  /* List of stencil locations. Each entry is a dim-dimensional list
+   with -1 meaning it is at a lower boundary, 1 upper boundary, or
+   0 away from boundaries in that direction. */
+  stencilLoc : getStencilCoords(dim),
+
+  for sI : 2 thru length(stencilLoc) do (
+
+    /* Obtain the different BC combinations for this stencil.
+       Will generate a separate kernel for each. */
+    bcCombos : getBCcombos(stencilLoc[sI],makelist(bcKey[i][1],i,1,length(bcKey))),
+
+    /* Loop over BC combinations. Will create a separate kernel for each. */
+    for bcI : 1 thru length(bcCombos) do (
+
+      currBC : copylist(bcCombos[bcI]),
+
+      /* String used in kernel name, identifying stencil location and BC. */
+      stencilStr : getStencilStr(stencilLoc[sI],coordVarS,currBC,bcKey),
+
+      printf(fhIn, sconcat("void ",funcNameStr,"~ax~a_~aP~a(",funcArgsStr,");~%"), dim, bName[bInd], stencilStr, polyOrder)
+    )
+  )
+)$
+
 /* Open new header file. */
 fh : openw("~/max-out/ConstDiffusionModDecl.h")$
 
@@ -123,6 +162,15 @@ for bInd : 1 thru length(bName) do (
         printf(fh, "void ConstDiffusionBC~ax~aP~a_Dirichlet_~aupper(const double dx, const double *fSkin, const double fBC, double *fGhost);~%", cD, bName[bInd], polyOrder, surfLabels[dir]),
         printf(fh, "void ConstDiffusionBC~ax~aP~a_Neumann_~alower(const double dx, const double *fSkin, const double fpBC, double *fGhost);~%", cD, bName[bInd], polyOrder, surfLabels[dir]),
         printf(fh, "void ConstDiffusionBC~ax~aP~a_Neumann_~aupper(const double dx, const double *fSkin, const double fpBC, double *fGhost);~%", cD, bName[bInd], polyOrder, surfLabels[dir])
+      ),
+      printf(fh, "~%"),
+
+      /* ConstDiffusionFEM signatures. */
+      if cD<4 and polyOrder=1 then (
+        /* Interior stencil. */
+        printf(fh, "void ConstDiffusionFEM~ax~a_P~a(double **dx, const double *bcVals, double **phi, double *diffOut);~%", cD, bName[bInd], polyOrder),
+        /* Boundary stencils. */
+        findBoundaryStrCombo(fh, "ConstDiffusionFEM", "double **dx, const double *bcVals, double **phi, double *diffOut", bName[bInd], cD, bcKeyFEM)
       ),
       printf(fh, "~%")
     ),
