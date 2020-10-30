@@ -100,7 +100,7 @@ function MGpoisson:init(tbl)
    end
 
    local grid = assert(
-      tbl.onGrid, "Updater.MGpoisson: Must provide grid object using 'grid'.")
+      tbl.onGrid, "Updater.MGpoisson: Must provide grid object using 'onGrid'.")
 
    local basis = assert(
       tbl.basis, "Updater.MGpoisson: Must provide the weak basis object using 'basis'.")

@@ -115,4 +115,56 @@ function _M.selectBCs(basisNm, DIM, polyOrder, diffOrder, bcType)
    return kernels
 end
 
+local function getStencilStrs(dimIn, bcKinds)
+   -- Create a table with the strings that identify each kind of stencil location.
+   -- This function assumes bcKinds is a table with dimIn entries, each one
+   -- being a 2-element table where the first element is the lower boundary
+   -- BC type, and the second element the upper boundary BC type.
+
+   local stencilCount = 1
+   local stencilStrs  = {}
+
+   -- Translate the BC ID numbers to a string. For periodic (=0) we
+   -- will simply use an interior stencil, assuming that the ghost cells
+   -- are filled appropriately. For Dirichlet, Neumann and Robin we will use
+   -- Robin kernels with appropriately chosen parameters.
+   local translateBCid
+   -- FEM currently has different kernels for Dirichlet/Neumann.
+   translateBCid = {[0] = "", [1] = "Dirichlet", [2] = "Neumann", [3] = "Robin", [9] = "NonPeriodic"}
+
+   local width, loOff, upOff
+   width, loOff, upOff = 3, 0, 0
+
+   stencilStrs[1] = ""
+   for d = 1, dimIn do
+      for prevK = 1, width^(d-1) do
+         for bI = 1+loOff,2-upOff do
+            stencilCount = stencilCount+1
+            if bcKinds[d][bI] == 0 then
+               -- If BC is periodic, don't add another string. Use interior stencil.
+               stencilStrs[stencilCount] = stencilStrs[prevK]
+            else
+               stencilStrs[stencilCount] = stencilStrs[prevK] .. boundLabel[bI] .. dirLabelsLC[d] .. translateBCid[bcKinds[d][bI]]
+            end
+         end
+      end
+   end
+   for sI = 1, (width)^dimIn do   -- Append a final underscore if there are non-periodic BCs.
+      if (#stencilStrs[sI] > 0) then stencilStrs[sI]=stencilStrs[sI] .. "_" end
+   end
+   return stencilStrs
+end
+
+-- Select FEM diffusion kernels.
+function _M.selectFEMdiff(basisNm, dim, polyOrder, bcTypes)
+   local diffKernels = {}
+   -- Create a 3^dim hypertable to place lower boundary, interior and upper boundary kernels.
+   local diffStencilStr = getStencilStrs(dim, bcTypes)
+   for sI = 1, 3^dim do
+      local tmp = ffi.C[string.format("ConstDiffusionFEM%dx%s_%sP%d", dim, basisNmMap[basisNm], diffStencilStr[sI], polyOrder)]
+      diffKernels[sI] = tmp
+   end
+   return diffKernels
+end
+
 return _M
