@@ -11,9 +11,11 @@ local Grid       = require "Grid"
 local DataStruct = require "DataStruct"
 local Basis      = require "Basis"
 local Updater    = require "Updater"
+local Lin        = require "Lib.Linalg"
 local Time       = require "Lib.Time"
 
 local assert_equal = Unit.assert_equal
+local assert_close = Unit.assert_close
 local stats        = Unit.stats
 
 local function createGrid(lo, up, nCells, pDirs)
@@ -118,6 +120,19 @@ function test_1x1v()
    maxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {distf})
    maxwellian:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {fM})
 
+   -- Check projection.
+   local indexer    = distf:genIndexer()
+   local distFPtr   = distf:get(1)
+   local fMPtr      = fM:get(1)
+   local localRange = distf:localRange()
+   for idx in localRange:rowMajorIter() do
+      distfPtr = distf:get(indexer(idx))
+      fMPtr    = fM:get(indexer(idx))
+      for k = 1, phaseBasis:numBasis() do
+         assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of ProjectOnBasis.")
+      end
+   end
+
 end
 
 function test_1x2v()
@@ -181,6 +196,19 @@ function test_1x2v()
    -- Do projection.
    maxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {distf})
    maxwellian:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {fM})
+
+   -- Check projection.
+   local indexer    = distf:genIndexer()
+   local distFPtr   = distf:get(1)
+   local fMPtr      = fM:get(1)
+   local localRange = distf:localRange()
+   for idx in localRange:rowMajorIter() do
+      distfPtr = distf:get(indexer(idx))
+      fMPtr    = fM:get(indexer(idx))
+      for k = 1, phaseBasis:numBasis() do
+         assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of ProjectOnBasis.")
+      end
+   end
 
 end
 
@@ -246,9 +274,21 @@ function test_2x2v()
    local tmStart = Time.clock()
    maxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {distf})
    local tmMid = Time.clock()
-   print(" Lua took = ", tmMid - tmStart, " s")
    maxwellian:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {fM})
-   print(" C took   = ", Time.clock() - tmMid, " s")
+   local tmEnd = Time.clock()
+
+   -- Check projection.
+   local indexer    = distf:genIndexer()
+   local distFPtr   = distf:get(1)
+   local fMPtr      = fM:get(1)
+   local localRange = distf:localRange()
+   for idx in localRange:rowMajorIter() do
+      distfPtr = distf:get(indexer(idx))
+      fMPtr    = fM:get(indexer(idx))
+      for k = 1, phaseBasis:numBasis() do
+         assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of ProjectOnBasis.")
+      end
+   end
 
 end
 
@@ -315,9 +355,21 @@ function test_2x3v()
    local tmStart = Time.clock()
    maxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {distf})
    local tmMid = Time.clock()
-   print(" Lua took = ", tmMid - tmStart, " s")
    maxwellian:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {fM})
-   print(" C took   = ", Time.clock() - tmMid, " s")
+   local tmEnd = Time.clock()
+
+   -- Check projection.
+   local indexer    = distf:genIndexer()
+   local distFPtr   = distf:get(1)
+   local fMPtr      = fM:get(1)
+   local localRange = distf:localRange()
+   for idx in localRange:rowMajorIter() do
+      distfPtr = distf:get(indexer(idx))
+      fMPtr    = fM:get(indexer(idx))
+      for k = 1, phaseBasis:numBasis() do
+         assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of ProjectOnBasis.")
+      end
+   end
 
 end
 
