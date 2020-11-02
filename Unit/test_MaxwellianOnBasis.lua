@@ -299,7 +299,7 @@ function test_2x3v()
 
    local lower     = {-0.50, -0.50, -6.0*vt, -6.0*vt, -6.0*vt}
    local upper     = { 0.50,  0.50,  6.0*vt,  6.0*vt,  6.0*vt}
-   local numCells  = {6, 12, 8, 8, 8}
+   local numCells  = {12, 24, 16, 16, 8}
    local polyOrder = 1
 
    local phaseGrid  = createGrid(lower, upper, numCells)

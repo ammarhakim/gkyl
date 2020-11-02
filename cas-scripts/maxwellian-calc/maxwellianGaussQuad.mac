@@ -19,7 +19,9 @@ writeCExprsNoExpand1_ssubst(lhs, rhs, subList, writeZeros) := block([expr],
    This generates two functions, one to evaluate configuration-space
    quantities as conf-space ordinates, another to preform the quadrature
    in phase space. */
-calcMaxwellianProjGauss(fh, funcNm, cdim, vdim, basisNm, polyOrder) := block([],
+calcMaxwellianProjGauss(fh, funcNm, cdim, vdim, basisNm, polyOrder) := block(
+  [numQuad,bP,bC,numBP,numBC,den_e,vtSq_e,flowU_c,flowU_e,ordWeigtC,normOrdsC,
+   ordNumC,fMFac_n,flowU_n,vtSq_n,i,cSub,expr,sI,sExpr],
 
   numQuad : polyOrder+1, /* Number of quarature points in 1D. */
 
@@ -63,9 +65,9 @@ calcMaxwellianProjGauss(fh, funcNm, cdim, vdim, basisNm, polyOrder) := block([],
     ),
 
     if vdim<3 then (
-      fMFac_n[i] : den_n/(sqrt(2*%pi*vtSq_n[i])^vdim)
+      fMFac_n[i] : den_n/(sqrt(2*%pi*vtSqOrd[i-1])^vdim)
     ) else (
-      fMFac_n[i] : den_n/(cpow(sqrt(2*%pi*vtSq_n[i]),vdim))
+      fMFac_n[i] : den_n/(cpow(sqrt(2*%pi*vtSqOrd[i-1]),vdim))
     )
   ),
 
@@ -74,7 +76,20 @@ calcMaxwellianProjGauss(fh, funcNm, cdim, vdim, basisNm, polyOrder) := block([],
   printf(fh,"~%"),
   writeCExprsNoExpand1_ssubst(vtSqOrd, vtSq_n, strSub, true),
   printf(fh,"~%"),
-  writeCExprsNoExpand1_ssubst(fMFacOrd, fMFac_n, strSub, true),
+
+  /* The factor in front of the exponential we will set to very small (almost
+     zero) if the thermal speed squared is negative. */
+  expr : float(fMFac_n),
+  for i : 1 thru length(expr) do (
+    printf(fh, "  if (vtSqOrd[~a] <= 0.0)~%", i-1),
+    printf(fh, "    fMFacOrd[~a] = 0.;~%", i-1),
+    printf(fh, "  else~%"),
+    sExpr : string(gcfac(expr[i])),
+    for sI : 1 thru length(strSub) do (
+      sExpr : ssubst(strSub[sI][1],strSub[sI][2],sExpr)
+    ),
+    printf(fh, "    ~a = ~a; ~%", fMFacOrd[i-1], sExpr)
+  ),
   printf(fh,"~%"),
 
   printf(fh, "}~%"),
