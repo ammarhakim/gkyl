@@ -1,10 +1,9 @@
-/* Create kernels to project a Maxwellian onto the DG basis using quadrature. */
-
-load("maxwellian-calc/maxwellianGaussQuad.mac")$
-load(stringproc)$
-
+/* Generate the header file for MaxwellianProjection kernels. */
 
 /* ...... USER INPUTS........ */
+
+/* Indicate the mininimum and maximum dimensinality for which you wish
+   to generate kernels. The smallest possible is 1 and the largest 6. */
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 3$
@@ -36,6 +35,17 @@ minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
 maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
 maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
 
+/* Open new header file. */
+fh : openw("~/max-out/MaxwellianOnBasisModDecl.h")$
+
+printf(fh, "#ifndef MAXWELLIANONBASIS_MOD_DECL_H ~%")$
+printf(fh, "#define MAXWELLIANONBASIS_MOD_DECL_H ~%")$
+printf(fh, "~%"),
+printf(fh, "#include <cmath> ~%")$
+printf(fh, "~%"),
+printf(fh, "extern \"C\" { ~%")$
+printf(fh, "~%"),
+
 for bInd : 1 thru length(bName) do (
   for cD : minCdim[bInd] thru maxCdim[bInd] do (
     for vD : max(cD,minVdim[bInd]) thru maxVdim[bInd] do (
@@ -46,18 +56,19 @@ for bInd : 1 thru length(bName) do (
 
       for polyOrder : 1 thru maxPolyOrderB do (
 
-        disp(printf(false,sconcat("Creating MaxwellianOnBasis",bName[bInd]," ~ax~avP~a"),cD,vD,polyOrder)),
-        fname : sconcat("~/max-out/MaxwellianOnBasis", bName[bInd], cD, "x", vD, "vP", polyOrder, ".cpp"),
-        fh : openw(fname),
-        printf(fh, "#include <MaxwellianOnBasisModDecl.h>~%~%"),
+        funcNm : sconcat("MaxwellianOnBasisGauss", cD, "x", vD, "v", bName[bInd]),
 
-        /* Functions to project a Maxwellian with Gaussian quadrature. */
-        funcName : sconcat("MaxwellianOnBasisGauss", cD, "x", vD, "v", bName[bInd]),
-        calcMaxwellianProjGauss(fh, funcName, cD, vD, bName[bInd], polyOrder),
-
-        close(fh)
+        printf(fh, "void ~a_P~a_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);~%", funcNm, polyOrder),
+        printf(fh, "void ~a_P~a_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *wc, const double *dvx, double *fMOut);~%", funcNm, polyOrder)
 
       )
     )
   )
-);
+)$
+
+printf(fh, "} ~%")$
+printf(fh, "~%")$
+
+printf(fh, "#endif ~%")$
+
+close(fh)$

@@ -1,0 +1,55 @@
+
+/* Obtain the weights and ordinates (nodes) for n-point
+   Gaussian quadrature in one dimension. */
+gaussOrdWeight1D(n) := block([p, q, v, w],
+   p: expand(legendre_p(n, x)),
+   q: expand(n/2*diff(p, x)*legendre_p(n - 1, x)),
+   v: map(rhs, bfallroots(p)),
+   w: map(lambda([z], 1/subst([x = z], q)), v),
+   [map(bfloat, v), map(bfloat, w)]
+)$
+
+/* Obtain the weights and ordinates (nodes) for Gaussian
+   quadrature in dim dimensions using points and weights
+   made of Cartesian products of those for n-point quadrature in 1D. */
+gaussOrdWeight(n,dim) := block([ordWeight1D,ord1D,weight1D,ord,labWeight1D,
+                                labOrd1D,labWeight,labOrd,d,i,flatOrd,flatFac],
+  ordWeight1D : gaussOrdWeight1D(n),
+  ord1D    : ordWeight1D[1],
+  weight1D : ordWeight1D[2],
+
+  ord : copylist(ord1D),
+    
+  if dim=1 then(
+    ord    : makelist([ord[i]],i,1,length(ord)),
+    weight : copylist(weight1D)
+  ) else (
+    
+    /* In order to use cartesian_product below we need to make
+      the weights distinct. Use a distinct label.
+      Unfortunately this doesn't guarantee the weights are ordered
+      so they match the ordinates. Try labeling the ordinates too. */
+    labWeight1D : makelist([string(i),weight1D[i]],i,1,length(weight1D)),
+    labOrd1D : makelist([string(i),ord1D[i]],i,1,length(ord1D)),        
+        
+    labWeight : copylist(labWeight1D),
+    labOrd : copylist(labOrd1D),
+    
+    labWeight1D : setify(labWeight1D),
+    labOrd1D    : setify(labOrd1D),
+    for d : 2 thru dim do (
+      labWeight : listify(cartesian_product(setify(labWeight),labWeight1D)),
+      labOrd : listify(cartesian_product(setify(labOrd),labOrd1D))
+    ),
+
+    ord    : makelist(0,i,1,length(labOrd)),
+    weight : makelist(0,i,1,length(labWeight)),
+    for i : 1 thru length(labWeight) do (
+      flatOrd : makelist(flatten(labOrd[i])[2*j],j,1,length(flatten(labOrd[i]))/2),
+      ord[i]  : copylist(flatOrd),
+      flatFac   : makelist(flatten(labWeight[i])[2*j],j,1,length(labWeight[i])),
+      weight[i] : bfloat(apply("*",float(flatFac)))
+    )
+  ),
+  [ord,weight]
+)$

@@ -1,0 +1,181 @@
+load("out-scripts")$
+load("modal-basis")$
+load("nodalOperations/quadratureFuncs.mac")$
+
+writeCExprsNoExpand1_ssubst(lhs, rhs, subList, writeZeros) := block([expr],
+  expr : float(rhs),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 or writeZeros then (
+      sExpr : string(gcfac(expr[i])),
+      for sI : 1 thru length(subList) do (
+        sExpr : ssubst(subList[sI][1],subList[sI][2],sExpr)
+      ),
+      printf(fh, "  ~a = ~a; ~%", lhs[i-1], sExpr)
+    )
+  )
+)$
+
+/* Project a Maxwellian onto the DG basis using Gauss quadrature.
+   This generates two functions, one to evaluate configuration-space
+   quantities as conf-space ordinates, another to preform the quadrature
+   in phase space. */
+calcMaxwellianProjGauss(fh, funcNm, cdim, vdim, basisNm, polyOrder) := block([],
+
+  numQuad : polyOrder+1, /* Number of quarature points in 1D. */
+
+  kill(varsC, varsP, basisC, basisP),
+  load(sconcat("basis-precalc/basis", basisNm, cdim, "x", vdim, "v")),
+
+  /* Phase and configuration space bases. */
+  bP : basisP[polyOrder],
+  bC : basisC[polyOrder],
+  numBP : length(bP),
+  numBC : length(bC),
+
+  /* Function which evaluates flow velocity, thermal speed and prefactor at
+     configuration space ordinates. */
+  printf(fh, "void ~a_P~a_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd) {~%", funcNm, polyOrder),
+  printf(fh,"~%"),
+
+  /* Expand the density, flow velocity and thermal speed squared in basis. */
+  den_e   : doExpand1(den, bC),
+  vtSq_e  : doExpand1(vtSq, bC),
+
+  /* Flow velocity needs to account for the various vector components. */
+  flowU_c : makelist(flowU[cOff+i],i,0,numBC-1),
+  flowU_e : doExpand(flowU_c, bC),
+  
+  /* Get the Gaussian quadrature ordinates (in [-1,1] configuration space). */
+  ordWeightC : gaussOrdWeight(numQuad,cdim),
+  normOrdsC  : float(ordWeightC[1]),
+  ordNumC    : length(normOrdsC),
+
+  fMFac_n : makelist(0,i,1,ordNumC),
+  flowU_n : makelist(0,i,1,ordNumC*vdim),
+  vtSq_n  : makelist(0,i,1,ordNumC),
+  for i : 1 thru ordNumC do (
+    cSub : makelist(varsC[d]=normOrdsC[i][d],d,1,cdim),
+
+    den_n      : subst(cSub,den_e),
+    vtSq_n[i]  : subst(cSub,vtSq_e),
+    for vd : 0 thru vdim-1 do (
+      flowU_n[vd*ordNumC+i] : subst(cSub,subst(cOff=vd*ordNumC,flowU_e))
+    ),
+
+    if vdim<3 then (
+      fMFac_n[i] : den_n/(sqrt(2*%pi*vtSq_n[i])^vdim)
+    ) else (
+      fMFac_n[i] : den_n/(cpow(sqrt(2*%pi*vtSq_n[i]),vdim))
+    )
+  ),
+
+  strSub : [["std::pow","cpow"]],
+  writeCExprsNoExpand1_ssubst(flowUOrd, flowU_n, strSub, true),
+  printf(fh,"~%"),
+  writeCExprsNoExpand1_ssubst(vtSqOrd, vtSq_n, strSub, true),
+  printf(fh,"~%"),
+  writeCExprsNoExpand1_ssubst(fMFacOrd, fMFac_n, strSub, true),
+  printf(fh,"~%"),
+
+  printf(fh, "}~%"),
+
+  /* Function which performs the quadrature in phase space. */
+  printf(fh, "void ~a_P~a_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *wc, const double *dxv, double *fMOut) {~%", funcNm, polyOrder),
+  printf(fh,"~%"),
+
+  /* Get the Gaussian quadrature ordinates (in [-1,1] velocity space). */
+  ordWeightV : gaussOrdWeight(numQuad,vdim),
+  normOrdsV  : float(ordWeightV[1]),
+  ordNumV    : length(normOrdsV),
+
+  /* Get the Gaussian quadrature weights and ordinates (in [-1,1] phase space). */
+  ordWeightP : gaussOrdWeight(numQuad,cdim+vdim),
+  normOrdsP  : float(ordWeightP[1]),
+  weightsP   : float(ordWeightP[2]),
+  ordNumP    : length(normOrdsP),
+  
+  /* Translate velocity ordinates in [-1,1] to our physical coordinates. */
+  ordsV : makelist(makelist(0,d,1,vdim),i,1,ordNumV),
+  for i : 1 thru ordNumV do (
+    ordsV[i] : makelist(wc[cdim+d-1]+normOrdsV[i][d]*dxv[cdim+d-1]/2,d,1,vdim)
+  ),
+
+  fM_c : makelist(0,i,1,numBP),
+
+  /* Write out the Maxwellian evaluated a quadrature points, so it doesn't get
+     evaluated multiple times for the various basis functions. */
+  fM_n : makelist(0,i,1,ordNumP),
+  for i : 1 thru ordNumP do (
+    nOrdP  : normOrdsP[i],
+
+    /* Indices of the conf-space and velocity-space ordinates corresponding
+       to this phase-space ordinate */
+    cOrdIdx : sublist_indices(normOrdsC, lambda([x],x=makelist(nOrdP[d],d,1,cdim)))[1],
+    vOrdIdx : sublist_indices(normOrdsV, lambda([x],x=makelist(nOrdP[cdim+d],d,1,vdim)))[1],
+
+    expArg : -(cpow(v-u,2))/(2*vtSq),
+    expArgOrd : sum(subst([v=ordsV[vOrdIdx][d],u=flowUOrd[(d-1)*ordNumC+cOrdIdx-1],vtSq=vtSqOrd[cOrdIdx-1]],expArg),d,1,vdim),
+
+    /* Add contribution to each DG coefficient. */
+    fM_n[i] : fMFacOrd[cOrdIdx-1]*cexp(expArgOrd)
+  ),
+
+  printf(fh,"  double fMquad[~a];~%",ordNumP),
+  strSub : [["exp","cexp"],["std::pow","cpow"]],
+  writeCExprsNoExpand1_ssubst(fMquad, fM_n, strSub, false),
+  printf(fh,"~%"),
+
+  for i : 1 thru ordNumP do (
+    nOrdP  : normOrdsP[i],
+
+    /* Add contribution to each DG coefficient. */
+    for k : 1 thru numBP do (
+      fM_c[k] : fM_c[k]+weightsP[i]*subst(makelist(varsP[d]=nOrdP[d],d,1,cdim+vdim),bP[k])*fMquad[i-1] 
+    )
+
+  ),
+
+  strSub : [["exp","cexp"],["std::pow","cpow"]],
+  writeCExprsNoExpand1_ssubst(fMOut, fM_c, strSub, false),
+  printf(fh,"~%"),
+
+  printf(fh, "}~%")
+)$
+
+old(fh, im) := block([],
+
+  /* Get the velocity fields */
+  varsV : makelist(varsP[i], i, length(varsC)+1, length(varsP)),
+  /*tmp : [dvx, dvy, dvz],
+  dVarsV : makelist(tmp[i], i, 1, length(varsV)),
+  J : dVarsV[1]/2,
+  for i : 2 thru length(dVarsV) do J : J * dVarsV[i]/2,
+  tmp : [vcx[jx], vcy[jy], vcz[jz]],
+  vcs : makelist(tmp[i], i, 1, length(varsV)),
+  vPhys : dVarsV*varsV/2 + vcs,*/
+  eta : [-1/sqrt(3), 1/sqrt(3)],
+  w : [1, 1],
+
+  /* Load basis and expand the new distribution function g */
+  
+  fPhys : nExp/sqrt(2*%pi*vth2Exp) * exp(-(vx-uExp)^2/(2*vth2Exp)),
+  fk : makelist(subst([vx=dvx*vx/2+vxc], bp[k]*fPhys), k, 1, length(bp)),
+  quad : lsum(subst(x=eta[i], w[i]*lsum(subst(vx=eta[j], w[j]*fk), j, [1,2])), i, [1,2]),
+  simp : true,
+  out : combine(quad),
+  out : gcfac(out),
+  out : float(out),
+
+  /* Modification to convert from 1-indexed Maxima to 0-indexed C */
+  sList : makelist(ns[i]=n[i-1], i, 1, length(bc)),
+  printSub : subst(sList, out),
+  sList : makelist(us[i]=u[i-1], i, 1, length(bc)*length(varsV)),
+  printSub : subst(sList, printSub),
+  sList : makelist(vth2s[i]=vth2[i-1], i, 1, length(bc)),
+  printSub : subst(sList, printSub),
+  printSub : subst(gkyl_ipow, "^", printSub),
+
+  for i : 1 thru 1 do (
+    printf(fh, "  f[~a] = ~a;~%", i-1, printSub[i])
+  )
+)$
