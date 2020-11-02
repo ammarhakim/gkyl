@@ -1781,11 +1781,11 @@ function GkSpecies:Maxwellian(xn, n0, T0, vdIn)
    local vpar = xn[self.cdim+1]
    local v2   = (vpar-vd)^2
    if self.vdim > 1 then 
-     local mu = xn[self.cdim+2]
-     v2 = v2 + 2*math.abs(mu)*self.bmagFunc(0,xn)/self.mass
-     return n0*(2*math.pi*vt2)^(-3/2)*math.exp(-v2/(2*vt2))
+      local mu = xn[self.cdim+2]
+      v2 = v2 + 2*math.abs(mu)*self.bmagFunc(0,xn)/self.mass
+      return n0*(2*math.pi*vt2)^(-3/2)*math.exp(-v2/(2*vt2))
    else
-     return n0*(2*math.pi*vt2)^(-1/2)*math.exp(-v2/(2*vt2))
+      return n0*(2*math.pi*vt2)^(-1/2)*math.exp(-v2/(2*vt2))
    end
 end
 

@@ -191,7 +191,7 @@ function test_2x2v()
 
    local lower     = {-0.50, -0.50, -6.0*vt, -6.0*vt}
    local upper     = { 0.50,  0.50,  6.0*vt,  6.0*vt}
-   local numCells  = {12, 24, 16, 16}
+   local numCells  = {6, 12, 8, 8}
    local polyOrder = 1
 
    local phaseGrid  = createGrid(lower, upper, numCells)
@@ -252,10 +252,80 @@ function test_2x2v()
 
 end
 
+function test_2x3v()
+   local m0     = 1.0
+   local uDrift = {0.0, 0.75, 0.1}
+   local vt     = 1.0
+
+   local lower     = {-0.50, -0.50, -6.0*vt, -6.0*vt, -6.0*vt}
+   local upper     = { 0.50,  0.50,  6.0*vt,  6.0*vt,  6.0*vt}
+   local numCells  = {6, 12, 8, 8, 8}
+   local polyOrder = 1
+
+   local phaseGrid  = createGrid(lower, upper, numCells)
+   local phaseBasis = createBasis(phaseGrid:ndim(), polyOrder)
+   local confGrid   = createGrid({lower[1],lower[2]}, {upper[1],upper[2]}, {numCells[1],numCells[2]})
+   local confBasis  = createBasis(confGrid:ndim(), polyOrder)
+
+   local m0Fld     = createField(confGrid, confBasis)
+   local uDriftFld = createField(confGrid, confBasis, #uDrift)
+   local vtSqFld   = createField(confGrid, confBasis)
+   local distf     = createField(phaseGrid, phaseBasis)
+   local fM        = createField(phaseGrid, phaseBasis)
+
+   local m0Func     = function (t, xn) return m0*(2.0+math.cos(2.*math.pi*xn[1])) end
+   local uDriftFunc = function (t, xn) return uDrift[1], uDrift[2], uDrift[3] end
+   local vtSqFunc   = function (t, xn) return vt^2 end
+   local maxwellianFunc = function (t, xn)
+      local x, y, vx, vy, vz = xn[1], xn[2], xn[3], xn[4], xn[5]
+      local fOut = (m0/(math.sqrt(2.*math.pi*vt^2)^3))
+                  *math.exp(-((vx-uDrift[1])^2+(vy-uDrift[2])^2+(vz-uDrift[3])^2)/(2.*(vt^2))) 
+      return fOut
+   end
+
+   local project = Updater.ProjectOnBasis {
+      onGrid   = confGrid,
+      basis    = confBasis,
+      evaluate = function (t, xn) return 1.0 end   -- Set later.
+   }
+   local maxwellianLua = Updater.MaxwellianOnBasis {
+      onGrid         = phaseGrid,
+      phaseBasis     = phaseBasis,
+      confGrid       = confGrid,
+      confBasis      = confBasis,
+      implementation = "Lua"
+   }
+   local maxwellian = Updater.MaxwellianOnBasis {
+      onGrid         = phaseGrid,
+      phaseBasis     = phaseBasis,
+      confGrid       = confGrid,
+      confBasis      = confBasis,
+      implementation = "C"
+   }
+
+   -- Project the primitive moments onto configuration space basis.
+   project:setFunc(function(t,xn) return m0Func(t,xn) end)
+   project:advance(0.0, {}, {m0Fld})
+   project:setFunc(function(t,xn) return uDriftFunc(t,xn) end)
+   project:advance(0.0, {}, {uDriftFld})
+   project:setFunc(function(t,xn) return vtSqFunc(t,xn) end)
+   project:advance(0.0, {}, {vtSqFld})
+
+   -- Do projection.
+   local tmStart = Time.clock()
+   maxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {distf})
+   local tmMid = Time.clock()
+   print(" Lua took = ", tmMid - tmStart, " s")
+   maxwellian:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {fM})
+   print(" C took   = ", Time.clock() - tmMid, " s")
+
+end
+
 -- Run tests.
 test_1x1v()
 test_1x2v()
 test_2x2v()
+test_2x3v()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

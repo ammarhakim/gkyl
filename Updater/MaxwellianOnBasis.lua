@@ -211,7 +211,6 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
    
       -- Get the Ranges to loop over the domain
       local confRange   = nIn:localRange()
-      local confIndexer = nIn:genIndexer()
       local phaseRange  = fOut:localRange()
       if self.onGhosts then -- extend range to config-space ghosts
          local cdirs = {}
@@ -219,6 +218,8 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
             phaseRange = phaseRange:extendDir(dir, fOut:lowerGhost(), fOut:upperGhost())
          end
       end
+
+      local confIndexer  = nIn:genIndexer()
       local phaseIndexer = fOut:genIndexer()
    
       -- Additional preallocated variables
