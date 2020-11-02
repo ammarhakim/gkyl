@@ -67,9 +67,14 @@ function IterPoisson:init(tbl)
    
    self.cfl = self.fact*cflFrac/(2*polyOrder+1)/self.onGrid:ndim()
 
+   local coeff = {}
+   for d = 1, self.onGrid:ndim() do
+      coeff[d] = 1.0
+   end
+
    -- create updater to use in inner loop
    local constDiff = Eq {
-      coefficient = {1.0, 1.0},
+      coefficient = coeff,
       basis = self.basis,
    }
    -- updater to solve (parabolic) diffusion equation: this is used in
