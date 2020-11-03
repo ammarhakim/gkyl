@@ -34,6 +34,7 @@ void MaxwellianOnBasisGauss2x2vSer_P1_evAtConfOrd(const double *den, const doubl
     fMFacOrd[3] = (0.1591549430918953*(0.4999999999999999*(den[3]+den[2]+den[1])+0.5*den[0]))/vtSqOrd[3]; 
 
 }
+
 void MaxwellianOnBasisGauss2x2vSer_P1_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *wc, const double *dxv, double *fMOut) {
 
   double fMquad[16];

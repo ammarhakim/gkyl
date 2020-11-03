@@ -30,6 +30,7 @@ void MaxwellianOnBasisGauss1x1vSer_P3_evAtConfOrd(const double *den, const doubl
     fMFacOrd[3] = (0.3989422804014326*((-0.5701294036773671*den[3])+0.9681844646844028*den[2]-1.054672281193885*den[1]+0.7071067811865475*den[0]))/sqrt(vtSqOrd[3]); 
 
 }
+
 void MaxwellianOnBasisGauss1x1vSer_P3_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *wc, const double *dxv, double *fMOut) {
 
   double fMquad[16];

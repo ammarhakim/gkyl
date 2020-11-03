@@ -24,6 +24,7 @@ void MaxwellianOnBasisGauss1x1vTensor_P2_evAtConfOrd(const double *den, const do
     fMFacOrd[2] = (0.3989422804014326*(0.6324555320336759*den[2]+0.9486832980505137*den[1]+0.7071067811865475*den[0]))/sqrt(vtSqOrd[2]); 
 
 }
+
 void MaxwellianOnBasisGauss1x1vTensor_P2_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *wc, const double *dxv, double *fMOut) {
 
   double fMquad[9];

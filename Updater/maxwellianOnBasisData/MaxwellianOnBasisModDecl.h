@@ -17,10 +17,13 @@ void MaxwellianOnBasisGauss1x2vSer_P2_phaseQuad(const double *flowUOrd, const do
 void MaxwellianOnBasisGauss1x2vSer_P3_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);
 void MaxwellianOnBasisGauss1x2vSer_P3_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *wc, const double *dvx, double *fMOut);
 void MaxwellianOnBasisGauss1x3vSer_P1_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);
+void MaxwellianOnBasisGauss1x3vSerUpar_P1_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);
 void MaxwellianOnBasisGauss1x3vSer_P1_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *wc, const double *dvx, double *fMOut);
 void MaxwellianOnBasisGauss1x3vSer_P2_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);
+void MaxwellianOnBasisGauss1x3vSerUpar_P2_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);
 void MaxwellianOnBasisGauss1x3vSer_P2_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *wc, const double *dvx, double *fMOut);
 void MaxwellianOnBasisGauss1x3vSer_P3_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);
+void MaxwellianOnBasisGauss1x3vSerUpar_P3_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);
 void MaxwellianOnBasisGauss1x3vSer_P3_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *wc, const double *dvx, double *fMOut);
 void MaxwellianOnBasisGauss2x2vSer_P1_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);
 void MaxwellianOnBasisGauss2x2vSer_P1_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *wc, const double *dvx, double *fMOut);
@@ -29,10 +32,13 @@ void MaxwellianOnBasisGauss2x2vSer_P2_phaseQuad(const double *flowUOrd, const do
 void MaxwellianOnBasisGauss2x2vSer_P3_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);
 void MaxwellianOnBasisGauss2x2vSer_P3_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *wc, const double *dvx, double *fMOut);
 void MaxwellianOnBasisGauss2x3vSer_P1_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);
+void MaxwellianOnBasisGauss2x3vSerUpar_P1_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);
 void MaxwellianOnBasisGauss2x3vSer_P1_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *wc, const double *dvx, double *fMOut);
 void MaxwellianOnBasisGauss2x3vSer_P2_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);
+void MaxwellianOnBasisGauss2x3vSerUpar_P2_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);
 void MaxwellianOnBasisGauss2x3vSer_P2_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *wc, const double *dvx, double *fMOut);
 void MaxwellianOnBasisGauss3x3vSer_P1_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);
+void MaxwellianOnBasisGauss3x3vSerUpar_P1_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);
 void MaxwellianOnBasisGauss3x3vSer_P1_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *wc, const double *dvx, double *fMOut);
 void MaxwellianOnBasisGauss1x1vMax_P1_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);
 void MaxwellianOnBasisGauss1x1vMax_P1_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *wc, const double *dvx, double *fMOut);

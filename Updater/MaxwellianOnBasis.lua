@@ -55,7 +55,7 @@ function MaxwellianOnBasis:init(tbl)
    assert(numQuad1D<=8, "Updater.MaxwellianOnBasis: Gaussian quadrature only implemented for numQuad<=8 in each dimension")
 
    self.quadType = "Gauss"
-   self.quadImpl = tbl.implementation and tbl.implementation or "Lua"
+   self.quadImpl = tbl.implementation and tbl.implementation or "C"
 
    -- The C implementation only allows p+1 quadrature points (in 1D).
    if numQuad1D ~= self.confBasis:polyOrder() + 1 then self.quadImpl="Lua" end
@@ -67,7 +67,9 @@ function MaxwellianOnBasis:init(tbl)
 
    if self.quadImpl == "C" then
 
-      local quadFuncs = MaxwellianModDecl.selectQuad(self.confBasis:id(), self._cDim, self._vDim, self.confBasis:polyOrder(), self.quadType)
+      self._uDim = tbl.uDriftDim and tbl.uDriftDim or self._vDim 
+
+      local quadFuncs = MaxwellianModDecl.selectQuad(self.confBasis:id(), self._cDim, self._vDim, self._uDim, self.confBasis:polyOrder(), self.quadType)
       self._evAtConfOrds = quadFuncs[1]
       self._phaseQuad    = quadFuncs[2]
 
@@ -77,15 +79,10 @@ function MaxwellianOnBasis:init(tbl)
       self.vtSqOrd    = Lin.Vec(self.numConfOrds)
       self.normFacOrd = Lin.Vec(self.numConfOrds)
 
-      -- Cell index, center, and dx.
-      self.idx = Lin.IntVec(self._pDim)
-      self.xc  = Lin.Vec(self._pDim)
-      self.dx  = Lin.Vec(self._pDim)
-
    elseif self.quadImpl == "Lua" then
       -- 1D weights and ordinates
       local ordinates = GaussQuadRules.ordinates[numQuad1D]
-      local weights = GaussQuadRules.weights[numQuad1D]
+      local weights   = GaussQuadRules.weights[numQuad1D]
 
       -- Configuration space ordinates ----------------------------------
       local l, u = {}, {}
@@ -103,7 +100,7 @@ function MaxwellianOnBasis:init(tbl)
             self.confOrdinates[ordIdx][d] = ordinates[ordIndexes[d]]
          end
          self.confBasis:evalBasis(self.confOrdinates[ordIdx],
-           		       self.confBasisAtOrds[ordIdx])
+                                  self.confBasisAtOrds[ordIdx])
       end
 
       -- Phase space ordinates and weights ------------------------------
@@ -126,7 +123,7 @@ function MaxwellianOnBasis:init(tbl)
             self.phaseOrdinates[ordIdx][d] = ordinates[ordIndexes[d]]
          end
          self.phaseBasis:evalBasis(self.phaseOrdinates[ordIdx],
-           			self.phaseBasisAtOrds[ordIdx])
+                                   self.phaseBasisAtOrds[ordIdx])
       end
 
       -- Construct the phase space to conf space ordinate map
@@ -137,11 +134,12 @@ function MaxwellianOnBasis:init(tbl)
          self.phaseToConfOrdMap[phaseOrdIdx] = confOrdIdx
       end
 
-      -- Cell index, center, and dx.
-      self.idxP = Lin.IntVec(self._pDim)
-      self.xcP  = Lin.Vec(self._pDim)
-      self.dxP  = Lin.Vec(self._pDim)
    end
+
+   -- Cell index, center, and dx.
+   self.idx = Lin.IntVec(self._pDim)
+   self.xc  = Lin.Vec(self._pDim)
+   self.dx  = Lin.Vec(self._pDim)
 end
 
 function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
@@ -152,21 +150,25 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
    local fOut    = assert(outFld[1], "MaxwellianOnBasis: Must specify an output field 'outFld[1]'")
 
    local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
+   local uDim = uFlowIn:numComponents()/self.confBasis:numBasis()   -- Number of vector components of uFlowIn.
 
-   if self.quadImpl=="C" then
+   local nItr, uFlowItr, vtSqItr = nIn:get(1), uFlowIn:get(1), vtSqIn:get(1)
+   local fItr = fOut:get(1)
 
-      local nItr, uFlowItr, vtSqItr = nIn:get(1), uFlowIn:get(1), vtSqIn:get(1)
-      local fItr = fOut:get(1)
-
-      local confIndexer  = nIn:genIndexer()
-      local phaseIndexer = fOut:genIndexer()
-      local phaseRange   = fOut:localRange()
-      if self.onGhosts then   -- Extend range to config-space ghosts.
-         local cdirs = {}
-         for dir = 1, cDim do
-            phaseRange = phaseRange:extendDir(dir, fOut:lowerGhost(), fOut:upperGhost())
-         end
+   local confIndexer  = nIn:genIndexer()
+   local phaseIndexer = fOut:genIndexer()
+   local phaseRange   = fOut:localRange()
+   if self.onGhosts then   -- Extend range to config-space ghosts.
+      local cdirs = {}
+      for dir = 1, cDim do
+         phaseRange = phaseRange:extendDir(dir, fOut:lowerGhost(), fOut:upperGhost())
       end
+   end
+
+
+   if self.quadImpl == "C" then
+
+      assert(uDim==self._uDim, "MaxwellianOnBasis: dimensions of drift velocity u must match those requested in updater creation.")
 
       -- Construct ranges for nested loops.
       local confRangeDecomp = LinearDecomp.LinearDecompRange {
@@ -200,27 +202,12 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 
          end
       end
-   elseif self.quadImpl=="Lua" then
 
-      local uDim = uFlowIn:numComponents()/self.numConfBasis -- Number of dimensions in u.
-   
-      local nItr, nOrd         = nIn:get(1), Lin.Vec(self.numConfOrds)
-      local uFlowItr, uFlowOrd = uFlowIn:get(1), Lin.Mat(self.numConfOrds, vDim)
-      local vtSqItr, vtSqOrd   = vtSqIn:get(1), Lin.Vec(self.numConfOrds)
-      local fItr               = fOut:get(1)
-   
-      -- Get the Ranges to loop over the domain
-      local confRange   = nIn:localRange()
-      local phaseRange  = fOut:localRange()
-      if self.onGhosts then -- extend range to config-space ghosts
-         local cdirs = {}
-         for dir = 1, cDim do 
-            phaseRange = phaseRange:extendDir(dir, fOut:lowerGhost(), fOut:upperGhost())
-         end
-      end
+   elseif self.quadImpl == "Lua" then
 
-      local confIndexer  = nIn:genIndexer()
-      local phaseIndexer = fOut:genIndexer()
+      local nOrd     = Lin.Vec(self.numConfOrds)
+      local uFlowOrd = Lin.Mat(self.numConfOrds, vDim)
+      local vtSqOrd  = Lin.Vec(self.numConfOrds)
    
       -- Additional preallocated variables
       local ordIdx = nil
@@ -267,19 +254,19 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
          -- The velocity space loop
          for vIdx in velRange:rowMajorIter() do
             -- Construct the phase space index ot of the configuration
-            -- space and velocity space indices
-            cIdx:copyInto(self.idxP)
-            for d = 1, vDim do self.idxP[cDim+d] = vIdx[d] end
-   	    fOut:fill(phaseIndexer(self.idxP), fItr)
+            -- space and velocity space indices.
+            cIdx:copyInto(self.idx)
+            for d = 1, vDim do self.idx[cDim+d] = vIdx[d] end
+   	    fOut:fill(phaseIndexer(self.idx), fItr)
    
    	    -- Get cell shape, cell center coordinates
-   	    self.phaseGrid:setIndex(self.idxP)
-            self.phaseGrid:getDx(self.dxP)
-            self.phaseGrid:cellCenter(self.xcP)
+   	    self.phaseGrid:setIndex(self.idx)
+            self.phaseGrid:getDx(self.dx)
+            self.phaseGrid:cellCenter(self.xc)
    
             ffiC.MaxwellianInnerLoop(nOrd:data(), uFlowOrd:data(), vtSqOrd:data(),
                                      fItr:data(),
-                                     self.phaseWeights:data(), self.dxP:data(), self.xcP:data(),
+                                     self.phaseWeights:data(), self.dx:data(), self.xc:data(),
                                      self.phaseOrdinates:data(),
                                      self.phaseBasisAtOrds:data(),
                                      self.phaseToConfOrdMap:data(),

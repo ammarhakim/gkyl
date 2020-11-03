@@ -47,7 +47,7 @@ gaussOrdWeight(n,dim) := block([ordWeight1D,ord1D,weight1D,ord,labWeight1D,
     for i : 1 thru length(labWeight) do (
       flatOrd : makelist(flatten(labOrd[i])[2*j],j,1,length(flatten(labOrd[i]))/2),
       ord[i]  : copylist(flatOrd),
-      flatFac   : makelist(flatten(labWeight[i])[2*j],j,1,length(labWeight[i])),
+      flatFac   : makelist(flatten(labWeight[i])[2*j],j,1,length(flatten(labWeight[i]))/2),
       weight[i] : bfloat(apply("*",float(flatFac)))
     )
   ),

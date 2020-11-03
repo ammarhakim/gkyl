@@ -15,8 +15,8 @@ public:
 };
 
 void MaxwellianInnerLoop(/* Number density, drift speed, and thermal velocity squared
-			    n[numConfOrds], u[numConfOrds, numVelDims], vth2[numConfOrds] */
-			 double * n, double * u, double * vth2,
+			    n[numConfOrds], u[numConfOrds, numVelDims], vtSq[numConfOrds] */
+			 double * n, double * u, double * vtSq,
 			 /* Pointer to output Maxwellian f[numPhaseBasis] */
 			 double * fItr,
 			 /* weights[numPhaseOrds], dz[numPhaseDims], zc[numPhaseDims] */
@@ -44,7 +44,7 @@ void MaxwellianInnerLoop(/* Number density, drift speed, and thermal velocity sq
     // Prepare the Maxvellian normalization
     double denom = 1.0;
     for (int d = 0; d < numVelDims; ++d)
-      denom *= 2*M_PI*vth2[confOrdIdx];
+      denom *= 2*M_PI*vtSq[confOrdIdx];
     maxwellNorm[confOrdIdx] = n[confOrdIdx]/std::sqrt(denom);
   }
   
@@ -58,10 +58,10 @@ void MaxwellianInnerLoop(/* Number density, drift speed, and thermal velocity sq
       v = 0.5*v*dz[numConfDims+d] + zc[numConfDims+d] - u[uIdx.get(confOrdIdx, d)];
       v2 += v*v;
     }
-    if (vth2[confOrdIdx] <= 0)
+    if (vtSq[confOrdIdx] <= 0)
       maxwellian *= 0;
     else
-      maxwellian *= exp(-0.5*v2/vth2[confOrdIdx]);
+      maxwellian *= exp(-0.5*v2/vtSq[confOrdIdx]);
     
     for (int k = 0; k < numPhaseBasis; ++k) 
       fItr[k] +=

@@ -6,10 +6,10 @@ void MaxwellianOnBasisGauss2x2vMax_P1_evAtConfOrd(const double *den, const doubl
   flowUOrd[1] = 0.4999999999999999*flowU[2]-0.4999999999999999*flowU[1]+0.5*flowU[0]; 
   flowUOrd[2] = (-0.4999999999999999*flowU[2])+0.4999999999999999*flowU[1]+0.5*flowU[0]; 
   flowUOrd[3] = 0.4999999999999999*(flowU[2]+flowU[1])+0.5*flowU[0]; 
-  flowUOrd[4] = 0.5*flowU[4]-0.4999999999999999*(flowU[6]+flowU[5]); 
-  flowUOrd[5] = 0.4999999999999999*flowU[6]-0.4999999999999999*flowU[5]+0.5*flowU[4]; 
-  flowUOrd[6] = (-0.4999999999999999*flowU[6])+0.4999999999999999*flowU[5]+0.5*flowU[4]; 
-  flowUOrd[7] = 0.4999999999999999*(flowU[6]+flowU[5])+0.5*flowU[4]; 
+  flowUOrd[4] = 0.5*flowU[3]-0.4999999999999999*(flowU[5]+flowU[4]); 
+  flowUOrd[5] = 0.4999999999999999*flowU[5]-0.4999999999999999*flowU[4]+0.5*flowU[3]; 
+  flowUOrd[6] = (-0.4999999999999999*flowU[5])+0.4999999999999999*flowU[4]+0.5*flowU[3]; 
+  flowUOrd[7] = 0.4999999999999999*(flowU[5]+flowU[4])+0.5*flowU[3]; 
 
   vtSqOrd[0] = 0.5*vtSq[0]-0.4999999999999999*(vtSq[2]+vtSq[1]); 
   vtSqOrd[1] = 0.4999999999999999*vtSq[2]-0.4999999999999999*vtSq[1]+0.5*vtSq[0]; 
@@ -34,6 +34,7 @@ void MaxwellianOnBasisGauss2x2vMax_P1_evAtConfOrd(const double *den, const doubl
     fMFacOrd[3] = (0.1591549430918953*(0.4999999999999999*(den[2]+den[1])+0.5*den[0]))/vtSqOrd[3]; 
 
 }
+
 void MaxwellianOnBasisGauss2x2vMax_P1_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *wc, const double *dxv, double *fMOut) {
 
   double fMquad[16];

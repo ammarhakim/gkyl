@@ -59,6 +59,9 @@ for bInd : 1 thru length(bName) do (
         funcNm : sconcat("MaxwellianOnBasisGauss", cD, "x", vD, "v", bName[bInd]),
 
         printf(fh, "void ~a_P~a_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);~%", funcNm, polyOrder),
+        if vD=3 then (
+          printf(fh, "void ~aUpar_P~a_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);~%", funcNm, polyOrder)
+        ),
         printf(fh, "void ~a_P~a_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *wc, const double *dvx, double *fMOut);~%", funcNm, polyOrder)
 
       )

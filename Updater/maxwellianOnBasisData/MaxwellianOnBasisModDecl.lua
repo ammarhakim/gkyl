@@ -15,11 +15,16 @@ local _M = {}
 
 -- Select kernel functions to evaluate configuration space quantities at conf-space 
 -- ordinates, and perform the phase space quadrature.
-function _M.selectQuad(basisNm, cDim, vDim, polyOrder, quadType)
+function _M.selectQuad(basisNm, cDim, vDim, uDim, polyOrder, quadType)
    local funcType = "void"
 
    local maxwellKernels = {}
-   local funcNm   = string.format("MaxwellianOnBasis%s%dx%dv%s_P%d_evAtConfOrd", quadType, cDim, vDim, basisNmMap[basisNm], polyOrder)
+   local funcNm
+   if vDim == uDim then
+      funcNm = string.format("MaxwellianOnBasis%s%dx%dv%s_P%d_evAtConfOrd", quadType, cDim, vDim, basisNmMap[basisNm], polyOrder)
+   else
+      funcNm = string.format("MaxwellianOnBasis%s%dx%dv%sUpar_P%d_evAtConfOrd", quadType, cDim, vDim, basisNmMap[basisNm], polyOrder)
+   end
    local funcSign = "(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd)"
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    local tmpKrn = ffi.C[funcNm]

@@ -22,6 +22,30 @@ void MaxwellianOnBasisGauss1x3vSer_P1_evAtConfOrd(const double *den, const doubl
     fMFacOrd[1] = (0.7071067811865474*den[1]+0.7071067811865475*den[0])/std::pow(2.506628274631001*sqrt(vtSqOrd[1]),3.0); 
 
 }
+
+void MaxwellianOnBasisGauss1x3vSerUpar_P1_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd) {
+
+  flowUOrd[0] = 0.0; 
+  flowUOrd[1] = 0.0; 
+  flowUOrd[2] = 0.0; 
+  flowUOrd[3] = 0.0; 
+  flowUOrd[4] = 0.7071067811865475*flowU[0]-0.7071067811865474*flowU[1]; 
+  flowUOrd[5] = 0.7071067811865474*flowU[1]+0.7071067811865475*flowU[0]; 
+
+  vtSqOrd[0] = 0.7071067811865475*vtSq[0]-0.7071067811865474*vtSq[1]; 
+  vtSqOrd[1] = 0.7071067811865474*vtSq[1]+0.7071067811865475*vtSq[0]; 
+
+  if (vtSqOrd[0] <= 0.0)
+    fMFacOrd[0] = 0.;
+  else
+    fMFacOrd[0] = (0.7071067811865475*den[0]-0.7071067811865474*den[1])/std::pow(2.506628274631001*sqrt(vtSqOrd[0]),3.0); 
+  if (vtSqOrd[1] <= 0.0)
+    fMFacOrd[1] = 0.;
+  else
+    fMFacOrd[1] = (0.7071067811865474*den[1]+0.7071067811865475*den[0])/std::pow(2.506628274631001*sqrt(vtSqOrd[1]),3.0); 
+
+}
+
 void MaxwellianOnBasisGauss1x3vSer_P1_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *wc, const double *dxv, double *fMOut) {
 
   double fMquad[16];
