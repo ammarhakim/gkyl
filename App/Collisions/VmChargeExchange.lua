@@ -42,15 +42,15 @@ function VmChargeExchange:fullInit(speciesTbl)
 
    self.collidingSpecies = assert(tbl.collideWith, "App.VmChargeExchange: Must specify names of species to collide with in 'collideWith'.")
 
-   self.collideNm   = tbl.collideWith[1]
+   self.collideNm = tbl.collideWith[1]
 
-   self.plasma      = assert(tbl.plasma, "App.VmChargeExchange: Must specify plasma species in 'plasma' ('H', 'D', or 'Ne')")
+   self.plasma    = assert(tbl.plasma, "App.VmChargeExchange: Must specify plasma species in 'plasma' ('H', 'D', or 'Ne')")
    
-   self.ionNm       = tbl.ions
-   self.neutNm      = tbl.neutrals
-   self.iMass       = tbl.ionMass
-   self.nMass       = tbl.neutMass
-   self.charge      = tbl.charge
+   self.ionNm     = tbl.ions
+   self.neutNm    = tbl.neutrals
+   self.iMass     = tbl.ionMass
+   self.nMass     = tbl.neutMass
+   self.charge    = tbl.charge
 
    -- Set these values to be consistent with other collision apps
    self.selfCollisions  = false
@@ -115,7 +115,7 @@ function VmChargeExchange:createSolver(funcField) --species)
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
-      metaData = {
+      metaData      = {
 	 polyOrder = self.phaseBasis:polyOrder(),
 	 basisType = self.phaseBasis:id()
       },
@@ -124,7 +124,7 @@ function VmChargeExchange:createSolver(funcField) --species)
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
-      metaData = {
+      metaData      = {
 	 polyOrder = self.phaseBasis:polyOrder(),
 	 basisType = self.phaseBasis:id()
       },
@@ -133,7 +133,7 @@ function VmChargeExchange:createSolver(funcField) --species)
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
-      metaData = {
+      metaData      = {
 	 polyOrder = self.phaseBasis:polyOrder(),
 	 basisType = self.phaseBasis:id()
       },
@@ -142,7 +142,7 @@ function VmChargeExchange:createSolver(funcField) --species)
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
-      metaData = {
+      metaData      = {
 	 polyOrder = self.phaseBasis:polyOrder(),
 	 basisType = self.phaseBasis:id()
       },
@@ -150,11 +150,11 @@ function VmChargeExchange:createSolver(funcField) --species)
 end
 
 function VmChargeExchange:advance(tCurr, fIn, species, fRhsOut)
-      tmEvalMomStart   = Time.clock() 
-      local neutM0 = species[self.neutNm]:fluidMoments()[1]
+      tmEvalMomStart = Time.clock() 
+      local neutM0    = species[self.neutNm]:fluidMoments()[1]
       local neutDistF = species[self.neutNm]:getDistF()
-      local ionM0 = species[self.ionNm]:fluidMoments()[1]
-      local ionDistF = species[self.ionNm]:getDistF()
+      local ionM0     = species[self.ionNm]:fluidMoments()[1]
+      local ionDistF  = species[self.ionNm]:getDistF()
       
       species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
       species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
@@ -178,7 +178,7 @@ function VmChargeExchange:slvrTime()
 end
 
 function VmChargeExchange:momTime()
-   return 0
+   return self._tmEvalMom
 end
 
 function VmChargeExchange:projectMaxwellTime()
