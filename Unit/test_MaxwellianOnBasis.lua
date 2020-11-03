@@ -142,6 +142,144 @@ function test_1x1v()
    end
 end
 
+function testGK_1x1v()
+   local m0     = 1.0
+   local uDrift = 0.50
+   local vt     = 1.0
+   local B0     = 0.5
+   local mass   = 1.0
+
+   local lower     = {-0.50, -6.0*vt}
+   local upper     = { 0.50,  6.0*vt}
+   local numCells  = {16, 16}
+
+   for polyOrder = 1, 2 do
+
+      local phaseGrid  = createGrid(lower, upper, numCells)
+      local phaseBasis = createBasis(phaseGrid:ndim(), polyOrder)
+      local confGrid   = createGrid({lower[1]}, {upper[1]}, {numCells[1]})
+      local confBasis  = createBasis(confGrid:ndim(), polyOrder)
+
+      local m0Fld     = createField(confGrid, confBasis)
+      local uDriftFld = createField(confGrid, confBasis)
+      local vtSqFld   = createField(confGrid, confBasis)
+      local bmagFld   = createField(confGrid, confBasis)
+      local distf     = createField(phaseGrid, phaseBasis)
+      local fM        = createField(phaseGrid, phaseBasis)
+
+      local m0Func     = function (t, xn) return m0*(2.0+math.cos(2.*math.pi*xn[1])) end
+      local uDriftFunc = function (t, xn) return uDrift end
+      local vtSqFunc   = function (t, xn) return vt^2 end
+      local bmagFunc   = function (t, xn) return B0 end
+      local maxwellianFunc = function (t, xn)
+         local x, vpar = xn[1], xn[2]
+         local fOut = (m0Func(t,xn)/(math.sqrt(2.*math.pi*vtSqFunc(t,xn))))
+                     *math.exp(-((vpar-uDriftFunc(t,xn))^2)/(2.*(vtSqFunc(t,xn)))) 
+         return fOut
+      end
+
+      local projectScalar = Updater.ProjectOnBasis {
+         onGrid   = confGrid,
+         basis    = confBasis,
+         evaluate = function (t, xn) return 1.0 end   -- Set later.
+      }
+      local projectVec = Updater.ProjectOnBasis {
+         onGrid   = confGrid,
+         basis    = confBasis,
+         evaluate = function (t, xn) return 1.0, 1.0, 1.0 end   -- Set later.
+      }
+      local maxwellianLua = Updater.MaxwellianOnBasis {
+         onGrid         = phaseGrid,
+         phaseBasis     = phaseBasis,
+         confGrid       = confGrid,
+         confBasis      = confBasis,
+         implementation = "Lua",
+         mass           = mass,
+      }
+      local maxwellian = Updater.MaxwellianOnBasis {
+         onGrid         = phaseGrid,
+         phaseBasis     = phaseBasis,
+         confGrid       = confGrid,
+         confBasis      = confBasis,
+         implementation = "C",
+         mass           = mass,
+      }
+
+      -- Project the primitive moments onto configuration space basis.
+      projectScalar:setFunc(function(t,xn) return m0Func(t,xn) end)
+      projectScalar:advance(0.0, {}, {m0Fld})
+      projectScalar:setFunc(function(t,xn) return uDriftFunc(t,xn) end)
+      projectScalar:advance(0.0, {}, {uDriftFld})
+      projectScalar:setFunc(function(t,xn) return vtSqFunc(t,xn) end)
+      projectScalar:advance(0.0, {}, {vtSqFld})
+      projectScalar:setFunc(function(t,xn) return bmagFunc(t,xn) end)
+      projectScalar:advance(0.0, {}, {bmagFld})
+
+      local gkMaxwellianLua = Updater.GkMaxwellianOnBasis {
+         onGrid         = phaseGrid,
+         phaseBasis     = phaseBasis,
+         confGrid       = confGrid,
+         confBasis      = confBasis,
+         implementation = "Lua",
+         gkfacs         = {mass,bmagFld},
+      }
+
+      -- Do projection.
+      maxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {distf})
+--      gkMaxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {distf})
+      maxwellian:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {fM})
+
+      -- Check projection.
+      local indexer    = distf:genIndexer()
+      local distFPtr   = distf:get(1)
+      local fMPtr      = fM:get(1)
+      local localRange = distf:localRange()
+      for idx in localRange:rowMajorIter() do
+         distfPtr = distf:get(indexer(idx))
+         fMPtr    = fM:get(indexer(idx))
+         for k = 1, phaseBasis:numBasis() do
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+         end
+      end
+
+      -- Now create a gyrokinetic Maxwellian taking a 3v flow velocity.
+      local uDriftFld  = createField(confGrid, confBasis, 3)
+      local uDriftFunc = function (t, xn) return 1.5, 2.5, uDrift end
+      projectVec:setFunc(function(t,xn) return uDriftFunc(t,xn) end)
+      projectVec:advance(0.0, {}, {uDriftFld})
+      local uDriftMaxwellian = Updater.MaxwellianOnBasis {
+         onGrid         = phaseGrid,
+         phaseBasis     = phaseBasis,
+         confGrid       = confGrid,
+         confBasis      = confBasis,
+         implementation = "C",
+         mass           = mass,
+         uDriftInDim    = 3,
+      }
+      -- Do projection.
+      local tmStart = Time.clock()
+      maxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {distf})
+      local tmMid = Time.clock()
+      uDriftMaxwellian:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {fM})
+      local tmEnd = Time.clock()
+
+      -- Check projection.
+      local indexer    = distf:genIndexer()
+      local distFPtr   = distf:get(1)
+      local fMPtr      = fM:get(1)
+      local localRange = distf:localRange()
+      for idx in localRange:rowMajorIter() do
+         distfPtr = distf:get(indexer(idx))
+         fMPtr    = fM:get(indexer(idx))
+         for k = 1, phaseBasis:numBasis() do
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+         end
+      end
+
+   end
+
+end
+
 function test_1x2v()
    local m0     = 1.0
    local uDrift = {0.0, 0.75}
@@ -149,7 +287,7 @@ function test_1x2v()
 
    local lower     = {-0.50, -6.0*vt, -6.0*vt}
    local upper     = { 0.50,  6.0*vt,  6.0*vt}
-   local numCells  = {1, 8, 8}
+   local numCells  = {8, 8, 8}
 
    for polyOrder = 1, 3 do
 
@@ -210,6 +348,144 @@ function test_1x2v()
       -- Do projection.
       maxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {distf})
       maxwellian:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {fM})
+
+      -- Check projection.
+      local indexer    = distf:genIndexer()
+      local distFPtr   = distf:get(1)
+      local fMPtr      = fM:get(1)
+      local localRange = distf:localRange()
+      for idx in localRange:rowMajorIter() do
+         distfPtr = distf:get(indexer(idx))
+         fMPtr    = fM:get(indexer(idx))
+         for k = 1, phaseBasis:numBasis() do
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+         end
+      end
+
+   end
+
+end
+
+function testGK_1x2v()
+   local m0     = 1.0
+   local uDrift = 0.50
+   local vt     = 1.0
+   local B0     = 0.5
+   local mass   = 1.0
+
+   local lower     = {-0.50, -6.0*vt, 0.0}
+   local upper     = { 0.50,  6.0*vt, mass*(6.0*(vt)^2)/(2*B0)}
+   local numCells  = {16, 16, 16}
+
+   for polyOrder = 1, 2 do
+
+      local phaseGrid  = createGrid(lower, upper, numCells)
+      local phaseBasis = createBasis(phaseGrid:ndim(), polyOrder)
+      local confGrid   = createGrid({lower[1]}, {upper[1]}, {numCells[1]})
+      local confBasis  = createBasis(confGrid:ndim(), polyOrder)
+
+      local m0Fld     = createField(confGrid, confBasis)
+      local uDriftFld = createField(confGrid, confBasis)
+      local vtSqFld   = createField(confGrid, confBasis)
+      local bmagFld   = createField(confGrid, confBasis)
+      local distf     = createField(phaseGrid, phaseBasis)
+      local fM        = createField(phaseGrid, phaseBasis)
+
+      local m0Func     = function (t, xn) return m0*(2.0+math.cos(2.*math.pi*xn[1])) end
+      local uDriftFunc = function (t, xn) return uDrift end
+      local vtSqFunc   = function (t, xn) return vt^2 end
+      local bmagFunc   = function (t, xn) return B0 end
+      local maxwellianFunc = function (t, xn)
+         local x, vpar, mu = xn[1], xn[2], xn[3]
+         local fOut = (m0Func(t,xn)/(math.sqrt(2.*math.pi*vtSqFunc(t,xn))^3))
+                     *math.exp(-((vpar-uDriftFunc(t,xn))^2+2*mu*bmagFunc(t,xn)/mass)/(2.*(vtSqFunc(t,xn)))) 
+         return fOut
+      end
+
+      local projectScalar = Updater.ProjectOnBasis {
+         onGrid   = confGrid,
+         basis    = confBasis,
+         evaluate = function (t, xn) return 1.0 end   -- Set later.
+      }
+      local projectVec = Updater.ProjectOnBasis {
+         onGrid   = confGrid,
+         basis    = confBasis,
+         evaluate = function (t, xn) return 1.0, 1.0, 1.0 end   -- Set later.
+      }
+      local maxwellianLua = Updater.MaxwellianOnBasis {
+         onGrid         = phaseGrid,
+         phaseBasis     = phaseBasis,
+         confGrid       = confGrid,
+         confBasis      = confBasis,
+         implementation = "Lua",
+         mass           = mass,
+      }
+      local maxwellian = Updater.MaxwellianOnBasis {
+         onGrid         = phaseGrid,
+         phaseBasis     = phaseBasis,
+         confGrid       = confGrid,
+         confBasis      = confBasis,
+         implementation = "C",
+         mass           = mass,
+      }
+
+      -- Project the primitive moments onto configuration space basis.
+      projectScalar:setFunc(function(t,xn) return m0Func(t,xn) end)
+      projectScalar:advance(0.0, {}, {m0Fld})
+      projectScalar:setFunc(function(t,xn) return uDriftFunc(t,xn) end)
+      projectScalar:advance(0.0, {}, {uDriftFld})
+      projectScalar:setFunc(function(t,xn) return vtSqFunc(t,xn) end)
+      projectScalar:advance(0.0, {}, {vtSqFld})
+      projectScalar:setFunc(function(t,xn) return bmagFunc(t,xn) end)
+      projectScalar:advance(0.0, {}, {bmagFld})
+
+      local gkMaxwellianLua = Updater.GkMaxwellianOnBasis {
+         onGrid         = phaseGrid,
+         phaseBasis     = phaseBasis,
+         confGrid       = confGrid,
+         confBasis      = confBasis,
+         implementation = "Lua",
+         gkfacs         = {mass,bmagFld},
+      }
+
+      -- Do projection.
+      maxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {distf})
+--      gkMaxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {distf})
+      maxwellian:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {fM})
+
+      -- Check projection.
+      local indexer    = distf:genIndexer()
+      local distFPtr   = distf:get(1)
+      local fMPtr      = fM:get(1)
+      local localRange = distf:localRange()
+      for idx in localRange:rowMajorIter() do
+         distfPtr = distf:get(indexer(idx))
+         fMPtr    = fM:get(indexer(idx))
+         for k = 1, phaseBasis:numBasis() do
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+         end
+      end
+
+      -- Now create a gyrokinetic Maxwellian taking a 3v flow velocity.
+      local uDriftFld  = createField(confGrid, confBasis, 3)
+      local uDriftFunc = function (t, xn) return 1.5, 2.5, uDrift end
+      projectVec:setFunc(function(t,xn) return uDriftFunc(t,xn) end)
+      projectVec:advance(0.0, {}, {uDriftFld})
+      local uDriftMaxwellian = Updater.MaxwellianOnBasis {
+         onGrid         = phaseGrid,
+         phaseBasis     = phaseBasis,
+         confGrid       = confGrid,
+         confBasis      = confBasis,
+         implementation = "C",
+         mass           = mass,
+         uDriftInDim    = 3,
+      }
+      -- Do projection.
+      local tmStart = Time.clock()
+      maxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {distf})
+      local tmMid = Time.clock()
+      uDriftMaxwellian:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {fM})
+      local tmEnd = Time.clock()
 
       -- Check projection.
       local indexer    = distf:genIndexer()
@@ -324,7 +600,7 @@ function test_1x3v()
          confGrid       = confGrid,
          confBasis      = confBasis,
          implementation = "C",
-         uDriftDim      = 1,
+         uDriftInDim    = 1,
       }
       -- Do projection.
       local tmStart = Time.clock()
@@ -418,6 +694,144 @@ function test_2x2v()
       maxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {distf})
       local tmMid = Time.clock()
       maxwellian:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {fM})
+      local tmEnd = Time.clock()
+
+      -- Check projection.
+      local indexer    = distf:genIndexer()
+      local distFPtr   = distf:get(1)
+      local fMPtr      = fM:get(1)
+      local localRange = distf:localRange()
+      for idx in localRange:rowMajorIter() do
+         distfPtr = distf:get(indexer(idx))
+         fMPtr    = fM:get(indexer(idx))
+         for k = 1, phaseBasis:numBasis() do
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+         end
+      end
+
+   end
+
+end
+
+function testGK_2x2v()
+   local m0     = 1.0
+   local uDrift = 0.50
+   local vt     = 1.0
+   local B0     = 0.5
+   local mass   = 1.0
+
+   local lower     = {-0.50, -0.50, -6.0*vt, 0.0}
+   local upper     = { 0.50,  0.50,  6.0*vt, mass*(6.0*(vt)^2)/(2*B0)}
+   local numCells  = {16, 16, 16, 16}
+
+   for polyOrder = 1, 2 do
+
+      local phaseGrid  = createGrid(lower, upper, numCells)
+      local phaseBasis = createBasis(phaseGrid:ndim(), polyOrder)
+      local confGrid   = createGrid({lower[1],lower[2]}, {upper[1],upper[2]}, {numCells[1],numCells[2]})
+      local confBasis  = createBasis(confGrid:ndim(), polyOrder)
+
+      local m0Fld     = createField(confGrid, confBasis)
+      local uDriftFld = createField(confGrid, confBasis)
+      local vtSqFld   = createField(confGrid, confBasis)
+      local bmagFld   = createField(confGrid, confBasis)
+      local distf     = createField(phaseGrid, phaseBasis)
+      local fM        = createField(phaseGrid, phaseBasis)
+
+      local m0Func     = function (t, xn) return m0*(2.0+math.cos(2.*math.pi*xn[1])) end
+      local uDriftFunc = function (t, xn) return uDrift end
+      local vtSqFunc   = function (t, xn) return vt^2 end
+      local bmagFunc   = function (t, xn) return B0 end
+      local maxwellianFunc = function (t, xn)
+         local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
+         local fOut = (m0Func(t,xn)/(math.sqrt(2.*math.pi*vtSqFunc(t,xn))^3))
+                     *math.exp(-((vpar-uDriftFunc(t,xn))^2+2*mu*bmagFunc(t,xn)/mass)/(2.*(vtSqFunc(t,xn)))) 
+         return fOut
+      end
+
+      local projectScalar = Updater.ProjectOnBasis {
+         onGrid   = confGrid,
+         basis    = confBasis,
+         evaluate = function (t, xn) return 1.0 end   -- Set later.
+      }
+      local projectVec = Updater.ProjectOnBasis {
+         onGrid   = confGrid,
+         basis    = confBasis,
+         evaluate = function (t, xn) return 1.0, 1.0, 1.0 end   -- Set later.
+      }
+      local maxwellianLua = Updater.MaxwellianOnBasis {
+         onGrid         = phaseGrid,
+         phaseBasis     = phaseBasis,
+         confGrid       = confGrid,
+         confBasis      = confBasis,
+         implementation = "Lua",
+         mass           = mass,
+      }
+      local maxwellian = Updater.MaxwellianOnBasis {
+         onGrid         = phaseGrid,
+         phaseBasis     = phaseBasis,
+         confGrid       = confGrid,
+         confBasis      = confBasis,
+         implementation = "C",
+         mass           = mass,
+      }
+
+      -- Project the primitive moments onto configuration space basis.
+      projectScalar:setFunc(function(t,xn) return m0Func(t,xn) end)
+      projectScalar:advance(0.0, {}, {m0Fld})
+      projectScalar:setFunc(function(t,xn) return uDriftFunc(t,xn) end)
+      projectScalar:advance(0.0, {}, {uDriftFld})
+      projectScalar:setFunc(function(t,xn) return vtSqFunc(t,xn) end)
+      projectScalar:advance(0.0, {}, {vtSqFld})
+      projectScalar:setFunc(function(t,xn) return bmagFunc(t,xn) end)
+      projectScalar:advance(0.0, {}, {bmagFld})
+
+      local gkMaxwellianLua = Updater.GkMaxwellianOnBasis {
+         onGrid         = phaseGrid,
+         phaseBasis     = phaseBasis,
+         confGrid       = confGrid,
+         confBasis      = confBasis,
+         implementation = "Lua",
+         gkfacs         = {mass,bmagFld},
+      }
+
+      -- Do projection.
+      maxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {distf})
+--      gkMaxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {distf})
+      maxwellian:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {fM})
+
+      -- Check projection.
+      local indexer    = distf:genIndexer()
+      local distFPtr   = distf:get(1)
+      local fMPtr      = fM:get(1)
+      local localRange = distf:localRange()
+      for idx in localRange:rowMajorIter() do
+         distfPtr = distf:get(indexer(idx))
+         fMPtr    = fM:get(indexer(idx))
+         for k = 1, phaseBasis:numBasis() do
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+         end
+      end
+
+      -- Now create a gyrokinetic Maxwellian taking a 3v flow velocity.
+      local uDriftFld  = createField(confGrid, confBasis, 3)
+      local uDriftFunc = function (t, xn) return 1.5, 2.5, uDrift end
+      projectVec:setFunc(function(t,xn) return uDriftFunc(t,xn) end)
+      projectVec:advance(0.0, {}, {uDriftFld})
+      local uDriftMaxwellian = Updater.MaxwellianOnBasis {
+         onGrid         = phaseGrid,
+         phaseBasis     = phaseBasis,
+         confGrid       = confGrid,
+         confBasis      = confBasis,
+         implementation = "C",
+         mass           = mass,
+         uDriftInDim    = 3,
+      }
+      -- Do projection.
+      local tmStart = Time.clock()
+      maxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {distf})
+      local tmMid = Time.clock()
+      uDriftMaxwellian:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {fM})
       local tmEnd = Time.clock()
 
       -- Check projection.
@@ -533,7 +947,7 @@ function test_2x3v()
          confGrid       = confGrid,
          confBasis      = confBasis,
          implementation = "C",
-         uDriftDim      = 1,
+         uDriftInDim    = 1,
       }
       -- Do projection.
       local tmStart = Time.clock()
@@ -554,6 +968,148 @@ function test_2x3v()
             assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
          end
       end
+
+   end
+
+end
+
+function testGK_3x2v()
+   local m0     = 1.0
+   local uDrift = 2.50
+   local vt     = 1.0
+   local B0     = 0.5
+   local mass   = 1.0
+
+   local lower     = {-0.50, -0.50, -0.50, -6.0*vt, 0.0}
+   local upper     = { 0.50,  0.50,  0.50,  6.0*vt, mass*(6.0*(vt)^2)/(2*B0)}
+   local numCells  = {12, 24, 16, 16, 8}
+
+   for polyOrder = 1, 1 do
+
+      local phaseGrid  = createGrid(lower, upper, numCells)
+      local phaseBasis = createBasis(phaseGrid:ndim(), polyOrder)
+      local confGrid   = createGrid({lower[1],lower[2],lower[3]}, {upper[1],upper[2],upper[3]}, {numCells[1],numCells[2],numCells[3]})
+      local confBasis  = createBasis(confGrid:ndim(), polyOrder)
+
+      local m0Fld     = createField(confGrid, confBasis)
+      local uDriftFld = createField(confGrid, confBasis)
+      local vtSqFld   = createField(confGrid, confBasis)
+      local bmagFld   = createField(confGrid, confBasis)
+      local distf     = createField(phaseGrid, phaseBasis)
+      local fM        = createField(phaseGrid, phaseBasis)
+
+      local m0Func     = function (t, xn) return m0*(2.0+math.cos(2.*math.pi*xn[1])) end
+      local uDriftFunc = function (t, xn) return uDrift end
+      local vtSqFunc   = function (t, xn) return vt^2 end
+      local bmagFunc   = function (t, xn) return B0 end
+      local maxwellianFunc = function (t, xn)
+         local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
+         local fOut = (m0Func(t,xn)/(math.sqrt(2.*math.pi*vtSqFunc(t,xn))^3))
+                     *math.exp(-((vpar-uDriftFunc(t,xn))^2+2*mu*bmagFunc(t,xn)/mass)/(2.*(vtSqFunc(t,xn)))) 
+         return fOut
+      end
+
+      local projectScalar = Updater.ProjectOnBasis {
+         onGrid   = confGrid,
+         basis    = confBasis,
+         evaluate = function (t, xn) return 1.0 end   -- Set later.
+      }
+      local projectVec = Updater.ProjectOnBasis {
+         onGrid   = confGrid,
+         basis    = confBasis,
+         evaluate = function (t, xn) return 1.0, 1.0, 1.0 end   -- Set later.
+      }
+      local maxwellianLua = Updater.MaxwellianOnBasis {
+         onGrid         = phaseGrid,
+         phaseBasis     = phaseBasis,
+         confGrid       = confGrid,
+         confBasis      = confBasis,
+         implementation = "Lua",
+         mass           = mass,
+      }
+      local maxwellian = Updater.MaxwellianOnBasis {
+         onGrid         = phaseGrid,
+         phaseBasis     = phaseBasis,
+         confGrid       = confGrid,
+         confBasis      = confBasis,
+         implementation = "C",
+         mass           = mass,
+      }
+
+      -- Project the primitive moments onto configuration space basis.
+      projectScalar:setFunc(function(t,xn) return m0Func(t,xn) end)
+      projectScalar:advance(0.0, {}, {m0Fld})
+      projectScalar:setFunc(function(t,xn) return uDriftFunc(t,xn) end)
+      projectScalar:advance(0.0, {}, {uDriftFld})
+      projectScalar:setFunc(function(t,xn) return vtSqFunc(t,xn) end)
+      projectScalar:advance(0.0, {}, {vtSqFld})
+      projectScalar:setFunc(function(t,xn) return bmagFunc(t,xn) end)
+      projectScalar:advance(0.0, {}, {bmagFld})
+
+      local gkMaxwellianLua = Updater.GkMaxwellianOnBasis {
+         onGrid         = phaseGrid,
+         phaseBasis     = phaseBasis,
+         confGrid       = confGrid,
+         confBasis      = confBasis,
+         implementation = "Lua",
+         gkfacs         = {mass,bmagFld},
+      }
+
+      -- Do projection.
+      local tmStart = Time.clock()
+      maxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {distf})
+      local tmMid = Time.clock()
+--      gkMaxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {distf})
+      maxwellian:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {fM})
+      local tmEnd = Time.clock()
+
+      -- Check projection.
+      local indexer    = distf:genIndexer()
+      local distFPtr   = distf:get(1)
+      local fMPtr      = fM:get(1)
+      local localRange = distf:localRange()
+      for idx in localRange:rowMajorIter() do
+         distfPtr = distf:get(indexer(idx))
+         fMPtr    = fM:get(indexer(idx))
+         for k = 1, 1 do --phaseBasis:numBasis() do
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+         end
+      end
+
+      -- Now create a gyrokinetic Maxwellian taking a 3v flow velocity.
+      local uDriftFld  = createField(confGrid, confBasis, 3)
+      local uDriftFunc = function (t, xn) return 0.13, 0.23, uDrift end
+      projectVec:setFunc(function(t,xn) return uDriftFunc(t,xn) end)
+      projectVec:advance(0.0, {}, {uDriftFld})
+      local uDriftMaxwellian = Updater.MaxwellianOnBasis {
+         onGrid         = phaseGrid,
+         phaseBasis     = phaseBasis,
+         confGrid       = confGrid,
+         confBasis      = confBasis,
+         implementation = "C",
+         mass           = mass,
+         uDriftInDim    = 3,
+      }
+      -- Do projection.
+      local tmStart = Time.clock()
+      maxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {distf})
+      local tmMid = Time.clock()
+      uDriftMaxwellian:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {fM})
+      local tmEnd = Time.clock()
+
+      -- Check projection.
+      local indexer    = distf:genIndexer()
+      local distFPtr   = distf:get(1)
+      local fMPtr      = fM:get(1)
+      local localRange = distf:localRange()
+      for idx in localRange:rowMajorIter() do
+         distfPtr = distf:get(indexer(idx))
+         fMPtr    = fM:get(indexer(idx))
+         for k = 1, phaseBasis:numBasis() do
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+         end
+      end
+
 
    end
 
@@ -656,7 +1212,7 @@ function test_3x3v()
          confGrid       = confGrid,
          confBasis      = confBasis,
          implementation = "C",
-         uDriftDim      = 1,
+         uDriftInDim    = 1,
       }
       -- Do projection.
       local tmStart = Time.clock()
@@ -688,6 +1244,11 @@ test_1x3v()
 test_2x2v()
 test_2x3v()
 test_3x3v()
+-- Gyrokinetic tests.
+testGK_1x1v()
+testGK_1x2v()
+testGK_2x2v()
+testGK_3x2v()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

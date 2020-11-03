@@ -21,7 +21,7 @@ local ffiC = ffi.C
 local xsys = require "xsys"
 
 ffi.cdef [[
-  void GkMaxwellianInnerLoop(double * n, double * u, double * vtSq,
+  void GkMaxwellianInnerLoopOrg(double * n, double * u, double * vtSq,
                            double * bmag, double m_,
 			   double * fItr,
 			   double * weights, double * dz, double * zc,

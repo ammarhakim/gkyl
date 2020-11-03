@@ -52,10 +52,30 @@ for bInd : 1 thru length(bName) do (
         printf(fh, "#include <MaxwellianOnBasisModDecl.h>~%~%"),
 
         /* Functions to project a Maxwellian with Gaussian quadrature. */
+        isGK : false,
         funcName : sconcat("MaxwellianOnBasisGauss", cD, "x", vD, "v", bName[bInd]),
-        calcMaxwellianProjGauss(fh, funcName, cD, vD, bName[bInd], polyOrder),
+        calcMaxwellianProjGauss(fh, funcName, cD, vD, bName[bInd], polyOrder, isGK),
 
-        close(fh)
+        if (vD < 3) then (
+          /* Functions to project a gyrokinetic Maxwellian with Gaussian quadrature. */
+          isGK : true,
+          funcName : sconcat("GkMaxwellianOnBasisGauss", cD, "x", vD, "v", bName[bInd]),
+          calcMaxwellianProjGauss(fh, funcName, cD, vD, bName[bInd], polyOrder, isGK)
+        ),
+
+        close(fh),
+
+        /* Create a separate file for gyrokinetics in 3x2v. */
+        if (cD = 3) then (
+          disp(printf(false,sconcat("Creating MaxwellianOnBasis",bName[bInd]," ~ax~avP~a"),cD,2,polyOrder)),
+          fname : sconcat("~/max-out/MaxwellianOnBasis", bName[bInd], cD, "x", 2, "vP", polyOrder, ".cpp"),
+          fh : openw(fname),
+          printf(fh, "#include <MaxwellianOnBasisModDecl.h>~%~%"),
+          isGK : true,
+          funcName : sconcat("GkMaxwellianOnBasisGauss", cD, "x", 2, "v", bName[bInd]),
+          calcMaxwellianProjGauss(fh, funcName, cD, 2, bName[bInd], polyOrder, isGK),
+          close(fh)
+        )
 
       )
     )

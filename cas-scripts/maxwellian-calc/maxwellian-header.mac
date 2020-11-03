@@ -58,16 +58,33 @@ for bInd : 1 thru length(bName) do (
 
         funcNm : sconcat("MaxwellianOnBasisGauss", cD, "x", vD, "v", bName[bInd]),
 
-        printf(fh, "void ~a_P~a_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);~%", funcNm, polyOrder),
+        /* Projection of a Vlasov Maxwellian. */
+        printf(fh, "void ~a_P~a_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, const double *bmag, double *flowUOrd, double *vtSqOrd, double *fMFacOrd, double *bmagOrd);~%", funcNm, polyOrder),
         if vD=3 then (
-          printf(fh, "void ~aUpar_P~a_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, double *flowUOrd, double *vtSqOrd, double *fMFacOrd);~%", funcNm, polyOrder)
+          printf(fh, "void ~aUpar_P~a_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, const double *bmag, double *flowUOrd, double *vtSqOrd, double *fMFacOrd, double *bmagOrd);~%", funcNm, polyOrder)
         ),
-        printf(fh, "void ~a_P~a_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *wc, const double *dvx, double *fMOut);~%", funcNm, polyOrder)
+        printf(fh, "void ~a_P~a_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *bmagOrd, const double m_, const double *wc, const double *dvx, double *fMOut);~%", funcNm, polyOrder),
+
+        if vD < 3 then (
+          /* Projection of a gyrokinetic Maxwellian. */
+          printf(fh, "void Gk~a_P~a_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, const double *bmag, double *flowUOrd, double *vtSqOrd, double *fMFacOrd, double *bmagOrd);~%", funcNm, polyOrder),
+          printf(fh, "void Gk~aUz_P~a_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, const double *bmag, double *flowUOrd, double *vtSqOrd, double *fMFacOrd, double *bmagOrd);~%", funcNm, polyOrder),
+          printf(fh, "void Gk~a_P~a_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *bmagOrd, const double m_, const double *wc, const double *dvx, double *fMOut);~%", funcNm, polyOrder)
+        ) else if cD = 3 then (
+          funcNm : sconcat("MaxwellianOnBasisGauss", cD, "x", 2, "v", bName[bInd]),
+          printf(fh, "void Gk~a_P~a_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, const double *bmag, double *flowUOrd, double *vtSqOrd, double *fMFacOrd, double *bmagOrd);~%", funcNm, polyOrder),
+          printf(fh, "void Gk~aUz_P~a_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, const double *bmag, double *flowUOrd, double *vtSqOrd, double *fMFacOrd, double *bmagOrd);~%", funcNm, polyOrder),
+          printf(fh, "void Gk~a_P~a_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *bmagOrd, const double m_, const double *wc, const double *dvx, double *fMOut);~%", funcNm, polyOrder)
+        )
 
       )
     )
   )
 )$
+
+/* Also add signatures of C function used by the Lua implementation. */
+printf(fh,"void MaxwellianInnerLoop(double *n, double *u, double *vtSq, double *bmag, double m_, double *fItr, double *weights, double *dz, double *zc, double *ordinates, double *basisAtOrdinates, double *phaseToConfOrdMap, int numPhaseBasis, int numConfOrds, int numPhaseOrds, int numConfDims, int numPhaseDims);~%")$
+printf(fh,"void GkMaxwellianInnerLoop(double *n, double *u, double *vtSq, double *bmag, double m_, double *fItr, double *weights, double *dz, double *zc, double *ordinates, double *basisAtOrdinates, double *phaseToConfOrdMap, int numPhaseBasis, int numConfOrds, int numPhaseOrds, int numConfDims, int numPhaseDims);~%")$
 
 printf(fh, "} ~%")$
 printf(fh, "~%")$

@@ -19,21 +19,7 @@ local UpdaterBase       = require "Updater.Base"
 local MaxwellianModDecl = require "Updater.maxwellianOnBasisData.MaxwellianOnBasisModDecl" 
 
 -- System libraries.
-local ffi  = require "ffi"
-local ffiC = ffi.C
 local xsys = require "xsys"
-
-ffi.cdef [[
-  void MaxwellianInnerLoop(double * n, double * u, double * vtSq,
-			   double * fItr,
-			   double * weights, double * dz, double * zc,
-			   double * ordinates,
-                           double * basisAtOrdinates,
-                           double * phaseToConfOrdMap,
-			   int numPhaseBasis, 
-                           int numConfOrds, int numPhaseOrds,
-			   int numConfDims, int numPhaseDims);
-]]
 
 -- Inherit the base Updater from UpdaterBase updater object.
 local MaxwellianOnBasis = Proto(UpdaterBase)
@@ -62,24 +48,41 @@ function MaxwellianOnBasis:init(tbl)
 
    self.projectOnGhosts = xsys.pickBool(tbl.projectOnGhosts, true)
 
+   -- Mass and magnetic field amplitude are needed to project a gyrokinetic Maxwellian.
+   self.mass = tbl.mass
+
    self._pDim, self._cDim = self.phaseBasis:ndim(), self.confBasis:ndim()
    self._vDim = self._pDim - self._cDim
 
+   if self.mass then
+      self.isGK = true
+   else
+      self.isGK = false
+      self.mass = 0.0    -- Not used.
+   end
+
    if self.quadImpl == "C" then
-
-      self._uDim = tbl.uDriftDim and tbl.uDriftDim or self._vDim 
-
-      local quadFuncs = MaxwellianModDecl.selectQuad(self.confBasis:id(), self._cDim, self._vDim, self._uDim, self.confBasis:polyOrder(), self.quadType)
-      self._evAtConfOrds = quadFuncs[1]
-      self._phaseQuad    = quadFuncs[2]
 
       self.numConfOrds = numQuad1D^self._cDim 
 
-      self.uFlowOrd   = Lin.Vec(self.numConfOrds*self._vDim)
+      if self.isGK then
+         self._uDimIn  = tbl.uDriftInDim and tbl.uDriftInDim or 1
+         self.uFlowOrd = Lin.Vec(self.numConfOrds)
+      else
+         self._uDimIn  = tbl.uDriftInDim and tbl.uDriftInDim or self._vDim 
+         self.uFlowOrd = Lin.Vec(self.numConfOrds*self._vDim)
+      end
       self.vtSqOrd    = Lin.Vec(self.numConfOrds)
       self.normFacOrd = Lin.Vec(self.numConfOrds)
+      self.bmagOrd    = Lin.Vec(self.numConfOrds)
+
+      local quadFuncs = MaxwellianModDecl.selectQuad(self.confBasis:id(), self._cDim, self._vDim, self._uDimIn, self.confBasis:polyOrder(), self.quadType, self.isGK)
+      self._evAtConfOrds = quadFuncs[1]
+      self._phaseQuad    = quadFuncs[2]
 
    elseif self.quadImpl == "Lua" then
+
+      self._innerLoop = MaxwellianModDecl.selectInnerLoop(self.isGK)
       -- 1D weights and ordinates
       local ordinates = GaussQuadRules.ordinates[numQuad1D]
       local weights   = GaussQuadRules.weights[numQuad1D]
@@ -154,6 +157,13 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 
    local nItr, uFlowItr, vtSqItr = nIn:get(1), uFlowIn:get(1), vtSqIn:get(1)
    local fItr = fOut:get(1)
+   local bmagIn, bmagItr
+   if self.isGK then
+      bmagIn  = assert(inFld[4], "MaxwellianOnBasis: Must specify magnetic field amplitude 'inFld[4]'")
+      bmagItr = bmagIn:get(1)
+   else
+      bmagItr = nIn:get(1)   -- Not used.
+   end
 
    local confIndexer  = nIn:genIndexer()
    local phaseIndexer = fOut:genIndexer()
@@ -165,25 +175,25 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
       end
    end
 
+   -- Construct ranges for nested loops.
+   local confRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = phaseRange:selectFirst(cDim), numSplit = self.phaseGrid:numSharedProcs() }
+   local velRange = phaseRange:selectLast(vDim)
+   local tId      = self.phaseGrid:subGridSharedId()   -- Local thread ID.
 
    if self.quadImpl == "C" then
 
-      assert(uDim==self._uDim, "MaxwellianOnBasis: dimensions of drift velocity u must match those requested in updater creation.")
+      assert(uDim==self._uDimIn, "MaxwellianOnBasis: dimensions of drift velocity u must match those requested in updater creation.")
 
-      -- Construct ranges for nested loops.
-      local confRangeDecomp = LinearDecomp.LinearDecompRange {
-         range = phaseRange:selectFirst(cDim), numSplit = self.phaseGrid:numSharedProcs() }
-      local velRange = phaseRange:selectLast(vDim)
-      local tId      = self.phaseGrid:subGridSharedId()   -- Local thread ID.
-   
       -- The configuration space loop
       for cIdx in confRangeDecomp:rowMajorIter(tId) do
          nIn:fill(confIndexer(cIdx), nItr)
          uFlowIn:fill(confIndexer(cIdx), uFlowItr)
          vtSqIn:fill(confIndexer(cIdx), vtSqItr)
+         if self.isGK then bmagIn:fill(confIndexer(cIdx), bmagItr) end
 
-         self._evAtConfOrds(nItr:data(), uFlowItr:data(), vtSqItr:data(),
-                            self.uFlowOrd:data(), self.vtSqOrd:data(), self.normFacOrd:data())
+         self._evAtConfOrds(nItr:data(), uFlowItr:data(), vtSqItr:data(), bmagItr:data(),
+                            self.uFlowOrd:data(), self.vtSqOrd:data(), self.normFacOrd:data(), self.bmagOrd:data())
 
          -- The velocity space loop
          for vIdx in velRange:rowMajorIter() do
@@ -198,6 +208,7 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
             self.phaseGrid:cellCenter(self.xc)
    
             self._phaseQuad(self.uFlowOrd:data(), self.vtSqOrd:data(), self.normFacOrd:data(),
+                            self.bmagOrd:data(), self.mass,
                             self.xc:data(), self.dx:data(), fItr:data())
 
          end
@@ -205,49 +216,62 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 
    elseif self.quadImpl == "Lua" then
 
-      local nOrd     = Lin.Vec(self.numConfOrds)
-      local uFlowOrd = Lin.Mat(self.numConfOrds, vDim)
-      local vtSqOrd  = Lin.Vec(self.numConfOrds)
+      local nOrd = Lin.Vec(self.numConfOrds)
+      local uFlowOrd
+      if self.isGK then
+         uFlowOrd = Lin.Vec(self.numConfOrds)
+      else
+         uFlowOrd = Lin.Mat(self.numConfOrds, vDim)
+      end
+      local vtSqOrd = Lin.Vec(self.numConfOrds)
+      local bmagOrd = Lin.Vec(self.numConfOrds)
    
       -- Additional preallocated variables
       local ordIdx = nil
-   
-      -- construct ranges for nested loops
-      local confRangeDecomp = LinearDecomp.LinearDecompRange {
-         range = phaseRange:selectFirst(cDim), numSplit = self.phaseGrid:numSharedProcs() }
-      local velRange = phaseRange:selectLast(vDim)
-      local tId = self.phaseGrid:subGridSharedId() -- local thread ID
    
       -- The configuration space loop
       for cIdx in confRangeDecomp:rowMajorIter(tId) do
          nIn:fill(confIndexer(cIdx), nItr)
          uFlowIn:fill(confIndexer(cIdx), uFlowItr)
          vtSqIn:fill(confIndexer(cIdx), vtSqItr)
+         if self.isGK then bmagIn:fill(confIndexer(cIdx), bmagItr) end
    
          -- Evaluate the the primitive variables (given as expansion
          -- coefficients) on the ordinates
          for ordIndexes in self.confQuadRange:rowMajorIter() do
             ordIdx = self.confQuadIndexer(ordIndexes)
             nOrd[ordIdx], vtSqOrd[ordIdx] = 0.0, 0.0
-            for d = 1, vDim do uFlowOrd[ordIdx][d] = 0.0 end
            
             for k = 1, self.numConfBasis do
                nOrd[ordIdx] = nOrd[ordIdx] + nItr[k]*self.confBasisAtOrds[ordIdx][k]
                vtSqOrd[ordIdx] = vtSqOrd[ordIdx] + vtSqItr[k]*self.confBasisAtOrds[ordIdx][k]
             end
-            if uDim == vDim then
-               for d = 1, vDim do
-                  for k = 1, self.numConfBasis do
-                     uFlowOrd[ordIdx][d] = uFlowOrd[ordIdx][d] +
-                        uFlowItr[self.numConfBasis*(d-1)+k]*self.confBasisAtOrds[ordIdx][k]
+            if self.isGK then 
+               uFlowOrd[ordIdx], bmagOrd[ordIdx] = 0.0, 0.0
+               for k = 1, self.numConfBasis do
+                  bmagOrd[ordIdx] = bmagOrd[ordIdx] + bmagItr[k]*self.confBasisAtOrds[ordIdx][k]
+                  if uDim > 1 then   -- Get the z-component of fluid velocity.
+                     uFlowOrd[ordIdx] = uFlowOrd[ordIdx] + uFlowItr[self.numConfBasis*2+k]*self.confBasisAtOrds[ordIdx][k]
+                  else
+                     uFlowOrd[ordIdx] = uFlowOrd[ordIdx] + uFlowItr[k]*self.confBasisAtOrds[ordIdx][k]
                   end
                end
-            elseif uDim == 1 and vDim==3 then -- if uPar passed from GkSpecies, fill d=3 component of u
-               for k = 1, self.numConfBasis do
-                  uFlowOrd[ordIdx][vDim] = uFlowOrd[ordIdx][vDim] + uFlowItr[k]*self.confBasisAtOrds[ordIdx][k]
-               end
             else
-               print("Updater.MaxwellianOnBasis: incorrect uDim")	 
+               for d = 1, vDim do uFlowOrd[ordIdx][d] = 0.0 end
+               if uDim == vDim then
+                  for d = 1, vDim do
+                     for k = 1, self.numConfBasis do
+                        uFlowOrd[ordIdx][d] = uFlowOrd[ordIdx][d] +
+                           uFlowItr[self.numConfBasis*(d-1)+k]*self.confBasisAtOrds[ordIdx][k]
+                     end
+                  end
+               elseif uDim == 1 and vDim==3 then -- if uPar passed from GkSpecies, fill d=3 component of u.
+                  for k = 1, self.numConfBasis do
+                     uFlowOrd[ordIdx][vDim] = uFlowOrd[ordIdx][vDim] + uFlowItr[k]*self.confBasisAtOrds[ordIdx][k]
+                  end
+               else
+                  print("Updater.MaxwellianOnBasis: incorrect uDim")	 
+               end
             end
          end
    
@@ -264,15 +288,16 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
             self.phaseGrid:getDx(self.dx)
             self.phaseGrid:cellCenter(self.xc)
    
-            ffiC.MaxwellianInnerLoop(nOrd:data(), uFlowOrd:data(), vtSqOrd:data(),
-                                     fItr:data(),
-                                     self.phaseWeights:data(), self.dx:data(), self.xc:data(),
-                                     self.phaseOrdinates:data(),
-                                     self.phaseBasisAtOrds:data(),
-                                     self.phaseToConfOrdMap:data(),
-                                     self.numPhaseBasis,
-                                     self.numConfOrds, self.numPhaseOrds,
-                                     cDim, pDim)
+            self._innerLoop(nOrd:data(), uFlowOrd:data(), vtSqOrd:data(),
+                            bmagOrd:data(), self.mass,
+                            fItr:data(),
+                            self.phaseWeights:data(), self.dx:data(), self.xc:data(),
+                            self.phaseOrdinates:data(),
+                            self.phaseBasisAtOrds:data(),
+                            self.phaseToConfOrdMap:data(),
+                            self.numPhaseBasis,
+                            self.numConfOrds, self.numPhaseOrds,
+                            cDim, pDim)
          end
       end
    
