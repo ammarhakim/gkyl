@@ -178,6 +178,12 @@ def build(bld):
     constDiffusionData/ConstDiffusionTensor2xP3.cpp
     constDiffusionData/ConstDiffusionSurfTensor2xP3.cpp
     constDiffusionData/ConstDiffusionBoundarySurfTensor2xP3.cpp
+    constDiffusionData/ConstDiffusionTensor3xP2.cpp
+    constDiffusionData/ConstDiffusionSurfTensor3xP2.cpp
+    constDiffusionData/ConstDiffusionBoundarySurfTensor3xP2.cpp
+    constDiffusionData/ConstDiffusionTensor4xP2.cpp
+    constDiffusionData/ConstDiffusionSurfTensor4xP2.cpp
+    constDiffusionData/ConstDiffusionBoundarySurfTensor4xP2.cpp
 
     maxwellData/MaxwellVolSer1xP1.cpp
     maxwellData/MaxwellVolSer2xP1.cpp
