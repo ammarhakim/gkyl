@@ -302,13 +302,13 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       moment     = "GkThreeMoments",
       gkfacs     = {self.mass, self.bmag},
    }
-   self.calcMaxwell = Updater.GkMaxwellianOnBasis {
-      onGrid     = self.grid,
-      confGrid   = self.confGrid,
-      confBasis  = self.confBasis,
-      phaseGrid  = self.grid,
-      phaseBasis = self.basis,
-      gkfacs     = {self.mass, self.bmag},
+   self.calcMaxwell = Updater.MaxwellianOnBasis {
+      onGrid      = self.grid,
+      confGrid    = self.confGrid,
+      confBasis   = self.confBasis,
+      phaseGrid   = self.grid,
+      phaseBasis  = self.basis,
+      mass        = self.mass,
    }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
@@ -1587,8 +1587,8 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {self.voronovReactRate})
 	 species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
 
-	 self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
-	 
+ 	 self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz, self.bmag}, {self.fMaxwellIz})
+
 	 self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
 	 self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
 	 self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
@@ -1782,11 +1782,11 @@ function GkSpecies:Maxwellian(xn, n0, T0, vdIn)
    local vpar = xn[self.cdim+1]
    local v2   = (vpar-vd)^2
    if self.vdim > 1 then 
-     local mu = xn[self.cdim+2]
-     v2 = v2 + 2*math.abs(mu)*self.bmagFunc(0,xn)/self.mass
-     return n0*(2*math.pi*vt2)^(-3/2)*math.exp(-v2/(2*vt2))
+      local mu = xn[self.cdim+2]
+      v2 = v2 + 2*math.abs(mu)*self.bmagFunc(0,xn)/self.mass
+      return n0*(2*math.pi*vt2)^(-3/2)*math.exp(-v2/(2*vt2))
    else
-     return n0*(2*math.pi*vt2)^(-1/2)*math.exp(-v2/(2*vt2))
+      return n0*(2*math.pi*vt2)^(-1/2)*math.exp(-v2/(2*vt2))
    end
 end
 

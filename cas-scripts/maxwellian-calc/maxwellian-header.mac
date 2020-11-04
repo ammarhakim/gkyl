@@ -1,0 +1,94 @@
+/* Generate the header file for MaxwellianProjection kernels. */
+
+/* ...... USER INPUTS........ */
+
+/* Indicate the mininimum and maximum dimensinality for which you wish
+   to generate kernels. The smallest possible is 1 and the largest 6. */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 3$
+minCdim_Ser : 1$
+minVdim_Ser : 1$    /* see beginning of v loop below though. */
+maxCdim_Ser : 3$
+maxVdim_Ser : 3$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 2$
+minCdim_Max : 1$
+minVdim_Max : 1$    /* see begining of v loop below though. */
+maxCdim_Max : 2$
+maxVdim_Max : 2$
+
+/* Tensor product basis. */
+maxPolyOrder_Tensor : 2$
+minCdim_Tensor : 1$
+minVdim_Tensor : 1$    /* see begining of v loop below though. */
+maxCdim_Tensor : 2$
+maxVdim_Tensor : 2$
+
+/* ...... END OF USER INPUTS........ */
+
+bName        : ["Ser","Max","Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
+minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
+
+/* Open new header file. */
+fh : openw("~/max-out/MaxwellianOnBasisModDecl.h")$
+
+printf(fh, "#ifndef MAXWELLIANONBASIS_MOD_DECL_H ~%")$
+printf(fh, "#define MAXWELLIANONBASIS_MOD_DECL_H ~%")$
+printf(fh, "~%"),
+printf(fh, "#include <cmath> ~%")$
+printf(fh, "~%"),
+printf(fh, "extern \"C\" { ~%")$
+printf(fh, "~%"),
+
+for bInd : 1 thru length(bName) do (
+  for cD : minCdim[bInd] thru maxCdim[bInd] do (
+    for vD : max(cD,minVdim[bInd]) thru maxVdim[bInd] do (
+
+      maxPolyOrderB : maxPolyOrder[bInd],
+      if (cD+vD>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+      if (cD+vD=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
+
+      for polyOrder : 1 thru maxPolyOrderB do (
+
+        funcNm : sconcat("MaxwellianOnBasisGauss", cD, "x", vD, "v", bName[bInd]),
+
+        /* Projection of a Vlasov Maxwellian. */
+        printf(fh, "void ~a_P~a_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, const double *bmag, double *flowUOrd, double *vtSqOrd, double *fMFacOrd, double *bmagOrd);~%", funcNm, polyOrder),
+        if vD>1 then (
+          printf(fh, "void ~aUpar_P~a_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, const double *bmag, double *flowUOrd, double *vtSqOrd, double *fMFacOrd, double *bmagOrd);~%", funcNm, polyOrder)
+        ),
+        printf(fh, "void ~a_P~a_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *bmagOrd, const double m_, const double *wc, const double *dvx, double *fMOut);~%", funcNm, polyOrder),
+
+        if vD < 3 then (
+          /* Projection of a gyrokinetic Maxwellian. */
+          printf(fh, "void Gk~a_P~a_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, const double *bmag, double *flowUOrd, double *vtSqOrd, double *fMFacOrd, double *bmagOrd);~%", funcNm, polyOrder),
+          printf(fh, "void Gk~aUz_P~a_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, const double *bmag, double *flowUOrd, double *vtSqOrd, double *fMFacOrd, double *bmagOrd);~%", funcNm, polyOrder),
+          printf(fh, "void Gk~a_P~a_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *bmagOrd, const double m_, const double *wc, const double *dvx, double *fMOut);~%", funcNm, polyOrder)
+        ) else if cD = 3 then (
+          funcNm : sconcat("MaxwellianOnBasisGauss", cD, "x", 2, "v", bName[bInd]),
+          printf(fh, "void Gk~a_P~a_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, const double *bmag, double *flowUOrd, double *vtSqOrd, double *fMFacOrd, double *bmagOrd);~%", funcNm, polyOrder),
+          printf(fh, "void Gk~aUz_P~a_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, const double *bmag, double *flowUOrd, double *vtSqOrd, double *fMFacOrd, double *bmagOrd);~%", funcNm, polyOrder),
+          printf(fh, "void Gk~a_P~a_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *bmagOrd, const double m_, const double *wc, const double *dvx, double *fMOut);~%", funcNm, polyOrder)
+        )
+
+      )
+    )
+  )
+)$
+
+/* Also add signatures of C function used by the Lua implementation. */
+printf(fh,"void MaxwellianInnerLoop(double *n, double *u, double *vtSq, double *bmag, double m_, double *fItr, double *weights, double *dz, double *zc, double *ordinates, double *basisAtOrdinates, double *phaseToConfOrdMap, int numPhaseBasis, int numConfOrds, int numPhaseOrds, int numConfDims, int numPhaseDims);~%")$
+printf(fh,"void GkMaxwellianInnerLoop(double *n, double *u, double *vtSq, double *bmag, double m_, double *fItr, double *weights, double *dz, double *zc, double *ordinates, double *basisAtOrdinates, double *phaseToConfOrdMap, int numPhaseBasis, int numConfOrds, int numPhaseOrds, int numConfDims, int numPhaseDims);~%")$
+
+printf(fh, "} ~%")$
+printf(fh, "~%")$
+
+printf(fh, "#endif ~%")$
+
+close(fh)$

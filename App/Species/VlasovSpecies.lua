@@ -1276,10 +1276,10 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       self.momentFlags[1] = true
    end
 
-   -- for ionization
+   -- For Ionization.
    if self.calcReactRate then
-      local neutU = species[self.neutNmIz]:selfPrimitiveMoments()[1]
-      local neutM0 = species[self.neutNmIz]:fluidMoments()[1]
+      local neutU    = species[self.neutNmIz]:selfPrimitiveMoments()[1]
+      local neutM0   = species[self.neutNmIz]:fluidMoments()[1]
       local neutVtSq = species[self.neutNmIz]:selfPrimitiveMoments()[2]
       
       if tCurr == 0.0 then
@@ -1295,11 +1295,11 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
    end
 
-   -- for charge exchange
+   -- For charge exchange.
    if self.calcCXSrc then
-      -- calculate Vcx*SigmaCX
-      local m0 = species[self.neutNmCX]:fluidMoments()[1]
-      local neutU = species[self.neutNmCX]:selfPrimitiveMoments()[1]
+      -- Calculate Vcx*SigmaCX.
+      local m0       = species[self.neutNmCX]:fluidMoments()[1]
+      local neutU    = species[self.neutNmCX]:selfPrimitiveMoments()[1]
       local neutVtSq = species[self.neutNmCX]:selfPrimitiveMoments()[2]
       
       species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uSelf, neutU, self.vtSqSelf, neutVtSq}, {self.vSigmaCX})

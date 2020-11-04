@@ -172,17 +172,19 @@ end
 function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
 
    local writeOut = false
-   -- identify species and accumulate
+   -- Identify species and accumulate.
    if (self.speciesName == self.ionNm) then
-      tmEvalMomStart   = Time.clock()
-      local neutM0 = species[self.neutNm]:fluidMoments()[1]
-      local neutU = species[self.neutNm]:selfPrimitiveMoments()[1] 
+
+      tmEvalMomStart = Time.clock()
+      local neutM0   = species[self.neutNm]:fluidMoments()[1]
+      local neutU    = species[self.neutNm]:selfPrimitiveMoments()[1] 
       local neutVtSq = species[self.neutNm]:selfPrimitiveMoments()[2]
-      local ionM0 = species[self.ionNm]:fluidMoments()[1]
+      local ionM0    = species[self.ionNm]:fluidMoments()[1]
       local ionDistF = species[self.ionNm]:getDistF()
 
-            
-      species[self.speciesName].calcMaxwell:advance(tCurr, {neutM0, neutU, neutVtSq}, {self.fMaxNeut})      
+      species[self.speciesName].calcMaxwell:advance(tCurr,
+         {neutM0, neutU, neutVtSq, species[self.speciesName].bmag}, {self.fMaxNeut})
+
       species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, self.fMaxNeut}, {self.M0iDistFn})
       species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
       self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
@@ -198,11 +200,12 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       fRhsOut:accumulate(1.0,self.sourceCX)
 
    elseif (self.speciesName == self.neutNm) then
-      tmEvalMomStart   = Time.clock()      
-      local ionM0 = species[self.ionNm]:fluidMoments()[1]
-      local ionU = species[self.ionNm]:selfPrimitiveMoments()[1] 
-      local ionVtSq = species[self.ionNm]:selfPrimitiveMoments()[2]
-      local neutM0 = species[self.neutNm]:fluidMoments()[1]
+
+      tmEvalMomStart = Time.clock()      
+      local ionM0     = species[self.ionNm]:fluidMoments()[1]
+      local ionU      = species[self.ionNm]:selfPrimitiveMoments()[1] 
+      local ionVtSq   = species[self.ionNm]:selfPrimitiveMoments()[2]
+      local neutM0    = species[self.neutNm]:fluidMoments()[1]
       local neutDistF = species[self.neutNm]:getDistF()
 
       
@@ -213,7 +216,6 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
       species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
       
-      
       if writeOut then
 	 species[self.speciesName].distIo:write(neutDistF, string.format("%s_neutDistF_%d.bp",self.speciesName,tCurr*1e10),0,0)
 	 species[self.speciesName].distIo:write(ionVtSq, string.format("%s_ionVtSq_%d.bp",self.speciesName,tCurr*1e10),0,0)
@@ -221,6 +223,7 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       
       self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       fRhsOut:accumulate(-self.iMass/self.nMass,self.sourceCX)
+
    end
    
 end

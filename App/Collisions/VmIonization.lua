@@ -191,9 +191,9 @@ function VmIonization:advance(tCurr, fIn, species, fRhsOut)
    local elcM0 = species[self.elcNm]:fluidMoments()[1]
    local writeOut = false
 
-   -- Check whether particle is electron, neutral or ion species
+   -- Check whether particle is electron, neutral or ion species.
    if (self.speciesName == self.elcNm) then
-      -- electrons
+      -- Electrons.
       tmEvalMomStart   = Time.clock()
       local neutM0     = species[self.neutNm]:fluidMoments()[1]
       local elcDistF   = species[self.elcNm]:getDistF()
@@ -203,7 +203,7 @@ function VmIonization:advance(tCurr, fIn, species, fRhsOut)
  
       self.confMult:advance(tCurr, {coefIz, neutM0}, {self.coefM0})
       self.confPhaseMult:advance(tCurr, {self.coefM0, self.sumDistF}, {self.ionizSrc})
-      -- Uncomment to test without fMaxwellian(Tiz)
+      -- Uncomment to test without fMaxwellian(Tiz).
       --self.confPhaseMult:advance(tCurr, {self.coefM0, elcDistF}, {self.ionizSrc})      
       if writeOut then
 	 species[self.speciesName].distIo:write(self.ionizSrc, string.format("%s_izSrc_%d.bp",self.speciesName,tCurr*1e10),0,0,true)
@@ -212,7 +212,7 @@ function VmIonization:advance(tCurr, fIn, species, fRhsOut)
       self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       fRhsOut:accumulate(1.0,self.ionizSrc)
    elseif (species[self.speciesName].charge == 0) then
-      -- neutrals
+      -- Neutrals.
       local neutDistF = species[self.neutNm]:getDistF()
       tmEvalMomStart  = Time.clock()
       self.m0elc:copy(elcM0)
@@ -226,7 +226,7 @@ function VmIonization:advance(tCurr, fIn, species, fRhsOut)
       self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       fRhsOut:accumulate(-1.0,self.ionizSrc)  
    else
-      -- ions 
+      -- Ions.
       tmEvalMomStart = Time.clock()
       self.m0elc:copy(elcM0)
       local neutDistF = species[self.neutNm]:getDistF()
@@ -261,7 +261,7 @@ function VmIonization:slvrTime()
 end
 
 function VmIonization:momTime()
-
+   return self._tmEvalMom
 end
 
 function VmIonization:projectMaxwellTime()

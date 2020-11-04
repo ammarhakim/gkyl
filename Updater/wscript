@@ -399,32 +399,43 @@ def build(bld):
     chargeExchangeCalcData/SigmaCXcellAvSer2x3v.cpp
     chargeExchangeCalcData/SigmaCXcellAvSer3x3v.cpp
 
-    cellAveMaxwellianCalcData/MaxwellianCellAvMax1x1v.cpp
-    cellAveMaxwellianCalcData/MaxwellianCellAvMax1x2v.cpp
-    cellAveMaxwellianCalcData/MaxwellianCellAvMax1x3v.cpp
-    cellAveMaxwellianCalcData/MaxwellianCellAvMax2x2v.cpp
-    cellAveMaxwellianCalcData/MaxwellianCellAvMax2x3v.cpp
-    cellAveMaxwellianCalcData/MaxwellianCellAvMax3x3v.cpp
-    cellAveMaxwellianCalcData/MaxwellianCellAvSer1x1v.cpp
-    cellAveMaxwellianCalcData/MaxwellianCellAvSer1x2v.cpp
-    cellAveMaxwellianCalcData/MaxwellianCellAvSer1x3v.cpp
-    cellAveMaxwellianCalcData/MaxwellianCellAvSer2x2v.cpp
-    cellAveMaxwellianCalcData/MaxwellianCellAvSer2x3v.cpp
-    cellAveMaxwellianCalcData/MaxwellianCellAvSer3x3v.cpp
-    cellAveMaxwellianCalcData/GkMaxwellianCellAvMax1x1v.cpp
-    cellAveMaxwellianCalcData/GkMaxwellianCellAvMax1x2v.cpp
-    cellAveMaxwellianCalcData/GkMaxwellianCellAvMax2x2v.cpp
-    cellAveMaxwellianCalcData/GkMaxwellianCellAvMax3x2v.cpp
-    cellAveMaxwellianCalcData/GkMaxwellianCellAvSer1x1v.cpp
-    cellAveMaxwellianCalcData/GkMaxwellianCellAvSer1x2v.cpp
-    cellAveMaxwellianCalcData/GkMaxwellianCellAvSer2x2v.cpp
-    cellAveMaxwellianCalcData/GkMaxwellianCellAvSer3x2v.cpp
-
-    GkMaxwellianOnBasisImpl.cpp
-
     MappedPoissonImpl.cpp
 
-    MaxwellianOnBasisImpl.cpp
+    GkMaxwellianOnBasisImplOrg.cpp
+
+    maxwellianOnBasisData/MaxwellianOnBasisImpl.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisSer1x1vP1.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisSer1x1vP2.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisSer1x1vP3.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisSer1x2vP1.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisSer1x2vP2.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisSer1x2vP3.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisSer1x3vP1.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisSer1x3vP2.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisSer1x3vP3.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisSer2x2vP1.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisSer2x2vP2.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisSer2x2vP3.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisSer2x3vP1.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisSer2x3vP2.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisSer3x2vP1.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisSer3x3vP1.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisMax1x1vP1.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisMax1x1vP2.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisMax1x1vP3.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisMax1x2vP1.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisMax1x2vP2.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisMax1x2vP3.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisMax2x2vP1.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisMax2x2vP2.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisTensor1x1vP1.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisTensor1x1vP2.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisTensor1x1vP3.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisTensor1x2vP1.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisTensor1x2vP2.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisTensor1x2vP3.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisTensor2x2vP1.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisTensor2x2vP2.cpp
 
     PositivityRescaleImpl.cpp
 
@@ -469,7 +480,11 @@ def build(bld):
         )
 
     bld.shlib(source = sources,
+<<<<<<< HEAD
               includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData cellAveMaxwellianCalcData', 
+=======
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData maxwellianOnBasisData', 
+>>>>>>> master
               use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     
 ## Removed the following files from the build for now
