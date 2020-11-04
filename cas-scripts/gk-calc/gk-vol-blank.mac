@@ -1,0 +1,25 @@
+pmin:1$
+pmax:2$
+em:true$
+
+for c : 1 thru 3 do (
+for v: 1 thru 2 do (
+if c=1 or (c>1 and v=2) then (
+for p : pmin thru pmax do (
+if em then fname : sconcat("~/max-out/EmGyrokineticSer", c, "x", v, "vP", p, ".cpp")
+else fname : sconcat("~/max-out/GyrokineticSer", c, "x", v, "vP", p, ".cpp"),
+fh : openw(fname),
+printf(fh, "// not yet generated! ~%"),
+close(fh)
+))))$
+
+if em=false then (
+c:2,
+v:0,
+for p : pmin thru pmax do (
+fname : sconcat("~/max-out/GyrokineticSer", c, "x", v, "vP", p, ".cpp"),
+fh : openw(fname),
+printf(fh, "// not yet generated! ~%"),
+close(fh)
+)
+)$

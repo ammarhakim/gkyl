@@ -1,4 +1,4 @@
--- yl ------------------------------------------------------------------------
+-- Gkyl ------------------------------------------------------------------------
 --
 -- App support code: GkProjection object.
 --
@@ -6,41 +6,54 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
---local Time = require "Lib.Time"
+local Proto   = require "Lib.Proto"
+local Updater = require "Updater"
+local xsys    = require "xsys"
 local FunctionProjectionParent   = require ("App.Projection.KineticProjection").FunctionProjection
 local MaxwellianProjectionParent = require ("App.Projection.KineticProjection").MaxwellianProjection
-local Proto                      = require "Lib.Proto"
-local Updater                    = require "Updater"
-local xsys                       = require "xsys"
 
 ----------------------------------------------------------------------
--- Gk-specific GkProjection.FunctionProjection includes jacobian factors in initFunc.
+-- Gk-specific GkProjection.FunctionProjection includes Jacobian factors in initFunc.
 local FunctionProjection = Proto(FunctionProjectionParent)
 function FunctionProjection:run(tProj, distf)
-   if self.species.jacobPhaseFunc and self.vdim > 1 then
-      local initFuncWithoutJacobian = self.initFunc
-      self.initFunc = function (t, xn)
-         local J = self.species.jacobPhaseFunc(t,xn)
-         local f = initFuncWithoutJacobian(t,xn)
-         return J*f
+   if self.fromFile then
+      local tm, fr = self.fieldIo:read(distf, self.fromFile)
+   else
+      if self.species.jacobPhaseFunc and self.vdim > 1 then
+         local initFuncWithoutJacobian = self.initFunc
+         self.initFunc = function (t, xn)
+            local xconf = {}
+            for d = 1, self.cdim do
+               xconf[d] = xn[d]
+            end
+            local J = self.species.jacobPhaseFunc(t,xconf)
+            local f = initFuncWithoutJacobian(t,xn)
+            return J*f
+         end
       end
+      if self.species.jacobGeoFunc then
+         local initFuncWithoutJacobian = self.initFunc
+         self.initFunc = function (t, xn)
+            local xconf = {}
+            for d = 1, self.cdim do
+               xconf[d] = xn[d]
+            end
+            local J = self.species.jacobGeoFunc(t,xconf)
+            local f = initFuncWithoutJacobian(t,xn)
+            return J*f
+         end
+      end 
+
+      self.project:advance(t, {}, {distf})
+      -- Note: don't use self.project as this does not have jacobian factors in initFunc.
+      local project = Updater.ProjectOnBasis {
+         onGrid          = self.phaseGrid,
+         basis           = self.phaseBasis,
+         evaluate        = self.initFunc,
+         projectOnGhosts = true
+      }
+      project:advance(tProj, {}, {distf})
    end
-   if self.species.jacobGeoFunc then
-      local initFuncWithoutJacobian = self.initFunc
-      self.initFunc = function (t, xn)
-         local J = self.species.jacobGeoFunc(t,xn)
-         local f = initFuncWithoutJacobian(t,xn)
-         return J*f
-      end
-   end
-   -- note: don't use self.project as this does not have jacobian factors in initFunc.
-   local project = Updater.ProjectOnBasis {
-      onGrid          = self.phaseGrid,
-      basis           = self.phaseBasis,
-      evaluate        = self.initFunc,
-      projectOnGhosts = true
-   }
-   project:advance(tProj, {}, {distf})
 end
 
 ----------------------------------------------------------------------
@@ -122,7 +135,7 @@ function MaxwellianProjection:scaleM012(distf)
    local M02par_mod, M02perp_mod                   = sp:allocMoment(), sp:allocMoment() 
    local distf0_mod, distf2par_mod, distf2perp_mod = sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
 
-   -- initialize maxwellian distribution distf0 = FM, along with 
+   -- Initialize maxwellian distribution distf0 = FM, along with 
    -- distf2par = m*vpar^2/2*FM and distf2perp = mu*B*FM.
    local distf0, distf2par, distf2perp = sp:allocDistf(), sp:allocDistf(), sp:allocDistf()
    distf0:copy(distf)
@@ -441,30 +454,48 @@ end
 --end
 
 function MaxwellianProjection:run(tProj, distf)
-   if self.species.jacobPhaseFunc and self.vdim > 1 then
-      local initFuncWithoutJacobian = self.initFunc
-      self.initFunc = function (t, xn)
-         local J = self.species.jacobPhaseFunc(t,xn)
-         local f = initFuncWithoutJacobian(t,xn)
-         return J*f
+   if self.fromFile then
+      local tm, fr = self.fieldIo:read(distf, self.fromFile)
+   else
+      if self.species.jacobPhaseFunc and self.vdim > 1 then
+         local initFuncWithoutJacobian = self.initFunc
+         self.initFunc = function (t, xn)
+            local xconf = {}
+            for d = 1, self.cdim do
+               xconf[d] = xn[d]
+            end
+            local J = 1 --self.species.jacobPhaseFunc(t,xconf)
+            -- Divide the initial maxwellian by the density to get a unit density
+            -- because we are going to rescale the density anyways, and it is easier
+            -- to weak-divide by something close to unity.
+            local f = initFuncWithoutJacobian(t,xn)/self.density(t, xn, sp)
+            return J*f
+         end
       end
-   end
-   if self.species.jacobGeoFunc then
-      local initFuncWithoutJacobian = self.initFunc
-      self.initFunc = function (t, xn)
-         local J = self.species.jacobGeoFunc(t,xn)
-         local f = initFuncWithoutJacobian(t,xn)
-         return J*f
+      -- For geometry jacobian, scale density function so that jacobian factor
+      -- is retained even after rescaling distf.
+      if self.species.jacobGeoFunc then
+         local densityWithoutJacobian = self.density
+         self.density = function (t, xn, sp)
+            local xconf = {}
+            for d = 1, self.cdim do
+               xconf[d] = xn[d]
+            end
+            local J = 1 --self.species.jacobGeoFunc(t,xconf)
+            local n = densityWithoutJacobian(t,xn,sp)
+            return J*n
+         end
       end
+      -- Note: don't use self.project as this does not have jacobian factors in initFunc.
+      local project = Updater.ProjectOnBasis {
+         onGrid          = self.phaseGrid,
+         basis           = self.phaseBasis,
+         evaluate        = self.initFunc,
+         projectOnGhosts = true
+      }
+      project:advance(tProj, {}, {distf})
    end
-   -- Note: don't use self.project as this does not have jacobian factors in initFunc.
-   local project = Updater.ProjectOnBasis {
-      onGrid          = self.phaseGrid,
-      basis           = self.phaseBasis,
-      evaluate        = self.initFunc,
-      projectOnGhosts = true
-   }
-   project:advance(tProj, {}, {distf})
+
    if self.exactScaleM0 then
       self:scaleDensity(distf)
    elseif self.exactScaleM012 then

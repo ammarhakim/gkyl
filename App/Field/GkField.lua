@@ -3,6 +3,8 @@
 -- App support code: Gyrokinetic fields phi and apar, solved by
 -- (perpendicular) Poisson and Ampere equations.
 -- 
+-- NOTE: GkGeometry is also in this file (farther down).
+-- 
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
@@ -68,11 +70,11 @@ function GkField:fullInit(appTbl)
    if tbl.aparBcRight then self.aparBcRight      = tbl.aparBcRight end
    if tbl.aparBcBottom then self.aparBcBottom    = tbl.aparBcBottom end
    if tbl.aparBcTop then self.aparBcTop          = tbl.aparBcTop end
-   if appTbl.periodicDirs then self.periodicDirs = appTbl.periodicDirs end
+   if appTbl.periodicDirs then self.periodicDirs = appTbl.periodicDirs else self.periodicDirs = {} end
 
    -- For storing integrated energies.
-   self.phiSq     = DataStruct.DynVector { numComponents = 1 }
-   self.aparSq    = DataStruct.DynVector { numComponents = 1 }
+   self.phiSq    = DataStruct.DynVector { numComponents = 1 }
+   self.aparSq   = DataStruct.DynVector { numComponents = 1 }
    self.esEnergy = DataStruct.DynVector { numComponents = 1 }
    self.emEnergy = DataStruct.DynVector { numComponents = 1 }
 
@@ -121,6 +123,22 @@ function GkField:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 function GkField:setBasis(basis) self.basis = basis end
 function GkField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() end
 
+local function createField(grid, basis, ghostCells, vComp, periodicSync)
+   vComp = vComp or 1
+   local fld = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = basis:numBasis()*vComp,
+      ghost         = ghostCells,
+      metaData = {
+         polyOrder = basis:polyOrder(),
+         basisType = basis:id()
+      },
+      syncPeriodicDirs = periodicSync,
+   }
+   fld:clear(0.0)
+   return fld
+end
+
 function GkField:alloc(nRkDup)
    -- Allocate fields needed in RK update.
    -- nField is related to number of RK stages.
@@ -128,83 +146,37 @@ function GkField:alloc(nRkDup)
    self.nRkDup = nRkDup
    for i = 1, nRkDup do
       self.potentials[i] = {}
-      self.potentials[i].phi = DataStruct.Field {
-         onGrid        = self.grid,
-         numComponents = self.basis:numBasis(),
-         ghost         = {1, 1}
-      }
+      self.potentials[i].phi    = createField(self.grid,self.basis,{1,1})
+      self.potentials[i].phiAux = createField(self.grid,self.basis,{1,1})
       self.potentials[i].phi:clear(0.0)
-      self.potentials[i].phiAux = DataStruct.Field {
-         onGrid        = self.grid,
-         numComponents = self.basis:numBasis(),
-         ghost         = {1, 1}
-      }
       self.potentials[i].phiAux:clear(0.0)
       if self.isElectromagnetic then
-         self.potentials[i].apar = DataStruct.Field {
-            onGrid        = self.grid,
-            numComponents = self.basis:numBasis(),
-            ghost         = {1, 1}
-         }
-         self.potentials[i].dApardt = DataStruct.Field {
-            onGrid        = self.grid,
-            numComponents = self.basis:numBasis(),
-            ghost         = {1, 1}
-         }
+         self.potentials[i].apar    = createField(self.grid,self.basis,{1,1})
+         self.potentials[i].dApardt = createField(self.grid,self.basis,{1,1})
          self.potentials[i].apar:clear(0.0)
          self.potentials[i].dApardt:clear(0.0)
       end
    end
 
-   self.dApardtProv = DataStruct.Field {
-      onGrid        = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost         = {1, 1}
-   }
+   self.dApardtProv = createField(self.grid,self.basis,{1,1})
 
    -- Create fields for total charge and current densities.
-   self.chargeDens = DataStruct.Field {
-      onGrid        = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost         = {1, 1}
-   }
-   self.currentDens = DataStruct.Field {
-      onGrid        = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost         = {1, 1}
-   }
+   self.chargeDens  = createField(self.grid,self.basis,{1,1})
+   self.currentDens = createField(self.grid,self.basis,{1,1})
    -- Set up constant dummy field.
-   self.unitWeight = DataStruct.Field {
-      onGrid        = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost         = {1, 1},
-   }
+   self.unitWeight = createField(self.grid,self.basis,{1,1})
    local initUnit = Updater.ProjectOnBasis {
       onGrid   = self.grid,
       basis    = self.basis,
-      evaluate = function (t,xn)
-                    return 1.0
-                 end,
+      evaluate = function (t,xn) return 1.0 end,
       projectOnGhosts = true,
    }
    initUnit:advance(0.,{},{self.unitWeight})
 
    -- Set up some other fields.
-   self.weight = DataStruct.Field {
-      onGrid        = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost         = {1, 1},
-   }
-   self.laplacianWeight = DataStruct.Field {
-      onGrid        = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost         = {1, 1},
-   }
-   self.modifierWeight = DataStruct.Field {
-      onGrid        = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost         = {1, 1},
-   }
+   self.weight          = createField(self.grid,self.basis,{1,1})
+   self.laplacianWeight = createField(self.grid,self.basis,{1,1})
+   self.modifierWeight  = createField(self.grid,self.basis,{1,1})
 end
 
 -- Solve for initial fields self-consistently 
@@ -217,11 +189,7 @@ function GkField:initField(species)
          evaluate        = self.externalPhi,
          projectOnGhosts = true
       }
-      self.externalPhiFld = DataStruct.Field {
-         onGrid        = self.grid,
-         numComponents = self.basis:numBasis(),
-         ghost         = {1, 1}
-      }
+      self.externalPhiFld = createField(self.grid,self.basis,{1,1})
       evalOnNodes:advance(0.0, {}, {self.externalPhiFld})
       for i = 1, self.nRkDup do
          if self.externalPhiTimeDependence then
@@ -325,37 +293,65 @@ function GkField:createSolver(species, externalField)
    end
    assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic case")
 
-   -- Set up FEM solver for Poisson equation to solve for phi.
-   local gxx, gxy, gyy
+   -- Metric coefficients in the Poisson and Ampere equations for phi and Apar.
+   local gxxPoisson, gxyPoisson, gyyPoisson, jacobGeo
+   local gxxAmpere, gxyAmpere, gyyAmpere
    if externalField.geo then 
-     gxx = externalField.geo.gxx
-     gxy = externalField.geo.gxy
-     gyy = externalField.geo.gyy
+      if externalField.geo.name=="SimpleHelical" then
+         -- Metric coefficients alone.
+         gxxPoisson = externalField.geo.gxx
+         gxyPoisson = externalField.geo.gxy
+         gyyPoisson = externalField.geo.gyy
+         gxxAmpere  = externalField.geo.gxx
+         gxyAmpere  = externalField.geo.gxy
+         gyyAmpere  = externalField.geo.gyy
+         jacobGeo   = self.unitWeight
+      elseif externalField.geo.name=="GenGeo" then
+         -- Include Jacobian factor in metric coefficients (if using linearized polarization density).
+         if self.linearizedPolarization then
+            gxxPoisson = externalField.geo.gxxJ
+            gxyPoisson = externalField.geo.gxyJ
+            gyyPoisson = externalField.geo.gyyJ
+         else  -- If not, Jacobian already included in polarization density or not needed.
+            gxxPoisson = externalField.geo.gxx
+            gxyPoisson = externalField.geo.gxy
+            gyyPoisson = externalField.geo.gyy
+         end
+         gxxAmpere = externalField.geo.gxxJ
+         gxyAmpere = externalField.geo.gxyJ
+         gyyAmpere = externalField.geo.gyyJ
+         jacobGeo  = externalField.geo.jacobGeo
+      end
+   else
+      jacobGeo = self.unitWeight
    end
    self.phiSlvr = Updater.FemPoisson {
-     onGrid   = self.grid,
-     basis    = self.basis,
-     bcLeft   = self.phiBcLeft,
-     bcRight  = self.phiBcRight,
-     bcBottom = self.phiBcBottom,
-     bcTop    = self.phiBcTop,
-     periodicDirs = self.periodicDirs,
-     zContinuous  = not self.discontinuousPhi,
-     gxx = gxx,
-     gxy = gxy,
-     gyy = gyy,
+      onGrid   = self.grid,
+      basis    = self.basis,
+      bcLeft   = self.phiBcLeft,
+      bcRight  = self.phiBcRight,
+      bcBottom = self.phiBcBottom,
+      bcTop    = self.phiBcTop,
+      bcBack   = self.phiBcBack,
+      bcFront  = self.phiBcFront,
+      periodicDirs = self.periodicDirs,
+      zContinuous  = not self.discontinuousPhi,
+      -- Note these metric coefficients may contain the Jacobian (GenGeo).
+      gxx = gxxPoisson,
+      gxy = gxyPoisson,
+      gyy = gyyPoisson,
    }
    if self.ndim == 3 and not self.discontinuousPhi then
       self.phiZSmoother = Updater.FemParPoisson {
         onGrid = self.grid,
-        basis = self.basis,
+        basis  = self.basis,
         smooth = true,
       }
    end
    -- when using a linearizedPolarization term in Poisson equation,
-   -- the weights on the terms are constant scalars
+   -- The weights on the terms are constant scalars.
    if self.linearizedPolarization then
-      -- if not provided, calculate species-dependent weight on polarization term == sum_s m_s n_s / B^2
+      -- If not provided, calculate species-dependent weight on polarization term == sum_s m_s n_s / B^2.
       if not self.polarizationWeight then 
          self.polarizationWeight = 0.0
          for nm, s in pairs(species) do
@@ -364,10 +360,10 @@ function GkField:createSolver(species, externalField)
             end
          end
       end
-      -- if not adiabatic, and polarization weight still not set, assume it is 1
+      -- If not adiabatic, and polarization weight still not set, assume it is 1.
       if self.polarizationWeight == 0.0 and not self.adiabatic then self.polarizationWeight = 1.0 end
 
-      -- set up scalar multipliers on laplacian and modifier terms in Poisson equation
+      -- Set up scalar multipliers on laplacian and modifier terms in Poisson equation.
       local laplacianConstant, modifierConstant
  
       if self.ndim==1 then
@@ -383,13 +379,13 @@ function GkField:createSolver(species, externalField)
          modifierConstant = modifierConstant + self.adiabSpec:getQneutFac() 
       end
 
-      self.laplacianWeight:combine(laplacianConstant, self.unitWeight)
-      self.modifierWeight:combine(modifierConstant, self.unitWeight)
+      self.laplacianWeight:combine(laplacianConstant, self.unitWeight)   -- No jacobian here.
+      self.modifierWeight:combine(modifierConstant, jacobGeo)
 
       if laplacianConstant ~= 0 then self.phiSlvr:setLaplacianWeight(self.laplacianWeight) end
       if modifierConstant ~= 0 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
    end
-   -- when not using linearizedPolarization, weights are set each step in advance method
+   -- When not using linearizedPolarization, weights are set each step in advance method.
 
    if self.isElectromagnetic then 
      local ndim = self.ndim
@@ -397,24 +393,25 @@ function GkField:createSolver(species, externalField)
      -- NOTE: aparSlvr only used to solve for initial Apar
      -- at all other times Apar is timestepped using dApar/dt
      self.aparSlvr = Updater.FemPoisson {
-       onGrid   = self.grid,
-       basis    = self.basis,
-       bcLeft   = self.aparBcLeft,
-       bcRight  = self.aparBcRight,
-       bcBottom = self.aparBcBottom,
-       bcTop    = self.aparBcTop,
-       periodicDirs = self.periodicDirs,
-       zContinuous  = not self.discontinuousApar,
-       gxx = gxx,
-       gxy = gxy,
-       gyy = gyy,
+        onGrid   = self.grid,
+        basis    = self.basis,
+        bcLeft   = self.aparBcLeft,
+        bcRight  = self.aparBcRight,
+        bcBottom = self.aparBcBottom,
+        bcTop    = self.aparBcTop,
+        periodicDirs = self.periodicDirs,
+        zContinuous  = not self.discontinuousApar,
+        -- Note these metric coefficients may contain the Jacobian (GenGeo).
+        gxx = gxxAmpere,
+        gxy = gxyAmpere,
+        gyy = gyyAmpere,
      }
      if ndim==1 then
         laplacianConstant = 0.0
-        modifierConstant = self.kperp2/self.mu0
+        modifierConstant  = self.kperp2/self.mu0
      else
         laplacianConstant = -1.0/self.mu0
-        modifierConstant = 0.0
+        modifierConstant  = 0.0
      end
      self.laplacianWeight:combine(laplacianConstant, self.unitWeight)
      self.modifierWeight:combine(modifierConstant, self.unitWeight)
@@ -422,17 +419,18 @@ function GkField:createSolver(species, externalField)
      if modifierConstant ~= 0 then self.aparSlvr:setModifierWeight(self.modifierWeight) end
 
      self.dApardtSlvr = Updater.FemPoisson {
-       onGrid   = self.grid,
-       basis    = self.basis,
-       bcLeft   = self.aparBcLeft,
-       bcRight  = self.aparBcRight,
-       bcBottom = self.aparBcBottom,
-       bcTop    = self.aparBcTop,
-       periodicDirs = self.periodicDirs,
-       zContinuous  = not self.discontinuousApar,
-       gxx = gxx,
-       gxy = gxy,
-       gyy = gyy,
+        onGrid   = self.grid,
+        basis    = self.basis,
+        bcLeft   = self.aparBcLeft,
+        bcRight  = self.aparBcRight,
+        bcBottom = self.aparBcBottom,
+        bcTop    = self.aparBcTop,
+        periodicDirs = self.periodicDirs,
+        zContinuous  = not self.discontinuousApar,
+        -- Note these metric coefficients may contain the Jacobian (GenGeo).
+        gxx = gxxAmpere,
+        gxy = gxyAmpere,
+        gyy = gyyAmpere,
      }
      if ndim==1 then
         laplacianConstant = 0.0
@@ -446,20 +444,21 @@ function GkField:createSolver(species, externalField)
      if laplacianConstant ~= 0 then self.dApardtSlvr:setLaplacianWeight(self.laplacianWeight) end
      if modifierConstant ~= 0 then self.dApardtSlvr:setModifierWeight(self.modifierWeight) end
 
-     -- separate solver for additional step for p=1
+     -- Separate solver for additional step for p=1.
      if self.basis:polyOrder() == 1 then
         self.dApardtSlvr2 = Updater.FemPoisson {
-          onGrid   = self.grid,
-          basis    = self.basis,
-          bcLeft   = self.aparBcLeft,
-          bcRight  = self.aparBcRight,
-          bcBottom = self.aparBcBottom,
-          bcTop    = self.aparBcTop,
-          periodicDirs = self.periodicDirs,
-          zContinuous  = not self.discontinuousApar,
-          gxx = gxx,
-          gxy = gxy,
-          gyy = gyy,
+           onGrid   = self.grid,
+           basis    = self.basis,
+           bcLeft   = self.aparBcLeft,
+           bcRight  = self.aparBcRight,
+           bcBottom = self.aparBcBottom,
+           bcTop    = self.aparBcTop,
+           periodicDirs = self.periodicDirs,
+           zContinuous  = not self.discontinuousApar,
+           -- Note these metric coefficients may contain the Jacobian (GenGeo).
+           gxx = gxxAmpere,
+           gxy = gxyAmpere,
+           gyy = gyyAmpere,
         }
         if ndim==1 then
            laplacianConstant = 0.0
@@ -484,7 +483,7 @@ function GkField:createSolver(species, externalField)
       self.nstep = 2
    end
 
-      -- function to construct a BC updater
+   -- Function to construct a BC updater.
    local function makeBcUpdater(dir, edge, bcList)
       return Updater.Bc {
 	 onGrid = self.grid,
@@ -494,14 +493,14 @@ function GkField:createSolver(species, externalField)
       }
    end
 
-   -- various functions to apply BCs of different types
+   -- Various functions to apply BCs of different types.
    local function bcOpen(dir, tm, idxIn, fIn, fOut)
       -- Requires skinLoop = "pointwise".
       self.basis:flipSign(dir, fIn, fOut)
    end
 
-   -- functions to make life easier while reading in BCs to apply
-   self.boundaryConditions = { } -- list of Bcs to apply
+   -- Functions to make life easier while reading in BCs to apply.
+   self.boundaryConditions = { }   -- List of Bcs to apply.
    local function appendBoundaryConditions(dir, edge, bcType)
       if bcType == EM_BC_OPEN then
 	 table.insert(self.boundaryConditions,
@@ -529,8 +528,8 @@ function GkField:createSolver(species, externalField)
      return false
    end
 
-   -- for non-periodic dirs, use BC_OPEN to make sure values on edge of ghost cells match values on edge of skin cells, 
-   -- so that field is continuous across skin-ghost boundary
+   -- For non-periodic dirs, use BC_OPEN to make sure values on edge of ghost cells match
+   -- values on edge of skin cells, so that field is continuous across skin-ghost boundary.
    for dir = 1, self.ndim do
       if not contains(self.periodicDirs, dir) then 
          handleBc(dir, {EM_BC_OPEN, EM_BC_OPEN}) 
@@ -601,6 +600,11 @@ function GkField:write(tm, force)
            if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperp2 end
            self.energyCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy })
          end
+      end
+
+      if self.ioFrame == 0 then 
+         self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeight_0.bp", tm, self.ioFrame, false)
+         self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_0.bp", tm, self.ioFrame, false)
       end
       
       if self.ioTrigger(tm) or force then
@@ -826,7 +830,7 @@ end
 -- Note: step 3 is for p=1 only: solve for dApardt.
 function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
-   local potRhs = self:rkStepperFields()[outIdx]
+   local potRhs  = self:rkStepperFields()[outIdx]
 
    local polyOrder = self.basis:polyOrder()
 
@@ -948,6 +952,7 @@ end
 -- GkGeometry ---------------------------------------------------------------------
 --
 -- A field object with fields specifying the magnetic geometry for GK.
+--
 --------------------------------------------------------------------------------
 
 local GkGeometry = Proto(FieldBase.ExternalFieldBase)
@@ -977,12 +982,20 @@ function GkGeometry:fullInit(appTbl)
    self.bmagFunc = tbl.bmag
    --assert(self.bmagFunc and type(self.bmagFunc)=="function", "GkGeometry: must specify background magnetic field function with 'bmag'")
 
-   -- For s-alpha geometry.
-   self.salpha = tbl.salpha
+   -- Specify which geometry to use. This gets redefined in :alloc method if mapc2p is detected.
+   -- NOTE: for must purposes one must use geo.name, defined in the :alloc method.
+   self.geoType = tbl.geometryType and tbl.geometryType or "SimpleHelical"
+
+   -- Specify which geometry to use.
+   self.geoType = tbl.geometryType and tbl.geometryType or "SimpleHelical"
 
    -- Wall potential for sheath BCs.
    self.phiWallFunc = tbl.phiWall
    if self.phiWallFunc then assert(type(self.phiWallFunc)=="function", "GkGeometry: phiWall must be a function (t, xn)") end
+
+   -- File containing geometry quantities that go into equations.
+   self.fromFile = tbl.fromFile
+
 end
 
 function GkGeometry:hasEB() end
@@ -995,154 +1008,107 @@ function GkGeometry:alloc()
    -- Allocate fields.
    self.geo = {}
 
+   -- If mapc2p is detected, use general geometry infrastructure.
+   if self.grid._mapc2p then
+      self.geo.name = "GenGeo"
+   else
+      self.geo.name = self.geoType
+   end
+
+   local ghostNum     = {1,1}
+   local syncPeriodic = false
+
    -- Background magnetic field.
-   self.geo.bmag = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false,
-   }
+   self.geo.bmag = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
    -- bmagInv ~ 1/B.
-   self.geo.bmagInv = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
+   self.geo.bmagInv = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
-   -- bhat.grad z.
-   self.geo.gradpar = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
+   -- gradpar = J B / sqrt(g_zz).
+   self.geo.gradpar = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
-   -- Functions for magnetic drifts.
-   -- bdriftX = 1/B*curl(bhat).grad x.
-   self.geo.bdriftX = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
-   -- bdriftY = 1/B*curl(bhat).grad y.
-   self.geo.bdriftY = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
- 
    -- Functions for Laplacian.
-   -- gxx = |grad x|**2.
-   self.geo.gxx = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
-   -- gxy = grad x . grad y.
-   self.geo.gxy = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
-   -- gyy = |grad y|**2.
-   self.geo.gyy = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
-   
+   -- g^xx = |grad x|**2.
+   self.geo.gxx = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   -- g^xy = grad x . grad y.
+   self.geo.gxy = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   -- g^yy = |grad y|**2.
+   self.geo.gyy = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
-   -- Jacobian of coordinate transformation.
-   self.geo.jacobGeo = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
+   if self.geo.name == "SimpleHelical" then
+
+      -- Functions for magnetic drifts.
+      -- bdriftX = 1/B*curl(bhat).grad x.
+      self.geo.bdriftX = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+      -- bdriftY = 1/B*curl(bhat).grad y.
+      self.geo.bdriftY = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+
+      if self.ndim == 1 then
+         self.geo.allGeo = createField(self.grid,self.basis,ghostNum,6,syncPeriodic)
+      else
+         self.geo.allGeo = createField(self.grid,self.basis,ghostNum,8,syncPeriodic)
+      end
+
+   elseif self.geo.name == "GenGeo" then
+
+      -- Jacobian of coordinate transformation.
+      self.geo.jacobGeo = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+
+      -- Inverse of jacobian of coordinate transformation.
+      self.geo.jacobGeoInv = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+
+      -- Total jacobian, including phase space jacobian.
+      -- jacobTot = J B 
+      self.geo.jacobTot = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+
+      -- Inverse of total jacobian, including phase space jacobian.
+      -- jacobTotInv = 1 / ( J B )
+      self.geo.jacobTotInv = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+
+      -- Functions for magnetic drifts .
+      -- geoX = g_xz / ( sqrt(g_zz) )
+      self.geo.geoX = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+      -- geoY = g_yz / ( sqrt(g_zz) )
+      self.geo.geoY = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+      -- geoZ = sqrt(g_zz)
+      self.geo.geoZ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+ 
+      -- Functions for laplacian, including Jacobian factor.
+      self.geo.gxxJ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+      self.geo.gxyJ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+      self.geo.gyyJ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   
+      if self.fromFile == nil then
+         self.geo.allGeo = createField(self.grid,self.basis,ghostNum,16,syncPeriodic)
+      end
+
+   end
 
    -- Wall potential for sheath BCs.
-   self.geo.phiWall = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
+   self.geo.phiWall = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+
       
    -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
-      elemType = self.geo.bmag:elemType(),
-      method = self.ioMethod,
+      elemType   = self.geo.bmag:elemType(),
+      method     = self.ioMethod,
+      writeGhost = true,
+      metaData   = {
+	 polyOrder = self.basis:polyOrder(),
+	 basisType = self.basis:id()
+      },
    }   
 end
 
 function GkGeometry:createSolver()
 
-   if self.salpha then
-      local salpha = self.salpha
-      self.bmagFunc = function (t, xn)
-         local x, y, z
-         if self.ndim == 1 then z = xn[1]; x = assert(salpha.r0, "must set salpha.r0 for 1D (local limit) s-alpha cases") 
-         elseif self.ndim == 2 then x, y, z = xn[1], xn[2], 0
-         else x, y, z = xn[1], xn[2], xn[3]
-         end
-         return salpha.B0*salpha.R0/(salpha.R0 + x*math.cos(z))
-      end
-      self.bmagInvFunc = function (t, xn)
-         return 1/self.bmagFunc(t, xn)
-      end
-      self.jacobGeoFunc = function (t, xn)
-         if self.ndim == 2 then return 1 else return salpha.q*salpha.R0 end
-      end
-      self.bdriftXFunc = function (t, xn)
-         local x, y, z
-         if self.ndim == 1 then z = xn[1]
-         elseif self.ndim == 2 then x, y, z = xn[1], xn[2], 0
-         else x, y, z = xn[1], xn[2], xn[3]
-         end
-         return -math.sin(z)/(salpha.B0*salpha.R0)
-      end
-      self.bdriftYFunc = function (t, xn)
-         local x, y, z
-         if self.ndim == 1 then z = xn[1]
-         elseif self.ndim == 2 then x, y, z = xn[1], xn[2], 0
-         else x, y, z = xn[1], xn[2], xn[3]
-         end
-         return -(math.cos(z) + salpha.shat*z*math.sin(z))/(salpha.B0*salpha.R0)
-      end
-      self.gradparFunc = function (t, xn)
-         return 1/(salpha.q*salpha.R0)
-      end
-      self.gxxFunc = function (t, xn)
-         return 1
-      end
-      self.gxyFunc = function (t, xn)
-         local x, y, z
-         if self.ndim == 1 then z = xn[1]
-         elseif self.ndim == 2 then x, y, z = xn[1], xn[2], 0
-         else x, y, z = xn[1], xn[2], xn[3]
-         end
-         return salpha.shat*z
-      end
-      self.gyyFunc = function (t, xn)
-         local x, y, z
-         if self.ndim == 1 then z = xn[1]
-         elseif self.ndim == 2 then x, y, z = xn[1], xn[2], 0
-         else x, y, z = xn[1], xn[2], xn[3]
-         end
-         return 1 + (salpha.shat*z)^2
-      end
-   else
-      -- Calculate 1/B function.
-      self.bmagInvFunc = function (t, xn)
-         return 1/self.bmagFunc(t,xn)
-      end
+   -- Get configuration-space Jacobian from grid (used by App/Projection/GkProjection, via GkSpecies).
+   self.jacobGeoFunc = function (t, xn)
+      return self.grid:calcJacobian(xn)
+   end
+
+   if self.geo.name == "SimpleHelical" then
+
       -- Calculate magnetic drift functions.
       if self.ndim > 1 then
          local function bgrad(xn)
@@ -1167,123 +1133,163 @@ function GkGeometry:createSolver()
             return bgradX/self.bmagFunc(t,xn)^2
          end
       end
-      self.gxxFunc = function (t, xn)
-         return 1.0
-      end
-      self.gxyFunc = function (t, xn)
-         return 0.0
-      end
-      self.gyyFunc = function (t, xn)
-         return 1.0
-      end
-   end
 
-   -- Projection updaters.
-   self.setBmag = Updater.ProjectOnBasis {
-      onGrid          = self.grid,
-      basis           = self.basis,
-      evaluate        = self.bmagFunc,
-      projectOnGhosts = true,
-   }
-   self.setBmagInv = Updater.ProjectOnBasis {
-      onGrid          = self.grid,
-      basis           = self.basis,
-      projectOnGhosts = true,
-      evaluate        = self.bmagInvFunc
-   }
-   if self.gradparFunc then 
-      self.setGradpar = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         projectOnGhosts = true,
-         evaluate        = self.gradparFunc
-      }
-   else
-      self.setGradpar = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         projectOnGhosts = true,
-         evaluate        = function(t, xn) return 1.0 end
-      }
-   end
-   if self.jacobGeoFunc then 
-      self.setJacobGeo = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         projectOnGhosts = true,
-         evaluate        = self.jacobGeoFunc
-      }
-   else 
-      self.setJacobGeo = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         projectOnGhosts = true,
-         evaluate        = function(t, xn) return 1.0 end
-      }
-   end
-   if self.gxxFunc then 
-      self.setGxx = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         projectOnGhosts = true,
-         evaluate        = self.gxxFunc
-      }
-   else 
-      self.setGxx = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         projectOnGhosts = true,
-         evaluate        = function(t, xn) return 1.0 end
-      }
-   end
-   if self.gxyFunc then 
-      self.setGxy = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         projectOnGhosts = true,
-         evaluate        = self.gxyFunc
-      }
-   else 
-      self.setGxy = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         projectOnGhosts = true,
-         evaluate        = function(t, xn) return 0.0 end
-      }
-   end
-   if self.gyyFunc then 
-      self.setGyy = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         projectOnGhosts = true,
-         evaluate        = self.gyyFunc
-      }
-   else 
-      self.setGyy = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         projectOnGhosts = true,
-         evaluate        = function(t, xn) return 1.0 end
-      }
-   end
-   if self.bdriftXFunc then 
-      self.setBdriftX = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         projectOnGhosts = true,
-         evaluate        = self.bdriftXFunc
-      }
-   end
-   if self.bdriftYFunc then
-      self.setBdriftY = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         projectOnGhosts = true,
-         evaluate        = self.bdriftYFunc
-      }
-   end
+      -- Calculate all geometry quantities at once.
+      if self.ndim == 1 then
+         self.calcAllGeo = function(t, xn)
+            local gxx, gxy, gyy = 1.0, 0.0, 1.0
+
+            local bmag    = self.bmagFunc(t, xn)
+            local gradpar = 1.0
+
+            return bmag, 1/bmag, gradpar, gxx, gxy, gyy
+          end
+      else
+         self.calcAllGeo = function(t, xn)
+            local gxx, gxy, gyy = 1.0, 0.0, 1.0
+
+            local bmag    = self.bmagFunc(t, xn)
+            local gradpar = 1.0
+
+            local bdriftX = self.bdriftXFunc(t, xn)
+            local bdriftY = self.bdriftYFunc(t, xn)
+
+            return bmag, 1/bmag, gradpar, gxx, gxy, gyy, bdriftX, bdriftY
+          end
+      end
+
+      if self.fromFile == nil then
+         self.setAllGeo = Updater.ProjectOnBasis {
+            onGrid   = self.grid,
+            basis    = self.basis,
+            evaluate = self.calcAllGeo,
+            projectOnGhosts = true,
+         }
+      end
+
+      -- Determine which variables bmag depends on by checking if setting a variable to nan results in nan.
+      local ones = {}
+      for dir = 1, self.ndim do ones[dir] = 1 end
+      self.bmagVars = {}
+      for dir = 1, self.ndim do
+         ones[dir] = 0/0 -- Set this var to nan.
+         -- Test if result is nan.. nan is the only value that doesn't equal itself.
+         if self.bmagFunc(0, ones) ~= self.bmagFunc(0, ones) then
+           -- If result is nan, bmag must depend on this var.
+           table.insert(self.bmagVars, dir)
+         end
+         ones[dir] = 1 -- Reset so we can check other vars.
+      end
+      if self.bmagVars[1] == nil then self.bmagVars[1] = 0 end
+
+   elseif self.geo.name == "GenGeo" then
+
+      -- Calculate all geometry quantities at once to avoid repeated metric calculations.
+      if self.ndim == 1 then
+         self.calcAllGeo = function(t, xn)
+            local g = {}
+            self.grid:calcMetric(xn, g)
+            local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz
+            if self.grid._inDim==1 then
+               g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = 1.0, 0.0, 0.0, 1.0, 0.0, g[1]
+            elseif self.grid._inDim==2 then
+               g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], 0.0, g[3], 0.0, 1.0
+            elseif self.grid._inDim==3 then
+               g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
+            end
+            local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
+            local geoX     = g_xz/math.sqrt(g_zz)
+            local geoY     = g_yz/math.sqrt(g_zz)
+            local geoZ     = math.sqrt(g_zz)
+
+            local det = jacobian^2
+            local gxx = (g_yy*g_zz-g_yz^2)/det
+            local gxy = (g_xz*g_yz-g_xy*g_zz)/det
+            local gxz = (g_xy*g_yz-g_xz*g_yy)/det
+            local gyy = (g_xx*g_zz-g_xz^2)/det
+            local gyz = (g_xy*g_xz-g_xx*g_yz)/det
+            local gzz = (g_xx*g_yy-g_xy^2)/det
+
+            local bmag    = self.bmagFunc(t, xn)
+            local gradpar = jacobian*bmag/math.sqrt(g_zz)
+
+            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, gradpar, 
+                   geoX, geoY, geoZ, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
+         end
+      elseif self.ndim == 2 then
+         self.calcAllGeo = function(t, xn)
+            local g = {}
+            self.grid:calcMetric(xn, g)
+            local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz
+            if self.grid._inDim==2 then
+               g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], 0.0, g[3], 0.0, 1.0
+            elseif self.grid._inDim==3 then
+               g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
+            end
+            local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
+            local geoX     = g_xz/math.sqrt(g_zz)
+            local geoY     = g_yz/math.sqrt(g_zz)
+            local geoZ     = math.sqrt(g_zz)
+
+            local det = jacobian^2
+            local gxx = (g_yy*g_zz-g_yz^2)/det
+            local gxy = (g_xz*g_yz-g_xy*g_zz)/det
+            local gxz = (g_xy*g_yz-g_xz*g_yy)/det
+            local gyy = (g_xx*g_zz-g_xz^2)/det
+            local gyz = (g_xy*g_xz-g_xx*g_yz)/det
+            local gzz = (g_xx*g_yy-g_xy^2)/det
+
+            local bmag    = self.bmagFunc(t, xn)
+            local gradpar = jacobian*bmag/math.sqrt(g_zz)
+
+            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, gradpar, 
+                   geoX, geoY, geoZ, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
+          end
+      else
+         self.calcAllGeo = function(t, xn)
+            local g = {}
+            self.grid:calcMetric(xn, g)
+            local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
+            local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
+            local geoX     = g_xz/math.sqrt(g_zz)
+            local geoY     = g_yz/math.sqrt(g_zz)
+            local geoZ     = math.sqrt(g_zz)
+
+            local det = jacobian^2
+            local gxx = (g_yy*g_zz-g_yz^2)/det
+            local gxy = (g_xz*g_yz-g_xy*g_zz)/det
+            local gxz = (g_xy*g_yz-g_xz*g_yy)/det
+            local gyy = (g_xx*g_zz-g_xz^2)/det
+            local gyz = (g_xy*g_xz-g_xx*g_yz)/det
+            local gzz = (g_xx*g_yy-g_xy^2)/det
+
+            local bmag    = self.bmagFunc(t, xn)
+            local gradpar = jacobian*bmag/math.sqrt(g_zz)
+
+            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, gradpar, 
+                   geoX, geoY, geoZ, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
+          end
+      end
+
+      if self.ndim == 3 then
+         self.bmagVars = {1,3} 
+      else
+         self.bmagVars = {1}
+      end
+
+      if self.fromFile == nil then
+         self.setAllGeo = Updater.EvalOnNodes {
+            onGrid   = self.grid,
+            basis    = self.basis,
+            evaluate = self.calcAllGeo,
+            projectOnGhosts = true,
+         }
+      end
+
+   end   -- End of if geo.name == "..." statement.
+
    if self.phiWallFunc then 
-      self.setPhiWall = Updater.ProjectOnBasis {
+      self.setPhiWall = Updater.EvalOnNodes {
          onGrid          = self.grid,
          basis           = self.basis,
          projectOnGhosts = true,
@@ -1291,55 +1297,95 @@ function GkGeometry:createSolver()
       }
    end
 
-   -- Determine which variables bmag depends on by checking if setting a variable to nan results in nan.
-   local ones = {}
-   for dir = 1, self.ndim do
-      ones[dir] = 1
-   end
-   self.bmagVars = {}
-   for dir = 1, self.ndim do
-      ones[dir] = 0/0 -- Set this var to nan.
-      -- Test if result is nan.. nan is the only value that doesn't equal itself.
-      if self.bmagFunc(0, ones) ~= self.bmagFunc(0, ones) then 
-        -- If result is nan, bmag must depend on this var.
-        table.insert(self.bmagVars, dir) 
-      end
-      ones[dir] = 1 -- Reset so we can check other vars.
-   end
-   if self.bmagVars[1] == nil then self.bmagVars[1] = 0 end
+
+   self.unitWeight = createField(self.grid,self.basis,{1,1})
+   local initUnit = Updater.ProjectOnBasis {
+      onGrid   = self.grid,
+      basis    = self.basis,
+      evaluate = function (t,xn) return 1.0 end,
+      projectOnGhosts = true,
+   }
+   initUnit:advance(0.,{},{self.unitWeight})
+
+   -- Updater to separate vector components packed into a single CartField.
+   self.separateComponents = Updater.SeparateVectorComponents {
+      onGrid = self.grid,
+      basis  = self.basis,
+   }
 end
 
 function GkGeometry:createDiagnostics()
 end
 
 function GkGeometry:initField()
-   self.setBmag:advance(0.0, {}, {self.geo.bmag})
-   self.setBmagInv:advance(0.0, {}, {self.geo.bmagInv})
-   if self.setGradpar then self.setGradpar:advance(0.0, {}, {self.geo.gradpar})
-   else self.geo.gradpar:clear(0.0) end
-   if self.setJacobGeo then self.setJacobGeo:advance(0.0, {}, {self.geo.jacobGeo})
-   else self.geo.jacobGeo:clear(0.0) end
-   if self.setGxx then self.setGxx:advance(0.0, {}, {self.geo.gxx}) end
-   if self.setGxy then self.setGxy:advance(0.0, {}, {self.geo.gxy}) end
-   if self.setGyy then self.setGyy:advance(0.0, {}, {self.geo.gyy}) end
-   if self.setBdriftX then self.setBdriftX:advance(0.0, {}, {self.geo.bdriftX})
-   else self.geo.bdriftX:clear(0.0) end
-   if self.setBdriftY then self.setBdriftY:advance(0.0, {}, {self.geo.bdriftY})
-   else self.geo.bdriftY:clear(0.0) end
+   if self.geo.name == "SimpleHelical" then
+      if self.fromFile then
+         -- Read the geometry quantities from a file.
+         if self.ndim == 1 then
+            local tm, fr = self.fieldIo:read({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+               gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy}, self.fromFile)
+         else
+            local tm, fr = self.fieldIo:read({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+               gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy, 
+               bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY}, self.fromFile)
+         end
+      else
+         self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
+         if self.ndim == 1 then
+            self.separateComponents:advance(0, {self.geo.allGeo},
+               {self.geo.bmag, self.geo.bmagInv, self.geo.gradpar,
+                self.geo.gxx, self.geo.gxy, self.geo.gyy})
+         else
+            self.separateComponents:advance(0, {self.geo.allGeo},
+               {self.geo.bmag, self.geo.bmagInv, self.geo.gradpar,
+                self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.bdriftX, self.geo.bdriftY})
+         end
+      end
+   elseif self.geo.name == "GenGeo" then
+      if self.fromFile then
+         -- Read the geometry quantities from a file.
+         local tm, fr = self.fieldIo:read({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
+            jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+            gradpar=self.geo.gradpar, geoX=self.geo.geoX, geoY=self.geo.geoY, geoZ=self.geo.geoZ, gxx=self.geo.gxx,
+            gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
+            self.fromFile)
+      else
+         self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
+         self.separateComponents:advance(0, {self.geo.allGeo},
+            {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
+             self.geo.bmag, self.geo.bmagInv, self.geo.gradpar, self.geo.geoX, self.geo.geoY, self.geo.geoZ,
+             self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
+      end
+   end
+   print("Finished initializing the geometry")
+
    if self.setPhiWall then self.setPhiWall:advance(0.0, {}, {self.geo.phiWall})
    else self.geo.phiWall:clear(0.0) end
 
-   -- Sync ghost cells. these calls do not enforce periodicity because
-   -- These fields initialized with syncPeriodicDirs = false.
+   -- Sync ghost cells. These calls do not enforce periodicity because
+   -- these fields were created with syncPeriodicDirs = false.
    self.geo.bmag:sync(false)
    self.geo.bmagInv:sync(false)
    self.geo.gradpar:sync(false)
    self.geo.gxx:sync(false)
    self.geo.gxy:sync(false)
    self.geo.gyy:sync(false)
-   self.geo.jacobGeo:sync(false)
-   self.geo.bdriftX:sync(false)
-   self.geo.bdriftY:sync(false)
+   if self.geo.name == "SimpleHelical" then
+      if self.ndim > 1 then
+         self.geo.bdriftX:sync(false)
+         self.geo.bdriftY:sync(false)
+      end
+   elseif self.geo.name == "GenGeo" then
+      self.geo.gxxJ:sync(false)
+      self.geo.gxyJ:sync(false)
+      self.geo.gyyJ:sync(false)
+      self.geo.jacobGeo:sync(false)
+      self.geo.jacobGeoInv:sync(false)
+      self.geo.jacobTotInv:sync(false)
+      self.geo.geoX:sync(false)
+      self.geo.geoY:sync(false)
+      self.geo.geoZ:sync(false)
+   end
    self.geo.phiWall:sync(false)
 
    -- Apply BCs.
@@ -1349,16 +1395,34 @@ end
 function GkGeometry:write(tm)
    -- Not evolving geometry, so only write geometry at beginning.
    if self.ioFrame == 0 then
-      self.fieldIo:write(self.geo.bmag, string.format("bmag_%d.bp", self.ioFrame), tm, self.ioFrame)
-      if self.setBdriftX then
-	 self.fieldIo:write(self.geo.bdriftX, string.format("bdriftX_%d.bp", self.ioFrame), tm, self.ioFrame)
+      -- Write the geometry quantities to a file.
+      if self.geo.name == "SimpleHelical" then
+         if self.ndim == 1 then
+            self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+               gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy},
+               string.format("allGeo_%d.bp", self.ioFrame), tm, self.ioFrame)
+         else
+            self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+               gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy,
+               bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY},
+               string.format("allGeo_%d.bp", self.ioFrame), tm, self.ioFrame)
+         end
+      elseif self.geo.name == "GenGeo" then
+         self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
+            jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+            gradpar=self.geo.gradpar, geoX=self.geo.geoX, geoY=self.geo.geoY, geoZ=self.geo.geoZ, gxx=self.geo.gxx,
+            gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
+            string.format("allGeo_%d.bp", self.ioFrame), tm, self.ioFrame)
+
+         -- Write a grid file.
+         local metaData = {
+            polyOrder = self.basis:polyOrder(),
+            basisType = self.basis:id(),
+            grid      = GKYL_OUT_PREFIX .. "_grid.bp"
+         }
+         self.grid:write("grid.bp", 0.0, metaData)
       end
-      if self.setBdriftY then
-	 self.fieldIo:write(self.geo.bdriftY, string.format("bdriftY_%d.bp", self.ioFrame), tm, self.ioFrame)
-      end
-      if self.setGradpar then
-	 self.fieldIo:write(self.geo.gradpar, string.format("gradpar_%d.bp", self.ioFrame), tm, self.ioFrame)
-      end
+
    end
    self.ioFrame = self.ioFrame+1
 end

@@ -6,11 +6,11 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local ProjectionBase = require "App.Projection.ProjectionBase"
-local Proto          = require "Lib.Proto"
-local Updater        = require "Updater"
-local xsys           = require "xsys"
---local Time           = require "Lib.Time"
+local ProjectionBase   = require "App.Projection.ProjectionBase"
+local Proto            = require "Lib.Proto"
+local Updater          = require "Updater"
+local xsys             = require "xsys"
+local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 
 -- Shell class for kinetic projections.
 local KineticProjection = Proto(ProjectionBase)
@@ -32,6 +32,7 @@ function KineticProjection:fullInit(species)
    self.cdim = self.confGrid:ndim()
    self.vdim = self.phaseGrid:ndim() - self.confGrid:ndim()
 
+   self.fromFile     = self.tbl.fromFile
    self.isInit       = xsys.pickBool(self.tbl.isInit, true)
    self.isBackground = xsys.pickBool(self.tbl.isBackground, false)
    self.isSource     = xsys.pickBool(self.tbl.isSource, false)
@@ -61,17 +62,35 @@ function FunctionProjection:fullInit(species)
    assert(func, "FunctionProjection: Must specify the function")
    assert(type(func) == "function",
 	  "The input must be a table containing function")
-   self.project = Updater.ProjectOnBasis {
-      onGrid          = self.phaseGrid,
-      basis           = self.phaseBasis,
-      evaluate        = func,
-      projectOnGhosts = true
-   }
+   if self.fromFile then
+      self.ioMethod  = "MPI"
+      self.writeSkin = true
+      self.fieldIo = AdiosCartFieldIo {
+         elemType  = species.distf[1]:elemType(),
+         method    = self.ioMethod,
+         writeSkin = self.writeSkin,
+         metaData  = {
+            polyOrder = self.phaseBasis:polyOrder(),
+            basisType = self.phaseBasis:id()
+         },
+      }
+   else
+      self.project = Updater.ProjectOnBasis {
+         onGrid          = self.phaseGrid,
+         basis           = self.phaseBasis,
+         evaluate        = func,
+         projectOnGhosts = true
+      }
+   end
    self.initFunc = func
 end
 
 function FunctionProjection:run(t, distf)
-   self.project:advance(t, {}, {distf})
+   if self.fromFile then
+      local tm, fr = self.fieldIo:read(distf, self.fromFile)
+   else
+      self.project:advance(t, {}, {distf})
+   end
 end
 
 ----------------------------------------------------------------------
@@ -104,12 +123,26 @@ function MaxwellianProjection:fullInit(species)
 				self.driftSpeed(t, zn, species))
    end
 
-   self.project = Updater.ProjectOnBasis {
-      onGrid          = self.phaseGrid,
-      basis           = self.phaseBasis,
-      evaluate        = self.initFunc,
-      projectOnGhosts = true
-   }
+   if self.fromFile then
+      self.ioMethod  = "MPI"
+      self.writeSkin = true
+      self.fieldIo = AdiosCartFieldIo {
+         elemType  = species.distf[1]:elemType(),
+         method    = self.ioMethod,
+         writeSkin = self.writeSkin,
+         metaData  = {
+            polyOrder = self.phaseBasis:polyOrder(),
+            basisType = self.phaseBasis:id()
+         },
+      }
+   else
+      self.project = Updater.ProjectOnBasis {
+         onGrid          = self.phaseGrid,
+         basis           = self.phaseBasis,
+         evaluate        = self.initFunc,
+         projectOnGhosts = true
+      }
+   end
 end
 
 function MaxwellianProjection:scaleDensity(distf)
@@ -149,7 +182,11 @@ function MaxwellianProjection:scaleDensity(distf)
 end
 
 function MaxwellianProjection:run(t, distf)
-   self.project:advance(t, {}, {distf})
+   if self.fromFile then
+      local tm, fr = self.fieldIo:read(distf, self.fromFile)
+   else
+      self.project:advance(t, {}, {distf})
+   end
    if self.exactScaleM0 then
       self:scaleDensity(distf)
    end

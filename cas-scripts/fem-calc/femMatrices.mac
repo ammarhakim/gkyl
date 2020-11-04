@@ -248,6 +248,18 @@ calcNodToModPar(cdim, p) := block([],
   nodToMod:float(invert(transpose(modToNod)))
 )$
 
+calcNodToMod(ndim, p) := block([],
+kill(varsC, varsP, basisC, basisP),
+if ndim<=3 then modNm : sconcat("basis-precalc/basisSer", ndim, "x")
+else modNm : sconcat("basis-precalc/basisSer", ndim-2, "x", 2, "v"),
+load(modNm),
+if ndim<=3 then (vars : varsC, basis : basisC[p])
+else (vars : varsP, basis : basisP[p]),
+nodes : eval_string(sconcat("nodes", ndim, "xp", p)),
+modToNod : calcModToNodPhaseWithNodesAndBasis(nodes, basis, vars),
+nodToMod:float(invert(transpose(modToNod)))
+)$
+
 calcMassMatrix2(vars, w, basis, basis2) := block([n, mass],
   n : length(basis),
   mass : (mass : zeromatrix(n,n), 
@@ -418,7 +430,7 @@ calcStiffPerpMetric(cdim, p) := block([],
   wyyNoZero_k : doMakeExprLst(wyy_k, wyy),
   wyy_expd : doExpandLst(wyyNoZero_k, basis),
   modToNod : calcModToNod(cdim, p),
-  stiffPerpMod:dfacx2*calcWeightedStiffMatrix(x,varsC,wxx_expd,basis)+dfacy2*calcWeightedStiffMatrix(y,varsC,wyy_expd,basis)+2*dfacxy*calcWeightedStiffMatrixCross(x,y,varsC,wxy_expd,basis),
+  stiffPerpMod:dfacx2*calcWeightedStiffMatrix(x,varsC,wxx_expd,basis)+dfacy2*calcWeightedStiffMatrix(y,varsC,wyy_expd,basis)+dfacxy*calcWeightedStiffMatrixCross(x,y,varsC,wxy_expd,basis)+dfacxy*calcWeightedStiffMatrixCross(y,x,varsC,wxy_expd,basis),
   stiffPerpNod:float(expand(ratsimp(ratsimp(invert(modToNod)).stiffPerpMod.ratsimp(invert(transpose(modToNod)))))),
   return(stiffPerpNod)
 )$

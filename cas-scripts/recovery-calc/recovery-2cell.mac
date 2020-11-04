@@ -41,17 +41,37 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
   DoF : 0,
   if is(op(lo)=dg) then (
     DoF : DoF + polyOrder + 1,
-    if length(args(lo)) > 1 then DoF : DoF + 1 /* aditional DoF for BC */
+    if length(args(lo)) > 1 then (
+      if is(op(args(lo)[2])=bc) then (
+        DoF : DoF + 1 /* only 1 DoF for BC */
+      )
+      else (
+        DoF : DoF + length(args(args(lo)[2]))
+      )
+    )
+  )
+  elseif is(op(lo)=bc) then (
+    DoF : DoF + 1 /* only 1 DoF for BC */
   )
   else (
-    DoF : DoF + 1 /* only 1 DoF for BC */
+    DoF : DoF + length(args(lo))
   ),
   if is(op(up)=dg) then (
     DoF : DoF + polyOrder + 1,
-    if length(args(up)) > 1 then DoF : DoF + 1 /* aditional DoF for BC */
+    if length(args(up)) > 1 then (
+      if is(op(args(up)[2])=bc) then (
+        DoF : DoF + 1 /* only 1 DoF for BC */
+      )
+      else (
+        DoF : DoF + length(args(args(up)[2]))
+      )
+    )
+  )
+  elseif is(op(up)=bc) then (
+    DoF : DoF + 1 /* only 1 DoF for BC */
   )
   else (
-    DoF : DoF + 1 /* only 1 DoF for BC */
+    DoF : DoF + length(args(up))
   ),
   rExp : doExpand(r, makelist(recDir^i, i, 0, DoF-1)), /* recovery polynomial */
 
@@ -63,18 +83,38 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
         baLo1D, rExp-doExpand(qLo1D, baLo1D))
     ),
     if length(args(lo)) > 1 then (
-      recEqList : append(
-        recEqList,
-        [subst(args(args(lo)[2]), val - D*subst(recDir=-2, rExp)
-          - N*subst(recDir=-2, diff(rExp, recDir)))]
+      if is(op(args(lo)[2])=bc) then (
+        recEqList : append(
+          recEqList,
+          [subst(args(args(lo)[2]), val - D*subst(recDir=-2, rExp)
+            - N*subst(recDir=-2, diff(rExp, recDir)))]
+        )
+      )
+      else (
+        for i : 1 thru length(args(args(lo)[2])) do (
+          recEqList : append(
+            recEqList,
+            [subst(args(args(lo)[2])[i], val)
+              - subst(recDir=-2, diff(rExp, recDir, subst(args(args(lo)[2])[i], der)))]
+          )
+        )
       )
     )
   )
-  else (
+  elseif is(op(lo)=bc) then (
     recEqList : append(
       recEqList,
       [subst(args(lo), val - D*subst(recDir=0, rExp)
         - N*subst(recDir=0, diff(rExp, recDir)))]
+    )
+  )
+  else (
+    for i : 1 thru length(args(lo)) do (
+      recEqList : append(
+        recEqList,
+        [subst(args(lo)[i], val)
+          - subst(recDir=0, diff(rExp, recDir, subst(args(lo)[i], der)))]
+      )
     )
   ),
 
@@ -85,18 +125,37 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
         baUp1D, rExp-doExpand(qUp1D, baUp1D))
     ),
     if length(args(up)) > 1 then (
-      recEqList : append(
-        recEqList,
-        [subst(args(args(up)[2]), val - D*subst(recDir=2, rExp)
-          - N*subst(recDir=2, diff(rExp, recDir)))]
+      if is(op(args(up)[2])=bc) then (
+        recEqList : append(
+          recEqList,
+          [subst(args(args(up)[2]), val - D*subst(recDir=2, rExp)
+            - N*subst(recDir=2, diff(rExp, recDir)))]
+        )
+      )
+      else (
+        for i : 1 thru length(args(args(up)[2])) do (
+          recEqList : append(
+            recEqList,
+            [subst(args(args(up)[2])[i], val)
+              - subst(recDir=2, diff(rExp, recDir, subst(args(args(up)[2])[i], der)))]
+          )
+        )
       )
     )
   )
-  else (
+  elseif is(op(up)=bc) then (
     recEqList : append(
       recEqList,
       [subst(args(up), val - D*subst(recDir=0, rExp)
         - N*subst(recDir=0, diff(rExp, recDir)))]
+    )
+  )
+  else (
+    for i : 1 thru length(args(up)) do (
+      recEqList : append(
+        recEqList,
+        [subst(args(up)[i], val) - subst(recDir=0, diff(rExp, recDir, subst(args(up)[i], der)))]
+      )
     )
   ),
 

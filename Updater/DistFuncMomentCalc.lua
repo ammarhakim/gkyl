@@ -30,24 +30,33 @@ local DistFuncMomentCalc = Proto(UpdaterBase)
 
 -- Valid moment names for Vlasov and GK equations.
 local goodMomNames = {
-   "M0", "M1i", "M2ij", "M2", "M3i", "FiveMoments", "FiveMomentsLBO"
+   "M0", "M1i", "M2ij", "M2", "M3i", "FiveMoments", "FiveMomentsLBO",
 }
 local goodGkMomNames = {
    "GkM0", "GkM1", "GkM1proj", "GkM2par", "GkM2perp", "GkM2", "GkM3par", "GkM3perp",
    "GkThreeMoments", "GkThreeMomentsLBO"
 }
+local goodPartialMomNames = {
+   -- Partial velocity moments, integrating over the region
+   -- where one of the velocities if positive or negative.
+   "M0Pvx", "M0Pvy", "M0Pvz","M0Nvx", "M0Nvy", "M0Nvz",
+   "M1iPvx", "M1iPvy", "M1iPvz","M1iNvx", "M1iNvy", "M1iNvz",
+   "M2Pvx", "M2Pvy", "M2Pvz","M2Nvx", "M2Nvy", "M2Nvz",
+   "M3iPvx", "M3iPvy", "M3iPvz","M3iNvx", "M3iNvy", "M3iNvz"
+}
 
 function DistFuncMomentCalc:isMomentNameGood(nm)
-   if lume.find(goodMomNames, nm) then
-      return true
-   end
+   if lume.find(goodMomNames, nm) then return true end
    return false
 end
 
 function DistFuncMomentCalc:isGkMomentNameGood(nm)
-   if lume.find(goodGkMomNames, nm) then
-      return true
-   end
+   if lume.find(goodGkMomNames, nm) then return true end
+   return false
+end
+
+function DistFuncMomentCalc:isPartialMomentNameGood(nm)
+   if lume.find(goodPartialMomNames, nm) then return true end
    return false
 end
 
@@ -106,6 +115,43 @@ function DistFuncMomentCalc:init(tbl)
       self._calcOnHost = true
    end
 
+   -- Cell index, center and length right of a cell-boundary (also used for current cell for p>1).
+   self.idxP = Lin.IntVec(self._pDim)
+   self.xcP  = Lin.Vec(self._pDim)
+   self.dxP  = Lin.Vec(self._pDim)
+
+   if self:isPartialMomentNameGood(mom) then
+      self.isPartialMom = true
+      local baseMom
+      for _, nm in ipairs(goodMomNames) do 
+         baseMom = nm
+         if string.find(mom, baseMom) then break end
+      end
+      -- Extract the direction and whether to integrate over the positive or negative region 
+      local velTrans       = {vx=1, vy=2, vz=3}
+      local partialMomReg  = string.sub(string.gsub(mom, baseMom, ""),1,1)
+      self.partialMomDir   = velTrans[string.sub(string.gsub(mom, baseMom, ""),2)]
+      local partialMomDirP = self._cDim+self.partialMomDir
+      mom = baseMom
+      -- Compute the offsets used to shorten the velocity range. For now assume that the zero
+      -- along any velocity dimension is located at a cell boundary and not inside of a cell.
+      self.partialMomDirExts   = {0,0}
+      local partialMomDirCells = self._onGrid:numCells(partialMomDirP)
+      for d = 1,self._pDim do self.idxP[d]=1 end   -- Could be any cell in other directions.
+      for idx=1,partialMomDirCells do
+         self.idxP[partialMomDirP] = idx
+         self._onGrid:setIndex(self.idxP)
+         self._onGrid:cellCenter(self.xcP)
+         if (partialMomReg == "P") and (self.xcP[partialMomDirP] > 0.0) then
+            self.partialMomDirExts[1] = -(idx-1)
+            break
+         elseif (partialMomReg == "N") and (self.xcP[partialMomDirP] > 0.0) then
+            self.partialMomDirExts[2] = -(partialMomDirCells-(idx-1))
+            break
+         end
+      end
+   end
+
    -- Function to compute specified moment.
    self._isGk = false
    if self:isMomentNameGood(mom) then
@@ -129,11 +175,6 @@ function DistFuncMomentCalc:init(tbl)
       self.bmag    = assert(tbl.gkfacs[2], "DistFuncMomentCalc: must provide bmag in gkfacs")
       self.bmagItr = self.bmag:get(1)
    end
-
-   -- Cell index, center and length right of a cell-boundary (also used for current cell for p>1).
-   self.idxP = Lin.IntVec(self._pDim)
-   self.xcP  = Lin.Vec(self._pDim)
-   self.dxP  = Lin.Vec(self._pDim)
 
    if self._fiveMomentsLBO then
       -- If vDim>1, intFac=2*pi/m or 4*pi/m.
@@ -229,7 +270,6 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
 
    local phaseRange = distf:localRange()
    if self.onGhosts then -- Extend range to config-space ghosts.
-      local cdirs = {}
       for dir = 1, cDim do 
          phaseRange = phaseRange:extendDir(dir, distf:lowerGhost(), distf:upperGhost())
       end
@@ -242,6 +282,12 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
       range = phaseRange:selectFirst(cDim), numSplit = grid:numSharedProcs() }
    local velRange = phaseRange:selectLast(vDim)
    local tId      = grid:subGridSharedId()    -- Local thread ID.
+
+   if self.isPartialMom then
+      -- For partial moments, we only wish to integrate over part
+      -- of one of the velocity dimensions.
+      velRange = velRange:extendDir(self.partialMomDir,self.partialMomDirExts[1],self.partialMomDirExts[2])
+   end
    
    local phaseIndexer = distf:genIndexer()
    local confIndexer  = mom1:genIndexer()
@@ -429,6 +475,7 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
    
          -- Inner loop is over velocity space: no threading to avoid race conditions.
          for vIdx in velRange:rowMajorIter() do
+            --print("vIdx = ",vIdx[1])
             for d = 1, vDim do self.idxP[cDim+d] = vIdx[d] end
          
             grid:setIndex(self.idxP)

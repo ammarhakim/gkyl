@@ -9,7 +9,7 @@
 local Proto          = require "Lib.Proto"
 local KineticSpecies = require "App.Species.KineticSpecies"
 local Mpi            = require "Comm.Mpi"
-local Gk             = require "Eq.Gyrokinetic"
+local GyrokineticEq  = require "Eq.Gyrokinetic"
 local Updater        = require "Updater"
 local DataStruct     = require "DataStruct"
 local Time           = require "Lib.Time"
@@ -77,22 +77,21 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
    -- collisions solver.
    GkSpecies.super.createSolver(self,externalField)
 
-   -- Set up jacobian.
+   -- Set up Jacobian.
    if externalField then
-      -- Save bmagFunc for later...
       self.bmagFunc = externalField.bmagFunc
-      -- If vdim>1, get jacobian=bmag from geo.
+      -- If vdim>1, get the phase-space Jacobian (=bmag) from geo.
       self.jacobPhaseFunc = self.bmagFunc
       self.jacobGeoFunc   = externalField.jacobGeoFunc
-      if self.cdim == 1 then 
-         self.B0 = externalField.bmagFunc(0.0, {self.grid:mid(1)})
-      elseif self.cdim == 2 then 
-         self.B0 = externalField.bmagFunc(0.0, {self.grid:mid(1), self.grid:mid(2)})
-      else
-         self.B0 = externalField.bmagFunc(0.0, {self.grid:mid(1), self.grid:mid(2), self.grid:mid(3)})
-      end
-      self.bmag    = assert(externalField.geo.bmag, "nil bmag")
-      self.bmagInv = externalField.geo.bmagInv
+
+      local xMid = {}
+      for d = 1,self.cdim do xMid[d]=self.grid:mid(d) end
+      self.B0 = externalField.bmagFunc(0.0, xMid)
+
+      self.bmag        = assert(externalField.geo.bmag, "nil bmag")
+      self.bmagInv     = externalField.geo.bmagInv
+      self.jacobGeo    = externalField.geo.jacobGeo
+      self.jacobGeoInv = externalField.geo.jacobGeoInv
    end
 
    if self.gyavg then
@@ -157,7 +156,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
    end
 
    -- Create updater to advance solution by one time-step.
-   self.equation = Gk.GkEq {
+   self.equation = GyrokineticEq.GkEq {
       onGrid       = self.grid,
       confGrid     = self.confGrid,
       phaseBasis   = self.basis,
@@ -170,6 +169,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       hasSheathBcs = self.hasSheathBcs,
       positivity   = self.positivity,
       gyavgSlvr    = self.emGyavgSlvr,
+      geometry     = externalField.geo.name,
    }
 
    -- No update in mu direction (last velocity direction if present)
@@ -206,7 +206,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
          clearOut           = false,            -- Continue accumulating into output field.
       }
       -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
-      self.equationStep2 = Gk.GkEqStep2 {
+      self.equationStep2 = GyrokineticEq.GkEqStep2 {
          onGrid     = self.grid,
          phaseBasis = self.basis,
          confBasis  = self.confBasis,
@@ -214,6 +214,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
          mass       = self.mass,
          Bvars      = externalField.bmagVars,
          positivity = self.positivity,
+         geometry   = externalField.geo.name,
       }
       -- Note that the surface update for this term only involves the vpar direction.
       self.solverStep3 = Updater.HyperDisCont {
@@ -227,7 +228,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       }
    elseif hasApar and self.basis:polyOrder()>1 then
       -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
-      self.equationStep2 = Gk.GkEqStep2 {
+      self.equationStep2 = GyrokineticEq.GkEqStep2 {
          onGrid     = self.grid,
          phaseBasis = self.basis,
          confBasis  = self.confBasis,
@@ -235,6 +236,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
          mass       = self.mass,
          Bvars      = externalField.bmagVars,
          positivity = self.positivity,
+         geometry   = externalField.geo.name,
       }
       -- Note that the surface update for this term only involves the vpar direction.
       self.solverStep2 = Updater.HyperDisCont {
@@ -836,11 +838,11 @@ function GkSpecies:createDiagnostics()
    local function allocateDiagnosticIntegratedMoments(intMoments, bc, timeIntegrate)
       local label = ""
       local phaseGrid = self.grid
-      local confGrid = self.confGrid
+      local confGrid  = self.confGrid
       if bc then
          label = bc:label()
          phaseGrid = bc:getBoundaryGrid()
-         confGrid = bc:getConfBoundaryGrid()
+         confGrid  = bc:getConfBoundaryGrid()
       end
       local timeIntegrate = xsys.pickBool(timeIntegrate, false)
       for i, mom in ipairs(intMoments) do
@@ -1060,14 +1062,14 @@ function GkSpecies:createDiagnostics()
    -- Allocate space to store moments and create moment updaters.
    local function allocateDiagnosticMoments(moments, weakMoments, bc)
       local label = ""
-      local bmag = self.bmag
+      local bmag  = self.bmag
       local phaseGrid = self.grid
-      local confGrid = self.confGrid
+      local confGrid  = self.confGrid
       if bc then
          label = bc:label()
          phaseGrid = bc:getBoundaryGrid()
-         confGrid = bc:getConfBoundaryGrid()
-         bmag = bc.bmag
+         confGrid  = bc:getConfBoundaryGrid()
+         bmag      = bc.bmag
       end
 
       for i, mom in pairs(moments) do
@@ -1332,7 +1334,7 @@ function GkSpecies:createDiagnostics()
              onGrid        = bc:getConfBoundaryGrid(),
              numComponents = self.bmag:numComponents(),
              ghost         = {1,1},
-             metaData = self.bmag:getMetaData(),
+             metaData      = self.bmag:getMetaData(),
            }
          -- Need to copy because evalOnConfBoundary only returns a pointer to a field that belongs to bc (and could be overwritten).
          bc.bmag:copy(bc:evalOnConfBoundary(self.bmag))
@@ -1496,9 +1498,7 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    local function bcCopyFunc(...)    return self:bcCopyFunc(...) end
    
    local vdir = nil
-   if dir==self.cdim then 
-      vdir=self.cdim+1 
-   end
+   if dir==self.cdim then vdir = self.cdim+1 end
 
    if type(bcType) == "function" then
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcCopyFunc }, "pointwise", bcType))
@@ -1574,10 +1574,10 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
         fIn:accumulate(1.0, self.f0)
       end
 
-      -- for ionization
+      -- For ionization.
       if self.calcReactRate then
 	 local neutM0 = species[self.neutNmIz]:fluidMoments()[1]
-      	 local neutU = species[self.neutNmIz]:selfPrimitiveMoments()[1]
+      	 local neutU  = species[self.neutNmIz]:selfPrimitiveMoments()[1]
 	 local neutVtSq = species[self.neutNmIz]:selfPrimitiveMoments()[2]
 	    
 	 if tCurr == 0.0 then
@@ -1601,7 +1601,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       end
 
       if self.calcCXSrc then
-      	 -- calculate Vcx*SigmaCX
+      	 -- Calculate Vcx*SigmaCX.
 	 local m0 = species[self.neutNmCX]:fluidMoments()[1]
       	 local neutU = species[self.neutNmCX]:selfPrimitiveMoments()[1]
       	 local neutVtSq = species[self.neutNmCX]:selfPrimitiveMoments()[2]
@@ -1777,10 +1777,10 @@ function GkSpecies:totalSolverTime()
 end
 
 function GkSpecies:Maxwellian(xn, n0, T0, vdIn)
-   local vd = vdIn or 0.0
-   local vt2 = T0/self.mass
+   local vd   = vdIn or 0.0
+   local vt2  = T0/self.mass
    local vpar = xn[self.cdim+1]
-   local v2 = (vpar-vd)^2
+   local v2   = (vpar-vd)^2
    if self.vdim > 1 then 
      local mu = xn[self.cdim+2]
      v2 = v2 + 2*math.abs(mu)*self.bmagFunc(0,xn)/self.mass

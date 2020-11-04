@@ -5,8 +5,8 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- system libraries
-local ffi = require "ffi"
+-- System libraries.
+local ffi  = require "ffi"
 local ffiC = ffi.C
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
@@ -14,8 +14,8 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 
 -- Gkyl libraries
 local DecompRegionCalc = require "Lib.CartDecomp"
-local Lin = require "Lib.Linalg"
-local Mpi = require "Comm.Mpi"
+local Lin   = require "Lib.Linalg"
+local Mpi   = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
 
@@ -83,30 +83,30 @@ local RectCart = Proto()
 
 function RectCart:init(tbl)
    local cells = tbl.cells
-   self._ndim = #cells
+   self._ndim  = #cells
    local lo = tbl.lower and tbl.lower or {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
    local up = tbl.upper and tbl.upper or {1.0, 1.0, 1.0, 1.0, 1.0, 1.0}
 
-   self._periodicDirs = tbl.periodicDirs and tbl.periodicDirs or {}
+   self._periodicDirs  = tbl.periodicDirs and tbl.periodicDirs or {}
    self._isDirPeriodic = {false, false, false, false, false, false}
    for _, dir in ipairs(self._periodicDirs) do
       self._isDirPeriodic[dir] = true
    end
 
-   self._lower = Lin.Vec(self._ndim)
-   self._upper = Lin.Vec(self._ndim)
-   self._dx = Lin.Vec(self._ndim)
+   self._lower    = Lin.Vec(self._ndim)
+   self._upper    = Lin.Vec(self._ndim)
+   self._dx       = Lin.Vec(self._ndim)
    self._numCells = Lin.IntVec(self._ndim)
-   self._currIdx = Lin.IntVec(self._ndim)
+   self._currIdx  = Lin.IntVec(self._ndim)
 
-   self._vol = 1.0
+   self._vol     = 1.0
    self._gridVol = 1.0
    for d = 1, #cells do
       self._lower[d], self._upper[d] = lo[d], up[d]
       self._numCells[d] = cells[d]
-      self._dx[d] = (up[d]-lo[d])/cells[d]
-      self._vol = self._vol*self._dx[d]
-      self._gridVol = self._gridVol*(up[d]-lo[d])
+      self._dx[d]       = (up[d]-lo[d])/cells[d]
+      self._vol         = self._vol*self._dx[d]
+      self._gridVol     = self._gridVol*(up[d]-lo[d])
    end
 
    -- compute global range
@@ -115,9 +115,9 @@ function RectCart:init(tbl)
       l[d], u[d] = 1, cells[d]
    end
    self._globalRange = Range.Range(l, u)   
-   self._localRange = Range.Range(l, u)
-   self._block = 1 -- block number for use in parallel communications
-   self._isShared = false
+   self._localRange  = Range.Range(l, u)
+   self._block       = 1 -- block number for use in parallel communications
+   self._isShared    = false
    
    local decomp = tbl.decomposition and tbl.decomposition or nil  -- decomposition
    if decomp then
@@ -183,6 +183,7 @@ end
 function RectCart:localRange() return self._localRange end
 function RectCart:globalRange() return self._globalRange end
 function RectCart:isDirPeriodic(dir) return self._isDirPeriodic[dir] end
+function RectCart:getPeriodicDirs() return self._periodicDirs end
 function RectCart:cuts(dir) return self._cuts[dir] end
 function RectCart:setIndex(idxIn)
    if type(idxIn) == "cdata" then
@@ -220,6 +221,10 @@ function RectCart:gridVolume() return self._gridVol end
 
 function RectCart:write(fName)
    -- nothing to write
+end
+
+function RectCart:getMappings(dir)
+   return nil
 end
 
 local _numMetricElems = { 1, 3, 6 }

@@ -62,9 +62,9 @@ function NoField:copyRk() end
 function NoField:combineRk() end
 
 return {
-   FieldBase     = FieldBase,
+   FieldBase         = FieldBase,
    ExternalFieldBase = ExternalFieldBase,
-   FuncFieldBase = ExternalFieldBase, -- for backwards compat
-   NoField       = NoField
+   FuncFieldBase     = ExternalFieldBase,   -- For backwards compatibility.
+   NoField           = NoField
 }
 

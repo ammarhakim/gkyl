@@ -236,55 +236,65 @@ void ConstHyperDiffusion4BoundarySurf3xSerP2_X1(const double *wl, const double *
 
   if (idxr[0] == 1) {
 
-  incr2[1] = 5.809475019311125*fr[7]; 
-  incr2[4] = 5.809475019311126*fr[11]; 
-  incr2[5] = 5.809475019311126*fr[13]; 
-  incr2[7] = -22.5*fr[7]; 
-  incr2[10] = 5.809475019311125*fr[17]; 
-  incr2[11] = -22.5*fr[11]; 
-  incr2[13] = -22.5*fr[13]; 
-  incr2[17] = -22.5*fr[17]; 
 
-  incr3[7] = 22.5*fr[7]-5.809475019311125*fr[1]; 
-  incr3[11] = 22.5*fr[11]-5.809475019311126*fr[4]; 
-  incr3[13] = 22.5*fr[13]-5.809475019311126*fr[5]; 
-  incr3[17] = 22.5*fr[17]-5.809475019311125*fr[10]; 
+  incr2[1] = 2.8125*fr[1]-5.083290641897234*fr[7]; 
+  incr2[4] = 2.8125*fr[4]-5.083290641897235*fr[11]; 
+  incr2[5] = 2.8125*fr[5]-5.083290641897235*fr[13]; 
+  incr2[7] = 19.6875*fr[7]-10.89276566120836*fr[1]; 
+  incr2[10] = 2.8125*fr[10]-5.083290641897234*fr[17]; 
+  incr2[11] = 19.6875*fr[11]-10.89276566120836*fr[4]; 
+  incr2[12] = 2.8125*fr[12]; 
+  incr2[13] = 19.6875*fr[13]-10.89276566120836*fr[5]; 
+  incr2[15] = 2.8125*fr[15]; 
+  incr2[17] = 19.6875*fr[17]-10.89276566120836*fr[10]; 
+  incr2[18] = 2.8125*fr[18]; 
+  incr2[19] = 2.8125*fr[19]; 
+
 
 
   outr[1] += -1.0*incr2[1]*rdxFnur; 
   outr[4] += -1.0*incr2[4]*rdxFnur; 
   outr[5] += -1.0*incr2[5]*rdxFnur; 
-  outr[7] += (-1.0*incr3[7]*rdxFnur)-1.0*incr2[7]*rdxFnur; 
+  outr[7] += -1.0*incr2[7]*rdxFnur; 
   outr[10] += -1.0*incr2[10]*rdxFnur; 
-  outr[11] += (-1.0*incr3[11]*rdxFnur)-1.0*incr2[11]*rdxFnur; 
-  outr[13] += (-1.0*incr3[13]*rdxFnur)-1.0*incr2[13]*rdxFnur; 
-  outr[17] += (-1.0*incr3[17]*rdxFnur)-1.0*incr2[17]*rdxFnur; 
+  outr[11] += -1.0*incr2[11]*rdxFnur; 
+  outr[12] += -1.0*incr2[12]*rdxFnur; 
+  outr[13] += -1.0*incr2[13]*rdxFnur; 
+  outr[15] += -1.0*incr2[15]*rdxFnur; 
+  outr[17] += -1.0*incr2[17]*rdxFnur; 
+  outr[18] += -1.0*incr2[18]*rdxFnur; 
+  outr[19] += -1.0*incr2[19]*rdxFnur; 
 
   } else {
 
-  incr2[1] = 5.809475019311125*fl[7]; 
-  incr2[4] = 5.809475019311126*fl[11]; 
-  incr2[5] = 5.809475019311126*fl[13]; 
-  incr2[7] = -22.5*fl[7]; 
-  incr2[10] = 5.809475019311125*fl[17]; 
-  incr2[11] = -22.5*fl[11]; 
-  incr2[13] = -22.5*fl[13]; 
-  incr2[17] = -22.5*fl[17]; 
 
-  incr3[7] = (-22.5*fl[7])-5.809475019311125*fl[1]; 
-  incr3[11] = (-22.5*fl[11])-5.809475019311126*fl[4]; 
-  incr3[13] = (-22.5*fl[13])-5.809475019311126*fl[5]; 
-  incr3[17] = (-22.5*fl[17])-5.809475019311125*fl[10]; 
+  incr2[1] = 5.083290641897234*fl[7]+2.8125*fl[1]; 
+  incr2[4] = 5.083290641897235*fl[11]+2.8125*fl[4]; 
+  incr2[5] = 5.083290641897235*fl[13]+2.8125*fl[5]; 
+  incr2[7] = 19.6875*fl[7]+10.89276566120836*fl[1]; 
+  incr2[10] = 5.083290641897234*fl[17]+2.8125*fl[10]; 
+  incr2[11] = 19.6875*fl[11]+10.89276566120836*fl[4]; 
+  incr2[12] = 2.8125*fl[12]; 
+  incr2[13] = 19.6875*fl[13]+10.89276566120836*fl[5]; 
+  incr2[15] = 2.8125*fl[15]; 
+  incr2[17] = 19.6875*fl[17]+10.89276566120836*fl[10]; 
+  incr2[18] = 2.8125*fl[18]; 
+  incr2[19] = 2.8125*fl[19]; 
 
 
-  outl[1] += incr2[1]*rdxFnul; 
-  outl[4] += incr2[4]*rdxFnul; 
-  outl[5] += incr2[5]*rdxFnul; 
-  outl[7] += incr3[7]*rdxFnul-1.0*incr2[7]*rdxFnul; 
-  outl[10] += incr2[10]*rdxFnul; 
-  outl[11] += incr3[11]*rdxFnul-1.0*incr2[11]*rdxFnul; 
-  outl[13] += incr3[13]*rdxFnul-1.0*incr2[13]*rdxFnul; 
-  outl[17] += incr3[17]*rdxFnul-1.0*incr2[17]*rdxFnul; 
+
+  outl[1] += -1.0*incr2[1]*rdxFnul; 
+  outl[4] += -1.0*incr2[4]*rdxFnul; 
+  outl[5] += -1.0*incr2[5]*rdxFnul; 
+  outl[7] += -1.0*incr2[7]*rdxFnul; 
+  outl[10] += -1.0*incr2[10]*rdxFnul; 
+  outl[11] += -1.0*incr2[11]*rdxFnul; 
+  outl[12] += -1.0*incr2[12]*rdxFnul; 
+  outl[13] += -1.0*incr2[13]*rdxFnul; 
+  outl[15] += -1.0*incr2[15]*rdxFnul; 
+  outl[17] += -1.0*incr2[17]*rdxFnul; 
+  outl[18] += -1.0*incr2[18]*rdxFnul; 
+  outl[19] += -1.0*incr2[19]*rdxFnul; 
 
   }
 
@@ -307,55 +317,65 @@ void ConstHyperDiffusion4BoundarySurf3xSerP2_X2(const double *wl, const double *
 
   if (idxr[1] == 1) {
 
-  incr2[2] = 5.809475019311125*fr[8]; 
-  incr2[4] = 5.809475019311126*fr[12]; 
-  incr2[6] = 5.809475019311126*fr[14]; 
-  incr2[8] = -22.5*fr[8]; 
-  incr2[10] = 5.809475019311125*fr[18]; 
-  incr2[12] = -22.5*fr[12]; 
-  incr2[14] = -22.5*fr[14]; 
-  incr2[18] = -22.5*fr[18]; 
 
-  incr3[8] = 22.5*fr[8]-5.809475019311125*fr[2]; 
-  incr3[12] = 22.5*fr[12]-5.809475019311126*fr[4]; 
-  incr3[14] = 22.5*fr[14]-5.809475019311126*fr[6]; 
-  incr3[18] = 22.5*fr[18]-5.809475019311125*fr[10]; 
+  incr2[2] = 2.8125*fr[2]-5.083290641897234*fr[8]; 
+  incr2[4] = 2.8125*fr[4]-5.083290641897235*fr[12]; 
+  incr2[6] = 2.8125*fr[6]-5.083290641897235*fr[14]; 
+  incr2[8] = 19.6875*fr[8]-10.89276566120836*fr[2]; 
+  incr2[10] = 2.8125*fr[10]-5.083290641897234*fr[18]; 
+  incr2[11] = 2.8125*fr[11]; 
+  incr2[12] = 19.6875*fr[12]-10.89276566120836*fr[4]; 
+  incr2[14] = 19.6875*fr[14]-10.89276566120836*fr[6]; 
+  incr2[16] = 2.8125*fr[16]; 
+  incr2[17] = 2.8125*fr[17]; 
+  incr2[18] = 19.6875*fr[18]-10.89276566120836*fr[10]; 
+  incr2[19] = 2.8125*fr[19]; 
+
 
 
   outr[2] += -1.0*incr2[2]*rdxFnur; 
   outr[4] += -1.0*incr2[4]*rdxFnur; 
   outr[6] += -1.0*incr2[6]*rdxFnur; 
-  outr[8] += (-1.0*incr3[8]*rdxFnur)-1.0*incr2[8]*rdxFnur; 
+  outr[8] += -1.0*incr2[8]*rdxFnur; 
   outr[10] += -1.0*incr2[10]*rdxFnur; 
-  outr[12] += (-1.0*incr3[12]*rdxFnur)-1.0*incr2[12]*rdxFnur; 
-  outr[14] += (-1.0*incr3[14]*rdxFnur)-1.0*incr2[14]*rdxFnur; 
-  outr[18] += (-1.0*incr3[18]*rdxFnur)-1.0*incr2[18]*rdxFnur; 
+  outr[11] += -1.0*incr2[11]*rdxFnur; 
+  outr[12] += -1.0*incr2[12]*rdxFnur; 
+  outr[14] += -1.0*incr2[14]*rdxFnur; 
+  outr[16] += -1.0*incr2[16]*rdxFnur; 
+  outr[17] += -1.0*incr2[17]*rdxFnur; 
+  outr[18] += -1.0*incr2[18]*rdxFnur; 
+  outr[19] += -1.0*incr2[19]*rdxFnur; 
 
   } else {
 
-  incr2[2] = 5.809475019311125*fl[8]; 
-  incr2[4] = 5.809475019311126*fl[12]; 
-  incr2[6] = 5.809475019311126*fl[14]; 
-  incr2[8] = -22.5*fl[8]; 
-  incr2[10] = 5.809475019311125*fl[18]; 
-  incr2[12] = -22.5*fl[12]; 
-  incr2[14] = -22.5*fl[14]; 
-  incr2[18] = -22.5*fl[18]; 
 
-  incr3[8] = (-22.5*fl[8])-5.809475019311125*fl[2]; 
-  incr3[12] = (-22.5*fl[12])-5.809475019311126*fl[4]; 
-  incr3[14] = (-22.5*fl[14])-5.809475019311126*fl[6]; 
-  incr3[18] = (-22.5*fl[18])-5.809475019311125*fl[10]; 
+  incr2[2] = 5.083290641897234*fl[8]+2.8125*fl[2]; 
+  incr2[4] = 5.083290641897235*fl[12]+2.8125*fl[4]; 
+  incr2[6] = 5.083290641897235*fl[14]+2.8125*fl[6]; 
+  incr2[8] = 19.6875*fl[8]+10.89276566120836*fl[2]; 
+  incr2[10] = 5.083290641897234*fl[18]+2.8125*fl[10]; 
+  incr2[11] = 2.8125*fl[11]; 
+  incr2[12] = 19.6875*fl[12]+10.89276566120836*fl[4]; 
+  incr2[14] = 19.6875*fl[14]+10.89276566120836*fl[6]; 
+  incr2[16] = 2.8125*fl[16]; 
+  incr2[17] = 2.8125*fl[17]; 
+  incr2[18] = 19.6875*fl[18]+10.89276566120836*fl[10]; 
+  incr2[19] = 2.8125*fl[19]; 
 
 
-  outl[2] += incr2[2]*rdxFnul; 
-  outl[4] += incr2[4]*rdxFnul; 
-  outl[6] += incr2[6]*rdxFnul; 
-  outl[8] += incr3[8]*rdxFnul-1.0*incr2[8]*rdxFnul; 
-  outl[10] += incr2[10]*rdxFnul; 
-  outl[12] += incr3[12]*rdxFnul-1.0*incr2[12]*rdxFnul; 
-  outl[14] += incr3[14]*rdxFnul-1.0*incr2[14]*rdxFnul; 
-  outl[18] += incr3[18]*rdxFnul-1.0*incr2[18]*rdxFnul; 
+
+  outl[2] += -1.0*incr2[2]*rdxFnul; 
+  outl[4] += -1.0*incr2[4]*rdxFnul; 
+  outl[6] += -1.0*incr2[6]*rdxFnul; 
+  outl[8] += -1.0*incr2[8]*rdxFnul; 
+  outl[10] += -1.0*incr2[10]*rdxFnul; 
+  outl[11] += -1.0*incr2[11]*rdxFnul; 
+  outl[12] += -1.0*incr2[12]*rdxFnul; 
+  outl[14] += -1.0*incr2[14]*rdxFnul; 
+  outl[16] += -1.0*incr2[16]*rdxFnul; 
+  outl[17] += -1.0*incr2[17]*rdxFnul; 
+  outl[18] += -1.0*incr2[18]*rdxFnul; 
+  outl[19] += -1.0*incr2[19]*rdxFnul; 
 
   }
 
@@ -378,55 +398,65 @@ void ConstHyperDiffusion4BoundarySurf3xSerP2_X3(const double *wl, const double *
 
   if (idxr[2] == 1) {
 
-  incr2[3] = 5.809475019311125*fr[9]; 
-  incr2[5] = 5.809475019311126*fr[15]; 
-  incr2[6] = 5.809475019311126*fr[16]; 
-  incr2[9] = -22.5*fr[9]; 
-  incr2[10] = 5.809475019311125*fr[19]; 
-  incr2[15] = -22.5*fr[15]; 
-  incr2[16] = -22.5*fr[16]; 
-  incr2[19] = -22.5*fr[19]; 
 
-  incr3[9] = 22.5*fr[9]-5.809475019311125*fr[3]; 
-  incr3[15] = 22.5*fr[15]-5.809475019311126*fr[5]; 
-  incr3[16] = 22.5*fr[16]-5.809475019311126*fr[6]; 
-  incr3[19] = 22.5*fr[19]-5.809475019311125*fr[10]; 
+  incr2[3] = 2.8125*fr[3]-5.083290641897234*fr[9]; 
+  incr2[5] = 2.8125*fr[5]-5.083290641897235*fr[15]; 
+  incr2[6] = 2.8125*fr[6]-5.083290641897235*fr[16]; 
+  incr2[9] = 19.6875*fr[9]-10.89276566120836*fr[3]; 
+  incr2[10] = 2.8125*fr[10]-5.083290641897234*fr[19]; 
+  incr2[13] = 2.8125*fr[13]; 
+  incr2[14] = 2.8125*fr[14]; 
+  incr2[15] = 19.6875*fr[15]-10.89276566120836*fr[5]; 
+  incr2[16] = 19.6875*fr[16]-10.89276566120836*fr[6]; 
+  incr2[17] = 2.8125*fr[17]; 
+  incr2[18] = 2.8125*fr[18]; 
+  incr2[19] = 19.6875*fr[19]-10.89276566120836*fr[10]; 
+
 
 
   outr[3] += -1.0*incr2[3]*rdxFnur; 
   outr[5] += -1.0*incr2[5]*rdxFnur; 
   outr[6] += -1.0*incr2[6]*rdxFnur; 
-  outr[9] += (-1.0*incr3[9]*rdxFnur)-1.0*incr2[9]*rdxFnur; 
+  outr[9] += -1.0*incr2[9]*rdxFnur; 
   outr[10] += -1.0*incr2[10]*rdxFnur; 
-  outr[15] += (-1.0*incr3[15]*rdxFnur)-1.0*incr2[15]*rdxFnur; 
-  outr[16] += (-1.0*incr3[16]*rdxFnur)-1.0*incr2[16]*rdxFnur; 
-  outr[19] += (-1.0*incr3[19]*rdxFnur)-1.0*incr2[19]*rdxFnur; 
+  outr[13] += -1.0*incr2[13]*rdxFnur; 
+  outr[14] += -1.0*incr2[14]*rdxFnur; 
+  outr[15] += -1.0*incr2[15]*rdxFnur; 
+  outr[16] += -1.0*incr2[16]*rdxFnur; 
+  outr[17] += -1.0*incr2[17]*rdxFnur; 
+  outr[18] += -1.0*incr2[18]*rdxFnur; 
+  outr[19] += -1.0*incr2[19]*rdxFnur; 
 
   } else {
 
-  incr2[3] = 5.809475019311125*fl[9]; 
-  incr2[5] = 5.809475019311126*fl[15]; 
-  incr2[6] = 5.809475019311126*fl[16]; 
-  incr2[9] = -22.5*fl[9]; 
-  incr2[10] = 5.809475019311125*fl[19]; 
-  incr2[15] = -22.5*fl[15]; 
-  incr2[16] = -22.5*fl[16]; 
-  incr2[19] = -22.5*fl[19]; 
 
-  incr3[9] = (-22.5*fl[9])-5.809475019311125*fl[3]; 
-  incr3[15] = (-22.5*fl[15])-5.809475019311126*fl[5]; 
-  incr3[16] = (-22.5*fl[16])-5.809475019311126*fl[6]; 
-  incr3[19] = (-22.5*fl[19])-5.809475019311125*fl[10]; 
+  incr2[3] = 5.083290641897234*fl[9]+2.8125*fl[3]; 
+  incr2[5] = 5.083290641897235*fl[15]+2.8125*fl[5]; 
+  incr2[6] = 5.083290641897235*fl[16]+2.8125*fl[6]; 
+  incr2[9] = 19.6875*fl[9]+10.89276566120836*fl[3]; 
+  incr2[10] = 5.083290641897234*fl[19]+2.8125*fl[10]; 
+  incr2[13] = 2.8125*fl[13]; 
+  incr2[14] = 2.8125*fl[14]; 
+  incr2[15] = 19.6875*fl[15]+10.89276566120836*fl[5]; 
+  incr2[16] = 19.6875*fl[16]+10.89276566120836*fl[6]; 
+  incr2[17] = 2.8125*fl[17]; 
+  incr2[18] = 2.8125*fl[18]; 
+  incr2[19] = 19.6875*fl[19]+10.89276566120836*fl[10]; 
 
 
-  outl[3] += incr2[3]*rdxFnul; 
-  outl[5] += incr2[5]*rdxFnul; 
-  outl[6] += incr2[6]*rdxFnul; 
-  outl[9] += incr3[9]*rdxFnul-1.0*incr2[9]*rdxFnul; 
-  outl[10] += incr2[10]*rdxFnul; 
-  outl[15] += incr3[15]*rdxFnul-1.0*incr2[15]*rdxFnul; 
-  outl[16] += incr3[16]*rdxFnul-1.0*incr2[16]*rdxFnul; 
-  outl[19] += incr3[19]*rdxFnul-1.0*incr2[19]*rdxFnul; 
+
+  outl[3] += -1.0*incr2[3]*rdxFnul; 
+  outl[5] += -1.0*incr2[5]*rdxFnul; 
+  outl[6] += -1.0*incr2[6]*rdxFnul; 
+  outl[9] += -1.0*incr2[9]*rdxFnul; 
+  outl[10] += -1.0*incr2[10]*rdxFnul; 
+  outl[13] += -1.0*incr2[13]*rdxFnul; 
+  outl[14] += -1.0*incr2[14]*rdxFnul; 
+  outl[15] += -1.0*incr2[15]*rdxFnul; 
+  outl[16] += -1.0*incr2[16]*rdxFnul; 
+  outl[17] += -1.0*incr2[17]*rdxFnul; 
+  outl[18] += -1.0*incr2[18]*rdxFnul; 
+  outl[19] += -1.0*incr2[19]*rdxFnul; 
 
   }
 
@@ -452,18 +482,68 @@ void ConstHyperDiffusion6BoundarySurf3xSerP2_X1(const double *wl, const double *
   if (idxr[0] == 1) {
 
 
+  incr2[1] = 19.06233990711463*fr[7]-4.921875*fr[1]; 
+  incr2[4] = 19.06233990711463*fr[11]-4.921875*fr[4]; 
+  incr2[5] = 19.06233990711463*fr[13]-4.921875*fr[5]; 
+  incr2[7] = 19.06233990711463*fr[1]-73.828125*fr[7]; 
+  incr2[10] = 19.06233990711463*fr[17]-4.921875*fr[10]; 
+  incr2[11] = 19.06233990711463*fr[4]-73.828125*fr[11]; 
+  incr2[12] = -4.921875*fr[12]; 
+  incr2[13] = 19.06233990711463*fr[5]-73.828125*fr[13]; 
+  incr2[15] = -4.921875*fr[15]; 
+  incr2[17] = 19.06233990711463*fr[10]-73.828125*fr[17]; 
+  incr2[18] = -4.921875*fr[18]; 
+  incr2[19] = -4.921875*fr[19]; 
 
 
 
 
+
+  outr[1] += incr2[1]*rdxFnur; 
+  outr[4] += incr2[4]*rdxFnur; 
+  outr[5] += incr2[5]*rdxFnur; 
+  outr[7] += incr2[7]*rdxFnur; 
+  outr[10] += incr2[10]*rdxFnur; 
+  outr[11] += incr2[11]*rdxFnur; 
+  outr[12] += incr2[12]*rdxFnur; 
+  outr[13] += incr2[13]*rdxFnur; 
+  outr[15] += incr2[15]*rdxFnur; 
+  outr[17] += incr2[17]*rdxFnur; 
+  outr[18] += incr2[18]*rdxFnur; 
+  outr[19] += incr2[19]*rdxFnur; 
 
   } else {
 
 
+  incr2[1] = (-19.06233990711463*fl[7])-4.921875*fl[1]; 
+  incr2[4] = (-19.06233990711463*fl[11])-4.921875*fl[4]; 
+  incr2[5] = (-19.06233990711463*fl[13])-4.921875*fl[5]; 
+  incr2[7] = (-73.828125*fl[7])-19.06233990711463*fl[1]; 
+  incr2[10] = (-19.06233990711463*fl[17])-4.921875*fl[10]; 
+  incr2[11] = (-73.828125*fl[11])-19.06233990711463*fl[4]; 
+  incr2[12] = -4.921875*fl[12]; 
+  incr2[13] = (-73.828125*fl[13])-19.06233990711463*fl[5]; 
+  incr2[15] = -4.921875*fl[15]; 
+  incr2[17] = (-73.828125*fl[17])-19.06233990711463*fl[10]; 
+  incr2[18] = -4.921875*fl[18]; 
+  incr2[19] = -4.921875*fl[19]; 
 
 
 
 
+
+  outl[1] += incr2[1]*rdxFnul; 
+  outl[4] += incr2[4]*rdxFnul; 
+  outl[5] += incr2[5]*rdxFnul; 
+  outl[7] += incr2[7]*rdxFnul; 
+  outl[10] += incr2[10]*rdxFnul; 
+  outl[11] += incr2[11]*rdxFnul; 
+  outl[12] += incr2[12]*rdxFnul; 
+  outl[13] += incr2[13]*rdxFnul; 
+  outl[15] += incr2[15]*rdxFnul; 
+  outl[17] += incr2[17]*rdxFnul; 
+  outl[18] += incr2[18]*rdxFnul; 
+  outl[19] += incr2[19]*rdxFnul; 
 
   }
 
@@ -489,18 +569,68 @@ void ConstHyperDiffusion6BoundarySurf3xSerP2_X2(const double *wl, const double *
   if (idxr[1] == 1) {
 
 
+  incr2[2] = 19.06233990711463*fr[8]-4.921875*fr[2]; 
+  incr2[4] = 19.06233990711463*fr[12]-4.921875*fr[4]; 
+  incr2[6] = 19.06233990711463*fr[14]-4.921875*fr[6]; 
+  incr2[8] = 19.06233990711463*fr[2]-73.828125*fr[8]; 
+  incr2[10] = 19.06233990711463*fr[18]-4.921875*fr[10]; 
+  incr2[11] = -4.921875*fr[11]; 
+  incr2[12] = 19.06233990711463*fr[4]-73.828125*fr[12]; 
+  incr2[14] = 19.06233990711463*fr[6]-73.828125*fr[14]; 
+  incr2[16] = -4.921875*fr[16]; 
+  incr2[17] = -4.921875*fr[17]; 
+  incr2[18] = 19.06233990711463*fr[10]-73.828125*fr[18]; 
+  incr2[19] = -4.921875*fr[19]; 
 
 
 
 
+
+  outr[2] += incr2[2]*rdxFnur; 
+  outr[4] += incr2[4]*rdxFnur; 
+  outr[6] += incr2[6]*rdxFnur; 
+  outr[8] += incr2[8]*rdxFnur; 
+  outr[10] += incr2[10]*rdxFnur; 
+  outr[11] += incr2[11]*rdxFnur; 
+  outr[12] += incr2[12]*rdxFnur; 
+  outr[14] += incr2[14]*rdxFnur; 
+  outr[16] += incr2[16]*rdxFnur; 
+  outr[17] += incr2[17]*rdxFnur; 
+  outr[18] += incr2[18]*rdxFnur; 
+  outr[19] += incr2[19]*rdxFnur; 
 
   } else {
 
 
+  incr2[2] = (-19.06233990711463*fl[8])-4.921875*fl[2]; 
+  incr2[4] = (-19.06233990711463*fl[12])-4.921875*fl[4]; 
+  incr2[6] = (-19.06233990711463*fl[14])-4.921875*fl[6]; 
+  incr2[8] = (-73.828125*fl[8])-19.06233990711463*fl[2]; 
+  incr2[10] = (-19.06233990711463*fl[18])-4.921875*fl[10]; 
+  incr2[11] = -4.921875*fl[11]; 
+  incr2[12] = (-73.828125*fl[12])-19.06233990711463*fl[4]; 
+  incr2[14] = (-73.828125*fl[14])-19.06233990711463*fl[6]; 
+  incr2[16] = -4.921875*fl[16]; 
+  incr2[17] = -4.921875*fl[17]; 
+  incr2[18] = (-73.828125*fl[18])-19.06233990711463*fl[10]; 
+  incr2[19] = -4.921875*fl[19]; 
 
 
 
 
+
+  outl[2] += incr2[2]*rdxFnul; 
+  outl[4] += incr2[4]*rdxFnul; 
+  outl[6] += incr2[6]*rdxFnul; 
+  outl[8] += incr2[8]*rdxFnul; 
+  outl[10] += incr2[10]*rdxFnul; 
+  outl[11] += incr2[11]*rdxFnul; 
+  outl[12] += incr2[12]*rdxFnul; 
+  outl[14] += incr2[14]*rdxFnul; 
+  outl[16] += incr2[16]*rdxFnul; 
+  outl[17] += incr2[17]*rdxFnul; 
+  outl[18] += incr2[18]*rdxFnul; 
+  outl[19] += incr2[19]*rdxFnul; 
 
   }
 
@@ -526,18 +656,68 @@ void ConstHyperDiffusion6BoundarySurf3xSerP2_X3(const double *wl, const double *
   if (idxr[2] == 1) {
 
 
+  incr2[3] = 19.06233990711463*fr[9]-4.921875*fr[3]; 
+  incr2[5] = 19.06233990711463*fr[15]-4.921875*fr[5]; 
+  incr2[6] = 19.06233990711463*fr[16]-4.921875*fr[6]; 
+  incr2[9] = 19.06233990711463*fr[3]-73.828125*fr[9]; 
+  incr2[10] = 19.06233990711463*fr[19]-4.921875*fr[10]; 
+  incr2[13] = -4.921875*fr[13]; 
+  incr2[14] = -4.921875*fr[14]; 
+  incr2[15] = 19.06233990711463*fr[5]-73.828125*fr[15]; 
+  incr2[16] = 19.06233990711463*fr[6]-73.828125*fr[16]; 
+  incr2[17] = -4.921875*fr[17]; 
+  incr2[18] = -4.921875*fr[18]; 
+  incr2[19] = 19.06233990711463*fr[10]-73.828125*fr[19]; 
 
 
 
 
+
+  outr[3] += incr2[3]*rdxFnur; 
+  outr[5] += incr2[5]*rdxFnur; 
+  outr[6] += incr2[6]*rdxFnur; 
+  outr[9] += incr2[9]*rdxFnur; 
+  outr[10] += incr2[10]*rdxFnur; 
+  outr[13] += incr2[13]*rdxFnur; 
+  outr[14] += incr2[14]*rdxFnur; 
+  outr[15] += incr2[15]*rdxFnur; 
+  outr[16] += incr2[16]*rdxFnur; 
+  outr[17] += incr2[17]*rdxFnur; 
+  outr[18] += incr2[18]*rdxFnur; 
+  outr[19] += incr2[19]*rdxFnur; 
 
   } else {
 
 
+  incr2[3] = (-19.06233990711463*fl[9])-4.921875*fl[3]; 
+  incr2[5] = (-19.06233990711463*fl[15])-4.921875*fl[5]; 
+  incr2[6] = (-19.06233990711463*fl[16])-4.921875*fl[6]; 
+  incr2[9] = (-73.828125*fl[9])-19.06233990711463*fl[3]; 
+  incr2[10] = (-19.06233990711463*fl[19])-4.921875*fl[10]; 
+  incr2[13] = -4.921875*fl[13]; 
+  incr2[14] = -4.921875*fl[14]; 
+  incr2[15] = (-73.828125*fl[15])-19.06233990711463*fl[5]; 
+  incr2[16] = (-73.828125*fl[16])-19.06233990711463*fl[6]; 
+  incr2[17] = -4.921875*fl[17]; 
+  incr2[18] = -4.921875*fl[18]; 
+  incr2[19] = (-73.828125*fl[19])-19.06233990711463*fl[10]; 
 
 
 
 
+
+  outl[3] += incr2[3]*rdxFnul; 
+  outl[5] += incr2[5]*rdxFnul; 
+  outl[6] += incr2[6]*rdxFnul; 
+  outl[9] += incr2[9]*rdxFnul; 
+  outl[10] += incr2[10]*rdxFnul; 
+  outl[13] += incr2[13]*rdxFnul; 
+  outl[14] += incr2[14]*rdxFnul; 
+  outl[15] += incr2[15]*rdxFnul; 
+  outl[16] += incr2[16]*rdxFnul; 
+  outl[17] += incr2[17]*rdxFnul; 
+  outl[18] += incr2[18]*rdxFnul; 
+  outl[19] += incr2[19]*rdxFnul; 
 
   }
 

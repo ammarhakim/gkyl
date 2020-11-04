@@ -25,6 +25,7 @@ local date = require "xsys.date"
 local lfs = require "lfs"
 local lume = require "Lib.lume"
 local xsys = require "xsys"
+math = require("sci.math").generic -- this is global so that it affects input file
 
 -- App loads (do not load specific app objects here, but only things
 -- needed to run the App itself. Specific objects should be loaded in
@@ -149,6 +150,34 @@ local function buildApplication(self, tbl)
       end
    end
 
+   -- configuration space decomp object (eventually, this will be
+   -- slaved to the phase-space decomp)
+   local decomp = DecompRegionCalc.CartProd {
+      cuts = decompCuts,
+      useShared = useShared,
+   }
+
+   -- Pick grid ctor based on uniform/non-uniform grid.
+   local GridConstructor = Grid.RectCart
+   if tbl.coordinateMap then
+      GridConstructor = Grid.NonUniformRectCart
+   elseif tbl.mapc2p then 
+      GridConstructor = Grid.MappedCart
+   end
+   -- Setup configuration space grid.
+   local confGrid = GridConstructor {
+      lower = tbl.lower,
+      upper = tbl.upper,
+      cells = tbl.cells,
+      periodicDirs  = periodicDirs,
+      decomposition = decomp,
+      mappings      = tbl.coordinateMap,
+      mapc2p        = tbl.mapc2p,
+      world         = tbl.world,
+   }
+   --confGrid:write("grid.bp")
+
+
    -- Read in information about each species.
    local species = {}
    for nm, val in pairs(tbl) do
@@ -162,10 +191,13 @@ local function buildApplication(self, tbl)
 
    -- Setup each species.
    for _, s in pairs(species) do
-      s:createGrid(tbl.lower, tbl.upper, tbl.cells, decompCuts,
-		   periodicDirs, tbl.coordinateMap)
+      -- Set up conf grid and basis.
+      s:setConfGrid(confGrid)
       s:setConfBasis(confBasis)
+      -- Set up phase grid and basis.
+      s:createGrid(confGrid)
       s:createBasis(basisNm, polyOrder)
+      s:alloc(stepperNumFields[timeStepperNm])
    end
 
    -- Read in information about each species.
@@ -178,40 +210,12 @@ local function buildApplication(self, tbl)
       end
    end
 
-   -- Configuration space decomp object (eventually, this will be
-   -- slaved to the phase-space decomp).
-   local decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts,
-      useShared = useShared,
-   }
-
-   -- Pick grid ctor based on uniform/non-uniform grid.
-   local GridConstructor = Grid.RectCart
-   if tbl.coordinateMap then
-      GridConstructor = Grid.NonUniformRectCart
-   end
-   -- Setup configuration space grid.
-   local grid = GridConstructor {
-      lower = tbl.lower,
-      upper = tbl.upper,
-      cells = tbl.cells,
-      periodicDirs = periodicDirs,
-      decomposition = decomp,
-      mappings = tbl.coordinateMap,
-   }
-
    -- Add grid to app object.
-   self._confGrid = grid
-
-   -- Set conf grid for each species.
-   for _, s in pairs(species) do
-      s:setConfGrid(grid)
-      s:alloc(stepperNumFields[timeStepperNm])
-   end
+   self._confGrid = confGrid
 
    -- Set conf grid for each source.
    for _, s in pairs(sources) do
-      s:setConfGrid(grid)
+      s:setConfGrid(confGrid)
    end   
 
    local cflMin = GKYL_MAX_DOUBLE
@@ -227,7 +231,7 @@ local function buildApplication(self, tbl)
       fld:fullInit(tbl) -- Complete initialization.
       fld:setIoMethod(ioMethod)
       fld:setBasis(confBasis)
-      fld:setGrid(grid)
+      fld:setGrid(confGrid)
       do
 	 local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
 	 if fld.isElliptic then
@@ -360,7 +364,8 @@ local function buildApplication(self, tbl)
       -- and adjust tStart accordingly.
       tStart = readRestart()
    else
-      writeData(0.0) -- Write inital conditions.
+      writeData(0.0)      -- Write initial conditions.
+      writeRestart(0.0)   -- Write initial conditions as a restart file.
    end
 
    -- Determine whether we need two steps in forwardEuler.
@@ -627,7 +632,7 @@ local function buildApplication(self, tbl)
 		  isInv = false
 		  tryInv[s] = true
 		  log(string.format(
-			 "\n ** Invalid values in %s; Will re-update using Lax flux!", nm))
+			 "\n ** Invalid values in %s; Will re-update using Lax flux!\n", nm))
 	       end
 	    end
 	    -- Break the loop if any species is invalid.
@@ -667,7 +672,7 @@ local function buildApplication(self, tbl)
    end
 
    local tmEnd = Time.clock()
-   log(string.format("Initializing completed in %g sec\n\n", tmEnd-tmStart))
+   log(string.format("Initialization completed in %g sec\n\n", tmEnd-tmStart))
 
    -- Read some info about restarts (default is to write restarts 1/20 (5%) of sim, 
    -- but no need to write restarts more frequently than regular diagnostic output).

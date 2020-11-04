@@ -1,5 +1,6 @@
 load("basis-precalc/basis-pre-calc");
 
+/*
 for c : 1 thru 2 do (
   for v : c thru 3 do (
    fname : sconcat("~/max-out/basisSer", c, "x", v, "v", ".lisp"),
@@ -8,4 +9,5 @@ for c : 1 thru 2 do (
 )$
 
 writeBasisToFile(3, 3, 4, makeSerendipBasis, "~/max-out/basisSer3x3v.lisp")$
-writeBasisToFile(3, 2, 4, makeSerendipBasis, "~/max-out/basisSer3x2v.lisp")$
+writeBasisToFile(3, 2, 4, makeSerendipBasis, "~/max-out/basisSer3x2v.lisp")$*/
+writeBasisToFile(3, 1, 4, makeSerendipBasis, "~/max-out/basisSer3x1v.lisp")$
