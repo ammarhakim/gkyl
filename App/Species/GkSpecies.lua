@@ -570,7 +570,7 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       end
    end
 
-   self.useCellAvMaxwell = false
+   self.useCellAvMaxwell = true
    -- If ionization collision object exists, locate electrons
    local counterIz_elc = true
    local counterIz_neut = true
@@ -1596,11 +1596,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {self.voronovReactRate})
 	 species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
 
-	 if self.useCellAvMaxwell == true then
-	    self.calcCellAvMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
-	 else
-	    self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
-	 end
+	 self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
 	 
 	 self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
 	 self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
