@@ -401,8 +401,6 @@ def build(bld):
 
     MappedPoissonImpl.cpp
 
-    GkMaxwellianOnBasisImplOrg.cpp
-
     maxwellianOnBasisData/MaxwellianOnBasisImpl.cpp
     maxwellianOnBasisData/MaxwellianOnBasisSer1x1vP1.cpp
     maxwellianOnBasisData/MaxwellianOnBasisSer1x1vP2.cpp
