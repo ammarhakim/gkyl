@@ -161,7 +161,7 @@ calcMaxwellianProjGauss(fh, funcNm, cdim, vdim, basisNm, polyOrder, isGK) := blo
     
   /* Generate the kernel that evaluates at configuration space ordinates. */
   evaluateConfOrd(fh, funcNm, cdim, vdim, udim, basisNm, polyOrder, isGK),
-  if vdim=3 then (
+  if (not isGK) and (vdim>1) then (
     /* Generate a kernel which takes a single-dimension flow velocity.
        This is to project a Maxwellian on the 3v grid when we take just
        the flow velocity in the third velocity dimension and assume

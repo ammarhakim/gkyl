@@ -4,6 +4,11 @@
 -- moments and project it on basis functions. Uses Gaussian
 -- quadrature.
 --
+-- Note: There's an implementation below that has more calculations in Lua.
+--       This is slower but it is kept because as of 11/03/2020 it is the only
+--       way to do quadrature with >polyOrder+1 quad points. We could add support
+--       for such quadratures in the C implementation by generating more kernels.
+--
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
@@ -66,17 +71,15 @@ function MaxwellianOnBasis:init(tbl)
       self.numConfOrds = numQuad1D^self._cDim 
 
       if self.isGK then
-         self._uDimIn  = tbl.uDriftInDim and tbl.uDriftInDim or 1
          self.uFlowOrd = Lin.Vec(self.numConfOrds)
       else
-         self._uDimIn  = tbl.uDriftInDim and tbl.uDriftInDim or self._vDim 
          self.uFlowOrd = Lin.Vec(self.numConfOrds*self._vDim)
       end
       self.vtSqOrd    = Lin.Vec(self.numConfOrds)
       self.normFacOrd = Lin.Vec(self.numConfOrds)
       self.bmagOrd    = Lin.Vec(self.numConfOrds)
 
-      local quadFuncs = MaxwellianModDecl.selectQuad(self.confBasis:id(), self._cDim, self._vDim, self._uDimIn, self.confBasis:polyOrder(), self.quadType, self.isGK)
+      local quadFuncs = MaxwellianModDecl.selectQuad(self.confBasis:id(), self._cDim, self._vDim, self.confBasis:polyOrder(), self.quadType, self.isGK)
       self._evAtConfOrds = quadFuncs[1]
       self._phaseQuad    = quadFuncs[2]
 
@@ -157,11 +160,15 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 
    local nItr, uFlowItr, vtSqItr = nIn:get(1), uFlowIn:get(1), vtSqIn:get(1)
    local fItr = fOut:get(1)
+
+   local uKer = 1   -- This kernel label indicates whether to take in a gyrokinetic or vlasov drift velocity.
    local bmagIn, bmagItr
    if self.isGK then
+      if uDim>1 then uKer=2 end
       bmagIn  = assert(inFld[4], "MaxwellianOnBasis: Must specify magnetic field amplitude 'inFld[4]'")
       bmagItr = bmagIn:get(1)
    else
+      if uDim~=vDim then uKer=2 end
       bmagItr = nIn:get(1)   -- Not used.
    end
 
@@ -183,8 +190,6 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 
    if self.quadImpl == "C" then
 
-      assert(uDim==self._uDimIn, "MaxwellianOnBasis: dimensions of drift velocity u must match those requested in updater creation.")
-
       -- The configuration space loop
       for cIdx in confRangeDecomp:rowMajorIter(tId) do
          nIn:fill(confIndexer(cIdx), nItr)
@@ -192,8 +197,8 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
          vtSqIn:fill(confIndexer(cIdx), vtSqItr)
          if self.isGK then bmagIn:fill(confIndexer(cIdx), bmagItr) end
 
-         self._evAtConfOrds(nItr:data(), uFlowItr:data(), vtSqItr:data(), bmagItr:data(),
-                            self.uFlowOrd:data(), self.vtSqOrd:data(), self.normFacOrd:data(), self.bmagOrd:data())
+         self._evAtConfOrds[uKer](nItr:data(), uFlowItr:data(), vtSqItr:data(), bmagItr:data(),
+                                  self.uFlowOrd:data(), self.vtSqOrd:data(), self.normFacOrd:data(), self.bmagOrd:data())
 
          -- The velocity space loop
          for vIdx in velRange:rowMajorIter() do

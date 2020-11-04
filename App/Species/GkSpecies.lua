@@ -310,15 +310,6 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       phaseBasis  = self.basis,
       mass        = self.mass,
    }
-   self.calcMaxwellFromVlasovPrimMom = Updater.MaxwellianOnBasis {
-      onGrid      = self.grid,
-      confGrid    = self.confGrid,
-      confBasis   = self.confBasis,
-      phaseGrid   = self.grid,
-      phaseBasis  = self.basis,
-      mass        = self.mass,
-      uDriftInDim = 3,
-   }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
       -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
@@ -1595,7 +1586,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {self.voronovReactRate})
 	 species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
 
- 	 self.calcMaxwellFromVlasovPrimMom:advance(tCurr, {self.numDensity, neutU, self.vtSqIz, self.bmag}, {self.fMaxwellIz})
+ 	 self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz, self.bmag}, {self.fMaxwellIz})
 	 self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
 	 self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
 	 self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})

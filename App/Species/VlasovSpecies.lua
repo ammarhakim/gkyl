@@ -167,14 +167,6 @@ function VlasovSpecies:createSolver(hasE, hasB)
       phaseGrid  = self.grid,
       phaseBasis = self.basis,
    }
-   self.calcMaxwellFromGkPrimMom = Updater.MaxwellianOnBasis {
-      onGrid      = self.grid,
-      confGrid    = self.confGrid,
-      confBasis   = self.confBasis,
-      phaseGrid   = self.grid,
-      phaseBasis  = self.basis,
-      uDriftInDim = 1,
-   }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
       -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.

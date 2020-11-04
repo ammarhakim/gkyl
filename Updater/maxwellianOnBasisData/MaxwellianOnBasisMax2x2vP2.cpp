@@ -70,6 +70,76 @@ void MaxwellianOnBasisGauss2x2vMax_P2_evAtConfOrd(const double *den, const doubl
 
 }
 
+void MaxwellianOnBasisGauss2x2vMaxUpar_P2_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, const double *bmag, double *flowUOrd, double *vtSqOrd, double *fMFacOrd, double *bmagOrd) {
+
+  flowUOrd[0] = 0.0; 
+  flowUOrd[1] = 0.0; 
+  flowUOrd[2] = 0.0; 
+  flowUOrd[3] = 0.0; 
+  flowUOrd[4] = 0.0; 
+  flowUOrd[5] = 0.0; 
+  flowUOrd[6] = 0.0; 
+  flowUOrd[7] = 0.0; 
+  flowUOrd[8] = 0.0; 
+  flowUOrd[9] = 0.5*flowU[0]-0.5590169943749475*(flowU[5]+flowU[4]); 
+  flowUOrd[10] = 0.4472135954999581*flowU[5]-0.5590169943749475*flowU[4]-0.6708203932499369*flowU[2]+0.5*flowU[0]; 
+  flowUOrd[11] = 0.4472135954999581*flowU[5]-0.5590169943749475*flowU[4]+0.6708203932499369*flowU[2]+0.5*flowU[0]; 
+  flowUOrd[12] = (-0.5590169943749475*flowU[5])+0.4472135954999581*flowU[4]-0.6708203932499369*flowU[1]+0.5*flowU[0]; 
+  flowUOrd[13] = 0.4472135954999581*(flowU[5]+flowU[4])+0.9*flowU[3]-0.6708203932499369*(flowU[2]+flowU[1])+0.5*flowU[0]; 
+  flowUOrd[14] = 0.4472135954999581*(flowU[5]+flowU[4])-0.9*flowU[3]+0.6708203932499369*flowU[2]-0.6708203932499369*flowU[1]+0.5*flowU[0]; 
+  flowUOrd[15] = (-0.5590169943749475*flowU[5])+0.4472135954999581*flowU[4]+0.6708203932499369*flowU[1]+0.5*flowU[0]; 
+  flowUOrd[16] = 0.4472135954999581*(flowU[5]+flowU[4])-0.9*flowU[3]-0.6708203932499369*flowU[2]+0.6708203932499369*flowU[1]+0.5*flowU[0]; 
+  flowUOrd[17] = 0.4472135954999581*(flowU[5]+flowU[4])+0.9*flowU[3]+0.6708203932499369*(flowU[2]+flowU[1])+0.5*flowU[0]; 
+
+  vtSqOrd[0] = 0.5*vtSq[0]-0.5590169943749475*(vtSq[5]+vtSq[4]); 
+  vtSqOrd[1] = 0.4472135954999581*vtSq[5]-0.5590169943749475*vtSq[4]-0.6708203932499369*vtSq[2]+0.5*vtSq[0]; 
+  vtSqOrd[2] = 0.4472135954999581*vtSq[5]-0.5590169943749475*vtSq[4]+0.6708203932499369*vtSq[2]+0.5*vtSq[0]; 
+  vtSqOrd[3] = (-0.5590169943749475*vtSq[5])+0.4472135954999581*vtSq[4]-0.6708203932499369*vtSq[1]+0.5*vtSq[0]; 
+  vtSqOrd[4] = 0.4472135954999581*(vtSq[5]+vtSq[4])+0.9*vtSq[3]-0.6708203932499369*(vtSq[2]+vtSq[1])+0.5*vtSq[0]; 
+  vtSqOrd[5] = 0.4472135954999581*(vtSq[5]+vtSq[4])-0.9*vtSq[3]+0.6708203932499369*vtSq[2]-0.6708203932499369*vtSq[1]+0.5*vtSq[0]; 
+  vtSqOrd[6] = (-0.5590169943749475*vtSq[5])+0.4472135954999581*vtSq[4]+0.6708203932499369*vtSq[1]+0.5*vtSq[0]; 
+  vtSqOrd[7] = 0.4472135954999581*(vtSq[5]+vtSq[4])-0.9*vtSq[3]-0.6708203932499369*vtSq[2]+0.6708203932499369*vtSq[1]+0.5*vtSq[0]; 
+  vtSqOrd[8] = 0.4472135954999581*(vtSq[5]+vtSq[4])+0.9*vtSq[3]+0.6708203932499369*(vtSq[2]+vtSq[1])+0.5*vtSq[0]; 
+
+  if (vtSqOrd[0] <= 0.0)
+    fMFacOrd[0] = 0;
+  else
+    fMFacOrd[0] = (0.1591549430918953*(0.5*den[0]-0.5590169943749475*(den[5]+den[4])))/vtSqOrd[0]; 
+  if (vtSqOrd[1] <= 0.0)
+    fMFacOrd[1] = 0;
+  else
+    fMFacOrd[1] = (0.1591549430918953*(0.4472135954999581*den[5]-0.5590169943749475*den[4]-0.6708203932499369*den[2]+0.5*den[0]))/vtSqOrd[1]; 
+  if (vtSqOrd[2] <= 0.0)
+    fMFacOrd[2] = 0;
+  else
+    fMFacOrd[2] = (0.1591549430918953*(0.4472135954999581*den[5]-0.5590169943749475*den[4]+0.6708203932499369*den[2]+0.5*den[0]))/vtSqOrd[2]; 
+  if (vtSqOrd[3] <= 0.0)
+    fMFacOrd[3] = 0;
+  else
+    fMFacOrd[3] = (0.1591549430918953*((-0.5590169943749475*den[5])+0.4472135954999581*den[4]-0.6708203932499369*den[1]+0.5*den[0]))/vtSqOrd[3]; 
+  if (vtSqOrd[4] <= 0.0)
+    fMFacOrd[4] = 0;
+  else
+    fMFacOrd[4] = (0.1591549430918953*(0.4472135954999581*(den[5]+den[4])+0.9*den[3]-0.6708203932499369*(den[2]+den[1])+0.5*den[0]))/vtSqOrd[4]; 
+  if (vtSqOrd[5] <= 0.0)
+    fMFacOrd[5] = 0;
+  else
+    fMFacOrd[5] = (0.1591549430918953*(0.4472135954999581*(den[5]+den[4])-0.9*den[3]+0.6708203932499369*den[2]-0.6708203932499369*den[1]+0.5*den[0]))/vtSqOrd[5]; 
+  if (vtSqOrd[6] <= 0.0)
+    fMFacOrd[6] = 0;
+  else
+    fMFacOrd[6] = (0.1591549430918953*((-0.5590169943749475*den[5])+0.4472135954999581*den[4]+0.6708203932499369*den[1]+0.5*den[0]))/vtSqOrd[6]; 
+  if (vtSqOrd[7] <= 0.0)
+    fMFacOrd[7] = 0;
+  else
+    fMFacOrd[7] = (0.1591549430918953*(0.4472135954999581*(den[5]+den[4])-0.9*den[3]-0.6708203932499369*den[2]+0.6708203932499369*den[1]+0.5*den[0]))/vtSqOrd[7]; 
+  if (vtSqOrd[8] <= 0.0)
+    fMFacOrd[8] = 0;
+  else
+    fMFacOrd[8] = (0.1591549430918953*(0.4472135954999581*(den[5]+den[4])+0.9*den[3]+0.6708203932499369*(den[2]+den[1])+0.5*den[0]))/vtSqOrd[8]; 
+
+}
+
 void MaxwellianOnBasisGauss2x2vMax_P2_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *bmagOrd, const double m_, const double *wc, const double *dxv, double *fMOut) {
 
   double fMquad[81];

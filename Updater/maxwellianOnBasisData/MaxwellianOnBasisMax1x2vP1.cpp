@@ -21,6 +21,27 @@ void MaxwellianOnBasisGauss1x2vMax_P1_evAtConfOrd(const double *den, const doubl
 
 }
 
+void MaxwellianOnBasisGauss1x2vMaxUpar_P1_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, const double *bmag, double *flowUOrd, double *vtSqOrd, double *fMFacOrd, double *bmagOrd) {
+
+  flowUOrd[0] = 0.0; 
+  flowUOrd[1] = 0.0; 
+  flowUOrd[2] = 0.7071067811865475*flowU[0]-0.7071067811865474*flowU[1]; 
+  flowUOrd[3] = 0.7071067811865474*flowU[1]+0.7071067811865475*flowU[0]; 
+
+  vtSqOrd[0] = 0.7071067811865475*vtSq[0]-0.7071067811865474*vtSq[1]; 
+  vtSqOrd[1] = 0.7071067811865474*vtSq[1]+0.7071067811865475*vtSq[0]; 
+
+  if (vtSqOrd[0] <= 0.0)
+    fMFacOrd[0] = 0;
+  else
+    fMFacOrd[0] = (0.1591549430918953*(0.7071067811865475*den[0]-0.7071067811865474*den[1]))/vtSqOrd[0]; 
+  if (vtSqOrd[1] <= 0.0)
+    fMFacOrd[1] = 0;
+  else
+    fMFacOrd[1] = (0.1591549430918953*(0.7071067811865474*den[1]+0.7071067811865475*den[0]))/vtSqOrd[1]; 
+
+}
+
 void MaxwellianOnBasisGauss1x2vMax_P1_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *bmagOrd, const double m_, const double *wc, const double *dxv, double *fMOut) {
 
   double fMquad[8];

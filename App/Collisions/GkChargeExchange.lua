@@ -182,7 +182,7 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       local ionM0    = species[self.ionNm]:fluidMoments()[1]
       local ionDistF = species[self.ionNm]:getDistF()
       
-      species[self.speciesName].calcMaxwellFromVlasovPrimMom:advance(tCurr,
+      species[self.speciesName].calcMaxwell:advance(tCurr,
          {neutM0, neutU, neutVtSq, species[self.speciesName].bmag}, {self.fMaxNeut})
       species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, self.fMaxNeut}, {self.M0iDistFn})
       species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
@@ -207,7 +207,7 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       local neutM0    = species[self.neutNm]:fluidMoments()[1]
       local neutDistF = species[self.neutNm]:getDistF()
       
-      species[self.speciesName].calcMaxwellFromGkPrimMom:advance(tCurr, {ionM0, ionU, ionVtSq}, {self.fMaxIon})
+      species[self.speciesName].calcMaxwell:advance(tCurr, {ionM0, ionU, ionVtSq}, {self.fMaxIon})
       species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
       species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, self.fMaxIon}, {self.M0nDistFi})
       self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)

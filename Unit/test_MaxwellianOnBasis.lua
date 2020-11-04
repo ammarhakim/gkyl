@@ -215,18 +215,8 @@ function testGK_1x1v()
       projectScalar:setFunc(function(t,xn) return bmagFunc(t,xn) end)
       projectScalar:advance(0.0, {}, {bmagFld})
 
-      local gkMaxwellianLua = Updater.GkMaxwellianOnBasis {
-         onGrid         = phaseGrid,
-         phaseBasis     = phaseBasis,
-         confGrid       = confGrid,
-         confBasis      = confBasis,
-         implementation = "Lua",
-         gkfacs         = {mass,bmagFld},
-      }
-
       -- Do projection.
       maxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {distf})
---      gkMaxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {distf})
       maxwellian:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {fM})
 
       -- Check projection.
@@ -254,7 +244,6 @@ function testGK_1x1v()
          confBasis      = confBasis,
          implementation = "C",
          mass           = mass,
-         uDriftInDim    = 3,
       }
       -- Do projection.
       local tmStart = Time.clock()
@@ -439,18 +428,8 @@ function testGK_1x2v()
       projectScalar:setFunc(function(t,xn) return bmagFunc(t,xn) end)
       projectScalar:advance(0.0, {}, {bmagFld})
 
-      local gkMaxwellianLua = Updater.GkMaxwellianOnBasis {
-         onGrid         = phaseGrid,
-         phaseBasis     = phaseBasis,
-         confGrid       = confGrid,
-         confBasis      = confBasis,
-         implementation = "Lua",
-         gkfacs         = {mass,bmagFld},
-      }
-
       -- Do projection.
       maxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {distf})
---      gkMaxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {distf})
       maxwellian:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {fM})
 
       -- Check projection.
@@ -478,7 +457,6 @@ function testGK_1x2v()
          confBasis      = confBasis,
          implementation = "C",
          mass           = mass,
-         uDriftInDim    = 3,
       }
       -- Do projection.
       local tmStart = Time.clock()
@@ -600,7 +578,6 @@ function test_1x3v()
          confGrid       = confGrid,
          confBasis      = confBasis,
          implementation = "C",
-         uDriftInDim    = 1,
       }
       -- Do projection.
       local tmStart = Time.clock()
@@ -786,18 +763,8 @@ function testGK_2x2v()
       projectScalar:setFunc(function(t,xn) return bmagFunc(t,xn) end)
       projectScalar:advance(0.0, {}, {bmagFld})
 
-      local gkMaxwellianLua = Updater.GkMaxwellianOnBasis {
-         onGrid         = phaseGrid,
-         phaseBasis     = phaseBasis,
-         confGrid       = confGrid,
-         confBasis      = confBasis,
-         implementation = "Lua",
-         gkfacs         = {mass,bmagFld},
-      }
-
       -- Do projection.
       maxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {distf})
---      gkMaxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {distf})
       maxwellian:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {fM})
 
       -- Check projection.
@@ -825,7 +792,6 @@ function testGK_2x2v()
          confBasis      = confBasis,
          implementation = "C",
          mass           = mass,
-         uDriftInDim    = 3,
       }
       -- Do projection.
       local tmStart = Time.clock()
@@ -947,7 +913,6 @@ function test_2x3v()
          confGrid       = confGrid,
          confBasis      = confBasis,
          implementation = "C",
-         uDriftInDim    = 1,
       }
       -- Do projection.
       local tmStart = Time.clock()
@@ -1046,20 +1011,10 @@ function testGK_3x2v()
       projectScalar:setFunc(function(t,xn) return bmagFunc(t,xn) end)
       projectScalar:advance(0.0, {}, {bmagFld})
 
-      local gkMaxwellianLua = Updater.GkMaxwellianOnBasis {
-         onGrid         = phaseGrid,
-         phaseBasis     = phaseBasis,
-         confGrid       = confGrid,
-         confBasis      = confBasis,
-         implementation = "Lua",
-         gkfacs         = {mass,bmagFld},
-      }
-
       -- Do projection.
       local tmStart = Time.clock()
       maxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {distf})
       local tmMid = Time.clock()
---      gkMaxwellianLua:advance(0.0, {m0Fld,uDriftFld,vtSqFld}, {distf})
       maxwellian:advance(0.0, {m0Fld,uDriftFld,vtSqFld,bmagFld}, {fM})
       local tmEnd = Time.clock()
 
@@ -1088,7 +1043,6 @@ function testGK_3x2v()
          confBasis      = confBasis,
          implementation = "C",
          mass           = mass,
-         uDriftInDim    = 3,
       }
       -- Do projection.
       local tmStart = Time.clock()
@@ -1212,7 +1166,6 @@ function test_3x3v()
          confGrid       = confGrid,
          confBasis      = confBasis,
          implementation = "C",
-         uDriftInDim    = 1,
       }
       -- Do projection.
       local tmStart = Time.clock()
