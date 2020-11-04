@@ -308,14 +308,6 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       phaseBasis = self.basis,
       gkfacs     = {self.mass, self.bmag},
    }
-   self.calcCellAvMaxwell = Updater.CellAveMaxwellian {
-      onGrid     = self.grid,
-      confGrid   = self.confGrid,
-      confBasis  = self.confBasis,
-      phaseBasis = self.basis,
-      kineticSpecies = 'Gk',
-      gkfacs     = {self.mass, self.bmag},
-   }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
       -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
@@ -570,7 +562,6 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       end
    end
 
-   self.useCellAvMaxwell = true
    -- If ionization collision object exists, locate electrons
    local counterIz_elc = true
    local counterIz_neut = true
@@ -1604,7 +1595,6 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 
 	 if writeOut then
 	    neutM0:write(string.format("%s_izNeutM0_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
-	    --self.vtSqSelf:write(string.format("%s_vtSq_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
 	    self.voronovReactRate:write(string.format("%s_ccmCoefIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
 	    self.fMaxwellIz:write(string.format("%s_ccmfMax_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
 	 end

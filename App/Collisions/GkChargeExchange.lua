@@ -181,12 +181,8 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       local ionM0 = species[self.ionNm]:fluidMoments()[1]
       local ionDistF = species[self.ionNm]:getDistF()
 
-      if species[self.speciesName].useCellAvMaxwell == true then
-	 species[self.speciesName].calcCellAvMaxwell:advance(tCurr, {neutM0, neutU, neutVtSq}, {self.fMaxNeut})
-      else
-	 species[self.speciesName].calcMaxwell:advance(tCurr, {neutM0, neutU, neutVtSq}, {self.fMaxNeut})
-      end
-      
+            
+      species[self.speciesName].calcMaxwell:advance(tCurr, {neutM0, neutU, neutVtSq}, {self.fMaxNeut})      
       species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, self.fMaxNeut}, {self.M0iDistFn})
       species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
       self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
@@ -210,30 +206,8 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       local neutDistF = species[self.neutNm]:getDistF()
 
       
-      if species[self.speciesName].useCellAvMaxwell == true then
-	 species[self.speciesName].calcCellAvMaxwell:advance(tCurr, {ionM0, ionU, ionVtSq}, {self.fMaxIon})
-      else
-	 species[self.speciesName].calcMaxwell:advance(tCurr, {ionM0, ionU, ionVtSq}, {self.fMaxIon})
-      end
+      species[self.speciesName].calcMaxwell:advance(tCurr, {ionM0, ionU, ionVtSq}, {self.fMaxIon})
 
-      if debugNans == true then
-	 local testFunc      = self.fMaxIon
-	 local testFuncRange = testFunc:localRange()
-	 local phaseIndexer  = testFunc:genIndexer()
-	 local testFuncPtr   = testFunc:get(1)
-	 local endRun = false
-	 for idx in testFuncRange:rowMajorIter(tId) do
-	    self.phaseGrid:setIndex(idx)
-	    testFunc:fill(phaseIndexer(idx), testFuncPtr)
-	    for cI = 1,self.phaseBasis:numBasis() do
-	       if (testFuncPtr[cI] ~= testFuncPtr[cI]) or (testFuncPtr[cI] == 1/0) then
-		  print("t =", tCurr, "\nfMaxIon update, at", idx[1], idx[2], idx[3], idx[4], idx[5], idx[6])
-		  os.exit(0)
-	       end
-	    end
-	 end
-      end
-      
       species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
       species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, self.fMaxIon}, {self.M0nDistFi})
       self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
