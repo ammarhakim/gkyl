@@ -942,22 +942,24 @@ return {
    Gyrokinetic = function ()
       App.label = "Gyrokinetic"
       return  {
-	 App = App,
-	 Species = require "App.Species.GkSpecies",
-	 AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
-	 Field = require ("App.Field.GkField").GkField,
-	 Geometry = require ("App.Field.GkField").GkGeometry,
-	 FunctionProjection = require ("App.Projection.GkProjection").FunctionProjection, 
-	 MaxwellianProjection = require ("App.Projection.GkProjection").MaxwellianProjection,
-	 BGKCollisions = require "App.Collisions.GkBGKCollisions",
-	 LBOCollisions = require "App.Collisions.GkLBOCollisions",
-	 BgkCollisions = require "App.Collisions.GkBGKCollisions",
-	 LboCollisions = require "App.Collisions.GkLBOCollisions",
-	 ChargeExchange = require "App.Collisions.GkChargeExchange",
-	 Ionization = require "App.Collisions.GkIonization",
+         App = App,
+         Species = require "App.Species.GkSpecies",
+         AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
+         Vlasov = require ("App.Species.VlasovSpecies"),
+         Field = require ("App.Field.GkField").GkField,
+         Geometry = require ("App.Field.GkField").GkGeometry,
+         FunctionProjection = require ("App.Projection.GkProjection").FunctionProjection,
+         MaxwellianProjection = require ("App.Projection.GkProjection").MaxwellianProjection,
+         VmMaxwellianProjection = require ("App.Projection.VlasovProjection").MaxwellianProjection,
+         BGKCollisions = require "App.Collisions.GkBGKCollisions",
+         LBOCollisions = require "App.Collisions.GkLBOCollisions",
+         BgkCollisions = require "App.Collisions.GkBGKCollisions",
+         LboCollisions = require "App.Collisions.GkLBOCollisions",
+         ChargeExchange = require "App.Collisions.GkChargeExchange",
+         Ionization = require "App.Collisions.GkIonization",
       }
    end,
-   
+
    IncompEuler = function ()
       App.label = "Incompressible Euler"
       return {

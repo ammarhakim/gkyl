@@ -570,7 +570,7 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       end
    end
 
-   self.useCellAvMaxwell = true
+   self.useCellAvMaxwell = false
    -- If ionization collision object exists, locate electrons
    local counterIz_elc = true
    local counterIz_neut = true
