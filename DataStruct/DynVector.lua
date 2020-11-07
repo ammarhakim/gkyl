@@ -7,18 +7,18 @@
 --------------------------------------------------------------------------------
 
 -- System libraries.
-local ffi  = require "ffi"
+local ffi = require "ffi"
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
 -- Gkyl libraries.
-local Adios       = require "Io.Adios"
+local Adios = require "Io.Adios"
 local AdiosReader = require "Io.AdiosReader"
-local Alloc       = require "Lib.Alloc"
-local Lin         = require "Lib.Linalg"
-local Mpi         = require "Comm.Mpi"
-local Proto       = require "Lib.Proto"
+local Alloc = require "Lib.Alloc"
+local Lin = require "Lib.Linalg"
+local Mpi = require "Comm.Mpi"
+local Proto = require "Lib.Proto"
 
 -- Code from Lua wiki to convert table to comma-seperated-values
 -- string.
@@ -67,7 +67,7 @@ function DynVector:init(tbl)
    self._timeMesh = Alloc.Double()
    self._data = allocator()
    -- Temp storage for single entry.
-   self._tmpData  = new(string.format("double[%d]", self._numComponents+1))
+   self._tmpData = new(string.format("double[%d]", self._numComponents+1))
    self._tmpTable = {}
    for i = 1, self._numComponents do self._tmpTable[i] = nil end
 
@@ -76,12 +76,12 @@ function DynVector:init(tbl)
 
    -- Write only from rank-0: create sub-communicator and use that for
    -- writing data (perhaps one needs a user-specified write-rank).
-   local ranks  = Lin.IntVec(1); ranks[1] = 0
+   local ranks = Lin.IntVec(1); ranks[1] = 0
    self._ioComm = Mpi.Split_comm(Mpi.COMM_WORLD, ranks)
 
    -- Allocate space for IO buffer.
    self._ioBuff = Alloc.Double()
-   self.frNum   = -1
+   self.frNum = -1
 
    -- If we have meta-data to write out, store it.
    if GKYL_EMBED_INP then
@@ -213,9 +213,9 @@ end
 
 function DynVector:copy(dynV)
    -- Copy over time-mesh and data. Assumes number of components is the same.
-   local dataIn     = dynV:data()
+   local dataIn = dynV:data()
    local timeMeshIn = dynV:timeMesh()
-   local nValIn     = dataIn:size()
+   local nValIn = dataIn:size()
 
    self._timeMesh:expand(nValIn-(self:size()-1))
    for i = 1, self._timeMesh:size() do
@@ -267,14 +267,14 @@ function DynVector:read(fName)
    local timeMesh, data
    if reader:hasVar("TimeMesh") then
       timeMesh = reader:getVar("TimeMesh"):read()
-      data     = reader:getVar("Data"):read()
+      data = reader:getVar("Data"):read()
    elseif reader:hasVar("TimeMesh0") then
       timeMesh = reader:getVar("TimeMesh0"):read()
-      data     = reader:getVar("Data0"):read()
-      varCnt   = 1
+      data = reader:getVar("Data0"):read()
+      varCnt = 1
       while reader:hasVar("TimeMesh"..varCnt) do
          local timeMeshN = reader:getVar("TimeMesh"..varCnt):read()
-         local dataN     = reader:getVar("Data"..varCnt):read()
+         local dataN = reader:getVar("Data"..varCnt):read()
          for i = 1, timeMeshN:size() do
             timeMesh:push(timeMeshN[i])
          end
@@ -300,7 +300,7 @@ end
 
 function DynVector:removeLast()
    local tm = self._timeMesh:popLast()
-   local v  = self._data:popLast()
+   local v = self._data:popLast()
    return tm, v
 end
 
@@ -328,14 +328,14 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
    end
 
    if not tmStamp then tmStamp = 0.0 end -- Default time-stamp.
-   local flushData  = xsys.pickBool(flushData, true)  -- Default flush data on write.
+   local flushData = xsys.pickBool(flushData, true)  -- Default flush data on write.
    local appendData = xsys.pickBool(appendData, true) -- Default append data to single file.
 
    if appendData and (frNum and frNum>=0) then 
       self.frNum = frNum 
    else 
       self.frNum = "" 
-      frNum      = frNum or 0
+      frNum = frNum or 0
    end
 
    -- Create group and set I/O method.
@@ -344,7 +344,7 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
    Adios.select_method(grpId, "MPI", "", "")
    
    -- ADIOS expects CSV string to specify data shape
-   local localTmSz  = toCSV( {self._data:size()} )
+   local localTmSz = toCSV( {self._data:size()} )
    local localDatSz = toCSV( {self._data:size(), self._numComponents} )
    
    -- Define data to write.
