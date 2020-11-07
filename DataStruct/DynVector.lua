@@ -123,6 +123,10 @@ function DynVector:init(tbl)
       end
    end
 
+   -- Used to save the last data, in case we need it later.
+   self.tLast, self.dLast = -1., Lin.Vec(self._numComponents)
+   self.flushed = false
+
    self._isFirst = true
 end
 
@@ -155,7 +159,7 @@ end
 function DynVector:accumulateLastOne(fact, dynV)
    local _, lv = dynV:lastData()
    local selflv
-   if self:size() == 0 and self.dLast then
+   if self:size() == 0 and self.flushed then
       selflv = self.dLast
    else
       selflv = self._data:last()
@@ -236,7 +240,7 @@ function DynVector:data() return self._data end
 function DynVector:lastTime() return self._timeMesh:last() end
 
 function DynVector:lastTime()
-   if self:size() == 0 and self.tLast then 
+   if self:size() == 0 and self.flushed then 
       return self.tLast
    else
       return self._timeMesh:last()
@@ -244,7 +248,7 @@ function DynVector:lastTime()
 end
 
 function DynVector:lastData()
-   if self:size() == 0 and self.dLast then 
+   if self:size() == 0 and self.flushed then 
       return self.tLast, self.dLast
    else
       return self._timeMesh:last(), self._data:last() 
@@ -324,7 +328,7 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
    end
 
    if not tmStamp then tmStamp = 0.0 end -- Default time-stamp.
-   local flushData  = xsys.pickBool(flushData, true) -- Default flush data on write.
+   local flushData  = xsys.pickBool(flushData, true)  -- Default flush data on write.
    local appendData = xsys.pickBool(appendData, true) -- Default append data to single file.
 
    if appendData and (frNum and frNum>=0) then 
@@ -382,8 +386,11 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
 
    -- Clear data for next round of IO.
    if flushData then 
-     self.tLast, self.dLast = self:lastData() -- Save the last data, in case we need it later.
+     local tLast, dLast = self:lastData() -- Save the last data, in case we need it later.
+     self.tLast = tLast
+     for i = 1, self._numComponents do self.dLast[i] = dLast[i] end
      self:clear()
+     self.flushed = true
    end
 end
 
