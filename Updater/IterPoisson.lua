@@ -66,7 +66,7 @@ function IterPoisson:init(tbl)
       self.fact = 1.0
       local L1 = 0
       for d = 1, self.onGrid:ndim() do
-	 L1 = 1/(self.onGrid:upper(d)-self.onGrid:lower(d))
+	 L1 = L1 + 1/(self.onGrid:upper(d)-self.onGrid:lower(d))
       end
       self.richardNu = 2*math.pi*L1
    end
@@ -273,14 +273,17 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
    local isDone = false
    local numPrevStored = 0 -- flag to check if we are ready to extrapolate
    local errE1, errE2 = 1e10, 1e10 -- errors for use in extrapolation
-   
-   numStages = self:calcNumStages(self.fact, self.extraStages)
+
+   local numStages = 1
+   if self.stepper == "RKL1" then
+      numStages = self:calcNumStages(self.fact, self.extraStages)
+   end
 
    if self.verbose then
       if self.stepper == "RKL1" then
 	 print(string.format(" Number of stages per-step are %d", numStages))
       else
-	 print(string.format(" Using Richarson second-order iteration", numStages))
+	 print(string.format(" Using Richarson second-order iteration"))
       end
    end
 
