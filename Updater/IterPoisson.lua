@@ -59,8 +59,17 @@ function IterPoisson:init(tbl)
    -- extrapolate every these many steps
    self.extrapolateInterval = tbl.extrapolateInterval and tbl.extrapolateInterval or self.maxSteps+1 
 
-   -- one of 'RKL1', 'Richardson2'
+   -- one of 'RKL1', 'richard2'
    self.stepper = tbl.stepper and tbl.stepper or 'RKL1'
+
+   if self.stepper == "richard2" then
+      self.fact = 1.0
+      local L1 = 0
+      for d = 1, self.onGrid:ndim() do
+	 L1 = 1/(self.onGrid:upper(d)-self.onGrid:lower(d))
+      end
+      self.richardNu = 2*math.pi*L1
+   end
 
    -- flag to print internal iteration steps
    self.verbose = xsys.pickBool(tbl.verbose, false)
@@ -211,6 +220,19 @@ function IterPoisson:sts(dt, fIn, fOut, fact)
    fOut:copy(fJ)
 end
 
+function IterPoisson:richard2(dt, fIn1, fIn, fOut)
+   local fDiff0 = self.fDiff0
+   self:calcRHS(fIn, fDiff0)
+   local nu = self.richardNu
+
+   -- compute various factors
+   local fcp = (1/dt^2+nu/dt)
+   local fcm = (1/dt^2-nu/dt)
+
+   fOut:combine(2/dt^2/fcp, fIn, -fcm/fcp, fIn1, 1/fcp, fDiff0)
+   self:applyBc(fOut)
+end
+
 -- advance method
 function IterPoisson:_advance(tCurr, inFld, outFld)
 
@@ -255,7 +277,11 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
    numStages = self:calcNumStages(self.fact, self.extraStages)
 
    if self.verbose then
-      print(string.format(" Number of stages per-step are %d", numStages))
+      if self.stepper == "RKL1" then
+	 print(string.format(" Number of stages per-step are %d", numStages))
+      else
+	 print(string.format(" Using Richarson second-order iteration", numStages))
+      end
    end
 
    local f, fNew = self.f, self.fNew
@@ -268,7 +294,11 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
    local cfl = self.cfl
    while not isDone do
       local dt = cfl/omegaCFL
-      self:sts(dt, f, fNew, self.fact)
+      if self.stepper == "RKL1" then
+	 self:sts(dt, f, fNew, self.fact)
+      else
+	 self:richard2(dt, self.fJ1, f, fNew)
+      end
       
       local err = self:l2diff(f, fNew)
       local resNorm = err/dt/srcL2
@@ -277,7 +307,8 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
 	 print(string.format("  Step %d, dt = %g. Error = %g (Res. norm = %g)", step, dt, err, resNorm))
       end
 
-      f:copy(fNew)      
+      self.fJ1:copy(f) -- for richard2 scheme
+      f:copy(fNew)
 
       if err < self.errEps or step>=self.maxSteps then
    	 isDone = true
