@@ -23,9 +23,9 @@ local xsys = require "xsys"
 -- of Computational Physics, 257(PA),
 -- 594–626. doi:10.1016/j.jcp.2013.08.021)
 
-local function muRKL1(j) return (2*j-1)/j end
-local function nuRKL1(j) return (1-j)/j end
-local function mubarRKL1(s,j) return (2*j-1)/j*2/(s^2+s) end
+local function mu(j) return (2*j-1)/j end
+local function nu(j) return (1-j)/j end
+local function mubar(s,j) return (2*j-1)/j*2/(s^2+s) end
 
 
 -- Iterative Poisson solver updater object
@@ -59,7 +59,7 @@ function IterPoisson:init(tbl)
    -- extrapolate every these many steps
    self.extrapolateInterval = tbl.extrapolateInterval and tbl.extrapolateInterval or self.maxSteps+1 
 
-   -- one of 'RKL2' or 'RKL1', 'Richardson2'
+   -- one of 'RKL1', 'Richardson2'
    self.stepper = tbl.stepper and tbl.stepper or 'RKL1'
 
    -- flag to print internal iteration steps
@@ -187,9 +187,7 @@ function IterPoisson:applyBc(fld)
    fld:sync()
 end
 
-function IterPoisson:stsRKL1(dt, fIn, fOut, fact)
-   local mu, nu, mubar = muRKL1, nuRKL1, mubarRKL1
-      
+function IterPoisson:sts(dt, fIn, fOut, fact)
    local numStages = self:calcNumStages(fact, self.extraStages)
    local fDiff0, fDiff = self.fDiff0, self.fDiff
    local fJ, fJ1, fJ2 = self.fJ, self.fJ1, self.fJ2
@@ -207,7 +205,6 @@ function IterPoisson:stsRKL1(dt, fIn, fOut, fact)
       self:calcRHS(fJ1, fDiff)
       fJ:combine(mu(j), fJ1, nu(j), fJ2, mubar(numStages,j)*dt, fDiff)
       self:applyBc(fJ)
-      
       -- reset fields for next stage
       fJ2:copy(fJ1); fJ1:copy(fJ)
    end
@@ -271,11 +268,7 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
    local cfl = self.cfl
    while not isDone do
       local dt = cfl/omegaCFL
-      if stepper == 'RKL2' then
-   	 self:stsRKL2(dt, f, fNew, self.fact)
-      else
-   	 self:stsRKL1(dt, f, fNew, self.fact)
-      end
+      self:sts(dt, f, fNew, self.fact)
       
       local err = self:l2diff(f, fNew)
       local resNorm = err/dt/srcL2
