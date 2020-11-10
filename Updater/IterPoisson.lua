@@ -199,13 +199,10 @@ end
 -- Takes fIn and fDiff0 (which is calcRHS on fIn) and computes fOut
 function IterPoisson:sts(dt, fIn, fDiff0, fOut, fact)
    local numStages = self:calcNumStages(fact, self.extraStages)
-   local fDiff0, fDiff = self.fDiff0, self.fDiff
+   local fDiff = self.fDiff
    local fJ, fJ1, fJ2 = self.fJ, self.fJ1, self.fJ2
 
-   -- we need this in each stage
-   self:calcRHS(fIn, fDiff0)
-
-   -- stage 1
+   -- stage 1 (fDiff0 is already computed in main loop).
    fJ2:copy(fIn)
    fJ1:combine(1.0, fIn, mubar(numStages,1)*dt, fDiff0)
    self:applyBc(fJ1)
@@ -223,14 +220,14 @@ end
 
 -- Takes fIn1, fIn and fDiff0 (which is calcRHS on fIn) and computes fOut
 function IterPoisson:richard2(dt, fIn1, fIn, fDiff0, fOut)
-   local fDiff0 = self.fDiff0
-   self:calcRHS(fIn, fDiff0)
    local nu = self.richardNu
 
    -- compute various factors
    local fcp = (1/dt^2+2*nu/dt)
    local fcm = (1/dt^2-2*nu/dt)
 
+   -- note that fDiff0 is already computed in main-loop. So here, all
+   -- we do is compute the iteration
    fOut:combine(2/dt^2/fcp, fIn, -fcm/fcp, fIn1, 1/fcp, fDiff0)
    self:applyBc(fOut)
 end
