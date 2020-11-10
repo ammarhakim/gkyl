@@ -68,7 +68,7 @@ function IterPoisson:init(tbl)
       for d = 1, self.onGrid:ndim() do
 	 Lmax = math.max(Lmax, self.onGrid:upper(d)-self.onGrid:lower(d))
       end
-      self.richardNu = math.pi/Lmax
+      self.richardNu = math.pi/Lmax -- should this be 2*pi/L?
    end
 
    -- flag to print internal iteration steps
@@ -246,7 +246,13 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
 
    local src = self.src
    src:copy(srcIn)
-   local srcInt = self:integrateField(src)/grid:cellVolume() -- mean integrated source
+
+   -- compute mean integrated source
+   local gridVol = 1.0
+   for d = 1, grid:ndim() do
+      gridVol = gridVol*(grid:upper(d)-grid:lower(d))
+   end
+   local srcInt = self:integrateField(src)/gridVol
 
    -- we need to adjust sources when all directions are
    -- periodic. (FIX-THIS when not doing periodic BC)
@@ -262,7 +268,6 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
    end
 
    local srcL2 = self:l2norm(src) -- L2 norm of source
-
 
    local omegaCFL = 0.0 -- compute maximum CFL frequency
    if self.stepper == "RKL1" then
