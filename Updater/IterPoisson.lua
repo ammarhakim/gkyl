@@ -143,7 +143,7 @@ function IterPoisson:integrateField(fld)
       local fldItr = fld:get(indexer(idxs))
       intf = intf + fldItr[1]
    end
-   -- SYNC across procs
+   -- FIX-THIS: sync across procs
    
    return intf*vol*dfact
 end
@@ -162,7 +162,7 @@ function IterPoisson:l2norm(fld)
 	 l2 = l2 + fldItr[k]^2
       end
    end
-   -- SYNC across procs
+   -- FIX-THIS: sync across procs
    
    return math.sqrt(l2*vol*dfact)
 end
@@ -196,7 +196,8 @@ function IterPoisson:applyBc(fld)
    fld:sync()
 end
 
-function IterPoisson:sts(dt, fIn, fOut, fact)
+-- Takes fIn and fDiff0 (which is calcRHS on fIn) and computes fOut
+function IterPoisson:sts(dt, fIn, fDiff0, fOut, fact)
    local numStages = self:calcNumStages(fact, self.extraStages)
    local fDiff0, fDiff = self.fDiff0, self.fDiff
    local fJ, fJ1, fJ2 = self.fJ, self.fJ1, self.fJ2
@@ -220,7 +221,8 @@ function IterPoisson:sts(dt, fIn, fOut, fact)
    fOut:copy(fJ)
 end
 
-function IterPoisson:richard2(dt, fIn1, fIn, fOut)
+-- Takes fIn1, fIn and fDiff0 (which is calcRHS on fIn) and computes fOut
+function IterPoisson:richard2(dt, fIn1, fIn, fDiff0, fOut)
    local fDiff0 = self.fDiff0
    self:calcRHS(fIn, fDiff0)
    local nu = self.richardNu
@@ -249,8 +251,8 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
    src:copy(srcIn)
    local srcInt = self:integrateField(src)/grid:cellVolume() -- mean integrated source
 
-   -- we need to adjust sources when all directions are periodic. (FIX
-   -- this when not doing periodic BC)
+   -- we need to adjust sources when all directions are
+   -- periodic. (FIX-THIS when not doing periodic BC)
    do
       local localRange = src:localRange()
       local indexer = src:genIndexer()
@@ -264,7 +266,7 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
 
    local srcL2 = self:l2norm(src) -- L2 norm of source
 
-   local step = 1
+
    local omegaCFL = 0.0 -- compute maximum CFL frequency
    if self.stepper == "RKL1" then
       for d = 1, grid:ndim() do
@@ -301,27 +303,32 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
    
    f:copy(fOut)
    local cfl = self.cfl
+   local step = 0
    while not isDone do
       local dt = cfl/omegaCFL
-      if self.stepper == "RKL1" then
-	 self:sts(dt, f, fNew, self.fact)
-      else
-	 self:richard2(dt, self.fJ1, f, fNew)
-      end
-      
-      local err = self:l2diff(f, fNew)
-      local resNorm = err/dt/srcL2
+
+      -- compute RHS here so we can compute the residual norm properly
+      self:calcRHS(f, self.fDiff0)
+      local err = self:l2norm(self.fDiff0)/srcL2
+      errHist:appendData(numStages*step, { err } )      
 
       if self.verbose then
-	 print(string.format("  Step %d, dt = %g. Error = %g (Res. norm = %g)", step, dt, err, resNorm))
+	 print(string.format("  Step %d, dt = %g. Res. norm = %g", step, dt, err))
       end
-
-      self.fJ1:copy(f) -- for richard2 scheme
-      f:copy(fNew)
 
       if err < self.errEps or step>=self.maxSteps then
    	 isDone = true
+	 break
+      end      
+
+      -- take one iteration
+      if self.stepper == "RKL1" then
+	 self:sts(dt, f, self.fDiff0, fNew, self.fact)
+      else
+	 self:richard2(dt, self.fJ1, f, self.fDiff0, fNew)
       end
+      self.fJ1:copy(f) -- for richard2 scheme
+      f:copy(fNew)
 
       -- check if we should store the solution for use in
       -- extrapolation
@@ -335,7 +342,7 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
    	    f:combine(1.0, fE2, eps, fE2, -eps, fE1)
    	 end
       end
-      errHist:appendData(numStages*step, { err } )
+
       step = step+1
    end
 
