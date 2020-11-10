@@ -64,11 +64,11 @@ function IterPoisson:init(tbl)
 
    if self.stepper == "richard2" then
       self.fact = 1.0
-      local L1 = 0
+      local Lmax = 0
       for d = 1, self.onGrid:ndim() do
-	 L1 = L1 + 1/(self.onGrid:upper(d)-self.onGrid:lower(d))
+	 Lmax = math.max(Lmax, self.onGrid:upper(d)-self.onGrid:lower(d))
       end
-      self.richardNu = 2*math.pi*L1
+      self.richardNu = math.pi/Lmax
    end
 
    -- flag to print internal iteration steps
@@ -226,8 +226,8 @@ function IterPoisson:richard2(dt, fIn1, fIn, fOut)
    local nu = self.richardNu
 
    -- compute various factors
-   local fcp = (1/dt^2+nu/dt)
-   local fcm = (1/dt^2-nu/dt)
+   local fcp = (1/dt^2+2*nu/dt)
+   local fcm = (1/dt^2-2*nu/dt)
 
    fOut:combine(2/dt^2/fcp, fIn, -fcm/fcp, fIn1, 1/fcp, fDiff0)
    self:applyBc(fOut)
@@ -266,8 +266,14 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
 
    local step = 1
    local omegaCFL = 0.0 -- compute maximum CFL frequency
-   for d = 1, grid:ndim() do
-      omegaCFL = omegaCFL + 1/grid:dx(d)^2
+   if self.stepper == "RKL1" then
+      for d = 1, grid:ndim() do
+	 omegaCFL = omegaCFL + 1/grid:dx(d)^2
+      end
+   else
+      for d = 1, grid:ndim() do
+	 omegaCFL = omegaCFL + 1/grid:dx(d)
+      end
    end
    
    local isDone = false
