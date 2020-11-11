@@ -65,29 +65,36 @@ function IterPoisson:init(tbl)
    self.stepper = tbl.stepper and tbl.stepper or 'RKL1'
 
    if self.stepper == "richard2" then
+
+      local ndim = self.onGrid:ndim()
+      
       self.fact = 1.0
       local L2 = 0
-      for d = 1, self.onGrid:ndim() do
+      for d = 1, ndim do
 	 local len = self.onGrid:upper(d)-self.onGrid:lower(d)
-	 L2 = math.max(L2, len)
+	 L2 = L2 + 1/len^2
       end
 
-      -- not sure why I can take this time-step
+      local L1 = math.sqrt(L2)
+
+      -- Empirically derived bounds. I am not sure if this is the
+      -- right thing to do, but for now this seems to work (AHH
+      -- 11/11/2020)
       if hasCflFrac == false then
-	 local ndim = self.onGrid:ndim()
 	 if ndim == 1 then
 	    cflFrac = 1.5
 	 else
 	    cflFrac = 2^ndim
 	 end
       end
+
+      -- some adjustments to L1 to account for RDG scheme. See note
+      -- above
+      if ndim == 2 then L1 = L1/math.sqrt(2) end
+      if ndim == 3 then L1 = 2*L1/math.sqrt(3) end      
       
-      if self.onGrid:ndim() < 3 then
-	 -- for some reason in 1D/2D a smaller nu seems to be better
-	 self.richardNu = math.pi/L2
-      else
-	 self.richardNu = 2*math.pi/L2
-      end
+      self.richardNu = 2*math.pi*L1 -- kmin
+      print("richardNu", self.richardNu)
    end
 
    -- flag to print internal iteration steps
@@ -238,16 +245,32 @@ function IterPoisson:sts(dt, fIn, fDiff0, fOut, fact)
 end
 
 -- Takes fIn1, fIn and fDiff0 (which is calcRHS on fIn) and computes fOut
+-- (This function uses central difference for the df/dt term)
 function IterPoisson:richard2(dt, fIn1, fIn, fDiff0, fOut)
    local nu = self.richardNu
 
    -- compute various factors
-   local fcp = (1/dt^2+2*nu/dt)
-   local fcm = (1/dt^2-2*nu/dt)
+   local fcp = (1/dt^2+nu/dt)
+   local fcm = (1/dt^2-nu/dt)
 
    -- note that fDiff0 is already computed in main-loop. So here, all
    -- we do is compute the iteration
    fOut:combine(2/dt^2/fcp, fIn, -fcm/fcp, fIn1, 1/fcp, fDiff0)
+   self:applyBc(fOut)
+end
+
+-- Takes fIn1, fIn and fDiff0 (which is calcRHS on fIn) and computes fOut
+-- (This function uses a first-order fwd Euler for the df/dt term)
+function IterPoisson:richard2a(dt, fIn1, fIn, fDiff0, fOut)
+   local nu = self.richardNu
+
+   -- compute various factors
+   local fcp = (1/dt^2+2*nu/dt)
+   local fc2 = (2/dt^2+2*nu/dt)
+
+   -- note that fDiff0 is already computed in main-loop. So here, all
+   -- we do is compute the iteration
+   fOut:combine(fc2/fcp, fIn, -1/dt^2/fcp, fIn1, 1/fcp, fDiff0)
    self:applyBc(fOut)
 end
 
