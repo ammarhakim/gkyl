@@ -13,10 +13,16 @@ local Eq = require "Eq.ConstDiffusion"
 local HyperDisCont = require "Updater.HyperDisCont"
 local Lin = require "Lib.Linalg"
 local LinearDecomp = require "Lib.LinearDecomp"
+local Logger = require "Lib.Logger"
+local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
 local UpdaterBase = require "Updater.Base"
 local xsys = require "xsys"
+
+local ffi  = require "ffi"
+local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
+     "new, copy, fill, sizeof, typeof, metatype")
 
 -- this set of functions determines factors which feed into RK scheme
 -- (see Meyer, C. D., Balsara, D. S., & Aslam, T. D. (2014). Journal
@@ -94,7 +100,6 @@ function IterPoisson:init(tbl)
       if ndim == 3 then L1 = 2*L1/math.sqrt(3) end      
       
       self.richardNu = 2*math.pi*L1 -- kmin
-      print("richardNu", self.richardNu)
    end
 
    -- flag to print internal iteration steps
@@ -155,6 +160,8 @@ function IterPoisson:init(tbl)
    self.errHist = DataStruct.DynVector { numComponents = 1 }
    -- extrapolation factors (diagnostics)
    self.extraHist = DataStruct.DynVector { numComponents = 1 }
+
+   self.log = Logger { logToFile = false }
 end
 
 -- compute integral of field
@@ -169,7 +176,13 @@ function IterPoisson:integrateField(fld)
       local fldItr = fld:get(indexer(idxs))
       intf = intf + fldItr[1]
    end
-   -- FIX-THIS: sync across procs
+
+   -- sync across processors
+   local comm = self.onGrid:commSet().nodeComm
+   local localVal, globalVal = new("double[1]"), new("double[1]")
+   localVal[0] = intf
+   Mpi.Allreduce(localVal, globalVal, 1, Mpi.DOUBLE, Mpi.SUM, comm)
+   intf = globalVal[0]
    
    return intf*vol*dfact
 end
@@ -188,7 +201,13 @@ function IterPoisson:l2norm(fld)
 	 l2 = l2 + fldItr[k]^2
       end
    end
-   -- FIX-THIS: sync across procs
+
+   -- sync across processors
+   local comm = self.onGrid:commSet().nodeComm
+   local localVal, globalVal = new("double[1]"), new("double[1]")
+   localVal[0] = l2
+   Mpi.Allreduce(localVal, globalVal, 1, Mpi.DOUBLE, Mpi.SUM, comm)
+   l2 = globalVal[0]
    
    return math.sqrt(l2*vol*dfact)
 end
@@ -208,6 +227,14 @@ function IterPoisson:l2diff(f1, f2)
 	 l2 = l2 + (f1Itr[k]-f2Itr[k])^2
       end
    end
+
+   -- sync across processors
+   local comm = self.onGrid:commSet().nodeComm
+   local localVal, globalVal = new("double[1]"), new("double[1]")
+   localVal[0] = l2
+   Mpi.Allreduce(localVal, globalVal, 1, Mpi.DOUBLE, Mpi.SUM, comm)
+   l2 = globalVal[0]
+   
    return math.sqrt(l2*vol*dfact)
 end
 
@@ -335,9 +362,9 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
 
    if self.verbose then
       if self.stepper == "RKL1" then
-	 print(string.format(" Number of stages per-step are %d", numStages))
+	 self.log(string.format(" Number of stages per-step are %d\n", numStages))
       else
-	 print(string.format(" Using Richarson second-order iteration"))
+	 self.log(string.format(" Using Richarson second-order iteration\n"))
       end
    end
 
@@ -359,7 +386,7 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
       errHist:appendData(numStages*step, { err } )      
 
       if self.verbose then
-	 print(string.format("  Step %d, dt = %g. Res. norm = %g", step, dt, err))
+	 self.log(string.format("  Step %d, dt = %g. Res. norm = %g\n", step, dt, err))
       end
 
       if err < self.errEps or step>=self.maxSteps then
@@ -393,9 +420,9 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
    end
 
    if self.verbose then
-      print(
+      self.log(
 	 string.format(
-	    " IterPoisson took %g sec, %d stages", Time.clock()-tmStart, (step-1)*numStages
+	    " IterPoisson took %g sec, %d stages\n", Time.clock()-tmStart, (step-1)*numStages
 	 )
       )      
    end
