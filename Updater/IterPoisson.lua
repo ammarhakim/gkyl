@@ -49,6 +49,8 @@ function IterPoisson:init(tbl)
 
    -- eventually determine default values with some in-built
    -- heuristics
+
+   local hasCflFrac = tbl.cflFrac and true or false
    local cflFrac = tbl.cflFrac and tbl.cflFrac or 1.0 -- for internal use
    self.errEps = tbl.errEps and tbl.errEps or 1.0e-8 -- residual norm
    self.maxSteps = tbl.maxSteps and tbl.maxSteps or 10000 -- max number of steps
@@ -64,11 +66,28 @@ function IterPoisson:init(tbl)
 
    if self.stepper == "richard2" then
       self.fact = 1.0
-      local Lmax = 0
+      local L2 = 0
       for d = 1, self.onGrid:ndim() do
-	 Lmax = math.max(Lmax, self.onGrid:upper(d)-self.onGrid:lower(d))
+	 local len = self.onGrid:upper(d)-self.onGrid:lower(d)
+	 L2 = math.max(L2, len)
       end
-      self.richardNu = math.pi/Lmax -- should this be 2*pi/L?
+
+      -- not sure why I can take this time-step
+      if hasCflFrac == false then
+	 local ndim = self.onGrid:ndim()
+	 if ndim == 1 then
+	    cflFrac = 1.5
+	 else
+	    cflFrac = 2^ndim
+	 end
+      end
+      
+      if self.onGrid:ndim() < 3 then
+	 -- for some reason in 1D/2D a smaller nu seems to be better
+	 self.richardNu = math.pi/L2
+      else
+	 self.richardNu = 2*math.pi/L2
+      end
    end
 
    -- flag to print internal iteration steps
@@ -275,9 +294,11 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
 	 omegaCFL = omegaCFL + 1/grid:dx(d)^2
       end
    else
+      local dx1 = 0.0
       for d = 1, grid:ndim() do
 	 omegaCFL = omegaCFL + 1/grid:dx(d)
       end
+
    end
    
    local isDone = false
