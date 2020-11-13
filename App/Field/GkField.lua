@@ -22,6 +22,7 @@ local Species          = require "App.Species"
 local Time             = require "Lib.Time"
 local math             = require("sci.math").generic
 local diff             = require("sci.diff")
+local Logger           = require "Lib.Logger"
 
 local GkField = Proto(FieldBase.FieldBase)
 
@@ -1357,7 +1358,8 @@ function GkGeometry:initField()
              self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
       end
    end
-   print("Finished initializing the geometry")
+   local log = Logger { logToFile = true }
+   log("Finished initializing the geometry\n")
 
    if self.setPhiWall then self.setPhiWall:advance(0.0, {}, {self.geo.phiWall})
    else self.geo.phiWall:clear(0.0) end
