@@ -69,6 +69,7 @@ function IterPoisson:init(tbl)
 
    -- one of 'RKL1', 'richard2'
    self.stepper = tbl.stepper and tbl.stepper or 'RKL1'
+   self.numCalls = 0 -- maintain a count of times the schemes are called
 
    if self.stepper == "richard2" then
 
@@ -251,6 +252,8 @@ end
 
 -- Takes fIn and fDiff0 (which is calcRHS on fIn) and computes fOut
 function IterPoisson:sts(dt, fIn, fDiff0, fOut, fact)
+   self.numCalls = self.numCalls+1
+   
    local numStages = self:calcNumStages(fact, self.extraStages)
    local fDiff = self.fDiff
    local fJ, fJ1, fJ2 = self.fJ, self.fJ1, self.fJ2
@@ -274,8 +277,9 @@ end
 -- Takes fIn1, fIn and fDiff0 (which is calcRHS on fIn) and computes fOut
 -- (This function uses central difference for the df/dt term)
 function IterPoisson:richard2(dt, fIn1, fIn, fDiff0, fOut)
+   self.numCalls = self.numCalls+1
+   
    local nu = self.richardNu
-
    -- compute various factors
    local fcp = (1/dt^2+nu/dt)
    local fcm = (1/dt^2-nu/dt)
@@ -289,8 +293,9 @@ end
 -- Takes fIn1, fIn and fDiff0 (which is calcRHS on fIn) and computes fOut
 -- (This function uses a first-order fwd Euler for the df/dt term)
 function IterPoisson:richard2a(dt, fIn1, fIn, fDiff0, fOut)
+   self.numCalls = self.numCalls+1
+   
    local nu = self.richardNu
-
    -- compute various factors
    local fcp = (1/dt^2+2*nu/dt)
    local fc2 = (2/dt^2+2*nu/dt)
@@ -312,6 +317,7 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
 
    -- clear diagnostic data
    self.errHist:clear(); self.extraHist:clear()
+   self.numCalls = 0
 
    local src = self.src
    src:copy(srcIn)
@@ -422,7 +428,7 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
    if self.verbose then
       self.log(
 	 string.format(
-	    " IterPoisson took %g sec, %d stages\n", Time.clock()-tmStart, (step-1)*numStages
+	    " IterPoisson took %g sec, %d stages\n", Time.clock()-tmStart, self.numCalls*numStages
 	 )
       )      
    end
