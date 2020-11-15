@@ -269,11 +269,13 @@ function MappedCart:write(fName)
       lower[d] = self:lower(d) - 0.5*self:dx(d)
       upper[d] = self:upper(d) + 0.5*self:dx(d)
    end
-   -- WILL NEED TO MAKE THIS WORK IN PARALLEL .. EVENTUALLY
+   -- Create a grid of nodes.
    local grid = RectCart {
       lower = lower,
       upper = upper,
       cells = cells,
+      periodicDirs  = self._periodicDirs,
+      decomposition = self.decompIn,
    }
    local nodalCoords = DataStruct.Field {
       onGrid        = grid,

@@ -119,24 +119,24 @@ function RectCart:init(tbl)
    self._block       = 1 -- block number for use in parallel communications
    self._isShared    = false
    
-   local decomp = tbl.decomposition and tbl.decomposition or nil  -- decomposition
-   if decomp then
-      assert(decomp:ndim() == self._ndim,
+   self.decompIn = tbl.decomposition and tbl.decomposition or nil  -- decomposition
+   if self.decompIn then
+      assert(self.decompIn:ndim() == self._ndim,
 	     "Decomposition dimensions must be same as grid dimensions!")
 
-      self._isShared = decomp:isShared()
+      self._isShared = self.decompIn:isShared()
       -- in parallel, we need to adjust local range      
-      self._commSet = decomp:commSet()
-      self._decomposedRange = decomp:decompose(self._globalRange)
+      self._commSet = self.decompIn:commSet()
+      self._decomposedRange = self.decompIn:decompose(self._globalRange)
       local subDomIdx = getSubDomIndex(self._commSet.nodeComm, self._commSet.sharedComm)
       self._block = subDomIdx
       local localRange = self._decomposedRange:subDomain(subDomIdx)
       self._localRange:copy(localRange)
       self._cuts = {}
       for i = 1, self._ndim do 
-	 assert(decomp:cuts(i) <= self._numCells[i],
+	 assert(self.decompIn:cuts(i) <= self._numCells[i],
 		"Cannot have more decomposition cuts than cells in any dimension!")
-        self._cuts[i] = decomp:cuts(i) 
+        self._cuts[i] = self.decompIn:cuts(i) 
       end
    else
       -- create a dummy decomp and use it to set the grid
