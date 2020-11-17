@@ -105,7 +105,7 @@ function ChargeExchange:_advance(tCurr, inFld, outFld)
 	       uIonItr[numConfBasis*(d-1)+k] = 0.0
 	    end
 	 end
-      if uIonDim < vDim and uIonDim == 1 and cDim == 3 then
+      elseif uIonDim < vDim and uIonDim == 1 and cDim == 3 then
 	 uIon:fill(confIndexer(cIdx), uParIonItr)
 	 for d = 1, vDim-1 do
 	    for k = 1, numConfBasis do
