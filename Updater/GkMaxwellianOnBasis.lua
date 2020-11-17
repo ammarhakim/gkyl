@@ -203,11 +203,12 @@ function GkMaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 	    nOrd[ordIdx] = nOrd[ordIdx] + nItr[k]*self.confBasisAtOrds[ordIdx][k]
 	    vtSqOrd[ordIdx] = vtSqOrd[ordIdx] + vtSqItr[k]*self.confBasisAtOrds[ordIdx][k]
 
-	    if uDim > 1 then -- get z-component of fluid velocity
+	    if uDim > 1 and cDim == 3 then -- get z-component of fluid velocity
 	       uOrd[ordIdx] = uOrd[ordIdx] + uItr[self.numConfBasis*2+k]*self.confBasisAtOrds[ordIdx][k]
 	    else 
 	       uOrd[ordIdx] = uOrd[ordIdx] + uItr[k]*self.confBasisAtOrds[ordIdx][k]
 	    end
+
 	 end
       end
 

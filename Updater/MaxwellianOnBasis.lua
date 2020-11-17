@@ -181,8 +181,11 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 		     uItr[self.numConfBasis*(d-1)+k]*self.confBasisAtOrds[ordIdx][k]
 	       end
 	    end
-	 elseif uDim == 1 and vDim==3 then -- if uPar passed from GkSpecies, fill d=3 component of u
-	    --print("MaxwellianOnBasis: udim = 1 and vdim = 3")
+	 elseif uDim == 1 and vDim==3 and cDim==1 then -- if uPar passed from GkSpecies, fill d=1 component of u
+	    for k = 1, self.numConfBasis do
+	       uOrd[ordIdx][1] = uOrd[ordIdx][1] + uItr[k]*self.confBasisAtOrds[ordIdx][k]
+	    end
+	 elseif uDim == 1 and vDim==3 and cDim==3 then -- if uPar passed from GkSpecies, fill d=3 component of u
 	    for k = 1, self.numConfBasis do
 	       uOrd[ordIdx][vDim] = uOrd[ordIdx][vDim] + uItr[k]*self.confBasisAtOrds[ordIdx][k]
 	    end

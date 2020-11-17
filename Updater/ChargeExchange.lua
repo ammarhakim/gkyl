@@ -95,7 +95,17 @@ function ChargeExchange:_advance(tCurr, inFld, outFld)
    for cIdx in confRangeDecomp:rowMajorIter(tId) do
       grid:setIndex(cIdx)
 
-      if uIonDim < vDim and uIonDim == 1 then
+      if uIonDim < vDim and uIonDim == 1 and cDim == 1 then
+	 uIon:fill(confIndexer(cIdx), uParIonItr)
+	 for k = 1, numConfBasis do
+	    uIonItr[k] = uParIonItr[k]
+	 end
+	 for d = 2, vDim do
+	    for k = 1, numConfBasis do
+	       uIonItr[numConfBasis*(d-1)+k] = 0.0
+	    end
+	 end
+      if uIonDim < vDim and uIonDim == 1 and cDim == 3 then
 	 uIon:fill(confIndexer(cIdx), uParIonItr)
 	 for d = 1, vDim-1 do
 	    for k = 1, numConfBasis do
