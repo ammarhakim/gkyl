@@ -1,6 +1,8 @@
-# The following modules should be loaded to build on Adroit.
-# module load intel
-# module load intel-mpi
+# The following modules should always be loaded in bashrc (or equivalent) to build on perseus.
+
+#module load intel/19.1/64/19.1.1.217
+#module load openmpi/intel-17.0/1.10.2/64 
+
 # if we are in machines directory, go up a directory
 if [ `dirname "$0"` == "." ] 
   then
