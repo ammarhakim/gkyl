@@ -63,7 +63,7 @@ function DiscontPoisson:init(tbl)
    self.isAllPeriodic = true
    for d = 1, self.ndim do
       if self.grid:isDirPeriodic(d) then
-         bcLower[d] = {1, 0, 0} -- zero Dirichlet corner for all periodic
+         bcLower[d] = nil
       elseif tbl.bcLower[d].T == "D" then -- Purely Dirichlet BC
          bcLower[d] = {1, 0, tbl.bcLower[d].V}
       elseif tbl.bcLower[d].T == "N" then -- Purely Neumann BC
@@ -73,7 +73,7 @@ function DiscontPoisson:init(tbl)
       end
 
       if self.grid:isDirPeriodic(d) then
-         bcUpper[d] = {1, 0, 0} -- a dummy field; the upper matrix is never really used in this case
+         bcUpper[d] = nil
       elseif tbl.bcUpper[d].T == "D" then -- Purely Dirichlet BC
          bcUpper[d] = {1, 0, tbl.bcUpper[d].V}
       elseif tbl.bcUpper[d].T == "N" then -- Purely Neumann BC
@@ -118,10 +118,15 @@ function DiscontPoisson:init(tbl)
    for d = 1, self.ndim do
       local stencilMatrixLoFn = require(string.format("Updater.discontPoissonData.discontPoisson%sStencil%dD_%dp_%sLo",
                                                       basisNm, self.ndim, polyOrder, dirs[d]))
-      self.stencilMatrixLo[d] = stencilMatrixLoFn(dx, bcLower[d][1], bcLower[d][2], bcLower[d][3])
       local stencilMatrixUpFn = require(string.format("Updater.discontPoissonData.discontPoisson%sStencil%dD_%dp_%sUp",
                                                       basisNm, self.ndim, polyOrder, dirs[d]))
-      self.stencilMatrixUp[d] = stencilMatrixUpFn(dx, bcUpper[d][1], bcUpper[d][2], bcUpper[d][3])
+      if self.grid:isDirPeriodic(d) then
+         self.stencilMatrixLo[d] = nil
+         self.stencilMatrixUp[d] = nil
+      else
+         self.stencilMatrixLo[d] = stencilMatrixLoFn(dx, bcLower[d][1], bcLower[d][2], bcLower[d][3])
+         self.stencilMatrixUp[d] = stencilMatrixUpFn(dx, bcUpper[d][1], bcUpper[d][2], bcUpper[d][3])
+      end
    end
 
    self.poisson = ffiC.new_DiscontPoisson(GKYL_OUT_PREFIX, self.ncell, self.ndim, self.nbasis,
@@ -166,14 +171,18 @@ function DiscontPoisson:buildStiffMatrix(phi)
             idxL = stiffMatrixIndexer(idxsExtL)
 
             -- Diagonal blocks
-            val = 0.0
-            for d = 1,ndim do
-               if idxs[d] == localRange:lower(d) and (isLoCorner or not self.grid:isDirPeriodic(d)) then
-                  val = val + self.stencilMatrixLo[d][2][k][l]
-               elseif idxs[d] == localRange:upper(d) and not self.grid:isDirPeriodic(d) then
-                  val = val + self.stencilMatrixUp[d][2][k][l]
-               else
-                  val = val + self.stencilMatrix[d][2][k][l]
+            if isLoCorner and k == 1 and l == 1 then 
+               val = 0.0
+            else
+               val = 0.0
+               for d = 1,ndim do
+                  if idxs[d] == localRange:lower(d) and not self.grid:isDirPeriodic(d) then
+                     val = val + self.stencilMatrixLo[d][2][k][l]
+                  elseif idxs[d] == localRange:upper(d) and not self.grid:isDirPeriodic(d) then
+                     val = val + self.stencilMatrixUp[d][2][k][l]
+                  else
+                     val = val + self.stencilMatrix[d][2][k][l]
+                  end
                end
             end
             if val ~= 0 then
@@ -182,7 +191,7 @@ function DiscontPoisson:buildStiffMatrix(phi)
 
             -- Off-diagonal blocks
             for d = 1,ndim do
-               if idxs[d] == localRange:lower(d) and (isLoCorner or not self.grid:isDirPeriodic(d)) then
+               if idxs[d] == localRange:lower(d) and not self.grid:isDirPeriodic(d) then
                   idxsExtL[d] = idxsExtL[d]+1
                   idxL = stiffMatrixIndexer(idxsExtL)
                   val = self.stencilMatrixLo[d][3][k][l]
@@ -276,10 +285,12 @@ function DiscontPoisson:_advance(tCurr, inFld, outFld)
       for k = 1,self.nbasis do srcMod[k] = 0.0 end
       srcMod[1] = srcPeriodicMod
       for d = 1,ndim do
-         if idxs[d] == 1 then
-            for k = 1,self.nbasis do srcMod[k] = srcMod[k] - self.stencilMatrixLo[d][1][k] end
-         elseif idxs[d] == self.grid:numCells(d) then
-            for k = 1,self.nbasis do srcMod[k] = srcMod[k] - self.stencilMatrixUp[d][3][k] end
+         if not self.grid:isDirPeriodic(d) then
+            if idxs[d] == 1 then
+               for k = 1,self.nbasis do srcMod[k] = srcMod[k] - self.stencilMatrixLo[d][1][k] end
+            elseif idxs[d] == self.grid:numCells(d) then
+               for k = 1,self.nbasis do srcMod[k] = srcMod[k] - self.stencilMatrixUp[d][3][k] end
+            end
          end
       end
 
