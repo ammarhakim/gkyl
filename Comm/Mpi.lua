@@ -49,6 +49,7 @@ ffi.cdef [[
   MPI_Request get_MPI_REQUEST_NULL();
   MPI_Status *getPtr_MPI_STATUS_IGNORE();
   MPI_Info get_MPI_INFO_NULL();
+  int get_MPI_PROC_NULL();
   int get_MPI_COMM_TYPE_SHARED();
   int get_MPI_UNDEFINED();
   int get_MPI_ORDER_C();
@@ -141,6 +142,15 @@ ffi.cdef [[
   int MPI_Comm_create(MPI_Comm comm, MPI_Group group, MPI_Comm *newcomm);
   int MPI_Group_translate_ranks(MPI_Group group1, int n, const int ranks1[], MPI_Group group2, int ranks2[]);
 
+  // Cartesian communicator functions.
+  int MPI_Cart_coords(MPI_Comm comm, int rank, int maxdims, int coords[]);
+  int MPI_Cart_create(MPI_Comm comm_old, int ndims, const int dims[], const int periods[], int reorder, MPI_Comm *comm_cart);
+  int MPI_Cart_get(MPI_Comm comm, int maxdims, int dims[], int periods[], int coords[]);
+  int MPI_Cart_rank(MPI_Comm comm, int coords[], int *rank);
+  int MPI_Cart_shift(MPI_Comm comm, int direction, int disp, int *rank_source, int *rank_dest);
+  int MPI_Cart_sub(MPI_Comm comm, const int remain_dims[], MPI_Comm *comm_new);
+  int MPI_Cartdim_get(MPI_Comm comm, int *ndims);
+
   // Global operators
   int MPI_Barrier(MPI_Comm comm);
   int MPI_Abort(MPI_Comm comm, int errorcode);
@@ -158,6 +168,7 @@ _M.COMM_NULL = ffiC.get_MPI_COMM_NULL()
 _M.COMM_SELF = ffiC.get_MPI_COMM_SELF()
 _M.REQUEST_NULL = ffiC.get_MPI_REQUEST_NULL()
 _M.STATUS_IGNORE = ffiC.getPtr_MPI_STATUS_IGNORE()
+_M.PROC_NULL = ffiC.get_MPI_PROC_NULL()
 
 _M.INFO_NULL = ffiC.get_MPI_INFO_NULL()
 _M.COMM_TYPE_SHARED = ffiC.get_MPI_COMM_TYPE_SHARED()
@@ -465,6 +476,53 @@ function _M.Group_translate_ranks(group1, ranks1, group2)
       getObj(group1, "MPI_Group[1]"), n, ranks1:data(), getObj(group2, "MPI_Group[1]"), ranks2:data())
    return ranks2
 end
+
+-- MPI_Cart_coords
+function _M.Cart_coords(comm, rank, maxdims)
+   local coords = Lin.IntVec(maxdims)
+   local _ = ffiC.MPI_Cart_coords(getObj(comm, "MPI_Comm[1]"), rank, maxdims, coords:data()) 
+   return coords
+end
+-- MPI_Cart_create
+function _M.Cart_create(commOld, ndims, dims, isDirPeriodic, reorder)
+   local commCart = new_MPI_Comm()
+   local _ = ffiC.MPI_Cart_create(getObj(commOld, "MPI_Comm[1]"), ndims, dims:data(), isDirPeriodic:data(), reorder, commCart)
+   return commCart
+end
+-- MPI_Cart_get
+function _M.Cart_get(comm, maxdims)
+   local dims          = Lin.IntVec(maxdims)
+   local isDirPeriodic = Lin.IntVec(maxdims)
+   local coords        = Lin.IntVec(maxdims)
+   local _ = ffiC.MPI_Cart_get(getObj(comm, "MPI_Comm[1]"), maxdims, dims:data(), isDirPeriodic:data(), coords:data())
+   return dims, isDirPeriodic, coords
+end
+-- MPI_Cart_rank
+function _M.Cart_rank(comm, coords)
+   local r = int_1()
+   local _ = ffiC.MPI_Cart_rank(getObj(comm, "MPI_Comm[1]"), coords:data(), r)
+   return r[0]
+end
+-- MPI_Cart_shift
+function _M.Cart_shift(comm, direction, disp)
+   local rSrc, rDest = int_1(), int_1()
+   local _ = ffiC.MPI_Cart_shift(getObj(comm, "MPI_Comm[1]"), direction, disp, rSrc, rDest)
+   return rSrc[0], rDest[0]
+end
+-- MPI_Cart_sub
+function _M.Cart_sub(comm, remainDims)
+   local subComm = new_MPI_Comm()
+   print("remainDims = ", remainDims:data()[0],remainDims:data()[1])
+   local _ = ffiC.MPI_Cart_sub(getObj(comm, "MPI_Comm[1]"), remainDims:data(), subComm)
+   return subComm
+end
+-- MPI_Cartdim_get
+function _M.Cartdim_get(comm)
+   local ndims = int_1()
+   local _ = ffiC.MPI_Cartdim_get(getObj(comm, "MPI_Comm[1]"), ndims)
+   return ndims[0]
+end
+
 
 -- Convenience functions (these are not wrappers over MPI but make
 -- some things a little cleaner)

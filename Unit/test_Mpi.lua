@@ -991,6 +991,104 @@ function test_17(comm)
    Mpi.Barrier(comm)
 end
 
+-- Test MPI_Cart routines.
+function test_18(comm)
+   assert_equal(true, Mpi.Is_comm_valid(comm))
+
+   local rank = Mpi.Comm_rank(comm)
+   local sz   = Mpi.Comm_size(comm)
+   if sz ~= 4 then
+      log("Test of MPI_Cart not run as number of procs not exactly 4")
+      return
+   end
+
+   local cuts = {2,2}
+   local isDirPeriodic = {false, true}
+
+   -- Creation of Cartesian communicator.
+   local commNumDims      = #cuts
+   local commDims         = Lin.IntVec(commNumDims)
+   local intIsDirPeriodic = Lin.IntVec(commNumDims)
+   for d = 1,commNumDims do
+      commDims[d] = cuts[d]
+      intIsDirPeriodic[d] = isDirPeriodic[d] and 1 or 0
+   end
+   local reorder  = 0
+   local commCart = Mpi.Cart_create(comm, commNumDims, commDims, intIsDirPeriodic, reorder)
+   assert_equal(sz, Mpi.Comm_size(commCart), "Checking if Cart communicator has correct size")
+
+   -- Obtain Cartesian coordinates of this rank within Cartesian comm.
+   -- Test assuming a row-major order distribution of ranks.
+   local commCartCoords = Mpi.Cart_coords(commCart, rank, commNumDims)
+   assert_equal(math.floor(rank/cuts[1]), commCartCoords[1], "Checking Cart 0th-coordinate")
+   assert_equal(rank % cuts[2], commCartCoords[2], "Checking Cart 1st-coordinate")
+
+   -- Retreive information about he Cartesian communicator.
+   local commDimsNew, intIsDirPeriodicNew, commCartCoordsNew = Mpi.Cart_get(commCart, commNumDims)
+   for d = 1,commNumDims do
+      assert_equal(commDims[d], commDimsNew[d], "Checking Cart_get dimensions")
+      assert_equal(intIsDirPeriodic[d], intIsDirPeriodicNew[d], "Checking Cart_get isDirPeriodic")
+      assert_equal(commCartCoords[d], commCartCoordsNew[d], "Checking Cart_get commCartCoords")
+   end
+
+   -- Given the Cartesian coordinates, obtain the linear rank.
+   local rankNew = Mpi.Cart_rank(commCart, commCartCoords)
+   assert_equal(rank, rankNew, "Checking Cart_rank")
+
+   -- Obtain the source/destination for send-receive along each positive direction.
+   local srcRankP, destRankP, disp = {}, {}, 1
+   srcRankP[1], destRankP[1] = Mpi.Cart_shift(commCart, 0, disp)
+   srcRankP[2], destRankP[2] = Mpi.Cart_shift(commCart, 1, disp)
+   if commCartCoords[1] == 0 then
+      assert_equal(Mpi.PROC_NULL, srcRankP[1], "Checking Cart_shift in 0th positive direction (src a)")
+      assert_equal(rank+cuts[1], destRankP[1], "Checking Cart_shift in 0th positive direction (dest a)")
+   else
+      assert_equal(rank-cuts[1], srcRankP[1], "Checking Cart_shift in 0th positive direction (src b)")
+      assert_equal(Mpi.PROC_NULL, destRankP[1], "Checking Cart_shift in 0th positive direction (dest b)")
+   end
+   if commCartCoords[2] == 0 then
+      assert_equal(rank+1, srcRankP[2], "Checking Cart_shift in 1st positive direction (src a)")
+      assert_equal(rank+1, destRankP[2], "Checking Cart_shift in 1st positive direction (dest a)")
+   else
+      assert_equal(rank-1, srcRankP[2], "Checking Cart_shift in 1st positive direction (src b)")
+      assert_equal(rank-1, destRankP[2], "Checking Cart_shift in 1st positive direction (dest b)")
+   end
+
+   -- Obtain the source/destination for send-receive along each negative direction.
+   local srcRankM, destRankM, disp = {}, {}, -1
+   srcRankM[1], destRankM[1] = Mpi.Cart_shift(commCart, 0, disp)
+   srcRankM[2], destRankM[2] = Mpi.Cart_shift(commCart, 1, disp)
+   if commCartCoords[1] == 1 then
+      assert_equal(Mpi.PROC_NULL, srcRankM[1], "Checking Cart_shift in 0th negative direction (src a)")
+      assert_equal(rank-cuts[1], destRankM[1], "Checking Cart_shift in 0th negative direction (dest a)")
+   else
+      assert_equal(rank+cuts[1], srcRankM[1], "Checking Cart_shift in 0th negative direction (src b)")
+      assert_equal(Mpi.PROC_NULL, destRankM[1], "Checking Cart_shift in 0th negative direction (dest b)")
+   end
+   if commCartCoords[2] == 1 then
+      assert_equal(rank-1, srcRankM[2], "Checking Cart_shift in 1st negative direction (src a)")
+      assert_equal(rank-1, destRankM[2], "Checking Cart_shift in 1st negative direction (dest a)")
+   else
+      assert_equal(rank+1, srcRankM[2], "Checking Cart_shift in 1st negative direction (src b)")
+      assert_equal(rank+1, destRankM[2], "Checking Cart_shift in 1st negative direction (dest b)")
+   end
+
+   -- Create sub-communicators along each direction.
+   local commCart1D = {}
+   local keepDir    = Lin.IntVec(commNumDims)
+   keepDir[1], keepDir[2] = 1, 0
+   commCart1D[1] = Mpi.Cart_sub(commCart, keepDir)
+--   keepDir[1], keepDir[2] = 0, 1
+--   commCart1D[2] = Mpi.Cart_sub(commCart, keepDir)
+
+
+   -- Obtain the dimensionality of the Cartesian communicator. 
+   local commCartNumDims = Mpi.Cartdim_get(commCart)
+   assert_equal(commNumDims, commCartNumDims, "Checking Cartdim_get")
+
+   Mpi.Barrier(comm)
+end
+
 -- Run tests
 test_0(Mpi.COMM_WORLD)
 test_1(Mpi.COMM_WORLD)
@@ -1048,6 +1146,7 @@ test_16(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
 test_16(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
 
 test_17(Mpi.COMM_WORLD)
+test_18(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
