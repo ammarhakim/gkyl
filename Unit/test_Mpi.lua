@@ -1081,7 +1081,6 @@ function test_18(comm)
 --   keepDir[1], keepDir[2] = 0, 1
 --   commCart1D[2] = Mpi.Cart_sub(commCart, keepDir)
 
-
    -- Obtain the dimensionality of the Cartesian communicator. 
    local commCartNumDims = Mpi.Cartdim_get(commCart)
    assert_equal(commNumDims, commCartNumDims, "Checking Cartdim_get")

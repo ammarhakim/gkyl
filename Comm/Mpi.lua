@@ -512,7 +512,6 @@ end
 -- MPI_Cart_sub
 function _M.Cart_sub(comm, remainDims)
    local subComm = new_MPI_Comm()
-   print("remainDims = ", remainDims:data()[0],remainDims:data()[1])
    local _ = ffiC.MPI_Cart_sub(getObj(comm, "MPI_Comm[1]"), remainDims:data(), subComm)
    return subComm
 end
