@@ -575,7 +575,7 @@ function test_12(comm, nlayer, ordering)
       end
 
       for n = 1, nlayer do
-      	 i = range:upper(1)-n+1
+      	 local i = range:upper(1)-n+1
       	 for j = range:lower(2), range:upper(2) do
       	    assert_equal(i+20*j+0.5, buff[indexer(i,j)],
       			 string.format("Checking upper X-direction send/recv (%d,%d)", i,j))
@@ -673,7 +673,7 @@ function test_13(comm, nlayer, numComponents, ordering)
       end
 
       for n = 1, nlayer do
-      	 i = range:upper(1)-n+1
+      	 local i = range:upper(1)-n+1
       	 for j = range:lower(2), range:upper(2) do
    	    for k = 1, numComponents do	    
    	       assert_equal(i+20*j+0.5+1000*k, buff[cidx(i,j,k)],
@@ -779,7 +779,7 @@ function test_14(comm, nlayer, numComponents, ordering)
       end
 
       for n = 1, nlayer do
-      	 i = range:upper(1)-n+1
+      	 local i = range:upper(1)-n+1
       	 for j = range:lower(2), range:upper(2) do
    	    for k = 1, numComponents do	    
    	       assert_equal(i+20*j+0.5+1000*k, buff[cidx(i,j,k)],
@@ -996,7 +996,7 @@ function test_18(comm)
    assert_equal(true, Mpi.Is_comm_valid(comm))
 
    local rank = Mpi.Comm_rank(comm)
-   local sz   = Mpi.Comm_size(comm)
+   local sz = Mpi.Comm_size(comm)
    if sz ~= 4 then
       log("Test of MPI_Cart not run as number of procs not exactly 4")
       return
@@ -1006,14 +1006,14 @@ function test_18(comm)
    local isDirPeriodic = {false, true}
 
    -- Creation of Cartesian communicator.
-   local commNumDims      = #cuts
-   local commDims         = Lin.IntVec(commNumDims)
+   local commNumDims = #cuts
+   local commDims = Lin.IntVec(commNumDims)
    local intIsDirPeriodic = Lin.IntVec(commNumDims)
    for d = 1,commNumDims do
       commDims[d] = cuts[d]
       intIsDirPeriodic[d] = isDirPeriodic[d] and 1 or 0
    end
-   local reorder  = 0
+   local reorder = 0
    local commCart = Mpi.Cart_create(comm, commNumDims, commDims, intIsDirPeriodic, reorder)
    assert_equal(sz, Mpi.Comm_size(commCart), "Checking if Cart communicator has correct size")
 
@@ -1023,7 +1023,7 @@ function test_18(comm)
    assert_equal(math.floor(rank/cuts[1]), commCartCoords[1], "Checking Cart 0th-coordinate")
    assert_equal(rank % cuts[2], commCartCoords[2], "Checking Cart 1st-coordinate")
 
-   -- Retreive information about he Cartesian communicator.
+   -- Retreive information about Cartesian communicator.
    local commDimsNew, intIsDirPeriodicNew, commCartCoordsNew = Mpi.Cart_get(commCart, commNumDims)
    for d = 1,commNumDims do
       assert_equal(commDims[d], commDimsNew[d], "Checking Cart_get dimensions")
@@ -1075,11 +1075,17 @@ function test_18(comm)
 
    -- Create sub-communicators along each direction.
    local commCart1D = {}
-   local keepDir    = Lin.IntVec(commNumDims)
-   keepDir[1], keepDir[2] = 1, 0
+   local keepDir = Lin.IntVec(4)
+   keepDir[1], keepDir[2], keepDir[3], keepDir[4] = 1, 0, 0, 0
    commCart1D[1] = Mpi.Cart_sub(commCart, keepDir)
---   keepDir[1], keepDir[2] = 0, 1
---   commCart1D[2] = Mpi.Cart_sub(commCart, keepDir)
+   keepDir[1], keepDir[2], keepDir[3], keepDir[4] = 0, 1, 0, 0
+   commCart1D[2] = Mpi.Cart_sub(commCart, keepDir)
+
+   local cc1d = Mpi.Cartdim_get(commCart1D[1])
+   local cc2d = Mpi.Cartdim_get(commCart1D[2])
+
+   assert_equal(1, cc1d, "Checking if dimension of sub-comm is correct")
+   assert_equal(1, cc2d, "Checking if dimension of sub-comm is correct")
 
    -- Obtain the dimensionality of the Cartesian communicator. 
    local commCartNumDims = Mpi.Cartdim_get(commCart)

@@ -491,9 +491,9 @@ function _M.Cart_create(commOld, ndims, dims, isDirPeriodic, reorder)
 end
 -- MPI_Cart_get
 function _M.Cart_get(comm, maxdims)
-   local dims          = Lin.IntVec(maxdims)
+   local dims = Lin.IntVec(maxdims)
    local isDirPeriodic = Lin.IntVec(maxdims)
-   local coords        = Lin.IntVec(maxdims)
+   local coords = Lin.IntVec(maxdims)
    local _ = ffiC.MPI_Cart_get(getObj(comm, "MPI_Comm[1]"), maxdims, dims:data(), isDirPeriodic:data(), coords:data())
    return dims, isDirPeriodic, coords
 end
@@ -512,7 +512,7 @@ end
 -- MPI_Cart_sub
 function _M.Cart_sub(comm, remainDims)
    local subComm = new_MPI_Comm()
-   local _ = ffiC.MPI_Cart_sub(getObj(comm, "MPI_Comm[1]"), remainDims:data(), subComm)
+   local err = ffiC.MPI_Cart_sub(getObj(comm, "MPI_Comm[1]"), remainDims:data(), subComm)
    return subComm
 end
 -- MPI_Cartdim_get
@@ -521,7 +521,6 @@ function _M.Cartdim_get(comm)
    local _ = ffiC.MPI_Cartdim_get(getObj(comm, "MPI_Comm[1]"), ndims)
    return ndims[0]
 end
-
 
 -- Convenience functions (these are not wrappers over MPI but make
 -- some things a little cleaner)
