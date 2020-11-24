@@ -1075,10 +1075,10 @@ function test_18(comm)
 
    -- Create sub-communicators along each direction.
    local commCart1D = {}
-   local keepDir = Lin.IntVec(4)
-   keepDir[1], keepDir[2], keepDir[3], keepDir[4] = 1, 0, 0, 0
+   local keepDir = Lin.IntVec(commNumDims)
+   keepDir[1], keepDir[2] = 1, 0
    commCart1D[1] = Mpi.Cart_sub(commCart, keepDir)
-   keepDir[1], keepDir[2], keepDir[3], keepDir[4] = 0, 1, 0, 0
+   keepDir[1], keepDir[2] = 0, 1
    commCart1D[2] = Mpi.Cart_sub(commCart, keepDir)
 
    local cc1d = Mpi.Cartdim_get(commCart1D[1])
