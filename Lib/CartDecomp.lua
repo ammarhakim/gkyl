@@ -15,6 +15,7 @@ local PrimeFactor = require "Lib.PrimeFactor"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
 local xsys = require "xsys"
+local lume = require "Lib.lume"
 
 -- create constructor to store vector of Range objects
 local RangeVec = Lin.new_vec_ct(ffi.typeof("GkylRange_t"))
@@ -197,6 +198,88 @@ function CartProdDecomp:decompose(range) -- decompose range
    end
 
    return decompRgn
+end
+
+function CartProdDecomp:childDecomp(keepDir)
+   -- Obtain the ingredients needed to create a Cartesian decomposition of a lower
+   -- dimension, keeping the dimensions in 'keepDir' (keepDir should be a table of
+   -- the directions to be kept, e.g. {1,3}). This method doesn't create the new decomposition
+   -- because that would require CartProdDecomp creating a new instance of itself.
+   local parentDim, childDim = self._cutsRange:ndim(), #keepDir
+   assert(childDim>0, "CartProdDecomp: the table of dimensions passed (keepDir) must have at lease one element.")
+   assert(childDim<=parentDim, "CartProdDecomp: the table of dimensions passed (keepDir) must have fewer or same number of dimensions as parent decomposition.")
+   local isDirKept = {}
+   for d=1,parentDim do isDirKept[d] = false end
+   for _, d in ipairs(keepDir) do isDirKept[d] = true end
+
+   local parentCuts, childCuts = {}, {}
+   for d=1,parentDim do parentCuts[d] = self:cuts(d) or 1 end
+   for d=1,childDim do childCuts[d] = self:cuts(keepDir[d]) or 1 end
+
+   local parentNodeRank            = Mpi.Comm_rank(self:commSet().nodeComm)
+   local childRank, childWriteRank = parentNodeRank, parentNodeRank
+   if (parentDim > 1) and (childDim < parentDim) then
+      -- The following assumes a colum-major order distribution of MPI processes.
+      if parentDim == 2 then
+         if keepDir[1] == 1 then 
+            childRank = math.floor(parentNodeRank/parentCuts[1])
+         elseif keepDir[1] == 2 then 
+            childRank = parentNodeRank % parentCuts[1]
+         end
+      elseif parentDim == 3 then
+         if childDim == 1 then
+            if keepDir[1] == 1 then 
+               childRank = math.floor(parentNodeRank/parentCuts[1])
+            elseif keepDir[1] == 2 then 
+               childRank = parentNodeRank % parentCuts[1] + parentCuts[1]*math.floor(parentNodeRank/(parentCuts[1]*parentCuts[2]))
+            elseif keepDir[1] == 3 then 
+               childRank = parentNodeRank % (parentCuts[1]*parentCuts[2])
+            end
+         elseif childDim == 2 then
+            if ((keepDir[1] == 1) and (keepDir[2] == 2)) or ((keepDir[1] == 2) and (keepDir[2] == 1)) then
+               childRank = math.floor(parentNodeRank/(parentCuts[1]*parentCuts[2]))
+            elseif ((keepDir[1] == 2) and (keepDir[2] == 3)) or ((keepDir[1] == 3) and (keepDir[2] == 2)) then
+               childRank = (parentNodeRank % (parentCuts[1]*parentCuts[2])) % parentCuts[1]
+            elseif ((keepDir[1] == 3) and (keepDir[2] == 1)) or ((keepDir[1] == 1) and (keepDir[2] == 3)) then
+               childRank = math.floor(parentNodeRank/parentCuts[1]) % parentCuts[2]
+            end
+         end
+      end
+--      -- (UNFINISHED) The following assumes a row-major order distribution of MPI processes.
+--      if parentDim == 2 then
+--         if keepDir[1] == 1 then 
+--            childRank = parentNodeRank % parentCuts[2]
+--         elseif keepDir[1] == 2 then 
+--            childRank = math.floor(parentNodeRank/parentCuts[1])
+--         end
+--      elseif parentDim == 3 then
+--         if childDim == 1 then
+--            if keepDir[1] == 1 then 
+--               childRank = parentNodeRank % (parentCuts[2]*parentCuts[3])
+--            elseif keepDir[1] == 2 then 
+--               childRank = parentNodeRank
+--            elseif keepDir[1] == 3 then 
+--               childRank = parentNodeRank
+--            end
+--         elseif childDim == 2 then
+--            if ((keepDir[1] == 1) and (keepDir[2] == 2)) or ((keepDir[1] == 2) and (keepDir[2] == 1)) then
+--               childRank = parentNodeRank % parentCuts[3]
+--            elseif ((keepDir[1] == 2) and (keepDir[2] == 3)) or ((keepDir[1] == 3) and (keepDir[2] == 2)) then
+--               childRank = math.floor(parentNodeRank/(parentCuts[2]*parentCuts[3]))
+--            elseif ((keepDir[1] == 3) and (keepDir[2] == 1)) or ((keepDir[1] == 1) and (keepDir[2] == 3)) then
+--            end
+--         end
+--      end
+
+      local childWriteRank = -1   -- MF: I think this should be Mpi.PROC_NULL
+      -- For now assume only the ranks with the lowest childRank do IO. 
+      if childRank == 0 then childWriteRank = parentNodeRank end
+   end
+   local childComm = Mpi.Comm_split(self:commSet().comm, childRank, parentNodeRank)
+
+   local childIsShared = self:isShared()
+
+   return childComm, childWriteRank, childCuts, childIsShared
 end
 
 --------------------------------------------------------------------------------
