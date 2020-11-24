@@ -18,6 +18,7 @@ local Lin   = require "Lib.Linalg"
 local Mpi   = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
+local lume  = require "Lib.lume" 
 
 local cuda = nil
 if GKYL_HAVE_CUDA then
@@ -109,37 +110,37 @@ function RectCart:init(tbl)
       self._gridVol     = self._gridVol*(up[d]-lo[d])
    end
 
-   -- compute global range
+   -- Compute global range.
    local l, u = {}, {}
    for d = 1, #cells do
       l[d], u[d] = 1, cells[d]
    end
    self._globalRange = Range.Range(l, u)   
    self._localRange  = Range.Range(l, u)
-   self._block       = 1 -- block number for use in parallel communications
+   self._block       = 1   -- Block number for use in parallel communications.
    self._isShared    = false
    
-   self.decompIn = tbl.decomposition and tbl.decomposition or nil  -- decomposition
-   if self.decompIn then
-      assert(self.decompIn:ndim() == self._ndim,
+   self.decomp = tbl.decomposition and tbl.decomposition or nil  -- Decomposition.
+   if self.decomp then
+      assert(self.decomp:ndim() == self._ndim,
 	     "Decomposition dimensions must be same as grid dimensions!")
 
-      self._isShared = self.decompIn:isShared()
-      -- in parallel, we need to adjust local range      
-      self._commSet = self.decompIn:commSet()
-      self._decomposedRange = self.decompIn:decompose(self._globalRange)
+      self._isShared = self.decomp:isShared()
+      -- In parallel, we need to adjust local range. 
+      self._commSet = self.decomp:commSet()
+      self._decomposedRange = self.decomp:decompose(self._globalRange)
       local subDomIdx = getSubDomIndex(self._commSet.nodeComm, self._commSet.sharedComm)
       self._block = subDomIdx
       local localRange = self._decomposedRange:subDomain(subDomIdx)
       self._localRange:copy(localRange)
       self._cuts = {}
       for i = 1, self._ndim do 
-	 assert(self.decompIn:cuts(i) <= self._numCells[i],
-		"Cannot have more decomposition cuts than cells in any dimension!")
-        self._cuts[i] = self.decompIn:cuts(i) 
+         assert(self.decomp:cuts(i) <= self._numCells[i],
+                "Cannot have more decomposition cuts than cells in any dimension!")
+         self._cuts[i] = self.decomp:cuts(i) 
       end
    else
-      -- create a dummy decomp and use it to set the grid
+      -- Create a dummy decomp and use it to set the grid.
       local cuts = {}
       for i = 1, self._ndim do cuts[i] = 1 end
       local dec1 = DecompRegionCalc.CartProd { cuts = cuts, useShared = true }
@@ -152,7 +153,7 @@ function RectCart:init(tbl)
    self._onDevice = self:copyHostToDevice()
 end
 
--- member functions
+-- Member functions.
 function RectCart:id() return "uniform" end
 function RectCart:commSet() return self._commSet end 
 function RectCart:isShared() return self._isShared end
@@ -267,6 +268,48 @@ end
 
 function RectCart:copyHostToDevice()
    return getDevicePointerToGrid(self)
+end
+
+function RectCart:childGrid(keepDims)
+   -- Collect the ingredients needed for a child grid: a grid with a subset of the
+   -- directions of the original (parent) grid.
+   -- Cannot output a childGrid itself because that would require a recursive RectCart updater.
+   local childDim = #keepDims
+   assert(childDim>0 and childDim<=self._ndim, "RectCart:childGrid cannot have dimensions < 1 or greater than parent grid.")
+
+   local childLower, childUpper, childCells, childPeriodicDirs = {}, {}, {}, {}
+   local dI, pIdx = 0
+   for _, d in ipairs(lume.sort(keepDims)) do
+      dI = dI+1
+      childLower[dI] = self:lower(d)
+      childUpper[dI] = self:upper(d)
+      childCells[dI] = self:numCells(d)
+      if self:isDirPeriodic(d) then
+         pIdx = pIdx+1
+         childPeriodicDirs[pIdx] = dI
+      end
+   end
+
+   local childDecomp = nil
+   if self.decomp then
+      local childComm, childWriteRank, childCuts, childIsShared = self.decomp:childDecomp(keepDims)
+      childDecomp = DecompRegionCalc.CartProd {
+         comm      = childComm,
+         writeRank = childWriteRank,
+         cuts      = childCuts,
+         useShared = childIsShared,
+         __serTesting = true,
+      }
+   end
+
+   local childGridIngredients = {
+      lower = childLower,
+      upper = childUpper,
+      cells = childCells,
+      periodicDirs  = childPeriodicDirs,
+      decomposition = childDecomp,
+   }
+   return childGridIngredients
 end
 
 return RectCart

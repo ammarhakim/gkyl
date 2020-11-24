@@ -274,7 +274,7 @@ function MappedCart:write(fName)
       lower = lower,
       upper = upper,
       cells = cells,
-      decomposition = self.decompIn,
+      decomposition = self.decomp,
    }
    local nodalCoords = DataStruct.Field {
       onGrid        = grid,

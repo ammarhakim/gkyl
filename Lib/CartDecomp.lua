@@ -29,7 +29,7 @@ local PairsVec = Lin.new_vec_ct(ffi.typeof("struct { int lower, upper; } "))
 --------------------------------------------------------------------------------
 
 local DecomposedRange = Proto()
--- constructor to make object that stores decomposed ranges
+-- Constructor to make object that stores decomposed ranges.
 function DecomposedRange:init(decomp)
    local ones, upper = {}, {}
    for d = 1, decomp:ndim() do
@@ -40,36 +40,36 @@ function DecomposedRange:init(decomp)
    self._commSet = decomp:commSet() -- set of communicators
    self._domains = RangeVec(self._cutsRange:volume())
 
-   -- for periodic directions store "skeleton" sub-domains, i.e. those
-   -- that touch the domain boundary
-   self._periodicDomPairs = {} -- table of size 'ndim'
+   -- For periodic directions store "skeleton" sub-domains, i.e. those
+   -- that touch the domain boundary.
+   self._periodicDomPairs = {} -- Table of size 'ndim'.
    for d = 1, decomp:ndim() do
-      local sz = self._cutsRange:shorten(d):volume() -- number of skeleton cells
-      self._periodicDomPairs[d] = PairsVec(sz) -- store as integer pair
+      local sz = self._cutsRange:shorten(d):volume() -- Number of skeleton cells.
+      self._periodicDomPairs[d] = PairsVec(sz)       -- Store as integer pair.
    end
 
    -- (we can do this here as skeleton sub-domain IDs only depends on
-   -- cuts and not on domain to be decomposed)
+   -- cuts and not on domain to be decomposed).
    local cutsIdxr = Range.makeColMajorGenIndexer(self._cutsRange)
-   -- loop over each direction, adding boundary sub-regions to
-   -- pair-list to allow communication in periodic directions
+   -- Loop over each direction, adding boundary sub-regions to
+   -- pair-list to allow communication in periodic directions.
    for dir = 1, decomp:ndim() do
-      -- loop over "shortened" range which are basically
-      -- sub-domains that lie on the lower domain boundary
+      -- Loop over "shortened" range which are basically
+      -- sub-domains that lie on the lower domain boundary.
       local shortRange = self._cutsRange:shorten(dir)
       local c = 1
       for idx in shortRange:colMajorIter() do
 	 local idxp = idx:copy()
-	 idxp[dir] = idxp[dir]+decomp:cuts(dir)-1 -- upper index
+	 idxp[dir] = idxp[dir]+decomp:cuts(dir)-1 -- Upper index.
 
-	 self._periodicDomPairs[dir][c].lower = cutsIdxr(idx) -- lower sub-domain on boundary
-	 self._periodicDomPairs[dir][c].upper = cutsIdxr(idxp) -- upper sub-domain on boundary
+	 self._periodicDomPairs[dir][c].lower = cutsIdxr(idx) -- Lower sub-domain on boundary.
+	 self._periodicDomPairs[dir][c].upper = cutsIdxr(idxp) -- Upper sub-domain on boundary.
 	 c = c+1
       end
    end   
 end
 
--- set callable methods
+-- Set callable methods.
 function DecomposedRange:commSet() return self._commSet end
 function DecomposedRange:ndim() return self._cutsRange:ndim() end
 function DecomposedRange:cuts(dir) return self._cutsRange:upper(dir) end
@@ -113,14 +113,14 @@ function CartProdDecomp:init(tbl)
    local worldSz = Mpi.Comm_size(comm)
    local shmSz = Mpi.Comm_size(shmComm)
    
-   -- get mapping from shared -> global communicator ranks
+   -- Get mapping from shared -> global communicator ranks.
    local worldGrp = Mpi.Comm_group(comm)
    local shmGrp = Mpi.Comm_group(shmComm)
    local shmRanks = Lin.IntVec(shmSz)
    for d = 1, shmSz do shmRanks[d] = d-1 end -- ranks are indexed from 0
    local worldRanks = Mpi.Group_translate_ranks(shmGrp, shmRanks, worldGrp)
 
-   -- store world rank corresponding to rank zero of shmComm
+   -- Store world rank corresponding to rank zero of shmComm.
    local nodeSz = worldSz/shmSz
    local localZeroRanks = Lin.IntVec(nodeSz)
    for d = 1, #localZeroRanks do localZeroRanks[d] = 0 end
@@ -136,12 +136,12 @@ function CartProdDecomp:init(tbl)
    -- identical on processes in comm. It works as the localZeroRanks
    -- only has a single non-zero element at a unique index location).
 
-   -- now create nodeComm from the collected rank zeros
+   -- Now create nodeComm from the collected rank zeros.
    local nodeComm = Mpi.Split_comm(comm, zeroRanks)
 
-   -- check if total number of domains specified by 'cuts' matches
-   -- number of MPI ranks in nodeComm
-   if not tbl.__serTesting then -- skip check if just testing
+   -- Check if total number of domains specified by 'cuts' matches
+   -- number of MPI ranks in nodeComm.
+   if not tbl.__serTesting then   -- Skip check if just testing.
       if Mpi.Is_comm_valid(nodeComm) then
 	 if Mpi.Comm_size(nodeComm) ~= self._cutsRange:volume() then
 	    assert(false,
@@ -152,29 +152,29 @@ function CartProdDecomp:init(tbl)
       end
    end
 
-   -- store various communicators in a table
+   -- Store various communicators in a table.
    self._commSet = {
       comm = comm, sharedComm = shmComm, nodeComm = nodeComm, writeRank = writeRank
    }
 end
 
--- set callable methods
+-- Set callable methods.
 function CartProdDecomp:commSet() return self._commSet end
 function CartProdDecomp:ndim() return self._cutsRange:ndim() end
 function CartProdDecomp:cuts(dir) return self._cutsRange:upper(dir) end
 function CartProdDecomp:isShared() return self._useShared end
 
-function CartProdDecomp:decompose(range) -- decompose range
+function CartProdDecomp:decompose(range) -- Decompose range.
    local decompRgn = DecomposedRange(self)
    
-   local shapes, starts = {}, {} -- to store shapes, start in each direction
-   -- compute shape and start index in each direction
+   local shapes, starts = {}, {} -- To store shapes, start in each direction.
+   -- Compute shape and start index in each direction.
    for dir = 1, range:ndim() do
       shapes[dir] = Lin.IntVec(self:cuts(dir))
       local baseShape = math.floor(range:shape(dir)/self:cuts(dir))
-      local remCells = range:shape(dir) % self:cuts(dir) -- extra cells left over
+      local remCells = range:shape(dir) % self:cuts(dir) -- Extra cells left over.
       for c = 1, self:cuts(dir) do
-	 shapes[dir][c] = baseShape + (remCells>0 and 1 or 0) -- add extra cell if any remain
+	 shapes[dir][c] = baseShape + (remCells>0 and 1 or 0) -- Add extra cell if any remain.
 	 remCells = remCells-1
       end
 
@@ -186,7 +186,7 @@ function CartProdDecomp:decompose(range) -- decompose range
    end
 
    local c = 1
-   -- add regions
+   -- Add regions.
    for idx in self._cutsRange:colMajorIter() do
       local l, u = {}, {}
       for dir = 1, range:ndim() do

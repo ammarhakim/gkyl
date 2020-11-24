@@ -5,9 +5,13 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Unit = require "Unit"
-local Grid = require "Grid"
-local Lin  = require "Lib.Linalg"
+local Unit       = require "Unit"
+local Grid       = require "Grid"
+local Lin        = require "Lib.Linalg"
+local Updater    = require "Updater"
+local DataStruct = require "DataStruct"
+local Basis      = require "Basis"
+local DecompRegionCalc = require "Lib.CartDecomp"
 
 local assert_equal = Unit.assert_equal
 local stats        = Unit.stats
@@ -456,6 +460,156 @@ function test_10()
    assert_equal(true, grid:isDirPeriodic(3), "Checking periodicity (NU)")
 end
 
+function test_11()
+   -- Test the creation of child grids from a 2D parent grid.
+   local decomp = DecompRegionCalc.CartProd { cuts = {1, 1} }
+   local parentLower = {0.0, 1.0}
+   local parentUpper = {2.0, 5.0}
+   local parentCells = {10, 20}
+   local grid = Grid.RectCart {
+      lower = parentLower,
+      upper = parentUpper,
+      cells = parentCells,
+      decomposition = decomp,
+   }
+
+   local childGrid = {}
+   for d = 1, 2 do   -- Create an X sub-grid and a Y sub-grid.
+      local childGridIngr = grid:childGrid({d})
+      childGrid[d] = Grid.RectCart {
+         lower = childGridIngr.lower, 
+         upper = childGridIngr.upper,
+         cells = childGridIngr.cells,
+      }
+      assert_equal(1, childGrid[d]:ndim(), string.format("Checking child %d NDIM",d))
+      assert_equal(parentCells[d], childGrid[d]:numCells(1), string.format("Checking child %d numCells",d))
+      assert_equal(parentLower[d], childGrid[d]:lower(1), string.format("Checking child %d lower",d))
+      assert_equal(parentUpper[d], childGrid[d]:upper(1), string.format("Checking child %d upper",d))
+      assert_equal((parentUpper[d]-parentLower[d])/parentCells[d], childGrid[d]:dx(1), string.format("Checking child %d dx",d))
+      assert_equal((parentUpper[d]-parentLower[d])/parentCells[d], childGrid[d]:cellVolume(), string.format("Checking child %d volume",d))
+      local childDim, localRange = childGrid[d]:ndim(), childGrid[d]:localRange()
+      local lox, dx = childGrid[d]:lower(1), childGrid[d]:dx(1)
+      local idx, xc = Lin.IntVec(childDim), Lin.Vec(childDim)
+      for i = localRange:lower(1), localRange:upper(1) do
+         childGrid[d]:setIndex( idx:setValues {i} )
+         childGrid[d]:cellCenter(xc)
+         assert_equal(xc[1], lox+(i-0.5)*dx, string.format("Testing child %d cell-center coordinate",d))
+      end
+   end
+
+   -- Project a function on the 2D grid, then project onto a 1D grid.
+   local polyOrder = 2
+   local testFuncDir = {}
+   testFuncDir[1] = function(x) return math.cos((2.*math.pi/2.)*x) end
+   testFuncDir[2] = function(y) return math.sin((2.*math.pi/6.)*y) end
+   local basis = Basis.CartModalSerendipity { ndim = grid:ndim(), polyOrder = polyOrder }
+   local testFunc  = function(t, xn)
+      local x, y = xn[1], xn[2]
+      return testFuncDir[1](x)*testFuncDir[2](y)
+   end
+   local basis = Basis.CartModalSerendipity { ndim = grid:ndim(), polyOrder = polyOrder }
+   local distf = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
+      metaData      = {polyOrder = basis:polyOrder(), basisType = basis:id()}
+   }
+   local project = Updater.ProjectOnBasis {
+      onGrid   = grid,
+      basis    = basis,
+      evaluate = testFunc
+   }
+   project:advance(0., {}, {distf}) 
+--   distf:write("distf.bp")
+   local childBasis, distfChild, testFuncChild, projectChild = {}, {}, {}, {}
+   for d = 1, 2 do
+      childBasis[d] = Basis.CartModalSerendipity { ndim = childGrid[d]:ndim(), polyOrder = polyOrder }
+      distfChild[d] = DataStruct.Field {
+         onGrid        = childGrid[d],
+         numComponents = childBasis[d]:numBasis(),
+         ghost         = {1, 1},
+         metaData      = {polyOrder = childBasis[d]:polyOrder(), basisType = childBasis[d]:id()}
+      }
+      testFuncChild[d] = function(t, xn) return testFuncDir[d](xn[1]) end
+      projectChild[d] = Updater.ProjectOnBasis {
+         onGrid   = childGrid[d],
+         basis    = childBasis[d],
+         evaluate = testFuncChild[d]
+      }
+      projectChild[d]:advance(0., {}, {distfChild[d]}) 
+--      distfChild[d]:write("distfChild-" .. d ..".bp")  -- Note: if writing different datasets, cannot use _ to differentiate files.
+   end
+
+   -- Test the creation of child grids from a 3D parent grid.
+   local parentLower = {0.0, 1.0, -0.5}
+   local parentUpper = {2.0, 5.0,  0.5}
+   local parentCells = {10, 20, 16}
+   local grid = Grid.RectCart {
+      lower = parentLower,
+      upper = parentUpper,
+      cells = parentCells,
+   }
+
+   local childGrid = {}
+   for d = 1, 3 do   -- Create an X sub-grid, a Y sub-grid and a Z sub-grid.
+      local childGridIngr = grid:childGrid({d})
+      childGrid[d] = Grid.RectCart {
+         lower = childGridIngr.lower, 
+         upper = childGridIngr.upper,
+         cells = childGridIngr.cells,
+      }
+      assert_equal(1, childGrid[d]:ndim(), string.format("Checking child %d NDIM",d))
+      assert_equal(parentCells[d], childGrid[d]:numCells(1), string.format("Checking child %d numCells",d))
+      assert_equal(parentLower[d], childGrid[d]:lower(1), string.format("Checking child %d lower",d))
+      assert_equal(parentUpper[d], childGrid[d]:upper(1), string.format("Checking child %d upper",d))
+      assert_equal((parentUpper[d]-parentLower[d])/parentCells[d], childGrid[d]:dx(1), string.format("Checking child %d dx",d))
+      assert_equal((parentUpper[d]-parentLower[d])/parentCells[d], childGrid[d]:cellVolume(), string.format("Checking child %d volume",d))
+      local childDim, localRange = childGrid[d]:ndim(), childGrid[d]:localRange()
+      local lox, dx = childGrid[d]:lower(1), childGrid[d]:dx(1)
+      local idx, xc = Lin.IntVec(childDim), Lin.Vec(childDim)
+      for i = localRange:lower(1), localRange:upper(1) do
+         childGrid[d]:setIndex( idx:setValues {i} )
+         childGrid[d]:cellCenter(xc)
+         assert_equal(xc[1], lox+(i-0.5)*dx, string.format("Testing child %d cell-center coordinate",d))
+      end
+   end
+
+   -- Create an YZ, XZ and XY subgrids.
+   local childGrid2D = {}
+   for cD = 1, 3 do
+      local pD = {}
+      for d = 1, 3 do pD[d] = d end
+      table.remove(pD,cD)
+      local childGridIngr = grid:childGrid(pD)
+      childGrid2D[cD] = Grid.RectCart {
+         lower = childGridIngr.lower, 
+         upper = childGridIngr.upper,
+         cells = childGridIngr.cells,
+      }
+      assert_equal(2, childGrid2D[cD]:ndim(), string.format("Checking 2D child %d NDIM",cD))
+      for d = 1, 2 do
+         assert_equal(parentCells[pD[d]], childGrid2D[cD]:numCells(d), string.format("Checking 2D child %d numCells",cD))
+         assert_equal(parentLower[pD[d]], childGrid2D[cD]:lower(d), string.format("Checking 2D child %d lower",cD))
+         assert_equal(parentUpper[pD[d]], childGrid2D[cD]:upper(d), string.format("Checking 2D child %d upper",cD))
+         assert_equal((parentUpper[pD[d]]-parentLower[pD[d]])/parentCells[pD[d]], childGrid2D[cD]:dx(d), string.format("Checking 2D child %d dx",cD))
+      end
+      assert_equal( ((parentUpper[pD[1]]-parentLower[pD[1]])/parentCells[pD[1]])*((parentUpper[pD[2]]-parentLower[pD[2]])/parentCells[pD[2]]),
+                    childGrid2D[cD]:cellVolume(), string.format("Checking 2D child %d volume",cD) )
+      local childDim, localRange = childGrid2D[cD]:ndim(), childGrid2D[cD]:localRange()
+      local lox, dx = childGrid2D[cD]:lower(1), childGrid2D[cD]:dx(1)
+      local loy, dy = childGrid2D[cD]:lower(2), childGrid2D[cD]:dx(2)
+      local idx, xc = Lin.IntVec(childDim), Lin.Vec(childDim)
+      for i = localRange:lower(1), localRange:upper(1) do
+         for j = localRange:lower(2), localRange:upper(2) do
+            childGrid2D[cD]:setIndex( idx:setValues {i,j} )
+            childGrid2D[cD]:cellCenter(xc)
+            assert_equal(xc[1], lox+(i-0.5)*dx, string.format("Testing 2D child %d cell-center coordinate",cD))
+	    assert_equal(xc[2], loy+(j-0.5)*dy, string.format("Testing 2D child %d cell-center coordinate",cD))
+         end
+      end
+   end
+end
+
 -- Run tests.
 test_1()
 test_2()
@@ -468,6 +622,7 @@ test_7()
 test_8()
 test_9()
 test_10()
+test_11()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
