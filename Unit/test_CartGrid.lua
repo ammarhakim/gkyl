@@ -1,6 +1,9 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 -- Test for cartesian grid objects
+--
+-- See bottom of the file for a list of tests/select tests to run.
+--
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
@@ -456,6 +459,343 @@ function test_10()
    assert_equal(true, grid:isDirPeriodic(3), "Checking periodicity (NU)")
 end
 
+function test_12()
+   -- Test the grid's findCell method in 2D.
+   local grid = Grid.RectCart {
+      lower = {0.0, 1.0},
+      upper = {2.0, 5.0},
+      cells = {10, 20}
+   }
+
+   -- Find a point inside a cell.
+   local fIdx, np = {0, 0}, {0.35, 2.1}
+   grid:findCell(np, fIdx)
+   assert_equal(2, fIdx[1], "Checking 2D fIdx[1] for interior point")
+   assert_equal(6, fIdx[2], "Checking 2D fIdx[2] for interior point")
+
+   -- Find a point on x-boundary of two cells.
+   local fIdx, np = {0, 0}, {0.4, 2.1}
+   grid:findCell(np, fIdx)
+   assert_equal(2, fIdx[1], "Checking 2D fIdx[1] for cell x-boundary point (lower)")
+   assert_equal(6, fIdx[2], "Checking 2D fIdx[2] for cell x-boundary point (lower)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(3, fIdx[1], "Checking 2D fIdx[1] for cell x-boundary point (upper)")
+   assert_equal(6, fIdx[2], "Checking 2D fIdx[2] for cell x-boundary point (upper)")
+
+   -- Find a point on y-boundary of two cells.
+   local fIdx, np = {0, 0}, {0.35, 2.2}
+   grid:findCell(np, fIdx)
+   assert_equal(2, fIdx[1], "Checking 2D fIdx[1] for cell y-boundary point (lower)")
+   assert_equal(6, fIdx[2], "Checking 2D fIdx[2] for cell y-boundary point (lower)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(2, fIdx[1], "Checking 2D fIdx[1] for cell y-boundary point (upper)")
+   assert_equal(7, fIdx[2], "Checking 2D fIdx[2] for cell y-boundary point (upper)")
+
+   -- Find a point on corner of 4 cells.
+   local fIdx, np = {0, 0}, {0.4, 3.0}
+   grid:findCell(np, fIdx)
+   assert_equal(2, fIdx[1], "Checking 2D fIdx[1] for corner point (lower)")
+   assert_equal(10, fIdx[2], "Checking 2D fIdx[2] for corner point (lower)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(3, fIdx[1], "Checking 2D fIdx[1] for corner point (upper)")
+   assert_equal(11, fIdx[2], "Checking 2D fIdx[2] for corner point (upper)")
+
+   -- Find a point on lower x domain boundary.
+   local fIdx, np = {0, 0}, {0.0, 3.1}
+   grid:findCell(np, fIdx)
+   assert_equal(1, fIdx[1], "Checking 2D fIdx[1] for lower-x point")
+   assert_equal(11, fIdx[2], "Checking 2D fIdx[2] for lower-x point")
+   local fIdx, np = {0, 0}, {0.0, 3.}
+   grid:findCell(np, fIdx)
+   assert_equal(1, fIdx[1], "Checking 2D fIdx[1] for lower-x boundary point (lower)")
+   assert_equal(10, fIdx[2], "Checking 2D fIdx[2] for lower-x boundary point (lower)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(1, fIdx[1], "Checking 2D fIdx[1] for lower-x boundary point (upper)")
+   assert_equal(11, fIdx[2], "Checking 2D fIdx[2] for lower-x boundary point (upper)")
+
+   -- Find a point on lower y domain boundary.
+   local fIdx, np = {0, 0}, {0.5, 1.}
+   grid:findCell(np, fIdx)
+   assert_equal(3, fIdx[1], "Checking 2D fIdx[1] for lower-y point")
+   assert_equal(1, fIdx[2], "Checking 2D fIdx[2] for lower-y point")
+   local fIdx, np = {0, 0}, {0.4, 1.}
+   grid:findCell(np, fIdx)
+   assert_equal(2, fIdx[1], "Checking 2D fIdx[1] for lower-y boundary point (lower)")
+   assert_equal(1, fIdx[2], "Checking 2D fIdx[2] for lower-y boundary point (lower)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(3, fIdx[1], "Checking 2D fIdx[1] for lower-y boundary point (upper)")
+   assert_equal(1, fIdx[2], "Checking 2D fIdx[2] for lower-y boundary point (upper)")
+
+   -- Find a point on upper x domain boundary.
+   local fIdx, np = {0, 0}, {2.0, 3.1}
+   grid:findCell(np, fIdx)
+   assert_equal(10, fIdx[1], "Checking 2D fIdx[1] for upper-x point")
+   assert_equal(11, fIdx[2], "Checking 2D fIdx[2] for upper-x point")
+   local fIdx, np = {0, 0}, {2.0, 3.}
+   grid:findCell(np, fIdx)
+   assert_equal(10, fIdx[1], "Checking 2D fIdx[1] for upper-x boundary point (lower)")
+   assert_equal(10, fIdx[2], "Checking 2D fIdx[2] for upper-x boundary point (lower)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(10, fIdx[1], "Checking 2D fIdx[1] for upper-x boundary point (upper)")
+   assert_equal(11, fIdx[2], "Checking 2D fIdx[2] for upper-x boundary point (upper)")
+
+   -- Find a point on upper y domain boundary.
+   local fIdx, np = {0, 0}, {0.5, 5.}
+   grid:findCell(np, fIdx)
+   assert_equal(3, fIdx[1], "Checking 2D fIdx[1] for upper-y point")
+   assert_equal(20, fIdx[2], "Checking 2D fIdx[2] for upper-y point")
+   local fIdx, np = {0, 0}, {0.4, 5.}
+   grid:findCell(np, fIdx)
+   assert_equal(2, fIdx[1], "Checking 2D fIdx[1] for upper-y boundary point (lower)")
+   assert_equal(20, fIdx[2], "Checking 2D fIdx[2] for upper-y boundary point (lower)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(3, fIdx[1], "Checking 2D fIdx[1] for upper-y boundary point (upper)")
+   assert_equal(20, fIdx[2], "Checking 2D fIdx[2] for upper-y boundary point (upper)")
+
+   -- Find domain corner points.
+   local fIdx, np = {0, 0}, {0.0, 1.}
+   grid:findCell(np, fIdx)
+   assert_equal(1, fIdx[1], "Checking 3D fIdx[1] for lower left corner point")
+   assert_equal(1, fIdx[2], "Checking 3D fIdx[2] for lower left corner point")
+   local fIdx, np = {0, 0}, {2.0, 1.}
+   grid:findCell(np, fIdx)
+   assert_equal(10, fIdx[1], "Checking 3D fIdx[1] for lower right corner point")
+   assert_equal(1, fIdx[2], "Checking 3D fIdx[2] for lower right corner point")
+   local fIdx, np = {0, 0}, {0.0, 5.}
+   grid:findCell(np, fIdx)
+   assert_equal(1, fIdx[1], "Checking 3D fIdx[1] for upper left corner point")
+   assert_equal(20, fIdx[2], "Checking 3D fIdx[2] for upper left corner point")
+   local fIdx, np = {0, 0}, {2.0, 5.}
+   grid:findCell(np, fIdx)
+   assert_equal(10, fIdx[1], "Checking 3D fIdx[1] for upper right corner point")
+   assert_equal(20, fIdx[2], "Checking 3D fIdx[2] for upper right corner point")
+
+   -- Test the grid's findCell method in 3D.
+   local grid = Grid.RectCart {
+      lower = {0.0, 1.0, -0.5},
+      upper = {2.0, 5.0,  0.5},
+      cells = {10, 20, 8}
+   }
+
+   -- Find a point inside a cell.
+   local fIdx, np = {0, 0, 0}, {0.35, 2.1, -0.2}
+   grid:findCell(np, fIdx)
+   assert_equal(2, fIdx[1], "Checking 3D fIdx[1] for interior point")
+   assert_equal(6, fIdx[2], "Checking 3D fIdx[2] for interior point")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for interior point")
+
+   -- Find a point on x-boundary of two cells.
+   local fIdx, np = {0, 0, 0}, {0.4, 2.1, -0.2}
+   grid:findCell(np, fIdx)
+   assert_equal(2, fIdx[1], "Checking 3D fIdx[1] for cell x-boundary point (lower)")
+   assert_equal(6, fIdx[2], "Checking 3D fIdx[2] for cell x-boundary point (lower)")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for cell x-boundary point (lower)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(3, fIdx[1], "Checking 3D fIdx[1] for cell x-boundary point (upper)")
+   assert_equal(6, fIdx[2], "Checking 3D fIdx[2] for cell x-boundary point (upper)")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for cell x-boundary point (upper)")
+
+   -- Find a point on y-boundary of two cells.
+   local fIdx, np = {0, 0, 0}, {0.35, 2.2, -0.2}
+   grid:findCell(np, fIdx)
+   assert_equal(2, fIdx[1], "Checking 3D fIdx[1] for cell y-boundary point (lower)")
+   assert_equal(6, fIdx[2], "Checking 3D fIdx[2] for cell y-boundary point (lower)")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[2] for cell y-boundary point (lower)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(2, fIdx[1], "Checking 3D fIdx[1] for cell y-boundary point (upper)")
+   assert_equal(7, fIdx[2], "Checking 3D fIdx[2] for cell y-boundary point (upper)")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for cell y-boundary point (upper)")
+
+   -- Find a point on z-boundary of two cells.
+   local fIdx, np = {0, 0, 0}, {0.35, 2.1, 0.}
+   grid:findCell(np, fIdx)
+   assert_equal(2, fIdx[1], "Checking 3D fIdx[1] for cell z-boundary point (lower)")
+   assert_equal(6, fIdx[2], "Checking 3D fIdx[2] for cell z-boundary point (lower)")
+   assert_equal(4, fIdx[3], "Checking 3D fIdx[2] for cell z-boundary point (lower)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(2, fIdx[1], "Checking 3D fIdx[1] for cell z-boundary point (upper)")
+   assert_equal(6, fIdx[2], "Checking 3D fIdx[2] for cell z-boundary point (upper)")
+   assert_equal(5, fIdx[3], "Checking 3D fIdx[3] for cell z-boundary point (upper)")
+
+   -- Find a point on corner of 4 cells.
+   local fIdx, np = {0, 0, 0}, {0.4, 3.0, -0.2}
+   grid:findCell(np, fIdx)
+   assert_equal(2, fIdx[1], "Checking 3D fIdx[1] for 4-corner point (lower)")
+   assert_equal(10, fIdx[2], "Checking 3D fIdx[2] for 4-corner point (lower)")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for 4-corner point (lower)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(3, fIdx[1], "Checking 3D fIdx[1] for 4-corner point (upper)")
+   assert_equal(11, fIdx[2], "Checking 3D fIdx[2] for 4-corner point (upper)")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for 4-corner point (upper)")
+
+   -- Find a point on corner of 8 cells.
+   local fIdx, np = {0, 0, 0}, {0.4, 3.0, 0.125}
+   grid:findCell(np, fIdx)
+   assert_equal(2, fIdx[1], "Checking 3D fIdx[1] for 8-corner point (lower)")
+   assert_equal(10, fIdx[2], "Checking 3D fIdx[2] for 8-corner point (lower)")
+   assert_equal(5, fIdx[3], "Checking 3D fIdx[3] for 8-corner point (lower)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(3, fIdx[1], "Checking 3D fIdx[1] for 8-corner point (upper)")
+   assert_equal(11, fIdx[2], "Checking 3D fIdx[2] for 8-corner point (upper)")
+   assert_equal(6, fIdx[3], "Checking 3D fIdx[3] for 8-corner point (upper)")
+
+   -- Find a point on lower x domain boundary.
+   local fIdx, np = {0, 0, 0}, {0.0, 3.1, -0.2}
+   grid:findCell(np, fIdx)
+   assert_equal(1, fIdx[1], "Checking 3D fIdx[1] for lower-x point")
+   assert_equal(11, fIdx[2], "Checking 3D fIdx[2] for lower-x point")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for lower-x point")
+   local fIdx, np = {0, 0, 0}, {0.0, 3., -0.2}
+   grid:findCell(np, fIdx)
+   assert_equal(1, fIdx[1], "Checking 3D fIdx[1] for lower-x boundary point (lower)")
+   assert_equal(10, fIdx[2], "Checking 3D fIdx[2] for lower-x boundary point (lower)")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for lower-x boundary point (lower)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(1, fIdx[1], "Checking 3D fIdx[1] for lower-x boundary point (upper)")
+   assert_equal(11, fIdx[2], "Checking 3D fIdx[2] for lower-x boundary point (upper)")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for lower-x boundary point (upper)")
+
+   -- Find a point on lower y domain boundary.
+   local fIdx, np = {0, 0, 0}, {0.5, 1., -0.2}
+   grid:findCell(np, fIdx)
+   assert_equal(3, fIdx[1], "Checking 3D fIdx[1] for lower-y point")
+   assert_equal(1, fIdx[2], "Checking 3D fIdx[2] for lower-y point")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for lower-y point")
+   local fIdx, np = {0, 0, 0}, {0.4, 1., -0.2}
+   grid:findCell(np, fIdx)
+   assert_equal(2, fIdx[1], "Checking 3D fIdx[1] for lower-y boundary point (lower)")
+   assert_equal(1, fIdx[2], "Checking 3D fIdx[2] for lower-y boundary point (lower)")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for lower-y boundary point (lower)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(3, fIdx[1], "Checking 3D fIdx[1] for lower-y boundary point (upper)")
+   assert_equal(1, fIdx[2], "Checking 3D fIdx[2] for lower-y boundary point (upper)")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for lower-y boundary point (upper)")
+
+   -- Find a point on lower z domain boundary.
+   local fIdx, np = {0, 0, 0}, {0.5, 3.1, -0.5} -- Inside a cell.
+   grid:findCell(np, fIdx)
+   assert_equal(3, fIdx[1], "Checking 3D fIdx[1] for lower-z point")
+   assert_equal(11, fIdx[2], "Checking 3D fIdx[2] for lower-z point")
+   assert_equal(1, fIdx[3], "Checking 3D fIdx[3] for lower-z point")
+   local fIdx, np = {0, 0, 0}, {0.4, 3.1, -0.5}  -- On x-boundary of 2 cells.
+   grid:findCell(np, fIdx)
+   assert_equal(2, fIdx[1], "Checking 3D fIdx[1] for lower-z boundary point (lower-x)")
+   assert_equal(11, fIdx[2], "Checking 3D fIdx[2] for lower-z boundary point (lower-x)")
+   assert_equal(1, fIdx[3], "Checking 3D fIdx[3] for lower-z boundary point (lower-x)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(3, fIdx[1], "Checking 3D fIdx[1] for lower-z boundary point (upper-x)")
+   assert_equal(11, fIdx[2], "Checking 3D fIdx[2] for lower-z boundary point (upper-x)")
+   assert_equal(1, fIdx[3], "Checking 3D fIdx[3] for lower-z boundary point (upper-x)")
+   local fIdx, np = {0, 0, 0}, {0.5, 3., -0.5}  -- On y-boundary of 2 cells.
+   grid:findCell(np, fIdx)
+   assert_equal(3, fIdx[1], "Checking 3D fIdx[1] for lower-z boundary point (lower-y)")
+   assert_equal(10, fIdx[2], "Checking 3D fIdx[2] for lower-z boundary point (lower-y)")
+   assert_equal(1, fIdx[3], "Checking 3D fIdx[3] for lower-z boundary point (lower-y)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(3, fIdx[1], "Checking 3D fIdx[1] for lower-z boundary point (upper-y)")
+   assert_equal(11, fIdx[2], "Checking 3D fIdx[2] for lower-z boundary point (upper-y)")
+   assert_equal(1, fIdx[3], "Checking 3D fIdx[3] for lower-z boundary point (upper-y)")
+
+   -- Find a point on upper x domain boundary.
+   local fIdx, np = {0, 0, 0}, {2.0, 3.1, -0.2}
+   grid:findCell(np, fIdx)
+   assert_equal(10, fIdx[1], "Checking 3D fIdx[1] for upper-x point")
+   assert_equal(11, fIdx[2], "Checking 3D fIdx[2] for upper-x point")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for upper-x point")
+   local fIdx, np = {0, 0, 0}, {2.0, 3., -0.2}
+   grid:findCell(np, fIdx)
+   assert_equal(10, fIdx[1], "Checking 3D fIdx[1] for upper-x boundary point (lower)")
+   assert_equal(10, fIdx[2], "Checking 3D fIdx[2] for upper-x boundary point (lower)")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for upper-x boundary point (lower)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(10, fIdx[1], "Checking 3D fIdx[1] for upper-x boundary point (upper)")
+   assert_equal(11, fIdx[2], "Checking 3D fIdx[2] for upper-x boundary point (upper)")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for upper-x boundary point (upper)")
+
+   -- Find a point on upper y domain boundary.
+   local fIdx, np = {0, 0, 0}, {0.5, 5., -0.2}   -- Inside a cell.
+   grid:findCell(np, fIdx)
+   assert_equal(3, fIdx[1], "Checking 3D fIdx[1] for upper-y point")
+   assert_equal(20, fIdx[2], "Checking 3D fIdx[2] for upper-y point")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for upper-y point")
+   local fIdx, np = {0, 0, 0}, {0.4, 5., -0.2}   -- On x-boundary of 2 cells.
+   grid:findCell(np, fIdx)
+   assert_equal(2, fIdx[1], "Checking 3D fIdx[1] for upper-y boundary point (lower)")
+   assert_equal(20, fIdx[2], "Checking 3D fIdx[2] for upper-y boundary point (lower)")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for upper-y boundary point (lower)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(3, fIdx[1], "Checking 3D fIdx[1] for upper-y boundary point (upper)")
+   assert_equal(20, fIdx[2], "Checking 3D fIdx[2] for upper-y boundary point (upper)")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for upper-y boundary point (upper)")
+   local fIdx, np = {0, 0, 0}, {0.5, 5., -0.25}   -- On z-boundary of 2 cells.
+   grid:findCell(np, fIdx)
+   assert_equal(3, fIdx[1], "Checking 3D fIdx[1] for upper-y boundary point (lower)")
+   assert_equal(20, fIdx[2], "Checking 3D fIdx[2] for upper-y boundary point (lower)")
+   assert_equal(2, fIdx[3], "Checking 3D fIdx[3] for upper-y boundary point (lower)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(3, fIdx[1], "Checking 3D fIdx[1] for upper-y boundary point (upper)")
+   assert_equal(20, fIdx[2], "Checking 3D fIdx[2] for upper-y boundary point (upper)")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for upper-y boundary point (upper)")
+
+   -- Find a point on upper z domain boundary.
+   local fIdx, np = {0, 0, 0}, {0.5, 3.1, 0.5}   -- Inside a cell.
+   grid:findCell(np, fIdx)
+   assert_equal(3, fIdx[1], "Checking 3D fIdx[1] for upper-z point")
+   assert_equal(11, fIdx[2], "Checking 3D fIdx[2] for upper-z point")
+   assert_equal(8, fIdx[3], "Checking 3D fIdx[3] for upper-z point")
+   local fIdx, np = {0, 0, 0}, {0.4, 3.1, 0.5}   -- On x-boundary of 2 cells.
+   grid:findCell(np, fIdx)
+   assert_equal(2, fIdx[1], "Checking 3D fIdx[1] for upper-z boundary point (lower)")
+   assert_equal(11, fIdx[2], "Checking 3D fIdx[2] for upper-z boundary point (lower)")
+   assert_equal(8, fIdx[3], "Checking 3D fIdx[3] for upper-z boundary point (lower)")
+   grid:findCell(np, fIdx, false)
+   assert_equal(3, fIdx[1], "Checking 3D fIdx[1] for upper-z boundary point (upper)")
+   assert_equal(11, fIdx[2], "Checking 3D fIdx[2] for upper-z boundary point (upper)")
+   assert_equal(8, fIdx[3], "Checking 3D fIdx[3] for upper-z boundary point (upper)")
+
+   -- Find domain corner points.
+   local fIdx, np = {0, 0, 0}, {0.0, 1., -0.5}
+   grid:findCell(np, fIdx)
+   assert_equal(1, fIdx[1], "Checking 3D fIdx[1] for lower left bottom corner point")
+   assert_equal(1, fIdx[2], "Checking 3D fIdx[2] for lower left bottom corner point")
+   assert_equal(1, fIdx[3], "Checking 3D fIdx[3] for lower left bottom corner point")
+   local fIdx, np = {0, 0, 0}, {2.0, 1., -0.5}
+   grid:findCell(np, fIdx)
+   assert_equal(10, fIdx[1], "Checking 3D fIdx[1] for lower right bottom corner point")
+   assert_equal(1, fIdx[2], "Checking 3D fIdx[2] for lower right bottom corner point")
+   assert_equal(1, fIdx[3], "Checking 3D fIdx[3] for lower right bottom corner point")
+   local fIdx, np = {0, 0, 0}, {0.0, 5., -0.5}
+   grid:findCell(np, fIdx)
+   assert_equal(1, fIdx[1], "Checking 3D fIdx[1] for upper left bottom corner point")
+   assert_equal(20, fIdx[2], "Checking 3D fIdx[2] for upper left bottom corner point")
+   assert_equal(1, fIdx[3], "Checking 3D fIdx[3] for upper left bottom corner point")
+   local fIdx, np = {0, 0, 0}, {2.0, 5., -0.5}
+   grid:findCell(np, fIdx)
+   assert_equal(10, fIdx[1], "Checking 3D fIdx[1] for upper right bottom corner point")
+   assert_equal(20, fIdx[2], "Checking 3D fIdx[2] for upper right bottom corner point")
+   assert_equal(1, fIdx[3], "Checking 3D fIdx[3] for upper right bottom corner point")
+   local fIdx, np = {0, 0, 0}, {0.0, 1., 0.5}
+   grid:findCell(np, fIdx)
+   assert_equal(1, fIdx[1], "Checking 3D fIdx[1] for lower left top corner point")
+   assert_equal(1, fIdx[2], "Checking 3D fIdx[2] for lower left top corner point")
+   assert_equal(8, fIdx[3], "Checking 3D fIdx[3] for lower left top corner point")
+   local fIdx, np = {0, 0, 0}, {2.0, 1., 0.5}
+   grid:findCell(np, fIdx)
+   assert_equal(10, fIdx[1], "Checking 3D fIdx[1] for lower right top corner point")
+   assert_equal(1, fIdx[2], "Checking 3D fIdx[2] for lower right top corner point")
+   assert_equal(8, fIdx[3], "Checking 3D fIdx[3] for lower right top corner point")
+   local fIdx, np = {0, 0, 0}, {0.0, 5., 0.5}
+   grid:findCell(np, fIdx)
+   assert_equal(1, fIdx[1], "Checking 3D fIdx[1] for upper left top corner point")
+   assert_equal(20, fIdx[2], "Checking 3D fIdx[2] for upper left top corner point")
+   assert_equal(8, fIdx[3], "Checking 3D fIdx[3] for upper left top corner point")
+   local fIdx, np = {0, 0, 0}, {2.0, 5., 0.5}
+   grid:findCell(np, fIdx)
+   assert_equal(10, fIdx[1], "Checking 3D fIdx[1] for upper right top corner point")
+   assert_equal(20, fIdx[2], "Checking 3D fIdx[2] for upper right top corner point")
+   assert_equal(8, fIdx[3], "Checking 3D fIdx[3] for upper right top corner point")
+end
+
 -- Run tests.
 test_1()
 test_2()
@@ -468,6 +808,7 @@ test_7()
 test_8()
 test_9()
 test_10()
+test_12()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

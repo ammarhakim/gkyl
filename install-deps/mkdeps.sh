@@ -177,8 +177,8 @@ done
 # if mpicc doesn't work (because it doesn't exist or it's not in path), try to use installed openmpi version
 if ! [ -x "$(command -v $MPICC)" ]
 then
-    MPICC=$PREFIX/openmpi-3.1.2/bin/mpicc
-    MPICXX=$PREFIX/openmpi-3.1.2/bin/mpicxx
+    MPICC=$PREFIX/openmpi-4.0.5/bin/mpicc
+    MPICXX=$PREFIX/openmpi-4.0.5/bin/mpicxx
 fi
 # if mpicc still doesn't work, force to install openmpi
 if ! [ -x "$(command -v $MPICC)" ] 
