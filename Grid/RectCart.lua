@@ -18,7 +18,7 @@ local Lin   = require "Lib.Linalg"
 local Mpi   = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
-local lume  = require "Lib.lume" 
+local lume  = require "Lib.lume"
 
 local cuda = nil
 if GKYL_HAVE_CUDA then
@@ -188,21 +188,21 @@ function RectCart:getPeriodicDirs() return self._periodicDirs end
 function RectCart:cuts(dir) return self._cuts[dir] end
 function RectCart:setIndex(idxIn)
    if type(idxIn) == "cdata" then
-     idxIn:copyInto(self._currIdx)
+      idxIn:copyInto(self._currIdx)
    else 
-     for d = 1, self._ndim do
-        self._currIdx[d] = idxIn[d]
-     end
+      for d = 1, self._ndim do
+         self._currIdx[d] = idxIn[d]
+      end
    end
 end
 function RectCart:dx(dir) return self._dx[dir] end
 function RectCart:getDx(dxOut) 
    if type(dxOut) == "cdata" then
-     self._dx:copyInto(dxOut)
+      self._dx:copyInto(dxOut)
    else 
-     for d = 1, self._ndim do
-        dxOut[d] = self._dx[d]
-     end
+      for d = 1, self._ndim do
+         dxOut[d] = self._dx[d]
+      end
    end
 end
 function RectCart:cellCenterInDir(d)
@@ -219,6 +219,87 @@ function RectCart:cellCenter(xc)
 end
 function RectCart:cellVolume() return self._vol end
 function RectCart:gridVolume() return self._gridVol end
+function RectCart:findCell(point, cellIdx, chooseLower)
+   -- Find the cell containing a point (n-dimensional coordinate),
+   -- and returns its multidimensional index.
+   -- When multiple cells share that point, if 'chooseLower' is true
+   -- then we return the cell with the lowest cell center.
+   local pickLower
+   if chooseLower==nil then pickLower = true else pickLower = chooseLower end
+
+   local lessEq = function(a,b) return a<=b end
+   local compPoints = function(pA, pB, compFunc)
+      local isTrue = true
+      for d = 1, self._ndim do isTrue = isTrue and compFunc(pA[d],pB[d]) end
+      return isTrue
+   end
+   local isInCell = function(pIn, iIn)
+      self:setIndex(iIn)
+      local inCell = true
+      for d = 1, self._ndim do
+         inCell = inCell and (pIn[d]>=self:cellLowerInDir(d) and pIn[d]<=self:cellUpperInDir(d))
+      end
+      return inCell
+   end
+
+   -- Below we use a binary search. In multiple dimensions we take this to mean that
+   -- if the i-th coordinate of the point in question is below(above) the ith-coordinate
+   -- of the current mid-point, we search the lower(upper) half along that direction in
+   -- the next iteration.
+   local iStart, iEnd, iMid, iNew = {}, {}, {}, {}
+   for d = 1, self._ndim do
+      iStart[d], iEnd[d] = self._globalRange:lower(d), self._globalRange:upper(d)
+      iMid[d], iNew[d]   = 0, 0
+   end
+   while compPoints(iStart, iEnd, lessEq) do
+      for d = 1, self._ndim do iMid[d] = math.floor( (iStart[d]+iEnd[d])/2 ) end -- Calculate middle.
+      if isInCell(point, iMid) then
+         -- Check if neighboring cells also contains this point.
+         local hcCells = {iMid}
+         for d = 1, self._ndim do
+            local prevDimCells = #hcCells
+            for pC = 1, prevDimCells do
+               for pm = -1, 1, 2 do
+                  local iNew = lume.clone(hcCells[pC])
+                  iNew[d] = iNew[d]+pm
+                  if (iNew[d] >= self._globalRange:lower(d)) and   -- Do not consider ghost cells.
+                     (iNew[d] <= self._globalRange:upper(d)) then
+                     table.insert(hcCells, iNew)
+                  end
+               end
+            end
+         end
+         local cellsFound = {}
+         for cI = 1, #hcCells do
+            if isInCell(point, hcCells[cI]) then table.insert(cellsFound, hcCells[cI]) end
+         end
+         local idxOut = cellsFound[1]
+         if pickLower then   -- Choose the lower-left most cell.
+            for cI = 2, #cellsFound do
+               local isHigher = false
+               for d = 1, self._ndim do isHigher = isHigher or (idxOut[d] > cellsFound[cI][d]) end
+               if isHigher then idxOut = cellsFound[cI] end
+            end
+         else                -- Choose the upper-right most cell.
+            for cI = 2, #cellsFound do
+               local isLower = false
+               for d = 1, self._ndim do isLower = isLower or (idxOut[d] < cellsFound[cI][d]) end
+               if isLower then idxOut = cellsFound[cI] end
+            end
+         end
+         for d = 1, self._ndim do cellIdx[d] = idxOut[d] end
+         break
+      else
+         for d = 1, self._ndim do 
+            if point[d] < self:cellLowerInDir(d) then
+               iEnd[d] = iMid[d]-1
+            elseif point[d] > self:cellUpperInDir(d) then
+               iStart[d] = iMid[d]+1
+            end
+         end
+      end
+   end
+end
 
 function RectCart:write(fName)
    -- nothing to write
