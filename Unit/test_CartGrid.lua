@@ -626,6 +626,8 @@ function test_12()
    grid:findCell(np, fIdx)
    assert_equal(2, fIdx[1], "Checking 2D fIdx[1] for interior point")
    assert_equal(6, fIdx[2], "Checking 2D fIdx[2] for interior point")
+   grid:findCell(np, fIdx, true, {2,nil})    -- If we know fIdx[1].
+   assert(2==fIdx[1] and 6==fIdx[2], "Checking 2D fIdx for interior point (known)")
 
    -- Find a point on x-boundary of two cells.
    local fIdx, np = {0, 0}, {0.4, 2.1}
@@ -635,6 +637,12 @@ function test_12()
    grid:findCell(np, fIdx, false)
    assert_equal(3, fIdx[1], "Checking 2D fIdx[1] for cell x-boundary point (upper)")
    assert_equal(6, fIdx[2], "Checking 2D fIdx[2] for cell x-boundary point (upper)")
+   grid:findCell(np, fIdx, nil, {nil,6})    -- If we know fIdx[2].
+   assert_equal(2, fIdx[1], "Checking 2D fIdx[1] for interior point (known)")
+   assert_equal(6, fIdx[2], "Checking 2D fIdx[2] for interior point (known)")
+   grid:findCell(np, fIdx, true, {2,nil})    -- If we know fIdx[1].
+   assert_equal(2, fIdx[1], "Checking 2D fIdx[1] for interior point (known)")
+   assert_equal(6, fIdx[2], "Checking 2D fIdx[2] for interior point (known)")
 
    -- Find a point on y-boundary of two cells.
    local fIdx, np = {0, 0}, {0.35, 2.2}
@@ -737,6 +745,18 @@ function test_12()
    assert_equal(2, fIdx[1], "Checking 3D fIdx[1] for interior point")
    assert_equal(6, fIdx[2], "Checking 3D fIdx[2] for interior point")
    assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for interior point")
+   grid:findCell(np, fIdx, nil, {2,nil,nil})   -- If we know fIdx[1].
+   assert_equal(2, fIdx[1], "Checking 3D fIdx[1] for interior point")
+   assert_equal(6, fIdx[2], "Checking 3D fIdx[2] for interior point")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for interior point")
+   grid:findCell(np, fIdx, nil, {nil,6,nil})   -- If we know fIdx[2].
+   assert_equal(2, fIdx[1], "Checking 3D fIdx[1] for interior point")
+   assert_equal(6, fIdx[2], "Checking 3D fIdx[2] for interior point")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for interior point")
+   grid:findCell(np, fIdx, nil, {nil,nil,3})   -- If we know fIdx[3].
+   assert_equal(2, fIdx[1], "Checking 3D fIdx[1] for interior point")
+   assert_equal(6, fIdx[2], "Checking 3D fIdx[2] for interior point")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for interior point")
 
    -- Find a point on x-boundary of two cells.
    local fIdx, np = {0, 0, 0}, {0.4, 2.1, -0.2}
@@ -748,6 +768,18 @@ function test_12()
    assert_equal(3, fIdx[1], "Checking 3D fIdx[1] for cell x-boundary point (upper)")
    assert_equal(6, fIdx[2], "Checking 3D fIdx[2] for cell x-boundary point (upper)")
    assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for cell x-boundary point (upper)")
+   grid:findCell(np, fIdx, nil, {2,nil,nil})   -- If we know fIdx[1].
+   assert_equal(2, fIdx[1], "Checking 3D fIdx[1] for cell x-boundary point (lower)")
+   assert_equal(6, fIdx[2], "Checking 3D fIdx[2] for cell x-boundary point (lower)")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for cell x-boundary point (lower)")
+   grid:findCell(np, fIdx, false, {3,nil,nil})   -- If we know fIdx[1] and pickLower=False.
+   assert_equal(3, fIdx[1], "Checking 3D fIdx[1] for cell x-boundary point (lower)")
+   assert_equal(6, fIdx[2], "Checking 3D fIdx[2] for cell x-boundary point (lower)")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for cell x-boundary point (lower)")
+   grid:findCell(np, fIdx, nil, {2,nil,3})   -- If we know fIdx[1] and fIdx[3].
+   assert_equal(2, fIdx[1], "Checking 3D fIdx[1] for cell x-boundary point (lower)")
+   assert_equal(6, fIdx[2], "Checking 3D fIdx[2] for cell x-boundary point (lower)")
+   assert_equal(3, fIdx[3], "Checking 3D fIdx[3] for cell x-boundary point (lower)")
 
    -- Find a point on y-boundary of two cells.
    local fIdx, np = {0, 0, 0}, {0.35, 2.2, -0.2}
