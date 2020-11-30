@@ -15,10 +15,10 @@ local ffi         = require "ffi"
 local ffiC        = ffi.C
 
 ffi.cdef[[
-  double findMinNodalValue(double *fIn, int ndim); 
-  double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx, double tCurr);
-  double calcVolTermRescale(const double tCurr, const double dt, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int numBasis, int *idx, int printWarnings);
-  double rescaleVolTerm(const double tCurr, const double dt, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int numBasis, int *idx, int printWarnings);
+  double findMinNodalValue(double *fIn, int ndim, int polyOrder); 
+  double rescale(const double *fIn, double *fOut, int ndim, int polyOrder, int numBasis, int *idx, double tCurr);
+  double calcVolTermRescale(const double tCurr, const double dt, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int polyOrder, int numBasis, int *idx, int printWarnings);
+  double rescaleVolTerm(const double tCurr, const double dt, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int polyOrder, int numBasis, int *idx, int printWarnings);
 ]]
 
 local PositivityRescale = Proto(UpdaterBase)
@@ -32,7 +32,7 @@ function PositivityRescale:init(tbl)
    self.basis = assert(
       tbl.basis,
       "Updater.PositivityRescale: Must provide basis object using 'basis'")
-   assert(self.basis:polyOrder()==1, "Updater.PositivityRescale only implemented for p=1")
+   assert(self.basis:polyOrder()<=2, "Updater.PositivityRescale only implemented for p=1 and p=2")
 
    -- Number of components to set.
    self.numComponents = tbl.numComponents and tbl.numComponents or 1
@@ -99,6 +99,7 @@ function PositivityRescale:advance(tCurr, inFld, outFld)
    local fIn, fOut = inFld[1], outFld[1]
 
    local ndim     = self.basis:ndim()
+   local polyOrder = self.basis:polyOrder()
    local numBasis = self.basis:numBasis()
 
    if self._first then 
@@ -117,13 +118,17 @@ function PositivityRescale:advance(tCurr, inFld, outFld)
       fIn:fill(self.fInIndexer(idx), self.fInPtr)
       fOut:fill(self.fOutIndexer(idx), self.fOutPtr)
 
-      local del2ChangeCell = ffiC.rescale(self.fInPtr:data(), self.fOutPtr:data(), ndim, numBasis, idx:data(), tCurr)
+      local del2ChangeCell = ffiC.rescale(self.fInPtr:data(), self.fOutPtr:data(), ndim, polyOrder, numBasis, idx:data(), tCurr)
    end
 end
 
 function PositivityRescale:calcVolTermRescale(tCurr, dtApprox, fIn, weights, weightDirs, fRhsSurf, fRhsVol, volRescale)
    -- Compute the rescale factor of the volume term needed to
    -- preserve positivity and store it in a CartField (volRescale).
+   local ndim     = self.basis:ndim()
+   local polyOrder = self.basis:polyOrder()
+   local numBasis = self.basis:numBasis()
+
    local localRange     = fRhsSurf:localRange()   
 
    local fIn_ptr        = fIn:get(1)
@@ -157,11 +162,15 @@ function PositivityRescale:calcVolTermRescale(tCurr, dtApprox, fIn, weights, wei
       end
       
       volRescale_ptr[1] = ffiC.calcVolTermRescale(tCurr, dtApprox, fIn_ptr:data(), weightfac, fRhsSurf_ptr:data(),
-                                                  fRhsVol_ptr:data(), self.basis:ndim(), self.basis:numBasis(), idx:data(), self.printWarnings)
+                                                  fRhsVol_ptr:data(), ndim, polyOrder, numBasis, idx:data(), self.printWarnings)
    end
 end
 
 function PositivityRescale:rescaleVolTerm(tCurr, dtApprox, fIn, weights, weightDirs, fRhsSurf, fRhsVol)
+   local ndim     = self.basis:ndim()
+   local polyOrder = self.basis:polyOrder()
+   local numBasis = self.basis:numBasis()
+
    local localRange      = fRhsSurf:localRange()   
    local fIn_ptr         = fIn:get(1)
    local fRhsSurf_ptr    = fRhsSurf:get(1)
@@ -192,7 +201,7 @@ function PositivityRescale:rescaleVolTerm(tCurr, dtApprox, fIn, weights, weightD
          if weightfac > 1 then weightfac = 1 end
       end
       
-      local scaler = ffiC.rescaleVolTerm(tCurr, dtApprox, fIn_ptr:data(), weightfac, fRhsSurf_ptr:data(), fRhsVol_ptr:data(), self.basis:ndim(), self.basis:numBasis(), idx:data(), self.printWarnings)
+      local scaler = ffiC.rescaleVolTerm(tCurr, dtApprox, fIn_ptr:data(), weightfac, fRhsSurf_ptr:data(), fRhsVol_ptr:data(), ndim, polyOrder, numBasis, idx:data(), self.printWarnings)
    end
 end
 

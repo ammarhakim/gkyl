@@ -293,12 +293,27 @@ local function buildApplication(self, tbl)
    field:createSolver(species, funcField)
    field:initField(species)
 
-   -- Apply species BCs.
+   -- Take a dummy forwardEuler step.
+   -- This is done to get an initial estimate of the timestep.
+   -- Also, some BCs require auxFields to be set, which is 
+   -- controlled by the species solver, so this forwardEuler call
+   -- sets this up before we apply BCs to the initial condition
    for nm, s in pairs(species) do
-      -- This is a dummy forwardEuler call because some BCs require 
-      -- auxFields to be set, which is controlled by species solver.
       s:advance(0, species, {field, funcField}, 1, 2)
+      -- Apply species BCs.
       s:applyBc(0, s:rkStepperFields()[1])
+   end
+   -- Get initial estimate of timestep. This will get overwritten
+   -- with the actual timestep at the end of each real timestep,
+   -- but some algorithms require a timestep estimate before the true
+   -- timestep gets computed.
+   local dtSuggested = GKYL_MAX_DOUBLE
+   for nm, s in pairs(species) do
+      dtSuggested = math.min(dtSuggested, s:suggestDt())
+   end
+   -- After deciding global dt, tell species.
+   for nm, s in pairs(species) do
+      s:setDtGlobal(dtSuggested)
    end
 
    -- Function to write data to file.

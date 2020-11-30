@@ -217,17 +217,13 @@ calcModToNodPhaseWithNodesAndBasis(nodes, basis, vars) := block([modNm,n,modToNo
   return(modToNod)
 )$
 
-<<<<<<< HEAD
 getNodalBasis(nodes, modalBasis, vars) := block([modToNod],
 modToNod : calcModToNodPhaseWithNodesAndBasis(nodes, modalBasis, vars),
 return(fullratsimp(list_matrix_entries(invert(modToNod).modalBasis)))
 )$
 
-/* calculate nodal-to-modal transformation matrix */
-=======
 /* Calculate nodal-to-modal transformation matrix.
    MF: I believe this returns the matrix that transforms the nodal coefficients. */
->>>>>>> master
 calcNodToModPerp(cdim, p) := block([],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basisSer", cdim, "x"),

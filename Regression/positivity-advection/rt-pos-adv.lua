@@ -69,7 +69,6 @@ plasmaApp = Plasma.App {
         
       evolve          = true, -- Evolve species?
       positivity        = true,
-      positivityRescale = true,
       positivityDiffuse = true,
    },
 }

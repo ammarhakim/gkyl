@@ -25,5 +25,8 @@ function EqBase:volTerm(w, dx, idx, q, out) end
 function EqBase:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr) end
 function EqBase:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr) end
 function EqBase:sync() end
+-- for positivity schemes
+function EqBase:clearRhsTerms() end
+function EqBase:getPositivityRhs() end
 
 return EqBase

@@ -21,7 +21,7 @@ load(modNm),
   bC : basisC[i],
   numC : length(bC),
 
-  printf(fh, "double ~aP~a(const double *w, const double *dxv, double *cflRateCtrl, const double *f, double *out) ~%{ ~%", funcNm, i),
+  printf(fh, "double ~aP~a(const double *w, const double *dxv, double *positivityWeightByDir, const double *f, double *out) ~%{ ~%", funcNm, i),
 
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing.~%"),
   for dir : 1 thru cdim do (
@@ -66,12 +66,12 @@ load(modNm),
     if cdim>1 then (
     nodes : eval_string(sconcat("nodes", cdim-1, "xp", p))
     ) else nodes : [0],
-    nodesub(f):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j]*quad,j,1,length(surfIntVars)),f),i,1,length(nodes)),
 
     /* evaluate alpha at left and right edge */
     alphaL : subst(varsC[d]=-1, alpha_expd),
     alphaR : subst(varsC[d]=1, alpha_expd),
 
+    printf(fh, "  positivityWeightByDir[~a] = 0.; ~%", d),
     /* evaluate cfl by surface averaging */
     printf(fh, "#if cflType == SURFAVG ~%"),
     /* note: factor of derivfacsD already included in alpha_expd */
@@ -79,26 +79,30 @@ load(modNm),
     printf(fh, "  // evaluate surface-averaged alpha on left ~%"),
     printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaL0))),
     printf(fh, "  cflRate += -0.5*(alphaL-std::abs(alphaL)); ~%"),
+    printf(fh, "  positivityWeightByDir[~a] += -0.5*(alphaL-std::abs(alphaL)); ~%", d),
     /* note: factor of derivfacsD already included in alpha_expd */
     alphaR0 : fullratsimp(innerProd(delete(varsC[d],varsC), 1, alphaR, subst(varsC[d]=1, bC[1]))*bC[1]),
     printf(fh, "  // evaluate surface-averaged alpha on right ~%"),
     printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaR0))),
     printf(fh, "  cflRate += 0.5*(alphaR+std::abs(alphaR)); ~%"),
+    printf(fh, "  positivityWeightByDir[~a] += 0.5*(alphaR+std::abs(alphaR)); ~%", d),
     flush_output(fh),
 
     /* evaluate cfl by evaluating at all surface quadrature points */
     printf(fh, "#elif cflType == QUAD ~%"),
-    alphaLquad : nodesub(alphaL*subst(varsC[d]=-1,bC[1]))*bC[1],
-    alphaRquad : nodesub(alphaR*subst(varsC[d]=1,bC[1]))*bC[1],
+    alphaLquad : nodesub(alphaL*subst(varsC[d]=-1,bC[1]), surfIntVars, nodes)*bC[1],
+    alphaRquad : nodesub(alphaR*subst(varsC[d]=1,bC[1]), surfIntVars, nodes)*bC[1],
     printf(fh, "  // evaluate alpha at left surface quadrature points ~%"),
     for i:1 thru length(alphaLquad) do (
       printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaLquad[i]))),
-      printf(fh, "  cflRate += -0.5*(alphaL-std::abs(alphaL)); ~%")
+      printf(fh, "  cflRate += -0.5*(alphaL-std::abs(alphaL)); ~%"),
+      printf(fh, "  positivityWeightByDir[~a] += -0.5*(alphaL-std::abs(alphaL)); ~%", d)
     ),
     printf(fh, "  // evaluate alpha at right surface quadrature points ~%"),
     for i:1 thru length(alphaRquad) do (
       printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaRquad[i]))),
-      printf(fh, "  cflRate += 0.5*(alphaR+std::abs(alphaR)); ~%")
+      printf(fh, "  cflRate += 0.5*(alphaR+std::abs(alphaR)); ~%"),
+      printf(fh, "  positivityWeightByDir[~a] += 0.5*(alphaR+std::abs(alphaR)); ~%", d)
     ),
     printf(fh, "#endif ~%"),
 
@@ -106,6 +110,7 @@ load(modNm),
     
   ),
 
+  /*
   volCtrlNodes : eval_string(sconcat("nodes", cdim, "xp", p))/3,
   nodesubVol(f,node):=subst(makelist(varsC[j]=node[j],j,1,length(varsC)),f),
   printf(fh, "  double alphaCtrl;~%"),
@@ -126,7 +131,7 @@ load(modNm),
         else printf(fh, "  cflRateCtrl[~a] += -0.5*(alphaCtrl-std::abs(alphaCtrl)); ~%", i-1)
       )
     )
-  ),
+  ),*/
 
   advectVolTerm_k : fullratsimp(innerProd(varsC, 1, f_expd, alphaSum_expd)),
   writeCIncrExprsNoExpand(gcfac(float(advectVolTerm_k))),
@@ -137,10 +142,10 @@ load(modNm),
   flush_output(fh)
 )$
 
-pmax:1$
+pmax:2$
 
-for c : 2 thru 3 do (
-for p : 1 thru pmax do (
+for c : 1 thru 3 do (
+for p : 2 thru pmax do (
 fname : sconcat("~/max-out/PassiveAdvectionSer", c, "xP", p, ".cpp"),
 fh : openw(fname),
 printf(fh, "#include <PassiveAdvectionModDecl.h> ~%"),

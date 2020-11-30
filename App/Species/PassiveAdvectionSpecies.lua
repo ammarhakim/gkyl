@@ -51,9 +51,10 @@ function PassiveAdvectionSpecies:createSolver()
    PassiveAdvectionSpecies.super.createSolver(self)
 
    -- Create updater to advance solution by one time-step.
-   local eqn = PassiveAdvectionEq {
+   self.equation = PassiveAdvectionEq {
       onGrid     = self.grid,
       basis      = self.basis,
+      nMoments   = self.nMoments,
       positivity = self.positivity,
    }
 
@@ -61,8 +62,9 @@ function PassiveAdvectionSpecies:createSolver()
       onGrid             = self.grid,
       basis              = self.basis,
       cfl                = self.cfl,
-      equation           = eqn,
+      equation           = self.equation,
       zeroFluxDirections = self.zeroFluxDirections,
+      clearOut = false,
    }
 end
 

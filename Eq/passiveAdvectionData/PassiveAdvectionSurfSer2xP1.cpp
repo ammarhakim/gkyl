@@ -1,5 +1,5 @@
 #include <PassiveAdvectionModDecl.h> 
-double PassiveAdvectionSurf2xSer_X1_P1(const double *cflFreqCtrlL, const double *cflFreqCtrlR, const double *w, const double *dxv, const double dt, const double *fl, const double *fr, double *outl, double *outr) 
+double PassiveAdvectionSurf2xSer_X1_P1(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. 
   double dfac1 = 2.0/dxv[0]; 
@@ -54,7 +54,7 @@ double alphaQuad;
   outl[3] += incr[3]; 
   return std::abs(alpha0); 
 } 
-double PassiveAdvectionSurf2xSer_X2_P1(const double *cflFreqCtrlL, const double *cflFreqCtrlR, const double *w, const double *dxv, const double dt, const double *fl, const double *fr, double *outl, double *outr) 
+double PassiveAdvectionSurf2xSer_X2_P1(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. 
   double dfac1 = 2.0/dxv[0]; 

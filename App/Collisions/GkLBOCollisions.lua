@@ -315,8 +315,8 @@ function GkLBOCollisions:createSolver(funcField)
          onGrid             = self.phaseGrid,
          basis              = self.phaseBasis,
          cfl                = self.cfl,
-         equation           = self.gkLBOconstNuCalcEq,
-         eqnStep            = 2,      -- Use step2 functions from gkLBOconstNuCalcEq.
+         equation           = self.equation,
+         equationStep            = 2,      -- Use step2 functions from equation.
          updateSurfaceTerm  = false,  -- Step 2 only adds the volume term.
          updateDirections   = zfd,    -- Only update velocity directions.
          zeroFluxDirections = zfd,
@@ -539,7 +539,7 @@ function GkLBOCollisions:advanceStep2(tCurr, fIn, species, fRhsOut)
    -- the old vtSq, and the other terms are multiplied by the volume rescaling factor.
    if scaleVolTermScale then
       self.scaledDistF:copy(fIn)
-      self.scaledDistF:scaleByCell(self.gkLBOconstNuCalcEq.volTermScaleFac)
+      self.scaledDistF:scaleByCell(self.equation.volTermScaleFac)
       scaleVolTermScale = false
       -- Compute new moments with scaled distribution function.
       self.threeMomentsLBOCalc:advance(tCurr, {self.scaledDistF}, { self.m0Scaled, self.m1Scaled, self.m2Scaled,
@@ -589,7 +589,7 @@ function GkLBOCollisions:advanceStep2(tCurr, fIn, species, fRhsOut)
    if self.selfCollisions then
       self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
 
-      self.gkLBOconstNuCalcEq.primMomCrossLimit = 0.0
+      self.equation.primMomCrossLimit = 0.0
 
       if self.varNu then
          self.confMul:advance(tCurr, {self.nuSum, self.uParScaled}, {self.nuUParSum})
@@ -606,7 +606,7 @@ function GkLBOCollisions:advanceStep2(tCurr, fIn, species, fRhsOut)
       assert(false, "App.Collisions.GkLBO: Cross-collisions with positivity is not available yet.")
    end    -- end if self.crossCollisions.
 
-   self.gkLBOconstNuCalcEq.fRhsVol:clear(0.0)
+   self.equation.fRhsVol:clear(0.0)
 
    -- Compute increment from collisions and accumulate it into output.
    -- Note that if positivity=true, self.collOut only has the surface

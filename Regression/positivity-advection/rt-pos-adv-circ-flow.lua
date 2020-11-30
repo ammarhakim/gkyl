@@ -31,8 +31,7 @@ plasmaApp = Plasma.App {
 	 return 0.25*(1+math.cos(math.pi*r))+1e-10
       end,
       evolve          = true, -- Evolve species?
-      applyPositivity = true,
-      positivityRescale = true,
+      positivity = true,
       positivityDiffuse = true,
    },
 

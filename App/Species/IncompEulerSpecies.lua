@@ -76,6 +76,7 @@ function IncompEulerSpecies:createSolver(hasE, hasB)
          cfl                = self.cfl,
          equation           = self.equation,
          zeroFluxDirections = self.zeroFluxDirections,
+      clearOut = false,
       }
    end
 end

@@ -1,5 +1,5 @@
 #include <IncompEulerModDecl.h> 
-double IncompEulerSurf2xSer_X_P1(const double q_, const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *w, const double *dxv, const double dtApprox, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double IncompEulerSurf2xSer_X_P1(const double q_, const double m_, const double *w, const double *dxv, const double *phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[NDIM]: Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
@@ -13,10 +13,10 @@ double IncompEulerSurf2xSer_X_P1(const double q_, const double m_, const double 
   double q2 = q_*q_; 
   double incr[4]; 
   // Surface-averaged phase velocity in this direction.
-  double alpha0 = -0.25*(3.0*Phi[3]-1.732050807568877*Phi[2])*dfac_y; 
+  double alpha0 = -0.25*(3.0*phi[3]-1.732050807568877*phi[2])*dfac_y; 
 
   double alpha[2]; 
-  alpha[0] = -0.5*(4.242640687119286*Phi[3]-2.449489742783178*Phi[2])*dfac_y; 
+  alpha[0] = -0.5*(4.242640687119286*phi[3]-2.449489742783178*phi[2])*dfac_y; 
 #if upwindType == SURFAVG 
   if (alpha0>0) { 
   incr[0] = 0.3535533905932737*alpha[0]*(1.732050807568877*fl[1]+fl[0])*dfac_x; 
@@ -56,7 +56,7 @@ double IncompEulerSurf2xSer_X_P1(const double q_, const double m_, const double 
   outl[3] += incr[3]; 
   return std::abs(alpha0); 
 } 
-double IncompEulerSurf2xSer_Y_P1(const double q_, const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *w, const double *dxv, const double dtApprox, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double IncompEulerSurf2xSer_Y_P1(const double q_, const double m_, const double *w, const double *dxv, const double *phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[NDIM]: Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
@@ -70,10 +70,10 @@ double IncompEulerSurf2xSer_Y_P1(const double q_, const double m_, const double 
   double q2 = q_*q_; 
   double incr[4]; 
   // Surface-averaged phase velocity in this direction.
-  double alpha0 = 0.25*(3.0*Phi[3]-1.732050807568877*Phi[1])*dfac_x; 
+  double alpha0 = 0.25*(3.0*phi[3]-1.732050807568877*phi[1])*dfac_x; 
 
   double alpha[2]; 
-  alpha[0] = 0.5*(4.242640687119286*Phi[3]-2.449489742783178*Phi[1])*dfac_x; 
+  alpha[0] = 0.5*(4.242640687119286*phi[3]-2.449489742783178*phi[1])*dfac_x; 
 #if upwindType == SURFAVG 
   if (alpha0>0) { 
   incr[0] = 0.3535533905932737*alpha[0]*(1.732050807568877*fl[2]+fl[0])*dfac_y; 

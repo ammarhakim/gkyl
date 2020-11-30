@@ -15,9 +15,9 @@ local ffi = require "ffi"
 local ffiC = ffi.C
 
 ffi.cdef[[
-  double findMinNodalValue(double *fIn, int ndim); 
-  double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx, double tCurr);
-  bool check(const double *fIn, int ndim, int numBasis, int *idx, double tCurr, int rkIdx);
+  double findMinNodalValue(double *fIn, int ndim, int polyOrder); 
+  double rescale(const double *fIn, double *fOut, int ndim, int polyOrder, int numBasis, int *idx, double tCurr);
+  bool check(const double *fIn, int ndim, int polyOrder, int numBasis, int *idx, double tCurr, int rkIdx);
 ]]
 
 local PositivityCheck = Proto(UpdaterBase)
@@ -31,7 +31,7 @@ function PositivityCheck:init(tbl)
    self.basis = assert(
       tbl.basis,
       "Updater.PositivityCheck: Must provide basis object using 'basis'")
-   assert(self.basis:polyOrder()==1, "Updater.PositivityCheck only implemented for p=1")
+   assert(self.basis:polyOrder()<=2, "Updater.PositivityCheck only implemented for p=1 and p=2")
 
    -- number of components to set
    self.numComponents = tbl.numComponents and tbl.numComponents or 1
@@ -45,7 +45,7 @@ function PositivityCheck:_advance(tCurr, inFld, outFld)
    local rkIdx = outFld[1] or 0
 
    local ndim = self.basis:ndim()
-   local numBasis = self.basis:numBasis()
+   local polyOrder = self.basis:polyOrder()
 
    local fInIndexer = fIn:genIndexer()
    local fInPtr = fIn:get(1)
@@ -55,7 +55,7 @@ function PositivityCheck:_advance(tCurr, inFld, outFld)
    local localRange = fIn:localRange()   
    for idx in localRange:rowMajorIter() do
       fIn:fill(fInIndexer(idx), fInPtr)
-      myStatus = ffiC.check(fInPtr:data(), ndim, numBasis, idx:data(), tCurr, rkIdx)
+      myStatus = ffiC.check(fInPtr:data(), ndim, polyOrder, idx:data(), tCurr, rkIdx)
       status = status and myStatus 
    end
 

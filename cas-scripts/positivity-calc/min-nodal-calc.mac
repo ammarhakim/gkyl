@@ -1,74 +1,93 @@
 load("modal-basis")$
 load("fem-calc/femMatrices")$
 load("scifac")$
+pMax : 2$
 
 fh : openw("~/max-out/PositivityRescaleImpl.cpp")$
 header : openw("~/max-out/PositivityRescaleImpl.h")$
 printf(header, "#include <algorithm> ~%")$
 printf(header, "extern \"C\" { ~%")$
-printf(header, "double findMinNodalValue(const double *fIn, int ndim); ~%")$
-printf(header, "double findMinNodalRatio(const double *fNum, const double *fDenom, double fac, int ndim); ~%")$
+printf(header, "double findMinNodalValue(const double *fIn, int ndim, int polyOrder); ~%")$
+printf(header, "double findMinNodalRatio(const double *fNum, const double *fDenom, double fac, int ndim, int polyOrder); ~%")$
 printf(header, "}; ~%")$
 printf(fh, "#include <PositivityRescaleImpl.h> ~%")$
-/*printf(fh, "#define NODE ~a ~%", float(1/3))$*/
-NODE:float(1/3)$
-printf(fh, "double findMinNodalValue(const double *fIn, int ndim) { ~%")$
-printf(fh, "  double fmin = 0.0; ~%")$
+printf(fh, "double findMinNodalValue(const double *fIn, int ndim, int polyOrder) { ~%")$
+printf(fh, " double fmin = 0.0; ~%")$
 for d : 1 thru 5 do (
+  if d=1 then printf(fh, " if (ndim == ~a) { ~%", d)
+  else printf(fh, " else if(ndim == ~a) { ~%", d),
+
   if d>3 then modNm : sconcat("basis-precalc/basisSer", d-2, "x2v")
   else modNm : sconcat("basis-precalc/basisSer", d, "x"),
   load(modNm),
-  if d>3 then (
-    basis : basisP[1],
-    vars : varsP
-  ) else (
-    basis : basisC[1],
-    vars : varsC
+
+  for p : 1 thru pMax do (
+     if d>3 then (
+       basis : basisP[p],
+       vars : varsP
+     ) else (
+       basis : basisC[p],
+       vars : varsC
+     ),
+     if p=1 then printf(fh, "  if (polyOrder == ~a) { ~%", p)
+     else printf(fh, "  else if(polyOrder == ~a) { ~%", p),
+     
+     nodes : eval_string(sconcat("nodes", d, "xp", p)),
+     posProjBasis : fullratsimp(getNodalBasis(nodes, basis, vars)),
+     fIn_pos : gcfac(float(calcInnerProdList(vars, 1, posProjBasis, doExpand1(fIn, basis)))),
+
+     printf(fh, "  double fVal[~a]; // fVal = array of vales of fIn evaluated at each node ~%", length(basis)),
+     writeCExprs1(fVal, fIn_pos),
+     printf(fh, "  fmin = *std::min_element(fVal, fVal+~a); ~%", length(basis)),
+     printf(fh, "  } ~%")
   ),
-  nodes : eval_string(sconcat("nodes", d, "xp1")),
-  nodesub(f):=makelist(subst(makelist(vars[j]=nodes[i][j]*NODE,j,1,length(vars)),f),i,1,length(nodes)),
-  
-  if d=1 then printf(fh, "  if (ndim == ~a) { ~%", d)
-  else printf(fh, "  else if(ndim == ~a) { ~%", d),
-  printf(fh, "  double fVal[~a]; // fVal = array of vales of fIn evaluated at each node ~%", length(basis)),
-  writeCExprs1(fVal, gcfac(float(fullratsimp(nodesub(doExpand1(fIn, basis)))))),
-  printf(fh, "  fmin = *std::min_element(fVal, fVal+~a); ~%", length(basis)),
-  printf(fh, "  } ~%")
+  printf(fh, " } ~%")
 )$
-printf(fh, "  return fmin; ~%")$
+printf(fh, " return fmin; ~%")$
 printf(fh, "}~%")$
 
-printf(fh, "double findMinNodalRatio(const double *fNum, const double *fDenom, double fac, int ndim) { ~%")$
-printf(fh, "  double fmin = 0.0; ~%")$
+printf(fh, "double findMinNodalRatio(const double *fNum, const double *fDenom, double fac, int ndim, int polyOrder) { ~%")$
+printf(fh, " double fmin = 0.0; ~%")$
 for d : 1 thru 5 do (
+  if d=1 then printf(fh, " if (ndim == ~a) { ~%", d)
+  else printf(fh, " else if(ndim == ~a) { ~%", d),
+
   if d>3 then modNm : sconcat("basis-precalc/basisSer", d-2, "x2v")
   else modNm : sconcat("basis-precalc/basisSer", d, "x"),
   load(modNm),
-  if d>3 then (
-    basis : basisP[1],
-    vars : varsP
-  ) else (
-    basis : basisC[1],
-    vars : varsC
+
+  for p : 1 thru pMax do (
+     if d>3 then (
+       basis : basisP[p],
+       vars : varsP
+     ) else (
+       basis : basisC[p],
+       vars : varsC
+     ),
+     if p=1 then printf(fh, "  if (polyOrder == ~a) { ~%", p)
+     else printf(fh, "  else if(polyOrder == ~a) { ~%", p),
+     
+     nodes : eval_string(sconcat("nodes", d, "xp", p)),
+     posProjBasis : fullratsimp(getNodalBasis(nodes, basis, vars)),
+     fNum_pos : gcfac(float(calcInnerProdList(vars, 1, posProjBasis, doExpand1(fNum, basis)))),
+     fDenom_pos : gcfac(float(calcInnerProdList(vars, 1, posProjBasis, doExpand1(fDenom, basis)))),
+
+     printf(fh, "  double fVal[~a]; // fVal = array of vales of fIn evaluated at each node ~%", length(basis)),
+     printf(fh, "  double num, denom; ~%"),
+     for i:1 thru length(basis) do (
+        printf(fh, "  num = ~a; ~%", fNum_pos[i]),
+        printf(fh, "  denom = ~a; ~%", fDenom_pos[i]),
+        printf(fh, "  if (denom >= 0.) fVal[~a] = 1.; ~%", i-1),
+        printf(fh, "  else if (num < EPSILON) fVal[~a] = 0.; ~%", i-1),
+        printf(fh, "  else fVal[~a] = -fac*num/denom; ~%", i-1)
+     ),
+     printf(fh, "  fmin = *std::min_element(fVal, fVal+~a); ~%", length(basis)),
+     printf(fh, "  } ~%")
   ),
-  nodes : eval_string(sconcat("nodes", d, "xp1")),
-  nodesub(f):=makelist(subst(makelist(vars[j]=nodes[i][j]*NODE,j,1,length(vars)),f),i,1,length(nodes)),
-  
-  if d=1 then printf(fh, "  if (ndim == ~a) { ~%", d)
-  else printf(fh, "  else if(ndim == ~a) { ~%", d),
-  printf(fh, "  double fVal[~a]; // fVal = array of vales of fIn evaluated at each node ~%", length(basis)),
-  printf(fh, "  double num, denom; ~%"),
-  for i:1 thru length(basis) do (
-  printf(fh, "  num = ~a; ~%", expand(gcfac(float(fullratsimp(nodesub(doExpand1(fNum, basis))[i]))))),
-  printf(fh, "  denom = ~a; ~%", expand(gcfac(float(fullratsimp(nodesub(doExpand1(fDenom, basis))[i]))))),
-  printf(fh, "  if (denom >= 0.) fVal[~a] = 1.; ~%", i-1),
-  printf(fh, "  else if (num < EPSILON) fVal[~a] = 0.; ~%", i-1),
-  printf(fh, "  else fVal[~a] = -fac*num/denom; ~%", i-1)
-  ),
-  printf(fh, "  fmin = *std::min_element(fVal, fVal+~a); ~%", length(basis)),
-  printf(fh, "  } ~%")
+  printf(fh, " } ~%")
 )$
-printf(fh, "  return fmin; ~%")$
+printf(fh, " return fmin; ~%")$
 printf(fh, "}~%")$
+
 close(fh)$
 close(header)$

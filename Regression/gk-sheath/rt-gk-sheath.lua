@@ -82,12 +82,13 @@ plasmaApp = Plasma.App {
    nFrame      = 1,                     -- Number of output frames.
    lower       = {R - Lx/2, -Ly/2, -Lz/2}, -- Configuration space lower left.
    upper       = {R + Lx/2, Ly/2, Lz/2},   -- Configuration space upper right.
-   cells       = {4, 1, 8},              -- Configuration space cells.
+   cells       = {4, 4, 8},              -- Configuration space cells.
    basis       = "serendipity",            -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                        -- Polynomial order.
    timeStepper = "rk3",                    -- One of "rk2" or "rk3".
    cflFrac     = 0.4,
    restartFrameEvery = .5,
+   decompCuts = {2, 1, 4},
 
    -- Boundary conditions for configuration space.
    periodicDirs = {2},     -- Periodic in y only.

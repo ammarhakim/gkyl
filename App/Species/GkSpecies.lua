@@ -632,28 +632,28 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
          if (c.collKind == "GkLBO") then
-            c.gkLBOconstNuCalcEq:clearRhsTerms()
+            c.equation:clearRhsTerms()
          end
          c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
          c:advance(tCurr, fIn, species, fRhsOut)
 
          if (self.positivity) and (c.collKind == "GkLBO") then
-            c.gkLBOconstNuCalcEq:getPositivityRhs(tCurr, self.dtGlobal[0], fIn, fRhsOut)
+            c.equation:getPositivityRhs(tCurr, self.dtGlobal[0], fIn, fRhsOut)
 
             -- Set the time step and CFL again.
             c.collisionSlvrStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
             c:advanceStep2(tCurr, fIn, species, fRhsOut)
-            c.gkLBOconstNuCalcEq:getPositivityRhsStep2(tCurr, self.dtGlobal[0], fIn, fRhsOut)
+            c.equation:getPositivityRhsStep2(tCurr, self.dtGlobal[0], fIn, fRhsOut)
          end
       end
    end
    if self.evolveCollisionless then
-      self.gkEqn:clearRhsTerms()
+      self.equation:clearRhsTerms()
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
 
       if self.positivity then
-         self.gkEqn:getPositivityRhs(tCurr, self.dtGlobal[0], fIn, fRhsOut)
+         self.equation:getPositivityRhs(tCurr, self.dtGlobal[0], fIn, fRhsOut)
       end
    else
       self.equation:setAuxFields({em, emFunc, dApardtProv})  -- Set auxFields in case they are needed by BCs/collisions.
@@ -661,10 +661,10 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    -- combine positivity weights from collisionless and collisions (for use on next step)
    if self.positivity and not self.isElectromagnetic then
-      self.gkEqn:setPositivityWeights(self.cflRateByCell)
+      self.equation:setPositivityWeights(self.cflRateByCell)
       for _, c in pairs(self.collisions) do
          if (c.collKind == "GkLBO") then
-            c.gkLBOconstNuCalcEq:setPositivityWeights(self.cflRateByCell)
+            c.equation:setPositivityWeights(self.cflRateByCell)
          end
       end
    end
@@ -693,17 +693,17 @@ function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
    local emFunc      = emIn[2]:rkStepperFields()[1]
 
    if self.evolveCollisionless then
-      if self.positivity then self.gkEqn:clearRhsTermsStep2(fRhsOut) end
+      if self.positivity then self.equation:clearRhsTermsStep2(fRhsOut) end
       self.solverStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solverStep2:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
-      if self.positivity then self.gkEqn:getPositivityRhsStep2(tCurr, self.dtGlobal[0], fIn, fRhsOut) end
+      if self.positivity then self.equation:getPositivityRhsStep2(tCurr, self.dtGlobal[0], fIn, fRhsOut) end
    end
 
    if self.positivity then
-      self.gkEqn:setPositivityWeights(self.cflRateByCell)
+      self.equation:setPositivityWeights(self.cflRateByCell)
       for _, c in pairs(self.collisions) do
          if (c.collKind == "GkLBO") then
-            c.gkLBOconstNuCalcEq:setPositivityWeights(self.cflRateByCell)
+            c.equation:setPositivityWeights(self.cflRateByCell)
          end
       end
    end
@@ -1372,11 +1372,11 @@ function GkSpecies:writeRestart(tm)
    GkSpecies.super.writeRestart(self,tm)
 
    if self.positivity then
-      self.gkEqn.positivityWeightByDir:write(
+      self.equation.positivityWeightByDir:write(
          string.format("%s_positivityWeight_restart.bp", self.name), tm, self.diagIoFrame, false)
       for _, c in pairs(self.collisions) do
          if (c.collKind == "GkLBO") then
-            c.gkLBOconstNuCalcEq.positivityWeightByDir:write(
+            c.equation.positivityWeightByDir:write(
                string.format("%s_GkLBO_positivityWeight_restart.bp", self.name), tm, self.diagIoFrame, false)
          end
       end
@@ -1387,14 +1387,14 @@ function GkSpecies:readRestart()
    tm = GkSpecies.super.readRestart(self)
 
    if self.positivity then
-      self.gkEqn.positivityWeightByDir:read(
+      self.equation.positivityWeightByDir:read(
          string.format("%s_positivityWeight_restart.bp", self.name), false)
-      self.gkEqn.positivityWeightByDir:sync()
+      self.equation.positivityWeightByDir:sync()
       for _, c in pairs(self.collisions) do
          if (c.collKind == "GkLBO") then
-            c.gkLBOconstNuCalcEq.positivityWeightByDir:read(
+            c.equation.positivityWeightByDir:read(
                string.format("%s_GkLBO_positivityWeight_restart.bp", self.name), false)
-            c.gkLBOconstNuCalcEq.positivityWeightByDir:sync()
+            c.equation.positivityWeightByDir:sync()
          end
       end
    end
