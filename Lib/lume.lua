@@ -382,6 +382,22 @@ function lume.find(t, value)
 end
 
 
+function lume.findTable(t, tbl)
+  -- Find a table in a table of tables. Assumes tables inside 't' are of the
+  -- same type/length as 'tbl', and that 'tbl' is not a table of tables.
+  local iter = getiter(t)
+  for k, v in iter(t) do
+    local foundTbl = true
+    for j, w in iter(tbl) do
+       foundTbl = foundTbl and v[j]==w
+       if not foundTbl then break end   -- No need to keep checking.
+    end
+    if foundTbl then return k end
+  end
+  return nil
+end
+
+
 function lume.match(t, fn)
   fn = iteratee(fn)
   local iter = getiter(t)
