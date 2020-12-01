@@ -81,7 +81,7 @@ local project1D = Updater.EvalOnNodes {
               end
 }
 project1D:advance(0., {}, {yShift})
-yShift:write("yShift.bp")
+-- yShift:write("yShift.bp")
 
 -- Determine the cells that each cell in fldDest needs.
 local numBasis1D = basis1D:numBasis()
