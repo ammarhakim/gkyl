@@ -1,0 +1,94 @@
+/* Generate Lua code that fills the left-side matrix entries
+   corresponding to the discretization of the Poisson equation
+      Laplacian(phi) = - rho
+   with recovery DG in the upper boundary skin cell. */
+
+kill(all) $
+load("recovery") $
+
+numDims : 3 $
+basisNm : ["Ser", "Tensor"] $
+maxPolyOrder : 2 $
+J : [4/dx[1]^2, 4/dx[2]^2, 4/dx[3]^2] $
+
+for polyOrder : 1 thru maxPolyOrder do (
+  for bIdx : 1 thru max(length(basisNm), polyOrder) do (
+    for d : 1 thru numDims do (
+      /* Variables and basis */
+      ba : getBasis(basisNm[bIdx], numDims, polyOrder),
+      numBasis : length(ba),
+      dirs : getDirs(numDims, polyOrder),
+  
+      /* Recovery polynomials at lower and upper boundaries */
+      phiRecL : calcRecov2CellGen(basisNm[bIdx], dirs[d], dirs, polyOrder,
+        dg(phiL), dg(phiC)),
+      phiRecU : calcRecov2CellGen(basisNm[bIdx], dirs[d], dirs, polyOrder,
+        dg(phiL), dg(phiC, bc(D=D, N=N, val=val))),
+      /* Recovery value and derivative at the boundary */
+      phiRecL0 : subst(dirs[d]=0, phiRecL),
+      phiRecLd0 : subst(dirs[d]=0, diff(phiRecL, dirs[d])),
+      phiRecU0 : subst(dirs[d]=2, phiRecU),
+      phiRecUd0 : subst(dirs[d]=2, diff(phiRecU, dirs[d])),
+      
+      /* Surface terms */
+      if numDims=1 then (
+        surfTerms : J[d]*(subst(dirs[d]=1, ba)*phiRecUd0-
+          subst(dirs[d]=1, diff(ba, dirs[d]))*phiRecU0-
+          subst(dirs[d]=-1, ba)*phiRecLd0+
+          subst(dirs[d]=-1, diff(ba, dirs[d]))*phiRecL0)
+      ) else (
+        perpDirs : delete(dirs[d], dirs),
+        surfTerms : J[d]*(calcInnerProdList(perpDirs, 1, subst(dirs[d]=1, ba), phiRecUd0)-
+          calcInnerProdList(perpDirs, 1, subst(dirs[d]=1, diff(ba, dirs[d])), phiRecU0)-
+          calcInnerProdList(perpDirs, 1, subst(dirs[d]=-1, ba), phiRecLd0)+
+          calcInnerProdList(perpDirs, 1, subst(dirs[d]=-1, diff(ba, dirs[d])), phiRecL0))
+      ),
+      /* Volume terms */
+      volTerms : J[d]*calcInnerProdList(dirs, 1, diff(ba, dirs[d], 2), doExpand(phiC, ba)),
+  
+      /* Left-side stencil */
+      stProj : surfTerms + volTerms,
+
+      /* Prepare the output file */
+      fname : if (polyOrder = 1 or numDims = 1) then (
+        sconcat("~/max-out/discontPoissonStencil", numDims, "D_", polyOrder, "p_", dirs[d], "Up.lua")
+      ) else (
+        sconcat("~/max-out/discontPoisson", basisNm[bIdx], "Stencil", numDims, "D_", polyOrder, "p_", dirs[d], "Up.lua")
+      ),
+      fh : openw(fname),
+      printf(fh, "local Lin = require \"Lib.Linalg\"~%"),
+      printf(fh, "local function stencilFn(dx, D, N, val)~%"),
+      printf(fh, "  local _M = {}~%~%"),
+      
+      ML : coefmatrix(stProj, makelist(phiL[i], i, 1, numBasis)),
+      printf(fh, "  _M[1] = Lin.Mat(~a,~a)~%", numBasis, numBasis),
+      for i : 1 thru numBasis do (
+        for j : 1 thru numBasis do (
+          printf(fh, "  _M[1][~a][~a] = ~a~%", i, j, float(ML[i][j]))
+        )
+      ),
+      flush_output(fh),
+    
+      MC : coefmatrix(stProj, makelist(phiC[i], i, 1, numBasis)),
+      printf(fh, "  _M[2] = Lin.Mat(~a,~a)~%", numBasis, numBasis),
+      for i : 1 thru numBasis do (
+        for j : 1 thru numBasis do (
+          printf(fh, "  _M[2][~a][~a] = ~a~%", i, j, float(MC[i][j]))
+        )
+      ),
+      flush_output(fh),
+    
+      MU : coefmatrix(stProj, [val]),
+      printf(fh, "  _M[3] = Lin.Vec(~a)~%", numBasis),
+      for i : 1 thru numBasis do (
+        printf(fh, "  _M[3][~a] = ~a*val~%", i, float(MU[i][1]))
+      ),
+      flush_output(fh),
+      
+      printf(fh, "  return(_M)~%"),
+      printf(fh, "end~%~%"),
+      printf(fh, "return(stencilFn)"),
+      close(fh)
+    )
+  )
+) $

@@ -101,8 +101,14 @@ function DiscontPoisson:init(tbl)
    self.stencilMatrix = {}
    self.stencilMatrixLo, self.stencilMatrixUp = {}, {}
    for d = 1, self.ndim do
-      local stencilMatrixFn = require(string.format("Updater.discontPoissonData.discontPoisson%sStencil%dD_%dp_%s",
-                                                    basisNm, self.ndim, polyOrder, dirs[d]))
+      local stencilMatrixFn = nil
+      if polyOrder == 1 or self.ndim == 1 then 
+         stencilMatrixFn = require(string.format("Updater.discontPoissonData.discontPoissonStencil%dD_%dp_%s",
+                                                 self.ndim, polyOrder, dirs[d]))
+      else
+         stencilMatrixFn = require(string.format("Updater.discontPoissonData.discontPoisson%sStencil%dD_%dp_%s",
+                                                 basisNm, self.ndim, polyOrder, dirs[d]))
+      end
       self.stencilMatrix[d] = stencilMatrixFn(dx)
    end
    self.nnonzero = 0
@@ -116,10 +122,19 @@ function DiscontPoisson:init(tbl)
       end
    end
    for d = 1, self.ndim do
-      local stencilMatrixLoFn = require(string.format("Updater.discontPoissonData.discontPoisson%sStencil%dD_%dp_%sLo",
-                                                      basisNm, self.ndim, polyOrder, dirs[d]))
-      local stencilMatrixUpFn = require(string.format("Updater.discontPoissonData.discontPoisson%sStencil%dD_%dp_%sUp",
-                                                      basisNm, self.ndim, polyOrder, dirs[d]))
+      local stencilMatrixLoFn = nil
+      local stencilMatrixUpFn = nil
+      if polyOrder == 1 or self.ndim == 1 then
+         stencilMatrixLoFn = require(string.format("Updater.discontPoissonData.discontPoissonStencil%dD_%dp_%sLo",
+                                                   self.ndim, polyOrder, dirs[d]))
+         stencilMatrixUpFn = require(string.format("Updater.discontPoissonData.discontPoissonStencil%dD_%dp_%sUp",
+                                                   self.ndim, polyOrder, dirs[d]))
+      else
+         stencilMatrixLoFn = require(string.format("Updater.discontPoissonData.discontPoisson%sStencil%dD_%dp_%sLo",
+                                                   basisNm, self.ndim, polyOrder, dirs[d]))
+         stencilMatrixUpFn = require(string.format("Updater.discontPoissonData.discontPoisson%sStencil%dD_%dp_%sUp",
+                                                   basisNm, self.ndim, polyOrder, dirs[d]))
+      end
       if self.grid:isDirPeriodic(d) then
          self.stencilMatrixLo[d] = nil
          self.stencilMatrixUp[d] = nil

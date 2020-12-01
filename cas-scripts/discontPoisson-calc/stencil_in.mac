@@ -1,0 +1,71 @@
+/* Generate Lua code that fills the left-side matrix entries
+   corresponding to the discretization of the Poisson equation
+      Laplacian(phi) = - rho
+   with recovery DG in the interior cells. */
+
+kill(all) $
+load("recovery") $
+
+numDims : 3 $
+basisNm : ["Ser", "Tensor"] $
+maxPolyOrder : 2 $
+J : [4/dx[1]^2, 4/dx[2]^2, 4/dx[3]^2] $
+
+for polyOrder : 1 thru maxPolyOrder do (
+  for bIdx : 1 thru max(length(basisNm), polyOrder) do (
+    for d : 1 thru numDims do (
+      /* Variables and basis */
+      ba : getBasis(basisNm[bIdx], numDims, polyOrder),
+      numBasis : length(ba),
+      dirs : getDirs(numDims, polyOrder),
+
+      /* Recovery polynomial */
+      phiRecC : calcRecov1CellGen(basisNm[bIdx], dirs[d], dirs, polyOrder, 1,
+        dg(phiL), dg(phiC), dg(phiU)),
+      stProj : calcInnerProdList(dirs, 1, ba, diff(phiRecC, dirs[d], 2))*J[d],
+
+      /* Prepare the output file */
+      fname : if (polyOrder = 1 or numDims = 1) then (
+        sconcat("~/max-out/discontPoissonStencil", numDims, "D_", polyOrder, "p_", dirs[d], ".lua")
+      ) else (
+        sconcat("~/max-out/discontPoisson", basisNm[bIdx], "Stencil", numDims, "D_", polyOrder, "p_", dirs[d], ".lua")
+      ),
+      fh : openw(fname),
+      printf(fh, "local Lin = require \"Lib.Linalg\"~%"),
+      printf(fh, "local function stencilFn(dx)~%"),
+      printf(fh, "  local _M = {}~%~%"),
+
+      ML : coefmatrix(stProj, makelist(phiL[i], i, 1, numBasis)),
+      printf(fh, "  _M[1] = Lin.Mat(~a,~a)~%", numBasis, numBasis),
+      for i : 1 thru numBasis do (
+        for j : 1 thru numBasis do (
+          printf(fh, "  _M[1][~a][~a] = ~a~%", i, j, float(ML[i][j]))
+        )
+      ),
+      flush_output(fh),
+      
+      MC : coefmatrix(stProj, makelist(phiC[i], i, 1, numBasis)),
+      printf(fh, "  _M[2] = Lin.Mat(~a,~a)~%", numBasis, numBasis),
+      for i : 1 thru numBasis do (
+        for j : 1 thru numBasis do (
+          printf(fh, "  _M[2][~a][~a] = ~a~%", i, j, float(MC[i][j]))
+        )
+      ),
+      flush_output(fh),
+      
+      MU : coefmatrix(stProj, makelist(phiU[i], i, 1, numBasis)),
+      printf(fh, "  _M[3] = Lin.Mat(~a,~a)~%", numBasis, numBasis),
+      for i : 1 thru numBasis do (
+        for j : 1 thru numBasis do (
+          printf(fh, "  _M[3][~a][~a] = ~a~%", i, j, float(MU[i][j]))
+        )
+      ),
+      flush_output(fh),
+      
+      printf(fh, "  return(_M)~%"),
+      printf(fh, "end~%~%"),
+      printf(fh, "return(stencilFn)"),
+      close(fh)
+    )
+  )
+) $

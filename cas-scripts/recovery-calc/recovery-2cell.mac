@@ -29,7 +29,8 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
   dimProjLo, dimProjUp, qLo1D, qUp1D,
   wx, wy, wz,
   numDims,
-  baCeNDw, perpDirs
+  baCeNDw, perpDirs,
+  bcExp
   ],
   
   baCe1D : getBasis(basisNm, 1, polyOrder),
@@ -174,9 +175,9 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
     given; i.e., a basis function set with one less dimension is
     needed */
     perpDirs : delete(recDir, dirs),
-    baCeNDw  : getBasis(basisNm, delete(dirs[numDims], dirs), polyOrder),
+    baCeNDw  : getBasis(basisNm, numDims-1, polyOrder),
     baVars   : listofvars(baCeNDw),
-    baCeNDw  : subst(makelist(baVars[i]=perpDirs[i],i,1,numDims-1), baCeNDw), 
+    baCeNDw  : psubst(makelist(baVars[i]=perpDirs[i],i,1,numDims-1), baCeNDw), 
     
     projSubList : [],
     if is(op(lo)=dg) then (
@@ -187,9 +188,12 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
         makelist(qLo1D[i]=dimProjLo[i], i, 1, length(baCe1D))
       ),
       if length(args(lo)) > 1 then (
-        projSubList : append(
-          projSubList,
-          [val=doExpand(subst(args(args(lo)[2]), ec), baCeNDw)]
+        bcExp : subst(args(args(lo)[2]), val),
+        if not atom(bcExp) then (
+          projSubList : append(
+            projSubList,
+            [val=doExpand(bcExp, baCeNDw)]
+          )
         )
       )
     ),
@@ -201,9 +205,12 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
         makelist(qUp1D[i]=dimProjUp[i], i, 1, length(baCe1D))
       ),
       if length(args(up)) > 1 then (
-        projSubList : append(
-          projSubList,
-          [val=doExpand(subst(args(args(lo)[2]), ec), baCeNDw)]
+        bcExp : subst(args(args(up)[2]), val),
+        if not atom(bcExp) then (
+          projSubList : append(
+            projSubList,
+            [val=doExpand(bcExp, baCeNDw)]
+          )
         )
       )
     )
