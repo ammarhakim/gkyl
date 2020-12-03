@@ -508,6 +508,11 @@ function KineticSpecies:createBCs()
    handleBc(1, self.bcx)
    handleBc(2, self.bcy)
    handleBc(3, self.bcz)
+
+   -- Calculate external boundary condition if applicable
+   if self.tbl.computeExternalBC then
+      self:calcExternalBC()      
+   end
 end
 
 function KineticSpecies:createSolver(externalField)
