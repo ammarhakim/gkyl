@@ -188,7 +188,7 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
         makelist(qLo1D[i]=dimProjLo[i], i, 1, length(baCe1D))
       ),
       if length(args(lo)) > 1 then (
-        bcExp : subst(args(args(lo)[2]), val),
+        bcExp : subst(args(args(lo)[2]), ec),
         if not atom(bcExp) then (
           projSubList : append(
             projSubList,
@@ -205,7 +205,7 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
         makelist(qUp1D[i]=dimProjUp[i], i, 1, length(baCe1D))
       ),
       if length(args(up)) > 1 then (
-        bcExp : subst(args(args(up)[2]), val),
+        bcExp : subst(args(args(up)[2]), ec),
         if not atom(bcExp) then (
           projSubList : append(
             projSubList,
@@ -230,6 +230,5 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
       )
     )
   ),
-
   return(expand(subst(projSubList, rSub)))
   ) $
