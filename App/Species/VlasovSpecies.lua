@@ -72,18 +72,6 @@ function VlasovSpecies:fullInit(appTbl)
       self.hasExtForce = false
    end
 
-   local externalBC = tbl.externalBC
-   local numExternalBCFiles = tbl.numExternalBCFiles
-   if externalBC then
-      self.wallFunction = {}
-      if numExternalBCFiles then
-         for i = 1, numExternalBCFiles do
-            self.wallFunction[i] = require(externalBC .. "_" .. tostring(i))
-         end
-      else
-         self.wallFunction = require(externalBC)
-      end
-   end
    -- numVelFlux used for selecting which type of numerical flux function to use in velocity space
    -- defaults to "penalty" in Eq object, supported options: "penalty," "recovery"
    -- only used for DG Maxwell.
@@ -1184,19 +1172,63 @@ end
 
 function VlasovSpecies:bcExternFunc(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "flip".
-   local tbl = self.tbl
-   local numFiles = tbl.numExternalBCFiles
-   local velIdx = {}
+   local numBasis = self.basis:numBasis()
+   local velIdx = Lin.IntVec(self.ndim)
+   velIdx[1] = 1
    for d = 1, self.vdim do
-      velIdx[d] = idxIn[self.cdim + d]
+      velIdx[d + 1] = idxIn[self.cdim + d]
    end
-   if numFiles then
-      if velIdx[1] ~= 0 and velIdx[1] ~= self.grid:numCells(2) + 1 then
-         self.wallFunction[velIdx[1]](velIdx, fIn, fOut)
+   local exIdxr = self.externalBCFunction:genIndexer()
+   local externalBCFunction = self.externalBCFunction:get(exIdxr(velIdx))
+   if velIdx[1] ~= 0 and velIdx[1] ~= self.grid:numCells(2) + 1 then
+      for i = 1, numBasis do
+	 fOut[i] = 0
+         for j = 1, numBasis do
+            fOut[i] = fOut[i] + fIn[j]*externalBCFunction[(i - 1)*numBasis + j]
+         end
       end
-   else
-      self.wallFunction(velIdx, fIn, fOut)
    end
+   return fOut
+end
+
+function VlasovSpecies:calcExternalBC()
+   tbl = self.tbl
+   local externalBC = assert(tbl.externalBC, "VlasovSpecies: Must define externalBC parameters")
+   local lower = Lin.Vec(self.grid:ndim())
+   local upper = Lin.Vec(self.grid:ndim())
+   local cells = Lin.Vec(self.grid:ndim())
+   lower[1] = 0
+   upper[1] = 1
+   cells[1] = 1
+   for d = 1, self.vdim do
+      lower[d + 1] = self.grid:lower(d + 1)
+      upper[d + 1] = self.grid:upper(d + 1)
+      cells[d + 1] = self.grid:numCells(d + 1)
+   end
+   local grid = Grid.RectCart {
+      lower = lower,
+      upper = upper,
+      cells = cells,
+      periodicDirs = {}
+   }
+   self.externalBCFunction = DataStruct.Field {
+      onGrid = grid,
+      numComponents = self.basis:numBasis()*self.basis:numBasis(),
+      metaData = {
+	 polyOrder = self.basis:polyOrder(),
+	 basisType = self.basis:id(),
+      },
+   }
+   -- Calculate Bronold and Fehske reflection function coefficients
+   local evaluateBronold = Updater.EvaluateBronoldFehskeBC {
+      onGrid = grid,
+      basis = self.basis,
+      electronAffinity = externalBC.electronAffinity,
+      effectiveMass = externalBC.effectiveMass,
+      elemCharge = externalBC.elemCharge,
+      me = externalBC.electronMass,
+   }
+   evaluateBronold:advance(0.0, {}, {self.externalBCFunction})
 end
 
 function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
