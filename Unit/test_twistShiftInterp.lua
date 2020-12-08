@@ -102,9 +102,9 @@ local project = Updater.ProjectOnBasis {
 --                 local muX, muY   = 0., 0.
 --                 local sigX, sigY = 0.5, 0.3
 --                 return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((y-muY)^2)/(2.*(sigY^2)))
---                 return 1.
+                 return 1.
 --                 return yShiftFunc(x)*math.sin((2.*math.pi/(upper[2]-lower[2]))*y)
-                  return y-yShiftFunc(x) --+2  --yShiftInvFunc(yShiftFunc(x))
+--                  return y-yShiftFunc(x) --+2  --yShiftInvFunc(yShiftFunc(x))
               end
 }
 project:advance(0., {}, {fldSrc})
@@ -413,14 +413,14 @@ for idx in localRange:rowMajorIter() do
 
    print(string.format("idx = (%d,%d)",idx[1],idx[2]))
 
---   if idx[1]==1 and idx[2]==1 then
+--   if idx[1]==1 and idx[2]<9 then
                                   
    for iC = 1, #srcCells do
-      print(string.format("   from = (%d,%d)",srcCells[iC][1],srcCells[iC][2]))
       -- In each contributing cell, approximate the functions qInvL(y) and qInvU(y)
       -- for the min/max of the x-integral with a polynomial. Compute the coefficients
       -- of that polynomial with a projection of yShiftNormInvFunc onto the local basis.
       local idxS = srcCells[iC]
+      print(string.format("   from = (%d,%d)",idxS[1],idxS[2]))
 
       grid:setIndex(idxS)
       grid:cellCenter(xcS)
@@ -429,7 +429,7 @@ for idx in localRange:rowMajorIter() do
       local srcCellBounds = { {grid:cellLowerInDir(1),grid:cellUpperInDir(1)},
                               {grid:cellLowerInDir(2),grid:cellUpperInDir(2)} }
 
---      if (idxS[1]==1 and idxS[2]==6)       -- the following is temporary code to test the case of a contribution in which
+--      if (idxS[1]==1 and idxS[2]==10)       -- the following is temporary code to test the case of a contribution in which
                                            -- the y+yShift curves do not cross the x-boundaries of the cell.
 --        or (idxS[1]==1 and idxS[2]==10)       -- the following is temporary code to test the case of a contribution in which
 --      then
@@ -587,7 +587,7 @@ for idx in localRange:rowMajorIter() do
          projXlimGen(evaluateLo, dyPartial, ycPartial, qL_y)
          --projXlim(evaluateUp, qU_y)
          projXlimGen(evaluateUp, dyPartial, ycPartial, qU_y)
-         --print(string.format("xLimLoLo=%f | xLimLoUp=%f | xLimUpLo=%f | xLimUpUp=%f | yLimLo=%f | yLimUp=%f",xLimLoLo,xLimLoUp,xLimUpLo,xLimUpUp,yLimLo,yLimUp))
+--         --print(string.format("xLimLoLo=%f | xLimLoUp=%f | xLimUpLo=%f | xLimUpUp=%f | yLimLo=%f | yLimUp=%f",xLimLoLo,xLimLoUp,xLimUpLo,xLimUpUp,yLimLo,yLimUp))
 --         print(string.format("xLimLo=%f | xLimUp=%f | yLimLo=%f | yLimUp=%f",xLimLo,xLimUp,yLimLo,yLimUp))
 --         for i=1,numBasis1D do
 --            print(string.format("qL[%d]=%f | qU[d]=%f",i-1,qL_y:data()[i-1],i-1,qU_y:data()[i-1]))
@@ -597,6 +597,9 @@ for idx in localRange:rowMajorIter() do
          -- Having obtained a polynomial expansion to the limits of the x-integral and the
          -- values of the y-integral limits, add the contribution from this source cell.
          interpGenSub(qL_y:data(), qU_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
+--         for i=1,basis:numBasis() do
+--            print(string.format("src[%d]=%f | dest[%d]=%f",i-1,srcPtr:data()[i-1],i-1,destPtr:data()[i-1]))
+--         end
 
       elseif nilNum == 1 then
          -- There are 4 possible scenarios:
