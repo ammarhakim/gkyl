@@ -27,7 +27,7 @@ GKYL_EMBED_INP = false
 local polyOrder    = 1
 local lower        = {-2.0, -1.50}
 local upper        = { 2.0,  1.50}
-local numCells     = {40, 40}
+local numCells     = {30, 30}
 local periodicDirs = {2}
 
 local grid = Grid.RectCart {
@@ -99,10 +99,10 @@ local project = Updater.ProjectOnBasis {
    basis    = basis,
    evaluate = function(t, xn)
                  local x, y       = xn[1], xn[2]
-                 local muX, muY   = 0., 0.
-                 local sigX, sigY = 0.5, 0.3
-                 return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((y-muY)^2)/(2.*(sigY^2)))
---                 return 1.
+--                 local muX, muY   = 0., 0.
+--                 local sigX, sigY = 0.5, 0.3
+--                 return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((y-muY)^2)/(2.*(sigY^2)))
+                 return 1.
 --                 return yShiftFunc(x)*math.sin((2.*math.pi/(upper[2]-lower[2]))*y)
 --                  return y-yShiftFunc(x) --+2  --yShiftInvFunc(yShiftFunc(x))
               end
@@ -182,7 +182,13 @@ local yShiftedyIntersect = function(xBounds, yDest, ySrc)
    if lossFl*lossFu < 0. then
       return root.ridders(lossF, xBounds[1], xBounds[2], rootStop(tol))
    else
-      return nil
+      if math.abs(lossFl) < tol  then
+         return xBounds[1]
+      elseif math.abs(lossFu) < tol  then
+         return xBounds[2]
+      else
+         return nil
+      end
    end
 end
 
@@ -246,7 +252,7 @@ local yShiftNormInvFuncPartialy = function(ySNIn, y0In, xcSrcIn, xcDestIn, dxDes
 --      print("ySIn = ",ySNIn)
       return ySNIn - yShiftNormFunc(xNIn, y0In, xcSrcIn, xcDestIn, dxDestIn, pickUpper)
    end
-   local tol = 1.e-12
+   local tol = 1.e-11
    -- Have to consider extended logical space even though the part of the y+yShift curve
    -- that is not in this cell does not get used in the integral because the fixed
    -- y limit cuts if off. But if we didn't consider extended logical space the shape of the
@@ -259,9 +265,9 @@ end
 
 
 -- Count how many nils there are in a table.
-local nilHowmany = function(tblIn)
+local nilHowmany2 = function(tblIn)
   local count, nilIdxs, nonNilIdxs = 0, {}, {}
-  for i = 1,#tblIn do
+  for i = 1,2 do
      if tblIn[i] == nil then
         count = count+1
         table.insert(nilIdxs,i)
@@ -377,7 +383,7 @@ for idx in localRange:rowMajorIter() do
    -- For now simply take small steps around the boundaries of the 2D cell, compute
    -- the shifted points and their owner at each step.
 
---   if idx[1]==4 and idx[2]==1 then
+--   if idx[1]==1 and idx[2]==6 then
 
    grid:setIndex(idx)
    grid:cellCenter(xc)
@@ -392,13 +398,14 @@ for idx in localRange:rowMajorIter() do
    idx1D[1] = idx[1]
    yShift:fill(indexer1D(idx1D), yShiftPtr)
    local srcCells = {}
+   local delta    = 1.e-10
    for dC = 1,2 do            -- Loop over x=const and y=const boundaries.
       for xS = 1,2 do         -- Loop over lower/upper boundary.
 --         print("dC=",dC," | xS=",xS)
 
          -- Do the first point separately (it requires pickLower=false in findCell).
-         local evPoint = {cellLower[1], cellLower[2]}
-         evPoint[dC]   = evPoint[dC]+(xS-1)*grid:dx(dC) 
+         local evPoint = {cellLower[1]+delta, cellLower[2]+delta}
+         evPoint[dC]   = evPoint[dC]+(xS-1)*(grid:dx(dC)-2.*delta)
 
          basis1D:evalBasis({(evPoint[1]-grid:cellCenterInDir(1))/(0.5*grid:dx(1))}, basis1Dev)
          local yShiftB = 0.   -- y-shift at boundary.
@@ -408,9 +415,11 @@ for idx in localRange:rowMajorIter() do
 
 --         print(string.format("yShifted = %f | idx[1]=%d",evPoint[2]+yShiftB,idx[1]))
 --         print(string.format("Find point=(%f,%f)",evPoint[1],wrapNum(evPoint[2]+yShiftB,grid:lower(2),grid:upper(2),true)))
-         local idxShifted0 = {nil,nil}
-         grid:findCell({evPoint[1],wrapNum(evPoint[2]+yShiftB,grid:lower(2),grid:upper(2),true)},
-                       idxShifted0,false,{idx[1],nil})
+         local idxShifted0   = {nil,nil}
+         local chooseLower   = (dC==2 and xS==2) and true or false
+         local wrapInclusive = (dC==2 and xS==2) and true or false
+         local searchPoint   = {evPoint[1],wrapNum(evPoint[2]+yShiftB,grid:lower(2),grid:upper(2),true)}
+         grid:findCell(searchPoint,idxShifted0,chooseLower,{idx[1],nil})
 --         print("here too")
          if lume.findTable(srcCells,idxShifted0)==nil then table.insert(srcCells,idxShifted0) end
          
@@ -419,6 +428,7 @@ for idx in localRange:rowMajorIter() do
          for sI = 1, numSteps[stepDim] do
 
             newP[stepDim] = evPoint[stepDim] + sI*stepSize[stepDim]
+            if sI==numSteps[stepDim] then newP[stepDim]=newP[stepDim]-2.*delta end
          
             -- Evaluate yShift at this point.
             basis1D:evalBasis({(newP[1]-grid:cellCenterInDir(1))/(0.5*grid:dx(1))}, basis1Dev)
@@ -428,15 +438,16 @@ for idx in localRange:rowMajorIter() do
             end
 
             -- Find the index of the cell that owns the shifted point.
-            local idxShifted = {nil,nil}
-            grid:findCell({newP[1],wrapNum(newP[2] + yShiftB,grid:lower(2),grid:upper(2),true)},
-                           idxShifted,true,{idx[1],nil})
+            local idxShifted  = {nil,nil}
+--         print(string.format("Find point=(%f,%f)",newP[1],wrapNum(newP[2]+yShiftB,grid:lower(2),grid:upper(2),true)))
+            local searchPoint = {newP[1],wrapNum(newP[2]+yShiftB,grid:lower(2),grid:upper(2),true)}
+            grid:findCell(searchPoint,idxShifted,true,{idx[1],nil})
             if lume.findTable(srcCells,idxShifted)==nil then table.insert(srcCells,idxShifted) end
          end
       end
    end
 
-   print(string.format("idx = (%d,%d)",idx[1],idx[2]))
+--   print(string.format("idx = (%d,%d)",idx[1],idx[2]))
 
 --   if idx[1]==1 and idx[2]<9 then
                                   
@@ -445,7 +456,7 @@ for idx in localRange:rowMajorIter() do
       -- for the min/max of the x-integral with a polynomial. Compute the coefficients
       -- of that polynomial with a projection of yShiftNormInvFunc onto the local basis.
       local idxS = srcCells[iC]
-      print(string.format("   from = (%d,%d)",idxS[1],idxS[2]))
+--      print(string.format("   from = (%d,%d)",idxS[1],idxS[2]))
 
       grid:setIndex(idxS)
       grid:cellCenter(xcS)
@@ -459,8 +470,8 @@ for idx in localRange:rowMajorIter() do
 --        or (idxS[1]==1 and idxS[2]==10)       -- the following is temporary code to test the case of a contribution in which
 --      then
 
-      -- Find the four points where yLowerDest+yShift yUpperDest+yShift intersect
-      -- the yLowerSrc and yUpperSrc lines.
+      -- Find the four points where yLowerDest+yShift and yUpperDest+yShift
+      -- intersect the yLowerSrc and yUpperSrc lines.
       local trapCornerX = {{nil, nil}, {nil, nil}}
       for i = 1, 2 do
          for j = 1, 2 do 
@@ -747,13 +758,13 @@ for idx in localRange:rowMajorIter() do
          -- the full cell, and subtracting the subregions that are not meant to contribute.
 
          
-         local nilNumDestLo, nilIdxsDestLo, nonNilIdxsDestLo = nilHowmany(trapCornerX[1])
-         local nilNumDestUp, nilIdxsDestUp, nonNilIdxsDestUp = nilHowmany(trapCornerX[2])
+         local nilNumDestLo, nilIdxsDestLo, nonNilIdxsDestLo = nilHowmany2(trapCornerX[1])
+         local nilNumDestUp, nilIdxsDestUp, nonNilIdxsDestUp = nilHowmany2(trapCornerX[2])
          if nilNumDestLo==2 or nilNumDestUp==2 then
             -- Scenario six, sx, sxi or sxii.
             local yLimLo, yLimUp = -1., 1.
             local evaluateLo, evaluateUp
-            if nilNumDestUp==0 then
+            if nilNumDestLo==0 then
                -- Scenario six or sx.
                local y0Lo = cellBounds[2][1]
                if trapCornerX[1][1] < trapCornerX[1][2] then
@@ -789,7 +800,8 @@ for idx in localRange:rowMajorIter() do
             -- Scenario sxiii or sxiv.
             local evaluateLo, evaluateUp, evaluateLoP, evaluateUpP
             local yLimUp, yLimLo, yLimUpP, yLimLoP
-            if trapCornerX[2][1]==nil then
+--            if trapCornerX[2][1]==nil then
+            if yShiftFunc(srcCellBounds[1][1]) >= yShiftFunc(trapCornerX[nonNilIdxs[1][1]][nonNilIdxs[1][2]]) then
                -- Scenario sxiii (kernel takes information of scenario sii and siii-like integrals).
                -- Scenario sii-like part.
                yLimUp = 1.
