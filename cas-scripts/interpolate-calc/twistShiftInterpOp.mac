@@ -21,6 +21,21 @@ writeCIncrExprs1sub(lhs, rhs, sublist) := block([expr],
   )
 )$
 
+/* General product of functions f1 and f2 with weight w over arbitrary extents,
+   in reverse order: integral along the first dimension is done last. */
+innerProdGenRev(vars, lims, w, f1, f2) := block([n, r],
+  n : length(vars),
+  if n = 0 then return (w*f1*f2),
+  r : integrate(w*f1*f2, vars[n], lims[n][1], lims[n][2]),
+  for i: n-1 thru 1 step -1 do r : integrate(r, vars[i], lims[i][1], lims[i][2]),
+  return (r)
+  )$
+
+/* Compute inner product with specified function list, in reverse order:
+   integral along the first dimension is done last. */
+calcInnerProdListGenRev(vars, lims, w, funcList, f) := fullratsimp(makelist(
+    innerProdGenRev(vars, lims, w, funcList[i], f), i, 1, length(funcList)))$
+
 calcTwistShiftInterpolationOp(fh, funcNm, dim, basisFun, pMax) := block([],
   /* Interpolation operator to transferring a field from one z-end of the
      simulation to the other holding x and toroidal angle phi constant. Requires interpolation
@@ -271,14 +286,10 @@ calcTwistShiftInterpOp_xLimFuncOfY(fh, funcNm, dim, basisFun, pMax) := block([],
 )$
 
 calcTwistShiftInterpOp_xLimDG(fh, funcNm, dim, basisFun, pMax) := block([],
-  /* Interpolation operator used in transferring a field from one z-end of the
-     simulation to the other holding x and toroidal angle phi constant. Requires interpolation
-     because a non-rectangular area of one z-end contributes to a single cell at the other z-end.
-     This kernel is called to compute contribution from a single source grid cell, to a single
-     destination grid cell. The contribution from the source cell is computed via a 2D integral
-     where the y-limits are constants and the x-limits are functions of y. The x-limits are given
-     by a DG (polynomial expansion), defined in a [-1,1] logical space that is a sub-region of the
-     source cell. */
+  /* Perform integrals (for weak equality/interpolation) of subregions of a
+     cell using fixed y-limits and variable x-limits (functions of y). The
+     x-limits are given by a DG (polynomial expansion), defined in a [-1,1]
+     logical space that is a sub-region of the source cell. */
   kill(varsC, varsP, basisC, basisP),
 
   /* Will need 1D basis for the y-shift. */
@@ -305,7 +316,8 @@ calcTwistShiftInterpOp_xLimDG(fh, funcNm, dim, basisFun, pMax) := block([],
     printf(fh, "  // yLimLo:  upper limit of the y integral in [-1,1] normalized space.~%"),
     printf(fh, "  // dyLimSpace:  length of the subregion in which the DG expansion of the yLimLo/yLimUp functions are defined.~%"),
     printf(fh, "  // ycLimSpace:  logical center of the subregion in which the DG expansion of the yLimLo/yLimUp functions are defined.~%"),
-    printf(fh, "  // fldDest: destination grid field.~%"),
+    printf(fh, "  // fldSrc:  source field.~%"),
+    printf(fh, "  // fldDest: destination field.~%"),
     printf(fh, "~%"),
 
     basis1D : basisC1D[polyOrder],  /* This need not use the same polyOrder as fldSrc/fldDest. */
@@ -359,6 +371,249 @@ calcTwistShiftInterpOp_xLimDG(fh, funcNm, dim, basisFun, pMax) := block([],
       )
     ),
     expR        : [xLimLo, xLimUp],
+    for eI : 1 thru length(expR) do (
+      for f : 2 thru maxExponent do (
+        for j : 0 thru numB1D-1 do (
+          doSub : false,
+          for k : 1 thru numB do (
+            if (not freeof(expR[eI][j]^f,fldDest_c[k])) then ( doSub : true )
+          ),
+          if (doSub) then (
+            /* Define a separate variable. */
+            lhsS : sconcat("  double ",string(expR[eI]),j,"R",f),
+            rhsS : sconcat("std::pow(",string(expR[eI][j]),",",f,");~%"),
+            printf(fh, sconcat(lhsS," = ",rhsS)),
+            /* Add to the string substitution list, used in writing file. */
+            subList : append(subList,[[sconcat(string(expR[eI][j]), "^",f), sconcat(string(expR[eI]),j,"R",f)]])
+          )
+        )
+      )
+    ),
+    printf(fh, "~%"),
+  
+    writeCIncrExprs1sub(fldDest,fldDest_c,subList),
+    printf(fh, "~%"),
+  
+    printf(fh, "}~%"),
+    printf(fh, "~%")
+
+  )
+)$
+
+calcTwistShiftInterpOp_yLimDG(fh, funcNm, dim, basisFun, pMax) := block([],
+  /* Perform integrals (for weak equality/interpolation) of subregions of a
+     cell using fixed x-limits and variable y-limits (functions of x). The
+     y-limits are given by a DG (polynomial expansion), defined in a [-1,1]
+     logical space that is a sub-region of the source cell. */
+  kill(varsC, varsP, basisC, basisP),
+
+  /* Will need 1D basis for the y-shift. */
+  load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
+  basisC1D : makelist(0,i,1,length(basisC)),
+  for i : 1 thru length(basisC) do (basisC1D[i] : copylist(basisC[i])),
+  vars1D : varsC,
+
+  /* For now assume dim=2. */
+  kill(varsC, varsP, basisC, basisP),
+  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
+  vars : varsC,
+
+  interpDims    : makelist(i,i,1,dim),
+  numInterpDims : length(interpDims),
+
+  for polyOrder : 1 thru pMax do (
+  
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(const double xLimLo, const double xLimUp, const double *yLimLo, const double *yLimUp, const double dxLim, const double xcLim, const double *fldSrc, double *fldDest) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // xLimUp:     lower limit of the x integral in [-1,1] normalized space.~%"),
+    printf(fh, "  // xLimLo:     upper limit of the x integral in [-1,1] normalized space.~%"),
+    printf(fh, "  // yLimUp:     1D DG expansion of the function yLimLo(x) giving the lower limit of the y integral.~%"),
+    printf(fh, "  // yLimLo:     1D DG expansion of the function yLimUp(x) giving the upper limit of the y integral.~%"),
+    printf(fh, "  // dxLimSpace: length of the subregion in which the DG expansion of the xLimLo/xLimUp functions are defined.~%"),
+    printf(fh, "  // xcLimSpace: logical center of the subregion in which the DG expansion of the xLimLo/xLimUp functions are defined.~%"),
+    printf(fh, "  // fldSrc:  source field.~%"),
+    printf(fh, "  // fldDest: destination field.~%"),
+    printf(fh, "~%"),
+
+    basis1D : basisC1D[polyOrder],  /* This need not use the same polyOrder as fldSrc/fldDest. */
+    numB1D  : length(basis1D),
+
+    yLimLo_e : doExpand1(yLimLo,basis1D),
+    yLimUp_e : doExpand1(yLimUp,basis1D),
+    /* The x-variable used in the inner product below may be different to the
+       x-variable in yLimLo/yLimUp because the former corresponds to the logical space of the source cell,
+       while the latter to a sub-region of that logical (x) space. They a related by a shift and a scaling. */
+    dxCell : 2,
+    xcCell : 0,
+    xMap : (2/dxLim)*(xcCell-xcLim+(dxCell/2)*x),
+
+    yLimLo_e : subst(x=xMap,yLimLo_e),
+    yLimUp_e : subst(x=xMap,yLimUp_e),
+
+    basis : basisC[polyOrder],
+    numB  : length(basis),
+
+    /* The y-integral limits will depend on the yShift. */
+    intLims : [ [xLimLo, xLimUp], [yLimLo_e, yLimUp_e] ],
+
+    /* Field expansion and list of coefficients. */
+    fldSrc_e  : doExpand1(fldSrc,basis),
+    fldSrc_c  : makelist(fldSrc[i],i,0,numB-1),
+  
+    /* Compute the inner product, on dest grid of current cell,
+       of the source field times the dest-grid basis functions (in this case src and dest basis are the same). */
+    fldDest_c : fullratsimp(calcInnerProdListGenRev(vars,intLims,1.0,basis,fldSrc_e)),
+  
+    /* In general these expressions are very complex. It would be beneficial to
+       perform some kind of common subexpression elimination. For now we'll just eliminate the exponents. */
+    subList : [],
+    maxExponent : 8,
+    expQ        : [xLimLo, xLimUp, dxLim, xcLim],
+    for eI : 1 thru length(expQ) do (
+      for f : 2 thru maxExponent do (
+        doSub : false,
+        for k : 1 thru numB do (
+          if (not freeof(expQ[eI]^f,fldDest_c[k])) then ( doSub : true )
+        ),
+        if (doSub) then (
+          /* Define a separate variable. */
+          lhsS : sconcat("  double ",string(expQ[eI]),"R",f),
+          rhsS : sconcat("std::pow(",string(expQ[eI]),",",f,");~%"),
+          printf(fh, sconcat(lhsS," = ",rhsS)),
+          /* Add to the string substitution list, used in writing file. */
+          subList : append(subList,[[sconcat(string(expQ[eI]), "^",f), sconcat(string(expQ[eI]),"R",f)]])
+        )
+      )
+    ),
+    expR        : [yLimLo, yLimUp],
+    for eI : 1 thru length(expR) do (
+      for f : 2 thru maxExponent do (
+        for j : 0 thru numB1D-1 do (
+          doSub : false,
+          for k : 1 thru numB do (
+            if (not freeof(expR[eI][j]^f,fldDest_c[k])) then ( doSub : true )
+          ),
+          if (doSub) then (
+            /* Define a separate variable. */
+            lhsS : sconcat("  double ",string(expR[eI]),j,"R",f),
+            rhsS : sconcat("std::pow(",string(expR[eI][j]),",",f,");~%"),
+            printf(fh, sconcat(lhsS," = ",rhsS)),
+            /* Add to the string substitution list, used in writing file. */
+            subList : append(subList,[[sconcat(string(expR[eI][j]), "^",f), sconcat(string(expR[eI]),j,"R",f)]])
+          )
+        )
+      )
+    ),
+    printf(fh, "~%"),
+  
+    writeCIncrExprs1sub(fldDest,fldDest_c,subList),
+    printf(fh, "~%"),
+  
+    printf(fh, "}~%"),
+    printf(fh, "~%")
+
+  )
+)$
+
+
+calcTwistShiftInterpOp_mTwoCorners(fh, funcNm, dim, basisFun, pMax) := block([],
+  /* Perform integrals (for weak equality/interpolation) of a subregion of a
+     cell that cuts off two opposite corners with a single continuous line each.
+     Perform this integral by subtracting, from the integral over the whole cell,
+     the integral over the two corners which can be performed with integrals
+     like in calcTwistShiftInterpOp_xLimDG. */
+  kill(varsC, varsP, basisC, basisP),
+
+  /* Will need 1D basis for the y-shift. */
+  load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
+  basisC1D : makelist(0,i,1,length(basisC)),
+  for i : 1 thru length(basisC) do (basisC1D[i] : copylist(basisC[i])),
+  vars1D : varsC,
+
+  /* For now assume dim=2. */
+  kill(varsC, varsP, basisC, basisP),
+  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
+  vars : varsC,
+
+  interpDims    : makelist(i,i,1,dim),
+  numInterpDims : length(interpDims),
+
+  for polyOrder : 1 thru pMax do (
+  
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(const double *xLimLoL, const double *xLimUpL, const double yLimLoL, const double yLimUpL, const double dyLimL, const double ycLimL, const double *xLimLoR, const double *xLimUpR, const double yLimLoR, const double yLimUpR, const double dyLimR, const double ycLimR, const double *fldSrc, double *fldDest) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // xLimUp:  1D DG expansion of the function xLimLo(y) giving the lower limit of the x integral in the left/right undesired region.~%"),
+    printf(fh, "  // xLimLo:  1D DG expansion of the function xLimUp(y) giving the upper limit of the x integral in the left/right undesired region.~%"),
+    printf(fh, "  // yLimUp:  lower limit of the y integral in [-1,1] normalized space.~%"),
+    printf(fh, "  // yLimLo:  upper limit of the y integral in [-1,1] normalized space.~%"),
+    printf(fh, "  // dyLimSpace:  length of the subregion in which the DG expansion of the yLimLo/yLimUp functions are defined.~%"),
+    printf(fh, "  // ycLimSpace:  logical center of the subregion in which the DG expansion of the yLimLo/yLimUp functions are defined.~%"),
+    printf(fh, "  // fldSrc:  source field.~%"),
+    printf(fh, "  // fldDest: destination field.~%"),
+    printf(fh, "~%"),
+
+    basis1D : basisC1D[polyOrder],  /* This need not use the same polyOrder as fldSrc/fldDest. */
+    numB1D  : length(basis1D),
+
+    basis : basisC[polyOrder],
+    numB  : length(basis),
+
+    /* Field expansion and list of coefficients. */
+    fldSrc_e  : doExpand1(fldSrc,basis),
+    fldSrc_c  : makelist(fldSrc[i],i,0,numB-1),
+
+    /* First add the integral over the whole cell. */
+    fldDest_c : fullratsimp(calcInnerProdList(vars,1.0,basis,fldSrc_e)),
+
+    /* Iterate over the left/right undesired regions. */
+    sideSuffix : ["L","R"],
+    for sI : 1 thru 2 do (
+      xLimLo_e : doExpand1(eval_string(sconcat("xLimLo",sideSuffix[sI])),subst(x=y,basis1D)),
+      xLimUp_e : doExpand1(eval_string(sconcat("xLimUp",sideSuffix[sI])),subst(x=y,basis1D)),
+      /* The y-variable used in the inner product below is different to the
+         y-variable in xLimLo/xLimUp because the former corresponds to the logical space of the source cell,
+         while the latter to a sub-region of that logical (y) space. They a related by a shift and a scaling. */
+      dyCell : 2,
+      ycCell : 0,
+      dyLim  : eval_string(sconcat("dyLim",sideSuffix[sI])),
+      ycLim  : eval_string(sconcat("ycLim",sideSuffix[sI])),
+      yMap   : (2/dyLim)*(ycCell-ycLim+(dyCell/2)*y),
+
+      xLimLo_e : subst(y=yMap,xLimLo_e),
+      xLimUp_e : subst(y=yMap,xLimUp_e),
+
+      /* The x-integral limits will depend on the yShift. */
+      yLimLo  : eval_string(sconcat("yLimLo",sideSuffix[sI])),
+      yLimUp  : eval_string(sconcat("yLimUp",sideSuffix[sI])),
+      intLims : [ [xLimLo_e, xLimUp_e], [yLimLo, yLimUp] ],
+
+      /* Compute the inner product, on dest grid of current cell,
+         of the source field times the dest-grid basis functions (in this case src and dest basis are the same). */
+      fldDest_c : fldDest_c-fullratsimp(calcInnerProdListGen(vars,intLims,1.0,basis,fldSrc_e))
+    ),
+  
+    /* In general these expressions are very complex. It would be beneficial to
+       perform some kind of common subexpression elimination. For now we'll just eliminate the exponents. */
+    subList : [],
+    maxExponent : 8,
+    expQ        : [yLimLoL, yLimUpL, dyLimL, ycLimL, yLimLoR, yLimUpR, dyLimR, ycLimR],
+    for eI : 1 thru length(expQ) do (
+      for f : 2 thru maxExponent do (
+        doSub : false,
+        for k : 1 thru numB do (
+          if (not freeof(expQ[eI]^f,fldDest_c[k])) then ( doSub : true )
+        ),
+        if (doSub) then (
+          /* Define a separate variable. */
+          lhsS : sconcat("  double ",string(expQ[eI]),"R",f),
+          rhsS : sconcat("std::pow(",string(expQ[eI]),",",f,");~%"),
+          printf(fh, sconcat(lhsS," = ",rhsS)),
+          /* Add to the string substitution list, used in writing file. */
+          subList : append(subList,[[sconcat(string(expQ[eI]), "^",f), sconcat(string(expQ[eI]),"R",f)]])
+        )
+      )
+    ),
+    expR        : [xLimLoL, xLimUpL, xLimLoR, xLimUpR],
     for eI : 1 thru length(expR) do (
       for f : 2 thru maxExponent do (
         for j : 0 thru numB1D-1 do (

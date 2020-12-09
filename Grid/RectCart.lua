@@ -245,12 +245,13 @@ function RectCart:findCell(point, cellIdx, pickLower, knownIdx)
       return isTrue
    end
    local isInCell = function(pIn, iIn)
+      local eps = 1.e-14
       local checkIdx = {}
       for d=1, self._ndim do checkIdx[d] = knownIdx[d]==nil and iIn[dimTrans[d]] or knownIdx[d] end
       self:setIndex(checkIdx)
       local inCell = true
       for d = 1, self._ndim do
-         inCell = inCell and (pIn[d]>=self:cellLowerInDir(d) and pIn[d]<=self:cellUpperInDir(d))
+         inCell = inCell and (self:cellLowerInDir(d)-eps<=pIn[d] and pIn[d]<=self:cellUpperInDir(d)+eps)
       end
       return inCell
    end

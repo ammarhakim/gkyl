@@ -50,11 +50,25 @@ for bInd : 1 thru length(bName) do (
     disp(printf(false,sconcat("Working on TwistShiftInterp_limXvarYfixed", c, "x", bName[bInd]))),
     calcTwistShiftInterpOp_xLimFuncOfY(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
     
-    /* Interpolation operator with unspecified y-integral limits and
+    /* Interpolation operator with unspecified (constant) y-integral limits and
        x-integral limits given by a DG expansion defined in a subregion of the source cell. */
     funcName : sconcat("TwistShiftInterp_xLimDG", c, "x", bName[bInd]),
     disp(printf(false,sconcat("Working on TwistShiftInterp_xLimDG", c, "x", bName[bInd]))),
     calcTwistShiftInterpOp_xLimDG(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    
+    /* Interpolation operator with unspecified (constant) x-integral limits and
+       y-integral limits given by a DG expansion defined in a subregion of the source cell. */
+    funcName : sconcat("TwistShiftInterp_yLimDG", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on TwistShiftInterp_yLimDG", c, "x", bName[bInd]))),
+    calcTwistShiftInterpOp_yLimDG(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    
+    /* Integrate over a subcell region composed of the integral over the whole cell
+       minus the integral over two with (diagonally opposite) corner regions, each with 
+       unspecified (constant) y-integral limits and x-integral limits given by a DG
+       expansion defined in a subregion of the source cell. */
+    funcName : sconcat("TwistShiftInterp_mTwoCorners", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on TwistShiftInterp_mTwoCorners", c, "x", bName[bInd]))),
+    calcTwistShiftInterpOp_mTwoCorners(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
     
     close(fh)
   )
