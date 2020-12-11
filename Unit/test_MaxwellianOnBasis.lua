@@ -135,7 +135,7 @@ function test_1x1v()
          distfPtr = distf:get(indexer(idx))
          fMPtr    = fM:get(indexer(idx))
          for k = 1, phaseBasis:numBasis() do
-            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C MaxwellianOnBasis 1x1v.")
          end
       end
 
@@ -228,7 +228,7 @@ function testGK_1x1v()
          distfPtr = distf:get(indexer(idx))
          fMPtr    = fM:get(indexer(idx))
          for k = 1, phaseBasis:numBasis() do
-            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C GkMaxwellianOnBasis 1x1v.")
          end
       end
 
@@ -261,7 +261,7 @@ function testGK_1x1v()
          distfPtr = distf:get(indexer(idx))
          fMPtr    = fM:get(indexer(idx))
          for k = 1, phaseBasis:numBasis() do
-            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C GkMaxwellianOnBasis (with 3v uFlow) 1x1v.")
          end
       end
 
@@ -347,7 +347,7 @@ function test_1x2v()
          distfPtr = distf:get(indexer(idx))
          fMPtr    = fM:get(indexer(idx))
          for k = 1, phaseBasis:numBasis() do
-            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C MaxwellianOnBasis 1x2v.")
          end
       end
 
@@ -441,7 +441,7 @@ function testGK_1x2v()
          distfPtr = distf:get(indexer(idx))
          fMPtr    = fM:get(indexer(idx))
          for k = 1, phaseBasis:numBasis() do
-            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C GkMaxwellianOnBasis 1x2v.")
          end
       end
 
@@ -474,7 +474,7 @@ function testGK_1x2v()
          distfPtr = distf:get(indexer(idx))
          fMPtr    = fM:get(indexer(idx))
          for k = 1, phaseBasis:numBasis() do
-            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C GkMaxwellianOnBasis (with 3v uFlow) 1x2v.")
          end
       end
 
@@ -563,7 +563,7 @@ function test_1x3v()
          distfPtr = distf:get(indexer(idx))
          fMPtr    = fM:get(indexer(idx))
          for k = 1, phaseBasis:numBasis() do
-            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C MaxwellianOnBasis 1x3v.")
          end
       end
 
@@ -595,7 +595,7 @@ function test_1x3v()
          distfPtr = distf:get(indexer(idx))
          fMPtr    = fM:get(indexer(idx))
          for k = 1, phaseBasis:numBasis() do
-            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C MaxwellianOnBasis (with uPar) 1x3v.")
          end
       end
    end
@@ -682,7 +682,7 @@ function test_2x2v()
          distfPtr = distf:get(indexer(idx))
          fMPtr    = fM:get(indexer(idx))
          for k = 1, phaseBasis:numBasis() do
-            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C MaxwellianOnBasis 2x2v.")
          end
       end
 
@@ -776,7 +776,7 @@ function testGK_2x2v()
          distfPtr = distf:get(indexer(idx))
          fMPtr    = fM:get(indexer(idx))
          for k = 1, phaseBasis:numBasis() do
-            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C GkMaxwellianOnBasis 2x2v.")
          end
       end
 
@@ -809,7 +809,7 @@ function testGK_2x2v()
          distfPtr = distf:get(indexer(idx))
          fMPtr    = fM:get(indexer(idx))
          for k = 1, phaseBasis:numBasis() do
-            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C GkMaxwellianOnBasis (with 3v uFlow) 2x2v.")
          end
       end
 
@@ -898,7 +898,7 @@ function test_2x3v()
          distfPtr = distf:get(indexer(idx))
          fMPtr    = fM:get(indexer(idx))
          for k = 1, phaseBasis:numBasis() do
-            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C MaxwellianOnBasis 2x3v.")
          end
       end
 
@@ -930,7 +930,7 @@ function test_2x3v()
          distfPtr = distf:get(indexer(idx))
          fMPtr    = fM:get(indexer(idx))
          for k = 1, phaseBasis:numBasis() do
-            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C MaxwellianOnBasis (with uPar) 2x3v.")
          end
       end
 
@@ -1027,7 +1027,7 @@ function testGK_3x2v()
          distfPtr = distf:get(indexer(idx))
          fMPtr    = fM:get(indexer(idx))
          for k = 1, 1 do --phaseBasis:numBasis() do
-            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C GkMaxwellianOnBasis 3x2v.")
          end
       end
 
@@ -1060,7 +1060,7 @@ function testGK_3x2v()
          distfPtr = distf:get(indexer(idx))
          fMPtr    = fM:get(indexer(idx))
          for k = 1, phaseBasis:numBasis() do
-            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C GkMaxwellianOnBasis (with 3v uFlow) 3x2v.")
          end
       end
 
@@ -1151,7 +1151,7 @@ function test_3x3v()
          distfPtr = distf:get(indexer(idx))
          fMPtr    = fM:get(indexer(idx))
          for k = 1, phaseBasis:numBasis() do
-            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C MaxwellianOnBasis 3x3v.")
          end
       end
 
@@ -1183,7 +1183,7 @@ function test_3x3v()
          distfPtr = distf:get(indexer(idx))
          fMPtr    = fM:get(indexer(idx))
          for k = 1, phaseBasis:numBasis() do
-            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C implementations of MaxwellianOnBasis.")
+            assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C MaxwellianOnBasis (with uPar) 3x3v.")
          end
       end
    end

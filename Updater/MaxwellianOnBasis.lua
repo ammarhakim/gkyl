@@ -51,7 +51,7 @@ function MaxwellianOnBasis:init(tbl)
    -- The C implementation only allows p+1 quadrature points (in 1D).
    if numQuad1D ~= self.confBasis:polyOrder() + 1 then self.quadImpl="Lua" end
 
-   self.projectOnGhosts = xsys.pickBool(tbl.projectOnGhosts, true)
+   self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
 
    -- Mass and magnetic field amplitude are needed to project a gyrokinetic Maxwellian.
    self.mass = tbl.mass

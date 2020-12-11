@@ -124,8 +124,8 @@ function VmIonization:createSolver(funcField)
       self.calcIonizationTemp = Updater.Ionization {
 	 onGrid     = self.confGrid,
 	 confBasis  = self.confBasis,
-	 phaseGrid     = self.phaseGrid,
-	 phaseBasis  = self.phaseBasis,
+	 phaseGrid  = self.phaseGrid,
+	 phaseBasis = self.phaseBasis,
       	 elcMass    = self.mass,
       	 elemCharge = self.charge,
 	 reactRate  = false, 
@@ -142,20 +142,20 @@ function VmIonization:createSolver(funcField)
       }
    end
    self.confMult = Updater.CartFieldBinOp {
-         onGrid     = self.confGrid,
-         weakBasis  = self.confBasis,
-         operation  = "Multiply",
+      onGrid     = self.confGrid,
+      weakBasis  = self.confBasis,
+      operation  = "Multiply",
    }
    self.confDiv = Updater.CartFieldBinOp {
       onGrid     = self.confGrid,
       weakBasis  = self.confBasis,
-      operation = "Divide",
+      operation  = "Divide",
    }
    self.confPhaseMult = Updater.CartFieldBinOp {
-         onGrid     = self.phaseGrid,
-         weakBasis  = self.phaseBasis,
-         fieldBasis = self.confBasis,
-         operation  = "Multiply",
+      onGrid     = self.phaseGrid,
+      weakBasis  = self.phaseBasis,
+      fieldBasis = self.confBasis,
+      operation  = "Multiply",
    }
    self.m0elc = DataStruct.Field {
       onGrid        = self.confGrid,
@@ -187,8 +187,8 @@ function VmIonization:createSolver(funcField)
 end
 
 function VmIonization:advance(tCurr, fIn, species, fRhsOut)
-   local coefIz = species[self.elcNm]:getVoronovReactRate()
-   local elcM0 = species[self.elcNm]:fluidMoments()[1]
+   local coefIz   = species[self.elcNm]:getVoronovReactRate()
+   local elcM0    = species[self.elcNm]:fluidMoments()[1]
    local writeOut = false
 
    -- Check whether particle is electron, neutral or ion species.

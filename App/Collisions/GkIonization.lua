@@ -124,8 +124,8 @@ function GkIonization:createSolver(funcField)
       self.calcIonizationTemp = Updater.Ionization {
 	 onGrid     = self.confGrid,
 	 confBasis  = self.confBasis,
-	 phaseGrid     = self.phaseGrid,
-	 phaseBasis  = self.phaseBasis,
+	 phaseGrid  = self.phaseGrid,
+	 phaseBasis = self.phaseBasis,
       	 elcMass    = self.mass,
       	 elemCharge = self.charge,
 	 reactRate  = false, 
@@ -142,20 +142,15 @@ function GkIonization:createSolver(funcField)
       }
    end
    self.confMult = Updater.CartFieldBinOp {
-         onGrid     = self.confGrid,
-         weakBasis  = self.confBasis,
-         operation  = "Multiply",
-   }
-   self.confDiv = Updater.CartFieldBinOp {
       onGrid     = self.confGrid,
       weakBasis  = self.confBasis,
-      operation = "Divide",
+      operation  = "Multiply",
    }
    self.confPhaseMult = Updater.CartFieldBinOp {
-         onGrid     = self.phaseGrid,
-         weakBasis  = self.phaseBasis,
-         fieldBasis = self.confBasis,
-         operation  = "Multiply",
+      onGrid     = self.phaseGrid,
+      weakBasis  = self.phaseBasis,
+      fieldBasis = self.confBasis,
+      operation  = "Multiply",
    }
    self.m0elc = DataStruct.Field {
       onGrid        = self.confGrid,
@@ -197,7 +192,7 @@ end
 
 function GkIonization:advance(tCurr, fIn, species, fRhsOut)
    local coefIz = species[self.elcNm]:getVoronovReactRate()
-   local elcM0 = species[self.elcNm]:fluidMoments()[1]
+   local elcM0  = species[self.elcNm]:fluidMoments()[1]
    local writeOut = false
 
    -- Check whether particle is electron, neutral or ion species.

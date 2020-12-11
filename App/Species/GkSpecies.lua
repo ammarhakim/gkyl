@@ -332,13 +332,11 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       end
       -- Updaters for the primitive moments.
       self.confDiv = Updater.CartFieldBinOp {
-         onGrid = self.confGrid,
          onGrid    = self.confGrid,
          weakBasis = self.confBasis,
          operation = "Divide",
       }
       self.confMul = Updater.CartFieldBinOp {
-         onGrid    = self.confGrid,
          onGrid    = self.confGrid,
          weakBasis = self.confBasis,
          operation = "Multiply",
@@ -1576,34 +1574,34 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 
       -- For ionization.
       if self.calcReactRate then
-	 local neutM0 = species[self.neutNmIz]:fluidMoments()[1]
-      	 local neutU  = species[self.neutNmIz]:selfPrimitiveMoments()[1]
-	 local neutVtSq = species[self.neutNmIz]:selfPrimitiveMoments()[2]
-	    
-	 if tCurr == 0.0 then
-	    species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-	 end
+         local neutM0 = species[self.neutNmIz]:fluidMoments()[1]
+         local neutU  = species[self.neutNmIz]:selfPrimitiveMoments()[1]
+         local neutVtSq = species[self.neutNmIz]:selfPrimitiveMoments()[2]
+            
+         if tCurr == 0.0 then
+            species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+         end
+        
+         species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {self.voronovReactRate})
+         species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
 
-	 species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {self.voronovReactRate})
-	 species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
+         self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz, self.bmag}, {self.fMaxwellIz})
 
- 	 self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz, self.bmag}, {self.fMaxwellIz})
-
-	 self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
-	 self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
-	 self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
-
-	 if writeOut then
-	    neutM0:write(string.format("%s_izNeutM0_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
-	    self.voronovReactRate:write(string.format("%s_ccmCoefIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
-	    self.fMaxwellIz:write(string.format("%s_ccmfMax_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
-	 end
+         self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
+         self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
+         self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
+         
+         if writeOut then
+            neutM0:write(string.format("%s_izNeutM0_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+            self.voronovReactRate:write(string.format("%s_ccmCoefIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+            self.fMaxwellIz:write(string.format("%s_ccmfMax_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+         end
       end
 
       if self.calcCXSrc then
       	 -- Calculate Vcx*SigmaCX.
-	 local m0 = species[self.neutNmCX]:fluidMoments()[1]
-      	 local neutU = species[self.neutNmCX]:selfPrimitiveMoments()[1]
+	 local m0       = species[self.neutNmCX]:fluidMoments()[1]
+      	 local neutU    = species[self.neutNmCX]:selfPrimitiveMoments()[1]
       	 local neutVtSq = species[self.neutNmCX]:selfPrimitiveMoments()[2]
 	 --neutVtSq:write(string.format("%s_neutVtSq_%d.bp",self.name,tCurr*1e10),tCurr,0,true)	 
 	 

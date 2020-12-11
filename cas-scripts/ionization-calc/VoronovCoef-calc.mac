@@ -72,7 +72,7 @@ writeCExprsCs(lhs, rhs) := block([expr],
       outStr : ssubst("pow(2,3/2)","2^(3/2)",outStr),
       outStr : ssubst("pow(U,K+1/2)","U^(K+1/2)",outStr),
       outStr : ssubst("exp(U)","e^U",outStr), 
-      printf(fh, "  ~a = ~a; ~%", lhs[i-1], outStr)	
+      printf(fh, "    ~a = ~a; ~%", lhs[i-1], outStr)	
     )
   )
 )$
@@ -135,16 +135,16 @@ calcVoronovReactRateCellAv(fh, funcNm, cdim, basisFun, pMax) := block([],
 
     radexpand: false,
     coefIz_c : calcInnerProdList(varsC,1.0,bC, (A*(1 + P*sqrt(U))/(X + U)*U^K*e^(-U)*1e-6)),
-    writeCExprsCs(coefIz, coefIz_c),
-    printf(fh, " ~%"),
-    
-    printf(fh, "  if (U >= 3.0/2.0 || m0NeutAv <= 0 || vtSqNeut0 <= 0) { ~%"),
-    printf(fh, "    coefIz[0] = 0.0;~%"),
-    printf(fh, "  }~%"),
 
     cflRate : float(expand(fullratsimp(m0Av*coefAv/(2*polyOrder+1)))),
-    printf(fh, "  return ~a; ~%",cflRate),
-
+    
+    printf(fh, "  if (U >= 3.0/2.0 || m0NeutAv <= 0. || vtSqNeut0 <= 0. || vtSqElc0 <= 0.) { ~%"),
+    printf(fh, "    coefIz[0] = 0.0;~%"),
+    printf(fh, "    return 0.0; ~%"),
+    printf(fh, "  } else {~%"),
+    writeCExprsCs(coefIz, coefIz_c),
+    printf(fh, "    return ~a; ~%",cflRate),
+    printf(fh, "  };~%"),
     printf(fh, "} ~%"),
     printf(fh, " ~%")
   )
