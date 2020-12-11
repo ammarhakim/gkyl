@@ -20,5 +20,5 @@ cp -R eigen-*/unsupported $PREFIX/include/eigen3
 rm -rf eigen-3.3.7.tar* eigen-eigen-*
 
 # softlink to make finding easier
-ln -sf $PREFIX $GKYLSOFT/eigen3
+ln -sfn $PREFIX $GKYLSOFT/eigen3
 

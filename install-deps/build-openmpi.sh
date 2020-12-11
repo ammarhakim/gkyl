@@ -15,4 +15,4 @@ cd openmpi-4.0.5
 make all install
 
 # soft-link 
-ln -sf $PREFIX $GKYLSOFT/openmpi
+ln -sfn $PREFIX $GKYLSOFT/openmpi

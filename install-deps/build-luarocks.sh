@@ -22,4 +22,4 @@ $cmd
 make bootstrap
 
 # softlink to make finding easier
-ln -sf $PREFIX $GKYLSOFT/luarocks
+ln -sfn $PREFIX $GKYLSOFT/luarocks
