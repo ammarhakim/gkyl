@@ -28,7 +28,7 @@ local math = require "sci.math"  -- For sign function.
 local polyOrder    = 1
 local lower        = {-2.0, -1.50}
 local upper        = { 2.0,  1.50}
-local numCells     = {12, 10}
+local numCells     = {36, 30}
 local periodicDirs = {2}
 
 local grid = Grid.RectCart {
@@ -77,7 +77,8 @@ local project1D = Updater.EvalOnNodes {
 -- It has to be everywhere >0 or everywhere <0 (it cannot be zero, or too close to it).
 local yShiftFunc = function(x)
 --                      return 1./(1.+0.25*x)
-                      return -0.9*x+2.
+                      return 0.3*x+2.
+--                      return 0.1*(x+2.)^2+0.2*x+0.6
                    end
 project1D:setFunc(function(t, xn) return yShiftFunc(xn[1]) end)
 project1D:advance(0., {}, {yShift})
@@ -101,10 +102,10 @@ local project = Updater.ProjectOnBasis {
    basis    = basis,
    evaluate = function(t, xn)
                  local x, y       = xn[1], xn[2]
---                 local muX, muY   = 0., 0.
---                 local sigX, sigY = 0.5, 0.3
---                 return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((y-muY)^2)/(2.*(sigY^2)))
-                 return 1.
+                 local muX, muY   = 0., 0.
+                 local sigX, sigY = 0.3, 0.3
+                 return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((y-muY)^2)/(2.*(sigY^2)))
+--                 return 1.
 --                 return yShiftFunc(x)*math.sin((2.*math.pi/(upper[2]-lower[2]))*y)
 --                  return y-yShiftFunc(x) --+2  --yShiftInvFunc(yShiftFunc(x))
               end
@@ -536,7 +537,7 @@ for idx in localRange:rowMajorIter() do
    -- For now simply take small steps around the boundaries of the 2D cell, compute
    -- the shifted points and their owner at each step.
 
---   if idx[1]==12 and idx[2]==5 then
+--   if idx[1]==36 and idx[2]==6 then
 
    grid:setIndex(idx)
    grid:cellCenter(xc)
@@ -573,7 +574,6 @@ for idx in localRange:rowMajorIter() do
          local wrapInclusive = (dC==2 and xS==2) and true or false
          local searchPoint   = {evPoint[1],wrapNum(evPoint[2]+yShiftB,grid:lower(2),grid:upper(2),true)}
          grid:findCell(searchPoint,idxShifted0,chooseLower,{idx[1],nil})
---         print("here too")
          if lume.findTable(srcCells,idxShifted0)==nil then table.insert(srcCells,idxShifted0) end
          
          local stepDim, newP = dC % 2+1, {nil,nil}
@@ -712,15 +712,15 @@ for idx in localRange:rowMajorIter() do
             if yShiftUp >= yShiftFunc(trapCornerX[nonNilIdxs[1][1]][nonNilIdxs[1][2]]) then
                yLimLo = wrapNum(cellLower[2] + yShiftFunc(srcCellBounds[1][1]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])  -- Scenario si.
                yLimLo = (yLimLo - xcS[2])/(0.5*dxS[2])
-               xLimLo = -1
-               xLimUp = (trapCornerX[nonNilIdxs[1][1]][nonNilIdxs[1][2]] - xcS[1])/(0.5*dxS[1])
+               local xLimLo = -1
+               local xLimUp = (trapCornerX[nonNilIdxs[1][1]][nonNilIdxs[1][2]] - xcS[1])/(0.5*dxS[1])
                evaluateLo = function(tCurr,xn) return -1.0 end
                evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
             else
                yLimLo = wrapNum(cellLower[2] + yShiftUp,grid:lower(2),grid:upper(2),idxS[2]==numCells[2])   -- Scenario sii.
                yLimLo = (yLimLo - xcS[2])/(0.5*dxS[2])
-               xLimLo = (trapCornerX[nonNilIdxs[1][1]][nonNilIdxs[1][2]] - xcS[1])/(0.5*dxS[1])
-               xLimUp = 1
+               local xLimLo = (trapCornerX[nonNilIdxs[1][1]][nonNilIdxs[1][2]] - xcS[1])/(0.5*dxS[1])
+               local xLimUp = 1
                evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
                evaluateUp = function(tCurr,xn) return 1.0 end
             end
@@ -732,15 +732,15 @@ for idx in localRange:rowMajorIter() do
             if yShiftUp <= yShiftFunc(trapCornerX[nonNilIdxs[1][1]][nonNilIdxs[1][2]]) then
                yLimUp = wrapNum(cellUpper[2]+yShiftFunc(srcCellBounds[1][1]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])   -- Scenario siii.
                yLimUp = (yLimUp - xcS[2])/(0.5*dxS[2])
-               xLimLo = -1
-               xLimUp = (trapCornerX[nonNilIdxs[1][1]][nonNilIdxs[1][2]] - xcS[1])/(0.5*dxS[1])
+               local xLimLo = -1
+               local xLimUp = (trapCornerX[nonNilIdxs[1][1]][nonNilIdxs[1][2]] - xcS[1])/(0.5*dxS[1])
                evaluateLo = function(tCurr,xn) return -1.0 end
                evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
             else
                yLimUp = wrapNum(cellUpper[2] + yShiftUp,grid:lower(2),grid:upper(2),idxS[2]==numCells[2])   -- Scenario siv.
                yLimUp = (yLimUp - xcS[2])/(0.5*dxS[2])
-               xLimLo = (trapCornerX[nonNilIdxs[1][1]][nonNilIdxs[1][2]] - xcS[1])/(0.5*dxS[1])
-               xLimUp = 1
+               local xLimLo = (trapCornerX[nonNilIdxs[1][1]][nonNilIdxs[1][2]] - xcS[1])/(0.5*dxS[1])
+               local xLimUp = 1
                evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
                evaluateUp = function(tCurr,xn) return 1.0 end
             end
@@ -789,6 +789,7 @@ for idx in localRange:rowMajorIter() do
                local evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLoLo,xLimLoUp}, idxS[2]==numCells[2]) end
                local evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimUpLo,xLimUpUp}, idxS[2]==numCells[2]) end
                yLimLo = wrapNum(cellUpper[2] + yShiftFunc(srcCellBounds[1][1]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
+               yLimLo = (yLimLo - xcS[2])/(0.5*dxS[2])
                yLimUp = 1.
                dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
                projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
@@ -798,12 +799,13 @@ for idx in localRange:rowMajorIter() do
                yLimUp = yLimLo    -- Keep the order of yLimUp and yLimLo here.
                yLimLo = -1.
                y0Up = cellBounds[2][1]
-               xLimLo = -1
+               xLimLo = (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1])
                xLimUp = (trapCornerX[1][2] - xcS[1])/(0.5*dxS[1])
                evaluateLo = function(tCurr,xn) return -1.0 end
                evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
                dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
                projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
+               print("here")
                projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
                interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
             else
@@ -889,6 +891,7 @@ for idx in localRange:rowMajorIter() do
                local evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimUpLo,xLimUpUp}, idxS[2]==numCells[2]) end
                yLimLo = -1.
                yLimUp = wrapNum(cellLower[2] + yShiftFunc(srcCellBounds[1][2]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
+               yLimUp = (yLimUp - xcS[2])/(0.5*dxS[2])
                dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
                projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
                projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
