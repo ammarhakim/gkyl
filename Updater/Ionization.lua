@@ -66,7 +66,7 @@ function Ionization:init(tbl)
    -- Define Voronov reaction rate
    self._VoronovReactRateCalc = IonizationDecl.voronovCoef(self._basisID, self._cDim, self._polyOrder)
 
-   self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
+   self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
 
    self._tmEvalMom = 0.0
 end

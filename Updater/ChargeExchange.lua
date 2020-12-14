@@ -52,7 +52,7 @@ function ChargeExchange:init(tbl)
       self._calcSigmaCX = ChargeExchangeDecl.SigmaCX(self._basisID, self._cDim, self._vDim, self._polyOrder)
    end
    
-   self.onGhosts = xsys.pickBool(false, tbl.onGhosts)
+   self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
 
    self._tmEvalMom = 0.0
 end
