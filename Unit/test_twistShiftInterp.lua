@@ -20,6 +20,7 @@ local ffiC = ffi.C
 local xsys = require "xsys"
 local TwistShiftInterpDecl = require "Updater.interpolateCalcData.TwistShiftInterpModDecl"
 GKYL_EMBED_INP = false
+local math = require "sci.math"  -- For sign function.
 
 -- Create two fields on a 2D grid. Then interpolate one field onto the other
 -- but with a shift in y that is a function of x (assuming periodicity in y).
@@ -27,7 +28,7 @@ GKYL_EMBED_INP = false
 local polyOrder    = 1
 local lower        = {-2.0, -1.50}
 local upper        = { 2.0,  1.50}
-local numCells     = {30, 30}
+local numCells     = {12, 10}
 local periodicDirs = {2}
 
 local grid = Grid.RectCart {
@@ -72,10 +73,11 @@ local project1D = Updater.EvalOnNodes {
    basis    = basis1D,
    evaluate = function(t, xn) return 1. end   -- Set below.
 }
+-- Function describing the shift in y of the BC.
+-- It has to be everywhere >0 or everywhere <0 (it cannot be zero, or too close to it).
 local yShiftFunc = function(x)
---                      local s0 = 0.25
---                      return 1./(1.+s0*x)
-                      return -0.3*x+1.
+--                      return 1./(1.+0.25*x)
+                      return -0.9*x+2.
                    end
 project1D:setFunc(function(t, xn) return yShiftFunc(xn[1]) end)
 project1D:advance(0., {}, {yShift})
@@ -160,36 +162,187 @@ local function rootStop(eps)   -- Root-finding stopping criteria.
    end
 end
 
+-- Find the root of the yShiftFunc = 0 equation. If it is found it means
+-- that yShiftFunc needs to be changed to something that doesn't go through zero.
+local function checkForRoot(funcIn, xBounds, tol) 
+   local lossFl, lossFu = funcIn(xBounds[1]), funcIn(xBounds[2])
+   if math.abs(lossFl) < tol  then
+      return xBounds[1]
+   elseif math.abs(lossFu) < tol  then
+      return xBounds[2]
+   else
+      if lossFl*lossFu < 0. then
+         return root.ridders(funcIn, xBounds[1], xBounds[2], rootStop(tol))
+      else
+         return nil
+      end
+   end
+end
+xRoot = checkForRoot(yShiftFunc, {grid:lower(1), grid:upper(1)}, 1.e-13)
+if xRoot then
+   assert( xRoot==nil, string.format("yShiftFunc is zero at %f. Please select a function that is not zero in the domain.",xRoot))
+end
+
+
+local function sign(num)
+--   if math.abs(num) < 1.e-14 then
+--      return 0
+--   elseif num > 0 then
+   if num > 0 then
+      return 1
+   elseif num < 0 then
+      return -1
+   else
+      return 0
+   end
+end
+
 -- Given a y-coordinate of the destination cell (yDest), and a y-coordinate of the
 -- source cell (ySrc), find the x-coordinate of the point where the y+yShift(x) and
 -- y=ySrc lines intersect. Need to provide a window in x where to search ([xBounds[1],xBounds[2]]).
-local yShiftedyIntersect = function(xBounds, yDest, ySrc)
+local yShiftedyIntersect = function(xBounds, yDest, ySrc, jDest, jSrc)
+   local Ly = grid:upper(2)-grid:lower(2)
    local function lossF(xIn)
       -- Rather than wrapping yDest+yShift, it might be more robust
       -- to look for the intersection in an extended space.
-      local shiftedY = yDest+yShiftFunc(xIn)
-      -- For monotonically decreasing yShift.
-      if ySrc <= yDest then
+      local shift     = yShiftFunc(xIn)
+      local shiftSign = sign(shift)
+      if math.abs(shift) > (Ly+1.e-10) then
+      print("xIn=", xIn, "| ySrc=",ySrc, " | yDest=",yDest," | shift=",shift)
+         shift = shiftSign*wrapNum(math.abs(shift), 0., Ly, true)
+      end
+      local shiftedY = yDest+shift
+      if shiftSign==1 and ySrc < yDest then
          return shiftedY - (grid:upper(2) + ySrc-grid:lower(2))
+      elseif shiftSign==-1 and ySrc > yDest then
+         return shiftedY - (grid:lower(2) - (grid:upper(2)-ySrc))
       else
+      print("xIn=", xIn, "| ySrc=",ySrc, " | yDest=",yDest," | shift=",shift," | diff=",shiftedY - ySrc)
          return shiftedY - ySrc 
       end
+--      if shiftedY > grid:upper(2) then
+----         print("x-xLower, x-xUpper =", xIn-xBounds[1], xIn-xBounds[2])
+--         print("xIn=", xIn," | shiftedY=",shiftedY-1.5, "| ySrc=",ySrc, " | yDest=",yDest, " loss=",(grid:upper(2) + ySrc-grid:lower(2)))
+--         return shiftedY - (grid:upper(2) + ySrc-grid:lower(2))
+----         return shiftedY - (grid:upper(2) + ySrc-grid:lower(2))
+----         return wrapNum(shiftedY,grid:lower(2),grid:upper(2),true) - ySrc
+--      elseif shiftedY < grid:lower(2) then
+--         return shiftedY - (grid:lower(2) - (grid:upper(2)-ySrc))
+--      else
+--         return shiftedY - ySrc 
+--      end
+--      if math.abs(shiftedY-ySrc) > 2.1*grid:dx(2) then
+--         print("abs(shiftedY-ySrc)=",math.abs(shiftedY-ySrc)," | dy=",grid:dx(2))
+--         print("shiftedY=",shiftedY," | wrap=",wrapNum(shiftedY,grid:lower(2),grid:upper(2),true)," | ySrc=",ySrc, " | loss=",wrapNum(shiftedY,grid:lower(2),grid:upper(2),true) - ySrc)
+--         return wrapNum(shiftedY,grid:lower(2),grid:upper(2),true) - ySrc
+--      else
+--         return shiftedY - ySrc 
+--      end
+--      return shiftedY - ySrc 
    end
-   local tol  = 1.e-13
+   local function lossF2(xIn)
+      local shiftedY = yDest+yShiftFunc(xIn)
+      return wrapNum(shiftedY,grid:lower(2),grid:upper(2),true) - ySrc
+   end
+   local tol = 1.e-13
+   local eps = 0. --1.e-14
    -- Check if the root is bracketed by xBounds (otherwise root.ridders throws an error).
    -- We however use the lack of a root to identify the topology of the source cell region.
-   local lossFl, lossFu = lossF(xBounds[1]), lossF(xBounds[2])
-   if lossFl*lossFu < 0. then
-      return root.ridders(lossF, xBounds[1], xBounds[2], rootStop(tol))
-   else
+   local function rootFind(lossFunc)
+      local lossFl, lossFu = lossFunc(xBounds[1]+eps), lossFunc(xBounds[2]-eps)
+   print("xBounds[1], xBounds[2] = ",xBounds[1], xBounds[2])
+   print("lossFl, lossFu = ",lossFl, lossFu)
+--      if lossFl*lossFu < 0. then
+--         return root.ridders(lossFunc, xBounds[1]-eps, xBounds[2]+eps, rootStop(tol))
+--      else
+--         if math.abs(lossFl) < tol  then
+--            return xBounds[1]
+--         elseif math.abs(lossFu) < tol  then
+--            return xBounds[2]
+--         else
+--            return nil
+--         end
+--      end
       if math.abs(lossFl) < tol  then
          return xBounds[1]
       elseif math.abs(lossFu) < tol  then
          return xBounds[2]
       else
-         return nil
+         if lossFl*lossFu < 0. then
+            return root.ridders(lossFunc, xBounds[1]-eps, xBounds[2]+eps, rootStop(tol))
+         else
+            -- It's possible that the y+yShift line crosses the domain y-boundary.
+            -- Need a different loss function that accounts for that.
+            local yShLo, yShUp = yDest+yShiftFunc(xBounds[1]), yDest+yShiftFunc(xBounds[2])
+            return nil
+         end
       end
    end
+   return rootFind(lossF)
+   --local root0 = rootFind(lossF)
+   --if root0 == nil then
+   --   -- It's possible that the y+yShift intersects a periodic copy of this domain.
+   --   -- Wrap the y+yShift curve back to this domain and try again.
+   --   return rootFind(lossF2)
+   --else
+   --   return root0
+   --end
+end
+
+-- Given a y-coordinate of the destination cell (yDest), and a y-coordinate of the
+-- source cell (ySrc), find the x-coordinate of the point where the y+yShift(x) and
+-- y=ySrc lines intersect. Need to provide a window in x where to search ([xBounds[1],xBounds[2]]).
+-- If y+yShift-ySrc=0 has no roots, it is possible that y+yShift intersects a periodic
+-- copy of this domain. Check for such cases by looking for the roots of
+-- y+yShift-(ySrc+N*Ly)=0 where Ly is the length of the domain along y and N is an integer.
+local yShiftedyIntersectEx = function(xBounds, yDest, ySrc, jDest, jSrc)
+   local Ly = grid:upper(2)-grid:lower(2)
+   local function lossF(xIn)
+      return yDest+yShiftFunc(xIn) - ySrc 
+   end
+   local tol = 1.e-13
+   local function rootFind(lossFunc)
+       -- Check if the root is bracketed by xBounds (otherwise root.ridders throws an error).
+      local lossFl, lossFu = lossFunc(xBounds[1]), lossFunc(xBounds[2])
+      if math.abs(lossFl) < tol  then
+         return xBounds[1]
+      elseif math.abs(lossFu) < tol  then
+         return xBounds[2]
+      else
+         if lossFl*lossFu < 0. then
+            return root.ridders(lossFunc, xBounds[1], xBounds[2], rootStop(tol))
+         else
+            return nil
+         end
+      end
+   end
+   root0 = rootFind(lossF)
+   if root0 == nil then
+      -- Maybe the y+yShift intersects y=ySrc in a periodic copy of this domain.
+      -- Find the roots of y+yShift-(ySrc+nP*Ly)=0 where Ly is the length of the
+      -- domain along y and nP is an integer.
+      local nP = {} 
+      -- Evaluate the y+yShift at some points in [xBounds[1],xBounds[2]] and obtain
+      -- potential nP multipliers.
+      local stepFrac = 0.1
+      local numSteps = math.ceil(1./stepFrac)
+      local stepSize = (xBounds[2]-xBounds[1])/numSteps
+      for sI = 0, numSteps do
+         local xp      = xBounds[1]+sI*stepSize 
+         local exShift = (yDest+yShiftFunc(xp)-grid:lower(2))/Ly
+         local newN    = math.sign(exShift)*math.floor(math.abs(exShift))
+--         print(string.format("xp=%f | yDest+yShift=%f | newN=%d",xp,(yDest+yShiftFunc(xp)),newN))
+         if lume.find(nP,newN)==nil then table.insert(nP,newN) end
+      end
+      for _, iN in ipairs(nP) do
+        local function lossFex(xIn)
+           return yDest+yShiftFunc(xIn) - (ySrc+iN*Ly)
+        end
+        root0 = rootFind(lossFex)
+        if root0 then break end
+      end
+   end
+   return root0
 end
 
 
@@ -383,7 +536,7 @@ for idx in localRange:rowMajorIter() do
    -- For now simply take small steps around the boundaries of the 2D cell, compute
    -- the shifted points and their owner at each step.
 
---   if idx[1]==1 and idx[2]==6 then
+--   if idx[1]==12 and idx[2]==5 then
 
    grid:setIndex(idx)
    grid:cellCenter(xc)
@@ -398,14 +551,14 @@ for idx in localRange:rowMajorIter() do
    idx1D[1] = idx[1]
    yShift:fill(indexer1D(idx1D), yShiftPtr)
    local srcCells = {}
-   local delta    = 1.e-10
+   local delta    = {1.e-9*grid:dx(1),1.e-9*grid:dx(2)}
    for dC = 1,2 do            -- Loop over x=const and y=const boundaries.
       for xS = 1,2 do         -- Loop over lower/upper boundary.
 --         print("dC=",dC," | xS=",xS)
 
          -- Do the first point separately (it requires pickLower=false in findCell).
-         local evPoint = {cellLower[1]+delta, cellLower[2]+delta}
-         evPoint[dC]   = evPoint[dC]+(xS-1)*(grid:dx(dC)-2.*delta)
+         local evPoint = {cellLower[1]+delta[1], cellLower[2]+delta[2]}
+         evPoint[dC]   = evPoint[dC]+(xS-1)*(grid:dx(dC)-2.*delta[dC])
 
          basis1D:evalBasis({(evPoint[1]-grid:cellCenterInDir(1))/(0.5*grid:dx(1))}, basis1Dev)
          local yShiftB = 0.   -- y-shift at boundary.
@@ -428,7 +581,7 @@ for idx in localRange:rowMajorIter() do
          for sI = 1, numSteps[stepDim] do
 
             newP[stepDim] = evPoint[stepDim] + sI*stepSize[stepDim]
-            if sI==numSteps[stepDim] then newP[stepDim]=newP[stepDim]-2.*delta end
+            if sI==numSteps[stepDim] then newP[stepDim]=newP[stepDim]-2.*delta[stepDim] end
          
             -- Evaluate yShift at this point.
             basis1D:evalBasis({(newP[1]-grid:cellCenterInDir(1))/(0.5*grid:dx(1))}, basis1Dev)
@@ -447,17 +600,18 @@ for idx in localRange:rowMajorIter() do
       end
    end
 
---   print(string.format("idx = (%d,%d)",idx[1],idx[2]))
+   print(string.format("idx = (%d,%d)",idx[1],idx[2]))
 
---   if idx[1]==1 and idx[2]<9 then
+--   if idx[1]==1 and idx[2]==1 then
                                   
    for iC = 1, #srcCells do
       -- In each contributing cell, approximate the functions qInvL(y) and qInvU(y)
       -- for the min/max of the x-integral with a polynomial. Compute the coefficients
       -- of that polynomial with a projection of yShiftNormInvFunc onto the local basis.
       local idxS = srcCells[iC]
---      print(string.format("   from = (%d,%d)",idxS[1],idxS[2]))
+      print(string.format("   from = (%d,%d)",idxS[1],idxS[2]))
 
+                                  
       grid:setIndex(idxS)
       grid:cellCenter(xcS)
       grid:getDx(dxS)
@@ -465,7 +619,7 @@ for idx in localRange:rowMajorIter() do
       local srcCellBounds = { {grid:cellLowerInDir(1),grid:cellUpperInDir(1)},
                               {grid:cellLowerInDir(2),grid:cellUpperInDir(2)} }
 
---      if (idxS[1]==1 and idxS[2]==10)       -- the following is temporary code to test the case of a contribution in which
+--      if (idxS[1]==3 and idxS[2]<4)       -- the following is temporary code to test the case of a contribution in which
                                            -- the y+yShift curves do not cross the x-boundaries of the cell.
 --        or (idxS[1]==1 and idxS[2]==10)       -- the following is temporary code to test the case of a contribution in which
 --      then
@@ -477,15 +631,16 @@ for idx in localRange:rowMajorIter() do
          for j = 1, 2 do 
             local yDest = cellBounds[2][i] 
             local ySrc  = srcCellBounds[2][j] 
-            trapCornerX[i][j] = yShiftedyIntersect(cellBounds[1], yDest, ySrc)
---            if trapCornerX[i][j]==nil then
---               print(string.format("trapCornerX[%d][%d] = ",i,j),nil)
---            else
---               print(string.format("trapCornerX[%d][%d] = %f",i,j,trapCornerX[i][j]))
---            end
+            trapCornerX[i][j] = yShiftedyIntersectEx(cellBounds[1], yDest, ySrc, idx[2], idxS[2])
+            if trapCornerX[i][j]==nil then
+               print(string.format("trapCornerX[%d][%d] = ",i,j),nil)
+            else
+               print(string.format("trapCornerX[%d][%d] = %f",i,j,trapCornerX[i][j]))
+            end
          end
       end
 
+--   if idx[1]==1 and idx[2]<-9 then
       if not nilAny2x2(trapCornerX) then
          -- Scenario sN.
          -- The contributing region in the source cell is 4-sided with all vertices
@@ -629,23 +784,28 @@ for idx in localRange:rowMajorIter() do
                -- Scenario sv.
                -- Add scenario sN-like contribution.
                y0Lo, y0Up = cellBounds[2][2], cellBounds[2][1]
-               local evaluateLo = function(tCurr,xn) return yShiftNormInvFuncEx(xn[1], y0Lo, xcS, xc, dx) end
-               local evaluateUp = function(tCurr,xn) return yShiftNormInvFuncEx(xn[1], y0Up, xcS, xc, dx) end
-               projXlim(evaluateLo, qLo_y)
-               projXlim(evaluateUp, qUp_y)
+               xLimLoLo, xLimLoUp = -1., (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1])
+               xLimUpLo, xLimUpUp = (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1]), (trapCornerX[1][2] - xcS[1])/(0.5*dxS[1])
+               local evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLoLo,xLimLoUp}, idxS[2]==numCells[2]) end
+               local evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimUpLo,xLimUpUp}, idxS[2]==numCells[2]) end
                yLimLo = wrapNum(cellUpper[2] + yShiftFunc(srcCellBounds[1][1]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
-               yLimLo = (yLimLo - xcS[2])/(0.5*dxS[2])
                yLimUp = 1.
-               interpGen(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, srcPtr:data(), destPtr:data())
+               dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
+               projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
+               projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
+               interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
                -- Add scenario siii-like contribution.
-               y0Up = cellBounds[2][1]
                yLimUp = yLimLo    -- Keep the order of yLimUp and yLimLo here.
                yLimLo = -1.
+               y0Up = cellBounds[2][1]
+               xLimLo = -1
+               xLimUp = (trapCornerX[1][2] - xcS[1])/(0.5*dxS[1])
                evaluateLo = function(tCurr,xn) return -1.0 end
-               evaluateUp = function(tCurr,xn) return yShiftNormInvFuncEx(xn[1], y0Up, xcS, xc, dx) end
-               projXlim(evaluateLo, qLo_y)
-               projXlim(evaluateUp, qUp_y)
-               interpGen(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, srcPtr:data(), destPtr:data())
+               evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
+               dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
+               projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
+               projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
+               interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
             else
                -- Scenario svi.
                -- Add scenario sN-like contribution.
@@ -723,23 +883,28 @@ for idx in localRange:rowMajorIter() do
                -- Scenario sviii.
                -- Add scenario sN-like contribution.
                y0Lo, y0Up = cellBounds[2][2], cellBounds[2][1]
-               local evaluateLo = function(tCurr,xn) return yShiftNormInvFuncEx(xn[1], y0Lo, xcS, xc, dx) end
-               local evaluateUp = function(tCurr,xn) return yShiftNormInvFuncEx(xn[1], y0Up, xcS, xc, dx) end
-               projXlim(evaluateLo, qLo_y)
-               projXlim(evaluateUp, qUp_y)
+               xLimLoLo, xLimLoUp = (trapCornerX[2][1] - xcS[1])/(0.5*dxS[1]), (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1])
+               xLimUpLo, xLimUpUp = (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1]), 1.
+               local evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLoLo,xLimLoUp}, idxS[2]==numCells[2]) end
+               local evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimUpLo,xLimUpUp}, idxS[2]==numCells[2]) end
                yLimLo = -1.
                yLimUp = wrapNum(cellLower[2] + yShiftFunc(srcCellBounds[1][2]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
-               yLimUp = (yLimUp - xcS[2])/(0.5*dxS[2])
-               interpGen(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, srcPtr:data(), destPtr:data())
+               dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
+               projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
+               projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
+               interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
                -- Add scenario sii-like contribution.
                yLimLo = yLimUp    -- Keep the order of yLimUp and yLimLo here.
                yLimUp = 1.
-               y0Lo   = cellBounds[2][2]
-               evaluateLo = function(tCurr,xn) return yShiftNormInvFuncEx(xn[1], y0Lo, xcS, xc, dx) end
+               y0Lo = cellBounds[2][2]
+               xLimLo = (trapCornerX[2][1] - xcS[1])/(0.5*dxS[1])
+               xLimUp = (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1])
+               evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
                evaluateUp = function(tCurr,xn) return 1.0 end
-               projXlim(evaluateLo, qLo_y)
-               projXlim(evaluateUp, qUp_y)
-               interpGen(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, srcPtr:data(), destPtr:data())
+               dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
+               projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
+               projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
+               interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
             end
 
          end
@@ -801,19 +966,20 @@ for idx in localRange:rowMajorIter() do
             local evaluateLo, evaluateUp, evaluateLoP, evaluateUpP
             local yLimUp, yLimLo, yLimUpP, yLimLoP
 --            if trapCornerX[2][1]==nil then
-            if yShiftFunc(srcCellBounds[1][1]) >= yShiftFunc(trapCornerX[nonNilIdxs[1][1]][nonNilIdxs[1][2]]) then
+--            if yShiftFunc(srcCellBounds[1][1]) > yShiftFunc(trapCornerX[nonNilIdxs[1][1]][nonNilIdxs[1][2]]) then
+            if yShiftFunc(srcCellBounds[1][1]) > yShiftFunc(srcCellBounds[1][2]) then
                -- Scenario sxiii (kernel takes information of scenario sii and siii-like integrals).
                -- Scenario sii-like part.
-               yLimUp = 1.
-               local y0Lo   = cellBounds[2][2]
+               local y0Lo = cellBounds[2][2]
                yLimLo = wrapNum(cellUpper[2]+yShiftFunc(srcCellBounds[1][2]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
                yLimLo = (yLimLo - xcS[2])/(0.5*dxS[2])
+               yLimUp = 1.
                local xLimLo, xLimUp = (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1]), 1.
                evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
                evaluateUp = function(tCurr,xn) return 1.0 end
                -- Scenario siii-like part.
-               yLimLoP = -1.
                local y0Up = cellBounds[2][1]
+               yLimLoP = -1.
                yLimUpP = wrapNum(cellLower[2]+yShiftFunc(srcCellBounds[1][1]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
                yLimUpP = (yLimUpP - xcS[2])/(0.5*dxS[2])
                local xLimLoP, xLimUpP = -1., (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1])
@@ -823,16 +989,16 @@ for idx in localRange:rowMajorIter() do
             else
                -- Scenario sxiv (kernel takes information of scenario si and siv-like integrals).
                -- Scenario si-like part.
-               yLimUpP = 1.
                local y0Lo = cellBounds[2][2]
                yLimLoP = wrapNum(cellUpper[2]+yShiftFunc(srcCellBounds[1][1]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
                yLimLoP = (yLimLoP - xcS[2])/(0.5*dxS[2])
+               yLimUpP = 1.
                local xLimLoP, xLimUpP = -1., (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1])
                evaluateLoP = function(tCurr,xn) return -1.0 end
                evaluateUpP = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLoP,xLimUpP}, idxS[2]==numCells[2]) end
                -- Scenario siv-like part.
-               yLimLo = -1.
                local y0Up = cellBounds[2][1]
+               yLimLo = -1.
                yLimUp = wrapNum(cellLower[2]+yShiftFunc(srcCellBounds[1][2]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
                yLimUp = (yLimUp - xcS[2])/(0.5*dxS[2])
                xLimLo, xLimUp = (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1]), 1.
@@ -878,6 +1044,7 @@ for idx in localRange:rowMajorIter() do
 --      end
 
    end
+--   end
 --   end
 
 end
