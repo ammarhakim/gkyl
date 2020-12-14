@@ -401,41 +401,8 @@ def build(bld):
 
     MappedPoissonImpl.cpp
 
-    GkMaxwellianOnBasisImplOrg.cpp
-
-    maxwellianOnBasisData/MaxwellianOnBasisImpl.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisSer1x1vP1.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisSer1x1vP2.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisSer1x1vP3.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisSer1x2vP1.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisSer1x2vP2.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisSer1x2vP3.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisSer1x3vP1.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisSer1x3vP2.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisSer1x3vP3.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisSer2x2vP1.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisSer2x2vP2.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisSer2x2vP3.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisSer2x3vP1.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisSer2x3vP2.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisSer3x2vP1.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisSer3x3vP1.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisMax1x1vP1.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisMax1x1vP2.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisMax1x1vP3.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisMax1x2vP1.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisMax1x2vP2.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisMax1x2vP3.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisMax2x2vP1.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisMax2x2vP2.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisTensor1x1vP1.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisTensor1x1vP2.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisTensor1x1vP3.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisTensor1x2vP1.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisTensor1x2vP2.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisTensor1x2vP3.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisTensor2x2vP1.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisTensor2x2vP2.cpp
+    GkMaxwellianOnBasisImpl.cpp
+    MaxwellianOnBasisImpl.cpp
 
     PositivityRescaleImpl.cpp
 
@@ -481,7 +448,7 @@ def build(bld):
 
     bld.shlib(source = sources,
 
-              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData maxwellianOnBasisData', 
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData ', 
 
               use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     

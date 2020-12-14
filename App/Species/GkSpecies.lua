@@ -302,13 +302,13 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       moment     = "GkThreeMoments",
       gkfacs     = {self.mass, self.bmag},
    }
-   self.calcMaxwell = Updater.MaxwellianOnBasis {
-      onGrid      = self.grid,
-      confGrid    = self.confGrid,
-      confBasis   = self.confBasis,
-      phaseGrid   = self.grid,
-      phaseBasis  = self.basis,
-      mass        = self.mass,
+   self.calcMaxwell = Updater.GkMaxwellianOnBasis {
+      onGrid     = self.grid,
+      confGrid   = self.confGrid,
+      confBasis  = self.confBasis,
+      phaseGrid  = self.grid,
+      phaseBasis = self.basis,
+      gkfacs     = {self.mass, self.bmag},
    }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
@@ -1594,7 +1594,10 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
 
 	 if writeOut then
-	    neutM0:write(string.format("%s_izNeutM0_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	    self.numDensity:write(string.format("%s_ccmElcM0_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	    self.vtSqIz:write(string.format("%s_ccmVtSqIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	    self.vtSqSelf:write(string.format("%s_ccmVtSqElc_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	    neutU:write(string.format("%s_ccmNeutU_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
 	    self.voronovReactRate:write(string.format("%s_ccmCoefIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
 	    self.fMaxwellIz:write(string.format("%s_ccmfMax_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
 	 end

@@ -43,12 +43,16 @@ void GkMaxwellianInnerLoop(/* Number density, drift speed, and thermal velocity 
   double maxwellNorm[numConfOrds];
   for (int confOrdIdx = 0; confOrdIdx < numConfOrds; ++confOrdIdx) {
     // Prepare the Maxvellian normalization
-    double denom = 1.0;
-    if (numVelDims == 1)
-      denom *= 2*M_PI*vtSq[confOrdIdx];
-    else
-      denom *= std::pow(2*M_PI*vtSq[confOrdIdx],3.0);
-    maxwellNorm[confOrdIdx] = n[confOrdIdx]/std::sqrt(denom); 
+    if ((vtSq[confOrdIdx] > 0.) && (n[confOrdIdx] > 0.)) {
+      double denom = 1.0;
+      if (numVelDims == 1)
+        denom *= 2*M_PI*vtSq[confOrdIdx];
+      else
+        denom *= std::pow(2*M_PI*vtSq[confOrdIdx],3.0);
+      maxwellNorm[confOrdIdx] = n[confOrdIdx]/std::sqrt(denom); 
+    } else {
+      maxwellNorm[confOrdIdx] = 0.;
+    };
   }
   
   for (int phaseOrdIdx = 0; phaseOrdIdx < numPhaseOrds; ++phaseOrdIdx) {
@@ -62,10 +66,7 @@ void GkMaxwellianInnerLoop(/* Number density, drift speed, and thermal velocity 
       v = 0.5*v*dz[numConfDims] + zc[numConfDims] - uPar[confOrdIdx];
       v2 += v*v;
 
-      if (vtSq[confOrdIdx] < 0)
-      	//printf("GkMaxwellian: vtSq is less than 0! \n");
-      	maxwellian *= 0;
-      else
+      if ((vtSq[confOrdIdx] > 0.) && (n[confOrdIdx] > 0.))
 	maxwellian *= exp(-0.5*v2/vtSq[confOrdIdx]);
     
       for (int k = 0; k < numPhaseBasis; ++k) 
@@ -82,10 +83,7 @@ void GkMaxwellianInnerLoop(/* Number density, drift speed, and thermal velocity 
       mu = 0.5*mu*dz[numConfDims+1] + zc[numConfDims+1];
 
       // multiply by jacobian, the magnetic field
-      if (vtSq[confOrdIdx] < 0)
-      	//printf("GkMaxwellian: vtSq is less than 0! \n");
-      	maxwellian *= 0;
-      else
+      if ((vtSq[confOrdIdx] > 0.) && (n[confOrdIdx] > 0.))
 	maxwellian *= bmag[confOrdIdx]*exp((-0.5*v2-bmag[confOrdIdx]*mu/m_)/vtSq[confOrdIdx]);
     
       for (int k = 0; k < numPhaseBasis; ++k) 
