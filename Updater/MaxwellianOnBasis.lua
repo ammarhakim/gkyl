@@ -53,7 +53,7 @@ function MaxwellianOnBasis:init(tbl)
    local N = tbl.numConfQuad and tbl.numConfQuad or self.confBasis:polyOrder() + 1
    assert(N<=8, "Updater.MaxwellianOnBasis: Gaussian quadrature only implemented for numQuad<=8 in each dimension")
 
-   self.projectOnGhosts = xsys.pickBool(tbl.projectOnGhosts, true)
+   self.onGhosts = xsys.pickBool(tbl.projectOnGhosts, true)
 
    -- 1D weights and ordinates
    local ordinates = GaussQuadRules.ordinates[N]
@@ -140,10 +140,10 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
    local confRange    = nIn:localRange()
    local confIndexer  = nIn:genIndexer()
    local phaseRange   = fOut:localRange()
-      if self.onGhosts then -- extend range to config-space ghosts
+   if self.onGhosts then -- extend range to config-space ghosts
       local cdirs = {}
       for dir = 1, cDim do 
-         phaseRange = phaseRange:extendDir(dir, fOut:lowerGhost(), fOut:upperGhost())
+	 phaseRange = phaseRange:extendDir(dir, fOut:lowerGhost(), fOut:upperGhost())
       end
    end
    local phaseIndexer = fOut:genIndexer()

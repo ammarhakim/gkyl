@@ -40,6 +40,8 @@ function GkSpecies:alloc(nRkDup)
 
    -- Allocate fields to store coupling moments (for use in coupling
    -- to field and collisions).
+   self.oneFld              = self:allocMoment()
+   self.oneFld:clear(1.0)
    self.numDensity         = self:allocMoment()
    self.numDensityAux      = self:allocMoment()
    self.momDensity         = self:allocMoment()
@@ -309,6 +311,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       phaseGrid  = self.grid,
       phaseBasis = self.basis,
       gkfacs     = {self.mass, self.bmag},
+      ohGhosts   = false,
    }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
@@ -332,13 +335,17 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       end
       -- Updaters for the primitive moments.
       self.confDiv = Updater.CartFieldBinOp {
-         onGrid = self.confGrid,
          onGrid    = self.confGrid,
          weakBasis = self.confBasis,
          operation = "Divide",
       }
-      self.confMul = Updater.CartFieldBinOp {
+      self.confDivNoGhosts = Updater.CartFieldBinOp {
          onGrid    = self.confGrid,
+         weakBasis = self.confBasis,
+         operation = "Divide",
+	 onGhosts  = flase,
+      }
+      self.confMul = Updater.CartFieldBinOp {
          onGrid    = self.confGrid,
          weakBasis = self.confBasis,
          operation = "Multiply",
@@ -1590,7 +1597,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
  	 self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz, self.bmag}, {self.fMaxwellIz})
 
 	 self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
-	 self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
+	 self.confDivNoGhosts:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
 	 self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
 
 	 if writeOut then
