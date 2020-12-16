@@ -27,19 +27,19 @@ void MaxwellianOnBasisGauss1x3vSer_P3_evAtConfOrd(const double *den, const doubl
   vtSqOrd[3] = (-0.5701294036773671*vtSq[3])+0.9681844646844028*vtSq[2]-1.054672281193885*vtSq[1]+0.7071067811865475*vtSq[0]; 
 
   if ((vtSqOrd[0] <= 0.0) || (m0Ord[0] <= 0.0))
-    fMFacOrd[0] = 0;
+    fMFacOrd[0] = 0.;
   else
     fMFacOrd[0] = m0Ord[0]/std::pow(2.506628274631001*sqrt(vtSqOrd[0]),3.0); 
   if ((vtSqOrd[1] <= 0.0) || (m0Ord[1] <= 0.0))
-    fMFacOrd[1] = 0;
+    fMFacOrd[1] = 0.;
   else
     fMFacOrd[1] = m0Ord[1]/std::pow(2.506628274631001*sqrt(vtSqOrd[1]),3.0); 
   if ((vtSqOrd[2] <= 0.0) || (m0Ord[2] <= 0.0))
-    fMFacOrd[2] = 0;
+    fMFacOrd[2] = 0.;
   else
     fMFacOrd[2] = m0Ord[2]/std::pow(2.506628274631001*sqrt(vtSqOrd[2]),3.0); 
   if ((vtSqOrd[3] <= 0.0) || (m0Ord[3] <= 0.0))
-    fMFacOrd[3] = 0;
+    fMFacOrd[3] = 0.;
   else
     fMFacOrd[3] = m0Ord[3]/std::pow(2.506628274631001*sqrt(vtSqOrd[3]),3.0); 
 
@@ -72,19 +72,19 @@ void MaxwellianOnBasisGauss1x3vSerUpar_P3_evAtConfOrd(const double *den, const d
   vtSqOrd[3] = (-0.5701294036773671*vtSq[3])+0.9681844646844028*vtSq[2]-1.054672281193885*vtSq[1]+0.7071067811865475*vtSq[0]; 
 
   if ((vtSqOrd[0] <= 0.0) || (m0Ord[0] <= 0.0))
-    fMFacOrd[0] = 0;
+    fMFacOrd[0] = 0.;
   else
     fMFacOrd[0] = m0Ord[0]/std::pow(2.506628274631001*sqrt(vtSqOrd[0]),3.0); 
   if ((vtSqOrd[1] <= 0.0) || (m0Ord[1] <= 0.0))
-    fMFacOrd[1] = 0;
+    fMFacOrd[1] = 0.;
   else
     fMFacOrd[1] = m0Ord[1]/std::pow(2.506628274631001*sqrt(vtSqOrd[1]),3.0); 
   if ((vtSqOrd[2] <= 0.0) || (m0Ord[2] <= 0.0))
-    fMFacOrd[2] = 0;
+    fMFacOrd[2] = 0.;
   else
     fMFacOrd[2] = m0Ord[2]/std::pow(2.506628274631001*sqrt(vtSqOrd[2]),3.0); 
   if ((vtSqOrd[3] <= 0.0) || (m0Ord[3] <= 0.0))
-    fMFacOrd[3] = 0;
+    fMFacOrd[3] = 0.;
   else
     fMFacOrd[3] = m0Ord[3]/std::pow(2.506628274631001*sqrt(vtSqOrd[3]),3.0); 
 

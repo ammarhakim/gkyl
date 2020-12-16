@@ -1026,7 +1026,7 @@ function testGK_3x2v()
       for idx in localRange:rowMajorIter() do
          distfPtr = distf:get(indexer(idx))
          fMPtr    = fM:get(indexer(idx))
-         for k = 1, 1 do --phaseBasis:numBasis() do
+         for k = 1, phaseBasis:numBasis() do
             assert_close(distfPtr[1], fMPtr[1], 1.e-14, "Checking Lua and C GkMaxwellianOnBasis 3x2v.")
          end
       end

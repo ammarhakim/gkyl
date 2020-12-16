@@ -19,15 +19,15 @@ void MaxwellianOnBasisGauss1x2vTensor_P2_evAtConfOrd(const double *den, const do
   vtSqOrd[2] = 0.6324555320336759*vtSq[2]+0.9486832980505137*vtSq[1]+0.7071067811865475*vtSq[0]; 
 
   if ((vtSqOrd[0] <= 0.0) || (m0Ord[0] <= 0.0))
-    fMFacOrd[0] = 0;
+    fMFacOrd[0] = 0.;
   else
     fMFacOrd[0] = (0.1591549430918953*m0Ord[0])/vtSqOrd[0]; 
   if ((vtSqOrd[1] <= 0.0) || (m0Ord[1] <= 0.0))
-    fMFacOrd[1] = 0;
+    fMFacOrd[1] = 0.;
   else
     fMFacOrd[1] = (0.1591549430918953*m0Ord[1])/vtSqOrd[1]; 
   if ((vtSqOrd[2] <= 0.0) || (m0Ord[2] <= 0.0))
-    fMFacOrd[2] = 0;
+    fMFacOrd[2] = 0.;
   else
     fMFacOrd[2] = (0.1591549430918953*m0Ord[2])/vtSqOrd[2]; 
 
@@ -52,15 +52,15 @@ void MaxwellianOnBasisGauss1x2vTensorUpar_P2_evAtConfOrd(const double *den, cons
   vtSqOrd[2] = 0.6324555320336759*vtSq[2]+0.9486832980505137*vtSq[1]+0.7071067811865475*vtSq[0]; 
 
   if ((vtSqOrd[0] <= 0.0) || (m0Ord[0] <= 0.0))
-    fMFacOrd[0] = 0;
+    fMFacOrd[0] = 0.;
   else
     fMFacOrd[0] = (0.1591549430918953*m0Ord[0])/vtSqOrd[0]; 
   if ((vtSqOrd[1] <= 0.0) || (m0Ord[1] <= 0.0))
-    fMFacOrd[1] = 0;
+    fMFacOrd[1] = 0.;
   else
     fMFacOrd[1] = (0.1591549430918953*m0Ord[1])/vtSqOrd[1]; 
   if ((vtSqOrd[2] <= 0.0) || (m0Ord[2] <= 0.0))
-    fMFacOrd[2] = 0;
+    fMFacOrd[2] = 0.;
   else
     fMFacOrd[2] = (0.1591549430918953*m0Ord[2])/vtSqOrd[2]; 
 
@@ -182,17 +182,17 @@ void GkMaxwellianOnBasisGauss1x2vTensor_P2_evAtConfOrd(const double *den, const 
   bmagOrd[2] = 0.6324555320336759*bmag[2]+0.9486832980505137*bmag[1]+0.7071067811865475*bmag[0]; 
 
   if ((vtSqOrd[0] <= 0.0) || (m0Ord[0] <= 0.0))
-    fMFacOrd[0] = 9.999999999999999e-41;
+    fMFacOrd[0] = 0.;
   else
-    fMFacOrd[0] = (bmagOrd[0]*m0Ord[0])/std::pow(2.506628274631001*sqrt(vtSqOrd[0]),3.0)+9.999999999999999e-41; 
+    fMFacOrd[0] = (bmagOrd[0]*m0Ord[0])/std::pow(2.506628274631001*sqrt(vtSqOrd[0]),3.0); 
   if ((vtSqOrd[1] <= 0.0) || (m0Ord[1] <= 0.0))
-    fMFacOrd[1] = 9.999999999999999e-41;
+    fMFacOrd[1] = 0.;
   else
-    fMFacOrd[1] = (bmagOrd[1]*m0Ord[1])/std::pow(2.506628274631001*sqrt(vtSqOrd[1]),3.0)+9.999999999999999e-41; 
+    fMFacOrd[1] = (bmagOrd[1]*m0Ord[1])/std::pow(2.506628274631001*sqrt(vtSqOrd[1]),3.0); 
   if ((vtSqOrd[2] <= 0.0) || (m0Ord[2] <= 0.0))
-    fMFacOrd[2] = 9.999999999999999e-41;
+    fMFacOrd[2] = 0.;
   else
-    fMFacOrd[2] = (bmagOrd[2]*m0Ord[2])/std::pow(2.506628274631001*sqrt(vtSqOrd[2]),3.0)+9.999999999999999e-41; 
+    fMFacOrd[2] = (bmagOrd[2]*m0Ord[2])/std::pow(2.506628274631001*sqrt(vtSqOrd[2]),3.0); 
 
 }
 
@@ -216,17 +216,17 @@ void GkMaxwellianOnBasisGauss1x2vTensorUz_P2_evAtConfOrd(const double *den, cons
   bmagOrd[2] = 0.6324555320336759*bmag[2]+0.9486832980505137*bmag[1]+0.7071067811865475*bmag[0]; 
 
   if ((vtSqOrd[0] <= 0.0) || (m0Ord[0] <= 0.0))
-    fMFacOrd[0] = 9.999999999999999e-41;
+    fMFacOrd[0] = 0.;
   else
-    fMFacOrd[0] = (bmagOrd[0]*m0Ord[0])/std::pow(2.506628274631001*sqrt(vtSqOrd[0]),3.0)+9.999999999999999e-41; 
+    fMFacOrd[0] = (bmagOrd[0]*m0Ord[0])/std::pow(2.506628274631001*sqrt(vtSqOrd[0]),3.0); 
   if ((vtSqOrd[1] <= 0.0) || (m0Ord[1] <= 0.0))
-    fMFacOrd[1] = 9.999999999999999e-41;
+    fMFacOrd[1] = 0.;
   else
-    fMFacOrd[1] = (bmagOrd[1]*m0Ord[1])/std::pow(2.506628274631001*sqrt(vtSqOrd[1]),3.0)+9.999999999999999e-41; 
+    fMFacOrd[1] = (bmagOrd[1]*m0Ord[1])/std::pow(2.506628274631001*sqrt(vtSqOrd[1]),3.0); 
   if ((vtSqOrd[2] <= 0.0) || (m0Ord[2] <= 0.0))
-    fMFacOrd[2] = 9.999999999999999e-41;
+    fMFacOrd[2] = 0.;
   else
-    fMFacOrd[2] = (bmagOrd[2]*m0Ord[2])/std::pow(2.506628274631001*sqrt(vtSqOrd[2]),3.0)+9.999999999999999e-41; 
+    fMFacOrd[2] = (bmagOrd[2]*m0Ord[2])/std::pow(2.506628274631001*sqrt(vtSqOrd[2]),3.0); 
 
 }
 

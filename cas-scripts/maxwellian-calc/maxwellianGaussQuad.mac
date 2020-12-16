@@ -126,13 +126,12 @@ evaluateConfOrd(fh, funcNm, cdim, vdim, udimIn, basisNm, polyOrder, isGK) := blo
 
   /* The factor in front of the exponential we will set to very small (almost
      zero) if the thermal speed squared is negative. For GK add a floor. */
-  if isGK then (fFloor : 1e-40) else (fFloor : 0),
   expr : float(fMFac_n),
   for i : 1 thru length(expr) do (
     printf(fh, "  if ((vtSqOrd[~a] <= 0.0) || (m0Ord[~a] <= 0.0))~%", i-1, i-1),
-    printf(fh, "    fMFacOrd[~a] = ~a;~%", i-1, fFloor),
+    printf(fh, "    fMFacOrd[~a] = 0.;~%", i-1),
     printf(fh, "  else~%"),
-    sExpr : string(fFloor+gcfac(expr[i])),
+    sExpr : string(gcfac(expr[i])),
     for sI : 1 thru length(strSub) do (
       sExpr : ssubst(strSub[sI][1],strSub[sI][2],sExpr)
     ),
@@ -243,7 +242,7 @@ calcMaxwellianProjGauss(fh, funcNm, cdim, vdim, basisNm, polyOrder, isGK) := blo
 
   printf(fh,"  double fMquad[~a];~%",ordNumP),
   strSub : [["exp","cexp"],["std::pow","cpow"]],
-  if isGK then (fFloor : 1.e-40) else (fFloor : 0),
+  if isGK then (fFloor : 1.e-40) else (fFloor : 0.),
   for i : 1 thru ordNumC do (
     nOrdC : normOrdsC[i],
     /* Indices of the phase-space ordinates using this conf-space ordinate */
