@@ -40,6 +40,16 @@ fhatAL(fhat_expd,surfVar,surfVal,cfl,cdim,vdim,p):=block([limTheta,modNm,basis,v
   return(fhatAL_expd)
 )$
 
+fhatAL1D(fhat_expd, surfVar, surfVal):=block([],
+  avgAndSlope:fullratsimp(innerProd([surfVar],1,[1/2,3/2*surfVar],fhat_expd)),
+  r:gcfac(float(fullratsimp(avgAndSlope[2]/(EPSILON + avgAndSlope[1])))),
+  /* print r */
+  printf(fh,"  double rVal = ~a;  // rVal=f1/f0 ~%",r),
+  
+  fhat:fullratsimp(avgAndSlope[1]*limTheta(rVal,surfVal)),
+  return(fhat)
+)$
+
 fhatALgenUpwind(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p):=block([limTheta,modNm,basis,vars,varsP,nodes,modToNod,avgAndSlope,nodesub,r,fq,fhatAL_k,fhatAL_expd, surfIntVars],
   if vdim=0 then modNm : sconcat("basis-precalc/basisSer", cdim, "x")
   else modNm : sconcat("basis-precalc/basisSer", cdim, "x", vdim, "v"),

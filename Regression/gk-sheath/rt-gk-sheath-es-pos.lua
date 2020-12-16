@@ -77,7 +77,7 @@ randomseed = 100000*Mpi.Comm_rank(Mpi.COMM_WORLD)+63--os.time()
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = .5e-6,                     -- End time.
+   tEnd        = 5e-6,                     -- End time.
    nFrame      = 1,                     -- Number of output frames.
    lower       = {R - Lx/2, -Ly/2, -Lz/2}, -- Configuration space lower left.
    upper       = {R + Lx/2, Ly/2, Lz/2},   -- Configuration space upper right.

@@ -30,19 +30,47 @@ double IncompEulerSurfPositivity2xSer_X_P1(const double q_, const double m_, con
   incr[3] = 0.3535533905932737*alpha[0]*(3.0*fr[3]-1.732050807568877*fr[2])*dfac_x; 
   }
 #elif upwindType == QUAD 
-  double fupwind[2];
-  double fupwindQuad[2];
-  double alphaQuad;
+  double rCtrlL[2], rCtrlR[2];  // rCtrl=f1/f0 at each control node in dimensions other than x 
+  rCtrlL[0] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[1]))/(3.464101615137754*EPSILON-1.0*fl[2]+1.732050807568877*fl[0]); 
+  rCtrlL[1] = (1.732050807568877*fl[3]+3.0*fl[1])/(3.464101615137754*EPSILON+fl[2]+1.732050807568877*fl[0]); 
+  rCtrlR[0] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[1]))/(3.464101615137754*EPSILON-1.0*fr[2]+1.732050807568877*fr[0]); 
+  rCtrlR[1] = (1.732050807568877*fr[3]+3.0*fr[1])/(3.464101615137754*EPSILON+fr[2]+1.732050807568877*fr[0]); 
+  double fCtrlL[2], fCtrlR[2];  // fCtrl = anti-limited f evaluated at each control node on x surface 
+  // control node [y] = [-1/3] 
+  fCtrlL[0] = -0.2886751345948129*(fl[2]-1.732050807568877*fl[0])*limTheta(rCtrlL[0],1.0); 
+  fCtrlR[0] = -0.2886751345948129*(fr[2]-1.732050807568877*fr[0])*limTheta(rCtrlR[0],-1.0); 
+  // control node [y] = [1/3] 
+  fCtrlL[1] = 0.2886751345948129*(fl[2]+1.732050807568877*fl[0])*limTheta(rCtrlL[1],1.0); 
+  fCtrlR[1] = 0.2886751345948129*(fr[2]+1.732050807568877*fr[0])*limTheta(rCtrlR[1],-1.0); 
+  double fL_AL[2], fR_AL[2];  // f_AL = mode coefficients of anti-limited f on surface 
+  fL_AL[0] = 0.7071067811865475*(fCtrlL[1]+fCtrlL[0]); 
+  fL_AL[1] = 1.224744871391589*(fCtrlL[1]-1.0*fCtrlL[0]); 
+  fR_AL[0] = 0.7071067811865475*(fCtrlR[1]+fCtrlR[0]); 
+  fR_AL[1] = 1.224744871391589*(fCtrlR[1]-1.0*fCtrlR[0]); 
+  double alphaQuad; 
+  // determine upwinding and enforce limiters at each surface quadrature node 
+  double fhatALQuad[2], fhatAL[2]; 
   alphaQuad = 0.7071067811865475*alpha[0]; 
-  fupwindQuad[0] = 0.5*(((-0.8660254037844386*(fr[3]+fl[3]))+0.5*fr[2]-0.5*fl[2]+0.8660254037844386*(fr[1]+fl[1])-0.5*fr[0]+0.5*fl[0])*sgn(alphaQuad)+0.8660254037844386*fr[3]-0.8660254037844386*fl[3]-0.5*(fr[2]+fl[2])-0.8660254037844386*fr[1]+0.8660254037844386*fl[1]+0.5*(fr[0]+fl[0])); 
+  if(alphaQuad > 0) {
+  fhatALQuad[0] = -0.5*(1.414213562373095*fL_AL[1]-1.414213562373095*fL_AL[0]); 
+  } else {
+  fhatALQuad[0] = -0.5*(1.414213562373095*fR_AL[1]-1.414213562373095*fR_AL[0]); 
+  } 
   alphaQuad = 0.7071067811865475*alpha[0]; 
-  fupwindQuad[1] = 0.5*((0.8660254037844386*(fr[3]+fl[3])-0.5*fr[2]+0.5*fl[2]+0.8660254037844386*(fr[1]+fl[1])-0.5*fr[0]+0.5*fl[0])*sgn(alphaQuad)-0.8660254037844386*fr[3]+0.8660254037844386*fl[3]+0.5*(fr[2]+fl[2])-0.8660254037844386*fr[1]+0.8660254037844386*fl[1]+0.5*(fr[0]+fl[0])); 
-  fupwind[0] = 0.7071067811865476*(fupwindQuad[1]+fupwindQuad[0]); 
-  fupwind[1] = 0.7071067811865476*fupwindQuad[1]-0.7071067811865476*fupwindQuad[0]; 
-  incr[0] = 0.5*alpha[0]*fupwind[0]*dfac_x; 
-  incr[1] = -0.8660254037844386*alpha[0]*fupwind[0]*dfac_x; 
-  incr[2] = 0.5*alpha[0]*fupwind[1]*dfac_x; 
-  incr[3] = -0.8660254037844386*alpha[0]*fupwind[1]*dfac_x; 
+  if(alphaQuad > 0) {
+  fhatALQuad[1] = 0.7071067811865476*(fL_AL[1]+fL_AL[0]); 
+  } else {
+  fhatALQuad[1] = 0.7071067811865476*(fR_AL[1]+fR_AL[0]); 
+  } 
+  fhatAL[0] = 0.7071067811865475*(fhatALQuad[1]+fhatALQuad[0]); 
+  fhatAL[1] = 0.7071067811865475*(fhatALQuad[1]-1.0*fhatALQuad[0]); 
+
+  // begin surface update 
+ 
+  incr[0] = 0.5*alpha[0]*fhatAL[0]*dfac_x; 
+  incr[1] = -0.8660254037844386*alpha[0]*fhatAL[0]*dfac_x; 
+  incr[2] = 0.5*alpha[0]*fhatAL[1]*dfac_x; 
+  incr[3] = -0.8660254037844386*alpha[0]*fhatAL[1]*dfac_x; 
 
 #endif 
   double fluxFracL, fluxFracR, limFac=1.0;
@@ -115,19 +143,47 @@ double IncompEulerSurfPositivity2xSer_Y_P1(const double q_, const double m_, con
   incr[3] = 0.3535533905932737*alpha[0]*(3.0*fr[3]-1.732050807568877*fr[1])*dfac_y; 
   }
 #elif upwindType == QUAD 
-  double fupwind[2];
-  double fupwindQuad[2];
-  double alphaQuad;
+  double rCtrlL[2], rCtrlR[2];  // rCtrl=f1/f0 at each control node in dimensions other than y 
+  rCtrlL[0] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[2]))/(3.464101615137754*EPSILON-1.0*fl[1]+1.732050807568877*fl[0]); 
+  rCtrlL[1] = (1.732050807568877*fl[3]+3.0*fl[2])/(3.464101615137754*EPSILON+fl[1]+1.732050807568877*fl[0]); 
+  rCtrlR[0] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[2]))/(3.464101615137754*EPSILON-1.0*fr[1]+1.732050807568877*fr[0]); 
+  rCtrlR[1] = (1.732050807568877*fr[3]+3.0*fr[2])/(3.464101615137754*EPSILON+fr[1]+1.732050807568877*fr[0]); 
+  double fCtrlL[2], fCtrlR[2];  // fCtrl = anti-limited f evaluated at each control node on y surface 
+  // control node [x] = [-1/3] 
+  fCtrlL[0] = -0.2886751345948129*(fl[1]-1.732050807568877*fl[0])*limTheta(rCtrlL[0],1.0); 
+  fCtrlR[0] = -0.2886751345948129*(fr[1]-1.732050807568877*fr[0])*limTheta(rCtrlR[0],-1.0); 
+  // control node [x] = [1/3] 
+  fCtrlL[1] = 0.2886751345948129*(fl[1]+1.732050807568877*fl[0])*limTheta(rCtrlL[1],1.0); 
+  fCtrlR[1] = 0.2886751345948129*(fr[1]+1.732050807568877*fr[0])*limTheta(rCtrlR[1],-1.0); 
+  double fL_AL[2], fR_AL[2];  // f_AL = mode coefficients of anti-limited f on surface 
+  fL_AL[0] = 0.7071067811865475*(fCtrlL[1]+fCtrlL[0]); 
+  fL_AL[1] = 1.224744871391589*(fCtrlL[1]-1.0*fCtrlL[0]); 
+  fR_AL[0] = 0.7071067811865475*(fCtrlR[1]+fCtrlR[0]); 
+  fR_AL[1] = 1.224744871391589*(fCtrlR[1]-1.0*fCtrlR[0]); 
+  double alphaQuad; 
+  // determine upwinding and enforce limiters at each surface quadrature node 
+  double fhatALQuad[2], fhatAL[2]; 
   alphaQuad = 0.7071067811865475*alpha[0]; 
-  fupwindQuad[0] = 0.5*(((-0.8660254037844386*(fr[3]+fl[3]))+0.8660254037844386*(fr[2]+fl[2])+0.5*fr[1]-0.5*(fl[1]+fr[0])+0.5*fl[0])*sgn(alphaQuad)+0.8660254037844386*fr[3]-0.8660254037844386*(fl[3]+fr[2])+0.8660254037844386*fl[2]-0.5*(fr[1]+fl[1])+0.5*(fr[0]+fl[0])); 
+  if(alphaQuad > 0) {
+  fhatALQuad[0] = -0.5*(1.414213562373095*fL_AL[1]-1.414213562373095*fL_AL[0]); 
+  } else {
+  fhatALQuad[0] = -0.5*(1.414213562373095*fR_AL[1]-1.414213562373095*fR_AL[0]); 
+  } 
   alphaQuad = 0.7071067811865475*alpha[0]; 
-  fupwindQuad[1] = 0.5*((0.8660254037844386*(fr[3]+fl[3]+fr[2]+fl[2])-0.5*(fr[1]+fr[0])+0.5*(fl[1]+fl[0]))*sgn(alphaQuad)-0.8660254037844386*(fr[3]+fr[2])+0.8660254037844386*(fl[3]+fl[2])+0.5*(fr[1]+fl[1]+fr[0]+fl[0])); 
-  fupwind[0] = 0.7071067811865476*(fupwindQuad[1]+fupwindQuad[0]); 
-  fupwind[1] = 0.7071067811865476*fupwindQuad[1]-0.7071067811865476*fupwindQuad[0]; 
-  incr[0] = 0.5*alpha[0]*fupwind[0]*dfac_y; 
-  incr[1] = 0.5*alpha[0]*fupwind[1]*dfac_y; 
-  incr[2] = -0.8660254037844386*alpha[0]*fupwind[0]*dfac_y; 
-  incr[3] = -0.8660254037844386*alpha[0]*fupwind[1]*dfac_y; 
+  if(alphaQuad > 0) {
+  fhatALQuad[1] = 0.7071067811865476*(fL_AL[1]+fL_AL[0]); 
+  } else {
+  fhatALQuad[1] = 0.7071067811865476*(fR_AL[1]+fR_AL[0]); 
+  } 
+  fhatAL[0] = 0.7071067811865475*(fhatALQuad[1]+fhatALQuad[0]); 
+  fhatAL[1] = 0.7071067811865475*(fhatALQuad[1]-1.0*fhatALQuad[0]); 
+
+  // begin surface update 
+ 
+  incr[0] = 0.5*alpha[0]*fhatAL[0]*dfac_y; 
+  incr[1] = 0.5*alpha[0]*fhatAL[1]*dfac_y; 
+  incr[2] = -0.8660254037844386*alpha[0]*fhatAL[0]*dfac_y; 
+  incr[3] = -0.8660254037844386*alpha[0]*fhatAL[1]*dfac_y; 
 
 #endif 
   double fluxFracL, fluxFracR, limFac=1.0;

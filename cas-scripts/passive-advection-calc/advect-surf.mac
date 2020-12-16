@@ -170,7 +170,11 @@ load(modNm),
       printf(fh, "#if upwindType == SURFAVG ~%")
     ),
     printf(fh, "  if (alpha0>0) { ~%"),
-    fhatSurf_expd : subst(surfVar=1, fL_expd),
+    if cdim=1 and positivity then (
+      fhatSurf_expd : fhatAL1D(fL_expd, surfVar, 1)
+    ) else (
+      fhatSurf_expd : subst(surfVar=1, fL_expd)
+    ),
 
     t : surfac*calcInnerProdList(surfIntVars, alphaSurf_expd, subst(surfVar=-1, bC), fhatSurf_expd),
     incr_r : facsum(fullratsimp(t),dxv),
@@ -178,7 +182,11 @@ load(modNm),
     flush_output(fh),
 
     printf(fh, "  } else { ~%"),
-    fhatSurf_expd : subst(surfVar=-1, fR_expd),
+    if cdim=1 and positivity then (
+      fhatSurf_expd : fhatAL1D(fR_expd, surfVar, -1)
+    ) else (
+      fhatSurf_expd : subst(surfVar=-1, fR_expd)
+    ),
 
     t : surfac*calcInnerProdList(surfIntVars, alphaSurf_expd, subst(surfVar=-1, bC), fhatSurf_expd),
     incr_r : facsum(fullratsimp(t),dxv),
@@ -188,32 +196,37 @@ load(modNm),
 
     if cdim>1 then (
       printf(fh, "#elif upwindType == QUAD ~%"),
-      printf(fh, "double fupwind[~a];~%", length(bSurf)),
-      printf(fh, "double fupwindQuad[~a];~%", length(bSurf)),
-      printf(fh, "double alphaQuad;~%"),
-      if polyOrder=1 then quad:1/sqrt(3),
-      if polyOrder=2 then quad:sqrt(3/5),
-      nodes : eval_string(sconcat("nodes", cdim-1, "xp", polyOrder)),
-      /* function to evaluate expansion g at surface quadrature nodes */
-      /* evaluate fl, fr, and alpha at surface quadrature nodes */
-      frQ:gcfac(float(nodesub(subst(surfVar=-1,fR_expd), surfIntVars, nodes))),
-      flQ:gcfac(float(nodesub(subst(surfVar=1,fL_expd), surfIntVars, nodes))), 
-      /* note: alphaSurf_expd is already a surface expansion */
-      alphaq:gcfac(float(nodesub(alphaSurf_expd, surfIntVars, nodes))),
-      /* determine upwinding at each surface quadrature node */
-      fupQ : gcfac(.5*(flQ+frQ)+.5*sgn(alphaQuad)*(flQ-frQ)),
-      for i:1 thru length(alphaq) do (
-      printf(fh, "  alphaQuad = ~a; ~%", alphaq[i]),
-      printf(fh, "  fupwindQuad[~a] = ~a; ~%", i-1, fupQ[i])
+      if(positivity) then (
+        fhatSurf_expd : fhatALgenUpwindNoLim(fL_expd, fR_expd, alphaSurf_expd, 
+                surfVar, cflL, cflR, cdim, 0, polyOrder)
+      ) else (
+        printf(fh, "double fupwind[~a];~%", length(bSurf)),
+        printf(fh, "double fupwindQuad[~a];~%", length(bSurf)),
+        printf(fh, "double alphaQuad;~%"),
+        if polyOrder=1 then quad:1/sqrt(3),
+        if polyOrder=2 then quad:sqrt(3/5),
+        nodes : eval_string(sconcat("nodes", cdim-1, "xp", polyOrder)),
+        /* function to evaluate expansion g at surface quadrature nodes */
+        /* evaluate fl, fr, and alpha at surface quadrature nodes */
+        frQ:gcfac(float(nodesub(subst(surfVar=-1,fR_expd), surfIntVars, nodes))),
+        flQ:gcfac(float(nodesub(subst(surfVar=1,fL_expd), surfIntVars, nodes))), 
+        /* note: alphaSurf_expd is already a surface expansion */
+        alphaq:gcfac(float(nodesub(alphaSurf_expd, surfIntVars, nodes))),
+        /* determine upwinding at each surface quadrature node */
+        fupQ : gcfac(.5*(flQ+frQ)+.5*sgn(alphaQuad)*(flQ-frQ)),
+        for i:1 thru length(alphaq) do (
+        printf(fh, "  alphaQuad = ~a; ~%", alphaq[i]),
+        printf(fh, "  fupwindQuad[~a] = ~a; ~%", i-1, fupQ[i])
+        ),
+        flush_output(fh),
+        /* use modToNod transformation to get modal surface expansion from nodal quadrature points */
+        modToNod:fullratsimp(calcModToNodPhaseWithNodesAndBasis(nodes,bSurf,surfIntVars)),
+        fupwind_k:invert(transpose(float(modToNod))).makelist(fupwindQuad[i-1],i,1,length(nodes)),
+        fupwind_k:gcfac(makelist(fupwind_k[i][1],i,1,length(fupwind_k))),
+        /* write coefficients of modal surface expansion fupwind */
+        writeCExprsNoExpand1(fupwind, fupwind_k),
+        fhatSurf_expd:doExpand1(fupwind,bSurf)
       ),
-      flush_output(fh),
-      /* use modToNod transformation to get modal surface expansion from nodal quadrature points */
-      modToNod:fullratsimp(calcModToNodPhaseWithNodesAndBasis(nodes,bSurf,surfIntVars)),
-      fupwind_k:invert(transpose(float(modToNod))).makelist(fupwindQuad[i-1],i,1,length(nodes)),
-      fupwind_k:gcfac(makelist(fupwind_k[i][1],i,1,length(fupwind_k))),
-      /* write coefficients of modal surface expansion fupwind */
-      writeCExprsNoExpand1(fupwind, fupwind_k),
-      fhatSurf_expd:doExpand1(fupwind,bSurf),
       flush_output(fh),
 
       t : surfac*calcInnerProdList(surfIntVars, alphaSurf_expd, subst(surfVar=-1, bC), fhatSurf_expd),
@@ -260,15 +273,15 @@ calcAdvectionSurfUpdater(fh, funcNm, cdim, basisFun,p) := block([],
   )
 )$
 
-for pos: 0 thru 1 do (
+for pos: 1 thru 1 do (
 if pos=0 then positivity:false
 else positivity:true,
 if positivity then (posString : "Positivity", cmin:1)
 else (posString : "", cmin:1),
 
 for c : cmin thru 3 do (
-pmax:2,
-for p:2 thru pmax do (
+pmax:1,
+for p:1 thru pmax do (
 /* separate file for positivity implementation */
 fname : sconcat("~/max-out/PassiveAdvectionSurf", posString, "Ser", c, "xP", p, ".cpp"),
 fh : openw(fname),

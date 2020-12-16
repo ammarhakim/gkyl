@@ -12,11 +12,13 @@ double PassiveAdvectionSurfPositivity1xSer_X1_P1(const double *w, const double *
   double alpha[1]; 
   alpha[0] = -0.5*(2.449489742783178*v1[1]-1.414213562373095*v1[0]); 
   if (alpha0>0) { 
-  incr[0] = 0.5*alpha[0]*(1.732050807568877*fl[1]+fl[0])*dfac1; 
-  incr[1] = -0.5*alpha[0]*(3.0*fl[1]+1.732050807568877*fl[0])*dfac1; 
+  double rVal = (2.449489742783178*fl[1])/(2.0*EPSILON+1.414213562373095*fl[0]);  // rVal=f1/f0 
+  incr[0] = 0.5*alpha[0]*fl[0]*dfac1*limTheta(rVal,1.0); 
+  incr[1] = -0.8660254037844386*alpha[0]*fl[0]*dfac1*limTheta(rVal,1.0); 
   } else { 
-  incr[0] = -0.5*alpha[0]*(1.732050807568877*fr[1]-1.0*fr[0])*dfac1; 
-  incr[1] = 0.5*alpha[0]*(3.0*fr[1]-1.732050807568877*fr[0])*dfac1; 
+  double rVal = (2.449489742783178*fr[1])/(2.0*EPSILON+1.414213562373095*fr[0]);  // rVal=f1/f0 
+  incr[0] = 0.5*alpha[0]*fr[0]*dfac1*limTheta(rVal,-1.0); 
+  incr[1] = -0.8660254037844386*alpha[0]*fr[0]*dfac1*limTheta(rVal,-1.0); 
   }
   double fluxFracL, fluxFracR, limFac=1.0;
   double outlPos[2], outrPos[2]; 
