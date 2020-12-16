@@ -174,19 +174,19 @@ void GkMaxwellianOnBasisGauss2x2vTensor_P1_evAtConfOrd(const double *den, const 
   if ((vtSqOrd[0] <= 0.0) || (m0Ord[0] <= 0.0))
     fMFacOrd[0] = 0.;
   else
-    fMFacOrd[0] = (bmagOrd[0]*m0Ord[0])/std::pow(2.506628274631001*sqrt(vtSqOrd[0]),3.0); 
+    fMFacOrd[0] = (bmagOrd[0]*m0Ord[0])/std::pow(2.506628274631001*sqrt(vtSqOrd[0]),3.0)+9.999999999999999e-41; 
   if ((vtSqOrd[1] <= 0.0) || (m0Ord[1] <= 0.0))
     fMFacOrd[1] = 0.;
   else
-    fMFacOrd[1] = (bmagOrd[1]*m0Ord[1])/std::pow(2.506628274631001*sqrt(vtSqOrd[1]),3.0); 
+    fMFacOrd[1] = (bmagOrd[1]*m0Ord[1])/std::pow(2.506628274631001*sqrt(vtSqOrd[1]),3.0)+9.999999999999999e-41; 
   if ((vtSqOrd[2] <= 0.0) || (m0Ord[2] <= 0.0))
     fMFacOrd[2] = 0.;
   else
-    fMFacOrd[2] = (bmagOrd[2]*m0Ord[2])/std::pow(2.506628274631001*sqrt(vtSqOrd[2]),3.0); 
+    fMFacOrd[2] = (bmagOrd[2]*m0Ord[2])/std::pow(2.506628274631001*sqrt(vtSqOrd[2]),3.0)+9.999999999999999e-41; 
   if ((vtSqOrd[3] <= 0.0) || (m0Ord[3] <= 0.0))
     fMFacOrd[3] = 0.;
   else
-    fMFacOrd[3] = (bmagOrd[3]*m0Ord[3])/std::pow(2.506628274631001*sqrt(vtSqOrd[3]),3.0); 
+    fMFacOrd[3] = (bmagOrd[3]*m0Ord[3])/std::pow(2.506628274631001*sqrt(vtSqOrd[3]),3.0)+9.999999999999999e-41; 
 
 }
 
@@ -216,19 +216,19 @@ void GkMaxwellianOnBasisGauss2x2vTensorUz_P1_evAtConfOrd(const double *den, cons
   if ((vtSqOrd[0] <= 0.0) || (m0Ord[0] <= 0.0))
     fMFacOrd[0] = 0.;
   else
-    fMFacOrd[0] = (bmagOrd[0]*m0Ord[0])/std::pow(2.506628274631001*sqrt(vtSqOrd[0]),3.0); 
+    fMFacOrd[0] = (bmagOrd[0]*m0Ord[0])/std::pow(2.506628274631001*sqrt(vtSqOrd[0]),3.0)+9.999999999999999e-41; 
   if ((vtSqOrd[1] <= 0.0) || (m0Ord[1] <= 0.0))
     fMFacOrd[1] = 0.;
   else
-    fMFacOrd[1] = (bmagOrd[1]*m0Ord[1])/std::pow(2.506628274631001*sqrt(vtSqOrd[1]),3.0); 
+    fMFacOrd[1] = (bmagOrd[1]*m0Ord[1])/std::pow(2.506628274631001*sqrt(vtSqOrd[1]),3.0)+9.999999999999999e-41; 
   if ((vtSqOrd[2] <= 0.0) || (m0Ord[2] <= 0.0))
     fMFacOrd[2] = 0.;
   else
-    fMFacOrd[2] = (bmagOrd[2]*m0Ord[2])/std::pow(2.506628274631001*sqrt(vtSqOrd[2]),3.0); 
+    fMFacOrd[2] = (bmagOrd[2]*m0Ord[2])/std::pow(2.506628274631001*sqrt(vtSqOrd[2]),3.0)+9.999999999999999e-41; 
   if ((vtSqOrd[3] <= 0.0) || (m0Ord[3] <= 0.0))
     fMFacOrd[3] = 0.;
   else
-    fMFacOrd[3] = (bmagOrd[3]*m0Ord[3])/std::pow(2.506628274631001*sqrt(vtSqOrd[3]),3.0); 
+    fMFacOrd[3] = (bmagOrd[3]*m0Ord[3])/std::pow(2.506628274631001*sqrt(vtSqOrd[3]),3.0)+9.999999999999999e-41; 
 
 }
 
