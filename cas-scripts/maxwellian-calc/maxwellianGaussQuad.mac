@@ -126,17 +126,16 @@ evaluateConfOrd(fh, funcNm, cdim, vdim, udimIn, basisNm, polyOrder, isGK) := blo
 
   /* The factor in front of the exponential we will set to very small (almost
      zero) if the thermal speed squared is negative. For GK add a floor. */
-  if isGK then (fFloor : 1.e-40) else (fFloor : 0),
   expr : float(fMFac_n),
   for i : 1 thru length(expr) do (
-    printf(fh, "  if ((vtSqOrd[~a] <= 0.0) || (m0Ord[~a] <= 0.0))~%", i-1, i-1),
-    printf(fh, "    fMFacOrd[~a] = 0.;~%", i-1),
-    printf(fh, "  else~%"),
-    sExpr : string(fFloor+gcfac(expr[i])),
+    printf(fh, "  if ((vtSqOrd[~a] > 0.) && (m0Ord[~a] > 0.))~%", i-1, i-1),
+    sExpr : string(gcfac(expr[i])),
     for sI : 1 thru length(strSub) do (
       sExpr : ssubst(strSub[sI][1],strSub[sI][2],sExpr)
     ),
-    printf(fh, "    ~a = ~a; ~%", fMFacOrd[i-1], sExpr)
+    printf(fh, "    ~a = ~a; ~%", fMFacOrd[i-1], sExpr),
+    printf(fh, "  else~%"),
+    printf(fh, "    fMFacOrd[~a] = ~a;~%", i-1, float(0))
   ),
   printf(fh,"~%"),
 
@@ -249,15 +248,10 @@ calcMaxwellianProjGauss(fh, funcNm, cdim, vdim, basisNm, polyOrder, isGK) := blo
     /* Indices of the phase-space ordinates using this conf-space ordinate */
     pOrdIdxs : sublist_indices(normOrdsP, lambda([x],makelist(x[d],d,1,cdim)=makelist(nOrdC[d],d,1,cdim))),
 
-    printf(fh, "  if ((vtSqOrd[~a] <= 0.0) || (fMFacOrd[~a] <= 0.0)) {~%", i-1, i-1),
+    printf(fh, "  if ((vtSqOrd[~a] > 0.) && (fMFacOrd[~a] > 0.)) {~%", i-1, i-1),
     for j : 1 thru length(pOrdIdxs) do (
       pOrdIdx : pOrdIdxs[j],
-      printf(fh, "    fMquad[~a] = ~a;~%", pOrdIdx-1, fFloor)
-    ),
-    printf(fh, "  } else {~%"),
-    for j : 1 thru length(pOrdIdxs) do (
-      pOrdIdx : pOrdIdxs[j],
-      expr    : float(fM_n[pOrdIdx]),
+      expr    : float(fFloor+fM_n[pOrdIdx]),
       if expr[i] # 0.0 then (
         sExpr : string(gcfac(expr)),
         for sI : 1 thru length(strSub) do (
@@ -265,6 +259,11 @@ calcMaxwellianProjGauss(fh, funcNm, cdim, vdim, basisNm, polyOrder, isGK) := blo
         ),
         printf(fh, "    ~a = ~a; ~%", fMquad[pOrdIdx-1], sExpr)
       )
+    ),
+    printf(fh, "  } else {~%"),
+    for j : 1 thru length(pOrdIdxs) do (
+      pOrdIdx : pOrdIdxs[j],
+      printf(fh, "    fMquad[~a] = ~a;~%", pOrdIdx-1, float(fFloor))
     ),
     printf(fh, "  };~%")
   ),

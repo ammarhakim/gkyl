@@ -12,33 +12,33 @@ void MaxwellianOnBasisGauss1x1vMax_P1_evAtConfOrd(const double *den, const doubl
   vtSqOrd[0] = 0.7071067811865475*vtSq[0]-0.7071067811865474*vtSq[1]; 
   vtSqOrd[1] = 0.7071067811865474*vtSq[1]+0.7071067811865475*vtSq[0]; 
 
-  if ((vtSqOrd[0] <= 0.0) || (m0Ord[0] <= 0.0))
-    fMFacOrd[0] = 0.;
-  else
+  if ((vtSqOrd[0] > 0.) && (m0Ord[0] > 0.))
     fMFacOrd[0] = (0.3989422804014326*m0Ord[0])/sqrt(vtSqOrd[0]); 
-  if ((vtSqOrd[1] <= 0.0) || (m0Ord[1] <= 0.0))
-    fMFacOrd[1] = 0.;
   else
+    fMFacOrd[0] = 0.0;
+  if ((vtSqOrd[1] > 0.) && (m0Ord[1] > 0.))
     fMFacOrd[1] = (0.3989422804014326*m0Ord[1])/sqrt(vtSqOrd[1]); 
+  else
+    fMFacOrd[1] = 0.0;
 
 }
 
 void MaxwellianOnBasisGauss1x1vMax_P1_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *bmagOrd, const double m_, const double *wc, const double *dxv, double *fMOut) {
 
   double fMquad[4];
-  if ((vtSqOrd[0] <= 0.0) || (fMFacOrd[0] <= 0.0)) {
-    fMquad[0] = 0;
-    fMquad[1] = 0;
-  } else {
+  if ((vtSqOrd[0] > 0.) && (fMFacOrd[0] > 0.)) {
     fMquad[0] = fMFacOrd[0]*exp(-(0.5*std::pow(wc[1]-0.2886751345948129*dxv[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0]); 
     fMquad[1] = fMFacOrd[0]*exp(-(0.5*std::pow(wc[1]+0.2886751345948129*dxv[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0]); 
-  };
-  if ((vtSqOrd[1] <= 0.0) || (fMFacOrd[1] <= 0.0)) {
-    fMquad[2] = 0;
-    fMquad[3] = 0;
   } else {
+    fMquad[0] = 0.0;
+    fMquad[1] = 0.0;
+  };
+  if ((vtSqOrd[1] > 0.) && (fMFacOrd[1] > 0.)) {
     fMquad[2] = fMFacOrd[1]*exp(-(0.5*std::pow(wc[1]-1.0*flowUOrd[1]-0.2886751345948129*dxv[1],2.0))/vtSqOrd[1]); 
     fMquad[3] = fMFacOrd[1]*exp(-(0.5*std::pow(wc[1]-1.0*flowUOrd[1]+0.2886751345948129*dxv[1],2.0))/vtSqOrd[1]); 
+  } else {
+    fMquad[2] = 0.0;
+    fMquad[3] = 0.0;
   };
 
   fMOut[0] = 0.5*(fMquad[3]+fMquad[2]+fMquad[1]+fMquad[0]); 
@@ -58,14 +58,14 @@ void GkMaxwellianOnBasisGauss1x1vMax_P1_evAtConfOrd(const double *den, const dou
   vtSqOrd[0] = 0.7071067811865475*vtSq[0]-0.7071067811865474*vtSq[1]; 
   vtSqOrd[1] = 0.7071067811865474*vtSq[1]+0.7071067811865475*vtSq[0]; 
 
-  if ((vtSqOrd[0] <= 0.0) || (m0Ord[0] <= 0.0))
-    fMFacOrd[0] = 0.;
+  if ((vtSqOrd[0] > 0.) && (m0Ord[0] > 0.))
+    fMFacOrd[0] = (0.3989422804014326*m0Ord[0]*(0.7071067811865475*bmag[0]-0.7071067811865474*bmag[1]))/sqrt(vtSqOrd[0]); 
   else
-    fMFacOrd[0] = (0.3989422804014326*m0Ord[0]*(0.7071067811865475*bmag[0]-0.7071067811865474*bmag[1]))/sqrt(vtSqOrd[0])+9.999999999999999e-41; 
-  if ((vtSqOrd[1] <= 0.0) || (m0Ord[1] <= 0.0))
-    fMFacOrd[1] = 0.;
+    fMFacOrd[0] = 0.0;
+  if ((vtSqOrd[1] > 0.) && (m0Ord[1] > 0.))
+    fMFacOrd[1] = (0.3989422804014326*(0.7071067811865474*bmag[1]+0.7071067811865475*bmag[0])*m0Ord[1])/sqrt(vtSqOrd[1]); 
   else
-    fMFacOrd[1] = (0.3989422804014326*(0.7071067811865474*bmag[1]+0.7071067811865475*bmag[0])*m0Ord[1])/sqrt(vtSqOrd[1])+9.999999999999999e-41; 
+    fMFacOrd[1] = 0.0;
 
 }
 
@@ -81,33 +81,33 @@ void GkMaxwellianOnBasisGauss1x1vMaxUz_P1_evAtConfOrd(const double *den, const d
   vtSqOrd[0] = 0.7071067811865475*vtSq[0]-0.7071067811865474*vtSq[1]; 
   vtSqOrd[1] = 0.7071067811865474*vtSq[1]+0.7071067811865475*vtSq[0]; 
 
-  if ((vtSqOrd[0] <= 0.0) || (m0Ord[0] <= 0.0))
-    fMFacOrd[0] = 0.;
+  if ((vtSqOrd[0] > 0.) && (m0Ord[0] > 0.))
+    fMFacOrd[0] = (0.3989422804014326*m0Ord[0]*(0.7071067811865475*bmag[0]-0.7071067811865474*bmag[1]))/sqrt(vtSqOrd[0]); 
   else
-    fMFacOrd[0] = (0.3989422804014326*m0Ord[0]*(0.7071067811865475*bmag[0]-0.7071067811865474*bmag[1]))/sqrt(vtSqOrd[0])+9.999999999999999e-41; 
-  if ((vtSqOrd[1] <= 0.0) || (m0Ord[1] <= 0.0))
-    fMFacOrd[1] = 0.;
+    fMFacOrd[0] = 0.0;
+  if ((vtSqOrd[1] > 0.) && (m0Ord[1] > 0.))
+    fMFacOrd[1] = (0.3989422804014326*(0.7071067811865474*bmag[1]+0.7071067811865475*bmag[0])*m0Ord[1])/sqrt(vtSqOrd[1]); 
   else
-    fMFacOrd[1] = (0.3989422804014326*(0.7071067811865474*bmag[1]+0.7071067811865475*bmag[0])*m0Ord[1])/sqrt(vtSqOrd[1])+9.999999999999999e-41; 
+    fMFacOrd[1] = 0.0;
 
 }
 
 void GkMaxwellianOnBasisGauss1x1vMax_P1_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *bmagOrd, const double m_, const double *wc, const double *dxv, double *fMOut) {
 
   double fMquad[4];
-  if ((vtSqOrd[0] <= 0.0) || (fMFacOrd[0] <= 0.0)) {
+  if ((vtSqOrd[0] > 0.) && (fMFacOrd[0] > 0.)) {
+    fMquad[0] = fMFacOrd[0]*exp(-(0.5*std::pow(wc[1]-0.2886751345948129*dxv[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+    fMquad[1] = fMFacOrd[0]*exp(-(0.5*std::pow(wc[1]+0.2886751345948129*dxv[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+  } else {
     fMquad[0] = 9.999999999999999e-41;
     fMquad[1] = 9.999999999999999e-41;
-  } else {
-    fMquad[0] = fMFacOrd[0]*exp(-(0.5*std::pow(wc[1]-0.2886751345948129*dxv[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0]); 
-    fMquad[1] = fMFacOrd[0]*exp(-(0.5*std::pow(wc[1]+0.2886751345948129*dxv[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0]); 
   };
-  if ((vtSqOrd[1] <= 0.0) || (fMFacOrd[1] <= 0.0)) {
+  if ((vtSqOrd[1] > 0.) && (fMFacOrd[1] > 0.)) {
+    fMquad[2] = fMFacOrd[1]*exp(-(0.5*std::pow(wc[1]-1.0*flowUOrd[1]-0.2886751345948129*dxv[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+    fMquad[3] = fMFacOrd[1]*exp(-(0.5*std::pow(wc[1]-1.0*flowUOrd[1]+0.2886751345948129*dxv[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+  } else {
     fMquad[2] = 9.999999999999999e-41;
     fMquad[3] = 9.999999999999999e-41;
-  } else {
-    fMquad[2] = fMFacOrd[1]*exp(-(0.5*std::pow(wc[1]-1.0*flowUOrd[1]-0.2886751345948129*dxv[1],2.0))/vtSqOrd[1]); 
-    fMquad[3] = fMFacOrd[1]*exp(-(0.5*std::pow(wc[1]-1.0*flowUOrd[1]+0.2886751345948129*dxv[1],2.0))/vtSqOrd[1]); 
   };
 
   fMOut[0] = 0.5*(fMquad[3]+fMquad[2]+fMquad[1]+fMquad[0]); 
