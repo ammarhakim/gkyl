@@ -316,7 +316,7 @@ function GkLBOCollisions:createSolver(funcField)
          basis              = self.phaseBasis,
          cfl                = self.cfl,
          equation           = self.equation,
-         equationStep            = 2,      -- Use step2 functions from equation.
+         eqnStep            = 2,      -- Use step2 functions from equation.
          updateSurfaceTerm  = false,  -- Step 2 only adds the volume term.
          updateDirections   = zfd,    -- Only update velocity directions.
          zeroFluxDirections = zfd,
