@@ -121,6 +121,7 @@ function DiscontPoisson:init(tbl)
    self._first = true
    local dirs = {'x','y','z'}
    self.stencilMatrix = {}
+   self.stencilMatrixLoFn, self.stencilMatrixUpFn = {}, {}
    self.stencilMatrixLo, self.stencilMatrixUp = {}, {}
    for d = 1, self.ndim do
       local stencilMatrixFn = require(string.format("Updater.discontPoissonData.discontPoisson%sStencil%dD_%dp_%s",
@@ -138,16 +139,16 @@ function DiscontPoisson:init(tbl)
       end
    end
    for d = 1, self.ndim do
-      self.stencilMatrixLoFn = require(string.format("Updater.discontPoissonData.discontPoisson%sStencil%dD_%dp_%sLo%s",
-                                                      basisNm, self.ndim, polyOrder, dirs[d], funcBCTag))
-      self.stencilMatrixUpFn = require(string.format("Updater.discontPoissonData.discontPoisson%sStencil%dD_%dp_%sUp%s",
-                                                      basisNm, self.ndim, polyOrder, dirs[d], funcBCTag))
+      self.stencilMatrixLoFn[d] = require(string.format("Updater.discontPoissonData.discontPoisson%sStencil%dD_%dp_%sLo%s",
+                                                        basisNm, self.ndim, polyOrder, dirs[d], funcBCTag))
+      self.stencilMatrixUpFn[d] = require(string.format("Updater.discontPoissonData.discontPoisson%sStencil%dD_%dp_%sUp%s",
+                                                        basisNm, self.ndim, polyOrder, dirs[d], funcBCTag))
       if self.grid:isDirPeriodic(d) or self.hasFuncBC then
          self.stencilMatrixLo[d] = nil
          self.stencilMatrixUp[d] = nil
       else
-         self.stencilMatrixLo[d] = self.stencilMatrixLoFn(dx, bcLower[d][1], bcLower[d][2], bcLower[d][3])
-         self.stencilMatrixUp[d] = self.stencilMatrixUpFn(dx, bcUpper[d][1], bcUpper[d][2], bcUpper[d][3])
+         self.stencilMatrixLo[d] = self.stencilMatrixLoFn[d](dx, bcLower[d][1], bcLower[d][2], bcLower[d][3])
+         self.stencilMatrixUp[d] = self.stencilMatrixUpFn[d](dx, bcUpper[d][1], bcUpper[d][2], bcUpper[d][3])
       end
    end
 
@@ -206,12 +207,12 @@ function DiscontPoisson:init(tbl)
       self.basisAtOrdinates = Lin.Mat(self.numOrdinates, numBasis)
       -- Pre-compute values of basis functions at quadrature nodes
       if numBasis > 1 then
-         for n = 1, self.numOrdinates do
-            self.faceBasis:evalBasis(self.ordinates[n], self.basisAtOrdinates[n])
+         for mu = 1, self.numOrdinates do
+            self.faceBasis:evalBasis(self.ordinates[mu], self.basisAtOrdinates[mu])
          end
       else
-         for n = 1, self.numOrdinates do
-            self.basisAtOrdinates[n][1] = 1.0/2^self.ndim-1
+         for mu = 1, self.numOrdinates do
+            self.basisAtOrdinates[mu][1] = 1.0/2^self.ndim-1
          end
       end
 
@@ -220,6 +221,36 @@ function DiscontPoisson:init(tbl)
    end
 
    return self
+end
+
+-- Generate the matrices for spatially variable BCs
+function DiscontPoisson:buildLocalVarBcStiffMatrix(dir, dx, xc, edge)
+   local xMu = Lin.Vec(self.ndim)
+   local extendedMu = Lin.Vec(self.ndim)
+   local edgeExp = Lin.Vec(self.faceBasis:numBasis())
+
+   for mu = 1, self.numOrdinates do
+      for i = 1, dir-1 do extendedMu[i] = self.ordinates[mu][i] end
+      if edge == "lower" then
+         extendedMu[dir] = -1
+      else
+         extendedMu[dir] = 1
+      end
+      for i = dir+1, self.ndim do extendedMu[i] = self.ordinates[mu][i-1] end
+
+      -- Precompute value of function at each ordinate
+      self.compToPhys(extendedMu, dx, xc, xMu) -- Compute coordinate
+      local fv = self.bcFunc(0.0, xMu) -- Compute function value
+      for k = 1, self.faceBasis:numBasis() do
+         edgeExp[k] = edgeExp[k] + self.weights[mu]*self.basisAtOrdinates[mu][k]*fv
+      end
+   end
+
+   if edge == "lower" then
+      return self.stencilMatrixLoFn[dir](dx, 1, 0, edgeExp)
+   else
+      return self.stencilMatrixUpFn[dir](dx, 1, 0, edgeExp)
+   end
 end
 
 -- Assemble the left-side matrix of the Poisson equation
@@ -243,47 +274,26 @@ function DiscontPoisson:buildStiffMatrix()
 
    local dx = Lin.Vec(self.ndim)
    local xc = Lin.Vec(self.ndim)
-   local xMu = Lin.Vec(self.ndim)
-   local extendedMu = Lin.Vec(self.ndim)
 
    for idxs in localRange:colMajorIter() do
+      self.grid:setIndex(idxs)
+      self.grid:getDx(dx)
+      self.grid:cellCenter(xc)
+      
       isLoCorner = self.isAllPeriodic
       for d = 1,ndim do
          idxsExtK[d] = idxs[d]
          idxsExtL[d] = idxs[d]
          if idxs[d] ~= localRange:lower(d) then isLoCorner = false end
-
-         -- Generate the matrices for spatially variable BCs
-         if self.hasFuncBC then
-            self.grid:setIndex(idxs)
-            self.grid:getDx(dx)
-            self.grid:cellCenter(xc)
-            local edgeExp = Lin.Vec(self.faceBasis:numBasis())
-
-            for mu = 1, self.numOrdinates do
-               for i = 1, d-1 do extendedMu[d] = self.ordinates[mu][i] end
-               if idxs[d] == localRange:lower(d) then
-                  extendedMu[d] = -1
-               elseif idxs[d] == localRange:upper(d)  then
-                  extendedMu[d] = 1
-               end
-               for i = d+1, ndim do extendedMu[d] = self.ordinates[mu][i-1] end
-
-               -- Precompute value of function at each ordinate
-               self.compToPhys(extendedMu, dx, xc, xMu) -- Compute coordinate
-               local fv = self.bcFunc(0.0, xMu) -- Compute function value
-               for k = 1, self.faceBasis:numBasis() do
-                  edgeExp[k] = edgeExp[k] + self.weights[mu]*self.basisAtOrdinates[mu][k]*fv
-               end
-            end
-
+         if self.hasFuncBC and not self.grid:isDirPeriodic(d) then
             if idxs[d] == localRange:lower(d) then
-               self.stencilMatrixLo[d] = self.stencilMatrixLoFn(dx, 1, 0, edgeExp)
+               self.stencilMatrixLo[d] = self:buildLocalVarBcStiffMatrix(d, dx, xc, "lower")
             elseif idxs[d] == localRange:upper(d)  then
-               self.stencilMatrixUp[d] = self.stencilMatrixUpFn(dx, 1, 0, edgeExp)
+               self.stencilMatrixUp[d] = self:buildLocalVarBcStiffMatrix(d, dx, xc, "upper")
             end
          end
       end
+      
       for k = 1,self.nbasis do
          idxsExtK[ndim+1] = k
          idxK = stiffMatrixIndexer(idxsExtK)
@@ -361,6 +371,9 @@ end
 function DiscontPoisson:_advance(tCurr, inFld, outFld)
    local ndim = self.ndim
 
+   local dx = Lin.Vec(ndim)
+   local xc = Lin.Vec(ndim)
+
    local src = assert(inFld[1], "DiscontPoisson.advance: Must specify an input field")
    local sol = assert(outFld[1], "DiscontPoisson.advance: Must specify an output field")
 
@@ -404,13 +417,23 @@ function DiscontPoisson:_advance(tCurr, inFld, outFld)
    local idxsExt = Lin.Vec(ndim+1)
    local srcMod = Lin.Vec(self.nbasis)
    for idxs in localRange:colMajorIter() do
+      self.grid:setIndex(idxs)
+      self.grid:getDx(dx)
+      self.grid:cellCenter(xc)
+      
       for k = 1,self.nbasis do srcMod[k] = 0.0 end
       srcMod[1] = srcPeriodicMod
       for d = 1,ndim do
          if not self.grid:isDirPeriodic(d) then
-            if idxs[d] == 1 then
+            if idxs[d] == localRange:lower(d) then
+               if self.hasFuncBC then
+                  self.stencilMatrixLo[d] = self:buildLocalVarBcStiffMatrix(d, dx, xc, "lower")
+               end
                for k = 1,self.nbasis do srcMod[k] = srcMod[k] - self.stencilMatrixLo[d][1][k] end
-            elseif idxs[d] == self.grid:numCells(d) then
+            elseif idxs[d] == localRange:upper(d) then
+               if self.hasFuncBC then
+                  self.stencilMatrixUp[d] = self:buildLocalVarBcStiffMatrix(d, dx, xc, "upper")
+               end
                for k = 1,self.nbasis do srcMod[k] = srcMod[k] - self.stencilMatrixUp[d][3][k] end
             end
          end
