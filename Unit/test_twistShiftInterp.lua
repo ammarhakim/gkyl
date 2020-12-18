@@ -28,13 +28,13 @@ local math = require "sci.math"  -- For sign function.
 local polyOrder    = 1
 local lower        = {-2.0, -1.50}
 local upper        = { 2.0,  1.50}
-local numCells     = {36, 30}
+local numCells     = {60, 750}
 local periodicDirs = {2}
 
 local grid = Grid.RectCart {
-   lower = lower,
-   upper = upper,
-   cells = numCells,
+   lower        = lower,
+   upper        = upper,
+   cells        = numCells,
    periodicDirs = periodicDirs,
 }
 local basis = Basis.CartModalSerendipity { ndim = grid:ndim(), polyOrder = polyOrder }
@@ -56,9 +56,9 @@ local fldDest = DataStruct.Field {
 -- safety profile, something like yShift = L_z*C_y(x)*q(x).
 local polyOrder1D = polyOrder
 local grid1D = Grid.RectCart {
-   lower = {lower[1]},
-   upper = {upper[1]},
-   cells = {numCells[1]},
+   lower        = {lower[1]},
+   upper        = {upper[1]},
+   cells        = {numCells[1]},
    periodicDirs = {},
 }
 local basis1D = Basis.CartModalSerendipity { ndim = grid1D:ndim(), polyOrder = polyOrder1D }
@@ -85,18 +85,6 @@ project1D:advance(0., {}, {yShift})
 yShift:write("yShift.bp")
 
 -- Invert yShift(x).
-local yShiftInvFunc = function(ySIn)
-   local function lossF(xIn)
-      return ySIn - yShiftFunc(xIn)
-   end
-   local function rootStop(eps)   -- Root-finding stopping criteria.
-      return function(x, y, xl, xu, yl, yu)
-         if math.abs(y) < eps then return true else return false end
-      end
-   end
-   local tol   = 1.e-13
-   return root.ridders(lossF, lower[1], upper[1], rootStop(tol))
-end
 local project = Updater.ProjectOnBasis {
    onGrid   = grid,
    basis    = basis,
@@ -104,10 +92,8 @@ local project = Updater.ProjectOnBasis {
                  local x, y       = xn[1], xn[2]
                  local muX, muY   = 0., 0.
                  local sigX, sigY = 0.3, 0.3
-                 return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((y-muY)^2)/(2.*(sigY^2)))
---                 return 1.
---                 return yShiftFunc(x)*math.sin((2.*math.pi/(upper[2]-lower[2]))*y)
---                  return y-yShiftFunc(x) --+2  --yShiftInvFunc(yShiftFunc(x))
+--                return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((y-muY)^2)/(2.*(sigY^2)))
+                 return 1.
               end
 }
 project:advance(0., {}, {fldSrc})
@@ -131,8 +117,8 @@ local wrapNum = function (val, lower, upper, pickUpper)
    --local pickUpper = pickUpper==nil and false or pickUpper
    local L        = upper - lower
    local disp     = (val - lower) % L
-   local eps      = 1.e-10
    local newCoord = lower + (L + disp) % L
+   local eps      = 1.e-12
    if ( (lower-eps < newCoord and newCoord < lower + eps) or
         (upper-eps < newCoord and newCoord < upper + eps) ) then
       if pickUpper then 
@@ -181,7 +167,7 @@ local function checkForRoot(funcIn, xBounds, tol)
 end
 xRoot = checkForRoot(yShiftFunc, {grid:lower(1), grid:upper(1)}, 1.e-13)
 if xRoot then
-   assert( xRoot==nil, string.format("yShiftFunc is zero at %f. Please select a function that is not zero in the domain.",xRoot))
+   assert( xRoot==nil, string.format("yShiftFunc is zero at %f. Please select a function that is not zero in the domain.",xRoot) )
 end
 
 
@@ -332,7 +318,6 @@ local yShiftedyIntersectEx = function(xBounds, yDest, ySrc, jDest, jSrc)
          local xp      = xBounds[1]+sI*stepSize 
          local exShift = (yDest+yShiftFunc(xp)-grid:lower(2))/Ly
          local newN    = math.sign(exShift)*math.floor(math.abs(exShift))
---         print(string.format("xp=%f | yDest+yShift=%f | newN=%d",xp,(yDest+yShiftFunc(xp)),newN))
          if lume.find(nP,newN)==nil then table.insert(nP,newN) end
       end
       for _, iN in ipairs(nP) do
@@ -366,10 +351,8 @@ end
 local yShiftNormFunc = function(xN, y0, xcSrc, xcDest, dxDest, pickUpper)
    local xPhys = xcDest[1] + 0.5*dxDest[1]*xN
    local yS    = y0+yShiftFunc(xPhys)
---   print("xN= ",xN, "xPhys =",xPhys, "y0 =",y0, "yS =",yS)
    yS = wrapNum(yS,grid:lower(2),grid:upper(2),pickUpper)
    local ySN   = (yS-xcSrc[2])/(0.5*dxDest[2])
---   print("xN= ",xN, "xPhys =",xPhys, "y0 =",y0, "yS =",yS, "ySN =",ySN)
    return ySN
 end
 
@@ -392,7 +375,6 @@ local yShiftNormInvFuncEx = function(ySNIn, y0In, xcSrcIn, xcDestIn, dxDestIn)
    -- that is not in this cell does not get used in the integral because the fixed
    -- y limit cuts if off. But if we didn't consider extended logical space the shape of the
    -- x-limit function would not come out right.
---   print("ySN= ",ySNIn, " | y0= ",y0In)
    local xOutN = root.ridders(lossF, -2., 2., rootStop(tol))
    return xOutN
 end
@@ -403,7 +385,6 @@ local yShiftNormInvFuncPartialy = function(ySNIn, y0In, xcSrcIn, xcDestIn, dxDes
    -- This function inverts that y+yShifted(x) line. This function gets passed to a projection
    -- operation, so that the resulting DG expansion is defined in a subcell of the source cell.
    local function lossF(xNIn)
---      print("ySIn = ",ySNIn)
       return ySNIn - yShiftNormFunc(xNIn, y0In, xcSrcIn, xcDestIn, dxDestIn, pickUpper)
    end
    local tol = 1.e-11
@@ -411,8 +392,7 @@ local yShiftNormInvFuncPartialy = function(ySNIn, y0In, xcSrcIn, xcDestIn, dxDes
    -- that is not in this cell does not get used in the integral because the fixed
    -- y limit cuts if off. But if we didn't consider extended logical space the shape of the
    -- x-limit function would not come out right.
---   print("ySN= ",ySNIn, " | y0= ",y0In)
-   local eps = tol  -- Need wiggle room because it might fail if the root is at the boundary.
+   local eps = 0.  -- Need wiggle room because it might fail if the root is at the boundary.
    local xOutN = root.ridders(lossF, xLim[1]-eps, xLim[2]+eps, rootStop(tol))
    return xOutN
 end
@@ -454,6 +434,16 @@ local nilHowmany2x2 = function(tblIn)
      end
   end
   return count, nilIdxs, nonNilIdxs
+end
+
+local p2l = function(valIn, xcIn, dxIn)
+   -- Transform a physical coordinate (valIn) to the [-1,1] logical
+   -- space in a cell with cell center xcIn and length dxIn.
+   return 2.*(valIn-xcIn)/dxIn
+end
+local dxAxc = function(aIn,bIn)
+   -- Return the length and cell center of the interval [a,b].
+   return bIn-aIn, 0.5*(aIn+bIn)
 end
 
 -- Determine the cells that each cell in fldDest needs.
@@ -525,6 +515,131 @@ local interpGenSub = TwistShiftInterpDecl.selectTwistShiftInterpGenSub(basis:id(
 local interpGenSubY = TwistShiftInterpDecl.selectTwistShiftInterpGenSubY(basis:id(), 2, polyOrder1D)
 local interpGenSubMtwoCorners = TwistShiftInterpDecl.selectTwistShiftInterpGenSubMinusTwoCorners(basis:id(), 2, polyOrder1D)
 
+
+local subcellInt_six = function(x_pq, idxOr, xcOr, dxOr, xcTar, dxTar, boundsTar, numCells)
+   -- Perform scenario six subcell integral.
+   --   x_pq: points where y_{j -/+ 1/2}+yShift intersect y_{j+m -/+ 1/2} (the upper/lower y-boundaries of srcCell).
+   --   idxOr: multi-dimensional index of origin cell.
+   --   xcOr: cell center coordinates of origin cell.
+   --   dxOr: cell lengths of origin cell.
+   --   xcTar: cell center coordinates of target cell.
+   --   dxTar: cell lengths of target cell.
+   --   boundsTar: cell boundaries along each direction of target cell.
+   --   numCells: number of cells in each dierection
+
+   -- Logical-space x-y lower/upper limits of the subcell integral (y), and of the segment
+   -- in which to invert y+yShift to obtain the x-limits (x).
+   local yLogLo, yLogUp = -1., 1.
+   local xLogLo, xLogUp = p2l(x_pq[1][1],xcOr[1],dxOr[1]), p2l(x_pq[1][2],xcOr[1],dxOr[1])
+   local yTar           = boundsTar[2][1]    -- y_{j -/+ 1/2} to shift in y.
+   -- Functions describing the lower and upper limits in logical [-1,1] x-space.
+   local xLogLowerLim = function(t,xn) return -1.0 end
+   local xLogUpperLim = function(t,xn)
+      return yShiftNormInvFuncPartialy(xn[1], yTar, xcOr, xcTar, dxTar,
+                                       {xLogLo,xLogUp}, idxOr[2]==numCells[2])
+   end
+   -- Project x-limit functions onto 1D DG basis.
+   dyPartial[1], ycPartial[1] = dxAxc(yLogLo,yLogUp)
+   projXlimGen(xLogLowerLim, dyPartial, ycPartial, qLo_y)
+   projXlimGen(xLogUpperLim, dyPartial, ycPartial, qUp_y)
+   -- Add contribution from this subcell integral.
+   interpGenSub(qLo_y:data(), qUp_y:data(), yLogLo, yLogUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
+end
+
+local subcellInt_sx = function(x_pq, idxOr, xcOr, dxOr, xcTar, dxTar, boundsTar, numCells)
+   -- Perform scenario sx subcell integral.
+   --   x_pq: points where y_{j -/+ 1/2}+yShift intersect y_{j+m -/+ 1/2} (the upper/lower y-boundaries of srcCell).
+   --   idxOr: multi-dimensional index of origin cell.
+   --   xcOr: cell center coordinates of origin cell.
+   --   dxOr: cell lengths of origin cell.
+   --   xcTar: cell center coordinates of target cell.
+   --   dxTar: cell lengths of target cell.
+   --   boundsTar: cell boundaries along each direction of target cell.
+   --   numCells: number of cells in each dierection
+
+   -- Logical-space x-y lower/upper limits of the subcell integral (y), and of the segment
+   -- in which to invert y+yShift to obtain the x-limits (x).
+   local yLogLo, yLogUp = -1., 1.
+   local xLogLo, xLogUp = p2l(x_pq[1][2],xcOr[1],dxOr[1]), p2l(x_pq[1][1],xcOr[1],dxOr[1])
+   local yTar           = boundsTar[2][1]    -- y_{j -/+ 1/2} to shift in y.
+   -- Functions describing the lower and upper limits in logical [-1,1] x-space.
+   local xLogLowerLim = function(t,xn)
+      return yShiftNormInvFuncPartialy(xn[1], yTar, xcOr, xcTar, dxTar,
+                                       {xLogLo,xLogUp}, idxOr[2]==numCells[2])
+   end
+   local xLogUpperLim = function(t,xn) return 1.0 end
+   -- Project x-limit functions onto 1D DG basis.
+   dyPartial[1], ycPartial[1] = dxAxc(yLogLo,yLogUp)
+   projXlimGen(xLogLowerLim, dyPartial, ycPartial, qLo_y)
+   projXlimGen(xLogUpperLim, dyPartial, ycPartial, qUp_y)
+   -- Add contribution from this subcell integral.
+   interpGenSub(qLo_y:data(), qUp_y:data(), yLogLo, yLogUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
+end
+
+local subcellInt_sxi = function(x_pq, idxOr, xcOr, dxOr, xcTar, dxTar, boundsTar, numCells)
+   -- Perform scenario sxi subcell integral.
+   --   x_pq: points where y_{j -/+ 1/2}+yShift intersect y_{j+m -/+ 1/2} (the upper/lower y-boundaries of srcCell).
+   --   idxOr: multi-dimensional index of origin cell.
+   --   xcOr: cell center coordinates of origin cell.
+   --   dxOr: cell lengths of origin cell.
+   --   xcTar: cell center coordinates of target cell.
+   --   dxTar: cell lengths of target cell.
+   --   boundsTar: cell boundaries along each direction of target cell.
+   --   numCells: number of cells in each dierection
+
+   -- Logical-space x-y lower/upper limits of the subcell integral (y), and of the segment
+   -- in which to invert y+yShift to obtain the x-limits (x).
+   local yLogLo, yLogUp = -1., 1.
+   local xLogLo, xLogUp = p2l(x_pq[2][2],xcOr[1],dxOr[1]), p2l(x_pq[2][1],xcOr[1],dxOr[1])
+   local yTar           = boundsTar[2][2]    -- y_{j -/+ 1/2} to shift in y.
+   -- Functions describing the lower and upper limits in logical [-1,1] x-space.
+   local xLogLowerLim = function(tCurr,xn) return -1.0 end
+   local xLogUpperLim = function(tCurr,xn)
+      return yShiftNormInvFuncPartialy(xn[1], yTar, xcOr, xcTar, dxTar,
+                                       {xLogLo,xLogUp}, idxOr[2]==numCells[2])
+   end
+   -- Project x-limit functions onto 1D DG basis.
+   dyPartial[1], ycPartial[1] = dxAxc(yLogLo,yLogUp)
+   projXlimGen(xLogLowerLim, dyPartial, ycPartial, qLo_y)
+   projXlimGen(xLogUpperLim, dyPartial, ycPartial, qUp_y)
+   -- Add contribution from this subcell integral.
+   interpGenSub(qLo_y:data(), qUp_y:data(), yLogLo, yLogUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
+end
+
+local subcellInt_sxii = function(x_pq, idxOr, xcOr, dxOr, xcTar, dxTar, boundsTar, numCells)
+   -- Perform scenario sxii subcell integral.
+   --   x_pq: points where y_{j -/+ 1/2}+yShift intersect y_{j+m -/+ 1/2} (the upper/lower y-boundaries of srcCell).
+   --   idxOr: multi-dimensional index of origin cell.
+   --   xcOr: cell center coordinates of origin cell.
+   --   dxOr: cell lengths of origin cell.
+   --   xcTar: cell center coordinates of target cell.
+   --   dxTar: cell lengths of target cell.
+   --   boundsTar: cell boundaries along each direction of target cell.
+   --   numCells: number of cells in each dierection
+
+   -- Logical-space x-y lower/upper limits of the subcell integral (y), and of the segment
+   -- in which to invert y+yShift to obtain the x-limits (x).
+   local yLogLo, yLogUp = -1., 1.
+   local xLogLo, xLogUp = p2l(x_pq[2][1],xcOr[1],dxOr[1]), p2l(x_pq[2][2],xcOr[1],dxOr[1])
+   local yTar           = boundsTar[2][2]
+   -- Functions describing the lower and upper limits in logical [-1,1] x-space.
+   local xLogLowerLim = function(tCurr,xn)
+      return yShiftNormInvFuncPartialy(xn[1], yTar, xcOr, xcTar, dxTar,
+                                       {xLogLo,xLogUp}, idxOr[2]==numCells[2])
+   end
+   local xLogUpperLim = function(tCurr,xn) return 1.0 end
+   -- Project x-limit functions onto 1D DG basis.
+   dyPartial[1], ycPartial[1] = dxAxc(yLogLo,yLogUp)
+   projXlimGen(xLogLowerLim, dyPartial, ycPartial, qLo_y)
+   projXlimGen(xLogUpperLim, dyPartial, ycPartial, qUp_y)
+   -- Add contribution from this subcell integral.
+   interpGenSub(qLo_y:data(), qUp_y:data(), yLogLo, yLogUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
+end
+
+
+
+
+
 --if (1==2) then
 
 for idx in localRange:rowMajorIter() do
@@ -537,7 +652,7 @@ for idx in localRange:rowMajorIter() do
    -- For now simply take small steps around the boundaries of the 2D cell, compute
    -- the shifted points and their owner at each step.
 
---   if idx[1]==36 and idx[2]==6 then
+--   if idx[1]==33 and idx[2]==17 then
 
    grid:setIndex(idx)
    grid:cellCenter(xc)
@@ -555,7 +670,6 @@ for idx in localRange:rowMajorIter() do
    local delta    = {1.e-9*grid:dx(1),1.e-9*grid:dx(2)}
    for dC = 1,2 do            -- Loop over x=const and y=const boundaries.
       for xS = 1,2 do         -- Loop over lower/upper boundary.
---         print("dC=",dC," | xS=",xS)
 
          -- Do the first point separately (it requires pickLower=false in findCell).
          local evPoint = {cellLower[1]+delta[1], cellLower[2]+delta[2]}
@@ -567,8 +681,6 @@ for idx in localRange:rowMajorIter() do
             yShiftB = yShiftB + yShiftPtr[k]*basis1Dev[k]
          end
 
---         print(string.format("yShifted = %f | idx[1]=%d",evPoint[2]+yShiftB,idx[1]))
---         print(string.format("Find point=(%f,%f)",evPoint[1],wrapNum(evPoint[2]+yShiftB,grid:lower(2),grid:upper(2),true)))
          local idxShifted0   = {nil,nil}
          local chooseLower   = (dC==2 and xS==2) and true or false
          local wrapInclusive = (dC==2 and xS==2) and true or false
@@ -592,7 +704,6 @@ for idx in localRange:rowMajorIter() do
 
             -- Find the index of the cell that owns the shifted point.
             local idxShifted  = {nil,nil}
---         print(string.format("Find point=(%f,%f)",newP[1],wrapNum(newP[2]+yShiftB,grid:lower(2),grid:upper(2),true)))
             local searchPoint = {newP[1],wrapNum(newP[2]+yShiftB,grid:lower(2),grid:upper(2),true)}
             grid:findCell(searchPoint,idxShifted,true,{idx[1],nil})
             if lume.findTable(srcCells,idxShifted)==nil then table.insert(srcCells,idxShifted) end
@@ -602,8 +713,6 @@ for idx in localRange:rowMajorIter() do
 
    print(string.format("idx = (%d,%d)",idx[1],idx[2]))
 
---   if idx[1]==1 and idx[2]==1 then
-                                  
    for iC = 1, #srcCells do
       -- In each contributing cell, approximate the functions qInvL(y) and qInvU(y)
       -- for the min/max of the x-integral with a polynomial. Compute the coefficients
@@ -619,7 +728,7 @@ for idx in localRange:rowMajorIter() do
       local srcCellBounds = { {grid:cellLowerInDir(1),grid:cellUpperInDir(1)},
                               {grid:cellLowerInDir(2),grid:cellUpperInDir(2)} }
 
---      if (idxS[1]==3 and idxS[2]<4)       -- the following is temporary code to test the case of a contribution in which
+--      if (idxS[1]==33 and idxS[2]==48)       -- the following is temporary code to test the case of a contribution in which
                                            -- the y+yShift curves do not cross the x-boundaries of the cell.
 --        or (idxS[1]==1 and idxS[2]==10)       -- the following is temporary code to test the case of a contribution in which
 --      then
@@ -632,15 +741,14 @@ for idx in localRange:rowMajorIter() do
             local yDest = cellBounds[2][i] 
             local ySrc  = srcCellBounds[2][j] 
             trapCornerX[i][j] = yShiftedyIntersectEx(cellBounds[1], yDest, ySrc, idx[2], idxS[2])
-            if trapCornerX[i][j]==nil then
-               print(string.format("trapCornerX[%d][%d] = ",i,j),nil)
-            else
-               print(string.format("trapCornerX[%d][%d] = %f",i,j,trapCornerX[i][j]))
-            end
+--            if trapCornerX[i][j]==nil then
+--               print(string.format("trapCornerX[%d][%d] = ",i,j),nil)
+--            else
+--               print(string.format("trapCornerX[%d][%d] = %1.12e",i,j,trapCornerX[i][j]))
+--            end
          end
       end
 
---   if idx[1]==1 and idx[2]<-9 then
       if not nilAny2x2(trapCornerX) then
          -- Scenario sN.
          -- The contributing region in the source cell is 4-sided with all vertices
@@ -675,15 +783,6 @@ for idx in localRange:rowMajorIter() do
          -- Having obtained a polynomial expansion to the limits of the x-integral,
          -- proceed to add the contribution from this source cell.
          interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
-
-      --end
-
-      --elseif (idxS[1]==1 and idxS[2]==8)   -- the following is temporary code to test the case of a contribution in which
-      --                                     -- only one y+yShift curve intersects the source cell.
-      --      or (idxS[1]==1 and idxS[2]==7)   -- the following is temporary code to test the case of a contribution in which
-      --                                       -- one y+yShift curve intersects one y-boundary of the source cell and
-      --                                       -- the other y+yShift curve intersects both y-boundaries.
-      --      then
 
       else
 
@@ -746,21 +845,14 @@ for idx in localRange:rowMajorIter() do
             end
          end
          dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
-         projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
-         projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
---         --print(string.format("xLimLoLo=%f | xLimLoUp=%f | xLimUpLo=%f | xLimUpUp=%f | yLimLo=%f | yLimUp=%f",xLimLoLo,xLimLoUp,xLimUpLo,xLimUpUp,yLimLo,yLimUp))
---         print(string.format("xLimLo=%f | xLimUp=%f | yLimLo=%f | yLimUp=%f",xLimLo,xLimUp,yLimLo,yLimUp))
---         for i=1,numBasis1D do
---            print(string.format("qL[%d]=%f | qU[d]=%f",i-1,qLo_y:data()[i-1],i-1,qUp_y:data()[i-1]))
---         end
+         if dyPartial[1] > 0 then 
+            projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
+            projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
 
-
-         -- Having obtained a polynomial expansion to the limits of the x-integral and the
-         -- values of the y-integral limits, add the contribution from this source cell.
-         interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
---         for i=1,basis:numBasis() do
---            print(string.format("src[%d]=%f | dest[%d]=%f",i-1,srcPtr:data()[i-1],i-1,destPtr:data()[i-1]))
---         end
+            -- Having obtained a polynomial expansion to the limits of the x-integral and the
+            -- values of the y-integral limits, add the contribution from this source cell.
+            interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
+         end
 
       elseif nilNum == 1 then
          -- There are 4 possible scenarios:
@@ -782,73 +874,72 @@ for idx in localRange:rowMajorIter() do
             local xLimLoLo, xLimLoUp, xLimUpLo, xLimUpUp
             if trapCornerX[1][2] > trapCornerX[2][2] then
                -- Scenario sv.
-               -- Add scenario sN-like contribution.
-               y0Lo, y0Up = cellBounds[2][2], cellBounds[2][1]
                xLimLoLo, xLimLoUp = -1., (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1])
-               xLimUpLo, xLimUpUp = (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1]), (trapCornerX[1][2] - xcS[1])/(0.5*dxS[1])
-               local evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLoLo,xLimLoUp}, idxS[2]==numCells[2]) end
-               local evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimUpLo,xLimUpUp}, idxS[2]==numCells[2]) end
-               yLimLo = wrapNum(cellUpper[2] + yShiftFunc(srcCellBounds[1][1]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
-               yLimLo = (yLimLo - xcS[2])/(0.5*dxS[2])
-               yLimUp = 1.
-               dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
-               projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
-               projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
-               interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
-               -- Add scenario siii-like contribution.
-               yLimUp = yLimLo    -- Keep the order of yLimUp and yLimLo here.
-               yLimLo = -1.
-               y0Up = cellBounds[2][1]
-               xLimLo = (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1])
-               xLimUp = (trapCornerX[1][2] - xcS[1])/(0.5*dxS[1])
-               evaluateLo = function(tCurr,xn) return -1.0 end
-               evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
-               dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
-               projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
-               print("here")
-               projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
-               interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
+               if (xLimLoUp-xLimLoLo) > 0 then
+                  -- Add scenario sN-like contribution.
+                  y0Lo, y0Up = cellBounds[2][2], cellBounds[2][1]
+                  xLimUpLo, xLimUpUp = (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1]), (trapCornerX[1][2] - xcS[1])/(0.5*dxS[1])
+                  local evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLoLo,xLimLoUp}, idxS[2]==numCells[2]) end
+                  local evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimUpLo,xLimUpUp}, idxS[2]==numCells[2]) end
+                  yLimLo = wrapNum(cellUpper[2] + yShiftFunc(srcCellBounds[1][1]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
+                  yLimLo = (yLimLo - xcS[2])/(0.5*dxS[2])
+                  yLimUp = 1.
+                  dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
+                  projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
+                  projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
+                  interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
+                  -- Add scenario siii-like contribution.
+                  yLimUp = yLimLo    -- Keep the order of yLimUp and yLimLo here.
+                  yLimLo = -1.
+                  y0Up = cellBounds[2][1]
+                  xLimLo = (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1])
+                  xLimUp = (trapCornerX[1][2] - xcS[1])/(0.5*dxS[1])
+                  evaluateLo = function(tCurr,xn) return -1.0 end
+                  evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
+                  dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
+                  projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
+                  projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
+                  interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
+               else
+                  -- This is better handled as a scenario six.
+                  subcellInt_six(trapCornerX, idxS, xcS, dxS, xc, dx, cellBounds, numCells)
+               end
             else
                -- Scenario svi.
-               -- Add scenario sN-like contribution.
-               y0Lo, y0Up = cellBounds[2][1], cellBounds[2][2]
-               xLimLoLo, xLimLoUp = (trapCornerX[1][2] - xcS[1])/(0.5*dxS[1]), (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1])
                xLimUpLo, xLimUpUp = (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1]), 1.
-               local evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLoLo,xLimLoUp}, idxS[2]==numCells[2]) end
-               local evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimUpLo,xLimUpUp}, idxS[2]==numCells[2]) end
-               yLimLo = wrapNum(cellUpper[2] + yShiftFunc(srcCellBounds[1][2]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
-               yLimLo = (yLimLo - xcS[2])/(0.5*dxS[2])
-               yLimUp = 1.
-               dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
-               projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
-               projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
-               interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
-               -- Add scenario siv-like contribution.
-               yLimUp = yLimLo    -- Keep the order of yLimUp and yLimLo here.
-               yLimLo = -1.
-               y0Lo   = cellBounds[2][1]
-               xLimLo = (trapCornerX[1][2] - xcS[1])/(0.5*dxS[1])
-               xLimUp = (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1])
-               evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
-               evaluateUp = function(tCurr,xn) return 1.0 end
-               dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
-               projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
-               projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
-               interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
+               if (xLimUpUp-xLimUpLo) > 0 then
+                  -- Add scenario sN-like contribution.
+                  y0Lo, y0Up = cellBounds[2][1], cellBounds[2][2]
+                  xLimLoLo, xLimLoUp = (trapCornerX[1][2] - xcS[1])/(0.5*dxS[1]), (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1])
+                  local evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLoLo,xLimLoUp}, idxS[2]==numCells[2]) end
+                  local evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimUpLo,xLimUpUp}, idxS[2]==numCells[2]) end
+                  yLimLo = wrapNum(cellUpper[2] + yShiftFunc(srcCellBounds[1][2]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
+                  yLimLo = (yLimLo - xcS[2])/(0.5*dxS[2])
+                  yLimUp = 1.
+                  dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
+                  projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
+                  projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
+                  interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
+                  -- Add scenario siv-like contribution.
+                  yLimUp = yLimLo    -- Keep the order of yLimUp and yLimLo here.
+                  yLimLo = -1.
+                  y0Lo   = cellBounds[2][1]
+                  xLimLo = (trapCornerX[1][2] - xcS[1])/(0.5*dxS[1])
+                  xLimUp = (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1])
+                  evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
+                  evaluateUp = function(tCurr,xn) return 1.0 end
+                  dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
+                  projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
+                  projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
+                  interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
+               else
+                  -- This is better handled as a scenario sx.
+                  subcellInt_sx(trapCornerX, idxS, xcS, dxS, xc, dx, cellBounds, numCells)
+               end
             end
 
          else
             -- Scenario svii or sviii.
---            for i=1,2 do
---               for j=1,2 do
---                  if trapCornerX[i][j]==nil then
---                     print(string.format("trapCornerX[%d][%d] = ",i,j),nil)
---                  else
---                     print(string.format("trapCornerX[%d][%d] = %f",i,j,trapCornerX[i][j]))
---                  end
---               end
---            end
-
             -- Establish if the yLowerDest+yShift/yUpperDest+yShift defines the lower
             -- or upper limit of the x-integral below. Do so by comparing where y=yLowerSrc
             -- crosses yLowerDest+yShift and yUpperDest+yShift.
@@ -856,58 +947,68 @@ for idx in localRange:rowMajorIter() do
             local xLimLoLo, xLimLoUp, xLimUpLo, xLimUpUp
             if trapCornerX[1][1] < trapCornerX[2][1] then
                -- Scenario svii.
-               -- Add scenario sN-like contribution.
-               y0Lo, y0Up = cellBounds[2][1], cellBounds[2][2]
                xLimLoLo, xLimLoUp = -1., (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1])
-               xLimUpLo, xLimUpUp = (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1]), (trapCornerX[2][1] - xcS[1])/(0.5*dxS[1])
-               local evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLoLo,xLimLoUp}, idxS[2]==numCells[2]) end
-               local evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimUpLo,xLimUpUp}, idxS[2]==numCells[2]) end
-               yLimLo = -1.
-               yLimUp = wrapNum(cellLower[2] + yShiftFunc(srcCellBounds[1][1]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
-               yLimUp = (yLimUp - xcS[2])/(0.5*dxS[2])
-               dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
-               projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
-               projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
-               interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
-               -- Add scenario si-like contribution.
-               yLimLo = yLimUp    -- Keep the order of yLimUp and yLimLo here.
-               yLimUp = 1.
-               xLimLo = (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1])
-               xLimUp = (trapCornerX[2][1] - xcS[1])/(0.5*dxS[1])
-               y0Up = cellBounds[2][2]
-               evaluateLo = function(tCurr,xn) return -1.0 end
-               evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
-               dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
-               projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
-               projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
-               interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
+               if (xLimLoUp-xLimLoLo) > 0 then
+                  -- Add scenario sN-like contribution.
+                  y0Lo, y0Up = cellBounds[2][1], cellBounds[2][2]
+                  xLimUpLo, xLimUpUp = (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1]), (trapCornerX[2][1] - xcS[1])/(0.5*dxS[1])
+                  local evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLoLo,xLimLoUp}, idxS[2]==numCells[2]) end
+                  local evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimUpLo,xLimUpUp}, idxS[2]==numCells[2]) end
+                  yLimLo = -1.
+                  yLimUp = wrapNum(cellLower[2] + yShiftFunc(srcCellBounds[1][1]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
+                  yLimUp = (yLimUp - xcS[2])/(0.5*dxS[2])
+                  dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
+                  projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
+                  projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
+                  interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
+                  -- Add scenario si-like contribution.
+                  yLimLo = yLimUp    -- Keep the order of yLimUp and yLimLo here.
+                  yLimUp = 1.
+                  xLimLo = (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1])
+                  xLimUp = (trapCornerX[2][1] - xcS[1])/(0.5*dxS[1])
+                  y0Up = cellBounds[2][2]
+                  evaluateLo = function(tCurr,xn) return -1.0 end
+                  evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
+                  dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
+                  projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
+                  projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
+                  interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
+               else
+                  -- This is better handled as a scenario sxi.
+                  subcellInt_sxi(trapCornerX, idxS, xcS, dxS, xc, dx, cellBounds, numCells)
+               end
             else
                -- Scenario sviii.
-               -- Add scenario sN-like contribution.
-               y0Lo, y0Up = cellBounds[2][2], cellBounds[2][1]
-               xLimLoLo, xLimLoUp = (trapCornerX[2][1] - xcS[1])/(0.5*dxS[1]), (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1])
                xLimUpLo, xLimUpUp = (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1]), 1.
-               local evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLoLo,xLimLoUp}, idxS[2]==numCells[2]) end
-               local evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimUpLo,xLimUpUp}, idxS[2]==numCells[2]) end
-               yLimLo = -1.
-               yLimUp = wrapNum(cellLower[2] + yShiftFunc(srcCellBounds[1][2]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
-               yLimUp = (yLimUp - xcS[2])/(0.5*dxS[2])
-               dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
-               projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
-               projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
-               interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
-               -- Add scenario sii-like contribution.
-               yLimLo = yLimUp    -- Keep the order of yLimUp and yLimLo here.
-               yLimUp = 1.
-               y0Lo = cellBounds[2][2]
-               xLimLo = (trapCornerX[2][1] - xcS[1])/(0.5*dxS[1])
-               xLimUp = (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1])
-               evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
-               evaluateUp = function(tCurr,xn) return 1.0 end
-               dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
-               projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
-               projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
-               interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
+               if (xLimUpUp-xLimUpLo) > 0 then
+                  -- Add scenario sN-like contribution.
+                  y0Lo, y0Up = cellBounds[2][2], cellBounds[2][1]
+                  xLimLoLo, xLimLoUp = (trapCornerX[2][1] - xcS[1])/(0.5*dxS[1]), (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1])
+                  local evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLoLo,xLimLoUp}, idxS[2]==numCells[2]) end
+                  local evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimUpLo,xLimUpUp}, idxS[2]==numCells[2]) end
+                  yLimLo = -1.
+                  yLimUp = wrapNum(cellLower[2] + yShiftFunc(srcCellBounds[1][2]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
+                  yLimUp = (yLimUp - xcS[2])/(0.5*dxS[2])
+                  dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
+                  projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
+                  projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
+                  interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
+                  -- Add scenario sii-like contribution.
+                  yLimLo = yLimUp    -- Keep the order of yLimUp and yLimLo here.
+                  yLimUp = 1.
+                  y0Lo = cellBounds[2][2]
+                  xLimLo = (trapCornerX[2][1] - xcS[1])/(0.5*dxS[1])
+                  xLimUp = (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1])
+                  evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
+                  evaluateUp = function(tCurr,xn) return 1.0 end
+                  dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
+                  projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
+                  projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
+                  interpGenSub(qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
+               else
+                  -- This is better handled as a scenario sxii.
+                  subcellInt_sxii(trapCornerX, idxS, xcS, dxS, xc, dx, cellBounds, numCells)
+               end
             end
 
          end
@@ -918,8 +1019,8 @@ for idx in localRange:rowMajorIter() do
          --   sx)    yLowerDest+yShift crosses lower and upper y-boundaries (decreasing yShift).
          --   sxi)   yUpperDest+yShift crosses lower and upper y-boundaries (decreasing yShift).
          --   sxii)  yUpperDest+yShift crosses lower and upper y-boundaries (increasing yShift).
-         --   sxiii) yLowerDest+yShift crosses lower y-boundary and yUpperDest+yShift crosses upper y-boundary (decreasing yShift).
-         --   sxiv)  yLowerDest+yShift crosses lower y-boundary and yUpperDest+yShift crosses upper y-boundary (increasing yShift).
+         --   sxiii) yLowerDest+yShift crosses lower y-boundary and yUpperDest+yShift crosses upper y-boundary (increasing yShift).
+         --   sxiv)  yLowerDest+yShift crosses lower y-boundary and yUpperDest+yShift crosses upper y-boundary (decreasing yShift).
 
          -- The first four of these we will do with a single integral with fixed y-limits, and
          -- a fixed x-limit and a variable x-limit. The last 2 might be easier to do by integrating
@@ -937,12 +1038,12 @@ for idx in localRange:rowMajorIter() do
                local y0Lo = cellBounds[2][1]
                if trapCornerX[1][1] < trapCornerX[1][2] then
                   -- Scenario six (similar to scenario si).
-                  xLimLo, xLimUp = (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1]), (trapCornerX[1][2] - xcS[1])/(0.5*dxS[1])
+                  local xLimLo, xLimUp = (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1]), (trapCornerX[1][2] - xcS[1])/(0.5*dxS[1])
                   evaluateLo = function(tCurr,xn) return -1.0 end
                   evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
                else
                   -- Scenario sx.
-                  xLimLo, xLimUp = (trapCornerX[1][2] - xcS[1])/(0.5*dxS[1]), (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1])
+                  local xLimLo, xLimUp = (trapCornerX[1][2] - xcS[1])/(0.5*dxS[1]), (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1])
                   evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
                   evaluateUp = function(tCurr,xn) return 1.0 end
                end
@@ -950,12 +1051,12 @@ for idx in localRange:rowMajorIter() do
                local y0Up = cellBounds[2][2]
                if trapCornerX[2][2] < trapCornerX[2][1] then
                   -- Scenario sxi.
-                  xLimLo, xLimUp = (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1]), (trapCornerX[2][1] - xcS[1])/(0.5*dxS[1])
+                  local xLimLo, xLimUp = (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1]), (trapCornerX[2][1] - xcS[1])/(0.5*dxS[1])
                   evaluateLo = function(tCurr,xn) return -1.0 end
                   evaluateUp = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
                else
                   -- Scenario sxii.
-                  xLimLo, xLimUp = (trapCornerX[2][1] - xcS[1])/(0.5*dxS[1]), (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1])
+                  local xLimLo, xLimUp = (trapCornerX[2][1] - xcS[1])/(0.5*dxS[1]), (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1])
                   evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
                   evaluateUp = function(tCurr,xn) return 1.0 end
                end
@@ -968,35 +1069,15 @@ for idx in localRange:rowMajorIter() do
             -- Scenario sxiii or sxiv.
             local evaluateLo, evaluateUp, evaluateLoP, evaluateUpP
             local yLimUp, yLimLo, yLimUpP, yLimLoP
---            if trapCornerX[2][1]==nil then
---            if yShiftFunc(srcCellBounds[1][1]) > yShiftFunc(trapCornerX[nonNilIdxs[1][1]][nonNilIdxs[1][2]]) then
-            if yShiftFunc(srcCellBounds[1][1]) > yShiftFunc(srcCellBounds[1][2]) then
-               -- Scenario sxiii (kernel takes information of scenario sii and siii-like integrals).
-               -- Scenario sii-like part.
-               local y0Lo = cellBounds[2][2]
-               yLimLo = wrapNum(cellUpper[2]+yShiftFunc(srcCellBounds[1][2]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
-               yLimLo = (yLimLo - xcS[2])/(0.5*dxS[2])
-               yLimUp = 1.
-               local xLimLo, xLimUp = (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1]), 1.
-               evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
-               evaluateUp = function(tCurr,xn) return 1.0 end
-               -- Scenario siii-like part.
-               local y0Up = cellBounds[2][1]
-               yLimLoP = -1.
-               yLimUpP = wrapNum(cellLower[2]+yShiftFunc(srcCellBounds[1][1]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
-               yLimUpP = (yLimUpP - xcS[2])/(0.5*dxS[2])
-               local xLimLoP, xLimUpP = -1., (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1])
-               evaluateLoP = function(tCurr,xn) return -1.0 end
-               evaluateUpP = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimLoP,xLimUpP}, idxS[2]==numCells[2]) end
-
-            else
-               -- Scenario sxiv (kernel takes information of scenario si and siv-like integrals).
+            local xLimLo, xLimUp, xLimLoP, xLimUpP
+            if yShiftFunc(srcCellBounds[1][1]) < yShiftFunc(srcCellBounds[1][2]) then
+               -- Scenario sxiii, monotonically increasing (kernel takes information of scenario si and siv-like integrals).
                -- Scenario si-like part.
                local y0Lo = cellBounds[2][2]
                yLimLoP = wrapNum(cellUpper[2]+yShiftFunc(srcCellBounds[1][1]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
                yLimLoP = (yLimLoP - xcS[2])/(0.5*dxS[2])
                yLimUpP = 1.
-               local xLimLoP, xLimUpP = -1., (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1])
+               xLimLoP, xLimUpP = -1., (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1])
                evaluateLoP = function(tCurr,xn) return -1.0 end
                evaluateUpP = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLoP,xLimUpP}, idxS[2]==numCells[2]) end
                -- Scenario siv-like part.
@@ -1007,13 +1088,43 @@ for idx in localRange:rowMajorIter() do
                xLimLo, xLimUp = (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1]), 1.
                evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
                evaluateUp = function(tCurr,xn) return 1.0 end
+            else
+               -- Scenario sxiv, monotonically decreasing (kernel takes information of scenario sii and siii-like integrals).
+               -- Scenario sii-like part.
+               local y0Lo = cellBounds[2][2]
+               yLimLo = wrapNum(cellUpper[2]+yShiftFunc(srcCellBounds[1][2]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
+               yLimLo = (yLimLo - xcS[2])/(0.5*dxS[2])
+               yLimUp = 1.
+               xLimLo, xLimUp = (trapCornerX[2][2] - xcS[1])/(0.5*dxS[1]), 1.
+               evaluateLo = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Lo, xcS, xc, dx, {xLimLo,xLimUp}, idxS[2]==numCells[2]) end
+               evaluateUp = function(tCurr,xn) return 1.0 end
+               -- Scenario siii-like part.
+               local y0Up = cellBounds[2][1]
+               yLimLoP = -1.
+               yLimUpP = wrapNum(cellLower[2]+yShiftFunc(srcCellBounds[1][1]),grid:lower(2),grid:upper(2),idxS[2]==numCells[2])
+               yLimUpP = (yLimUpP - xcS[2])/(0.5*dxS[2])
+               xLimLoP, xLimUpP = -1., (trapCornerX[1][1] - xcS[1])/(0.5*dxS[1])
+               evaluateLoP = function(tCurr,xn) return -1.0 end
+               evaluateUpP = function(tCurr,xn) return yShiftNormInvFuncPartialy(xn[1], y0Up, xcS, xc, dx, {xLimLoP,xLimUpP}, idxS[2]==numCells[2]) end
             end
             dyPartial[1], ycPartial[1] = yLimUp-yLimLo, 0.5*(yLimUp+yLimLo)
-            projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
+            if (xLimUp-xLimLo) > 0 then
+               projXlimGen(evaluateLo, dyPartial, ycPartial, qLo_y)
+            else
+               projXlimGen(evaluateUp, dyPartial, ycPartial, qLo_y)
+            end
             projXlimGen(evaluateUp, dyPartial, ycPartial, qUp_y)
             dyPartialP[1], ycPartialP[1] = yLimUpP-yLimLoP, 0.5*(yLimUpP+yLimLoP)
             projXlimGen(evaluateLoP, dyPartialP, ycPartialP, qLoP_y)
-            projXlimGen(evaluateUpP, dyPartialP, ycPartialP, qUpP_y)
+            if (xLimUpP-xLimLoP) > 0 then
+               projXlimGen(evaluateUpP, dyPartialP, ycPartialP, qUpP_y)
+            else
+               projXlimGen(evaluateLoP, dyPartialP, ycPartialP, qUpP_y)
+            end
+            -- The MtwoCorners divide by dy, so we need to set them to something other than 0
+            -- to avoid NaNs. The corresponding contribution is zero anyway because the integral limits are equal.
+            if dyPartialP[1] == 0 then dyPartialP[1] = 1. end
+            if dyPartial[1] == 0 then dyPartial[1] = 1. end
             interpGenSubMtwoCorners(qLoP_y:data(), qUpP_y:data(), yLimLoP, yLimUpP, dyPartialP[1], ycPartialP[1], qLo_y:data(), qUp_y:data(), yLimLo, yLimUp, dyPartial[1], ycPartial[1], srcPtr:data(), destPtr:data())
          end
 
@@ -1044,13 +1155,13 @@ for idx in localRange:rowMajorIter() do
 
 
       end
---      end
+      end
 
    end
 --   end
 --   end
 
-end
+--end
 end
 
 fldDest:write("fldDest.bp")
