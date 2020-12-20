@@ -40,8 +40,6 @@ function GkSpecies:alloc(nRkDup)
 
    -- Allocate fields to store coupling moments (for use in coupling
    -- to field and collisions).
-   self.oneFld              = self:allocMoment()
-   self.oneFld:clear(1.0)
    self.numDensity         = self:allocMoment()
    self.numDensityAux      = self:allocMoment()
    self.momDensity         = self:allocMoment()
@@ -304,14 +302,13 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       moment     = "GkThreeMoments",
       gkfacs     = {self.mass, self.bmag},
    }
-   self.calcMaxwell = Updater.GkMaxwellianOnBasis {
-      onGrid     = self.grid,
-      confGrid   = self.confGrid,
-      confBasis  = self.confBasis,
-      phaseGrid  = self.grid,
-      phaseBasis = self.basis,
-      gkfacs     = {self.mass, self.bmag},
-      ohGhosts   = false,
+   self.calcMaxwell = Updater.MaxwellianOnBasis {
+      onGrid      = self.grid,
+      confGrid    = self.confGrid,
+      confBasis   = self.confBasis,
+      phaseGrid   = self.grid,
+      phaseBasis  = self.basis,
+      mass        = self.mass,
    }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
@@ -335,17 +332,13 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       end
       -- Updaters for the primitive moments.
       self.confDiv = Updater.CartFieldBinOp {
+         onGrid = self.confGrid,
          onGrid    = self.confGrid,
          weakBasis = self.confBasis,
          operation = "Divide",
-      }
-      self.confDivNoGhosts = Updater.CartFieldBinOp {
-         onGrid    = self.confGrid,
-         weakBasis = self.confBasis,
-         operation = "Divide",
-	 onGhosts  = flase,
       }
       self.confMul = Updater.CartFieldBinOp {
+         onGrid    = self.confGrid,
          onGrid    = self.confGrid,
          weakBasis = self.confBasis,
          operation = "Multiply",
@@ -1597,14 +1590,11 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
  	 self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz, self.bmag}, {self.fMaxwellIz})
 
 	 self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
-	 self.confDivNoGhosts:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
+	 self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
 	 self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
 
 	 if writeOut then
-	    self.numDensity:write(string.format("%s_ccmElcM0_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
-	    self.vtSqIz:write(string.format("%s_ccmVtSqIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
-	    self.vtSqSelf:write(string.format("%s_ccmVtSqElc_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
-	    neutU:write(string.format("%s_ccmNeutU_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	    neutM0:write(string.format("%s_izNeutM0_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
 	    self.voronovReactRate:write(string.format("%s_ccmCoefIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
 	    self.fMaxwellIz:write(string.format("%s_ccmfMax_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
 	 end

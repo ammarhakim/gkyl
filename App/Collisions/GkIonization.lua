@@ -112,7 +112,6 @@ function GkIonization:createSolver(funcField)
       elcMass    = self.mass,
       elemCharge = self.charge,
       reactRate  = true,
-      onGhosts = false,
 	 
       -- Voronov parameters
       A = self._A,
@@ -125,12 +124,11 @@ function GkIonization:createSolver(funcField)
       self.calcIonizationTemp = Updater.Ionization {
 	 onGrid     = self.confGrid,
 	 confBasis  = self.confBasis,
-	 phaseGrid  = self.phaseGrid,
-	 phaseBasis = self.phaseBasis,
+	 phaseGrid     = self.phaseGrid,
+	 phaseBasis  = self.phaseBasis,
       	 elcMass    = self.mass,
       	 elemCharge = self.charge,
-	 reactRate  = false,
-	 onGhosts   = false, 
+	 reactRate  = false, 
       	 E          = self._E,
       }
       self.sumDistF =  DataStruct.Field {
@@ -144,17 +142,20 @@ function GkIonization:createSolver(funcField)
       }
    end
    self.confMult = Updater.CartFieldBinOp {
+         onGrid     = self.confGrid,
+         weakBasis  = self.confBasis,
+         operation  = "Multiply",
+   }
+   self.confDiv = Updater.CartFieldBinOp {
       onGrid     = self.confGrid,
       weakBasis  = self.confBasis,
-      operation  = "Multiply",
-      onGhosts   = false,
+      operation = "Divide",
    }
    self.confPhaseMult = Updater.CartFieldBinOp {
-      onGrid     = self.phaseGrid,
-      weakBasis  = self.phaseBasis,
-      fieldBasis = self.confBasis,
-      operation  = "Multiply",
-      onGhosts   = false,
+         onGrid     = self.phaseGrid,
+         weakBasis  = self.phaseBasis,
+         fieldBasis = self.confBasis,
+         operation  = "Multiply",
    }
    self.m0elc = DataStruct.Field {
       onGrid        = self.confGrid,

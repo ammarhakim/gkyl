@@ -20,15 +20,12 @@ double VoronovReactRateCellAv2xMax_P1(const double elemCharge, const double m_, 
   double T0 = (0.5*vtSqElc[0]*m_)/elemCharge; 
   double U = E/T0; 
  
-  if (U >= 3.0/2.0 || m0NeutAv <= 0 || vtSqNeut0 <= 0 || vtSqElc0 <= 0) { 
-    coefIz[0] = 0.0;
-    return 0.0;
-  }
-  else { 
-    coefIz[0] = (A*P*pow(U,K+1/2))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
-    return 0.08333333333333333*coefIz[0]*m0[0]; 
-  }
+  coefIz[0] = (A*P*pow(U,K+1/2))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
  
+  if (U >= 3.0/2.0 || m0NeutAv <= 0 || vtSqNeut0 <= 0) { 
+    coefIz[0] = 0.0;
+  }
+  return 0.08333333333333333*coefIz[0]*m0[0]; 
 } 
  
 double VoronovReactRateCellAv2xMax_P2(const double elemCharge, const double m_, const double *m0, const double *vtSqNeut, const double *vtSqElc, const double E, const double A, const double K, const double P, const double X, double *coefIz) 
@@ -51,15 +48,12 @@ double VoronovReactRateCellAv2xMax_P2(const double elemCharge, const double m_, 
   double T0 = (0.5*vtSqElc[0]*m_)/elemCharge; 
   double U = E/T0; 
  
-  if (U >= 3.0/2.0 || m0NeutAv <= 0 || vtSqNeut0 <= 0 || vtSqElc0 <= 0) { 
-    coefIz[0] = 0.0;
-    return 0.0;
-  }
-  else { 
-    coefIz[0] = (A*P*pow(U,K+1/2))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
-    return 0.05*coefIz[0]*m0[0]; 
-  }
+  coefIz[0] = (A*P*pow(U,K+1/2))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
  
+  if (U >= 3.0/2.0 || m0NeutAv <= 0 || vtSqNeut0 <= 0) { 
+    coefIz[0] = 0.0;
+  }
+  return 0.05*coefIz[0]*m0[0]; 
 } 
  
 double VoronovReactRateCellAv2xMax_P3(const double elemCharge, const double m_, const double *m0, const double *vtSqNeut, const double *vtSqElc, const double E, const double A, const double K, const double P, const double X, double *coefIz) 
@@ -82,14 +76,11 @@ double VoronovReactRateCellAv2xMax_P3(const double elemCharge, const double m_, 
   double T0 = (0.5*vtSqElc[0]*m_)/elemCharge; 
   double U = E/T0; 
  
-  if (U >= 3.0/2.0 || m0NeutAv <= 0 || vtSqNeut0 <= 0 || vtSqElc0 <= 0) { 
-    coefIz[0] = 0.0;
-    return 0.0;
-  }
-  else { 
-    coefIz[0] = (A*P*pow(U,K+1/2))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
-    return 0.03571428571428571*coefIz[0]*m0[0]; 
-  }
+  coefIz[0] = (A*P*pow(U,K+1/2))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
  
+  if (U >= 3.0/2.0 || m0NeutAv <= 0 || vtSqNeut0 <= 0) { 
+    coefIz[0] = 0.0;
+  }
+  return 0.03571428571428571*coefIz[0]*m0[0]; 
 } 
  

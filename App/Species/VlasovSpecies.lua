@@ -166,7 +166,6 @@ function VlasovSpecies:createSolver(hasE, hasB)
       confBasis  = self.confBasis,
       phaseGrid  = self.grid,
       phaseBasis = self.basis,
-      onGhosts   = false,
    }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.

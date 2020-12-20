@@ -954,78 +954,29 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        self.vtSqIz:write(string.format("%s_vtSqIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        self.voronovReactRate:write(string.format("%s_coefIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-
        -- include dynvector for zeroth vector of ionization source
        tmStart = Time.clock()
        local srcIzM0 = self:allocMoment()
-       --local srcIzM1 = self:allocMoment()
-       --local srcIzM2 = self:allocMoment()
        self.numDensityCalc:advance(tm, {sourceIz}, {srcIzM0})
-       --self.threeMomentsCalc:advance(tm, {sourceIz}, {srcIzM0, srcIzM1, srcIzM2})
-
        local intCalc = Updater.CartFieldIntegratedQuantCalc {
-	    onGrid        = self.confGrid,
-	      basis         = self.confBasis,
-	        numComponents = 1,
-		  quantity      = "V",
-		    timeIntegrate = true,
+       	  onGrid        = self.confGrid,
+       	  basis         = self.confBasis,
+       	  numComponents = 1,
+       	  quantity      = "V",
+       	  timeIntegrate = true,
        }
        intCalc:advance( tm, {srcIzM0}, {self.intSrcIzM0} )
        self.intSrcIzM0:write(
           string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
        self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
-    
-       -- srcIzM0:write(string.format("%s_srcIzM0_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       -- srcIzM1:write(string.format("%s_srcIzM1_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       -- srcIzM2:write(string.format("%s_srcIzM2_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        
-    elseif self.calcCXSrc then -- ions CX output
-       local sourceCX = self.collisions[self.collNmCX].sourceCX
-       self.vSigmaCX:write(string.format("%s_vSigmaCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       sourceCX:write(string.format("%s_sourceCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-
-       -- local srcCXM0 = self:allocMoment()
-       -- local srcCXM1 = self:allocMoment()
-       -- local srcCXM2 = self:allocMoment()
-       -- self.threeMomentsCalc:advance(tm, {sourceCX}, {srcCXM0, srcCXM1, srcCXM2})
-       
-       -- srcCXM0:write(string.format("%s_srcCXM0_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       -- srcCXM1:write(string.format("%s_srcCXM1_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       -- srcCXM2:write(string.format("%s_srcCXM2_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-
-       -- local sourceIz = self.collisions['ionization']:getIonizSrc()    
-       -- local srcIzM0 = self:allocMoment()
-       -- local srcIzM1 = self:allocMoment()
-       -- local srcIzM2 = self:allocMoment()
-       -- self.threeMomentsCalc:advance(tm, {sourceIz}, {srcIzM0, srcIzM1, srcIzM2})
-       
-       -- srcIzM0:write(string.format("%s_srcIzM0_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       -- srcIzM1:write(string.format("%s_srcIzM1_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       -- srcIzM2:write(string.format("%s_srcIzM2_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-    -- else -- neutrals
-       -- local sourceCX = self.collisions['chargeExchange'].sourceCX
-       -- local srcCXM0 = self:allocMoment()
-       -- local srcCXM1 = self:allocVectorMoment(self.vdim)
-       -- local srcCXM2 = self:allocMoment()
-       -- self.fiveMomentsCalc:advance(tm, {sourceCX}, {srcCXM0, srcCXM1, srcCXM2})
-       
-       -- srcCXM0:write(string.format("%s_srcCXM0_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       -- srcCXM1:write(string.format("%s_srcCXM1_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       -- srcCXM2:write(string.format("%s_srcCXM2_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-
-       -- local sourceIz = self.collisions['ionization']:getIonizSrc()    
-       -- local srcIzM0 = self:allocMoment()
-       -- local srcIzM1 = self:allocVectorMoment(self.vdim)
-       -- local srcIzM2 = self:allocMoment()
-       -- self.fiveMomentsCalc:advance(tm, {sourceIz}, {srcIzM0, srcIzM1, srcIzM2})
-       
-       -- srcIzM0:write(string.format("%s_srcIzM0_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       -- srcIzM1:write(string.format("%s_srcIzM1_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       -- srcIzM2:write(string.format("%s_srcIzM2_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
     end
 
-    -- Write Iz source for each species
-
+    -- Write CX diagnostics
+    if self.calcCXSrc then
+       self.vSigmaCX:write(string.format("%s_vSigmaCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       self.collisions[self.collNmCX].sourceCX:write(string.format("%s_sourceCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+    end
 end
 
 function KineticSpecies:isEvolving()
