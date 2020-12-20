@@ -963,7 +963,7 @@ return {
 	 Ionization = require "App.Collisions.GkIonization",
       }
    end,
-   
+
    IncompEuler = function ()
       App.label = "Incompressible Euler"
       return {

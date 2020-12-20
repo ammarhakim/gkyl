@@ -72,8 +72,14 @@ evaluateConfOrd(fh, funcNm, cdim, vdim, udimIn, basisNm, polyOrder, isGK) := blo
       if (udim = udimIn) then (
         flowU_n[i] : subst(cSub,subst(cOff=0,flowU_e))
       ) else (
-        /* When the flow velocity is a Cartesian u vector, only use the 3rd component. */
-        flowU_n[i] : subst(cSub,subst(cOff=2*numB,flowU_e))
+        /* When the flow velocity is a Cartesian u vector... */
+        if cdim=1 then ( 
+          /* ... only use the 1st component. */
+          flowU_n[i] : subst(cSub,subst(cOff=0,flowU_e))
+        ) else (
+          /* ... only use the 3rd component. */
+          flowU_n[i] : subst(cSub,subst(cOff=2*numB,flowU_e))
+        )
       ),
 
       /* Include the Jacobian of the gyrocenter coordinate transformation (i.e.
@@ -92,11 +98,21 @@ evaluateConfOrd(fh, funcNm, cdim, vdim, udimIn, basisNm, polyOrder, isGK) := blo
         if (vdim = udimIn) then (
           flowU_n[vd*ordNumC+i] : subst(cSub,subst(cOff=vd*numB,flowU_e))
         ) else (
-          /* When the flow velocity is uPar, set flowUOrd=0 in first 2 dimensions. */
-          if (vd=vdim-1) then (
-            flowU_n[vd*ordNumC+i] : subst(cSub,subst(cOff=0,flowU_e))
+          /* When the flow velocity is uPar... */
+          if cdim=1 then (
+            /* ...set flowUOrd=0 in last 2 dimensions. */
+            if (vd=0) then (
+              flowU_n[vd*ordNumC+i] : subst(cSub,subst(cOff=0,flowU_e))
+            ) else (
+              flowU_n[vd*ordNumC+i] : 0
+            )
           ) else (
-            flowU_n[vd*ordNumC+i] : 0
+            /* ...set flowUOrd=0 in first 2 dimensions. */
+            if (vd=vdim-1) then (
+              flowU_n[vd*ordNumC+i] : subst(cSub,subst(cOff=0,flowU_e))
+            ) else (
+              flowU_n[vd*ordNumC+i] : 0
+            )
           )
         )
       ),

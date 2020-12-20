@@ -255,7 +255,7 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
                uFlowOrd[ordIdx], bmagOrd[ordIdx] = 0.0, 0.0
                for k = 1, self.numConfBasis do
                   bmagOrd[ordIdx] = bmagOrd[ordIdx] + bmagItr[k]*self.confBasisAtOrds[ordIdx][k]
-                  if uDim > 1 then   -- Get the z-component of fluid velocity.
+                  if uDim > 1 and cDim > 1 then   -- Get the z-component of fluid velocity.
                      uFlowOrd[ordIdx] = uFlowOrd[ordIdx] + uFlowItr[self.numConfBasis*2+k]*self.confBasisAtOrds[ordIdx][k]
                   else
                      uFlowOrd[ordIdx] = uFlowOrd[ordIdx] + uFlowItr[k]*self.confBasisAtOrds[ordIdx][k]
@@ -270,7 +270,11 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
                            uFlowItr[self.numConfBasis*(d-1)+k]*self.confBasisAtOrds[ordIdx][k]
                      end
                   end
-               elseif uDim == 1 and vDim==3 then -- if uPar passed from GkSpecies, fill d=3 component of u.
+               elseif uDim == 1 and cDim==1 and vDim==3 then -- if uPar passed from GkSpecies, fill d=1 component of u
+                  for k = 1, self.numConfBasis do
+                     uFlowOrd[ordIdx][1] = uFlowOrd[ordIdx][1] + uFlowItr[k]*self.confBasisAtOrds[ordIdx][k]
+                  end
+               elseif uDim == 1 and cDim>1 and vDim==3 then -- if uPar passed from GkSpecies, fill d=3 component of u
                   for k = 1, self.numConfBasis do
                      uFlowOrd[ordIdx][vDim] = uFlowOrd[ordIdx][vDim] + uFlowItr[k]*self.confBasisAtOrds[ordIdx][k]
                   end

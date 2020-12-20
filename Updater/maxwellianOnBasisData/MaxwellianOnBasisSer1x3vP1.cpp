@@ -33,12 +33,12 @@ void MaxwellianOnBasisGauss1x3vSerUpar_P1_evAtConfOrd(const double *den, const d
   m0Ord[0] = 0.7071067811865475*den[0]-0.7071067811865474*den[1]; 
   m0Ord[1] = 0.7071067811865474*den[1]+0.7071067811865475*den[0]; 
 
-  flowUOrd[0] = 0.0; 
-  flowUOrd[1] = 0.0; 
+  flowUOrd[0] = 0.7071067811865475*flowU[0]-0.7071067811865474*flowU[1]; 
+  flowUOrd[1] = 0.7071067811865474*flowU[1]+0.7071067811865475*flowU[0]; 
   flowUOrd[2] = 0.0; 
   flowUOrd[3] = 0.0; 
-  flowUOrd[4] = 0.7071067811865475*flowU[0]-0.7071067811865474*flowU[1]; 
-  flowUOrd[5] = 0.7071067811865474*flowU[1]+0.7071067811865475*flowU[0]; 
+  flowUOrd[4] = 0.0; 
+  flowUOrd[5] = 0.0; 
 
   vtSqOrd[0] = 0.7071067811865475*vtSq[0]-0.7071067811865474*vtSq[1]; 
   vtSqOrd[1] = 0.7071067811865474*vtSq[1]+0.7071067811865475*vtSq[0]; 
