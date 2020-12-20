@@ -1,0 +1,37 @@
+cvars : [X, Y, Z]$
+
+polyOrderMax : 3$
+
+fh : openw("~/max-out/IonizationModDecl.h")$
+
+printf(fh, "#ifndef IONIZATION_MOD_DECL_H ~%")$
+printf(fh, "#define IONIZATION_MOD_DECL_H ~%")$
+printf(fh, "#include <cmath> ~%~%")$
+printf(fh, "#include <algorithm> ~%~%")$
+printf(fh, "extern \"C\" { ~%")$
+
+bName   : ["Ser","Max"]$
+gkVdims : [[1,2], [2], [2]]$
+
+for bInd : 1 thru length(bName) do (
+
+   for pi : 1 thru polyOrderMax do (
+     for ci : 1 thru 3 do (
+       printf(fh, "double VoronovReactRateCellAv~ax~a_P~a(const double elemCharge, const double m_, const double *m0, const double *vtSqNeut, const double *vtSqElc, const double E, const double A, const double K, const double P, const double X, double *coefIz); ~%", ci, bName[bInd], pi),
+       printf(fh, "~%"),
+
+       printf(fh, "void IonizationTemp~ax~a_P~a(const double elemCharge, const double m_, const double *vtSq, const double E, double *vtSqIz); ~%",  ci, bName[bInd], pi),
+       printf(fh, "~%")
+     ),
+     printf(fh, "~%")
+   )
+
+)$
+
+printf(fh, "~% ~%")$
+
+printf(fh, "} ~%")$
+
+printf(fh, "#endif ~%")$
+
+close(fh)$

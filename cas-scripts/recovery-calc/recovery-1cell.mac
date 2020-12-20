@@ -29,10 +29,10 @@ calcRecov1CellGen(basisNm, recDir, dirs, polyOrder, C, lo, ce, up) := block(
   baLo1D, baCe1D, baUp1D, baLoND, baCeND, baUpND,
   dimProjLo, dimProjCe, dimProjUp, qLo1D, qCe1D, qUp1D,
   wx, wy, wz,
-  numDims, dirSubList
+  numDims
   ],
 
-  baCe1D : getBasis(sconcat("basis-precalc/basis", basisNm, "1x"), polyOrder),
+  baCe1D : getBasis(basisNm, 1, polyOrder),
   baCe1D : subst(x=recDir, baCe1D),
   baLo1D : etaDir(recDir, -2, 2, baCe1D),
   baUp1D : etaDir(recDir, 2, 2, baCe1D),
@@ -106,13 +106,9 @@ calcRecov1CellGen(basisNm, recDir, dirs, polyOrder, C, lo, ce, up) := block(
   /* Backsubstitute the non-recovered directtions if needed */
   numDims : length(dirs),
   if numDims > 1 then (
-    baCeND : getBasis(sconcat("basis-precalc/basis", basisNm, numDims, "x"),
-      polyOrder),
-    dirSubList : if numDims=2 then
-                   [wx=dirs[1], wy=dirs[2]]
-                 else
-                   [wx=dirs[1], wy=dirs[2], wz=dirs[3]],
-    baCeND : subst(dirSubList, subst([x=wx,y=wy,z=wz], baCeND)),  
+    baCeND : getBasis(basisNm, numDims, polyOrder),
+    baVars : listofvars(baCeND),
+    baCeND : psubst(makelist(baVars[i]=dirs[i],i,1,numDims), baCeND),
     baLoND : etaDir(recDir, -2, 2, baCeND),
     baUpND : etaDir(recDir, 2, 2, baCeND),
     

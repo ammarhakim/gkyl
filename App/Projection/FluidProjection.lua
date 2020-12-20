@@ -24,7 +24,7 @@ end
 function FluidProjection:fullInit(species)
    self.species = species
 
-   self.confBasis = species.confBasis
+   self.basis = species.basis
    self.confGrid  = species.grid
 
    self.cdim = self.confGrid:ndim()
@@ -50,7 +50,7 @@ function FunctionProjection:fullInit(species)
 	  "The input must be a table containing function")
    self.project = Updater.ProjectOnBasis {
       onGrid          = self.confGrid,
-      basis           = self.confBasis,
+      basis           = self.basis,
       evaluate        = func,
       projectOnGhosts = true
    }
@@ -74,8 +74,8 @@ function ReadInput:run(t, distf)
       elemType = distf:elemType(),
       method   = "MPI",
       metaData = {
-         polyOrder = self.confBasis:polyOrder(),
-         basisType = self.confBasis:id()
+         polyOrder = self.basis:polyOrder(),
+         basisType = self.basis:id()
       },
    }
 

@@ -235,11 +235,14 @@ function FemPerpPoisson:init(tbl)
    end
 
    self.zContinuous = xsys.pickBool(tbl.zContinuous, false)
+   if self._smooth then self.zContinuous = true end
    self.zDiscontToCont = nil
    if self._ndim == 3 and self.zContinuous then
      self.zDiscontToCont = FemParPoisson {
        onGrid = self._grid,
        basis = self._basis,
+       bcBack = tbl.bcBack,
+       bcFront = tbl.bcFront,
        smooth = true,
      }
    end
@@ -394,6 +397,10 @@ function FemPerpPoisson:_advance(tCurr, inFld, outFld)
        end
      end
    end 
+
+   if self.zDiscontToCont then 
+      self.zDiscontToCont:advance(tCurr, {sol}, {sol}) 
+   end
 
    self._first = false
    -- reset makeStiff flag to false, until stiffness matrix changes again

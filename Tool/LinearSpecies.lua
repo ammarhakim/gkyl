@@ -379,8 +379,8 @@ function TenMoment:init(tbl)
    -- flag to indicate if we are to use a closure
    self.useClosure = xsys.pickBool(tbl.useClosure, false)
 
-   -- default value is based on Ng, Hakim et. al. PoP 2019
-   self.chi = self.chi and self.chi or math.sqrt(4/(9*math.pi))
+   -- see Ng, Hakim et. al. PoP 24, 082112 (2017)
+   self.chi = tbl.chi and tbl.chi or math.sqrt(4/(9*math.pi))
 end
 
 -- Number of equations in system
@@ -390,7 +390,7 @@ end
 
 -- Contribution to closure to dispersion matrix
 function TenMoment:closureContrib(k, field)
-   local D = Lin.ComplexMat(6, 6)
+   local D = Lin.ComplexMat(6, 10)
    matrixClear(D, 0.0)
 
    local n, p = self.density, self.pressureTensor
@@ -400,30 +400,36 @@ function TenMoment:closureContrib(k, field)
    local kabs = math.sqrt(k[1]^2+k[2]^2+k[3]^2)
    local vtzk = vth*self.chi/(kabs + 1e-6)
    
-   D[1][1] = -vtzk*(k[3]^2+k[2]^2+3*k[1]^2)*1i 
-   D[1][2] = -vtzk*(2*k[1]*k[2])*1i 
-   D[1][3] = -vtzk*(2*k[1]*k[3])*1i 
-   D[2][1] = -vtzk*(k[1]*k[2])*1i 
-   D[2][2] = -vtzk*(k[3]^2+2*k[2]^2+2*k[1]^2)*1i 
-   D[2][3] = -vtzk*(k[2]*k[3])*1i 
-   D[2][4] = -vtzk*(k[1]*k[2])*1i 
-   D[2][5] = -vtzk*(k[1]*k[3])*1i 
-   D[3][1] = -vtzk*(k[1]*k[3])*1i 
-   D[3][2] = -vtzk*(k[2]*k[3])*1i 
-   D[3][3] = -vtzk*(2*k[3]^2+k[2]^2+2*k[1]^2)*1i 
-   D[3][5] = -vtzk*(k[1]*k[2])*1i 
-   D[3][6] = -vtzk*(k[1]*k[3])*1i 
-   D[4][2] = -vtzk*(2*k[1]*k[2])*1i 
-   D[4][4] = -vtzk*(k[3]^2+3*k[2]^2+k[1]^2)*1i 
-   D[4][5] = -vtzk*(2*k[2]*k[3])*1i 
-   D[5][2] = -vtzk*(k[1]*k[3])*1i 
-   D[5][3] = -vtzk*(k[1]*k[2])*1i 
-   D[5][4] = -vtzk*(k[2]*k[3])*1i 
-   D[5][5] = -vtzk*(2*k[3]^2+2*k[2]^2+k[1]^2)*1i 
-   D[5][6] = -vtzk*(k[2]*k[3])*1i 
-   D[6][3] = -vtzk*(2*k[1]*k[3])*1i 
-   D[6][5] = -vtzk*(2*k[2]*k[3])*1i 
-   D[6][6] = -vtzk*(3*k[3]^2+k[2]^2+k[1]^2)*1i
+   D[1][1] = -vtzk*(-(2*k[1]*k[3]*p[3]+p[1]*(k[3]^2+k[2]^2+3*k[1]^2)+2*k[1]*k[2]*p[2])/n)*1i 
+   D[1][5] = -vtzk*(k[3]^2+k[2]^2+3*k[1]^2)*1i 
+   D[1][6] = -vtzk*(2*k[1]*k[2])*1i 
+   D[1][7] = -vtzk*(2*k[1]*k[3])*1i 
+   D[2][1] = -vtzk*(-(k[1]*k[3]*p[5]+k[1]*k[2]*p[4]+k[2]*k[3]*p[3]+p[2]*(k[3]^2+2*k[2]^2+2*k[1]^2)+k[1]*p[1]*k[2])/n)*1i 
+   D[2][5] = -vtzk*(k[1]*k[2])*1i 
+   D[2][6] = -vtzk*(k[3]^2+2*k[2]^2+2*k[1]^2)*1i 
+   D[2][7] = -vtzk*(k[2]*k[3])*1i 
+   D[2][8] = -vtzk*(k[1]*k[2])*1i 
+   D[2][9] = -vtzk*(k[1]*k[3])*1i 
+   D[3][1] = -vtzk*(-(k[1]*k[3]*p[6]+k[1]*k[2]*p[5]+(2*k[3]^2+k[2]^2+2*k[1]^2)*p[3]+k[2]*p[2]*k[3]+k[1]*p[1]*k[3])/n)*1i 
+   D[3][5] = -vtzk*(k[1]*k[3])*1i 
+   D[3][6] = -vtzk*(k[2]*k[3])*1i 
+   D[3][7] = -vtzk*(2*k[3]^2+k[2]^2+2*k[1]^2)*1i 
+   D[3][9] = -vtzk*(k[1]*k[2])*1i 
+   D[3][10] = -vtzk*(k[1]*k[3])*1i 
+   D[4][1] = -vtzk*(-(2*k[2]*k[3]*p[5]+(k[3]^2+3*k[2]^2+k[1]^2)*p[4]+2*k[1]*k[2]*p[2])/n)*1i 
+   D[4][6] = -vtzk*(2*k[1]*k[2])*1i 
+   D[4][8] = -vtzk*(k[3]^2+3*k[2]^2+k[1]^2)*1i 
+   D[4][9] = -vtzk*(2*k[2]*k[3])*1i 
+   D[5][1] = -vtzk*(-(k[2]*k[3]*p[6]+(2*k[3]^2+2*k[2]^2+k[1]^2)*p[5]+k[2]*k[3]*p[4]+k[1]*k[2]*p[3]+k[1]*p[2]*k[3])/n)*1i 
+   D[5][6] = -vtzk*(k[1]*k[3])*1i 
+   D[5][7] = -vtzk*(k[1]*k[2])*1i 
+   D[5][8] = -vtzk*(k[2]*k[3])*1i 
+   D[5][9] = -vtzk*(2*k[3]^2+2*k[2]^2+k[1]^2)*1i 
+   D[5][10] = -vtzk*(k[2]*k[3])*1i 
+   D[6][1] = -vtzk*(-((3*k[3]^2+k[2]^2+k[1]^2)*p[6]+2*k[2]*k[3]*p[5]+2*k[1]*k[3]*p[3])/n)*1i 
+   D[6][7] = -vtzk*(2*k[1]*k[3])*1i 
+   D[6][9] = -vtzk*(2*k[2]*k[3])*1i 
+   D[6][10] = -vtzk*(3*k[3]^2+k[2]^2+k[1]^2)*1i 
 
    return D
 end
@@ -544,7 +550,7 @@ function TenMoment:calcMomDispMat(k, field)
 
    if self.useClosure then
       local Dclosure = self:closureContrib(k, field)
-      matrixSubIncr(D, Dclosure, 5, 5) -- Pxx is the 5th equation
+      matrixSubIncr(D, Dclosure, 5, 1) -- Pxx is the 5th equation
    end
    
    return D

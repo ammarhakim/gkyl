@@ -322,14 +322,15 @@ function KineticSpecies:setConfGrid(grid)
    end
 end
 
-function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts,
-				   cPeriodicDirs, cMap)
-   self.cdim = #cCells
+function KineticSpecies:createGrid(confGridIn)
+   local confGrid = assert(confGridIn or self.confGrid, "KineticSpecies:createGrid ... must pass in confGrid or call setConfGrid prior to createGrid") 
+ 
+   self.cdim = confGrid:ndim()
    self.ndim = self.cdim+self.vdim
 
    -- Create decomposition.
    local decompCuts = {}
-   for d = 1, self.cdim do table.insert(decompCuts, cDecompCuts[d]) end
+   for d = 1, self.cdim do table.insert(decompCuts, confGrid:cuts(d)) end
    for d = 1, self.vdim do table.insert(decompCuts, self.decompCuts[d]) end
    self.decomp = DecompRegionCalc.CartProd {
       cuts = decompCuts,
@@ -339,9 +340,9 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts,
    -- Create computational domain.
    local lower, upper, cells = {}, {}, {}
    for d = 1, self.cdim do
-      table.insert(lower, cLo[d])
-      table.insert(upper, cUp[d])
-      table.insert(cells, cCells[d])
+      table.insert(lower, confGrid:lower(d))
+      table.insert(upper, confGrid:upper(d))
+      table.insert(cells, confGrid:numCells(d))
    end
    for d = 1, self.vdim do
       table.insert(lower, self.lower[d])
@@ -350,19 +351,19 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts,
    end
 
    local GridConstructor = Grid.RectCart
-   local coordinateMap = {} -- Table of functions.
-   -- Construct comp -> phys mappings if they exist.
-   if self.coordinateMap or cMap then
-      if cMap and self.coordinateMap then
+   local coordinateMap = {} -- Table of functions
+   -- Construct comp -> phys mappings if they exist
+   if self.coordinateMap or confGrid:getMappings() then
+      if confGrid:getMappings() and self.coordinateMap then
          for d = 1, self.cdim do
-            table.insert(coordinateMap, cMap[d])
+            table.insert(coordinateMap, confGrid:getMappings(d))
          end
          for d = 1, self.vdim do
             table.insert(coordinateMap, self.coordinateMap[d])
          end
-      elseif cMap then
+      elseif confGrid:getMappings() then
          for d = 1, self.cdim do
-            table.insert(coordinateMap, cMap[d])
+            table.insert(coordinateMap, confGrid:getMappings(d))
          end
          for d = 1, self.vdim do
             table.insert(coordinateMap, function (z) return z end)
@@ -382,7 +383,7 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts,
       lower         = lower,
       upper         = upper,
       cells         = cells,
-      periodicDirs  = cPeriodicDirs,
+      periodicDirs  = confGrid:getPeriodicDirs(),
       decomposition = self.decomp,
       mappings      = coordinateMap,
    }
@@ -482,11 +483,12 @@ function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop,
       skinLoop           = skinLoop,
       cdim               = self.cdim,
       vdim               = self.vdim,
-      basis = self.basis,
-      evaluate = evaluateFn,
-      evolveFn = self.evolveFnBC,
-      feedback = self.feedbackBC,
-      confBasis = self.confBasis,
+      basis              = self.basis,
+      evaluate           = evaluateFn,
+      evolveFn           = self.evolveFnBC,
+      feedback           = self.feedbackBC,
+      confBasis          = self.confBasis,
+      confGrid           = self.confGrid,
    }
 end
 
@@ -506,14 +508,18 @@ function KineticSpecies:createBCs()
    handleBc(1, self.bcx)
    handleBc(2, self.bcy)
    handleBc(3, self.bcz)
+
+   -- Calculate external boundary condition if applicable
+   if self.tbl.computeExternalBC then
+      self:calcExternalBC()      
+   end
 end
 
-function KineticSpecies:createSolver(funcField)
+function KineticSpecies:createSolver(externalField)
    -- Create solvers for collisions.
    for _, c in pairs(self.collisions) do
-      c:createSolver(funcField)
+      c:createSolver(externalField)
    end
-
    if self.positivity then
       self.posChecker = Updater.PositivityCheck {
          onGrid = self.grid,
@@ -545,10 +551,10 @@ function KineticSpecies:alloc(nRkDup)
 
    -- Create Adios object for field I/O.
    self.distIo = AdiosCartFieldIo {
-      elemType  = self.distf[1]:elemType(),
-      method    = self.ioMethod,
+      elemType   = self.distf[1]:elemType(),
+      method     = self.ioMethod,
       writeGhost = self.writeGhost,
-      metaData  = {
+      metaData   = {
 	 polyOrder = self.basis:polyOrder(),
 	 basisType = self.basis:id(),
          grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
@@ -589,7 +595,18 @@ function KineticSpecies:alloc(nRkDup)
    -- a flag for each pair of species colliding.
    self.momentFlags[5] = {}  -- Corresponds to uCross and vtSqCross.
    self.momentFlags[6] = {}  -- Corresponds to varNuXCross.
+end
 
+function KineticSpecies:getDistF(rkIdx)
+   if rkIdx == nil then
+      return self:rkStepperFields()[self.activeRKidx]
+   else
+      return self:rkStepperFields()[self.rkIdx]
+   end
+end
+
+function KineticSpecies:setActiveRKidx(rkIdx)
+   self.activeRKidx = rkIdx
 end
 
 -- Note: do not call applyBc here. it is called later in initialization sequence.
@@ -602,7 +619,6 @@ function KineticSpecies:initDist()
 
    local syncPeriodicDirs = true
    if self.fluctuationBCs then syncPeriodicDirs = false end
-
    local initCnt, backgroundCnt = 0, 0
    for _, pr in pairs(self.projections) do
       pr:fullInit(self)
@@ -665,6 +681,21 @@ function KineticSpecies:initDist()
    end
 
    self.distf[2]:clear(0.0)
+   
+   self:setActiveRKidx(1)
+
+   local weakMultiplicationPhase = Updater.CartFieldBinOp {
+      onGrid     = self.grid,
+      weakBasis  = self.basis,
+      fieldBasis = self.confBasis,
+      operation  = "Multiply",
+      onGhosts   = true,
+   }
+
+   if self.jacobGeo then
+      weakMultiplicationPhase:advance(0, {self.distf[1], self.jacobGeo}, {self.distf[1]})
+      if self.f0 then weakMultiplicationPhase:advance(0, {self.f0, self.jacobGeo}, {self.f0}) end
+   end
 
    -- Calculate initial density averaged over simulation domain.
    --self.n0 = nil
@@ -799,11 +830,8 @@ function KineticSpecies:applyBc(tCurr, fIn)
       -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
       if self.hasNonPeriodicBc then
          if self.feedbackBC then
-            self.numDensityCalc:advance(nil, {fIn}, { self.numDensity })
-            self.momDensityCalc:advance(nil, {fIn}, { self.momDensity })
-            self.ptclEnergyCalc:advance(nil, {fIn}, { self.ptclEnergy })
             for _, bc in ipairs(self.boundaryConditions) do
-               bc:advance(tCurr, {self.numDensity, self.momDensity, self.ptclEnergy}, {fIn})
+               bc:advance(tCurr, {fIn}, {fIn})
             end
          else
             for _, bc in ipairs(self.boundaryConditions) do
@@ -828,6 +856,19 @@ function KineticSpecies:applyBc(tCurr, fIn)
 end
 
 function KineticSpecies:createDiagnostics()
+   -- set up weak multiplication and division operators
+   self.weakMultiplication = Updater.CartFieldBinOp {
+      onGrid    = self.confGrid,
+      weakBasis = self.confBasis,
+      operation = "Multiply",
+      onGhosts  = true,
+   }
+   self.weakDivision = Updater.CartFieldBinOp {
+      onGrid    = self.confGrid,
+      weakBasis = self.confBasis,
+      operation = "Divide",
+      onGhosts  = true,
+   }
 end
 
 function KineticSpecies:calcDiagnosticMoments(tm)
@@ -840,6 +881,11 @@ function KineticSpecies:calcDiagnosticMoments(tm)
    for i, mom in pairs(self.diagnosticMoments) do
       self.diagnosticMomentUpdaters[mom]:advance(
 	 tCurr, {f}, {self.diagnosticMomentFields[mom]})
+      -- Remove geometric jacobian factor.
+      if self.jacobGeoInv then
+         self.weakMultiplication:advance(
+            0.0, {self.diagnosticMomentFields[mom], self.jacobGeoInv}, {self.diagnosticMomentFields[mom]})
+      end
    end
    if self.f0 and self.perturbedMoments then f:accumulate(1, self.f0) end
 end
@@ -906,6 +952,37 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
              string.format("%s_%s.bp", self.name, mom..bc:label()), tm, self.diagIoFrame)
        end
     end
+
+    -- Write ionization diagnostics
+    if self.calcReactRate then
+       local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
+       self.fMaxwellIz:write(string.format("%s_fMaxwell_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       self.vtSqIz:write(string.format("%s_vtSqIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       self.voronovReactRate:write(string.format("%s_coefIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       -- include dynvector for zeroth vector of ionization source
+       tmStart = Time.clock()
+       local srcIzM0 = self:allocMoment()
+       self.numDensityCalc:advance(tm, {sourceIz}, {srcIzM0})
+       local intCalc = Updater.CartFieldIntegratedQuantCalc {
+       	  onGrid        = self.confGrid,
+       	  basis         = self.confBasis,
+       	  numComponents = 1,
+       	  quantity      = "V",
+       	  timeIntegrate = true,
+       }
+       intCalc:advance( tm, {srcIzM0}, {self.intSrcIzM0} )
+       self.intSrcIzM0:write(
+          string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
+       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
+       
+    end
+
+    -- Write CX diagnostics
+    if self.calcCXSrc then
+       self.vSigmaCX:write(string.format("%s_vSigmaCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       self.collisions[self.collNmCX].sourceCX:write(string.format("%s_sourceCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+    end
 end
 
 function KineticSpecies:isEvolving()
@@ -938,14 +1015,14 @@ function KineticSpecies:write(tm, force)
 	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
          if self.f0 then
             if tm == 0.0 then
-	       self.distIo:write(self.f0, string.format("%s_f0_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
+	       self.f0:write(string.format("%s_f0_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame, true)
 	    end
             self.distf[1]:accumulate(-1, self.f0)
             self.distIo:write(self.distf[1], string.format("%s_f1_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
             self.distf[1]:accumulate(1, self.f0)
          end
          if tm == 0.0 and self.fSource then
-            self.distIo:write(self.fSource, string.format("%s_fSource_0.bp", self.name), tm, self.distIoFrame)
+            self.fSource:write(string.format("%s_fSource_0.bp", self.name), tm, self.distIoFrame, true)
             if self.numDensitySrc then self.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.name), tm, self.distIoFrame) end
             if self.momDensitySrc then self.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.name), tm, self.distIoFrame) end
             if self.ptclEnergySrc then self.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.name), tm, self.distIoFrame) end
@@ -1000,6 +1077,11 @@ function KineticSpecies:writeRestart(tm)
       self.diagnosticIntegratedMomentFields[mom]:write(
          string.format("%s_%s_restart.bp", self.name, mom), tm, self.dynVecRestartFrame, false, false)
    end
+
+   if self.calcReactRate then
+      self.intSrcIzM0:write(
+	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
+   end
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
@@ -1020,6 +1102,11 @@ function KineticSpecies:readRestart()
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
       self.diagnosticIntegratedMomentFields[mom]:read(
          string.format("%s_%s_restart.bp", self.name, mom))
+   end
+   
+   if self.calcReactRate then
+      self.intSrcIzM0:read(
+	 string.format("%s_intSrcIzM0_restart.bp", self.name))
    end
 
    for i, mom in pairs(self.diagnosticMoments) do

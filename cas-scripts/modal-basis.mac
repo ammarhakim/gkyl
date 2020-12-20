@@ -212,3 +212,37 @@ calcSurfExpansionMatrix(varsSurf, vPerp, valPerp, basisSurf, basisVol) := block(
 
 doExpand(f, basis) := sum(f[i]*basis[i], i, 1, length(basis))$
 doExpand1(f, basis) := sum(f[i-1]*basis[i], i, 1, length(basis))$
+
+/* Calculate integrals of a function specified by expansion
+coefficients on a sub-blocks */
+blockIntegrate(f, Nx, Ny, basis) := block(
+  [dx, dy, fi, i, j],
+  dx : 2/Nx,
+  dy : 2/Ny,
+  fi : makelist(0, i, 1, Nx*Ny),
+  for i : 1 thru Nx do (
+    for j : 1 thru Ny do (
+      fi[i+(j-1)*Nx] : integrate(integrate(doExpand(f, basis),
+          x, -1+(i-1)*dx, -1+i*dx), y, -1+(j-1)*dy, -1+j*dy)
+      )
+    ),
+  return(fi)
+  ) $
+invBlockIntegrate(fi, Nx, Ny, basis) := block(
+  [dx, dy, f, i, j, eqList, fSol],
+  f : makelist(f[i], i, 1, length(basis)),
+  dx : 2/Nx,
+  dy : 2/Ny,
+  eqList : [],
+  for i : 1 thru Nx do (
+    for j : 1 thru Ny do (
+      eqList : append(
+        eqList,
+        [integrate(integrate(doExpand(f, basis),
+            x, -1+(i-1)*dx, -1+i*dx), y, -1+(j-1)*dy, -1+j*dy) - fi[i+(j-1)*Nx]]
+        )   
+      )
+    ), 
+  fSol : linsolve(eqList, f),
+  return(subst(fSol, f))
+  ) $

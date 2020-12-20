@@ -143,19 +143,64 @@ class Gkyl {
     std::string createTopLevelDefs() const;
     /* Run Lua code in string */
     void runLua(const std::string& lua);
+
+    /** 
+     * Checks if toolNm exists (including abbreviations) and sets the
+     * 'inpFile' variable to the proper value if it does. If the tool
+     * is not found it does nothing. If there there are multiple
+     * matches, prints message and throws an exception.
+     */
+    void checkToolIfExist(const std::string& toolNm);
+    
 };
+
+void
+Gkyl::checkToolIfExist(const std::string& inp) {
+  // just check if there is an exact match
+  auto tool = toolList.find(inp);
+  if (toolList.end() != tool) {
+    inpFile = execPath + "/Tool/" + tool->second.first;
+    return;
+  }
+
+  std::vector<std::string> toolMatch, toolMatchNm; // store matched names
+  // check for abbreviations
+  for (const auto &[toolNm, toolInfo] : toolList) {
+    std::size_t pos = toolNm.find(inp);
+    if (pos == 0) {
+      toolMatch.push_back(toolInfo.first);
+      toolMatchNm.push_back(toolNm);
+    }
+  }
+
+  if (toolMatch.size() == 0) {
+    return; // tool name not specified
+  }
+  
+  if (toolMatch.size() == 1) {
+    inpFile = execPath + "/Tool/" + toolMatch[0];
+    return;
+  }
+  std::cout << "Multiple tools match '" << inpFile << "':" << std::endl;
+  for (const auto &v : toolMatchNm)
+    std::cout << v << " ";
+  std::cout << std::endl;
+  throw std::runtime_error("Disambiguate tool name!");
+}
 
 Gkyl::Gkyl(const std::string& luaExpr, const std::string& inpFileNm, const std::list<std::string>& args)
   : hasInpFile(!inpFileNm.empty()), luaExpr(luaExpr), inpFile(inpFileNm), args(args), execPath(findExecPath())
 {
   toolList = {
-    { "help", { "help.lua", "Gkeyll help system" } },
+    { "man", { "man.lua", "Gkeyll online man page" } },
+    { "woman", { "man.lua", "Gkeyll online man (Woe without man)" } },
     { "examples", {"examples.lua", "Example input files"} },
     { "queryrdb", {"queryrdb.lua", "Query/modify regression test DB"} },
     { "runregression", {"runregression.lua", "Run regression/unit tests"} },
     { "comparefiles", {"comparefiles.lua", "Compare two BP files"} },
     { "exacteulerrp", {"exacteulerrp.lua", "Exact Euler Riemann problem solver"} },
     { "multimomlinear", {"multimomlinear.lua", "Linear dispersion solver for multi-moment, multifluid equations"} },
+    { "eqdskreader", {"eqdskreader.lua", "Read eqdsk file, writing to ADIOS-BP files"} },
 #ifdef HAVE_CUDA_H
     { "deviceinfo", {"deviceinfo.lua", "Information about device"} },
 #endif
@@ -163,13 +208,11 @@ Gkyl::Gkyl(const std::string& luaExpr, const std::string& inpFileNm, const std::
 
   if (hasInpFile) {
     // check if tool specified
-    auto tool = toolList.find(inpFile);
-    if (toolList.end() != tool) 
-      inpFile = execPath + "/Tool/" + tool->second.first;
+    checkToolIfExist(inpFile); // modifies inpFile
     inpFileContent = readInputFile(inpFile);
   }
 
-  // initialize Lua (I want to replace this with sol2 library)
+  // initialize Lua
   L =  luaL_newstate();
   if (NULL == L)
     throw std::runtime_error("Unable to create a new Lua interpreter state.");

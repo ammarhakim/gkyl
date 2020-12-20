@@ -9,13 +9,14 @@
 local Proto          = require "Lib.Proto"
 local KineticSpecies = require "App.Species.KineticSpecies"
 local Mpi            = require "Comm.Mpi"
-local Gk             = require "Eq.Gyrokinetic"
+local GyrokineticEq  = require "Eq.Gyrokinetic"
 local Updater        = require "Updater"
 local DataStruct     = require "DataStruct"
 local Time           = require "Lib.Time"
 local Constants      = require "Lib.Constants"
 local Lin            = require "Lib.Linalg"
 local xsys           = require "xsys"
+local VlasovEq       = require "Eq.Vlasov"
 
 local GkSpecies = Proto(KineticSpecies)
 
@@ -51,7 +52,7 @@ function GkSpecies:alloc(nRkDup)
       self.ptclEnergyPos      = self:allocMoment()
    end
    self.polarizationWeight = self:allocMoment() -- not used when using linearized poisson solve
-
+			
    if self.gyavg then
       self.rho1 = self:allocDistf()
       self.rho2 = self:allocDistf()
@@ -71,42 +72,41 @@ function GkSpecies:allocMomCouplingFields()
    assert(false, "GkSpecies:allocMomCouplingFields should not be called. Field object should allocate its own coupling fields")
 end
 
-function GkSpecies:createSolver(hasPhi, hasApar, funcField)
+function GkSpecies:createSolver(hasPhi, hasApar, externalField)
    -- Run the KineticSpecies 'createSolver()' to initialize the
    -- collisions solver.
-   GkSpecies.super.createSolver(self,funcField)
+   GkSpecies.super.createSolver(self,externalField)
 
-   -- Set up jacobian.
-   if funcField then
-      -- Save bmagFunc for later...
-      self.bmagFunc = funcField.bmagFunc
-      -- If vdim>1, get jacobian=bmag from geo.
+   -- Set up Jacobian.
+   if externalField then
+      self.bmagFunc = externalField.bmagFunc
+      -- If vdim>1, get the phase-space Jacobian (=bmag) from geo.
       self.jacobPhaseFunc = self.bmagFunc
-      self.jacobGeoFunc   = funcField.jacobGeoFunc
-      if self.cdim == 1 then 
-         self.B0 = funcField.bmagFunc(0.0, {self.grid:mid(1)})
-      elseif self.cdim == 2 then 
-         self.B0 = funcField.bmagFunc(0.0, {self.grid:mid(1), self.grid:mid(2)})
-      else
-         self.B0 = funcField.bmagFunc(0.0, {self.grid:mid(1), self.grid:mid(2), self.grid:mid(3)})
-      end
-      self.bmag    = assert(funcField.geo.bmag, "nil bmag")
-      self.bmagInv = funcField.geo.bmagInv
+      self.jacobGeoFunc   = externalField.jacobGeoFunc
+
+      local xMid = {}
+      for d = 1,self.cdim do xMid[d]=self.grid:mid(d) end
+      self.B0 = externalField.bmagFunc(0.0, xMid)
+
+      self.bmag        = assert(externalField.geo.bmag, "nil bmag")
+      self.bmagInv     = externalField.geo.bmagInv
+      self.jacobGeo    = externalField.geo.jacobGeo
+      self.jacobGeoInv = externalField.geo.jacobGeoInv
    end
 
    if self.gyavg then
       -- Set up geo fields needed for gyroaveraging.
       local rho1Func = function (t, xn)
          local mu = xn[self.ndim]
-         return math.sqrt(2*mu*self.mass*funcField.gxxFunc(t, xn)/(self.charge^2*funcField.bmagFunc(t, xn)))
+         return math.sqrt(2*mu*self.mass*externalField.gxxFunc(t, xn)/(self.charge^2*externalField.bmagFunc(t, xn)))
       end
       local rho2Func = function (t, xn)
          local mu = xn[self.ndim]
-         return funcField.gxyFunc(t,xn)*math.sqrt(2*mu*self.mass/(self.charge^2*funcField.gxxFunc(t, xn)*funcField.bmagFunc(t, xn)))
+         return externalField.gxyFunc(t,xn)*math.sqrt(2*mu*self.mass/(self.charge^2*externalField.gxxFunc(t, xn)*externalField.bmagFunc(t, xn)))
       end
       local rho3Func = function (t, xn)
          local mu = xn[self.ndim]
-         return math.sqrt(2*mu*self.mass*(funcField.gxxFunc(t,xn)*funcField.gyyFunc(t,xn)-funcField.gxyFunc(t,xn)^2)/(self.charge^2*funcField.gxxFunc(t, xn)*funcField.bmagFunc(t, xn)))
+         return math.sqrt(2*mu*self.mass*(externalField.gxxFunc(t,xn)*externalField.gyyFunc(t,xn)-externalField.gxyFunc(t,xn)^2)/(self.charge^2*externalField.gxxFunc(t, xn)*externalField.bmagFunc(t, xn)))
       end
       local project1 = Updater.ProjectOnBasis {
          onGrid          = self.grid,
@@ -156,7 +156,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
    end
 
    -- Create updater to advance solution by one time-step.
-   self.equation = Gk.GkEq {
+   self.equation = GyrokineticEq.GkEq {
       onGrid       = self.grid,
       confGrid     = self.confGrid,
       phaseBasis   = self.basis,
@@ -165,10 +165,11 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       mass         = self.mass,
       hasPhi       = hasPhi,
       hasApar      = hasApar,
-      Bvars        = funcField.bmagVars,
+      Bvars        = externalField.bmagVars,
       hasSheathBcs = self.hasSheathBcs,
       positivity   = self.positivity,
       gyavgSlvr    = self.emGyavgSlvr,
+      geometry     = externalField.geo.name,
    }
 
    -- No update in mu direction (last velocity direction if present)
@@ -191,6 +192,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       updateDirections   = upd,
       clearOut           = false,   -- Continue accumulating into output field.
    }
+   
    if hasApar and self.basis:polyOrder()==1 then 
       -- This solver calculates vpar surface terms for Ohm's law. p=1 only!
       self.solverStep2 = Updater.HyperDisCont {
@@ -204,14 +206,15 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          clearOut           = false,            -- Continue accumulating into output field.
       }
       -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
-      self.equationStep2 = Gk.GkEqStep2 {
+      self.equationStep2 = GyrokineticEq.GkEqStep2 {
          onGrid     = self.grid,
          phaseBasis = self.basis,
          confBasis  = self.confBasis,
          charge     = self.charge,
          mass       = self.mass,
-         Bvars      = funcField.bmagVars,
+         Bvars      = externalField.bmagVars,
          positivity = self.positivity,
+         geometry   = externalField.geo.name,
       }
       -- Note that the surface update for this term only involves the vpar direction.
       self.solverStep3 = Updater.HyperDisCont {
@@ -225,14 +228,15 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       }
    elseif hasApar and self.basis:polyOrder()>1 then
       -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
-      self.equationStep2 = Gk.GkEqStep2 {
+      self.equationStep2 = GyrokineticEq.GkEqStep2 {
          onGrid     = self.grid,
          phaseBasis = self.basis,
          confBasis  = self.confBasis,
          charge     = self.charge,
          mass       = self.mass,
-         Bvars      = funcField.bmagVars,
+         Bvars      = externalField.bmagVars,
          positivity = self.positivity,
+         geometry   = externalField.geo.name,
       }
       -- Note that the surface update for this term only involves the vpar direction.
       self.solverStep2 = Updater.HyperDisCont {
@@ -297,6 +301,14 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       confBasis  = self.confBasis,
       moment     = "GkThreeMoments",
       gkfacs     = {self.mass, self.bmag},
+   }
+   self.calcMaxwell = Updater.MaxwellianOnBasis {
+      onGrid      = self.grid,
+      confGrid    = self.confGrid,
+      confBasis   = self.confBasis,
+      phaseGrid   = self.grid,
+      phaseBasis  = self.basis,
+      mass        = self.mass,
    }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
@@ -552,6 +564,64 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       end
    end
 
+   -- If ionization collision object exists, locate electrons
+   local counterIz_elc = true
+   local counterIz_neut = true
+   for sN, _ in pairs(species) do
+      if species[sN].collisions and next(species[sN].collisions) then 
+         for sO, _ in pairs(species) do
+   	    if self.collPairs[sN][sO].on then
+   	       if (self.collPairs[sN][sO].kind == 'Ionization') then
+   		  for collNm, _ in pairs(species[sN].collisions) do
+   		     if self.name==species[sN].collisions[collNm].elcNm and counterIz_elc then
+   			self.neutNmIz = species[sN].collisions[collNm].neutNm
+   			self.needSelfPrimMom  = true
+			self.calcReactRate    = true
+   			self.collNmIoniz      = collNm
+			self.voronovReactRate = self:allocMoment()
+   			self.vtSqIz           = self:allocMoment()
+   			self.m0fMax           = self:allocMoment()
+   			self.m0mod            = self:allocMoment()
+   			self.fMaxwellIz       = self:allocDistf()
+			self.intSrcIzM0 = DataStruct.DynVector {
+			   numComponents = 1,
+			}
+   			counterIz_elc = false
+		     elseif self.name==species[sN].collisions[collNm].neutNm and counterIz_neut then
+			self.needSelfPrimMom = true
+   		     end
+   		  end
+   	       end
+   	    end
+   	 end
+      end
+   end
+
+   -- If Charge Exchange collision object exists, locate ions
+   local counterCX_ion = true
+   for sN, _ in pairs(species) do
+      if species[sN].collisions and next(species[sN].collisions) then 
+         for sO, _ in pairs(species) do
+   	    if self.collPairs[sN][sO].on then
+   	       if (self.collPairs[sN][sO].kind == 'CX') then
+   		  for collNm, _ in pairs(species[sN].collisions) do
+   		     if self.name==species[sN].collisions[collNm].ionNm and counterCX_ion then
+   			self.calcCXSrc        = true			
+   			self.collNmCX         = collNm
+   			self.neutNmCX         = species[sN].collisions[collNm].neutNm
+   			self.needSelfPrimMom  = true
+			species[self.neutNmCX].needSelfPrimMom = true
+   			self.vSigmaCX         = self:allocMoment()
+   			species[self.neutNmCX].needSelfPrimMom = true
+   			counterCX_ion = false
+    		     end
+   		  end
+   	       end
+   	    end
+   	 end
+      end
+   end
+   
    if self.needSelfPrimMom then
       -- Allocate fields to store self-species primitive moments.
       self.uParSelf = self:allocMoment()
@@ -560,7 +630,6 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       -- Allocate fields for boundary corrections.
       self.m1Correction = self:allocMoment()
       self.m2Correction = self:allocMoment()
-
       -- Allocate fields for star moments (only used with polyOrder=1).
       if (self.basis:polyOrder()==1) then
          self.m0Star = self:allocMoment()
@@ -616,7 +685,9 @@ function GkSpecies:initCrossSpeciesCoupling(species)
             -- only if some other species collides with it.
             if (sN ~= sO) and (self.collPairs[sN][sO].on or self.collPairs[sO][sN].on) then
                otherNm = string.gsub(sO .. sN, self.name, "")
-               if self.nuVarXCross[otherNm] == nil then
+	       if species[sN].charge == 0 or species[sO].charge == 0 then
+		  -- do nothing
+               elseif self.nuVarXCross[otherNm] == nil then
                   self.nuVarXCross[otherNm] = self:allocMoment()
                   if (userInputNuProfile and (not self.collPairs[sN][sO].timeDepNu) or (not self.collPairs[sO][sN].timeDepNu)) then
                      projectNuX:setFunc(self.collPairs[self.name][otherNm].nu)
@@ -635,6 +706,7 @@ function GkSpecies:initCrossSpeciesCoupling(species)
 end
 
 function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
+   self:setActiveRKidx(inIdx)
    self.tCurr = tCurr
    local fIn = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
@@ -655,8 +727,10 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
+	 --print('Collision advance start', c.name)
          c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
          c:advance(tCurr, fIn, species, fRhsOut)
+	 --print('Collision advance complete', c.name)
          -- the full 'species' list is needed for the cross-species
          -- collisions
       end
@@ -764,11 +838,11 @@ function GkSpecies:createDiagnostics()
    local function allocateDiagnosticIntegratedMoments(intMoments, bc, timeIntegrate)
       local label = ""
       local phaseGrid = self.grid
-      local confGrid = self.confGrid
+      local confGrid  = self.confGrid
       if bc then
          label = bc:label()
          phaseGrid = bc:getBoundaryGrid()
-         confGrid = bc:getConfBoundaryGrid()
+         confGrid  = bc:getConfBoundaryGrid()
       end
       local timeIntegrate = xsys.pickBool(timeIntegrate, false)
       for i, mom in ipairs(intMoments) do
@@ -833,7 +907,7 @@ function GkSpecies:createDiagnostics()
    -- Check if diagnostic name is correct.
    local function isWeakMomentNameGood(nm)
       return nm == "GkUpar" or nm == "GkVtSq" or nm == "GkTpar" or nm == "GkTperp"
-          or nm == "GkTemp" or nm == "GkBeta" or nm == "GkHamilEnergy" or nm == "GkUparCross" or nm == "GkVtSqCross"
+          or nm == "GkTemp" or nm == "GkBeta" or nm == "GkEnergy" or nm == "GkUparCross" or nm == "GkVtSqCross"
    end
 
    self.diagnosticMomentFields   = { }
@@ -852,6 +926,12 @@ function GkSpecies:createDiagnostics()
       weakBasis  = self.confBasis,
       operation  = "Divide",
       onGhosts   = true,
+   }
+   self.confPhaseMult = Updater.CartFieldBinOp {
+      onGrid     = self.grid,
+      weakBasis  = self.basis,
+      fieldBasis = self.confBasis,
+      operation  = "Multiply",
    }
 
    -- Sort moments into diagnosticMoments, diagnosticWeakMoments.
@@ -902,8 +982,8 @@ function GkSpecies:createDiagnostics()
          end
          -- integrated Hamiltonian energy (HE)
          if mom == "intHE" then
-            if not contains(weakMoments, "GkHamilEnergy") then
-               table.insert(weakMoments, "GkHamilEnergy")
+            if not contains(weakMoments, "GkEnergy") then
+               table.insert(weakMoments, "GkEnergy")
             end
          end
       end
@@ -968,7 +1048,7 @@ function GkSpecies:createDiagnostics()
             if not contains(moments, "GkM0") then
                table.insert(moments, "GkM0")
             end
-         elseif mom == "GkHamilEnergy" then
+         elseif mom == "GkEnergy" then
             if not contains(moments, "GkM0") then
                table.insert(moments, "GkM0")
             end
@@ -982,14 +1062,14 @@ function GkSpecies:createDiagnostics()
    -- Allocate space to store moments and create moment updaters.
    local function allocateDiagnosticMoments(moments, weakMoments, bc)
       local label = ""
-      local bmag = self.bmag
+      local bmag  = self.bmag
       local phaseGrid = self.grid
-      local confGrid = self.confGrid
+      local confGrid  = self.confGrid
       if bc then
          label = bc:label()
          phaseGrid = bc:getBoundaryGrid()
-         confGrid = bc:getConfBoundaryGrid()
-         bmag = bc.bmag
+         confGrid  = bc:getConfBoundaryGrid()
+         bmag      = bc.bmag
       end
 
       for i, mom in pairs(moments) do
@@ -1188,9 +1268,9 @@ function GkSpecies:createDiagnostics()
 
                self.diagnosticMomentUpdaters["GkBeta"..label].tCurr = tm -- mark as complete for this tm
             end
-         elseif mom == "GkHamilEnergy" then
-            self.diagnosticMomentUpdaters["GkHamilEnergy"..label].advance = function (self, tm)
-               if self.diagnosticMomentUpdaters["GkHamilEnergy"..label].tCurr == tm then return end -- return if already computed for this tm
+         elseif mom == "GkEnergy" then
+            self.diagnosticMomentUpdaters["GkEnergy"..label].advance = function (self, tm)
+               if self.diagnosticMomentUpdaters["GkEnergy"..label].tCurr == tm then return end -- return if already computed for this tm
                local phi = self.equation.phi
                if bc then
                   phi = bc:evalOnConfBoundary(self.equation.phi)
@@ -1215,11 +1295,11 @@ function GkSpecies:createDiagnostics()
                -- do weak ops
                self.weakMultiplication:advance(tm,
                     {self.diagnosticMomentFields["GkM0"..label], phi},
-                    {self.diagnosticMomentFields["GkHamilEnergy"..label]})
-               self.diagnosticMomentFields["GkHamilEnergy"..label]:scale(self.charge)
-               self.diagnosticMomentFields["GkHamilEnergy"..label]:accumulate(self.mass/2, self.diagnosticMomentFields["GkM2"..label])
+                    {self.diagnosticMomentFields["GkEnergy"..label]})
+               self.diagnosticMomentFields["GkEnergy"..label]:scale(self.charge)
+               self.diagnosticMomentFields["GkEnergy"..label]:accumulate(self.mass/2, self.diagnosticMomentFields["GkM2"..label])
 
-               self.diagnosticMomentUpdaters["GkHamilEnergy"..label].tCurr = tm -- mark as complete for this tm
+               self.diagnosticMomentUpdaters["GkEnergy"..label].tCurr = tm -- mark as complete for this tm
             end
          elseif string.find(mom, "GkUparCross") then
             self.diagnosticMomentUpdaters["GkUparCross"..label].advance = function (self, tm)
@@ -1254,7 +1334,7 @@ function GkSpecies:createDiagnostics()
              onGrid        = bc:getConfBoundaryGrid(),
              numComponents = self.bmag:numComponents(),
              ghost         = {1,1},
-             metaData = self.bmag:getMetaData(),
+             metaData      = self.bmag:getMetaData(),
            }
          -- Need to copy because evalOnConfBoundary only returns a pointer to a field that belongs to bc (and could be overwritten).
          bc.bmag:copy(bc:evalOnConfBoundary(self.bmag))
@@ -1302,9 +1382,9 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tm)
             self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
                tm, {self.diagnosticMomentFields["GkM2"..label], self.mass/2}, {self.diagnosticIntegratedMomentFields[mom..label]})
          elseif mom == "intHE" then
-            self.diagnosticMomentUpdaters["GkHamilEnergy"..label].advance(self, tm)
+            self.diagnosticMomentUpdaters["GkEnergy"..label].advance(self, tm)
             self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
-               tm, {self.diagnosticMomentFields["GkHamilEnergy"..label]}, {self.diagnosticIntegratedMomentFields[mom..label]})
+               tm, {self.diagnosticMomentFields["GkEnergy"..label]}, {self.diagnosticIntegratedMomentFields[mom..label]})
          elseif mom == "intL1" then
             self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
                tm, {fIn}, {self.diagnosticIntegratedMomentFields[mom..label]})
@@ -1418,9 +1498,7 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    local function bcCopyFunc(...)    return self:bcCopyFunc(...) end
    
    local vdir = nil
-   if dir==self.cdim then 
-      vdir=self.cdim+1 
-   end
+   if dir==self.cdim then vdir = self.cdim+1 end
 
    if type(bcType) == "function" then
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcCopyFunc }, "pointwise", bcType))
@@ -1445,22 +1523,25 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    end
 end
 
-function GkSpecies:calcCouplingMoments(tCurr, rkIdx)
+function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
+   local writeOut = false
    local fIn = self:rkStepperFields()[rkIdx]
-
    -- Compute moments needed in coupling to fields and collisions.
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
-
       if self.deltaF then
-        fIn:accumulate(-1.0, self.f0)
+	 fIn:accumulate(-1.0, self.f0)
       end
-      
+
+      if writeOut then
+	 fIn:write(string.format("%s_ccmDistF_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+      end
+
       if self.needSelfPrimMom then
          self.threeMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy,
                                                           self.m1Correction, self.m2Correction,
                                                           self.m0Star, self.m1Star, self.m2Star })
-         if self.needCorrectedSelfPrimMom then
+	 if self.needCorrectedSelfPrimMom then
             -- Also compute self-primitive moments uPar and vtSq.
             self.primMomSelf:advance(tCurr, {self.numDensity, self.momDensity, self.ptclEnergy,
                                              self.m1Correction, self.m2Correction,
@@ -1475,6 +1556,9 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx)
                                        -1.0/self.vDegFreedom, self.numDensityAux )
             self.confDiv:advance(tCurr, {self.numDensity, self.momDensityAux}, {self.vtSqSelf})
          end
+	 --self.vtSqSelf:write(string.format("%s_ccmVtSq_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	 --self.uParSelf:write(string.format("%s_ccmUpar_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+
          -- Indicate that moments, boundary corrections, star moments
          -- and self-primitive moments have been computed.
          for iF=1,4 do
@@ -1490,6 +1574,45 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx)
         fIn:accumulate(1.0, self.f0)
       end
 
+      -- For ionization.
+      if self.calcReactRate then
+	 local neutM0 = species[self.neutNmIz]:fluidMoments()[1]
+      	 local neutU  = species[self.neutNmIz]:selfPrimitiveMoments()[1]
+	 local neutVtSq = species[self.neutNmIz]:selfPrimitiveMoments()[2]
+	    
+	 if tCurr == 0.0 then
+	    species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+	 end
+	 species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {self.voronovReactRate})
+	 species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
+
+ 	 self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz, self.bmag}, {self.fMaxwellIz})
+	 self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
+	 self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
+	 self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
+
+	 if writeOut then
+	    neutM0:write(string.format("%s_izNeutM0_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	    --self.vtSqSelf:write(string.format("%s_vtSq_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	    self.voronovReactRate:write(string.format("%s_ccmCoefIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	    self.fMaxwellIz:write(string.format("%s_ccmfMax_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	 end
+      end
+
+      if self.calcCXSrc then
+      	 -- Calculate Vcx*SigmaCX.
+	 local m0 = species[self.neutNmCX]:fluidMoments()[1]
+      	 local neutU = species[self.neutNmCX]:selfPrimitiveMoments()[1]
+      	 local neutVtSq = species[self.neutNmCX]:selfPrimitiveMoments()[2]
+	 --neutVtSq:write(string.format("%s_neutVtSq_%d.bp",self.name,tCurr*1e10),tCurr,0,true)	 
+	 
+      	 species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uParSelf, neutU, self.vtSqSelf, neutVtSq}, {self.vSigmaCX})
+	 if writeOut then
+	    m0:write(string.format("%s_cxNeutM0_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
+	    self.vSigmaCX:write(string.format("%s_ccmVSigmaCX_%d.bp",self.name,tCurr*1e10),tCurr,0,true)	 
+	 end
+      end
+      
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
@@ -1613,6 +1736,22 @@ function GkSpecies:getPolarizationWeight(linearized)
    end
 end
 
+function GkSpecies:getVoronovReactRate()
+   return self.voronovReactRate
+end
+
+function GkSpecies:getFMaxwellIz()
+   return self.fMaxwellIz
+end
+
+function GkSpecies:getSrcCX()
+   return self.srcCX
+end
+
+function GkSpecies:getVSigmaCX()
+   return self.vSigmaCX
+end
+
 function GkSpecies:momCalcTime()
    local tm = self.tmCouplingMom
    for i, mom in pairs(self.diagnosticMoments) do
@@ -1637,16 +1776,16 @@ function GkSpecies:totalSolverTime()
 end
 
 function GkSpecies:Maxwellian(xn, n0, T0, vdIn)
-   local vd = vdIn or 0.0
-   local vt2 = T0/self.mass
+   local vd   = vdIn or 0.0
+   local vt2  = T0/self.mass
    local vpar = xn[self.cdim+1]
-   local v2 = (vpar-vd)^2
+   local v2   = (vpar-vd)^2
    if self.vdim > 1 then 
-     local mu = xn[self.cdim+2]
-     v2 = v2 + 2*math.abs(mu)*self.bmagFunc(0,xn)/self.mass
-     return n0*(2*math.pi*vt2)^(-3/2)*math.exp(-v2/(2*vt2))
+      local mu = xn[self.cdim+2]
+      v2 = v2 + 2*math.abs(mu)*self.bmagFunc(0,xn)/self.mass
+      return n0*(2*math.pi*vt2)^(-3/2)*math.exp(-v2/(2*vt2))
    else
-     return n0*(2*math.pi*vt2)^(-1/2)*math.exp(-v2/(2*vt2))
+      return n0*(2*math.pi*vt2)^(-1/2)*math.exp(-v2/(2*vt2))
    end
 end
 

@@ -1,0 +1,173 @@
+/* Generate Lua code that fills the left-side matrix entries
+   corresponding to the discretization of the Poisson equation
+      Laplacian(phi) = - rho
+   with recovery DG. */
+
+kill(all) $
+load("recovery") $
+
+numDims : 3 $
+basisNm : ["Ser", "Tensor"] $
+maxPolyOrder : 2 $
+J : [4/dx[1]^2, 4/dx[2]^2, 4/dx[3]^2] $
+varBC : true $
+isLo : true $
+isUp : false $
+
+for polyOrder : 1 thru maxPolyOrder do (
+  for bIdx : 1 thru max(length(basisNm), polyOrder) do (
+    for d : 1 thru numDims do (
+      /* Variables and basis */
+      ba : getBasis(basisNm[bIdx], numDims, polyOrder),
+      numBasis : length(ba),
+      dirs : getDirs(numDims, polyOrder),
+
+      /* Prepare field for expansion coefficients */
+      baFace : getBasis(basisNm[bIdx], numDims-1, polyOrder),
+      numBasisFace : length(baFace),
+
+      /* Recovery polynomials at lower and upper boundaries */
+      if isLo then (
+        if varBC then (
+          phiRecL : calcRecov2CellGen(basisNm[bIdx], dirs[d], dirs, polyOrder,
+            dg(phiC, bc(D=D, N=N, ec=makelist(val[i], i, 1, numBasisFace))), dg(phiU))
+        ) else (
+          phiRecL : calcRecov2CellGen(basisNm[bIdx], dirs[d], dirs, polyOrder,
+            dg(phiC, bc(D=D, N=N, val=val)), dg(phiU))
+        ),
+        phiRecU : calcRecov2CellGen(basisNm[bIdx], dirs[d], dirs, polyOrder,
+          dg(phiC), dg(phiU)),
+        /* Recovery value and derivative at the boundary */
+        phiRecL0 : subst(dirs[d]=-2, phiRecL),
+        phiRecLd0 : subst(dirs[d]=-2, diff(phiRecL, dirs[d])),
+        phiRecU0 : subst(dirs[d]=0, phiRecU),
+        phiRecUd0 : subst(dirs[d]=0, diff(phiRecU, dirs[d]))
+      ) elseif isUp then (
+        /* Recovery polynomials at lower and upper boundaries */
+        phiRecL : calcRecov2CellGen(basisNm[bIdx], dirs[d], dirs, polyOrder,
+          dg(phiL), dg(phiC)),
+        if varBC then (
+          phiRecU : calcRecov2CellGen(basisNm[bIdx], dirs[d], dirs, polyOrder,
+            dg(phiL), dg(phiC, bc(D=D, N=N, ec=makelist(val[i], i, 1, numBasisFace))))
+        ) else (
+          phiRecU : calcRecov2CellGen(basisNm[bIdx], dirs[d], dirs, polyOrder,
+            dg(phiL), dg(phiC, bc(D=D, N=N, val=val)))
+        ),
+        /* Recovery value and derivative at the boundary */
+        phiRecL0 : subst(dirs[d]=0, phiRecL),
+        phiRecLd0 : subst(dirs[d]=0, diff(phiRecL, dirs[d])),
+        phiRecU0 : subst(dirs[d]=2, phiRecU),
+        phiRecUd0 : subst(dirs[d]=2, diff(phiRecU, dirs[d]))
+      ),
+      
+      if (isLo or isUp) then (
+        /* Surface terms */
+        if numDims=1 then (
+          surfTerms : J[d]*(subst(dirs[d]=1, ba)*phiRecUd0-
+            subst(dirs[d]=1, diff(ba, dirs[d]))*phiRecU0-
+            subst(dirs[d]=-1, ba)*phiRecLd0+
+            subst(dirs[d]=-1, diff(ba, dirs[d]))*phiRecL0)
+          ) else (
+          perpDirs : delete(dirs[d], dirs),
+          surfTerms : J[d]*(calcInnerProdList(perpDirs, 1, subst(dirs[d]=1, ba), phiRecUd0)-
+            calcInnerProdList(perpDirs, 1, subst(dirs[d]=1, diff(ba, dirs[d])), phiRecU0)-
+            calcInnerProdList(perpDirs, 1, subst(dirs[d]=-1, ba), phiRecLd0)+
+            calcInnerProdList(perpDirs, 1, subst(dirs[d]=-1, diff(ba, dirs[d])), phiRecL0))
+          ),
+        /* Volume terms */
+        volTerms  : J[d]*calcInnerProdList(dirs, 1, diff(ba, dirs[d], 2), doExpand(phiC, ba)),
+        /* Left-side stencil */
+        stProj : surfTerms + volTerms
+      ) else (
+        phiRecC : calcRecov1CellGen(basisNm[bIdx], dirs[d], dirs, polyOrder, 1,
+          dg(phiL), dg(phiC), dg(phiU)),
+        stProj : calcInnerProdList(dirs, 1, ba, diff(phiRecC, dirs[d], 2))*J[d]
+      ),
+
+      /* Prepare the output file */
+      edgeTag : if isLo then "Lo" elseif isUp then "Up" else "",
+      baTag : if polyOrder=1 or numDims=1 then "" else basisNm[bIdx],
+      varBcTag : if varBC and (isLo or isUp) then "Var" else "",
+      fname : sconcat("~/max-out/discontPoisson", baTag, "Stencil", numDims, "D_", polyOrder, "p_", dirs[d], edgeTag, varBcTag, ".lua"),
+      fh : openw(fname),
+      
+      printf(fh, "local Lin = require(\"Lib.Linalg\")~%"),
+      if (isLo or isUp) then (
+        printf(fh, "local function stencilFn(dx, D, N, val)~%")
+      ) else (
+        printf(fh, "local function stencilFn(dx)~%")
+      ),
+      printf(fh, "  local _M = {}~%~%"),
+
+      if isLo then (
+        printf(fh, "  _M[1] = Lin.Vec(~a)~%", numBasis),
+        if varBC then (
+          ML : coefmatrix(stProj, makelist(val[i], i, 1, numBasisFace)),
+          for i : 1 thru numBasis do (
+            printf(fh, "  _M[1][~a] = 0.0", i),
+            for j : 1 thru numBasisFace do (
+              printf(fh, " +(~a)*val[~a]", float(ML[i][j]), j)
+            ),
+            printf(fh, "~%")
+          )
+        ) else (
+          ML : coefmatrix(stProj, [val]),
+          for i : 1 thru numBasis do (
+            printf(fh, "  _M[1][~a] = (~a)*val~%", i, float(ML[i][1]))
+          )
+        )
+      ) else (
+        printf(fh, "  _M[1] = Lin.Mat(~a,~a)~%", numBasis, numBasis),
+        ML : coefmatrix(stProj, makelist(phiL[i], i, 1, numBasis)),
+        for i : 1 thru numBasis do (
+          for j : 1 thru numBasis do (
+            printf(fh, "  _M[1][~a][~a] = ~a~%", i, j, float(ML[i][j]))
+          )
+        )
+      ),
+      flush_output(fh),
+    
+      printf(fh, "  _M[2] = Lin.Mat(~a,~a)~%", numBasis, numBasis),
+      MC : coefmatrix(stProj, makelist(phiC[i], i, 1, numBasis)),
+      for i : 1 thru numBasis do (
+        for j : 1 thru numBasis do (
+          printf(fh, "  _M[2][~a][~a] = ~a~%", i, j, float(MC[i][j]))
+        )
+      ),
+      flush_output(fh),
+
+      if isUp then (
+        printf(fh, "  _M[3] = Lin.Vec(~a)~%", numBasis),
+        if varBC then (
+          MU : coefmatrix(stProj, makelist(val[i], i, 1, numBasisFace)),
+          for i : 1 thru numBasis do (
+            printf(fh, "  _M[3][~a] = 0.0", i),
+            for j : 1 thru numBasisFace do (
+              printf(fh, " +(~a)*val[~a]", float(MU[i][j]), j)
+            ),
+            printf(fh, "~%")
+          )
+        ) else (
+          MU : coefmatrix(stProj, [val]),
+          for i : 1 thru numBasis do (
+            printf(fh, "  _M[3][~a] = (~a)*val~%", i, float(MU[i][1]))
+          )
+        )
+      ) else (
+        printf(fh, "  _M[3] = Lin.Mat(~a,~a)~%", numBasis, numBasis),
+        MU : coefmatrix(stProj, makelist(phiU[i], i, 1, numBasis)),
+        for i : 1 thru numBasis do (
+          for j : 1 thru numBasis do (
+            printf(fh, "  _M[3][~a][~a] = ~a~%", i, j, float(MU[i][j]))
+          )
+        )
+      ),
+      flush_output(fh),
+      
+      printf(fh, "  return(_M)~%"),
+      printf(fh, "end~%~%"),
+      printf(fh, "return(stencilFn)"),
+      close(fh)
+    )
+  )
+) $

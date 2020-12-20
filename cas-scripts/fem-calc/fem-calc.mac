@@ -67,6 +67,42 @@ writeEigenMatrix(mat),
 printf(fh, "    }~%"),
 printf(fh, "  }~%")
 ),
+if member(4, onlyDims) then (
+if first then (
+  printf(fh, "  if(ndim==4) {~%"),
+  first : false
+)
+else printf(fh, "  else if(ndim==4) {~%"),
+printf(fh, "    if(polyOrder == 1)~%"),
+printf(fh, "    {~%"),
+mat : func(4,1),
+writeEigenMatrix(mat),
+printf(fh, "    }~%"),
+printf(fh, "    else if (polyOrder == 2)~%"),
+printf(fh, "    {~%"),
+mat : func(4,2),
+writeEigenMatrix(mat),
+printf(fh, "    }~%"),
+printf(fh, "  }~%")
+),
+if member(5, onlyDims) then (
+if first then (
+  printf(fh, "  if(ndim==5) {~%"),
+  first : false
+)
+else printf(fh, "  else if(ndim==5) {~%"),
+printf(fh, "    if(polyOrder == 1)~%"),
+printf(fh, "    {~%"),
+mat : func(5,1),
+writeEigenMatrix(mat),
+printf(fh, "    }~%"),
+printf(fh, "    else if (polyOrder == 2)~%"),
+printf(fh, "    {~%"),
+mat : func(5,2),
+writeEigenMatrix(mat),
+printf(fh, "    }~%"),
+printf(fh, "  }~%")
+),
 printf(fh, "}~%~%")
 )$
 
@@ -74,7 +110,6 @@ fh : openw("~/max-out/FemMatrices.cpp")$
 header : openw("~/max-out/FemMatrices.h")$
 printf(header, "#include <Eigen/Core> ~%")$
 printf(fh, "#include <FemMatrices.h> ~%")$
-/*
 /* write getMassMatrix C function */
 prototype:"void getMassMatrix(Eigen::MatrixXd& mat, double *w, int ndim, int polyOrder)"$
 writeCMatFunc(prototype, calcMass, [1,2,3], false, false)$
@@ -99,6 +134,10 @@ printf(header, "~a;~%", prototype)$
 prototype:"void getParNodToModMatrix(Eigen::MatrixXd& mat, int ndim, int polyOrder)"$
 writeCMatFunc(prototype, calcNodToModPar, [1,3], false, false)$
 printf(header, "~a;~%", prototype)$
+/* write general getNodToModMatrix C function */
+prototype:"void getNodToModMatrix(Eigen::MatrixXd& mat, int ndim, int polyOrder)"$
+writeCMatFunc(prototype, calcNodToMod, [1,2,3,4,5], false, false)$
+printf(header, "~a;~%", prototype)$
 /* write getPerpStiffnessMatrix C function */
 prototype:"void getPerpStiffnessMatrix(Eigen::MatrixXd& mat, double *w, int ndim, int polyOrder, double dx, double dy)"$
 writeCMatFunc(prototype, calcStiffPerp, [2,3], true, false)$
@@ -119,7 +158,6 @@ printf(header, "~a;~%", prototype)$
 prototype:"void getPerpStiffnessMatrix(Eigen::MatrixXd& mat, double *w, double *gxx, double *gxy, double *gyy, int ndim, int polyOrder, double dx, double dy)"$
 writeCMatFunc(prototype, calcStiffPerpMetric, [2,3], true, false)$
 printf(header, "~a;~%", prototype)$
-*/
 /* write getGyavgMatrix C function */
 prototype:"void getGyavg0Matrix(Eigen::MatrixXd& mat, double *rho1, double *rho2, double *rho3, double dx, double dy, int ndim, int polyOrder)"$
 writeCMatFunc(prototype, calcGyavg0, [2/*,3*/], false, false)$

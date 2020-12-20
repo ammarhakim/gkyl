@@ -77,18 +77,37 @@ function Vlasov:init(tbl)
    if onlyForceUpdate then self._onlyForceUpdate = true end
 
    self._surfForceUpdate = nil
+   -- numVelFlux used for selecting which type of numerical flux function to use for velocity space update
+   -- default is "penalty," supported options: "penalty," "recovery"
+   self._numVelFlux = tbl.numVelFlux and tbl.numVelFlux or "penalty"
    if self._hasForceTerm then
       -- Functions to perform force updates.
       if self._plasmaMagField then 
          self._volUpdate = VlasovModDecl.selectVolElcMag(
             self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-         self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
-            self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+         if self._numVelFlux == "penalty" then
+            self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
+              self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+         elseif self._numVelFlux == "recovery" then
+            print("Eq.Vlasov: selecting recovery-based velocity space update")
+            self._surfForceUpdate = VlasovModDecl.selectRecoverySurfElcMag(
+              self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+         else
+            assert(self._numVelFlux, "Eq.Vlasov: Incorrect numerical flux specified, options supported: 'penalty' and 'recovery' ")
+         end
       elseif self._onlyForceUpdate then
 	 self._volUpdate = VlasovModDecl.selectVolForce(
 	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-	 self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
-	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+         if self._numVelFlux == "penalty" then
+            self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
+               self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+         elseif self._numVelFlux == "recovery" then
+            print("Eq.Vlasov: selecting recovery-based velocity space update")
+            self._surfForceUpdate = VlasovModDecl.selectRecoverySurfElcMag(
+               self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+         else
+            assert(self._numVelFlux, "Eq.Vlasov: Incorrect numerical flux specified, options supported: 'penalty' and 'recovery' ")
+         end
       else
          self._volUpdate = VlasovModDecl.selectVolPhi(hasMagField,
             self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())

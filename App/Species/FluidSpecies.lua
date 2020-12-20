@@ -60,7 +60,7 @@ function FluidSpecies:fullInit(appTbl)
    self.evolveCollisions    = xsys.pickBool(tbl.evolveCollisions, self.evolve)
    self.evolveSources       = xsys.pickBool(tbl.evolveSources, self.evolve)
 
-   self.confBasis = nil -- Will be set later
+   self.basis = nil -- Will be set later
 
    -- Create triggers to write diagnostics.
    if tbl.nDiagnosticFrame then
@@ -201,25 +201,26 @@ function FluidSpecies:setIoMethod(ioMethod)
    self.ioMethod = ioMethod
 end
 function FluidSpecies:setConfBasis(basis)
-   self.confBasis = basis
+   self.basis = basis
    for _, c in pairs(self.collisions) do
       c:setConfBasis(basis)
    end
 end
 function FluidSpecies:setConfGrid(cgrid)
-   self.confGrid = cgrid
+   self.grid = cgrid
+   self.ndim = self.grid:ndim()
    for _, c in pairs(self.collisions) do
       c:setConfGrid(cgrid)
    end
 end
 
-function FluidSpecies:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs)
-   self.cdim = #cCells
+function FluidSpecies:createGrid(cgrid)
+   self.cdim = cgrid:ndim()
    self.ndim = self.cdim
 
    -- Create decomposition.
    local decompCuts = {}
-   for d = 1, self.cdim do table.insert(decompCuts, cDecompCuts[d]) end
+   for d = 1, self.cdim do table.insert(decompCuts, cgrid:cuts(d)) end
    self.decomp = DecompRegionCalc.CartProd {
       cuts      = decompCuts,
       useShared = self.useShared,
@@ -228,36 +229,35 @@ function FluidSpecies:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs)
    -- Create computational domain.
    local lower, upper, cells = {}, {}, {}
    for d = 1, self.cdim do
-      table.insert(lower, cLo[d])
-      table.insert(upper, cUp[d])
-      table.insert(cells, cCells[d])
+      table.insert(lower, cgrid:lower(d))
+      table.insert(upper, cgrid:upper(d))
+      table.insert(cells, cgrid:numCells(d))
    end
    self.grid = Grid.RectCart {
-      lower         = lower,
-      upper         = upper,
-      cells         = cells,
-      periodicDirs  = cPeriodicDirs,
+      lower = lower,
+      upper = upper,
+      cells = cells,
+      periodicDirs = cgrid:getPeriodicDirs(),
       decomposition = self.decomp,
    }
 end
 
 function FluidSpecies:createBasis(nm, polyOrder)
-   self.basis = createBasis(nm, self.ndim, polyOrder)
 end
 
 function FluidSpecies:allocMoment()
    local m = DataStruct.Field {
-      onGrid        = self.confGrid,
-      numComponents = self.confBasis:numBasis(),
-      ghost         = {self.nGhost, self.nGhost}
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {self.nGhost, self.nGhost}
    }
    return m
 end
 function FluidSpecies:allocVectorMoment(dim)
    local m = DataStruct.Field {
-      onGrid        = self.confGrid,
-      numComponents = self.confBasis:numBasis()*dim,
-      ghost         = {self.nGhost, self.nGhost}
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis()*dim,
+      ghost = {self.nGhost, self.nGhost}
    }
    return m
 end
@@ -282,7 +282,7 @@ end
 
 function FluidSpecies:bcDirichletFunc(dir, tm, idxIn, fIn, fOut)
    -- Impose f=fBC at the boundary.
-   if (idxIn == 1) then
+   if (idxIn[dir] == 1) then
       self.constDiffDirichletBCs[dir][1](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][1],fOut:data())
    else
       self.constDiffDirichletBCs[dir][2](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][2],fOut:data())
@@ -291,7 +291,7 @@ end
 
 function FluidSpecies:bcNeumannFunc(dir, tm, idxIn, fIn, fOut)
    -- Impose f'=fpBC at the boundary.
-   if (idxIn == 1) then
+   if (idxIn[dir] == 1) then
       self.constDiffNeumannBCs[dir][1](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][1],fOut:data())
    else
       self.constDiffNeumannBCs[dir][2](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][2],fOut:data())
@@ -305,11 +305,11 @@ function FluidSpecies:makeBcUpdater(dir, edge, bcList, skinLoop,
    -- If BC is Dirichlet or Neumann select appropriate kernels.
    if (bcList[2] == 5) then
       local nm, ndim, p = self.basis:id(), self.basis:ndim(), self.basis:polyOrder()
-      self.constDiffDirichletBCs = ConstDiffusionModDecl.selectBCs(nm, ndim, p, "Dirichlet")
+      self.constDiffDirichletBCs = ConstDiffusionModDecl.selectBCs(nm, ndim, p, 2, "Dirichlet")
       table.remove(bcList,2) -- Remove the bcType. Updater.Bc expects a table with just a function.
    elseif (bcList[2] == 6) then
       local nm, ndim, p = self.basis:id(), self.basis:ndim(), self.basis:polyOrder()
-      self.constDiffNeumannBCs = ConstDiffusionModDecl.selectBCs(nm, ndim, p, "Neumann")
+      self.constDiffNeumannBCs = ConstDiffusionModDecl.selectBCs(nm, ndim, p, 2, "Neumann")
       table.remove(bcList,2) -- Remove the bcType. Updater.Bc expects a table with just a function.
    end
 
@@ -364,10 +364,10 @@ function FluidSpecies:createBCs()
    handleBc(3, self.bcz)
 end
 
-function FluidSpecies:createSolver(funcField)
+function FluidSpecies:createSolver(externalField)
    -- Create solvers for collisions (diffusion).
    for _, c in pairs(self.collisions) do
-      c:createSolver(funcField)
+      c:createSolver(externalField)
    end
 
    if self.positivity then
@@ -502,7 +502,7 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    -- Perform the collision (diffusion) update.
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
-         c.diffusionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+         c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
          c:advance(tCurr, fIn, species, fRhsOut)
          -- The full 'species' list is needed for the cross-species
          -- collisions.

@@ -68,8 +68,13 @@ function AdiosCartFieldIo:init(tbl)
 
    -- Create memory allocator.
    self._allocator = Alloc.Alloc_meta_ctor(elct)
-   -- Allocate memory buffer for use in ADIOS I/O.
-   self._outBuff   = self._allocator(1) -- This will be resized on an actual write().
+   -- Allocate memory buffer for use in ADIOS I/O. Allocate a number 
+   -- of them in case user wants to output multiple fields to one file.
+   self._outBuff   = {}
+   self._maxFields = 50
+   for i = 1, self._maxFields do
+      self._outBuff[i] = self._allocator(1) -- This will be resized on an actual read/write.
+   end
 
    -- write ghost cells on boundaries of global domain (for BCs)
    self._writeGhost = xsys.pickBool(tbl.writeGhost, false)
@@ -122,16 +127,35 @@ function AdiosCartFieldIo:init(tbl)
    self.grpIds = {}
 end
 
--- Writes field to file.
--- fName: file name
--- tmStamp: time-stamp
--- frNum: frame number
--- writeGhost: Flag to indicate if we should write skin-cells on boundaries of global domain
--- 
-function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeGhost)
+-- Writes field(s) to file.
+-- Inputs:
+--   fieldsIn: single field or table of key-value pairs of fields
+--             to be written out. Fields must live on the same grid.
+--   fName:    file name
+--   tmStamp:  time-stamp
+--   frNum:    frame number
+--   writeGhost: Flag to indicate if we should write skin-cells on boundaries of global domain
+function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
    local _writeGhost = self._writeGhost
    if writeGhost ~= nil then _writeGhost = writeGhost end
-   local comm = Mpi.getComm(field:grid():commSet().nodeComm)
+
+   -- Identify if fieldsIn is a CartField using the self._ndim variable (MF: there ought to be a better way).
+   local fieldsTbl = type(fieldsIn._ndim)=="number" and {CartGridField = fieldsIn} or fieldsIn
+   local numFields = 0
+   for fldNm, _ in pairs(fieldsTbl) do numFields=numFields+1 end
+   -- The check below is not actually needed for writes, but it is needed for reads
+   -- so we use them for writes too in case this file will be read in (e.g. restart).
+   assert(numFields <= self._maxFields, "AdiosCartFieldIo: Cannot read/write more fields than self._maxFields.")
+
+   -- Assume fields are defined on the same grid and grab
+   -- grid descriptors from the first field in the table.
+   local field
+   for _, fld in pairs(fieldsTbl) do
+      field = fld
+      break
+   end
+
+   local comm  = Mpi.getComm(field:grid():commSet().nodeComm)
    -- (the extra getComm() is needed as Lua has no concept of
    -- pointers and hence we don't know before hand if nodeComm is a
    -- pointer or an object)
@@ -174,7 +198,7 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeGhost)
    if not tmStamp then tmStamp = 0.0 end -- Default time-stamp.
 
    -- Resize buffer (only done if needed. Alloc handles this automatically).
-   self._outBuff:expand(localRange:volume()*field:numComponents())
+   self._outBuff[1]:expand(localRange:volume()*field:numComponents())
 
    -- Get group name based on fName with frame and suffix chopped off.
    local grpNm = string.gsub(string.gsub(fName, "_(%d+).bp", ""), ".bp", "")
@@ -232,8 +256,10 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeGhost)
          self.grpIds[grpNm], "frame", "", Adios.integer, "", "", "")
       Adios.define_var(
          self.grpIds[grpNm], "time", "", Adios.double, "", "", "")
-      Adios.define_var(
-         self.grpIds[grpNm], "CartGridField", "", self._elctIoType, adLocalSz, adGlobalSz, adOffset)
+      for fldNm, _ in pairs(fieldsTbl) do
+         Adios.define_var(
+            self.grpIds[grpNm], fldNm, "", self._elctIoType, adLocalSz, adGlobalSz, adOffset)
+      end
    end
 
    local writeRank = field:grid():commSet().writeRank
@@ -242,11 +268,6 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeGhost)
    -- This is for cases when the communicator has been split, and the write only happens over
    -- a subset of the domain (and a subset of the global ranks).
    if writeRank ~= Mpi.Comm_rank(Mpi.COMM_WORLD) then return end
-
-   -- Copy field into output buffer (this copy is needed as
-   -- field also contains ghost-cell data, and, in addition,
-   -- ADIOS expects data to be laid out in row-major order).
-   field:_copy_from_field_region(localRange, self._outBuff)
 
    local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- Concatenate prefix.
 
@@ -260,16 +281,41 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeGhost)
    local frNumBuff = new("int[1]"); frNumBuff[0] = frNum
    Adios.write(fd, "frame", frNumBuff)
 
-   Adios.write(fd, "CartGridField", self._outBuff:data())
+   for fldNm, fld in pairs(fieldsTbl) do
+      -- Copy field into output buffer (this copy is needed as
+      -- field also contains ghost-cell data, and, in addition,
+      -- ADIOS expects data to be laid out in row-major order).
+      fld:_copy_from_field_region(localRange, self._outBuff[1])
+
+      Adios.write(fd, fldNm, self._outBuff[1]:data())
+   end
    Adios.close(fd)
 end
 
--- Read field from file.
--- fName: file name
--- readGhost: true if ghost-cells should be read from BP file
-function AdiosCartFieldIo:read(field, fName, readGhost) --> time-stamp, frame-number
+-- Read field(s) from file.
+-- Inputs:
+--   fieldsOut: single field or table of key-value pairs of fields to
+--              be read in. Fields must live on the same grid.
+--   fName:     file name.
+--   readGhost:  Flag to indicate if we should read skin-cells on boundaries of global domain.
+function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, frame-number
    local _readGhost = self._writeGhost
    if readGhost ~= nil then _readGhost = readGhost end
+
+   -- Identify if fieldsIn is a CartField using the self._ndim variable (MF: there ought to be a better way).
+   local fieldsTbl = type(fieldsOut._ndim)=="number" and {CartGridField = fieldsOut} or fieldsOut
+   local numFields = 0
+   for fldNm, _ in pairs(fieldsTbl) do numFields=numFields+1 end
+   assert(numFields <= self._maxFields, "AdiosCartFieldIo: Cannot read/write more fields than self._maxFields.")
+
+   -- Assume fields are defined on the same grid and grab
+   -- grid descriptors from the first field in the table.
+   local field
+   for _, fld in pairs(fieldsTbl) do
+      field = fld
+      break
+   end
+
    local comm    = Mpi.getComm(field:grid():commSet().nodeComm)
    local shmComm = Mpi.getComm(field:grid():commSet().sharedComm)
    -- (the extra getComm() is needed as Lua has no concept of
@@ -314,7 +360,11 @@ function AdiosCartFieldIo:read(field, fName, readGhost) --> time-stamp, frame-nu
       adOffset = toCSV(_adOffset)
 
       -- Resize buffer (only done if needed. Alloc handles this automatically).
-      self._outBuff:expand(localRange:volume()*field:numComponents())
+      local fldI = 0
+      for fldNm, _ in pairs(fieldsTbl) do
+         fldI = fldI + 1
+         self._outBuff[fldI]:expand(localRange:volume()*field:numComponents())
+      end
 
       local rank = Mpi.Comm_rank(comm)
 
@@ -367,13 +417,15 @@ function AdiosCartFieldIo:read(field, fName, readGhost) --> time-stamp, frame-nu
             end
          end
          
-         -- Define data to write.
+         -- Define data to read.
          Adios.define_var(
             self.grpIds[grpNm], "frame", "", Adios.integer, "", "", "")
          Adios.define_var(
             self.grpIds[grpNm], "time", "", Adios.double, "", "", "")
-         Adios.define_var(
-            self.grpIds[grpNm], "CartGridField", "", self._elctIoType, adLocalSz, adGlobalSz, adOffset)
+         for fldNm, _ in pairs(fieldsTbl) do
+            Adios.define_var(
+               self.grpIds[grpNm], fldNm, "", self._elctIoType, adLocalSz, adGlobalSz, adOffset)
+         end
       end
 
       local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- Concatenate prefix.
@@ -397,13 +449,21 @@ function AdiosCartFieldIo:read(field, fName, readGhost) --> time-stamp, frame-nu
       start[ndim+1] = 0
       local sel = Adios.selection_boundingbox(ndim+1, start, count)
 
-      Adios.schedule_read(fd, sel, "CartGridField", 0, 1, self._outBuff:data())
+      local fldI = 0
+      for fldNm, _ in pairs(fieldsTbl) do
+         fldI = fldI + 1
+         Adios.schedule_read(fd, sel, fldNm, 0, 1, self._outBuff[fldI]:data())
+      end
       Adios.perform_reads(fd, 1)
 
       Adios.read_close(fd) -- No reads actually happen unless one closes file!
 
       -- Copy output buffer into field.
-      field:_copy_to_field_region(localRange, self._outBuff)
+      local fldI = 0
+      for _, fld in pairs(fieldsTbl) do
+         fldI = fldI + 1
+         fld:_copy_to_field_region(localRange, self._outBuff[fldI])
+      end
    end
    -- If running with shared memory, need to broadcast time stamp and frame number.
    Mpi.Bcast(tmStampBuff, 1, Mpi.DOUBLE, 0, shmComm)

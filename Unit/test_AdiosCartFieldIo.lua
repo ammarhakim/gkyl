@@ -40,7 +40,7 @@ function test_1w(comm)
    }
    field:clear(10.5)
 
-   -- I/O object
+   -- I/O object.
    local adiosIo = AdiosCartFieldIo {
       elemType = field:elemType(),
       metaData = {
@@ -50,6 +50,16 @@ function test_1w(comm)
    }
 
    adiosIo:write(field, "field.bp", 3.1, 42)
+
+   -- Test writing multiple fields to one file.
+   local auxField = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 1,
+      ghost = {1, 1},
+   }
+   auxField:clear(7.5)
+
+   adiosIo:write({field=field,auxField=auxField}, "twoFields.bp", 3.2, 43)
 end
 
 function test_1r(comm)
@@ -64,7 +74,7 @@ function test_1r(comm)
       ghost = {1, 1},
    }
 
-   -- I/O object
+   -- I/O object.
    local adiosIo = AdiosCartFieldIo {
       elemType = field:elemType()
    }
@@ -80,6 +90,29 @@ function test_1r(comm)
       for j = localRange:lower(2), localRange:upper(2) do
 	 local fitr = field:get(indexer(i, j))
 	 assert_equal(10.5, fitr[1], "Checking field value")
+      end
+   end
+
+   -- Test reading multiple fields from one file.
+   local auxField = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 1,
+      ghost = {1, 1},
+   }
+
+   local tmStamp, frNum = adiosIo:read({field=field,auxField=auxField}, "twoFields.bp")
+
+   assert_equal(3.2, tmStamp, "Checking time-stamp")
+   assert_equal(43, frNum, "Checking frame number")
+
+   local indexer = field:indexer()
+   local localRange = field:localRange()
+   for i = localRange:lower(1),  localRange:upper(1) do
+      for j = localRange:lower(2), localRange:upper(2) do
+	 local fitr    = field:get(indexer(i, j))
+	 local auxFitr = auxField:get(indexer(i, j))
+	 assert_equal(10.5, fitr[1], "Checking field value")
+	 assert_equal(7.5, auxFitr[1], "Checking field value")
       end
    end
 end

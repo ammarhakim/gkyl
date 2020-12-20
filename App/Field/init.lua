@@ -13,11 +13,12 @@ local GkField = require "App.Field.GkField"
 
 return {
   FieldBase = FieldBase.FieldBase,
-  FuncFieldBase = FieldBase.FuncFieldBase,
+  ExternalFieldBase = FieldBase.ExternalFieldBase,
+  FuncFieldBase = FieldBase.ExternalFieldBase, -- for backwards compat
   NoField = FieldBase.NoField,
   MaxwellField = MaxwellField.MaxwellField,
-  FuncMaxwellField = MaxwellField.FuncMaxwellField,
+  ExternalMaxwellField = MaxwellField.ExternalMaxwellField,
+  FuncMaxwellField = MaxwellField.ExternalMaxwellField, -- for backwards compat
   GkField = GkField.GkField,
   GkGeometry = GkField.GkGeometry,
-  --FuncGkField = GkField.FuncGkField,
 }

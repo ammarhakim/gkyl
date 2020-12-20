@@ -15,11 +15,11 @@ function FieldBase:init(tbl)
 end
 function FieldBase:readRestart() end
 
-local FuncFieldBase = Proto()
-function FuncFieldBase:init(tbl)
+local ExternalFieldBase = Proto()
+function ExternalFieldBase:init(tbl)
    self.isElliptic = false
 end
-function FuncFieldBase:readRestart() end
+function ExternalFieldBase:readRestart() end
 
 -- NoField ---------------------------------------------------------------------
 --
@@ -62,8 +62,9 @@ function NoField:copyRk() end
 function NoField:combineRk() end
 
 return {
-   FieldBase     = FieldBase,
-   FuncFieldBase = FuncFieldBase,
-   NoField       = NoField
+   FieldBase         = FieldBase,
+   ExternalFieldBase = ExternalFieldBase,
+   FuncFieldBase     = ExternalFieldBase,   -- For backwards compatibility.
+   NoField           = NoField
 }
 

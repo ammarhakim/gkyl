@@ -18,7 +18,7 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
       * dg(A, bc(D=_, N=_, val=_)) : a constrained recovery where
         expansion coefficients are used together with boundary
         conditions at the edge
-    up : equvivalent of `lo` at the upper side
+    up : equivalent of `lo` at the upper side
   Outputs:
     a polynomial
   */
@@ -28,10 +28,12 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
   baLo1D, baCe1D, baUp1D, baLoND, baCeND, baUpND,
   dimProjLo, dimProjUp, qLo1D, qUp1D,
   wx, wy, wz,
-  numDims, dirSubList
+  numDims,
+  baCeNDw, perpDirs,
+  bcExp
   ],
   
-  baCe1D : getBasis(sconcat("basis-precalc/basis", basisNm, "1x"), polyOrder),
+  baCe1D : getBasis(basisNm, 1, polyOrder),
   baCe1D : subst(x=recDir, baCe1D),
   baLo1D : etaDir(recDir, -1, 2, baCe1D),
   baUp1D : etaDir(recDir, 1, 2, baCe1D),
@@ -40,17 +42,37 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
   DoF : 0,
   if is(op(lo)=dg) then (
     DoF : DoF + polyOrder + 1,
-    if length(args(lo)) > 1 then DoF : DoF + 1 /* aditional DoF for BC */
+    if length(args(lo)) > 1 then (
+      if is(op(args(lo)[2])=bc) then (
+        DoF : DoF + 1 /* only 1 DoF for BC */
+      )
+      else (
+        DoF : DoF + length(args(args(lo)[2]))
+      )
+    )
+  )
+  elseif is(op(lo)=bc) then (
+    DoF : DoF + 1 /* only 1 DoF for BC */
   )
   else (
-    DoF : DoF + 1 /* only 1 DoF for BC */
+    DoF : DoF + length(args(lo))
   ),
   if is(op(up)=dg) then (
     DoF : DoF + polyOrder + 1,
-    if length(args(up)) > 1 then DoF : DoF + 1 /* aditional DoF for BC */
+    if length(args(up)) > 1 then (
+      if is(op(args(up)[2])=bc) then (
+        DoF : DoF + 1 /* only 1 DoF for BC */
+      )
+      else (
+        DoF : DoF + length(args(args(up)[2]))
+      )
+    )
+  )
+  elseif is(op(up)=bc) then (
+    DoF : DoF + 1 /* only 1 DoF for BC */
   )
   else (
-    DoF : DoF + 1 /* only 1 DoF for BC */
+    DoF : DoF + length(args(up))
   ),
   rExp : doExpand(r, makelist(recDir^i, i, 0, DoF-1)), /* recovery polynomial */
 
@@ -62,18 +84,38 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
         baLo1D, rExp-doExpand(qLo1D, baLo1D))
     ),
     if length(args(lo)) > 1 then (
-      recEqList : append(
-        recEqList,
-        [subst(args(args(lo)[2]), val - D*subst(recDir=-2, rExp)
-          - N*subst(recDir=-2, diff(rExp, recDir)))]
+      if is(op(args(lo)[2])=bc) then (
+        recEqList : append(
+          recEqList,
+          [subst(args(args(lo)[2]), val - D*subst(recDir=-2, rExp)
+            - N*subst(recDir=-2, diff(rExp, recDir)))]
+        )
+      )
+      else (
+        for i : 1 thru length(args(args(lo)[2])) do (
+          recEqList : append(
+            recEqList,
+            [subst(args(args(lo)[2])[i], val)
+              - subst(recDir=-2, diff(rExp, recDir, subst(args(args(lo)[2])[i], der)))]
+          )
+        )
       )
     )
   )
-  else (
+  elseif is(op(lo)=bc) then (
     recEqList : append(
       recEqList,
       [subst(args(lo), val - D*subst(recDir=0, rExp)
         - N*subst(recDir=0, diff(rExp, recDir)))]
+    )
+  )
+  else (
+    for i : 1 thru length(args(lo)) do (
+      recEqList : append(
+        recEqList,
+        [subst(args(lo)[i], val)
+          - subst(recDir=0, diff(rExp, recDir, subst(args(lo)[i], der)))]
+      )
     )
   ),
 
@@ -84,18 +126,37 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
         baUp1D, rExp-doExpand(qUp1D, baUp1D))
     ),
     if length(args(up)) > 1 then (
-      recEqList : append(
-        recEqList,
-        [subst(args(args(up)[2]), val - D*subst(recDir=2, rExp)
-          - N*subst(recDir=2, diff(rExp, recDir)))]
+      if is(op(args(up)[2])=bc) then (
+        recEqList : append(
+          recEqList,
+          [subst(args(args(up)[2]), val - D*subst(recDir=2, rExp)
+            - N*subst(recDir=2, diff(rExp, recDir)))]
+        )
+      )
+      else (
+        for i : 1 thru length(args(args(up)[2])) do (
+          recEqList : append(
+            recEqList,
+            [subst(args(args(up)[2])[i], val)
+              - subst(recDir=2, diff(rExp, recDir, subst(args(args(up)[2])[i], der)))]
+          )
+        )
       )
     )
   )
-  else (
+  elseif is(op(up)=bc) then (
     recEqList : append(
       recEqList,
       [subst(args(up), val - D*subst(recDir=0, rExp)
         - N*subst(recDir=0, diff(rExp, recDir)))]
+    )
+  )
+  else (
+    for i : 1 thru length(args(up)) do (
+      recEqList : append(
+        recEqList,
+        [subst(args(up)[i], val) - subst(recDir=0, diff(rExp, recDir, subst(args(up)[i], der)))]
+      )
     )
   ),
 
@@ -105,20 +166,18 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
   /* backsubstitute the non-recovered directtions if needed */
   numDims : length(dirs),
   if numDims > 1 then (
-    baCeND : getBasis(sconcat("basis-precalc/basis", basisNm, numDims, "x"),
-      polyOrder),
-    dirSubList : makelist(w[i]=dirs[i], i, 1, numDims),
-    baCeND : subst(dirSubList, subst([x=w[1],y=w[2],z=w[3]], baCeND)),  
+    baCeND : getBasis(basisNm, numDims, polyOrder),
+    baVars : listofvars(baCeND),
+    baCeND : psubst(makelist(baVars[i]=dirs[i],i,1,numDims), baCeND),  
     baLoND : etaDir(recDir, -1, 2, baCeND),
     baUpND : etaDir(recDir, 1, 2, baCeND),
     /* prepare for the case where expansion coefficients at a wall are
     given; i.e., a basis function set with one less dimension is
     needed */
     perpDirs : delete(recDir, dirs),
-    baCeNDw : getBasis(sconcat("basis-precalc/basis", basisNm, numDims-1, "x"),
-      polyOrder),
-    dirSubList : makelist(w[i]=perpDirs[i], i, 1, numDims-1),
-    baCeNDw : subst(dirSubList, subst([x=w[1],y=w[2]], baCeNDw)), 
+    baCeNDw  : getBasis(basisNm, numDims-1, polyOrder),
+    baVars   : listofvars(baCeNDw),
+    baCeNDw  : psubst(makelist(baVars[i]=perpDirs[i],i,1,numDims-1), baCeNDw), 
     
     projSubList : [],
     if is(op(lo)=dg) then (
@@ -129,9 +188,12 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
         makelist(qLo1D[i]=dimProjLo[i], i, 1, length(baCe1D))
       ),
       if length(args(lo)) > 1 then (
-        projSubList : append(
-          projSubList,
-          [val=doExpand(subst(args(args(lo)[2]), ec), baCeNDw)]
+        bcExp : subst(args(args(lo)[2]), ec),
+        if not atom(bcExp) then (
+          projSubList : append(
+            projSubList,
+            [val=doExpand(bcExp, baCeNDw)]
+          )
         )
       )
     ),
@@ -143,9 +205,12 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
         makelist(qUp1D[i]=dimProjUp[i], i, 1, length(baCe1D))
       ),
       if length(args(up)) > 1 then (
-        projSubList : append(
-          projSubList,
-          [val=doExpand(subst(args(args(lo)[2]), ec), baCeNDw)]
+        bcExp : subst(args(args(up)[2]), ec),
+        if not atom(bcExp) then (
+          projSubList : append(
+            projSubList,
+            [val=doExpand(bcExp, baCeNDw)]
+          )
         )
       )
     )
@@ -165,6 +230,5 @@ calcRecov2CellGen(basisNm, recDir, dirs, polyOrder, lo, up) := block(
       )
     )
   ),
-
   return(expand(subst(projSubList, rSub)))
   ) $

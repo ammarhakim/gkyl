@@ -177,8 +177,8 @@ done
 # if mpicc doesn't work (because it doesn't exist or it's not in path), try to use installed openmpi version
 if ! [ -x "$(command -v $MPICC)" ]
 then
-    MPICC=$PREFIX/openmpi-3.1.2/bin/mpicc
-    MPICXX=$PREFIX/openmpi-3.1.2/bin/mpicxx
+    MPICC=$PREFIX/openmpi-4.0.5/bin/mpicc
+    MPICXX=$PREFIX/openmpi-4.0.5/bin/mpicxx
 fi
 # if mpicc still doesn't work, force to install openmpi
 if ! [ -x "$(command -v $MPICC)" ] 
@@ -220,6 +220,7 @@ build_luajit() {
     if [[ ! "$BUILD_LUAJIT" = "no" && ("$BUILD_LUAJIT" = "yes" || ! -f $PREFIX/luajit/include/luajit-2.1/lua.hpp) ]]
     then    
 	echo "Building LuaJIT"
+	#./build-luajit-beta3.sh
 	./build-luajit-openresty.sh
     fi
 }

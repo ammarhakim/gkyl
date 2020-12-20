@@ -46,6 +46,9 @@ function VlasovSpecies:alloc(nRkDup)
    self.momDensity = self:allocVectorMoment(self.vdim)
    self.ptclEnergy = self:allocMoment()
 
+   -- Allocate field to accumulate externalField if any.
+   self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
+
    -- Allocate field for external forces if any.
    if self.hasExtForce then 
       self.vExtForce = self:allocVectorMoment(self.vdim)
@@ -69,18 +72,10 @@ function VlasovSpecies:fullInit(appTbl)
       self.hasExtForce = false
    end
 
-   local externalBC = tbl.externalBC
-   local numExternalBCFiles = tbl.numExternalBCFiles
-   if externalBC then
-      self.wallFunction = {}
-      if numExternalBCFiles then
-         for i = 1, numExternalBCFiles do
-            self.wallFunction[i] = require(externalBC .. "_" .. tostring(i))
-         end
-      else
-         self.wallFunction = require(externalBC)
-      end
-   end
+   -- numVelFlux used for selecting which type of numerical flux function to use in velocity space
+   -- defaults to "penalty" in Eq object, supported options: "penalty," "recovery"
+   -- only used for DG Maxwell.
+   self.numVelFlux = tbl.numVelFlux
 end
 
 function VlasovSpecies:allocMomCouplingFields()
@@ -119,6 +114,7 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
       hasElectricField = hasE,
       hasMagneticField = hasB,
       plasmaMagField   = plasmaB,
+      numVelFlux       = self.numVelFlux,
    }
 
    -- Must apply zero-flux BCs in velocity directions.
@@ -161,6 +157,13 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
       phaseBasis = self.basis,
       confBasis  = self.confBasis,
       moment     = "FiveMoments",
+   }
+   self.calcMaxwell = Updater.MaxwellianOnBasis {
+      onGrid     = self.grid,
+      confGrid   = self.confGrid,
+      confBasis  = self.confBasis,
+      phaseGrid  = self.grid,
+      phaseBasis = self.basis,
    }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
@@ -418,6 +421,64 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
       end
    end
 
+   -- If ionization collision object exists, locate electrons
+   local counterIz_elc = true
+   local counterIz_neut = true
+   for sN, _ in pairs(species) do
+      if species[sN].collisions and next(species[sN].collisions) then 
+         for sO, _ in pairs(species) do
+	    if self.collPairs[sN][sO].on then
+   	       if (self.collPairs[sN][sO].kind == 'Ionization') then
+   		  for collNm, _ in pairs(species[sN].collisions) do
+   		     if self.name==species[sN].collisions[collNm].elcNm and counterIz_elc then
+   			self.neutNmIz = species[sN].collisions[collNm].neutNm
+   			self.needSelfPrimMom  = true
+   			self.calcReactRate    = true
+   			self.collNmIoniz      = collNm
+			self.voronovReactRate = self:allocMoment()
+   			self.vtSqIz           = self:allocMoment()
+   			self.m0fMax           = self:allocMoment()
+   			self.m0mod            = self:allocMoment()
+   			self.fMaxwellIz       = self:allocDistf()
+			self.intSrcIzM0 = DataStruct.DynVector {
+			   numComponents = 1,
+			}
+			counterIz_elc = false
+		     elseif self.name==species[sN].collisions[collNm].neutNm and counterIz_neut then
+			self.needSelfPrimMom = true
+			counterIz_neut = false
+   		     end
+   		  end
+   	       end
+   	    end
+   	 end
+      end
+   end
+
+   -- If Charge Exchange collision object exists, locate ions
+   local counterCX = true
+   for sN, _ in pairs(species) do
+      if species[sN].collisions and next(species[sN].collisions) then 
+         for sO, _ in pairs(species) do
+   	    if self.collPairs[sN][sO].on then
+   	       if (self.collPairs[sN][sO].kind == 'CX') then
+   		  for collNm, _ in pairs(species[sN].collisions) do
+   		     if self.name==species[sN].collisions[collNm].ionNm and counterCX then
+  			self.calcCXSrc        = true			
+			self.collNmCX         = collNm
+   			self.neutNmCX         = species[sN].collisions[collNm].neutNm
+   			self.needSelfPrimMom  = true
+   			self.vSigmaCX         = self:allocMoment()
+			species[self.neutNmCX].needSelfPrimMom = true
+   			counterCX = false
+    		     end
+   		  end
+   	       end
+   	    end
+   	 end
+      end
+   end
+
    if self.needSelfPrimMom then
       -- Allocate fields to store self-species primitive moments.
       self.uSelf    = self:allocVectorMoment(self.vdim)
@@ -500,20 +561,25 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
 
 end
 
+function VlasovSpecies:setActiveRKidx(rkIdx)
+   self.activeRKidx = rkIdx
+end
+
 function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
+   self:setActiveRKidx(inIdx)
    local fIn     = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
    -- Accumulate functional Maxwell fields (if needed).
    local emField      = emIn[1]:rkStepperFields()[inIdx]
-   local emFuncField  = emIn[2]:rkStepperFields()[1]
+   local emExternalField  = emIn[2]:rkStepperFields()[1]
    local totalEmField = self.totalEmField
    totalEmField:clear(0.0)
 
    local qbym = self.charge/self.mass
 
    if emField and self.computePlasmaB then totalEmField:accumulate(qbym, emField) end
-   if emFuncField then totalEmField:accumulate(qbym, emFuncField) end
+   if emExternalField then totalEmField:accumulate(qbym, emExternalField) end
 
    -- If external force present (gravity, body force, etc.) accumulate it to electric field.
    if self.hasExtForce then
@@ -542,6 +608,26 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    else
       fRhsOut:clear(0.0)    -- No RHS.
    end
+
+   debugNans = false
+   -- test for nans after collisionless solve
+   if debugNans == true then
+      local testFunc      = fRhsOut
+      local testFuncRange = testFunc:localRange()
+      local phaseIndexer  = testFunc:genIndexer()
+      local testFuncPtr   = testFunc:get(1)
+      for idx in testFuncRange:rowMajorIter(tId) do
+	 self.grid:setIndex(idx)
+	 testFunc:fill(phaseIndexer(idx), testFuncPtr)
+	 for cI = 1,self.basis:numBasis() do
+	    if (testFuncPtr[cI] ~= testFuncPtr[cI]) or (testFuncPtr[cI] == 1/0) then
+	       print("t = ", tcurr, "\ncolless update, at", idx[1], idx[2], idx[3], idx[4], idx[5], idx[6])
+	       os.exit(0)
+	    end
+	 end
+      end
+   end
+
    -- Perform the collision update.
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
@@ -549,6 +635,25 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          c:advance(tCurr, fIn, species, fRhsOut)   -- 'species' needed for cross-species collisions.
       end
    end
+
+   -- test for nans after collisions update
+   if debugNans == true then
+      local testFunc      = fRhsOut
+      local testFuncRange = testFunc:localRange()
+      local phaseIndexer  = testFunc:genIndexer()
+      local testFuncPtr   = testFunc:get(1)
+      for idx in testFuncRange:rowMajorIter(tId) do
+	 self.grid:setIndex(idx)
+	 testFunc:fill(phaseIndexer(idx), testFuncPtr)
+	 for cI = 1,self.basis:numBasis() do
+	    if (testFuncPtr[cI] ~= testFuncPtr[cI]) or (testFuncPtr[cI] == 1/0) then
+	       print("t =", tCurr, "\ncoll update, at", idx[1], idx[2], idx[3], idx[4], idx[5], idx[6])
+	       os.exit(0)
+	    end
+	 end
+      end
+   end
+
    if self.sourceSteadyState and self.evolveSources then
       local localEdgeFlux = ffi.new("double[3]")
       localEdgeFlux[0] = 0.0
@@ -611,6 +716,12 @@ function VlasovSpecies:createDiagnostics()
      return false
    end
 
+    if self.fSource then
+      self.numDensitySrc = self:allocMoment()
+      self.momDensitySrc = self:allocVectorMoment(self.vdim)
+      self.ptclEnergySrc = self:allocMoment()
+      self.fiveMomentsCalc:advance(0.0, {self.fSource}, {self.numDensitySrc, self.momDensitySrc, self.ptclEnergySrc})
+    end
    -- Create updater to compute volume-integrated moments
    -- function to check if integrated moment name is correct.
    local function isIntegratedMomentNameGood(nm)
@@ -720,6 +831,12 @@ function VlasovSpecies:createDiagnostics()
       weakBasis = self.confBasis,
       operation = "Divide",
       onGhosts  = true,
+   }
+   self.confPhaseMult = Updater.CartFieldBinOp {
+      onGrid     = self.grid,
+      weakBasis  = self.basis,
+      fieldBasis = self.confBasis,
+      operation  = "Multiply",
    }
 
    -- Sort moments into diagnosticWeakMoments.
@@ -1063,19 +1180,63 @@ end
 
 function VlasovSpecies:bcExternFunc(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "flip".
-   local tbl = self.tbl
-   local numFiles = tbl.numExternalBCFiles
-   local velIdx = {}
+   local numBasis = self.basis:numBasis()
+   local velIdx = Lin.IntVec(self.ndim)
+   velIdx[1] = 1
    for d = 1, self.vdim do
-      velIdx[d] = idxIn[self.cdim + d]
+      velIdx[d + 1] = idxIn[self.cdim + d]
    end
-   if numFiles then
-      if velIdx[1] ~= 0 and velIdx[1] ~= self.grid:numCells(2) + 1 then
-         self.wallFunction[velIdx[1]](velIdx, fIn, fOut)
+   local exIdxr = self.externalBCFunction:genIndexer()
+   local externalBCFunction = self.externalBCFunction:get(exIdxr(velIdx))
+   if velIdx[1] ~= 0 and velIdx[1] ~= self.grid:numCells(2) + 1 then
+      for i = 1, numBasis do
+	 fOut[i] = 0
+         for j = 1, numBasis do
+            fOut[i] = fOut[i] + fIn[j]*externalBCFunction[(i - 1)*numBasis + j]
+         end
       end
-   else
-      self.wallFunction(velIdx, fIn, fOut)
    end
+   return fOut
+end
+
+function VlasovSpecies:calcExternalBC()
+   tbl = self.tbl
+   local externalBC = assert(tbl.externalBC, "VlasovSpecies: Must define externalBC parameters")
+   local lower = Lin.Vec(self.grid:ndim())
+   local upper = Lin.Vec(self.grid:ndim())
+   local cells = Lin.Vec(self.grid:ndim())
+   lower[1] = 0
+   upper[1] = 1
+   cells[1] = 1
+   for d = 1, self.vdim do
+      lower[d + 1] = self.grid:lower(d + 1)
+      upper[d + 1] = self.grid:upper(d + 1)
+      cells[d + 1] = self.grid:numCells(d + 1)
+   end
+   local grid = Grid.RectCart {
+      lower = lower,
+      upper = upper,
+      cells = cells,
+      periodicDirs = {}
+   }
+   self.externalBCFunction = DataStruct.Field {
+      onGrid = grid,
+      numComponents = self.basis:numBasis()*self.basis:numBasis(),
+      metaData = {
+	 polyOrder = self.basis:polyOrder(),
+	 basisType = self.basis:id(),
+      },
+   }
+   -- Calculate Bronold and Fehske reflection function coefficients
+   local evaluateBronold = Updater.EvaluateBronoldFehskeBC {
+      onGrid = grid,
+      basis = self.basis,
+      electronAffinity = externalBC.electronAffinity,
+      effectiveMass = externalBC.effectiveMass,
+      elemCharge = externalBC.elemCharge,
+      me = externalBC.electronMass,
+   }
+   evaluateBronold:advance(0.0, {}, {self.externalBCFunction})
 end
 
 function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
@@ -1119,7 +1280,7 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
    end
 end
 
-function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx)
+function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 
    local tmStart = Time.clock()
    -- Compute moments needed in coupling to fields and collisions.
@@ -1155,6 +1316,36 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx)
       -- Indicate that the coupling moment has been computed.
       self.momentFlags[1] = true
    end
+
+   -- For Ionization.
+   if self.calcReactRate then
+      local neutU    = species[self.neutNmIz]:selfPrimitiveMoments()[1]
+      local neutM0   = species[self.neutNmIz]:fluidMoments()[1]
+      local neutVtSq = species[self.neutNmIz]:selfPrimitiveMoments()[2]
+      
+      if tCurr == 0.0 then
+	 species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      end
+      species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {self.voronovReactRate})
+      species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
+      
+      self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
+      self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
+      self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
+      self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
+   end
+
+   -- For charge exchange.
+   if self.calcCXSrc then
+      -- Calculate Vcx*SigmaCX.
+      local m0       = species[self.neutNmCX]:fluidMoments()[1]
+      local neutU    = species[self.neutNmCX]:selfPrimitiveMoments()[1]
+      local neutVtSq = species[self.neutNmCX]:selfPrimitiveMoments()[2]
+      
+      species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uSelf, neutU, self.vtSqSelf, neutVtSq}, {self.vSigmaCX})
+   end
+
+   
    self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
 
 end
@@ -1213,6 +1404,18 @@ function VlasovSpecies:momCalcTime()
       tm = tm + self.diagnosticMomentUpdaters[mom].totalTime
    end
    return tm
+end
+
+function VlasovSpecies:getVoronovReactRate()
+   return self.voronovReactRate
+end
+
+function VlasovSpecies:getFMaxwellIz()
+   return self.fMaxwellIz
+end
+
+function VlasovSpecies:getSrcCX()
+   return self.srcCX
 end
 
 -- please test this for higher than 1x1v... 
