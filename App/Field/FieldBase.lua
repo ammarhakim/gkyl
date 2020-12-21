@@ -33,7 +33,7 @@ function NoField:init(tbl)
    NoField.super.init(tbl)
 end
 function NoField:fullInit(tbl) end
-function NoField:hasEB() return false, false end
+function NoField:hasEB() return nil, nil end
 function NoField:setCfl() end
 function NoField:setIoMethod(ioMethod) end
 function NoField:setBasis(basis) end

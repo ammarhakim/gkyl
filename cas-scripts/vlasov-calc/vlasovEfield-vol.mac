@@ -1,7 +1,8 @@
-load("vlasov-calc/vlasov-maxwell-vol")$
+load("vlasov-calc/vlasovEfieldFuncs-vol")$
 load(stringproc)$
 /* This script calls the functions which calculate the
-   updates from the volume term contributions. */
+   updates from the volume term due to the (q/m)*E . del_v(f) term
+   in the Vlasov equation. */
 
 /* ...... USER INPUTS........ */
 
@@ -45,40 +46,21 @@ for bInd : 1 thru length(bName) do (
       if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
 
       for polyOrder : 1 thru maxPolyOrderB do (
-        disp(printf(false,sconcat("Creating volume Vlasov",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
-        fname : sconcat("~/max-out/Vlasov", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
+        disp(printf(false,sconcat("Creating volume VlasovElc",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
+        fname : sconcat("~/max-out/VlasovElc", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
         fh : openw(fname),
-        funcName : sconcat("VlasovVol", c, "x", v, "v", bName[bInd]),
-        calcVlasovVolUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
+        funcName : sconcat("VlasovVolElc", c, "x", v, "v", bName[bInd]),
+        calcVlasovEfieldVolUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
         close(fh)
       )
     )
   )
 );
 
-load("vlasov-calc/vlasov-stream-vol")$
-/* Compute the volume contribution from ONLY the streaming term (for use in neutral particle simulations) */
-for bInd : 1 thru length(bName) do (
-  for c : minCdim[bInd] thru maxCdim[bInd] do (
-    for v : max(c,minVdim[bInd]) thru maxVdim[bInd] do (
-
-      maxPolyOrderB : maxPolyOrder[bInd],
-      if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
-      if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
-
-      for polyOrder : 1 thru maxPolyOrderB do (
-        disp(printf(false,sconcat("Creating volume VlasovStream",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
-        fname : sconcat("~/max-out/VlasovStream", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
-        fh : openw(fname),
-        funcName : sconcat("VlasovVolStream", c, "x", v, "v", bName[bInd]),
-        calcVlasovStreamVolUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
-        close(fh)
-      )
-    )
-  )
-);
-
-load("vlasov-calc/vlasov-elc-vol")$
+/* NOTE: this was added by Jimmy Juno (commit f7c7d9feac7d64fe661acce9f4d8ce71cd5c93a7).
+         I incoporated it into the VlasovPoisson branch changes, but I think it results
+         in kernels identical to the VlasovVolElc used above. So I think it repeats code
+         and should be eliminated. */
 /* Compute the volume contribution from ONLY the force term (for use in driven simulations) */
 /* Hard-coded to 1x1v for now, since this is only being used in 1x1v */
 for bInd : 1 thru length(bName) do (
@@ -88,7 +70,7 @@ for bInd : 1 thru length(bName) do (
       fname : sconcat("~/max-out/VlasovForce", bName[bInd], 1, "x", 1, "vP", polyOrder, ".cpp"),
       fh : openw(fname),
       funcName : sconcat("VlasovVolForce", 1, "x", 1, "v", bName[bInd]),
-      calcVlasovForceVolUpdater(fh, funcName, 1, 1, bName[bInd], polyOrder),
+      calcVlasovEfieldVolUpdater(fh, funcName, 1, 1, bName[bInd], polyOrder),
       close(fh)
    )
 );

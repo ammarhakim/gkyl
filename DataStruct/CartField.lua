@@ -527,14 +527,14 @@ local function Field_meta_ctor(elct)
 	 return self._localExtRangeDecomp:shape(self._shmIndex)*self:numComponents()
       end,
       _assign = function(self, fact, fld)
-	 assert(field_compatible(self, fld), "CartField:combine: Can only accumulate compatible fields")
-	 assert(type(fact) == "number", "CartField:combine: Factor not a number")
+	 assert(field_compatible(self, fld), "CartField:assign: Can only assign compatible fields")
+	 assert(type(fact) == "number", "CartField:assign: Factor not a number")
 
 	 ffiC.gkylCartFieldAssign(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
       end,
       _deviceAssign = function(self, fact, fld)
-	 assert(field_compatible(self, fld), "CartField:combine: Can only accumulate compatible fields")
-	 assert(type(fact) == "number", "CartField:combine: Factor not a number")
+	 assert(field_compatible(self, fld), "CartField:deviceAssign: Can only accumulate compatible fields")
+	 assert(type(fact) == "number", "CartField:deviceAssign: Factor not a number")
 
 	 local numThreads = GKYL_DEFAULT_NUM_THREADS
 	 local shape = self:_localShape()
@@ -543,11 +543,11 @@ local function Field_meta_ctor(elct)
       end,
       _accumulateOneFld = function(self, fact, fld)
 	 assert(field_compatible(self, fld),
-		"CartField:accumulate/combine: Can only accumulate/combine compatible fields")
+		"CartField:accumulateOneFld: Can only accumulate compatible fields")
 	 assert(type(fact) == "number",
-		"CartField:accumulate/combine: Factor not a number")
+		"CartField:accumulateOneFld: Factor not a number")
          assert(self:layout() == fld:layout(),
-		"CartField:accumulate/combine: Fields should have same layout for sums to make sense")
+		"CartField:accumulateOneFld: Fields should have same layout for sums to make sense")
 
 	 ffiC.gkylCartFieldAccumulate(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
       end,
@@ -571,11 +571,11 @@ local function Field_meta_ctor(elct)
       end,
       _deviceAccumulateOneFld = function(self, fact, fld)
 	 assert(field_compatible(self, fld),
-		"CartField:accumulate/combine: Can only accumulate/combine compatible fields")
+		"CartField:deviceAccumulateOneFld: Can only accumulate compatible fields")
 	 assert(type(fact) == "number",
-		"CartField:accumulate/combine: Factor not a number")
+		"CartField:deviceAccumulateOneFld: Factor not a number")
          assert(self:layout() == fld:layout(),
-		"CartField:accumulate/combine: Fields should have same layout for sums to make sense")
+		"CartField:deviceAccumulateOneFld: Fields should have same layout for sums to make sense")
 
 	 local numThreads = GKYL_DEFAULT_NUM_THREADS
 	 local shape = self:_localShape()
@@ -674,7 +674,7 @@ local function Field_meta_ctor(elct)
 	    end
 	 end or
 	 function (self, c1, fld1, ...)
-	    assert(false, "CartField:combine: Combine only works on numeric fields")
+	    assert(false, "CartField:deviceCombine: Combine only works on numeric fields")
 	 end,
       scale = isNumberType and
 	 function (self, fact)

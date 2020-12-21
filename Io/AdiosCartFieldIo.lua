@@ -109,7 +109,7 @@ function AdiosCartFieldIo:init(tbl)
 	 elseif type(v) == "string" then
 	    self._metaData[k] = { value = v, vType = "string" }
 	 elseif type(v) == "table" then
-	    assert(type(v[1])=="number", "Io.AdiosCartFieldIo: Metadata table must have elements must be numbers.")
+	    assert(type(v[1])=="number", "Io.AdiosCartFieldIo: Metadata table elements must be numbers.")
             isInt = (math.floor(math.abs(v[1])) == math.abs(v[1]))
             for _, val in pairs(v) do
 	       assert(isInt == (math.floor(math.abs(val)) == math.abs(val)), "Io.AdiosCartFieldIo: Metadata table must have elements of the same type (int or double).")
