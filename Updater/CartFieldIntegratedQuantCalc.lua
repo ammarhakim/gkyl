@@ -103,7 +103,7 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, inFld, outFld)
 
    -- All-reduce across processors and push result into dyn-vector.
    Mpi.Allreduce(
-      self.localVals:data(), self.globalVals:data(), nvals, Mpi.DOUBLE, Mpi.SUM, self:getComm())
+      self.localVals:data(), self.globalVals:data(), nvals, Mpi.DOUBLE, Mpi.SUM, Mpi.COMM_WORLD)
 
    if multfac or self.sqrt then 
       for i = 1, nvals do

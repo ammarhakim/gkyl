@@ -134,7 +134,7 @@ end
 --   fName:    file name
 --   tmStamp:  time-stamp
 --   frNum:    frame number
---   writeGhost: Flag to indicate if we should write skin-cells on boundaries of global domain
+--   writeGhost: Flag to indicate if we should write ghost-cells on boundaries of global domain
 function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
    local _writeGhost = self._writeGhost
    if writeGhost ~= nil then _writeGhost = writeGhost end
