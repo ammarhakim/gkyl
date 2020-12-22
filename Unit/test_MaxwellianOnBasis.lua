@@ -489,7 +489,7 @@ function test_1x3v()
 
    local lower     = {-0.50, -6.0*vt, -6.0*vt, -6.0*vt}
    local upper     = { 0.50,  6.0*vt,  6.0*vt,  6.0*vt}
-   local numCells  = {12, 16, 16, 8}
+   local numCells  = {6, 8, 8, 4}
 
    for polyOrder = 1, 3 do
 
@@ -699,7 +699,7 @@ function testGK_2x2v()
 
    local lower     = {-0.50, -0.50, -6.0*vt, 0.0}
    local upper     = { 0.50,  0.50,  6.0*vt, mass*(6.0*(vt)^2)/(2*B0)}
-   local numCells  = {16, 16, 16, 16}
+   local numCells  = {8, 8, 8, 8}
 
    for polyOrder = 1, 2 do
 
@@ -824,7 +824,7 @@ function test_2x3v()
 
    local lower     = {-0.50, -0.50, -6.0*vt, -6.0*vt, -6.0*vt}
    local upper     = { 0.50,  0.50,  6.0*vt,  6.0*vt,  6.0*vt}
-   local numCells  = {12, 24, 16, 16, 8}
+   local numCells  = {6, 12, 8, 8, 4}
 
    for polyOrder = 1, 2 do
 
@@ -947,7 +947,7 @@ function testGK_3x2v()
 
    local lower     = {-0.50, -0.50, -0.50, -6.0*vt, 0.0}
    local upper     = { 0.50,  0.50,  0.50,  6.0*vt, mass*(6.0*(vt)^2)/(2*B0)}
-   local numCells  = {12, 24, 16, 16, 8}
+   local numCells  = {6, 8, 8, 8, 4}
 
    for polyOrder = 1, 1 do
 
@@ -1076,7 +1076,7 @@ function test_3x3v()
 
    local lower     = {-0.50, -0.50, -0.50, -6.0*vt, -6.0*vt, -6.0*vt}
    local upper     = { 0.50,  0.50,  0.50,  6.0*vt,  6.0*vt,  6.0*vt}
-   local numCells  = {8, 8, 8, 8, 8, 8}
+   local numCells  = {4, 4, 4, 4, 4, 4}
 
    for polyOrder = 1, 1 do
 
