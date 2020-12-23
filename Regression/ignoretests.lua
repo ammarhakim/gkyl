@@ -6,6 +6,7 @@ return {
    "./dg-maxwell/rt-maxwell-2d-reflect-p3.lua",
    "./dg-maxwell/rt-maxwell-3d-plane-p3.lua",
    "./gk-lbo/rt-lboRelax-3x2v-p2.lua",
+   "./mgPoisson/rt-mgPoisson-FEM-wholeSolver-3D.lua",
    "./gk-sheath/rt-gk-sheath-solovev-R.lua",
    "./mom-ecdi1d/rt-5m-ecdi1d.lua",
    "./vm-const-mag/rt-const-mag-1x2v-ms-p3.lua",

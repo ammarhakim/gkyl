@@ -16,4 +16,4 @@ cd adios-1.13.1
 make install
 
 # soft-link
-ln -sf $PREFIX $GKYLSOFT/adios
+ln -sfn $PREFIX $GKYLSOFT/adios

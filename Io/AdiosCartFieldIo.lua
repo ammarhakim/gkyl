@@ -109,7 +109,7 @@ function AdiosCartFieldIo:init(tbl)
 	 elseif type(v) == "string" then
 	    self._metaData[k] = { value = v, vType = "string" }
 	 elseif type(v) == "table" then
-	    assert(type(v[1])=="number", "Io.AdiosCartFieldIo: Metadata table must have elements must be numbers.")
+	    assert(type(v[1])=="number", "Io.AdiosCartFieldIo: Metadata table elements must be numbers.")
             isInt = (math.floor(math.abs(v[1])) == math.abs(v[1]))
             for _, val in pairs(v) do
 	       assert(isInt == (math.floor(math.abs(val)) == math.abs(val)), "Io.AdiosCartFieldIo: Metadata table must have elements of the same type (int or double).")
@@ -134,7 +134,7 @@ end
 --   fName:    file name
 --   tmStamp:  time-stamp
 --   frNum:    frame number
---   writeGhost: Flag to indicate if we should write skin-cells on boundaries of global domain
+--   writeGhost: Flag to indicate if we should write ghost-cells on boundaries of global domain
 function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
    local _writeGhost = self._writeGhost
    if writeGhost ~= nil then _writeGhost = writeGhost end

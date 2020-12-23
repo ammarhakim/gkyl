@@ -253,9 +253,9 @@ local function buildApplication(self, tbl)
    local nfields = 0
    for _, val in pairs(tbl) do
       if FieldBase.is(val) then
-        field = val
-        completeFieldSetup(field)
-        nfields = nfields + 1
+         field = val
+         completeFieldSetup(field)
+         nfields = nfields + 1
       end
    end
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one Field object!")
@@ -266,9 +266,9 @@ local function buildApplication(self, tbl)
    nfields = 0
    for _, val in pairs(tbl) do
       if ExternalFieldBase.is(val) then
-        externalField = val
-        completeFieldSetup(externalField)
-        nfields = nfields + 1
+         externalField = val
+         completeFieldSetup(externalField)
+         nfields = nfields + 1
       end
    end
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one ExternalField object!")
@@ -281,7 +281,7 @@ local function buildApplication(self, tbl)
       local hasE, hasB = field:hasEB()
       local extHasE, extHasB = externalField:hasEB()
       s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
-      s:createSolver(hasE or extHasE, hasB or extHasB, externalField)
+      s:createSolver(hasE or extHasE, hasB or extHasB, externalField, hasB)
       s:initDist()
       s:createDiagnostics()
    end

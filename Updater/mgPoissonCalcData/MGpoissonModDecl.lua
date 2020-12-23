@@ -194,4 +194,10 @@ function _M.selectAccuConst(basisNm, dim, polyOrder, bcTypes, isDG)
    return accuKernels
 end
 
+-- Select kernel that computes the electrostatic field energy.
+function _M.selectESenergy(basisNm, dim, polyOrder, bcTypes)
+   local kerName = string.format("MGpoissonESenergyDG%dx%s_P%d", dim, basisNmMap[basisNm], polyOrder)
+   return ffi.C[kerName]
+end
+
 return _M

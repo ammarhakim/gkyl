@@ -1,9 +1,13 @@
 #include <VlasovModDecl.h> 
 __host__ __device__ double VlasovSurfElcMag1x3vSer_VX_P3(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
 { 
-// w: Cell-center coordinates. dxv[NDIM]: Cell spacing. amax: amax in global lax flux. E: EM field. fl/fr: Distribution function in left/right cells 
-// outl/outr: output distribution function in left/right cells 
-// returns abs(amid) for use in determining amax in cfl and global lax flux 
+  // w:         Cell-center coordinates.
+  // dxv[NDIM]: Cell spacing.
+  // amax:      amax in global lax flux.
+  // EM:        EM field.
+  // fl/fr:     Distribution function in left/right cells 
+  // outl/outr: output distribution function in left/right cells 
+  // returns abs(amid) for use in determining amax in cfl and global lax flux 
   double dv10l = 2/dxvl[1]; 
   double dv10r = 2/dxvr[1]; 
   const double *E0 = &EM[0]; 
@@ -265,9 +269,13 @@ __host__ __device__ double VlasovSurfElcMag1x3vSer_VX_P3(const double *wl, const
 } 
 __host__ __device__ double VlasovSurfElcMag1x3vSer_VY_P3(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
 { 
-// w: Cell-center coordinates. dxv[NDIM]: Cell spacing. amax: amax in global lax flux. E: EM field. fl/fr: Distribution function in left/right cells 
-// outl/outr: output distribution function in left/right cells 
-// returns abs(amid) for use in determining amax in cfl and global lax flux 
+  // w:         Cell-center coordinates.
+  // dxv[NDIM]: Cell spacing.
+  // amax:      amax in global lax flux.
+  // EM:        EM field.
+  // fl/fr:     Distribution function in left/right cells 
+  // outl/outr: output distribution function in left/right cells 
+  // returns abs(amid) for use in determining amax in cfl and global lax flux 
   double dv11l = 2/dxvl[2]; 
   double dv11r = 2/dxvr[2]; 
   const double *E1 = &EM[4]; 
@@ -529,9 +537,13 @@ __host__ __device__ double VlasovSurfElcMag1x3vSer_VY_P3(const double *wl, const
 } 
 __host__ __device__ double VlasovSurfElcMag1x3vSer_VZ_P3(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
 { 
-// w: Cell-center coordinates. dxv[NDIM]: Cell spacing. amax: amax in global lax flux. E: EM field. fl/fr: Distribution function in left/right cells 
-// outl/outr: output distribution function in left/right cells 
-// returns abs(amid) for use in determining amax in cfl and global lax flux 
+  // w:         Cell-center coordinates.
+  // dxv[NDIM]: Cell spacing.
+  // amax:      amax in global lax flux.
+  // EM:        EM field.
+  // fl/fr:     Distribution function in left/right cells 
+  // outl/outr: output distribution function in left/right cells 
+  // returns abs(amid) for use in determining amax in cfl and global lax flux 
   double dv12l = 2/dxvl[3]; 
   double dv12r = 2/dxvr[3]; 
   const double *E2 = &EM[8]; 

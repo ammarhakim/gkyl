@@ -464,11 +464,16 @@ function MaxwellianProjection:run(tProj, distf)
             for d = 1, self.cdim do
                xconf[d] = xn[d]
             end
-            local J = 1 --self.species.jacobPhaseFunc(t,xconf)
-            -- Divide the initial maxwellian by the density to get a unit density
-            -- because we are going to rescale the density anyways, and it is easier
-            -- to weak-divide by something close to unity.
-            local f = initFuncWithoutJacobian(t,xn)/self.density(t, xn, sp)
+            local J = 1
+            local f = initFuncWithoutJacobian(t, xn)
+            if self.exactScaleM0 then
+               -- Divide the initial maxwellian by the density to get a unit density
+               -- because we are going to rescale the density anyways, and it is easier
+               -- to weak-divide by something close to unity.
+               f = f/self.density(t, xn, sp)
+            else 
+               J = self.species.jacobPhaseFunc(t, xconf)
+            end
             return J*f
          end
       end

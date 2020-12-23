@@ -1,0 +1,264 @@
+load("out-scripts")$
+load("modal-basis")$
+load("nodalOperations/quadratureFuncs.mac")$
+load("nodalOperations/sparseQuadData_GQU.mac")$
+
+writeCExprsNoExpand1_ssubst(lhs, rhs, subList, writeZeros) := block([expr,i,sExpr],
+  expr : float(rhs),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 or writeZeros then (
+      sExpr : string(gcfac(expr[i])),
+      for sI : 1 thru length(subList) do (
+        sExpr : ssubst(subList[sI][1],subList[sI][2],sExpr)
+      ),
+      printf(fh, "  ~a = ~a; ~%", lhs[i-1], sExpr)
+    )
+  )
+)$
+
+/* Create the kernel that evaluates at configuration space ordinates. */
+evaluateConfOrdSparse(fh, funcNm, cdim, vdim, udimIn, basisNm, polyOrder, isGK) := block(
+  [basis,numB,uStr,den_e,vtSq_e,flowU_c,flowU_e,ordWeightC,normOrdsC,
+   ordNumC,fMFac_n,flowU_n,vtSq_n,i,cSub,vd,strSub,expr,sExpr,sI],
+
+  kill(varsC, varsP, basisC, basisP),
+  load(sconcat("basis-precalc/basis", basisNm, cdim, "x", vdim, "v")),
+
+  /* Configuration space basis. */
+  basis : basisC[polyOrder],
+  numB  : length(basis),
+
+  if isGK then (
+    udim : 1,
+    if (udim=udimIn) then (uStr : "") else (uStr : "Uz")
+  ) else (
+    udim : vdim,
+    if (udim=udimIn) then (uStr : "") else (uStr : "Upar")
+  ),
+    
+  /* Function which evaluates flow velocity, thermal speed and prefactor at
+     configuration space ordinates. */
+  printf(fh, "void ~a~a_P~a_evAtConfOrd(const double *den, const double *flowU, const double *vtSq, const double *bmag, double *flowUOrd, double *vtSqOrd, double *fMFacOrd, double *bmagOrd) {~%", funcNm, uStr, polyOrder),
+  printf(fh,"~%"),
+
+  /* Expand the density, flow velocity and thermal speed squared in basis. */
+  den_e   : doExpand1(den, basis),
+  vtSq_e  : doExpand1(vtSq, basis),
+
+  /* Flow velocity needs to account for the various vector components. */
+  flowU_c : makelist(flowU[cOff+i],i,0,numB-1),
+  flowU_e : doExpand(flowU_c, basis),
+
+  /* Get the sparse quadrature ordinates (in [-1,1] configuration space). */
+  ordWeightP : sparseOrdWeight(numQuad,cdim+vdim),
+  normOrdsP  : float(ordWeightP[1]),
+  ordNumP    : length(normOrdsP),
+
+  /* Extract the configuration space part of the ordinate coordinates. */ 
+  normOrdsC : unique(makelist(makelist(normOrdsP[i][d],d,1,cdim),i,1,ordNumP)),
+  ordNumC   : length(normOrdsC),
+
+  fMFac_n : makelist(0,i,1,ordNumC),
+  flowU_n : makelist(0,i,1,ordNumC*udim),
+  vtSq_n  : makelist(0,i,1,ordNumC),
+  if isGK then (
+    bmag_e : doExpand1(bmag, basis),
+    bmag_n : makelist(0,i,1,ordNumC)
+  ),
+
+  for i : 1 thru ordNumC do (
+    cSub : makelist(varsC[d]=normOrdsC[i][d],d,1,cdim),
+
+    den_n      : subst(cSub,den_e),
+    vtSq_n[i]  : subst(cSub,vtSq_e),
+    if isGK then (
+
+      if (udim = udimIn) then (
+        flowU_n[i] : subst(cSub,subst(cOff=0,flowU_e))
+      ) else (
+        /* When the flow velocity is a Cartesian u vector, only use the 3rd component. */
+        flowU_n[i] : subst(cSub,subst(cOff=2*numB,flowU_e))
+      ),
+
+      /* Include the Jacobian of the gyrocenter coordinate transformation (i.e.
+         the magnetic field) in the Maxwellian normalization factor. */
+      if vdim=1 then (
+        bmag_n     : subst(cSub,bmag_e),
+        fMFac_n[i] : bmag_n*den_n/(sqrt(2*%pi*vtSqOrd[i-1]))
+      ) else (
+        bmag_n[i]  : subst(cSub,bmag_e),
+        fMFac_n[i] : bmagOrd[i-1]*den_n/(cpow(sqrt(2*%pi*vtSqOrd[i-1]),3))
+      )
+
+    ) else (
+
+      for vd : 0 thru udim-1 do (
+        if (vdim = udimIn) then (
+          flowU_n[vd*ordNumC+i] : subst(cSub,subst(cOff=vd*numB,flowU_e))
+        ) else (
+          /* When the flow velocity is uPar, set flowUOrd=0 in first 2 dimensions. */
+          if (vd=vdim-1) then (
+            flowU_n[vd*ordNumC+i] : subst(cSub,subst(cOff=0,flowU_e))
+          ) else (
+            flowU_n[vd*ordNumC+i] : 0
+          )
+        )
+      ),
+
+      if vdim<3 then (
+        fMFac_n[i] : den_n/(sqrt(2*%pi*vtSqOrd[i-1])^vdim)
+      ) else (
+        fMFac_n[i] : den_n/(cpow(sqrt(2*%pi*vtSqOrd[i-1]),vdim))
+      )
+    )
+
+  ),
+
+  strSub : [["std::pow","cpow"]],
+  writeCExprsNoExpand1_ssubst(flowUOrd, flowU_n, strSub, true),
+  printf(fh,"~%"),
+  writeCExprsNoExpand1_ssubst(vtSqOrd, vtSq_n, strSub, true),
+  printf(fh,"~%"),
+
+  if isGK and vdim=2 then (
+    writeCExprsNoExpand1_ssubst(bmagOrd, bmag_n, strSub, true),
+    printf(fh,"~%")
+  ),
+
+  /* The factor in front of the exponential we will set to very small (almost
+     zero) if the thermal speed squared is negative. For GK add a floor. */
+  if isGK then (fFloor : 1e-40) else (fFloor : 0),
+  expr : float(fMFac_n),
+  for i : 1 thru length(expr) do (
+    printf(fh, "  if (vtSqOrd[~a] <= 0.0)~%", i-1),
+    printf(fh, "    fMFacOrd[~a] = ~a;~%", i-1, fFloor),
+    printf(fh, "  else~%"),
+    sExpr : string(fFloor+gcfac(expr[i])),
+    for sI : 1 thru length(strSub) do (
+      sExpr : ssubst(strSub[sI][1],strSub[sI][2],sExpr)
+    ),
+    printf(fh, "    ~a = ~a; ~%", fMFacOrd[i-1], sExpr)
+  ),
+  printf(fh,"~%"),
+
+  printf(fh, "}~%"),
+  printf(fh,"~%")
+)$
+
+/* Project a Maxwellian onto the DG basis using Gauss quadrature.
+   This generates two functions, one to evaluate configuration-space
+   quantities as conf-space ordinates, another to preform the quadrature
+   in phase space. */
+calcMaxwellianProjSparse(fh, funcNm, cdim, vdim, basisNm, polyOrder, isGK) := block(
+  [numQuad,bP,bC,numBP,numBC,udim,ordWeightC,normOrdsC,ordNumC,
+   ordWeightV,normOrdsV,ordNumV,ordWeightP,normOrdsP,ordNumP,ordsV,
+   fM_c,fM_n,i,nOrdP,cOrdIdx,vOrdIdx,expArg,subList,expArgOrd],
+
+  numQuad : polyOrder+1, /* Number of quarature points in 1D. */
+
+  kill(varsC, varsP, basisC, basisP),
+
+  if isGK then (
+    udim : 1
+  ) else (
+    udim : vdim
+  ),
+    
+  /* Generate the kernel that evaluates at configuration space ordinates. */
+  evaluateConfOrdSparse(fh, funcNm, cdim, vdim, udim, basisNm, polyOrder, isGK),
+  if (not isGK) and (vdim>1) then (
+    /* Generate a kernel which takes a single-dimension flow velocity.
+       This is to project a Maxwellian on the 3v grid when we take just
+       the flow velocity in the third velocity dimension and assume
+       zero flow in the other dimensions (e.g. Gyrokinetic -> Vlasov grid). */
+    evaluateConfOrdSparse(fh, funcNm, cdim, vdim, 1, basisNm, polyOrder, isGK)
+  ),
+  if isGK then (
+    /* Generate a kernel intended for passing the Cartesian velocity vector
+       flow velocity of a Maxwellian species. The kernel will evaluate the
+       z-component on ordinates and use that as the parallel flow velocity. */
+    evaluateConfOrdSparse(fh, funcNm, cdim, vdim, 3, basisNm, polyOrder, isGK)
+  ),
+
+  kill(varsC, varsP, basisC, basisP),
+  load(sconcat("basis-precalc/basis", basisNm, cdim, "x", vdim, "v")),
+
+  /* Phase and configuration space bases. */
+  bP : basisP[polyOrder],
+  bC : basisC[polyOrder],
+  numBP : length(bP),
+  numBC : length(bC),
+
+  /* Function which performs the quadrature in phase space. */
+  printf(fh, "void ~a_P~a_phaseQuad(const double *flowUOrd, const double *vtSqOrd, const double *fMFacOrd, const double *bmagOrd, const double m_, const double *wc, const double *dxv, double *fMOut) {~%", funcNm, polyOrder),
+  printf(fh,"~%"),
+
+  /* Get the Gaussian quadrature weights and ordinates (in [-1,1] phase space). */
+  ordWeightP : sparseOrdWeight(numQuad,cdim+vdim),
+  normOrdsP  : float(ordWeightP[1]),
+  weightsP   : float(ordWeightP[2]),
+  ordNumP    : length(normOrdsP),
+  
+  /* Extract the configuration space part of the ordinate coordinates. */ 
+  normOrdsC : unique(makelist(makelist(normOrdsP[i][d],d,1,cdim),i,1,ordNumP)),
+  ordNumC   : length(normOrdsC),
+
+  /* Extract the configuration velocity part of the ordinate coordinates. */ 
+  normOrdsV : unique(makelist(makelist(normOrdsP[i][cdim+d],d,1,vdim),i,1,ordNumP)),
+  ordNumV   : length(normOrdsV),
+
+  /* Translate velocity ordinates in [-1,1] to our physical coordinates. */
+  ordsV : makelist(makelist(0,d,1,vdim),i,1,ordNumV),
+  for i : 1 thru ordNumV do (
+    ordsV[i] : makelist(wc[cdim+d-1]+normOrdsV[i][d]*dxv[cdim+d-1]/2,d,1,vdim)
+  ),
+
+  fM_c : makelist(0,i,1,numBP),
+
+  /* Write out the Maxwellian evaluated a quadrature points, so it doesn't get
+     evaluated multiple times for the various basis functions. */
+  fM_n : makelist(0,i,1,ordNumP),
+  for i : 1 thru ordNumP do (
+    nOrdP : normOrdsP[i],
+
+    /* Indices of the conf-space and velocity-space ordinates corresponding
+       to this phase-space ordinate */
+    cOrdIdx : sublist_indices(normOrdsC, lambda([x],x=makelist(nOrdP[d],d,1,cdim)))[1],
+    vOrdIdx : sublist_indices(normOrdsV, lambda([x],x=makelist(nOrdP[cdim+d],d,1,vdim)))[1],
+
+    if isGK then (
+      expArg    : -(cpow(v-u,2))/(2*vtSq)-(vdim-1)*(2*mu*magB/m_)/(2*vtSq),
+      subList   : [v=ordsV[vOrdIdx][1],u=flowUOrd[cOrdIdx-1],vtSq=vtSqOrd[cOrdIdx-1]],
+      if (vdim=2) then (subList : append(subList,[mu=ordsV[vOrdIdx][2],magB=bmagOrd[cOrdIdx-1]])),
+      expArgOrd : subst(subList,expArg)
+    ) else (
+      expArg    : -(cpow(v-u,2))/(2*vtSq),
+      expArgOrd : sum(subst([v=ordsV[vOrdIdx][d],u=flowUOrd[(d-1)*ordNumC+cOrdIdx-1],vtSq=vtSqOrd[cOrdIdx-1]],expArg),d,1,vdim)
+    ),
+
+    /* Add contribution to each DG coefficient. */
+    fM_n[i] : fMFacOrd[cOrdIdx-1]*cexp(expArgOrd)
+  ),
+
+  printf(fh,"  double fMquad[~a];~%",ordNumP),
+  strSub : [["exp","cexp"],["std::pow","cpow"]],
+  writeCExprsNoExpand1_ssubst(fMquad, fM_n, strSub, false),
+  printf(fh,"~%"),
+
+  for i : 1 thru ordNumP do (
+    nOrdP : normOrdsP[i],
+
+    /* Add contribution to each DG coefficient. */
+    for k : 1 thru numBP do (
+      fM_c[k] : fM_c[k]+weightsP[i]*subst(makelist(varsP[d]=nOrdP[d],d,1,cdim+vdim),bP[k])*fMquad[i-1] 
+    )
+
+  ),
+
+  strSub : [["exp","cexp"],["std::pow","cpow"]],
+  writeCExprsNoExpand1_ssubst(fMOut, fM_c, strSub, false),
+  printf(fh,"~%"),
+
+  printf(fh, "}~%")
+)$
+

@@ -19,6 +19,7 @@ local DiscontGenPoisson = require "Updater.DiscontGenPoisson"
 local DiscontPoisson = require "Updater.DiscontPoisson"
 local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
 local EvalOnNodes = require "Updater.EvalOnNodes"
+local EvaluateBronoldFehskeBC = require "Updater.EvaluateBronoldFehskeBC"
 local FemGyroaverage = require "Updater.FemGyroaverage"
 local FemParPoisson = require "Updater.FemParPoisson"
 local FemPerpPoisson = require "Updater.FemPerpPoisson"
@@ -60,6 +61,7 @@ return {
    DiscontPoisson = DiscontPoisson,
    DistFuncMomentCalc = DistFuncMomentCalc,
    EvalOnNodes = EvalOnNodes,
+   EvaluateBronoldFehskeBC = EvaluateBronoldFehskeBC,
    FemGyroaverage = FemGyroaverage,
    FemParPoisson = FemParPoisson,
    FemPerpPoisson = FemPerpPoisson,

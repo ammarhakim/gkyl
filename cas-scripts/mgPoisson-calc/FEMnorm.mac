@@ -145,6 +145,7 @@ calcNorm(fh, funcNm, dim, basisFun, pMax, whichNorm) := block([],
           ),
       
           printf(fh, "void ~a_~aP~a(const double *dxC, double **femFld, double *normOut) ~%{ ~%", funcNm, stencilStr, polyOrder),
+          printf(fh, "  // dxC:     cell length.~%"),
           printf(fh, "  // femFld:  FEM field in neighboring cells.~%"),
           printf(fh, "  // normOut: norm.~%"),
           printf(fh, "~%"),

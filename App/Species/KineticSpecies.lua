@@ -508,6 +508,11 @@ function KineticSpecies:createBCs()
    handleBc(1, self.bcx)
    handleBc(2, self.bcy)
    handleBc(3, self.bcz)
+
+   -- Calculate external boundary condition if applicable
+   if self.tbl.computeExternalBC then
+      self:calcExternalBC()      
+   end
 end
 
 function KineticSpecies:createSolver(externalField)
@@ -689,6 +694,7 @@ function KineticSpecies:initDist()
 
    if self.jacobGeo then
       weakMultiplicationPhase:advance(0, {self.distf[1], self.jacobGeo}, {self.distf[1]})
+      if self.f0 then weakMultiplicationPhase:advance(0, {self.f0, self.jacobGeo}, {self.f0}) end
    end
 
    -- Calculate initial density averaged over simulation domain.

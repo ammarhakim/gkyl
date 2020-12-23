@@ -24,14 +24,6 @@ eta(xc, dx, fn) := block(
   return(out)
 ) $
 
-/* A simple helper function to convert x, y, or z to indices 1, 2, or 3 respectively */
-/* getDirIdx(dir, numDims) := block([], */
-/*   if numDims = 1 then return(1), */
-/*   if dir = x then return(1), */
-/*   if dir = y then return(2), */
-/*   if dir = z then return(3) */
-/* ) $ */
-
 getBasis(basisType, numDims, polyOrder) := block(
   [basis, varsC, basisC, varsP, basisP, basisConstant],
   if (numDims < 4) then (
@@ -45,4 +37,19 @@ getBasis(basisType, numDims, polyOrder) := block(
     basis : basisConstant
   ),
   return(basis)
+  ) $
+
+getDirs(numDims, polyOrder) := block(
+  [dirs, varsC, basisC, varsP, basisP, basisConstant],
+  if (numDims < 4) then (
+    load(sconcat("basis-precalc/basisSer", numDims, "x"))
+  ) else (
+    load(sconcat("basis-precalc/basisSer", numDims-3, "x", 3, "v"))
+  ),
+  if polyOrder > 0 then (
+    dirs : if (numDims<4) then varsC else varsP
+  ) else (
+    dirs : 1
+  ),
+  return(dirs)
 ) $

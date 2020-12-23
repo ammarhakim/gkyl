@@ -101,6 +101,10 @@ for bInd : 1 thru length(bName) do (
       findBoundaryStrCombo(fh, "MGpoissonDGresidual", "double **dx, const double *bcVals, double **rho, double **phi, double *resOut", bName[bInd], ci, bcKeyDG),
       printf(fh, "~%"),
 
+      /* Compute the ES field energy (given the potential). */
+      printf(fh, "void MGpoissonESenergyDG~ax~a_P~a(const double *dx, double *phi, double *out);~%", ci, bName[bInd], polyOrder),
+      printf(fh, "~%"),
+
       /* ~~~~~~~~~~~~~~ FEM solver kernels. ~~~~~~~~~~~~~~ */
       /* Translating between DG and FEM. */
       printf(fh, "void MGpoissonFEM_DGtoFEM_~ax~a_P~a(double **dgFld, double *femFld);~%", ci, bName[bInd], polyOrder),

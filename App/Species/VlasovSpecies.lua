@@ -72,18 +72,6 @@ function VlasovSpecies:fullInit(appTbl)
       self.hasExtForce = false
    end
 
-   local externalBC = tbl.externalBC
-   local numExternalBCFiles = tbl.numExternalBCFiles
-   if externalBC then
-      self.wallFunction = {}
-      if numExternalBCFiles then
-         for i = 1, numExternalBCFiles do
-            self.wallFunction[i] = require(externalBC .. "_" .. tostring(i))
-         end
-      else
-         self.wallFunction = require(externalBC)
-      end
-   end
    -- numVelFlux used for selecting which type of numerical flux function to use in velocity space
    -- defaults to "penalty" in Eq object, supported options: "penalty," "recovery"
    -- only used for DG Maxwell.
@@ -95,7 +83,7 @@ function VlasovSpecies:allocMomCouplingFields()
 end
 
 
-function VlasovSpecies:createSolver(hasE, hasB)
+function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
    -- Run the KineticSpecies 'createSolver()' to initialize the
    -- collisions solver.
    VlasovSpecies.super.createSolver(self)
@@ -107,6 +95,15 @@ function VlasovSpecies:createSolver(hasE, hasB)
       hasB = true
    end
 
+   -- Allocate field to accumulate funcField if any.
+   if hasB then
+      self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
+   else
+      self.totalEmField = self:allocVectorMoment(3)     -- Electric field only.
+   end
+
+   self.computePlasmaB = true and plasmaB
+
    -- Create updater to advance solution by one time-step.
    self.equation = VlasovEq {
       onGrid           = self.grid,
@@ -114,8 +111,9 @@ function VlasovSpecies:createSolver(hasE, hasB)
       confBasis        = self.confBasis,
       charge           = self.charge,
       mass             = self.mass,
-      hasElectricField = false,
-      hasMagneticField = false,
+      hasElectricField = hasE,
+      hasMagneticField = hasB,
+      plasmaMagField   = plasmaB,
       numVelFlux       = self.numVelFlux,
    }
 
@@ -580,7 +578,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    local qbym = self.charge/self.mass
 
-   if emField then totalEmField:accumulate(qbym, emField) end
+   if emField and self.computePlasmaB then totalEmField:accumulate(qbym, emField) end
    if emExternalField then totalEmField:accumulate(qbym, emExternalField) end
 
    -- If external force present (gravity, body force, etc.) accumulate it to electric field.
@@ -592,7 +590,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       Mpi.Barrier(self.grid:commSet().sharedComm)
 
       -- Analogous to the current, the external force only gets accumulated onto the electric field.
-      local vItr, eItr = vExtForce:get(1), totalEmField:get(1)
+      local vItr, eItr   = vExtForce:get(1), totalEmField:get(1)
       local vIdxr, eIdxr = vExtForce:genIndexer(), totalEmField:genIndexer()
 
       for idx in totalEmField:localRangeIter() do
@@ -606,7 +604,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solver:advance(tCurr, {fIn, totalEmField}, {fRhsOut})
+      self.solver:advance(tCurr, {fIn, totalEmField, emField}, {fRhsOut})
    else
       fRhsOut:clear(0.0)    -- No RHS.
    end
@@ -634,9 +632,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
          c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-         c:advance(tCurr, fIn, species, fRhsOut)
-         -- The full 'species' list is needed for the cross-species
-         -- collisions.
+         c:advance(tCurr, fIn, species, fRhsOut)   -- 'species' needed for cross-species collisions.
       end
    end
 
@@ -1185,19 +1181,63 @@ end
 
 function VlasovSpecies:bcExternFunc(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "flip".
-   local tbl = self.tbl
-   local numFiles = tbl.numExternalBCFiles
-   local velIdx = {}
+   local numBasis = self.basis:numBasis()
+   local velIdx = Lin.IntVec(self.ndim)
+   velIdx[1] = 1
    for d = 1, self.vdim do
-      velIdx[d] = idxIn[self.cdim + d]
+      velIdx[d + 1] = idxIn[self.cdim + d]
    end
-   if numFiles then
-      if velIdx[1] ~= 0 and velIdx[1] ~= self.grid:numCells(2) + 1 then
-         self.wallFunction[velIdx[1]](velIdx, fIn, fOut)
+   local exIdxr = self.externalBCFunction:genIndexer()
+   local externalBCFunction = self.externalBCFunction:get(exIdxr(velIdx))
+   if velIdx[1] ~= 0 and velIdx[1] ~= self.grid:numCells(2) + 1 then
+      for i = 1, numBasis do
+	 fOut[i] = 0
+         for j = 1, numBasis do
+            fOut[i] = fOut[i] + fIn[j]*externalBCFunction[(i - 1)*numBasis + j]
+         end
       end
-   else
-      self.wallFunction(velIdx, fIn, fOut)
    end
+   return fOut
+end
+
+function VlasovSpecies:calcExternalBC()
+   tbl = self.tbl
+   local externalBC = assert(tbl.externalBC, "VlasovSpecies: Must define externalBC parameters")
+   local lower = Lin.Vec(self.grid:ndim())
+   local upper = Lin.Vec(self.grid:ndim())
+   local cells = Lin.Vec(self.grid:ndim())
+   lower[1] = 0
+   upper[1] = 1
+   cells[1] = 1
+   for d = 1, self.vdim do
+      lower[d + 1] = self.grid:lower(d + 1)
+      upper[d + 1] = self.grid:upper(d + 1)
+      cells[d + 1] = self.grid:numCells(d + 1)
+   end
+   local grid = Grid.RectCart {
+      lower = lower,
+      upper = upper,
+      cells = cells,
+      periodicDirs = {}
+   }
+   self.externalBCFunction = DataStruct.Field {
+      onGrid = grid,
+      numComponents = self.basis:numBasis()*self.basis:numBasis(),
+      metaData = {
+	 polyOrder = self.basis:polyOrder(),
+	 basisType = self.basis:id(),
+      },
+   }
+   -- Calculate Bronold and Fehske reflection function coefficients
+   local evaluateBronold = Updater.EvaluateBronoldFehskeBC {
+      onGrid = grid,
+      basis = self.basis,
+      electronAffinity = externalBC.electronAffinity,
+      effectiveMass = externalBC.effectiveMass,
+      elemCharge = externalBC.elemCharge,
+      me = externalBC.electronMass,
+   }
+   evaluateBronold:advance(0.0, {}, {self.externalBCFunction})
 end
 
 function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
@@ -1267,12 +1307,14 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       end
       -- Indicate that moments, boundary corrections, star moments
       -- and self-primitive moments have been computed.
-      for iF=1,4 do
-         self.momentFlags[iF] = true
-      end
+      for iF=1,4 do self.momentFlags[iF] = true end
    else
-      self.momDensityCalc:advance(tCurr, {fIn}, { self.momDensity })
-      -- Indicate that first moment has been computed.
+      if self.computePlasmaB then
+         self.momDensityCalc:advance(tCurr, {fIn}, { self.momDensity })
+      else
+         self.numDensityCalc:advance(tCurr, {fIn}, { self.numDensity })
+      end
+      -- Indicate that the coupling moment has been computed.
       self.momentFlags[1] = true
    end
 

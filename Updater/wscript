@@ -33,6 +33,8 @@ def build(bld):
     mgPoissonCalcData/MGpoissonDGSer2x.cpp
     mgPoissonCalcData/MGpoissonFEMSer1x.cpp
     mgPoissonCalcData/MGpoissonFEMSer2x.cpp
+    mgPoissonCalcData/MGpoissonESenergySer1x.cpp
+    mgPoissonCalcData/MGpoissonESenergySer2x.cpp
 
     spitzerNuCalcData/SpitzerNuSer1x.cpp
     spitzerNuCalcData/SpitzerNuSer2x.cpp
@@ -400,8 +402,6 @@ def build(bld):
     chargeExchangeCalcData/SigmaCXcellAvSer3x3v.cpp
 
     MappedPoissonImpl.cpp
-
-    GkMaxwellianOnBasisImplOrg.cpp
 
     maxwellianOnBasisData/MaxwellianOnBasisImpl.cpp
     maxwellianOnBasisData/MaxwellianOnBasisSer1x1vP1.cpp

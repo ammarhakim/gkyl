@@ -102,39 +102,39 @@ function FemPerpPoisson:init(tbl)
    self._writeMatrix = xsys.pickBool(tbl.writeStiffnessMatrix, false)
   
    local function getBcData(tbl)
-     local bc = ffi.new("bcdata_t")
-     if tbl.T == "D" then bc.type = DIRICHLET
-     elseif tbl.T == "N" then bc.type = NEUMANN
-     elseif tbl.T == "D_VAR" then bc.type = DIRICHLET_VARIABLE
-     else assert(false, "Boundary condition type must be specified by one of 'D', 'N', or 'D_VAR'")
-     end
-     bc.value = tbl.V
-     bc.isSet = true
-     return bc
+      local bc = ffi.new("bcdata_t")
+      if tbl.T == "D" then bc.type = DIRICHLET
+      elseif tbl.T == "N" then bc.type = NEUMANN
+      elseif tbl.T == "D_VAR" then bc.type = DIRICHLET_VARIABLE
+      else assert(false, "Boundary condition type must be specified by one of 'D', 'N', or 'D_VAR'")
+      end
+      bc.value = tbl.V
+      bc.isSet = true
+      return bc
    end
 
    self._bc = ffi.new("bcdata_t[2][2]")
  
    if tbl.bcLeft then
-     self._bc[0][0] = getBcData(tbl.bcLeft)
+      self._bc[0][0] = getBcData(tbl.bcLeft)
    end
    if tbl.bcRight then
-     self._bc[0][1] = getBcData(tbl.bcRight)
+      self._bc[0][1] = getBcData(tbl.bcRight)
    end
    if tbl.bcBottom then
-     self._bc[1][0] = getBcData(tbl.bcBottom)
+      self._bc[1][0] = getBcData(tbl.bcBottom)
    end
    if tbl.bcTop then
-     self._bc[1][1] = getBcData(tbl.bcTop)
+      self._bc[1][1] = getBcData(tbl.bcTop)
    end
 
    -- make sure BCs are specified consistently
    for dir=0,1 do
-     if self._isDirPeriodic[dir] == false then
-       assert(self._bc[dir][0].isSet and self._bc[dir][1].isSet, "Must specify non-periodic BCs on each side (dir " .. dir .. ")")
-     else
-       assert(not (self._bc[dir][0].isSet or self._bc[dir][1].isSet), "Cannot specify BCs if direction is periodic")
-     end
+      if self._isDirPeriodic[dir] == false then
+         assert(self._bc[dir][0].isSet and self._bc[dir][1].isSet, "Must specify non-periodic BCs on each side (dir " .. dir .. ")")
+      else
+         assert(not (self._bc[dir][0].isSet or self._bc[dir][1].isSet), "Cannot specify BCs if direction is periodic")
+      end
    end
 
    self._hasLaplacian = false
@@ -158,9 +158,9 @@ function FemPerpPoisson:init(tbl)
 
    -- set up constant dummy field
    self.unitWeight = DataStruct.Field {
-	onGrid = self._grid,
-	numComponents = self._basis:numBasis(),
-	ghost = {1, 1},
+      onGrid = self._grid,
+      numComponents = self._basis:numBasis(),
+      ghost = {1, 1},
    }
    local initUnit = ProjectOnBasis {
       onGrid = self._grid,
@@ -174,14 +174,14 @@ function FemPerpPoisson:init(tbl)
 
    -- set up fields for non-uniform and/or time-dependent laplacian and modifier weights
    self.laplacianWeight = DataStruct.Field {
-        onGrid = self._grid,
-        numComponents = self._basis:numBasis(),
-        ghost = {1, 1},
+      onGrid = self._grid,
+      numComponents = self._basis:numBasis(),
+      ghost = {1, 1},
    }
    self.modifierWeight = DataStruct.Field {
-        onGrid = self._grid,
-        numComponents = self._basis:numBasis(),
-        ghost = {1, 1},
+      onGrid = self._grid,
+      numComponents = self._basis:numBasis(),
+      ghost = {1, 1},
    }
    -- initialize these fields to zero
    self.laplacianWeight:clear(0.0)
@@ -193,57 +193,57 @@ function FemPerpPoisson:init(tbl)
 
    -- metric coefficient fields
    self.gxx = DataStruct.Field {
-        onGrid = self._grid,
-        numComponents = self._basis:numBasis(),
-        ghost = {1, 1},
+      onGrid = self._grid,
+      numComponents = self._basis:numBasis(),
+      ghost = {1, 1},
    }
    self.gxy = DataStruct.Field {
-        onGrid = self._grid,
-        numComponents = self._basis:numBasis(),
-        ghost = {1, 1},
+      onGrid = self._grid,
+      numComponents = self._basis:numBasis(),
+      ghost = {1, 1},
    }
    self.gyy = DataStruct.Field {
-        onGrid = self._grid,
-        numComponents = self._basis:numBasis(),
-        ghost = {1, 1},
+      onGrid = self._grid,
+      numComponents = self._basis:numBasis(),
+      ghost = {1, 1},
    }
    if tbl.gxx then 
-     self.gxx:copy(tbl.gxx)
+      self.gxx:copy(tbl.gxx)
    else
-     self.gxx:copy(self.unitWeight)
+      self.gxx:copy(self.unitWeight)
    end
    if tbl.gxy then 
-     self.gxy:copy(tbl.gxy)
+      self.gxy:copy(tbl.gxy)
    else
-     self.gxy:clear(0.0)
+      self.gxy:clear(0.0)
    end
    if tbl.gyy then 
-     self.gyy:copy(tbl.gyy)
+      self.gyy:copy(tbl.gyy)
    else
-     self.gyy:copy(self.unitWeight)
+      self.gyy:copy(self.unitWeight)
    end
 
    if GKYL_HAVE_MPI then
-     -- split communicators in z
-     local commSet = self._grid:commSet()
-     local worldComm = commSet.comm
-     local nodeComm = commSet.nodeComm
-     local nodeRank = Mpi.Comm_rank(nodeComm)
-     local zrank = 0
-     if self._ndim==3 then zrank = math.floor(nodeRank/self._grid:cuts(1)/self._grid:cuts(2)) end
-     self._zcomm = Mpi.Comm_split(worldComm, zrank, nodeRank)
+      -- split communicators in z
+      local commSet = self._grid:commSet()
+      local worldComm = commSet.comm
+      local nodeComm = commSet.nodeComm
+      local nodeRank = Mpi.Comm_rank(nodeComm)
+      local zrank = 0
+      if self._ndim==3 then zrank = math.floor(nodeRank/self._grid:cuts(1)/self._grid:cuts(2)) end
+      self._zcomm = Mpi.Comm_split(worldComm, zrank, nodeRank)
    end
 
    self.zContinuous = xsys.pickBool(tbl.zContinuous, false)
    if self._smooth then self.zContinuous = true end
    self.zDiscontToCont = nil
    if self._ndim == 3 and self.zContinuous then
-     self.zDiscontToCont = FemParPoisson {
-       onGrid = self._grid,
-       basis = self._basis,
-       bcBack = tbl.bcBack,
-       bcFront = tbl.bcFront,
-       smooth = true,
+      self.zDiscontToCont = FemParPoisson {
+         onGrid = self._grid,
+         basis = self._basis,
+         bcBack = tbl.bcBack,
+         bcFront = tbl.bcFront,
+         smooth = true,
      }
    end
 
@@ -276,10 +276,10 @@ function FemPerpPoisson:_advance(tCurr, inFld, outFld)
    local localRange = src:localRange()
    local local_z_lower = 1
    local local_z_upper = 1
-   if(ndim==3) then
-     perpRange:shorten(3)
-     local_z_lower = localRange:lower(3)
-     local_z_upper = localRange:upper(3)
+   if (ndim==3) then
+      perpRange:shorten(3)
+      local_z_lower = localRange:lower(3)
+      local_z_upper = localRange:upper(3)
    end
 
    -- create indexers and pointers for src and sol
@@ -300,11 +300,11 @@ function FemPerpPoisson:_advance(tCurr, inFld, outFld)
       self.gyyPtr = self.gyy:get(1)
       if self._hasModifier == false and self._hasLaplacian == false then 
          if self._smooth then 
-           self.modifierWeight:copy(self.unitWeight) 
-           self._hasModifier = true
+            self.modifierWeight:copy(self.unitWeight) 
+            self._hasModifier = true
          else 
-           self.laplacianWeight:copy(self.unitWeight)
-           self._hasLaplacian = true
+            self.laplacianWeight:copy(self.unitWeight)
+            self._hasLaplacian = true
          end
       end
       if self._allPeriodic and self._hasModifier == false then self._adjustSource = true end
@@ -313,89 +313,89 @@ function FemPerpPoisson:_advance(tCurr, inFld, outFld)
    local intSrcVol = {0.0}
    -- if all directions periodic need to adjust source so that integral is 0 
    if self._adjustSource then
-     -- integrate source
-     if self._first then
-       self.calcInt = CartFieldIntegratedQuantCalc {
-         onGrid = grid,
-         basis = basis,
-         numComponents = 1,
-         quantity = "V",
-       }
-     end
-     self.calcInt:advance(0.0, {src}, {self.dynVec})
-     _, intSrcVol = self.dynVec:lastData()
+      -- integrate source
+      if self._first then
+         self.calcInt = CartFieldIntegratedQuantCalc {
+            onGrid = grid,
+            basis = basis,
+            numComponents = 1,
+            quantity = "V",
+         }
+      end
+      self.calcInt:advance(0.0, {src}, {self.dynVec})
+      _, intSrcVol = self.dynVec:lastData()
    end
 
    -- loop over local z cells
    for idz=local_z_lower, local_z_upper do
-     if self._first then 
-       -- if first time, create poisson C object for each z cell
-       self._poisson[idz] = ffiC.new_FemPerpPoisson(self._nx, self._ny, self._ndim, self._p, 
-                                           self._dx, self._dy, self._isDirPeriodic, 
-                                           self._bc, self._writeMatrix, self._adjustSource)
-     end
+      if self._first then 
+         -- if first time, create poisson C object for each z cell
+         self._poisson[idz] = ffiC.new_FemPerpPoisson(self._nx, self._ny, self._ndim, self._p, 
+                                             self._dx, self._dy, self._isDirPeriodic, 
+                                             self._bc, self._writeMatrix, self._adjustSource)
+      end
 
-     -- zero global source
-     ffiC.zeroGlobalSrc(self._poisson[idz])
+      -- zero global source
+      ffiC.zeroGlobalSrc(self._poisson[idz])
 
-     -- create global source 
-     -- globalSrc is an Eigen vector managed in C
-     -- each proc allocates a full globalSrc vector
-     -- loop over x and y cells locally to get local contributions to globalSrc
-     for idx=localRange:lower(1),localRange:upper(1) do     
-       for idy=localRange:lower(2),localRange:upper(2) do
-         if ndim==2 then 
-           src:fill(self.srcIndexer(idx,idy), self.srcPtr) 
-         else 
-           src:fill(self.srcIndexer(idx, idy, idz), self.srcPtr) 
-         end
-         ffiC.createGlobalSrc(self._poisson[idz], self.srcPtr:data(), idx-1, idy-1, intSrcVol[1]/grid:gridVolume()*math.sqrt(2)^self._ndim)
-
-         if self._makeStiff then
+      -- create global source 
+      -- globalSrc is an Eigen vector managed in C
+      -- each proc allocates a full globalSrc vector
+      -- loop over x and y cells locally to get local contributions to globalSrc
+      for idx=localRange:lower(1),localRange:upper(1) do     
+         for idy=localRange:lower(2),localRange:upper(2) do
             if ndim==2 then 
-              self.laplacianWeight:fill(self.laplacianWeightIndexer(idx,idy), self.laplacianWeightPtr) 
-              self.modifierWeight:fill(self.modifierWeightIndexer(idx,idy), self.modifierWeightPtr) 
-              self.gxx:fill(self.gxxIndexer(idx,idy), self.gxxPtr) 
-              self.gxy:fill(self.gxyIndexer(idx,idy), self.gxyPtr) 
-              self.gyy:fill(self.gyyIndexer(idx,idy), self.gyyPtr) 
+               src:fill(self.srcIndexer(idx,idy), self.srcPtr) 
             else 
-              self.laplacianWeight:fill(self.laplacianWeightIndexer(idx, idy, idz), self.laplacianWeightPtr) 
-              self.modifierWeight:fill(self.modifierWeightIndexer(idx, idy, idz), self.modifierWeightPtr) 
-              self.gxx:fill(self.gxxIndexer(idx,idy,idz), self.gxxPtr) 
-              self.gxy:fill(self.gxyIndexer(idx,idy,idz), self.gxyPtr) 
-              self.gyy:fill(self.gyyIndexer(idx,idy,idz), self.gyyPtr) 
+               src:fill(self.srcIndexer(idx, idy, idz), self.srcPtr) 
             end
-            ffiC.makeGlobalStiff(self._poisson[idz], self.laplacianWeightPtr:data(), self.modifierWeightPtr:data(), self.gxxPtr:data(), self.gxyPtr:data(), self.gyyPtr:data(), idx-1, idy-1)
-         end 
-       end
-     end
+            ffiC.createGlobalSrc(self._poisson[idz], self.srcPtr:data(), idx-1, idy-1, intSrcVol[1]/grid:gridVolume()*math.sqrt(2)^self._ndim)
 
-     if GKYL_HAVE_MPI and Mpi.Comm_size(self._zcomm)>1 then
-       -- sum each proc's globalSrc to get final globalSrc (on each proc via allreduce)
-       ffiC.allreduceGlobalSrc(self._poisson[idz], Mpi.getComm(self._zcomm))
-       if self._makeStiff then
-         ffiC.allgatherGlobalStiff(self._poisson[idz], Mpi.getComm(self._zcomm))
-       end
-     end
-
-     if self._makeStiff then
-        ffiC.finishGlobalStiff(self._poisson[idz])
-     end
-     -- solve 
-     ffiC.solve(self._poisson[idz])
-
-     -- remap global nodal solution to local modal solution 
-     -- only need to loop over local proc region
-     for idx=localRange:lower(1),localRange:upper(1) do     
-       for idy=localRange:lower(2),localRange:upper(2) do
-         if ndim==2 then 
-           sol:fill(self.solIndexer(idx,idy), self.solPtr) 
-         else 
-           sol:fill(self.solIndexer(idx, idy, idz), self.solPtr) 
+            if self._makeStiff then
+               if ndim==2 then 
+                  self.laplacianWeight:fill(self.laplacianWeightIndexer(idx,idy), self.laplacianWeightPtr) 
+                  self.modifierWeight:fill(self.modifierWeightIndexer(idx,idy), self.modifierWeightPtr) 
+                  self.gxx:fill(self.gxxIndexer(idx,idy), self.gxxPtr) 
+                  self.gxy:fill(self.gxyIndexer(idx,idy), self.gxyPtr) 
+                  self.gyy:fill(self.gyyIndexer(idx,idy), self.gyyPtr) 
+               else 
+                  self.laplacianWeight:fill(self.laplacianWeightIndexer(idx, idy, idz), self.laplacianWeightPtr) 
+                  self.modifierWeight:fill(self.modifierWeightIndexer(idx, idy, idz), self.modifierWeightPtr) 
+                  self.gxx:fill(self.gxxIndexer(idx,idy,idz), self.gxxPtr) 
+                  self.gxy:fill(self.gxyIndexer(idx,idy,idz), self.gxyPtr) 
+                  self.gyy:fill(self.gyyIndexer(idx,idy,idz), self.gyyPtr) 
+               end
+               ffiC.makeGlobalStiff(self._poisson[idz], self.laplacianWeightPtr:data(), self.modifierWeightPtr:data(), self.gxxPtr:data(), self.gxyPtr:data(), self.gyyPtr:data(), idx-1, idy-1)
+            end 
          end
-         ffiC.getSolution(self._poisson[idz], self.solPtr:data(), idx-1, idy-1)
-       end
-     end
+      end
+
+      if GKYL_HAVE_MPI and Mpi.Comm_size(self._zcomm)>1 then
+        -- sum each proc's globalSrc to get final globalSrc (on each proc via allreduce)
+        ffiC.allreduceGlobalSrc(self._poisson[idz], Mpi.getComm(self._zcomm))
+        if self._makeStiff then
+           ffiC.allgatherGlobalStiff(self._poisson[idz], Mpi.getComm(self._zcomm))
+        end
+      end
+
+      if self._makeStiff then
+         ffiC.finishGlobalStiff(self._poisson[idz])
+      end
+      -- solve 
+      ffiC.solve(self._poisson[idz])
+
+      -- remap global nodal solution to local modal solution 
+      -- only need to loop over local proc region
+      for idx=localRange:lower(1),localRange:upper(1) do     
+         for idy=localRange:lower(2),localRange:upper(2) do
+            if ndim==2 then 
+               sol:fill(self.solIndexer(idx,idy), self.solPtr) 
+            else 
+               sol:fill(self.solIndexer(idx, idy, idz), self.solPtr) 
+            end
+            ffiC.getSolution(self._poisson[idz], self.solPtr:data(), idx-1, idy-1)
+         end
+      end
    end 
 
    if self.zDiscontToCont then 
@@ -408,7 +408,7 @@ function FemPerpPoisson:_advance(tCurr, inFld, outFld)
 end
 
 function FemPerpPoisson:delete()
-  ffiC.delete_FemPerpPoisson(self._poisson)
+   ffiC.delete_FemPerpPoisson(self._poisson)
 end
 
 function FemPerpPoisson:setLaplacianWeight(weight)

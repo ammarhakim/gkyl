@@ -20,7 +20,7 @@
 
 #.For some reason we need to specify the full path to gkyl command.
 export gComDir="$HOME/gkylsoft/gkyl/bin"
-#export mpiComDir="$HOME/gkylsoft/openmpi-3.1.2/bin/"
+#export mpiComDir="$HOME/gkylsoft/openmpi-4.0.5/bin/"
 
 #.Run #1: do a first simulation to produce reference data.
 #$mpiComDir/mpirun -n 2 $gComDir/gkyl -e "endTime=10.0; frames=2; decomp={1}" two-stream-p2.lua
