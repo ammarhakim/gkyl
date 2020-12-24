@@ -102,7 +102,7 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
       self.totalEmField = self:allocVectorMoment(3)     -- Electric field only.
    end
 
-   self.computePlasmaB = true and plasmaB
+   self.computePlasmaB = true and plasmaB   -- Differentiate plasma B from external B.
 
    -- Create updater to advance solution by one time-step.
    self.equation = VlasovEq {
