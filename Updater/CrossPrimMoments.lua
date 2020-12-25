@@ -143,6 +143,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
    local uCrossOtherItr    = uCrossOther:get(1)
    local vtSqCrossOtherItr = vtSqCrossOther:get(1)
 
+
    -- For LBO need a few more inputs. Also, in order to avoid evaluation
    -- of if-statements in the spatial loop, we have separate loops for each
    -- operator, and for each of cellConstNu. Makes the code longer but slightly more efficient.
@@ -279,7 +280,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
             end
 
          end    -- end if polyOrder>1.
-      else    -- BGK operator below (needs less inputs).
+      else    -- BGK operator below (needs fewer inputs).
 
          for cIdx in confRangeDecomp:rowMajorIter(tId) do
             grid:setIndex(cIdx)

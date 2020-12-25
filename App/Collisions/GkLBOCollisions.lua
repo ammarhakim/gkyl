@@ -127,9 +127,7 @@ function GkLBOCollisions:fullInit(speciesTbl)
          end
       else
          self.userInputNormNu = false
-         if self.selfCollisions then
-            self.normNuSelf  = 0.0
-         end
+         if self.selfCollisions then self.normNuSelf = 0.0 end
          if self.crossCollisions then
             self.normNuCross = lume.clone(self.collidingSpecies)
             table.remove(self.normNuCross, selfSpecInd)
@@ -208,13 +206,11 @@ function GkLBOCollisions:createSolver(externalField)
 
    -- Number of physical velocity dimensions.
    self.vDimPhys = 1.0
-   if self.vDim == 2 then
-     self.vDimPhys = 3.0
-   end
+   if self.vDim == 2 then self.vDimPhys = 3.0 end
 
    -- Maximum velocity of the velocity grid (and its square).
-   self.vParMax            = self.phaseGrid:upper(self.confGrid:ndim()+1)
-   self.vParMaxSq          = self.vParMax^2
+   self.vParMax   = self.phaseGrid:upper(self.confGrid:ndim()+1)
+   self.vParMaxSq = self.vParMax^2
 
    -- Intemediate storage for output of collisions.
    self.collOut = DataStruct.Field {
@@ -261,17 +257,17 @@ function GkLBOCollisions:createSolver(externalField)
          ghost         = {1, 1},
       }
       if self.timeDepNu then
-        -- Updater to compute spatially varying (Spitzer) nu.
-        self.spitzerNu = Updater.SpitzerCollisionality {
-           onGrid           = self.confGrid,
-           confBasis        = self.confBasis,
-           useCellAverageNu = self.cellConstNu,
-           willInputNormNu  = self.userInputNormNu,
-           elemCharge       = self.elemCharge,
-           epsilon0         = self.epsilon0,
-           hBar             = self.hBar,
-           nuFrac           = self.nuFrac,
-        }
+         -- Updater to compute spatially varying (Spitzer) nu.
+         self.spitzerNu = Updater.SpitzerCollisionality {
+            onGrid           = self.confGrid,
+            confBasis        = self.confBasis,
+            useCellAverageNu = self.cellConstNu,
+            willInputNormNu  = self.userInputNormNu,
+            elemCharge       = self.elemCharge,
+            epsilon0         = self.epsilon0,
+            hBar             = self.hBar,
+            nuFrac           = self.nuFrac,
+         }
       elseif self.selfCollisions then
          local projectUserNu = Updater.ProjectOnBasis {
             onGrid          = self.confGrid,

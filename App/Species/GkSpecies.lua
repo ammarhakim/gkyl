@@ -706,12 +706,12 @@ end
 function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    self:setActiveRKidx(inIdx)
    self.tCurr = tCurr
-   local fIn = self:rkStepperFields()[inIdx]
+   local fIn     = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
-   local em = emIn[1]:rkStepperFields()[inIdx]
+   local em          = emIn[1]:rkStepperFields()[inIdx]
    local dApardtProv = emIn[1].dApardtProv
-   local emFunc = emIn[2]:rkStepperFields()[1]
+   local emFunc      = emIn[2]:rkStepperFields()[1]
 
    -- Rescale slopes.
    if self.positivityRescale then
@@ -725,10 +725,8 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
-	 --print('Collision advance start', c.name)
          c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
          c:advance(tCurr, fIn, species, fRhsOut)
-	 --print('Collision advance complete', c.name)
          -- the full 'species' list is needed for the cross-species
          -- collisions
       end
@@ -1300,7 +1298,7 @@ function GkSpecies:createDiagnostics()
                self.diagnosticMomentUpdaters["GkEnergy"..label].tCurr = tm -- mark as complete for this tm
             end
          elseif string.find(mom, "GkUparCross") then
-            self.diagnosticMomentUpdaters["GkUparCross"..label].advance = function (self, tm)
+            self.diagnosticMomentUpdaters[mom..label].advance = function (self, tm)
                otherNm = string.gsub(mom, "GkUparCross%-", "")
                local uParCrossOther = self.uParCross[otherNm]
                if bc then
@@ -1309,7 +1307,7 @@ function GkSpecies:createDiagnostics()
                self.diagnosticMomentFields[mom..label]:copy(uParCrossOther)
             end
          elseif string.find(mom, "GkVtSqCross") then
-            self.diagnosticMomentUpdaters["GkVtSqCross"..label].advance = function (self, tm)
+            self.diagnosticMomentUpdaters[mom..label].advance = function (self, tm)
                otherNm = string.gsub(mom, "GkVtSqCross%-", "")
                local vtSqCrossOther = self.vtSqCross[otherNm]
                if bc then
@@ -1522,17 +1520,12 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
 end
 
 function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
-   local writeOut = false
    local fIn = self:rkStepperFields()[rkIdx]
    -- Compute moments needed in coupling to fields and collisions.
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
       if self.deltaF then
 	 fIn:accumulate(-1.0, self.f0)
-      end
-
-      if writeOut then
-	 fIn:write(string.format("%s_ccmDistF_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
       end
 
       if self.needSelfPrimMom then
@@ -1554,8 +1547,6 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
                                        -1.0/self.vDegFreedom, self.numDensityAux )
             self.confDiv:advance(tCurr, {self.numDensity, self.momDensityAux}, {self.vtSqSelf})
          end
-	 --self.vtSqSelf:write(string.format("%s_ccmVtSq_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
-	 --self.uParSelf:write(string.format("%s_ccmUpar_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
 
          -- Indicate that moments, boundary corrections, star moments
          -- and self-primitive moments have been computed.
@@ -1590,12 +1581,6 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
          self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
          self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
          self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
-         
-         if writeOut then
-            neutM0:write(string.format("%s_izNeutM0_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
-            self.voronovReactRate:write(string.format("%s_ccmCoefIz_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
-            self.fMaxwellIz:write(string.format("%s_ccmfMax_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
-         end
       end
 
       if self.calcCXSrc then
@@ -1603,13 +1588,8 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 local m0       = species[self.neutNmCX]:fluidMoments()[1]
       	 local neutU    = species[self.neutNmCX]:selfPrimitiveMoments()[1]
       	 local neutVtSq = species[self.neutNmCX]:selfPrimitiveMoments()[2]
-	 --neutVtSq:write(string.format("%s_neutVtSq_%d.bp",self.name,tCurr*1e10),tCurr,0,true)	 
 	 
       	 species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uParSelf, neutU, self.vtSqSelf, neutVtSq}, {self.vSigmaCX})
-	 if writeOut then
-	    m0:write(string.format("%s_cxNeutM0_%d.bp",self.name,tCurr*1e10),tCurr,0,true)
-	    self.vSigmaCX:write(string.format("%s_ccmVSigmaCX_%d.bp",self.name,tCurr*1e10),tCurr,0,true)	 
-	 end
       end
       
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart

@@ -60,15 +60,15 @@ function SpitzerCollisionality:init(tbl)
 
    if self._isNormNu then
       if self._cellConstNu then
-        self._SpitzerNuCalc = SpitzerNuDecl.selectCellAvSpitzerNuScale(self._basisID, self._cDim, self._polyOrder)
+         self._SpitzerNuCalc = SpitzerNuDecl.selectCellAvSpitzerNuScale(self._basisID, self._cDim, self._polyOrder)
       else
-        self._SpitzerNuCalc = SpitzerNuDecl.selectSpitzerNuScale(self._basisID, self._cDim, self._polyOrder)
+         self._SpitzerNuCalc = SpitzerNuDecl.selectSpitzerNuScale(self._basisID, self._cDim, self._polyOrder)
       end
    else
       if self._cellConstNu then
-        self._SpitzerNuCalc = SpitzerNuDecl.selectCellAvSpitzerNuBuild(self._basisID, self._cDim, self._polyOrder)
+         self._SpitzerNuCalc = SpitzerNuDecl.selectCellAvSpitzerNuBuild(self._basisID, self._cDim, self._polyOrder)
       else
-        self._SpitzerNuCalc = SpitzerNuDecl.selectSpitzerNuBuild(self._basisID, self._cDim, self._polyOrder)
+         self._SpitzerNuCalc = SpitzerNuDecl.selectSpitzerNuBuild(self._basisID, self._cDim, self._polyOrder)
       end
    end
    self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
@@ -84,27 +84,27 @@ end
 function SpitzerCollisionality:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
 
-   local chargeSelf, massSelf    = inFld[1], inFld[2]
-   local m0Self, vtSqSelf        = inFld[3], inFld[4]
-   local chargeOther, massOther  = inFld[5], inFld[6]
-   local m0Other, vtSqOther      = inFld[7], inFld[8]
+   local chargeSelf, massSelf   = inFld[1], inFld[2]
+   local m0Self, vtSqSelf       = inFld[3], inFld[4]
+   local chargeOther, massOther = inFld[5], inFld[6]
+   local m0Other, vtSqOther     = inFld[7], inFld[8]
 
    local normNu = inFld[9]
    local Bmag, BmagItr
 
    local firstInput, massFac = 0.0, 0.0
 
-   local confIndexer   = m0Self:genIndexer()
+   local confIndexer = m0Self:genIndexer()
 
-   local m0SelfItr     = m0Self:get(1)
-   local vtSqSelfItr   = vtSqSelf:get(1)
-   local m0OtherItr    = m0Other:get(1)
-   local vtSqOtherItr  = vtSqOther:get(1)
+   local m0SelfItr    = m0Self:get(1)
+   local vtSqSelfItr  = vtSqSelf:get(1)
+   local m0OtherItr   = m0Other:get(1)
+   local vtSqOtherItr = vtSqOther:get(1)
 
-   local nuOut          = outFld[1]
-   local nuOutItr       = nuOut:get(1)
+   local nuOut    = outFld[1]
+   local nuOutItr = nuOut:get(1)
 
-   local confRange      = m0Self:localRange()
+   local confRange = m0Self:localRange()
    if self.onGhosts then confRange = m0Self:localExtRange() end
 
    -- Construct ranges for nested loops.

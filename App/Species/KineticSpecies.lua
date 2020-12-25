@@ -929,8 +929,17 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
     end
 
     for i, mom in ipairs(self.requestedDiagnosticMoments) do
-       self.diagnosticMomentFields[mom]:write(
-          string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
+       local fldNm = mom
+       if self.diagnosticMomentFields[fldNm]==nil then
+          -- Cross-species diagnostics have another species name appended to them, so the name
+          -- in requestedDiagnosticMoments does not match the name in diagnosticMomentFields.
+          for nm, _ in pairs(self.diagnosticMomentFields) do
+             if string.find(nm, "uCross") or string.find(nm, "vtSqCross") or
+                string.find(nm, "GkUparCross") or string.find(nm, "GkVtSqCross") then fldNm=nm end
+          end
+       end
+       self.diagnosticMomentFields[fldNm]:write(
+          string.format("%s_%s_%d.bp", self.name, fldNm, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
     end
 
     for i, mom in ipairs(self.requestedDiagnosticBoundaryFluxMoments) do
