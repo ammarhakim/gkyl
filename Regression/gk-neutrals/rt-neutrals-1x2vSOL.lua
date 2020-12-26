@@ -293,10 +293,10 @@ plasmaApp = Plasma.App {
    
    -- Field solver
    field = Plasma.Field {
-      phiBcLeft  = { T ="N", V = 0.0},
-      phiBcRight = { T ="N", V = 0.0},
       evolve     = true,
       kperp2     = kmin*kmin,
+      bcLowerPhi = {{T = "N", V = 0.0}},
+      bcUpperPhi = {{T = "N", V = 0.0}},
    },
 
    -- Magnetic geometry.

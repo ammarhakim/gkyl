@@ -32,41 +32,27 @@ local EM_BC_OPEN = 1
 local checkBCs = function(dimIn, isDirPer, bcLoIn, bcUpIn, bcLoOut, bcUpOut, setLastDir)
    local periodicDomain = true
    for d=1,dimIn do periodicDomain = periodicDomain and isDirPer[d] end
-   if periodicDomain then
-      for d=1,dimIn do
-         if bcLoIn==nil and bcUpIn==nil then
+   if bcLoIn==nil and bcUpIn==nil then
+      if periodicDomain then
+         for d=1,dimIn do
             bcLoOut[d] = d<3 and {T="P"} or {T="N", V=0.0} 
-            bcUpOut[d] = d<3 and {T="P"} or {T="N", V=0.0}
-         else
-            if d<3 then
-               assert(bcLoIn[d].T=="P" and bcLoIn[d].T=="P",
-                      "App.Field.GkField: if domain is periodic 'bcLower[1:2].T' and 'bcUpper[1:2].T' must equal 'P'.")
-            end
+            bcUpOut[d] = bcLoOut[d]
          end
+      else
+         assert(dimIn==1, "App.Field.GkField: must specify 'bcLower' and 'bcUpper' if dimensions > 1.")
       end
    else
-      if dimIn == 1 and (bcLoIn==nil and bcUpIn==nil) and setLastDir then
-         -- Assume homogeneous Neumann since this would only be used in the z-smoothing.
-         bcLoOut, bcUpOut = {{T="N", V=0.0}}, {{T="N", V=0.0}} 
-      elseif dimIn > 1 then
-         assert(bcLoIn and bcUpIn,
-                "App.Field.GkField: must specify 'bcLower' and 'bcUpper' if dimensions >= 2.")
-         if dimIn==2 then
-            assert(#bcLoIn==2 and #bcUpIn==2,
-                   "App.Field.GkField: number of entries in bcLower/bcUpper must == 2.")
-         else
-            assert(#bcLoIn>=2 and #bcUpIn>=2,
-                   "App.Field.GkField: number of entries in bcLower/bcUpper must >= 2.")
-            if (#bcLoIn==2 and #bcUpIn==2) and setLastDir then
-               -- Assume homogeneous Neumann since this would only be used in the z-smoothing.
-               bcLoOut[3], bcUpOut[3] = {{T="N", V=0.0}}, {{T="N", V=0.0}} 
-            end
-         end
-         for d=1,2 do
-            assert((isDirPer[d]==(bcLoIn[d].T=="P")) and (isDirPer[d]==(bcUpIn[d].T=="P")),
-                   string.format("App.Field.GkField: direction %d is periodic. Must use {T='P'} in bcLower/bcUpper.",d))
-         end
-      end
+      assert(#bcLoIn==#bcUpIn, "App.Field.GkField: number of entries in bcLower and bcUpper must be equal.")
+      assert(dimIn==1 or (dimIn>1 and #bcLoIn>=2), "App.Field.GkField: number of entries in bcLower/bcUpper must >= 2.")
+      for d=1,#bcLoIn do bcLoOut[d], bcUpOut[d] = bcLoIn[d], bcUpIn[d] end
+   end
+   for d=1,math.min(dimIn,2) do
+      assert((isDirPer[d]==(bcLoOut[d].T=="P")) and (isDirPer[d]==(bcUpOut[d].T=="P")),
+             string.format("App.Field.GkField: direction %d is periodic. Must use {T='P'} in bcLower/bcUpper.",d))
+   end
+   if setLastDir and (bcLoOut[dimIn]==nil or bcUpOut[dimIn]==nil) then
+      -- Assume homogeneous Neumann since this would only be used in the z-smoothing.
+      bcLoOut[dimIn], bcUpOut[dimIn] = {T="N", V=0.0}, {T="N", V=0.0} 
    end
 end
 
@@ -111,36 +97,40 @@ function GkField:fullInit(appTbl)
    self.bcLowerApar, self.bcUpperApar = {}, {}
 
    -- ******* The following BC options are kept for backwards compatibility ******* --
-   if tbl.phiBcLeft and tbl.phiBcRight then
-      print("App.Field.GkField: warning... phiBcLeft/phiBcRight will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
-      self.bcLowerPhi[1], self.bcUpperPhi[1] = tbl.phiBcLeft, tbl.phiBcRight
-   elseif isDirPeriodic[1] then
-      self.bcLowerPhi[1], self.bcUpperPhi[1] = {T = "P"}, {T = "P"} 
+   if tbl.phiBcLeft or tbl.phiBcRight or tbl.phiBcBottom or tbl.phiBcTop or tbl.phiBcBack or tbl.phiBcFront then
+      if tbl.phiBcLeft and tbl.phiBcRight then
+         print("App.Field.GkField: warning... phiBcLeft/phiBcRight will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
+         self.bcLowerPhi[1], self.bcUpperPhi[1] = tbl.phiBcLeft, tbl.phiBcRight
+      elseif isDirPeriodic[1] then
+         self.bcLowerPhi[1], self.bcUpperPhi[1] = {T = "P"}, {T = "P"} 
+      end
+      if tbl.phiBcBottom and tbl.phiBcTop then
+         print("App.Field.GkField: warning... phiBcBottom/phiBcTop will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
+         self.bcLowerPhi[2], self.bcUpperPhi[2] = tbl.phiBcBottom, tbl.phiBcTop
+      elseif isDirPeriodic[2] then
+         self.bcLowerPhi[2], self.bcUpperPhi[2] = {T = "P"}, {T = "P"} 
+      end
+      if tbl.phiBcBack and tbl.phiBcFront then
+         print("App.Field.GkField: warning... phiBcBack/phiBcFront will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
+         self.bcLowerPhi[3], self.bcUpperPhi[3] = tbl.phiBcBack, tbl.phiBcFront
+      elseif isDirPeriodic[3] then
+         -- Set it to homogeneous Neumann since this is likely only used for smoothing in z.
+         self.bcLowerPhi[3], self.bcUpperPhi[3] = {T = "N", V = 0.0}, {T = "N", V = 0.0} 
+      end
    end
-   if tbl.phiBcBottom and tbl.phiBcTop then
-      print("App.Field.GkField: warning... phiBcBottom/phiBcTop will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
-      self.bcLowerPhi[2], self.bcUpperPhi[2] = tbl.phiBcBottom, tbl.phiBcTop
-   elseif isDirPeriodic[2] then
-      self.bcLowerPhi[2], self.bcUpperPhi[2] = {T = "P"}, {T = "P"} 
-   end
-   if tbl.phiBcBack and tbl.phiBcFront then
-      print("App.Field.GkField: warning... phiBcBack/phiBcFront will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
-      self.bcLowerPhi[3], self.bcUpperPhi[3] = tbl.phiBcBack, tbl.phiBcFront
-   elseif isDirPeriodic[3] then
-      -- Set it to homogeneous Neumann since this is likely only used for smoothing in z.
-      self.bcLowerPhi[3], self.bcUpperPhi[3] = {T = "N", V = 0.0}, {T = "N", V = 0.0} 
-   end
-   if tbl.aparBcLeft and tbl.aparBcRight then
-      print("App.Field.GkField: warning... aparBcLeft/aparBcRight will be deprecated. Please use bcLowerApar/bcUpperApar.") 
-      self.bcLowerApar[1], self.bcUpperApar[1]= tbl.aparBcLeft, tbl.aparBcRight
-   elseif isDirPeriodic[1] then
-      self.bcLowerApar[1], self.bcUpperApar[1] = {T = "P"}, {T = "P"} 
-   end
-   if tbl.aparBcBottom and tbl.aparBcTop then
-      print("App.Field.GkField: warning... aparBcBottom/aparBcTop will be deprecated. Please use bcLowerApar/bcUpperApar.") 
-      self.bcLowerApar[2], self.bcUpperApar[2] = tbl.aparBcBottom, tbl.aparBcTop
-   elseif isDirPeriodic[2] then
-      self.bcLowerApar[2], self.bcUpperApar[2] = {T = "P"}, {T = "P"} 
+   if tbl.aparBcLeft or tbl.aparBcRight or tbl.aparBcBottom or tbl.aparBcTop then
+      if tbl.aparBcLeft and tbl.aparBcRight then
+         print("App.Field.GkField: warning... aparBcLeft/aparBcRight will be deprecated. Please use bcLowerApar/bcUpperApar.") 
+         self.bcLowerApar[1], self.bcUpperApar[1]= tbl.aparBcLeft, tbl.aparBcRight
+      elseif isDirPeriodic[1] then
+         self.bcLowerApar[1], self.bcUpperApar[1] = {T = "P"}, {T = "P"} 
+      end
+      if tbl.aparBcBottom and tbl.aparBcTop then
+         print("App.Field.GkField: warning... aparBcBottom/aparBcTop will be deprecated. Please use bcLowerApar/bcUpperApar.") 
+         self.bcLowerApar[2], self.bcUpperApar[2] = tbl.aparBcBottom, tbl.aparBcTop
+      elseif isDirPeriodic[2] then
+         self.bcLowerApar[2], self.bcUpperApar[2] = {T = "P"}, {T = "P"} 
+      end
    end
    -- ******* The above BC options are  kept for backwards compatibility ******* --
 
