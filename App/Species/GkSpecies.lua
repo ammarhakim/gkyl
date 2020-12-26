@@ -1560,7 +1560,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       end
 
       if self.deltaF then
-        fIn:accumulate(1.0, self.f0)
+         fIn:accumulate(1.0, self.f0)
       end
 
       -- For ionization.
@@ -1625,11 +1625,11 @@ function GkSpecies:getNumDensity(rkIdx)
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
       if self.deltaF then
-        fIn:accumulate(-1.0, self.f0)
+         fIn:accumulate(-1.0, self.f0)
       end
       self.numDensityCalc:advance(nil, {fIn}, { self.numDensityAux })
       if self.deltaF then
-        fIn:accumulate(1.0, self.f0)
+         fIn:accumulate(1.0, self.f0)
       end
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
@@ -1649,11 +1649,11 @@ function GkSpecies:getMomDensity(rkIdx)
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
       if self.deltaF then
-        fIn:accumulate(-1.0, self.f0)
+         fIn:accumulate(-1.0, self.f0)
       end
       self.momDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
       if self.deltaF then
-        fIn:accumulate(1.0, self.f0)
+         fIn:accumulate(1.0, self.f0)
       end
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
@@ -1670,11 +1670,11 @@ function GkSpecies:getMomProjDensity(rkIdx)
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
       if self.deltaF then
-        fIn:accumulate(-1.0, self.f0)
+         fIn:accumulate(-1.0, self.f0)
       end
       self.momProjDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
       if self.deltaF then
-        fIn:accumulate(1.0, self.f0)
+         fIn:accumulate(1.0, self.f0)
       end
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
@@ -1691,11 +1691,11 @@ function GkSpecies:getEmModifier(rkIdx)
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
       if self.deltaF then
-        fIn:accumulate(-1.0, self.f0)
+         fIn:accumulate(-1.0, self.f0)
       end
       self.momProjDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
       if self.deltaF then
-        fIn:accumulate(1.0, self.f0)
+         fIn:accumulate(1.0, self.f0)
       end
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end

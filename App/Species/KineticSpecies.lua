@@ -823,8 +823,8 @@ function KineticSpecies:applyBc(tCurr, fIn)
       local syncPeriodicDirsTrue = true
 
       if self.fluctuationBCs then
-        -- If fluctuation-only BCs, subtract off background before applying BCs.
-        fIn:accumulate(-1.0, self.f0)
+         -- If fluctuation-only BCs, subtract off background before applying BCs.
+         fIn:accumulate(-1.0, self.f0)
       end
 
       -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
@@ -844,11 +844,11 @@ function KineticSpecies:applyBc(tCurr, fIn)
       fIn:sync(syncPeriodicDirsTrue)
 
       if self.fluctuationBCs then
-        -- Put back together total distribution
-        fIn:accumulate(1.0, self.f0)
-
-        -- Update ghosts in total distribution, without enforcing periodicity.
-        fIn:sync(not syncPeriodicDirsTrue)
+         -- Put back together total distribution
+         fIn:accumulate(1.0, self.f0)
+ 
+         -- Update ghosts in total distribution, without enforcing periodicity.
+         fIn:sync(not syncPeriodicDirsTrue)
       end
    end
 
