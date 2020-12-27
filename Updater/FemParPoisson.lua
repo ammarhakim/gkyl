@@ -191,7 +191,7 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
       local_xy_upper[d] = localRange:upper(d)
    end
 
-   -- create indexers and pointers for src and sol
+   -- Create indexers and pointers for src and sol.
    if self._first then 
       self.srcIndexer             = src:indexer() 
       self.srcPtr                 = src:get(1)
@@ -214,9 +214,9 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
    end
 
    local intSrcVol = {0.0}
-   -- if all directions periodic need to adjust source so that integral is 0 
+   -- If all directions periodic need to adjust source so that integral is 0.
    if self._adjustSource then
-      -- integrate source
+      -- Integrate source.
       if self._first then
          self.calcInt = CartFieldIntegratedQuantCalc {
             onGrid        = grid,
@@ -238,8 +238,8 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
          if self._first then
             -- If first time, create poisson C object for each z cell.
             self._poisson[idx][idy] = ffiC.new_FemParPoisson(self._nz, self._ndim, self._p, 
-                                               self._dz, self._periodic, 
-                                               self._bc, self._writeMatrix)
+                                                             self._dz, self._periodic, 
+                                                             self._bc, self._writeMatrix)
          end
 
          -- Zero global source.
