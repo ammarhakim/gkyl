@@ -27,11 +27,9 @@ for bInd : 1 thru length(bName) do (
     for ci : 2 thru 2 do (
 
       /* Twist-shift BC interpolation kernels. */
-      printf(fh, "void TwistShiftInterp~ax~a_P~a(const double *xLimLo, const double *xLimUp, const double *fldSrc, double *fldDest);~%", ci, bName[bInd], polyOrder),
-      printf(fh, "void TwistShiftInterp_limXvarYfixed~ax~a_P~a(const double *xLimLo, const double *xLimUp, const double yLimLo, const double yLimUp, const double *fldSrc, double *fldDest);~%", ci, bName[bInd], polyOrder),
-      printf(fh, "void TwistShiftInterp_xLimDG~ax~a_P~a(const double *xLimLo, const double *xLimUp, const double yLimLo, const double yLimUp, const double dyLim, const double ycLim, const double *fldSrc, double *fldDest);~%", ci, bName[bInd], polyOrder),
-      printf(fh, "void TwistShiftInterp_yLimDG~ax~a_P~a(const double xLimLo, const double xLimUp, const double *yLimLo, const double *yLimUp, const double dxLim, const double xcLim, const double *fldSrc, double *fldDest);~%", ci, bName[bInd], polyOrder),
-      printf(fh, "void TwistShiftInterp_mTwoCorners~ax~a_P~a(const double *xLimLoL, const double *xLimUpL, const double yLimLoL, const double yLimUpL, const double dyLimL, const double ycLimL, const double *xLimLoR, const double *xLimUpR, const double yLimLoR, const double yLimUpR, const double dyLimR, const double ycLimR, const double *fldSrc, double *fldDest);~%", ci, bName[bInd], polyOrder),
+      printf(fh, "void TwistShiftInterp_xLimDG~ax~a_P~a(const double *xLimLo, const double *xLimUp, const double yLimLo, const double yLimUp, const double dyLim, const double ycLim, const double dyDo, const double yOff, const double *ySh, const double *fldSrc, double *fldDest);~%", ci, bName[bInd], polyOrder),
+      printf(fh, "void TwistShiftInterp_yLimDG~ax~a_P~a(const double xLimLo, const double xLimUp, const double *yLimLo, const double *yLimUp, const double dxLim, const double xcLim, const double dyDo, const double yOff, const double *ySh, const double *fldSrc, double *fldDest);~%", ci, bName[bInd], polyOrder),
+      printf(fh, "void TwistShiftInterp_mTwoCorners~ax~a_P~a(const double *xLimLoL, const double *xLimUpL, const double yLimLoL, const double yLimUpL, const double dyLimL, const double ycLimL, const double *xLimLoR, const double *xLimUpR, const double yLimLoR, const double yLimUpR, const double dyLimR, const double ycLimR, const double dyDo, const double yOff, const double *ySh, const double *fldSrc, double *fldDest);~%", ci, bName[bInd], polyOrder),
       printf(fh, "~%")
 
     ),

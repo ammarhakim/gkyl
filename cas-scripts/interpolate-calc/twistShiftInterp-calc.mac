@@ -39,17 +39,6 @@ for bInd : 1 thru length(bName) do (
     printf(fh, "#include <TwistShiftInterpModDecl.h> ~%"),
     printf(fh, " ~%"),
     
-    /* Interpolation operator. */
-    funcName : sconcat("TwistShiftInterp", c, "x", bName[bInd]),
-    disp(printf(false,sconcat("Working on TwistShiftInterp", c, "x", bName[bInd]))),
-    calcTwistShiftInterpolationOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
-
-    /* Interpolation operator with unspecified y-integral limits and
-       variable x-integral limits. */
-    funcName : sconcat("TwistShiftInterp_limXvarYfixed", c, "x", bName[bInd]),
-    disp(printf(false,sconcat("Working on TwistShiftInterp_limXvarYfixed", c, "x", bName[bInd]))),
-    calcTwistShiftInterpOp_xLimFuncOfY(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
-    
     /* Interpolation operator with unspecified (constant) y-integral limits and
        x-integral limits given by a DG expansion defined in a subregion of the source cell. */
     funcName : sconcat("TwistShiftInterp_xLimDG", c, "x", bName[bInd]),
