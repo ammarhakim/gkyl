@@ -19,8 +19,8 @@ local ffi                  = require "ffi"
 local ffiC                 = ffi.C
 local xsys                 = require "xsys"
 local TwistShiftInterpDecl = require "Updater.interpolateCalcData.TwistShiftInterpModDecl"
-GKYL_EMBED_INP = false
-local math     = require "sci.math"  -- For sign function.
+GKYL_EMBED_INP             = false
+local math                 = require "sci.math"  -- For sign function.
 
 -- Create two fields on a 2D grid. Then interpolate one field onto the other
 -- but with a shift in y that is a function of x (assuming periodicity in y).
@@ -28,7 +28,7 @@ local math     = require "sci.math"  -- For sign function.
 local polyOrder    = 1
 local lower        = {-2.0, -1.50}
 local upper        = { 2.0,  1.50}
-local numCells     = {40, 40}
+local numCells     = {20, 20}
 local periodicDirs = {2}
 
 local grid = Grid.RectCart {
@@ -83,7 +83,7 @@ local project1D = Updater.EvalOnNodes {
 -- It has to be everywhere >0 or everywhere <0 (it cannot be zero, or too close to it).
 local yShiftFunc = function(x)
 --                      return 1./(1.+0.25*x)
-                      return 0.3*x+2.
+                      return 0.0*x+1.
 --                      return 0.1*(x+2.)^2+0.2*x+0.6
                    end
 project1D:setFunc(function(t, xn) return yShiftFunc(xn[1]) end)
@@ -122,7 +122,13 @@ local fldDoFunc = function(t, xn)
    local muX, muY   = 0., 0.
    local sigX, sigY = 0.3, 0.3
    return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((y-muY)^2)/(2.*(sigY^2)))
+--   return math.exp(-((y-muY)^2)/(2.*(sigY^2)))
 --   return 1.
+--   if y < 0. then
+--      return y+2
+--   else
+--      return -y+2
+--   end
 end
 -- Shifted donor field.
 local fldDoShiftedFunc = function(t, xn)
@@ -130,6 +136,12 @@ local fldDoShiftedFunc = function(t, xn)
    local muX, muY   = 0., 0.
    local sigX, sigY = 0.3, 0.3
    return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((wrapNum(y+yShiftFunc(x),grid:lower(2),grid:upper(2),true)-muY)^2)/(2.*(sigY^2)))
+--   return math.exp(-((wrapNum(y+yShiftFunc(x),grid:lower(2),grid:upper(2),true)-muY)^2)/(2.*(sigY^2)))
+--   if y < -1. or y > 0.5 then
+--      return y+2
+--   else
+--      return -y+2
+--   end
 end
 
 -- Project donor field function onto basis.
@@ -354,13 +366,15 @@ local doTarOff = function(dxSrc, xcSrc, xcDest)
 
    if yShLyFac < 1. then yShLyFac = 1. end
 
+   local ps = 0.
    if shiftSign==1 and xcSrc[2] <= xcDest[2] then
-      return xcSrc[2] + yShLyFac*Ly - xcDest[2]
+      return xcSrc[2] + yShLyFac*Ly - xcDest[2] + ps
    elseif shiftSign==-1 and xcSrc[2] >= xcDest[2] then
-      return xcSrc[2] - yShLyFac*Ly - xcDest[2]
+      return xcSrc[2] - yShLyFac*Ly - xcDest[2] + ps
    else
-      return xcSrc[2] - xcDest[2]
+      return xcSrc[2] - xcDest[2] + ps
    end
+--   return math.floor(math.abs(shift)/dxSrc[2])*dxSrc[2]
 end
 
 -- Count how many nils there are in a table.
@@ -507,7 +521,7 @@ local subcellInt_six = function(x_pq, idxOr, xcOr, dxOr, xcTar, dxTar, boundsTar
    projXlimGen(xLogLowerLim, dyPartial, ycPartial, qLo_y)
    projXlimGen(xLogUpperLim, dyPartial, ycPartial, qUp_y)
    -- Add contribution from this subcell integral.
-   interpGenSubX(qLo_y:data(), qUp_y:data(), yLogLo, yLogUp, dyPartial[1], ycPartial[1], dxS[2], ycOff, yShiftPtr:data(), srcPtr:data(), destPtr:data())
+   interpGenSubX(qLo_y:data(), qUp_y:data(), yLogLo, yLogUp, dyPartial[1], ycPartial[1], dxOr[2], ycOff, yShiftPtr:data(), srcPtr:data(), destPtr:data())
 end
 
 local subcellInt_sx = function(x_pq, idxOr, xcOr, dxOr, xcTar, dxTar, boundsTar, numCells)
@@ -538,7 +552,7 @@ local subcellInt_sx = function(x_pq, idxOr, xcOr, dxOr, xcTar, dxTar, boundsTar,
    projXlimGen(xLogLowerLim, dyPartial, ycPartial, qLo_y)
    projXlimGen(xLogUpperLim, dyPartial, ycPartial, qUp_y)
    -- Add contribution from this subcell integral.
-   interpGenSubX(qLo_y:data(), qUp_y:data(), yLogLo, yLogUp, dyPartial[1], ycPartial[1], dxS[2], ycOff, yShiftPtr:data(), srcPtr:data(), destPtr:data())
+   interpGenSubX(qLo_y:data(), qUp_y:data(), yLogLo, yLogUp, dyPartial[1], ycPartial[1], dxOr[2], ycOff, yShiftPtr:data(), srcPtr:data(), destPtr:data())
 end
 
 local subcellInt_sxi = function(x_pq, idxOr, xcOr, dxOr, xcTar, dxTar, boundsTar, numCells)
@@ -569,7 +583,7 @@ local subcellInt_sxi = function(x_pq, idxOr, xcOr, dxOr, xcTar, dxTar, boundsTar
    projXlimGen(xLogLowerLim, dyPartial, ycPartial, qLo_y)
    projXlimGen(xLogUpperLim, dyPartial, ycPartial, qUp_y)
    -- Add contribution from this subcell integral.
-   interpGenSubX(qLo_y:data(), qUp_y:data(), yLogLo, yLogUp, dyPartial[1], ycPartial[1], dxS[2], ycOff, yShiftPtr:data(), srcPtr:data(), destPtr:data())
+   interpGenSubX(qLo_y:data(), qUp_y:data(), yLogLo, yLogUp, dyPartial[1], ycPartial[1], dxOr[2], ycOff, yShiftPtr:data(), srcPtr:data(), destPtr:data())
 end
 
 local subcellInt_sxii = function(x_pq, idxOr, xcOr, dxOr, xcTar, dxTar, boundsTar, numCells)
@@ -600,7 +614,7 @@ local subcellInt_sxii = function(x_pq, idxOr, xcOr, dxOr, xcTar, dxTar, boundsTa
    projXlimGen(xLogLowerLim, dyPartial, ycPartial, qLo_y)
    projXlimGen(xLogUpperLim, dyPartial, ycPartial, qUp_y)
    -- Add contribution from this subcell integral.
-   interpGenSubX(qLo_y:data(), qUp_y:data(), yLogLo, yLogUp, dyPartial[1], ycPartial[1], dxS[2], ycOff, yShiftPtr:data(), srcPtr:data(), destPtr:data())
+   interpGenSubX(qLo_y:data(), qUp_y:data(), yLogLo, yLogUp, dyPartial[1], ycPartial[1], dxOr[2], ycOff, yShiftPtr:data(), srcPtr:data(), destPtr:data())
 end
 
 
@@ -717,7 +731,6 @@ for idx in localRange:rowMajorIter() do
       end
 
       local ycOff = doTarOff(dxS, xcS, xc)
-      print(string.format("   from = (%d,%d) | ycS = %f | ycOff = %f",idxS[1],idxS[2],xcS[2],ycOff))
 
       if not nilAny2x2(trapCornerX) then
 
@@ -1122,6 +1135,7 @@ for idx in localRange:rowMajorIter() do
          dxPartial[1], xcPartial[1] = xLimUp-xLimLo, 0.5*(xLimUp+xLimLo)
          projXlimGen(evaluateLo, dxPartial, xcPartial, qLo_x)
          projXlimGen(evaluateUp, dxPartial, xcPartial, qUp_x)
+      print(string.format("  from=(%d,%d) | yLimLo_0=%f | yLimUp_0=%f | dyS=%f | ycOff=%f | yShift_0=%f",idxS[1],idxS[2],qLo_x:data()[0],qUp_x:data()[0],dxS[2],ycOff,yShiftPtr:data()[0]))
          interpGenSubY(xLimLo, xLimUp, qLo_x:data(), qUp_x:data(), dxPartial[1], xcPartial[1], dxS[2], ycOff, yShiftPtr:data(), srcPtr:data(), destPtr:data())
 
 
