@@ -54,9 +54,9 @@ calcVlasovStreamVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block
   writeCIncrExprsCollect1(out,volTerm,clst),
   printf(fh, "~%"),
 
-  strOut : sconcat("fabs(w",vid[1],"Ddx",0,")+0.5*dv",vid[1],"Ddx",0),
+  strOut : sconcat("std::abs(w",vid[1],"Ddx",0,")+0.5*dv",vid[1],"Ddx",0),
   for d : 2 thru cdim do (
-    strOut : sconcat(strOut,"+fabs(w",vid[d],"Ddx",d-1,")+0.5*dv",vid[d],"Ddx",d-1)
+    strOut : sconcat(strOut,"+std::abs(w",vid[d],"Ddx",d-1,")+0.5*dv",vid[d],"Ddx",d-1)
   ),
   printf(fh, "  return ~a;~%",strOut),
   printf(fh, "} ~%")
