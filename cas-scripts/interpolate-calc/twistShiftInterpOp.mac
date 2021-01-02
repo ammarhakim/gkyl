@@ -112,8 +112,8 @@ calcTwistShiftInterpOp_xLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
   /* In general these expressions are very complex. It would be beneficial to
      perform some kind of common subexpression elimination. For now we'll just eliminate the exponents. */
   subList : [],
-  maxExponent : 8,
-  expQ        : [yLimLo, yLimUp, dyLim, ycLim],
+  maxExponent : 18,
+  expQ        : [yLimLo, yLimUp, dyLim, ycLim, dyDo, yOff],
   for eI : 1 thru length(expQ) do (
     for f : 2 thru maxExponent do (
       doSub : false,
@@ -130,7 +130,7 @@ calcTwistShiftInterpOp_xLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
       )
     )
   ),
-  expR : [xLimLo, xLimUp],
+  expR : [xLimLo, xLimUp, ySh],
   for eI : 1 thru length(expR) do (
     for f : 2 thru maxExponent do (
       for j : 0 thru numB1D-1 do (
@@ -235,8 +235,8 @@ calcTwistShiftInterpOp_yLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
   /* In general these expressions are very complex. It would be beneficial to
      perform some kind of common subexpression elimination. For now we'll just eliminate the exponents. */
   subList : [],
-  maxExponent : 8,
-  expQ        : [xLimLo, xLimUp, dxLim, xcLim],
+  maxExponent : 18,
+  expQ        : [xLimLo, xLimUp, dxLim, xcLim, dyDo, yOff],
   for eI : 1 thru length(expQ) do (
     for f : 2 thru maxExponent do (
       doSub : false,
@@ -253,7 +253,7 @@ calcTwistShiftInterpOp_yLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
       )
     )
   ),
-  expR : [yLimLo, yLimUp],
+  expR : [yLimLo, yLimUp, ySh],
   for eI : 1 thru length(expR) do (
     for f : 2 thru maxExponent do (
       for j : 0 thru numB1D-1 do (
@@ -370,8 +370,8 @@ calcTwistShiftInterpOp_mTwoCorners(fh, funcNm, dim, basisFun, polyOrder) := bloc
   /* In general these expressions are very complex. It would be beneficial to
      perform some kind of common subexpression elimination. For now we'll just eliminate the exponents. */
   subList : [],
-  maxExponent : 8,
-  expQ        : [yLimLoL, yLimUpL, dyLimL, ycLimL, yLimLoR, yLimUpR, dyLimR, ycLimR],
+  maxExponent : 18,
+  expQ        : [yLimLoL, yLimUpL, dyLimL, ycLimL, yLimLoR, yLimUpR, dyLimR, ycLimR, dyDo, yOff],
   for eI : 1 thru length(expQ) do (
     for f : 2 thru maxExponent do (
       doSub : false,
@@ -388,7 +388,7 @@ calcTwistShiftInterpOp_mTwoCorners(fh, funcNm, dim, basisFun, polyOrder) := bloc
       )
     )
   ),
-  expR        : [xLimLoL, xLimUpL, xLimLoR, xLimUpR],
+  expR : [xLimLoL, xLimUpL, xLimLoR, xLimUpR, ySh],
   for eI : 1 thru length(expR) do (
     for f : 2 thru maxExponent do (
       for j : 0 thru numB1D-1 do (
