@@ -35,6 +35,17 @@ gsOrthoNorm(vars, u) := block([nbasis, phi, v],
     phi)
   )$
 
+/** Use Gram-Schmidt procedure to make a set of orthogonal basis set */
+b(vars, i,j,u,phi) := -innerProd(vars,1,u[i],phi[j])/innerProd(vars,1,phi[j],phi[j])$
+gsOrtho(vars, u) := block([nbasis, phi, v],
+  nbasis : length(u),
+  phi : (phi : [u[1]], for i from 2 thru nbasis
+    do (v : u[i] + sum( b(vars,i,j,u,phi)*phi[j], j, 1, i-1 ),
+      phi : endcons(v, phi)),
+    phi)
+  )$
+
+
 listifyListOfSets(los) := block([b],
   b : [],
   for pl in los do (for p in pl do b : append(b,[p])),
