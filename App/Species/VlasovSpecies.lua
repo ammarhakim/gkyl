@@ -102,7 +102,7 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
       self.totalEmField = self:allocVectorMoment(3)     -- Electric field only.
    end
 
-   self.computePlasmaB = true and plasmaB
+   self.computePlasmaB = true and plasmaB   -- Differentiate plasma B from external B.
 
    -- Create updater to advance solution by one time-step.
    self.equation = VlasovEq {
@@ -642,15 +642,16 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       local testFuncRange = testFunc:localRange()
       local phaseIndexer  = testFunc:genIndexer()
       local testFuncPtr   = testFunc:get(1)
+      local endRun = false
       for idx in testFuncRange:rowMajorIter(tId) do
-	 self.grid:setIndex(idx)
-	 testFunc:fill(phaseIndexer(idx), testFuncPtr)
-	 for cI = 1,self.basis:numBasis() do
-	    if (testFuncPtr[cI] ~= testFuncPtr[cI]) or (testFuncPtr[cI] == 1/0) then
-	       print("t =", tCurr, "\ncoll update, at", idx[1], idx[2], idx[3], idx[4], idx[5], idx[6])
+   	 self.grid:setIndex(idx)
+   	 testFunc:fill(phaseIndexer(idx), testFuncPtr)
+   	 for cI = 1,self.basis:numBasis() do
+   	    if (testFuncPtr[cI] ~= testFuncPtr[cI]) or (testFuncPtr[cI] == 1/0) then
+   	       print("t =", tCurr, "\ncoll update, at", idx[1], idx[2], idx[3], idx[4], idx[5], idx[6])
 	       os.exit(0)
-	    end
-	 end
+   	    end
+   	 end
       end
    end
 
@@ -1328,8 +1329,9 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       end
       species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {self.voronovReactRate})
       species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
-      
+
       self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz}, {self.fMaxwellIz})
+            
       self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
       self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
       self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})

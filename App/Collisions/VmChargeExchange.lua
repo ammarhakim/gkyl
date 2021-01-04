@@ -102,14 +102,13 @@ function VmChargeExchange:setPhaseGrid(grid)
 end
 
 function VmChargeExchange:createSolver(funcField) --species)
-
    self.collisionSlvr = Updater.ChargeExchange {
-         onGrid         = self.confGrid,
-         confBasis      = self.confBasis,
-	 phaseBasis     = self.phaseBasis,
-	 charge         = self.charge,
-	 a              = self.a,
-	 b              = self.b,
+      onGrid     = self.confGrid,
+      confBasis  = self.confBasis,
+      phaseBasis = self.phaseBasis,
+      charge     = self.charge,
+      a          = self.a,
+      b          = self.b,
    }
    self.sourceCX = DataStruct.Field {
       onGrid        = self.phaseGrid,
@@ -120,7 +119,7 @@ function VmChargeExchange:createSolver(funcField) --species)
 	 basisType = self.phaseBasis:id()
       },
    }
-      self.M0iDistFn =  DataStruct.Field {
+   self.M0iDistFn = DataStruct.Field {
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
@@ -129,7 +128,7 @@ function VmChargeExchange:createSolver(funcField) --species)
 	 basisType = self.phaseBasis:id()
       },
    }
-   self.M0nDistFi =  DataStruct.Field {
+   self.M0nDistFi = DataStruct.Field {
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
@@ -138,7 +137,7 @@ function VmChargeExchange:createSolver(funcField) --species)
 	 basisType = self.phaseBasis:id()
       },
    }
-   self.diffDistF =  DataStruct.Field {
+   self.diffDistF = DataStruct.Field {
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
@@ -150,24 +149,23 @@ function VmChargeExchange:createSolver(funcField) --species)
 end
 
 function VmChargeExchange:advance(tCurr, fIn, species, fRhsOut)
-      tmEvalMomStart = Time.clock() 
-      local neutM0    = species[self.neutNm]:fluidMoments()[1]
-      local neutDistF = species[self.neutNm]:getDistF()
-      local ionM0     = species[self.ionNm]:fluidMoments()[1]
-      local ionDistF  = species[self.ionNm]:getDistF()
-      
-      species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
-      species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
-      self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
-      species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
+   tmEvalMomStart = Time.clock() 
+   local neutM0    = species[self.neutNm]:fluidMoments()[1]
+   local neutDistF = species[self.neutNm]:getDistF()
+   local ionM0     = species[self.ionNm]:fluidMoments()[1]
+   local ionDistF  = species[self.ionNm]:getDistF()
+   
+   species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
+   species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
+   self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
+   species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
 
-      self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
-      if (self.speciesName == self.ionNm) then
-	 fRhsOut:accumulate(1.0,self.sourceCX)
-      else
-	 fRhsOut:accumulate(-self.iMass/self.nMass,self.sourceCX)
-      end
-    
+   self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
+   if (self.speciesName == self.ionNm) then
+      fRhsOut:accumulate(1.0,self.sourceCX)
+   else
+      fRhsOut:accumulate(-self.iMass/self.nMass,self.sourceCX)
+   end
 end
 
 function VmChargeExchange:write(tm, frame)

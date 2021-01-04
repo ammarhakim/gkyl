@@ -55,7 +55,7 @@ function VrelProductCX:init(tbl)
       print("Updater.SigmaCX: 'kineticSpecies must be 'Vm' or 'Gk'")
    end
    
-   self.onGhosts = xsys.pickBool(false, tbl.onGhosts)
+   self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
 
    self._tmEvalMom = 0.0
 end

@@ -97,7 +97,7 @@ function CrossPrimMoments:init(tbl)
    -- To obtain the cell average, multiply the zeroth coefficient by this factor.
    self._cellAvFac = 1.0/math.sqrt(2.0^self._cDim)
 
-   self.onGhosts = xsys.pickBool(false, tbl.onGhosts)
+   self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
 end
 
 -- Advance method.

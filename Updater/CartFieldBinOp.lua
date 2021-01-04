@@ -77,7 +77,7 @@ function CartFieldBinOp:init(tbl)
 		"CartFieldBinOp: Operation must be one of Multiply, Divide, DotProduct. Requested %s instead.", op))
    end
 
-   self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
+   self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
 
    -- Create struct containing allocated binOp arrays.
    if fieldBasis then 

@@ -70,10 +70,13 @@ function Vlasov:init(tbl)
    -- Option to perform only the force volume update (e.g. for stochastic forces).
    local onlyForceUpdate = xsys.pickBool(tbl.onlyForceUpdate, false)
 
-   self._hasForceTerm = false -- flag to indicate if we have any force terms at all
-   if hasElcField or self._hasMagField then self._hasForceTerm = true end
+   self._hasForceTerm = false   -- Flag to indicate if we have any force terms at all.
+   -- Turn off force term if the charge is zero. Turn it on if there's an electric or magnetic field.
+   if self._qbym ~= 0. and (hasElcField or hasMagField or self._plasmaMagField) then
+      self._hasForceTerm = true
+   end
 
-   self._onlyForceUpdate = false -- flag to indicate if updating force separately from streaming
+   self._onlyForceUpdate = false   -- Flag to indicate if updating force separately from streaming.
    if onlyForceUpdate then self._onlyForceUpdate = true end
 
    self._surfForceUpdate = nil
@@ -131,13 +134,9 @@ end
 
 function Vlasov:initDevice(tbl)
    local bId = self._phaseBasis:id()
-   local b = 0
-   if bId == "maximal-order" then 
-     b = 1
-   end
-   if bId == "serendipity" then 
-     b = 2
-   end
+   local b   = 0
+   if bId == "maximal-order" then b = 1 end
+   if bId == "serendipity" then b = 2 end
    --self._onHost = ffiC.new_Vlasov(self._cdim, self._vdim, self._phaseBasis:polyOrder(), b, self._qbym, self._hasForceTerm) 
    --self._onDevice = ffiC.new_Vlasov_onDevice(self._onHost)
    self._onDevice = ffiC.new_VlasovOnDevice(self._cdim, self._vdim, self._phaseBasis:polyOrder(), b, self._qbym, self._hasForceTerm)
@@ -230,13 +229,13 @@ function Vlasov:setAuxFields(auxFields)
       if not self._plasmaMagField then self._phiField = auxFields[2] end   -- Electrostatic potential.
 
       if self._isFirst then
-	 self._emPtr = self._emField:get(1)
-	 self._emIdxr = self._emField:genIndexer()
+         self._emPtr = self._emField:get(1)
+         self._emIdxr = self._emField:genIndexer()
          if not self._plasmaMagField then 
-	    self._phiPtr = self._phiField:get(1)
-	    self._phiIdxr = self._phiField:genIndexer()
+            self._phiPtr = self._phiField:get(1)
+            self._phiIdxr = self._phiField:genIndexer()
          end
-	 self._isFirst = false   -- No longer first time.
+         self._isFirst = false   -- No longer first time.
       end
    end
 end
