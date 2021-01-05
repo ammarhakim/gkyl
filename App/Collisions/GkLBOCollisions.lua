@@ -467,7 +467,7 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 
    -- Compute increment from collisions and accumulate it into output.
    self.collisionSlvr:advance(
-      tCurr, {fIn, self.bmagInv, self.nuUParSum, self.nuVtSqSum, self.nuSum}, {self.collOut})
+      tCurr, {fIn, self.bmagInv, self.nuUParSum, self.nuVtSqSum, self.nuSum, selfMom[3]}, {self.collOut})
 
    self.primMomLimitCrossingsG:appendData(tCurr, {0.0})
    self.primMomLimitCrossingsL:appendData(tCurr, {self.equation.primMomCrossLimit})
