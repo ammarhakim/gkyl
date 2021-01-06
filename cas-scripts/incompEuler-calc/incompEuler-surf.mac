@@ -29,7 +29,7 @@ positivityFluxLimiter(outl_c, outr_c, vars, basis, polyOrder, surfDir, fl_e, fr_
 
   ndim : length(vars),
  
-  /* Get positivity surface projection basis */
+  /* Get positivity projection basis */
   nodes : eval_string(sconcat("nodes", ndim, "xp", polyOrder)),
   posProjBasis : fullratsimp(getNodalBasis(nodes, basis, vars)),
   if ndim>1 then surfNodes : eval_string(sconcat("nodes", ndim-1, "xp", polyOrder))
@@ -65,7 +65,7 @@ positivityFluxLimiter(outl_c, outr_c, vars, basis, polyOrder, surfDir, fl_e, fr_
   writeCExprsNoExpand1(outrPos, outr_pos),
   flush_output(fh),
 
-  /* Loop over positivity surface basis, and calculate limiters */
+  /* Loop over surface nodes, and calculate limiters */
   for i : 1 thru length(surfNodes) do (
      printf(fh, "  if(outlPos[~a] < EPSILON) limFac = std::min(1.0, -fluxFracL*(~a)/dtApprox/outlPos[~a]); ~%", indP[i]-1, fl_posP[i], indP[i]-1),
      printf(fh, "  else limFac = 1.0; ~%"),
