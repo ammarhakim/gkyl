@@ -215,39 +215,6 @@ function GkField:initField(species)
       end
       self.aparSlvr:advance(0.0, {self.currentDens}, {apar})
 
-      -- Decrease effective polynomial order in z of apar by setting the highest order z coefficients to 0.
-      if self.ndim == 1 or self.ndim == 3 then -- Only have z direction in 1d or 3d (2d is assumed to be x,y).
-         local localRange = apar:localRange()
-         local indexer    = apar:genIndexer()
-         local ptr        = apar:get(1)
-
-         -- Loop over all cells.
-         for idx in localRange:rowMajorIter() do
-            self.grid:setIndex(idx)
-            
-            apar:fill(indexer(idx), ptr)
-            if self.ndim == 1 then
-               ptr:data()[polyOrder] = 0.0
-            else -- ndim == 3.
-               if polyOrder == 1 then
-                  ptr:data()[3] = 0.0
-                  ptr:data()[5] = 0.0
-                  ptr:data()[6] = 0.0
-                  ptr:data()[7] = 0.0
-               elseif polyOrder == 2 then
-                  ptr:data()[9]  = 0.0
-                  ptr:data()[13] = 0.0
-                  ptr:data()[14] = 0.0
-                  ptr:data()[15] = 0.0
-                  ptr:data()[16] = 0.0
-                  ptr:data()[17] = 0.0
-                  ptr:data()[18] = 0.0
-                  ptr:data()[19] = 0.0
-               end
-            end
-         end
-      end
-
       -- Clear dApar/dt ... will be solved for before being used.
       self.potentials[1].dApardt:clear(0.0)
    end
@@ -773,40 +740,6 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
       -- dApar/dt solve.
       local dApardt = potCurr.dApardt
       self.dApardtSlvr:advance(tCurr, {self.currentDens}, {dApardt}) 
-      
-      -- Decrease effective polynomial order in z of dApar/dt by setting the highest order z coefficients to 0.
-      -- This ensures that dApar/dt is in the same space as dPhi/dz.
-      if self.ndim == 1 or self.ndim == 3 then -- Only have z direction in 1d or 3d (2d is assumed to be x,y).
-         local localRange = dApardt:localRange()
-         local indexer = dApardt:genIndexer()
-         local ptr = dApardt:get(1)
-
-         -- Loop over all cells
-         for idx in localRange:rowMajorIter() do
-            self.grid:setIndex(idx)
-            
-            dApardt:fill(indexer(idx), ptr)
-            if self.ndim == 1 then
-               ptr:data()[polyOrder] = 0.0
-            else -- ndim == 3.
-               if polyOrder == 1 then
-                  ptr:data()[3] = 0.0
-                  ptr:data()[5] = 0.0
-                  ptr:data()[6] = 0.0
-                  ptr:data()[7] = 0.0
-               elseif polyOrder == 2 then
-                  ptr:data()[9] = 0.0
-                  ptr:data()[13] = 0.0
-                  ptr:data()[14] = 0.0
-                  ptr:data()[15] = 0.0
-                  ptr:data()[16] = 0.0
-                  ptr:data()[17] = 0.0
-                  ptr:data()[18] = 0.0
-                  ptr:data()[19] = 0.0
-               end
-            end
-         end
-      end
 
       -- Apply BCs.
       local tmStart = Time.clock()
@@ -853,40 +786,6 @@ function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
       -- dApar/dt solve.
       local dApardt = potCurr.dApardt
       self.dApardtSlvr2:advance(tCurr, {self.currentDens}, {dApardt}) 
-      
-      -- Decrease effective polynomial order in z of dApar/dt by setting the highest order z coefficients to 0
-      -- this ensures that dApar/dt is in the same space as dPhi/dz.
-      if self.ndim == 1 or self.ndim == 3 then -- Only have z direction in 1d or 3d (2d is assumed to be x,y).
-         local localRange = dApardt:localRange()
-         local indexer = dApardt:genIndexer()
-         local ptr = dApardt:get(1)
-
-         -- Loop over all cells.
-         for idx in localRange:rowMajorIter() do
-            self.grid:setIndex(idx)
-            
-            dApardt:fill(indexer(idx), ptr)
-            if self.ndim == 1 then
-               ptr:data()[polyOrder] = 0.0
-            else -- ndim == 3
-               if polyOrder == 1 then
-                  ptr:data()[3] = 0.0
-                  ptr:data()[5] = 0.0
-                  ptr:data()[6] = 0.0
-                  ptr:data()[7] = 0.0
-               elseif polyOrder == 2 then
-                  ptr:data()[9] = 0.0
-                  ptr:data()[13] = 0.0
-                  ptr:data()[14] = 0.0
-                  ptr:data()[15] = 0.0
-                  ptr:data()[16] = 0.0
-                  ptr:data()[17] = 0.0
-                  ptr:data()[18] = 0.0
-                  ptr:data()[19] = 0.0
-               end
-            end
-         end
-      end
 
       -- Apply BCs.
       local tmStart = Time.clock()
