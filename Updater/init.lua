@@ -43,6 +43,7 @@ local SpitzerCollisionality = require "Updater.SpitzerCollisionality"
 local StairSteppedBc = require "Updater.StairSteppedBc"
 local TenMomentRelax = require "Updater.TenMomentRelax"
 local TenMomentSrc = require "Updater.TenMomentSrc"
+local TwistShift = require "Updater.TwistShift"
 local WavePropagation = require "Updater.WavePropagation"
 
 return {
@@ -83,5 +84,6 @@ return {
    StairSteppedBc = StairSteppedBc,
    TenMomentRelax = TenMomentRelax,
    TenMomentSrc = TenMomentSrc,
+   TwistShift = TwistShift,
    WavePropagation = WavePropagation,
 }

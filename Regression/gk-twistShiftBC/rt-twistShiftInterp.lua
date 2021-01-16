@@ -122,6 +122,7 @@ local fldDoFunc = function(t, xn)
    local muX, muY   = 0., 0.
    local sigX, sigY = 0.3, 0.3
    return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((y-muY)^2)/(2.*(sigY^2)))
+--   return math.sin((2.*math.pi/3.)*y)
 --   return math.exp(-((y-muY)^2)/(2.*(sigY^2)))
 --   return 1.
 --   if y < 0. then
@@ -136,6 +137,7 @@ local fldDoShiftedFunc = function(t, xn)
    local muX, muY   = 0., 0.
    local sigX, sigY = 0.3, 0.3
    return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((wrapNum(y+yShiftFunc(x),grid:lower(2),grid:upper(2),true)-muY)^2)/(2.*(sigY^2)))
+--   return math.sin((2.*math.pi/3.)*((wrapNum(y+yShiftFunc(x),grid:lower(2),grid:upper(2),true))))
 --   return math.exp(-((wrapNum(y+yShiftFunc(x),grid:lower(2),grid:upper(2),true)-muY)^2)/(2.*(sigY^2)))
 --   return 1.
 --   if y < -1. or y > 0.5 then
@@ -870,6 +872,7 @@ local subCellInt_sxvORsxvi = function(x_pq, idxOr, xcOr, dxOr, boundsOr, xcTar, 
 end
 
 
+local t1 = os.clock()
 for idx in localRange:rowMajorIter() do
 
    -- One way of determining which cells this cell is magnetically connected to
@@ -937,14 +940,14 @@ for idx in localRange:rowMajorIter() do
       end
    end
 
-   print(string.format("idx = (%d,%d)",idx[1],idx[2]))
+   if idx[2]==1 then print(string.format("idx = (%d,%d)",idx[1],idx[2])) end
 
    for iC = 1, #srcCells do
       -- In each contributing cell, approximate the functions qInvL(y) and qInvU(y)
       -- for the min/max of the x-integral with a polynomial. Compute the coefficients
       -- of that polynomial with a projection of yShiftNormInvFunc onto the local basis.
       local idxS = srcCells[iC]
-      print(string.format("  from = (%d,%d)",idxS[1],idxS[2]))
+      if idx[2]==1 then print(string.format("  from = (%d,%d)",idxS[1],idxS[2])) end
 
       grid:setIndex(idxS)
       grid:cellCenter(xcS)
@@ -1029,6 +1032,8 @@ for idx in localRange:rowMajorIter() do
    end
 
 end
+local t2 = os.clock()
+io.write("Total test time: ", t2-t1, " s\n")
 
 fldDest:write("fldDest.bp")
 

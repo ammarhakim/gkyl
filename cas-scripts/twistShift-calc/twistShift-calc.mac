@@ -1,0 +1,75 @@
+/* Generate kernels for the TwistShift operation. */
+
+load(stringproc)$
+load("twistShift-calc/twistShiftFuncs")$
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 1$
+minCdim_Ser : 2$
+maxCdim_Ser : 2$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 1$
+minCdim_Max : 1$
+maxCdim_Max : 0$
+
+/* Tensor product basis. */
+maxPolyOrder_Tensor : 1$
+minCdim_Tensor : 1$
+maxCdim_Tensor : 0$
+
+/* ...... END OF USER INPUTS........ */
+
+bName        : ["Ser","Max","Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+
+for bInd : 1 thru length(bName) do (
+     
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+
+    for pOrder : 1 thru maxPolyOrder[bInd] do (
+      fname : sconcat("~/max-out/TwistShift", bName[bInd], c, "xP", pOrder, ".cpp"),
+      fh : openw(fname),
+  
+      disp(printf(false,sconcat("Creating ~axP~a ", bName[bInd]),c,pOrder)),
+  
+      printf(fh, "#include <TwistShiftModDecl.h> ~%"),
+      printf(fh, " ~%"),
+      
+      /* Interpolation operator with unspecified (constant) y-integral limits and
+         x-integral limits given by a DG expansion defined in a subregion of the source cell. */
+      funcName : sconcat("twistShift_xLimDG", c, "x", bName[bInd]),
+      disp(printf(false,sconcat("Working on twistShift_xLimDG", c, "x", bName[bInd]))),
+      calcTwistShiftOp_xLimDG(fh, funcName, c, bName[bInd], pOrder),
+      
+      /* Interpolation operator with unspecified (constant) x-integral limits and
+         y-integral limits given by a DG expansion defined in a subregion of the source cell. */
+      funcName : sconcat("twistShift_yLimDG", c, "x", bName[bInd]),
+      disp(printf(false,sconcat("Working on twistShift_yLimDG", c, "x", bName[bInd]))),
+      calcTwistShiftOp_yLimDG(fh, funcName, c, bName[bInd], pOrder),
+      
+      /* Integrate over a subcell region composed of the integral over the whole cell
+         minus the integral over two with (diagonally opposite) corner regions, each with 
+         unspecified (constant) y-integral limits and x-integral limits given by a DG
+         expansion defined in a subregion of the source cell. */
+      funcName : sconcat("twistShift_M2Corners", c, "x", bName[bInd]),
+      disp(printf(false,sconcat("Working on twistShift_M2Corners", c, "x", bName[bInd]))),
+      calcTwistShiftOp_M2Corners(fh, funcName, c, bName[bInd], pOrder),
+
+      /* Perform mat-vec multiply to compute the contribution of a donor cell
+         to a target cell. */
+      funcName : sconcat("twistShift_matVecMult", c, "x", bName[bInd]),
+      disp(printf(false,sconcat("Working on twistShift_matVecMult", c, "x", bName[bInd]))),
+      calcTwistShiftOp_matVecMult(fh, funcName, c, bName[bInd], pOrder),
+      
+      close(fh)
+    )
+  )
+  
+  
+)$
+
