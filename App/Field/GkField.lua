@@ -896,6 +896,8 @@ function GkGeometry:fullInit(appTbl)
    -- File containing geometry quantities that go into equations.
    self.fromFile = tbl.fromFile
 
+   -- write ghost cells on boundaries of global domain (for BCs)
+   self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 end
 
 function GkGeometry:hasEB() end
@@ -992,7 +994,7 @@ function GkGeometry:alloc()
    self.fieldIo = AdiosCartFieldIo {
       elemType   = self.geo.bmag:elemType(),
       method     = self.ioMethod,
-      writeGhost = true,
+      writeGhost = self.writeGhost,
       metaData   = {
 	 polyOrder = self.basis:polyOrder(),
 	 basisType = self.basis:id()
