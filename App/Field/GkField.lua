@@ -555,11 +555,17 @@ function GkField:write(tm, force)
                end
             end
             self.energyCalc:advance(tm, { self.potentials[1].phiAux, esEnergyFac }, { self.esEnergy })
-            if self.adiabatic and self.ndim > 1 then
-               local tm, energyVal = self.esEnergy:lastData()
-               local _, phiSqVal = self.phiSq:lastData()
-               energyVal[1] = energyVal[1] + .5*self.adiabSpec:getQneutFac()*phiSqVal[1]
-            end
+
+            -- NRM: the section below adds a (physical) term to esEnergy proportional to |phi|**2 when using adiabatic electrons.
+            -- however, this makes it difficult to compute the growth rate of ky!=0 modes from esEnergy when the
+            -- ky=0 mode is not suppressed. commenting out the below is a hack so that esEnergy can be used to compute
+            -- growth rate of ky!=0 modes.
+
+            --if self.adiabatic and self.ndim > 1 then
+            --   local tm, energyVal = self.esEnergy:lastData()
+            --   local _, phiSqVal = self.phiSq:lastData()
+            --   energyVal[1] = energyVal[1] + .5*self.adiabSpec:getQneutFac()*phiSqVal[1]
+            --end
          else
             -- Something.
          end
