@@ -4,8 +4,6 @@ load("modal-basis");
 load("out-scripts");
 fpprec : 24$
 
-pVars : [X, Y, Z, VX, VY, VZ]$
-
 writeCIncrExprs1sub(lhs, rhs, sublist) := block([expr, i, ep, outStr, s],
   /* Perform some substitutions before printing. No expand. */
   expr : float(rhs),
@@ -26,9 +24,13 @@ writeCEigenMatIncrsSub(lhs, rhs, sublist) := block([expr, i, ep, outStr, s],
   for i : 1 thru length(expr) do (
     if expr[i] # 0.0 then (
       ep     : string(expr[i]),
-      outStr : ssubst(sublist[1][2],sublist[1][1],ep),
-      for s : 2 thru length(sublist) do (
-        outStr : ssubst(sublist[s][2],sublist[s][1],outStr)
+      if length(sublist) # 0 then (
+        outStr : ssubst(sublist[1][2],sublist[1][1],ep),
+        for s : 2 thru length(sublist) do (
+          outStr : ssubst(sublist[s][2],sublist[s][1],outStr)
+        )
+      ) else (
+        outStr : ep
       ),
       printf(fh, "  ~a += ~a; ~%", sremove("\\", ssubst(")","]",ssubst("(","[",string(lhs[i])))), outStr)
     )
@@ -50,10 +52,10 @@ innerProdGenRev(vars, lims, w, f1, f2) := block([n, r],
 calcInnerProdListGenRev(vars, lims, w, funcList, f) := fullratsimp(makelist(
     innerProdGenRev(vars, lims, w, funcList[i], f), i, 1, length(funcList)))$
 
-calcTwistShiftOp_xLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
-  [basisC1D,i,vars1D,vars,interpDims,numInterpDims,basis1D,numB1D,xLimLo_e,xLimUp_e,
-   dyCell,ycCell,yMap,basis,numB,intLims,fldDo_e,fldDo_c,ySh_e,fldTar_c,subList,
-   maxExponent,expQ,eI,f,doSub,k,lhsS,rhsS,expR,j],
+calcTwistShiftOp_xLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
+  [basisC1D,i,vars1D,vars,basis1D,numB1D,xLimLo_e,xLimUp_e,dyCell,ycCell,yMap,
+   basis,numB,intLims,fldDo_e,fldDo_c,ySh_e,fldTar_c,subList,maxExponent,expQ,
+   eI,f,doSub,k,lhsS,rhsS,expR,j],
   /* Perform integrals (for weak equality/interpolation) of subregions of a
      cell using fixed y-limits and variable x-limits (functions of y). The
      x-limits are given by a DG (polynomial expansion), defined in a [-1,1]
@@ -66,17 +68,25 @@ calcTwistShiftOp_xLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
   basisC1D : makelist(0,i,1,length(basisC)),
   for i : 1 thru length(basisC) do (basisC1D[i] : copylist(basisC[i])),
   vars1D  : varsC,
+  basis1D : basisC1D[polyOrder1D],  /* This need not use the same polyOrder as fldDo/fldTar. */
+  numB1D  : length(basis1D),
 
-  /* For now assume dim=2. */
+  /* Assume cdim=2 or cdim=3. */
   kill(varsC, varsP, basisC, basisP),
-  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
-  vars : varsC,
-
-  interpDims    : makelist(i,i,1,dim),
-  numInterpDims : length(interpDims),
+  if vdim=0 then (
+    load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
+    basis : basisC[polyOrder],
+    vars  : varsC
+  ) else (
+    load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+    basis : basisP[polyOrder],
+    vars  : varsP
+  ),
+  numB : length(basis),
 
   /* Function declaration with input/output variables. */
-  printf(fh, "void ~aP~a_yShP~a(const double *xLimLo, const double *xLimUp, const double yLimLo, const double yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const int matIdx) ~%{ ~%", funcNm, polyOrder, polyOrder1D),
+  printf(fh, "void ~aP~a_yShP~a(const double sFac, const double *xLimLo, const double *xLimUp, const double yLimLo, const double yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew) ~%{ ~%", funcNm, polyOrder, polyOrder1D),
+  printf(fh, "  // sFac:   scale factor, typically +/- 1.0.~%"),
   printf(fh, "  // xLimUp: 1D DG expansion of the function xLimLo(y) giving the lower limit of the x integral.~%"),
   printf(fh, "  // xLimLo: 1D DG expansion of the function xLimUp(y) giving the upper limit of the x integral.~%"),
   printf(fh, "  // yLimLo: lower limit of the y integral in [-1,1] logical space.~%"),
@@ -86,7 +96,7 @@ calcTwistShiftOp_xLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
   printf(fh, "  // ySh:    yShift translated to [-1,1] logical space.~%"),
   printf(fh, "  // tsData: twist-shift matrices and vectors.~%"),
   printf(fh, "  // xIdx:   x-index of the cell.~%"),
-  printf(fh, "  // matIdx: index of the matrix to be assigned.~%"),
+  printf(fh, "  // pushNew: push_back a new matrix (true) or add contribution to the last matrix (false).~%"),
   printf(fh, "~%"),
 
   printf(fh, "  // Length of the subregion in which the DG expansion of the yLimLo/yLimUp functions are defined.~%"),
@@ -96,9 +106,6 @@ calcTwistShiftOp_xLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
   printf(fh, "  // Logical center of the subregion in which the DG expansion of the yLimLo/yLimUp functions are defined.~%"),
   printf(fh, "  double ycLim = ~a;~%", 0.5*(yLimUp+yLimLo)),
   printf(fh, "~%"),
-
-  basis1D : basisC1D[polyOrder1D],  /* This need not use the same polyOrder as fldDo/fldTar. */
-  numB1D  : length(basis1D),
 
   xLimLo_e : doExpand1(xLimLo,subst(x=y,basis1D)),
   xLimUp_e : doExpand1(xLimUp,subst(x=y,basis1D)),
@@ -112,15 +119,17 @@ calcTwistShiftOp_xLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
   xLimLo_e : subst(y=yMap,xLimLo_e),
   xLimUp_e : subst(y=yMap,xLimUp_e),
 
-  basis : basisC[polyOrder],
-  numB  : length(basis),
-
   /* The x-integral limits will depend on the yShift. */
   intLims : [ [xLimLo_e, xLimUp_e], [yLimLo, yLimUp] ],
+  if (cdim+vdim > 2) then (
+    for d : 1 thru (cdim+vdim-2) do (
+      intLims : endcons([-1,1],intLims)
+    )
+  ),
 
   /* Field expansion and list of coefficients. */
-  fldDo_e  : doExpand1(fldDo,basis),
-  fldDo_c  : makelist(fldDo[i],i,0,numB-1),
+  fldDo_e : doExpand1(fldDo,basis),
+  fldDo_c : makelist(fldDo[i],i,0,numB-1),
 
   /* Apply the y-shift (in the logical [-1,1] space of this cell) to the
      origin field. */ 
@@ -129,7 +138,7 @@ calcTwistShiftOp_xLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
   
   /* Compute the inner product, on target grid of current cell,
      of the source field times the target-grid basis functions (in this case donor and target basis are the same). */
-  fldTar_c : fullratsimp(calcInnerProdListGen(vars,intLims,1.0,basis,fldDo_e)),
+  fldTar_c : fullratsimp(sFac*calcInnerProdListGen(vars,intLims,1.0,basis,fldDo_e)),
 
   printf(fh, "  tsData->mat = Eigen::MatrixXd::Zero(~a,~a);~%", numB, numB),
 
@@ -182,7 +191,11 @@ calcTwistShiftOp_xLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
   writeCEigenMatIncrsSub(tarIdo_c,fldTar_cm,subList),
   printf(fh, "~%"),
 
-  printf(fh, "  tsData->cellMat[xIdx-1].push_back(tsData->mat);~%"),
+  printf(fh, "  if (pushNew) {~%"),
+  printf(fh, "    tsData->cellMat[xIdx-1].push_back(tsData->mat);~%"),
+  printf(fh, "  } else {~%"),
+  printf(fh, "    tsData->cellMat[xIdx-1].back() += tsData->mat;~%"),
+  printf(fh, "  };~%"),
   printf(fh, "~%"),
   
   printf(fh, "}~%"),
@@ -190,10 +203,10 @@ calcTwistShiftOp_xLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
 
 )$
 
-calcTwistShiftOp_yLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
-  [basisC1D,i,vars1D,vars,interpDims,numInterpDims,basis1D,numB1D,yLimLo_e,
-   yLimUp_e,dxCell,xcCell,xMap,basis,numB,intLims,fldDo_e,fldDo_c,ySh_e,
-   fldTar_c,subList,maxExponent,expQ,eI,f,doSub,k,lhsS,rhsS,expR,j],
+calcTwistShiftOp_yLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
+  [basisC1D,i,vars1D,vars,basis1D,numB1D,yLimLo_e,yLimUp_e,dxCell,xcCell,
+   xMap,basis,numB,intLims,fldDo_e,fldDo_c,ySh_e,fldTar_c,subList,maxExponent,
+   expQ,eI,f,doSub,k,lhsS,rhsS,expR,j],
   /* Perform integrals (for weak equality/interpolation) of subregions of a
      cell using fixed x-limits and variable y-limits (functions of x). The
      y-limits are given by a DG (polynomial expansion), defined in a [-1,1]
@@ -205,28 +218,36 @@ calcTwistShiftOp_yLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
   load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
   basisC1D : makelist(0,i,1,length(basisC)),
   for i : 1 thru length(basisC) do (basisC1D[i] : copylist(basisC[i])),
-  vars1D : varsC,
+  vars1D  : varsC,
+  basis1D : basisC1D[polyOrder1D],  /* This need not use the same polyOrder as fldDo/fldTar. */
+  numB1D  : length(basis1D),
 
-  /* For now assume dim=2. */
+  /* Assume dim=2 or dim=3. */
   kill(varsC, varsP, basisC, basisP),
-  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
-  vars : varsC,
-
-  interpDims    : makelist(i,i,1,dim),
-  numInterpDims : length(interpDims),
+  if vdim=0 then (
+    load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
+    basis : basisC[polyOrder],
+    vars  : varsC
+  ) else (
+    load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+    basis : basisP[polyOrder],
+    vars  : varsP
+  ),
+  numB : length(basis),
 
   /* Function declaration with input/output variables. */
-  printf(fh, "void ~aP~a_yShP~a(const double xLimLo, const double xLimUp, const double *yLimLo, const double *yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const int matIdx) ~%{ ~%", funcNm, polyOrder, polyOrder1D),
-  printf(fh, "  // xLimUp: lower limit of the x integral in [-1,1] logical space.~%"),
-  printf(fh, "  // xLimLo: upper limit of the x integral in [-1,1] logical space.~%"),
-  printf(fh, "  // yLimUp: 1D DG expansion of the function yLimLo(x) giving the lower limit of the y integral.~%"),
-  printf(fh, "  // yLimLo: 1D DG expansion of the function yLimUp(x) giving the upper limit of the y integral.~%"),
-  printf(fh, "  // dyDo:   y cell length of the donor cell.~%"),
-  printf(fh, "  // yOff:   yOffset between the donor and target cells (in the direction of the shift).~%"),
-  printf(fh, "  // ySh:    yShift translated to [-1,1] logical space.~%"),
-  printf(fh, "  // tsData: twist-shift matrices and vectors.~%"),
-  printf(fh, "  // xIdx:   x-index of the cell.~%"),
-  printf(fh, "  // matIdx: index of the matrix to be assigned.~%"),
+  printf(fh, "void ~aP~a_yShP~a(const double sFac, const double xLimLo, const double xLimUp, const double *yLimLo, const double *yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew) ~%{ ~%", funcNm, polyOrder, polyOrder1D),
+  printf(fh, "  // sFac:    scale factor, typically +/- 1.0.~%"),
+  printf(fh, "  // xLimUp:  lower limit of the x integral in [-1,1] logical space.~%"),
+  printf(fh, "  // xLimLo:  upper limit of the x integral in [-1,1] logical space.~%"),
+  printf(fh, "  // yLimUp:  1D DG expansion of the function yLimLo(x) giving the lower limit of the y integral.~%"),
+  printf(fh, "  // yLimLo:  1D DG expansion of the function yLimUp(x) giving the upper limit of the y integral.~%"),
+  printf(fh, "  // dyDo:    y cell length of the donor cell.~%"),
+  printf(fh, "  // yOff:    yOffset between the donor and target cells (in the direction of the shift).~%"),
+  printf(fh, "  // ySh:     yShift translated to [-1,1] logical space.~%"),
+  printf(fh, "  // tsData:  twist-shift matrices and vectors.~%"),
+  printf(fh, "  // xIdx:    x-index of the cell.~%"),
+  printf(fh, "  // pushNew: push_back a new matrix (true) or add contribution to the last matrix (false).~%"),
   printf(fh, "~%"),
 
   printf(fh, "  // Length of the subregion in which the DG expansion of the yLimLo/yLimUp functions are defined.~%"),
@@ -237,9 +258,6 @@ calcTwistShiftOp_yLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
   printf(fh, "  double xcLim = ~a;~%", 0.5*(xLimUp+xLimLo)),
   printf(fh, "~%"),
 
-  basis1D : basisC1D[polyOrder],  /* This need not use the same polyOrder as fldDo/fldTar. */
-  numB1D  : length(basis1D),
-
   yLimLo_e : doExpand1(yLimLo,basis1D),
   yLimUp_e : doExpand1(yLimUp,basis1D),
   /* The x-variable used in the inner product below may be different to the
@@ -247,16 +265,18 @@ calcTwistShiftOp_yLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
      while the latter to a sub-region of that logical (x) space. They a related by a shift and a scaling. */
   dxCell : 2,
   xcCell : 0,
-  xMap : (2/dxLim)*(xcCell-xcLim+(dxCell/2)*x),
+  xMap   : (2/dxLim)*(xcCell-xcLim+(dxCell/2)*x),
 
   yLimLo_e : subst(x=xMap,yLimLo_e),
   yLimUp_e : subst(x=xMap,yLimUp_e),
 
-  basis : basisC[polyOrder],
-  numB  : length(basis),
-
   /* The y-integral limits will depend on the yShift. */
   intLims : [ [xLimLo, xLimUp], [yLimLo_e, yLimUp_e] ],
+  if (cdim+vdim > 2) then (
+    for d : 1 thru (cdim+vdim-2) do (
+      intLims : endcons([-1,1],intLims)
+    )
+  ),
 
   /* Field expansion and list of coefficients. */
   fldDo_e : doExpand1(fldDo,basis),
@@ -264,12 +284,12 @@ calcTwistShiftOp_yLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
   
   /* Apply the y-shift (in the logical [-1,1] space of this cell) to the
      origin field. */ 
-  ySh_e    : doExpand1(ySh, basis1D),
+  ySh_e   : doExpand1(ySh, basis1D),
   fldDo_e : subst(y=y+(ySh_e-yOff)*(2/dyDo),fldDo_e),
   
   /* Compute the inner product, on target grid of current cell,
      of the source field times the target-grid basis functions (in this case donor and target basis are the same). */
-  fldTar_c : fullratsimp(calcInnerProdListGenRev(vars,intLims,1.0,basis,fldDo_e)),
+  fldTar_c : fullratsimp(sFac*calcInnerProdListGenRev(vars,intLims,1.0,basis,fldDo_e)),
   
   printf(fh, "  tsData->mat = Eigen::MatrixXd::Zero(~a,~a);~%", numB, numB),
 
@@ -281,7 +301,7 @@ calcTwistShiftOp_yLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
      perform some kind of common subexpression elimination. For now we'll just eliminate the exponents. */
   subList : [],
   maxExponent : 18,
-  expQ        : [xLimLo, xLimUp, dxLim, xcLim, dyDo, yOff],
+  expQ        : [xLimLo, xLimUp, dxLim, xcLim, dyDo, yOff, sFac],
   for eI : 1 thru length(expQ) do (
     for f : 2 thru maxExponent do (
       doSub : false,
@@ -322,7 +342,11 @@ calcTwistShiftOp_yLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
   writeCEigenMatIncrsSub(tarIdo_c,fldTar_cm,subList),
   printf(fh, "~%"),
 
-  printf(fh, "  tsData->cellMat[xIdx-1].push_back(tsData->mat);~%"),
+  printf(fh, "  if (pushNew) {~%"),
+  printf(fh, "    tsData->cellMat[xIdx-1].push_back(tsData->mat);~%"),
+  printf(fh, "  } else {~%"),
+  printf(fh, "    tsData->cellMat[xIdx-1].back() += tsData->mat;~%"),
+  printf(fh, "  };~%"),
   printf(fh, "~%"),
   
   printf(fh, "}~%"),
@@ -330,15 +354,11 @@ calcTwistShiftOp_yLimDG(fh, funcNm, dim, basisFun, polyOrder) := block(
 
 )$
 
-calcTwistShiftOp_M2Corners(fh, funcNm, dim, basisFun, polyOrder) := block(
-  [basisC1D,i,vars1D,vars,interpDims,numInterpDims,basis1D,numB1D,basis,numB,fldDo_e,fldDo_c,
+calcTwistShiftOp_fullCell(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
+  [basisC1D,i,vars1D,vars,basis1D,numB1D,basis,numB,fldDo_e,fldDo_c,
    ySh_e,fldTar_c,sideSuffix,sI,xLimLo_e,xLimUp_e,dyCell,ycCell,dyLim,ycLim,yMap,yLimLo,yLimUp,
    intLims,subList,maxExponent,expQ,eI,f,doSUb,k,lhsS,rhsS,expR,j],
-  /* Perform integrals (for weak equality/interpolation) of a subregion of a
-     cell that cuts off two opposite corners with a single continuous line each.
-     Perform this integral by subtracting, from the integral over the whole cell,
-     the integral over the two corners which can be performed with integrals
-     like in calcTwistShiftInterpOp_xLimDG. */
+  /* Project the shifted function onto the DG basis over the whole cell. */ 
   kill(varsC, varsP, basisC, basisP),
 
   /* Will need 1D basis for the y-shift. */
@@ -346,51 +366,32 @@ calcTwistShiftOp_M2Corners(fh, funcNm, dim, basisFun, polyOrder) := block(
   load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
   basisC1D : makelist(0,i,1,length(basisC)),
   for i : 1 thru length(basisC) do (basisC1D[i] : copylist(basisC[i])),
-  vars1D : varsC,
-
-  /* For now assume dim=2. */
-  kill(varsC, varsP, basisC, basisP),
-  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
-  vars : varsC,
-
-  interpDims    : makelist(i,i,1,dim),
-  numInterpDims : length(interpDims),
-
-  /* Function declaration with input/output variables. */
-  printf(fh, "void ~aP~a_yShP~a(const double *xLimLoL, const double *xLimUpL, const double yLimLoL, const double yLimUpL, const double *xLimLoR, const double *xLimUpR, const double yLimLoR, const double yLimUpR, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const int matIdx) ~%{ ~%", funcNm, polyOrder, polyOrder1D),
-  printf(fh, "  // xLimUp: 1D DG expansion of the function xLimLo(y) giving the lower limit of the x integral in the left/right undesired region.~%"),
-  printf(fh, "  // xLimLo: 1D DG expansion of the function xLimUp(y) giving the upper limit of the x integral in the left/right undesired region.~%"),
-  printf(fh, "  // yLimUp: lower limit of the y integral in [-1,1] logical space.~%"),
-  printf(fh, "  // yLimLo: upper limit of the y integral in [-1,1] logical space.~%"),
-  printf(fh, "  // dyLimSpace: length of the subregion in which the DG expansion of the yLimLo/yLimUp functions are defined.~%"),
-  printf(fh, "  // ycLimSpace: logical center of the subregion in which the DG expansion of the yLimLo/yLimUp functions are defined.~%"),
-  printf(fh, "  // dyDo: y cell length of the donor cell.~%"),
-  printf(fh, "  // yOff: yOffset between the donor and target cells (in the direction of the shift).~%"),
-  printf(fh, "  // ySh:  yShift translated to [-1,1] logical space.~%"),
-  printf(fh, "  // tsData: twist-shift matrices and vectors.~%"),
-  printf(fh, "  // xIdx:   x-index of the cell.~%"),
-  printf(fh, "  // matIdx: index of the matrix to be assigned.~%"),
-  printf(fh, "~%"),
-
-  printf(fh, "  // Length of the subregions in which the DG expansion of the yLimLo/yLimUp functions are defined.~%"),
-  printf(fh, "  double dyLimL = ~a;~%", yLimUpL-yLimLoL),
-  printf(fh, "  double dyLimR = ~a;~%", yLimUpR-yLimLoR),
-  printf(fh, "~%"),
-
-  printf(fh, "  // Logical center of the subregion in which the DG expansion of the yLimLo/yLimUp functions are defined.~%"),
-  printf(fh, "  double ycLimL = ~a;~%", 0.5*(yLimUpL+yLimLoL)),
-  printf(fh, "  double ycLimR = ~a;~%", 0.5*(yLimUpR+yLimLoR)),
-  printf(fh, "~%"),
-
-  printf(fh, "  if (dyLimL < 1.e-14) dyLimL = 1.;~%"),
-  printf(fh, "  if (dyLimR < 1.e-14) dyLimR = 1.;~%"),
-  printf(fh, "~%"),
-
-  basis1D : basisC1D[polyOrder],  /* This need not use the same polyOrder as fldDo/fldTar. */
+  vars1D  : varsC,
+  basis1D : basisC1D[polyOrder1D],  /* This need not use the same polyOrder as fldDo/fldTar. */
   numB1D  : length(basis1D),
 
-  basis : basisC[polyOrder],
-  numB  : length(basis),
+  /* Assume cdim=2 or cdim=3. */
+  kill(varsC, varsP, basisC, basisP),
+  if vdim=0 then (
+    load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
+    basis : basisC[polyOrder],
+    vars  : varsC
+  ) else (
+    load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+    basis : basisP[polyOrder],
+    vars  : varsP
+  ),
+  numB : length(basis),
+
+  /* Function declaration with input/output variables. */
+  printf(fh, "void ~aP~a_yShP~a(const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew) ~%{ ~%", funcNm, polyOrder, polyOrder1D),
+  printf(fh, "  // dyDo:   y cell length of the donor cell.~%"),
+  printf(fh, "  // yOff:   yOffset between the donor and target cells (in the direction of the shift).~%"),
+  printf(fh, "  // ySh:    yShift translated to [-1,1] logical space.~%"),
+  printf(fh, "  // tsData: twist-shift matrices and vectors.~%"),
+  printf(fh, "  // xIdx:   x-index of the cell.~%"),
+  printf(fh, "  // pushNew: push_back a new matrix (true) or add contribution to the last matrix (false).~%"),
+  printf(fh, "~%"),
 
   /* Field expansion and list of coefficients. */
   fldDo_e  : doExpand1(fldDo,basis),
@@ -398,39 +399,12 @@ calcTwistShiftOp_M2Corners(fh, funcNm, dim, basisFun, polyOrder) := block(
 
   /* Apply the y-shift (in the logical [-1,1] space of this cell) to the
      origin field. */ 
-  ySh_e    : doExpand1(ySh, basis1D),
+  ySh_e   : doExpand1(ySh, basis1D),
   fldDo_e : subst(y=y+(ySh_e-yOff)*(2/dyDo),fldDo_e),
   
   /* First add the integral over the whole cell. */
   fldTar_c : fullratsimp(calcInnerProdList(vars,1.0,basis,fldDo_e)),
 
-  /* Iterate over the left/right undesired regions. */
-  sideSuffix : ["L","R"],
-  for sI : 1 thru 2 do (
-    xLimLo_e : doExpand1(eval_string(sconcat("xLimLo",sideSuffix[sI])),subst(x=y,basis1D)),
-    xLimUp_e : doExpand1(eval_string(sconcat("xLimUp",sideSuffix[sI])),subst(x=y,basis1D)),
-    /* The y-variable used in the inner product below is different to the
-       y-variable in xLimLo/xLimUp because the former corresponds to the logical space of the source cell,
-       while the latter to a sub-region of that logical (y) space. They a related by a shift and a scaling. */
-    dyCell : 2,
-    ycCell : 0,
-    dyLim  : eval_string(sconcat("dyLim",sideSuffix[sI])),
-    ycLim  : eval_string(sconcat("ycLim",sideSuffix[sI])),
-    yMap   : (2/dyLim)*(ycCell-ycLim+(dyCell/2)*y),
-
-    xLimLo_e : subst(y=yMap,xLimLo_e),
-    xLimUp_e : subst(y=yMap,xLimUp_e),
-
-    /* The x-integral limits will depend on the yShift. */
-    yLimLo  : eval_string(sconcat("yLimLo",sideSuffix[sI])),
-    yLimUp  : eval_string(sconcat("yLimUp",sideSuffix[sI])),
-    intLims : [ [xLimLo_e, xLimUp_e], [yLimLo, yLimUp] ],
-
-    /* Compute the inner product, on target grid of current cell,
-       of the source field times the target-grid basis functions (in this case donor and target basis are the same). */
-    fldTar_c : fldTar_c-fullratsimp(calcInnerProdListGen(vars,intLims,1.0,basis,fldDo_e))
-  ),
-  
   printf(fh, "  tsData->mat = Eigen::MatrixXd::Zero(~a,~a);~%", numB, numB),
 
   fldTar_cm   : list_matrix_entries(fullratsimp(coefmatrix(fldTar_c,fldDo_c))),
@@ -441,7 +415,7 @@ calcTwistShiftOp_M2Corners(fh, funcNm, dim, basisFun, polyOrder) := block(
      perform some kind of common subexpression elimination. For now we'll just eliminate the exponents. */
   subList : [],
   maxExponent : 18,
-  expQ        : [yLimLoL, yLimUpL, dyLimL, ycLimL, yLimLoR, yLimUpR, dyLimR, ycLimR, dyDo, yOff],
+  expQ        : [dyDo, yOff],
   for eI : 1 thru length(expQ) do (
     for f : 2 thru maxExponent do (
       doSub : false,
@@ -458,7 +432,7 @@ calcTwistShiftOp_M2Corners(fh, funcNm, dim, basisFun, polyOrder) := block(
       )
     )
   ),
-  expR : [xLimLoL, xLimUpL, xLimLoR, xLimUpR, ySh],
+  expR : [ySh],
   for eI : 1 thru length(expR) do (
     for f : 2 thru maxExponent do (
       for j : 0 thru numB1D-1 do (
@@ -482,7 +456,11 @@ calcTwistShiftOp_M2Corners(fh, funcNm, dim, basisFun, polyOrder) := block(
   writeCEigenMatIncrsSub(tarIdo_c,fldTar_cm,subList),
   printf(fh, "~%"),
 
-  printf(fh, "  tsData->cellMat[xIdx-1].push_back(tsData->mat);~%"),
+  printf(fh, "  if (pushNew) {~%"),
+  printf(fh, "    tsData->cellMat[xIdx-1].push_back(tsData->mat);~%"),
+  printf(fh, "  } else {~%"),
+  printf(fh, "    tsData->cellMat[xIdx-1].back() += tsData->mat;~%"),
+  printf(fh, "  };~%"),
   printf(fh, "~%"),
   
   printf(fh, "}~%~%")
@@ -490,15 +468,23 @@ calcTwistShiftOp_M2Corners(fh, funcNm, dim, basisFun, polyOrder) := block(
 )$
 
 
-calcTwistShiftOp_matVecMult(fh, funcNm, dim, basisFun, polyOrder) := block(
+calcTwistShiftOp_matVecMult(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   [polyOrder1D,vars,basis,numB,fldDo_c],
   /* Write the function that performs a mat-vec multiply to compute the
      contribution from a donor cell to the taget cell. */
   kill(varsC, varsP, basisC, basisP),
 
   kill(varsC, varsP, basisC, basisP),
-  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
-  vars : varsC,
+  if vdim=0 then (
+    load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
+    basis : basisC[polyOrder],
+    vars  : varsC
+  ) else (
+    load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+    basis : basisP[polyOrder],
+    vars  : varsP
+  ),
+  numB : length(basis),
 
   /* Function declaration with input/output variables. */
   printf(fh, "void ~aP~a(tsStruct *tsData, const int xIdx, const int matIdx, const double *fldDo, double *fldTar) ~%{ ~%", funcNm, polyOrder),
@@ -509,10 +495,7 @@ calcTwistShiftOp_matVecMult(fh, funcNm, dim, basisFun, polyOrder) := block(
   printf(fh, "  // fldTar: target field.~%"),
   printf(fh, "~%"),
 
-  basis : basisC[polyOrder],
-  numB  : length(basis),
-
-  fldDo_c  : makelist(fldDo[i],i,0,numB-1),
+  fldDo_c : makelist(fldDo[i],i,0,numB-1),
 
   printf(fh, "  tsData->vecDo << ~a;~%~%",sreverse(sremovefirst("]",sreverse(sremovefirst("[",string(fldDo_c)))))),
 

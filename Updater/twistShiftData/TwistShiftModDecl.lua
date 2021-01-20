@@ -37,37 +37,41 @@ function _M.selectTwistShiftAllocCellMat()
 end
 
 -- Select twist-shift interpolation operator kernel.
-function _M.selectTwistShiftIntSubX(dim, basisNm, polyOrder, yShPolyOrder)
+function _M.selectTwistShiftIntSubX(cDim, vDim, basisNm, polyOrder, yShPolyOrder)
+   local vStr     = vDim > 0 and vDim .. "v" or ""
    local funcType = "void"
-   local funcNm   = string.format("twistShift_xLimDG%dx%sP%d_yShP%d", dim, basisNmMap[basisNm], polyOrder, yShPolyOrder)
-   local funcSign = "(const double *xLimLo, const double *xLimUp, const double yLimLo, const double yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const int matIdx)"
+   local funcNm   = string.format("twistShift_xLimDG%dx%s%sP%d_yShP%d", cDim, vStr, basisNmMap[basisNm], polyOrder, yShPolyOrder)
+   local funcSign = "(const double sFac, const double *xLimLo, const double *xLimUp, const double yLimLo, const double yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew)"
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]
 end
 
-function _M.selectTwistShiftIntSubY(dim, basisNm, polyOrder, yShPolyOrder)
+function _M.selectTwistShiftIntSubY(cDim, vDim, basisNm, polyOrder, yShPolyOrder)
+   local vStr     = vDim > 0 and vDim .. "v" or ""
    local funcType = "void"
-   local funcNm   = string.format("twistShift_yLimDG%dx%sP%d_yShP%d", dim, basisNmMap[basisNm], polyOrder, yShPolyOrder)
-   local funcSign = "(const double xLimLo, const double xLimUp, const double *yLimLo, const double *yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const int matIdx)"
+   local funcNm   = string.format("twistShift_yLimDG%dx%s%sP%d_yShP%d", cDim, vStr, basisNmMap[basisNm], polyOrder, yShPolyOrder)
+   local funcSign = "(const double sFac, const double xLimLo, const double xLimUp, const double *yLimLo, const double *yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew)"
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]
 end
 
-function _M.selectTwistShiftIntSubM2Corners(dim, basisNm, polyOrder, yShPolyOrder)
+function _M.selectTwistShiftIntFullCell(cDim, vDim, basisNm, polyOrder, yShPolyOrder)
+   local vStr     = vDim > 0 and vDim .. "v" or ""
    local funcType = "void"
-   local funcNm   = string.format("twistShift_M2Corners%dx%sP%d_yShP%d", dim, basisNmMap[basisNm], polyOrder, yShPolyOrder)
-   local funcSign = "(const double *xLimLoL, const double *xLimUpL, const double yLimLoL, const double yLimUpL, const double *xLimLoR, const double *xLimUpR, const double yLimLoR, const double yLimUpR, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const int matIdx)"
+   local funcNm   = string.format("twistShift_fullCell%dx%s%sP%d_yShP%d", cDim, vStr, basisNmMap[basisNm], polyOrder, yShPolyOrder)
+   local funcSign = "(const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew)"
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]
 end
 
 -- Select kernel that performs a mat-vec multiply to compute the contribution from a donor cell to a target cell.
-function _M.selectTwistShiftMatVecMult(dim, basisNm, polyOrder)
+function _M.selectTwistShiftMatVecMult(cDim, vDim, basisNm, polyOrder)
+   local vStr     = vDim > 0 and vDim .. "v" or ""
    local funcType = "void"
-   local funcNm   = string.format("twistShift_matVecMult%dx%sP%d", dim, basisNmMap[basisNm], polyOrder, yShPolyOrder)
+   local funcNm   = string.format("twistShift_matVecMult%dx%s%sP%d", cDim, vStr, basisNmMap[basisNm], polyOrder, yShPolyOrder)
    local funcSign = "(tsStruct *tsData, const int xIdx, const int matIdx, const double *fldDo, double *fldTar)"
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")

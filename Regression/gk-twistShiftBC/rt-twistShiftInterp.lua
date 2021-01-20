@@ -28,7 +28,7 @@ local math                 = require "sci.math"  -- For sign function.
 local polyOrder    = 1
 local lower        = {-2.0, -1.50}
 local upper        = { 2.0,  1.50}
-local numCells     = {20, 20}
+local numCells     = {10, 10}
 local periodicDirs = {2}
 
 local grid = Grid.RectCart {
@@ -940,14 +940,14 @@ for idx in localRange:rowMajorIter() do
       end
    end
 
-   if idx[2]==1 then print(string.format("idx = (%d,%d)",idx[1],idx[2])) end
+--   if idx[2]==1 then print(string.format("idx = (%d,%d)",idx[1],idx[2])) end
 
    for iC = 1, #srcCells do
       -- In each contributing cell, approximate the functions qInvL(y) and qInvU(y)
       -- for the min/max of the x-integral with a polynomial. Compute the coefficients
       -- of that polynomial with a projection of yShiftNormInvFunc onto the local basis.
       local idxS = srcCells[iC]
-      if idx[2]==1 then print(string.format("  from = (%d,%d)",idxS[1],idxS[2])) end
+--      if idx[2]==1 then print(string.format("  from = (%d,%d)",idxS[1],idxS[2])) end
 
       grid:setIndex(idxS)
       grid:cellCenter(xcS)

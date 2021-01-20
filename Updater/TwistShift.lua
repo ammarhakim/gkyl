@@ -6,6 +6,8 @@
 -- Current limitations:
 --    1) The shift has to be monotonic.
 --    2) The shift can't be constant and a multiple of y-cell length anywhere.
+--    3) Apply twist-shift to one 2D field and output to another 2D field, or
+--       apply the twist-shift to a 3D field (filling the ghost cells).
 --
 -- Notes:
 --    a] Need to figure out how to do this more accurately. In 2D p=1 the last
@@ -51,6 +53,16 @@ function TwistShift:init(tbl)
    local basis = assert(
       tbl.basis, "Updater.TwistShift: Must provide the basis of the fields using 'basis'.")
 
+   local confBasis = tbl.confBasis
+   local cDim, vDim
+   if confBasis then
+      cDim = confBasis:ndim()
+      vDim = basis:ndim() - cDim
+   else
+      cDim = basis:ndim()
+      vDim = 0
+   end
+
    local yShFunc = assert(
       tbl.yShiftFunc, "Updater.TwistShift: Must provide the y-shift function using 'yShiftFunc'.")
    local yShPolyOrder = assert(
@@ -93,12 +105,12 @@ function TwistShift:init(tbl)
    self.matVec = tsFun.matVec_alloc(self.yShFld, self.doCells, basis)
 
    -- Select kernels that assign matrices and later, in the :_advance method, do mat-vec multiplies.
-   tsFun.selectTwistShiftKernels(self.grid:ndim(), basis:id(), basis:polyOrder(), yShPolyOrder)
+   tsFun.selectTwistShiftKernels(cDim, vDim, basis:id(), basis:polyOrder(), yShPolyOrder)
 
    -- Pre-compute matrices using weak equalities between donor and target fields.
    tsFun.preCalcMat(self.grid, self.yShFld, self.doCells, self.matVec)
 
-   self.tsMatVecMult = TwistShiftDecl.selectTwistShiftMatVecMult(self.grid:ndim(), basis:id(), basis:polyOrder())
+   self.tsMatVecMult = TwistShiftDecl.selectTwistShiftMatVecMult(cDim, vDim, basis:id(), basis:polyOrder())
 
 end
 

@@ -20,7 +20,7 @@ GKYL_EMBED_INP             = false
 local polyOrder       = 1
 local lower           = {-2.0, -1.50}
 local upper           = { 2.0,  1.50}
-local numCells        = {20, 20}
+local numCells        = {10, 10}
 local periodicDirs    = {2}
 local yShiftPolyOrder = 1
 
@@ -83,7 +83,7 @@ local basis1D = Basis.CartModalSerendipity { ndim = grid1D:ndim(), polyOrder = p
 local yShiftFunc = function(t, xn)
                       local x = xn[1]
 --                      return 1./(1.+0.25*x)
-                      return -0.3*x+1.
+                      return -0.3*x+0.97
 --                      return 0.1*(x+2.)^2+0.2*x+0.6
                    end
 
@@ -97,14 +97,28 @@ local fldDoFunc = function(t, xn)
    local x, y       = xn[1], xn[2]
    local muX, muY   = 0., 0.
    local sigX, sigY = 0.3, 0.3
-   return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((y-muY)^2)/(2.*(sigY^2)))
+--   return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((y-muY)^2)/(2.*(sigY^2)))
+   return math.exp(-((y-muY)^2)/(2.*(sigY^2)))
+--   return math.sin((2.*math.pi/3.)*y)
+--   if y < 0. then
+--      return 0.
+--   else
+--      return 1.
+--   end
 end
 -- Shifted donor field.
 local fldDoShiftedFunc = function(t, xn)
    local x, y       = xn[1], xn[2]
    local muX, muY   = 0., 0.
    local sigX, sigY = 0.3, 0.3
-   return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((wrapNum(y+yShiftFunc(0,xn),{lo=grid:lower(2),up=grid:upper(2)},true)-muY)^2)/(2.*(sigY^2)))
+--   return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((wrapNum(y+yShiftFunc(0,xn),{lo=grid:lower(2),up=grid:upper(2)},true)-muY)^2)/(2.*(sigY^2)))
+   return math.exp(-((wrapNum(y+yShiftFunc(0,xn),{lo=grid:lower(2),up=grid:upper(2)},true)-muY)^2)/(2.*(sigY^2)))
+--   return math.sin((2.*math.pi/3.)*((wrapNum(y+yShiftFunc(0,xn),{lo=grid:lower(2),up=grid:upper(2)},true))))
+--   if wrapNum(y+yShiftFunc(0,xn),{lo=grid:lower(2),up=grid:upper(2)},true) < 0. then
+--      return 0.
+--   else
+--      return 1.
+--   end
 end
 
 -- Project donor field function onto basis.

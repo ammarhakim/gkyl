@@ -31,17 +31,17 @@ local xsys             = require "xsys"
 local TwistShiftDecl = require "Updater.twistShiftData.TwistShiftModDecl"
 
 -- Kernels. Assigned by the selectTwistShiftKernels function.
-local intSubXlimDG    = nil 
-local intSubYlimDG    = nil
-local intSubM2Corners = nil
+local intSubXlimDG = nil 
+local intSubYlimDG = nil
+local intFullCell  = nil
 
 local _M = {}
 
-function _M.selectTwistShiftKernels(dim, basisID, polyOrder, yShiftPolyOrder)
+function _M.selectTwistShiftKernels(cDim, vDim, basisID, polyOrder, yShiftPolyOrder)
    -- Select the kernels needed by TwistShift updater.
-   intSubXlimDG = TwistShiftDecl.selectTwistShiftIntSubX(dim, basisID, polyOrder, yShiftPolyOrder)
-   intSubYlimDG = TwistShiftDecl.selectTwistShiftIntSubY(dim, basisID, polyOrder, yShiftPolyOrder)
-   intSubM2Corners = TwistShiftDecl.selectTwistShiftIntSubM2Corners(dim, basisID, polyOrder, yShiftPolyOrder)
+   intSubXlimDG = TwistShiftDecl.selectTwistShiftIntSubX(cDim, vDim, basisID, polyOrder, yShiftPolyOrder)
+   intSubYlimDG = TwistShiftDecl.selectTwistShiftIntSubY(cDim, vDim, basisID, polyOrder, yShiftPolyOrder)
+   intFullCell  = TwistShiftDecl.selectTwistShiftIntFullCell(cDim, vDim, basisID, polyOrder, yShiftPolyOrder)
 end
 
 local p2l = function(valIn, xcIn, dxIn)
@@ -174,7 +174,7 @@ local function sign(num)
 end
 
 local doTarOff = function(xcDoIn, xcTarIn)
-   -- y-offset between the donor and the target cell, in the direction of the shift.
+   -- y-offset between the donor and the target cell (yDo-yTar), in the direction of the shift.
    local shift     = yShiftF(xcDoIn[1])
    local shiftSign = sign(shift)
    local Ly        = domLim[2].up - domLim[2].lo
@@ -200,7 +200,7 @@ end
 --   xcTar: cell center coordinates of target cell.
 --   dx:    cell lengths.
 --   pickUpper: boolean indicating if wrapping function should return upper/lower boundary.
-local logYShifted = function(xi, yTar, xcDo, xcTar, pickUpper)
+local yShiftedLog = function(xi, yTar, xcDo, xcTar, pickUpper)
    local xPhys = xcTar[1] + 0.5*dx[1]*xi
    local yS    = yTar+yShiftF(xPhys)
    yS = wrapNum(yS, domLim[2], pickUpper)
@@ -214,7 +214,7 @@ local invertLogYshifted = function(ySlog, yTar, xcDoIn, xcTarIn, xLim, pickUpper
    -- Invert the function p2l(y+yShifted(x)) via root finding. This function is passed to a projection
    -- operation, so that the resulting DG expansion is defined in a subcell of the donor cell.
    local function lossF(xlog)
-      return ySlog - logYShifted(xlog, yTar, xcDoIn, xcTarIn, pickUpper)
+      return ySlog - yShiftedLog(xlog, yTar, xcDoIn, xcTarIn, pickUpper)
    end
    local tol = 1.e-11
    -- Have to consider extended logical space even though the part of the y+yShift curve
@@ -322,7 +322,7 @@ local subCellInt_xLimDG = function(xLimFuncs, yBounds, xIdxIn, offDoTar, yShPtrI
    if dySub > 0 then
       nodToModProj1D(xLimFuncs.lo, yBounds, projData.xiLo_eta)
       nodToModProj1D(xLimFuncs.up, yBounds, projData.xiUp_eta)
-      intSubXlimDG(projData.xiLo_eta:data(), projData.xiUp_eta:data(), yBounds.lo, yBounds.up,
+      intSubXlimDG(1., projData.xiLo_eta:data(), projData.xiUp_eta:data(), yBounds.lo, yBounds.up,
                    dy, offDoTar, yShPtrIn, tsMatVecsIn, xIdxIn[1], 1)
    end
 end
@@ -655,6 +655,11 @@ local subCellInt_sxiiiORsxiv = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, a
    --   atUpperYcell: boolean to indicate if this donor is the upper Y cell.
    --   yShPtrIn:     pointer to y-shift field in current cell.
    --   tsMatVecs:    pre-allocated matrices and vectors.
+
+   local ycOff = doTarOff(xcDoIn, xcTarIn)
+   -- Add the contribution from integrating over the whole cell.
+   intFullCell(dx[2], ycOff, yShPtrIn, tsMatVecsIn, xIdxIn[1], 1)
+
    local yTarL, yTarR
    local xLogBoundsL, xLogBoundsR = {}, {}
    local yLogBoundsL, yLogBoundsR = {}, {}
@@ -683,11 +688,12 @@ local subCellInt_sxiiiORsxiv = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, a
                          return invertLogYshifted(xn[1], yTarL, xcDoIn, xcTarIn, xLogBoundsL, atUpperYcell)
                       end}
    local dySubL, _ = dxAxc(yLogBoundsL)
-   nodToModProj1D(xLogLimsL.lo, yLogBoundsL, projData.xiLoL_eta)
    if (xLogBoundsL.up-xLogBoundsL.lo) > 1.e-14 and dySubL > 1.e-14 then
+      nodToModProj1D(xLogLimsL.lo, yLogBoundsL, projData.xiLoL_eta)
       nodToModProj1D(xLogLimsL.up, yLogBoundsL, projData.xiUpL_eta)
-   else
-      nodToModProj1D(xLogLimsL.lo, yLogBoundsL, projData.xiUpL_eta)
+      -- Subtract the left corner subcell region.
+      intSubXlimDG(-1., projData.xiLoL_eta:data(), projData.xiUpL_eta:data(), yLogBoundsL.lo, yLogBoundsL.up,
+                   dx[2], ycOff, yShPtrIn, tsMatVecsIn, xIdxIn[1], 0)
    end
    -- Project x-limits of right subcell region to subtract.
    local xLogLimsR = {lo = function(t,xn)
@@ -695,16 +701,13 @@ local subCellInt_sxiiiORsxiv = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, a
                       end,
                       up = function(t,xn) return 1.0 end}
    local dySubR, _ = dxAxc(yLogBoundsR)
-   if (xLogBoundsR.up-xLogBoundsR.lo) > 0 and dySubR > 1.e-14  then
+   if (xLogBoundsR.up-xLogBoundsR.lo) > 1.e-14 and dySubR > 1.e-14 then
       nodToModProj1D(xLogLimsR.lo, yLogBoundsR, projData.xiLoR_eta)
-   else
-      nodToModProj1D(xLogLimsR.up, yLogBoundsR, projData.xiLoR_eta)
+      nodToModProj1D(xLogLimsR.up, yLogBoundsR, projData.xiUpR_eta)
+      -- Subtract the right corner subcell region.
+      intSubXlimDG(-1., projData.xiLoR_eta:data(), projData.xiUpR_eta:data(), yLogBoundsR.lo, yLogBoundsR.up,
+                   dx[2], ycOff, yShPtrIn, tsMatVecsIn, xIdxIn[1], 0)
    end
-   nodToModProj1D(xLogLimsR.up, yLogBoundsR, projData.xiUpR_eta)
-   local ycOff = doTarOff(xcDoIn, xcTarIn)
-   intSubM2Corners(projData.xiLoL_eta:data(), projData.xiUpL_eta:data(), yLogBoundsL.lo, yLogBoundsL.up,
-                   projData.xiLoR_eta:data(), projData.xiUpR_eta:data(), yLogBoundsR.lo, yLogBoundsR.up,
-                   dx[2], ycOff, yShPtrIn, tsMatVecsIn, xIdxIn[1], 1)
 end
 
 local subCellInt_sxvORsxvi = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limDo, limTar, atUpperYcell, yShPtrIn, tsMatVecsIn)
@@ -719,25 +722,25 @@ local subCellInt_sxvORsxvi = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limDo, limT
    --   yShPtrIn:     pointer to y-shift field in current cell.
    --   tsMatVecs:    pre-allocated matrices and vectors.
    local xLogBounds = {lo=-1., up=1.}
-   local xLogLims   = {}
+   local yLogLims   = {}
    local yShiftLoXc = wrapNum(limTar[2].lo+yShiftF(xcDoIn[1]),domLim[2],atUpperYcell)
    if (limDo[2].lo <= yShiftLoXc) and (yShiftLoXc <= limDo[2].up) then   -- Scenario sxv.
       local yTar = limTar[2].lo
-      xLogLims = {lo = function(t,xn)
-                          return logYShifted(xn[1], yTar, xcDoIn, xcTarIn, atUpperYcell)
-                       end,
-                  up = function(t,xn) return 1.0 end}
+      yLogLims = {lo = function(t,xn) return -1.0 end,
+                  up = function(t,xn)
+                          return -1.0+(1.0-yShiftedLog(xn[1], yTar, xcDoIn, xcTarIn, atUpperYcell))
+                       end}
    else   -- Scenario sxvi.
       local yTar = limTar[2].up
-      xLogLims = {lo = function(t,xn) return -1.0 end,
-                  up = function(t,xn)
-                          return logYShifted(xn[1], yTar, xcDoIn, xcTarIn, atUpperYcell)
-                       end}
+      yLogLims = {lo = function(t,xn)
+                          return -1.0+(1.0-yShiftedLog(xn[1], yTar, xcDoIn, xcTarIn, atUpperYcell))
+                       end,
+                  up = function(t,xn) return 1.0 end}
    end
-   nodToModProj1D(xLogLims.lo, xLogBounds, projData.etaLo_xi)
-   nodToModProj1D(xLogLims.up, xLogBounds, projData.etaUp_xi)
+   nodToModProj1D(yLogLims.lo, xLogBounds, projData.etaLo_xi)
+   nodToModProj1D(yLogLims.up, xLogBounds, projData.etaUp_xi)
    local ycOff = doTarOff(xcDoIn, xcTarIn)
-   intSubYlimDG(xLogBounds.lo, xLogBounds.up, projData.etaLo_xi:data(), projData.etaUp_xi:data(),
+   intSubYlimDG(1., xLogBounds.lo, xLogBounds.up, projData.etaLo_xi:data(), projData.etaUp_xi:data(),
                 dx[2], ycOff, yShPtrIn, tsMatVecsIn, xIdxIn[1], 1)
 end
 
@@ -760,11 +763,14 @@ function _M.getDonors(grid, yShift, yShBasis)
 
    local stepFrac  = {0.1, 0.1}  -- Step taken around boundary, as fraction of cell length.
    local deltaFrac = 1.e-9       -- Distance away from the boundary, as fraction of cell length.
-   local numSteps  = {math.ceil(1./stepFrac[1]),math.ceil(1./stepFrac[2])}
+   local numSteps  = {math.ceil(1./stepFrac[1]), math.ceil(1./stepFrac[2])}
 
    local yShIndexer, yShPtr = yShift:genIndexer(), yShift:get(1)
 
    local localRange = grid:localRange()
+   local xyRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = localRange:selectFirst(2), numSplit = grid:numSharedProcs() }
+   local tId = grid:subGridSharedId()   -- Local thread ID.
 
    local yShNumB    = yShift:numComponents()
    local yShBasisEv = Lin.Vec(yShNumB)
@@ -773,7 +779,7 @@ function _M.getDonors(grid, yShift, yShBasis)
    local cellLim, stepSz, delta  = {{lo=0., up=0.}, {lo=0., up=0.}} , {0., 0.}, {0., 0.} 
    local idxShifted, searchPoint, newP = {nil,nil}, {0., 0.}, {0., 0.}
 
-   for idx in localRange:rowMajorIter() do
+   for idx in xyRangeDecomp:rowMajorIter(tId) do
       grid:setIndex(idx)
       
       local doCellsC = doCells[idx[1]][idx[2]]
@@ -910,12 +916,12 @@ function _M.preCalcMat(grid, yShift, doCells, tsMatVecs)
 
       local doCellsC = doCells[idxTar[1]][idxTar[2]]
 
-      print(string.format("idx = (%d,%d)",idxTar[1],idxTar[2]))
+      print("xIdx = ",xIdx[1])
 
       for iC = 1, #doCellsC do
 
          local idxDo = doCellsC[iC]
-         print(string.format("  from = (%d,%d)",idxDo[1],idxDo[2]))
+         print("   from idxDo = ",idxDo[1],idxDo[2])
 
          grid:setIndex(idxDo)
          grid:cellCenter(xcDo)
@@ -933,11 +939,6 @@ function _M.preCalcMat(grid, yShift, doCells, tsMatVecs)
                local yTar, yDo = cellLimTar[2][tarLim], cellLimDo[2][doLim]
                interPts[i][j]  = findIntersect(yTar, yDo, cellLimTar[1], domLim[2])
                foundAll        = interPts[i][j]==nil and false or foundAll
---               if interPts[i][j]==nil then
---                  print(string.format("interPts[%s][%s] = ",i,j),nil)
---               else
---                  print(string.format("interPts[%s][%s] = %1.12e",i,j,interPts[i][j]))
---               end
             end
          end
 
