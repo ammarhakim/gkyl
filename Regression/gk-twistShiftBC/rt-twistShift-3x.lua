@@ -18,9 +18,9 @@ GKYL_EMBED_INP             = false
 -- but with a shift in y that is a function of x (assuming periodicity in y).
 
 local polyOrder       = 1
-local lower           = {-2.0, -1.50}
-local upper           = { 2.0,  1.50}
-local numCells        = {10, 10}
+local lower           = {-2.0, -1.50, -3.0}
+local upper           = { 2.0,  1.50,  3.0}
+local numCells        = {10, 10, 4}
 local periodicDirs    = {2}
 local yShiftPolyOrder = 1
 
@@ -91,10 +91,11 @@ local project = Updater.ProjectOnBasis {
    onGrid   = grid,
    basis    = basis,
    evaluate = function(t, xn) return 1. end,
+   projectOnGhosts = true,
 }
 -- Donor field.
 local fldDoFunc = function(t, xn)
-   local x, y       = xn[1], xn[2]
+   local x, y, z    = xn[1], xn[2], xn[3]
    local muX, muY   = 0., 0.
    local sigX, sigY = 0.3, 0.3
    return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((y-muY)^2)/(2.*(sigY^2)))
@@ -108,7 +109,7 @@ local fldDoFunc = function(t, xn)
 end
 -- Shifted donor field.
 local fldDoShiftedFunc = function(t, xn)
-   local x, y       = xn[1], xn[2]
+   local x, y, z    = xn[1], xn[2], xn[3]
    local muX, muY   = 0., 0.
    local sigX, sigY = 0.3, 0.3
    return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((wrapNum(y+yShiftFunc(0,xn),{lo=grid:lower(2),up=grid:upper(2)},true)-muY)^2)/(2.*(sigY^2)))
@@ -124,11 +125,21 @@ end
 -- Project donor field function onto basis.
 project:setFunc(function(t,xn) return fldDoFunc(t,xn) end)
 project:advance(0., {}, {fldDo})
-fldDo:write("fldDo.bp")
+fldDo:write("fldDo.bp", 0., 0, true)
 -- Project shifted donor field function onto basis.
 project:setFunc(function(t,xn) return fldDoShiftedFunc(t,xn) end)
 project:advance(0., {}, {fldDoShifted})
-fldDoShifted:write("fldDoShifted.bp")
+fldDoShifted:write("fldDoShifted.bp", 0., 0, true)
+
+-- Project the function in the target field but not in the ghost
+-- cells. Twist-shift will fill the ghost cells.
+local projectNoGhosts = Updater.ProjectOnBasis {
+   onGrid   = grid,
+   basis    = basis,
+   evaluate = function(t, xn) return 1. end,
+}
+projectNoGhosts:setFunc(function(t,xn) return fldDoFunc(t,xn) end)
+projectNoGhosts:advance(0., {}, {fldTar})
 
 local intQuant = Updater.CartFieldIntegratedQuantCalc {
    onGrid        = grid,
@@ -138,21 +149,22 @@ local intQuant = Updater.CartFieldIntegratedQuantCalc {
 }
 local intFldDo = DataStruct.DynVector { numComponents = 1, }
 intQuant:advance(0., {fldDo}, {intFldDo})
-intFldDo:write("intFldDo.bp", 0., 0)
+intFldDo:write("intFldDo.bp",0., 0)
 
 local twistShiftUpd = Updater.TwistShift {
    onGrid          = grid,
    basis           = basis, 
    yShiftFunc      = yShiftFunc, 
    yShiftPolyOrder = yShiftPolyOrder,
+   edge            = "lower",
 }
 
 local t1 = os.clock()
-twistShiftUpd:_advance(0., {fldDo}, {fldTar})
+twistShiftUpd:_advance(0., {}, {fldTar})
 local t2 = os.clock()
 io.write("Total test time: ", t2-t1, " s\n")
 
-fldTar:write("fldTar.bp")
+fldTar:write("fldTar.bp", 0., 0, true)
 
 local intFldTar = DataStruct.DynVector { numComponents = 1, }
 intQuant:advance(0., {fldTar}, {intFldTar})

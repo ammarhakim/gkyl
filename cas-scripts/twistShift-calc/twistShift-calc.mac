@@ -20,7 +20,7 @@ maxPolyOrder_Tensor : 1$
 minCdim_Tensor : 1$
 maxCdim_Tensor : 0$
 
-gkVdims : [[1,2], [0,2], [2]]$
+gkVdims : [[0,2], [0,2]]$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -33,8 +33,8 @@ for bInd : 1 thru length(bName) do (
      
   for c : minCdim[bInd] thru maxCdim[bInd] do (
 
-    for gkV : 1 thru length(gkVdims[c]) do (
-      v : gkVdims[c][gkV],
+    for gkV : 1 thru length(gkVdims[c-1]) do (
+      v : gkVdims[c-1][gkV],
 
       maxPolyOrderB : maxPolyOrder[bInd],
       if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,

@@ -7,11 +7,18 @@
 --       - wrapNum: eps.
 --       - getDonors: stepFrac, deltaFrac.
 --       - findIntersect: tol, stepFrac.
---       - invertLogYshifted: tol, eps.
+--       - yShiftedLogInv: tol, eps.
 --
 -- Module functions:
+--   - selectTwistShiftKernels
+--   - rootFind(funcIn, lims, tol)
+--   - set_yShiftF
+--   - set_domLim(gridIn)
+--   - set_dx(gridIn)
 --   - getDonors
 --   - matVec_alloc
+--   - set_projData(shiftPolyOrder)
+--   - preCalcMat(grid, yShift, doCells, tsMatVecs)
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -118,8 +125,11 @@ local dx = Lin.Vec(2)
 function _M.set_dx(gridIn)
    -- Set vector with cell lengths. This gets re-set in the outer loop of preCalcMat
    -- as well (no effect for uniform grids).
-   gridIn:setIndex({1,1})
-   gridIn:getDx(dx)
+   local idx, dxP, dim = {}, {}, gridIn:ndim()
+   for d = 1, dim do idx[d] = 1 end
+   gridIn:setIndex(idx)
+   gridIn:getDx(dxP)
+   for d = 1, 2 do dx[d] = dxP[d] end
 end
 
 -- Given a y-coordinate of the target cell (yTar), and a y-coordinate of the
@@ -210,7 +220,7 @@ end
 
 -- Given a logical space y coordinate, the donor and target cell centers, compute the
 -- corresponding logical space x (i.e. in [-1,1]). Requires inverting p2l((yTar+yShift(x))).
-local invertLogYshifted = function(ySlog, yTar, xcDoIn, xcTarIn, xLim, pickUpper)
+local yShiftedLogInv = function(ySlog, yTar, xcDoIn, xcTarIn, xLim, pickUpper)
    -- Invert the function p2l(y+yShifted(x)) via root finding. This function is passed to a projection
    -- operation, so that the resulting DG expansion is defined in a subcell of the donor cell.
    local function lossF(xlog)
@@ -342,10 +352,10 @@ local subCellInt_trapezoid = function(xLogBounds, yLogBounds, yTars, xIdxIn, xcD
    -- Functions describing the lower and upper limits in logical [-1,1] x-space.
    local xLogLims = {
       lo = function(t,xn)
-         return invertLogYshifted(xn[1], yTars.lo, xcDoIn, xcTarIn, xLogBounds.lo, pickUpper)
+         return yShiftedLogInv(xn[1], yTars.lo, xcDoIn, xcTarIn, xLogBounds.lo, pickUpper)
       end,                                                        
       up = function(t,xn)                                         
-         return invertLogYshifted(xn[1], yTars.up, xcDoIn, xcTarIn, xLogBounds.up, pickUpper)
+         return yShiftedLogInv(xn[1], yTars.up, xcDoIn, xcTarIn, xLogBounds.up, pickUpper)
       end
    }
    subCellInt_xLimDG(xLogLims, yLogBounds, xIdxIn, ycOff, yShPtrIn, tsMatVecsIn)
@@ -365,7 +375,7 @@ local subCellInt_xUpLimDG = function(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoI
    local ycOff    = doTarOff(xcDoIn, xcTarIn)
    local xLogLims = {lo = function(t,xn) return -1.0 end,
                      up = function(t,xn)
-                        return invertLogYshifted(xn[1], yTar, xcDoIn, xcTarIn, xLogBounds, pickUpper)
+                        return yShiftedLogInv(xn[1], yTar, xcDoIn, xcTarIn, xLogBounds, pickUpper)
                      end}
    subCellInt_xLimDG(xLogLims, yLogBounds, xIdxIn, ycOff, yShPtrIn, tsMatVecsIn)
 end
@@ -383,7 +393,7 @@ local subCellInt_xLoLimDG = function(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoI
    --   tsMatVecs:  pre-allocated matrices and vectors.
    local ycOff    = doTarOff(xcDoIn, xcTarIn)
    local xLogLims = {lo = function(t,xn)
-                        return invertLogYshifted(xn[1], yTar, xcDoIn, xcTarIn, xLogBounds, pickUpper)
+                        return yShiftedLogInv(xn[1], yTar, xcDoIn, xcTarIn, xLogBounds, pickUpper)
                      end,
                      up = function(t,xn) return 1.0 end}
    subCellInt_xLimDG(xLogLims, yLogBounds, xIdxIn, ycOff, yShPtrIn, tsMatVecsIn)
@@ -685,7 +695,7 @@ local subCellInt_sxiiiORsxiv = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, a
    -- Project x-limits of left subcell region to subtract.
    local xLogLimsL = {lo = function(t,xn) return -1.0 end,
                       up = function(t,xn)
-                         return invertLogYshifted(xn[1], yTarL, xcDoIn, xcTarIn, xLogBoundsL, atUpperYcell)
+                         return yShiftedLogInv(xn[1], yTarL, xcDoIn, xcTarIn, xLogBoundsL, atUpperYcell)
                       end}
    local dySubL, _ = dxAxc(yLogBoundsL)
    if (xLogBoundsL.up-xLogBoundsL.lo) > 1.e-14 and dySubL > 1.e-14 then
@@ -697,7 +707,7 @@ local subCellInt_sxiiiORsxiv = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, a
    end
    -- Project x-limits of right subcell region to subtract.
    local xLogLimsR = {lo = function(t,xn)
-                         return invertLogYshifted(xn[1], yTarR, xcDoIn, xcTarIn, xLogBoundsR, atUpperYcell)
+                         return yShiftedLogInv(xn[1], yTarR, xcDoIn, xcTarIn, xLogBoundsR, atUpperYcell)
                       end,
                       up = function(t,xn) return 1.0 end}
    local dySubR, _ = dxAxc(yLogBoundsR)
@@ -746,10 +756,11 @@ end
 
 
 function _M.getDonors(grid, yShift, yShBasis)
-   -- Identify the donor cells for each target cell.
-   --  grid:     grid object on which donor and target fields are defined.
-   --  yShift:   1D field with the y-shift.
-   --  yShBasis: 1D basis of yShift.
+   -- Identify the donor cells for each target cell. It only considers
+   -- a 2D plane and returns 2D indices.
+   --   grid:     grid object on which donor/target fields is defined.
+   --   yShift:   1D field with the y-shift.
+   --   yShBasis: 1D basis of yShift.
    local doCells = {}
    for i = 1, grid:numCells(1) do
       doCells[i] = {}
@@ -765,7 +776,7 @@ function _M.getDonors(grid, yShift, yShBasis)
    local deltaFrac = 1.e-9       -- Distance away from the boundary, as fraction of cell length.
    local numSteps  = {math.ceil(1./stepFrac[1]), math.ceil(1./stepFrac[2])}
 
-   local yShIndexer, yShPtr = yShift:genIndexer(), yShift:get(1)
+   local yShIndexer, yShItr = yShift:genIndexer(), yShift:get(1)
 
    local localRange = grid:localRange()
    local xyRangeDecomp = LinearDecomp.LinearDecompRange {
@@ -777,7 +788,12 @@ function _M.getDonors(grid, yShift, yShBasis)
 
    local cellLo, cellUp, evPoint = {0., 0.}, {0., 0.}, {0., 0.}
    local cellLim, stepSz, delta  = {{lo=0., up=0.}, {lo=0., up=0.}} , {0., 0.}, {0., 0.} 
-   local idxShifted, searchPoint, newP = {nil,nil}, {0., 0.}, {0., 0.}
+   local newP, newIdx            = {0., 0.}, {0, 0}
+   local idxShifted, searchPoint, idxP = {}, {}, {}
+   for d = 1, grid:ndim() do
+      idxShifted[d] = nil
+      idxP[d], searchPoint[d] = 1, grid:lower(d)+deltaFrac*grid:dx(d)
+   end
 
    for idx in xyRangeDecomp:rowMajorIter(tId) do
       grid:setIndex(idx)
@@ -790,7 +806,7 @@ function _M.getDonors(grid, yShift, yShBasis)
       stepSz  = {grid:dx(1)/numSteps[1], grid:dx(2)/numSteps[2]}
       delta   = {deltaFrac*grid:dx(1), deltaFrac*grid:dx(2)}
 
-      yShift:fill(yShIndexer(idx), yShPtr)
+      yShift:fill(yShIndexer(idx), yShItr)
 
       for dC = 1,2 do            -- Loop over y=const and x=const boundaries.
          for xS = 1,2 do         -- Loop over lower/upper boundary.
@@ -803,14 +819,16 @@ function _M.getDonors(grid, yShift, yShBasis)
             -- Evaluate yShift at this point.
             yShBasis:evalBasis({p2l(evPoint[1],grid:cellCenterInDir(1),grid:dx(1))}, yShBasisEv)
             local yShiftB = 0.
-            for k = 1,yShNumB do yShiftB = yShiftB + yShPtr[k]*yShBasisEv[k] end
+            for k = 1,yShNumB do yShiftB = yShiftB + yShItr[k]*yShBasisEv[k] end
 
             -- Find the index of the cell that owns the shifted point.
-            idxShifted     = {nil,nil}
-            searchPoint    = {evPoint[1], wrapNum(evPoint[2]+yShiftB,domLim[2],true)}
+            idxShifted[1], idxShifted[2]   = nil, nil
+            searchPoint[1], searchPoint[2] = evPoint[1], wrapNum(evPoint[2]+yShiftB,domLim[2],true)
             local chooseLo = (dC==2 and xS==2) and true or false
-            grid:findCell(searchPoint,idxShifted,chooseLo,{idx[1],nil})
-            if lume.findTable(doCellsC,idxShifted)==nil then table.insert(doCellsC,idxShifted) end
+            idxP[1], idxP[2] = idx[1], nil
+            grid:findCell(searchPoint,idxShifted,chooseLo,idxP)
+            newIdx = {idxShifted[1], idxShifted[2]}
+            if lume.findTable(doCellsC,newIdx)==nil then table.insert(doCellsC,newIdx) end
 
             -- Search other shifted points along this line.
             local stepDim = dC % 2+1
@@ -824,13 +842,15 @@ function _M.getDonors(grid, yShift, yShBasis)
                -- Evaluate yShift at this point.
                yShBasis:evalBasis({p2l(newP[1],grid:cellCenterInDir(1),grid:dx(1))}, yShBasisEv)
                local yShiftB = 0.
-               for k = 1,yShNumB do yShiftB = yShiftB + yShPtr[k]*yShBasisEv[k] end
+               for k = 1,yShNumB do yShiftB = yShiftB + yShItr[k]*yShBasisEv[k] end
 
                -- Find the index of the cell that owns the shifted point.
-               idxShifted  = {nil,nil}
-               searchPoint = {newP[1],wrapNum(newP[2]+yShiftB,domLim[2],true)}
-               grid:findCell(searchPoint,idxShifted,true,{idx[1],nil})
-               if lume.findTable(doCellsC,idxShifted)==nil then table.insert(doCellsC,idxShifted) end
+               idxShifted[1], idxShifted[2]   = nil, nil
+               searchPoint[1], searchPoint[2] = newP[1], wrapNum(newP[2]+yShiftB,domLim[2],true)
+               idxP[1], idxP[2] = idx[1], nil
+               grid:findCell(searchPoint,idxShifted,true,idxP)
+               newIdx = {idxShifted[1], idxShifted[2]}
+               if lume.findTable(doCellsC,newIdx)==nil then table.insert(doCellsC,newIdx) end
             end
 
          end
@@ -843,7 +863,9 @@ end
 
 function _M.matVec_alloc(yShift, doCells, basis)
    -- Allocate the (Eigen) matrices and vectors used when performing the twist-shift operation.
-   --  yShift: 1D field with the y-shift.
+   --   yShift:  1D field with the y-shift.
+   --   doCells: donor cell 2D indices.
+   --   basis:   basis of the donor/target field.
 
    local gridX = yShift:grid()
 
@@ -883,6 +905,12 @@ end
 function _M.preCalcMat(grid, yShift, doCells, tsMatVecs)
    -- Pre-calculate the matrices the multiply DG coefficients of each donor cell to obtain their
    -- contribution to each target cell. Based on weak equality between donor and target fields.
+   --   grid:      grid object on which donor/target fields is defined.
+   --   yShift:    1D field with the y-shift.
+   --   doCells:   donor cell 2D indices.
+   --   tsMatVecs: C struct with matrices and vectors.
+
+   local dim = grid:ndim()
 
    local localRange = grid:localRange()
 
@@ -891,23 +919,28 @@ function _M.preCalcMat(grid, yShift, doCells, tsMatVecs)
    local tId = grid:subGridSharedId() -- Local thread ID.
 
    local yIdxTar = 1   -- For positive(negative) yShift idx=1(last) might be better.
-   local idxTar  = Lin.IntVec(2)
-   idxTar[2] = yIdxTar
+   local idxTar, idxTarP, idxDoP = Lin.IntVec(2), Lin.IntVec(dim), Lin.IntVec(dim)
+   idxTar[2], idxTarP[2], idxDoP[2] = yIdxTar, yIdxTar, yIdxTar
+   for d=3,dim do idxTarP[d], idxDoP[d] = 1, 1 end   -- Use an arbitrary index for dirs > 2.
 
-   local xcDo, xcTar = Lin.Vec(2), Lin.Vec(2)
+   local xcDo, xcTar, xcP = Lin.Vec(2), Lin.Vec(2), Lin.Vec(dim)
 
    local yShIndexer, yShPtr = yShift:genIndexer(), yShift:get(1)
 
    local cellLimTar = {{lo=0., up=0.}, {lo=0., up=0.}}
    local cellLimDo  = {{lo=0., up=0.}, {lo=0., up=0.}}
    local interPts   = {loTar={loDo=nil, upDo=nil}, upTar={loDo=nil, upDo=nil}}
+   local dxP        = {}
 
    for xIdx in xRangeDecomp:rowMajorIter(tId) do
-      idxTar[1] = xIdx[1] 
+      idxTar[1], idxTarP[1] = xIdx[1], xIdx[1]
 
-      grid:setIndex(idxTar)
-      grid:cellCenter(xcTar)
-      grid:getDx(dx)
+      grid:setIndex(idxTarP)
+      grid:cellCenter(xcP)
+      grid:getDx(dxP)
+      for d = 1, 2 do
+         xcTar[d], dx[d] = xcP[d], dxP[d]
+      end
       
       cellLimTar = { {lo=grid:cellLowerInDir(1), up=grid:cellUpperInDir(1)},
                      {lo=grid:cellLowerInDir(2), up=grid:cellUpperInDir(2)} }
@@ -916,15 +949,17 @@ function _M.preCalcMat(grid, yShift, doCells, tsMatVecs)
 
       local doCellsC = doCells[idxTar[1]][idxTar[2]]
 
-      print("xIdx = ",xIdx[1])
+--      print("xIdx = ",xIdx[1])
 
       for iC = 1, #doCellsC do
 
          local idxDo = doCellsC[iC]
-         print("   from idxDo = ",idxDo[1],idxDo[2])
+--         print("   from idxDo = ",idxDo[1],idxDo[2])
+         idxDoP[1], idxDoP[2] = idxDo[1], idxDo[2]
 
-         grid:setIndex(idxDo)
-         grid:cellCenter(xcDo)
+         grid:setIndex(idxDoP)
+         grid:cellCenter(xcP)
+         for d = 1, 2 do xcDo[d] = xcP[d] end
 
          cellLimDo = { {lo=grid:cellLowerInDir(1), up=grid:cellUpperInDir(1)},
                        {lo=grid:cellLowerInDir(2), up=grid:cellUpperInDir(2)} }

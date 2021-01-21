@@ -44,6 +44,17 @@ extern "C" {
   void twistShift_fullCell2x2vSerP2_yShP2(const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew);
 
 
+  void twistShift_matVecMult3xSerP1(tsStruct *tsData, const int xIdx, const int matIdx, const double *fldDo, double *fldTar);
+  void twistShift_xLimDG3xSerP1_yShP1(const double sFac, const double *xLimLo, const double *xLimUp, const double yLimLo, const double yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew);
+  void twistShift_yLimDG3xSerP1_yShP1(const double sFac, const double xLimLo, const double xLimUp, const double *yLimLo, const double *yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew);
+  void twistShift_fullCell3xSerP1_yShP1(const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew);
+
+  void twistShift_matVecMult3xSerP2(tsStruct *tsData, const int xIdx, const int matIdx, const double *fldDo, double *fldTar);
+  void twistShift_xLimDG3xSerP2_yShP2(const double sFac, const double *xLimLo, const double *xLimUp, const double yLimLo, const double yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew);
+  void twistShift_yLimDG3xSerP2_yShP2(const double sFac, const double xLimLo, const double xLimUp, const double *yLimLo, const double *yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew);
+  void twistShift_fullCell3xSerP2_yShP2(const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew);
+
+
   void twistShift_matVecMult3x2vSerP1(tsStruct *tsData, const int xIdx, const int matIdx, const double *fldDo, double *fldTar);
   void twistShift_xLimDG3x2vSerP1_yShP1(const double sFac, const double *xLimLo, const double *xLimUp, const double yLimLo, const double yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew);
   void twistShift_yLimDG3x2vSerP1_yShP1(const double sFac, const double xLimLo, const double xLimUp, const double *yLimLo, const double *yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew);

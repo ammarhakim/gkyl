@@ -15,6 +15,9 @@ def build(bld):
 
     twistShiftData/TwistShiftAllocDel.cpp
     twistShiftData/TwistShiftSer2xP1.cpp
+    twistShiftData/TwistShiftSer3xP1.cpp
+    twistShiftData/TwistShiftSer2x2vP1.cpp
+    twistShiftData/TwistShiftSer3x2vP1.cpp
 
     momentCalcData/IntegratedDGMomentSer1x.cpp
     momentCalcData/IntegratedDGMomentSer2x.cpp

@@ -11,7 +11,9 @@
 --
 -- Notes:
 --    a] Need to figure out how to do this more accurately. In 2D p=1 the last
---       DG coefficient still seems wrong.
+--       DG coefficient still seems wrong. I now suspect that this is because I
+--       have not been projecting in the space of the shifted region, but rather
+--       in the space of the donor cell that overlaps with the shifted region.
 --    b] Need to experiment more and check robustness.
 --
 --    _______     ___
@@ -25,6 +27,9 @@ local Grid           = require "Grid"
 local Basis          = require "Basis"
 local DataStruct     = require "DataStruct"
 local EvOnNodesUpd   = require "Updater.EvalOnNodes"
+local Range          = require "Lib.Range"
+local Lin            = require "Lib.Linalg"
+local LinearDecomp   = require "Lib.LinearDecomp"
 
 local TwistShiftDecl = require "Updater.twistShiftData.TwistShiftModDecl"
 local tsFun          = require "Updater.twistShiftData.TwistShiftFun"
@@ -54,13 +59,17 @@ function TwistShift:init(tbl)
       tbl.basis, "Updater.TwistShift: Must provide the basis of the fields using 'basis'.")
 
    local confBasis = tbl.confBasis
-   local cDim, vDim
    if confBasis then
-      cDim = confBasis:ndim()
-      vDim = basis:ndim() - cDim
+      self.cDim = confBasis:ndim()
+      self.vDim = basis:ndim() - self.cDim
    else
-      cDim = basis:ndim()
-      vDim = 0
+      self.cDim, self.vDim = basis:ndim(), 0
+   end
+
+   if self.cDim == 3 then
+      self.zEdge = assert(
+         tbl.edge, "Updater.TwistShift: Must indicate which z-edge to compute (lower/upper) using 'edge'.")
+      assert(self.zEdge=="lower" or self.zEdge=="upper", "Updater.TwistShift: 'edge' must be lower or upper.")
    end
 
    local yShFunc = assert(
@@ -68,7 +77,7 @@ function TwistShift:init(tbl)
    local yShPolyOrder = assert(
       tbl.yShiftPolyOrder, "Updater.TwistShift: Must provide the polyOrder for projecting y-shift using 'yShiftPolyOrder'.")
 
-   -- Project the y-shift function onto a 1D grid/basis.
+   -- Project the y-shift function (of x) onto a 1D grid/basis.
    local yShGridIngr = self.grid:childGrid({1})
    local yShGrid = Grid.RectCart {
       lower = yShGridIngr.lower,
@@ -105,35 +114,110 @@ function TwistShift:init(tbl)
    self.matVec = tsFun.matVec_alloc(self.yShFld, self.doCells, basis)
 
    -- Select kernels that assign matrices and later, in the :_advance method, do mat-vec multiplies.
-   tsFun.selectTwistShiftKernels(cDim, vDim, basis:id(), basis:polyOrder(), yShPolyOrder)
+   tsFun.selectTwistShiftKernels(self.cDim, self.vDim, basis:id(), basis:polyOrder(), yShPolyOrder)
 
    -- Pre-compute matrices using weak equalities between donor and target fields.
    tsFun.preCalcMat(self.grid, self.yShFld, self.doCells, self.matVec)
 
-   self.tsMatVecMult = TwistShiftDecl.selectTwistShiftMatVecMult(cDim, vDim, basis:id(), basis:polyOrder())
+   self.tsMatVecMult = TwistShiftDecl.selectTwistShiftMatVecMult(self.cDim, self.vDim, basis:id(), basis:polyOrder())
+
+   self.idxDoP = Lin.IntVec(self.cDim+self.vDim)
+
+   self.isFirst = true   -- Will be reset the first time _advance() is called.
 
 end
 
 function TwistShift:_advance(tCurr, inFld, outFld)
    local fldDo, fldTar = inFld[1], outFld[1]
 
-   local localRange = fldTar:localRange()
+   local cDim, vDim = self.cDim, self.vDim
 
-   local indexer             = fldTar:genIndexer()
+   local oneFld = false
+   if fldDo==nil then
+      assert(cDim==3, "Updater.TwistShift: performing twist-shift to one field so it must be a 3D field (cDim=3).")
+      oneFld = true
+      fldDo  = outFld[1]
+   else
+      assert(cDim==2, "Updater.TwistShift: donor and target fields are separate, so they must be 2D fields (cDim=2).")
+   end
+
+   local indexer = fldTar:genIndexer()
    local fldDoItr, fldTarItr = fldDo:get(1), fldTar:get(1)
 
-   for idxTar in localRange:rowMajorIter() do
+   if oneFld then
 
-      fldTar:fill(indexer(idxTar), fldTarItr)
+      local global = fldTar:globalRange()
 
-      local doCellsC = self.doCells[idxTar[1]][idxTar[2]]
+      if self.isFirst then
+         local getGhostRange = function(globalIn, globalExtIn, dir, edge)
+            local lv, uv = globalIn:lowerAsVec(), globalIn:upperAsVec()
+            if edge == "lower" then
+               lv[dir] = globalIn:lower(dir)-1
+               uv[dir] = lv[dir]
+            else
+               lv[dir] = globalIn:upper(dir)+1
+               uv[dir] = lv[dir]
+            end
+            return Range.Range(lv, uv)
+         end
+         local globalExt     = fldTar:globalExtRange()
+         local localExtRange = fldTar:localExtRange()
+         self.ghostRng = localExtRange:intersect(getGhostRange(global, globalExt, 3, self.zEdge))
+         -- Decompose ghost region into threads.
+         self.ghostRangeDecomp = LinearDecomp.LinearDecompRange {
+            range = self.ghostRng, numSplit = self.grid:numSharedProcs() }
 
-      for mI = 1, #doCellsC do
+         self.isFirst = false
+      end
 
-         fldDo:fill(indexer(doCellsC[mI]), fldDoItr)
+      local tId = self.grid:subGridSharedId() -- Local thread ID.
 
-         -- Matrix-vec multiply to compute the contribution of each donor cell to a target cell..
-         self.tsMatVecMult(self.matVec, idxTar[1], mI, fldDoItr:data(), fldTarItr:data())
+      for idxTar in self.ghostRangeDecomp:rowMajorIter(tId) do
+
+         fldTar:fill(indexer(idxTar), fldTarItr)
+
+         local doCellsC = self.doCells[idxTar[1]][idxTar[2]]
+
+         idxTar:copyInto(self.idxDoP)
+         self.idxDoP[3] = self.zEdge=="lower" and global:upper(3) or global:lower(3)
+--         print("idxTar = ",idxTar[1],idxTar[2],idxTar[3],idxTar[4],idxTar[5])
+
+         for mI = 1, #doCellsC do
+
+            local idxDo2D = doCellsC[mI]
+            self.idxDoP[1], self.idxDoP[2] = idxDo2D[1], idxDo2D[2] 
+--            print("   from idxDo = ",self.idxDoP[1],self.idxDoP[2],self.idxDoP[3],self.idxDoP[4],self.idxDoP[5])
+
+            fldDo:fill(indexer(self.idxDoP), fldDoItr)
+
+            -- Matrix-vec multiply to compute the contribution of each donor cell to a target cell..
+            self.tsMatVecMult(self.matVec, idxTar[1], mI, fldDoItr:data(), fldTarItr:data())
+         end
+      end
+      
+   else   -- Only for 2D fields.
+      local localRange = fldTar:localRange()
+
+      for idxTar in localRange:rowMajorIter() do
+
+         fldTar:fill(indexer(idxTar), fldTarItr)
+
+         local doCellsC = self.doCells[idxTar[1]][idxTar[2]]
+
+         idxTar:copyInto(self.idxDoP)
+--         print("idxTar = ",idxTar[1],idxTar[2])
+
+         for mI = 1, #doCellsC do
+
+            local idxDo2D = doCellsC[mI]
+            self.idxDoP[1], self.idxDoP[2] = idxDo2D[1], idxDo2D[2] 
+--            print("   from idxDo = ",self.idxDoP[1],self.idxDoP[2])
+
+            fldDo:fill(indexer(self.idxDoP), fldDoItr)
+
+            -- Matrix-vec multiply to compute the contribution of each donor cell to a target cell..
+            self.tsMatVecMult(self.matVec, idxTar[1], mI, fldDoItr:data(), fldTarItr:data())
+         end
       end
    end
 

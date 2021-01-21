@@ -14,13 +14,18 @@ local Updater    = require "Updater"
 local SerendipityNodes     = require "Lib.SerendipityNodes"
 GKYL_EMBED_INP             = false
 
--- Create two fields on a 2D grid. Then interpolate one field onto the other
--- but with a shift in y that is a function of x (assuming periodicity in y).
+-- Create a field on a 3D grid. Then apply the twist-shift BC along z by
+-- taking the field in the last x-y plane, twist-shift it, and place it
+-- in the lower x-y ghost plane.
+
+local vt   = 1.0
+local mass = 1.0
+local B0   = 1.0
 
 local polyOrder       = 1
-local lower           = {-2.0, -1.50}
-local upper           = { 2.0,  1.50}
-local numCells        = {10, 10}
+local lower           = {-2.0, -1.50, -3.0, -5.0*vt, 0.}
+local upper           = { 2.0,  1.50,  3.0,  5.0*vt, mass*((5.0*vt)^2)/(2.0*B0)}
+local numCells        = {10, 10, 4, 4, 4}
 local periodicDirs    = {2}
 local yShiftPolyOrder = 1
 
@@ -55,16 +60,23 @@ local wrapNum = function (val, lims, pickUpper)
    end
 end
 
-local grid = Grid.RectCart {
+local phaseGrid = Grid.RectCart {
    lower        = lower,
    upper        = upper,
    cells        = numCells,
    periodicDirs = periodicDirs,
 }
-local basis = Basis.CartModalSerendipity { ndim = grid:ndim(), polyOrder = polyOrder }
-local fldDo        = createField(grid, basis)
-local fldDoShifted = createField(grid, basis)
-local fldTar       = createField(grid, basis)
+local confGrid = Grid.RectCart {
+   lower        = {lower[1],lower[2],lower[3]},
+   upper        = {upper[1],upper[2],upper[3]},
+   cells        = {numCells[1],numCells[2],numCells[3]},
+   periodicDirs = periodicDirs,
+}
+local phaseBasis = Basis.CartModalSerendipity { ndim = phaseGrid:ndim(), polyOrder = polyOrder }
+local confBasis  = Basis.CartModalSerendipity { ndim = confGrid:ndim(), polyOrder = polyOrder }
+local fldDo        = createField(phaseGrid, phaseBasis)
+local fldDoShifted = createField(phaseGrid, phaseBasis)
+local fldTar       = createField(phaseGrid, phaseBasis)
 
 -- Create a 1D grid and project the function that determines the shift.
 -- In flux-tube gyrokinetics this shift is a function of the magnetic
@@ -88,71 +100,90 @@ local yShiftFunc = function(t, xn)
                    end
 
 local project = Updater.ProjectOnBasis {
-   onGrid   = grid,
-   basis    = basis,
+   onGrid   = phaseGrid,
+   basis    = phaseBasis,
    evaluate = function(t, xn) return 1. end,
+   projectOnGhosts = true,
 }
 -- Donor field.
 local fldDoFunc = function(t, xn)
-   local x, y       = xn[1], xn[2]
+   local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
+   local vExp  = -(vpar^2 + 2.*math.abs(mu)*B0/mass)/(2.0*(vt^2))
+   local vFunc = (1./math.sqrt((2.*math.pi*(vt^2))^3)) * math.exp(vExp)
+
    local muX, muY   = 0., 0.
    local sigX, sigY = 0.3, 0.3
-   return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((y-muY)^2)/(2.*(sigY^2)))
---   return math.exp(-((y-muY)^2)/(2.*(sigY^2)))
---   return math.sin((2.*math.pi/3.)*y)
+   return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((y-muY)^2)/(2.*(sigY^2)))*vFunc
+--   return math.exp(-((y-muY)^2)/(2.*(sigY^2)))*vFunc
+--   return math.sin((2.*math.pi/3.)*y)*vFunc
 --   if y < 0. then
---      return 0.
+--      return 0.*vFunc
 --   else
---      return 1.
+--      return 1.*vFunc
 --   end
 end
 -- Shifted donor field.
 local fldDoShiftedFunc = function(t, xn)
-   local x, y       = xn[1], xn[2]
+   local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
+   local vExp  = -(vpar^2 + 2.*math.abs(mu)*B0/mass)/(2.0*(vt^2))
+   local vFunc = (1./math.sqrt((2.*math.pi*(vt^2))^3)) * math.exp(vExp)
+
    local muX, muY   = 0., 0.
    local sigX, sigY = 0.3, 0.3
-   return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((wrapNum(y+yShiftFunc(0,xn),{lo=grid:lower(2),up=grid:upper(2)},true)-muY)^2)/(2.*(sigY^2)))
---   return math.exp(-((wrapNum(y+yShiftFunc(0,xn),{lo=grid:lower(2),up=grid:upper(2)},true)-muY)^2)/(2.*(sigY^2)))
---   return math.sin((2.*math.pi/3.)*((wrapNum(y+yShiftFunc(0,xn),{lo=grid:lower(2),up=grid:upper(2)},true))))
---   if wrapNum(y+yShiftFunc(0,xn),{lo=grid:lower(2),up=grid:upper(2)},true) < 0. then
---      return 0.
+   return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((wrapNum(y+yShiftFunc(0,xn),{lo=phaseGrid:lower(2),up=phaseGrid:upper(2)},true)-muY)^2)/(2.*(sigY^2)))*vFunc
+--   return math.exp(-((wrapNum(y+yShiftFunc(0,xn),{lo=phaseGrid:lower(2),up=phaseGrid:upper(2)},true)-muY)^2)/(2.*(sigY^2)))*vFunc
+--   return math.sin((2.*math.pi/3.)*((wrapNum(y+yShiftFunc(0,xn),{lo=phaseGrid:lower(2),up=phaseGrid:upper(2)},true))))*vFunc
+--   if wrapNum(y+yShiftFunc(0,xn),{lo=phaseGrid:lower(2),up=phaseGrid:upper(2)},true) < 0. then
+--      return 0.*vFunc
 --   else
---      return 1.
+--      return 1.*vFunc
 --   end
 end
 
 -- Project donor field function onto basis.
 project:setFunc(function(t,xn) return fldDoFunc(t,xn) end)
 project:advance(0., {}, {fldDo})
-fldDo:write("fldDo.bp")
+fldDo:write("fldDo.bp", 0., 0, true)
 -- Project shifted donor field function onto basis.
 project:setFunc(function(t,xn) return fldDoShiftedFunc(t,xn) end)
 project:advance(0., {}, {fldDoShifted})
-fldDoShifted:write("fldDoShifted.bp")
+fldDoShifted:write("fldDoShifted.bp", 0., 0, true)
+
+-- Project the function in the target field but not in the ghost
+-- cells. Twist-shift will fill the ghost cells.
+local projectNoGhosts = Updater.ProjectOnBasis {
+   onGrid   = phaseGrid,
+   basis    = phaseBasis,
+   evaluate = function(t, xn) return 1. end,
+}
+projectNoGhosts:setFunc(function(t,xn) return fldDoFunc(t,xn) end)
+projectNoGhosts:advance(0., {}, {fldTar})
 
 local intQuant = Updater.CartFieldIntegratedQuantCalc {
-   onGrid        = grid,
-   basis         = basis,
+   onGrid        = phaseGrid,
+   basis         = phaseBasis,
    numComponents = 1,
    quantity      = "V",
 }
 local intFldDo = DataStruct.DynVector { numComponents = 1, }
 intQuant:advance(0., {fldDo}, {intFldDo})
-intFldDo:write("intFldDo.bp", 0., 0)
+intFldDo:write("intFldDo.bp",0., 0)
 
 local twistShiftUpd = Updater.TwistShift {
-   onGrid          = grid,
-   basis           = basis, 
+   onGrid          = phaseGrid,
+   basis           = phaseBasis, 
+   confBasis       = confBasis,
    yShiftFunc      = yShiftFunc, 
    yShiftPolyOrder = yShiftPolyOrder,
+   edge            = "lower",
 }
 
 local t1 = os.clock()
-twistShiftUpd:_advance(0., {fldDo}, {fldTar})
+twistShiftUpd:_advance(0., {}, {fldTar})
 local t2 = os.clock()
 io.write("Total test time: ", t2-t1, " s\n")
 
-fldTar:write("fldTar.bp")
+fldTar:write("fldTar.bp", 0., 0, true)
 
 local intFldTar = DataStruct.DynVector { numComponents = 1, }
 intQuant:advance(0., {fldTar}, {intFldTar})

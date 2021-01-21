@@ -71,7 +71,7 @@ calcTwistShiftOp_xLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   basis1D : basisC1D[polyOrder1D],  /* This need not use the same polyOrder as fldDo/fldTar. */
   numB1D  : length(basis1D),
 
-  /* Assume cdim=2 or cdim=3. */
+  /* Assume cdim=2 or cdim=3, and vdim=0 or vdim=2. */
   kill(varsC, varsP, basisC, basisP),
   if vdim=0 then (
     load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
@@ -222,7 +222,7 @@ calcTwistShiftOp_yLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   basis1D : basisC1D[polyOrder1D],  /* This need not use the same polyOrder as fldDo/fldTar. */
   numB1D  : length(basis1D),
 
-  /* Assume dim=2 or dim=3. */
+  /* Assume cdim=2 or cdim=3, and vdim=0 or vdim=2. */
   kill(varsC, varsP, basisC, basisP),
   if vdim=0 then (
     load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
@@ -370,7 +370,7 @@ calcTwistShiftOp_fullCell(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   basis1D : basisC1D[polyOrder1D],  /* This need not use the same polyOrder as fldDo/fldTar. */
   numB1D  : length(basis1D),
 
-  /* Assume cdim=2 or cdim=3. */
+  /* Assume cdim=2 or cdim=3, and vdim=0 or vdim=2. */
   kill(varsC, varsP, basisC, basisP),
   if vdim=0 then (
     load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),

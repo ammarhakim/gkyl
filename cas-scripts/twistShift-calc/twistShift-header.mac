@@ -10,7 +10,7 @@ bName        : ["Ser"]$
 VarsC : [X, Y, Z]$
 pVars : [X, Y, Z, VX, VY, VZ]$
 
-gkVdims : [[1,2], [0,2], [2]]$
+gkVdims : [[0,2], [0,2]]$
 
 printf(fh, "// -- Gkyl ---------------------------------------------------------------------~%")$
 printf(fh, "//~%")$
@@ -41,8 +41,8 @@ for bInd : 1 thru length(bName) do (
 
   for ci : 2 thru 3 do (
 
-    for gkV : 1 thru length(gkVdims[ci]) do (
-      vi : gkVdims[ci][gkV],
+    for gkV : 1 thru length(gkVdims[ci-1]) do (
+      vi : gkVdims[ci-1][gkV],
 
       maxPolyOrderB : polyOrderMax,
       if (ci+vi>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
