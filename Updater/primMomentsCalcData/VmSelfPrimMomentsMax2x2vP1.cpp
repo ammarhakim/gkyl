@@ -16,6 +16,10 @@ void VmSelfPrimMoments2x2vMax_P1(binOpData_t *data, const double *m0, const doub
   if (-0.5*(1.732050807568877*m0[2]-1.732050807568877*m0[1]-1.0*m0[0]) < 0) cellAvg = true; 
   if (0.5*(1.732050807568877*m0[2]-1.732050807568877*m0[1]+m0[0]) < 0) cellAvg = true; 
   if (0.5*(1.732050807568877*(m0[2]+m0[1])+m0[0]) < 0) cellAvg = true; 
+  if (-0.5*(1.732050807568877*(m2S[2]+m2S[1])-1.0*m2S[0]) < 0) cellAvg = true; 
+  if (-0.5*(1.732050807568877*m2S[2]-1.732050807568877*m2S[1]-1.0*m2S[0]) < 0) cellAvg = true; 
+  if (0.5*(1.732050807568877*m2S[2]-1.732050807568877*m2S[1]+m2S[0]) < 0) cellAvg = true; 
+  if (0.5*(1.732050807568877*(m2S[2]+m2S[1])+m2S[0]) < 0) cellAvg = true; 
  
   double m0r[3]; 
   double m1r[6]; 

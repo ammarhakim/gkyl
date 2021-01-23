@@ -63,8 +63,10 @@ for bInd : 1 thru length(bName) do (
           calcMaxwellianProjGauss(fh, funcName, cD, vD, bName[bInd], polyOrder, isGK)
         ),
 
-        close(fh),
+        close(fh)
+      ),
 
+      for polyOrder : 1 thru 2 do (
         /* Create a separate file for gyrokinetics in 3x2v. */
         if (cD = 3) then (
           disp(printf(false,sconcat("Creating MaxwellianOnBasis",bName[bInd]," ~ax~avP~a"),cD,2,polyOrder)),

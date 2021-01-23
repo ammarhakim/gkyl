@@ -419,6 +419,7 @@ def build(bld):
     maxwellianOnBasisData/MaxwellianOnBasisSer2x3vP1.cpp
     maxwellianOnBasisData/MaxwellianOnBasisSer2x3vP2.cpp
     maxwellianOnBasisData/MaxwellianOnBasisSer3x2vP1.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisSer3x2vP2.cpp
     maxwellianOnBasisData/MaxwellianOnBasisSer3x3vP1.cpp
     maxwellianOnBasisData/MaxwellianOnBasisMax1x1vP1.cpp
     maxwellianOnBasisData/MaxwellianOnBasisMax1x1vP2.cpp
