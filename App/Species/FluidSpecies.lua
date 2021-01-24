@@ -396,7 +396,9 @@ function FluidSpecies:alloc(nRkDup)
       method   = self.ioMethod,
       metaData = {
          polyOrder = self.basis:polyOrder(),
-         basisType = self.basis:id()
+         basisType = self.basis:id(),
+         charge = self.charge,
+         mass = self.mass,
       },
    }
    self.couplingMoments   = self:allocVectorMoment(self.nMoments)

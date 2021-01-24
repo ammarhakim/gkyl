@@ -236,7 +236,9 @@ function MaxwellField:alloc(nRkDup)
       method   = self.ioMethod,
       metaData = {
          polyOrder = self.basis:polyOrder(),
-         basisType = self.basis:id()
+         basisType = self.basis:id(),
+         epsilon0 = self.epsilon0,
+         mu0 = self.mu0,
       },
    }
 end
@@ -788,7 +790,9 @@ function ExternalMaxwellField:alloc(nField)
       method   = self.ioMethod,
       metaData = {
          polyOrder = self.basis:polyOrder(),
-         basisType = self.basis:id()
+         basisType = self.basis:id(),
+         epsilon0 = self.epsilon0,
+         mu0 = self.mu0,
       },
    }   
 end

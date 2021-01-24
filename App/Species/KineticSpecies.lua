@@ -406,7 +406,9 @@ function KineticSpecies:createBasis(nm, polyOrder)
       local metaData = {
          polyOrder = self.basis:polyOrder(),
          basisType = self.basis:id(),
-         grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
+         charge = self.charge,
+         mass = self.mass,
+         grid = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
       }
       self.grid:write("grid_" .. self.name .. ".bp", 0.0, metaData)
    end
@@ -417,10 +419,12 @@ function KineticSpecies:allocDistf()
 	onGrid        = self.grid,
 	numComponents = self.basis:numBasis(),
 	ghost         = {1, 1},
-        metaData = {
-           polyOrder = self.basis:polyOrder(),
-           basisType = self.basis:id()
-        },
+   metaData = {
+      polyOrder = self.basis:polyOrder(),
+      basisType = self.basis:id(),
+      charge = self.charge,
+      mass = self.mass,
+   },
    }
    f:clear(0.0)
    return f
@@ -430,10 +434,12 @@ function KineticSpecies:allocMoment()
 	onGrid        = self.confGrid,
 	numComponents = self.confBasis:numBasis(),
 	ghost         = {1, 1},
-        metaData = {
-           polyOrder = self.basis:polyOrder(),
-           basisType = self.basis:id()
-        },
+   metaData = {
+      polyOrder = self.basis:polyOrder(),
+      basisType = self.basis:id(),
+      charge = self.charge,
+      mass = self.mass,
+   },
    }
    m:clear(0.0)
    return m
@@ -443,10 +449,12 @@ function KineticSpecies:allocVectorMoment(dim)
 	onGrid        = self.confGrid,
 	numComponents = self.confBasis:numBasis()*dim,
 	ghost         = {1, 1},
-        metaData = {
-           polyOrder = self.basis:polyOrder(),
-           basisType = self.basis:id()
-        },
+   metaData = {
+      polyOrder = self.basis:polyOrder(),
+      basisType = self.basis:id(),
+      charge = self.charge,
+      mass = self.mass,
+   },
    }
    m:clear(0.0)
    return m
@@ -551,13 +559,15 @@ function KineticSpecies:alloc(nRkDup)
 
    -- Create Adios object for field I/O.
    self.distIo = AdiosCartFieldIo {
-      elemType   = self.distf[1]:elemType(),
-      method     = self.ioMethod,
+      elemType = self.distf[1]:elemType(),
+      method = self.ioMethod,
       writeGhost = self.writeGhost,
-      metaData   = {
-	 polyOrder = self.basis:polyOrder(),
-	 basisType = self.basis:id(),
-         grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
+      metaData = {
+         polyOrder = self.basis:polyOrder(),
+         basisType = self.basis:id(),
+         charge = self.charge,
+         mass = self.mass,    
+         grid = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
       },
    }
 

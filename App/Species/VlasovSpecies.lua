@@ -939,7 +939,9 @@ function VlasovSpecies:createDiagnostics()
                ghost         = {1, 1},
                metaData = {
                   polyOrder = self.basis:polyOrder(),
-                  basisType = self.basis:id()
+                  basisType = self.basis:id(),
+                  charge = self.charge,
+                  mass = self.mass,
                },
             }
             self.diagnosticMomentUpdaters[mom..label] = Updater.DistFuncMomentCalc {
@@ -960,7 +962,9 @@ function VlasovSpecies:createDiagnostics()
             ghost         = {1, 1},
             metaData = {
                polyOrder = self.basis:polyOrder(),
-               basisType = self.basis:id()
+               basisType = self.basis:id(),
+               charge = self.charge,
+               mass = self.mass,
             },	    	    
          }
 
@@ -1186,8 +1190,10 @@ function VlasovSpecies:calcExternalBC()
       onGrid = grid,
       numComponents = self.basis:numBasis()*self.basis:numBasis(),
       metaData = {
-	 polyOrder = self.basis:polyOrder(),
-	 basisType = self.basis:id(),
+         polyOrder = self.basis:polyOrder(),
+         basisType = self.basis:id(),
+         charge = self.charge,
+         mass = self.mass,
       },
    }
    -- Calculate Bronold and Fehske reflection function coefficients
