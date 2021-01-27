@@ -118,10 +118,8 @@ local function buildApplication(self, tbl)
    local stepperNumFields = { rk1 = 3, rk2 = 3, rk3 = 3, rk3s4 = 4, fvDimSplit = 3 }
 
    -- Tracker for timestep
-   local dtTracker = DataStruct.DynVector {
-      numComponents = 1,
-   }
-   local dtPtr = Lin.Vec(1)
+   local dtTracker = DataStruct.DynVector { numComponents = 1, }
+   local dtPtr     = Lin.Vec(1)
 
    -- Parallel decomposition stuff.
    local useShared = xsys.pickBool(tbl.useShared, false)   
@@ -392,10 +390,7 @@ local function buildApplication(self, tbl)
    end
 
    -- Function to take a single forward-euler time-step.
-   local function forwardEuler(tCurr, dt, inIdx, outIdx)
-      local calcCflFlag = false
-      local dtSuggested
-      if dt == nil then calcCflFlag = true end
+   local function forwardEuler(tCurr, dt, inIdx, outIdx, stat)
       field:clearCFL()
       for nm, s in pairs(species) do
          s:clearCFL()
@@ -439,33 +434,32 @@ local function buildApplication(self, tbl)
          end
       end
 
-      if calcCflFlag then
-         dtSuggested = tbl.tEnd - tCurr + 1e-20
-         if tbl.maximumDt then dtSuggested = math.min(dtSuggested, tbl.maximumDt) end
-         
-         -- get suggested dt from each field and species
-         dtSuggested = math.min(dtSuggested, field:suggestDt())
-         for nm, s in pairs(species) do
-            dtSuggested = math.min(dtSuggested, s:suggestDt())
-         end
-         
-         -- after deciding global dt, tell species
-         for nm, s in pairs(species) do
-            s:setDtGlobal(dtSuggested)
-         end
-      else 
-         dtSuggested = dt -- From argument list.
-         -- If calcCflFlag not being used, need to barrier before doing the RK combine.
-         -- When running with calcCflFlag, an all-reduce is done on the time-step to find
-         -- the smallest time step, giving us an implicit barrier before we combine RK steps.
-         Mpi.Barrier(self._confGrid:commSet().sharedComm)
-      end
+      local dtMin = dt
+      -- Get suggested dt from each field and species.
+      dtMin = math.min(dtMin, field:suggestDt())
+      for nm, s in pairs(species) do dtMin = math.min(dtMin, s:suggestDt()) end
+
+      local dt_maxRelDiff = 0.01
+      -- Check if dtMin is slightly smaller than dt. Use dt if it is
+      -- (avoids retaking steps if dt changes are very small).
+      local dt_relDiff = (dt-dtMin)/dt
+      if (dt_relDiff > 0 and dt_relDiff < dt_maxRelDiff) then dtMin = dt end
+
+      -- Don't take a time-step larger that input dt.
+      stat.dt_actual    = dt < dtMin and dt or dtMin
+      stat.dt_suggested = dtMin
+
+      stat.dt_actual = math.min(stat.dt_actual, tbl.tEnd - tCurr + 1e-20)
+      if tbl.maximumDt then stat.dt_actual = math.min(stat.dt_actual, tbl.maximumDt) end
+      
+      -- After deciding global dt, tell species.
+      for nm, s in pairs(species) do s:setDtGlobal(stat.dt_actual) end
       -- Take forward Euler step in fields and species
       -- NOTE: order of these arguments matters... outIdx must come before inIdx.
-      combine(outIdx, dtSuggested, outIdx, 1.0, inIdx)
+      combine(outIdx, stat.dt_actual, outIdx, 1.0, inIdx)
       applyBc(tCurr, outIdx, calcCflFlag)
 
-      return dtSuggested
+      return stat 
    end
 
    -- Various time-steppers. See gkyl docs for formulas for various
@@ -473,6 +467,9 @@ local function buildApplication(self, tbl)
    -- http://gkyl.readthedocs.io/en/latest/dev/ssp-rk.html
    local timeSteppers = {}
    local stepperTime = 0.0
+   local RK_STAGE_1,RK_STAGE_2,RK_STAGE_3,RK_COMPLETE
+
+   local stepStatus = {status = nil, dt_actual = 0., dt_suggested = 0., isInv=true} -- Stepper status.
 
    -- Function to advance solution using RK1 scheme (UNSTABLE! Only for testing).
    function timeSteppers.rk1(tCurr)
@@ -501,24 +498,55 @@ local function buildApplication(self, tbl)
    end
 
    -- Function to advance solution using SSP-RK3 scheme.
-   function timeSteppers.rk3(tCurr)
-      -- RK stage 1.
-      local dt = forwardEuler(tCurr, nil, 1, 2)
+   function timeSteppers.rk3(tCurr, dt0, stepStat0)
+      RK_STAGE_1  = RK_STAGE_1 or 1
+      RK_STAGE_2  = RK_STAGE_2 or 2
+      RK_STAGE_3  = RK_STAGE_3 or 3
+      RK_COMPLETE = RK_COMPLETE or -1
 
-      -- RK stage 2.
-      forwardEuler(tCurr+dt, dt, 2, 3)
-      local tm = Time.clock()
-      combine(2, 3.0/4.0, 1, 1.0/4.0, 3)
-      stepperTime = stepperTime + (Time.clock() - tm)
+      local rkState = RK_STAGE_1
 
-      -- RK stage 3.
-      forwardEuler(tCurr+dt/2, dt, 2, 3)
-      tm = Time.clock()
-      combine(2, 1.0/3.0, 1, 2.0/3.0, 3)
-      copy(1, 2)
-      stepperTime = stepperTime + (Time.clock() - tm)
+      local dt, stat = dt0, stepStat0
+      stat.status = true
 
-      return true, dt
+      timeSteppers.stages = timeSteppers.stages or {
+         [RK_STAGE_1] = function()
+            stat = forwardEuler(tCurr, dt, 1, 2, stat)
+            dt, nextState = stat.dt_actual, RK_STAGE_2
+            return nextState
+         end,
+         [RK_STAGE_2] = function()
+            stat = forwardEuler(tCurr+dt, dt, 2, 3, stat)
+            if stat.dt_actual < dt then
+               dt, nextState = stat.dt_actual, RK_STAGE_1
+            else
+               local tm = Time.clock()
+               combine(2, 3.0/4.0, 1, 1.0/4.0, 3)
+               stepperTime = stepperTime + (Time.clock() - tm)
+               nextState = RK_STAGE_3
+            end
+            return nextState
+         end,
+         [RK_STAGE_3] = function()
+            stat = forwardEuler(tCurr+dt/2, dt, 2, 3, stat)
+            if stat.dt_actual < dt then
+               dt, nextState = stat.dt_actual, RK_STAGE_1
+            else
+               local tm = Time.clock()
+               combine(2, 1.0/3.0, 1, 2.0/3.0, 3)
+               stepperTime = stepperTime + (Time.clock() - tm)
+               copy(1, 2)
+               nextState = RK_COMPLETE
+            end
+            return nextState
+         end,
+      }
+
+      while rkState ~= RK_COMPLETE do
+         rkState = timeSteppers.stages[rkState]()
+      end
+
+      return stat
    end
 
    -- Function to advance solution using 4-stage SSP-RK3 scheme.
@@ -618,7 +646,7 @@ local function buildApplication(self, tbl)
       local isInv = true
       for d = 1, cdim do
 	 local myStatus, myDtSuggested, myTryInv = updateInDirection(d, tCurr, dt, tryInv)
-	 status =  status and myStatus
+	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
 	 if not status then
 	    log(" ** Time step too large! Aborting this step!")
@@ -670,6 +698,12 @@ local function buildApplication(self, tbl)
       return status, dtSuggested, isInv
    end
 
+   -- For the fvDimSplit updater, tryInv contains indicators for each species
+   -- whether the domain-invariant equation should be used in the next step;
+   -- they might be changed during fvDimSplit calls.
+   local tryInv = {}
+   for _, s in pairs(species) do tryInv[s] = false end
+
    local tmEnd = Time.clock()
    log(string.format("Initialization completed in %g sec\n\n", tmEnd-tmStart))
 
@@ -685,11 +719,11 @@ local function buildApplication(self, tbl)
       -- Sanity check: don't run if not needed.
       if tStart >= tEnd then return end
 
-      local maxDt = tbl.maximumDt and tbl.maximumDt or tEnd-tStart -- max time-step
-      local initDt =  tbl.suggestedDt and tbl.suggestedDt or maxDt -- initial time-step
-      local step = 1
-      local tCurr = tStart
-      local myDt = initDt
+      local dt_max  = tbl.maximumDt and tbl.maximumDt or tEnd-tStart -- max time-step
+      local dt_init = tbl.suggestedDt and tbl.suggestedDt or dt_max -- initial time-step
+      local step    = 1
+      local tCurr   = tStart
+      local dt_next = dt_init
 
       -- Triggers for 10% and 1% loggers.
       local logTrigger = LinearTrigger(0, tEnd, 10)
@@ -722,7 +756,7 @@ local function buildApplication(self, tbl)
 	 if logTrigger(tCurr) then
 	    if logCount > 0 then
 	       log (string.format(
-		       " Step %5d at time %g. Time step %g. Completed %g%s\n", step, tCurr, myDt, tenth*10, "%"))
+		       " Step %5d at time %g. Time step %g. Completed %g%s\n", step, tCurr, dt_next, tenth*10, "%"))
 	    else
 	       logCount = logCount+1
 	    end
@@ -740,80 +774,65 @@ local function buildApplication(self, tbl)
       local irestart = 0
       local stopfile = GKYL_OUT_PREFIX .. ".stop"
 
-      -- For the fvDimSplit updater, tryInv contains for indicators for each
-      -- species whether the domain-invariant equation should be used in the
-      -- next step; they might be changed during fvDimSplit calls.
-      local tryInv = {}
-      for _, s in pairs(species) do
-         tryInv[s] = false
-      end
-      local isInv = true
       -- Main simulation loop.
       while true do
 	 -- Call time-stepper.
-         local status, dtSuggested
-         if timeStepperNm == "fvDimSplit" then
-	    status, dtSuggested, isInv = timeSteppers[timeStepperNm](tCurr, myDt, tryInv)
-         else
-            status, myDt = timeSteppers[timeStepperNm](tCurr)
-            dtSuggested = myDt
-         end
+	 stepStatus = timeSteppers[timeStepperNm](tCurr, dt_next, stepStatus)
     
          -- If stopfile exists, break.
          if (file_exists(stopfile)) then
-            writeData(tCurr+myDt, true)
-            writeRestart(tCurr+myDt)
+            writeData(tCurr+stepStatus.dt_actual, true)
+            writeRestart(tCurr+stepStatus.dt_actual)
             break
          end
 
          -- Abort simulation if the suggested timestep is 0, which means there are likely NaNs.
          -- Don't write anything.
-         if (myDt == 0.0) then
+         if (stepStatus.dt_suggested == 0.0) then
             log(string.format(" ERROR: dt is zero, there are likely NaNs. Terminating without writing files."))
             break
          end
 
 	 -- Check status and determine what to do next.
-	 if status and isInv then
+	 if stepStatus.status and stepStatus.isInv then
+            dt_next = stepStatus.dt_suggested
             if first then 
-               log(string.format(" Step 0 at time %g. Time step %g. Completed 0%%\n", tCurr, myDt))
-               initDt = math.min(maxDt, dtSuggested); first = false
+               log(string.format(" Step 0 at time %g. Time step %g. Completed 0%%\n", tCurr, stepStatus.dt_actual))
+               dt_init = math.min(dt_max, dtSuggested); first = false
             end
+	    tCurr = tCurr + stepStatus.dt_actual
             -- Track dt.
-            dtPtr:data()[0] = myDt
-            dtTracker:appendData(tCurr+myDt, dtPtr)
+            dtPtr:data()[0] = stepStatus.dt_actual
+            dtTracker:appendData(tCurr, dtPtr)
             -- Write log
-	    writeLogMessage(tCurr+myDt)
+	    writeLogMessage(tCurr)
 	    -- We must write data first before calling writeRestart in
 	    -- order not to mess up numbering of frames on a restart.
-	    writeData(tCurr+myDt)
-	    if checkWriteRestart(tCurr+myDt) then
-	       writeRestart(tCurr+myDt)
-               dtTracker:write(string.format("dt.bp"), tCurr+myDt, irestart)
+	    writeData(tCurr)
+	    if checkWriteRestart(tCurr) then
+	       writeRestart(tCurr)
+               dtTracker:write(string.format("dt.bp"), tCurr, irestart)
                irestart = irestart + 1
 	    end	    
 	    
-	    tCurr = tCurr + myDt
-	    myDt = math.min(dtSuggested, maxDt)
+	    dt_next = math.min(stepStatus.dt_suggested, dt_max)
 	    step = step + 1
-	    if (tCurr >= tEnd) then
-	       break
-	    end
-	 elseif not status then
-	    log (string.format(" ** Time step %g too large! Will retake with dt %g\n", myDt, dtSuggested))
-	    myDt = dtSuggested
-	 elseif not isInv then
-	    log (string.format(" ** Invalid values detected! Will retake with dt %g\n", dtSuggested))
-	    myDt = dtSuggested
+	    if (tCurr >= tEnd) then break end
+	 elseif not stepStatus.status then
+	    log (string.format(" ** Time step %g too large! Will retake with dt %g\n", dt_next, stepStatus.dt_suggested))
+	    dt_next = stepStatus.dt_suggested
+	 elseif not stepStatus.isInv then
+	    log (string.format(" ** Invalid values detected! Will retake with dt %g\n", stepStatus.dt_suggested))
+	    dt_next = stepStatus.dt_suggested
 	 end
 
-         if (myDt < 1e-4*initDt) then 
+         if (dt_next < 1e-4*dt_init) then 
             failcount = failcount + 1
-            log(string.format("WARNING: Timestep dt = %g is below 1e-4*initDt. Fail counter = %d...\n", myDt, failcount))
+            log(string.format("WARNING: Timestep dt = %g is below 1e-4*dt_init. Fail counter = %d...\n", dt_next, failcount))
             if failcount > 20 then
-               writeData(tCurr+myDt, true)
-               dtTracker:write(string.format("dt.bp"), tCurr+myDt)
-               log(string.format("ERROR: Timestep below 1e-4*initDt for 20 consecutive steps. Exiting...\n"))
+               writeData(tCurr+stepStatus.dt_actual, true)
+               dtTracker:write(string.format("dt.bp"), tCurr+stepStatus.dt_actual)
+               log(string.format("ERROR: Timestep below 1e-4*dt_init for 20 consecutive steps. Exiting...\n"))
                break
             end
          else
