@@ -391,6 +391,8 @@ local function buildApplication(self, tbl)
 
    -- Function to take a single forward-euler time-step.
    local function forwardEuler(tCurr, dt, inIdx, outIdx, stat)
+      stat.nFwdEuler = stat.nFwdEuler + 1
+
       field:clearCFL()
       for nm, s in pairs(species) do
          s:clearCFL()
@@ -469,7 +471,17 @@ local function buildApplication(self, tbl)
    local stepperTime = 0.0
    local RK_STAGE_1,RK_STAGE_2,RK_STAGE_3,RK_COMPLETE
 
-   local stepStatus = {status = nil, dt_actual = 0., dt_suggested = 0., isInv=true} -- Stepper status.
+   local stepStatus = { -- Stepper status.
+      status       = nil,
+      dt_actual    = 0.,
+      dt_suggested = 0.,
+      step         = 0,
+      isInv        = true,
+      -- For diagnostics:
+      nFwdEuler    = 0,
+      nFail        = {0, 0, 0},
+      dtDiff       = {{GKYL_MAX_DOUBLE, 0.},{GKYL_MAX_DOUBLE, 0.},{GKYL_MAX_DOUBLE, 0.}},
+   }
 
    -- Function to advance solution using RK1 scheme (UNSTABLE! Only for testing).
    function timeSteppers.rk1(tCurr)
@@ -518,6 +530,12 @@ local function buildApplication(self, tbl)
          [RK_STAGE_2] = function()
             stat = forwardEuler(tCurr+dt, dt, 2, 3, stat)
             if stat.dt_actual < dt then
+               -- Diagnostics.
+               local dt_relDiff  = (dt-stat.dt_actual)/stat.dt_actual
+               stat.dtDiff[2][1] = math.min(stat.dtDiff[2][1], dt_relDiff)
+               stat.dtDiff[2][2] = math.max(stat.dtDiff[2][2], dt_relDiff)
+               stat.nFail[2]     = stat.nFail[2] + 1
+
                dt, nextState = stat.dt_actual, RK_STAGE_1
             else
                local tm = Time.clock()
@@ -530,6 +548,12 @@ local function buildApplication(self, tbl)
          [RK_STAGE_3] = function()
             stat = forwardEuler(tCurr+dt/2, dt, 2, 3, stat)
             if stat.dt_actual < dt then
+               -- Diagnostics.
+               local dt_relDiff  = (dt-stat.dt_actual)/stat.dt_actual
+               stat.dtDiff[3][1] = math.min(stat.dtDiff[3][1], dt_relDiff)
+               stat.dtDiff[3][2] = math.max(stat.dtDiff[3][2], dt_relDiff)
+               stat.nFail[3]     = stat.nFail[3] + 1
+
                dt, nextState = stat.dt_actual, RK_STAGE_1
             else
                local tm = Time.clock()
@@ -721,9 +745,9 @@ local function buildApplication(self, tbl)
 
       local dt_max  = tbl.maximumDt and tbl.maximumDt or tEnd-tStart -- max time-step
       local dt_init = tbl.suggestedDt and tbl.suggestedDt or dt_max -- initial time-step
-      local step    = 1
       local tCurr   = tStart
       local dt_next = dt_init
+      stepStatus.step = 1
 
       -- Triggers for 10% and 1% loggers.
       local logTrigger = LinearTrigger(0, tEnd, 10)
@@ -756,7 +780,7 @@ local function buildApplication(self, tbl)
 	 if logTrigger(tCurr) then
 	    if logCount > 0 then
 	       log (string.format(
-		       " Step %5d at time %g. Time step %g. Completed %g%s\n", step, tCurr, dt_next, tenth*10, "%"))
+		       " Step %5d at time %g. Time step %g. Completed %g%s\n", stepStatus.step, tCurr, dt_next, tenth*10, "%"))
 	    else
 	       logCount = logCount+1
 	    end
@@ -816,7 +840,7 @@ local function buildApplication(self, tbl)
 	    end	    
 	    
 	    dt_next = math.min(stepStatus.dt_suggested, dt_max)
-	    step = step + 1
+	    stepStatus.step = stepStatus.step + 1
 	    if (tCurr >= tEnd) then break end
 	 elseif not stepStatus.status then
 	    log (string.format(" ** Time step %g too large! Will retake with dt %g\n", dt_next, stepStatus.dt_suggested))
@@ -868,70 +892,80 @@ local function buildApplication(self, tbl)
 
       local tmTotal = tmSimEnd-tmSimStart
       local tmAccounted = 0.0
-      log(string.format("\nTotal number of time-steps %s\n", step))
+      log(string.format("\nTotal number of time-steps %s\n", stepStatus.step))
+      log("")
+      log(string.format("   Number of forward-Euler calls %s\n", stepStatus.nFwdEuler))
+      for stI = 2, 3 do
+         log(string.format("   Number of RK stage-"..stI.." failures %s\n", stepStatus.nFail[stI]))
+         if stepStatus.nFail[stI] > 0 then
+            log(string.format("     Min rel dt diff for RK stage-"..stI.." failures %s\n", stepStatus.dtDiff[stI][1]))
+            log(string.format("     Max rel dt diff for RK stage-"..stI.." failures %s\n", stepStatus.dtDiff[stI][2]))
+         end
+      end
+      log("")
       --log(string.format(
 	--     "Number of barriers %d barriers (%g barriers/step)\n\n",
-	--     Mpi.getNumBarriers(), Mpi.getNumBarriers()/step))
+	--     Mpi.getNumBarriers(), Mpi.getNumBarriers()/stepStatus.step))
       
       log(string.format(
 	     "Solver took				%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
-	     tmSlvr, tmSlvr/step, 100*tmSlvr/tmTotal))
+	     tmSlvr, tmSlvr/stepStatus.step, 100*tmSlvr/tmTotal))
       tmAccounted = tmAccounted + tmSlvr
       log(string.format(
 	     "Solver BCs took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
-	     tmBc, tmBc/step, 100*tmBc/tmTotal))
+	     tmBc, tmBc/stepStatus.step, 100*tmBc/tmTotal))
       tmAccounted = tmAccounted + tmBc
       log(string.format(
 	     "Field solver took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
-	     field:totalSolverTime(), field:totalSolverTime()/step, 100*field:totalSolverTime()/tmTotal))
+	     field:totalSolverTime(), field:totalSolverTime()/stepStatus.step, 100*field:totalSolverTime()/tmTotal))
       tmAccounted = tmAccounted + field:totalSolverTime()
       log(string.format(
 	     "Field solver BCs took			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
-	     field:totalBcTime(), field:totalBcTime()/step, 100*field:totalBcTime()/tmTotal))
+	     field:totalBcTime(), field:totalBcTime()/stepStatus.step, 100*field:totalBcTime()/tmTotal))
       tmAccounted = tmAccounted + field:totalBcTime()
       log(string.format(
 	     "Function field solver took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
-	     externalField:totalSolverTime(), externalField:totalSolverTime()/step, 100*externalField:totalSolverTime()/tmTotal))
+	     externalField:totalSolverTime(), externalField:totalSolverTime()/stepStatus.step, 100*externalField:totalSolverTime()/tmTotal))
       tmAccounted = tmAccounted + externalField:totalSolverTime()
       log(string.format(
 	     "Moment calculations took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
-	     tmMom, tmMom/step, 100*tmMom/tmTotal))
+	     tmMom, tmMom/stepStatus.step, 100*tmMom/tmTotal))
       tmAccounted = tmAccounted + tmMom
       log(string.format(
 	     "Integrated moment calculations took	%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
-	     tmIntMom, tmIntMom/step, 100*tmIntMom/tmTotal))
+	     tmIntMom, tmIntMom/stepStatus.step, 100*tmIntMom/tmTotal))
       tmAccounted = tmAccounted + tmIntMom
       log(string.format(
 	     "Field energy calculations took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
-	     field:energyCalcTime(), field:energyCalcTime()/step, 100*field:energyCalcTime()/tmTotal))
+	     field:energyCalcTime(), field:energyCalcTime()/stepStatus.step, 100*field:energyCalcTime()/tmTotal))
       tmAccounted = tmAccounted + field:energyCalcTime()
       log(string.format(
 	     "Collision solver(s) took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
-	     tmColl, tmColl/step, 100*tmColl/tmTotal))
+	     tmColl, tmColl/stepStatus.step, 100*tmColl/tmTotal))
       tmAccounted = tmAccounted + tmColl
       log(string.format(
 	     "Collision moments(s) took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
-	     tmCollMom, tmCollMom/step, 100*tmCollMom/tmTotal))
+	     tmCollMom, tmCollMom/stepStatus.step, 100*tmCollMom/tmTotal))
       tmAccounted = tmAccounted + tmCollMom
       log(string.format(
 	     "Source updaters took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
-	     tmSrc, tmSrc/step, 100*tmSrc/tmTotal))
+	     tmSrc, tmSrc/stepStatus.step, 100*tmSrc/tmTotal))
       tmAccounted = tmAccounted + tmSrc
       log(string.format(
 	     "Stepper combine/copy took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
-	     stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
+	     stepperTime, stepperTime/stepStatus.step, 100*stepperTime/tmTotal))
       log(string.format(
       	     "Time spent in barrier function		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
-      	     Mpi.getTimeBarriers(), Mpi.getTimeBarriers()/step, 100*Mpi.getTimeBarriers()/tmTotal))      
+      	     Mpi.getTimeBarriers(), Mpi.getTimeBarriers()/stepStatus.step, 100*Mpi.getTimeBarriers()/tmTotal))      
       tmAccounted = tmAccounted + stepperTime
       tmUnaccounted = tmTotal - tmAccounted
       log(string.format(
 	     "[Unaccounted for]			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n\n",
-	     tmUnaccounted, tmUnaccounted/step, 100*tmUnaccounted/tmTotal))
+	     tmUnaccounted, tmUnaccounted/stepStatus.step, 100*tmUnaccounted/tmTotal))
       
       log(string.format(
 	     "Main loop completed in			%9.5f sec   (%7.6f s/step)   (%6.f%%)\n\n",
-	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))      
+	     tmTotal, tmTotal/stepStatus.step, 100*tmTotal/tmTotal))      
       log(date(false):fmt()); log("\n") -- Time-stamp for sim end.
 
       if file_exists(stopfile) then os.remove(stopfile) end -- Clean up.
