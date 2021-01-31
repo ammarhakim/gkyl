@@ -210,7 +210,8 @@ function GkField:initField(species)
       -- Solve for initial Apar.
       local apar = self.potentials[1].apar
       self.currentDens:clear(0.0)
-      for nm, s in pairs(species) do
+      for i = 1, #species["keys"] do
+         local s = species[species["keys"][i]]
          self.currentDens:accumulate(s:getCharge(), s:getMomDensity())
       end
       self.aparSlvr:advance(0.0, {self.currentDens}, {apar})
@@ -253,7 +254,8 @@ end
 
 function GkField:createSolver(species, externalField)
    -- Get adiabatic species info.
-   for nm, s in pairs(species) do
+   for i = 1, #species["keys"] do
+      local s = species[species["keys"][i]]
       if Species.AdiabaticSpecies.is(s) then
          self.adiabatic = true
          self.adiabSpec = s
@@ -322,7 +324,8 @@ function GkField:createSolver(species, externalField)
       -- If not provided, calculate species-dependent weight on polarization term == sum_s m_s n_s / B^2.
       if not self.polarizationWeight then 
          self.polarizationWeight = 0.0
-         for nm, s in pairs(species) do
+         for i = 1, #species["keys"] do
+            local s = species[species["keys"][i]]
             if Species.GkSpecies.is(s) then
                self.polarizationWeight = self.polarizationWeight + s:getPolarizationWeight()
             end
@@ -661,13 +664,15 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
          potCurr.phi:combine(self.externalPhiTimeDependence(tCurr), self.externalPhiFld)
       else
          self.chargeDens:clear(0.0)
-         for nm, s in pairs(species) do
+         for i = 1, #species["keys"] do
+            local s = species[species["keys"][i]]
             self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
          end
          -- If not using linearized polarization term, set up laplacian weight.
          if not self.linearizedPolarization or (self._first and not self.uniformPolarization) then
             self.weight:clear(0.0)
-            for nm, s in pairs(species) do
+            for i = 1, #species["keys"] do
+               local s = species[species["keys"][i]]
                if Species.GkSpecies.is(s) then
                   self.weight:accumulate(1.0, s:getPolarizationWeight(false))
                end
@@ -735,12 +740,13 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
       else 
          self.modifierWeight:clear(0.0)
       end
-      for nm, s in pairs(species) do
-        if s:isEvolving() then 
-           self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getNumDensity())
-           -- Taking momDensity at outIdx gives momentum moment of df/dt.
-           self.currentDens:accumulate(s:getCharge(), s:getMomDensity(outIdx))
-        end
+      for i = 1, #species["keys"] do
+         local s = species[species["keys"][i]]
+         if s:isEvolving() then 
+            self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getNumDensity())
+            -- Taking momDensity at outIdx gives momentum moment of df/dt.
+            self.currentDens:accumulate(s:getCharge(), s:getMomDensity(outIdx))
+         end
       end
       self.dApardtSlvr:setModifierWeight(self.modifierWeight)
       -- dApar/dt solve.
@@ -781,12 +787,13 @@ function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
       else 
          self.modifierWeight:clear(0.0)
       end
-      for nm, s in pairs(species) do
-        if s:isEvolving() then 
-           self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getEmModifier())
-           -- Taking momDensity at outIdx gives momentum moment of df/dt.
-           self.currentDens:accumulate(s:getCharge(), s:getMomProjDensity(outIdx))
-        end
+      for i = 1, #species["keys"] do
+         local s = species[species["keys"][i]]
+         if s:isEvolving() then 
+            self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getEmModifier())
+            -- Taking momDensity at outIdx gives momentum moment of df/dt.
+            self.currentDens:accumulate(s:getCharge(), s:getMomProjDensity(outIdx))
+         end
       end
       self.dApardtSlvr2:setModifierWeight(self.modifierWeight)
       -- dApar/dt solve.

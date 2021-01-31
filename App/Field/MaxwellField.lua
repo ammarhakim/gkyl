@@ -601,7 +601,8 @@ function MaxwellField:advance(tCurr, species, inIdx, outIdx)
          -- here because field object does not know about vdim.
          do
             local c = 0
-            for _, s in pairs(species) do
+            for i = 1, #species["keys"] do
+               local s = species[species["keys"][i]]
                if c == 0 then
                   self.currentDens = s:allocMomCouplingFields().currentDensity
                end
@@ -616,7 +617,8 @@ function MaxwellField:advance(tCurr, species, inIdx, outIdx)
          self.fieldSlvr:advance(tCurr, {emIn}, {emRhsOut})
          if self.currentDens then -- No currents for source-free Maxwell.
             self.currentDens:clear(0.0)
-            for _, s in pairs(species) do
+            for i = 1, #species["keys"] do
+               local s = species[species["keys"][i]]
                self.currentDens:accumulate(s:getCharge(), s:getMomDensity())
             end
             self:accumulateCurrent(self.currentDens, emRhsOut)
@@ -627,7 +629,8 @@ function MaxwellField:advance(tCurr, species, inIdx, outIdx)
    else   -- Poisson equation. Solve for phi.
       -- Accumulate the charge density (divided by epsilon_0).
       self.chargeDens:clear(0.0)
-      for _, s in pairs(species) do
+      for i = 1, #species["keys"] do
+         local s = species[species["keys"][i]]
          self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
       end
       self.chargeDens:scale(1.0/self.epsilon0)

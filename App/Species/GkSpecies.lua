@@ -384,9 +384,11 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    -- velocity dependent collisionality, FLR effects, or some specific
    -- neutral/impurity effect.
    self.collPairs = {}
-   for sN, _ in pairs(species) do
+   for i = 1, #species["keys"] do
+      local sN = species["keys"][i]
       self.collPairs[sN] = {}
-      for sO, _ in pairs(species) do
+      for j = 1, #species["keys"] do
+         local sO = species["keys"][j]
          self.collPairs[sN][sO] = {}
          -- Need next below because species[].collisions is created as an empty table.
          if species[sN].collisions and next(species[sN].collisions) then
@@ -425,10 +427,12 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    end
 
    -- Here we wish to record some properties of each collision in collPairs.
-   for sN, _ in pairs(species) do
+   for i = 1, #species["keys"] do
+      local sN = species["keys"][i]
       -- Need next below because species[].collisions is created as an empty table.
       if species[sN].collisions and next(species[sN].collisions) then
-         for sO, _ in pairs(species) do
+         for j = 1, #species["keys"] do
+            local sO = species["keys"][j]
             -- Find the kind of a specific collision, and the collision frequency it uses.
             for collNmN, _ in pairs(species[sN].collisions) do
                if self.collPairs[sN][sO].on then
@@ -493,7 +497,8 @@ function GkSpecies:initCrossSpeciesCoupling(species)
          -- but species sO collides with sN.
          -- For computing cross-primitive moments, species sO may need the sN-sO
          -- collision frequency. Set it such that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
-         for sO, _ in pairs(species) do
+         for j = 1, #species["keys"] do
+            local sO = species["keys"][j]
             if species[sO].collisions and next(species[sO].collisions) then
                for collNmO, _ in pairs(species[sO].collisions) do
                   if self.collPairs[sO][sN].on then
@@ -545,7 +550,8 @@ function GkSpecies:initCrossSpeciesCoupling(species)
          self.needCorrectedSelfPrimMom = true
       end
    end
-   for sO, _ in pairs(species) do
+   for j = 1, #species["keys"] do
+      local sO = species["keys"][j]
       if self.collPairs[self.name][sO].on or self.collPairs[sO][self.name].on then
          self.needSelfPrimMom = true
          if ( self.collPairs[sO][sO].on and (self.collPairs[self.name][self.name].kind=="GkLBO" or
@@ -565,9 +571,11 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    -- If ionization collision object exists, locate electrons
    local counterIz_elc = true
    local counterIz_neut = true
-   for sN, _ in pairs(species) do
+   for i = 1, #species["keys"] do
+      local sN = species["keys"][i]
       if species[sN].collisions and next(species[sN].collisions) then 
-         for sO, _ in pairs(species) do
+         for j = 1, #species["keys"] do
+            local sO = species["keys"][j]
    	    if self.collPairs[sN][sO].on then
    	       if (self.collPairs[sN][sO].kind == 'Ionization') then
    		  for collNm, _ in pairs(species[sN].collisions) do
@@ -597,9 +605,11 @@ function GkSpecies:initCrossSpeciesCoupling(species)
 
    -- If Charge Exchange collision object exists, locate ions
    local counterCX_ion = true
-   for sN, _ in pairs(species) do
+   for i = 1, #species["keys"] do
+      local sN = species["keys"][i]
       if species[sN].collisions and next(species[sN].collisions) then 
-         for sO, _ in pairs(species) do
+         for j = 1, #species["keys"] do
+            local sO = species["keys"][j]
    	    if self.collPairs[sN][sO].on then
    	       if (self.collPairs[sN][sO].kind == 'CX') then
    		  for collNm, _ in pairs(species[sN].collisions) do
@@ -639,14 +649,16 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    -- Allocate fieds to store cross-species primitive moments.
    self.uParCross = {}
    self.vtSqCross = {}
-   for sN, _ in pairs(species) do
+   for i = 1, #species["keys"] do
+      local sN = species["keys"][i]
       if sN ~= self.name then
          -- Flags for couplingMoments, boundary corrections, star moments,
          -- self primitive moments, cross primitive moments.
          self.momentFlags[5][sN] = false
       end
 
-      for sO, _ in pairs(species) do
+      for j = 1, #species["keys"] do
+         local sO = species["keys"][j]
          -- Allocate space for this species' cross-primitive moments
          -- only if some other species collides with it.
          if (sN ~= sO) and (self.collPairs[sN][sO].on or self.collPairs[sO][sN].on) then
@@ -672,13 +684,15 @@ function GkSpecies:initCrossSpeciesCoupling(species)
             projectOnGhosts = false,
          }
       end
-      for sN, _ in pairs(species) do
+      for i = 1, #species["keys"] do
+         local sN = species["keys"][i]
          if sN ~= self.name then
             -- Sixth moment flag is to indicate if spatially varying collisionality has been computed.
             self.momentFlags[6][sN] = false
          end
 
-         for sO, _ in pairs(species) do
+         for j = 1, #species["keys"] do
+            local sO = species["keys"][j]
             -- Allocate space for this species' collision frequency
             -- only if some other species collides with it.
             if (sN ~= sO) and (self.collPairs[sN][sO].on or self.collPairs[sO][sN].on) then

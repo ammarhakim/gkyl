@@ -797,7 +797,8 @@ function KineticSpecies:clearMomentFlags(species)
    for iF = 1,4 do
       self.momentFlags[iF] = false
    end
-   for sN, _ in pairs(species) do
+   for i = 1, #species["keys"] do
+      local sN = species["keys"][i]
       if sN ~= self.name then
          self.momentFlags[5][sN] = false
          self.momentFlags[6][sN] = false

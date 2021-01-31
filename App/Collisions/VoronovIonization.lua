@@ -92,7 +92,7 @@ end
 function VoronovIonization:advance(tCurr, idxIn, outIdx, species)
    local elcMomFields = species[self.elcNm]:fluidMoments()
    local spOutFields =  {}
-   -- for nm, sp in pairs(species) do
+   -- for nm, sp in pairs(species) do  -- MF 01/31/2020: This is no longer the right way to loop over species.
    --    spOutFields[nm] = sp:rkStepperFields()[outIdx]
    -- end
    spOutFields['elc'] = species[self.elcNm]:rkStepperFields()[outIdx]
