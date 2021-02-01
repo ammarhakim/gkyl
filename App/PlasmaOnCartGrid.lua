@@ -191,11 +191,10 @@ local function buildApplication(self, tbl)
    local species_keys = {}
    for k in pairs(species) do table.insert(species_keys, k) end
    table.sort(species_keys)
-   species["keys"] = lume.clone(species_keys)
+   setmetatable(species, species_keys)
 
    -- Setup each species.
-   for i = 1, #species["keys"] do
-      local s = species[species["keys"][i]]
+   for _, s in lume.orderedIter(species) do
       -- Set up conf grid and basis.
       s:setConfGrid(confGrid)
       s:setConfBasis(confBasis)
@@ -225,8 +224,7 @@ local function buildApplication(self, tbl)
 
    local cflMin = GKYL_MAX_DOUBLE
    -- Compute CFL numbers.
-   for i = 1, #species["keys"] do
-      local s = species[species["keys"][i]]
+   for _, s in lume.orderedIter(species) do
       local ndim = s:getNdim()
       local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
       cflMin = math.min(cflMin, myCfl)
@@ -284,8 +282,7 @@ local function buildApplication(self, tbl)
    externalField:initField()
    
    -- Initialize species solvers and diagnostics.
-   for i = 1, #species["keys"] do
-      local nm, s = species["keys"][i], species[species["keys"][i]]
+   for _, s in lume.orderedIter(species) do
       local hasE, hasB = field:hasEB()
       local extHasE, extHasB = externalField:hasEB()
       s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
@@ -300,8 +297,7 @@ local function buildApplication(self, tbl)
    end   
 
    -- Compute the coupling moments.
-   for i = 1, #species["keys"] do
-      local s = species[species["keys"][i]]
+   for _, s in lume.orderedIter(species) do
       s:clearMomentFlags(species)
       s:calcCouplingMoments(0.0, 1, species)
    end
@@ -311,8 +307,7 @@ local function buildApplication(self, tbl)
    field:initField(species)
 
    -- Apply species BCs.
-   for i = 1, #species["keys"] do
-      local s = species[species["keys"][i]]
+   for _, s in lume.orderedIter(species) do
       -- This is a dummy forwardEuler call because some BCs require 
       -- auxFields to be set, which is controlled by species solver.
       if s.charge == 0.0 then
@@ -325,20 +320,14 @@ local function buildApplication(self, tbl)
 
    -- Function to write data to file.
    local function writeData(tCurr, force)
-      for i = 1, #species["keys"] do
-         local s = species[species["keys"][i]]
-         s:write(tCurr, force)
-      end
+      for _, s in lume.orderedIter(species) do s:write(tCurr, force) end
       field:write(tCurr, force)
       externalField:write(tCurr, force)
    end
 
    -- Function to write restart frames to file.
    local function writeRestart(tCurr)
-      for i = 1, #species["keys"] do
-         local s = species[species["keys"][i]]
-         s:writeRestart(tCurr)
-      end
+      for _, s in lume.orderedIter(species) do s:writeRestart(tCurr) end
       field:writeRestart(tCurr)
       externalField:writeRestart(tCurr)
    end
@@ -351,8 +340,7 @@ local function buildApplication(self, tbl)
       -- Read fields first, in case needed for species init or BCs.
       field:readRestart()
       externalField:readRestart()
-      for i = 1, #species["keys"] do
-         local s = species[species["keys"][i]]
+      for _, s in lume.orderedIter(species) do
          -- This is a dummy forwardEuler call because some BCs require 
          -- auxFields to be set, which is controlled by species solver.
 	 if s.charge == 0 then
@@ -382,22 +370,19 @@ local function buildApplication(self, tbl)
 
    -- Various functions to copy/increment fields.
    local function copy(outIdx, aIdx)
-      for i = 1, #species["keys"] do
-         local s = species[species["keys"][i]]
+      for _, s in lume.orderedIter(species) do
          s:copyRk(outIdx, aIdx)
       end
       field:copyRk(outIdx, aIdx)
    end
    local function combine(outIdx, a, aIdx, ...)
-      for i = 1, #species["keys"] do
-         local s = species[species["keys"][i]]
+      for _, s in lume.orderedIter(species) do
          s:combineRk(outIdx, a, aIdx, ...)
       end
       field:combineRk(outIdx, a, aIdx, ...)
    end
    local function applyBc(tCurr, idx, ...)
-      for i = 1, #species["keys"] do
-         local s = species[species["keys"][i]]
+      for _, s in lume.orderedIter(species) do
          s:applyBcIdx(tCurr, idx, ...)
       end
       field:applyBcIdx(tCurr, idx)
@@ -409,16 +394,14 @@ local function buildApplication(self, tbl)
       local dtSuggested
       if dt == nil then calcCflFlag = true end
       field:clearCFL()
-      for i = 1, #species["keys"] do
-         local s = species[species["keys"][i]]
+      for _, s in lume.orderedIter(species) do
          s:clearCFL()
          s:clearMomentFlags(species)
       end
       -- Compute functional field (if any).
       externalField:advance(tCurr)
       
-      for i = 1, #species["keys"] do
-         local s = species[species["keys"][i]]
+      for _, s in lume.orderedIter(species) do
 	 -- Compute moments needed in coupling with fields and
 	 -- collisions (the species should update internal datastructures). 
          s:calcCouplingMoments(tCurr, inIdx, species)
@@ -430,8 +413,7 @@ local function buildApplication(self, tbl)
       field:advance(tCurr, species, inIdx, outIdx)
 
       -- Update species.
-      for i = 1, #species["keys"] do
-         local s = species[species["keys"][i]]
+      for _, s in lume.orderedIter(species) do
 	 if s.charge == 0 then
 	    s:advance(tCurr, species, {NoField {}, NoField {}}, inIdx, outIdx)
 	 else
@@ -449,8 +431,7 @@ local function buildApplication(self, tbl)
          field[advanceString](field, tCurr, species, inIdx, outIdx)
 
          -- Update species.. step 2 (if necessary).
-         for i = 1, #species["keys"] do
-            local s = species[species["keys"][i]]
+         for _, s in lume.orderedIter(species) do
             s[advanceString](s, tCurr, species, {field, externalField}, inIdx, outIdx)
          end
       end
@@ -461,14 +442,12 @@ local function buildApplication(self, tbl)
          
          -- Get suggested dt from each field and species.
          dtSuggested = math.min(dtSuggested, field:suggestDt())
-         for i = 1, #species["keys"] do
-            local s = species[species["keys"][i]]
+         for _, s in lume.orderedIter(species) do
             dtSuggested = math.min(dtSuggested, s:suggestDt())
          end
          
-         -- after deciding global dt, tell species
-         for i = 1, #species["keys"] do
-            local s = species[species["keys"][i]]
+         -- After deciding global dt, tell species.
+         for _, s in lume.orderedIter(species) do
             s:setDtGlobal(dtSuggested)
          end
       else 
@@ -575,8 +554,7 @@ local function buildApplication(self, tbl)
 
       local tryInv_next = {}
       -- Update species.
-      for i = 1, #species["keys"] do
-         local s = species[species["keys"][i]]
+      for _, s in lume.orderedIter(species) do
 	 local vars = s:rkStepperFields()
 	 local inp, out = vars[fIdx[dir][1]], vars[fIdx[dir][2]]
 	 local myStatus, myDtSuggested, myTryInv = s:updateInDirection(
@@ -601,8 +579,7 @@ local function buildApplication(self, tbl)
    local function updateSource(dataIdx, tCurr, dt)
       -- Make list of species data to operate on.
       local speciesVar = {}
-      for i = 1, #species["keys"] do
-         local nm, s = species["keys"][i], species[species["keys"][i]]
+      for nm, s in lume.orderedIter(species) do
 	 speciesVar[nm] = s:rkStepperFields()[dataIdx]
       end
       -- Field data to operate on.
@@ -646,8 +623,7 @@ local function buildApplication(self, tbl)
 	 else
 	    -- If an updated species is invalid, plan to use lax flux for THIS
 	    -- species in the re-taken step.
-            for i = 1, #species["keys"] do
-               local nm, s = species["keys"][i], species[species["keys"][i]]
+            for nm, s in lume.orderedIter(species) do
 	       if myTryInv[s] then
 		  isInv = false
 		  tryInv[s] = true
@@ -663,10 +639,7 @@ local function buildApplication(self, tbl)
       end
       -- Is all species is valid, do not use lax in the next step.
       if isInv then
-         for i = 1, #species["keys"] do
-            local s = species[species["keys"][i]]
-            tryInv[s] = false
-         end
+         for _, s in lume.orderedIter(species) do tryInv[s] = false end
       end
 
       -- Update source by half time-step.
@@ -766,10 +739,7 @@ local function buildApplication(self, tbl)
       -- species whether the domain-invariant equation should be used in the
       -- next step; they might be changed during fvDimSplit calls.
       local tryInv = {}
-      for i = 1, #species["keys"] do
-         local s = species[species["keys"][i]]
-         tryInv[s] = false
-      end
+      for _, s in lume.orderedIter(species) do tryInv[s] = false end
       local isInv = true
       -- Main simulation loop.
       while true do
@@ -847,15 +817,13 @@ local function buildApplication(self, tbl)
 
       -- Compute time spent in various parts of code.
       local tmSlvr = 0.0
-      for i = 1, #species["keys"] do
-         local s = species[species["keys"][i]]
+      for _, s in lume.orderedIter(species) do
 	 tmSlvr = tmSlvr+s:totalSolverTime()
       end
 
       local tmMom, tmIntMom, tmBc, tmColl = 0.0, 0.0, 0.0, 0.0
       local tmCollMom = 0.0
-      for i = 1, #species["keys"] do
-         local s = species[species["keys"][i]]
+      for _, s in lume.orderedIter(species) do
          tmMom = tmMom + s:momCalcTime()
          tmIntMom = tmIntMom + s:intMomCalcTime()
          tmBc = tmBc + s:totalBcTime()

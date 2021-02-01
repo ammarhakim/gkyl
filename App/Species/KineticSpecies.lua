@@ -27,6 +27,7 @@ local SpeciesBase      = require "App.Species.SpeciesBase"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
 local ffi              = require "ffi"
+local lume             = require "Lib.lume"
 
 -- Function to create basis functions.
 local function createBasis(nm, ndim, polyOrder)
@@ -797,8 +798,7 @@ function KineticSpecies:clearMomentFlags(species)
    for iF = 1,4 do
       self.momentFlags[iF] = false
    end
-   for i = 1, #species["keys"] do
-      local sN = species["keys"][i]
+   for sN, _ in lume.orderedIter(species) do
       if sN ~= self.name then
          self.momentFlags[5][sN] = false
          self.momentFlags[6][sN] = false
