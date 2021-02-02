@@ -328,14 +328,14 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
    end
 
    if not tmStamp then tmStamp = 0.0 end -- Default time-stamp.
-   local flushData = xsys.pickBool(flushData, true)  -- Default flush data on write.
+   local flushData  = xsys.pickBool(flushData, true)  -- Default flush data on write.
    local appendData = xsys.pickBool(appendData, true) -- Default append data to single file.
 
    if appendData and (frNum and frNum>=0) then 
       self.frNum = frNum 
    else 
       self.frNum = "" 
-      frNum = frNum or 0
+      frNum      = frNum or 0
    end
 
    -- Create group and set I/O method.
@@ -344,7 +344,7 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
    Adios.select_method(grpId, "MPI", "", "")
    
    -- ADIOS expects CSV string to specify data shape
-   local localTmSz = toCSV( {self._data:size()} )
+   local localTmSz  = toCSV( {self._data:size()} )
    local localDatSz = toCSV( {self._data:size(), self._numComponents} )
    
    -- Define data to write.
@@ -386,11 +386,11 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
 
    -- Clear data for next round of IO.
    if flushData then 
-     local tLast, dLast = self:lastData() -- Save the last data, in case we need it later.
-     self.tLast = tLast
-     for i = 1, self._numComponents do self.dLast[i] = dLast[i] end
-     self:clear()
-     self.flushed = true
+      local tLast, dLast = self:lastData() -- Save the last data, in case we need it later.
+      self.tLast = tLast
+      for i = 1, self._numComponents do self.dLast[i] = dLast[i] end
+      self:clear()
+      self.flushed = true
    end
 end
 

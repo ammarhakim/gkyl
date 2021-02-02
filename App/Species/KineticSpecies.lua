@@ -560,15 +560,15 @@ function KineticSpecies:alloc(nRkDup)
 
    -- Create Adios object for field I/O.
    self.distIo = AdiosCartFieldIo {
-      elemType = self.distf[1]:elemType(),
-      method = self.ioMethod,
+      elemType   = self.distf[1]:elemType(),
+      method     = self.ioMethod,
       writeGhost = self.writeGhost,
-      metaData = {
+      metaData   = {
          polyOrder = self.basis:polyOrder(),
          basisType = self.basis:id(),
-         charge = self.charge,
-         mass = self.mass,    
-         grid = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
+         charge    = self.charge,
+         mass      = self.mass,    
+         grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
       },
    }
 
@@ -1032,7 +1032,7 @@ function KineticSpecies:write(tm, force)
 
       -- Only write stuff if triggered.
       if self.distIoTrigger(tm) or force then
-	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
+         self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
          if self.f0 then
             if tm == 0.0 then
 	       self.f0:write(string.format("%s_f0_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame, true)
