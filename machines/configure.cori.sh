@@ -12,7 +12,7 @@ MPICC=cc
 MPICXX=CC
 
 # Install location
-export GKYLSOFT=$(readlink -f ../gkylsoft)
+export GKYLSOFT=$(readlink -f ../../gkylsoft)
 PREFIX=$GKYLSOFT/gkyl
 
 # Build directory

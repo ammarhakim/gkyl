@@ -399,21 +399,25 @@ end
 
 function Bc:evalOnConfBoundary(inFld)
    if self._isFirst then
-      self._confBoundaryField = DataStruct.Field {
+      self._confBoundaryField = self._confBoundaryField or
+        DataStruct.Field {
            onGrid        = self._confBoundaryGrid,
            numComponents = inFld:numComponents(),
            ghost         = {1,1},
            metaData = inFld:getMetaData(),
          }
-      self._confBoundaryFieldPtr = self._confBoundaryField:get(1)
-      self._confBoundaryIdxr = self._confBoundaryField:genIndexer()
+      self._confBoundaryFieldPtr = self._confBoundaryFieldPtr or
+                                   self._confBoundaryField:get(1)
+      self._confBoundaryIdxr = self._confBoundaryIdxr or
+                               self._confBoundaryField:genIndexer()
    end
    local global = inFld:globalRange()
    local dir, edge = self._dir, self._edge
    
-   local localRange = self._confBoundaryField:localRange()
-   local localRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = localRange, numSplit = self._grid:numSharedProcs() }
+   local localRange         = inFld:localRange()
+   local localBoundaryRange = localRange:intersect(self._confBoundaryField:localRange())
+   local localRangeDecomp   = LinearDecomp.LinearDecompRange {
+      range = localBoundaryRange, numSplit = self._grid:numSharedProcs() }
 
    local inFldPtr = inFld:get(1)
    local indexer = inFld:genIndexer()

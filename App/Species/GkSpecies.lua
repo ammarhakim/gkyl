@@ -41,16 +41,16 @@ function GkSpecies:alloc(nRkDup)
 
    -- Allocate fields to store coupling moments (for use in coupling
    -- to field and collisions).
-   self.numDensity         = self:allocMoment()
-   self.numDensityAux      = self:allocMoment()
-   self.momDensity         = self:allocMoment()
-   self.momDensityAux      = self:allocMoment()
-   self.ptclEnergy         = self:allocMoment()
-   self.ptclEnergyAux      = self:allocMoment()
+   self.numDensity    = self:allocMoment()
+   self.numDensityAux = self:allocMoment()
+   self.momDensity    = self:allocMoment()
+   self.momDensityAux = self:allocMoment()
+   self.ptclEnergy    = self:allocMoment()
+   self.ptclEnergyAux = self:allocMoment()
    if self.positivity then
-      self.numDensityPos      = self:allocMoment()
-      self.momDensityPos      = self:allocMoment()
-      self.ptclEnergyPos      = self:allocMoment()
+      self.numDensityPos = self:allocMoment()
+      self.momDensityPos = self:allocMoment()
+      self.ptclEnergyPos = self:allocMoment()
    end
    self.polarizationWeight = self:allocMoment() -- not used when using linearized poisson solve
 			
