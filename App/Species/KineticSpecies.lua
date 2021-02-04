@@ -232,6 +232,11 @@ function KineticSpecies:fullInit(appTbl)
       }
    end 
    -- <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+   -- Create a keys metatable in self.projections so we always loop in the same order (better for I/O).
+   local projections_keys = {}
+   for k in pairs(self.projections) do table.insert(projections_keys, k) end
+   table.sort(projections_keys)
+   setmetatable(self.projections, projections_keys)
 
    self.deltaF         = xsys.pickBool(appTbl.deltaF, false)
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
@@ -629,7 +634,7 @@ function KineticSpecies:initDist()
    local syncPeriodicDirs = true
    if self.fluctuationBCs then syncPeriodicDirs = false end
    local initCnt, backgroundCnt = 0, 0
-   for _, pr in pairs(self.projections) do
+   for _, pr in lume.orderedIter(self.projections) do
       pr:fullInit(self)
       pr:run(0.0, self.distf[2])
       -- This barrier is needed as when using MPI-SHM some
