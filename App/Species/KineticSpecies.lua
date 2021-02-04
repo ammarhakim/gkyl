@@ -599,9 +599,7 @@ function KineticSpecies:alloc(nRkDup)
    -- cross primitive moments (uCross, vtSqCross), and spatially varying
    -- cross-species collisionality (varNuXCross).
    self.momentFlags = {}
-   for iF = 1,4 do
-      self.momentFlags[iF] = false
-   end
+   for iF = 1,4 do self.momentFlags[iF] = false end
    -- The fifth and sixth entries need a table to store 
    -- a flag for each pair of species colliding.
    self.momentFlags[5] = {}  -- Corresponds to uCross and vtSqCross.
@@ -795,9 +793,7 @@ end
 function KineticSpecies:clearMomentFlags(species)
    -- Clear the momentFlags table to indicate that moments (and other
    -- quantities) need to be computed again.
-   for iF = 1,4 do
-      self.momentFlags[iF] = false
-   end
+   for iF = 1,4 do self.momentFlags[iF] = false end
    for sN, _ in lume.orderedIter(species) do
       if sN ~= self.name then
          self.momentFlags[5][sN] = false
@@ -1111,10 +1107,10 @@ function KineticSpecies:readRestart()
    local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name), readGhost)
    self.distIoFrame = fr -- Reset internal frame counter.
 
-   -- set ghost cells
+   -- Set ghost cells.
    self.distf[1]:sync()
 
-   -- Apply BCs (unless skin cells have been read because of special BCs)
+   -- Apply BCs (unless skin cells have been read because of special BCs).
    if not self.hasSheathBcs and not self.fluctuationBCs then 
       self:applyBc(tm, self.distf[1]) 
    end 

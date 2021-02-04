@@ -1499,7 +1499,8 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 fIn:accumulate(-1.0, self.f0)
       end
 
-      if self.needSelfPrimMom then
+      if self.needSelfPrimMom and
+         lume.any({unpack(self.momentFlags,1,4)},function(x) return x==false end) then -- No need to recompute if already computed.
          self.threeMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy,
                                                           self.m1Correction, self.m2Correction,
                                                           self.m0Star, self.m1Star, self.m2Star })
@@ -1524,7 +1525,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
          for iF=1,4 do
             self.momentFlags[iF] = true
          end
-      else
+      elseif self.momentFlags[1]==false then -- No need to recompute if already computed.
          self.numDensityCalc:advance(tCurr, {fIn}, { self.numDensity })
          -- Indicate that first moment has been computed.
          self.momentFlags[1] = true
@@ -1536,9 +1537,14 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 
       -- For ionization.
       if self.calcReactRate then
-         local neutM0 = species[self.neutNmIz]:fluidMoments()[1]
-         local neutU  = species[self.neutNmIz]:selfPrimitiveMoments()[1]
-         local neutVtSq = species[self.neutNmIz]:selfPrimitiveMoments()[2]
+         local neuts = species[self.neutNmIz]
+         if lume.any({unpack(neuts.momentFlags,1,4)},function(x) return x==false end) then
+            -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments.
+            neuts:calcCouplingMoments(tCurr, rkIdx, species)
+         end
+         local neutM0   = neuts:fluidMoments()[1]
+         local neutU    = neuts:selfPrimitiveMoments()[1]
+         local neutVtSq = neuts:selfPrimitiveMoments()[2]
             
          if tCurr == 0.0 then
             species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
@@ -1555,10 +1561,15 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       end
 
       if self.calcCXSrc then
-      	 -- Calculate Vcx*SigmaCX.
-	 local m0       = species[self.neutNmCX]:fluidMoments()[1]
-      	 local neutU    = species[self.neutNmCX]:selfPrimitiveMoments()[1]
-      	 local neutVtSq = species[self.neutNmCX]:selfPrimitiveMoments()[2]
+         -- Calculate Vcx*SigmaCX.
+         local neuts = species[self.neutNmCX]
+         if lume.any({unpack(neuts.momentFlags,1,4)},function(x) return x==false end) then
+            -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments.
+            neuts:calcCouplingMoments(tCurr, rkIdx, species)
+         end
+         local m0       = neuts:fluidMoments()[1]
+         local neutU    = neuts:selfPrimitiveMoments()[1]
+         local neutVtSq = neuts:selfPrimitiveMoments()[2]
 	 
       	 species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uParSelf, neutU, self.vtSqSelf, neutVtSq}, {self.vSigmaCX})
       end
