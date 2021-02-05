@@ -143,11 +143,10 @@ function MaxwellField:fullInit(appTbl)
    self.integratedEMTime = 0.0 -- Time spent integrating EM fields.
 
    -- Create trigger for how frequently to compute integrated EM fields.
-   self.calcIntEMQuantFlag = false
    if appTbl.calcIntQuantEvery then
       self.calcIntEMQuantTrigger = LinearTrigger(0, appTbl.tEnd,  math.floor(1/appTbl.calcIntQuantEvery))
    else
-      self.calcIntEMQuantFlag = true
+      self.calcIntEMQuantTrigger = function(t) return true end
    end
 
    self._isFirst = true
@@ -476,11 +475,7 @@ function MaxwellField:write(tm, force)
    if self.evolve or self.forceWrite then
       local tmStart = Time.clock()
       -- Compute EM energy integrated over domain.
-      if self.calcIntEMQuantFlag == false then
-         if self.calcIntEMQuantTrigger(tm) then
-            self.emEnergyCalc(tm, { self.em[1] }, { self.emEnergy })
-         end
-      else
+      if self.calcIntEMQuantTrigger(tm) then
          self.emEnergyCalc(tm, { self.em[1] }, { self.emEnergy })
       end
       -- Time computation of integrated moments.

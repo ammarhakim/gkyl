@@ -47,17 +47,13 @@ function GkField:fullInit(appTbl)
    self.isElectromagnetic = xsys.pickBool(tbl.isElectromagnetic, false) -- Electrostatic by default.
 
    -- Create triggers to write fields.
-   if tbl.nFrame then
-      self.ioTrigger = LinearTrigger(0, appTbl.tEnd, tbl.nFrame)
-   else
-      self.ioTrigger = LinearTrigger(0, appTbl.tEnd, appTbl.nFrame)
-   end
+   local nFrame = tbl.nFrame or appTbl.nFrame
+   self.ioTrigger = LinearTrigger(0, appTbl.tEnd, nFrame)
 
    self.ioFrame = 0 -- Frame number for IO.
    self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
-
    
-   -- write ghost cells on boundaries of global domain (for BCs)
+   -- Write ghost cells on boundaries of global domain (for BCs).
    self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 
    -- Get boundary condition settings.
@@ -110,6 +106,13 @@ function GkField:fullInit(appTbl)
       self.externalPhiTimeDependence = tbl.externalPhiTimeDependence
    else
       self.externalPhiTimeDependence = false
+   end
+
+   -- Create trigger for how frequently to compute field energy.
+   if appTbl.calcIntQuantEvery then
+      self.calcIntFieldEnergyTrigger = LinearTrigger(0, appTbl.tEnd,  math.floor(1/appTbl.calcIntQuantEvery))
+   else
+      self.calcIntFieldEnergyTrigger = function(t) return true end
    end
 
    self.bcTime = 0.0 -- Timer for BCs.
@@ -541,39 +544,41 @@ end
 
 function GkField:write(tm, force)
    if self.evolve then
-      -- Compute integrated quantities over domain.
-      self.int2Calc:advance(tm, { self.potentials[1].phi }, { self.phiSq })
-      if self.isElectromagnetic then 
-        self.int2Calc:advance(tm, { self.potentials[1].apar }, { self.aparSq })
-      end
-      if self.energyCalc then 
-         if self.linearizedPolarization then
-            local esEnergyFac = .5*self.polarizationWeight
-            if self.ndim == 1 then 
-               esEnergyFac = esEnergyFac*self.kperp2 
-               if self.adiabatic then 
-                  esEnergyFac = esEnergyFac + .5*self.adiabSpec:getQneutFac() 
-               end
-            end
-            self.energyCalc:advance(tm, { self.potentials[1].phiAux, esEnergyFac }, { self.esEnergy })
-
-            -- NRM: the section below adds a (physical) term to esEnergy proportional to |phi|**2 when using adiabatic electrons.
-            -- however, this makes it difficult to compute the growth rate of ky!=0 modes from esEnergy when the
-            -- ky=0 mode is not suppressed. commenting out the below is a hack so that esEnergy can be used to compute
-            -- growth rate of ky!=0 modes.
-
-            --if self.adiabatic and self.ndim > 1 then
-            --   local tm, energyVal = self.esEnergy:lastData()
-            --   local _, phiSqVal = self.phiSq:lastData()
-            --   energyVal[1] = energyVal[1] + .5*self.adiabSpec:getQneutFac()*phiSqVal[1]
-            --end
-         else
-            -- Something.
-         end
+      if self.calcIntFieldEnergyTrigger(tm) then
+         -- Compute integrated quantities over domain.
+         self.int2Calc:advance(tm, { self.potentials[1].phi }, { self.phiSq })
          if self.isElectromagnetic then 
-           local emEnergyFac = .5/self.mu0
-           if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperp2 end
-           self.energyCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy })
+            self.int2Calc:advance(tm, { self.potentials[1].apar }, { self.aparSq })
+         end
+         if self.energyCalc then 
+            if self.linearizedPolarization then
+               local esEnergyFac = .5*self.polarizationWeight
+               if self.ndim == 1 then 
+                  esEnergyFac = esEnergyFac*self.kperp2 
+                  if self.adiabatic then 
+                     esEnergyFac = esEnergyFac + .5*self.adiabSpec:getQneutFac() 
+                  end
+               end
+               self.energyCalc:advance(tm, { self.potentials[1].phiAux, esEnergyFac }, { self.esEnergy })
+
+               -- NRM: the section below adds a (physical) term to esEnergy proportional to |phi|**2 when using adiabatic electrons.
+               -- however, this makes it difficult to compute the growth rate of ky!=0 modes from esEnergy when the
+               -- ky=0 mode is not suppressed. commenting out the below is a hack so that esEnergy can be used to compute
+               -- growth rate of ky!=0 modes.
+
+               --if self.adiabatic and self.ndim > 1 then
+               --   local tm, energyVal = self.esEnergy:lastData()
+               --   local _, phiSqVal = self.phiSq:lastData()
+               --   energyVal[1] = energyVal[1] + .5*self.adiabSpec:getQneutFac()*phiSqVal[1]
+               --end
+            else
+               -- Something.
+            end
+            if self.isElectromagnetic then 
+              local emEnergyFac = .5/self.mu0
+              if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperp2 end
+              self.energyCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy })
+            end
          end
       end
 
@@ -877,11 +882,8 @@ function GkGeometry:fullInit(appTbl)
    self.evolve = xsys.pickBool(tbl.evolve, false) -- by default these fields are not time-dependent.
 
    -- Create triggers to write fields.
-   if tbl.nFrame then
-      self.ioTrigger = LinearTrigger(0, appTbl.tEnd, tbl.nFrame)
-   else
-      self.ioTrigger = LinearTrigger(0, appTbl.tEnd, appTbl.nFrame)
-   end
+   local nFrame = tbl.nFrame or appTbl.nFrame
+   self.ioTrigger = LinearTrigger(0, appTbl.tEnd, nFrame)
 
    self.ioFrame = 0 -- Frame number for IO.
    
@@ -1355,9 +1357,7 @@ function GkGeometry:applyBcIdx(tCurr, idx)
 end
 
 function GkGeometry:applyBc(tCurr, geoIn)
-   if self.evolve then 
-      geoIn.phiWall:sync(false)
-   end
+   if self.evolve then geoIn.phiWall:sync(false) end
 end
 
 function GkGeometry:totalSolverTime()

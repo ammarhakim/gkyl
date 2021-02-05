@@ -93,11 +93,10 @@ function KineticSpecies:fullInit(appTbl)
    end
 
    -- Create trigger for how frequently to compute integrated moments.
-   self.calcIntQuantFlag = false
    if appTbl.calcIntQuantEvery then
       self.calcIntQuantTrigger = LinearTrigger(0, appTbl.tEnd,  math.floor(1/appTbl.calcIntQuantEvery))
    else
-      self.calcIntQuantFlag = true
+      self.calcIntQuantTrigger = function(t) return true end
    end
 
    self.distIoFrame = 0 -- Frame number for distribution function.
@@ -1021,11 +1020,7 @@ function KineticSpecies:write(tm, force)
 
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.
-      if self.calcIntQuantFlag == false then
-         if self.calcIntQuantTrigger(tm) then
-            self:calcDiagnosticIntegratedMoments(tm)
-         end
-      else
+      if self.calcIntQuantTrigger(tm) then
          self:calcDiagnosticIntegratedMoments(tm)
       end
       -- Time computation of integrated moments.
