@@ -12,6 +12,7 @@ def build(bld):
     FiveMomentSrcImpl.cpp
     TenMomentSrcImpl.cpp
     TenMomentRelaxImpl.cpp
+    TenMomentGradImpl.cpp
 
     momentCalcData/IntegratedDGMomentSer1x.cpp
     momentCalcData/IntegratedDGMomentSer2x.cpp
