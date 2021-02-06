@@ -861,6 +861,10 @@ function GkField:energyCalcTime()
    return t
 end
 
+function GkField:printDevDiagnostics()
+   self.phiSlvr:printDevDiagnostics()
+end
+
 -- GkGeometry ---------------------------------------------------------------------
 --
 -- A field object with fields specifying the magnetic geometry for GK.

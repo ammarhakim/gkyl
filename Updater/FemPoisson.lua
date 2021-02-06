@@ -126,6 +126,9 @@ function FemPoisson:init(tbl)
       assert(false, "Updater.FemPoisson: Requires ndim<=3")
    end   
 
+   -- Option to write development-related diagnostics.
+   self.verbose = xsys.pickBool(tbl.verbose, false)
+
    return self
 end
 
@@ -155,6 +158,10 @@ function FemPoisson:getLaplacianWeight()
 end
 function FemPoisson:getModifierWeight()
    return self.slvr:getModifierWeight()
+end
+
+function FemPoisson:printDevDiagnostics()
+   if self.verbose then self.slvr:printDevDiagnostics() end
 end
 
 return FemPoisson

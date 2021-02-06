@@ -97,6 +97,9 @@ function _M:setDtAndCflRate(dt, cflRateByCell)
    self._cflRateByCell = cflRateByCell
 end
 
+function _M:printDevDiagnostics()
+end
+
 return _M
 
 

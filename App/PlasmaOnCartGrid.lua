@@ -665,6 +665,11 @@ local function buildApplication(self, tbl)
       return status, dtSuggested, isInv
    end
 
+   local devDiagnose = function()
+      -- Perform performance/numerics-related diagnostics.
+      field:printDevDiagnostics()
+   end
+
    local tmEnd = Time.clock()
    log(string.format("Initialization completed in %g sec\n\n", tmEnd-tmStart))
 
@@ -907,6 +912,9 @@ local function buildApplication(self, tbl)
 	     "Main loop completed in			%9.5f sec   (%7.6f s/step)   (%6.f%%)\n\n",
 	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))      
       log(date(false):fmt()); log("\n") -- Time-stamp for sim end.
+
+      -- Perform other numerical/performance diagnostics.
+      devDiagnose()
 
       if file_exists(stopfile) then os.remove(stopfile) end -- Clean up.
    end

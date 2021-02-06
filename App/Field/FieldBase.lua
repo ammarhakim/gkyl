@@ -14,12 +14,14 @@ function FieldBase:init(tbl)
    self.isElliptic = false
 end
 function FieldBase:readRestart() end
+function FieldBase:printDevDiagnostics() end
 
 local ExternalFieldBase = Proto()
 function ExternalFieldBase:init(tbl)
    self.isElliptic = false
 end
 function ExternalFieldBase:readRestart() end
+function ExternalFieldBase:printDevDiagnostics() end
 
 -- NoField ---------------------------------------------------------------------
 --
@@ -60,6 +62,7 @@ function NoField:totalBcTime() return 0.0 end
 function NoField:energyCalcTime() return 0.0 end
 function NoField:copyRk() end
 function NoField:combineRk() end
+function NoField:printDevDiagnostics() end
 
 return {
    FieldBase         = FieldBase,
