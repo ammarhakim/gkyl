@@ -206,6 +206,7 @@ function GkField:initField(species)
    else
       -- Solve for initial phi.
       self:advance(0.0, species, 1, 1)
+      self:phiSolve(0.0, species, 1, 1)
    end
 
    local polyOrder = self.basis:polyOrder()
@@ -700,21 +701,6 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
          -- The conserved energy is defined in terms of this intermediate result,
          -- which we denote phiAux, before the final smoothing operation in z.
          self.phiSlvr:advance(tCurr, {self.chargeDens}, {potCurr.phiAux})
-         -- Smooth phi in z to ensure continuity in all directions.
-         if self.ndim == 3 and not self.discontinuousPhi then
-            self.phiZSmoother:advance(tCurr, {potCurr.phiAux}, {potCurr.phi})
-         else
-            potCurr.phi = potCurr.phiAux
-         end
-
-         -- Apply BCs.
-         local tmStart = Time.clock()
-         -- make sure phi is continuous across skin-ghost boundary
-         for _, bc in ipairs(self.boundaryConditions) do
-            bc:advance(tCurr, {}, {potCurr.phi})
-         end
-         potCurr.phi:sync(true)
-         self.bcTime = self.bcTime + (Time.clock()-tmStart)
  
          self._first = false
       end
@@ -723,6 +709,29 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
       if self.isElectromagnetic then 
          potRhs.apar:copy(potCurr.apar) 
       end
+   end
+end
+
+function GkField:phiSolve(tCurr, species, inIdx, outIdx)
+   local potCurr = self:rkStepperFields()[inIdx]
+   local potRhs  = self:rkStepperFields()[outIdx]
+   if self.evolve and not self.externalPhiTimeDependence then
+      self.phiSlvr:solve(tCurr, {self.chargeDens}, {potCurr.phiAux})
+      -- Smooth phi in z to ensure continuity in all directions.
+      if self.ndim == 3 and not self.discontinuousPhi then
+         self.phiZSmoother:advance(tCurr, {potCurr.phiAux}, {potCurr.phi})
+      else
+         potCurr.phi = potCurr.phiAux
+      end
+
+      -- Apply BCs.
+      local tmStart = Time.clock()
+      -- make sure phi is continuous across skin-ghost boundary
+      for _, bc in ipairs(self.boundaryConditions) do
+         bc:advance(tCurr, {}, {potCurr.phi})
+      end
+      potCurr.phi:sync(true)
+      self.bcTime = self.bcTime + (Time.clock()-tmStart)
    end
 end
 

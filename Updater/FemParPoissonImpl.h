@@ -46,6 +46,7 @@ extern "C" {
   void createParGlobalSrc(FemParPoisson* f, double* localSrcPtr, int idz, double intSrcVol);
   void zeroParGlobalSrc(FemParPoisson* f);
   void allreduceParGlobalSrc(FemParPoisson* f, MPI_Comm comm);
+  void waitForParGlobalSrcReduce(FemParPoisson* f, MPI_Comm comm);
   void allgatherParGlobalStiff(FemParPoisson* f, MPI_Comm comm);
   void getSolutionPar(FemParPoisson* f, double* localSolPtr, int idz);
   void getNodalSolutionPar(FemParPoisson* f, double* localSolPtr, int idz);
@@ -61,6 +62,7 @@ class FemParPoisson
   void createGlobalSrc(double* ptr, int idz, double intSrcVol);
   void zeroGlobalSrc();
   void allreduceGlobalSrc(MPI_Comm comm);
+  void waitForGlobalSrcReduce(MPI_Comm comm);
   void allgatherGlobalStiff(MPI_Comm comm);
   void makeGlobalParStiffnessMatrix(double *laplacianWeight, double *modifierWeight, int idz);
   void finishGlobalParStiffnessMatrix();
@@ -76,6 +78,8 @@ class FemParPoisson
   bcdataPar_t bc[2], bc1d[2];
   MPI_Datatype MPI_triplet_t;
   MPI_Op MPI_vectorSum_op;
+  MPI_Request srcAllReduceReq;
+  MPI_Status srcAllReduceStat;
   std::vector<Eigen::Triplet<double> > stiffTripletList;
   /** Eigen sparse matrix to store stiffness matrix */
   Eigen::SparseMatrix<double,Eigen::ColMajor> stiffMat;

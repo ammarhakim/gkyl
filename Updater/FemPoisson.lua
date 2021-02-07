@@ -135,8 +135,8 @@ end
 
 ---- advance method
 function FemPoisson:_advance(tCurr, inFld, outFld) 
-   -- special case where solve is just algebraic
    if self.ndim == 1 and not self.zContinuous and self.slvr._hasLaplacian == false then
+      -- special case where solve is just algebraic
       local src = inFld[1]
       local sol = outFld[1]
 
@@ -144,6 +144,10 @@ function FemPoisson:_advance(tCurr, inFld, outFld)
    else
       self.slvr:advance(tCurr, inFld, outFld)
    end
+end
+
+function FemPoisson:solve(tCurr, inFld, outFld) 
+   self.slvr:solve(tCurr, inFld, outFld)
 end
 
 function FemPoisson:setLaplacianWeight(weight)

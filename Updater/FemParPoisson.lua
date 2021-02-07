@@ -44,6 +44,7 @@ ffi.cdef[[
   void finishParGlobalStiff(FemParPoisson* f);
   void createParGlobalSrc(FemParPoisson* f, double* localSrcPtr, int idz, double intSrcVol);
   void allreduceParGlobalSrc(FemParPoisson* f, MPI_Comm comm);
+  void waitForParGlobalSrcReduce(FemParPoisson* f, MPI_Comm comm);
   void allgatherParGlobalStiff(FemParPoisson* f, MPI_Comm comm);
   void zeroParGlobalSrc(FemParPoisson* f);
   void solvePar(FemParPoisson* f);
@@ -190,49 +191,13 @@ end
 function FemParPoisson:bcType(side) return self._bc[side].type end
 function FemParPoisson:bcValue(side) return self._bc[side].value end
 
----- advance method
-function FemParPoisson:_advance(tCurr, inFld, outFld) 
-   local tmAdStart = Time.clock()
+function FemParPoisson:assemble(src)
+   -- Assemble the right-side source vector and, if necessary, the stiffness matrix.
+   local ndim = self._ndim
    local grid = self._grid
    local basis = self._basis
 
-   local src = assert(inFld[1], "FemParPoisson.advance: Must specify an input field")
-   local sol = assert(outFld[1], "FemParPoisson.advance: Must specify an output field")
-
-   local ndim = self._ndim
-
    local localRange = src:localRange()
-
-   if self._first then 
-
-      -- Create region that is effectively 1d and global in z directions.
-      self.local_xy_lower = {1, 1}
-      self.local_xy_upper = {1, 1}
-      for d = 1, self._ndim-1 do
-         self.local_xy_lower[d] = localRange:lower(d)
-         self.local_xy_upper[d] = localRange:upper(d)
-      end
-
-      -- Create indexers and pointers for src and sol.
-      self.srcIndexer = src:indexer() 
-      self.srcPtr = src:get(1)
-      self.solIndexer = sol:indexer() 
-      self.solPtr = sol:get(1)
-      self.laplacianWeightIndexer = self.laplacianWeight:indexer() 
-      self.laplacianWeightPtr = self.laplacianWeight:get(1)
-      self.modifierWeightIndexer = self.modifierWeight:indexer() 
-      self.modifierWeightPtr = self.modifierWeight:get(1)
-      if self._hasModifier == false and self._hasLaplacian == false then 
-         if self._smooth then 
-           self.modifierWeight:copy(self.unitWeight) 
-           self._hasModifier = true
-         else 
-           self.laplacianWeight:copy(self.unitWeight)
-           self._hasLaplacian = true
-         end
-      end
-      if self._periodic and self._hasModifier == false then self._adjustSource = true end
-   end
 
    local intSrcVol = {0.0}
    -- if all directions periodic need to adjust source so that integral is 0 
@@ -254,9 +219,7 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
 
    -- loop over local x-y cells
    for idx=self.local_xy_lower[1], self.local_xy_upper[1] do
-     if self._first then
-       self._poisson[idx] = {}
-     end
+     if self._first then self._poisson[idx] = {} end
      for idy=self.local_xy_lower[2], self.local_xy_upper[2] do
        if self._first then
          -- if first time, create poisson C object for each z cell
@@ -315,6 +278,24 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
           ffiC.finishParGlobalStiff(self._poisson[idx][idy])
           self.timers.stiffFinish = self.timers.stiffFinish + Time.clock() - tmStiffStart 
        end
+     end
+   end
+end
+
+function FemParPoisson:doSolve(src, sol)
+   local ndim = self._ndim
+   local localRange = src:localRange()
+
+   -- Perform the linear solve and get the local solution.
+   for idx=self.local_xy_lower[1], self.local_xy_upper[1] do
+     for idy=self.local_xy_lower[2], self.local_xy_upper[2] do
+       if GKYL_HAVE_MPI and Mpi.Comm_size(self._xycomm)>1 then
+         local tmStart = Time.clock()
+         -- Wait for the sum of each proc's globalSrc to get final globalSrc.
+         ffiC.waitForParGlobalSrcReduce(self._poisson[idx][idy], Mpi.getComm(self._xycomm))
+         self.timers.srcReduce = self.timers.srcReduce + Time.clock() - tmStart 
+       end
+
        -- solve 
        local tmSolStart = Time.clock()
        ffiC.solvePar(self._poisson[idx][idy])
@@ -334,11 +315,67 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
        self.timers.getSol = self.timers.getSol + Time.clock() - tmGetStart 
      end
    end
+end
+
+---- advance method
+function FemParPoisson:_advance(tCurr, inFld, outFld) 
+   local tmAdStart = Time.clock()
+
+   local src = assert(inFld[1], "FemParPoisson.advance: Must specify an input field")
+   local sol = assert(outFld[1], "FemParPoisson.advance: Must specify an output field")
+
+   local ndim = self._ndim
+
+   local localRange = src:localRange()
+
+   if self._first then 
+      -- Create region that is effectively 1d and global in z directions.
+      self.local_xy_lower = {1, 1}
+      self.local_xy_upper = {1, 1}
+      for d = 1, self._ndim-1 do
+         self.local_xy_lower[d] = localRange:lower(d)
+         self.local_xy_upper[d] = localRange:upper(d)
+      end
+
+      -- Create indexers and pointers for src and sol.
+      self.srcIndexer = src:indexer() 
+      self.solIndexer = sol:indexer() 
+      self.srcPtr = src:get(1)
+      self.solPtr = sol:get(1)
+      self.laplacianWeightIndexer = self.laplacianWeight:indexer() 
+      self.laplacianWeightPtr = self.laplacianWeight:get(1)
+      self.modifierWeightIndexer = self.modifierWeight:indexer() 
+      self.modifierWeightPtr = self.modifierWeight:get(1)
+      if self._hasModifier == false and self._hasLaplacian == false then 
+         if self._smooth then 
+           self.modifierWeight:copy(self.unitWeight) 
+           self._hasModifier = true
+         else 
+           self.laplacianWeight:copy(self.unitWeight)
+           self._hasLaplacian = true
+         end
+      end
+      if self._periodic and self._hasModifier == false then self._adjustSource = true end
+   end
+
+   -- Assemble the right-side source vector and, if needed, the stiffness matrix.
+   self:assemble(src)
+
+   -- Compute and obtain the local solution.
+--   self:doSolve(src, sol)
 
    self._first = false
    -- reset makeStiff flag to false, until stiffness matrix changes again
    self._makeStiff = false
    self.timers.advanceTot = self.timers.advanceTot + Time.clock() - tmAdStart 
+end
+
+function FemParPoisson:solve(tCurr, inFld, outFld)
+   local src = assert(inFld[1], "FemParPoisson.advance: Must specify an input field")
+   local sol = assert(outFld[1], "FemParPoisson.advance: Must specify an output field")
+
+   -- Compute and obtain the local solution.
+   self:doSolve(src, sol)
 end
 
 function FemParPoisson:setLaplacianWeight(weight)
