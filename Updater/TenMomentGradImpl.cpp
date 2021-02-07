@@ -23,16 +23,16 @@ gkylTenMomentHeatFlux(const double alpha, const double* dT1, const double* dT2, 
   double p = (pxx+pyy+pzz)/3.0;
   double vt = std::sqrt(p/r);
 
-  q[Q111] = alpha*vt*r*(dT1[T11] + dT1[T11] + dT1[T11]);
-  q[Q112] = alpha*vt*r*(dT1[T12] + dT1[T12] + dT2[T11]);
-  q[Q113] = alpha*vt*r*(dT1[T13] + dT1[T13] + dT3[T11]);
-  q[Q122] = alpha*vt*r*(dT1[T22] + dT2[T12] + dT2[T12]);
-  q[Q123] = alpha*vt*r*(dT1[T23] + dT2[T13] + dT3[T12]);
-  q[Q133] = alpha*vt*r*(dT1[T33] + dT3[T13] + dT3[T13]); 
-  q[Q222] = alpha*vt*r*(dT2[T22] + dT2[T22] + dT2[T22]);
-  q[Q223] = alpha*vt*r*(dT2[T23] + dT2[T23] + dT3[T22]);
-  q[Q233] = alpha*vt*r*(dT2[T33] + dT3[T23] + dT3[T23]);
-  q[Q333] = alpha*vt*r*(dT3[T33] + dT3[T33] + dT3[T33]);
+  q[Q111] = alpha*vt*r*(dT1[T11] + dT1[T11] + dT1[T11])/3.0;
+  q[Q112] = alpha*vt*r*(dT1[T12] + dT1[T12] + dT2[T11])/3.0;
+  q[Q113] = alpha*vt*r*(dT1[T13] + dT1[T13] + dT3[T11])/3.0;
+  q[Q122] = alpha*vt*r*(dT1[T22] + dT2[T12] + dT2[T12])/3.0;
+  q[Q123] = alpha*vt*r*(dT1[T23] + dT2[T13] + dT3[T12])/3.0;
+  q[Q133] = alpha*vt*r*(dT1[T33] + dT3[T13] + dT3[T13])/3.0; 
+  q[Q222] = alpha*vt*r*(dT2[T22] + dT2[T22] + dT2[T22])/3.0;
+  q[Q223] = alpha*vt*r*(dT2[T23] + dT2[T23] + dT3[T22])/3.0;
+  q[Q233] = alpha*vt*r*(dT2[T33] + dT3[T23] + dT3[T23])/3.0;
+  q[Q333] = alpha*vt*r*(dT3[T33] + dT3[T33] + dT3[T33])/3.0;
 }
 
 void 
@@ -111,7 +111,7 @@ gkylTenMomentDivQY(const double* dxv, const double* qL, const double* qR, double
 void
 gkylTenMomentDivQZ(const double* dxv, const double* qL, const double* qR, double* divQ)
 {
-  // fetch grid spacing in y direction
+  // fetch grid spacing in z direction
   const double dx = dxv[2];
   divQ[0] = 0.5*(qR[Q113] - qL[Q113])/dx;
   divQ[1] = 0.5*(qR[Q123] - qL[Q123])/dx;

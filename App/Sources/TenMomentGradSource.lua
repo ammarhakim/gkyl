@@ -74,8 +74,8 @@ function TenMomentGradSource:createSolver(species, field)
    -- Array with ten components per cell to store symmetrized heat flux.
    self.q = DataStruct.Field {
       onGrid = self.grid,
-      numComponents = 1,
-      ghost = {1, 1},
+      numComponents = 10,
+      ghost = {2, 2},
    }
    self.q:clear(0.0)
 end

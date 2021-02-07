@@ -145,12 +145,12 @@ momentApp = Moments.App {
 
    elc10mSource = Moments.TenMomentGradSource {
       species = {"elc"},
-      alpha = 0.01,
+      alpha = de0,
    },
 
    ion10mSource = Moments.TenMomentGradSource {
       species = {"ion"},
-      alpha = 0.01,
+      alpha = di0,
    },
 }
 
