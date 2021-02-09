@@ -13,12 +13,9 @@ void
 gkylTenMomentHeatFlux(const double alpha, const double* dT1, const double* dT2, const double* dT3, const double* f, double* q)
 {
   double r = f[0];
-  double u = f[1]/r;
-  double v = f[2]/r;
-  double w = f[3]/r;
-  double pxx = f[4]-r*u*u;
-  double pyy = f[7]-r*v*v;
-  double pzz = f[9]-r*w*w;
+  double pxx = f[4];
+  double pyy = f[7];
+  double pzz = f[9];
 
   double p = (pxx+pyy+pzz)/3.0;
   double vt = std::sqrt(p/r);
@@ -36,15 +33,15 @@ gkylTenMomentHeatFlux(const double alpha, const double* dT1, const double* dT2, 
 }
 
 void 
-gkylTenMomentAccumulateGradClosure(const double dt, const double* divQ1, const double* divQ2, const double* divQ3, double* f)
+gkylTenMomentAccumulateGradClosure(const double* divQ1, const double* divQ2, const double* divQ3, double* f)
 {
   // compute updated pressure tensor component
-  f[4] += dt*(divQ1[0] + divQ2[0] + divQ3[0]);
-  f[5] += dt*(divQ1[1] + divQ2[1] + divQ3[1]);
-  f[6] += dt*(divQ1[2] + divQ2[2] + divQ3[2]);
-  f[7] += dt*(divQ1[3] + divQ2[3] + divQ3[3]);
-  f[8] += dt*(divQ1[4] + divQ2[4] + divQ3[4]);
-  f[9] += dt*(divQ1[5] + divQ2[5] + divQ3[5]);
+  f[4] = (divQ1[0] + divQ2[0] + divQ3[0]);
+  f[5] = (divQ1[1] + divQ2[1] + divQ3[1]);
+  f[6] = (divQ1[2] + divQ2[2] + divQ3[2]);
+  f[7] = (divQ1[3] + divQ2[3] + divQ3[3]);
+  f[8] = (divQ1[4] + divQ2[4] + divQ3[4]);
+  f[9] = (divQ1[5] + divQ2[5] + divQ3[5]);
 }
 
 void
@@ -53,26 +50,20 @@ gkylTenMomentGradT(const int dir, const double* dxv, const double* fL, const dou
   // fetch grid spacing in given direction
   const double dx = dxv[dir];
   double rL = fL[0];
-  double uL = fL[1]/rL;
-  double vL = fL[2]/rL;
-  double wL = fL[3]/rL;
-  double TxxL = (fL[4]-rL*uL*uL)/rL;
-  double TxyL = (fL[5]-rL*uL*vL)/rL;
-  double TxzL = (fL[6]-rL*uL*wL)/rL;
-  double TyyL = (fL[7]-rL*vL*vL)/rL;
-  double TyzL = (fL[8]-rL*vL*wL)/rL;
-  double TzzL = (fL[9]-rL*wL*wL)/rL;
+  double TxxL = fL[4]/rL;
+  double TxyL = fL[5]/rL;
+  double TxzL = fL[6]/rL;
+  double TyyL = fL[7]/rL;
+  double TyzL = fL[8]/rL;
+  double TzzL = fL[9]/rL;
 
   double rR = fR[0];
-  double uR = fR[1]/rR;
-  double vR = fR[2]/rR;
-  double wR = fR[3]/rR;
-  double TxxR = (fR[4]-rR*uR*uR)/rR;
-  double TxyR = (fR[5]-rR*uR*vR)/rR;
-  double TxzR = (fR[6]-rR*uR*wR)/rR;
-  double TyyR = (fR[7]-rR*vR*vR)/rR;
-  double TyzR = (fR[8]-rR*vR*wR)/rR;
-  double TzzR = (fR[9]-rR*wR*wR)/rR;
+  double TxxR = fR[4]/rR;
+  double TxyR = fR[5]/rR;
+  double TxzR = fR[6]/rR;
+  double TyyR = fR[7]/rR;
+  double TyzR = fR[8]/rR;
+  double TzzR = fR[9]/rR;
 
   dT[0] = 0.5*(TxxR - TxxL)/dx;
   dT[1] = 0.5*(TxyR - TxyL)/dx;

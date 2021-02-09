@@ -33,18 +33,33 @@ lambda = lambdaOverDi0 * di0
 -- domain size
 Lx = 25.6 * di0
 Ly = 12.8 * di0
+Nx = 64
+Ny = 32
 
+cfl = 1.0
+tEnd = 25.0/OmegaCi0
+
+-- Estimate size of diffusive step for super-time-stepping
+dMin = math.min( Lx/Nx, Ly/Ny )
+dtHyp = cfl*dMin/lightSpeed
+alpha_e = de0  
+alpha_i = di0 
+dtDiff_e = 0.25*dMin^2/(alpha_e*VAe*math.sqrt(1.0/6.0))
+dtDiff_i = 0.25*dMin^2/(alpha_i*Valf*math.sqrt(5.0/6.0))
+dtRatio_e = dtHyp/dtDiff_e
+dtRatio_i = dtHyp/dtDiff_i
 print("Valf/c", Valf/lightSpeed)
-
+print("dtRatio_e", dtRatio_e)
+print("dtRatio_i", dtRatio_i)
 momentApp = Moments.App {
    logToFile = true,
 
-   cfl = 0.9,
-   tEnd = 25.0/OmegaCi0,
+   cfl = cfl,
+   tEnd = tEnd,
    nFrame = 1,
    lower = {-Lx/2, -Ly/2},
    upper = {Lx/2, Ly/2},
-   cells = {64, 32},
+   cells = {Nx, Ny},
    timeStepper = "fvDimSplit",
 
    -- decomposition for configuration space
@@ -63,26 +78,26 @@ momentApp = Moments.App {
       forceInv = false,
       -- initial conditions
       init = function (t, xn)
-    local x, y = xn[1], xn[2]
+         local x, y = xn[1], xn[2]
 
-    local TeFrac = 1.0/(1.0 + TiOverTe)
-    local sech2 = (1.0/math.cosh(y/lambda))^2
-    local n = n0*(sech2 + nbOverN0)
-    local Jz = -(B0/lambda)*sech2
-    local Ttotal = plasmaBeta*(B0*B0)/2.0/n0
+         local TeFrac = 1.0/(1.0 + TiOverTe)
+         local sech2 = (1.0/math.cosh(y/lambda))^2
+         local n = n0*(sech2 + nbOverN0)
+         local Jz = -(B0/lambda)*sech2
+         local Ttotal = plasmaBeta*(B0*B0)/2.0/n0
 
-    local rhoe = n*elcMass
-    local ezmom = (elcMass/elcCharge)*Jz*TeFrac
-    local pre = n*Ttotal*TeFrac
-    
-    local pxxe = pre
-    local pxye = 0.
-    local pxze = 0.
-    local pyye = pre
-    local pyze = 0.
-    local pzze = pre + ezmom*ezmom/rhoe
-    
-    return rhoe, 0.0, 0.0, ezmom, pxxe, pxye, pxze, pyye, pyze, pzze
+         local rhoe = n*elcMass
+         local ezmom = (elcMass/elcCharge)*Jz*TeFrac
+         local pre = n*Ttotal*TeFrac
+
+         local pxxe = pre
+         local pxye = 0.
+         local pxze = 0.
+         local pyye = pre
+         local pyze = 0.
+         local pzze = pre + ezmom*ezmom/rhoe
+
+         return rhoe, 0.0, 0.0, ezmom, pxxe, pxye, pxze, pyye, pyze, pzze
       end,
       evolve = true, -- evolve species?
       bcy = { TenMoment.bcWall, TenMoment.bcWall },
@@ -97,26 +112,26 @@ momentApp = Moments.App {
       forceInv = false,
       -- initial conditions
       init = function (t, xn)
-    local x, y = xn[1], xn[2]
+         local x, y = xn[1], xn[2]
 
-    local TiFrac = TiOverTe/(1.0 + TiOverTe)
-    local sech2 = (1.0/math.cosh(y/lambda))^2
-    local n = n0*(sech2 + nbOverN0)
-    local Jz = -(B0/lambda)*sech2
-    local Ttotal = plasmaBeta*(B0*B0)/2.0/n0
+         local TiFrac = TiOverTe/(1.0 + TiOverTe)
+         local sech2 = (1.0/math.cosh(y/lambda))^2
+         local n = n0*(sech2 + nbOverN0)
+         local Jz = -(B0/lambda)*sech2
+         local Ttotal = plasmaBeta*(B0*B0)/2.0/n0
 
-    local rhoi = n*ionMass
-    local izmom = (ionMass/ionCharge)*Jz*TiFrac
-    local pri = n*Ttotal*TiFrac
-    
-    local pxxi = pri
-    local pxyi = 0.
-    local pxzi = 0.
-    local pyyi = pri
-    local pyzi = 0.
-    local pzzi = pri + izmom*izmom/rhoi
-    
-    return rhoi, 0.0, 0.0, izmom, pxxi, pxyi, pxzi, pyyi, pyzi, pzzi
+         local rhoi = n*ionMass
+         local izmom = (ionMass/ionCharge)*Jz*TiFrac
+         local pri = n*Ttotal*TiFrac
+
+         local pxxi = pri
+         local pxyi = 0.
+         local pxzi = 0.
+         local pyyi = pri
+         local pyzi = 0.
+         local pzzi = pri + izmom*izmom/rhoi
+
+         return rhoi, 0.0, 0.0, izmom, pxxi, pxyi, pxzi, pyyi, pyzi, pzzi
       end,
       evolve = true, -- evolve species?
       bcy = { Moments.Species.bcWall, Moments.Species.bcWall },
@@ -125,14 +140,14 @@ momentApp = Moments.App {
    field = Moments.Field {
       epsilon0 = 1.0, mu0 = 1.0,
       init = function (t, xn)
-    local x, y = xn[1], xn[2]
+         local x, y = xn[1], xn[2]
 
-    local Bxb = B0 * math.tanh(y / lambda) 
-    local Bx = Bxb - psi0 *(math.pi / Ly) * math.cos(2 * math.pi * x / Lx) * math.sin(math.pi * y / Ly) 
-    local By = psi0 * (2 * math.pi / Lx) * math.sin(2 * math.pi * x / Lx) * math.cos(math.pi * y / Ly)
-    local Bz = 0.0
+         local Bxb = B0 * math.tanh(y / lambda) 
+         local Bx = Bxb - psi0 *(math.pi / Ly) * math.cos(2 * math.pi * x / Lx) * math.sin(math.pi * y / Ly) 
+         local By = psi0 * (2 * math.pi / Lx) * math.sin(2 * math.pi * x / Lx) * math.cos(math.pi * y / Ly)
+         local Bz = 0.0
 
-    return 0.0, 0.0, 0.0, Bx, By, Bz
+         return 0.0, 0.0, 0.0, Bx, By, Bz
       end,
       evolve = true, -- evolve field?
       bcy = { Moments.Field.bcReflect, Moments.Field.bcReflect },
@@ -145,12 +160,14 @@ momentApp = Moments.App {
 
    elc10mSource = Moments.TenMomentGradSource {
       species = {"elc"},
-      alpha = de0,
+      alpha = alpha_e,
+      dtRatio = dtRatio_e,
    },
 
    ion10mSource = Moments.TenMomentGradSource {
       species = {"ion"},
-      alpha = di0,
+      alpha = alpha_i,
+      dtRatio = dtRatio_i,
    },
 }
 

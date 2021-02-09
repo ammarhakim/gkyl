@@ -5,6 +5,8 @@
 -- where [_i A_{jk}] is the symmetrization operator
 -- NOTE: This updater computes only the RHS, i.e., \partial_k q_{ijk} 
 -- with a second order central difference
+-- ADDITIONAL NOTE: gradient-based closure only affects pressure tensor, NOT 
+-- full stress tensor -> updater expects to receive primitive variables (just P_{ij})
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -21,7 +23,7 @@ local ffi = require "ffi"
 -- Define C types for storing private data for use in updater
 ffi.cdef [[
 void gkylTenMomentHeatFlux(const double alpha, const double* dT1, const double* dT2, const double* dT3, const double* f, double* q);
-void gkylTenMomentAccumulateGradClosure(const double dt, const double* divQ1, const double* divQ2, const double* divQ3, double* f);
+void gkylTenMomentAccumulateGradClosure(const double* divQ1, const double* divQ2, const double* divQ3, double* f);
 void gkylTenMomentGradT(const int dir, const double* dxv, const double* fL, const double* fR, double* dT);
 void gkylTenMomentDivQX(const double* dxv, const double* qL, const double* qR, double* divQ);
 void gkylTenMomentDivQY(const double* dxv, const double* qL, const double* qR, double* divQ);
@@ -34,8 +36,8 @@ local function heatFlux(alpha, dT1, dT2, dT3, fPtr, qPtr)
 end
 
 -- Function to accumulate the resulting divergence of the heat flux onto the stress tensor
-local function accumulateGradClosure(dt, divQ1, divQ2, divQ3, fPtr)
-   ffi.C.gkylTenMomentAccumulateGradClosure(dt, divQ1, divQ2, divQ3, fPtr)
+local function accumulateGradClosure(divQ1, divQ2, divQ3, fPtr)
+   ffi.C.gkylTenMomentAccumulateGradClosure(divQ1, divQ2, divQ3, fPtr)
 end
 
 -- Function to compute the gradient of the temperature tensor in a direction 'dir'
@@ -89,7 +91,7 @@ end
 function TenMomentGrad:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
    local ndim = self._ndim
-   local dt = self._dt
+
    -- additional coefficient for the strength of "thermal conductivity"
    -- alpha has units of length to make units of heat flux work 
    local alpha = self._alpha
@@ -97,11 +99,12 @@ function TenMomentGrad:_advance(tCurr, inFld, outFld)
    -- NOTE: the inFld is a temporary array used to store the heat flux
    -- the outFld is the incremented source term
    -- Because this update is in-place, the outFld also contains the necessary input information (e.g. pressure at previous time-step)
-   local q = assert(inFld[1], "TenMomentGrad.advance: Must specify an input field")
-   local f = assert(outFld[1], "TenMomentGrad.advance: Must specify an output field")
+   local f =  assert(inFld[1], "TenMomentGrad.advance: Must specify an input field")
+   local q = assert(inFld[2], "TenMomentGrad.advance: Must specify an input field")
+   local diff = assert(outFld[1], "TenMomentGrad.advance: Must specify an output field")
 
    local localRange = f:localRange()
-   local qIdxr, fIdxr = q:genIndexer(), f:genIndexer() -- indexer functions into fields
+   local qIdxr, fIdxr, diffIdxr = q:genIndexer(), f:genIndexer(), diff:genIndexer() -- indexer functions into fields
 
    -- to store grid info
    local dx = Lin.Vec(ndim) -- cell shape on left/center/right
@@ -110,6 +113,7 @@ function TenMomentGrad:_advance(tCurr, inFld, outFld)
    -- pointers for (re)use in update
    local qL, qC, qR = q:get(1), q:get(1), q:get(1)
    local fL, fC, fR = f:get(1), f:get(1), f:get(1)
+   local diffC = diff:get(1)
    -- clear the inFld that will be used to store the heat fluxes before beginning loops
    q:clear(0.0)
    -- zero out helper arrays before start of loop
@@ -141,6 +145,7 @@ function TenMomentGrad:_advance(tCurr, inFld, outFld)
          f:fill(fIdxr(idxl), fL)
          f:fill(fIdxr(idxr), fR)
          -- Store the gradient of the temperature tensor in each direction
+         -- NOTE: Functions expect to be passed PRIMITIVE variables
          if dir == 1 then
             self._gradT(dir-1, dx:data(), fL:data(), fR:data(), self._dT1:data()) 
          elseif dir == 2 then
@@ -165,7 +170,7 @@ function TenMomentGrad:_advance(tCurr, inFld, outFld)
       grid:setIndex(idxc)
       grid:getDx(dx)
       q:fill(qIdxr(idxc), qC)
-      f:fill(fIdxr(idxc), fC)
+      diff:fill(diffIdxr(idxc), diffC)
 
       -- loop over directions for the update 
       for dir = 1, ndim do
@@ -187,8 +192,8 @@ function TenMomentGrad:_advance(tCurr, inFld, outFld)
             self._divQZ(dx:data(), qL:data(), qR:data(), self._divQ3:data())  
          end 
       end
-      -- Accumulate the components of the divergence multiplied by dt onto the stress tensor to advance the solution in time.
-      self._accumulateGradClosure(dt, self._divQ1:data(), self._divQ2:data(), self._divQ3:data(), fC:data())
+      -- Accumulate the components of the divergence
+      self._accumulateGradClosure(self._divQ1:data(), self._divQ2:data(), self._divQ3:data(), diffC:data())
    end
    return true, GKYL_MAX_DOUBLE
 end

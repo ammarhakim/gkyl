@@ -33,7 +33,7 @@ extern "C" {
    /* Helper function to obtain symmetrized heat flux */  
    void gkylTenMomentHeatFlux(const double alpha, const double* dT1, const double* dT2, const double* dT3, const double* f, double* q);
    /* Helper function to accumulate divergence of the heat flux tensor onto corresponding components of the stress tensor */
-   void gkylTenMomentAccumulateGradClosure(const double dt, const double* divQ1, const double* divQ2, const double* divQ3, double* f);
+   void gkylTenMomentAccumulateGradClosure(const double* divQ1, const double* divQ2, const double* divQ3, double* f);
    /* Compute the gradient of the temperature tensor in direction dir */
    void gkylTenMomentGradT(const int dir, const double* dxv, const double* fL, const double* fR, double* dT);
    /* Compute the components of the divergence of the heat flux tensor in X, Y, and Z */

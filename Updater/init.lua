@@ -43,6 +43,7 @@ local SeparateVectorComponents = require "Updater.SeparateVectorComponents"
 local SolidSurface = require "Updater.SolidSurface"
 local SpitzerCollisionality = require "Updater.SpitzerCollisionality"
 local StairSteppedBc = require "Updater.StairSteppedBc"
+local TenMomentConservToPrim = require "Updater.TenMomentConservToPrim"
 local TenMomentGrad = require "Updater.TenMomentGrad"
 local TenMomentRelax = require "Updater.TenMomentRelax"
 local TenMomentSrc = require "Updater.TenMomentSrc"
@@ -86,6 +87,7 @@ return {
    SolidSurface = SolidSurface,
    SpitzerCollisionality = SpitzerCollisionality,
    StairSteppedBc = StairSteppedBc,
+   TenMomentConservToPrim = TenMomentConservToPrim,
    TenMomentGrad = TenMomentGrad,
    TenMomentRelax = TenMomentRelax,
    TenMomentSrc = TenMomentSrc,

@@ -39,12 +39,12 @@ print("Valf/c", Valf/lightSpeed)
 momentApp = Moments.App {
    logToFile = true,
 
-   cfl = 0.9,
+   cfl = 1.0,
    tEnd = 25.0/OmegaCi0,
    nFrame = 1,
    lower = {-Lx/2, -Ly/2},
    upper = {Lx/2, Ly/2},
-   cells = {64, 32},
+   cells = {128, 64},
    timeStepper = "fvDimSplit",
 
    -- decomposition for configuration space
