@@ -18,6 +18,7 @@ extern "C" {
 
     // sInp/sOut: start index for input/output fields. nCells: number of cells being looped over. 
     // compStart: starting component for offset. nCompInp/nCompOut: input/output field's number of components.
+    void gkylCartFieldAssignOffset(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out);
     void gkylCartFieldAccumulateOffset(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out);
 
     // ncopy: number of components to copy (size of cInp and cOut arrays)

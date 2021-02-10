@@ -56,6 +56,7 @@ ffi.cdef [[
 
     // sInp/sOut: start index for input/output fields. nCells: number of cells being looped over. 
     // compStart: starting component for offset. nCompInp/nCompOut: input/output field's number of components.
+    void gkylCartFieldAssignOffset(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out);
     void gkylCartFieldAccumulateOffset(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out);
 
     void gkylCartFieldDeviceAccumulate(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, const double *inp, double *out);
@@ -479,6 +480,9 @@ local function Field_meta_ctor(elct)
       copy = function (self, fIn)
 	 self:_assign(1.0, fIn)
       end,
+      copyOffset = function (self, fIn, compStart)
+        self:_assignOffset(1.0, fIn, compStart)
+      end,
       deviceCopy = function (self, fIn)
          if self._devAllocData then
 	    self:_deviceAssign(1.0, fIn)
@@ -531,6 +535,19 @@ local function Field_meta_ctor(elct)
 	 assert(type(fact) == "number", "CartField:assign: Factor not a number")
 
 	 ffiC.gkylCartFieldAssign(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
+      end,
+      _assignOffset = function(self, fact, fld, compStart)
+   assert(field_check_range(self, fld),
+    "CartField:assignOffset: Can only assign fields with the same range")
+   assert(type(fact) == "number",
+    "CartField:assignOffset: Factor not a number")
+         assert(self:layout() == fld:layout(),
+    "CartField:assignOffset: Fields should have same layout for assignment to make sense")
+
+         -- Get number of cells for outer loop.
+         -- We do not need to use an indexer since we are simply accumulating cell-wise a subset of the components.
+         local numCells = self:_localShape()/self:numComponents()
+	 ffiC.gkylCartFieldAssignOffset(fld:_localLower(), self:_localLower(), numCells, compStart, fld:numComponents(), self:numComponents(), fact, fld._data, self._data)
       end,
       _deviceAssign = function(self, fact, fld)
 	 assert(field_compatible(self, fld), "CartField:deviceAssign: Can only accumulate compatible fields")
@@ -658,6 +675,18 @@ local function Field_meta_ctor(elct)
             for i = 1, nFlds do -- accumulate rest of the fields
                self:_accumulateOneFld(args[2*i-1], args[2*i])
             end
+         end or
+         function (self, c1, fld1, ...)
+            assert(false, "CartField:combine: Combine only works on numeric fields")
+         end,
+      combineOffset = isNumberType and
+         function (self, c1, fld1, compStart1, ...)
+            local args = {...} -- package up rest of args as table
+            local nFlds = #args/3
+            self:_assignOffset(c1, fld1, compStart1) -- assign first field
+	    for i = 1, nFlds do -- accumulate rest of the fields
+	       self:_accumulateOffsetOneFld(args[3*i-2], args[3*i-1], args[3*i])
+	    end
          end or
          function (self, c1, fld1, ...)
             assert(false, "CartField:combine: Combine only works on numeric fields")

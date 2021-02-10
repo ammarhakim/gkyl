@@ -99,11 +99,6 @@ function TenMomentGradSource:createSolver(species, field)
       numComponents = 10,
       ghost = {2, 2},
    }
-   self.qJ = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = 10,
-      ghost = {2, 2},
-   }
    self.qJ1 = DataStruct.Field {
       onGrid = self.grid,
       numComponents = 10,
@@ -112,6 +107,12 @@ function TenMomentGradSource:createSolver(species, field)
    self.qJ2 = DataStruct.Field {
       onGrid = self.grid,
       numComponents = 10,
+      ghost = {2, 2},
+   }
+   -- six component array for advancing solution in time without affecting other components
+   self.qJ = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = 6,
       ghost = {2, 2},
    }
    self.qDiff0:clear(0.0)
@@ -181,16 +182,16 @@ function TenMomentGradSource:updateSource(tCurr, dt, speciesVar, fieldVar)
 
    -- rest of stages
    for j = 2, numStages do
-      qIn:sync()
-      self.slvr:advance(tCurr, {qIn, self.q}, {self.qDiff})
-      self.qJ:combine(mu(j), self.qJ1, nu(j), self.qJ2, 1-mu(j)-nu(j), qIn,
-      mubar(numStages,j)*dt, self.qDiff, gbar(numStages,j)*dt, self.qDiff0)
+      self.qJ1:sync()
+      self.slvr:advance(tCurr, {self.qJ1, self.q}, {self.qDiff})
+      self.qJ:combineOffset(mu(j), self.qJ1, 4, nu(j), self.qJ2, 4, 1-mu(j)-nu(j), qIn, 4,
+      mubar(numStages,j)*dt, self.qDiff, 4, gbar(numStages,j)*dt, self.qDiff0, 4)
 
       -- reset fields for next stage
       self.qJ2:copy(self.qJ1)
-      self.qJ1:copy(self.qJ)
+      self.qJ1:copyOffset(self.qJ, 4)
    end
-   qIn:copy(self.qJ)
+   qIn:copy(self.qJ1)
    -- Add the Reynolds stress (n u_i u_j) back into the result
    self.PrimToConserv:advance(tCurr, {}, {qIn})   
    qIn:sync()
