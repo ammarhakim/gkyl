@@ -214,11 +214,17 @@ local function buildApplication(self, tbl)
       end
    end
 
+   -- Create a keys entry in sources so we always loop in the same order.
+   local sources_keys = {}
+   for k in pairs(sources) do table.insert(sources_keys, k) end
+   table.sort(sources_keys)
+   setmetatable(sources, sources_keys)
+
    -- Add grid to app object.
    self._confGrid = confGrid
 
    -- Set conf grid for each source.
-   for _, s in pairs(sources) do
+   for _, s in lume.orderedIter(sources) do
       s:setConfGrid(confGrid)
    end   
 
@@ -292,7 +298,7 @@ local function buildApplication(self, tbl)
    end
 
    -- Initialize source solvers.
-   for nm, s in pairs(sources) do
+   for nm, s in lume.orderedIter(sources) do
       s:createSolver(species, field)
    end   
 
@@ -555,21 +561,21 @@ local function buildApplication(self, tbl)
       local tryInv_next = {}
       -- Update species.
       for _, s in lume.orderedIter(species) do
-	 local vars = s:rkStepperFields()
-	 local inp, out = vars[fIdx[dir][1]], vars[fIdx[dir][2]]
-	 local myStatus, myDtSuggested, myTryInv = s:updateInDirection(
-	    dir, tCurr, dt, inp, out, tryInv[s])
-	 tryInv_next[s] = myTryInv
-	 status =  status and myStatus
-	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+         local vars = s:rkStepperFields()
+         local inp, out = vars[fIdx[dir][1]], vars[fIdx[dir][2]]
+         local myStatus, myDtSuggested, myTryInv = s:updateInDirection(
+         dir, tCurr, dt, inp, out, tryInv[s])
+         tryInv_next[s] = myTryInv
+         status =  status and myStatus
+         dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
       do
-	 -- Update field.
-	 local vars = field:rkStepperFields()
-	 local inp, out = vars[fIdx[dir][1]], vars[fIdx[dir][2]]
-	 local myStatus, myDtSuggested = field:updateInDirection(dir, tCurr, dt, inp, out)
-	 status =  status and myStatus
-	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+         -- Update field.
+         local vars = field:rkStepperFields()
+         local inp, out = vars[fIdx[dir][1]], vars[fIdx[dir][2]]
+         local myStatus, myDtSuggested = field:updateInDirection(dir, tCurr, dt, inp, out)
+         status =  status and myStatus
+         dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
 
       return status, dtSuggested, tryInv_next
@@ -580,17 +586,17 @@ local function buildApplication(self, tbl)
       -- Make list of species data to operate on.
       local speciesVar = {}
       for nm, s in lume.orderedIter(species) do
-	 speciesVar[nm] = s:rkStepperFields()[dataIdx]
+         speciesVar[nm] = s:rkStepperFields()[dataIdx]
       end
       -- Field data to operate on.
       local fieldVar = field:rkStepperFields()[dataIdx]
 
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
       -- Update sources.
-      for nm, s in pairs(sources) do
-	 local myStatus, myDtSuggested = s:updateSource(tCurr, dt, speciesVar, fieldVar)
-	 status =  status and myStatus
-	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+      for nm, s in lume.orderedIter(sources) do
+         local myStatus, myDtSuggested = s:updateSource(tCurr, dt, speciesVar, fieldVar)
+         status =  status and myStatus
+         dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
 
       return status, dtSuggested
@@ -606,36 +612,35 @@ local function buildApplication(self, tbl)
 
       -- Update source by half time-step.
       do
-	 local myStatus, myDtSuggested = updateSource(1, tCurr, dt/2)
-	 status = status and myStatus
-	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+         local myStatus, myDtSuggested = updateSource(1, tCurr, dt/2)
+         status = status and myStatus
+         dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
 
       -- Update solution in each direction.
       local isInv = true
       for d = 1, cdim do
-	 local myStatus, myDtSuggested, myTryInv = updateInDirection(d, tCurr, dt, tryInv)
-	 status =  status and myStatus
-	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-	 if not status then
-	    log(" ** Time step too large! Aborting this step!")
-	    break
-	 else
-	    -- If an updated species is invalid, plan to use lax flux for THIS
-	    -- species in the re-taken step.
+         local myStatus, myDtSuggested, myTryInv = updateInDirection(d, tCurr, dt, tryInv)
+         status =  status and myStatus
+         dtSuggested = math.min(dtSuggested, myDtSuggested)
+         if not status then
+            log(" ** Time step too large! Aborting this step!")
+            break
+         else
+            -- If an updated species is invalid, plan to use lax flux for THIS
+            -- species in the re-taken step.
             for nm, s in lume.orderedIter(species) do
-	       if myTryInv[s] then
-		  isInv = false
-		  tryInv[s] = true
-		  log(string.format(
-			 "\n ** Invalid values in %s; Will re-update using Lax flux!\n", nm))
-	       end
-	    end
-	    -- Break the loop if any species is invalid.
-	    if not isInv then
-	       break
-	    end
-	 end
+               if myTryInv[s] then
+                  isInv = false
+                  tryInv[s] = true
+                  log(string.format("\n ** Invalid values in %s; Will re-update using Lax flux!\n", nm))
+               end
+            end
+            -- Break the loop if any species is invalid.
+            if not isInv then
+               break
+            end
+         end
       end
       -- Is all species is valid, do not use lax in the next step.
       if isInv then
@@ -644,24 +649,24 @@ local function buildApplication(self, tbl)
 
       -- Update source by half time-step.
       if status and isInv then
-	 local myStatus, myDtSuggested
-	 if fIdx[cdim][2] == 2 then
-	    myStatus, myDtSuggested = updateSource(2, tCurr, dt/2)
-	 else
-	    myStatus, myDtSuggested = updateSource(1, tCurr, dt/2)
-	 end
-	 status = status and myStatus
-	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+         local myStatus, myDtSuggested
+         if fIdx[cdim][2] == 2 then
+            myStatus, myDtSuggested = updateSource(2, tCurr, dt/2)
+         else
+            myStatus, myDtSuggested = updateSource(1, tCurr, dt/2)
+         end
+         status = status and myStatus
+         dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
 
       if not (status and isInv) then
-	 copy(1, 3) -- Restore old solution in case of failure.
+         copy(1, 3) -- Restore old solution in case of failure.
       else
-	 -- If solution not already in field[1], copy for use in next
-	 -- time-step.
-	 if fIdx[cdim][2] == 2 then copy(1, 2) end
+         -- If solution not already in field[1], copy for use in next
+         -- time-step.
+         if fIdx[cdim][2] == 2 then copy(1, 2) end
       end
-      
+
       return status, dtSuggested, isInv
    end
 
@@ -836,7 +841,7 @@ local function buildApplication(self, tbl)
       end
 
       local tmSrc = 0.0
-      for _, s in pairs(sources) do
+      for _, s in lume.orderedIter(sources) do
          tmSrc = tmSrc + s:totalTime()
       end
 
