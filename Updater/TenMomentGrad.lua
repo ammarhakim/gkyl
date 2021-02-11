@@ -122,10 +122,11 @@ function TenMomentGrad:_advance(tCurr, inFld, outFld)
       self._divQ1[i], self._divQ2[i], self._divQ3[i] = 0.0, 0.0, 0.0
    end
    -- first loop over the whole domain and compute the heat flux, q_{ijk} = (-v_t/|k_s| \chi \partial[_i T_{jk}])
-   for idx in localRange:rowMajorIter() do
-      idx:copyInto(idxl)
+   -- NOTE: this loop needs to be over the an extension of the local range (+1 cell in each direction)
+   -- The heat flux will then be computed in the first layer of the ghost cells
+   local localRangePlusOneGhost = localRange:extend(1, 1)
+   for idx in localRangePlusOneGhost:rowMajorIter() do
       idx:copyInto(idxc)
-      idx:copyInto(idxr)
       -- get grid information and set pointers for current cell
       grid:setIndex(idxc)
       grid:getDx(dx)
@@ -136,6 +137,8 @@ function TenMomentGrad:_advance(tCurr, inFld, outFld)
       -- loop over directions for the update 
       for dir = 1, ndim do
          -- cell left/right of cell 'i' in direction dir
+         idx:copyInto(idxl)
+         idx:copyInto(idxr)
          idxl[dir] = idxl[dir] - 1
          idxr[dir] = idxr[dir] + 1
 
@@ -163,9 +166,7 @@ function TenMomentGrad:_advance(tCurr, inFld, outFld)
    -- loop over the grid again to evaluate div(Q) = \partial_k q_{ijk} and increment the result to advance the solution in time
    -- NOTE: In this second loop, outFld will be *incremented* to the new time-step
    for idx in localRange:rowMajorIter() do
-      idx:copyInto(idxl)
       idx:copyInto(idxc)
-      idx:copyInto(idxr)
       -- get grid information and set pointers for current cell
       grid:setIndex(idxc)
       grid:getDx(dx)
@@ -175,6 +176,8 @@ function TenMomentGrad:_advance(tCurr, inFld, outFld)
       -- loop over directions for the update 
       for dir = 1, ndim do
          -- cell left/right of cell 'i' in direction dir
+         idx:copyInto(idxl)
+         idx:copyInto(idxr)
          idxl[dir] = idxl[dir] - 1
          idxr[dir] = idxr[dir] + 1
 
