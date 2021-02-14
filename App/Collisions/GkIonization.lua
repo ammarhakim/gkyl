@@ -74,7 +74,7 @@ function GkIonization:fullInit(speciesTbl)
       self._X = 0.136
    end
 
-   self._tmEvalMom = 0.0 
+   self.timers = {nonSlvr = 0.}
 end
 
 function GkIonization:setName(nm)
@@ -191,14 +191,13 @@ function GkIonization:createSolver(funcField)
 end
 
 function GkIonization:advance(tCurr, fIn, species, fRhsOut)
+   local tmNonSlvrStart = Time.clock()
    local coefIz = species[self.elcNm]:getVoronovReactRate()
    local elcM0  = species[self.elcNm]:fluidMoments()[1]
-   local writeOut = false
 
    -- Check whether particle is electron, neutral or ion species.
    if (self.speciesName == self.elcNm) then
       -- Electrons.
-      tmEvalMomStart   = Time.clock()
       local neutM0     = species[self.neutNm]:fluidMoments()[1]
       local elcDistF   = species[self.elcNm]:getDistF()
       local fMaxwellIz = species[self.elcNm]:getFMaxwellIz()
@@ -210,30 +209,18 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
       -- Uncomment to test without fMaxwellian(Tiz)
       --self.confPhaseMult:advance(tCurr, {self.coefM0, elcDistF}, {self.ionizSrc})      
 
-      if writeOut then
-	 species[self.speciesName].distIo:write(self.ionizSrc, string.format("%s_izSrc_%d.bp",self.speciesName,tCurr*1e10),0,0,true)
-      end
-
-      self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       fRhsOut:accumulate(1.0,self.ionizSrc)
    elseif (species[self.speciesName].charge == 0) then
       -- Neutrals, on Vlasov grid.
       local neutDistF = species[self.neutNm]:getDistF()
-      tmEvalMomStart  = Time.clock()
       self.m0elc:copy(elcM0)
      
       self.confMult:advance(tCurr, {coefIz, self.m0elc}, {self.coefM0})
       self.confPhaseMult:advance(tCurr, {self.coefM0, neutDistF}, {self.ionizSrc})
 
-      if writeOut then
-	 species[self.speciesName].distIo:write(self.ionizSrc, string.format("%s_izSrc_%d.bp",self.speciesName,tCurr*1e10),0,0,true)
-      end
-      
-      self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       fRhsOut:accumulate(-1.0,self.ionizSrc)  
    else
       -- Ions. 
-      tmEvalMomStart = Time.clock()
       self.m0elc:copy(elcM0)
       local neutM0   = species[self.neutNm]:fluidMoments()[1]
       local neutU    = species[self.neutNm]:selfPrimitiveMoments()[1] 
@@ -245,15 +232,9 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
          {neutM0, neutU, neutVtSq, species[self.speciesName].bmag}, {self.fMaxNeut})
       self.confPhaseMult:advance(tCurr, {self.coefM0, self.fMaxNeut}, {self.ionizSrc})
 
-      if writeOut then
-	 species[self.elcNm].distIo:write(neutVtSq, string.format("%s_neutVtSq_%d.bp",self.speciesName,tCurr*1e10),0,0)
-	 species[self.speciesName].distIo:write(self.fMaxNeut, string.format("%s_fMaxNeut_%d.bp",self.speciesName,tCurr*1e10),0,0, true)
-	 species[self.speciesName].distIo:write(self.ionizSrc, string.format("%s_izSrc_%d.bp",self.speciesName,tCurr*1e10),0,0, true)
-      end
-      
-      self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       fRhsOut:accumulate(1.0,self.ionizSrc)
    end
+   self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 end
    
 function GkIonization:write(tm, frame)
@@ -268,12 +249,11 @@ function GkIonization:getIonizSrc()
 end
 
 function GkIonization:slvrTime()
-   local time = 0
-   return time
+   return 0.
 end
 
-function GkIonization:momTime()
-   return self._tmEvalMom
+function GkIonization:nonSlvrTime()
+   return self.timers.nonSlvr
 end
 
 function GkIonization:projectMaxwellTime()

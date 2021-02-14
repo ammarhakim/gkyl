@@ -70,7 +70,7 @@ function VmChargeExchange:fullInit(speciesTbl)
       self.b = 5.65e-20
    end
 
-   self._tmEvalMom = 0
+   self.timers = {nonSlvr = 0.}
 end
 
 function VmChargeExchange:setName(nm)
@@ -149,7 +149,8 @@ function VmChargeExchange:createSolver(funcField) --species)
 end
 
 function VmChargeExchange:advance(tCurr, fIn, species, fRhsOut)
-   tmEvalMomStart = Time.clock() 
+   local tmNonSlvrStart = Time.clock()
+
    local neutM0    = species[self.neutNm]:fluidMoments()[1]
    local neutDistF = species[self.neutNm]:getDistF()
    local ionM0     = species[self.ionNm]:fluidMoments()[1]
@@ -160,23 +161,24 @@ function VmChargeExchange:advance(tCurr, fIn, species, fRhsOut)
    self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
    species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
 
-   self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
    if (self.speciesName == self.ionNm) then
       fRhsOut:accumulate(1.0,self.sourceCX)
    else
       fRhsOut:accumulate(-self.iMass/self.nMass,self.sourceCX)
    end
+
+   self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 end
 
 function VmChargeExchange:write(tm, frame)
 end
 
 function VmChargeExchange:slvrTime()
-   return 0
+   return 0.
 end
 
-function VmChargeExchange:momTime()
-   return self._tmEvalMom
+function VmChargeExchange:nonSlvrTime()
+   return self.timers.nonSlvr
 end
 
 function VmChargeExchange:projectMaxwellTime()

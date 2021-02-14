@@ -192,6 +192,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       zeroFluxDirections = self.zeroFluxDirections,
       updateDirections   = upd,
       clearOut           = false,   -- Continue accumulating into output field.
+      globalUpwind       = false,   -- Don't reduce max speed.
    }
    
    if hasApar and self.basis:polyOrder()==1 then 
@@ -205,6 +206,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
          updateDirections   = {self.cdim+1},    -- Only vpar terms.
          updateVolumeTerm   = false,            -- No volume term.
          clearOut           = false,            -- Continue accumulating into output field.
+         globalUpwind       = false,   -- Don't reduce max speed.
       }
       -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
       self.equationStep2 = GyrokineticEq.GkEqStep2 {
@@ -226,6 +228,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
          zeroFluxDirections = self.zeroFluxDirections,
          updateDirections   = {self.cdim+1}, -- Only vpar terms.
          clearOut           = false,   -- Continue accumulating into output field.
+         globalUpwind       = false,   -- Don't reduce max speed.
       }
    elseif hasApar and self.basis:polyOrder()>1 then
       -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
@@ -248,6 +251,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
          zeroFluxDirections = self.zeroFluxDirections,
          updateDirections   = {self.cdim+1},
          clearOut           = false,   -- Continue accumulating into output field.
+         globalUpwind       = false,   -- Don't reduce max speed.
       }
    end
    
@@ -346,7 +350,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
 
    self._firstMomentCalc = true  -- To avoid re-calculating moments when not evolving.
 
-   self.tmCouplingMom = 0.0      -- For timer.
+   self.timers = {couplingMom = 0., sources = 0.}
 
    assert(self.n0, "Must specify background density as global variable 'n0' in species table as 'n0 = ...'")
 end
@@ -751,10 +755,12 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
 
    if self.fSource and self.evolveSources then
+      local tm = Time.clock()
       -- Add source it to the RHS.
       -- Barrier over shared communicator before accumulate.
       Mpi.Barrier(self.grid:commSet().sharedComm)
       fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
+      self.timers.sources = self.timers.sources + Time.clock() - tm 
    end
 end
 
@@ -1578,7 +1584,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       	 species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uParSelf, neutU, self.vtSqSelf, neutVtSq}, {self.vSigmaCX})
       end
       
-      self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
+      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
 end
@@ -1617,7 +1623,7 @@ function GkSpecies:getNumDensity(rkIdx)
       if self.deltaF then
         fIn:accumulate(1.0, self.f0)
       end
-      self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
+      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
    return self.numDensityAux
@@ -1641,7 +1647,7 @@ function GkSpecies:getMomDensity(rkIdx)
       if self.deltaF then
         fIn:accumulate(1.0, self.f0)
       end
-      self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
+      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
    return self.momDensityAux
@@ -1662,7 +1668,7 @@ function GkSpecies:getMomProjDensity(rkIdx)
       if self.deltaF then
         fIn:accumulate(1.0, self.f0)
       end
-      self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
+      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
    return self.momDensityAux
@@ -1683,7 +1689,7 @@ function GkSpecies:getEmModifier(rkIdx)
       if self.deltaF then
         fIn:accumulate(1.0, self.f0)
       end
-      self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
+      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
    fIn:clear(0.0)
@@ -1718,7 +1724,7 @@ function GkSpecies:getVSigmaCX()
 end
 
 function GkSpecies:momCalcTime()
-   local tm = self.tmCouplingMom
+   local tm = self.timers.couplingMom
    for i, mom in pairs(self.diagnosticMoments) do
       tm = tm + self.diagnosticMomentUpdaters[mom].totalTime
    end

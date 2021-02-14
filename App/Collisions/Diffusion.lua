@@ -50,7 +50,7 @@ function Diffusion:fullInit(speciesTbl)
    self.timeDepNu        = false
    self.collFreqs        = {1}
 
-   self.tmEvalMom = 0.0
+   self.timers = {nonSlvr = 0.}
 end
 
 function Diffusion:setName(nm)
@@ -131,13 +131,14 @@ function Diffusion:advance(tCurr, fIn, species, fRhsOut)
    -- Compute increment from diffusion and accumulate it into output.
    self.collisionSlvr:advance(tCurr, {fIn}, {self.collOut})
 
+   local tmNonSlvrStart = Time.clock()
    -- Barrier over shared communicator before accumulate
    if self.phaseGrid then
       Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
    end
 
    fRhsOut:accumulate(1.0, self.collOut)
-
+   self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 end
 
 function Diffusion:write(tm, frame)
@@ -146,15 +147,15 @@ function Diffusion:write(tm, frame)
 end
 
 function Diffusion:totalTime()
-   return self.collisionSlvr.totalTime + self.tmEvalMom
+   return self.collisionSlvr.totalTime + self.timers.nonSlvr
 end
 
 function Diffusion:slvrTime()
    return self.collisionSlvr.totalTime
 end
 
-function Diffusion:momTime()
-   return self.tmEvalMom
+function Diffusion:nonSlvrTime()
+   return self.timersNonSlvr
 end
 
 return Diffusion

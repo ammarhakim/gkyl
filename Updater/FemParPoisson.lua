@@ -182,7 +182,7 @@ function FemParPoisson:init(tbl)
                   objCreate   = 0., stiffFinish = 0.,
                   srcCreate   = 0., solve       = 0.,
                   stiffCreate = 0., getSol      = 0.,
-                  srcReduce   = 0., advanceTot  = 0.,}
+                  srcReduce   = 0., advanceTot  = 0., doSolve = 0.}
 
    return self
 end
@@ -283,6 +283,7 @@ function FemParPoisson:assemble(src)
 end
 
 function FemParPoisson:doSolve(src, sol)
+   local tm = Time.clock()
    local ndim = self._ndim
    local localRange = src:localRange()
 
@@ -315,6 +316,7 @@ function FemParPoisson:doSolve(src, sol)
        self.timers.getSol = self.timers.getSol + Time.clock() - tmGetStart 
      end
    end
+   self.timers.doSolve = self.timers.doSolve + Time.clock() - tm
 end
 
 ---- advance method

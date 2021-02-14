@@ -119,6 +119,8 @@ function GkField:fullInit(appTbl)
 
    self._first     = true
    self._firstStep = true
+
+   self.timers = {advTime={0.,0.,0.}}
 end
 
 -- Methods for EM field object.
@@ -660,6 +662,8 @@ end
 
 -- Solve for electrostatic potential phi.
 function GkField:advance(tCurr, species, inIdx, outIdx)
+   local tmStart = Time.clock()
+
    local potCurr = self:rkStepperFields()[inIdx]
    local potRhs  = self:rkStepperFields()[outIdx]
    
@@ -710,6 +714,8 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
          potRhs.apar:copy(potCurr.apar) 
       end
    end
+
+   self.timers.advTime[1] = self.timers.advTime[1] + Time.clock() - tmStart
 end
 
 function GkField:phiSolve(tCurr, species, inIdx, outIdx)
@@ -737,6 +743,8 @@ end
 
 -- Solve for dApardt in p>=2, or solve for a provisional dApardtProv in p=1.
 function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
+   local tmStart = Time.clock()
+
    local potCurr = self:rkStepperFields()[inIdx]
    local potRhs  = self:rkStepperFields()[outIdx]
 
@@ -780,10 +788,14 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
          self.dApardtProv:copy(dApardt)
       end
    end
+
+   self.timers.advTime[2] = self.timers.advTime[2] + Time.clock() - tmStart
 end
 
 -- Note: step 3 is for p=1 only: solve for dApardt.
 function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
+   local tmStart = Time.clock()
+
    local potCurr = self:rkStepperFields()[inIdx]
    local potRhs  = self:rkStepperFields()[outIdx]
 
@@ -820,6 +832,8 @@ function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
       -- Apar RHS is just dApar/dt.
       potRhs.apar:copy(dApardt)
    end
+
+   self.timers.advTime[3] = self.timers.advTime[3] + Time.clock() - tmStart
 end
 
 function GkField:applyBcIdx(tCurr, idx)
@@ -850,14 +864,13 @@ function GkField:applyBc(tCurr, potIn)
 end
    
 function GkField:totalSolverTime()
+   local time = 0.
    if self.phiSlvr then
-     local time = self.phiSlvr.totalTime
-     if self.isElectromagnetic and self.aparSlvr then time = time + self.aparSlvr.totalTime end
-     if self.isElectromagnetic and self.dApardtSlvr then time = time + self.dApardtSlvr.totalTime end
-     if self.isElectromagnetic and self.dApardtSlvr2 then time = time + self.dApardtSlvr2.totalTime end
-     return time
+      time = time + self.timers.advTime[1]+self.phiSlvr.slvr.timers.doSolve
+      if self.isElectromagnetic and self.dApardtSlvr then  time = time + self.timers.advTime[2] end
+      if self.isElectromagnetic and self.dApardtSlvr2 then time = time + self.timers.advTime[3] end
    end
-   return 0.0
+   return time
 end
 
 function GkField:totalBcTime()
