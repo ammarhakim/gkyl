@@ -17,8 +17,8 @@ load("mgPoisson-calc/esEnergyFuncs")$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 1$
-minCdim_Ser : 2$
+maxPolyOrder_Ser : 2$
+minCdim_Ser : 1$
 maxCdim_Ser : 2$
 
 /* Maximal order basis. */
@@ -41,6 +41,7 @@ maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
 for bInd : 1 thru length(bName) do (
      
   for c : minCdim[bInd] thru maxCdim[bInd] do (
+  /**
     fname : sconcat("~/max-out/MGpoissonFEM", bName[bInd], c, "x", ".cpp"),
     fh : openw(fname),
   
@@ -102,6 +103,7 @@ for bInd : 1 thru length(bName) do (
     calcAccumulateConst(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
 
     close(fh),
+    **/
     
     /* Electrostatic energy kernels. */
     fname : sconcat("~/max-out/MGpoissonESenergy", bName[bInd], c, "x", ".cpp"),

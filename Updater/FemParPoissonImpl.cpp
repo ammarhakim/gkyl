@@ -317,7 +317,13 @@ void FemParPoisson::allreduceGlobalSrc(MPI_Comm comm)
 {
   int nglobal = getNumParGlobalNodes(nz, ndim, polyOrder, z_periodic);
   // all reduce (sum) globalSrc
-  //MPI_Allreduce(MPI_IN_PLACE, globalSrc.data(), nglobal, MPI_DOUBLE, MPI_vectorSum_op, comm);
+  MPI_Allreduce(MPI_IN_PLACE, globalSrc.data(), nglobal, MPI_DOUBLE, MPI_vectorSum_op, comm);
+}
+
+void FemParPoisson::IallreduceGlobalSrc(MPI_Comm comm)
+{
+  int nglobal = getNumParGlobalNodes(nz, ndim, polyOrder, z_periodic);
+  // all reduce (sum) globalSrc
   MPI_Iallreduce(MPI_IN_PLACE, globalSrc.data(), nglobal, MPI_DOUBLE, MPI_vectorSum_op, comm, &srcAllReduceReq);
 }
 
@@ -690,6 +696,11 @@ extern "C" void zeroParGlobalSrc(FemParPoisson* f)
 extern "C" void allreduceParGlobalSrc(FemParPoisson* f, MPI_Comm comm)
 {
   f->allreduceGlobalSrc(comm);
+}
+
+extern "C" void IallreduceParGlobalSrc(FemParPoisson* f, MPI_Comm comm)
+{
+  f->IallreduceGlobalSrc(comm);
 }
 
 extern "C" void waitForParGlobalSrcReduce(FemParPoisson* f, MPI_Comm comm)

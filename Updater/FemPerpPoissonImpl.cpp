@@ -923,6 +923,26 @@ void FemPerpPoisson::allreduceGlobalSrc(MPI_Comm comm)
   MPI_Allreduce(MPI_IN_PLACE, globalSrc.data(), nglobal, MPI_DOUBLE, MPI_vectorSum_op, comm);
 }
 
+void FemPerpPoisson::IallreduceGlobalSrc(MPI_Comm comm)
+{
+  if (writeMatrix)
+  {
+    std::string outName = "poisson-src-beforeBCs";
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+    outName += "-" + std::to_string(rank);
+    saveMarket(globalSrc, outName);
+  }
+  int nglobal = getNumPerpGlobalNodes(nx, ny, ndim, polyOrder, periodicFlgs);
+  // all reduce (sum) globalSrc
+  MPI_Iallreduce(MPI_IN_PLACE, globalSrc.data(), nglobal, MPI_DOUBLE, MPI_vectorSum_op, comm, &srcAllReduceReq);
+}
+
+void FemPerpPoisson::waitForGlobalSrcReduce(MPI_Comm comm)
+{
+  MPI_Wait(&srcAllReduceReq, &srcAllReduceStat);
+}
+
 void FemPerpPoisson::allgatherGlobalStiff(MPI_Comm comm)
 {
   // all gather (concatenate) stiffTripletList
@@ -1322,6 +1342,16 @@ extern "C" void zeroGlobalSrc(FemPerpPoisson* f)
 extern "C" void allreduceGlobalSrc(FemPerpPoisson* f, MPI_Comm comm)
 {
   f->allreduceGlobalSrc(comm);
+}
+
+extern "C" void IallreduceGlobalSrc(FemPerpPoisson* f, MPI_Comm comm)
+{
+  f->IallreduceGlobalSrc(comm);
+}
+
+extern "C" void waitForGlobalSrcReduce(FemPerpPoisson* f, MPI_Comm comm)
+{
+  f->waitForGlobalSrcReduce(comm);
 }
 
 extern "C" void allgatherGlobalStiff(FemPerpPoisson* f, MPI_Comm comm)

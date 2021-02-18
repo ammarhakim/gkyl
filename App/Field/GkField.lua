@@ -29,6 +29,34 @@ local GkField = Proto(FieldBase.FieldBase)
 
 local EM_BC_OPEN = 1
 
+local checkBCs = function(dimIn, isDirPer, bcLoIn, bcUpIn, bcLoOut, bcUpOut, setLastDir)
+   local periodicDomain = true
+   for d=1,dimIn do periodicDomain = periodicDomain and isDirPer[d] end
+   if bcLoIn==nil and bcUpIn==nil then
+      if periodicDomain then
+         for d=1,dimIn do
+            bcLoOut[d] = d<3 and {T="P"} or {T="N", V=0.0} 
+            bcUpOut[d] = bcLoOut[d]
+         end
+      else
+         assert(dimIn==1, "App.Field.GkField: must specify 'bcLower' and 'bcUpper' if dimensions > 1.")
+      end
+   else
+      assert(#bcLoIn==#bcUpIn, "App.Field.GkField: number of entries in bcLower and bcUpper must be equal.")
+      assert(dimIn==1 or (dimIn>1 and #bcLoIn>=2), "App.Field.GkField: number of entries in bcLower/bcUpper must >= 2.")
+      for d=1,#bcLoIn do bcLoOut[d], bcUpOut[d] = bcLoIn[d], bcUpIn[d] end
+   end
+   for d=1,math.min(dimIn,2) do
+      assert((isDirPer[d]==(bcLoOut[d].T=="P")) and (isDirPer[d]==(bcUpOut[d].T=="P")),
+             string.format("App.Field.GkField: direction %d is periodic. Must use {T='P'} in bcLower/bcUpper.",d))
+   end
+   if setLastDir and (bcLoOut[dimIn]==nil or bcUpOut[dimIn]==nil) then
+      -- Assume homogeneous Neumann since this would only be used in the z-smoothing.
+      bcLoOut[dimIn], bcUpOut[dimIn] = {T="N", V=0.0}, {T="N", V=0.0} 
+   end
+end
+
+
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
 function GkField:init(tbl)
@@ -56,19 +84,67 @@ function GkField:fullInit(appTbl)
    -- Write ghost cells on boundaries of global domain (for BCs).
    self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 
-   -- Get boundary condition settings.
-   -- These will be checked for consistency when the solver is initialized.
-   if tbl.phiBcLeft then self.phiBcLeft          = tbl.phiBcLeft end
-   if tbl.phiBcRight then self.phiBcRight        = tbl.phiBcRight end
-   if tbl.phiBcBottom then self.phiBcBottom      = tbl.phiBcBottom end
-   if tbl.phiBcTop then self.phiBcTop            = tbl.phiBcTop end
-   if tbl.phiBcBack then self.phiBcBack          = tbl.phiBcBack end
-   if tbl.phiBcFront then self.phiBcFront        = tbl.phiBcFront end
-   if tbl.aparBcLeft then self.aparBcLeft        = tbl.aparBcLeft end
-   if tbl.aparBcRight then self.aparBcRight      = tbl.aparBcRight end
-   if tbl.aparBcBottom then self.aparBcBottom    = tbl.aparBcBottom end
-   if tbl.aparBcTop then self.aparBcTop          = tbl.aparBcTop end
+   -- Get boundary conditions.
+   local ndim = #appTbl.lower
    if appTbl.periodicDirs then self.periodicDirs = appTbl.periodicDirs else self.periodicDirs = {} end
+   local isDirPeriodic = {}
+   for d = 1, ndim do isDirPeriodic[d] = lume.find(self.periodicDirs,d) ~= nil end
+   self.bcLowerPhi, self.bcUpperPhi   = {}, {}
+   self.bcLowerApar, self.bcUpperApar = {}, {}
+
+   -- ******* The following BC options are kept for backwards compatibility ******* --
+   if tbl.phiBcLeft or tbl.phiBcRight or tbl.phiBcBottom or tbl.phiBcTop or tbl.phiBcBack or tbl.phiBcFront then
+      if tbl.phiBcLeft and tbl.phiBcRight then
+         print("App.Field.GkField: warning... phiBcLeft/phiBcRight will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
+         self.bcLowerPhi[1], self.bcUpperPhi[1] = tbl.phiBcLeft, tbl.phiBcRight
+      elseif isDirPeriodic[1] then
+         self.bcLowerPhi[1], self.bcUpperPhi[1] = {T = "P"}, {T = "P"} 
+      end
+      if tbl.phiBcBottom and tbl.phiBcTop then
+         print("App.Field.GkField: warning... phiBcBottom/phiBcTop will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
+         self.bcLowerPhi[2], self.bcUpperPhi[2] = tbl.phiBcBottom, tbl.phiBcTop
+      elseif isDirPeriodic[2] then
+         self.bcLowerPhi[2], self.bcUpperPhi[2] = {T = "P"}, {T = "P"} 
+      end
+      if tbl.phiBcBack and tbl.phiBcFront then
+         print("App.Field.GkField: warning... phiBcBack/phiBcFront will be deprecated. Please use bcLowerPhi/bcUpperPhi.") 
+         self.bcLowerPhi[3], self.bcUpperPhi[3] = tbl.phiBcBack, tbl.phiBcFront
+      elseif isDirPeriodic[3] then
+         -- Set it to homogeneous Neumann since this is likely only used for smoothing in z.
+         self.bcLowerPhi[3], self.bcUpperPhi[3] = {T = "N", V = 0.0}, {T = "N", V = 0.0} 
+      end
+   end
+   if tbl.aparBcLeft or tbl.aparBcRight or tbl.aparBcBottom or tbl.aparBcTop then
+      if tbl.aparBcLeft and tbl.aparBcRight then
+         print("App.Field.GkField: warning... aparBcLeft/aparBcRight will be deprecated. Please use bcLowerApar/bcUpperApar.") 
+         self.bcLowerApar[1], self.bcUpperApar[1]= tbl.aparBcLeft, tbl.aparBcRight
+      elseif isDirPeriodic[1] then
+         self.bcLowerApar[1], self.bcUpperApar[1] = {T = "P"}, {T = "P"} 
+      end
+      if tbl.aparBcBottom and tbl.aparBcTop then
+         print("App.Field.GkField: warning... aparBcBottom/aparBcTop will be deprecated. Please use bcLowerApar/bcUpperApar.") 
+         self.bcLowerApar[2], self.bcUpperApar[2] = tbl.aparBcBottom, tbl.aparBcTop
+      elseif isDirPeriodic[2] then
+         self.bcLowerApar[2], self.bcUpperApar[2] = {T = "P"}, {T = "P"} 
+      end
+   end
+   -- ******* The above BC options are  kept for backwards compatibility ******* --
+
+
+   -- Allow unspecified BCs if domain is periodic. Or if domain is not periodic
+   -- allow unspecified z-BCs, but do not allow unspecified xy-BCs for ndim>1.
+   assert((tbl.bcLowerPhi and tbl.bcUpperPhi) or (tbl.bcLowerPhi==nil and tbl.bcUpperPhi==nil),
+          "App.Field.GkField: must specify both 'bcLowerPhi' and 'bcUpperPhi' or none.")
+   if #self.bcLowerPhi==0 and #self.bcUpperPhi==0 then  -- Needed to not override the backward compatible part above.
+      checkBCs(ndim, isDirPeriodic, tbl.bcLowerPhi, tbl.bcUpperPhi, self.bcLowerPhi, self.bcUpperPhi, true)
+   end
+   if self.isElectromagnetic then
+      assert((tbl.bcLowerApar and tbl.bcUpperApar) or (tbl.bcLowerApar==nil and tbl.bcUpperApar==nil),
+             "App.Field.GkField: must specify both 'bcLowerApar' and 'bcUpperApar' or none.")
+      if #self.bcLowerApar==0 and #self.bcUpperApar==0 then  -- Needed to not override the backward compatible part above.
+         checkBCs(ndim, isDirPeriodic, tbl.bcLowerApar, tbl.bcUpperApar, self.bcLowerApar, self.bcUpperApar, false)
+      end
+   end
 
    -- For storing integrated energies.
    self.phiSq    = DataStruct.DynVector { numComponents = 1 }
@@ -86,8 +162,9 @@ function GkField:fullInit(appTbl)
    -- Allow user to specify polarization weight. will be calculated automatically if not specified.
    self.polarizationWeight = tbl.polarizationWeight
 
-   -- Determine whether to use linearized polarization term in poisson equation, which uses background density in polarization weight
-   -- if not, uses full time-dependent density in polarization weight.
+   -- Determine whether to use linearized polarization term in poisson equation,
+   -- which uses background density in polarization weight.
+   -- If not, uses full time-dependent density in polarization weight.
    self.linearizedPolarization = xsys.pickBool(tbl.linearizedPolarization, true)
    self.uniformPolarization    = xsys.pickBool(tbl.uniformPolarization, true)
 
@@ -115,6 +192,9 @@ function GkField:fullInit(appTbl)
       self.calcIntFieldEnergyTrigger = function(t) return true end
    end
 
+   -- Flag to indicate if phi has been computed.
+   self.calcedPhi = false
+
    self.bcTime = 0.0 -- Timer for BCs.
 
    self._first     = true
@@ -134,7 +214,7 @@ local function createField(grid, basis, ghostCells, vComp, periodicSync)
       onGrid        = grid,
       numComponents = basis:numBasis()*vComp,
       ghost         = ghostCells,
-      metaData = {
+      metaData      = {
          polyOrder = basis:polyOrder(),
          basisType = basis:id()
       },
@@ -299,16 +379,11 @@ function GkField:createSolver(species, externalField)
       jacobGeo = self.unitWeight
    end
    self.phiSlvr = Updater.FemPoisson {
-      onGrid   = self.grid,
-      basis    = self.basis,
-      bcLeft   = self.phiBcLeft,
-      bcRight  = self.phiBcRight,
-      bcBottom = self.phiBcBottom,
-      bcTop    = self.phiBcTop,
-      bcBack   = self.phiBcBack,
-      bcFront  = self.phiBcFront,
-      periodicDirs = self.periodicDirs,
-      zContinuous  = not self.discontinuousPhi,
+      onGrid      = self.grid,
+      basis       = self.basis,
+      bcLower     = self.bcLowerPhi,
+      bcUpper     = self.bcUpperPhi,
+      zContinuous = not self.discontinuousPhi,
       -- Note these metric coefficients may contain the Jacobian (GenGeo).
       gxx = gxxPoisson,
       gxy = gxyPoisson,
@@ -316,13 +391,15 @@ function GkField:createSolver(species, externalField)
    }
    if self.ndim == 3 and not self.discontinuousPhi then
       self.phiZSmoother = Updater.FemParPoisson {
-        onGrid = self.grid,
-        basis  = self.basis,
-        smooth = true,
+         onGrid  = self.grid,
+         basis   = self.basis,
+         bcLower = {{T="N",V=0.0}},
+         bcUpper = {{T="N",V=0.0}},
+         smooth  = true,
       }
    end
-   -- when using a linearizedPolarization term in Poisson equation,
-   -- The weights on the terms are constant scalars.
+   -- When using a linearizedPolarization term in Poisson equation,
+   -- the weights on the terms are constant scalars.
    if self.linearizedPolarization then
       -- If not provided, calculate species-dependent weight on polarization term == sum_s m_s n_s / B^2.
       if not self.polarizationWeight then 
@@ -342,10 +419,10 @@ function GkField:createSolver(species, externalField)
       if self.ndim==1 then
          assert(self.kperp2, "GkField: must specify kperp2 for ndim=1")
          laplacianConstant = 0.0 
-         modifierConstant = self.kperp2*self.polarizationWeight 
+         modifierConstant  = self.kperp2*self.polarizationWeight 
       else 
          laplacianConstant = -self.polarizationWeight 
-         modifierConstant = 0.0 
+         modifierConstant  = 0.0 
       end
 
       if self.adiabatic then 
@@ -366,14 +443,11 @@ function GkField:createSolver(species, externalField)
      -- NOTE: aparSlvr only used to solve for initial Apar
      -- at all other times Apar is timestepped using dApar/dt
      self.aparSlvr = Updater.FemPoisson {
-        onGrid   = self.grid,
-        basis    = self.basis,
-        bcLeft   = self.aparBcLeft,
-        bcRight  = self.aparBcRight,
-        bcBottom = self.aparBcBottom,
-        bcTop    = self.aparBcTop,
-        periodicDirs = self.periodicDirs,
-        zContinuous  = not self.discontinuousApar,
+        onGrid      = self.grid,
+        basis       = self.basis,
+        bcLower     = self.bcLowerApar,
+        bcUpper     = self.bcUpperApar,
+        zContinuous = not self.discontinuousApar,
         -- Note these metric coefficients may contain the Jacobian (GenGeo).
         gxx = gxxAmpere,
         gxy = gxyAmpere,
@@ -392,14 +466,11 @@ function GkField:createSolver(species, externalField)
      if modifierConstant ~= 0 then self.aparSlvr:setModifierWeight(self.modifierWeight) end
 
      self.dApardtSlvr = Updater.FemPoisson {
-        onGrid   = self.grid,
-        basis    = self.basis,
-        bcLeft   = self.aparBcLeft,
-        bcRight  = self.aparBcRight,
-        bcBottom = self.aparBcBottom,
-        bcTop    = self.aparBcTop,
-        periodicDirs = self.periodicDirs,
-        zContinuous  = not self.discontinuousApar,
+        onGrid      = self.grid,
+        basis       = self.basis,
+        bcLower     = self.bcLowerApar,
+        bcUpper     = self.bcUpperApar,
+        zContinuous = not self.discontinuousApar,
         -- Note these metric coefficients may contain the Jacobian (GenGeo).
         gxx = gxxAmpere,
         gxy = gxyAmpere,
@@ -420,14 +491,11 @@ function GkField:createSolver(species, externalField)
      -- Separate solver for additional step for p=1.
      if self.basis:polyOrder() == 1 then
         self.dApardtSlvr2 = Updater.FemPoisson {
-           onGrid   = self.grid,
-           basis    = self.basis,
-           bcLeft   = self.aparBcLeft,
-           bcRight  = self.aparBcRight,
-           bcBottom = self.aparBcBottom,
-           bcTop    = self.aparBcTop,
-           periodicDirs = self.periodicDirs,
-           zContinuous  = not self.discontinuousApar,
+           onGrid      = self.grid,
+           basis       = self.basis,
+           bcLower     = self.bcLowerApar,
+           bcUpper     = self.bcUpperApar,
+           zContinuous = not self.discontinuousApar,
            -- Note these metric coefficients may contain the Jacobian (GenGeo).
            gxx = gxxAmpere,
            gxy = gxyAmpere,
@@ -591,8 +659,8 @@ function GkField:write(tm, force)
       if self.ioTrigger(tm) or force then
 	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm, self.ioFrame)
          if self.isElectromagnetic then 
-	   self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
-	   self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
+	    self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
+	    self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
          end
 	 self.phiSq:write(string.format("phiSq.bp"), tm, self.ioFrame)
 	 self.esEnergy:write(string.format("esEnergy.bp"), tm, self.ioFrame)
@@ -608,8 +676,8 @@ function GkField:write(tm, force)
       if self.ioFrame == 0 then
 	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm, self.ioFrame)
          if self.isElectromagnetic then 
-	   self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
-	   self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
+	    self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
+	    self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
          end
       end
       self.ioFrame = self.ioFrame+1
@@ -622,7 +690,7 @@ function GkField:writeRestart(tm)
    self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeight_restart.bp", tm, self.ioFrame, false)
    self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_restart.bp", tm, self.ioFrame, false)
    if self.isElectromagnetic then
-     self.fieldIo:write(self.potentials[1].apar, "apar_restart.bp", tm, self.ioFrame, false)
+      self.fieldIo:write(self.potentials[1].apar, "apar_restart.bp", tm, self.ioFrame, false)
    end
 
    -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
@@ -695,13 +763,17 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
             end
             if self.adiabatic or self.ndim == 1 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
          end
+
          -- Phi solve (elliptic, so update potCurr).
          -- Energy conservation requires phi to be continuous in all directions. 
          -- The first FEM solve ensures that phi is continuous in x and y.
          -- The conserved energy is defined in terms of this intermediate result,
          -- which we denote phiAux, before the final smoothing operation in z.
-         self.phiSlvr:advance(tCurr, {self.chargeDens}, {potCurr.phiAux})
- 
+         -- For now, just initiate the assembling of the left-side matrix and
+         -- right-side source vector. The problem is solved in :phiSolve.
+         self.phiSlvr:assemble(tCurr, {self.chargeDens}, {potCurr.phiAux})
+         self.calcedPhi = false
+
          self._first = false
       end
    else
@@ -713,9 +785,13 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
 end
 
 function GkField:phiSolve(tCurr, species, inIdx, outIdx)
-   local potCurr = self:rkStepperFields()[inIdx]
-   local potRhs  = self:rkStepperFields()[outIdx]
-   if self.evolve and not self.externalPhiTimeDependence then
+   -- Assuming that :advance initiated the assembly of the left-side matrix and the
+   -- right-side source vector, :phiSolve waits for the assembly to finish, solves the
+   -- linear problem, and applies BCs to phi.
+   -- Need the self.calcedPhi flag because we assume :phiSolve is called within the
+   -- species :advance, but we want multiple species to call it.
+   if self.evolve and (not self.externalPhiTimeDependence) and (not self.calcedPhi) then
+      local potCurr = self:rkStepperFields()[inIdx]
       self.phiSlvr:solve(tCurr, {self.chargeDens}, {potCurr.phiAux})
       -- Smooth phi in z to ensure continuity in all directions.
       if self.ndim == 3 and not self.discontinuousPhi then
@@ -726,12 +802,14 @@ function GkField:phiSolve(tCurr, species, inIdx, outIdx)
 
       -- Apply BCs.
       local tmStart = Time.clock()
-      -- make sure phi is continuous across skin-ghost boundary
+      -- Make sure phi is continuous across skin-ghost boundary.
       for _, bc in ipairs(self.boundaryConditions) do
          bc:advance(tCurr, {}, {potCurr.phi})
       end
       potCurr.phi:sync(true)
       self.bcTime = self.bcTime + (Time.clock()-tmStart)
+
+      self.calcedPhi = true
    end
 end
 

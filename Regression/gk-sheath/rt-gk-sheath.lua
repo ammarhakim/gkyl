@@ -91,6 +91,7 @@ plasmaApp = Plasma.App {
 
    -- Boundary conditions for configuration space.
    periodicDirs = {2},     -- Periodic in y only.
+   decompCuts = {1,1,1},
 
    -- Gyrokinetic electrons.
    electron = Plasma.Species {
@@ -201,17 +202,14 @@ plasmaApp = Plasma.App {
 
    -- Field solver.
    field = Plasma.Field {
-      -- Dirichlet in x.
-      phiBcLeft = { T ="D", V = 0.0},
-      phiBcRight = { T ="D", V = 0.0},
-      aparBcLeft = { T ="D", V = 0.0},
-      aparBcRight = { T ="D", V = 0.0},
-      -- Periodic in y. --
-      -- No bc in z.
-      phiBcBack = { T ="N", V = 0.0},
-      phiBcFront = { T ="N", V = 0.0},
       evolve = true, -- Evolve fields?
       isElectromagnetic = false,
+      -- Dirichlet in x, periodic in y. Potential phi has homogeneous Neumann
+      -- BC for the smoothing operation that enforces continuity in z.
+      bcLowerPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T ="N", V = 0.0}},
+      bcUpperPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T ="N", V = 0.0}},
+      bcLowerApar = {{T ="D", V = 0.0}, {T = "P"}},
+      bcUpperApar = {{T ="D", V = 0.0}, {T = "P"}},
    },
 
    -- Magnetic geometry.
