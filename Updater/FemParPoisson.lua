@@ -19,6 +19,8 @@ local ffiC           = ffi.C
 local xsys           = require "xsys"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local DataStruct     = require "DataStruct"
+local Time           = require "Lib.Time"
+local Logger         = require "Lib.Logger"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local Mpi
 if GKYL_HAVE_MPI then Mpi = require "Comm.Mpi" end
@@ -163,6 +165,13 @@ function FemParPoisson:init(tbl)
 
    self.dynVec = DataStruct.DynVector { numComponents = 1 }
 
+   -- Timers.
+   self.timers = {srcInt      = 0., stiffReduce = 0.,
+                  objCreate   = 0., stiffFinish = 0.,
+                  srcCreate   = 0., solve       = 0.,
+                  stiffCreate = 0., getSol      = 0.,
+                  srcReduce   = 0., advanceTot  = 0.,}
+
    return self
 end
 
@@ -172,6 +181,8 @@ function FemParPoisson:bcValue(side) return self._bc[side].value end
 
 -- Advance method.
 function FemParPoisson:_advance(tCurr, inFld, outFld) 
+   local tmAdStart = Time.clock()
+
    local grid  = self._grid
    local basis = self._basis
 
@@ -180,34 +191,34 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
 
    local ndim = self._ndim
 
-   -- Create region that is effectively 1d and global in z directions.
-   local parRange       = src:globalRange()
-   local localRange     = src:localRange()
-   local local_xy_lower = {1, 1}
-   local local_xy_upper = {1, 1}
-   for d = 1, self._ndim-1 do
-      parRange:shorten(d)
-      local_xy_lower[d] = localRange:lower(d)
-      local_xy_upper[d] = localRange:upper(d)
-   end
+   local localRange = src:localRange()
 
-   -- Create indexers and pointers for src and sol.
    if self._first then 
-      self.srcIndexer             = src:indexer() 
-      self.srcPtr                 = src:get(1)
-      self.solIndexer             = sol:indexer() 
-      self.solPtr                 = sol:get(1)
+
+      -- Create region that is effectively 1d and global in z directions.
+      self.local_xy_lower = {1, 1}
+      self.local_xy_upper = {1, 1}
+      for d = 1, self._ndim-1 do
+         self.local_xy_lower[d] = localRange:lower(d)
+         self.local_xy_upper[d] = localRange:upper(d)
+      end
+
+      -- Create indexers and pointers for src and sol.
+      self.srcIndexer = src:indexer() 
+      self.srcPtr     = src:get(1)
+      self.solIndexer = sol:indexer() 
+      self.solPtr     = sol:get(1)
       self.laplacianWeightIndexer = self.laplacianWeight:indexer() 
       self.laplacianWeightPtr     = self.laplacianWeight:get(1)
       self.modifierWeightIndexer  = self.modifierWeight:indexer() 
       self.modifierWeightPtr      = self.modifierWeight:get(1)
       if self._hasModifier == false and self._hasLaplacian == false then 
          if self._smooth then 
-           self.modifierWeight:copy(self.unitWeight) 
-           self._hasModifier = true
+            self.modifierWeight:copy(self.unitWeight) 
+            self._hasModifier = true
          else 
-           self.laplacianWeight:copy(self.unitWeight)
-           self._hasLaplacian = true
+            self.laplacianWeight:copy(self.unitWeight)
+            self._hasLaplacian = true
          end
       end
       if self._periodic and self._hasModifier == false then self._adjustSource = true end
@@ -216,6 +227,7 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
    local intSrcVol = {0.0}
    -- If all directions periodic need to adjust source so that integral is 0.
    if self._adjustSource then
+      local tmStart = Time.clock()
       -- Integrate source.
       if self._first then
          self.calcInt = CartFieldIntegratedQuantCalc {
@@ -227,37 +239,41 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
       end
       self.calcInt:advance(0.0, {src}, {self.dynVec})
       _, intSrcVol = self.dynVec:lastData()
+      self.timers.srcInt = self.timers.srcInt + Time.clock() - tmStart 
    end
 
    -- Loop over local x-y cells.
-   for idx=local_xy_lower[1], local_xy_upper[1] do
-      if self._first then
-         self._poisson[idx] = {}
-      end
-      for idy=local_xy_lower[2], local_xy_upper[2] do
+   for idx=self.local_xy_lower[1], self.local_xy_upper[1] do
+      if self._first then self._poisson[idx] = {} end
+      for idy=self.local_xy_lower[2], self.local_xy_upper[2] do
          if self._first then
             -- If first time, create poisson C object for each z cell.
+            local tmStart = Time.clock()
             self._poisson[idx][idy] = ffiC.new_FemParPoisson(self._nz, self._ndim, self._p, 
                                                              self._dz, self._periodic, 
                                                              self._bc, self._writeMatrix)
+            self.timers.objCreate = self.timers.objCreate + Time.clock() - tmStart 
          end
 
          -- Zero global source.
          ffiC.zeroParGlobalSrc(self._poisson[idx][idy])
 
          -- Create global source.
-         -- globalSrc is an Eigen vector managed in C
-         -- each proc allocates a full globalSrc vector
-         -- loop over z cells locally to get local contributions to globalSrc
+         -- globalSrc is an Eigen vector managed in C.
+         -- Each proc allocates a full globalSrc vector.
+         -- Loop over z cells locally to get local contributions to globalSrc.
          for idz = localRange:lower(self._zdir), localRange:upper(self._zdir) do
+            local tmStart = Time.clock()
             if ndim==1 then 
                src:fill(self.srcIndexer(idz), self.srcPtr)
             elseif ndim==3 then
                src:fill(self.srcIndexer(idx, idy, idz), self.srcPtr)
             end
             ffiC.createParGlobalSrc(self._poisson[idx][idy], self.srcPtr:data(), idz-1, intSrcVol[1]/grid:gridVolume()*math.sqrt(2)^ndim)
+            self.timers.srcCreate = self.timers.srcCreate + Time.clock() - tmStart 
 
             if self._makeStiff then
+               local tmStiffStart = Time.clock()
                if ndim==1 then 
                   self.laplacianWeight:fill(self.laplacianWeightIndexer(idz), self.laplacianWeightPtr) 
                   self.modifierWeight:fill(self.modifierWeightIndexer(idz), self.modifierWeightPtr) 
@@ -266,25 +282,35 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
                   self.modifierWeight:fill(self.modifierWeightIndexer(idx, idy, idz), self.modifierWeightPtr) 
                end
                ffiC.makeParGlobalStiff(self._poisson[idx][idy], self.laplacianWeightPtr:data(), self.modifierWeightPtr:data(), idz-1)
+               self.timers.stiffCreate = self.timers.stiffCreate + Time.clock() - tmStiffStart 
             end 
          end
 
          if GKYL_HAVE_MPI and Mpi.Comm_size(self._xycomm)>1 then
+            local tmStart = Time.clock()
             -- Sum each proc's globalSrc to get final globalSrc (on each proc via allreduce).
             ffiC.allreduceParGlobalSrc(self._poisson[idx][idy], Mpi.getComm(self._xycomm))
+            self.timers.srcReduce = self.timers.srcReduce + Time.clock() - tmStart 
             if self._makeStiff then
+               local tmStiffStart = Time.clock()
                ffiC.allgatherParGlobalStiff(self._poisson[idx][idy], Mpi.getComm(self._xycomm))
+               self.timers.stiffReduce = self.timers.stiffReduce + Time.clock() - tmStiffStart 
             end
          end
 
          if self._makeStiff then
+            local tmStiffStart = Time.clock()
             ffiC.finishParGlobalStiff(self._poisson[idx][idy])
+            self.timers.stiffFinish = self.timers.stiffFinish + Time.clock() - tmStiffStart 
          end
          -- Solve.
+         local tmSolStart = Time.clock()
          ffiC.solvePar(self._poisson[idx][idy])
+         self.timers.solve = self.timers.solve + Time.clock() - tmSolStart 
   
          -- Remap global nodal solution to local modal solution.
          -- Only need to loop over local proc region.
+         local tmGetStart = Time.clock()
          for idz = localRange:lower(self._zdir), localRange:upper(self._zdir) do
             if ndim==1 then 
                sol:fill(self.solIndexer(idz), self.solPtr)
@@ -293,16 +319,14 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
             end
             ffiC.getSolutionPar(self._poisson[idx][idy], self.solPtr:data(), idz-1)
          end
+         self.timers.getSol = self.timers.getSol + Time.clock() - tmGetStart 
       end
    end
 
    self._first = false
    -- Reset makeStiff flag to false, until stiffness matrix changes again.
    self._makeStiff = false
-end
-
-function FemParPoisson:delete()
-  ffiC.delete_FemParPoisson(self._poisson)
+   self.timers.advanceTot = self.timers.advanceTot + Time.clock() - tmAdStart 
 end
 
 function FemParPoisson:setLaplacianWeight(weight)
@@ -323,6 +347,27 @@ function FemParPoisson:getLaplacianWeight()
 end
 function FemParPoisson:getModifierWeight()
    return self.modifierWeight
+end
+
+function FemParPoisson:delete()
+  for idx=self.local_xy_lower[1], self.local_xy_upper[1] do
+     for idy=self.local_xy_lower[2], self.local_xy_upper[2] do
+        ffiC.delete_FemParPoisson(self._poisson[idx][idy])
+     end
+  end
+end
+
+function FemParPoisson:printDevDiagnostics()
+  -- Print performance/numerical diagnostics.
+  local log = Logger{logToFile = true}
+  log("\n")
+  for nm, v in pairs(self.timers) do
+     log(string.format(
+        "FemParPoisson's "..nm.." took			%9.5f sec   (%6.3f%%)\n", v, 100*v/self.timers.advanceTot))
+  end
+  log(string.format(
+     "FemParPoisson's advanceTot took			%9.5f sec   (%6.3f%%)\n",
+     self.timers.advanceTot, 100*self.timers.advanceTot/self.timers.advanceTot))
 end
 
 return FemParPoisson

@@ -17,7 +17,7 @@ calcVlasovStreamVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block
 
   load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
 
-  printf(fh, "#include <VlasovPoissonModDecl.h> ~%"),
+  printf(fh, "#include <VlasovModDecl.h> ~%"),
 
   bP : basisP[polyOrder],
 
@@ -54,9 +54,9 @@ calcVlasovStreamVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block
   writeCIncrExprsCollect1(out,volTerm,clst),
   printf(fh, "~%"),
 
-  strOut : "std::abs(w0Ddx0)+0.5*dv0Ddx0",
-  for d : 1 thru cdim-1 do (
-    strOut : sconcat(strOut,"+std::abs(w",i,"Ddx",i,")+0.5*dv",i,"Ddx",i)
+  strOut : sconcat("std::abs(w",vid[1],"Ddx",0,")+0.5*dv",vid[1],"Ddx",0),
+  for d : 2 thru cdim do (
+    strOut : sconcat(strOut,"+std::abs(w",vid[d],"Ddx",d-1,")+0.5*dv",vid[d],"Ddx",d-1)
   ),
   printf(fh, "  return ~a;~%",strOut),
   printf(fh, "} ~%")

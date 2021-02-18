@@ -179,11 +179,10 @@ function MaxwellField:fullInit(appTbl)
    self.integratedEMTime = 0.0 -- Time spent integrating EM fields.
 
    -- Create trigger for how frequently to compute integrated EM fields.
-   self.calcIntEMQuantFlag = false
    if appTbl.calcIntQuantEvery then
       self.calcIntEMQuantTrigger = LinearTrigger(0, appTbl.tEnd,  math.floor(1/appTbl.calcIntQuantEvery))
    else
-      self.calcIntEMQuantFlag = true
+      self.calcIntEMQuantTrigger = function(t) return true end
    end
 
    self._isFirst = true
@@ -316,7 +315,9 @@ function MaxwellField:alloc(nRkDup)
       method   = self.ioMethod,
       metaData = {
          polyOrder = self.basis:polyOrder(),
-         basisType = self.basis:id()
+         basisType = self.basis:id(),
+         epsilon0 = self.epsilon0,
+         mu0 = self.mu0,
       },
    }
 end
@@ -569,11 +570,7 @@ function MaxwellField:write(tm, force)
    if self.evolve or self.forceWrite then
       local tmStart = Time.clock()
       -- Compute EM energy integrated over domain.
-      if self.calcIntEMQuantFlag == false then
-         if self.calcIntEMQuantTrigger(tm) then
-            self.emEnergyCalc(tm, { self.em[1] }, { self.emEnergy })
-         end
-      else
+      if self.calcIntEMQuantTrigger(tm) then
          self.emEnergyCalc(tm, { self.em[1] }, { self.emEnergy })
       end
       -- Time computation of integrated moments.
@@ -695,7 +692,7 @@ function MaxwellField:advance(tCurr, species, inIdx, outIdx)
          -- here because field object does not know about vdim.
          do
             local c = 0
-            for _, s in pairs(species) do
+            for _, s in lume.orderedIter(species) do
                if c == 0 then
                   self.currentDens = s:allocMomCouplingFields().currentDensity
                end
@@ -710,7 +707,7 @@ function MaxwellField:advance(tCurr, species, inIdx, outIdx)
          self.fieldSlvr:advance(tCurr, {emIn}, {emRhsOut})
          if self.currentDens then -- No currents for source-free Maxwell.
             self.currentDens:clear(0.0)
-            for _, s in pairs(species) do
+            for _, s in lume.orderedIter(species) do
                self.currentDens:accumulate(s:getCharge(), s:getMomDensity())
             end
             self:accumulateCurrent(self.currentDens, emRhsOut)
@@ -721,7 +718,7 @@ function MaxwellField:advance(tCurr, species, inIdx, outIdx)
    else   -- Poisson equation. Solve for phi.
       -- Accumulate the charge density (divided by epsilon_0).
       self.chargeDens:clear(0.0)
-      for _, s in pairs(species) do
+      for _, s in lume.orderedIter(species) do
          self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
       end
 
@@ -889,7 +886,9 @@ function ExternalMaxwellField:alloc(nField)
       method   = self.ioMethod,
       metaData = {
          polyOrder = self.basis:polyOrder(),
-         basisType = self.basis:id()
+         basisType = self.basis:id(),
+         epsilon0 = self.epsilon0,
+         mu0 = self.mu0,
       },
    }   
 end

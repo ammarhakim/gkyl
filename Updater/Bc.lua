@@ -57,6 +57,8 @@ function Bc:init(tbl)
 
    self._ghostRangeDecomp = nil -- Will be constructed on first call to advance.
 
+   self._idxIn  = Lin.IntVec(self._grid:ndim())
+   self._idxOut = Lin.IntVec(self._grid:ndim())
 
    -- For diagnostics: create reduced boundary grid with 1 cell in dimension of self._dir.
    if self._grid:isShared() then 
@@ -82,19 +84,18 @@ function Bc:init(tbl)
       local nodeComm  = commSet.nodeComm
       local nodeRank  = Mpi.Comm_rank(nodeComm)
       local dirRank   = nodeRank
-      local cutsX = self._grid:cuts(1) or 1
-      local cutsY = self._grid:cuts(2) or 1
-      local cutsZ = self._grid:cuts(3) or 1
+      local cuts = {}
+      for d=1,3 do cuts[d] = self._grid:cuts(d) or 1 end
       local writeRank = -1
       if self._dir == 1 then 
-         dirRank = nodeRank % (cutsX*cutsY) % cutsX
+         dirRank = nodeRank % (cuts[1]*cuts[2]) % cuts[1]
       elseif self._dir == 2 then 
-         dirRank = math.floor(nodeRank / cutsX) % cutsY
+         dirRank = math.floor(nodeRank/cuts[1]) % cuts[2]
       elseif self._dir == 3 then
-         dirRank = math.floor(nodeRank/cutsX/cutsY)
+         dirRank = math.floor(nodeRank/cuts[1]/cuts[2])
       end
       self._splitComm = Mpi.Comm_split(worldComm, dirRank, nodeRank)
-      -- set up which ranks to write from 
+      -- Set up which ranks to write from.
       if self._edge == "lower" and dirRank == 0 then 
          writeRank = nodeRank
       elseif self._edge == "upper" and dirRank == self._grid:cuts(self._dir)-1 then
@@ -180,6 +181,18 @@ function Bc:getGhostRange(global, globalExt)
    return Range.Range(lv, uv)
 end
 
+local function createFieldFromField(grid, fld, ghostCells)
+   vComp = vComp or 1
+   local fld = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = fld:numComponents(),
+      ghost         = ghostCells,
+      metaData      = fld:getMetaData(),
+   }
+   fld:clear(0.0)
+   return fld
+end
+
 function Bc:_advance(tCurr, inFld, outFld)
    local grid = self._grid
    local qOut = assert(outFld[1], "Bc.advance: Must-specify an output field")
@@ -191,20 +204,15 @@ function Bc:_advance(tCurr, inFld, outFld)
    if self._isFirst then
       local globalExt     = qOut:globalExtRange()
       local localExtRange = qOut:localExtRange()
-      self._ghostRng      = localExtRange:intersect(
+      self._ghostRng      = self._ghostRng or localExtRange:intersect(
    	 self:getGhostRange(global, globalExt)) -- Range spanning ghost cells.
       -- Decompose ghost region into threads.
-      self._ghostRangeDecomp = LinearDecomp.LinearDecompRange {
+      self._ghostRangeDecomp = self._ghostRangeDecomp or LinearDecomp.LinearDecompRange {
    	 range = self._ghostRng, numSplit = grid:numSharedProcs() }
 
       -- Get the function onto the boundary grid.
       if self._evaluateFn then
-         self._ghostFld = DataStruct.Field {
-           onGrid        = self._boundaryGrid,
-           numComponents = qOut:numComponents(),
-           ghost         = {1,1},
-           metaData      = qOut:getMetaData(),
-         }
+         self._ghostFld = createFieldFromField(self._boundaryGrid, qOut, {1,1})
       end
    end
 
@@ -289,29 +297,28 @@ function Bc:_advance(tCurr, inFld, outFld)
       indexerIn = self._ghostFld:genIndexer()
    end
 
-   local idxIn = Lin.IntVec(self._grid:ndim()) -- Prealloc this
    for idxOut in self._ghostRangeDecomp:rowMajorIter(tId) do 
       qOut:fill(indexerOut(idxOut), ptrOut)
 
       -- Copy out index into in index
-      idxOut:copyInto(idxIn)
+      idxOut:copyInto(self._idxIn)
       -- Reverse the in velocity index if needed
       if self._skinLoop == "flip" then
-         idxIn[vdir] = global:upper(vdir) + 1 - idxIn[vdir]
+         self._idxIn[vdir] = global:upper(vdir) + 1 - self._idxIn[vdir]
       end
       if self._evaluateFn then
-         idxIn[dir] = 1 -- the boundaryGrid has only 1 cell in dir
-         self._ghostFld:fill(indexerIn(idxIn), ptrIn)
+         self._idxIn[dir] = 1 -- the boundaryGrid has only 1 cell in dir
+         self._ghostFld:fill(indexerIn(self._idxIn), ptrIn)
       else
-         idxIn[dir] = edge == "lower" and global:lower(dir) or global:upper(dir)
-         qOut:fill(indexerIn(idxIn), ptrIn)
+         self._idxIn[dir] = edge == "lower" and global:lower(dir) or global:upper(dir)
+         qOut:fill(indexerIn(self._idxIn), ptrIn)
       end
 
       for _, bc in ipairs(self._bcList) do
          -- Apply the 'bc' function. This can represent many boundary
          -- condition types ranging from a simple copy or a reflection
          -- with the sign flit to QM based electron emission model.
-         bc(dir, tCurr, idxIn, ptrIn, ptrOut)
+         bc(dir, tCurr, self._idxIn, ptrIn, ptrOut)
       end
    end
 
@@ -321,76 +328,41 @@ end
 function Bc:storeBoundaryFlux(tCurr, rkIdx, qOut)
    if self._isFirst then
       -- make enough boundary field copies for 4 RK stages
-      self._boundaryFluxFields = {
-         DataStruct.Field {
-           onGrid        = self._boundaryGrid,
-           numComponents = qOut:numComponents(),
-           ghost         = {1,1},
-           metaData = qOut:getMetaData(),
-         },
-         DataStruct.Field {
-           onGrid        = self._boundaryGrid,
-           numComponents = qOut:numComponents(),
-           ghost         = {1,1},
-           metaData = qOut:getMetaData(),
-         },
-         DataStruct.Field {
-           onGrid        = self._boundaryGrid,
-           numComponents = qOut:numComponents(),
-           ghost         = {1,1},
-           metaData = qOut:getMetaData(),
-         },
-         DataStruct.Field {
-           onGrid        = self._boundaryGrid,
-           numComponents = qOut:numComponents(),
-           ghost         = {1,1},
-           metaData = qOut:getMetaData(),
-         },
-      }
-      self._boundaryFluxRate = DataStruct.Field {
-         onGrid        = self._boundaryGrid,
-         numComponents = qOut:numComponents(),
-         ghost         = {1,1},
-         metaData = qOut:getMetaData(),
-      }
-      self._boundaryFluxFieldPrev = DataStruct.Field {
-         onGrid        = self._boundaryGrid,
-         numComponents = qOut:numComponents(),
-         ghost         = {1,1},
-         metaData = qOut:getMetaData(),
-      }
+      self._boundaryFluxFields = {createFieldFromField(self._boundaryGrid, qOut, {1,1}),
+                                  createFieldFromField(self._boundaryGrid, qOut, {1,1}),
+                                  createFieldFromField(self._boundaryGrid, qOut, {1,1}),
+                                  createFieldFromField(self._boundaryGrid, qOut, {1,1}),}
+      self._boundaryFluxRate      = createFieldFromField(self._boundaryGrid, qOut, {1,1})
+      self._boundaryFluxFieldPrev = createFieldFromField(self._boundaryGrid, qOut, {1,1})
       self._boundaryFluxFieldPrev:clear(0.0)
       self._boundaryPtr = {self._boundaryFluxFields[1]:get(1), 
                            self._boundaryFluxFields[2]:get(1),
                            self._boundaryFluxFields[3]:get(1),
-                           self._boundaryFluxFields[4]:get(1)
-                          }
+                           self._boundaryFluxFields[4]:get(1),}
       self._boundaryIdxr = self._boundaryFluxFields[1]:genIndexer()
 
-      local global = qOut:globalRange()
-      local globalExt = qOut:globalExtRange()
+      local global        = qOut:globalRange()
+      local globalExt     = qOut:globalExtRange()
       local localExtRange = qOut:localExtRange()
-      self._ghostRng = localExtRange:intersect(
-   	 self:getGhostRange(global, globalExt)) -- Range spanning ghost cells.
+      self._ghostRng      = self._ghostRng or localExtRange:intersect(
+   	 self:getGhostRange(global, globalExt) ) -- Range spanning ghost cells.
       -- Decompose ghost region into threads.
-      self._ghostRangeDecomp = LinearDecomp.LinearDecompRange {
+      self._ghostRangeDecomp = self._ghostRangeDecomp or LinearDecomp.LinearDecompRange {
    	 range = self._ghostRng, numSplit = self._grid:numSharedProcs() }
    end
 
-   local ptrOut = qOut:get(1) -- Get pointers to (re)use inside inner loop.
+   local ptrOut  = qOut:get(1) -- Get pointers to (re)use inside inner loop.
    local indexer = qOut:genIndexer()
 
    local tId = self._grid:subGridSharedId() -- Local thread ID.
-   
-   local idxIn = Lin.IntVec(self._grid:ndim())
    for idxOut in self._ghostRangeDecomp:rowMajorIter(tId) do
-      idxOut:copyInto(idxIn)
+      idxOut:copyInto(self._idxIn)
 
       qOut:fill(indexer(idxOut), ptrOut) 
 
       -- Before operating on ghosts, store ghost values for later flux diagnostics
-      idxIn[self._dir] = 1
-      self._boundaryFluxFields[rkIdx]:fill(self._boundaryIdxr(idxIn), self._boundaryPtr[rkIdx])
+      self._idxIn[self._dir] = 1
+      self._boundaryFluxFields[rkIdx]:fill(self._boundaryIdxr(self._idxIn), self._boundaryPtr[rkIdx])
       for c = 1, qOut:numComponents() do
          self._boundaryPtr[rkIdx][c] = ptrOut[c]
       end
@@ -399,37 +371,30 @@ end
 
 function Bc:evalOnConfBoundary(inFld)
    if self._isFirst then
-      self._confBoundaryField = DataStruct.Field {
-           onGrid        = self._confBoundaryGrid,
-           numComponents = inFld:numComponents(),
-           ghost         = {1,1},
-           metaData = inFld:getMetaData(),
-         }
-      self._confBoundaryFieldPtr = self._confBoundaryField:get(1)
-      self._confBoundaryIdxr = self._confBoundaryField:genIndexer()
+      self._confBoundaryField    = self._confBoundaryField or createFieldFromField(self._confBoundaryGrid, inFld, {1,1})
+      self._confBoundaryFieldPtr = self._confBoundaryFieldPtr or self._confBoundaryField:get(1)
+      self._confBoundaryIdxr     = self._confBoundaryIdxr or self._confBoundaryField:genIndexer()
+
+      local confGlobal        = inFld:globalRange()
+      local confGlobalExt     = inFld:globalExtRange()
+      local confLocalExtRange = inFld:localExtRange()
+      self._confGhostRng      = self._confGhostRng or confLocalExtRange:intersect(
+   	 self:getGhostRange(confGlobal, confGlobalExt) ) -- Range spanning ghost cells.
+      -- Decompose ghost region into threads.
+      self._confGhostRangeDecomp = self._confGhostRangeDecomp or LinearDecomp.LinearDecompRange {
+   	 range = self._confGhostRng, numSplit = self._grid:numSharedProcs() }
    end
-   local global = inFld:globalRange()
-   local dir, edge = self._dir, self._edge
-   
-   local localRange = self._confBoundaryField:localRange()
-   local localRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = localRange, numSplit = self._grid:numSharedProcs() }
 
    local inFldPtr = inFld:get(1)
-   local indexer = inFld:genIndexer()
+   local indexer  = inFld:genIndexer()
 
    local tId = self._grid:subGridSharedId() -- Local thread ID.
-   local idxIn = Lin.IntVec(self._grid:ndim())
-   for idxOut in localRangeDecomp:rowMajorIter(tId) do
-      idxOut:copyInto(idxIn)
-      if edge == "lower" then
-         idxIn[dir] = global:lower(dir)-inFld:lowerGhost() 
-      else
-         idxIn[dir] = global:upper(dir)+inFld:upperGhost()
-      end
+   for idxIn in self._confGhostRangeDecomp:rowMajorIter(tId) do
+      idxIn:copyInto(self._idxOut)
+      self._idxOut[self._dir] = 1
       
       inFld:fill(indexer(idxIn), inFldPtr) 
-      self._confBoundaryField:fill(self._confBoundaryIdxr(idxOut), self._confBoundaryFieldPtr)
+      self._confBoundaryField:fill(self._confBoundaryIdxr(self._idxOut), self._confBoundaryFieldPtr)
        
       for c = 1, inFld:numComponents() do
          self._confBoundaryFieldPtr[c] = inFldPtr[c]
@@ -480,7 +445,7 @@ function Bc:initBcDiagnostics(cDim)
       for d = 1, cDim do
          if d==self._dir then
             table.insert(reducedLower, -self._grid:dx(d)/2)
-            table.insert(reducedUpper, self._grid:dx(d)/2)
+            table.insert(reducedUpper,  self._grid:dx(d)/2)
             table.insert(reducedNumCells, 1)
             table.insert(reducedCuts, 1)
          else
@@ -491,9 +456,9 @@ function Bc:initBcDiagnostics(cDim)
          end
       end
       local reducedDecomp = CartDecomp.CartProd {
-         comm = self._splitComm,
+         comm      = self._splitComm,
          writeRank = self.writeRank,
-         cuts = reducedCuts,
+         cuts      = reducedCuts,
          useShared = self._grid:isShared(),
       }
 

@@ -27,6 +27,7 @@ local SpeciesBase      = require "App.Species.SpeciesBase"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
 local ffi              = require "ffi"
+local lume             = require "Lib.lume"
 
 -- Function to create basis functions.
 local function createBasis(nm, ndim, polyOrder)
@@ -92,11 +93,10 @@ function KineticSpecies:fullInit(appTbl)
    end
 
    -- Create trigger for how frequently to compute integrated moments.
-   self.calcIntQuantFlag = false
    if appTbl.calcIntQuantEvery then
       self.calcIntQuantTrigger = LinearTrigger(0, appTbl.tEnd,  math.floor(1/appTbl.calcIntQuantEvery))
    else
-      self.calcIntQuantFlag = true
+      self.calcIntQuantTrigger = function(t) return true end
    end
 
    self.distIoFrame = 0 -- Frame number for distribution function.
@@ -231,6 +231,11 @@ function KineticSpecies:fullInit(appTbl)
       }
    end 
    -- <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+   -- Create a keys metatable in self.projections so we always loop in the same order (better for I/O).
+   local projections_keys = {}
+   for k in pairs(self.projections) do table.insert(projections_keys, k) end
+   table.sort(projections_keys)
+   setmetatable(self.projections, projections_keys)
 
    self.deltaF         = xsys.pickBool(appTbl.deltaF, false)
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
@@ -406,7 +411,9 @@ function KineticSpecies:createBasis(nm, polyOrder)
       local metaData = {
          polyOrder = self.basis:polyOrder(),
          basisType = self.basis:id(),
-         grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
+         charge = self.charge,
+         mass = self.mass,
+         grid = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
       }
       self.grid:write("grid_" .. self.name .. ".bp", 0.0, metaData)
    end
@@ -417,10 +424,12 @@ function KineticSpecies:allocDistf()
 	onGrid        = self.grid,
 	numComponents = self.basis:numBasis(),
 	ghost         = {1, 1},
-        metaData = {
-           polyOrder = self.basis:polyOrder(),
-           basisType = self.basis:id()
-        },
+   metaData = {
+      polyOrder = self.basis:polyOrder(),
+      basisType = self.basis:id(),
+      charge = self.charge,
+      mass = self.mass,
+   },
    }
    f:clear(0.0)
    return f
@@ -430,10 +439,12 @@ function KineticSpecies:allocMoment()
 	onGrid        = self.confGrid,
 	numComponents = self.confBasis:numBasis(),
 	ghost         = {1, 1},
-        metaData = {
-           polyOrder = self.basis:polyOrder(),
-           basisType = self.basis:id()
-        },
+   metaData = {
+      polyOrder = self.basis:polyOrder(),
+      basisType = self.basis:id(),
+      charge = self.charge,
+      mass = self.mass,
+   },
    }
    m:clear(0.0)
    return m
@@ -443,10 +454,12 @@ function KineticSpecies:allocVectorMoment(dim)
 	onGrid        = self.confGrid,
 	numComponents = self.confBasis:numBasis()*dim,
 	ghost         = {1, 1},
-        metaData = {
-           polyOrder = self.basis:polyOrder(),
-           basisType = self.basis:id()
-        },
+   metaData = {
+      polyOrder = self.basis:polyOrder(),
+      basisType = self.basis:id(),
+      charge = self.charge,
+      mass = self.mass,
+   },
    }
    m:clear(0.0)
    return m
@@ -555,8 +568,10 @@ function KineticSpecies:alloc(nRkDup)
       method     = self.ioMethod,
       writeGhost = self.writeGhost,
       metaData   = {
-	 polyOrder = self.basis:polyOrder(),
-	 basisType = self.basis:id(),
+         polyOrder = self.basis:polyOrder(),
+         basisType = self.basis:id(),
+         charge    = self.charge,
+         mass      = self.mass,    
          grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
       },
    }
@@ -588,9 +603,7 @@ function KineticSpecies:alloc(nRkDup)
    -- cross primitive moments (uCross, vtSqCross), and spatially varying
    -- cross-species collisionality (varNuXCross).
    self.momentFlags = {}
-   for iF = 1,4 do
-      self.momentFlags[iF] = false
-   end
+   for iF = 1,4 do self.momentFlags[iF] = false end
    -- The fifth and sixth entries need a table to store 
    -- a flag for each pair of species colliding.
    self.momentFlags[5] = {}  -- Corresponds to uCross and vtSqCross.
@@ -620,7 +633,7 @@ function KineticSpecies:initDist()
    local syncPeriodicDirs = true
    if self.fluctuationBCs then syncPeriodicDirs = false end
    local initCnt, backgroundCnt = 0, 0
-   for _, pr in pairs(self.projections) do
+   for _, pr in lume.orderedIter(self.projections) do
       pr:fullInit(self)
       pr:run(0.0, self.distf[2])
       -- This barrier is needed as when using MPI-SHM some
@@ -784,10 +797,8 @@ end
 function KineticSpecies:clearMomentFlags(species)
    -- Clear the momentFlags table to indicate that moments (and other
    -- quantities) need to be computed again.
-   for iF = 1,4 do
-      self.momentFlags[iF] = false
-   end
-   for sN, _ in pairs(species) do
+   for iF = 1,4 do self.momentFlags[iF] = false end
+   for sN, _ in lume.orderedIter(species) do
       if sN ~= self.name then
          self.momentFlags[5][sN] = false
          self.momentFlags[6][sN] = false
@@ -1009,11 +1020,7 @@ function KineticSpecies:write(tm, force)
 
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.
-      if self.calcIntQuantFlag == false then
-         if self.calcIntQuantTrigger(tm) then
-            self:calcDiagnosticIntegratedMoments(tm)
-         end
-      else
+      if self.calcIntQuantTrigger(tm) then
          self:calcDiagnosticIntegratedMoments(tm)
       end
       -- Time computation of integrated moments.
@@ -1021,7 +1028,7 @@ function KineticSpecies:write(tm, force)
 
       -- Only write stuff if triggered.
       if self.distIoTrigger(tm) or force then
-	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
+         self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
          if self.f0 then
             if tm == 0.0 then
 	       self.f0:write(string.format("%s_f0_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame, true)
@@ -1100,10 +1107,10 @@ function KineticSpecies:readRestart()
    local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name), readGhost)
    self.distIoFrame = fr -- Reset internal frame counter.
 
-   -- set ghost cells
+   -- Set ghost cells.
    self.distf[1]:sync()
 
-   -- Apply BCs (unless skin cells have been read because of special BCs)
+   -- Apply BCs (unless skin cells have been read because of special BCs).
    if not self.hasSheathBcs and not self.fluctuationBCs then 
       self:applyBc(tm, self.distf[1]) 
    end 

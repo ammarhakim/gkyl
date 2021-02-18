@@ -17,6 +17,7 @@ local Updater        = require "Updater"
 local VlasovEq       = require "Eq.Vlasov"
 local ffi            = require "ffi"
 local xsys           = require "xsys"
+local lume           = require "Lib.lume"
 
 local VlasovSpecies = Proto(KineticSpecies)
 
@@ -243,9 +244,9 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    -- velocity dependent collisionality, FLR effects, or some specific
    -- neutral/impurity effect.
    self.collPairs  = {}
-   for sN, _ in pairs(species) do
+   for sN, _ in lume.orderedIter(species) do
       self.collPairs[sN] = {}
-      for sO, _ in pairs(species) do
+      for sO, _ in lume.orderedIter(species) do
          self.collPairs[sN][sO] = {}
          -- Need next below because species[].collisions is created as an empty table. 
          if species[sN].collisions and next(species[sN].collisions) then 
@@ -284,10 +285,10 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    end
 
    -- Here we wish to record some properties of each collision in collPairs.
-   for sN, _ in pairs(species) do
+   for sN, _ in lume.orderedIter(species) do
       -- Need next below because species[].collisions is created as an empty table. 
       if species[sN].collisions and next(species[sN].collisions) then 
-         for sO, _ in pairs(species) do
+         for sO, _ in lume.orderedIter(species) do
             -- Find the kind of a specific collision, and the collision frequency it uses.
             for collNmN, _ in pairs(species[sN].collisions) do
                if self.collPairs[sN][sO].on then
@@ -352,7 +353,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
          -- but species sO collides with sN.
          -- For computing cross-primitive moments, species sO may need the sN-sO
          -- collision frequency. Set it such that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
-         for sO, _ in pairs(species) do
+         for sO, _ in lume.orderedIter(species) do
             if species[sO].collisions and next(species[sO].collisions) then 
                for collNmO, _ in pairs(species[sO].collisions) do
                   if self.collPairs[sO][sN].on then
@@ -404,7 +405,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
          self.needCorrectedSelfPrimMom = true
       end
    end
-   for sO, _ in pairs(species) do
+   for sO, _ in lume.orderedIter(species) do
       if self.collPairs[self.name][sO].on or self.collPairs[sO][self.name].on then
          self.needSelfPrimMom = true
          if ( self.collPairs[sO][sO].on and (self.collPairs[self.name][self.name].kind=="GkLBO" or
@@ -424,14 +425,14 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    -- If ionization collision object exists, locate electrons
    local counterIz_elc = true
    local counterIz_neut = true
-   for sN, _ in pairs(species) do
+   for sN, _ in lume.orderedIter(species) do
       if species[sN].collisions and next(species[sN].collisions) then 
-         for sO, _ in pairs(species) do
+         for sO, _ in lume.orderedIter(species) do
 	    if self.collPairs[sN][sO].on then
    	       if (self.collPairs[sN][sO].kind == 'Ionization') then
    		  for collNm, _ in pairs(species[sN].collisions) do
    		     if self.name==species[sN].collisions[collNm].elcNm and counterIz_elc then
-   			self.neutNmIz = species[sN].collisions[collNm].neutNm
+   			self.neutNmIz         = species[sN].collisions[collNm].neutNm
    			self.needSelfPrimMom  = true
    			self.calcReactRate    = true
    			self.collNmIoniz      = collNm
@@ -440,13 +441,11 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    			self.m0fMax           = self:allocMoment()
    			self.m0mod            = self:allocMoment()
    			self.fMaxwellIz       = self:allocDistf()
-			self.intSrcIzM0 = DataStruct.DynVector {
-			   numComponents = 1,
-			}
-			counterIz_elc = false
+			self.intSrcIzM0       = DataStruct.DynVector{numComponents = 1}
+			counterIz_elc         = false
 		     elseif self.name==species[sN].collisions[collNm].neutNm and counterIz_neut then
 			self.needSelfPrimMom = true
-			counterIz_neut = false
+			counterIz_neut       = false
    		     end
    		  end
    	       end
@@ -457,9 +456,9 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
 
    -- If Charge Exchange collision object exists, locate ions
    local counterCX = true
-   for sN, _ in pairs(species) do
+   for sN, _ in lume.orderedIter(species) do
       if species[sN].collisions and next(species[sN].collisions) then 
-         for sO, _ in pairs(species) do
+         for sO, _ in lume.orderedIter(species) do
    	    if self.collPairs[sN][sO].on then
    	       if (self.collPairs[sN][sO].kind == 'CX') then
    		  for collNm, _ in pairs(species[sN].collisions) do
@@ -499,14 +498,14 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    -- Allocate fieds to store cross-species primitive moments.
    self.uCross    = {}
    self.vtSqCross = {}
-   for sN, _ in pairs(species) do
+   for sN, _ in lume.orderedIter(species) do
       if sN ~= self.name then
          -- Flags for couplingMoments, boundary corrections, star moments,
          -- self primitive moments, cross primitive moments.
          self.momentFlags[5][sN] = false
       end
 
-      for sO, _ in pairs(species) do
+      for sO, _ in lume.orderedIter(species) do
          -- Allocate space for this species' cross-primitive moments
          -- only if some other species collides with it.
          if (sN ~= sO) and (self.collPairs[sN][sO].on or self.collPairs[sO][sN].on) then
@@ -532,13 +531,13 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
             projectOnGhosts = false,
          }
       end
-      for sN, _ in pairs(species) do
+      for sN, _ in lume.orderedIter(species) do
          if sN ~= self.name then
             -- Sixth moment flag is to indicate if spatially varying collisionality has been computed.
             self.momentFlags[6][sN] = false
          end
 
-         for sO, _ in pairs(species) do
+         for sO, _ in lume.orderedIter(species) do
             -- Allocate space for this species' collision frequency 
             -- only if some other species collides with it.
             if (sN ~= sO) and (self.collPairs[sN][sO].on or self.collPairs[sO][sN].on) then
@@ -939,7 +938,9 @@ function VlasovSpecies:createDiagnostics()
                ghost         = {1, 1},
                metaData = {
                   polyOrder = self.basis:polyOrder(),
-                  basisType = self.basis:id()
+                  basisType = self.basis:id(),
+                  charge = self.charge,
+                  mass = self.mass,
                },
             }
             self.diagnosticMomentUpdaters[mom..label] = Updater.DistFuncMomentCalc {
@@ -960,7 +961,9 @@ function VlasovSpecies:createDiagnostics()
             ghost         = {1, 1},
             metaData = {
                polyOrder = self.basis:polyOrder(),
-               basisType = self.basis:id()
+               basisType = self.basis:id(),
+               charge = self.charge,
+               mass = self.mass,
             },	    	    
          }
 
@@ -1186,8 +1189,10 @@ function VlasovSpecies:calcExternalBC()
       onGrid = grid,
       numComponents = self.basis:numBasis()*self.basis:numBasis(),
       metaData = {
-	 polyOrder = self.basis:polyOrder(),
-	 basisType = self.basis:id(),
+         polyOrder = self.basis:polyOrder(),
+         basisType = self.basis:id(),
+         charge = self.charge,
+         mass = self.mass,
       },
    }
    -- Calculate Bronold and Fehske reflection function coefficients
@@ -1248,7 +1253,8 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    local tmStart = Time.clock()
    -- Compute moments needed in coupling to fields and collisions.
    local fIn = self:rkStepperFields()[rkIdx]
-   if self.needSelfPrimMom then
+   if self.needSelfPrimMom and
+      lume.any({unpack(self.momentFlags,1,4)},function(x) return x==false end) then -- No need to recompute if already computed.
       self.fiveMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy, 
                                                       self.m1Correction, self.m2Correction,
                                                       self.m0Star, self.m1Star, self.m2Star })
@@ -1270,7 +1276,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       -- Indicate that moments, boundary corrections, star moments
       -- and self-primitive moments have been computed.
       for iF=1,4 do self.momentFlags[iF] = true end
-   else
+   elseif self.momentFlags[1]==false then -- No need to recompute if already computed.
       if self.computePlasmaB then
          self.momDensityCalc:advance(tCurr, {fIn}, { self.momDensity })
       else
@@ -1282,9 +1288,14 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 
    -- For Ionization.
    if self.calcReactRate then
-      local neutU    = species[self.neutNmIz]:selfPrimitiveMoments()[1]
-      local neutM0   = species[self.neutNmIz]:fluidMoments()[1]
-      local neutVtSq = species[self.neutNmIz]:selfPrimitiveMoments()[2]
+      local neuts = species[self.neutNmIz]
+      if lume.any({unpack(neuts.momentFlags,1,4)},function(x) return x==false end) then
+         -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments. 
+         neuts:calcCouplingMoments(tCurr, rkIdx, species)
+      end
+      local neutM0   = neuts:fluidMoments()[1]
+      local neutU    = neuts:selfPrimitiveMoments()[1]
+      local neutVtSq = neuts:selfPrimitiveMoments()[2]
       
       if tCurr == 0.0 then
 	 species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
@@ -1302,16 +1313,19 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    -- For charge exchange.
    if self.calcCXSrc then
       -- Calculate Vcx*SigmaCX.
-      local m0       = species[self.neutNmCX]:fluidMoments()[1]
-      local neutU    = species[self.neutNmCX]:selfPrimitiveMoments()[1]
-      local neutVtSq = species[self.neutNmCX]:selfPrimitiveMoments()[2]
+      local neuts = species[self.neutNmCX]
+      if lume.any({unpack(neuts.momentFlags,1,4)},function(x) return x==false end) then
+         -- Neutrals haven't been updated yet, so we need to compute their moments and primitive moments. 
+         neuts:calcCouplingMoments(tCurr, rkIdx, species)
+      end
+      local m0       = neuts:fluidMoments()[1]
+      local neutU    = neuts:selfPrimitiveMoments()[1]
+      local neutVtSq = neuts:selfPrimitiveMoments()[2]
       
       species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uSelf, neutU, self.vtSqSelf, neutVtSq}, {self.vSigmaCX})
    end
 
-   
    self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
-
 end
 
 function VlasovSpecies:fluidMoments()

@@ -14,6 +14,8 @@ void VmSelfPrimMoments1x1vSer_P1(binOpData_t *data, const double *m0, const doub
   bool cellAvg = false;
   if (-0.5*(2.449489742783178*m0[1]-1.414213562373095*m0[0]) < 0) cellAvg = true; 
   if (0.5*(2.449489742783178*m0[1]+1.414213562373095*m0[0]) < 0) cellAvg = true; 
+  if (-0.5*(2.449489742783178*m2S[1]-1.414213562373095*m2S[0]) < 0) cellAvg = true; 
+  if (0.5*(2.449489742783178*m2S[1]+1.414213562373095*m2S[0]) < 0) cellAvg = true; 
  
   double m0r[2]; 
   double m1r[2]; 

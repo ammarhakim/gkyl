@@ -65,9 +65,9 @@ function DynVector:init(tbl)
    local allocator = Alloc.createAllocator(
       string.format("double[%d]", self._numComponents+1))
    self._timeMesh = Alloc.Double()
-   self._data = allocator()
+   self._data     = allocator()
    -- Temp storage for single entry.
-   self._tmpData = new(string.format("double[%d]", self._numComponents+1))
+   self._tmpData  = new(string.format("double[%d]", self._numComponents+1))
    self._tmpTable = {}
    for i = 1, self._numComponents do self._tmpTable[i] = nil end
 
@@ -90,7 +90,7 @@ function DynVector:init(tbl)
          ["inputfile"] = {
             value = GKYL_INP_FILE_CONTENTS, vType = "string"
          }
-   }
+      }
    else
       -- Write some dummy text otherwise.
       self._metaData = { ["inputfile"] = { value = "inputfile", vType = "string" } }
@@ -267,20 +267,16 @@ function DynVector:read(fName)
    local timeMesh, data
    if reader:hasVar("TimeMesh") then
       timeMesh = reader:getVar("TimeMesh"):read()
-      data = reader:getVar("Data"):read()
+      data     = reader:getVar("Data"):read()
    elseif reader:hasVar("TimeMesh0") then
       timeMesh = reader:getVar("TimeMesh0"):read()
-      data = reader:getVar("Data0"):read()
-      varCnt = 1
+      data     = reader:getVar("Data0"):read()
+      varCnt   = 1
       while reader:hasVar("TimeMesh"..varCnt) do
          local timeMeshN = reader:getVar("TimeMesh"..varCnt):read()
-         local dataN = reader:getVar("Data"..varCnt):read()
-         for i = 1, timeMeshN:size() do
-            timeMesh:push(timeMeshN[i])
-         end
-         for i = 1, dataN:size() do
-            data:push(dataN[i])
-         end
+         local dataN     = reader:getVar("Data"..varCnt):read()
+         for i = 1, timeMeshN:size() do timeMesh:push(timeMeshN[i]) end
+         for i = 1, dataN:size() do data:push(dataN[i]) end
          varCnt = varCnt + 1
       end
    end
@@ -300,7 +296,7 @@ end
 
 function DynVector:removeLast()
    local tm = self._timeMesh:popLast()
-   local v = self._data:popLast()
+   local v  = self._data:popLast()
    return tm, v
 end
 
@@ -328,14 +324,14 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
    end
 
    if not tmStamp then tmStamp = 0.0 end -- Default time-stamp.
-   local flushData = xsys.pickBool(flushData, true)  -- Default flush data on write.
+   local flushData  = xsys.pickBool(flushData, true)  -- Default flush data on write.
    local appendData = xsys.pickBool(appendData, true) -- Default append data to single file.
 
    if appendData and (frNum and frNum>=0) then 
       self.frNum = frNum 
    else 
       self.frNum = "" 
-      frNum = frNum or 0
+      frNum      = frNum or 0
    end
 
    -- Create group and set I/O method.
@@ -344,7 +340,7 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
    Adios.select_method(grpId, "MPI", "", "")
    
    -- ADIOS expects CSV string to specify data shape
-   local localTmSz = toCSV( {self._data:size()} )
+   local localTmSz  = toCSV( {self._data:size()} )
    local localDatSz = toCSV( {self._data:size(), self._numComponents} )
    
    -- Define data to write.
@@ -386,11 +382,11 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
 
    -- Clear data for next round of IO.
    if flushData then 
-     local tLast, dLast = self:lastData() -- Save the last data, in case we need it later.
-     self.tLast = tLast
-     for i = 1, self._numComponents do self.dLast[i] = dLast[i] end
-     self:clear()
-     self.flushed = true
+      local tLast, dLast = self:lastData() -- Save the last data, in case we need it later.
+      self.tLast = tLast
+      for i = 1, self._numComponents do self.dLast[i] = dLast[i] end
+      self:clear()
+      self.flushed = true
    end
 end
 

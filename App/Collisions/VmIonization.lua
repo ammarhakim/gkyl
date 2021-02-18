@@ -107,8 +107,8 @@ function VmIonization:createSolver(funcField)
    self.collisionSlvr = Updater.Ionization {
       onGrid     = self.confGrid,
       confBasis  = self.confBasis,
-      phaseGrid     = self.phaseGrid,
-      phaseBasis  = self.phaseBasis,
+      phaseGrid  = self.phaseGrid,
+      phaseBasis = self.phaseBasis,
       elcMass    = self.mass,
       elemCharge = self.charge,
       reactRate  = true,
@@ -179,10 +179,8 @@ function VmIonization:createSolver(funcField)
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
-      metaData = {
-	 polyOrder = self.phaseBasis:polyOrder(),
-	 basisType = self.phaseBasis:id()
-      },
+      metaData      = { polyOrder = self.phaseBasis:polyOrder(),
+                        basisType = self.phaseBasis:id() },
    }
 end
 

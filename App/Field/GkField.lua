@@ -75,17 +75,13 @@ function GkField:fullInit(appTbl)
    self.isElectromagnetic = xsys.pickBool(tbl.isElectromagnetic, false) -- Electrostatic by default.
 
    -- Create triggers to write fields.
-   if tbl.nFrame then
-      self.ioTrigger = LinearTrigger(0, appTbl.tEnd, tbl.nFrame)
-   else
-      self.ioTrigger = LinearTrigger(0, appTbl.tEnd, appTbl.nFrame)
-   end
+   local nFrame = tbl.nFrame or appTbl.nFrame
+   self.ioTrigger = LinearTrigger(0, appTbl.tEnd, nFrame)
 
    self.ioFrame = 0 -- Frame number for IO.
    self.dynVecRestartFrame = 0 -- Frame number of restarts (for DynVectors only).
-
    
-   -- write ghost cells on boundaries of global domain (for BCs)
+   -- Write ghost cells on boundaries of global domain (for BCs).
    self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 
    -- Get boundary conditions.
@@ -189,6 +185,13 @@ function GkField:fullInit(appTbl)
       self.externalPhiTimeDependence = false
    end
 
+   -- Create trigger for how frequently to compute field energy.
+   if appTbl.calcIntQuantEvery then
+      self.calcIntFieldEnergyTrigger = LinearTrigger(0, appTbl.tEnd,  math.floor(1/appTbl.calcIntQuantEvery))
+   else
+      self.calcIntFieldEnergyTrigger = function(t) return true end
+   end
+
    self.bcTime = 0.0 -- Timer for BCs.
 
    self._first     = true
@@ -288,43 +291,10 @@ function GkField:initField(species)
       -- Solve for initial Apar.
       local apar = self.potentials[1].apar
       self.currentDens:clear(0.0)
-      for nm, s in pairs(species) do
+      for _, s in lume.orderedIter(species) do
          self.currentDens:accumulate(s:getCharge(), s:getMomDensity())
       end
       self.aparSlvr:advance(0.0, {self.currentDens}, {apar})
-
-      -- Decrease effective polynomial order in z of apar by setting the highest order z coefficients to 0.
-      if self.ndim == 1 or self.ndim == 3 then -- Only have z direction in 1d or 3d (2d is assumed to be x,y).
-         local localRange = apar:localRange()
-         local indexer    = apar:genIndexer()
-         local ptr        = apar:get(1)
-
-         -- Loop over all cells.
-         for idx in localRange:rowMajorIter() do
-            self.grid:setIndex(idx)
-            
-            apar:fill(indexer(idx), ptr)
-            if self.ndim == 1 then
-               ptr:data()[polyOrder] = 0.0
-            else -- ndim == 3.
-               if polyOrder == 1 then
-                  ptr:data()[3] = 0.0
-                  ptr:data()[5] = 0.0
-                  ptr:data()[6] = 0.0
-                  ptr:data()[7] = 0.0
-               elseif polyOrder == 2 then
-                  ptr:data()[9]  = 0.0
-                  ptr:data()[13] = 0.0
-                  ptr:data()[14] = 0.0
-                  ptr:data()[15] = 0.0
-                  ptr:data()[16] = 0.0
-                  ptr:data()[17] = 0.0
-                  ptr:data()[18] = 0.0
-                  ptr:data()[19] = 0.0
-               end
-            end
-         end
-      end
 
       -- Clear dApar/dt ... will be solved for before being used.
       self.potentials[1].dApardt:clear(0.0)
@@ -364,7 +334,7 @@ end
 
 function GkField:createSolver(species, externalField)
    -- Get adiabatic species info.
-   for nm, s in pairs(species) do
+   for _, s in lume.orderedIter(species) do
       if Species.AdiabaticSpecies.is(s) then
          self.adiabatic = true
          self.adiabSpec = s
@@ -430,7 +400,7 @@ function GkField:createSolver(species, externalField)
       -- If not provided, calculate species-dependent weight on polarization term == sum_s m_s n_s / B^2.
       if not self.polarizationWeight then 
          self.polarizationWeight = 0.0
-         for nm, s in pairs(species) do
+         for _, s in lume.orderedIter(species) do
             if Species.GkSpecies.is(s) then
                self.polarizationWeight = self.polarizationWeight + s:getPolarizationWeight()
             end
@@ -639,33 +609,41 @@ end
 
 function GkField:write(tm, force)
    if self.evolve then
-      -- Compute integrated quantities over domain.
-      self.int2Calc:advance(tm, { self.potentials[1].phi }, { self.phiSq })
-      if self.isElectromagnetic then 
-         self.int2Calc:advance(tm, { self.potentials[1].apar }, { self.aparSq })
-      end
-      if self.energyCalc then 
-         if self.linearizedPolarization then
-            local esEnergyFac = .5*self.polarizationWeight
-            if self.ndim == 1 then 
-               esEnergyFac = esEnergyFac*self.kperp2 
-               if self.adiabatic then 
-                  esEnergyFac = esEnergyFac + .5*self.adiabSpec:getQneutFac() 
-               end
-            end
-            self.energyCalc:advance(tm, { self.potentials[1].phiAux, esEnergyFac }, { self.esEnergy })
-            if self.adiabatic and self.ndim > 1 then
-               local tm, energyVal = self.esEnergy:lastData()
-               local _, phiSqVal = self.phiSq:lastData()
-               energyVal[1] = energyVal[1] + .5*self.adiabSpec:getQneutFac()*phiSqVal[1]
-            end
-         else
-            -- Something.
-         end
+      if self.calcIntFieldEnergyTrigger(tm) then
+         -- Compute integrated quantities over domain.
+         self.int2Calc:advance(tm, { self.potentials[1].phi }, { self.phiSq })
          if self.isElectromagnetic then 
-            local emEnergyFac = .5/self.mu0
-            if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperp2 end
-            self.energyCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy })
+            self.int2Calc:advance(tm, { self.potentials[1].apar }, { self.aparSq })
+         end
+         if self.energyCalc then 
+            if self.linearizedPolarization then
+               local esEnergyFac = .5*self.polarizationWeight
+               if self.ndim == 1 then 
+                  esEnergyFac = esEnergyFac*self.kperp2 
+                  if self.adiabatic then 
+                     esEnergyFac = esEnergyFac + .5*self.adiabSpec:getQneutFac() 
+                  end
+               end
+               self.energyCalc:advance(tm, { self.potentials[1].phiAux, esEnergyFac }, { self.esEnergy })
+
+               -- NRM: the section below adds a (physical) term to esEnergy proportional to |phi|**2 when using adiabatic electrons.
+               -- however, this makes it difficult to compute the growth rate of ky!=0 modes from esEnergy when the
+               -- ky=0 mode is not suppressed. commenting out the below is a hack so that esEnergy can be used to compute
+               -- growth rate of ky!=0 modes.
+
+               --if self.adiabatic and self.ndim > 1 then
+               --   local tm, energyVal = self.esEnergy:lastData()
+               --   local _, phiSqVal = self.phiSq:lastData()
+               --   energyVal[1] = energyVal[1] + .5*self.adiabSpec:getQneutFac()*phiSqVal[1]
+               --end
+            else
+               -- Something.
+            end
+            if self.isElectromagnetic then 
+              local emEnergyFac = .5/self.mu0
+              if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperp2 end
+              self.energyCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy })
+            end
          end
       end
 
@@ -754,13 +732,13 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
          potCurr.phi:combine(self.externalPhiTimeDependence(tCurr), self.externalPhiFld)
       else
          self.chargeDens:clear(0.0)
-         for nm, s in pairs(species) do
+         for _, s in lume.orderedIter(species) do
             self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
          end
          -- If not using linearized polarization term, set up laplacian weight.
          if not self.linearizedPolarization or (self._first and not self.uniformPolarization) then
             self.weight:clear(0.0)
-            for nm, s in pairs(species) do
+            for _, s in lume.orderedIter(species) do
                if Species.GkSpecies.is(s) then
                   self.weight:accumulate(1.0, s:getPolarizationWeight(false))
                end
@@ -828,51 +806,17 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
       else 
          self.modifierWeight:clear(0.0)
       end
-      for nm, s in pairs(species) do
-        if s:isEvolving() then 
-           self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getNumDensity())
-           -- Taking momDensity at outIdx gives momentum moment of df/dt.
-           self.currentDens:accumulate(s:getCharge(), s:getMomDensity(outIdx))
-        end
+      for _, s in lume.orderedIter(species) do
+         if s:isEvolving() then 
+            self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getNumDensity())
+            -- Taking momDensity at outIdx gives momentum moment of df/dt.
+            self.currentDens:accumulate(s:getCharge(), s:getMomDensity(outIdx))
+         end
       end
       self.dApardtSlvr:setModifierWeight(self.modifierWeight)
       -- dApar/dt solve.
       local dApardt = potCurr.dApardt
       self.dApardtSlvr:advance(tCurr, {self.currentDens}, {dApardt}) 
-      
-      -- Decrease effective polynomial order in z of dApar/dt by setting the highest order z coefficients to 0.
-      -- This ensures that dApar/dt is in the same space as dPhi/dz.
-      if self.ndim == 1 or self.ndim == 3 then -- Only have z direction in 1d or 3d (2d is assumed to be x,y).
-         local localRange = dApardt:localRange()
-         local indexer = dApardt:genIndexer()
-         local ptr = dApardt:get(1)
-
-         -- Loop over all cells
-         for idx in localRange:rowMajorIter() do
-            self.grid:setIndex(idx)
-            
-            dApardt:fill(indexer(idx), ptr)
-            if self.ndim == 1 then
-               ptr:data()[polyOrder] = 0.0
-            else -- ndim == 3.
-               if polyOrder == 1 then
-                  ptr:data()[3] = 0.0
-                  ptr:data()[5] = 0.0
-                  ptr:data()[6] = 0.0
-                  ptr:data()[7] = 0.0
-               elseif polyOrder == 2 then
-                  ptr:data()[9] = 0.0
-                  ptr:data()[13] = 0.0
-                  ptr:data()[14] = 0.0
-                  ptr:data()[15] = 0.0
-                  ptr:data()[16] = 0.0
-                  ptr:data()[17] = 0.0
-                  ptr:data()[18] = 0.0
-                  ptr:data()[19] = 0.0
-               end
-            end
-         end
-      end
 
       -- Apply BCs.
       local tmStart = Time.clock()
@@ -908,51 +852,17 @@ function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
       else 
          self.modifierWeight:clear(0.0)
       end
-      for nm, s in pairs(species) do
-        if s:isEvolving() then 
-           self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getEmModifier())
-           -- Taking momDensity at outIdx gives momentum moment of df/dt.
-           self.currentDens:accumulate(s:getCharge(), s:getMomProjDensity(outIdx))
-        end
+      for _, s in lume.orderedIter(species) do
+         if s:isEvolving() then 
+            self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getEmModifier())
+            -- Taking momDensity at outIdx gives momentum moment of df/dt.
+            self.currentDens:accumulate(s:getCharge(), s:getMomProjDensity(outIdx))
+         end
       end
       self.dApardtSlvr2:setModifierWeight(self.modifierWeight)
       -- dApar/dt solve.
       local dApardt = potCurr.dApardt
       self.dApardtSlvr2:advance(tCurr, {self.currentDens}, {dApardt}) 
-      
-      -- Decrease effective polynomial order in z of dApar/dt by setting the highest order z coefficients to 0
-      -- this ensures that dApar/dt is in the same space as dPhi/dz.
-      if self.ndim == 1 or self.ndim == 3 then -- Only have z direction in 1d or 3d (2d is assumed to be x,y).
-         local localRange = dApardt:localRange()
-         local indexer = dApardt:genIndexer()
-         local ptr = dApardt:get(1)
-
-         -- Loop over all cells.
-         for idx in localRange:rowMajorIter() do
-            self.grid:setIndex(idx)
-            
-            dApardt:fill(indexer(idx), ptr)
-            if self.ndim == 1 then
-               ptr:data()[polyOrder] = 0.0
-            else -- ndim == 3
-               if polyOrder == 1 then
-                  ptr:data()[3] = 0.0
-                  ptr:data()[5] = 0.0
-                  ptr:data()[6] = 0.0
-                  ptr:data()[7] = 0.0
-               elseif polyOrder == 2 then
-                  ptr:data()[9] = 0.0
-                  ptr:data()[13] = 0.0
-                  ptr:data()[14] = 0.0
-                  ptr:data()[15] = 0.0
-                  ptr:data()[16] = 0.0
-                  ptr:data()[17] = 0.0
-                  ptr:data()[18] = 0.0
-                  ptr:data()[19] = 0.0
-               end
-            end
-         end
-      end
 
       -- Apply BCs.
       local tmStart = Time.clock()
@@ -1016,6 +926,10 @@ function GkField:energyCalcTime()
    return t
 end
 
+function GkField:printDevDiagnostics()
+   self.phiSlvr:printDevDiagnostics()
+end
+
 -- GkGeometry ---------------------------------------------------------------------
 --
 -- A field object with fields specifying the magnetic geometry for GK.
@@ -1037,11 +951,8 @@ function GkGeometry:fullInit(appTbl)
    self.evolve = xsys.pickBool(tbl.evolve, false) -- by default these fields are not time-dependent.
 
    -- Create triggers to write fields.
-   if tbl.nFrame then
-      self.ioTrigger = LinearTrigger(0, appTbl.tEnd, tbl.nFrame)
-   else
-      self.ioTrigger = LinearTrigger(0, appTbl.tEnd, appTbl.nFrame)
-   end
+   local nFrame = tbl.nFrame or appTbl.nFrame
+   self.ioTrigger = LinearTrigger(0, appTbl.tEnd, nFrame)
 
    self.ioFrame = 0 -- Frame number for IO.
    
@@ -1063,6 +974,8 @@ function GkGeometry:fullInit(appTbl)
    -- File containing geometry quantities that go into equations.
    self.fromFile = tbl.fromFile
 
+   -- write ghost cells on boundaries of global domain (for BCs)
+   self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 end
 
 function GkGeometry:hasEB() end
@@ -1159,7 +1072,7 @@ function GkGeometry:alloc()
    self.fieldIo = AdiosCartFieldIo {
       elemType   = self.geo.bmag:elemType(),
       method     = self.ioMethod,
-      writeGhost = true,
+      writeGhost = self.writeGhost,
       metaData   = {
 	 polyOrder = self.basis:polyOrder(),
 	 basisType = self.basis:id()
@@ -1513,9 +1426,7 @@ function GkGeometry:applyBcIdx(tCurr, idx)
 end
 
 function GkGeometry:applyBc(tCurr, geoIn)
-   if self.evolve then 
-      geoIn.phiWall:sync(false)
-   end
+   if self.evolve then geoIn.phiWall:sync(false) end
 end
 
 function GkGeometry:totalSolverTime()

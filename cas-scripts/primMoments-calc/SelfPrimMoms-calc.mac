@@ -40,7 +40,7 @@ for bInd : 1 thru length(bName) do (
 
       for polyOrder : 1 thru maxPolyOrderB do (
     
-        disp(printf(false,sconcat("Creating VmSelfPrimMoments ~ax~av", bName[bInd]),c,v)),
+        disp(printf(false,sconcat("Creating VmSelfPrimMoments ~ax~av ", bName[bInd], " P~a"),c,v, polyOrder)),
         fname : sconcat("~/max-out/VmSelfPrimMoments", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
         fh : openw(fname),
   
@@ -70,7 +70,7 @@ for bInd : 1 thru length(bName) do (
 
       for polyOrder : 1 thru maxPolyOrderB do (
 
-        disp(printf(false,sconcat("Creating GkSelfPrimMoments ~ax~av", bName[bInd]),c,v)),
+        disp(printf(false,sconcat("Creating GkSelfPrimMoments ~ax~av ", bName[bInd], " P~a"),c,v, polyOrder)),
         fname : sconcat("~/max-out/GkSelfPrimMoments", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
         fh : openw(fname),
     
