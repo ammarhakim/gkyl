@@ -186,11 +186,12 @@ function FemParPoisson:init(tbl)
 
 
    -- Timers.
-   self.timers = {srcInt      = 0., stiffReduce = 0.,
-                  objCreate   = 0., stiffFinish = 0.,
-                  srcCreate   = 0., solve       = 0.,
-                  stiffCreate = 0., getSol      = 0.,
-                  srcReduce   = 0., advanceTot  = 0.,}
+   self.timers = {srcInt         = 0., stiffReduce = 0.,
+                  objCreate      = 0., stiffFinish = 0.,
+                  srcCreate      = 0., solve       = 0.,
+                  stiffCreate    = 0., getSol      = 0.,
+                  srcReduce      = 0., assemble    = 0.,
+                  completeNsolve = 0.}
 
    return self
 end
@@ -201,8 +202,9 @@ function FemParPoisson:bcValue(side) return self._bc[side].value end
 
 function FemParPoisson:beginAssembly(tCurr, src)
    -- Assemble the right-side source vector and, if necessary, the stiffness matrix.
-   local ndim  = self._ndim
-   local grid  = self._grid
+   local tm = Time.clock()
+
+   local ndim, grid = self._ndim, self._grid
 
    if self._first then 
       -- Create indexers and pointers, and set some flags.
@@ -305,11 +307,15 @@ function FemParPoisson:beginAssembly(tCurr, src)
          end
       end
    end
+
+   self.timers.assemble = self.timers.assemble + Time.clock() - tm
 end
 
 function FemParPoisson:completeAssemblyAndSolve(tCurr, sol)
    -- Wait for the reduction of the source vector and (if needed) the stiffness
    -- matrix, and perform the linear solve.
+   local tm = Time.clock()
+
    local ndim       = self._ndim
    local localRange = sol:localRange()
 
@@ -348,6 +354,8 @@ function FemParPoisson:completeAssemblyAndSolve(tCurr, sol)
    self._first = false
    -- Reset makeStiff flag to false, until stiffness matrix changes again.
    self._makeStiff = false
+
+   self.timers.completeNsolve = self.timers.completeNsolve + Time.clock() - tm
 end
 
 function FemParPoisson:assemble(tCurr, inFld, outFld)
@@ -368,8 +376,6 @@ end
 
 function FemParPoisson:_advance(tCurr, inFld, outFld) 
    -- Advance method. Assembles the linear problem and solves it.
-   local tmAdStart = Time.clock()
-
    local src = assert(inFld[1], "FemParPoisson.advance: Must specify an input field")
    local sol = assert(outFld[1], "FemParPoisson.advance: Must specify an output field")
 
@@ -378,8 +384,6 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
 
    -- Compute and obtain the local solution.
    self:completeAssemblyAndSolve(tCurr, sol)
-
-   self.timers.advanceTot = self.timers.advanceTot + Time.clock() - tmAdStart 
 end
 
 function FemParPoisson:setLaplacianWeight(weight)
@@ -414,13 +418,14 @@ function FemParPoisson:printDevDiagnostics()
   -- Print performance/numerical diagnostics.
   local log = Logger{logToFile = true}
   log("\n")
+  local calcTimeTot = math.max(self.totalTime,self.timers.assemble+self.timers.completeNsolve)
   for nm, v in pairs(self.timers) do
      log(string.format(
-        "FemParPoisson's "..nm.." took			%9.5f sec   (%6.3f%%)\n", v, 100*v/self.timers.advanceTot))
+        "FemParPoisson's "..nm.." took			%9.5f sec   (%6.3f%%)\n", v, 100*v/calcTimeTot))
   end
   log(string.format(
-     "FemParPoisson's advanceTot took			%9.5f sec   (%6.3f%%)\n",
-     self.timers.advanceTot, 100*self.timers.advanceTot/self.timers.advanceTot))
+     "FemParPoisson's advance took			%9.5f sec   (%6.3f%%)\n",
+     calcTimeTot, 100*calcTimeTot/calcTimeTot))
 end
 
 return FemParPoisson

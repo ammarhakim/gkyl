@@ -157,6 +157,12 @@ local function buildApplication(self, tbl)
       useShared = useShared,
    }
 
+   -- Some timers.
+   local stepperTime = 0.0
+   local fwdEulerCombineTime = 0.0
+   local writeDataTime = 0.
+   local writeRestartTime = 0.
+
    -- Pick grid ctor based on uniform/non-uniform grid.
    local GridConstructor = Grid.RectCart
    if tbl.coordinateMap then
@@ -459,7 +465,9 @@ local function buildApplication(self, tbl)
       end
       -- Take forward Euler step in fields and species
       -- NOTE: order of these arguments matters... outIdx must come before inIdx.
+      local tm = Time.clock()
       combine(outIdx, dtSuggested, outIdx, 1.0, inIdx)
+      fwdEulerCombineTime = fwdEulerCombineTime + Time.clock() - tm
       applyBc(tCurr, outIdx, calcCflFlag)
 
       return dtSuggested
@@ -469,7 +477,6 @@ local function buildApplication(self, tbl)
    -- SSP-RK schemes:
    -- http://gkyl.readthedocs.io/en/latest/dev/ssp-rk.html
    local timeSteppers = {}
-   local stepperTime = 0.0
 
    -- Function to advance solution using RK1 scheme (UNSTABLE! Only for testing).
    function timeSteppers.rk1(tCurr)
@@ -784,19 +791,21 @@ local function buildApplication(self, tbl)
 	    writeLogMessage(tCurr+myDt)
 	    -- We must write data first before calling writeRestart in
 	    -- order not to mess up numbering of frames on a restart.
+            local tmWrite = Time.clock()
 	    writeData(tCurr+myDt)
+            writeDataTime = writeDataTime + Time.clock() - tmWrite
 	    if checkWriteRestart(tCurr+myDt) then
+               local tmRestart = Time.clock()
 	       writeRestart(tCurr+myDt)
                dtTracker:write(string.format("dt.bp"), tCurr+myDt, irestart)
                irestart = irestart + 1
+               writeRestartTime = writeRestartTime + Time.clock() - tmRestart
 	    end	    
 	    
 	    tCurr = tCurr + myDt
 	    myDt = math.min(dtSuggested, maxDt)
 	    step = step + 1
-	    if (tCurr >= tEnd) then
-	       break
-	    end
+	    if (tCurr >= tEnd) then break end
 	 elseif not status then
 	    log (string.format(" ** Time step %g too large! Will retake with dt %g\n", myDt, dtSuggested))
 	    myDt = dtSuggested
@@ -827,7 +836,7 @@ local function buildApplication(self, tbl)
       end
 
       local tmMom, tmIntMom, tmBc, tmColl = 0.0, 0.0, 0.0, 0.0
-      local tmCollMom = 0.0
+      local tmSrc, tmCollNonSlvr = 0.0, 0.0
       for _, s in lume.orderedIter(species) do
          tmMom = tmMom + s:momCalcTime()
          tmIntMom = tmIntMom + s:intMomCalcTime()
@@ -835,15 +844,15 @@ local function buildApplication(self, tbl)
          if s.collisions then
 	    for _, c in pairs(s.collisions) do
 	       tmColl = tmColl + c:slvrTime()
-               tmCollMom = tmCollMom + c:momTime()
+               tmCollNonSlvr = tmCollNonSlvr + c:nonSlvrTime()
 	    end
+         end
+         if s.timers and s.fSource and s.evolveSources then
+            tmSrc = tmSrc + s.timers.sources
          end
       end
 
-      local tmSrc = 0.0
-      for _, s in pairs(sources) do
-         tmSrc = tmSrc + s:totalTime()
-      end
+      for _, s in pairs(sources) do tmSrc = tmSrc + s:totalTime() end
 
       local tmTotal = tmSimEnd-tmSimStart
       local tmAccounted = 0.0
@@ -889,9 +898,9 @@ local function buildApplication(self, tbl)
 	     tmColl, tmColl/step, 100*tmColl/tmTotal))
       tmAccounted = tmAccounted + tmColl
       log(string.format(
-	     "Collision moments(s) took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
-	     tmCollMom, tmCollMom/step, 100*tmCollMom/tmTotal))
-      tmAccounted = tmAccounted + tmCollMom
+	     "Collision (other) took			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     tmCollNonSlvr, tmCollNonSlvr/step, 100*tmCollNonSlvr/tmTotal))
+      tmAccounted = tmAccounted + tmCollNonSlvr
       log(string.format(
 	     "Source updaters took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmSrc, tmSrc/step, 100*tmSrc/tmTotal))
@@ -899,11 +908,23 @@ local function buildApplication(self, tbl)
       log(string.format(
 	     "Stepper combine/copy took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
+      tmAccounted = tmAccounted + stepperTime
+      log(string.format(
+	     "Foward Euler combine took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     fwdEulerCombineTime, fwdEulerCombineTime/step, 100*fwdEulerCombineTime/tmTotal))
+      tmAccounted = tmAccounted + fwdEulerCombineTime
       log(string.format(
       	     "Time spent in barrier function		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
       	     Mpi.getTimeBarriers(), Mpi.getTimeBarriers()/step, 100*Mpi.getTimeBarriers()/tmTotal))      
-      tmAccounted = tmAccounted + stepperTime
       tmUnaccounted = tmTotal - tmAccounted
+      log(string.format(
+	     "Data write took				%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     writeDataTime, writeDataTime/step, 100*writeDataTime/tmTotal))
+      tmAccounted = tmAccounted + writeDataTime
+      log(string.format(
+	     "Write restart took			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     writeRestartTime, writeRestartTime/step, 100*writeRestartTime/tmTotal))
+      tmAccounted = tmAccounted + writeRestartTime
       log(string.format(
 	     "[Unaccounted for]			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n\n",
 	     tmUnaccounted, tmUnaccounted/step, 100*tmUnaccounted/tmTotal))

@@ -27,6 +27,8 @@ local xsys        = require "xsys"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local FemParPoisson  = require "Updater.FemParPoisson"
 local DataStruct     = require "DataStruct"
+local Time           = require "Lib.Time"
+local Logger         = require "Lib.Logger"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local Mpi
 if GKYL_HAVE_MPI then Mpi = require "Comm.Mpi" end
@@ -243,6 +245,14 @@ function FemPerpPoisson:init(tbl)
 
    self.dynVec = DataStruct.DynVector { numComponents = 1 }
 
+   -- Timers.
+   self.timers = {srcInt         = 0., stiffReduce    = 0.,
+                  objCreate      = 0., stiffFinish    = 0.,
+                  srcCreate      = 0., solve          = 0.,
+                  stiffCreate    = 0., getSol         = 0.,
+                  srcReduce      = 0., assemble       = 0., 
+                  completeNsolve = 0., zDiscontToCont = 0.}
+
    return self
 end
 
@@ -252,11 +262,14 @@ function FemPerpPoisson:bcValue(dir,side) return self._bc[dir][side].value end
 
 function FemPerpPoisson:beginAssembly(tCurr, src)
    -- Assemble the right-side source vector and, if necessary, the stiffness matrix.
-   local ndim = self._ndim
-   local grid = self._grid
+   local tm = Time.clock()
+
+   local ndim, grid = self._ndim, self._grid
 
    if self.zDiscontToCont then   -- Make continuous in z.
+      local tmStart = Time.clock()
       self.zDiscontToCont:advance(tCurr, {src}, {src}) 
+      self.timers.zDiscontToCont = self.timers.zDiscontToCont + Time.clock() - tmStart
    end
 
    local localRange = src:localRange()
@@ -285,6 +298,7 @@ function FemPerpPoisson:beginAssembly(tCurr, src)
    local intSrcVol = {0.0}
    -- If all directions periodic need to adjust source so that integral is 0.
    if self._adjustSource then
+      local tmStart = Time.clock()
       -- Integrate source.
       if self._first then
          self.calcInt = CartFieldIntegratedQuantCalc {
@@ -296,15 +310,18 @@ function FemPerpPoisson:beginAssembly(tCurr, src)
       end
       self.calcInt:advance(0.0, {src}, {self.dynVec})
       _, intSrcVol = self.dynVec:lastData()
+      self.timers.srcInt = self.timers.srcInt + Time.clock() - tmStart
    end
 
    -- Loop over local z cells.
    for idz=self.local_z_lower, self.local_z_upper do
       if self._first then 
+         local tmStart = Time.clock()
          -- If first time, create poisson C object for each z cell.
          self._poisson[idz] = ffiC.new_FemPerpPoisson(self._nx, self._ny, self._ndim, self._p, 
                                                       self._dx, self._dy, self._isDirPeriodic, 
                                                       self._bc, self._writeMatrix, self._adjustSource)
+         self.timers.objCreate = self.timers.objCreate + Time.clock() - tmStart
       end
 
       -- Zero global source.
@@ -316,14 +333,17 @@ function FemPerpPoisson:beginAssembly(tCurr, src)
       -- Loop over x and y cells locally to get local contributions to globalSrc.
       for idx=localRange:lower(1),localRange:upper(1) do     
          for idy=localRange:lower(2),localRange:upper(2) do
+            local tmStart = Time.clock()
             if ndim==2 then 
                src:fill(self.indexer(idx,idy), self.srcPtr) 
             else 
                src:fill(self.indexer(idx, idy, idz), self.srcPtr) 
             end
             ffiC.createGlobalSrc(self._poisson[idz], self.srcPtr:data(), idx-1, idy-1, intSrcVol[1]/grid:gridVolume()*math.sqrt(2)^self._ndim)
+            self.timers.srcCreate = self.timers.srcCreate + Time.clock() - tmStart
 
             if self._makeStiff then
+               local tmStiffStart = Time.clock()
                if ndim==2 then 
                   self.laplacianWeight:fill(self.indexer(idx,idy), self.laplacianWeightPtr) 
                   self.modifierWeight:fill(self.indexer(idx,idy), self.modifierWeightPtr) 
@@ -339,27 +359,38 @@ function FemPerpPoisson:beginAssembly(tCurr, src)
                end
                ffiC.makeGlobalStiff(self._poisson[idz], self.laplacianWeightPtr:data(), self.modifierWeightPtr:data(),
                                     self.gxxPtr:data(), self.gxyPtr:data(), self.gyyPtr:data(), idx-1, idy-1)
+               self.timers.stiffCreate = self.timers.stiffCreate + Time.clock() - tmStiffStart
             end 
          end
       end
 
       if GKYL_HAVE_MPI and Mpi.Comm_size(self._zcomm)>1 then
+         local tmStart = Time.clock()
          -- Sum each proc's globalSrc to get final globalSrc (on each proc via allreduce).
          ffiC.IallreduceGlobalSrc(self._poisson[idz], Mpi.getComm(self._zcomm))
+         self.timers.srcReduce = self.timers.srcReduce + Time.clock() - tmStart
          if self._makeStiff then
+            local tmStiffStart = Time.clock()
             ffiC.allgatherGlobalStiff(self._poisson[idz], Mpi.getComm(self._zcomm))
+            self.timers.stiffReduce = self.timers.stiffReduce + Time.clock() - tmStiffStart
          end
       end
 
       if self._makeStiff then
+         local tmStiffStart = Time.clock()
          ffiC.finishGlobalStiff(self._poisson[idz])
+         self.timers.stiffFinish = self.timers.stiffFinish + Time.clock() - tmStiffStart
       end
    end
+
+   self.timers.assemble = self.timers.assemble + Time.clock() - tm
 end
 
 function FemPerpPoisson:completeAssemblyAndSolve(tCurr, sol)
    -- Wait for the reduction of the source vector and (if needed) the stiffness
    -- matrix, and perform the linear solve.
+   local tm = Time.clock()
+
    local ndim       = self._ndim
    local localRange = sol:localRange()
 
@@ -368,15 +399,20 @@ function FemPerpPoisson:completeAssemblyAndSolve(tCurr, sol)
    -- Loop over local z cells.
    for idz=self.local_z_lower, self.local_z_upper do
       if GKYL_HAVE_MPI and Mpi.Comm_size(self._zcomm)>1 then
+         local tmStart = Time.clock()
          -- Wait for the sum of each proc's globalSrc to get final globalSrc.
          ffiC.waitForGlobalSrcReduce(self._poisson[idz], Mpi.getComm(self._zcomm))
+         self.timers.srcReduce = self.timers.srcReduce + Time.clock() - tmStart
       end
 
       -- Solve. 
+      local tmSolStart = Time.clock()
       ffiC.solve(self._poisson[idz])
+      self.timers.solve = self.timers.solve + Time.clock() - tmSolStart
 
       -- Remap global nodal solution to local modal solution.
       -- Only need to loop over local proc region.
+      local tmGetStart = Time.clock()
       for idx=localRange:lower(1),localRange:upper(1) do     
          for idy=localRange:lower(2),localRange:upper(2) do
             if ndim==2 then 
@@ -387,15 +423,20 @@ function FemPerpPoisson:completeAssemblyAndSolve(tCurr, sol)
             ffiC.getSolution(self._poisson[idz], self.solPtr:data(), idx-1, idy-1)
          end
       end
+      self.timers.getSol = self.timers.getSol + Time.clock() - tmGetStart
    end 
 
    if self.zDiscontToCont then 
+      local tmStart = Time.clock()
       self.zDiscontToCont:advance(tCurr, {sol}, {sol}) 
+      self.timers.zDiscontToCont = self.timers.zDiscontToCont + Time.clock() - tmStart
    end
 
    self._first = false
    -- Reset makeStiff flag to false, until stiffness matrix changes again.
    self._makeStiff = false
+
+   self.timers.completeNsolve = self.timers.completeNsolve + Time.clock() - tm
 end
 
 function FemPerpPoisson:assemble(tCurr, inFld, outFld)
@@ -428,16 +469,13 @@ function FemPerpPoisson:_advance(tCurr, inFld, outFld)
    self:completeAssemblyAndSolve(tCurr, sol)
 end
 
-function FemPerpPoisson:delete()
-   ffiC.delete_FemPerpPoisson(self._poisson)
-end
-
 function FemPerpPoisson:setLaplacianWeight(weight)
    self._hasLaplacian = true
    self.laplacianWeight:copy(weight)
    -- Need to remake stiffness matrix since laplacianWeight has changed.
    self._makeStiff = true
 end
+
 function FemPerpPoisson:setModifierWeight(weight)
    self._hasModifier = true
    self.modifierWeight:copy(weight)
@@ -448,9 +486,29 @@ end
 function FemPerpPoisson:getLaplacianWeight()
    return self.laplacianWeight
 end
+
 function FemPerpPoisson:getModifierWeight()
    return self.modifierWeight
 end
 
+function FemPerpPoisson:delete()
+   for idz=self.local_z_lower, self.local_z_upper do
+      ffiC.delete_FemPerpPoisson(self._poisson[idz])
+   end
+end
+
+function FemPerpPoisson:printDevDiagnostics()
+  -- Print performance/numerical diagnostics.
+  local log = Logger{logToFile = true}
+  log("\n")
+  local calcTimeTot = math.max(self.totalTime,self.timers.assemble+self.timers.completeNsolve)
+  for nm, v in pairs(self.timers) do
+     log(string.format(
+        "FemPerpPoisson's "..nm.." took                  %9.5f sec   (%6.3f%%)\n", v, 100*v/calcTimeTot))
+  end
+  log(string.format(
+     "FemPerpPoisson's advance took                      %9.5f sec   (%6.3f%%)\n",
+     calcTimeTot, 100*calcTimeTot/calcTimeTot))
+end
 
 return FemPerpPoisson
