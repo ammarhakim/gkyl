@@ -79,19 +79,14 @@ function KineticSpecies:fullInit(appTbl)
    -- WE DO NOT ALLOW DECOMPOSITION IN VELOCITY SPACE
    for d = 1, self.vdim do self.decompCuts[d] = 1 end
 
-   local nFrame = tbl.nFrame or appTbl.nFrame
+   local nFrame = tbl.nDiagnosticFrame and tbl.nDiagnosticFrame or appTbl.nFrame
    -- Create triggers to write distribution functions and moments.
    if tbl.nDistFuncFrame then
       self.distIoTrigger = LinearTrigger(0, appTbl.tEnd, tbl.nDistFuncFrame)
    else
       self.distIoTrigger = LinearTrigger(0, appTbl.tEnd, nFrame)
    end
-
-   if tbl.nDiagnosticFrame then
-      self.diagIoTrigger = LinearTrigger(0, appTbl.tEnd, tbl.nDiagnosticFrame)
-   else
-      self.diagIoTrigger = LinearTrigger(0, appTbl.tEnd, nFrame)
-   end
+   self.diagIoTrigger = LinearTrigger(0, appTbl.tEnd, nFrame)
 
    -- Create trigger for how frequently to compute integrated moments.
    -- Do not compute the integrated diagnostics less frequently than we output data.
@@ -426,12 +421,10 @@ function KineticSpecies:allocDistf()
 	onGrid        = self.grid,
 	numComponents = self.basis:numBasis(),
 	ghost         = {1, 1},
-   metaData = {
-      polyOrder = self.basis:polyOrder(),
-      basisType = self.basis:id(),
-      charge = self.charge,
-      mass = self.mass,
-   },
+        metaData      = {polyOrder = self.basis:polyOrder(),
+                         basisType = self.basis:id(),
+                         charge    = self.charge,
+                         mass      = self.mass,},
    }
    f:clear(0.0)
    return f
@@ -441,12 +434,10 @@ function KineticSpecies:allocMoment()
 	onGrid        = self.confGrid,
 	numComponents = self.confBasis:numBasis(),
 	ghost         = {1, 1},
-   metaData = {
-      polyOrder = self.basis:polyOrder(),
-      basisType = self.basis:id(),
-      charge = self.charge,
-      mass = self.mass,
-   },
+        metaData      = {polyOrder = self.basis:polyOrder(),
+                         basisType = self.basis:id(),
+                         charge    = self.charge,
+                         mass      = self.mass,},
    }
    m:clear(0.0)
    return m
@@ -456,12 +447,10 @@ function KineticSpecies:allocVectorMoment(dim)
 	onGrid        = self.confGrid,
 	numComponents = self.confBasis:numBasis()*dim,
 	ghost         = {1, 1},
-   metaData = {
-      polyOrder = self.basis:polyOrder(),
-      basisType = self.basis:id(),
-      charge = self.charge,
-      mass = self.mass,
-   },
+        metaData      = {polyOrder = self.basis:polyOrder(),
+                         basisType = self.basis:id(),
+                         charge    = self.charge,
+                         mass      = self.mass,},
    }
    m:clear(0.0)
    return m
