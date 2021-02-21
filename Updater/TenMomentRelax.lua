@@ -7,15 +7,15 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- Gkyl libraries
+-- Gkyl libraries.
 local UpdaterBase = require "Updater.Base"
-local Lin = require "Lib.Linalg"
-local Proto = require "Lib.Proto"
+local Lin         = require "Lib.Linalg"
+local Proto       = require "Lib.Proto"
 
--- system libraries
+-- System libraries.
 local ffi = require "ffi"
 
--- Define C types for storing private data for use in updater
+-- Define C types for storing private data for use in updater.
 ffi.cdef [[
 typedef struct {
   double charge, mass; /* Charge and mass */
@@ -32,17 +32,17 @@ typedef struct {
   void gkylTenMomentRelaxExplicit(TenMomentRelaxData_t *sd, FluidData_t *fd, double dt, double *f, double *em, double *staticEm, double myK);
 ]]
 
--- Explicit, SSP RK3 scheme
+-- Explicit, SSP RK3 scheme.
 local function updateRelaxRk3(self, dt, fPtr, emPtr, myK)
    ffi.C.gkylTenMomentRelaxRk3(self._sd, self._fd, dt, fPtr, emPtr, myK)
 end
 
--- Use an implicit scheme to update momentum and electric field
+-- Use an implicit scheme to update momentum and electric field.
 local function updateRelaxExplicit(self, dt, fPtr, emPtr, staticEmPtr, myK)
    ffi.C.gkylTenMomentRelaxExplicit(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr, myK)
 end
 
--- Ten-moment source updater object
+-- Ten-moment source updater object.
 local TenMomentRelax = Proto(UpdaterBase)
 
 function TenMomentRelax:init(tbl)
@@ -52,14 +52,14 @@ function TenMomentRelax:init(tbl)
 
    self._sd = ffi.new(ffi.typeof("TenMomentRelaxData_t"))   
 
-   self._sd.k = tbl.k ~= nil and tbl.k or 0.
+   self._sd.k         = tbl.k ~= nil and tbl.k or 0.
    self._sd.hasKField = tbl.hasKField ~= nil and tbl.hasKField or false
-   self._sd.hasEm = tbl.hasEmField ~= nil and tbl.hasEmField or false
+   self._sd.hasEm     = tbl.hasEmField ~= nil and tbl.hasEmField or false
    self._sd.hasStatic = tbl.hasStaticField ~= nil and tbl.hasStaticField or false
    
-   self._fd = ffi.new("FluidData_t[?]", 1)
-    self._fd[0].charge = tbl.charge[1]
-    self._fd[0].mass = tbl.mass[1]
+   self._fd           = ffi.new("FluidData_t[?]", 1)
+   self._fd[0].charge = tbl.charge[1]
+   self._fd[0].mass   = tbl.mass[1]
 
    local scheme = tbl.scheme and tbl.scheme or "ssp-rk3"
    self._updateRelax = nil
@@ -70,11 +70,11 @@ function TenMomentRelax:init(tbl)
    end
 end
 
--- advance method
+-- Advance method.
 function TenMomentRelax:_advance(tCurr, inFld, outFld,
    staticEmFld, KFld)
    local grid = self._onGrid
-   local dt = self._dt
+   local dt   = self._dt
  
    local fFld = outFld[1]
    local emFld
@@ -96,14 +96,14 @@ function TenMomentRelax:_advance(tCurr, inFld, outFld,
       staticEmIdxr = staticEmFld:genIndexer()
    end
 
-   local fDp = ffi.new("double*")
-   local kDp = ffi.new("double*")
-   local emDp = ffi.new("double*")
+   local fDp        = ffi.new("double*")
+   local kDp        = ffi.new("double*")
+   local emDp       = ffi.new("double*")
    local staticEmDp = ffi.new("double*")
 
    local localRange = fFld:localRange()   
    for idx in localRange:rowMajorIter() do
-	    fDp = fFld:getDataPtrAt(fIdxr(idx))
+      fDp = fFld:getDataPtrAt(fIdxr(idx))
       local myK = self._sd.k
       if (self._sd.hasKField) then
          kDp = kFld:getDataPtrAt(kIdxr(idx))

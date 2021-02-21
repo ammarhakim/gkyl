@@ -7,40 +7,39 @@
 --------------------------------------------------------------------------------
 
 -- System libraries.
-local ffi = require "ffi"
+local ffi  = require "ffi"
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
 -- Gkyl libraries.
-local Adios = require "Io.Adios"
+local Adios       = require "Io.Adios"
 local AdiosReader = require "Io.AdiosReader"
-local Alloc = require "Lib.Alloc"
-local Lin = require "Lib.Linalg"
-local Mpi = require "Comm.Mpi"
-local Proto = require "Lib.Proto"
+local Alloc       = require "Lib.Alloc"
+local Lin         = require "Lib.Linalg"
+local Mpi         = require "Comm.Mpi"
+local Proto       = require "Lib.Proto"
 
--- Code from Lua wiki to convert table to comma-seperated-values
--- string.
--- Used to escape "'s by toCSV
+-- Code from Lua wiki to convert table to comma-seperated-values string.
+-- Used to escape "'s by toCSV.
 local function escapeCSV (s)
   if string.find(s, '[,"]') then
     s = '"' .. string.gsub(s, '"', '""') .. '"'
   end
   return s
 end
--- Convert from table to CSV string
+-- Convert from table to CSV string.
 local function toCSV (tt)
   local s = ""
   -- ChM 23.02.2014: changed pairs to ipairs assumption is that
-  -- fromCSV and toCSV maintain data as ordered array
+  -- fromCSV and toCSV maintain data as ordered array.
   for _,p in ipairs(tt) do  
     s = s .. "," .. escapeCSV(p)
   end
-  return string.sub(s, 2)      -- remove first comma
+  return string.sub(s, 2)      -- Remove first comma.
 end
 
--- Template to copy from table/vector
+-- Template to copy from table/vector.
 local copyTempl = xsys.template [[
 return function (src, dest)
 | for i = 1, NCOMP do
@@ -56,12 +55,12 @@ end
 
 local DynVector = Proto()
 
--- Constructor for DynVector
+-- Constructor for DynVector.
 function DynVector:init(tbl)
    self._numComponents = tbl.numComponents and tbl.numComponents or 1
 
    -- We store 1 extra element than requested to allow for 1-based
-   -- indexing of returned values
+   -- indexing of returned values.
    local allocator = Alloc.createAllocator(
       string.format("double[%d]", self._numComponents+1))
    self._timeMesh = Alloc.Double()
@@ -76,7 +75,7 @@ function DynVector:init(tbl)
 
    -- Write only from rank-0: create sub-communicator and use that for
    -- writing data (perhaps one needs a user-specified write-rank).
-   local ranks = Lin.IntVec(1); ranks[1] = 0
+   local ranks  = Lin.IntVec(1); ranks[1] = 0
    self._ioComm = Mpi.Split_comm(Mpi.COMM_WORLD, ranks)
 
    -- Allocate space for IO buffer.

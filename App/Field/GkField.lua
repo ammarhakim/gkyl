@@ -187,8 +187,9 @@ function GkField:fullInit(appTbl)
    end
 
    -- Create trigger for how frequently to compute field energy.
+   -- Do not compute the integrated diagnostics less frequently than we output data.
    if appTbl.calcIntQuantEvery then
-      self.calcIntFieldEnergyTrigger = LinearTrigger(0, appTbl.tEnd,  math.floor(1/appTbl.calcIntQuantEvery))
+      self.calcIntFieldEnergyTrigger = LinearTrigger(0, appTbl.tEnd,  math.max(nFrame,math.floor(1/appTbl.calcIntQuantEvery)))
    else
       self.calcIntFieldEnergyTrigger = function(t) return true end
    end

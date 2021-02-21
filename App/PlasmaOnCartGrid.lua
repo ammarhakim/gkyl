@@ -29,12 +29,12 @@ math = require("sci.math").generic -- this is global so that it affects input fi
 
 -- App loads (do not load specific app objects here, but only things
 -- needed to run the App itself. Specific objects should be loaded in
--- the  methods defined at the botto of this file)
-local SpeciesBase = require "App.Species.SpeciesBase"
-local SourceBase = require "App.Sources.SourceBase"
-local FieldBase = require ("App.Field.FieldBase").FieldBase
+-- the  methods defined at the bottom of this file)
+local SpeciesBase       = require "App.Species.SpeciesBase"
+local SourceBase        = require "App.Sources.SourceBase"
+local FieldBase         = require ("App.Field.FieldBase").FieldBase
 local ExternalFieldBase = require ("App.Field.FieldBase").ExternalFieldBase
-local NoField = require ("App.Field.FieldBase").NoField
+local NoField           = require ("App.Field.FieldBase").NoField
 
 -- Function to create basis functions.
 local function createBasis(nm, ndim, polyOrder)
@@ -124,7 +124,7 @@ local function buildApplication(self, tbl)
    local dtPtr = Lin.Vec(1)
 
    -- Parallel decomposition stuff.
-   local useShared = xsys.pickBool(tbl.useShared, false)   
+   local useShared  = xsys.pickBool(tbl.useShared, false)   
    local decompCuts = tbl.decompCuts
    if tbl.decompCuts then
       assert(cdim == #tbl.decompCuts, "decompCuts should have exactly " .. cdim .. " entries")

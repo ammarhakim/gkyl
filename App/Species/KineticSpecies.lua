@@ -79,22 +79,24 @@ function KineticSpecies:fullInit(appTbl)
    -- WE DO NOT ALLOW DECOMPOSITION IN VELOCITY SPACE
    for d = 1, self.vdim do self.decompCuts[d] = 1 end
 
+   local nFrame = tbl.nFrame or appTbl.nFrame
    -- Create triggers to write distribution functions and moments.
    if tbl.nDistFuncFrame then
       self.distIoTrigger = LinearTrigger(0, appTbl.tEnd, tbl.nDistFuncFrame)
    else
-      self.distIoTrigger = LinearTrigger(0, appTbl.tEnd, appTbl.nFrame)
+      self.distIoTrigger = LinearTrigger(0, appTbl.tEnd, nFrame)
    end
 
    if tbl.nDiagnosticFrame then
       self.diagIoTrigger = LinearTrigger(0, appTbl.tEnd, tbl.nDiagnosticFrame)
    else
-      self.diagIoTrigger = LinearTrigger(0, appTbl.tEnd, appTbl.nFrame)
+      self.diagIoTrigger = LinearTrigger(0, appTbl.tEnd, nFrame)
    end
 
    -- Create trigger for how frequently to compute integrated moments.
+   -- Do not compute the integrated diagnostics less frequently than we output data.
    if appTbl.calcIntQuantEvery then
-      self.calcIntQuantTrigger = LinearTrigger(0, appTbl.tEnd,  math.floor(1/appTbl.calcIntQuantEvery))
+      self.calcIntQuantTrigger = LinearTrigger(0, appTbl.tEnd,  math.max(nFrame,math.floor(1/appTbl.calcIntQuantEvery)))
    else
       self.calcIntQuantTrigger = function(t) return true end
    end
