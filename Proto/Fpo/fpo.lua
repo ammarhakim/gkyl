@@ -11,6 +11,10 @@ local Time = require "Lib.Time"
 local Updater = require "Updater"
 local ffi = require "ffi"
 local xsys = require "xsys"
+
+ffi.cdef[[
+double erf(double a);
+]]
       
 return function(tbl)
    local _ = require "Proto.Fpo.fpoKernelsCdef"
@@ -57,8 +61,10 @@ return function(tbl)
    local nFrames = tbl.nFrames
    local updatePotentials = xsys.pickBool(tbl.updatePotentials, true)
    local doughertyPotentials = xsys.pickBool(tbl.doughertyPotentials, false)
+   local maxwellianPotentials = xsys.pickBool(tbl.maxwellianPotentials, false)
    -- Not sure about this logic...
    if doughertyPotentials then updatePotentials = false end
+   if maxwellianPotentials then updatePotentials = false end
    local writeDiagnostics = xsys.pickBool(tbl.writeDiagnostics, false)
    local cells = tbl.cells
    local lower = tbl.lower
@@ -324,34 +330,6 @@ return function(tbl)
       evaluate = tbl.init,
    }
 
-   local poisson = Updater.DiscontPoisson {
-      onGrid = grid,
-      basis = basis,
-      bcLower = {{D = 1, N = 0, val = 0.0},
-         {D = 1, N = 0, val = 0.0},
-         {D = 1, N = 0, val = 0.0}},
-      bcUpper = {{D = 1, N = 0, val = 0.0},
-         {D = 1, N = 0, val = 0.0},
-         {D = 1, N = 0, val = 0.0}},
-   }
-
-   local function updateRosenbluthDrag(fIn, hOut)
-      local tmStart = Time.clock()
-      if updatePotentials then
-         tmp:combine(1, fIn)
-         poisson:advance(0.0, {tmp}, {hOut})
-      end
-      tmRosen = tmRosen + Time.clock()-tmStart
-   end
-   local function updateRosenbluthDiffusion(hIn, gOut)
-      local tmStart = Time.clock()
-      if updatePotentials then
-         tmp:combine(-1, hIn)
-         poisson:advance(0.0, {tmp}, {gOut})
-      end
-      tmRosen = tmRosen + Time.clock()-tmStart
-   end
-
    -----------------
    -- Diagnostics --
    -----------------
@@ -422,45 +400,123 @@ return function(tbl)
    applyBc(f)
    local momVec0 = calcMoms(0, f, momVec)
 
-   -- Check if drag/diff functions are provided
-   local initDragFunc = tbl.initDrag and tbl.initDrag or function(t, z) return 0.0 end
-   local initDiffFunc = tbl.initDiff and tbl.initDiff or function(t, z) return 0.0 end
-
-   -- Overwrite the init functions if the the Dougherty potentials are turned on
-   if doughertyPotentials then
-      initDragFunc = function (t, z)
-         local ux = momVec0[2]/momVec0[1]
-         local uy = momVec0[3]/momVec0[1]
-         local uz = momVec0[4]/momVec0[1]
-         return -0.5*((z[1]-ux)^2 + (z[2]-uy)^2 + (z[3]-uz)^2)
+      -------------
+   -- Poisson --
+   -------------
+   local poisson = Updater.DiscontPoisson {
+      onGrid = grid,
+      basis = basis,
+      bcLower = {{D = 1, N = 0, val = 0.0},
+         {D = 1, N = 0, val = 0.0},
+         {D = 1, N = 0, val = 0.0}},
+      bcUpper = {{D = 1, N = 0, val = 0.0},
+         {D = 1, N = 0, val = 0.0},
+         {D = 1, N = 0, val = 0.0}},
+   }
+   
+   local poissonH = Updater.DiscontPoisson {
+      onGrid = grid,
+      basis = basis,
+      bcFunc = function(t, z)
+         local x, y, z = z[1], z[2], z[3]
+         local v = math.sqrt(x*x+y*y+z*z)
+         local n = momVec0[1]
+         local svth = math.sqrt(2)*math.sqrt(momVec0[5]/momVec0[1]/3)
+         return n/v*ffi.C.erf(v/svth)
+      end,
+   }
+   local poissonG = Updater.DiscontPoisson {
+      onGrid = grid,
+      basis = basis,
+      bcFunc = function(t, z)
+         local x, y, z = z[1], z[2], z[3]
+         local v = math.sqrt(x*x+y*y+z*z)
+         local n = momVec0[1]
+         local svth = math.sqrt(2)*math.sqrt(momVec0[5]/momVec0[1]/3)
+         return 0--n/math.sqrt(math.pi)/v*math.exp(-v^2/svth^2) + 
+            --n*svth*(0.5*svth/v+v/svth)*ffi.C.erf(v/svth)
+      end,
+   }
+   
+   ----------------
+   -- Potentials --
+   ----------------
+   local function updateRosenbluthDrag(fIn, hOut)
+      local tmStart = Time.clock()
+      if updatePotentials then
+         tmp:combine(4*math.pi, fIn)
+         poissonH:advance(0.0, {tmp}, {hOut})
       end
-      initDiffFunc = function (t, z)
-         local ux = momVec0[2]/momVec0[1]
-         local uy = momVec0[3]/momVec0[1]
-         local uz = momVec0[4]/momVec0[1]
-         local dvth2 = momVec0[5]/momVec0[1] - (ux^2 + uy^2 + uz^2)
-         return dvth2/3 * (z[1]^2 + z[2]^2 + z[3]^2) -- /3 is for dimensions
-      end
+      tmRosen = tmRosen + Time.clock()-tmStart
    end
-
-   local projectDrag = Updater.ProjectOnBasis {
-      onGrid = grid,
-      basis = basis,
-      evaluate = initDragFunc,
-      projectOnGhosts = true,
-   }
-   local projectDiff = Updater.ProjectOnBasis {
-      onGrid = grid,
-      basis = basis,
-      evaluate = initDiffFunc,
-      projectOnGhosts = true,
-   }
+   local function updateRosenbluthDiffusion(hIn, gOut)
+      local tmStart = Time.clock()
+      if updatePotentials then
+         tmp:combine(-2, hIn)
+         poisson:advance(0.0, {tmp}, {gOut})
+      end
+      tmRosen = tmRosen + Time.clock()-tmStart
+   end
 
    -- update Rosenbluth potentials
    if updatePotentials then
       updateRosenbluthDrag(f, h)
       updateRosenbluthDiffusion(h, g)
    else
+      -- Check if drag/diff functions are provided
+      local initDragFunc = tbl.initDrag and tbl.initDrag or function(t, z) return 0.0 end
+      local initDiffFunc = tbl.initDiff and tbl.initDiff or function(t, z) return 0.0 end
+      
+      -- Overwrite the init functions if the the Dougherty potentials are turned on
+      if doughertyPotentials then
+         initDragFunc = function (t, z)
+            local ux = momVec0[2]/momVec0[1]
+            local uy = momVec0[3]/momVec0[1]
+            local uz = momVec0[4]/momVec0[1]
+            return -0.5*((z[1]-ux)^2 + (z[2]-uy)^2 + (z[3]-uz)^2)
+         end
+         initDiffFunc = function (t, z)
+            local ux = momVec0[2]/momVec0[1]
+            local uy = momVec0[3]/momVec0[1]
+            local uz = momVec0[4]/momVec0[1]
+            local vth2 = (momVec0[5]/momVec0[1] - ux^2 - uy^2 - uz^2)/3 
+            return vth2 * (z[1]^2 + z[2]^2 + z[3]^2) -- /3 is for dimensions
+         end
+      end
+      if maxwellianPotentials then
+         initDragFunc = function (t, z)
+            local x, y, z = z[1], z[2], z[3]
+            local v = math.sqrt(x*x + y*y + z*z)
+            local n = momVec0[1]
+            local vth2 = momVec0[5]/momVec0[1]/3
+            --print(n, vth2)
+            local svth = math.sqrt(2*vth2)
+            return n/v*ffi.C.erf(v/svth)
+         end
+         initDiffFunc = function (t, z)
+            local x, y, z = z[1], z[2], z[3]
+            local v = math.sqrt(x*x + y*y + z*z)
+            local n = momVec0[1]
+            local vth2 = momVec0[5]/momVec0[1]/3 
+            local svth = math.sqrt(2*vth2)
+            return (n/math.sqrt(math.pi)*svth*math.exp(-v^2/svth^2) + 
+                       n*svth*(0.5*svth/v+v/svth)*ffi.C.erf(v/svth))
+         end
+      end
+      
+      local projectDrag = Updater.ProjectOnBasis {
+         onGrid = grid,
+         basis = basis,
+         evaluate = initDragFunc,
+         projectOnGhosts = true,
+      }
+      local projectDiff = Updater.ProjectOnBasis {
+         onGrid = grid,
+         basis = basis,
+         evaluate = initDiffFunc,
+         projectOnGhosts = true,
+      }
+      
       projectDrag:advance(0.0, {}, {h})
       projectDiff:advance(0.0, {}, {g})
    end
