@@ -45,26 +45,26 @@ plasmaApp = Plasma.App {
       -- initial conditions
       -- specify background so that we can plot perturbed distribution and moments
       initBackground = Plasma.MaxwellianProjection {
-              density = function (t, xn)
-                 return ni0
-              end,
-              temperature = function (t, xn)
-                 return Ti0
-              end,
-              isBackground = true,
-             },
+         density = function (t, xn)
+            return ni0
+         end,
+         temperature = function (t, xn)
+            return Ti0
+         end,
+         isBackground = true,
+      },
       init = Plasma.MaxwellianProjection {
-              density = function (t, xn)
-                 local x, v = xn[1], xn[2]
-                 local k = knumber
-                 local alpha = 0.01
-                 local perturb = alpha*math.cos(k*x)
-                 return ni0*(1+perturb)
-              end,
-              temperature = function (t, xn)
-                 return Ti0
-              end,
-             },
+         density = function (t, xn)
+            local x, v = xn[1], xn[2]
+            local k = knumber
+            local alpha = 0.01
+            local perturb = alpha*math.cos(k*x)
+            return ni0*(1+perturb)
+         end,
+         temperature = function (t, xn)
+            return Ti0
+         end,
+      },
       evolve = true, -- evolve species?
       diagnosticMoments = {"GkM0", "GkM2", perturbed = false},
       diagnosticIntegratedMoments = {"intM0", "intM2"},

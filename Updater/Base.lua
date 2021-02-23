@@ -16,12 +16,12 @@ local _M = Proto()
 
 function _M:init(tbl)
    assert(tbl.onGrid, "Updater.Base: Must provide grid object using 'onGrid'")
-   self._comm = tbl.onGrid:commSet().comm
+   self._comm       = tbl.onGrid:commSet().comm
    self._sharedComm = tbl.onGrid:commSet().sharedComm
-   self._nodeComm = tbl.onGrid:commSet().nodeComm
-   self.totalTime = 0.0
+   self._nodeComm   = tbl.onGrid:commSet().nodeComm
+   self.totalTime   = 0.0
    self._myStatus, self._myDtSuggested = ffi.new("int[2]"), ffi.new("double[2]")
-   self._status, self._dtSuggested = ffi.new("int[2]"), ffi.new("double[2]")
+   self._status, self._dtSuggested     = ffi.new("int[2]"), ffi.new("double[2]")
 
    self._dt = 0.0
    self._cflRateByCell = nil
@@ -81,7 +81,7 @@ function _M:advance(tCurr, inFld, outFld)
 
    -- reduce across processors ...
    if status ~= nil and dtSuggested ~= nil then 
-      self._myStatus[0] = status and 1 or 0
+      self._myStatus[0]      = status and 1 or 0
       self._myDtSuggested[0] = dtSuggested
 
       Mpi.Allreduce(self._myStatus, self._status, 1, Mpi.INT, Mpi.LAND, self._comm)

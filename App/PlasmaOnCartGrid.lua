@@ -288,12 +288,12 @@ local function buildApplication(self, tbl)
    externalField:initField()
    
    -- Initialize species solvers and diagnostics.
-   for _, s in lume.orderedIter(species) do
+   for nm, s in lume.orderedIter(species) do
       local hasE, hasB = field:hasEB()
       local extHasE, extHasB = externalField:hasEB()
       s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
       s:createSolver(hasE or extHasE, hasB or extHasB, externalField, hasB)
-      s:initDist()
+      s:initDist(externalField)
       s:createDiagnostics()
    end
 
@@ -989,9 +989,9 @@ return {
    IncompEuler = function ()
       App.label = "Incompressible Euler"
       return {
-	 App = App,
-	 Species = require "App.Species.IncompEulerSpecies",
-	 Field = require ("App.Field.GkField").GkField,
+	 App       = App,
+	 Species   = require "App.Species.IncompEulerSpecies",
+	 Field     = require ("App.Field.GkField").GkField,
 	 Diffusion = require "App.Collisions.Diffusion",
       }
    end,

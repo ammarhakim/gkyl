@@ -258,7 +258,7 @@ function GkField:alloc(nRkDup)
       onGrid   = self.grid,
       basis    = self.basis,
       evaluate = function (t,xn) return 1.0 end,
-      projectOnGhosts = true,
+      onGhosts = true,
    }
    initUnit:advance(0.,{},{self.unitWeight})
 
@@ -273,10 +273,10 @@ end
 function GkField:initField(species)
    if self.externalPhi then
       local evalOnNodes = Updater.EvalOnNodes {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         evaluate        = self.externalPhi,
-         projectOnGhosts = true
+         onGrid   = self.grid,
+         basis    = self.basis,
+         evaluate = self.externalPhi,
+         onGhosts = true
       }
       self.externalPhiFld = createField(self.grid,self.basis,{1,1})
       evalOnNodes:advance(0.0, {}, {self.externalPhiFld})
@@ -620,11 +620,11 @@ function GkField:write(tm, force)
       if self.calcIntFieldEnergyTrigger(tm) then
          -- Compute integrated quantities over domain.
          self.int2Calc:advance(tm, { self.potentials[1].phi }, { self.phiSq })
-         self.energyCalc:advance(tm, { self.potentials[1].phi }, { self.gradPerpPhiSq })
          if self.isElectromagnetic then 
             self.int2Calc:advance(tm, { self.potentials[1].apar }, { self.aparSq })
          end
          if self.energyCalc then 
+            self.energyCalc:advance(tm, { self.potentials[1].phi }, { self.gradPerpPhiSq })
             if self.linearizedPolarization then
                local esEnergyFac = .5*self.polarizationWeight
                if self.ndim == 1 then 
@@ -1177,7 +1177,7 @@ function GkGeometry:createSolver()
             onGrid   = self.grid,
             basis    = self.basis,
             evaluate = self.calcAllGeo,
-            projectOnGhosts = true,
+            onGhosts = true,
          }
       end
 
@@ -1189,8 +1189,8 @@ function GkGeometry:createSolver()
          ones[dir] = 0/0 -- Set this var to nan.
          -- Test if result is nan.. nan is the only value that doesn't equal itself.
          if self.bmagFunc(0, ones) ~= self.bmagFunc(0, ones) then
-           -- If result is nan, bmag must depend on this var.
-           table.insert(self.bmagVars, dir)
+            -- If result is nan, bmag must depend on this var.
+            table.insert(self.bmagVars, dir)
          end
          ones[dir] = 1 -- Reset so we can check other vars.
       end
@@ -1296,7 +1296,7 @@ function GkGeometry:createSolver()
             onGrid   = self.grid,
             basis    = self.basis,
             evaluate = self.calcAllGeo,
-            projectOnGhosts = true,
+            onGhosts = true,
          }
       end
 
@@ -1304,10 +1304,10 @@ function GkGeometry:createSolver()
 
    if self.phiWallFunc then 
       self.setPhiWall = Updater.EvalOnNodes {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         projectOnGhosts = true,
-         evaluate        = self.phiWallFunc
+         onGrid   = self.grid,
+         basis    = self.basis,
+         evaluate = self.phiWallFunc,
+         onGhosts = true,
       }
    end
 
@@ -1317,7 +1317,7 @@ function GkGeometry:createSolver()
       onGrid   = self.grid,
       basis    = self.basis,
       evaluate = function (t,xn) return 1.0 end,
-      projectOnGhosts = true,
+      onGhosts = true,
    }
    initUnit:advance(0.,{},{self.unitWeight})
 

@@ -161,10 +161,9 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
    }
    self.calcMaxwell = Updater.MaxwellianOnBasis {
       onGrid     = self.grid,
+      phaseBasis = self.basis,
       confGrid   = self.confGrid,
       confBasis  = self.confBasis,
-      phaseGrid  = self.grid,
-      phaseBasis = self.basis,
    }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
@@ -200,10 +199,10 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
 
    if self.vlasovExtForceFunc then
       self.evalVlasovExtForce = Updater.ProjectOnBasis {
-         onGrid          = self.confGrid,
-         basis           = self.confBasis,
-         evaluate        = self.vlasovExtForceFunc,
-         projectOnGhosts = false
+         onGrid   = self.confGrid,
+         basis    = self.confBasis,
+         evaluate = self.vlasovExtForceFunc,
+         onGhosts = false
       }
    end
 
@@ -525,10 +524,10 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
       local projectNuX = nil
       if userInputNuProfile then
          projectNuX = Updater.ProjectOnBasis {
-            onGrid          = self.confGrid,
-            basis           = self.confBasis,
-            evaluate        = function(t,xn) return 0.0 end, -- Function is set below.
-            projectOnGhosts = false,
+            onGrid   = self.confGrid,
+            basis    = self.confBasis,
+            evaluate = function(t,xn) return 0.0 end, -- Function is set below.
+            onGhosts = false,
          }
       end
       for sN, _ in lume.orderedIter(species) do
@@ -1396,13 +1395,13 @@ function VlasovSpecies:getSrcCX()
    return self.srcCX
 end
 
--- please test this for higher than 1x1v... 
+-- Please test this for higher than 1x1v... (MF: JJ?).
 function VlasovSpecies:Maxwellian(xn, n0, T0, vdnIn)
    local vdn = vdnIn or {0, 0, 0}
    local vt2 = T0/self.mass
    local v2 = 0.0
    for d = self.cdim+1, self.cdim+self.vdim do
-     v2 = v2 + (xn[d] - vdn[d-self.cdim])^2
+     v2 = v2 + (xn[d] - vdnIn[d-self.cdim])^2
    end
    return n0 / math.sqrt(2*math.pi*vt2)^self.vdim * math.exp(-v2/(2*vt2))
 end

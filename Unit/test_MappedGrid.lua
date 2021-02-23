@@ -66,10 +66,10 @@ function test_1()
    end
 
    local project = Updater.ProjectOnBasis {
-      onGrid = grid,
-      basis = basis,
-      projectOnGhosts = true,
-      evaluate = jacobFunc
+      onGrid   = grid,
+      basis    = basis,
+      evaluate = jacobFunc,
+      onGhosts = true,
    }
    local jacob = DataStruct.Field {
       onGrid = grid,

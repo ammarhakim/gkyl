@@ -405,13 +405,11 @@ function KineticSpecies:createBasis(nm, polyOrder)
    -- with a species, we wish to save the basisID and polyOrder in it. But these
    -- can only be extracted from self.basis after this is created.
    if self.coordinateMap then
-      local metaData = {
-         polyOrder = self.basis:polyOrder(),
-         basisType = self.basis:id(),
-         charge = self.charge,
-         mass = self.mass,
-         grid = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
-      }
+      local metaData = {polyOrder = self.basis:polyOrder(),
+                        basisType = self.basis:id(),
+                        charge    = self.charge,
+                        mass      = self.mass,
+                        grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"}
       self.grid:write("grid_" .. self.name .. ".bp", 0.0, metaData)
    end
 end
@@ -558,13 +556,11 @@ function KineticSpecies:alloc(nRkDup)
       elemType   = self.distf[1]:elemType(),
       method     = self.ioMethod,
       writeGhost = self.writeGhost,
-      metaData   = {
-         polyOrder = self.basis:polyOrder(),
-         basisType = self.basis:id(),
-         charge    = self.charge,
-         mass      = self.mass,    
-         grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
-      },
+      metaData   = {polyOrder = self.basis:polyOrder(),
+                    basisType = self.basis:id(),
+                    charge    = self.charge,
+                    mass      = self.mass,    
+                    grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"},
    }
 
    if self.positivity then
@@ -613,8 +609,8 @@ function KineticSpecies:setActiveRKidx(rkIdx)
    self.activeRKidx = rkIdx
 end
 
--- Note: do not call applyBc here. it is called later in initialization sequence.
-function KineticSpecies:initDist()
+-- Note: do not call applyBc here. It is called later in initialization sequence.
+function KineticSpecies:initDist(extField)
    if self.randomseed then 
       math.randomseed(self.randomseed) 
    else
@@ -624,9 +620,9 @@ function KineticSpecies:initDist()
    local syncPeriodicDirs = true
    if self.fluctuationBCs then syncPeriodicDirs = false end
    local initCnt, backgroundCnt = 0, 0
-   for _, pr in lume.orderedIter(self.projections) do
+   for nm, pr in lume.orderedIter(self.projections) do
       pr:fullInit(self)
-      pr:run(0.0, self.distf[2])
+      pr:advance(0.0, {extField}, {self.distf[2]})
       -- This barrier is needed as when using MPI-SHM some
       -- processes will get to accumulate before projection is finished.
       Mpi.Barrier(self.grid:commSet().sharedComm)
@@ -644,9 +640,7 @@ function KineticSpecies:initDist()
 	 backgroundCnt = backgroundCnt + 1
       end
       if pr.isSource then
-	 if not self.fSource then 
-	    self.fSource = self:allocDistf()
-	 end
+	 if not self.fSource then self.fSource = self:allocDistf() end
 	 self.fSource:accumulate(1.0, self.distf[2])
          if self.positivityRescale then
             self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)

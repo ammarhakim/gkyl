@@ -67,15 +67,16 @@ plasmaApp = Plasma.App {
       decompCuts = {1, 1},
       -- Initial conditions.
       -- Specify background so that we can plot perturbed distribution and moments.
-      initBackground = {"maxwellian",
+      initBackground = Plasma.MaxwellianProjection{
          density = function (t, xn)
             return nIon
          end,
          temperature = function (t, xn)
             return Ti
          end,
+         isBackground=true,
       },
-      init = {"maxwellian",
+      init = Plasma.MaxwellianProjection{
          density = function (t, xn)
             local x, v, mu = xn[1], xn[2], xn[3]
             local k        = knumber

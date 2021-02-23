@@ -70,26 +70,26 @@ plasmaApp = Plasma.App {
       cells = {N_VPAR, N_MU},
       -- initial conditions
       initBackground = Plasma.MaxwellianProjection {
-              density = function (t, xn)
-                 return n0
-              end,
-              temperature = function (t, xn)
-                 local x = xn[1]
-                 return Te0*(1-(x-r0)/L_T)
-              end,
-              isBackground = true,
-             },
+         density = function (t, xn)
+            return n0
+         end,
+         temperature = function (t, xn)
+            local x = xn[1]
+            return Te0*(1-(x-r0)/L_T)
+         end,
+         isBackground = true,
+      },
       init = Plasma.MaxwellianProjection {
-              density = function (t, xn)
-                 local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
-                 local perturb = 1e-3*rho_e/L_T*math.cos(ky_min*y)
-                 return n0*(1+perturb)
-              end,
-              temperature = function (t, xn)
-                 local x = xn[1]
-                 return Te0*(1-(x-r0)/L_T)
-              end,
-             },
+         density = function (t, xn)
+            local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
+            local perturb = 1e-3*rho_e/L_T*math.cos(ky_min*y)
+            return n0*(1+perturb)
+         end,
+         temperature = function (t, xn)
+            local x = xn[1]
+            return Te0*(1-(x-r0)/L_T)
+         end,
+      },
       evolve = true, -- evolve species?
       diagnosticMoments = {"GkM0"}, 
    },

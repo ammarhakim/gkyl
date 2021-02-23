@@ -109,27 +109,18 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
          local mu = xn[self.ndim]
          return math.sqrt(2*mu*self.mass*(externalField.gxxFunc(t,xn)*externalField.gyyFunc(t,xn)-externalField.gxyFunc(t,xn)^2)/(self.charge^2*externalField.gxxFunc(t, xn)*externalField.bmagFunc(t, xn)))
       end
-      local project1 = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         evaluate        = rho1Func,
-         projectOnGhosts = true
+      local project = Updater.ProjectOnBasis {
+         onGrid   = self.grid,
+         basis    = self.basis,
+         evaluate = function(t,xn) return 0. end,   -- Set below.
+         onGhosts = true
       }
-      project1:advance(0.0, {}, {self.rho1})
-      local project2 = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         evaluate        = rho2Func,
-         projectOnGhosts = true
-      }
-      project2:advance(0.0, {}, {self.rho2})
-      local project3 = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         evaluate        = rho3Func,
-         projectOnGhosts = true
-      }
-      project3:advance(0.0, {}, {self.rho3})
+      project:setFunc(function(t,xn) return rho1Func(t,xn) end)
+      project:advance(0.0, {}, {self.rho1})
+      project:setFunc(function(t,xn) return rho2Func(t,xn) end)
+      project:advance(0.0, {}, {self.rho2})
+      project:setFunc(function(t,xn) return rho3Func(t,xn) end)
+      project:advance(0.0, {}, {self.rho3})
 
       -- Create solver for gyroaveraging potentials.
       self.emGyavgSlvr = Updater.FemGyroaverage {
@@ -309,10 +300,9 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
    }
    self.calcMaxwell = Updater.MaxwellianOnBasis {
       onGrid      = self.grid,
+      phaseBasis  = self.basis,
       confGrid    = self.confGrid,
       confBasis   = self.confBasis,
-      phaseGrid   = self.grid,
-      phaseBasis  = self.basis,
       mass        = self.mass,
    }
    if self.needSelfPrimMom then
@@ -671,10 +661,10 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       local projectNuX = nil
       if userInputNuProfile then
          projectNuX = Updater.ProjectOnBasis {
-            onGrid          = self.confGrid,
-            basis           = self.confBasis,
-            evaluate        = function(t,xn) return 0.0 end, -- Function is set below.
-            projectOnGhosts = false,
+            onGrid   = self.confGrid,
+            basis    = self.confBasis,
+            evaluate = function(t,xn) return 0.0 end, -- Function is set below.
+            onGhosts = false,
          }
       end
       for sN, _ in lume.orderedIter(species) do
@@ -1696,12 +1686,12 @@ end
 
 function GkSpecies:getPolarizationWeight(linearized)
    if linearized == false then 
-     self.weakMultiplication:advance(0.0, {self.numDensity, self.bmagInv}, {self.polarizationWeight})
-     self.weakMultiplication:advance(0.0, {self.polarizationWeight, self.bmagInv}, {self.polarizationWeight})
-     self.polarizationWeight:scale(self.mass)
-     return self.polarizationWeight
+      self.weakMultiplication:advance(0.0, {self.numDensity, self.bmagInv}, {self.polarizationWeight})
+      self.weakMultiplication:advance(0.0, {self.polarizationWeight, self.bmagInv}, {self.polarizationWeight})
+      self.polarizationWeight:scale(self.mass)
+      return self.polarizationWeight
    else 
-     return self.n0*self.mass/self.B0^2
+      return self.n0*self.mass/self.B0^2
    end
 end
 
