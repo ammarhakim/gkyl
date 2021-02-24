@@ -70,10 +70,10 @@ function MomentSpecies:createSolver(hasE, hasB)
          ghost         = {2, 2}
       }
       local project = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         evaluate        = self._inOutFunc,
-         projectOnGhosts = true,
+         onGrid   = self.grid,
+         basis    = self.basis,
+         evaluate = self._inOutFunc,
+         onGhosts = true,
       }
       project:advance(0.0, {}, {self._inOut})
       self.momIo:write(self._inOut, string.format("%s_inOut.bp", self.name), 0, 0)

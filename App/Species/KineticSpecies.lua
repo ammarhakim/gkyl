@@ -79,22 +79,19 @@ function KineticSpecies:fullInit(appTbl)
    -- WE DO NOT ALLOW DECOMPOSITION IN VELOCITY SPACE
    for d = 1, self.vdim do self.decompCuts[d] = 1 end
 
+   local nFrame = tbl.nDiagnosticFrame and tbl.nDiagnosticFrame or appTbl.nFrame
    -- Create triggers to write distribution functions and moments.
    if tbl.nDistFuncFrame then
       self.distIoTrigger = LinearTrigger(0, appTbl.tEnd, tbl.nDistFuncFrame)
    else
-      self.distIoTrigger = LinearTrigger(0, appTbl.tEnd, appTbl.nFrame)
+      self.distIoTrigger = LinearTrigger(0, appTbl.tEnd, nFrame)
    end
-
-   if tbl.nDiagnosticFrame then
-      self.diagIoTrigger = LinearTrigger(0, appTbl.tEnd, tbl.nDiagnosticFrame)
-   else
-      self.diagIoTrigger = LinearTrigger(0, appTbl.tEnd, appTbl.nFrame)
-   end
+   self.diagIoTrigger = LinearTrigger(0, appTbl.tEnd, nFrame)
 
    -- Create trigger for how frequently to compute integrated moments.
+   -- Do not compute the integrated diagnostics less frequently than we output data.
    if appTbl.calcIntQuantEvery then
-      self.calcIntQuantTrigger = LinearTrigger(0, appTbl.tEnd,  math.floor(1/appTbl.calcIntQuantEvery))
+      self.calcIntQuantTrigger = LinearTrigger(0, appTbl.tEnd,  math.max(nFrame,math.floor(1/appTbl.calcIntQuantEvery)))
    else
       self.calcIntQuantTrigger = function(t) return true end
    end
@@ -408,13 +405,11 @@ function KineticSpecies:createBasis(nm, polyOrder)
    -- with a species, we wish to save the basisID and polyOrder in it. But these
    -- can only be extracted from self.basis after this is created.
    if self.coordinateMap then
-      local metaData = {
-         polyOrder = self.basis:polyOrder(),
-         basisType = self.basis:id(),
-         charge = self.charge,
-         mass = self.mass,
-         grid = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
-      }
+      local metaData = {polyOrder = self.basis:polyOrder(),
+                        basisType = self.basis:id(),
+                        charge    = self.charge,
+                        mass      = self.mass,
+                        grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"}
       self.grid:write("grid_" .. self.name .. ".bp", 0.0, metaData)
    end
 end
@@ -424,12 +419,10 @@ function KineticSpecies:allocDistf()
 	onGrid        = self.grid,
 	numComponents = self.basis:numBasis(),
 	ghost         = {1, 1},
-   metaData = {
-      polyOrder = self.basis:polyOrder(),
-      basisType = self.basis:id(),
-      charge = self.charge,
-      mass = self.mass,
-   },
+        metaData      = {polyOrder = self.basis:polyOrder(),
+                         basisType = self.basis:id(),
+                         charge    = self.charge,
+                         mass      = self.mass,},
    }
    f:clear(0.0)
    return f
@@ -439,12 +432,10 @@ function KineticSpecies:allocMoment()
 	onGrid        = self.confGrid,
 	numComponents = self.confBasis:numBasis(),
 	ghost         = {1, 1},
-   metaData = {
-      polyOrder = self.basis:polyOrder(),
-      basisType = self.basis:id(),
-      charge = self.charge,
-      mass = self.mass,
-   },
+        metaData      = {polyOrder = self.basis:polyOrder(),
+                         basisType = self.basis:id(),
+                         charge    = self.charge,
+                         mass      = self.mass,},
    }
    m:clear(0.0)
    return m
@@ -454,12 +445,10 @@ function KineticSpecies:allocVectorMoment(dim)
 	onGrid        = self.confGrid,
 	numComponents = self.confBasis:numBasis()*dim,
 	ghost         = {1, 1},
-   metaData = {
-      polyOrder = self.basis:polyOrder(),
-      basisType = self.basis:id(),
-      charge = self.charge,
-      mass = self.mass,
-   },
+        metaData      = {polyOrder = self.basis:polyOrder(),
+                         basisType = self.basis:id(),
+                         charge    = self.charge,
+                         mass      = self.mass,},
    }
    m:clear(0.0)
    return m
@@ -567,13 +556,11 @@ function KineticSpecies:alloc(nRkDup)
       elemType   = self.distf[1]:elemType(),
       method     = self.ioMethod,
       writeGhost = self.writeGhost,
-      metaData   = {
-         polyOrder = self.basis:polyOrder(),
-         basisType = self.basis:id(),
-         charge    = self.charge,
-         mass      = self.mass,    
-         grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"
-      },
+      metaData   = {polyOrder = self.basis:polyOrder(),
+                    basisType = self.basis:id(),
+                    charge    = self.charge,
+                    mass      = self.mass,    
+                    grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"},
    }
 
    if self.positivity then
@@ -622,8 +609,8 @@ function KineticSpecies:setActiveRKidx(rkIdx)
    self.activeRKidx = rkIdx
 end
 
--- Note: do not call applyBc here. it is called later in initialization sequence.
-function KineticSpecies:initDist()
+-- Note: do not call applyBc here. It is called later in initialization sequence.
+function KineticSpecies:initDist(extField)
    if self.randomseed then 
       math.randomseed(self.randomseed) 
    else
@@ -633,9 +620,9 @@ function KineticSpecies:initDist()
    local syncPeriodicDirs = true
    if self.fluctuationBCs then syncPeriodicDirs = false end
    local initCnt, backgroundCnt = 0, 0
-   for _, pr in lume.orderedIter(self.projections) do
+   for nm, pr in lume.orderedIter(self.projections) do
       pr:fullInit(self)
-      pr:run(0.0, self.distf[2])
+      pr:advance(0.0, {extField}, {self.distf[2]})
       -- This barrier is needed as when using MPI-SHM some
       -- processes will get to accumulate before projection is finished.
       Mpi.Barrier(self.grid:commSet().sharedComm)
@@ -653,9 +640,7 @@ function KineticSpecies:initDist()
 	 backgroundCnt = backgroundCnt + 1
       end
       if pr.isSource then
-	 if not self.fSource then 
-	    self.fSource = self:allocDistf()
-	 end
+	 if not self.fSource then self.fSource = self:allocDistf() end
 	 self.fSource:accumulate(1.0, self.distf[2])
          if self.positivityRescale then
             self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
@@ -834,8 +819,8 @@ function KineticSpecies:applyBc(tCurr, fIn)
       local syncPeriodicDirsTrue = true
 
       if self.fluctuationBCs then
-        -- If fluctuation-only BCs, subtract off background before applying BCs.
-        fIn:accumulate(-1.0, self.f0)
+         -- If fluctuation-only BCs, subtract off background before applying BCs.
+         fIn:accumulate(-1.0, self.f0)
       end
 
       -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
@@ -855,11 +840,11 @@ function KineticSpecies:applyBc(tCurr, fIn)
       fIn:sync(syncPeriodicDirsTrue)
 
       if self.fluctuationBCs then
-        -- Put back together total distribution
-        fIn:accumulate(1.0, self.f0)
-
-        -- Update ghosts in total distribution, without enforcing periodicity.
-        fIn:sync(not syncPeriodicDirsTrue)
+         -- Put back together total distribution
+         fIn:accumulate(1.0, self.f0)
+ 
+         -- Update ghosts in total distribution, without enforcing periodicity.
+         fIn:sync(not syncPeriodicDirsTrue)
       end
    end
 

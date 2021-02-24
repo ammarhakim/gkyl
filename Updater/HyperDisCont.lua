@@ -89,8 +89,12 @@ function HyperDisCont:init(tbl)
       end
    end
 
-   -- flag to turn on/off volume term
+   -- Flag to turn on/off volume term.
    self._updateVolumeTerm = xsys.pickBool(tbl.updateVolumeTerm, true)
+
+   -- Flag to indicate the use of local or global upwind fluxes. Local
+   -- does not need to do a reduction of the maximum speed (saves an Mpi.Allreduce).
+   self._globalUpwind = xsys.pickBool(tbl.globalUpwind, true)
 
    -- CFL number
    self._cfl = assert(tbl.cfl, "Updater.HyperDisCont: Must specify CFL number using 'cfl'")
@@ -278,8 +282,10 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
    end
 
    -- determine largest amax across processors
-   Mpi.Allreduce(
-      self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, self:getComm())
+   if self._globalUpwind then
+      Mpi.Allreduce(
+         self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, self:getComm())
+   end
 
    self._isFirst = false
 end

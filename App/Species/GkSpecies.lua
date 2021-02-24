@@ -109,27 +109,18 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
          local mu = xn[self.ndim]
          return math.sqrt(2*mu*self.mass*(externalField.gxxFunc(t,xn)*externalField.gyyFunc(t,xn)-externalField.gxyFunc(t,xn)^2)/(self.charge^2*externalField.gxxFunc(t, xn)*externalField.bmagFunc(t, xn)))
       end
-      local project1 = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         evaluate        = rho1Func,
-         projectOnGhosts = true
+      local project = Updater.ProjectOnBasis {
+         onGrid   = self.grid,
+         basis    = self.basis,
+         evaluate = function(t,xn) return 0. end,   -- Set below.
+         onGhosts = true
       }
-      project1:advance(0.0, {}, {self.rho1})
-      local project2 = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         evaluate        = rho2Func,
-         projectOnGhosts = true
-      }
-      project2:advance(0.0, {}, {self.rho2})
-      local project3 = Updater.ProjectOnBasis {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         evaluate        = rho3Func,
-         projectOnGhosts = true
-      }
-      project3:advance(0.0, {}, {self.rho3})
+      project:setFunc(function(t,xn) return rho1Func(t,xn) end)
+      project:advance(0.0, {}, {self.rho1})
+      project:setFunc(function(t,xn) return rho2Func(t,xn) end)
+      project:advance(0.0, {}, {self.rho2})
+      project:setFunc(function(t,xn) return rho3Func(t,xn) end)
+      project:advance(0.0, {}, {self.rho3})
 
       -- Create solver for gyroaveraging potentials.
       self.emGyavgSlvr = Updater.FemGyroaverage {
@@ -192,6 +183,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       zeroFluxDirections = self.zeroFluxDirections,
       updateDirections   = upd,
       clearOut           = false,   -- Continue accumulating into output field.
+      globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
    }
    
    if hasApar and self.basis:polyOrder()==1 then 
@@ -205,6 +197,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
          updateDirections   = {self.cdim+1},    -- Only vpar terms.
          updateVolumeTerm   = false,            -- No volume term.
          clearOut           = false,            -- Continue accumulating into output field.
+         globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
       }
       -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
       self.equationStep2 = GyrokineticEq.GkEqStep2 {
@@ -226,6 +219,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
          zeroFluxDirections = self.zeroFluxDirections,
          updateDirections   = {self.cdim+1}, -- Only vpar terms.
          clearOut           = false,   -- Continue accumulating into output field.
+         globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
       }
    elseif hasApar and self.basis:polyOrder()>1 then
       -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
@@ -248,6 +242,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
          zeroFluxDirections = self.zeroFluxDirections,
          updateDirections   = {self.cdim+1},
          clearOut           = false,   -- Continue accumulating into output field.
+         globalUpwind       = false,   -- Don't reduce max speed.
       }
    end
    
@@ -305,10 +300,9 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
    }
    self.calcMaxwell = Updater.MaxwellianOnBasis {
       onGrid      = self.grid,
+      phaseBasis  = self.basis,
       confGrid    = self.confGrid,
       confBasis   = self.confBasis,
-      phaseGrid   = self.grid,
-      phaseBasis  = self.basis,
       mass        = self.mass,
    }
    if self.needSelfPrimMom then
@@ -346,7 +340,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
 
    self._firstMomentCalc = true  -- To avoid re-calculating moments when not evolving.
 
-   self.tmCouplingMom = 0.0      -- For timer.
+   self.timers = {couplingMom = 0., sources = 0.}
 
    assert(self.n0, "Must specify background density as global variable 'n0' in species table as 'n0 = ...'")
 end
@@ -667,10 +661,10 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       local projectNuX = nil
       if userInputNuProfile then
          projectNuX = Updater.ProjectOnBasis {
-            onGrid          = self.confGrid,
-            basis           = self.confBasis,
-            evaluate        = function(t,xn) return 0.0 end, -- Function is set below.
-            projectOnGhosts = false,
+            onGrid   = self.confGrid,
+            basis    = self.confBasis,
+            evaluate = function(t,xn) return 0.0 end, -- Function is set below.
+            onGhosts = false,
          }
       end
       for sN, _ in lume.orderedIter(species) do
@@ -720,7 +714,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       fIn = self.fPos
    end
 
-   -- clear RHS, because HyperDisCont set up with clearOut = false
+   -- Clear RHS, because HyperDisCont set up with clearOut = false.
    fRhsOut:clear(0.0)
 
    -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
@@ -728,10 +722,12 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       for _, c in pairs(self.collisions) do
          c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
          c:advance(tCurr, fIn, species, fRhsOut)
-         -- the full 'species' list is needed for the cross-species
-         -- collisions
       end
    end
+
+   -- Complete the field solve.
+   emIn[1]:phiSolve(tCurr, species, inIdx, outIdx)
+
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
@@ -747,10 +743,12 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
 
    if self.fSource and self.evolveSources then
+      local tm = Time.clock()
       -- Add source it to the RHS.
       -- Barrier over shared communicator before accumulate.
       Mpi.Barrier(self.grid:commSet().sharedComm)
       fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
+      self.timers.sources = self.timers.sources + Time.clock() - tm 
    end
 end
 
@@ -1532,7 +1530,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       end
 
       if self.deltaF then
-        fIn:accumulate(1.0, self.f0)
+         fIn:accumulate(1.0, self.f0)
       end
 
       -- For ionization.
@@ -1574,7 +1572,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       	 species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uParSelf, neutU, self.vtSqSelf, neutVtSq}, {self.vSigmaCX})
       end
       
-      self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
+      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
 end
@@ -1607,13 +1605,13 @@ function GkSpecies:getNumDensity(rkIdx)
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
       if self.deltaF then
-        fIn:accumulate(-1.0, self.f0)
+         fIn:accumulate(-1.0, self.f0)
       end
       self.numDensityCalc:advance(nil, {fIn}, { self.numDensityAux })
       if self.deltaF then
-        fIn:accumulate(1.0, self.f0)
+         fIn:accumulate(1.0, self.f0)
       end
-      self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
+      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
    return self.numDensityAux
@@ -1631,13 +1629,13 @@ function GkSpecies:getMomDensity(rkIdx)
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
       if self.deltaF then
-        fIn:accumulate(-1.0, self.f0)
+         fIn:accumulate(-1.0, self.f0)
       end
       self.momDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
       if self.deltaF then
-        fIn:accumulate(1.0, self.f0)
+         fIn:accumulate(1.0, self.f0)
       end
-      self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
+      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
    return self.momDensityAux
@@ -1652,13 +1650,13 @@ function GkSpecies:getMomProjDensity(rkIdx)
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
       if self.deltaF then
-        fIn:accumulate(-1.0, self.f0)
+         fIn:accumulate(-1.0, self.f0)
       end
       self.momProjDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
       if self.deltaF then
-        fIn:accumulate(1.0, self.f0)
+         fIn:accumulate(1.0, self.f0)
       end
-      self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
+      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
    return self.momDensityAux
@@ -1673,13 +1671,13 @@ function GkSpecies:getEmModifier(rkIdx)
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
       if self.deltaF then
-        fIn:accumulate(-1.0, self.f0)
+         fIn:accumulate(-1.0, self.f0)
       end
       self.momProjDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
       if self.deltaF then
-        fIn:accumulate(1.0, self.f0)
+         fIn:accumulate(1.0, self.f0)
       end
-      self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
+      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
    fIn:clear(0.0)
@@ -1688,12 +1686,12 @@ end
 
 function GkSpecies:getPolarizationWeight(linearized)
    if linearized == false then 
-     self.weakMultiplication:advance(0.0, {self.numDensity, self.bmagInv}, {self.polarizationWeight})
-     self.weakMultiplication:advance(0.0, {self.polarizationWeight, self.bmagInv}, {self.polarizationWeight})
-     self.polarizationWeight:scale(self.mass)
-     return self.polarizationWeight
+      self.weakMultiplication:advance(0.0, {self.numDensity, self.bmagInv}, {self.polarizationWeight})
+      self.weakMultiplication:advance(0.0, {self.polarizationWeight, self.bmagInv}, {self.polarizationWeight})
+      self.polarizationWeight:scale(self.mass)
+      return self.polarizationWeight
    else 
-     return self.n0*self.mass/self.B0^2
+      return self.n0*self.mass/self.B0^2
    end
 end
 
@@ -1714,7 +1712,7 @@ function GkSpecies:getVSigmaCX()
 end
 
 function GkSpecies:momCalcTime()
-   local tm = self.tmCouplingMom
+   local tm = self.timers.couplingMom
    for i, mom in pairs(self.diagnosticMoments) do
       tm = tm + self.diagnosticMomentUpdaters[mom].totalTime
    end

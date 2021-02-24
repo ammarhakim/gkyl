@@ -443,17 +443,11 @@ return function(tbl)
       end
    end
 
-   local projectDrag = Updater.ProjectOnBasis {
+   local projectUpd = Updater.ProjectOnBasis {
       onGrid = grid,
       basis = basis,
-      evaluate = initDragFunc,
-      projectOnGhosts = true,
-   }
-   local projectDiff = Updater.ProjectOnBasis {
-      onGrid = grid,
-      basis = basis,
-      evaluate = initDiffFunc,
-      projectOnGhosts = true,
+      evaluate = function(t,xn) return 0. end,   -- Set below.
+      onGhosts = true,
    }
 
    -- update Rosenbluth potentials
@@ -461,8 +455,10 @@ return function(tbl)
       updateRosenbluthDrag(f, h)
       updateRosenbluthDiffusion(h, g)
    else
-      projectDrag:advance(0.0, {}, {h})
-      projectDiff:advance(0.0, {}, {g})
+      projectUpd:setFunc(function(t,xn) return initDragFunc(t,xn) end)
+      projectUpd:advance(0.0, {}, {h})
+      projectUpd:setFunc(function(t,xn) return initDiffFunc(t,xn) end)
+      projectUpd:advance(0.0, {}, {g})
    end
 
    -- write initial conditions
@@ -481,13 +477,8 @@ return function(tbl)
       hasConstSource = true
       -- A wrapper to add time dependance for projectOnBasis
       local constSourceFn = function (t, z) return tbl.constSource(z) end
-      local projectSource = Updater.ProjectOnBasis {
-         onGrid = grid,
-         basis = basis,
-         evaluate = constSourceFn,
-         projectOnGhosts = true,
-      }
-      projectSource:advance(0.0, {}, {src})
+      projectUpd:setFunc(function(t,xn) return constSourceFn(t,xn) end)
+      projectUpd:advance(0.0, {}, {src})
       if writeDiagnostics then
          src:write('src.bp', 0.0, 0)
       end

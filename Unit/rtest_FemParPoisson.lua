@@ -5,16 +5,16 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Unit = require "Unit"
-local Grid = require "Grid"
+local Unit       = require "Unit"
+local Grid       = require "Grid"
 local DataStruct = require "DataStruct"
-local Basis = require "Basis"
-local Updater = require "Updater"
-local Lin = require "Lib.Linalg"
+local Basis      = require "Basis"
+local Updater    = require "Updater"
+local Lin        = require "Lib.Linalg"
 
 local assert_equal = Unit.assert_equal
 local assert_close = Unit.assert_close
-local stats = Unit.stats
+local stats        = Unit.stats
 
 function test_solve1d(nz, p, writeMatrix)
    writeMatrix = writeMatrix or false
@@ -29,20 +29,20 @@ function test_solve1d(nz, p, writeMatrix)
    io.write("nz=",nz," polyOrder=", p, "\n")
    local t1 = os.clock()
    local poisson = Updater.FemParPoisson {
-     onGrid = grid,
-     basis = basis,
-     bcBack = { T = "D", V = 0.0 },
-     bcFront = { T = "D", V = 0.0 },
-     writeStiffnessMatrix = writeMatrix,
+      onGrid  = grid,
+      basis   = basis,
+      bcLower = {{ T = "D", V = 0.0 }},
+      bcUpper = {{ T = "D", V = 0.0 }},
+      writeStiffnessMatrix = writeMatrix,
    }
    local t2 = os.clock()
    io.write("1D parallel Poisson init took ", t2-t1, " s\n")
    local srcModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1},
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
-   -- initialization constants
+   -- Initialization constants.
    local a, b = 2, -12
    local c1 = 0
    local c0 = -a/12 - 1/2 - b/30
@@ -58,9 +58,9 @@ function test_solve1d(nz, p, writeMatrix)
 
    -- calculate exact solution
    local exactSolModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1},
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
    local initExactSolModal = Updater.ProjectOnBasis {
       onGrid = grid,
@@ -73,9 +73,9 @@ function test_solve1d(nz, p, writeMatrix)
    initExactSolModal:advance(0.,{},{exactSolModal})
 
    local phiModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1}
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
 
    print("Solving...")
@@ -85,9 +85,9 @@ function test_solve1d(nz, p, writeMatrix)
    io.write("1D parallel Poisson solve took total of ", t2-t1, " s\n")
 
    local err = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1}
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
 
    err:combine(1.0, exactSolModal, -1.0, phiModal)
@@ -97,10 +97,10 @@ function test_solve1d(nz, p, writeMatrix)
    --err:write("error-1d.bp", 0.0)
 
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
-     onGrid = grid,
-     basis = basis,
-     numComponents = 1,
-     quantity = "V2"
+      onGrid        = grid,
+      basis         = basis,
+      numComponents = 1,
+      quantity      = "V2"
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -122,24 +122,23 @@ function test_smooth1d(nz, p, writeMatrix)
    io.write("nz=",nz," polyOrder=", p, "\n")
    local t1 = os.clock()
    local poisson = Updater.FemParPoisson {
-     onGrid = grid,
-     basis = basis,
-     --bcBack = { T = "N", V = 0.0 },
-     --bcFront = { T = "N", V = 0.0 },
-     periodicDirs = {1},
-     smooth = true,
-     writeStiffnessMatrix = writeMatrix,
+      onGrid  = grid,
+      basis   = basis,
+      bcLower = {{ T = "P", V = 0.0 }},
+      bcUpper = {{ T = "P", V = 0.0 }},
+      smooth  = true,
+      writeStiffnessMatrix = writeMatrix,
    }
    local t2 = os.clock()
    io.write("1D parallel Poisson init took ", t2-t1, " s\n")
    local srcModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1},
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
    local initSrcModal = Updater.ProjectOnBasis {
-      onGrid = grid,
-      basis = basis,
+      onGrid   = grid,
+      basis    = basis,
       evaluate = function (t,xn)
                     local z = xn[1]
                     return math.cos(2*math.pi*2*z)
@@ -148,9 +147,9 @@ function test_smooth1d(nz, p, writeMatrix)
    initSrcModal:advance(0.,{},{srcModal})
 
    local phiModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1}
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
 
    print("Smoothing...")
@@ -160,9 +159,9 @@ function test_smooth1d(nz, p, writeMatrix)
    io.write("1D parallel Poisson smooth took total of ", t2-t1, " s\n")
 
    local err = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1}
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
 
    err:combine(1.0, srcModal, -1.0, phiModal)
@@ -172,10 +171,10 @@ function test_smooth1d(nz, p, writeMatrix)
    --err:write("error-1d.bp", 0.0)
 
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
-     onGrid = grid,
-     basis = basis,
-     numComponents = 1,
-     quantity = "V2"
+      onGrid        = grid,
+      basis         = basis,
+      numComponents = 1,
+      quantity      = "V2"
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -189,7 +188,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
    print()
    print("Testing 3D parallel Poisson solve...")
    local grid = Grid.RectCart {
-      lower = {0.0, 0.0},
+      lower = {0.0, 0.0, 0.0},
       upper = {1.0, 1.0, 1.0},
       cells = {nx, ny, nz},
    }
@@ -197,26 +196,26 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
    io.write("nx=",nx," ny=",ny," nz=",nz," polyOrder=", p, "\n")
    local t1 = os.clock()
    local poisson = Updater.FemParPoisson {
-     onGrid = grid,
-     basis = basis,
-     bcBack = { T = "D", V = 0.0 },
-     bcFront = { T = "D", V = 0.0 },
-     writeStiffnessMatrix = writeMatrix,
+      onGrid  = grid,
+      basis   = basis,
+      bcLower = {{ T = "D", V = 0.0 }},
+      bcUpper = {{ T = "D", V = 0.0 }},
+      writeStiffnessMatrix = writeMatrix,
    }
    local t2 = os.clock()
    io.write("3D parallel Poisson init took ", t2-t1, " s\n")
    local srcModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1},
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
-   -- initialization constants
+   -- Initialization constants
    local a, b = 2, -12
-   local c1 = 0
-   local c0 = -a/12 - 1/2 - b/30
+   local c1   = 0
+   local c0   = -a/12 - 1/2 - b/30
    local initSrcModal = Updater.ProjectOnBasis {
-      onGrid = grid,
-      basis = basis,
+      onGrid   = grid,
+      basis    = basis,
       evaluate = function (t,xn)
                     local z = xn[3]
                     return  1+a*z^2+b*z^4
@@ -226,9 +225,9 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
 
    -- calculate exact solution
    local exactSolModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1},
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
    local initExactSolModal = Updater.ProjectOnBasis {
       onGrid = grid,
@@ -241,9 +240,9 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
    initExactSolModal:advance(0.,{},{exactSolModal})
 
    local phiModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1}
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
 
    print("Solving...")
@@ -253,9 +252,9 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
    io.write("3D parallel Poisson solve took total of ", t2-t1, " s\n")
 
    local err = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1}
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
 
    err:combine(1.0, exactSolModal, -1.0, phiModal)
@@ -265,10 +264,10 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
    --err:write("error-1d.bp", 0.0)
 
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
-     onGrid = grid,
-     basis = basis,
-     numComponents = 1,
-     quantity = "V2"
+      onGrid        = grid,
+      basis         = basis,
+      numComponents = 1,
+      quantity      = "V2"
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -282,7 +281,7 @@ function test_smooth3d(nx, ny, nz, p, writeMatrix)
    print()
    print("Testing 3D parallel Poisson smooth...")
    local grid = Grid.RectCart {
-      lower = {0.0, 0.0},
+      lower = {0.0, 0.0, 0.0},
       upper = {1.0, 1.0, 1.0},
       cells = {nx, ny, nz},
    }
@@ -290,19 +289,19 @@ function test_smooth3d(nx, ny, nz, p, writeMatrix)
    io.write("nx=",nx," ny=",ny," nz=",nz," polyOrder=", p, "\n")
    local t1 = os.clock()
    local poisson = Updater.FemParPoisson {
-     onGrid = grid,
-     basis = basis,
-     bcBack = { T = "N", V = 0.0 },
-     bcFront = { T = "N", V = 0.0 },
-     smooth = true,
-     writeStiffnessMatrix = writeMatrix,
+      onGrid  = grid,
+      basis   = basis,
+      bcLower = {{ T = "N", V = 0.0 }},
+      bcUpper = {{ T = "N", V = 0.0 }},
+      smooth  = true,
+      writeStiffnessMatrix = writeMatrix,
    }
    local t2 = os.clock()
    io.write("3D parallel Poisson init took ", t2-t1, " s\n")
    local srcModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1},
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
    -- initialization constants
    local a, b = 2, -12
@@ -319,9 +318,9 @@ function test_smooth3d(nx, ny, nz, p, writeMatrix)
    initSrcModal:advance(0.,{},{srcModal})
 
    local phiModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1}
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
 
    phiModal:copy(srcModal)
@@ -332,9 +331,9 @@ function test_smooth3d(nx, ny, nz, p, writeMatrix)
    io.write("3D parallel Poisson smooth took total of ", t2-t1, " s\n")
 
    local err = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1}
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
 
    err:combine(1.0, srcModal, -1.0, phiModal)
@@ -344,10 +343,10 @@ function test_smooth3d(nx, ny, nz, p, writeMatrix)
    --err:write("error-1d.bp", 0.0)
 
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
-     onGrid = grid,
-     basis = basis,
-     numComponents = 1,
-     quantity = "V2"
+      onGrid        = grid,
+      basis         = basis,
+      numComponents = 1,
+      quantity      = "V2"
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -357,91 +356,91 @@ function test_smooth3d(nx, ny, nz, p, writeMatrix)
 end
 
 function test_solve1d_p1()
-  print("--- Testing convergence of 1D solver with p=1 ---")
-  err1 = test_solve1d(32, 1)
-  err2 = test_solve1d(64, 1)
-  err3 = test_solve1d(128, 1)
-  print("Order:", err1/err2/2.0, err2/err3/2.0)
-  assert_close(2.0, err1/err2/2.0, .01)
-  assert_close(2.0, err2/err3/2.0, .01)
-  print()
+   print("--- Testing convergence of 1D solver with p=1 ---")
+   err1 = test_solve1d(32, 1)
+   err2 = test_solve1d(64, 1)
+   err3 = test_solve1d(128, 1)
+   print("Order:", err1/err2/2.0, err2/err3/2.0)
+   assert_close(2.0, err1/err2/2.0, .01)
+   assert_close(2.0, err2/err3/2.0, .01)
+   print()
 end
 
 function test_solve1d_p2()
-  print("--- Testing convergence of 1D solver with p=2 ---")
-  err1 = test_solve1d(32, 2)
-  err2 = test_solve1d(64, 2)
-  err3 = test_solve1d(128, 2)
-  print("Order:", err1/err2/2.0, err2/err3/2.0)
-  assert_close(4.0, err1/err2/2.0, .01)
-  assert_close(4.0, err2/err3/2.0, .01)
-  print()
+   print("--- Testing convergence of 1D solver with p=2 ---")
+   err1 = test_solve1d(32, 2)
+   err2 = test_solve1d(64, 2)
+   err3 = test_solve1d(128, 2)
+   print("Order:", err1/err2/2.0, err2/err3/2.0)
+   assert_close(4.0, err1/err2/2.0, .01)
+   assert_close(4.0, err2/err3/2.0, .01)
+   print()
 end
 
 function test_solve3d_p1()
-  print("--- Testing convergence of 3D solver with p=1 ---")
-  err1 = test_solve3d(4, 4, 32, 1)
-  err2 = test_solve3d(4, 4, 64, 1)
-  err3 = test_solve3d(4, 4, 128, 1)
-  print("Order:", err1/err2/2.0, err2/err3/2.0)
-  assert_close(2.0, err1/err2/2.0, .01)
-  assert_close(2.0, err2/err3/2.0, .01)
-  print()
+   print("--- Testing convergence of 3D solver with p=1 ---")
+   err1 = test_solve3d(4, 4, 32, 1)
+   err2 = test_solve3d(4, 4, 64, 1)
+   err3 = test_solve3d(4, 4, 128, 1)
+   print("Order:", err1/err2/2.0, err2/err3/2.0)
+   assert_close(2.0, err1/err2/2.0, .01)
+   assert_close(2.0, err2/err3/2.0, .01)
+   print()
 end
 
 function test_solve3d_p2()
-  print("--- Testing convergence of 3D solver with p=2 ---")
-  err1 = test_solve3d(4, 4, 32, 2)
-  err2 = test_solve3d(4, 4, 64, 2)
-  err3 = test_solve3d(4, 4, 128, 2)
-  print("Order:", err1/err2/2.0, err2/err3/2.0)
-  assert_close(4.0, err1/err2/2.0, .01)
-  assert_close(4.0, err2/err3/2.0, .01)
-  print()
+   print("--- Testing convergence of 3D solver with p=2 ---")
+   err1 = test_solve3d(4, 4, 32, 2)
+   err2 = test_solve3d(4, 4, 64, 2)
+   err3 = test_solve3d(4, 4, 128, 2)
+   print("Order:", err1/err2/2.0, err2/err3/2.0)
+   assert_close(4.0, err1/err2/2.0, .01)
+   assert_close(4.0, err2/err3/2.0, .01)
+   print()
 end
 
 function test_smooth1d_p1()
-  print("--- Testing convergence of 1D smoother with p=1 ---")
-  err1 = test_smooth1d(32, 1)
-  err2 = test_smooth1d(64, 1)
-  err3 = test_smooth1d(128, 1)
-  print("Order:", err1/err2/2.0, err2/err3/2.0)
-  assert_close(4.0, err1/err2/2.0, .05)
-  assert_close(4.0, err2/err3/2.0, .05)
-  print()
+   print("--- Testing convergence of 1D smoother with p=1 ---")
+   err1 = test_smooth1d(32, 1)
+   err2 = test_smooth1d(64, 1)
+   err3 = test_smooth1d(128, 1)
+   print("Order:", err1/err2/2.0, err2/err3/2.0)
+   assert_close(4.0, err1/err2/2.0, .05)
+   assert_close(4.0, err2/err3/2.0, .05)
+   print()
 end
 
 function test_smooth1d_p2()
-  print("--- Testing convergence of 1D smoother with p=2 ---")
-  err1 = test_smooth1d(32, 2)
-  err2 = test_smooth1d(64, 2)
-  err3 = test_smooth1d(128, 2)
-  print("Order:", err1/err2/2.0, err2/err3/2.0)
-  assert_close(4.0, err1/err2/2.0, .1)
-  assert_close(4.0, err2/err3/2.0, .1)
-  print()
+   print("--- Testing convergence of 1D smoother with p=2 ---")
+   err1 = test_smooth1d(32, 2)
+   err2 = test_smooth1d(64, 2)
+   err3 = test_smooth1d(128, 2)
+   print("Order:", err1/err2/2.0, err2/err3/2.0)
+   assert_close(4.0, err1/err2/2.0, .1)
+   assert_close(4.0, err2/err3/2.0, .1)
+   print()
 end
 
 function test_smooth3d_p1()
-  print("--- Testing convergence of 3D smoother with p=1 ---")
-  err1 = test_smooth3d(4, 4, 32, 1)
-  err2 = test_smooth3d(4, 4, 64, 1)
-  err3 = test_smooth3d(4, 4, 128, 1)
-  print("Order:", err1/err2/2.0, err2/err3/2.0)
-  assert_close(4.0, err1/err2/2.0, .05)
-  assert_close(4.0, err2/err3/2.0, .05)
-  print()
+   print("--- Testing convergence of 3D smoother with p=1 ---")
+   err1 = test_smooth3d(4, 4, 32, 1)
+   err2 = test_smooth3d(4, 4, 64, 1)
+   err3 = test_smooth3d(4, 4, 128, 1)
+   print("Order:", err1/err2/2.0, err2/err3/2.0)
+   assert_close(4.0, err1/err2/2.0, .05)
+   assert_close(4.0, err2/err3/2.0, .05)
+   print()
 end
 
 function test_smooth3d_p2()
-  print("--- Testing convergence of 3D smoother with p=2 ---")
-  err1 = test_smooth3d(4, 4, 32, 2)
-  err2 = test_smooth3d(4, 4, 64, 2)
-  err3 = test_smooth3d(4, 4, 128, 2)
-  print("Order:", err1/err2/2.0, err2/err3/2.0)
-  assert_close(4.0, err1/err2/2.0, .1)
-  assert_close(4.0, err2/err3/2.0, .1)
-  print()
+   print("--- Testing convergence of 3D smoother with p=2 ---")
+   err1 = test_smooth3d(4, 4, 32, 2)
+   err2 = test_smooth3d(4, 4, 64, 2)
+   err3 = test_smooth3d(4, 4, 128, 2)
+   print("Order:", err1/err2/2.0, err2/err3/2.0)
+   assert_close(4.0, err1/err2/2.0, .1)
+   assert_close(4.0, err2/err3/2.0, .1)
+   print()
 end
 
 local t1 = os.clock()

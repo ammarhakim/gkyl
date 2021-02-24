@@ -74,14 +74,14 @@ function TenMomentRelaxSource:createSolver(species, field)
    end
 
    self.slvr = Updater.TenMomentRelax {
-      onGrid = self.grid,
+      onGrid    = self.grid,
       numFluids = numSpecies,
-      mass = mass,
-      charge = charge,
-      scheme = self.timeStepper,
-      k = self.k,
+      mass      = mass,
+      charge    = charge,
+      scheme    = self.timeStepper,
+      k         = self.k,
       hasKField = self.hasKField,
-      hasEm = self.hasEm,
+      hasEm     = self.hasEm,
       hasStatic = self.hasStatic,
    }
 end

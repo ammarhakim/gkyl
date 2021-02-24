@@ -130,9 +130,14 @@ ffi.cdef [[
 	       MPI_Comm comm);
   int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 	       MPI_Comm comm, MPI_Status *status);
+  int MPI_Wait(MPI_Request *request, MPI_Status *status);
+
+  // Nonblocking
   int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source,
 		int tag, MPI_Comm comm, MPI_Request *request);
-  int MPI_Wait(MPI_Request *request, MPI_Status *status);
+  int MPI_Iallreduce(const void *sendbuf, void *recvbuf, int count,
+                     MPI_Datatype datatype, MPI_Op op, MPI_Comm comm,
+                     MPI_Request *request);
 
   // Groups
   int MPI_Comm_group(MPI_Comm comm, MPI_Group *group);
@@ -163,55 +168,55 @@ ffi.cdef [[
 ]]
 
 -- Predefined objects and constants
-_M.COMM_WORLD = ffiC.get_MPI_COMM_WORLD()
-_M.COMM_NULL = ffiC.get_MPI_COMM_NULL()
-_M.COMM_SELF = ffiC.get_MPI_COMM_SELF()
-_M.REQUEST_NULL = ffiC.get_MPI_REQUEST_NULL()
+_M.COMM_WORLD    = ffiC.get_MPI_COMM_WORLD()
+_M.COMM_NULL     = ffiC.get_MPI_COMM_NULL()
+_M.COMM_SELF     = ffiC.get_MPI_COMM_SELF()
+_M.REQUEST_NULL  = ffiC.get_MPI_REQUEST_NULL()
 _M.STATUS_IGNORE = ffiC.getPtr_MPI_STATUS_IGNORE()
-_M.PROC_NULL = ffiC.get_MPI_PROC_NULL()
+_M.PROC_NULL     = ffiC.get_MPI_PROC_NULL()
 
-_M.INFO_NULL = ffiC.get_MPI_INFO_NULL()
+_M.INFO_NULL        = ffiC.get_MPI_INFO_NULL()
 _M.COMM_TYPE_SHARED = ffiC.get_MPI_COMM_TYPE_SHARED()
-_M.UNDEFINED = ffiC.get_MPI_UNDEFINED()
-_M.ORDER_C = ffiC.get_MPI_ORDER_C()
-_M.ORDER_FORTRAN = ffiC.get_MPI_ORDER_FORTRAN()
+_M.UNDEFINED        = ffiC.get_MPI_UNDEFINED()
+_M.ORDER_C          = ffiC.get_MPI_ORDER_C()
+_M.ORDER_FORTRAN    = ffiC.get_MPI_ORDER_FORTRAN()
 
 -- Object sizes
 _M.SIZEOF_STATUS = ffiC.sizeof_MPI_Status()
 
 -- Datatypes
-_M.CHAR = ffiC.get_MPI_CHAR()
-_M.BYTE = ffiC.get_MPI_BYTE()
-_M.SHORT = ffiC.get_MPI_SHORT()
-_M.INT = ffiC.get_MPI_INT()
-_M.LONG = ffiC.get_MPI_LONG()
-_M.FLOAT = ffiC.get_MPI_FLOAT()
-_M.DOUBLE = ffiC.get_MPI_DOUBLE()
-_M.UNSIGNED_CHAR = ffiC.get_MPI_UNSIGNED_CHAR()
-_M.UNSIGNED_SHORT = ffiC.get_MPI_UNSIGNED_SHORT()
-_M.UNSIGNED = ffiC.get_MPI_UNSIGNED()
-_M.UNSIGNED_LONG = ffiC.get_MPI_UNSIGNED_LONG()
-_M.LONG_DOUBLE = ffiC.get_MPI_LONG_DOUBLE()
-_M.LONG_LONG_INT = ffiC.get_MPI_LONG_LONG_INT()
-_M.FLOAT_INT = ffiC.get_MPI_FLOAT_INT()
-_M.LONG_INT = ffiC.get_MPI_LONG_INT()
-_M.DOUBLE_INT = ffiC.get_MPI_DOUBLE_INT()
-_M.SHORT_INT = ffiC.get_MPI_SHORT_INT()
-_M.TWOINT = ffiC.get_MPI_2INT()
+_M.CHAR            = ffiC.get_MPI_CHAR()
+_M.BYTE            = ffiC.get_MPI_BYTE()
+_M.SHORT           = ffiC.get_MPI_SHORT()
+_M.INT             = ffiC.get_MPI_INT()
+_M.LONG            = ffiC.get_MPI_LONG()
+_M.FLOAT           = ffiC.get_MPI_FLOAT()
+_M.DOUBLE          = ffiC.get_MPI_DOUBLE()
+_M.UNSIGNED_CHAR   = ffiC.get_MPI_UNSIGNED_CHAR()
+_M.UNSIGNED_SHORT  = ffiC.get_MPI_UNSIGNED_SHORT()
+_M.UNSIGNED        = ffiC.get_MPI_UNSIGNED()
+_M.UNSIGNED_LONG   = ffiC.get_MPI_UNSIGNED_LONG()
+_M.LONG_DOUBLE     = ffiC.get_MPI_LONG_DOUBLE()
+_M.LONG_LONG_INT   = ffiC.get_MPI_LONG_LONG_INT()
+_M.FLOAT_INT       = ffiC.get_MPI_FLOAT_INT()
+_M.LONG_INT        = ffiC.get_MPI_LONG_INT()
+_M.DOUBLE_INT      = ffiC.get_MPI_DOUBLE_INT()
+_M.SHORT_INT       = ffiC.get_MPI_SHORT_INT()
+_M.TWOINT          = ffiC.get_MPI_2INT()
 _M.LONG_DOUBLE_INT = ffiC.get_MPI_LONG_DOUBLE_INT()
-_M.PACKED = ffiC.get_MPI_PACKED()
+_M.PACKED          = ffiC.get_MPI_PACKED()
 
 -- Operators
-_M.MAX = ffiC.get_MPI_MAX()
-_M.MIN = ffiC.get_MPI_MIN()
-_M.SUM = ffiC.get_MPI_SUM()
-_M.PROD = ffiC.get_MPI_PROD()
-_M.LAND = ffiC.get_MPI_LAND()
-_M.BAND = ffiC.get_MPI_BAND()
-_M.LOR = ffiC.get_MPI_LOR()
-_M.BOR = ffiC.get_MPI_BOR()
-_M.LXOR = ffiC.get_MPI_LXOR()
-_M.BXOR = ffiC.get_MPI_BXOR()
+_M.MAX    = ffiC.get_MPI_MAX()
+_M.MIN    = ffiC.get_MPI_MIN()
+_M.SUM    = ffiC.get_MPI_SUM()
+_M.PROD   = ffiC.get_MPI_PROD()
+_M.LAND   = ffiC.get_MPI_LAND()
+_M.BAND   = ffiC.get_MPI_BAND()
+_M.LOR    = ffiC.get_MPI_LOR()
+_M.BOR    = ffiC.get_MPI_BOR()
+_M.LXOR   = ffiC.get_MPI_LXOR()
+_M.BXOR   = ffiC.get_MPI_BXOR()
 _M.MINLOC = ffiC.get_MPI_MINLOC()
 _M.MAXLOC = ffiC.get_MPI_MAXLOC()
 
@@ -219,9 +224,9 @@ _M.MAXLOC = ffiC.get_MPI_MAXLOC()
 _M.SUCCESS = ffiC.get_MPI_SUCCESS()
 
 -- some types for use in MPI functions
-local int_1 = typeof("int[1]")
+local int_1  = typeof("int[1]")
 local uint_1 = typeof("unsigned[1]")
-local voidp = typeof("void *[1]")
+local voidp  = typeof("void *[1]")
 
 -- ctors for various MPI objects: MPI_Status object is not a opaque
 -- pointer and so we need to allocate memory for it. Other object
@@ -406,13 +411,6 @@ function _M.Recv(buf, count, datatype, source, tag, comm, status)
       status.SOURCE, status.TAG, status.ERROR = gks[0], gks[1], gks[2]
    end
 end
--- MPI_Irecv
-function _M.Irecv(buf, count, datatype, source, tag, comm)
-   local req = new_MPI_Request()
-   local _ = ffiC.MPI_Irecv(
-      buf, count, getObj(datatype, "MPI_Datatype[1]"), source, tag, getObj(comm, "MPI_Comm[1]"), req)
-   return req
-end
 -- MPI_Wait
 function _M.Wait(request, status)
    local st = status and status.mpiStatus or _M.STATUS_IGNORE
@@ -423,6 +421,20 @@ function _M.Wait(request, status)
       ffiC.GkMPI_fillStatus(st, gks)
       status.SOURCE, status.TAG, status.ERROR = gks[0], gks[1], gks[2]
    end
+end
+
+-- MPI_Irecv
+function _M.Irecv(buf, count, datatype, source, tag, comm)
+   local req = new_MPI_Request()
+   local _ = ffiC.MPI_Irecv(
+      buf, count, getObj(datatype, "MPI_Datatype[1]"), source, tag, getObj(comm, "MPI_Comm[1]"), req)
+   return req
+end
+-- MPI_Iallreduce
+function _M.Iallreduce(sendbuf, recvbuf, count, datatype, op, tag, comm)
+   local req = new_MPI_Request()
+   local _ = ffiC.MPI_Iallreduce(sendbuf, recvbuf, count, datatype, op, getObj(comm, "MPI_Comm[1]"), req)
+   return req
 end
 
 -- MPI_Barrier

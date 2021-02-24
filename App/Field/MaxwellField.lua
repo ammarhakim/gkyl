@@ -12,7 +12,6 @@
 local AdiosCartFieldIo  = require "Io.AdiosCartFieldIo"
 local DataStruct        = require "DataStruct"
 local FieldBase         = require "App.Field.FieldBase"
-local LinearDecomp      = require "Lib.LinearDecomp"
 local LinearTrigger     = require "LinearTrigger"
 local Mpi               = require "Comm.Mpi"
 local PerfMaxwell       = require "Eq.PerfMaxwell"
@@ -23,6 +22,9 @@ local BoundaryCondition = require "Updater.BoundaryCondition"
 local xsys              = require "xsys"
 local ffi               = require "ffi"
 local lume              = require "Lib.lume"
+local Lin               = require "Lib.Linalg"
+local MGpoissonDecl     = require "Updater.mgPoissonCalcData.MGpoissonModDecl"
+local LinearDecomp      = require "Lib.LinearDecomp"
 
 -- MaxwellField ---------------------------------------------------------------------
 --
@@ -74,7 +76,8 @@ function MaxwellField:fullInit(appTbl)
    -- By default, do not write data if evolve is false.
    self.forceWrite = xsys.pickBool(tbl.forceWrite, false)
 
-   self.hasMagField = xsys.pickBool(tbl.hasMagneticField, true) -- By default there is a magnetic field.
+   -- By default there is a magnetic field. Setting it to false runs Vlasov-Poisson.
+   self.hasMagField = xsys.pickBool(tbl.hasMagneticField, true)
 
    if self.hasMagField then   -- Things not needed for Poisson solve.
       self.ce = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
@@ -107,6 +110,39 @@ function MaxwellField:fullInit(appTbl)
          local ex, ey, ez, bx, by, bz = tbl.init(t, xn)
          return ex, ey, ez, bx, by, bz, 0.0, 0.0
       end
+
+   else
+
+      -- Read in boundary conditions for the potential phi.
+      -- Ideally this is not done through a separate infrastructue to bcx, bcy, bcz below.
+      -- But changing those needs a little more work/careful thought. For now we reproduce
+      -- the infrastructure in GkField.
+      local ndim, periodicDirs, isDirPeriodic, periodicDomain = #appTbl.lower, nil, {}, true
+      if appTbl.periodicDirs then periodicDirs = appTbl.periodicDirs else periodicDirs = {} end
+      for d = 1, ndim do isDirPeriodic[d] = lume.find(periodicDirs,d) ~= nil end
+      self.bcLowerPhi, self.bcUpperPhi = {}, {}
+      for d=1,ndim do periodicDomain = periodicDomain and isDirPeriodic[d] end
+      if tbl.bcLowerPhi==nil and tbl.bcUpperPhi==nil then
+         if periodicDomain then
+            for d=1,ndim do
+               self.bcLowerPhi[d] = {T="P"}
+               self.bcUpperPhi[d] = self.bcLowerPhi[d]
+            end
+         else
+            assert(false, "App.Field.MaxwellField: must specify 'bcLower' and 'bcUpper.")
+         end
+      else
+         assert(#tbl.bcLowerPhi==#tbl.bcUpperPhi, "App.Field.MaxwellField: number of entries in bcLower and bcUpper must be equal.")
+         assert(#tbl.bcLowerPhi==ndim, "App.Field.MaxwellField: number of entries in bcLower/bcUpper must equal number of dimensions.")
+         for d=1,ndim do
+            assert((isDirPeriodic[d]==(tbl.bcLowerPhi[d].T=="P")) and (isDirPeriodic[d]==(tbl.bcUpperPhi[d].T=="P")),
+                   string.format("App.Field.MaxwellField: direction %d is periodic. Must use {T='P'} in bcLower/bcUpper.",d))
+            self.bcLowerPhi[d], self.bcUpperPhi[d] = tbl.bcLowerPhi[d], tbl.bcUpperPhi[d]
+         end
+      end
+
+      self.esEnergyFirst = true
+
    end
 
    -- Create triggers to write fields.
@@ -164,6 +200,49 @@ function MaxwellField:getEpsilon0() return self.epsilon0 end
 function MaxwellField:getMu0() return self.mu0 end
 function MaxwellField:getElcErrorSpeedFactor() return self.ce end
 function MaxwellField:getMgnErrorSpeedFactor() return self.cb end
+
+function MaxwellField:esEnergy(tCurr, fldIn, outDynV)
+   -- Compute the electrostatic field energy given the potential. Here outDynV must
+   -- be a DynVector with the same number of components as there are dimensions.
+   local phiIn, esE = fldIn[1], outDynV[1]
+
+   local grid, dim = phiIn:grid(), phiIn:grid():ndim()
+
+   if self.esEnergyFirst then
+      -- Kernels and buffers used in computing electrostatic field energy.
+      self.localEnergy, self.globalEnergy = Lin.Vec(dim), Lin.Vec(dim)
+      self.dxBuf = Lin.Vec(dim)
+      self._esEnergyCalc = MGpoissonDecl.selectESenergy(self.basis:id(), dim, self.basis:polyOrder(), nil)
+   end
+
+   local indexer, phiItr = phiIn:genIndexer(), phiIn:get(1)
+
+   -- Clear local values.
+   for d = 1, dim do self.localEnergy[d] = 0.0 end
+
+   -- Construct range for shared memory.
+   local phiRange       = phiIn:localRange()
+   local phiRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = phiRange:selectFirst(dim), numSplit = grid:numSharedProcs() }
+   local tId = grid:subGridSharedId()    -- Local thread ID.
+
+   for idx in phiRangeDecomp:rowMajorIter(tId) do
+      grid:setIndex(idx)
+      grid:getDx(self.dxBuf)
+
+      phiIn:fill(indexer(idx), phiItr)
+
+      self._esEnergyCalc(self.dxBuf:data(), phiItr:data(), self.localEnergy:data())
+   end
+
+   -- All-reduce across processors and push result into dyn-vector.
+   Mpi.Allreduce(
+      self.localEnergy:data(), self.globalEnergy:data(), dim, Mpi.DOUBLE, Mpi.SUM, Mpi.COMM_WORLD)
+
+   esE:appendData(tCurr, self.globalEnergy)
+
+   if self.esEnergyFirst then self.esEnergyFirst = false end
+end
 
 function MaxwellField:alloc(nRkDup)
    local nGhost = 2
@@ -273,10 +352,10 @@ function MaxwellField:createSolver()
                ghost         = {2, 2}
             }
             local project = Updater.ProjectOnBasis {
-               onGrid          = self.grid,
-               basis           = self.basis,
-               evaluate        = self._inOutFunc,
-               projectOnGhosts = true,
+               onGrid   = self.grid,
+               basis    = self.basis,
+               evaluate = self._inOutFunc,
+               onGhosts = true,
             }
             project:advance(0.0, {}, {self._inOut})
             self.fieldIo:write(self._inOut, string.format("%s_inOut.bp", self.name), 0, 0)
@@ -308,40 +387,56 @@ function MaxwellField:createSolver()
 
       self.isElliptic = true
 
-      -- Boundary conditions.
-      assert(not self.hasNonPeriodicBc,"MaxwellField: only periodic BCs supported if hasMagField=false.")
-      local bcLower    = { {T="P", V=0.0} }
-      local bcUpper    = { {T="P", V=0.0} }
-      -- Multigrid parameters (hardcoded for now).
-      local gamma      = 1                 -- V-cycles=1, W-cycles=2.
-      local relaxType  = 'DampedJacobi'    -- DampedJacobi or DampedGaussSeidel
-      local relaxNum   = {1,2,300}         -- Number of pre,post and coarsest-grid smoothings.
-      local relaxOmega                     -- Relaxation damping parameter.
-      local ndim = self.grid:ndim()
-      if ndim == 1 then
-         relaxOmega = 2./3.
-      elseif ndim == 2 then
-         relaxOmega = 4./5.
-      end
-      local tolerance  = 1.e-6             -- Do cycles until reaching this relative residue norm.
-      -- After the 4th call to the advance method, we will start using a
-      -- 3-point extrapolation to obtain an initial guess for the MG solver. 
-      self.filledPhiPrev = false
-      self.phiPrevCount  = 0
-      self.fieldSlvr = Updater.MGpoisson {                                   
-         solverType = 'FEM',                                                 
-         onGrid     = self.grid,
-         basis      = self.basis,
-         bcLower    = bcLower,
-         bcUpper    = bcUpper,
-         gamma      = gamma,         -- V-cycles=1, W-cycles=2.
-         relaxType  = relaxType,     -- DampedJacobi or DampedGaussSeidel
-         relaxNum   = relaxNum,      -- Number of pre,post and coarsest-grid smoothings.
-         relaxOmega = relaxOmega,    -- Relaxation damping parameter.
-         tolerance  = tolerance,     -- Do cycles until reaching this relative residue norm.
-      }
+      local isParallel = false
+      for d=1,self.grid:ndim() do if self.grid:cuts(d)>1 then isParallel=true end end
 
-      self.emEnergyCalc = function(tCurr, inFld, outDynV) self.fieldSlvr:esEnergy(tCurr, inFld, outDynV) end
+      if self.basis:polyOrder()>1 or isParallel then
+         self.isSlvrMG = false
+         self.fieldSlvr = Updater.FemPoisson {
+            onGrid      = self.grid,
+            basis       = self.basis,
+            bcLower     = self.bcLowerPhi,
+            bcUpper     = self.bcUpperPhi,
+         }
+         self.esEnergyUpd = Updater.CartFieldIntegratedQuantCalc {
+            onGrid   = self.grid,
+            basis    = self.basis,
+            quantity = "V2"
+         }
+         self.emEnergyCalc = function(tCurr, inFld, outDynV) self:esEnergy(tCurr, inFld, outDynV) end
+      else
+         self.isSlvrMG = true
+         -- Multigrid parameters (hardcoded for now).
+         local gamma      = 1                 -- V-cycles=1, W-cycles=2.
+         local relaxType  = 'DampedJacobi'    -- DampedJacobi or DampedGaussSeidel
+         local relaxNum   = {1,2,300}         -- Number of pre,post and coarsest-grid smoothings.
+         local relaxOmega                     -- Relaxation damping parameter.
+         local ndim = self.grid:ndim()
+         if ndim == 1 then
+            relaxOmega = 2./3.
+         elseif ndim == 2 then
+            relaxOmega = 4./5.
+         end
+         local tolerance = 1.e-6             -- Do cycles until reaching this relative residue norm.
+         -- After the 4th call to the advance method, we will start using a
+         -- 3-point extrapolation to obtain an initial guess for the MG solver. 
+         self.filledPhiPrev = false
+         self.phiPrevCount  = 0
+         self.fieldSlvr = Updater.MGpoisson {                                   
+            solverType = 'FEM',                                                 
+            onGrid     = self.grid,
+            basis      = self.basis,
+            bcLower    = self.bcLowerPhi,
+            bcUpper    = self.bcUpperPhi,
+            gamma      = gamma,         -- V-cycles=1, W-cycles=2.
+            relaxType  = relaxType,     -- DampedJacobi or DampedGaussSeidel
+            relaxNum   = relaxNum,      -- Number of pre,post and coarsest-grid smoothings.
+            relaxOmega = relaxOmega,    -- Relaxation damping parameter.
+            tolerance  = tolerance,     -- Do cycles until reaching this relative residue norm.
+         }
+   
+         self.emEnergyCalc = function(tCurr, inFld, outDynV) self.fieldSlvr:esEnergy(tCurr, inFld, outDynV) end
+      end
    end
 
    -- Function to construct a BC updater.
@@ -626,37 +721,42 @@ function MaxwellField:advance(tCurr, species, inIdx, outIdx)
       for _, s in lume.orderedIter(species) do
          self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
       end
-      self.chargeDens:scale(1.0/self.epsilon0)
 
-      if inIdx == 1 then
-         -- In the first RK stage shuffle the storage of previous potentials.
-         for i = 1, self.phiPrevNum-1 do
-            self.phiFldPrev[i]["fld"]:copy(self.phiFldPrev[i+1]["fld"])
-            self.phiFldPrev[i]["time"] = self.phiFldPrev[i+1]["time"]
+      if self.isSlvrMG then
+         self.chargeDens:scale(1.0/self.epsilon0)
+         if inIdx == 1 then
+            -- In the first RK stage shuffle the storage of previous potentials.
+            for i = 1, self.phiPrevNum-1 do
+               self.phiFldPrev[i]["fld"]:copy(self.phiFldPrev[i+1]["fld"])
+               self.phiFldPrev[i]["time"] = self.phiFldPrev[i+1]["time"]
+            end
+            self.phiFldPrev[self.phiPrevNum]["fld"]:copy(emIn)
+            self.phiFldPrev[self.phiPrevNum]["time"] = tCurr
+            -- Count until phiPrevNum time steps have been taken.
+            if not self.filledPhiPrev then
+               self.phiPrevCount = self.phiPrevCount+1
+               if self.phiPrevCount > self.phiPrevNum then self.filledPhiPrev = true end
+            end
          end
-         self.phiFldPrev[self.phiPrevNum]["fld"]:copy(emIn)
-         self.phiFldPrev[self.phiPrevNum]["time"] = tCurr
-         -- Count until phiPrevNum time steps have been taken.
-         if not self.filledPhiPrev then
-            self.phiPrevCount = self.phiPrevCount+1
-            if self.phiPrevCount > self.phiPrevNum then self.filledPhiPrev = true end
+         if self.filledPhiPrev then
+            -- Form an initial guess with 3-point Lagrange extrapolation.
+            local tMt1 = tCurr-self.phiFldPrev[1]["time"]
+            local tMt2 = tCurr-self.phiFldPrev[2]["time"]
+            local tMt3 = tCurr-self.phiFldPrev[3]["time"]
+            local t1Mt2, t1Mt3 = tMt2-tMt1, tMt3-tMt1
+            local t2Mt1, t2Mt3 = -t1Mt2, tMt3-tMt2
+            local t3Mt1, t3Mt2 = -t1Mt3, -t2Mt3
+            local f1 = tMt2*tMt3/(t1Mt2*t1Mt3)
+            local f2 = tMt1*tMt3/(t2Mt1*t2Mt3)
+            local f3 = tMt1*tMt2/(t3Mt1*t3Mt2)
+            emIn:combine(f1,self.phiFldPrev[1]["fld"],
+                         f2,self.phiFldPrev[2]["fld"],
+                         f3,self.phiFldPrev[3]["fld"]) 
          end
+      else
+         self.chargeDens:scale(-1.0/self.epsilon0)
       end
-      if self.filledPhiPrev then
-         -- Form an initial guess with 3-point Lagrange extrapolation.
-         local tMt1 = tCurr-self.phiFldPrev[1]["time"]
-         local tMt2 = tCurr-self.phiFldPrev[2]["time"]
-         local tMt3 = tCurr-self.phiFldPrev[3]["time"]
-         local t1Mt2, t1Mt3 = tMt2-tMt1, tMt3-tMt1
-         local t2Mt1, t2Mt3 = -t1Mt2, tMt3-tMt2
-         local t3Mt1, t3Mt2 = -t1Mt3, -t2Mt3
-         local f1 = tMt2*tMt3/(t1Mt2*t1Mt3)
-         local f2 = tMt1*tMt3/(t2Mt1*t2Mt3)
-         local f3 = tMt1*tMt2/(t3Mt1*t3Mt2)
-         emIn:combine(f1,self.phiFldPrev[1]["fld"],
-                      f2,self.phiFldPrev[2]["fld"],
-                      f3,self.phiFldPrev[3]["fld"]) 
-      end
+
       -- Solve for the potential.
       self.fieldSlvr:advance(tCurr, {self.chargeDens,emIn}, {emIn})
    end

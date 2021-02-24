@@ -422,12 +422,12 @@ function FluidSpecies:alloc(nRkDup)
    self:createBCs()
 end
 
-function FluidSpecies:initDist()
+function FluidSpecies:initDist(extField)
 
    local initCnt = 0
    for _, pr in pairs(self.projections) do
       pr:fullInit(self)
-      pr:run(0.0, self.moments[2])
+      pr:advance(0.0, {}, {self.moments[2]})
       -- This barrier is needed as when using MPI-SHM some
       -- processes will get to accumulate before projection is finished.
       Mpi.Barrier(self.grid:commSet().sharedComm)

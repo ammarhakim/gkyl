@@ -91,48 +91,48 @@ plasmaApp = Plasma.App {
 
    -- Boundary conditions for configuration space.
    periodicDirs = {2},     -- Periodic in y only.
+   decompCuts = {1,1,1},
 
    -- Gyrokinetic electrons.
    electron = Plasma.Species {
-      charge = qe,
-      mass = me,
+      charge = qe, mass = me,
       lower = {-4*vte, 0},
       upper = {4*vte, 12*me*vte^2/(2*B0)},
       cells = {8, 4},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
-              density = function (t, xn)
-                 local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
-                 local Ls = Lz/4
-                 local effectiveSource = sourceDensity(t,{x,y,0})
-                 local c_ss = math.sqrt(5/3*sourceTemperature(t,{x,y,0})/mi)
-                 local nPeak = 4*math.sqrt(5)/3/c_ss*Ls*effectiveSource/2
-                 local perturb = 0 
-                 if math.abs(z) <= Ls then
-                    return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2*(1+perturb)
-                 else
-                    return nPeak/2*(1+perturb)
-                 end
-              end,
-              temperature = function (t, xn)
-                 local x = xn[1]
-                 if (x < xSource + 3*lambdaSource) then 
-                    return 50*eV
-                 else 
-                    return 20*eV
-                 end
-              end,
-              scaleWithSourcePower = true,
+         density = function (t, xn)
+            local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
+            local Ls = Lz/4
+            local effectiveSource = sourceDensity(t,{x,y,0})
+            local c_ss = math.sqrt(5/3*sourceTemperature(t,{x,y,0})/mi)
+            local nPeak = 4*math.sqrt(5)/3/c_ss*Ls*effectiveSource/2
+            local perturb = 0 
+            if math.abs(z) <= Ls then
+               return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2*(1+perturb)
+            else
+               return nPeak/2*(1+perturb)
+            end
+         end,
+         temperature = function (t, xn)
+            local x = xn[1]
+            if (x < xSource + 3*lambdaSource) then 
+               return 50*eV
+            else 
+               return 20*eV
+            end
+         end,
+         scaleWithSourcePower = true,
       },
       coll = Plasma.LBOCollisions {
          collideWith = {'electron'},
          frequencies = {nuElc},
       },
       source = Plasma.MaxwellianProjection {
-                density = sourceDensity,
-                temperature = sourceTemperature,
-                power = P_src/2,
-                isSource = true,
+         density     = sourceDensity,
+         temperature = sourceTemperature,
+         power       = P_src/2,
+         isSource    = true,
       },
       evolve = true, -- Evolve species?
       --applyPositivity = true,
@@ -147,46 +147,45 @@ plasmaApp = Plasma.App {
 
    -- Gyrokinetic ions
    ion = Plasma.Species {
-      charge = qi,
-      mass = mi,
+      charge = qi, mass = mi,
       -- Velocity space grid.
       lower = {-4*vti, 0},
       upper = {4*vti, 12*mi*vti^2/(2*B0)},
       cells = {8, 4},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
-              density = function (t, xn)
-                 local x, y, z = xn[1], xn[2], xn[3]
-                 local Ls = Lz/4
-                 local effectiveSource = sourceDensity(t,{x,y,0})
-                 local c_ss = math.sqrt(5/3*sourceTemperature(t,{x,y,0})/mi)
-                 local nPeak = 4*math.sqrt(5)/3/c_ss*Ls*effectiveSource/2
-                 local perturb = 0
-                 if math.abs(z) <= Ls then
-                    return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2*(1+perturb)
-                 else
-                    return nPeak/2*(1+perturb)
-                 end
-              end,
-              temperature = function (t, xn)
-                 local x = xn[1]
-                 if x < xSource + 3*lambdaSource then 
-                    return 50*eV
-                 else 
-                    return 20*eV
-                 end
-              end,
-              scaleWithSourcePower = true,
+         density = function (t, xn)
+            local x, y, z = xn[1], xn[2], xn[3]
+            local Ls = Lz/4
+            local effectiveSource = sourceDensity(t,{x,y,0})
+            local c_ss = math.sqrt(5/3*sourceTemperature(t,{x,y,0})/mi)
+            local nPeak = 4*math.sqrt(5)/3/c_ss*Ls*effectiveSource/2
+            local perturb = 0
+            if math.abs(z) <= Ls then
+               return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2*(1+perturb)
+            else
+               return nPeak/2*(1+perturb)
+            end
+         end,
+         temperature = function (t, xn)
+            local x = xn[1]
+            if x < xSource + 3*lambdaSource then 
+               return 50*eV
+            else 
+               return 20*eV
+            end
+         end,
+         scaleWithSourcePower = true,
       },
       coll = Plasma.LBOCollisions {
          collideWith = {'ion'},
          frequencies = {nuIon},
       },
       source = Plasma.MaxwellianProjection {
-                density = sourceDensity,
-                temperature = sourceTemperature,
-                power = P_src/2,
-                isSource = true,
+         density = sourceDensity,
+         temperature = sourceTemperature,
+         power = P_src/2,
+         isSource = true,
       },
       evolve = true, -- Evolve species?
       --applyPositivity = true,
@@ -201,17 +200,14 @@ plasmaApp = Plasma.App {
 
    -- Field solver.
    field = Plasma.Field {
-      -- Dirichlet in x.
-      phiBcLeft = { T ="D", V = 0.0},
-      phiBcRight = { T ="D", V = 0.0},
-      aparBcLeft = { T ="D", V = 0.0},
-      aparBcRight = { T ="D", V = 0.0},
-      -- Periodic in y. --
-      -- No bc in z.
-      phiBcBack = { T ="N", V = 0.0},
-      phiBcFront = { T ="N", V = 0.0},
       evolve = true, -- Evolve fields?
       isElectromagnetic = false,
+      -- Dirichlet in x, periodic in y. Potential phi has homogeneous Neumann
+      -- BC for the smoothing operation that enforces continuity in z.
+      bcLowerPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T ="N", V = 0.0}},
+      bcUpperPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T ="N", V = 0.0}},
+      bcLowerApar = {{T ="D", V = 0.0}, {T = "P"}},
+      bcUpperApar = {{T ="D", V = 0.0}, {T = "P"}},
    },
 
    -- Magnetic geometry.

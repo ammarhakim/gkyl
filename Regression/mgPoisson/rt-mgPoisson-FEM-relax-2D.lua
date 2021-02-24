@@ -389,10 +389,10 @@ end
 
 local function createProject(grid, basis)
    local projUp = Updater.EvalOnNodes {
-      onGrid          = grid,
-      basis           = basis,
-      projectOnGhosts = true,
-      evaluate        = function(t, xn) return 1 end
+      onGrid   = grid,
+      basis    = basis,
+      evaluate = function(t, xn) return 1 end,
+      onGhosts = true,
    }
    return projUp
 end

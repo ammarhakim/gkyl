@@ -175,7 +175,7 @@ function GkLBOCollisions:fullInit(speciesTbl)
 
    self.usePositivity = speciesTbl.applyPositivity    -- Use positivity preserving algorithms.
 
-   self.tmEvalMom = 0.0
+   self.timers = {nonSlvr = 0.}
 end
 
 function GkLBOCollisions:setName(nm)
@@ -270,10 +270,10 @@ function GkLBOCollisions:createSolver(externalField)
          }
       elseif self.selfCollisions then
          local projectUserNu = Updater.ProjectOnBasis {
-            onGrid          = self.confGrid,
-            basis           = self.confBasis,
-            evaluate        = self.collFreqSelf,
-            projectOnGhosts = false
+            onGrid   = self.confGrid,
+            basis    = self.confBasis,
+            evaluate = self.collFreqSelf,
+            onGhosts = false
          }
          projectUserNu:advance(0.0, {}, {self.nuVarXSelf})
       end
@@ -367,9 +367,8 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
    self.nuUParSum:clear(0.0)
    self.nuVtSqSum:clear(0.0)
 
-   local tmEvalMomStart = Time.clock()
+   local tmNonSlvrStart = Time.clock()
    if self.selfCollisions then
-      self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
 
       self.equation.primMomCrossLimit = 0.0
 
@@ -430,7 +429,6 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
             self.nuCrossOther = species[otherNm].collPairs[otherNm][self.speciesName].nu
          end
 
-         local tmEvalMomStart = Time.clock()
          if (not (species[self.speciesName].momentFlags[5][otherNm] and
                   species[otherNm].momentFlags[5][self.speciesName])) then
             -- Cross-primitive moments for the collision of these two species has not been computed.
@@ -443,7 +441,6 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
             species[self.speciesName].momentFlags[5][otherNm] = true
             species[otherNm].momentFlags[5][self.speciesName] = true
          end
-         self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
 
          if self.varNu then
             self.confMul:advance(tCurr, {self.nuCrossSelf, species[self.speciesName].uParCross[otherNm]}, {self.nuUParCross})
@@ -464,11 +461,13 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
       end    -- end loop over other species that this species collides with.
 
    end    -- end if self.crossCollisions.
+   self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 
    -- Compute increment from collisions and accumulate it into output.
    self.collisionSlvr:advance(
       tCurr, {fIn, self.bmagInv, self.nuUParSum, self.nuVtSqSum, self.nuSum, selfMom[3]}, {self.collOut})
 
+   local tmNonSlvrStart = Time.clock()
    self.primMomLimitCrossingsG:appendData(tCurr, {0.0})
    self.primMomLimitCrossingsL:appendData(tCurr, {self.equation.primMomCrossLimit})
 
@@ -476,7 +475,7 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
    Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
 
    fRhsOut:accumulate(1.0, self.collOut)
-
+   self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 end
 
 function GkLBOCollisions:write(tm, frame)
@@ -491,15 +490,15 @@ function GkLBOCollisions:write(tm, frame)
 end
 
 function GkLBOCollisions:totalTime()
-   return self.collisionSlvr.totalTime + self.tmEvalMom
+   return self.collisionSlvr.totalTime + self.timers.nonSlvr
 end
 
 function GkLBOCollisions:slvrTime()
    return self.collisionSlvr.totalTime
 end
 
-function GkLBOCollisions:momTime()
-   return self.tmEvalMom
+function GkLBOCollisions:nonSlvrTime()
+   return self.timers.nonSlvr
 end
 
 return GkLBOCollisions

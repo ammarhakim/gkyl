@@ -61,23 +61,20 @@ local function getField()
    }
 end
 
-local src = getField()
-local initSource = Updater.ProjectOnBasis {
+local projectUpd = Updater.ProjectOnBasis {
    onGrid = grid,
    basis = basis,
    numQuad = numQuad,
-   evaluate = srcFn,
+   evaluate = function(t,xn) return 0. end,
 }
-initSource:advance(0.0, {}, {src})
+
+local src = getField()
+projectUpd:setFunc(function(t,xn) return srcFn(t,xn) end)
+projectUpd:advance(0.0, {}, {src})
 
 local solExact = getField()
-local initSol = Updater.ProjectOnBasis {
-   onGrid = grid,
-   basis = basis,
-   numQuad = numQuad,
-   evaluate = solFn,
-}
-initSol:advance(0.0, {}, {solExact})
+projectUpd:setFunc(function(t,xn) return solFn(t,xn) end)
+projectUpd:advance(0.0, {}, {solExact})
 
 local solSim = getField()
 local discontPoisson = Updater.DiscontGenPoisson {

@@ -177,7 +177,7 @@ function GkBGKCollisions:fullInit(speciesTbl)
 
    self.exactLagFixM012 = xsys.pickBool(tbl.exactLagFixM012, true) 
 
-   self.tmEvalMom = 0.0
+   self.timers = {nonSlvr = 0.}
 end
 
 function GkBGKCollisions:setName(nm)
@@ -271,10 +271,10 @@ function GkBGKCollisions:createSolver(externalField)
          self.bmag = externalField.geo.bmag
       elseif self.selfCollisions then
          local projectUserNu = Updater.ProjectOnBasis {
-            onGrid          = self.confGrid,
-            basis           = self.confBasis,
-            evaluate        = self.collFreqSelf,
-            projectOnGhosts = false
+            onGrid   = self.confGrid,
+            basis    = self.confBasis,
+            evaluate = self.collFreqSelf,
+            onGhosts = false
          }
          projectUserNu:advance(0.0, {}, {self.nuVarXSelf})
       end
@@ -363,6 +363,7 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
    local selfMom     = species[self.speciesName]:fluidMoments()
    local primMomSelf = species[self.speciesName]:selfPrimitiveMoments()
 
+   local tmNonSlvrStart = Time.clock()
    if self.varNu then
       self.nuSum:clear(0.0)
    else
@@ -412,8 +413,6 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
 	 local otherMom     = species[otherNm]:fluidMoments()
          local primMomOther = species[otherNm]:selfPrimitiveMoments()
 
-         local tmEvalMomStart = Time.clock()
-
 	 -- Collision frequency established before computing
          -- crossPrimMom in case we want to generalize Greene without
          -- m_s*n_s*nu_sr=m_r*n_r*nu_rs.
@@ -455,8 +454,6 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
             species[otherNm].momentFlags[5][self.speciesName] = true
          end
 
-         self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
-
 	 self.maxwellian:advance(tCurr, {selfMom[1], species[self.speciesName].uCross[otherNm],
                                          species[self.speciesName].vtSqCross[otherNm]}, {self.nufMaxwellCross})
          if self.exactLagFixM012 then
@@ -497,6 +494,7 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
          end
       end    -- end loop over other species that this species collides with
    end    -- end if self.crossCollisions
+   self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 
    self.collisionSlvr:advance(tCurr, {fIn, self.nufMaxwellSum, self.nuSum}, {fRhsOut})
 
@@ -506,15 +504,15 @@ function GkBGKCollisions:write(tm, frame)
 end
 
 function GkBGKCollisions:totalTime()
-   return self.collisionSlvr.totalTime + self.maxwellian.totalTime + self.tmEvalMom
+   return self.collisionSlvr.totalTime + self.timers.nonSlvr
 end
 
 function GkBGKCollisions:slvrTime()
    return self.collisionSlvr.totalTime + self.maxwellian.totalTime
 end
 
-function GkBGKCollisions:momTime()
-   return self.tmEvalMom
+function GkBGKCollisions:nonSlvrTime()
+   return self.timers.nonSlvr
 end
 
 return GkBGKCollisions

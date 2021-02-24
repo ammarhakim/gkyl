@@ -113,37 +113,26 @@ function DiscontGenPoisson:init(tbl)
          },
       }
    end
+
+   local projectUpd = ProjectOnBasis {
+      onGrid = self.grid,
+      basis = self.basis,
+      numQuad = self.numQuad,
+      evaluate = function(t,xn) return 0. end,
+      onGhosts = true,
+   }
    
    self.Dxx = getField()
-   local initDxx = ProjectOnBasis {
-      onGrid = self.grid,
-      basis = self.basis,
-      numQuad = self.numQuad,
-      evaluate = self.DxxFn,
-      projectOnGhosts = true,
-   }
-   initDxx:advance(0.0, {}, {self.Dxx})
+   projectUpd:setFunc(self.DxxFn)
+   projectUpd:advance(0.0, {}, {self.Dxx})
 
    self.Dxy = getField()
-   local initDxy = ProjectOnBasis {
-      onGrid = self.grid,
-      basis = self.basis,
-      numQuad = self.numQuad,
-      evaluate = self.DxyFn,
-      projectOnGhosts = true,
-   }
-   initDxy:advance(0.0, {}, {self.Dxy})
+   projectUpd:setFunc(self.DxyFn)
+   projectUpd:advance(0.0, {}, {self.Dxy})
 
    self.Dyy = getField()
-   local initDyy = ProjectOnBasis {
-      onGrid = self.grid,
-      basis = self.basis,
-      numQuad = self.numQuad,
-      evaluate = self.DyyFn,
-      projectOnGhosts = true,
-   }
-   initDyy:advance(0.0, {}, {self.Dyy})
-
+   projectUpd:setFunc(self.DyyFn)
+   projectUpd:advance(0.0, {}, {self.Dyy})
 
    -- Load the kernels
    local basisNm = ''

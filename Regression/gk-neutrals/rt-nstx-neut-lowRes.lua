@@ -7,6 +7,7 @@
 --
 --------------------------------------------------------------------------------
 local Plasma    = (require "App.PlasmaOnCartGrid").Gyrokinetic()
+local Vlasov    = require("App.PlasmaOnCartGrid").VlasovMaxwell()
 local Constants = require "Lib.Constants"
 local Mpi       = require "Comm.Mpi"
 
@@ -260,7 +261,7 @@ plasmaApp = Plasma.App {
          scaleWithSourcePower = true,
       },
 
-      -- Source parameters
+      -- Source parameters.
       source = Plasma.MaxwellianProjection {
          density     = sourceDensity,
          temperature = sourceTemperature,
@@ -268,14 +269,14 @@ plasmaApp = Plasma.App {
          isSource    = true,
       },
 
-      -- Collision parameters
+      -- Collision parameters.
       coll = Plasma.LBOCollisions { 
          collideWith = {'ion', 'electron'},
          frequencies = {nuIon, nuIonElc},
          --nuFrac = nuFrac,
       },
 
-      -- Neutral interactions
+      -- Neutral interactions.
       ionization = Plasma.Ionization {
       	 collideWith  = {"neutral"},
       	 electrons    = "electron",
@@ -306,18 +307,18 @@ plasmaApp = Plasma.App {
       randomseed = randomseed,
    },
 
-   neutral = Plasma.Vlasov {
+   neutral = Vlasov.Species {
       evolve = true,
       charge = 0.0, 
       mass   = mi,
-      -- Velocity space grid
+      -- Velocity space grid.
       lower = {-4.0*vti, -4.0*vti, -4.0*vti},
       upper = { 4.0*vti,  4.0*vti,  4.0*vti},
       cells = {4, 4, 4},
       decompCuts = {1},
 
-      -- Initial conditions
-      init = Plasma.VmMaxwellianProjection {
+      -- Initial conditions.
+      init = Vlasov.MaxwellianProjection {
          density = function (t, xn)
    	    local x, y, z = xn[1], xn[2], xn[3]
             local n_n = 0.1*n0
@@ -342,7 +343,7 @@ plasmaApp = Plasma.App {
          end,
       },
 
-      -- Neutral interactions
+      -- Neutral interactions.
       ionization = Plasma.Ionization {
       	 collideWith  = {"electron"},
       	 electrons    = "electron",
@@ -362,11 +363,15 @@ plasmaApp = Plasma.App {
       },
 
       -- Source parameters.
-      source = {"maxwellian", density = sourceDensityNeut, driftSpeed = {0,0,0}, temperature = 2*eV},
+      source = Vlasov.MaxwellianProjection{
+         density     = sourceDensityNeut,
+         temperature = 2.*eV,
+         isSource    = true,
+      },
 
       -- Boundary conditions.
-      bcx = {Plasma.Vlasov.bcAbsorb, Plasma.Vlasov.bcAbsorb},
-      bcz = {Plasma.Vlasov.bcReflect, Plasma.Vlasov.bcReflect},
+      bcx = {Vlasov.Species.bcAbsorb, Vlasov.Species.bcAbsorb},
+      bcz = {Vlasov.Species.bcReflect, Vlasov.Species.bcReflect},
 
       -- Diagnostics.
       diagnosticMoments = { "M0", "u", "vtSq"},
@@ -376,17 +381,12 @@ plasmaApp = Plasma.App {
    
    -- Field solver.
    field = Plasma.Field {
-      -- Dirichlet in x.
-      phiBcLeft   = { T ="D", V = 0.0},
-      phiBcRight  = { T ="D", V = 0.0},
-      aparBcLeft  = { T ="D", V = 0.0},
-      aparBcRight = { T ="D", V = 0.0},
-      -- Periodic in y. --
-      -- No bc in z.
-      phiBcBack  = { T ="N", V = 0.0},
-      phiBcFront = { T ="N", V = 0.0},
-      evolve     = true, -- Evolve fields?
+      evolve = true, -- Evolve fields?
       isElectromagnetic = false,
+      -- Dirichlet in x, periodic in y. Potential phi has homogeneous Neumann
+      -- BC for the smoothing operation that enforces continuity in z.
+      bcLowerPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T ="N", V = 0.0}},
+      bcUpperPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T ="N", V = 0.0}},
    },
 
    -- Magnetic geometry.

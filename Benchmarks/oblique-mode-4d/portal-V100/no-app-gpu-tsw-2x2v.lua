@@ -236,7 +236,7 @@ end
 local initF = Updater.ProjectOnBasis {
    onGrid   = phaseGrid,
    basis    = phaseBasis,
-   projectOnGhosts = true,
+   onGhosts = true,
    evaluate = function (t, xn)
       return fInitial(xn[1],xn[2],xn[3],xn[4])
    end
@@ -244,7 +244,7 @@ local initF = Updater.ProjectOnBasis {
 local initFields = Updater.ProjectOnBasis {
    onGrid   = confGrid,
    basis    = confBasis,
-   projectOnGhosts = true,
+   onGhosts = true,
    evaluate = function (t, xn)
       return emInitial(xn[1],xn[2])
    end
