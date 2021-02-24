@@ -156,7 +156,7 @@ function MaxwellianProjection:scaleM012(distf)
          xconf[d] = zn[d]
       end
       local vpar = zn[self.cdim+1]
-      return vpar^2/2*self.species.jacobPhaseFunc(t,xconf)*self.initFunc(t,zn)
+      return vpar^2/2*sp.jacobPhaseFunc(t,xconf)*self.initFunc(t,zn)
    end
    phaseProject:setFunc(distf2parFunc)
    phaseProject:advance(0.0, {}, {distf2par})
@@ -167,7 +167,7 @@ function MaxwellianProjection:scaleM012(distf)
             xconf[d] = zn[d]
          end
          local mu = zn[self.cdim+2]
-         return mu*sp.bmagFunc(t,zn)/sp.mass*self.species.jacobPhaseFunc(t,xconf)*self.initFunc(t,zn)
+         return mu*sp.bmagFunc(t,zn)/sp.mass*sp.jacobPhaseFunc(t,xconf)*self.initFunc(t,zn)
       end
       phaseProject:setFunc(distf2perpFunc)
       phaseProject:advance(0.0, {}, {distf2perp})
