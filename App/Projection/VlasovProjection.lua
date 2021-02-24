@@ -30,7 +30,7 @@ function MaxwellianProjection:lagrangeFix(distf)
    local project = Updater.ProjectOnBasis {
       onGrid   = self.confGrid,
       basis    = self.confBasis,
-      evaluate = func,
+      evaluate = function(t,xn) return 0. end,
       onGhosts = true,
    }
 
