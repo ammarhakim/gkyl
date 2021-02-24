@@ -141,19 +141,19 @@ function MaxwellianProjection:scaleM012(distf)
    local distf0_mod, distf2par_mod, distf2perp_mod = sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
 
    -- Initialize maxwellian distribution distf0 = FM, along with 
-   -- distf2par = m*vpar^2/2*FM and distf2perp = mu*B*FM.
+   -- distf2par = vpar^2/2*FM and distf2perp = (mu*B/mass)*FM.
    local distf0, distf2par, distf2perp = sp:allocDistf(), sp:allocDistf(), sp:allocDistf()
    distf0:copy(distf)
-   local distf2parFunc = function (t, zn)
-      local vpar = zn[self.cdim+1]
-      return vpar^2/2*self.initFunc(t,zn)
-   end
    local phaseProject = Updater.ProjectOnBasis {
       onGrid   = self.phaseGrid,
       basis    = self.phaseBasis,
       evaluate = function(t,xn) return 0. end,   -- Set below.
       onGhosts = true
    }
+   local distf2parFunc = function (t, zn)
+      local vpar = zn[self.cdim+1]
+      return vpar^2/2*self.initFunc(t,zn)
+   end
    phaseProject:setFunc(function(t,xn) return distf2parFunc(t,xn) end)
    phaseProject:advance(0.0, {}, {distf2par})
    if self.vdim > 1 then 
@@ -468,9 +468,8 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
       local uPar    = self:allocConfField()
       local vtSq    = self:allocConfField()
       if self.exactScaleM0 then
-         -- Divide the initial maxwellian by the density to get a unit density
-         -- because we are going to rescale the density anyways, and it is easier
-         -- to weak-divide by something close to unity.
+         -- Use a unit density because we are going to rescale the density anyways,
+         -- and it is easier to weak-divide by something close to unity.
          confProject:setFunc(function(t, xn) return 1. end)
       else
          confProject:setFunc(function(t, xn) return self.density(t, xn) end)

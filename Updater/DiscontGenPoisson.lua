@@ -123,15 +123,15 @@ function DiscontGenPoisson:init(tbl)
    }
    
    self.Dxx = getField()
-   projectUpd:setFunc(function(t,xn) self.DxxFn(t,xn) end)
+   projectUpd:setFunc(self.DxxFn)
    projectUpd:advance(0.0, {}, {self.Dxx})
 
    self.Dxy = getField()
-   projectUpd:setFunc(function(t,xn) self.DxyFn(t,xn) end)
+   projectUpd:setFunc(self.DxyFn)
    projectUpd:advance(0.0, {}, {self.Dxy})
 
    self.Dyy = getField()
-   projectUpd:setFunc(function(t,xn) self.DyyFn(t,xn) end)
+   projectUpd:setFunc(self.DyyFn)
    projectUpd:advance(0.0, {}, {self.Dyy})
 
    -- Load the kernels
