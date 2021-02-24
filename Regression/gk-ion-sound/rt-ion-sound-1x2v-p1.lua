@@ -74,7 +74,7 @@ plasmaApp = Plasma.App {
          temperature = function (t, xn)
             return Ti
          end,
-         isBackground=true,
+         isBackground = true,
       },
       init = Plasma.MaxwellianProjection{
          density = function (t, xn)

@@ -13,13 +13,13 @@ eV  = Constants.ELEMENTARY_CHARGE
 qe  = -eV
 qi  = eV
 me  = Constants.ELECTRON_MASS
-mi  = 2.014*Constants.PROTON_MASS   -- Deuterium ions.
+mi  = 2.014*Constants.PROTON_MASS -- (deuterium ions)
 Te0 = 2072*eV 
 Ti0 = 2072*eV 
-B0  = 1.91       -- Magnetic field strength on axis [T].
-R0  = 1.313      -- Major radius of magnetic axis [m].
-a   = 0.4701     -- Minor radius [m].
-n0  = 4.992e19   -- [1/m^3].
+B0  = 1.91     -- Magnetic field strength on axis [T].
+R0  = 1.313    -- Major radius of magnetic axis [m].
+a   = 0.4701   -- Minor radius [m].
+n0  = 4.992e19 -- [1/m^3].
 -- Derived parameters.
 r0       = 0.5*a     -- Minor radius of flux tube.
 R        = R0 + r0   -- Major radius of flux tube.
@@ -44,30 +44,30 @@ MU_UPPER     = 16*me*vte*vte/B/2
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd   = .5e-6, -- end time
-   nFrame = 1, -- number of output frames
-   lower  = {r0 - 0.001*dr/2, -dr/2}, -- configuration space lower left
-   upper  = {r0 + 0.001*dr/2,  dr/2}, -- configuration space upper right
-   cells  = {1, 8}, -- configuration space cells
+   tEnd   = .5e-6, -- End time.
+   nFrame = 2,     -- Number of output frames.
+   lower  = {r0 - 0.001*dr/2, -dr/2}, -- Configuration space lower left.
+   upper  = {r0 + 0.001*dr/2,  dr/2}, -- Configuration space upper right.
+   cells  = {1, 8},   -- Configuration space cells.
    mapc2p = function(xc)
       local r, y = xc[1], xc[2]
       local X = r+R0
       local Y = y
       return X, Y
    end,
-   basis       = "serendipity", -- one of "serendipity" or "maximal-order"
-   polyOrder   = 1, -- polynomial order
-   timeStepper = "rk3", -- one of "rk2" or "rk3"
+   basis       = "serendipity", -- One of "serendipity" or "maximal-order".
+   polyOrder   = 1,             -- Polynomial order.
+   timeStepper = "rk3",         -- One of "rk2" or "rk3".
    cflFrac     = .9,
 
    -- Boundary conditions for configuration space.
-   periodicDirs = {1,2},   -- Periodic directions.
-   deltaF       = true,    -- Only apply BCs to fluctuations, and use perturbed moments in field solve.
+   periodicDirs = {1,2}, -- Periodic directions.
+   deltaF       = true,  -- Only apply BCs to fluctuations, and use perturbed moments in field solve.
 
    -- Gyrokinetic electrons.
    electron = Plasma.Species {
       charge = qe,
-      mass   = me,
+      mass = me,
       -- Velocity space grid.
       lower = {VPAR_LOWER, MU_LOWER},
       upper = {VPAR_UPPER, MU_UPPER},
@@ -99,7 +99,7 @@ plasmaApp = Plasma.App {
          end,
          exactScaleM012 = true,
       },
-      evolve = true,   -- Evolve species?
+      evolve = true, -- Evolve species?
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp"}, 
       diagnosticIntegratedMoments = {"intM0", "intM2"},
    },
@@ -113,12 +113,12 @@ plasmaApp = Plasma.App {
       init = function (t, xn, self)
          return n0
       end,
-      evolve = false,   -- Evolve species?
+      evolve = false, -- Evolve species?
    },
 
    -- Field solver.
    field = Plasma.Field {
-      evolve = true,   -- Evolve fields?
+      evolve = true, -- Evolve fields?
    },
 
    -- Magnetic geometry.

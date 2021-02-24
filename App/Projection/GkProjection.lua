@@ -456,46 +456,6 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
    if self.fromFile then
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else
-      if self.species.jacobPhaseFunc and self.vdim > 1 then
-         local initFuncWithoutJacobian = self.initFunc
-         self.initFunc = function (t, xn)
-            local xconf = {}
-            for d = 1, self.cdim do xconf[d] = xn[d] end
-
-            local J = 1
-            local f = initFuncWithoutJacobian(t, xn)
-            if self.exactScaleM0 then
-               -- Divide the initial maxwellian by the density to get a unit density
-               -- because we are going to rescale the density anyways, and it is easier
-               -- to weak-divide by something close to unity.
-               f = f/self.density(t, xn, sp)
-            else 
-               J = self.species.jacobPhaseFunc(t, xconf)
-            end
-            return J*f
-         end
-      end
-      -- For geometry jacobian, scale density function so that jacobian factor
-      -- is retained even after rescaling distf.
-      if self.species.jacobGeoFunc then
-         local densityWithoutJacobian = self.density
-         self.density = function (t, xn, sp)
-            local xconf = {}
-            for d = 1, self.cdim do xconf[d] = xn[d] end
-
-            local J = 1 --self.species.jacobGeoFunc(t,xconf)
-            local n = densityWithoutJacobian(t,xn,sp)
-            return J*n
-         end
-      end
-      ---- Note: don't use self.project as this does not have jacobian factors in initFunc.
-      --local project = Updater.ProjectOnBasis {
-      --   onGrid   = self.phaseGrid,
-      --   basis    = self.phaseBasis,
-      --   evaluate = self.initFunc,
-      --   onGhosts = true
-      --}
-      --project:advance(time, {}, {distf})
       local bmag = extField.geo.bmag
       -- Project the moments onto configuration-space basis.
       local confProject = Updater.ProjectOnBasis {
@@ -507,14 +467,21 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
       local numDens = self:allocConfField()
       local uPar    = self:allocConfField()
       local vtSq    = self:allocConfField()
-      confProject:setFunc(function(t, xn) return 1. end ) --self.density(t, xn) end)
+      if self.exactScaleM0 then
+         -- Divide the initial maxwellian by the density to get a unit density
+         -- because we are going to rescale the density anyways, and it is easier
+         -- to weak-divide by something close to unity.
+         confProject:setFunc(function(t, xn) return 1. end)
+      else
+         confProject:setFunc(function(t, xn) return self.density(t, xn) end)
+      end
       confProject:advance(time, {}, {numDens})
       confProject:setFunc(function(t, xn) return self.driftSpeed(t, xn) end)
       confProject:advance(time, {}, {uPar})
       confProject:setFunc(function(t, xn) return self.temperature(t, xn) end)
       confProject:advance(time, {}, {vtSq})
       vtSq:scale(1./self.mass)
-      -- Project the Maxwellian.
+      -- Project the Maxwellian. It includes a factor of jacobPhase=B*_||.
       local projMaxwell = Updater.MaxwellianOnBasis {
          onGrid     = self.phaseGrid,
          phaseBasis = self.phaseBasis,
