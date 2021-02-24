@@ -2,19 +2,23 @@
 
 # Edit the paths and options in the following command to suit your system
 module reset
-module load foss
-#module load gcc/8.2.0
-#module load openmpi/gcc/64/4.0.4
+#module load foss # gcc
+module load intel/2019b # intel
 
 # Build directory
 OUT=build
 # Install location
 PREFIX=$HOME/tinkercliffs/gkylsoft/gkyl
 
-# Compile flags (set optimization/debug flags here)
-CC=gcc
-CXX=g++
-CXXFLAGS='-O3,-std=c++17'
+# Compile flags (set optimization/debug flags here) for GCC
+#CC=gcc
+#CXX=g++
+#CXXFLAGS='-O3,-std=c++17,-mtune=znver2,-march=znver2,-mavx2'
+
+# Compile flags (set optimization/debug flags here) for Intel
+CC=icc
+CXX=icpc
+CXXFLAGS='-O3,-std=c++17,-ffreestanding,-march=core-avx2'
 
 # LuaJIT options
 LUAJIT_INC_DIR=$HOME/tinkercliffs/gkylsoft/luajit/include/luajit-2.1
@@ -25,8 +29,10 @@ LUAJIT_SHARE_DIR=$HOME/tinkercliffs/gkylsoft/luajit/share/luajit-2.1.0-beta3
 MPICC=mpicc
 MPICXX=mpicxx
 ENABLE_MPI="--enable-mpi"
-MPI_INC_DIR=/apps/easybuild/software/tinkercliffs-rome/OpenMPI/4.0.3-GCC-9.3.0/bin
-MPI_LIB_DIR=/apps/easybuild/software/tinkercliffs-rome/OpenMPI/4.0.3-GCC-9.3.0/lib
+MPI_INC_DIR=/apps/easybuild/software/tinkercliffs-rome/impi/2018.5.288-iccifort-2019.5.281/bin64/
+MPI_LIB_DIR=/apps/easybuild/software/tinkercliffs-rome/impi/2018.5.288-iccifort-2019.5.281/lib64/
+#MPI_INC_DIR=/apps/easybuild/software/tinkercliffs-rome/OpenMPI/4.0.3-GCC-9.3.0/bin
+#MPI_LIB_DIR=/apps/easybuild/software/tinkercliffs-rome/OpenMPI/4.0.3-GCC-9.3.0/lib
 MPI_LINK_LIBS="mpi"
 
 # ADIOS options
