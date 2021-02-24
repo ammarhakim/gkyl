@@ -58,11 +58,11 @@ plasmaApp = Plasma.App {
       local x, y, z = xc[1], xc[2], xc[3]
       -- cylindrical coordinates (R,phi)
       local R = x+R0
-      local phi = y/(R0+r0)
+      local phi = z/(R0+r0)
       -- cartesian coordinates (X,Y)
       local X = R*math.cos(phi)
       local Y = R*math.sin(phi)
-      local Z = z
+      local Z = y
       return X, Y, Z
    end,
    cells = {1, 8, 8}, -- configuration space cells

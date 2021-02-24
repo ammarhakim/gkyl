@@ -53,7 +53,7 @@ MU_UPPER     = 16*me*vte*vte/B/2
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd   = 3*L_n/vti,   -- End time.
+   tEnd   = 3*L_n/vti/2,   -- End time.
    nFrame = 1,           -- Number of output frames.
    lower  = {r0 - .01*dr/2, -dr/2, -L_parallel/2}, -- Configuration space lower left.
    upper  = {r0 + .01*dr/2,  dr/2, L_parallel/2},  -- Configuration space upper right.
@@ -62,11 +62,11 @@ plasmaApp = Plasma.App {
       local x, y, z = xc[1], xc[2], xc[3]
       -- Cylindrical coordinates (R,phi).
       local R = x+R0
-      local phi = y/(R0+r0)
+      local phi = z/(R0+r0)
       -- Cartesian coordinates (X,Y).
       local X = R*math.cos(phi)
       local Y = R*math.sin(phi)
-      local Z = z
+      local Z = y
       return X, Y, Z
    end,
    cells       = {1, 8, 8},       -- Configuration space cells.
