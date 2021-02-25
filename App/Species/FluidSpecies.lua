@@ -134,38 +134,32 @@ function FluidSpecies:fullInit(appTbl)
    else
       self.sourceTimeDependence = function (t) return 1.0 end
    end
-   -- It is possible to use the keyword 'initSource' to specify a
+   -- It is possible to use the keyword 'source' to specify a
    -- function directly without using a Projection object.
    if type(tbl.init) == "function" then
       self.projections["init"] = Projection.FluidProjection.FunctionProjection {
          func = function (t, zn)
             return tbl.init(t, zn, self)
          end,
-         isInit = true,
       }
    elseif type(tbl.init) == "string" then
       -- Specify the suffix of the file with the initial condition (including the extension).
       -- The prefix is assumed to be the name of the input file.
       self.projections["init"] = Projection.FluidProjection.ReadInput {
          inputFile = tbl.init,
-         isInit    = true,
       }
    end
    if type(tbl.source) == "function" then
-      self.projections["initSource"] = Projection.FluidProjection.FunctionProjection {
+      self.projections["source"] = Projection.FluidProjection.FunctionProjection {
          func = function (t, zn)
             return tbl.source(t, zn, self)
          end,
-         isInit   = false,
-         isSource = true,
       }
    elseif type(tbl.source) == "string" then
       -- Specify the suffix of the file with the source (including the extension).
       -- The prefix is assumed to be the name of the input file.
-      self.projections["initSource"] = Projection.FluidProjection.ReadInput {
+      self.projections["source"] = Projection.FluidProjection.ReadInput {
          inputFile = tbl.source,
-         isInit    = false,
-         isSource  = true,
       }
    end
 
@@ -425,17 +419,17 @@ end
 function FluidSpecies:initDist(extField)
 
    local initCnt = 0
-   for _, pr in pairs(self.projections) do
+   for nm, pr in pairs(self.projections) do
       pr:fullInit(self)
       pr:advance(0.0, {}, {self.moments[2]})
       -- This barrier is needed as when using MPI-SHM some
       -- processes will get to accumulate before projection is finished.
       Mpi.Barrier(self.grid:commSet().sharedComm)
-      if pr.isInit then
+      if nm == "init" then
          self.moments[1]:accumulate(1.0, self.moments[2])
          initCnt = initCnt + 1
       end
-      if pr.isSource then
+      if nm == "source" then
          if not self.mSource then
             self.mSource = self:allocVectorMoment(self.nMoments)
          end

@@ -128,7 +128,6 @@ plasmaApp = Plasma.App {
       source = Plasma.MaxwellianProjection{
          density     = sourceDensity,
          temperature = sourceTemperatureElc,
-         isSource    = true,
       },
 
       -- Collisions.
@@ -193,7 +192,6 @@ plasmaApp = Plasma.App {
       source = Plasma.MaxwellianProjection{
          density     = sourceDensity,
          temperature = sourceTemperatureIon,
-         isSource    = true,
       },
 
       -- Collisions.
@@ -268,7 +266,6 @@ plasmaApp = Plasma.App {
       source = Vlasov.MaxwellianProjection{
          density     = sourceDensityNeut,
          temperature = 2.*eV,
-         isSource    = true,
       },
 
       -- Neutral interactions.

@@ -1,9 +1,12 @@
+-- Gkyl ------------------------------------------------------------------------
+--
 -- This test is based off NSTX-like SOL simulation
--- Plasma ------------------------------------------------------------------------
-local Plasma = (require "App.PlasmaOnCartGrid").Gyrokinetic()
+--
+--------------------------------------------------------------------------------
+local Plasma    = (require "App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
-local Mpi = require "Comm.Mpi"
-local math = require("sci.math").generic
+local Mpi       = require "Comm.Mpi"
+local math      = require("sci.math").generic
 
 -- Universal constant parameters.
 eps0 = Constants.EPSILON0
@@ -145,10 +148,9 @@ plasmaApp = Plasma.App {
          frequencies = {nuElc},
       },
       source = Plasma.MaxwellianProjection {
-         density = sourceDensity,
+         density     = sourceDensity,
          temperature = sourceTemperature,
-         power = P_src/2,
-         isSource = true,
+         power       = P_src/2,
       },
       evolve = true, -- Evolve species?
       --applyPositivity = true,
@@ -199,10 +201,9 @@ plasmaApp = Plasma.App {
          frequencies = {nuIon},
       },
       source = Plasma.MaxwellianProjection {
-         density = sourceDensity,
+         density     = sourceDensity,
          temperature = sourceTemperature,
-         power = P_src/2,
-         isSource = true,
+         power       = P_src/2,
       },
       evolve = true, -- Evolve species?
       --applyPositivity = true,

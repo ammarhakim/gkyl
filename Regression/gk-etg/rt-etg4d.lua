@@ -66,7 +66,7 @@ plasmaApp = Plasma.App {
       upper = {VPAR_UPPER, MU_UPPER},
       cells = {N_VPAR, N_MU},
       -- Initial conditions.
-      initBackground = Plasma.MaxwellianProjection {
+      background = Plasma.MaxwellianProjection {
          density = function (t, xn)
             local x = xn[1]
             return n0
@@ -77,7 +77,6 @@ plasmaApp = Plasma.App {
             return Te0*(1-(x-r0)/L_T)
          end,
          exactScaleM012 = true,
-         isBackground   = true,
       },
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)

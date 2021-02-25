@@ -34,14 +34,9 @@ function KineticProjection:fullInit(species)
    self.cdim = self.confGrid:ndim()
    self.vdim = self.phaseGrid:ndim() - self.confGrid:ndim()
 
-   self.vDegFreedom = species.vDegFreedom
+   self.vDegFreedom = species.vDegFreedom   -- Only defined in GkSpecies.
 
-   self.fromFile     = self.tbl.fromFile
-   self.isInit       = xsys.pickBool(self.tbl.isInit, true)
-   self.isBackground = xsys.pickBool(self.tbl.isBackground, false)
-   self.isSource     = xsys.pickBool(self.tbl.isSource, false)
-   if self.isBackground or self.isSource then self.isInit = false end
-   self.isReservoir  = xsys.pickBool(self.tbl.isReservoir, false)
+   self.fromFile = self.tbl.fromFile
 
    self.exactScaleM0    = xsys.pickBool(self.tbl.exactScaleM0, true)
    self.exactScaleM012  = xsys.pickBool(self.tbl.exactScaleM012, false)

@@ -177,7 +177,6 @@ plasmaApp = Plasma.App {
          density     = sourceDensity,
          temperature = sourceTemperature,
          power       = P_src/2,
-         isSource    = true,
       },
 
       -- Collision parameters
@@ -266,7 +265,6 @@ plasmaApp = Plasma.App {
          density     = sourceDensity,
          temperature = sourceTemperature,
          power       = P_src/2,
-         isSource    = true,
       },
 
       -- Collision parameters.
@@ -366,7 +364,6 @@ plasmaApp = Plasma.App {
       source = Vlasov.MaxwellianProjection{
          density     = sourceDensityNeut,
          temperature = 2.*eV,
-         isSource    = true,
       },
 
       -- Boundary conditions.

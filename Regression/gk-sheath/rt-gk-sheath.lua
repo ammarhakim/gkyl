@@ -1,8 +1,11 @@
+-- Gkyl ------------------------------------------------------------------------
+--
 -- This test is based off NSTX-like SOL simulation
--- Plasma ------------------------------------------------------------------------
-local Plasma = (require "App.PlasmaOnCartGrid").Gyrokinetic()
+--
+--------------------------------------------------------------------------------
+local Plasma    = (require "App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
-local Mpi = require "Comm.Mpi"
+local Mpi       = require "Comm.Mpi"
 
 -- Universal constant parameters.
 eps0 = Constants.EPSILON0
@@ -35,11 +38,11 @@ logLambdaIon = 6.6 - 0.5*math.log(n0/1e20) + 1.5*math.log(Ti0/eV)
 nuIon = nuFrac*logLambdaIon*eV^4*n0/(12*math.pi^(3/2)*eps0^2*math.sqrt(mi)*(Ti0)^(3/2))
 
 -- Derived parameters
-vti = math.sqrt(Ti0/mi)
-vte  	 = math.sqrt(Te0/me)
-c_s = math.sqrt(Te0/mi)
+vti      = math.sqrt(Ti0/mi)
+vte      = math.sqrt(Te0/me)
+c_s      = math.sqrt(Te0/mi)
 omega_ci = math.abs(qi*B0/mi)
-rho_s = c_s/omega_ci
+rho_s    = c_s/omega_ci
 
 -- Box size.
 Lx = 50*rho_s
@@ -47,9 +50,9 @@ Ly = 100*rho_s
 Lz = 4 -- [m]
 
 -- Source parameters.
-P_SOL = 3.4e6 -- [W], total SOL power, from experimental heating power
-P_src = P_SOL*Ly*Lz/(2*math.pi*R*Lpol) -- [W], fraction of total SOL power into flux tube
-xSource = R -- [m], source start coordinate
+P_SOL   = 3.4e6 -- [W], total SOL power, from experimental heating power
+P_src   = P_SOL*Ly*Lz/(2*math.pi*R*Lpol) -- [W], fraction of total SOL power into flux tube
+xSource = R     -- [m], source start coordinate
 lambdaSource = 0.005 -- [m], characteristic length scale of density and temperature
 
 -- Source profiles.
@@ -132,7 +135,6 @@ plasmaApp = Plasma.App {
          density     = sourceDensity,
          temperature = sourceTemperature,
          power       = P_src/2,
-         isSource    = true,
       },
       evolve = true, -- Evolve species?
       --applyPositivity = true,
@@ -182,10 +184,9 @@ plasmaApp = Plasma.App {
          frequencies = {nuIon},
       },
       source = Plasma.MaxwellianProjection {
-         density = sourceDensity,
+         density     = sourceDensity,
          temperature = sourceTemperature,
-         power = P_src/2,
-         isSource = true,
+         power       = P_src/2,
       },
       evolve = true, -- Evolve species?
       --applyPositivity = true,

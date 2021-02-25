@@ -1,4 +1,4 @@
--- Plasma ------------------------------------------------------------------------
+-- Gkyl ------------------------------------------------------------------------
 local Plasma    = require ("App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
 local Logger    = require "Lib.Logger"
@@ -90,7 +90,7 @@ plasmaApp = Plasma.App {
       upper = {VPAR_UPPER, MU_UPPER},
       cells = {N_VPAR, N_MU},
       -- Initial conditions.
-      initBackground = Plasma.MaxwellianProjection {
+      background = Plasma.MaxwellianProjection {
          density = function (t, xn)
             local x = xn[1]
             return n0*(1-(x-r0)/L_n)
@@ -101,7 +101,6 @@ plasmaApp = Plasma.App {
             return Te0*(1-(x-r0)/L_Te)
          end,
          exactScaleM012 = true,
-         isBackground = true,
       },
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
@@ -131,7 +130,7 @@ plasmaApp = Plasma.App {
       upper = {VPAR_UPPER*vti/vte, MU_UPPER*mi*vti*vti/me/vte/vte},
       cells = {N_VPAR, N_MU},
       -- Initial conditions.
-      initBackground = Plasma.MaxwellianProjection {
+      background = Plasma.MaxwellianProjection {
          density = function (t, xn)
             local x = xn[1]
             return n0*(1-(x-r0)/L_n)
@@ -142,7 +141,6 @@ plasmaApp = Plasma.App {
             return Ti0*(1-(x-r0)/L_Ti)
          end,
          exactScaleM012 = true,
-         isBackground = true,
       },
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
