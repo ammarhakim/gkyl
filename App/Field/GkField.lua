@@ -1337,11 +1337,11 @@ function GkGeometry:initField()
          -- Read the geometry quantities from a file.
          if self.ndim == 1 then
             local tm, fr = self.fieldIo:read({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-               gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy}, self.fromFile)
+               gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy}, self.fromFile, true)
          else
             local tm, fr = self.fieldIo:read({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
                gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy, 
-               bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY}, self.fromFile)
+               bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY}, self.fromFile, true)
          end
       else
          self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
@@ -1362,7 +1362,7 @@ function GkGeometry:initField()
             jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
             gradpar=self.geo.gradpar, geoX=self.geo.geoX, geoY=self.geo.geoY, geoZ=self.geo.geoZ, gxx=self.geo.gxx,
             gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
-            self.fromFile)
+            self.fromFile, true)
       else
          self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
          self.separateComponents:advance(0, {self.geo.allGeo},
@@ -1413,21 +1413,27 @@ function GkGeometry:write(tm)
       -- Write the geometry quantities to a file.
       if self.geo.name == "SimpleHelical" then
          if self.ndim == 1 then
-            self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-               gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy},
-               string.format("allGeo_%d.bp", self.ioFrame), tm, self.ioFrame)
+            for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
+               self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+                  gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy},
+                  string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
+            end
          else
-            self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-               gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy,
-               bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY},
-               string.format("allGeo_%d.bp", self.ioFrame), tm, self.ioFrame)
+            for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
+               self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+                  gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy,
+                  bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY},
+                  string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
+            end
          end
       elseif self.geo.name == "GenGeo" then
-         self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
-            jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-            gradpar=self.geo.gradpar, geoX=self.geo.geoX, geoY=self.geo.geoY, geoZ=self.geo.geoZ, gxx=self.geo.gxx,
-            gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
-            string.format("allGeo_%d.bp", self.ioFrame), tm, self.ioFrame)
+         for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
+            self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
+               jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+               gradpar=self.geo.gradpar, geoX=self.geo.geoX, geoY=self.geo.geoY, geoZ=self.geo.geoZ, gxx=self.geo.gxx,
+               gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
+               string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
+         end
 
          -- Write a grid file.
          local metaData = {
