@@ -682,19 +682,6 @@ function KineticSpecies:initDist(extField)
    
    self:setActiveRKidx(1)
 
-   local weakMultiplicationPhase = Updater.CartFieldBinOp {
-      onGrid     = self.grid,
-      weakBasis  = self.basis,
-      fieldBasis = self.confBasis,
-      operation  = "Multiply",
-      onGhosts   = true,
-   }
-
-   if self.jacobGeo then
-      weakMultiplicationPhase:advance(0, {self.distf[1], self.jacobGeo}, {self.distf[1]})
-      if self.f0 then weakMultiplicationPhase:advance(0, {self.f0, self.jacobGeo}, {self.f0}) end
-   end
-
    -- Calculate initial density averaged over simulation domain.
    --self.n0 = nil
    --local dens0 = self:allocMoment()

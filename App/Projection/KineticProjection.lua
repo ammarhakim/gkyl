@@ -50,6 +50,14 @@ function KineticProjection:fullInit(species)
 
    self.power = self.tbl.power
    self.scaleWithSourcePower = xsys.pickBool(self.tbl.scaleWithSourcePower, false)
+
+   self.weakMultiplyConfPhase = Updater.CartFieldBinOp {
+      onGrid     = self.phaseGrid,
+      weakBasis  = self.phaseBasis,
+      fieldBasis = self.confBasis,
+      operation  = "Multiply",
+      onGhosts   = true,
+   }
 end
 
 ----------------------------------------------------------------------
@@ -175,18 +183,11 @@ function MaxwellianProjection:scaleDensity(distf)
       operation = "Divide",
       onGhosts  = true,
    }
-   local weakMultiplication = Updater.CartFieldBinOp {
-      onGrid     = self.phaseGrid,
-      weakBasis  = self.phaseBasis,
-      fieldBasis = self.confBasis,
-      operation  = "Multiply",
-      onGhosts   = true,
-   }
 
    -- Calculate M0mod = M0e / M0.
    weakDivision:advance(0.0, {M0, M0e}, {M0mod})
    -- Calculate distff = M0mod * distf.
-   weakMultiplication:advance(0.0, {M0mod, distf}, {distf})
+   self.weakMultiplyConfPhase:advance(0.0, {M0mod, distf}, {distf})
 end
 
 

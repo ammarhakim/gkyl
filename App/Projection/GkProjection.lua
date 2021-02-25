@@ -25,28 +25,13 @@ function FunctionProjection:advance(time, inFlds, outFlds)
          local initFuncWithoutJacobian = self.initFunc
          self.initFunc = function (t, xn)
             local xconf = {}
-            for d = 1, self.cdim do
-               xconf[d] = xn[d]
-            end
+            for d = 1, self.cdim do xconf[d] = xn[d] end
             local J = self.species.jacobPhaseFunc(t,xconf)
             local f = initFuncWithoutJacobian(t,xn)
             return J*f
          end
       end
-      if self.species.jacobGeoFunc then
-         local initFuncWithoutJacobian = self.initFunc
-         self.initFunc = function (t, xn)
-            local xconf = {}
-            for d = 1, self.cdim do
-               xconf[d] = xn[d]
-            end
-            local J = self.species.jacobGeoFunc(t,xconf)
-            local f = initFuncWithoutJacobian(t,xn)
-            return J*f
-         end
-      end 
 
-      self.project:advance(t, {}, {distf})
       -- Note: don't use self.project as this does not have jacobian factors in initFunc.
       local project = Updater.ProjectOnBasis {
          onGrid   = self.phaseGrid,
@@ -56,6 +41,9 @@ function FunctionProjection:advance(time, inFlds, outFlds)
       }
       project:advance(time, {}, {distf})
    end
+
+   local jacobGeo = extField.geo.jacobGeo
+   if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
 end
 
 --------------------------------------------------------------------------------
@@ -506,6 +494,9 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
       self:scaleM012(distf)
    end
    if self.exactLagFixM012 then self:lagrangeFix(distf) end
+
+   local jacobGeo = extField.geo.jacobGeo
+   if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
 end
 
 
