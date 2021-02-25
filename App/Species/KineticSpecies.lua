@@ -946,6 +946,7 @@ function KineticSpecies:write(tm, force)
    if self.evolve then
       if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics and tm > 0 then
          for _, bc in ipairs(self.boundaryConditions) do
+            -- compute boundary flux rate ~ (fGhost_new - fGhost_old)/dt
             bc:getBoundaryFluxRate():combine(1.0/self.dtGlobal[0], bc:getBoundaryFluxFields()[1], -1.0/self.dtGlobal[0], bc:getBoundaryFluxFieldPrev())
             bc:getBoundaryFluxFieldPrev():copy(bc:getBoundaryFluxFields()[1])
          end

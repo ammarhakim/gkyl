@@ -1332,6 +1332,8 @@ function GkGeometry:createDiagnostics()
 end
 
 function GkGeometry:initField()
+   local log = Logger { logToFile = true }
+   log("...Initializing the geometry...\n")
    if self.geo.name == "SimpleHelical" then
       if self.fromFile then
          -- Read the geometry quantities from a file.
@@ -1371,8 +1373,7 @@ function GkGeometry:initField()
              self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
       end
    end
-   local log = Logger { logToFile = true }
-   log("Finished initializing the geometry\n")
+   log("...Finished initializing the geometry\n")
 
    if self.setPhiWall then self.setPhiWall:advance(0.0, {}, {self.geo.phiWall})
    else self.geo.phiWall:clear(0.0) end
