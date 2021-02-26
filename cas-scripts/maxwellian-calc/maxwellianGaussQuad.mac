@@ -243,7 +243,7 @@ calcMaxwellianProjGauss(fh, funcNm, cdim, vdim, basisNm, polyOrder, isGK) := blo
     vOrdIdx : sublist_indices(normOrdsV, lambda([x],x=makelist(nOrdP[cdim+d],d,1,vdim)))[1],
 
     if isGK then (
-      expArg    : -(cpow(v-u,2))/(2*vtSq)-(vdim-1)*(2*cabs(mu)*magB/m_)/(2*vtSq),
+      expArg    : -(cpow(v-u,2))/(2*vtSq)-(vdim-1)*(2*cAbs(mu)*magB/m_)/(2*vtSq),
       subList   : [v=ordsV[vOrdIdx][1],u=flowUOrd[cOrdIdx-1],vtSq=vtSqOrd[cOrdIdx-1]],
       if (vdim=2) then (subList : append(subList,[mu=ordsV[vOrdIdx][2],magB=bmagOrd[cOrdIdx-1]])),
       expArgOrd : subst(subList,expArg)
@@ -257,7 +257,7 @@ calcMaxwellianProjGauss(fh, funcNm, cdim, vdim, basisNm, polyOrder, isGK) := blo
   ),
 
   printf(fh,"  double fMquad[~a];~%",ordNumP),
-  strSub : [["exp","cexp"],["std::pow","cpow"],["std::abs","cabs"]],
+  strSub : [["exp","cexp"],["std::pow","cpow"],["std::abs","cAbs"]],
   if isGK then (fFloor : 1.e-40) else (fFloor : 0),
   for i : 1 thru ordNumC do (
     nOrdC : normOrdsC[i],
@@ -295,7 +295,7 @@ calcMaxwellianProjGauss(fh, funcNm, cdim, vdim, basisNm, polyOrder, isGK) := blo
 
   ),
 
-  strSub : [["exp","cexp"],["std::pow","cpow"]],
+  strSub : [["exp","cexp"],["std::pow","cpow"],["std::abs","cAbs"]],
   writeCExprsNoExpand1_ssubst(fMOut, fM_c, strSub, false),
   printf(fh,"~%"),
 

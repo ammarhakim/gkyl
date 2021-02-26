@@ -540,15 +540,15 @@ void GkMaxwellianOnBasisGauss2x2vMax_P2_phaseQuad(const double *flowUOrd, const 
 
   double fMquad[81];
   if ((vtSqOrd[0] > 0.) && (fMFacOrd[0] > 0.)) {
-    fMquad[0] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
-    fMquad[1] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
-    fMquad[2] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
-    fMquad[3] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*abs(wc[3]))/m_)-0.5*std::pow(wc[2]-0.3872983346207417*dxv[2]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
-    fMquad[4] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-0.3872983346207417*dxv[2]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
-    fMquad[5] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-0.3872983346207417*dxv[2]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
-    fMquad[6] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*abs(wc[3]))/m_)-0.5*std::pow(wc[2]+0.3872983346207417*dxv[2]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
-    fMquad[7] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]+0.3872983346207417*dxv[2]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
-    fMquad[8] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]+0.3872983346207417*dxv[2]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+    fMquad[0] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*std::abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+    fMquad[1] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+    fMquad[2] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+    fMquad[3] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*std::abs(wc[3]))/m_)-0.5*std::pow(wc[2]-0.3872983346207417*dxv[2]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+    fMquad[4] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-0.3872983346207417*dxv[2]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+    fMquad[5] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-0.3872983346207417*dxv[2]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+    fMquad[6] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*std::abs(wc[3]))/m_)-0.5*std::pow(wc[2]+0.3872983346207417*dxv[2]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+    fMquad[7] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]+0.3872983346207417*dxv[2]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+    fMquad[8] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]+0.3872983346207417*dxv[2]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
   } else {
     fMquad[0] = 9.999999999999999e-41;
     fMquad[1] = 9.999999999999999e-41;
@@ -561,15 +561,15 @@ void GkMaxwellianOnBasisGauss2x2vMax_P2_phaseQuad(const double *flowUOrd, const 
     fMquad[8] = 9.999999999999999e-41;
   };
   if ((vtSqOrd[1] > 0.) && (fMFacOrd[1] > 0.)) {
-    fMquad[9] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
-    fMquad[10] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
-    fMquad[11] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
-    fMquad[12] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*abs(wc[3]))/m_)-0.5*std::pow(wc[2]-0.3872983346207417*dxv[2]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
-    fMquad[13] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-0.3872983346207417*dxv[2]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
-    fMquad[14] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-0.3872983346207417*dxv[2]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
-    fMquad[15] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*abs(wc[3]))/m_)-0.5*std::pow(wc[2]+0.3872983346207417*dxv[2]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
-    fMquad[16] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]+0.3872983346207417*dxv[2]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
-    fMquad[17] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]+0.3872983346207417*dxv[2]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+    fMquad[9] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*std::abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+    fMquad[10] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+    fMquad[11] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+    fMquad[12] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*std::abs(wc[3]))/m_)-0.5*std::pow(wc[2]-0.3872983346207417*dxv[2]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+    fMquad[13] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-0.3872983346207417*dxv[2]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+    fMquad[14] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-0.3872983346207417*dxv[2]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+    fMquad[15] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*std::abs(wc[3]))/m_)-0.5*std::pow(wc[2]+0.3872983346207417*dxv[2]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+    fMquad[16] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]+0.3872983346207417*dxv[2]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+    fMquad[17] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]+0.3872983346207417*dxv[2]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
   } else {
     fMquad[9] = 9.999999999999999e-41;
     fMquad[10] = 9.999999999999999e-41;
@@ -582,15 +582,15 @@ void GkMaxwellianOnBasisGauss2x2vMax_P2_phaseQuad(const double *flowUOrd, const 
     fMquad[17] = 9.999999999999999e-41;
   };
   if ((vtSqOrd[2] > 0.) && (fMFacOrd[2] > 0.)) {
-    fMquad[18] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
-    fMquad[19] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
-    fMquad[20] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
-    fMquad[21] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
-    fMquad[22] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
-    fMquad[23] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
-    fMquad[24] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
-    fMquad[25] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
-    fMquad[26] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
+    fMquad[18] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*std::abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
+    fMquad[19] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
+    fMquad[20] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
+    fMquad[21] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*std::abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
+    fMquad[22] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
+    fMquad[23] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
+    fMquad[24] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*std::abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
+    fMquad[25] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
+    fMquad[26] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
   } else {
     fMquad[18] = 9.999999999999999e-41;
     fMquad[19] = 9.999999999999999e-41;
@@ -603,15 +603,15 @@ void GkMaxwellianOnBasisGauss2x2vMax_P2_phaseQuad(const double *flowUOrd, const 
     fMquad[26] = 9.999999999999999e-41;
   };
   if ((vtSqOrd[3] > 0.) && (fMFacOrd[3] > 0.)) {
-    fMquad[27] = fMFacOrd[3]*exp(((-(1.0*bmagOrd[3]*abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[3],2.0))/vtSqOrd[3])+9.999999999999999e-41; 
-    fMquad[28] = fMFacOrd[3]*exp(((-(1.0*bmagOrd[3]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[3],2.0))/vtSqOrd[3])+9.999999999999999e-41; 
-    fMquad[29] = fMFacOrd[3]*exp(((-(1.0*bmagOrd[3]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[3],2.0))/vtSqOrd[3])+9.999999999999999e-41; 
-    fMquad[30] = fMFacOrd[3]*exp(((-(1.0*bmagOrd[3]*abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[3])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[3])+9.999999999999999e-41; 
-    fMquad[31] = fMFacOrd[3]*exp(((-(1.0*bmagOrd[3]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[3])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[3])+9.999999999999999e-41; 
-    fMquad[32] = fMFacOrd[3]*exp(((-(1.0*bmagOrd[3]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[3])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[3])+9.999999999999999e-41; 
-    fMquad[33] = fMFacOrd[3]*exp(((-(1.0*bmagOrd[3]*abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[3])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[3])+9.999999999999999e-41; 
-    fMquad[34] = fMFacOrd[3]*exp(((-(1.0*bmagOrd[3]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[3])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[3])+9.999999999999999e-41; 
-    fMquad[35] = fMFacOrd[3]*exp(((-(1.0*bmagOrd[3]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[3])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[3])+9.999999999999999e-41; 
+    fMquad[27] = fMFacOrd[3]*exp(((-(1.0*bmagOrd[3]*std::abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[3],2.0))/vtSqOrd[3])+9.999999999999999e-41; 
+    fMquad[28] = fMFacOrd[3]*exp(((-(1.0*bmagOrd[3]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[3],2.0))/vtSqOrd[3])+9.999999999999999e-41; 
+    fMquad[29] = fMFacOrd[3]*exp(((-(1.0*bmagOrd[3]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[3],2.0))/vtSqOrd[3])+9.999999999999999e-41; 
+    fMquad[30] = fMFacOrd[3]*exp(((-(1.0*bmagOrd[3]*std::abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[3])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[3])+9.999999999999999e-41; 
+    fMquad[31] = fMFacOrd[3]*exp(((-(1.0*bmagOrd[3]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[3])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[3])+9.999999999999999e-41; 
+    fMquad[32] = fMFacOrd[3]*exp(((-(1.0*bmagOrd[3]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[3])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[3])+9.999999999999999e-41; 
+    fMquad[33] = fMFacOrd[3]*exp(((-(1.0*bmagOrd[3]*std::abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[3])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[3])+9.999999999999999e-41; 
+    fMquad[34] = fMFacOrd[3]*exp(((-(1.0*bmagOrd[3]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[3])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[3])+9.999999999999999e-41; 
+    fMquad[35] = fMFacOrd[3]*exp(((-(1.0*bmagOrd[3]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[3])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[3])+9.999999999999999e-41; 
   } else {
     fMquad[27] = 9.999999999999999e-41;
     fMquad[28] = 9.999999999999999e-41;
@@ -624,15 +624,15 @@ void GkMaxwellianOnBasisGauss2x2vMax_P2_phaseQuad(const double *flowUOrd, const 
     fMquad[35] = 9.999999999999999e-41;
   };
   if ((vtSqOrd[4] > 0.) && (fMFacOrd[4] > 0.)) {
-    fMquad[36] = fMFacOrd[4]*exp(((-(1.0*bmagOrd[4]*abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[4],2.0))/vtSqOrd[4])+9.999999999999999e-41; 
-    fMquad[37] = fMFacOrd[4]*exp(((-(1.0*bmagOrd[4]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[4],2.0))/vtSqOrd[4])+9.999999999999999e-41; 
-    fMquad[38] = fMFacOrd[4]*exp(((-(1.0*bmagOrd[4]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[4],2.0))/vtSqOrd[4])+9.999999999999999e-41; 
-    fMquad[39] = fMFacOrd[4]*exp(((-(1.0*bmagOrd[4]*abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[4])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[4])+9.999999999999999e-41; 
-    fMquad[40] = fMFacOrd[4]*exp(((-(1.0*bmagOrd[4]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[4])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[4])+9.999999999999999e-41; 
-    fMquad[41] = fMFacOrd[4]*exp(((-(1.0*bmagOrd[4]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[4])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[4])+9.999999999999999e-41; 
-    fMquad[42] = fMFacOrd[4]*exp(((-(1.0*bmagOrd[4]*abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[4])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[4])+9.999999999999999e-41; 
-    fMquad[43] = fMFacOrd[4]*exp(((-(1.0*bmagOrd[4]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[4])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[4])+9.999999999999999e-41; 
-    fMquad[44] = fMFacOrd[4]*exp(((-(1.0*bmagOrd[4]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[4])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[4])+9.999999999999999e-41; 
+    fMquad[36] = fMFacOrd[4]*exp(((-(1.0*bmagOrd[4]*std::abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[4],2.0))/vtSqOrd[4])+9.999999999999999e-41; 
+    fMquad[37] = fMFacOrd[4]*exp(((-(1.0*bmagOrd[4]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[4],2.0))/vtSqOrd[4])+9.999999999999999e-41; 
+    fMquad[38] = fMFacOrd[4]*exp(((-(1.0*bmagOrd[4]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[4],2.0))/vtSqOrd[4])+9.999999999999999e-41; 
+    fMquad[39] = fMFacOrd[4]*exp(((-(1.0*bmagOrd[4]*std::abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[4])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[4])+9.999999999999999e-41; 
+    fMquad[40] = fMFacOrd[4]*exp(((-(1.0*bmagOrd[4]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[4])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[4])+9.999999999999999e-41; 
+    fMquad[41] = fMFacOrd[4]*exp(((-(1.0*bmagOrd[4]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[4])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[4])+9.999999999999999e-41; 
+    fMquad[42] = fMFacOrd[4]*exp(((-(1.0*bmagOrd[4]*std::abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[4])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[4])+9.999999999999999e-41; 
+    fMquad[43] = fMFacOrd[4]*exp(((-(1.0*bmagOrd[4]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[4])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[4])+9.999999999999999e-41; 
+    fMquad[44] = fMFacOrd[4]*exp(((-(1.0*bmagOrd[4]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[4])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[4])+9.999999999999999e-41; 
   } else {
     fMquad[36] = 9.999999999999999e-41;
     fMquad[37] = 9.999999999999999e-41;
@@ -645,15 +645,15 @@ void GkMaxwellianOnBasisGauss2x2vMax_P2_phaseQuad(const double *flowUOrd, const 
     fMquad[44] = 9.999999999999999e-41;
   };
   if ((vtSqOrd[5] > 0.) && (fMFacOrd[5] > 0.)) {
-    fMquad[45] = fMFacOrd[5]*exp(((-(1.0*bmagOrd[5]*abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[5],2.0))/vtSqOrd[5])+9.999999999999999e-41; 
-    fMquad[46] = fMFacOrd[5]*exp(((-(1.0*bmagOrd[5]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[5],2.0))/vtSqOrd[5])+9.999999999999999e-41; 
-    fMquad[47] = fMFacOrd[5]*exp(((-(1.0*bmagOrd[5]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[5],2.0))/vtSqOrd[5])+9.999999999999999e-41; 
-    fMquad[48] = fMFacOrd[5]*exp(((-(1.0*bmagOrd[5]*abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[5])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[5])+9.999999999999999e-41; 
-    fMquad[49] = fMFacOrd[5]*exp(((-(1.0*bmagOrd[5]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[5])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[5])+9.999999999999999e-41; 
-    fMquad[50] = fMFacOrd[5]*exp(((-(1.0*bmagOrd[5]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[5])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[5])+9.999999999999999e-41; 
-    fMquad[51] = fMFacOrd[5]*exp(((-(1.0*bmagOrd[5]*abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[5])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[5])+9.999999999999999e-41; 
-    fMquad[52] = fMFacOrd[5]*exp(((-(1.0*bmagOrd[5]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[5])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[5])+9.999999999999999e-41; 
-    fMquad[53] = fMFacOrd[5]*exp(((-(1.0*bmagOrd[5]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[5])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[5])+9.999999999999999e-41; 
+    fMquad[45] = fMFacOrd[5]*exp(((-(1.0*bmagOrd[5]*std::abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[5],2.0))/vtSqOrd[5])+9.999999999999999e-41; 
+    fMquad[46] = fMFacOrd[5]*exp(((-(1.0*bmagOrd[5]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[5],2.0))/vtSqOrd[5])+9.999999999999999e-41; 
+    fMquad[47] = fMFacOrd[5]*exp(((-(1.0*bmagOrd[5]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[5],2.0))/vtSqOrd[5])+9.999999999999999e-41; 
+    fMquad[48] = fMFacOrd[5]*exp(((-(1.0*bmagOrd[5]*std::abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[5])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[5])+9.999999999999999e-41; 
+    fMquad[49] = fMFacOrd[5]*exp(((-(1.0*bmagOrd[5]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[5])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[5])+9.999999999999999e-41; 
+    fMquad[50] = fMFacOrd[5]*exp(((-(1.0*bmagOrd[5]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[5])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[5])+9.999999999999999e-41; 
+    fMquad[51] = fMFacOrd[5]*exp(((-(1.0*bmagOrd[5]*std::abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[5])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[5])+9.999999999999999e-41; 
+    fMquad[52] = fMFacOrd[5]*exp(((-(1.0*bmagOrd[5]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[5])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[5])+9.999999999999999e-41; 
+    fMquad[53] = fMFacOrd[5]*exp(((-(1.0*bmagOrd[5]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[5])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[5])+9.999999999999999e-41; 
   } else {
     fMquad[45] = 9.999999999999999e-41;
     fMquad[46] = 9.999999999999999e-41;
@@ -666,15 +666,15 @@ void GkMaxwellianOnBasisGauss2x2vMax_P2_phaseQuad(const double *flowUOrd, const 
     fMquad[53] = 9.999999999999999e-41;
   };
   if ((vtSqOrd[6] > 0.) && (fMFacOrd[6] > 0.)) {
-    fMquad[54] = fMFacOrd[6]*exp(((-(1.0*bmagOrd[6]*abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[6],2.0))/vtSqOrd[6])+9.999999999999999e-41; 
-    fMquad[55] = fMFacOrd[6]*exp(((-(1.0*bmagOrd[6]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[6],2.0))/vtSqOrd[6])+9.999999999999999e-41; 
-    fMquad[56] = fMFacOrd[6]*exp(((-(1.0*bmagOrd[6]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[6],2.0))/vtSqOrd[6])+9.999999999999999e-41; 
-    fMquad[57] = fMFacOrd[6]*exp(((-(1.0*bmagOrd[6]*abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[6])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[6])+9.999999999999999e-41; 
-    fMquad[58] = fMFacOrd[6]*exp(((-(1.0*bmagOrd[6]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[6])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[6])+9.999999999999999e-41; 
-    fMquad[59] = fMFacOrd[6]*exp(((-(1.0*bmagOrd[6]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[6])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[6])+9.999999999999999e-41; 
-    fMquad[60] = fMFacOrd[6]*exp(((-(1.0*bmagOrd[6]*abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[6])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[6])+9.999999999999999e-41; 
-    fMquad[61] = fMFacOrd[6]*exp(((-(1.0*bmagOrd[6]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[6])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[6])+9.999999999999999e-41; 
-    fMquad[62] = fMFacOrd[6]*exp(((-(1.0*bmagOrd[6]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[6])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[6])+9.999999999999999e-41; 
+    fMquad[54] = fMFacOrd[6]*exp(((-(1.0*bmagOrd[6]*std::abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[6],2.0))/vtSqOrd[6])+9.999999999999999e-41; 
+    fMquad[55] = fMFacOrd[6]*exp(((-(1.0*bmagOrd[6]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[6],2.0))/vtSqOrd[6])+9.999999999999999e-41; 
+    fMquad[56] = fMFacOrd[6]*exp(((-(1.0*bmagOrd[6]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[6],2.0))/vtSqOrd[6])+9.999999999999999e-41; 
+    fMquad[57] = fMFacOrd[6]*exp(((-(1.0*bmagOrd[6]*std::abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[6])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[6])+9.999999999999999e-41; 
+    fMquad[58] = fMFacOrd[6]*exp(((-(1.0*bmagOrd[6]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[6])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[6])+9.999999999999999e-41; 
+    fMquad[59] = fMFacOrd[6]*exp(((-(1.0*bmagOrd[6]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[6])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[6])+9.999999999999999e-41; 
+    fMquad[60] = fMFacOrd[6]*exp(((-(1.0*bmagOrd[6]*std::abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[6])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[6])+9.999999999999999e-41; 
+    fMquad[61] = fMFacOrd[6]*exp(((-(1.0*bmagOrd[6]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[6])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[6])+9.999999999999999e-41; 
+    fMquad[62] = fMFacOrd[6]*exp(((-(1.0*bmagOrd[6]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[6])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[6])+9.999999999999999e-41; 
   } else {
     fMquad[54] = 9.999999999999999e-41;
     fMquad[55] = 9.999999999999999e-41;
@@ -687,15 +687,15 @@ void GkMaxwellianOnBasisGauss2x2vMax_P2_phaseQuad(const double *flowUOrd, const 
     fMquad[62] = 9.999999999999999e-41;
   };
   if ((vtSqOrd[7] > 0.) && (fMFacOrd[7] > 0.)) {
-    fMquad[63] = fMFacOrd[7]*exp(((-(1.0*bmagOrd[7]*abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[7],2.0))/vtSqOrd[7])+9.999999999999999e-41; 
-    fMquad[64] = fMFacOrd[7]*exp(((-(1.0*bmagOrd[7]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[7],2.0))/vtSqOrd[7])+9.999999999999999e-41; 
-    fMquad[65] = fMFacOrd[7]*exp(((-(1.0*bmagOrd[7]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[7],2.0))/vtSqOrd[7])+9.999999999999999e-41; 
-    fMquad[66] = fMFacOrd[7]*exp(((-(1.0*bmagOrd[7]*abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[7])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[7])+9.999999999999999e-41; 
-    fMquad[67] = fMFacOrd[7]*exp(((-(1.0*bmagOrd[7]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[7])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[7])+9.999999999999999e-41; 
-    fMquad[68] = fMFacOrd[7]*exp(((-(1.0*bmagOrd[7]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[7])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[7])+9.999999999999999e-41; 
-    fMquad[69] = fMFacOrd[7]*exp(((-(1.0*bmagOrd[7]*abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[7])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[7])+9.999999999999999e-41; 
-    fMquad[70] = fMFacOrd[7]*exp(((-(1.0*bmagOrd[7]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[7])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[7])+9.999999999999999e-41; 
-    fMquad[71] = fMFacOrd[7]*exp(((-(1.0*bmagOrd[7]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[7])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[7])+9.999999999999999e-41; 
+    fMquad[63] = fMFacOrd[7]*exp(((-(1.0*bmagOrd[7]*std::abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[7],2.0))/vtSqOrd[7])+9.999999999999999e-41; 
+    fMquad[64] = fMFacOrd[7]*exp(((-(1.0*bmagOrd[7]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[7],2.0))/vtSqOrd[7])+9.999999999999999e-41; 
+    fMquad[65] = fMFacOrd[7]*exp(((-(1.0*bmagOrd[7]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[7],2.0))/vtSqOrd[7])+9.999999999999999e-41; 
+    fMquad[66] = fMFacOrd[7]*exp(((-(1.0*bmagOrd[7]*std::abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[7])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[7])+9.999999999999999e-41; 
+    fMquad[67] = fMFacOrd[7]*exp(((-(1.0*bmagOrd[7]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[7])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[7])+9.999999999999999e-41; 
+    fMquad[68] = fMFacOrd[7]*exp(((-(1.0*bmagOrd[7]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[7])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[7])+9.999999999999999e-41; 
+    fMquad[69] = fMFacOrd[7]*exp(((-(1.0*bmagOrd[7]*std::abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[7])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[7])+9.999999999999999e-41; 
+    fMquad[70] = fMFacOrd[7]*exp(((-(1.0*bmagOrd[7]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[7])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[7])+9.999999999999999e-41; 
+    fMquad[71] = fMFacOrd[7]*exp(((-(1.0*bmagOrd[7]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[7])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[7])+9.999999999999999e-41; 
   } else {
     fMquad[63] = 9.999999999999999e-41;
     fMquad[64] = 9.999999999999999e-41;
@@ -708,15 +708,15 @@ void GkMaxwellianOnBasisGauss2x2vMax_P2_phaseQuad(const double *flowUOrd, const 
     fMquad[71] = 9.999999999999999e-41;
   };
   if ((vtSqOrd[8] > 0.) && (fMFacOrd[8] > 0.)) {
-    fMquad[72] = fMFacOrd[8]*exp(((-(1.0*bmagOrd[8]*abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[8],2.0))/vtSqOrd[8])+9.999999999999999e-41; 
-    fMquad[73] = fMFacOrd[8]*exp(((-(1.0*bmagOrd[8]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[8],2.0))/vtSqOrd[8])+9.999999999999999e-41; 
-    fMquad[74] = fMFacOrd[8]*exp(((-(1.0*bmagOrd[8]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[8],2.0))/vtSqOrd[8])+9.999999999999999e-41; 
-    fMquad[75] = fMFacOrd[8]*exp(((-(1.0*bmagOrd[8]*abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[8])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[8])+9.999999999999999e-41; 
-    fMquad[76] = fMFacOrd[8]*exp(((-(1.0*bmagOrd[8]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[8])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[8])+9.999999999999999e-41; 
-    fMquad[77] = fMFacOrd[8]*exp(((-(1.0*bmagOrd[8]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[8])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[8])+9.999999999999999e-41; 
-    fMquad[78] = fMFacOrd[8]*exp(((-(1.0*bmagOrd[8]*abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[8])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[8])+9.999999999999999e-41; 
-    fMquad[79] = fMFacOrd[8]*exp(((-(1.0*bmagOrd[8]*abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[8])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[8])+9.999999999999999e-41; 
-    fMquad[80] = fMFacOrd[8]*exp(((-(1.0*bmagOrd[8]*abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[8])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[8])+9.999999999999999e-41; 
+    fMquad[72] = fMFacOrd[8]*exp(((-(1.0*bmagOrd[8]*std::abs(wc[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[8],2.0))/vtSqOrd[8])+9.999999999999999e-41; 
+    fMquad[73] = fMFacOrd[8]*exp(((-(1.0*bmagOrd[8]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[8],2.0))/vtSqOrd[8])+9.999999999999999e-41; 
+    fMquad[74] = fMFacOrd[8]*exp(((-(1.0*bmagOrd[8]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow(wc[2]-1.0*flowUOrd[8],2.0))/vtSqOrd[8])+9.999999999999999e-41; 
+    fMquad[75] = fMFacOrd[8]*exp(((-(1.0*bmagOrd[8]*std::abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[8])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[8])+9.999999999999999e-41; 
+    fMquad[76] = fMFacOrd[8]*exp(((-(1.0*bmagOrd[8]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[8])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[8])+9.999999999999999e-41; 
+    fMquad[77] = fMFacOrd[8]*exp(((-(1.0*bmagOrd[8]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[8])+wc[2]-0.3872983346207417*dxv[2],2.0))/vtSqOrd[8])+9.999999999999999e-41; 
+    fMquad[78] = fMFacOrd[8]*exp(((-(1.0*bmagOrd[8]*std::abs(wc[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[8])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[8])+9.999999999999999e-41; 
+    fMquad[79] = fMFacOrd[8]*exp(((-(1.0*bmagOrd[8]*std::abs(wc[3]-0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[8])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[8])+9.999999999999999e-41; 
+    fMquad[80] = fMFacOrd[8]*exp(((-(1.0*bmagOrd[8]*std::abs(wc[3]+0.3872983346207417*dxv[3]))/m_)-0.5*std::pow((-1.0*flowUOrd[8])+wc[2]+0.3872983346207417*dxv[2],2.0))/vtSqOrd[8])+9.999999999999999e-41; 
   } else {
     fMquad[72] = 9.999999999999999e-41;
     fMquad[73] = 9.999999999999999e-41;

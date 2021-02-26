@@ -143,7 +143,7 @@ void GkMaxwellianInnerLoop(/* Number density, drift speed, and thermal velocity 
 
       // multiply by jacobian, the magnetic field
       if ((vtSq[confOrdIdx] > 0.) && (n[confOrdIdx] > 0.))
-        maxwellian *= bmag[confOrdIdx]*exp((-0.5*v2-bmag[confOrdIdx]*abs(mu)/m_)/vtSq[confOrdIdx]);
+        maxwellian *= bmag[confOrdIdx]*exp((-0.5*v2-bmag[confOrdIdx]*std::abs(mu)/m_)/vtSq[confOrdIdx]);
 
       for (int k = 0; k < numPhaseBasis; ++k)
         fItr[k] +=
