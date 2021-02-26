@@ -24,14 +24,10 @@ end
 function FluidProjection:fullInit(species)
    self.species = species
 
-   self.basis = species.basis
-   self.confGrid  = species.grid
+   self.basis    = species.basis
+   self.confGrid = species.grid
 
    self.cdim = self.confGrid:ndim()
-
-   self.isInit   = xsys.pickBool(self.tbl.isInit, true)
-   self.isSource = xsys.pickBool(self.tbl.isSource, false)
-   if self.isSource then self.isInit = false end
 end
 
 ----------------------------------------------------------------------
@@ -49,16 +45,17 @@ function FunctionProjection:fullInit(species)
    assert(type(func) == "function",
 	  "The input must be a table containing function")
    self.project = Updater.ProjectOnBasis {
-      onGrid          = self.confGrid,
-      basis           = self.basis,
-      evaluate        = func,
-      projectOnGhosts = true
+      onGrid   = self.confGrid,
+      basis    = self.basis,
+      evaluate = func,
+      onGhosts = true
    }
    self.initFunc = func
 end
 
-function FunctionProjection:run(t, distf)
-   self.project:advance(t, {}, {distf})
+function FunctionProjection:advance(time, inFlds, outFlds)
+   local distf = outFlds[1]
+   self.project:advance(time, {}, {distf})
 end
 ----------------------------------------------------------------------
 -- Base class for reading an initial condition.
@@ -67,16 +64,14 @@ local ReadInput = Proto(FluidProjection)
 function ReadInput:fullInit(species)
    ReadInput.super.fullInit(self, species)
 
-   self.userInputFile  = self.tbl.inputFile
+   self.userInputFile = self.tbl.inputFile
 end
 function ReadInput:run(t, distf)
    self.momIoRead = AdiosCartFieldIo {
       elemType = distf:elemType(),
       method   = "MPI",
-      metaData = {
-         polyOrder = self.basis:polyOrder(),
-         basisType = self.basis:id()
-      },
+      metaData = {polyOrder = self.basis:polyOrder(),
+                  basisType = self.basis:id()},
    }
 
    local readSkin = false

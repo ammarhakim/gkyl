@@ -32,14 +32,14 @@ local MaxwellianOnBasis = Proto(UpdaterBase)
 function MaxwellianOnBasis:init(tbl)
    MaxwellianOnBasis.super.init(self, tbl) -- setup base object
 
-   self.confGrid = assert(tbl.confGrid,
-			  "Updater.MaxwellianOnBasis: Must provide configuration space grid object 'confGrid'")
-   self.confBasis = assert(tbl.confBasis,
-			   "Updater.MaxwellianOnBasis: Must provide configuration space basis object 'confBasis'")
-   self.phaseGrid = assert(tbl.onGrid,
-			   "Updater.MaxwellianOnBasis: Must provide phase space grid object 'onGrid'")
+   self.phaseGrid  = assert(tbl.onGrid,
+                            "Updater.MaxwellianOnBasis: Must provide phase space grid object 'onGrid'")
+   self.confGrid   = assert(tbl.confGrid,
+                            "Updater.MaxwellianOnBasis: Must provide configuration space grid object 'confGrid'")
+   self.confBasis  = assert(tbl.confBasis,
+                            "Updater.MaxwellianOnBasis: Must provide configuration space basis object 'confBasis'")
    self.phaseBasis = assert(tbl.phaseBasis,
-			    "Updater.MaxwellianOnBasis: Must provide phase space basis object 'phaseBasis'")
+                            "Updater.MaxwellianOnBasis: Must provide phase space basis object 'phaseBasis'")
 
    -- Number of quadrature points in each direction
    local numQuad1D = tbl.numConfQuad and tbl.numConfQuad or self.confBasis:polyOrder() + 1
@@ -174,12 +174,11 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 
    local confIndexer  = nIn:genIndexer()
    local phaseIndexer = fOut:genIndexer()
-   local phaseRange   = fOut:localRange()
-   if self.onGhosts then   -- Extend range to config-space ghosts.
-      local cdirs = {}
-      for dir = 1, cDim do
-         phaseRange = phaseRange:extendDir(dir, fOut:lowerGhost(), fOut:upperGhost())
-      end
+   local phaseRange
+   if self.onGhosts then
+      phaseRange = fOut:localExtRange()
+   else
+      phaseRange = fOut:localRange()
    end
 
    -- Construct ranges for nested loops.

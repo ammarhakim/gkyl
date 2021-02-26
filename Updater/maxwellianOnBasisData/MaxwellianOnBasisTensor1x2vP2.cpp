@@ -234,15 +234,15 @@ void GkMaxwellianOnBasisGauss1x2vTensor_P2_phaseQuad(const double *flowUOrd, con
 
   double fMquad[27];
   if ((vtSqOrd[0] > 0.) && (fMFacOrd[0] > 0.)) {
-    fMquad[0] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*wc[2])/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
-    fMquad[1] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*(wc[2]-0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
-    fMquad[2] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*(wc[2]+0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
-    fMquad[3] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*wc[2])/m_)-0.5*std::pow(wc[1]-0.3872983346207417*dxv[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
-    fMquad[4] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*(wc[2]-0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-0.3872983346207417*dxv[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
-    fMquad[5] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*(wc[2]+0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-0.3872983346207417*dxv[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
-    fMquad[6] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*wc[2])/m_)-0.5*std::pow(wc[1]+0.3872983346207417*dxv[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
-    fMquad[7] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*(wc[2]-0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]+0.3872983346207417*dxv[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
-    fMquad[8] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*(wc[2]+0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]+0.3872983346207417*dxv[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+    fMquad[0] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*abs(wc[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+    fMquad[1] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*abs(wc[2]-0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+    fMquad[2] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*abs(wc[2]+0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+    fMquad[3] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*abs(wc[2]))/m_)-0.5*std::pow(wc[1]-0.3872983346207417*dxv[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+    fMquad[4] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*abs(wc[2]-0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-0.3872983346207417*dxv[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+    fMquad[5] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*abs(wc[2]+0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-0.3872983346207417*dxv[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+    fMquad[6] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*abs(wc[2]))/m_)-0.5*std::pow(wc[1]+0.3872983346207417*dxv[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+    fMquad[7] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*abs(wc[2]-0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]+0.3872983346207417*dxv[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
+    fMquad[8] = fMFacOrd[0]*exp(((-(1.0*bmagOrd[0]*abs(wc[2]+0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]+0.3872983346207417*dxv[1]-1.0*flowUOrd[0],2.0))/vtSqOrd[0])+9.999999999999999e-41; 
   } else {
     fMquad[0] = 9.999999999999999e-41;
     fMquad[1] = 9.999999999999999e-41;
@@ -255,15 +255,15 @@ void GkMaxwellianOnBasisGauss1x2vTensor_P2_phaseQuad(const double *flowUOrd, con
     fMquad[8] = 9.999999999999999e-41;
   };
   if ((vtSqOrd[1] > 0.) && (fMFacOrd[1] > 0.)) {
-    fMquad[9] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*wc[2])/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
-    fMquad[10] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*(wc[2]-0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
-    fMquad[11] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*(wc[2]+0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
-    fMquad[12] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*wc[2])/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[1]-0.3872983346207417*dxv[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
-    fMquad[13] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*(wc[2]-0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[1]-0.3872983346207417*dxv[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
-    fMquad[14] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*(wc[2]+0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[1]-0.3872983346207417*dxv[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
-    fMquad[15] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*wc[2])/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[1]+0.3872983346207417*dxv[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
-    fMquad[16] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*(wc[2]-0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[1]+0.3872983346207417*dxv[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
-    fMquad[17] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*(wc[2]+0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[1]+0.3872983346207417*dxv[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+    fMquad[9] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*abs(wc[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+    fMquad[10] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*abs(wc[2]-0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+    fMquad[11] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*abs(wc[2]+0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+    fMquad[12] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*abs(wc[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[1]-0.3872983346207417*dxv[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+    fMquad[13] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*abs(wc[2]-0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[1]-0.3872983346207417*dxv[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+    fMquad[14] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*abs(wc[2]+0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[1]-0.3872983346207417*dxv[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+    fMquad[15] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*abs(wc[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[1]+0.3872983346207417*dxv[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+    fMquad[16] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*abs(wc[2]-0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[1]+0.3872983346207417*dxv[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
+    fMquad[17] = fMFacOrd[1]*exp(((-(1.0*bmagOrd[1]*abs(wc[2]+0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[1]+0.3872983346207417*dxv[1],2.0))/vtSqOrd[1])+9.999999999999999e-41; 
   } else {
     fMquad[9] = 9.999999999999999e-41;
     fMquad[10] = 9.999999999999999e-41;
@@ -276,15 +276,15 @@ void GkMaxwellianOnBasisGauss1x2vTensor_P2_phaseQuad(const double *flowUOrd, con
     fMquad[17] = 9.999999999999999e-41;
   };
   if ((vtSqOrd[2] > 0.) && (fMFacOrd[2] > 0.)) {
-    fMquad[18] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*wc[2])/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
-    fMquad[19] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*(wc[2]-0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
-    fMquad[20] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*(wc[2]+0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
-    fMquad[21] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*wc[2])/m_)-0.5*std::pow((-1.0*flowUOrd[2])+wc[1]-0.3872983346207417*dxv[1],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
-    fMquad[22] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*(wc[2]-0.3872983346207417*dxv[2]))/m_)-0.5*std::pow((-1.0*flowUOrd[2])+wc[1]-0.3872983346207417*dxv[1],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
-    fMquad[23] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*(wc[2]+0.3872983346207417*dxv[2]))/m_)-0.5*std::pow((-1.0*flowUOrd[2])+wc[1]-0.3872983346207417*dxv[1],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
-    fMquad[24] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*wc[2])/m_)-0.5*std::pow((-1.0*flowUOrd[2])+wc[1]+0.3872983346207417*dxv[1],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
-    fMquad[25] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*(wc[2]-0.3872983346207417*dxv[2]))/m_)-0.5*std::pow((-1.0*flowUOrd[2])+wc[1]+0.3872983346207417*dxv[1],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
-    fMquad[26] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*(wc[2]+0.3872983346207417*dxv[2]))/m_)-0.5*std::pow((-1.0*flowUOrd[2])+wc[1]+0.3872983346207417*dxv[1],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
+    fMquad[18] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*abs(wc[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
+    fMquad[19] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*abs(wc[2]-0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
+    fMquad[20] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*abs(wc[2]+0.3872983346207417*dxv[2]))/m_)-0.5*std::pow(wc[1]-1.0*flowUOrd[2],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
+    fMquad[21] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*abs(wc[2]))/m_)-0.5*std::pow((-1.0*flowUOrd[2])+wc[1]-0.3872983346207417*dxv[1],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
+    fMquad[22] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*abs(wc[2]-0.3872983346207417*dxv[2]))/m_)-0.5*std::pow((-1.0*flowUOrd[2])+wc[1]-0.3872983346207417*dxv[1],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
+    fMquad[23] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*abs(wc[2]+0.3872983346207417*dxv[2]))/m_)-0.5*std::pow((-1.0*flowUOrd[2])+wc[1]-0.3872983346207417*dxv[1],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
+    fMquad[24] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*abs(wc[2]))/m_)-0.5*std::pow((-1.0*flowUOrd[2])+wc[1]+0.3872983346207417*dxv[1],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
+    fMquad[25] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*abs(wc[2]-0.3872983346207417*dxv[2]))/m_)-0.5*std::pow((-1.0*flowUOrd[2])+wc[1]+0.3872983346207417*dxv[1],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
+    fMquad[26] = fMFacOrd[2]*exp(((-(1.0*bmagOrd[2]*abs(wc[2]+0.3872983346207417*dxv[2]))/m_)-0.5*std::pow((-1.0*flowUOrd[2])+wc[1]+0.3872983346207417*dxv[1],2.0))/vtSqOrd[2])+9.999999999999999e-41; 
   } else {
     fMquad[18] = 9.999999999999999e-41;
     fMquad[19] = 9.999999999999999e-41;

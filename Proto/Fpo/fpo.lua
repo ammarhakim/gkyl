@@ -488,19 +488,21 @@ return function(tbl)
             local x, y, z = z[1], z[2], z[3]
             local v = math.sqrt(x*x + y*y + z*z)
             local n = momVec0[1]
-            local vth2 = momVec0[5]/momVec0[1]/3
+            local vth2 = 1.--momVec0[5]/momVec0[1]/3
             --print(n, vth2)
             local svth = math.sqrt(2*vth2)
-            return n/v*ffi.C.erf(v/svth)
+            return 2* n/v*ffi.C.erf(v/svth)
          end
          initDiffFunc = function (t, z)
             local x, y, z = z[1], z[2], z[3]
             local v = math.sqrt(x*x + y*y + z*z)
             local n = momVec0[1]
-            local vth2 = momVec0[5]/momVec0[1]/3 
+            local vth2 = 1.--momVec0[5]/momVec0[1]/3
+            local vth = math.sqrt(vth2)
             local svth = math.sqrt(2*vth2)
-            return (n/math.sqrt(math.pi)*svth*math.exp(-v^2/svth^2) + 
-                       n*svth*(0.5*svth/v+v/svth)*ffi.C.erf(v/svth))
+            --return (n*svth/math.sqrt(math.pi)*math.exp(-v^2/svth^2) + 
+            --           n*svth*(0.5*svth/v+v/svth)*ffi.C.erf(v/svth))
+            return math.sqrt(2)*n*vth*(math.exp(-v^2/svth^2)/math.sqrt(math.pi) + ffi.C.erf(v/svth)*(vth/(math.sqrt(2)*v)+v/(math.sqrt(2)*vth)))
          end
       end
       

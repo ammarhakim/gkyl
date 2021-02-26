@@ -10,13 +10,13 @@
 local ffi = require "ffi"
 
 -- Gkyl libraries.
-local DataStruct = require "DataStruct"
+local DataStruct       = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
-local Lin = require "Lib.Linalg"
-local Mpi = require "Comm.Mpi"
-local Proto = require "Lib.Proto"
-local Range = require "Lib.Range"
-local RectCart = require "Grid.RectCart"
+local Lin              = require "Lib.Linalg"
+local Mpi              = require "Comm.Mpi"
+local Proto            = require "Lib.Proto"
+local Range            = require "Lib.Range"
+local RectCart         = require "Grid.RectCart"
 
 -- NonUniformRectCartGrid ------------------------------------------------------
 --

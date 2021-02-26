@@ -155,7 +155,7 @@ function Diffusion:slvrTime()
 end
 
 function Diffusion:nonSlvrTime()
-   return self.timersNonSlvr
+   return self.timers.nonSlvr
 end
 
 return Diffusion

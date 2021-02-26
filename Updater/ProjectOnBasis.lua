@@ -77,7 +77,7 @@ function ProjectOnBasis:init(tbl)
 
    assert(N<=8, "Gaussian quadrature only implemented for numQuad<=8 in each dimension")
 
-   self._projectOnGhosts = xsys.pickBool(tbl.projectOnGhosts, false)
+   self._onGhosts = xsys.pickBool(tbl.onGhosts, false)
 
    -- 1D weights and ordinates
    local ordinates, weights = GaussQuadRules.ordinates[N], GaussQuadRules.weights[N]
@@ -145,7 +145,7 @@ function ProjectOnBasis:_advance(tCurr, inFld, outFld)
    local tId = grid:subGridSharedId() -- Local thread ID.
    -- Object to iterate over only region owned by local SHM thread.
    local localRangeDecomp
-   if self._projectOnGhosts then
+   if self._onGhosts then
       localRangeDecomp = LinearDecomp.LinearDecompRange {
 	 range = qOut:localExtRange(), numSplit = grid:numSharedProcs() }
    else

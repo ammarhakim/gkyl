@@ -97,7 +97,7 @@ function FemParPoisson:init(tbl)
       onGrid   = self._grid,
       basis    = self._basis,
       evaluate = function (t,xn) return 1.0 end,
-      projectOnGhosts = true,
+      onGhosts = true,
    }
    initUnit:advance(0.,{},{self.unitWeight})
 

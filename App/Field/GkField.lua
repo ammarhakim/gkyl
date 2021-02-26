@@ -258,7 +258,7 @@ function GkField:alloc(nRkDup)
       onGrid   = self.grid,
       basis    = self.basis,
       evaluate = function (t,xn) return 1.0 end,
-      projectOnGhosts = true,
+      onGhosts = true,
    }
    initUnit:advance(0.,{},{self.unitWeight})
 
@@ -273,10 +273,10 @@ end
 function GkField:initField(species)
    if self.externalPhi then
       local evalOnNodes = Updater.EvalOnNodes {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         evaluate        = self.externalPhi,
-         projectOnGhosts = true
+         onGrid   = self.grid,
+         basis    = self.basis,
+         evaluate = self.externalPhi,
+         onGhosts = true
       }
       self.externalPhiFld = createField(self.grid,self.basis,{1,1})
       evalOnNodes:advance(0.0, {}, {self.externalPhiFld})
@@ -620,11 +620,11 @@ function GkField:write(tm, force)
       if self.calcIntFieldEnergyTrigger(tm) then
          -- Compute integrated quantities over domain.
          self.int2Calc:advance(tm, { self.potentials[1].phi }, { self.phiSq })
-         self.energyCalc:advance(tm, { self.potentials[1].phi }, { self.gradPerpPhiSq })
          if self.isElectromagnetic then 
             self.int2Calc:advance(tm, { self.potentials[1].apar }, { self.aparSq })
          end
          if self.energyCalc then 
+            self.energyCalc:advance(tm, { self.potentials[1].phi }, { self.gradPerpPhiSq })
             if self.linearizedPolarization then
                local esEnergyFac = .5*self.polarizationWeight
                if self.ndim == 1 then 
@@ -1177,7 +1177,7 @@ function GkGeometry:createSolver()
             onGrid   = self.grid,
             basis    = self.basis,
             evaluate = self.calcAllGeo,
-            projectOnGhosts = true,
+            onGhosts = true,
          }
       end
 
@@ -1189,8 +1189,8 @@ function GkGeometry:createSolver()
          ones[dir] = 0/0 -- Set this var to nan.
          -- Test if result is nan.. nan is the only value that doesn't equal itself.
          if self.bmagFunc(0, ones) ~= self.bmagFunc(0, ones) then
-           -- If result is nan, bmag must depend on this var.
-           table.insert(self.bmagVars, dir)
+            -- If result is nan, bmag must depend on this var.
+            table.insert(self.bmagVars, dir)
          end
          ones[dir] = 1 -- Reset so we can check other vars.
       end
@@ -1296,7 +1296,7 @@ function GkGeometry:createSolver()
             onGrid   = self.grid,
             basis    = self.basis,
             evaluate = self.calcAllGeo,
-            projectOnGhosts = true,
+            onGhosts = true,
          }
       end
 
@@ -1304,10 +1304,10 @@ function GkGeometry:createSolver()
 
    if self.phiWallFunc then 
       self.setPhiWall = Updater.EvalOnNodes {
-         onGrid          = self.grid,
-         basis           = self.basis,
-         projectOnGhosts = true,
-         evaluate        = self.phiWallFunc
+         onGrid   = self.grid,
+         basis    = self.basis,
+         evaluate = self.phiWallFunc,
+         onGhosts = true,
       }
    end
 
@@ -1317,7 +1317,7 @@ function GkGeometry:createSolver()
       onGrid   = self.grid,
       basis    = self.basis,
       evaluate = function (t,xn) return 1.0 end,
-      projectOnGhosts = true,
+      onGhosts = true,
    }
    initUnit:advance(0.,{},{self.unitWeight})
 
@@ -1332,16 +1332,18 @@ function GkGeometry:createDiagnostics()
 end
 
 function GkGeometry:initField()
+   local log = Logger { logToFile = true }
+   log("...Initializing the geometry...\n")
    if self.geo.name == "SimpleHelical" then
       if self.fromFile then
          -- Read the geometry quantities from a file.
          if self.ndim == 1 then
             local tm, fr = self.fieldIo:read({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-               gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy}, self.fromFile)
+               gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy}, self.fromFile, true)
          else
             local tm, fr = self.fieldIo:read({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
                gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy, 
-               bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY}, self.fromFile)
+               bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY}, self.fromFile, true)
          end
       else
          self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
@@ -1362,7 +1364,7 @@ function GkGeometry:initField()
             jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
             gradpar=self.geo.gradpar, geoX=self.geo.geoX, geoY=self.geo.geoY, geoZ=self.geo.geoZ, gxx=self.geo.gxx,
             gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
-            self.fromFile)
+            self.fromFile, true)
       else
          self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
          self.separateComponents:advance(0, {self.geo.allGeo},
@@ -1371,8 +1373,7 @@ function GkGeometry:initField()
              self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
       end
    end
-   local log = Logger { logToFile = true }
-   log("Finished initializing the geometry\n")
+   log("...Finished initializing the geometry\n")
 
    if self.setPhiWall then self.setPhiWall:advance(0.0, {}, {self.geo.phiWall})
    else self.geo.phiWall:clear(0.0) end
@@ -1413,21 +1414,27 @@ function GkGeometry:write(tm)
       -- Write the geometry quantities to a file.
       if self.geo.name == "SimpleHelical" then
          if self.ndim == 1 then
-            self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-               gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy},
-               string.format("allGeo_%d.bp", self.ioFrame), tm, self.ioFrame)
+            for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
+               self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+                  gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy},
+                  string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
+            end
          else
-            self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-               gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy,
-               bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY},
-               string.format("allGeo_%d.bp", self.ioFrame), tm, self.ioFrame)
+            for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
+               self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+                  gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy,
+                  bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY},
+                  string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
+            end
          end
       elseif self.geo.name == "GenGeo" then
-         self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
-            jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-            gradpar=self.geo.gradpar, geoX=self.geo.geoX, geoY=self.geo.geoY, geoZ=self.geo.geoZ, gxx=self.geo.gxx,
-            gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
-            string.format("allGeo_%d.bp", self.ioFrame), tm, self.ioFrame)
+         for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
+            self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
+               jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+               gradpar=self.geo.gradpar, geoX=self.geo.geoX, geoY=self.geo.geoY, geoZ=self.geo.geoZ, gxx=self.geo.gxx,
+               gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
+               string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
+         end
 
          -- Write a grid file.
          local metaData = {

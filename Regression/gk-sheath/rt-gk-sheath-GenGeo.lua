@@ -1,9 +1,12 @@
+-- Gkyl ------------------------------------------------------------------------
+--
 -- This test is based off NSTX-like SOL simulation
--- Plasma ------------------------------------------------------------------------
-local Plasma = (require "App.PlasmaOnCartGrid").Gyrokinetic()
+--
+--------------------------------------------------------------------------------
+local Plasma    = (require "App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
-local Mpi = require "Comm.Mpi"
-local math = require("sci.math").generic
+local Mpi       = require "Comm.Mpi"
+local math      = require("sci.math").generic
 
 -- Universal constant parameters.
 eps0 = Constants.EPSILON0
@@ -117,38 +120,37 @@ plasmaApp = Plasma.App {
       cells = {8, 4},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
-              density = function (t, xn)
-                 local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
-                 local Ls = Lz/4
-                 local effectiveSource = sourceDensity(t,{x,y,0})
-                 local c_ss = math.sqrt(5/3*sourceTemperature(t,{x,y,0})/mi)
-                 local nPeak = 4*math.sqrt(5)/3/c_ss*Ls*effectiveSource/2
-                 local perturb = 0 
-                 if math.abs(z) <= Ls then
-                    return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2*(1+perturb)
-                 else
-                    return nPeak/2*(1+perturb)
-                 end
-              end,
-              temperature = function (t, xn)
-                 local x = xn[1]
-                 if (x < xSource + 3*lambdaSource) then 
-                    return 50*eV
-                 else 
-                    return 20*eV
-                 end
-              end,
-              scaleWithSourcePower = true,
+         density = function (t, xn)
+            local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
+            local Ls = Lz/4
+            local effectiveSource = sourceDensity(t,{x,y,0})
+            local c_ss = math.sqrt(5/3*sourceTemperature(t,{x,y,0})/mi)
+            local nPeak = 4*math.sqrt(5)/3/c_ss*Ls*effectiveSource/2
+            local perturb = 0 
+            if math.abs(z) <= Ls then
+               return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2*(1+perturb)
+            else
+               return nPeak/2*(1+perturb)
+            end
+         end,
+         temperature = function (t, xn)
+            local x = xn[1]
+            if (x < xSource + 3*lambdaSource) then 
+               return 50*eV
+            else 
+               return 20*eV
+            end
+         end,
+         scaleWithSourcePower = true,
       },
       coll = Plasma.LBOCollisions {
          collideWith = {'electron'},
          frequencies = {nuElc},
       },
       source = Plasma.MaxwellianProjection {
-                density = sourceDensity,
-                temperature = sourceTemperature,
-                power = P_src/2,
-                isSource = true,
+         density     = sourceDensity,
+         temperature = sourceTemperature,
+         power       = P_src/2,
       },
       evolve = true, -- Evolve species?
       --applyPositivity = true,
@@ -171,38 +173,37 @@ plasmaApp = Plasma.App {
       cells = {8, 4},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
-              density = function (t, xn)
-                 local x, y, z = xn[1], xn[2], xn[3]
-                 local Ls = Lz/4
-                 local effectiveSource = sourceDensity(t,{x,y,0})
-                 local c_ss = math.sqrt(5/3*sourceTemperature(t,{x,y,0})/mi)
-                 local nPeak = 4*math.sqrt(5)/3/c_ss*Ls*effectiveSource/2
-                 local perturb = 0
-                 if math.abs(z) <= Ls then
-                    return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2*(1+perturb)
-                 else
-                    return nPeak/2*(1+perturb)
-                 end
-              end,
-              temperature = function (t, xn)
-                 local x = xn[1]
-                 if x < xSource + 3*lambdaSource then 
-                    return 50*eV
-                 else 
-                    return 20*eV
-                 end
-              end,
-              scaleWithSourcePower = true,
+         density = function (t, xn)
+            local x, y, z = xn[1], xn[2], xn[3]
+            local Ls = Lz/4
+            local effectiveSource = sourceDensity(t,{x,y,0})
+            local c_ss = math.sqrt(5/3*sourceTemperature(t,{x,y,0})/mi)
+            local nPeak = 4*math.sqrt(5)/3/c_ss*Ls*effectiveSource/2
+            local perturb = 0
+            if math.abs(z) <= Ls then
+               return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2*(1+perturb)
+            else
+               return nPeak/2*(1+perturb)
+            end
+         end,
+         temperature = function (t, xn)
+            local x = xn[1]
+            if x < xSource + 3*lambdaSource then 
+               return 50*eV
+            else 
+               return 20*eV
+            end
+         end,
+         scaleWithSourcePower = true,
       },
       coll = Plasma.LBOCollisions {
          collideWith = {'ion'},
          frequencies = {nuIon},
       },
       source = Plasma.MaxwellianProjection {
-                density = sourceDensity,
-                temperature = sourceTemperature,
-                power = P_src/2,
-                isSource = true,
+         density     = sourceDensity,
+         temperature = sourceTemperature,
+         power       = P_src/2,
       },
       evolve = true, -- Evolve species?
       --applyPositivity = true,
