@@ -11,6 +11,7 @@ local Grid           = require "Grid"
 local KineticSpecies = require "App.Species.KineticSpecies"
 local Lin            = require "Lib.Linalg"
 local Mpi            = require "Comm.Mpi"
+local Projection     = require "App.Projection"
 local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
@@ -29,6 +30,7 @@ local SP_BC_COPY    = 5
 -- AHH: This was 2 but seems that is unstable. So using plain copy.
 local SP_BC_OPEN      = SP_BC_COPY
 local SP_BC_ZEROFLUX  = 6
+local SP_BC_RECYCLE   = 7
 
 VlasovSpecies.bcAbsorb    = SP_BC_ABSORB     -- Absorb all particles.
 VlasovSpecies.bcOpen      = SP_BC_OPEN       -- Zero gradient.
@@ -36,6 +38,7 @@ VlasovSpecies.bcCopy      = SP_BC_COPY       -- Copy stuff.
 VlasovSpecies.bcReflect   = SP_BC_REFLECT    -- Specular reflection.
 VlasovSpecies.bcExternal  = SP_BC_EXTERN     -- Load external BC file.
 VlasovSpecies.bcZeroFlux  = SP_BC_ZEROFLUX
+VlasovSpecies.bcRecycle   = SP_BC_RECYCLE
 
 function VlasovSpecies:alloc(nRkDup)
    -- Allocate distribution function.
@@ -1143,6 +1146,39 @@ function VlasovSpecies:bcReflectFunc(dir, tm, idxIn, fIn, fOut)
    self.basis:flipSign(dir+self.cdim, fOut, fOut)
 end
 
+function VlasovSpecies:bcRecycleFunc(dir, tm, idxIn, fIn, fOut)
+   -- skinLoop should be "flip"
+   -- Note that bcRecycle only valid in dir parallel to B.
+   -- This is checked when bc is created.
+   local globalRange = self.grid:globalRange()
+   if dir == 1 then
+      l1 = 'FluxX'
+   elseif dir == 2 then
+      l1 = 'FluxY'
+   else
+      l1 = 'FluxZ'
+   end
+   if idxIn[dir] == globalRange:lower(dir) then 
+      l2 = 'lower' 
+   else 
+      l2 = 'upper'
+   end
+   label = l1..l2
+
+   local numBasis = self.basis:numBasis()
+   local f = self.recycleDistF[label]
+   local rIdxr = f:genIndexer()
+   local rFPtr = self.recycleDistF[label]:get(1)
+   f:fill(rIdxr(idxIn), rFPtr)
+   for i = 1, numBasis do
+      fOut[i] = fIn[i] + rFPtr[i]
+   end
+
+   self.basis:flipSign(dir, fOut, fOut)
+   self.basis:flipSign(dir+self.cdim, fOut, fOut)   
+end
+
+
 function VlasovSpecies:bcExternFunc(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "flip".
    local numBasis = self.basis:numBasis()
@@ -1213,6 +1249,7 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
    local function bcOpenFunc(...)    return self:bcOpenFunc(...) end
    local function bcReflectFunc(...) return self:bcReflectFunc(...) end
    local function bcExternFunc(...)  return self:bcExternFunc(...) end
+   local function bcRecycleFunc(...) return self:bcRecycleFunc(...) end
 
    local vdir = dir + self.cdim
 
@@ -1242,6 +1279,14 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
 				      { bcExternFunc }, "flip"))
    elseif bcType == SP_BC_ZEROFLUX then
       table.insert(self.zeroFluxDirections, dir)
+      elseif bcType == SP_BC_RECYCLE and dir == self.cdim then
+      -- recycling code here
+      assert(self.tbl.diagnosticBoundaryFluxMoments, "VlasovSpecies: Recycle BCs must include  boundary flux diagnostics using 'diagnosticBoundaryFluxMoments'")
+      assert(self.tbl.recycleTemp, "VlasovSpecies: Recycle BCs must specify temperature using 'recycleTemp'")
+      assert(self.tbl.recycleFrac, "VlasovSpecies: Recycle BCs must specify recycling fraction using 'recycleFrac'")
+      assert(self.tbl.recycleIon, "VlasovSpecies: Recycle BCs must specify ion species using 'recycleIon'")
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcRecycleFunc }, "flip"))
+      self.hasRecycleBcs = true
    else
       assert(false, "VlasovSpecies: Unsupported BC type!")
    end
@@ -1322,6 +1367,168 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       local neutVtSq = neuts:selfPrimitiveMoments()[2]
       
       species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uSelf, neutU, self.vtSqSelf, neutVtSq}, {self.vSigmaCX})
+   end
+
+   if self.hasRecycleBcs then
+      tbl = self.tbl
+      if tCurr == 0.0 then
+	 self.recycleFMaxwell = {}
+	 self.recycleDistF = {}
+	 self.recycleDistfTotal = {}
+	 self.recycleFMaxwellFlux = {}
+	 self.recycleCoef = {}
+	 self.recycleConfPhaseMult = {}       
+	 self.recycleConfDiv = {}
+	 self.recycleIonBoundaryFlux = {}
+	 self.recycleTestFlux = {}
+	 self.calcFMaxwellFlux = {}
+      end
+      for _, bc in ipairs(self.boundaryConditions) do
+	 label = bc:label()
+	 if tCurr == 0 then
+	    self.recycleIonNm = tbl.recycleIon
+	    -- Create objects and updaters needed for recycling wall BCs
+	    --print("calcCouplingMom init recycle BCs"
+
+	    phaseGrid = bc:getBoundaryGrid()
+	    confGrid = bc:getConfBoundaryGrid()
+	    
+	    self.recycleFMaxwell[label] = DataStruct.Field {
+	       onGrid        = phaseGrid,
+	       numComponents = self.basis:numBasis(),
+	       ghost         = {1, 1},
+	       metaData      = {polyOrder = self.basis:polyOrder(),
+	    			basisType = self.basis:id(),
+	    			charge    = self.charge,
+	    			mass      = self.mass,},	    
+	    }
+	    self.recycleDistF[label] = DataStruct.Field {
+	       onGrid        = phaseGrid,
+	       numComponents = self.confBasis:numBasis(),
+	       ghost         = {1, 1},
+	       metaData      = {polyOrder = self.basis:polyOrder(),
+	    			basisType = self.basis:id(),
+	    			charge    = self.charge,
+	    			mass      = self.mass,},	    
+	    }
+	    self.recycleFMaxwellFlux[label] = DataStruct.Field {
+	       onGrid        = confGrid,
+	       numComponents = self.confBasis:numBasis(),
+	       ghost         = {1, 1},
+	       metaData      = {polyOrder = self.basis:polyOrder(),
+	    			basisType = self.basis:id(),
+	    			charge    = self.charge,
+	    			mass      = self.mass,},	    
+	    }
+
+	    self.recycleTestFlux[label] = DataStruct.Field {
+	       onGrid        = confGrid,
+	       numComponents = self.confBasis:numBasis(),
+	       ghost         = {1, 1},
+	       metaData      = {polyOrder = self.basis:polyOrder(),
+	    			basisType = self.basis:id(),
+	    			charge    = self.charge,
+	    			mass      = self.mass,},	    
+	    }
+	    self.recycleCoef[label] = DataStruct.Field {
+	       onGrid        = confGrid,
+	       numComponents = self.confBasis:numBasis(),
+	       ghost         = {1, 1},
+	       metaData      = {polyOrder = self.basis:polyOrder(),
+	    			basisType = self.basis:id(),
+	    			charge    = self.charge,
+	    			mass      = self.mass,},	    
+	    }
+	    -- DistFuncMomentCalc Updater for fMaxwell
+	    if string.match(label,"X") then
+	       if string.match(label,"lower") then
+	    	  mom = 'M1iNvx'
+	       else
+	    	  mom = 'M1iPvx'
+	       end
+	    elseif string.match(label,"Y") then
+	       if string.match(label,"lower") then
+	    	  mom = 'M1iNvy'
+	       else
+	    	  mom = 'M1iPvy'
+	       end
+	    elseif string.match(label,"Z") then
+	       if string.match(label,"lower") then
+	    	  mom = 'M1iNvz'
+	       else
+	    	  mom = 'M1iPvz'
+	       end
+	    end
+	    self.calcFMaxwellFlux[label] = Updater.DistFuncMomentCalc {
+	       onGrid     = phaseGrid,
+	       phaseBasis = self.basis,
+	       confBasis  = self.confBasis,
+	       moment     = mom,
+	    }
+	    
+	    self.recycleConfDiv[label] = Updater.CartFieldBinOp {
+	       onGrid    = confGrid,
+	       weakBasis = self.confBasis,
+	       operation = "Divide",
+	    }
+	    self.recycleConfPhaseMult[label] = Updater.CartFieldBinOp {
+	       onGrid     = phaseGrid,
+	       weakBasis  = self.basis,
+	       fieldBasis = self.confBasis,
+	       operation  = "Multiply",
+	    }
+
+	    self.recFrac = tbl.recycleFrac
+	    T0 = tbl.recycleTemp
+	    recycleSource = function (t, xn)
+	       local cdim = self.cdim
+	       local vdim = self.vdim
+	       local vt2 = T0/self.mass
+	       local v2 = 0.0
+	       for d = cdim+1, cdim+vdim do
+		  v2 = v2 + xn[d]^2
+	       end
+	       return 1.0 / math.sqrt(2*math.pi*vt2)^vdim * math.exp(-v2/(2*vt2))
+	    end
+	    
+	    self.projectRecycleFMaxwell = Updater.ProjectOnBasis {
+	       onGrid          = phaseGrid,
+	       basis           = self.basis,
+	       evaluate        = recycleSource,
+	       onGhosts        = true,
+	    }
+	    self.projectRecycleFMaxwell:advance(tCurr, {}, {self.recycleFMaxwell[label]})
+	    self.calcFMaxwellFlux[label]:advance(tCurr, {self.recycleFMaxwell[label]}, {self.recycleFMaxwellFlux[label]})
+
+	    -- Write out distf and flux
+	    wlabel = (label):gsub("Flux","")
+	    self.recycleFMaxwell[label]:write(
+	       string.format("%s_%s%s_%d.bp", self.name, 'recycleFMaxwell', wlabel, self.diagIoFrame),
+	       tCurr, self.diagIoFrame, false)
+	    self.recycleFMaxwellFlux[label]:write(
+	       string.format("%s_%s%s_%d.bp", self.name, 'recycleFMaxwellFlux', wlabel, self.diagIoFrame),
+	       tCurr, self.diagIoFrame, false)
+	 end
+
+	 ionBoundaryFlux = species[self.recycleIonNm].bcGkM0fluxField[label]
+	 ionBoundaryFlux:scale(self.recFrac)
+	 wlabel = (label):gsub("Flux","")
+	 -- ionBoundaryFlux:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleIonBoundaryFlux',
+	 -- 				     wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
+	 -- weak divide
+	 self.recycleConfDiv[label]:advance(tCurr, {self.recycleFMaxwellFlux[label], ionBoundaryFlux}, {self.recycleCoef[label]})
+
+ 	 self.recycleCoef[label]:write(string.format("%s%s_%d.bp", 'recycleCoef',
+	 					     wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
+	 -- weak multiply
+	 self.recycleConfPhaseMult[label]:advance(tCurr, {self.recycleCoef[label], self.recycleFMaxwell[label]}, {self.recycleDistF[label]})
+	 self.recycleDistF[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleDistF',
+	  					     wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
+	 -- DistFuncMomentCalc Updater for fMaxwell
+	 self.calcFMaxwellFlux[label]:advance(tCurr, {self.recycleDistF[label]}, {self.recycleTestFlux[label]})
+	 self.recycleTestFlux[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleTestFlux',
+	  					     wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
+      end
    end
 
    self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
