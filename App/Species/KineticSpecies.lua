@@ -587,12 +587,12 @@ function KineticSpecies:initDist(extField)
       -- This barrier is needed as when using MPI-SHM some
       -- processes will get to accumulate before projection is finished.
       Mpi.Barrier(self.grid:commSet().sharedComm)
-      if nm == "init" then
+      if string.find(nm,"init") then
 	 self.distf[1]:accumulate(1.0, self.distf[2])
 	 initCnt = initCnt + 1
          if pr.scaleWithSourcePower then self.scaleInitWithSourcePower = true end
       end
-      if nm == "background" then
+      if string.find(nm,"background") then
 	 if not self.f0 then 
 	    self.f0 = self:allocDistf()
 	 end
@@ -600,7 +600,7 @@ function KineticSpecies:initDist(extField)
 	 self.f0:sync(syncPeriodicDirs)
 	 backgroundCnt = backgroundCnt + 1
       end
-      if nm == "source" then
+      if string.find(nm,"source") then
 	 if not self.fSource then self.fSource = self:allocDistf() end
 	 self.fSource:accumulate(1.0, self.distf[2])
          if self.positivityRescale then
