@@ -323,11 +323,11 @@ return function(tbl)
       end
    end
 
-   -- projection to apply ICs
-   local initDist = Updater.ProjectOnBasis {
+   local projectUpd = Updater.ProjectOnBasis {
       onGrid = grid,
       basis = basis,
-      evaluate = tbl.init,
+      evaluate = function(t,xn) return 0. end,
+      onGhosts = true,
    }
 
    -----------------
@@ -396,7 +396,8 @@ return function(tbl)
    --------------------
    -- Initialization --
    --------------------
-   initDist:advance(0.0, {}, {f})
+   projectUpd:setFunc(tbl.init)
+   projectUpd:advance(0.0, {}, {f})
    applyBc(f)
    local momVec0 = calcMoms(0, f, momVec)
 
@@ -433,8 +434,8 @@ return function(tbl)
          local v = math.sqrt(x*x+y*y+z*z)
          local n = momVec0[1]
          local svth = math.sqrt(2)*math.sqrt(momVec0[5]/momVec0[1]/3)
-         return 0--n/math.sqrt(math.pi)/v*math.exp(-v^2/svth^2) + 
-            --n*svth*(0.5*svth/v+v/svth)*ffi.C.erf(v/svth)
+         return n/math.sqrt(math.pi)/v*math.exp(-v^2/svth^2) + 
+            n*svth*(0.5*svth/v+v/svth)*ffi.C.erf(v/svth)
       end,
    }
    
@@ -506,21 +507,10 @@ return function(tbl)
          end
       end
       
-      local projectDrag = Updater.ProjectOnBasis {
-         onGrid = grid,
-         basis = basis,
-         evaluate = initDragFunc,
-         projectOnGhosts = true,
-      }
-      local projectDiff = Updater.ProjectOnBasis {
-         onGrid = grid,
-         basis = basis,
-         evaluate = initDiffFunc,
-         projectOnGhosts = true,
-      }
-      
-      projectDrag:advance(0.0, {}, {h})
-      projectDiff:advance(0.0, {}, {g})
+      projectUpd:setFunc(function(t,xn) return initDragFunc(t,xn) end)
+      projectUpd:advance(0.0, {}, {h})
+      projectUpd:setFunc(function(t,xn) return initDiffFunc(t,xn) end)
+      projectUpd:advance(0.0, {}, {g})
    end
 
    -- write initial conditions
@@ -538,14 +528,8 @@ return function(tbl)
    if tbl.constSource then
       hasConstSource = true
       -- A wrapper to add time dependance for projectOnBasis
-      local constSourceFn = function (t, z) return tbl.constSource(z) end
-      local projectSource = Updater.ProjectOnBasis {
-         onGrid = grid,
-         basis = basis,
-         evaluate = constSourceFn,
-         projectOnGhosts = true,
-      }
-      projectSource:advance(0.0, {}, {src})
+      projectUpd:setFunc(function(t,xn) return tbl.constSource(z) end)
+      projectUpd:advance(0.0, {}, {src})
       if writeDiagnostics then
          src:write('src.bp', 0.0, 0)
       end
