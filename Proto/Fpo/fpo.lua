@@ -115,11 +115,10 @@ return function(tbl)
    local fe = getField()
    local fNew = getField()
    local h = getField()
-   local tmp = getField()
    local g = getField()
+   local tmp = getField()
 
    local test = getField()
-
    local src = getField()
 
    local momVec = DataStruct.DynVector { numComponents = 5 }
@@ -180,7 +179,7 @@ return function(tbl)
       local indexer = fld:indexer()
       local idxSkin, idxGhost = 0, 0
       local ptrSkin, ptrGhost = fld:get(1), fld:get(1)
-      
+
       -- corner LLL
       idxGhost, idxSkin = indexer(xlo-1, ylo-1, zlo-1), indexer(xup, yup, zup)
       fld:fill(idxGhost, ptrGhost)
@@ -265,7 +264,7 @@ return function(tbl)
             ptrGhost[k] = ptrSkin[k]
          end
       end
-
+      
       -- y-edges
       for i = ylo, yup do
          idxGhost, idxSkin = indexer(xlo-1, i, zlo-1), indexer(xup, i, zup)
@@ -293,7 +292,7 @@ return function(tbl)
             ptrGhost[k] = ptrSkin[k]
          end
       end
-
+      
       -- z-edges
       for i = zlo, zup do
          idxGhost, idxSkin = indexer(xlo-1, ylo-1, i), indexer(xup, yup, i)
@@ -312,7 +311,7 @@ return function(tbl)
          fld:fill(idxGhost, ptrGhost)
          fld:fill(idxSkin, ptrSkin)
          for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
+               ptrGhost[k] = ptrSkin[k]
          end
          idxGhost, idxSkin = indexer(xup+1, yup+1, i), indexer(xlo, ylo, i)
          fld:fill(idxGhost, ptrGhost)
@@ -329,7 +328,7 @@ return function(tbl)
       evaluate = function(t,xn) return 0. end,
       onGhosts = true,
    }
-
+   
    -----------------
    -- Diagnostics --
    -----------------
@@ -386,7 +385,6 @@ return function(tbl)
       end
 
       if writeDiagnostics then
-         
          momVec:write("moms.bp", tm, fr)
          diagVec:write("diag.bp", tm, fr)
       end
@@ -399,21 +397,21 @@ return function(tbl)
    projectUpd:setFunc(tbl.init)
    projectUpd:advance(0.0, {}, {f})
    applyBc(f)
-   local momVec0 = calcMoms(0, f, momVec)
+   local moms = calcMoms(0, f, momVec)
 
       -------------
    -- Poisson --
    -------------
-   local poisson = Updater.DiscontPoisson {
-      onGrid = grid,
-      basis = basis,
-      bcLower = {{D = 1, N = 0, val = 0.0},
-         {D = 1, N = 0, val = 0.0},
-         {D = 1, N = 0, val = 0.0}},
-      bcUpper = {{D = 1, N = 0, val = 0.0},
-         {D = 1, N = 0, val = 0.0},
-         {D = 1, N = 0, val = 0.0}},
-   }
+   -- local poisson = Updater.DiscontPoisson {
+   --    onGrid = grid,
+   --    basis = basis,
+   --    bcLower = {{D = 1, N = 0, val = 0.0},
+   --       {D = 1, N = 0, val = 0.0},
+   --       {D = 1, N = 0, val = 0.0}},
+   --    bcUpper = {{D = 1, N = 0, val = 0.0},
+   --       {D = 1, N = 0, val = 0.0},
+   --       {D = 1, N = 0, val = 0.0}},
+   -- }
    
    local poissonH = Updater.DiscontPoisson {
       onGrid = grid,
@@ -421,8 +419,8 @@ return function(tbl)
       bcFunc = function(t, z)
          local x, y, z = z[1], z[2], z[3]
          local v = math.sqrt(x*x+y*y+z*z)
-         local n = momVec0[1]
-         local svth = math.sqrt(2)*math.sqrt(momVec0[5]/momVec0[1]/3)
+         local n = moms[1]
+         local svth = math.sqrt(2)*math.sqrt(moms[5]/moms[1]/3)
          return n/v*ffi.C.erf(v/svth)
       end,
    }
@@ -432,9 +430,9 @@ return function(tbl)
       bcFunc = function(t, z)
          local x, y, z = z[1], z[2], z[3]
          local v = math.sqrt(x*x+y*y+z*z)
-         local n = momVec0[1]
-         local svth = math.sqrt(2)*math.sqrt(momVec0[5]/momVec0[1]/3)
-         return n/math.sqrt(math.pi)/v*math.exp(-v^2/svth^2) + 
+         local n = moms[1]
+         local svth = math.sqrt(2)*math.sqrt(moms[5]/moms[1]/3)
+         return n/math.sqrt(math.pi)*svth*math.exp(-v^2/svth^2) + 
             n*svth*(0.5*svth/v+v/svth)*ffi.C.erf(v/svth)
       end,
    }
@@ -454,7 +452,7 @@ return function(tbl)
       local tmStart = Time.clock()
       if updatePotentials then
          tmp:combine(-2, hIn)
-         poisson:advance(0.0, {tmp}, {gOut})
+         poissonG:advance(0.0, {tmp}, {gOut})
       end
       tmRosen = tmRosen + Time.clock()-tmStart
    end
@@ -463,6 +461,7 @@ return function(tbl)
    if updatePotentials then
       updateRosenbluthDrag(f, h)
       updateRosenbluthDiffusion(h, g)
+      --h:scale(2.0)
    else
       -- Check if drag/diff functions are provided
       local initDragFunc = tbl.initDrag and tbl.initDrag or function(t, z) return 0.0 end
@@ -471,39 +470,38 @@ return function(tbl)
       -- Overwrite the init functions if the the Dougherty potentials are turned on
       if doughertyPotentials then
          initDragFunc = function (t, z)
-            local ux = momVec0[2]/momVec0[1]
-            local uy = momVec0[3]/momVec0[1]
-            local uz = momVec0[4]/momVec0[1]
+            local ux = moms[2]/moms[1]
+            local uy = moms[3]/moms[1]
+            local uz = moms[4]/moms[1]
             return -0.5*((z[1]-ux)^2 + (z[2]-uy)^2 + (z[3]-uz)^2)
          end
          initDiffFunc = function (t, z)
-            local ux = momVec0[2]/momVec0[1]
-            local uy = momVec0[3]/momVec0[1]
-            local uz = momVec0[4]/momVec0[1]
-            local vth2 = (momVec0[5]/momVec0[1] - ux^2 - uy^2 - uz^2)/3 
-            return vth2 * (z[1]^2 + z[2]^2 + z[3]^2) -- /3 is for dimensions
+            local ux = moms[2]/moms[1]
+            local uy = moms[3]/moms[1]
+            local uz = moms[4]/moms[1]
+            local vth2 = (moms[5]/moms[1] - ux^2 - uy^2 - uz^2)/3 
+            return vth2 * (z[1]^2 + z[2]^2 + z[3]^2)
          end
       end
       if maxwellianPotentials then
          initDragFunc = function (t, z)
             local x, y, z = z[1], z[2], z[3]
             local v = math.sqrt(x*x + y*y + z*z)
-            local n = momVec0[1]
-            local vth2 = 1.--momVec0[5]/momVec0[1]/3
-            --print(n, vth2)
+            local n = moms[1]
+            local vth2 = moms[5]/moms[1]/3
+            vth2 = 1
             local svth = math.sqrt(2*vth2)
-            return 2* n/v*ffi.C.erf(v/svth)
+            return 2 * n/v*ffi.C.erf(v/svth)
          end
          initDiffFunc = function (t, z)
             local x, y, z = z[1], z[2], z[3]
             local v = math.sqrt(x*x + y*y + z*z)
-            local n = momVec0[1]
-            local vth2 = 1.--momVec0[5]/momVec0[1]/3
-            local vth = math.sqrt(vth2)
+            local n = moms[1]
+            local vth2 = moms[5]/moms[1]/3
+            vth2 = 1
             local svth = math.sqrt(2*vth2)
-            --return (n*svth/math.sqrt(math.pi)*math.exp(-v^2/svth^2) + 
-            --           n*svth*(0.5*svth/v+v/svth)*ffi.C.erf(v/svth))
-            return math.sqrt(2)*n*vth*(math.exp(-v^2/svth^2)/math.sqrt(math.pi) + ffi.C.erf(v/svth)*(vth/(math.sqrt(2)*v)+v/(math.sqrt(2)*vth)))
+            return n*svth/math.sqrt(math.pi)*math.exp(-v^2/svth^2) + 
+               n*svth*(0.5*svth/v+v/svth)*ffi.C.erf(v/svth)
          end
       end
       
@@ -717,20 +715,22 @@ return function(tbl)
       -- Stage 1
       updateRosenbluthDrag(fIn, h)
       updateRosenbluthDiffusion(h, g)
+      --h:scale(2.0)
       cflFreq = forwardEuler(dt, fIn, h, g, f1)
       localDt = cflFrac/cflFreq
       if localDt < 0.9*dt then
-	 return false, localDt
+         return false, localDt
       end
       applyBc(f1)
 
       -- Stage 2
       updateRosenbluthDrag(f1, h)
       updateRosenbluthDiffusion(h, g)
+      --h:scale(2.0)
       cflFreq = forwardEuler(dt, f1, h, g, fe)
       localDt = cflFrac/cflFreq
       if localDt < 0.9*dt then
-	 return false, localDt
+        return false, localDt
       end
       f2:combine(3.0/4.0, fIn, 1.0/4.0, fe)
       applyBc(f2)
@@ -738,10 +738,11 @@ return function(tbl)
       -- Stage 3
       updateRosenbluthDrag(f2, h)
       updateRosenbluthDiffusion(h, g)
+      --h:scale(2.0)
       cflFreq = forwardEuler(dt, f2, h, g, fe)
       localDt = cflFrac/cflFreq
       if localDt < 0.9*dt then
-	 return false, localDt
+        return false, localDt
       end
       fOut:combine(1.0/3.0, fIn, 2.0/3.0, fe)
       applyBc(fOut)
@@ -786,6 +787,7 @@ return function(tbl)
 	    if writeDiagnostics then
 	       calcMoms(tCurr+dt, f, momVec)
 	       updateRosenbluthDrag(f, h)
+               --h:scale(2.0)
 	       calcDiag(tCurr+dt, f, h, diagVec)
 	    end
 	    
