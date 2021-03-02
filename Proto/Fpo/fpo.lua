@@ -489,7 +489,6 @@ return function(tbl)
             local v = math.sqrt(x*x + y*y + z*z)
             local n = moms[1]
             local vth2 = moms[5]/moms[1]/3
-            vth2 = 1
             local svth = math.sqrt(2*vth2)
             return 2 * n/v*ffi.C.erf(v/svth)
          end
@@ -498,7 +497,6 @@ return function(tbl)
             local v = math.sqrt(x*x + y*y + z*z)
             local n = moms[1]
             local vth2 = moms[5]/moms[1]/3
-            vth2 = 1
             local svth = math.sqrt(2*vth2)
             return n*svth/math.sqrt(math.pi)*math.exp(-v^2/svth^2) + 
                n*svth*(0.5*svth/v+v/svth)*ffi.C.erf(v/svth)
