@@ -103,7 +103,8 @@ app = Plasma.App {
       lower = {-6.0, -6.0},
       upper = {6.0, 6.0},
       cells = {4, 6},
-      -- initial conditions
+      -- Initial conditions. Multiple projections with
+      -- "init" in the name get added.
       init1 = Plasma.MaxwellianProjection {
          density = 1.0,
          driftSpeed = {1.0, 0.0},
