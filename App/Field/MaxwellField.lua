@@ -282,9 +282,7 @@ function MaxwellField:alloc(nRkDup)
          numComponents = self.basis:numBasis(),
          ghost         = {1, 1}
       }
-      for i = 1, nRkDup do
-         self.em[i] = phiFld
-      end
+      for i = 1, nRkDup do self.em[i] = phiFld end
       -- Keep copies of previous potentials so we can use three point
       -- extrapolation to form an initial guess for the MG solver.
       self.phiPrevNum = 3
@@ -316,8 +314,8 @@ function MaxwellField:alloc(nRkDup)
       metaData = {
          polyOrder = self.basis:polyOrder(),
          basisType = self.basis:id(),
-         epsilon0 = self.epsilon0,
-         mu0 = self.mu0,
+         epsilon0  = self.epsilon0,
+         mu0       = self.mu0,
       },
    }
 end
@@ -862,7 +860,7 @@ function ExternalMaxwellField:fullInit(appTbl)
 end
 
 function ExternalMaxwellField:hasEB()
-   return true, true
+   return true, self.hasMagField
 end
 
 function ExternalMaxwellField:setCfl() end
@@ -887,8 +885,8 @@ function ExternalMaxwellField:alloc(nField)
       metaData = {
          polyOrder = self.basis:polyOrder(),
          basisType = self.basis:id(),
-         epsilon0 = self.epsilon0,
-         mu0 = self.mu0,
+         epsilon0  = self.epsilon0,
+         mu0       = self.mu0,
       },
    }   
 end
