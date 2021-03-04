@@ -1171,7 +1171,10 @@ function VlasovSpecies:bcRecycleFunc(dir, tm, idxIn, fIn, fOut)
    local rFPtr = self.recycleDistF[label]:get(1)
    f:fill(rIdxr(idxIn), rFPtr)
    for i = 1, numBasis do
-      fOut[i] = fIn[i] + rFPtr[i]
+      fOut[i] = 0
+      --print(fOut[i], fIn[i], rFPtr[i])
+      fOut[i] = fIn[i] --+ rFPtr[i]  -- SEG FAULTS HERE!!
+      --print(fOut[i])
    end
 
    self.basis:flipSign(dir, fOut, fOut)
@@ -1373,26 +1376,27 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       tbl = self.tbl
       if tCurr == 0.0 then
 	 self.recycleFMaxwell = {}
+	 self.recycleFhat = {}
 	 self.recycleDistF = {}
-	 self.recycleDistfTotal = {}
-	 self.recycleFMaxwellFlux = {}
+	 self.recycleFhatM0 = {}
 	 self.recycleCoef = {}
-	 self.recycleConfPhaseMult = {}       
+	 self.calcFhatM0 = {}
 	 self.recycleConfDiv = {}
-	 self.recycleIonBoundaryFlux = {}
+	 self.recycleConfPhaseMult = {}       
 	 self.recycleTestFlux = {}
-	 self.calcFMaxwellFlux = {}
+	 self.projectRecycleFMaxwell = {}
+	 self.projectFluxFunc = {}
       end
       for _, bc in ipairs(self.boundaryConditions) do
 	 label = bc:label()
 	 if tCurr == 0 then
 	    self.recycleIonNm = tbl.recycleIon
 	    -- Create objects and updaters needed for recycling wall BCs
-	    --print("calcCouplingMom init recycle BCs"
-
+	   
 	    phaseGrid = bc:getBoundaryGrid()
 	    confGrid = bc:getConfBoundaryGrid()
-	    
+
+	    -- for fMaxwell projection with density = 1.
 	    self.recycleFMaxwell[label] = DataStruct.Field {
 	       onGrid        = phaseGrid,
 	       numComponents = self.basis:numBasis(),
@@ -1402,18 +1406,20 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	    			charge    = self.charge,
 	    			mass      = self.mass,},	    
 	    }
-	    self.recycleDistF[label] = DataStruct.Field {
+	    -- for projection of flux on ghosts.
+	    self.recycleFhat[label] = DataStruct.Field {
 	       onGrid        = phaseGrid,
-	       numComponents = self.confBasis:numBasis(),
+	       numComponents = self.basis:numBasis(),
 	       ghost         = {1, 1},
 	       metaData      = {polyOrder = self.basis:polyOrder(),
 	    			basisType = self.basis:id(),
 	    			charge    = self.charge,
 	    			mass      = self.mass,},	    
 	    }
-	    self.recycleFMaxwellFlux[label] = DataStruct.Field {
-	       onGrid        = confGrid,
-	       numComponents = self.confBasis:numBasis(),
+	    -- for scaled projection of flux, passed to bc func.
+	    self.recycleDistF[label] = DataStruct.Field {
+	       onGrid        = phaseGrid,
+	       numComponents = self.basis:numBasis(),
 	       ghost         = {1, 1},
 	       metaData      = {polyOrder = self.basis:polyOrder(),
 	    			basisType = self.basis:id(),
@@ -1421,7 +1427,8 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	    			mass      = self.mass,},	    
 	    }
 
-	    self.recycleTestFlux[label] = DataStruct.Field {
+	    -- 0th moment of fhat.
+	    self.recycleFhatM0[label] = DataStruct.Field {
 	       onGrid        = confGrid,
 	       numComponents = self.confBasis:numBasis(),
 	       ghost         = {1, 1},
@@ -1430,6 +1437,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	    			charge    = self.charge,
 	    			mass      = self.mass,},	    
 	    }
+	    -- scaling factor for recycle distf.
 	    self.recycleCoef[label] = DataStruct.Field {
 	       onGrid        = confGrid,
 	       numComponents = self.confBasis:numBasis(),
@@ -1439,31 +1447,38 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	    			charge    = self.charge,
 	    			mass      = self.mass,},	    
 	    }
-	    -- DistFuncMomentCalc Updater for fMaxwell
+	    self.recycleTestFlux[label] = DataStruct.Field {
+	       onGrid        = confGrid,
+	       numComponents = self.confBasis:numBasis(),
+	       ghost         = {1, 1},
+	       metaData      = {polyOrder = self.basis:polyOrder(),
+	    			basisType = self.basis:id(),
+	    			charge    = self.charge,
+	    			mass      = self.mass,},	    
+	    }
+	    
+	    local dir, edgeVal
 	    if string.match(label,"X") then
-	       if string.match(label,"lower") then
-	    	  mom = 'M1iNvx'
-	       else
-	    	  mom = 'M1iPvx'
-	       end
-	    elseif string.match(label,"Y") then
-	       if string.match(label,"lower") then
-	    	  mom = 'M1iNvy'
-	       else
-	    	  mom = 'M1iPvy'
-	       end
-	    elseif string.match(label,"Z") then
-	       if string.match(label,"lower") then
-	    	  mom = 'M1iNvz'
-	       else
-	    	  mom = 'M1iPvz'
-	       end
+	       dir = 1
+	    elseif string.match(label, "Y") then
+	       dir = 2
+	    else
+	       dir = 3
 	    end
-	    self.calcFMaxwellFlux[label] = Updater.DistFuncMomentCalc {
+	    
+	    if string.match(label,"lower") then
+	       edgeval = -1
+	    else
+	       edgeval = 1
+	    end
+	    --print(label, edgeval)
+	    
+	    -- DistFuncMomentCalc Updater for fMaxwell	    
+	    self.calcFhatM0[label] = Updater.DistFuncMomentCalc {
 	       onGrid     = phaseGrid,
 	       phaseBasis = self.basis,
 	       confBasis  = self.confBasis,
-	       moment     = mom,
+	       moment     = 'M0',
 	    }
 	    
 	    self.recycleConfDiv[label] = Updater.CartFieldBinOp {
@@ -1497,35 +1512,46 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	       evaluate        = recycleSource,
 	       onGhosts        = true,
 	    }
+
+	    self.projectFluxFunc = Updater.ProjectFluxFunc {
+	       onGrid          = phaseGrid,
+	       phaseBasis      = self.basis,
+	       confBasis       = self.confBasis,
+	       edgeValue       = edgeval,
+	       direction       = dir,
+	       onGhosts        = true,
+	    }
+	    
 	    self.projectRecycleFMaxwell:advance(tCurr, {}, {self.recycleFMaxwell[label]})
-	    self.calcFMaxwellFlux[label]:advance(tCurr, {self.recycleFMaxwell[label]}, {self.recycleFMaxwellFlux[label]})
+	    self.projectFluxFunc:advance(tCurr, {self.recycleFMaxwell[label]}, {self.recycleFhat[label]})
+	    self.calcFhatM0[label]:advance(tCurr, {self.recycleFMaxwell[label]}, {self.recycleFhatM0[label]})
 
 	    -- Write out distf and flux
 	    wlabel = (label):gsub("Flux","")
-	    self.recycleFMaxwell[label]:write(
-	       string.format("%s_%s%s_%d.bp", self.name, 'recycleFMaxwell', wlabel, self.diagIoFrame),
+	    self.recycleFhat[label]:write(
+	       string.format("%s_%s%s_%d.bp", self.name, 'recycleFhat', wlabel, self.diagIoFrame),
 	       tCurr, self.diagIoFrame, false)
-	    self.recycleFMaxwellFlux[label]:write(
-	       string.format("%s_%s%s_%d.bp", self.name, 'recycleFMaxwellFlux', wlabel, self.diagIoFrame),
+	    self.recycleFhatM0[label]:write(
+	       string.format("%s_%s%s_%d.bp", self.name, 'recycleFhatM0', wlabel, self.diagIoFrame),
 	       tCurr, self.diagIoFrame, false)
 	 end
 
 	 ionBoundaryFlux = species[self.recycleIonNm].bcGkM0fluxField[label]
 	 ionBoundaryFlux:scale(self.recFrac)
 	 wlabel = (label):gsub("Flux","")
-	 -- ionBoundaryFlux:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleIonBoundaryFlux',
-	 -- 				     wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
+	 ionBoundaryFlux:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleIonBoundaryFlux',
+	 				     wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
 	 -- weak divide
-	 self.recycleConfDiv[label]:advance(tCurr, {self.recycleFMaxwellFlux[label], ionBoundaryFlux}, {self.recycleCoef[label]})
+	 self.recycleConfDiv[label]:advance(tCurr, {self.recycleFhatM0[label], ionBoundaryFlux}, {self.recycleCoef[label]})
 
  	 self.recycleCoef[label]:write(string.format("%s%s_%d.bp", 'recycleCoef',
 	 					     wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
 	 -- weak multiply
-	 self.recycleConfPhaseMult[label]:advance(tCurr, {self.recycleCoef[label], self.recycleFMaxwell[label]}, {self.recycleDistF[label]})
+	 self.recycleConfPhaseMult[label]:advance(tCurr, {self.recycleCoef[label], self.recycleFhat[label]}, {self.recycleDistF[label]})
 	 self.recycleDistF[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleDistF',
 	  					     wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
 	 -- DistFuncMomentCalc Updater for fMaxwell
-	 self.calcFMaxwellFlux[label]:advance(tCurr, {self.recycleDistF[label]}, {self.recycleTestFlux[label]})
+	 self.calcFhatM0[label]:advance(tCurr, {self.recycleDistF[label]}, {self.recycleTestFlux[label]})
 	 self.recycleTestFlux[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleTestFlux',
 	  					     wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
       end
