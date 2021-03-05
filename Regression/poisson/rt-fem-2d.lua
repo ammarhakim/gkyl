@@ -59,10 +59,12 @@ local initDist = Updater.ProjectOnBasis {
 local femPoisson = Updater.FemPerpPoisson {
    onGrid = grid,
    basis = basis,
-   bcBottom = { T = "N", V = 0.0 },
-   bcTop = { T = "D", V = 0.0 },
-   bcLeft = { T = "D", V = 0.0 },
-   bcRight = { T = "D", V = 0.0 },
+   --bcBottom = { T = "N", V = 0.0 },
+   --bcTop = { T = "D", V = 0.0 },
+   --bcLeft = { T = "D", V = 0.0 },
+   --bcRight = { T = "D", V = 0.0 },
+   bcLower = { { T = "D", V = 0.0 }, { T = "N", V = 0.0 } },
+   bcUpper = { { T = "D", V = 0.0 }, { T = "D", V = 0.0 } },
 }
 
 initDist:advance(0.0, {}, {fIn})

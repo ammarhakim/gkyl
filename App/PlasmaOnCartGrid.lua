@@ -408,8 +408,8 @@ local function buildApplication(self, tbl)
       externalField:advance(tCurr)
       
       for _, s in lume.orderedIter(species) do
-	 -- Compute moments needed in coupling with fields and
-	 -- collisions (the species should update internal datastructures). 
+         -- Compute moments needed in coupling with fields and
+         -- collisions (the species should update internal datastructures). 
          s:calcCouplingMoments(tCurr, inIdx, species)
       end
 
@@ -420,11 +420,11 @@ local function buildApplication(self, tbl)
 
       -- Update species.
       for _, s in lume.orderedIter(species) do
-	 if s.charge == 0 then
-	    s:advance(tCurr, species, {NoField {}, NoField {}}, inIdx, outIdx)
-	 else
-	    s:advance(tCurr, species, {field, externalField}, inIdx, outIdx)
-	 end
+         if s.charge == 0 then
+            s:advance(tCurr, species, {NoField {}, NoField {}}, inIdx, outIdx)
+         else
+            s:advance(tCurr, species, {field, externalField}, inIdx, outIdx)
+         end
       end
 
       -- Some systems (e.g. EM GK) require additional step(s) to complete the forward Euler.
