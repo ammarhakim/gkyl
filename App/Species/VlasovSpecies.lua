@@ -1173,7 +1173,7 @@ function VlasovSpecies:bcRecycleFunc(dir, tm, idxIn, fIn, fOut)
    for i = 1, numBasis do
       fOut[i] = 0
       --print(fOut[i], fIn[i], rFPtr[i])
-      fOut[i] = fIn[i] --+ rFPtr[i]  -- SEG FAULTS HERE!!
+      fOut[i] = fIn[i] + rFPtr[i]  -- SEG FAULTS HERE!!
       --print(fOut[i])
    end
 
@@ -1550,7 +1550,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 end
 
 	 local ionBoundaryFlux = species[self.recycleIonNm].bcGkM0fluxField[label]
-	 --ionBoundaryFlux:scale(self.recFrac)
+	 ionBoundaryFlux:scale(self.recFrac)
 	 wlabel = (label):gsub("Flux","")
 	 ionBoundaryFlux:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleIonBoundaryFlux',
 	 				     wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
