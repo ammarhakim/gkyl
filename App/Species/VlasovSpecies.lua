@@ -1458,18 +1458,32 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	    }
 	    
 	    local dir, edgeVal
+	    if string.match(label,"lower") then
+	       edgeval = 1
+	    else
+	       edgeval = -1
+	    end
 	    if string.match(label,"X") then
 	       dir = 1
+	       if edgeval == 1 then -- lower
+		  mom = "M0Nvx"
+	       else                -- upper
+		  mom = "M0Pvx"
+	       end
 	    elseif string.match(label, "Y") then
 	       dir = 2
+	       if edgeval == 1 then -- lower
+		  mom = "M0Nvy"
+	       else                -- upper
+		  mom = "M0Pvy"
+	       end
 	    else
 	       dir = 3
-	    end
-	    
-	    if string.match(label,"lower") then
-	       edgeval = -1
-	    else
-	       edgeval = 1
+	       if edgeval == 1 then -- lower
+		  mom = "M0Nvx"
+	       else                -- upper
+		  mom = "M0Pvx"
+	       end
 	    end
 	    
 	    -- DistFuncMomentCalc Updater for fMaxwell	    
@@ -1477,7 +1491,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	       onGrid     = phaseGrid,
 	       phaseBasis = self.basis,
 	       confBasis  = self.confBasis,
-	       moment     = 'M0',
+	       moment     = mom,
 	    }
 	    
 	    self.recycleConfDiv[label] = Updater.CartFieldBinOp {
