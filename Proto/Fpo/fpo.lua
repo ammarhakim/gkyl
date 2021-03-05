@@ -170,156 +170,156 @@ return function(tbl)
    local function applyBc(fld)
       fld:sync()
 
-      -- need to manually sync corners for now
-      local globalRange = fld:globalRange()
-      local xlo, xup = globalRange:lower(1), globalRange:upper(1)
-      local ylo, yup = globalRange:lower(2), globalRange:upper(2)
-      local zlo, zup = globalRange:lower(3), globalRange:upper(3)
+      -- -- need to manually sync corners for now
+      -- local globalRange = fld:globalRange()
+      -- local xlo, xup = globalRange:lower(1), globalRange:upper(1)
+      -- local ylo, yup = globalRange:lower(2), globalRange:upper(2)
+      -- local zlo, zup = globalRange:lower(3), globalRange:upper(3)
       
-      local indexer = fld:indexer()
-      local idxSkin, idxGhost = 0, 0
-      local ptrSkin, ptrGhost = fld:get(1), fld:get(1)
+      -- local indexer = fld:indexer()
+      -- local idxSkin, idxGhost = 0, 0
+      -- local ptrSkin, ptrGhost = fld:get(1), fld:get(1)
 
-      -- corner LLL
-      idxGhost, idxSkin = indexer(xlo-1, ylo-1, zlo-1), indexer(xup, yup, zup)
-      fld:fill(idxGhost, ptrGhost)
-      fld:fill(idxSkin, ptrSkin)
-      for k = 1, fld:numComponents() do
-         ptrGhost[k] = ptrSkin[k]
-      end
-      -- corner ULL
-      idxGhost, idxSkin = indexer(xup+1, ylo-1, zlo-1), indexer(xlo, yup, zup)
-      fld:fill(idxGhost, ptrGhost)
-      fld:fill(idxSkin, ptrSkin)
-      for k = 1, fld:numComponents() do
-         ptrGhost[k] = ptrSkin[k]
-      end
-      -- corner LUL
-      idxGhost, idxSkin = indexer(xlo-1, yup+1, zlo-1), indexer(xup, ylo, zup)
-      fld:fill(idxGhost, ptrGhost)
-      fld:fill(idxSkin, ptrSkin)
-      for k = 1, fld:numComponents() do
-         ptrGhost[k] = ptrSkin[k]
-      end
-      -- corner LLU
-      idxGhost, idxSkin = indexer(xlo-1, ylo-1, zup+1), indexer(xup, yup, zlo)
-      fld:fill(idxGhost, ptrGhost)
-      fld:fill(idxSkin, ptrSkin)
-      for k = 1, fld:numComponents() do
-         ptrGhost[k] = ptrSkin[k]
-      end
-      -- corner LUU
-      idxGhost, idxSkin = indexer(xlo-1, yup+1, zup+1), indexer(xup, ylo, zlo)
-      fld:fill(idxGhost, ptrGhost)
-      fld:fill(idxSkin, ptrSkin)
-      for k = 1, fld:numComponents() do
-         ptrGhost[k] = ptrSkin[k]
-      end
-      -- corner ULU
-      idxGhost, idxSkin = indexer(xup+1, ylo-1, zup+1), indexer(xlo, yup, zlo)
-      fld:fill(idxGhost, ptrGhost)
-      fld:fill(idxSkin, ptrSkin)
-      for k = 1, fld:numComponents() do
-         ptrGhost[k] = ptrSkin[k]
-      end
-      -- corner UUL
-      idxGhost, idxSkin = indexer(xup+1, yup+1, zlo-1), indexer(xlo, ylo, zup)
-      fld:fill(idxGhost, ptrGhost)
-      fld:fill(idxSkin, ptrSkin)
-      for k = 1, fld:numComponents() do
-         ptrGhost[k] = ptrSkin[k]
-      end
-      -- corner UUU
-      idxGhost, idxSkin = indexer(xup+1, yup+1, zup+1), indexer(xlo, ylo, zlo)
-      fld:fill(idxGhost, ptrGhost)
-      fld:fill(idxSkin, ptrSkin)
-      for k = 1, fld:numComponents() do
-         ptrGhost[k] = ptrSkin[k]
-      end
+      -- -- corner LLL
+      -- idxGhost, idxSkin = indexer(xlo-1, ylo-1, zlo-1), indexer(xup, yup, zup)
+      -- fld:fill(idxGhost, ptrGhost)
+      -- fld:fill(idxSkin, ptrSkin)
+      -- for k = 1, fld:numComponents() do
+      --    ptrGhost[k] = ptrSkin[k]
+      -- end
+      -- -- corner ULL
+      -- idxGhost, idxSkin = indexer(xup+1, ylo-1, zlo-1), indexer(xlo, yup, zup)
+      -- fld:fill(idxGhost, ptrGhost)
+      -- fld:fill(idxSkin, ptrSkin)
+      -- for k = 1, fld:numComponents() do
+      --    ptrGhost[k] = ptrSkin[k]
+      -- end
+      -- -- corner LUL
+      -- idxGhost, idxSkin = indexer(xlo-1, yup+1, zlo-1), indexer(xup, ylo, zup)
+      -- fld:fill(idxGhost, ptrGhost)
+      -- fld:fill(idxSkin, ptrSkin)
+      -- for k = 1, fld:numComponents() do
+      --    ptrGhost[k] = ptrSkin[k]
+      -- end
+      -- -- corner LLU
+      -- idxGhost, idxSkin = indexer(xlo-1, ylo-1, zup+1), indexer(xup, yup, zlo)
+      -- fld:fill(idxGhost, ptrGhost)
+      -- fld:fill(idxSkin, ptrSkin)
+      -- for k = 1, fld:numComponents() do
+      --    ptrGhost[k] = ptrSkin[k]
+      -- end
+      -- -- corner LUU
+      -- idxGhost, idxSkin = indexer(xlo-1, yup+1, zup+1), indexer(xup, ylo, zlo)
+      -- fld:fill(idxGhost, ptrGhost)
+      -- fld:fill(idxSkin, ptrSkin)
+      -- for k = 1, fld:numComponents() do
+      --    ptrGhost[k] = ptrSkin[k]
+      -- end
+      -- -- corner ULU
+      -- idxGhost, idxSkin = indexer(xup+1, ylo-1, zup+1), indexer(xlo, yup, zlo)
+      -- fld:fill(idxGhost, ptrGhost)
+      -- fld:fill(idxSkin, ptrSkin)
+      -- for k = 1, fld:numComponents() do
+      --    ptrGhost[k] = ptrSkin[k]
+      -- end
+      -- -- corner UUL
+      -- idxGhost, idxSkin = indexer(xup+1, yup+1, zlo-1), indexer(xlo, ylo, zup)
+      -- fld:fill(idxGhost, ptrGhost)
+      -- fld:fill(idxSkin, ptrSkin)
+      -- for k = 1, fld:numComponents() do
+      --    ptrGhost[k] = ptrSkin[k]
+      -- end
+      -- -- corner UUU
+      -- idxGhost, idxSkin = indexer(xup+1, yup+1, zup+1), indexer(xlo, ylo, zlo)
+      -- fld:fill(idxGhost, ptrGhost)
+      -- fld:fill(idxSkin, ptrSkin)
+      -- for k = 1, fld:numComponents() do
+      --    ptrGhost[k] = ptrSkin[k]
+      -- end
       
-      -- x-edges
-      for i = xlo, xup do
-         idxGhost, idxSkin = indexer(i, ylo-1, zlo-1), indexer(i, yup, zup)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
-         end
-         idxGhost, idxSkin = indexer(i, yup+1, zlo-1), indexer(i, ylo, zup)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
-         end
-         idxGhost, idxSkin = indexer(i, ylo-1, zup+1), indexer(i, yup, zlo)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
-         end
-         idxGhost, idxSkin = indexer(i, yup+1, zup+1), indexer(i, ylo, zlo)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
-         end
-      end
+      -- -- x-edges
+      -- for i = xlo, xup do
+      --    idxGhost, idxSkin = indexer(i, ylo-1, zlo-1), indexer(i, yup, zup)
+      --    fld:fill(idxGhost, ptrGhost)
+      --    fld:fill(idxSkin, ptrSkin)
+      --    for k = 1, fld:numComponents() do
+      --       ptrGhost[k] = ptrSkin[k]
+      --    end
+      --    idxGhost, idxSkin = indexer(i, yup+1, zlo-1), indexer(i, ylo, zup)
+      --    fld:fill(idxGhost, ptrGhost)
+      --    fld:fill(idxSkin, ptrSkin)
+      --    for k = 1, fld:numComponents() do
+      --       ptrGhost[k] = ptrSkin[k]
+      --    end
+      --    idxGhost, idxSkin = indexer(i, ylo-1, zup+1), indexer(i, yup, zlo)
+      --    fld:fill(idxGhost, ptrGhost)
+      --    fld:fill(idxSkin, ptrSkin)
+      --    for k = 1, fld:numComponents() do
+      --       ptrGhost[k] = ptrSkin[k]
+      --    end
+      --    idxGhost, idxSkin = indexer(i, yup+1, zup+1), indexer(i, ylo, zlo)
+      --    fld:fill(idxGhost, ptrGhost)
+      --    fld:fill(idxSkin, ptrSkin)
+      --    for k = 1, fld:numComponents() do
+      --       ptrGhost[k] = ptrSkin[k]
+      --    end
+      -- end
       
-      -- y-edges
-      for i = ylo, yup do
-         idxGhost, idxSkin = indexer(xlo-1, i, zlo-1), indexer(xup, i, zup)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
-         end
-         idxGhost, idxSkin = indexer(xup+1, i, zlo-1), indexer(xlo, i, zup)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
-         end
-         idxGhost, idxSkin = indexer(xlo-1, i, zup+1), indexer(xup, i, zlo)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
-         end
-         idxGhost, idxSkin = indexer(xup+1, i, zup+1), indexer(xlo, i, zlo)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
-         end
-      end
+      -- -- y-edges
+      -- for i = ylo, yup do
+      --    idxGhost, idxSkin = indexer(xlo-1, i, zlo-1), indexer(xup, i, zup)
+      --    fld:fill(idxGhost, ptrGhost)
+      --    fld:fill(idxSkin, ptrSkin)
+      --    for k = 1, fld:numComponents() do
+      --       ptrGhost[k] = ptrSkin[k]
+      --    end
+      --    idxGhost, idxSkin = indexer(xup+1, i, zlo-1), indexer(xlo, i, zup)
+      --    fld:fill(idxGhost, ptrGhost)
+      --    fld:fill(idxSkin, ptrSkin)
+      --    for k = 1, fld:numComponents() do
+      --       ptrGhost[k] = ptrSkin[k]
+      --    end
+      --    idxGhost, idxSkin = indexer(xlo-1, i, zup+1), indexer(xup, i, zlo)
+      --    fld:fill(idxGhost, ptrGhost)
+      --    fld:fill(idxSkin, ptrSkin)
+      --    for k = 1, fld:numComponents() do
+      --       ptrGhost[k] = ptrSkin[k]
+      --    end
+      --    idxGhost, idxSkin = indexer(xup+1, i, zup+1), indexer(xlo, i, zlo)
+      --    fld:fill(idxGhost, ptrGhost)
+      --    fld:fill(idxSkin, ptrSkin)
+      --    for k = 1, fld:numComponents() do
+      --       ptrGhost[k] = ptrSkin[k]
+      --    end
+      -- end
       
-      -- z-edges
-      for i = zlo, zup do
-         idxGhost, idxSkin = indexer(xlo-1, ylo-1, i), indexer(xup, yup, i)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
-         end
-         idxGhost, idxSkin = indexer(xup+1, ylo-1, i), indexer(xlo, yup, i)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
-         end
-         idxGhost, idxSkin = indexer(xlo-1, yup+1, i), indexer(xup, ylo, i)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-               ptrGhost[k] = ptrSkin[k]
-         end
-         idxGhost, idxSkin = indexer(xup+1, yup+1, i), indexer(xlo, ylo, i)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
-         end
-      end
+      -- -- z-edges
+      -- for i = zlo, zup do
+      --    idxGhost, idxSkin = indexer(xlo-1, ylo-1, i), indexer(xup, yup, i)
+      --    fld:fill(idxGhost, ptrGhost)
+      --    fld:fill(idxSkin, ptrSkin)
+      --    for k = 1, fld:numComponents() do
+      --       ptrGhost[k] = ptrSkin[k]
+      --    end
+      --    idxGhost, idxSkin = indexer(xup+1, ylo-1, i), indexer(xlo, yup, i)
+      --    fld:fill(idxGhost, ptrGhost)
+      --    fld:fill(idxSkin, ptrSkin)
+      --    for k = 1, fld:numComponents() do
+      --       ptrGhost[k] = ptrSkin[k]
+      --    end
+      --    idxGhost, idxSkin = indexer(xlo-1, yup+1, i), indexer(xup, ylo, i)
+      --    fld:fill(idxGhost, ptrGhost)
+      --    fld:fill(idxSkin, ptrSkin)
+      --    for k = 1, fld:numComponents() do
+      --          ptrGhost[k] = ptrSkin[k]
+      --    end
+      --    idxGhost, idxSkin = indexer(xup+1, yup+1, i), indexer(xlo, ylo, i)
+      --    fld:fill(idxGhost, ptrGhost)
+      --    fld:fill(idxSkin, ptrSkin)
+      --    for k = 1, fld:numComponents() do
+      --       ptrGhost[k] = ptrSkin[k]
+      --    end
+      -- end
    end
 
    local projectUpd = Updater.ProjectOnBasis {
@@ -402,17 +402,6 @@ return function(tbl)
       -------------
    -- Poisson --
    -------------
-   -- local poisson = Updater.DiscontPoisson {
-   --    onGrid = grid,
-   --    basis = basis,
-   --    bcLower = {{D = 1, N = 0, val = 0.0},
-   --       {D = 1, N = 0, val = 0.0},
-   --       {D = 1, N = 0, val = 0.0}},
-   --    bcUpper = {{D = 1, N = 0, val = 0.0},
-   --       {D = 1, N = 0, val = 0.0},
-   --       {D = 1, N = 0, val = 0.0}},
-   -- }
-   
    local poissonH = Updater.DiscontPoisson {
       onGrid = grid,
       basis = basis,
@@ -421,7 +410,7 @@ return function(tbl)
          local v = math.sqrt(x*x+y*y+z*z)
          local n = moms[1]
          local svth = math.sqrt(2)*math.sqrt(moms[5]/moms[1]/3)
-         return n/v*ffi.C.erf(v/svth)
+         return n/v*ffi.C.erf(v/svth) / (4*math.pi)
       end,
    }
    local poissonG = Updater.DiscontPoisson {
@@ -432,8 +421,8 @@ return function(tbl)
          local v = math.sqrt(x*x+y*y+z*z)
          local n = moms[1]
          local svth = math.sqrt(2)*math.sqrt(moms[5]/moms[1]/3)
-         return n/math.sqrt(math.pi)*svth*math.exp(-v^2/svth^2) + 
-            n*svth*(0.5*svth/v+v/svth)*ffi.C.erf(v/svth)
+         return n*(svth/math.sqrt(math.pi)*math.exp(-v^2/svth^2) + 
+                      svth*(0.5*svth/v+v/svth)*ffi.C.erf(v/svth)) / (8*math.pi)
       end,
    }
    
@@ -443,7 +432,7 @@ return function(tbl)
    local function updateRosenbluthDrag(fIn, hOut)
       local tmStart = Time.clock()
       if updatePotentials then
-         tmp:combine(4*math.pi, fIn)
+         tmp:combine(1, fIn)
          poissonH:advance(0.0, {tmp}, {hOut})
       end
       tmRosen = tmRosen + Time.clock()-tmStart
@@ -451,7 +440,7 @@ return function(tbl)
    local function updateRosenbluthDiffusion(hIn, gOut)
       local tmStart = Time.clock()
       if updatePotentials then
-         tmp:combine(-2, hIn)
+         tmp:combine(-1, hIn)
          poissonG:advance(0.0, {tmp}, {gOut})
       end
       tmRosen = tmRosen + Time.clock()-tmStart
@@ -490,7 +479,7 @@ return function(tbl)
             local n = moms[1]
             local vth2 = moms[5]/moms[1]/3
             local svth = math.sqrt(2*vth2)
-            return 2 * n/v*ffi.C.erf(v/svth)
+            return n/v*ffi.C.erf(v/svth) / (4*math.pi)
          end
          initDiffFunc = function (t, z)
             local x, y, z = z[1], z[2], z[3]
@@ -498,8 +487,8 @@ return function(tbl)
             local n = moms[1]
             local vth2 = moms[5]/moms[1]/3
             local svth = math.sqrt(2*vth2)
-            return n*svth/math.sqrt(math.pi)*math.exp(-v^2/svth^2) + 
-               n*svth*(0.5*svth/v+v/svth)*ffi.C.erf(v/svth)
+            return n*(svth/math.sqrt(math.pi)*math.exp(-v^2/svth^2) + 
+                      svth*(0.5*svth/v+v/svth)*ffi.C.erf(v/svth)) / (8*math.pi)
          end
       end
       
@@ -716,9 +705,9 @@ return function(tbl)
       --h:scale(2.0)
       cflFreq = forwardEuler(dt, fIn, h, g, f1)
       localDt = cflFrac/cflFreq
-      if localDt < 0.9*dt then
-         return false, localDt
-      end
+      -- if localDt < 0.9*dt then
+      --    return false, localDt
+      -- end
       applyBc(f1)
 
       -- Stage 2
@@ -727,9 +716,9 @@ return function(tbl)
       --h:scale(2.0)
       cflFreq = forwardEuler(dt, f1, h, g, fe)
       localDt = cflFrac/cflFreq
-      if localDt < 0.9*dt then
-        return false, localDt
-      end
+      -- if localDt < 0.9*dt then
+      --   return false, localDt
+      -- end
       f2:combine(3.0/4.0, fIn, 1.0/4.0, fe)
       applyBc(f2)
 
@@ -739,13 +728,13 @@ return function(tbl)
       --h:scale(2.0)
       cflFreq = forwardEuler(dt, f2, h, g, fe)
       localDt = cflFrac/cflFreq
-      if localDt < 0.9*dt then
-        return false, localDt
-      end
+      -- if localDt < 0.9*dt then
+      --   return false, localDt
+      -- end
       fOut:combine(1.0/3.0, fIn, 2.0/3.0, fe)
       applyBc(fOut)
 
-      return true, localDt
+      return true, dt--localDt
    end
 
    -- run simulation with RK3
