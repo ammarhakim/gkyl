@@ -57,6 +57,9 @@ function ProjectFluxFunc:_advance(tCurr, inFld, outFld)
    local tmEvalMomStart = Time.clock()
    local grid           = self._onGrid
    local cDim, vDim, pDim = self._cDim, self._vDim, self._pDim
+
+   -- Get vpar limits of cell.
+   local vpardir = cDim*2 -- (vx for 1x3v, vz for 3x3v)
    
    local fIn, fHat = inFld[1], outFld[1]
    fHat:clear(0.0)
@@ -87,12 +90,14 @@ function ProjectFluxFunc:_advance(tCurr, inFld, outFld)
       for vIdx in velRange:rowMajorIter() do
 
 	 for d = 1, vDim do self.idxP[cDim+d] = vIdx[d] end
-	 
 	 grid:setIndex(self.idxP)
+	 local wv = grid:cellCenterInDir(vpardir)
+	 local dv = grid:dx(vpardir)
+
 	 fIn:fill(phaseIndexer(self.idxP), fInItr)
 	 fHat:fill(phaseIndexer(self.idxP), fHatItr)
 
-	 self._projectFlux(self._edgeVal, fInItr:data(), fHatItr:data())
+	 self._projectFlux(wv, dv, self._edgeVal, fInItr:data(), fHatItr:data())
       end
       
    end

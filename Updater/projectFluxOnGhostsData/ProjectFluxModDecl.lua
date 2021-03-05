@@ -16,7 +16,7 @@ local _M = {}
 function _M.projectFlux(basisNm, CDIM, VDIM, dir, polyOrder)
    local funcType = "double"
    local funcNm = string.format("ProjectFluxOnGhosts%dx%dvDir%d%s_P%d", CDIM, VDIM, dir, basisNmMap[basisNm], polyOrder)
-   local funcSign = "(const double zVal, const double *fIn, double *fHat)"
+   local funcSign = "(const double wv, const double dv, const double zVal, const double *fIn, double *fHat)"
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]

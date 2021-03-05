@@ -1471,7 +1471,6 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	    else
 	       edgeval = 1
 	    end
-	    --print(label, edgeval)
 	    
 	    -- DistFuncMomentCalc Updater for fMaxwell	    
 	    self.calcFhatM0[label] = Updater.DistFuncMomentCalc {
@@ -1524,7 +1523,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	    
 	    self.projectRecycleFMaxwell:advance(tCurr, {}, {self.recycleFMaxwell[label]})
 	    self.projectFluxFunc:advance(tCurr, {self.recycleFMaxwell[label]}, {self.recycleFhat[label]})
-	    self.calcFhatM0[label]:advance(tCurr, {self.recycleFMaxwell[label]}, {self.recycleFhatM0[label]})
+	    self.calcFhatM0[label]:advance(tCurr, {self.recycleFhat[label]}, {self.recycleFhatM0[label]})
 
 	    -- Write out distf and flux
 	    wlabel = (label):gsub("Flux","")
@@ -1536,8 +1535,8 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	       tCurr, self.diagIoFrame, false)
 	 end
 
-	 ionBoundaryFlux = species[self.recycleIonNm].bcGkM0fluxField[label]
-	 ionBoundaryFlux:scale(self.recFrac)
+	 local ionBoundaryFlux = species[self.recycleIonNm].bcGkM0fluxField[label]
+	 --ionBoundaryFlux:scale(self.recFrac)
 	 wlabel = (label):gsub("Flux","")
 	 ionBoundaryFlux:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleIonBoundaryFlux',
 	 				     wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)

@@ -26,14 +26,14 @@ calcProjectFluxOnGhost(dir, fh, cdim, vdim, basisFun) := block([],
 
   funcNm : sconcat("ProjectFluxOnGhosts", cdim, "x", vdim, "vDir", dir, basisFun),           
   printf(fh, "~%"),
-  printf(fh, "void ~a_P~a(const double zVal, const double *fIn, double *fHat) ~%{ ~%", funcNm, p),
+  printf(fh, "void ~a_P~a(const double wv, const double dv, const double zVal, const double *fIn, double *fHat) ~%{ ~%", funcNm, p),
 
   printf(fh, "  // fIn[~a]:    input distf. ~%", NP),
   printf(fh, "  // fHat[~a]:   projection of flux on ghost cell. ~%", NP),
   printf(fh, " ~%"),
 
-  fIn_e : subst(zVar=zVal, doExpand(fIn,bP)),
-  fHat_c : calcInnerProdList(varsP, 1, subst(zVar=zVal, bP), vVar*fIn_e),
+  fIn_e : subst(zVar=zVal, doExpand1(fIn,bP)),
+  fHat_c : calcInnerProdList(varsP, 1, subst(zVar=zVal, bP), (wv+vVar*dv/2)*fIn_e),
   writeCExprsNoExpand1(fHat, fHat_c),
 
   printf(fh, " ~%"),

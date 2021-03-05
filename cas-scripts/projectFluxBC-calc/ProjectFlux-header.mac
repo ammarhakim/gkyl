@@ -14,7 +14,7 @@ p : 1$
 for ci : 1 thru 3 do (
     for vi : ci thru 3 do (
     	dir : ci,
-    	printf(fh, "void ProjectFluxOnGhosts~ax~avDir~aSer_P1(const double zVal, const double *fIn, double *fHat); ~%", ci, vi, dir, p),
+    	printf(fh, "void ProjectFluxOnGhosts~ax~avDir~aSer_P1(const double wv, const double dv, const double zVal, const double *fIn, double *fHat); ~%", ci, vi, dir, p),
     	printf(fh, "~%")
     ),
     printf(fh, "~%")
