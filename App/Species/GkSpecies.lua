@@ -1324,15 +1324,6 @@ function GkSpecies:createDiagnostics()
    	 		     charge    = self.charge,
    	 		     mass      = self.mass,},	    
    	 }
-	 self.bcGkM0fluxFlip[label] = DataStruct.Field {
-   	    onGrid        = confGrid,
-   	    numComponents = self.confBasis:numBasis(),
-   	    ghost         = {1, 1},
-   	    metaData      = {polyOrder = self.basis:polyOrder(),
-   	 		     basisType = self.basis:id(),
-   	 		     charge    = self.charge,
-   	 		     mass      = self.mass,},	    
-   	 }
    	 self.bcGkM0fluxUpdater[label] = Updater.DistFuncMomentCalc {
    	    onGrid = phaseGrid,
    	    phaseBasis  = self.basis,
