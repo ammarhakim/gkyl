@@ -61,6 +61,12 @@ plasmaApp = Plasma.App {
       -- Velocity space grid.
       lower      = {-6.0*vtIon, 0.0},
       upper      = { 6.0*vtIon, mIon*((5.0*vtIon)^2)/(2.0*B0)},
+--      lower = {-1.0, 0.},
+--      upper = { 1.0, 1.},
+--      coordinateMap = {
+--        function(z) if z<0. then return -6.*z^2 else return 6.*z^2 end end,
+--        function(z) return (z^2)*mIon*((5.0*vtIon)^2)/(2.0*B0) end
+--      },
       cells      = {64, 8},
       decompCuts = {1, 1},
       -- Initial conditions.

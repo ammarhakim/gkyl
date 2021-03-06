@@ -1,41 +1,47 @@
-doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
-cvars : [X, Y, Z]$
-vvars : [Vpar, Mu]$
+cvars : [x, y, z]$
+vvars : [vpar, mu]$
 
-/* set up some vector calculus functions */
+/* Set up some vector calculus functions. */
 load("vect")$
-fgrad(f):= ev(express(grad(f)),diff)*derivfacsC$
+fgrad(f) := ev(express(grad(f)),diff)*derivfacsC$
 
-gkPB(f,g):=1/m_*(Bstar_by_Bmag_expd.fgrad(f)*dfac_v*diff(g,vpar)-Bstar_by_Bmag_expd.fgrad(g)*dfac_v*diff(f,vpar))+(-1/q_*geoZ_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x)) + 1/q_*geoY_expd*dfac_x*dfac_z*(diff(f,x)*diff(g,z)-diff(f,z)*diff(g,x)) - 1/q_*geoX_expd*dfac_y*dfac_z*(diff(f,y)*diff(g,z)-diff(f,z)*diff(g,y)))*jacobTotInv_expd$
+gkPB(f,g) := (1/m_)*(Bstar_by_Bmag_expd.fgrad(f)*dfac_v*diff(g,vpar)-Bstar_by_Bmag_expd.fgrad(g)*dfac_v*diff(f,vpar))
+            +(-(1/q_)*geoZ_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x))
+              +(1/q_)*geoY_expd*dfac_x*dfac_z*(diff(f,x)*diff(g,z)-diff(f,z)*diff(g,x))
+              -(1/q_)*geoX_expd*dfac_y*dfac_z*(diff(f,y)*diff(g,z)-diff(f,z)*diff(g,y)))*jacobTotInv_expd$
 
 loadGKbasis(cdim, vdim, p) := block([],
-  if vdim > 0 then modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")
-  else modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
+  if vdim > 0 then (
+    modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")
+  ) else (
+    modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x")
+  ),
   load(modNm),
 
-  gkvsub:[vx=vpar,vy=mu],
-  gkvsubInv:[vpar=vx,mu=vy],
+  gkvsub    : [vx=vpar,vy=mu],
+  gkvsubInv : [vpar=vx,mu=vy],
 
   if cdim = 1 then (
-    label:["z", "v", "m"],
-    gkvsub:append([x=z], gkvsub),
-    gkvsubInv:append([z=x], gkvsubInv),
-    wc : [wz, wv, wm],
-    derivfac : [dfac_z, dfac_v, dfac_m]
+    label     : ["z", "v", "m"],
+    gkvsub    : append([x=z], gkvsub),
+    gkvsubInv : append([z=x], gkvsubInv),
+    wc        : [wz, wv, wm],
+    derivfac  : [dfac_z, dfac_v, dfac_m]
   ),
   if cdim = 2 then (
-    label:["x", "y", "v", "m"],
-    wc : [wx, wy, wv, wm],
+    label    : ["x", "y", "v", "m"],
+    wc       : [wx, wy, wv, wm],
     derivfac : [dfac_x, dfac_y, dfac_v, dfac_m]
   ),
   if cdim = 3 then (
-    label:["x", "y", "z", "v", "m"],
-    wc : [wx, wy, wz, wv, wm],
+    label    : ["x", "y", "z", "v", "m"],
+    wc       : [wx, wy, wz, wv, wm],
     derivfac : [dfac_x, dfac_y, dfac_z, dfac_v, dfac_m]
   ),
-  bC : subst(gkvsub, basisC[p]),
+  bC    : subst(gkvsub, basisC[p]),
   varsC : subst(gkvsub, varsC),
   if vdim=0 then bP : bC
   else bP : subst(gkvsub, basisP[p]),
@@ -87,14 +93,14 @@ calcAndWriteHamil() := block([],
   if vdim > 1 then H_full : H_full + (wm+mu/dfac_m)*Bmag_expd,
   
   /* project Hamiltonian onto basis functions */
-  H_k:fullratsimp(innerProd(varsP, 1, bP, H_full)),
+  H_k : fullratsimp(innerProd(varsP, 1, bP, H_full)),
   /* write Hamiltonian to array */
   printf(fh, "  double hamil[~a]; ~%", length(bP)),
   writeCExprsNoExpand1(hamil, gcfac(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2,dfac_x^2=dfac_x2], H_k))),
   flush_output(fh),
   HnoZero_k : doMakeExprLst(H_k, hamil),
   /* expand projected Hamiltonian on basis */
-  H_expd:HnoZero_k.bP
+  H_expd : HnoZero_k.bP
 )$
 
 calcAndWriteBstar_by_Bmag(surfDir) := block([],
@@ -106,13 +112,21 @@ calcAndWriteBstar_by_Bmag(surfDir) := block([],
   jacobTotInv_expd : subst(Bignorevars, doExpand1(jacobTotInv, bC)),
 
   /* expand BstarX/Bmag on basis */
-  BstarX_by_Bmag_expd : (-(m_/q_*(wv+vpar/dfac_v) + Apar_expd)*dfac_z*diff(geoY_expd,z) + geoZ_expd*dfac_y*diff(Apar_expd,y) - geoY_expd*dfac_z*diff(Apar_expd,z))*jacobTotInv_expd,
+  BstarX_by_Bmag_expd : (-((m_/q_)*(wv+vpar/dfac_v) + Apar_expd)*dfac_z*diff(geoY_expd,z) 
+                         +geoZ_expd*dfac_y*diff(Apar_expd,y)
+                         -geoY_expd*dfac_z*diff(Apar_expd,z))*jacobTotInv_expd,
   /* expand BstarY/Bmag on basis */
-  BstarY_by_Bmag_expd : (-(m_/q_*(wv+vpar/dfac_v) + Apar_expd)*(dfac_x*diff(geoZ_expd,x) - dfac_z*diff(geoX_expd,z)) - geoZ_expd*dfac_x*diff(Apar_expd,x) + geoX_expd*dfac_z*diff(Apar_expd,z))*jacobTotInv_expd,
+  BstarY_by_Bmag_expd : (-((m_/q_)*(wv+vpar/dfac_v) + Apar_expd)*(dfac_x*diff(geoZ_expd,x) - dfac_z*diff(geoX_expd,z))
+                         -geoZ_expd*dfac_x*diff(Apar_expd,x)
+                         +geoX_expd*dfac_z*diff(Apar_expd,z))*jacobTotInv_expd,
   /* expand BstarZ/Bmag on basis */
-  BstarZ_by_Bmag_expd : (gradpar_expd + (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*dfac_x*diff(geoY_expd,x) + geoY_expd*dfac_x*diff(Apar_expd,x) - geoX_expd*dfac_y*diff(Apar_expd,y))*jacobTotInv_expd,
+  BstarZ_by_Bmag_expd : ( gradpar_expd + ((m_/q_)*(wv+vpar/dfac_v) + Apar_expd)*dfac_x*diff(geoY_expd,x)
+                         +geoY_expd*dfac_x*diff(Apar_expd,x)
+                         -geoX_expd*dfac_y*diff(Apar_expd,y))*jacobTotInv_expd,
   if (surfDir = cdim and emflag and cdim#2) then (
-    BstarZ_by_BmagL_expd : (gradpar_expd + (m_/q_*(wv+vpar/dfac_v) + AparL_expd)*dfac_x*diff(geoY_expd,x) + geoY_expd*dfac_x*diff(AparL_expd,x) - geoX_expd*dfac_y*diff(AparL_expd,y))*jacobTotInv_expd
+    BstarZ_by_BmagL_expd : ( gradpar_expd + ((m_/q_)*(wv+vpar/dfac_v) + AparL_expd)*dfac_x*diff(geoY_expd,x)
+                            +geoY_expd*dfac_x*diff(AparL_expd,x)
+                            -geoX_expd*dfac_y*diff(AparL_expd,y))*jacobTotInv_expd
   ),
  
 

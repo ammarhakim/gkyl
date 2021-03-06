@@ -1,0 +1,76 @@
+/*
+  Generate the surface kernels for gyrokinetics with a simple
+  helical magnetic field.
+
+  The functions called in this file are in gkSimpleHelical_surfModule.mac.
+*/
+load("gk-calc/gkSimpleHelical_surfModule")$
+
+/* ...... USER INPUTS........ */
+
+/* Choose to generate kernels for "ES", "EM" gyrokinetics or "both". */
+ESorEM : "both"$ 
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 2$
+minCdim_Ser : 1$
+minVdim_Ser : 1$
+maxCdim_Ser : 3$
+maxVdim_Ser : 2$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 2$
+minCdim_Max : 1$
+minVdim_Max : 1$
+maxCdim_Max : 0$
+maxVdim_Max : 0$
+
+gkVdims      : [[1,2], [2], [2]]$
+
+/* ...... END OF USER INPUTS........ */
+
+/* To generate other bases, just add corresponding column to arrays below. */
+bName        : ["Ser", "Max"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
+minCdim      : [minCdim_Ser, minCdim_Max]$
+minVdim      : [minVdim_Ser, minVdim_Max]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max]$
+maxVdim      : [maxVdim_Ser, maxVdim_Max]$
+
+/* Is electromagnetic booleans. */
+if     ESorEM="ES"   then (fieldType : [false]) 
+elseif ESorEM="EM"   then (fieldType : [true]) 
+elseif ESorEM="both" then (fieldType : [false,true])$
+
+/* Generate kernels of selected types. */
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for gkV : 1 thru length(gkVdims[c]) do (
+      v : gkVdims[c][gkV],
+
+      maxPolyOrderB : maxPolyOrder[bInd],
+      if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+
+      for polyOrder : 1 thru maxPolyOrderB do (
+        for fieldInd : 1 thru length(fieldType) do (
+          wApar : fieldType[fieldInd],
+
+          if wApar then (emStr : "Em") else (emStr : ""),
+          fname : sconcat("~/max-out/",emStr,"GyrokineticSimpleHelicalSurf", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
+          disp(printf(false,"Creating surface file: ~a",fname)),
+  
+          fh : openw(fname),
+          printf(fh, "#include <GyrokineticSimpleHelicalModDecl.h> ~%"),
+          /* Possible combinations of variable dependence of background magnetic field.
+             with [] = const. Note that we assume axisymmetry, which means B cannot depend on y. */
+          bVarsList : [[], [x]],
+          for b : 1 thru length(bVarsList) do (
+            funcName : sconcat(emStr,"GyrokineticSimpleHelicalSurf", c, "x", v, "v", bName[bInd]),
+            calcGKSimpleHelicalSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, wApar, bVarsList[b])
+          ),
+          close(fh)
+        )
+      )
+    )
+  )
+)$

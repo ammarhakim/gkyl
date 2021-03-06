@@ -26,8 +26,9 @@ doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 load("vect")$
 fgrad(f):= ev(express(grad(f)),diff)*derivfacsC$
 
-gkPB(f,g) := 1/m_*(Bstar_by_Bmag_expd.fgrad(f)*dfac_v*diff(g,vpar)-Bstar_by_Bmag_expd.fgrad(g)*dfac_v*diff(f,vpar))
-            -1/q_*BmagInv_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x))$
+gkPB(f,g) := (1/m_)*( Bstar_by_Bmag_expd.fgrad(f)*dfac_v*diff(g,vpar)
+                     -Bstar_by_Bmag_expd.fgrad(g)*dfac_v*diff(f,vpar) )
+            -(1/q_)*BmagInv_expd*dfac_x*dfac_y*( diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x) )$
 
 calcGKSimpleHelicalVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder, emflag, bvarslist) := block([],
   kill(varsC, varsP, basisC, basisP),
@@ -146,10 +147,9 @@ calcGKSimpleHelicalVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder, emfla
   printf(fh, "  double alphaL = 0.0; ~%"), 
   printf(fh, "  double alphaR = 0.0; ~%"), 
   
-  /* Note: no contribution from mu. */
   alphaSum_expd : 0,
-  if vdim = 0 then vd : 0
-  else vd : 1,
+  /* Note: no contribution from mu. */
+  if vdim = 0 then (vd : 0) else (vd : 1),
   for d : 1 thru cdim+vd do (
     if d>cdim then (
       wD : wV[d-cdim],
@@ -206,7 +206,7 @@ calcGKSimpleHelicalVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder, emfla
     /* Evaluate cfl by evaluating at all surface quadrature points. */
     printf(fh, "#elif cflType == QUAD ~%"),
     alphaLquad : nodesub(alphaL*subst(varsP[d]=-1,bP[1]))*bP[1],
-    alphaRquad : nodesub(alphaR*subst(varsP[d]=1,bP[1]))*bP[1],
+    alphaRquad : nodesub(alphaR*subst(varsP[d]=+1,bP[1]))*bP[1],
     printf(fh, "  // evaluate alpha at left surface quadrature points ~%"),
     for i:1 thru length(alphaLquad) do (
       printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaLquad[i]))),
@@ -234,15 +234,6 @@ calcGKSimpleHelicalStep2VolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) 
   kill(varsC, varsP, basisC, basisP),
   load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
 
-  if cdim = 1 then (
-    label:["x", "v", "m"]
-  ),
-  if cdim = 2 then (
-    label:["x", "y", "v", "m"]
-  ),
-  if cdim = 3 then (
-    label:["x", "y", "z", "v", "m"]
-  ),
   bP    : subst(gkvsub, basisP[polyOrder]),
   bC    : basisC[polyOrder],
   varsP : subst(gkvsub, varsP),
@@ -252,6 +243,9 @@ calcGKSimpleHelicalStep2VolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) 
 
   printf(fh, "  double dvInv = 1.0/dxv[~a]; ~%", cdim),
   printf(fh, "  double dfac_v = 2.0/dxv[~a]; ~%", cdim),
+
+  /* Expand distribution function on basis. */
+  f_expd : doExpand1(f,bP),
 
   /* Expand dApar/dt. */
   dAdt_expd:doExpand1(dApardt,bC),
@@ -320,13 +314,13 @@ calcGKSimpleHelicalStep2VolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) 
 /* Call the above functions to generate the kernels for various combinations
    of dimensionality, polyOrder and electrostatic/electromagnetic. */
 
-pmax : 2$
+pmax : 1$
 em : false$
 
-for c : 1 thru 3 do (
+for c : 1 thru 2 do (
   for v: 1 thru 2 do (
     if c=1 or (c>1 and v=2) then (
-      for p : 2 thru pmax do (
+      for p : 1 thru pmax do (
         if em then (
           fname : sconcat("~/max-out/EmGyrokineticSimpleHelicalSer", c, "x", v, "vP", p, ".cpp")
         ) else (
