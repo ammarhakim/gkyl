@@ -410,7 +410,7 @@ return function(tbl)
          local v = math.sqrt(x*x+y*y+z*z)
          local n = moms[1]
          local svth = math.sqrt(2)*math.sqrt(moms[5]/moms[1]/3)
-         return n/v*ffi.C.erf(v/svth) / (4*math.pi)
+         return n/v*ffi.C.erf(v/svth) --/ (4*math.pi)
       end,
    }
    local poissonG = Updater.DiscontPoisson {
@@ -422,7 +422,7 @@ return function(tbl)
          local n = moms[1]
          local svth = math.sqrt(2)*math.sqrt(moms[5]/moms[1]/3)
          return n*(svth/math.sqrt(math.pi)*math.exp(-v^2/svth^2) + 
-                      svth*(0.5*svth/v+v/svth)*ffi.C.erf(v/svth)) / (8*math.pi)
+                      svth*(0.5*svth/v+v/svth)*ffi.C.erf(v/svth)) / 2--(8*math.pi)
       end,
    }
    
@@ -432,7 +432,8 @@ return function(tbl)
    local function updateRosenbluthDrag(fIn, hOut)
       local tmStart = Time.clock()
       if updatePotentials then
-         tmp:combine(1, fIn)
+         --tmp:combine(1, fIn)
+         tmp:combine(4*math.pi, fIn)
          poissonH:advance(0.0, {tmp}, {hOut})
       end
       tmRosen = tmRosen + Time.clock()-tmStart
@@ -479,7 +480,7 @@ return function(tbl)
             local n = moms[1]
             local vth2 = moms[5]/moms[1]/3
             local svth = math.sqrt(2*vth2)
-            return n/v*ffi.C.erf(v/svth) / (4*math.pi)
+            return n/v*ffi.C.erf(v/svth) --/ (4*math.pi)
          end
          initDiffFunc = function (t, z)
             local x, y, z = z[1], z[2], z[3]
@@ -488,7 +489,7 @@ return function(tbl)
             local vth2 = moms[5]/moms[1]/3
             local svth = math.sqrt(2*vth2)
             return n*(svth/math.sqrt(math.pi)*math.exp(-v^2/svth^2) + 
-                      svth*(0.5*svth/v+v/svth)*ffi.C.erf(v/svth)) / (8*math.pi)
+                      svth*(0.5*svth/v+v/svth)*ffi.C.erf(v/svth)) / 2--(8*math.pi)
          end
       end
       
