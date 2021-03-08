@@ -1,15 +1,15 @@
-#include <GyrokineticSimpleHelicalModDecl.h> 
-double GyrokineticSimpleHelicalSurf2x2vSer_x_P2_Bvars(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *gradPar, const double *BdriftX, const double *BdriftY, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
+#include <GyrokineticModDecl.h>
+double GyrokineticSimpleHelicalSurf2x2vSer_x_P2_Bvars(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
 { 
+  // bmagInv: 1/bmag.
+  // BdriftX,BdriftY: x,y components of gradB/curvature drift.
   // q_,m_: species charge and mass.
   // cflL,cflR: CFL rate in left and right cells.
   // wL[NDIM],wR[NDIM]: cell-center in left and right cells.
   // dxvL[NDIM],dxvR[NDIM]: Cell length in left and right cells.
   // amax_in: maximum phase-space speed.
   // bmag: magnetic field amplitude.
-  // bmagInv: 1/bmag.
-  // gradPar: coefficient multiplying parallel gradient.
-  // BdriftX,BdriftY: x,y components of gradB/curvature drift.
+  // cmag: coefficient multiplying parallel gradient.
   // phi: electrostatic potential .
   // fL,fR: Distribution function in left and right cells.
   // outL/outR: Output increment in left and right cells.
@@ -64,10 +64,6 @@ double GyrokineticSimpleHelicalSurf2x2vSer_x_P2_Bvars(const double q_, const dou
   double BstarXdBmagR[48]; 
   BstarXdBmagR[0] = (2.0*BdriftX[0]*m_*wvparR)/q_; 
   BstarXdBmagR[3] = (1.154700538379252*BdriftX[0]*m_)/(q_*rdvpar2R); 
-
-  double BstarYdBmagR[48]; 
-  BstarYdBmagR[0] = (2.0*BdriftY[0]*m_*wvparR)/q_; 
-  BstarYdBmagR[3] = (1.154700538379252*BdriftY[0]*m_)/(q_*rdvpar2R); 
 
   double alphaR[20]; 
   alphaR[0] = -(0.1767766952966368*(bmagInv[0]*(7.745966692414834*hamilR[19]-6.0*hamilR[5]+3.464101615137754*hamilR[2])*m_*rdy2R+((-3.872983346207417*BstarXdBmagR[3]*hamilR[13])-1.732050807568877*BstarXdBmagR[0]*hamilR[3])*q_*rdvpar2R))/(m_*q_); 
@@ -273,17 +269,17 @@ double GyrokineticSimpleHelicalSurf2x2vSer_x_P2_Bvars(const double q_, const dou
   outL[47] += incr[47]*rdx2L; 
 return std::abs(alphaSurfAvgR); 
 } 
-double GyrokineticSimpleHelicalSurf2x2vSer_y_P2_Bvars(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *gradPar, const double *BdriftX, const double *BdriftY, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
+double GyrokineticSimpleHelicalSurf2x2vSer_y_P2_Bvars(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
 { 
+  // bmagInv: 1/bmag.
+  // BdriftX,BdriftY: x,y components of gradB/curvature drift.
   // q_,m_: species charge and mass.
   // cflL,cflR: CFL rate in left and right cells.
   // wL[NDIM],wR[NDIM]: cell-center in left and right cells.
   // dxvL[NDIM],dxvR[NDIM]: Cell length in left and right cells.
   // amax_in: maximum phase-space speed.
   // bmag: magnetic field amplitude.
-  // bmagInv: 1/bmag.
-  // gradPar: coefficient multiplying parallel gradient.
-  // BdriftX,BdriftY: x,y components of gradB/curvature drift.
+  // cmag: coefficient multiplying parallel gradient.
   // phi: electrostatic potential .
   // fL,fR: Distribution function in left and right cells.
   // outL/outR: Output increment in left and right cells.
@@ -334,10 +330,6 @@ double GyrokineticSimpleHelicalSurf2x2vSer_y_P2_Bvars(const double q_, const dou
   hamilR[13] = (0.5962847939999438*m_)/rdvpar2SqR; 
   hamilR[19] = 2.0*phi[6]*q_; 
   hamilR[20] = 2.0*phi[7]*q_; 
-
-  double BstarXdBmagR[48]; 
-  BstarXdBmagR[0] = (2.0*BdriftX[0]*m_*wvparR)/q_; 
-  BstarXdBmagR[3] = (1.154700538379252*BdriftX[0]*m_)/(q_*rdvpar2R); 
 
   double BstarYdBmagR[48]; 
   BstarYdBmagR[0] = (2.0*BdriftY[0]*m_*wvparR)/q_; 
@@ -547,17 +539,17 @@ double GyrokineticSimpleHelicalSurf2x2vSer_y_P2_Bvars(const double q_, const dou
   outL[47] += incr[47]*rdy2L; 
 return std::abs(alphaSurfAvgR); 
 } 
-double GyrokineticSimpleHelicalSurf2x2vSer_vpar_P2_Bvars(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *gradPar, const double *BdriftX, const double *BdriftY, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
+double GyrokineticSimpleHelicalSurf2x2vSer_vpar_P2_Bvars(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
 { 
+  // bmagInv: 1/bmag.
+  // BdriftX,BdriftY: x,y components of gradB/curvature drift.
   // q_,m_: species charge and mass.
   // cflL,cflR: CFL rate in left and right cells.
   // wL[NDIM],wR[NDIM]: cell-center in left and right cells.
   // dxvL[NDIM],dxvR[NDIM]: Cell length in left and right cells.
   // amax_in: maximum phase-space speed.
   // bmag: magnetic field amplitude.
-  // bmagInv: 1/bmag.
-  // gradPar: coefficient multiplying parallel gradient.
-  // BdriftX,BdriftY: x,y components of gradB/curvature drift.
+  // cmag: coefficient multiplying parallel gradient.
   // phi: electrostatic potential .
   // fL,fR: Distribution function in left and right cells.
   // outL/outR: Output increment in left and right cells.
@@ -823,17 +815,17 @@ double GyrokineticSimpleHelicalSurf2x2vSer_vpar_P2_Bvars(const double q_, const 
   outL[47] += incr[47]*rdvpar2L; 
 return std::abs(alphaSurfAvgR); 
 } 
-double GyrokineticSimpleHelicalSurf2x2vSer_x_P2_Bvarsx(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *gradPar, const double *BdriftX, const double *BdriftY, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
+double GyrokineticSimpleHelicalSurf2x2vSer_x_P2_Bvarsx(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
 { 
+  // bmagInv: 1/bmag.
+  // BdriftX,BdriftY: x,y components of gradB/curvature drift.
   // q_,m_: species charge and mass.
   // cflL,cflR: CFL rate in left and right cells.
   // wL[NDIM],wR[NDIM]: cell-center in left and right cells.
   // dxvL[NDIM],dxvR[NDIM]: Cell length in left and right cells.
   // amax_in: maximum phase-space speed.
   // bmag: magnetic field amplitude.
-  // bmagInv: 1/bmag.
-  // gradPar: coefficient multiplying parallel gradient.
-  // BdriftX,BdriftY: x,y components of gradB/curvature drift.
+  // cmag: coefficient multiplying parallel gradient.
   // phi: electrostatic potential .
   // fL,fR: Distribution function in left and right cells.
   // outL/outR: Output increment in left and right cells.
@@ -894,14 +886,6 @@ double GyrokineticSimpleHelicalSurf2x2vSer_x_P2_Bvarsx(const double q_, const do
   BstarXdBmagR[6] = (1.154700538379252*BdriftX[1]*m_)/(q_*rdvpar2R); 
   BstarXdBmagR[11] = (2.0*BdriftX[4]*m_*wvparR)/q_; 
   BstarXdBmagR[21] = (1.154700538379251*BdriftX[4]*m_)/(q_*rdvpar2R); 
-
-  double BstarYdBmagR[48]; 
-  BstarYdBmagR[0] = (2.0*BdriftY[0]*m_*wvparR)/q_; 
-  BstarYdBmagR[1] = (2.0*BdriftY[1]*m_*wvparR)/q_; 
-  BstarYdBmagR[3] = (1.154700538379252*BdriftY[0]*m_)/(q_*rdvpar2R); 
-  BstarYdBmagR[6] = (1.154700538379252*BdriftY[1]*m_)/(q_*rdvpar2R); 
-  BstarYdBmagR[11] = (2.0*BdriftY[4]*m_*wvparR)/q_; 
-  BstarYdBmagR[21] = (1.154700538379251*BdriftY[4]*m_)/(q_*rdvpar2R); 
 
   double alphaR[20]; 
   alphaR[0] = -(0.1767766952966368*(((17.32050807568877*bmagInv[4]-13.41640786499874*bmagInv[1]+7.745966692414834*bmagInv[0])*hamilR[19]+((-13.41640786499874*bmagInv[4])+10.39230484541326*bmagInv[1]-6.0*bmagInv[0])*hamilR[5]+hamilR[2]*(7.745966692414834*bmagInv[4]-6.0*bmagInv[1]+3.464101615137754*bmagInv[0]))*m_*rdy2R+(hamilR[13]*((-8.660254037844387*BstarXdBmagR[21])+6.708203932499369*BstarXdBmagR[6]-3.872983346207417*BstarXdBmagR[3])+hamilR[3]*((-3.872983346207417*BstarXdBmagR[11])+3.0*BstarXdBmagR[1]-1.732050807568877*BstarXdBmagR[0]))*q_*rdvpar2R))/(m_*q_); 
@@ -1107,17 +1091,17 @@ double GyrokineticSimpleHelicalSurf2x2vSer_x_P2_Bvarsx(const double q_, const do
   outL[47] += incr[47]*rdx2L; 
 return std::abs(alphaSurfAvgR); 
 } 
-double GyrokineticSimpleHelicalSurf2x2vSer_y_P2_Bvarsx(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *gradPar, const double *BdriftX, const double *BdriftY, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
+double GyrokineticSimpleHelicalSurf2x2vSer_y_P2_Bvarsx(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
 { 
+  // bmagInv: 1/bmag.
+  // BdriftX,BdriftY: x,y components of gradB/curvature drift.
   // q_,m_: species charge and mass.
   // cflL,cflR: CFL rate in left and right cells.
   // wL[NDIM],wR[NDIM]: cell-center in left and right cells.
   // dxvL[NDIM],dxvR[NDIM]: Cell length in left and right cells.
   // amax_in: maximum phase-space speed.
   // bmag: magnetic field amplitude.
-  // bmagInv: 1/bmag.
-  // gradPar: coefficient multiplying parallel gradient.
-  // BdriftX,BdriftY: x,y components of gradB/curvature drift.
+  // cmag: coefficient multiplying parallel gradient.
   // phi: electrostatic potential .
   // fL,fR: Distribution function in left and right cells.
   // outL/outR: Output increment in left and right cells.
@@ -1170,14 +1154,6 @@ double GyrokineticSimpleHelicalSurf2x2vSer_y_P2_Bvarsx(const double q_, const do
   hamilR[19] = 2.0*phi[6]*q_; 
   hamilR[20] = 2.0*phi[7]*q_; 
   hamilR[25] = (1.154700538379251*bmag[4])/rdmu2R; 
-
-  double BstarXdBmagR[48]; 
-  BstarXdBmagR[0] = (2.0*BdriftX[0]*m_*wvparR)/q_; 
-  BstarXdBmagR[1] = (2.0*BdriftX[1]*m_*wvparR)/q_; 
-  BstarXdBmagR[3] = (1.154700538379252*BdriftX[0]*m_)/(q_*rdvpar2R); 
-  BstarXdBmagR[6] = (1.154700538379252*BdriftX[1]*m_)/(q_*rdvpar2R); 
-  BstarXdBmagR[11] = (2.0*BdriftX[4]*m_*wvparR)/q_; 
-  BstarXdBmagR[21] = (1.154700538379251*BdriftX[4]*m_)/(q_*rdvpar2R); 
 
   double BstarYdBmagR[48]; 
   BstarYdBmagR[0] = (2.0*BdriftY[0]*m_*wvparR)/q_; 
@@ -1398,17 +1374,17 @@ double GyrokineticSimpleHelicalSurf2x2vSer_y_P2_Bvarsx(const double q_, const do
   outL[47] += incr[47]*rdy2L; 
 return std::abs(alphaSurfAvgR); 
 } 
-double GyrokineticSimpleHelicalSurf2x2vSer_vpar_P2_Bvarsx(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *gradPar, const double *BdriftX, const double *BdriftY, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
+double GyrokineticSimpleHelicalSurf2x2vSer_vpar_P2_Bvarsx(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *fL, const double *fR, double *outL, double *outR) 
 { 
+  // bmagInv: 1/bmag.
+  // BdriftX,BdriftY: x,y components of gradB/curvature drift.
   // q_,m_: species charge and mass.
   // cflL,cflR: CFL rate in left and right cells.
   // wL[NDIM],wR[NDIM]: cell-center in left and right cells.
   // dxvL[NDIM],dxvR[NDIM]: Cell length in left and right cells.
   // amax_in: maximum phase-space speed.
   // bmag: magnetic field amplitude.
-  // bmagInv: 1/bmag.
-  // gradPar: coefficient multiplying parallel gradient.
-  // BdriftX,BdriftY: x,y components of gradB/curvature drift.
+  // cmag: coefficient multiplying parallel gradient.
   // phi: electrostatic potential .
   // fL,fR: Distribution function in left and right cells.
   // outL/outR: Output increment in left and right cells.

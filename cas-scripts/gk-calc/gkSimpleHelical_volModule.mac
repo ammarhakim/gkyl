@@ -13,16 +13,18 @@ fpprec : 24$
 doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
-buildGKSimpleHelicalVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, varsInB) := block(
+buildGKSimpleHelicalVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, varsInB, useGenGeo) := block(
   [i,d,pDim,varsC,bC,varsP,bP,vSub,vSubInv,numC,numP,varLabel,BvarsLabel,rdx2vec,rdv2vec,bmagBasis,
-   ignoreVars,bmag_e,bmagInv_e,phi_e,Apar_e,dAdt_e,dAdtPrev_e,hamil_e,BstardBmagR_e,replaceList,
-   alphaSum_e,vd,dir,dirLabel,wDir,rdDirVar2,dirVar,alpha_e,alpha_c,alphaLabel,alphaNoZero_c,
-   alphaDotGradBasis_e,alphaSurfAvgL_s,alphaSurfAvgR_s,surfNodes,numNodes,surfIntVars,bSurf,numSurf,
-   alphaSurfL_c,alphaSurfL_e,alphaSurfL_n,alphaSurfR_c,alphaSurfR_e,alphaSurfR_n,f_e,volTerm_c],
+   ignoreVars,bmag_e,bmagInv_e,b_x_e,b_y_e,b_z_e,jacobTotInv_e,phi_e,Apar_e,dAdt_e,dAdtPrev_e,hamil_e,
+   BstardBmagL_e,BstardBmagR_e,replaceList,pbAuxFlds,alphaSum_e,vd,dir,dirLabel,wDir,rdDirVar2,dirVar,alpha_e,alpha_c,
+   alphaLabel,alphaNoZero_c,alphaDotGradBasis_e,alphaSurfAvgL_s,alphaSurfAvgR_s,surfNodes,numNodes,surfIntVars,
+   bSurf,numSurf,alphaSurfL_c,alphaSurfL_e,alphaSurfL_n,alphaSurfR_c,alphaSurfR_e,alphaSurfR_n,f_e,volTerm_c],
 
   kill(varsC, varsP, basisC, basisP),
 
   pDim : cdim+vdim,
+
+  genGenGeoKernel : useGenGeo, /* Set global variable in gkUtil.mac. */
 
   [varsC,bC,varsP,bP,vSub,vSubInv] : loadBasis(basisFun, cdim, vdim, polyOrder),
   numC : length(bC), numP : length(bP),
@@ -33,20 +35,32 @@ buildGKSimpleHelicalVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar
   for i : 1 thru length(varsInB) do (BvarsLabel : sconcat(BvarsLabel,varsInB[i])),
 
   print("Working on ", funcNm, "_P", polyOrder, "_Bvars", BvarsLabel),
-  if wApar then (
-    printf(fh, "double ~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *gradPar, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *f, double *out) ~%{ ~%", funcNm, polyOrder, BvarsLabel),
-    printf(fh, "  // Apar: parallel component of magnetic vector potential.~%"),
-    printf(fh, "  // dApardt: time derivative of Apar.~%")
+  if useGenGeo then (
+    if wApar then (
+      printf(fh, "double ~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double* dApardt, const double *f, double *out) ~%{ ~%", funcNm, polyOrder, BvarsLabel),
+      printf(fh, "  // Apar: parallel component of magnetic vector potential.~%"),
+      printf(fh, "  // dApardt: time derivative of Apar.~%")
+    ) else (
+      printf(fh, "double ~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *jacobTotInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *f, double *out) ~%{ ~%", funcNm, polyOrder, BvarsLabel)
+    ),
+    printf(fh, "  // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.~%"),
+    printf(fh, "  // b_x,b_y,b_z: covariant components of the field aligned unit vector.~%")
   ) else (
-    printf(fh, "double ~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *gradPar, const double *BdriftX, const double *BdriftY, const double *phi, const double *f, double *out) ~%{ ~%", funcNm, polyOrder, BvarsLabel)
+    if wApar then (
+      printf(fh, "double ~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *f, double *out) ~%{ ~%", funcNm, polyOrder, BvarsLabel),
+      printf(fh, "  // Apar: parallel component of magnetic vector potential.~%"),
+      printf(fh, "  // dApardt: time derivative of Apar.~%")
+    ) else (
+      printf(fh, "double ~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *f, double *out) ~%{ ~%", funcNm, polyOrder, BvarsLabel)
+    ),
+    printf(fh, "  // bmagInv: 1/bmag.~%"),
+    printf(fh, "  // BdriftX,BdriftY: x,y components of gradB/curvature drift.~%")
   ),
   printf(fh, "  // q_,m_: species charge and mass.~%"),
   printf(fh, "  // w[NDIM]: cell-center.~%"),
   printf(fh, "  // dxv[NDIM]: cell length.~%"),
   printf(fh, "  // bmag: magnetic field amplitude.~%"),
-  printf(fh, "  // bmagInv: 1/bmag.~%"),
-  printf(fh, "  // gradPar: coefficient multiplying parallel gradient.~%"),
-  printf(fh, "  // BdriftX,BdriftY: x,y components of gradB/curvature drift.~%"),
+  printf(fh, "  // cmag: coefficient multiplying parallel gradient.~%"),
   printf(fh, "  // phi: electrostatic potential .~%"),
   printf(fh, "  // f: Distribution function.~%"),
   printf(fh, "  // out: output increment.~%"),
@@ -78,14 +92,14 @@ buildGKSimpleHelicalVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar
         bmagBasis[i] : 0
   ))),
 
-  [bmag_e,bmagInv_e,phi_e,Apar_e,dAdt_e,dAdtPrev_e] : expandBandPotentials(bC,bmagBasis,wApar),
+  inFlds_e : expandInputFields(bC,bmagBasis,wApar),
 
   /* Compute electrostatic Hamiltonian and write it out. */
-  hamil_e : calcAndWrite_HamilES(fh,q_,m_,[wvpar,wmu],rdv2vec,bP,bmag_e,phi_e,""),
+  hamil_e : calcAndWrite_HamilES(fh,q_,m_,[wvpar,wmu],rdv2vec,bP,inFlds_e,""),
 
   /* Compute B* divided by B and write it out. */
-  BstardBmagR_e : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,[BdriftX,BdriftY],m_,q_,wvpar,rdv2vec,
-                                         rdx2vec,gradPar,Apar_e,bmagInv_e,""),
+  [BstardBmagR_e, BstardBmagL_e] : calcAndWrite_BstardBmag(fh,cdim,bP,bmagBasis,0,m_,q_,
+                                                           wvpar,rdx2vec,rdv2vec,inFlds_e,""),
 
   /* Calculate cflFreq = sum_d alpha_d / dxv[d]. */
   printf(fh, "  double cflFreq = 0.0; ~%"),
@@ -93,6 +107,16 @@ buildGKSimpleHelicalVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar
   printf(fh, "  double alphaR = 0.0; ~%"),
 
   replaceList : [wvpar^2=wvparSq, rdvpar2^2=rdvpar2Sq, rdx2^2=rdx2Sq, m_^2=mSq, q_^2=qSq],
+
+  pbAuxFlds : [BstardBmagR_e],
+  if useGenGeo then (
+    b_x_e : inFlds_e[7],  b_y_e : inFlds_e[8],  b_z_e : inFlds_e[9],
+    jacobTotInv_e : inFlds_e[10],
+    pbAuxFlds : append(pbAuxFlds,[b_x_e,b_y_e,b_z_e,jacobTotInv_e])
+  ) else (
+    bmagInv_e : inFlds_e[7],
+    pbAuxFlds : append(pbAuxFlds,[bmagInv_e])
+  ),
 
   alphaSum_e : 0,
   /* Note: no contribution from mu. */
@@ -107,7 +131,7 @@ buildGKSimpleHelicalVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar
     dirVar    : varsP[dir],         /* Variable in current direction. */
 
     /* Calculate phase space velocity alpha_d = {z[d], H} = dz[d]/dt. */
-    alpha_e : PBsimpleHelical(wDir+dirVar/rdDirVar2,hamil_e,m_,q_,rdx2vec,rdv2vec,BstardBmag_e,bmagInv_e),
+    alpha_e : poissonBracket(wDir+dirVar/rdDirVar2,hamil_e,m_,q_,rdx2vec,rdv2vec,pbAuxFlds),
 
     /* Project alpha on basis and write to array. */
     printf(fh, "  double alpha~a[~a]; ~%", dirLabel, numP),
@@ -162,7 +186,7 @@ buildGKSimpleHelicalVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar
   flush_output(fh)
 )$
 
-buildGKSimpleHelicalStep2VolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
+buildGKSimpleHelicalStep2VolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder,useGenGeo) := block(
   [pDim,varsC,bC,varsP,bP,vSub,vSubInv,numC,numP,f_e,dApardt_e,
    volTerm_c,replaceList,alpha_e,dir,dirVar,alphaSurfAvgL_s],
   /* Generate the volume kernel for the 2nd step in gyrokinetics with Apar. */
@@ -170,6 +194,8 @@ buildGKSimpleHelicalStep2VolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder) 
   kill(varsC, varsP, basisC, basisP),
 
   pDim : cdim+vdim,
+
+  genGenGeoKernel : useGenGeo, /* Set global variable in gkUtil.mac. */
 
   [varsC,bC,varsP,bP,vSub,vSubInv] : loadBasis(basisFun, cdim, vdim, polyOrder),
   numC : length(bC), numP : length(bP),

@@ -6,6 +6,13 @@ load("nodalOperations/nodalFunctions")$
 
 doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
 
+/*
+   This variable is global to this file only. Set by the file loading gkUtil.mac.
+     = false: generate simple helical magnetic field kernels.
+     = true:  generate general geometry kernels.
+*/
+genGenGeoKernel : false$
+
 loadBasis(basisType, cdim, vdim, pIn) := block([modNm,allLabels,vSub,vSubInv,varsC,bC,bP,varsP],
   /* Load basis of approapriate dimension. */
   if vdim > 0 then (
@@ -61,10 +68,11 @@ basisFromVars(basisType, varsIn, pIn) := block(
   return(basis)
 )$
 
-expandBandPotentials(bC,bmagBasis,hasApar) := block([],
+expandInputFields(bC,bmagBasis,hasApar) := block(
+  [bmag_e,bmagInv_e,phi_e,Apar_e,dApardt_e,dApardtPrev_e,cdim,
+   AparL_e,b_x_e,b_y_e,b_z_e,jacobTotInv_e,BdriftX_e,BdriftY_e],
   /* Expand background magnetic field and potentials. */
   bmag_e    : doExpand1(bmag,bmagBasis),
-  bmagInv_e : doExpand1(bmagInv,bmagBasis),
   phi_e     : doExpand1(phi,bC),
   if hasApar then (
     Apar_e        : doExpand1(Apar,bC),
@@ -75,14 +83,54 @@ expandBandPotentials(bC,bmagBasis,hasApar) := block([],
        does not involve Apar. Since Apar is continuous in the other directions,
        it does not matter if we use the right or left value. */
   ) else (
-    Apar_e : 0, dApardt_e : 0, dApardtPrev_e : 0
+    Apar_e : 0,  dApardt_e : 0,  dApardtPrev_e : 0
   ),
-  return([bmag_e,bmagInv_e,phi_e,Apar_e,dApardt_e,dApardtPrev_e])
+
+  cmag_e : doExpand1(cmag,bmagBasis),
+
+  expOut : [bmag_e,cmag_e,phi_e,Apar_e,dApardt_e,dApardtPrev_e],
+
+  if genGenGeoKernel then (
+    b_x_e : doExpand1(b_x, bmagBasis),
+    b_y_e : doExpand1(b_y, bmagBasis),
+    b_z_e : doExpand1(b_z, bmagBasis),
+    jacobTotInv_e : doExpand1(jacobTotInv, bmagBasis),
+
+    AparL_e : 0,
+    if hasApar then (
+      cdim : length(listofvars(bC)),
+      if cdim#2 then (
+        /* for z direction only, also expand Apar in left cell */
+        AparL_e : doExpand1(AparL,bC),
+        /* Usually to evaluate a left expansion at the boundary we would need to evaluate at z=1,
+           but all other quantities will be right expansions and evaluated at z=-1.
+           So let's flip AparL in z so that evaluating at z=-1 will give the boundary value. */
+        AparL_e : subst(varsC[cdim]=-varsC[cdim], AparL_e)
+      )
+    ),
+
+    expOut : append(expOut,[b_x_e,b_y_e,b_z_e,jacobTotInv_e,AparL_e])
+
+  ) else (
+    bmagInv_e : doExpand1(bmagInv,bmagBasis),
+
+    /* Expand BdriftX = (1/B)*curl(bhat)*grad(x). */
+    BdriftX_e : doExpand1(BdriftX, bmagBasis),
+    /* Expand BdriftY = (1/B)*curl(bhat)*grad(y). */
+    BdriftY_e : doExpand1(BdriftY, bmagBasis),
+
+    expOut : append(expOut,[bmagInv_e,BdriftX_e,BdriftY_e])
+  ),
+  return(expOut)
 )$
 
-calcAndWrite_HamilES(fH,charge,mass,wv,rdv2,bP,bmag_e,phi_e,sideStr) := block(
+calcAndWrite_HamilES(fH,charge,mass,wv,rdv2,bP,inFlds,sideStr) := block(
   [varsP,numP,hamil_c,subList,hamilNoZero_c],
   /* Expand the Hamiltonian, and write them out. */
+
+  /* Extract magnetic field and electrostatic potential. */
+  bmag_e : inFlds[1],
+  phi_e  : inFlds[3],
 
   hamil_e : charge*phi_e,
   if vdim > 0 then ( hamil_e : hamil_e + (1/2)*mass*(wv[1] + vpar/rdv2[1])^2 ),
@@ -111,29 +159,61 @@ calcAndWrite_HamilES(fH,charge,mass,wv,rdv2,bP,bmag_e,phi_e,sideStr) := block(
   return(hamil_e)
 )$
 
-calcAndWrite_BstardBmag(fH,cdim,bP,bmagBasis,Bdrift,mass,charge,wvpar,rdv2,
-                       rdx2,gradPar,Apar_e,BmagInv_e,sideStr) := block (
-  [BdriftX_e,BdriftY_e,BstarXdBmag_e,BstarYdBmag_e,BstarZdBmag_e,varsP,numP,replaceList,BstarXdBmag_c,
-   BstarYdBmag_c,BstarZdBmag_c,BstarXdBmag_noZero_c,BstarYdBmag_noZero_c,BstarZdBmag_noZero_c],
+calcAndWrite_BstardBmag(fH,cdim,bP,bmagBasis,surfDir,mass,charge,wvpar,rdx2,rdv2,inFlds,sideStr) := block (
+  [cmag_e,Apar_e,BmagInv_e,BdriftX_e,BdriftY_e,BstarXdBmag_e,BstarYdBmag_e,BstarZdBmag_e,b_x_e,b_y_e,b_z_e,
+   jacobTotInv_e,rdy2,rdz2,AparL_e,BstarZdBmagL_e,varsP,numP,replaceList,BstarXdBmag_c,BstarYdBmag_c,BstarZdBmag_c,
+   BstarXdBmag_noZero_c,BstarYdBmag_noZero_c,BstarZdBmag_noZero_c,BstarZdBmagL_c,BstarZdBmagL_noZero_c,BstardBmagL_e],
   /* Compute the Bstar divided by B and write it out. */
 
-  /* Expand BdriftX = (1/B)*curl(bhat)*grad(x). */
-  BdriftX_e : doExpand1(Bdrift[1], bmagBasis),
-  /* Expand BdriftY = (1/B)*curl(bhat)*grad(y). */
-  BdriftY_e : doExpand1(Bdrift[2], bmagBasis),
+  cmag_e    : inFlds[2],
+  Apar_e    : inFlds[4],
 
-  /* Expand BstarX/Bmag = ( (m/q) vpar + Apar ) BdriftX = (1/B)*((m/q) vpar + Apar)*curl(bhat)*grad(x). */
-  BstarXdBmag_e : ((mass/charge)*(wvpar+vpar/rdv2[1]) + Apar_e)*BdriftX_e,
-  /* Expand BstarY/Bmag = ( (m/q) vpar + Apar ) BdriftY = (1/B)*((m/q) vpar + Apar)*curl(bhat)*grad(y). */
-  BstarYdBmag_e : ((mass/charge)*(wvpar+vpar/rdv2[1]) + Apar_e)*BdriftY_e,
+  if (Apar_e#0) then (hasApar:true) else (hasApar:false),
 
-  /* Expand BstarZ/Bmag = bhat.grad(z) = gradPar. */
-  BstarZdBmag_e : doExpand1(gradPar, bmagBasis),
+  if not genGenGeoKernel then (
+    BmagInv_e : inFlds[7],
+    BdriftX_e : inFlds[8],
+    BdriftY_e : inFlds[9],
 
-  /* Add vApar = -(1/B)*bhatXgrad(Apar) vector. */
-  if cdim > 1 then (
-    BstarXdBmag_e : BstarXdBmag_e + diff(Apar_e,y)*rdx2[2]*BmagInv_e,
-    BstarYdBmag_e : BstarYdBmag_e - diff(Apar_e,x)*rdx2[1]*BmagInv_e
+    /* Expand BstarX/Bmag = ( (m/q) vpar + Apar ) BdriftX = (1/B)*((m/q) vpar + Apar)*curl(bhat)*grad(x). */
+    BstarXdBmag_e : ((mass/charge)*(wvpar+vpar/rdv2[1]) + Apar_e)*BdriftX_e,
+    /* Expand BstarY/Bmag = ( (m/q) vpar + Apar ) BdriftY = (1/B)*((m/q) vpar + Apar)*curl(bhat)*grad(y). */
+    BstarYdBmag_e : ((mass/charge)*(wvpar+vpar/rdv2[1]) + Apar_e)*BdriftY_e,
+    /* Expand BstarZ/Bmag = bhat.grad(z) = cmag. */
+    BstarZdBmag_e : cmag_e,
+
+    /* Add vApar = -(1/B)*bhatXgrad(Apar) vector. */
+    if cdim > 1 then (
+      BstarXdBmag_e : BstarXdBmag_e + diff(Apar_e,y)*rdx2[2]*BmagInv_e,
+      BstarYdBmag_e : BstarYdBmag_e - diff(Apar_e,x)*rdx2[1]*BmagInv_e
+    )
+  ) else (
+    b_x_e : inFlds[7],
+    b_y_e : inFlds[8],
+    b_z_e : inFlds[9],
+    jacobTotInv_e : inFlds[10],
+
+    if cdim > 1 then (rdy2 : rdx2[2]) else (rdy2 : 0),
+    if cdim > 2 then (rdz2 : rdx2[3]) else (rdz2 : 0),
+
+    /* Expand BstarX/Bmag on basis. */
+    BstarXdBmag_e : (-((mass/charge)*(wvpar+vpar/rdv2[1]) + Apar_e)*rdz2*diff(b_y_e,z)
+                     +b_z_e*rdy2*diff(Apar_e,y)
+                     -b_y_e*rdz2*diff(Apar_e,z) )*jacobTotInv_e,
+    /* Expand BstarY/Bmag on basis. */
+    BstarYdBmag_e : (-((mass/charge)*(wvpar+vpar/rdv2[1]) + Apar_e)*(rdx2[1]*diff(b_z_e,x) - rdz2*diff(b_x_e,z))
+                     -b_z_e*rdx2[1]*diff(Apar_e,x)
+                     +b_x_e*rdz2*diff(Apar_e,z) )*jacobTotInv_e,
+    /* Expand BstarZ/Bmag on basis. */
+    BstarZdBmag_e : ( cmag_e + ((mass/charge)*(wvpar+vpar/rdv2[1]) + Apar_e)*rdx2[1]*diff(b_y_e,x)
+                     +b_y_e*rdx2[1]*diff(Apar_e,x)
+                     -b_x_e*rdy2*diff(Apar_e,y) )*jacobTotInv_e,
+    if (surfDir = cdim) and (cdim#2) and (sideStr="R") then (
+      AparL_e : inFlds[11],
+      BstarZdBmagL_e : ( cmag_e + ((mass/charge)*(wvpar+vpar/rdv2[1]) + AparL_e)*rdx2[1]*diff(b_y_e,x)
+                      +b_y_e*rdx2[1]*diff(AparL_e,x)
+                      -b_x_e*rdy2*diff(AparL_e,y) )*jacobTotInv_e
+    )
   ),
 
   varsP : listofvars(bP),
@@ -145,29 +225,47 @@ calcAndWrite_BstardBmag(fH,cdim,bP,bmagBasis,Bdrift,mass,charge,wvpar,rdv2,
                  wvparR^2=wvparSqR, rdvpar2R^2=rdvpar2SqR, rdx2R^2=rdx2SqR, m_^2=mSq, q_^2=qSq],
   if cdim > 1 then (
     BstarXdBmag_c : calcInnerProdList(varsP, 1, bP, BstarXdBmag_e),
-    printf(fh, "  double BstarXdBmag~a[~a]; ~%", sideStr,numP),
-    writeCExprsNoExpand1(eval_string(sconcat("BstarXdBmag",sideStr)), gcfac(subst(replaceList, BstarXdBmag_c))),
-    printf(fh, "~%"),
-    flush_output(fh),
+    if (surfDir = 0 or surfDir = 1 or surfDir = cdim+1) then (
+      printf(fh, "  double BstarXdBmag~a[~a]; ~%", sideStr,numP),
+      writeCExprsNoExpand1(eval_string(sconcat("BstarXdBmag",sideStr)), gcfac(subst(replaceList, BstarXdBmag_c))),
+      printf(fh, "~%"),
+      flush_output(fh)
+    ),
     BstarXdBmag_noZero_c : doMakeExprLst(BstarXdBmag_c, eval_string(sconcat("BstarXdBmag",sideStr))),
     BstarXdBmag_e : BstarXdBmag_noZero_c . bP,
 
     BstarYdBmag_c : calcInnerProdList(varsP, 1, bP, BstarYdBmag_e),
-    printf(fh, "  double BstarYdBmag~a[~a]; ~%", sideStr, numP),
-    writeCExprsNoExpand1(eval_string(sconcat("BstarYdBmag",sideStr)), gcfac(subst(replaceList, BstarYdBmag_c))),
-    printf(fh, "~%"),
-    flush_output(fh),
+    if (surfDir = 0 or surfDir = 2 or surfDir = cdim+1) then (
+      printf(fh, "  double BstarYdBmag~a[~a]; ~%", sideStr, numP),
+      writeCExprsNoExpand1(eval_string(sconcat("BstarYdBmag",sideStr)), gcfac(subst(replaceList, BstarYdBmag_c))),
+      printf(fh, "~%"),
+      flush_output(fh)
+    ),
     BstarYdBmag_noZero_c : doMakeExprLst(BstarYdBmag_c, eval_string(sconcat("BstarYdBmag",sideStr))),
     BstarYdBmag_e : BstarYdBmag_noZero_c . bP
   ),
   if cdim # 2 then (
     BstarZdBmag_c : calcInnerProdList(varsP, 1, bP, BstarZdBmag_e),
-    printf(fh, "  double BstarZdBmag~a[~a]; ~%", sideStr, numP),
-    writeCExprsNoExpand1(eval_string(sconcat("BstarZdBmag",sideStr)), gcfac(subst(replaceList, BstarZdBmag_c))),
-    printf(fh, "~%"),
-    flush_output(fh),
+    if (surfDir=0 or surfDir>=cdim) then (
+      printf(fh, "  double BstarZdBmag~a[~a]; ~%", sideStr, numP),
+      writeCExprsNoExpand1(eval_string(sconcat("BstarZdBmag",sideStr)), gcfac(subst(replaceList, BstarZdBmag_c))),
+      printf(fh, "~%"),
+      flush_output(fh)
+    ),
     BstarZdBmag_noZero_c : doMakeExprLst(BstarZdBmag_c, eval_string(sconcat("BstarZdBmag",sideStr))),
-    BstarZdBmag_e : BstarZdBmag_noZero_c . bP
+    BstarZdBmag_e : BstarZdBmag_noZero_c . bP,
+
+    if genGenGeoKernel and (sideStr="R") and hasApar then (
+      BstarZdBmagL_c : calcInnerProdList(varsP, 1, bP, BstarZdBmagL_e),
+      if surfDir = cdim then (
+        printf(fh, "  double BstarZdBmagL[~a]; ~%", numP),
+        writeCExprsNoExpand1(BstarZdBmagL, gcfac(subst(replaceList, BstarZdBmagL_c))),
+        printf(fh, "~%"),
+        flush_output(fh)
+      ),
+      BstarZdBmagL_noZero_c : doMakeExprLst(BstarZdBmagL_c, BstarZdBmagL),
+      BstarZdBmagL_e : BstarZdBmagL_noZero_c . bP
+    )
   ),
 
   /* Make Bstar/Bmag vector. */
@@ -179,10 +277,17 @@ calcAndWrite_BstardBmag(fH,cdim,bP,bmagBasis,Bdrift,mass,charge,wvpar,rdv2,
     BstardBmag_e : [BstarXdBmag_e, BstarYdBmag_e, BstarZdBmag_e]
   ),
 
-  return(BstardBmag_e)
+  if genGenGeoKernel and (surfDir=cdim) and hasApar and (sideStr="R") and (cdim#2) then (
+    BstardBmagL_e : [BstarZdBmagL_e],
+    if cdim=3 then BstardBmagL_e : append([BstarXdBmag_e, BstarYdBmag_e],BstardBmagL_e),
+    return([BstardBmag_e,BstardBmagL_e])
+  ) else (
+    return([BstardBmag_e,[0]])
+  )
 )$
 
-PBsimpleHelical(f,g,mass,charge,rdx2,rdv2,BstardBmag_e,bmagInv_e) := block([varsCall,cdim,varsC,rdy2],
+poissonBracket(f,g,mass,charge,rdx2,rdv2,pbFacs) := block(
+  [varsCall,cdim,varsC,rdy2,rdz2,BstardBmag_e,bmagInv_e,b_x_e,b_y_e,b_z_e,jacobTotInv_e],
   /* Compute the Poisson bracket for the simple helical magnetic field. */
 
   varsCall : [x,y,z],
@@ -199,17 +304,32 @@ PBsimpleHelical(f,g,mass,charge,rdx2,rdv2,BstardBmag_e,bmagInv_e) := block([vars
   fgrad(fIn,vars,diffFacs) := makelist(diff(fIn,vars[d]),d,1,length(vars))*diffFacs,
 
   if cdim > 1 then (rdy2 : rdx2[2]) else (rdy2 : 0),
+  if cdim > 2 then (rdz2 : rdx2[3]) else (rdz2 : 0),
 
-  pb_e : (1/mass)*BstardBmag_e . (rdv2[1]*(fgrad(f,varsC,rdx2)*diff(g,vpar)-fgrad(g,varsC,rdx2)*diff(f,vpar)))
-        -(1/charge)*bmagInv_e*rdx2[1]*rdy2*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x)),
+  BstardBmag_e : pbFacs[1],
+  if not genGenGeoKernel then (
+    bmagInv_e : pbFacs[2],
+
+    pb_e : (1/mass)*BstardBmag_e . (rdv2[1]*(fgrad(f,varsC,rdx2)*diff(g,vpar)-fgrad(g,varsC,rdx2)*diff(f,vpar)))
+          -(1/charge)*bmagInv_e*rdx2[1]*rdy2*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x))
+  ) else (
+    b_x_e : pbFacs[2],  b_y_e : pbFacs[3],  b_z_e : pbFacs[4],
+    jacobTotInv_e : pbFacs[5],
+
+    pb_e : (1/mass)*BstardBmag_e . (rdv2[1]*(fgrad(f,varsC,rdx2)*diff(g,vpar)-fgrad(g,varsC,rdx2)*diff(f,vpar)))
+          +(-(1/charge)*b_z_e*rdx2[1]*rdy2*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x))
+            +(1/charge)*b_y_e*rdx2[1]*rdz2*(diff(f,x)*diff(g,z)-diff(f,z)*diff(g,x))
+            -(1/charge)*b_x_e*rdy2*rdz2*(diff(f,y)*diff(g,z)-diff(f,z)*diff(g,y)))*jacobTotInv_e
+  ),
 
   return(pb_e)
 )$
 
-calcAndWrite_alpha(fH,surfDir,bP,polyOrder,basisType,hamil_e,mass,charge,rdx2,rdv2,
-                  BstardBmag_e,bmagInv_e,dApardtPrev_e,dApardt_e,hasApar,sideStr,isStep2) := block(
-  [varsP,varLabel,dirLabel,wSurf,rdSurfVar2,alpha_e,bSurf,numSurf,evPoint,
-   alpha_c,alphaCvar,alphaNoZero_c,alphaUpCvar,alphaUpNoZero_c],
+calcAndWrite_alpha(fH,surfDir,bP,polyOrder,basisType,mass,charge,rdx2,rdv2,
+                   inFlds,hamil_e,BstardBmag_e,BstardBmagExt_e,sideStr,isStep2) := block(
+  [varsP,varLabel,dirLabel,wSurf,rdSurfVar2,surfVar,surfIntVars,pbAuxFlds,bmagInv_e,b_x_e,
+   b_y_e,b_z_e,jacobTotInv_e,alpha_e,Apar_e,hasApar,dApardt_e,dApardtPrev_e,alphaL_e,
+   bSurf,numSurf,evPoint,alpha_c,alphaCvar,alphaNoZero_c,alphaUpCvar,alphaUpNoZero_c],
   /* Calculate phase space velocity alpha in direction of surfVar. */
   /* We assume alpha.n is continuous across boundary, although H may not be. */
   /* Distinguish between alpha and alphaUp, where alphaUp is the one used to
@@ -225,7 +345,31 @@ calcAndWrite_alpha(fH,surfDir,bP,polyOrder,basisType,hamil_e,mass,charge,rdx2,rd
   surfVar     : varsP[surfDir],         /* Surface variable. */
   surfIntVars : delete(surfVar,varsP),  /* Surface integral variables. */
 
-  alpha_e : PBsimpleHelical(wSurf+surfVar/rdSurfVar2,hamil_e,mass,charge,rdx2,rdv2,BstardBmag_e,bmagInv_e),
+  pbAuxFlds : [BstardBmag_e],
+  if not genGenGeoKernel then (
+    bmagInv_e : inFlds[7],
+
+    pbAuxFlds : append(pbAuxFlds,[bmagInv_e])
+  ) else (
+    b_x_e : inFlds[7],  b_y_e : inFlds[8],  b_z_e : inFlds[9],
+    jacobTotInv_e : inFlds[10],
+
+    pbAuxFlds : append(pbAuxFlds,[b_x_e,b_y_e,b_z_e,jacobTotInv_e])
+  ),
+  alpha_e : poissonBracket(wSurf+surfVar/rdSurfVar2,hamil_e,mass,charge,rdx2,rdv2,pbAuxFlds),
+
+  Apar_e    : inFlds[4],
+  dApardt_e : inFlds[5],
+
+  if (Apar_e#0) then (hasApar:true) else (hasApar:false),
+
+  if genGenGeoKernel and (surfDir=cdim) and hasApar and (cdim#2) then (
+    /* alpha_e above is using R values. Compute it with L value. */
+    pbAuxFlds[1] : BstardBmagExt_e,
+    alphaL_e : poissonBracket(wSurf+surfVar/rdSurfVar2,hamil_e,mass,charge,rdx2,rdv2,pbAuxFlds),
+    /* Just use the mean of L and R values of alpha for now. */
+    alpha_e : 0.5*(alpha_e + alphaL_e)
+  ),
 
   alphaUp_e : alpha_e,
   if surfVar = vpar and polyOrder > 1 then (
@@ -233,6 +377,7 @@ calcAndWrite_alpha(fH,surfDir,bP,polyOrder,basisType,hamil_e,mass,charge,rdx2,rd
     alphaUp_e : alpha_e
   ) elseif surfVar = vpar then (
     /* For p=1 EMGK, use dApardtPrev in upwinding alpha. */
+    dApardtPrev_e : inFlds[6],
     alphaUp_e : alpha_e - (charge/mass)*dApardtPrev_e,
 
     if isStep2 then ( alpha_e : - (charge/mass)*dApardt_e)
@@ -334,8 +479,6 @@ calcAndWrite_upwindIncr_wSurfAvgAlpha(fH,bP,polyOrder,surfDir,sideStr,alphaSurf_
   /* Expand distribution function. */
   fL_e : doExpand1(fL,bP),  fR_e : doExpand1(fR,bP),
 
-  if surfVar=vpar and hasApar and polyOrder=1 then printf(fH, "  double incrEmMod[~a]; ~%", numP),
-
   printf(fH, "  if (alphaSurfAvg~a>0) { ~%", sideStr),
 
   fhatSurf_e : subst(surfVar=1, fL_e),
@@ -435,7 +578,6 @@ calcAndWrite_upwindIncr_wQuadNodeAlpha(fH,basisType,polyOrder,bP,surfDir,sideStr
                  wvparR^2=wvparSqR, rdvpar2R^2=rdvpar2SqR, rdx2R^2=rdx2SqR, m_^2=mSq, q_^2=qSq],
 
   if surfVar=vpar and hasApar and polyOrder=1 and (not isStep2) then (
-    printf(fH, "  double incrEmMod[~a]; ~%", numP),
     tMod       : calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), fhatSurf_e),
     incrModR_c : fullratsimp(tMod),
     writeCExprsNoExpand1(incrEmMod, subst(replaceList, incrModR_c)),

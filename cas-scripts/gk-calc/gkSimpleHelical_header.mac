@@ -1,10 +1,12 @@
-/* Compute the header file for gyrokinetic kernels usef in
-   simulations with simple helical geometry (or slab?). */
+/* Compute the header file for gyrokinetic kernels. */
 
 /* ...... USER INPUTS........ */
 
 /* Choose to generate kernels for "ES", "EM" gyrokinetics or "both". */
 ESorEM : "both"$
+
+/* Generate kernels for "simple" (helical), "general" or "both" geometries. */
+geo : "both"$
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 2$
@@ -26,9 +28,6 @@ gkVdims : [[1,2], [2], [2]]$
 
 /* ...... END OF USER INPUTS........ */
 
-/* Variables the magnetic field can depend on. Here []=constant bmag. */
-bVarsList : [[], [x]]$
-
 varsC : [x, y, z]$
 varsV : [vpar, mu]$
 
@@ -45,6 +44,11 @@ if     ESorEM="ES"   then (fieldType : [false])
 elseif ESorEM="EM"   then (fieldType : [true]) 
 elseif ESorEM="both" then (fieldType : [false,true])$
 
+/* Is genGeo booleans. */
+if     geo="simple"  then (geoType : [false])
+elseif geo="general" then (geoType : [true])
+elseif geo="both"    then (geoType : [false,true])$
+
 printPrototypes() := block([],
   for bInd : 1 thru length(bName) do (
     for c : minCdim[bInd] thru maxCdim[bInd] do (
@@ -57,35 +61,65 @@ printPrototypes() := block([],
         for polyOrder : 1 thru maxPolyOrderB do (
           for fieldInd : 1 thru length(fieldType) do (
             wApar : fieldType[fieldInd],
-  
-            for b : 1 thru length(bVarsList) do (
-              BvarsLabel : "",
-              for i : 1 thru length(bVarsList[b]) do (BvarsLabel : sconcat(BvarsLabel,bVarsList[b][i])),
-            
-              if wApar then (
-                printf(fh, "  double EmGyrokineticSimpleHelicalVol~ax~av~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *gradPar, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *f, double *out); ~%", c, v, bName[bInd], polyOrder, BvarsLabel),
-                if b=1 then(
-                  printf(fh, "double EmGyrokineticSimpleHelicalStep2Vol~ax~avSerP~a(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out); ~%", c, v, polyOrder)
-                )
+
+            for geoInd : 1 thru length(geoType) do (
+              isGenGeo : geoType[geoInd],
+
+              if isGenGeo then (
+                bVarsList : [[], [x], [z], [x,z]]
               ) else (
-                printf(fh, "  double GyrokineticSimpleHelicalVol~ax~av~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *gradPar, const double *BdriftX, const double *BdriftY, const double *phi, const double *f, double *out); ~%", c, v, bName[bInd], polyOrder, BvarsLabel)
+                bVarsList : [[], [x]]
               ),
   
-              if v=0 then (vd : 0) else (vd : 1),
-  
-              for surfDir : 1 thru c+vd do (
-                if surfDir<=c then (dirlabel : varsC[surfDir]) else (dirlabel : varsV[surfDir-c]),
-  
-                if wApar then (
-                  printf(fh, "  double EmGyrokineticSimpleHelicalSurf~ax~av~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *gradPar, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR); ~%", c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel),
-                  printf(fh, "double EmGyrokineticSimpleHelicalSurf~ax~avSerStep2_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *gradPar, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR); ~%", c, v, dirlabel, polyOrder, BvarsLabel)
+              for b : 1 thru length(bVarsList) do (
+                BvarsLabel : "",
+                for i : 1 thru length(bVarsList[b]) do (BvarsLabel : sconcat(BvarsLabel,bVarsList[b][i])),
+              
+                if isGenGeo then (
+                  if wApar then (
+                    printf(fh, "  double GyrokineticGenGeoVol~ax~av~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *f, double *out); ~%", c, v, bName[bInd], polyOrder, BvarsLabel),
+                    if b=1 then(
+                      printf(fh, "  double EmGyrokineticGenGeoStep2Vol~ax~av~aP~a(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out); ~%", c, v, bName[bInd], polyOrder)
+                    )
+                  ) else (
+                    printf(fh, "  double EmGyrokineticGenGeoVol~ax~av~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *dApardt, const double *f, double *out); ~%", c, v, bName[bInd], polyOrder, BvarsLabel)
+                  )
                 ) else (
-                  printf(fh, "  double GyrokineticSimpleHelicalSurf~ax~av~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *gradPar, const double *BdriftX, const double *BdriftY, const double *phi, const double *fL, const double *fR, double *outL, double *outR); ~%", c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel)
-                )
+                  if wApar then (
+                    printf(fh, "  double EmGyrokineticSimpleHelicalVol~ax~av~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *f, double *out); ~%", c, v, bName[bInd], polyOrder, BvarsLabel),
+                    if b=1 then(
+                      printf(fh, "  double EmGyrokineticSimpleHelicalStep2Vol~ax~avSerP~a(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out); ~%", c, v, polyOrder)
+                    )
+                  ) else (
+                    printf(fh, "  double GyrokineticSimpleHelicalVol~ax~av~aP~a_Bvars~a(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *f, double *out); ~%", c, v, bName[bInd], polyOrder, BvarsLabel)
+                  )
+                ),
+  
+                if v=0 then (vd : 0) else (vd : 1),
+  
+                for surfDir : 1 thru c+vd do (
+                  if surfDir<=c then (dirlabel : varsC[surfDir]) else (dirlabel : varsV[surfDir-c]),
+  
+                  if isGenGeo then ( 
+                    if wApar then (
+                      printf(fh, "  double EmGyrokineticGenGeoSurf~ax~av~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *AparL, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR); ~%", c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel),
+                      printf(fh, "  double EmGyrokineticGenGeoSurf~ax~av~aStep2_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *Apar, const double *AparL, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR); ~%", c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel)
+                    ) else (
+                      printf(fh, "  double GyrokineticGenGeoSurf~ax~av~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *b_x, const double *b_y, const double *b_z, const double *phi, const double *fL, const double *fR, double *outL, double *outR); ~%", c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel)
+                    )
+                  ) else (
+                    if wApar then (
+                      printf(fh, "  double EmGyrokineticSimpleHelicalSurf~ax~av~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR); ~%", c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel),
+                      printf(fh, "  double EmGyrokineticSimpleHelicalSurf~ax~avSerStep2_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fL, const double *fR, double *outL, double *outR, double *emModL, double *emModR); ~%", c, v, dirlabel, polyOrder, BvarsLabel)
+                    ) else (
+                      printf(fh, "  double GyrokineticSimpleHelicalSurf~ax~av~a_~a_P~a_Bvars~a(const double q_, const double m_, const double cflL, const double cflR, const double *wL, const double *dxvL, const double *wR, const double *dxvR, const double amax_in, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *fL, const double *fR, double *outL, double *outR); ~%", c, v, bName[bInd], dirlabel, polyOrder, BvarsLabel)
+                    )
+                  )
+                ),
+                printf(fh, "~%")
               ),
               printf(fh, "~%")
-            ),
-            printf(fh, "~%")
+            )
           )
         )
       )
@@ -93,18 +127,23 @@ printPrototypes() := block([],
   )
 )$
 
-fh : openw("~/max-out/GyrokineticSimpleHelicalModDecl.h")$
-printf(fh, "#ifndef GYROKINETICSIMPLEHELICAL_MOD_DECL_H ~%")$
-printf(fh, "#define GYROKINETICSIMPLEHELICAL_MOD_DECL_H ~%")$
+fh : openw("~/max-out/GyrokineticModDecl.h")$
+printf(fh, "#ifndef GYROKINETIC_MOD_DECL_H ~%")$
+printf(fh, "#define GYROKINETIC_MOD_DECL_H ~%")$
+printf(fh, "~%")$
 printf(fh, "#include <algorithm> ~%")$
 printf(fh, "#include <Positivity.h> ~%")$
+printf(fh, "~%")$
 printf(fh, "#define SURFAVG 1 ~%")$
 printf(fh, "#define QUAD 2 ~%")$
 printf(fh, "#define cflType QUAD ~%")$
 printf(fh, "#define upwindType QUAD ~%")$
+printf(fh, "~%")$
 printf(fh, "template <typename T> int sgn(T val) { ~%")$
-printf(fh, "    return (T(0) < val) - (val < T(0)); ~%}~%")$
+printf(fh, "  return (T(0) < val) - (val < T(0)); ~%}~%")$
+printf(fh, "~%")$
 printf(fh, "extern \"C\" { ~%")$
+printf(fh, "~%")$
 printPrototypes()$
 printf(fh, "} ~%")$
 printf(fh, "#endif ~%")$

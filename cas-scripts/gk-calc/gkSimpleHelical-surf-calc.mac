@@ -8,14 +8,17 @@ load("gk-calc/gkSimpleHelical_surfModule")$
 
 /* ...... USER INPUTS........ */
 
-/* Choose to generate kernels for "ES", "EM" gyrokinetics or "both". */
+/* Generate kernels for "ES", "EM" gyrokinetics or "both". */
 ESorEM : "both"$ 
+
+/* Generate kernels for "simple" (helical), "general" or "both" geometries. */
+geo : "both"$ 
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 2$
 minCdim_Ser : 1$
 minVdim_Ser : 1$
-maxCdim_Ser : 3$
+maxCdim_Ser : 2$
 maxVdim_Ser : 2$
 
 /* Maximal order basis. */
@@ -42,11 +45,16 @@ if     ESorEM="ES"   then (fieldType : [false])
 elseif ESorEM="EM"   then (fieldType : [true]) 
 elseif ESorEM="both" then (fieldType : [false,true])$
 
+/* Is genGeo booleans. */
+if     geo="simple"  then (geoType : [false]) 
+elseif geo="general" then (geoType : [true]) 
+elseif geo="both"    then (geoType : [false,true])$
+
 /* Generate kernels of selected types. */
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
     for gkV : 1 thru length(gkVdims[c]) do (
-      v : gkVdims[c][gkV],
+      v : min(maxVdim[bInd], gkVdims[c][gkV]),
 
       maxPolyOrderB : maxPolyOrder[bInd],
       if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
@@ -56,19 +64,31 @@ for bInd : 1 thru length(bName) do (
           wApar : fieldType[fieldInd],
 
           if wApar then (emStr : "Em") else (emStr : ""),
-          fname : sconcat("~/max-out/",emStr,"GyrokineticSimpleHelicalSurf", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
-          disp(printf(false,"Creating surface file: ~a",fname)),
+
+          for geoInd : 1 thru length(geoType) do (
+            isGenGeo : geoType[geoInd],
+
+            if isGenGeo then (geoStr : "GenGeo") else (geoStr : "SimpleHelical"),
+
+            fname : sconcat("~/max-out/",emStr,"Gyrokinetic",geoStr,"Surf", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
+            disp(printf(false,"Creating surface file: ~a",fname)),
   
-          fh : openw(fname),
-          printf(fh, "#include <GyrokineticSimpleHelicalModDecl.h> ~%"),
-          /* Possible combinations of variable dependence of background magnetic field.
-             with [] = const. Note that we assume axisymmetry, which means B cannot depend on y. */
-          bVarsList : [[], [x]],
-          for b : 1 thru length(bVarsList) do (
-            funcName : sconcat(emStr,"GyrokineticSimpleHelicalSurf", c, "x", v, "v", bName[bInd]),
-            calcGKSimpleHelicalSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, wApar, bVarsList[b])
-          ),
-          close(fh)
+            fh : openw(fname),
+            printf(fh, "#include <GyrokineticModDecl.h>~%",geoStr),
+            /* Possible combinations of variable dependence of background magnetic field.
+               with [] = const. Note that we assume axisymmetry, which means B cannot depend on y. */
+            if isGenGeo then (
+              bVarsList : [[], [x], [z], [x,z]]
+            ) else (
+              bVarsList : [[], [x]]
+            ),
+
+            for b : 1 thru length(bVarsList) do (
+              funcName : sconcat(emStr,"Gyrokinetic",geoStr,"Surf", c, "x", v, "v", bName[bInd]),
+              calcGKSimpleHelicalSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, wApar, bVarsList[b], isGenGeo)
+            ),
+            close(fh)
+          )
         )
       )
     )

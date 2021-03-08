@@ -1,15 +1,14 @@
-#include <GyrokineticSimpleHelicalModDecl.h> 
-double EmGyrokineticSimpleHelicalVol3x2vSerP1_Bvars(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *gradPar, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *f, double *out) 
+#include <GyrokineticModDecl.h> 
+double EmGyrokineticSimpleHelicalVol3x2vSerP1_Bvars(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *f, double *out) 
 { 
   // Apar: parallel component of magnetic vector potential.
   // dApardt: time derivative of Apar.
+  // bmagInv: 1/bmag.
+  // BdriftX,BdriftY: x,y components of gradB/curvature drift.
   // q_,m_: species charge and mass.
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
   // bmag: magnetic field amplitude.
-  // bmagInv: 1/bmag.
-  // gradPar: coefficient multiplying parallel gradient.
-  // BdriftX,BdriftY: x,y components of gradB/curvature drift.
   // phi: electrostatic potential .
   // f: Distribution function.
   // out: output increment.
@@ -71,7 +70,7 @@ double EmGyrokineticSimpleHelicalVol3x2vSerP1_Bvars(const double q_, const doubl
   BstarYdBmag[16] = 0.7071067811865475*BdriftY[0]*Apar[7]; 
 
   double BstarZdBmag[32]; 
-  BstarZdBmag[0] = 2.0*gradPar[0]; 
+  BstarZdBmag[0] = 2.0*cmag[0]; 
 
   double cflFreq = 0.0; 
   double alphaL = 0.0; 
@@ -449,17 +448,16 @@ double EmGyrokineticSimpleHelicalVol3x2vSerP1_Bvars(const double q_, const doubl
   out[31] += 0.3061862178478971*((alphavpar[4]+alphay[2]+alphax[1])*f[31]+(alphavpar[9]+alphay[6]+alphax[0])*f[30]+(alphavpar[10]+alphax[6]+alphay[0])*f[29]+(alphavpar[11]+alphay[8]+alphax[7]+alphaz[0])*f[28]+alphavpar[0]*f[27]+(alphax[2]+alphay[1])*f[25]+(alphavpar[18]+alphay[16]+alphax[3])*f[24]+(alphavpar[19]+alphax[16]+alphay[3])*f[23]+(alphax[4]+alphavpar[1])*f[22]+(alphay[4]+alphavpar[2])*f[21]+alphavpar[3]*f[20]+f[5]*alphavpar[16]+(alphax[8]+alphay[7])*f[15]+alphavpar[6]*f[14]+alphavpar[7]*f[13]+alphavpar[8]*f[12]); 
   return cflFreq; 
 } 
-double EmGyrokineticSimpleHelicalVol3x2vSerP1_Bvarsx(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *gradPar, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *f, double *out) 
+double EmGyrokineticSimpleHelicalVol3x2vSerP1_Bvarsx(const double q_, const double m_, const double *w, const double *dxv, const double *bmag, const double *bmagInv, const double *cmag, const double *BdriftX, const double *BdriftY, const double *phi, const double *Apar, const double *dApardt, const double *f, double *out) 
 { 
   // Apar: parallel component of magnetic vector potential.
   // dApardt: time derivative of Apar.
+  // bmagInv: 1/bmag.
+  // BdriftX,BdriftY: x,y components of gradB/curvature drift.
   // q_,m_: species charge and mass.
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
   // bmag: magnetic field amplitude.
-  // bmagInv: 1/bmag.
-  // gradPar: coefficient multiplying parallel gradient.
-  // BdriftX,BdriftY: x,y components of gradB/curvature drift.
   // phi: electrostatic potential .
   // f: Distribution function.
   // out: output increment.
@@ -524,8 +522,8 @@ double EmGyrokineticSimpleHelicalVol3x2vSerP1_Bvarsx(const double q_, const doub
   BstarYdBmag[16] = -0.7071067811865475*(1.732050807568877*bmagInv[1]*Apar[7]*rdx2-1.0*(BdriftY[0]*Apar[7]+BdriftY[1]*Apar[6])); 
 
   double BstarZdBmag[32]; 
-  BstarZdBmag[0] = 2.0*gradPar[0]; 
-  BstarZdBmag[1] = 2.0*gradPar[1]; 
+  BstarZdBmag[0] = 2.0*cmag[0]; 
+  BstarZdBmag[1] = 2.0*cmag[1]; 
 
   double cflFreq = 0.0; 
   double alphaL = 0.0; 
