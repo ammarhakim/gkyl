@@ -1,18 +1,18 @@
 /*
-  Generate the volume kernels for gyrokinetics with a simple
+  Generate the surface kernels for gyrokinetics with a simple
   helical magnetic field.
 
-  The functions called in this file are in gkSimpleHelical_volModule.mac.
+  The functions called in this file are in gk_surfModule.mac.
 */
-load("gk-calc/gkSimpleHelical_volModule")$
+load("gk-calc/gk_surfModule")$
 
 /* ...... USER INPUTS........ */
 
-/* Choose to generate kernels for "ES", "EM" gyrokinetics or "both". */
+/* Generate kernels for "ES", "EM" gyrokinetics or "both". */
 ESorEM : "both"$ 
 
 /* Generate kernels for "simple" (helical), "general" or "both" geometries. */
-geo : "simple"$
+geo : "both"$ 
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 2$
@@ -46,8 +46,8 @@ elseif ESorEM="EM"   then (fieldType : [true])
 elseif ESorEM="both" then (fieldType : [false,true])$
 
 /* Is genGeo booleans. */
-if     geo="simple"  then (geoType : [false])
-elseif geo="general" then (geoType : [true])
+if     geo="simple"  then (geoType : [false]) 
+elseif geo="general" then (geoType : [true]) 
 elseif geo="both"    then (geoType : [false,true])$
 
 /* Generate kernels of selected types. */
@@ -70,11 +70,11 @@ for bInd : 1 thru length(bName) do (
 
             if isGenGeo then (geoStr : "GenGeo") else (geoStr : "SimpleHelical"),
 
-            fname : sconcat("~/max-out/",emStr,"Gyrokinetic", geoStr, bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
-            disp(printf(false,"Creating volume file: ~a",fname)),
+            fname : sconcat("~/max-out/",emStr,"Gyrokinetic",geoStr,"Surf", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
+            disp(printf(false,"Creating surface file: ~a",fname)),
   
             fh : openw(fname),
-            printf(fh, "#include <GyrokineticModDecl.h> ~%"),
+            printf(fh, "#include <GyrokineticModDecl.h>~%",geoStr),
             /* Possible combinations of variable dependence of background magnetic field.
                with [] = const. Note that we assume axisymmetry, which means B cannot depend on y. */
             if isGenGeo then (
@@ -82,14 +82,10 @@ for bInd : 1 thru length(bName) do (
             ) else (
               bVarsList : [[], [x]]
             ),
+
             for b : 1 thru length(bVarsList) do (
-              funcName : sconcat(emStr,"Gyrokinetic",geoStr,"Vol", c, "x", v, "v", bName[bInd]),
-              buildGKSimpleHelicalVolKernel(fh, funcName, c, v, bName[bInd], polyOrder, wApar, bVarsList[b],isGenGeo)
-            ),
-            /* Generate the kernel for the second step of GK with Apar. */
-            if wApar then (
-              funcName : sconcat(emStr,"Gyrokinetic",geoStr,"Step2Vol", c, "x", v, "v", bName[bInd]),
-              buildGKSimpleHelicalStep2VolKernel(fh, funcName, c, v, bName[bInd], polyOrder,isGenGeo)
+              funcName : sconcat(emStr,"Gyrokinetic",geoStr,"Surf", c, "x", v, "v", bName[bInd]),
+              calcGKSimpleHelicalSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, wApar, bVarsList[b], isGenGeo)
             ),
             close(fh)
           )
