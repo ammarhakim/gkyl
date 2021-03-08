@@ -1165,20 +1165,20 @@ function VlasovSpecies:bcRecycleFunc(dir, tm, idxIn, fIn, fOut)
    end
    label = l1..l2
 
+   local zIdx = idxIn
+   zIdx[dir] = 1
    local numBasis = self.basis:numBasis()
    local f = self.recycleDistF[label]
    local rIdxr = f:genIndexer()
    local rFPtr = self.recycleDistF[label]:get(1)
-   f:fill(rIdxr(idxIn), rFPtr)
+   f:fill(rIdxr(zIdx), rFPtr)
    for i = 1, numBasis do
       fOut[i] = 0
-      --print(fOut[i], fIn[i], rFPtr[i])
-      fOut[i] = fIn[i] + rFPtr[i]  -- SEG FAULTS HERE!!
-      --print(fOut[i])
+      fOut[i] = fIn[i] + rFPtr[i]
    end
 
    self.basis:flipSign(dir, fOut, fOut)
-   self.basis:flipSign(dir+self.cdim, fOut, fOut)   
+   self.basis:flipSign(dir+self.cdim, fOut, fOut)
 end
 
 
@@ -1512,18 +1512,44 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	       local cdim = self.cdim
 	       local vdim = self.vdim
 	       local vt2 = T0/self.mass
+	       --local u = -1*edgeval*math.sqrt(vt2)
+	       --local v2 = (xn[2] - u)^2 + xn[3]^2 + xn[4]^2
 	       local v2 = 0.0
 	       for d = cdim+1, cdim+vdim do
-		  v2 = v2 + xn[d]^2
+	       	  v2 = v2 + (xn[d])^2
 	       end
 	       return 1.0 / math.sqrt(2*math.pi*vt2)^vdim * math.exp(-v2/(2*vt2))
+	    end
+	    recycleSource2 = function (t, xn)
+	       local cdim = self.cdim
+	       local vdim = self.vdim
+	       local vt2 = T0/self.mass
+	       --local u = -10*edgeval*math.sqrt(vt2)
+	       --v2 = (xn[2] - u)^2 + xn[3]^2 + xn[4]^2
+	       local v2 = 0.0
+	       for d = cdim+1, cdim+vdim do
+	       	  v2 = v2 + (xn[d])^2
+	       end
+	       if edgeval == 1 then
+		  if xn[dir] <= 0 then
+		     return 1.0 / math.sqrt(2*math.pi*vt2)^vdim * math.exp(-v2/(2*vt2))
+		  else
+		     return 0.
+		  end
+	       else
+		  if xn[dir] <= 0 then
+		     return 0.
+		  else
+		     return 1.0 / math.sqrt(2*math.pi*vt2)^vdim * math.exp(-v2/(2*vt2))
+		  end
+	       end
 	    end
 	    
 	    self.projectRecycleFMaxwell = Updater.ProjectOnBasis {
 	       onGrid          = phaseGrid,
 	       basis           = self.basis,
 	       evaluate        = recycleSource,
-	       onGhosts        = true,
+	       onGhosts        = false,
 	    }
 
 	    self.projectFluxFunc = Updater.ProjectFluxFunc {
@@ -1532,12 +1558,13 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	       confBasis       = self.confBasis,
 	       edgeValue       = edgeval,
 	       direction       = dir,
-	       onGhosts        = true,
+	       onGhosts        = false,
 	    }
 	    
 	    self.projectRecycleFMaxwell:advance(tCurr, {}, {self.recycleFMaxwell[label]})
 	    self.projectFluxFunc:advance(tCurr, {self.recycleFMaxwell[label]}, {self.recycleFhat[label]})
 	    self.calcFhatM0[label]:advance(tCurr, {self.recycleFhat[label]}, {self.recycleFhatM0[label]})
+	    self.recycleFhatM0[label]:scale(-1.0*edgeval)
 
 	    -- Write out distf and flux
 	    wlabel = (label):gsub("Flux","")
@@ -1560,13 +1587,13 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
  	 self.recycleCoef[label]:write(string.format("%s%s_%d.bp", 'recycleCoef',
 	 					     wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
 	 -- weak multiply
-	 self.recycleConfPhaseMult[label]:advance(tCurr, {self.recycleCoef[label], self.recycleFhat[label]}, {self.recycleDistF[label]})
+	 self.recycleConfPhaseMult[label]:advance(tCurr, {self.recycleCoef[label], self.recycleFMaxwell[label]}, {self.recycleDistF[label]})
 	 self.recycleDistF[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleDistF',
 	  					     wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
-	 -- DistFuncMomentCalc Updater for fMaxwell
-	 self.calcFhatM0[label]:advance(tCurr, {self.recycleDistF[label]}, {self.recycleTestFlux[label]})
-	 self.recycleTestFlux[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleTestFlux',
-	  					     wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
+	 --DistFuncMomentCalc Updater for fMaxwell
+	 -- self.calcFhatM0[label]:advance(tCurr, {self.recycleDistF[label]}, {self.recycleTestFlux[label]})
+	 -- self.recycleTestFlux[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleTestFlux',
+	 --  					     wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
       end
    end
 

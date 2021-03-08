@@ -13,22 +13,6 @@ void ProjectFluxOnGhosts1x1vDir1Ser_P1(const double wv, const double dv, const d
  
 }
 
-void ProjectFluxOnGhosts1x2vDir1Ser_P1(const double wv, const double dv, const double zVal, const double *fIn, double *fHat) 
-{ 
-  // fIn[8]:    input distf. 
-  // fHat[8]:   projection of flux on ghost cell. 
- 
-  fHat[0] = 0.1666666666666667*((10.39230484541326*fIn[1]*wv+3.0*fIn[4]*dv)*zVal+6.0*fIn[0]*wv+1.732050807568877*fIn[2]*dv); 
-  fHat[1] = 0.5*zVal*((6.0*fIn[1]*wv+1.732050807568877*fIn[4]*dv)*zVal+3.464101615137754*fIn[0]*wv+fIn[2]*dv); 
-  fHat[2] = 0.1666666666666667*((10.39230484541326*fIn[4]*wv+3.0*fIn[1]*dv)*zVal+6.0*fIn[2]*wv+1.732050807568877*fIn[0]*dv); 
-  fHat[3] = 0.1666666666666667*((10.39230484541326*fIn[5]*wv+3.0*fIn[7]*dv)*zVal+6.0*fIn[3]*wv+1.732050807568877*fIn[6]*dv); 
-  fHat[4] = 0.5*zVal*((6.0*fIn[4]*wv+1.732050807568877*fIn[1]*dv)*zVal+3.464101615137754*fIn[2]*wv+fIn[0]*dv); 
-  fHat[5] = 0.5*zVal*((6.0*fIn[5]*wv+1.732050807568877*fIn[7]*dv)*zVal+3.464101615137754*fIn[3]*wv+fIn[6]*dv); 
-  fHat[6] = 0.1666666666666667*((10.39230484541326*fIn[7]*wv+3.0*fIn[5]*dv)*zVal+6.0*fIn[6]*wv+1.732050807568877*fIn[3]*dv); 
-  fHat[7] = 0.5*zVal*((6.0*fIn[7]*wv+1.732050807568877*fIn[5]*dv)*zVal+3.464101615137754*fIn[6]*wv+fIn[3]*dv); 
- 
-}
-
 void ProjectFluxOnGhosts1x3vDir1Ser_P1(const double wv, const double dv, const double zVal, const double *fIn, double *fHat) 
 { 
   // fIn[16]:    input distf. 

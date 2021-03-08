@@ -978,6 +978,7 @@ return {
 	 MaxwellianProjection = require ("App.Projection.GkProjection").MaxwellianProjection,
 	 VmMaxwellianProjection = require ("App.Projection.VlasovProjection").MaxwellianProjection,
 	 BGKCollisions = require "App.Collisions.GkBGKCollisions",
+	 VmBGKCollisions = require "App.Collisions.VmBGKCollisions",
 	 LBOCollisions = require "App.Collisions.GkLBOCollisions",
 	 BgkCollisions = require "App.Collisions.GkBGKCollisions",
 	 LboCollisions = require "App.Collisions.GkLBOCollisions",
