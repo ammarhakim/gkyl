@@ -107,7 +107,7 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
    end
 
    self.computePlasmaB = true and plasmaB   -- Differentiate plasma B from external B.
-
+   
    -- Create updater to advance solution by one time-step.
    self.equation = VlasovEq {
       onGrid           = self.grid,
@@ -185,6 +185,9 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
             operator   = "VmLBO",
          }
       end
+
+      self.zIdx = Lin.IntVec(self.grid:ndim())
+
    end
 
    -- Updaters for the primitive moments.
@@ -1165,13 +1168,16 @@ function VlasovSpecies:bcRecycleFunc(dir, tm, idxIn, fIn, fOut)
    end
    label = l1..l2
 
-   local zIdx = idxIn
-   zIdx[dir] = 1
+   -- print('label defined')
+   idxIn:copyInto(self.zIdx)
+   -- print('idx copied')
+   -- zIdx = idxIn
+   self.zIdx[dir] = 1
    local numBasis = self.basis:numBasis()
    local f = self.recycleDistF[label]
    local rIdxr = f:genIndexer()
    local rFPtr = self.recycleDistF[label]:get(1)
-   f:fill(rIdxr(zIdx), rFPtr)
+   f:fill(rIdxr(self.zIdx), rFPtr)
    for i = 1, numBasis do
       fOut[i] = 0
       fOut[i] = fIn[i] + rFPtr[i]
@@ -1465,9 +1471,9 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	    end
 	    if string.match(label,"X") then
 	       dir = 1
-	       if edgeval == 1 then -- lower
+	       if edgeval == 1 then -- lower flux is in negative direction
 		  mom = "M0Nvx"
-	       else                -- upper
+	       else                -- upper flux is in positive direction
 		  mom = "M0Pvx"
 	       end
 	    elseif string.match(label, "Y") then
@@ -1512,7 +1518,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	       local cdim = self.cdim
 	       local vdim = self.vdim
 	       local vt2 = T0/self.mass
-	       --local u = -1*edgeval*math.sqrt(vt2)
+	       --local u = -10*edgeval*math.sqrt(vt2)
 	       --local v2 = (xn[2] - u)^2 + xn[3]^2 + xn[4]^2
 	       local v2 = 0.0
 	       for d = cdim+1, cdim+vdim do
@@ -1589,7 +1595,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 -- weak multiply
 	 self.recycleConfPhaseMult[label]:advance(tCurr, {self.recycleCoef[label], self.recycleFMaxwell[label]}, {self.recycleDistF[label]})
 	 self.recycleDistF[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleDistF',
-	  					     wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
+						      wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
 	 --DistFuncMomentCalc Updater for fMaxwell
 	 -- self.calcFhatM0[label]:advance(tCurr, {self.recycleDistF[label]}, {self.recycleTestFlux[label]})
 	 -- self.recycleTestFlux[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleTestFlux',
