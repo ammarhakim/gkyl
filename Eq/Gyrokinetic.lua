@@ -59,9 +59,9 @@ function Gyrokinetic:init(tbl)
 
    if self._isElectromagnetic then
       self.emMod = DataStruct.Field {
-         onGrid = self._grid,
+         onGrid        = self._grid,
          numComponents = self._basis:numBasis(),
-         ghost = {1, 1}
+         ghost         = {1, 1}
       }
       self.emModPtrL = self.emMod:get(1)
       self.emModPtrR = self.emMod:get(1)
@@ -77,17 +77,17 @@ function Gyrokinetic:init(tbl)
       local nmu = self._grid:numCells(self._ndim)
       for i = 1, nmu do
          self.phiGy[i] = DataStruct.Field {
-            onGrid = self._confGrid,
+            onGrid        = self._confGrid,
             numComponents = self._confBasis:numBasis(),
-            ghost = {1, 1}
+            ghost         = {1, 1}
          }
       end
    end
 
    self._isFirst = true
 
-   -- timers
-   self.totalVolTime = 0.0
+   -- Timers.
+   self.totalVolTime  = 0.0
    self.totalSurfTime = 0.0
 end
 

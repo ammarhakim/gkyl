@@ -370,7 +370,7 @@ function KineticSpecies:createBasis(nm, polyOrder)
                         basisType = self.basis:id(),
                         charge    = self.charge,
                         mass      = self.mass,
-                        grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"}
+                        grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"}
       self.grid:write(self.name .. "_grid.bp", 0.0, metaData)
    end
 end
@@ -521,7 +521,7 @@ function KineticSpecies:alloc(nRkDup)
                     basisType = self.basis:id(),
                     charge    = self.charge,
                     mass      = self.mass,    
-                    grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"},
+                    grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"},
    }
 
    if self.positivity then

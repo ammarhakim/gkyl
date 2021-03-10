@@ -910,7 +910,7 @@ local function buildApplication(self, tbl)
 	     stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
       tmAccounted = tmAccounted + stepperTime
       log(string.format(
-	     "Foward Euler combine took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     "Forward Euler combine took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     fwdEulerCombineTime, fwdEulerCombineTime/step, 100*fwdEulerCombineTime/tmTotal))
       tmAccounted = tmAccounted + fwdEulerCombineTime
       log(string.format(

@@ -361,6 +361,7 @@ calcStep2Update(fh, funcNm, cdim, vdim, basisFun, polyOrder, varsInB, useGenGeo)
                                                                 alphaSurfR_e,alphaUpSurfR_e,wApar,step2),
 
     printf(fh, "#endif ~%"),
+    printf(fh, "~%"),
     flush_output(fh),
 
     /* Write the actual increments to the left and right cells, which are

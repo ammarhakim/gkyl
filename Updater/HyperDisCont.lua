@@ -236,7 +236,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 	 idx:copyInto(idxp); idx:copyInto(idxm)
 
          for i = dirLoIdx, dirUpIdx do -- this loop is over edges
-	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
+	    idxm[dir], idxp[dir] = i-1, i -- cell left/right of edge 'i'
 
 	    grid:setIndex(idxm)
             grid:getDx(dxm)
