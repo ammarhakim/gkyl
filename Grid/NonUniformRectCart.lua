@@ -75,55 +75,61 @@ function NonUniformRectCart:init(tbl)
    for d = 1, self._ndim do
       self._gridVol = self._gridVol*(self._nodeCoords[d][self._numCells[d]+1]-self._nodeCoords[d][1])
    end
+   
+   -- Precompute cell length, center and boundary coords.
+   self._cellDx, self._cellCenter, self._cellLower, self._cellUpper = {}, {}, {}, {}
+   for d = 1, ndim do
+      self._cellDx[d]     = Lin.Vec(self._numCells[d])
+      self._cellCenter[d] = Lin.Vec(self._numCells[d])
+      self._cellLower[d]  = Lin.Vec(self._numCells[d])
+      self._cellUpper[d]  = Lin.Vec(self._numCells[d])
+      local nodeCoords = self._nodeCoords[d]
+      for idx = 1, self._numCells[d] do
+         self._cellDx[d][idx]     = nodeCoords[idx+1]-nodeCoords[idx]
+         self._cellCenter[d][idx] = 0.5*(nodeCoords[idx+1]+nodeCoords[idx])
+         self._cellLower[d][idx]  = self._cellCenter[d][idx]-0.5*self._cellDx[d][idx]
+         self._cellUpper[d][idx]  = self._cellCenter[d][idx]+0.5*self._cellDx[d][idx]
+      end
+   end
 end
 
 -- Member functions.
-function NonUniformRectCart:id() return "mapped" end
+function NonUniformRectCart:id() return "uniform" end
 function NonUniformRectCart:lower(dir) return self._nodeCoords[dir][1] end
 function NonUniformRectCart:mid(dir) return self:lower(dir) + (self:upper(dir)-self:lower(dir))/2 end
 function NonUniformRectCart:upper(dir) return self._nodeCoords[dir][self:numCells(dir)+1] end
 function NonUniformRectCart:nodeCoords(dir) return self._nodeCoords[dir] end
 function NonUniformRectCart:dx(dir)
-   local nodeCoords, idx = self:nodeCoords(dir), self._currIdx
-   local idxInDir        = idx[dir]
+   local idxInDir = self._currIdx[dir]
    if idxInDir == 0 then
       idxInDir = 1
    elseif idxInDir > self:localRange():upper(dir) then
       idxInDir = self:localRange():upper(dir)
    end
-   return nodeCoords[idxInDir+1]-nodeCoords[idxInDir]
+   return self._cellDx[dir][idxInDir]
 end
 function NonUniformRectCart:getDx(dxOut) 
    for d = 1, self:ndim() do dxOut[d] = self:dx(d) end
 end
 function NonUniformRectCart:cellCenterInDir(dir)
-   local nodeCoords, idx = self:nodeCoords(dir), self._currIdx
-   local idxInDir        = idx[dir]
+   local idxInDir = self._currIdx[dir]
    if idxInDir == 0 then
       idxInDir = 1
    elseif idxInDir > self:localRange():upper(dir) then
       idxInDir = self:localRange():upper(dir)
    end
-   return 0.5*(nodeCoords[idxInDir+1]+nodeCoords[idxInDir])
+   return self._cellCenter[dir][idxInDir]
 end
 function NonUniformRectCart:cellLowerInDir(dir)
-   return self:cellCenterInDir(dir)-0.5*self:dx(dir)
+   local idxInDir = self._currIdx[dir]
+   return self._cellLower[dir][idxInDir]
 end
 function NonUniformRectCart:cellUpperInDir(dir)
-   return self:cellCenterInDir(dir)+0.5*self:dx(dir)
+   local idxInDir = self._currIdx[dir]
+   return self._cellUpper[dir][idxInDir]
 end
 function NonUniformRectCart:cellCenter(xc)
-   local idx = self._currIdx
-   for d = 1, self._ndim do
-      local nodeCoords = self:nodeCoords(d)
-      local idxInDir   = idx[d]
-      if idxInDir == 0 then
-         idxInDir = 1
-      elseif idxInDir > self:localRange():upper(d) then
-         idxInDir = self:localRange():upper(d)
-      end
-      xc[d] = 0.5*(nodeCoords[idxInDir+1]+nodeCoords[idxInDir])
-   end
+   for d = 1, self._ndim do xc[d] = self:cellCenterInDir(d) end
 end
 function NonUniformRectCart:cellVolume()
    local v = 1.0
