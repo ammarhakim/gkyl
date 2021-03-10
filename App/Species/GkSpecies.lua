@@ -1298,7 +1298,6 @@ function GkSpecies:createDiagnostics()
       
       self.bcGkM0fluxUpdater = {}
       self.bcGkM0fluxField = {}
-      self.bcGkM0fluxFlip = {}
 
       for _, bc in ipairs(self.boundaryConditions) do
          -- Need to evaluate bmag on boundary for moment calculations.

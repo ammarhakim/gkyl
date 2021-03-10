@@ -936,6 +936,17 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        self.vSigmaCX:write(string.format("%s_vSigmaCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        self.collisions[self.collNmCX].sourceCX:write(string.format("%s_sourceCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
     end
+
+    -- Write recycling diagnostics
+    if self.hasRecycleBcs then
+        for _, bc in ipairs(self.boundaryConditions) do
+	   label = bc:label()
+	   wlabel = (label):gsub("Flux","")
+	   self.recycleCoef[label]:write(string.format("%s%s_%d.bp", 'recycleCoef', wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
+	   self.recycleDistF[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleDistF', wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
+	   --self.recycleTestFlux[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleTestFlux', wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
+	end
+    end
 end
 
 function KineticSpecies:isEvolving()
@@ -962,7 +973,7 @@ function KineticSpecies:write(tm, force)
 
       -- Only write stuff if triggered.
       if self.distIoTrigger(tm) or force then
-         self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
+         self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame, true)
          if self.f0 then
             if tm == 0.0 then
 	       self.f0:write(string.format("%s_f0_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame, true)
