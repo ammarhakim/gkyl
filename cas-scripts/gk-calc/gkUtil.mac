@@ -1,0 +1,715 @@
+/*
+  Utility functions for GK Maxima scripts.
+*/
+load("vect")$
+load("nodalOperations/nodalFunctions")$
+
+doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+
+/*
+   This variable is global to this file only. Set by the file loading gkUtil.mac.
+     = false: generate simple helical magnetic field kernels.
+     = true:  generate general geometry kernels.
+*/
+genGenGeoKernel : false$
+
+loadBasis(basisType, cdim, vdim, pIn) := block([modNm,allLabels,vSub,vSubInv,varsC,bC,bP,varsP],
+  /* Load basis of approapriate dimension. */
+  if vdim > 0 then (
+    modNm : sconcat("basis-precalc/basis", basisType, cdim, "x", vdim, "v")
+  ) else (
+    modNm : sconcat("basis-precalc/basis", basisType, cdim, "x")
+  ),
+  load(modNm),
+
+  /* Save configuration and phase space basis and switch to GK variables. */
+  vSub    : [vx=vpar, vy=mu],
+  vSubInv : [vpar=vx, mu=vy],
+
+  bC    : subst(vSub, basisC[pIn]),
+  varsC : subst(vSub, varsC),
+
+  if vdim=0 then bP : bC
+  else           bP : subst(vSub, basisP[pIn]),
+
+  if vdim=0 then varsP : varsC
+  else           varsP : subst(vSub, varsP),
+
+  return([varsC,bC,varsP,bP,vSub,vSubInv])
+)$
+
+basisFromVars(basisType, varsIn, pIn) := block(
+  dimIn : length(varsIn),
+
+  /* In case varsP and varsC were already loaded, save them
+     and restore them at the end of this function. */
+  if listp(varsC) then (oldVarsC : copylist(varsC)),
+  if listp(varsP) then (oldVarsP : copylist(varsP)),
+
+  if dimIn > 3 then (
+    load(sconcat("basis-precalc/basis", basisType, dimIn-3, "x", 3, "v")),
+    basis : basisP[pIn],
+    vars  : varsP
+  ) elseif dimIn > 0 then (
+    load(sconcat("basis-precalc/basis", basisType, dimIn, "x")),
+    basis : basisC[pIn],
+    vars  : varsC
+  ) else (
+    basis : [],
+    vars  : []
+  ),
+  replaceList : makelist(vars[i]=varsIn[i],i,1,dimIn),
+  basis : psubst(replaceList,basis),
+
+  /* Restore varsC and varsP. */
+  if listp(oldVarsC) then (varsC : copylist(oldVarsC)),
+  if listp(oldVarsP) then (varsP : copylist(oldVarsP)),
+
+  return(basis)
+)$
+
+expandInputFields(bC,bmagBasis,hasApar) := block(
+  [bmag_e,bmagInv_e,phi_e,Apar_e,dApardt_e,dApardtPrev_e,cdim,
+   AparL_e,b_x_e,b_y_e,b_z_e,jacobTotInv_e,BdriftX_e,BdriftY_e],
+  /* Expand background magnetic field and potentials. */
+  bmag_e    : doExpand1(bmag,bmagBasis),
+  phi_e     : doExpand1(phi,bC),
+  if hasApar then (
+    Apar_e        : doExpand1(Apar,bC),
+    dApardt_e     : doExpand1(dApardt,bC),
+    dApardtPrev_e : doExpand1(dApardtPrev,bC)
+    /* NOTE: even though Apar and dApar/dt are allowed to be discontinuous
+       in the parallel (z) direction, the surface term in the z direction
+       does not involve Apar. Since Apar is continuous in the other directions,
+       it does not matter if we use the right or left value. */
+  ) else (
+    Apar_e : 0,  dApardt_e : 0,  dApardtPrev_e : 0
+  ),
+
+  cmag_e : doExpand1(cmag,bmagBasis),
+
+  expOut : [bmag_e,cmag_e,phi_e,Apar_e,dApardt_e,dApardtPrev_e],
+
+  if genGenGeoKernel then (
+    b_x_e : doExpand1(b_x, bmagBasis),
+    b_y_e : doExpand1(b_y, bmagBasis),
+    b_z_e : doExpand1(b_z, bmagBasis),
+    jacobTotInv_e : doExpand1(jacobTotInv, bmagBasis),
+
+    AparL_e : 0,
+    if hasApar then (
+      cdim : length(listofvars(bC)),
+      if cdim#2 then (
+        /* for z direction only, also expand Apar in left cell */
+        AparL_e : doExpand1(AparL,bC),
+        /* Usually to evaluate a left expansion at the boundary we would need to evaluate at z=1,
+           but all other quantities will be right expansions and evaluated at z=-1.
+           So let's flip AparL in z so that evaluating at z=-1 will give the boundary value. */
+        AparL_e : subst(varsC[cdim]=-varsC[cdim], AparL_e)
+      )
+    ),
+
+    expOut : append(expOut,[b_x_e,b_y_e,b_z_e,jacobTotInv_e,AparL_e])
+
+  ) else (
+    bmagInv_e : doExpand1(bmagInv,bmagBasis),
+
+    /* Expand BdriftX = (1/B)*curl(bhat)*grad(x). */
+    BdriftX_e : doExpand1(BdriftX, bmagBasis),
+    /* Expand BdriftY = (1/B)*curl(bhat)*grad(y). */
+    BdriftY_e : doExpand1(BdriftY, bmagBasis),
+
+    expOut : append(expOut,[bmagInv_e,BdriftX_e,BdriftY_e])
+  ),
+  return(expOut)
+)$
+
+calcAndWrite_HamilES(fH,charge,mass,wv,rdv2,bP,inFlds,sideStr) := block(
+  [varsP,numP,hamil_c,subList,hamilNoZero_c],
+  /* Expand the Hamiltonian, and write them out. */
+
+  /* Extract magnetic field and electrostatic potential. */
+  bmag_e : inFlds[1],
+  phi_e  : inFlds[3],
+
+  hamil_e : charge*phi_e,
+  if vdim > 0 then ( hamil_e : hamil_e + (1/2)*mass*(wv[1] + vpar/rdv2[1])^2 ),
+  if vdim > 1 then ( hamil_e : hamil_e + (wv[2]+mu/rdv2[2])*bmag_e ),
+
+  varsP : listofvars(bP),
+  numP  : length(bP),
+
+  /* Project Hamiltonian onto basis functions */
+  hamil_c : calcInnerProdList(varsP, 1, bP, hamil_e),
+
+  /* Write Hamiltonian. */
+  printf(fh, "  double hamil~a[~a]; ~%", sideStr, numP),
+  replaceList : [wvpar^2=wvparSq, rdvpar2^2=rdvpar2Sq, rdx2^2=rdx2Sq,
+                 wvparL^2=wvparSqL, rdvpar2L^2=rdvpar2SqL, rdx2L^2=rdx2SqL,
+                 wvparR^2=wvparSqR, rdvpar2R^2=rdvpar2SqR, rdx2R^2=rdx2SqR, m_^2=mSq, q_^2=qSq],
+  hamilCvar : eval_string(sconcat("hamil",sideStr)),
+  writeCExprsNoExpand1(hamilCvar, gcfac(subst(replaceList, hamil_c))),
+  printf(fH, "~%"),
+  flush_output(fH),
+
+  hamilNoZero_c : doMakeExprLst(hamil_c, hamilCvar),
+  /* Expand projected Hamiltonian on basis. */
+  hamil_e : hamilNoZero_c . bP,
+
+  return(hamil_e)
+)$
+
+calcAndWrite_BstardBmag(fH,cdim,bP,bmagBasis,surfDir,mass,charge,wvpar,rdx2,rdv2,inFlds,sideStr) := block (
+  [cmag_e,Apar_e,BmagInv_e,BdriftX_e,BdriftY_e,BstarXdBmag_e,BstarYdBmag_e,BstarZdBmag_e,b_x_e,b_y_e,b_z_e,
+   jacobTotInv_e,rdy2,rdz2,AparL_e,BstarZdBmagL_e,varsP,numP,replaceList,BstarXdBmag_c,BstarYdBmag_c,BstarZdBmag_c,
+   BstarXdBmag_noZero_c,BstarYdBmag_noZero_c,BstarZdBmag_noZero_c,BstarZdBmagL_c,BstarZdBmagL_noZero_c,BstardBmagL_e],
+  /* Compute the Bstar divided by B and write it out. */
+
+  cmag_e    : inFlds[2],
+  Apar_e    : inFlds[4],
+
+  if (Apar_e#0) then (hasApar:true) else (hasApar:false),
+
+  if not genGenGeoKernel then (
+    BmagInv_e : inFlds[7],
+    BdriftX_e : inFlds[8],
+    BdriftY_e : inFlds[9],
+
+    /* Expand BstarX/Bmag = ( (m/q) vpar + Apar ) BdriftX = (1/B)*((m/q) vpar + Apar)*curl(bhat)*grad(x). */
+    BstarXdBmag_e : ((mass/charge)*(wvpar+vpar/rdv2[1]) + Apar_e)*BdriftX_e,
+    /* Expand BstarY/Bmag = ( (m/q) vpar + Apar ) BdriftY = (1/B)*((m/q) vpar + Apar)*curl(bhat)*grad(y). */
+    BstarYdBmag_e : ((mass/charge)*(wvpar+vpar/rdv2[1]) + Apar_e)*BdriftY_e,
+    /* Expand BstarZ/Bmag = bhat.grad(z) = cmag. */
+    BstarZdBmag_e : cmag_e,
+
+    /* Add vApar = -(1/B)*bhatXgrad(Apar) vector. */
+    if cdim > 1 then (
+      BstarXdBmag_e : BstarXdBmag_e + diff(Apar_e,y)*rdx2[2]*BmagInv_e,
+      BstarYdBmag_e : BstarYdBmag_e - diff(Apar_e,x)*rdx2[1]*BmagInv_e
+    )
+  ) else (
+    b_x_e : inFlds[7],
+    b_y_e : inFlds[8],
+    b_z_e : inFlds[9],
+    jacobTotInv_e : inFlds[10],
+
+    if cdim > 1 then (rdy2 : rdx2[2]) else (rdy2 : 0),
+    if cdim > 2 then (rdz2 : rdx2[3]) else (rdz2 : 0),
+
+    /* Expand BstarX/Bmag on basis. */
+    BstarXdBmag_e : (-((mass/charge)*(wvpar+vpar/rdv2[1]) + Apar_e)*rdz2*diff(b_y_e,z)
+                     +b_z_e*rdy2*diff(Apar_e,y)
+                     -b_y_e*rdz2*diff(Apar_e,z) )*jacobTotInv_e,
+    /* Expand BstarY/Bmag on basis. */
+    BstarYdBmag_e : (-((mass/charge)*(wvpar+vpar/rdv2[1]) + Apar_e)*(rdx2[1]*diff(b_z_e,x) - rdz2*diff(b_x_e,z))
+                     -b_z_e*rdx2[1]*diff(Apar_e,x)
+                     +b_x_e*rdz2*diff(Apar_e,z) )*jacobTotInv_e,
+    /* Expand BstarZ/Bmag on basis. */
+    BstarZdBmag_e : ( cmag_e + ((mass/charge)*(wvpar+vpar/rdv2[1]) + Apar_e)*rdx2[1]*diff(b_y_e,x)
+                     +b_y_e*rdx2[1]*diff(Apar_e,x)
+                     -b_x_e*rdy2*diff(Apar_e,y) )*jacobTotInv_e,
+    if (surfDir = cdim) and (cdim#2) and (sideStr="R") then (
+      AparL_e : inFlds[11],
+      BstarZdBmagL_e : ( cmag_e + ((mass/charge)*(wvpar+vpar/rdv2[1]) + AparL_e)*rdx2[1]*diff(b_y_e,x)
+                      +b_y_e*rdx2[1]*diff(AparL_e,x)
+                      -b_x_e*rdy2*diff(AparL_e,y) )*jacobTotInv_e
+    )
+  ),
+
+  varsP : listofvars(bP),
+  numP  : length(bP),
+
+  /* Project Bstar's onto basis, and print to arrays. */
+  replaceList : [wvpar^2=wvparSq, rdvpar2^2=rdvpar2Sq, rdx2^2=rdx2Sq,
+                 wvparL^2=wvparSqL, rdvpar2L^2=rdvpar2SqL, rdx2L^2=rdx2SqL,
+                 wvparR^2=wvparSqR, rdvpar2R^2=rdvpar2SqR, rdx2R^2=rdx2SqR, m_^2=mSq, q_^2=qSq],
+  if cdim > 1 then (
+    BstarXdBmag_c : calcInnerProdList(varsP, 1, bP, BstarXdBmag_e),
+    if (surfDir = 0 or surfDir = 1 or surfDir = cdim+1) then (
+      printf(fh, "  double BstarXdBmag~a[~a]; ~%", sideStr,numP),
+      writeCExprsNoExpand1(eval_string(sconcat("BstarXdBmag",sideStr)), gcfac(subst(replaceList, BstarXdBmag_c))),
+      printf(fh, "~%"),
+      flush_output(fh)
+    ),
+    BstarXdBmag_noZero_c : doMakeExprLst(BstarXdBmag_c, eval_string(sconcat("BstarXdBmag",sideStr))),
+    BstarXdBmag_e : BstarXdBmag_noZero_c . bP,
+
+    BstarYdBmag_c : calcInnerProdList(varsP, 1, bP, BstarYdBmag_e),
+    if (surfDir = 0 or surfDir = 2 or surfDir = cdim+1) then (
+      printf(fh, "  double BstarYdBmag~a[~a]; ~%", sideStr, numP),
+      writeCExprsNoExpand1(eval_string(sconcat("BstarYdBmag",sideStr)), gcfac(subst(replaceList, BstarYdBmag_c))),
+      printf(fh, "~%"),
+      flush_output(fh)
+    ),
+    BstarYdBmag_noZero_c : doMakeExprLst(BstarYdBmag_c, eval_string(sconcat("BstarYdBmag",sideStr))),
+    BstarYdBmag_e : BstarYdBmag_noZero_c . bP
+  ),
+  if cdim # 2 then (
+    BstarZdBmag_c : calcInnerProdList(varsP, 1, bP, BstarZdBmag_e),
+    if (surfDir=0 or surfDir>=cdim) then (
+      printf(fh, "  double BstarZdBmag~a[~a]; ~%", sideStr, numP),
+      writeCExprsNoExpand1(eval_string(sconcat("BstarZdBmag",sideStr)), gcfac(subst(replaceList, BstarZdBmag_c))),
+      printf(fh, "~%"),
+      flush_output(fh)
+    ),
+    BstarZdBmag_noZero_c : doMakeExprLst(BstarZdBmag_c, eval_string(sconcat("BstarZdBmag",sideStr))),
+    BstarZdBmag_e : BstarZdBmag_noZero_c . bP,
+
+    if genGenGeoKernel and (sideStr="R") and hasApar then (
+      BstarZdBmagL_c : calcInnerProdList(varsP, 1, bP, BstarZdBmagL_e),
+      if surfDir = cdim then (
+        printf(fh, "  double BstarZdBmagL[~a]; ~%", numP),
+        writeCExprsNoExpand1(BstarZdBmagL, gcfac(subst(replaceList, BstarZdBmagL_c))),
+        printf(fh, "~%"),
+        flush_output(fh)
+      ),
+      BstarZdBmagL_noZero_c : doMakeExprLst(BstarZdBmagL_c, BstarZdBmagL),
+      BstarZdBmagL_e : BstarZdBmagL_noZero_c . bP
+    )
+  ),
+
+  /* Make Bstar/Bmag vector. */
+  if cdim = 1 then (
+    BstardBmag_e : [BstarZdBmag_e]
+  ) elseif cdim = 2 then (
+    BstardBmag_e : [BstarXdBmag_e, BstarYdBmag_e]
+  ) elseif cdim = 3 then (
+    BstardBmag_e : [BstarXdBmag_e, BstarYdBmag_e, BstarZdBmag_e]
+  ),
+
+  if genGenGeoKernel and (surfDir=cdim) and hasApar and (sideStr="R") and (cdim#2) then (
+    BstardBmagL_e : [BstarZdBmagL_e],
+    if cdim=3 then BstardBmagL_e : append([BstarXdBmag_e, BstarYdBmag_e],BstardBmagL_e),
+    return([BstardBmag_e,BstardBmagL_e])
+  ) else (
+    return([BstardBmag_e,[0]])
+  )
+)$
+
+poissonBracket(f,g,mass,charge,rdx2,rdv2,pbFacs) := block(
+  [varsCall,cdim,varsC,rdy2,rdz2,BstardBmag_e,bmagInv_e,b_x_e,b_y_e,b_z_e,jacobTotInv_e],
+  /* Compute the Poisson bracket for the simple helical magnetic field. */
+
+  varsCall : [x,y,z],
+  cdim     : length(rdx2),
+  varsC    : makelist(varsCall[d],d,1,cdim),
+
+  /* Function that computes the gradient. */
+  /* 
+     For some reason the following use of "vect" functions was giving extra
+     brackets when generating volume kernels. Opt for our own function instead.
+  scalefactors(varsC),
+  fgrad(fIn) := ev(express(grad(fIn)),diff)*rdx2,
+  */
+  fgrad(fIn,vars,diffFacs) := makelist(diff(fIn,vars[d]),d,1,length(vars))*diffFacs,
+
+  if cdim > 1 then (rdy2 : rdx2[2]) else (rdy2 : 0),
+  if cdim > 2 then (rdz2 : rdx2[3]) else (rdz2 : 0),
+
+  BstardBmag_e : pbFacs[1],
+  if not genGenGeoKernel then (
+    bmagInv_e : pbFacs[2],
+
+    pb_e : (1/mass)*BstardBmag_e . (rdv2[1]*(fgrad(f,varsC,rdx2)*diff(g,vpar)-fgrad(g,varsC,rdx2)*diff(f,vpar)))
+          -(1/charge)*bmagInv_e*rdx2[1]*rdy2*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x))
+  ) else (
+    b_x_e : pbFacs[2],  b_y_e : pbFacs[3],  b_z_e : pbFacs[4],
+    jacobTotInv_e : pbFacs[5],
+
+    pb_e : (1/mass)*BstardBmag_e . (rdv2[1]*(fgrad(f,varsC,rdx2)*diff(g,vpar)-fgrad(g,varsC,rdx2)*diff(f,vpar)))
+          +(-(1/charge)*b_z_e*rdx2[1]*rdy2*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x))
+            +(1/charge)*b_y_e*rdx2[1]*rdz2*(diff(f,x)*diff(g,z)-diff(f,z)*diff(g,x))
+            -(1/charge)*b_x_e*rdy2*rdz2*(diff(f,y)*diff(g,z)-diff(f,z)*diff(g,y)))*jacobTotInv_e
+  ),
+
+  return(pb_e)
+)$
+
+calcAndWrite_alpha(fH,surfDir,bP,polyOrder,basisType,mass,charge,rdx2,rdv2,
+                   inFlds,hamil_e,BstardBmag_e,BstardBmagExt_e,sideStr,isStep2) := block(
+  [varsP,varLabel,dirLabel,wSurf,rdSurfVar2,surfVar,surfIntVars,pbAuxFlds,bmagInv_e,b_x_e,
+   b_y_e,b_z_e,jacobTotInv_e,alpha_e,Apar_e,hasApar,dApardt_e,dApardtPrev_e,alphaL_e,
+   bSurf,numSurf,evPoint,alpha_c,alphaCvar,alphaNoZero_c,alphaUpCvar,alphaUpNoZero_c],
+  /* Calculate phase space velocity alpha in direction of surfVar. */
+  /* We assume alpha.n is continuous across boundary, although H may not be. */
+  /* Distinguish between alpha and alphaUp, where alphaUp is the one used to
+     determine upwind direction. */
+
+  varsP    : listofvars(bP),
+  varLabel : makelist(string(varsP[d]),d,1,pDim),
+  dirLabel : varLabel[surfDir],
+
+  wSurf      : eval_string(sconcat("w",dirLabel,sideStr)),
+  rdSurfVar2 : eval_string(sconcat("rd",dirLabel,"2",sideStr)),
+
+  surfVar     : varsP[surfDir],         /* Surface variable. */
+  surfIntVars : delete(surfVar,varsP),  /* Surface integral variables. */
+
+  pbAuxFlds : [BstardBmag_e],
+  if not genGenGeoKernel then (
+    bmagInv_e : inFlds[7],
+
+    pbAuxFlds : append(pbAuxFlds,[bmagInv_e])
+  ) else (
+    b_x_e : inFlds[7],  b_y_e : inFlds[8],  b_z_e : inFlds[9],
+    jacobTotInv_e : inFlds[10],
+
+    pbAuxFlds : append(pbAuxFlds,[b_x_e,b_y_e,b_z_e,jacobTotInv_e])
+  ),
+  alpha_e : poissonBracket(wSurf+surfVar/rdSurfVar2,hamil_e,mass,charge,rdx2,rdv2,pbAuxFlds),
+
+  Apar_e    : inFlds[4],
+  dApardt_e : inFlds[5],
+
+  if (Apar_e#0) then (hasApar:true) else (hasApar:false),
+
+  if genGenGeoKernel and (surfDir=cdim) and hasApar and (cdim#2) then (
+    /* alpha_e above is using R values. Compute it with L value. */
+    pbAuxFlds[1] : BstardBmagExt_e,
+    alphaL_e : poissonBracket(wSurf+surfVar/rdSurfVar2,hamil_e,mass,charge,rdx2,rdv2,pbAuxFlds),
+    /* Just use the mean of L and R values of alpha for now. */
+    alpha_e : 0.5*(alpha_e + alphaL_e)
+  ),
+
+  alphaUp_e : alpha_e,
+  if surfVar = vpar and polyOrder > 1 then (
+    alpha_e   : alpha_e - (charge/mass)*dApardt_e,
+    alphaUp_e : alpha_e
+  ) elseif surfVar = vpar then (
+    /* For p=1 EMGK, use dApardtPrev in upwinding alpha. */
+    dApardtPrev_e : inFlds[6],
+    alphaUp_e : alpha_e - (charge/mass)*dApardtPrev_e,
+
+    if isStep2 then ( alpha_e : - (charge/mass)*dApardt_e)
+  ),
+
+  bSurf : basisFromVars(basisType,surfIntVars,polyOrder),  /* Surface basis. */
+  numSurf : length(bSurf),
+
+  if sideStr="L" then (evPoint : +1) else (evPoint : -1),
+  replaceList : [wvpar^2=wvparSq, rdvpar2^2=rdvpar2Sq, rdx2^2=rdx2Sq,
+                 wvparL^2=wvparSqL, rdvpar2L^2=rdvpar2SqL, rdx2L^2=rdx2SqL,
+                 wvparR^2=wvparSqR, rdvpar2R^2=rdvpar2SqR, rdx2R^2=rdx2SqR, m_^2=mSq, q_^2=qSq],
+  /* Project full alpha expression evaluated at interior surface
+     onto surface basis and print to C variable alpha. */
+  alpha_c : calcInnerProdList(surfIntVars, 1, bSurf, subst(surfVar=evPoint,alpha_e)),
+  printf(fh, "  double alpha~a[~a]; ~%", sideStr, numSurf),
+  alphaCvar : eval_string(sconcat("alpha",sideStr)),
+  writeCExprsNoExpand1(alphaCvar, subst(replaceList,alpha_c)),
+  printf(fh, "~%"),
+  flush_output(fh),
+  alphaNoZero_c : doMakeExprLst(alpha_c, alphaCvar),
+  alphaSurf_e   : doExpandLst(alphaNoZero_c, bSurf),
+
+  if surfVar=vpar and hasApar and polyOrder=1 then (
+    /* Print alphaUp. */
+    alphaUp_c : calcInnerProdList(surfIntVars, 1, bSurf, subst(surfVar=evPoint,alphaUp_e)),
+    printf(fh, "  double alphaUp~a[~a]; ~%", sideStr, numSurf),
+    alphaUpCvar : eval_string(sconcat("alphaUp",sideStr)),
+    writeCExprsNoExpand1(alphaUpCvar, subst(replaceList,alphaUp_c)),
+    printf(fh, "~%"),
+    flush_output(fh),
+    alphaUpNoZero_c : doMakeExprLst(alphaUp_c, alphaUpCvar),
+    alphaUpSurf_e   : doExpandLst(alphaUpNoZero_c, bSurf)
+  ) else (
+    alphaUpSurf_e : alphaSurf_e
+  ),
+
+  return([alphaUp_e,alphaSurf_e,alphaUpSurf_e])
+)$
+
+calc_surfAvgAlpha(bP,surfVar,alpha_e,evAtLower) := block(
+  [i,v,varsP,numP,surfIntVars,surfBasis,ignoreVars,alphaSurfAvg_c,alphaSurfAvg_e,evPoint],
+  /* Calculate the surface-averaged alpha. */
+
+  varsP : listofvars(bP),
+  numP  : length(bP),
+  surfIntVars : delete(surfVar,varsP),  /* Surface integral variables. */
+
+  if evAtLower then (evPoint:-1) else (evPoint:1),
+
+  /* alpha coefficients are for an expansion in the full-dim phase basis. We
+     need to project onto the a basis on the surface with the right normalization
+     and dimensionality. */
+  surfBasis  : copylist(bP),
+  ignoreVars : listify(setdifference(setify(varsP),setify(surfIntVars))),
+  for i : 1 thru numP do (
+    for v : 1 thru length(ignoreVars) do (
+      if not freeof(ignoreVars[v],bP[i]) then ( surfBasis[i] : 0 )
+  )),
+  alphaSurfAvg_c : calcInnerProdList(surfIntVars,1,surfBasis,subst(surfVar=evPoint,alpha_e)),
+  alphaSurfAvg_e : doExpand(alphaSurfAvg_c,surfBasis),
+  alphaSurfAvg_s : fullratsimp(innerProd(surfIntVars,1,alphaSurfAvg_e,1)/innerProd(surfIntVars,1,1,1)),
+
+  return(alphaSurfAvg_s)
+)$
+
+calcAndWrite_surfAvgAlpha(fH,bP,surfDir,alpha_e,sideStr) := block([replaceList,evAtLower],
+  /* Given the phase-space velocity alpha, compute the average over the surface
+     perpendicular to the surfVar dimension, and at the lower/upper boundary if
+     sideStr=R/L. Write it out too.*/
+
+  surfVar : varsP[surfDir],             /* Surface variable. */
+
+  if sideStr="R" then (evAtLower:true) else (evAtLower:false),
+  
+  alphaSurfAvg_s : calc_surfAvgAlpha(bP,surfVar,alpha_e,evAtLower),
+
+  printf(fH, "  // Surface-averaged phase velocity in this direction.~%"),
+  replaceList : [wvpar^2=wvparSq, rdvpar2^2=rdvpar2Sq, rdx2^2=rdx2Sq,
+                 wvparL^2=wvparSqL, rdvpar2L^2=rdvpar2SqL, rdx2L^2=rdx2SqL,
+                 wvparR^2=wvparSqR, rdvpar2R^2=rdvpar2SqR, rdx2R^2=rdx2SqR, m_^2=mSq, q_^2=qSq],
+  printf(fH, "  double alphaSurfAvg~a = ~a; ~%~%", sideStr, float(subst(replaceList, alphaSurfAvg_s))),
+  flush_output(fH),
+
+  return(alphaSurfAvg_s)
+)$
+
+calcAndWrite_upwindIncr_wSurfAvgAlpha(fH,bP,polyOrder,surfDir,sideStr,alphaSurf_e,hasApar,isStep2) := block(
+  [varsP,numP,surfIntVars,fL_e,fR_e,fhatSurf_e,replaceList,fhatAlpha_c,incr_r,tMod,incrMod_r],
+  /* Given a surface expansion of the phase-space velocity, alpha, determine the upwinding
+     based on the surface average of alpha. Write the common increment to left/right cells
+     (the actual output from the C kernel should be this increment times some scaling factor). */
+
+  varsP       : listofvars(bP),
+  numP        : length(bP),
+  surfVar     : varsP[surfDir],         /* Surface variable. */
+  surfIntVars : delete(surfVar,varsP),  /* Surface integral variables. */
+
+  /* Expand distribution function. */
+  fL_e : doExpand1(fL,bP),  fR_e : doExpand1(fR,bP),
+
+  printf(fH, "  if (alphaSurfAvg~a>0) { ~%", sideStr),
+
+  fhatSurf_e : subst(surfVar=1, fL_e),
+
+  replaceList : [wvpar^2=wvparSq, rdvpar2^2=rdvpar2Sq, rdx2^2=rdx2Sq,
+                 wvparL^2=wvparSqL, rdvpar2L^2=rdvpar2SqL, rdx2L^2=rdx2SqL,
+                 wvparR^2=wvparSqR, rdvpar2R^2=rdvpar2SqR, rdx2R^2=rdx2SqR, m_^2=mSq, q_^2=qSq],
+  /* Write out the increment to the right cell. Omit a dxv factor we incorporate later. */
+  fhatAlpha_c : calcInnerProdList(surfIntVars, alphaSurf_e, subst(surfVar=-1, bP), fhatSurf_e),
+  incrR_c     : fullratsimp(fhatAlpha_c),
+  writeCExprsNoExpand1(incr, subst(replaceList, incrR_c)),
+  flush_output(fH),
+
+  if surfVar=vpar and hasApar and polyOrder=1 and (not isStep2) then (
+    tMod       : calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), fhatSurf_e),
+    incrModR_c : fullratsimp(tMod),
+    writeCExprsNoExpand1(incrEmMod, subst(replaceList, incrModR_c))
+  ),
+
+  printf(fH, "  } else { ~%"),
+
+  fhatSurf_e : subst(surfVar=-1, fR_e),
+
+  if surfVar=vpar and hasApar and polyOrder=1 and (not isStep2) then (
+    tMod       : calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), fhatSurf_e),
+    incrModR_c : fullratsimp(tMod),
+    writeCExprsNoExpand1(incrEmMod, subst(replaceList, incrModR_c))
+  ),
+
+  fhatAlpha_c : calcInnerProdList(surfIntVars, alphaSurf_e, subst(surfVar=-1, bP), fhatSurf_e),
+  incrR_c     : fullratsimp(fhatAlpha_c),
+
+  fhatAlpha_c : calcInnerProdList(surfIntVars, alphaSurf_e, subst(surfVar=1, bP), fhatSurf_e),
+  incrL_c     : -fullratsimp(fhatAlpha_c),
+
+  writeCExprsNoExpand1(incr, subst(replaceList, incrR_c)),
+  printf(fH, "  }~%"),
+  flush_output(fH),
+
+  return([incrL_c,incrR_c])
+)$
+
+calcAndWrite_upwindIncr_wQuadNodeAlpha(fH,basisType,polyOrder,bP,surfDir,sideStr,
+                                      alphaSurf_e,alphaUpSurf_e,hasApar,isStep2) := block(
+  [varsP,numP,pDim,surfIntVars,surfNodes,numNodes,fL_e,fR_e,fOrdL_n,fOrdR_n,alphaOrd_n,
+   fUpOrd_n,nodToMod,fUp_c,fhatSurf_e,replaceList,tMod,incrModR_c,fhatAlpha_c],
+  /* Compute the common increment to left/right cells with upwinding based on
+     the quadrature-node values of the phase-space velocity alpha. Write them
+     out. The actual output should be these increments scaled by some
+     cell-length factor. */
+
+  varsP       : listofvars(bP),
+  numP        : length(bP),
+  surfVar     : varsP[surfDir],         /* Surface variable. */
+  surfIntVars : delete(surfVar,varsP),  /* Surface integral variables. */
+  pDim        : length(varsP),
+
+  surfNodes : getNodes(basisType, pDim-1, polyOrder),
+  if polyOrder=1 then (surfNodes:surfNodes*(1/sqrt(3))) elseif polyOrder=2 then (surfNodes:surfNodes*sqrt(3/5)),
+  numNodes : length(surfNodes),
+
+  /* Expand distribution function. */
+  fL_e : doExpand1(fL,bP),  fR_e : doExpand1(fR,bP),
+
+  /* Evaluate fL, fR, and alpha at surface quadrature nodes. */
+  fOrdL_n : gcfac(float(evAtNodes(subst(surfVar=+1,fL_e),surfNodes,surfIntVars))),
+  fOrdR_n : gcfac(float(evAtNodes(subst(surfVar=-1,fR_e),surfNodes,surfIntVars))),
+  /* Evaluate alpha at ordinates.
+     Note: alphaSurf_e is already a surface expansion. */
+  alphaOrd_n : gcfac(float(evAtNodes(alphaUpSurf_e,surfNodes,surfIntVars))),
+  /* Determine upwinding at each surface quadrature node. */
+  fUpOrd_n : gcfac(.5*(fOrdL_n+fOrdR_n)+.5*sgn(eval_string(sconcat("alphaOrd",sideStr)))*(fOrdL_n-fOrdR_n)),
+  printf(fH, "  double alphaOrd~a;~%", sideStr),
+  printf(fH, "  double fUpOrd[~a];~%", numNodes),
+  for i : 1 thru numNodes do (
+    printf(fH, "  alphaOrd~a = ~a; ~%", sideStr, alphaOrd_n[i]),
+    printf(fH, "  fUpOrd[~a] = ~a; ~%", i-1, fUpOrd_n[i])
+  ),
+  printf(fH, "~%"),
+  flush_output(fH),
+
+  /* Get modal surface expansion from nodal quadrature points. */
+  nodToMod : calcNodToModWithNodes(basisType, pDim-1, polyOrder, surfNodes),
+  fUp_c : gcfac(fullratsimp(nodToMod . makelist(fUpOrd[i-1],i,1,numNodes))),
+  fUp_c : makelist(fUp_c[i][1],i,1,numNodes),
+  /* Write coefficients of modal surface expansion fupwind. */
+  printf(fH, "  double fUp[~a];~%", numNodes),
+  writeCExprsNoExpand1(fUp, fUp_c),
+  printf(fH, "~%"),
+  flush_output(fH),
+  
+  bSurf : basisFromVars(basisType,surfIntVars,polyOrder),  /* Surface basis. */
+
+  fhatSurf_e : doExpand1(fUp,bSurf),
+
+  replaceList : [wvparL^2=wvparSqL, rdvpar2L^2=rdvpar2SqL, rdx2L^2=rdx2SqL,
+                 wvparR^2=wvparSqR, rdvpar2R^2=rdvpar2SqR, rdx2R^2=rdx2SqR, m_^2=mSq, q_^2=qSq],
+
+  if surfVar=vpar and hasApar and polyOrder=1 and (not isStep2) then (
+    tMod       : calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), fhatSurf_e),
+    incrModR_c : fullratsimp(tMod),
+    writeCExprsNoExpand1(incrEmMod, subst(replaceList, incrModR_c)),
+    printf(fH, "~%")
+  ),
+
+  fhatAlpha_c : calcInnerProdList(surfIntVars, alphaSurf_e, subst(surfVar=-1, bP), fhatSurf_e),
+  incrR_c     : fullratsimp(fhatAlpha_c),
+
+  fhatAlpha_c : calcInnerProdList(surfIntVars, alphaSurf_e, subst(surfVar=1, bP), fhatSurf_e),
+  incrL_c     : -fullratsimp(fhatAlpha_c),
+
+  writeCExprsNoExpand1(incr, subst(replaceList, incrR_c)),
+  printf(fH, "~%"),
+  flush_output(fH),
+
+  return([incrL_c,incrR_c])
+)$
+
+
+calcAndWrite_upwindIncr_wLFfluxes(fH,basisType,polyOrder,bP,surfDir,alphaSurf_e) := block(
+  [varsP,surfIntVars,bSurf,numSurf,fL_e,fR_e,fAvg_c,
+   fAvgNoZero_c,fAvg_e,fJump_c,fAvgAlpha_c,Ghat_c,Ghat_e],
+  /* Compute Lax-Friedrich fluxes using the max phase-speed given to the kernel. */
+
+  varsP       : listofvars(bP),
+  surfVar     : varsP[surfDir],         /* Surface variable. */
+  surfIntVars : delete(surfVar,varsP),  /* Surface integral variables. */
+
+  bSurf : basisFromVars(basisType,surfIntVars,polyOrder),  /* Surface basis. */
+  numSurf : length(bSurf),
+
+  /* Expand distribution function. */
+  fL_e : doExpand1(fL,bP),  fR_e : doExpand1(fR,bP),
+
+  printf(fh, "  double amax = amax_in; ~%"),
+  printf(fH, "~%"),
+
+  printf(fh, "  double fAvg[~a]; ~%", numSurf),
+
+  /* Print C exprs for favg = fr(sv=-1) + fl(sv=1) projected onto surface basis. */
+  fAvg_c : gcfac(calcInnerProdList(surfIntVars, 1, bSurf, subst(surfVar=-1, fR_e)+subst(surfVar=1, fL_e))),
+  writeCExprsNoExpand1(fAvg, fAvg_c),
+  fAvgNoZero_c : doMakeExprLst(fAvg_c, fAvg),
+  fAvg_e       : doExpandLst(fAvgNoZero_c, bSurf),
+  flush_output(fH),
+
+  /* Project fjump = fr(sv=-1) - fl(sv=1) onto surface basis. Don't need
+     to print it out because it is just part of Ghat. */
+  fJump_c : gcfac(calcInnerProdList(surfIntVars, 1, bSurf, subst(surfVar=-1, fR_e)-subst(surfVar=1, fL_e))),
+  printf(fH, "~%"),
+  flush_output(fH),
+
+  /* Evaluate surface projection of Ghat = (alpha*fAvg - amax*fJump)/2. */
+  printf(fh, "  double Ghat[~a]; ~%", numSurf),
+  fAvgAlpha_c : gcfac(calcInnerProdList(surfIntVars, fAvg_e, bSurf, alphaSurf_e)),
+  Ghat_c      : fullratsimp(fAvgAlpha_c/2 - (amax/2)*fJump_c),
+  writeCExprsNoExpand1(Ghat, Ghat_c),
+  printf(fH, "~%"),
+  flush_output(fH),
+  Ghat_e : doExpand1(Ghat, bSurf),
+
+  /* Evaluate contribution to right cell (surfVar=-1). */
+  incrR_c : gcfac(fullratsimp(calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), Ghat_e))),
+  writeCExprsNoExpand1(incr, incrR_c),
+  printf(fh, "~%"),
+  flush_output(fH),
+
+  incrL_c : gcfac(fullratsimp(innerProd(surfIntVars, -1, subst(surfVar=1, bP), Ghat_e))),
+
+  return([incrL_c,incrR_c])
+)$
+
+calcAndWrite_quadCFLfreq_wPhaseAlpha(basisType,polyOrder,bP,surfDir,alpha_e) := block(
+  [i,varsP,numP,pDim,surfVar,surfIntVars,surfNodes,numNodes,bSurf,numSurf,surfBasis,
+   ignoreVars,alphaSurfL_c,alphaSurfL_e,alphaSurfL_n,alphaSurfR_c,alphaSurfR_e,alphaSurfR_n],
+  /* Compute the CFL frequency from quadrature node contributions on the
+     surfaces in the dir dimension, given a phase-space volume expansion
+     of the speed (i.e. coming from doExpand(alpha,bP)). */
+
+  varsP       : listofvars(bP),
+  numP        : length(bP),
+  pDim        : length(varsP),
+  surfVar     : varsP[surfDir],         /* Surface variable. */
+  surfIntVars : delete(surfVar,varsP),  /* Surface integral variables. */
+
+  /* Evaluate cfl by evaluating at all surface quadrature points. */
+  /* Get quadrature nodes on surface. */
+  surfNodes : getNodes(basisType, pDim-1, polyOrder),
+  if polyOrder=1 then (surfNodes:surfNodes*(1/sqrt(3))) elseif polyOrder=2 then (surfNodes:surfNodes*sqrt(3/5)),
+  numNodes : length(surfNodes),
+
+  bSurf       : basisFromVars(basisType,surfIntVars,polyOrder),  /* Surface basis. */
+  numSurf     : length(bSurf),
+
+  surfBasis  : copylist(bP),
+  ignoreVars : listify(setdifference(setify(varsP),setify(surfIntVars))),
+  for i : 1 thru numP do (
+    for v : 1 thru length(ignoreVars) do (
+      if not freeof(ignoreVars[v],bP[i]) then ( surfBasis[i] : 0 )
+  )),
+
+  /* Coefficients of alpha written out to the file above are phase-space volume
+     expansion coefficients. Need to evaluate at the surface and project onto
+     surface basis, before (expanding and) evaluating at surface nodes. */
+  /*
+  alphaSurfL_c : calcInnerProdList(surfIntVars, 1, bSurf, subst(surfVar=-1,alpha_e)),
+  alphaSurfL_e : doExpand(alphaSurfL_c, bSurf),
+  */
+  /*
+  alphaSurfL_c : calcInnerProdList(surfIntVars,1,surfBasis,subst(surfVar=-1,alpha_e)),
+  alphaSurfL_e : doExpand(alphaSurfL_c,surfBasis),
+  alphaSurfL_n : gcfac(float(evAtNodes(alphaSurfL_e,surfNodes,surfIntVars))),
+  */
+  /* The extra factor of bP[1] below remains unexplained. NRM might've
+     stumbled up one it by trial and error. */
+  alphaSurfL_n : gcfac(float(evAtNodes(subst(surfVar=-1,alpha_e)*bP[1],surfNodes,surfIntVars)*bP[1])),
+  printf(fh, "  // Evaluate alpha at left surface quadrature points.~%"),
+  for i : 1 thru numNodes do (
+    printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaSurfL_n[i]))),
+    printf(fh, "  cflFreq += -0.5*(alphaL-std::abs(alphaL)); ~%")
+  ),
+
+  /*
+  alphaSurfR_c : calcInnerProdList(surfIntVars,1,surfBasis,subst(surfVar=+1,alpha_e)),
+  alphaSurfR_e : doExpand(alphaSurfR_c,surfBasis),
+  alphaSurfR_n : gcfac(float(evAtNodes(alphaSurfR_e,surfNodes,surfIntVars))),
+  */
+  alphaSurfR_n : gcfac(float(evAtNodes(subst(surfVar=+1,alpha_e)*bP[1],surfNodes,surfIntVars)*bP[1])),
+  printf(fh, "  // Evaluate alpha at right surface quadrature points.~%"),
+  for i : 1 thru numNodes do (
+    printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaSurfR_n[i]))),
+    printf(fh, "  cflFreq += 0.5*(alphaR+std::abs(alphaR)); ~%")
+  )
+)$

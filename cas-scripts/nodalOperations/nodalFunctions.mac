@@ -11,8 +11,17 @@ load("scifac")$
 doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
+/* Given a set of an expression and a set of nodes, evaluate the expression at the nodes.
+   Must also provide the variables of the functional space exprIn is defined in. */
+evAtNodes(exprIn, nodesIn, varsIn) := block([dim,numNodes],
+  dim         : length(varsIn),
+  numNodes    : length(nodesIn),
+  exprAtNodes : makelist(subst(makelist(varsIn[j]=nodesIn[i][j], j, 1, dim),exprIn),i,1,numNodes),
+  return(exprAtNodes)
+)$
+
 /* ....................................................................................................
-   The following functuons calculate nodal-to-modal transformation   
+   The following functions calculate nodal-to-modal transformation   
    matrix, A, which transforms the nodal basis.                      
    The matrix that transforms the nodal coefficients is V=(A^T)^{-1}.
    .................................................................................................... */
@@ -50,7 +59,6 @@ calcBasisNodToModWithNodes(basisType, dim, p, nodes) := block([basis, vars, numN
   return(basisNodToMod)
 )$
 
-/* Given a set of nodes. */
 /* For standard bases saved in modal-basis and nodes in nodeLocations. */
 calcBasisNodToMod(basisType, dim, p) := block([basis, vars, nodes, numNodes, basisNodToMod, varsC, varsP, basisC, basisP],
   nodes         : getNodes(basisType, dim, p),

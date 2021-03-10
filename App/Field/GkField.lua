@@ -1182,7 +1182,7 @@ function GkGeometry:createSolver()
       end
 
       -- Determine which variables bmag depends on by checking if setting a variable to nan results in nan.
-      local ones = {}
+      local ones, allVars = {}, {"x","y","z","vpar","mu"}
       for dir = 1, self.ndim do ones[dir] = 1 end
       self.bmagVars = {}
       for dir = 1, self.ndim do
@@ -1190,11 +1190,11 @@ function GkGeometry:createSolver()
          -- Test if result is nan.. nan is the only value that doesn't equal itself.
          if self.bmagFunc(0, ones) ~= self.bmagFunc(0, ones) then
             -- If result is nan, bmag must depend on this var.
-            table.insert(self.bmagVars, dir)
+            table.insert(self.bmagVars, allVars[dir])
          end
          ones[dir] = 1 -- Reset so we can check other vars.
       end
-      if self.bmagVars[1] == nil then self.bmagVars[1] = 0 end
+      if self.bmagVars[1] == nil then self.bmagVars[1] = "" end
 
    elseif self.geo.name == "GenGeo" then
 
@@ -1286,9 +1286,9 @@ function GkGeometry:createSolver()
       end
 
       if self.ndim == 3 then
-         self.bmagVars = {1,3} 
+         self.bmagVars = {"x","z"} 
       else
-         self.bmagVars = {1}
+         self.bmagVars = {"x"}
       end
 
       if self.fromFile == nil then

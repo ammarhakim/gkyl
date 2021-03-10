@@ -296,7 +296,7 @@ function KineticSpecies:createGrid(confGridIn)
    for d = 1, self.cdim do table.insert(decompCuts, confGrid:cuts(d)) end
    for d = 1, self.vdim do table.insert(decompCuts, self.decompCuts[d]) end
    self.decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts,
+      cuts      = decompCuts,
       useShared = self.useShared,
    }
 
@@ -370,8 +370,8 @@ function KineticSpecies:createBasis(nm, polyOrder)
                         basisType = self.basis:id(),
                         charge    = self.charge,
                         mass      = self.mass,
-                        grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"}
-      self.grid:write("grid_" .. self.name .. ".bp", 0.0, metaData)
+                        grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"}
+      self.grid:write(self.name .. "_grid.bp", 0.0, metaData)
    end
 end
 
@@ -521,7 +521,7 @@ function KineticSpecies:alloc(nRkDup)
                     basisType = self.basis:id(),
                     charge    = self.charge,
                     mass      = self.mass,    
-                    grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"},
+                    grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"},
    }
 
    if self.positivity then

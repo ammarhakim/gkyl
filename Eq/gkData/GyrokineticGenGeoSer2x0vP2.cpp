@@ -40,18 +40,18 @@ double GyrokineticGenGeoVol2x0vSerP2_Bvars_0(const double q_, const double m_, c
 #elif cflType == QUAD 
   // evaluate alpha at left surface quadrature points 
   alphaL = 0.25*(1.118033988749895*alphax[4]+1.161895003862225*alphax[3]-0.6708203932499369*alphax[2]-0.8660254037844386*alphax[1]+0.5*alphax[0]); 
-  cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
+  cflFreq = std::max(cflFreq,-0.5*(alphaL-std::abs(alphaL))); 
   alphaL = 0.25*(1.118033988749895*alphax[4]-0.8660254037844386*alphax[1]+0.5*alphax[0]); 
-  cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
+  cflFreq = std::max(cflFreq,-0.5*(alphaL-std::abs(alphaL))); 
   alphaL = 0.25*(1.118033988749895*alphax[4]-1.161895003862225*alphax[3]+0.6708203932499369*alphax[2]-0.8660254037844386*alphax[1]+0.5*alphax[0]); 
-  cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
+  cflFreq = std::max(cflFreq,-0.5*(alphaL-std::abs(alphaL))); 
   // evaluate alpha at right surface quadrature points 
   alphaR = 0.25*(1.118033988749895*alphax[4]-1.161895003862225*alphax[3]-0.6708203932499369*alphax[2]+0.8660254037844386*alphax[1]+0.5*alphax[0]); 
-  cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
+  cflFreq = std::max(cflFreq,0.5*(alphaR+std::abs(alphaR))); 
   alphaR = 0.25*(1.118033988749895*alphax[4]+0.8660254037844386*alphax[1]+0.5*alphax[0]); 
-  cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
+  cflFreq = std::max(cflFreq,0.5*(alphaR+std::abs(alphaR))); 
   alphaR = 0.25*(1.118033988749895*alphax[4]+1.161895003862225*alphax[3]+0.6708203932499369*alphax[2]+0.8660254037844386*alphax[1]+0.5*alphax[0]); 
-  cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
+  cflFreq = std::max(cflFreq,0.5*(alphaR+std::abs(alphaR))); 
 #endif 
 
   double alphay[8]; 
@@ -70,18 +70,18 @@ double GyrokineticGenGeoVol2x0vSerP2_Bvars_0(const double q_, const double m_, c
 #elif cflType == QUAD 
   // evaluate alpha at left surface quadrature points 
   alphaL = 0.25*(1.118033988749895*alphay[5]+1.161895003862225*alphay[3]-0.8660254037844386*alphay[2]-0.6708203932499369*alphay[1]+0.5*alphay[0]); 
-  cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
+  cflFreq = std::max(cflFreq,-0.5*(alphaL-std::abs(alphaL))); 
   alphaL = 0.25*(1.118033988749895*alphay[5]-0.8660254037844386*alphay[2]+0.5*alphay[0]); 
-  cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
+  cflFreq = std::max(cflFreq,-0.5*(alphaL-std::abs(alphaL))); 
   alphaL = 0.25*(1.118033988749895*alphay[5]-1.161895003862225*alphay[3]-0.8660254037844386*alphay[2]+0.6708203932499369*alphay[1]+0.5*alphay[0]); 
-  cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
+  cflFreq = std::max(cflFreq,-0.5*(alphaL-std::abs(alphaL))); 
   // evaluate alpha at right surface quadrature points 
   alphaR = 0.25*(1.118033988749895*alphay[5]-1.161895003862225*alphay[3]+0.8660254037844386*alphay[2]-0.6708203932499369*alphay[1]+0.5*alphay[0]); 
-  cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
+  cflFreq = std::max(cflFreq,0.5*(alphaR+std::abs(alphaR))); 
   alphaR = 0.25*(1.118033988749895*alphay[5]+0.8660254037844386*alphay[2]+0.5*alphay[0]); 
-  cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
+  cflFreq = std::max(cflFreq,0.5*(alphaR+std::abs(alphaR))); 
   alphaR = 0.25*(1.118033988749895*alphay[5]+1.161895003862225*alphay[3]+0.8660254037844386*alphay[2]+0.6708203932499369*alphay[1]+0.5*alphay[0]); 
-  cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
+  cflFreq = std::max(cflFreq,0.5*(alphaR+std::abs(alphaR))); 
 #endif 
 
   out[1] += 0.8660254037844386*(alphax[4]*f[4]+alphax[3]*f[3]+alphax[2]*f[2]+alphax[1]*f[1]+alphax[0]*f[0]); 

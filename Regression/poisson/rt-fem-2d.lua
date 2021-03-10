@@ -3,10 +3,10 @@
 --
 --------------------------------------------------------------------------------
 
-local Basis = require "Basis"
+local Basis      = require "Basis"
 local DataStruct = require "DataStruct"
-local Grid = require "Grid"
-local Updater = require "Updater"
+local Grid       = require "Grid"
+local Updater    = require "Updater"
 
 local polyOrder = 1
 local lower = {0, 0}
@@ -21,22 +21,22 @@ local grid = Grid.RectCart {
    periodicDirs = periodicDirs,
 }
 local basis = Basis.CartModalSerendipity {
-   ndim = grid:ndim(),
+   ndim      = grid:ndim(),
    polyOrder = polyOrder
 }
 
 local function getField()
    return DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = basis:numBasis(),
-      ghost = {1, 1},
+      ghost         = {1, 1},
       metaData = {
 	 polyOrder = basis:polyOrder(),
 	 basisType = basis:id(),
       },
    }
 end
-local fIn = getField()
+local fIn  = getField()
 local fOut = getField()
 
 -- Initial conditions from:
@@ -57,14 +57,10 @@ local initDist = Updater.ProjectOnBasis {
 }
 
 local femPoisson = Updater.FemPerpPoisson {
-   onGrid = grid,
-   basis = basis,
-   --bcBottom = { T = "N", V = 0.0 },
-   --bcTop = { T = "D", V = 0.0 },
-   --bcLeft = { T = "D", V = 0.0 },
-   --bcRight = { T = "D", V = 0.0 },
-   bcLower = { { T = "D", V = 0.0 }, { T = "N", V = 0.0 } },
-   bcUpper = { { T = "D", V = 0.0 }, { T = "D", V = 0.0 } },
+   onGrid  = grid,
+   basis   = basis,
+   bcLower = {{ T = "D", V = 0.0 }, { T = "N", V = 0.0 }},
+   bcUpper = {{ T = "D", V = 0.0 }, { T = "D", V = 0.0 }}
 }
 
 initDist:advance(0.0, {}, {fIn})

@@ -203,7 +203,7 @@ plasmaApp = Plasma.App {
       -- Diagnostics
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp", "GkBeta"}, 
 --      diagnosticIntegratedMoments = {"intM0", "intKE", "intHE", "intL2"},
-      nDistFuncFrame = 10,
+      nDistFuncFrame = 1,
 
       randomseed = randomseed,
    },
@@ -300,7 +300,7 @@ plasmaApp = Plasma.App {
       -- Diagnostics.
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp", "GkBeta"}, 
 --      diagnosticIntegratedMoments = {"intM0", "intKE", "intHE", "intL2"},
-      nDistFuncFrame = 10,
+      nDistFuncFrame = 1,
 
       randomseed = randomseed,
    },
