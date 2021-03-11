@@ -336,26 +336,39 @@ function FluidSpecies:createBCs()
 
    -- Functions to make life easier while reading in BCs to apply.
    -- Note: appendBoundaryConditions defined in sub-classes.
-   local function handleBc(dir, bc)
+   local function handleBc(dir, bc, isPeriodic)
       table.insert(self.auxBCvalues,{nil,nil})
+
       if bc[1] then
-	 self:appendBoundaryConditions(dir, 'lower', bc[1])
+         self:appendBoundaryConditions(dir, 'lower', bc[1])
          if type(bc[1]) == "table" then
             self.auxBCvalues[dir][1] = bc[1][2]
          end
+      else
+         assert(isPeriodic,
+                string.format("Invalid lower boundary condition in non-periodic direction %d.", dir))
       end
+
       if bc[2] then
-	 self:appendBoundaryConditions(dir, 'upper', bc[2])
+         self:appendBoundaryConditions(dir, 'upper', bc[2])
          if type(bc[2]) == "table" then
             self.auxBCvalues[dir][2] = bc[2][2]
          end
+      else
+         assert(isPeriodic,
+                string.format("Invalid upper boundary condition in non-periodic direction %d", dir))
       end
    end
 
    -- Add various BCs to list of BCs to apply.
-   handleBc(1, self.bcx)
-   handleBc(2, self.bcy)
-   handleBc(3, self.bcz)
+   local isPeriodic = {false, false, false}
+   for _,dir in ipairs(self.grid:getPeriodicDirs()) do
+      isPeriodic[dir] = true
+   end
+   local bc = {self.bcx, self.bcy, self.bcz}
+   for d = 1, self.cdim do
+     handleBc(d, bc[d], isPeriodic[d])
+  end
 end
 
 function FluidSpecies:createSolver(externalField)
