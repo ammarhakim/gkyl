@@ -215,13 +215,11 @@ function GkField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() en
 local function createField(grid, basis, ghostCells, vComp, periodicSync)
    vComp = vComp or 1
    local fld = DataStruct.Field {
-      onGrid        = grid,
-      numComponents = basis:numBasis()*vComp,
-      ghost         = ghostCells,
-      metaData      = {
-         polyOrder = basis:polyOrder(),
-         basisType = basis:id()
-      },
+      onGrid           = grid,
+      numComponents    = basis:numBasis()*vComp,
+      ghost            = ghostCells,
+      metaData         = {polyOrder = basis:polyOrder(),
+                          basisType = basis:id()},
       syncPeriodicDirs = periodicSync,
    }
    fld:clear(0.0)
@@ -795,7 +793,7 @@ function GkField:phiSolve(tCurr, species, inIdx, outIdx)
    -- linear problem, and applies BCs to phi.
    -- Need the self.calcedPhi flag because we assume :phiSolve is called within the
    -- species :advance, but we want multiple species to call it.
-   if self.evolve and (not self.externalPhiTimeDependence) and (not self.calcedPhi) then
+   if self.evolve and (not self.externalPhi and not self.externalPhiTimeDependence) and (not self.calcedPhi) then
       local potCurr = self:rkStepperFields()[inIdx]
       self.phiSlvr:solve(tCurr, {self.chargeDens}, {potCurr.phiAux})
       -- Smooth phi in z to ensure continuity in all directions.

@@ -522,7 +522,7 @@ calcAndWrite_upwindIncr_wSurfAvgAlpha(fH,bP,polyOrder,surfDir,sideStr,alphaSurf_
 )$
 
 calcAndWrite_upwindIncr_wQuadNodeAlpha(fH,basisType,polyOrder,bP,surfDir,sideStr,
-                                      alphaSurf_e,alphaUpSurf_e,hasApar,isStep2) := block(
+                                       alphaSurf_e,alphaUpSurf_e,hasApar,isStep2) := block(
   [varsP,numP,pDim,surfIntVars,surfNodes,numNodes,fL_e,fR_e,fOrdL_n,fOrdR_n,alphaOrd_n,
    fUpOrd_n,nodToMod,fUp_c,fhatSurf_e,replaceList,tMod,incrModR_c,fhatAlpha_c],
   /* Compute the common increment to left/right cells with upwinding based on
