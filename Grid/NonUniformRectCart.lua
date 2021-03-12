@@ -94,7 +94,7 @@ function NonUniformRectCart:init(tbl)
 end
 
 -- Member functions.
-function NonUniformRectCart:id() return "uniform" end
+function NonUniformRectCart:id() return "mapped" end
 function NonUniformRectCart:lower(dir) return self._nodeCoords[dir][1] end
 function NonUniformRectCart:mid(dir) return self:lower(dir) + (self:upper(dir)-self:lower(dir))/2 end
 function NonUniformRectCart:upper(dir) return self._nodeCoords[dir][self:numCells(dir)+1] end
