@@ -332,8 +332,32 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, applyPos) := b
       /* Upwind the drag term using quadrature point evaluation. */
       if polyOrder=1 then quad : 1/sqrt(3),
       if polyOrder=2 then quad : sqrt(3/5),
-/*      nodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", polyOrder))*quad, */
       nodes : getNodes(basisFun, cdim+vdim-1, polyOrder)*quad,
+      if cdim=1 and vdim=2 and polyOrder=2 then (
+        /* In 1x2v p=2 the bump IC does not conserve energy. We found that
+           the 1/sqrt(3) nodes do.
+           Cook up a node arrangement where corner cells are sqrt(3/5) nodes,
+           and the other four nodes are 1/sqrt(3). */
+        p1Nodes : args(getNodes(basisFun, cdim+vdim-1, 1)),
+        p2Nodes : args(getNodes(basisFun, cdim+vdim-1, 2)),
+        extraNodeInd : [],
+        p1NodeInd    : [],
+        for i : 1 thru length(p2Nodes) do (
+          idx : sublist_indices(p1Nodes,lambda([x], x=p2Nodes[i])),
+          if length(idx)=0 then (
+            extraNodeInd : endcons(i,extraNodeInd)
+          ) else (
+            p1NodeInd : endcons(i,p1NodeInd)
+          )
+        ),
+        nodes : copylist(p2Nodes),
+        for i : 1 thru length(p1NodeInd) do (
+          nodes[p1NodeInd[i]] : p2Nodes[p1NodeInd[i]]*sqrt(3/5)
+        ),
+        for i : 1 thru length(extraNodeInd) do (
+          nodes[extraNodeInd[i]] : p2Nodes[extraNodeInd[i]]*sqrt(1/3)
+        )
+      ),
       /* Function to evaluate expansion g at quadrature nodes. */
       nodesub(g) := makelist(subst(makelist(surfVars[j]=nodes[i][j],j,1,length(varsP)-1),g),i,1,length(nodes)),
       /* Evaluate fl, fr, and alpha at quadrature nodes. */
