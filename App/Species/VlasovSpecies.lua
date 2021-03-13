@@ -1604,21 +1604,21 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	       tCurr, self.diagIoFrame, false)
 	 end
 
-	 -- if tbl.recycleTime then
-	 --    self.recTime = tbl.recycleTime
-	 --    scaleByTime = function(tm)
-	 --       return math.tanh(tm/self.recTime)
-	 --    end
-	 --    self.scaledRecFrac = self.recFrac*scaleByTime(tCurr)
-	 -- else
-	 --    self.scaledRecFrac = self.recFrac
-	 -- end
-	 --print(self.scaledRecFrac)
+	 if tbl.recycleTime then
+	    self.recTime = tbl.recycleTime
+	    scaleByTime = function(tm)
+	       --return math.tanh(tm/self.recTime)
+	       return 0.5*(1. + math.tanh(tm/self.recTime-1))
+	    end
+	    self.scaledRecFrac = self.recFrac*scaleByTime(tCurr)
+	 else
+	    self.scaledRecFrac = self.recFrac
+	 end
 	 
 	 local ionBoundaryFlux = species[self.recycleIonNm].bcGkM0fluxField[label]
 	 wlabel = (label):gsub("Flux","")
 	 --ionBoundaryFlux:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleIonBoundaryFlux', wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
-	 ionBoundaryFlux:scale(self.recFrac)
+	 ionBoundaryFlux:scale(self.scaledRecFrac)
 	 --ionBoundaryFlux:write(string.format("%s_%s%s_%d.bp", self.name, 'scaledIonBoundaryFlux', wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
 
 	 -- weak divide
