@@ -215,13 +215,11 @@ function GkField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() en
 local function createField(grid, basis, ghostCells, vComp, periodicSync)
    vComp = vComp or 1
    local fld = DataStruct.Field {
-      onGrid        = grid,
-      numComponents = basis:numBasis()*vComp,
-      ghost         = ghostCells,
-      metaData      = {
-         polyOrder = basis:polyOrder(),
-         basisType = basis:id()
-      },
+      onGrid           = grid,
+      numComponents    = basis:numBasis()*vComp,
+      ghost            = ghostCells,
+      metaData         = {polyOrder = basis:polyOrder(),
+                          basisType = basis:id()},
       syncPeriodicDirs = periodicSync,
    }
    fld:clear(0.0)
@@ -795,7 +793,7 @@ function GkField:phiSolve(tCurr, species, inIdx, outIdx)
    -- linear problem, and applies BCs to phi.
    -- Need the self.calcedPhi flag because we assume :phiSolve is called within the
    -- species :advance, but we want multiple species to call it.
-   if self.evolve and (not self.externalPhiTimeDependence) and (not self.calcedPhi) then
+   if self.evolve and (not self.externalPhi and not self.externalPhiTimeDependence) and (not self.calcedPhi) then
       local potCurr = self:rkStepperFields()[inIdx]
       self.phiSlvr:solve(tCurr, {self.chargeDens}, {potCurr.phiAux})
       -- Smooth phi in z to ensure continuity in all directions.
@@ -1182,7 +1180,7 @@ function GkGeometry:createSolver()
       end
 
       -- Determine which variables bmag depends on by checking if setting a variable to nan results in nan.
-      local ones = {}
+      local ones, allVars = {}, {"x","y","z","vpar","mu"}
       for dir = 1, self.ndim do ones[dir] = 1 end
       self.bmagVars = {}
       for dir = 1, self.ndim do
@@ -1190,11 +1188,11 @@ function GkGeometry:createSolver()
          -- Test if result is nan.. nan is the only value that doesn't equal itself.
          if self.bmagFunc(0, ones) ~= self.bmagFunc(0, ones) then
             -- If result is nan, bmag must depend on this var.
-            table.insert(self.bmagVars, dir)
+            table.insert(self.bmagVars, allVars[dir])
          end
          ones[dir] = 1 -- Reset so we can check other vars.
       end
-      if self.bmagVars[1] == nil then self.bmagVars[1] = 0 end
+      if self.bmagVars[1] == nil then self.bmagVars[1] = "" end
 
    elseif self.geo.name == "GenGeo" then
 
@@ -1286,9 +1284,9 @@ function GkGeometry:createSolver()
       end
 
       if self.ndim == 3 then
-         self.bmagVars = {1,3} 
+         self.bmagVars = {"x","z"} 
       else
-         self.bmagVars = {1}
+         self.bmagVars = {"x"}
       end
 
       if self.fromFile == nil then
@@ -1332,16 +1330,18 @@ function GkGeometry:createDiagnostics()
 end
 
 function GkGeometry:initField()
+   local log = Logger { logToFile = true }
+   log("...Initializing the geometry...\n")
    if self.geo.name == "SimpleHelical" then
       if self.fromFile then
          -- Read the geometry quantities from a file.
          if self.ndim == 1 then
             local tm, fr = self.fieldIo:read({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-               gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy}, self.fromFile)
+               gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy}, self.fromFile, true)
          else
             local tm, fr = self.fieldIo:read({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
                gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy, 
-               bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY}, self.fromFile)
+               bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY}, self.fromFile, true)
          end
       else
          self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
@@ -1362,7 +1362,7 @@ function GkGeometry:initField()
             jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
             gradpar=self.geo.gradpar, geoX=self.geo.geoX, geoY=self.geo.geoY, geoZ=self.geo.geoZ, gxx=self.geo.gxx,
             gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
-            self.fromFile)
+            self.fromFile, true)
       else
          self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
          self.separateComponents:advance(0, {self.geo.allGeo},
@@ -1371,8 +1371,7 @@ function GkGeometry:initField()
              self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
       end
    end
-   local log = Logger { logToFile = true }
-   log("Finished initializing the geometry\n")
+   log("...Finished initializing the geometry\n")
 
    if self.setPhiWall then self.setPhiWall:advance(0.0, {}, {self.geo.phiWall})
    else self.geo.phiWall:clear(0.0) end
@@ -1413,21 +1412,27 @@ function GkGeometry:write(tm)
       -- Write the geometry quantities to a file.
       if self.geo.name == "SimpleHelical" then
          if self.ndim == 1 then
-            self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-               gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy},
-               string.format("allGeo_%d.bp", self.ioFrame), tm, self.ioFrame)
+            for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
+               self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+                  gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy},
+                  string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
+            end
          else
-            self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-               gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy,
-               bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY},
-               string.format("allGeo_%d.bp", self.ioFrame), tm, self.ioFrame)
+            for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
+               self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+                  gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy,
+                  bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY},
+                  string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
+            end
          end
       elseif self.geo.name == "GenGeo" then
-         self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
-            jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-            gradpar=self.geo.gradpar, geoX=self.geo.geoX, geoY=self.geo.geoY, geoZ=self.geo.geoZ, gxx=self.geo.gxx,
-            gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
-            string.format("allGeo_%d.bp", self.ioFrame), tm, self.ioFrame)
+         for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
+            self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
+               jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
+               gradpar=self.geo.gradpar, geoX=self.geo.geoX, geoY=self.geo.geoY, geoZ=self.geo.geoZ, gxx=self.geo.gxx,
+               gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
+               string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
+         end
 
          -- Write a grid file.
          local metaData = {

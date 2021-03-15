@@ -34,14 +34,9 @@ function KineticProjection:fullInit(species)
    self.cdim = self.confGrid:ndim()
    self.vdim = self.phaseGrid:ndim() - self.confGrid:ndim()
 
-   self.vDegFreedom = species.vDegFreedom
+   self.vDegFreedom = species.vDegFreedom   -- Only defined in GkSpecies.
 
-   self.fromFile     = self.tbl.fromFile
-   self.isInit       = xsys.pickBool(self.tbl.isInit, true)
-   self.isBackground = xsys.pickBool(self.tbl.isBackground, false)
-   self.isSource     = xsys.pickBool(self.tbl.isSource, false)
-   if self.isBackground or self.isSource then self.isInit = false end
-   self.isReservoir  = xsys.pickBool(self.tbl.isReservoir, false)
+   self.fromFile = self.tbl.fromFile
 
    self.exactScaleM0    = xsys.pickBool(self.tbl.exactScaleM0, true)
    self.exactScaleM012  = xsys.pickBool(self.tbl.exactScaleM012, false)
@@ -50,6 +45,14 @@ function KineticProjection:fullInit(species)
 
    self.power = self.tbl.power
    self.scaleWithSourcePower = xsys.pickBool(self.tbl.scaleWithSourcePower, false)
+
+   self.weakMultiplyConfPhase = Updater.CartFieldBinOp {
+      onGrid     = self.phaseGrid,
+      weakBasis  = self.phaseBasis,
+      fieldBasis = self.confBasis,
+      operation  = "Multiply",
+      onGhosts   = true,
+   }
 end
 
 ----------------------------------------------------------------------
@@ -175,18 +178,11 @@ function MaxwellianProjection:scaleDensity(distf)
       operation = "Divide",
       onGhosts  = true,
    }
-   local weakMultiplication = Updater.CartFieldBinOp {
-      onGrid     = self.phaseGrid,
-      weakBasis  = self.phaseBasis,
-      fieldBasis = self.confBasis,
-      operation  = "Multiply",
-      onGhosts   = true,
-   }
 
    -- Calculate M0mod = M0e / M0.
    weakDivision:advance(0.0, {M0, M0e}, {M0mod})
    -- Calculate distff = M0mod * distf.
-   weakMultiplication:advance(0.0, {M0mod, distf}, {distf})
+   self.weakMultiplyConfPhase:advance(0.0, {M0mod, distf}, {distf})
 end
 
 

@@ -1,57 +1,62 @@
+-- Gkyl -------------------------------------------------------------------
+--
 -- GK ion sound wave test case
--- to check result, use 
--- pgkyl -f ion-sound_phi2_ -f ion-sound_phi2-correct.h5 log plot
-
+--
+---------------------------------------------------------------------------
 local Plasma = require ("App.PlasmaOnCartGrid").Gyrokinetic()
 
-TiTe = 1.0
+TiTe    = 1.0
 knumber = 0.5
-XL, XU = -math.pi/knumber, math.pi/knumber
-Ti0 = 1.0
-Te0 = Ti0/TiTe
-n0 = 1.0
-ni0 = n0
-ne0 = n0
-B0 = 1.0
+XL, XU  = -math.pi/knumber, math.pi/knumber
+Ti0     = 1.0
+Te0     = Ti0/TiTe
+n0      = 1.0
+ni0     = n0
+ne0     = n0
+B0      = 1.0
 
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd = 15, -- end time
-   nFrame = 1, -- number of output frames
-   lower = {-math.pi/knumber}, -- configuration space lower left
-   upper = {math.pi/knumber}, -- configuration space upper right
-   cells = {16}, -- configuration space cells
-   basis = "serendipity", -- one of "serendipity" or "maximal-order"
-   polyOrder = 1, -- polynomial order
-   timeStepper = "rk3", -- one of "rk2" or "rk3"
-   cflFrac = 1.0,
+   tEnd        = 15,                 -- End time.
+   nFrame      = 1,                  -- Number of output frames.
+   lower       = {-math.pi/knumber}, -- Configuration space lower left.
+   upper       = {math.pi/knumber},  -- Configuration space upper right.
+   cells       = {16},               -- Configuration space cells.
+   basis       = "serendipity",      -- One of "serendipity" or "maximal-order".
+   polyOrder   = 1,                  -- Polynomial order.
+   timeStepper = "rk3",              -- One of "rk2" or "rk3".
+   cflFrac     = 1.0,
 
-   -- decomposition for configuration space
-   decompCuts = {1}, -- cuts in each configuration direction
-   useShared = false, -- if to use shared memory
+   -- Decomposition for configuration space.
+   decompCuts = {1},   -- Cuts in each configuration direction.
+   useShared  = false, -- If to use shared memory.
 
-   -- boundary conditions for configuration space
-   periodicDirs = {1}, -- periodic directions
+   -- Boundary conditions for configuration space.
+   periodicDirs = {1}, -- Periodic directions.
 
-   -- gyrokinetic ions
+   -- Gyrokinetic ions.
    ion = Plasma.Species {
       charge = 1.0,
       mass = 1.0,
-      -- velocity space grid
+      -- Velocity space grid
       lower = {-6.0},
-      upper = {6.0},
+      upper = { 6.0},
+--      lower = {-1.0},
+--      upper = { 1.0},
+--      coordinateMap = {
+--        function(z) if z<0. then return -6.*z^2 else return 6.*z^2 end end
+--      },
       cells = {32},
-      -- initial conditions
-      -- specify background so that we can plot perturbed distribution and moments
-      initBackground = Plasma.MaxwellianProjection {
+      -- Initial conditions.
+      -- Specify background so that we can plot perturbed distribution and moments.
+      background = Plasma.MaxwellianProjection {
          density = function (t, xn)
             return ni0
          end,
          temperature = function (t, xn)
             return Ti0
          end,
-         isBackground = true,
       },
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
@@ -65,7 +70,7 @@ plasmaApp = Plasma.App {
             return Ti0
          end,
       },
-      evolve = true, -- evolve species?
+      evolve = true, -- Evolve species?
       diagnosticMoments = {"GkM0", "GkM2", perturbed = false},
       diagnosticIntegratedMoments = {"intM0", "intM2"},
    },
@@ -74,28 +79,28 @@ plasmaApp = Plasma.App {
       charge = -1.0,
       mass = 1.0,
       temp = Te0,
-      -- initial conditions.. use ion background so that background is exactly neutral
+      -- Initial conditions.. use ion background so that background is exactly neutral.
       init = function (t, xn)
          return ne0
       end,
-      evolve = false, -- evolve species?
+      evolve = false, -- Evolve species?
    },
 
-   -- field solver
+   -- Field solver.
    field = Plasma.Field {
-      evolve = true, -- evolve field?
+      evolve = true, -- Evolve field?
       kperp2 = 0.0,
    },
 
-   -- magnetic geometry 
+   -- Magnetic geometry.
    externalField = Plasma.Geometry {
-      -- background magnetic field
+      -- Background magnetic field.
       bmag = function (t, xn)
          return B0
       end,
-      -- geometry is not time-dependent
+      -- Geometry is not time-dependent.
       evolve = false,
    },
 }
--- run application
+-- Run application.
 plasmaApp:run()

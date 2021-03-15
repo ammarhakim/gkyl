@@ -25,28 +25,13 @@ function FunctionProjection:advance(time, inFlds, outFlds)
          local initFuncWithoutJacobian = self.initFunc
          self.initFunc = function (t, xn)
             local xconf = {}
-            for d = 1, self.cdim do
-               xconf[d] = xn[d]
-            end
+            for d = 1, self.cdim do xconf[d] = xn[d] end
             local J = self.species.jacobPhaseFunc(t,xconf)
             local f = initFuncWithoutJacobian(t,xn)
             return J*f
          end
       end
-      if self.species.jacobGeoFunc then
-         local initFuncWithoutJacobian = self.initFunc
-         self.initFunc = function (t, xn)
-            local xconf = {}
-            for d = 1, self.cdim do
-               xconf[d] = xn[d]
-            end
-            local J = self.species.jacobGeoFunc(t,xconf)
-            local f = initFuncWithoutJacobian(t,xn)
-            return J*f
-         end
-      end 
 
-      self.project:advance(t, {}, {distf})
       -- Note: don't use self.project as this does not have jacobian factors in initFunc.
       local project = Updater.ProjectOnBasis {
          onGrid   = self.phaseGrid,
@@ -56,6 +41,9 @@ function FunctionProjection:advance(time, inFlds, outFlds)
       }
       project:advance(time, {}, {distf})
    end
+
+   local jacobGeo = extField.geo.jacobGeo
+   if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
 end
 
 --------------------------------------------------------------------------------
@@ -91,7 +79,7 @@ function MaxwellianProjection:lagrangeFix(distf)
    local func = function (t, zn)
       return self.density(t, zn, self.species)
    end
-   project:setFunc(function(t,xn) return func(t,xn) end)
+   project:setFunc(func)
    project:advance(0.0, {}, {dM0})
    dM0:accumulate(-1.0, M0)
 
@@ -100,7 +88,7 @@ function MaxwellianProjection:lagrangeFix(distf)
       return self.density(t, zn, self.species) *
 	 self.driftSpeed(t, zn, self.species)
    end
-   project:setFunc(function(t,xn) return func(t,xn) end)
+   project:setFunc(func)
    project:advance(0.0, {}, {dM1})
    dM1:accumulate(-1.0, M1)
 
@@ -115,7 +103,7 @@ function MaxwellianProjection:lagrangeFix(distf)
 	    (self.driftSpeed(t, zn, self.species)*self.driftSpeed(t, zn, self.species) + 3*self.temperature(t, zn, self.species)/self.species.mass )
       end
    end
-   project:setFunc(function(t,xn) return func(t,xn) end)
+   project:setFunc(func)
    project:advance(0.0, {}, {dM2})
    dM2:accumulate(-1.0, M2)
 
@@ -151,17 +139,25 @@ function MaxwellianProjection:scaleM012(distf)
       onGhosts = true
    }
    local distf2parFunc = function (t, zn)
+      local xconf = {}
+      for d = 1, self.cdim do
+         xconf[d] = zn[d]
+      end
       local vpar = zn[self.cdim+1]
-      return vpar^2/2*self.initFunc(t,zn)
+      return vpar^2/2*sp.jacobPhaseFunc(t,xconf)*self.initFunc(t,zn)
    end
-   phaseProject:setFunc(function(t,xn) return distf2parFunc(t,xn) end)
+   phaseProject:setFunc(distf2parFunc)
    phaseProject:advance(0.0, {}, {distf2par})
    if self.vdim > 1 then 
       local distf2perpFunc = function (t, zn)
+         local xconf = {}
+         for d = 1, self.cdim do
+            xconf[d] = zn[d]
+         end
          local mu = zn[self.cdim+2]
-         return mu*sp.bmagFunc(t,zn)/sp.mass*self.initFunc(t,zn)
+         return mu*sp.bmagFunc(t,zn)/sp.mass*sp.jacobPhaseFunc(t,xconf)*self.initFunc(t,zn)
       end
-      phaseProject:setFunc(function(t,xn) return distf2perpFunc(t,xn) end)
+      phaseProject:setFunc(distf2perpFunc)
       phaseProject:advance(0.0, {}, {distf2perp})
    end
 
@@ -180,13 +176,13 @@ function MaxwellianProjection:scaleM012(distf)
    local M0func = function (t, zn)
       return self.density(t, zn, sp)
    end
-   confProject:setFunc(function(t,xn) return M0func(t,xn) end)
+   confProject:setFunc(M0func)
    confProject:advance(0.0, {}, {M0_e})
 
    local M2func = function (t, zn)
       return self.density(t, zn, sp)*self.temperature(t, zn, sp)/sp.mass
    end
-   confProject:setFunc(function(t,xn) return M2func(t,xn) end)
+   confProject:setFunc(M2func)
    confProject:advance(0.0, {}, {M2_e})
 
    -- Initialize weak multiplication/division operators.
@@ -472,12 +468,12 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
          -- and it is easier to weak-divide by something close to unity.
          confProject:setFunc(function(t, xn) return 1. end)
       else
-         confProject:setFunc(function(t, xn) return self.density(t, xn) end)
+         confProject:setFunc(self.density)
       end
       confProject:advance(time, {}, {numDens})
-      confProject:setFunc(function(t, xn) return self.driftSpeed(t, xn) end)
+      confProject:setFunc(self.driftSpeed)
       confProject:advance(time, {}, {uPar})
-      confProject:setFunc(function(t, xn) return self.temperature(t, xn) end)
+      confProject:setFunc(self.temperature)
       confProject:advance(time, {}, {vtSq})
       vtSq:scale(1./self.mass)
       -- Project the Maxwellian. It includes a factor of jacobPhase=B*_||.
@@ -498,6 +494,9 @@ function MaxwellianProjection:advance(time, inFlds, outFlds)
       self:scaleM012(distf)
    end
    if self.exactLagFixM012 then self:lagrangeFix(distf) end
+
+   local jacobGeo = extField.geo.jacobGeo
+   if jacobGeo then self.weakMultiplyConfPhase:advance(0, {distf, jacobGeo}, {distf}) end
 end
 
 

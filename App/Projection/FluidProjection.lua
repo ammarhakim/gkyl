@@ -24,14 +24,10 @@ end
 function FluidProjection:fullInit(species)
    self.species = species
 
-   self.basis = species.basis
-   self.confGrid  = species.grid
+   self.basis    = species.basis
+   self.confGrid = species.grid
 
    self.cdim = self.confGrid:ndim()
-
-   self.isInit   = xsys.pickBool(self.tbl.isInit, true)
-   self.isSource = xsys.pickBool(self.tbl.isSource, false)
-   if self.isSource then self.isInit = false end
 end
 
 ----------------------------------------------------------------------

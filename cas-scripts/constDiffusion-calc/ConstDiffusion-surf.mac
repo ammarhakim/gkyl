@@ -320,9 +320,7 @@ calcUpdateInDir(dir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, applyPos) 
     polyOrder : 1
   ),
 
-  tmpLst : loadBasisX(dim, basisFun, polyOrder),
-  basis  : tmpLst[1],
-  vars   : tmpLst[2],
+  [basis,vars] : loadBasisX(dim, basisFun, polyOrder),
 
   numB : length(basis),
 
@@ -523,9 +521,7 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, ap
     polyOrder : 1
   ),
 
-  tmpLst : loadBasisX(dim, basisFun, polyOrder),
-  basis  : tmpLst[1],
-  vars   : tmpLst[2],
+  [basis,vars] : loadBasisX(dim, basisFun, polyOrder),
 
   numB : length(basis),
 

@@ -15,7 +15,6 @@ local VmBGKCollisions   = require "App.Collisions.VmBGKCollisions"
 local VmLBOCollisions   = require "App.Collisions.VmLBOCollisions"
 local VmChargeExchange  = require "App.Collisions.VmChargeExchange"
 local VmIonization      = require "App.Collisions.VmIonization"
-local VoronovIonization = require "App.Collisions.VoronovIonization"
 
 return {
   CollisionsBase    = CollisionsBase,
@@ -28,5 +27,4 @@ return {
   VmLBOCollisions   = VmLBOCollisions,
   VmChargeExchange  = VmChargeExchange,
   VmIonization      = VmIonization,
-  VoronovIonization = VoronovIonization,
 }

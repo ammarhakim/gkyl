@@ -186,19 +186,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
    }
    
-   if hasApar and self.basis:polyOrder()==1 then 
-      -- This solver calculates vpar surface terms for Ohm's law. p=1 only!
-      self.solverStep2 = Updater.HyperDisCont {
-         onGrid             = self.grid,
-         basis              = self.basis,
-         cfl                = self.cfl,
-         equation           = self.equation,
-         zeroFluxDirections = self.zeroFluxDirections,
-         updateDirections   = {self.cdim+1},    -- Only vpar terms.
-         updateVolumeTerm   = false,            -- No volume term.
-         clearOut           = false,            -- Continue accumulating into output field.
-         globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
-      }
+   if hasApar then
       -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
       self.equationStep2 = GyrokineticEq.GkEqStep2 {
          onGrid     = self.grid,
@@ -210,40 +198,44 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
          positivity = self.positivity,
          geometry   = externalField.geo.name,
       }
-      -- Note that the surface update for this term only involves the vpar direction.
-      self.solverStep3 = Updater.HyperDisCont {
-         onGrid             = self.grid,
-         basis              = self.basis,
-         cfl                = self.cfl,
-         equation           = self.equationStep2,
-         zeroFluxDirections = self.zeroFluxDirections,
-         updateDirections   = {self.cdim+1}, -- Only vpar terms.
-         clearOut           = false,   -- Continue accumulating into output field.
-         globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
-      }
-   elseif hasApar and self.basis:polyOrder()>1 then
-      -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
-      self.equationStep2 = GyrokineticEq.GkEqStep2 {
-         onGrid     = self.grid,
-         phaseBasis = self.basis,
-         confBasis  = self.confBasis,
-         charge     = self.charge,
-         mass       = self.mass,
-         Bvars      = externalField.bmagVars,
-         positivity = self.positivity,
-         geometry   = externalField.geo.name,
-      }
-      -- Note that the surface update for this term only involves the vpar direction.
-      self.solverStep2 = Updater.HyperDisCont {
-         onGrid             = self.grid,
-         basis              = self.basis,
-         cfl                = self.cfl,
-         equation           = self.equationStep2,
-         zeroFluxDirections = self.zeroFluxDirections,
-         updateDirections   = {self.cdim+1},
-         clearOut           = false,   -- Continue accumulating into output field.
-         globalUpwind       = false,   -- Don't reduce max speed.
-      }
+
+      if self.basis:polyOrder()==1 then 
+         -- This solver calculates vpar surface terms for Ohm's law. p=1 only!
+         self.solverStep2 = Updater.HyperDisCont {
+            onGrid             = self.grid,
+            basis              = self.basis,
+            cfl                = self.cfl,
+            equation           = self.equation,
+            zeroFluxDirections = self.zeroFluxDirections,
+            updateDirections   = {self.cdim+1},    -- Only vpar terms.
+            updateVolumeTerm   = false,            -- No volume term.
+            clearOut           = false,            -- Continue accumulating into output field.
+            globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
+         }
+         -- Note that the surface update for this term only involves the vpar direction.
+         self.solverStep3 = Updater.HyperDisCont {
+            onGrid             = self.grid,
+            basis              = self.basis,
+            cfl                = self.cfl,
+            equation           = self.equationStep2,
+            zeroFluxDirections = self.zeroFluxDirections,
+            updateDirections   = {self.cdim+1}, -- Only vpar terms.
+            clearOut           = false,   -- Continue accumulating into output field.
+            globalUpwind       = not (self.basis:polyOrder()==1),   -- Don't reduce max speed.
+         }
+      else
+         -- Note that the surface update for this term only involves the vpar direction.
+         self.solverStep2 = Updater.HyperDisCont {
+            onGrid             = self.grid,
+            basis              = self.basis,
+            cfl                = self.cfl,
+            equation           = self.equationStep2,
+            zeroFluxDirections = self.zeroFluxDirections,
+            updateDirections   = {self.cdim+1},
+            clearOut           = false,   -- Continue accumulating into output field.
+            globalUpwind       = false,   -- Don't reduce max speed.
+         }
+      end
    end
    
    -- Create updaters to compute various moments.

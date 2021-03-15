@@ -7,21 +7,19 @@
 --------------------------------------------------------------------------------
 
 -- System libraries.
-local CartField = require "DataStruct.CartField"
-local EqBase = require "Eq.EqBase"
-local Lin = require "Lib.Linalg"
-local Proto = require "Lib.Proto"
+local CartField     = require "DataStruct.CartField"
+local EqBase        = require "Eq.EqBase"
+local Lin           = require "Lib.Linalg"
+local Proto         = require "Lib.Proto"
 local VlasovModDecl = require "Eq.vlasovData.VlasovModDecl"
-local ffi = require "ffi"
-local ffiC = ffi.C
-local xsys = require "xsys"
+local ffi           = require "ffi"
+local ffiC          = ffi.C
+local xsys          = require "xsys"
 local new, sizeof, typeof, metatype = xsys.from(ffi,
      "new, sizeof, typeof, metatype")
 
 local cuda = nil
-if GKYL_HAVE_CUDA then
-   cuda = require "Cuda.RunTime"
-end
+if GKYL_HAVE_CUDA then cuda = require "Cuda.RunTime" end
 
 ffi.cdef [[ 
   typedef struct GkylVlasov GkylVlasov;
@@ -229,10 +227,10 @@ function Vlasov:setAuxFields(auxFields)
       if not self._plasmaMagField then self._phiField = auxFields[2] end   -- Electrostatic potential.
 
       if self._isFirst then
-         self._emPtr = self._emField:get(1)
+         self._emPtr  = self._emField:get(1)
          self._emIdxr = self._emField:genIndexer()
          if not self._plasmaMagField then 
-            self._phiPtr = self._phiField:get(1)
+            self._phiPtr  = self._phiField:get(1)
             self._phiIdxr = self._phiField:genIndexer()
          end
          self._isFirst = false   -- No longer first time.

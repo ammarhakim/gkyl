@@ -1,12 +1,10 @@
----------------------------------------------------------------------------
+-- Gkyl -------------------------------------------------------------------
 --
 -- GK ion acoustic wave damping.
 -- Time normalized to the ion gyrofrequency, omega_ci 
 -- Distances normalized to the ion sound gyroradius, rho_s=c_s/omega_ci.
 -- Temperatures normalized to the electron temperature, T_e.
 -- Velocities normalized to c_s=sqrt(T_e/m_i).
---
--- Manaure Francisquez.
 --
 ---------------------------------------------------------------------------
 
@@ -67,14 +65,13 @@ plasmaApp = Plasma.App {
       decompCuts = {1, 1},
       -- Initial conditions.
       -- Specify background so that we can plot perturbed distribution and moments.
-      initBackground = Plasma.MaxwellianProjection{
+      background = Plasma.MaxwellianProjection{
          density = function (t, xn)
             return nIon
          end,
          temperature = function (t, xn)
             return Ti
          end,
-         isBackground = true,
       },
       init = Plasma.MaxwellianProjection{
          density = function (t, xn)

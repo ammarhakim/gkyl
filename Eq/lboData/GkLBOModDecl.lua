@@ -12,7 +12,7 @@ local ffi = require "ffi"
 local function nullFunc(...) end
 
 -- Map of basis function name -> function encoding.
-local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max" }
+local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max" , ["tensor"] = "Tensor"}
 
 local vvars = {"Vpar","Mu"}
 

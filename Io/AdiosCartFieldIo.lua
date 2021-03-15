@@ -136,8 +136,7 @@ end
 --   frNum:    frame number
 --   writeGhost: Flag to indicate if we should write ghost-cells on boundaries of global domain
 function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
-   local _writeGhost = self._writeGhost
-   if writeGhost ~= nil then _writeGhost = writeGhost end
+   local _writeGhost = writeGhost ~= nil and writeGhost or self._writeGhost
 
    -- Identify if fieldsIn is a CartField using the self._ndim variable (MF: there ought to be a better way).
    local fieldsTbl = type(fieldsIn._ndim)=="number" and {CartGridField = fieldsIn} or fieldsIn
@@ -167,12 +166,12 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
    local ndim = field:ndim()
    local localRange, globalRange = field:localRange(), field:globalRange()
    if _writeGhost then 
-      -- extend localRange to include ghost cells if on edge of global domain
+      -- Extend localRange to include ghost cells if on edge of global domain.
       for d = 1, ndim do
          if localRange:lower(d) == globalRange:lower(d) then localRange = localRange:extendDir(d, field:lowerGhost(), 0) end
          if localRange:upper(d) == globalRange:upper(d) then localRange = localRange:extendDir(d, 0, field:upperGhost()) end
       end
-      -- extend globalRange to include ghost cells
+      -- Extend globalRange to include ghost cells.
       globalRange = field:globalExtRange() 
    end
    
@@ -299,8 +298,7 @@ end
 --   fName:     file name.
 --   readGhost:  Flag to indicate if we should read skin-cells on boundaries of global domain.
 function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, frame-number
-   local _readGhost = self._writeGhost
-   if readGhost ~= nil then _readGhost = readGhost end
+   local _readGhost = readGhost ~= nil and readGhost or self._writeGhost
 
    -- Identify if fieldsIn is a CartField using the self._ndim variable (MF: there ought to be a better way).
    local fieldsTbl = type(fieldsOut._ndim)=="number" and {CartGridField = fieldsOut} or fieldsOut

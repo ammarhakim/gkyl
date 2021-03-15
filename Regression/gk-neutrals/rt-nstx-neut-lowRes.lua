@@ -177,7 +177,6 @@ plasmaApp = Plasma.App {
          density     = sourceDensity,
          temperature = sourceTemperature,
          power       = P_src/2,
-         isSource    = true,
       },
 
       -- Collision parameters
@@ -204,7 +203,7 @@ plasmaApp = Plasma.App {
       -- Diagnostics
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp", "GkBeta"}, 
 --      diagnosticIntegratedMoments = {"intM0", "intKE", "intHE", "intL2"},
-      nDistFuncFrame = 10,
+      nDistFuncFrame = 1,
 
       randomseed = randomseed,
    },
@@ -266,7 +265,6 @@ plasmaApp = Plasma.App {
          density     = sourceDensity,
          temperature = sourceTemperature,
          power       = P_src/2,
-         isSource    = true,
       },
 
       -- Collision parameters.
@@ -302,7 +300,7 @@ plasmaApp = Plasma.App {
       -- Diagnostics.
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp", "GkBeta"}, 
 --      diagnosticIntegratedMoments = {"intM0", "intKE", "intHE", "intL2"},
-      nDistFuncFrame = 10,
+      nDistFuncFrame = 1,
 
       randomseed = randomseed,
    },
@@ -366,7 +364,6 @@ plasmaApp = Plasma.App {
       source = Vlasov.MaxwellianProjection{
          density     = sourceDensityNeut,
          temperature = 2.*eV,
-         isSource    = true,
       },
 
       -- Boundary conditions.

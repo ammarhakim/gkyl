@@ -44,7 +44,7 @@ plasmaApp = Plasma.App {
    logToFile = true,
 
    tEnd        = .5e-6,   -- End time.
-   nFrame      = 2,       -- Number of output frames.
+   nFrame      = 1,       -- Number of output frames.
    lower       = {r0 - 0.001*dr/2, -dr/2}, -- Configuration space lower left.
    upper       = {r0 + 0.001*dr/2,  dr/2}, -- Configuration space upper right.
    cells       = {1, 8},          -- Configuration space cells.
@@ -66,7 +66,7 @@ plasmaApp = Plasma.App {
       upper = {VPAR_UPPER, MU_UPPER},
       cells = {N_VPAR, N_MU},
       -- Initial conditions.
-      initBackground = Plasma.MaxwellianProjection {
+      background = Plasma.MaxwellianProjection {
          density = function (t, xn)
             local x = xn[1]
             return n0
@@ -77,7 +77,6 @@ plasmaApp = Plasma.App {
             return Te0*(1-(x-r0)/L_T)
          end,
          exactScaleM012 = true,
-         isBackground   = true,
       },
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)

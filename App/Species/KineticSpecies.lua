@@ -165,69 +165,30 @@ function KineticSpecies:fullInit(appTbl)
    else 
       self.sourceTimeDependence = function (t) return 1.0 end 
    end
-   -- It is possible to use the keyword 'init', 'initBackground', and
-   -- 'initSource' to specify a function directly without using a
-   -- Projection object.
+   -- It is possible to use the keyword 'init', 'background', and 'source'
+   -- to specify a function directly without using a Projection object.
    if type(tbl.init) == "function" then
       self.projections["init"] = Projection.KineticProjection.FunctionProjection {
 	 func = function (t, zn)
 	    return tbl.init(t, zn, self)
 	 end,
-	 isInit = true,
       }
    end
-   if type(tbl.initBackground) == "function" then
-      self.projections["initBackground"] = Projection.KineticProjection.FunctionProjection {
+   if type(tbl.background) == "function" then
+      self.projections["background"] = Projection.KineticProjection.FunctionProjection {
 	 func = function (t, zn)
-	    return tbl.initBackground(t, zn, self)
+	    return tbl.background(t, zn, self)
 	 end,
-	 isInit       = false,
-	 isBackground = true,
       }
    end
    if type(tbl.source) == "function" then
-      self.projections["initSource"] = Projection.KineticProjection.FunctionProjection {
+      self.projections["source"] = Projection.KineticProjection.FunctionProjection {
 	 func = function (t, zn)
 	    return tbl.source(t, zn, self)
 	 end,
-	 isInit   = false,
-	 isSource = true,
       }
    end
-   -- >> LEGACY CODE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-   if type(tbl.init) == "table" and tbl.init[1] == "maxwellian" then 
-      self.projections["init"] = Projection.GkProjection.MaxwellianProjection {
-	 density         = tbl.init.density,
-	 driftSpeed      = tbl.init.driftSpeed,
-	 temperature     = tbl.init.temperature,
-	 exactScaleM0    = true,
-	 exactLagFixM012 = false,
-	 isInit          = true,
-      }
-   end 
-   if type(tbl.initBackground) == "table" and tbl.initBackground[1] == "maxwellian" then 
-      self.projections["initBackground"] = Projection.GkProjection.MaxwellianProjection {
-	 density         = tbl.initBackground.density,
-	 driftSpeed      = tbl.initBackground.driftSpeed,
-	 temperature     = tbl.initBackground.temperature,
-	 exactScaleM0    = true,
-	 exactLagFixM012 = false,
-	 isInit          = false,
-	 isBackground    = true,
-      }
-   end 
-   if type(tbl.source) == "table" and tbl.source[1] == "maxwellian" then 
-      self.projections["initSource"] = Projection.GkProjection.MaxwellianProjection {
-	 density         = tbl.source.density,
-	 driftSpeed      = tbl.source.driftSpeed,
-	 temperature     = tbl.source.temperature,
-	 exactScaleM0    = true,
-	 exactLagFixM012 = false,
-	 isInit          = false,
-	 isSource        = true,
-      }
-   end 
-   -- <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
    -- Create a keys metatable in self.projections so we always loop in the same order (better for I/O).
    local projections_keys = {}
    for k in pairs(self.projections) do table.insert(projections_keys, k) end
@@ -335,7 +296,7 @@ function KineticSpecies:createGrid(confGridIn)
    for d = 1, self.cdim do table.insert(decompCuts, confGrid:cuts(d)) end
    for d = 1, self.vdim do table.insert(decompCuts, self.decompCuts[d]) end
    self.decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts,
+      cuts      = decompCuts,
       useShared = self.useShared,
    }
 
@@ -409,8 +370,8 @@ function KineticSpecies:createBasis(nm, polyOrder)
                         basisType = self.basis:id(),
                         charge    = self.charge,
                         mass      = self.mass,
-                        grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"}
-      self.grid:write("grid_" .. self.name .. ".bp", 0.0, metaData)
+                        grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"}
+      self.grid:write(self.name .. "_grid.bp", 0.0, metaData)
    end
 end
 
@@ -560,7 +521,7 @@ function KineticSpecies:alloc(nRkDup)
                     basisType = self.basis:id(),
                     charge    = self.charge,
                     mass      = self.mass,    
-                    grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"},
+                    grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"},
    }
 
    if self.positivity then
@@ -626,12 +587,12 @@ function KineticSpecies:initDist(extField)
       -- This barrier is needed as when using MPI-SHM some
       -- processes will get to accumulate before projection is finished.
       Mpi.Barrier(self.grid:commSet().sharedComm)
-      if pr.isInit then
+      if string.find(nm,"init") then
 	 self.distf[1]:accumulate(1.0, self.distf[2])
 	 initCnt = initCnt + 1
          if pr.scaleWithSourcePower then self.scaleInitWithSourcePower = true end
       end
-      if pr.isBackground then
+      if string.find(nm,"background") then
 	 if not self.f0 then 
 	    self.f0 = self:allocDistf()
 	 end
@@ -639,7 +600,7 @@ function KineticSpecies:initDist(extField)
 	 self.f0:sync(syncPeriodicDirs)
 	 backgroundCnt = backgroundCnt + 1
       end
-      if pr.isSource then
+      if string.find(nm,"source") then
 	 if not self.fSource then self.fSource = self:allocDistf() end
 	 self.fSource:accumulate(1.0, self.distf[2])
          if self.positivityRescale then
@@ -675,25 +636,12 @@ function KineticSpecies:initDist(extField)
    end
 
    if self.fluctuationBCs then 
-      assert(backgroundCnt > 0, "KineticSpecies: must specify an initial background distribution with 'initBackground' in order to use fluctuation-only BCs") 
+      assert(backgroundCnt > 0, "KineticSpecies: must specify an initial background distribution with 'background' in order to use fluctuation-only BCs") 
    end
 
    self.distf[2]:clear(0.0)
    
    self:setActiveRKidx(1)
-
-   local weakMultiplicationPhase = Updater.CartFieldBinOp {
-      onGrid     = self.grid,
-      weakBasis  = self.basis,
-      fieldBasis = self.confBasis,
-      operation  = "Multiply",
-      onGhosts   = true,
-   }
-
-   if self.jacobGeo then
-      weakMultiplicationPhase:advance(0, {self.distf[1], self.jacobGeo}, {self.distf[1]})
-      if self.f0 then weakMultiplicationPhase:advance(0, {self.f0, self.jacobGeo}, {self.f0}) end
-   end
 
    -- Calculate initial density averaged over simulation domain.
    --self.n0 = nil
@@ -998,6 +946,7 @@ function KineticSpecies:write(tm, force)
    if self.evolve then
       if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics and tm > 0 then
          for _, bc in ipairs(self.boundaryConditions) do
+            -- compute boundary flux rate ~ (fGhost_new - fGhost_old)/dt
             bc:getBoundaryFluxRate():combine(1.0/self.dtGlobal[0], bc:getBoundaryFluxFields()[1], -1.0/self.dtGlobal[0], bc:getBoundaryFluxFieldPrev())
             bc:getBoundaryFluxFieldPrev():copy(bc:getBoundaryFluxFields()[1])
          end
