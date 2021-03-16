@@ -1,4 +1,4 @@
-calcRecov1CellGen(basisNm, recDir, dirs, polyOrder, C, lo, ce, up) := block(
+calcRecov1CellGenNonuniform(basisNm, recDir, dirs, polyOrder, C, dxlo, dxce, dxup, lo, ce, up) := block(
   /* Returns recovered polynomial defined over 1 cell with a 3-cell stencil
   Inputs:
     basisNm : name of used basis function ("Ser", "Tensor", or "Max");
@@ -26,20 +26,26 @@ calcRecov1CellGen(basisNm, recDir, dirs, polyOrder, C, lo, ce, up) := block(
   [
   DoF, r, rLo, rUp, rExp, rSol, rSub,
   recEqList, projSubList,
-  baLo1D, baCe1D, baUp1D, baLoND, baCeND, baUpND,
+  ba, baLo1D, baCe1D, baUp1D, baLoND, baCeND, baUpND,
   dimProjLo, dimProjCe, dimProjUp, qLo1D, qCe1D, qUp1D,
   wx, wy, wz,
-  numDims
+  numDims,
+  shiftList
   ],
 
-  baCe1D : getBasis(basisNm, 1, polyOrder),
-  baCe1D : subst(x=recDir, baCe1D),
-  baLo1D : etaDir(recDir, -2, 2, baCe1D),
-  baUp1D : etaDir(recDir, 2, 2, baCe1D),
+  for i : 1 thru length(dirs) do (
+    if recDir=dirs[i] then recDirIdx : i
+  ),
+
+  ba : getBasis(basisNm, 1, polyOrder),
+  ba : subst(x=recDir, ba),
+  baCe1D : etaDir(recDir, 0, dxce[recDirIdx], ba),
+  baLo1D : etaDir(recDir, -dxce[recDirIdx]/2-dxlo[recDirIdx]/2, dxlo[recDirIdx], ba),
+  baUp1D : etaDir(recDir, dxce[recDirIdx]/2+dxup[recDirIdx]/2, dxup[recDirIdx], ba),
   /* Note that unlike in 2-cell or 3-cell recovery, the left and right
-  basis functions are not required for 1D recovery; still, they are
-  still required in the same spot as in the case of the other methods
-  for clarity */
+  basis functions are not required for the first part (1D) recovery;
+  still, they are still required in the same spot as in the case of
+  the other methods for clarity */
 
   DoF : polyOrder + 3,
   for i : 1 thru C do (
@@ -56,47 +62,47 @@ calcRecov1CellGen(basisNm, recDir, dirs, polyOrder, C, lo, ce, up) := block(
   
   if is(op(lo)=dg) then (
     if length(args(lo)) > 1 then (
-      rLo : calcRecov2CellGen(basisNm, recDir, [recDir], polyOrder,
-        dg(qLo1D, args(lo)[2]), dg(qCe1D))
+      rLo : calcRecov2CellGenNonuniform(basisNm, recDir, [recDir], polyOrder,
+        dxlo, dxce, dg(qLo1D, args(lo)[2]), dg(qCe1D))
     ) else (
-      rLo : calcRecov2CellGen(basisNm, recDir, [recDir], polyOrder,
-        dg(qLo1D), dg(qCe1D))
+      rLo : calcRecov2CellGenNonuniform(basisNm, recDir, [recDir], polyOrder,
+        dxlo, dxce, dg(qLo1D), dg(qCe1D))
     ),
     for i : 0 thru C do (
       recEqList : append(
         recEqList,
         [subst(recDir=0, diff(rLo, recDir, i))
-          - subst(recDir=-1, diff(rExp, recDir, i))]
+          - subst(recDir=-dxce[recDirIdx]/2, diff(rExp, recDir, i))]
       )
     )
   ) else (
     recEqList : append(
       recEqList,
-      [subst(args(lo), val - D*subst(recDir=-1, rExp)
-        - N*subst(recDir=-1, diff(rExp, recDir)))]
+      [subst(args(lo), val - D*subst(recDir=-dxce[recDirIdx]/2, rExp)
+        - N*subst(recDir=-dxce[recDirIdx]/2, diff(rExp, recDir)))]
     )
   ),
   
   if is(op(up)=dg) then (
     if length(args(up)) > 1 then (
-      rUp : calcRecov2CellGen(basisNm, recDir, [recDir], polyOrder,
-        dg(qCe1D), dg(qUp1D, args(up)[2]))
+      rUp : calcRecov2CellGenNonuniform(basisNm, recDir, [recDir], polyOrder,
+        dxce, dxup, dg(qCe1D), dg(qUp1D, args(up)[2]))
     ) else (
-      rUp : calcRecov2CellGen(basisNm, recDir, [recDir], polyOrder,
-        dg(qCe1D), dg(qUp1D))
+      rUp : calcRecov2CellGenNonuniform(basisNm, recDir, [recDir], polyOrder,
+        dxce, dxup, dg(qCe1D), dg(qUp1D))
     ),
     for i : 0 thru C do (
       recEqList : append(
         recEqList,
         [subst(recDir=0, diff(rUp, recDir, i))
-          - subst(recDir=1, diff(rExp, recDir, i))]
+          - subst(recDir=dxce[recDirIdx]/2, diff(rExp, recDir, i))]
       )
     )
   ) else (
     recEqList : append(
       recEqList,
-      [subst(args(up), val - D*subst(recDir=1, rExp)
-        - N*subst(recDir=1, diff(rExp, recDir)))]
+      [subst(args(up), val - D*subst(recDir=dxce[recDirIdx]/2, rExp)
+        - N*subst(recDir=dxce[recDirIdx]/2, diff(rExp, recDir)))]
     )
   ),
 
@@ -106,15 +112,21 @@ calcRecov1CellGen(basisNm, recDir, dirs, polyOrder, C, lo, ce, up) := block(
   /* Backsubstitute the non-recovered directtions if needed */
   numDims : length(dirs),
   if numDims > 1 then (
-    baCeND : getBasis(basisNm, numDims, polyOrder),
-    baVars : listofvars(baCeND),
-    baCeND : psubst(makelist(baVars[i]=dirs[i],i,1,numDims), baCeND),
-    baLoND : etaDir(recDir, -2, 2, baCeND),
-    baUpND : etaDir(recDir, 2, 2, baCeND),
+    ba : getBasis(basisNm, numDims, polyOrder),
+    baVars : listofvars(ba),
+    ba : psubst(makelist(baVars[i]=dirs[i],i,1,numDims), ba),
+    /* rescale basis */
+    shiftList : makelist(0, i, 1, numDims),
+    baLoND : eta(shiftList, dxlo, ba),
+    baCeND : eta(shiftList, dxce, ba),
+    baUpND : eta(shiftList, dxup, ba),
+    /* shift basis */
+    baLoND : etaDir(recDir, -dxce[recDirIdx]/2-dxlo[recDirIdx]/2, 2, baLoND),
+    baUpND : etaDir(recDir, dxce[recDirIdx]/2+dxup[recDirIdx]/2, 2, baUpND),
     
     projSubList : [],
     if is(op(lo)=dg) then (
-      dimProjLo : calcInnerProdListGen([recDir], [[-3, -1]],
+      dimProjLo : calcInnerProdListGen([recDir], [[-dxce[recDirIdx]/2-dxlo[recDirIdx], -dxce[recDirIdx]/2]],
         1, baLo1D, doExpand(args(lo)[1], baLoND)),
       projSubList : append (
         projSubList,
@@ -122,7 +134,7 @@ calcRecov1CellGen(basisNm, recDir, dirs, polyOrder, C, lo, ce, up) := block(
       )
     ),
   
-    dimProjCe : calcInnerProdListGen([recDir], [[-1, 1]],
+    dimProjCe : calcInnerProdListGen([recDir], [[-dxce[recDirIdx]/2, dxce[recDirIdx]/2]],
       1, baCe1D, doExpand(args(ce)[1], baCeND)),
     projSubList : append(
       projSubList,
@@ -130,7 +142,7 @@ calcRecov1CellGen(basisNm, recDir, dirs, polyOrder, C, lo, ce, up) := block(
     ),
     
     if is(op(up)=dg) then (
-      dimProjUp : calcInnerProdListGen([recDir], [[1, 3]],
+      dimProjUp : calcInnerProdListGen([recDir], [[dxce[recDirIdx]/2, dxce[recDirIdx]/2+dxup[recDirIdx]]],
         1, baUp1D, doExpand(args(up)[1], baUpND)),
       projSubList : append (
         projSubList,
@@ -160,3 +172,11 @@ calcRecov1CellGen(basisNm, recDir, dirs, polyOrder, C, lo, ce, up) := block(
   
   return(expand(subst(projSubList, rSub)))
 ) $
+
+calcRecov1CellGen(basisNm, recDir, dirs, polyOrder, C, lo, ce, up) := block(
+  [dx],
+  dx : makelist(2, i, 1, length(dirs)),
+  return(calcRecov1CellGenNonuniform(basisNm, recDir, dirs, polyOrder, C, dx, dx, dx, lo, ce, up))
+  )$
+
+calcRecov1Cell(recDir, dirs, polyOrder, lo, ce, up) := calcRecov1CellGen("Ser", recDir, dirs, polyOrder, 0, lo, ce, up)$
