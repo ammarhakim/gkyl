@@ -1036,6 +1036,8 @@ return {
 	 Field = require ("App.Field.MaxwellField").MaxwellField,
 	 CollisionlessEmSource = require "App.Sources.CollisionlessEmSource",
 	 TenMomentRelaxSource  = require "App.Sources.TenMomentRelaxSource",
+        AxisymmetricMomentSource = require "App.Sources.AxisymmetricMomentSource",
+        AxisymmetricPhMaxwellSource = require "App.Sources.AxisymmetricPhMaxwellSource",
       }
    end
 }
