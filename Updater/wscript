@@ -12,6 +12,8 @@ def build(bld):
     FiveMomentSrcImpl.cpp
     TenMomentSrcImpl.cpp
     TenMomentRelaxImpl.cpp
+    AxisymmetricFiveMomentSrcImpl.cpp
+    AxisymmetricPhMaxwellSrcImpl.cpp
 
     momentCalcData/IntegratedDGMomentSer1x.cpp
     momentCalcData/IntegratedDGMomentSer2x.cpp

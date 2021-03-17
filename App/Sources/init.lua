@@ -8,9 +8,13 @@
 local SourceBase = require "App.Sources.SourceBase"
 local CollisionlessEmSource = require "App.Sources.CollisionlessEmSource"
 local TenMomentRelaxSource = require "App.Sources.TenMomentRelaxSource"
+local AxisymmetricMomentSource = require "App.Sources.AxisymmetricMomentSource"
+local AxisymmetricPhMaxwellSource = require "App.Sources.AxisymmetricPhMaxwellSource"
 
 return {
    SourceBase = SourceBase,
    CollisionlessEmSource = CollisionlessEmSource,
-   TenMomentRelaxSource = TenMomentRelaxSource
+   TenMomentRelaxSource = TenMomentRelaxSource,
+   AxisymmetricMomentSource = AxisymmetricMomentSource,
+   AxisymmetricPhMaxwellSource = AxisymmetricPhMaxwellSource,
 }
