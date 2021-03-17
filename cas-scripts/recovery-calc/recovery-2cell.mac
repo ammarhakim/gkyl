@@ -179,8 +179,8 @@ calcRecov2CellGenNonuniform(basisNm, recDir, dirs, polyOrder, dxlo, dxup, lo, up
     baCeND : psubst(makelist(baVars[i]=dirs[i],i,1,numDims), baCeND),
     /* rescale basis */
     shiftList : makelist(0, i, 1, numDims),
-    baLoND : eta(shiftList, dxlo, baCeND),
-    baUpND : eta(shiftList, dxup, baCeND),
+    baLoND : eta(dirs, shiftList, dxlo, baCeND),
+    baUpND : eta(dirs, shiftList, dxup, baCeND),
     /* shift basis */
     baLoND : etaDir(recDir, -dxlo[recDirIdx]/2, 2, baLoND),
     baUpND : etaDir(recDir, dxup[recDirIdx]/2, 2, baUpND),
@@ -194,7 +194,7 @@ calcRecov2CellGenNonuniform(basisNm, recDir, dirs, polyOrder, dxlo, dxup, lo, up
     
     projSubList : [],
     if is(op(lo)=dg) then (
-      dimProjLo : calcInnerProdListGen([recDir], [[-dxlo[recDirIdx], 0]],
+      dimProjLo : (2/dxlo[recDirIdx])*calcInnerProdListGen([recDir], [[-dxlo[recDirIdx], 0]],
         1, baLo1D, doExpand(args(lo)[1], baLoND)),
       projSubList : append (
         projSubList,
@@ -211,7 +211,7 @@ calcRecov2CellGenNonuniform(basisNm, recDir, dirs, polyOrder, dxlo, dxup, lo, up
       )
     ),
     if is(op(up)=dg) then (
-      dimProjUp : calcInnerProdListGen([recDir], [[0, dxup[recDirIdx]]],
+      dimProjUp : (2/dxup[recDirIdx])*calcInnerProdListGen([recDir], [[0, dxup[recDirIdx]]],
         1, baUp1D, doExpand(args(up)[1], baUpND)),
       projSubList : append (
         projSubList,
