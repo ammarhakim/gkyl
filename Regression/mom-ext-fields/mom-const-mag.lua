@@ -3,8 +3,8 @@ local Moments = require("App.PlasmaOnCartGrid").Moments()
 local Euler = require "Eq.Euler"
 
 local gasGamma = 5.0/3.0
-local lower = -2.0
-local upper = 2.0
+local lower = -1.0
+local upper = 1.0
 local cells = 64
 
 local epsilon0 = 1.0
@@ -16,6 +16,8 @@ local elcTemp = 1.0/2048.0 -- vte/c = 1/32
 -- using plasma beta definition beta = vt^2/vA^2
 -- plasma beta = 1/1024
 local B0 = 1.0
+
+-- NOTE: with these parameters, rhoe = vte/OmegaCe = 1/32
 
 local cfl = 1.0
 local tEnd = 4.0*math.pi
