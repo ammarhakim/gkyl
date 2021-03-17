@@ -5,7 +5,8 @@ calcRecovFaceGen(basisNm, recDirs, dirs, numDer, face, polyOrder, C, lo, ce, up)
   rLoCoef, rCeCoef, rUpCoef, r,
   lo2, ce2, up2,
   wx, wy,
-  numDims
+  numDims,
+  baVars
   ],
 
   numDims : length(dirs),

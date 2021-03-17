@@ -32,7 +32,7 @@ calcRecov2CellGenNonuniform(basisNm, recDir, dirs, polyOrder, dxlo, dxup, lo, up
   wx, wy, wz,
   numDims,
   baCeNDw, perpDirs,
-  bcExp,
+  bcExp, baVars,
   recDirIdx,
   shiftList
   ],

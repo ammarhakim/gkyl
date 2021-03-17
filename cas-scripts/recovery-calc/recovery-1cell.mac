@@ -26,9 +26,10 @@ calcRecov1CellGenNonuniform(basisNm, recDir, dirs, polyOrder, C, dxlo, dxce, dxu
   [
   DoF, r, rLo, rUp, rExp, rSol, rSub,
   recEqList, projSubList,
-  ba, baLo1D, baCe1D, baUp1D, baLoND, baCeND, baUpND,
+  ba, baLo1D, baCe1D, baUp1D, baLoND, baCeND, baUpND, baVars,
   dimProjLo, dimProjCe, dimProjUp, qLo1D, qCe1D, qUp1D,
   wx, wy, wz,
+  recDirIdx,
   numDims,
   shiftList
   ],

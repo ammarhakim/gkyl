@@ -26,7 +26,7 @@ calcRecov3CellGen(basisNm, recDir, dirs, polyOrder, lo, ce, up) := block(
   [
   DoF, r, rExp, rSol, rSub,
   recEqList, projSubList,
-  baLo1D, baCe1D, baUp1D, baLoND, baCeND, baUpND,
+  baLo1D, baCe1D, baUp1D, baLoND, baCeND, baUpND, baVars,
   dimProjLo, dimProjCe, dimProjUp, qLo1D, qCe1D, qUp1D,
   wx, wy, wz,
   numDims
