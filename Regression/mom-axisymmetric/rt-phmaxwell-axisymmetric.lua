@@ -1,7 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 
 local Moments = require("App.PlasmaOnCartGrid").Moments()
-local BoundaryCondition = require "Updater.BoundaryCondition"
 
 local mu0 = 1
 local epsilon0 = 1
@@ -28,20 +27,20 @@ local momentApp = Moments.App {
    cells = {Nr, 1, Nz},
    timeStepper = "fvDimSplit",
 
-   periodicDirs = {2, 3},  -- periodic along phi and z
+   periodicDirs = {2, 3},  -- periodic along theta and z
    decompCuts = {1, 1, 1},
 
    field = Moments.Field {
       epsilon0 = epsilon0, mu0 = epsilon0,
       init = function (t, xn)
-         local r, phi, z = xn[1], xn[2], xn[3]
+         local r, theta, z = xn[1], xn[2], xn[3]
          local Er = 0
-         local Ephi = 0
+         local Et = 0
          local Ez = 0
          local Br = 0
-         local Bphi = 1
+         local Bt = 1
          local Bz = 0
-         return Er, Ephi, Ez, Br, Bphi, Bz
+         return Er, Et, Ez, Br, Bt, Bz
       end,
       bcx = { Moments.Field.bcReflect, Moments.Field.bcReflect },  -- radial
    },

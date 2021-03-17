@@ -1,6 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- PlasmaOnCartGrid support code: Collisionless EM sources for use in fluid sims
+-- PlasmaOnCartGrid support code: Geometric sources for axisymmetric 
+-- multi-moment equations.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -8,10 +9,8 @@
 
 local SourceBase = require "App.Sources.SourceBase"
 local DataStruct = require "DataStruct"
-local Basis = require "Basis"
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
-local xsys = require "xsys"
 
 local AxisymmetricMomentsSource = Proto(SourceBase)
 
@@ -20,23 +19,15 @@ function AxisymmetricMomentsSource:init(tbl)
 end
 
 function AxisymmetricMomentsSource:fullInit(appTbl)
-   local tbl = self.tbl
-
    self.cfl = nil
    self.grid = nil
    self.slvr = nil
-
-   self.speciesList = tbl.species
-   self.evolve = tbl.evolve
-
-   self.timeStepper = tbl.timeStepper
-   self.gasGamma = tbl.gasGamma
-   self.hasPressure = tbl.hasPressureField
 end
 
 function AxisymmetricMomentsSource:createSolver(species, field)
-   local evolve = self.evolve
+   local tbl = self.tbl
 
+   -- Allow different species to have different number of moments.
    local speciesLists = {}
    speciesLists[5] = {}
    speciesLists[10] = {}
@@ -45,10 +36,11 @@ function AxisymmetricMomentsSource:createSolver(species, field)
    evolveLists[5] = {}
    evolveLists[10] = {}
 
-   for i, nm in ipairs(self.speciesList) do
+   local evolve = tbl.evolve
+   for i, nm in ipairs(tbl.species) do
       local nMoments = species[nm].nMoments
       assert(nMoments==5 or nMoments==10,
-             string.format("nMoments %s not supported", nMoments))
+             string.format("%s-moment is not supported.", nMoments))
       table.insert(speciesLists[nMoments], nm)
       if evolve then
          table.insert(evolveLists[nMoments], evolve[i])
@@ -62,14 +54,14 @@ function AxisymmetricMomentsSource:createSolver(species, field)
    if #speciesLists[5]>=0 then
       self.slvrs[5] = Updater.AxisymmetricFiveMomentSrc {
          onGrid = self.grid,
-         scheme = self.timeStepper,
+         scheme = tbl.timeStepper,
          numFluids = #speciesLists[5],
          evolve = evolveLists[5],
-         gasGamma = self.gasGamma,
-         hasPressure = self.hasPressureField,
+         gasGamma = tbl.gasGamma,
+         hasPressure = tbl.hasPressureField,
       }
    elseif #speciesLists[10]>0 then
-      assert(false, "10-moment not implemented")
+      assert(false, "10-moment is not supported yet.")
    end
 end
 
