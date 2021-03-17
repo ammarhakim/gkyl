@@ -8,7 +8,7 @@
 -- Journal of Computational Physics, 165(1), 126–166.
 --
 -- The (r, theta, z) coordinates are treated as (x, y, z).
--- Due to axisymmetry, theta direction must have only one cell and is periodic.
+-- Due to axisymmetry, theta direction must have only one cell and be periodic.
 
 local Moments = require("App.PlasmaOnCartGrid").Moments()
 local Euler = require "Eq.Euler"
@@ -23,12 +23,16 @@ local Lz = 1.0
 local NX = 600
 local NY = 1  -- This must be 1.
 local NZ = 400
-NX, NZ = 150, 100  -- Smaller grid for faster regression test.
+local decompCuts = {2, 1, 2}
+
+-- Smaller grid for faster regression test.
+NX, NZ = 90, 60
+decompCuts = {1, 1, 1}
 
 local cfl = 0.9
 local tStart = 0.0
 local tEnd = 0.7
-local nFrames = 100
+local nFrames = 10
 
 local momentApp = Moments.App {
    logToFile = true,
@@ -43,7 +47,7 @@ local momentApp = Moments.App {
    timeStepper = "fvDimSplit",
 
    periodicDirs = {2},
-   decompCuts = {2, 1, 2},
+   decompCuts = decompCuts,
 
    fluid = Moments.Species {
       charge = 1, mass = 1,
