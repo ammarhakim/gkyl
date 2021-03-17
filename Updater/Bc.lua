@@ -325,7 +325,7 @@ function Bc:_advance(tCurr, inFld, outFld)
          -- Apply the 'bc' function. This can represent many boundary
          -- condition types ranging from a simple copy or a reflection
          -- with the sign flit to QM based electron emission model.
-         bc(dir, tCurr, self._xcOut, ptrIn, ptrOut, self._xcIn)
+         bc(dir, tCurr, self._idxIn, ptrIn, ptrOut, self._xcOut, self._xcIn)
       end
    end
 
