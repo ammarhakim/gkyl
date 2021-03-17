@@ -592,10 +592,21 @@ local function buildApplication(self, tbl)
       -- Field data to operate on.
       local fieldVar = field:rkStepperFields()[dataIdx]
 
+      -- Expose freely-available array space space. Useful for storing
+      -- intermediate quantities like spatial gradient.
+      local bufIdx = (dataIdx==1) and 2 or 1
+      local speciesBuf = {}
+      for nm, s in lume.orderedIter(species) do
+         speciesBuf[nm] = s:rkStepperFields()[bufIdx]
+      end
+      -- Field data to operate on.
+      local fieldBuf = field:rkStepperFields()[bufIdx]
+
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
       -- Update sources.
       for nm, s in pairs(sources) do
-	 local myStatus, myDtSuggested = s:updateSource(tCurr, dt, speciesVar, fieldVar)
+	 local myStatus, myDtSuggested = s:updateSource(
+       tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, species)
 	 status =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
