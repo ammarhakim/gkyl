@@ -26,13 +26,13 @@ end
 function AxisymmetricPhMaxwellsSource:createSolver(species, field)
    local tbl = self.tbl
    self.slvr = Updater.AxisymmetricPhMaxwellSrc {
-      onGrid = self.grid,
-      scheme = tbl.timeStepper,
-      evolve = tbl.evolve,
-      epsilon0 = tbl.epsilon0,
-      mu0 = tbl.mu0,
-      chi_e = tbl.chi_e,
-      chi_m = tbl.chi_m
+      onGrid   = self.grid,
+      scheme   = tbl.timeStepper,
+      evolve   = tbl.evolve,
+      mu0      = field:getMu0(),
+      epsilon0 = field:getEpsilon0(),
+      chi_e    = field:getElcErrorSpeedFactor(),
+      chi_m    = field:getMgnErrorSpeedFactor(),
    }
 end
 

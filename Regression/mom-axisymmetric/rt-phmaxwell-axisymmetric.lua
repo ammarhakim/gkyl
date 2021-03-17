@@ -47,10 +47,6 @@ local momentApp = Moments.App {
 
    axisymSource = Moments.AxisymmetricPhMaxwellSource {
       timeStepper = "forwardEuler",
-      epsilon0 = epsilon0,
-      mu0 = mu0,
-      chi_e = chi_e,
-      chi_m = chi_m,
    },   
 
 }
