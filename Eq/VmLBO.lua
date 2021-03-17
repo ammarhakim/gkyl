@@ -30,6 +30,8 @@ function VmLBO:init(tbl)
       tbl.vUpper, "Eq.VmLBO: Must specify maximum velocity of v grid in 'vUpper'.")
    local varNuIn       = tbl.varyingNu           -- Specify if collisionality varies spatially.
    local cellConstNuIn = tbl.useCellAverageNu    -- Specify whether to use cell-wise constant collisionality.
+
+   assert(tbl.gridID == "uniform", "Eq.VmLBO: nonuniform grids not yet supported.")
    
    self._pdim = self._phaseBasis:ndim()
    self._cdim = self._confBasis:ndim()

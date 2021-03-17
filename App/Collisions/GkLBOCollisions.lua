@@ -295,6 +295,7 @@ function GkLBOCollisions:createSolver(externalField)
       useCellAverageNu = self.cellConstNu,
       mass             = self.mass,
       positivity       = self.usePositivity,
+      gridID           = self.phaseGrid:id(),
    }
    self.collisionSlvr = Updater.HyperDisCont {
       onGrid             = self.phaseGrid,

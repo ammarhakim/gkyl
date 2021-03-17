@@ -6,7 +6,7 @@ local Plasma = require("App.PlasmaOnCartGrid").Gyrokinetic()
 -- This test relaxes a rectangular/square IC and a bump in tail IC.
 -- Maxwellian's for comparison with each are also created.
 
-polyOrder = 1
+polyOrder = 2
 n0        = 1.0                             -- Density.
 u0        = 0.0                             -- Flow speed.
 vt        = 1.0/3.0                         -- Thermal speed..
@@ -48,11 +48,22 @@ local function bumpMaxwell(x,vx,n,u,vth,bA,bU,bS,bVth)
          +(n/math.sqrt(2.0*Pi*bVth))*math.exp(-vbSq)*(bA^2)/((vx-bU)^2+bS^2)
 end
 
+local vparMax = 8.*vt
+local vparMin = -vparMax
+print("vparMax = ",vparMax)
+print("vparMin = ",vparMin)
+
+local uBump = 0.5
+local vCompMin = (uBump-vparMin)/vparMin 
+local vCompMax = (vparMax-uBump)/vparMax 
+print("vCompMin = ",vCompMin)
+print("vCompMax = ",vCompMax)
+
 plasmaApp = Plasma.App {
    logToFile = false,
 
    tEnd        = 100,           -- End time.
-   nFrame      = 1,             -- Number of frames to write.
+   nFrame      = 20,             -- Number of frames to write.
    lower       = {0.0},         -- Configuration space lower coordinate.
    upper       = {1.0},         -- Configuration space upper coordinate.
    cells       = {2},           -- Configuration space cells.
@@ -61,7 +72,7 @@ plasmaApp = Plasma.App {
    timeStepper = "rk3",         -- One of "rk2", "rk3" or "rk3s4".
 
    -- Decomposition for configuration space.
-   decompCuts = {1},            -- Cuts in each configuration direction.
+   decompCuts = {2},            -- Cuts in each configuration direction.
    useShared  = false,          -- If to use shared memory.
 
    -- Boundary conditions for configuration space.
@@ -71,8 +82,11 @@ plasmaApp = Plasma.App {
    square = Plasma.Species {
       charge = 1.0, mass = 1.0,
       -- Velocity space grid.
-      lower      = {-8.0*vt},
-      upper      = { 8.0*vt},
+      lower = {-1.0},
+      upper = { 1.0},
+      coordinateMap = {
+        function(z) if z<0. then return vparMin*math.abs(z)^2 else return vparMax*z^2 end end,
+      },
       cells      = {32},
       -- Initial conditions.
       init = function (t, xn)
@@ -81,6 +95,7 @@ plasmaApp = Plasma.App {
          return topHat(x, v, n0, u0, vt)
       end,
       evolve = true,
+      evolveCollisionless = false,
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'square'},
@@ -92,8 +107,19 @@ plasmaApp = Plasma.App {
    bump = Plasma.Species {
       charge = 1.0, mass = 1.0,
       -- Velocity space grid.
-      lower      = {-8.0*vt},
-      upper      = { 8.0*vt},
+      lower = {vCompMin},
+      upper = {vCompMax},
+      coordinateMap = {
+        -- A grid whose cell length grows quadratically away from the
+        -- drift velocity uBump.
+        function(z)
+           if z > 0. then
+              return (vparMax-uBump)*(z/vCompMax)^2 + uBump
+           else
+              return (vparMin-uBump)*(z/vCompMin)^2 + uBump
+           end
+        end,
+      },
       cells      = {32},
       -- Initial conditions.
       init = function (t, xn)
@@ -101,6 +127,7 @@ plasmaApp = Plasma.App {
          return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
       end,
       evolve            = true,
+      evolveCollisionless = false,
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
@@ -110,7 +137,7 @@ plasmaApp = Plasma.App {
 
    -- Field solver.
    field = Plasma.Field {
-      evolve      = false, -- Rvolve fields?
+      evolve      = false, -- Evolve fields?
       externalPhi = function (t, xn) return 0.0 end,
       kperp2      = 0.0
    },
