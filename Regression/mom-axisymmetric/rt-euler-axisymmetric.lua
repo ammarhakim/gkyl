@@ -23,6 +23,8 @@ local Lz = 1.0
 local NX = 600
 local NY = 1  -- This must be 1.
 local NZ = 400
+NX, NZ = 150, 100  -- Smaller grid for faster regression test.
+
 local cfl = 0.9
 local tStart = 0.0
 local tEnd = 0.7
