@@ -179,8 +179,8 @@ calcRecov2CellGenNonuniform(basisNm, recDir, dirs, polyOrder, dxlo, dxup, lo, up
     baCeND : psubst(makelist(baVars[i]=dirs[i],i,1,numDims), baCeND),
     /* rescale basis */
     shiftList : makelist(0, i, 1, numDims),
-    baLoND : eta(shiftList, dxlo, baCeND),
-    baUpND : eta(shiftList, dxup, baCeND),
+    baLoND : eta(dirs, shiftList, dxlo, baCeND),
+    baUpND : eta(dirs, shiftList, dxup, baCeND),
     /* shift basis */
     baLoND : etaDir(recDir, -dxlo[recDirIdx]/2, 2, baLoND),
     baUpND : etaDir(recDir, dxup[recDirIdx]/2, 2, baUpND),
