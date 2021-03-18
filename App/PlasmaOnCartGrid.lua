@@ -606,7 +606,7 @@ local function buildApplication(self, tbl)
       -- Update sources.
       for nm, s in pairs(sources) do
 	 local myStatus, myDtSuggested = s:updateSource(
-       tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, species)
+       tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, species, field)
 	 status =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
