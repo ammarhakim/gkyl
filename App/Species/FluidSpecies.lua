@@ -333,12 +333,18 @@ function FluidSpecies:createBCs()
    -- Create a table to store auxiliary values needed by BCs
    -- and provided by the user in the input file.
    self.auxBCvalues = {}
-   local dirNames = {"X", "Y", "Z"}
 
    -- Functions to make life easier while reading in BCs to apply.
    -- Note: appendBoundaryConditions defined in sub-classes.
    local function handleBc(dir, bc, isPeriodic)
       table.insert(self.auxBCvalues,{nil,nil})
+      
+      local dirNames = {"X", "Y", "Z"}
+      if (isPeriodic) then
+         assert(bc==nil or (bc[1]==nil and bc[2]==nil),
+                "Boundary conditions supplied in periodic direction "..
+                dirNames[dir]..".")
+      end
 
       if bc[1] then
          self:appendBoundaryConditions(dir, 'lower', bc[1])
