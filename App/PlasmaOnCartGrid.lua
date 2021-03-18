@@ -220,13 +220,19 @@ local function buildApplication(self, tbl)
       end
    end
 
+   -- Create a keys entry in sources so we always loop in the same order.
+   local sources_keys = {}
+   for k in pairs(sources) do table.insert(sources_keys, k) end
+   table.sort(sources_keys)
+   setmetatable(sources, sources_keys)
+
    -- Add grid to app object.
    self._confGrid = confGrid
 
    -- Set conf grid for each source.
-   for _, s in pairs(sources) do
+   for _, s in lume.orderedIter(sources) do
       s:setConfGrid(confGrid)
-   end   
+   end  
 
    local cflMin = GKYL_MAX_DOUBLE
    -- Compute CFL numbers.
@@ -298,7 +304,7 @@ local function buildApplication(self, tbl)
    end
 
    -- Initialize source solvers.
-   for nm, s in pairs(sources) do
+   for nm, s in lume.orderedIter(sources) do
       s:createSolver(species, field)
    end   
 
@@ -604,7 +610,7 @@ local function buildApplication(self, tbl)
 
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
       -- Update sources.
-      for nm, s in pairs(sources) do
+      for nm, s in lume.orderedIter(sources) do
 	 local myStatus, myDtSuggested = s:updateSource(
        tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, species)
 	 status =  status and myStatus
@@ -863,7 +869,7 @@ local function buildApplication(self, tbl)
          end
       end
 
-      for _, s in pairs(sources) do tmSrc = tmSrc + s:totalTime() end
+      for _, s in lume.orderedIter(sources) do tmSrc = tmSrc + s:totalTime() end
 
       local tmTotal = tmSimEnd-tmSimStart
       local tmAccounted = 0.0
