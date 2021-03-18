@@ -75,7 +75,7 @@ local momentApp = Moments.App {
               BoundaryCondition.Copy { components = {1, 4, 5} },
               BoundaryCondition.Flip { components = {2, 3} },
          },
-         Euler.bcCopy
+         Moments.Species.bcCopy
       },
       bcz = { Euler.bcWall, Euler.bcWall },
    },
