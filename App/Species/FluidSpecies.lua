@@ -333,6 +333,7 @@ function FluidSpecies:createBCs()
    -- Create a table to store auxiliary values needed by BCs
    -- and provided by the user in the input file.
    self.auxBCvalues = {}
+   local dirNames = {"X", "Y", "Z"}
 
    -- Functions to make life easier while reading in BCs to apply.
    -- Note: appendBoundaryConditions defined in sub-classes.
@@ -346,7 +347,8 @@ function FluidSpecies:createBCs()
          end
       else
          assert(isPeriodic,
-                string.format("Invalid lower boundary condition in non-periodic direction %d.", dir))
+                "Invalid lower boundary condition in non-periodic direction "..
+                dirNames[dir]..".")
       end
 
       if bc[2] then
@@ -356,7 +358,8 @@ function FluidSpecies:createBCs()
          end
       else
          assert(isPeriodic,
-                string.format("Invalid upper boundary condition in non-periodic direction %d", dir))
+                "Invalid upper boundary condition in non-periodic direction "..
+                dirNames[dir]..".")
       end
    end
 
