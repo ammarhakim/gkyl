@@ -1038,6 +1038,8 @@ return {
 	 TenMomentRelaxSource  = require "App.Sources.TenMomentRelaxSource",
         AxisymmetricMomentSource = require "App.Sources.AxisymmetricMomentSource",
         AxisymmetricPhMaxwellSource = require "App.Sources.AxisymmetricPhMaxwellSource",
+        BraginskiiHeatConductionSource = require "App.Sources.BraginskiiHeatConductionSource",
+        BraginskiiViscosityDiffusionSource = require "App.Sources.BraginskiiViscosityDiffusionSource",
       }
    end
 }

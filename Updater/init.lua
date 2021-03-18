@@ -48,6 +48,8 @@ local TenMomentSrc = require "Updater.TenMomentSrc"
 local WavePropagation = require "Updater.WavePropagation"
 local AxisymmetricFiveMomentSrc = require "Updater.AxisymmetricFiveMomentSrc"
 local AxisymmetricPhMaxwellSrc = require "Updater.AxisymmetricPhMaxwellSrc"
+local BraginskiiHeatConduction = require "Updater.BraginskiiHeatConduction"
+local BraginskiiViscosityDiffusion = require "Updater.BraginskiiViscosityDiffusion"
 
 return {
    Bc = Bc,
@@ -92,4 +94,6 @@ return {
    WavePropagation = WavePropagation,
    AxisymmetricFiveMomentSrc = AxisymmetricFiveMomentSrc,
    AxisymmetricPhMaxwellSrc = AxisymmetricPhMaxwellSrc,
+   BraginskiiHeatConduction = BraginskiiHeatConduction,
+   BraginskiiViscosityDiffusion = BraginskiiViscosityDiffusion,
 }
