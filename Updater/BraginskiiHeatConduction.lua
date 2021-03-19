@@ -219,7 +219,7 @@ function BraginskiiHeatConduction:_forwardEuler(
                             0.5 / grid:dx(d)
                   end
 
-                 fluidBufPtr[1] = divq
+                 fluidBufPtr[5] = divq
                end
             elseif self._coordinate=="axisymmetric" then
                local xc = Lin.Vec(ndim)
@@ -263,7 +263,7 @@ function BraginskiiHeatConduction:_forwardEuler(
                      end
                   end
 
-                 fluidBufPtr[1] = divq
+                 fluidBufPtr[5] = divq
                end
             end
       elseif self._timeStepper=='two-step-node-center' then
