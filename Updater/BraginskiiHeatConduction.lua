@@ -80,8 +80,6 @@ function BraginskiiHeatConduction:_forwardEuler(
    local heatFluxPtrP = heatFlux:get(1)
    local heatFluxPtrM = heatFlux:get(1)
 
-   -- A two-step scheme. Compute grad(T) and q at cell centers, then compute
-   -- div(q) at a cell ceenter using q values at neighboring cell-center values.
    for s = 1, nFluids do
       local fluid = outFld[s]
       local fluidIdxr = fluid:genIndexer()
@@ -100,7 +98,7 @@ function BraginskiiHeatConduction:_forwardEuler(
       local localRange = fluid:localRange()
       local localExt1Range = localRange:extend(1, 1)
 
-      -- Compute temperature in internal and ghost cells.
+      -- Compute temperature in internal and ghost cell centers.
       for idx in localExtRange:rowMajorIter() do
          fluid:fill(fluidIdxr(idx), fluidPtr)
          fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
@@ -108,7 +106,7 @@ function BraginskiiHeatConduction:_forwardEuler(
          fluidBufPtr[5] = temperature(fluidPtr, gasGamma, mass)
       end
 
-      -- Comptue grad(T) in internal + one ghost cells.
+      -- Comptue grad(T) in internal + one ghost cell centers.
       for idx in localExt1Range:rowMajorIter() do
          for d = 1, ndim do
             idx:copyInto(idxp)
@@ -124,8 +122,8 @@ function BraginskiiHeatConduction:_forwardEuler(
          end
       end
 
-      -- Compute q = q_para + q_perp
-      --           = kappa_para*gradPara(T) + kappa_perp*gradPerp(T).
+      -- Compute q = q_para + q_perp at cell centers.
+      -- q_para = kappa_para*gradPara(T), q_perp = kappa_perp*gradPerp(T).
       -- For the electron fluid in a two-fluid plasma, also add -0.71*pe*dVpara.
       for idx in localExt1Range:rowMajorIter() do
          emf:fill(emfIdxr(idx), emfPtr)
@@ -142,13 +140,11 @@ function BraginskiiHeatConduction:_forwardEuler(
          bz = bz / bmag
          assert(bmag>0, "Zero B field detected!")
 
-         local bDotGradTe = bx*fluidBufPtr[2] +
-                            by*fluidBufPtr[3] +
-                            bz*fluidBufPtr[4]
+         local bDotGradT = bx*fluidBufPtr[2]+by*fluidBufPtr[3]+bz*fluidBufPtr[4]
 
-         local gradParaTx = bx * bDotGradTe
-         local gradParaTy = bx * bDotGradTe
-         local gradParaTz = bx * bDotGradTe
+         local gradParaTx = bx * bDotGradT
+         local gradParaTy = by * bDotGradT
+         local gradParaTz = bz * bDotGradT
 
          gradPerpTx = fluidBufPtr[2] - gradParaTx
          gradPerpTy = fluidBufPtr[3] - gradParaTy
@@ -191,7 +187,7 @@ function BraginskiiHeatConduction:_forwardEuler(
          end
       end
 
-      -- Compute div(q).
+      -- Compute div(q) at cell-centers using cell-center q values.
       if self._coordinate=="cartesian" then
          for idx in localRange:rowMajorIter() do
             fluid:fill(fluidIdxr(idx), fluidPtr)
@@ -233,7 +229,7 @@ function BraginskiiHeatConduction:_forwardEuler(
                heatFlux:fill(heatFluxIdxr(idxp), heatFluxPtrP)
                heatFlux:fill(heatFluxIdxr(idxm), heatFluxPtrM)
 
-               if d==1 then
+               if d==1 then  -- R
                   grid:setIndex(idx)
                   grid:cellCenter(xc)
                   grid:setIndex(idxp)
@@ -246,11 +242,11 @@ function BraginskiiHeatConduction:_forwardEuler(
 
                   divq = divq +
                          (rp*heatFluxPtrP[d]-rm*heatFluxPtrM[d]) *
-                         0.5 / grid:dx(d) / r
+                         0.5/grid:dx(d)/r
                elseif d==2 then  -- Theta
                elseif d==3 then  -- Z
                   divq = divq +
-                         (heatFluxPtrP[d] - heatFluxPtrM[d]) * 0.5 / grid:dx(d)
+                         (heatFluxPtrP[d]-heatFluxPtrM[d]) * 0.5/grid:dx(d)
                else
                   assert(false)
                end
