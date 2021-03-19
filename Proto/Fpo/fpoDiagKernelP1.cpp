@@ -1,5 +1,5 @@
 #include <math.h>
-#include <fpoKernelsDecl.h>
+#include <vlasov_fpo.h>
 
 void fpoDiagKernelP1(const double* dv, const double* vc, const double* f, const double* h, double* out) {
   out[0] += 0.4330127018922193*dv[1]*dv[2]*f[6]*h[7]+0.4330127018922193*dv[1]*dv[2]*f[3]*h[5]+0.4330127018922193*dv[1]*dv[2]*f[2]*h[4]+0.4330127018922193*f[0]*dv[1]*h[1]*dv[2];

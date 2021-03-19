@@ -1,5 +1,5 @@
 #include <math.h>
-#include <fpoKernelsDecl.h>
+#include <vlasov_fpo.h>
 
 double fpoDiffKernel3xP1(const double dt, const double *dv,
                          const stencil19 fStencil, const stencil19 gStencil,

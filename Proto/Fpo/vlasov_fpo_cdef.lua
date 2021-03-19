@@ -38,9 +38,13 @@ void fpoMomsKernelP1(const double* dv, const double* vc, const double* f, double
 void fpoDiagKernelP1(const double* dv, const double* vc, const double* f, const double* h, double* out);
 
 
-double fpoDragKernel3xP1(const double dt, const double* dv,
-                         const stencil7* fStencil, const stencil7* hStencil,
-                         double* fOut);
+
+double vlasov_fpo_drag_cell_3x_ser_p1(const double dt, const double *dv,
+                                      const stencil7* fStencil, const stencil7* hStencil,
+                                      const int isXloEdge, const int isXupEdge,
+                                      const int isYloEdge, const int isYupEdge,
+                                      const int isZloEdge, const int isZupEdge,
+                                      double* fOut);
 
 void fpoDiffSurfXLSer3xP1(const double dt, const double* dv,
                           const double* fLCC,

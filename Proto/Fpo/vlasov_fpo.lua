@@ -55,9 +55,9 @@ return function(tbl)
    -------------------------------------------------------------------
    -- Loading C kernels  ---------------------------------------------
    -------------------------------------------------------------------
-   local _ = require "Proto.Fpo.fpoKernelsCdef"
+   local _ = require "Proto.Fpo.vlasov_fpo_cdef"
 
-   local dragKernelNm = string.format("fpoDragKernel3xP%d", polyOrder)
+   local dragKernelNm = string.format("vlasov_fpo_drag_cell_3x_ser_p%d", polyOrder)
    local dragKernelFn = ffi.C[dragKernelNm]
 
    local diffSurfXLSerNm = string.format("fpoDiffSurfXLSer3xP%d", polyOrder)
@@ -568,8 +568,22 @@ return function(tbl)
 
       local cflFreq  = 0.0
       local dragFreq, diffFreq
+      
+      local isXloEdge, isXupEdge
+      local isYloEdge, isYupEdge
+      local isZloEdge, isZupEdge
 
       for idxs in localRange:colMajorIter() do
+         isXloEdge, isXupEdge = false, false
+         isYloEdge, isYupEdge = false, false
+         isZloEdge, isZupEdge = false, false
+         if idxs[1] == localRange:lower(1) then isXloEdge = true end
+         if idxs[1] == localRange:upper(1) then isXupEdge = true end
+         if idxs[2] == localRange:lower(2) then isYloEdge = true end
+         if idxs[2] == localRange:upper(2) then isYupEdge = true end
+         if idxs[3] == localRange:lower(3) then isZloEdge = true end
+         if idxs[3] == localRange:upper(3) then isZupEdge = true end
+         
          idxs_LLC[1], idxs_LLC[2], idxs_LLC[3] = idxs[1]-1, idxs[2]-1, idxs[3]
          idxs_LCL[1], idxs_LCL[2], idxs_LCL[3] = idxs[1]-1, idxs[2], idxs[3]-1
          idxs_LCC[1], idxs_LCC[2], idxs_LCC[3] = idxs[1]-1, idxs[2], idxs[3]
@@ -661,6 +675,9 @@ return function(tbl)
 
          dragFreq = dragKernelFn(dt, dv:data(),
                                  fStencil7, hStencil7,
+                                 isXloEdge, isXupEdge,
+                                 isYloEdge, isYupEdge,
+                                 isZloEdge, isZupEdge,
                                  f_out)
 
          diffSurfXLSerFn(dt, dv:data(),

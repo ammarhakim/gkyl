@@ -10,7 +10,7 @@ def build(bld):
     Fpo/fpoMomsKernelP1.cpp
     Fpo/fpoDiagKernelP1.cpp
 
-    Fpo/fpoDragKernel3xP1.cpp
+    Fpo/vlasov_fpo_drag_cell_3x_ser_p1.cpp
 
     Fpo/fpoDiffSurfXLSer3xP1.cpp
     Fpo/fpoDiffSurfXUSer3xP1.cpp

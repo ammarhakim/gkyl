@@ -1,5 +1,5 @@
 #include <math.h>
-#include <fpoKernelsDecl.h>
+#include <vlasov_fpo.h>
 
 void fpoMomsKernelP1(const double* dv, const double* vc, const double* f, double* out) {
   out[0] += 0.3535533905932737*dv[0]*f[0]*dv[1]*dv[2];
