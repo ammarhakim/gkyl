@@ -6,22 +6,22 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local AdiosCartFieldIo      = require "Io.AdiosCartFieldIo"
-local Basis                 = require "Basis"
-local Collisions            = require "App.Collisions"
-local DataStruct            = require "DataStruct"
-local DecompRegionCalc      = require "Lib.CartDecomp"
-local Grid                  = require "Grid"
-local LinearTrigger         = require "Lib.LinearTrigger"
-local Mpi                   = require "Comm.Mpi"
-local Proto                 = require "Lib.Proto"
-local Projection            = require "App.Projection"
-local ProjectionBase        = require "App.Projection.ProjectionBase"
-local SpeciesBase           = require "App.Species.SpeciesBase"
-local Time                  = require "Lib.Time"
-local Updater               = require "Updater"
-local ffi                   = require "ffi"
-local xsys                  = require "xsys"
+local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
+local Basis = require "Basis"
+local Collisions = require "App.Collisions"
+local DataStruct = require "DataStruct"
+local DecompRegionCalc = require "Lib.CartDecomp"
+local Grid = require "Grid"
+local LinearTrigger = require "Lib.LinearTrigger"
+local Mpi = require "Comm.Mpi"
+local Proto = require "Lib.Proto"
+local Projection = require "App.Projection"
+local ProjectionBase = require "App.Projection.ProjectionBase"
+local SpeciesBase = require "App.Species.SpeciesBase"
+local Time = require "Lib.Time"
+local Updater = require "Updater"
+local ffi = require "ffi"
+local xsys = require "xsys"
 local ConstDiffusionModDecl = require "Eq.constDiffusionData.ConstDiffusionModDecl"
 
 -- Function to create basis functions.
@@ -47,18 +47,18 @@ end
 function FluidSpecies:fullInit(appTbl)
    local tbl = self.tbl -- Previously store table.
 
-   self.cfl      =  0.1
-   self.charge   = tbl.charge and tbl.charge or 1.0
-   self.mass     = tbl.mass and tbl.mass or 1.0
+   self.cfl =  0.1
+   self.charge = tbl.charge and tbl.charge or 1.0
+   self.mass = tbl.mass and tbl.mass or 1.0
    self.ioMethod = "MPI"
 
-   self.evolve              = xsys.pickBool(tbl.evolve, true) -- By default, evolve species.
+   self.evolve = xsys.pickBool(tbl.evolve, true) -- By default, evolve species.
    -- By default, do not write species if it is not evolved.
-   self.forceWrite          = xsys.pickBool(tbl.forceWrite, false)
+   self.forceWrite = xsys.pickBool(tbl.forceWrite, false)
    self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless,
                                             self.evolve)
-   self.evolveCollisions    = xsys.pickBool(tbl.evolveCollisions, self.evolve)
-   self.evolveSources       = xsys.pickBool(tbl.evolveSources, self.evolve)
+   self.evolveCollisions = xsys.pickBool(tbl.evolveCollisions, self.evolve)
+   self.evolveSources = xsys.pickBool(tbl.evolveSources, self.evolve)
 
    self.basis = nil -- Will be set later
 
@@ -80,24 +80,24 @@ function FluidSpecies:fullInit(appTbl)
 
    -- Default to a single moment.
    self.nMoments = 1
-   self.nGhost   = 1 -- Default is 1 ghost-cell in each direction.
+   self.nGhost = 1 -- Default is 1 ghost-cell in each direction.
 
-   self.hasNonPeriodicBc        = false -- To indicate if we have non-periodic BCs.
+   self.hasNonPeriodicBc = false -- To indicate if we have non-periodic BCs.
    self.bcx, self.bcy, self.bcz = { }, { }, { }
 
    -- Read in boundary conditions.
    -- Check to see if bc type is good is now done in createBc.
    if tbl.bcx then
       self.bcx[1], self.bcx[2] = tbl.bcx[1], tbl.bcx[2]
-      self.hasNonPeriodicBc    = true
+      self.hasNonPeriodicBc = true
    end
    if tbl.bcy then
       self.bcy[1], self.bcy[2] = tbl.bcy[1], tbl.bcy[2]
-      self.hasNonPeriodicBc    = true
+      self.hasNonPeriodicBc = true
    end
    if tbl.bcz then
       self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
-      self.hasNonPeriodicBc    = true
+      self.hasNonPeriodicBc = true
    end
    
    self.ssBc = {}
@@ -105,9 +105,9 @@ function FluidSpecies:fullInit(appTbl)
       self.ssBc[1] = tbl.ssBc[1]
    end
 
-   self.boundaryConditions   = { } -- List of Bcs to apply.
+   self.boundaryConditions = { } -- List of Bcs to apply.
    self.ssBoundaryConditions = { } -- List of stair-stepped Bcs to apply.
-   self.zeroFluxDirections   = {}
+   self.zeroFluxDirections = {}
 
    self.bcTime = 0.0 -- Timer for BCs.
 
@@ -163,11 +163,11 @@ function FluidSpecies:fullInit(appTbl)
       }
    end
 
-   self.useShared         = xsys.pickBool(appTbl.useShared, false)
-   self.positivity        = xsys.pickBool(tbl.applyPositivity, false)
+   self.useShared = xsys.pickBool(appTbl.useShared, false)
+   self.positivity = xsys.pickBool(tbl.applyPositivity, false)
    self.positivityDiffuse = xsys.pickBool(tbl.positivityDiffuse, self.positivity)
    self.positivityRescale = xsys.pickBool(tbl.positivityRescale, false)
-   self.deltaF            = xsys.pickBool(appTbl.deltaF, false)
+   self.deltaF = xsys.pickBool(appTbl.deltaF, false)
 
    self.tCurr = 0.0
 end
@@ -216,7 +216,7 @@ function FluidSpecies:createGrid(cgrid)
    local decompCuts = {}
    for d = 1, self.cdim do table.insert(decompCuts, cgrid:cuts(d)) end
    self.decomp = DecompRegionCalc.CartProd {
-      cuts      = decompCuts,
+      cuts = decompCuts,
       useShared = self.useShared,
    }
 
@@ -308,24 +308,24 @@ function FluidSpecies:makeBcUpdater(dir, edge, bcList, skinLoop,
    end
 
    return Updater.Bc {
-      onGrid             = self.grid,
+      onGrid = self.grid,
       boundaryConditions = bcList,
-      dir                = dir,
-      edge               = edge,
-      skinLoop           = skinLoop,
-      cdim               = self.cdim,
-      vdim               = self.vdim,
-      hasExtFld          = hasExtFld,
+      dir = dir,
+      edge = edge,
+      skinLoop = skinLoop,
+      cdim = self.cdim,
+      vdim = self.vdim,
+      hasExtFld = hasExtFld,
    }
 end
 
 -- Function to construct a stair-stepped BC updater.
 function FluidSpecies:makeSsBcUpdater(dir, inOut, bcList)
    return Updater.StairSteppedBc {
-      onGrid             = self.grid,
-      inOut              = inOut,
+      onGrid = self.grid,
+      inOut = inOut,
       boundaryConditions = bcList,
-      dir                = dir,
+      dir = dir,
    }
 end
 
@@ -367,12 +367,12 @@ function FluidSpecies:createSolver(externalField)
    if self.positivity then
       self.posChecker = Updater.PositivityCheck {
          onGrid = self.grid,
-         basis  = self.basis,
+         basis = self.basis,
       }
 
       self.posRescaler = Updater.PositivityRescale {
          onGrid = self.grid,
-         basis  = self.basis,
+         basis = self.basis,
       }
    end
 end
@@ -387,7 +387,7 @@ function FluidSpecies:alloc(nRkDup)
    -- Create Adios object for field I/O.
    self.momIo = AdiosCartFieldIo {
       elemType = self.moments[1]:elemType(),
-      method   = self.ioMethod,
+      method = self.ioMethod,
       metaData = {
          polyOrder = self.basis:polyOrder(),
          basisType = self.basis:id(),
@@ -395,7 +395,7 @@ function FluidSpecies:alloc(nRkDup)
          mass = self.mass,
       },
    }
-   self.couplingMoments   = self:allocVectorMoment(self.nMoments)
+   self.couplingMoments = self:allocVectorMoment(self.nMoments)
    self.integratedMoments = DataStruct.DynVector { numComponents = self.nMoments }
 
    if self.positivity then
@@ -404,14 +404,14 @@ function FluidSpecies:alloc(nRkDup)
 
    -- Array with one component per cell to store cflRate in each cell.
    self.cflRateByCell = DataStruct.Field {
-      onGrid        = self.grid,
+      onGrid = self.grid,
       numComponents = 1,
-      ghost         = {1, 1},
+      ghost = {1, 1},
    }
    self.cflRateByCell:clear(0.0)
-   self.cflRatePtr  = self.cflRateByCell:get(1)
+   self.cflRatePtr = self.cflRateByCell:get(1)
    self.cflRateIdxr = self.cflRateByCell:genIndexer()
-   self.dtGlobal    = ffi.new("double[2]")
+   self.dtGlobal = ffi.new("double[2]")
 
    self:createBCs()
 end
@@ -458,7 +458,7 @@ function FluidSpecies:copyRk(outIdx, aIdx)
 end
 -- For RK timestepping. 
 function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
-   local args  = {...} -- Package up rest of args as table.
+   local args = {...} -- Package up rest of args as table.
    local nFlds = #args/2
    self:rkStepperFields()[outIdx]:combine(a, self:rkStepperFields()[aIdx])
    for i = 1, nFlds do -- Accumulate rest of the fields.
@@ -479,7 +479,7 @@ end
 
 function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    self.tCurr = tCurr
-   local fIn     = self:rkStepperFields()[inIdx]
+   local fIn = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
    if self.evolveCollisionless then
@@ -556,10 +556,10 @@ end
 function FluidSpecies:createDiagnostics()
    -- Create updater to compute volume-integrated moments.
    self.intMom2Calc = Updater.CartFieldIntegratedQuantCalc {
-      onGrid        = self.grid,
-      basis         = self.basis,
+      onGrid = self.grid,
+      basis = self.basis,
       numComponents = self.nMoments,
-      quantity      = "V"
+      quantity = "V"
    }
 end
 
