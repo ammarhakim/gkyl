@@ -1,9 +1,19 @@
--- Gkyl ------------------------------------------------------------------------
+-- Gkyl: Anisotropic diffusion of a scalar parallel and perpendicular to the
+-- background magnetic field:
 --
--- Anisotropic diffusion parallel and perpendicular to the background magnetic
--- field. Mainly for testing purpose.
---    _______     ___
--- + 6 @ |||| # P ||| +
+-- dT/dt = -div(q), where q = -kappaPara*gradPara(T)-kappaPerp*gradPerp(T).
+--
+-- Mainly for testing purpose. The verified schemes are used to construct more
+-- complicated heat conduction, viscosity updaters, etc.
+--
+-- An explicit two-step algorithm is used:
+--   First, calculate grad(T) and then q;
+--   Second, calculate div(q), and add it onto T.
+--
+-- Major TODOs:
+-- - More accurate time-step size estimation.
+-- - Limiters following Sharma and Hammett 2007 JCP.
+--
 --------------------------------------------------------------------------------
 
 local UpdaterBase = require "Updater.Base"
@@ -14,444 +24,335 @@ local AnisotropicDiffusion = Proto(UpdaterBase)
 
 function AnisotropicDiffusion:init(tbl)
    AnisotropicDiffusion.super.init(self, tbl)
-
    local pfx = "Updater.AnisotropicDiffusion: "
 
    self._onGrid = assert(tbl.onGrid, pfx.."Must provide 'onGrid'.")
+   self._cfl = tbl.cfl and tbl.cfl or 1
 
    self._kappaPara = assert(tbl.kappaPara, pfx.."Must provide 'kappaPara'")
    self._kappaPerp = assert(tbl.kappaPerp, pfx.."Must provide 'kappaPerp'")
 
-   self._timeStepper = tbl.timeStepper~=nil and tbl.timeStepper or
-                       "two-step-node-center"
-   assert(self._timeStepper=="two-step-cell-center" or
-          self._timeStepper=="two-step-node-center",
+   self._component = tbl.component and tbl.component or 1
+
+   self._timeStepper = tbl.timeStepper~=nil and tbl.timeStepper or "node-center"
+   assert(self._timeStepper=="cell-center" or self._timeStepper=="node-center",
           pfx.."timeStepper '"..self._timeStepper.."' is not supported.")
 end
+
+local function isNaN( v ) return type( v ) == "number" and v ~= v end
 
 function AnisotropicDiffusion:_forwardEuler(
       self, tCurr, inFld, outFld)
    local grid = self._onGrid
    local dt = self._dt
 
-   local dtSuggested = GKYL_MAX_DOUBLE
-   local status = true
-
    local ndim = grid:ndim()
    local idxm = Lin.IntVec(grid:ndim())
    local idxp = Lin.IntVec(grid:ndim())
 
-   local emf = outFld[nFluids+1]
+   local temp = outFld[1]
+   local tempIdxr = temp:genIndexer()
+   local tempPtr = temp:get(1)
+   local tempPtrP = temp:get(1)
+   local tempPtrM = temp:get(1)
+
+   local emf = outFld[2]
    local emfIdxr = emf:genIndexer()
    local emfPtr = emf:get(1)
 
-   local heatFlux = inFld[nFluids+1]  -- This is really emfBuf.
-   local heatFluxIdxr = heatFlux:genIndexer()
-   local heatFluxPtr = heatFlux:get(1)
-   local heatFluxPtrP = heatFlux:get(1)
-   local heatFluxPtrM = heatFlux:get(1)
+   local buf = inFld[1]
+   local bufIdxr = buf:genIndexer()
+   local bufPtr = buf:get(1)
+   local bufPtrP = buf:get(1)
+   local bufPtrM = buf:get(1)
 
-   for s = 1, nFluids do
-      local fluid = outFld[s]
-      local fluidIdxr = fluid:genIndexer()
-      local fluidPtr = fluid:get(1)
+   local localRange = temp:localRange()
 
-      local fluidBuf = inFld[s]
-      local fluidBufIdxr = fluidBuf:genIndexer()
-      local fluidBufPtr = fluidBuf:get(1)
-      local fluidBufPtrP = fluidBuf:get(1)
-      local fluidBufPtrM = fluidBuf:get(1)
+   -- Check time-step size.
+   local kappaPara = self._kappaPara
+   local kappaPerp = self._kappaPerp
 
-      local mass = self._mass[s]
-      local charge = self._charge[s]
+   -- TODO Nicer, more accurate time-step size calculation.
+   local kappaMax = math.max(kappaPara, kappaPerp)
+   local kappa__dx2_sum = 0
+   for d = 1, ndim do
+      kappa__dx2_sum = kappa__dx2_sum + kappaMax / ((grid:dx(d))^2)
+   end
 
-      local localExtRange = fluid:localExtRange()
-      local localRange = fluid:localRange()
+   local dtSuggested = self._cfl * 0.5 / kappa__dx2_sum
+   local status = dt <= dtSuggested
+   if not status then
+      return false, dtSuggested
+   end
+
+   local c = self._component
+
+   if self._timeStepper=='cell-center' then
+
+      -- Comptue grad(T) in internal + one ghost cell centers.
       local localExt1Range = localRange:extend(1, 1)
+      for idx in localExt1Range:rowMajorIter() do
+         for d = 1, ndim do
+            idx:copyInto(idxp)
+            idx:copyInto(idxm)
+            idxp[d] = idx[d]+1
+            idxm[d] = idx[d]-1
 
-      if self._timeStepper=='two-step-cell-center' then
+            buf:fill(bufIdxr(idx), bufPtr)
+            temp:fill(tempIdxr(idxp), tempPtrP)
+            temp:fill(tempIdxr(idxm), tempPtrM)
 
-         -- Comptue grad(T) in internal + one ghost cell centers.
-         for idx in localExt1Range:rowMajorIter() do
-            for d = 1, ndim do
-               idx:copyInto(idxp)
-               idx:copyInto(idxm)
-               idxp[d] = idx[d]+1
-               idxm[d] = idx[d]-1
-
-               fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
-               fluidBuf:fill(fluidBufIdxr(idxp), fluidBufPtrP)
-               fluidBuf:fill(fluidBufIdxr(idxm), fluidBufPtrM)
-               fluidBufPtr[d+1] = (fluidBufPtrP[5] - fluidBufPtrM[5]) *
-                                  0.5 / grid:dx(d)
-            end
+            bufPtr[d] = (tempPtrP[c] - tempPtrM[c]) * 0.5 / grid:dx(d)
          end
+      end
 
-         -- Compute q = q_para + q_perp at cell centers.
-         -- q_para = kappa_para*gradPara(T), q_perp = kappa_perp*gradPerp(T).
-         -- For the electron fluid in a two-fluid plasma, also add
-         -- -0.71*pe*dVpara.
-         for idx in localExt1Range:rowMajorIter() do
-            emf:fill(emfIdxr(idx), emfPtr)
-            fluid:fill(fluidIdxr(idx), fluidPtr)
-            fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
-            heatFlux:fill(heatFluxIdxr(idx), heatFluxPtr)
+      -- Compute q = q_para + q_perp at cell centers.
+      -- q_para = -kappa_para*gradPara(T), q_perp = -kappa_perp*gradPerp(T).
+      for idx in localExt1Range:rowMajorIter() do
+         emf:fill(emfIdxr(idx), emfPtr)
+         buf:fill(bufIdxr(idx), bufPtr)
 
-            local bx = emfPtr[4]
-            local by = emfPtr[5]
-            local bz = emfPtr[6]
-            local bmag = math.sqrt(bx*bx + by*by + bz*bz)
-            bx = bx / bmag
-            by = by / bmag
-            bz = bz / bmag
-            assert(bmag>0, "Zero B field detected!")
+         local bx = emfPtr[4]
+         local by = emfPtr[5]
+         local bz = emfPtr[6]
+         local bmag = math.sqrt(bx*bx + by*by + bz*bz)
+         bx = bx / bmag
+         by = by / bmag
+         bz = bz / bmag
+         assert(bmag>0, "Zero B field detected!")
 
-            local bDotGradT = bx*fluidBufPtr[2] +
-                              by*fluidBufPtr[3] +
-                              bz*fluidBufPtr[4]
+         local bDotGradT = bx*bufPtr[1]
+         if ndim>1 then bDotGradT = bDotGradT + by*bufPtr[2] end
+         if ndim>2 then bDotGradT = bDotGradT + bz*bufPtr[3] end
 
-            local gradParaTx = bx * bDotGradT
+         local gradParaTx = bx * bDotGradT
+         gradPerpTx = bufPtr[1] - gradParaTx
+         bufPtr[1] = - kappaPara*gradParaTx - kappaPerp*gradPerpTx
+
+         if ndim>1 then
             local gradParaTy = by * bDotGradT
+            gradPerpTy = bufPtr[2] - gradParaTy
+            bufPtr[2] = - kappaPara*gradParaTy - kappaPerp*gradPerpTy
+         end
+
+         if ndim>2 then
             local gradParaTz = bz * bDotGradT
+            gradPerpTz = bufPtr[3] - gradParaTz
+            bufPtr[3] = - kappaPara*gradParaTz - kappaPerp*gradPerpTz
+         end
+      end
 
-            gradPerpTx = fluidBufPtr[2] - gradParaTx
-            gradPerpTy = fluidBufPtr[3] - gradParaTy
-            gradPerpTz = fluidBufPtr[4] - gradParaTz
+      for idx in localRange:rowMajorIter() do
+         local divq = 0
+         for d = 1, ndim do
+            idx:copyInto(idxp)
+            idx:copyInto(idxm)
+            idxp[d] = idx[d]+1
+            idxm[d] = idx[d]-1
 
-            local n = fluidPtr[1] / mass
-            local T = fluidBufPtr[5]
+            buf:fill(bufIdxr(idxp), bufPtrP)
+            buf:fill(bufIdxr(idxm), bufPtrM)
 
-            -- TODO: Calculate tau.
-            local kappaPara = self._kappaPara
-            local kappaPerp = self._kappaPerp
-
-            heatFluxPtr[1] = kappaPara*gradParaTx + kappaPerp*gradPerpTx
-            heatFluxPtr[2] = kappaPara*gradParaTy + kappaPerp*gradPerpTy
-            heatFluxPtr[3] = kappaPara*gradParaTz + kappaPerp*gradPerpTz
-
-            -- FIXME: Nicer handling of terms that involve other species.
-            if nFluids==2 and charge<0 then
-               local elcPtr = fluidPtr
-               local ion = outFld[2]
-               local ionIdxr = ion:genIndexer()
-               local ionPtr = ion:get(1)
-               ion:fill(ionIdxr(idx), ionPtr)
-
-               local dVx = ionPtr[2]/ionPtr[1] - elcPtr[2]/elcPtr[1]
-               local dVy = ionPtr[3]/ionPtr[1] - elcPtr[3]/elcPtr[1]
-               local dVz = ionPtr[4]/ionPtr[1] - elcPtr[4]/elcPtr[1]
-               local bDotDV = bx * dVx + by * dVy + bz * dVz
-               local dVparx = bx * bDotDV
-               local dVpary = by * bDotDV
-               local dVparz = bz * bDotDV
-
-               local pr = n * T
-               heatFluxPtr[1] = heatFluxPtr[1] + 0.71*pr*dVparx
-               heatFluxPtr[2] = heatFluxPtr[2] + 0.71*pr*dVpary
-               heatFluxPtr[3] = heatFluxPtr[3] + 0.71*pr*dVparz
-            end
+            divq = divq + (bufPtrP[d] - bufPtrM[d]) * 0.5 / grid:dx(d)
          end
 
-         -- Compute div(q) at cell-centers using cell-center q values.
-         if self._coordinate=="cartesian" then
-            for idx in localRange:rowMajorIter() do
-               fluid:fill(fluidIdxr(idx), fluidPtr)
-               fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
-               heatFlux:fill(heatFluxIdxr(idx), heatFluxPtr)
+         buf:fill(bufIdxr(idx), bufPtr)
+         bufPtr[4] = divq
+      end
 
-               local divq = 0
-               for d = 1, ndim do
-                  idx:copyInto(idxp)
-                  idx:copyInto(idxm)
-                  idxp[d] = idx[d]+1
-                  idxm[d] = idx[d]-1
+   elseif self._timeStepper=='node-center' then
 
-                  heatFlux:fill(heatFluxIdxr(idxp), heatFluxPtrP)
-                  heatFlux:fill(heatFluxIdxr(idxm), heatFluxPtrM)
+      -- Compute grad(T) on nodes (cell-corners).
+      -- The i-th node here is defined as the lower corner of the i-th cell,
+      -- therefore the node's adjacent cells have cell indices i-1 and i.
+      local localNodeRange = localRange:extend(0,1)
+      for idx in localNodeRange:rowMajorIter() do
+         buf:fill(bufIdxr(idx), bufPtr)
 
-                  divq = divq + (heatFluxPtrP[d] - heatFluxPtrM[d]) *
-                         0.5 / grid:dx(d)
-               end
+         if ndim==1 then
+            local d = 1
+            idx:copyInto(idxp)
+            idx:copyInto(idxm)
+            idxp[d] = idx[d]
+            idxm[d] = idx[d]-1
+            temp:fill(tempIdxr(idxp), tempPtrP)
+            temp:fill(tempIdxr(idxm), tempPtrM)
+            bufPtr[d] = (tempPtrP[c] - tempPtrM[c]) / grid:dx(d)
+         elseif ndim==2 then
+            local subIterDirs = {{2}, {1}}
+            for d=1,ndim do  -- Gradient direction.
+               local gradT = 0  -- Grad(T) along this direction.
 
-              fluidBufPtr[1] = divq
-            end
-         elseif self._coordinate=="axisymmetric" then
-            local xc = Lin.Vec(ndim)
-            local xp = Lin.Vec(ndim)
-            local xm = Lin.Vec(ndim)
-            for idx in localRange:rowMajorIter() do
-               fluid:fill(fluidIdxr(idx), fluidPtr)
-               fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
-               heatFlux:fill(heatFluxIdxr(idx), heatFluxPtr)
-
-               local divq = 0
-               for _,d in ipairs({1,3}) do
-                  idx:copyInto(idxp)
-                  idx:copyInto(idxm)
-                  idxp[d] = idx[d]+1
-                  idxm[d] = idx[d]-1
-
-                  heatFlux:fill(heatFluxIdxr(idxp), heatFluxPtrP)
-                  heatFlux:fill(heatFluxIdxr(idxm), heatFluxPtrM)
-
-                  if d==1 then  -- R
-                     grid:setIndex(idx)
-                     grid:cellCenter(xc)
-                     grid:setIndex(idxp)
-                     grid:cellCenter(xp)
-                     grid:setIndex(idxm)
-                     grid:cellCenter(xm)
-                     local r = xc[1]
-                     local rp = xp[1]
-                     local rm = xm[1]
-
-                     divq = divq +
-                            (rp*heatFluxPtrP[d]-rm*heatFluxPtrM[d]) *
-                            0.5/grid:dx(d)/r
-                  elseif d==2 then  -- Theta
-                  elseif d==3 then  -- Z
-                     divq = divq +
-                            (heatFluxPtrP[d]-heatFluxPtrM[d])*0.5/grid:dx(d)
-                  else
-                     assert(false)
-                  end
-               end
-
-              fluidBufPtr[1] = divq
-            end
-         end
-      elseif self._timeStepper=='two-step-node-center' then
-
-         -- Compute grad(T) on nodes (cell-corners).
-         -- The i-th node here is defined as the lower corner of the i-th cell,
-         -- therefore the node's adjacent cells have cell indices i-1 and i.
-         for idx in localExt1Range:rowMajorIter() do
-            fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
-
-            if ndim==1 then
-               local d = 1
                idx:copyInto(idxp)
                idx:copyInto(idxm)
                idxp[d] = idx[d]
                idxm[d] = idx[d]-1
-               fluidBuf:fill(fluidBufIdxr(idxp), fluidBufPtrP)
-               fluidBuf:fill(fluidBufIdxr(idxm), fluidBufPtrM)
-               fluidBufPtr[d+1] = (fluidBufPtrP[5] - fluidBufPtrM[5]) / grid:dx(d)
-            elseif ndim==2 then
-               local subIterDirs = {{2}, {1}}
-               for d=1,ndim do  -- Gradient direction.
-                  fluidBufPtr[d+1] = 0
 
-                  idx:copyInto(idxp)
-                  idx:copyInto(idxm)
-                  idxp[d] = idx[d]
-                  idxm[d] = idx[d]-1
-
-                  -- Add contributions from cell-center values of cells sharing
-                  -- this corner.
-                  local i1 = subIterDirs[d][1]
-                  for _,commonShift1 in ipairs({-1, 0}) do
-                     idxp[i1] = idx[i1] + commonShift1
-                     idxm[i1] = idx[i1] + commonShift1
-                     fluidBuf:fill(fluidBufIdxr(idxp), fluidBufPtrP)
-                     fluidBuf:fill(fluidBufIdxr(idxm), fluidBufPtrM)
-                     fluidBufPtr[d+1] = fluidBufPtr[d+1] +
-                                        (fluidBufPtrP[5] - fluidBufPtrM[5])
-                  end
-                  fluidBufPtr[d+1] = fluidBufPtr[d+1] * 0.5 / grid:dx(d) 
+               -- Add contributions from cell-center values of cells sharing
+               -- this corner.
+               local d1 = subIterDirs[d][1]
+               for _,commonShift1 in ipairs({-1, 0}) do
+                  idxp[d1] = idx[d1] + commonShift1
+                  idxm[d1] = idx[d1] + commonShift1
+                  temp:fill(tempIdxr(idxp), tempPtrP)
+                  temp:fill(tempIdxr(idxm), tempPtrM)
+                  gradT = gradT + (tempPtrP[c] - tempPtrM[c])
                end
-            elseif ndim==3 then
-               local subIterDirs = {{2,3}, {1,3}, {1,2}}
-               for d=1,ndim do  -- Gradient direction.
-                  fluidBufPtr[d+1] = 0
+               bufPtr[d] = gradT * 0.5 / grid:dx(d) 
+            end
+         elseif ndim==3 then
+            local subIterDirs = {{2,3}, {1,3}, {1,2}}
+            for d=1,ndim do  -- Gradient direction.
+               local gradT = 0  -- Grad(T) along this direction.
 
-                  idx:copyInto(idxp)
-                  idx:copyInto(idxm)
-                  idxp[d] = idx[d]
-                  idxm[d] = idx[d]-1
+               idx:copyInto(idxp)
+               idx:copyInto(idxm)
+               idxp[d] = idx[d]
+               idxm[d] = idx[d]-1
 
-                  -- Add contributions from cell-center values of cells sharing
-                  -- this corner.
-                  local i1 = subIterDirs[d][1]
-                  local i2 = subIterDirs[d][2]
-                  for _,commonShift1 in ipairs({-1, 0}) do
-                     for _,commonShift2 in ipairs({-1, 0}) do
-                        idxp[i1] = idx[i1] + commonShift1
-                        idxm[i1] = idx[i1] + commonShift1
-                        idxp[i2] = idx[i2] + commonShift2
-                        idxm[i2] = idx[i2] + commonShift2
-                        fluidBuf:fill(fluidBufIdxr(idxp), fluidBufPtrP)
-                        fluidBuf:fill(fluidBufIdxr(idxm), fluidBufPtrM)
-                        fluidBufPtr[d+1] = fluidBufPtr[d+1] +
-                                           (fluidBufPtrP[5] - fluidBufPtrM[5])
-                     end
+               -- Add contributions from cell-center values of cells sharing
+               -- this corner.
+               local d1 = subIterDirs[d][1]
+               local d2 = subIterDirs[d][2]
+               for _,commonShift1 in ipairs({-1, 0}) do
+                  for _,commonShift2 in ipairs({-1, 0}) do
+                     idxp[d1] = idx[d1] + commonShift1
+                     idxm[d1] = idx[d1] + commonShift1
+                     idxp[d2] = idx[d2] + commonShift2
+                     idxm[d2] = idx[d2] + commonShift2
+                     temp:fill(tempIdxr(idxp), tempPtrP)
+                     temp:fill(tempIdxr(idxm), tempPtrM)
+                     gradT = gradT + (tempPtrP[c] - tempPtrM[c])
                   end
-                  fluidBufPtr[d+1] = fluidBufPtr[d+1] * 0.25 / grid:dx(d) 
                end
-            end -- Loop over ndim==1,2,3 ends.
-         end -- Node-center grad(T) computation ends.
+               bufPtr[d] = gradT * 0.25 / grid:dx(d) 
+            end -- ndim==3 ends.
+         end -- Loop over ndim==1,2,3 ends.
+      end -- Node-center grad(T) computation ends.
 
-         -- Compute q on nodes (cell corners).
-         -- Note that fluid values and fluidBuf[5] T values are at cell centers,
-         -- fluidBuf grad(T) values and heatFlux values are at cell corners.
-         for idx in localExt1Range:rowMajorIter() do
-            -- Compute B field, n and T (for kappa) at cell corners.
-            -- The value at the i-th node is defined as an average of values at
-            -- centers of all cells sharing this node.
-            local bx, by, bz = 0, 0, 0
-            local n = 0
-            local T = 0
+      -- Compute q on nodes (cell corners).
+      for idx in localNodeRange:rowMajorIter() do
+         -- Compute B field at cell corners.
+         -- The value at the i-th node is defined as an average of values at
+         -- centers of all cells sharing this node.
+         local bx, by, bz = 0, 0, 0
 
-            local scale = 1
-            local xshifts = {-1, 0}
-            local yshifts = ndim>1 and {-1, 0} or {}
-            local zshifts = ndim>2 and {-1, 0} or {}
-            for _,zshift in ipairs(zshifts) do
-               for _,yshift in ipairs(yshifts) do
-                  for _,xshift in ipairs(xshifts) do
-                     idx:copyInto(idxp)
-                     if ndim>2 then idxp[3] = idx[3]+zshift end
-                     if ndim>1 then idxp[2] = idx[2]+yshift end
-                     idxp[1] = idx[1]+xshift
+         local nPts = 0
+         local xshifts = {-1, 0}
+         local yshifts = ndim>1 and {-1, 0} or {-1}
+         local zshifts = ndim>2 and {-1, 0} or {-1}
+         for _,zshift in ipairs(zshifts) do
+            for _,yshift in ipairs(yshifts) do
+               for _,xshift in ipairs(xshifts) do
+                  idx:copyInto(idxp)
+                  if ndim>2 then idxp[3] = idx[3]+zshift end
+                  if ndim>1 then idxp[2] = idx[2]+yshift end
+                  idxp[1] = idx[1]+xshift
 
-                     emf:fill(emfIdxr(idxp), emfPtr)
-                     bx = bx + emfPtr[4]
-                     by = by + emfPtr[5]
-                     bz = bz + emfPtr[6]
+                  emf:fill(emfIdxr(idxp), emfPtr)
+                  bx = bx + emfPtr[4]
+                  by = by + emfPtr[5]
+                  bz = bz + emfPtr[6]
 
-                     fluid:fill(fluidIdxr(idxp), fluidPtr)
-                     n = n + fluidPtr[1] / mass
-
-                     -- T values are stored at cell-centers.
-                     fluidBuf:fill(fluidBufIdxr(idxp), fluidBufPtr)
-                     T = T + fluidBufPtr[5]
-
-                     scale = scale + 1
-                  end
+                  nPts = nPts + 1
                end
             end
-            bx = bx / scale
-            by = by / scale
-            bz = bz / scale
-            n = n / scale
-            T = T / scale
+         end
+         bx = bx / nPts
+         by = by / nPts
+         bz = bz / nPts
 
-            local bmag = math.sqrt(bx*bx + by*by + bz*bz)
-            bx = bx / bmag
-            by = by / bmag
-            bz = bz / bmag
-            assert(bmag>0, "Zero B field detected!")
+         local bmag = math.sqrt(bx*bx + by*by + bz*bz)
+         bx = bx / bmag
+         by = by / bmag
+         bz = bz / bmag
+         assert(bmag>0, "Zero B field detected!")
 
-            -- Compute gradParaT and gradPerpT at cell corners.
-            fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
-            local bDotGradT = bx*fluidBufPtr[2] +
-                              by*fluidBufPtr[3] +
-                              bz*fluidBufPtr[4]
+         -- Compute gradParaT and gradPerpT at cell corners.
+         buf:fill(bufIdxr(idx), bufPtr)
+         local bDotGradT = bx*bufPtr[1] + by*bufPtr[2] + bz*bufPtr[3]
 
-            local gradParaTx = bx * bDotGradT
-            local gradParaTy = by * bDotGradT
-            local gradParaTz = bz * bDotGradT
+         local gradParaTx = bx * bDotGradT
+         local gradParaTy = by * bDotGradT
+         local gradParaTz = bz * bDotGradT
 
-            gradPerpTx = fluidBufPtr[2] - gradParaTx
-            gradPerpTy = fluidBufPtr[3] - gradParaTy
-            gradPerpTz = fluidBufPtr[4] - gradParaTz
+         gradPerpTx = bufPtr[1] - gradParaTx
+         gradPerpTy = bufPtr[2] - gradParaTy
+         gradPerpTz = bufPtr[3] - gradParaTz
 
-            -- Compute kappaPara and kappaPerp at cell corners.
-            -- Compute heat flux at cell corners.
-            heatFlux:fill(heatFluxIdxr(idx), heatFluxPtr)
+         buf:fill(bufIdxr(idx), bufPtr)
 
-            -- TODO: Calculate tau.
-            local tau = self._tau[s]
-            local Omega = math.abs(charge*bmag)/mass
-            -- TODO Provide constant coefficients.
-            local kappaPara = -n*T*tau/mass
-            local kappaPerp = -n*T*tau/mass/(Omega*tau)^2
+         bufPtr[1] = - kappaPara*gradParaTx - kappaPerp*gradPerpTx
+         bufPtr[2] = - kappaPara*gradParaTy - kappaPerp*gradPerpTy
+         bufPtr[3] = - kappaPara*gradParaTz - kappaPerp*gradPerpTz
+      end  -- Node-center q computation ends.
 
-            heatFluxPtr[1] = kappaPara*gradParaTx + kappaPerp*gradPerpTx
-            heatFluxPtr[2] = kappaPara*gradParaTy + kappaPerp*gradPerpTy
-            heatFluxPtr[3] = kappaPara*gradParaTz + kappaPerp*gradPerpTz
-         end  -- Node-center q computation ends.
+      -- Compute div(q) at cell centers.
+      for idx in localRange:rowMajorIter() do
+         buf:fill(bufIdxr(idx), bufPtr)
+         local divq = 0
 
-         -- Compute div(q) at cell centers.
-         for idx in localRange:rowMajorIter() do
-            local divq = 0
-            fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
-
-            if ndim==1 then
-               local d = 1
+         if ndim==1 then
+            local d = 1
+            idx:copyInto(idxp)
+            idx:copyInto(idxm)
+            idxp[d] = idx[d]+1
+            idxm[d] = idx[d]
+            buf:fill(bufIdxr(idxp), bufPtrP)
+            buf:fill(bufIdxr(idxm), bufPtrM)
+            divq = divq + (bufPtrP[d]-bufPtrM[d]) / grid:dx(d)
+         elseif ndim==2 then
+            local subIterDirs = {{2}, {1}}
+            for d=1,ndim do  -- Gradient direction.
                idx:copyInto(idxp)
                idx:copyInto(idxm)
                idxp[d] = idx[d]+1
                idxm[d] = idx[d]
-               fluidBuf:fill(fluidBufIdxr(idxp), fluidBufPtrP)
-               fluidBuf:fill(fluidBufIdxr(idxm), fluidBufPtrM)
-               divq = divq + (fluidBufPtrP[d+1]-fluidBufPtrM[d+1]) / grid:dx(d)
-            elseif ndim==2 then
-               local subIterDirs = {{2}, {1}}
-               for d=1,ndim do  -- Gradient direction.
-                  idx:copyInto(idxp)
-                  idx:copyInto(idxm)
-                  idxp[d] = idx[d]+1
-                  idxm[d] = idx[d]
 
-                  -- Add contributions from node-center values.
-                  local i1 = subIterDirs[d][1]
-                  for _,commonShift1 in ipairs({0, 1}) do
-                     idxp[i1] = idx[i1] + commonShift1
-                     idxm[i1] = idx[i1] + commonShift1
-                     fluidBuf:fill(fluidBufIdxr(idxp), fluidBufPtrP)
-                     fluidBuf:fill(fluidBufIdxr(idxm), fluidBufPtrM)
-                     divq = divq +
-                            (fluidBufPtrP[d+1]-fluidBufPtrM[d+1])*0.5/grid:dx(d)
+               -- Add contributions from node-center values.
+               local d1 = subIterDirs[d][1]
+               for _,commonShift1 in ipairs({0, 1}) do
+                  idxp[d1] = idx[d1] + commonShift1
+                  idxm[d1] = idx[d1] + commonShift1
+                  buf:fill(bufIdxr(idxp), bufPtrP)
+                  buf:fill(bufIdxr(idxm), bufPtrM)
+                  divq = divq + (bufPtrP[d]-bufPtrM[d])*0.5/grid:dx(d)
+               end
+            end
+         elseif ndim==3 then
+            local subIterDirs = {{2,3}, {1,3}, {1,2}}
+            for d=1,ndim do  -- Gradient direction.
+               idx:copyInto(idxp)
+               idx:copyInto(idxm)
+               idxp[d] = idx[d]+1
+               idxm[d] = idx[d]
+
+               -- Add contributions from node-center values.
+               local d1 = subIterDirs[d][1]
+               local d2 = subIterDirs[d][2]
+               for _,commonShift1 in ipairs({0, 1}) do
+                  for _,commonShift2 in ipairs({0, 1}) do
+                     idxp[d1] = idx[d1] + commonShift1
+                     idxm[d1] = idx[d1] + commonShift1
+                     idxp[d2] = idx[d2] + commonShift2
+                     idxm[d2] = idx[d2] + commonShift2
+                     buf:fill(bufIdxr(idxp), bufPtrP)
+                     buf:fill(bufIdxr(idxm), bufPtrM)
+                     divq = divq + (bufPtrP[d]-bufPtrM[d])*0.25/grid:dx(d)
                   end
                end
-            elseif ndim==3 then
-               local subIterDirs = {{2,3}, {1,3}, {1,2}}
-               for d=1,ndim do  -- Gradient direction.
-                  idx:copyInto(idxp)
-                  idx:copyInto(idxm)
-                  idxp[d] = idx[d]+1
-                  idxm[d] = idx[d]
+            end -- Loop over gradient directions.
+         end -- Loop over ndim==1,2,3 ends.
+         bufPtr[4] = divq 
+      end -- div(q) computation ends.
 
-                  -- Add contributions from node-center values.
-                  local i1 = subIterDirs[d][1]
-                  local i2 = subIterDirs[d][2]
-                  for _,commonShift1 in ipairs({0, 1}) do
-                     for _,commonShift2 in ipairs({0, 1}) do
-                        idxp[i1] = idx[i1] + commonShift1
-                        idxm[i1] = idx[i1] + commonShift1
-                        idxp[i2] = idx[i2] + commonShift2
-                        idxm[i2] = idx[i2] + commonShift2
-                        fluidBuf:fill(fluidBufIdxr(idxp), fluidBufPtrP)
-                        fluidBuf:fill(fluidBufIdxr(idxm), fluidBufPtrM)
-                        divq = divq +
-                               (fluidBufPtrP[5]-fluidBufPtrM[5])*0.25/grid:dx(d)
-                     end
-                  end
-               end
-            end -- Loop over ndim==1,2,3 ends.
-            fluidBufPtr[5] = divq 
-         end -- div(q) computation ends.
-      end  -- timeStepper handling in divq calculation ends.
-   end  -- Loop over species ends.
+   end  -- timeStepper handling in divq calculation ends.
 
    -- Add div(q) to energy.
-   for s = 1, nFluids do
-      local fluid = outFld[s]
-      local fluidIdxr = fluid:genIndexer()
-      local fluidPtr = fluid:get(1)
-
-      local fluidBuf = inFld[s]
-      local fluidBufIdxr = fluidBuf:genIndexer()
-      local fluidBufPtr = fluidBuf:get(1)
-
-      local localRange = fluid:localRange()
-
-      for idx in localRange:rowMajorIter() do
-         fluid:fill(fluidIdxr(idx), fluidPtr)
-         fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
-         fluidPtr[5] = fluidPtr[5] - fluidBufPtr[5]
-      end
+   for idx in localRange:rowMajorIter() do
+      temp:fill(tempIdxr(idx), tempPtr)
+      buf:fill(bufIdxr(idx), bufPtr)
+      tempPtr[1] = tempPtr[1] - dt * bufPtr[4]
    end
 
    return status, dtSuggested
