@@ -100,10 +100,9 @@ function BraginskiiHeatConduction:_forwardEuler(
       local mass = self._mass[s]
       local charge = self._charge[s]
 
-      local localExtRange = fluid:localExtRange()
       local localRange = fluid:localRange()
-      local localExt1Range = localRange:extend(1, 1)
 
+      local localExtRange = fluid:localExtRange()
       -- Compute temperature in internal and ghost cell centers.
       for idx in localExtRange:rowMajorIter() do
          fluid:fill(fluidIdxr(idx), fluidPtr)
@@ -114,6 +113,7 @@ function BraginskiiHeatConduction:_forwardEuler(
 
       if self._timeStepper=='two-step-cell-center' then
 
+            local localExt1Range = localRange:extend(1, 1)
             -- Comptue grad(T) in internal + one ghost cell centers.
             for idx in localExt1Range:rowMajorIter() do
                for d = 1, ndim do
@@ -271,7 +271,8 @@ function BraginskiiHeatConduction:_forwardEuler(
          -- Compute grad(T) on nodes (cell-corners).
          -- The i-th node here is defined as the lower corner of the i-th cell,
          -- therefore the node's adjacent cells have cell indices i-1 and i.
-         for idx in localExt1Range:rowMajorIter() do
+         local localNodeRange = localRange:extend(0,1)
+         for idx in localNodeRange:rowMajorIter() do
             fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
 
             if ndim==1 then
@@ -340,7 +341,7 @@ function BraginskiiHeatConduction:_forwardEuler(
          -- Compute q on nodes (cell corners).
          -- Note that fluid values and fluidBuf[5] T values are at cell centers,
          -- fluidBuf grad(T) values and heatFlux values are at cell corners.
-         for idx in localExt1Range:rowMajorIter() do
+         for idx in localNodeRange:rowMajorIter() do
             -- Compute B field, n and T (for kappa) at cell corners.
             -- The value at the i-th node is defined as an average of values at
             -- centers of all cells sharing this node.
