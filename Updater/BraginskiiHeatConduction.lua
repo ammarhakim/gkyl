@@ -80,42 +80,36 @@ function BraginskiiHeatConduction:_forwardEuler(
    local emfIdxr = emf:genIndexer()
    local emfPtr = emf:get(1)
 
-   local heatFlux = inFld[nFluids+1]  -- This is really emfBuf.
-   local heatFluxIdxr = heatFlux:genIndexer()
-   local heatFluxPtr = heatFlux:get(1)
-   local heatFluxPtrP = heatFlux:get(1)
-   local heatFluxPtrM = heatFlux:get(1)
-
    for s = 1, nFluids do
 
-      local fluid = outFld[s]
-      local fluidIdxr = fluid:genIndexer()
-      local fluidPtr = fluid:get(1)
+      local fld = outFld[s]
+      local fldIdxr = fld:genIndexer()
+      local fldPtr = fld:get(1)
 
-      local fluidBuf = inFld[s]
-      local fluidBufIdxr = fluidBuf:genIndexer()
-      local fluidBufPtr = fluidBuf:get(1)
-      local fluidBufPtrP = fluidBuf:get(1)
-      local fluidBufPtrM = fluidBuf:get(1)
+      local buf = inFld[s]
+      local bufIdxr = buf:genIndexer()
+      local bufPtr = buf:get(1)
+      local bufPtrP = buf:get(1)
+      local bufPtrM = buf:get(1)
 
       local mass = self._mass[s]
       local charge = self._charge[s]
 
-      local localRange = fluid:localRange()
+      local localRange = fld:localRange()
 
       -- Compute temperature in internal and ghost cell centers.
-      local localExtRange = fluid:localExtRange()
+      local localExtRange = fld:localExtRange()
       for idx in localExtRange:rowMajorIter() do
-         fluid:fill(fluidIdxr(idx), fluidPtr)
-         fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
-         fluidBufPtr[5] = temperature(fluidPtr, gasGamma, mass)
+         fld:fill(fldIdxr(idx), fldPtr)
+         buf:fill(bufIdxr(idx), bufPtr)
+         bufPtr[4] = temperature(fldPtr, gasGamma, mass)
       end
 
       -- Different algorithms to compute q and div(q).
       if self._timeStepper=='two-step-cell-center' then
 
-         local localExt1Range = localRange:extend(1, 1)
          -- Comptue grad(T) in internal + one ghost cell centers.
+         local localExt1Range = localRange:extend(1, 1)
          for idx in localExt1Range:rowMajorIter() do
             for d = 1, ndim do
                idx:copyInto(idxp)
@@ -123,23 +117,21 @@ function BraginskiiHeatConduction:_forwardEuler(
                idxp[d] = idx[d]+1
                idxm[d] = idx[d]-1
 
-               fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
-               fluidBuf:fill(fluidBufIdxr(idxp), fluidBufPtrP)
-               fluidBuf:fill(fluidBufIdxr(idxm), fluidBufPtrM)
-               fluidBufPtr[d+1] = (fluidBufPtrP[5] - fluidBufPtrM[5]) *
-                                  0.5 / grid:dx(d)
+               buf:fill(bufIdxr(idx), bufPtr)
+               buf:fill(bufIdxr(idxp), bufPtrP)
+               buf:fill(bufIdxr(idxm), bufPtrM)
+               bufPtr[d] = (bufPtrP[4] - bufPtrM[4]) * 0.5 / grid:dx(d)
             end
          end
 
          -- Compute q = q_para + q_perp at cell centers.
          -- q_para = kappa_para*gradPara(T), q_perp = kappa_perp*gradPerp(T).
-         -- For the electron fluid in a two-fluid plasma, also add
+         -- For the electron fld in a two-fld plasma, also add
          -- -0.71*pe*dVpara.
          for idx in localExt1Range:rowMajorIter() do
             emf:fill(emfIdxr(idx), emfPtr)
-            fluid:fill(fluidIdxr(idx), fluidPtr)
-            fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
-            heatFlux:fill(heatFluxIdxr(idx), heatFluxPtr)
+            fld:fill(fldIdxr(idx), fldPtr)
+            buf:fill(bufIdxr(idx), bufPtr)
 
             local bx = emfPtr[4]
             local by = emfPtr[5]
@@ -150,21 +142,8 @@ function BraginskiiHeatConduction:_forwardEuler(
             bz = bz / bmag
             assert(bmag>0, "Zero B field detected!")
 
-            local bDotGradT = bx*fluidBufPtr[2] +
-                              by*fluidBufPtr[3] +
-                              bz*fluidBufPtr[4]
-
-            local gradParaTx = bx * bDotGradT
-            local gradParaTy = by * bDotGradT
-            local gradParaTz = bz * bDotGradT
-
-            gradPerpTx = fluidBufPtr[2] - gradParaTx
-            gradPerpTy = fluidBufPtr[3] - gradParaTy
-            gradPerpTz = fluidBufPtr[4] - gradParaTz
-
-            local n = fluidPtr[1] / mass
-            local T = fluidBufPtr[5]
-
+            local n = fldPtr[1] / mass
+            local T = bufPtr[4]
             -- TODO: Calculate tau.
             local tau = self._tau[s]
             local Omega = math.abs(charge*bmag)/mass
@@ -172,13 +151,29 @@ function BraginskiiHeatConduction:_forwardEuler(
             local kappaPara = -n*T*tau/mass
             local kappaPerp = -n*T*tau/mass/(Omega*tau)^2
 
-            heatFluxPtr[1] = kappaPara*gradParaTx + kappaPerp*gradPerpTx
-            heatFluxPtr[2] = kappaPara*gradParaTy + kappaPerp*gradPerpTy
-            heatFluxPtr[3] = kappaPara*gradParaTz + kappaPerp*gradPerpTz
+            local bDotGradT = bx*bufPtr[1]
+            if ndim>1 then bDotGradT = bDotGradT + by*bufPtr[2] end 
+            if ndim>2 then bDotGradT = bDotGradT + bz*bufPtr[3] end 
+
+            local gradParaTx = bx * bDotGradT
+            local gradPerpTx = bufPtr[1] - gradParaTx
+            bufPtr[1] = kappaPara*gradParaTx + kappaPerp*gradPerpTx
+
+            if ndim>1 then
+               local gradParaTy = by * bDotGradT
+               local gradPerpTy = bufPtr[2] - gradParaTy
+               bufPtr[2] = kappaPara*gradParaTy + kappaPerp*gradPerpTy
+            end
+
+            if ndim>2 then
+               local gradParaTz = bz * bDotGradT
+               local gradPerpTz = bufPtr[3] - gradParaTz
+               bufPtr[3] = kappaPara*gradParaTz + kappaPerp*gradPerpTz
+            end
 
             -- FIXME: Nicer handling of terms that involve other species.
             if nFluids==2 and charge<0 then
-               local elcPtr = fluidPtr
+               local elcPtr = fldPtr
                local ion = outFld[2]
                local ionIdxr = ion:genIndexer()
                local ionPtr = ion:get(1)
@@ -193,19 +188,15 @@ function BraginskiiHeatConduction:_forwardEuler(
                local dVparz = bz * bDotDV
 
                local pr = n * T
-               heatFluxPtr[1] = heatFluxPtr[1] + 0.71*pr*dVparx
-               heatFluxPtr[2] = heatFluxPtr[2] + 0.71*pr*dVpary
-               heatFluxPtr[3] = heatFluxPtr[3] + 0.71*pr*dVparz
+               bufPtr[1] = bufPtr[1] + 0.71*pr*dVparx
+               bufPtr[2] = bufPtr[2] + 0.71*pr*dVpary
+               bufPtr[3] = bufPtr[3] + 0.71*pr*dVparz
             end
          end
 
          -- Compute div(q) at cell-centers using cell-center q values.
          if self._coordinate=="cartesian" then
             for idx in localRange:rowMajorIter() do
-               fluid:fill(fluidIdxr(idx), fluidPtr)
-               fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
-               heatFlux:fill(heatFluxIdxr(idx), heatFluxPtr)
-
                local divq = 0
                for d = 1, ndim do
                   idx:copyInto(idxp)
@@ -213,24 +204,20 @@ function BraginskiiHeatConduction:_forwardEuler(
                   idxp[d] = idx[d]+1
                   idxm[d] = idx[d]-1
 
-                  heatFlux:fill(heatFluxIdxr(idxp), heatFluxPtrP)
-                  heatFlux:fill(heatFluxIdxr(idxm), heatFluxPtrM)
+                  buf:fill(bufIdxr(idxp), bufPtrP)
+                  buf:fill(bufIdxr(idxm), bufPtrM)
 
-                  divq = divq + (heatFluxPtrP[d] - heatFluxPtrM[d]) *
-                         0.5 / grid:dx(d)
+                  divq = divq + (bufPtrP[d]-bufPtrM[d])*0.5/grid:dx(d)
                end
 
-              fluidBufPtr[5] = divq
+               buf:fill(bufIdxr(idx), bufPtr)
+               bufPtr[5] = divq
             end
          elseif self._coordinate=="axisymmetric" then
             local xc = Lin.Vec(ndim)
             local xp = Lin.Vec(ndim)
             local xm = Lin.Vec(ndim)
             for idx in localRange:rowMajorIter() do
-               fluid:fill(fluidIdxr(idx), fluidPtr)
-               fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
-               heatFlux:fill(heatFluxIdxr(idx), heatFluxPtr)
-
                local divq = 0
                for _,d in ipairs({1,3}) do
                   idx:copyInto(idxp)
@@ -238,8 +225,8 @@ function BraginskiiHeatConduction:_forwardEuler(
                   idxp[d] = idx[d]+1
                   idxm[d] = idx[d]-1
 
-                  heatFlux:fill(heatFluxIdxr(idxp), heatFluxPtrP)
-                  heatFlux:fill(heatFluxIdxr(idxm), heatFluxPtrM)
+                  buf:fill(bufIdxr(idxp), bufPtrP)
+                  buf:fill(bufIdxr(idxm), bufPtrM)
 
                   if d==1 then  -- R
                      grid:setIndex(idx)
@@ -252,19 +239,17 @@ function BraginskiiHeatConduction:_forwardEuler(
                      local rp = xp[1]
                      local rm = xm[1]
 
-                     divq = divq +
-                            (rp*heatFluxPtrP[d]-rm*heatFluxPtrM[d]) *
-                            0.5/grid:dx(d)/r
+                     divq = divq+(rp*bufPtrP[d]-rm*bufPtrM[d])*0.5/grid:dx(d)/r
                   elseif d==2 then  -- Theta
                   elseif d==3 then  -- Z
-                     divq = divq +
-                            (heatFluxPtrP[d]-heatFluxPtrM[d])*0.5/grid:dx(d)
+                     divq = divq + (bufPtrP[d]-bufPtrM[d])*0.5/grid:dx(d)
                   else
                      assert(false)
                   end
                end
 
-              fluidBufPtr[5] = divq
+               buf:fill(bufIdxr(idx), bufPtr)
+               bufPtr[5] = divq
             end
          end
 
@@ -275,7 +260,7 @@ function BraginskiiHeatConduction:_forwardEuler(
          -- therefore the node's adjacent cells have cell indices i-1 and i.
          local localNodeRange = localRange:extend(0,1)
          for idx in localNodeRange:rowMajorIter() do
-            fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
+            buf:fill(bufIdxr(idx), bufPtr)
 
             if ndim==1 then
                local d = 1
@@ -283,13 +268,13 @@ function BraginskiiHeatConduction:_forwardEuler(
                idx:copyInto(idxm)
                idxp[d] = idx[d]
                idxm[d] = idx[d]-1
-               fluidBuf:fill(fluidBufIdxr(idxp), fluidBufPtrP)
-               fluidBuf:fill(fluidBufIdxr(idxm), fluidBufPtrM)
-               fluidBufPtr[d+1] = (fluidBufPtrP[5] - fluidBufPtrM[5]) / grid:dx(d)
+               buf:fill(bufIdxr(idxp), bufPtrP)
+               buf:fill(bufIdxr(idxm), bufPtrM)
+               bufPtr[d] = (bufPtrP[4] - bufPtrM[4]) / grid:dx(d)
             elseif ndim==2 then
                local subIterDirs = {{2}, {1}}
                for d=1,ndim do  -- Gradient direction.
-                  fluidBufPtr[d+1] = 0
+                  local gradT = 0
 
                   idx:copyInto(idxp)
                   idx:copyInto(idxm)
@@ -302,17 +287,16 @@ function BraginskiiHeatConduction:_forwardEuler(
                   for _,commonShift1 in ipairs({-1, 0}) do
                      idxp[i1] = idx[i1] + commonShift1
                      idxm[i1] = idx[i1] + commonShift1
-                     fluidBuf:fill(fluidBufIdxr(idxp), fluidBufPtrP)
-                     fluidBuf:fill(fluidBufIdxr(idxm), fluidBufPtrM)
-                     fluidBufPtr[d+1] = fluidBufPtr[d+1] +
-                                        (fluidBufPtrP[5] - fluidBufPtrM[5])
+                     buf:fill(bufIdxr(idxp), bufPtrP)
+                     buf:fill(bufIdxr(idxm), bufPtrM)
+                     gradT = gradT + (bufPtrP[4] - bufPtrM[4])
                   end
-                  fluidBufPtr[d+1] = fluidBufPtr[d+1] * 0.5 / grid:dx(d) 
+                  bufPtr[d] = gradT * 0.5 / grid:dx(d) 
                end
             elseif ndim==3 then
                local subIterDirs = {{2,3}, {1,3}, {1,2}}
                for d=1,ndim do  -- Gradient direction.
-                  fluidBufPtr[d+1] = 0
+                  local gradT = 0
 
                   idx:copyInto(idxp)
                   idx:copyInto(idxm)
@@ -329,20 +313,19 @@ function BraginskiiHeatConduction:_forwardEuler(
                         idxm[i1] = idx[i1] + commonShift1
                         idxp[i2] = idx[i2] + commonShift2
                         idxm[i2] = idx[i2] + commonShift2
-                        fluidBuf:fill(fluidBufIdxr(idxp), fluidBufPtrP)
-                        fluidBuf:fill(fluidBufIdxr(idxm), fluidBufPtrM)
-                        fluidBufPtr[d+1] = fluidBufPtr[d+1] +
-                                           (fluidBufPtrP[5] - fluidBufPtrM[5])
+                        buf:fill(bufIdxr(idxp), bufPtrP)
+                        buf:fill(bufIdxr(idxm), bufPtrM)
+                        gradT = gradT + (bufPtrP[4] - bufPtrM[4])
                      end
                   end
-                  fluidBufPtr[d+1] = fluidBufPtr[d+1] * 0.25 / grid:dx(d) 
+                  bufPtr[d] = gradT * 0.25 / grid:dx(d) 
                end
             end -- Loop over ndim==1,2,3 ends.
          end -- Node-center grad(T) computation ends.
 
          -- Compute q on nodes (cell corners).
-         -- Note that fluid values and fluidBuf[5] T values are at cell centers,
-         -- fluidBuf grad(T) values and heatFlux values are at cell corners.
+         -- Note that fld values and buf[4] T values are at cell centers,
+         -- buf grad(T) values and heat flux values are at cell corners.
          for idx in localNodeRange:rowMajorIter() do
             -- Compute B field, n and T (for kappa) at cell corners.
             -- The value at the i-th node is defined as an average of values at
@@ -351,7 +334,7 @@ function BraginskiiHeatConduction:_forwardEuler(
             local n = 0
             local T = 0
 
-            local scale = 1
+            local nPts = 1
             local xshifts = {-1, 0}
             local yshifts = ndim>1 and {-1, 0} or {}
             local zshifts = ndim>2 and {-1, 0} or {}
@@ -368,22 +351,22 @@ function BraginskiiHeatConduction:_forwardEuler(
                      by = by + emfPtr[5]
                      bz = bz + emfPtr[6]
 
-                     fluid:fill(fluidIdxr(idxp), fluidPtr)
-                     n = n + fluidPtr[1] / mass
+                     fld:fill(fldIdxr(idxp), fldPtr)
+                     n = n + fldPtr[1] / mass
 
                      -- T values are stored at cell-centers.
-                     fluidBuf:fill(fluidBufIdxr(idxp), fluidBufPtr)
-                     T = T + fluidBufPtr[5]
+                     buf:fill(bufIdxr(idxp), bufPtr)
+                     T = T + bufPtr[4]
 
-                     scale = scale + 1
+                     nPts = nPts + 1
                   end
                end
             end
-            bx = bx / scale
-            by = by / scale
-            bz = bz / scale
-            n = n / scale
-            T = T / scale
+            bx = bx / nPts
+            by = by / nPts
+            bz = bz / nPts
+            n = n / nPts
+            T = T / nPts
 
             local bmag = math.sqrt(bx*bx + by*by + bz*bz)
             bx = bx / bmag
@@ -391,24 +374,7 @@ function BraginskiiHeatConduction:_forwardEuler(
             bz = bz / bmag
             assert(bmag>0, "Zero B field detected!")
 
-            -- Compute gradParaT and gradPerpT at cell corners.
-            fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
-            local bDotGradT = bx*fluidBufPtr[2] +
-                              by*fluidBufPtr[3] +
-                              bz*fluidBufPtr[4]
-
-            local gradParaTx = bx * bDotGradT
-            local gradParaTy = by * bDotGradT
-            local gradParaTz = bz * bDotGradT
-
-            gradPerpTx = fluidBufPtr[2] - gradParaTx
-            gradPerpTy = fluidBufPtr[3] - gradParaTy
-            gradPerpTz = fluidBufPtr[4] - gradParaTz
-
             -- Compute kappaPara and kappaPerp at cell corners.
-            -- Compute heat flux at cell corners.
-            heatFlux:fill(heatFluxIdxr(idx), heatFluxPtr)
-
             -- TODO: Calculate tau.
             local tau = self._tau[s]
             local Omega = math.abs(charge*bmag)/mass
@@ -416,25 +382,43 @@ function BraginskiiHeatConduction:_forwardEuler(
             local kappaPara = -n*T*tau/mass
             local kappaPerp = -n*T*tau/mass/(Omega*tau)^2
 
-            heatFluxPtr[1] = kappaPara*gradParaTx + kappaPerp*gradPerpTx
-            heatFluxPtr[2] = kappaPara*gradParaTy + kappaPerp*gradPerpTy
-            heatFluxPtr[3] = kappaPara*gradParaTz + kappaPerp*gradPerpTz
+            -- Compute gradParaT and gradPerpT at cell corners.
+            buf:fill(bufIdxr(idx), bufPtr)
+            local bDotGradT = bx*bufPtr[1]
+            if ndim>1 then bDotGradT = bDotGradT + by*bufPtr[2] end 
+            if ndim>2 then bDotGradT = bDotGradT + bz*bufPtr[3] end 
+
+            -- Compute heat flux at cell corners.
+            local gradParaTx = bx * bDotGradT
+            gradPerpTx = bufPtr[1] - gradParaTx
+            bufPtr[1] = kappaPara*gradParaTx + kappaPerp*gradPerpTx
+
+            if ndim>1 then
+               local gradParaTy = by * bDotGradT
+               gradPerpTy = bufPtr[2] - gradParaTy
+               bufPtr[2] = kappaPara*gradParaTy + kappaPerp*gradPerpTy
+            end
+
+            if ndim>2 then
+               local gradParaTz = bz * bDotGradT
+               gradPerpTz = bufPtr[3] - gradParaTz
+               bufPtr[3] = kappaPara*gradParaTz + kappaPerp*gradPerpTz
+            end
          end  -- Node-center q computation ends.
 
          -- Compute div(q) at cell centers.
          for idx in localRange:rowMajorIter() do
-            local divq = 0
-            fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
 
+            local divq = 0
             if ndim==1 then
                local d = 1
                idx:copyInto(idxp)
                idx:copyInto(idxm)
                idxp[d] = idx[d]+1
                idxm[d] = idx[d]
-               fluidBuf:fill(fluidBufIdxr(idxp), fluidBufPtrP)
-               fluidBuf:fill(fluidBufIdxr(idxm), fluidBufPtrM)
-               divq = divq + (fluidBufPtrP[d+1]-fluidBufPtrM[d+1]) / grid:dx(d)
+               buf:fill(bufIdxr(idxp), bufPtrP)
+               buf:fill(bufIdxr(idxm), bufPtrM)
+               divq = divq + (bufPtrP[d]-bufPtrM[d]) / grid:dx(d)
             elseif ndim==2 then
                local subIterDirs = {{2}, {1}}
                for d=1,ndim do  -- Gradient direction.
@@ -448,10 +432,9 @@ function BraginskiiHeatConduction:_forwardEuler(
                   for _,commonShift1 in ipairs({0, 1}) do
                      idxp[i1] = idx[i1] + commonShift1
                      idxm[i1] = idx[i1] + commonShift1
-                     fluidBuf:fill(fluidBufIdxr(idxp), fluidBufPtrP)
-                     fluidBuf:fill(fluidBufIdxr(idxm), fluidBufPtrM)
-                     divq = divq +
-                            (fluidBufPtrP[d+1]-fluidBufPtrM[d+1])*0.5/grid:dx(d)
+                     buf:fill(bufIdxr(idxp), bufPtrP)
+                     buf:fill(bufIdxr(idxm), bufPtrM)
+                     divq = divq + (bufPtrP[d]-bufPtrM[d])*0.5/grid:dx(d)
                   end
                end
             elseif ndim==3 then
@@ -471,15 +454,16 @@ function BraginskiiHeatConduction:_forwardEuler(
                         idxm[i1] = idx[i1] + commonShift1
                         idxp[i2] = idx[i2] + commonShift2
                         idxm[i2] = idx[i2] + commonShift2
-                        fluidBuf:fill(fluidBufIdxr(idxp), fluidBufPtrP)
-                        fluidBuf:fill(fluidBufIdxr(idxm), fluidBufPtrM)
-                        divq = divq +
-                               (fluidBufPtrP[5]-fluidBufPtrM[5])*0.25/grid:dx(d)
+                        buf:fill(bufIdxr(idxp), bufPtrP)
+                        buf:fill(bufIdxr(idxm), bufPtrM)
+                        divq = divq + (bufPtrP[d]-bufPtrM[d])*0.25/grid:dx(d)
                      end
                   end
                end
-            end -- Loop over ndim==1,2,3 ends.
-            fluidBufPtr[5] = divq 
+            end -- Different handling of 1d/2d/3d n div(q) computation ends.
+
+            buf:fill(bufIdxr(idx), bufPtr)
+            bufPtr[5] = divq 
          end -- div(q) computation ends.
 
       end  -- timeStepper handling in divq calculation ends.
@@ -488,20 +472,20 @@ function BraginskiiHeatConduction:_forwardEuler(
 
    -- Add div(q) to energy.
    for s = 1, nFluids do
-      local fluid = outFld[s]
-      local fluidIdxr = fluid:genIndexer()
-      local fluidPtr = fluid:get(1)
+      local fld = outFld[s]
+      local fldIdxr = fld:genIndexer()
+      local fldPtr = fld:get(1)
 
-      local fluidBuf = inFld[s]
-      local fluidBufIdxr = fluidBuf:genIndexer()
-      local fluidBufPtr = fluidBuf:get(1)
+      local buf = inFld[s]
+      local bufIdxr = buf:genIndexer()
+      local bufPtr = buf:get(1)
 
-      local localRange = fluid:localRange()
+      local localRange = fld:localRange()
 
       for idx in localRange:rowMajorIter() do
-         fluid:fill(fluidIdxr(idx), fluidPtr)
-         fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
-         fluidPtr[5] = fluidPtr[5] - fluidBufPtr[5]
+         fld:fill(fldIdxr(idx), fldPtr)
+         buf:fill(bufIdxr(idx), bufPtr)
+         fldPtr[5] = fldPtr[5] - bufPtr[5]
       end
    end
 
