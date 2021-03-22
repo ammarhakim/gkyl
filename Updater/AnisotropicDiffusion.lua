@@ -33,6 +33,7 @@ function AnisotropicDiffusion:init(tbl)
    self._kappaPerp = assert(tbl.kappaPerp, pfx.."Must provide 'kappaPerp'")
 
    self._component = tbl.component and tbl.component or 1
+   self._componentOutput = tbl.componentOutput and tbl.componentOutput or 4
 
    self._timeStepper = tbl.timeStepper~=nil and tbl.timeStepper or
                        "symmetric-node-center"
@@ -88,6 +89,7 @@ function AnisotropicDiffusion:_forwardEuler(
    end
 
    local c = self._component
+   local cOut = self._componentOutput
 
    if self._timeStepper=="symmetric-cell-center" then
 
@@ -159,7 +161,7 @@ function AnisotropicDiffusion:_forwardEuler(
          end
 
          buf:fill(bufIdxr(idx), bufPtr)
-         bufPtr[4] = divq
+         bufPtr[cOut] = divq
       end
 
    elseif self._timeStepper=="symmetric-node-center" then
@@ -345,7 +347,7 @@ function AnisotropicDiffusion:_forwardEuler(
                end
             end -- Loop over gradient directions.
          end -- Loop over ndim==1,2,3 ends.
-         bufPtr[4] = divq 
+         bufPtr[cOut] = divq 
       end -- div(q) computation ends.
 
    end  -- timeStepper handling in divq calculation ends.
@@ -354,7 +356,7 @@ function AnisotropicDiffusion:_forwardEuler(
    for idx in localRange:rowMajorIter() do
       temp:fill(tempIdxr(idx), tempPtr)
       buf:fill(bufIdxr(idx), bufPtr)
-      tempPtr[1] = tempPtr[1] - dt * bufPtr[4]
+      tempPtr[c] = tempPtr[c] - dt * bufPtr[cOut]
    end
 
    return status, dtSuggested
