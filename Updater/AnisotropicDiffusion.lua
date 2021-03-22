@@ -34,8 +34,10 @@ function AnisotropicDiffusion:init(tbl)
 
    self._component = tbl.component and tbl.component or 1
 
-   self._timeStepper = tbl.timeStepper~=nil and tbl.timeStepper or "node-center"
-   assert(self._timeStepper=="cell-center" or self._timeStepper=="node-center",
+   self._timeStepper = tbl.timeStepper~=nil and tbl.timeStepper or
+                       "symmetric-node-center"
+   assert(self._timeStepper=="symmetric-cell-center" or
+          self._timeStepper=="symmetric-node-center",
           pfx.."timeStepper '"..self._timeStepper.."' is not supported.")
 end
 
@@ -87,7 +89,7 @@ function AnisotropicDiffusion:_forwardEuler(
 
    local c = self._component
 
-   if self._timeStepper=='cell-center' then
+   if self._timeStepper=="symmetric-cell-center" then
 
       -- Comptue grad(T) in internal + one ghost cell centers.
       local localExt1Range = localRange:extend(1, 1)
@@ -160,7 +162,7 @@ function AnisotropicDiffusion:_forwardEuler(
          bufPtr[4] = divq
       end
 
-   elseif self._timeStepper=='node-center' then
+   elseif self._timeStepper=="symmetric-node-center" then
 
       -- Compute grad(T) on nodes (cell-corners).
       -- The i-th node here is defined as the lower corner of the i-th cell,
