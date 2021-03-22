@@ -23,4 +23,5 @@ return {
    "./vm-two-stream/rt-two-stream-p3.lua",
    "./vm-weibel/rt-weibel-1x2v-p3.lua",
    "./vm-weibel/rt-weibel-2x2v-p3.lua",
+   "./mom-axisymmetric/rt-phmaxwell-circulr-waveguide-TM.lua",
 }
