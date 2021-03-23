@@ -740,7 +740,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       for _, bc in ipairs(self.boundaryConditions) do
          bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)
 	 label = bc:label()
-	 self.bcGkM0fluxUpdater[label]:advance(tCurr, {bc:getBoundaryFluxFields()[outIdx]}, {self.bcGkM0fluxField[label]} )
+	 --self.bcGkM0fluxUpdater[label]:advance(tCurr, {bc:getBoundaryFluxFields()[outIdx]}, {self.bcGkM0fluxField[label]} )
       end
    end
 
