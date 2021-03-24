@@ -51,12 +51,6 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
    local idxp = Lin.IntVec(grid:ndim())
    local idxm = Lin.IntVec(grid:ndim())
 
-   local emf = outFld[nFluids+1]
-   local emfIdxr = emf:genIndexer()
-   local emfPtr = emf:get(1)
-   local emfPtrP = emf:get(1)
-   local emfPtrM = emf:get(1)
-
    -- Comptue grad_para(T) ain internal cells.
    for s = 1, nFluids do
       local fld = outFld[s]
@@ -86,8 +80,6 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                fld:fill(fldIdxr(idx), fldPtr)
                fld:fill(fldIdxr(idxp), fldPtrP)
                fld:fill(fldIdxr(idxm), fldPtrM)
-               emf:fill(emfIdxr(idxp), emfPtrP)
-               emf:fill(emfIdxr(idxm), emfPtrM)
 
                local eta = self._eta
                local etaP = self._eta
@@ -133,8 +125,6 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                fld:fill(fldIdxr(idx), fldPtr)
                fld:fill(fldIdxr(idxp), fldPtrP)
                fld:fill(fldIdxr(idxm), fldPtrM)
-               emf:fill(emfIdxr(idxp), emfPtrP)
-               emf:fill(emfIdxr(idxm), emfPtrM)
                local eta = self._eta
                local etaP = self._eta
                local etaM = self._eta
@@ -184,8 +174,6 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                fld:fill(fldIdxr(idx), fldPtr)
                fld:fill(fldIdxr(idxp), fldPtrP)
                fld:fill(fldIdxr(idxm), fldPtrM)
-               emf:fill(emfIdxr(idxp), emfPtrP)
-               emf:fill(emfIdxr(idxm), emfPtrM)
                local eta = self._eta
                local etaP = self._eta
                local etaM = self._eta
@@ -237,9 +225,7 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
             local keNew = 0.5*(fldPtr[2]^2+fldPtr[3]^2+fldPtr[4]^2) / fldPtr[1]
             fldPtr[5] = fldPtr[5]+keNew-keOld+bufPtr[5]
          else
-            for c=2,4 do
-               fldPtr[c] = fldPtr[c] + bufPtr[c]
-            end
+            for c=2,4 do fldPtr[c] = fldPtr[c] + bufPtr[c] end
          end
       end
    end
