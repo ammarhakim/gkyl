@@ -161,13 +161,13 @@ momentApp = Moments.App {
       bcx = { Moments.Field.bcReflect, Moments.Field.bcReflect },
    },
  
-   axisymSource = Moments.AxisymmetricMomentSource {
+   axisymmetricFluidSource = Moments.AxisymmetricMomentSource {
       species = {"elc", "ion"},
       timeStepper = "forwardEuler",
       gasGamma = gasGamma,
    },   
 
-   axisymSource = Moments.AxisymmetricPhMaxwellSource {
+   axisymmetricMaxwellSource = Moments.AxisymmetricPhMaxwellSource {
       timeStepper = "forwardEuler",
    },   
 
