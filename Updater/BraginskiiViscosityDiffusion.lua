@@ -13,7 +13,6 @@ local Proto = require "Lib.Proto"
 local BraginskiiViscosityDiffusion = Proto(UpdaterBase)
 
 function BraginskiiViscosityDiffusion:init(tbl)
-   -- setup base object
    BraginskiiViscosityDiffusion.super.init(self, tbl)
 
    local pfx = "Updater.BraginskiiViscosityDiffusion: "
@@ -89,7 +88,7 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                local rhoPH = 0.5 * (rho+rhoP)
                local rhoMH = 0.5 * (rho+rhoM)
 
-               -- Compute momentum diffusion as grad(eta * grad(V)).
+               -- Compute momentum diffusion as div(eta * rho * grad(V)).
                local dx = grid:dx(d)
                for c=2,4 do
                   bufPtr[c] =
@@ -98,8 +97,8 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                      (dx*dx)
                end
 
-               -- Compute viscous heating eta*grad(V):grad(V) as
-               -- eta*|grad(V)|^2.
+               -- Compute viscous heating eta * rho * grad(V) : grad(V) as
+               -- eta * rho * |grad(V)|^2.
                if self._hasHeating then
                   for c=2,4 do
                      qVis = qVis + eta * rho * 
@@ -116,6 +115,13 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
          for idx in localRange:rowMajorIter() do
             local qVis = 0
 
+            fld:fill(fldIdxr(idx), fldPtr)
+            local eta = self._eta
+            local rho = fldPtrP[1]
+            grid:setIndex(idx)
+            grid:cellCenter(xc)
+            local r = xc[1]
+
             -- Radial diffusion.
             if true then
                local d = 1
@@ -125,29 +131,23 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                idx:copyInto(idxm)
                idxp[d] = idx[d]+1
                idxm[d] = idx[d]-1
-               fld:fill(fldIdxr(idx), fldPtr)
                fld:fill(fldIdxr(idxp), fldPtrP)
                fld:fill(fldIdxr(idxm), fldPtrM)
 
-               local eta = self._eta
                local etaP = self._eta
                local etaM = self._eta
                local etaMH = 0.5 * (eta+etaM)
                local etaPH = 0.5 * (eta+etaP)
 
-               grid:setIndex(idx)
-               grid:cellCenter(xc)
                grid:setIndex(idxp)
                grid:cellCenter(xp)
+               local rp = xp[1]
                grid:setIndex(idxm)
                grid:cellCenter(xm)
-               local r = xc[1]
-               local rp = xp[1]
                local rm = xm[1]
                local rpH = 0.5 * (r+rp)
                local rmH = 0.5 * (r+rm)
 
-               local rho = fldPtrP[1]
                local rhoP = fldPtrP[1]
                local rhoM = fldPtrM[1]
                local rhoPH = 0.5 * (rho+rhoP)
@@ -171,7 +171,7 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                   local eta = self._eta
                   qVis = qVis +
                          rho * eta *
-                         ( fldPtrP[3]/rp/rhoP-fldPtrM[3]/rm/rhoM ) / (2*dr)
+                         ( fldPtrP[3]/rhoP/rp-fldPtrM[3]/rhoM/rm ) / (2*dr)
                end
             end
 
@@ -184,17 +184,14 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                idx:copyInto(idxm)
                idxp[d] = idx[d]+1
                idxm[d] = idx[d]-1
-               fld:fill(fldIdxr(idx), fldPtr)
                fld:fill(fldIdxr(idxp), fldPtrP)
                fld:fill(fldIdxr(idxm), fldPtrM)
 
-               local eta = self._eta
                local etaP = self._eta
                local etaM = self._eta
                local etaPH = 0.5 * (eta+etaP)
                local etaMH = 0.5 * (eta+etaM)
 
-               local rho = fldPtrP[1]
                local rhoP = fldPtrP[1]
                local rhoM = fldPtrM[1]
                local rhoPH = 0.5 * (rho+rhoP)
@@ -211,8 +208,7 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                   grid:setIndex(idx)
                   grid:cellCenter(xc)
                   qVis = qVis +
-                         rho * eta *
-                         (fldPtrP[3]/r/rhoP-fldPtrM[3]/r/rhoM) / (2*dz)
+                         rho*eta* (fldPtrP[3]/rhoP-fldPtrM[3]/rhoM) / r / (2*dz)
                end
             end
 
