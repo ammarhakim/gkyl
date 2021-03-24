@@ -1180,7 +1180,7 @@ function VlasovSpecies:bcRecycleFunc(dir, tm, idxIn, fIn, fOut)
    f:fill(rIdxr(zIdx), rFPtr)
    for i = 1, numBasis do
       fOut[i] = 0
-      fOut[i] = fIn[i] + rFPtr[i]
+      fOut[i] = rFPtr[i]
    end
 
    self.basis:flipSign(dir, fOut, fOut)
