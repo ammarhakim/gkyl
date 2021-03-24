@@ -77,7 +77,7 @@ local bcRadialEmfAxis = function(dir, tm, idxIn, qin, qbc, xcOut, xcIn)
    -- Br=0, Bt=0, d(Bz)/dr=0
    qbc[4] = -qin[4]
    qbc[5] = -qin[5]
-   qbc[6] = qin[5]
+   qbc[6] = qin[6]
 
    qbc[7] = qin[7]
    qbc[8] = qin[8]
@@ -94,7 +94,7 @@ local bcRadialEmfConductingWall = function(dir, tm, idxIn, qin, qbc, xcOut, xcIn
    -- Zero surfce charge and current: Er=0, d(r*Bt)/dr=0, d(Bz)/dr=0
    qbc[1] = qin[1]
    qbc[5] = qin[5] * rIn / rOut
-   qbc[6] = qin[5]
+   qbc[6] = qin[6]
 
    qbc[7] = qin[7]
    qbc[8] = qin[8]
