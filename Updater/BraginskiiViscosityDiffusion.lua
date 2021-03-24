@@ -159,8 +159,8 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                   (dr*dr*r) -
                   eta*fldPtr[2]/(r*r)
                bufPtr[3] =
-                  (rhoPH*etaPH*(rpH^3)*(fldPtrP[3]/rhoP/rp-fldPtr [3]/rho /r ) -
-                   rhoMH*etaMH*(rmH^3)*(fldPtr [3]/rho /r -fldPtrM[3]/rhoM/rm))/
+                  (rhoPH*etaPH*(rpH^2)*(fldPtrP[3]/rhoP/rp-fldPtr [3]/rho /r ) -
+                   rhoMH*etaMH*(rmH^2)*(fldPtr [3]/rho /r -fldPtrM[3]/rhoM/rm))/
                   (dr*dr*r)
                bufPtr[4] =
                   ( rhoPH*etaPH*rpH * (fldPtrP[4]/rhoP - fldPtr [4]/rho ) -
