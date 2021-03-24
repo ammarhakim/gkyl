@@ -24,67 +24,24 @@ function BraginskiiViscosityDiffusion:init(tbl)
 
    self._nFluids = assert(tbl.numFluids, pfx .. "Must provide 'numFluids'.")
 
-   self._mass = assert(tbl.mass, pfx .. "Must provide 'mass'.")
-
-   self._charge = assert(tbl.charge, pfx .. "Must provide 'charge'.")
-   assert(#self._mass==self._nFluids and #self._charge==self._nFluids,
-          pfx .. " Lengths of mass of charge must match nFluids.")
-
-   self._epsilon0 = assert(tbl.epsilon0, pfx .. "Must provide 'epsilon0'.")
-
-   self._logA = tbl.coulombLogarithm and tbl.coulombLogarithm or 10
-
-   -- Calculate tau_e with plasma parameters vs. using a preset value
-   self._calcTau = tbl.calcTau ~= nil and tbl.calcTau or false
-   self._tau = tbl.tau
-   assert(not (type(self._tau)=='table' and self.calcTau),
-          pfx ..  "Cannot specify 'tau' and 'calcTau' simultaneously.")
-   assert(type(self._tau)=='table' or self.calcTau,
-          pfx ..  "Must specify one of 'tau' and 'calcTau'.")
+   self._eta = assert(tbl.eta, pfx.."Must provide 'eta'")
 
    self._hasHeating = tbl.hasHeating ~= nil and tbl.hasHeating or false
 
    self._coordinate = tbl.coordinate ~= nil and tbl.coordinate or "cartesian"
    assert(self._coordinate=="cartesian" or
           self._coordinate=="axisymmetric",
-          string.format("%s'coordinate' %s not recognized.", pfx, tbl._coordinate))
+          string.format("%s'coordinate' %s not recognized.",
+                        pfx, tbl._coordinate))
 
    assert(self._gasGamma==5./3., pfx .. " gasGamma must be 5/3.")
-end
-
-local pressure = function (q, gasGamma, mass)
-	 return (gasGamma-1)*(q[5]-0.5*(q[2]*q[2]+q[3]*q[3]+q[4]*q[4])/q[1])
-end
-
-local temperature = function (q, gasGamma, mass)
-	 return pressure(q, gasGamma, mass) * mass / q[1]
-end
-
-local calcTau = function(fluid, mass, charge)
-   local tau = 1 -- TODO
-   return tau
-end
-
-local calcEta = function(fluidPtr, emfPtr, mass, charge, gasGamma)
-   local tau = calcTau(fluidPtr, mass, charge)
-   local pr = pressure(fluidPtr, gasGamma, mass)
-   local bx = emfPtr[4]
-   local by = emfPtr[5]
-   local bz = emfPtr[6]
-   local bmag = math.sqrt(bx*bx + by*by + bz*bz)
-   local Omega = math.abs(charge*bmag/mass)
-   local eta = pr * tau / (Omega*tau^2)
-   return eta
 end
 
 function BraginskiiViscosityDiffusion:_forwardEuler(
       self, tCurr, inFld, outFld)
    local grid = self._onGrid
    local dt = self._dt
-   local gasGamma = self._gasGamma
-   local epsilon0 = self._epsilon0
    local nFluids = self._nFluids
-   local logA = self._logA
 
    local dtSuggested = GKYL_MAX_DOUBLE
    local status = true
@@ -114,9 +71,6 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
       local fluidBufPtrP = fluidBuf:get(1)
       local fluidBufPtrM = fluidBuf:get(1)
 
-      local mass = self._mass[s]
-      local charge = self._charge[s]
-
       local localRange = fluid:localRange()
 
       -- Compute rhs.
@@ -135,9 +89,9 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                emf:fill(emfIdxr(idxp), emfPtrP)
                emf:fill(emfIdxr(idxm), emfPtrM)
 
-               local eta = calcEta(fluidPtr, emfPtr, mass, charge, gasGamma)
-               local etaP = calcEta(fluidPtrP, emfPtrP, mass, charge, gasGamma)
-               local etaM = calcEta(fluidPtrM, emfPtrM, mass, charge, gasGamma)
+               local eta = self._eta
+               local etaP = self._eta
+               local etaM = self._eta
 
                local etaPH = 0.5 * (eta+etaP)
                local etaMH = 0.5 * (eta+etaM)
@@ -152,7 +106,7 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                -- Compute viscous heating eta*grad(V):grad(V) as
                -- eta*|grad(V)|^2.
                if self._hasHeating then
-                  local eta = calcEta(fluidPtr, emfPtr, mass, charge, gasGamma, s)
+                  local eta = self._eta
                   for c=2,4 do
                      qVis = qVis +
                             eta * ( (fluidPtrP[c]-fluidPtrM[c])/(2*dx) )^2
@@ -182,9 +136,9 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                fluid:fill(fluidIdxr(idxm), fluidPtrM)
                emf:fill(emfIdxr(idxp), emfPtrP)
                emf:fill(emfIdxr(idxm), emfPtrM)
-               local eta = calcEta(fluidPtr, emfPtr, mass, charge, gasGamma)
-               local etaP = calcEta(fluidPtrP, emfPtrP, mass, charge, gasGamma)
-               local etaM = calcEta(fluidPtrM, emfPtrM, mass, charge, gasGamma)
+               local eta = self._eta
+               local etaP = self._eta
+               local etaM = self._eta
 
                grid:setIndex(idx)
                grid:cellCenter(xc)
@@ -202,16 +156,19 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                local etaMH = 0.5 * (eta+etaM)
                local etaPH = 0.5 * (eta+etaP)
 
-               fluidBufPtr[2] = (etaPH*rpH*(fluidPtrP[2]-fluidPtr [2]) -
-                                 etaMH*rmH*(fluidPtr [2]-fluidPtrM[2])) / (dr*dr*r) -
-                                eta*fluidPtr[2]/(r*r)
-               fluidBufPtr[3] = (etaPH*(rpH^3)*(fluidPtrP[3]/rp-fluidPtr [3]/r) -
-                                 etaMH*(rmH^3)*(fluidPtr [3]/r -fluidPtrM[3]/rm)) / (dr*dr*r)
-               fluidBufPtr[4] = (etaPH*rpH*(fluidPtrP[4]-fluidPtr [4]) -
-                                 etaMH*rmH*(fluidPtr [4]-fluidPtrM[4])) / (dr*dr*r)
+               fluidBufPtr[2] =
+                  (etaPH*rpH*(fluidPtrP[2]-fluidPtr [2]) -
+                   etaMH*rmH*(fluidPtr [2]-fluidPtrM[2])) / (dr*dr*r) -
+                  eta*fluidPtr[2]/(r*r)
+               fluidBufPtr[3] =
+                  (etaPH*(rpH^3)*(fluidPtrP[3]/rp-fluidPtr [3]/r) -
+                   etaMH*(rmH^3)*(fluidPtr [3]/r -fluidPtrM[3]/rm)) / (dr*dr*r)
+               fluidBufPtr[4] =
+                  (etaPH*rpH*(fluidPtrP[4]-fluidPtr [4]) -
+                   etaMH*rmH*(fluidPtr [4]-fluidPtrM[4])) / (dr*dr*r)
 
                if self._hasHeating then
-                  local eta = calcEta(fluidPtr, emfPtr, mass, charge, gasGamma)
+                  local eta = self._eta
                   qVis = qVis +
                          eta * (fluidPtrP[3]/rp-fluidPtrM[3]/rm) * 0.5 / dr
                end
@@ -231,9 +188,9 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                fluid:fill(fluidIdxr(idxm), fluidPtrM)
                emf:fill(emfIdxr(idxp), emfPtrP)
                emf:fill(emfIdxr(idxm), emfPtrM)
-               local eta = calcEta(fluidPtr, emfPtr, mass, charge, gasGamma)
-               local etaP = calcEta(fluidPtrP, emfPtrP, mass, charge, gasGamma)
-               local etaM = calcEta(fluidPtrM, emfPtrM, mass, charge, gasGamma)
+               local eta = self._eta
+               local etaP = self._eta
+               local etaM = self._eta
 
                local etaPH = 0.5 * (eta+etaP)
                local etaMH = 0.5 * (eta+etaM)
@@ -276,11 +233,13 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
          fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
 
          if self._hasHeating then
-            local keOld = 0.5*(fluidPtr[2]^2+fluidPtr[3]^2+fluidPtr[4]^2)/fluidPtr[1]
+            local keOld = 0.5*(fluidPtr[2]^2+fluidPtr[3]^2+fluidPtr[4]^2) /
+                         fluidPtr[1]
             for c=2,4 do
                fluidPtr[c] = fluidPtr[c] + fluidBufPtr[c]
             end
-            local keNew = 0.5*(fluidPtr[2]^2+fluidPtr[3]^2+fluidPtr[4]^2)/fluidPtr[1]
+            local keNew = 0.5*(fluidPtr[2]^2+fluidPtr[3]^2+fluidPtr[4]^2) /
+                          fluidPtr[1]
             fluidPtr[5] = fluidPtr[5]+keNew-keOld+fluidBufPtr[5]
          else
             for c=2,4 do
