@@ -20,8 +20,6 @@ function BraginskiiViscosityDiffusion:init(tbl)
 
    self._onGrid = assert(tbl.onGrid, pfx.." Must provide 'onGrid'.")
 
-   self._gasGamma = assert(tbl.gasGamma, pfx .. "Must provide 'gasGamma'.")
-
    self._nFluids = assert(tbl.numFluids, pfx .. "Must provide 'numFluids'.")
 
    self._eta = assert(tbl.eta, pfx.."Must provide 'eta'")
@@ -33,8 +31,6 @@ function BraginskiiViscosityDiffusion:init(tbl)
           self._coordinate=="axisymmetric",
           string.format("%s'coordinate' %s not recognized.",
                         pfx, tbl._coordinate))
-
-   assert(self._gasGamma==5./3., pfx .. " gasGamma must be 5/3.")
 end
 
 function BraginskiiViscosityDiffusion:_forwardEuler(
@@ -91,14 +87,13 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                -- Compute momentum diffusion as grad(eta * grad(V)).
                local dx = grid:dx(d)
                for c=2,4 do
-                  bufPtr[c] = (etaP*(fldPtrP[c]-fldPtr[c]) -
-                               etaM*(fldPtr[c]-fldPtrM[c])) / (dx*dx)
+                  bufPtr[c] = ( etaPH * (fldPtrP[c] - fldPtr [c]) -
+                                etaMH * (fldPtr [c] - fldPtrM[c]) ) / (dx*dx)
                end
 
                -- Compute viscous heating eta*grad(V):grad(V) as
                -- eta*|grad(V)|^2.
                if self._hasHeating then
-                  local eta = self._eta
                   for c=2,4 do
                      qVis = qVis + eta * ( (fldPtrP[c]-fldPtrM[c])/(2*dx) )^2
                   end
@@ -141,24 +136,23 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
 
                local rpH = 0.5 * (r+rp)
                local rmH = 0.5 * (r+rm)
-               -- FIXME Is it better to compute eta with average B, etc.?
                local etaMH = 0.5 * (eta+etaM)
                local etaPH = 0.5 * (eta+etaP)
 
                bufPtr[2] =
-                  (etaPH*rpH*(fldPtrP[2]-fldPtr [2]) -
-                   etaMH*rmH*(fldPtr [2]-fldPtrM[2])) / (dr*dr*r) -
+                  ( etaPH*rpH * (fldPtrP[2] - fldPtr [2]) -
+                    etaMH*rmH * (fldPtr [2] - fldPtrM[2]) ) / (dr*dr*r) -
                   eta*fldPtr[2]/(r*r)
                bufPtr[3] =
-                  (etaPH*(rpH^3)*(fldPtrP[3]/rp-fldPtr [3]/r) -
-                   etaMH*(rmH^3)*(fldPtr [3]/r -fldPtrM[3]/rm)) / (dr*dr*r)
+                  (etaPH*(rpH^3) * (fldPtrP[3]/rp - fldPtr [3]/r ) -
+                   etaMH*(rmH^3) * (fldPtr [3]/r  - fldPtrM[3]/rm) ) / (dr*dr*r)
                bufPtr[4] =
-                  (etaPH*rpH*(fldPtrP[4]-fldPtr [4]) -
-                   etaMH*rmH*(fldPtr [4]-fldPtrM[4])) / (dr*dr*r)
+                  ( etaPH*rpH * (fldPtrP[4] - fldPtr [4]) -
+                    etaMH*rmH * (fldPtr [4] - fldPtrM[4]) ) / (dr*dr*r)
 
                if self._hasHeating then
                   local eta = self._eta
-                  qVis = qVis + eta * (fldPtrP[3]/rp-fldPtrM[3]/rm) * 0.5 / dr
+                  qVis = qVis + eta * ( fldPtrP[3]/rp-fldPtrM[3]/rm ) / (2*dr)
                end
             end
 
@@ -190,14 +184,14 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                if self._hasHeating then
                   grid:setIndex(idx)
                   grid:cellCenter(xc)
-                  qVis = qVis + eta * (fldPtrP[3]-fldPtrM[3]) / r * 0.5 / dz
+                  qVis = qVis + eta * (fldPtrP[3]/r-fldPtrM[3]/r) / (2*dz)
                end
             end
 
             bufPtr[5] = qVis
          end
       else
-         assert(false)
+         assert(false, "Coordinate type "..self._coordinate.." not supported.")
       end
    end
 
@@ -219,10 +213,11 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
 
          if self._hasHeating then
             local keOld = 0.5*(fldPtr[2]^2+fldPtr[3]^2+fldPtr[4]^2) / fldPtr[1]
-            for c=2,4 do
-               fldPtr[c] = fldPtr[c] + bufPtr[c]
-            end
+
+            for c=2,4 do fldPtr[c] = fldPtr[c] + bufPtr[c] end
+
             local keNew = 0.5*(fldPtr[2]^2+fldPtr[3]^2+fldPtr[4]^2) / fldPtr[1]
+
             fldPtr[5] = fldPtr[5]+keNew-keOld+bufPtr[5]
          else
             for c=2,4 do fldPtr[c] = fldPtr[c] + bufPtr[c] end
