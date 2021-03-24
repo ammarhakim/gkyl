@@ -59,19 +59,19 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
 
    -- Comptue grad_para(T) ain internal cells.
    for s = 1, nFluids do
-      local fluid = outFld[s]
-      local fluidIdxr = fluid:genIndexer()
-      local fluidPtr = fluid:get(1)
-      local fluidPtrP = fluid:get(1)
-      local fluidPtrM = fluid:get(1)
+      local fld = outFld[s]
+      local fldIdxr = fld:genIndexer()
+      local fldPtr = fld:get(1)
+      local fldPtrP = fld:get(1)
+      local fldPtrM = fld:get(1)
 
-      local fluidBuf = inFld[s]
-      local fluidBufIdxr = fluidBuf:genIndexer()
-      local fluidBufPtr = fluidBuf:get(1)
-      local fluidBufPtrP = fluidBuf:get(1)
-      local fluidBufPtrM = fluidBuf:get(1)
+      local buf = inFld[s]
+      local bufIdxr = buf:genIndexer()
+      local bufPtr = buf:get(1)
+      local bufPtrP = buf:get(1)
+      local bufPtrM = buf:get(1)
 
-      local localRange = fluid:localRange()
+      local localRange = fld:localRange()
 
       -- Compute rhs.
       if self._coordinate=="cartesian" then
@@ -83,9 +83,9 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                idxp[d] = idx[d]+1
                idxm[d] = idx[d]-1
               
-               fluid:fill(fluidIdxr(idx), fluidPtr)
-               fluid:fill(fluidIdxr(idxp), fluidPtrP)
-               fluid:fill(fluidIdxr(idxm), fluidPtrM)
+               fld:fill(fldIdxr(idx), fldPtr)
+               fld:fill(fldIdxr(idxp), fldPtrP)
+               fld:fill(fldIdxr(idxm), fldPtrM)
                emf:fill(emfIdxr(idxp), emfPtrP)
                emf:fill(emfIdxr(idxm), emfPtrM)
 
@@ -99,8 +99,8 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                -- Compute momentum diffusion as grad(eta * grad(V)).
                local dx = grid:dx(d)
                for c=2,4 do
-                  fluidBufPtr[c] = (etaP*(fluidPtrP[c]-fluidPtr[c]) -
-                                    etaM*(fluidPtr[c]-fluidPtrM[c])) / (dx*dx)
+                  bufPtr[c] = (etaP*(fldPtrP[c]-fldPtr[c]) -
+                               etaM*(fldPtr[c]-fldPtrM[c])) / (dx*dx)
                end
 
                -- Compute viscous heating eta*grad(V):grad(V) as
@@ -108,12 +108,11 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                if self._hasHeating then
                   local eta = self._eta
                   for c=2,4 do
-                     qVis = qVis +
-                            eta * ( (fluidPtrP[c]-fluidPtrM[c])/(2*dx) )^2
+                     qVis = qVis + eta * ( (fldPtrP[c]-fldPtrM[c])/(2*dx) )^2
                   end
                end
             end
-            fluidBufPtr[5] = qVis
+            bufPtr[5] = qVis
          end
       elseif self._coordinate=="axisymmetric" then
          local xc = Lin.Vec(ndim)
@@ -131,9 +130,9 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                idx:copyInto(idxm)
                idxp[d] = idx[d]+1
                idxm[d] = idx[d]-1
-               fluid:fill(fluidIdxr(idx), fluidPtr)
-               fluid:fill(fluidIdxr(idxp), fluidPtrP)
-               fluid:fill(fluidIdxr(idxm), fluidPtrM)
+               fld:fill(fldIdxr(idx), fldPtr)
+               fld:fill(fldIdxr(idxp), fldPtrP)
+               fld:fill(fldIdxr(idxm), fldPtrM)
                emf:fill(emfIdxr(idxp), emfPtrP)
                emf:fill(emfIdxr(idxm), emfPtrM)
                local eta = self._eta
@@ -156,21 +155,20 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                local etaMH = 0.5 * (eta+etaM)
                local etaPH = 0.5 * (eta+etaP)
 
-               fluidBufPtr[2] =
-                  (etaPH*rpH*(fluidPtrP[2]-fluidPtr [2]) -
-                   etaMH*rmH*(fluidPtr [2]-fluidPtrM[2])) / (dr*dr*r) -
-                  eta*fluidPtr[2]/(r*r)
-               fluidBufPtr[3] =
-                  (etaPH*(rpH^3)*(fluidPtrP[3]/rp-fluidPtr [3]/r) -
-                   etaMH*(rmH^3)*(fluidPtr [3]/r -fluidPtrM[3]/rm)) / (dr*dr*r)
-               fluidBufPtr[4] =
-                  (etaPH*rpH*(fluidPtrP[4]-fluidPtr [4]) -
-                   etaMH*rmH*(fluidPtr [4]-fluidPtrM[4])) / (dr*dr*r)
+               bufPtr[2] =
+                  (etaPH*rpH*(fldPtrP[2]-fldPtr [2]) -
+                   etaMH*rmH*(fldPtr [2]-fldPtrM[2])) / (dr*dr*r) -
+                  eta*fldPtr[2]/(r*r)
+               bufPtr[3] =
+                  (etaPH*(rpH^3)*(fldPtrP[3]/rp-fldPtr [3]/r) -
+                   etaMH*(rmH^3)*(fldPtr [3]/r -fldPtrM[3]/rm)) / (dr*dr*r)
+               bufPtr[4] =
+                  (etaPH*rpH*(fldPtrP[4]-fldPtr [4]) -
+                   etaMH*rmH*(fldPtr [4]-fldPtrM[4])) / (dr*dr*r)
 
                if self._hasHeating then
                   local eta = self._eta
-                  qVis = qVis +
-                         eta * (fluidPtrP[3]/rp-fluidPtrM[3]/rm) * 0.5 / dr
+                  qVis = qVis + eta * (fldPtrP[3]/rp-fldPtrM[3]/rm) * 0.5 / dr
                end
             end
 
@@ -183,9 +181,9 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                idx:copyInto(idxm)
                idxp[d] = idx[d]+1
                idxm[d] = idx[d]-1
-               fluid:fill(fluidIdxr(idx), fluidPtr)
-               fluid:fill(fluidIdxr(idxp), fluidPtrP)
-               fluid:fill(fluidIdxr(idxm), fluidPtrM)
+               fld:fill(fldIdxr(idx), fldPtr)
+               fld:fill(fldIdxr(idxp), fldPtrP)
+               fld:fill(fldIdxr(idxm), fldPtrM)
                emf:fill(emfIdxr(idxp), emfPtrP)
                emf:fill(emfIdxr(idxm), emfPtrM)
                local eta = self._eta
@@ -196,20 +194,19 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                local etaMH = 0.5 * (eta+etaM)
 
                for c=2,4 do
-                  fluidBufPtr[c] = fluidBufPtr[c] +
-                                   (etaPH*(fluidPtrP[c]-fluidPtr [c]) -
-                                    etaMH*(fluidPtr[c] -fluidPtrM[c])) / (dz*dz)
+                  bufPtr[c] = bufPtr[c] +
+                              (etaPH*(fldPtrP[c]-fldPtr [c]) -
+                               etaMH*(fldPtr[c] -fldPtrM[c])) / (dz*dz)
                end
 
                if self._hasHeating then
                   grid:setIndex(idx)
                   grid:cellCenter(xc)
-                  qVis = qVis +
-                         eta * (fluidPtrP[3]-fluidPtrM[3]) / r * 0.5 / dz
+                  qVis = qVis + eta * (fldPtrP[3]-fldPtrM[3]) / r * 0.5 / dz
                end
             end
 
-            fluidBufPtr[5] = qVis
+            bufPtr[5] = qVis
          end
       else
          assert(false)
@@ -218,32 +215,30 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
 
    -- Apply rhs.
    for s = 1, nFluids do
-      local fluid = outFld[s]
-      local fluidIdxr = fluid:genIndexer()
-      local fluidPtr = fluid:get(1)
+      local fld = outFld[s]
+      local fldIdxr = fld:genIndexer()
+      local fldPtr = fld:get(1)
 
-      local fluidBuf = inFld[s]
-      local fluidBufIdxr = fluidBuf:genIndexer()
-      local fluidBufPtr = fluidBuf:get(1)
+      local buf = inFld[s]
+      local bufIdxr = buf:genIndexer()
+      local bufPtr = buf:get(1)
 
-      local localRange = fluid:localRange()
+      local localRange = fld:localRange()
 
       for idx in localRange:rowMajorIter() do
-         fluid:fill(fluidIdxr(idx), fluidPtr)
-         fluidBuf:fill(fluidBufIdxr(idx), fluidBufPtr)
+         fld:fill(fldIdxr(idx), fldPtr)
+         buf:fill(bufIdxr(idx), bufPtr)
 
          if self._hasHeating then
-            local keOld = 0.5*(fluidPtr[2]^2+fluidPtr[3]^2+fluidPtr[4]^2) /
-                         fluidPtr[1]
+            local keOld = 0.5*(fldPtr[2]^2+fldPtr[3]^2+fldPtr[4]^2) / fldPtr[1]
             for c=2,4 do
-               fluidPtr[c] = fluidPtr[c] + fluidBufPtr[c]
+               fldPtr[c] = fldPtr[c] + bufPtr[c]
             end
-            local keNew = 0.5*(fluidPtr[2]^2+fluidPtr[3]^2+fluidPtr[4]^2) /
-                          fluidPtr[1]
-            fluidPtr[5] = fluidPtr[5]+keNew-keOld+fluidBufPtr[5]
+            local keNew = 0.5*(fldPtr[2]^2+fldPtr[3]^2+fldPtr[4]^2) / fldPtr[1]
+            fldPtr[5] = fldPtr[5]+keNew-keOld+bufPtr[5]
          else
             for c=2,4 do
-               fluidPtr[c] = fluidPtr[c] + fluidBufPtr[c]
+               fldPtr[c] = fldPtr[c] + bufPtr[c]
             end
          end
       end
