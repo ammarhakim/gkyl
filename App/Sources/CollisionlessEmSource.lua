@@ -53,6 +53,8 @@ function CollisionlessEmSource:fullInit(appTbl)
    self.hasSigmaField = tbl.hasSigmaField
    self.hasAuxSourceFunction = tbl.hasAuxSourceFunction
    self.auxSourceFunction = tbl.auxSourceFunction
+   self.gravity = tbl.gravity
+   self.gravityDir = tbl.gravityDir
 end
 
 function CollisionlessEmSource:setName(nm)
@@ -125,6 +127,8 @@ function CollisionlessEmSource:createSolver(species, field)
          sigmaField = self.sigmaField,
          hasAuxSourceFunction = self.hasAuxSourceFunction,
          auxSourceFunction = self.auxSourceFunction,
+         gravity = self.gravity,
+         dir = self.gravityDir,
       }
    elseif source_type == 10 then
       self.slvr = Updater.TenMomentSrc {
@@ -144,6 +148,8 @@ function CollisionlessEmSource:createSolver(species, field)
          sigmaField = self.sigmaField,
          hasAuxSourceFunction = self.hasAuxSourceFunction,
          auxSourceFunction = self.auxSourceFunction,
+         gravity = self.gravity,
+         dir = self.gravityDir,
       }
    else
       assert(false, string.format("source_type %s not supported.", source_type))
