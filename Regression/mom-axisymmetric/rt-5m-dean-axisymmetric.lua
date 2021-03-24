@@ -27,7 +27,10 @@ local mi = 1.
 -- problem-specific mhd parameters
 local Bz0_B0 = 1
 local T0_mhd = 0.002
-local MA0 = 1  -- vTheta0/vA0
+-- set one and only one of MA0 and gravity to nonzero
+local MA0 = 0  -- vTheta0/vA0; set to nonzero to set a Er x Bz drift
+local gravity = 1  -- allows an equilibrium to develop; FIXME unit
+
 local pert = 1e-4
 -- math.randomseed(os.time())
 math.randomseed(1)
@@ -171,6 +174,8 @@ momentApp = Moments.App {
    emSource = Moments.CollisionlessEmSource {
       species = {"elc", "ion"},
       timeStepper = "time-centered",
+      gravity = gravity,
+      gravityDir = 1,
       hasStaticField = true,
       staticEmFunction = function(t, xn)
          return 0, 0, 0.0, 0.0, 0.0, Bz0
