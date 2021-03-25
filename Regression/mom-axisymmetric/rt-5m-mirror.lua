@@ -230,9 +230,9 @@ momentApp = Moments.App {
       hasStaticField = true,
       staticEmFunction = function(t, xn)
          local r, z = xn[1], xn[3]
-         local Br = -(calcAphi(r, z+0.5*dz) - calcAphi(r, z+0.5*dz)) / dz
+         local Br = -(calcAphi(r, z+0.5*dz) - calcAphi(r, z-0.5*dz)) / dz
          local Bt = 0
-         local Bz = (calcAphi(r+0.5*dr, z) - calcAphi(r+0.5*dr, z)) / dr +
+         local Bz = (calcAphi(r+0.5*dr, z) - calcAphi(r-0.5*dr, z)) / dr +
                     calcAphi(r, z) / r
          return 0, 0, 0.0, Br, Bt, Bz
       end
