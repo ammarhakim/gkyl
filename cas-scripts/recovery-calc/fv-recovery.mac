@@ -8,9 +8,9 @@ fv_interface_recovery(f, nl, nr, dord) := block([ncell,px,eqnList,pxSol],
   
   ncell : nl+nr,
   
-  px : sum(a[i]*x^i,i,0,ncell-1),
+  px : sum(_priv_a[i]*x^i,i,0,ncell-1),
   eqnList : makelist( f[i] = mom_fv(px,i*dx,(i+1)*dx), i,-nl,nr-1 ),
-  pxSol : subst( linsolve(eqnList, makelist(a[i],i,0,ncell-1)), px ),
+  pxSol : subst( linsolve(eqnList, makelist(_priv_a[i],i,0,ncell-1)), px ),
   return( subst(x=0, diff(pxSol,x,dord)) )
   )$
 
@@ -37,5 +37,5 @@ _m_index_fd(f,i) := mom_fd(f,i*dx-dx/2,i*dx+dx/2)$
 fv_calc_disp(fv_stencil, nl, nr, dord) := block([fexp,slist],
   fexp : exp(%i*k*x),
   slist : makelist(u(i+j) = _m_index_fd(fexp,i), i, -nl,nr),
-  return ( expand(1/(%i)^dord*dx*subst(slist, fv_stencil)) )
+  return ( expand(1/%i*dx^dord*subst(slist, fv_stencil)) )
   )$
