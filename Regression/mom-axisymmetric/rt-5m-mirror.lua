@@ -32,7 +32,8 @@ local num_extra_coils = 20  -- Number of extra coils above and below the z-ends.
 local T0_mhd = 0.002
 -- set one and only one of MA0 and gravity to nonzero
 local MA0 = 0  -- vTheta0/vA0; set to nonzero to set a Er x Bz drift
-local gravity = 1  -- allows an equilibrium to develop; FIXME unit
+local gravity = 0  -- allows an equilibrium to develop; FIXME unit
+local gravityDir = 2
 
 local pert = 1e-4
 -- math.randomseed(os.time())
@@ -74,15 +75,15 @@ local qe = -qi
 local r_inn = 0.45 * l0
 local r_out = 1.45 * l0
 local Lz = 5 * l0
-local Nr, Nz = 60, 300
-local decompCuts = {1, 1, 1}
+local Nr, Nz = 60/2, 300/2
+local decompCuts = {1, 1, 2}
  
 local de0 = di0 / math.sqrt(mi/me)
 local dz = Lz / Nz
 local dr = (r_out - r_inn) / Nr
 
-local tEnd = tA0*0.1
-local nFrame = 1
+local tEnd = tA0*1
+local nFrame = 10
 
 log("%30s = %g", "Lz", Lz)
 log("%30s = %g", "r_out-r_inn", r_out-r_inn)
@@ -198,14 +199,14 @@ momentApp = Moments.App {
       epsilon0 = epsilon0, mu0 = epsilon0,
       init = function (t, xn)
          local r, theta, z = xn[1], xn[2], xn[3]
-         local Er = 0
+
+         local Er = Er0
          local Et = 0
          local Ez = 0
-
-         local Br = -(calcAphi(r, z+0.5*dz) - calcAphi(r, z+0.5*dz)) / dz
+         local Br = 0
          local Bt = 0
-         local Bz = (calcAphi(r+0.5*dr, z) - calcAphi(r+0.5*dr, z)) / dr +
-                    calcAphi(r, z) / r
+         local Bz = 0
+
          return Er, Et, Ez, Br, Bt, Bz
       end,
       bcx = { Moments.Field.bcReflect, Moments.Field.bcReflect },
@@ -219,16 +220,21 @@ momentApp = Moments.App {
 
    axisymmetricMaxwellSource = Moments.AxisymmetricPhMaxwellSource {
       timeStepper = "forwardEuler",
-   },   
+   },
 
    emSource = Moments.CollisionlessEmSource {
       species = {"elc", "ion"},
       timeStepper = "time-centered",
       gravity = gravity,
-      gravityDir = 1,
+      gravityDir = gravityDir,
       hasStaticField = true,
       staticEmFunction = function(t, xn)
-         return 0, 0, 0.0, 0.0, 0.0, Bz0
+         local r, z = xn[1], xn[3]
+         local Br = -(calcAphi(r, z+0.5*dz) - calcAphi(r, z+0.5*dz)) / dz
+         local Bt = 0
+         local Bz = (calcAphi(r+0.5*dr, z) - calcAphi(r+0.5*dr, z)) / dr +
+                    calcAphi(r, z) / r
+         return 0, 0, 0.0, Br, Bt, Bz
       end
 
    },   
