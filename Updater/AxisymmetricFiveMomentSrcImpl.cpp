@@ -6,6 +6,7 @@
 //------------------------------------------------------------------------------
 
 #include <AxisymmetricFiveMomentSrcImpl.h>
+#include <cmath>
 #include <cassert>
 #include <iostream>
 
@@ -112,3 +113,54 @@ gkylAxisymmetricFiveMomentSrcRk3(const AxisymmetricFiveMomentSrcData_t *sd,
   }
 }
 
+// F = f + dt * L(f), L is an operator
+static void
+eulerUpdatePositivity(const AxisymmetricFiveMomentSrcData_t *sd,
+            const double dt,
+            const double *xc,
+            double *f,
+            double *F)
+{
+  const double radius = xc[0];
+  const double gasGamma = sd->gasGamma;
+
+  const double rho = f[RHO];
+  const double u = f[MX] / rho;
+  const double v = f[MY] / rho;
+  const double w = f[MZ] / rho;
+  double e_in = sd->hasPressure ? (f[ER] - 0.5 * rho * (u*u + v*v + w*w)) : 0.;
+
+  // Explicit update of momentum with rho being a fixed value.
+  F[MX]  = f[MX] - (dt/radius) * (rho*u*u - rho*v*v);
+  F[MY]  = f[MY] - (dt/radius) * (2*rho*u*v);
+  F[MZ]  = f[MZ] - (dt/radius) * (rho*u*w);
+
+  // Exact Update of density and pressure using the new radial velocity as a
+  // fixed value.
+  const double u1 = f[MX] / rho;
+  f[RHO] *= std::exp(-u1*dt/radius);
+
+  if (sd->hasPressure) {
+    e_in *= std::exp(-u1*dt/radius * gasGamma);;
+    F[ER] = e_in + 0.5*(f[MX]*f[MX]+f[MY]*f[MY]+f[MZ]*f[MZ])/f[RHO];
+  }
+}
+
+void
+gkylAxisymmetricFiveMomentSrcPositivityForwardEuler(
+  const AxisymmetricFiveMomentSrcData_t *sd,
+  const AxisymmetricFluidData_t *fd,
+  const double dt,
+  const double *xc,
+  double **fPtrs)
+{
+  for (int s=0; s<sd->nFluids; ++s)
+  {
+    if (!(fd[s].evolve))
+      continue;
+
+    double *f = fPtrs[s];
+
+    eulerUpdatePositivity(sd, dt, xc, f, f);
+  }
+}

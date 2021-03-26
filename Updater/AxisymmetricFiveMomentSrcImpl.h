@@ -34,6 +34,14 @@ extern "C" {
                                    const double dt,
                                    const double *xc,
                                    double **fPtrs);
+
+  void
+  gkylAxisymmetricFiveMomentSrcPositivityForwardEuler(
+    const AxisymmetricFiveMomentSrcData_t *sd,
+    const AxisymmetricFluidData_t *fd,
+    const double dt,
+    const double *xc,
+    double **fPtrs);
 }
 
 #endif // GK_AXISYMMETRIC_FIVE_MOMENT_SRC_H
