@@ -25,11 +25,13 @@ eulerUpdate(const AxisymmetricFiveMomentSrcData_t *sd,
             double *F)
 {
   const double radius = xc[0];
+  const double gasGamma = sd->gasGamma;
 
   const double rho = f[RHO];
   const double u = f[MX] / rho;
   const double v = f[MY] / rho;
   const double w = f[MZ] / rho;
+  double e_in = sd->hasPressure ? (f[ER] - 0.5 * rho * (u*u + v*v + w*w)) : 0.;
 
   F[RHO] = f[RHO] - (dt/radius) * (rho*u);
   F[MX]  = f[MX] - (dt/radius) * (rho*u*u - rho*v*v);
@@ -37,10 +39,15 @@ eulerUpdate(const AxisymmetricFiveMomentSrcData_t *sd,
   F[MZ]  = f[MZ] - (dt/radius) * (rho*u*w);
 
   if (sd->hasPressure) {
-    const double E = f[ER];
-    const double p = (sd->gasGamma - 1) * (E - 0.5 * rho * (u*u + v*v + w*w));
-    F[ER] = f[ER] - (dt/radius) * (u*(E+p));
+    e_in -= (dt/radius) * gasGamma * u * e_in;
+    F[ER] = e_in + 0.5*(f[MX]*f[MX]+f[MY]*f[MY]+f[MZ]*f[MZ])/f[RHO];
   }
+
+  // if (sd->hasPressure) {
+  //   const double E = f[ER];
+  //   const double p = (sd->gasGamma - 1) * (E - 0.5 * rho * (u*u + v*v + w*w));
+  //   F[ER] = f[ER] - (dt/radius) * (u*(E+p));
+  // }
 }
 
 inline static void
