@@ -339,7 +339,8 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, isNonUniform, 
            Cook up a node arrangement where corner cells are sqrt(3/5) nodes,
            and the other four nodes are 1/sqrt(3). This appears to conserve
            energy when using uniform grids. We found that the 1/sqrt(3) nodes
-           also conserve energy w/ uniform grids. */
+           also conserve energy w/ uniform grids. But neither seems to conserve
+           energy with nonuniform grids. */
         p1Nodes : args(getNodes(basisFun, pDim-1, 1)),
         p2Nodes : args(getNodes(basisFun, pDim-1, 2)),
         extraNodeInd : [],
