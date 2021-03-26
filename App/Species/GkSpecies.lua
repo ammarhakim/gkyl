@@ -1485,9 +1485,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    -- Compute moments needed in coupling to fields and collisions.
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
-      if self.deltaF then
-	 fIn:accumulate(-1.0, self.f0)
-      end
+      if self.deltaF then fIn:accumulate(-1.0, self.f0) end
 
       if self.needSelfPrimMom and
          lume.any({unpack(self.momentFlags,1,4)},function(x) return x==false end) then -- No need to recompute if already computed.
@@ -1512,18 +1510,14 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 
          -- Indicate that moments, boundary corrections, star moments
          -- and self-primitive moments have been computed.
-         for iF=1,4 do
-            self.momentFlags[iF] = true
-         end
+         for iF=1,4 do self.momentFlags[iF] = true end
       elseif self.momentFlags[1]==false then -- No need to recompute if already computed.
          self.numDensityCalc:advance(tCurr, {fIn}, { self.numDensity })
          -- Indicate that first moment has been computed.
          self.momentFlags[1] = true
       end
 
-      if self.deltaF then
-         fIn:accumulate(1.0, self.f0)
-      end
+      if self.deltaF then fIn:accumulate(1.0, self.f0) end
 
       -- For ionization.
       if self.calcReactRate then

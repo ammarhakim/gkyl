@@ -7,14 +7,14 @@ load(stringproc)$
 /* ...... USER INPUTS........ */
 
 /* Generate kernels for "uni"form, "nonuni"form or "both" grid types. */
-grid : "both"$
+grid : "nonuni"$
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 2$
+maxPolyOrder_Ser : 1$
 minCdim_Ser : 1$
 minVdim_Ser : 1$
-maxCdim_Ser : 3$
-maxVdim_Ser : 2$
+maxCdim_Ser : 1$
+maxVdim_Ser : 1$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 2$
@@ -52,7 +52,7 @@ elseif grid="both"   then (gridType : [false,true])$
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
     for gkV : 1 thru length(gkVdims[c]) do (
-      v : max(minVdim[bInd],gkVdims[c][gkV]),
+      v : min(maxVdim[bInd],gkVdims[c][gkV]),
 
       maxPolyOrderB : maxPolyOrder[bInd],
       if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
@@ -70,21 +70,21 @@ for bInd : 1 thru length(bName) do (
           fh : openw(fname),
           funcName : sconcat("GkLBOconstNuSurf", gridStr, c, "x", v, "v", bName[bInd]),
           calcGkLBOconstNuSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, isNonUniform, usePositivity),
-          close(fh),
-
-          /* boundarySurf kernels compute surface contribution that we
-             do not want to zero-out at the boundary of velocity domain. */
-          disp(printf(false,sconcat("Creating boundary surface GkLBOconstNu",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
-          fname : sconcat("~/max-out/GkLBOconstNuBoundarySurf", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
-          fh : openw(fname),
-          funcName : sconcat("GkLBOconstNuBoundarySurf", c, "x", v, "v", bName[bInd]),
-          calcGkLBOconstNuBoundarySurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, usePositivity),
           close(fh)
         ),
 
+        isNonUniform : false,
+        /* boundarySurf kernels compute surface contribution that we
+           do not want to zero-out at the boundary of velocity domain. */
+        disp(printf(false,sconcat("Creating boundary surface GkLBOconstNu",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
+        fname : sconcat("~/max-out/GkLBOconstNuBoundarySurf", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
+        fh : openw(fname),
+        funcName : sconcat("GkLBOconstNuBoundarySurf", c, "x", v, "v", bName[bInd]),
+        calcGkLBOconstNuBoundarySurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, usePositivity),
+        close(fh),
+
         /* The following create kernels with positivity preserving schemes. */
         if polyOrder = 1 then (
-          isNonUniform : false,
           usePositivity : true,
           disp(printf(false,sconcat("Creating surface GKLBOconstNuPositivity",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
           fname : sconcat("~/max-out/GkLBOconstNuSurfPositivity", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),

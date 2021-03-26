@@ -179,9 +179,7 @@ function DistFuncMomentCalc:init(tbl)
    if self._fiveMomentsLBO then
       -- If vDim>1, intFac=2*pi/m or 4*pi/m.
       self._intFac = Lin.Vec(self._vDim)
-      for d = 1,self._vDim do
-        self._intFac[d] = 1.0
-      end
+      for d = 1,self._vDim do self._intFac[d] = 1.0 end
       if self._isGk and (self._vDim > 1) then -- A (vpar,mu) simulation has 3 physical velocity dimensions.
          self._intFac[1] = 2.0*math.pi/self.mass
          self._intFac[2] = 4.0*math.pi/self.mass
@@ -205,7 +203,7 @@ function DistFuncMomentCalc:init(tbl)
    local uDim = self._vDim
    if (self._isGk) then uDim=1 end
    for vDir = 1, uDim do
-      self._StarM0Calc[vDir] = MomDecl.selectStarM0Calc(vDir, self._kinSpecies, self._basisID, self._cDim, self._vDim, self.applyPositivity)
+      self._StarM0Calc[vDir] = MomDecl.selectStarM0Calc(vDir, self._kinSpecies, self._basisID, self._cDim, self._vDim, self._onGrid:id(), self.applyPositivity)
       self._uCorrection[vDir] = MomDecl.selectBoundaryFintegral(vDir, self._kinSpecies, self._basisID, self._cDim, self._vDim, self._polyOrder)
       self._vtSqCorrection[vDir] = MomDecl.selectBoundaryVFintegral(vDir, self._kinSpecies, self._basisID, self._cDim, self._vDim, self._polyOrder)
    end
@@ -244,7 +242,6 @@ function DistFuncMomentCalc:initDevice(tbl)
       else
          self._momCalcFun = MomDecl.selectGkMomCalc(mom, self._basisID, self._cDim, self._vDim, self._polyOrder)
       end
-
    
       local vDim = self._vDim
    
@@ -438,13 +435,8 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
                   end
    
                   if i==dirLoIdx or i==dirUpIdx-1 then
-                     local vBound = 0.0
                      -- Careful: for vBound below we assume idxP was set after idxM above.
-                     if isLo then
-                        vBound = grid:cellLowerInDir(cDim + vDir)
-                     else
-                        vBound = grid:cellUpperInDir(cDim + vDir)
-                     end
+                     local vBound = isLo and grid:cellLowerInDir(cDim + vDir) or grid:cellUpperInDir(cDim + vDir)
                      if (self._isGk) then
                         if (firstDir) then
                            self._uCorrection[vDir](isLo, self._intFac[1], vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
@@ -491,7 +483,7 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
                   mom2:fill(confIndexer(cIdx), mom2Itr)
                   mom3:fill(confIndexer(cIdx), mom3Itr)
                   self._momCalcFun(self.xcP:data(), self.dxP:data(), self.mass, self.bmagItr:data(), distfItr:data(), 
-                   		mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
+                                   mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
                else
                   self._momCalcFun(self.xcP:data(), self.dxP:data(), self.mass, self.bmagItr:data(), distfItr:data(), mom1Itr:data())
                end
@@ -545,12 +537,7 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
       
                      distf:fill(phaseIndexer(self.idxP), distfItrP)
       
-                     local vBound = 0.0
-                     if isLo then
-                        vBound = grid:cellLowerInDir(cDim + vDir)
-                     else
-                        vBound = grid:cellUpperInDir(cDim + vDir)
-                     end
+                     local vBound = isLo and grid:cellLowerInDir(cDim + vDir) or grid:cellUpperInDir(cDim + vDir)
       
                      if (self._isGk) then
                         if (firstDir) then

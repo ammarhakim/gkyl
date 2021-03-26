@@ -142,10 +142,10 @@ compWriteIncr(fRec,fRecP,rdv2In,nSpaces) := block([incr_s1,incr_s2],
 
   quants : [dxvl,dxvr],
   tempVars : [],
-  tempVars : writeCExprs1noPowers(incr2, radcan(incr_r2), quants, pDim, tempVars),
+  tempVars : writeCExprs1noPowers(incr2, radcan(incr_r2), quants, tempVars),
   printf(fh, "~%"),
 
-  tempVars : writeCExprs1noPowers(Gdiff, Gdiff_c, quants, pDim, tempVars),
+  tempVars : writeCExprs1noPowers(Gdiff, Gdiff_c, quants, tempVars),
   printf(fh, "~%"),
 
   /* Populate Ghat including the diffusion term. */
@@ -335,10 +335,11 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, isNonUniform, 
       if polyOrder=2 then quad : sqrt(3/5),
       nodes : getNodes(basisFun, pDim-1, polyOrder)*quad,
       if cdim=1 and vdim=2 and polyOrder=2 then (
-        /* In 1x2v p=2 the bump IC does not conserve energy. We found that
-           the 1/sqrt(3) nodes do.
+        /* In 1x2v p=2 the bump IC does not conserve energy. 
            Cook up a node arrangement where corner cells are sqrt(3/5) nodes,
-           and the other four nodes are 1/sqrt(3). */
+           and the other four nodes are 1/sqrt(3). This appears to conserve
+           energy when using uniform grids. We found that the 1/sqrt(3) nodes
+           also conserve energy w/ uniform grids. */
         p1Nodes : args(getNodes(basisFun, pDim-1, 1)),
         p2Nodes : args(getNodes(basisFun, pDim-1, 2)),
         extraNodeInd : [],

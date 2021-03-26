@@ -383,7 +383,8 @@ function KineticSpecies:allocDistf()
         metaData      = {polyOrder = self.basis:polyOrder(),
                          basisType = self.basis:id(),
                          charge    = self.charge,
-                         mass      = self.mass,},
+                         mass      = self.mass,
+                         grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"}
    }
    f:clear(0.0)
    return f
