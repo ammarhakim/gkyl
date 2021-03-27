@@ -3,6 +3,9 @@
 mom_fd(g,xl,xr) := subst(x=(xl+xr)/2,g)$
 mom_fv(g,xl,xr) := integrate(g,x,xl,xr)/dx$
 
+edge_r(stencil,f,nl,nr) := subst( makelist(f[i] = f(j+i+1),i,-nl,nr-1), stencil )$
+edge_l(stencil,f,nl,nr) := subst( makelist(f[i] = f(j+i),i,-nl,nr-1), stencil )$
+
 /** Interface recovery using FV scheme with nl cells on left and nr on right */
 fv_interface_recovery(f, nl, nr, dord) := block([ncell,px,eqnList,pxSol],
   
@@ -22,11 +25,20 @@ fv_diff_stencil(u, nl, nr, dord) := block([fhalf,fluxR,fluxL],
   return ( expand((fluxR-fluxL)/dx) )
   )$
 
+/** Recovery polynomial in a cell constructed from nl+nr+1 cells */
+fv_rec_poly(u, nl, nr) := block([ncell,px,eqnList,pxSol],
+  ncell : nl+nr+1,
+  
+  px : sum(_priv_a[i]*x^i,i,0,ncell-1),
+  eqnList : makelist( _priv_f[i] = mom_fv(px,(i-1/2)*dx,(i+1/2)*dx), i, -nl,nr ),
+  pxSol : subst( linsolve(eqnList, makelist(_priv_a[i],i,0,ncell-1)), px ),
+  return( subst(makelist(_priv_f[i]=u(j+i), i,-nl,nr), pxSol) )
+  )$
 
 _m_index_fv(f,i) := mom_fv(f,i*dx-dx/2,i*dx+dx/2)$
 /* Taylor polynomial */
 fv_calc_taylor_order(fv_stencil, nl, nr, dord) := block([texp,slist,dtexp],
-  texp : sum(t[k]*x^k/factorial(k),k,0,10),
+  texp : sum(t[k]*x^k/factorial(k),k,0,2*(nl+nr)),
   slist : makelist(u(i+j) = _m_index_fv(texp,i), i, -nl,nr),
   dtexp : subst(slist, fv_stencil),
   return ( fullratsimp(dtexp - mom_fv(diff(texp,x,dord),-dx/2,dx/2)) )
