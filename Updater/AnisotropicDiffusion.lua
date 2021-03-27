@@ -58,17 +58,17 @@ function AnisotropicDiffusion:_forwardEuler(
    local idxm = Lin.IntVec(grid:ndim())
    local idxp = Lin.IntVec(grid:ndim())
 
-   local temp = outFld[1]
+   local temp = inFld[1]
    local tempIdxr = temp:genIndexer()
    local tempPtr = temp:get(1)
    local tempPtrP = temp:get(1)
    local tempPtrM = temp:get(1)
 
-   local emf = outFld[2]
+   local emf = inFld[2]
    local emfIdxr = emf:genIndexer()
    local emfPtr = emf:get(1)
 
-   local buf = inFld[1]
+   local buf = outFld[1]
    local bufIdxr = buf:genIndexer()
    local bufPtr = buf:get(1)
    local bufPtrP = buf:get(1)

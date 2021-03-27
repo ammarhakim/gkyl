@@ -149,7 +149,7 @@ while tCurr<tEnd do
 
    anisotropicDiffusion:setDtAndCflRate(myDt)
    local status, dtSuggested = anisotropicDiffusion:advance(
-      tCurr, {buf}, {temp, emf})
+      tCurr, {temp, emf}, {buf})
    temp:sync()
    syncCorners(temp)
 
