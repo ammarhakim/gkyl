@@ -94,6 +94,7 @@ function AnisotropicDiffusion:_forwardEuler(
    if self._timeStepper=="symmetric-cell-center" then
 
       -- Comptue grad(T) in internal + one ghost cell centers.
+      -- The resulting grad(T) components are stored in bufPtr[1,2,3].
       local localExt1Range = localRange:extend(1, 1)
       for idx in localExt1Range:rowMajorIter() do
          for d = 1, ndim do
@@ -112,6 +113,8 @@ function AnisotropicDiffusion:_forwardEuler(
 
       -- Compute q = q_para + q_perp at cell centers.
       -- q_para = -kappa_para*gradPara(T), q_perp = -kappa_perp*gradPerp(T).
+      -- The resulting q components are stored in bufPtr[1,2,3] to overwrite the
+      -- previously stored grad(T) components.
       for idx in localExt1Range:rowMajorIter() do
          emf:fill(emfIdxr(idx), emfPtr)
          buf:fill(bufIdxr(idx), bufPtr)
@@ -146,6 +149,7 @@ function AnisotropicDiffusion:_forwardEuler(
          end
       end
 
+      -- Compute div(q) and store it in bufPtr[cCout].
       for idx in localRange:rowMajorIter() do
          local divq = 0
          for d = 1, ndim do
