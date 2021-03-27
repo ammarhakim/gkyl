@@ -34,6 +34,8 @@ local tStart = 0.0
 local tEnd = 0.7
 local nFrames = 10
 
+print("Moments.Species.bcAxis", Moments.Species.bcAxis)
+
 local momentApp = Moments.App {
    logToFile = true,
 
@@ -70,14 +72,8 @@ local momentApp = Moments.App {
 
          return rho, 0.0, 0.0, 0.0, pr/(gasGamma-1)
       end,
-      bcx = { 
-         {
-              BoundaryCondition.Copy { components = {1, 4, 5} },
-              BoundaryCondition.Flip { components = {2, 3} },
-         },
-         Moments.Species.bcCopy
-      },
-      bcz = { Euler.bcWall, Euler.bcWall },
+      bcx = { Moments.Species.bcAxis, Moments.Species.bcCopy },
+      bcz = { Moments.Species.bcWall, Moments.Species.bcWall },
    },
 
    axisymSource = Moments.AxisymmetricMomentSource {

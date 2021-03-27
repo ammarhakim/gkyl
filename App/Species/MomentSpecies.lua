@@ -29,10 +29,12 @@ local SP_BC_WALL      = 4
 -- The following two are not yet available for the MomentSpecies.
 -- local SP_BC_DIRICHLET = 5    -- Specify the value (currently only for diffusion term).
 -- local SP_BC_NEUMANN   = 6    -- Specify the derivative (currently only for diffusion term).
+local SP_BC_AXIS      = 7
 
 MomentSpecies.bcOpen = SP_BC_OPEN    -- Open BCs.
 MomentSpecies.bcCopy = SP_BC_COPY    -- Copy BCs.
 MomentSpecies.bcWall = SP_BC_WALL    -- Wall BCs.
+MomentSpecies.bcAxis = SP_BC_AXIS -- Axis BCs
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
@@ -144,8 +146,16 @@ function MomentSpecies:appendBoundaryConditions(dir, edge, bcType)
       else
          assert(false, "MomentSpecies: bcWall not provided by the equation!")
       end
-      table.insert(self.boundaryConditions,
-                   self:makeBcUpdater(dir, edge, bcWall))
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, bcWall))
+   elseif bcType == SP_BC_AXIS then
+      -- FIXME: see comments above
+      local bcAxis
+      if self.nMoments == 5 then
+         bcAxis = Euler.bcAxis
+      else
+         assert(false, "MomentSpecies: bcAxis not provided by the equation!")
+      end
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, bcAxis))
    elseif type(bcType) == "table" then
       -- bcType can be literally a list of functions.
       table.insert(self.boundaryConditions,
