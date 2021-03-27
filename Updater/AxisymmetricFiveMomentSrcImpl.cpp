@@ -113,39 +113,6 @@ gkylAxisymmetricFiveMomentSrcRk3(const AxisymmetricFiveMomentSrcData_t *sd,
   }
 }
 
-// F = f + dt * L(f), L is an operator
-static void
-eulerUpdatePositivity(const AxisymmetricFiveMomentSrcData_t *sd,
-            const double dt,
-            const double *xc,
-            double *f,
-            double *F)
-{
-  const double radius = xc[0];
-  const double gasGamma = sd->gasGamma;
-
-  const double rho = f[RHO];
-  const double u = f[MX] / rho;
-  const double v = f[MY] / rho;
-  const double w = f[MZ] / rho;
-  double e_in = sd->hasPressure ? (f[ER] - 0.5 * rho * (u*u + v*v + w*w)) : 0.;
-
-  // Explicit update of momentum with rho being a fixed value.
-  F[MX]  = f[MX] - (dt/radius) * (rho*u*u - rho*v*v);
-  F[MY]  = f[MY] - (dt/radius) * (2*rho*u*v);
-  F[MZ]  = f[MZ] - (dt/radius) * (rho*u*w);
-
-  // Exact Update of density and pressure using the new radial velocity as a
-  // fixed value.
-  const double u1 = f[MX] / rho;
-  f[RHO] *= std::exp(-u1*dt/radius);
-
-  if (sd->hasPressure) {
-    e_in *= std::exp(-u1*dt/radius * gasGamma);;
-    F[ER] = e_in + 0.5*(f[MX]*f[MX]+f[MY]*f[MY]+f[MZ]*f[MZ])/f[RHO];
-  }
-}
-
 void
 gkylAxisymmetricFiveMomentSrcPositivityForwardEuler(
   const AxisymmetricFiveMomentSrcData_t *sd,
@@ -154,13 +121,35 @@ gkylAxisymmetricFiveMomentSrcPositivityForwardEuler(
   const double *xc,
   double **fPtrs)
 {
+  const double radius = xc[0];
+
   for (int s=0; s<sd->nFluids; ++s)
   {
     if (!(fd[s].evolve))
       continue;
-
     double *f = fPtrs[s];
 
-    eulerUpdatePositivity(sd, dt, xc, f, f);
+    double rho = f[RHO];
+    double u = f[MX] / rho;
+    double v = f[MY] / rho;
+    double w = f[MZ] / rho;
+    double e_in = sd->hasPressure ? (f[ER] - 0.5*rho*(u*u+v*v+w*w)) : 0.;
+
+    // Exact udpate of the radial velocity u with v fixed.
+    u  = u + (dt/radius) * (v*v);
+
+    // Exact update of the remaining primitive variables with u fixed.
+    rho *= std::exp(-u*dt/radius);
+    v *= std::exp(-u*dt/radius);
+
+    f[RHO] = rho;
+    f[MX] = rho * u;
+    f[MY] = rho * v;
+    f[MZ] = rho * w;
+
+    if (sd->hasPressure) {
+      e_in *= std::exp(-u*dt/radius*sd->gasGamma);
+      f[ER] = e_in + 0.5 * rho * (u*u + v*v + w*w);
+    }
   }
 }
