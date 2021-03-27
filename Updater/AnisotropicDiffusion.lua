@@ -32,11 +32,14 @@ function AnisotropicDiffusion:init(tbl)
    self._kappaPara = assert(tbl.kappaPara, pfx.."Must provide 'kappaPara'")
    self._kappaPerp = assert(tbl.kappaPerp, pfx.."Must provide 'kappaPerp'")
 
+   -- Index in the input that contains the variable whose diffusion is to be
+   -- computed.
    self._components = tbl.components and tbl.components or {1}
-   -- Indices in the buffer to store temporary q vector and T scalar, the latter
-   -- will also be used to store the final div(q) scalar.
+   -- Indices in the buffer to store temporary grad(T) vector which will then be
+   -- overwritten by q vector.
    self._componentsOutputQ = tbl.componentsOutputQ and
                              tbl.componentsOutputQ or {1,2,3}
+   -- Index in the output to store the final div(q) scalar.
    self._componentOutputDivQ = tbl.componentOutputDivQ and
                                tbl.componentOutputDivQ or 4
 
@@ -68,7 +71,13 @@ function AnisotropicDiffusion:_forwardEuler(
    local emfIdxr = emf:genIndexer()
    local emfPtr = emf:get(1)
 
-   local buf = outFld[1]
+   local divQ = outFld[1]
+   local divQIdxr = divQ:genIndexer()
+   local divQPtr = divQ:get(1)
+   local divQPtrP = divQ:get(1)
+   local divQPtrM = divQ:get(1)
+
+   local buf = outFld[2]
    local bufIdxr = buf:genIndexer()
    local bufPtr = buf:get(1)
    local bufPtrP = buf:get(1)
@@ -170,8 +179,8 @@ function AnisotropicDiffusion:_forwardEuler(
                divq = divq + (bufPtrP[cQ[d]] - bufPtrM[cQ[d]]) * 0.5/grid:dx(d)
             end
 
-            buf:fill(bufIdxr(idx), bufPtr)
-            bufPtr[cDivQ] = divq
+            divQ:fill(divQIdxr(idx), divQPtr)
+            divQPtr[cDivQ] = divq
          end
 
       elseif self._timeStepper=="symmetric-node-center" then
@@ -303,7 +312,7 @@ function AnisotropicDiffusion:_forwardEuler(
 
          -- Compute div(q) at cell centers.
          for idx in localRange:rowMajorIter() do
-            buf:fill(bufIdxr(idx), bufPtr)
+            divQ:fill(divQIdxr(idx), divQPtr)
             local divq = 0
 
             if ndim==1 then
@@ -358,7 +367,7 @@ function AnisotropicDiffusion:_forwardEuler(
                   end
                end -- Loop over gradient directions.
             end -- Loop over ndim==1,2,3 ends.
-            bufPtr[cDivQ] = divq 
+            divQPtr[cDivQ] = divq 
          end -- div(q) computation ends.
 
       end  -- timeStepper handling in divq calculation ends.
@@ -366,8 +375,8 @@ function AnisotropicDiffusion:_forwardEuler(
       -- Add div(q) to energy.
       for idx in localRange:rowMajorIter() do
          temp:fill(tempIdxr(idx), tempPtr)
-         buf:fill(bufIdxr(idx), bufPtr)
-         tempPtr[c] = tempPtr[c] - dt * bufPtr[cDivQ]
+         divQ:fill(divQIdxr(idx), divQPtr)
+         tempPtr[c] = tempPtr[c] - dt * divQPtr[cDivQ]
       end
 
    end -- Ends of loop over components of which diffusion if computed.
