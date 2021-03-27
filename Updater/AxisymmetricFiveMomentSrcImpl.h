@@ -36,7 +36,7 @@ extern "C" {
                                    double **fPtrs);
 
   void
-  gkylAxisymmetricFiveMomentSrcPositivityForwardEuler(
+  gkylAxisymmetricFiveMomentSrcSemiExact(
     const AxisymmetricFiveMomentSrcData_t *sd,
     const AxisymmetricFluidData_t *fd,
     const double dt,
