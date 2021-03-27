@@ -40,11 +40,13 @@ local EM_BC_SYMMETRY = 2
 local EM_BC_COPY     = 3
 -- AHH: This was 2 but seems that is unstable. So using plain copy.
 local EM_BC_OPEN     = EM_BC_COPY
+local EM_BC_AXIS = 7
 
 MaxwellField.bcOpen     = EM_BC_OPEN    -- Zero gradient.
 MaxwellField.bcCopy     = EM_BC_COPY    -- Copy fields.
 MaxwellField.bcReflect  = EM_BC_REFLECT -- Perfect electric conductor.
 MaxwellField.bcSymmetry = EM_BC_SYMMETRY
+MaxwellField.bcAxis = EM_BC_AXIS
 
 -- Function to check if BC type is good.
 local function isBcGood(bcType)
@@ -518,6 +520,9 @@ function MaxwellField:createSolver()
       elseif bcType == EM_BC_SYMMETRY then
 	 table.insert(self.boundaryConditions,
 		      makeBcUpdater(dir, edge, { bcSymmetry }))
+      elseif bcType == EM_BC_AXIS then
+	 table.insert(self.boundaryConditions,
+		      makeBcUpdater(dir, edge,  PerfMaxwell.bcAxis ))
       elseif type(bcType) == "table" then
 	 table.insert(self.boundaryConditions,
 		      makeBcUpdater(dir, edge, bcType))
