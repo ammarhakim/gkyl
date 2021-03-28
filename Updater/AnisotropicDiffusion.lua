@@ -85,6 +85,13 @@ end
 
 local function isNaN( v ) return type( v ) == "number" and v ~= v end
 
+function AnisotropicDiffusion:setKappa(kappaPara, kappaPerp)
+      assert(kappaPara>=0, self._pfx.."kappaPara must be >=0.")
+      assert(kappaPerp>=0, self._pfx.."kappaPerp must be >=0.")
+      self._kappaPara = kappaPara
+      self._kappaPerp = kappaPerp
+end
+
 function AnisotropicDiffusion:setKappaField(kappaField)
       assert(type(kappaField)=="table",
              self._pfx.."setKappaField, must provide a valid CartField object.")
