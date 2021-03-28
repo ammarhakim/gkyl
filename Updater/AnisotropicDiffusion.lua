@@ -50,15 +50,18 @@ function AnisotropicDiffusion:init(tbl)
    elseif self._kappaMode=="function" then
       -- Allow setting/changing this later using the setKappaFunction method.
       self._kappaFunction = tbl.kappaFunction
+      self._auxField = self.auxField
    end
 
    -- Index in the input that contains the variable whose diffusion is to be
    -- computed.
    self._components = tbl.components and tbl.components or {1}
    -- Indices in the buffer to store temporary grad(T) vector which will then be
-   -- overwritten by q vector.
+   -- overwritten by q vector. The buffer and the output field maybe the same
+   -- CartField object.
    self._componentsBufQ = tbl.componentsBufQ and tbl.componentsBufQ or {1,2,3}
-   -- Index in the output to store the final div(q) scalar.
+   -- Index in the output to store the final div(q) scalar. The buffer and the
+   -- output field maybe the same CartField object.
    self._componentOutputDivQ = tbl.componentOutputDivQ and
                                tbl.componentOutputDivQ or 4
 
@@ -81,19 +84,24 @@ end
 local function isNaN( v ) return type( v ) == "number" and v ~= v end
 
 function AnisotropicDiffusion:setKappaField(kappaField)
-      self._kappaField = assert(type(kappaField)=="table",
-                                pfx.."setKappaField, must provide a valid "..
-                                "CartField object.")
+      assert(type(kappaField)=="table",
+             self._pfx.."setKappaField, must provide a valid CartField object.")
+      self._kappaField = kappaField
 end
 
 function AnisotropicDiffusion:setKappaFunction(kappaFunction)
-      self._kappaFunction = assert(type(kappaFunction)=="function",
-                                   self._pfx.."setKappaFunction, must "..
-                                   "provide a function with arguments "..
-                                   "(tempPtr, emfPtr, auxPtr), where the "..
-                                   "aux CartField should be provided as an "..
-                                   "additional field in the inFld argument "..
-                                   "the _advance method call.")
+      assert(type(kappaFunction)=="function",
+             self._pfx.."setKappaFunction, must provide a function with "..
+             "arguments (tempPtr, emfPtr) or (tempPtr, emfPtr, auxPtr), "..
+             "where aux is a CartField provided upon updater initialization "..
+             "or, later, using the setAuxField method.")
+      self._kappaFunction = kappaFunction
+end
+
+function AnisotropicDiffusion:setAuxField(auxField)
+      assert(type(auxField)=="table",
+             self._pfx.."setAuxField, must provide a valid CartField object.")
+      self._auxField = auxField
 end
 
 function AnisotropicDiffusion:setCalcQSwitch(onOffSwitch)
@@ -150,7 +158,7 @@ function AnisotropicDiffusion:_forwardEuler(
       kappaFieldPtr = kappaField:get(1)
    end
 
-   local aux = inFld[3]  -- Only needed for kappamode=='function'
+   local aux = self._auxField  -- Only needed for kappamode=='function'
    local auxIdxr, auxPtr
    local useKappaFunction = self._kappaMode=='function'
    local hasAuxField = false
