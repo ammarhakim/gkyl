@@ -32,6 +32,9 @@ function AnisotropicDiffusion:init(tbl)
    self._onGrid = assert(tbl.onGrid, pfx.."Must provide 'onGrid'.")
    self._cfl = tbl.cfl and tbl.cfl or 1
 
+   self._updateTemperature = xsys.pickBool(
+      tbl.updateTemperature, true)
+
    self._kappaMode = tbl.kappaMode and tbl.kappaMode or "constant"
    if self._kappaMode=="constant" then
       local pfxx = pfx.."For kappaMode=='constant', "
@@ -513,11 +516,13 @@ function AnisotropicDiffusion:_forwardEuler(
 
       end  -- scheme handling in divq calculation ends.
 
-      -- Add div(q) to energy.
-      for idx in localRange:rowMajorIter() do
-         temp:fill(tempIdxr(idx), tempPtr)
-         divQ:fill(divQIdxr(idx), divQPtr)
-         tempPtr[c] = tempPtr[c] - dt * divQPtr[cDivQ]
+      if self._updateTemperature then
+         -- Add div(q) to energy.
+         for idx in localRange:rowMajorIter() do
+            temp:fill(tempIdxr(idx), tempPtr)
+            divQ:fill(divQIdxr(idx), divQPtr)
+            tempPtr[c] = tempPtr[c] - dt * divQPtr[cDivQ]
+         end
       end
 
    end -- Ends of loop over components of which diffusion if computed.
