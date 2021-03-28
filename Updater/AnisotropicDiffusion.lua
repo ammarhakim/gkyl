@@ -57,8 +57,7 @@ function AnisotropicDiffusion:init(tbl)
    self._components = tbl.components and tbl.components or {1}
    -- Indices in the buffer to store temporary grad(T) vector which will then be
    -- overwritten by q vector.
-   self._componentsBufQ = tbl.componentsBufQ and
-                             tbl.componentsBufQ or {1,2,3}
+   self._componentsBufQ = tbl.componentsBufQ and tbl.componentsBufQ or {1,2,3}
    -- Index in the output to store the final div(q) scalar.
    self._componentOutputDivQ = tbl.componentOutputDivQ and
                                tbl.componentOutputDivQ or 4
@@ -88,22 +87,25 @@ function AnisotropicDiffusion:setKappaField(kappaField)
 end
 
 function AnisotropicDiffusion:setKappaFunction(kappaFunction)
-      self._kappaFunction = assert(kappaFunction,
+      self._kappaFunction = assert(type(kappaFunction)=="function",
                                    self._pfx.."setKappaFunction, must "..
                                    "provide a function with arguments "..
-                                   "(tempPtr, emfPtr, auxPtr).")
+                                   "(tempPtr, emfPtr, auxPtr), where the "..
+                                   "aux CartField should be provided as an "..
+                                   "additional field in the inFld argument "..
+                                   "the _advance method call.")
 end
 
-function AnisotropicDiffusion:setCalcQSwitch(switch)
-   self._calcQ = switch
+function AnisotropicDiffusion:setCalcQSwitch(onOffSwitch)
+   self._calcQ = onOffSwitch
 end
 
-function AnisotropicDiffusion:setCalcDivQSwitch(switch)
-   self._calcDivQ = switch
+function AnisotropicDiffusion:setCalcDivQSwitch(onOffSwitch)
+   self._calcDivQ = onOffSwitch
 end
 
-function AnisotropicDiffusion:setUpdateTemperatureSwitch(switch)
-   self._updateTemperature = switch
+function AnisotropicDiffusion:setUpdateTemperatureSwitch(onOffSwitch)
+   self._updateTemperature = onOffSwitch
 end
 
 -- TODO Nicer, more accurate time-step size calculation.
@@ -160,8 +162,8 @@ function AnisotropicDiffusion:_forwardEuler(
    if useKappaFunction then
       assert(type(self._kappaFunction)=='function',
              self._pfx.."For kappaMode=='function', must provide a function "..
-             "with arguments (tempPtr, emfPtr, auxPtr) using the "..
-             "setkappaFunction method.")
+             "with arguments (tempPtr, emfPtr) or (tempPtr, emfPtr, auxPtr) "..
+             "using the setkappaFunction method.")
    end
 
    local divQ = outFld[1]
