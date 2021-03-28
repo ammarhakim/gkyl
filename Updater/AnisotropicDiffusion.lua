@@ -13,6 +13,7 @@
 -- Major TODOs:
 -- - More accurate time-step size estimation.
 -- - Limiters following Sharma and Hammett 2007 JCP.
+-- - Non-uniform grid support.
 --
 --------------------------------------------------------------------------------
 
@@ -57,11 +58,20 @@ function AnisotropicDiffusion:init(tbl)
    self._componentOutputDivQ = tbl.componentOutputDivQ and
                                tbl.componentOutputDivQ or 4
 
-   self._scheme = tbl.scheme~=nil and tbl.scheme or
-                       "symmetric-node-center"
+   self._coordinate = tbl.coordinate ~= nil and tbl.coordinate or "cartesian"
+   assert(self._coordinate=="cartesian" or
+          self._coordinate=="axisymmetric",
+          string.format("%s'coordinate' %s not recognized.",
+                        pfx, tbl._coordinate))
+
+   self._scheme = tbl.scheme~=nil and tbl.scheme or "symmetric-node-center"
    assert(self._scheme=="symmetric-cell-center" or
           self._scheme=="symmetric-node-center",
           pfx.."scheme '"..self._scheme.."' is not supported.")
+
+   if self._coordinate=="axisymmetric" then
+      self._scheme = "symmetric-cell-center"
+   end
 end
 
 local function isNaN( v ) return type( v ) == "number" and v ~= v end
@@ -227,23 +237,64 @@ function AnisotropicDiffusion:_forwardEuler(
          end
 
          -- Compute div(q) and store it in divQPtr.
-         for idx in localRange:rowMajorIter() do
-            local divq = 0
-            for d = 1, ndim do
-               idx:copyInto(idxp)
-               idx:copyInto(idxm)
-               idxp[d] = idx[d]+1
-               idxm[d] = idx[d]-1
+         if self._coordinate=="cartesian" then
+            for idx in localRange:rowMajorIter() do
+               local divq = 0
+               for d = 1, ndim do
+                  idx:copyInto(idxp)
+                  idx:copyInto(idxm)
+                  idxp[d] = idx[d]+1
+                  idxm[d] = idx[d]-1
 
-               buf:fill(bufIdxr(idxp), bufPtrP)
-               buf:fill(bufIdxr(idxm), bufPtrM)
+                  buf:fill(bufIdxr(idxp), bufPtrP)
+                  buf:fill(bufIdxr(idxm), bufPtrM)
 
-               divq = divq + (bufPtrP[cQ[d]] - bufPtrM[cQ[d]]) * 0.5/grid:dx(d)
+                  divq = divq + (bufPtrP[cQ[d]]-bufPtrM[cQ[d]]) * 0.5/grid:dx(d)
+               end
+
+               divQ:fill(divQIdxr(idx), divQPtr)
+               divQPtr[cDivQ] = divq
             end
+         elseif self._coordinate=="axisymmetric" then
+            local xc = Lin.Vec(ndim)
+            local xp = Lin.Vec(ndim)
+            local xm = Lin.Vec(ndim)
+            for idx in localRange:rowMajorIter() do
+               local divq = 0
+               for d = 1, ndim do
+                  idx:copyInto(idxp)
+                  idx:copyInto(idxm)
+                  idxp[d] = idx[d]+1
+                  idxm[d] = idx[d]-1
 
-            divQ:fill(divQIdxr(idx), divQPtr)
-            divQPtr[cDivQ] = divq
-         end
+                  buf:fill(bufIdxr(idxp), bufPtrP)
+                  buf:fill(bufIdxr(idxm), bufPtrM)
+
+                  if d==1 then  -- R
+                     grid:setIndex(idx)
+                     grid:cellCenter(xc)
+                     grid:setIndex(idxp)
+                     grid:cellCenter(xp)
+                     grid:setIndex(idxm)
+                     grid:cellCenter(xm)
+                     local r = xc[1]
+                     local rp = xp[1]
+                     local rm = xm[1]
+
+                     divq = divq +
+                            (rp*bufPtrP[cQ[d]]-rm*bufPtrM[cQ[d]]) *
+                            0.5/grid:dx(d)/r
+                  elseif d==2 then  -- Theta
+                  elseif d==3 then  -- Z
+                     divq = divq + (bufPtrP[cQ[d]]-bufPtrM[cQ[d]]) *
+                            0.5/grid:dx(d)
+                  end
+               end
+
+               buf:fill(bufIdxr(idx), bufPtr)
+               bufPtr[5] = divq
+            end
+         end  -- End of different coordinate handling.
 
       elseif self._scheme=="symmetric-node-center" then
 
