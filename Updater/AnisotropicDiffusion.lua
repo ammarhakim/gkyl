@@ -42,9 +42,8 @@ function AnisotropicDiffusion:init(tbl)
                                 pfx.."For kappaMode=='field', "..
                                 "Must provide 'kappaField'.")
    elseif self._kappaMode=="function" then
-      self._kappaFunction = assert(tbl.kappaFunction,
-                                   pfx.."For kappaMode=='function', "..
-                                   "Must provide 'kappaFunction'.")
+      -- Allow setting/changing this later using the setKappaFunction method.
+      self._kappaFunction = tbl.kappaFunction
    end
 
    -- Index in the input that contains the variable whose diffusion is to be
@@ -76,10 +75,11 @@ end
 
 local function isNaN( v ) return type( v ) == "number" and v ~= v end
 
-function AnisotropicDiffusion:setKappaField(kappaField)
-      self._kappaField = assert(self.kappaField,
-                                self._pfx.."setKappaField, "..
-                                "Must provide the field.")
+function AnisotropicDiffusion:setKappaFunction(kappaFunction)
+      self._kappaFunction = assert(kappaFunction,
+                                   self._pfx.."setKappaFunction, must "..
+                                   "provide a function with arguments "..
+                                   "(tempPtr, emfPtr, auxPtr).")
 end
 
 -- TODO Nicer, more accurate time-step size calculation.
@@ -129,6 +129,12 @@ function AnisotropicDiffusion:_forwardEuler(
       auxIdxr = aux:genIndexer()
       auxPtr = aux:get(1)
       hasAuxField = true
+   end
+   if useKappaFunction then
+      assert(type(self._kappaFunction)=='function',
+             self._pfx.."For kappaMode=='function', must provide a function "..
+             "with arguments (tempPtr, emfPtr, auxPtr) using the "..
+             "setkappaFunction method.")
    end
 
    local divQ = outFld[1]
