@@ -1,9 +1,5 @@
-#include <GkSheathModDecl.h>
-// approximation for inverse Langevin function 
-long double invL(long double x) { 
-  // from Kroger 
-  return (3.*x-x*x*x*(6. + x*x - 2.*x*x*x*x)/5.)/(1.-x*x); 
-}
+#include <GkSheathModDecl.h> 
+
 
 void calcSheathReflection1x1vSer_P1(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double zVal, const double q_, const double m_, const double *phi, const double *phiWall, const double *f, double *fRefl) 
 { 

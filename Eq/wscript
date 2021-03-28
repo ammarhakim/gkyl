@@ -51,6 +51,22 @@ def build(bld):
     lboData/GkLBOconstNuSurfNonUniformSer1x2vP2.cpp
     lboData/GkLBOconstNuSurfNonUniformSer2x2vP2.cpp
     lboData/GkLBOconstNuSurfNonUniformSer3x2vP2.cpp
+    lboData/GkLBOconstNuTensor1x1vP1.cpp
+    lboData/GkLBOconstNuTensor1x2vP1.cpp
+    lboData/GkLBOconstNuSurfTensor1x1vP1.cpp
+    lboData/GkLBOconstNuSurfTensor1x2vP1.cpp
+    lboData/GkLBOconstNuBoundarySurfTensor1x1vP1.cpp
+    lboData/GkLBOconstNuBoundarySurfTensor1x2vP1.cpp
+    lboData/GkLBOconstNuSurfNonUniformTensor1x1vP1.cpp
+    lboData/GkLBOconstNuSurfNonUniformTensor1x2vP1.cpp
+    lboData/GkLBOconstNuTensor1x1vP2.cpp
+    lboData/GkLBOconstNuTensor1x2vP2.cpp
+    lboData/GkLBOconstNuSurfTensor1x1vP2.cpp
+    lboData/GkLBOconstNuSurfTensor1x2vP2.cpp
+    lboData/GkLBOconstNuBoundarySurfTensor1x1vP2.cpp
+    lboData/GkLBOconstNuBoundarySurfTensor1x2vP2.cpp
+    lboData/GkLBOconstNuSurfNonUniformTensor1x1vP2.cpp
+    lboData/GkLBOconstNuSurfNonUniformTensor1x2vP2.cpp
     
     lboData/VmLBOconstNuSer1x1vP1.cpp
     lboData/VmLBOconstNuSer1x2vP1.cpp
@@ -543,6 +559,14 @@ def build(bld):
     gkData/GyrokineticSimpleHelicalSurfPositivitySer2x0vP1.cpp
     gkData/GyrokineticSimpleHelicalSurfPositivitySer2x2vP1.cpp
     gkData/GyrokineticSimpleHelicalSurfPositivitySer3x2vP1.cpp
+    gkData/GyrokineticSimpleHelicalTensor1x1vP1.cpp
+    gkData/GyrokineticSimpleHelicalTensor1x2vP1.cpp
+    gkData/GyrokineticSimpleHelicalTensor1x1vP2.cpp
+    gkData/GyrokineticSimpleHelicalTensor1x2vP2.cpp
+    gkData/GyrokineticSimpleHelicalSurfTensor1x1vP1.cpp
+    gkData/GyrokineticSimpleHelicalSurfTensor1x2vP1.cpp
+    gkData/GyrokineticSimpleHelicalSurfTensor1x1vP2.cpp
+    gkData/GyrokineticSimpleHelicalSurfTensor1x2vP2.cpp
 
     gkData/EmGyrokineticSimpleHelicalSer1x1vP1.cpp
     gkData/EmGyrokineticSimpleHelicalSer1x2vP1.cpp
@@ -564,6 +588,14 @@ def build(bld):
     gkData/EmGyrokineticSimpleHelicalSurfPositivitySer1x2vP1.cpp
     gkData/EmGyrokineticSimpleHelicalSurfPositivitySer2x2vP1.cpp
     gkData/EmGyrokineticSimpleHelicalSurfPositivitySer3x2vP1.cpp
+    gkData/EmGyrokineticSimpleHelicalTensor1x1vP1.cpp
+    gkData/EmGyrokineticSimpleHelicalTensor1x2vP1.cpp
+    gkData/EmGyrokineticSimpleHelicalTensor1x1vP2.cpp
+    gkData/EmGyrokineticSimpleHelicalTensor1x2vP2.cpp
+    gkData/EmGyrokineticSimpleHelicalSurfTensor1x1vP1.cpp
+    gkData/EmGyrokineticSimpleHelicalSurfTensor1x2vP1.cpp
+    gkData/EmGyrokineticSimpleHelicalSurfTensor1x1vP2.cpp
+    gkData/EmGyrokineticSimpleHelicalSurfTensor1x2vP2.cpp
 
     gkData/GyrokineticGenGeoSer1x1vP1.cpp
     gkData/GyrokineticGenGeoSer1x2vP1.cpp
@@ -590,6 +622,14 @@ def build(bld):
     gkData/GyrokineticGenGeoSurfPositivitySer2x0vP1.cpp
     gkData/GyrokineticGenGeoSurfPositivitySer2x2vP1.cpp
     gkData/GyrokineticGenGeoSurfPositivitySer3x2vP1.cpp
+    gkData/GyrokineticGenGeoTensor1x1vP1.cpp
+    gkData/GyrokineticGenGeoTensor1x2vP1.cpp
+    gkData/GyrokineticGenGeoTensor1x1vP2.cpp
+    gkData/GyrokineticGenGeoTensor1x2vP2.cpp
+    gkData/GyrokineticGenGeoSurfTensor1x1vP1.cpp
+    gkData/GyrokineticGenGeoSurfTensor1x2vP1.cpp
+    gkData/GyrokineticGenGeoSurfTensor1x1vP2.cpp
+    gkData/GyrokineticGenGeoSurfTensor1x2vP2.cpp
 
     gkData/EmGyrokineticGenGeoSer1x1vP1.cpp
     gkData/EmGyrokineticGenGeoSer1x2vP1.cpp
@@ -611,8 +651,19 @@ def build(bld):
     gkData/EmGyrokineticGenGeoSurfPositivitySer1x2vP1.cpp
     gkData/EmGyrokineticGenGeoSurfPositivitySer2x2vP1.cpp
     gkData/EmGyrokineticGenGeoSurfPositivitySer3x2vP1.cpp
+    gkData/EmGyrokineticGenGeoTensor1x1vP1.cpp
+    gkData/EmGyrokineticGenGeoTensor1x2vP1.cpp
+    gkData/EmGyrokineticGenGeoTensor1x1vP2.cpp
+    gkData/EmGyrokineticGenGeoTensor1x2vP2.cpp
+    gkData/EmGyrokineticGenGeoSurfTensor1x1vP1.cpp
+    gkData/EmGyrokineticGenGeoSurfTensor1x2vP1.cpp
+    gkData/EmGyrokineticGenGeoSurfTensor1x1vP2.cpp
+    gkData/EmGyrokineticGenGeoSurfTensor1x2vP2.cpp
 
-    gkData/GkSheathFuncsSer.cpp
+    gkData/GkSheathFuncsSerP1.cpp
+    gkData/GkSheathFuncsSerP2.cpp
+    gkData/GkSheathFuncsTensorP1.cpp
+    gkData/GkSheathFuncsTensorP2.cpp
 
     Positivity.cpp
 

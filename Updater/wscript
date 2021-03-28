@@ -58,6 +58,9 @@ def build(bld):
     momentCalcData/DistFuncMomentLBOCalcTensor1x2v.cpp
     momentCalcData/DistFuncMomentLBOCalcTensor1x3v.cpp
     momentCalcData/DistFuncMomentLBOCalcTensor2x2v.cpp
+    momentCalcData/DistFuncGkMomentLBOCalcTensor1x1v.cpp
+    momentCalcData/DistFuncGkMomentLBOCalcTensor1x2v.cpp
+    momentCalcData/DistFuncGkMomentLBOCalcTensor2x2v.cpp
 
     primMomentsCalcData/VmSelfPrimMomentsSer1x1vP1.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer1x2vP1.cpp
@@ -71,6 +74,8 @@ def build(bld):
     primMomentsCalcData/VmSelfPrimMomentsMax2x2vP1.cpp
     primMomentsCalcData/VmSelfPrimMomentsMax2x3vP1.cpp
     primMomentsCalcData/VmSelfPrimMomentsMax3x3vP1.cpp
+    primMomentsCalcData/VmSelfPrimMomentsTensor1x1vP1.cpp
+    primMomentsCalcData/VmSelfPrimMomentsTensor1x2vP1.cpp
     primMomentsCalcData/GkSelfPrimMomentsSer1x1vP1.cpp
     primMomentsCalcData/GkSelfPrimMomentsSer1x2vP1.cpp
     primMomentsCalcData/GkSelfPrimMomentsSer2x2vP1.cpp
@@ -79,6 +84,8 @@ def build(bld):
     primMomentsCalcData/GkSelfPrimMomentsMax1x2vP1.cpp
     primMomentsCalcData/GkSelfPrimMomentsMax2x2vP1.cpp
     primMomentsCalcData/GkSelfPrimMomentsMax3x2vP1.cpp
+    primMomentsCalcData/GkSelfPrimMomentsTensor1x1vP1.cpp
+    primMomentsCalcData/GkSelfPrimMomentsTensor1x2vP1.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer1x1vP2.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer1x2vP2.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer1x3vP2.cpp
@@ -89,6 +96,8 @@ def build(bld):
     primMomentsCalcData/VmSelfPrimMomentsMax1x3vP2.cpp
     primMomentsCalcData/VmSelfPrimMomentsMax2x2vP2.cpp
     primMomentsCalcData/VmSelfPrimMomentsMax2x3vP2.cpp
+    primMomentsCalcData/VmSelfPrimMomentsTensor1x1vP2.cpp
+    primMomentsCalcData/VmSelfPrimMomentsTensor1x2vP2.cpp
     primMomentsCalcData/GkSelfPrimMomentsSer1x1vP2.cpp
     primMomentsCalcData/GkSelfPrimMomentsSer1x2vP2.cpp
     primMomentsCalcData/GkSelfPrimMomentsSer2x2vP2.cpp
@@ -97,6 +106,8 @@ def build(bld):
     primMomentsCalcData/GkSelfPrimMomentsMax1x2vP2.cpp
     primMomentsCalcData/GkSelfPrimMomentsMax2x2vP2.cpp
     primMomentsCalcData/GkSelfPrimMomentsMax3x2vP2.cpp
+    primMomentsCalcData/GkSelfPrimMomentsTensor1x1vP2.cpp
+    primMomentsCalcData/GkSelfPrimMomentsTensor1x2vP2.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer1x1vP3.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer1x2vP3.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer1x3vP3.cpp
@@ -327,15 +338,19 @@ def build(bld):
     momentCalcData/DistFuncMomentCalcTensor1x3v.cpp
     momentCalcData/DistFuncMomentCalcTensor2x2v.cpp
 
+    momentCalcData/DistFuncGkMomentCalcSer1x1v.cpp
+    momentCalcData/DistFuncGkMomentCalcSer1x2v.cpp
+    momentCalcData/DistFuncGkMomentCalcSer2x2v.cpp
+    momentCalcData/DistFuncGkMomentCalcSer3x2v.cpp
+
     momentCalcData/DistFuncGkMomentCalcMax1x1v.cpp
     momentCalcData/DistFuncGkMomentCalcMax1x2v.cpp
     momentCalcData/DistFuncGkMomentCalcMax2x2v.cpp
     momentCalcData/DistFuncGkMomentCalcMax3x2v.cpp
 
-    momentCalcData/DistFuncGkMomentCalcSer1x1v.cpp
-    momentCalcData/DistFuncGkMomentCalcSer1x2v.cpp
-    momentCalcData/DistFuncGkMomentCalcSer2x2v.cpp
-    momentCalcData/DistFuncGkMomentCalcSer3x2v.cpp
+    momentCalcData/DistFuncGkMomentCalcTensor1x1v.cpp
+    momentCalcData/DistFuncGkMomentCalcTensor1x2v.cpp
+    momentCalcData/DistFuncGkMomentCalcTensor2x2v.cpp
 
     momentCalcData/DistFuncIntegratedMomentCalcSer1x1v.cpp
     momentCalcData/DistFuncIntegratedMomentCalcSer1x2v.cpp
