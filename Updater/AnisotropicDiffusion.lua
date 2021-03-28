@@ -78,8 +78,8 @@ local function isNaN( v ) return type( v ) == "number" and v ~= v end
 
 function AnisotropicDiffusion:setKappaField(kappaField)
       self._kappaField = assert(self.kappaField,
-                                self._pfx.."kappaMode 'field', "..
-                                "Must provide 'kappaField'.")
+                                self._pfx.."setKappaField, "..
+                                "Must provide the field.")
 end
 
 -- TODO Nicer, more accurate time-step size calculation.
