@@ -57,11 +57,11 @@ function AnisotropicDiffusion:init(tbl)
    self._componentOutputDivQ = tbl.componentOutputDivQ and
                                tbl.componentOutputDivQ or 4
 
-   self._timeStepper = tbl.timeStepper~=nil and tbl.timeStepper or
+   self._scheme = tbl.scheme~=nil and tbl.scheme or
                        "symmetric-node-center"
-   assert(self._timeStepper=="symmetric-cell-center" or
-          self._timeStepper=="symmetric-node-center",
-          pfx.."timeStepper '"..self._timeStepper.."' is not supported.")
+   assert(self._scheme=="symmetric-cell-center" or
+          self._scheme=="symmetric-node-center",
+          pfx.."scheme '"..self._scheme.."' is not supported.")
 end
 
 local function isNaN( v ) return type( v ) == "number" and v ~= v end
@@ -148,7 +148,7 @@ function AnisotropicDiffusion:_forwardEuler(
    local cQ = self._componentsBufQ
    for icomp, c in ipairs(self._components) do
 
-      if self._timeStepper=="symmetric-cell-center" then
+      if self._scheme=="symmetric-cell-center" then
 
          -- Comptue grad(T) in internal + one ghost cell centers.
          -- The resulting grad(T) components are stored in bufPtr[1,2,3].
@@ -226,7 +226,7 @@ function AnisotropicDiffusion:_forwardEuler(
             end
          end
 
-         -- Compute div(q) and store it in bufPtr[cCout].
+         -- Compute div(q) and store it in divQPtr.
          for idx in localRange:rowMajorIter() do
             local divq = 0
             for d = 1, ndim do
@@ -245,7 +245,7 @@ function AnisotropicDiffusion:_forwardEuler(
             divQPtr[cDivQ] = divq
          end
 
-      elseif self._timeStepper=="symmetric-node-center" then
+      elseif self._scheme=="symmetric-node-center" then
 
          -- Compute grad(T) on nodes (cell-corners).
          -- The i-th node here is defined as the lower corner of the i-th cell,
@@ -455,7 +455,7 @@ function AnisotropicDiffusion:_forwardEuler(
             divQPtr[cDivQ] = divq 
          end -- div(q) computation ends.
 
-      end  -- timeStepper handling in divq calculation ends.
+      end  -- scheme handling in divq calculation ends.
 
       -- Add div(q) to energy.
       for idx in localRange:rowMajorIter() do

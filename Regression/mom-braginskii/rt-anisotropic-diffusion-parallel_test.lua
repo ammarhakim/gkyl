@@ -5,7 +5,7 @@ local Updater    = require "Updater"
 
 local kappaPara = 0.01
 local kappaPerp = 0.0
-local timeStepper = 'symmetric-cell-center'
+local scheme = 'symmetric-cell-center'
 
 local lower        = { 1./2.,  1./2.}
 local upper        = {-1./2., -1./2.}
@@ -85,7 +85,7 @@ end
 
 local anisotropicDiffusion = Updater.AnisotropicDiffusion {
    onGrid      = grid,
-   timeStepper = timeStepper,
+   scheme = scheme,
    cfl         = cfl,
 
    -- kappaMode = "function",
