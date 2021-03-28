@@ -44,6 +44,8 @@ function AnisotropicDiffusion:init(tbl)
       local pfxx = pfx.."For kappaMode=='constant', "
       self._kappaPara = assert(tbl.kappaPara, pfxx.."Must provide 'kappaPara'.")
       self._kappaPerp = assert(tbl.kappaPerp, pfxx.."Must provide 'kappaPerp'.")
+      assert(self._kappaPara >= 0, pfxx.."kappaPara must be non-negative.")
+      assert(self._kappaPerp >= 0, pfxx.."kappaPerp must be non-negative.")
    elseif self._kappaMode=="field" then
       -- Allow setting/changing this later using the setKappaField method.
       self._kappaField = self.kappaField
@@ -255,6 +257,8 @@ function AnisotropicDiffusion:_forwardEuler(
                      self._kappaFunction(bmag, tempPtr, emfPtr, auxPtr)
                end
                if (useKappaField or useKappaFunction) then
+                  assert(kappaPara >= 0, "kappaPara must be >=0.")
+                  assert(kappaPerp >= 0, "kappaPerp must be >=0.")
                   dtSuggested = math.min(
                      dtSuggested,
                      suggestDt(kappaPara, kappaPerp, ndim, dx, self._cfl)
@@ -460,6 +464,8 @@ function AnisotropicDiffusion:_forwardEuler(
                if (useKappaField or useKappaFunction) then
                   kappaPara = kappaPara / nPts
                   kappaPerp = kappaPerp / nPts
+                  assert(kappaPara >= 0, "kappaPara must be >=0.")
+                  assert(kappaPerp >= 0, "kappaPerp must be >=0.")
                   dtSuggested = math.min(
                      dtSuggested,
                      suggestDt(kappaPara, kappaPerp, ndim, dx, self._cfl)
