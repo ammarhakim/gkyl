@@ -9,7 +9,7 @@ local scheme = 'symmetric-cell-center'
 
 local lower        = { 1./2.,  1./2.}
 local upper        = {-1./2., -1./2.}
-local cells        = {128, 128}
+local cells        = {64, 64}
 local periodicDirs = {1, 2}
 
 local cfl = 0.9
