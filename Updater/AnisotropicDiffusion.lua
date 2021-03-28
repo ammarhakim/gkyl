@@ -135,7 +135,6 @@ function AnisotropicDiffusion:_forwardEuler(
    local ndim = grid:ndim()
    local idxm = Lin.IntVec(grid:ndim())
    local idxp = Lin.IntVec(grid:ndim())
-   local dx = {grid:dx(1), grid:dx(2), grid:dx(3)}
 
    local temp = inFld[1]
    local tempIdxr = temp:genIndexer()
@@ -146,6 +145,16 @@ function AnisotropicDiffusion:_forwardEuler(
    local emf = inFld[2]
    local emfIdxr = emf:genIndexer()
    local emfPtr = emf:get(1)
+
+   local divQ = outFld[1]
+   local divQIdxr = divQ:genIndexer()
+   local divQPtr = divQ:get(1)
+
+   local buf = outFld[2]
+   local bufIdxr = buf:genIndexer()
+   local bufPtr = buf:get(1)
+   local bufPtrP = buf:get(1)
+   local bufPtrM = buf:get(1)
 
    local useKappaField = self._kappaMode=='field'
    local kappaField = self._kappaField
@@ -174,23 +183,12 @@ function AnisotropicDiffusion:_forwardEuler(
              "using the setkappaFunction method.")
    end
 
-   local divQ = outFld[1]
-   local divQIdxr = divQ:genIndexer()
-   local divQPtr = divQ:get(1)
-
-   local buf = outFld[2]
-   local bufIdxr = buf:genIndexer()
-   local bufPtr = buf:get(1)
-   local bufPtrP = buf:get(1)
-   local bufPtrM = buf:get(1)
-
-   local localRange = temp:localRange()
-
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
 
    local kappaPara = self._kappaPara
    local kappaPerp = self._kappaPerp
    -- Check time-step size.
+   local dx = {grid:dx(1), grid:dx(2), grid:dx(3)}
    if self._kappaMode=="constant" then
       dtSuggested = suggestDt(kappaPara, kappaPerp, ndim, dx, self._cfl)
       status = dt <= dtSuggested
@@ -199,6 +197,8 @@ function AnisotropicDiffusion:_forwardEuler(
 
    local cDivQ = self._componentOutputDivQ
    local cQ = self._componentsBufQ
+   local localRange = temp:localRange()
+
    for icomp, c in ipairs(self._components) do
 
       if self._scheme=="symmetric-cell-center" then
