@@ -19,26 +19,40 @@
 local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
+local xsys = require "xsys"
 
 local AnisotropicDiffusion = Proto(UpdaterBase)
 
 function AnisotropicDiffusion:init(tbl)
    AnisotropicDiffusion.super.init(self, tbl)
    local pfx = "Updater.AnisotropicDiffusion: "
+   self._pfx = pfx
 
    self._onGrid = assert(tbl.onGrid, pfx.."Must provide 'onGrid'.")
    self._cfl = tbl.cfl and tbl.cfl or 1
 
-   self._kappaPara = assert(tbl.kappaPara, pfx.."Must provide 'kappaPara'")
-   self._kappaPerp = assert(tbl.kappaPerp, pfx.."Must provide 'kappaPerp'")
+   self._kappaMode = tbl.kappaMode and tbl.kappaMode or "constant"
+   if self._kappaMode=="constant" then
+      local pfxx = pfx.."For kappaMode=='constant', "
+      self._kappaPara = assert(tbl.kappaPara, pfxx.."Must provide 'kappaPara'.")
+      self._kappaPerp = assert(tbl.kappaPerp, pfxx.."Must provide 'kappaPerp'.")
+   elseif self._kappaMode=="field" then
+      self._kappaField = assert(self.kappaField,
+                                pfx.."For kappaMode=='field', "..
+                                "Must provide 'kappaField'.")
+   elseif self._kappaMode=="function" then
+      self._kappaFunction = assert(tbl.kappaFunction,
+                                   pfx.."For kappaMode=='function', "..
+                                   "Must provide 'kappaFunction'.")
+   end
 
    -- Index in the input that contains the variable whose diffusion is to be
    -- computed.
    self._components = tbl.components and tbl.components or {1}
    -- Indices in the buffer to store temporary grad(T) vector which will then be
    -- overwritten by q vector.
-   self._componentsOutputQ = tbl.componentsOutputQ and
-                             tbl.componentsOutputQ or {1,2,3}
+   self._componentsBufQ = tbl.componentsBufQ and
+                             tbl.componentsBufQ or {1,2,3}
    -- Index in the output to store the final div(q) scalar.
    self._componentOutputDivQ = tbl.componentOutputDivQ and
                                tbl.componentOutputDivQ or 4
@@ -52,6 +66,23 @@ end
 
 local function isNaN( v ) return type( v ) == "number" and v ~= v end
 
+function AnisotropicDiffusion:setKappaField(kappaField)
+      self._kappaField = assert(self.kappaField,
+                                self._pfx.."kappaMode 'field', "..
+                                "Must provide 'kappaField'.")
+end
+
+-- TODO Nicer, more accurate time-step size calculation.
+local suggestDt = function(kappaPara, kappaPerp, ndim, dx, cfl)
+      local kappaMax = math.max(kappaPara, kappaPerp)
+      local kappa__dx2_sum = 0
+      for d = 1, ndim do
+         kappa__dx2_sum = kappa__dx2_sum + kappaMax / ( (dx[d])^2 )
+      end
+
+      return cfl * 0.5 / kappa__dx2_sum
+end
+
 function AnisotropicDiffusion:_forwardEuler(
       self, tCurr, inFld, outFld)
    local grid = self._onGrid
@@ -60,6 +91,7 @@ function AnisotropicDiffusion:_forwardEuler(
    local ndim = grid:ndim()
    local idxm = Lin.IntVec(grid:ndim())
    local idxp = Lin.IntVec(grid:ndim())
+   local dx = {grid:dx(1), grid:dx(2), grid:dx(3)}
 
    local temp = inFld[1]
    local tempIdxr = temp:genIndexer()
@@ -71,11 +103,27 @@ function AnisotropicDiffusion:_forwardEuler(
    local emfIdxr = emf:genIndexer()
    local emfPtr = emf:get(1)
 
+   local kappaField = inFld[3]  -- Only needed for kappamode=='field'
+   local kappaFieldIdxr, kappaFieldPtr
+   local useKappaField = self._kappaMode=='field'
+   if (useKappaField) then
+      kappaFieldIdxr = kappaField:genIndexer()
+      kappaFieldPtr = kappaField:get(1)
+   end
+
+   local aux = inFld[3]  -- Only needed for kappamode=='function'
+   local auxIdxr, auxPtr
+   local useKappaFunction = self._kappaMode=='function'
+   local hasAuxField = false
+   if (useKappaFunction and type(aux)=='table') then
+      auxIdxr = aux:genIndexer()
+      auxPtr = aux:get(1)
+      hasAuxField = true
+   end
+
    local divQ = outFld[1]
    local divQIdxr = divQ:genIndexer()
    local divQPtr = divQ:get(1)
-   local divQPtrP = divQ:get(1)
-   local divQPtrM = divQ:get(1)
 
    local buf = outFld[2]
    local bufIdxr = buf:genIndexer()
@@ -85,25 +133,19 @@ function AnisotropicDiffusion:_forwardEuler(
 
    local localRange = temp:localRange()
 
-   -- Check time-step size.
+   local status, dtSuggested = true, GKYL_MAX_DOUBLE
+
    local kappaPara = self._kappaPara
    local kappaPerp = self._kappaPerp
-
-   -- TODO Nicer, more accurate time-step size calculation.
-   local kappaMax = math.max(kappaPara, kappaPerp)
-   local kappa__dx2_sum = 0
-   for d = 1, ndim do
-      kappa__dx2_sum = kappa__dx2_sum + kappaMax / ((grid:dx(d))^2)
-   end
-
-   local dtSuggested = self._cfl * 0.5 / kappa__dx2_sum
-   local status = dt <= dtSuggested
-   if not status then
-      return false, dtSuggested
+   -- Check time-step size.
+   if self._kappaMode=="constant" then
+      dtSuggested = suggestDt(kappaPara, kappaPerp, ndim, dx, self._cfl)
+      status = dt <= dtSuggested
+      if not status then return false, dtSuggested end
    end
 
    local cDivQ = self._componentOutputDivQ
-   local cQ = self._componentsOutputQ
+   local cQ = self._componentsBufQ
    for icomp, c in ipairs(self._components) do
 
       if self._timeStepper=="symmetric-cell-center" then
@@ -146,6 +188,26 @@ function AnisotropicDiffusion:_forwardEuler(
             local bDotGradT = bx*bufPtr[cQ[1]]
             if ndim>1 then bDotGradT = bDotGradT + by*bufPtr[cQ[2]] end
             if ndim>2 then bDotGradT = bDotGradT + bz*bufPtr[cQ[3]] end
+
+            if (useKappaField) then
+               kappaField:fill(kappaFieldIdxr(idx), kappaFieldPtr)
+               kappaPara, kappaPerp = kappaField[1], kappaField[2]
+            elseif (useKappaFunction) then
+               temp:fill(tempIdxr(idx), tempPtr)
+               if hasAuxField then
+                  aux:fill(auxIdxr(idx), auxPtr)
+               end
+               kappaPara, kappaPerp = 
+                  self._kappaFunction(tempPtr, emfPtr, auxPtr)
+            end
+            if (useKappaField or useKappaFunction) then
+               dtSuggested = math.min(
+                  dtSuggested,
+                  suggestDt(kappaPara, kappaPerp, ndim, dx, self._cfl)
+               )
+               status = status and (dt <= dtSuggested)
+               if not status then return false, dtSuggested end
+            end
 
             local gradParaTx = bx * bDotGradT
             gradPerpTx = bufPtr[cQ[1]] - gradParaTx
@@ -277,6 +339,18 @@ function AnisotropicDiffusion:_forwardEuler(
                      by = by + emfPtr[5]
                      bz = bz + emfPtr[6]
 
+                     if (useKappaField) then
+                        kappaField:fill(kappaFieldIdxr(idxp), kappaFieldPtr)
+                        kappaPara, kappaPerp = kappaField[1], kappaField[2]
+                     elseif (useKappaFunction) then
+                        temp:fill(tempIdxr(idxp), tempPtr)
+                        if hasAuxField then
+                           aux:fill(auxIdxr(idx), auxPtr)
+                        end
+                        kappaPara, kappaPerp =
+                           self._kappaFunction(tempPtr, emfPtr, auxPtr)
+                     end
+
                      nPts = nPts + 1
                   end
                end
@@ -284,6 +358,17 @@ function AnisotropicDiffusion:_forwardEuler(
             bx = bx / nPts
             by = by / nPts
             bz = bz / nPts
+
+            if (useKappaField or useKappaFunction) then
+               kappaPara = kappaPara / nPts
+               kappaPerp = kappaPerp / nPts
+               dtSuggested = math.min(
+                  dtSuggested,
+                  suggestDt(kappaPara, kappaPerp, ndim, dx, self._cfl)
+               )
+               status = status and (dt <= dtSuggested)
+               if not status then return false, dtSuggested end
+            end
 
             local bmag = math.sqrt(bx*bx + by*by + bz*bz)
             bx = bx / bmag

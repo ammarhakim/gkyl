@@ -62,12 +62,38 @@ local function createField(grid, basis, numComponents)
    return fld
 end
 
+-- tempPtr, emfPtr, and axuPtr are C pointers to a cell. In the 'function'
+-- kappaMode, they are obtained like:
+--
+-- tempIdxr = temp:genIndexer()
+-- tempPtr = temp:get(1)
+-- temp:fill(tempIdxr(idx), tempPtrP)
+--
+-- for the cell located at 'idx'.
+--
+-- These pointers can be used to get different components of the cell data like:
+--
+-- bx, by, bz = emfPtr[4], emfPtr[5], emfPtr[6]
+--
+-- These values can be used to compute the local kappaPara and kappaPerp.
+--
+-- The aux field is optional as the third member of the inFld argument to the
+-- anisotropicDiffusion:advance function call.
+local kappaFunction = function(tempPtr, emfPtr, auxPtr)
+   return kappaPara, kappaPerp
+end
+
 local anisotropicDiffusion = Updater.AnisotropicDiffusion {
    onGrid      = grid,
-   kappaPara   = kappaPara,
-   kappaPerp   = kappaPerp,
    timeStepper = timeStepper,
    cfl         = cfl,
+
+   -- kappaMode = "function",
+   -- kappaFunction = kappaFunction,
+
+   kappaMode   = "constant",
+   kappaPara   = kappaPara,
+   kappaPerp   = kappaPerp,
 }
 
 local project = Updater.ProjectOnBasis {
