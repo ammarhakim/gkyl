@@ -261,7 +261,7 @@ function AnisotropicDiffusion:_forwardEuler(
             local xm = Lin.Vec(ndim)
             for idx in localRange:rowMajorIter() do
                local divq = 0
-               for d = 1, ndim do
+               for _,d in ipairs({1,3}) do
                   idx:copyInto(idxp)
                   idx:copyInto(idxm)
                   idxp[d] = idx[d]+1
@@ -284,7 +284,6 @@ function AnisotropicDiffusion:_forwardEuler(
                      divq = divq +
                             (rp*bufPtrP[cQ[d]]-rm*bufPtrM[cQ[d]]) *
                             0.5/grid:dx(d)/r
-                  elseif d==2 then  -- Theta
                   elseif d==3 then  -- Z
                      divq = divq + (bufPtrP[cQ[d]]-bufPtrM[cQ[d]]) *
                             0.5/grid:dx(d)
