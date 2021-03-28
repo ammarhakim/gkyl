@@ -252,7 +252,7 @@ function AnisotropicDiffusion:_forwardEuler(
                      aux:fill(auxIdxr(idx), auxPtr)
                   end
                   kappaPara, kappaPerp = 
-                     self._kappaFunction(tempPtr, emfPtr, auxPtr)
+                     self._kappaFunction(bmag, tempPtr, emfPtr, auxPtr)
                end
                if (useKappaField or useKappaFunction) then
                   dtSuggested = math.min(
