@@ -45,16 +45,21 @@ function BraginskiiHeatConductionSource:createSolver(species, field)
    end
 
    self.slvr = Updater.BraginskiiHeatConduction {
-      onGrid           = self.grid,
-      numFluids        = #tbl.species,
-      mass             = mass,
-      charge           = charge,
-      gasGamma         = tbl.gasGamma,
-      epsilon0         = tbl.epsilon0,
-      tau              = tbl.tau,
-      calcTau          = tbl.calcTau,
-      coulombLogarithm = tbl.coulombLogarithm,
-      coordinate       = tbl.coordinate,
+      onGrid     = self.grid,
+      cfl        = tbl.cfl,
+      gasGamma   = tbl.gasGamma,
+      numFluids  = #tbl.species,
+      mass       = mass,
+      charge     = charge,
+      coordinate = tbl.coordinate,
+      scheme     = tbl.scheme,
+
+      kappaMode  = tbl.kappaMode,
+      -- Used when kappaMode=="constant".
+      kappaPara  = tbl.kappaPara,
+      kappaPerp  = tbl.kappaPerp,
+      -- Used when kappaMode=="from-tau".
+      tau        = tbl.tau,
    }
 end
 
