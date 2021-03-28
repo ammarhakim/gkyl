@@ -440,6 +440,7 @@ function AnisotropicDiffusion:_forwardEuler(
                         bx = bx + emfPtr[4]
                         by = by + emfPtr[5]
                         bz = bz + emfPtr[6]
+                        local bmag = math.sqrt(bx^2 + by^2 + bz^2)
 
                         if (useKappaField) then
                            kappaField:fill(kappaFieldIdxr(idxp), kappaFieldPtr)
@@ -450,7 +451,7 @@ function AnisotropicDiffusion:_forwardEuler(
                               aux:fill(auxIdxr(idx), auxPtr)
                            end
                            kappaPara, kappaPerp =
-                              self._kappaFunction(tempPtr, emfPtr, auxPtr)
+                              self._kappaFunction(bmag, tempPtr, emfPtr, auxPtr)
                         end
 
                         nPts = nPts + 1
