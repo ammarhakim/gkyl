@@ -67,7 +67,8 @@ function BraginskiiHeatConductionSource:createSolver(species, field)
 end
 
 function BraginskiiHeatConductionSource:updateSource(
-      tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, allSpecies, field)
+      tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, allSpecies, field,
+      staticEmf)
    local tbl = self.tbl
 
    local outVars = {}
@@ -86,6 +87,7 @@ function BraginskiiHeatConductionSource:updateSource(
       inVars[i] = speciesBuf[nm]
    end
    inVars[#tbl.species+1] = fieldBuf
+   inVars[#inVars+1] = staticEmf
 
    self.slvr:setDtAndCflRate(dt, nil)
    return self.slvr:advance(tCurr, inVars, outVars)

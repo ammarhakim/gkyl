@@ -123,6 +123,8 @@ function BraginskiiHeatConduction:_forwardEuler(
    local emfIdxr = emf:genIndexer()
    local emfPtr = emf:get(1)
 
+   local staticEmf = inFld[nFluids+2]
+
    local localRange = emf:localRange()
    local localExtRange = emf:localExtRange()
    local localExt1Range = localRange:extend(1, 1)
@@ -158,7 +160,8 @@ function BraginskiiHeatConduction:_forwardEuler(
                                              self._kappaPerp[s])
       elseif self._kappaMode=="from-tau" then
          local tau = self._tau[s]
-         local kappaFunction = function(bmag, bufPtr, emfPtr, fldPtr)
+         local kappaFunction = function(
+               bmag, bufPtr, emfPtr, fldPtr, staticEmfPtr)
             local n = fldPtr[1] / mass
             local T = bufPtr[4]
             local Omega = math.abs(charge*bmag/mass)
@@ -178,7 +181,7 @@ function BraginskiiHeatConduction:_forwardEuler(
       self._anisotropicDiffusion:setAuxField(fld)
       self._anisotropicDiffusion:setCalcDivQSwitch(false)
       local myStatus, myDtSuggested = self._anisotropicDiffusion:advance(
-         tCurr, {buf, emf}, {buf, buf})
+         tCurr, {buf, emf, staticEmf}, {buf, buf})
       status = status and myStatus
       dtSuggested = math.min(dtSuggested, myDtSuggested)
       if not status then return status, dtSuggested end
@@ -191,7 +194,8 @@ function BraginskiiHeatConduction:_forwardEuler(
       -- Step 4: Compute div(q).
       self._anisotropicDiffusion:setCalcQSwitch(false)
       self._anisotropicDiffusion:setCalcDivQSwitch(true)
-      self._anisotropicDiffusion:advance(tCurr, {buf, emf}, {buf, buf})
+      self._anisotropicDiffusion:advance(
+         tCurr, {buf, emf, staticEmf}, {buf, buf})
 
       -- Step 5: Add -div(q) onto total energy.
       for idx in localRange:rowMajorIter() do
