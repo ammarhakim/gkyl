@@ -1,0 +1,180 @@
+/*
+  Create kernels for the surface term of the gyrofluid moment equations.
+
+  These are equations for the "stepped moments" J*m*n, J*m*n*upar, J*(ppar+m*n*upar^2)
+  and J*pperp/B. We use the following notation:
+    mJacM0       = J*m*n,
+    mJacM1       = J*m*n*upar,
+    mJacM2par    = J*(ppar+m*n*upar^2)
+    mJacM2perpDB = J*pperp/B
+  These are all stored consecutively in the same CartField.
+
+  We also refer to the "closure moments" which are the m*vpar^3 and m*vpar*mu moments
+  (times the Jacobian), and the "primitive moments" upar, ppar and pperp.
+
+*/
+load("modal-basis")$
+load("out-scripts")$
+load(stringproc)$
+load("recovery")$
+fpprec : 24$
+
+basisFromVars(basisType, varsIn, pIn) := block(
+  [basis,vars],
+  dimIn : length(varsIn),
+  if dimIn=0 then return([1]),
+
+  /* Load a p>0 basis just to get the variables. */
+  basis : getBasis(basisType, dimIn, 1),
+  vars  : listofvars(basis),
+
+  /* Load the desired basis. */
+  basis : getBasis(basisType, dimIn, pIn),
+
+  replaceList : makelist(vars[i]=varsIn[i],i,1,dimIn),
+  basis : psubst(replaceList,basis),
+
+  return(basis)
+)$
+
+calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
+  [d,m,basis,numB,vars,surfVar,varLabel,dirLabel,rdx2vecL,rdSurfVar2L,numMom,
+   mJacMomL1_e,mJacMomL1_c,mJacMomR1_e,mJacMomR1_c],
+
+  /* Load a p>0 basis just to get the variables. */
+  basis : getBasis(basisFun, dim, 1),
+  vars  : listofvars(basis),
+
+  /* Load the desired basis. */
+  basis : getBasis(basisFun, dim, polyOrder),
+  numB  : length(basis),
+
+  surfVar  : varsP[surfDir],             /* Surface variable. */
+  varLabel : makelist(string(vars[d]),d,1,dim),
+  dirLabel : varLabel[surfDir],
+
+  momSuffix : ["m0","m1","m2par","m2perp"],
+
+  printf(fh, "~%"),
+  if polyOrder > 0 then (
+    printf(fh, "double ~a_~a_P~a(const double q_, const double m_, const double *wL1, const double *dxL1, const double *wR1, const double *dxR1, const double uMaxIn, const double *bmag, const double *jacob, const double *phi, const double *stepMomL1, const double *stepMomR1, const double *cloMomL1, const double *cloMomR1, double *primMomL1, const double *primMomR1, double *outL, double *outR) ~%{ ~%", funcNm, dirLabel, polyOrder)
+  ) else (
+    /* When using p=0 we will use 4-cell recovery for the surface updates. */
+    printf(fh, "double ~a_~a_P~a(const double q_, const double m_, const double *wL2, const double *wL1, const double *dxL2, const double *dxL1, const double *wR1, const double *wR2, const double *dxR1, const double *dxR2, const double uMaxIn, const double *bmag, const double *jacob, const double *phi, const double *stepMomL2, const double *stepMomL1, const double *stepMomR1, const double *stepMomR2, const double *cloMomL2, const double *cloMomL1, const double *cloMomR1, const double *cloMomR2, double *primMomL2, double *primMomL1, const double *primMomR1, const double *primMomR2, double *outL, double *outR) ~%{ ~%", funcNm, dirLabel, polyOrder)
+  ),
+  printf(fh, "  // q_,m_:             species charge and mass.~%"),
+  printf(fh, "  // bmag:              magnetic field magnitude.~%"),
+  printf(fh, "  // wL,wR:             cell-center in left and right cells.~%"),
+  printf(fh, "  // dxL,dxR:           cell length in left and right cells.~%"),
+  printf(fh, "  // uMaxIn:            maximum phase-space speed.~%"),
+  printf(fh, "  // phi:               electrostatic potential.~%"),
+  printf(fh, "  // stepMomL,stepMomR: stepped moments (times Jacobian) in left and right cells.~%"),
+  printf(fh, "  // cloMomL,cloMomR:   closure moments (times Jacobian) in left and right cells.~%"),
+  printf(fh, "  // primMomL,primMomR: primitive moments (upar, ppar, pperp) in left and right cells.~%"),
+  printf(fh, "  // outL/outR:         output increment in left and right cells.~%"),
+  printf(fh, "~%"),
+
+  /* Declare cell-center variables and variables multiplying gradients. */
+  for d : 1 thru dim do (
+    printf(fh, "  double w~aL = wL1[~a];~%", varLabel[d], d-1),
+    printf(fh, "  double rd~a2L = 2.0/dxL1[~a];~%", varLabel[d], d-1)
+  ),
+  printf(fh, "~%"),
+  rdx2vecL : makelist(eval_string(sconcat("rd",varLabel[i],"2L")),i,1,dim),
+
+  rdSurfVar2L : eval_string(sconcat("rd",dirLabel,"2L")),
+
+  numMom : 3+1,
+  numMomTot : numMom+2, /* Include the closure moments. */
+  /* Moment expansions and coefficients, including the closure moments. */
+  momsL1_e : [],  momsL1_c : [],
+  momsR1_e : [],  momsR1_c : [],
+  /* Add the stepped moments. */
+  for m : 1 thru numMom do ( 
+    newMom_e : doExpand(makelist(stepMomL1[i-1+(m-1)*numB],i,1,numB),basis),
+    momsL1_e : endcons(newMom_e, momsL1_e),
+    momsL1_c : endcons(calcInnerProdList(vars,1,basis,newMom_e),momsL1_c),
+
+    newMom_e : doExpand(makelist(stepMomR1[i-1+(m-1)*numB],i,1,numB),basis),
+    momsR1_e : endcons(newMom_e, momsR1_e),
+    momsR1_c : endcons(calcInnerProdList(vars,1,basis,newMom_e),momsR1_c)
+  ),
+  /* Add the closure moments. Computed externally. */
+  for m : numMom+1 thru numMomTot do ( 
+    newMom_e : doExpand(makelist(cloMomL1[i-1+(m-numMom-1)*numB],i,1,numB),basis),
+    momsL1_e : endcons(newMom_e, momsL1_e),
+    momsL1_c : endcons(calcInnerProdList(vars,1,basis,newMom_e),momsL1_c),
+
+    newMom_e : doExpand(makelist(cloMomR1[i-1+(m-numMom-1)*numB],i,1,numB),basis),
+    momsR1_e : endcons(newMom_e, momsR1_e),
+    momsR1_c : endcons(calcInnerProdList(vars,1,basis,newMom_e),momsR1_c)
+  ),
+
+  /* Compute the advective term using the numerical flux:
+       momHatk = (1/2)*(momkp1L+momkp1R) - (uMaxIn/2)*(momkL+momkR)
+     Where momk is the k-th moment and momkp1 is the (k+1)-th moment. */
+
+  /* Compute the left value momkp1L. With polyOrder=0 use 3 cell recovery,
+     with polyOrder>0 use the left field evaluated at the boundary. */
+  surfIntVars : delete(surfVar,vars),  /* Surface integral variables. */
+  surfBasis   : basisFromVars(basisFun,surfIntVars,polyOrder),  /* Surface basis. */
+  numSurf     : length(surfBasis),
+
+  stepMomL_c : makelist(0,m,1,numMom),  stepMomR_c : makelist(0,m,1,numMom),
+  fluxL_c    : makelist(0,m,1,numMom),     fluxR_c : makelist(0,m,1,numMom),
+  if polyOrder>0 then (
+
+    momsL_c : makelist(0,m,1,numMomTot),  momsR_c : makelist(0,m,1,numMomTot),
+    for m : 1 thru numMomTot do (
+      momsL_c[m] : calcInnerProdList(surfIntVars, 1, surfBasis, subst(surfVar=1,  momsL1_e[m])),
+      momsR_c[m] : calcInnerProdList(surfIntVars, 1, surfBasis, subst(surfVar=-1, momsR1_e[m]))
+    ),
+
+    for m : 1 thru numMom do ( stepMomL_c[m] : momsL_c[m],  stepMomR_c[m] : momsR_c[m] ),
+
+    for m : 1 thru 2 do ( fluxL_c[m] : momsL_c[m+1],  fluxR_c[m] : momsR_c[m+1] ),
+    for m : 3 thru 4 do ( fluxL_c[m] : momsL_c[m+2],  fluxR_c[m] : momsR_c[m+2] )
+
+  ) else (
+    mJacMomL_c : makelist(0,m,1,numMom),  mJacMomR_c : makelist(0,m,1,numMom)
+  ),
+
+  fluxAvg_c  : (fluxL_c + fluxR_c),
+  fluxJump_c : uMaxIn*(stepMomR_c - stepMomL_c),
+
+  Ghat_c : fullratsimp((1/2)*(fluxAvg_c - fluxJump_c)),
+
+  Ghat_e : [],
+  for m : 1 thru numMom do (
+    GhatVar : eval_string(sconcat("Ghat",momSuffix[m])), 
+    printf(fh, "  double ~a[~a];~%",GhatVar,numSurf),
+    writeCExprsNoExpand1(GhatVar, Ghat_c[m]),
+    printf(fh, "~%"),
+    Ghat_e : endcons(doExpand1(GhatVar, surfBasis), Ghat_e)
+  ),
+  flush_output(fh),
+
+  printf(fh, "  double incrR[~a];~%",numMom*numB),
+  for m : 1 thru numMom do (
+    /* Evaluate contribution to right cell w/o dimensional factor. */
+    incrR_c : fullratsimp(calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, basis), Ghat_e[m])),
+    expr : float(incrR_c),
+    for i : 1 thru length(expr) do (
+      if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", incrR[(m-1)*numB+i-1], gcfac(expr[i]))
+    ),
+    printf(fh, "~%")
+  ),
+  flush_output(fh),
+
+
+  printf(fh, "}~%")
+
+)$
+
+calcGFsurfKernels(fh, funcNm, dim, polyOrder, basisFun) := block([dir],
+  for dir : 1 thru dim do (
+
+    calcUpdateInDir(dir, fh, funcNm, dim, polyOrder, basisFun)
+
+  )
+)$
