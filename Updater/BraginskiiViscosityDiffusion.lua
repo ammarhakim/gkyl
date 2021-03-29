@@ -22,6 +22,8 @@ function BraginskiiViscosityDiffusion:init(tbl)
    self._nFluids = assert(tbl.numFluids, pfx .. "Must provide 'numFluids'.")
 
    self._eta = assert(tbl.eta, pfx.."Must provide 'eta'")
+   assert(#self._eta==self._nFluids,
+          pfx.."Number of entries in 'eta' must match numFluids.")
 
    self._hasHeating = tbl.hasHeating ~= nil and tbl.hasHeating or false
 
@@ -76,9 +78,9 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                fld:fill(fldIdxr(idxp), fldPtrP)
                fld:fill(fldIdxr(idxm), fldPtrM)
 
-               local eta = self._eta
-               local etaP = self._eta
-               local etaM = self._eta
+               local eta = self._eta[s]
+               local etaP = self._eta[s]
+               local etaM = self._eta[s]
                local etaPH = 0.5 * (eta+etaP)
                local etaMH = 0.5 * (eta+etaM)
 
@@ -116,7 +118,7 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
             local qVis = 0
 
             fld:fill(fldIdxr(idx), fldPtr)
-            local eta = self._eta
+            local eta = self._eta[s]
             local rho = fldPtrP[1]
             grid:setIndex(idx)
             grid:cellCenter(xc)
@@ -134,8 +136,8 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                fld:fill(fldIdxr(idxp), fldPtrP)
                fld:fill(fldIdxr(idxm), fldPtrM)
 
-               local etaP = self._eta
-               local etaM = self._eta
+               local etaP = self._eta[s]
+               local etaM = self._eta[s]
                local etaMH = 0.5 * (eta+etaM)
                local etaPH = 0.5 * (eta+etaP)
 
@@ -168,7 +170,7 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                   (dr*dr*r)
 
                if self._hasHeating then
-                  local eta = self._eta
+                  local eta = self._eta[s]
                   qVis = qVis +
                          rho * eta *
                          ( fldPtrP[3]/rhoP/rp-fldPtrM[3]/rhoM/rm ) / (2*dr)
@@ -187,8 +189,8 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                fld:fill(fldIdxr(idxp), fldPtrP)
                fld:fill(fldIdxr(idxm), fldPtrM)
 
-               local etaP = self._eta
-               local etaM = self._eta
+               local etaP = self._eta[s]
+               local etaM = self._eta[s]
                local etaPH = 0.5 * (eta+etaP)
                local etaMH = 0.5 * (eta+etaM)
 
