@@ -30,10 +30,15 @@ local a = 1.75  -- Radius of current loops.
 local I = 5 * math.pi / mu0 / a  -- Current carried by the loop; Huang2001prl.
 local num_extra_coils = 20  -- Number of extra coils above and below the z-ends.
 local T0_mhd = 0.002
--- set one and only one of MA0 and gravity to nonzero
-local MA0 = 0  -- vTheta0/vA0; set to nonzero to set a Er x Bz drift
-local gravity = 0  -- allows an equilibrium to develop; FIXME unit
-local gravityDir = 2
+-- vTheta0/vA0; Set Er and vTheta for an Er x Bz drift. This is not an
+-- equilibrium though since vTheta induces a radial centrifugal force.
+local MA0 = 0
+-- The MHD simulaton in Huang2001prl applied azimuthal force to mimic the JxB
+-- force used in mhd simulations to balance the viscous force in the achieved
+-- equilibrium.
+local gravity = 0.02  -- FIXME unit
+local gravityDir = 1  -- Radial force.
+local gravityDir = 2  -- Azimuthal force.
 
 local pert = 1e-4
 -- math.randomseed(os.time())
