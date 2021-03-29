@@ -1,7 +1,7 @@
 #include <math.h>
 #include <vlasov_fpo.h>
 
-void fpoMomsKernelP1(const double* dv, const double* vc, const double* f, double* out) {
+void vlasov_fpo_moms_3x_ser_p1(const double* dv, const double* vc, const double* f, double* out) {
   out[0] += 0.3535533905932737*dv[0]*f[0]*dv[1]*dv[2];
   out[1] += 0.1020620726159657*dv[1]*f[1]*dv[2]*pow(dv[0],2)+0.3535533905932737*dv[0]*f[0]*vc[0]*dv[1]*dv[2];
   out[2] += 0.1020620726159657*dv[0]*dv[2]*f[2]*pow(dv[1],2)+0.3535533905932737*dv[0]*f[0]*dv[1]*vc[1]*dv[2];
