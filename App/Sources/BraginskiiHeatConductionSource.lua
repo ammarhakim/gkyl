@@ -22,6 +22,9 @@ function BraginskiiHeatConductionSource:fullInit(appTbl)
    self.cfl = nil
    self.grid = nil
    self.slvr = nil
+
+   assert(tbl.species,
+          "BraginskiiHeatConductionSource: Must provide 'species'.")
 end
 
 function BraginskiiHeatConductionSource:setName(nm)

@@ -22,6 +22,9 @@ function BraginskiiViscosityDiffusionSource:fullInit(appTbl)
    self.cfl = nil
    self.grid = nil
    self.slvr = nil
+
+   assert(tbl.species,
+          "BraginskiiViscosityDiffusionSource: Must provide 'species'.")
 end
 
 function BraginskiiViscosityDiffusionSource:setName(nm)
