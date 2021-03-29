@@ -308,6 +308,9 @@ function PerfMaxwell:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idx
    return self._surfTerms[dir](self._ceqn, wl:data(), wr:data(), dxl:data(), dxr:data(), self._tau, ql:data(), qr:data(), outl:data(), outr:data())
 end
 
+function PerfMaxwell:setAuxFields(auxFields)
+end
+
 -- Create and add BCs specific to Maxwell equations
 
 -- PEC
@@ -316,7 +319,8 @@ local bcCondWallMgn = BoundaryCondition.ZeroNormal { components = {4, 5, 6} }
 local bcCondWallPot = BoundaryCondition.Copy { components = {7, 8}, fact = {-1, 1} }
 PerfMaxwell.bcCondWall = { bcCondWallElc, bcCondWallMgn, bcCondWallPot  }
 
-function PerfMaxwell:setAuxFields(auxFields)
-end
+local bcAxisCopy = { components = {3, 6} }
+local bcAxisFlip = { components = {1, 2, 4, 5} }
+PerfMaxwell.bcAxis = { bcAxisCopy, bcAxisFlip }
 
 return PerfMaxwell

@@ -60,27 +60,27 @@ return function(tbl)
    local dragKernelNm = string.format("vlasov_fpo_drag_cell_3x_ser_p%d", polyOrder)
    local dragKernelFn = ffi.C[dragKernelNm]
 
-   local diffSurfXLSerNm = string.format("fpoDiffSurfXLSer3xP%d", polyOrder)
+   local diffSurfXLSerNm = string.format("vlasov_fpo_diff_surfxL_3x_ser_p%d", polyOrder)
    local diffSurfXLSerFn = ffi.C[diffSurfXLSerNm]
-   local diffSurfXUSerNm = string.format("fpoDiffSurfXUSer3xP%d", polyOrder)
+   local diffSurfXUSerNm = string.format("vlasov_fpo_diff_surfxU_3x_ser_p%d", polyOrder)
    local diffSurfXUSerFn = ffi.C[diffSurfXUSerNm]
 
-   local diffSurfYLSerNm = string.format("fpoDiffSurfYLSer3xP%d", polyOrder)
+   local diffSurfYLSerNm = string.format("vlasov_fpo_diff_surfyL_3x_ser_p%d", polyOrder)
    local diffSurfYLSerFn = ffi.C[diffSurfYLSerNm]
-   local diffSurfYUSerNm = string.format("fpoDiffSurfYUSer3xP%d", polyOrder)
+   local diffSurfYUSerNm = string.format("vlasov_fpo_diff_surfyU_3x_ser_p%d", polyOrder)
    local diffSurfYUSerFn = ffi.C[diffSurfYUSerNm]
 
-   local diffSurfZLSerNm = string.format("fpoDiffSurfZLSer3xP%d", polyOrder)
+   local diffSurfZLSerNm = string.format("vlasov_fpo_diff_surfzL_3x_ser_p%d", polyOrder)
    local diffSurfZLSerFn = ffi.C[diffSurfZLSerNm]
-   local diffSurfZUSerNm = string.format("fpoDiffSurfZUSer3xP%d", polyOrder)
+   local diffSurfZUSerNm = string.format("vlasov_fpo_diff_surfzU_3x_ser_p%d", polyOrder)
    local diffSurfZUSerFn = ffi.C[diffSurfZUSerNm]
 
-   local diffVolSerNm = string.format("fpoDiffVolSer3xP%d", polyOrder)
+   local diffVolSerNm = string.format("vlasov_fpo_diff_vol_3x_ser_p%d", polyOrder)
    local diffVolSerFn = ffi.C[diffVolSerNm]
 
-   local momsKernelNm = string.format("fpoMomsKernelP%d", polyOrder)
+   local momsKernelNm = string.format("vlasov_fpo_moms_3x_ser_p%d", polyOrder)
    local momsKernelFn = ffi.C[momsKernelNm]
-   local diagKernelNm = string.format("fpoDiagKernelP%d", polyOrder)
+   local diagKernelNm = string.format("vlasov_fpo_diag_3x_ser_p%d", polyOrder)
    local diagKernelFn = ffi.C[diagKernelNm]
 
    local fStencil7 = ffi.new("stencil7")

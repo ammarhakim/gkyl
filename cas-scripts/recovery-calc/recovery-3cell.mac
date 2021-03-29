@@ -164,3 +164,5 @@ calcRecov3CellGen(basisNm, recDir, dirs, polyOrder, lo, ce, up) := block(
 
   return(expand(subst(projSubList, rSub)))
 ) $
+
+calcRecov3Cell(recDir, dirs, polyOrder, lo, ce, up) := calcRecov3CellGen("Ser", recDir, dirs, polyOrder, lo, ce, up)$

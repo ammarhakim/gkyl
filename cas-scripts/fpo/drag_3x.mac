@@ -5,10 +5,10 @@ assume(dv[0]>0, dv[1]>0, dv[2]>0) $
 
 basisNm : "Ser"$
 for polyOrder : 1 thru 1 do (
-  fname : sconcat("~/max-out/vlasov_fpo_drag_cell_3x_ser_p", polyOrder, ".c"),
+  fname : sconcat("~/max-out/vlasov_fpo_drag_cell_3x_ser_p", polyOrder, ".cpp"),
   fh : openw(fname),
   printf(fh, "#include <math.h>~%"),
-  printf(fh, "#include <vlasov_fpo_drag.h>~%~%"),
+  printf(fh, "#include <vlasov_fpo.h>~%~%"),
 
   printf(fh, "double vlasov_fpo_drag_cell_3x_ser_p~a(const double dt, const double *dv,~%", polyOrder),
   printf(fh, "                                      const stencil7* fStencil, const stencil7* hStencil,~%")

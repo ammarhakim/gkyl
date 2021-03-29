@@ -30,12 +30,12 @@ for polyOrder : 1 thru 1 do (
     makelist(h[i]=h[i-1], i, 1, length(basisC[polyOrder]))
   ),
 
-  fname : sconcat("~/max-out/fpoMomsKernelP", polyOrder, ".cpp"),
+  fname : sconcat("~/max-out/vlasov_fpo_moms_3x_ser_p", polyOrder, ".cpp"),
   fh : openw(fname),
   printf(fh, "#include <math.h>~%"),
-  printf(fh, "#include <fpoKernelsDecl.h>~%~%"),
+  printf(fh, "#include <vlasov_fpo.h>~%~%"),
 
-  printf(fh, "void fpoMomsKernelP~a(const double* dv, const double* vc, const double* f, double* out) {~%", polyOrder),
+  printf(fh, "void vlasov_fpo_moms_3xser__p~a(const double* dv, const double* vc, const double* f, double* out) {~%", polyOrder),
   
   printf(fh, "  out[0] += ~a;~%", subst(pow, "^", float(subst(indexSubList, expand(M0))))),
   printf(fh, "  out[1] += ~a;~%", subst(pow, "^", float(subst(indexSubList, expand(M1x))))),
@@ -45,12 +45,12 @@ for polyOrder : 1 thru 1 do (
   printf(fh, "}"),
   close(fh),
   
-  fname : sconcat("~/max-out/fpoDiagKernelP", polyOrder, ".cpp"),
+  fname : sconcat("~/max-out/vlasov_fpo_diag_3x_ser_p", polyOrder, ".cpp"),
   fh : openw(fname),
   printf(fh, "#include <math.h>~%"),
-  printf(fh, "#include <fpoKernelsDecl.h>~%~%"),
+  printf(fh, "#include <vlasov_fpo>~%~%"),
   
-  printf(fh, "void fpoDiagKernelP~a(const double* dv, const double* vc, const double* f, const double* h, double* out) {~%", polyOrder),
+  printf(fh, "void vlasov_fpo_diag_3x_ser_p~a(const double* dv, const double* vc, const double* f, const double* h, double* out) {~%", polyOrder),
   
   printf(fh, "  out[0] += ~a;~%", subst(pow, "^", float(subst(indexSubList, expand(diagM1x))))),
   printf(fh, "  out[1] += ~a;~%", subst(pow, "^", float(subst(indexSubList, expand(diagM1y))))),

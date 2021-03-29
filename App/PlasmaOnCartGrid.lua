@@ -210,7 +210,7 @@ local function buildApplication(self, tbl)
       s:alloc(stepperNumFields[timeStepperNm])
    end
 
-   -- Read in information about each species.
+   -- Read in information about each source
    local sources = {}
    for nm, val in pairs(tbl) do
       if SourceBase.is(val) then
@@ -333,6 +333,7 @@ local function buildApplication(self, tbl)
    -- Function to write data to file.
    local function writeData(tCurr, force)
       for _, s in lume.orderedIter(species) do s:write(tCurr, force) end
+      for _, src in lume.orderedIter(sources) do src:write(tCurr) end 
       field:write(tCurr, force)
       externalField:write(tCurr, force)
    end
