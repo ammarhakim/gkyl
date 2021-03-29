@@ -613,7 +613,8 @@ local function buildApplication(self, tbl)
       -- Update sources.
       for nm, s in lume.orderedIter(sources) do
 	 local myStatus, myDtSuggested = s:updateSource(
-       tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, species, field)
+            tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, species,
+            field, externalField.em)
 	 status =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
@@ -1041,6 +1042,7 @@ return {
 	 App = App,
 	 Species = require "App.Species.MomentSpecies",
 	 Field = require ("App.Field.MaxwellField").MaxwellField,
+         ExternalField = require ("App.Field.MaxwellField").ExternalMaxwellField,
 	 CollisionlessEmSource = require "App.Sources.CollisionlessEmSource",
 	 TenMomentRelaxSource  = require "App.Sources.TenMomentRelaxSource",
         AxisymmetricMomentSource = require "App.Sources.AxisymmetricMomentSource",

@@ -869,13 +869,18 @@ function ExternalMaxwellField:setBasis(basis) self.basis = basis end
 function ExternalMaxwellField:setGrid(grid) self.grid = grid end
 
 function ExternalMaxwellField:alloc(nField)
+   local nGhost = 2
+   if self.basis:numBasis() > 1 then
+      nGhost = 1
+   end
+
    -- Allocate fields needed in RK update.
    local emVecComp = 8
    if not self.hasMagField then emVecComp = 3 end  -- Electric field only.
    self.em = DataStruct.Field {
       onGrid        = self.grid,
       numComponents = emVecComp*self.basis:numBasis(),
-      ghost         = {1, 1}
+      ghost         = {nGhost, nGhost},
    }
       
    -- Create Adios object for field I/O.
@@ -895,7 +900,8 @@ function ExternalMaxwellField:createSolver()
    self.fieldSlvr = Updater.ProjectOnBasis {
       onGrid   = self.grid,
       basis    = self.basis,
-      evaluate = self.emFunc
+      evaluate = self.emFunc,
+      onGhosts = true,
    }
 end
 
