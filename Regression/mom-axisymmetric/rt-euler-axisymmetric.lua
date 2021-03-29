@@ -78,7 +78,7 @@ local momentApp = Moments.App {
 
    axisymSource = Moments.AxisymmetricMomentSource {
       species = {"fluid"},
-      timeStepper = "forwardEuler",
+      timeStepper = "semi-exact",
       gasGamma = gasGamma,
    },   
 }

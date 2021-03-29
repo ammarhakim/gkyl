@@ -39,6 +39,14 @@ ffi.cdef [[
                                    const double dt,
                                    const double *xc,
                                    double **fPtrs);
+
+  void
+  gkylAxisymmetricFiveMomentSrcSemiExact(
+    const AxisymmetricFiveMomentSrcData_t *sd,
+    const AxisymmetricFluidData_t *fd,
+    const double dt,
+    const double *xc,
+    double **fPtrs);
 ]]
 
 local function forwardEuler(self, dt, xc, fPtrs)
@@ -47,6 +55,10 @@ end
 
 local function rk3(self, dt, xc, fPtrs)
    ffi.C.gkylAxisymmetricFiveMomentSrcRk3(self._sd, self._fd, dt, xc, fPtrs)
+end
+
+local function semiExact(self, dt, xc, fPtrs)
+   ffi.C.gkylAxisymmetricFiveMomentSrcSemiExact(self._sd, self._fd, dt, xc, fPtrs)
 end
 
 local AxisymmetricFiveMomentSrc = Proto(UpdaterBase)
@@ -76,6 +88,8 @@ function AxisymmetricFiveMomentSrc:init(tbl)
       self._updateSrc = forwardEuler
    elseif scheme == "rk3" then
       self._updateSrc = rk3
+   elseif scheme == "semi-exact" then
+      self._updateSrc = semiExact
    else
       assert(false, string.format("Updater.AxisymmetricFiveMomentSrc: scheme %s not supported", scheme))
    end

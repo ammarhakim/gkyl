@@ -6,6 +6,7 @@
 //------------------------------------------------------------------------------
 
 #include <AxisymmetricFiveMomentSrcImpl.h>
+#include <cmath>
 #include <cassert>
 #include <iostream>
 
@@ -25,11 +26,13 @@ eulerUpdate(const AxisymmetricFiveMomentSrcData_t *sd,
             double *F)
 {
   const double radius = xc[0];
+  const double gasGamma = sd->gasGamma;
 
   const double rho = f[RHO];
   const double u = f[MX] / rho;
   const double v = f[MY] / rho;
   const double w = f[MZ] / rho;
+  double e_in = sd->hasPressure ? (f[ER] - 0.5 * rho * (u*u + v*v + w*w)) : 0.;
 
   F[RHO] = f[RHO] - (dt/radius) * (rho*u);
   F[MX]  = f[MX] - (dt/radius) * (rho*u*u - rho*v*v);
@@ -37,10 +40,15 @@ eulerUpdate(const AxisymmetricFiveMomentSrcData_t *sd,
   F[MZ]  = f[MZ] - (dt/radius) * (rho*u*w);
 
   if (sd->hasPressure) {
-    const double E = f[ER];
-    const double p = (sd->gasGamma - 1) * (E - 0.5 * rho * (u*u + v*v + w*w));
-    F[ER] = f[ER] - (dt/radius) * (u*(E+p));
+    e_in -= (dt/radius) * gasGamma * u * e_in;
+    F[ER] = e_in + 0.5*(f[MX]*f[MX]+f[MY]*f[MY]+f[MZ]*f[MZ])/f[RHO];
   }
+
+  // if (sd->hasPressure) {
+  //   const double E = f[ER];
+  //   const double p = (sd->gasGamma - 1) * (E - 0.5 * rho * (u*u + v*v + w*w));
+  //   F[ER] = f[ER] - (dt/radius) * (u*(E+p));
+  // }
 }
 
 inline static void
@@ -105,3 +113,43 @@ gkylAxisymmetricFiveMomentSrcRk3(const AxisymmetricFiveMomentSrcData_t *sd,
   }
 }
 
+void
+gkylAxisymmetricFiveMomentSrcSemiExact(
+  const AxisymmetricFiveMomentSrcData_t *sd,
+  const AxisymmetricFluidData_t *fd,
+  const double dt,
+  const double *xc,
+  double **fPtrs)
+{
+  const double radius = xc[0];
+
+  for (int s=0; s<sd->nFluids; ++s)
+  {
+    if (!(fd[s].evolve))
+      continue;
+    double *f = fPtrs[s];
+
+    double rho = f[RHO];
+    double u = f[MX] / rho;
+    double v = f[MY] / rho;
+    double w = f[MZ] / rho;
+    double e_in = sd->hasPressure ? (f[ER] - 0.5*rho*(u*u+v*v+w*w)) : 0.;
+
+    // Exact udpate of the radial velocity u with v fixed.
+    u  = u + (dt/radius) * (v*v);
+
+    // Exact update of the remaining primitive variables with u fixed.
+    rho *= std::exp(-u*dt/radius);
+    v *= std::exp(-u*dt/radius);
+
+    f[RHO] = rho;
+    f[MX] = rho * u;
+    f[MY] = rho * v;
+    f[MZ] = rho * w;
+
+    if (sd->hasPressure) {
+      e_in *= std::exp(-u*dt/radius*sd->gasGamma);
+      f[ER] = e_in + 0.5 * rho * (u*u + v*v + w*w);
+    }
+  }
+}
