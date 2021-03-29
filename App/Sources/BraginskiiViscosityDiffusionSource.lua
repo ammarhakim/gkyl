@@ -47,13 +47,7 @@ function BraginskiiViscosityDiffusionSource:createSolver(species, field)
    self.slvr = Updater.BraginskiiViscosityDiffusion {
       onGrid           = self.grid,
       numFluids        = #tbl.species,
-      mass             = mass,
-      charge           = charge,
-      gasGamma         = tbl.gasGamma,
-      epsilon0         = tbl.epsilon0,
-      tau              = tbl.tau,
-      calcTau          = tbl.calcTau,
-      coulombLogarithm = tbl.coulombLogarithm,
+      eta              = tbl.eta,
       hasHeating       = tbl.hasHeating,
       coordinate       = tbl.coordinate,
    }
