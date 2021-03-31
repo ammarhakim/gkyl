@@ -3,25 +3,21 @@ local Moments = require("App.PlasmaOnCartGrid").Moments()
 local Euler = require "Eq.Euler"
 
 local gasGamma = 5.0/3.0
-local lower = -2.0
-local upper = 2.0
+local lower = -1.0
+local upper = 1.0
 local cells = 64
 
 local epsilon0 = 1.0
 local mu0 = 1.0
 local chargeElc = -1.0
 local massElc = 1.0
-local chargeIon = 1.0
-local massIon = 1836.153
 local n0 = 1.0
 local elcTemp = 1.0/2048.0 -- vte/c = 1/32
-local ionTemp = elcTemp
 -- using plasma beta definition beta = vt^2/vA^2
 -- plasma beta = 1/1024
 local B0 = 1.0
 
--- constant electric field for uniform E x B drift
-local E0 = 0.1
+-- NOTE: with these parameters, rhoe = vte/OmegaCe = 1/32
 
 local cfl = 1.0
 local tEnd = 4.0*math.pi
@@ -70,27 +66,6 @@ momentApp = Moments.App {
       bcy = { Moments.Species.bcWall, Moments.Species.bcWall },
    },
 
-   -- Ions.
-   ion = Moments.Species {
-      charge = chargeIon, mass = massIon,
-
-      equation    = Euler { gasGamma = gasGamma },
-      equationInv = Euler { gasGamma = gasGamma, numericalFlux = "lax" },
-      forceInv    = false,
-      -- Initial conditions.
-      init = function (t, xn)
-         local x, y = xn[1], xn[2]
-         local rhoi = pulse2D(massIon, x, y, 0.0, 0.0, 0.25)
-         local rhovx_i = 0.0
-         local rhovy_i = 0.0
-         local rhovz_i = 0.0
-         local u_i = rhoi*ionTemp/(gasGamma - 1) + 0.5*(rhovx_i*rhovx_i + rhovy_i*rhovy_i + rhovz_i*rhovz_i)/rhoi
-         return rhoi, rhovx_i, rhovy_i, rhovz_i, u_i
-      end,
-      evolve = true,   -- Evolve species?
-      bcx = { Moments.Species.bcWall, Moments.Species.bcWall },
-      bcy = { Moments.Species.bcWall, Moments.Species.bcWall },
-   },
 
    field = Moments.Field {
       epsilon0 = epsilon0, mu0 = mu0,
@@ -109,9 +84,7 @@ momentApp = Moments.App {
       hasStaticField = true,
       staticEmFunction = function(t, xn)
          local x, y = xn[1], xn[2]
-         local Ex = E0*math.cos(math.atan2(y,x))
-         local Ey = E0*math.sin(math.atan2(y,x))
-         return Ex, Ey, 0.0, 0.0, 0.0, B0
+         return 0.0, 0.0, 0.0, 0.0, 0.0, B0
       end
    },   
 

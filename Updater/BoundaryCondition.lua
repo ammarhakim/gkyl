@@ -39,6 +39,17 @@ function _M.Copy(tbl)
    end
 end
 
+-- flip BCs.
+function _M.Flip(tbl)
+   local cIdx = getComponents(tbl) -- Components to apply to.
+   local n = #cIdx -- Number of components.
+   return function (dir, tm, xc, qin, qbc)
+      for i = 1, n do
+	 qbc[cIdx[i]] = -qin[cIdx[i]]
+      end
+   end
+end
+
 -- Constant BCs.
 function _M.Const(tbl)
    local cIdx = getComponents(tbl) -- Components to apply to.

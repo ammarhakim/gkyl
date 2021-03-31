@@ -55,32 +55,32 @@ return function(tbl)
    -------------------------------------------------------------------
    -- Loading C kernels  ---------------------------------------------
    -------------------------------------------------------------------
-   local _ = require "Proto.Fpo.fpoKernelsCdef"
+   local _ = require "Proto.Fpo.vlasov_fpo_cdef"
 
-   local dragKernelNm = string.format("fpoDragKernel3xP%d", polyOrder)
+   local dragKernelNm = string.format("vlasov_fpo_drag_cell_3x_ser_p%d", polyOrder)
    local dragKernelFn = ffi.C[dragKernelNm]
 
-   local diffSurfXLSerNm = string.format("fpoDiffSurfXLSer3xP%d", polyOrder)
+   local diffSurfXLSerNm = string.format("vlasov_fpo_diff_surfxL_3x_ser_p%d", polyOrder)
    local diffSurfXLSerFn = ffi.C[diffSurfXLSerNm]
-   local diffSurfXUSerNm = string.format("fpoDiffSurfXUSer3xP%d", polyOrder)
+   local diffSurfXUSerNm = string.format("vlasov_fpo_diff_surfxU_3x_ser_p%d", polyOrder)
    local diffSurfXUSerFn = ffi.C[diffSurfXUSerNm]
 
-   local diffSurfYLSerNm = string.format("fpoDiffSurfYLSer3xP%d", polyOrder)
+   local diffSurfYLSerNm = string.format("vlasov_fpo_diff_surfyL_3x_ser_p%d", polyOrder)
    local diffSurfYLSerFn = ffi.C[diffSurfYLSerNm]
-   local diffSurfYUSerNm = string.format("fpoDiffSurfYUSer3xP%d", polyOrder)
+   local diffSurfYUSerNm = string.format("vlasov_fpo_diff_surfyU_3x_ser_p%d", polyOrder)
    local diffSurfYUSerFn = ffi.C[diffSurfYUSerNm]
 
-   local diffSurfZLSerNm = string.format("fpoDiffSurfZLSer3xP%d", polyOrder)
+   local diffSurfZLSerNm = string.format("vlasov_fpo_diff_surfzL_3x_ser_p%d", polyOrder)
    local diffSurfZLSerFn = ffi.C[diffSurfZLSerNm]
-   local diffSurfZUSerNm = string.format("fpoDiffSurfZUSer3xP%d", polyOrder)
+   local diffSurfZUSerNm = string.format("vlasov_fpo_diff_surfzU_3x_ser_p%d", polyOrder)
    local diffSurfZUSerFn = ffi.C[diffSurfZUSerNm]
 
-   local diffVolSerNm = string.format("fpoDiffVolSer3xP%d", polyOrder)
+   local diffVolSerNm = string.format("vlasov_fpo_diff_vol_3x_ser_p%d", polyOrder)
    local diffVolSerFn = ffi.C[diffVolSerNm]
 
-   local momsKernelNm = string.format("fpoMomsKernelP%d", polyOrder)
+   local momsKernelNm = string.format("vlasov_fpo_moms_3x_ser_p%d", polyOrder)
    local momsKernelFn = ffi.C[momsKernelNm]
-   local diagKernelNm = string.format("fpoDiagKernelP%d", polyOrder)
+   local diagKernelNm = string.format("vlasov_fpo_diag_3x_ser_p%d", polyOrder)
    local diagKernelFn = ffi.C[diagKernelNm]
 
    local fStencil7 = ffi.new("stencil7")
@@ -568,8 +568,22 @@ return function(tbl)
 
       local cflFreq  = 0.0
       local dragFreq, diffFreq
+      
+      local isXloEdge, isXupEdge
+      local isYloEdge, isYupEdge
+      local isZloEdge, isZupEdge
 
       for idxs in localRange:colMajorIter() do
+         isXloEdge, isXupEdge = false, false
+         isYloEdge, isYupEdge = false, false
+         isZloEdge, isZupEdge = false, false
+         if idxs[1] == localRange:lower(1) then isXloEdge = true end
+         if idxs[1] == localRange:upper(1) then isXupEdge = true end
+         if idxs[2] == localRange:lower(2) then isYloEdge = true end
+         if idxs[2] == localRange:upper(2) then isYupEdge = true end
+         if idxs[3] == localRange:lower(3) then isZloEdge = true end
+         if idxs[3] == localRange:upper(3) then isZupEdge = true end
+         
          idxs_LLC[1], idxs_LLC[2], idxs_LLC[3] = idxs[1]-1, idxs[2]-1, idxs[3]
          idxs_LCL[1], idxs_LCL[2], idxs_LCL[3] = idxs[1]-1, idxs[2], idxs[3]-1
          idxs_LCC[1], idxs_LCC[2], idxs_LCC[3] = idxs[1]-1, idxs[2], idxs[3]
@@ -661,6 +675,9 @@ return function(tbl)
 
          dragFreq = dragKernelFn(dt, dv:data(),
                                  fStencil7, hStencil7,
+                                 isXloEdge, isXupEdge,
+                                 isYloEdge, isYupEdge,
+                                 isZloEdge, isZupEdge,
                                  f_out)
 
          diffSurfXLSerFn(dt, dv:data(),
@@ -668,36 +685,42 @@ return function(tbl)
                          f_CCC, f_CLC, f_CUC, f_CCL, f_CCU,
                          g_LCC, g_LLC, g_LUC, g_LCL, g_LCU,
                          g_CCC, g_CLC, g_CUC, g_CCL, g_CCU,
+                         isXloEdge,
                          f_out)
          diffSurfXUSerFn(dt, dv:data(),
                          f_CCC, f_CLC, f_CUC, f_CCL, f_CCU,
                          f_UCC, f_ULC, f_UUC, f_UCL, f_UCU,
                          g_CCC, g_CLC, g_CUC, g_CCL, g_CCU,
                          g_UCC, g_ULC, g_UUC, g_UCL, g_UCU,
+                         isXupEdge,
                          f_out)
          diffSurfYLSerFn(dt, dv:data(),
                          f_CLC, f_LLC, f_ULC, f_CLL, f_CLU,
                          f_CCC, f_LCC, f_UCC, f_CCL, f_CCU,
                          g_CLC, g_LLC, g_ULC, g_CLL, g_CLU,
                          g_CCC, g_LCC, g_UCC, g_CCL, g_CCU,
+                         isYloEdge,
                          f_out)
          diffSurfYUSerFn(dt, dv:data(),
                          f_CCC, f_LCC, f_UCC, f_CCL, f_CCU,
                          f_CUC, f_LUC, f_UUC, f_CUL, f_CUU,
                          g_CCC, g_LCC, g_UCC, g_CCL, g_CCU,
                          g_CUC, g_LUC, g_UUC, g_CUL, g_CUU,
+                         isYupEdge,
                          f_out)
          diffSurfZLSerFn(dt, dv:data(),
                          f_CCL, f_LCL, f_UCL, f_CLL, f_CUL,
                          f_CCC, f_LCC, f_UCC, f_CLC, f_CUC,
                          g_CCL, g_LCL, g_UCL, g_CLL, g_CUL,
                          g_CCC, g_LCC, g_UCC, g_CLC, g_CUC,
+                         isZloEdge,
                          f_out)
          diffSurfZUSerFn(dt, dv:data(),
                          f_CCC, f_LCC, f_UCC, f_CLC, f_CUC,
                          f_CCU, f_LCU, f_UCU, f_CLU, f_CUU,
                          g_CCC, g_LCC, g_UCC, g_CLC, g_CUC,
                          g_CCU, g_LCU, g_UCU, g_CLU, g_CUU,
+                         isZupEdge,
                          f_out)
          diffFreq = diffVolSerFn(dt, dv:data(),
                                  f_CCC, g_CCC,

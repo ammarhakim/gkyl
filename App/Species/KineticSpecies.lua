@@ -590,9 +590,7 @@ function KineticSpecies:initDist(extField)
          if pr.scaleWithSourcePower then self.scaleInitWithSourcePower = true end
       end
       if string.find(nm,"background") then
-	 if not self.f0 then 
-	    self.f0 = self:allocDistf()
-	 end
+	 if not self.f0 then self.f0 = self:allocDistf() end
 	 self.f0:accumulate(1.0, self.distf[2])
 	 self.f0:sync(syncPeriodicDirs)
 	 backgroundCnt = backgroundCnt + 1
@@ -628,9 +626,7 @@ function KineticSpecies:initDist(extField)
    if self.scaleInitWithSourcePower then self.distf[1]:scale(self.powerScalingFac) end
    assert(initCnt > 0,
 	  string.format("KineticSpecies: Species '%s' not initialized!", self.name))
-   if self.f0 and backgroundCnt == 0 then 
-      self.f0:copy(self.distf[1])
-   end
+   if self.f0 and backgroundCnt == 0 then self.f0:copy(self.distf[1]) end
 
    if self.fluctuationBCs then 
       assert(backgroundCnt > 0, "KineticSpecies: must specify an initial background distribution with 'background' in order to use fluctuation-only BCs") 
@@ -813,33 +809,44 @@ function KineticSpecies:createDiagnostics()
 end
 
 function KineticSpecies:calcDiagnosticMoments(tm)
-   local f = self.distf[1]
+   local fIn   = self:rkStepperFields()[1]
    local tCurr = tm
    if self.f0 and self.perturbedMoments then 
-      f:accumulate(-1, self.f0)
-      tCurr = -tm-1 -- setting tCurr = -tm-1 will force the updater to recompute moments even if it has already been used on this timestep
+      fIn:accumulate(-1, self.f0)
+      tCurr = -tm-1   -- Setting tCurr = -tm-1 forces the updater to recompute moments on this timestep.
    end
    for i, mom in pairs(self.diagnosticMoments) do
-      self.diagnosticMomentUpdaters[mom]:advance(
-	 tCurr, {f}, {self.diagnosticMomentFields[mom]})
+      self.diagnosticMomentUpdaters[mom]:advance(tCurr, {fIn}, {self.diagnosticMomentFields[mom]})
       -- Remove geometric jacobian factor.
       if self.jacobGeoInv then
-         self.weakMultiplication:advance(
-            0.0, {self.diagnosticMomentFields[mom], self.jacobGeoInv}, {self.diagnosticMomentFields[mom]})
+         self.weakMultiplication:advance(0.0, {self.diagnosticMomentFields[mom], self.jacobGeoInv},
+                                              {self.diagnosticMomentFields[mom]})
       end
    end
-   if self.f0 and self.perturbedMoments then f:accumulate(1, self.f0) end
+   if self.f0 and self.perturbedMoments then fIn:accumulate(1, self.f0) end
 end
 
 -- Some species-specific parts, but this function still gets called.
 function KineticSpecies:calcDiagnosticWeakMoments(tm, weakMoments, bc)
+   local fIn
+   local tCurr = tm
    local label = ""
-   if bc then 
+   if bc then
       label = bc:label() 
+      fIn   = bc:getBoundaryFluxRate()
+   else
+      fIn = self:rkStepperFields()[1]
+      if self.f0 and self.perturbedMoments then
+         fIn:accumulate(-1, self.f0)
+         tCurr = -tm-1   -- Setting tCurr = -tm-1 forces the updater to recompute moments on this timestep.
+      end
    end
+
    for i, mom in ipairs(weakMoments) do
-      self.diagnosticMomentUpdaters[mom..label].advance(self, tm)
+      self.diagnosticMomentUpdaters[mom..label].advance(self, tCurr, {fIn}, {self.diagnosticMomentFields[mom..label]})
    end
+
+   if bc==nil and self.f0 and self.perturbedMoments then fIn:accumulate(1, self.f0) end
 end
 
 function KineticSpecies:calcDiagnosticBoundaryFluxMoments(tm)

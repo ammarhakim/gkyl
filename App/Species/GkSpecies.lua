@@ -1076,6 +1076,7 @@ function GkSpecies:createDiagnostics()
             assert(false, string.format("Error: moment %s not valid", mom..label))
          end
       end
+
       for i, mom in ipairs(weakMoments) do
          self.diagnosticMomentFields[mom..label] = DataStruct.Field {
             onGrid        = confGrid,
@@ -1093,184 +1094,168 @@ function GkSpecies:createDiagnostics()
          -- Here we set up custom advance methods for each weak moment, 
          -- which call various weak ops.
          if mom == "GkUpar" then
-            self.diagnosticMomentUpdaters["GkUpar"..label].advance = function (self, tm)
-               if self.diagnosticMomentUpdaters["GkUpar"..label].tCurr == tm then return end -- Return if already computed for this tm.
+            self.diagnosticMomentUpdaters[mom..label].advance = function (self, tm, inFlds, outFlds)
+               if self.diagnosticMomentUpdaters[mom..label].tCurr == tm then return end -- Return if already computed for this tm.
+               local fIn, momOut = inFlds[1], outFlds[1]
 
                -- Compute dependencies if not already computed: GkM0, GkM1.
                if self.diagnosticMomentUpdaters["GkM0"..label].tCurr ~= tm then
-                  local fIn = self:rkStepperFields()[1]
-                  if bc then fIn = bc:getBoundaryFluxRate() end
                   self.diagnosticMomentUpdaters["GkM0"..label]:advance(tm, {fIn}, {self.diagnosticMomentFields["GkM0"..label]})
                end
                if self.diagnosticMomentUpdaters["GkM1"..label].tCurr ~= tm then
-                  local fIn = self:rkStepperFields()[1]
-                  if bc then fIn = bc:getBoundaryFluxRate() end
                   self.diagnosticMomentUpdaters["GkM1"..label]:advance(tm, {fIn}, {self.diagnosticMomentFields["GkM1"..label]})
                end
 
                -- Do weak operations.
-               self.weakDivision:advance(tm, {self.diagnosticMomentFields["GkM0"..label], self.diagnosticMomentFields["GkM1"..label]}, {self.diagnosticMomentFields["GkUpar"..label]})
-               self.diagnosticMomentUpdaters["GkUpar"..label].tCurr = tm -- Mark as complete for this tm.
+               self.weakDivision:advance(tm, {self.diagnosticMomentFields["GkM0"..label], self.diagnosticMomentFields["GkM1"..label]}, {momOut})
+               self.diagnosticMomentUpdaters[mom..label].tCurr = tm -- Mark as complete for this tm.
             end
          elseif mom == "GkTemp" then 
-            self.diagnosticMomentUpdaters["GkTemp"..label].advance = function (self, tm)
-               if self.diagnosticMomentUpdaters["GkTemp"..label].tCurr == tm then return end -- Return if already computed for this tm.
+            self.diagnosticMomentUpdaters[mom..label].advance = function (self, tm, inFlds, outFlds)
+               if self.diagnosticMomentUpdaters[mom..label].tCurr == tm then return end -- Return if already computed for this tm.
+               local fIn, momOut = inFlds[1], outFlds[1]
 
                -- Compute dependencies if not already computed: GkM2, GkUpar (GkM0 and GkM1 will be computed via GkUpar if necessary).
                if self.diagnosticMomentUpdaters["GkM2"..label].tCurr ~= tm then
-                  local fIn = self:rkStepperFields()[1]
-                  if bc then fIn = bc:getBoundaryFluxRate() end
                   self.diagnosticMomentUpdaters["GkM2"..label]:advance(tm, {fIn}, {self.diagnosticMomentFields["GkM2"..label]})
                end
                if self.diagnosticMomentUpdaters["GkUpar"..label].tCurr ~= tm then
-                  self.diagnosticMomentUpdaters["GkUpar"..label].advance(self, tm)
+                  self.diagnosticMomentUpdaters["GkUpar"..label].advance(self, tm, {fIn}, {self.diagnosticMomentFields["GkUpar"..label]})
                end
 
                -- Do weak operations.
                -- compute T = (m/VDIM)*(M2 - M1*Upar)/n
                -- T = M1*Upar
                self.weakMultiplication:advance(tm, {self.diagnosticMomentFields["GkM1"..label], self.diagnosticMomentFields["GkUpar"..label]}, 
-                                                   {self.diagnosticMomentFields["GkTemp"..label]})
+                                                   {momOut})
                Mpi.Barrier(self.grid:commSet().sharedComm)
                -- T = M1*Upar - M2
-               self.diagnosticMomentFields["GkTemp"..label]:accumulate(-1.0, self.diagnosticMomentFields["GkM2"..label])
+               momOut:accumulate(-1.0, self.diagnosticMomentFields["GkM2"..label])
                -- T = (m/VDIM)*(M2 - M1*Upar)
-               self.diagnosticMomentFields["GkTemp"..label]:scale(-self.mass/self.vDegFreedom)
+               momOut:scale(-self.mass/self.vDegFreedom)
                Mpi.Barrier(self.grid:commSet().sharedComm)
                -- T = (m/VDIM)*(M2 - M1*Upar)/n
-               self.weakDivision:advance(tm, {self.diagnosticMomentFields["GkM0"..label], self.diagnosticMomentFields["GkTemp"..label]}, 
-                                             {self.diagnosticMomentFields["GkTemp"..label]})
+               self.weakDivision:advance(tm, {self.diagnosticMomentFields["GkM0"..label], momOut}, {momOut})
 
-               self.diagnosticMomentUpdaters["GkTemp"..label].tCurr = tm -- Mark as complete for this tm.
+               self.diagnosticMomentUpdaters[mom..label].tCurr = tm -- Mark as complete for this tm.
             end
          elseif mom == "GkVtSq" then 
-            self.diagnosticMomentUpdaters["GkVtSq"..label].advance = function (self, tm)
-               if self.diagnosticMomentUpdaters["GkVtSq"..label].tCurr == tm then return end -- Return if already computed for this tm.
+            self.diagnosticMomentUpdaters[mom..label].advance = function (self, tm, inFlds, outFlds)
+               if self.diagnosticMomentUpdaters[mom..label].tCurr == tm then return end -- Return if already computed for this tm.
+               local fIn, momOut = inFlds[1], outFlds[1]
                -- Compute dependencies if not already computed: GkTemp.
                if self.diagnosticMomentUpdaters["GkTemp"..label].tCurr ~= tm then
-                  self.diagnosticMomentUpdaters["GkTemp"..label].advance(self, tm)
+                  self.diagnosticMomentUpdaters["GkTemp"..label].advance(self, tm, {fIn}, {self.diagnosticMomentFields["GkTemp"..label]})
                end
                Mpi.Barrier(self.grid:commSet().sharedComm)
                -- Do weak operations.
-               self.diagnosticMomentFields["GkVtSq"..label]:combine(1.0/self.mass, self.diagnosticMomentFields["GkTemp"..label])
+               momOut:combine(1.0/self.mass, self.diagnosticMomentFields["GkTemp"..label])
 
-               self.diagnosticMomentUpdaters["GkVtSq"..label].tCurr = tm -- Mark as complete for this tm.
+               self.diagnosticMomentUpdaters[mom..label].tCurr = tm -- Mark as complete for this tm.
             end
          elseif mom == "GkTpar" then
-            self.diagnosticMomentUpdaters["GkTpar"..label].advance = function (self, tm)
-               if self.diagnosticMomentUpdaters["GkTpar"..label].tCurr == tm then return end -- Return if already computed for this tm.
+            self.diagnosticMomentUpdaters[mom..label].advance = function (self, tm, inFlds, outFlds)
+               if self.diagnosticMomentUpdaters[mom..label].tCurr == tm then return end -- Return if already computed for this tm.
+               local fIn, momOut = inFlds[1], outFlds[1]
 
                -- Compute dependencies if not already computed: GkM2par, GkUpar (GkM0 and GkM1 will be computed via GkUpar if necessary).
                if self.diagnosticMomentUpdaters["GkM2par"..label].tCurr ~= tm then
-                  local fIn = self:rkStepperFields()[1]
-                  if bc then fIn = bc:getBoundaryFluxRate() end
                   self.diagnosticMomentUpdaters["GkM2par"..label]:advance(tm, {fIn}, {self.diagnosticMomentFields["GkM2par"..label]})
                end
                if self.diagnosticMomentUpdaters["GkUpar"..label].tCurr ~= tm then
-                  self.diagnosticMomentUpdaters["GkUpar"..label].advance(self, tm)
+                  self.diagnosticMomentUpdaters["GkUpar"..label].advance(self, tm {fIn}, {self.diagnosticMomentFields["GkUpar"..label]})
                end
 
                -- Do weak operations.
                -- compute Tpar = m*(M2par - M1*Upar)/n
                -- Tpar = M1*Upar
                self.weakMultiplication:advance(tm, {self.diagnosticMomentFields["GkM1"..label], self.diagnosticMomentFields["GkUpar"..label]}, 
-                                                   {self.diagnosticMomentFields["GkTpar"..label]})
+                                                   {momOut})
                Mpi.Barrier(self.grid:commSet().sharedComm)
                -- Tpar = M1*Upar - M2par
-               self.diagnosticMomentFields["GkTpar"..label]:accumulate(-1.0, self.diagnosticMomentFields["GkM2par"..label])
+               momOut:accumulate(-1.0, self.diagnosticMomentFields["GkM2par"..label])
                -- Tpar = m*(M2par - M1*Upar)
-               self.diagnosticMomentFields["GkTpar"..label]:scale(-self.mass)
+               momOut:scale(-self.mass)
                Mpi.Barrier(self.grid:commSet().sharedComm)
                -- Tpar = m*(M2par - M1*Upar)/n
-               self.weakDivision:advance(tm, {self.diagnosticMomentFields["GkM0"..label], self.diagnosticMomentFields["GkTpar"..label]}, 
-                                             {self.diagnosticMomentFields["GkTpar"..label]})
+               self.weakDivision:advance(tm, {self.diagnosticMomentFields["GkM0"..label], momOut}, {momOut})
           
-               self.diagnosticMomentUpdaters["GkTpar"..label].tCurr = tm -- Mark as complete for this tm.
+               self.diagnosticMomentUpdaters[mom..label].tCurr = tm -- Mark as complete for this tm.
             end
          elseif mom == "GkTperp" then
-            self.diagnosticMomentUpdaters["GkTperp"..label].advance = function (self, tm)
-               if self.diagnosticMomentUpdaters["GkTperp"..label].tCurr == tm then return end -- Return if already computed for this tm.
+            self.diagnosticMomentUpdaters[mom..label].advance = function (self, tm, inFlds, outFlds)
+               if self.diagnosticMomentUpdaters[mom..label].tCurr == tm then return end -- Return if already computed for this tm.
+               local fIn, momOut = inFlds[1], outFlds[1]
 
                -- Compute dependencies if not already computed: GkM2perp, GkM0.
                if self.diagnosticMomentUpdaters["GkM0"..label].tCurr ~= tm then
-                  local fIn = self:rkStepperFields()[1]
-                  if bc then fIn = bc:getBoundaryFluxRate() end
                   self.diagnosticMomentUpdaters["GkM0"..label]:advance(tm, {fIn}, {self.diagnosticMomentFields["GkM0"..label]})
                end
                if self.diagnosticMomentUpdaters["GkM2perp"..label].tCurr ~= tm then
-                  local fIn = self:rkStepperFields()[1]
-                  if bc then fIn = bc:getBoundaryFluxRate() end
                   self.diagnosticMomentUpdaters["GkM2perp"..label]:advance(tm, {fIn}, {self.diagnosticMomentFields["GkM2perp"..label]})
                end
 
                -- Do weak operations.
                self.weakDivision:advance(tm, {self.diagnosticMomentFields["GkM0"..label], self.diagnosticMomentFields["GkM2perp"..label]}, 
-                                             {self.diagnosticMomentFields["GkTperp"..label]})
-               self.diagnosticMomentFields["GkTperp"..label]:scale(self.mass)
+                                             {momOut})
+               momOut:scale(self.mass)
 
-               self.diagnosticMomentUpdaters["GkTperp"..label].tCurr = tm -- Mark as complete for this tm.
+               self.diagnosticMomentUpdaters[mom..label].tCurr = tm -- Mark as complete for this tm.
             end
          elseif mom == "GkBeta" then
-            self.diagnosticMomentUpdaters["GkBeta"..label].advance = function (self, tm)
-               if self.diagnosticMomentUpdaters["GkBeta"..label].tCurr == tm then return end -- Return if already computed for this t.m
+            self.diagnosticMomentUpdaters[mom..label].advance = function (self, tm, inFlds, outFlds)
+               if self.diagnosticMomentUpdaters[mom..label].tCurr == tm then return end -- Return if already computed for this t.m
+               local fIn, momOut = inFlds[1], outFlds[1]
+
                local bmagInv = self.bmagInv
                if bc then bmagInv = bc:evalOnConfBoundary(self.bmagInv) end
 
                -- Compute dependencies if not already computed: GkTemp (GkM0 will be computed via GkTemp if necessary).
                if self.diagnosticMomentUpdaters["GkTemp"..label].tCurr ~= tm then
-                  self.diagnosticMomentUpdaters["GkTemp"..label].advance(self, tm)
+                  self.diagnosticMomentUpdaters["GkTemp"..label].advance(self, tm, {fIn}, {self.diagnosticMomentFields["GkTemp"..label]})
                end
 
                -- Do weak operations.
-               self.weakMultiplication:advance(tm, 
-                    {self.diagnosticMomentFields["GkM0"..label], self.diagnosticMomentFields["GkTemp"..label]}, 
-                    {self.diagnosticMomentFields["GkBeta"..label]})
-               self.weakMultiplication:advance(tm, 
-                    {self.diagnosticMomentFields["GkBeta"..label], bmagInv}, 
-                    {self.diagnosticMomentFields["GkBeta"..label]})
-               self.weakMultiplication:advance(tm, 
-                    {self.diagnosticMomentFields["GkBeta"..label], bmagInv}, 
-                    {self.diagnosticMomentFields["GkBeta"..label]})
-               self.diagnosticMomentFields["GkBeta"..label]:scale(2*Constants.MU0)
+               self.weakMultiplication:advance(tm, {self.diagnosticMomentFields["GkM0"..label], 
+                                                    self.diagnosticMomentFields["GkTemp"..label]}, {momOut})
+               self.weakMultiplication:advance(tm, {momOut, bmagInv}, {momOut})
+               self.weakMultiplication:advance(tm, {momOut, bmagInv}, {momOut})
+               momOut:scale(2*Constants.MU0)
 
-               self.diagnosticMomentUpdaters["GkBeta"..label].tCurr = tm -- mark as complete for this tm
+               self.diagnosticMomentUpdaters[mom..label].tCurr = tm -- mark as complete for this tm
             end
          elseif mom == "GkEnergy" then
-            self.diagnosticMomentUpdaters["GkEnergy"..label].advance = function (self, tm)
-               if self.diagnosticMomentUpdaters["GkEnergy"..label].tCurr == tm then return end -- Return if already computed for this tm.
+            self.diagnosticMomentUpdaters[mom..label].advance = function (self, tm, inFlds, outFlds)
+               if self.diagnosticMomentUpdaters[mom..label].tCurr == tm then return end -- Return if already computed for this tm.
+               local fIn, momOut = inFlds[1], outFlds[1]
+
                local phi = self.equation.phi
                if bc then phi = bc:evalOnConfBoundary(self.equation.phi) end
 
                -- Compute dependencies if not already computed: GkM0, GkM2. 
                if self.diagnosticMomentUpdaters["GkM0"..label].tCurr ~= tm then
-                  local fIn = self:rkStepperFields()[1]
-                  if bc then fIn = bc:getBoundaryFluxRate() end
                   self.diagnosticMomentUpdaters["GkM0"..label]:advance(tm, {fIn}, {self.diagnosticMomentFields["GkM0"..label]})
                end
                if self.diagnosticMomentUpdaters["GkM2"..label].tCurr ~= tm then
-                  local fIn = self:rkStepperFields()[1]
-                  if bc then fIn = bc:getBoundaryFluxRate() end
                   self.diagnosticMomentUpdaters["GkM2"..label]:advance(tm, {fIn}, {self.diagnosticMomentFields["GkM2"..label]})
                end
 
                -- Do weak operations.
-               self.weakMultiplication:advance(tm,
-                    {self.diagnosticMomentFields["GkM0"..label], phi},
-                    {self.diagnosticMomentFields["GkEnergy"..label]})
-               self.diagnosticMomentFields["GkEnergy"..label]:scale(self.charge)
-               self.diagnosticMomentFields["GkEnergy"..label]:accumulate(self.mass/2, self.diagnosticMomentFields["GkM2"..label])
+               self.weakMultiplication:advance(tm, {self.diagnosticMomentFields["GkM0"..label], phi}, {momOut})
+               momOut:scale(self.charge)
+               momOut:accumulate(self.mass/2, self.diagnosticMomentFields["GkM2"..label])
 
-               self.diagnosticMomentUpdaters["GkEnergy"..label].tCurr = tm -- Mark as complete for this tm.
+               self.diagnosticMomentUpdaters[mom..label].tCurr = tm -- Mark as complete for this tm.
             end
          elseif string.find(mom, "GkUparCross") then
-            self.diagnosticMomentUpdaters[mom..label].advance = function (self, tm)
+            self.diagnosticMomentUpdaters[mom..label].advance = function (self, tm, inFlds, outFlds)
                otherNm = string.gsub(mom, "GkUparCross%-", "")
                local uParCrossOther = self.uParCross[otherNm]
                if bc then uParCrossOther = bc:evalOnConfBoundary(self.uParCross[otherNm]) end
                self.diagnosticMomentFields[mom..label]:copy(uParCrossOther)
             end
          elseif string.find(mom, "GkVtSqCross") then
-            self.diagnosticMomentUpdaters[mom..label].advance = function (self, tm)
+            self.diagnosticMomentUpdaters[mom..label].advance = function (self, tm, inFlds, outFlds)
                otherNm = string.gsub(mom, "GkVtSqCross%-", "")
                local vtSqCrossOther = self.vtSqCross[otherNm]
                if bc then vtSqCrossOther = bc:evalOnConfBoundary(self.vtSqCross[otherNm]) end
@@ -1339,7 +1324,8 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tm)
             self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
                tm, {self.diagnosticMomentFields["GkM2"..label], self.mass/2}, {self.diagnosticIntegratedMomentFields[mom..label]})
          elseif mom == "intHE" then
-            self.diagnosticMomentUpdaters["GkEnergy"..label].advance(self, tm)
+            self.diagnosticMomentUpdaters["GkEnergy"..label].advance(self,
+               tm, {fIn}, {self.diagnosticMomentFields["GkEnergy"..label]})
             self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
                tm, {self.diagnosticMomentFields["GkEnergy"..label]}, {self.diagnosticIntegratedMomentFields[mom..label]})
          elseif mom == "intL1" then
@@ -1590,13 +1576,9 @@ function GkSpecies:getNumDensity(rkIdx)
 
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
-      if self.deltaF then
-         fIn:accumulate(-1.0, self.f0)
-      end
+      if self.deltaF then fIn:accumulate(-1.0, self.f0) end
       self.numDensityCalc:advance(nil, {fIn}, { self.numDensityAux })
-      if self.deltaF then
-         fIn:accumulate(1.0, self.f0)
-      end
+      if self.deltaF then fIn:accumulate(1.0, self.f0) end
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
@@ -1614,13 +1596,9 @@ function GkSpecies:getMomDensity(rkIdx)
  
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
-      if self.deltaF then
-         fIn:accumulate(-1.0, self.f0)
-      end
+      if self.deltaF then fIn:accumulate(-1.0, self.f0) end
       self.momDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
-      if self.deltaF then
-         fIn:accumulate(1.0, self.f0)
-      end
+      if self.deltaF then fIn:accumulate(1.0, self.f0) end
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
@@ -1635,13 +1613,9 @@ function GkSpecies:getMomProjDensity(rkIdx)
  
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
-      if self.deltaF then
-         fIn:accumulate(-1.0, self.f0)
-      end
+      if self.deltaF then fIn:accumulate(-1.0, self.f0) end
       self.momProjDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
-      if self.deltaF then
-         fIn:accumulate(1.0, self.f0)
-      end
+      if self.deltaF then fIn:accumulate(1.0, self.f0) end
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
@@ -1656,13 +1630,9 @@ function GkSpecies:getEmModifier(rkIdx)
 
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
-      if self.deltaF then
-         fIn:accumulate(-1.0, self.f0)
-      end
+      if self.deltaF then fIn:accumulate(-1.0, self.f0) end
       self.momProjDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
-      if self.deltaF then
-         fIn:accumulate(1.0, self.f0)
-      end
+      if self.deltaF then fIn:accumulate(1.0, self.f0) end
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end

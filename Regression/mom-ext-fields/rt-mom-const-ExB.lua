@@ -3,9 +3,9 @@ local Moments = require("App.PlasmaOnCartGrid").Moments()
 local Euler = require "Eq.Euler"
 
 local gasGamma = 5.0/3.0
-local lower = -1.0
-local upper = 1.0
-local cells = 8
+local lower = -10.0
+local upper = 10.0
+local cells = 16
 
 local epsilon0 = 1.0
 local mu0 = 1.0
@@ -19,6 +19,10 @@ local ionTemp = elcTemp
 -- using plasma beta definition beta = vt^2/vA^2
 -- plasma beta = 1/1024
 local B0 = 1.0
+
+-- NOTE: with these parameters, rhoe = vte/OmegaCe = 1/32
+--                              rhoi = vti/OmegaCi ~ 1.33
+--                              Lx = 2*320 rhoe ~ 2*7.5 rhoi
 
 -- constant electric field for uniform E x B drift
 local E0 = 0.1
@@ -101,12 +105,12 @@ momentApp = Moments.App {
    },
 
    emSource = Moments.CollisionlessEmSource {
-      species = {"elc"},
+      species = {"elc", "ion"},
       timeStepper = "time-centered",
       hasStaticField = true,
       staticEmFunction = function(t, xn)
          local x, y = xn[1], xn[2]
-         return E0, E0, 0.0, 0.0, 0.0, B0
+         return -E0, -E0, 0.0, 0.0, 0.0, B0
       end
    },   
 
