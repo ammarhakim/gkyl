@@ -9,10 +9,14 @@ lightSpeed = 1.0
 vlasovApp = Vlasov.App {
    logToFile = true,
 
-   tEnd        = 3.0,           -- End time.
+   tEnd        = 1.0,           -- End time.
    nFrame      = 1,             -- Number of output frames.
    lower       = {-1.0, -1.0},  -- Configuration space lower left.
    upper       = { 1.0,  1.0},  -- Configuration space upper right.
+   coordinateMap = {
+      function(z) return math.sin((2.*math.pi/4.)*z) end,
+      function(z) return math.sin((2.*math.pi/4.)*z) end,
+   },
    cells       = {48, 48},      -- Configuration space cells.
    basis       = "serendipity", -- One of "serendipity" or "maximal-order".
    polyOrder   = 2,             -- Polynomial order.

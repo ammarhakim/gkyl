@@ -1,5 +1,5 @@
 #include <GkLBOModDecl.h> 
-double GkLBOconstNuSurfNonUniform1x2vTensor_Vpar_P2(const double m_, const double cflL, const double cflR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuSurfNonuniform1x2vTensor_Vpar_P2(const double m_, const double cflL, const double cflR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[3]:         Cell-center coordinates. 
   // dxv[3]:       Cell spacing. 
@@ -183,7 +183,7 @@ double GkLBOconstNuSurfNonUniform1x2vTensor_Vpar_P2(const double m_, const doubl
 
   return std::abs((0.7905694150420947*nuUSum[2])/nuSum-(0.7071067811865475*nuUSum[0])/nuSum+wl[1]); 
 } 
-double GkLBOconstNuSurfNonUniform1x2vTensor_Mu_P2(const double m_, const double cflL, const double cflR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuSurfNonuniform1x2vTensor_Mu_P2(const double m_, const double cflL, const double cflR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[3]:         Cell-center coordinates. 
   // dxv[3]:       Cell spacing. 

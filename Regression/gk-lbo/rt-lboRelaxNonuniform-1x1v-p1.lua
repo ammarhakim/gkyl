@@ -58,8 +58,8 @@ local vCompMax = (vparMax-uBump)/vparMax
 plasmaApp = Plasma.App {
    logToFile = false,
 
-   tEnd        = 100,           -- End time.
-   nFrame      = 20,             -- Number of frames to write.
+   tEnd        = 10,           -- End time.
+   nFrame      = 1,             -- Number of frames to write.
    lower       = {0.0},         -- Configuration space lower coordinate.
    upper       = {1.0},         -- Configuration space upper coordinate.
    cells       = {2},           -- Configuration space cells.
@@ -81,7 +81,7 @@ plasmaApp = Plasma.App {
       lower = {-1.0},
       upper = { 1.0},
       coordinateMap = {
-        function(z) if z<0. then return vparMin*math.abs(z)^2 else return vparMax*z^2 end end,
+         function(z) if z<0. then return vparMin*math.abs(z)^2 else return vparMax*z^2 end end,
       },
       cells = {32},
       -- Initial conditions.
@@ -90,7 +90,7 @@ plasmaApp = Plasma.App {
 
          return topHat(x, v, n0, u0, vt)
       end,
-      evolve = true,
+      evolve              = true,
       evolveCollisionless = false,
       diagnosticMoments = { "GkM0", "GkM1", "GkM2", },
       diagnosticIntegratedMoments = { "intM0", "intM1", "intM2" },
@@ -123,7 +123,7 @@ plasmaApp = Plasma.App {
 	 local x, v = xn[1], xn[2]
          return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
       end,
-      evolve            = true,
+      evolve              = true,
       evolveCollisionless = false,
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       coll = Plasma.LBOCollisions {

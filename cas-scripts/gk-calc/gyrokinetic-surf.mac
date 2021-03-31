@@ -17,9 +17,9 @@ geo : "both"$
 /* Serendipity basis. */
 maxPolyOrder_Ser : 2$
 minCdim_Ser : 1$
-minVdim_Ser : 1$
-maxCdim_Ser : 0$
-maxVdim_Ser : 0$
+minVdim_Ser : 2$
+maxCdim_Ser : 1$
+maxVdim_Ser : 2$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 2$
@@ -31,7 +31,7 @@ maxVdim_Max : 0$
 /* Tensor order basis. */
 maxPolyOrder_Tensor : 2$
 minCdim_Tensor : 1$
-minVdim_Tensor : 1$
+minVdim_Tensor : 2$
 maxCdim_Tensor : 1$
 maxVdim_Tensor : 2$
 

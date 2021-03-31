@@ -1,5 +1,5 @@
 #include <VmLBOModDecl.h> 
-double VmLBOconstNuSurfNonUniform1x2vSer_VX_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double VmLBOconstNuSurfNonuniform1x2vSer_VX_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[3]:          Cell-center coordinates. 
   // dxv[3]:        Cell spacing. 
@@ -45,12 +45,12 @@ double VmLBOconstNuSurfNonUniform1x2vSer_VX_P1(const double *wl, const double *w
     Ghat[i]=0.0; 
   }; 
 
-  const double dxvl1R2 = std::pow(dxvl[1],2);
-  const double dxvl1R3 = std::pow(dxvl[1],3);
-  const double dxvl1R4 = std::pow(dxvl[1],4);
-  const double dxvr1R2 = std::pow(dxvr[1],2);
-  const double dxvr1R3 = std::pow(dxvr[1],3);
-  const double dxvr1R4 = std::pow(dxvr[1],4);
+  const double dxvl1R2 = pow(dxvl[1],2);
+  const double dxvl1R3 = pow(dxvl[1],3);
+  const double dxvl1R4 = pow(dxvl[1],4);
+  const double dxvr1R2 = pow(dxvr[1],2);
+  const double dxvr1R3 = pow(dxvr[1],3);
+  const double dxvr1R4 = pow(dxvr[1],4);
 
   Ghat[0] = (-(1.0*((17.32050807568877*dxvl1R2*dxvr1R2+3.464101615137754*dxvl1R3*dxvr[1]-3.464101615137754*dxvl1R4)*nuVtSqSum[1]*fr[4]+((-3.464101615137754*dxvr1R4)+3.464101615137754*dxvl[1]*dxvr1R3+17.32050807568877*dxvl1R2*dxvr1R2)*nuVtSqSum[1]*fl[4]+(17.32050807568877*nuVtSqSum[0]*dxvl1R2*dxvr1R2+3.464101615137754*nuVtSqSum[0]*dxvl1R3*dxvr[1]-3.464101615137754*nuVtSqSum[0]*dxvl1R4)*fr[2]+((-3.464101615137754*nuVtSqSum[0]*dxvr1R4)+3.464101615137754*nuVtSqSum[0]*dxvl[1]*dxvr1R3+17.32050807568877*nuVtSqSum[0]*dxvl1R2*dxvr1R2)*fl[2]+(18.0*dxvl1R2*dxvr1R2*fl[1]-18.0*dxvl1R2*dxvr1R2*fr[1])*nuVtSqSum[1]+(18.0*fl[0]-18.0*fr[0])*nuVtSqSum[0]*dxvl1R2*dxvr1R2))/(1.414213562373095*dxvl[1]*dxvr1R4+4.242640687119286*dxvl1R2*dxvr1R3+4.242640687119286*dxvl1R3*dxvr1R2+1.414213562373095*dxvl1R4*dxvr[1]))+0.3535533905932737*(1.732050807568877*alphaDrag[1]*favg[4]+1.732050807568877*alphaDrag[0]*favg[2]+alphaDrag[1]*favg[1]+alphaDrag[0]*favg[0])-0.5*(1.732050807568877*fjump[2]+fjump[0]); 
   Ghat[1] = (-(1.0*((17.32050807568877*nuVtSqSum[0]*dxvl1R2*dxvr1R2+3.464101615137754*nuVtSqSum[0]*dxvl1R3*dxvr[1]-3.464101615137754*nuVtSqSum[0]*dxvl1R4)*fr[4]+((-3.464101615137754*nuVtSqSum[0]*dxvr1R4)+3.464101615137754*nuVtSqSum[0]*dxvl[1]*dxvr1R3+17.32050807568877*nuVtSqSum[0]*dxvl1R2*dxvr1R2)*fl[4]+(17.32050807568877*dxvl1R2*dxvr1R2+3.464101615137754*dxvl1R3*dxvr[1]-3.464101615137754*dxvl1R4)*nuVtSqSum[1]*fr[2]+((-3.464101615137754*dxvr1R4)+3.464101615137754*dxvl[1]*dxvr1R3+17.32050807568877*dxvl1R2*dxvr1R2)*nuVtSqSum[1]*fl[2]+(18.0*fl[0]-18.0*fr[0])*dxvl1R2*dxvr1R2*nuVtSqSum[1]-18.0*nuVtSqSum[0]*dxvl1R2*dxvr1R2*fr[1]+18.0*nuVtSqSum[0]*dxvl1R2*dxvr1R2*fl[1]))/(1.414213562373095*dxvl[1]*dxvr1R4+4.242640687119286*dxvl1R2*dxvr1R3+4.242640687119286*dxvl1R3*dxvr1R2+1.414213562373095*dxvl1R4*dxvr[1]))-0.5*(1.732050807568877*fjump[4]+fjump[1])+0.3535533905932737*(1.732050807568877*alphaDrag[0]*favg[4]+1.732050807568877*alphaDrag[1]*favg[2]+alphaDrag[0]*favg[1]+favg[0]*alphaDrag[1]); 
@@ -94,7 +94,7 @@ double VmLBOconstNuSurfNonUniform1x2vSer_VX_P1(const double *wl, const double *w
 
   return std::abs(wl[1]-(0.7071067811865475*sumNuUx[0])/nuSum); 
 } 
-double VmLBOconstNuSurfNonUniform1x2vSer_VY_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double VmLBOconstNuSurfNonuniform1x2vSer_VY_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[3]:          Cell-center coordinates. 
   // dxv[3]:        Cell spacing. 
@@ -140,12 +140,12 @@ double VmLBOconstNuSurfNonUniform1x2vSer_VY_P1(const double *wl, const double *w
     Ghat[i]=0.0; 
   }; 
 
-  const double dxvl2R2 = std::pow(dxvl[2],2);
-  const double dxvl2R3 = std::pow(dxvl[2],3);
-  const double dxvl2R4 = std::pow(dxvl[2],4);
-  const double dxvr2R2 = std::pow(dxvr[2],2);
-  const double dxvr2R3 = std::pow(dxvr[2],3);
-  const double dxvr2R4 = std::pow(dxvr[2],4);
+  const double dxvl2R2 = pow(dxvl[2],2);
+  const double dxvl2R3 = pow(dxvl[2],3);
+  const double dxvl2R4 = pow(dxvl[2],4);
+  const double dxvr2R2 = pow(dxvr[2],2);
+  const double dxvr2R3 = pow(dxvr[2],3);
+  const double dxvr2R4 = pow(dxvr[2],4);
 
   Ghat[0] = (-(1.0*((17.32050807568877*nuVtSqSum[1]*dxvl2R2*dxvr2R2+3.464101615137754*nuVtSqSum[1]*dxvl2R3*dxvr[2]-3.464101615137754*nuVtSqSum[1]*dxvl2R4)*fr[5]+((-3.464101615137754*nuVtSqSum[1]*dxvr2R4)+3.464101615137754*nuVtSqSum[1]*dxvl[2]*dxvr2R3+17.32050807568877*nuVtSqSum[1]*dxvl2R2*dxvr2R2)*fl[5]+(17.32050807568877*nuVtSqSum[0]*dxvl2R2*dxvr2R2+3.464101615137754*nuVtSqSum[0]*dxvl2R3*dxvr[2]-3.464101615137754*nuVtSqSum[0]*dxvl2R4)*fr[3]+((-3.464101615137754*nuVtSqSum[0]*dxvr2R4)+3.464101615137754*nuVtSqSum[0]*dxvl[2]*dxvr2R3+17.32050807568877*nuVtSqSum[0]*dxvl2R2*dxvr2R2)*fl[3]+((18.0*fl[1]-18.0*fr[1])*nuVtSqSum[1]+(18.0*fl[0]-18.0*fr[0])*nuVtSqSum[0])*dxvl2R2*dxvr2R2))/(1.414213562373095*dxvl[2]*dxvr2R4+4.242640687119286*dxvl2R2*dxvr2R3+4.242640687119286*dxvl2R3*dxvr2R2+1.414213562373095*dxvl2R4*dxvr[2]))+0.3535533905932737*(1.732050807568877*alphaDrag[1]*favg[5]+1.732050807568877*alphaDrag[0]*favg[3]+alphaDrag[1]*favg[1]+alphaDrag[0]*favg[0])-0.5*(1.732050807568877*fjump[3]+fjump[0]); 
   Ghat[1] = (-(1.0*((17.32050807568877*nuVtSqSum[0]*dxvl2R2*dxvr2R2+3.464101615137754*nuVtSqSum[0]*dxvl2R3*dxvr[2]-3.464101615137754*nuVtSqSum[0]*dxvl2R4)*fr[5]+((-3.464101615137754*nuVtSqSum[0]*dxvr2R4)+3.464101615137754*nuVtSqSum[0]*dxvl[2]*dxvr2R3+17.32050807568877*nuVtSqSum[0]*dxvl2R2*dxvr2R2)*fl[5]+(17.32050807568877*nuVtSqSum[1]*dxvl2R2*dxvr2R2+3.464101615137754*nuVtSqSum[1]*dxvl2R3*dxvr[2]-3.464101615137754*nuVtSqSum[1]*dxvl2R4)*fr[3]+((-3.464101615137754*nuVtSqSum[1]*dxvr2R4)+3.464101615137754*nuVtSqSum[1]*dxvl[2]*dxvr2R3+17.32050807568877*nuVtSqSum[1]*dxvl2R2*dxvr2R2)*fl[3]+((18.0*fl[0]-18.0*fr[0])*nuVtSqSum[1]-18.0*nuVtSqSum[0]*fr[1]+18.0*nuVtSqSum[0]*fl[1])*dxvl2R2*dxvr2R2))/(1.414213562373095*dxvl[2]*dxvr2R4+4.242640687119286*dxvl2R2*dxvr2R3+4.242640687119286*dxvl2R3*dxvr2R2+1.414213562373095*dxvl2R4*dxvr[2]))-0.5*(1.732050807568877*fjump[5]+fjump[1])+0.3535533905932737*(1.732050807568877*alphaDrag[0]*favg[5]+1.732050807568877*alphaDrag[1]*favg[3]+alphaDrag[0]*favg[1]+favg[0]*alphaDrag[1]); 

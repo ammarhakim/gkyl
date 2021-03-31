@@ -57,7 +57,7 @@ function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, isNonuniform, applyPos)
    return kernels
 end
 function _M.selectConstNuSurf(basisNm, CDIM, VDIM, polyOrder, isNonuniform, applyPos)
-   local gridStr = isNonuniform and "NonUniform" or ""
+   local gridStr = isNonuniform and "Nonuniform" or ""
 
    local posString = ""
    if applyPos then posString = "Positivity" end

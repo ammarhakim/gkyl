@@ -14,7 +14,7 @@ fpprec : 24$
 /* Numerical flux option. Only applicable when not using positivity.
      =0 global Lax-Friedrichs,
      =1 (for p<3 only) local (quadrature point) Lax-Friedrichs. */
-numFluxOp : 0$
+numFluxOp : 1$
 
 cvars : [x, y, z]$
 varsV : [vpar, mu]$
@@ -154,7 +154,7 @@ compWriteIncr(fRec,fRecP,rdv2In,nSpaces) := block([incr_s1,incr_s2],
 
 )$
 
-calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, isNonUniform, applyPos) := block([],
+calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, isNonuniform, applyPos) := block([],
 
   kill(varsC, varsP, basisC, basisP),
   /* Load basis of dimensionality requested. */
@@ -179,7 +179,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, isNonUniform, 
 
   /* Construct the recovery polynomial */
   hOrder : 2*polyOrder+1,
-  if isNonUniform then (
+  if isNonuniform then (
     recDxvL : makelist(2,i,1,pDim),  recDxvL[cdim+dir] : dxvl[vid1[dir]],
     recDxvR : makelist(2,i,1,pDim),  recDxvR[cdim+dir] : dxvr[vid1[dir]],
     h_e : fullratsimp(calcRecov2CellGenNonuniform(basisFun,vv,varsP,polyOrder,recDxvL,recDxvR,
@@ -705,9 +705,9 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, applyP
 );
 
 
-calcGkLBOconstNuSurfUpdater(fh, funcNm, cdim, vdim, basisFun, pOrder, isNonUniform, usePos) := block([],
+calcGkLBOconstNuSurfUpdater(fh, funcNm, cdim, vdim, basisFun, pOrder, isNonuniform, usePos) := block([],
   printf(fh, "#include <GkLBOModDecl.h> ~%"),
-  for dir : 1 thru vdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pOrder, isNonUniform, usePos) )
+  for dir : 1 thru vdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pOrder, isNonuniform, usePos) )
   
 )$
 

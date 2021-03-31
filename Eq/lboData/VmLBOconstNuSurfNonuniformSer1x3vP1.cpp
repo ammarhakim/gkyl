@@ -1,5 +1,5 @@
 #include <VmLBOModDecl.h> 
-double VmLBOconstNuSurfNonUniform1x3vSer_VX_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double VmLBOconstNuSurfNonuniform1x3vSer_VX_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[4]:          Cell-center coordinates. 
   // dxv[4]:        Cell spacing. 
@@ -142,7 +142,7 @@ double VmLBOconstNuSurfNonUniform1x3vSer_VX_P1(const double *wl, const double *w
 
   return std::abs(wl[1]-(0.7071067811865475*sumNuUx[0])/nuSum); 
 } 
-double VmLBOconstNuSurfNonUniform1x3vSer_VY_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double VmLBOconstNuSurfNonuniform1x3vSer_VY_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[4]:          Cell-center coordinates. 
   // dxv[4]:        Cell spacing. 
@@ -285,7 +285,7 @@ double VmLBOconstNuSurfNonUniform1x3vSer_VY_P1(const double *wl, const double *w
 
   return std::abs(wl[2]-(0.7071067811865475*sumNuUy[0])/nuSum); 
 } 
-double VmLBOconstNuSurfNonUniform1x3vSer_VZ_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double VmLBOconstNuSurfNonuniform1x3vSer_VZ_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[4]:          Cell-center coordinates. 
   // dxv[4]:        Cell spacing. 

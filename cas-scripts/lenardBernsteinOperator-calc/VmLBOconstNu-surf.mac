@@ -51,7 +51,7 @@ writeCIncrExprs1s(lhs, rhs) := block([expr],
   )
 )$
 
-calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, isNonUniform) := block(
+calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, isNonuniform) := block(
   [modNm,vid,vid1,vv,surfVars,bP,bC,NP,NC,bPp,hOrder,h_e,hsol],
 
   kill(varsC, varsP, basisC, basisP),
@@ -76,7 +76,7 @@ calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, isNonUn
 
   /* Construct the recovery polynomial */
   hOrder : 2*polyOrder+1,
-  if isNonUniform then (
+  if isNonuniform then (
     recDxvL : makelist(2,i,1,pDim),  recDxvL[cdim+dir] : dxvl[vid1[dir]],
     recDxvR : makelist(2,i,1,pDim),  recDxvR[cdim+dir] : dxvr[vid1[dir]],
     h_e : fullratsimp(calcRecov2CellGenNonuniform(basisFun,vv,varsP,polyOrder,recDxvL,recDxvR,
@@ -334,9 +334,9 @@ calcConstNuBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder)
   printf(fh, "} ~%")
 );
 
-calcVmLBOconstNuSurfUpdater(fh, funcNm, cdim, vdim, basisFun, pOrder, isNonUniform) := block([],
+calcVmLBOconstNuSurfUpdater(fh, funcNm, cdim, vdim, basisFun, pOrder, isNonuniform) := block([],
   printf(fh, "#include <VmLBOModDecl.h> ~%"),
-  for dir : 1 thru vdim do ( calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pOrder, isNonUniform) )
+  for dir : 1 thru vdim do ( calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pOrder, isNonuniform) )
 )$
 
 calcVmLBOconstNuBoundarySurfUpdater(fh, funcNm, cdim, vdim, basisFun, pOrder) := block([],

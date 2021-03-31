@@ -1,5 +1,5 @@
 #include <VmLBOModDecl.h> 
-double VmLBOconstNuSurfNonUniform1x3vSer_VX_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double VmLBOconstNuSurfNonuniform1x3vSer_VX_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[4]:          Cell-center coordinates. 
   // dxv[4]:        Cell spacing. 
@@ -339,7 +339,7 @@ double VmLBOconstNuSurfNonUniform1x3vSer_VX_P2(const double *wl, const double *w
 
   return std::abs((0.7905694150420947*sumNuUx[2])/nuSum-(0.7071067811865475*sumNuUx[0])/nuSum+wl[1]); 
 } 
-double VmLBOconstNuSurfNonUniform1x3vSer_VY_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double VmLBOconstNuSurfNonuniform1x3vSer_VY_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[4]:          Cell-center coordinates. 
   // dxv[4]:        Cell spacing. 
@@ -679,7 +679,7 @@ double VmLBOconstNuSurfNonUniform1x3vSer_VY_P2(const double *wl, const double *w
 
   return std::abs((0.7905694150420947*sumNuUy[2])/nuSum-(0.7071067811865475*sumNuUy[0])/nuSum+wl[2]); 
 } 
-double VmLBOconstNuSurfNonUniform1x3vSer_VZ_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double VmLBOconstNuSurfNonuniform1x3vSer_VZ_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[4]:          Cell-center coordinates. 
   // dxv[4]:        Cell spacing. 

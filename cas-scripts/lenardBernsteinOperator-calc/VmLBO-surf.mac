@@ -11,8 +11,8 @@ grid : "nonuni"$
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 3$
-minCdim_Ser : 2$
-minVdim_Ser : 3$
+minCdim_Ser : 1$
+minVdim_Ser : 1$
 maxCdim_Ser : 3$
 maxVdim_Ser : 3$
 
@@ -27,8 +27,8 @@ maxVdim_Max : 0$
 maxPolyOrder_Tensor : 3$
 minCdim_Tensor : 1$
 maxCdim_Tensor : 1$
-minVdim_Tensor : 0$    /* see begining of v loop below though. */
-maxVdim_Tensor : 0$
+minVdim_Tensor : 2$    /* see begining of v loop below though. */
+maxVdim_Tensor : 2$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -55,15 +55,15 @@ for bInd : 1 thru length(bName) do (
       for polyOrder : 1 thru maxPolyOrderB do (
       
         for gridInd : 1 thru length(gridType) do (
-          isNonUniform : gridType[gridInd],
+          isNonuniform : gridType[gridInd],
 
-          if isNonUniform then (gridStr : "NonUniform") else (gridStr : ""),
+          if isNonuniform then (gridStr : "Nonuniform") else (gridStr : ""),
 
           disp(printf(false,sconcat("Creating surface VmLBOconstNu~a",bName[bInd]," ~ax~avP~a"),gridStr,c,v,polyOrder)),
           fname : sconcat("~/max-out/VmLBOconstNuSurf", gridStr, bName[bInd], c, "x", v, "vP", polyOrder , ".cpp"),
           fh : openw(fname),
           funcName : sconcat("VmLBOconstNuSurf", gridStr, c, "x", v, "v", bName[bInd]),
-          calcVmLBOconstNuSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, isNonUniform),
+          calcVmLBOconstNuSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, isNonuniform),
           close(fh)
         ),
         

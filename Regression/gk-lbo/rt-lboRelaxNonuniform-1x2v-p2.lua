@@ -17,11 +17,11 @@ vMax      =  2.0                            -- Max velocity in grid.
 muMin     = 0.0 
 muMax     = mass*(vMax^2)/(2*B0)
 Nx        = {2}                             -- Number of cells in configuration space.
-Nv        = {32,32}                         -- Number of cells in velocity space.
+Nv        = {16,16}                         -- Number of cells in velocity space.
 -- The next three are for p1, 2x32x16, rectangular IC.
-nMr  = 1.06066017                           -- Density of Maxwellian and rectangle. 
+nMr  = 1.30509215                           -- Density of Maxwellian and rectangle. 
 uMr  = 0.0                                  -- Flow speed of Maxwellian and rectangle. 
-vt2Mr = 0.03323541                          -- Thermal speed of Maxwellian and rectangle.
+vt2Mr = 0.04029540                          -- Thermal speed of Maxwellian and rectangle.
 -- Large bump on tail of Maxwellian:
 vt   = math.sqrt(1.0/12.0)                  -- Thermal speed of Maxwellian in bump.
 ab   = math.sqrt(0.1)                       -- Amplitude of bump.
@@ -29,9 +29,9 @@ ub   = 4*math.sqrt(1/12.0)                    -- Location of bump.
 sb   = 0.12                                 -- Softening factor to avoid divergence.
 vtb  = 1.0/math.sqrt(2.0)                   -- Thermal speed of Maxwellian in bump.
 -- The next three are for p2, 2x32x16, bump in tail IC. 
-nMb  = 1.58655301                           -- Density of Maxwellian and bump. 
-uMb  = 0.57435311                           -- Flow speed of Maxwellian and bump. 
-vt2Mb = 0.33711232                          -- Thermal speed of Maxwellian and bump.
+nMb  = 1.58939239                           -- Density of Maxwellian and bump.
+uMb  = 0.57483157                           -- Flow speed of Maxwellian and bump.
+vt2Mb = 0.33713544                          -- Thermal speed of Maxwellian and bump.
 
 -- Top hat function without drift (u=0).
 local function topHat(x, vpar, mu, n, u, vth)
@@ -59,7 +59,7 @@ end
 plasmaApp = Plasma.App {
    logToFile = false,
    
-   tEnd        = 2,           -- End time.
+   tEnd        = 10,            -- End time.
    nFrame      = 1,             -- Number of frames to write.
    lower       = {0.0},         -- Configuration space lower coordinate.
    upper       = {1.0},         -- Configuration space upper coordinate.
@@ -69,7 +69,7 @@ plasmaApp = Plasma.App {
    timeStepper = "rk3",         -- One of "rk2", "rk3" or "rk3s4".
    
    -- Decomposition for configuration space.
-   decompCuts = {2},            -- Cuts in each configuration direction.
+   decompCuts = {1},            -- Cuts in each configuration direction.
    useShared  = false,          -- If to use shared memory.
 
    -- Boundary conditions for configuration space.
@@ -95,7 +95,8 @@ plasmaApp = Plasma.App {
       --bcx = { Plasma.Species.bcOpen,
       --        Plasma.Species.bcOpen },
       -- Evolve species?
-      evolve = true,
+      evolve              = true,
+--      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.
@@ -125,7 +126,8 @@ plasmaApp = Plasma.App {
       --bcx = { Plasma.Species.bcOpen,
       --        Plasma.Species.bcOpen },
       -- Evolve species?
-      evolve = true,
+      evolve              = true,
+--      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.

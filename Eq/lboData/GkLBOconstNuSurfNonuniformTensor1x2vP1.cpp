@@ -1,5 +1,5 @@
 #include <GkLBOModDecl.h> 
-double GkLBOconstNuSurfNonUniform1x2vSer_Vpar_P1(const double m_, const double cflL, const double cflR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuSurfNonuniform1x2vTensor_Vpar_P1(const double m_, const double cflL, const double cflR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[3]:         Cell-center coordinates. 
   // dxv[3]:       Cell spacing. 
@@ -34,18 +34,18 @@ double GkLBOconstNuSurfNonUniform1x2vSer_Vpar_P1(const double m_, const double c
   double Ghat[8]; 
   double incr2[8]; 
 
-  const double dxvl1R2 = std::pow(dxvl[1],2);
-  const double dxvl1R3 = std::pow(dxvl[1],3);
-  const double dxvr1R2 = std::pow(dxvr[1],2);
-  const double dxvr1R3 = std::pow(dxvr[1],3);
+  const double dxvl1R2 = pow(dxvl[1],2);
+  const double dxvl1R3 = pow(dxvl[1],3);
+  const double dxvr1R2 = pow(dxvr[1],2);
+  const double dxvr1R3 = pow(dxvr[1],3);
 
   incr2[2] = -(1.0*((5.0*dxvl1R2*dxvr[1]+3.0*dxvl1R3)*nuVtSqSum[1]*fr[4]+((-3.0*dxvr1R3)-5.0*dxvl[1]*dxvr1R2)*nuVtSqSum[1]*fl[4]+(5.0*nuVtSqSum[0]*dxvl1R2*dxvr[1]+3.0*nuVtSqSum[0]*dxvl1R3)*fr[2]+((-3.0*nuVtSqSum[0]*dxvr1R3)-5.0*nuVtSqSum[0]*dxvl[1]*dxvr1R2)*fl[2]+(((-5.196152422706631*dxvl1R2*dxvr[1])-1.732050807568877*dxvl1R3)*fr[1]+((-1.732050807568877*dxvr1R3)-5.196152422706631*dxvl[1]*dxvr1R2)*fl[1])*nuVtSqSum[1]-1.732050807568877*fl[0]*nuVtSqSum[0]*dxvr1R3-5.196152422706631*fl[0]*nuVtSqSum[0]*dxvl[1]*dxvr1R2-5.196152422706631*fr[0]*nuVtSqSum[0]*dxvl1R2*dxvr[1]-1.732050807568877*fr[0]*nuVtSqSum[0]*dxvl1R3))/(2.828427124746191*dxvr1R3+8.485281374238571*dxvl[1]*dxvr1R2+8.485281374238571*dxvl1R2*dxvr[1]+2.828427124746191*dxvl1R3); 
   incr2[4] = -(1.0*((5.0*nuVtSqSum[0]*dxvl1R2*dxvr[1]+3.0*nuVtSqSum[0]*dxvl1R3)*fr[4]+((-3.0*nuVtSqSum[0]*dxvr1R3)-5.0*nuVtSqSum[0]*dxvl[1]*dxvr1R2)*fl[4]+(5.0*dxvl1R2*dxvr[1]+3.0*dxvl1R3)*nuVtSqSum[1]*fr[2]+((-3.0*dxvr1R3)-5.0*dxvl[1]*dxvr1R2)*nuVtSqSum[1]*fl[2]+((-1.732050807568877*fl[0]*dxvr1R3)-5.196152422706631*fl[0]*dxvl[1]*dxvr1R2-5.196152422706631*fr[0]*dxvl1R2*dxvr[1]-1.732050807568877*fr[0]*dxvl1R3)*nuVtSqSum[1]+((-5.196152422706631*nuVtSqSum[0]*dxvl1R2*dxvr[1])-1.732050807568877*nuVtSqSum[0]*dxvl1R3)*fr[1]+((-1.732050807568877*nuVtSqSum[0]*dxvr1R3)-5.196152422706631*nuVtSqSum[0]*dxvl[1]*dxvr1R2)*fl[1]))/(2.828427124746191*dxvr1R3+8.485281374238571*dxvl[1]*dxvr1R2+8.485281374238571*dxvl1R2*dxvr[1]+2.828427124746191*dxvl1R3); 
   incr2[6] = -(1.0*((5.0*dxvl1R2*dxvr[1]+3.0*dxvl1R3)*nuVtSqSum[1]*fr[7]+((-3.0*dxvr1R3)-5.0*dxvl[1]*dxvr1R2)*nuVtSqSum[1]*fl[7]+(5.0*nuVtSqSum[0]*dxvl1R2*dxvr[1]+3.0*nuVtSqSum[0]*dxvl1R3)*fr[6]+((-3.0*nuVtSqSum[0]*dxvr1R3)-5.0*nuVtSqSum[0]*dxvl[1]*dxvr1R2)*fl[6]+((-5.196152422706631*dxvl1R2*dxvr[1])-1.732050807568877*dxvl1R3)*nuVtSqSum[1]*fr[5]+((-1.732050807568877*dxvr1R3)-5.196152422706631*dxvl[1]*dxvr1R2)*nuVtSqSum[1]*fl[5]+((-5.196152422706631*nuVtSqSum[0]*dxvl1R2*dxvr[1])-1.732050807568877*nuVtSqSum[0]*dxvl1R3)*fr[3]+((-1.732050807568877*nuVtSqSum[0]*dxvr1R3)-5.196152422706631*nuVtSqSum[0]*dxvl[1]*dxvr1R2)*fl[3]))/(2.828427124746191*dxvr1R3+8.485281374238571*dxvl[1]*dxvr1R2+8.485281374238571*dxvl1R2*dxvr[1]+2.828427124746191*dxvl1R3); 
   incr2[7] = -(1.0*((5.0*nuVtSqSum[0]*dxvl1R2*dxvr[1]+3.0*nuVtSqSum[0]*dxvl1R3)*fr[7]+((-3.0*nuVtSqSum[0]*dxvr1R3)-5.0*nuVtSqSum[0]*dxvl[1]*dxvr1R2)*fl[7]+(5.0*dxvl1R2*dxvr[1]+3.0*dxvl1R3)*nuVtSqSum[1]*fr[6]+((-3.0*dxvr1R3)-5.0*dxvl[1]*dxvr1R2)*nuVtSqSum[1]*fl[6]+((-5.196152422706631*nuVtSqSum[0]*dxvl1R2*dxvr[1])-1.732050807568877*nuVtSqSum[0]*dxvl1R3)*fr[5]+((-1.732050807568877*nuVtSqSum[0]*dxvr1R3)-5.196152422706631*nuVtSqSum[0]*dxvl[1]*dxvr1R2)*fl[5]+((-5.196152422706631*dxvl1R2*dxvr[1])-1.732050807568877*dxvl1R3)*nuVtSqSum[1]*fr[3]+((-1.732050807568877*dxvr1R3)-5.196152422706631*dxvl[1]*dxvr1R2)*nuVtSqSum[1]*fl[3]))/(2.828427124746191*dxvr1R3+8.485281374238571*dxvl[1]*dxvr1R2+8.485281374238571*dxvl1R2*dxvr[1]+2.828427124746191*dxvl1R3); 
 
-  const double dxvl1R4 = std::pow(dxvl[1],4);
-  const double dxvr1R4 = std::pow(dxvr[1],4);
+  const double dxvl1R4 = pow(dxvl[1],4);
+  const double dxvr1R4 = pow(dxvr[1],4);
 
   Gdiff[0] = -(1.0*((17.32050807568877*dxvl1R2*dxvr1R2+3.464101615137754*dxvl1R3*dxvr[1]-3.464101615137754*dxvl1R4)*nuVtSqSum[1]*fr[4]+((-3.464101615137754*dxvr1R4)+3.464101615137754*dxvl[1]*dxvr1R3+17.32050807568877*dxvl1R2*dxvr1R2)*nuVtSqSum[1]*fl[4]+(17.32050807568877*nuVtSqSum[0]*dxvl1R2*dxvr1R2+3.464101615137754*nuVtSqSum[0]*dxvl1R3*dxvr[1]-3.464101615137754*nuVtSqSum[0]*dxvl1R4)*fr[2]+((-3.464101615137754*nuVtSqSum[0]*dxvr1R4)+3.464101615137754*nuVtSqSum[0]*dxvl[1]*dxvr1R3+17.32050807568877*nuVtSqSum[0]*dxvl1R2*dxvr1R2)*fl[2]+(18.0*dxvl1R2*dxvr1R2*fl[1]-18.0*dxvl1R2*dxvr1R2*fr[1])*nuVtSqSum[1]+(18.0*fl[0]-18.0*fr[0])*nuVtSqSum[0]*dxvl1R2*dxvr1R2))/(1.414213562373095*dxvl[1]*dxvr1R4+4.242640687119286*dxvl1R2*dxvr1R3+4.242640687119286*dxvl1R3*dxvr1R2+1.414213562373095*dxvl1R4*dxvr[1]); 
   Gdiff[1] = -(1.0*((17.32050807568877*nuVtSqSum[0]*dxvl1R2*dxvr1R2+3.464101615137754*nuVtSqSum[0]*dxvl1R3*dxvr[1]-3.464101615137754*nuVtSqSum[0]*dxvl1R4)*fr[4]+((-3.464101615137754*nuVtSqSum[0]*dxvr1R4)+3.464101615137754*nuVtSqSum[0]*dxvl[1]*dxvr1R3+17.32050807568877*nuVtSqSum[0]*dxvl1R2*dxvr1R2)*fl[4]+(17.32050807568877*dxvl1R2*dxvr1R2+3.464101615137754*dxvl1R3*dxvr[1]-3.464101615137754*dxvl1R4)*nuVtSqSum[1]*fr[2]+((-3.464101615137754*dxvr1R4)+3.464101615137754*dxvl[1]*dxvr1R3+17.32050807568877*dxvl1R2*dxvr1R2)*nuVtSqSum[1]*fl[2]+(18.0*fl[0]-18.0*fr[0])*dxvl1R2*dxvr1R2*nuVtSqSum[1]-18.0*nuVtSqSum[0]*dxvl1R2*dxvr1R2*fr[1]+18.0*nuVtSqSum[0]*dxvl1R2*dxvr1R2*fl[1]))/(1.414213562373095*dxvl[1]*dxvr1R4+4.242640687119286*dxvl1R2*dxvr1R3+4.242640687119286*dxvl1R3*dxvr1R2+1.414213562373095*dxvl1R4*dxvr[1]); 
@@ -87,7 +87,7 @@ double GkLBOconstNuSurfNonUniform1x2vSer_Vpar_P1(const double m_, const double c
 
   return std::abs(wl[1]-(0.7071067811865475*nuUSum[0])/nuSum); 
 } 
-double GkLBOconstNuSurfNonUniform1x2vSer_Mu_P1(const double m_, const double cflL, const double cflR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuSurfNonuniform1x2vTensor_Mu_P1(const double m_, const double cflL, const double cflR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[3]:         Cell-center coordinates. 
   // dxv[3]:       Cell spacing. 
@@ -125,18 +125,18 @@ double GkLBOconstNuSurfNonUniform1x2vSer_Mu_P1(const double m_, const double cfl
   double Ghat[8]; 
   double incr2[8]; 
 
-  const double dxvl2R2 = std::pow(dxvl[2],2);
-  const double dxvl2R3 = std::pow(dxvl[2],3);
-  const double dxvr2R2 = std::pow(dxvr[2],2);
-  const double dxvr2R3 = std::pow(dxvr[2],3);
+  const double dxvl2R2 = pow(dxvl[2],2);
+  const double dxvl2R3 = pow(dxvl[2],3);
+  const double dxvr2R2 = pow(dxvr[2],2);
+  const double dxvr2R3 = pow(dxvr[2],3);
 
   incr2[3] = -(1.0*((5.0*diffFac[1]*dxvl2R2*dxvr[2]+3.0*diffFac[1]*dxvl2R3)*fr[5]+((-3.0*diffFac[1]*dxvr2R3)-5.0*diffFac[1]*dxvl[2]*dxvr2R2)*fl[5]+(5.0*diffFac[0]*dxvl2R2*dxvr[2]+3.0*diffFac[0]*dxvl2R3)*fr[3]+((-3.0*diffFac[0]*dxvr2R3)-5.0*diffFac[0]*dxvl[2]*dxvr2R2)*fl[3]+((-1.732050807568877*diffFac[1]*fl[1])-1.732050807568877*diffFac[0]*fl[0])*dxvr2R3+((-5.196152422706631*diffFac[1]*fl[1])-5.196152422706631*diffFac[0]*fl[0])*dxvl[2]*dxvr2R2+((-5.196152422706631*diffFac[1]*fr[1])-5.196152422706631*diffFac[0]*fr[0])*dxvl2R2*dxvr[2]+((-1.732050807568877*diffFac[1]*fr[1])-1.732050807568877*diffFac[0]*fr[0])*dxvl2R3))/(2.828427124746191*dxvr2R3+8.485281374238571*dxvl[2]*dxvr2R2+8.485281374238571*dxvl2R2*dxvr[2]+2.828427124746191*dxvl2R3); 
   incr2[5] = -(1.0*((5.0*diffFac[0]*dxvl2R2*dxvr[2]+3.0*diffFac[0]*dxvl2R3)*fr[5]+((-3.0*diffFac[0]*dxvr2R3)-5.0*diffFac[0]*dxvl[2]*dxvr2R2)*fl[5]+(5.0*diffFac[1]*dxvl2R2*dxvr[2]+3.0*diffFac[1]*dxvl2R3)*fr[3]+((-3.0*diffFac[1]*dxvr2R3)-5.0*diffFac[1]*dxvl[2]*dxvr2R2)*fl[3]+((-1.732050807568877*diffFac[0]*fl[1])-1.732050807568877*fl[0]*diffFac[1])*dxvr2R3+((-5.196152422706631*diffFac[0]*fl[1])-5.196152422706631*fl[0]*diffFac[1])*dxvl[2]*dxvr2R2+((-5.196152422706631*diffFac[0]*fr[1])-5.196152422706631*fr[0]*diffFac[1])*dxvl2R2*dxvr[2]+((-1.732050807568877*diffFac[0]*fr[1])-1.732050807568877*fr[0]*diffFac[1])*dxvl2R3))/(2.828427124746191*dxvr2R3+8.485281374238571*dxvl[2]*dxvr2R2+8.485281374238571*dxvl2R2*dxvr[2]+2.828427124746191*dxvl2R3); 
   incr2[6] = -(1.0*((5.0*diffFac[1]*dxvl2R2*dxvr[2]+3.0*diffFac[1]*dxvl2R3)*fr[7]+((-3.0*diffFac[1]*dxvr2R3)-5.0*diffFac[1]*dxvl[2]*dxvr2R2)*fl[7]+(5.0*diffFac[0]*dxvl2R2*dxvr[2]+3.0*diffFac[0]*dxvl2R3)*fr[6]+((-3.0*diffFac[0]*dxvr2R3)-5.0*diffFac[0]*dxvl[2]*dxvr2R2)*fl[6]+((-5.196152422706631*diffFac[1]*dxvl2R2*dxvr[2])-1.732050807568877*diffFac[1]*dxvl2R3)*fr[4]+((-1.732050807568877*diffFac[1]*dxvr2R3)-5.196152422706631*diffFac[1]*dxvl[2]*dxvr2R2)*fl[4]+((-5.196152422706631*diffFac[0]*dxvl2R2*dxvr[2])-1.732050807568877*diffFac[0]*dxvl2R3)*fr[2]+((-1.732050807568877*diffFac[0]*dxvr2R3)-5.196152422706631*diffFac[0]*dxvl[2]*dxvr2R2)*fl[2]))/(2.828427124746191*dxvr2R3+8.485281374238571*dxvl[2]*dxvr2R2+8.485281374238571*dxvl2R2*dxvr[2]+2.828427124746191*dxvl2R3); 
   incr2[7] = -(1.0*((5.0*diffFac[0]*dxvl2R2*dxvr[2]+3.0*diffFac[0]*dxvl2R3)*fr[7]+((-3.0*diffFac[0]*dxvr2R3)-5.0*diffFac[0]*dxvl[2]*dxvr2R2)*fl[7]+(5.0*diffFac[1]*dxvl2R2*dxvr[2]+3.0*diffFac[1]*dxvl2R3)*fr[6]+((-3.0*diffFac[1]*dxvr2R3)-5.0*diffFac[1]*dxvl[2]*dxvr2R2)*fl[6]+((-5.196152422706631*diffFac[0]*dxvl2R2*dxvr[2])-1.732050807568877*diffFac[0]*dxvl2R3)*fr[4]+((-1.732050807568877*diffFac[0]*dxvr2R3)-5.196152422706631*diffFac[0]*dxvl[2]*dxvr2R2)*fl[4]+((-5.196152422706631*diffFac[1]*dxvl2R2*dxvr[2])-1.732050807568877*diffFac[1]*dxvl2R3)*fr[2]+((-1.732050807568877*diffFac[1]*dxvr2R3)-5.196152422706631*diffFac[1]*dxvl[2]*dxvr2R2)*fl[2]))/(2.828427124746191*dxvr2R3+8.485281374238571*dxvl[2]*dxvr2R2+8.485281374238571*dxvl2R2*dxvr[2]+2.828427124746191*dxvl2R3); 
 
-  const double dxvl2R4 = std::pow(dxvl[2],4);
-  const double dxvr2R4 = std::pow(dxvr[2],4);
+  const double dxvl2R4 = pow(dxvl[2],4);
+  const double dxvr2R4 = pow(dxvr[2],4);
 
   Gdiff[0] = -(1.0*((17.32050807568877*diffFac[1]*dxvl2R2*dxvr2R2+3.464101615137754*diffFac[1]*dxvl2R3*dxvr[2]-3.464101615137754*diffFac[1]*dxvl2R4)*fr[5]+((-3.464101615137754*diffFac[1]*dxvr2R4)+3.464101615137754*diffFac[1]*dxvl[2]*dxvr2R3+17.32050807568877*diffFac[1]*dxvl2R2*dxvr2R2)*fl[5]+(17.32050807568877*diffFac[0]*dxvl2R2*dxvr2R2+3.464101615137754*diffFac[0]*dxvl2R3*dxvr[2]-3.464101615137754*diffFac[0]*dxvl2R4)*fr[3]+((-3.464101615137754*diffFac[0]*dxvr2R4)+3.464101615137754*diffFac[0]*dxvl[2]*dxvr2R3+17.32050807568877*diffFac[0]*dxvl2R2*dxvr2R2)*fl[3]+((-18.0*diffFac[1]*fr[1])+18.0*diffFac[1]*fl[1]-18.0*diffFac[0]*fr[0]+18.0*diffFac[0]*fl[0])*dxvl2R2*dxvr2R2))/(1.414213562373095*dxvl[2]*dxvr2R4+4.242640687119286*dxvl2R2*dxvr2R3+4.242640687119286*dxvl2R3*dxvr2R2+1.414213562373095*dxvl2R4*dxvr[2]); 
   Gdiff[1] = -(1.0*((17.32050807568877*diffFac[0]*dxvl2R2*dxvr2R2+3.464101615137754*diffFac[0]*dxvl2R3*dxvr[2]-3.464101615137754*diffFac[0]*dxvl2R4)*fr[5]+((-3.464101615137754*diffFac[0]*dxvr2R4)+3.464101615137754*diffFac[0]*dxvl[2]*dxvr2R3+17.32050807568877*diffFac[0]*dxvl2R2*dxvr2R2)*fl[5]+(17.32050807568877*diffFac[1]*dxvl2R2*dxvr2R2+3.464101615137754*diffFac[1]*dxvl2R3*dxvr[2]-3.464101615137754*diffFac[1]*dxvl2R4)*fr[3]+((-3.464101615137754*diffFac[1]*dxvr2R4)+3.464101615137754*diffFac[1]*dxvl[2]*dxvr2R3+17.32050807568877*diffFac[1]*dxvl2R2*dxvr2R2)*fl[3]+((-18.0*diffFac[0]*fr[1])+18.0*diffFac[0]*fl[1]+(18.0*fl[0]-18.0*fr[0])*diffFac[1])*dxvl2R2*dxvr2R2))/(1.414213562373095*dxvl[2]*dxvr2R4+4.242640687119286*dxvl2R2*dxvr2R3+4.242640687119286*dxvl2R3*dxvr2R2+1.414213562373095*dxvl2R4*dxvr[2]); 

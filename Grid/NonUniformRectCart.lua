@@ -47,8 +47,6 @@ function NonUniformRectCart:init(tbl)
    -- Set grid index to first cell in domain.
    for d = 1, ndim do self._currIdx[d] = 1 end
 
-   self._mappings = tbl.mappings
-   
    self._nodeCoords = {}   -- Nodal coordinates in each direction.
    -- Initialize nodes to be uniform (will be over-written if mappings are provided).
    for d = 1, ndim do
@@ -98,6 +96,9 @@ function NonUniformRectCart:id() return "mapped" end
 function NonUniformRectCart:lower(dir) return self._nodeCoords[dir][1] end
 function NonUniformRectCart:mid(dir) return self:lower(dir) + (self:upper(dir)-self:lower(dir))/2 end
 function NonUniformRectCart:upper(dir) return self._nodeCoords[dir][self:numCells(dir)+1] end
+function NonUniformRectCart:logicalLower(dir) return self._lower[dir] end
+function NonUniformRectCart:logicalMid(dir) return self._lower[dir] + (self._upper[dir]-self._lower[dir])/2 end
+function NonUniformRectCart:logicalUpper(dir) return self._upper[dir] end
 function NonUniformRectCart:nodeCoords(dir) return self._nodeCoords[dir] end
 function NonUniformRectCart:dx(dir)
    local idxInDir = self._currIdx[dir]

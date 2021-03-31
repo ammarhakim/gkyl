@@ -58,8 +58,8 @@ local vCompMax = (vparMax-uBump)/vparMax
 plasmaApp = Plasma.App {
    logToFile = false,
 
-   tEnd        = 100,           -- End time.
-   nFrame      = 20,             -- Number of frames to write.
+   tEnd        = 10,           -- End time.
+   nFrame      = 1,             -- Number of frames to write.
    lower       = {0.0},         -- Configuration space lower coordinate.
    upper       = {1.0},         -- Configuration space upper coordinate.
    cells       = {2},           -- Configuration space cells.
@@ -68,7 +68,7 @@ plasmaApp = Plasma.App {
    timeStepper = "rk3",         -- One of "rk2", "rk3" or "rk3s4".
 
    -- Decomposition for configuration space.
-   decompCuts = {2},            -- Cuts in each configuration direction.
+   decompCuts = {1},            -- Cuts in each configuration direction.
    useShared  = false,          -- If to use shared memory.
 
    -- Boundary conditions for configuration space.

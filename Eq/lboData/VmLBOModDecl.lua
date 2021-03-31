@@ -35,7 +35,7 @@ end
 
 -- Select functions to compute surface terms (output is a table of functions).
 function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, isNonuniform)
-   local gridStr = isNonuniform and "NonUniform" or ""
+   local gridStr = isNonuniform and "Nonuniform" or ""
 
    local funcType = "double"
    local funcNm   = {}
@@ -56,7 +56,7 @@ function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, isNonuniform)
    return kernels
 end
 function _M.selectConstNuSurf(basisNm, CDIM, VDIM, polyOrder, isNonuniform)
-   local gridStr = isNonuniform and "NonUniform" or ""
+   local gridStr = isNonuniform and "Nonuniform" or ""
 
    local funcType = "double"
    local funcNm = {}

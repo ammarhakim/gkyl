@@ -1,5 +1,5 @@
 #include <GkLBOModDecl.h> 
-double GkLBOconstNuSurfNonUniform1x1vTensor_Vpar_P2(const double m_, const double cflL, const double cflR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuSurfNonuniform1x1vTensor_Vpar_P2(const double m_, const double cflL, const double cflR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[2]:         Cell-center coordinates. 
   // dxv[2]:       Cell spacing. 

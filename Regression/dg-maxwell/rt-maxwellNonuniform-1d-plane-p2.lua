@@ -20,8 +20,16 @@ vlasovApp = Vlasov.App {
 
    tEnd        = tperiod,       -- End time.
    nFrame      = 1,             -- Number of output frames.
-   lower       = {-L/2.},       -- Configuration space lower left.
-   upper       = { L/2.},       -- Configuration space upper right.
+   lower       = {-1.},       -- Configuration space lower left.
+   upper       = { 1.},       -- Configuration space upper right.
+   coordinateMap = {
+      --function(z) if z<0. then return (-L/2.)*math.abs(z)^2 else return (L/2.)*z^2 end end,
+      --function(z) if z<0. then return (-L/2.)*math.abs(math.tanh(4.*z)) else return (L/2.)*math.abs(math.tanh(4.*z)) end end,
+      function(z)
+         if z<0. then return (-L/2.)*0.5*(1.+math.tanh(-10.*(z+1./2.)))
+         else return (L/2.)*0.5*(1.+math.tanh(10.*(z-1./2.))) end
+      end,
+   },
    cells       = {32},          -- Configuration space cells.
    basis       = "serendipity", -- One of "serendipity" or "maximal-order".
    polyOrder   = 2,             -- Polynomial order.

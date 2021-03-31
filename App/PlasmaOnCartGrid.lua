@@ -153,15 +153,15 @@ local function buildApplication(self, tbl)
    -- configuration space decomp object (eventually, this will be
    -- slaved to the phase-space decomp)
    local decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts,
+      cuts      = decompCuts,
       useShared = useShared,
    }
 
    -- Some timers.
-   local stepperTime = 0.0
-   local fwdEulerCombineTime = 0.0
-   local writeDataTime = 0.
-   local writeRestartTime = 0.
+   local stepperTime         = 0.
+   local fwdEulerCombineTime = 0.
+   local writeDataTime       = 0.
+   local writeRestartTime    = 0.
 
    -- Pick grid ctor based on uniform/non-uniform grid.
    local GridConstructor = Grid.RectCart
@@ -181,7 +181,12 @@ local function buildApplication(self, tbl)
       mapc2p        = tbl.mapc2p,
       world         = tbl.world,
    }
-   --confGrid:write("grid.bp")
+   if tbl.coordinateMap or tbl.mapc2p then 
+      local metaData = {polyOrder = confBasis:polyOrder(),
+                        basisType = confBasis:id(),
+                        grid      = GKYL_OUT_PREFIX .. "_grid.bp"}
+      confGrid:write("grid.bp", 0.0, metaData)
+   end
 
    -- Read in information about each species.
    local species = {}

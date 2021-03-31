@@ -263,9 +263,9 @@ function MaxwellField:alloc(nRkDup)
 
       -- Array with one component per cell to store cflRate in each cell.
       self.cflRateByCell = DataStruct.Field {
-           onGrid        = self.grid,
-           numComponents = 1,
-           ghost         = {1, 1},
+         onGrid        = self.grid,
+         numComponents = 1,
+         ghost         = {1, 1},
       }
       self.cflRateByCell:clear(0.0)
       self.cflRatePtr  = self.cflRateByCell:get(1)
@@ -311,12 +311,11 @@ function MaxwellField:alloc(nRkDup)
    self.fieldIo = AdiosCartFieldIo {
       elemType = self.em[1]:elemType(),
       method   = self.ioMethod,
-      metaData = {
-         polyOrder = self.basis:polyOrder(),
-         basisType = self.basis:id(),
-         epsilon0  = self.epsilon0,
-         mu0       = self.mu0,
-      },
+      metaData = {polyOrder = self.basis:polyOrder(),
+                  basisType = self.basis:id(),
+                  epsilon0  = self.epsilon0,
+                  mu0       = self.mu0,
+                  grid      = GKYL_OUT_PREFIX .. "_grid.bp"},
    }
 end
 
@@ -882,12 +881,11 @@ function ExternalMaxwellField:alloc(nField)
    self.fieldIo = AdiosCartFieldIo {
       elemType = self.em:elemType(),
       method   = self.ioMethod,
-      metaData = {
-         polyOrder = self.basis:polyOrder(),
-         basisType = self.basis:id(),
-         epsilon0  = self.epsilon0,
-         mu0       = self.mu0,
-      },
+      metaData = {polyOrder = self.basis:polyOrder(),
+                  basisType = self.basis:id(),
+                  epsilon0  = self.epsilon0,
+                  mu0       = self.mu0,
+                  grid      = GKYL_OUT_PREFIX .. "_grid.bp"},
    }   
 end
 
