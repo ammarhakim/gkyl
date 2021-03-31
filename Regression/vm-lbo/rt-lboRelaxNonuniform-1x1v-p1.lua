@@ -50,7 +50,7 @@ end
 plasmaApp = Plasma.App {
    logToFile = false,
 
-   tEnd        = 100,           -- End time.
+   tEnd        = 20,            -- End time.
    nFrame      = 1,             -- Number of frames to write.
    lower       = {0.0},         -- Configuration space lower coordinate.
    upper       = {1.0},         -- Configuration space upper coordinate.
@@ -75,7 +75,7 @@ plasmaApp = Plasma.App {
       coordinateMap = {
         function(z) if z<0. then return -8.0*vt*math.abs(z)^2 else return 8.0*vt*z^2 end end
       },
-      cells = {48},
+      cells = {32},
       -- Initial conditions.
       init = function (t, xn)
 	 local x, v = xn[1], xn[2]
@@ -123,7 +123,7 @@ plasmaApp = Plasma.App {
       coordinateMap = {
         function(z) if z<0. then return -8.0*vt*math.abs(z)^2 else return 8.0*vt*z^2 end end
       },
-      cells = {48},
+      cells = {32},
       -- Initial conditions.
       init = function (t, xn)
          local x, v = xn[1], xn[2]

@@ -149,36 +149,35 @@ function NonUniformRectCart:write(fName, tmStamp, metaData)
    -- Write a file containing the grid node coordinates. 
 
    -- Create a grid over nodes and a field to store nodal coordinates.
-   local cells, lower, upper, dx = {}, {}, {}, {}
+   local cells, lower, upper = {}, {}, {}
    for d = 1, self:ndim() do
       cells[d] = self:numCells(d)+1   -- One more layer of nodes than cells.
       -- This ensures cell-center of nodal grid lie at nodes of original grid.
       lower[d] = self:lower(d) - 0.5*self:dx(d)
       upper[d] = self:upper(d) + 0.5*self:dx(d)
-      dx[d]    = self:dx(d)
    end
-   -- WILL NEED TO MAKE THIS WORK IN PARALLEL .. EVENTUALLY
+   -- Create a grid of nodes.
    local grid = RectCart {
       lower = lower,
       upper = upper,
       cells = cells,
+      decomposition = self.decomp,
    }
    local nodalCoords = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = self:ndim(),
-      metaData = metaData
+      metaData      = metaData
    }
-
-   local xnc, xnp = Lin.Vec(self:ndim()), Lin.Vec(self:ndim())
 
    local localRange = nodalCoords:localRange()
    local indexer    = nodalCoords:genIndexer()
    for idx in localRange:rowMajorIter() do
       grid:setIndex(idx)
-      local nitr = nodalCoords:get(indexer(idx))
+
+      local nItr = nodalCoords:get(indexer(idx))
       for d = 1, self:ndim() do
          nodeCoords = self:nodeCoords(d)
-         nitr[d] = nodeCoords[idx[d]]
+         nItr[d]    = nodeCoords[idx[d]]
       end
    end
 
