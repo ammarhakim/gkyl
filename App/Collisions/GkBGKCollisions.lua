@@ -49,6 +49,8 @@ function GkBGKCollisions:fullInit(speciesTbl)
 
    self.cfl = 0.1  -- Some default value.
 
+   self.mass = speciesTbl.mass   -- Mass of this species.
+
    self.collidingSpecies = assert(
       tbl.collideWith,
       "App.GkBGKCollisions: Must specify names of species to collide with in 'collideWith'.")
@@ -104,7 +106,6 @@ function GkBGKCollisions:fullInit(speciesTbl)
       self.timeDepNu = true
 
       self.varNu  = true                 -- Spatially varying nu.
-      self.mass   = speciesTbl.mass      -- Mass of this species.
       self.charge = speciesTbl.charge    -- Charge of this species.
       -- For now only cell-wise constant nu is implemented.
       self.cellConstNu  = true     -- Cell-wise constant nu?
@@ -159,7 +160,6 @@ function GkBGKCollisions:fullInit(speciesTbl)
    end
 
    if self.crossCollisions then
-      self.mass   = speciesTbl.mass          -- Mass of this species.
       self.charge = speciesTbl.charge        -- Charge of this species.
       local betaGreeneIn = tbl.betaGreene    -- Can specify 'betaGreene' free parameter in Grene cross-species collisions.
       if betaGreeneIn then
@@ -175,7 +175,7 @@ function GkBGKCollisions:fullInit(speciesTbl)
       self.nuFrac = 1.0
    end
 
-   self.exactLagFixM012 = xsys.pickBool(tbl.exactLagFixM012, true) 
+   self.exactLagFixM012 = xsys.pickBool(tbl.exactLagFixM012, false)  -- MF/NRM (2021/04/01): Needs more work. 
 
    self.timers = {nonSlvr = 0.}
 end
@@ -205,6 +205,10 @@ end
 
 function GkBGKCollisions:createSolver(externalField)
    self.numVelDims = self.phaseGrid:ndim() - self.confGrid:ndim()
+
+   -- Background magnetic field. Needed for spatially varying nu
+   -- or to project Maxwellians with vdim>1.
+   self.bmag = externalField.geo.bmag
 
    local function createConfFieldCompV()
       return DataStruct.Field {
@@ -240,6 +244,7 @@ function GkBGKCollisions:createSolver(externalField)
          confGrid   = self.confGrid,
          confBasis  = self.confBasis,
          mode       = 'Gk',
+         mass       = self.mass,
       }
    end
 
@@ -267,8 +272,6 @@ function GkBGKCollisions:createSolver(externalField)
             hBar             = self.hBar,
             nuFrac           = self.nuFrac,
          }
-         -- Background magnetic field.
-         self.bmag = externalField.geo.bmag
       elseif self.selfCollisions then
          local projectUserNu = Updater.ProjectOnBasis {
             onGrid   = self.confGrid,
@@ -340,10 +343,10 @@ function GkBGKCollisions:createSolver(externalField)
    -- Maxwellian solver.
    self.maxwellian = Updater.MaxwellianOnBasis {
       onGrid     = self.phaseGrid,
+      phaseBasis = self.phaseBasis,
       confGrid   = self.confGrid,
       confBasis  = self.confBasis,
-      phaseGrid  = self.phaseGrid,
-      phaseBasis = self.phaseBasis,
+      mass       = self.mass, 
    }
    -- BGK Collision solver itself.
    self.collisionSlvr = Updater.BgkCollisions {
@@ -372,7 +375,7 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
    self.nufMaxwellSum:clear(0.0)
 
    if self.selfCollisions then
-      self.maxwellian:advance(tCurr, {selfMom[1], primMomSelf[1], primMomSelf[2]},
+      self.maxwellian:advance(tCurr, {selfMom[1], primMomSelf[1], primMomSelf[2], self.bmag},
                               {self.nufMaxwellSum})
       if self.exactLagFixM012 then
          self.fiveMomentsCalc:advance(tCurr, {self.nufMaxwellSum}, { self.dM0, self.dM1, self.dM2 })
@@ -455,7 +458,7 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
          end
 
 	 self.maxwellian:advance(tCurr, {selfMom[1], species[self.speciesName].uCross[otherNm],
-                                         species[self.speciesName].vtSqCross[otherNm]}, {self.nufMaxwellCross})
+                                         species[self.speciesName].vtSqCross[otherNm], self.bmag}, {self.nufMaxwellCross})
          if self.exactLagFixM012 then
             -- Need to compute the first and second moment of the cross-species Maxwellian (needed by Lagrange fix).
             self.confMultiply:advance(tCurr, {species[self.speciesName].uCross[otherNm], selfMom[1]}, {self.crossMaxwellianM1})

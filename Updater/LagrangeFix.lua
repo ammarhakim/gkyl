@@ -6,13 +6,13 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local Lin = require "Lib.Linalg"
+local Lin          = require "Lib.Linalg"
 local LinearDecomp = require "Lib.LinearDecomp"
-local Proto = require "Proto"
-local Range = require "Lib.Range"
-local Time = require "Lib.Time"
-local UpdaterBase = require "Updater.Base"
-local ffi = require "ffi"
+local Proto        = require "Proto"
+local Range        = require "Lib.Range"
+local Time         = require "Lib.Time"
+local UpdaterBase  = require "Updater.Base"
+local ffi          = require "ffi"
 
 -- System libraries
 local xsys = require "xsys"
@@ -46,7 +46,7 @@ function LagrangeFix:init(tbl)
    self._cDim = self.confBasis:ndim()
    self._vDim = self._pDim - self._cDim
 
-   self.basisID = self.confBasis:id()
+   self.basisID   = self.confBasis:id()
    self.polyOrder = self.confBasis:polyOrder()
    -- Ensure sanity
    assert(self.phaseBasis:polyOrder() == self.polyOrder,
@@ -68,17 +68,17 @@ function LagrangeFix:init(tbl)
 
    -- Cell index, center, center velocity and upper velocity.
    self.idxP = Lin.IntVec(self._pDim)
-   self.xcP = Lin.Vec(self._pDim)
-   self.vcP = ffi.new("double[3]")
-   self.Nv = ffi.new("double[3]")
+   self.xcP  = Lin.Vec(self._pDim)
+   self.vcP  = ffi.new("double[3]")
+   self.Nv   = ffi.new("double[3]")
 
-   -- self.L = ffi.new("double[3]", {})
+   -- self.L  = ffi.new("double[3]", {})
    -- self.lo = ffi.new("double[3]", {})
-   self.L = ffi.new("double[3]")
+   self.L  = ffi.new("double[3]")
    self.lo = ffi.new("double[3]")
    for d = 1, self._vDim do
-      self.L[d-1] = self.phaseGrid:upper(self._cDim + d) - 
-	 self.phaseGrid:lower(self._cDim + d) 
+      self.L[d-1]  = self.phaseGrid:upper(self._cDim + d)
+                    -self.phaseGrid:lower(self._cDim + d) 
       self.lo[d-1] = self.phaseGrid:lower(self._cDim + d) 
    end
 end
@@ -106,28 +106,26 @@ function LagrangeFix:_advance(tCurr, inFld, outFld)
    local dm1Itr = dm1:get(1)
    local dm2Itr = dm2:get(1)
    local BItr = nil
-   if self.mode == 'Gk' then
-      BItr = B:get(1)
-   end
+   if self.mode == 'Gk' then BItr = B:get(1) end
    local fItr = f:get(1)
 
    -- Get the Ranges to loop over the domain
-   local confRange = dm0:localRange()
-   local confIndexer = dm0:genIndexer()
-   local phaseRange = f:localRange()
+   local confRange    = dm0:localRange()
+   local confIndexer  = dm0:genIndexer()
+   local phaseRange   = f:localRange()
    local phaseIndexer = f:genIndexer()
 
    for d = 1, vDim do
       self.Nv[d-1] = phaseRange:upper(cDim + d)
    end
 
-   -- construct ranges for nested loops
+   -- Construct ranges for nested loops.
    local confRangeDecomp = LinearDecomp.LinearDecompRange {
       range = phaseRange:selectFirst(cDim), numSplit = self.phaseGrid:numSharedProcs() }
    local velRange = phaseRange:selectLast(vDim)
-   local tId = self.phaseGrid:subGridSharedId() -- local thread ID
+   local tId = self.phaseGrid:subGridSharedId()   -- Local thread ID.
 
-   -- The configuration space loop
+   -- The configuration space loop.
    for cIdx in confRangeDecomp:rowMajorIter(tId) do
       dm0:fill(confIndexer(cIdx), dm0Itr)
       dm1:fill(confIndexer(cIdx), dm1Itr)
@@ -136,7 +134,7 @@ function LagrangeFix:_advance(tCurr, inFld, outFld)
 	 B:fill(confIndexer(cIdx), BItr)
       end
 
-      -- The velocity space loop
+      -- The velocity space loop.
       for vIdx in velRange:rowMajorIter() do
          cIdx:copyInto(self.idxP)
          for d = 1, vDim do self.idxP[cDim+d] = vIdx[d] end
