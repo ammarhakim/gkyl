@@ -591,14 +591,14 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    end
 
    -- If Charge Exchange collision object exists, locate ions
-   local counterCX_ion = true
+   local counterCX_neut = true
    for sN, _ in lume.orderedIter(species) do
       if species[sN].collisions and next(species[sN].collisions) then 
          for sO, _ in lume.orderedIter(species) do
    	    if self.collPairs[sN][sO].on then
    	       if (self.collPairs[sN][sO].kind == 'CX') then
    		  for collNm, _ in pairs(species[sN].collisions) do
-   		     if self.name==species[sN].collisions[collNm].ionNm and counterCX_ion then
+   		     if self.name==species[sN].collisions[collNm].neutNm and counterCX_neut then
    			self.calcCXSrc        = true			
    			self.collNmCX         = collNm
    			self.neutNmCX         = species[sN].collisions[collNm].neutNm
