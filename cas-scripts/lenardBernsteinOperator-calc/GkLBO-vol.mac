@@ -32,7 +32,7 @@ gkVdims      : [[1,2], [2], [2]]$
 /* ...... END OF USER INPUTS........ */
 
 /* To generate other bases, just add corresponding column to arrays below. */
-bName        : ["Ser", "Max", "Tensor"]$
+bName        : ["ser", "max", "tensor"]$
 maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
 minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
 minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$

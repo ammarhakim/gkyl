@@ -1,0 +1,71 @@
+/* Create kernels to fix the moments of a distribution function
+   using Lagrange multipliers. */
+
+load("lagrangeFix-calc/lf_gkModule.mac")$
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 2$
+minCdim_Ser : 1$
+minVdim_Ser : 1$    /* see beginning of v loop below though. */
+maxCdim_Ser : 1$
+maxVdim_Ser : 2$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 2$
+minCdim_Max : 1$
+minVdim_Max : 1$    /* see begining of v loop below though. */
+maxCdim_Max : 1$
+maxVdim_Max : 2$
+
+/* Tensor product basis. */
+maxPolyOrder_Tensor : 2$
+minCdim_Tensor : 1$
+minVdim_Tensor : 1$    /* see begining of v loop below though. */
+maxCdim_Tensor : 1$
+maxVdim_Tensor : 2$
+
+/* ...... END OF USER INPUTS........ */
+
+gkVdims      : [[1,2], [2], [2]]$
+
+bName        : ["ser","max","tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
+minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
+
+for bInd : 1 thru length(bName) do (
+  for cD : minCdim[bInd] thru maxCdim[bInd] do (
+    vDims : [],
+    for gkV : 1 thru length(gkVdims[cD]) do (
+      if (gkVdims[cD][gkV]>=minVdim[bInd]) and (gkVdims[cD][gkV]<=maxVdim[bInd]) then (
+        vDims : endcons(gkVdims[cD][gkV],vDims)
+      )
+    ),
+    for gkV : 1 thru length(vDims) do (
+      vD : vDims[gkV],
+
+      maxPolyOrderB : maxPolyOrder[bInd],
+      if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+
+      for polyOrder : 1 thru maxPolyOrderB do (
+
+        funcNm : sconcat("lagrangeFix_gk_", cD, "x", vD, "v_", bName[bInd],"_p", polyOrder),
+        fname  : sconcat("~/max-out/",funcNm,".cpp"),
+        disp(printf(false,sconcat("Creating ~a"),fname)),
+        fh : openw(fname),
+        printf(fh, "#include <gkyl_lagrangeFix_kernels.h>~%~%"),
+
+        generateLagrangeFixGk(fh, funcNm, cD, vD, bName[bInd], polyOrder), 
+
+        close(fh)
+
+      )
+    )
+  )
+)$
+
+

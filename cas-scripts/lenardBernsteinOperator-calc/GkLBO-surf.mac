@@ -30,14 +30,14 @@ minVdim_Tensor : 1$
 maxCdim_Tensor : 1$
 maxVdim_Tensor : 2$
 
+/* ...... END OF USER INPUTS........ */
+
 /* Number of velocity dimensions allowed for each
    configuration-space dimension. */
 gkVdims      : [[1,2], [2], [2]]$
 
-/* ...... END OF USER INPUTS........ */
-
 /* To generate other bases, just add corresponding column to arrays below. */
-bName        : ["Ser", "Max", "Tensor"]$
+bName        : ["ser", "max", "tensor"]$
 maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
 minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
 minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
@@ -51,8 +51,14 @@ elseif grid="both"   then (gridType : [false,true])$
 
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
+    vDims : [],
     for gkV : 1 thru length(gkVdims[c]) do (
-      v : max(minVdim[bInd],gkVdims[c][gkV]),
+      if (gkVdims[c][gkV]>=minVdim[bInd]) and (gkVdims[c][gkV]<=maxVdim[bInd]) then (
+        vDims : endcons(gkVdims[c][gkV],vDims)
+      )
+    ),
+    for gkV : 1 thru length(vDims) do (
+      v : vDims[gkV],
 
       maxPolyOrderB : maxPolyOrder[bInd],
       if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,

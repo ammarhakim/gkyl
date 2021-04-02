@@ -312,14 +312,49 @@ def build(bld):
     binOpCalcData/CartFieldBinOpTensor1x1vP3.cpp
     binOpCalcData/CartFieldBinOpTensor1x2vP3.cpp
 
-    lagrangeFixData/VlasovLagrangeFixSer1x1v.cpp
-    lagrangeFixData/VlasovLagrangeFixSer1x2v.cpp
-    lagrangeFixData/VlasovLagrangeFixSer1x3v.cpp
-    lagrangeFixData/VlasovLagrangeFixSer2x2v.cpp
-    lagrangeFixData/VlasovLagrangeFixSer2x3v.cpp
-    lagrangeFixData/VlasovLagrangeFixSer3x3v.cpp
-    lagrangeFixData/GkLagrangeFixSer1x2v.cpp
-    lagrangeFixData/GkLagrangeFixSer2x2v.cpp
+    lagrangeFixData/lagrangeFix_vlasov_1x1v_max_p1.cpp
+    lagrangeFixData/lagrangeFix_vlasov_1x1v_max_p2.cpp
+    lagrangeFixData/lagrangeFix_vlasov_1x1v_ser_p1.cpp
+    lagrangeFixData/lagrangeFix_vlasov_1x1v_ser_p2.cpp
+    lagrangeFixData/lagrangeFix_vlasov_1x1v_ser_p3.cpp
+    lagrangeFixData/lagrangeFix_vlasov_1x1v_tensor_p1.cpp
+    lagrangeFixData/lagrangeFix_vlasov_1x1v_tensor_p2.cpp
+    lagrangeFixData/lagrangeFix_vlasov_1x2v_max_p1.cpp
+    lagrangeFixData/lagrangeFix_vlasov_1x2v_max_p2.cpp
+    lagrangeFixData/lagrangeFix_vlasov_1x2v_ser_p1.cpp
+    lagrangeFixData/lagrangeFix_vlasov_1x2v_ser_p2.cpp
+    lagrangeFixData/lagrangeFix_vlasov_1x2v_ser_p3.cpp
+    lagrangeFixData/lagrangeFix_vlasov_1x2v_tensor_p1.cpp
+    lagrangeFixData/lagrangeFix_vlasov_1x2v_tensor_p2.cpp
+    lagrangeFixData/lagrangeFix_vlasov_1x3v_max_p1.cpp
+    lagrangeFixData/lagrangeFix_vlasov_1x3v_ser_p1.cpp
+    lagrangeFixData/lagrangeFix_vlasov_1x3v_ser_p2.cpp
+    lagrangeFixData/lagrangeFix_vlasov_1x3v_ser_p3.cpp
+    lagrangeFixData/lagrangeFix_vlasov_2x2v_max_p1.cpp
+    lagrangeFixData/lagrangeFix_vlasov_2x2v_max_p2.cpp
+    lagrangeFixData/lagrangeFix_vlasov_2x2v_ser_p1.cpp
+    lagrangeFixData/lagrangeFix_vlasov_2x2v_ser_p2.cpp
+    lagrangeFixData/lagrangeFix_vlasov_2x2v_ser_p3.cpp
+    lagrangeFixData/lagrangeFix_vlasov_2x2v_tensor_p1.cpp
+    lagrangeFixData/lagrangeFix_vlasov_2x2v_tensor_p2.cpp
+    lagrangeFixData/lagrangeFix_vlasov_2x3v_ser_p1.cpp
+    lagrangeFixData/lagrangeFix_vlasov_2x3v_ser_p2.cpp
+    lagrangeFixData/lagrangeFix_vlasov_3x3v_ser_p1.cpp
+
+    lagrangeFixData/lagrangeFix_gk_1x1v_max_p1.cpp
+    lagrangeFixData/lagrangeFix_gk_1x1v_max_p2.cpp
+    lagrangeFixData/lagrangeFix_gk_1x1v_ser_p1.cpp
+    lagrangeFixData/lagrangeFix_gk_1x1v_ser_p2.cpp
+    lagrangeFixData/lagrangeFix_gk_1x1v_tensor_p1.cpp
+    lagrangeFixData/lagrangeFix_gk_1x1v_tensor_p2.cpp
+    lagrangeFixData/lagrangeFix_gk_1x2v_max_p1.cpp
+    lagrangeFixData/lagrangeFix_gk_1x2v_ser_p1.cpp
+    lagrangeFixData/lagrangeFix_gk_1x2v_ser_p2.cpp
+    lagrangeFixData/lagrangeFix_gk_1x2v_tensor_p1.cpp
+    lagrangeFixData/lagrangeFix_gk_1x2v_tensor_p2.cpp
+    lagrangeFixData/lagrangeFix_gk_2x2v_max_p1.cpp
+    lagrangeFixData/lagrangeFix_gk_2x2v_ser_p1.cpp
+    lagrangeFixData/lagrangeFix_gk_2x2v_tensor_p1.cpp
 
     momentCalcData/DistFuncMomentCalcMax1x1v.cpp
     momentCalcData/DistFuncMomentCalcMax1x2v.cpp

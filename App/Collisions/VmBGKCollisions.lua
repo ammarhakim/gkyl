@@ -239,7 +239,7 @@ function VmBGKCollisions:createSolver()
          phaseBasis = self.phaseBasis,
          confGrid   = self.confGrid,
          confBasis  = self.confBasis,
-         mode       = 'Vlasov',
+         mode       = 'vlasov',
       }
    end
 

@@ -175,7 +175,7 @@ function GkBGKCollisions:fullInit(speciesTbl)
       self.nuFrac = 1.0
    end
 
-   self.exactLagFixM012 = xsys.pickBool(tbl.exactLagFixM012, false)  -- MF/NRM (2021/04/01): Needs more work. 
+   self.exactLagFixM012 = xsys.pickBool(tbl.exactLagFixM012, true)  -- MF/NRM (2021/04/01): Needs more work. 
 
    self.timers = {nonSlvr = 0.}
 end
@@ -203,6 +203,73 @@ function GkBGKCollisions:setPhaseGrid(grid)
    self.phaseGrid = grid
 end
 
+function GkBGKCollisions:createConfField(vComp)
+   vComp = vComp or 1
+   local fld = DataStruct.Field {
+      onGrid        = self.confGrid,
+      numComponents = self.confBasis:numBasis()*vComp,
+      ghost         = {1, 1},
+   }
+   return fld
+end
+
+function GkBGKCollisions:createPhaseField()
+   vComp = vComp or 1
+   local fld = DataStruct.Field {
+      onGrid        = self.phaseGrid,
+      numComponents = self.phaseBasis:numBasis(),
+      ghost         = {1, 1},
+   }
+   return fld
+end
+
+-- It appears that BGK collisions are not conservative if we don't fix
+-- the moments of the distribution function, because the moments of what
+-- MaxwellianOnBasis outputs are not exactly the input moments. We could
+-- do this with LagrangeFix. Another alternative is to use a series of
+-- rescalings, as done below.
+--function GkBGKCollisions:scaleM012(jacobPhaseFuncIn,fMIn)
+--
+--   local m0, m2Par, m2Perp                         = self:createConfField(), self:createConfField(), self:createConfField()
+--   local m0_e, m2_e                                = self:createConfField(), self:createConfField()
+--   local m0_mod, m2Par_mod, m2Perp_mod             = self:createConfField(), self:createConfField(), self:createConfField()
+--   local m0Par_mod, m0Perp_mod                     = self:createConfField(), self:createConfField()
+--   local m0Par_mod2, m0Perp_mod2                   = self:createConfField(), self:createConfField()
+--   local m02Par_mod, m02Perp_mod                   = self:createConfField(), self:createConfField()
+--   local distf0_mod, distf2Par_mod, distf2Perp_mod = self:createConfField(), self:createConfField(), self:createConfField()
+--
+--
+--   local cdim = self.confGrid:ndim()
+--   local vdim = self.phaseGrid:ndim() - cdim
+--
+--   -- Initialize Maxwellian distribution distf0 = FM, along with
+--   -- distf2Par = 0.5*(vpar^2)*FM and distf2Perp = (mu*B/mass)*FM.
+--   local distf0, distf2Par, distf2Perp = self:createPhaseField(), self:createPhaseField(), self:createPhaseField()
+--   distf0:copy(fMIn)
+--   local phaseProject = Updater.ProjectOnBasis {
+--      onGrid   = self.phaseGrid,
+--      basis    = self.phaseBasis,
+--      evaluate = function(t,xn) return 0. end,   -- Set below.
+--   }
+--   local distf2ParFunc = function (t, zn)
+--      local vpar = zn[cdim+1]
+--      return 0.5*(vpar^2)*jacobPhaseFuncIn(t,zn)*self.initFunc(t,zn)
+--   end
+--   phaseProject:setFunc(distf2parFunc)
+--   phaseProject:advance(0.0, {}, {distf2par})
+--   if vdim > 1 then
+--      local distf2perpFunc = function (t, zn)
+--         local xconf = {}
+--         for d = 1, cdim do xconf[d] = zn[d] end
+--         local mu = zn[cdim+2]
+--         return mu*sp.bmagFunc(t,zn)/sp.mass*sp.jacobPhaseFunc(t,xconf)*self.initFunc(t,zn)
+--      end
+--      phaseProject:setFunc(distf2perpFunc)
+--      phaseProject:advance(0.0, {}, {distf2perp})
+--   end
+--
+--end
+
 function GkBGKCollisions:createSolver(externalField)
    self.numVelDims = self.phaseGrid:ndim() - self.confGrid:ndim()
 
@@ -210,26 +277,11 @@ function GkBGKCollisions:createSolver(externalField)
    -- or to project Maxwellians with vdim>1.
    self.bmag = externalField.geo.bmag
 
-   local function createConfFieldCompV()
-      return DataStruct.Field {
-	 onGrid        = self.confGrid,
-	 numComponents = self.confBasis:numBasis()*self.numVelDims,
-	 ghost         = {1, 1},
-      }
-   end
-   local function createConfFieldComp1()
-      return DataStruct.Field {
-	 onGrid        = self.confGrid,
-	 numComponents = self.confBasis:numBasis(),
-	 ghost         = {1, 1},
-      }
-   end
-
    if self.exactLagFixM012 then
       -- Intermediate moments used in Lagrange fixing.
-      self.dM1 = createConfFieldCompV()
-      self.dM2 = createConfFieldComp1()
-      self.dM0 = createConfFieldComp1()
+      self.dM1 = self:createConfField(self.numVelDims)
+      self.dM2 = self:createConfField()
+      self.dM0 = self:createConfField()
       -- Create updater to compute M0, M1i, M2 moments sequentially.
       self.fiveMomentsCalc = Updater.DistFuncMomentCalc {
          onGrid     = self.phaseGrid,
@@ -243,7 +295,7 @@ function GkBGKCollisions:createSolver(externalField)
          phaseBasis = self.phaseBasis,
          confGrid   = self.confGrid,
          confBasis  = self.confBasis,
-         mode       = 'Gk',
+         mode       = 'gk',
          mass       = self.mass,
       }
    end
@@ -257,9 +309,9 @@ function GkBGKCollisions:createSolver(externalField)
 
    if self.varNu then
       -- Self-species collisionality, which varies in space.
-      self.nuVarXSelf = createConfFieldComp1()
+      self.nuVarXSelf = self:createConfField()
       -- Collisionality, nu, summed over all species pairs.
-      self.nuSum = createConfFieldComp1()
+      self.nuSum = self:createConfField()
       if self.timeDepNu then
          -- Updater to compute spatially varying (Spitzer) nu.
          self.spitzerNu = Updater.SpitzerCollisionality {
@@ -307,8 +359,8 @@ function GkBGKCollisions:createSolver(externalField)
       }
       if self.varNu then
          -- Temporary collisionality fields.
-         self.nuCrossSelf  = createConfFieldComp1()
-         self.nuCrossOther = createConfFieldComp1()
+         self.nuCrossSelf  = self:createConfField()
+         self.nuCrossOther = self:createConfField()
       else
          self.nuCrossSelf  = 0.0
          self.nuCrossOther = 0.0
@@ -325,8 +377,8 @@ function GkBGKCollisions:createSolver(externalField)
       }
       if self.exactLagFixM012 then
          -- Will need the 1st and 2nd moment of the cross-species Maxwellian.
-         self.crossMaxwellianM1 = createConfFieldCompV()
-         self.crossMaxwellianM2 = createConfFieldComp1()
+         self.crossMaxwellianM1 = self:createConfField(self.numVelDims)
+         self.crossMaxwellianM2 = self:createConfField()
          self.confMultiply = Updater.CartFieldBinOp {
             onGrid    = self.confGrid,
             weakBasis = self.confBasis,
@@ -387,7 +439,7 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
 	 self.dM1:accumulate(1, selfMom[2])
 	 self.dM2:scale(-1)
 	 self.dM2:accumulate(1, selfMom[3])
-	 self.lagFix:advance(tCurr, {self.dM0, self.dM1, self.dM2}, {self.nufMaxwellSum})
+	 self.lagFix:advance(tCurr, {self.dM0, self.dM1, self.dM2, self.bmag}, {self.nufMaxwellSum})
       end
 
       if self.varNu then
@@ -476,7 +528,7 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
             self.dM1:accumulate(1, self.crossMaxwellianM1)
             self.dM2:scale(-1)
             self.dM2:accumulate(1, self.crossMaxwellianM2)
-            self.lagFix:advance(tCurr, {self.dM0, self.dM1, self.dM2}, {self.nufMaxwellSum})
+            self.lagFix:advance(tCurr, {self.dM0, self.dM1, self.dM2, self.bmag}, {self.nufMaxwellSum})
          end
 
          if self.varNu then
