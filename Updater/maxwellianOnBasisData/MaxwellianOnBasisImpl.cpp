@@ -76,7 +76,7 @@ void MaxwellianInnerLoop(/* Number density, drift speed, and thermal velocity sq
 void GkMaxwellianInnerLoop(/* Number density, drift speed, and thermal velocity squared
                               n[numConfOrds], uPar[numConfOrds], vtSq[numConfOrds],]. */
                            double * n, double * uPar, double * vtSq,
-                           /* Magnetic field bmag[bumConfOrds and particle mass. */
+                           /* Magnetic field bmag[bumConfOrds] and particle mass. */
                            double * bmag, double m_,
                            /* Pointer to output Maxwellian f[numPhaseBasis]. */
                            double * fItr,

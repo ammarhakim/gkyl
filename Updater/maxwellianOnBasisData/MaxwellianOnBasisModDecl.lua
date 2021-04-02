@@ -51,7 +51,7 @@ end
 
 function _M.selectInnerLoop(isGK)
    local funcType = "void"
-   local funcNm   = isGk and "GkMaxwellianInnerLoop" or "MaxwellianInnerLoop"
+   local funcNm   = isGK and "GkMaxwellianInnerLoop" or "MaxwellianInnerLoop"
    local funcSign = "(double *n, double *u, double *vtSq, double *bmag, double m_, double *fItr, double *weights, double *dz, double *zc, double *ordinates, double *basisAtOrdinates, double *phaseToConfOrdMap, int numPhaseBasis, int numConfOrds, int numPhaseOrds, int numConfDims, int numPhaseDims)"
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]
