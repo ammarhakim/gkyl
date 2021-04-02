@@ -343,8 +343,6 @@ function GkBGKCollisions:createSolver(externalField)
    if self.crossCollisions then
       -- Cross-collision Maxwellian multiplied by collisionality.
       self.nufMaxwellCross = self:createPhaseField()
-      -- Dummy fields for the primitive moment calculator.
-      self.uCrossSq = self:createConfField()
       if self.varNu then
          -- Temporary collisionality fields.
          self.nuCrossSelf  = self:createConfField()
@@ -490,20 +488,20 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
             -- Cross-primitive moments for the collision of these two species has not been computed.
             self.primMomCross:advance(tCurr, {self.mass, self.nuCrossSelf, selfMom, primMomSelf,
                                               mOther, self.nuCrossOther, otherMom, primMomOther},
-                                      {species[self.speciesName].uCross[otherNm], species[self.speciesName].vtSqCross[otherNm],
-                                       species[otherNm].uCross[self.speciesName], species[otherNm].vtSqCross[self.speciesName]})
+                                      {species[self.speciesName].uParCross[otherNm], species[self.speciesName].vtSqCross[otherNm],
+                                       species[otherNm].uParCross[self.speciesName], species[otherNm].vtSqCross[self.speciesName]})
 
             species[self.speciesName].momentFlags[5][otherNm] = true
             species[otherNm].momentFlags[5][self.speciesName] = true
          end
 
-	 self.maxwellian:advance(tCurr, {selfMom[1], species[self.speciesName].uCross[otherNm],
+	 self.maxwellian:advance(tCurr, {selfMom[1], species[self.speciesName].uParCross[otherNm],
                                          species[self.speciesName].vtSqCross[otherNm], self.bmag}, {self.nufMaxwellCross})
          if self.exactLagFixM012 then
             -- Need to compute the first and second moment of the cross-species Maxwellian (needed by Lagrange fix).
-            self.confMultiply:advance(tCurr, {species[self.speciesName].uCross[otherNm], selfMom[1]}, {self.crossMaxwellianM1})
-            self.confDotProduct:advance(tCurr, {species[self.speciesName].uCross[otherNm],
-                                                species[self.speciesName].uCross[otherNm]}, {self.crossMaxwellianM2})
+            self.confMultiply:advance(tCurr, {species[self.speciesName].uParCross[otherNm], selfMom[1]}, {self.crossMaxwellianM1})
+            self.confDotProduct:advance(tCurr, {species[self.speciesName].uParCross[otherNm],
+                                                species[self.speciesName].uParCross[otherNm]}, {self.crossMaxwellianM2})
             self.crossMaxwellianM2:accumulate(1.0, species[self.speciesName].vtSqCross[otherNm])
             self.confMultiply:advance(tCurr, {selfMom[1],self.crossMaxwellianM2}, {self.crossMaxwellianM2})
             -- Now compute current moments of Maxwellians and perform Lagrange fix. 

@@ -294,12 +294,6 @@ function VmBGKCollisions:createSolver()
          numComponents = self.phaseBasis:numBasis(),
          ghost         = {1, 1},
       }
-      -- Dummy fields for the primitive moment calculator.
-      self.uCrossSq = DataStruct.Field {
-         onGrid        = self.confGrid,
-         numComponents = self.confBasis:numBasis(),
-         ghost         = {1, 1},
-      }
       if self.varNu then
          -- Temporary collisionality fields.
          self.nuCrossSelf  = createConfFieldComp1()
