@@ -717,6 +717,57 @@ function test_36()
    ffi.C.unit_showRange(devRange)   
 end
 
+function test_37()
+   local r1 = Range.Range({1, 2}, {10, 11})
+
+   local r2 = Range.Range({5, 6}, {12, 13})
+   local r3 = r1:difference(r2)
+   assert_equal(1, r3:lower(1), "Checking range relative difference")
+   assert_equal(2, r3:lower(2), "Checking range relative difference")
+   assert_equal(4, r3:upper(1), "Checking range relative difference")
+   assert_equal(5, r3:upper(2), "Checking range relative difference")
+
+   local r3 = r2:difference(r1)
+   assert_equal(11, r3:lower(1), "Checking range relative difference")
+   assert_equal(12, r3:lower(2), "Checking range relative difference")
+   assert_equal(12, r3:upper(1), "Checking range relative difference")
+   assert_equal(13, r3:upper(2), "Checking range relative difference")
+
+   local r2 = Range.Range({5, 5}, {10, 10})
+   local r3 = r1:difference(r2)
+   assert_equal(1, r3:lower(1), "Checking range relative difference")
+   assert_equal(2, r3:lower(2), "Checking range relative difference")
+   assert_equal(4, r3:upper(1), "Checking range relative difference")
+   assert_equal(4, r3:upper(2), "Checking range relative difference")
+
+   local r2 = Range.Range({4, 4}, {15, 8})
+   local r3 = r1:difference(r2)
+   assert_equal(1, r3:lower(1), "Checking range relative difference")
+   assert_equal(2, r3:lower(2), "Checking range relative difference")
+   assert_equal(3, r3:upper(1), "Checking range relative difference")
+   assert_equal(3, r3:upper(2), "Checking range relative difference")
+
+   local r2 = Range.Range({1, 2}, {10, 11})
+   assert_equal(true, r1:isDifferenceEmpty(r2), "Checking range relative difference")
+
+   local r2 = Range.Range({5, 2}, {16, 11})
+   local r3 = r1:difference(r2)
+   assert_equal(1, r3:lower(1), "Checking range relative difference")
+   assert_equal(2, r3:lower(2), "Checking range relative difference")
+   assert_equal(4, r3:upper(1), "Checking range relative difference")
+   assert_equal(11, r3:upper(2), "Checking range relative difference")
+
+   local r2 = Range.Range({14, 15}, {21, 22})
+   local r3 = r1:difference(r2)
+   assert_equal(1, r3:lower(1), "Checking range relative difference")
+   assert_equal(2, r3:lower(2), "Checking range relative difference")
+   assert_equal(10, r3:upper(1), "Checking range relative difference")
+   assert_equal(11, r3:upper(2), "Checking range relative difference")
+   assert_equal(false, r1:isDifferenceEmpty(r2), "Checking range relative difference")
+
+end
+
+
 -- Run tests
 test_1()
 test_2()
@@ -754,10 +805,10 @@ test_32()
 test_33()
 test_34()
 test_35()
-
 if GKYL_HAVE_CUDA then
    test_36()
 end
+test_37()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
