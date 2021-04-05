@@ -259,6 +259,18 @@ function test_15()
    assert_equal(10, range:shape(2), "Checking shorter range")
 
    assert_equal(10*1, range:volume(), "Checking shorter volume")
+
+   local range = bigr:shortenFromBelow(1)
+
+   assert_equal(10, range:lower(1), "Checking shorter range")
+   assert_equal(10, range:upper(1), "Checking shorter range")
+   assert_equal(1, range:shape(1), "Checking shorter range")   
+
+   assert_equal(1, range:lower(2), "Checking shorter range")
+   assert_equal(10, range:upper(2), "Checking shorter range")
+   assert_equal(10, range:shape(2), "Checking shorter range")
+
+   assert_equal(10*1, range:volume(), "Checking shorter volume")
 end
 
 function test_15_b()
@@ -267,6 +279,18 @@ function test_15_b()
 
    assert_equal(1, range:lower(1), "Checking shorter range")
    assert_equal(2, range:upper(1), "Checking shorter range")
+   assert_equal(2, range:shape(1), "Checking shorter range")
+
+   assert_equal(1, range:lower(2), "Checking shorter range")
+   assert_equal(10, range:upper(2), "Checking shorter range")
+   assert_equal(10, range:shape(2), "Checking shorter range")
+
+   assert_equal(10*2, range:volume(), "Checking shorter volume")
+
+   local range = bigr:shortenFromBelow(1, 2)
+
+   assert_equal(9, range:lower(1), "Checking shorter range")
+   assert_equal(10, range:upper(1), "Checking shorter range")
    assert_equal(2, range:shape(1), "Checking shorter range")
 
    assert_equal(1, range:lower(2), "Checking shorter range")

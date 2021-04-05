@@ -226,6 +226,16 @@ local range_mt = {
 	 r._upper[dir-1] = r._lower[dir-1]+len-1
 	 return r
       end,
+      shortenFromBelow = function (self, dir, len)
+	 if len == nil then len = 1 end
+	 local r = new(rTy)
+	 r._ndim = self:ndim()
+	 for d = 1, self:ndim() do
+	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
+	 end
+	 r._lower[dir-1] = r._upper[dir-1]-(len-1)
+	 return r
+      end,
       shift = function (self, offsets)
 	 local r = new(rTy)
 	 r._ndim = self:ndim()
