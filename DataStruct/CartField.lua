@@ -515,13 +515,13 @@ local function Field_meta_ctor(elct)
          self._recvLowerCornerPerMPILoc[dir]     , self._recvUpperCornerPerMPILoc[dir]      = {}, {}
          self._recvLowerCornerPerMPIDataType[dir], self._recvUpperCornerPerMPIDataType[dir] = {}, {}
          if grid:isDirPeriodic(dir) then
-            if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print("dir = ",dir) end
+            if Mpi.Comm_rank(Mpi.COMM_WORLD)==1 then print("dir = ",dir) end
             local cTs = self._cornersToSync[dir]
             for dI, bD in ipairs(cTs) do   -- Loop over lower boundary subdomains.
-               if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print("  d = ",dI) end
+               if Mpi.Comm_rank(Mpi.COMM_WORLD)==1 then print("  d = ",dI) end
                for cI, dC in ipairs(bD) do   -- Loop over corners.
                   local loId, upId, corDirs = dC.lower, dC.upper, dC.dirs
-                  if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print(string.format("    lower=%d | upper=%d | dirs=%d,%d",loId,upId,corDirs[1],corDirs[2])) end
+                  if Mpi.Comm_rank(Mpi.COMM_WORLD)==1 then print(string.format("    lower=%d | upper=%d | dirs=%d,%d",loId,upId,corDirs[1],corDirs[2])) end
                   if myId == loId then
                      local rgnSkin = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
                      local rgnSend
@@ -533,7 +533,7 @@ local function Field_meta_ctor(elct)
                            rgnSend = rgnSkin:shortenFromBelow(oDir, self._upperGhost)
                         end
                      end
-                     if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print(string.format("      -rgnSend lower=(%d,%d) | upper=(%d,%d)",rgnSend:lower(1),rgnSend:lower(2),rgnSend:upper(1),rgnSend:upper(2))) end
+                     if Mpi.Comm_rank(Mpi.COMM_WORLD)==1 then print(string.format("      -rgnSend lower=(%d,%d) | upper=(%d,%d)",rgnSend:lower(1),rgnSend:lower(2),rgnSend:upper(1),rgnSend:upper(2))) end
                      local idx = rgnSend:lowerAsVec()
                      -- Set idx to starting point of region you want to recv.
                      table.insert(self._sendLowerCornerPerMPILoc[dir], (indexer(idx)-1)*self._numComponents)
@@ -546,12 +546,12 @@ local function Field_meta_ctor(elct)
                      for dI = 2,#corDirs do
                         local oDir = math.abs(corDirs[dI])   -- Signs used to differentiate corners. See CartDecomp.
                         if corDirs[dI]<0 then
-                           rgnRecv = rgnGhost:shortenFromBelow(oDir, self._upperGhost)
-                        else
                            rgnRecv = rgnGhost:shorten(oDir, self._upperGhost)
+                        else
+                           rgnRecv = rgnGhost:shortenFromBelow(oDir, self._upperGhost)
                         end
                      end
-                     if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print(string.format("      -rgnRecv lower=(%d,%d) | upper=(%d,%d)",rgnRecv:lower(1),rgnRecv:lower(2),rgnRecv:upper(1),rgnRecv:upper(2))) end
+                     if Mpi.Comm_rank(Mpi.COMM_WORLD)==1 then print(string.format("      -rgnRecv lower=(%d,%d) | upper=(%d,%d)",rgnRecv:lower(1),rgnRecv:lower(2),rgnRecv:upper(1),rgnRecv:upper(2))) end
                      local idx = rgnRecv:lowerAsVec()
                      -- Set idx to starting point of region you want to recv.
                      table.insert(self._recvLowerCornerPerMPILoc[dir], (indexer(idx)-1)*self._numComponents)
@@ -564,12 +564,12 @@ local function Field_meta_ctor(elct)
                      for dI = 2,#corDirs do
                         local oDir = math.abs(corDirs[dI])   -- Signs used to differentiate corners. See CartDecomp.
                         if corDirs[dI]<0 then
-                           rgnSend = rgnSkin:shorten(oDir, self._upperGhost)
-                        else
                            rgnSend = rgnSkin:shortenFromBelow(oDir, self._upperGhost)
+                        else
+                           rgnSend = rgnSkin:shorten(oDir, self._upperGhost)
                         end
                      end
-                     if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print(string.format("      +rgnSend lower=(%d,%d) | upper=(%d,%d)",rgnSend:lower(1),rgnSend:lower(2),rgnSend:upper(1),rgnSend:upper(2))) end
+                     if Mpi.Comm_rank(Mpi.COMM_WORLD)==1 then print(string.format("      +rgnSend lower=(%d,%d) | upper=(%d,%d)",rgnSend:lower(1),rgnSend:lower(2),rgnSend:upper(1),rgnSend:upper(2))) end
                      local idx = rgnSend:lowerAsVec()
                      -- Set idx to starting point of region you want to recv.
                      table.insert(self._sendUpperCornerPerMPILoc[dir], (indexer(idx)-1)*self._numComponents)
@@ -587,7 +587,7 @@ local function Field_meta_ctor(elct)
                            rgnRecv = rgnGhost:shorten(oDir, self._upperGhost)
                         end
                      end
-                     if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print(string.format("      +rgnRecv lower=(%d,%d) | upper=(%d,%d)",rgnRecv:lower(1),rgnRecv:lower(2),rgnRecv:upper(1),rgnRecv:upper(2))) end
+                     if Mpi.Comm_rank(Mpi.COMM_WORLD)==1 then print(string.format("      +rgnRecv lower=(%d,%d) | upper=(%d,%d)",rgnRecv:lower(1),rgnRecv:lower(2),rgnRecv:upper(1),rgnRecv:upper(2))) end
                      local idx = rgnRecv:lowerAsVec()
                      -- Set idx to starting point of region you want to recv.
                      table.insert(self._recvUpperCornerPerMPILoc[dir], (indexer(idx)-1)*self._numComponents)

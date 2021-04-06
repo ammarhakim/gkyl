@@ -297,14 +297,14 @@ function test_6(comm)
       return
    end
 
-   local decomp = DecompRegionCalc.CartProd { cuts = {1,2} }
+   local decomp = DecompRegionCalc.CartProd { cuts = {2,1} }
 
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},
       upper = {1.0, 1.0},
       cells = {6, 8},
       decomposition = decomp,
-      periodicDirs  = {1},
+      periodicDirs  = {1,2},
    }
    local field = DataStruct.Field {
       onGrid        = grid,
@@ -331,26 +331,26 @@ function test_6(comm)
 
    local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
 
---   -- Check corner ghost cells (cuts={2,1}, periodicDirs={1,2}).
---   if rank==0 then
---      local fItr = field:get(indexer({0,0}))
---      assert_equal(6+2*8+1, fItr[1], "Checking 0,0 corner periodic sync")
---      local fItr = field:get(indexer({4,0}))
---      assert_equal(4+2*8+1, fItr[1], "Checking 4,0 corner periodic sync")
---      local fItr = field:get(indexer({0,9}))
---      assert_equal(6+2*1+1, fItr[1], "Checking 0,9 corner periodic sync")
---      local fItr = field:get(indexer({4,9}))
---      assert_equal(4+2*1+1, fItr[1], "Checking 4,9 corner periodic sync")
---   else
---      local fItr = field:get(indexer({3,0}))
---      assert_equal(3+2*8+1, fItr[1], "Checking 3,0 corner periodic sync")
---      local fItr = field:get(indexer({7,0}))
---      assert_equal(1+2*8+1, fItr[1], "Checking 7,0 corner periodic sync")
---      local fItr = field:get(indexer({3,9}))
---      assert_equal(3+2*1+1, fItr[1], "Checking 3,9 corner periodic sync")
---      local fItr = field:get(indexer({7,9}))
---      assert_equal(1+2*1+1, fItr[1], "Checking 7,9 corner periodic sync")
---   end
+   -- Check corner ghost cells (cuts={2,1}, periodicDirs={1,2}).
+   if rank==0 then
+      local fItr = field:get(indexer({0,0}))
+      assert_equal(6+2*8+1, fItr[1], "Checking 0,0 corner periodic sync")
+      local fItr = field:get(indexer({4,0}))
+      assert_equal(4+2*8+1, fItr[1], "Checking 4,0 corner periodic sync")
+      local fItr = field:get(indexer({0,9}))
+      assert_equal(6+2*1+1, fItr[1], "Checking 0,9 corner periodic sync")
+      local fItr = field:get(indexer({4,9}))
+      assert_equal(4+2*1+1, fItr[1], "Checking 4,9 corner periodic sync")
+   else
+      local fItr = field:get(indexer({3,0}))
+      assert_equal(3+2*8+1, fItr[1], "Checking 3,0 corner periodic sync")
+      local fItr = field:get(indexer({7,0}))
+      assert_equal(1+2*8+1, fItr[1], "Checking 7,0 corner periodic sync")
+      local fItr = field:get(indexer({3,9}))
+      assert_equal(3+2*1+1, fItr[1], "Checking 3,9 corner periodic sync")
+      local fItr = field:get(indexer({7,9}))
+      assert_equal(1+2*1+1, fItr[1], "Checking 7,9 corner periodic sync")
+   end
 
 --   -- Check corner ghost cells (cuts={1,2}, periodicDirs={1,2}).
 --   if rank==0 then
@@ -415,26 +415,26 @@ function test_6(comm)
 --      assert_equal(0, fItr[1], "Checking 7,9 corner periodic sync")
 --   end
 
-   -- Check corner ghost cells (cuts={1,2}, periodicDirs={1}).
-   if rank==0 then
-      local fItr = field:get(indexer({0,0}))
-      assert_equal(0, fItr[1], "Checking 0,0 corner periodic sync")
-      local fItr = field:get(indexer({7,0}))
-      assert_equal(0, fItr[1], "Checking 7,0 corner periodic sync")
-      local fItr = field:get(indexer({0,5}))
-      assert_equal(6+2*5+1, fItr[1], "Checking 0,5 corner periodic sync")
-      local fItr = field:get(indexer({7,5}))
-      assert_equal(1+2*5+1, fItr[1], "Checking 7,5 corner periodic sync")
-   else
-      local fItr = field:get(indexer({0,4}))
-      assert_equal(6+2*4+1, fItr[1], "Checking 0,4 corner periodic sync")
-      local fItr = field:get(indexer({7,4}))
-      assert_equal(1+2*4+1, fItr[1], "Checking 7,4 corner periodic sync")
-      local fItr = field:get(indexer({0,9}))
-      assert_equal(0, fItr[1], "Checking 0,9 corner periodic sync")
-      local fItr = field:get(indexer({7,9}))
-      assert_equal(0, fItr[1], "Checking 7,9 corner periodic sync")
-   end
+--   -- Check corner ghost cells (cuts={1,2}, periodicDirs={1}).
+--   if rank==0 then
+--      local fItr = field:get(indexer({0,0}))
+--      assert_equal(0, fItr[1], "Checking 0,0 corner periodic sync")
+--      local fItr = field:get(indexer({7,0}))
+--      assert_equal(0, fItr[1], "Checking 7,0 corner periodic sync")
+--      local fItr = field:get(indexer({0,5}))
+--      assert_equal(6+2*5+1, fItr[1], "Checking 0,5 corner periodic sync")
+--      local fItr = field:get(indexer({7,5}))
+--      assert_equal(1+2*5+1, fItr[1], "Checking 7,5 corner periodic sync")
+--   else
+--      local fItr = field:get(indexer({0,4}))
+--      assert_equal(6+2*4+1, fItr[1], "Checking 0,4 corner periodic sync")
+--      local fItr = field:get(indexer({7,4}))
+--      assert_equal(1+2*4+1, fItr[1], "Checking 7,4 corner periodic sync")
+--      local fItr = field:get(indexer({0,9}))
+--      assert_equal(0, fItr[1], "Checking 0,9 corner periodic sync")
+--      local fItr = field:get(indexer({7,9}))
+--      assert_equal(0, fItr[1], "Checking 7,9 corner periodic sync")
+--   end
 end
 
 function test_7(comm)
