@@ -1290,7 +1290,7 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
       table.insert(self.zeroFluxDirections, dir)
       elseif bcType == SP_BC_RECYCLE and dir == self.cdim then
       -- recycling code here
-      assert(self.tbl.diagnosticBoundaryFluxMoments, "VlasovSpecies: Recycle BCs must include  boundary flux diagnostics using 'diagnosticBoundaryFluxMoments'")
+      assert(self.tbl.diagnosticBoundaryFluxMoments, "VlasovSpecies: Recycle BCs must include boundary flux diagnostics using 'diagnosticBoundaryFluxMoments'")
       assert(self.tbl.recycleTemp, "VlasovSpecies: Recycle BCs must specify temperature using 'recycleTemp'")
       assert(self.tbl.recycleFrac, "VlasovSpecies: Recycle BCs must specify recycling fraction using 'recycleFrac'")
       assert(self.tbl.recycleIon, "VlasovSpecies: Recycle BCs must specify ion species using 'recycleIon'")
@@ -1383,17 +1383,17 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       if tCurr == 0.0 then
 	 self.recycleFMaxwell = {}
 	 self.recycleFhat = {}
+	 self.scaledFhat = {}
 	 self.recycleDistF = {}
 	 self.recycleFhatM0 = {}
-	 self.scaledFhat = {}
+	 self.recycleIonFlux = {}
 	 self.recycleCoef = {}
+	 self.recycleTestFlux = {}
 	 self.calcFhatM0 = {}
 	 self.recycleConfDiv = {}
 	 self.recycleConfPhaseMult = {}       
-	 self.recycleTestFlux = {}
 	 self.projectRecycleFMaxwell = {}
 	 self.projectFluxFunc = {}
-	 self.recycleIonFlux = {}
       end
       for _, bc in ipairs(self.boundaryConditions) do
 	 label = bc:label()
@@ -1533,8 +1533,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	       operation  = "Multiply",
 	    }
 
-	    self.recFrac = tbl.recycleFrac
-		     
+	    self.recFrac = tbl.recycleFrac		     
 	    T0 = tbl.recycleTemp
 	    recycleSource = function (t, xn)
 	       local cdim = self.cdim
@@ -1548,30 +1547,6 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	       end
 	       return 1.0 / math.sqrt(2*math.pi*vt2)^vdim * math.exp(-v2/(2*vt2))
 	    end
-	    recycleSource2 = function (t, xn)
-	       local cdim = self.cdim
-	       local vdim = self.vdim
-	       local vt2 = T0/self.mass
-	       --local u = -10*edgeval*math.sqrt(vt2)
-	       --v2 = (xn[2] - u)^2 + xn[3]^2 + xn[4]^2
-	       local v2 = 0.0
-	       for d = cdim+1, cdim+vdim do
-	       	  v2 = v2 + (xn[d])^2
-	       end
-	       if edgeval == 1 then
-		  if xn[dir] <= 0 then
-		     return 1.0 / math.sqrt(2*math.pi*vt2)^vdim * math.exp(-v2/(2*vt2))
-		  else
-		     return 0.
-		  end
-	       else
-		  if xn[dir] <= 0 then
-		     return 0.
-		  else
-		     return 1.0 / math.sqrt(2*math.pi*vt2)^vdim * math.exp(-v2/(2*vt2))
-		  end
-	       end
-	    end
 	    
 	    self.projectRecycleFMaxwell = Updater.ProjectOnBasis {
 	       onGrid          = phaseGrid,
@@ -1579,7 +1554,6 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	       evaluate        = recycleSource,
 	       onGhosts        = false,
 	    }
-
 	    self.projectFluxFunc = Updater.ProjectFluxFunc {
 	       onGrid          = phaseGrid,
 	       phaseBasis      = self.basis,
@@ -1607,7 +1581,6 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 if tbl.recycleTime then
 	    self.recTime = tbl.recycleTime
 	    scaleByTime = function(tm)
-	       --return math.tanh(tm/self.recTime)
 	       return 0.5*(1. + math.tanh(tm/self.recTime-1))
 	    end
 	    self.scaledRecFrac = self.recFrac*scaleByTime(tCurr)
@@ -1617,23 +1590,19 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	 
 	 local ionBoundaryFlux = species[self.recycleIonNm].bcGkM0fluxField[label]
 	 wlabel = (label):gsub("Flux","")
-	 --ionBoundaryFlux:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleIonBoundaryFlux', wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
 	 ionBoundaryFlux:scale(self.scaledRecFrac)
-	 --ionBoundaryFlux:write(string.format("%s_%s%s_%d.bp", self.name, 'scaledIonBoundaryFlux', wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
-
+	
 	 -- weak divide
 	 self.recycleConfDiv[label]:advance(tCurr, {self.recycleFhatM0[label], ionBoundaryFlux}, {self.recycleCoef[label]})
 
 	 -- weak multiply
 	 self.recycleConfPhaseMult[label]:advance(tCurr, {self.recycleCoef[label], self.recycleFMaxwell[label]}, {self.recycleDistF[label]})
-
 	 -- Diagnostics to check flux
 	 self.recycleConfPhaseMult[label]:advance(tCurr, {self.recycleCoef[label], self.recycleFhat[label]}, {self.scaledFhat[label]})
 	 self.calcFhatM0[label]:advance(tCurr, {self.scaledFhat[label]}, {self.recycleTestFlux[label]})
-	 --self.recycleTestFlux[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleTestFlux', wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
+
 	 local scaleFac = 1.0/self.recFrac
-	 self.recycleTestFlux[label]:scale(scaleFac)
-	 --self.recycleTestFlux[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'scaledTestFlux', wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
+	 self.recycleTestFlux[label]:scale(scaleFac) -- This can be written out from KineticSpecies, if necessary.
       end
    end
 

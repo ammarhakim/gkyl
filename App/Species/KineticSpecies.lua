@@ -944,7 +944,6 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
 	   wlabel = (label):gsub("Flux","")
 	   self.recycleCoef[label]:write(string.format("%s%s_%d.bp", 'recycleCoef', wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
 	   self.recycleDistF[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleDistF', wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
-	   --self.recycleTestFlux[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleTestFlux', wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
 	end
     end
 end

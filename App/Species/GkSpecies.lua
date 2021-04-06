@@ -1330,7 +1330,6 @@ function GkSpecies:createDiagnostics()
    	    moment      = 'GkM0',
    	    gkfacs      = {self.mass, bc.bmag},
    	 }
-
       end
    end
 end
