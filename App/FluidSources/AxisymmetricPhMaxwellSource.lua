@@ -7,11 +7,11 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local SourceBase = require "App.Sources.SourceBase"
+local FluidSourceBase = require "App.FluidSources.FluidSourceBase"
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
 
-local AxisymmetricPhMaxwellsSource = Proto(SourceBase)
+local AxisymmetricPhMaxwellsSource = Proto(FluidSourceBase)
 
 function AxisymmetricPhMaxwellsSource:init(tbl)
    self.tbl = tbl
@@ -36,7 +36,7 @@ function AxisymmetricPhMaxwellsSource:createSolver(species, field)
    }
 end
 
-function AxisymmetricPhMaxwellsSource:updateSource(
+function AxisymmetricPhMaxwellsSource:updateFluidSource(
       tCurr, dt, speciesVar, fieldVar)
    local outVars = {fieldVar}
    self.slvr:setDtAndCflRate(dt, nil)

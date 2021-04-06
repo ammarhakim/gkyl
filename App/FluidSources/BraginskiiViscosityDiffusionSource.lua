@@ -6,11 +6,11 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local SourceBase = require "App.Sources.SourceBase"
+local FluidSourceBase = require "App.FluidSources.FluidSourceBase"
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
 
-local BraginskiiViscosityDiffusionSource = Proto(SourceBase)
+local BraginskiiViscosityDiffusionSource = Proto(FluidSourceBase)
 
 function BraginskiiViscosityDiffusionSource:init(tbl)
    self.tbl = tbl
@@ -56,7 +56,7 @@ function BraginskiiViscosityDiffusionSource:createSolver(species, field)
    }
 end
 
-function BraginskiiViscosityDiffusionSource:updateSource(
+function BraginskiiViscosityDiffusionSource:updateFluidSource(
       tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, allSpecies, field)
    local tbl = self.tbl
 
