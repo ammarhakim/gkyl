@@ -154,7 +154,6 @@ function BraginskiiHeatConduction:_forwardEuler(
       end
 
       -- Step 2: Compute q.
-      -- Compute div(q).
       if self._kappaMode=="constant" then
          self._anisotropicDiffusion:setKappa(self._kappaPara[s],
                                              self._kappaPerp[s])
@@ -201,7 +200,7 @@ function BraginskiiHeatConduction:_forwardEuler(
       for idx in localRange:rowMajorIter() do
          fld:fill(fldIdxr(idx), fldPtr)
          buf:fill(bufIdxr(idx), bufPtr)
-         fldPtr[5] = fldPtr[5] - bufPtr[5]
+         fldPtr[5] = fldPtr[5] - bufPtr[5] * dt
       end
 
    end  -- Loop over species ends.
