@@ -51,7 +51,7 @@ function VlasovSpecies:alloc(nRkDup)
    self.ptclEnergy = self:allocMoment()
 
    -- Allocate field to accumulate externalField if any.
-   self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
+   --self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
 
    -- Allocate field for external forces if any.
    if self.hasExtForce then 
@@ -575,9 +575,9 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local fRhsOut = self:rkStepperFields()[outIdx]
 
    -- Accumulate functional Maxwell fields (if needed).
-   local emField      = emIn[1]:rkStepperFields()[inIdx]
-   local emExternalField  = emIn[2]:rkStepperFields()[1]
-   local totalEmField = self.totalEmField
+   local emField         = emIn[1]:rkStepperFields()[inIdx]
+   local emExternalField = emIn[2]:rkStepperFields()[1]
+   local totalEmField    = self.totalEmField
    totalEmField:clear(0.0)
 
    local qbym = self.charge/self.mass
@@ -600,9 +600,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       for idx in totalEmField:localRangeIter() do
          vExtForce:fill(vIdxr(idx), vItr)
          totalEmField:fill(eIdxr(idx), eItr)
-         for i = 1, vExtForce:numComponents() do
-            eItr[i] = eItr[i]+vItr[i]
-         end
+         for i = 1, vExtForce:numComponents() do eItr[i] = eItr[i]+vItr[i] end
       end
    end
 

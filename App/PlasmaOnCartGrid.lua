@@ -153,15 +153,15 @@ local function buildApplication(self, tbl)
    -- configuration space decomp object (eventually, this will be
    -- slaved to the phase-space decomp)
    local decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts,
+      cuts      = decompCuts,
       useShared = useShared,
    }
 
    -- Some timers.
-   local stepperTime = 0.0
-   local fwdEulerCombineTime = 0.0
-   local writeDataTime = 0.
-   local writeRestartTime = 0.
+   local stepperTime         = 0.
+   local fwdEulerCombineTime = 0.
+   local writeDataTime       = 0.
+   local writeRestartTime    = 0.
 
    -- Pick grid ctor based on uniform/non-uniform grid.
    local GridConstructor = Grid.RectCart
@@ -181,7 +181,12 @@ local function buildApplication(self, tbl)
       mapc2p        = tbl.mapc2p,
       world         = tbl.world,
    }
-   --confGrid:write("grid.bp")
+   if tbl.coordinateMap or tbl.mapc2p then 
+      local metaData = {polyOrder = confBasis:polyOrder(),
+                        basisType = confBasis:id(),
+                        grid      = GKYL_OUT_PREFIX .. "_grid.bp"}
+      confGrid:write("grid.bp", 0.0, metaData)
+   end
 
    -- Read in information about each species.
    local species = {}
@@ -210,7 +215,7 @@ local function buildApplication(self, tbl)
       s:alloc(stepperNumFields[timeStepperNm])
    end
 
-   -- Read in information about each species.
+   -- Read in information about each source
    local sources = {}
    for nm, val in pairs(tbl) do
       if SourceBase.is(val) then
@@ -220,13 +225,19 @@ local function buildApplication(self, tbl)
       end
    end
 
+   -- Create a keys entry in sources so we always loop in the same order.
+   local sources_keys = {}
+   for k in pairs(sources) do table.insert(sources_keys, k) end
+   table.sort(sources_keys)
+   setmetatable(sources, sources_keys)
+
    -- Add grid to app object.
    self._confGrid = confGrid
 
    -- Set conf grid for each source.
-   for _, s in pairs(sources) do
+   for _, s in lume.orderedIter(sources) do
       s:setConfGrid(confGrid)
-   end   
+   end  
 
    local cflMin = GKYL_MAX_DOUBLE
    -- Compute CFL numbers.
@@ -298,7 +309,7 @@ local function buildApplication(self, tbl)
    end
 
    -- Initialize source solvers.
-   for nm, s in pairs(sources) do
+   for nm, s in lume.orderedIter(sources) do
       s:createSolver(species, field)
    end   
 
@@ -327,6 +338,7 @@ local function buildApplication(self, tbl)
    -- Function to write data to file.
    local function writeData(tCurr, force)
       for _, s in lume.orderedIter(species) do s:write(tCurr, force) end
+      for _, src in lume.orderedIter(sources) do src:write(tCurr) end 
       field:write(tCurr, force)
       externalField:write(tCurr, force)
    end
@@ -408,8 +420,8 @@ local function buildApplication(self, tbl)
       externalField:advance(tCurr)
       
       for _, s in lume.orderedIter(species) do
-	 -- Compute moments needed in coupling with fields and
-	 -- collisions (the species should update internal datastructures). 
+         -- Compute moments needed in coupling with fields and
+         -- collisions (the species should update internal datastructures). 
          s:calcCouplingMoments(tCurr, inIdx, species)
       end
 
@@ -420,11 +432,11 @@ local function buildApplication(self, tbl)
 
       -- Update species.
       for _, s in lume.orderedIter(species) do
-	 if s.charge == 0 then
-	    s:advance(tCurr, species, {NoField {}, NoField {}}, inIdx, outIdx)
-	 else
-	    s:advance(tCurr, species, {field, externalField}, inIdx, outIdx)
-	 end
+         if s.charge == 0 then
+            s:advance(tCurr, species, {NoField {}, NoField {}}, inIdx, outIdx)
+         else
+            s:advance(tCurr, species, {field, externalField}, inIdx, outIdx)
+         end
       end
 
       -- Some systems (e.g. EM GK) require additional step(s) to complete the forward Euler.
@@ -592,10 +604,21 @@ local function buildApplication(self, tbl)
       -- Field data to operate on.
       local fieldVar = field:rkStepperFields()[dataIdx]
 
+      -- Expose freely-available array space space. Useful for storing
+      -- intermediate quantities like spatial gradient.
+      local bufIdx = (dataIdx==1) and 2 or 1
+      local speciesBuf = {}
+      for nm, s in lume.orderedIter(species) do
+         speciesBuf[nm] = s:rkStepperFields()[bufIdx]
+      end
+      -- Field data to operate on.
+      local fieldBuf = field:rkStepperFields()[bufIdx]
+
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
       -- Update sources.
-      for nm, s in pairs(sources) do
-	 local myStatus, myDtSuggested = s:updateSource(tCurr, dt, speciesVar, fieldVar)
+      for nm, s in lume.orderedIter(sources) do
+	 local myStatus, myDtSuggested = s:updateSource(
+       tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, species, field)
 	 status =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
@@ -852,7 +875,7 @@ local function buildApplication(self, tbl)
          end
       end
 
-      for _, s in pairs(sources) do tmSrc = tmSrc + s:totalTime() end
+      for _, s in lume.orderedIter(sources) do tmSrc = tmSrc + s:totalTime() end
 
       local tmTotal = tmSimEnd-tmSimStart
       local tmAccounted = 0.0
@@ -910,7 +933,7 @@ local function buildApplication(self, tbl)
 	     stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
       tmAccounted = tmAccounted + stepperTime
       log(string.format(
-	     "Foward Euler combine took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     "Forward Euler combine took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     fwdEulerCombineTime, fwdEulerCombineTime/step, 100*fwdEulerCombineTime/tmTotal))
       tmAccounted = tmAccounted + fwdEulerCombineTime
       log(string.format(
@@ -1026,6 +1049,10 @@ return {
 	 Field = require ("App.Field.MaxwellField").MaxwellField,
 	 CollisionlessEmSource = require "App.Sources.CollisionlessEmSource",
 	 TenMomentRelaxSource  = require "App.Sources.TenMomentRelaxSource",
+        AxisymmetricMomentSource = require "App.Sources.AxisymmetricMomentSource",
+        AxisymmetricPhMaxwellSource = require "App.Sources.AxisymmetricPhMaxwellSource",
+        BraginskiiHeatConductionSource = require "App.Sources.BraginskiiHeatConductionSource",
+        BraginskiiViscosityDiffusionSource = require "App.Sources.BraginskiiViscosityDiffusionSource",
       }
    end
 }

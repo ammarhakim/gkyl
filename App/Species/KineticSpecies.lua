@@ -169,23 +169,17 @@ function KineticSpecies:fullInit(appTbl)
    -- to specify a function directly without using a Projection object.
    if type(tbl.init) == "function" then
       self.projections["init"] = Projection.KineticProjection.FunctionProjection {
-	 func = function (t, zn)
-	    return tbl.init(t, zn, self)
-	 end,
+	 func = function(t, zn) return tbl.init(t, zn, self) end,
       }
    end
    if type(tbl.background) == "function" then
       self.projections["background"] = Projection.KineticProjection.FunctionProjection {
-	 func = function (t, zn)
-	    return tbl.background(t, zn, self)
-	 end,
+	 func = function(t, zn) return tbl.background(t, zn, self) end,
       }
    end
    if type(tbl.source) == "function" then
       self.projections["source"] = Projection.KineticProjection.FunctionProjection {
-	 func = function (t, zn)
-	    return tbl.source(t, zn, self)
-	 end,
+	 func = function(t, zn) return tbl.source(t, zn, self) end,
       }
    end
 
@@ -296,7 +290,7 @@ function KineticSpecies:createGrid(confGridIn)
    for d = 1, self.cdim do table.insert(decompCuts, confGrid:cuts(d)) end
    for d = 1, self.vdim do table.insert(decompCuts, self.decompCuts[d]) end
    self.decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts,
+      cuts      = decompCuts,
       useShared = self.useShared,
    }
 
@@ -319,6 +313,7 @@ function KineticSpecies:createGrid(confGridIn)
    if self.coordinateMap or confGrid:getMappings() then
       if confGrid:getMappings() and self.coordinateMap then
          for d = 1, self.cdim do
+            lower[d], upper[d] = confGrid:logicalLower(d), confGrid:logicalUpper(d)
             table.insert(coordinateMap, confGrid:getMappings(d))
          end
          for d = 1, self.vdim do
@@ -326,6 +321,7 @@ function KineticSpecies:createGrid(confGridIn)
          end
       elseif confGrid:getMappings() then
          for d = 1, self.cdim do
+            lower[d], upper[d] = confGrid:logicalLower(d), confGrid:logicalUpper(d)
             table.insert(coordinateMap, confGrid:getMappings(d))
          end
          for d = 1, self.vdim do
@@ -365,13 +361,13 @@ function KineticSpecies:createBasis(nm, polyOrder)
    -- Output of grid file is placed here because as the file name is associated
    -- with a species, we wish to save the basisID and polyOrder in it. But these
    -- can only be extracted from self.basis after this is created.
-   if self.coordinateMap then
+   if self.grid:getMappings() then
       local metaData = {polyOrder = self.basis:polyOrder(),
                         basisType = self.basis:id(),
                         charge    = self.charge,
                         mass      = self.mass,
-                        grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"}
-      self.grid:write("grid_" .. self.name .. ".bp", 0.0, metaData)
+                        grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"}
+      self.grid:write(self.name .. "_grid.bp", 0.0, metaData)
    end
 end
 
@@ -383,7 +379,8 @@ function KineticSpecies:allocDistf()
         metaData      = {polyOrder = self.basis:polyOrder(),
                          basisType = self.basis:id(),
                          charge    = self.charge,
-                         mass      = self.mass,},
+                         mass      = self.mass,
+                         grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"}
    }
    f:clear(0.0)
    return f
@@ -521,7 +518,7 @@ function KineticSpecies:alloc(nRkDup)
                     basisType = self.basis:id(),
                     charge    = self.charge,
                     mass      = self.mass,    
-                    grid      = GKYL_OUT_PREFIX .. "_grid_" .. self.name .. ".bp"},
+                    grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"},
    }
 
    if self.positivity then
@@ -587,20 +584,18 @@ function KineticSpecies:initDist(extField)
       -- This barrier is needed as when using MPI-SHM some
       -- processes will get to accumulate before projection is finished.
       Mpi.Barrier(self.grid:commSet().sharedComm)
-      if nm == "init" then
+      if string.find(nm,"init") then
 	 self.distf[1]:accumulate(1.0, self.distf[2])
 	 initCnt = initCnt + 1
          if pr.scaleWithSourcePower then self.scaleInitWithSourcePower = true end
       end
-      if nm == "background" then
-	 if not self.f0 then 
-	    self.f0 = self:allocDistf()
-	 end
+      if string.find(nm,"background") then
+	 if not self.f0 then self.f0 = self:allocDistf() end
 	 self.f0:accumulate(1.0, self.distf[2])
 	 self.f0:sync(syncPeriodicDirs)
 	 backgroundCnt = backgroundCnt + 1
       end
-      if nm == "source" then
+      if string.find(nm,"source") then
 	 if not self.fSource then self.fSource = self:allocDistf() end
 	 self.fSource:accumulate(1.0, self.distf[2])
          if self.positivityRescale then
@@ -631,9 +626,7 @@ function KineticSpecies:initDist(extField)
    if self.scaleInitWithSourcePower then self.distf[1]:scale(self.powerScalingFac) end
    assert(initCnt > 0,
 	  string.format("KineticSpecies: Species '%s' not initialized!", self.name))
-   if self.f0 and backgroundCnt == 0 then 
-      self.f0:copy(self.distf[1])
-   end
+   if self.f0 and backgroundCnt == 0 then self.f0:copy(self.distf[1]) end
 
    if self.fluctuationBCs then 
       assert(backgroundCnt > 0, "KineticSpecies: must specify an initial background distribution with 'background' in order to use fluctuation-only BCs") 
@@ -816,33 +809,44 @@ function KineticSpecies:createDiagnostics()
 end
 
 function KineticSpecies:calcDiagnosticMoments(tm)
-   local f = self.distf[1]
+   local fIn   = self:rkStepperFields()[1]
    local tCurr = tm
    if self.f0 and self.perturbedMoments then 
-      f:accumulate(-1, self.f0)
-      tCurr = -tm-1 -- setting tCurr = -tm-1 will force the updater to recompute moments even if it has already been used on this timestep
+      fIn:accumulate(-1, self.f0)
+      tCurr = -tm-1   -- Setting tCurr = -tm-1 forces the updater to recompute moments on this timestep.
    end
    for i, mom in pairs(self.diagnosticMoments) do
-      self.diagnosticMomentUpdaters[mom]:advance(
-	 tCurr, {f}, {self.diagnosticMomentFields[mom]})
+      self.diagnosticMomentUpdaters[mom]:advance(tCurr, {fIn}, {self.diagnosticMomentFields[mom]})
       -- Remove geometric jacobian factor.
       if self.jacobGeoInv then
-         self.weakMultiplication:advance(
-            0.0, {self.diagnosticMomentFields[mom], self.jacobGeoInv}, {self.diagnosticMomentFields[mom]})
+         self.weakMultiplication:advance(0.0, {self.diagnosticMomentFields[mom], self.jacobGeoInv},
+                                              {self.diagnosticMomentFields[mom]})
       end
    end
-   if self.f0 and self.perturbedMoments then f:accumulate(1, self.f0) end
+   if self.f0 and self.perturbedMoments then fIn:accumulate(1, self.f0) end
 end
 
 -- Some species-specific parts, but this function still gets called.
 function KineticSpecies:calcDiagnosticWeakMoments(tm, weakMoments, bc)
+   local fIn
+   local tCurr = tm
    local label = ""
-   if bc then 
+   if bc then
       label = bc:label() 
+      fIn   = bc:getBoundaryFluxRate()
+   else
+      fIn = self:rkStepperFields()[1]
+      if self.f0 and self.perturbedMoments then
+         fIn:accumulate(-1, self.f0)
+         tCurr = -tm-1   -- Setting tCurr = -tm-1 forces the updater to recompute moments on this timestep.
+      end
    end
+
    for i, mom in ipairs(weakMoments) do
-      self.diagnosticMomentUpdaters[mom..label].advance(self, tm)
+      self.diagnosticMomentUpdaters[mom..label].advance(self, tCurr, {fIn}, {self.diagnosticMomentFields[mom..label]})
    end
+
+   if bc==nil and self.f0 and self.perturbedMoments then fIn:accumulate(1, self.f0) end
 end
 
 function KineticSpecies:calcDiagnosticBoundaryFluxMoments(tm)

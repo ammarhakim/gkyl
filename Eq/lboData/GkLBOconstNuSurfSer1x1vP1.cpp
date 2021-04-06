@@ -1,5 +1,5 @@
 #include <GkLBOModDecl.h> 
-double GkLBOconstNuSurf1x1vSer_Vpar_P1(const double m_, const double cfll, const double cflr, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuSurf1x1vSer_Vpar_P1(const double m_, const double cflL, const double cflR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[2]:         Cell-center coordinates. 
   // dxv[2]:       Cell spacing. 
@@ -9,7 +9,6 @@ double GkLBOconstNuSurf1x1vSer_Vpar_P1(const double m_, const double cfll, const
   // nuVtSqSum[2]: sum of thermal speeds squared time their respective collisionalities. 
   // fl/fr:        Distribution function in left/right cells 
   // outl/outr:    Incremented distribution function in left/right cells 
-  double rdv = 1.0/dxvl[1]; 
   double rdv2L = 2.0/dxvl[1]; 
   double rdv2R = 2.0/dxvr[1]; 
   double rdvSq4L = rdv2L*rdv2L; 
@@ -34,11 +33,11 @@ double GkLBOconstNuSurf1x1vSer_Vpar_P1(const double m_, const double cfll, const
   incr2[2] = nuVtSqSum[1]*((-0.3535533905932737*fr[3])+0.3535533905932737*fl[3]+0.3061862178478971*(fr[1]+fl[1]))+nuVtSqSum[0]*((-0.3535533905932737*fr[2])+0.3535533905932737*fl[2]+0.3061862178478971*(fr[0]+fl[0])); 
   incr2[3] = nuVtSqSum[0]*((-0.3535533905932737*fr[3])+0.3535533905932737*fl[3]+0.3061862178478971*(fr[1]+fl[1]))+nuVtSqSum[1]*((-0.3535533905932737*fr[2])+0.3535533905932737*fl[2]+0.3061862178478971*(fr[0]+fl[0])); 
 
-  Gdiff[0] = nuVtSqSum[1]*((-1.530931089239486*(fr[3]+fl[3]))+1.590990257669731*fr[1]-1.590990257669731*fl[1])+nuVtSqSum[0]*((-1.530931089239486*(fr[2]+fl[2]))+1.590990257669731*fr[0]-1.590990257669731*fl[0]); 
-  Gdiff[1] = nuVtSqSum[0]*((-1.530931089239486*(fr[3]+fl[3]))+1.590990257669731*fr[1]-1.590990257669731*fl[1])+nuVtSqSum[1]*((-1.530931089239486*(fr[2]+fl[2]))+1.590990257669731*fr[0]-1.590990257669731*fl[0]); 
+  Gdiff[0] = nuVtSqSum[1]*((-0.7654655446197428*(fr[3]+fl[3]))+0.7954951288348656*fr[1]-0.7954951288348656*fl[1])+nuVtSqSum[0]*((-0.7654655446197428*(fr[2]+fl[2]))+0.7954951288348656*fr[0]-0.7954951288348656*fl[0]); 
+  Gdiff[1] = nuVtSqSum[0]*((-0.7654655446197428*(fr[3]+fl[3]))+0.7954951288348656*fr[1]-0.7954951288348656*fl[1])+nuVtSqSum[1]*((-0.7654655446197428*(fr[2]+fl[2]))+0.7954951288348656*fr[0]-0.7954951288348656*fl[0]); 
 
-  Ghat[0] = Gdiff[0]*rdv+alphaDrSurf[1]*fUpwind[1]+alphaDrSurf[0]*fUpwind[0]; 
-  Ghat[1] = Gdiff[1]*rdv+alphaDrSurf[0]*fUpwind[1]+fUpwind[0]*alphaDrSurf[1]; 
+  Ghat[0] = Gdiff[0]*rdv2L+alphaDrSurf[1]*fUpwind[1]+alphaDrSurf[0]*fUpwind[0]; 
+  Ghat[1] = Gdiff[1]*rdv2L+alphaDrSurf[0]*fUpwind[1]+fUpwind[0]*alphaDrSurf[1]; 
 
   double incr1[4]; 
   incr1[0] = -0.5*Ghat[0]; 

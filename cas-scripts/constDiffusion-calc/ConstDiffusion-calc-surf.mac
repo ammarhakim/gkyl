@@ -17,13 +17,13 @@ maxDim_Ser : 4$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 1$
-minDim_Max : 1$
-maxDim_Max : 1$
+minDim_Max : 0$
+maxDim_Max : 0$
 
 /* Tensor basis. */
 maxPolyOrder_Tensor : 2$
-minDim_Tensor : 1$
-maxDim_Tensor : 4$
+minDim_Tensor : 0$
+maxDim_Tensor : 0$
 
 /* ...... END OF USER INPUTS........ */
 

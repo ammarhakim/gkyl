@@ -112,9 +112,7 @@ function RectCart:init(tbl)
 
    -- Compute global range.
    local l, u = {}, {}
-   for d = 1, #cells do
-      l[d], u[d] = 1, cells[d]
-   end
+   for d = 1, #cells do l[d], u[d] = 1, cells[d] end
    self._globalRange = Range.Range(l, u)   
    self._localRange  = Range.Range(l, u)
    self._block       = 1   -- Block number for use in parallel communications.
@@ -190,9 +188,7 @@ function RectCart:setIndex(idxIn)
    if type(idxIn) == "cdata" then
       idxIn:copyInto(self._currIdx)
    else 
-      for d = 1, self._ndim do
-         self._currIdx[d] = idxIn[d]
-      end
+      for d = 1, self._ndim do self._currIdx[d] = idxIn[d] end
    end
 end
 function RectCart:dx(dir) return self._dx[dir] end
@@ -200,9 +196,7 @@ function RectCart:getDx(dxOut)
    if type(dxOut) == "cdata" then
       self._dx:copyInto(dxOut)
    else 
-      for d = 1, self._ndim do
-         dxOut[d] = self._dx[d]
-      end
+      for d = 1, self._ndim do dxOut[d] = self._dx[d] end
    end
 end
 function RectCart:cellCenterInDir(d)

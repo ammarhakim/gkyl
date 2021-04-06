@@ -7,27 +7,34 @@ load(stringproc)$
 maxPolyOrder_Ser : 3$
 minCdim_Ser : 1$
 minVdim_Ser : 1$    /* but see v loop below. */
-maxCdim_Ser : 3$
-maxVdim_Ser : 3$
+maxCdim_Ser : 0$
+maxVdim_Ser : 0$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 3$
 minCdim_Max : 1$
 minVdim_Max : 1$    /* but see v loop below. */
-maxCdim_Max : 3$
-maxVdim_Max : 3$
+maxCdim_Max : 0$
+maxVdim_Max : 0$
+
+/* Tensor order basis. */
+maxPolyOrder_Tensor : 2$
+minCdim_Tensor : 1$
+minVdim_Tensor : 1$
+maxCdim_Tensor : 1$
+maxVdim_Tensor : 2$
 
 gkVdims      : [[1,2], [2], [2]]$
 
 /* ...... END OF USER INPUTS........ */
 
-bName        : ["Ser","Max"]$
-maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
-minCdim      : [minCdim_Ser, minCdim_Max]$
-minVdim      : [minVdim_Ser, minVdim_Max]$
-maxCdim      : [maxCdim_Ser, maxCdim_Max]$
-maxVdim      : [maxVdim_Ser, maxVdim_Max]$
-
+/* To generate other bases, just add corresponding column to arrays below. */
+bName        : ["Ser", "Max", "Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
+minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
 
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
@@ -62,7 +69,7 @@ for bInd : 1 thru length(bName) do (
        of these effectively solve a weak linear system of 2 equations.
        For now assume that gyrokinetics is never run in 2x1v or 3x1v. */
     for gkV : 1 thru length(gkVdims[c]) do (
-      v : gkVdims[c][gkV],
+      v : max(minVdim[bInd],gkVdims[c][gkV]),
 
       maxPolyOrderB : maxPolyOrder[bInd],
       if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
@@ -89,11 +96,4 @@ for bInd : 1 thru length(bName) do (
     )
   )
 );
-
-
-
-
-
-
-
 

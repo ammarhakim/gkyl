@@ -215,13 +215,11 @@ function GkField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() en
 local function createField(grid, basis, ghostCells, vComp, periodicSync)
    vComp = vComp or 1
    local fld = DataStruct.Field {
-      onGrid        = grid,
-      numComponents = basis:numBasis()*vComp,
-      ghost         = ghostCells,
-      metaData      = {
-         polyOrder = basis:polyOrder(),
-         basisType = basis:id()
-      },
+      onGrid           = grid,
+      numComponents    = basis:numBasis()*vComp,
+      ghost            = ghostCells,
+      metaData         = {polyOrder = basis:polyOrder(),
+                          basisType = basis:id()},
       syncPeriodicDirs = periodicSync,
    }
    fld:clear(0.0)
@@ -795,7 +793,7 @@ function GkField:phiSolve(tCurr, species, inIdx, outIdx)
    -- linear problem, and applies BCs to phi.
    -- Need the self.calcedPhi flag because we assume :phiSolve is called within the
    -- species :advance, but we want multiple species to call it.
-   if self.evolve and (not self.externalPhiTimeDependence) and (not self.calcedPhi) then
+   if self.evolve and (not self.externalPhi and not self.externalPhiTimeDependence) and (not self.calcedPhi) then
       local potCurr = self:rkStepperFields()[inIdx]
       self.phiSlvr:solve(tCurr, {self.chargeDens}, {potCurr.phiAux})
       -- Smooth phi in z to ensure continuity in all directions.
@@ -1182,7 +1180,7 @@ function GkGeometry:createSolver()
       end
 
       -- Determine which variables bmag depends on by checking if setting a variable to nan results in nan.
-      local ones = {}
+      local ones, allVars = {}, {"x","y","z","vpar","mu"}
       for dir = 1, self.ndim do ones[dir] = 1 end
       self.bmagVars = {}
       for dir = 1, self.ndim do
@@ -1190,11 +1188,11 @@ function GkGeometry:createSolver()
          -- Test if result is nan.. nan is the only value that doesn't equal itself.
          if self.bmagFunc(0, ones) ~= self.bmagFunc(0, ones) then
             -- If result is nan, bmag must depend on this var.
-            table.insert(self.bmagVars, dir)
+            table.insert(self.bmagVars, allVars[dir])
          end
          ones[dir] = 1 -- Reset so we can check other vars.
       end
-      if self.bmagVars[1] == nil then self.bmagVars[1] = 0 end
+      if self.bmagVars[1] == nil then self.bmagVars[1] = "" end
 
    elseif self.geo.name == "GenGeo" then
 
@@ -1286,9 +1284,9 @@ function GkGeometry:createSolver()
       end
 
       if self.ndim == 3 then
-         self.bmagVars = {1,3} 
+         self.bmagVars = {"x","z"} 
       else
-         self.bmagVars = {1}
+         self.bmagVars = {"x"}
       end
 
       if self.fromFile == nil then

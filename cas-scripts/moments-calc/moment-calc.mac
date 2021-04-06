@@ -30,6 +30,8 @@ minVdim_Tensor : 1$    /* but see v loop below. */
 maxCdim_Tensor : 2$
 maxVdim_Tensor : 2$
 
+/* Number of velocity dimensions allowed for each
+   configuration-space dimension. */
 gkVdims      : [[1,2], [2], [2]]$
 
 /* ...... END OF USER INPUTS........ */
@@ -73,7 +75,7 @@ for bInd : 1 thru length(bName) do (
     /* For gyrokinetic need 1x1v, 1x2v, 2x2v and 3x2v.
        For now assume that gyrokinetics is never run in 2x1v or 3x1v. */
     for gkV : 1 thru length(gkVdims[c]) do (
-      v : gkVdims[c][gkV],
+      v : min(maxVdim[bInd],gkVdims[c][gkV]),
 
       maxPolyOrderB : maxPolyOrder[bInd],
       if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
@@ -100,7 +102,6 @@ for bInd : 1 thru length(bName) do (
       close(fh)
 
     )
-
   )
 );
 

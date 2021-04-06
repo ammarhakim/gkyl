@@ -183,6 +183,11 @@ gkylMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, doubl
       rhs(fidx(n, Z)) += auxSrc[n*3+2]*dt1;
     }
 
+    // add static electric field to current equation 
+    rhs(fidx(n, X)) += -dt1*qbym2*f[RHO]*staticEm[EX];
+    rhs(fidx(n, Y)) += -dt1*qbym2*f[RHO]*staticEm[EY];
+    rhs(fidx(n, Z)) += -dt1*qbym2*f[RHO]*staticEm[EZ];
+
     // set current contribution to electric field equation
     lhs(eidx(X), fidx(n,X)) = dt2;
     lhs(eidx(Y), fidx(n,Y)) = dt2;

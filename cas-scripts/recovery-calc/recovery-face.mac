@@ -1,11 +1,12 @@
-calcRecovFaceGen(basisNm, recDirs, dirs, face, polyOrder, C, lo, ce, up) := block(
+calcRecovFaceGen(basisNm, recDirs, dirs, numDer, face, polyOrder, C, lo, ce, up) := block(
   [
   perpDirs, ba,
   rLo, rCe, rUp,
   rLoCoef, rCeCoef, rUpCoef, r,
   lo2, ce2, up2,
   wx, wy,
-  numDims
+  numDims,
+  baVars
   ],
 
   numDims : length(dirs),
@@ -17,7 +18,7 @@ calcRecovFaceGen(basisNm, recDirs, dirs, face, polyOrder, C, lo, ce, up) := bloc
   if is(op(lo)=dg) then (
     rLo : calcRecov2CellGen(basisNm, recDirs[1], dirs, polyOrder,
       args(lo)[1], args(lo)[2]),
-    /*rLo : diff(rLo,  dirs[1], numDer),*/
+    rLo : diff(rLo,  dirs[1], numDer),
     rLoCoef : calcInnerProdList(perpDirs, 1, ba, subst(recDirs[1]=face, rLo)),
     lo2 : dg(rLoCoef)
   ) elseif is(op(lo)=bc) then (
@@ -27,14 +28,14 @@ calcRecovFaceGen(basisNm, recDirs, dirs, face, polyOrder, C, lo, ce, up) := bloc
   /* Center input cannot be a BC */
   rCe : calcRecov2CellGen(basisNm, recDirs[1], dirs, polyOrder,
     args(ce)[1], args(ce)[2]),
-  /*rCe : diff(rCe, dirs[1], numDer),*/
+  rCe : diff(rCe, dirs[1], numDer),
   rCeCoef : calcInnerProdList(perpDirs, 1, ba, subst(recDirs[1]=face, rCe)),
   ce2 : dg(rCeCoef),
 
   if is(op(up)=dg) then (
     rUp : calcRecov2CellGen(basisNm, recDirs[1], dirs, polyOrder,
       args(up)[1], args(up)[2]),
-    /*rUp : diff(rUp, dirs[1], numDer),*/
+    rUp : diff(rUp, dirs[1], numDer),
     rUpCoef : calcInnerProdList(perpDirs, 1, ba, subst(recDirs[1]=face, rUp)),
     up2 : dg(rUpCoef)
   ) elseif is(op(up)=bc) then (

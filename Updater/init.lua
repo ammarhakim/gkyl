@@ -47,6 +47,11 @@ local StairSteppedBc = require "Updater.StairSteppedBc"
 local TenMomentRelax = require "Updater.TenMomentRelax"
 local TenMomentSrc = require "Updater.TenMomentSrc"
 local WavePropagation = require "Updater.WavePropagation"
+local AxisymmetricFiveMomentSrc = require "Updater.AxisymmetricFiveMomentSrc"
+local AxisymmetricPhMaxwellSrc = require "Updater.AxisymmetricPhMaxwellSrc"
+local BraginskiiHeatConduction = require "Updater.BraginskiiHeatConduction"
+local BraginskiiViscosityDiffusion = require "Updater.BraginskiiViscosityDiffusion"
+local AnisotropicDiffusion = require "Updater.AnisotropicDiffusion"
 
 return {
    Bc = Bc,
@@ -90,4 +95,9 @@ return {
    TenMomentRelax = TenMomentRelax,
    TenMomentSrc = TenMomentSrc,
    WavePropagation = WavePropagation,
+   AxisymmetricFiveMomentSrc = AxisymmetricFiveMomentSrc,
+   AxisymmetricPhMaxwellSrc = AxisymmetricPhMaxwellSrc,
+   BraginskiiHeatConduction = BraginskiiHeatConduction,
+   BraginskiiViscosityDiffusion = BraginskiiViscosityDiffusion,
+   AnisotropicDiffusion = AnisotropicDiffusion,
 }

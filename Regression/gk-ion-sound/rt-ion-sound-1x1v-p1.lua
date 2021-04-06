@@ -41,7 +41,7 @@ plasmaApp = Plasma.App {
       mass = 1.0,
       -- Velocity space grid
       lower = {-6.0},
-      upper = {6.0},
+      upper = { 6.0},
       cells = {32},
       -- Initial conditions.
       -- Specify background so that we can plot perturbed distribution and moments.

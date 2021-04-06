@@ -293,6 +293,7 @@ function VmLBOCollisions:createSolver()
       vUpper           = self.vMax,
       varyingNu        = self.varNu,
       useCellAverageNu = self.cellConstNu,
+      gridID           = self.phaseGrid:id(),
    }
    self.collisionSlvr = Updater.HyperDisCont {
       onGrid             = self.phaseGrid,

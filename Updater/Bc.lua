@@ -59,6 +59,8 @@ function Bc:init(tbl)
 
    self._idxIn  = Lin.IntVec(self._grid:ndim())
    self._idxOut = Lin.IntVec(self._grid:ndim())
+   self._xcIn  = Lin.Vec(self._grid:ndim())
+   self._xcOut = Lin.Vec(self._grid:ndim())
 
    -- For diagnostics: create reduced boundary grid with 1 cell in dimension of self._dir.
    if self._grid:isShared() then 
@@ -314,11 +316,16 @@ function Bc:_advance(tCurr, inFld, outFld)
          qOut:fill(indexerIn(self._idxIn), ptrIn)
       end
 
+      self._grid:setIndex(self._idxIn)
+      self._grid:cellCenter(self._xcIn)
+      self._grid:setIndex(idxOut)
+      self._grid:cellCenter(self._xcOut)
+
       for _, bc in ipairs(self._bcList) do
          -- Apply the 'bc' function. This can represent many boundary
          -- condition types ranging from a simple copy or a reflection
          -- with the sign flit to QM based electron emission model.
-         bc(dir, tCurr, self._idxIn, ptrIn, ptrOut)
+         bc(dir, tCurr, self._idxIn, ptrIn, ptrOut, self._xcOut, self._xcIn)
       end
    end
 

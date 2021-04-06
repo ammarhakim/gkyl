@@ -6,33 +6,35 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local DataStruct    = require "DataStruct"
-local Lin           = require "Lib.Linalg"
+local DataStruct = require "DataStruct"
+local Lin = require "Lib.Linalg"
 local LinearTrigger = require "Lib.LinearTrigger"
-local Mpi           = require "Comm.Mpi"
-local Proto         = require "Lib.Proto"
-local FluidSpecies  = require "App.Species.FluidSpecies"
-local Time          = require "Lib.Time"
-local Updater       = require "Updater"
-local xsys          = require "xsys"
-local ffi           = require "ffi"
-local Euler         = require "Eq.Euler"
-local TenMoment     = require "Eq.TenMoment"
+local Mpi = require "Comm.Mpi"
+local Proto = require "Lib.Proto"
+local FluidSpecies = require "App.Species.FluidSpecies"
+local Time = require "Lib.Time"
+local Updater = require "Updater"
+local xsys = require "xsys"
+local ffi = require "ffi"
+local Euler = require "Eq.Euler"
+local TenMoment = require "Eq.TenMoment"
 
 -- Species object treated as moment equations.
 local MomentSpecies = Proto(FluidSpecies)
 
 -- Add constants to object indicate various supported boundary conditions.
-local SP_BC_OPEN      = 1
-local SP_BC_COPY      = SP_BC_OPEN
-local SP_BC_WALL      = 4
+local SP_BC_OPEN = 1
+local SP_BC_COPY = SP_BC_OPEN
+local SP_BC_WALL = 4
 -- The following two are not yet available for the MomentSpecies.
 -- local SP_BC_DIRICHLET = 5    -- Specify the value (currently only for diffusion term).
--- local SP_BC_NEUMANN   = 6    -- Specify the derivative (currently only for diffusion term).
+-- local SP_BC_NEUMANN = 6    -- Specify the derivative (currently only for diffusion term).
+local SP_BC_AXIS = 7
 
 MomentSpecies.bcOpen = SP_BC_OPEN    -- Open BCs.
 MomentSpecies.bcCopy = SP_BC_COPY    -- Copy BCs.
 MomentSpecies.bcWall = SP_BC_WALL    -- Wall BCs.
+MomentSpecies.bcAxis = SP_BC_AXIS -- Axis BCs
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
@@ -43,35 +45,35 @@ function MomentSpecies:fullInit(appTbl)
    self.nMoments = self.tbl.equation:numEquations()
    self.nGhost = 2     -- We need two ghost-cells.
 
-   self.limiter   = self.tbl.limiter and self.tbl.limiter or "monotonized-centered"
+   self.limiter = self.tbl.limiter and self.tbl.limiter or "monotonized-centered"
    self.hyperSlvr = {} -- List of solvers.
 
    -- Invariant (positivity-preserving) equation system to evolve.
-   self.equationInv  = self.tbl.equationInv
+   self.equationInv = self.tbl.equationInv
    self.hyperSlvrInv = {} -- List of solvers.
-   self.limiterInv   = self.tbl.limiterInv and self.tbl.limiterInv or "zero"
+   self.limiterInv = self.tbl.limiterInv and self.tbl.limiterInv or "zero"
    -- Always use invariant eqn.
    self.forceInv = self.tbl.forceInv and (self.equationInv ~= nil)
    -- Use invariant eqn. in next step; could change during run.
    self.tryInv = false
 
    self._myIsInv = ffi.new("int[2]")
-   self._isInv   = ffi.new("int[2]")
+   self._isInv = ffi.new("int[2]")
 
-   self._hasSsBnd  = xsys.pickBool(self.tbl.hasSsBnd, false)
+   self._hasSsBnd = xsys.pickBool(self.tbl.hasSsBnd, false)
    self._inOutFunc = self.tbl.inOutFunc
 end
 
 function MomentSpecies:createSolver(hasE, hasB)
    if self._hasSsBnd then
       self._inOut = DataStruct.Field {
-         onGrid        = self.grid,
+         onGrid = self.grid,
          numComponents = 1,
-         ghost         = {2, 2}
+         ghost = {2, 2}
       }
       local project = Updater.ProjectOnBasis {
-         onGrid   = self.grid,
-         basis    = self.basis,
+         onGrid = self.grid,
+         basis = self.basis,
          evaluate = self._inOutFunc,
          onGhosts = true,
       }
@@ -82,23 +84,23 @@ function MomentSpecies:createSolver(hasE, hasB)
    local ndim = self.grid:ndim()
    for d = 1, ndim do
       self.hyperSlvr[d] = Updater.WavePropagation {
-         onGrid           = self.grid,
-         equation         = self.equation,
-         limiter          = self.limiter,
-         cfl              = self.cfl,
+         onGrid = self.grid,
+         equation = self.equation,
+         limiter = self.limiter,
+         cfl = self.cfl,
          updateDirections = {d},
-         hasSsBnd         = self._hasSsBnd,
-         inOut            = self._inOut,
+         hasSsBnd = self._hasSsBnd,
+         inOut = self._inOut,
       }
       if self.equationInv ~= nil then
          self.hyperSlvrInv[d] = Updater.WavePropagation {
-            onGrid           = self.grid,
-            equation         = self.equationInv,
-            limiter          = self.limiterInv,
-            cfl              = self.cfl,
+            onGrid = self.grid,
+            equation = self.equationInv,
+            limiter = self.limiterInv,
+            cfl = self.cfl,
             updateDirections = {d},
-            hasSsBnd         = self._hasSsBnd,
-            inOut            = self._inOut
+            hasSsBnd = self._hasSsBnd,
+            inOut = self._inOut
          }
       end
    end
@@ -144,8 +146,16 @@ function MomentSpecies:appendBoundaryConditions(dir, edge, bcType)
       else
          assert(false, "MomentSpecies: bcWall not provided by the equation!")
       end
-      table.insert(self.boundaryConditions,
-                   self:makeBcUpdater(dir, edge, bcWall))
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, bcWall))
+   elseif bcType == SP_BC_AXIS then
+      -- FIXME: see comments above
+      local bcAxis
+      if self.nMoments == 5 then
+         bcAxis = Euler.bcAxis
+      else
+         assert(false, "MomentSpecies: bcAxis not provided by the equation!")
+      end
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, bcAxis))
    elseif type(bcType) == "table" then
       -- bcType can be literally a list of functions.
       table.insert(self.boundaryConditions,
@@ -185,7 +195,7 @@ end
 
 function MomentSpecies:updateInDirection(dir, tCurr, dt, fIn, fOut, tryInv)
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
-   local tryInv_next         = false
+   local tryInv_next = false
    if self.evolve then
       self:applyBc(tCurr, fIn, dir)
       assert(self:checkInv(fIn))
@@ -218,9 +228,9 @@ end
 
 function MomentSpecies:checkInv(fIn)
    local fInIndexer = fIn:genIndexer()
-   local fInPtr     = fIn:get(1)
+   local fInPtr = fIn:get(1)
 
-   local isInv      = true
+   local isInv = true
    local localRange = fIn:localRange()   
    for idx in localRange:rowMajorIter() do
       self.grid:setIndex(idx)

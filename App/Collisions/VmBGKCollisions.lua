@@ -239,7 +239,7 @@ function VmBGKCollisions:createSolver()
          phaseBasis = self.phaseBasis,
          confGrid   = self.confGrid,
          confBasis  = self.confBasis,
-         mode       = 'Vlasov',
+         mode       = 'vlasov',
       }
    end
 
@@ -292,12 +292,6 @@ function VmBGKCollisions:createSolver()
       self.nufMaxwellCross = DataStruct.Field {
          onGrid        = self.phaseGrid,
          numComponents = self.phaseBasis:numBasis(),
-         ghost         = {1, 1},
-      }
-      -- Dummy fields for the primitive moment calculator.
-      self.uCrossSq = DataStruct.Field {
-         onGrid        = self.confGrid,
-         numComponents = self.confBasis:numBasis(),
          ghost         = {1, 1},
       }
       if self.varNu then
