@@ -37,7 +37,12 @@ end
 
 local function initEmf (t, xn)
    local x, y = xn[1], xn[2]
-   return 0, 0, 0, 1, 1, 0, 0, 0
+   return 0, 0, 0, 0, 1, 0, 0, 0
+end
+
+local function initEmf0 (t, xn)
+   local x, y = xn[1], xn[2]
+   return 0, 0, 0, 1, 0, 0, 0, 0
 end
 
 local grid = Grid.RectCart {
@@ -152,6 +157,7 @@ end
 
 local temp = createField(grid, basis, 1)  -- temperature
 local emf = createField(grid, basis, 8)  -- E, B, phiE, phiB
+local emf0 = createField(grid, basis, 8)  -- E, B, phiE, phiB
 local buf = createField(grid, basis, 4)  -- grad(temp) or q, div(q)
 
 project._isFirst = true
@@ -165,6 +171,11 @@ project:setFunc(initEmf)
 project:advance(tStart, {}, {emf})
 emf:sync()
 
+project._isFirst = true  -- so that we can reuse 'project'
+project:setFunc(initEmf0)
+project:advance(tStart, {}, {emf0})
+emf0:sync()
+
 local tCurr = tStart
 local myDt = initDt
 local frame = 1
@@ -175,7 +186,7 @@ while tCurr<tEnd do
 
    anisotropicDiffusion:setDtAndCflRate(myDt)
    local status, dtSuggested = anisotropicDiffusion:advance(
-      tCurr, {temp, emf}, {buf, buf})
+      tCurr, {temp, emf, emf0}, {buf, buf})
    temp:sync()
    syncCorners(temp)
 
