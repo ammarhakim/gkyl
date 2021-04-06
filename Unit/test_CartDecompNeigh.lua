@@ -1,19 +1,20 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 -- Test for decomposition neighbor calculations
+--
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Unit = require "Unit"
+local Unit             = require "Unit"
 local DecompRegionCalc = require "Lib.CartDecomp"
-local CartDecompNeigh = require "Lib.CartDecompNeigh"
-local Lin = require "Lib.Linalg"
-local Range = require "Lib.Range"
-local Time = require "Lib.Time"
+local CartDecompNeigh  = require "Lib.CartDecompNeigh"
+local Lin              = require "Lib.Linalg"
+local Range            = require "Lib.Range"
+local Time             = require "Lib.Time"
 
 local assert_equal = Unit.assert_equal
-local stats = Unit.stats
+local stats        = Unit.stats
 
 function hasVal(tbl, val)
    for _, v in ipairs(tbl) do
@@ -26,7 +27,7 @@ end
 
 function test_1()
    -- create decomposition and decompose a region
-   local decomp = DecompRegionCalc.CartProd { cuts = {2, 2}, __serTesting = true }
+   local decomp        = DecompRegionCalc.CartProd { cuts = {2, 2}, __serTesting = true }
    local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {10, 10}))
    -- create neighbor calculator
    local decompNeigh = CartDecompNeigh(decomposedRgn)
@@ -85,7 +86,7 @@ end
 
 function test_2()
    -- create decomposition and decompose a region
-   local decomp = DecompRegionCalc.CartProd { cuts = {3, 3}, __serTesting = true }
+   local decomp        = DecompRegionCalc.CartProd { cuts = {3, 3}, __serTesting = true }
    local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {30, 30}))
    -- create neighbor calculator
    local decompNeigh = CartDecompNeigh(decomposedRgn)
@@ -104,21 +105,21 @@ function test_2()
 end
 
 function test_3()
-   -- create decomposition and decompose a region
-   local decomp = DecompRegionCalc.CartProd { cuts = {3, 3}, __serTesting = true }
+   -- Create decomposition and decompose a region.
+   local decomp        = DecompRegionCalc.CartProd { cuts = {2, 2}, __serTesting = true }
    local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {30, 30}))
-   -- create neighbor calculator
+   -- Create neighbor calculator.
    local decompNeigh = CartDecompNeigh(decomposedRgn)
 
    decompNeigh:calcAllCommNeigh(1, 1)
    for i = 1, decomposedRgn:numSubDomains() do
       local nd = decompNeigh:neighborData(i)
       if i==1 or i==3 or i==9 or i==7  then
-	 assert_equal(3, #nd, string.format("Testing size of neighbors for dom=%d", i))
+         assert_equal(3, #nd, string.format("Testing size of neighbors for dom=%d", i))
       elseif i==2 or i==6 or i==8 or i==4 then
-	 assert_equal(5, #nd, string.format("Testing size of neighbors for dom=%d", i))
+         assert_equal(5, #nd, string.format("Testing size of neighbors for dom=%d", i))
       else
-	 assert_equal(8, #nd, "Testing size of neighbors for dom=5")
+         assert_equal(8, #nd, "Testing size of neighbors for dom=5")
       end
    end
 end

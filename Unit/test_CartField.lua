@@ -5,13 +5,13 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local ffi = require "ffi"
-local Unit = require "Unit"
-local Grid = require "Grid"
+local ffi        = require "ffi"
+local Unit       = require "Unit"
+local Grid       = require "Grid"
 local DataStruct = require "DataStruct"
 
 local assert_equal = Unit.assert_equal
-local stats = Unit.stats
+local stats        = Unit.stats
 
 function test_1()
    local grid = Grid.RectCart {
@@ -20,9 +20,9 @@ function test_1()
       cells = {10},
    }
    local field = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = 3,
-      ghost = {1, 1},
+      ghost         = {1, 1},
    }
 
    assert_equal(1, field:ndim(), "Checking dimensions")
@@ -477,23 +477,24 @@ function test_13()
       periodicDirs = {1, 2},
    }
    local field = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = 1,
-      ghost = {1, 1},
-      syncCorners = true,
+      ghost         = {1, 1},
+      syncCorners   = true,
    }
    field:clear(10.5)
 
-   -- set corner cells
+   -- Set corner cells.
    local indexer = field:indexer()
-   local fItr = field:get(indexer(1,1)); fItr[1] = 1.0
-   fItr = field:get(indexer(10,1)); fItr[1] = 2.0
-   fItr = field:get(indexer(1,10)); fItr[1] = 3.0
+   local fItr
+   fItr = field:get(indexer(1,1));   fItr[1] = 1.0
+   fItr = field:get(indexer(10,1));  fItr[1] = 2.0
+   fItr = field:get(indexer(1,10));  fItr[1] = 3.0
    fItr = field:get(indexer(10,10)); fItr[1] = 4.0
 
-   field:sync() -- sync field
+   field:sync() -- Sync field.
 
-   -- check if periodic dirs are sync()-ed properly
+   -- Check if periodic dirs are sync()-ed properly.
    local fItr = field:get(indexer(11,1))
    assert_equal(1.0, fItr[1], "Checking non-corner periodic sync")
    local fItr = field:get(indexer(11,10))
@@ -503,15 +504,15 @@ function test_13()
    local fItr = field:get(indexer(0,10))
    assert_equal(4.0, fItr[1], "Checking non-corner periodic sync")
 
-   -- corner cells
+   -- Check corner ghost cells.
    local fItr = field:get(indexer(11,11))
-   assert_equal(1.0, fItr[1], "Checking corner periodic sync")
+   assert_equal(1.0, fItr[1], "Checking 11,11 corner periodic sync")
    local fItr = field:get(indexer(11,0))
-   assert_equal(3.0, fItr[1], "Checking corner periodic sync")
+   assert_equal(3.0, fItr[1], "Checking 11,0 corner periodic sync")
    local fItr = field:get(indexer(0,0))
-   assert_equal(4.0, fItr[1], "Checking corner periodic sync")
+   assert_equal(4.0, fItr[1], "Checking 0,0 corner periodic sync")
    local fItr = field:get(indexer(0,11))
-   assert_equal(2.0, fItr[1], "Checking corner periodic sync")
+   assert_equal(2.0, fItr[1], "Checking 0,11 corner periodic sync")
 end
 
 function test_14()
@@ -522,23 +523,24 @@ function test_14()
       periodicDirs = {1, 2},
    }
    local field = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = 1,
-      ghost = {1, 1},
-      syncCorners = true,
+      ghost         = {1, 1},
+      syncCorners   = true,
    }
    field:clear(10.5)
 
-   -- set corner cells
+   -- Set corner cells.
    local indexer = field:indexer()
-   local fItr = field:get(indexer(1,1)); fItr[1] = 1.0
-   fItr = field:get(indexer(10,1)); fItr[1] = 2.0
-   fItr = field:get(indexer(1,10)); fItr[1] = 3.0
+   local fItr
+   fItr = field:get(indexer(1,1));   fItr[1] = 1.0
+   fItr = field:get(indexer(10,1));  fItr[1] = 2.0
+   fItr = field:get(indexer(1,10));  fItr[1] = 3.0
    fItr = field:get(indexer(10,10)); fItr[1] = 4.0
 
-   field:periodicCopy() -- copy periodic boundary conditions for field
+   field:periodicCopy() -- Copy periodic boundary conditions for field.
 
-   -- check if periodic dirs are sync()-ed properly
+   -- Check if periodic dirs are sync()-ed properly.
    local fItr = field:get(indexer(11,1))
    assert_equal(1.0, fItr[1], "Checking non-corner periodic sync")
    local fItr = field:get(indexer(11,10))
@@ -557,14 +559,14 @@ function test_15()
       cells = {10, 10},
    }
    local field = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = 3,
-      ghost = {1, 2},
+      ghost         = {1, 2},
    }
    local scalar = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = 1,
-      ghost = {1, 2},
+      ghost         = {1, 2},
    }
    field:clear(10.0)
    scalar:clear(2.5)
@@ -646,17 +648,17 @@ function test_16()
       cells = {10, 10},
    }
    local field = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = 8,
-      ghost = {1, 2},
+      ghost         = {1, 2},
    }
    field:clear(10.0)
 
-   -- field1 has a different number of components than field
+   -- Field1 has a different number of components than field.
    local field1 = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = 3,
-      ghost = {1, 2},
+      ghost         = {1, 2},
    }
 
    local indexer = field1:genIndexer()
@@ -667,7 +669,7 @@ function test_16()
       fitr[3] = idx[1]+2*idx[2]+3
    end
 
-   -- accumulate stuff
+   -- Accumulate stuff.
    field:accumulateOffset(1.0, field1, 0, 2.0, field1, 5)
 
    for idx in field:localExtRangeIter() do
@@ -695,7 +697,7 @@ test_9()
 test_10()
 test_11()
 test_12()
---test_13()
+test_13()
 test_14()
 test_15()
 test_16()

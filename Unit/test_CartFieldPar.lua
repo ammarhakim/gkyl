@@ -1,21 +1,22 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Test for fields on cartesian grids (parallel)
+-- Test for fields on cartesian grids (parallel).
+--
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local ffi = require "ffi"
-local Unit = require "Unit"
-local Grid = require "Grid"
+local ffi              = require "ffi"
+local Unit             = require "Unit"
+local Grid             = require "Grid"
 local DecompRegionCalc = require "Lib.CartDecomp"
-local DataStruct = require "DataStruct"
-local Mpi = require "Comm.Mpi"
+local DataStruct       = require "DataStruct"
+local Mpi              = require "Comm.Mpi"
 
 local cuda
 local cuAlloc
 if GKYL_HAVE_CUDA then
-   cuda = require "Cuda.RunTime"
+   cuda    = require "Cuda.RunTime"
    cuAlloc = require "Cuda.Alloc"
 end
 
@@ -56,9 +57,9 @@ function test_1(comm)
       decomposition = decomp,
    }
    local field = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = 3,
-      ghost = {1, 1},
+      ghost         = {1, 1},
    }
 
    assert_equal(1, field:ndim(), "Checking dimensions")
@@ -203,6 +204,7 @@ function test_3(comm)
 end
 
 function test_4(comm)
+   -- Check sync. Check the corner ghost cells which lie in the center of the domain too.
    local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
    if nz ~= 4 then
       log("Not running test_4 as numProcs not exactly 4")
@@ -210,6 +212,7 @@ function test_4(comm)
    end
 
    local decomp = DecompRegionCalc.CartProd { cuts = {2, 2} }
+
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},
       upper = {1.0, 1.0},
@@ -217,10 +220,10 @@ function test_4(comm)
       decomposition = decomp,
    }
    local field = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = 3,
-      ghost = {1, 2},
-      syncCorners = true,
+      ghost         = {1, 2},
+      syncCorners   = true,
    }
 
    local localRange = field:localRange()
@@ -245,6 +248,9 @@ function test_4(comm)
 end
 
 function test_5(comm)
+   -- Check sync. Even though syncCorners=true here, the corners are not
+   -- synced because of the decomposition used below. In this case the corner
+   -- ghost cells would be filled by BCs.
    local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
    if nz ~= 2 then
       log("Not running test_5 as numProcs not exactly 2")
@@ -252,6 +258,7 @@ function test_5(comm)
    end
 
    local decomp = DecompRegionCalc.CartProd { cuts = {2, 1} }
+
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},
       upper = {1.0, 1.0},
@@ -259,17 +266,17 @@ function test_5(comm)
       decomposition = decomp,
    }
    local field = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = 1,
-      ghost = {1, 1},
-      syncCorners = true,
+      ghost         = {1, 1},
+      syncCorners   = true,
    }
 
    local localRange = field:localRange()
-   local indexer = field:genIndexer()
+   local indexer    = field:genIndexer()
    for idx in localRange:colMajorIter() do
       local fitr = field:get(indexer(idx))
-      fitr[1] = idx[1]+2*idx[2]+1
+      fitr[1]    = idx[1]+2*idx[2]+1
    end
 
    field:sync()
@@ -283,6 +290,154 @@ function test_5(comm)
 end
 
 function test_6(comm)
+   -- Check sync, and the corners shared by the two MPI ranks.
+   local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
+   if nz ~= 2 then
+      log("Not running test_5 as numProcs not exactly 2")
+      return
+   end
+
+   local decomp = DecompRegionCalc.CartProd { cuts = {1,2} }
+
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0},
+      upper = {1.0, 1.0},
+      cells = {6, 8},
+      decomposition = decomp,
+      periodicDirs  = {1},
+   }
+   local field = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = 1,
+      ghost         = {1, 1},
+      syncCorners   = true,
+   }
+
+   local localRange = field:localRange()
+   local indexer    = field:genIndexer()
+   for idx in localRange:colMajorIter() do
+      local fitr = field:get(indexer(idx))
+      fitr[1]    = idx[1]+2*idx[2]+1
+   end
+
+   field:sync()
+
+   local localExtRange = field:localExtRange():intersect(field:globalRange())
+   for idx in localExtRange:colMajorIter() do
+      local fitr = field:get(indexer(idx))
+      assert_equal(idx[1]+2*idx[2]+1, fitr[1], string.format("Checking field value at (%d, %d)", idx[1], idx[2]))
+   end
+   Mpi.Barrier(comm)
+
+   local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
+
+--   -- Check corner ghost cells (cuts={2,1}, periodicDirs={1,2}).
+--   if rank==0 then
+--      local fItr = field:get(indexer({0,0}))
+--      assert_equal(6+2*8+1, fItr[1], "Checking 0,0 corner periodic sync")
+--      local fItr = field:get(indexer({4,0}))
+--      assert_equal(4+2*8+1, fItr[1], "Checking 4,0 corner periodic sync")
+--      local fItr = field:get(indexer({0,9}))
+--      assert_equal(6+2*1+1, fItr[1], "Checking 0,9 corner periodic sync")
+--      local fItr = field:get(indexer({4,9}))
+--      assert_equal(4+2*1+1, fItr[1], "Checking 4,9 corner periodic sync")
+--   else
+--      local fItr = field:get(indexer({3,0}))
+--      assert_equal(3+2*8+1, fItr[1], "Checking 3,0 corner periodic sync")
+--      local fItr = field:get(indexer({7,0}))
+--      assert_equal(1+2*8+1, fItr[1], "Checking 7,0 corner periodic sync")
+--      local fItr = field:get(indexer({3,9}))
+--      assert_equal(3+2*1+1, fItr[1], "Checking 3,9 corner periodic sync")
+--      local fItr = field:get(indexer({7,9}))
+--      assert_equal(1+2*1+1, fItr[1], "Checking 7,9 corner periodic sync")
+--   end
+
+--   -- Check corner ghost cells (cuts={1,2}, periodicDirs={1,2}).
+--   if rank==0 then
+--      local fItr = field:get(indexer({0,0}))
+--      assert_equal(6+2*8+1, fItr[1], "Checking 0,0 corner periodic sync")
+--      local fItr = field:get(indexer({7,0}))
+--      assert_equal(1+2*8+1, fItr[1], "Checking 7,0 corner periodic sync")
+--      local fItr = field:get(indexer({0,5}))
+--      assert_equal(6+2*5+1, fItr[1], "Checking 0,5 corner periodic sync")
+--      local fItr = field:get(indexer({7,5}))
+--      assert_equal(1+2*5+1, fItr[1], "Checking 7,5 corner periodic sync")
+--   else
+--      local fItr = field:get(indexer({0,4}))
+--      assert_equal(6+2*4+1, fItr[1], "Checking 0,4 corner periodic sync")
+--      local fItr = field:get(indexer({7,4}))
+--      assert_equal(1+2*4+1, fItr[1], "Checking 7,4 corner periodic sync")
+--      local fItr = field:get(indexer({0,9}))
+--      assert_equal(6+2*1+1, fItr[1], "Checking 0,9 corner periodic sync")
+--      local fItr = field:get(indexer({7,9}))
+--      assert_equal(1+2*1+1, fItr[1], "Checking 7,9 corner periodic sync")
+--   end
+
+--   -- Check corner ghost cells (cuts={2,1}, periodicDirs={2}).
+--   if rank==0 then
+--      local fItr = field:get(indexer({0,0}))
+--      assert_equal(0, fItr[1], "Checking 0,0 corner periodic sync")
+--      local fItr = field:get(indexer({4,0}))
+--      assert_equal(4+2*8+1, fItr[1], "Checking 4,0 corner periodic sync")
+--      local fItr = field:get(indexer({0,9}))
+--      assert_equal(0, fItr[1], "Checking 0,9 corner periodic sync")
+--      local fItr = field:get(indexer({4,9}))
+--      assert_equal(4+2*1+1, fItr[1], "Checking 4,9 corner periodic sync")
+--   else
+--      local fItr = field:get(indexer({3,0}))
+--      assert_equal(3+2*8+1, fItr[1], "Checking 3,0 corner periodic sync")
+--      local fItr = field:get(indexer({7,0}))
+--      assert_equal(0, fItr[1], "Checking 7,0 corner periodic sync")
+--      local fItr = field:get(indexer({3,9}))
+--      assert_equal(3+2*1+1, fItr[1], "Checking 3,9 corner periodic sync")
+--      local fItr = field:get(indexer({7,9}))
+--      assert_equal(0, fItr[1], "Checking 7,9 corner periodic sync")
+--   end
+
+--   -- Check corner ghost cells (cuts={2,1}, periodicDirs={1}).
+--   if rank==0 then
+--      local fItr = field:get(indexer({0,0}))
+--      assert_equal(0, fItr[1], "Checking 0,0 corner periodic sync")
+--      local fItr = field:get(indexer({4,0}))
+--      assert_equal(0, fItr[1], "Checking 4,0 corner periodic sync")
+--      local fItr = field:get(indexer({0,9}))
+--      assert_equal(0, fItr[1], "Checking 0,9 corner periodic sync")
+--      local fItr = field:get(indexer({4,9}))
+--      assert_equal(0, fItr[1], "Checking 4,9 corner periodic sync")
+--   else
+--      local fItr = field:get(indexer({3,0}))
+--      assert_equal(0, fItr[1], "Checking 3,0 corner periodic sync")
+--      local fItr = field:get(indexer({7,0}))
+--      assert_equal(0, fItr[1], "Checking 7,0 corner periodic sync")
+--      local fItr = field:get(indexer({3,9}))
+--      assert_equal(0, fItr[1], "Checking 3,9 corner periodic sync")
+--      local fItr = field:get(indexer({7,9}))
+--      assert_equal(0, fItr[1], "Checking 7,9 corner periodic sync")
+--   end
+
+   -- Check corner ghost cells (cuts={1,2}, periodicDirs={1}).
+   if rank==0 then
+      local fItr = field:get(indexer({0,0}))
+      assert_equal(0, fItr[1], "Checking 0,0 corner periodic sync")
+      local fItr = field:get(indexer({7,0}))
+      assert_equal(0, fItr[1], "Checking 7,0 corner periodic sync")
+      local fItr = field:get(indexer({0,5}))
+      assert_equal(6+2*5+1, fItr[1], "Checking 0,5 corner periodic sync")
+      local fItr = field:get(indexer({7,5}))
+      assert_equal(1+2*5+1, fItr[1], "Checking 7,5 corner periodic sync")
+   else
+      local fItr = field:get(indexer({0,4}))
+      assert_equal(6+2*4+1, fItr[1], "Checking 0,4 corner periodic sync")
+      local fItr = field:get(indexer({7,4}))
+      assert_equal(1+2*4+1, fItr[1], "Checking 7,4 corner periodic sync")
+      local fItr = field:get(indexer({0,9}))
+      assert_equal(0, fItr[1], "Checking 0,9 corner periodic sync")
+      local fItr = field:get(indexer({7,9}))
+      assert_equal(0, fItr[1], "Checking 7,9 corner periodic sync")
+   end
+end
+
+function test_7(comm)
    local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
    if nz ~= 4 then
       log("Not running test_6 as numProcs not exactly 4")
@@ -329,7 +484,7 @@ function test_6(comm)
    end   
 end
 
-function test_7(comm)
+function test_8(comm)
    local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
    log(string.format("Running shared CartField tests on %d procs", nz))
 
@@ -365,7 +520,7 @@ function test_7(comm)
    assert_equal(grid:localRange():volume(), totalCount, "Checking if total count is correct")
 end
 
-function test_8(comm)
+function test_9(comm)
    local nz = Mpi.Comm_size(comm)
    if nz ~= 2 then
       log("Not running test_8 as numProcs not exactly 2")
@@ -413,7 +568,7 @@ function test_8(comm)
 end
 
 -- This test is a repeat of test 3, but communicating device data using CUDA-aware MPI.
-function test_9(comm)
+function test_10(comm)
    if not GKYL_HAVE_CUDA then return end
 
    local nz = Mpi.Comm_size(comm)
@@ -467,7 +622,7 @@ function test_9(comm)
 end
 
 -- This test is a repeat of test 4, but communicating device data using CUDA-aware MPI.
-function test_10(comm)
+function test_11(comm)
    if not GKYL_HAVE_CUDA then return end
 
    local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
@@ -521,7 +676,7 @@ function test_10(comm)
 end
 
 -- This test is a repeat of test 5, but communicating device data using CUDA-aware MPI.
-function test_11(comm)
+function test_12(comm)
    if not GKYL_HAVE_CUDA then return end
 
    local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
@@ -570,7 +725,7 @@ function test_11(comm)
    Mpi.Barrier(comm)
 end
 
-function test_12(comm)
+function test_13(comm)
    if not GKYL_HAVE_CUDA then return end
 
    local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
@@ -587,10 +742,10 @@ function test_12(comm)
       decomposition = decomp,
    }
    local field = DataStruct.Field {
-      onGrid = grid,
-      numComponents = 3,
-      ghost = {1, 1},
-      syncCorners = true,
+      onGrid           = grid,
+      numComponents    = 3,
+      ghost            = {1, 1},
+      syncCorners      = true,
       createDeviceCopy = true,
    }
 
@@ -601,14 +756,14 @@ function test_12(comm)
       fitr[1] = idx[1]+2*idx[2]+1
    end
 
-   -- copy stuff to device
+   -- Copy stuff to device.
    local err = field:copyHostToDevice()
    assert_equal(0, err, "Checking if copy to device worked")
 
-   -- synchronize ghost cells on device
-   field:deviceSync() -- sync field
+   -- Synchronize ghost cells on device.
+   field:deviceSync() -- Sync field.
 
-   -- copy data back for checking.
+   -- Copy data back for checking.
    field:copyDeviceToHost()
 
    local localExtRange = field:localExtRange():intersect(field:globalRange())
@@ -620,18 +775,19 @@ function test_12(comm)
 end
 
 comm = Mpi.COMM_WORLD
-test_1(comm)
-test_2(comm)
-test_3(comm)
-test_4(comm)
-test_5(comm)
+--test_1(comm)
+--test_2(comm)
+--test_3(comm)
+--test_4(comm)
+--test_5(comm)
 test_6(comm)
-test_7(comm)
-test_8(comm)
-test_9(comm)
-test_10(comm)
-test_11(comm)
-test_12(comm)
+--test_7(comm)
+--test_8(comm)
+--test_9(comm)
+--test_10(comm)
+--test_11(comm)
+--test_12(comm)
+--test_13(comm)
 
 totalFail = allReduceOneInt(stats.fail)
 totalPass = allReduceOneInt(stats.pass)
