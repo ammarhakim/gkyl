@@ -293,154 +293,322 @@ function test_6(comm)
    -- Check sync, and the corners shared by the two MPI ranks.
    local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
    if nz ~= 2 then
-      log("Not running test_5 as numProcs not exactly 2")
+      log("Not running test_6 as numProcs not exactly 2")
       return
    end
 
-   local decomp = DecompRegionCalc.CartProd { cuts = {2,1} }
+   local testCuts = {{2,1},{1,2},{2,1},{2,1},{1,2}}
+   local testPeriodicDirs = {{1,2},{1,2},{2},{1},{1}} 
 
-   local grid = Grid.RectCart {
-      lower = {0.0, 0.0},
-      upper = {1.0, 1.0},
-      cells = {6, 8},
-      decomposition = decomp,
-      periodicDirs  = {1,2},
-   }
-   local field = DataStruct.Field {
-      onGrid        = grid,
-      numComponents = 1,
-      ghost         = {1, 1},
-      syncCorners   = true,
-   }
+   local decomp, grid, field = {}, {}, {}
+   for tI = 1, #testCuts do
+      decomp[tI] = DecompRegionCalc.CartProd { cuts = testCuts[tI] }
 
-   local localRange = field:localRange()
-   local indexer    = field:genIndexer()
-   for idx in localRange:colMajorIter() do
-      local fitr = field:get(indexer(idx))
-      fitr[1]    = idx[1]+2*idx[2]+1
+      grid[tI] = Grid.RectCart {
+         lower = {0.0, 0.0},
+         upper = {1.0, 1.0},
+         cells = {6, 8},
+         decomposition = decomp[tI],
+         periodicDirs  = testPeriodicDirs[tI],
+      }
+      field[tI] = DataStruct.Field {
+         onGrid        = grid[tI],
+         numComponents = 1,
+         ghost         = {1, 1},
+         syncCorners   = true,
+      }
+
+      local localRange = field[tI]:localRange()
+      local indexer    = field[tI]:genIndexer()
+      for idx in localRange:colMajorIter() do
+         local fitr = field[tI]:get(indexer(idx))
+         fitr[1]    = idx[1]+2*idx[2]+1
+      end
+
+      field[tI]:sync()
+
+      local localExtRange = field[tI]:localExtRange():intersect(field[tI]:globalRange())
+      for idx in localExtRange:colMajorIter() do
+         local fitr = field[tI]:get(indexer(idx))
+         assert_equal(idx[1]+2*idx[2]+1, fitr[1], string.format("Checking field value at (%d, %d)", idx[1], idx[2]))
+      end
+      Mpi.Barrier(comm)
+
+      local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
+
+      if tI == 1 then
+         -- Check corner ghost cells (cuts={2,1}, periodicDirs={1,2}).
+         if rank==0 then
+            local fItr = field[tI]:get(indexer({0,0}))
+            assert_equal(6+2*8+1, fItr[1], "Checking 0,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({4,0}))
+            assert_equal(4+2*8+1, fItr[1], "Checking 4,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({0,9}))
+            assert_equal(6+2*1+1, fItr[1], "Checking 0,9 corner periodic sync")
+            local fItr = field[tI]:get(indexer({4,9}))
+            assert_equal(4+2*1+1, fItr[1], "Checking 4,9 corner periodic sync")
+         else
+            local fItr = field[tI]:get(indexer({3,0}))
+            assert_equal(3+2*8+1, fItr[1], "Checking 3,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({7,0}))
+            assert_equal(1+2*8+1, fItr[1], "Checking 7,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({3,9}))
+            assert_equal(3+2*1+1, fItr[1], "Checking 3,9 corner periodic sync")
+            local fItr = field[tI]:get(indexer({7,9}))
+            assert_equal(1+2*1+1, fItr[1], "Checking 7,9 corner periodic sync")
+         end
+      
+      elseif tI == 2 then
+         -- Check corner ghost cells (cuts={1,2}, periodicDirs={1,2}).
+         if rank==0 then
+            local fItr = field[tI]:get(indexer({0,0}))
+            assert_equal(6+2*8+1, fItr[1], "Checking 0,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({7,0}))
+            assert_equal(1+2*8+1, fItr[1], "Checking 7,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({0,5}))
+            assert_equal(6+2*5+1, fItr[1], "Checking 0,5 corner periodic sync")
+            local fItr = field[tI]:get(indexer({7,5}))
+            assert_equal(1+2*5+1, fItr[1], "Checking 7,5 corner periodic sync")
+         else
+            local fItr = field[tI]:get(indexer({0,4}))
+            assert_equal(6+2*4+1, fItr[1], "Checking 0,4 corner periodic sync")
+            local fItr = field[tI]:get(indexer({7,4}))
+            assert_equal(1+2*4+1, fItr[1], "Checking 7,4 corner periodic sync")
+            local fItr = field[tI]:get(indexer({0,9}))
+            assert_equal(6+2*1+1, fItr[1], "Checking 0,9 corner periodic sync")
+            local fItr = field[tI]:get(indexer({7,9}))
+            assert_equal(1+2*1+1, fItr[1], "Checking 7,9 corner periodic sync")
+         end
+      
+      elseif tI == 3 then
+         -- Check corner ghost cells (cuts={2,1}, periodicDirs={2}).
+         if rank==0 then
+            local fItr = field[tI]:get(indexer({0,0}))
+            assert_equal(0, fItr[1], "Checking 0,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({4,0}))
+            assert_equal(4+2*8+1, fItr[1], "Checking 4,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({0,9}))
+            assert_equal(0, fItr[1], "Checking 0,9 corner periodic sync")
+            local fItr = field[tI]:get(indexer({4,9}))
+            assert_equal(4+2*1+1, fItr[1], "Checking 4,9 corner periodic sync")
+         else
+            local fItr = field[tI]:get(indexer({3,0}))
+            assert_equal(3+2*8+1, fItr[1], "Checking 3,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({7,0}))
+            assert_equal(0, fItr[1], "Checking 7,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({3,9}))
+            assert_equal(3+2*1+1, fItr[1], "Checking 3,9 corner periodic sync")
+            local fItr = field[tI]:get(indexer({7,9}))
+            assert_equal(0, fItr[1], "Checking 7,9 corner periodic sync")
+         end
+      
+      elseif tI == 4 then
+         -- Check corner ghost cells (cuts={2,1}, periodicDirs={1}).
+         if rank==0 then
+            local fItr = field[tI]:get(indexer({0,0}))
+            assert_equal(0, fItr[1], "Checking 0,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({4,0}))
+            assert_equal(0, fItr[1], "Checking 4,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({0,9}))
+            assert_equal(0, fItr[1], "Checking 0,9 corner periodic sync")
+            local fItr = field[tI]:get(indexer({4,9}))
+            assert_equal(0, fItr[1], "Checking 4,9 corner periodic sync")
+         else
+            local fItr = field[tI]:get(indexer({3,0}))
+            assert_equal(0, fItr[1], "Checking 3,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({7,0}))
+            assert_equal(0, fItr[1], "Checking 7,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({3,9}))
+            assert_equal(0, fItr[1], "Checking 3,9 corner periodic sync")
+            local fItr = field[tI]:get(indexer({7,9}))
+            assert_equal(0, fItr[1], "Checking 7,9 corner periodic sync")
+         end
+      
+      elseif tI == 5 then
+         -- Check corner ghost cells (cuts={1,2}, periodicDirs={1}).
+         if rank==0 then
+            local fItr = field[tI]:get(indexer({0,0}))
+            assert_equal(0, fItr[1], "Checking 0,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({7,0}))
+            assert_equal(0, fItr[1], "Checking 7,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({0,5}))
+            assert_equal(6+2*5+1, fItr[1], "Checking 0,5 corner periodic sync")
+            local fItr = field[tI]:get(indexer({7,5}))
+            assert_equal(1+2*5+1, fItr[1], "Checking 7,5 corner periodic sync")
+         else
+            local fItr = field[tI]:get(indexer({0,4}))
+            assert_equal(6+2*4+1, fItr[1], "Checking 0,4 corner periodic sync")
+            local fItr = field[tI]:get(indexer({7,4}))
+            assert_equal(1+2*4+1, fItr[1], "Checking 7,4 corner periodic sync")
+            local fItr = field[tI]:get(indexer({0,9}))
+            assert_equal(0, fItr[1], "Checking 0,9 corner periodic sync")
+            local fItr = field[tI]:get(indexer({7,9}))
+            assert_equal(0, fItr[1], "Checking 7,9 corner periodic sync")
+         end
+      end
    end
-
-   field:sync()
-
-   local localExtRange = field:localExtRange():intersect(field:globalRange())
-   for idx in localExtRange:colMajorIter() do
-      local fitr = field:get(indexer(idx))
-      assert_equal(idx[1]+2*idx[2]+1, fitr[1], string.format("Checking field value at (%d, %d)", idx[1], idx[2]))
-   end
-   Mpi.Barrier(comm)
-
-   local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
-
-   -- Check corner ghost cells (cuts={2,1}, periodicDirs={1,2}).
-   if rank==0 then
-      local fItr = field:get(indexer({0,0}))
-      assert_equal(6+2*8+1, fItr[1], "Checking 0,0 corner periodic sync")
-      local fItr = field:get(indexer({4,0}))
-      assert_equal(4+2*8+1, fItr[1], "Checking 4,0 corner periodic sync")
-      local fItr = field:get(indexer({0,9}))
-      assert_equal(6+2*1+1, fItr[1], "Checking 0,9 corner periodic sync")
-      local fItr = field:get(indexer({4,9}))
-      assert_equal(4+2*1+1, fItr[1], "Checking 4,9 corner periodic sync")
-   else
-      local fItr = field:get(indexer({3,0}))
-      assert_equal(3+2*8+1, fItr[1], "Checking 3,0 corner periodic sync")
-      local fItr = field:get(indexer({7,0}))
-      assert_equal(1+2*8+1, fItr[1], "Checking 7,0 corner periodic sync")
-      local fItr = field:get(indexer({3,9}))
-      assert_equal(3+2*1+1, fItr[1], "Checking 3,9 corner periodic sync")
-      local fItr = field:get(indexer({7,9}))
-      assert_equal(1+2*1+1, fItr[1], "Checking 7,9 corner periodic sync")
-   end
-
---   -- Check corner ghost cells (cuts={1,2}, periodicDirs={1,2}).
---   if rank==0 then
---      local fItr = field:get(indexer({0,0}))
---      assert_equal(6+2*8+1, fItr[1], "Checking 0,0 corner periodic sync")
---      local fItr = field:get(indexer({7,0}))
---      assert_equal(1+2*8+1, fItr[1], "Checking 7,0 corner periodic sync")
---      local fItr = field:get(indexer({0,5}))
---      assert_equal(6+2*5+1, fItr[1], "Checking 0,5 corner periodic sync")
---      local fItr = field:get(indexer({7,5}))
---      assert_equal(1+2*5+1, fItr[1], "Checking 7,5 corner periodic sync")
---   else
---      local fItr = field:get(indexer({0,4}))
---      assert_equal(6+2*4+1, fItr[1], "Checking 0,4 corner periodic sync")
---      local fItr = field:get(indexer({7,4}))
---      assert_equal(1+2*4+1, fItr[1], "Checking 7,4 corner periodic sync")
---      local fItr = field:get(indexer({0,9}))
---      assert_equal(6+2*1+1, fItr[1], "Checking 0,9 corner periodic sync")
---      local fItr = field:get(indexer({7,9}))
---      assert_equal(1+2*1+1, fItr[1], "Checking 7,9 corner periodic sync")
---   end
-
---   -- Check corner ghost cells (cuts={2,1}, periodicDirs={2}).
---   if rank==0 then
---      local fItr = field:get(indexer({0,0}))
---      assert_equal(0, fItr[1], "Checking 0,0 corner periodic sync")
---      local fItr = field:get(indexer({4,0}))
---      assert_equal(4+2*8+1, fItr[1], "Checking 4,0 corner periodic sync")
---      local fItr = field:get(indexer({0,9}))
---      assert_equal(0, fItr[1], "Checking 0,9 corner periodic sync")
---      local fItr = field:get(indexer({4,9}))
---      assert_equal(4+2*1+1, fItr[1], "Checking 4,9 corner periodic sync")
---   else
---      local fItr = field:get(indexer({3,0}))
---      assert_equal(3+2*8+1, fItr[1], "Checking 3,0 corner periodic sync")
---      local fItr = field:get(indexer({7,0}))
---      assert_equal(0, fItr[1], "Checking 7,0 corner periodic sync")
---      local fItr = field:get(indexer({3,9}))
---      assert_equal(3+2*1+1, fItr[1], "Checking 3,9 corner periodic sync")
---      local fItr = field:get(indexer({7,9}))
---      assert_equal(0, fItr[1], "Checking 7,9 corner periodic sync")
---   end
-
---   -- Check corner ghost cells (cuts={2,1}, periodicDirs={1}).
---   if rank==0 then
---      local fItr = field:get(indexer({0,0}))
---      assert_equal(0, fItr[1], "Checking 0,0 corner periodic sync")
---      local fItr = field:get(indexer({4,0}))
---      assert_equal(0, fItr[1], "Checking 4,0 corner periodic sync")
---      local fItr = field:get(indexer({0,9}))
---      assert_equal(0, fItr[1], "Checking 0,9 corner periodic sync")
---      local fItr = field:get(indexer({4,9}))
---      assert_equal(0, fItr[1], "Checking 4,9 corner periodic sync")
---   else
---      local fItr = field:get(indexer({3,0}))
---      assert_equal(0, fItr[1], "Checking 3,0 corner periodic sync")
---      local fItr = field:get(indexer({7,0}))
---      assert_equal(0, fItr[1], "Checking 7,0 corner periodic sync")
---      local fItr = field:get(indexer({3,9}))
---      assert_equal(0, fItr[1], "Checking 3,9 corner periodic sync")
---      local fItr = field:get(indexer({7,9}))
---      assert_equal(0, fItr[1], "Checking 7,9 corner periodic sync")
---   end
-
---   -- Check corner ghost cells (cuts={1,2}, periodicDirs={1}).
---   if rank==0 then
---      local fItr = field:get(indexer({0,0}))
---      assert_equal(0, fItr[1], "Checking 0,0 corner periodic sync")
---      local fItr = field:get(indexer({7,0}))
---      assert_equal(0, fItr[1], "Checking 7,0 corner periodic sync")
---      local fItr = field:get(indexer({0,5}))
---      assert_equal(6+2*5+1, fItr[1], "Checking 0,5 corner periodic sync")
---      local fItr = field:get(indexer({7,5}))
---      assert_equal(1+2*5+1, fItr[1], "Checking 7,5 corner periodic sync")
---   else
---      local fItr = field:get(indexer({0,4}))
---      assert_equal(6+2*4+1, fItr[1], "Checking 0,4 corner periodic sync")
---      local fItr = field:get(indexer({7,4}))
---      assert_equal(1+2*4+1, fItr[1], "Checking 7,4 corner periodic sync")
---      local fItr = field:get(indexer({0,9}))
---      assert_equal(0, fItr[1], "Checking 0,9 corner periodic sync")
---      local fItr = field:get(indexer({7,9}))
---      assert_equal(0, fItr[1], "Checking 7,9 corner periodic sync")
---   end
 end
 
 function test_7(comm)
+   -- Check sync in 3D, and the corners shared by the two MPI ranks.
+   local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
+   if nz ~= 2 then
+      log("Not running test_7 as numProcs not exactly 2")
+      return
+   end
+
+   local testCuts = {{2,1,1}}
+   local testPeriodicDirs = {{1,2,3}} 
+
+   local decomp, grid, field = {}, {}, {}
+   for tI = 1, #testCuts do
+      decomp[tI] = DecompRegionCalc.CartProd { cuts = testCuts[tI] }
+
+      grid[tI] = Grid.RectCart {
+         lower = {0.0, 0.0, 0.0},
+         upper = {1.0, 1.0, 1.0},
+         cells = {6, 8, 4},
+         decomposition = decomp[tI],
+         periodicDirs  = testPeriodicDirs[tI],
+      }
+      field[tI] = DataStruct.Field {
+         onGrid        = grid[tI],
+         numComponents = 1,
+         ghost         = {1, 1},
+         syncCorners   = true,
+      }
+
+      local localRange = field[tI]:localRange()
+      local indexer    = field[tI]:genIndexer()
+      for idx in localRange:colMajorIter() do
+         local fitr = field[tI]:get(indexer(idx))
+         fitr[1]    = idx[1]+2*idx[2]+3*idx[3]+1
+      end
+
+      field[tI]:sync()
+
+      local localExtRange = field[tI]:localExtRange():intersect(field[tI]:globalRange())
+      for idx in localExtRange:colMajorIter() do
+         local fitr = field[tI]:get(indexer(idx))
+         assert_equal(idx[1]+2*idx[2]+3*idx[3]+1, fitr[1], string.format("Checking field value at (%d, %d, %d)", idx[1], idx[2], idx[3]))
+      end
+      Mpi.Barrier(comm)
+
+      local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
+
+      if tI == 1 then
+         -- Check "corner" ghost cells (cuts={2,1}, periodicDirs={1,2}).
+         if rank==0 then
+            -- Check corners.
+            local fItr = field[tI]:get(indexer({0,0,0}))
+            assert_equal(6+2*8+3*4+1, fItr[1], "Checking 0,0,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({4,0,0}))
+            assert_equal(4+2*8+3*4+1, fItr[1], "Checking 4,0,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({0,9,0}))
+            assert_equal(6+2*1+3*4+1, fItr[1], "Checking 0,9,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({4,9,0}))
+            assert_equal(4+2*1+3*4+1, fItr[1], "Checking 4,9,0 corner periodic sync")
+
+            local fItr = field[tI]:get(indexer({0,0,5}))
+            assert_equal(6+2*8+3*1+1, fItr[1], "Checking 0,0,5 corner periodic sync")
+            local fItr = field[tI]:get(indexer({4,0,5}))
+            assert_equal(4+2*8+3*1+1, fItr[1], "Checking 4,0,5 corner periodic sync")
+            local fItr = field[tI]:get(indexer({0,9,5}))
+            assert_equal(6+2*1+3*1+1, fItr[1], "Checking 0,9,5 corner periodic sync")
+            local fItr = field[tI]:get(indexer({4,9,5}))
+            assert_equal(4+2*1+3*1+1, fItr[1], "Checking 4,9,5 corner periodic sync")
+
+            -- Check ghost edges.
+            for i=1,3 do
+               local fItr = field[tI]:get(indexer({i,0,0}))
+               assert_equal(i+2*8+3*4+1, fItr[1], string.format("Checking %d,0,0 corner periodic sync",i))
+               local fItr = field[tI]:get(indexer({i,9,0}))
+               assert_equal(i+2*1+3*4+1, fItr[1], string.format("Checking %d,9,0 corner periodic sync",i))
+               local fItr = field[tI]:get(indexer({i,0,5}))
+               assert_equal(i+2*8+3*1+1, fItr[1], string.format("Checking %d,0,5 corner periodic sync",i))
+               local fItr = field[tI]:get(indexer({i,9,5}))
+               assert_equal(i+2*1+3*1+1, fItr[1], string.format("Checking %d,9,5 corner periodic sync",i))
+            end
+            for i=1,8 do
+               local fItr = field[tI]:get(indexer({0,i,0}))
+               assert_equal(6+2*i+3*4+1, fItr[1], string.format("Checking 0,%d,0 corner periodic sync",i))
+               local fItr = field[tI]:get(indexer({0,i,5}))
+               assert_equal(6+2*i+3*1+1, fItr[1], string.format("Checking 0,%d,5 corner periodic sync",i))
+               local fItr = field[tI]:get(indexer({4,i,0}))
+               assert_equal(4+2*i+3*4+1, fItr[1], string.format("Checking 4,%d,0 corner periodic sync",i))
+               local fItr = field[tI]:get(indexer({4,i,5}))
+               assert_equal(4+2*i+3*1+1, fItr[1], string.format("Checking 4,%d,5 corner periodic sync",i))
+            end
+            for i=1,4 do
+               local fItr = field[tI]:get(indexer({0,0,i}))
+               assert_equal(6+2*8+3*i+1, fItr[1], string.format("Checking 0,0,%d corner periodic sync",i))
+               local fItr = field[tI]:get(indexer({4,0,i}))
+               assert_equal(4+2*8+3*i+1, fItr[1], string.format("Checking 4,0,%d corner periodic sync",i))
+               local fItr = field[tI]:get(indexer({0,9,i}))
+               assert_equal(6+2*1+3*i+1, fItr[1], string.format("Checking 0,9,%d corner periodic sync",i))
+               local fItr = field[tI]:get(indexer({4,9,i}))
+               assert_equal(4+2*1+3*i+1, fItr[1], string.format("Checking 4,9,%d corner periodic sync",i))
+            end
+         else
+            -- Check corners.
+            local fItr = field[tI]:get(indexer({3,0,0}))
+            assert_equal(3+2*8+3*4+1, fItr[1], "Checking 3,0,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({7,0,0}))
+            assert_equal(1+2*8+3*4+1, fItr[1], "Checking 7,0,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({3,9,0}))
+            assert_equal(3+2*1+3*4+1, fItr[1], "Checking 3,9,0 corner periodic sync")
+            local fItr = field[tI]:get(indexer({7,9,0}))
+            assert_equal(1+2*1+3*4+1, fItr[1], "Checking 7,9,0 corner periodic sync")
+
+            local fItr = field[tI]:get(indexer({3,0,5}))
+            assert_equal(3+2*8+3*1+1, fItr[1], "Checking 3,0,5 corner periodic sync")
+            local fItr = field[tI]:get(indexer({7,0,5}))
+            assert_equal(1+2*8+3*1+1, fItr[1], "Checking 7,0,5 corner periodic sync")
+            local fItr = field[tI]:get(indexer({3,9,5}))
+            assert_equal(3+2*1+3*1+1, fItr[1], "Checking 3,9,5 corner periodic sync")
+            local fItr = field[tI]:get(indexer({7,9,5}))
+            assert_equal(1+2*1+3*1+1, fItr[1], "Checking 7,9,5 corner periodic sync")
+
+            -- Check ghost edges.
+            for i=4,6 do
+               local fItr = field[tI]:get(indexer({i,0,0}))
+               assert_equal(i+2*8+3*4+1, fItr[1], string.format("Checking %d,0,0 corner periodic sync",i))
+               local fItr = field[tI]:get(indexer({i,9,0}))
+               assert_equal(i+2*1+3*4+1, fItr[1], string.format("Checking %d,9,0 corner periodic sync",i))
+               local fItr = field[tI]:get(indexer({i,0,5}))
+               assert_equal(i+2*8+3*1+1, fItr[1], string.format("Checking %d,0,5 corner periodic sync",i))
+               local fItr = field[tI]:get(indexer({i,9,5}))
+               assert_equal(i+2*1+3*1+1, fItr[1], string.format("Checking %d,9,5 corner periodic sync",i))
+            end
+            for i=1,8 do
+               local fItr = field[tI]:get(indexer({3,i,0}))
+               assert_equal(3+2*i+3*4+1, fItr[1], string.format("Checking 3,%d,0 corner periodic sync",i))
+               local fItr = field[tI]:get(indexer({3,i,5}))
+               assert_equal(3+2*i+3*1+1, fItr[1], string.format("Checking 3,%d,5 corner periodic sync",i))
+               local fItr = field[tI]:get(indexer({7,i,0}))
+               assert_equal(1+2*i+3*4+1, fItr[1], string.format("Checking 7,%d,0 corner periodic sync",i))
+               local fItr = field[tI]:get(indexer({7,i,5}))
+               assert_equal(1+2*i+3*1+1, fItr[1], string.format("Checking 7,%d,5 corner periodic sync",i))
+            end
+            for i=1,4 do
+               local fItr = field[tI]:get(indexer({3,0,i}))
+               assert_equal(3+2*8+3*i+1, fItr[1], string.format("Checking 3,0,%d corner periodic sync",i))
+               local fItr = field[tI]:get(indexer({7,0,i}))
+               assert_equal(1+2*8+3*i+1, fItr[1], string.format("Checking 7,0,%d corner periodic sync",i))
+               local fItr = field[tI]:get(indexer({3,9,i}))
+               assert_equal(3+2*1+3*i+1, fItr[1], string.format("Checking 3,9,%d corner periodic sync",i))
+               local fItr = field[tI]:get(indexer({7,9,i}))
+               assert_equal(1+2*1+3*i+1, fItr[1], string.format("Checking 7,9,%d corner periodic sync",i))
+            end
+         end
+      end
+   end
+end
+      
+function test_8(comm)
    local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
    if nz ~= 4 then
-      log("Not running test_6 as numProcs not exactly 4")
+      log("Not running test_8 as numProcs not exactly 4")
       return
    end
 
@@ -484,7 +652,7 @@ function test_7(comm)
    end   
 end
 
-function test_8(comm)
+function test_9(comm)
    local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
    log(string.format("Running shared CartField tests on %d procs", nz))
 
@@ -520,10 +688,10 @@ function test_8(comm)
    assert_equal(grid:localRange():volume(), totalCount, "Checking if total count is correct")
 end
 
-function test_9(comm)
+function test_10(comm)
    local nz = Mpi.Comm_size(comm)
    if nz ~= 2 then
-      log("Not running test_8 as numProcs not exactly 2")
+      log("Not running test_10 as numProcs not exactly 2")
       return
    end
 
@@ -568,12 +736,12 @@ function test_9(comm)
 end
 
 -- This test is a repeat of test 3, but communicating device data using CUDA-aware MPI.
-function test_10(comm)
+function test_11(comm)
    if not GKYL_HAVE_CUDA then return end
 
    local nz = Mpi.Comm_size(comm)
    if nz ~= 3 then
-      log("Not running test_9 as numProcs not exactly 3")
+      log("Not running test_11 as numProcs not exactly 3")
       return
    end
 
@@ -622,12 +790,12 @@ function test_10(comm)
 end
 
 -- This test is a repeat of test 4, but communicating device data using CUDA-aware MPI.
-function test_11(comm)
+function test_12(comm)
    if not GKYL_HAVE_CUDA then return end
 
    local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
    if nz ~= 4 then
-      log("Not running test_10 as numProcs not exactly 4")
+      log("Not running test_12 as numProcs not exactly 4")
       return
    end
 
@@ -676,12 +844,12 @@ function test_11(comm)
 end
 
 -- This test is a repeat of test 5, but communicating device data using CUDA-aware MPI.
-function test_12(comm)
+function test_13(comm)
    if not GKYL_HAVE_CUDA then return end
 
    local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
    if nz ~= 2 then
-      log("Not running test_11 as numProcs not exactly 2")
+      log("Not running test_13 as numProcs not exactly 2")
       return
    end
 
@@ -725,12 +893,12 @@ function test_12(comm)
    Mpi.Barrier(comm)
 end
 
-function test_13(comm)
+function test_14(comm)
    if not GKYL_HAVE_CUDA then return end
 
    local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
    if nz ~= 16 then
-      log("Not running test_12 as numProcs not exactly 16")
+      log("Not running test_14 as numProcs not exactly 16")
       return
    end
 
@@ -775,19 +943,20 @@ function test_13(comm)
 end
 
 comm = Mpi.COMM_WORLD
---test_1(comm)
+test_1(comm)
 --test_2(comm)
 --test_3(comm)
 --test_4(comm)
---test_5(comm)
+test_5(comm)
 test_6(comm)
---test_7(comm)
+test_7(comm)
 --test_8(comm)
 --test_9(comm)
---test_10(comm)
+test_10(comm)
 --test_11(comm)
 --test_12(comm)
---test_13(comm)
+test_13(comm)
+--test_14(comm)
 
 totalFail = allReduceOneInt(stats.fail)
 totalPass = allReduceOneInt(stats.pass)

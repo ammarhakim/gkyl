@@ -516,6 +516,102 @@ function test_13()
 end
 
 function test_14()
+   -- Test syncCorners in 3D.
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0, 0.0},
+      upper = {1.0, 1.0, 1.0},
+      cells = {10, 10, 10},
+      periodicDirs = {1, 2, 3},
+   }
+   local field = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = 1,
+      ghost         = {1, 1},
+      syncCorners   = true,
+   }
+   field:clear(10.5)
+
+   local indexer = field:indexer()
+   local fItr
+   -- Set corner cells.
+   fItr = field:get(indexer(1,1,1));   fItr[1] = 1.0
+   fItr = field:get(indexer(10,1,1));  fItr[1] = 2.0
+   fItr = field:get(indexer(1,10,1));  fItr[1] = 3.0
+   fItr = field:get(indexer(10,10,1)); fItr[1] = 4.0
+   fItr = field:get(indexer(1,1,8));   fItr[1] = 5.0
+   fItr = field:get(indexer(10,1,8));  fItr[1] = 6.0
+   fItr = field:get(indexer(1,10,8));  fItr[1] = 7.0
+   fItr = field:get(indexer(10,10,8)); fItr[1] = 8.0
+
+   -- Set skin cells that aren't corners. 
+   for i = 2,9 do fItr = field:get(indexer(i,1,1));   fItr[1] = 1.0+i/10. end
+   for i = 2,9 do fItr = field:get(indexer(1,i,1));   fItr[1] = 2.0+i/10. end
+   for i = 2,9 do fItr = field:get(indexer(i,10,1));  fItr[1] = 3.0+i/10. end
+   for i = 2,9 do fItr = field:get(indexer(10,i,1));  fItr[1] = 4.0+i/10. end
+
+   for i = 2,9 do fItr = field:get(indexer(i,1,10));  fItr[1] = 5.0+i/10. end
+   for i = 2,9 do fItr = field:get(indexer(1,i,10));  fItr[1] = 6.0+i/10. end
+   for i = 2,9 do fItr = field:get(indexer(i,10,10)); fItr[1] = 7.0+i/10. end
+   for i = 2,9 do fItr = field:get(indexer(10,i,10)); fItr[1] = 8.0+i/10. end
+
+   for i = 2,9 do fItr = field:get(indexer(1,1,i));   fItr[1] = 11.0+i/10. end
+   for i = 2,9 do fItr = field:get(indexer(10,1,i));  fItr[1] = 12.0+i/10. end
+   for i = 2,9 do fItr = field:get(indexer(1,10,i));  fItr[1] = 13.0+i/10. end
+   for i = 2,9 do fItr = field:get(indexer(10,10,i)); fItr[1] = 14.0+i/10. end
+
+   field:sync() -- Sync field.
+
+   -- Check if periodic dirs are sync()-ed properly.
+   local fItr = field:get(indexer(11,1,1))
+   assert_equal(1.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(11,10,1))
+   assert_equal(3.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(0,1,1))
+   assert_equal(2.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(0,10,1))
+   assert_equal(4.0, fItr[1], "Checking non-corner periodic sync")
+
+   -- Check corner ghost cells.
+   local fItr = field:get(indexer(11,11,11))
+   assert_equal(1.0, fItr[1], "Checking 11,11,11 corner periodic sync")
+   local fItr = field:get(indexer(11,0,11))
+   assert_equal(3.0, fItr[1], "Checking 11,0,11 corner periodic sync")
+   local fItr = field:get(indexer(0,0,11))
+   assert_equal(4.0, fItr[1], "Checking 0,0,11 corner periodic sync")
+   local fItr = field:get(indexer(0,11,11))
+   assert_equal(2.0, fItr[1], "Checking 0,11,11 corner periodic sync")
+   -- Check "corner" ranges (edges really), which are not actual corners of the extended range.
+   for i = 2,9 do
+      fItr = field:get(indexer(i,11,11))
+      assert_equal(1.0+i/10., fItr[1], string.format("Checking %d,11,11 corner periodic sync",i))
+      fItr = field:get(indexer(11,i,11))
+      assert_equal(2.0+i/10., fItr[1], string.format("Checking 11,%d,11 corner periodic sync",i))
+      fItr = field:get(indexer(i,0,11))
+      assert_equal(3.0+i/10., fItr[1], string.format("Checking %d,0,11 corner periodic sync",i))
+      fItr = field:get(indexer(0,i,11))
+      assert_equal(4.0+i/10., fItr[1], string.format("Checking 0,%d,11 corner periodic sync",i))
+
+      fItr = field:get(indexer(i,11,0))
+      assert_equal(5.0+i/10., fItr[1], string.format("Checking %d,11,0 corner periodic sync",i))
+      fItr = field:get(indexer(11,i,0))
+      assert_equal(6.0+i/10., fItr[1], string.format("Checking 11,%d,0 corner periodic sync",i))
+      fItr = field:get(indexer(i,0,0))
+      assert_equal(7.0+i/10., fItr[1], string.format("Checking %d,0,0 corner periodic sync",i))
+      fItr = field:get(indexer(0,i,0))
+      assert_equal(8.0+i/10., fItr[1], string.format("Checking 0,%d,0 corner periodic sync",i))
+
+      fItr = field:get(indexer(11,11,i))
+      assert_equal(11.0+i/10., fItr[1], string.format("Checking 11,11,%d corner periodic sync",i))
+      fItr = field:get(indexer(0,11,i))
+      assert_equal(12.0+i/10., fItr[1], string.format("Checking 0,11,%d corner periodic sync",i))
+      fItr = field:get(indexer(11,0,i))
+      assert_equal(13.0+i/10., fItr[1], string.format("Checking 11,0,%d corner periodic sync",i))
+      fItr = field:get(indexer(0,0,i))
+      assert_equal(14.0+i/10., fItr[1], string.format("Checking 0,0,%d corner periodic sync",i))
+   end
+end
+
+function test_15()
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},
       upper = {1.0, 1.0},
@@ -538,7 +634,7 @@ function test_14()
    fItr = field:get(indexer(1,10));  fItr[1] = 3.0
    fItr = field:get(indexer(10,10)); fItr[1] = 4.0
 
-   field:periodicCopy() -- Copy periodic boundary conditions for field.
+   field:periodicCopy() -- Copy periodic boundary conditions for field. SyncCorners not implemented for this method yet.
 
    -- Check if periodic dirs are sync()-ed properly.
    local fItr = field:get(indexer(11,1))
@@ -552,7 +648,7 @@ function test_14()
 
 end
 
-function test_15()
+function test_16()
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},
       upper = {1.0, 1.0},
@@ -641,7 +737,7 @@ function test_15()
    assert_equal(scaSum, cartScaSum[1], "Checking scalar reduce('sum')")
 end
 
-function test_16()
+function test_17()
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},
       upper = {1.0, 1.0},
@@ -701,6 +797,7 @@ test_13()
 test_14()
 test_15()
 test_16()
+test_17()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
