@@ -12,34 +12,25 @@
 
 local Moments = require("App.PlasmaOnCartGrid").Moments()
 local Euler = require "Eq.Euler"
-local BoundaryCondition = require "Updater.BoundaryCondition"
 
 local gasGamma = 1.4
 
 local Lx = 1.5
-local Ly = 100.0 --- This is arbitrary.
+local Ly = 1.0 -- This is arbitrary.
 local Lz = 1.0
 
-local NX = 600
+local NX = 96
 local NY = 1  -- This must be 1.
-local NZ = 400
-local decompCuts = {2, 1, 2}
+local NZ = 64
 
--- Smaller grid for faster regression test.
-NX, NZ = 90, 60
-decompCuts = {1, 1, 1}
-
-local cfl = 0.9
+local cflFrac = 0.9
 local tStart = 0.0
-local tEnd = 0.7
-local nFrames = 10
-
-print("Moments.Species.bcAxis", Moments.Species.bcAxis)
+local tEnd = 1.0
+local nFrames = 1
 
 local momentApp = Moments.App {
    logToFile = true,
 
-   cfl = cfl,
    cflFrac = cflFrac,
    tEnd = tEnd,
    nFrame = nFrames,

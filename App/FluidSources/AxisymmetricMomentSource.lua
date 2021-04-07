@@ -7,12 +7,12 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local SourceBase = require "App.Sources.SourceBase"
+local FluidSourceBase = require "App.FluidSources.FluidSourceBase"
 local DataStruct = require "DataStruct"
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
 
-local AxisymmetricMomentsSource = Proto(SourceBase)
+local AxisymmetricMomentsSource = Proto(FluidSourceBase)
 
 function AxisymmetricMomentsSource:init(tbl)
    self.tbl = tbl
@@ -65,7 +65,7 @@ function AxisymmetricMomentsSource:createSolver(species, field)
    end
 end
 
-function AxisymmetricMomentsSource:updateSource(tCurr, dt, speciesVar, fieldVar)
+function AxisymmetricMomentsSource:updateFluidSource(tCurr, dt, speciesVar, fieldVar)
    local status = true
    local dtSuggested = GKYL_MAX_DOUBLE
 
