@@ -1,9 +1,9 @@
 local Proto = require "Lib.Proto"
 
 -- empty shell source base class
-local SourceBase = Proto()
+local FluidSourceBase = Proto()
 
 -- optional output for source
-function SourceBase:write(tm) end
+function FluidSourceBase:write(tm) end
 
-return SourceBase
+return FluidSourceBase
