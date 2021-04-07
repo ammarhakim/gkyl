@@ -27,7 +27,8 @@ wTrans  : [wx1, wx2, wx3]$
 dvTrans : [vx*dv1/2, vy*dv2/2, vz*dv3/2]$
 
 /* Number density */
-calcM0(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcM0(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
+  [modNm,p,bP,bC,fl,M],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -46,7 +47,8 @@ calcM0(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
 
 /* Momentum */
-calcM1i(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcM1i(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
+  [modNm,p,bP,bC,i,fl,M,clst],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -75,7 +77,8 @@ calcM1i(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 ))$
 
 /* Pressure tensor */
-calcM2ij(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcM2ij(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
+  [modNm,p,bP,bC,i,fl,M,clst],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -107,7 +110,8 @@ calcM2ij(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 ))$
 
 /* Energy */
-calcM2(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcM2(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
+  [modNm,p,bP,bC,i,fl,M,clst],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -134,7 +138,8 @@ calcM2(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 ))$
 
 /* Heat-flux vector */
-calcM3i(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcM3i(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
+  [modNm,p,bP,bC,i,fl,M,clst],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -166,7 +171,8 @@ calcM3i(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 ))$
 
 /* Calculate M0, M1i, and M2 (Five moments) sequentially */
-calcFiveMoments(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcFiveMoments(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
+  [modNm,p,bP,bC,i,fl,M0,M1i,M2,M0M1i,M0M2,incr_tempM0,incr_tempM1i,clst],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),

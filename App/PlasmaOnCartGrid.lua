@@ -31,7 +31,7 @@ math = require("sci.math").generic -- this is global so that it affects input fi
 -- needed to run the App itself. Specific objects should be loaded in
 -- the  methods defined at the bottom of this file)
 local SpeciesBase       = require "App.Species.SpeciesBase"
-local SourceBase        = require "App.Sources.SourceBase"
+local FluidSourceBase   = require "App.FluidSources.FluidSourceBase"
 local FieldBase         = require ("App.Field.FieldBase").FieldBase
 local ExternalFieldBase = require ("App.Field.FieldBase").ExternalFieldBase
 local NoField           = require ("App.Field.FieldBase").NoField
@@ -153,15 +153,15 @@ local function buildApplication(self, tbl)
    -- configuration space decomp object (eventually, this will be
    -- slaved to the phase-space decomp)
    local decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts,
+      cuts      = decompCuts,
       useShared = useShared,
    }
 
    -- Some timers.
-   local stepperTime = 0.0
-   local fwdEulerCombineTime = 0.0
-   local writeDataTime = 0.
-   local writeRestartTime = 0.
+   local stepperTime         = 0.
+   local fwdEulerCombineTime = 0.
+   local writeDataTime       = 0.
+   local writeRestartTime    = 0.
 
    -- Pick grid ctor based on uniform/non-uniform grid.
    local GridConstructor = Grid.RectCart
@@ -181,7 +181,12 @@ local function buildApplication(self, tbl)
       mapc2p        = tbl.mapc2p,
       world         = tbl.world,
    }
-   --confGrid:write("grid.bp")
+   if tbl.coordinateMap or tbl.mapc2p then 
+      local metaData = {polyOrder = confBasis:polyOrder(),
+                        basisType = confBasis:id(),
+                        grid      = GKYL_OUT_PREFIX .. "_grid.bp"}
+      confGrid:write("grid.bp", 0.0, metaData)
+   end
 
    -- Read in information about each species.
    local species = {}
@@ -210,27 +215,27 @@ local function buildApplication(self, tbl)
       s:alloc(stepperNumFields[timeStepperNm])
    end
 
-   -- Read in information about each source
-   local sources = {}
+   -- Read in information about each fluid source
+   local fluidSources = {}
    for nm, val in pairs(tbl) do
-      if SourceBase.is(val) then
-	 sources[nm] = val
-	 sources[nm]:setName(nm)
-	 val:fullInit(tbl) -- Initialize sources.
+      if FluidSourceBase.is(val) then
+	 fluidSources[nm] = val
+	 fluidSources[nm]:setName(nm)
+	 val:fullInit(tbl) -- Initialize fluid sources.
       end
    end
 
    -- Create a keys entry in sources so we always loop in the same order.
-   local sources_keys = {}
-   for k in pairs(sources) do table.insert(sources_keys, k) end
-   table.sort(sources_keys)
-   setmetatable(sources, sources_keys)
+   local fluidSources_keys = {}
+   for k in pairs(fluidSources) do table.insert(fluidSources_keys, k) end
+   table.sort(fluidSources_keys)
+   setmetatable(fluidSources, fluidSources_keys)
 
    -- Add grid to app object.
    self._confGrid = confGrid
 
-   -- Set conf grid for each source.
-   for _, s in lume.orderedIter(sources) do
+   -- Set conf grid for each fluid source.
+   for _, s in lume.orderedIter(fluidSources) do
       s:setConfGrid(confGrid)
    end  
 
@@ -303,8 +308,8 @@ local function buildApplication(self, tbl)
       s:createDiagnostics()
    end
 
-   -- Initialize source solvers.
-   for nm, s in lume.orderedIter(sources) do
+   -- Initialize fluid source solvers.
+   for nm, s in lume.orderedIter(fluidSources) do
       s:createSolver(species, field)
    end   
 
@@ -333,7 +338,7 @@ local function buildApplication(self, tbl)
    -- Function to write data to file.
    local function writeData(tCurr, force)
       for _, s in lume.orderedIter(species) do s:write(tCurr, force) end
-      for _, src in lume.orderedIter(sources) do src:write(tCurr) end 
+      for _, src in lume.orderedIter(fluidSources) do src:write(tCurr) end 
       field:write(tCurr, force)
       externalField:write(tCurr, force)
    end
@@ -589,8 +594,8 @@ local function buildApplication(self, tbl)
       return status, dtSuggested, tryInv_next
    end
 
-   -- Update sources.
-   local function updateSource(dataIdx, tCurr, dt)
+   -- Update fluid sources.
+   local function updateFluidSource(dataIdx, tCurr, dt)
       -- Make list of species data to operate on.
       local speciesVar = {}
       for nm, s in lume.orderedIter(species) do
@@ -611,8 +616,8 @@ local function buildApplication(self, tbl)
 
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
       -- Update sources.
-      for nm, s in lume.orderedIter(sources) do
-	 local myStatus, myDtSuggested = s:updateSource(
+      for nm, s in lume.orderedIter(fluidSources) do
+	 local myStatus, myDtSuggested = s:updateFluidSource(
             tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, species,
             field, externalField.em)
 	 status =  status and myStatus
@@ -630,9 +635,9 @@ local function buildApplication(self, tbl)
       -- Copy in case we need to take this step again.
       copy(3, 1)
 
-      -- Update source by half time-step.
+      -- Update fluid source by half time-step.
       do
-	 local myStatus, myDtSuggested = updateSource(1, tCurr, dt/2)
+	 local myStatus, myDtSuggested = updateFluidSource(1, tCurr, dt/2)
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
@@ -668,13 +673,13 @@ local function buildApplication(self, tbl)
          for _, s in lume.orderedIter(species) do tryInv[s] = false end
       end
 
-      -- Update source by half time-step.
+      -- Update fluid source by half time-step.
       if status and isInv then
 	 local myStatus, myDtSuggested
 	 if fIdx[cdim][2] == 2 then
-	    myStatus, myDtSuggested = updateSource(2, tCurr, dt/2)
+	    myStatus, myDtSuggested = updateFluidSource(2, tCurr, dt/2)
 	 else
-	    myStatus, myDtSuggested = updateSource(1, tCurr, dt/2)
+	    myStatus, myDtSuggested = updateFluidSource(1, tCurr, dt/2)
 	 end
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
@@ -871,7 +876,7 @@ local function buildApplication(self, tbl)
          end
       end
 
-      for _, s in lume.orderedIter(sources) do tmSrc = tmSrc + s:totalTime() end
+      for _, s in lume.orderedIter(fluidSources) do tmSrc = tmSrc + s:totalTime() end
 
       local tmTotal = tmSimEnd-tmSimStart
       local tmAccounted = 0.0
@@ -921,7 +926,7 @@ local function buildApplication(self, tbl)
 	     tmCollNonSlvr, tmCollNonSlvr/step, 100*tmCollNonSlvr/tmTotal))
       tmAccounted = tmAccounted + tmCollNonSlvr
       log(string.format(
-	     "Source updaters took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     "Fluid source updaters took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmSrc, tmSrc/step, 100*tmSrc/tmTotal))
       tmAccounted = tmAccounted + tmSrc
       log(string.format(
@@ -1043,12 +1048,12 @@ return {
 	 Species = require "App.Species.MomentSpecies",
 	 Field = require ("App.Field.MaxwellField").MaxwellField,
          ExternalField = require ("App.Field.MaxwellField").ExternalMaxwellField,
-	 CollisionlessEmSource = require "App.Sources.CollisionlessEmSource",
-	 TenMomentRelaxSource  = require "App.Sources.TenMomentRelaxSource",
-        AxisymmetricMomentSource = require "App.Sources.AxisymmetricMomentSource",
-        AxisymmetricPhMaxwellSource = require "App.Sources.AxisymmetricPhMaxwellSource",
-        BraginskiiHeatConductionSource = require "App.Sources.BraginskiiHeatConductionSource",
-        BraginskiiViscosityDiffusionSource = require "App.Sources.BraginskiiViscosityDiffusionSource",
+	 CollisionlessEmSource = require "App.FluidSources.CollisionlessEmSource",
+	 TenMomentRelaxSource  = require "App.FluidSources.TenMomentRelaxSource",
+        AxisymmetricMomentSource = require "App.FluidSources.AxisymmetricMomentSource",
+        AxisymmetricPhMaxwellSource = require "App.FluidSources.AxisymmetricPhMaxwellSource",
+        BraginskiiHeatConductionSource = require "App.FluidSources.BraginskiiHeatConductionSource",
+        BraginskiiViscosityDiffusionSource = require "App.FluidSources.BraginskiiViscosityDiffusionSource",
       }
    end
 }

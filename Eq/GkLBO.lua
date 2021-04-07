@@ -36,6 +36,8 @@ function GkLBO:init(tbl)
    assert(tbl.mass, "Eq.GkLBO: Must pass mass using 'mass'.")
    self._inMass = tbl.mass
 
+   local isGridNonuniform = tbl.gridID == "mapped"
+
    local applyPositivity = xsys.pickBool(tbl.positivity,false)   -- Positivity preserving option.
 
    self._pdim = self._phaseBasis:ndim()
@@ -68,11 +70,11 @@ function GkLBO:init(tbl)
    -- Functions to perform LBO updates.
    if self._cellConstNu then
       self._volUpdate  = GkLBOModDecl.selectConstNuVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-      self._surfUpdate = GkLBOModDecl.selectConstNuSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), applyPositivity)
+      self._surfUpdate = GkLBOModDecl.selectConstNuSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), isGridNonuniform, applyPositivity)
       self._boundarySurfUpdate = GkLBOModDecl.selectConstNuBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), applyPositivity)
    else
       self._volUpdate  = GkLBOModDecl.selectVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-      self._surfUpdate = GkLBOModDecl.selectSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), applyPositivity)
+      self._surfUpdate = GkLBOModDecl.selectSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), isGridNonuniform, applyPositivity)
       self._boundarySurfUpdate = GkLBOModDecl.selectBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), applyPositivity)
    end
 

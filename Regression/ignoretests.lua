@@ -24,7 +24,7 @@ return {
    "./vm-weibel/rt-weibel-1x2v-p3.lua",
    "./vm-weibel/rt-weibel-2x2v-p3.lua",
    "./mom-axisymmetric/rt-phmaxwell-circular-waveguide-TM.lua",
-   "./mom-axisymmetric/rt-phmaxwell-axisymmetric.lua"
+   "./mom-axisymmetric/rt-phmaxwell-axisymmetric.lua",
    "./mom-axisymmetric/rt-5m-dean-axisymmetric.lua",
    "./mom-axisymmetric/rt-5m-mirror.lua",
 }

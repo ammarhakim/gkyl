@@ -7,18 +7,15 @@ import os
 
 def build(bld):
     bld.shlib(source = r"""
-    Fpo/fpoMomsKernelP1.cpp
-    Fpo/fpoDiagKernelP1.cpp
+    Fpo/vlasov_fpo_moms_3x_ser_p1.cpp
+    Fpo/vlasov_fpo_diag_3x_ser_p1.cpp
 
     Fpo/vlasov_fpo_drag_cell_3x_ser_p1.cpp
 
-    Fpo/fpoDiffSurfXLSer3xP1.cpp
-    Fpo/fpoDiffSurfXUSer3xP1.cpp
-    Fpo/fpoDiffSurfYLSer3xP1.cpp
-    Fpo/fpoDiffSurfYUSer3xP1.cpp
-    Fpo/fpoDiffSurfZLSer3xP1.cpp
-    Fpo/fpoDiffSurfZUSer3xP1.cpp
-    Fpo/fpoDiffVolSer3xP1.cpp
+    Fpo/vlasov_fpo_diff_surfx_3x_ser_p1.cpp
+    Fpo/vlasov_fpo_diff_surfy_3x_ser_p1.cpp
+    Fpo/vlasov_fpo_diff_surfz_3x_ser_p1.cpp
+    Fpo/vlasov_fpo_diff_vol_3x_ser_p1.cpp
     """,
     includes = '. Fpo', use='Eigen MPI lib', target = 'proto', name='proto', vnum = '1.0')
 

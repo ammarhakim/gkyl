@@ -170,9 +170,20 @@ writeCExprsDoubleCollect1lhsc(lhs, rhs, clst) := block([expr],
   )
 )$
 
-writeCExprs1noPowers(lhs, rhs, qPow, numElemMax) := block([expr],
+findReplacePowers(rhs,qPow,alreadyDecl) := block(
   /* Search for powers of the quantities in qPow. If one of them is found
-     then define a temporary variable for it before writing out the increment. */
+     then define a temporary variable for it before writing out the increment.
+       qPow: list of quantities whose powers to search for.
+       numElemMax: maximum number of elements in each quantity of qPow.
+       writeDecl: indicate whether to write out the declaration of temporary variables.
+     We return the list of declared temporary variables, to be used in avoiding
+     redefining the same variables.
+  */
+  [numElemMax, d,f,k,exprN,subList,maxExponent,eI,doSub,newTempVar,idx,lhsS,rhsS],
+
+  /* Maximum number of elements of qPow (e.g. qPow[0], qPow[1], ...) whose
+     powers to search for. */
+  numElemMax : 256,
 
   exprN : length(rhs),
 
@@ -189,11 +200,17 @@ writeCExprs1noPowers(lhs, rhs, qPow, numElemMax) := block([expr],
           ),
           if (doSub) then (
             /* Define a separate variable. */
-            lhsS : sconcat("  const double ",string(qPow[eI]),d,"R",f),
-            rhsS : sconcat("std::pow(",string(qPow[eI][d]),",",f,");~%"),
-            printf(fh, sconcat(lhsS," = ",rhsS)),
+            newTempVar : sconcat(string(qPow[eI]),d,"R",f),
+            /* Check that the new variable hasn't already been declared. */
+            idx : sublist_indices(alreadyDecl,lambda([x], x=newTempVar)),
+            if length(idx)=0 then (
+              lhsS : sconcat("  const double ",newTempVar),
+              rhsS : sconcat("pow(",string(qPow[eI][d]),",",f,");~%"),
+              printf(fh, sconcat(lhsS," = ",rhsS)),
+              alreadyDecl : endcons(newTempVar,alreadyDecl)
+            ),
             /* Add to the string substitution list, used in writing file. */
-            subList : append(subList,[[sconcat(string(qPow[eI][d]), "^",f), sconcat(string(qPow[eI]),d,"R",f)]])
+            subList : append(subList,[[sconcat(string(qPow[eI][d]), "^",f), newTempVar]])
           )
         )
       )
@@ -205,9 +222,15 @@ writeCExprs1noPowers(lhs, rhs, qPow, numElemMax) := block([expr],
         ),
         if (doSub) then (
           /* Define a separate variable. */
-          lhsS : sconcat("  const double ",sconcat(string(op(qPow[eI])),args(qPow[eI])[1]),"R",f),
-          rhsS : sconcat("std::pow(",string(qPow[eI]),",",f,");~%"),
-          printf(fh, sconcat(lhsS," = ",rhsS)),
+          newTempVar : sconcat(string(op(qPow[eI])),args(qPow[eI])[1],"R",f),
+          /* Check that the new variable hasn't already been declared. */
+          idx : sublist_indices(alreadyDecl,lambda([x], x=newTempVar)),
+          if length(idx)=0 then (
+            lhsS : sconcat("  const double ",newTempVar),
+            rhsS : sconcat("pow(",string(qPow[eI]),",",f,");~%"),
+            printf(fh, sconcat(lhsS," = ",rhsS)),
+            alreadyDecl : endcons(newTempVar,alreadyDecl)
+          ),
           /* Add to the string substitution list, used in writing file. */
           subList : append(subList,[[sconcat(string(qPow[eI]), "^",f), sconcat(sconcat(string(op(qPow[eI])),args(qPow[eI])[1]),"R",f)]])
         )
@@ -215,9 +238,24 @@ writeCExprs1noPowers(lhs, rhs, qPow, numElemMax) := block([expr],
     )
   ),
   printf(fh, "~%"),
+  return([subList,alreadyDecl])
+)$
+
+writeCExprs1noPowers(lhs, rhs, qPow, alreadyDecl) := block(
+  [i,subList,expr,ep,outStr],
+  /* Search for powers of the quantities in qPow. If one of them is found
+     then define a temporary variable for it before writing out the increment.
+       qPow: list of quantities whose powers to search for.
+       numElemMax: maximum number of elements in each quantity of qPow.
+       writeDecl: indicate whether to write out the declaration of temporary variables.
+     We return the list of declared temporary variables, to be used in avoiding
+     redefining the same variables.
+  */
+
+  [subList,alreadyDecl] : findReplacePowers(rhs, qPow, alreadyDecl), 
 
   expr : float(rhs),
-  for i : 1 thru exprN do (
+  for i : 1 thru length(rhs) do (
     if expr[i] # 0.0 then (
       ep : string(expr[i]),
       if (length(subList) > 0) then (
@@ -230,5 +268,31 @@ writeCExprs1noPowers(lhs, rhs, qPow, numElemMax) := block([expr],
       ),
       printf(fh, "  ~a = ~a; ~%", lhs[i-1], outStr)
     )
-  )
+  ),
+  return(alreadyDecl)
 )$
+
+writeCIncrExprsCollect1noPowers(lhs, rhs, clst, qPow, alreadyDecl) := block(
+  [i,subList,expr,ep,outStr],
+
+  [subList,alreadyDecl] : findReplacePowers(rhs, qPow, alreadyDecl), 
+
+  expr : float(expand(rhs)),
+  for i : 1 thru length(rhs) do (
+    if expr[i] # 0.0 then (
+      expr[i] : apply(collectterms, cons(expr[i], clst)),
+      ep : string(expr[i]),
+      if (length(subList) > 0) then (
+        outStr : ssubst(subList[1][2],subList[1][1],ep),
+        for s : 2 thru length(subList) do (
+          outStr : ssubst(subList[s][2],subList[s][1],outStr)
+        )
+      ) else (
+        outStr : ep
+      ),
+      printf(fh, "  ~a += ~a; ~%", lhs[i-1], outStr)
+    )
+  ),
+  return(alreadyDecl)
+)$
+

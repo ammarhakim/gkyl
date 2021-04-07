@@ -247,7 +247,7 @@ function GkLBOCollisions:createSolver(externalField)
       -- Self-species collisionality, which varies in space.
       self.nuVarXSelf = DataStruct.Field {
          onGrid        = self.confGrid,
-         numComponents = self.cNumBasis,
+         numComponents = self.confBasis:numBasis(),
          ghost         = {1, 1},
       }
       -- Collisionality, nu, summed over all species pairs.
@@ -295,6 +295,7 @@ function GkLBOCollisions:createSolver(externalField)
       useCellAverageNu = self.cellConstNu,
       mass             = self.mass,
       positivity       = self.usePositivity,
+      gridID           = self.phaseGrid:id(),
    }
    self.collisionSlvr = Updater.HyperDisCont {
       onGrid             = self.phaseGrid,

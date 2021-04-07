@@ -294,8 +294,7 @@ function FluidSpecies:bcNeumannFunc(dir, tm, idxIn, fIn, fOut)
 end
 
 -- Function to construct a BC updater.
-function FluidSpecies:makeBcUpdater(dir, edge, bcList, skinLoop,
-                                    hasExtFld)
+function FluidSpecies:makeBcUpdater(dir, edge, bcList, skinLoop, hasExtFld)
 
    -- If BC is Dirichlet or Neumann select appropriate kernels.
    if (bcList[2] == 5) then
