@@ -90,15 +90,15 @@ if GKYL_HAVE_CUDA then
    ]]
 end
 
--- Local definitions
+-- Local definitions.
 local rowMajLayout, colMajLayout = Range.rowMajor, Range.colMajor -- data layout
 local indexerMakerFuncs = {} -- list of functions that make indexers
 indexerMakerFuncs[rowMajLayout] = Range.makeRowMajorIndexer
 indexerMakerFuncs[colMajLayout] = Range.makeColMajorIndexer
--- Default layout
+-- Default layout.
 local defaultLayout = rowMajLayout
 
-local genIndexerMakerFuncs = {} -- list of functions that make generic indexers
+local genIndexerMakerFuncs = {} -- List of functions that make generic indexers.
 genIndexerMakerFuncs[rowMajLayout] = Range.makeRowMajorGenIndexer
 genIndexerMakerFuncs[colMajLayout] = Range.makeColMajorGenIndexer
 
@@ -112,7 +112,7 @@ local function field_check_range(y, x)
    return y:localRange() == x:localRange()
 end
 
--- return local start and num times to bump
+-- Return local start and num times to bump.
 local function getStartAndBump(self, decomp)
    if self._layout == colMajLayout then
       return decomp:colStartIndex(self._shmIndex), decomp:shape(self._shmIndex)
@@ -120,7 +120,16 @@ local function getStartAndBump(self, decomp)
    return decomp:rowStartIndex(self._shmIndex), decomp:shape(self._shmIndex)
 end
 
--- Field accessor object: allows access to field values in cell
+-- Turn numbers in a table into strings and concatenate them.
+local tblToStr = function(tblIn)
+   local strOut = ""
+   for _, v in ipairs(tblIn) do 
+      strOut = v<0 and (strOut .. math.abs(v) .. 1) or (strOut .. math.abs(v) .. 2) 
+   end
+   return strOut
+end
+
+-- Field accessor object: allows access to field values in cell.
 local function new_field_comp_ct(elct)
    local field_comp_mf = {
       data = function(self)
@@ -515,17 +524,10 @@ local function Field_meta_ctor(elct)
          self._recvLowerCornerPerMPILoc[dir]     , self._recvUpperCornerPerMPILoc[dir]      = {}, {}
          self._recvLowerCornerPerMPIDataType[dir], self._recvUpperCornerPerMPIDataType[dir] = {}, {}
          if grid:isDirPeriodic(dir) then
-            if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print("dir = ",dir) end
             local cTs = self._cornersToSync[dir]
             for dI, bD in ipairs(cTs) do   -- Loop over lower boundary subdomains.
-               if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print("  d = ",dI) end
                for cI, dC in ipairs(bD) do   -- Loop over corners.
                   local loId, upId, corDirs = dC.lower, dC.upper, dC.dirs
-                  if #corDirs==2 then
-                     if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print(string.format("    lower=%d | upper=%d | dirs=%d,%d",loId,upId,corDirs[1],corDirs[2])) end
-                  else
-                     if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print(string.format("    lower=%d | upper=%d | dirs=%d,%d,%d",loId,upId,corDirs[1],corDirs[2],corDirs[3])) end
-                  end
                   if myId == loId then
                      local rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
                      for dI = 2,#corDirs do
@@ -536,8 +538,6 @@ local function Field_meta_ctor(elct)
                            rgnSend = rgnSend:shortenFromBelow(oDir, self._upperGhost)
                         end
                      end
-                     --if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print(string.format("      -rgnSend lower=(%d,%d) | upper=(%d,%d)",rgnSend:lower(1),rgnSend:lower(2),rgnSend:upper(1),rgnSend:upper(2))) end
-                     if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print(string.format("      -rgnSend lower=(%d,%d,%d) | upper=(%d,%d,%d)",rgnSend:lower(1),rgnSend:lower(2),rgnSend:lower(3),rgnSend:upper(1),rgnSend:upper(2),rgnSend:upper(3))) end
                      local idx = rgnSend:lowerAsVec()
                      -- Set idx to starting point of region you want to recv.
                      table.insert(self._sendLowerCornerPerMPILoc[dir], (indexer(idx)-1)*self._numComponents)
@@ -554,8 +554,6 @@ local function Field_meta_ctor(elct)
                            rgnRecv = rgnRecv:shortenFromBelow(oDir, self._upperGhost)
                         end
                      end
-                     --if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print(string.format("      -rgnRecv lower=(%d,%d) | upper=(%d,%d)",rgnRecv:lower(1),rgnRecv:lower(2),rgnRecv:upper(1),rgnRecv:upper(2))) end
-                     if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print(string.format("      -rgnRecv lower=(%d,%d,%d) | upper=(%d,%d,%d)",rgnRecv:lower(1),rgnRecv:lower(2),rgnRecv:lower(3),rgnRecv:upper(1),rgnRecv:upper(2),rgnRecv:upper(3))) end
                      local idx = rgnRecv:lowerAsVec()
                      -- Set idx to starting point of region you want to recv.
                      table.insert(self._recvLowerCornerPerMPILoc[dir], (indexer(idx)-1)*self._numComponents)
@@ -572,8 +570,6 @@ local function Field_meta_ctor(elct)
                            rgnSend = rgnSend:shorten(oDir, self._upperGhost)
                         end
                      end
-                     --if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print(string.format("      +rgnSend lower=(%d,%d) | upper=(%d,%d)",rgnSend:lower(1),rgnSend:lower(2),rgnSend:upper(1),rgnSend:upper(2))) end
-                     if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print(string.format("      +rgnSend lower=(%d,%d,%d) | upper=(%d,%d,%d)",rgnSend:lower(1),rgnSend:lower(2),rgnSend:lower(3),rgnSend:upper(1),rgnSend:upper(2),rgnSend:upper(3))) end
                      local idx = rgnSend:lowerAsVec()
                      -- Set idx to starting point of region you want to recv.
                      table.insert(self._sendUpperCornerPerMPILoc[dir], (indexer(idx)-1)*self._numComponents)
@@ -590,8 +586,6 @@ local function Field_meta_ctor(elct)
                            rgnRecv = rgnRecv:shorten(oDir, self._upperGhost)
                         end
                      end
-                     --if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print(string.format("      +rgnRecv lower=(%d,%d) | upper=(%d,%d)",rgnRecv:lower(1),rgnRecv:lower(2),rgnRecv:upper(1),rgnRecv:upper(2))) end
-                     if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print(string.format("      +rgnRecv lower=(%d,%d,%d) | upper=(%d,%d,%d)",rgnRecv:lower(1),rgnRecv:lower(2),rgnRecv:lower(3),rgnRecv:upper(1),rgnRecv:upper(2),rgnRecv:upper(3))) end
                      local idx = rgnRecv:lowerAsVec()
                      -- Set idx to starting point of region you want to recv.
                      table.insert(self._recvUpperCornerPerMPILoc[dir], (indexer(idx)-1)*self._numComponents)
@@ -602,31 +596,6 @@ local function Field_meta_ctor(elct)
             end
          end
       end
---                     print(string.format("      rgnSend lower=(%d,%d) | upper=(%d,%d)",rgnSend:lower(1),rgnSend:lower(2),rgnSend:upper(1),rgnSend:upper(2)))
---function tprint (tbl, indent)
---  if not indent then indent = 0 end
---  for k, v in pairs(tbl) do
---    formatting = string.rep("  ", indent) .. k .. ": "
---    if type(v) == "table" then
---      print(formatting)
---      tprint(v, indent+1)
---    else
---      print(formatting .. v)
---    end
---  end
---end
---tprint(self._cornersToSync)
---      for dir = 1, self._ndim do
---         print("dir = ",dir)
---         if grid:isDirPeriodic(dir) then
---            for d, sD in ipairs(self._cornersToSync[dir]) do -- loop over boundary subdomains.
---               print("  d = ",d)
---               for i, v in ipairs(sD) do -- loop over corners.
---                  print(string.format("    lower=%d | upper=%d | dirs=%d,%d",v.lower,v.upper,v.dirs[1],v.dirs[2]))
---               end
---            end
---         end
---      end
 
       -- Create IO object.
       self._adiosIo = AdiosCartFieldIo {
@@ -1199,13 +1168,6 @@ local function Field_meta_ctor(elct)
          -- are 716 such "corners" that may need to be sync-ed. We will
          -- thus say that up->lo tags have 70+cc+800, while lo->up tags 
          -- have 70+cc, where cc is the corner counter/index.
-         local tblToStr = function(tblIn)
-            local strOut = ""
-            for _, v in ipairs(tblIn) do 
-               strOut = v<0 and (strOut .. math.abs(v) .. 1) or (strOut .. math.abs(v) .. 2) 
-            end
-            return strOut
-         end
          
          local recvUpperReq, recvLowerReq = {}, {}
          local recvUpperCornerReq, recvLowerCornerReq = {}, {}
@@ -1242,7 +1204,6 @@ local function Field_meta_ctor(elct)
                         local loId, upId, corDirs = dC.lower, dC.upper, dC.dirs
                         if myId == loId then
                            ccLo = ccLo+1
-                           --local loTag    = cornerBasePerTag+ccLo+800
                            local loTag    = cornerBasePerTag+tonumber(loId..upId..tblToStr(corDirs)..1)
                            local dataType = self._recvLowerCornerPerMPIDataType[dir][ccLo]
                            local loc      = self._recvLowerCornerPerMPILoc[dir][ccLo]
@@ -1251,7 +1212,6 @@ local function Field_meta_ctor(elct)
                         end
                         if myId == upId then
                            ccUp = ccUp+1
-                           --local upTag    = cornerBasePerTag+ccUp
                            local upTag    = cornerBasePerTag+tonumber(loId..upId..tblToStr(corDirs)..2)
                            local dataType = self._recvUpperCornerPerMPIDataType[dir][ccUp]
                            local loc      = self._recvUpperCornerPerMPILoc[dir][ccUp]
@@ -1294,7 +1254,6 @@ local function Field_meta_ctor(elct)
                         local loId, upId, corDirs = dC.lower, dC.upper, dC.dirs
                         if myId == loId then
                            ccUp = ccUp+1
-                           --local loTag    = cornerBasePerTag+ccUp -- This must match recv tag posted above.
                            local loTag    = cornerBasePerTag+tonumber(loId..upId..tblToStr(corDirs)..2)
                            local dataType = self._sendLowerCornerPerMPIDataType[dir][ccUp]
                            local loc      = self._sendLowerCornerPerMPILoc[dir][ccUp]
@@ -1302,7 +1261,6 @@ local function Field_meta_ctor(elct)
                         end
                         if myId == upId then
                            ccLo = ccLo+1
-                           --local upTag    = cornerBasePerTag+ccLo+800 -- This must match recv tag posted above.
                            local upTag    = cornerBasePerTag+tonumber(loId..upId..tblToStr(corDirs)..1)
                            local dataType = self._sendUpperCornerPerMPIDataType[dir][ccLo]
                            local loc      = self._sendUpperCornerPerMPILoc[dir][ccLo]
@@ -1334,12 +1292,10 @@ local function Field_meta_ctor(elct)
                         local loId, upId = dC.lower, dC.upper
                         if myId == loId then
                            ccLo = ccLo+1
---                           if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print(string.format("dir=%d | d=%d | lo,up=%d,%d | ccLo=%d ",dir,dI,loId,upId,ccLo)) end
                            Mpi.Wait(recvLowerCornerReq[dir][ccLo], nil)
                         end
                         if myId == upId then
                            ccUp = ccUp+1
---                           if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print(string.format("dir=%d | d=%d | lo,up=%d,%d | ccUp=%d ",dir,dI,loId,upId,ccUp)) end
                            Mpi.Wait(recvUpperCornerReq[dir][ccUp], nil)
                         end
                      end

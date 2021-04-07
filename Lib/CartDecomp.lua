@@ -119,16 +119,7 @@ function DecomposedRange:init(decomp)
          end
       end
    end   
-   
---   for dir = 1, decomp:ndim() do
---      if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print("dir = ",dir) end
---      for c, sD in ipairs(self._cornerNeigh[dir]) do -- loop over boundary subdomains.
---         if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print("  c = ",c) end
---         for i, v in ipairs(sD) do -- loop over corners.
---            if Mpi.Comm_rank(Mpi.COMM_WORLD)==0 then print(string.format("    lower=%d | upper=%d | dirs=%d,%d",v.lower,v.upper,v.dirs[1],v.dirs[2])) end
---         end
---      end
---   end   
+
 end
 
 -- Set callable methods.
