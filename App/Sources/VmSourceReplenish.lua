@@ -19,12 +19,20 @@ end
 -- we need the app top-level table for proper initialization.
 function VmSourceReplenish:fullInit(speciesTbl)
    local tbl = self.tbl -- Previously stored table.
-   self.sourceSpecies = assert(tbl.sourceSpecies, "App.VmSource: Must specify names of species to in 'sourceSpecies'.")
-   self.sourceLength = assert(tbl.sourceLength, "App.VmSource: Must specify names of species to in 'sourceLength'.")
+   self.sourceSpecies = assert(tbl.sourceSpecies, "App.VmSourceReplenish: must specify names of species to in 'sourceSpecies'.")
+   self.sourceLength = assert(tbl.sourceLength, "App.VmSourceReplenish: must specify names of species to in 'sourceLength'.")
+   self.profile = assert(tbl.profile, "App.VmSourceReplenish: must specify source profile in 'profile'")
+   assert(type(self.profile) == "function", "App.VmSourceReplenish: 'profile' must be a function")
 
    self.tmEvalSrc = 0.0
 end
 
+function VmSourceReplenish:setName(nm)
+   self.name = nm
+end
+function VmSourceReplenish:setSpeciesName(nm)
+   self.speciesName = nm
+end
 function VmSourceReplenish:setConfBasis(basis)
    self.confBasis = basis
 end
@@ -33,7 +41,6 @@ function VmSourceReplenish:setConfGrid(grid)
 end
 
 function VmSourceReplenish:advance(tCurr, fIn, species, fRhsOut)
-   local tmEvalSourceStart = Time.clock()
    local localEdgeFlux = ffi.new("double[3]")
    localEdgeFlux[0] = 0.0
    localEdgeFlux[1] = 0.0
@@ -70,8 +77,6 @@ function VmSourceReplenish:advance(tCurr, fIn, species, fRhsOut)
    Mpi.Allreduce(localEdgeFlux, globalEdgeFlux, 1, Mpi.DOUBLE, Mpi.MAX, self.confGrid:commSet().comm)
    local densFactor = globalEdgeFlux[0]/self.sourceLength
    fRhsOut:accumulate(densFactor, species[self.speciesName].fSource)
-   local tmEvalMomStart = Time.clock()
-   self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tmEvalSrcStart
 end
 
 function VmSourceReplenish:srcTime()

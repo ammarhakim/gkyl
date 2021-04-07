@@ -24,6 +24,7 @@ local ProjectionBase   = require "App.Projection.ProjectionBase"
 local Proto            = require "Lib.Proto"
 local Range            = require "Lib.Range"
 local SpeciesBase      = require "App.Species.SpeciesBase"
+local SourceBase       = require "App.Sources.SourceBase"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
 local ffi              = require "ffi"
@@ -165,10 +166,6 @@ function KineticSpecies:fullInit(appTbl)
       end
    end
    self.sourceSteadyState = xsys.pickBool(tbl.sourceSteadyState, false)
-   if self.sourceSteadyState then
-      self.sourceSteadyStateLength = assert(tbl.sourceSteadyStateLength,
-					    "KineticSpecies: Must specify sourceSteadyStateLength when sourceSteadyState is true.")
-   end
    if tbl.sourceTimeDependence then 
       self.sourceTimeDependence = tbl.sourceTimeDependence 
    else 
@@ -281,11 +278,17 @@ function KineticSpecies:setConfBasis(basis)
    for _, c in pairs(self.collisions) do
       c:setConfBasis(basis)
    end
+   for _, s in pairs(self.sources) do
+      s:setConfBasis(basis)
+   end
 end
 function KineticSpecies:setConfGrid(grid)
    self.confGrid = grid
    for _, c in pairs(self.collisions) do
       c:setConfGrid(grid)
+   end
+   for _, s in pairs(self.sources) do
+      s:setConfGrid(grid)
    end
 end
 
@@ -614,13 +617,12 @@ function KineticSpecies:initDist(extField)
    end
    -- Set up profile function for species sources
    for nm, pr in lume.orderedIter(self.sources) do
-      local profile = assert(self.sources[nm].profile, "KineticSpecies: must specify function profile with 'profile' for particle source")
-      assert(type(profile) == "function", "KineticSpecies: source 'profile' must be a function")
+      local profile = self.sources[nm].profile
       local sourcePr = Projection.KineticProjection.FunctionProjection { func = function(t, zn) return profile(t, zn, self) end, }
       sourcePr:fullInit(self)
       sourcePr:advance(0.0, {extField}, {self.distf[2]})
       Mpi.Barrier(self.grid:commSet().sharedComm)
-      not self.fSource then self.fSource = self:allocDistf() end
+      if not self.fSource then self.fSource = self:allocDistf() end
       self.fSource:accumulate(1.0, self.distf[2])
       if self.positivityRescale then
 	 self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
