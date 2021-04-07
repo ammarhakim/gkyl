@@ -49,6 +49,7 @@ function BraginskiiViscosityDiffusionSource:createSolver(species, field)
 
    self.slvr = Updater.BraginskiiViscosityDiffusion {
       onGrid           = self.grid,
+      cfl              = tbl.cfl,
       numFluids        = #tbl.species,
       eta              = tbl.eta,
       hasHeating       = tbl.hasHeating,
