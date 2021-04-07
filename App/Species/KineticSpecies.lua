@@ -976,7 +976,7 @@ function KineticSpecies:write(tm, force)
 
       -- Only write stuff if triggered.
       if self.distIoTrigger(tm) or force then
-         self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame, true)
+         self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
          if self.f0 then
             if tm == 0.0 then
 	       self.f0:write(string.format("%s_f0_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame, true)

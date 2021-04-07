@@ -7,7 +7,6 @@
 --
 --------------------------------------------------------------------------------
 local Plasma    = (require "App.PlasmaOnCartGrid").Gyrokinetic()
-local Vlasov    = require("App.PlasmaOnCartGrid").VlasovMaxwell()
 local Constants = require "Lib.Constants"
 local Mpi       = require "Comm.Mpi"
 
@@ -305,7 +304,7 @@ plasmaApp = Plasma.App {
       randomseed = randomseed,
    },
 
-   neutral = Vlasov.Species {
+   neutral = Plasma.Vlasov {
       evolve = true,
       charge = 0.0, 
       mass   = mi,
@@ -316,7 +315,7 @@ plasmaApp = Plasma.App {
       decompCuts = {1},
 
       -- Initial conditions.
-      init = Vlasov.MaxwellianProjection {
+      init = Plasma.VmMaxwellianProjection {
          density = function (t, xn)
    	    local x, y, z = xn[1], xn[2], xn[3]
             local n_n = 0.1*n0
@@ -361,14 +360,14 @@ plasmaApp = Plasma.App {
       },
 
       -- Source parameters.
-      source = Vlasov.MaxwellianProjection{
+      source = Plasma.VmMaxwellianProjection{
          density     = sourceDensityNeut,
          temperature = 2.*eV,
       },
 
       -- Boundary conditions.
-      bcx = {Vlasov.Species.bcAbsorb, Vlasov.Species.bcAbsorb},
-      bcz = {Vlasov.Species.bcReflect, Vlasov.Species.bcReflect},
+      bcx = {Plasma.Vlasov.bcAbsorb, Plasma.Vlasov.bcAbsorb},
+      bcz = {Plasma.Vlasov.bcReflect, Plasma.Vlasov.bcReflect},
 
       -- Diagnostics.
       diagnosticMoments = { "M0", "u", "vtSq"},
