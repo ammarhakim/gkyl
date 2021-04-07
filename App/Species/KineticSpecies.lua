@@ -155,6 +155,15 @@ function KineticSpecies:fullInit(appTbl)
 	 self.projections[nm] = val
       end
    end
+   self.sources = {}
+   for nm, val in pairs(tbl) do
+      if SourceBase.is(val) then
+	 self.sources[nm] = val
+	 self.sources[nm]:setName(nm)
+	 val:setSpeciesName(self.name)
+	 val:fullInit(tbl) -- Initialize sources
+      end
+   end
    self.sourceSteadyState = xsys.pickBool(tbl.sourceSteadyState, false)
    if self.sourceSteadyState then
       self.sourceSteadyStateLength = assert(tbl.sourceSteadyStateLength,
@@ -177,17 +186,18 @@ function KineticSpecies:fullInit(appTbl)
 	 func = function(t, zn) return tbl.background(t, zn, self) end,
       }
    end
-   if type(tbl.source) == "function" then
-      self.projections["source"] = Projection.KineticProjection.FunctionProjection {
-	 func = function(t, zn) return tbl.source(t, zn, self) end,
-      }
-   end
 
    -- Create a keys metatable in self.projections so we always loop in the same order (better for I/O).
    local projections_keys = {}
    for k in pairs(self.projections) do table.insert(projections_keys, k) end
    table.sort(projections_keys)
    setmetatable(self.projections, projections_keys)
+
+   -- Create a keys metatable in self.projections so we always loop in the same order (better for I/O).
+   local sources_keys = {}
+   for k in pairs(self.sources) do table.insert(sources_keys, k) end
+   table.sort(sources_keys)
+   setmetatable(self.sources, sources_keys)
 
    self.deltaF         = xsys.pickBool(appTbl.deltaF, false)
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
@@ -595,33 +605,40 @@ function KineticSpecies:initDist(extField)
 	 self.f0:sync(syncPeriodicDirs)
 	 backgroundCnt = backgroundCnt + 1
       end
-      if string.find(nm,"source") then
-	 if not self.fSource then self.fSource = self:allocDistf() end
-	 self.fSource:accumulate(1.0, self.distf[2])
-         if self.positivityRescale then
-            self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
-         end
-         if pr.power then
-            local calcInt = Updater.CartFieldIntegratedQuantCalc {
-               onGrid        = self.confGrid,
-               basis         = self.confBasis,
-               numComponents = 1,
-               quantity      = "V",
-            }
-            local intKE = DataStruct.DynVector{numComponents = 1}
-            self.ptclEnergyCalc:advance(0.0, {self.fSource}, {self.ptclEnergyAux})
-            calcInt:advance(0.0, {self.ptclEnergyAux, self.mass/2}, {intKE})
-            local _, intKE_data = intKE:lastData()
-            self.powerScalingFac = pr.power/intKE_data[1]
-            self.fSource:scale(self.powerScalingFac)
-         end
-      end
       -- if pr.isReservoir then
       --    if not self.fReservoir then 
       --       self.fReservoir = self:allocDistf()
       --    end
       --    self.fReservoir:accumulate(1.0, self.distf[2])
       -- end
+   end
+   -- Set up profile function for species sources
+   for nm, pr in lume.orderedIter(self.sources) do
+      local profile = assert(self.sources[nm].profile, "KineticSpecies: must specify function profile with 'profile' for particle source")
+      assert(type(profile) == "function", "KineticSpecies: source 'profile' must be a function")
+      local sourcePr = Projection.KineticProjection.FunctionProjection { func = function(t, zn) return profile(t, zn, self) end, }
+      sourcePr:fullInit(self)
+      sourcePr:advance(0.0, {extField}, {self.distf[2]})
+      Mpi.Barrier(self.grid:commSet().sharedComm)
+      not self.fSource then self.fSource = self:allocDistf() end
+      self.fSource:accumulate(1.0, self.distf[2])
+      if self.positivityRescale then
+	 self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
+      end
+      if pr.power then
+	 local calcInt = Updater.CartFieldIntegratedQuantCalc {
+	    onGrid        = self.confGrid,
+	    basis         = self.confBasis,
+	    numComponents = 1,
+	    quantity      = "V",
+	 }
+	 local intKE = DataStruct.DynVector{numComponents = 1}
+	 self.ptclEnergyCalc:advance(0.0, {self.fSource}, {self.ptclEnergyAux})
+	 calcInt:advance(0.0, {self.ptclEnergyAux, self.mass/2}, {intKE})
+	 local _, intKE_data = intKE:lastData()
+	 self.powerScalingFac = sourcePr.power/intKE_data[1]
+	 self.fSource:scale(self.powerScalingFac)
+      end
    end
    if self.scaleInitWithSourcePower then self.distf[1]:scale(self.powerScalingFac) end
    assert(initCnt > 0,
