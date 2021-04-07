@@ -118,7 +118,7 @@ plasmaApp = Plasma.App {
    nFrame      = 1,                            -- Number of output frames.
    lower       = {R - Lx/2-.02, -Ly/2, -Lz/2}, -- Configuration space lower left.
    upper       = {R + Lx/2, Ly/2, Lz/2},       -- Configuration space upper right.
-   cells       = {8, 4, 8},                    -- Configuration space cells.
+   cells       = {8, 1, 8},                    -- Configuration space cells.
    basis       = "serendipity",                -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                            -- Polynomial order.
    timeStepper = "rk3",                        -- One of "rk2" or "rk3".
@@ -155,9 +155,9 @@ plasmaApp = Plasma.App {
             local nPeak           = 4*math.sqrt(5)/3/c_ss*Ls*effectiveSource/2
             local perturb         = 1e-3*(math.random()-0.5)*2.0
             if math.abs(z) <= Ls then
-               return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2*(1+perturb)
+               return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2--*(1+perturb)
             else
-               return nPeak/2*(1+perturb)
+               return nPeak/2 --*(1+perturb)
             end
          end,
          temperature = function (t, xn)
@@ -229,9 +229,9 @@ plasmaApp = Plasma.App {
             local nPeak           = 4*math.sqrt(5)/3/c_ss*Ls*effectiveSource/2
             local perturb         = 1e-3*(math.random()-0.5)*2.0
             if math.abs(z) <= Ls then
-               return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2*(1+perturb)
+               return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2 --*(1+perturb)
             else
-               return nPeak/2*(1+perturb)
+               return nPeak/2 --*(1+perturb)
             end
          end,
          temperature = function (t, xn)
