@@ -177,6 +177,7 @@ function BraginskiiHeatConduction:_forwardEuler(
 
       self._anisotropicDiffusion:setDtAndCflRate(dt)
       self._anisotropicDiffusion:setAuxField(fld)
+      self._anisotropicDiffusion:setCalcQSwitch(true)
       self._anisotropicDiffusion:setCalcDivQSwitch(false)
       local myStatus, myDtSuggested = self._anisotropicDiffusion:advance(
          tCurr, {buf, emf, staticEmf}, {buf, buf})
