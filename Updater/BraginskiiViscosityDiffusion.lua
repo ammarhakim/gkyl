@@ -18,6 +18,7 @@ function BraginskiiViscosityDiffusion:init(tbl)
    local pfx = "Updater.BraginskiiViscosityDiffusion: "
 
    self._onGrid = assert(tbl.onGrid, pfx.." Must provide 'onGrid'.")
+   self._cfl = tbl.cfl and tbl.cfl or 1
 
    self._nFluids = assert(tbl.numFluids, pfx .. "Must provide 'numFluids'.")
 
@@ -34,19 +35,35 @@ function BraginskiiViscosityDiffusion:init(tbl)
                         pfx, tbl._coordinate))
 end
 
+-- TODO Nicer, more accurate time-step size calculation.
+local suggestDt = function(eta, ndim, dx, cfl)
+      local eta__dx2_sum = 0
+      for d = 1, ndim do
+         eta__dx2_sum = eta__dx2_sum + eta / ( (dx[d])^2 )
+      end
+      return cfl * 0.5 / eta__dx2_sum
+end
+
 function BraginskiiViscosityDiffusion:_forwardEuler(
       self, tCurr, inFld, outFld)
    local grid = self._onGrid
    local dt = self._dt
    local nFluids = self._nFluids
 
-   local dtSuggested = GKYL_MAX_DOUBLE
-   local status = true
-
    -- Indices.
    local ndim = grid:ndim()
    local idxp = Lin.IntVec(grid:ndim())
    local idxm = Lin.IntVec(grid:ndim())
+
+   local dtSuggested = GKYL_MAX_DOUBLE
+   local status = true
+
+   local dx = {grid:dx(1), grid:dx(2), grid:dx(3)}
+   for s = 1, nFluids do
+      dtSuggested = suggestDt(self._eta[s], ndim, dx, self._cfl)
+      status = dt <= dtSuggested
+      if not status then return false, dtSuggested end
+   end
 
    -- Comptue grad_para(T) ain internal cells.
    for s = 1, nFluids do
@@ -77,6 +94,7 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
                fld:fill(fldIdxr(idx), fldPtr)
                fld:fill(fldIdxr(idxp), fldPtrP)
                fld:fill(fldIdxr(idxm), fldPtrM)
+               buf:fill(bufIdxr(idx), bufPtr)
 
                local eta = self._eta[s]
                local etaP = self._eta[s]
@@ -240,13 +258,13 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
          if self._hasHeating then
             local keOld = 0.5*(fldPtr[2]^2+fldPtr[3]^2+fldPtr[4]^2) / fldPtr[1]
 
-            for c=2,4 do fldPtr[c] = fldPtr[c] + bufPtr[c] end
+            for c=2,4 do fldPtr[c] = fldPtr[c] + bufPtr[c] * dt end
 
             local keNew = 0.5*(fldPtr[2]^2+fldPtr[3]^2+fldPtr[4]^2) / fldPtr[1]
 
-            fldPtr[5] = fldPtr[5]+keNew-keOld+bufPtr[5]
+            fldPtr[5] = fldPtr[5]+keNew-keOld+bufPtr[5] * dt
          else
-            for c=2,4 do fldPtr[c] = fldPtr[c] + bufPtr[c] end
+            for c=2,4 do fldPtr[c] = fldPtr[c] + bufPtr[c] * dt end
          end
       end
    end
