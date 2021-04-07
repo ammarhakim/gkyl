@@ -452,19 +452,8 @@ local function Field_meta_ctor(elct)
          end
       end
 
-      local dimRemain = {}  -- Remaining dimensions when a dimension is removed.
-      for d1 = 1, self._ndim do
-         dimRemain[d1] = {}
-         for d2 = 1, self._ndim do dimRemain[d1][d2] = d2 end
-         table.remove(dimRemain[d1],d1)
-      end
-      local sign = function(x) return x>0 and 1 or x<0 and -1 or 0 end
-      local structAnyLo = function(structIn, idIn)
-         for i = 1, #structIn do if structIn[i].lower == idIn then return true end end
-         return false
-      end
-      local structAnyUp = function(structIn, idIn)
-         for i = 1, #structIn do if structIn[i].upper == idIn then return true end end
+      local structAny = function(key,structIn, idIn)
+         for i = 1, #structIn do if structIn[i][key] == idIn then return true end end
          return false
       end
       local tblAbs = function(tblIn)
@@ -490,12 +479,12 @@ local function Field_meta_ctor(elct)
                   for dI = 2,#corDirs do
                      local oDir    = math.abs(corDirs[dI])   -- Signs used to differentiate corners. See CartDecomp.
                      local skelIds = decomposedRange:boundarySubDomainIds(oDir)
-                     if structAnyLo(skelIds,loId) then
+                     if structAny("lower",skelIds,loId) then
                         -- This subdomain is on lower boundary of other dimension. If
                         -- other direction is not periodic then don't sync this corner.
                         if corDirs[dI]<0 and not grid:isDirPeriodic(oDir) then syncThisCorner=false end
                      end
-                     if structAnyUp(skelIds,loId) then
+                     if structAny("upper",skelIds,loId) then
                         -- This subdomain is on upper boundary of other dimension. If
                         -- other direction is not periodic then don't sync this corner.
                         if corDirs[dI]>0 and not grid:isDirPeriodic(oDir) then syncThisCorner=false end
@@ -514,6 +503,7 @@ local function Field_meta_ctor(elct)
 
       -- Create MPI DataTypes for syncing corners in periodic directions.
       -- Also store location in memory required for sending/receiving periodic data.
+      -- Note: please understand the code for the face-sync first. It'll help in understanding corner sync.
       self._sendLowerCornerPerMPIDataType, self._recvLowerCornerPerMPIDataType = {}, {}
       self._sendUpperCornerPerMPIDataType, self._recvUpperCornerPerMPIDataType = {}, {}
       self._sendLowerCornerPerMPILoc, self._recvLowerCornerPerMPILoc = {}, {}
@@ -1166,8 +1156,10 @@ local function Field_meta_ctor(elct)
          -- to do periodic communication safely.
          -- However we must also account for corner syncs. In 6D there
          -- are 716 such "corners" that may need to be sync-ed. We will
-         -- thus say that up->lo tags have 70+cc+800, while lo->up tags 
-         -- have 70+cc, where cc is the corner counter/index.
+         -- thus say that up->lo tags have 70+tn+800, while lo->up tags 
+         -- have 70+tn, where tn is the corner tag number. One way to make
+         -- these tag numbers identical is to have them be composed of the
+         -- ID of the participating ranks and the corner directions.
          
          local recvUpperReq, recvLowerReq = {}, {}
          local recvUpperCornerReq, recvLowerCornerReq = {}, {}
@@ -1200,7 +1192,6 @@ local function Field_meta_ctor(elct)
                   local ccLo, ccUp = 0, 0
                   for bI, bD in ipairs(cTs) do   -- Loop over lower boundary subdomains.
                      for _, dC in ipairs(bD) do   -- Loop over corners.
-                        --local loId, upId = dC.lower, dC.upper
                         local loId, upId, corDirs = dC.lower, dC.upper, dC.dirs
                         if myId == loId then
                            ccLo = ccLo+1
