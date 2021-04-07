@@ -7,8 +7,8 @@ local kappaPara = 0.01
 local kappaPerp = 0.0
 local scheme = 'symmetric-cell-center'
 
-local lower        = { 1./2.,  1./2.}
-local upper        = {-1./2., -1./2.}
+local lower        = {-1./2., -1./2.}
+local upper        = { 1./2.,  1./2.}
 local cells        = {64, 64}
 local periodicDirs = {1, 2}
 

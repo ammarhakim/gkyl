@@ -10,8 +10,8 @@ local ionMass     = 100.
 local ionCharge   = 1.
 local elcCharge   = -ionCharge
 
-local lower        = { 1./2.,  1./2.}
-local upper        = {-1./2., -1./2.}
+local lower        = {-1./2., -1./2.}
+local upper        = { 1./2.,  1./2.}
 local cells        = {64, 64}
 local periodicDirs = {1, 2}
 
