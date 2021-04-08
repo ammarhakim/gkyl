@@ -47,8 +47,6 @@ function NonUniformRectCart:init(tbl)
    -- Set grid index to first cell in domain.
    for d = 1, ndim do self._currIdx[d] = 1 end
 
-   self._mappings = tbl.mappings
-   
    self._nodeCoords = {}   -- Nodal coordinates in each direction.
    -- Initialize nodes to be uniform (will be over-written if mappings are provided).
    for d = 1, ndim do
@@ -98,6 +96,9 @@ function NonUniformRectCart:id() return "mapped" end
 function NonUniformRectCart:lower(dir) return self._nodeCoords[dir][1] end
 function NonUniformRectCart:mid(dir) return self:lower(dir) + (self:upper(dir)-self:lower(dir))/2 end
 function NonUniformRectCart:upper(dir) return self._nodeCoords[dir][self:numCells(dir)+1] end
+function NonUniformRectCart:logicalLower(dir) return self._lower[dir] end
+function NonUniformRectCart:logicalMid(dir) return self._lower[dir] + (self._upper[dir]-self._lower[dir])/2 end
+function NonUniformRectCart:logicalUpper(dir) return self._upper[dir] end
 function NonUniformRectCart:nodeCoords(dir) return self._nodeCoords[dir] end
 function NonUniformRectCart:dx(dir)
    local idxInDir = self._currIdx[dir]
@@ -148,36 +149,35 @@ function NonUniformRectCart:write(fName, tmStamp, metaData)
    -- Write a file containing the grid node coordinates. 
 
    -- Create a grid over nodes and a field to store nodal coordinates.
-   local cells, lower, upper, dx = {}, {}, {}, {}
+   local cells, lower, upper = {}, {}, {}
    for d = 1, self:ndim() do
       cells[d] = self:numCells(d)+1   -- One more layer of nodes than cells.
       -- This ensures cell-center of nodal grid lie at nodes of original grid.
       lower[d] = self:lower(d) - 0.5*self:dx(d)
       upper[d] = self:upper(d) + 0.5*self:dx(d)
-      dx[d]    = self:dx(d)
    end
-   -- WILL NEED TO MAKE THIS WORK IN PARALLEL .. EVENTUALLY
+   -- Create a grid of nodes.
    local grid = RectCart {
       lower = lower,
       upper = upper,
       cells = cells,
+      decomposition = self.decomp,
    }
    local nodalCoords = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = self:ndim(),
-      metaData = metaData
+      metaData      = metaData
    }
-
-   local xnc, xnp = Lin.Vec(self:ndim()), Lin.Vec(self:ndim())
 
    local localRange = nodalCoords:localRange()
    local indexer    = nodalCoords:genIndexer()
    for idx in localRange:rowMajorIter() do
       grid:setIndex(idx)
-      local nitr = nodalCoords:get(indexer(idx))
+
+      local nItr = nodalCoords:get(indexer(idx))
       for d = 1, self:ndim() do
          nodeCoords = self:nodeCoords(d)
-         nitr[d] = nodeCoords[idx[d]]
+         nItr[d]    = nodeCoords[idx[d]]
       end
    end
 

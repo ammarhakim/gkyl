@@ -169,23 +169,17 @@ function KineticSpecies:fullInit(appTbl)
    -- to specify a function directly without using a Projection object.
    if type(tbl.init) == "function" then
       self.projections["init"] = Projection.KineticProjection.FunctionProjection {
-	 func = function (t, zn)
-	    return tbl.init(t, zn, self)
-	 end,
+	 func = function(t, zn) return tbl.init(t, zn, self) end,
       }
    end
    if type(tbl.background) == "function" then
       self.projections["background"] = Projection.KineticProjection.FunctionProjection {
-	 func = function (t, zn)
-	    return tbl.background(t, zn, self)
-	 end,
+	 func = function(t, zn) return tbl.background(t, zn, self) end,
       }
    end
    if type(tbl.source) == "function" then
       self.projections["source"] = Projection.KineticProjection.FunctionProjection {
-	 func = function (t, zn)
-	    return tbl.source(t, zn, self)
-	 end,
+	 func = function(t, zn) return tbl.source(t, zn, self) end,
       }
    end
 
@@ -319,6 +313,7 @@ function KineticSpecies:createGrid(confGridIn)
    if self.coordinateMap or confGrid:getMappings() then
       if confGrid:getMappings() and self.coordinateMap then
          for d = 1, self.cdim do
+            lower[d], upper[d] = confGrid:logicalLower(d), confGrid:logicalUpper(d)
             table.insert(coordinateMap, confGrid:getMappings(d))
          end
          for d = 1, self.vdim do
@@ -326,6 +321,7 @@ function KineticSpecies:createGrid(confGridIn)
          end
       elseif confGrid:getMappings() then
          for d = 1, self.cdim do
+            lower[d], upper[d] = confGrid:logicalLower(d), confGrid:logicalUpper(d)
             table.insert(coordinateMap, confGrid:getMappings(d))
          end
          for d = 1, self.vdim do
@@ -365,7 +361,7 @@ function KineticSpecies:createBasis(nm, polyOrder)
    -- Output of grid file is placed here because as the file name is associated
    -- with a species, we wish to save the basisID and polyOrder in it. But these
    -- can only be extracted from self.basis after this is created.
-   if self.coordinateMap then
+   if self.grid:getMappings() then
       local metaData = {polyOrder = self.basis:polyOrder(),
                         basisType = self.basis:id(),
                         charge    = self.charge,
@@ -383,7 +379,8 @@ function KineticSpecies:allocDistf()
         metaData      = {polyOrder = self.basis:polyOrder(),
                          basisType = self.basis:id(),
                          charge    = self.charge,
-                         mass      = self.mass,},
+                         mass      = self.mass,
+                         grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"}
    }
    f:clear(0.0)
    return f

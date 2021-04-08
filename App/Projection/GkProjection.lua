@@ -112,7 +112,7 @@ function MaxwellianProjection:lagrangeFix(distf)
       phaseBasis = self.phaseBasis,
       confGrid   = self.confGrid,
       confBasis  = self.confBasis,
-      mode       = 'Gk',
+      mode       = 'gk',
       mass       = self.species.mass,
    }
    lagFix:advance(0.0, {dM0, dM1, dM2, self.species.bmag}, {distf})
@@ -140,9 +140,7 @@ function MaxwellianProjection:scaleM012(distf)
    }
    local distf2parFunc = function (t, zn)
       local xconf = {}
-      for d = 1, self.cdim do
-         xconf[d] = zn[d]
-      end
+      for d = 1, self.cdim do xconf[d] = zn[d] end
       local vpar = zn[self.cdim+1]
       return vpar^2/2*sp.jacobPhaseFunc(t,xconf)*self.initFunc(t,zn)
    end
@@ -151,9 +149,7 @@ function MaxwellianProjection:scaleM012(distf)
    if self.vdim > 1 then 
       local distf2perpFunc = function (t, zn)
          local xconf = {}
-         for d = 1, self.cdim do
-            xconf[d] = zn[d]
-         end
+         for d = 1, self.cdim do xconf[d] = zn[d] end
          local mu = zn[self.cdim+2]
          return mu*sp.bmagFunc(t,zn)/sp.mass*sp.jacobPhaseFunc(t,xconf)*self.initFunc(t,zn)
       end

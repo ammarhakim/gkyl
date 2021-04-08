@@ -108,7 +108,7 @@ calcFEMresidual(fh, funcNm, dim, basisFun, pMax) := block([],
         printf(fh, "~%"),
 
         /* Write the relaxation stencil. */
-        writeCExprs1noPowers(resOut,residual_c,[rdx2SqVol,bcVals,dxC],18),
+        writeCExprs1noPowers(resOut,residual_c,[rdx2SqVol,bcVals,dxC],18, true),
         printf(fh, "~%"),
 
         printf(fh, "}~%"),

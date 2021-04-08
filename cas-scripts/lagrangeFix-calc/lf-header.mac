@@ -1,0 +1,75 @@
+/* Generate the header file for LagrangeFix kernels. */
+
+/* ...... USER INPUTS........ */
+
+/* Indicate the mininimum and maximum dimensionality for which you wish
+   to generate kernels. The smallest possible is 1 and the largest 6. */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 3$
+minCdim_Ser : 1$
+minVdim_Ser : 1$    /* see beginning of v loop below though. */
+maxCdim_Ser : 3$
+maxVdim_Ser : 3$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 2$
+minCdim_Max : 1$
+minVdim_Max : 1$    /* see begining of v loop below though. */
+maxCdim_Max : 3$
+maxVdim_Max : 3$
+
+/* Tensor product basis. */
+maxPolyOrder_Tensor : 2$
+minCdim_Tensor : 1$
+minVdim_Tensor : 1$    /* see begining of v loop below though. */
+maxCdim_Tensor : 3$
+maxVdim_Tensor : 3$
+
+/* ...... END OF USER INPUTS........ */
+
+bName        : ["ser","max","tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
+minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
+
+
+fh : openw("~/max-out/gkyl_lagrangeFix_kernels.h")$
+
+printf(fh, "#ifndef LAGRANGE_FIX_KERNELS_H~%")$
+printf(fh, "#define LAGRANGE_FIX_KERNELS_H~%")$
+printf(fh, "~%")$
+printf(fh, "#include <math.h>~%"),
+printf(fh, "~%")$
+printf(fh, "extern \"C\" {~%")$
+printf(fh, "~%")$
+
+for bInd : 1 thru length(bName) do (
+  for cD : minCdim[bInd] thru maxCdim[bInd] do (
+    for vD : max(cD,minVdim[bInd]) thru maxVdim[bInd] do (
+
+      maxPolyOrderB : maxPolyOrder[bInd],
+      if (cD+vD>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+      if (cD+vD=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
+
+      for polyOrder : 1 thru maxPolyOrderB do (
+
+        funcNm : "lagrangeFix",
+
+        printf(fh, "  void ~a_vlasov_~ax~av_~a_p~a(double *dm0, double *dm1, double *dm2, double *lo, double *L, double *Nv, double *vc, double *f);~%",funcNm, cD, vD, bName[bInd], polyOrder),
+
+        if (vD<3) or (cD=3 and vD=3) then (
+          if vD < 3 then (gkV : vD) else (gkV : 2),
+          printf(fh, "  void ~a_gk_~ax~av_~a_p~a(double *dm0, double *dm1, double *dm2, double *B, double mass, double *lo, double *L, double *Nv, double *vc, double *f);~%",funcNm, cD, gkV, bName[bInd], polyOrder)
+        )
+      )
+    )
+  )
+);
+
+printf(fh, "~%")$
+printf(fh, "}~%")$
+printf(fh, "#endif")$
+close(fh)$

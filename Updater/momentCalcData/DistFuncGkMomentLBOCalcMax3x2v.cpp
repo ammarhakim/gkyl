@@ -4,16 +4,39 @@ void GkM0Star3x2vMax_VX(const double intFac, const double *wl, const double *wr,
 { 
   // intFac:  =2pi/m for gyrokinetics (not used in Vlasov). 
   // w[NDIM]: Cell-center coordinates. 
-  // dxv[5]:  cell length in each direciton. 
+  // dxv[5]:  cell length in each direction. 
   // fl/fr:   Distribution function in left/right cells 
   // out:     Increment to M_0^star from this cell surface. 
  
   const double dS = 0.5*dxvl[4]*intFac*(wr[3]-wl[3]); 
  
+
   out[0] += ((-0.5773502691896258*fr[4])+0.5773502691896258*fl[4]+0.5*fr[0]+0.5*fl[0])*dS; 
   out[1] += (0.5*fr[1]+0.5*fl[1])*dS; 
   out[2] += (0.5*fr[2]+0.5*fl[2])*dS; 
   out[3] += (0.5*fr[3]+0.5*fl[3])*dS; 
+ 
+} 
+ 
+void GkM0StarNonuniform3x2vMax_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out) 
+{ 
+  // intFac:  =2pi/m for gyrokinetics (not used in Vlasov). 
+  // w[NDIM]: Cell-center coordinates. 
+  // dxv[5]:  cell length in each direction. 
+  // fl/fr:   Distribution function in left/right cells 
+  // out:     Increment to M_0^star from this cell surface. 
+ 
+  const double dS = 0.5*dxvl[4]*intFac*(wr[3]-wl[3]); 
+ 
+  const double dxvl3R2 = pow(dxvl[3],2);
+  const double dxvl3R3 = pow(dxvl[3],3);
+  const double dxvr3R2 = pow(dxvr[3],2);
+  const double dxvr3R3 = pow(dxvr[3],3);
+
+  out[0] += ((-(8.660254037844386*dxvl3R2*dxvr3R2*fr[4])/(6.0*dxvr3R3+18.0*dxvl[3]*dxvr3R2+18.0*dxvl3R2*dxvr[3]+6.0*dxvl3R3))-(5.196152422706631*dxvl3R3*dxvr[3]*fr[4])/(6.0*dxvr3R3+18.0*dxvl[3]*dxvr3R2+18.0*dxvl3R2*dxvr[3]+6.0*dxvl3R3)+(5.196152422706631*dxvl[3]*dxvr3R3*fl[4])/(6.0*dxvr3R3+18.0*dxvl[3]*dxvr3R2+18.0*dxvl3R2*dxvr[3]+6.0*dxvl3R3)+(8.660254037844386*dxvl3R2*dxvr3R2*fl[4])/(6.0*dxvr3R3+18.0*dxvl[3]*dxvr3R2+18.0*dxvl3R2*dxvr[3]+6.0*dxvl3R3)+(6.0*fl[0]*dxvr3R3)/(6.0*dxvr3R3+18.0*dxvl[3]*dxvr3R2+18.0*dxvl3R2*dxvr[3]+6.0*dxvl3R3)+(18.0*fl[0]*dxvl[3]*dxvr3R2)/(6.0*dxvr3R3+18.0*dxvl[3]*dxvr3R2+18.0*dxvl3R2*dxvr[3]+6.0*dxvl3R3)+(18.0*fr[0]*dxvl3R2*dxvr[3])/(6.0*dxvr3R3+18.0*dxvl[3]*dxvr3R2+18.0*dxvl3R2*dxvr[3]+6.0*dxvl3R3)+(6.0*fr[0]*dxvl3R3)/(6.0*dxvr3R3+18.0*dxvl[3]*dxvr3R2+18.0*dxvl3R2*dxvr[3]+6.0*dxvl3R3))*dS; 
+  out[1] += ((fl[1]*dxvr3R3)/(dxvr3R3+3.0*dxvl[3]*dxvr3R2+3.0*dxvl3R2*dxvr[3]+dxvl3R3)+(3.0*fl[1]*dxvl[3]*dxvr3R2)/(dxvr3R3+3.0*dxvl[3]*dxvr3R2+3.0*dxvl3R2*dxvr[3]+dxvl3R3)+(3.0*fr[1]*dxvl3R2*dxvr[3])/(dxvr3R3+3.0*dxvl[3]*dxvr3R2+3.0*dxvl3R2*dxvr[3]+dxvl3R3)+(fr[1]*dxvl3R3)/(dxvr3R3+3.0*dxvl[3]*dxvr3R2+3.0*dxvl3R2*dxvr[3]+dxvl3R3))*dS; 
+  out[2] += ((fl[2]*dxvr3R3)/(dxvr3R3+3.0*dxvl[3]*dxvr3R2+3.0*dxvl3R2*dxvr[3]+dxvl3R3)+(3.0*fl[2]*dxvl[3]*dxvr3R2)/(dxvr3R3+3.0*dxvl[3]*dxvr3R2+3.0*dxvl3R2*dxvr[3]+dxvl3R3)+(3.0*fr[2]*dxvl3R2*dxvr[3])/(dxvr3R3+3.0*dxvl[3]*dxvr3R2+3.0*dxvl3R2*dxvr[3]+dxvl3R3)+(fr[2]*dxvl3R3)/(dxvr3R3+3.0*dxvl[3]*dxvr3R2+3.0*dxvl3R2*dxvr[3]+dxvl3R3))*dS; 
+  out[3] += ((3.0*dxvl3R2*dxvr[3]*fr[3])/(dxvr3R3+3.0*dxvl[3]*dxvr3R2+3.0*dxvl3R2*dxvr[3]+dxvl3R3)+(dxvl3R3*fr[3])/(dxvr3R3+3.0*dxvl[3]*dxvr3R2+3.0*dxvl3R2*dxvr[3]+dxvl3R3)+(dxvr3R3*fl[3])/(dxvr3R3+3.0*dxvl[3]*dxvr3R2+3.0*dxvl3R2*dxvr[3]+dxvl3R3)+(3.0*dxvl[3]*dxvr3R2*fl[3])/(dxvr3R3+3.0*dxvl[3]*dxvr3R2+3.0*dxvl3R2*dxvr[3]+dxvl3R3))*dS; 
  
 } 
  
@@ -23,7 +46,7 @@ void GkM1iM2Star3x2vMax(const double *w, const double *dxv, const double intFac,
   // dxv[5]:  Cell length in each direciton. 
   // intFac:  =2pi/m for gyrokinetics. 
   // m_:      mass. 
-  // Bmag[4]: Magnetic field magnitude. 
+  // Bmag[NC]: Magnetic field magnitude. 
   // f:       Distribution function. 
   // outM1i:  Contribution to M_1^star from this cell. 
   // outM2:   Contribution to M_2^star from this cell. 
@@ -58,7 +81,7 @@ void GkBoundaryIntegral3x2vMax_F_VX_P1(const bool atLower, const double intFac, 
   // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
   // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
   // vBoundary: velocity at the boundary of the velocity grid. 
-  // dxv[5]:    cell length in each direciton. 
+  // dxv[5]:   cell length in each direction. 
   // fIn[6]:    distribution function at velocity boundaries. 
   // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
  
@@ -87,7 +110,7 @@ void GkBoundaryIntegral3x2vMax_F_VX_P2(const bool atLower, const double intFac, 
   // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
   // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
   // vBoundary: velocity at the boundary of the velocity grid. 
-  // dxv[5]:    cell length in each direciton. 
+  // dxv[5]:   cell length in each direction. 
   // fIn[21]:    distribution function at velocity boundaries. 
   // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
  
@@ -128,7 +151,7 @@ void GkBoundaryIntegral3x2vMax_vF_VX_P1(const bool atLower, const double intFac,
   // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
   // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
   // vBoundary: velocity at the boundary of the velocity grid. 
-  // dxv[5]:    cell length in each direciton. 
+  // dxv[5]:   cell length in each direction. 
   // fIn[6]:    distribution function at velocity boundaries. 
   // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
  
@@ -157,7 +180,7 @@ void GkBoundaryIntegral3x2vMax_vF_VX_P2(const bool atLower, const double intFac,
   // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
   // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
   // vBoundary: velocity at the boundary of the velocity grid. 
-  // dxv[5]:    cell length in each direciton. 
+  // dxv[5]:   cell length in each direction. 
   // fIn[21]:    distribution function at velocity boundaries. 
   // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
  
@@ -198,7 +221,7 @@ void GkBoundaryIntegral3x2vMax_vF_VY_P1(const bool atLower, const double intFac,
   // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
   // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
   // vBoundary: velocity at the boundary of the velocity grid. 
-  // dxv[5]:    cell length in each direciton. 
+  // dxv[5]:   cell length in each direction. 
   // fIn[6]:    distribution function at velocity boundaries. 
   // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
  
@@ -227,7 +250,7 @@ void GkBoundaryIntegral3x2vMax_vF_VY_P2(const bool atLower, const double intFac,
   // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
   // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
   // vBoundary: velocity at the boundary of the velocity grid. 
-  // dxv[5]:    cell length in each direciton. 
+  // dxv[5]:   cell length in each direction. 
   // fIn[21]:    distribution function at velocity boundaries. 
   // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
  

@@ -26,7 +26,8 @@ wTrans : [wx1, wx2, wx3]$
 
 /* Density */
 /* M0 = < f > */
-calcGkM0(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcGkM0(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
+  [modNm,p,bP,bC,fl,M],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -46,7 +47,8 @@ calcGkM0(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
 /* step 1: integrate over vpar only */
 /* M0_step1 = int dvpar f  */
-calcGkM0_step1(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcGkM0_step1(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
+  [modNm,p,bP,bP_dvpar,fl,M],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -65,7 +67,8 @@ calcGkM0_step1(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
 /* step 2, integrate over mu only */
 /* M0_step2 = int dmu f  */
-calcGkM0_step2(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcGkM0_step2(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
+  [modNm,p,bP,bP_dvpar,bC,fl,M],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -85,7 +88,8 @@ calcGkM0_step2(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
 /* Parallel Momentum Density */
 /* M1 = < v_par f > */
-calcGkM1(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcGkM1(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
+  [modNm,p,bP,bC,i,fl,M],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -113,7 +117,8 @@ calcGkM1(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
 /* Parallel Momentum Density, but from projected KE = v^2/2 */
 /* M1 = < d/dv_par(v_par^2/2) f > */
-calcGkM1proj(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcGkM1proj(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
+  [modNm,p,bP,bC,i,fl,kE_full,kE_k,kE_expd,vpar_proj,M],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -150,7 +155,8 @@ calcGkM1proj(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
 /* Parallel Particle Energy */
 /* M2par = < v_par^2 f > */
-calcGkM2par(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcGkM2par(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
+  [modNm,p,bP,bC,i,fl,vpar2_k,vpar2_expd,M],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -182,7 +188,8 @@ calcGkM2par(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
 /* Perpendicular Particle Energy */
 /* M2perp = < mu/m B f > */
-calcGkM2perp(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcGkM2perp(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
+  [modNm,p,bP,bC,i,fl,bmag_expd,Mtemp,tmp_expd,M],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -217,7 +224,8 @@ calcGkM2perp(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
 /* Total Particle Energy */
 /* M2 = < v_par^2 + 2 mu/m B f > */
-calcGkM2(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcGkM2(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
+  [modNm,p,bP,bC,i,fl,bmag_expd,vpar2_k,vpar2_expd,Mtemp,tmp_expd,M],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -263,7 +271,8 @@ calcGkM2(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
 /* Parallel Heat Flux */
 /* M3par = < v_par^3 f > */
-calcGkM3par(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcGkM3par(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
+  [modNm,p,bP,bC,i,fl,M],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -292,7 +301,8 @@ calcGkM3par(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
 /* Perpendicular Heat Flux */
 /* M3perp = < v_par mu/m B f > */
-calcGkM3perp(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcGkM3perp(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
+  [modNm,p,bP,bC,i,fl,bmag_expd,M],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -319,7 +329,8 @@ calcGkM3perp(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 ))$
 
 /* Simultaneously calculate M0, M1, and M2 */
-calcGkThreeMoments(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcGkThreeMoments(fh, funcNm, cdim, vdim, basisFun, pMax) := block(
+  [modNm,p,bP,bC,i,fl,bmag_expd,energy,M0,M1,M2par,Mtemp,tmp_expd,M2perp,M],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),

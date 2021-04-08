@@ -51,13 +51,15 @@ writeCIncrExprs1s(lhs, rhs) := block([expr],
   )
 )$
 
-calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
+calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, isNonuniform) := block(
   [modNm,vid,vid1,vv,surfVars,bP,bC,NP,NC,bPp,hOrder,h_e,hsol],
 
   kill(varsC, varsP, basisC, basisP),
   /* Load basis of dimensionality requested. */
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
+
+  pDim : cdim+vdim,
 
   /* Variables. */
   vid  : vidx(cdim,vdim),
@@ -74,8 +76,17 @@ calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder) := bloc
 
   /* Construct the recovery polynomial */
   hOrder : 2*polyOrder+1,
-  h_e    : calcRecov2CellGen(basisFun,vv,varsP,polyOrder,dg(makelist(fl[i-1],i,1,NP)), dg(makelist(fr[i-1],i,1,NP))),
-  hsol   : cons(subst(vv=0,h_e),makelist(subst(vv=0,diff(h_e,vv,ord)/(ord!)),ord,1,hOrder)),
+  if isNonuniform then (
+    recDxvL : makelist(2,i,1,pDim),  recDxvL[cdim+dir] : dxvl[vid1[dir]],
+    recDxvR : makelist(2,i,1,pDim),  recDxvR[cdim+dir] : dxvr[vid1[dir]],
+    h_e : fullratsimp(calcRecov2CellGenNonuniform(basisFun,vv,varsP,polyOrder,recDxvL,recDxvR,
+                                                  dg(makelist(fl[i-1],i,1,NP)), dg(makelist(fr[i-1],i,1,NP)))),
+    rdv2DiffFac : 1
+  ) else (
+    h_e : calcRecov2CellGen(basisFun,vv,varsP,polyOrder,dg(makelist(fl[i-1],i,1,NP)), dg(makelist(fr[i-1],i,1,NP))),
+    rdv2DiffFac : rdv2L
+  ),
+  hsol : cons(subst(vv=0,h_e),makelist(subst(vv=0,diff(h_e,vv,ord)/(ord!)),ord,1,hOrder)),
 
   /* First compute the contribution coming from the second
      differentiation by parts to left and right cells. */
@@ -112,7 +123,7 @@ calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder) := bloc
   /* Calculate Ghat projected on the phase basis. */
   Ghat_c  : calcInnerProdList(varsP,1,bP,-(1/2)*fhat_jump)
            +calcInnerProdList(varsP,1,bP, (1/2)*alphaDrag_e*fhat_avg)
-           +rdv2L*calcInnerProdList(varsP,1,bP,Gdiff_e),
+           +rdv2DiffFac*calcInnerProdList(varsP,1,bP,Gdiff_e),
 
   /* Ghat_c (coefficients of Ghat) is what gets written. From here
   ** on we can simply refer to Ghat. */
@@ -175,18 +186,19 @@ calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder) := bloc
   printf(fh, "~%"),
 
   /* Populate Ghat. */
-  clst : append([rdv2L], makelist(alphaDrag[i],i,0,NC-1)),
-  writeCExprsCollect1(Ghat, Ghat_c, clst),
+  quants : [dxvl,dxvr],
+  tempVars : [],
+  tempVars : writeCExprs1noPowers(Ghat, Ghat_c, quants, tempVars),
   printf(fh, "~%"),
 
   /* Write out increments. */
   printf(fh, "  double incr1[~a]; ~%", NP),
+  clst : append([rdv2L], makelist(alphaDrag[i],i,0,NC-1)),
   writeCExprsCollect1(incr1, incr_r1, clst),
   printf(fh, "~%"),
 
   printf(fh, "  double incr2[~a]; ~%", NP),
-  clst : makelist(nuVtSqSum[i],i,0,NC-1), 
-  writeCExprsCollect1c(incr2, incr_r2, clst),
+  tempVars : writeCExprs1noPowers(incr2, radcan(incr_r2), quants, tempVars),
   printf(fh, "~%"),
 
   incr_s1 : makelist(incr1[i-1], i, 1, NP),
@@ -322,9 +334,9 @@ calcConstNuBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder)
   printf(fh, "} ~%")
 );
 
-calcVmLBOconstNuSurfUpdater(fh, funcNm, cdim, vdim, basisFun, pOrder) := block([],
+calcVmLBOconstNuSurfUpdater(fh, funcNm, cdim, vdim, basisFun, pOrder, isNonuniform) := block([],
   printf(fh, "#include <VmLBOModDecl.h> ~%"),
-  for dir : 1 thru vdim do ( calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pOrder) )
+  for dir : 1 thru vdim do ( calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pOrder, isNonuniform) )
 )$
 
 calcVmLBOconstNuBoundarySurfUpdater(fh, funcNm, cdim, vdim, basisFun, pOrder) := block([],

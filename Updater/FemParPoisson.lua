@@ -77,7 +77,9 @@ function FemParPoisson:init(tbl)
 
    self._ndim = self._grid:ndim()
 
-   assert(self._basis:id()=="serendipity", "Updater.FemParPoisson: only implemented for modal serendipity basis")
+   if self._ndim>1 then
+      assert(self._basis:id()=="serendipity", "Updater.FemParPoisson: only implemented for modal serendipity basis")
+   end
    assert(self._basis:polyOrder()==1 or self._basis:polyOrder()==2, "Updater.FemParPoisson: only implemented for polyOrder = 1 or 2")
    assert(self._ndim == self._basis:ndim(), "Updater.FemParPoisson: Dimensions of basis and grid must match")
    assert(self._ndim==1 or self._ndim==3, "Updater.FemParPoisson: only implemented for 1D or 3D (with a solve only in last dimension)")

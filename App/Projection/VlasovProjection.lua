@@ -77,7 +77,7 @@ function MaxwellianProjection:lagrangeFix(distf)
       phaseBasis = self.phaseBasis,
       confGrid   = self.confGrid,
       confBasis  = self.confBasis,
-      mode       = 'Vlasov'
+      mode       = 'vlasov'
    }
    lagFix:advance(0.0, {dM0, dM1, dM2}, {distf})
 end

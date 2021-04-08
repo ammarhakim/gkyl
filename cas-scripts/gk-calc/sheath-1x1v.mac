@@ -9,7 +9,7 @@ fpprec : 24$
 
 gkvsub:[vx=vpar,vy=mu];
 
-calcGkSheathFuncs1x1v(fh, cdim, vdim, basisFun, pmax) := block([],
+calcGkSheathFuncs1x1v(fh, cdim, vdim, basisFun, polyOrder) := block([],
   kill(varsC, varsP, basisC, basisP),
   /* Set up various bases with reduced dimension. */
   load("basis-precalc/basisSer1x"),
@@ -23,147 +23,145 @@ calcGkSheathFuncs1x1v(fh, cdim, vdim, basisFun, pmax) := block([],
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
 
-  for p : 1 thru pmax do (
-    /* Get desired polyOrder of each basis. */
-    bP : basisP[p],
-    bC : basisC[p],
-    bVp : basisVp[p],
-    bZVp : basisZVp[p],
+  /* Get desired polyOrder of each basis. */
+  bP : basisP[polyOrder],
+  bC : basisC[polyOrder],
+  bVp : basisVp[polyOrder],
+  bZVp : basisZVp[polyOrder],
   
-    /* Get name of last config space dimension, which is always assumed to be
-       the direction parallel to the magnetic field (z). */
-    zVar : varsC[cdim], /* In 1x1v this is just z */
+  /* Get name of last config space dimension, which is always assumed to be
+     the direction parallel to the magnetic field (z). */
+  zVar : varsC[cdim], /* In 1x1v this is just z */
   
-    funcNm : sconcat("calcSheathReflection", cdim, "x", vdim, "v", basisFun),
-    disp(printf(false,"Working on function ~a",funcNm)),
-    printf(fh, "~%"),
-    printf(fh, "void ~a_P~a(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double zVal, const double q_, const double m_, const double *phi, const double *phiWall, const double *f, double *fRefl) ~%{ ~%", funcNm, p),
+  funcNm : sconcat("calcSheathReflection", cdim, "x", vdim, "v", basisFun),
+  disp(printf(false,"Working on function ~a",funcNm)),
+  printf(fh, "~%"),
+  printf(fh, "void ~a_P~a(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double zVal, const double q_, const double m_, const double *phi, const double *phiWall, const double *f, double *fRefl) ~%{ ~%", funcNm, polyOrder),
   
-    /* Calculate expansion for deltaPhi = phiSheath - phiWall, evaluated at z=zVal, 
-       where zVal=-1 or 1 depending on if we're on the left or right edge of the global domain, respectively. */
-    phiSheath_expd : subst(zVar=zVal,doExpand1(phi, bC)),
-    phiWall_expd   : subst(zVar=zVal,doExpand1(phiWall, bC)),
-    deltaPhi_expd  : phiSheath_expd - phiWall_expd,
+  /* Calculate expansion for deltaPhi = phiSheath - phiWall, evaluated at z=zVal, 
+     where zVal=-1 or 1 depending on if we're on the left or right edge of the global domain, respectively. */
+  phiSheath_expd : subst(zVar=zVal,doExpand1(phi, bC)),
+  phiWall_expd   : subst(zVar=zVal,doExpand1(phiWall, bC)),
+  deltaPhi_expd  : phiSheath_expd - phiWall_expd,
   
-    /* Set up quadrature nodes. */
-    if p=1 then quad : 1/(3), /* Use control nodes instead of quadrature nodes for p=1, for positivity. */
-    if p=2 then quad : sqrt(3/5),
-    nodes1d : eval_string(sconcat("nodes1xp", p))*quad,   /* 1d quadrature/control nodes. */
-    nodes2d : eval_string(sconcat("nodes2xp", p))*quad,   /* 2d quadrature/control nodes. */
+  /* Set up quadrature nodes. */
+  if polyOrder=1 then quad : 1/(3), /* Use control nodes instead of quadrature nodes for p=1, for positivity. */
+  if polyOrder=2 then quad : sqrt(3/5),
+  nodes1d : eval_string(sconcat("nodes1xp", polyOrder))*quad,   /* 1d quadrature/control nodes. */
+  nodes2d : eval_string(sconcat("nodes2xp", polyOrder))*quad,   /* 2d quadrature/control nodes. */
   
-    /* Substitution function to evaluate expansion f at z=node[i] for all i. */
-    nodesZsub(f) := makelist(subst(makelist(x=nodes1d[i][j],j,1,1),f),i,1,length(nodes1d)),
+  /* Substitution function to evaluate expansion f at z=node[i] for all i. */
+  nodesZsub(f) := makelist(subst(makelist(x=nodes1d[i][j],j,1,1),f),i,1,length(nodes1d)),
   
-    /* Expand input distribution function f on phase-space basis using input coeffs. */
-    f_expd : doExpand1(f, bP),
+  /* Expand input distribution function f on phase-space basis using input coeffs. */
+  f_expd : doExpand1(f, bP),
   
-    /* Some naming conventions: 
-       fZQ_expd = f evaluated at z nodes (ZQ), expansion in remaining variables (_expd).
-       fQ_ZVpMu_c = f projected onto (z,vpar) basis resulting in coefficients (_ZVp_c).
-    */
-    
-    /* Variable declarations/allocations. */
-    printf(fh, "  double vcutSq; long double xc, b, xbarVal, fac; ~%"),
-    printf(fh, "  double fReflZQuad[~a][~a]; ~%", length(nodes1d), length(bP)),
-    printf(fh, "  ~%~%"),
+  /* Some naming conventions: 
+     fZQ_expd = f evaluated at z nodes (ZQ), expansion in remaining variables (_expd).
+     fQ_ZVpMu_c = f projected onto (z,vpar) basis resulting in coefficients (_ZVp_c).
+  */
   
-    /* Evaluate vcutSqQ = vcut^2. */
-    vcutSqQ:gcfac(float(fullratsimp(-2*q_/m_*deltaPhi_expd))),
+  /* Variable declarations/allocations. */
+  printf(fh, "  double vcutSq; long double xc, b, xbarVal, fac; ~%"),
+  printf(fh, "  double fReflZQuad[~a][~a]; ~%", length(nodes1d), length(bP)),
+  printf(fh, "  ~%~%"),
   
-    /* Write vcut^2 at boundary. */
-    printf(fh, "  vcutSq = ~a; ~%", vcutSqQ),
+  /* Evaluate vcutSqQ = vcut^2. */
+  vcutSqQ:gcfac(float(fullratsimp(-2*q_/m_*deltaPhi_expd))),
   
-    /* If vcut^2 at this node is below all vpar^2 in this cell, BC at this node should be absorbing 
-       so set coefficients of fRefl to 0 (no reflection from this node). */
-    printf(fh, "  if(vcutSq <= vlowerSq) { // absorb (no reflection) ~%"),
-    writeCExprsWithZerosNoExpand1(fRefl, makelist(0.,j,1,length(bP))),
+  /* Write vcut^2 at boundary. */
+  printf(fh, "  vcutSq = ~a; ~%", vcutSqQ),
   
-    /* If vcut^2 at this node is above all vpar^2 in this cell, BC at this node should be full reflection */
-    /* so set coefficients of fRefl to coefficients of f. */
-    printf(fh, "  } else if(vcutSq > vupperSq) { // full reflection ~%"),
-    /* Project f onto z,vpar basis (bZVp). */
-    fRefl_c : gcfac(fullratsimp(innerProd(varsP, 1, bP, f_expd))),
-    /* Full reflection: set fRefl coefficients to f coefficients. */
-    writeCExprsNoExpand1(fRefl, fRefl_c),
+  /* If vcut^2 at this node is below all vpar^2 in this cell, BC at this node should be absorbing 
+     so set coefficients of fRefl to 0 (no reflection from this node). */
+  printf(fh, "  if(vcutSq <= vlowerSq) { // absorb (no reflection) ~%"),
+  writeCExprsWithZerosNoExpand1(fRefl, makelist(0.,j,1,length(bP))),
   
-    /* If vcut^2 at this node is in this cell, BC at this node is partial reflection. */
-    printf(fh, "  } else { // partial reflection ~%"),
+  /* If vcut^2 at this node is above all vpar^2 in this cell, BC at this node should be full reflection */
+  /* so set coefficients of fRefl to coefficients of f. */
+  printf(fh, "  } else if(vcutSq > vupperSq) { // full reflection ~%"),
+  /* Project f onto z,vpar basis (bZVp). */
+  fRefl_c : gcfac(fullratsimp(innerProd(varsP, 1, bP, f_expd))),
+  /* Full reflection: set fRefl coefficients to f coefficients. */
+  writeCExprsNoExpand1(fRefl, fRefl_c),
   
-      /* Allocate empty vector for reflected distribution function also evaluated at z nodes. */
-      fReflZQ_expd : makelist(0, i,1,length(nodes1d)),
-      /* f_expd is an expansion in z,vpar;
-         now evaluate f_expd at z nodes
-         so fZQ_expd[j] = fZQ_expd[j](vpar) 
-         is evaluated at the z_j nodes. */
-      fZQ_expd : nodesZsub(f_expd),
+  /* If vcut^2 at this node is in this cell, BC at this node is partial reflection. */
+  printf(fh, "  } else { // partial reflection ~%"),
   
-      /* Loop over z_j nodes. */
-      for j:1 thru length(nodes1d) do (
-        /* Project f at this z_j node onto vpar basis (bVp). */
-        fZQ_Vp_c : gcfac(fullratsimp(innerProd([vx], 1, bVp, fZQ_expd[j]))),
+    /* Allocate empty vector for reflected distribution function also evaluated at z nodes. */
+    fReflZQ_expd : makelist(0, i,1,length(nodes1d)),
+    /* f_expd is an expansion in z,vpar;
+       now evaluate f_expd at z nodes
+       so fZQ_expd[j] = fZQ_expd[j](vpar) 
+       is evaluated at the z_j nodes. */
+    fZQ_expd : nodesZsub(f_expd),
+  
+    /* Loop over z_j nodes. */
+    for j:1 thru length(nodes1d) do (
+      /* Project f at this z_j node onto vpar basis (bVp). */
+      fZQ_Vp_c : gcfac(fullratsimp(innerProd([vx], 1, bVp, fZQ_expd[j]))),
 
-        /* Evaluate xbar = slope/cell_avg = f1/f0/sqrt(3) from vpar basis
-           coefficients (recall that this is being done at every z_i node). */
-        xbar : gcfac(float(fZQ_Vp_c[2]/sqrt(3)/fZQ_Vp_c[1])),
-        /* Print as xbarVal. */
-        printf(fh, "  xbarVal = ~a; ~%", xbar),
-        printf(fh, "  // if f is not realizable, no reflection from this node ~%"),
-        /* If abs(xbar)>=1, then f is not realizable. Use .95 as conservative threshold. */ 
-        /* Also not realizable if cell_avg is negative. */
-        printf(fh, "  if(~a <= 0. || std::abs(xbarVal)>=.95) { ~%", gcfac(float(fZQ_Vp_c[1]))),
-        /* If not realizable, set reflection coeffs to zero so that no reflection from this node. */
-        writeCExprsWithZerosNoExpand1(fReflZQuad[j-1],makelist(0.,j,1,length(bVp))),
+      /* Evaluate xbar = slope/cell_avg = f1/f0/sqrt(3) from vpar basis
+         coefficients (recall that this is being done at every z_i node). */
+      xbar : gcfac(float(fZQ_Vp_c[2]/sqrt(3)/fZQ_Vp_c[1])),
+      /* Print as xbarVal. */
+      printf(fh, "  xbarVal = ~a; ~%", xbar),
+      printf(fh, "  // if f is not realizable, no reflection from this node ~%"),
+      /* If abs(xbar)>=1, then f is not realizable. Use .95 as conservative threshold. */ 
+      /* Also not realizable if cell_avg is negative. */
+      printf(fh, "  if(~a <= 0. || std::abs(xbarVal)>=.95) { ~%", gcfac(float(fZQ_Vp_c[1]))),
+      /* If not realizable, set reflection coeffs to zero so that no reflection from this node. */
+      writeCExprsWithZerosNoExpand1(fReflZQuad[j-1],makelist(0.,j,1,length(bVp))),
 
-        /* If f is realizable at this node...*/
-        printf(fh, "  } else {~%"),
-        /* Compute and write beta = L^-1(xbar), where L^-1=invL is the inverse Langevin function. */
-        beta : invL(xbarVal),
-        printf(fh, "   b = ~a; ~%", beta),
+      /* If f is realizable at this node...*/
+      printf(fh, "  } else {~%"),
+      /* Compute and write beta = L^-1(xbar), where L^-1=invL is the inverse Langevin function. */
+      beta : invL(xbarVal),
+      printf(fh, "   b = ~a; ~%", beta),
 
-        /* Compute partial reflection scaling factors for coefficients of f,
-           based on exponential construction. */
-        printf(fh, "   if(wv > 0) {~%"),
-        printf(fh, "    xc = 2.*(std::sqrt(vcutSq)-wv)/dv; ~%"),
-        fReflfacs : [ "b>500? 0. : b<-500? 1. : std::abs(b)<1e-10? (1.+xc)/2. : (std::exp(b*xc)-std::exp(-b))/(2.*std::sinh(b))", 
-            "(b>500 || std::abs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*std::exp(b*xc)+(b+1)*std::exp(-b))/2./(b*std::cosh(b)-std::sinh(b))",
-            "(((b*(3*b*xc*xc-(6*xc+b))+6)*std::exp(b*xc))/3-(2*(b*b+3*(b+1))*std::exp(-b))/3)/(-4*b*std::cosh(b) + 4/3*(3 + b*b)*std::sinh(b))"],
-        for k:1 thru length(bVp) do (
-        printf(fh, "    fac = ~a; ~%", fReflfacs[k]),
-        printf(fh, "    if(std::isnan(fac) || std::isinf(fac)) {printf(\"reflect fac = \%LG, b=\%LG, xbarVal=\%LG \\n\", fac, b, xbarVal); fac=0.;} ~%"),
-        printf(fh, "    fReflZQuad[~a][~a] = (~a)*fac; ~%", j-1, k-1, gcfac(float(fZQ_Vp_c[k])))
-        ),
-        printf(fh, "   } else { ~%"),
-        printf(fh, "    xc = 2.*(-std::sqrt(vcutSq)-wv)/dv; ~%"),
-        fReflfacs : [ "b>500? 1. : b<-500? 0. : std::abs(b)<1e-10? (1.-xc)/2. : (std::exp(b)-std::exp(b*xc))/(2.*std::sinh(b))", 
-            "b>500? 1. : (b<-500 || std::abs(b)<1e-8)? 0. : ((b-1)*std::exp(b)-(b*xc-1)*std::exp(b*xc))/2./(b*std::cosh(b)-std::sinh(b))", 
-            "((2*(b*b+3*(1-b))*std::exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*std::exp(b*xc))/3)/(-4*b*std::cosh(b) + 4/3*(3 + b*b)*std::sinh(b))"],
-        for k:1 thru length(bVp) do (
-        printf(fh, "    fac = ~a; ~%", fReflfacs[k]),
-        printf(fh, "    if(std::isnan(fac) || std::isinf(fac)) {printf(\"reflect fac = \%LG, b=\%LG, xbarVal=\%LG \\n\", fac, b, xbarVal); fac=0.;} ~%"),
-        printf(fh, "    fReflZQuad[~a][~a] = (~a)*fac; ~%", j-1, k-1, gcfac(float(fZQ_Vp_c[k])))
-        ),
-        printf(fh, "   } ~%"),
-        printf(fh, "  } ~%"),
-        /* We just printed bVp coefficients of fRefl at each z_j node. now expand in vpar using those coeffs. */
-        fReflZQ_expd[j] : makelist(fReflZQuad[j-1][k-1],k,1,length(bVp)).bVp
-      ), /* End of j loop over (z)_j nodes. */ 
+      /* Compute partial reflection scaling factors for coefficients of f,
+         based on exponential construction. */
+      printf(fh, "   if(wv > 0) {~%"),
+      printf(fh, "    xc = 2.*(std::sqrt(vcutSq)-wv)/dv; ~%"),
+      fReflfacs : [ "b>500? 0. : b<-500? 1. : std::abs(b)<1e-10? (1.+xc)/2. : (std::exp(b*xc)-std::exp(-b))/(2.*std::sinh(b))", 
+          "(b>500 || std::abs(b)<1e-8)? 0. : b<-500? 1. : ((b*xc-1)*std::exp(b*xc)+(b+1)*std::exp(-b))/2./(b*std::cosh(b)-std::sinh(b))",
+          "(((b*(3*b*xc*xc-(6*xc+b))+6)*std::exp(b*xc))/3-(2*(b*b+3*(b+1))*std::exp(-b))/3)/(-4*b*std::cosh(b) + 4/3*(3 + b*b)*std::sinh(b))"],
+      for k:1 thru length(bVp) do (
+      printf(fh, "    fac = ~a; ~%", fReflfacs[k]),
+      printf(fh, "    if(std::isnan(fac) || std::isinf(fac)) {printf(\"reflect fac = \%LG, b=\%LG, xbarVal=\%LG \\n\", fac, b, xbarVal); fac=0.;} ~%"),
+      printf(fh, "    fReflZQuad[~a][~a] = (~a)*fac; ~%", j-1, k-1, gcfac(float(fZQ_Vp_c[k])))
+      ),
+      printf(fh, "   } else { ~%"),
+      printf(fh, "    xc = 2.*(-std::sqrt(vcutSq)-wv)/dv; ~%"),
+      fReflfacs : [ "b>500? 1. : b<-500? 0. : std::abs(b)<1e-10? (1.-xc)/2. : (std::exp(b)-std::exp(b*xc))/(2.*std::sinh(b))", 
+          "b>500? 1. : (b<-500 || std::abs(b)<1e-8)? 0. : ((b-1)*std::exp(b)-(b*xc-1)*std::exp(b*xc))/2./(b*std::cosh(b)-std::sinh(b))", 
+          "((2*(b*b+3*(1-b))*std::exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*std::exp(b*xc))/3)/(-4*b*std::cosh(b) + 4/3*(3 + b*b)*std::sinh(b))"],
+      for k:1 thru length(bVp) do (
+      printf(fh, "    fac = ~a; ~%", fReflfacs[k]),
+      printf(fh, "    if(std::isnan(fac) || std::isinf(fac)) {printf(\"reflect fac = \%LG, b=\%LG, xbarVal=\%LG \\n\", fac, b, xbarVal); fac=0.;} ~%"),
+      printf(fh, "    fReflZQuad[~a][~a] = (~a)*fac; ~%", j-1, k-1, gcfac(float(fZQ_Vp_c[k])))
+      ),
+      printf(fh, "   } ~%"),
+      printf(fh, "  } ~%"),
+      /* We just printed bVp coefficients of fRefl at each z_j node. now expand in vpar using those coeffs. */
+      fReflZQ_expd[j] : makelist(fReflZQuad[j-1][k-1],k,1,length(bVp)).bVp
+    ), /* End of j loop over (z)_j nodes. */ 
 
-      /* Get modToNod matrix for transformation from (z) nodes to z basis coeffs. */
-      modToNodZ:fullratsimp(calcModToNodPhaseWithNodesAndBasis(nodes1d, bC, varsC)),
-      /* Calculate expansion in z,vpar. */
-      fReflQ_ZVp_expd : fullratsimp(bC.fullratsimp(invert(transpose(float(modToNodZ))).fReflZQ_expd)),
+    /* Get modToNod matrix for transformation from (z) nodes to z basis coeffs. */
+    modToNodZ:fullratsimp(calcModToNodPhaseWithNodesAndBasis(nodes1d, bC, varsC)),
+    /* Calculate expansion in z,vpar. */
+    fReflQ_ZVp_expd : fullratsimp(bC.fullratsimp(invert(transpose(float(modToNodZ))).fReflZQ_expd)),
  
-      /* Project fRefl onto z,vpar basis (bP). */
-      fReflQ_ZVp_c : gcfac(fullratsimp(innerProd(varsP, 1, bP, fReflQ_ZVp_expd))),
-      /* Write coefficients. */
-      writeCExprsNoExpand1(fRefl, fReflQ_ZVp_c),
+    /* Project fRefl onto z,vpar basis (bP). */
+    fReflQ_ZVp_c : gcfac(fullratsimp(innerProd(varsP, 1, bP, fReflQ_ZVp_expd))),
+    /* Write coefficients. */
+    writeCExprsNoExpand1(fRefl, fReflQ_ZVp_c),
 
-    printf(fh, "  } ~%~%"), /* End of partial reflection else. */
+  printf(fh, "  } ~%~%"), /* End of partial reflection else. */
 
-    /* Expansion in z,vpar of fRefl. */
-    fReflQ_expd : makelist(fReflQuad[j-1],j,1,length(bP)).bP,
-    printf(fh, " ~%")
-  ),
+  /* Expansion in z,vpar of fRefl. */
+  fReflQ_expd : makelist(fReflQuad[j-1],j,1,length(bP)).bP,
+  printf(fh, " ~%"),
   printf(fh, "}~%")
 
 )$

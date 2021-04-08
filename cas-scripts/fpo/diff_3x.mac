@@ -46,7 +46,8 @@ fgConvolution(basisNm, dir, der, polyOrder, fL, fU, gL, gU) := block(
 
 getSurfTerm(basisNm, dir, edge, polyOrder,
             fC, f1L, f1U, f2L, f2U,
-            gC, g1L, g1U, g2L, g2U) := block(
+            gC, g1L, g1U, g2L, g2U,
+            isBoundary) := block(
   [C, perpDirs, edgeNm, ba,
   giifC, gijfL, gijfC, gijfU, gikfL, gikfC, gikfU,
   rec2, rec6,
@@ -55,60 +56,74 @@ getSurfTerm(basisNm, dir, edge, polyOrder,
   t1, t2, t3, t4, t5, t6],
   
   perpDirs : delete(dir, [x,y,z]),
-
-  giifC : fgConvolution(basisNm, dir, [dir, dir], polyOrder,
-    fC[1], fC[2], gC[1], gC[2]),
-
-  gijfL : fgConvolution(basisNm, dir, [dir, perpDirs[1]], polyOrder,
-    f1L[1], f1L[2], g1L[1], g1L[2]),
-  gijfC : fgConvolution(basisNm, dir, [dir, perpDirs[1]], polyOrder,
-    fC[1], fC[2], gC[1], gC[2]),
-  gijfU : fgConvolution(basisNm, dir, [dir, perpDirs[1]], polyOrder,
-    f1U[1], f1U[2], g1U[1], g1U[2]),
-
-  gikfL : fgConvolution(basisNm, dir, [dir, perpDirs[2]], polyOrder,
-    f2L[1], f2L[2], g2L[1], g2L[2]),
-  gikfC : fgConvolution(basisNm, dir, [dir, perpDirs[2]], polyOrder,
-    fC[1], fC[2], gC[1], gC[2]),
-  gikfU : fgConvolution(basisNm, dir, [dir, perpDirs[2]], polyOrder,
-    f2U[1], f2U[2], g2U[1], g2U[2]),
-
-  rec2 : calcRecov2CellGen(basisNm, dir, [x,y,z], polyOrder, dg(giifC[1]), dg(giifC[2])),
-  giif : subst(dir=0, rec2),
-  giifi : subst(dir=0, diff(rec2, dir)),
-  
-  rec2 : calcRecov2CellGen(basisNm, dir, [x,y,z], polyOrder, dg(gijfC[1]), dg(gijfC[2])),
-  gijf : subst(dir=0, rec2),
-  /*gijfj : subst(dir=0, diff(rec2, perpDirs[1])),*/
-  
-  rec2 : calcRecov2CellGen(basisNm, dir, [x,y,z], polyOrder, dg(gikfC[1]), dg(gikfC[2])),
-  gikf : subst(dir=0, rec2),
-  /*gikfk : subst(dir=0, diff(rec2, perpDirs[2])),*/
-
-  C : 1,
-  rec6 : calcRecovFaceGen(basisNm, [dir, perpDirs[1]], [x,y,z], 0, 0, polyOrder, C,
-    dg(dg(gijfL[1]), dg(gijfL[2])),
-    dg(dg(gijfC[1]), dg(gijfC[2])),
-    dg(dg(gijfU[1]), dg(gijfU[2]))),
-  gijfj : diff(rec6, perpDirs[1]),
-  rec6 : calcRecovFaceGen(basisNm, [dir, perpDirs[2]], [x,y,z], 0, 0, polyOrder, C,
-    dg(dg(gikfL[1]), dg(gikfL[2])),
-    dg(dg(gikfC[1]), dg(gikfC[2])),
-    dg(dg(gikfU[1]), dg(gikfU[2]))),
-  gikfk : diff(rec6, perpDirs[2]),
-
   ba : getBasis(basisNm, 3, polyOrder),
+
   Jii : eval_string(sconcat("J", dir, dir)),
   Jij : eval_string(sconcat("J", dir, perpDirs[1])),
   Jik : eval_string(sconcat("J", dir, perpDirs[2])),
+
+  if isBoundary then (
+    t1 : 0,
+    t2 : 0,
+    t3 : 0,
+    if edge = 1 then (
+      giif : subst(dir=1, diff(doExpand(gC[1], ba), dir, 2) * doExpand(fC[1], ba)),
+      gijf : subst(dir=1, diff(diff(doExpand(gC[1], ba), dir), perpDirs[1]) * doExpand(fC[1], ba)),
+      gikf : subst(dir=1, diff(diff(doExpand(gC[1], ba), dir), perpDirs[2]) * doExpand(fC[1], ba))
+    ) else (
+      giif : subst(dir=-1, diff(doExpand(gC[2], ba), dir, 2) * doExpand(fC[2], ba)),
+      gijf : subst(dir=-1, diff(diff(doExpand(gC[2], ba), dir), perpDirs[1]) * doExpand(fC[2], ba)),
+      gikf : subst(dir=-1, diff(diff(doExpand(gC[2], ba), dir), perpDirs[2]) * doExpand(fC[2], ba))
+    )
+  ) else (
+    giifC : fgConvolution(basisNm, dir, [dir, dir], polyOrder,
+      fC[1], fC[2], gC[1], gC[2]),
+
+    gijfL : fgConvolution(basisNm, dir, [dir, perpDirs[1]], polyOrder,
+      f1L[1], f1L[2], g1L[1], g1L[2]),
+    gijfC : fgConvolution(basisNm, dir, [dir, perpDirs[1]], polyOrder,
+      fC[1], fC[2], gC[1], gC[2]),
+    gijfU : fgConvolution(basisNm, dir, [dir, perpDirs[1]], polyOrder,
+      f1U[1], f1U[2], g1U[1], g1U[2]),
+
+    gikfL : fgConvolution(basisNm, dir, [dir, perpDirs[2]], polyOrder,
+      f2L[1], f2L[2], g2L[1], g2L[2]),
+    gikfC : fgConvolution(basisNm, dir, [dir, perpDirs[2]], polyOrder,
+      fC[1], fC[2], gC[1], gC[2]),
+    gikfU : fgConvolution(basisNm, dir, [dir, perpDirs[2]], polyOrder,
+      f2U[1], f2U[2], g2U[1], g2U[2]),
+
+    rec2 : calcRecov2CellGen(basisNm, dir, [x,y,z], polyOrder, dg(giifC[1]), dg(giifC[2])),
+    giif : subst(dir=0, rec2),
+    giifi : subst(dir=0, diff(rec2, dir)),
   
-  t1 : calcInnerProdList(perpDirs, Jii, subst(dir=edge, ba), giifi),
-  t2 : calcInnerProdList(perpDirs, Jij, subst(dir=edge, ba), gijfj),
-  t3 : calcInnerProdList(perpDirs, Jik, subst(dir=edge, ba), gikfk),
+    rec2 : calcRecov2CellGen(basisNm, dir, [x,y,z], polyOrder, dg(gijfC[1]), dg(gijfC[2])),
+    gijf : subst(dir=0, rec2),
+    /*gijfj : subst(dir=0, diff(rec2, perpDirs[1])),*/
+  
+    rec2 : calcRecov2CellGen(basisNm, dir, [x,y,z], polyOrder, dg(gikfC[1]), dg(gikfC[2])),
+    gikf : subst(dir=0, rec2),
+    /*gikfk : subst(dir=0, diff(rec2, perpDirs[2])),*/
+
+    C : 1,
+    rec6 : calcRecovFaceGen(basisNm, [dir, perpDirs[1]], [x,y,z], 0, 0, polyOrder, C,
+      dg(dg(gijfL[1]), dg(gijfL[2])),
+      dg(dg(gijfC[1]), dg(gijfC[2])),
+      dg(dg(gijfU[1]), dg(gijfU[2]))),
+    gijfj : diff(rec6, perpDirs[1]),
+    rec6 : calcRecovFaceGen(basisNm, [dir, perpDirs[2]], [x,y,z], 0, 0, polyOrder, C,
+      dg(dg(gikfL[1]), dg(gikfL[2])),
+      dg(dg(gikfC[1]), dg(gikfC[2])),
+      dg(dg(gikfU[1]), dg(gikfU[2]))),
+    gikfk : diff(rec6, perpDirs[2]),
+  
+    t1 : calcInnerProdList(perpDirs, Jii, subst(dir=edge, ba), giifi),
+    t2 : calcInnerProdList(perpDirs, Jij, subst(dir=edge, ba), gijfj),
+    t3 : calcInnerProdList(perpDirs, Jik, subst(dir=edge, ba), gikfk)
+  ),
   t4 : calcInnerProdList(perpDirs, Jii, subst(dir=edge, diff(ba, dir)), giif),
   t5 : calcInnerProdList(perpDirs, Jij, subst(dir=edge, diff(ba, perpDirs[1])), gijf),
   t6 : calcInnerProdList(perpDirs, Jik, subst(dir=edge, diff(ba, perpDirs[2])), gikf),
-  /*return(t1 - t4)*/
   return(t1 + t2 + t3 - t4 - t5 - t6)
 ) $
 
@@ -145,6 +160,7 @@ writeSurfKernel(dir, polyOrder) := block(
     printf(fh, "                                      const double* gUC,~%"),
     printf(fh, "                                      const double* gU1L, const double* gU1U,~%"),
     printf(fh, "                                      const double* gU2L, const double* gU2U,~%"),
+    printf(fh, "                                      const int isBoundary,~%"),
     printf(fh, "                                      double* fOut) {~%"),
 
     printf(fh, "  const double Jxx = 16/(dv[0]*dv[0]*dv[0]*dv[0]);~%"),
@@ -156,17 +172,31 @@ writeSurfKernel(dir, polyOrder) := block(
     printf(fh, "  const double Jzx = Jxz;~%"),
     printf(fh, "  const double Jyz = 16/(dv[1]*dv[1]*dv[2]*dv[2]);~%"),
     printf(fh, "  const double Jzy = Jxz;~%~%"),
-  
+
+    printf(fh, "  if (isBoundary) {~%"),
     surf : getSurfTerm(basisNm, dir, edges[n], polyOrder,
       [fListLC, fListUC],
       [fListL1L, fListU1L], [fListL1U, fListU1U],
       [fListL2L, fListU2L], [fListL2U, fListU2U],
       [gListLC, gListUC],
       [gListL1L, gListU1L], [gListL1U, gListU1U],
-      [gListL2L, gListU2L], [gListL2U, gListU2U]),
-    /*out : subst(indexSubList, expand(edge*surf/2)),*/
+      [gListL2L, gListU2L], [gListL2U, gListU2U],
+      true),
     out : expand(edges[n]*surf/2),
-    for i : 1 thru length(ba) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*float(out[i])),
+    for i : 1 thru length(ba) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*float(out[i])),
+    
+    printf(fh, "  } else {~%"),
+    surf : getSurfTerm(basisNm, dir, edges[n], polyOrder,
+      [fListLC, fListUC],
+      [fListL1L, fListU1L], [fListL1U, fListU1U],
+      [fListL2L, fListU2L], [fListL2U, fListU2U],
+      [gListLC, gListUC],
+      [gListL1L, gListU1L], [gListL1U, gListU1U],
+      [gListL2L, gListU2L], [gListL2U, gListU2U],
+      false),
+    out : expand(edges[n]*surf/2),
+    for i : 1 thru length(ba) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*float(out[i])),
+    printf(fh, "  }~%"),
     printf(fh, "}~%~%")
   ),
   close(fh)
