@@ -135,6 +135,7 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
             local qVis = 0
 
             fld:fill(fldIdxr(idx), fldPtr)
+            buf:fill(bufIdxr(idx), bufPtr)
             local eta = self._eta[s]
             local rho = fldPtrP[1]
             grid:setIndex(idx)
