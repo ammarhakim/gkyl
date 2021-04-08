@@ -196,7 +196,7 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
             end
 
             -- Axial diffusion.
-            if true then
+            if ndim>=3 then
                d=3
 
                local dz = grid:dx(3)
@@ -255,17 +255,18 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
          fld:fill(fldIdxr(idx), fldPtr)
          buf:fill(bufIdxr(idx), bufPtr)
 
+         local keOld = 0.5*(fldPtr[2]^2+fldPtr[3]^2+fldPtr[4]^2) / fldPtr[1]
+
+         for c=2,4 do fldPtr[c] = fldPtr[c] + bufPtr[c] * dt end
+
+         local keNew = 0.5*(fldPtr[2]^2+fldPtr[3]^2+fldPtr[4]^2) / fldPtr[1]
+
+         local dEnergy = keNew - keOld
          if self._hasHeating then
-            local keOld = 0.5*(fldPtr[2]^2+fldPtr[3]^2+fldPtr[4]^2) / fldPtr[1]
-
-            for c=2,4 do fldPtr[c] = fldPtr[c] + bufPtr[c] * dt end
-
-            local keNew = 0.5*(fldPtr[2]^2+fldPtr[3]^2+fldPtr[4]^2) / fldPtr[1]
-
-            fldPtr[5] = fldPtr[5]+keNew-keOld+bufPtr[5] * dt
-         else
-            for c=2,4 do fldPtr[c] = fldPtr[c] + bufPtr[c] * dt end
+            dEnergy = dEnergy + bufPtr[5] * dt
          end
+
+         fldPtr[5] = fldPtr[5] + dEnergy
       end
    end
 
