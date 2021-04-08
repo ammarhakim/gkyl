@@ -65,7 +65,6 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
       if not status then return false, dtSuggested end
    end
 
-   -- Comptue grad_para(T) ain internal cells.
    for s = 1, nFluids do
       local fld = outFld[s]
       local fldIdxr = fld:genIndexer()
@@ -237,20 +236,8 @@ function BraginskiiViscosityDiffusion:_forwardEuler(
       else
          assert(false, "Coordinate type "..self._coordinate.." not supported.")
       end
-   end
 
-   -- Apply rhs.
-   for s = 1, nFluids do
-      local fld = outFld[s]
-      local fldIdxr = fld:genIndexer()
-      local fldPtr = fld:get(1)
-
-      local buf = inFld[s]
-      local bufIdxr = buf:genIndexer()
-      local bufPtr = buf:get(1)
-
-      local localRange = fld:localRange()
-
+      -- Apply rhs.
       for idx in localRange:rowMajorIter() do
          fld:fill(fldIdxr(idx), fldPtr)
          buf:fill(bufIdxr(idx), bufPtr)
