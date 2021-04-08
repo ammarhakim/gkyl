@@ -6,7 +6,6 @@ local Plasma = require("App.PlasmaOnCartGrid").Gyrokinetic()
 -- This test relaxes a rectangular/square IC and a bump in tail IC.
 -- Maxwellian's for comparison with each are also created.
 
-polyOrder = 2
 nu        = 0.01                            -- Collision frequency.
 n0        = 1.0                             -- Density.
 u0        = 0.0                             -- Flow speed.
@@ -51,13 +50,13 @@ end
 plasmaApp = Plasma.App {
    logToFile = false,
    
-   tEnd        = 0.006,           -- End time.
+   tEnd        = 0.05,           -- End time.
    nFrame      = 1,             -- Number of frames to write.
    lower       = {0,0,0},       -- Configuration space lower coordinate.
    upper       = {1.0,1.0,1.0}, -- Configuration space upper coordinate.
    cells       = Nx,            -- Configuration space cells.
    basis       = "serendipity", -- One of "serendipity" or "maximal-order".
-   polyOrder   = polyOrder,     -- Polynomial order.
+   polyOrder   = 1,             -- Polynomial order.
    timeStepper = "rk3",         -- One of "rk2", "rk3" or "rk3s4".
    cflFrac     = 0.01,
 
@@ -73,9 +72,13 @@ plasmaApp = Plasma.App {
    square = Plasma.Species {
       charge = 1.0, mass = mass,
       -- Velocity space grid.
-      lower      = {vMin,muMin},
-      upper      = {vMax,muMax},
-      cells      = Nv,
+      lower = {-1.0, 0.},
+      upper = { 1.0, 1.},
+      coordinateMap = {
+         function(z) if z<0. then return vMin*math.abs(z) else return vMax*z end end,
+         function(z) return muMax*z^2 end,
+      },
+      cells = Nv,
       -- Initial conditions.
       init = function (t, xn)
 	 local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
@@ -85,7 +88,8 @@ plasmaApp = Plasma.App {
       --bcx = { Plasma.Species.bcOpen,
       --        Plasma.Species.bcOpen },
       -- Evolve species?
-      evolve = true,
+      evolve              = true,
+      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.
@@ -99,9 +103,13 @@ plasmaApp = Plasma.App {
    bump = Plasma.Species {
       charge = 1.0, mass = mass,
       -- Velocity space grid.
-      lower      = {vMin,muMin},
-      upper      = {vMax,muMax},
-      cells      = Nv,
+      lower = {-1.0, 0.},
+      upper = { 1.0, 1.},
+      coordinateMap = {
+         function(z) if z<0. then return vMin*math.abs(z) else return vMax*z end end,
+         function(z) return muMax*z^2 end,
+      },
+      cells = Nv,
       -- Initial conditions.
       init = function (t, xn)
    	 local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
@@ -111,7 +119,8 @@ plasmaApp = Plasma.App {
       --bcx = { Plasma.Species.bcOpen,
       --        Plasma.Species.bcOpen },
       -- Evolve species?
-      evolve = true,
+      evolve              = true,
+      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.
@@ -129,10 +138,10 @@ plasmaApp = Plasma.App {
    
    -- Magnetic geometry.
    externalField = Plasma.Geometry {
-      -- Background magnetic field.
+      -- Background magnetic field
       bmag = function (t, xn)
          local x = xn[1]
-         return B0
+         return B0*(1+x)
       end,
 
       -- Geometry is not time-dependent.

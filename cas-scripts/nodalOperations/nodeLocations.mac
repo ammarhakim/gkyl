@@ -95,10 +95,10 @@ nodesSer5xp3 : matrix([-1,-1,-1,-1,-1],[-1/3,-1,-1,-1,-1],[1/3,-1,-1,-1,-1],[1,-
    dimensionality and polynomial order. */
 getNodes(basisType, dim, polyOrder) := block([],
   nodes : 0,
-  if (basisType = "Ser") then (
+  if (basisType = "Ser") or (basisType = "ser") then (
     /* Serendipity basis. */
     nodes : eval_string(sconcat("nodes",basisType,dim,"xp",polyOrder))
-  ) elseif(basisType = "Tensor") then (
+  ) elseif (basisType = "Tensor") or (basisType = "tensor") then (
     /* Tensor product basis. */
     if (dim=1) or (dim=2 and polyOrder=1) then (
       nodes : eval_string(sconcat("nodesSer",dim,"xp",polyOrder))
