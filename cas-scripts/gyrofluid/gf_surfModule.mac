@@ -53,7 +53,8 @@ writeCCompIncrExprsNoExpand1(lhs, comp, rhs) := block([expr],
 )$
 
 calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
-  [i,d,m,mI,basis,vars,numB,surfVar,varLabel,dirLabel,rdSurfVar2L,rdSurfVar2R,rdSurfVarSq4L,rdSurfVarSq4R,
+  [
+   i,d,m,mI,basis,vars,numB,surfVar,varLabel,dirLabel,rdSurfVar2L,rdSurfVar2R,rdSurfVarSq4L,rdSurfVarSq4R,
    numMom,momsL1_e,momsL1_c,momsR1_e,momsR1_c,newMom_e,primMomsL1_e,primMomsL1_c,primMomsR1_e,primMomsR1_c,
    m0L1_e, m1L1_e,m2L1_e,m2perpL1_e,m0R1_e, m1R1_e,m2R1_e,m2perpR1_e,
    m0L1_c, m1L1_c,m2L1_c,m2perpL1_c,m0R1_c, m1R1_c,m2R1_c,m2perpR1_c,
@@ -62,7 +63,7 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
    surfIntVars,surfBasis,numSurf,
    sideStr,uparL_c,uparCvar,uparNoZero_c,uparSurfL_e,uparR_c,uparSurfR_e,
    pparJacL1_c,pparJacL1_e,m2FluxL1_c,m2FluxL1_e,m2perpFluxL1_c,m2perpFluxL1_e,fluxL_e,
-   pparJacR1_c,pparJacR1_e,m2FluxR1_c,m2FluxR1_e,m2perpFluxR1_c,m2perpFluxR1_e,fluxR_e
+   pparJacR1_c,pparJacR1_e,m2FluxR1_c,m2FluxR1_e,m2perpFluxR1_c,m2perpFluxR1_e,fluxR_e,
    incrR_c,incrL_c,fluxAvg_c,varName,fluxAvg_e,momJump_c,momHat_c,momHat_e,hOrder,numBzeros,qPhiDmL_e,qPhiDmR_e,
    hL_c,hR_c,h_e,hsol,Gphi_c,GphiNoZero_c,Gphi_e,quants,tempVars,qPhiDmL_c,qPhiDmR_c,
    hParL,hParR,jacL_e,jacDbmagL_e,qFacs_e,incrNonFluxR_c,incrNonFluxL_c,GheatF_c,GheatFNoZero_c,GheatF_e,
@@ -363,6 +364,12 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
     printf(fh, "~%"),
     flush_output(fh)
   ),
+
+  /* uParMid is the value returned and from which uMaxIn is computed. */
+  zMid    : makelist(vars[d]=0, d, 1, dim),
+  uParMid : float(expand(fullratsimp(subst(zMid,uparL1_e)))),
+
+  printf(fh, "  return abs(~a); ~%", uParMid),
 
   printf(fh, "}~%")
 

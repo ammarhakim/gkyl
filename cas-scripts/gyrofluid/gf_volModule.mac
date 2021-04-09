@@ -167,6 +167,15 @@ calcGFvolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
     printf(fh, "~%")
   ),
 
+  /* Return CFL frequency */
+  zMid    : makelist(vars[d]=0, d, 1, dim),
+  uParMid : float(expand(fullratsimp(subst(zMid,upar_e)))),
+
+  cflFreq_qpar  : kappaPar*rdxSq4,
+  cflFreq_qperp : kappaPerp*rdxSq4,
+
+  printf(fh, "  return abs(~a) + ~a*max(~a,~a); ~%", rdx2*uParMid, float(((polyOrder+1)^2)/(2*polyOrder+1)), cflFreq_qpar, cflFreq_qperp ),
+
   printf(fh, "}~%")
 
 )$
