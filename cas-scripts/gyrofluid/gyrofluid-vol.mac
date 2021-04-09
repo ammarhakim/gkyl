@@ -1,9 +1,9 @@
 /*
-  Generate the surface kernels for gyrofluids.
+  Generate the volume kernels for gyrofluids.
 
-  The functions called in this file are in gf_surfModule.mac.
+  The functions called in this file are in gf_volModule.mac.
 */
-load("gyrofluid/gf_surfModule")$
+load("gyrofluid/gf_volModule")$
 
 /* ...... USER INPUTS........ */
 
@@ -38,14 +38,14 @@ for bInd : 1 thru length(bName) do (
 
     for polyOrder : 0 thru maxPolyOrderB do (
 
-      fname : sconcat("~/max-out/gyrofluid_surf_", c, "x_p", polyOrder, "_", bName[bInd], ".cpp"),
-      disp(printf(false,"Creating surface file: ~a",fname)),
+      fname : sconcat("~/max-out/gyrofluid_vol_", c, "x_p", polyOrder, "_", bName[bInd], ".cpp"),
+      disp(printf(false,"Creating volume file: ~a",fname)),
 
       fh : openw(fname),
       printf(fh, "#include <gyrofluid_mod_decl.h>~%"),
 
-      funcName : sconcat("gyrofluid_surf_", c, "x_p", polyOrder, "_", bName[bInd]),
-      calcGFsurfKernels(fh, funcName, c, polyOrder, bName[bInd]),
+      funcName : sconcat("gyrofluid_vol_", c, "x_p", polyOrder, "_", bName[bInd]),
+      calcGFvolKernels(fh, funcName, c, polyOrder, bName[bInd]),
 
       close(fh)
     )
