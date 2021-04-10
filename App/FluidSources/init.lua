@@ -1,11 +1,11 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- For accessing source objects
+-- For accessing fluid source objects
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local SourceBase = require "App.Sources.SourceBase"
+local FluidSourceBase = require "App.FluidSources.FluidSourceBase"
 local CollisionlessEmSource = require "App.Sources.CollisionlessEmSource"
 local TenMomentRelaxSource = require "App.Sources.TenMomentRelaxSource"
 local AxisymmetricMomentSource = require "App.Sources.AxisymmetricMomentSource"
@@ -14,7 +14,7 @@ local BraginskiiHeatConductionSource = require "App.Sources.BraginskiiHeatConduc
 local BraginskiiViscosityDiffusionSource = require "App.Sources.BraginskiiViscosityDiffusionSource"
 
 return {
-   SourceBase = SourceBase,
+   FluidSourceBase = FluidSourceBase,
    CollisionlessEmSource = CollisionlessEmSource,
    TenMomentRelaxSource = TenMomentRelaxSource,
    AxisymmetricMomentSource = AxisymmetricMomentSource,

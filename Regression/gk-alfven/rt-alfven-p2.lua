@@ -134,7 +134,7 @@ plasmaApp = Plasma.App {
    field = Plasma.Field {
       evolve            = true, -- Evolve field?
       isElectromagnetic = true,
-      kperp2            = ky_min^2,
+      kperpSq           = ky_min^2,
    },
 
    -- Magnetic geometry,

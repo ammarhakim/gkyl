@@ -15,7 +15,7 @@ local periodicDirs = {1, 2}
 local cfl = 0.9
 local tStart = 0
 local tEnd = 3
-local nFrames = 2
+local nFrames = 1
 
 local tFrame = (tEnd-tStart)/nFrames
 

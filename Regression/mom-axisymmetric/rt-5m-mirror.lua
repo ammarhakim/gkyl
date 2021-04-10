@@ -201,7 +201,7 @@ momentApp = Moments.App {
    },
 
    field = Moments.Field {
-      epsilon0 = epsilon0, mu0 = epsilon0,
+      epsilon0 = epsilon0, mu0 = mu0,
       init = function (t, xn)
          local r, theta, z = xn[1], xn[2], xn[3]
 

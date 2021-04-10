@@ -6,7 +6,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local SourceBase = require "App.Sources.SourceBase"
+local FluidSourceBase = require "App.FluidSources.FluidSourceBase"
 local DataStruct = require "DataStruct"
 local Basis = require "Basis"
 local Proto = require "Lib.Proto"
@@ -18,7 +18,7 @@ local xsys = require "xsys"
 -- Coupled Lorentz and current sources
 --------------------------------------------------------------------------------
 
-local CollisionlessEmSource = Proto(SourceBase)
+local CollisionlessEmSource = Proto(FluidSourceBase)
 
 -- this ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below
@@ -161,7 +161,7 @@ function CollisionlessEmSource:forwardEuler(tCurr, dt, fIn, species, fOut)
    return status, dtSuggested
 end
 
-function CollisionlessEmSource:updateSource(tCurr, dt, speciesVar, fieldVar)
+function CollisionlessEmSource:updateFluidSource(tCurr, dt, speciesVar, fieldVar)
    local outVars = {}
    for i, nm in ipairs(self.speciesList) do
       outVars[i] = speciesVar[nm]

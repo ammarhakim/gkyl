@@ -6,11 +6,11 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local SourceBase = require "App.Sources.SourceBase"
+local FluidSourceBase = require "App.FluidSources.FluidSourceBase"
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
 
-local BraginskiiHeatConductionSource = Proto(SourceBase)
+local BraginskiiHeatConductionSource = Proto(FluidSourceBase)
 
 function BraginskiiHeatConductionSource:init(tbl)
    self.tbl = tbl
@@ -66,7 +66,7 @@ function BraginskiiHeatConductionSource:createSolver(species, field)
    }
 end
 
-function BraginskiiHeatConductionSource:updateSource(
+function BraginskiiHeatConductionSource:updateFluidSource(
       tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, allSpecies, field)
    local tbl = self.tbl
 
