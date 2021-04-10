@@ -167,7 +167,7 @@ plasmaApp = Plasma.App {
    field = Plasma.Field {
       evolve = true,    -- Evolve fields?
       -- initPhiFunc = function (t, xn) return 0.0 end,
-      kperp2 = 0.0 
+      kperpSq = 0.0 
    },
    
    -- Magnetic geometry.
