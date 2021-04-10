@@ -68,7 +68,7 @@ calcGFvolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
   varLabel : makelist(string(vars[d]),d,1,dim),
 
   printf(fh, "~%"),
-  printf(fh, "double ~a(const double q_, const double m_, const double kappaPar, const double kappaPerp, const double kperpSq, const double *w, const double *dx, const double *jac, const double *rBmag, const double *jacDbmag, const double *sMom, const double *phi, double *primMom, double *out) ~%{ ~%", funcNm),
+  printf(fh, "double ~a(const double q_, const double m_, const double kappaPar, const double kappaPerp, const double kperpSq, const double *w, const double *dx, const double *jac, const double *rBmag, const double *jacDbmag, const double *dBdz, const double *sMom, const double *phi, double *primMom, double *out) ~%{ ~%", funcNm),
   printf(fh, "  // q_,m_:   species charge and mass.~%"),
   printf(fh, "  // kappa:   heat conductivity coefficients.~%"),
   printf(fh, "  // kperpSq: k_perp^2.~%"),
@@ -174,7 +174,7 @@ calcGFvolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
   cflFreq_qpar  : kappaPar*rdxSq4,
   cflFreq_qperp : kappaPerp*rdxSq4,
 
-  printf(fh, "  return abs(~a) + ~a*max(~a,~a); ~%", rdx2*uParMid, float(((polyOrder+1)^2)/(2*polyOrder+1)), cflFreq_qpar, cflFreq_qperp ),
+  printf(fh, "  return fabs(~a) + ~a*fmax(~a,~a); ~%", rdx2*uParMid, float(((polyOrder+1)^2)/(2*polyOrder+1)), cflFreq_qpar, cflFreq_qperp ),
 
   printf(fh, "}~%")
 

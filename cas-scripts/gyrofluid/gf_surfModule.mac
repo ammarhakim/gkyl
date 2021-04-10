@@ -325,10 +325,14 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
 
   /* Write out the increments (mod some dimensional factors). */
   for mI : 1 thru numMom do (
-    writeCExprsNoExpand1(eval_string(sconcat("incr",mI)), incrR_c[mI]),
+    varName : eval_string(sconcat("incr",mI)),
+    printf(fh, "  double ~a[~a];~%", varName, numB),
+    writeCExprsNoExpand1(varName, incrR_c[mI]),
     printf(fh, "~%"),
 
-    writeCExprsNoExpand1(eval_string(sconcat("incrNonFlux",mI)), incrNonFluxR_c[mI]),
+    varNameNonFlux : eval_string(sconcat("incrNonFlux",mI)),
+    printf(fh, "  double ~a[~a];~%", varNameNonFlux, numB),
+    writeCExprsNoExpand1(varNameNonFlux, incrNonFluxR_c[mI]),
     printf(fh, "~%")
   ),
 
@@ -369,7 +373,7 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
   zMid    : makelist(vars[d]=0, d, 1, dim),
   uParMid : float(expand(fullratsimp(subst(zMid,uparL1_e)))),
 
-  printf(fh, "  return abs(~a); ~%", uParMid),
+  printf(fh, "  return fabs(~a); ~%", uParMid),
 
   printf(fh, "}~%")
 
