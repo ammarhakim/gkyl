@@ -158,7 +158,7 @@ function GkField:fullInit(appTbl)
    self.discontinuousApar = xsys.pickBool(tbl.discontinuousApar, true)
 
    -- For ndim=1 only.
-   self.kperp2 = tbl.kperp2
+   self.kperpSq = tbl.kperpSq or tbl.kperp2   -- kperp2 for backwards compatibility.
 
    -- Allow user to specify polarization weight. will be calculated automatically if not specified.
    self.polarizationWeight = tbl.polarizationWeight
@@ -419,9 +419,9 @@ function GkField:createSolver(species, externalField)
       local laplacianConstant, modifierConstant
  
       if self.ndim==1 then
-         assert(self.kperp2, "GkField: must specify kperp2 for ndim=1")
+         assert(self.kperpSq, "GkField: must specify kperpSq for ndim=1")
          laplacianConstant = 0.0 
-         modifierConstant  = self.kperp2*self.polarizationWeight 
+         modifierConstant  = self.kperpSq*self.polarizationWeight 
       else 
          laplacianConstant = -self.polarizationWeight 
          modifierConstant  = 0.0 
@@ -457,7 +457,7 @@ function GkField:createSolver(species, externalField)
      }
      if ndim==1 then
         laplacianConstant = 0.0
-        modifierConstant  = self.kperp2/self.mu0
+        modifierConstant  = self.kperpSq/self.mu0
      else
         laplacianConstant = -1.0/self.mu0
         modifierConstant  = 0.0
@@ -626,7 +626,7 @@ function GkField:write(tm, force)
             if self.linearizedPolarization then
                local esEnergyFac = .5*self.polarizationWeight
                if self.ndim == 1 then 
-                  esEnergyFac = esEnergyFac*self.kperp2 
+                  esEnergyFac = esEnergyFac*self.kperpSq 
                   if self.adiabatic then 
                      esEnergyFac = esEnergyFac + .5*self.adiabSpec:getQneutFac() 
                   end
@@ -643,7 +643,7 @@ function GkField:write(tm, force)
             end
             if self.isElectromagnetic then 
               local emEnergyFac = .5/self.mu0
-              if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperp2 end
+              if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperpSq end
               self.energyCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy })
             end
          end
@@ -749,7 +749,7 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
                end
             end
             if self.ndim == 1 then
-               self.modifierWeight:combine(self.kperp2, self.weight)
+               self.modifierWeight:combine(self.kperpSq, self.weight)
             else
                self.modifierWeight:clear(0.0)
                self.laplacianWeight:combine(-1.0, self.weight)
@@ -829,7 +829,7 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
 
       self.currentDens:clear(0.0)
       if self.ndim==1 then 
-         self.modifierWeight:combine(self.kperp2/self.mu0, self.unitWeight) 
+         self.modifierWeight:combine(self.kperpSq/self.mu0, self.unitWeight) 
       else 
          self.modifierWeight:clear(0.0)
       end
@@ -879,7 +879,7 @@ function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
    if self.evolve then
       self.currentDens:clear(0.0)
       if self.ndim==1 then 
-         self.modifierWeight:combine(self.kperp2/self.mu0, self.unitWeight) 
+         self.modifierWeight:combine(self.kperpSq/self.mu0, self.unitWeight) 
       else 
          self.modifierWeight:clear(0.0)
       end
