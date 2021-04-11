@@ -369,7 +369,7 @@ function FluidSpecies:alloc(nRkDup)
    self.couplingMoments   = self:allocVectorMoment(self.nMoments)
    self.integratedMoments = DataStruct.DynVector { numComponents = self.nMoments }
 
-   if self.positivity then self.fPos = self:allocVectorMoment(self.nMoments) end
+   if self.positivity then self.momPos = self:allocVectorMoment(self.nMoments) end
 
    -- Array with one component per cell to store cflRate in each cell.
    self.cflRateByCell = self:allocCartField(self.grid, 1, {1,1})
@@ -414,9 +414,9 @@ function FluidSpecies:initDist(extField)
          initCnt = initCnt + 1
       end
       if string.find(nm,"background") then
-         if not self.moments0 then self.moments0 = self:allocVectorMoment(self.nMoments) end
-         self.moments0:accumulate(1.0, self.moments[2])
-         self.moments0:sync(syncPeriodicDirs)
+         if not self.momBackground then self.momBackground = self:allocVectorMoment(self.nMoments) end
+         self.momBackground:accumulate(1.0, self.moments[2])
+         self.momBackground:sync(syncPeriodicDirs)
          backgroundCnt = backgroundCnt + 1
       end
       if string.find(nm,"source") then
@@ -428,7 +428,7 @@ function FluidSpecies:initDist(extField)
       end
    end
    assert(initCnt>0, string.format("FluidSpecies: Species '%s' not initialized!", self.name))
-   if self.moments0 and backgroundCnt == 0 then self.moments0:copy(self.moments[1]) end
+   if self.momBackground and backgroundCnt == 0 then self.momBackground:copy(self.moments[1]) end
 
    if self.fluctuationBCs then
       assert(backgroundCnt > 0, "FluidSpecies: must specify an initial background distribution with 'background' in order to use fluctuation-only BCs")
@@ -519,9 +519,9 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    -- This only clears the RHS. The :advance method should otherwise be
    -- defined in the child species.
    self.tCurr = tCurr
-   local fRhsOut = self:rkStepperFields()[outIdx]
+   local momRhsOut = self:rkStepperFields()[outIdx]
 
-   fRhsOut:clear(0.0)
+   momRhsOut:clear(0.0)
 end
 
 function FluidSpecies:checkPositivity(tCurr, idx)
@@ -542,32 +542,32 @@ function FluidSpecies:applyBcIdx(tCurr, idx, isFirstRk)
   end
 end
 
-function FluidSpecies:applyBc(tCurr, fIn)
-   -- fIn is total distribution function.
+function FluidSpecies:applyBc(tCurr, momIn)
+   -- momIn is the set of evolved moments.
    local tmStart = Time.clock()
 
    if self.evolve then
       if self.fluctuationBCs then
          -- If fluctuation-only BCs, subtract off background before applying BCs.
-         fIn:accumulate(-1.0, self.moments0)
+         momIn:accumulate(-1.0, self.momBackground)
       end
 
       -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
       if self.hasNonPeriodicBc then
          for _, bc in ipairs(self.boundaryConditions) do
-            bc:advance(tCurr, {}, {fIn})
+            bc:advance(tCurr, {}, {momIn})
          end
       end
 
       -- Apply periodic BCs (to only fluctuations if fluctuation BCs)
-      fIn:sync()
+      momIn:sync()
 
       if self.fluctuationBCs then
          -- Put back together total distribution
-         fIn:accumulate(1.0, self.moments0)
+         momIn:accumulate(1.0, self.momBackground)
 
          -- Update ghosts in total distribution, without enforcing periodicity.
-         fIn:sync(false)
+         momIn:sync(false)
       end
    end
 
@@ -618,13 +618,13 @@ function FluidSpecies:write(tm, force)
       -- Only write stuff if triggered.
       if self.diagIoTrigger(tm) or force then
 	 self.momIo:write(self.moments[1], string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
-         if self.moments0 then
+         if self.momBackground then
             if tm == 0.0 then
-               self.moments0:write(string.format("%s_moments0_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, true)
+               self.momBackground:write(string.format("%s_background_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, true)
             end
-            self.moments[1]:accumulate(-1, self.moments0)
-            self.momIo:write(self.moments[1], string.format("%s_moments1_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
-            self.moments[1]:accumulate(1, self.moments0)
+            self.moments[1]:accumulate(-1, self.momBackground)
+            self.momIo:write(self.moments[1], string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
+            self.moments[1]:accumulate(1, self.momBackground)
          end
          if tm == 0.0 and self.mSource then
             self.momIo:write(self.mSource, string.format("%s_mSource_0.bp", self.name), tm, self.diagIoFrame)

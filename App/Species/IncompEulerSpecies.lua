@@ -116,8 +116,8 @@ function IncompEulerSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       local em = emIn[1]:rkStepperFields()[inIdx]
       if self.positivityRescale then
-         self.posRescaler:advance(tCurr, {fIn}, {self.fPos}, false)
-         self.solver:advance(tCurr, {self.fPos, em}, {fRhsOut})
+         self.posRescaler:advance(tCurr, {fIn}, {self.momPos}, false)
+         self.solver:advance(tCurr, {self.momPos, em}, {fRhsOut})
       else
          self.solver:advance(tCurr, {fIn, em}, {fRhsOut})
       end
