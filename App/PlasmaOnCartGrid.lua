@@ -925,7 +925,7 @@ local function buildApplication(self, tbl)
 	     tmCollNonSlvr, tmCollNonSlvr/step, 100*tmCollNonSlvr/tmTotal))
       tmAccounted = tmAccounted + tmCollNonSlvr
       log(string.format(
-	     "Fluid source updaters took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     "Fluid source updaters took 		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmSrc, tmSrc/step, 100*tmSrc/tmTotal))
       tmAccounted = tmAccounted + tmSrc
       log(string.format(

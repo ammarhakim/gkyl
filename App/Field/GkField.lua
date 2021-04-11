@@ -291,8 +291,6 @@ function GkField:initField(species)
       self:phiSolve(0.0, species, 1, 1)
    end
 
-   local polyOrder = self.basis:polyOrder()
-
    if self.isElectromagnetic then
       -- Solve for initial Apar.
       local apar = self.potentials[1].apar
@@ -586,10 +584,8 @@ function GkField:createDiagnostics()
       elemType   = self.potentials[1].phi:elemType(),
       method     = self.ioMethod,
       writeGhost = self.writeGhost,
-      metaData   = {
-	 polyOrder = self.basis:polyOrder(),
-	 basisType = self.basis:id()
-      },
+      metaData   = {polyOrder = self.basis:polyOrder(),
+                    basisType = self.basis:id(),},
    }
 
    -- Updaters for computing integrated quantities.

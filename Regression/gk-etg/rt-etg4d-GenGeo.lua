@@ -76,7 +76,7 @@ plasmaApp = Plasma.App {
    -- Gyrokinetic electrons.
    electron = Plasma.Species {
       charge = qe,
-      mass = me,
+      mass   = me,
       -- Velocity space grid.
       lower = {VPAR_LOWER, MU_LOWER},
       upper = {VPAR_UPPER, MU_UPPER},
@@ -115,12 +115,10 @@ plasmaApp = Plasma.App {
    -- Adiabatic ions.
    adiabaticIon = Plasma.AdiabaticSpecies {
       charge = qi,
-      mass = mi,
-      temp = Ti0,
+      mass   = mi,
+      temp   = Ti0,
       -- Initial conditions.
-      init = function (t, xn, self)
-         return n0
-      end,
+      init   = function (t, xn, self) return n0 end,
       evolve = false, -- Evolve species?
    },
 
