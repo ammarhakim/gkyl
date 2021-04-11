@@ -738,47 +738,131 @@ function test_16()
 end
 
 function test_17()
+   -- Test the :accumulateOffset and :combineOffset methods.
+   -- NOTE: the offset in these methods are field component offsets, not vector offsets.
+   --       For a CartField with multiple DG fields, selecting the ith DG field would
+   --       require the offset (i-1)*numBasis.
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},
       upper = {1.0, 1.0},
       cells = {10, 10},
    }
-   local field = DataStruct.Field {
+   local field6 = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = 6,
+      ghost         = {1, 2},
+   }
+   local field8 = DataStruct.Field {
       onGrid        = grid,
       numComponents = 8,
       ghost         = {1, 2},
    }
-   field:clear(10.0)
+   field6:clear(20.0)
+   field8:clear(10.0)
 
-   -- Field1 has a different number of components than field.
+   -- field1 and field3 have fewer components than field8.
    local field1 = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = 1,
+      ghost         = {1, 2},
+   }
+   local field3 = DataStruct.Field {
       onGrid        = grid,
       numComponents = 3,
       ghost         = {1, 2},
    }
+   field1:clear(0.0)
+   field3:clear(0.0)
 
    local indexer = field1:genIndexer()
    for idx in field1:localExtRangeIter() do
       local fitr = field1:get(indexer(idx))
       fitr[1] = idx[1]+2*idx[2]+1
+   end
+
+   local indexer = field3:genIndexer()
+   for idx in field3:localExtRangeIter() do
+      local fitr = field3:get(indexer(idx))
+      fitr[1] = idx[1]+2*idx[2]+1
       fitr[2] = idx[1]+2*idx[2]+2
       fitr[3] = idx[1]+2*idx[2]+3
    end
 
-   -- Accumulate stuff.
-   field:accumulateOffset(1.0, field1, 0, 2.0, field1, 5)
+   -- Accumulate and combine onto field with more components.
+   field8:accumulateOffset(1.0, field3, 0, 2.0, field3, 5)
+   field6:combineOffset(1.0, field1, 0, 2.0, field1, 3)
 
-   for idx in field:localExtRangeIter() do
-      local fitr = field:get(indexer(idx))
-      assert_equal(10+(idx[1]+2*idx[2]+1), fitr[1], "Checking field value")
-      assert_equal(10+(idx[1]+2*idx[2]+2), fitr[2], "Checking field value")
-      assert_equal(10+(idx[1]+2*idx[2]+3), fitr[3], "Checking field value")
-      assert_equal(10, fitr[4], "Checking field value")
-      assert_equal(10, fitr[5], "Checking field value")
-      assert_equal(10+2*(idx[1]+2*idx[2]+1), fitr[6], "Checking field value")
-      assert_equal(10+2*(idx[1]+2*idx[2]+2), fitr[7], "Checking field value")
-      assert_equal(10+2*(idx[1]+2*idx[2]+3), fitr[8], "Checking field value")
+   local indexer = field8:genIndexer()
+   for idx in field8:localExtRangeIter() do
+      local fitr = field8:get(indexer(idx))
+      assert_equal(10+(idx[1]+2*idx[2]+1), fitr[1], "Checking field8 value")
+      assert_equal(10+(idx[1]+2*idx[2]+2), fitr[2], "Checking field8 value")
+      assert_equal(10+(idx[1]+2*idx[2]+3), fitr[3], "Checking field8 value")
+      assert_equal(10, fitr[4], "Checking field8 value")
+      assert_equal(10, fitr[5], "Checking field8 value")
+      assert_equal(10+2*(idx[1]+2*idx[2]+1), fitr[6], "Checking field8 value")
+      assert_equal(10+2*(idx[1]+2*idx[2]+2), fitr[7], "Checking field8 value")
+      assert_equal(10+2*(idx[1]+2*idx[2]+3), fitr[8], "Checking field8 value")
    end
+
+   local indexer = field6:genIndexer()
+   for idx in field6:localExtRangeIter() do
+      local fitr = field6:get(indexer(idx))
+      assert_equal((idx[1]+2*idx[2]+1), fitr[1], "Checking field6 value")
+      assert_equal(20, fitr[2], "Checking field6 value")
+      assert_equal(20, fitr[3], "Checking field6 value")
+      assert_equal(2*(idx[1]+2*idx[2]+1), fitr[4], "Checking field6 value")
+      assert_equal(20, fitr[5], "Checking field6 value")
+      assert_equal(20, fitr[6], "Checking field6 value")
+   end
+
+   -- Test accumulating and combining onto field with fewer components.
+   field1:clear(20.0)
+   field3:clear(10.0)
+   field6:clear(0.0)
+   field8:clear(0.0)
+
+   local indexer = field8:genIndexer()
+   for idx in field8:localExtRangeIter() do
+      local fitr = field8:get(indexer(idx))
+      fitr[1] = idx[1]+2*idx[2]+1
+      fitr[2] = idx[1]+2*idx[2]+2
+      fitr[3] = idx[1]+2*idx[2]+3
+      fitr[4] = idx[1]+2*idx[2]+4
+      fitr[5] = idx[1]+2*idx[2]+5
+      fitr[6] = idx[1]+2*idx[2]+6
+      fitr[7] = idx[1]+2*idx[2]+7
+      fitr[8] = idx[1]+2*idx[2]+8
+   end
+
+   local indexer = field6:genIndexer()
+   for idx in field6:localExtRangeIter() do
+      local fitr = field6:get(indexer(idx))
+      fitr[1] = idx[1]+2*idx[2]+1
+      fitr[2] = idx[1]+2*idx[2]+2
+      fitr[3] = idx[1]+2*idx[2]+3
+      fitr[4] = idx[1]+2*idx[2]+4
+      fitr[5] = idx[1]+2*idx[2]+5
+      fitr[6] = idx[1]+2*idx[2]+6
+   end
+
+   field3:accumulateOffset(1.0, field8, 2, 2.0, field8, 5)
+   field1:combineOffset(1.0, field6, 1, 2.0, field6, 4)
+
+   local indexer = field3:genIndexer()
+   for idx in field3:localExtRangeIter() do
+      local fitr = field3:get(indexer(idx))
+      assert_equal(10+(idx[1]+2*idx[2]+3)+2.0*(idx[1]+2*idx[2]+6), fitr[1], "Checking field3 value")
+      assert_equal(10+(idx[1]+2*idx[2]+4)+2.0*(idx[1]+2*idx[2]+7), fitr[2], "Checking field3 value")
+      assert_equal(10+(idx[1]+2*idx[2]+5)+2.0*(idx[1]+2*idx[2]+8), fitr[3], "Checking field3 value")
+   end
+
+   local indexer = field1:genIndexer()
+   for idx in field1:localExtRangeIter() do
+      local fitr = field1:get(indexer(idx))
+      assert_equal((idx[1]+2*idx[2]+2)+2.0*(idx[1]+2*idx[2]+5), fitr[1], "Checking field1 value")
+   end
+
 end
 
 test_1()

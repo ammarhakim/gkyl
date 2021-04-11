@@ -58,6 +58,7 @@ ffi.cdef [[
     // sInp/sOut: start index for input/output fields. nCells: number of cells being looped over. 
     // compStart: starting component for offset. nCompInp/nCompOut: input/output field's number of components.
     void gkylCartFieldAccumulateOffset(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out);
+    void gkylCartFieldAssignOffset(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out);
 
     void gkylCartFieldDeviceAccumulate(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldDeviceAccumulateOffset(int numBlocks, int numThreads, unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out);
@@ -682,6 +683,25 @@ local function Field_meta_ctor(elct)
 	 local numBlocks = math.floor(shape/numThreads)+1
 	 ffiC.gkylCartFieldDeviceAssign(numBlocks, numThreads, self:_localLower(), self:_localShape(), fact, fld:deviceDataPointer(), self:deviceDataPointer())
       end,
+      -- assignOffsetOneFld assumes that one of the input or output fields have fewer components than the other.
+      --   a) nCompOut > nCompIn: assigns all of the input field w/ part of the output field, the (0-based)
+      --                          offset indicating which is the 1st component in the output field to assign.
+      --   b) nCompOut < nCompIn: assigns nCompOut components of the input field onto the output field, the
+      --                          (0-based) offset indicates which is the first component in the input field to read.
+      -- It assumes that the components being summed are continuous.
+      _assignOffsetOneFld = function(self, fact, fld, compStart)
+	 assert(field_check_range(self, fld),
+		"CartField:assignOffsetOneFld: Can only assign fields with the same range")
+	 assert(type(fact) == "number",
+		"CartField:assignOffsetOneFld: Factor not a number")
+         assert(self:layout() == fld:layout(),
+		"CartField:assignOffsetOneFld: Fields should have same layout for sums to make sense")
+
+         -- Get number of cells for outer loop.
+         -- We do not need to use an indexer since we are simply accumulating cell-wise a subset of the components.
+         local numCells = self:_localShape()/self:numComponents()
+	 ffiC.gkylCartFieldAssignOffset(fld:_localLower(), self:_localLower(), numCells, compStart, fld:numComponents(), self:numComponents(), fact, fld._data, self._data)
+      end,
       _accumulateOneFld = function(self, fact, fld)
 	 assert(field_compatible(self, fld),
 		"CartField:accumulateOneFld: Can only accumulate compatible fields")
@@ -692,18 +712,19 @@ local function Field_meta_ctor(elct)
 
 	 ffiC.gkylCartFieldAccumulate(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
       end,
-      -- This accumulate method assumes the one side of the accumulation has a fewer number of components than the other side.
-      -- It presumes that the user wants to accumulate all of one side with part of the other side.
-      -- In other words, the field with fewer components will be completely accumulated onto the field with more components.
-      -- The user can specify an offset for where to start the accumulation component-wise onto the field with more components,
-      -- and then that the components being summed are continuous.
+      -- accumulateOffsetOneFld assumes that one of the input or output fields have fewer components than the other.
+      --   a) nCompOut > nCompIn: accumulates all of the input field w/ part of the output field, the (0-based)
+      --                          offset indicating which is the 1st component in the output field to accumulate to.
+      --   b) nCompOut < nCompIn: accumulates nCompIn components of the input field onto the output field, the
+      --                          (0-based) offset indicates which is the first component in the input field to accumulate. 
+      -- It assumes that the components being summed are continuous.
       _accumulateOffsetOneFld = function(self, fact, fld, compStart)
 	 assert(field_check_range(self, fld),
-		"CartField:accumulateOffset: Can only accumulate fields with the same range")
+		"CartField:accumulateOffsetOneFld: Can only accumulate fields with the same range")
 	 assert(type(fact) == "number",
-		"CartField:accumulateOffset: Factor not a number")
+		"CartField:accumulateOffsetOneFld: Factor not a number")
          assert(self:layout() == fld:layout(),
-		"CartField:accumulateOffset: Fields should have same layout for sums to make sense")
+		"CartField:accumulateOffsetOneFld: Fields should have same layout for sums to make sense")
 
          -- Get number of cells for outer loop.
          -- We do not need to use an indexer since we are simply accumulating cell-wise a subset of the components.
@@ -741,10 +762,10 @@ local function Field_meta_ctor(elct)
       end,
       accumulate = isNumberType and
 	 function (self, c1, fld1, ...)
-	    local args = {...} -- package up rest of args as table
+	    local args = {...} -- Package up rest of args as table.
 	    local nFlds = #args/2
-	    self:_accumulateOneFld(c1, fld1) -- accumulate first field
-	    for i = 1, nFlds do -- accumulate rest of the fields
+	    self:_accumulateOneFld(c1, fld1) -- Accumulate first field.
+	    for i = 1, nFlds do -- Accumulate rest of the fields.
 	       self:_accumulateOneFld(args[2*i-1], args[2*i])
 	    end
 	 end or
@@ -753,10 +774,10 @@ local function Field_meta_ctor(elct)
 	 end,
       accumulateOffset = isNumberType and
 	 function (self, c1, fld1, compStart1, ...)
-	    local args = {...} -- package up rest of args as table
+	    local args = {...} -- Package up rest of args as table.
 	    local nFlds = #args/3
-	    self:_accumulateOffsetOneFld(c1, fld1, compStart1) -- accumulate first field
-	    for i = 1, nFlds do -- accumulate rest of the fields
+	    self:_accumulateOffsetOneFld(c1, fld1, compStart1) -- Accumulate first field.
+	    for i = 1, nFlds do -- Accumulate rest of the fields
 	       self:_accumulateOffsetOneFld(args[3*i-2], args[3*i-1], args[3*i])
 	    end
 	 end or
@@ -766,10 +787,10 @@ local function Field_meta_ctor(elct)
       deviceAccumulate = isNumberType and
 	 function (self, c1, fld1, ...)
 	    if self._devAllocData then
-	       local args = {...} -- package up rest of args as table
+	       local args = {...} -- Package up rest of args as table.
 	       local nFlds = #args/2
-	       self:_deviceAccumulateOneFld(c1, fld1) -- accumulate first field
-	       for i = 1, nFlds do -- accumulate rest of the fields
+	       self:_deviceAccumulateOneFld(c1, fld1) -- Accumulate first field.
+	       for i = 1, nFlds do -- Accumulate rest of the fields.
 	          self:_deviceAccumulateOneFld(args[2*i-1], args[2*i])
 	       end
 	    end
@@ -780,10 +801,10 @@ local function Field_meta_ctor(elct)
       deviceAccumulateOffset = isNumberType and
 	 function (self, c1, fld1, compStart1, ...)
             if self._devAllocData then
-	       local args = {...} -- package up rest of args as table
+	       local args = {...} -- Package up rest of args as table.
 	       local nFlds = #args/3
-	       self:_deviceAccumulateOffsetOneFld(c1, fld1, compStart1) -- accumulate first field
-	       for i = 1, nFlds do -- accumulate rest of the fields
+	       self:_deviceAccumulateOffsetOneFld(c1, fld1, compStart1) -- Accumulate first field.
+	       for i = 1, nFlds do -- Accumulate rest of the fields.
 	          self:_deviceAccumulateOffsetOneFld(args[3*i-2], args[3*i-1], args[3*i])
 	       end
             end
@@ -793,23 +814,44 @@ local function Field_meta_ctor(elct)
 	 end,
       combine = isNumberType and
          function (self, c1, fld1, ...)
-            local args = {...} -- package up rest of args as table
+            local args = {...} -- Package up rest of args as table.
             local nFlds = #args/2
-            self:_assign(c1, fld1) -- assign first field
-            for i = 1, nFlds do -- accumulate rest of the fields
+            self:_assign(c1, fld1) -- Assign first field.
+            for i = 1, nFlds do -- Accumulate rest of the fields.
                self:_accumulateOneFld(args[2*i-1], args[2*i])
             end
          end or
          function (self, c1, fld1, ...)
             assert(false, "CartField:combine: Combine only works on numeric fields")
          end,
+      combineOffset = isNumberType and
+	 function (self, c1, fld1, compStart1, ...)
+            local args = {...} -- Package up rest of args as table.
+            local nFlds = #args/3
+            local notAssigned = {}
+            for i = 1, self:numComponents() do table.insert(notAssigned,true) end   -- Boolean indicates if already assigned.
+            self:_assignOffsetOneFld(c1, fld1, compStart1) -- Assign first field.
+            notAssigned[compStart1+1] = false
+            for i = 1, nFlds do -- Accumulate rest of the fields.
+               local cOff = args[3*i]
+               if notAssigned[cOff+1] then
+                  self:_assignOffsetOneFld(args[3*i-2], args[3*i-1], cOff)
+                  notAssigned[cOff+1] = false
+               else
+                  self:_accumulateOffsetOneFld(args[3*i-2], args[3*i-1], cOff)
+               end
+            end
+         end or
+         function (self, c1, fld1, ...)
+            assert(false, "CartField:combineOffset: Combine only works on numeric fields")
+         end,
       deviceCombine = isNumberType and
 	 function (self, c1, fld1, ...)
 	    if self._devAllocData then
-	       local args = {...} -- package up rest of args as table
+	       local args = {...} -- Package up rest of args as table.
 	       local nFlds = #args/2
-	       self:_deviceAssign(c1, fld1) -- assign first field
-	       for i = 1, nFlds do -- accumulate rest of the fields
+	       self:_deviceAssign(c1, fld1) -- Assign first field.
+	       for i = 1, nFlds do -- Accumulate rest of the fields.
 	          self:_deviceAccumulateOneFld(args[2*i-1], args[2*i])
 	       end
 	    end
