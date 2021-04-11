@@ -150,8 +150,7 @@ local function buildApplication(self, tbl)
       end
    end
 
-   -- configuration space decomp object (eventually, this will be
-   -- slaved to the phase-space decomp)
+   -- Configuration space decomp object.
    local decomp = DecompRegionCalc.CartProd {
       cuts      = decompCuts,
       useShared = useShared,

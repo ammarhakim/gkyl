@@ -5,13 +5,13 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local ffi = require "ffi"
-local Unit = require "Unit"
-local Grid = require "Grid"
+local ffi        = require "ffi"
+local Unit       = require "Unit"
+local Grid       = require "Grid"
 local DataStruct = require "DataStruct"
 
 local assert_equal = Unit.assert_equal
-local stats = Unit.stats
+local stats        = Unit.stats
 
 function test_1()
    local grid = Grid.RectCart {
@@ -20,9 +20,9 @@ function test_1()
       cells = {10},
    }
    local field = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = 3,
-      ghost = {1, 1},
+      ghost         = {1, 1},
    }
 
    assert_equal(1, field:ndim(), "Checking dimensions")
@@ -477,23 +477,24 @@ function test_13()
       periodicDirs = {1, 2},
    }
    local field = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = 1,
-      ghost = {1, 1},
-      syncCorners = true,
+      ghost         = {1, 1},
+      syncCorners   = true,
    }
    field:clear(10.5)
 
-   -- set corner cells
+   -- Set corner cells.
    local indexer = field:indexer()
-   local fItr = field:get(indexer(1,1)); fItr[1] = 1.0
-   fItr = field:get(indexer(10,1)); fItr[1] = 2.0
-   fItr = field:get(indexer(1,10)); fItr[1] = 3.0
+   local fItr
+   fItr = field:get(indexer(1,1));   fItr[1] = 1.0
+   fItr = field:get(indexer(10,1));  fItr[1] = 2.0
+   fItr = field:get(indexer(1,10));  fItr[1] = 3.0
    fItr = field:get(indexer(10,10)); fItr[1] = 4.0
 
-   field:sync() -- sync field
+   field:sync() -- Sync field.
 
-   -- check if periodic dirs are sync()-ed properly
+   -- Check if periodic dirs are sync()-ed properly.
    local fItr = field:get(indexer(11,1))
    assert_equal(1.0, fItr[1], "Checking non-corner periodic sync")
    local fItr = field:get(indexer(11,10))
@@ -503,51 +504,111 @@ function test_13()
    local fItr = field:get(indexer(0,10))
    assert_equal(4.0, fItr[1], "Checking non-corner periodic sync")
 
-   -- corner cells
+   -- Check corner ghost cells.
    local fItr = field:get(indexer(11,11))
-   assert_equal(1.0, fItr[1], "Checking corner periodic sync")
+   assert_equal(1.0, fItr[1], "Checking 11,11 corner periodic sync")
    local fItr = field:get(indexer(11,0))
-   assert_equal(3.0, fItr[1], "Checking corner periodic sync")
+   assert_equal(3.0, fItr[1], "Checking 11,0 corner periodic sync")
    local fItr = field:get(indexer(0,0))
-   assert_equal(4.0, fItr[1], "Checking corner periodic sync")
+   assert_equal(4.0, fItr[1], "Checking 0,0 corner periodic sync")
    local fItr = field:get(indexer(0,11))
-   assert_equal(2.0, fItr[1], "Checking corner periodic sync")
+   assert_equal(2.0, fItr[1], "Checking 0,11 corner periodic sync")
 end
 
 function test_14()
+   -- Test syncCorners in 3D.
    local grid = Grid.RectCart {
-      lower = {0.0, 0.0},
-      upper = {1.0, 1.0},
-      cells = {10, 10},
-      periodicDirs = {1, 2},
+      lower = {0.0, 0.0, 0.0},
+      upper = {1.0, 1.0, 1.0},
+      cells = {10, 10, 10},
+      periodicDirs = {1, 2, 3},
    }
    local field = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = 1,
-      ghost = {1, 1},
-      syncCorners = true,
+      ghost         = {1, 1},
+      syncCorners   = true,
    }
    field:clear(10.5)
 
-   -- set corner cells
    local indexer = field:indexer()
-   local fItr = field:get(indexer(1,1)); fItr[1] = 1.0
-   fItr = field:get(indexer(10,1)); fItr[1] = 2.0
-   fItr = field:get(indexer(1,10)); fItr[1] = 3.0
-   fItr = field:get(indexer(10,10)); fItr[1] = 4.0
+   local fItr
+   -- Set corner cells.
+   fItr = field:get(indexer(1,1,1));   fItr[1] = 1.0
+   fItr = field:get(indexer(10,1,1));  fItr[1] = 2.0
+   fItr = field:get(indexer(1,10,1));  fItr[1] = 3.0
+   fItr = field:get(indexer(10,10,1)); fItr[1] = 4.0
+   fItr = field:get(indexer(1,1,8));   fItr[1] = 5.0
+   fItr = field:get(indexer(10,1,8));  fItr[1] = 6.0
+   fItr = field:get(indexer(1,10,8));  fItr[1] = 7.0
+   fItr = field:get(indexer(10,10,8)); fItr[1] = 8.0
 
-   field:periodicCopy() -- copy periodic boundary conditions for field
+   -- Set skin cells that aren't corners. 
+   for i = 2,9 do fItr = field:get(indexer(i,1,1));   fItr[1] = 1.0+i/10. end
+   for i = 2,9 do fItr = field:get(indexer(1,i,1));   fItr[1] = 2.0+i/10. end
+   for i = 2,9 do fItr = field:get(indexer(i,10,1));  fItr[1] = 3.0+i/10. end
+   for i = 2,9 do fItr = field:get(indexer(10,i,1));  fItr[1] = 4.0+i/10. end
 
-   -- check if periodic dirs are sync()-ed properly
-   local fItr = field:get(indexer(11,1))
+   for i = 2,9 do fItr = field:get(indexer(i,1,10));  fItr[1] = 5.0+i/10. end
+   for i = 2,9 do fItr = field:get(indexer(1,i,10));  fItr[1] = 6.0+i/10. end
+   for i = 2,9 do fItr = field:get(indexer(i,10,10)); fItr[1] = 7.0+i/10. end
+   for i = 2,9 do fItr = field:get(indexer(10,i,10)); fItr[1] = 8.0+i/10. end
+
+   for i = 2,9 do fItr = field:get(indexer(1,1,i));   fItr[1] = 11.0+i/10. end
+   for i = 2,9 do fItr = field:get(indexer(10,1,i));  fItr[1] = 12.0+i/10. end
+   for i = 2,9 do fItr = field:get(indexer(1,10,i));  fItr[1] = 13.0+i/10. end
+   for i = 2,9 do fItr = field:get(indexer(10,10,i)); fItr[1] = 14.0+i/10. end
+
+   field:sync() -- Sync field.
+
+   -- Check if periodic dirs are sync()-ed properly.
+   local fItr = field:get(indexer(11,1,1))
    assert_equal(1.0, fItr[1], "Checking non-corner periodic sync")
-   local fItr = field:get(indexer(11,10))
+   local fItr = field:get(indexer(11,10,1))
    assert_equal(3.0, fItr[1], "Checking non-corner periodic sync")
-   local fItr = field:get(indexer(0,1))
+   local fItr = field:get(indexer(0,1,1))
    assert_equal(2.0, fItr[1], "Checking non-corner periodic sync")
-   local fItr = field:get(indexer(0,10))
+   local fItr = field:get(indexer(0,10,1))
    assert_equal(4.0, fItr[1], "Checking non-corner periodic sync")
 
+   -- Check corner ghost cells.
+   local fItr = field:get(indexer(11,11,11))
+   assert_equal(1.0, fItr[1], "Checking 11,11,11 corner periodic sync")
+   local fItr = field:get(indexer(11,0,11))
+   assert_equal(3.0, fItr[1], "Checking 11,0,11 corner periodic sync")
+   local fItr = field:get(indexer(0,0,11))
+   assert_equal(4.0, fItr[1], "Checking 0,0,11 corner periodic sync")
+   local fItr = field:get(indexer(0,11,11))
+   assert_equal(2.0, fItr[1], "Checking 0,11,11 corner periodic sync")
+   -- Check "corner" ranges (edges really), which are not actual corners of the extended range.
+   for i = 2,9 do
+      fItr = field:get(indexer(i,11,11))
+      assert_equal(1.0+i/10., fItr[1], string.format("Checking %d,11,11 corner periodic sync",i))
+      fItr = field:get(indexer(11,i,11))
+      assert_equal(2.0+i/10., fItr[1], string.format("Checking 11,%d,11 corner periodic sync",i))
+      fItr = field:get(indexer(i,0,11))
+      assert_equal(3.0+i/10., fItr[1], string.format("Checking %d,0,11 corner periodic sync",i))
+      fItr = field:get(indexer(0,i,11))
+      assert_equal(4.0+i/10., fItr[1], string.format("Checking 0,%d,11 corner periodic sync",i))
+
+      fItr = field:get(indexer(i,11,0))
+      assert_equal(5.0+i/10., fItr[1], string.format("Checking %d,11,0 corner periodic sync",i))
+      fItr = field:get(indexer(11,i,0))
+      assert_equal(6.0+i/10., fItr[1], string.format("Checking 11,%d,0 corner periodic sync",i))
+      fItr = field:get(indexer(i,0,0))
+      assert_equal(7.0+i/10., fItr[1], string.format("Checking %d,0,0 corner periodic sync",i))
+      fItr = field:get(indexer(0,i,0))
+      assert_equal(8.0+i/10., fItr[1], string.format("Checking 0,%d,0 corner periodic sync",i))
+
+      fItr = field:get(indexer(11,11,i))
+      assert_equal(11.0+i/10., fItr[1], string.format("Checking 11,11,%d corner periodic sync",i))
+      fItr = field:get(indexer(0,11,i))
+      assert_equal(12.0+i/10., fItr[1], string.format("Checking 0,11,%d corner periodic sync",i))
+      fItr = field:get(indexer(11,0,i))
+      assert_equal(13.0+i/10., fItr[1], string.format("Checking 11,0,%d corner periodic sync",i))
+      fItr = field:get(indexer(0,0,i))
+      assert_equal(14.0+i/10., fItr[1], string.format("Checking 0,0,%d corner periodic sync",i))
+   end
 end
 
 function test_15()
@@ -555,16 +616,53 @@ function test_15()
       lower = {0.0, 0.0},
       upper = {1.0, 1.0},
       cells = {10, 10},
+      periodicDirs = {1, 2},
    }
    local field = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
+      numComponents = 1,
+      ghost         = {1, 1},
+      syncCorners   = true,
+   }
+   field:clear(10.5)
+
+   -- Set corner cells.
+   local indexer = field:indexer()
+   local fItr
+   fItr = field:get(indexer(1,1));   fItr[1] = 1.0
+   fItr = field:get(indexer(10,1));  fItr[1] = 2.0
+   fItr = field:get(indexer(1,10));  fItr[1] = 3.0
+   fItr = field:get(indexer(10,10)); fItr[1] = 4.0
+
+   field:periodicCopy() -- Copy periodic boundary conditions for field. SyncCorners not implemented for this method yet.
+
+   -- Check if periodic dirs are sync()-ed properly.
+   local fItr = field:get(indexer(11,1))
+   assert_equal(1.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(11,10))
+   assert_equal(3.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(0,1))
+   assert_equal(2.0, fItr[1], "Checking non-corner periodic sync")
+   local fItr = field:get(indexer(0,10))
+   assert_equal(4.0, fItr[1], "Checking non-corner periodic sync")
+
+end
+
+function test_16()
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0},
+      upper = {1.0, 1.0},
+      cells = {10, 10},
+   }
+   local field = DataStruct.Field {
+      onGrid        = grid,
       numComponents = 3,
-      ghost = {1, 2},
+      ghost         = {1, 2},
    }
    local scalar = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = 1,
-      ghost = {1, 2},
+      ghost         = {1, 2},
    }
    field:clear(10.0)
    scalar:clear(2.5)
@@ -639,48 +737,132 @@ function test_15()
    assert_equal(scaSum, cartScaSum[1], "Checking scalar reduce('sum')")
 end
 
-function test_16()
+function test_17()
+   -- Test the :accumulateOffset and :combineOffset methods.
+   -- NOTE: the offset in these methods are field component offsets, not vector offsets.
+   --       For a CartField with multiple DG fields, selecting the ith DG field would
+   --       require the offset (i-1)*numBasis.
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},
       upper = {1.0, 1.0},
       cells = {10, 10},
    }
-   local field = DataStruct.Field {
-      onGrid = grid,
+   local field6 = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = 6,
+      ghost         = {1, 2},
+   }
+   local field8 = DataStruct.Field {
+      onGrid        = grid,
       numComponents = 8,
-      ghost = {1, 2},
+      ghost         = {1, 2},
    }
-   field:clear(10.0)
+   field6:clear(20.0)
+   field8:clear(10.0)
 
-   -- field1 has a different number of components than field
+   -- field1 and field3 have fewer components than field8.
    local field1 = DataStruct.Field {
-      onGrid = grid,
-      numComponents = 3,
-      ghost = {1, 2},
+      onGrid        = grid,
+      numComponents = 1,
+      ghost         = {1, 2},
    }
+   local field3 = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = 3,
+      ghost         = {1, 2},
+   }
+   field1:clear(0.0)
+   field3:clear(0.0)
 
    local indexer = field1:genIndexer()
    for idx in field1:localExtRangeIter() do
       local fitr = field1:get(indexer(idx))
       fitr[1] = idx[1]+2*idx[2]+1
+   end
+
+   local indexer = field3:genIndexer()
+   for idx in field3:localExtRangeIter() do
+      local fitr = field3:get(indexer(idx))
+      fitr[1] = idx[1]+2*idx[2]+1
       fitr[2] = idx[1]+2*idx[2]+2
       fitr[3] = idx[1]+2*idx[2]+3
    end
 
-   -- accumulate stuff
-   field:accumulateOffset(1.0, field1, 0, 2.0, field1, 5)
+   -- Accumulate and combine onto field with more components.
+   field8:accumulateOffset(1.0, field3, 0, 2.0, field3, 5)
+   field6:combineOffset(1.0, field1, 0, 2.0, field1, 3)
 
-   for idx in field:localExtRangeIter() do
-      local fitr = field:get(indexer(idx))
-      assert_equal(10+(idx[1]+2*idx[2]+1), fitr[1], "Checking field value")
-      assert_equal(10+(idx[1]+2*idx[2]+2), fitr[2], "Checking field value")
-      assert_equal(10+(idx[1]+2*idx[2]+3), fitr[3], "Checking field value")
-      assert_equal(10, fitr[4], "Checking field value")
-      assert_equal(10, fitr[5], "Checking field value")
-      assert_equal(10+2*(idx[1]+2*idx[2]+1), fitr[6], "Checking field value")
-      assert_equal(10+2*(idx[1]+2*idx[2]+2), fitr[7], "Checking field value")
-      assert_equal(10+2*(idx[1]+2*idx[2]+3), fitr[8], "Checking field value")
+   local indexer = field8:genIndexer()
+   for idx in field8:localExtRangeIter() do
+      local fitr = field8:get(indexer(idx))
+      assert_equal(10+(idx[1]+2*idx[2]+1), fitr[1], "Checking field8 value")
+      assert_equal(10+(idx[1]+2*idx[2]+2), fitr[2], "Checking field8 value")
+      assert_equal(10+(idx[1]+2*idx[2]+3), fitr[3], "Checking field8 value")
+      assert_equal(10, fitr[4], "Checking field8 value")
+      assert_equal(10, fitr[5], "Checking field8 value")
+      assert_equal(10+2*(idx[1]+2*idx[2]+1), fitr[6], "Checking field8 value")
+      assert_equal(10+2*(idx[1]+2*idx[2]+2), fitr[7], "Checking field8 value")
+      assert_equal(10+2*(idx[1]+2*idx[2]+3), fitr[8], "Checking field8 value")
    end
+
+   local indexer = field6:genIndexer()
+   for idx in field6:localExtRangeIter() do
+      local fitr = field6:get(indexer(idx))
+      assert_equal((idx[1]+2*idx[2]+1), fitr[1], "Checking field6 value")
+      assert_equal(20, fitr[2], "Checking field6 value")
+      assert_equal(20, fitr[3], "Checking field6 value")
+      assert_equal(2*(idx[1]+2*idx[2]+1), fitr[4], "Checking field6 value")
+      assert_equal(20, fitr[5], "Checking field6 value")
+      assert_equal(20, fitr[6], "Checking field6 value")
+   end
+
+   -- Test accumulating and combining onto field with fewer components.
+   field1:clear(20.0)
+   field3:clear(10.0)
+   field6:clear(0.0)
+   field8:clear(0.0)
+
+   local indexer = field8:genIndexer()
+   for idx in field8:localExtRangeIter() do
+      local fitr = field8:get(indexer(idx))
+      fitr[1] = idx[1]+2*idx[2]+1
+      fitr[2] = idx[1]+2*idx[2]+2
+      fitr[3] = idx[1]+2*idx[2]+3
+      fitr[4] = idx[1]+2*idx[2]+4
+      fitr[5] = idx[1]+2*idx[2]+5
+      fitr[6] = idx[1]+2*idx[2]+6
+      fitr[7] = idx[1]+2*idx[2]+7
+      fitr[8] = idx[1]+2*idx[2]+8
+   end
+
+   local indexer = field6:genIndexer()
+   for idx in field6:localExtRangeIter() do
+      local fitr = field6:get(indexer(idx))
+      fitr[1] = idx[1]+2*idx[2]+1
+      fitr[2] = idx[1]+2*idx[2]+2
+      fitr[3] = idx[1]+2*idx[2]+3
+      fitr[4] = idx[1]+2*idx[2]+4
+      fitr[5] = idx[1]+2*idx[2]+5
+      fitr[6] = idx[1]+2*idx[2]+6
+   end
+
+   field3:accumulateOffset(1.0, field8, 2, 2.0, field8, 5)
+   field1:combineOffset(1.0, field6, 1, 2.0, field6, 4)
+
+   local indexer = field3:genIndexer()
+   for idx in field3:localExtRangeIter() do
+      local fitr = field3:get(indexer(idx))
+      assert_equal(10+(idx[1]+2*idx[2]+3)+2.0*(idx[1]+2*idx[2]+6), fitr[1], "Checking field3 value")
+      assert_equal(10+(idx[1]+2*idx[2]+4)+2.0*(idx[1]+2*idx[2]+7), fitr[2], "Checking field3 value")
+      assert_equal(10+(idx[1]+2*idx[2]+5)+2.0*(idx[1]+2*idx[2]+8), fitr[3], "Checking field3 value")
+   end
+
+   local indexer = field1:genIndexer()
+   for idx in field1:localExtRangeIter() do
+      local fitr = field1:get(indexer(idx))
+      assert_equal((idx[1]+2*idx[2]+2)+2.0*(idx[1]+2*idx[2]+5), fitr[1], "Checking field1 value")
+   end
+
 end
 
 test_1()
@@ -695,10 +877,11 @@ test_9()
 test_10()
 test_11()
 test_12()
---test_13()
+test_13()
 test_14()
 test_15()
 test_16()
+test_17()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
