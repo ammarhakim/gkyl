@@ -15,6 +15,9 @@ local Proto      = require "Lib.Proto"
 local Time       = require "Lib.Time"
 local xsys       = require "xsys"
 local GyrofluidModDecl = require "Eq.gyrofluidData.gyrofluid_mod_decl"
+-- In order to compute dBdz, but really that should be done in the field object.
+local math = require("sci.math").generic
+local diff = require("sci.diff")
 
 local Gyrofluid = Proto(EqBase)
 
@@ -60,6 +63,7 @@ function Gyrofluid:setAuxFields(auxFields)
    self.b_y     = geo.b_y
    self.b_z     = geo.b_z
    self.jacob   = geo.jacobGeo
+   self.dBdz    = dBdz
    self.phiWall = geo.phiWall  -- For sheath BCs.
 
    -- Primitive moments uPar, Tpar, Tperp.
@@ -69,7 +73,7 @@ function Gyrofluid:setAuxFields(auxFields)
 
    if self._isFirst then
 
-      -- Compose a field with J/B.
+      -- Compose a field with J/B. Eventually we'll remove this or put it in geo.
       local weakMult = Updater.CartFieldBinOp {
          onGrid    = self._grid,
          weakBasis = self._basis,
@@ -85,6 +89,35 @@ function Gyrofluid:setAuxFields(auxFields)
                           mass      = self.mass,},
       }
       weakMult:advance(0., {self.jacob,self.rBmag}, {self.jacobDbmag})
+
+      -- Compute dBdz. Eventually we'll remove this or put it in geo.
+      local dBdzFunc = function (xn)
+         local function bmagUnpack(...)
+            local xn1 = {...}
+            return geo.bmagFunc(0, xn1)
+         end
+         local deriv   = diff.derivativef(bmagUnpack, #xn)
+         local xntable = {}
+         for i = 1, #xn do xntable[i] = xn[i] end
+         local f, dx = deriv(unpack(xntable))
+         return dx
+      end
+      self.dBdz = DataStruct.Field {
+         onGrid        = self._grid,
+         numComponents = self._basis:numBasis(),
+         ghost         = {1, 1},
+         metaData      = {polyOrder = self._basis:polyOrder(),
+                          basisType = self._basis:id(),
+                          charge    = self.charge,
+                          mass      = self.mass,},
+      }
+      local evOnNodes = Updater.EvalOnNodes {
+         onGrid   = self.grid,
+         basis    = self.basis,
+         evaluate = dBdzFunc,
+         onGhosts = true,
+      }
+      evOnNodes:advance(0., {}, {self.dBdz})
 
       -- Allocate pointers and indexers to field objects.
 
@@ -104,6 +137,7 @@ function Gyrofluid:setAuxFields(auxFields)
       self.jacobPtr      = self.jacob:get(1)
       self.phiWallPtr    = self.phiWall:get(1)
       self.jacobDbmagPtr = self.jacobDbmag:get(1)
+      self.dBdzPtr       = self.dBdz:get(1)
 
       self.bmagIdxr       = self.bmag:genIndexer()
       self.rBmagIdxr      = self.rBmag:genIndexer()
@@ -114,6 +148,7 @@ function Gyrofluid:setAuxFields(auxFields)
       self.jacobIdxr      = self.jacob:genIndexer()
       self.phiWallIdxr    = self.phiWall:genIndexer()
       self.jacobDbmagIdxr = self.jacobDbmag:genIndexer()
+      self.dBdzIdxr       = self.dBdz:genIndexer()
 
       -- Primitive moments.
       self.primMomPtr  = self.primMom:get(1)
@@ -135,8 +170,9 @@ function Gyrofluid:volTerm(w, dx, idx, f, out)
    self.jacob:fill(self.jacobIdxr(idx), self.jacobPtr)
    self.jacobDbmag:fill(self.jacobDbmagIdxr(idx), self.jacobDbmagPtr)
    self.primMom:fill(self.primMomIdxr(idx), self.primMomPtr)
+   self.dBdz:fill(self.dBdz, self.dBdzPtr)
 
-   local res = self._volTerm(self.charge, self.mass, self.kappaPar, self.kapparPerp, self.kPerpSq, w:data(), dx:data(), self.jacobPtr:data(), self.rBmagPtr:data(), self.jacobDbmagPtr:data(), f:data(), self.phiPtr:data(), self.primMomPtr:data(), out:data())
+   local res = self._volTerm(self.charge, self.mass, self.kappaPar, self.kapparPerp, self.kPerpSq, w:data(), dx:data(), self.jacobPtr:data(), self.rBmagPtr:data(), self.jacobDbmagPtr:data(), self.dBdzPtr:data(), f:data(), self.phiPtr:data(), self.primMomPtr:data(), out:data())
    self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
    return res
 end
