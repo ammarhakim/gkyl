@@ -17,7 +17,8 @@ local MaxwellianProjectionParent = require ("App.Projection.KineticProjection").
 -- Gk-specific GkProjection.FunctionProjection includes Jacobian factors in initFunc.
 local FunctionProjection = Proto(FunctionProjectionParent)
 function FunctionProjection:advance(time, inFlds, outFlds)
-   local distf = outFlds[1]
+   local extField = inFlds[1]
+   local distf    = outFlds[1]
    if self.fromFile then
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else

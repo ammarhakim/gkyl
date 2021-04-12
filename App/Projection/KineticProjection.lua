@@ -66,8 +66,7 @@ function FunctionProjection:fullInit(species)
    if not func then func = self.tbl[1] end
 
    assert(func, "FunctionProjection: Must specify the function")
-   assert(type(func) == "function",
-	  "The input must be a table containing function")
+   assert(type(func) == "function", "The input must be a table containing function")
 
    if self.fromFile then
       self.ioMethod  = "MPI"

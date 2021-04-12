@@ -611,20 +611,22 @@ function FluidSpecies:write(tm, force)
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.
       if self.calcIntQuantTrigger(tm) then
-         self.intMom2Calc:advance(tm, { self.moments[1] }, { self.integratedMoments })
+         local momIn = self:rkStepperFields()[1]
+         self.intMom2Calc:advance(tm, { momIn }, { self.integratedMoments })
       end
       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
       
       -- Only write stuff if triggered.
       if self.diagIoTrigger(tm) or force then
-	 self.momIo:write(self.moments[1], string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
+         local momIn = self:rkStepperFields()[1]
+	 self.momIo:write(momIn, string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
          if self.momBackground then
             if tm == 0.0 then
                self.momBackground:write(string.format("%s_background_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, true)
             end
-            self.moments[1]:accumulate(-1, self.momBackground)
-            self.momIo:write(self.moments[1], string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
-            self.moments[1]:accumulate(1, self.momBackground)
+            momIn:accumulate(-1, self.momBackground)
+            self.momIo:write(momIn, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
+            momIn:accumulate(1, self.momBackground)
          end
          if tm == 0.0 and self.mSource then
             self.momIo:write(self.mSource, string.format("%s_mSource_0.bp", self.name), tm, self.diagIoFrame)
@@ -647,7 +649,8 @@ function FluidSpecies:write(tm, force)
    else
       -- If not evolving species, don't write anything except initial conditions.
       if self.diagIoFrame == 0 then
-         self.momIo:write(self.moments[1], string.format("%s_%d.bp", self.name, 0), tm, 0)
+         local momIn = self:rkStepperFields()[1]
+         self.momIo:write(momIn, string.format("%s_%d.bp", self.name, 0), tm, 0)
       end
       self.diagIoFrame = self.diagIoFrame+1
    end

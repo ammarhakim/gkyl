@@ -105,29 +105,23 @@ function GyrofluidSpecies:createSolver(hasPhi, hasApar, externalField)
       globalUpwind       = true,
    }
 
-   -- Updaters for the primitive moments.
-   self.weakDivide = Updater.CartFieldBinOp {
-      onGrid    = self.grid,
-      weakBasis = self.basis,
-      operation = "Divide",
-   }
-   self.weakMultiply = Updater.CartFieldBinOp {
-      onGrid    = self.grid,
-      weakBasis = self.basis,
-      operation = "Multiply",
-   }
-
    -- Offsets needed to fetch specific moments from CartField
    -- containing the stepped moments (e.g. with :combineOffset).
    self.mJacM0Off    = 0 
    self.mJacM1Off    = 1*self.basis:numBasis() 
    self.mJacM2Off    = 2*self.basis:numBasis()  
    self.jacM2perpOff = 3*self.basis:numBasis() 
-
+   -- Package them into a single table for easier access.
+   self.momOff = {self.mJacM0Off,self.mJacM1Off,self.mJacM2Off,self.jacM2perpOff}
 
    self.timers = {weakMom = 0., sources = 0.}
 
    assert(self.n0, "Must specify background density as global variable 'n0' in species table as 'n0 = ...'")
+end
+
+function GyrofluidSpecies:momOff(momIdx)
+   local offOut = momIdx and self.momOff[momIdx] or self.momOff
+   return offOut
 end
 
 function GyrofluidSpecies:initCrossSpeciesCoupling(species)
