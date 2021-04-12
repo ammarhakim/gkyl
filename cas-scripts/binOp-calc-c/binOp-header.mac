@@ -51,12 +51,6 @@ printf(fh, "// Eigen include statements. ~%")$
 printf(fh, "#include <Eigen/Dense> ~%")$
 printf(fh, " ~%")$
 printf(fh, "class binOpData_t;~%")$
-printf(fh, " ~%")$
-printf(fh, "extern \"C\" { ~%")$
-printf(fh, "void* new_binOpData_t(int nbasis_S, int nbasis_D);~%")$
-printf(fh, "~%")$
-printKernelSignatures()$
-printf(fh, "} ~%")$
 printf(fh, "~%")$
 printf(fh, "class binOpData_t~%")$
 printf(fh, "{~%")$
@@ -70,6 +64,12 @@ printf(fh, "  Eigen::MatrixXd AEM_D;~%")$
 printf(fh, "  Eigen::VectorXd BEV_D;~%")$
 printf(fh, "  Eigen::VectorXd u_D;~%")$
 printf(fh, "};~%")$
+printf(fh, " ~%")$
+printf(fh, "extern \"C\" { ~%")$
+printf(fh, "void* new_binOpData_t(int nbasis_S, int nbasis_D);~%")$
+printf(fh, "~%")$
+printKernelSignatures()$
+printf(fh, "} ~%")$
 printf(fh, "~%")$
 printf(fh, "#endif ~%")$
 close(fh)$

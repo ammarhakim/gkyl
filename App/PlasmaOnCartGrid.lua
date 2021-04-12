@@ -150,8 +150,7 @@ local function buildApplication(self, tbl)
       end
    end
 
-   -- configuration space decomp object (eventually, this will be
-   -- slaved to the phase-space decomp)
+   -- Configuration space decomp object.
    local decomp = DecompRegionCalc.CartProd {
       cuts      = decompCuts,
       useShared = useShared,
@@ -1044,16 +1043,16 @@ return {
    Moments = function ()
       App.label = "Multi-fluid"
       return {
-	 App = App,
-	 Species = require "App.Species.MomentSpecies",
-	 Field = require ("App.Field.MaxwellField").MaxwellField,
+         App = App,
+         Species = require "App.Species.MomentSpecies",
+         Field = require ("App.Field.MaxwellField").MaxwellField,
          ExternalField = require ("App.Field.MaxwellField").ExternalMaxwellField,
-	 CollisionlessEmSource = require "App.FluidSources.CollisionlessEmSource",
-	 TenMomentRelaxSource  = require "App.FluidSources.TenMomentRelaxSource",
-        AxisymmetricMomentSource = require "App.FluidSources.AxisymmetricMomentSource",
-        AxisymmetricPhMaxwellSource = require "App.FluidSources.AxisymmetricPhMaxwellSource",
-        BraginskiiHeatConductionSource = require "App.FluidSources.BraginskiiHeatConductionSource",
-        BraginskiiViscosityDiffusionSource = require "App.FluidSources.BraginskiiViscosityDiffusionSource",
+         CollisionlessEmSource = require "App.FluidSources.CollisionlessEmSource",
+         TenMomentRelaxSource  = require "App.FluidSources.TenMomentRelaxSource",
+         AxisymmetricMomentSource = require "App.FluidSources.AxisymmetricMomentSource",
+         AxisymmetricPhMaxwellSource = require "App.FluidSources.AxisymmetricPhMaxwellSource",
+         BraginskiiHeatConductionSource = require "App.FluidSources.BraginskiiHeatConductionSource",
+         BraginskiiViscosityDiffusionSource = require "App.FluidSources.BraginskiiViscosityDiffusionSource",
       }
    end
 }

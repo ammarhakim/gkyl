@@ -134,48 +134,6 @@ return function(tbl)
    -------------------------------------------------------------------
    -- Boundary conditions --------------------------------------------
    -------------------------------------------------------------------
-   local function copyFunc(dir, tm, idxIn, fIn, fOut)
-      for i = 1, basis:numBasis() do
-         fOut[i] = fIn[i]
-      end
-   end
-   local bc1l = Updater.Bc {
-      onGrid = grid,
-      boundaryConditions = { copyFunc },
-      dir = 1,
-      edge = "lower",
-   }
-   local bc1u = Updater.Bc {
-      onGrid = grid,
-      boundaryConditions = { copyFunc },
-      dir = 1,
-      edge = "upper",
-   }
-   local bc2l = Updater.Bc {
-      onGrid = grid,
-      boundaryConditions = { copyFunc },
-      dir = 2,
-      edge = "upper",
-   }
-   local bc2u = Updater.Bc {
-      onGrid = grid,
-      boundaryConditions = { copyFunc },
-      dir = 2,
-      edge = "lower",
-   }
-   local bc3l = Updater.Bc {
-      onGrid = grid,
-      boundaryConditions = { copyFunc },
-      dir = 3,
-      edge = "upper",
-   }
-   local bc3u = Updater.Bc {
-      onGrid = grid,
-      boundaryConditions = { copyFunc },
-      dir = 3,
-      edge = "lower",
-   }
-
    local function applyBc(fld)
       fld:sync()
 
@@ -329,13 +287,6 @@ return function(tbl)
                ptrGhost[k] = ptrSkin[k]
             end
          end
-      else
-         bc1l:advance(0, {}, {fld})
-         bc1u:advance(0, {}, {fld})
-         bc2l:advance(0, {}, {fld})
-         bc2u:advance(0, {}, {fld})
-         bc3l:advance(0, {}, {fld})
-         bc3u:advance(0, {}, {fld})
       end
    end
 
@@ -577,12 +528,15 @@ return function(tbl)
          isXloEdge, isXupEdge = false, false
          isYloEdge, isYupEdge = false, false
          isZloEdge, isZupEdge = false, false
-         if idxs[1] == localRange:lower(1) then isXloEdge = true end
-         if idxs[1] == localRange:upper(1) then isXupEdge = true end
-         if idxs[2] == localRange:lower(2) then isYloEdge = true end
-         if idxs[2] == localRange:upper(2) then isYupEdge = true end
-         if idxs[3] == localRange:lower(3) then isZloEdge = true end
-         if idxs[3] == localRange:upper(3) then isZupEdge = true end
+
+         if not hasPeriodicBC then
+            if idxs[1] == localRange:lower(1) then isXloEdge = true end
+            if idxs[1] == localRange:upper(1) then isXupEdge = true end
+            if idxs[2] == localRange:lower(2) then isYloEdge = true end
+            if idxs[2] == localRange:upper(2) then isYupEdge = true end
+            if idxs[3] == localRange:lower(3) then isZloEdge = true end
+            if idxs[3] == localRange:upper(3) then isZupEdge = true end
+         end
          
          idxs_LLC[1], idxs_LLC[2], idxs_LLC[3] = idxs[1]-1, idxs[2]-1, idxs[3]
          idxs_LCL[1], idxs_LCL[2], idxs_LCL[3] = idxs[1]-1, idxs[2], idxs[3]-1
@@ -726,7 +680,8 @@ return function(tbl)
                                  f_CCC, g_CCC,
                                  f_out)
 
-         cflFreq = math.max(cflFreq, dragFreq, diffFreq)
+         --cflFreq = math.max(cflFreq, dragFreq, diffFreq)
+         cflFreq = math.max(cflFreq)
       end
 
       if hasConstSource then

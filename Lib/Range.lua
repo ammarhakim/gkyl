@@ -217,7 +217,7 @@ local range_mt = {
 	 return r
       end,
       shorten = function (self, dir, len)
-	 if len == nil then len = 1 end
+         len = len or 1
 	 local r = new(rTy)
 	 r._ndim = self:ndim()
 	 for d = 1, self:ndim() do

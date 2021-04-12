@@ -1,6 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Uniform Cartesian grids
+-- Uniform Cartesian grids.
+--
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
@@ -12,7 +13,7 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
--- Gkyl libraries
+-- Gkyl libraries.
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Lin   = require "Lib.Linalg"
 local Mpi   = require "Comm.Mpi"
@@ -125,11 +126,11 @@ function RectCart:init(tbl)
 
       self._isShared = self.decomp:isShared()
       -- In parallel, we need to adjust local range. 
-      self._commSet = self.decomp:commSet()
+      self._commSet         = self.decomp:commSet()
       self._decomposedRange = self.decomp:decompose(self._globalRange)
-      local subDomIdx = getSubDomIndex(self._commSet.nodeComm, self._commSet.sharedComm)
-      self._block = subDomIdx
-      local localRange = self._decomposedRange:subDomain(subDomIdx)
+      local subDomIdx       = getSubDomIndex(self._commSet.nodeComm, self._commSet.sharedComm)
+      self._block           = subDomIdx
+      local localRange      = self._decomposedRange:subDomain(subDomIdx)
       self._localRange:copy(localRange)
       self._cuts = {}
       for i = 1, self._ndim do 
@@ -145,7 +146,7 @@ function RectCart:init(tbl)
       self._commSet = dec1:commSet()
       self._decomposedRange = dec1:decompose(self._globalRange)
       self._block = 1
-      self._cuts = cuts
+      self._cuts  = cuts
    end
 
    self._onDevice = self:copyHostToDevice()

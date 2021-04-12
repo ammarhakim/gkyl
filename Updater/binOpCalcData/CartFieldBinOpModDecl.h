@@ -6,6 +6,19 @@
  
 class binOpData_t;
  
+class binOpData_t
+{
+ public:
+  binOpData_t(int nbasis_S, int nbasis_D);
+  ~binOpData_t();
+  Eigen::MatrixXd AEM_S;
+  Eigen::VectorXd BEV_S;
+  Eigen::VectorXd u_S;
+  Eigen::MatrixXd AEM_D;
+  Eigen::VectorXd BEV_D;
+  Eigen::VectorXd u_D;
+};
+
 extern "C" { 
 void* new_binOpData_t(int nbasis_S, int nbasis_D);
 
@@ -391,18 +404,5 @@ void CartFieldBinOpConfPhaseMultiply3x2vTensor_P3(binOpData_t* data, const doubl
 void CartFieldBinOpConfPhaseDivide3x2vTensor_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 } 
-
-class binOpData_t
-{
- public:
-  binOpData_t(int nbasis_S, int nbasis_D);
-  ~binOpData_t();
-  Eigen::MatrixXd AEM_S;
-  Eigen::VectorXd BEV_S;
-  Eigen::VectorXd u_S;
-  Eigen::MatrixXd AEM_D;
-  Eigen::VectorXd BEV_D;
-  Eigen::VectorXd u_D;
-};
 
 #endif 
