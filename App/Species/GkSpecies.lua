@@ -568,6 +568,8 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    			self.m0fMax           = self:allocMoment()
    			self.m0mod            = self:allocMoment()
    			self.fMaxwellIz       = self:allocDistf()
+			species[self.neutNmIz].calcIntSrcIz = true
+			species[self.neutNmIz].collNmIoniz = collNm
 			self.intSrcIzM0 = DataStruct.DynVector {
 			   numComponents = 1,
 			}
@@ -596,7 +598,7 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    			self.neutNmCX         = species[sN].collisions[collNm].neutNm
    			self.needSelfPrimMom  = true
 			species[self.neutNmCX].needSelfPrimMom = true
-   			self.vSigmaCX         = self:allocMoment()
+			self.vSigmaCX         = self:allocMoment()
    			species[self.neutNmCX].needSelfPrimMom = true
    			counterCX_ion = false
     		     end
@@ -1391,6 +1393,19 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tm)
             self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
                   tm, {self.ptclEnergySrc, self.sourceTimeDependence(tm)*self.mass/2}, {self.diagnosticIntegratedMomentFields[mom..label]})
          end
+      end
+      if self.calcReactRate and label=="" then
+	 local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
+	 local srcIzM0 = self:allocMoment()
+	 self.numDensityCalc:advance(tm, {sourceIz}, {srcIzM0})
+	 local intCalc = Updater.CartFieldIntegratedQuantCalc {
+	    onGrid        = self.confGrid,
+	    basis         = self.confBasis,
+	    numComponents = 1,
+	    quantity      = "V",
+	    timeIntegrate = true,
+	 }
+	 intCalc:advance( tm, {srcIzM0}, {self.intSrcIzM0} )       
       end
    end
 

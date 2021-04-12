@@ -686,12 +686,16 @@ function VlasovSpecies:createDiagnostics()
       self.momDensitySrc = self:allocVectorMoment(self.vdim)
       self.ptclEnergySrc = self:allocMoment()
       self.fiveMomentsCalc:advance(0.0, {self.fSource}, {self.numDensitySrc, self.momDensitySrc, self.ptclEnergySrc})
+      if contains(self.diagnosticIntegratedMoments, "intM0") and not contains(self.diagnosticIntegratedMoments, "intSrcM0") then
+	 table.insert(self.diagnosticIntegratedMoments, "intSrcM0")
+      end
     end
    -- Create updater to compute volume-integrated moments
    -- function to check if integrated moment name is correct.
    local function isIntegratedMomentNameGood(nm)
       if nm == "intM0" or nm == "intM1i" or nm == "intM2Flow" 
-         or nm == "intM2Thermal" or nm == "intM2" or nm == "intL2" then
+      or nm == "intM2Thermal" or nm == "intM2" or nm == "intL2"
+      or nm == "intSrcM0" or nm == "intSrcM1" or nm == "intSrcM2" or nm == "intSrcKE" then
          return true
       end
       return false
@@ -738,12 +742,25 @@ function VlasovSpecies:createDiagnostics()
                   quantity      = "V2",
                   timeIntegrate = timeIntegrate,
                }
+	    elseif mom == "intSrcM0" or mom == "intSrcM1" or mom == "intSrcM2" or mom == "intSrcKE" then
+               self.diagnosticIntegratedMomentUpdaters[mom..label] = Updater.CartFieldIntegratedQuantCalc {
+                  onGrid        = confGrid,
+                  basis         = self.confBasis,
+                  numComponents = 1,
+                  quantity      = "V",
+                  timeIntegrate = true,
+               }
             else
                self.diagnosticIntegratedMomentUpdaters[mom..label] = intCalc
             end
          else
             assert(false, string.format("Error: integrated moment %s not valid", mom..label))
          end
+      end
+      if self.calcIntSrcIz and label=="" then
+	 self.intSrcIzM0 = DataStruct.DynVector {
+	    numComponents = 1,
+	 }
       end
    end
 
@@ -1127,7 +1144,24 @@ function VlasovSpecies:calcDiagnosticIntegratedMoments(tm)
          elseif mom == "intL2" then
             self.diagnosticIntegratedMomentUpdaters[mom]:advance(
                tm, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[mom]})
+	 elseif mom == "intSrcM0" then
+            self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
+                  tm, {self.numDensitySrc, self.sourceTimeDependence(tm)}, {self.diagnosticIntegratedMomentFields[mom..label]})
          end
+      end
+      if self.calcIntSrcIz and label=="" then
+	 local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
+	 sourceIz:scale(-1.0)
+	 local srcIzM0 = self:allocMoment()
+	 self.numDensityCalc:advance(tm, {sourceIz}, {srcIzM0})
+	 local intCalc = Updater.CartFieldIntegratedQuantCalc {
+	    onGrid        = self.confGrid,
+	    basis         = self.confBasis,
+	    numComponents = 1,
+	    quantity      = "V",
+	    timeIntegrate = true,
+	 }
+	 intCalc:advance( tm, {srcIzM0}, {self.intSrcIzM0} )       
       end
    end
 

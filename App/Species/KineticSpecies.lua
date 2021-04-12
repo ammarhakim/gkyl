@@ -919,22 +919,20 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        -- include dynvector for zeroth vector of ionization source
        tmStart = Time.clock()
-       local srcIzM0 = self:allocMoment()
-       self.numDensityCalc:advance(tm, {sourceIz}, {srcIzM0})
-       local intCalc = Updater.CartFieldIntegratedQuantCalc {
-       	  onGrid        = self.confGrid,
-       	  basis         = self.confBasis,
-       	  numComponents = 1,
-       	  quantity      = "V",
-       	  timeIntegrate = true,
-       }
-       intCalc:advance( tm, {srcIzM0}, {self.intSrcIzM0} )
        self.intSrcIzM0:write(
           string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
-       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
-       
+       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart       
     end
 
+    if self.calcIntSrcIz then
+       tmStart = Time.clock()
+       local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
+       sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       self.intSrcIzM0:write(
+          string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
+       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart    
+    end
+       
     -- Write CX diagnostics
     if self.calcCXSrc then
        self.vSigmaCX:write(string.format("%s_vSigmaCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
@@ -1043,6 +1041,10 @@ function KineticSpecies:writeRestart(tm)
    end
 
    if self.calcReactRate then
+      self.intSrcIzM0:write(
+	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
+   end
+   if self.calcIntSrcIz then
       self.intSrcIzM0:write(
 	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
    end
