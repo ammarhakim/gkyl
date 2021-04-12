@@ -446,6 +446,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    			self.m0fMax           = self:allocMoment()
    			self.m0mod            = self:allocMoment()
    			self.fMaxwellIz       = self:allocDistf()
+			self.srcIzM0          = self:allocMoment()
 			self.intSrcIzM0       = DataStruct.DynVector{numComponents = 1}
 			counterIz_elc         = false
 		     elseif self.name==species[sN].collisions[collNm].neutNm and counterIz_neut then
@@ -758,8 +759,16 @@ function VlasovSpecies:createDiagnostics()
          end
       end
       if self.calcIntSrcIz and label=="" then
+	 self.srcIzM0 = self:allocMoment()
 	 self.intSrcIzM0 = DataStruct.DynVector {
 	    numComponents = 1,
+	 }
+	 self.intCalcIz = Updater.CartFieldIntegratedQuantCalc {
+	    onGrid        = self.confGrid,
+	    basis         = self.confBasis,
+	    numComponents = 1,
+	    quantity      = "V",
+	    timeIntegrate = true,
 	 }
       end
    end
@@ -1152,16 +1161,8 @@ function VlasovSpecies:calcDiagnosticIntegratedMoments(tm)
       if self.calcIntSrcIz and label=="" then
 	 local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
 	 sourceIz:scale(-1.0)
-	 local srcIzM0 = self:allocMoment()
-	 self.numDensityCalc:advance(tm, {sourceIz}, {srcIzM0})
-	 local intCalc = Updater.CartFieldIntegratedQuantCalc {
-	    onGrid        = self.confGrid,
-	    basis         = self.confBasis,
-	    numComponents = 1,
-	    quantity      = "V",
-	    timeIntegrate = true,
-	 }
-	 intCalc:advance( tm, {srcIzM0}, {self.intSrcIzM0} )       
+	 self.numDensityCalc:advance(tm, {sourceIz}, {self.srcIzM0})
+	 self.intCalcIz:advance( tm, {self.srcIzM0}, {self.intSrcIzM0} )       
       end
    end
 

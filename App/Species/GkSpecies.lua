@@ -570,6 +570,7 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    			self.fMaxwellIz       = self:allocDistf()
 			species[self.neutNmIz].calcIntSrcIz = true
 			species[self.neutNmIz].collNmIoniz = collNm
+			self.srcIzM0 = self:allocMoment()
 			self.intSrcIzM0 = DataStruct.DynVector {
 			   numComponents = 1,
 			}
@@ -876,6 +877,15 @@ function GkSpecies:createDiagnostics()
          else
             assert(false, string.format("Error: integrated moment %s not valid", mom..label))
          end
+      end
+      if self.calcReactRate and label=="" then
+	 self.intCalcIz = Updater.CartFieldIntegratedQuantCalc {
+	    onGrid        = self.confGrid,
+	    basis         = self.confBasis,
+	       numComponents = 1,
+	       quantity      = "V",
+	       timeIntegrate = true,
+	    }
       end
    end
 
@@ -1396,16 +1406,8 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tm)
       end
       if self.calcReactRate and label=="" then
 	 local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
-	 local srcIzM0 = self:allocMoment()
-	 self.numDensityCalc:advance(tm, {sourceIz}, {srcIzM0})
-	 local intCalc = Updater.CartFieldIntegratedQuantCalc {
-	    onGrid        = self.confGrid,
-	    basis         = self.confBasis,
-	    numComponents = 1,
-	    quantity      = "V",
-	    timeIntegrate = true,
-	 }
-	 intCalc:advance( tm, {srcIzM0}, {self.intSrcIzM0} )       
+	 self.numDensityCalc:advance(tm, {sourceIz}, {self.srcIzM0})
+	 self.intCalcIz:advance( tm, {self.srcIzM0}, {self.intSrcIzM0} )       
       end
    end
 
