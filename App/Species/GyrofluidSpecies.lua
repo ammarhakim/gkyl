@@ -17,6 +17,9 @@ local Constants      = require "Lib.Constants"
 local Lin            = require "Lib.Linalg"
 local xsys           = require "xsys"
 local lume           = require "Lib.lume"
+-- In order to compute dBdz, but really that should be done in the field object.
+local math           = require("sci.math").generic
+local diff           = require("sci.diff")
 
 local GyrofluidSpecies = Proto(KineticSpecies)
 
@@ -83,6 +86,27 @@ function GyrofluidSpecies:createSolver(hasPhi, hasApar, externalField)
       self.bmagInv  = externalField.geo.bmagInv
       self.jacob    = externalField.geo.jacobGeo
       self.jacobInv = externalField.geo.jacobGeoInv
+
+      -- Compute dBdz.
+      local dBdzFunc = function (xn)
+         local function bmagUnpack(...)
+            local xn1 = {...}
+            return self.bmagFunc(0, xn1)
+         end
+         local deriv   = diff.derivativef(bmagUnpack, #xn)
+         local xntable = {}
+         for i = 1, #xn do xntable[i] = xn[i] end
+         local f, dx = deriv(unpack(xntable))
+         return dx
+      end
+      self.dBdz = self:allocMoment()
+      local evOnNodes = Updater.EvalOnNodes {
+         onGrid   = self.grid,
+         basis    = self.basis,
+         evaluate = dBdzFunc,
+         onGhosts = true,
+      }
+      evOnNodes:advance(0., {}, {self.dBdz})
    end
 
    -- Create updater to advance solution by one time-step.
