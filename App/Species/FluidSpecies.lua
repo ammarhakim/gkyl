@@ -346,6 +346,21 @@ function FluidSpecies:createSolver(externalField)
          basis  = self.basis,
       }
    end
+
+   -- Weak multiplication and division operators
+   -- likely needed for operations and diagnostics.
+   self.weakMultiply = Updater.CartFieldBinOp {
+      onGrid    = self.grid,
+      weakBasis = self.basis,
+      operation = "Multiply",
+      onGhosts  = true,
+   }
+   self.weakDivide = Updater.CartFieldBinOp {
+      onGrid    = self.grid,
+      weakBasis = self.basis,
+      operation = "Divide",
+      onGhosts  = true,
+   }
 end
 
 function FluidSpecies:alloc(nRkDup)
@@ -581,19 +596,6 @@ function FluidSpecies:createDiagnostics()
       basis         = self.basis,
       numComponents = self.nMoments,
       quantity      = "V"
-   }
-   -- Set up weak multiplication and division operators.
-   self.weakMultiply = Updater.CartFieldBinOp {
-      onGrid    = self.grid,
-      weakBasis = self.basis,
-      operation = "Multiply",
-      onGhosts  = true,
-   }
-   self.weakDivide = Updater.CartFieldBinOp {
-      onGrid    = self.grid,
-      weakBasis = self.basis,
-      operation = "Divide",
-      onGhosts  = true,
    }
 end
 

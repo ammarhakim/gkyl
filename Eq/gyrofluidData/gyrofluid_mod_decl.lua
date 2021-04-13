@@ -46,3 +46,5 @@ function _M.selectSurf(basisNm, dim, polyOrder)
    end
    return kernels
 end
+
+return _M

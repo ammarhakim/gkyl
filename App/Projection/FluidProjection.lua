@@ -98,6 +98,7 @@ function ReadInput:run(t, distf)
 end
 ----------------------------------------------------------------------
 return {
+   FluidProjection    = FluidProjection,
    FunctionProjection = FunctionProjection,
    ReadInput          = ReadInput,
 }

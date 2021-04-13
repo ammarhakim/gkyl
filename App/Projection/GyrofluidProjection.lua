@@ -10,8 +10,8 @@ local Proto      = require "Lib.Proto"
 local Updater    = require "Updater"
 local xsys       = require "xsys"
 local DataStruct = require "DataStruct"
-local FluidProjectionParent    = require "App.Projection.FluidProjection"
-local FunctionProjectionParent = require ("App.Projection.FluidProjection").FunctionProjection
+local FluidProjectionParent    = require("App.Projection.FluidProjection").FluidProjection
+local FunctionProjectionParent = require("App.Projection.FluidProjection").FunctionProjection
 
 --------------------------------------------------------------------------------
 -- Gyrofluid-specific FunctionProjection includes Jacobian factors in initFunc.
@@ -106,7 +106,7 @@ function GyrofluidProjection:fullInit(species)
       self.unitFld = species:allocMoment()
       self.unitFld:scale(1.0)
 
-      self.momOff = species:momOff()
+      self.momOff = species:getMomOff()
    end
 end
 
@@ -155,3 +155,9 @@ function GyrofluidProjection:advance(tm, inFlds, outFlds)
 
    end
 end
+
+----------------------------------------------------------------------
+return {
+   FunctionProjection  = FunctionProjection,
+   GyrofluidProjection = GyrofluidProjection,
+}

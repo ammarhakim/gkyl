@@ -696,9 +696,10 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local fIn     = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
-   local em          = emIn[1]:rkStepperFields()[inIdx]
+   local em     = emIn[1]:rkStepperFields()[inIdx] -- Dynamic fields (e.g. phi, Apar)
+   local emFunc = emIn[2]:rkStepperFields()[1]     -- Geometry/external field.
+
    local dApardtProv = emIn[1].dApardtProv
-   local emFunc      = emIn[2]:rkStepperFields()[1]
 
    -- Rescale slopes.
    if self.positivityRescale then

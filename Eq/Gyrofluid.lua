@@ -25,16 +25,19 @@ local Gyrofluid = Proto(EqBase)
 function Gyrofluid:init(tbl)
 
    -- Get grid and basis.
-   self._grid  = assert(tbl.onGrid, "Gyrofluid: must specify a grid")
-   self._basis = assert(tbl.confBasis, "Gyrofluid: must specify a phaseBasis")
+   self._grid  = assert(tbl.onGrid, "Gyrofluid: must specify a grid.")
+   self._basis = assert(tbl.basis, "Gyrofluid: must specify a basis.")
 
    self._ndim = self._grid:ndim()
 
-   self.charge = assert(tbl.charge, "Gyrofluid: must specify charge using 'charge' ")
-   self.mass   = assert(tbl.mass, "Gyrofluid: must specify mass using 'mass' ")
+   self.charge = assert(tbl.charge, "Gyrofluid: must specify charge using 'charge'.")
+   self.mass   = assert(tbl.mass, "Gyrofluid: must specify mass using 'mass'.")
 
-   self.kappaPar   = assert(tbl.kappaPar, "Gyrofluid: must specify parallel heat conductivity using 'kappaPar' ")
-   self.kapparPerp = assert(tbl.kappaPerp, "Gyrofluid: must specify perpendicular heat conductivity using 'kappaPerp' ")       
+   self.kappaPar   = assert(tbl.kappaPar, "Gyrofluid: must specify parallel heat conductivity using 'kappaPar'.")
+   self.kapparPerp = assert(tbl.kappaPerp, "Gyrofluid: must specify perpendicular heat conductivity using 'kappaPerp'.")
+
+   self.kPerpSq  = 0.0
+   self.bmagFunc = assert(tbl.bmagFunc, "Gyrofluid: must specify the function defining the magnetic field amplitude using 'bmagFunc'.")       
 
    local nm, p = self._basis:id(), self._basis:polyOrder()
    self._volTerm  = GyrofluidModDecl.selectVol (nm, self._ndim, p)
@@ -91,10 +94,10 @@ function Gyrofluid:setAuxFields(auxFields)
       weakMult:advance(0., {self.jacob,self.rBmag}, {self.jacobDbmag})
 
       -- Compute dBdz. Eventually we'll remove this or put it in geo.
-      local dBdzFunc = function (xn)
+      local dBdzFunc = function (t, xn)
          local function bmagUnpack(...)
             local xn1 = {...}
-            return geo.bmagFunc(0, xn1)
+            return self.bmagFunc(0, xn1)
          end
          local deriv   = diff.derivativef(bmagUnpack, #xn)
          local xntable = {}
@@ -112,8 +115,8 @@ function Gyrofluid:setAuxFields(auxFields)
                           mass      = self.mass,},
       }
       local evOnNodes = Updater.EvalOnNodes {
-         onGrid   = self.grid,
-         basis    = self.basis,
+         onGrid   = self._grid,
+         basis    = self._basis,
          evaluate = dBdzFunc,
          onGhosts = true,
       }
@@ -170,7 +173,7 @@ function Gyrofluid:volTerm(w, dx, idx, f, out)
    self.jacob:fill(self.jacobIdxr(idx), self.jacobPtr)
    self.jacobDbmag:fill(self.jacobDbmagIdxr(idx), self.jacobDbmagPtr)
    self.primMom:fill(self.primMomIdxr(idx), self.primMomPtr)
-   self.dBdz:fill(self.dBdz, self.dBdzPtr)
+   self.dBdz:fill(self.dBdzIdxr(idx), self.dBdzPtr)
 
    local res = self._volTerm(self.charge, self.mass, self.kappaPar, self.kapparPerp, self.kPerpSq, w:data(), dx:data(), self.jacobPtr:data(), self.rBmagPtr:data(), self.jacobDbmagPtr:data(), self.dBdzPtr:data(), f:data(), self.phiPtr:data(), self.primMomPtr:data(), out:data())
    self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)

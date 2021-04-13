@@ -204,7 +204,7 @@ local function buildApplication(self, tbl)
    setmetatable(species, species_keys)
 
    -- Setup each species.
-   for _, s in lume.orderedIter(species) do
+   for nm, s in lume.orderedIter(species) do
       -- Set up conf grid and basis.
       s:setConfGrid(confGrid)
       s:setConfBasis(confBasis)
@@ -987,6 +987,18 @@ function App:run()
 end
 
 return {
+   Gyrofluid = function ()
+      App.label = "Gyrofluid"
+      return  {
+	 App = App,
+	 Species = require "App.Species.GyrofluidSpecies",
+	 Field = require ("App.Field.GkField").GkField,
+	 Geometry = require ("App.Field.GkField").GkGeometry,
+	 FunctionProjection  = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
+	 GyrofluidProjection = require ("App.Projection.GyrofluidProjection").GyrofluidProjection, 
+      }
+   end,
+
    Gyrokinetic = function ()
       App.label = "Gyrokinetic"
       return  {
@@ -1018,6 +1030,21 @@ return {
       }
    end,
    
+   Moments = function ()
+      App.label = "Multi-fluid"
+      return {
+         App = App,
+         Species = require "App.Species.MomentSpecies",
+         Field = require ("App.Field.MaxwellField").MaxwellField,
+         CollisionlessEmSource = require "App.FluidSources.CollisionlessEmSource",
+         TenMomentRelaxSource  = require "App.FluidSources.TenMomentRelaxSource",
+         AxisymmetricMomentSource = require "App.FluidSources.AxisymmetricMomentSource",
+         AxisymmetricPhMaxwellSource = require "App.FluidSources.AxisymmetricPhMaxwellSource",
+         BraginskiiHeatConductionSource = require "App.FluidSources.BraginskiiHeatConductionSource",
+         BraginskiiViscosityDiffusionSource = require "App.FluidSources.BraginskiiViscosityDiffusionSource",
+      }
+   end,
+
    VlasovMaxwell = function ()
       App.label = "Vlasov-Maxwell"
       return {
@@ -1038,19 +1065,4 @@ return {
 	 Diffusion = require "App.Collisions.Diffusion",
       }
    end,
-   
-   Moments = function ()
-      App.label = "Multi-fluid"
-      return {
-         App = App,
-         Species = require "App.Species.MomentSpecies",
-         Field = require ("App.Field.MaxwellField").MaxwellField,
-         CollisionlessEmSource = require "App.FluidSources.CollisionlessEmSource",
-         TenMomentRelaxSource  = require "App.FluidSources.TenMomentRelaxSource",
-         AxisymmetricMomentSource = require "App.FluidSources.AxisymmetricMomentSource",
-         AxisymmetricPhMaxwellSource = require "App.FluidSources.AxisymmetricPhMaxwellSource",
-         BraginskiiHeatConductionSource = require "App.FluidSources.BraginskiiHeatConductionSource",
-         BraginskiiViscosityDiffusionSource = require "App.FluidSources.BraginskiiViscosityDiffusionSource",
-      }
-   end
 }

@@ -18,17 +18,19 @@ local Lin            = require "Lib.Linalg"
 local xsys           = require "xsys"
 local lume           = require "Lib.lume"
 
-local GyrofluidSpecies = Proto(KineticSpecies)
+local GyrofluidSpecies = Proto(FluidSpecies)
 
 -- Add constants to object indicate various supported boundary conditions.
 local SP_BC_ABSORB = 1
 local SP_BC_COPY   = 6
-GyrofluidSpecies.bcAbsorb   = SP_BC_ABSORB      -- Absorb all particles.
-GyrofluidSpecies.bcCopy     = SP_BC_COPY        -- Copy stuff.
+GyrofluidSpecies.bcAbsorb = SP_BC_ABSORB      -- Absorb all particles.
+GyrofluidSpecies.bcCopy   = SP_BC_COPY        -- Copy stuff.
 
 function GyrofluidSpecies:fullInit(appTbl)
    GyrofluidSpecies.super.fullInit(self, appTbl)
 
+   self.n0 = self.tbl.n0 or n0
+   assert(self.n0, "GyrofluidSpecies: must specify background density as global variable 'n0' in species table as 'n0 = ...'")
    self.kappaPar, self.kappaPerp = self.tbl.kappaPar, self.tbl.kappaPerp
 
    self.nMoments = 3+1
@@ -76,7 +78,7 @@ function GyrofluidSpecies:createSolver(hasPhi, hasApar, externalField)
       self.jacobFunc = externalField.jacobGeoFunc
 
       local xMid = {}
-      for d = 1,self.cdim do xMid[d]=self.grid:mid(d) end
+      for d = 1,self.ndim do xMid[d]=self.grid:mid(d) end
       self.B0 = externalField.bmagFunc(0.0, xMid)
 
       self.bmag     = assert(externalField.geo.bmag, "nil bmag")
@@ -88,11 +90,12 @@ function GyrofluidSpecies:createSolver(hasPhi, hasApar, externalField)
    -- Create updater to advance solution by one time-step.
    self.equation = GyrofluidEq {
       onGrid    = self.grid,
-      confGrid  = self.confGrid,
+      basis     = self.basis,
       charge    = self.charge,
       mass      = self.mass,
       kappaPar  = self.kappaPar,
       kappaPerp = self.kappaPerp,
+      bmagFunc  = self.bmagFunc,
    }
 
    self.solver = Updater.HyperDisCont {
@@ -114,12 +117,10 @@ function GyrofluidSpecies:createSolver(hasPhi, hasApar, externalField)
    -- Package them into a single table for easier access.
    self.momOff = {self.mJacM0Off,self.mJacM1Off,self.mJacM2Off,self.jacM2perpOff}
 
-   self.timers = {weakMom = 0., sources = 0.}
-
-   assert(self.n0, "Must specify background density as global variable 'n0' in species table as 'n0 = ...'")
+   self.timers = {couplingMom=0., weakMom=0., sources=0.}
 end
 
-function GyrofluidSpecies:momOff(momIdx)
+function GyrofluidSpecies:getMomOff(momIdx)
    local offOut = momIdx and self.momOff[momIdx] or self.momOff
    return offOut
 end
@@ -145,7 +146,7 @@ function GyrofluidSpecies:calcCouplingMoments(tCurr, rkIdx, species)
          -- Get the perpendicular and parallel pressures (times Jacobian).
          self.jacM2perp:combineOffset(1, momIn, self.jacM2perpOff)
          self.weakMultiply:advance(tCurr, {self.jacM2perp, self.bmag}, {self.pPerpJac})
-         self.weakMultiply:advance(tCurr, {self.uparSelf, self.mJacM1}, {self.mJacM2flow})
+         self.weakMultiply:advance(tCurr, {self.uParSelf, self.mJacM1}, {self.mJacM2flow})
          self.mJacM2:combineOffset(1, momIn, self.mJacM2Off)
          Mpi.Barrier(self.grid:commSet().sharedComm)   -- Barrier over sharedComm before combine.
          self.pParJac:combine(2., self.mJacM2, -2., self.pPerpJac, -1., self.mJacM2flow)
@@ -177,8 +178,8 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local momIn     = self:rkStepperFields()[inIdx]
    local momRhsOut = self:rkStepperFields()[outIdx]
 
-   local em     = emIn[1]:rkStepperFields()[inIdx]
-   local emFunc = emIn[2]:rkStepperFields()[1]
+   local em     = emIn[1]:rkStepperFields()[inIdx] -- Dynamic fields (e.g. phi, Apar)
+   local emFunc = emIn[2]:rkStepperFields()[1]     -- Geometry/external field.
 
    if self.positivityRescale then
       self.posRescaler:advance(tCurr, {momIn}, {self.momPos}, false)
@@ -237,9 +238,6 @@ function GyrofluidSpecies:appendBoundaryConditions(dir, edge, bcType)
    else
       assert(false, "GyrofluidSpecies: Unsupported BC type!")
    end
-end
-
-function GyrofluidSpecies:createDiagnostics()
 end
 
 function GyrofluidSpecies:calcDiagnosticIntegratedMoments(tm)
