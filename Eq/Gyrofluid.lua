@@ -123,11 +123,12 @@ function Gyrofluid:setAuxFields(auxFields)
 
       -- Allocate pointers and indexers to field objects.
 
+      self.indexer = self.bmag:genIndexer()
+
       -- Potentials.
       self.phiPtr  = self.phi:get(1)
       self.phiPtrl = self.phi:get(1)
       self.phiPtrr = self.phi:get(1)
-      self.phiIdxr = self.phi:genIndexer()
 
       -- Geometry.
       self.bmagPtr       = self.bmag:get(1)
@@ -141,22 +142,10 @@ function Gyrofluid:setAuxFields(auxFields)
       self.jacobDbmagPtr = self.jacobDbmag:get(1)
       self.dBdzPtr       = self.dBdz:get(1)
 
-      self.bmagIdxr       = self.bmag:genIndexer()
-      self.rBmagIdxr      = self.rBmag:genIndexer()
-      self.cmagIdxr       = self.cmag:genIndexer()
-      self.b_xIdxr        = self.b_x:genIndexer()
-      self.b_yIdxr        = self.b_y:genIndexer()
-      self.b_zIdxr        = self.b_z:genIndexer()
-      self.jacobIdxr      = self.jacob:genIndexer()
-      self.phiWallIdxr    = self.phiWall:genIndexer()
-      self.jacobDbmagIdxr = self.jacobDbmag:genIndexer()
-      self.dBdzIdxr       = self.dBdz:genIndexer()
-
       -- Primitive moments.
       self.primMomPtr  = self.primMom:get(1)
       self.primMomPtrl = self.primMom:get(1)
       self.primMomPtrr = self.primMom:get(1)
-      self.primMomIdxr = self.primMom:genIndexer()
 
       self._isFirst = false -- No longer first time.
    end
@@ -166,13 +155,13 @@ end
 function Gyrofluid:volTerm(w, dx, idx, f, out)
    local tmStart = Time.clock()
 
-   self.phi:fill(self.phiIdxr(idx), self.phiPtr)
-   self.bmag:fill(self.bmagIdxr(idx), self.bmagPtr)
-   self.rBmag:fill(self.rBmagIdxr(idx), self.rBmagPtr)
-   self.jacob:fill(self.jacobIdxr(idx), self.jacobPtr)
-   self.jacobDbmag:fill(self.jacobDbmagIdxr(idx), self.jacobDbmagPtr)
-   self.primMom:fill(self.primMomIdxr(idx), self.primMomPtr)
-   self.dBdz:fill(self.dBdzIdxr(idx), self.dBdzPtr)
+   self.phi:fill(self.indexer(idx), self.phiPtr)
+   self.bmag:fill(self.indexer(idx), self.bmagPtr)
+   self.rBmag:fill(self.indexer(idx), self.rBmagPtr)
+   self.jacob:fill(self.indexer(idx), self.jacobPtr)
+   self.jacobDbmag:fill(self.indexer(idx), self.jacobDbmagPtr)
+   self.primMom:fill(self.indexer(idx), self.primMomPtr)
+   self.dBdz:fill(self.indexer(idx), self.dBdzPtr)
 
    local res = self._volTerm(self.charge, self.mass, self.kappaPar, self.kapparPerp, self.kPerpSq, w:data(), dx:data(), self.jacobPtr:data(), self.rBmagPtr:data(), self.jacobDbmagPtr:data(), self.dBdzPtr:data(), f:data(), self.phiPtr:data(), self.primMomPtr:data(), out:data())
    self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
@@ -183,14 +172,14 @@ end
 function Gyrofluid:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    local tmStart = Time.clock()
 
-   self.phi:fill(self.phiIdxr(idxl), self.phiPtrl)
-   self.phi:fill(self.phiIdxr(idxr), self.phiPtrr)
-   self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
-   self.rBmag:fill(self.rBmagIdxr(idxr), self.rBmagPtr)
-   self.jacob:fill(self.jacobIdxr(idxr), self.jacobPtr)
-   self.jacobDbmag:fill(self.jacobDbmagIdxr(idxr), self.jacobDbmagPtr)
-   self.primMom:fill(self.primMomIdxr(idxl), self.primMomPtrl)
-   self.primMom:fill(self.primMomIdxr(idxr), self.primMomPtrr)
+   self.phi:fill(self.indexer(idxl), self.phiPtrl)
+   self.phi:fill(self.indexer(idxr), self.phiPtrr)
+   self.bmag:fill(self.indexer(idxr), self.bmagPtr)
+   self.rBmag:fill(self.indexer(idxr), self.rBmagPtr)
+   self.jacob:fill(self.indexer(idxr), self.jacobPtr)
+   self.jacobDbmag:fill(self.indexer(idxr), self.jacobDbmagPtr)
+   self.primMom:fill(self.indexer(idxl), self.primMomPtrl)
+   self.primMom:fill(self.indexer(idxr), self.primMomPtrr)
 
    local res = self._surfTerm[dir](self.charge, self.mass, self.kappaPar, self.kapparPerp, self.kPerpSq, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.jacobPtr:data(), self.rBmagPtr:data(), self.jacobDbmagPtr:data(), fl:data(), fr:data(), self.phiPtrl:data(), self.phiPtrr:data(), self.primMomPtrl:data(), self.primMomPtrr:data(), outl:data(), outr:data())
    self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
