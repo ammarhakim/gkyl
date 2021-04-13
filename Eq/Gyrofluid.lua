@@ -66,7 +66,6 @@ function Gyrofluid:setAuxFields(auxFields)
    self.b_y     = geo.b_y
    self.b_z     = geo.b_z
    self.jacob   = geo.jacobGeo
-   self.dBdz    = dBdz
    self.phiWall = geo.phiWall  -- For sheath BCs.
 
    -- Primitive moments uPar, Tpar, Tperp.
