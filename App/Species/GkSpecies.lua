@@ -742,6 +742,11 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       --fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
       --self.timers.sources = self.timers.sources + Time.clock() - tm 
    --end
+   if self.evolveSources then
+      for _, s in pairs(self.sources) do
+         s:advance(tCurr, fIn, species, fRhsOut)
+      end
+   end
 end
 
 function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)

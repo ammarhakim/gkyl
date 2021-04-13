@@ -615,7 +615,7 @@ function KineticSpecies:initDist(extField)
       -- end
    end
    -- Set up profile function for species sources
-   for nm, pr in lume.orderedIter(self.sources) do
+   for nm, src in lume.orderedIter(self.sources) do
       local sourcePr = self.sources[nm].profile
       sourcePr:fullInit(self)
       sourcePr:advance(0.0, {extField}, {self.distf[2]})
@@ -625,8 +625,7 @@ function KineticSpecies:initDist(extField)
       if self.positivityRescale then
 	 self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
       end
-      print(pr.power)
-      if pr.power then
+      if sourcePr.power then
 	 local calcInt = Updater.CartFieldIntegratedQuantCalc {
 	    onGrid        = self.confGrid,
 	    basis         = self.confBasis,
