@@ -734,14 +734,14 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       end
    end
 
-   if self.fSource and self.evolveSources then
-      local tm = Time.clock()
+   --if self.fSource and self.evolveSources then
+      --local tm = Time.clock()
       -- Add source it to the RHS.
       -- Barrier over shared communicator before accumulate.
-      Mpi.Barrier(self.grid:commSet().sharedComm)
-      fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
-      self.timers.sources = self.timers.sources + Time.clock() - tm 
-   end
+      --Mpi.Barrier(self.grid:commSet().sharedComm)
+      --fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
+      --self.timers.sources = self.timers.sources + Time.clock() - tm 
+   --end
 end
 
 function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)

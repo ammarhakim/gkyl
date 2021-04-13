@@ -7,17 +7,17 @@ local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
 
-local VmSourceReplenish = Proto(SourceBase)
+local VmSteadyStateSource = Proto(SourceBase)
 
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
-function VmSourceReplenish:init(tbl)
+function VmSteadyStateSource:init(tbl)
    self.tbl = tbl
 end
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
-function VmSourceReplenish:fullInit(speciesTbl)
+function VmSteadyStateSource:fullInit(speciesTbl)
    local tbl = self.tbl -- Previously stored table.
    self.sourceSpecies = assert(tbl.sourceSpecies, "App.VmSourceReplenish: must specify names of species to in 'sourceSpecies'.")
    self.sourceLength = assert(tbl.sourceLength, "App.VmSourceReplenish: must specify names of species to in 'sourceLength'.")
@@ -27,20 +27,20 @@ function VmSourceReplenish:fullInit(speciesTbl)
    self.tmEvalSrc = 0.0
 end
 
-function VmSourceReplenish:setName(nm)
+function VmSteadyStateSource:setName(nm)
    self.name = nm
 end
-function VmSourceReplenish:setSpeciesName(nm)
+function VmSteadyStateSource:setSpeciesName(nm)
    self.speciesName = nm
 end
-function VmSourceReplenish:setConfBasis(basis)
+function VmSteadyStateSource:setConfBasis(basis)
    self.confBasis = basis
 end
-function VmSourceReplenish:setConfGrid(grid)
+function VmSteadyStateSource:setConfGrid(grid)
    self.confGrid = grid
 end
 
-function VmSourceReplenish:advance(tCurr, fIn, species, fRhsOut)
+function VmSteadyStateSource:advance(tCurr, fIn, species, fRhsOut)
    local localEdgeFlux = ffi.new("double[3]")
    localEdgeFlux[0] = 0.0
    localEdgeFlux[1] = 0.0
@@ -79,8 +79,8 @@ function VmSourceReplenish:advance(tCurr, fIn, species, fRhsOut)
    fRhsOut:accumulate(densFactor, species[self.speciesName].fSource)
 end
 
-function VmSourceReplenish:srcTime()
+function VmSteadyStateSource:srcTime()
    return self.tmEvalSource
 end
 
-return VmSourceReplenish
+return VmSteadyStateSource

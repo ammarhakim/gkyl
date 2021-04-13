@@ -165,13 +165,12 @@ function KineticSpecies:fullInit(appTbl)
 	 val:fullInit(tbl) -- Initialize sources
       end
    end
-   self.sourceSteadyState = xsys.pickBool(tbl.sourceSteadyState, false)
-   if tbl.sourceTimeDependence then 
-      self.sourceTimeDependence = tbl.sourceTimeDependence 
-   else 
-      self.sourceTimeDependence = function (t) return 1.0 end 
+   if tbl.sourceTimeDependence then
+      self.sourceTimeDependence = tbl.sourceTimeDependence
+   else
+      self.sourceTimeDependence = function (t) return 1.0 end
    end
-   -- It is possible to use the keyword 'init', 'background', and 'source'
+   -- It is possible to use the keywords 'init' and 'background'
    -- to specify a function directly without using a Projection object.
    if type(tbl.init) == "function" then
       self.projections["init"] = Projection.KineticProjection.FunctionProjection {
@@ -627,6 +626,7 @@ function KineticSpecies:initDist(extField)
       if self.positivityRescale then
 	 self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
       end
+      print(pr.power)
       if pr.power then
 	 local calcInt = Updater.CartFieldIntegratedQuantCalc {
 	    onGrid        = self.confGrid,
@@ -642,6 +642,7 @@ function KineticSpecies:initDist(extField)
 	 self.fSource:scale(self.powerScalingFac)
       end
    end
+   print("made it! Kinetic Species!")
    if self.scaleInitWithSourcePower then self.distf[1]:scale(self.powerScalingFac) end
    assert(initCnt > 0,
 	  string.format("KineticSpecies: Species '%s' not initialized!", self.name))
