@@ -780,14 +780,7 @@ function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
 end
 
 function GkSpecies:createDiagnostics()
-   local function contains(table, element)
-     for _, value in pairs(table) do
-       if value == element then
-         return true
-       end
-     end
-     return false
-   end
+   local function contains(table, element) return lume.any(table, function(e) return e==element end) end
 
    -- Create updater to compute volume-integrated moments
    -- function to check if integrated moment name is correct.

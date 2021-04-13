@@ -15,6 +15,7 @@ local Proto            = require "Lib.Proto"
 local Projection       = require "App.Projection"
 local ProjectionBase   = require "App.Projection.ProjectionBase"
 local SpeciesBase      = require "App.Species.SpeciesBase"
+local FluidDiags       = require "App.Species.Diagnostics.FluidDiagnostics"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
 local ffi              = require "ffi"
@@ -63,35 +64,18 @@ function FluidSpecies:fullInit(appTbl)
    self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 
    -- Write perturbed moments by subtracting background before moment calc.. false by default.
-   self.perturbedMoments = false
+   self.perturbedDiagnostics = false
    -- Read in which diagnostic moments to compute on output.
-   self.requestedDiagnosticMoments = tbl.diagnosticMoments or {}
-   self.diagnosticMoments = { }
-   if tbl.diagnosticMoments then
-      for i, nm in pairs(tbl.diagnosticMoments) do
+   self.diagnostics = { }
+   if tbl.diagnostics then
+      for i, nm in pairs(tbl.diagnostics) do
          if i == "perturbed" and nm == true then
-            self.perturbedMoments = true
+            self.perturbedDiagnostics = true
          elseif type(i) == "number" then
-            self.diagnosticMoments[i] = nm
+            self.diagnostics[i] = nm
          end
       end
    end
-
-   -- Read in which integrated diagnostic moments to compute on output.
-   self.diagnosticIntegratedMoments = { }
-   if tbl.diagnosticIntegratedMoments then
-      for i, nm in ipairs(tbl.diagnosticIntegratedMoments) do
-         self.diagnosticIntegratedMoments[i] = nm
-      end
-   end
-
-   -- Read in which boundary diagnostic moments to compute on output (NOT READY).
-   self.boundaryFluxDiagnostics       = false
-   self.diagnosticBoundaryFluxMoments = { }
-
-   -- Read in which boundary diagnostic moments to compute on output (NOT READY).
-   self.boundaryFluxDiagnostics                 = false
-   self.diagnosticIntegratedBoundaryFluxMoments = { }
 
    -- Get a random seed for random initial conditions.
    self.randomseed = tbl.randomseed
@@ -474,12 +458,6 @@ end
 
 function FluidSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
-
-   if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
-      for _, bc in ipairs(self.boundaryConditions) do
-         bc:getBoundaryFluxFields()[outIdx]:copy(bc:getBoundaryFluxFields()[aIdx])
-      end
-   end
 end
 
 function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
@@ -488,15 +466,6 @@ function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
    self:rkStepperFields()[outIdx]:combine(a, self:rkStepperFields()[aIdx])
    for i = 1, nFlds do -- Accumulate rest of the fields.
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
-   end
-
-   if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
-      for _, bc in ipairs(self.boundaryConditions) do
-         bc:getBoundaryFluxFields()[outIdx]:combine(a, bc:getBoundaryFluxFields()[aIdx])
-         for i = 1, nFlds do -- Accumulate rest of the fields.
-            bc:getBoundaryFluxFields()[outIdx]:accumulate(args[2*i-1], bc:getBoundaryFluxFields()[args[2*i]])
-         end
-      end
    end
 end
 
@@ -589,32 +558,20 @@ function FluidSpecies:applyBc(tCurr, momIn)
    self.bcTime = self.bcTime + Time.clock()-tmStart
 end
 
-function FluidSpecies:createDiagnostics()
-   -- Create updater to compute volume-integrated moments.
-   self.intMom2Calc = Updater.CartFieldIntegratedQuantCalc {
-      onGrid        = self.grid,
-      basis         = self.basis,
-      numComponents = self.nMoments,
-      quantity      = "V"
-   }
+function FluidSpecies:createDiagnostics()  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
+
+   -- Create this species' diagnostics.
+   FluidDiags:init(self)
+
 end
 
 function FluidSpecies:write(tm, force)
    if self.evolve or force then
 
-      if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics and tm > 0 then
-         for _, bc in ipairs(self.boundaryConditions) do
-            -- compute boundary flux rate ~ (fGhost_new - fGhost_old)/dt
-            bc:getBoundaryFluxRate():combine(1.0/self.dtGlobal[0], bc:getBoundaryFluxFields()[1], -1.0/self.dtGlobal[0], bc:getBoundaryFluxFieldPrev())
-            bc:getBoundaryFluxFieldPrev():copy(bc:getBoundaryFluxFields()[1])
-         end
-      end
-
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.
       if self.calcIntQuantTrigger(tm) then
-         local momIn = self:rkStepperFields()[1]
-         self.intMom2Calc:advance(tm, { momIn }, { self.integratedMoments })
+         FluidDiags:calcIntegratedDiagnostics(tm, self)   -- Compute this species' integrated diagnostics.
       end
       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
       
@@ -634,9 +591,12 @@ function FluidSpecies:write(tm, force)
             self.momIo:write(self.mSource, string.format("%s_mSource_0.bp", self.name), tm, self.diagIoFrame)
          end
 
-         self.integratedMoments:write(string.format("%s_intMom.bp", self.name), tm, self.diagIoFrame)
+         FluidDiags:calcFieldDiagnostics(tm, self)   -- Compute this species' field diagnostics.
 
-         if self.evolveCollisions then
+         -- Write this species' field and integrated diagnostics.
+         FluidDiags:write(tm, self.diagIoFrame)
+
+         if self.evolveCollisions then  -- Write collision's diagnostics.
             for _, c in pairs(self.collisions) do
                c:write(tm, self.diagIoFrame)
             end
@@ -664,11 +624,9 @@ function FluidSpecies:writeRestart(tm)
 
    self.momIo:write(self.moments[1], string.format("%s_restart.bp", self.name), tm, self.diagIoFrame, writeGhost)
 
-   -- Write restart files for integrated moments. Note: these are only needed for the rare case that the
-   -- restart write frequency is higher than the normal write frequency from nFrame.
-   -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
-   self.integratedMoments:write(
-      string.format("%s_intMom_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
+   -- Write this species' restart diagnostics.
+   FluidDiags:writeRestart(tm, self.diagIoFrame, self.dynVecRestartFrame)
+
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
@@ -686,7 +644,8 @@ function FluidSpecies:readRestart()
       self:applyBc(tm, self.moments[1])
    end
 
-   self.integratedMoments:read(string.format("%s_intMom_restart.bp", self.name))   
+   -- Read this species field and integrated diagnostics.
+   _, _ = FluidDiags:readRestart()
    
    -- Iterate triggers.
    self.diagIoTrigger(tm)

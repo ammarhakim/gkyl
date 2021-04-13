@@ -63,6 +63,7 @@ plasmaApp = Plasma.App {
       diff = Plasma.Diffusion {
          coefficient = {0.1, 0.1},
       },
+      diagnostics = {"intMom"},
    },
 
    -- Field solver.

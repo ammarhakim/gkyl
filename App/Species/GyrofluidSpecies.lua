@@ -6,17 +6,18 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Proto          = require "Lib.Proto"
-local FluidSpecies   = require "App.Species.FluidSpecies"
-local Mpi            = require "Comm.Mpi"
-local GyrofluidEq    = require "Eq.Gyrofluid"
-local Updater        = require "Updater"
-local DataStruct     = require "DataStruct"
-local Time           = require "Lib.Time"
-local Constants      = require "Lib.Constants"
-local Lin            = require "Lib.Linalg"
-local xsys           = require "xsys"
-local lume           = require "Lib.lume"
+local Proto        = require "Lib.Proto"
+local FluidSpecies = require "App.Species.FluidSpecies"
+local GFdiags      = require "App.Species.Diagnostics.GyrofluidDiagnostics"
+local Mpi          = require "Comm.Mpi"
+local GyrofluidEq  = require "Eq.Gyrofluid"
+local Updater      = require "Updater"
+local DataStruct   = require "DataStruct"
+local Time         = require "Lib.Time"
+local Constants    = require "Lib.Constants"
+local Lin          = require "Lib.Linalg"
+local xsys         = require "xsys"
+local lume         = require "Lib.lume"
 
 local GyrofluidSpecies = Proto(FluidSpecies)
 
@@ -238,6 +239,10 @@ function GyrofluidSpecies:appendBoundaryConditions(dir, edge, bcType)
    else
       assert(false, "GyrofluidSpecies: Unsupported BC type!")
    end
+end
+
+function GyrofluidSpecies:createDiagnostics()
+   GFdiags:init(self)
 end
 
 function GyrofluidSpecies:calcDiagnosticIntegratedMoments(tm)
