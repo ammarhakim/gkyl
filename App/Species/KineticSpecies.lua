@@ -616,8 +616,7 @@ function KineticSpecies:initDist(extField)
    end
    -- Set up profile function for species sources
    for nm, pr in lume.orderedIter(self.sources) do
-      local profile = self.sources[nm].profile
-      local sourcePr = Projection.KineticProjection.FunctionProjection { func = function(t, zn) return profile(t, zn, self) end, }
+      local sourcePr = self.sources[nm].profile
       sourcePr:fullInit(self)
       sourcePr:advance(0.0, {extField}, {self.distf[2]})
       Mpi.Barrier(self.grid:commSet().sharedComm)
@@ -642,7 +641,6 @@ function KineticSpecies:initDist(extField)
 	 self.fSource:scale(self.powerScalingFac)
       end
    end
-   print("made it! Kinetic Species!")
    if self.scaleInitWithSourcePower then self.distf[1]:scale(self.powerScalingFac) end
    assert(initCnt > 0,
 	  string.format("KineticSpecies: Species '%s' not initialized!", self.name))

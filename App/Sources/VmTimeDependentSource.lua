@@ -3,6 +3,7 @@ local DataStruct     = require "DataStruct"
 local ffi            = require "ffi"
 local Lin            = require "Lib.Linalg"
 local Mpi            = require "Comm.Mpi"
+local Projection     = require "App.Projection"
 local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
@@ -19,9 +20,14 @@ end
 -- we need the app top-level table for proper initialization.
 function VmTimeDependentSource:fullInit(speciesTbl)
    local tbl = self.tbl -- Previously stored table.
-   self.timeDependence = assert(tbl.timeDependence, "App.VmSourceReplenish: must specify time dependent function in 'timeDependence'")
-   assert(type(self.profile) == "function", "App.VmSourceReplenish: 'profile' must be a function")
-
+   self.density = assert(tbl.density, "App.VmTimeDependentSource: must specify density profile of source in 'density'.")
+   self.temperature = assert(tbl.temperature, "App.VmTimeDependentSource: must specify temperature profile of source in 'density'.")
+   self.power = assert(tbl.power, "App.VmTimeDependentSource: must specify source power in 'power'.")
+   self.profile = Projection.VmProjection.MaxwellianProjection {
+                   density = self.density,
+                   temperature = self.temperature,
+                   power = self.power,
+                  }
    self.tmEvalSrc = 0.0
 end
 
@@ -39,6 +45,7 @@ function VmTimeDependentSource:setConfGrid(grid)
 end
 
 function VmTimeDependentSource:advance(tCurr, fIn, species, fRhsOut)
+   self.timeDependence = species[self.speciesName].sourceTimeDependence
    Mpi.Barrier(self.confGrid:commSet().sharedComm)
    fRhsOut:accumulate(self.timeDependence(tCurr), species[self.speciesName].fSource)
 end

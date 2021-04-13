@@ -3,6 +3,7 @@ local DataStruct     = require "DataStruct"
 local ffi            = require "ffi"
 local Lin            = require "Lib.Linalg"
 local Mpi            = require "Comm.Mpi"
+local Projection     = require "App.Projection"
 local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
@@ -18,10 +19,15 @@ end
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
 function GkTimeDependentSource:fullInit(speciesTbl)
-   print("made it! GK Init!")
    local tbl = self.tbl -- Previously stored table.
-   self.source = Projection.GkProjection.MaxwellianProjection
-   self.profile = function (t, zn) return tbl.source(t, zn, self) end
+   self.density = assert(tbl.density, "App.GkTimeDependentSource: must specify density profile of source in 'density'.")
+   self.temperature = assert(tbl.temperature, "App.GkTimeDependentSource: must specify temperature profile of source in 'density'.")
+   self.power = assert(tbl.power, "App.GkTimeDependentSource: must specify source power in 'power'.")
+   self.profile = Projection.GkProjection.MaxwellianProjection {
+                   density = self.density,
+                   temperature = self.temperature,
+                   power = self.power,
+                  }
    self.tmEvalSrc = 0.0
 end
 

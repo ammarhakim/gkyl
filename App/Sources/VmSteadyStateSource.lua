@@ -3,6 +3,7 @@ local DataStruct     = require "DataStruct"
 local ffi            = require "ffi"
 local Lin            = require "Lib.Linalg"
 local Mpi            = require "Comm.Mpi"
+local Projection     = require "App.Projection"
 local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
@@ -19,10 +20,11 @@ end
 -- we need the app top-level table for proper initialization.
 function VmSteadyStateSource:fullInit(speciesTbl)
    local tbl = self.tbl -- Previously stored table.
-   self.sourceSpecies = assert(tbl.sourceSpecies, "App.VmSourceReplenish: must specify names of species to in 'sourceSpecies'.")
-   self.sourceLength = assert(tbl.sourceLength, "App.VmSourceReplenish: must specify names of species to in 'sourceLength'.")
-   self.profile = assert(tbl.profile, "App.VmSourceReplenish: must specify source profile in 'profile'")
-   assert(type(self.profile) == "function", "App.VmSourceReplenish: 'profile' must be a function")
+   self.sourceSpecies = assert(tbl.sourceSpecies, "App.VmSteadyStateSource: must specify names of species to in 'sourceSpecies'.")
+   self.sourceLength = assert(tbl.sourceLength, "App.VmSteadyStateSource: must specify names of species to in 'sourceLength'.")
+   assert(tbl.profile, "App.VmSteadyStateSource: must specify source profile in 'profile'")
+   assert(type(tbl.profile) == "function", "App.VmSteadyStateSource: 'profile' must be a function")
+   self.profile = Projection.KineticProjection.FunctionProjection { func = function(t, zn) return self.profile(t, zn, self) end, }
 
    self.tmEvalSrc = 0.0
 end
