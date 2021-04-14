@@ -6,18 +6,18 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Proto        = require "Lib.Proto"
-local FluidSpecies = require "App.Species.FluidSpecies"
-local GFdiags      = require "App.Species.Diagnostics.GyrofluidDiagnostics"
-local Mpi          = require "Comm.Mpi"
-local GyrofluidEq  = require "Eq.Gyrofluid"
-local Updater      = require "Updater"
-local DataStruct   = require "DataStruct"
-local Time         = require "Lib.Time"
-local Constants    = require "Lib.Constants"
-local Lin          = require "Lib.Linalg"
-local xsys         = require "xsys"
-local lume         = require "Lib.lume"
+local Proto          = require "Lib.Proto"
+local FluidSpecies   = require "App.Species.FluidSpecies"
+local GyrofluidDiags = require "App.Species.Diagnostics.GyrofluidDiagnostics"
+local Mpi            = require "Comm.Mpi"
+local GyrofluidEq    = require "Eq.Gyrofluid"
+local Updater        = require "Updater"
+local DataStruct     = require "DataStruct"
+local Time           = require "Lib.Time"
+local Constants      = require "Lib.Constants"
+local Lin            = require "Lib.Linalg"
+local xsys           = require "xsys"
+local lume           = require "Lib.lume"
 
 local GyrofluidSpecies = Proto(FluidSpecies)
 
@@ -33,6 +33,8 @@ function GyrofluidSpecies:fullInit(appTbl)
    self.n0 = self.tbl.n0 or n0
    assert(self.n0, "GyrofluidSpecies: must specify background density as global variable 'n0' in species table as 'n0 = ...'")
    self.kappaPar, self.kappaPerp = self.tbl.kappaPar, self.tbl.kappaPerp
+
+   self.diagApp = GyrofluidDiags
 
    self.nMoments = 3+1
    self.zeroFluxDirections = {}
@@ -130,6 +132,39 @@ function GyrofluidSpecies:initCrossSpeciesCoupling(species)
    -- Nothing implemented yet.
 end
 
+function GyrofluidSpecies:uParCalc(tm, momIn, mJacM0, mJacM1, uParOut)
+   -- Calculate the parallel flow speed.
+   mJacM0:combineOffset(1, momIn, self.mJacM0Off)
+   mJacM1:combineOffset(1, momIn, self.mJacM1Off)
+   self.weakDivide:advance(tm, {mJacM0, mJacM1}, {uParOut})
+end
+
+function GyrofluidSpecies:pPerpJacCalc(tm, momIn, jacM2perp, pPerpJacOut)
+   -- Compute the perpendicular pressure (times Jacobian).
+   jacM2perp:combineOffset(1, momIn, self.jacM2perpOff)
+   self.weakMultiply:advance(tm, {jacM2perp, self.bmag}, {pPerpJacOut})
+end
+
+function GyrofluidSpecies:pParJacCalc(tm, momIn, uPar, mJacM1, mJacM2flow, mJacM2, pPerpJac, pParJacOut)
+   -- Compute the parallel pressure (times Jacobian).
+   self.weakMultiply:advance(tm, {uPar, mJacM1}, {mJacM2flow})
+   mJacM2:combineOffset(1, momIn, self.mJacM2Off)
+   Mpi.Barrier(self.grid:commSet().sharedComm)   -- Barrier over sharedComm before combine.
+   pParJacOut:combine(2., mJacM2, -2., pPerpJac, -1., mJacM2flow)
+end
+
+function GyrofluidSpecies:TparCalc(tm, mJacM0, pParJac, TparOut)
+   -- Compute the parallel temperature.
+   self.weakDivide:advance(tm, {mJacM0, pParJac}, {TparOut})
+   TparOut:scale(self.mass)
+end
+
+function GyrofluidSpecies:TperpCalc(tm, mJacM0, pPerpJac, TperpOut)
+   -- Compute the perpendicular temperature.
+   self.weakDivide:advance(tm, {mJacM0, pPerpJac}, {TperpOut})
+   TperpOut:scale(self.mass)
+end
+
 function GyrofluidSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    local momIn = self:rkStepperFields()[rkIdx]
    -- Compute moments needed in coupling to fields and collisions.
@@ -140,23 +175,16 @@ function GyrofluidSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 
       if not self.momentFlags[1] then -- No need to recompute if already computed.
          -- Calculate the parallel flow speed.
-         self.mJacM0:combineOffset(1, momIn, self.mJacM0Off)
-         self.mJacM1:combineOffset(1, momIn, self.mJacM1Off)
-         self.weakDivide:advance(tCurr, {self.mJacM0, self.mJacM1}, {self.uParSelf})
+         self:uParCalc(tCurr, momIn, self.mJacM0, self.mJacM1, self.uParSelf)
          
          -- Get the perpendicular and parallel pressures (times Jacobian).
-         self.jacM2perp:combineOffset(1, momIn, self.jacM2perpOff)
-         self.weakMultiply:advance(tCurr, {self.jacM2perp, self.bmag}, {self.pPerpJac})
-         self.weakMultiply:advance(tCurr, {self.uParSelf, self.mJacM1}, {self.mJacM2flow})
-         self.mJacM2:combineOffset(1, momIn, self.mJacM2Off)
-         Mpi.Barrier(self.grid:commSet().sharedComm)   -- Barrier over sharedComm before combine.
-         self.pParJac:combine(2., self.mJacM2, -2., self.pPerpJac, -1., self.mJacM2flow)
+         self:pPerpJacCalc(tCurr, momIn, self.jacM2perp, self.pPerpJac)
+         self:pParJacCalc(tCurr, momIn, self.uParSelf, self.mJacM1, self.mJacM2flow,
+                                 self.mJacM2, self.pPerpJac, self.pParJac)
 
          -- Compute perpendicular and parallel temperatures.
-         self.weakDivide:advance(tCurr, {self.mJacM0, self.pParJac}, {self.TparSelf})
-         self.TparSelf:scale(self.mass)
-         self.weakDivide:advance(tCurr, {self.mJacM0, self.pPerpJac}, {self.TperpSelf})
-         self.TperpSelf:scale(self.mass)
+         self:TparCalc(tCurr, self.mJacM0, self.pParJac, self.TparSelf)
+         self:TperpCalc(tCurr, self.mJacM0, self.pPerpJac, self.TperpSelf)
 
          -- Package self primitive moments into a single field (expected by equation object).
          self.primMomSelf:combineOffset(1.,  self.uParSelf, 0*self.basis:numBasis(),
@@ -241,12 +269,9 @@ function GyrofluidSpecies:appendBoundaryConditions(dir, edge, bcType)
    end
 end
 
-function GyrofluidSpecies:createDiagnostics()
-   GFdiags:init(self)
-end
-
-function GyrofluidSpecies:calcDiagnosticIntegratedMoments(tm)
-end
+--function GyrofluidSpecies:createDiagnostics()
+--   GFdiags:init(self)
+--end
 
 function GyrofluidSpecies:fluidMoments()
    self.jacM0:combine(1./self.mass, self.mJacM0) 

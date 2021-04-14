@@ -44,6 +44,22 @@ function FluidSpecies:fullInit(appTbl)
    self.evolveCollisions    = xsys.pickBool(tbl.evolveCollisions, self.evolve)
    self.evolveSources       = xsys.pickBool(tbl.evolveSources, self.evolve)
 
+   self.diagApp = FluidDiags  -- Diagnostics app defined here so children can redefine it.
+
+   -- Write perturbed moments by subtracting background before moment calc.. false by default.
+   self.perturbedDiagnostics = false
+   -- Read in which diagnostic moments to compute on output.
+   self.diagnostics = { }
+   if tbl.diagnostics then
+      for i, nm in pairs(tbl.diagnostics) do
+         if i == "perturbed" and nm == true then
+            self.perturbedDiagnostics = true
+         elseif type(i) == "number" then
+            self.diagnostics[i] = nm
+         end
+      end
+   end
+
    local nFrame = tbl.nDiagnosticFrame and tbl.nDiagnosticFrame or appTbl.nFrame
    -- Create triggers to write diagnostics.
    if tbl.nDiagnosticFrame then
@@ -62,20 +78,6 @@ function FluidSpecies:fullInit(appTbl)
 
    -- Write ghost cells on boundaries of global domain (for BCs).
    self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
-
-   -- Write perturbed moments by subtracting background before moment calc.. false by default.
-   self.perturbedDiagnostics = false
-   -- Read in which diagnostic moments to compute on output.
-   self.diagnostics = { }
-   if tbl.diagnostics then
-      for i, nm in pairs(tbl.diagnostics) do
-         if i == "perturbed" and nm == true then
-            self.perturbedDiagnostics = true
-         elseif type(i) == "number" then
-            self.diagnostics[i] = nm
-         end
-      end
-   end
 
    -- Get a random seed for random initial conditions.
    self.randomseed = tbl.randomseed
@@ -561,7 +563,7 @@ end
 function FluidSpecies:createDiagnostics()  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
 
    -- Create this species' diagnostics.
-   FluidDiags:init(self)
+   self.diagApp:init(self)
 
 end
 
@@ -571,7 +573,7 @@ function FluidSpecies:write(tm, force)
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.
       if self.calcIntQuantTrigger(tm) then
-         FluidDiags:calcIntegratedDiagnostics(tm, self)   -- Compute this species' integrated diagnostics.
+         self.diagApp:calcIntegratedDiagnostics(tm, self)   -- Compute this species' integrated diagnostics.
       end
       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
       
@@ -591,10 +593,10 @@ function FluidSpecies:write(tm, force)
             self.momIo:write(self.mSource, string.format("%s_mSource_0.bp", self.name), tm, self.diagIoFrame)
          end
 
-         FluidDiags:calcFieldDiagnostics(tm, self)   -- Compute this species' field diagnostics.
+         self.diagApp:calcFieldDiagnostics(tm, self)   -- Compute this species' field diagnostics.
 
          -- Write this species' field and integrated diagnostics.
-         FluidDiags:write(tm, self.diagIoFrame)
+         self.diagApp:write(tm, self.diagIoFrame)
 
          if self.evolveCollisions then  -- Write collision's diagnostics.
             for _, c in pairs(self.collisions) do
@@ -625,7 +627,7 @@ function FluidSpecies:writeRestart(tm)
    self.momIo:write(self.moments[1], string.format("%s_restart.bp", self.name), tm, self.diagIoFrame, writeGhost)
 
    -- Write this species' restart diagnostics.
-   FluidDiags:writeRestart(tm, self.diagIoFrame, self.dynVecRestartFrame)
+   self.diagApp:writeRestart(tm, self.diagIoFrame, self.dynVecRestartFrame)
 
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
@@ -645,7 +647,7 @@ function FluidSpecies:readRestart()
    end
 
    -- Read this species field and integrated diagnostics.
-   _, _ = FluidDiags:readRestart()
+   _, _ = self.diagApp:readRestart()
    
    -- Iterate triggers.
    self.diagIoTrigger(tm)

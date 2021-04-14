@@ -15,8 +15,8 @@ local Time       = require "Lib.Time"
 local Updater    = require "Updater"
 local lume       = require "Lib.lume"
 
-local allowedFieldDiags = {"MomSq","M0","M1","M2", "M2flow", "upar", "Tpar", "Tperp", "Temp", "ppar", "pperp"}
-local allowedIntegratedDiags = {"intMom","intM0", "intM1", "intM2", "intM2flow"}
+local allowedFieldDiags = {"MomSq"}
+local allowedIntegratedDiags = {"intMom"}
 
 local function contains(tbl, elem) return lume.any(tbl, function(e) return e==elem end) end
 local function isFieldDiagAllowed(nm) return contains(allowedFieldDiags, nm) end
