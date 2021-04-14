@@ -333,8 +333,7 @@ function FluidSpecies:createSolver(externalField)
       }
    end
 
-   -- Weak multiplication and division operators
-   -- likely needed for operations and diagnostics.
+   -- Operators needed for time-dependent calcualtion and diagnostics.
    self.weakMultiply = Updater.CartFieldBinOp {
       onGrid    = self.grid,
       weakBasis = self.basis,
@@ -346,6 +345,20 @@ function FluidSpecies:createSolver(externalField)
       weakBasis = self.basis,
       operation = "Divide",
       onGhosts  = true,
+   }
+   self.volIntegral = {
+      comps1 = Updater.CartFieldIntegratedQuantCalc {
+         onGrid        = self.grid,
+         basis         = self.basis,
+         numComponents = 1,
+         quantity      = "V"
+      },
+      compsN = Updater.CartFieldIntegratedQuantCalc {
+         onGrid        = self.grid,
+         basis         = self.basis,
+         numComponents = self.nMoments,
+         quantity      = "V"
+      }
    }
 end
 
@@ -561,14 +574,15 @@ function FluidSpecies:applyBc(tCurr, momIn)
 end
 
 function FluidSpecies:createDiagnostics()  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
-
    -- Create this species' diagnostics.
-   self.diagApp:init(self)
-
+   self.diagApp:init()
+   self.diagApp:fullInit(self)
 end
 
 function FluidSpecies:write(tm, force)
    if self.evolve or force then
+
+      self.diagApp:resetState(tm)   -- Reset booleans indicating if diagnostic has been computed.
 
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.

@@ -269,10 +269,6 @@ function GyrofluidSpecies:appendBoundaryConditions(dir, edge, bcType)
    end
 end
 
---function GyrofluidSpecies:createDiagnostics()
---   GFdiags:init(self)
---end
-
 function GyrofluidSpecies:fluidMoments()
    self.jacM0:combine(1./self.mass, self.mJacM0) 
    self.jacM1:combine(1./self.mass, self.mJacM1)
