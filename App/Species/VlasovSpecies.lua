@@ -711,7 +711,7 @@ function VlasovSpecies:createDiagnostics()
    numCompInt["intL2"]        = 1
 
    self.diagnosticIntegratedMomentFields   = { }
-   self.diagnosticIntegratedMomentUpdaters = { } 
+   self.diagnosticIntegratedMomentUpdaters = { }
    -- Allocate space to store integrated moments and create integrated moment updaters.
    local function allocateDiagnosticIntegratedMoments(intMoments, bc, timeIntegrate)
       local label = ""
@@ -729,7 +729,7 @@ function VlasovSpecies:createDiagnostics()
                numComponents = numCompInt[mom],
             }
             local intCalc = Updater.CartFieldIntegratedQuantCalc {
-                  onGrid        = self.confGrid,
+                  onGrid        = confGrid,
                   basis         = self.confBasis,
                   numComponents = numCompInt[mom],
                   quantity      = "V",
@@ -770,6 +770,21 @@ function VlasovSpecies:createDiagnostics()
 	    quantity      = "V",
 	    timeIntegrate = true,
 	 }
+      end
+      if self.hasRecycleBcs and label~="" then
+	 if self.cdim == 1 or (self.cdim == 3 and string.match(label,"Z")) then
+	    mom = "intM0Recycle"
+	    self.diagnosticIntegratedMomentFields[mom..label] = DataStruct.DynVector {
+	       numComponents = 1,
+	    }
+	    self.diagnosticIntegratedMomentUpdaters[mom..label] = Updater.CartFieldIntegratedQuantCalc {
+	       onGrid        = confGrid,
+	       basis         = self.confBasis,
+	       numComponents = numCompInt[mom],
+	       quantity      = "V",
+	       timeIntegrate = timeIntegrate,
+	    }
+	 end
       end
    end
 
@@ -1164,6 +1179,13 @@ function VlasovSpecies:calcDiagnosticIntegratedMoments(tm)
 	 self.numDensityCalc:advance(tm, {sourceIz}, {self.srcIzM0})
 	 self.intCalcIz:advance( tm, {self.srcIzM0}, {self.intSrcIzM0} )       
       end
+      -- if self.hasRecycleBcs and label~="" then
+      -- 	 if self.cdim == 1 or (self.cdim == 3 and string.match(label,"Z")) then
+      -- 	    mom = "intM0Recycle"
+      -- 	    self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
+      -- 	       tm, {self.recycleTestFlux[label]}, {self.diagnosticIntegratedMomentFields[mom..label]})
+      -- 	 end
+      -- end
    end
 
    computeIntegratedMoments(self.diagnosticIntegratedMoments, fIn)
@@ -1430,212 +1452,209 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       end
       for _, bc in ipairs(self.boundaryConditions) do
 	 label = bc:label()
-	 if tCurr == 0 then
-	    self.recycleIonNm = tbl.recycleIon
-	    -- Create objects and updaters needed for recycling wall BCs
-	   
-	    phaseGrid = bc:getBoundaryGrid()
-	    confGrid = bc:getConfBoundaryGrid()
-
-	    -- for fMaxwell projection with density = 1.
-	    self.recycleFMaxwell[label] = DataStruct.Field {
-	       onGrid        = phaseGrid,
-	       numComponents = self.basis:numBasis(),
-	       ghost         = {1, 1},
-	       metaData      = {polyOrder = self.basis:polyOrder(),
-	    			basisType = self.basis:id(),
-	    			charge    = self.charge,
-	    			mass      = self.mass,},	    
-	    }
-	    -- for projection of flux on ghosts.
-	    self.recycleFhat[label] = DataStruct.Field {
-	       onGrid        = phaseGrid,
-	       numComponents = self.basis:numBasis(),
-	       ghost         = {1, 1},
-	       metaData      = {polyOrder = self.basis:polyOrder(),
-	    			basisType = self.basis:id(),
-	    			charge    = self.charge,
-	    			mass      = self.mass,},	    
-	    }
-	    self.scaledFhat[label] = DataStruct.Field {
-	       onGrid        = phaseGrid,
-	       numComponents = self.basis:numBasis(),
-	       ghost         = {1, 1},
-	       metaData      = {polyOrder = self.basis:polyOrder(),
-	    			basisType = self.basis:id(),
-	    			charge    = self.charge,
-	    			mass      = self.mass,},	    
-	    }
-	    -- for scaled projection of flux, passed to bc func.
-	    self.recycleDistF[label] = DataStruct.Field {
-	       onGrid        = phaseGrid,
-	       numComponents = self.basis:numBasis(),
-	       ghost         = {1, 1},
-	       metaData      = {polyOrder = self.basis:polyOrder(),
-	    			basisType = self.basis:id(),
-	    			charge    = self.charge,
-	    			mass      = self.mass,},	    
-	    }
-
-	    -- 0th moment of fhat.
-	    self.recycleFhatM0[label] = DataStruct.Field {
-	       onGrid        = confGrid,
-	       numComponents = self.confBasis:numBasis(),
-	       ghost         = {1, 1},
-	       metaData      = {polyOrder = self.basis:polyOrder(),
-	    			basisType = self.basis:id(),
-	    			charge    = self.charge,
-	    			mass      = self.mass,},	    
-	    }
-	    -- 0th moment of ion boundary flux
-	    self.recycleIonFlux[label] = DataStruct.Field {
-	       onGrid        = confGrid,
-	       numComponents = self.confBasis:numBasis(),
-	       ghost         = {1, 1},
-	       metaData      = {polyOrder = self.basis:polyOrder(),
-	    			basisType = self.basis:id(),
-	    			charge    = self.charge,
-	    			mass      = self.mass,},	    
-	    }
-	    -- scaling factor for recycle distf.
-	    self.recycleCoef[label] = DataStruct.Field {
-	       onGrid        = confGrid,
-	       numComponents = self.confBasis:numBasis(),
-	       ghost         = {1, 1},
-	       metaData      = {polyOrder = self.basis:polyOrder(),
-	    			basisType = self.basis:id(),
-	    			charge    = self.charge,
-	    			mass      = self.mass,},	    
-	    }
-	    self.recycleTestFlux[label] = DataStruct.Field {
-	       onGrid        = confGrid,
-	       numComponents = self.confBasis:numBasis(),
-	       ghost         = {1, 1},
-	       metaData      = {polyOrder = self.basis:polyOrder(),
-	    			basisType = self.basis:id(),
-	    			charge    = self.charge,
-	    			mass      = self.mass,},	    
-	    }
+	 if self.cdim == 1 or (self.cdim == 3 and string.match(label,"Z")) then
+	    if tCurr == 0 then
+	       self.recycleIonNm = tbl.recycleIon
+	       -- Create objects and updaters needed for recycling wall BCs
+	       
+	       phaseGrid = bc:getBoundaryGrid()
+	       confGrid = bc:getConfBoundaryGrid()
+	       
+	       -- for fMaxwell projection with density = 1.
+	       self.recycleFMaxwell[label] = DataStruct.Field {
+		  onGrid        = phaseGrid,
+		  numComponents = self.basis:numBasis(),
+		  ghost         = {1, 1},
+		  metaData      = {polyOrder = self.basis:polyOrder(),
+				   basisType = self.basis:id(),
+				   charge    = self.charge,
+				   mass      = self.mass,},	    
+	       }
+	       -- for projection of flux on ghosts.
+	       self.recycleFhat[label] = DataStruct.Field {
+		  onGrid        = phaseGrid,
+		  numComponents = self.basis:numBasis(),
+		  ghost         = {1, 1},
+		  metaData      = {polyOrder = self.basis:polyOrder(),
+				   basisType = self.basis:id(),
+				   charge    = self.charge,
+				   mass      = self.mass,},	    
+	       }
+	       self.scaledFhat[label] = DataStruct.Field {
+		  onGrid        = phaseGrid,
+		  numComponents = self.basis:numBasis(),
+		  ghost         = {1, 1},
+		  metaData      = {polyOrder = self.basis:polyOrder(),
+				   basisType = self.basis:id(),
+				   charge    = self.charge,
+				   mass      = self.mass,},	    
+	       }
+	       -- for scaled projection of flux, passed to bc func.
+	       self.recycleDistF[label] = DataStruct.Field {
+		  onGrid        = phaseGrid,
+		  numComponents = self.basis:numBasis(),
+		  ghost         = {1, 1},
+		  metaData      = {polyOrder = self.basis:polyOrder(),
+				   basisType = self.basis:id(),
+				   charge    = self.charge,
+				   mass      = self.mass,},	    
+	       }
+	       
+	       -- 0th moment of fhat.
+	       self.recycleFhatM0[label] = DataStruct.Field {
+		  onGrid        = confGrid,
+		  numComponents = self.confBasis:numBasis(),
+		  ghost         = {1, 1},
+		  metaData      = {polyOrder = self.basis:polyOrder(),
+				   basisType = self.basis:id(),
+				   charge    = self.charge,
+				   mass      = self.mass,},	    
+	       }
+	       -- 0th moment of ion boundary flux
+	       self.recycleIonFlux[label] = DataStruct.Field {
+		  onGrid        = confGrid,
+		  numComponents = self.confBasis:numBasis(),
+		  ghost         = {1, 1},
+		  metaData      = {polyOrder = self.basis:polyOrder(),
+				   basisType = self.basis:id(),
+				   charge    = self.charge,
+				   mass      = self.mass,},	    
+	       }
+	       -- scaling factor for recycle distf.
+	       self.recycleCoef[label] = DataStruct.Field {
+		  onGrid        = confGrid,
+		  numComponents = self.confBasis:numBasis(),
+		  ghost         = {1, 1},
+		  metaData      = {polyOrder = self.basis:polyOrder(),
+				   basisType = self.basis:id(),
+				   charge    = self.charge,
+				   mass      = self.mass,},	    
+	       }
+	       self.recycleTestFlux[label] = DataStruct.Field {
+		  onGrid        = confGrid,
+		  numComponents = self.confBasis:numBasis(),
+		  ghost         = {1, 1},
+		  metaData      = {polyOrder = self.basis:polyOrder(),
+				   basisType = self.basis:id(),
+				   charge    = self.charge,
+				   mass      = self.mass,},	    
+	       }
+	       
+	       local dir, edgeVal
+	       if string.match(label,"lower") then
+		  edgeval = 1
+	       else
+		  edgeval = -1
+	       end
+	       if string.match(label,"X") then
+		  dir = 1
+		  if edgeval == 1 then -- lower flux is in negative direction
+		     mom = "M0Nvx"
+		  else                -- upper flux is in positive direction
+		     mom = "M0Pvx"
+		  end
+	       else
+		  dir = 3
+		  if edgeval == 1 then -- lower
+		     mom = "M0Nvz"
+		  else                -- upper
+		     mom = "M0Pvz"
+		  end
+	       end
+	       
+	       -- DistFuncMomentCalc Updater for fMaxwell	    
+	       self.calcFhatM0[label] = Updater.DistFuncMomentCalc {
+		  onGrid     = phaseGrid,
+		  phaseBasis = self.basis,
+		  confBasis  = self.confBasis,
+		  moment     = mom,
+	       }
+	       
+	       self.recycleConfDiv[label] = Updater.CartFieldBinOp {
+		  onGrid    = confGrid,
+		  weakBasis = self.confBasis,
+		  operation = "Divide",
+	       }
+	       self.recycleConfPhaseMult[label] = Updater.CartFieldBinOp {
+		  onGrid     = phaseGrid,
+		  weakBasis  = self.basis,
+		  fieldBasis = self.confBasis,
+		  operation  = "Multiply",
+	       }
+	       
+	       self.recFrac = tbl.recycleFrac		     
+	       T0 = tbl.recycleTemp
+	       recycleSource = function (t, xn)
+		  local cdim = self.cdim
+		  local vdim = self.vdim
+		  local vt2 = T0/self.mass
+		  --local u = -10*edgeval*math.sqrt(vt2)
+		  --local v2 = (xn[2] - u)^2 + xn[3]^2 + xn[4]^2
+		  local v2 = 0.0
+		  for d = cdim+1, cdim+vdim do
+		     v2 = v2 + (xn[d])^2
+		  end
+		  return 1.0 / math.sqrt(2*math.pi*vt2)^vdim * math.exp(-v2/(2*vt2))
+	       end
+	       
+	       self.projectRecycleFMaxwell = Updater.ProjectOnBasis {
+		  onGrid          = phaseGrid,
+		  basis           = self.basis,
+		  evaluate        = recycleSource,
+		  onGhosts        = false,
+	       }
+	       self.projectFluxFunc = Updater.ProjectFluxFunc {
+		  onGrid          = phaseGrid,
+		  phaseBasis      = self.basis,
+		  confBasis       = self.confBasis,
+		  edgeValue       = edgeval,
+		  direction       = dir,
+		  onGhosts        = false,
+	       }
+	       
+	       self.projectRecycleFMaxwell:advance(tCurr, {}, {self.recycleFMaxwell[label]})
+	       self.projectFluxFunc:advance(tCurr, {self.recycleFMaxwell[label]}, {self.recycleFhat[label]})
+	       self.calcFhatM0[label]:advance(tCurr, {self.recycleFhat[label]}, {self.recycleFhatM0[label]})
+	       self.recycleFhatM0[label]:scale(-1.0*edgeval)
+	       
+	       -- Write out distf and flux
+	       wlabel = (label):gsub("Flux","")
+	       self.recycleFhat[label]:write(
+		  string.format("%s_%s%s_%d.bp", self.name, 'recycleFhat', wlabel, self.diagIoFrame),
+		  tCurr, self.diagIoFrame, false)
+	       self.recycleFhatM0[label]:write(
+		  string.format("%s_%s%s_%d.bp", self.name, 'recycleFhatM0', wlabel, self.diagIoFrame),
+		  tCurr, self.diagIoFrame, false)
+	    end
 	    
-	    local dir, edgeVal
-	    if string.match(label,"lower") then
-	       edgeval = 1
+	    if tbl.recycleTime then
+	       self.recTime = tbl.recycleTime
+	       scaleByTime = function(tm)
+		  return 0.5*(1. + math.tanh(tm/self.recTime-1))
+		  --return math.tanh(tm/self.recTime)
+	       end
+	       self.scaledRecFrac = self.recFrac*scaleByTime(tCurr)
 	    else
-	       edgeval = -1
+	       self.scaledRecFrac = self.recFrac
 	    end
-	    if string.match(label,"X") then
-	       dir = 1
-	       if edgeval == 1 then -- lower flux is in negative direction
-		  mom = "M0Nvx"
-	       else                -- upper flux is in positive direction
-		  mom = "M0Pvx"
-	       end
-	    elseif string.match(label, "Y") then
-	       dir = 2
-	       if edgeval == 1 then -- lower
-		  mom = "M0Nvy"
-	       else                -- upper
-		  mom = "M0Pvy"
-	       end
-	    else
-	       dir = 3
-	       if edgeval == 1 then -- lower
-		  mom = "M0Nvx"
-	       else                -- upper
-		  mom = "M0Pvx"
-	       end
-	    end
-	    
-	    -- DistFuncMomentCalc Updater for fMaxwell	    
-	    self.calcFhatM0[label] = Updater.DistFuncMomentCalc {
-	       onGrid     = phaseGrid,
-	       phaseBasis = self.basis,
-	       confBasis  = self.confBasis,
-	       moment     = mom,
-	    }
-	    
-	    self.recycleConfDiv[label] = Updater.CartFieldBinOp {
-	       onGrid    = confGrid,
-	       weakBasis = self.confBasis,
-	       operation = "Divide",
-	    }
-	    self.recycleConfPhaseMult[label] = Updater.CartFieldBinOp {
-	       onGrid     = phaseGrid,
-	       weakBasis  = self.basis,
-	       fieldBasis = self.confBasis,
-	       operation  = "Multiply",
-	    }
-
-	    self.recFrac = tbl.recycleFrac		     
-	    T0 = tbl.recycleTemp
-	    recycleSource = function (t, xn)
-	       local cdim = self.cdim
-	       local vdim = self.vdim
-	       local vt2 = T0/self.mass
-	       --local u = -10*edgeval*math.sqrt(vt2)
-	       --local v2 = (xn[2] - u)^2 + xn[3]^2 + xn[4]^2
-	       local v2 = 0.0
-	       for d = cdim+1, cdim+vdim do
-	       	  v2 = v2 + (xn[d])^2
-	       end
-	       return 1.0 / math.sqrt(2*math.pi*vt2)^vdim * math.exp(-v2/(2*vt2))
-	    end
-	    
-	    self.projectRecycleFMaxwell = Updater.ProjectOnBasis {
-	       onGrid          = phaseGrid,
-	       basis           = self.basis,
-	       evaluate        = recycleSource,
-	       onGhosts        = false,
-	    }
-	    self.projectFluxFunc = Updater.ProjectFluxFunc {
-	       onGrid          = phaseGrid,
-	       phaseBasis      = self.basis,
-	       confBasis       = self.confBasis,
-	       edgeValue       = edgeval,
-	       direction       = dir,
-	       onGhosts        = false,
-	    }
-	    
-	    self.projectRecycleFMaxwell:advance(tCurr, {}, {self.recycleFMaxwell[label]})
-	    self.projectFluxFunc:advance(tCurr, {self.recycleFMaxwell[label]}, {self.recycleFhat[label]})
-	    self.calcFhatM0[label]:advance(tCurr, {self.recycleFhat[label]}, {self.recycleFhatM0[label]})
-	    self.recycleFhatM0[label]:scale(-1.0*edgeval)
-
-	    -- Write out distf and flux
-	    wlabel = (label):gsub("Flux","")
-	    self.recycleFhat[label]:write(
-	       string.format("%s_%s%s_%d.bp", self.name, 'recycleFhat', wlabel, self.diagIoFrame),
-	       tCurr, self.diagIoFrame, false)
-	    self.recycleFhatM0[label]:write(
-	       string.format("%s_%s%s_%d.bp", self.name, 'recycleFhatM0', wlabel, self.diagIoFrame),
-	       tCurr, self.diagIoFrame, false)
-	 end
-
-	 if tbl.recycleTime then
-	    self.recTime = tbl.recycleTime
-	    scaleByTime = function(tm)
-	       return 0.5*(1. + math.tanh(tm/self.recTime-1))
-	    end
-	    self.scaledRecFrac = self.recFrac*scaleByTime(tCurr)
-	 else
-	    self.scaledRecFrac = self.recFrac
-	 end
 	 
-	 local ionBoundaryFlux = species[self.recycleIonNm].bcGkM0fluxField[label]
-	 wlabel = (label):gsub("Flux","")
-	 ionBoundaryFlux:scale(self.scaledRecFrac)
-	
-	 -- weak divide
-	 self.recycleConfDiv[label]:advance(tCurr, {self.recycleFhatM0[label], ionBoundaryFlux}, {self.recycleCoef[label]})
+	    local ionBoundaryFlux = species[self.recycleIonNm].bcGkM0fluxField[label]
+	    wlabel = (label):gsub("Flux","")
+	    ionBoundaryFlux:scale(self.scaledRecFrac)
+	    
+	    -- weak divide
+	    self.recycleConfDiv[label]:advance(tCurr, {self.recycleFhatM0[label], ionBoundaryFlux}, {self.recycleCoef[label]})
 
-	 -- weak multiply
-	 self.recycleConfPhaseMult[label]:advance(tCurr, {self.recycleCoef[label], self.recycleFMaxwell[label]}, {self.recycleDistF[label]})
-	 -- Diagnostics to check flux
-	 self.recycleConfPhaseMult[label]:advance(tCurr, {self.recycleCoef[label], self.recycleFhat[label]}, {self.scaledFhat[label]})
-	 self.calcFhatM0[label]:advance(tCurr, {self.scaledFhat[label]}, {self.recycleTestFlux[label]})
-
-	 local scaleFac = 1.0/self.recFrac
-	 self.recycleTestFlux[label]:scale(scaleFac) -- This can be written out from KineticSpecies, if necessary.
+	    -- weak multiply
+	    self.recycleConfPhaseMult[label]:advance(tCurr, {self.recycleCoef[label], self.recycleFMaxwell[label]}, {self.recycleDistF[label]})
+	    -- Diagnostics to check flux
+	    self.recycleConfPhaseMult[label]:advance(tCurr, {self.recycleCoef[label], self.recycleFhat[label]}, {self.scaledFhat[label]})
+	    self.calcFhatM0[label]:advance(tCurr, {self.scaledFhat[label]}, {self.recycleTestFlux[label]})
+	    -- maybe calculated integrated M0 flux here??
+	    
+	    local scaleFac = 1.0/self.recFrac
+	    self.recycleTestFlux[label]:scale(scaleFac) -- This can be written out from KineticSpecies, if necessary.
+	 end
       end
    end
 

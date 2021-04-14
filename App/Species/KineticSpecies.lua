@@ -943,9 +943,13 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
     if self.hasRecycleBcs then
         for _, bc in ipairs(self.boundaryConditions) do
 	   label = bc:label()
-	   wlabel = (label):gsub("Flux","")
-	   self.recycleCoef[label]:write(string.format("%s%s_%d.bp", 'recycleCoef', wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
-	   self.recycleDistF[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleDistF', wlabel, self.diagIoFrame), tCurr, self.diagIoFrame, false)
+	   if self.cdim == 1 or (self.cdim == 3 and string.match(label,"Z")) then
+	      wlabel = (label):gsub("Flux","")
+	      self.recycleCoef[label]:write(string.format("%s%s_%d.bp", 'recycleCoef', wlabel, self.diagIoFrame), tm, self.diagIoFrame, false)
+	      self.recycleDistF[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleDistF', wlabel, self.diagIoFrame), tm, self.diagIoFrame, false)
+	      -- mom="intM0Recycle"
+	      -- self.diagnosticIntegratedMomentFields[mom..label]:write(string.format("%s_%s.bp", self.name, mom..label), tm, self.diagIoFrame)
+	   end
 	end
     end
 end
@@ -1048,6 +1052,7 @@ function KineticSpecies:writeRestart(tm)
       self.intSrcIzM0:write(
 	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
    end
+
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
@@ -1071,6 +1076,10 @@ function KineticSpecies:readRestart()
    end
    
    if self.calcReactRate then
+      self.intSrcIzM0:read(
+	 string.format("%s_intSrcIzM0_restart.bp", self.name))
+   end
+   if self.calcIntSrcIz then
       self.intSrcIzM0:read(
 	 string.format("%s_intSrcIzM0_restart.bp", self.name))
    end
