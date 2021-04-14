@@ -69,7 +69,7 @@ plasmaApp = Plasma.App {
          perpendicularTemperature = function (t, xn) return Ti0 end,
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"intMom","intM0","M2flow"},
+      diagnostics = {"intMom","intM0","M2flow","upar","Tpar","Tperp","ppar","pperp"},
    },
 
    -- Gyrokinetic electronss.

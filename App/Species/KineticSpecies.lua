@@ -632,7 +632,7 @@ function KineticSpecies:getDistF(rkIdx)
    if rkIdx == nil then
       return self:rkStepperFields()[self.activeRKidx]
    else
-      return self:rkStepperFields()[self.rkIdx]
+      return self:rkStepperFields()[rkIdx]
    end
 end
 

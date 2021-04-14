@@ -18,6 +18,7 @@ local lume       = require "Lib.lume"
 -- The first entry is the diagnostic name. The second is the other diagnostics it depends on.
 local allowedFieldDiags = {{"MomSq",{}}}
 local allowedIntegratedDiags = {{"intMom",{}}}
+
 local contains=function(tbl, elem) return lume.any(tbl, function(e) return e[1]==elem end) end
 
 local FluidDiags = Proto(DiagsBase)  -- FluidDiags is a child of DiagsBase.
@@ -217,20 +218,20 @@ FluidDiags._diagImp = {}
 
 -- ~~~~ The moments squared ~~~~~~~~~~~~~~~~~~~~~~
 FluidDiags._diagImp["MomSq"] = {}
-FluidDiags._diagImp["MomSq"].init = function(self, mySpecies)
-   FluidDiags._diagImp["MomSq"].field    = mySpecies:allocMoment()
-   FluidDiags._diagImp["MomSq"].updaters = mySpecies.weakMultiply
+FluidDiags._diagImp["MomSq"].init = function(self, specIn)
+   FluidDiags._diagImp["MomSq"].field    = specIn:allocMoment()
+   FluidDiags._diagImp["MomSq"].updaters = specIn.weakMultiply
 end
 FluidDiags._diagImp["MomSq"].calc = function(tm, specIn)
-   local momIn = specIn:rkStepperFields()[1]
+   local momIn = specIn:getMoments(1)
    FluidDiags._diagImp["MomSq"].updaters:advance(tm, {momIn, momIn}, {FluidDiags._diagImp["MomSq"].field})
 end
 
 -- ~~~~ Moments integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~
 FluidDiags._diagImp["intMom"] = {}
-FluidDiags._diagImp["intMom"].init = function(self, mySpecies)
+FluidDiags._diagImp["intMom"].init = function(self, specIn)
    FluidDiags._diagImp["intMom"].field    = DataStruct.DynVector { numComponents = self.nMoments }
-   FluidDiags._diagImp["intMom"].updaters = mySpecies.volIntegral.compsN
+   FluidDiags._diagImp["intMom"].updaters = specIn.volIntegral.compsN
 end
 FluidDiags._diagImp["intMom"].calc = function(tm, specIn)
    FluidDiags._diagImp["intMom"].updaters:advance(tm, {specIn:rkStepperFields()[1]}, {FluidDiags._diagImp["intMom"].field})

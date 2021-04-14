@@ -184,8 +184,6 @@ function FluidSpecies:fullInit(appTbl)
    self.nMoments = 1   -- Default to a single moment.
    self.nGhost   = 1   -- Default is 1 ghost-cell in each direction.
 
-   self.tCurr  = 0.0
-
    self.integratedMomentsTime = 0.0 -- Timer for integrated moments.
    self.bcTime = 0.0   -- Timer for BCs.
 end
@@ -318,6 +316,13 @@ function FluidSpecies:createBCs()
 end
 
 function FluidSpecies:createSolver(externalField)
+   if externalField then
+      -- Set up Jacobian.
+      self.jacobFunc = externalField.jacobGeoFunc
+      self.jacob     = externalField.geo.jacobGeo
+      self.jacobInv  = externalField.geo.jacobGeoInv
+   end
+
    -- Create solvers for collisions (diffusion).
    for _, c in pairs(self.collisions) do
       c:createSolver(externalField)
@@ -333,7 +338,7 @@ function FluidSpecies:createSolver(externalField)
       }
    end
 
-   -- Operators needed for time-dependent calcualtion and diagnostics.
+   -- Operators needed for time-dependent calculation and diagnostics.
    self.weakMultiply = Updater.CartFieldBinOp {
       onGrid    = self.grid,
       weakBasis = self.basis,
@@ -380,8 +385,19 @@ function FluidSpecies:alloc(nRkDup)
                   mass      = self.mass,
                   grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp",},
    }
-   self.couplingMoments   = self:allocVectorMoment(self.nMoments)
-   self.integratedMoments = DataStruct.DynVector { numComponents = self.nMoments }
+
+   self.couplingMoments = self:allocVectorMoment(self.nMoments)
+
+   self.unitField = self:allocMoment()
+   local projectUnity = Updater.ProjectOnBasis {
+      onGrid   = self.grid,
+      basis    = self.basis,
+      evaluate = function(t, zn) return 1.0 end,
+      onGhosts = true,
+   }
+   projectUnity:advance(0.0, {}, {self.unitField})
+
+   self.noJacMom = self:allocVectorMoment(self.nMoments)   -- Moments without Jacobian.
 
    if self.positivity then self.momPos = self:allocVectorMoment(self.nMoments) end
 
@@ -467,7 +483,7 @@ function FluidSpecies:getMoments(rkIdx)
    if rkIdx == nil then
       return self:rkStepperFields()[self.activeRKidx]
    else
-      return self:rkStepperFields()[self.rkIdx]
+      return self:rkStepperFields()[rkIdx]
    end
 end
 
@@ -517,7 +533,7 @@ end
 function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    -- This only clears the RHS. The :advance method should otherwise be
    -- defined in the child species.
-   self.tCurr = tCurr
+   self:setActiveRKidx(inIdx)
    local momRhsOut = self:rkStepperFields()[outIdx]
 
    momRhsOut:clear(0.0)
@@ -577,12 +593,23 @@ function FluidSpecies:createDiagnostics()  -- More sophisticated/extensive diagn
    -- Create this species' diagnostics.
    self.diagApp:init()
    self.diagApp:fullInit(self)
+
+   -- Many diagnostics require dividing by the Jacobian (if present).
+   -- Predefine the function that does that.
+   self.calcNoJacMom = self.jacobInv
+      and function(tm, rkIdx) self.weakMultiply:advance(tm, {self:getMoments(rkIdx), self.jacobInv}, {self.noJacMom}) end
+      or function(tm, rkIdx) self.noJacMom:copy(self:getMoments(rkIdx)) end
+end
+
+function FluidSpecies:getNoJacMoments()
+   return self.noJacMom
 end
 
 function FluidSpecies:write(tm, force)
    if self.evolve or force then
 
       self.diagApp:resetState(tm)   -- Reset booleans indicating if diagnostic has been computed.
+      self.calcNoJacMom(tm, 1)  -- Many diagnostics do not include Jacobian factor.
 
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.
