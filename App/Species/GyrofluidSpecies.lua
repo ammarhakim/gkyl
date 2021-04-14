@@ -336,9 +336,7 @@ end
 
 function GyrofluidSpecies:momCalcTime()
    local tm = self.timers.couplingMom
-   for i, mom in pairs(self.diagnosticMoments) do
-      tm = tm + self.diagnosticMomentUpdaters[mom].totalTime
-   end
+   tm = tm + self.diagApp:getDiagTime()
    return tm
 end
 function GyrofluidSpecies:solverVolTime()

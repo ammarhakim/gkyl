@@ -211,6 +211,10 @@ function FluidDiags:readRestart()
    return tm, fr
 end
 
+function FluidDiags:getDiagTime()
+   return self.spentTime.fieldDiags + self.spentTime.intDiags
+end
+
 -----------------------------------
 -- Place diagnostics below
 --
