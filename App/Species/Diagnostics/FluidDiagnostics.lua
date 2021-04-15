@@ -172,7 +172,6 @@ function FluidDiags:calcFieldDiagnostics(tm, mySpecies)
    local spec = mySpecies
    for diagNm, diag in lume.orderedIter(self.fieldDiags) do
       if not diag.done then
-         print(self.name, "calcing ", diagNm)
          self:calcDiagDependencies(tm, spec, diagNm)
          diag.calc(tm, spec)
          diag.done = true
@@ -184,7 +183,6 @@ end
 
 function FluidDiags:writeFieldDiagnostics(tm, fr)
    for nm, diag in lume.orderedIter(self.fieldDiags) do
-      print(self.name, "writing ", nm)
       diag.field:write(string.format("%s_%s_%d.bp", self.name, nm, fr), tm, fr)
    end
 end
