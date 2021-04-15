@@ -135,8 +135,8 @@ GyrofluidDiags._diagImp["Tperp"].init = function(self, specIn)
    GyrofluidDiags._diagImp["Tperp"].field = specIn:allocMoment()
 end
 GyrofluidDiags._diagImp["Tperp"].calc = function(tm, specIn)
-   specIn.weakDivide(tm, {GyrofluidDiags._diagImp["M0"].field,GyrofluidDiags._diagImp["pperp"].field},
-                         {GyrofluidDiags._diagImp["Tperp"].field})
+   specIn.weakDivide:advance(tm, {GyrofluidDiags._diagImp["M0"].field,GyrofluidDiags._diagImp["pperp"].field},
+                             {GyrofluidDiags._diagImp["Tperp"].field})
 end
 
 -- ~~~~ Parallel temperature ~~~~~~~~~~~~~~~~~~~~~~
@@ -145,8 +145,8 @@ GyrofluidDiags._diagImp["Tpar"].init = function(self, specIn)
    GyrofluidDiags._diagImp["Tpar"].field = specIn:allocMoment()
 end
 GyrofluidDiags._diagImp["Tpar"].calc = function(tm, specIn)
-   specIn.weakDivide(tm, {GyrofluidDiags._diagImp["M0"].field,GyrofluidDiags._diagImp["ppar"].field},
-                         {GyrofluidDiags._diagImp["Tpar"].field})
+   specIn.weakDivide:advance(tm, {GyrofluidDiags._diagImp["M0"].field,GyrofluidDiags._diagImp["ppar"].field},
+                             {GyrofluidDiags._diagImp["Tpar"].field})
 end
 
 -- ~~~~ Scalar temperature ~~~~~~~~~~~~~~~~~~~~~~
@@ -159,8 +159,8 @@ end
 GyrofluidDiags._diagImp["Temp"].calc = function(tm, specIn)
    GyrofluidDiags._diagImp["Temp"].field:combineOffset( 2./3., specIn:getMoments(1), specIn:getMomOff(3),
                                                        -specIn:getMass()/3., GyrofluidDiags._diagImp["M2flow"].field, 0)
-   specIn.weakDivide(tm, {GyrofluidDiags._diagImp["M0"].field,GyrofluidDiags._diagImp["Temp"].field},
-                         {GyrofluidDiags._diagImp["Temp"].field})
+   specIn.weakDivide:advance(tm, {GyrofluidDiags._diagImp["M0"].field,GyrofluidDiags._diagImp["Temp"].field},
+                             {GyrofluidDiags._diagImp["Temp"].field})
 end
 
 -- ~~~~ Moments integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~

@@ -66,49 +66,64 @@ function FluidDiags:fullInit(mySpecies)
    self.spentTime = { fieldDiags=0., intDiags=0. }
 end
 
-function FluidDiags:orgDiagnostics(allowed, diagsTbl, otherAllowed, otherDiagsTbl)
+function FluidDiags:orgDiagnostics(allowed, diagsTbl, fieldDiagAllowed, fieldDiagsTbl)
    -- Organize diagnostics. Insert other diagnostics needed. Set metatable for orderedIter.
    -- The last two arguments are intended to be the allowedField Diags and fieldDiags when
    -- the first two are the allowedIntegratedDiags and intDiags. That's because in such case
    -- organizing intDiags may change and reorder fieldDiags.
-   assert((otherAllowed and otherDiagsTbl) or (otherAllowed==nil and otherDiagsTbl==nil),
-          "GyrofluidDiags:orgDiagnostics: must pass both otherAllowed and otherDiagsTbl, or neither.")
-   local reorderOther = false
+   assert((fieldDiagAllowed and fieldDiagsTbl) or (fieldDiagAllowed==nil and fieldDiagsTbl==nil),
+          "GyrofluidDiags:orgDiagnostics: must pass both fieldDiagAllowed and fieldDiagsTbl, or neither.")
+   local reorderFieldDiags = false
 
    -- Check for dependencies and insert other necessary diagnostics.
    -- Note: this can result in extra diagnostics written out.
-   for nm, diag in pairs(diagsTbl) do
-      local info, _ = lume.match(allowed, function(e) return e[1]==nm end)
+   local function checkNinsertDependencies(diagNm, diagsTblIn)
+      local reorder = false
+      local info, _ = lume.match(allowed, function(e) return e[1]==diagNm end)
       local depends = info and info[2] or {}
+      -- Loop over dependencies and check if they are in table. If not, include them.
       for depI, depNm in ipairs(depends) do
-         if lume.find(diagsTbl, depNm)==nil then
-            diagsTbl[depNm] = self.diagsImp[depNm]
-         end
-         -- Also check the other diagsTbl if present.
-         if otherDiagsTbl then
-            if lume.find(otherDiagsTbl, depNm)==nil then
-               reorderOther = true
-               otherDiagsTbl[depNm] = self.diagsImp[depNm]
-            end
+         if lume.find(diagsTblIn, depNm)==nil and contains(allowed, depNm) then
+            diagsTblIn[depNm] = self.diagsImp[depNm]
+            _ = checkNinsertDependencies(depNm, diagsTblIn)
+            reorder = true
          end
       end
+      return reorder
    end
-   local function sortDiagsTbl(allowed, diags)
+   for nm, _ in pairs(diagsTbl) do
+      _ = checkNinsertDependencies(nm, diagsTbl)
+      -- Also check the other diagsTbl if present.
+      if fieldDiagsTbl then
+         reorderFieldDiags = reorderFieldDiags or checkNinsertDependencies(nm, fieldDiagsTbl)
+      end
+   end
+
+   local function sortDiagsTbl(allow, diags)
       -- Create a keys list so we always loop in the same order.
       local diags_keys = {}
       for nm in pairs(diags) do table.insert(diags_keys, nm) end
-      local diagSort = function(d1,d2)
-         -- Check if d1 is in the list of dependencies of d2. If so it must go before d2.
-         local info, _  = lume.match(allowed, function(e) return e[1]==d2 end)
-         local depends2 = info and info[2] or {}
-         if lume.find(depends2, d1) then return true else return false end
+      local sortFunc = function(d1,d2)
+         -- Check if d1 is in the list of dependencies of d2, or the dependencies of
+         -- the dependencies of d2 (hence the recursion), and so on. If so it must go before d2.
+         local function dependsOn(diag1,diag2)
+            local info, _  = lume.match(allow, function(e) return e[1]==diag2 end)
+            local depends2 = info and info[2] or {}
+            local found = false  
+            if lume.find(depends2, diag1) then found = true end
+            if not found then
+               for _, oNm in ipairs(depends2) do found = found or dependsOn(diag1, oNm) end
+            end
+            return found
+         end
+         return dependsOn(d1,d2)
       end
-      table.sort(diags_keys, diagSort)
+      table.sort(diags_keys, sortFunc)
       setmetatable(diags, diags_keys)
    end
    sortDiagsTbl(allowed, diagsTbl)
    -- Also sort other diagsTbl if something was added.
-   if otherDiagsTbl and reorderOther then sortDiagsTbl(otherAllowed, otherDiagsTbl) end
+   if fieldDiagsTbl and reorderFieldDiags then sortDiagsTbl(fieldDiagAllowed, fieldDiagsTbl) end
 end
 
 function FluidDiags:resetState(tm)
@@ -120,14 +135,17 @@ end
 
 function FluidDiags:calcDiagDependencies(tm, mySpecies, diagNm)
    -- Given a diagnostic, compute the other diagnostics it may depend on.
+   local spec = mySpecies
+
    local info, _ = lume.match(self.allowedFieldDiags, function(e) return e[1]==diagNm end)
    local depends = info and info[2] or {}
    for _, depNm in ipairs(depends) do
       local depDiag = self.fieldDiags[depNm]
-      if depDiag.done then break end
-      self:calcDiagDependencies(tm, mySpecies, depNm)
-      depDiag.calc(tm, mySpecies)
-      depDiag.done = true
+      if not depDiag.done then
+         self:calcDiagDependencies(tm, spec, depNm)
+         depDiag.calc(tm, spec)
+         depDiag.done = true
+      end
    end
 end
 
@@ -137,10 +155,11 @@ function FluidDiags:calcIntegratedDiagnostics(tm, mySpecies)
 
    local spec = mySpecies
    for diagNm, diag in lume.orderedIter(self.intDiags) do
-      if diag.done then break end
-      self:calcDiagDependencies(tm, spec, diagNm)
-      diag.calc(tm, spec)
-      diag.done = true
+      if not diag.done then
+         self:calcDiagDependencies(tm, spec, diagNm)
+         diag.calc(tm, spec)
+         diag.done = true
+      end
    end
 
    self.spentTime.intDiags = self.spentTime.intDiags + Time.clock() - tmStart
@@ -152,10 +171,12 @@ function FluidDiags:calcFieldDiagnostics(tm, mySpecies)
 
    local spec = mySpecies
    for diagNm, diag in lume.orderedIter(self.fieldDiags) do
-      if diag.done then break end
-      self:calcDiagDependencies(tm, spec, diagNm)
-      diag.calc(tm, spec)
-      diag.done = true
+      if not diag.done then
+         print(self.name, "calcing ", diagNm)
+         self:calcDiagDependencies(tm, spec, diagNm)
+         diag.calc(tm, spec)
+         diag.done = true
+      end
    end
 
    self.spentTime.fieldDiags = self.spentTime.fieldDiags + Time.clock() - tmStart
@@ -163,6 +184,7 @@ end
 
 function FluidDiags:writeFieldDiagnostics(tm, fr)
    for nm, diag in lume.orderedIter(self.fieldDiags) do
+      print(self.name, "writing ", nm)
       diag.field:write(string.format("%s_%s_%d.bp", self.name, nm, fr), tm, fr)
    end
 end

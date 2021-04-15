@@ -611,6 +611,8 @@ function FluidSpecies:write(tm, force)
       self.diagApp:resetState(tm)   -- Reset booleans indicating if diagnostic has been computed.
       self.calcNoJacMom(tm, 1)  -- Many diagnostics do not include Jacobian factor.
 
+      self.primMomSelf:write(self.name .. "_primMom.bp")
+
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.
       if self.calcIntQuantTrigger(tm) then
