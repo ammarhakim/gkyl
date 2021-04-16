@@ -36,7 +36,7 @@ double gyrofluid_surf_1x_p1_ser_x(const double q_, const double m_, const double
   momHat1[0] = 0.3535533905932737*((1.732050807568877*(sMomR1[1]+sMomL1[1])-1.0*sMomR1[0]+sMomL1[0])*uMaxIn+2.828427124746191*sMom1Favg[0]); 
 
   double sMom2Favg[1];
-  sMom2Favg[0] = 0.5*((-2.449489742783178*sMomR1[5])+2.449489742783178*sMomL1[5]+1.414213562373095*(sMomR1[4]+sMomL1[4])); 
+  sMom2Favg[0] = -(0.5*((2.449489742783178*sMomR1[5]-2.449489742783178*sMomL1[5]-1.414213562373095*(sMomR1[4]+sMomL1[4]))*m_+(sMomR1[1]-1.732050807568877*sMomR1[0])*primMomR1[5]+(sMomL1[1]+1.732050807568877*sMomL1[0])*primMomL1[5]+(sMomR1[0]-1.732050807568877*sMomR1[1])*primMomR1[4]+(1.732050807568877*sMomL1[1]+sMomL1[0])*primMomL1[4]))/m_; 
 
   double momHat2[1];
   momHat2[0] = 0.3535533905932737*((1.732050807568877*(sMomR1[3]+sMomL1[3])-1.0*sMomR1[2]+sMomL1[2])*uMaxIn+2.828427124746191*sMom2Favg[0]); 

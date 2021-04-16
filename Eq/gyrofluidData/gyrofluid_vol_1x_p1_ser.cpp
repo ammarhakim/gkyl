@@ -23,7 +23,7 @@ double gyrofluid_vol_1x_p1_ser(const double q_, const double m_, const double ka
   out[1] += 1.732050807568877*sMom[2]*rdx2; 
 
   out[2] += (1.224744871391589*phi[0]*sMom[1]*q_*rdx2)/m_-0.7071067811865475*(dBdz[1]*sMom[7]+dBdz[0]*sMom[6]); 
-  out[3] += (((2.449489742783178*phi[1]*sMom[1]+1.224744871391589*phi[0]*sMom[0])*q_)/m_+3.464101615137754*sMom[4])*rdx2-0.7071067811865475*(dBdz[0]*sMom[7]+dBdz[1]*sMom[6]); 
+  out[3] += (((2.449489742783178*phi[1]*sMom[1]+1.224744871391589*phi[0]*sMom[0])*q_-2.449489742783178*(sMom[1]*primMom[5]+sMom[0]*primMom[4]))/m_+3.464101615137754*sMom[4])*rdx2-0.7071067811865475*(dBdz[0]*sMom[7]+dBdz[1]*sMom[6]); 
 
   out[4] += (1.224744871391589*phi[0]*sMom[3]*q_*rdx2)/m_; 
   out[5] += (((2.449489742783178*phi[1]*sMom[3]+1.224744871391589*phi[0]*sMom[2])*q_+0.8660254037844386*((primMom[0]*sMom[1]+sMom[0]*primMom[1])*primMom[3]+(primMom[1]*sMom[1]+primMom[0]*sMom[0])*primMom[2]))/m_+1.224744871391589*(primMom[1]*sMom[5]+primMom[0]*sMom[4]))*rdx2; 

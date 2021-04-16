@@ -100,6 +100,7 @@ calcGFvolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
     moms_e   : endcons(newMom_e, moms_e),
     moms_c   : endcons(calcInnerProdList(vars,1,basis,newMom_e),moms_c)
   ),
+  print(moms_e),
   /* Primitive moments, upar, Tpar, Tperp */
   primMoms_e : [],  primMoms_c : [],
   for m : 1 thru 3 do (
@@ -117,19 +118,26 @@ calcGFvolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
   basisPrime  : diff(basis,x),
   basisPrimeP : diff(basis,x,2),
 
+  pperpJac_c : (1/m_)*calcInnerProdList(vars,m0_e,basis,Tperp_e),
+  pparJac_c  : (1/m_)*calcInnerProdList(vars,m0_e,basis,Tpar_e),
+  pperpJac_e : doExpand(pperpJac_c,basis),
+  pparJac_e  : doExpand(pparJac_c,basis),
+
   /* Define the fluxes so we can compute the advective
      contributions of all equations in a loop. */
-  pparJac_c : (1/m_)*calcInnerProdList(vars,m0_e,basis,Tpar_e),
-  pparJac_e : doExpand(pparJac_c,basis),
-  m2Flux_c  : calcInnerProdList(vars,upar_e,basis,m2_e+pparJac_e),
-  m2Flux_e  : doExpand(m2Flux_c,basis),
+  m0Flux_c     : calcInnerProdList(vars,1,basis,m1_e),
+  m1Flux_c     : calcInnerProdList(vars,1,basis,2*(m2_e-pperpJac_e)),
+  m2Flux_c     : calcInnerProdList(vars,upar_e,basis,m2_e+pparJac_e),
   m2perpFlux_c : calcInnerProdList(vars,upar_e,basis,m2perp_e),
+  m0Flux_e     : doExpand(m0Flux_c,basis),
+  m1Flux_e     : doExpand(m1Flux_c,basis),
+  m2Flux_e     : doExpand(m2Flux_c,basis),
   m2perpFlux_e : doExpand(m2perpFlux_c,basis),
-  flux_e : [m1_e, 2*m2_e, m2Flux_e, m2perpFlux_e],
+  flux_e : [m0Flux_e, m1Flux_e, m2Flux_e, m2perpFlux_e],
 
   incr_c : [],
   for mI : 1 thru numMom do (
-    incr_c : endcons(rdx2*calcInnerProdList(vars,1,basisPrime,flux_e[mI]),incr_c)
+    incr_c : endcons(rdx2*calcInnerProdList(vars,1,basisPrime,flux_e[mI]), incr_c)
   ),
 
   numBzeros : makelist(0,i,1,numB),
@@ -161,7 +169,7 @@ calcGFvolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
     incr_c[mI] : incr_c[mI]+rdxSq4*calcInnerProdList(vars,qFacs_e[mI],basisPrimeP,h_e[mI])
   ),
 
-  /* Write out the increments (mod some dimensional factors). */
+  /* Write out the increments. */
   for mI : 1 thru numMom do (
     writeCCompIncrCollect1(out, mI, incr_c[mI]),
     printf(fh, "~%")

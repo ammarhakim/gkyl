@@ -77,25 +77,28 @@ function FluidDiags:orgDiagnostics(allowed, diagsTbl, fieldDiagAllowed, fieldDia
 
    -- Check for dependencies and insert other necessary diagnostics.
    -- Note: this can result in extra diagnostics written out.
-   local function checkNinsertDependencies(diagNm, diagsTblIn)
+   local function checkNinsertDependencies(diagNm, allowedIn, allowedOut, diagsTblOut)
       local reorder = false
-      local info, _ = lume.match(allowed, function(e) return e[1]==diagNm end)
+      local info, _ = lume.match(allowedIn, function(e) return e[1]==diagNm end)
       local depends = info and info[2] or {}
       -- Loop over dependencies and check if they are in table. If not, include them.
       for depI, depNm in ipairs(depends) do
-         if lume.find(diagsTblIn, depNm)==nil and contains(allowed, depNm) then
-            diagsTblIn[depNm] = self.diagsImp[depNm]
-            _ = checkNinsertDependencies(depNm, diagsTblIn)
-            reorder = true
+         if lume.find(diagsTblOut, depNm)==nil then
+            if contains(allowedOut, depNm) then -- Separate if-statement because (nil and true) = nil.
+               diagsTblOut[depNm] = self.diagsImp[depNm]
+               _ = checkNinsertDependencies(depNm, allowedIn, allowedOut, diagsTblOut)
+               reorder = true
+            end
          end
       end
       return reorder
    end
    for nm, _ in pairs(diagsTbl) do
-      _ = checkNinsertDependencies(nm, diagsTbl)
+      --_ = checkNinsertDependencies(nm, allowed, allowed, diagsTbl)
       -- Also check the other diagsTbl if present.
       if fieldDiagsTbl then
-         reorderFieldDiags = reorderFieldDiags or checkNinsertDependencies(nm, fieldDiagsTbl)
+         local doReorder = checkNinsertDependencies(nm, allowed, fieldDiagAllowed, fieldDiagsTbl)
+         reorderFieldDiags = reorderFieldDiags or doReorder 
       end
    end
 
