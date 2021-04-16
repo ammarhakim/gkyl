@@ -89,21 +89,21 @@ double gyrofluid_surf_1x_p0_ser_x(const double q_, const double m_, const double
 
   double incrNonFlux4[1];
 
-  outR[0] += incrNonFlux1[0]*rdxSq4R+incr1[0]*rdx2R; 
+  outR[0] += incr1[0]*rdx2R; 
 
-  outL[0] += incrNonFlux1[0]*rdxSq4L-1.0*incr1[0]*rdx2L; 
+  outL[0] += -1.0*incr1[0]*rdx2L; 
 
-  outR[1] += incrNonFlux2[0]*rdxSq4R+incr2[0]*rdx2R; 
+  outR[1] += incr2[0]*rdx2R; 
 
-  outL[1] += incrNonFlux2[0]*rdxSq4L-1.0*incr2[0]*rdx2L; 
+  outL[1] += -1.0*incr2[0]*rdx2L; 
 
-  outR[2] += incrNonFlux3[0]*rdxSq4R+incr3[0]*rdx2R; 
+  outR[2] += incr3[0]*rdx2R; 
 
-  outL[2] += incrNonFlux3[0]*rdxSq4L-1.0*incr3[0]*rdx2L; 
+  outL[2] += -1.0*incr3[0]*rdx2L; 
 
-  outR[3] += incrNonFlux4[0]*rdxSq4R+incr4[0]*rdx2R; 
+  outR[3] += incr4[0]*rdx2R; 
 
-  outL[3] += incrNonFlux4[0]*rdxSq4L-1.0*incr4[0]*rdx2L; 
+  outL[3] += -1.0*incr4[0]*rdx2L; 
 
-  return fabs(0.7071067811865475*primMomL1[0]); 
+  return fabs(0.4854917717073234*sqrt((2.0*primMomL1[2])/m_+primMomL1[1]/m_)+0.7071067811865475*primMomL1[0]); 
 }

@@ -20,8 +20,9 @@ r0      = 0.0
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd   = 15,                 -- End time.
-   nFrame = 1,                  -- Number of output frames.
+--   tEnd   = 0.0190652,                 -- End time.
+   tEnd   = 10.0,                 -- End time.
+   nFrame = 10,                  -- Number of output frames.
    lower  = {-math.pi/knumber}, -- Configuration space lower left.
    upper  = { math.pi/knumber}, -- Configuration space upper right.
    cells  = {16},               -- Configuration space cells.
@@ -70,10 +71,6 @@ plasmaApp = Plasma.App {
       },
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","M2flow","upar","Tpar","Tperp","ppar","pperp"},
---      diagnostics = {"M2flow","upar","Tpar","Tperp","ppar","pperp"},
---      diagnostics = {"Tperp","Tpar",},
-      --diagnostics = {"M2flow","upar"},
---      diagnostics = {"ppar","pperp"},
    },
 
    -- Gyrokinetic electronss.
@@ -93,6 +90,7 @@ plasmaApp = Plasma.App {
          perpendicularTemperature = function (t, xn) return Te0 end,
       },
       evolve = true, -- Evolve species?
+      diagnostics = {"intMom","intM0","M2flow","upar","Tpar","Tperp","ppar","pperp"},
    },
 
    -- Field solver.

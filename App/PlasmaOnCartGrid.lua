@@ -204,7 +204,7 @@ local function buildApplication(self, tbl)
    setmetatable(species, species_keys)
 
    -- Setup each species.
-   for nm, s in lume.orderedIter(species) do
+   for _, s in lume.orderedIter(species) do
       -- Set up conf grid and basis.
       s:setConfGrid(confGrid)
       s:setConfBasis(confBasis)
@@ -298,7 +298,7 @@ local function buildApplication(self, tbl)
    externalField:initField()
    
    -- Initialize species solvers and diagnostics.
-   for nm, s in lume.orderedIter(species) do
+   for _, s in lume.orderedIter(species) do
       local hasE, hasB = field:hasEB()
       local extHasE, extHasB = externalField:hasEB()
       s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
@@ -308,7 +308,7 @@ local function buildApplication(self, tbl)
    end
 
    -- Initialize fluid source solvers.
-   for nm, s in lume.orderedIter(fluidSources) do
+   for _, s in lume.orderedIter(fluidSources) do
       s:createSolver(species, field)
    end   
 
@@ -615,9 +615,9 @@ local function buildApplication(self, tbl)
 
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
       -- Update fluid sources.
-      for nm, s in lume.orderedIter(fluidSources) do
-	 local myStatus, myDtSuggested = s:updateFluidSource(
-       tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, species, field)
+      for _, s in lume.orderedIter(fluidSources) do
+	 local myStatus, myDtSuggested = s:updateFluidSource(tCurr, dt, speciesVar, fieldVar,
+                                                             speciesBuf, fieldBuf, species, field)
 	 status =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end

@@ -344,8 +344,8 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
     incrNonFlux_s  : makelist(varNameNonFlux[i-1], i, 1, numB),
     /* Don't do coefficients where the increment is zero */
     for i : 1 thru numB do (
-      if (incrR_c[i] = 0)        then incr_s[i]        : 0,
-      if (incrNonFluxR_c[i] = 0) then incrNonFlux_s[i] : 0
+      if (incrR_c[mI][i] = 0)        then incr_s[i]        : 0,
+      if (incrNonFluxR_c[mI][i] = 0) then incrNonFlux_s[i] : 0
     ),
     writeCCompIncrExprsNoExpand1(outR, mI, rdSurfVar2R*incr_s+rdSurfVarSq4R*incrNonFlux_s),
     printf(fh, "~%"),
@@ -361,19 +361,23 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
     incrNonFlux_s : makelist(signsNonFlux[i]*varNameNonFlux[i-1], i, 1, numB),
     /* Don't do coefficients where the increment is zero */
     for i : 1 thru numB do (
-      if (incrR_c[i] = 0)        then incr_s[i]        : 0,
-      if (incrNonFluxR_c[i] = 0) then incrNonFlux_s[i] : 0
+      if (incrR_c[mI][i] = 0)        then incr_s[i]        : 0,
+      if (incrNonFluxR_c[mI][i] = 0) then incrNonFlux_s[i] : 0
     ),
     writeCCompIncrExprsNoExpand1(outL, mI, rdSurfVar2L*incr_s+rdSurfVarSq4L*incrNonFlux_s),
     printf(fh, "~%"),
     flush_output(fh)
   ),
 
-  /* uParMid is the value returned and from which uMaxIn is computed. */
+  /* uMid is the value returned and from which uMaxIn is computed.
+     We add a local sound speed contribution to account for pressure
+     waves (e.g. imagine that upar=0, but one still has a pressure
+     disturbance propagating). */
   zMid    : makelist(vars[d]=0, d, 1, dim),
-  uParMid : float(expand(fullratsimp(subst(zMid,uparL1_e)))),
+  Tmid    : (1/3)*(subst(zMid,TparL1_e) + 2*subst(zMid,TperpL1_e)),
+  uMidOut : float(expand(fullratsimp(subst(zMid,uparL1_e) + sqrt(Tmid/m_)))),
 
-  printf(fh, "  return fabs(~a); ~%", uParMid),
+  printf(fh, "  return fabs(~a); ~%", uMidOut),
 
   printf(fh, "}~%")
 

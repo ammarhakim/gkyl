@@ -25,5 +25,5 @@ double gyrofluid_vol_1x_p0_ser(const double q_, const double m_, const double ka
 
 
 
-  return fabs(0.7071067811865475*primMom[0]*rdx2) + 1.0*fmax(kappaPar*rdxSq4,kappaPerp*rdxSq4); 
+  return fabs((0.4854917717073234*sqrt((2.0*primMom[2])/m_+primMom[1]/m_)+0.7071067811865475*primMom[0])*rdx2) + 1.0*fmax(kappaPar*rdxSq4,kappaPerp*rdxSq4); 
 }

@@ -95,29 +95,29 @@ double gyrofluid_surf_1x_p1_ser_x(const double q_, const double m_, const double
   double incrNonFlux4[2];
   incrNonFlux4[1] = 0.0625*kappaPerp*(((4.898979485566357*phiR1[1]-4.898979485566357*phiL1[1]-4.242640687119286*(phiR1[0]+phiL1[0]))*jacDbmagL[2]+jacDbmagL[1]*(2.828427124746191*phiR1[1]-2.828427124746191*phiL1[1]-2.449489742783178*(phiR1[0]+phiL1[0])))*kperpSq*q_+((-9.797958971132715*jacDbmagL[2])-5.656854249492382*jacDbmagL[1])*primMomR1[5]+(9.797958971132715*jacDbmagL[2]+5.656854249492382*jacDbmagL[1])*primMomL1[5]+(8.485281374238571*jacDbmagL[2]+4.898979485566357*jacDbmagL[1])*(primMomR1[4]+primMomL1[4])); 
 
-  outR[0] += incrNonFlux1[0]*rdxSq4R+incr1[0]*rdx2R; 
-  outR[1] += incrNonFlux1[1]*rdxSq4R+incr1[1]*rdx2R; 
+  outR[0] += incr1[0]*rdx2R; 
+  outR[1] += incr1[1]*rdx2R; 
 
-  outL[0] += incrNonFlux1[0]*rdxSq4L-1.0*incr1[0]*rdx2L; 
-  outL[1] += incrNonFlux1[1]*rdxSq4L+incr1[1]*rdx2L; 
+  outL[0] += -1.0*incr1[0]*rdx2L; 
+  outL[1] += incr1[1]*rdx2L; 
 
-  outR[2] += incrNonFlux2[0]*rdxSq4R+incr2[0]*rdx2R; 
-  outR[3] += incrNonFlux2[1]*rdxSq4R+incr2[1]*rdx2R; 
+  outR[2] += incr2[0]*rdx2R; 
+  outR[3] += incr2[1]*rdx2R; 
 
-  outL[2] += incrNonFlux2[0]*rdxSq4L-1.0*incr2[0]*rdx2L; 
-  outL[3] += incrNonFlux2[1]*rdxSq4L+incr2[1]*rdx2L; 
+  outL[2] += -1.0*incr2[0]*rdx2L; 
+  outL[3] += incr2[1]*rdx2L; 
 
-  outR[4] += incrNonFlux3[0]*rdxSq4R+incr3[0]*rdx2R; 
+  outR[4] += incr3[0]*rdx2R; 
   outR[5] += incrNonFlux3[1]*rdxSq4R+incr3[1]*rdx2R; 
 
-  outL[4] += incrNonFlux3[0]*rdxSq4L-1.0*incr3[0]*rdx2L; 
+  outL[4] += -1.0*incr3[0]*rdx2L; 
   outL[5] += incr3[1]*rdx2L-1.0*incrNonFlux3[1]*rdxSq4L; 
 
-  outR[6] += incrNonFlux4[0]*rdxSq4R+incr4[0]*rdx2R; 
+  outR[6] += incr4[0]*rdx2R; 
   outR[7] += incrNonFlux4[1]*rdxSq4R+incr4[1]*rdx2R; 
 
-  outL[6] += incrNonFlux4[0]*rdxSq4L-1.0*incr4[0]*rdx2L; 
+  outL[6] += -1.0*incr4[0]*rdx2L; 
   outL[7] += incr4[1]*rdx2L-1.0*incrNonFlux4[1]*rdxSq4L; 
 
-  return fabs(0.7071067811865475*primMomL1[0]); 
+  return fabs(0.4854917717073234*sqrt((2.0*primMomL1[4])/m_+primMomL1[2]/m_)+0.7071067811865475*primMomL1[0]); 
 }
