@@ -250,8 +250,25 @@ function FemPerpPoisson:init(tbl)
                   objCreate      = 0., stiffFinish    = 0.,
                   srcCreate      = 0., solve          = 0.,
                   stiffCreate    = 0., getSol         = 0.,
-                  srcReduce      = 0., assemble       = 0., 
+                  srcReduce      = 0., srcReduceWait = 0.,  assemble       = 0., 
                   completeNsolve = 0., zDiscontToCont = 0.}
+   self.timerLabelsAssembly = {
+                       srcInt         = "FemPerpPoisson... Assembly: Integrate source (for all-periodic BCs only)", 
+                       objCreate      = "FemPerpPoisson... Assembly: Create FemPoisson object (first time only)",
+                       srcCreate      = "FemPerpPoisson... Assembly: Initialize global source vector", 
+                       srcReduce      = "FemPerpPoisson... Assembly: All-reduce global source vector",
+                       stiffCreate    = "FemPerpPoisson... Assembly: Initialize stiffness matrix triplet list",
+                       stiffReduce    = "FemPerpPoisson... Assembly: All-gather of stiffness matrix entries",
+                       stiffFinish    = "FemPerpPoisson... Assembly: Assemble stiffness matrix, apply BCs, and factorize",
+                       --assemble       = "FemPerpPoisson... Total assembly",
+                       }
+    self.timerLabelsSolve = {
+                       srcReduceWait  = "FemPerpPoisson... Solve: wait for global source reduce to finish",
+                       solve          = "FemPerpPoisson... Solve: solve linear system",
+                       getSol         = "FemPerpPoisson... Solve: get solution",
+                       zDiscontToCont = "FemPerpPoisson... Solve: do z smoothing solve",
+                       --completeNsolve = "FemPerpPoisson... Total solve",
+                       }
 
    return self
 end
@@ -402,7 +419,7 @@ function FemPerpPoisson:completeAssemblyAndSolve(tCurr, sol)
          local tmStart = Time.clock()
          -- Wait for the sum of each proc's globalSrc to get final globalSrc.
          ffiC.waitForGlobalSrcReduce(self._poisson[idz], Mpi.getComm(self._zcomm))
-         self.timers.srcReduce = self.timers.srcReduce + Time.clock() - tmStart
+         self.timers.srcReduceWait = self.timers.srcReduceWait + Time.clock() - tmStart
       end
 
       -- Solve. 
@@ -502,13 +519,23 @@ function FemPerpPoisson:printDevDiagnostics()
   local log = Logger{logToFile = true}
   log("\n")
   local calcTimeTot = math.max(self.totalTime,self.timers.assemble+self.timers.completeNsolve)
-  for nm, v in pairs(self.timers) do
-     log(string.format(
-        "FemPerpPoisson's "..nm.." took                  %9.5f sec   (%6.3f%%)\n", v, 100*v/calcTimeTot))
+  for nm, str in pairs(self.timerLabelsAssembly) do
+     v = self.timers[nm]
+     log(string.format("%-99s %12.5f sec  (%6.3f%%) \n", str .. " took", v, 100*v/calcTimeTot))
   end
-  log(string.format(
-     "FemPerpPoisson's advance took                      %9.5f sec   (%6.3f%%)\n",
-     calcTimeTot, 100*calcTimeTot/calcTimeTot))
+  for nm, str in pairs(self.timerLabelsSolve) do
+     v = self.timers[nm]
+     log(string.format("%-99s %12.5f sec  (%6.3f%%) \n", str .. " took", v, 100*v/calcTimeTot))
+  end
+  log("\n")
+  v = self.timers.assemble
+  log(string.format("%-99s %12.5f sec  (%6.3f%%) \n", "FemPerpPoisson... Total assembly took", v, 100*v/calcTimeTot))
+  v = self.timers.completeNsolve
+  log(string.format("%-99s %12.5f sec  (%6.3f%%) \n", "FemPerpPoisson... Total solve took", v, 100*v/calcTimeTot))
+
+  log("\n")
+  v = calcTimeTot
+  log(string.format("%-99s %12.5f sec  (%6.3f%%) \n", "FemPerpPoisson... Total for advance", v, 100*v/calcTimeTot))
 end
 
 return FemPerpPoisson

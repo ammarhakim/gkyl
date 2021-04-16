@@ -992,9 +992,6 @@ function GkGeometry:fullInit(appTbl)
    -- NOTE: for must purposes one must use geo.name, defined in the :alloc method.
    self.geoType = tbl.geometryType and tbl.geometryType or "SimpleHelical"
 
-   -- Specify which geometry to use.
-   self.geoType = tbl.geometryType and tbl.geometryType or "SimpleHelical"
-
    -- Wall potential for sheath BCs.
    self.phiWallFunc = tbl.phiWall
    if self.phiWallFunc then assert(type(self.phiWallFunc)=="function", "GkGeometry: phiWall must be a function (t, xn)") end

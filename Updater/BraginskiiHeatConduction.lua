@@ -22,7 +22,6 @@ function BraginskiiHeatConduction:init(tbl)
    self._cfl = tbl.cfl~=nil and tbl.cfl or 0.9
 
    self._gasGamma = assert(tbl.gasGamma, pfx .. "Must provide 'gasGamma'.")
-   assert(self._gasGamma==5./3., pfx .. "gasGamma must be 5/3.")
 
    self._nFluids = assert(tbl.numFluids, pfx .. "Must provide 'numFluids'.")
    self._mass = assert(tbl.mass, pfx .. "Must provide 'mass'.")
@@ -123,6 +122,8 @@ function BraginskiiHeatConduction:_forwardEuler(
    local emfIdxr = emf:genIndexer()
    local emfPtr = emf:get(1)
 
+   local staticEmf = inFld[nFluids+2]
+
    local localRange = emf:localRange()
    local localExtRange = emf:localExtRange()
    local localExt1Range = localRange:extend(1, 1)
@@ -152,13 +153,13 @@ function BraginskiiHeatConduction:_forwardEuler(
       end
 
       -- Step 2: Compute q.
-      -- Compute div(q).
       if self._kappaMode=="constant" then
          self._anisotropicDiffusion:setKappa(self._kappaPara[s],
                                              self._kappaPerp[s])
       elseif self._kappaMode=="from-tau" then
          local tau = self._tau[s]
-         local kappaFunction = function(bmag, bufPtr, emfPtr, fldPtr)
+         local kappaFunction = function(
+               bmag, bufPtr, emfPtr, fldPtr, staticEmfPtr)
             local n = fldPtr[1] / mass
             local T = bufPtr[4]
             local Omega = math.abs(charge*bmag/mass)
@@ -176,9 +177,10 @@ function BraginskiiHeatConduction:_forwardEuler(
 
       self._anisotropicDiffusion:setDtAndCflRate(dt)
       self._anisotropicDiffusion:setAuxField(fld)
+      self._anisotropicDiffusion:setCalcQSwitch(true)
       self._anisotropicDiffusion:setCalcDivQSwitch(false)
       local myStatus, myDtSuggested = self._anisotropicDiffusion:advance(
-         tCurr, {buf, emf}, {buf, buf})
+         tCurr, {buf, emf, staticEmf}, {buf, buf})
       status = status and myStatus
       dtSuggested = math.min(dtSuggested, myDtSuggested)
       if not status then return status, dtSuggested end
@@ -191,13 +193,14 @@ function BraginskiiHeatConduction:_forwardEuler(
       -- Step 4: Compute div(q).
       self._anisotropicDiffusion:setCalcQSwitch(false)
       self._anisotropicDiffusion:setCalcDivQSwitch(true)
-      self._anisotropicDiffusion:advance(tCurr, {buf, emf}, {buf, buf})
+      self._anisotropicDiffusion:advance(
+         tCurr, {buf, emf, staticEmf}, {buf, buf})
 
       -- Step 5: Add -div(q) onto total energy.
       for idx in localRange:rowMajorIter() do
          fld:fill(fldIdxr(idx), fldPtr)
          buf:fill(bufIdxr(idx), bufPtr)
-         fldPtr[5] = fldPtr[5] - bufPtr[5]
+         fldPtr[5] = fldPtr[5] - bufPtr[5] * dt
       end
 
    end  -- Loop over species ends.
