@@ -44,22 +44,6 @@ function FluidSpecies:fullInit(appTbl)
    self.evolveCollisions    = xsys.pickBool(tbl.evolveCollisions, self.evolve)
    self.evolveSources       = xsys.pickBool(tbl.evolveSources, self.evolve)
 
-   self.diagApp = FluidDiags  -- Diagnostics app defined here so children can redefine it.
-
-   -- Write perturbed moments by subtracting background before moment calc.. false by default.
-   self.perturbedDiagnostics = false
-   -- Read in which diagnostic moments to compute on output.
-   self.diagnostics = { }
-   if tbl.diagnostics then
-      for i, nm in pairs(tbl.diagnostics) do
-         if i == "perturbed" and nm == true then
-            self.perturbedDiagnostics = true
-         elseif type(i) == "number" then
-            self.diagnostics[i] = nm
-         end
-      end
-   end
-
    local nFrame = tbl.nDiagnosticFrame and tbl.nDiagnosticFrame or appTbl.nFrame
    -- Create triggers to write diagnostics.
    if tbl.nDiagnosticFrame then
@@ -81,6 +65,8 @@ function FluidSpecies:fullInit(appTbl)
 
    -- Get a random seed for random initial conditions.
    self.randomseed = tbl.randomseed
+
+   self.diagnostics = {}  -- Table in which we'll place diagnostic objects.
 
    -- Initialization.
    self.projections = {}
@@ -591,8 +577,8 @@ end
 
 function FluidSpecies:createDiagnostics()  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
    -- Create this species' diagnostics.
-   self.diagApp:init()
-   self.diagApp:fullInit(self)
+   self.diagnostics[self.name] = FluidDiags{}
+   self.diagnostics[self.name]:fullInit(self)
 
    -- Many diagnostics require dividing by the Jacobian (if present).
    -- Predefine the function that does that.
@@ -608,13 +594,17 @@ end
 function FluidSpecies:write(tm, force)
    if self.evolve or force then
 
-      self.diagApp:resetState(tm)   -- Reset booleans indicating if diagnostic has been computed.
+      for _, dOb in pairs(self.diagnostics) do
+         dOb:resetState(tm)   -- Reset booleans indicating if diagnostic has been computed.
+      end
       self.calcNoJacMom(tm, 1)  -- Many diagnostics do not include Jacobian factor.
 
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.
       if self.calcIntQuantTrigger(tm) then
-         self.diagApp:calcIntegratedDiagnostics(tm, self)   -- Compute this species' integrated diagnostics.
+         for _, dOb in pairs(self.diagnostics) do
+            dOb:calcIntegratedDiagnostics(tm, self)   -- Compute this species' integrated diagnostics.
+         end
       end
       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
       
@@ -634,10 +624,14 @@ function FluidSpecies:write(tm, force)
             self.momIo:write(self.mSource, string.format("%s_mSource_0.bp", self.name), tm, self.diagIoFrame)
          end
 
-         self.diagApp:calcFieldDiagnostics(tm, self)   -- Compute this species' field diagnostics.
+         for _, dOb in pairs(self.diagnostics) do
+            dOb:calcFieldDiagnostics(tm, self)   -- Compute this species' field diagnostics.
+         end
 
          -- Write this species' field and integrated diagnostics.
-         self.diagApp:write(tm, self.diagIoFrame)
+         for _, dOb in pairs(self.diagnostics) do
+            dOb:write(tm, self.diagIoFrame)
+         end
 
          if self.evolveCollisions then  -- Write collision's diagnostics.
             for _, c in pairs(self.collisions) do
@@ -668,7 +662,9 @@ function FluidSpecies:writeRestart(tm)
    self.momIo:write(self.moments[1], string.format("%s_restart.bp", self.name), tm, self.diagIoFrame, writeGhost)
 
    -- Write this species' restart diagnostics.
-   self.diagApp:writeRestart(tm, self.diagIoFrame, self.dynVecRestartFrame)
+   for _, dOb in pairs(self.diagnostics) do
+      dOb:writeRestart(tm, self.diagIoFrame, self.dynVecRestartFrame)
+   end
 
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
@@ -688,7 +684,9 @@ function FluidSpecies:readRestart()
    end
 
    -- Read this species field and integrated diagnostics.
-   _, _ = self.diagApp:readRestart()
+   for _, dOb in pairs(self.diagnostics) do
+      _, _ = dOb:readRestart()
+   end
    
    -- Iterate triggers.
    self.diagIoTrigger(tm)

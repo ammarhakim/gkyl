@@ -100,7 +100,6 @@ calcGFvolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
     moms_e   : endcons(newMom_e, moms_e),
     moms_c   : endcons(calcInnerProdList(vars,1,basis,newMom_e),moms_c)
   ),
-  print(moms_e),
   /* Primitive moments, upar, Tpar, Tperp */
   primMoms_e : [],  primMoms_c : [],
   for m : 1 thru 3 do (

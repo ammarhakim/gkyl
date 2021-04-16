@@ -28,7 +28,7 @@ local allowedIntegratedDiags = {{"intMom",{}},{"intM0",{"M0"}}, {"intM1",{"M1"}}
 
 local GyrofluidDiags = Proto(FluidDiags)  -- GyrofluidDiags is a child of FluidDiagnostics.
 
-function GyrofluidDiags:init()
+function GyrofluidDiags:specify()
    self.allowedFieldDiags = allowedFieldDiags
    self.allowedIntDiags   = allowedIntegratedDiags
 

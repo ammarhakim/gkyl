@@ -34,8 +34,6 @@ function GyrofluidSpecies:fullInit(appTbl)
    assert(self.n0, "GyrofluidSpecies: must specify background density as global variable 'n0' in species table as 'n0 = ...'")
    self.kappaPar, self.kappaPerp = self.tbl.kappaPar, self.tbl.kappaPerp
 
-   self.diagApp = GyrofluidDiags
-
    self.nMoments = 3+1
    self.zeroFluxDirections = {}
    self._firstMomentCalc = true  -- To avoid re-calculating moments when not evolving.
@@ -269,6 +267,18 @@ function GyrofluidSpecies:appendBoundaryConditions(dir, edge, bcType)
    end
 end
 
+function GyrofluidSpecies:createDiagnostics()  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
+   -- Create this species' diagnostics.
+   self.diagnostics[self.name] = GyrofluidDiags{}
+   self.diagnostics[self.name]:fullInit(self)
+
+   -- Many diagnostics require dividing by the Jacobian (if present).
+   -- Predefine the function that does that.
+   self.calcNoJacMom = self.jacobInv
+      and function(tm, rkIdx) self.weakMultiply:advance(tm, {self:getMoments(rkIdx), self.jacobInv}, {self.noJacMom}) end
+      or function(tm, rkIdx) self.noJacMom:copy(self:getMoments(rkIdx)) end
+end
+
 function GyrofluidSpecies:fluidMoments()
    self.jacM0:combine(1./self.mass, self.mJacM0) 
    self.jacM1:combine(1./self.mass, self.mJacM1)
@@ -336,7 +346,9 @@ end
 
 function GyrofluidSpecies:momCalcTime()
    local tm = self.timers.couplingMom
-   tm = tm + self.diagApp:getDiagTime()
+   for _, dOb in pairs(self.diagnostics) do
+      tm = tm + dOb:getDiagTime()
+   end
    return tm
 end
 function GyrofluidSpecies:solverVolTime()

@@ -23,7 +23,11 @@ local contains=function(tbl, elem) return lume.any(tbl, function(e) return e[1]=
 
 local FluidDiags = Proto(DiagsBase)  -- FluidDiags is a child of DiagsBase.
 
-function FluidDiags:init()
+function FluidDiags:init(tbl)
+   self.tbl = tbl
+end
+
+function FluidDiags:specify()
    self.allowedFieldDiags = allowedFieldDiags
    self.allowedIntDiags   = allowedIntegratedDiags
 
@@ -31,6 +35,9 @@ function FluidDiags:init()
 end
    
 function FluidDiags:fullInit(mySpecies)
+
+   -- Set allowed diagnostics and implementations (overridden by children).
+   self:specify()
 
    self.name     = mySpecies.name
    self.grid     = mySpecies.grid
@@ -47,7 +54,7 @@ function FluidDiags:fullInit(mySpecies)
    self.fieldDiags, self.intDiags = {}, {}  -- Tables to store field and integrated diagnostics.
 
    -- Sort requested diagnostics into field and integrated diagnostics.
-   for _, nm in ipairs(mySpecies.diagnostics) do
+   for _, nm in ipairs(mySpecies.tbl.diagnostics) do
       if contains(self.allowedFieldDiags, nm) then
          self.fieldDiags[nm]      = self.diagsImp[nm]
          self.fieldDiags[nm].done = false

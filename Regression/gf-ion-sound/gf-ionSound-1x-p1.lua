@@ -53,11 +53,11 @@ plasmaApp = Plasma.App {
       kappaPar = 0.0,  kappaPerp = 0.0,
       -- Initial conditions.
       -- Specify background so that we can plot perturbed distribution and moments.
-      background = Plasma.GyrofluidProjection {
-         density = function (t, xn) return ni0 end,
-         parallelTemperature = function (t, xn) return Ti0 end,
-         perpendicularTemperature = function (t, xn) return Ti0 end,
-      },
+--      background = Plasma.GyrofluidProjection {
+--         density = function (t, xn) return ni0 end,
+--         parallelTemperature = function (t, xn) return Ti0 end,
+--         perpendicularTemperature = function (t, xn) return Ti0 end,
+--      },
       init = Plasma.GyrofluidProjection {
          density = function (t, xn)
             local x = xn[1]
@@ -79,11 +79,11 @@ plasmaApp = Plasma.App {
       kappaPar = 0.0,  kappaPerp = 0.0,
       -- Initial conditions.
       -- Specify background so that we can plot perturbed distribution and moments.
-      background = Plasma.GyrofluidProjection {
-         density = function (t, xn) return ne0 end,
-         parallelTemperature = function (t, xn) return Te0 end,
-         perpendicularTemperature = function (t, xn) return Te0 end,
-      },
+--      background = Plasma.GyrofluidProjection {
+--         density = function (t, xn) return ne0 end,
+--         parallelTemperature = function (t, xn) return Te0 end,
+--         perpendicularTemperature = function (t, xn) return Te0 end,
+--      },
       init = Plasma.GyrofluidProjection {
          density = function (t, xn) return ne0 end,
          parallelTemperature = function (t, xn) return Te0 end,

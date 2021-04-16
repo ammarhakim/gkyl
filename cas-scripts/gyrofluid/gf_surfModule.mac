@@ -192,27 +192,32 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
   pperpJacL1_e : doExpand(pperpJacL1_c,basis),
   pparJacL1_e  : doExpand(pparJacL1_c,basis),
 
+  pperpJacR1_c : (1/m_)*calcInnerProdList(vars,m0R1_e,basis,TperpR1_e),
+  pparJacR1_c  : (1/m_)*calcInnerProdList(vars,m0R1_e,basis,TparR1_e),
+  pperpJacR1_e : doExpand(pperpJacR1_c,basis),
+  pparJacR1_e  : doExpand(pparJacR1_c,basis),
+
   /* Define the fluxes so we can compute the advective
      contributions of all equations in a loop. */
+  m0FluxL1_c     : calcInnerProdList(vars,1,basis,m1L1_e),
   m1FluxL1_c     : calcInnerProdList(vars,1,basis,2*(m2L1_e-pperpJacL1_e)),
   m2FluxL1_c     : calcInnerProdList(vars,uparL1_e,basis,m2L1_e+pparJacL1_e),
   m2perpFluxL1_c : calcInnerProdList(vars,uparL1_e,basis,m2perpL1_e),
+  m0FluxL1_e     : doExpand(m0FluxL1_c,basis),
   m1FluxL1_e     : doExpand(m1FluxL1_c,basis),
   m2FluxL1_e     : doExpand(m2FluxL1_c,basis),
   m2perpFluxL1_e : doExpand(m2perpFluxL1_c,basis),
-  fluxL_e : [m1L1_e, m1FluxL1_e, m2FluxL1_e, m2perpFluxL1_e],
+  fluxL_e : [m0FluxL1_e, m1FluxL1_e, m2FluxL1_e, m2perpFluxL1_e],
 
-  pperpJacR1_c : (1/m_)*calcInnerProdList(vars,m0R1_e,basis,TperpR1_e),
-  pperpJacR1_e : doExpand(pperpJacR1_c,basis),
-  pparJacR1_c  : (1/m_)*calcInnerProdList(vars,m0R1_e,basis,TparR1_e),
-  pparJacR1_e  : doExpand(pparJacR1_c,basis),
-  m1FluxR1_c   : calcInnerProdList(vars,1,basis,2*(m2R1_e-pperpJacR1_e)),
-  m1FluxR1_e   : doExpand(m1FluxR1_c,basis),
-  m2FluxR1_c   : calcInnerProdList(vars,uparR1_e,basis,m2R1_e+pparJacR1_e),
-  m2FluxR1_e   : doExpand(m2FluxR1_c,basis),
+  m0FluxR1_c     : calcInnerProdList(vars,1,basis,m1R1_e),
+  m1FluxR1_c     : calcInnerProdList(vars,1,basis,2*(m2R1_e-pperpJacR1_e)),
+  m2FluxR1_c     : calcInnerProdList(vars,uparR1_e,basis,m2R1_e+pparJacR1_e),
   m2perpFluxR1_c : calcInnerProdList(vars,uparR1_e,basis,m2perpR1_e),
+  m0FluxR1_e     : doExpand(m0FluxR1_c,basis),
+  m1FluxR1_e     : doExpand(m1FluxR1_c,basis),
+  m2FluxR1_e     : doExpand(m2FluxR1_c,basis),
   m2perpFluxR1_e : doExpand(m2perpFluxR1_c,basis),
-  fluxR_e : [m1R1_e, m1FluxR1_e, m2FluxR1_e, m2perpFluxR1_e],
+  fluxR_e : [m0FluxR1_e, m1FluxR1_e, m2FluxR1_e, m2perpFluxR1_e],
 
   incrR_c : [],  incrL_c : [],
 
@@ -280,8 +285,8 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
 
     momHat_e : doExpand(doMakeExprLst(momHat_c, varName), basis),
     momHat_e : subst(surfVar=1, momHat_e),
-    incrR_c[mI] : incrR_c[mI]-calcInnerProdList(surfIntVars, -1, subst(surfVar=-1, basis), momHat_e),
-    incrL_c[mI] : incrL_c[mI]-calcInnerProdList(surfIntVars,  1, subst(surfVar= 1, basis), momHat_e)
+    incrR_c[mI] : incrR_c[mI]+calcInnerProdList(surfIntVars,  1, subst(surfVar=-1, basis), momHat_e),
+    incrL_c[mI] : incrL_c[mI]+calcInnerProdList(surfIntVars, -1, subst(surfVar= 1, basis), momHat_e)
   ),
 
   /* Perform the recovery for the heat fluxes for the energy and perpendicular
