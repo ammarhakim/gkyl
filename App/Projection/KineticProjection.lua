@@ -71,11 +71,11 @@ function FunctionProjection:fullInit(species)
 
    if self.fromFile then
       self.ioMethod  = "MPI"
-      self.writeSkin = true
+      self.writeGhost = true
       self.fieldIo = AdiosCartFieldIo {
          elemType  = species.distf[1]:elemType(),
          method    = self.ioMethod,
-         writeSkin = self.writeSkin,
+         writeGhost = self.writeGhost,
          metaData  = {polyOrder = self.phaseBasis:polyOrder(),
                       basisType = self.phaseBasis:id()}
       }
@@ -136,11 +136,11 @@ function MaxwellianProjection:fullInit(species)
 
    if self.fromFile then
       self.ioMethod  = "MPI"
-      self.writeSkin = true
+      self.writeGhost = true
       self.fieldIo = AdiosCartFieldIo {
          elemType  = species.distf[1]:elemType(),
          method    = self.ioMethod,
-         writeSkin = self.writeSkin,
+         writeGhost = self.writeGhost,
          metaData  = {polyOrder = self.phaseBasis:polyOrder(),
                       basisType = self.phaseBasis:id(),
                       charge    = self.charge,
