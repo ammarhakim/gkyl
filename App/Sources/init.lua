@@ -1,11 +1,11 @@
 local SourceBase        = require "App.Sources.SourceBase"
-local GkTimeDependentSource = require "App.Sources.GkTimeDependentSource"
+local GkSource          = require "App.Sources.GkSource"
+local VmSource          = require "App.Sources.VmSource"
 local VmSteadyStateSource = require "App.Sources.VmSteadyStateSource"
-local VmTimeDependentSource = require "App.Sources.VmTimeDependentSource"
 
 return {
    SourceBase = SourceBase,
-   GkTimeDependentSource = GkTimeDependentSource,
+   GkSource = GkSource,
+   VmSource = VmSource,
    VmSteadyStateSource = VmSteadyStateSource,
-   VmTimeDependentSource = VmTimeDependentSource,
 }

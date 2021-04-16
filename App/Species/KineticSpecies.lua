@@ -162,7 +162,7 @@ function KineticSpecies:fullInit(appTbl)
    self.projections = {}
    for nm, val in pairs(tbl) do
       if ProjectionBase.is(val) then
-	 self.projections[nm] = val
+         self.projections[nm] = val
       end
    end
    if tbl.sourceTimeDependence then

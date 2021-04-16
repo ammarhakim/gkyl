@@ -1006,7 +1006,7 @@ return {
 	 LboCollisions = require "App.Collisions.GkLBOCollisions",
 	 ChargeExchange = require "App.Collisions.GkChargeExchange",
 	 Ionization = require "App.Collisions.GkIonization",
-	 Source = require "App.Sources.GkTimeDependentSource",
+	 Source = require "App.Sources.GkSource",
       }
    end,
 
@@ -1039,7 +1039,7 @@ return {
 	 Ionization = require "App.Collisions.VmIonization",
 	 Diffusion = require "App.Collisions.Diffusion",
 	 SteadySource = require "App.Sources.VmSteadyStateSource",
-	 TimeSource = require "App.Sources.VmTimeDependentSource",
+	 Source = require "App.Sources.VmSource",
       }
    end,
    
