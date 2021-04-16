@@ -885,90 +885,90 @@ local function buildApplication(self, tbl)
 	--     Mpi.getNumBarriers(), Mpi.getNumBarriers()/step))
       
       log(string.format(
-	     "%-35s %12.5f sec   (%9.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Solver took", tmSlvr, tmSlvr/step, 100*tmSlvr/tmTotal))
       tmAccounted = tmAccounted + tmSlvr
       log(string.format(
-	     "%-35s %12.5f sec   (%9.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Solver BCs took", tmBc, tmBc/step, 100*tmBc/tmTotal))
       tmAccounted = tmAccounted + tmBc
       log(string.format(
-	     "%-35s %12.5f sec   (%9.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Field solver took",
 	     field:totalSolverTime(), field:totalSolverTime()/step, 100*field:totalSolverTime()/tmTotal))
       tmAccounted = tmAccounted + field:totalSolverTime()
       log(string.format(
-	     "%-35s %12.5f sec   (%9.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Field solver BCs",
 	     field:totalBcTime(), field:totalBcTime()/step, 100*field:totalBcTime()/tmTotal))
       tmAccounted = tmAccounted + field:totalBcTime()
       log(string.format(
-	     "%-35s %12.5f sec   (%9.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Function field solver took",
 	     externalField:totalSolverTime(), externalField:totalSolverTime()/step, 100*externalField:totalSolverTime()/tmTotal))
       tmAccounted = tmAccounted + externalField:totalSolverTime()
       log(string.format(
-	     "%-35s %12.5f sec   (%9.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Moment calculations took",
 	     tmMom, tmMom/step, 100*tmMom/tmTotal))
       tmAccounted = tmAccounted + tmMom
       log(string.format(
-	     "%-35s %12.5f sec   (%9.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Integrated moment calculations took",
-	     tmIntMom, tmIntMom/step, 100*tmIntMom/tmTotal))
+	     1000000.001111, tmIntMom/step, 100*tmIntMom/tmTotal))
       tmAccounted = tmAccounted + tmIntMom
       log(string.format(
-	     "%-35s %12.5f sec   (%9.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Field energy calculations took",
 	     field:energyCalcTime(), field:energyCalcTime()/step, 100*field:energyCalcTime()/tmTotal))
       tmAccounted = tmAccounted + field:energyCalcTime()
       log(string.format(
-	     "%-35s %12.5f sec   (%9.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Collision solver(s) took",
 	     tmColl, tmColl/step, 100*tmColl/tmTotal))
       tmAccounted = tmAccounted + tmColl
       log(string.format(
-	     "%-35s %12.5f sec   (%9.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Collision (other) took",
 	     tmCollNonSlvr, tmCollNonSlvr/step, 100*tmCollNonSlvr/tmTotal))
       tmAccounted = tmAccounted + tmCollNonSlvr
       log(string.format(
-	     "%-35s %12.5f sec   (%9.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Source updaters took",
 	     tmSrc, tmSrc/step, 100*tmSrc/tmTotal))
       tmAccounted = tmAccounted + tmSrc
       log(string.format(
-	     "%-35s %12.5f sec   (%9.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Stepper combine/copy took",
 	     stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
       tmAccounted = tmAccounted + stepperTime
       log(string.format(
-	     "%-35s %12.5f sec   (%9.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Forward Euler combine took",
 	     fwdEulerCombineTime, fwdEulerCombineTime/step, 100*fwdEulerCombineTime/tmTotal))
       tmAccounted = tmAccounted + fwdEulerCombineTime
       log(string.format(
-	     "%-35s %12.5f sec   (%9.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
       	     "Time spent in barrier function",
       	     Mpi.getTimeBarriers(), Mpi.getTimeBarriers()/step, 100*Mpi.getTimeBarriers()/tmTotal))      
       tmUnaccounted = tmTotal - tmAccounted
       log(string.format(
-	     "%-35s %12.5f sec   (%9.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Data write took",
 	     writeDataTime, writeDataTime/step, 100*writeDataTime/tmTotal))
       tmAccounted = tmAccounted + writeDataTime
       log(string.format(
-	     "%-35s %12.5f sec   (%9.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Write restart took",
 	     writeRestartTime, writeRestartTime/step, 100*writeRestartTime/tmTotal))
       tmAccounted = tmAccounted + writeRestartTime
       log(string.format(
-	     "%-35s %12.5f sec   (%9.6f s/step)   (%6.3f%%)\n\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n\n",
 	     "[Unaccounted for]",
 	     tmUnaccounted, tmUnaccounted/step, 100*tmUnaccounted/tmTotal))
       
       log(string.format(
-	     "%-35s %12.5f sec   (%9.6f s/step)   (%6.f%%)\n\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.f%%)\n\n",
 	     "Main loop completed in",
 	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))      
       log(date(false):fmt()); log("\n") -- Time-stamp for sim end.
