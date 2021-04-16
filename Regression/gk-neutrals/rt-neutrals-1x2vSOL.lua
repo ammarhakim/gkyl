@@ -263,7 +263,7 @@ plasmaApp = Plasma.App {
       },
 
       -- Source parameters.
-      source = Vlasov.TimeSource{
+      source = Vlasov.Source{
          density     = sourceDensityNeut,
          temperature = 2.*eV,
       },

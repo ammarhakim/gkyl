@@ -12,7 +12,7 @@ local VmSource = Proto(SourceBase)
 
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
-function VmTimeDependentSource:init(tbl)
+function VmSource:init(tbl)
    self.tbl = tbl
 end
 
@@ -54,4 +54,4 @@ function VmSource:srcTime()
    return self.tmEvalSource
 end
 
-return VmTimeDependentSource
+return VmSource
