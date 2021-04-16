@@ -70,29 +70,28 @@ plasmaApp = Plasma.App {
          perpendicularTemperature = function (t, xn) return Ti0 end,
       },
       evolve = true, -- Evolve species?
-      --diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
-      diagnostics = {"intM0","intM1","intM2"}, --,"M2flow","upar","Tpar","Tperp","ppar","pperp"},
+      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
    },
 
    -- Gyrokinetic electronss.
---   elc = Plasma.Species {
---      charge = -1.0,  mass = 1.0,
---      kappaPar = 0.0,  kappaPerp = 0.0,
---      -- Initial conditions.
---      -- Specify background so that we can plot perturbed distribution and moments.
---      background = Plasma.GyrofluidProjection {
---         density = function (t, xn) return ne0 end,
---         parallelTemperature = function (t, xn) return Te0 end,
---         perpendicularTemperature = function (t, xn) return Te0 end,
---      },
---      init = Plasma.GyrofluidProjection {
---         density = function (t, xn) return ne0 end,
---         parallelTemperature = function (t, xn) return Te0 end,
---         perpendicularTemperature = function (t, xn) return Te0 end,
---      },
---      evolve = true, -- Evolve species?
-----      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
---   },
+   elc = Plasma.Species {
+      charge = -1.0,  mass = 1.0,
+      kappaPar = 0.0,  kappaPerp = 0.0,
+      -- Initial conditions.
+      -- Specify background so that we can plot perturbed distribution and moments.
+      background = Plasma.GyrofluidProjection {
+         density = function (t, xn) return ne0 end,
+         parallelTemperature = function (t, xn) return Te0 end,
+         perpendicularTemperature = function (t, xn) return Te0 end,
+      },
+      init = Plasma.GyrofluidProjection {
+         density = function (t, xn) return ne0 end,
+         parallelTemperature = function (t, xn) return Te0 end,
+         perpendicularTemperature = function (t, xn) return Te0 end,
+      },
+      evolve = true, -- Evolve species?
+      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
+   },
 
    -- Field solver.
    field = Plasma.Field {

@@ -40,6 +40,10 @@ function FluidDiags:fullInit(mySpecies)
    self.weakMultiply = mySpecies.weakMultiply
    self.weakDivide   = mySpecies.weakDivide
 
+   self.allAllowedDiags   = {}
+   for _, diag in ipairs(self.allowedFieldDiags) do table.insert(self.allAllowedDiags, diag) end
+   for _, diag in ipairs(self.allowedIntDiags) do table.insert(self.allAllowedDiags, diag) end
+
    self.fieldDiags, self.intDiags = {}, {}  -- Tables to store field and integrated diagnostics.
 
    -- Sort requested diagnostics into field and integrated diagnostics.
@@ -140,7 +144,7 @@ function FluidDiags:calcDiagDependencies(tm, mySpecies, diagNm)
    -- Given a diagnostic, compute the other diagnostics it may depend on.
    local spec = mySpecies
 
-   local info, _ = lume.match(self.allowedFieldDiags, function(e) return e[1]==diagNm end)
+   local info, _ = lume.match(self.allAllowedDiags, function(e) return e[1]==diagNm end)
    local depends = info and info[2] or {}
    for _, depNm in ipairs(depends) do
       local depDiag = self.fieldDiags[depNm]
