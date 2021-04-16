@@ -131,10 +131,10 @@ plasmaApp = Plasma.App {
          collideWith = {'electron'},
          frequencies = {nuElc},
       },
-      src = Plasma.Source {	 
-            density     = sourceDensity,
-            temperature = sourceTemperature,
-            power       = P_src/2,
+      source = Plasma.MaxwellianProjection {
+         density     = sourceDensity,
+         temperature = sourceTemperature,
+         power       = P_src/2,
       },
       evolve = true, -- Evolve species?
       --applyPositivity = true,
@@ -183,7 +183,7 @@ plasmaApp = Plasma.App {
          collideWith = {'ion'},
          frequencies = {nuIon},
       },
-      src = Plasma.Source {
+      source = Plasma.MaxwellianProjection {
          density     = sourceDensity,
          temperature = sourceTemperature,
          power       = P_src/2,

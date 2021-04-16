@@ -22,8 +22,8 @@ function VmTimeDependentSource:fullInit(speciesTbl)
    local tbl = self.tbl -- Previously stored table.
    self.density = assert(tbl.density, "App.VmTimeDependentSource: must specify density profile of source in 'density'.")
    self.temperature = assert(tbl.temperature, "App.VmTimeDependentSource: must specify temperature profile of source in 'density'.")
-   self.power = assert(tbl.power, "App.VmTimeDependentSource: must specify source power in 'power'.")
-   self.profile = Projection.VmProjection.MaxwellianProjection {
+   if tbl.power then self.power = tbl.power end
+   self.profile = Projection.VlasovProjection.MaxwellianProjection {
                    density = self.density,
                    temperature = self.temperature,
                    power = self.power,

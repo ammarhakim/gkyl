@@ -150,12 +150,6 @@ function KineticSpecies:fullInit(appTbl)
    self.randomseed = tbl.randomseed
 
    -- Initialization.
-   self.projections = {}
-   for nm, val in pairs(tbl) do
-      if ProjectionBase.is(val) then
-	 self.projections[nm] = val
-      end
-   end
    self.sources = {}
    for nm, val in pairs(tbl) do
       if SourceBase.is(val) then
@@ -163,6 +157,12 @@ function KineticSpecies:fullInit(appTbl)
 	 self.sources[nm]:setName(nm)
 	 val:setSpeciesName(self.name)
 	 val:fullInit(tbl) -- Initialize sources
+      end
+   end
+   self.projections = {}
+   for nm, val in pairs(tbl) do
+      if ProjectionBase.is(val) then
+	 self.projections[nm] = val
       end
    end
    if tbl.sourceTimeDependence then
@@ -613,7 +613,33 @@ function KineticSpecies:initDist(extField)
       --    end
       --    self.fReservoir:accumulate(1.0, self.distf[2])
       -- end
+      
+      --DEPRECATED---------------------
+      if string.find(nm,"source") then
+         print("Specifying source as projection is deprecated, please use Plasma.Source instead")
+	 self.projSrc = true
+         if not self.fSource then self.fSource = self:allocDistf() end
+         self.fSource:accumulate(1.0, self.distf[2])
+         if self.positivityRescale then
+            self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
+         end
+         if pr.power then
+            local calcInt = Updater.CartFieldIntegratedQuantCalc {
+               onGrid        = self.confGrid,
+               basis         = self.confBasis,
+               numComponents = 1,
+               quantity      = "V",
+            }
+            local intKE = DataStruct.DynVector{numComponents = 1}
+            self.ptclEnergyCalc:advance(0.0, {self.fSource}, {self.ptclEnergyAux})
+            calcInt:advance(0.0, {self.ptclEnergyAux, self.mass/2}, {intKE})
+            local _, intKE_data = intKE:lastData()
+            self.powerScalingFac = pr.power/intKE_data[1]
+            self.fSource:scale(self.powerScalingFac)
+         end
+      end
    end
+   
    -- Set up profile function for species sources
    for nm, src in lume.orderedIter(self.sources) do
       local sourcePr = self.sources[nm].profile

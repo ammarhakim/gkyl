@@ -22,12 +22,12 @@ function GkTimeDependentSource:fullInit(speciesTbl)
    local tbl = self.tbl -- Previously stored table.
    self.density = assert(tbl.density, "App.GkTimeDependentSource: must specify density profile of source in 'density'.")
    self.temperature = assert(tbl.temperature, "App.GkTimeDependentSource: must specify temperature profile of source in 'density'.")
-   self.power = assert(tbl.power, "App.GkTimeDependentSource: must specify source power in 'power'.")
+   if tbl.power then self.power = tbl.power end
    self.profile = Projection.GkProjection.MaxwellianProjection {
-                   density = self.density,
-                   temperature = self.temperature,
-                   power = self.power,
-                  }
+      density = self.density,
+      temperature = self.temperature,
+      power = self.power,
+   }
    self.tmEvalSrc = 0.0
 end
 

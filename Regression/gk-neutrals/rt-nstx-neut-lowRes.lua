@@ -173,7 +173,7 @@ plasmaApp = Plasma.App {
       },
       
       -- Source parameters
-      source = Plasma.MaxwellianProjection {
+      source = Plasma.Source {
          density     = sourceDensity,
          temperature = sourceTemperature,
          power       = P_src/2,
@@ -261,7 +261,7 @@ plasmaApp = Plasma.App {
       },
 
       -- Source parameters.
-      source = Plasma.MaxwellianProjection {
+      source = Plasma.Source {
          density     = sourceDensity,
          temperature = sourceTemperature,
          power       = P_src/2,
@@ -361,7 +361,7 @@ plasmaApp = Plasma.App {
       },
 
       -- Source parameters.
-      source = Vlasov.MaxwellianProjection{
+      source = Vlasov.TimeSource{
          density     = sourceDensityNeut,
          temperature = 2.*eV,
       },

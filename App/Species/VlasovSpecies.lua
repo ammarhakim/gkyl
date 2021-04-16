@@ -655,12 +655,12 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    -- 		    Mpi.DOUBLE, Mpi.MAX, self.grid:commSet().comm)
    --    local densFactor = globalEdgeFlux[0]/self.sourceSteadyStateLength
    --    fRhsOut:accumulate(densFactor, self.fSource)
-   -- elseif self.fSource and self.evolveSources then
-   --    -- add source it to the RHS
-   --    -- Barrier over shared communicator before accumulate
-   --    Mpi.Barrier(self.grid:commSet().sharedComm)
-   --    fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
-   -- end
+   if self.projSrc and self.evolveSources then
+      -- add source it to the RHS
+      -- Barrier over shared communicator before accumulate
+      Mpi.Barrier(self.grid:commSet().sharedComm)
+      fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
+   end
 
    -- Save boundary fluxes for diagnostics.
    if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
