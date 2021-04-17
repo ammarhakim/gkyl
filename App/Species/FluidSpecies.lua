@@ -15,8 +15,8 @@ local Proto            = require "Lib.Proto"
 local Projection       = require "App.Projection"
 local ProjectionBase   = require "App.Projection.ProjectionBase"
 local SpeciesBase      = require "App.Species.SpeciesBase"
+local DiagsApp         = require "App.Species.Diagnostics.SpeciesDiagnostics"
 local FluidDiags       = require "App.Species.Diagnostics.FluidDiagnostics"
-local FluidDiagsImpl   = require "App.Species.Diagnostics.FluidDiagsImpl"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
 local ffi              = require "ffi"
@@ -578,8 +578,10 @@ end
 
 function FluidSpecies:createDiagnostics()  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
    -- Create this species' diagnostics.
-   self.diagnostics[self.name] = FluidDiags{}
-   self.diagnostics[self.name]:fullInit(self, FluidDiagsImpl)
+   if self.tbl.diagnostics then
+      self.diagnostics[self.name] = DiagsApp{}
+      self.diagnostics[self.name]:fullInit(self, FluidDiags)
+   end
 
    -- Many diagnostics require dividing by the Jacobian (if present).
    -- Predefine the function that does that.

@@ -6,19 +6,19 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Proto              = require "Lib.Proto"
-local FluidSpecies       = require "App.Species.FluidSpecies"
-local FluidDiags         = require "App.Species.Diagnostics.FluidDiagnostics"
-local GyrofluidDiagsImpl = require "App.Species.Diagnostics.GyrofluidDiagsImpl"
-local Mpi                = require "Comm.Mpi"
-local GyrofluidEq        = require "Eq.Gyrofluid"
-local Updater            = require "Updater"
-local DataStruct         = require "DataStruct"
-local Time               = require "Lib.Time"
-local Constants          = require "Lib.Constants"
-local Lin                = require "Lib.Linalg"
-local xsys               = require "xsys"
-local lume               = require "Lib.lume"
+local Proto          = require "Lib.Proto"
+local FluidSpecies   = require "App.Species.FluidSpecies"
+local DiagsApp       = require "App.Species.Diagnostics.SpeciesDiagnostics"
+local GyrofluidDiags = require "App.Species.Diagnostics.GyrofluidDiagnostics"
+local Mpi            = require "Comm.Mpi"
+local GyrofluidEq    = require "Eq.Gyrofluid"
+local Updater        = require "Updater"
+local DataStruct     = require "DataStruct"
+local Time           = require "Lib.Time"
+local Constants      = require "Lib.Constants"
+local Lin            = require "Lib.Linalg"
+local xsys           = require "xsys"
+local lume           = require "Lib.lume"
 
 local GyrofluidSpecies = Proto(FluidSpecies)
 
@@ -271,8 +271,8 @@ end
 function GyrofluidSpecies:createDiagnostics()  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
    -- Create this species' diagnostics.
    if self.tbl.diagnostics then
-      self.diagnostics[self.name] = FluidDiags{}
-      self.diagnostics[self.name]:fullInit(self, GyrofluidDiagsImpl)
+      self.diagnostics[self.name] = DiagsApp{}
+      self.diagnostics[self.name]:fullInit(self, GyrofluidDiags)
    end
 
    -- Many diagnostics require dividing by the Jacobian (if present).

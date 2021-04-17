@@ -14,7 +14,7 @@
 --------------------------------------------------------------------------------
 
 local Proto         = require "Lib.Proto"
-local DiagsImplBase = require "App.Species.Diagnostics.SpeciesDiagnosticsImplBase"
+local DiagsImplBase = require "App.Species.Diagnostics.DiagnosticsImplBase"
 local DataStruct    = require "DataStruct"
 local Updater       = require "Updater"
 
