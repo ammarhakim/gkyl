@@ -16,6 +16,7 @@ local Projection       = require "App.Projection"
 local ProjectionBase   = require "App.Projection.ProjectionBase"
 local SpeciesBase      = require "App.Species.SpeciesBase"
 local FluidDiags       = require "App.Species.Diagnostics.FluidDiagnostics"
+local FluidDiagsImpl   = require "App.Species.Diagnostics.FluidDiagsImpl"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
 local ffi              = require "ffi"
@@ -578,7 +579,7 @@ end
 function FluidSpecies:createDiagnostics()  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
    -- Create this species' diagnostics.
    self.diagnostics[self.name] = FluidDiags{}
-   self.diagnostics[self.name]:fullInit(self)
+   self.diagnostics[self.name]:fullInit(self, FluidDiagsImpl)
 
    -- Many diagnostics require dividing by the Jacobian (if present).
    -- Predefine the function that does that.
@@ -603,6 +604,8 @@ function FluidSpecies:write(tm, force)
       -- Compute integrated diagnostics.
       if self.calcIntQuantTrigger(tm) then
          for _, dOb in pairs(self.diagnostics) do
+            --print("")
+            --print(tm, self.name, dOb.name)
             dOb:calcIntegratedDiagnostics(tm, self)   -- Compute this species' integrated diagnostics.
          end
       end
@@ -625,7 +628,7 @@ function FluidSpecies:write(tm, force)
          end
 
          for _, dOb in pairs(self.diagnostics) do
-            dOb:calcFieldDiagnostics(tm, self)   -- Compute this species' field diagnostics.
+            dOb:calcGridDiagnostics(tm, self)   -- Compute this species' grid diagnostics.
          end
 
          -- Write this species' field and integrated diagnostics.

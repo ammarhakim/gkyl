@@ -63,13 +63,13 @@ function GyrofluidProjection:fullInit(species)
       self.ioMethod  = "MPI"
       self.writeSkin = true
       self.fieldIo = AdiosCartFieldIo {
-         elemType  = species.moments[1]:elemType(),
-         method    = self.ioMethod,
-         writeSkin = self.writeSkin,
-         metaData  = {polyOrder = self.basis:polyOrder(),
-                      basisType = self.basis:id(),
-                      charge    = self.charge,
-                      mass      = self.mass,},
+         elemType   = species.moments[1]:elemType(),
+         method     = self.ioMethod,
+         writeGhost = self.writeGhost,
+         metaData   = {polyOrder = self.basis:polyOrder(),
+                       basisType = self.basis:id(),
+                       charge    = self.charge,
+                       mass      = self.mass,},
       }
    else
       self.project = Updater.ProjectOnBasis {
@@ -136,7 +136,7 @@ function GyrofluidProjection:advance(tm, inFlds, outFlds)
       self.weakMultiply:advance(0, {self.TperpSelf, self.jacM0}, {self.pPerpJac})
       self.weakDivide:advance(0, {bmag, self.pPerpJac}, {self.jacM2perp})
 
-      -- Compute the parallel pressure divided by B, times Jacobian.
+      -- Compute the parallel pressure, times Jacobian.
       self.project:setFunc(self.Tpar)
       self.project:advance(t, {}, {self.TparSelf})
       self.weakMultiply:advance(0, {self.TparSelf, self.jacM0}, {self.pParJac})

@@ -20,7 +20,7 @@ r0      = 0.0
 plasmaApp = Plasma.App {
    logToFile = true,
 
---   tEnd   = 0.0190652,                 -- End time.
+--   tEnd   = 4.*5.975231e-03,                 -- End time.
    tEnd   = 4.0,                 -- End time.
    nFrame = 12,                  -- Number of output frames.
    lower  = {-math.pi/knumber}, -- Configuration space lower left.
@@ -71,6 +71,8 @@ plasmaApp = Plasma.App {
       },
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
+      --diagnostics = {"intMom","intM0","intM1","intM2","M0","M1","M2","upar","M2flow",}, --,"upar","Tpar","Tperp","ppar","pperp"},
+      --diagnostics = {"intM1"},
    },
 
    -- Gyrokinetic electronss.
@@ -91,6 +93,8 @@ plasmaApp = Plasma.App {
       },
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
+ --     diagnostics = {"intMom","intM0","intM1","intM2","M0","M1","M2","upar","M2flow",}, --,"upar","Tpar","Tperp","ppar","pperp"},
+--      diagnostics = {"intM1"},
    },
 
    -- Field solver.

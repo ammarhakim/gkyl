@@ -72,11 +72,11 @@ function FunctionProjection:fullInit(species)
       self.ioMethod  = "MPI"
       self.writeGhost = true
       self.fieldIo = AdiosCartFieldIo {
-         elemType  = species.distf[1]:elemType(),
-         method    = self.ioMethod,
+         elemType   = species.distf[1]:elemType(),
+         method     = self.ioMethod,
          writeGhost = self.writeGhost,
-         metaData  = {polyOrder = self.phaseBasis:polyOrder(),
-                      basisType = self.phaseBasis:id()}
+         metaData   = {polyOrder = self.phaseBasis:polyOrder(),
+                       basisType = self.phaseBasis:id()}
       }
    else
       self.project = Updater.ProjectOnBasis {
