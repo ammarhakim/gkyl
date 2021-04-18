@@ -6,8 +6,8 @@
 local Plasma = require ("App.PlasmaOnCartGrid").Gyrofluid()
 
 TiTe    = 1.0
-knumber = 0.5
-XL, XU  = -math.pi/knumber, math.pi/knumber
+kpar    = 0.5
+XL, XU  = -math.pi/kpar, math.pi/kpar
 Ti0     = 1.0
 Te0     = Ti0/TiTe
 n0      = 1.0
@@ -21,10 +21,10 @@ plasmaApp = Plasma.App {
    logToFile = true,
 
 --   tEnd   = 4.*5.975231e-03,                 -- End time.
-   tEnd   = 4.0,                 -- End time.
-   nFrame = 12,                  -- Number of output frames.
-   lower  = {-math.pi/knumber}, -- Configuration space lower left.
-   upper  = { math.pi/knumber}, -- Configuration space upper right.
+   tEnd   = 15.0,                 -- End time.
+   nFrame = 60,                  -- Number of output frames.
+   lower  = {-math.pi/kpar}, -- Configuration space lower left.
+   upper  = { math.pi/kpar}, -- Configuration space upper right.
    cells  = {16},               -- Configuration space cells.
    mapc2p = function(xc)
       -- Field-aligned coordinates (x,y).
@@ -61,7 +61,7 @@ plasmaApp = Plasma.App {
       init = Plasma.GyrofluidProjection {
          density = function (t, xn)
             local x = xn[1]
-            local k = knumber
+            local k = kpar
             local alpha = 0.01
             local perturb = alpha*math.cos(k*x)
             return ni0*(1+perturb)
@@ -100,7 +100,7 @@ plasmaApp = Plasma.App {
    -- Field solver.
    field = Plasma.Field {
       evolve  = true, -- Evolve field?
-      kperpSq = 0.0,
+      kperpSq = 0.3,
    },
 
    -- Magnetic geometry.
