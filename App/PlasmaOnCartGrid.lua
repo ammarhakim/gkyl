@@ -150,8 +150,7 @@ local function buildApplication(self, tbl)
       end
    end
 
-   -- configuration space decomp object (eventually, this will be
-   -- slaved to the phase-space decomp)
+   -- Configuration space decomp object.
    local decomp = DecompRegionCalc.CartProd {
       cuts      = decompCuts,
       useShared = useShared,
@@ -615,10 +614,11 @@ local function buildApplication(self, tbl)
       local fieldBuf = field:rkStepperFields()[bufIdx]
 
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
-      -- Update fluid sources.
+      -- Update sources.
       for nm, s in lume.orderedIter(fluidSources) do
 	 local myStatus, myDtSuggested = s:updateFluidSource(
-       tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, species, field)
+            tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, species,
+            field, externalField.em)
 	 status =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
@@ -1052,15 +1052,16 @@ return {
    Moments = function ()
       App.label = "Multi-fluid"
       return {
-	 App = App,
-	 Species = require "App.Species.MomentSpecies",
-	 Field = require ("App.Field.MaxwellField").MaxwellField,
-	 CollisionlessEmSource = require "App.FluidSources.CollisionlessEmSource",
-	 TenMomentRelaxSource  = require "App.FluidSources.TenMomentRelaxSource",
-        AxisymmetricMomentSource = require "App.FluidSources.AxisymmetricMomentSource",
-        AxisymmetricPhMaxwellSource = require "App.FluidSources.AxisymmetricPhMaxwellSource",
-        BraginskiiHeatConductionSource = require "App.FluidSources.BraginskiiHeatConductionSource",
-        BraginskiiViscosityDiffusionSource = require "App.FluidSources.BraginskiiViscosityDiffusionSource",
+         App = App,
+         Species = require "App.Species.MomentSpecies",
+         Field = require ("App.Field.MaxwellField").MaxwellField,
+         ExternalField = require ("App.Field.MaxwellField").ExternalMaxwellField,
+         CollisionlessEmSource = require "App.FluidSources.CollisionlessEmSource",
+         TenMomentRelaxSource  = require "App.FluidSources.TenMomentRelaxSource",
+         AxisymmetricMomentSource = require "App.FluidSources.AxisymmetricMomentSource",
+         AxisymmetricPhMaxwellSource = require "App.FluidSources.AxisymmetricPhMaxwellSource",
+         BraginskiiHeatConductionSource = require "App.FluidSources.BraginskiiHeatConductionSource",
+         BraginskiiViscosityDiffusionSource = require "App.FluidSources.BraginskiiViscosityDiffusionSource",
       }
    end
 }

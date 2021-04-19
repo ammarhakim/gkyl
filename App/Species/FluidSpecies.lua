@@ -55,6 +55,7 @@ function FluidSpecies:fullInit(appTbl)
    self.evolve = xsys.pickBool(tbl.evolve, true) -- By default, evolve species.
    -- By default, do not write species if it is not evolved.
    self.forceWrite = xsys.pickBool(tbl.forceWrite, false)
+   self.forceApplyBc = xsys.pickBool(tbl.forceApplyBc, false)
    self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless,
                                             self.evolve)
    self.evolveCollisions = xsys.pickBool(tbl.evolveCollisions, self.evolve)
@@ -556,7 +557,7 @@ end
 
 function FluidSpecies:applyBc(tCurr, fIn, dir)
    local tmStart = Time.clock()
-   if self.evolve then
+   if self.evolve or self.forceApplyBc then
       if self.hasNonPeriodicBc then
          for _, bc in ipairs(self.boundaryConditions) do
             if (not dir) or dir == bc:getDir() then

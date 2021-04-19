@@ -300,7 +300,7 @@ plasmaApp = Plasma.App {
    -- Field solver.
    field = Plasma.Field {
       evolve     = true,
-      kperp2     = kmin*kmin,
+      kperpSq    = kmin*kmin,
       bcLowerPhi = {{T = "N", V = 0.0}},
       bcUpperPhi = {{T = "N", V = 0.0}},
    },

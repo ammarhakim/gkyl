@@ -112,16 +112,16 @@ function Gyrokinetic:setAuxFields(auxFields)
    end
 
    -- Get magnetic geometry fields.
-   self.bmag    = geo.bmag
-   self.gradpar = geo.gradpar
+   self.bmag = geo.bmag
+   self.cmag = geo.cmag
    if self.geoType == "SimpleHelical" then
       self.bmagInv = geo.bmagInv
       self.bdriftX = geo.bdriftX
       self.bdriftY = geo.bdriftY
    elseif self.geoType == "GenGeo" then
-      self.geoX = geo.geoX
-      self.geoY = geo.geoY
-      self.geoZ = geo.geoZ
+      self.b_x = geo.b_x
+      self.b_y = geo.b_y
+      self.b_z = geo.b_z
       self.jacobTotInv = geo.jacobTotInv
    end
    self.phiWall = geo.phiWall  -- For sheath BCs.
@@ -153,10 +153,10 @@ function Gyrokinetic:setAuxFields(auxFields)
 
       -- Geometry.
       self.bmagPtr     = self.bmag:get(1)
-      self.gradparPtr  = self.gradpar:get(1)
+      self.cmagPtr     = self.cmag:get(1)
       self.phiWallPtr  = self.phiWall:get(1)
       self.bmagIdxr    = self.bmag:genIndexer()
-      self.gradparIdxr = self.gradpar:genIndexer()
+      self.cmagIdxr    = self.cmag:genIndexer()
       self.phiWallIdxr = self.phiWall:genIndexer()
       if self.geoType == "SimpleHelical" then
          self.bmagInvPtr  = self.bmagInv:get(1)
@@ -167,13 +167,13 @@ function Gyrokinetic:setAuxFields(auxFields)
          self.bdriftYIdxr = self.bdriftY:genIndexer()
       elseif self.geoType == "GenGeo" then
          self.jacobTotInvPtr  = self.jacobTotInv:get(1)
-         self.geoXPtr         = self.geoX:get(1)
-         self.geoYPtr         = self.geoY:get(1)
-         self.geoZPtr         = self.geoZ:get(1)
+         self.b_xPtr         = self.b_x:get(1)
+         self.b_yPtr         = self.b_y:get(1)
+         self.b_zPtr         = self.b_z:get(1)
          self.jacobTotInvIdxr = self.jacobTotInv:genIndexer()
-         self.geoXIdxr        = self.geoX:genIndexer()
-         self.geoYIdxr        = self.geoY:genIndexer()
-         self.geoZIdxr        = self.geoZ:genIndexer()
+         self.b_xIdxr        = self.b_x:genIndexer()
+         self.b_yIdxr        = self.b_y:genIndexer()
+         self.b_zIdxr        = self.b_z:genIndexer()
       end
 
       self._isFirst = false -- No longer first time.
@@ -195,16 +195,16 @@ function Gyrokinetic:volTermSimpleHelical(w, dx, idx, f, out)
    end
    self.bmag:fill(self.bmagIdxr(idx), self.bmagPtr)
    self.bmagInv:fill(self.bmagInvIdxr(idx), self.bmagInvPtr)
-   self.gradpar:fill(self.gradparIdxr(idx), self.gradparPtr)
+   self.cmag:fill(self.cmagIdxr(idx), self.cmagPtr)
    self.bdriftX:fill(self.bdriftXIdxr(idx), self.bdriftXPtr)
    self.bdriftY:fill(self.bdriftYIdxr(idx), self.bdriftYPtr)
    local res
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idx), self.aparPtr)
      self.dApardtProv:fill(self.dApardtIdxr(idx), self.dApardtProvPtr)
-     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtProvPtr:data(), f:data(), out:data())
+     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.cmagPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtProvPtr:data(), f:data(), out:data())
    else
-     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), f:data(), out:data())
+     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.cmagPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), f:data(), out:data())
    end
    self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
    return res
@@ -220,17 +220,17 @@ function Gyrokinetic:volTermGenGeo(w, dx, idx, f, out)
    end
    self.bmag:fill(self.bmagIdxr(idx), self.bmagPtr)
    self.jacobTotInv:fill(self.jacobTotInvIdxr(idx), self.jacobTotInvPtr)
-   self.gradpar:fill(self.gradparIdxr(idx), self.gradparPtr)
-   self.geoX:fill(self.geoXIdxr(idx), self.geoXPtr)
-   self.geoY:fill(self.geoYIdxr(idx), self.geoYPtr)
-   self.geoZ:fill(self.geoZIdxr(idx), self.geoZPtr)
+   self.cmag:fill(self.cmagIdxr(idx), self.cmagPtr)
+   self.b_x:fill(self.b_xIdxr(idx), self.b_xPtr)
+   self.b_y:fill(self.b_yIdxr(idx), self.b_yPtr)
+   self.b_z:fill(self.b_zIdxr(idx), self.b_zPtr)
    local res
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idx), self.aparPtr)
      self.dApardtProv:fill(self.dApardtIdxr(idx), self.dApardtProvPtr)
-     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.gradparPtr:data(), self.geoXPtr:data(), self.geoYPtr:data(), self.geoZPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtProvPtr:data(), f:data(), out:data())
+     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtProvPtr:data(), f:data(), out:data())
    else 
-     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.gradparPtr:data(), self.geoXPtr:data(), self.geoYPtr:data(), self.geoZPtr:data(), self.phiPtr:data(), f:data(), out:data())
+     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), f:data(), out:data())
    end
    self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
    return res
@@ -251,7 +251,7 @@ function Gyrokinetic:surfTermSimpleHelical(dir, cfll, cflr, wl, wr, dxl, dxr, ma
    end
    self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
    self.bmagInv:fill(self.bmagInvIdxr(idxr), self.bmagInvPtr)
-   self.gradpar:fill(self.gradparIdxr(idxr), self.gradparPtr)
+   self.cmag:fill(self.cmagIdxr(idxr), self.cmagPtr)
    self.bdriftX:fill(self.bdriftXIdxr(idxr), self.bdriftXPtr)
    self.bdriftY:fill(self.bdriftYIdxr(idxr), self.bdriftYPtr)
    local res
@@ -260,9 +260,9 @@ function Gyrokinetic:surfTermSimpleHelical(dir, cfll, cflr, wl, wr, dxl, dxr, ma
      self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProvPtr)
      self.emMod:fill(self.emModIdxr(idxl), self.emModPtrL)
      self.emMod:fill(self.emModIdxr(idxr), self.emModPtrR)
-     res = self._surfTerm[dir](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
+     res = self._surfTerm[dir](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.cmagPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
    else
-     res = self._surfTerm[dir](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+     res = self._surfTerm[dir](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.cmagPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    end
    self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    return res
@@ -278,10 +278,10 @@ function Gyrokinetic:surfTermGenGeo(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idx
    end
    self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
    self.jacobTotInv:fill(self.jacobTotInvIdxr(idxr), self.jacobTotInvPtr)
-   self.gradpar:fill(self.gradparIdxr(idxr), self.gradparPtr)
-   self.geoX:fill(self.geoXIdxr(idxr), self.geoXPtr)
-   self.geoY:fill(self.geoYIdxr(idxr), self.geoYPtr)
-   self.geoZ:fill(self.geoZIdxr(idxr), self.geoZPtr)
+   self.cmag:fill(self.cmagIdxr(idxr), self.cmagPtr)
+   self.b_x:fill(self.b_xIdxr(idxr), self.b_xPtr)
+   self.b_y:fill(self.b_yIdxr(idxr), self.b_yPtr)
+   self.b_z:fill(self.b_zIdxr(idxr), self.b_zPtr)
    local res
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
@@ -289,9 +289,9 @@ function Gyrokinetic:surfTermGenGeo(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idx
      self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProvPtr)
      self.emMod:fill(self.emModIdxr(idxl), self.emModPtrL)
      self.emMod:fill(self.emModIdxr(idxr), self.emModPtrR)
-     res = self._surfTerm[dir](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.gradparPtr:data(), self.geoXPtr:data(), self.geoYPtr:data(), self.geoZPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.aparLPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
+     res = self._surfTerm[dir](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.aparLPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
    else 
-     res = self._surfTerm[dir](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.gradparPtr:data(), self.geoXPtr:data(), self.geoYPtr:data(), self.geoZPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+     res = self._surfTerm[dir](self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    end
    self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    return res
@@ -353,16 +353,16 @@ function GyrokineticStep2:setAuxFields(auxFields)
    self.dApardtProv = auxFields[3]
 
    -- Get magnetic geometry fields.
-   self.bmag    = geo.bmag
-   self.gradpar = geo.gradpar
+   self.bmag = geo.bmag
+   self.cmag = geo.cmag
    if self.geoType == "SimpleHelical" then
       self.bmagInv = geo.bmagInv
       self.bdriftX = geo.bdriftX
       self.bdriftY = geo.bdriftY
    elseif self.geoType == "GenGeo" then
-      self.geoX = geo.geoX
-      self.geoY = geo.geoY
-      self.geoZ = geo.geoZ
+      self.b_x = geo.b_x
+      self.b_y = geo.b_y
+      self.b_z = geo.b_z
       self.jacobTotInv = geo.jacobTotInv
    end
 
@@ -380,10 +380,10 @@ function GyrokineticStep2:setAuxFields(auxFields)
       self.dApardtIdxr    = self.dApardt:genIndexer()
 
       -- Geometry.
-      self.bmagPtr     = self.bmag:get(1)
-      self.gradparPtr  = self.gradpar:get(1)
-      self.bmagIdxr    = self.bmag:genIndexer()
-      self.gradparIdxr = self.gradpar:genIndexer()
+      self.bmagPtr  = self.bmag:get(1)
+      self.cmagPtr  = self.cmag:get(1)
+      self.bmagIdxr = self.bmag:genIndexer()
+      self.cmagIdxr = self.cmag:genIndexer()
       if self.geoType == "SimpleHelical" then
          self.bmagInvPtr  = self.bmagInv:get(1)
          self.bdriftXPtr  = self.bdriftX:get(1)
@@ -393,13 +393,13 @@ function GyrokineticStep2:setAuxFields(auxFields)
          self.bdriftYIdxr = self.bdriftY:genIndexer()
       elseif self.geoType == "GenGeo" then
          self.jacobTotInvPtr  = self.jacobTotInv:get(1)
-         self.geoXPtr         = self.geoX:get(1)
-         self.geoYPtr         = self.geoY:get(1)
-         self.geoZPtr         = self.geoZ:get(1)
+         self.b_xPtr         = self.b_x:get(1)
+         self.b_yPtr         = self.b_y:get(1)
+         self.b_zPtr         = self.b_z:get(1)
          self.jacobTotInvIdxr = self.jacobTotInv:genIndexer()
-         self.geoXIdxr        = self.geoX:genIndexer()
-         self.geoYIdxr        = self.geoY:genIndexer()
-         self.geoZIdxr        = self.geoZ:genIndexer()
+         self.b_xIdxr        = self.b_x:genIndexer()
+         self.b_yIdxr        = self.b_y:genIndexer()
+         self.b_zIdxr        = self.b_z:genIndexer()
       end
 
       self._isFirst = false -- no longer first time
@@ -423,14 +423,14 @@ function GyrokineticStep2:surfTermSimpleHelical(dir, cfll, cflr, wl, wr, dxl, dx
    self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
    self.bmagInv:fill(self.bmagInvIdxr(idxr), self.bmagInvPtr)
-   self.gradpar:fill(self.gradparIdxr(idxr), self.gradparPtr)
+   self.cmag:fill(self.cmagIdxr(idxr), self.cmagPtr)
    self.bdriftX:fill(self.bdriftXIdxr(idxr), self.bdriftXPtr)
    self.bdriftY:fill(self.bdriftYIdxr(idxr), self.bdriftYPtr)
    self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
    self.dApardt:fill(self.dApardtIdxr(idxr), self.dApardtPtr)
    self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProvPtr)
 
-   local res = self._surfTerm(self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), nil, nil)
+   local res = self._surfTerm(self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.cmagPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), nil, nil)
 
    return res
 end
@@ -439,16 +439,16 @@ function GyrokineticStep2:surfTermGenGeo(dir, cfll, cflr, wl, wr, dxl, dxr, maxs
    self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
    self.jacobTotInv:fill(self.jacobTotInvIdxr(idxr), self.jacobTotInvPtr)
-   self.gradpar:fill(self.gradparIdxr(idxr), self.gradparPtr)
-   self.geoX:fill(self.geoXIdxr(idxr), self.geoXPtr)
-   self.geoY:fill(self.geoYIdxr(idxr), self.geoYPtr)
-   self.geoZ:fill(self.geoZIdxr(idxr), self.geoZPtr)
+   self.cmag:fill(self.cmagIdxr(idxr), self.cmagPtr)
+   self.b_x:fill(self.b_xIdxr(idxr), self.b_xPtr)
+   self.b_y:fill(self.b_yIdxr(idxr), self.b_yPtr)
+   self.b_z:fill(self.b_zIdxr(idxr), self.b_zPtr)
    self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
    self.apar:fill(self.aparIdxr(idxl), self.aparLPtr)
    self.dApardt:fill(self.dApardtIdxr(idxr), self.dApardtPtr)
    self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProvPtr)
 
-   local res = self._surfTerm(self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.gradparPtr:data(), self.geoXPtr:data(), self.geoYPtr:data(), self.geoZPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.aparLPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), nil, nil)
+   local res = self._surfTerm(self.charge, self.mass, cfll, cflr, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.jacobTotInvPtr:data(), self.cmagPtr:data(), self.b_xPtr:data(), self.b_yPtr:data(), self.b_zPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.aparLPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), nil, nil)
 
    return res
 end

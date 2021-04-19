@@ -276,8 +276,8 @@ function MGpoisson:init(tbl)
 
    -- Create a grid for each level.
    -- Not sure this is needed, but in general it probably is (e.g. unstructured, or even nonuniform meshes).
-   self.mgGrids           = {}
-   self.mgGrids[1]        = grid
+   self.mgGrids    = {}
+   self.mgGrids[1] = grid
    -- Iterate (phi), right-side source and residual fields at each level.
    self.phiAll      = {}
    self.rhoAll      = {}

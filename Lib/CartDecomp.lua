@@ -1,31 +1,36 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 -- Decomposition algorithms for rectangular grids.
+--
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- system libraries
+-- System libraries.
 local ffi = require "ffi"
 
--- Gkyl libraries
-local Lin = require "Lib.Linalg"
-local Mpi = require "Comm.Mpi"
+-- Gkyl libraries.
+local Lin         = require "Lib.Linalg"
+local Mpi         = require "Comm.Mpi"
 local PrimeFactor = require "Lib.PrimeFactor"
-local Proto = require "Lib.Proto"
-local Range = require "Lib.Range"
-local xsys = require "xsys"
-local lume = require "Lib.lume"
+local Proto       = require "Lib.Proto"
+local Range       = require "Lib.Range"
+local xsys        = require "xsys"
+local lume        = require "Lib.lume"
 
--- create constructor to store vector of Range objects
+-- Create constructor to store vector of Range objects.
 local RangeVec = Lin.new_vec_ct(ffi.typeof("GkylRange_t"))
--- create constructor to store integer pairs
+-- Create constructor to store integer pairs.
 local PairsVec = Lin.new_vec_ct(ffi.typeof("struct { int lower, upper; } "))
+
+local wrapToRange = function(xIn,xMin,xMax)
+   return (((xIn - xMin) % (xMax+1 - xMin)) + (xMax+1 - xMin)) % (xMax+1 - xMin) + xMin
+end
 
 -- DecomposedRange --------------------------------------------------------------
 --
 -- The decomposition object's decompose() method creates a
--- DecomposedRange object
+-- DecomposedRange object.
 --------------------------------------------------------------------------------
 
 local DecomposedRange = Proto()
@@ -37,14 +42,14 @@ function DecomposedRange:init(decomp)
    end
 
    self._cutsRange = Range.Range(ones, upper)
-   self._commSet = decomp:commSet() -- set of communicators
-   self._domains = RangeVec(self._cutsRange:volume())
+   self._commSet   = decomp:commSet() -- Set of communicators.
+   self._domains   = RangeVec(self._cutsRange:volume())
 
    -- For periodic directions store "skeleton" sub-domains, i.e. those
    -- that touch the domain boundary.
    self._periodicDomPairs = {} -- Table of size 'ndim'.
    for d = 1, decomp:ndim() do
-      local sz = self._cutsRange:shorten(d):volume() -- Number of skeleton cells.
+      local sz = self._cutsRange:shorten(d):volume() -- Number of skeleton subdomains.
       self._periodicDomPairs[d] = PairsVec(sz)       -- Store as integer pair.
    end
 
@@ -59,14 +64,62 @@ function DecomposedRange:init(decomp)
       local shortRange = self._cutsRange:shorten(dir)
       local c = 1
       for idx in shortRange:colMajorIter() do
-	 local idxp = idx:copy()
-	 idxp[dir] = idxp[dir]+decomp:cuts(dir)-1 -- Upper index.
-
-	 self._periodicDomPairs[dir][c].lower = cutsIdxr(idx) -- Lower sub-domain on boundary.
-	 self._periodicDomPairs[dir][c].upper = cutsIdxr(idxp) -- Upper sub-domain on boundary.
-	 c = c+1
+         local idxp = idx:copy()
+         idxp[dir]  = idxp[dir]+decomp:cuts(dir)-1 -- Upper index.
+        
+         self._periodicDomPairs[dir][c].lower = cutsIdxr(idx)  -- Lower sub-domain on boundary.
+         self._periodicDomPairs[dir][c].upper = cutsIdxr(idxp) -- Upper sub-domain on boundary.
+         c = c+1
       end
    end   
+
+   -- Identify the corner neighbors of skeleton sub-domains.
+   local dimRemain = {}  -- Remaining dimensions when a dimension is removed.
+   for d1 = 1, decomp:ndim() do
+      dimRemain[d1] = {}
+      for d2 = 1, decomp:ndim() do dimRemain[d1][d2] = d2 end
+      table.remove(dimRemain[d1],d1)
+   end
+   -- The idea below is the following. For each direction get the subdomain coordinate
+   -- of the face neighbor. Then the corner neighbors are -1/+1 step in the other dimensions
+   -- from this face neighbor. At the end we remove the face neighbor from the list. 
+   self._cornerNeigh  = {}
+   local idxLo, idxUp = {}, {}
+   for dir = 1, decomp:ndim() do
+      local shortRange = self._cutsRange:shorten(dir)
+      self._cornerNeigh[dir] = {}
+      local c = 0
+      for idx in shortRange:colMajorIter() do
+         for d=1,decomp:ndim() do idxLo[d], idxUp[d] = idx[d], idx[d] end
+         idxUp[dir] = idxUp[dir]+decomp:cuts(dir)-1
+
+         c = c+1
+         self._cornerNeigh[dir][c] = {}
+         table.insert(self._cornerNeigh[dir][c],{lower=lume.clone(idxLo), upper=lume.clone(idxUp), dirs={dir}})
+         for _, dr in ipairs(dimRemain[dir]) do
+            local cDoms = lume.deepclone(self._cornerNeigh[dir][c])
+            for _, cd in pairs(cDoms) do
+               local newNeighM, newNeighP = lume.deepclone(cd), lume.deepclone(cd)
+               newNeighM["upper"][dr] = wrapToRange(cd["upper"][dr]-1,self._cutsRange:lower(dr),
+                                                                      self._cutsRange:upper(dr))
+               table.insert(newNeighM["dirs"],-dr)
+               newNeighP["upper"][dr] = wrapToRange(cd["upper"][dr]+1,self._cutsRange:lower(dr),
+                                                                      self._cutsRange:upper(dr))
+               table.insert(newNeighP["dirs"], dr) 
+               table.insert(self._cornerNeigh[dir][c],newNeighM)
+               table.insert(self._cornerNeigh[dir][c],newNeighP)
+            end
+         end
+         table.remove(self._cornerNeigh[dir][c],1)
+
+         -- Translate the subdomain coordinate to a rank ID.
+         for _, w in pairs(self._cornerNeigh[dir][c]) do
+            w["lower"] = cutsIdxr(w["lower"])
+            w["upper"] = cutsIdxr(w["upper"])
+         end
+      end
+   end   
+
 end
 
 -- Set callable methods.
@@ -76,17 +129,18 @@ function DecomposedRange:cuts(dir) return self._cutsRange:upper(dir) end
 function DecomposedRange:numSubDomains() return self._cutsRange:volume() end
 function DecomposedRange:subDomain(k) return self._domains[k] end
 function DecomposedRange:boundarySubDomainIds(dir) return self._periodicDomPairs[dir] end
+function DecomposedRange:boundarySubDomainCornerIds(dir) return self._cornerNeigh[dir] end
 function DecomposedRange:cutsIndexer() return Range.makeColMajorGenIndexer(self._cutsRange) end
 function DecomposedRange:cutsInvIndexer() return Range.makeColMajorInvIndexer(self._cutsRange) end
 
 -- CartProdDecomp --------------------------------------------------------------
 --
 -- Decomposition of grid into smaller boxes, specified by number of
--- cuts in each direction
+-- cuts in each direction.
 --------------------------------------------------------------------------------
 
 local CartProdDecomp = Proto()
--- constructor to make new cart-prod decomp
+-- Constructor to make new cart-prod decomp.
 function CartProdDecomp:init(tbl)
    local ones = {}
    for d = 1, #tbl.cuts do ones[d] = 1 end
@@ -95,16 +149,16 @@ function CartProdDecomp:init(tbl)
    self._useShared = xsys.pickBool(tbl.useShared, false)
 
    local comm, shmComm = Mpi.COMM_WORLD, nil
-   -- use a different communicator if one is specified
+   -- Use a different communicator if one is specified.
    if tbl.comm then comm = tbl.comm end
-   -- denote specific ranks from which writes should happen (defaults to all ranks)
+   -- Denote specific ranks from which writes should happen (defaults to all ranks).
    local writeRank = tbl.writeRank or Mpi.Comm_rank(Mpi.COMM_WORLD)
-   -- create various communicators
+   -- Create various communicators.
    if self._useShared then
       shmComm = Mpi.Comm_split_type(comm, Mpi.COMM_TYPE_SHARED, 0, Mpi.INFO_NULL)
    else
-      -- when not using MPI-SHM, make each processor its own "SHM"
-      -- communicator (i.e each SHM comm has 1 proc)
+      -- When not using MPI-SHM, make each processor its own "SHM"
+      -- communicator (i.e each SHM comm has 1 proc).
       local ranks = Lin.IntVec(1)
       ranks[1] = Mpi.Comm_rank(comm) -- only local rank is "shared"
       shmComm = Mpi.Split_comm(comm, ranks)
@@ -125,8 +179,8 @@ function CartProdDecomp:init(tbl)
    local localZeroRanks = Lin.IntVec(nodeSz)
    for d = 1, #localZeroRanks do localZeroRanks[d] = 0 end
 
-   -- collect global ranks corresponding to rank 0 of shmComm
-   local worldRank = Mpi.Comm_rank(comm) -- global rank of process
+   -- Collect global ranks corresponding to rank 0 of shmComm.
+   local worldRank = Mpi.Comm_rank(comm) -- Global rank of process.
    if worldRank % shmSz == 0 then
       localZeroRanks[worldRank/shmSz+1] = worldRanks[1]
    end

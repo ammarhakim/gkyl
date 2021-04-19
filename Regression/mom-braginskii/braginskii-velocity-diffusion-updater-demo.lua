@@ -1,11 +1,14 @@
 local Grid       = require "Grid"
-local Basis      = require "Basis"
 local DataStruct = require "DataStruct"
 local Updater    = require "Updater"
+local Basis      = require "Basis"
 
-local kappaPara = 0.01
-local kappaPerp = 0.0
-local scheme = 'symmetric-cell-center'
+local gasGamma    = 2
+local epsilon0    = 1.
+local elcMass     = 1.
+local ionMass     = 100.
+local ionCharge   = 1.
+local elcCharge   = -ionCharge
 
 local lower        = {-1./2., -1./2.}
 local upper        = { 1./2.,  1./2.}
@@ -15,17 +18,12 @@ local periodicDirs = {1, 2}
 local cfl = 0.9
 local tStart = 0
 local tEnd = 3
-local nFrames = 1
+local nFrames = 2
+local initDt = tEnd
 
-local tFrame = (tEnd-tStart)/nFrames
+local tFrame = (tEnd - tStart) / nFrames
 
-local dx = (upper[1]-lower[1]) / cells[1]
-local dy = (upper[2]-lower[2]) / cells[2]
-local kappa = math.max(kappaPara, kappaPerp)
-local tmp = kappa / (dx)^2 + kappa / (dy)^2
-local initDt = cfl * 0.5 / tmp
-
-local function calcT (t, xn)
+local function coeff (t, xn)
    local x, y = xn[1], xn[2]
 
    local Pi   = math.pi
@@ -35,14 +33,34 @@ local function calcT (t, xn)
    return math.sin(kNum[1]*x) * math.sin(kNum[2]*y)
 end
 
-local function initEmf (t, xn)
+local function initElc (t, xn)
    local x, y = xn[1], xn[2]
-   return 0, 0, 0, 0, 1, 0, 0, 0
+   local n = 1
+   local rho = n * elcMass
+   local rhovx = rho * coeff(t, xn)
+   local rhovy = rho * coeff(t, xn)
+   local rhovz = rho * coeff(t, xn)
+   return rho, rhovx, rhovy, rhovz, 1
+end
+
+local function initIon (t, xn)
+   local x, y = xn[1], xn[2]
+   local n = 1
+   local rho = n * ionMass
+   local rhovx = rho * coeff(t, xn)
+   local rhovy = rho * coeff(t, xn)
+   local rhovz = rho * coeff(t, xn)
+   return rho, rhovx, rhovy, rhovz, 1
 end
 
 local function initEmf0 (t, xn)
    local x, y = xn[1], xn[2]
    return 0, 0, 0, 1, 0, 0, 0, 0
+end
+
+local function initEmf (t, xn)
+   local x, y = xn[1], xn[2]
+   return 0, 0, 0, 0, 1, 0, 0, 0
 end
 
 local grid = Grid.RectCart {
@@ -61,44 +79,19 @@ local function createField(grid, basis, numComponents)
       metaData = {
          polyOrder = basis:polyOrder(),
          basisType = basis:id()
-      },
+      }
    }
    fld:clear(0.0)
    return fld
 end
 
--- tempPtr, emfPtr, and axuPtr are C pointers to a cell. In the 'function'
--- kappaMode, they are obtained like:
---
--- tempIdxr = temp:genIndexer()
--- tempPtr = temp:get(1)
--- temp:fill(tempIdxr(idx), tempPtrP)
---
--- for the cell located at 'idx'.
---
--- These pointers can be used to get different components of the cell data like:
---
--- bx, by, bz = emfPtr[4], emfPtr[5], emfPtr[6]
---
--- These values can be used to compute the local kappaPara and kappaPerp.
---
--- The aux field is optional as the third member of the inFld argument to the
--- anisotropicDiffusion:advance function call.
-local kappaFunction = function(tempPtr, emfPtr, auxPtr)
-   return kappaPara, kappaPerp
-end
-
-local anisotropicDiffusion = Updater.AnisotropicDiffusion {
+local braginskiiHeatConduction = Updater.BraginskiiViscosityDiffusion {
    onGrid      = grid,
-   scheme = scheme,
    cfl         = cfl,
-
-   -- kappaMode = "function",
-   -- kappaFunction = kappaFunction,
-
-   kappaMode   = "constant",
-   kappaPara   = kappaPara,
-   kappaPerp   = kappaPerp,
+   numFluids   = 2,
+   eta         = {0.01, 0.01},
+   hasHeating  = true,
+   coordinate  = "cartesian",
 }
 
 local project = Updater.ProjectOnBasis {
@@ -155,26 +148,44 @@ local syncCorners = function (q)
    end
 end
 
-local temp = createField(grid, basis, 1)  -- temperature
-local emf = createField(grid, basis, 8)  -- E, B, phiE, phiB
-local emf0 = createField(grid, basis, 8)  -- E, B, phiE, phiB
-local buf = createField(grid, basis, 4)  -- grad(temp) or q, div(q)
+local elc = createField(grid, basis, 5)
+local ion = createField(grid, basis, 5)
+local emf = createField(grid, basis, 8)
+local emf0 = createField(grid, basis, 8)
+local elcBuf = createField(grid, basis, 5)
+local ionBuf = createField(grid, basis, 5)
+local emfBuf = createField(grid, basis, 8)
+
+local tStart = 0
 
 project._isFirst = true
-project:setFunc(calcT)
-project:advance(tStart, {}, {temp})
-temp:write("temp_0.bp", tStart, 0)
-temp:sync()
+project:setFunc(initElc)
+project:advance(0.0, {}, {elc})
+elc:write("elc_0.bp", tStart, 0)
+elc:sync()
 
-project._isFirst = true  -- so that we can reuse 'project'
+project._isFirst = true
+project:setFunc(initIon)
+project:advance(0.0, {}, {ion})
+ion:write("ion_0.bp", tStart, 0)
+ion:sync()
+
+project._isFirst = true
 project:setFunc(initEmf)
-project:advance(tStart, {}, {emf})
+project:advance(0.0, {}, {emf})
+emf:write("emf_0.bp", tStart, 0)
 emf:sync()
 
-project._isFirst = true  -- so that we can reuse 'project'
+project._isFirst = true
 project:setFunc(initEmf0)
-project:advance(tStart, {}, {emf0})
+project:advance(0.0, {}, {emf0})
+emf0:write("staticEmf.bp", tStart, 0)
 emf0:sync()
+
+syncCorners(elc)
+syncCorners(ion)
+syncCorners(emf)
+syncCorners(emf0)
 
 local tCurr = tStart
 local myDt = initDt
@@ -184,11 +195,13 @@ while tCurr<tEnd do
    if tCurr+myDt > tEnd then myDt = tEnd-tCurr end
    print(string.format('step=%-4d, tCurr=%-10g, myDt=%-10g', step, tCurr, myDt))
 
-   anisotropicDiffusion:setDtAndCflRate(myDt)
-   local status, dtSuggested = anisotropicDiffusion:advance(
-      tCurr, {temp, emf, emf0}, {buf, buf})
-   temp:sync()
-   syncCorners(temp)
+   braginskiiHeatConduction:setDtAndCflRate(myDt)
+   local status, dtSuggested = braginskiiHeatConduction:advance(
+      tCurr, {elcBuf,ionBuf,emfBuf,emf0}, {elc,ion,emf})
+   elc:sync()
+   ion:sync()
+   syncCorners(elc)
+   syncCorners(ion)
 
    if status then
       step = step + 1
@@ -196,7 +209,8 @@ while tCurr<tEnd do
 
       if tCurr >= frame*tFrame or
          math.abs(tCurr-frame*tFrame) < 1e-10 then
-         temp:write("temp_"..frame..".bp", tCurr, frame)
+         elc:write("elc_"..frame..".bp", tCurr, frame)
+         ion:write("ion_"..frame..".bp", tCurr, frame)
          frame = frame + 1
       end
    else
