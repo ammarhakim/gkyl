@@ -51,6 +51,7 @@ function VmSteadyStateSource:setConfGrid(grid)
 end
 
 function VmSteadyStateSource:advance(tCurr, fIn, species, fRhsOut)
+   local tm = Time.clock()
    local localEdgeFlux = ffi.new("double[3]")
    localEdgeFlux[0] = 0.0
    localEdgeFlux[1] = 0.0
@@ -87,6 +88,7 @@ function VmSteadyStateSource:advance(tCurr, fIn, species, fRhsOut)
    Mpi.Allreduce(localEdgeFlux, globalEdgeFlux, 1, Mpi.DOUBLE, Mpi.MAX, self.confGrid:commSet().comm)
    local densFactor = globalEdgeFlux[0]/self.sourceLength
    fRhsOut:accumulate(densFactor, species[self.speciesName].fSource)
+   self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
 end
 
 function VmSteadyStateSource:write(tm, frame, species)
@@ -94,11 +96,10 @@ function VmSteadyStateSource:write(tm, frame, species)
    if species.numDensitySrc then species.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.speciesName), tm, frame) end
    if species.momDensitySrc then species.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.speciesName), tm, frame) end
    if species.ptclEnergySrc then species.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.speciesName), tm, frame) end
-   return self.tmEvalSource
 end
 
 function VmSteadyStateSource:srcTime()
-   return self.tmEvalSource
+   return self.tmEvalSrc
 end
 
 return VmSteadyStateSource

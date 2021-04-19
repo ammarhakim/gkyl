@@ -871,7 +871,13 @@ local function buildApplication(self, tbl)
 	    end
          end
          if s.timers and s.fSource and s.evolveSources then
-            tmSrc = tmSrc + s.timers.sources
+	    if s.projSrc then
+	       tmSrc = tmSrc + s.timers.sources
+	    else
+	       for _, src in pairs(s.sources) do
+                  tmSrc = tmSrc + src:srcTime()
+	       end
+	    end
          end
       end
 

@@ -53,9 +53,11 @@ function GkSource:setConfGrid(grid)
 end
 
 function GkSource:advance(tCurr, fIn, species, fRhsOut)
+   local tm = Time.clock()
    self.timeDependence = species[self.speciesName].sourceTimeDependence
    Mpi.Barrier(self.confGrid:commSet().sharedComm)
    fRhsOut:accumulate(self.timeDependence(tCurr), species[self.speciesName].fSource)
+   self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
 end
 
 function GkSource:write(tm, frame, species)
@@ -63,11 +65,10 @@ function GkSource:write(tm, frame, species)
    if species.numDensitySrc then species.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.speciesName), tm, frame) end
    if species.momDensitySrc then species.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.speciesName), tm, frame) end
    if species.ptclEnergySrc then species.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.speciesName), tm, frame) end
-   return self.tmEvalSource
 end
 
 function GkSource:srcTime()
-   return self.tmEvalSource
+   return self.tmEvalSrc
 end
 
 return GkSource
