@@ -36,7 +36,8 @@ function Gyrofluid:init(tbl)
    self.kappaPar   = assert(tbl.kappaPar, "Gyrofluid: must specify parallel heat conductivity using 'kappaPar'.")
    self.kapparPerp = assert(tbl.kappaPerp, "Gyrofluid: must specify perpendicular heat conductivity using 'kappaPerp'.")
 
-   self.kPerpSq  = 0.0
+   self.kPerpSq  = 0.
+   print("setting kPerpSq = 0.0 in Eq/Gyrofluid.lua.")
    self.bmagFunc = assert(tbl.bmagFunc, "Gyrofluid: must specify the function defining the magnetic field amplitude using 'bmagFunc'.")       
 
    local nm, p = self._basis:id(), self._basis:polyOrder()
@@ -80,6 +81,7 @@ function Gyrofluid:setAuxFields(auxFields)
          onGrid    = self._grid,
          weakBasis = self._basis,
          operation = "Multiply",
+         onGhosts  = true,
       }
       self.jacobDbmag = DataStruct.Field {
          onGrid        = self._grid,
@@ -90,6 +92,7 @@ function Gyrofluid:setAuxFields(auxFields)
                           charge    = self.charge,
                           mass      = self.mass,},
       }
+      self.jacobDbmag:clear(0.)
       weakMult:advance(0., {self.jacob,self.rBmag}, {self.jacobDbmag})
 
       -- Compute dBdz. Eventually we'll remove this or put it in geo.
@@ -113,6 +116,7 @@ function Gyrofluid:setAuxFields(auxFields)
                           charge    = self.charge,
                           mass      = self.mass,},
       }
+      self.dBdz:clear(0.)
       local evOnNodes = Updater.EvalOnNodes {
          onGrid   = self._grid,
          basis    = self._basis,

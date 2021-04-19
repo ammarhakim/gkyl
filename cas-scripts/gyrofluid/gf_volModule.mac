@@ -156,8 +156,8 @@ calcGFvolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
   /* Add the heat flux terms to the energy and pperp equations. */
   hPar_e : Tpar_e,  hPerp_e : Tperp_e+m_*(1/2)*(-kperpSq)*qPhiDm_e,
 
-  jac_e      : doExpand(jac,basis),
-  jacDbmag_e : doExpand(jacDbmag,basis),
+  jac_e      : doExpand1(jac,basis),
+  jacDbmag_e : doExpand1(jacDbmag,basis),
 
   h_e : [numBzeros, numBzeros, (kappaPar/2)*hPar_e+kappaPerp*hPerp_e, kappaPerp*hPerp_e],
 

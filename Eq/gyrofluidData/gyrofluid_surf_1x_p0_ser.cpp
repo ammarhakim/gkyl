@@ -55,11 +55,11 @@ double gyrofluid_surf_1x_p0_ser_x(const double q_, const double m_, const double
 
   double GheatF3[1];
 
-  GheatF3[0] = -0.125*((1.414213562373095*phiR1[0]-1.414213562373095*phiL1[0])*jacL[1]*kappaPerp*kperpSq*q_+(2.828427124746191*jacL[1]*primMomL1[2]-2.828427124746191*jacL[1]*primMomR1[2])*kappaPerp+(1.414213562373095*jacL[1]*primMomL1[1]-1.414213562373095*jacL[1]*primMomR1[1])*kappaPar); 
+  GheatF3[0] = -0.125*((1.414213562373095*jacL[0]*phiR1[0]-1.414213562373095*jacL[0]*phiL1[0])*kappaPerp*kperpSq*q_+(2.828427124746191*jacL[0]*primMomL1[2]-2.828427124746191*jacL[0]*primMomR1[2])*kappaPerp+(1.414213562373095*jacL[0]*primMomL1[1]-1.414213562373095*jacL[0]*primMomR1[1])*kappaPar); 
 
   double GheatF4[1];
 
-  GheatF4[0] = -0.125*((1.414213562373095*phiR1[0]-1.414213562373095*phiL1[0])*jacDbmagL[1]*kappaPerp*kperpSq*q_+(2.828427124746191*jacDbmagL[1]*primMomL1[2]-2.828427124746191*jacDbmagL[1]*primMomR1[2])*kappaPerp); 
+  GheatF4[0] = -0.125*((1.414213562373095*jacDbmagL[0]*phiR1[0]-1.414213562373095*jacDbmagL[0]*phiL1[0])*kappaPerp*kperpSq*q_+(2.828427124746191*jacDbmagL[0]*primMomL1[2]-2.828427124746191*jacDbmagL[0]*primMomR1[2])*kappaPerp); 
 
   double incr1[1];
   incr1[0] = 0.7071067811865475*momHat1[0]; 

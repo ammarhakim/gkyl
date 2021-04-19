@@ -5,6 +5,11 @@
 ---------------------------------------------------------------------------
 local Plasma = require ("App.PlasmaOnCartGrid").Gyrofluid()
 
+q_e     = -1.0
+q_i     = 1.0
+m_e     = 1.0
+m_i     = 1.0
+
 TiTe    = 1.0
 kpar    = 0.5
 XL, XU  = -math.pi/kpar, math.pi/kpar
@@ -14,6 +19,21 @@ n0      = 1.0
 ni0     = n0
 ne0     = n0
 B0      = 1.0
+
+vtElc = math.sqrt(Te0/m_e)
+vtIon = math.sqrt(Ti0/m_i)
+
+-- Beer & Hammett 3+1 closure model parameters.
+beta_par = (32. - 9.*math.pi)/(3.*math.pi - 8.)
+D_par    = 2.*math.sqrt(math.pi)/(3.*math.pi - 8.)
+D_perp   = math.sqrt(math.pi)/2.
+
+kappaParIon  = ni0*vtIon*(3.+beta_par)/(math.sqrt(3)*D_par*kpar)
+kappaPerpIon = ni0*vtIon/(math.sqrt(2)*D_perp*kpar)
+kappaParElc  = ne0*vtElc*(3.+beta_par)/(math.sqrt(3)*D_par*kpar)
+kappaPerpElc = ne0*vtElc/(math.sqrt(2)*D_perp*kpar)
+
+-- Geometry related parameters.
 R0      = 1.0
 r0      = 0.0
 
@@ -49,8 +69,8 @@ plasmaApp = Plasma.App {
 
    -- Gyrokinetic ions.
    ion = Plasma.Species {
-      charge = 1.0,  mass = 1.0,
-      kappaPar = 0.0,  kappaPerp = 0.0,
+      charge = q_i,  mass = m_i,
+      kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
       -- Initial conditions.
       -- Specify background so that we can plot perturbed distribution and moments.
 --      background = Plasma.GyrofluidProjection {
@@ -77,8 +97,8 @@ plasmaApp = Plasma.App {
 
    -- Gyrokinetic electronss.
    elc = Plasma.Species {
-      charge = -1.0,  mass = 1.0,
-      kappaPar = 0.0,  kappaPerp = 0.0,
+      charge = q_e,  mass = m_e,
+      kappaPar = kappaParElc,  kappaPerp = kappaPerpElc,
       -- Initial conditions.
       -- Specify background so that we can plot perturbed distribution and moments.
 --      background = Plasma.GyrofluidProjection {

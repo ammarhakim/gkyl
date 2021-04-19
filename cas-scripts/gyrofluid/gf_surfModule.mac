@@ -254,20 +254,19 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
 
   qPhiDmL_e : (q_/m_)*doExpand1(phiL1,basis),
   qPhiDmR_e : (q_/m_)*doExpand1(phiR1,basis),
+  qPhiDmL_c : calcInnerProdList(vars,1,basis,qPhiDmL_e),
+  qPhiDmR_c : calcInnerProdList(vars,1,basis,qPhiDmR_e),
 
   hOrder : 2*polyOrder+1,
   numBzeros : makelist(0,i,1,numB),
   /* Perform the recovery for the heat fluxes for the energy and perpendicular
      pressure equations. They contribute to the advective increment, but also
      have a non-flux-like increment which must be added separately. */
-  qPhiDmL_c : calcInnerProdList(vars,1,basis,qPhiDmL_e),
-  qPhiDmR_c : calcInnerProdList(vars,1,basis,qPhiDmR_e),
-
   hParL : TparL1_c,  hPerpL : TperpL1_c+m_*(1/2)*(-kperpSq)*qPhiDmL_c,
   hParR : TparR1_c,  hPerpR : TperpR1_c+m_*(1/2)*(-kperpSq)*qPhiDmR_c,
 
-  jacL_e      : doExpand(jacL,basis),
-  jacDbmagL_e : doExpand(jacDbmagL,basis),
+  jacL_e      : doExpand1(jacL,basis),
+  jacDbmagL_e : doExpand1(jacDbmagL,basis),
 
   hL_c : [numBzeros, numBzeros, (kappaPar/2)*hParL+kappaPerp*hPerpL, kappaPerp*hPerpL], 
   hR_c : [numBzeros, numBzeros, (kappaPar/2)*hParR+kappaPerp*hPerpR, kappaPerp*hPerpR], 
