@@ -1,3 +1,11 @@
+-- Gkyl ------------------------------------------------------------------------
+--
+-- PlasmaOnCartGrid support code: Vlasov source operator
+--
+--    _______     ___
+-- + 6 @ |||| # P ||| +
+--------------------------------------------------------------------------------
+
 local SourceBase     = require "App.Sources.SourceBase"
 local DataStruct     = require "DataStruct"
 local ffi            = require "ffi"
@@ -24,10 +32,10 @@ function VmSource:fullInit(speciesTbl)
    self.temperature = assert(tbl.temperature, "App.VmSource: must specify temperature profile of source in 'density'.")
    self.power = tbl.power
    self.profile = Projection.VlasovProjection.MaxwellianProjection {
-                   density = self.density,
-                   temperature = self.temperature,
-                   power = self.power,
-                  }
+      density = self.density,
+      temperature = self.temperature,
+      power = self.power,
+   }
    self.tmEvalSrc = 0.0
 end
 
@@ -48,6 +56,14 @@ function VmSource:advance(tCurr, fIn, species, fRhsOut)
    self.timeDependence = species[self.speciesName].sourceTimeDependence
    Mpi.Barrier(self.confGrid:commSet().sharedComm)
    fRhsOut:accumulate(self.timeDependence(tCurr), species[self.speciesName].fSource)
+end
+
+function VmSource:write(tm, frame, species)
+   species.fSource:write(string.format("%s_fSource_0.bp", self.speciesName), tm, frame, true)
+   if species.numDensitySrc then species.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.speciesName), tm, frame) end
+   if species.momDensitySrc then species.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.speciesName), tm, frame) end
+   if species.ptclEnergySrc then species.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.speciesName), tm, frame) end
+   return self.tmEvalSource
 end
 
 function VmSource:srcTime()

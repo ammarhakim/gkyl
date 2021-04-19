@@ -1019,10 +1019,11 @@ function KineticSpecies:write(tm, force)
             self.distf[1]:accumulate(1, self.f0)
          end
          if tm == 0.0 and self.fSource then
-	    for _, s in pairs(self.sources) do
-	       s:write(tm, self.distIoFrame, self)
-	    end
-	 end
+            self.fSource:write(string.format("%s_fSource_0.bp", self.name), tm, self.distIoFrame, true)
+            if self.numDensitySrc then self.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.name), tm, self.distIoFrame) end
+            if self.momDensitySrc then self.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.name), tm, self.distIoFrame) end
+            if self.ptclEnergySrc then self.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.name), tm, self.distIoFrame) end
+         end
 	 self.distIoFrame = self.distIoFrame+1
       end
 
@@ -1032,6 +1033,11 @@ function KineticSpecies:write(tm, force)
          self:calcAndWriteDiagnosticMoments(tm)
 
          if self.evolveCollisions then
+            for _, c in pairs(self.collisions) do
+               c:write(tm, self.diagIoFrame)
+            end
+         end
+	 if self.evolveCollisions then
             for _, c in pairs(self.collisions) do
                c:write(tm, self.diagIoFrame)
             end

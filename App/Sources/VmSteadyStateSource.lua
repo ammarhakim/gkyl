@@ -1,3 +1,11 @@
+-- Gkyl ------------------------------------------------------------------------
+--
+-- PlasmaOnCartGrid support code: Vlasov steady state source operator
+--
+--    _______     ___
+-- + 6 @ |||| # P ||| +
+--------------------------------------------------------------------------------
+
 local SourceBase     = require "App.Sources.SourceBase"
 local DataStruct     = require "DataStruct"
 local ffi            = require "ffi"
@@ -24,7 +32,7 @@ function VmSteadyStateSource:fullInit(speciesTbl)
    self.sourceLength = assert(tbl.sourceLength, "App.VmSteadyStateSource: must specify names of species to in 'sourceLength'.")
    assert(tbl.profile, "App.VmSteadyStateSource: must specify source profile in 'profile'")
    assert(type(tbl.profile) == "function", "App.VmSteadyStateSource: 'profile' must be a function")
-   self.profile = Projection.KineticProjection.FunctionProjection { func = function(t, zn) return self.profile(t, zn, self) end, }
+   self.profile = Projection.KineticProjection.FunctionProjection { func = function(t, zn) return tbl.profile(t, zn, self) end, }
 
    self.tmEvalSrc = 0.0
 end
@@ -79,6 +87,14 @@ function VmSteadyStateSource:advance(tCurr, fIn, species, fRhsOut)
    Mpi.Allreduce(localEdgeFlux, globalEdgeFlux, 1, Mpi.DOUBLE, Mpi.MAX, self.confGrid:commSet().comm)
    local densFactor = globalEdgeFlux[0]/self.sourceLength
    fRhsOut:accumulate(densFactor, species[self.speciesName].fSource)
+end
+
+function VmSteadyStateSource:write(tm, frame, species)
+   species.fSource:write(string.format("%s_fSource_0.bp", self.speciesName), tm, frame, true)
+   if species.numDensitySrc then species.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.speciesName), tm, frame) end
+   if species.momDensitySrc then species.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.speciesName), tm, frame) end
+   if species.ptclEnergySrc then species.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.speciesName), tm, frame) end
+   return self.tmEvalSource
 end
 
 function VmSteadyStateSource:srcTime()
