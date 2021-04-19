@@ -146,8 +146,7 @@ calcGFvolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
   h_e : [numBzeros, m0_e, m1_e, numBzeros],
 
   for mI : 2 thru 3 do (
-    incr_c[mI] : incr_c[mI]+rdx2*calcInnerProdList(vars,qPhiDm_e,basisPrime,h_e[mI])
-                           +rdx2*calcInnerProdList(vars,qPhiDm_e,basis,diff(h_e[mI],x))
+    incr_c[mI] : incr_c[mI]-rdx2*calcInnerProdList(vars,diff(qPhiDm_e,x),basis,h_e[mI])
   ),
 
   /* Add the mirror force term to the momentum equation. */

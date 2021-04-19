@@ -252,43 +252,11 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
     incrL_c : endcons(fullratsimp(calcInnerProdList(surfIntVars, -1, subst(surfVar= 1, basis), momHat_e)), incrL_c)
   ),
 
-  hOrder : 2*polyOrder+1,
-  numBzeros : makelist(0,i,1,numB),
-  /* Add the terms dependent on the potential in the momentum and energy
-     equations. We do recovery on the quantity multiplying the potential
-     only (h), because the potential is assumed continuous and because we
-     need h to remain weakly equal in each cell as it will be used
-     separately from phi in the volume kernel (i.e. inside a derivative). */
   qPhiDmL_e : (q_/m_)*doExpand1(phiL1,basis),
   qPhiDmR_e : (q_/m_)*doExpand1(phiR1,basis),
 
-  hL_c : [numBzeros, m0L1_c, m1L1_c, numBzeros], 
-  hR_c : [numBzeros, m0R1_c, m1R1_c, numBzeros], 
-
-  for mI : 2 thru 3 do (
-    h_e  : calcRecov2CellGen(basisFun,surfVar,vars,polyOrder,dg(hL_c[mI]), dg(hR_c[mI])),
-    hsol : cons(subst(surfVar=0,h_e),makelist(subst(surfVar=0,diff(h_e,surfVar,ord)/(ord!)),ord,1,hOrder)),
-
-    Gphi_c       : fullratsimp(calcInnerProdList(vars,subst(surfVar=1,qPhiDmL_e),basis,hsol[1])),
-    varName      : eval_string(sconcat("Gphi",mI)), 
-    GphiNoZero_c : doMakeExprLst(Gphi_c, varName),
-    Gphi_e       : doExpand(GphiNoZero_c, basis),
-
-    printf(fh, "  double ~a[~a];~%", varName, numB),
-    quants : [dxl,dxr],
-    tempVars : [],
-    tempVars : writeCExprs1noPowers(varName, Gphi_c, quants, tempVars),
-    printf(fh, "~%"),
-
-    /* Calculate contribution to momHat projected on the basis. */
-    momHat_c : fullratsimp(calcInnerProdList(vars,1,basis,Gphi_e)),
-
-    momHat_e : doExpand(doMakeExprLst(momHat_c, varName), basis),
-    momHat_e : subst(surfVar=1, momHat_e),
-    incrR_c[mI] : incrR_c[mI]+calcInnerProdList(surfIntVars,  1, subst(surfVar=-1, basis), momHat_e),
-    incrL_c[mI] : incrL_c[mI]+calcInnerProdList(surfIntVars, -1, subst(surfVar= 1, basis), momHat_e)
-  ),
-
+  hOrder : 2*polyOrder+1,
+  numBzeros : makelist(0,i,1,numB),
   /* Perform the recovery for the heat fluxes for the energy and perpendicular
      pressure equations. They contribute to the advective increment, but also
      have a non-flux-like increment which must be added separately. */
@@ -319,6 +287,8 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
     GheatF_e       : doExpand(GheatFNoZero_c, basis),
 
     printf(fh, "  double ~a[~a];~%", varName, numB),
+    quants : [dxl,dxr],
+    tempVars : [],
     tempVars : writeCExprs1noPowers(varName, GheatF_c, quants, tempVars),
     printf(fh, "~%"),
 
