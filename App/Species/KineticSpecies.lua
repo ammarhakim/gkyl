@@ -277,8 +277,8 @@ function KineticSpecies:setConfBasis(basis)
    for _, c in pairs(self.collisions) do
       c:setConfBasis(basis)
    end
-   for _, s in pairs(self.sources) do
-      s:setConfBasis(basis)
+   for _, src in pairs(self.sources) do
+      src:setConfBasis(basis)
    end
 end
 function KineticSpecies:setConfGrid(grid)
@@ -286,8 +286,8 @@ function KineticSpecies:setConfGrid(grid)
    for _, c in pairs(self.collisions) do
       c:setConfGrid(grid)
    end
-   for _, s in pairs(self.sources) do
-      s:setConfGrid(grid)
+   for _, src in pairs(self.sources) do
+      src:setConfGrid(grid)
    end
 end
 
@@ -1019,8 +1019,8 @@ function KineticSpecies:write(tm, force)
             self.distf[1]:accumulate(1, self.f0)
          end
          if tm == 0.0 and self.fSource then
-	    for _, s in pairs(self.sources) do
-	       s:write(tm, self.distIoFrame, self)
+	    for _, src in pairs(self.sources) do
+	       src:write(tm, self.distIoFrame, self)
 	    end
 	 end
 	 self.distIoFrame = self.distIoFrame+1

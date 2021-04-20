@@ -743,8 +743,8 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       self.timers.sources = self.timers.sources + Time.clock() - tm 
    end
    if self.evolveSources then
-      for _, s in pairs(self.sources) do
-         s:advance(tCurr, fIn, species, fRhsOut)
+      for _, src in pairs(self.sources) do
+         src:advance(tCurr, fIn, species, fRhsOut)
       end
    end
 end

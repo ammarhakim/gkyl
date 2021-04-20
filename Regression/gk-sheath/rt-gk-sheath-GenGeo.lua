@@ -148,6 +148,7 @@ plasmaApp = Plasma.App {
          frequencies = {nuElc},
       },
       source = Plasma.Source {
+         type        = "Maxwellian",
          density     = sourceDensity,
          temperature = sourceTemperature,
          power       = P_src/2,
@@ -201,6 +202,7 @@ plasmaApp = Plasma.App {
          frequencies = {nuIon},
       },
       source = Plasma.Source {
+         type        = "Maxwellian",
          density     = sourceDensity,
          temperature = sourceTemperature,
          power       = P_src/2,

@@ -31,11 +31,28 @@ function VmSource:fullInit(speciesTbl)
    self.density = assert(tbl.density, "App.VmSource: must specify density profile of source in 'density'.")
    self.temperature = assert(tbl.temperature, "App.VmSource: must specify temperature profile of source in 'density'.")
    self.power = tbl.power
-   self.profile = Projection.VlasovProjection.MaxwellianProjection {
-      density = self.density,
-      temperature = self.temperature,
-      power = self.power,
-   }
+   if tbl.type then
+      if tbl.type == "Maxwellian" or tbl.type == "maxwellian" then
+         self.profile = Projection.VlasovProjection.MaxwellianProjection {
+            density = self.density,
+            temperature = self.temperature,
+            power = self.power,
+         }
+      else
+         print("App.VmSource: Source type not recognized, defaulting to Maxwellian.")
+	 self.profile = Projection.VlasovProjection.MaxwellianProjection {
+            density = self.density,
+            temperature = self.temperature,
+            power = self.power,
+         }
+      end    
+   else
+      self.profile = Projection.VlasovProjection.MaxwellianProjection {
+         density = self.density,
+         temperature = self.temperature,
+         power = self.power,
+      }
+   end
    self.tmEvalSrc = 0.0
 end
 

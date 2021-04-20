@@ -126,6 +126,7 @@ plasmaApp = Plasma.App {
 
       -- Source parameters.
       source = Plasma.Source {
+         type        = "Maxwellian",
          density     = sourceDensity,
          temperature = sourceTemperatureElc,
       },
@@ -190,6 +191,7 @@ plasmaApp = Plasma.App {
 
       -- Source Parameters.
       source = Plasma.Source {
+         type        = "Maxwellian",
          density     = sourceDensity,
          temperature = sourceTemperatureIon,
       },
@@ -264,6 +266,7 @@ plasmaApp = Plasma.App {
 
       -- Source parameters.
       source = Vlasov.Source {
+         type        = "Maxwellian",
          density     = sourceDensityNeut,
          temperature = 2.*eV,
       },
