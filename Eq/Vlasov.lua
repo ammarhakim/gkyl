@@ -93,8 +93,12 @@ function Vlasov:init(tbl)
             print("Eq.Vlasov: selecting recovery-based velocity space update")
             self._surfForceUpdate = VlasovModDecl.selectRecoverySurfElcMag(
               self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+         elseif self._numVelFlux == "upwind" then
+            print("Eq.Vlasov: selecting upwind velocity space update")
+            self._surfForceUpdate = VlasovModDecl.selectUpwindSurfElcMag(
+              self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
          else
-            assert(self._numVelFlux, "Eq.Vlasov: Incorrect numerical flux specified, options supported: 'penalty' and 'recovery' ")
+            assert(self._numVelFlux, "Eq.Vlasov: Incorrect numerical flux specified, options supported: 'penalty,' 'upwind,' and 'recovery' ")
          end
       elseif self._onlyForceUpdate then
 	 self._volUpdate = VlasovModDecl.selectVolForce(
@@ -106,8 +110,12 @@ function Vlasov:init(tbl)
             print("Eq.Vlasov: selecting recovery-based velocity space update")
             self._surfForceUpdate = VlasovModDecl.selectRecoverySurfElcMag(
                self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+         elseif self._numVelFlux == "upwind" then
+            print("Eq.Vlasov: selecting upwind velocity space update")
+            self._surfForceUpdate = VlasovModDecl.selectUpwindSurfElcMag(
+              self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
          else
-            assert(self._numVelFlux, "Eq.Vlasov: Incorrect numerical flux specified, options supported: 'penalty' and 'recovery' ")
+            assert(self._numVelFlux, "Eq.Vlasov: Incorrect numerical flux specified, options supported: 'penalty,' 'upwind,' and 'recovery' ")
          end
       else
          self._volUpdate = VlasovModDecl.selectVolPhi(hasMagField,
