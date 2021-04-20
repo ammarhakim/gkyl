@@ -34,18 +34,17 @@ kappaParElc  = ne0*vtElc*(3.+beta_par)/(math.sqrt(3)*D_par*kpar)
 kappaPerpElc = ne0*vtElc/(math.sqrt(2)*D_perp*kpar)
 
 -- Geometry related parameters.
-R0      = 1.0
-r0      = 0.0
+R0 = 1.0
+r0 = 0.0
 
 plasmaApp = Plasma.App {
    logToFile = true,
 
---   tEnd   = 4.*5.975231e-03,                 -- End time.
-   tEnd   = 15.0,                 -- End time.
-   nFrame = 60,                  -- Number of output frames.
-   lower  = {-math.pi/kpar}, -- Configuration space lower left.
-   upper  = { math.pi/kpar}, -- Configuration space upper right.
-   cells  = {16},               -- Configuration space cells.
+   tEnd   = 15.0,              -- End time.
+   nFrame = 1,                 -- Number of output frames.
+   lower  = {-math.pi/kpar},   -- Configuration space lower left.
+   upper  = { math.pi/kpar},   -- Configuration space upper right.
+   cells  = {16},              -- Configuration space cells.
    mapc2p = function(xc)
       -- Field-aligned coordinates (x,y).
       local x, y = xc[1], xc[2]
@@ -59,7 +58,7 @@ plasmaApp = Plasma.App {
    basis       = "serendipity",      -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                  -- Polynomial order.
    timeStepper = "rk3",              -- One of "rk2" or "rk3".
-   cflFrac     = 0.10,
+   cflFrac     = 0.90,
 
    -- Decomposition for configuration space.
    decompCuts = {1},   -- Cuts in each configuration direction.
@@ -72,12 +71,6 @@ plasmaApp = Plasma.App {
       charge = q_i,  mass = m_i,
       kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
       -- Initial conditions.
-      -- Specify background so that we can plot perturbed distribution and moments.
---      background = Plasma.GyrofluidProjection {
---         density = function (t, xn) return ni0 end,
---         parallelTemperature = function (t, xn) return Ti0 end,
---         perpendicularTemperature = function (t, xn) return Ti0 end,
---      },
       init = Plasma.GyrofluidProjection {
          density = function (t, xn)
             local x = xn[1]
@@ -91,8 +84,6 @@ plasmaApp = Plasma.App {
       },
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
-      --diagnostics = {"intMom","intM0","intM1","intM2","M0","M1","M2","upar","M2flow",}, --,"upar","Tpar","Tperp","ppar","pperp"},
-      --diagnostics = {"intM1"},
    },
 
    -- Gyrokinetic electronss.
@@ -100,12 +91,6 @@ plasmaApp = Plasma.App {
       charge = q_e,  mass = m_e,
       kappaPar = kappaParElc,  kappaPerp = kappaPerpElc,
       -- Initial conditions.
-      -- Specify background so that we can plot perturbed distribution and moments.
---      background = Plasma.GyrofluidProjection {
---         density = function (t, xn) return ne0 end,
---         parallelTemperature = function (t, xn) return Te0 end,
---         perpendicularTemperature = function (t, xn) return Te0 end,
---      },
       init = Plasma.GyrofluidProjection {
          density = function (t, xn) return ne0 end,
          parallelTemperature = function (t, xn) return Te0 end,
@@ -113,8 +98,6 @@ plasmaApp = Plasma.App {
       },
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
- --     diagnostics = {"intMom","intM0","intM1","intM2","M0","M1","M2","upar","M2flow",}, --,"upar","Tpar","Tperp","ppar","pperp"},
---      diagnostics = {"intM1"},
    },
 
    -- Field solver.

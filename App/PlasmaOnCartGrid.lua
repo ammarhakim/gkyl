@@ -915,7 +915,7 @@ local function buildApplication(self, tbl)
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Integrated moment calculations took",
-	     1000000.001111, tmIntMom/step, 100*tmIntMom/tmTotal))
+	     tmIntMom, tmIntMom/step, 100*tmIntMom/tmTotal))
       tmAccounted = tmAccounted + tmIntMom
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
