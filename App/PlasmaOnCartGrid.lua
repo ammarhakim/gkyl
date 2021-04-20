@@ -871,7 +871,13 @@ local function buildApplication(self, tbl)
 	    end
          end
          if s.timers and s.fSource and s.evolveSources then
-            tmSrc = tmSrc + s.timers.sources
+	    if s.projSrc then
+	       tmSrc = tmSrc + s.timers.sources
+	    else
+	       for _, src in pairs(s.sources) do
+                  tmSrc = tmSrc + src:srcTime()
+	       end
+	    end
          end
       end
 
@@ -1022,6 +1028,7 @@ return {
 	 LboCollisions = require "App.Collisions.GkLBOCollisions",
 	 ChargeExchange = require "App.Collisions.GkChargeExchange",
 	 Ionization = require "App.Collisions.GkIonization",
+	 Source = require "App.Sources.GkSource",
       }
    end,
 
@@ -1053,6 +1060,8 @@ return {
 	 ChargeExchange = require "App.Collisions.VmChargeExchange",
 	 Ionization = require "App.Collisions.VmIonization",
 	 Diffusion = require "App.Collisions.Diffusion",
+	 SteadySource = require "App.Sources.VmSteadyStateSource",
+	 Source = require "App.Sources.VmSource",
       }
    end,
    
