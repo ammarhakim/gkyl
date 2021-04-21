@@ -45,7 +45,7 @@ plasmaApp = Plasma.App {
    lower  = {-math.pi/kpar},   -- Configuration space lower left.
    upper  = { math.pi/kpar},   -- Configuration space upper right.
    cells  = {16},              -- Configuration space cells.
-   mapc2p = function(xc)
+   mapc2p = function(xc)  -- MF (2021/04/20): this is only intended to give a Jacobian=1 for now.
       -- Field-aligned coordinates (x,y).
       local x, y = xc[1], xc[2]
       -- Cylindrical coordinates (R,phi).
