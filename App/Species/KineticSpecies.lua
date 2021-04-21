@@ -21,6 +21,7 @@ local Projection       = require "App.Projection"
 local ProjectionBase   = require "App.Projection.ProjectionBase"
 local Proto            = require "Lib.Proto"
 local SpeciesBase      = require "App.Species.SpeciesBase"
+local SourceBase       = require "App.Sources.SourceBase"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
 local ffi              = require "ffi"
@@ -141,23 +142,27 @@ function KineticSpecies:fullInit(appTbl)
    self.randomseed = tbl.randomseed
 
    -- Initialization.
+   self.sources = {}
+   for nm, val in pairs(tbl) do
+      if SourceBase.is(val) then
+	 self.sources[nm] = val
+	 self.sources[nm]:setName(nm)
+	 val:setSpeciesName(self.name)
+	 val:fullInit(tbl) -- Initialize sources
+      end
+   end
    self.projections = {}
    for nm, val in pairs(tbl) do
       if ProjectionBase.is(val) then
-	 self.projections[nm] = val
+         self.projections[nm] = val
       end
    end
-   self.sourceSteadyState = xsys.pickBool(tbl.sourceSteadyState, false)
-   if self.sourceSteadyState then
-      self.sourceSteadyStateLength = assert(tbl.sourceSteadyStateLength,
-					    "KineticSpecies: Must specify sourceSteadyStateLength when sourceSteadyState is true.")
+   if tbl.sourceTimeDependence then
+      self.sourceTimeDependence = tbl.sourceTimeDependence
+   else
+      self.sourceTimeDependence = function (t) return 1.0 end
    end
-   if tbl.sourceTimeDependence then 
-      self.sourceTimeDependence = tbl.sourceTimeDependence 
-   else 
-      self.sourceTimeDependence = function (t) return 1.0 end 
-   end
-   -- It is possible to use the keyword 'init', 'background', and 'source'
+   -- It is possible to use the keywords 'init' and 'background'
    -- to specify a function directly without using a Projection object.
    if type(tbl.init) == "function" then
       self.projections["init"] = Projection.KineticProjection.FunctionProjection {
@@ -169,17 +174,18 @@ function KineticSpecies:fullInit(appTbl)
 	 func = function(t, zn) return tbl.background(t, zn, self) end,
       }
    end
-   if type(tbl.source) == "function" then
-      self.projections["source"] = Projection.KineticProjection.FunctionProjection {
-	 func = function(t, zn) return tbl.source(t, zn, self) end,
-      }
-   end
 
    -- Create a keys metatable in self.projections so we always loop in the same order (better for I/O).
    local projections_keys = {}
    for k in pairs(self.projections) do table.insert(projections_keys, k) end
    table.sort(projections_keys)
    setmetatable(self.projections, projections_keys)
+
+   -- Create a keys metatable in self.projections so we always loop in the same order (better for I/O).
+   local sources_keys = {}
+   for k in pairs(self.sources) do table.insert(sources_keys, k) end
+   table.sort(sources_keys)
+   setmetatable(self.sources, sources_keys)
 
    self.deltaF         = xsys.pickBool(appTbl.deltaF, false)
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
@@ -266,10 +272,12 @@ end
 function KineticSpecies:setConfBasis(basis)
    self.confBasis = basis
    for _, c in pairs(self.collisions) do c:setConfBasis(basis) end
+   for _, src in pairs(self.sources) do src:setConfBasis(basis) end
 end
 function KineticSpecies:setConfGrid(grid)
    self.confGrid = grid
    for _, c in pairs(self.collisions) do c:setConfGrid(grid) end
+   for _, src in pairs(self.sources) do src:setConfGrid(grid) end
 end
 
 function KineticSpecies:createGrid(confGridIn)
@@ -563,9 +571,19 @@ function KineticSpecies:initDist(extField)
 	 self.f0:sync(syncPeriodicDirs)
 	 backgroundCnt = backgroundCnt + 1
       end
+      -- if pr.isReservoir then
+      --    if not self.fReservoir then 
+      --       self.fReservoir = self:allocDistf()
+      --    end
+      --    self.fReservoir:accumulate(1.0, self.distf[2])
+      -- end
+      
+      --DEPRECATED---------------------
       if string.find(nm,"source") then
-	 if not self.fSource then self.fSource = self:allocDistf() end
-	 self.fSource:accumulate(1.0, self.distf[2])
+         print("Specifying source as projection is deprecated, please use Plasma.Source instead")
+	 self.projSrc = true
+         if not self.fSource then self.fSource = self:allocDistf() end
+         self.fSource:accumulate(1.0, self.distf[2])
          if self.positivityRescale then
             self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
          end
@@ -584,12 +602,33 @@ function KineticSpecies:initDist(extField)
             self.fSource:scale(self.powerScalingFac)
          end
       end
-      -- if pr.isReservoir then
-      --    if not self.fReservoir then 
-      --       self.fReservoir = self:allocDistf()
-      --    end
-      --    self.fReservoir:accumulate(1.0, self.distf[2])
-      -- end
+   end
+   
+   -- Set up profile function for species sources
+   for nm, src in lume.orderedIter(self.sources) do
+      local sourcePr = self.sources[nm].profile
+      sourcePr:fullInit(self)
+      sourcePr:advance(0.0, {extField}, {self.distf[2]})
+      Mpi.Barrier(self.grid:commSet().sharedComm)
+      if not self.fSource then self.fSource = self:allocDistf() end
+      self.fSource:accumulate(1.0, self.distf[2])
+      if self.positivityRescale then
+	 self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
+      end
+      if sourcePr.power then
+	 local calcInt = Updater.CartFieldIntegratedQuantCalc {
+	    onGrid        = self.confGrid,
+	    basis         = self.confBasis,
+	    numComponents = 1,
+	    quantity      = "V",
+	 }
+	 local intKE = DataStruct.DynVector{numComponents = 1}
+	 self.ptclEnergyCalc:advance(0.0, {self.fSource}, {self.ptclEnergyAux})
+	 calcInt:advance(0.0, {self.ptclEnergyAux, self.mass/2}, {intKE})
+	 local _, intKE_data = intKE:lastData()
+	 self.powerScalingFac = sourcePr.power/intKE_data[1]
+	 self.fSource:scale(self.powerScalingFac)
+      end
    end
    if self.scaleInitWithSourcePower then self.distf[1]:scale(self.powerScalingFac) end
    assert(initCnt>0, string.format("KineticSpecies: Species '%s' not initialized!", self.name))
@@ -948,11 +987,10 @@ function KineticSpecies:write(tm, force)
             self.distf[1]:accumulate(1, self.f0)
          end
          if tm == 0.0 and self.fSource then
-            self.fSource:write(string.format("%s_fSource_0.bp", self.name), tm, self.distIoFrame, true)
-            if self.numDensitySrc then self.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.name), tm, self.distIoFrame) end
-            if self.momDensitySrc then self.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.name), tm, self.distIoFrame) end
-            if self.ptclEnergySrc then self.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.name), tm, self.distIoFrame) end
-         end
+	    for _, src in pairs(self.sources) do
+	       src:write(tm, self.distIoFrame, self)
+	    end
+	 end
 	 self.distIoFrame = self.distIoFrame+1
       end
 
