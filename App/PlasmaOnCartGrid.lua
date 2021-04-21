@@ -1019,6 +1019,7 @@ return {
 	 Geometry = require ("App.Field.GkField").GkGeometry,
 	 FunctionProjection  = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
 	 GyrofluidProjection = require ("App.Projection.GyrofluidProjection").GyrofluidProjection, 
+         Source = require "App.Sources.GyrofluidSource",
       }
    end,
 

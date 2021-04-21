@@ -987,7 +987,7 @@ function KineticSpecies:write(tm, force)
             self.distf[1]:accumulate(1, self.f0)
          end
          if tm == 0.0 and self.fSource then
-	    for _, src in pairs(self.sources) do
+	    for _, src in lume.orderedIter(self.sources) do
 	       src:write(tm, self.distIoFrame, self)
 	    end
 	 end

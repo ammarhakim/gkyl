@@ -119,6 +119,12 @@ function GyrofluidSpecies:createSolver(hasPhi, hasApar, externalField)
    -- Package them into a single table for easier access.
    self.momOff = {self.mJacM0Off,self.mJacM1Off,self.mJacM2Off,self.jacM2perpOff}
 
+   -- Create solvers for sources.
+   for _, src in lume.orderedIter(self.sources) do
+      src:fullInit(self) -- Initialize sources
+      src:createSolver(externalField)
+   end
+
    self.timers = {couplingMom=0., weakMom=0., sources=0.}
 end
 
@@ -243,13 +249,10 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       end
    end
 
-   if self.mSource and self.evolveSources then
-      local tm = Time.clock()
-      -- Add source term to the RHS.
-      -- Barrier over shared communicator before accumulate.
-      Mpi.Barrier(self.grid:commSet().sharedComm)
-      momRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.mSource)
-      self.timers.sources = self.timers.sources + Time.clock() - tm
+   if self.evolveSources then
+      for _, src in lume.orderedIter(self.sources) do
+         src:advance(tCurr, momIn, species, momRhsOut)
+      end
    end
 
 end

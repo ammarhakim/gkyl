@@ -181,25 +181,15 @@ end
 function GkLBOCollisions:setName(nm)
    self.name = nm
 end
-function GkLBOCollisions:setSpeciesName(nm)
-   self.speciesName = nm
-end
+function GkLBOCollisions:setSpeciesName(nm) self.speciesName = nm end
 
 function GkLBOCollisions:setCfl(cfl)
    self.cfl = cfl -- what should this be? - AHH
 end
-function GkLBOCollisions:setConfBasis(basis)
-   self.confBasis = basis
-end
-function GkLBOCollisions:setConfGrid(grid)
-   self.confGrid = grid
-end
-function GkLBOCollisions:setPhaseBasis(basis)
-   self.phaseBasis = basis
-end
-function GkLBOCollisions:setPhaseGrid(grid)
-   self.phaseGrid = grid
-end
+function GkLBOCollisions:setConfBasis(basis) self.confBasis = basis end
+function GkLBOCollisions:setConfGrid(grid) self.confGrid = grid end
+function GkLBOCollisions:setPhaseBasis(basis) self.phaseBasis = basis end
+function GkLBOCollisions:setPhaseGrid(grid) self.phaseGrid = grid end
 
 function GkLBOCollisions:createSolver(externalField)
    self.vDim = self.phaseGrid:ndim() - self.confGrid:ndim()

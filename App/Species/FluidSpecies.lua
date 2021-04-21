@@ -14,6 +14,7 @@ local Mpi              = require "Comm.Mpi"
 local Proto            = require "Lib.Proto"
 local Projection       = require "App.Projection"
 local ProjectionBase   = require "App.Projection.ProjectionBase"
+local SourceBase       = require "App.Sources.SourceBase"
 local SpeciesBase      = require "App.Species.SpeciesBase"
 local DiagsApp         = require "App.Species.Diagnostics.SpeciesDiagnostics"
 local FluidDiags       = require "App.Species.Diagnostics.FluidDiagnostics"
@@ -77,11 +78,21 @@ function FluidSpecies:fullInit(appTbl)
       end
    end
 
-   if tbl.sourceTimeDependence then
-      self.sourceTimeDependence = tbl.sourceTimeDependence
-   else
-      self.sourceTimeDependence = function (t) return 1.0 end
+   -- Initialization.
+   self.sources = {}
+   for nm, val in pairs(tbl) do
+      if SourceBase.is(val) then
+         self.sources[nm] = val
+         self.sources[nm]:setName(nm)
+         val:setSpeciesName(self.name)
+      end
    end
+
+   -- Create a keys metatable in self.projections so we always loop in the same order (better for I/O).
+   local sources_keys = {}
+   for k in pairs(self.sources) do table.insert(sources_keys, k) end
+   table.sort(sources_keys)
+   setmetatable(self.sources, sources_keys)
 
    -- The keys 'init' and 'background' can be used to speciy initial conditions
    -- or a background (for perturbed=true sims). These can be functions that would
@@ -183,6 +194,7 @@ function FluidSpecies:setName(nm) self.name = nm end
 function FluidSpecies:setCfl(cfl)
    self.cfl = cfl
    for _, c in pairs(self.collisions) do c:setCfl(cfl) end
+   for _, src in pairs(self.sources) do src:setCfl(cfl) end
 end
 
 function FluidSpecies:setIoMethod(ioMethod) self.ioMethod = ioMethod end
@@ -190,15 +202,17 @@ function FluidSpecies:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 function FluidSpecies:setConfBasis(basis)
    self.basis = basis
    for _, c in pairs(self.collisions) do c:setConfBasis(basis) end
+   for _, src in pairs(self.sources) do src:setConfBasis(basis) end
 end
-function FluidSpecies:setConfGrid(cgrid)
-   self.grid = cgrid
+function FluidSpecies:setConfGrid(grid)
+   self.grid = grid
    self.ndim = self.grid:ndim()
-   for _, c in pairs(self.collisions) do c:setConfGrid(cgrid) end
+   for _, c in pairs(self.collisions) do c:setConfGrid(grid) end
+   for _, src in pairs(self.sources) do src:setConfGrid(grid) end
 end
 
-function FluidSpecies:createGrid(cgrid)
-   self.grid = cgrid
+function FluidSpecies:createGrid(grid)
+   self.grid = grid
    -- Output of grid file is placed here so we can associate a grid file
    -- with this species alone (e.g. what if one species is evolved on a
    -- coarser/finer mesh than another one).
@@ -625,8 +639,10 @@ function FluidSpecies:write(tm, force)
             self.momIo:write(momIn, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
             momIn:accumulate(1, self.momBackground)
          end
-         if tm == 0.0 and self.mSource then
-            self.momIo:write(self.mSource, string.format("%s_mSource_0.bp", self.name), tm, self.diagIoFrame)
+         if tm == 0.0 then
+            for _, src in lume.orderedIter(self.sources) do
+               src:write(tm, self.diagIoFrame, self)
+            end
          end
 
          for _, dOb in pairs(self.diagnostics) do

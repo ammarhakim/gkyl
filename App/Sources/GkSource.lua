@@ -8,21 +8,16 @@
 
 local SourceBase     = require "App.Sources.SourceBase"
 local DataStruct     = require "DataStruct"
-local ffi            = require "ffi"
-local Lin            = require "Lib.Linalg"
 local Mpi            = require "Comm.Mpi"
 local Projection     = require "App.Projection"
 local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
-local Updater        = require "Updater"
 
 local GkSource = Proto(SourceBase)
 
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
-function GkSource:init(tbl)
-   self.tbl = tbl
-end
+function GkSource:init(tbl) self.tbl = tbl end
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
