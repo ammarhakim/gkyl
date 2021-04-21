@@ -1153,8 +1153,9 @@ function VlasovSpecies:calcExternalBC()
       cells[d] = 1
    end
    for d = 1, self.vdim do
-      lower[d + self.cdim] = self.grid:lower(d + self.cdim)
-      upper[d + self.cdim] = self.grid:upper(d + self.cdim)
+      lower[d + self.cdim] = self.lower[d]
+      upper[d + self.cdim] = self.upper[d]
+      print(lower[d + self.cdim], upper[d + self.cdim])
       cells[d + self.cdim] = self.grid:numCells(d + self.cdim)
    end
    local grid = GridConstructor {
