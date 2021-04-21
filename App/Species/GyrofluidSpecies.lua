@@ -41,8 +41,7 @@ function GyrofluidSpecies:fullInit(appTbl)
 end
 
 function GyrofluidSpecies:alloc(nRkDup)
-   -- Allocate distribution function.
-   GyrofluidSpecies.super.alloc(self, nRkDup)
+   GyrofluidSpecies.super.alloc(self, nRkDup)   -- Call the FluidSpecies :alloc method.
 
    self.primMomSelf = self:allocVectorMoment(3)   -- upar, Tpar, Tperp of this species.
 
@@ -66,6 +65,15 @@ function GyrofluidSpecies:alloc(nRkDup)
    self.jacM2 = self:allocMoment();  self.jacM2Aux = self:allocMoment()
 
    self.polarizationWeight = self:allocMoment()   -- Not used when using linearized poisson solve.
+
+   -- Offsets needed to fetch specific moments from CartField
+   -- containing the stepped moments (e.g. with :combineOffset).
+   self.mJacM0Off    = 0 
+   self.mJacM1Off    = 1*self.basis:numBasis() 
+   self.mJacM2Off    = 2*self.basis:numBasis()  
+   self.jacM2perpOff = 3*self.basis:numBasis() 
+   -- Package them into a single table for easier access.
+   self.momOff = {self.mJacM0Off,self.mJacM1Off,self.mJacM2Off,self.jacM2perpOff}
 
    self.first = true
 end
@@ -109,21 +117,6 @@ function GyrofluidSpecies:createSolver(hasPhi, hasApar, externalField)
       clearOut           = false,   -- Continue accumulating into output field.
       globalUpwind       = true,
    }
-
-   -- Offsets needed to fetch specific moments from CartField
-   -- containing the stepped moments (e.g. with :combineOffset).
-   self.mJacM0Off    = 0 
-   self.mJacM1Off    = 1*self.basis:numBasis() 
-   self.mJacM2Off    = 2*self.basis:numBasis()  
-   self.jacM2perpOff = 3*self.basis:numBasis() 
-   -- Package them into a single table for easier access.
-   self.momOff = {self.mJacM0Off,self.mJacM1Off,self.mJacM2Off,self.jacM2perpOff}
-
-   -- Create solvers for sources.
-   for _, src in lume.orderedIter(self.sources) do
-      src:fullInit(self) -- Initialize sources
-      src:createSolver(externalField)
-   end
 
    self.timers = {couplingMom=0., weakMom=0., sources=0.}
 end

@@ -85,6 +85,7 @@ function FluidSpecies:fullInit(appTbl)
          self.sources[nm] = val
          self.sources[nm]:setName(nm)
          val:setSpeciesName(self.name)
+         val:fullInit(tbl) -- Initialize sources
       end
    end
 
@@ -327,6 +328,10 @@ function FluidSpecies:createSolver(externalField)
    -- Create solvers for collisions (diffusion).
    for _, c in pairs(self.collisions) do
       c:createSolver(externalField)
+   end
+   -- Create solvers for sources.
+   for _, src in lume.orderedIter(self.sources) do
+      src:createSolver(self,externalField)
    end
    if self.positivity then
       self.posChecker = Updater.PositivityCheck {
