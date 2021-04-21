@@ -17,6 +17,8 @@ function EvaluateBronoldFehskeBC:init(tbl)
    self.elemCharge = assert(tbl.elemCharge, "Updater.EvaluateBronoldFehskeBC: Must specify elemCharge")
    self.me = assert(tbl.me, "Updater.EvaluateBronoldFehskeBC: Must specify electronMass")
    self.roughness = 2.0
+   self.vdim = tbl.vdim
+   self.cdim = tbl.cdim
 
    assert(self.grid:ndim() == self.basis:ndim(), "Dimensions of basis and grid must match")
    
@@ -68,48 +70,49 @@ function EvaluateBronoldFehskeBC:init(tbl)
       end
    end
    self.idxP = Lin.IntVec(self.ndim)
-   self.idxP[1] = 1
+   for d = 1, self.cdim do
+      self.idxP[d] = 1
+   end
 end
 
 function EvaluateBronoldFehskeBC:_advance(tCurr, inFld, outFld)
    local reflectionFunction = assert(outFld[1], "EvaluateBronoldFehskeBC.advance: Must specify an output field")
-   self.vdim = self.ndim - 1
    local Nx = Lin.Vec(self.vdim)
-   local dx = Lin.Vec(self.vdim)
-   local vc = {}
    local l, u = {}, {}
    for d = 1, self.vdim do
-      dx[d] = self.grid:dx(d + 1)
-      Nx[d] = self.grid:numCells(d + 1)
+      Nx[d] = self.grid:numCells(d + self.cdim)
       l[d], u[d] = 1, Nx[d]
-      vc[d] = {}
-      for n = 1, Nx[d] do
-	 vc[d][n] = self.grid:lower(d + 1) + (0.5 + (n - 1))*dx[d]
-      end
    end
    local Nv = Range.Range(l, u) -- For looping over quadrature nodes.
    local refIndexer = reflectionFunction:genIndexer()
    local fItr = reflectionFunction:get(1)
    for idx in Nv:rowMajorIter() do
-      for d = 1, self.vdim do self.idxP[d + 1] = idx[d] end
-      reflectionFunction:fill(refIndexer(self.idxP), fItr)
+      for d = 1, self.vdim do self.idxP[d + self.cdim] = idx[d] end
+      local xc = Lin.Vec(self.ndim)
+      local dx = Lin.Vec(self.ndim)
       local vcx = Lin.Vec(self.vdim)
+      local dv = Lin.Vec(self.vdim)
+      self.grid:setIndex(self.idxP)
+      self.grid:cellCenter(xc)
+      self.grid:getDx(dx)
       for d = 1, self.vdim do
-	 vcx[d] = vc[d][idx[d]]
+         vcx[d] = xc[d + self.cdim]
+         dv[d] = dx[d + self.cdim]
       end
+      reflectionFunction:fill(refIndexer(self.idxP), fItr)
       local temp = {}
       for m = 1, self.numBasis do
-	 for n = 1, self.numBasis do
-	    Rquad = {}
-	    for i = 1, self.numOrdinates do
-	       local v = Lin.Vec(self.vdim)
+         for n = 1, self.numBasis do
+	    local Rquad = {}
+            for i = 1, self.numOrdinates do
+               local v = Lin.Vec(self.vdim)
 	       for d = 1, self.vdim do
-	          v[d] = self.ordinates[i][d + 1]
-	       end
-	       Rquad[i] = self:getR(self:getE(v, vcx, dx), self:getXi(v, vcx, dx))*self.negBasisAtOrdinates[i][n]*self.basisAtOrdinates[i][m]
-	    end
-	    fItr[self.numBasis*(m - 1) + n] = self:quad(Rquad, -1, 1, self.weights, self.numOrdinates)
-	 end
+                  v[d] = self.ordinates[i][d + self.cdim]
+               end
+               Rquad[i] = self:getR(self:getE(v, vcx, dv), self:getXi(v, vcx, dv))*self.negBasisAtOrdinates[i][n]*self.basisAtOrdinates[i][m]
+            end
+            fItr[self.numBasis*(m - 1) + n] = self:quad(Rquad, -1, 1, self.weights, self.numOrdinates)
+         end
       end
    end
 end
