@@ -29,9 +29,7 @@ local GkLBOCollisions = Proto(CollisionsBase)
 
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
-function GkLBOCollisions:init(tbl)
-   self.tbl = tbl
-end
+function GkLBOCollisions:init(tbl) self.tbl = tbl end
 
 -- Function to find the index of an element in table.
 local function findInd(tblIn, el)

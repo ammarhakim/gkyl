@@ -29,9 +29,7 @@ local FluidSpecies = Proto(SpeciesBase)
 
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
-function FluidSpecies:init(tbl)
-   self.tbl = tbl
-end
+function FluidSpecies:init(tbl) self.tbl = tbl end
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
@@ -167,7 +165,7 @@ function FluidSpecies:fullInit(appTbl)
          self.collisions[nm] = val
          self.collisions[nm]:setName(nm)
          val:setSpeciesName(self.name)
-         val:fullInit(tbl)    -- Initialize collisions (diffusion).
+         val:fullInit(tbl)    -- Initialize collisions (e.g. diffusion).
       end
    end
 
@@ -325,25 +323,6 @@ function FluidSpecies:createSolver(externalField)
       self.jacobInv  = externalField.geo.jacobGeoInv
    end
 
-   -- Create solvers for collisions (diffusion).
-   for _, c in pairs(self.collisions) do
-      c:createSolver(externalField)
-   end
-   -- Create solvers for sources.
-   for _, src in lume.orderedIter(self.sources) do
-      src:createSolver(self,externalField)
-   end
-   if self.positivity then
-      self.posChecker = Updater.PositivityCheck {
-         onGrid = self.grid,
-         basis  = self.basis,
-      }
-      self.posRescaler = Updater.PositivityRescale {
-         onGrid = self.grid,
-         basis  = self.basis,
-      }
-   end
-
    -- Operators needed for time-dependent calculation and diagnostics.
    self.weakMultiply = Updater.CartFieldBinOp {
       onGrid    = self.grid,
@@ -371,6 +350,25 @@ function FluidSpecies:createSolver(externalField)
          quantity      = "V"
       }
    }
+
+   -- Create solvers for collisions (e.g. diffusion).
+   for _, c in pairs(self.collisions) do
+      c:createSolver(self, externalField)
+   end
+   -- Create solvers for sources.
+   for _, src in lume.orderedIter(self.sources) do
+      src:createSolver(self,externalField)
+   end
+   if self.positivity then
+      self.posChecker = Updater.PositivityCheck {
+         onGrid = self.grid,
+         basis  = self.basis,
+      }
+      self.posRescaler = Updater.PositivityRescale {
+         onGrid = self.grid,
+         basis  = self.basis,
+      }
+   end
 end
 
 function FluidSpecies:alloc(nRkDup)

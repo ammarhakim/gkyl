@@ -32,6 +32,8 @@ IncompEulerSpecies.bcNeumann   = SP_BC_NEUMANN      -- Specify the derivative (c
 function IncompEulerSpecies:fullInit(appTbl)
    IncompEulerSpecies.super.fullInit(self, appTbl)
 
+   self.sourceTimeDependence = self.tbl.sourceTimeDependence or function (t) return 1. end
+
    self.nMoments = 1
    self.zeroFluxDirections = {}
 end

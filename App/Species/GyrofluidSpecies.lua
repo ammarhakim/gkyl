@@ -289,7 +289,11 @@ function GyrofluidSpecies:selfPrimitiveMoments()
    return { self.uParSelf, self.TparSelf, self.TperpSelf }
 end
 
-function GyrofluidSpecies:crossPrimitiveMoments(otherSpeciesName)
+function GyrofluidSpecies:selfPrimitiveMoments()
+   return { self.uParSelf, self.TparSelf, self.TperpSelf }
+end
+function GyrofluidSpecies:getPressuresJac()
+   return { self.pParJac, self.pPerpJac }
 end
 
 function GyrofluidSpecies:getNumDensity(rkIdx)

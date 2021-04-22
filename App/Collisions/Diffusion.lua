@@ -53,27 +53,13 @@ function Diffusion:fullInit(speciesTbl)
    self.timers = {nonSlvr = 0.}
 end
 
-function Diffusion:setName(nm)
-   self.name = nm
-end
-function Diffusion:setSpeciesName(nm)
-   self.speciesName = nm
-end
-function Diffusion:setCfl(cfl)
-   self.cfl = cfl
-end
-function Diffusion:setConfBasis(basis)
-   self.confBasis = basis
-end
-function Diffusion:setConfGrid(grid)
-   self.confGrid = grid
-end
-function Diffusion:setPhaseBasis(basis)
-   self.phaseBasis = basis
-end
-function Diffusion:setPhaseGrid(grid)
-   self.phaseGrid = grid
-end
+function Diffusion:setName(nm)          self.name = nm end
+function Diffusion:setSpeciesName(nm)   self.speciesName = nm end
+function Diffusion:setCfl(cfl)          self.cfl = cfl end
+function Diffusion:setConfBasis(basis)  self.confBasis = basis end
+function Diffusion:setConfGrid(grid)    self.confGrid = grid end
+function Diffusion:setPhaseBasis(basis) self.phaseBasis = basis end
+function Diffusion:setPhaseGrid(grid)   self.phaseGrid = grid end
 
 function Diffusion:createSolver()
    local grid, basis

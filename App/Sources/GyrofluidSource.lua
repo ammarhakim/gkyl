@@ -45,9 +45,9 @@ function GyrofluidSource:setConfBasis(basis) self.basis = basis end
 function GyrofluidSource:setConfGrid(grid) self.grid = grid end
 function GyrofluidSource:setCfl(cfl) self.cfl = cfl end
 
-function GyrofluidSource:createSolver(thisSpecies, externalField)
+function GyrofluidSource:createSolver(mySpecies, externalField)
    -- Source rate in each moment equation.
-   self.momSource = thisSpecies:allocVectorMoment(thiSpecies.nMoments)
+   self.momSource = mySpecies:allocVectorMoment(mySpecies.nMoments)
 
    local gfProj = Projection.GyrofluidProjection {
       density = self.denFunc,
@@ -55,7 +55,7 @@ function GyrofluidSource:createSolver(thisSpecies, externalField)
       parallelTemperature = self.TparFunc,
       perpendicularTemperature = self.TperpFunc,
    }
-   gfProj:fullInit(thisSpecies)
+   gfProj:fullInit(mySpecies)
 
    gfProj:advance(0., {externalField}, {self.momSource})
    Mpi.Barrier(self.grid:commSet().sharedComm)

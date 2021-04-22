@@ -1014,12 +1014,13 @@ return {
       App.label = "Gyrofluid"
       return  {
 	 App = App,
-	 Species = require "App.Species.GyrofluidSpecies",
 	 Field = require ("App.Field.GkField").GkField,
+	 FunctionProjection = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
 	 Geometry = require ("App.Field.GkField").GkGeometry,
-	 FunctionProjection  = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
 	 GyrofluidProjection = require ("App.Projection.GyrofluidProjection").GyrofluidProjection, 
+         PASCollisions = require "App.Collisions.GfPitchAngleScattering",
          Source = require "App.Sources.GyrofluidSource",
+	 Species = require "App.Species.GyrofluidSpecies",
       }
    end,
 
