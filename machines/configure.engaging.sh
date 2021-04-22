@@ -31,9 +31,11 @@ LUAJIT_SHARE_DIR=$GKYLSOFT/luajit/share/luajit-2.1.0-beta3/
 ## MPI options
 MPICC=mpicc
 MPICXX=mpicxx
-ENABLE_MPI= #"--enable-mpi"
-#MPI_INC_DIR=$GKYLSOFT/openmpi/include/
-#MPI_LIB_DIR=$GKYLSOFT/openmpi/lib/
+ENABLE_MPI="--enable-mpi"
+# no need to specify these paths, loading the openmpi module 
+# ensures that everything can be found
+MPI_INC_DIR=
+MPI_LIB_DIR=
 MPI_LINK_LIBS="mpi"
 
 # ADIOS options
