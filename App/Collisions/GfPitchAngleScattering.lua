@@ -40,6 +40,8 @@ function GfPitchAngleScattering:createSolver(mySpecies, externalField)
    self.weakMultiply = mySpecies.weakMultiply
 
    self.collOut = mySpecies:allocMoment()
+   self.unitFld1comp = mySpecies:allocCartField(self.grid, 1, {1,1})
+   self.unitFld1comp:clear(1.)
 
    -- Inverse of background magnetic field.
    self.bmagInv = externalField.geo.bmagInv
@@ -47,7 +49,10 @@ function GfPitchAngleScattering:createSolver(mySpecies, externalField)
    -- The species looks for a solver object with a setDtAndCflRate method. Mimic it.
    -- MF 2021/04/22: I think setDtAndCflRate should disappear.
    self.collisionSlvr = {}
-   function self.collisionSlvr:setDtAndCflRate(dtGlobal, cflRateByCell) end
+   function self.collisionSlvr:setDtAndCflRate(dtGlobal, cflRateByCell)
+      --self.collisionSlvr.cflRateByCell = cflRateByCell
+      self.cflRateByCell = cflRateByCell
+   end
 end
 
 function GfPitchAngleScattering:advance(tCurr, momIn, species, momRhsOut)
@@ -61,6 +66,9 @@ function GfPitchAngleScattering:advance(tCurr, momIn, species, momRhsOut)
    self.weakMultiply:advance(tCurr, {self.bmagInv, self.collOut}, {self.collOut})
 
    momRhsOut:accumulateOffset(self.collFreqSelf, self.collOut, selfSpecies:getMomOff(4))
+
+   -- Set the CFL rate from this operator.
+   self.collisionSlvr.cflRateByCell:accumulate(self.collFreqSelf, self.unitFld1comp)
 
    self.timers.totalTime = self.timers.totalTime + Time.clock() - tm
 end
