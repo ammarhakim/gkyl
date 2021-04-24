@@ -13,48 +13,18 @@ local DataStruct = require "DataStruct"
 local Time       = require "Lib.Time"
 local Updater    = require "Updater"
 local lume       = require "Lib.lume"
+local Mpi        = require "Comm.Mpi"
+local ffi        = require "ffi"
+local xsys       = require "xsys"
+
+local new, copy = xsys.from(ffi,"new, copy")
 
 local contains=function(tbl, elem)
    for k, _ in pairs(tbl) do if elem == k then return true end end
    return false
 end
 
-local SpeciesDiagnostics = Proto()  -- FluidDiags is a child of DiagsBase.
-
-function SpeciesDiagnostics:init(tbl)
-   self.tbl = tbl
-end
-
-function SpeciesDiagnostics:fullInit(mySpecies, diagsImpl)
-
-   self.name = mySpecies.name
-
-   self.diags = {}  -- Grid and integrated diagnostics.
-   self.diagGroups = {grid={}, integrated={}}  -- Names of requested diags of each kind.
-
-   -- Sort requested diagnostics into grid and integrated diagnostics.
-   for _, nm in ipairs(mySpecies.tbl.diagnostics) do
-      if contains(diagsImpl, nm) then
-         self.diags[nm] = diagsImpl[nm]{}
-         local diagType = diagsImpl[nm]:getType()
-         table.insert(self.diagGroups[diagType], nm)
-      else
-         assert(false, string.format("FluidDiagnostics: %s is not an allowed diagnostic.",nm))
-      end
-   end
-
-   -- Organize diagnostics and identify dependencies.
-   self:orgDiagnostics(diagsImpl, self.diags)
-
-   -- Initialize diagnostics.
-   for _, dG in pairs(self.diagGroups) do
-      for _, diagNm in ipairs(dG) do self.diags[diagNm]:fullInit(self, mySpecies) end
-   end
-
-   self.spentTime = { gridDiags=0., intDiags=0. }
-end
-
-function SpeciesDiagnostics:orgDiagnostics(diagsImpl, diagsTbl)
+local function orgDiagnostics(diagsImpl, diagsTbl, diagGroups)
    -- Insert other diagnostics needed by the requested diagnostics. Then organize them
    -- so the dependents are computed last. 
 
@@ -67,7 +37,7 @@ function SpeciesDiagnostics:orgDiagnostics(diagsImpl, diagsTbl)
          if diags[depNm]==nil then
             if contains(impl, depNm) then
                diags[depNm] = impl[depNm]
-               table.insert(self.diagGroups[impl[depNm]:getType()], depNm) 
+               table.insert(diagGroups[impl[depNm]:getType()], depNm) 
                checkNinsertDependencies(depNm, impl, diags)
             end
          end
@@ -92,16 +62,67 @@ function SpeciesDiagnostics:orgDiagnostics(diagsImpl, diagsTbl)
          return dependsOn(d1,d2)
       end
       table.sort(diagList, sortFunc)
+      -- Different MPI ranks may find different acceptable orders.
+      -- Need to sync this order across MPI ranks.
+      local myOrder, delim = "", ","
+      for _, v in ipairs(diagList) do myOrder=myOrder..v..delim end
+      local Cstr = new("char [?]", string.len(myOrder))
+      ffi.copy(Cstr, myOrder)
+      Mpi.Bcast(Cstr, string.len(myOrder)+1, Mpi.CHAR, 0, Mpi.COMM_WORLD)
+      myOrder = ffi.string(Cstr)
+      local newList = {}
+      for nm in string.gmatch(myOrder, "(.-)"..delim) do table.insert(newList, nm) end
+      for i, v in ipairs(newList) do diagList[i] = v end 
    end
-   sortDiagsTbl(diagsImpl, self.diagGroups.grid)
-   sortDiagsTbl(diagsImpl, self.diagGroups.integrated)
+   -- We have to sort the groups in the same order in every MPI rank.
+   for _, v in lume.orderedIter(diagGroups) do sortDiagsTbl(diagsImpl, v) end
+end
+
+local SpeciesDiagnostics = Proto()  -- FluidDiags is a child of DiagsBase.
+
+function SpeciesDiagnostics:init(tbl)
+   self.tbl = tbl
+end
+
+function SpeciesDiagnostics:fullInit(mySpecies, diagsImpl)
+
+   self.name = mySpecies.name
+
+   self.diags = {}  -- Grid and integrated diagnostics.
+   self.diagGroups = {grid={}, integrated={}}  -- Names of requested diags of each kind.
+   local groups_keys = {}
+   for k in pairs(self.diagGroups) do table.insert(groups_keys, k) end
+   table.sort(groups_keys)
+   setmetatable(self.diagGroups, groups_keys)  -- Stored ordered keys in metatable.
+
+   -- Sort requested diagnostics into grid and integrated diagnostics.
+   for _, nm in ipairs(mySpecies.tbl.diagnostics) do
+      if contains(diagsImpl, nm) then
+         self.diags[nm] = diagsImpl[nm]{}
+         local diagType = diagsImpl[nm]:getType()
+         table.insert(self.diagGroups[diagType], nm)
+      else
+         assert(false, string.format("FluidDiagnostics: %s is not an allowed diagnostic.",nm))
+      end
+   end
+
+   -- Organize diagnostics and identify dependencies.
+   orgDiagnostics(diagsImpl, self.diags, self.diagGroups)
+
+   -- Initialize diagnostics.
+   for _, dG in pairs(self.diagGroups) do
+      for _, diagNm in ipairs(dG) do self.diags[diagNm]:fullInit(self, mySpecies) end
+   end
+
+   self.spentTime = { gridDiags=0., intDiags=0. }
 end
 
 function SpeciesDiagnostics:resetState(tm)
    -- Reset the state indicating if diagnostic has been computed.
    -- This state prevents computing a diagnostic twice when there are dependencies.
-   for _, diagNm in ipairs(self.diagGroups.grid) do self.diags[diagNm].done=false end
-   for _, diagNm in ipairs(self.diagGroups.integrated) do self.diags[diagNm].done=false end
+   for _, dG in lume.orderedIter(self.diagGroups) do 
+      for _, diagNm in ipairs(dG) do self.diags[diagNm].done=false end
+   end
 end
 
 function SpeciesDiagnostics:calcDiagDependencies(tm, mySpecies, diagNm)
@@ -173,6 +194,7 @@ function SpeciesDiagnostics:write(tm, fr)
 end
 
 function SpeciesDiagnostics:writeRestartGridDiagnostics(tm, fr)
+   
    for _, diagNm in ipairs(self.diagGroups["grid"]) do 
       local diag = self.diags[diagNm]
       diag.field:write(string.format("%s_%s_restart.bp", self.name, diagNm), tm, fr, false)

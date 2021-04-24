@@ -50,7 +50,6 @@ function GfPitchAngleScattering:createSolver(mySpecies, externalField)
    -- MF 2021/04/22: I think setDtAndCflRate should disappear.
    self.collisionSlvr = {}
    function self.collisionSlvr:setDtAndCflRate(dtGlobal, cflRateByCell)
-      --self.collisionSlvr.cflRateByCell = cflRateByCell
       self.cflRateByCell = cflRateByCell
    end
 end

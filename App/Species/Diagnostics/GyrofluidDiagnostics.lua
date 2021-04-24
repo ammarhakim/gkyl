@@ -18,12 +18,6 @@ local DiagsImplBase = require "App.Species.Diagnostics.DiagnosticsImplBase"
 local DataStruct    = require "DataStruct"
 local Updater       = require "Updater"
 
--- The first entry is the diagnostic name. The second is the other diagnostics it depends on.
-local allowedFieldDiags = {{"MomSq",{}},{"M0",{}},{"M1",{}},{"M2",{}}, {"M2flow",{"M1","upar"}},
-                           {"upar",{}}, {"Tpar",{"M0","ppar"}}, {"Tperp",{"M0","pperp"}},
-                           {"Temp",{"M0","M2flow"}}, {"ppar",{"M2flow","pperp"}}, {"pperp",{}}}
-local allowedIntegratedDiags = {{"intMom",{}},{"intM0",{"M0"}}, {"intM1",{"M1"}}, {"intM2",{"M2"}}, {"intM2flow",{"M2flow"}}}
-
 -- ~~~~ The moments squared ~~~~~~~~~~~~~~~~~~~~~~
 local GyrofluidDiag_MomSq = Proto(DiagsImplBase)
 function GyrofluidDiag_MomSq:fullInit(diagApp, specIn)
@@ -271,6 +265,7 @@ return {
    ppar   = GyrofluidDiag_ppar,
    Tperp  = GyrofluidDiag_Tperp,
    Tpar   = GyrofluidDiag_Tpar,
+   Temp   = GyrofluidDiag_Temp,
    intMom    = GyrofluidDiag_intMom,
    intM0     = GyrofluidDiag_intM0,
    intM1     = GyrofluidDiag_intM1,
