@@ -17,7 +17,6 @@ local Adios = require "Io.Adios"
 local Alloc = require "Lib.Alloc"
 local Proto = require "Lib.Proto"
 local Lin   = require "Lib.Linalg"
-local Logger = require "Lib.Logger"
 
 -- Code from Lua wiki to convert table to comma-seperated-values
 -- string.
@@ -290,11 +289,6 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
       fld:_copy_from_field_region(localRange, self._outBuff[1])
 
       local err = Adios.write(fd, fldNm, self._outBuff[1]:data())
-      if err ~= 0 then
-         local log = Logger { logToFile = true }
-         log("ADIOS write error... ending simulation")
-         os.exit()
-      end
    end
    Adios.close(fd)
 end
