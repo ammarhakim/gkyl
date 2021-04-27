@@ -54,7 +54,7 @@ class culink(ccroot.link_task):
 def options(opt):
     opt.add_option('--enable-cuda', help=('Enable CUDA GPU build (if NVCC is found)'),
                    dest='enable_cuda', action='store_true',
-                   default=True)
+                   default=False)
     opt.add_option('--disable-cuda', help=('Disable CUDA GPU build (even if NVCC can be found)'),
                    dest='enable_cuda', action='store_false')
     opt.add_option('--cuda-inc-dir', type='string', help='Path to CUTOOLS includes', dest='cuIncDir')
