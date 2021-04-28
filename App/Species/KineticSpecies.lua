@@ -144,7 +144,10 @@ function KineticSpecies:fullInit(appTbl)
    -- Initialization.
    self.sources = {}
    for nm, val in pairs(tbl) do
-      if SourceBase.is(val) then
+      if SourceBase.is(val) or nm == "source" then
+         if ProjectionBase.is(val) then
+            val = self:projToSource(val)
+         end
 	 self.sources[nm] = val
 	 self.sources[nm]:setName(nm)
 	 val:setSpeciesName(self.name)
@@ -153,15 +156,15 @@ function KineticSpecies:fullInit(appTbl)
    end
    self.projections = {}
    for nm, val in pairs(tbl) do
-      if ProjectionBase.is(val) then
+      if ProjectionBase.is(val) and nm ~= "source" then
          self.projections[nm] = val
       end
    end
-   if tbl.sourceTimeDependence then
-      self.sourceTimeDependence = tbl.sourceTimeDependence
-   else
-      self.sourceTimeDependence = function (t) return 1.0 end
-   end
+   --if tbl.sourceTimeDependence then
+      --self.sourceTimeDependence = tbl.sourceTimeDependence
+   --else
+      --self.sourceTimeDependence = function (t) return 1.0 end
+   --end
    -- It is possible to use the keywords 'init' and 'background'
    -- to specify a function directly without using a Projection object.
    if type(tbl.init) == "function" then
@@ -913,6 +916,11 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
     for i, mom in ipairs(self.diagnosticIntegratedMoments) do
        self.diagnosticIntegratedMomentFields[mom]:write(
           string.format("%s_%s.bp", self.name, mom), tm, self.diagIoFrame)
+    end
+
+    -- Write source diagnostics
+    for nm, src in lume.orderedIter(self.sources) do
+       src:writeDiagnosticIntegratedMoments(tm, self.diagIoFrame)
     end
 
     for i, mom in ipairs(self.diagnosticIntegratedBoundaryFluxMoments) do

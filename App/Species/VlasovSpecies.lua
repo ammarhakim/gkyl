@@ -642,13 +642,17 @@ function VlasovSpecies:createDiagnostics()
      end
      return false
    end
+   for _, src in lume.orderedIter(self.sources) do
+      src:createDiagnostics(self)
+   end
+   --if self.fSource then
+      --self.numDensitySrc = self:allocMoment()
+      --self.momDensitySrc = self:allocVectorMoment(self.vdim)
+      --self.ptclEnergySrc = self:allocMoment()
+      --self.fiveMomentsCalc:advance(0.0, {self.fSource}, {self.numDensitySrc, self.momDensitySrc, self.ptclEnergySrc})
+    --end
 
-    if self.fSource then
-      self.numDensitySrc = self:allocMoment()
-      self.momDensitySrc = self:allocVectorMoment(self.vdim)
-      self.ptclEnergySrc = self:allocMoment()
-      self.fiveMomentsCalc:advance(0.0, {self.fSource}, {self.numDensitySrc, self.momDensitySrc, self.ptclEnergySrc})
-    end
+
    -- Create updater to compute volume-integrated moments
    -- function to check if integrated moment name is correct.
    local function isIntegratedMomentNameGood(nm)
