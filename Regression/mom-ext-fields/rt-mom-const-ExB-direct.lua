@@ -106,7 +106,7 @@ momentApp = Moments.App {
 
    emSource = Moments.CollisionlessEmSource {
       species = {"elc", "ion"},
-      timeStepper = "time-centered",
+      timeStepper = "direct",
       hasStaticField = true,
       staticEmFunction = function(t, xn)
          local x, y = xn[1], xn[2]

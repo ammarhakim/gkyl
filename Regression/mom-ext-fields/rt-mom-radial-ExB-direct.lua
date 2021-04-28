@@ -5,7 +5,7 @@ local Euler = require "Eq.Euler"
 local gasGamma = 5.0/3.0
 local lower = -10.0
 local upper = 10.0
-local cells = 16
+local cells = 128
 
 local epsilon0 = 1.0
 local mu0 = 1.0
@@ -28,7 +28,7 @@ local B0 = 1.0
 local E0 = 0.1
 
 local cfl = 1.0
-local tEnd = 200.0*math.pi
+local tEnd = 4.0*math.pi
 local nFrame = 1
 
 -- Gaussian pulse
@@ -52,9 +52,6 @@ momentApp = Moments.App {
    decompCuts = {1, 1},    -- Cuts in each configuration direction.
    useShared = false,   -- If to use shared memory.
 
-   -- boundary conditions for configuration space
-   periodicDirs = {1, 2}, -- periodic directions
-
    -- Electrons.
    elc = Moments.Species {
       charge = chargeElc, mass = massElc,
@@ -65,14 +62,16 @@ momentApp = Moments.App {
       -- Initial conditions.
       init = function (t, xn)
          local x, y = xn[1], xn[2]
-         local rhoe = massElc
-         local rhovx_e = massElc*E0*B0
-         local rhovy_e = -massElc*E0*B0
+         local rhoe = pulse2D(massElc, x, y, 0.0, 0.0, 2.0)
+         local rhovx_e = 0.0
+         local rhovy_e = 0.0
          local rhovz_e = 0.0
          local u_e = rhoe*elcTemp/(gasGamma - 1) + 0.5*(rhovx_e*rhovx_e + rhovy_e*rhovy_e + rhovz_e*rhovz_e)/rhoe
          return rhoe, rhovx_e, rhovy_e, rhovz_e, u_e
       end,
       evolve = true,   -- Evolve species?
+      bcx = { Moments.Species.bcWall, Moments.Species.bcWall },
+      bcy = { Moments.Species.bcWall, Moments.Species.bcWall },
    },
 
    -- Ions.
@@ -85,14 +84,16 @@ momentApp = Moments.App {
       -- Initial conditions.
       init = function (t, xn)
          local x, y = xn[1], xn[2]
-         local rhoi = massIon
-         local rhovx_i = massIon*E0*B0
-         local rhovy_i = -massIon*E0*B0
+         local rhoi = pulse2D(massIon, x, y, 0.0, 0.0, 2.0)
+         local rhovx_i = 0.0
+         local rhovy_i = 0.0
          local rhovz_i = 0.0
          local u_i = rhoi*ionTemp/(gasGamma - 1) + 0.5*(rhovx_i*rhovx_i + rhovy_i*rhovy_i + rhovz_i*rhovz_i)/rhoi
          return rhoi, rhovx_i, rhovy_i, rhovz_i, u_i
       end,
       evolve = true,   -- Evolve species?
+      bcx = { Moments.Species.bcWall, Moments.Species.bcWall },
+      bcy = { Moments.Species.bcWall, Moments.Species.bcWall },
    },
 
    field = Moments.Field {
@@ -102,15 +103,19 @@ momentApp = Moments.App {
          return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
       end,
       evolve = true,    -- Evolve field?
+      bcx = { Moments.Field.bcReflect, Moments.Field.bcReflect },
+      bcy = { Moments.Field.bcReflect, Moments.Field.bcReflect },
    },
 
    emSource = Moments.CollisionlessEmSource {
       species = {"elc", "ion"},
-      timeStepper = "time-centered",
+      timeStepper = "direct",
       hasStaticField = true,
       staticEmFunction = function(t, xn)
          local x, y = xn[1], xn[2]
-         return E0, E0, 0.0, 0.0, 0.0, B0
+         local Ex = E0*math.cos(math.atan2(y,x))
+         local Ey = E0*math.sin(math.atan2(y,x))
+         return Ex, Ey, 0.0, 0.0, 0.0, B0
       end
    },   
 
