@@ -131,12 +131,18 @@ plasmaApp = Plasma.App {
          collideWith = {'electron'},
          frequencies = {nuElc},
       },
-      source = Plasma.Source {
-         type        = "Maxwellian",
+      source = Plasma.MaxwellianProjection {
+         --type        = "Maxwellian",
          density     = sourceDensity,
          temperature = sourceTemperature,
          power       = P_src/2,
       },
+      --source = Plasma.Source {
+         --type        = "Maxwellian",
+         --density     = sourceDensity,
+         --temperature = sourceTemperature,
+         --power       = P_src/2,
+      --},
       evolve = true, -- Evolve species?
       --applyPositivity = true,
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp", "GkBeta"}, 

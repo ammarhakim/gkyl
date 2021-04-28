@@ -30,10 +30,12 @@ function GkSource:fullInit(thisSpecies)
    else
       self.sourceTimeDependence = function (t) return 1.0 end
    end
-   self.density = assert(tbl.density, "App.GkSource: must specify density profile of source in 'density'.")
-   self.temperature = assert(tbl.temperature, "App.GkSource: must specify temperature profile of source in 'density'.")
    self.power = tbl.power
-   if tbl.type then
+   if tbl.profile then
+      self.profile = tbl.profile
+   elseif tbl.type then
+      self.density = assert(tbl.density, "App.GkSource: must specify density profile of source in 'density'.")
+      self.temperature = assert(tbl.temperature, "App.GkSource: must specify temperature profile of source in 'density'.")
       if tbl.type == "Maxwellian" or tbl.type == "maxwellian" then
          self.profile = Projection.GkProjection.MaxwellianProjection {
             density = self.density,
@@ -49,6 +51,8 @@ function GkSource:fullInit(thisSpecies)
          }
       end    
    else
+      self.density = assert(tbl.density, "App.GkSource: must specify density profile of source in 'density'.")
+      self.temperature = assert(tbl.temperature, "App.GkSource: must specify temperature profile of source in 'density'.")
       self.profile = Projection.GkProjection.MaxwellianProjection {
          density = self.density,
          temperature = self.temperature,

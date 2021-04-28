@@ -870,15 +870,11 @@ local function buildApplication(self, tbl)
                tmCollNonSlvr = tmCollNonSlvr + c:nonSlvrTime()
 	    end
          end
-         if s.timers and s.fSource and s.evolveSources then
-	    if s.projSrc then
-	       tmSrc = tmSrc + s.timers.sources
-	    else
-	       for _, src in pairs(s.sources) do
-                  tmSrc = tmSrc + src:srcTime()
-	       end
+         if s.sources then
+	    for _, src in pairs(s.sources) do
+               tmSrc = tmSrc + src:srcTime()
 	    end
-         end
+	 end
       end
 
       for _, s in lume.orderedIter(fluidSources) do tmSrc = tmSrc + s:totalTime() end

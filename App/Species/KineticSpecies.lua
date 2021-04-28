@@ -580,31 +580,6 @@ function KineticSpecies:initDist(extField)
       --    end
       --    self.fReservoir:accumulate(1.0, self.distf[2])
       -- end
-      
-      --DEPRECATED---------------------
-      if string.find(nm,"source") then
-         print("Specifying source as projection is deprecated, please use Plasma.Source instead")
-	 self.projSrc = true
-         if not self.fSource then self.fSource = self:allocDistf() end
-         self.fSource:accumulate(1.0, self.distf[2])
-         if self.positivityRescale then
-            self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
-         end
-         if pr.power then
-            local calcInt = Updater.CartFieldIntegratedQuantCalc {
-               onGrid        = self.confGrid,
-               basis         = self.confBasis,
-               numComponents = 1,
-               quantity      = "V",
-            }
-            local intKE = DataStruct.DynVector{numComponents = 1}
-            self.ptclEnergyCalc:advance(0.0, {self.fSource}, {self.ptclEnergyAux})
-            calcInt:advance(0.0, {self.ptclEnergyAux, self.mass/2}, {intKE})
-            local _, intKE_data = intKE:lastData()
-            self.powerScalingFac = pr.power/intKE_data[1]
-            self.fSource:scale(self.powerScalingFac)
-         end
-      end
    end
    
    -- Set up profile function for species sources
@@ -994,7 +969,7 @@ function KineticSpecies:write(tm, force)
             self.distIo:write(self.distf[1], string.format("%s_f1_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
             self.distf[1]:accumulate(1, self.f0)
          end
-         if tm == 0.0 and self.fSource then
+         if tm == 0.0 and self.sources then
 	    for _, src in lume.orderedIter(self.sources) do
 	       src:write(tm, self.distIoFrame, self)
 	    end

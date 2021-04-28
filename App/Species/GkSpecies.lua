@@ -16,6 +16,7 @@ local Time           = require "Lib.Time"
 local Constants      = require "Lib.Constants"
 local Lin            = require "Lib.Linalg"
 local xsys           = require "xsys"
+local Source         = require "App.Sources.GkSource"
 local VlasovEq       = require "Eq.Vlasov"
 local lume           = require "Lib.lume"
 
@@ -734,20 +735,6 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)
       end
    end
-
-   --if self.projSrc and self.evolveSources then
-      --local tm = Time.clock()
-      -- Add source it to the RHS.
-      -- Barrier over shared communicator before accumulate.
-      --Mpi.Barrier(self.grid:commSet().sharedComm)
-      --fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
-      --self.timers.sources = self.timers.sources + Time.clock() - tm 
-   --end
-   --if self.evolveSources then
-      --for _, src in pairs(self.sources) do
-         --src:advance(tCurr, fIn, species, fRhsOut)
-      --end
-   --end
 end
 
 function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
@@ -1670,6 +1657,12 @@ function GkSpecies:Maxwellian(xn, n0, T0, vdIn)
    else
       return n0*(2*math.pi*vt2)^(-1/2)*math.exp(-v2/(2*vt2))
    end
+end
+
+function GkSpecies:projToSource(proj)
+   local tbl = proj.tbl
+   local pow = tbl.power
+   return Source { profile = proj, power = pow }
 end
 
 return GkSpecies

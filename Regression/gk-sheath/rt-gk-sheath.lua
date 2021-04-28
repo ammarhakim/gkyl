@@ -131,6 +131,12 @@ plasmaApp = Plasma.App {
          collideWith = {'electron'},
          frequencies = {nuElc},
       },
+      --source = Plasma.MaxwellianProjection {
+         --type        = "Maxwellian",
+         --density     = sourceDensity,
+         --temperature = sourceTemperature,
+         --power       = P_src/2,
+      --},
       source = Plasma.Source {
          type        = "Maxwellian",
          density     = sourceDensity,
