@@ -66,8 +66,8 @@ momentApp = Moments.App {
       init = function (t, xn)
          local x, y = xn[1], xn[2]
          local rhoe = massElc
-         local rhovx_e = massElc*E0*B0
-         local rhovy_e = -massElc*E0*B0
+         local rhovx_e = massElc*E0/B0
+         local rhovy_e = -massElc*E0/B0
          local rhovz_e = 0.0
          local u_e = rhoe*elcTemp/(gasGamma - 1) + 0.5*(rhovx_e*rhovx_e + rhovy_e*rhovy_e + rhovz_e*rhovz_e)/rhoe
          return rhoe, rhovx_e, rhovy_e, rhovz_e, u_e
@@ -86,8 +86,8 @@ momentApp = Moments.App {
       init = function (t, xn)
          local x, y = xn[1], xn[2]
          local rhoi = massIon
-         local rhovx_i = massIon*E0*B0
-         local rhovy_i = -massIon*E0*B0
+         local rhovx_i = massIon*E0/B0
+         local rhovy_i = -massIon*E0/B0
          local rhovz_i = 0.0
          local u_i = rhoi*ionTemp/(gasGamma - 1) + 0.5*(rhovx_i*rhovx_i + rhovy_i*rhovy_i + rhovz_i*rhovz_i)/rhoi
          return rhoi, rhovx_i, rhovy_i, rhovz_i, u_i

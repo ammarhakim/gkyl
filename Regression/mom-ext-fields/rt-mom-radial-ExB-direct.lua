@@ -63,8 +63,14 @@ momentApp = Moments.App {
       init = function (t, xn)
          local x, y = xn[1], xn[2]
          local rhoe = pulse2D(massElc, x, y, 0.0, 0.0, 2.0)
-         local rhovx_e = 0.0
-         local rhovy_e = 0.0
+         local rhovx_e = rhoe*E0/B0
+         local rhovy_e = -rhoe*E0/B0
+         if x < 0 then
+            rhovx_e = -rhoe*E0/B0
+         end
+         if y < 0 then
+            rhovy_e = rhoe*E0/B0
+         end
          local rhovz_e = 0.0
          local u_e = rhoe*elcTemp/(gasGamma - 1) + 0.5*(rhovx_e*rhovx_e + rhovy_e*rhovy_e + rhovz_e*rhovz_e)/rhoe
          return rhoe, rhovx_e, rhovy_e, rhovz_e, u_e
@@ -85,8 +91,14 @@ momentApp = Moments.App {
       init = function (t, xn)
          local x, y = xn[1], xn[2]
          local rhoi = pulse2D(massIon, x, y, 0.0, 0.0, 2.0)
-         local rhovx_i = 0.0
-         local rhovy_i = 0.0
+         local rhovx_i = rhoi*E0/B0
+         local rhovy_i = -rhoi*E0/B0
+         if x < 0 then
+            rhovx_i = -rhoi*E0/B0
+         end
+         if y < 0 then
+            rhovy_i = rhoi*E0/B0
+         end
          local rhovz_i = 0.0
          local u_i = rhoi*ionTemp/(gasGamma - 1) + 0.5*(rhovx_i*rhovx_i + rhovy_i*rhovy_i + rhovz_i*rhovz_i)/rhoi
          return rhoi, rhovx_i, rhovy_i, rhovz_i, u_i
@@ -113,8 +125,14 @@ momentApp = Moments.App {
       hasStaticField = true,
       staticEmFunction = function(t, xn)
          local x, y = xn[1], xn[2]
-         local Ex = E0*math.cos(math.atan2(y,x))
-         local Ey = E0*math.sin(math.atan2(y,x))
+         local Ex = E0
+         local Ey = E0
+         if x < 0 then
+            Ex = -E0
+         end
+         if y < 0 then
+            Ey = -E0
+         end
          return Ex, Ey, 0.0, 0.0, 0.0, B0
       end
    },   
