@@ -158,7 +158,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       hasPhi       = hasPhi,
       hasApar      = hasApar,
       Bvars        = externalField.bmagVars,
-      hasSheathBcs = self.hasSheathBcs,
+      hasSheathBCs = self.hasSheathBCs,
       positivity   = self.positivity,
       gyavgSlvr    = self.emGyavgSlvr,
       geometry     = externalField.geo.name,
@@ -696,9 +696,10 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local fIn     = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
-   local em          = emIn[1]:rkStepperFields()[inIdx]
+   local em     = emIn[1]:rkStepperFields()[inIdx] -- Dynamic fields (e.g. phi, Apar)
+   local emFunc = emIn[2]:rkStepperFields()[1]     -- Geometry/external field.
+
    local dApardtProv = emIn[1].dApardtProv
-   local emFunc      = emIn[2]:rkStepperFields()[1]
 
    -- Rescale slopes.
    if self.positivityRescale then
@@ -784,14 +785,7 @@ function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
 end
 
 function GkSpecies:createDiagnostics()
-   local function contains(table, element)
-     for _, value in pairs(table) do
-       if value == element then
-         return true
-       end
-     end
-     return false
-   end
+   local function contains(table, element) return lume.any(table, function(e) return e==element end) end
 
    -- Create updater to compute volume-integrated moments
    -- function to check if integrated moment name is correct.
@@ -1440,7 +1434,7 @@ end
 function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    -- Need to wrap member functions so that self is passed.
    local function bcAbsorbFunc(...)  return self:bcAbsorbFunc(...) end
-   local function bcOpenFunc(...)    return  self:bcOpenFunc(...) end
+   local function bcOpenFunc(...)    return self:bcOpenFunc(...) end
    local function bcReflectFunc(...) return self:bcReflectFunc(...) end
    local function bcSheathFunc(...)  return self:bcSheathFunc(...) end
    local function bcCopyFunc(...)    return self:bcCopyFunc(...) end
@@ -1461,7 +1455,7 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    elseif bcType == SP_BC_SHEATH and dir==self.cdim then
       self.fhatSheath = Lin.Vec(self.basis:numBasis())
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcSheathFunc }, "flip"))
-      self.hasSheathBcs = true
+      self.hasSheathBCs = true
    elseif bcType == SP_BC_ZEROFLUX then
       table.insert(self.zeroFluxDirections, dir)
    elseif bcType == SP_BC_COPY then

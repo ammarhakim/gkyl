@@ -53,7 +53,7 @@ function Gyrokinetic:init(tbl)
    end
 
    -- For sheath BCs.
-   if tbl.hasSheathBcs then
+   if tbl.hasSheathBCs then
       self._calcSheathReflection = GyrokineticModDecl.selectSheathReflection(nm, self._cdim, self._vdim, p)
    end
 

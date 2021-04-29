@@ -36,12 +36,8 @@ function SpeciesBase:calcCouplingMoments() end
 function SpeciesBase:write(tm) end
 function SpeciesBase:writeRestart(tm) end
 function SpeciesBase:readRestart() return 0.0 end
-function SpeciesBase:advance(tCurr, fIn, emIn, fRhsOut)
-   return true, GKYL_MAX_DOUBLE
-end
-function SpeciesBase:updateInDirection(dir, tCurr, dt, fIn, fOut)
-   return true, GKYL_MAX_DOUBLE
-end
+function SpeciesBase:advance(tCurr, species, emIn, inIdx, outIdx) return true, GKYL_MAX_DOUBLE end
+function SpeciesBase:updateInDirection(dir, tCurr, dt, fIn, fOut) return true, GKYL_MAX_DOUBLE end
 function SpeciesBase:applyBcIdx(tCurr, idx) end
 function SpeciesBase:applyBc(tCurr, fld) end
 function SpeciesBase:totalSolverTime() return 0.0 end

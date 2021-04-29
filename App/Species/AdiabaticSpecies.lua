@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Adiabatic species
+-- Adiabatic species.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -18,27 +18,26 @@ function AdiabaticSpecies:fullInit(appTbl)
 
    self._temp = self.tbl.temp
 
+   self.initFunc = self.tbl.init
+
+   -- Adiabatic species does not require fluctuationBCs (MF 2021/04/10: is this always true?).
+   self.fluctuationBCs = false
+
    assert(self.evolve==false, "AdiabaticSpecies: cannot evolve an adiabatic species")
 end
 
---function AdiabaticSpecies:initDist()
---   self.moments[1]:combine(1/self.charge, kineticChargeDens)
---end
-
 function AdiabaticSpecies:createSolver(hasE, hasB, externalField)
 
-   -- compute density in center of domain
+   -- Compute density in center of domain.
    local gridCenter = {}
-   for d = 1, self.ndim do
-      gridCenter[d] = (self.grid:upper(d) + self.grid:lower(d))/2
-   end
-   self._dens0 = self.initFunc(0, gridCenter)
+   for d = 1, self.ndim do gridCenter[d] = (self.grid:upper(d) + self.grid:lower(d))/2 end
+   self._dens0 = self.initFunc(0., gridCenter)
 
    self.qneutFac = self:allocMoment()
 
-   -- set up jacobian for general geometry
+   -- Set up jacobian for general geometry
    -- and use it to scale initial density
-   -- (consistent with scaling distribution function with jacobian)
+   -- (consistent with scaling distribution function with jacobian).
    if externalField then
       self.jacobGeoFunc = externalField.jacobGeoFunc
 
@@ -52,7 +51,7 @@ function AdiabaticSpecies:createSolver(hasE, hasB, externalField)
 
 end
 
--- nothing to calculate, just copy
+-- Nothing to calculate, just copy.
 function AdiabaticSpecies:calcCouplingMoments(tCurr, rkIdx)
    if self.deltaF then
       self.couplingMoments:clear(0.0)
@@ -66,7 +65,7 @@ function AdiabaticSpecies:fluidMoments()
    return { self.couplingMoments }
 end
 
--- for interfacing with GkField
+-- For interfacing with GkField.
 function AdiabaticSpecies:getNumDensity(rkIdx)
    if rkIdx == nil then return self.couplingMoments 
    else 
@@ -83,7 +82,7 @@ function AdiabaticSpecies:dens0()
    return self._dens0
 end
 
--- this is factor on potential in qneut equation
+-- This is factor on potential in qneut equation.
 function AdiabaticSpecies:getQneutFac(linearized)
    if linearized == false then
       self.qneutFac:combine(self.charge^2/self._temp, self.couplingMoments)

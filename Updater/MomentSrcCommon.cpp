@@ -184,9 +184,9 @@ gkylMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, doubl
     }
 
     // add static electric field to current equation 
-    rhs(fidx(n, X)) += -dt1*qbym2*f[RHO]*staticEm[EX];
-    rhs(fidx(n, Y)) += -dt1*qbym2*f[RHO]*staticEm[EY];
-    rhs(fidx(n, Z)) += -dt1*qbym2*f[RHO]*staticEm[EZ];
+    rhs(fidx(n, X)) += dt1*qbym2*f[RHO]*staticEm[EX];
+    rhs(fidx(n, Y)) += dt1*qbym2*f[RHO]*staticEm[EY];
+    rhs(fidx(n, Z)) += dt1*qbym2*f[RHO]*staticEm[EZ];
 
     // set current contribution to electric field equation
     lhs(eidx(X), fidx(n,X)) = dt2;
@@ -386,6 +386,7 @@ gkylMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt,
 
   std::vector<double> qbym(nFluids); 
   std::vector<Eigen::Vector3d> J(nFluids); 
+  std::vector<Eigen::Vector3d> JOld(nFluids); 
   double w02 = 0.;
   double gam2 = 0.;
   double delta = 0.;
@@ -396,9 +397,13 @@ gkylMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt,
   {
     qbym[n] = fd[n].charge / fd[n].mass;
     double *f = ff[n];
-    J[n][0] = f[MX] * qbym[n];
-    J[n][1] = f[MY] * qbym[n];
-    J[n][2] = f[MZ] * qbym[n];
+    JOld[n][0] = f[MX] * qbym[n];
+    JOld[n][1] = f[MY] * qbym[n];
+    JOld[n][2] = f[MZ] * qbym[n];
+
+    J[n][0] = f[MX] * qbym[n] + 0.5*dt*sq(qbym[n])*f[RHO]*staticEm[EX];
+    J[n][1] = f[MY] * qbym[n] + 0.5*dt*sq(qbym[n])*f[RHO]*staticEm[EY];
+    J[n][2] = f[MZ] * qbym[n] + 0.5*dt*sq(qbym[n])*f[RHO]*staticEm[EZ];
     if (!fd[n].evolve)
       continue;
     Wc_dt[n] = qbym[n] * Bmag * dt;
@@ -446,7 +451,7 @@ gkylMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt,
     if (!fd[n].evolve)
       continue;
     Eigen::Vector3d Jstar = J[n] + Fbar * (wp_dt2[n] / dt / 2.);
-    Eigen::Vector3d J_new = 2. * (Jstar + sq(Wc_dt[n] / 2.) * b * b.dot(Jstar) - (Wc_dt[n] / 2.) * b.cross(Jstar)) / (1. + sq(Wc_dt[n] / 2.)) - J[n];
+    Eigen::Vector3d J_new = 2. * (Jstar + sq(Wc_dt[n] / 2.) * b * b.dot(Jstar) - (Wc_dt[n] / 2.) * b.cross(Jstar)) / (1. + sq(Wc_dt[n] / 2.)) - JOld[n];
 
     f[MX] = J_new[0] / qbym[n];
     f[MY] = J_new[1] / qbym[n];

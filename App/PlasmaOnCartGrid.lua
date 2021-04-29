@@ -298,7 +298,7 @@ local function buildApplication(self, tbl)
    externalField:initField()
    
    -- Initialize species solvers and diagnostics.
-   for nm, s in lume.orderedIter(species) do
+   for _, s in lume.orderedIter(species) do
       local hasE, hasB = field:hasEB()
       local extHasE, extHasB = externalField:hasEB()
       s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
@@ -308,7 +308,7 @@ local function buildApplication(self, tbl)
    end
 
    -- Initialize fluid source solvers.
-   for nm, s in lume.orderedIter(fluidSources) do
+   for _, s in lume.orderedIter(fluidSources) do
       s:createSolver(species, field)
    end   
 
@@ -614,8 +614,8 @@ local function buildApplication(self, tbl)
       local fieldBuf = field:rkStepperFields()[bufIdx]
 
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
-      -- Update sources.
-      for nm, s in lume.orderedIter(fluidSources) do
+      -- Update fluid source terms.
+      for _, s in lume.orderedIter(fluidSources) do
 	 local myStatus, myDtSuggested = s:updateFluidSource(
             tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, species,
             field, externalField.em)
@@ -921,7 +921,7 @@ local function buildApplication(self, tbl)
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Integrated moment calculations took",
-	     1000000.001111, tmIntMom/step, 100*tmIntMom/tmTotal))
+	     tmIntMom, tmIntMom/step, 100*tmIntMom/tmTotal))
       tmAccounted = tmAccounted + tmIntMom
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
@@ -1010,6 +1010,20 @@ function App:run()
 end
 
 return {
+   Gyrofluid = function ()
+      App.label = "Gyrofluid"
+      return  {
+	 App = App,
+	 Field = require ("App.Field.GkField").GkField,
+	 FunctionProjection = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
+	 Geometry = require ("App.Field.GkField").GkGeometry,
+	 GyrofluidProjection = require ("App.Projection.GyrofluidProjection").GyrofluidProjection, 
+         PASCollisions = require "App.Collisions.GfPitchAngleScattering",
+         Source = require "App.Sources.GyrofluidSource",
+	 Species = require "App.Species.GyrofluidSpecies",
+      }
+   end,
+
    Gyrokinetic = function ()
       App.label = "Gyrokinetic"
       return  {
@@ -1042,6 +1056,21 @@ return {
       }
    end,
    
+   Moments = function ()
+      App.label = "Multi-fluid"
+      return {
+         App = App,
+         Species = require "App.Species.MomentSpecies",
+         Field = require ("App.Field.MaxwellField").MaxwellField,
+         CollisionlessEmSource = require "App.FluidSources.CollisionlessEmSource",
+         TenMomentRelaxSource  = require "App.FluidSources.TenMomentRelaxSource",
+         AxisymmetricMomentSource = require "App.FluidSources.AxisymmetricMomentSource",
+         AxisymmetricPhMaxwellSource = require "App.FluidSources.AxisymmetricPhMaxwellSource",
+         BraginskiiHeatConductionSource = require "App.FluidSources.BraginskiiHeatConductionSource",
+         BraginskiiViscosityDiffusionSource = require "App.FluidSources.BraginskiiViscosityDiffusionSource",
+      }
+   end,
+
    VlasovMaxwell = function ()
       App.label = "Vlasov-Maxwell"
       return {

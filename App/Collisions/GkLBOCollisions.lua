@@ -29,9 +29,7 @@ local GkLBOCollisions = Proto(CollisionsBase)
 
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
-function GkLBOCollisions:init(tbl)
-   self.tbl = tbl
-end
+function GkLBOCollisions:init(tbl) self.tbl = tbl end
 
 -- Function to find the index of an element in table.
 local function findInd(tblIn, el)
@@ -181,25 +179,15 @@ end
 function GkLBOCollisions:setName(nm)
    self.name = nm
 end
-function GkLBOCollisions:setSpeciesName(nm)
-   self.speciesName = nm
-end
+function GkLBOCollisions:setSpeciesName(nm) self.speciesName = nm end
 
 function GkLBOCollisions:setCfl(cfl)
    self.cfl = cfl -- what should this be? - AHH
 end
-function GkLBOCollisions:setConfBasis(basis)
-   self.confBasis = basis
-end
-function GkLBOCollisions:setConfGrid(grid)
-   self.confGrid = grid
-end
-function GkLBOCollisions:setPhaseBasis(basis)
-   self.phaseBasis = basis
-end
-function GkLBOCollisions:setPhaseGrid(grid)
-   self.phaseGrid = grid
-end
+function GkLBOCollisions:setConfBasis(basis) self.confBasis = basis end
+function GkLBOCollisions:setConfGrid(grid) self.confGrid = grid end
+function GkLBOCollisions:setPhaseBasis(basis) self.phaseBasis = basis end
+function GkLBOCollisions:setPhaseGrid(grid) self.phaseGrid = grid end
 
 function GkLBOCollisions:createSolver(externalField)
    self.vDim = self.phaseGrid:ndim() - self.confGrid:ndim()

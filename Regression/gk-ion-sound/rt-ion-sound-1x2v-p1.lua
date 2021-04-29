@@ -98,9 +98,7 @@ plasmaApp = Plasma.App {
       mass   = mElc,
       temp   = Te,
       -- Initial conditions.. use ion background so that background is exactly neutral.
-      init = function (t, xn)
-         return nElc
-      end,
+      init = function (t, xn) return nElc end,
       evolve = false, -- Evolve species?
    },
 
