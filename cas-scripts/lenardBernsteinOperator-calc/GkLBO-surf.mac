@@ -11,7 +11,7 @@ grid : "nonuni"$
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 2$
-minCdim_Ser : 3$
+minCdim_Ser : 2$
 minVdim_Ser : 2$
 maxCdim_Ser : 3$
 maxVdim_Ser : 2$
@@ -25,10 +25,10 @@ maxVdim_Max : 0$
 
 /* Tensor order basis. */
 maxPolyOrder_Tensor : 2$
-minCdim_Tensor : 1$
-minVdim_Tensor : 1$
-maxCdim_Tensor : 0$
-maxVdim_Tensor : 0$
+minCdim_Tensor : 2$
+minVdim_Tensor : 2$
+maxCdim_Tensor : 3$
+maxVdim_Tensor : 2$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -37,7 +37,7 @@ maxVdim_Tensor : 0$
 gkVdims      : [[1,2], [2], [2]]$
 
 /* To generate other bases, just add corresponding column to arrays below. */
-bName        : ["ser", "max", "tensor"]$
+bName        : ["Ser", "Max", "Tensor"]$
 maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
 minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
 minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$

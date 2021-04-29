@@ -56,8 +56,7 @@ calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, isNonun
 
   kill(varsC, varsP, basisC, basisP),
   /* Load basis of dimensionality requested. */
-  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
-  load(modNm),
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
 
   pDim : cdim+vdim,
 

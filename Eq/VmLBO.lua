@@ -71,7 +71,7 @@ function VmLBO:init(tbl)
    -- To obtain the cell average, multiply the zeroth coefficient by this factor.
    self._cellAvFac = 1.0/(math.sqrt(2.0^self._cdim))
 
-   -- functions to perform LBO updates.
+   -- Functions to perform LBO updates.
    if self._cellConstNu then
       self._volUpdate  = VmLBOModDecl.selectConstNuVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       self._surfUpdate = VmLBOModDecl.selectConstNuSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), isGridNonuniform)
