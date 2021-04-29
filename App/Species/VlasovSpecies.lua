@@ -1184,6 +1184,7 @@ function VlasovSpecies:calcExternalBC()
       effectiveMass = externalBC.effectiveMass,
       elemCharge = externalBC.elemCharge,
       me = externalBC.electronMass,
+      ignore = externalBC.ignore,
    }
    evaluateBronold:advance(0.0, {}, {self.externalBCFunction})
 end
