@@ -1130,12 +1130,10 @@ function VlasovSpecies:bcExternFunc(dir, tm, idxIn, fIn, fOut)
    return fOut
 end
 
-function VlasovSpecies:calcExternalBC()
+function VlasovSpecies:initExternalBC()
    tbl = self.tbl
    local externalBC = assert(tbl.externalBC, "VlasovSpecies: Must define externalBC parameters")
-   local lower = Lin.Vec(self.grid:ndim())
-   local upper = Lin.Vec(self.grid:ndim())
-   local cells = Lin.Vec(self.grid:ndim())
+   local lower, upper, cells = {}, {}, {}
    local GridConstructor = Grid.RectCart
    local coordinateMap = {}
    if self.coordinateMap then
@@ -1148,13 +1146,11 @@ function VlasovSpecies:calcExternalBC()
       GridConstructor = Grid.NonUniformRectCart
    end
    for d = 1, self.cdim do
-      lower[d] = 0
-      upper[d] = 1
-      cells[d] = 1
+      lower[d], upper[d], cells[d] = 0, 1, 1
    end
    for d = 1, self.vdim do
-      lower[d + self.cdim] = self.lower[d]
-      upper[d + self.cdim] = self.upper[d]
+      lower[d + self.cdim] = self.grid:lower(d)
+      upper[d + self.cdim] = self.grid:upper(d)
       cells[d + self.cdim] = self.grid:numCells(d + self.cdim)
    end
    local grid = GridConstructor {

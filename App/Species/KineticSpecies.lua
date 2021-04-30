@@ -466,7 +466,7 @@ function KineticSpecies:createBCs()
 
    -- Calculate external boundary condition if applicable
    if self.tbl.computeExternalBC then
-      self:calcExternalBC()      
+      self:initExternalBC()
    end
 end
 
