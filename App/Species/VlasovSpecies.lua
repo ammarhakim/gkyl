@@ -1136,19 +1136,33 @@ function VlasovSpecies:calcExternalBC()
    local lower = Lin.Vec(self.grid:ndim())
    local upper = Lin.Vec(self.grid:ndim())
    local cells = Lin.Vec(self.grid:ndim())
-   lower[1] = 0
-   upper[1] = 1
-   cells[1] = 1
-   for d = 1, self.vdim do
-      lower[d + 1] = self.grid:lower(d + 1)
-      upper[d + 1] = self.grid:upper(d + 1)
-      cells[d + 1] = self.grid:numCells(d + 1)
+   local GridConstructor = Grid.RectCart
+   local coordinateMap = {}
+   if self.coordinateMap then
+      for d = 1, self.cdim do
+         table.insert(coordinateMap, function (z) return z end)
+      end
+      for d = 1, self.vdim do
+         table.insert(coordinateMap, self.coordinateMap[d])
+      end
+      GridConstructor = Grid.NonUniformRectCart
    end
-   local grid = Grid.RectCart {
+   for d = 1, self.cdim do
+      lower[d] = 0
+      upper[d] = 1
+      cells[d] = 1
+   end
+   for d = 1, self.vdim do
+      lower[d + self.cdim] = self.lower[d]
+      upper[d + self.cdim] = self.upper[d]
+      cells[d + self.cdim] = self.grid:numCells(d + self.cdim)
+   end
+   local grid = GridConstructor {
       lower = lower,
       upper = upper,
       cells = cells,
-      periodicDirs = {}
+      periodicDirs = {},
+      mappings = coordinateMap,
    }
    self.externalBCFunction = DataStruct.Field {
       onGrid = grid,
@@ -1164,10 +1178,13 @@ function VlasovSpecies:calcExternalBC()
    local evaluateBronold = Updater.EvaluateBronoldFehskeBC {
       onGrid = grid,
       basis = self.basis,
+      cdim = self.cdim,
+      vdim = self.vdim,
       electronAffinity = externalBC.electronAffinity,
       effectiveMass = externalBC.effectiveMass,
       elemCharge = externalBC.elemCharge,
       me = externalBC.electronMass,
+      ignore = externalBC.ignore,
    }
    evaluateBronold:advance(0.0, {}, {self.externalBCFunction})
 end

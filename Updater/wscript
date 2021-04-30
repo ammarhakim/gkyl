@@ -489,6 +489,7 @@ def build(bld):
 
     ProjectOnBasisImpl.cpp
     EvalOnNodesImpl.cpp
+    EvaluateBronoldFehskeBCImpl.cpp
     """
 
     ## HyperDisContDeviceShared.cu
