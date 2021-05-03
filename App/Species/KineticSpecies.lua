@@ -144,7 +144,10 @@ function KineticSpecies:fullInit(appTbl)
    -- Initialization.
    self.sources = {}
    for nm, val in pairs(tbl) do
-      if SourceBase.is(val) then
+      if SourceBase.is(val) or nm == "source" then
+         if ProjectionBase.is(val) then
+            val = self:projToSource(val)
+         end
 	 self.sources[nm] = val
 	 self.sources[nm]:setName(nm)
 	 val:setSpeciesName(self.name)
@@ -153,15 +156,15 @@ function KineticSpecies:fullInit(appTbl)
    end
    self.projections = {}
    for nm, val in pairs(tbl) do
-      if ProjectionBase.is(val) then
+      if ProjectionBase.is(val) and nm ~= "source" then
          self.projections[nm] = val
       end
    end
-   if tbl.sourceTimeDependence then
-      self.sourceTimeDependence = tbl.sourceTimeDependence
-   else
-      self.sourceTimeDependence = function (t) return 1.0 end
-   end
+   --if tbl.sourceTimeDependence then
+      --self.sourceTimeDependence = tbl.sourceTimeDependence
+   --else
+      --self.sourceTimeDependence = function (t) return 1.0 end
+   --end
    -- It is possible to use the keywords 'init' and 'background'
    -- to specify a function directly without using a Projection object.
    if type(tbl.init) == "function" then
@@ -577,31 +580,6 @@ function KineticSpecies:initDist(extField)
       --    end
       --    self.fReservoir:accumulate(1.0, self.distf[2])
       -- end
-      
-      --DEPRECATED---------------------
-      if string.find(nm,"source") then
-         print("Specifying source as projection is deprecated, please use Plasma.Source instead")
-	 self.projSrc = true
-         if not self.fSource then self.fSource = self:allocDistf() end
-         self.fSource:accumulate(1.0, self.distf[2])
-         if self.positivityRescale then
-            self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
-         end
-         if pr.power then
-            local calcInt = Updater.CartFieldIntegratedQuantCalc {
-               onGrid        = self.confGrid,
-               basis         = self.confBasis,
-               numComponents = 1,
-               quantity      = "V",
-            }
-            local intKE = DataStruct.DynVector{numComponents = 1}
-            self.ptclEnergyCalc:advance(0.0, {self.fSource}, {self.ptclEnergyAux})
-            calcInt:advance(0.0, {self.ptclEnergyAux, self.mass/2}, {intKE})
-            local _, intKE_data = intKE:lastData()
-            self.powerScalingFac = pr.power/intKE_data[1]
-            self.fSource:scale(self.powerScalingFac)
-         end
-      end
    end
    
    -- Set up profile function for species sources
@@ -915,6 +893,11 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
           string.format("%s_%s.bp", self.name, mom), tm, self.diagIoFrame)
     end
 
+    -- Write source diagnostics
+    for nm, src in lume.orderedIter(self.sources) do
+       src:writeDiagnosticIntegratedMoments(tm, self.diagIoFrame)
+    end
+
     for i, mom in ipairs(self.diagnosticIntegratedBoundaryFluxMoments) do
        for _, bc in ipairs(self.boundaryConditions) do
           self.diagnosticIntegratedMomentFields[mom..bc:label()]:write(
@@ -986,7 +969,7 @@ function KineticSpecies:write(tm, force)
             self.distIo:write(self.distf[1], string.format("%s_f1_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
             self.distf[1]:accumulate(1, self.f0)
          end
-         if tm == 0.0 and self.fSource then
+         if tm == 0.0 and self.sources then
 	    for _, src in lume.orderedIter(self.sources) do
 	       src:write(tm, self.distIoFrame, self)
 	    end
