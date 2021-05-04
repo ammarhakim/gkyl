@@ -933,7 +933,7 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
 
     -- Write CX diagnostics
     if self.calcCXSrc then
-       self.vSigmaCX:write(string.format("%s_vSigmaCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       --self.vSigmaCX:write(string.format("%s_vSigmaCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        self.collisions[self.collNmCX].sourceCX:write(string.format("%s_sourceCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
     end
 

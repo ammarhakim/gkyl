@@ -187,8 +187,11 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, self.fMaxNeut}, {self.M0iDistFn})
       species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
       self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
-      species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.neutNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
-
+      -- species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.neutNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
+      -- for analytical comparison
+      self.sourceCX:copy(self.diffDistF)
+      self.sourceCX:scale(species[self.neutNm].vSigmaCX)
+      -- end for analytical comparison
       fRhsOut:accumulate(1.0,self.sourceCX)
 
    elseif (self.speciesName == self.neutNm) then
@@ -205,7 +208,11 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
       species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, self.fMaxIon}, {self.M0nDistFi})
       self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
-      species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.neutNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
+      -- for analytical comparison
+      self.sourceCX:copy(self.diffDistF)
+      self.sourceCX:scale(species[self.neutNm].vSigmaCX)
+      -- end for analytical comparison
+      --species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.neutNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
       
       fRhsOut:accumulate(-self.iMass/self.nMass,self.sourceCX)
 

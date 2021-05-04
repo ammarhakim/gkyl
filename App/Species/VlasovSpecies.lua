@@ -472,7 +472,8 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
 			self.collNmCX         = collNm
    			self.ionNmCX          = species[sN].collisions[collNm].ionNm
    			self.needSelfPrimMom  = true
-   			self.vSigmaCX         = self:allocMoment()
+   			--self.vSigmaCX         = self:allocMoment()
+			self.vSigmaCX         = 2.2e-14
 			species[self.ionNmCX].needSelfPrimMom = true
    			counterCX = false
     		     end
@@ -1381,8 +1382,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       end
       local ionU = ion:selfPrimitiveMoments()[1]
       local ionVtSq = ion:selfPrimitiveMoments()[2]
-
-      self.collisions[self.collNmCX].collisionSlvr:advance(tCurr, {self.numDensity, ionU, self.uSelf, ionVtSq, self.vtSqSelf}, {self.vSigmaCX})
+      --self.collisions[self.collNmCX].collisionSlvr:advance(tCurr, {self.numDensity, ionU, self.uSelf, ionVtSq, self.vtSqSelf}, {self.vSigmaCX})
    end
 
    if self.hasRecycleBcs then
@@ -1542,8 +1542,10 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 
 	    self.recFrac = tbl.recycleFrac
 	    self.scaleFac = tbl.recycleFluxFac
+	    self.recFlow = tbl.recycleSpeed
 	    T0 = tbl.recycleTemp
 	    local scaleFac = self.recFrac*self.scaleFac
+	    --uRec = self.recFlow*edgeval*-1
 	    recycleSource = function (t, xn)
 	       local cdim = self.cdim
 	       local vdim = self.vdim
@@ -1551,34 +1553,11 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	       --local u = -10*edgeval*math.sqrt(vt2)
 	       --local v2 = (xn[2] - u)^2 + xn[3]^2 + xn[4]^2
 	       local v2 = 0.0
-	       for d = cdim+1, cdim+vdim do
-		  v2 = v2 + (xn[d])^2
-	       end
-	       return 1.0*self.recFrac*self.scaleFac / math.sqrt(2*math.pi*vt2)^vdim * math.exp(-v2/(2*vt2))
-	    end
-	    recycleSource2 = function (t, xn)
-	       local cdim = self.cdim
-	       local vdim = self.vdim
-	       local vt2 = T0/self.mass
-	       --local u = -10*edgeval*math.sqrt(vt2)
-	       --v2 = (xn[2] - u)^2 + xn[3]^2 + xn[4]^2
-	       local v2 = 0.0
+	       -- v2 = v2 + (xn[2]-uRec)^2
 	       for d = cdim+1, cdim+vdim do
 	       	  v2 = v2 + (xn[d])^2
 	       end
-	       if edgeval == 1 then
-		  if xn[dir] <= 0 then
-		     return 1.0 / math.sqrt(2*math.pi*vt2)^vdim * math.exp(-v2/(2*vt2))
-		  else
-		     return 0.
-		  end
-	       else
-		  if xn[dir] <= 0 then
-		     return 0.
-		  else
-		     return 1.0 / math.sqrt(2*math.pi*vt2)^vdim * math.exp(-v2/(2*vt2))
-		  end
-	       end
+	       return 1.0*self.recFrac*self.scaleFac / math.sqrt(2*math.pi*vt2)^vdim * math.exp(-v2/(2*vt2))
 	    end
 	    
 	    self.projectRecycleFMaxwell = Updater.ProjectOnBasis {
