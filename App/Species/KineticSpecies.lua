@@ -160,11 +160,6 @@ function KineticSpecies:fullInit(appTbl)
          self.projections[nm] = val
       end
    end
-   --if tbl.sourceTimeDependence then
-      --self.sourceTimeDependence = tbl.sourceTimeDependence
-   --else
-      --self.sourceTimeDependence = function (t) return 1.0 end
-   --end
    -- It is possible to use the keywords 'init' and 'background'
    -- to specify a function directly without using a Projection object.
    if type(tbl.init) == "function" then
@@ -889,8 +884,11 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
 
     -- Write integrated moments.
     for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-       self.diagnosticIntegratedMomentFields[mom]:write(
-          string.format("%s_%s.bp", self.name, mom), tm, self.diagIoFrame)
+       -- These moments are handled in src:writeDiagnosticIntegratedMoments 
+       if not (mom == "intSrcM0" or mom == "intSrcM1" or mom == "intSrcM2" or mom == "intSrcKE") then
+          self.diagnosticIntegratedMomentFields[mom]:write(
+             string.format("%s_%s.bp", self.name, mom), tm, self.diagIoFrame)
+       end
     end
 
     -- Write source diagnostics
@@ -969,8 +967,8 @@ function KineticSpecies:write(tm, force)
             self.distIo:write(self.distf[1], string.format("%s_f1_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
             self.distf[1]:accumulate(1, self.f0)
          end
-         if tm == 0.0 and self.sources then
-	    for _, src in lume.orderedIter(self.sources) do
+         if self.sources then
+            for _, src in lume.orderedIter(self.sources) do
 	       src:write(tm, self.distIoFrame, self)
 	    end
 	 end

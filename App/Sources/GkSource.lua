@@ -25,10 +25,10 @@ function GkSource:init(tbl) self.tbl = tbl end
 -- we need the app top-level table for proper initialization.
 function GkSource:fullInit(thisSpecies)
    local tbl = self.tbl -- Previously stored table.
-   if thisSpecies.sourceTimeDependence then
-      self.sourceTimeDependence = thisSpecies.sourceTimeDependence
+   if tbl.timeDependence then
+      self.timeDependence = tbl.timeDependence
    else
-      self.sourceTimeDependence = function (t) return 1.0 end
+      self.timeDependence = function (t) return 1.0 end
    end
    self.power = tbl.power
    if tbl.profile then
@@ -77,7 +77,6 @@ end
 
 function GkSource:advance(tCurr, fIn, species, fRhsOut)
    local tm = Time.clock()
-   self.timeDependence = species[self.speciesName].sourceTimeDependence
    Mpi.Barrier(self.confGrid:commSet().sharedComm)
    fRhsOut:accumulate(self.timeDependence(tCurr), species[self.speciesName].fSource)
    self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
@@ -108,11 +107,10 @@ function GkSource:createDiagnostics(thisSpecies, momTable)
       table.insert(self.diagnosticIntegratedMoments, "intSrcKE")
    end
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-      local label = ""
-      self.diagnosticIntegratedMomentFields[mom..label] = DataStruct.DynVector {
+      self.diagnosticIntegratedMomentFields[mom] = DataStruct.DynVector {
          numComponents = 1,
       }
-      self.diagnosticIntegratedMomentUpdaters[mom..label] = Updater.CartFieldIntegratedQuantCalc {
+      self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
          onGrid        = thisSpecies.confGrid,
          basis         = thisSpecies.confBasis,
          numComponents = 1,
@@ -123,16 +121,15 @@ function GkSource:createDiagnostics(thisSpecies, momTable)
 end
 
 function GkSource:calcDiagnosticIntegratedMoments(tm, thisSpecies)
-   local label = ""
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
       if mom == "intSrcM0" then
-         self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(tm, {self.numDensitySrc, self.sourceTimeDependence(tm)}, {self.diagnosticIntegratedMomentFields[mom..label]})
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(tm, {self.numDensitySrc, self.timeDependence(tm)}, {self.diagnosticIntegratedMomentFields[mom]})
       elseif mom == "intSrcM1" then
-         self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(tm, {self.momDensitySrc, self.sourceTimeDependence(tm)}, {self.diagnosticIntegratedMomentFields[mom..label]})
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(tm, {self.momDensitySrc, self.timeDependence(tm)}, {self.diagnosticIntegratedMomentFields[mom]})
       elseif mom == "intSrcM2" then
-         self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(tm, {self.ptclEnergySrc, self.sourceTimeDependence(tm)}, {self.diagnosticIntegratedMomentFields[mom..label]})
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(tm, {self.ptclEnergySrc, self.timeDependence(tm)}, {self.diagnosticIntegratedMomentFields[mom]})
       elseif mom == "intSrcKE" then
-         self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(tm, {self.ptclEnergySrc, self.sourceTimeDependence(tm)*thisSpecies.mass/2}, {self.diagnosticIntegratedMomentFields[mom..label]})
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(tm, {self.ptclEnergySrc, self.timeDependence(tm)*thisSpecies.mass/2}, {self.diagnosticIntegratedMomentFields[mom]})
       end
    end
 end
@@ -144,10 +141,12 @@ function GkSource:writeDiagnosticIntegratedMoments(tm, frame)
 end
 
 function GkSource:write(tm, frame, thisSpecies)
-   thisSpecies.fSource:write(string.format("%s_fSource_0.bp", self.speciesName), tm, frame, true)
-   if self.numDensitySrc then self.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.speciesName), tm, frame) end
-   if self.momDensitySrc then self.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.speciesName), tm, frame) end
-   if self.ptclEnergySrc then self.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.speciesName), tm, frame) end
+   if tm == 0.0 then
+      thisSpecies.fSource:write(string.format("%s_fSource_0.bp", self.speciesName), tm, frame, true)
+      if self.numDensitySrc then self.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.speciesName), tm, frame) end
+      if self.momDensitySrc then self.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.speciesName), tm, frame) end
+      if self.ptclEnergySrc then self.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.speciesName), tm, frame) end
+   end
 end
 
 function GkSource:srcTime()

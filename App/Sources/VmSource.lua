@@ -28,10 +28,17 @@ end
 -- we need the app top-level table for proper initialization.
 function VmSource:fullInit(speciesTbl)
    local tbl = self.tbl -- Previously stored table.
-   self.density = assert(tbl.density, "App.VmSource: must specify density profile of source in 'density'.")
-   self.temperature = assert(tbl.temperature, "App.VmSource: must specify temperature profile of source in 'density'.")
+   if tbl.timeDependence then
+      self.timeDependence = tbl.timeDependence
+   else
+      self.timeDependence = function (t) return 1.0 end
+   end
    self.power = tbl.power
-   if tbl.type then
+   if tbl.profile then
+      self.profile = tbl.profile
+   elseif tbl.type then
+      self.density = assert(tbl.density, "App.VmSource: must specify density profile of source in 'density'.")
+      self.temperature = assert(tbl.temperature, "App.VmSource: must specify temperature profile of source in 'density'.")
       if tbl.type == "Maxwellian" or tbl.type == "maxwellian" then
          self.profile = Projection.VlasovProjection.MaxwellianProjection {
             density = self.density,
@@ -47,6 +54,8 @@ function VmSource:fullInit(speciesTbl)
          }
       end    
    else
+      self.density = assert(tbl.density, "App.VmSource: must specify density profile of source in 'density'.")
+      self.temperature = assert(tbl.temperature, "App.VmSource: must specify temperature profile of source in 'density'.")
       self.profile = Projection.VlasovProjection.MaxwellianProjection {
          density = self.density,
          temperature = self.temperature,
@@ -71,17 +80,33 @@ end
 
 function VmSource:advance(tCurr, fIn, species, fRhsOut)
    local tm = Time.clock()
-   self.timeDependence = species[self.speciesName].sourceTimeDependence
    Mpi.Barrier(self.confGrid:commSet().sharedComm)
    fRhsOut:accumulate(self.timeDependence(tCurr), species[self.speciesName].fSource)
    self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
 end
 
-function VmSource:write(tm, frame, species)
-   species.fSource:write(string.format("%s_fSource_0.bp", self.speciesName), tm, frame, true)
-   if species.numDensitySrc then species.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.speciesName), tm, frame) end
-   if species.momDensitySrc then species.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.speciesName), tm, frame) end
-   if species.ptclEnergySrc then species.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.speciesName), tm, frame) end
+function VmSource:createDiagnostics(thisSpecies, momTable)
+   self.diagnosticIntegratedMomentFields   = { }
+   self.diagnosticIntegratedMomentUpdaters = { }
+   self.diagnosticIntegratedMoments = { }
+   
+   self.numDensitySrc = thisSpecies:allocMoment()
+   self.momDensitySrc = thisSpecies:allocVectorMoment(thisSpecies.vdim)
+   self.ptclEnergySrc = thisSpecies:allocMoment()
+   thisSpecies.fiveMomentsCalc:advance(0.0, {thisSpecies.fSource}, {self.numDensitySrc, self.momDensitySrc, self.ptclEnergySrc})
+end
+
+function VmSource:writeDiagnosticIntegratedMoments(tm, frame)
+   for i, mom in ipairs(self.diagnosticIntegratedMoments) do
+       self.diagnosticIntegratedMomentFields[mom]:write(string.format("%s_%s.bp", self.speciesName, mom), tm, frame)
+    end
+end
+
+function VmSource:write(tm, frame, thisSpecies)
+   thisSpecies.fSource:write(string.format("%s_fSource_0.bp", self.speciesName), tm, frame, true)
+   if self.numDensitySrc then self.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.speciesName), tm, frame) end
+   if self.momDensitySrc then self.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.speciesName), tm, frame) end
+   if self.ptclEnergySrc then self.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.speciesName), tm, frame) end
 end
 
 function VmSource:srcTime()

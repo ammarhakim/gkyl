@@ -735,6 +735,12 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)
       end
    end
+
+   if self.sources then
+      for _, src in pairs(self.sources) do
+         src:advance(tCurr, fIn, species, fRhsOut)
+      end
+   end
 end
 
 function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
