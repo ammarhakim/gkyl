@@ -579,31 +579,8 @@ function KineticSpecies:initDist(extField)
    
    -- Set up profile function for species sources
    for nm, src in lume.orderedIter(self.sources) do
-      local sourcePr = self.sources[nm].profile
-      sourcePr:fullInit(self)
-      sourcePr:advance(0.0, {extField}, {self.distf[2]})
-      Mpi.Barrier(self.grid:commSet().sharedComm)
-      if not self.fSource then self.fSource = self:allocDistf() end
-      self.fSource:accumulate(1.0, self.distf[2])
-      if self.positivityRescale then
-	 self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
-      end
-      if sourcePr.power then
-	 local calcInt = Updater.CartFieldIntegratedQuantCalc {
-	    onGrid        = self.confGrid,
-	    basis         = self.confBasis,
-	    numComponents = 1,
-	    quantity      = "V",
-	 }
-	 local intKE = DataStruct.DynVector{numComponents = 1}
-	 self.ptclEnergyCalc:advance(0.0, {self.fSource}, {self.ptclEnergyAux})
-	 calcInt:advance(0.0, {self.ptclEnergyAux, self.mass/2}, {intKE})
-	 local _, intKE_data = intKE:lastData()
-	 self.powerScalingFac = sourcePr.power/intKE_data[1]
-	 self.fSource:scale(self.powerScalingFac)
-      end
+      src:createSolver(self, extField)
    end
-   if self.scaleInitWithSourcePower then self.distf[1]:scale(self.powerScalingFac) end
    assert(initCnt>0, string.format("KineticSpecies: Species '%s' not initialized!", self.name))
    if self.f0 and backgroundCnt == 0 then self.f0:copy(self.distf[1]) end
 
@@ -969,7 +946,7 @@ function KineticSpecies:write(tm, force)
          end
          if self.sources then
             for _, src in lume.orderedIter(self.sources) do
-	       src:write(tm, self.distIoFrame, self)
+	       src:write(tm, self.distIoFrame)
 	    end
 	 end
 	 self.distIoFrame = self.distIoFrame+1

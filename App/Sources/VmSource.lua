@@ -78,10 +78,36 @@ function VmSource:setConfGrid(grid)
    self.confGrid = grid
 end
 
+function VmSource:createSolver(thisSpecies, extField)
+   self.profile:fullInit(thisSpecies)
+   self.profile:advance(0.0, {extField}, {thisSpecies.distf[2]})
+   Mpi.Barrier(thisSpecies.grid:commSet().sharedComm)
+   if not self.fSource then self.fSource = thisSpecies:allocDistf() end
+   self.fSource:accumulate(1.0, thisSpecies.distf[2])
+   if self.positivityRescale then
+      thisSpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
+   end
+   if self.power then
+      local calcInt = Updater.CartFieldIntegratedQuantCalc {
+         onGrid = self.confGrid,
+         basis = self.confBasis,
+         numComponents = 1,
+         quantity = "V",
+      }
+      local intKE = DataStruct.DynVector{numComponents = 1}
+      thisSpecies.ptclEnergyCalc:advance(0.0, {self.fSource}, {thisSpecies.ptclEnergyAux})
+      calcInt:advance(0.0, {thisSpecies.ptclEnergyAux, thisSpecies.mass/2}, {intKE})
+      local _, intKE_data = intKE:lastData()
+      self.powerScalingFac = self.power/intKE_data[1]
+      self.fSource:scale(self.powerScalingFac)
+   end
+   if thisSpecies.scaleInitWithSourcePower then thisSpecies.distf[1]:scale(self.powerScalingFac) end
+end
+
 function VmSource:advance(tCurr, fIn, species, fRhsOut)
    local tm = Time.clock()
    Mpi.Barrier(self.confGrid:commSet().sharedComm)
-   fRhsOut:accumulate(self.timeDependence(tCurr), species[self.speciesName].fSource)
+   fRhsOut:accumulate(self.timeDependence(tCurr), self.fSource)
    self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
 end
 
@@ -93,7 +119,7 @@ function VmSource:createDiagnostics(thisSpecies, momTable)
    self.numDensitySrc = thisSpecies:allocMoment()
    self.momDensitySrc = thisSpecies:allocVectorMoment(thisSpecies.vdim)
    self.ptclEnergySrc = thisSpecies:allocMoment()
-   thisSpecies.fiveMomentsCalc:advance(0.0, {thisSpecies.fSource}, {self.numDensitySrc, self.momDensitySrc, self.ptclEnergySrc})
+   thisSpecies.fiveMomentsCalc:advance(0.0, {self.fSource}, {self.numDensitySrc, self.momDensitySrc, self.ptclEnergySrc})
 end
 
 function VmSource:writeDiagnosticIntegratedMoments(tm, frame)
@@ -102,11 +128,13 @@ function VmSource:writeDiagnosticIntegratedMoments(tm, frame)
     end
 end
 
-function VmSource:write(tm, frame, thisSpecies)
-   thisSpecies.fSource:write(string.format("%s_fSource_0.bp", self.speciesName), tm, frame, true)
-   if self.numDensitySrc then self.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.speciesName), tm, frame) end
-   if self.momDensitySrc then self.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.speciesName), tm, frame) end
-   if self.ptclEnergySrc then self.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.speciesName), tm, frame) end
+function VmSource:write(tm, frame)
+   if tm == 0.0 then
+      self.fSource:write(string.format("%s_fSource_0.bp", self.speciesName), tm, frame, true)
+      if self.numDensitySrc then self.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.speciesName), tm, frame) end
+      if self.momDensitySrc then self.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.speciesName), tm, frame) end
+      if self.ptclEnergySrc then self.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.speciesName), tm, frame) end
+   end
 end
 
 function VmSource:srcTime()
