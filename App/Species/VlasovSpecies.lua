@@ -613,9 +613,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          c:advance(tCurr, fIn, species, fRhsOut)   -- 'species' needed for cross-species collisions.
       end
    end
-   if self.sources then
-      for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
-   end
+   for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
    
    -- Save boundary fluxes for diagnostics.
    if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then

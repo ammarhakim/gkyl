@@ -736,9 +736,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       end
    end
 
-   if self.sources then
-      for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
-   end
+   for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
 end
 
 function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
@@ -1610,21 +1608,13 @@ function GkSpecies:getPolarizationWeight(linearized)
    end
 end
 
-function GkSpecies:getVoronovReactRate()
-   return self.voronovReactRate
-end
+function GkSpecies:getVoronovReactRate() return self.voronovReactRate end
 
-function GkSpecies:getFMaxwellIz()
-   return self.fMaxwellIz
-end
+function GkSpecies:getFMaxwellIz() return self.fMaxwellIz end
 
-function GkSpecies:getSrcCX()
-   return self.srcCX
-end
+function GkSpecies:getSrcCX() return self.srcCX end
 
-function GkSpecies:getVSigmaCX()
-   return self.vSigmaCX
-end
+function GkSpecies:getVSigmaCX() return self.vSigmaCX end
 
 function GkSpecies:momCalcTime()
    local tm = self.timers.couplingMom
@@ -1634,13 +1624,10 @@ function GkSpecies:momCalcTime()
    return tm
 end
 
-function GkSpecies:solverVolTime()
-   return self.equation.totalVolTime
-end
+function GkSpecies:solverVolTime() return self.equation.totalVolTime end
 
-function GkSpecies:solverSurfTime()
-   return self.equation.totalSurfTime
-end
+function GkSpecies:solverSurfTime() return self.equation.totalSurfTime end
+
 function GkSpecies:totalSolverTime()
    local timer = self.solver.totalTime
    if self.solverStep2 then timer = timer + self.solverStep2.totalTime end

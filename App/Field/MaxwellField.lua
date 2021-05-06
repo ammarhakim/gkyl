@@ -423,15 +423,15 @@ function MaxwellField:createSolver()
          self.phiPrevCount = 0
          self.fieldSlvr = Updater.MGpoisson {                                   
             solverType = 'FEM',                                                 
-            onGrid = self.grid,
-            basis = self.basis,
-            bcLower = self.bcLowerPhi,
-            bcUpper = self.bcUpperPhi,
-            gamma = gamma,         -- V-cycles=1, W-cycles=2.
-            relaxType = relaxType,     -- DampedJacobi or DampedGaussSeidel
-            relaxNum = relaxNum,      -- Number of pre,post and coarsest-grid smoothings.
+            onGrid     = self.grid,
+            basis      = self.basis,
+            bcLower    = self.bcLowerPhi,
+            bcUpper    = self.bcUpperPhi,
+            gamma      = gamma,         -- V-cycles=1, W-cycles=2.
+            relaxType  = relaxType,     -- DampedJacobi or DampedGaussSeidel
+            relaxNum   = relaxNum,      -- Number of pre,post and coarsest-grid smoothings.
             relaxOmega = relaxOmega,    -- Relaxation damping parameter.
-            tolerance = tolerance,     -- Do cycles until reaching this relative residue norm.
+            tolerance  = tolerance,     -- Do cycles until reaching this relative residue norm.
          }
    
          self.emEnergyCalc = function(tCurr, inFld, outDynV) self.fieldSlvr:esEnergy(tCurr, inFld, outDynV) end
@@ -441,10 +441,10 @@ function MaxwellField:createSolver()
    -- Function to construct a BC updater.
    local function makeBcUpdater(dir, edge, bcList)
       return Updater.Bc {
-	 onGrid = self.grid,
+	 onGrid             = self.grid,
 	 boundaryConditions = bcList,
-	 dir = dir,
-	 edge = edge,
+	 dir                = dir,
+	 edge               = edge,
       }
    end
 
@@ -463,9 +463,7 @@ function MaxwellField:createSolver()
       end
    end
    local function bcCopy(dir, tm, xc, fIn, fOut)
-      for i = 1, 8*self.basis:numBasis() do
-	 fOut[i] = fIn[i]
-      end
+      for i = 1, 8*self.basis:numBasis() do fOut[i] = fIn[i] end
    end 
    local function bcReflect(dir, tm, xc, fIn, fOut)
       local nb = self.basis:numBasis()
