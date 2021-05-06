@@ -1009,6 +1009,7 @@ return {
    Gyrofluid = function ()
       App.label = "Gyrofluid"
       return  {
+	 AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
 	 App = App,
 	 Field = require ("App.Field.GkField").GkField,
 	 FunctionProjection = require ("App.Projection.GyrofluidProjection").FunctionProjection, 

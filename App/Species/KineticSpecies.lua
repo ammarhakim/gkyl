@@ -409,9 +409,7 @@ end
 function KineticSpecies:bcAbsorbFunc(dir, tm, idxIn, fIn, fOut)
    -- Note that for bcAbsorb there is no operation on fIn,
    -- so skinLoop (which determines indexing of fIn) does not matter 
-   for i = 1, self.basis:numBasis() do
-      fOut[i] = 0.0
-   end
+   for i = 1, self.basis:numBasis() do fOut[i] = 0.0 end
 end
 function KineticSpecies:bcOpenFunc(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "pointwise".
@@ -419,9 +417,7 @@ function KineticSpecies:bcOpenFunc(dir, tm, idxIn, fIn, fOut)
 end
 function KineticSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "pointwise".
-   for i = 1, self.basis:numBasis() do
-      fOut[i] = fIn[i]
-   end
+   for i = 1, self.basis:numBasis() do fOut[i] = fIn[i] end
 end
 
 -- Function to construct a BC updater.
@@ -463,16 +459,12 @@ function KineticSpecies:createBCs()
    handleBc(3, self.bcz)
 
    -- Calculate external boundary condition if applicable
-   if self.tbl.computeExternalBC then
-      self:initExternalBC()
-   end
+   if self.tbl.computeExternalBC then self:initExternalBC() end
 end
 
 function KineticSpecies:createSolver(externalField)
    -- Create solvers for collisions.
-   for _, c in pairs(self.collisions) do
-      c:createSolver(externalField)
-   end
+   for _, c in pairs(self.collisions) do c:createSolver(externalField) end
    if self.positivity then
       self.posChecker = Updater.PositivityCheck {
          onGrid = self.grid,

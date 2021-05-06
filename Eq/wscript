@@ -30,7 +30,6 @@ def build(bld):
     lboData/GkLBOconstNuSurfNonuniformSer1x1vP1.cpp
     lboData/GkLBOconstNuSurfNonuniformSer1x2vP1.cpp
     lboData/GkLBOconstNuSurfNonuniformSer2x2vP1.cpp
-    lboData/GkLBOconstNuSurfNonuniformSer3x2vP1.cpp
     lboData/GkLBOconstNuSurfPositivitySer1x1vP1.cpp
     lboData/GkLBOconstNuSurfPositivitySer1x2vP1.cpp
     lboData/GkLBOconstNuSurfPositivitySer2x2vP1.cpp
@@ -50,7 +49,6 @@ def build(bld):
     lboData/GkLBOconstNuSurfNonuniformSer1x1vP2.cpp
     lboData/GkLBOconstNuSurfNonuniformSer1x2vP2.cpp
     lboData/GkLBOconstNuSurfNonuniformSer2x2vP2.cpp
-    lboData/GkLBOconstNuSurfNonuniformSer3x2vP2.cpp
     lboData/GkLBOconstNuTensor1x1vP1.cpp
     lboData/GkLBOconstNuTensor1x2vP1.cpp
     lboData/GkLBOconstNuSurfTensor1x1vP1.cpp
@@ -92,8 +90,6 @@ def build(bld):
     lboData/VmLBOconstNuSurfNonuniformSer1x2vP1.cpp
     lboData/VmLBOconstNuSurfNonuniformSer1x3vP1.cpp
     lboData/VmLBOconstNuSurfNonuniformSer2x2vP1.cpp
-    lboData/VmLBOconstNuSurfNonuniformSer2x3vP1.cpp
-    lboData/VmLBOconstNuSurfNonuniformSer3x3vP1.cpp
     lboData/VmLBOconstNuSer1x1vP2.cpp
     lboData/VmLBOconstNuSer1x2vP2.cpp
     lboData/VmLBOconstNuSer1x3vP2.cpp
@@ -113,7 +109,6 @@ def build(bld):
     lboData/VmLBOconstNuSurfNonuniformSer1x2vP2.cpp
     lboData/VmLBOconstNuSurfNonuniformSer1x3vP2.cpp
     lboData/VmLBOconstNuSurfNonuniformSer2x2vP2.cpp
-    lboData/VmLBOconstNuSurfNonuniformSer2x3vP2.cpp
     lboData/VmLBOconstNuSer1x1vP3.cpp
     lboData/VmLBOconstNuSer1x2vP3.cpp
     lboData/VmLBOconstNuSer1x3vP3.cpp

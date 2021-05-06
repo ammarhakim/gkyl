@@ -19,7 +19,7 @@ local ffi  = require "ffi"
 local ffiC = ffi.C
 
 ffi.cdef[[
-  void reflectionLoop(double* fItr, double* ordinates, double* weights, double* iWeights, double* iOrdinates, double* negBasis, double* posBasis, double* vc, double* dv, double C, double elemCharge, double me, double electronAffinity, double effectiveMass, int vdim, int cdim, int numOrd, int N, int numBasis, int ignore);
+  void reflectionLoop(double* fItr, double* ordinates, double* weights, double* iWeights, double* iOrdinates, double* negBasis, double* posBasis, double* vc, double* dv, double C, double elemCharge, double me, double electronAffinity, double effectiveMass, int vdim, int cdim, int numOrd, int N, int numBasis, int ignore, double* Rquad, double* v, double* Tquad);
 ]]
 
 -- Updater object.
@@ -109,14 +109,18 @@ function EvaluateBronoldFehskeBC:_advance(tCurr, inFld, outFld)
    local Nv = Range.Range(l, u) -- For looping over quadrature nodes.
    local refIndexer = reflectionFunction:genIndexer()
    local fItr = reflectionFunction:get(1)
+
+   local xc = Lin.Vec(self.ndim)
+   local dx = Lin.Vec(self.ndim)
+   local vcx = Lin.Vec(self.vdim)
+   local dv = Lin.Vec(self.vdim)
+   local Rquad = Lin.Vec(self.numOrdinates)
+   local v = Lin.Vec(self.vdim)
+   local Tquad = Lin.Vec(self.N)
    
    -- Loop over velocity space
    for idx in Nv:rowMajorIter() do
       for d = 1, self.vdim do self.idxP[d + self.cdim] = idx[d] end
-      local xc = Lin.Vec(self.ndim)
-      local dx = Lin.Vec(self.ndim)
-      local vcx = Lin.Vec(self.vdim)
-      local dv = Lin.Vec(self.vdim)
       self.grid:setIndex(self.idxP)
       self.grid:cellCenter(xc)
       self.grid:getDx(dx)
@@ -125,7 +129,7 @@ function EvaluateBronoldFehskeBC:_advance(tCurr, inFld, outFld)
          dv[d] = dx[d + self.cdim]
       end
       reflectionFunction:fill(refIndexer(self.idxP), fItr)
-      ffiC.reflectionLoop(fItr:data(), self.ordinates:data(), self.weights:data(), self.iweights:data(), self.iordinates:data(), self.negBasisAtOrdinates:data(), self.basisAtOrdinates:data(), vcx:data(), dv:data(), self.roughness, self.elemCharge, self.me, self.electronAffinity, self.effectiveMass, self.vdim, self.cdim, self.numOrdinates, self.N, self.numBasis, self.ignore)
+      ffiC.reflectionLoop(fItr:data(), self.ordinates:data(), self.weights:data(), self.iweights:data(), self.iordinates:data(), self.negBasisAtOrdinates:data(), self.basisAtOrdinates:data(), vcx:data(), dv:data(), self.roughness, self.elemCharge, self.me, self.electronAffinity, self.effectiveMass, self.vdim, self.cdim, self.numOrdinates, self.N, self.numBasis, self.ignore, Rquad:data(), v:data(), Tquad:data())
    end
 end
 
