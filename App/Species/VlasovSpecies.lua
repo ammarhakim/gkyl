@@ -472,8 +472,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
 			self.collNmCX         = collNm
    			self.ionNmCX          = species[sN].collisions[collNm].ionNm
    			self.needSelfPrimMom  = true
-   			--self.vSigmaCX         = self:allocMoment()
-			self.vSigmaCX         = 2.2e-14
+			self.vSigmaCX         = self:allocMoment()
 			species[self.ionNmCX].needSelfPrimMom = true
    			counterCX = false
     		     end
@@ -1382,7 +1381,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       end
       local ionU = ion:selfPrimitiveMoments()[1]
       local ionVtSq = ion:selfPrimitiveMoments()[2]
-      --self.collisions[self.collNmCX].collisionSlvr:advance(tCurr, {self.numDensity, ionU, self.uSelf, ionVtSq, self.vtSqSelf}, {self.vSigmaCX})
+      self.collisions[self.collNmCX].collisionSlvr:advance(tCurr, {self.numDensity, ionU, self.uSelf, ionVtSq, self.vtSqSelf}, {self.vSigmaCX})
    end
 
    if self.hasRecycleBcs then
