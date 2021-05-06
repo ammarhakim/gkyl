@@ -12,6 +12,7 @@ local KineticSpecies = require "App.Species.KineticSpecies"
 local Lin            = require "Lib.Linalg"
 local Mpi            = require "Comm.Mpi"
 local Proto          = require "Lib.Proto"
+local Source         = require "App.Sources.VmSource"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
 local VlasovEq       = require "Eq.Vlasov"
@@ -612,19 +613,10 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          c:advance(tCurr, fIn, species, fRhsOut)   -- 'species' needed for cross-species collisions.
       end
    end
-   if self.evolveSources then
-      for _, src in pairs(self.sources) do
-         src:advance(tCurr, fIn, species, fRhsOut)
-      end
+   if self.sources then
+      for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
    end
-
-   if self.projSrc and self.evolveSources then
-      -- add source it to the RHS
-      -- Barrier over shared communicator before accumulate
-      Mpi.Barrier(self.grid:commSet().sharedComm)
-      fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
-   end
-
+   
    -- Save boundary fluxes for diagnostics.
    if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
       for _, bc in ipairs(self.boundaryConditions) do
@@ -643,12 +635,8 @@ function VlasovSpecies:createDiagnostics()
      return false
    end
 
-    if self.fSource then
-      self.numDensitySrc = self:allocMoment()
-      self.momDensitySrc = self:allocVectorMoment(self.vdim)
-      self.ptclEnergySrc = self:allocMoment()
-      self.fiveMomentsCalc:advance(0.0, {self.fSource}, {self.numDensitySrc, self.momDensitySrc, self.ptclEnergySrc})
-    end
+   for _, src in lume.orderedIter(self.sources) do src:createDiagnostics(self) end
+
    -- Create updater to compute volume-integrated moments
    -- function to check if integrated moment name is correct.
    local function isIntegratedMomentNameGood(nm)
@@ -1383,6 +1371,15 @@ function VlasovSpecies:Maxwellian(xn, n0, T0, vdnIn)
      v2 = v2 + (xn[d] - vdnIn[d-self.cdim])^2
    end
    return n0 / math.sqrt(2*math.pi*vt2)^self.vdim * math.exp(-v2/(2*vt2))
+end
+
+function VlasovSpecies:projToSource(proj)
+   -- For backwards compatibility: in the case where the source is specified
+   -- as a projection object in the input file, this function turns that
+   -- projection object into a Source object.
+   local tbl = proj.tbl
+   local pow = tbl.power
+   return Source { profile = proj, power = pow }
 end
 
 return VlasovSpecies
