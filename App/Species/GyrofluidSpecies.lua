@@ -242,11 +242,7 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       end
    end
 
-   if self.evolveSources then
-      for _, src in lume.orderedIter(self.sources) do
-         src:advance(tCurr, momIn, species, momRhsOut)
-      end
-   end
+   for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, momIn, species, momRhsOut) end
 
 end
 

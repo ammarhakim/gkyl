@@ -142,10 +142,10 @@ function KineticSpecies:fullInit(appTbl)
    self.randomseed = tbl.randomseed
 
    -- Initialize table containing sources (if any).
+   self.sources = {} 
    for nm, val in pairs(tbl) do
       if SourceBase.is(val) or string.find(nm,"source") then
          if ProjectionBase.is(val) then val = self:projToSource(val) end
-         self.sources = self.sources or {} 
 	 self.sources[nm] = val
 	 self.sources[nm]:setName(nm)
 	 val:setSpeciesName(self.name)
@@ -945,9 +945,7 @@ function KineticSpecies:write(tm, force)
             self.distIo:write(self.distf[1], string.format("%s_f1_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
             self.distf[1]:accumulate(1, self.f0)
          end
-         if self.sources then
-            for _, src in lume.orderedIter(self.sources) do src:write(tm, self.distIoFrame) end
-	 end
+         for _, src in lume.orderedIter(self.sources) do src:write(tm, self.distIoFrame) end
 	 self.distIoFrame = self.distIoFrame+1
       end
 
