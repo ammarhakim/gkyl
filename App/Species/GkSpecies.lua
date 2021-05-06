@@ -737,9 +737,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
 
    if self.sources then
-      for _, src in pairs(self.sources) do
-         src:advance(tCurr, fIn, species, fRhsOut)
-      end
+      for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
    end
 end
 

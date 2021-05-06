@@ -141,13 +141,11 @@ function KineticSpecies:fullInit(appTbl)
    -- Get a random seed for random initial conditions.
    self.randomseed = tbl.randomseed
 
-   -- Initialization.
-   self.sources = {}
+   -- Initialize table containing sources (if any).
    for nm, val in pairs(tbl) do
-      if SourceBase.is(val) or nm == "source" then
-         if ProjectionBase.is(val) then
-            val = self:projToSource(val)
-         end
+      if SourceBase.is(val) or string.find(nm,"source") then
+         if ProjectionBase.is(val) then val = self:projToSource(val) end
+         self.sources = self.sources or {} 
 	 self.sources[nm] = val
 	 self.sources[nm]:setName(nm)
 	 val:setSpeciesName(self.name)
@@ -156,7 +154,7 @@ function KineticSpecies:fullInit(appTbl)
    end
    self.projections = {}
    for nm, val in pairs(tbl) do
-      if ProjectionBase.is(val) and nm ~= "source" then
+      if ProjectionBase.is(val) and not string.find(nm,"source") then
          self.projections[nm] = val
       end
    end
@@ -569,10 +567,9 @@ function KineticSpecies:initDist(extField)
       -- end
    end
    
-   -- Set up profile function for species sources
-   for nm, src in lume.orderedIter(self.sources) do
-      src:createSolver(self, extField)
-   end
+   -- Set up profile function for species sources.
+   for nm, src in lume.orderedIter(self.sources) do src:createSolver(self, extField) end
+
    assert(initCnt>0, string.format("KineticSpecies: Species '%s' not initialized!", self.name))
    if self.f0 and backgroundCnt == 0 then self.f0:copy(self.distf[1]) end
 
@@ -860,7 +857,7 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        end
     end
 
-    -- Write source diagnostics
+    -- Write source integrated diagnostics.
     for nm, src in lume.orderedIter(self.sources) do
        src:writeDiagnosticIntegratedMoments(tm, self.diagIoFrame)
     end
@@ -937,9 +934,7 @@ function KineticSpecies:write(tm, force)
             self.distf[1]:accumulate(1, self.f0)
          end
          if self.sources then
-            for _, src in lume.orderedIter(self.sources) do
-	       src:write(tm, self.distIoFrame)
-	    end
+            for _, src in lume.orderedIter(self.sources) do src:write(tm, self.distIoFrame) end
 	 end
 	 self.distIoFrame = self.distIoFrame+1
       end

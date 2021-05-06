@@ -613,10 +613,8 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          c:advance(tCurr, fIn, species, fRhsOut)   -- 'species' needed for cross-species collisions.
       end
    end
-   if self.evolveSources then
-      for _, src in pairs(self.sources) do
-         src:advance(tCurr, fIn, species, fRhsOut)
-      end
+   if self.sources then
+      for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
    end
    
    -- Save boundary fluxes for diagnostics.
@@ -636,9 +634,8 @@ function VlasovSpecies:createDiagnostics()
      end
      return false
    end
-   for _, src in lume.orderedIter(self.sources) do
-      src:createDiagnostics(self)
-   end
+
+   for _, src in lume.orderedIter(self.sources) do src:createDiagnostics(self) end
 
    -- Create updater to compute volume-integrated moments
    -- function to check if integrated moment name is correct.
@@ -1377,6 +1374,9 @@ function VlasovSpecies:Maxwellian(xn, n0, T0, vdnIn)
 end
 
 function VlasovSpecies:projToSource(proj)
+   -- For backwards compatibility: in the case where the source is specified
+   -- as a projection object in the input file, this function turns that
+   -- projection object into a Source object.
    local tbl = proj.tbl
    local pow = tbl.power
    return Source { profile = proj, power = pow }

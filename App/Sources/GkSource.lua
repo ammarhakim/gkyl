@@ -25,76 +25,70 @@ function GkSource:init(tbl) self.tbl = tbl end
 -- we need the app top-level table for proper initialization.
 function GkSource:fullInit(thisSpecies)
    local tbl = self.tbl -- Previously stored table.
+
    if tbl.timeDependence then
       self.timeDependence = tbl.timeDependence
    else
       self.timeDependence = function (t) return 1.0 end
    end
+
    self.power = tbl.power
+
    if tbl.profile then
       self.profile = tbl.profile
-   elseif tbl.type then
-      self.density = assert(tbl.density, "App.GkSource: must specify density profile of source in 'density'.")
+   elseif tbl.kind then
+      self.density     = assert(tbl.density, "App.GkSource: must specify density profile of source in 'density'.")
       self.temperature = assert(tbl.temperature, "App.GkSource: must specify temperature profile of source in 'density'.")
-      if tbl.type == "Maxwellian" or tbl.type == "maxwellian" then
-         self.profile = Projection.GkProjection.MaxwellianProjection {
-            density = self.density,
+      if tbl.kind == "Maxwellian" or tbl.kind == "maxwellian" then
+         self.profile   = Projection.GkProjection.MaxwellianProjection {
+            density     = self.density,
             temperature = self.temperature,
-            power = self.power,
+            power       = self.power,
          }
       else
-         print("App.GkSource: Source type not recognized, defaulting to Maxwellian.")
-	 self.profile = Projection.GkProjection.MaxwellianProjection {
-            density = self.density,
-            temperature = self.temperature,
-            power = self.power,
-         }
+         assert(false, "App.GkSource: Source kind not recognized.")
       end    
    else
-      self.density = assert(tbl.density, "App.GkSource: must specify density profile of source in 'density'.")
+      -- If user doesn't specify 'kind', default to Maxwellian.
+      self.density     = assert(tbl.density, "App.GkSource: must specify density profile of source in 'density'.")
       self.temperature = assert(tbl.temperature, "App.GkSource: must specify temperature profile of source in 'density'.")
-      self.profile = Projection.GkProjection.MaxwellianProjection {
-         density = self.density,
+      self.profile     = Projection.GkProjection.MaxwellianProjection {
+         density     = self.density,
          temperature = self.temperature,
-         power = self.power,
+         power       = self.power,
       }
    end
    self.tmEvalSrc = 0.0
 end
 
-function GkSource:setName(nm)
-   self.name = nm
-end
-function GkSource:setSpeciesName(nm)
-   self.speciesName = nm
-end
-function GkSource:setConfBasis(basis)
-   self.confBasis = basis
-end
-function GkSource:setConfGrid(grid)
-   self.confGrid = grid
-end
+function GkSource:setName(nm) self.name = nm end
+function GkSource:setSpeciesName(nm) self.speciesName = nm end
+function GkSource:setConfBasis(basis) self.confBasis = basis end
+function GkSource:setConfGrid(grid) self.confGrid = grid end
 
 function GkSource:createSolver(thisSpecies, extField)
    self.profile:fullInit(thisSpecies)
    self.profile:advance(0.0, {extField}, {thisSpecies.distf[2]})
    Mpi.Barrier(thisSpecies.grid:commSet().sharedComm)
+
    if not self.fSource then self.fSource = thisSpecies:allocDistf() end
    self.fSource:accumulate(1.0, thisSpecies.distf[2])
+
    if self.positivityRescale then
       thisSpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
    end
+
    if self.power then
       local calcInt = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.confGrid,
-         basis = self.confBasis,
+         onGrid        = self.confGrid,
+         basis         = self.confBasis,
          numComponents = 1,
-         quantity = "V",
+         quantity      = "V",
       }
       local intKE = DataStruct.DynVector{numComponents = 1}
       thisSpecies.ptclEnergyCalc:advance(0.0, {self.fSource}, {thisSpecies.ptclEnergyAux})
       calcInt:advance(0.0, {thisSpecies.ptclEnergyAux, thisSpecies.mass/2}, {intKE})
-      local _, intKE_data = intKE:lastData()
+      local _, intKE_data  = intKE:lastData()
       self.powerScalingFac = self.power/intKE_data[1]
       self.fSource:scale(self.powerScalingFac)
    end
@@ -113,7 +107,8 @@ function GkSource:createDiagnostics(thisSpecies, momTable)
 
    self.diagnosticIntegratedMomentFields   = { }
    self.diagnosticIntegratedMomentUpdaters = { }
-   self.diagnosticIntegratedMoments = { }
+   self.diagnosticIntegratedMoments        = { }
+   self.diagnosticIntegratedMomentTimeDep  = { }
    
    self.numDensitySrc = thisSpecies:allocMoment()
    self.momDensitySrc = thisSpecies:allocMoment()
@@ -121,22 +116,32 @@ function GkSource:createDiagnostics(thisSpecies, momTable)
    thisSpecies.threeMomentsCalc:advance(0.0, {self.fSource}, {self.numDensitySrc, self.momDensitySrc, self.ptclEnergySrc})
    
    if contains(momTable, "intM0") or contains(momTable, "intSrcM0") then
-     table.insert(self.diagnosticIntegratedMoments, "intSrcM0")
+      table.insert(self.diagnosticIntegratedMoments, "intSrcM0")
+      self.diagnosticIntegratedMomentFields["intSrcM0"] = {}
+      self.diagnosticIntegratedMomentFields["intSrcM0"].inFld = self.numDensitySrc
+      self.diagnosticIntegratedMomentTimeDep["intSrcM0"] = function(t) return self.timeDependence(t) end
    end
    if contains(momTable, "intM1") or contains(momTable, "intSrcM1") then
       table.insert(self.diagnosticIntegratedMoments, "intSrcM1")
+      self.diagnosticIntegratedMomentFields["intSrcM1"] = {}
+      self.diagnosticIntegratedMomentFields["intSrcM1"].inFld = self.momDensitySrc
+      self.diagnosticIntegratedMomentTimeDep["intSrcM1"] = function(t) return self.timeDependence(t) end
    end
    if contains(momTable, "intM2") or contains(momTable, "intSrcM2") then
       table.insert(self.diagnosticIntegratedMoments, "intSrcM2")
+      self.diagnosticIntegratedMomentFields["intSrcM2"] = {}
+      self.diagnosticIntegratedMomentFields["intSrcM2"].inFld = self.ptclEnergySrc
+      self.diagnosticIntegratedMomentTimeDep["intSrcM2"] = function(t) return self.timeDependence(t) end
    end
    if contains(momTable, "intKE") or contains(momTable, "intSrcKE") then
       table.insert(self.diagnosticIntegratedMoments, "intSrcKE")
+      self.diagnosticIntegratedMomentFields["intSrcKE"] = {}
+      self.diagnosticIntegratedMomentFields["intSrcKE"].inFld = self.ptclEnergySrc
+      self.diagnosticIntegratedMomentTimeDep["intSrcKE"] = function(t) return self.timeDependence(t)*thisSpecies.mass/2. end
    end
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-      self.diagnosticIntegratedMomentFields[mom] = DataStruct.DynVector {
-         numComponents = 1,
-      }
-      self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
+      self.diagnosticIntegratedMomentFields[mom].outFld = DataStruct.DynVector{numComponents = 1}
+      self.diagnosticIntegratedMomentUpdaters[mom]      = Updater.CartFieldIntegratedQuantCalc {
          onGrid        = thisSpecies.confGrid,
          basis         = thisSpecies.confBasis,
          numComponents = 1,
@@ -148,35 +153,27 @@ end
 
 function GkSource:calcDiagnosticIntegratedMoments(tm, thisSpecies)
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-      if mom == "intSrcM0" then
-         self.diagnosticIntegratedMomentUpdaters[mom]:advance(tm, {self.numDensitySrc, self.timeDependence(tm)}, {self.diagnosticIntegratedMomentFields[mom]})
-      elseif mom == "intSrcM1" then
-         self.diagnosticIntegratedMomentUpdaters[mom]:advance(tm, {self.momDensitySrc, self.timeDependence(tm)}, {self.diagnosticIntegratedMomentFields[mom]})
-      elseif mom == "intSrcM2" then
-         self.diagnosticIntegratedMomentUpdaters[mom]:advance(tm, {self.ptclEnergySrc, self.timeDependence(tm)}, {self.diagnosticIntegratedMomentFields[mom]})
-      elseif mom == "intSrcKE" then
-         self.diagnosticIntegratedMomentUpdaters[mom]:advance(tm, {self.ptclEnergySrc, self.timeDependence(tm)*thisSpecies.mass/2}, {self.diagnosticIntegratedMomentFields[mom]})
-      end
+      self.diagnosticIntegratedMomentUpdaters[mom]:advance(tm,
+         {self.diagnosticIntegratedMomentFields[mom].inFld, self.diagnosticIntegratedMomentTimeDep[mom](tm)},
+         {self.diagnosticIntegratedMomentFields[mom].outFld})
    end
 end
 
 function GkSource:writeDiagnosticIntegratedMoments(tm, frame)
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-       self.diagnosticIntegratedMomentFields[mom]:write(string.format("%s_%s.bp", self.speciesName, mom), tm, frame)
-    end
+      self.diagnosticIntegratedMomentFields[mom].outFld:write(string.format("%s_%s.bp", self.speciesName, mom), tm, frame)
+   end
 end
 
 function GkSource:write(tm, frame)
    if tm == 0.0 then
       self.fSource:write(string.format("%s_fSource_0.bp", self.speciesName), tm, frame, true)
-      if self.numDensitySrc then self.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.speciesName), tm, frame) end
-      if self.momDensitySrc then self.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.speciesName), tm, frame) end
-      if self.ptclEnergySrc then self.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.speciesName), tm, frame) end
+      self.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.speciesName), tm, frame)
+      self.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.speciesName), tm, frame)
+      self.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.speciesName), tm, frame)
    end
 end
 
-function GkSource:srcTime()
-   return self.tmEvalSrc
-end
+function GkSource:srcTime() return self.tmEvalSrc end
 
 return GkSource
