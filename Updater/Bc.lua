@@ -9,18 +9,18 @@
 local xsys = require "xsys"
 
 -- Gkyl libraries.
-local CartDecomp = require "Lib.CartDecomp"
+local CartDecomp     = require "Lib.CartDecomp"
 local CartFieldBinOp = require "Updater.CartFieldBinOp"
-local DataStruct = require "DataStruct"
-local Grid = require "Grid"
-local Lin = require "Lib.Linalg"
-local LinearDecomp = require "Lib.LinearDecomp"
-local Mpi = require "Comm.Mpi"
+local DataStruct     = require "DataStruct"
+local Grid           = require "Grid"
+local Lin            = require "Lib.Linalg"
+local LinearDecomp   = require "Lib.LinearDecomp"
+local Mpi            = require "Comm.Mpi"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
-local Proto = require "Lib.Proto"
-local Range = require "Lib.Range"
-local UpdaterBase = require "Updater.Base"
-local MomDecl = require "Updater.momentCalcData.DistFuncMomentCalcModDecl"
+local Proto          = require "Lib.Proto"
+local Range          = require "Lib.Range"
+local UpdaterBase    = require "Updater.Base"
+local MomDecl        = require "Updater.momentCalcData.DistFuncMomentCalcModDecl"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 
 -- Boundary condition updater.
@@ -34,7 +34,7 @@ function Bc:init(tbl)
    self._isFirst = true -- Will be reset first time _advance() is called.
 
    self._grid = assert(tbl.onGrid, "Updater.Bc: Must specify grid to use with 'onGrid''")
-   self._dir = assert(tbl.dir, "Updater.Bc: Must specify direction to apply BCs with 'dir'")
+   self._dir  = assert(tbl.dir, "Updater.Bc: Must specify direction to apply BCs with 'dir'")
    self._dirlabel = dirlabel[self._dir]
 
    self._edge = assert(
@@ -57,10 +57,10 @@ function Bc:init(tbl)
 
    self._ghostRangeDecomp = nil -- Will be constructed on first call to advance.
 
-   self._idxIn = Lin.IntVec(self._grid:ndim())
+   self._idxIn  = Lin.IntVec(self._grid:ndim())
    self._idxOut = Lin.IntVec(self._grid:ndim())
-   self._xcIn = Lin.Vec(self._grid:ndim())
-   self._xcOut = Lin.Vec(self._grid:ndim())
+   self._xcIn   = Lin.Vec(self._grid:ndim())
+   self._xcOut  = Lin.Vec(self._grid:ndim())
 
    -- For diagnostics: create reduced boundary grid with 1 cell in dimension of self._dir.
    if self._grid:isShared() then 
@@ -81,12 +81,12 @@ function Bc:init(tbl)
             table.insert(reducedCuts, self._grid:cuts(d))
          end
       end
-      local commSet = self._grid:commSet()
+      local commSet   = self._grid:commSet()
       local worldComm = commSet.comm
-      local nodeComm = commSet.nodeComm
-      local nodeRank = Mpi.Comm_rank(nodeComm)
-      local dirRank = nodeRank
-      local cuts = {}
+      local nodeComm  = commSet.nodeComm
+      local nodeRank  = Mpi.Comm_rank(nodeComm)
+      local dirRank   = nodeRank
+      local cuts      = {}
       for d=1,3 do cuts[d] = self._grid:cuts(d) or 1 end
       local writeRank = -1
       if self._dir == 1 then 
@@ -106,9 +106,9 @@ function Bc:init(tbl)
       self.writeRank = writeRank
       
       local reducedDecomp = CartDecomp.CartProd {
-         comm = self._splitComm,
+         comm      = self._splitComm,
          writeRank = writeRank,
-         cuts = reducedCuts,
+         cuts      = reducedCuts,
          useShared = self._grid:isShared(),
       }
 
@@ -125,15 +125,15 @@ function Bc:init(tbl)
    -- moments at the boundary can be set up.
    self._evaluateFn = tbl.evaluate
    if self._evaluateFn then
-      self._basis = assert(tbl.basis, "Bc.init: Evaluate is currently implemented only for DG; 'basis' must be specified.")
+      self._basis    = assert(tbl.basis, "Bc.init: Evaluate is currently implemented only for DG; 'basis' must be specified.")
       self._evolveFn = xsys.pickBool(tbl.evolveFn, false)
       self._feedback = xsys.pickBool(tbl.feedback, false)
       if self._feedback then
          assert(tbl.cdim == 1, "Bc.init: Feedback boundary condition is implemented only for 1X simulations.")
-         local confBasis = assert(tbl.confBasis, "Bc.init: Must specify 'confBasis' when 'feedback' is true.")
-         local cDim = confBasis:ndim()
+         local confBasis   = assert(tbl.confBasis, "Bc.init: Must specify 'confBasis' when 'feedback' is true.")
+         local cDim        = confBasis:ndim()
          self.numConfBasis = confBasis:numBasis()
-         local node = Lin.Vec(cDim)
+         local node        = Lin.Vec(cDim)
          if self._edge == "lower" then node[1] = -1.0 else node[1] = 1.0 end
          self._confBasisEdge = Lin.Vec(self.numConfBasis)
          confBasis:evalBasis(node, self._confBasisEdge)
@@ -144,13 +144,13 @@ function Bc:init(tbl)
          local pDim = self._grid:ndim()
          local vDim = pDim - cDim
          self.idxP, self.xcP, self.dxP = Lin.IntVec(pDim), Lin.Vec(pDim), Lin.Vec(pDim)
-         self.mom0 = Lin.Vec(self.numConfBasis)
+         self.mom0  = Lin.Vec(self.numConfBasis)
          self.pMom1 = Lin.Vec(self.numConfBasis*vDim)
-         self.mom2 = Lin.Vec(self.numConfBasis)
+         self.mom2  = Lin.Vec(self.numConfBasis)
          -- Compute the offsets used to shorten the velocity range. For now assume that the zero
          -- along any velocity dimension is located at a cell boundary and not inside of a cell.
-         local partialMomReg = self._edge == "lower" and "N" or "P"
-         local partialMomDirP = cDim + self._dir
+         local partialMomReg    = self._edge == "lower" and "N" or "P"
+         local partialMomDirP   = cDim + self._dir
          self.partialMomDirExts = {0,0}
          local partialMomDirCells = self._grid:numCells(partialMomDirP)
          for d = 1,pDim do self.idxP[d]=1 end   -- Could be any cell in other directions.
@@ -166,9 +166,9 @@ function Bc:init(tbl)
                break
             end
          end
-         self._mom0Calc = MomDecl.selectMomCalc("M0",  self._basis:id(), cDim, vDim, self._basis:polyOrder(), false)
+         self._mom0Calc  = MomDecl.selectMomCalc("M0",  self._basis:id(), cDim, vDim, self._basis:polyOrder(), false)
          self._pMom1Calc = MomDecl.selectMomCalc("M1i", self._basis:id(), cDim, vDim, self._basis:polyOrder(), false)
-         self._mom2Calc = MomDecl.selectMomCalc("M2",  self._basis:id(), cDim, vDim, self._basis:polyOrder(), false)
+         self._mom2Calc  = MomDecl.selectMomCalc("M2",  self._basis:id(), cDim, vDim, self._basis:polyOrder(), false)
       end
    end
 end
@@ -186,10 +186,10 @@ end
 local function createFieldFromField(grid, fld, ghostCells)
    vComp = vComp or 1
    local fld = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = fld:numComponents(),
-      ghost = ghostCells,
-      metaData = fld:getMetaData(),
+      ghost         = ghostCells,
+      metaData      = fld:getMetaData(),
    }
    fld:clear(0.0)
    return fld
@@ -200,13 +200,13 @@ function Bc:_advance(tCurr, inFld, outFld)
    local qOut = assert(outFld[1], "Bc.advance: Must-specify an output field")
 
    local dir, edge = self._dir, self._edge
-   local vdir = self._vdir
-   local global = qOut:globalRange()
+   local vdir      = self._vdir
+   local global    = qOut:globalRange()
 
    if self._isFirst then
-      local globalExt = qOut:globalExtRange()
+      local globalExt     = qOut:globalExtRange()
       local localExtRange = qOut:localExtRange()
-      self._ghostRng = self._ghostRng or localExtRange:intersect(
+      self._ghostRng      = self._ghostRng or localExtRange:intersect(
    	 self:getGhostRange(global, globalExt)) -- Range spanning ghost cells.
       -- Decompose ghost region into threads.
       self._ghostRangeDecomp = self._ghostRangeDecomp or LinearDecomp.LinearDecompRange {
