@@ -493,7 +493,7 @@ plasmaApp = Plasma.App {
    field = Plasma.Field {
       bcLowerPhi = {{ T ="N", V = 0.0}},
       bcUpperPhi = {{ T ="N", V = 0.0}},
-      kperp2     = kperp^2,
+      kperpSq    = kperp^2,
       evolve     = true,   -- Evolve fields?
    },
 

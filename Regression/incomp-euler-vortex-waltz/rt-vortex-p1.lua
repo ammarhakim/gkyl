@@ -35,6 +35,7 @@ plasmaApp = Plasma.App {
          local r2 = (x-x2)^2 + (y-y2)^2
          return math.exp(-r1/0.8^2) + math.exp(-r2/0.8^2) -- 4.0212385953656/L^2
       end,
+      diagnostics = {"intMom"},
       evolve = true,    -- Evolve species?
    },
 

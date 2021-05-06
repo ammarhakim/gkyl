@@ -98,16 +98,14 @@ plasmaApp = Plasma.App {
       mass   = mElc,
       temp   = Te,
       -- Initial conditions.. use ion background so that background is exactly neutral.
-      init = function (t, xn)
-         return nElc
-      end,
+      init = function (t, xn) return nElc end,
       evolve = false, -- Evolve species?
    },
 
    -- Field solver.
    field = Plasma.Field {
-      evolve = true, -- Evolve field?
-      kperp2 = 0.0,
+      evolve  = true, -- Evolve field?
+      kperpSq = 0.0,
    },
 
    -- Magnetic geometry.

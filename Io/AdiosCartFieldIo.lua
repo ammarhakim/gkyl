@@ -209,8 +209,10 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
       Adios.select_method(self.grpIds[grpNm], self._method, "", "")
       
       -- Global attributes for Gkyl build.
-      Adios.define_attribute_byvalue(self.grpIds[grpNm], "changeset", "", Adios.string, 1, GKYL_GIT_CHANGESET)
-      Adios.define_attribute_byvalue(self.grpIds[grpNm], "builddate", "", Adios.string, 1, GKYL_BUILD_DATE)
+      if GKYL_GIT_CHANGESET ~= "" then
+         Adios.define_attribute_byvalue(self.grpIds[grpNm], "changeset", "", Adios.string, 1, GKYL_GIT_CHANGESET)
+         Adios.define_attribute_byvalue(self.grpIds[grpNm], "builddate", "", Adios.string, 1, GKYL_BUILD_DATE)
+      end
       
       -- Field attributes.
       Adios.define_attribute_byvalue(self.grpIds[grpNm], "type", "", Adios.string, 1, field:grid():id())
@@ -286,7 +288,7 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
       -- ADIOS expects data to be laid out in row-major order).
       fld:_copy_from_field_region(localRange, self._outBuff[1])
 
-      Adios.write(fd, fldNm, self._outBuff[1]:data())
+      local err = Adios.write(fd, fldNm, self._outBuff[1]:data())
    end
    Adios.close(fd)
 end

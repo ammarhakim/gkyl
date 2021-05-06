@@ -16,6 +16,7 @@ local Time           = require "Lib.Time"
 local Constants      = require "Lib.Constants"
 local Lin            = require "Lib.Linalg"
 local xsys           = require "xsys"
+local Source         = require "App.Sources.GkSource"
 local VlasovEq       = require "Eq.Vlasov"
 local lume           = require "Lib.lume"
 
@@ -158,7 +159,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       hasPhi       = hasPhi,
       hasApar      = hasApar,
       Bvars        = externalField.bmagVars,
-      hasSheathBcs = self.hasSheathBcs,
+      hasSheathBCs = self.hasSheathBCs,
       positivity   = self.positivity,
       gyavgSlvr    = self.emGyavgSlvr,
       geometry     = externalField.geo.name,
@@ -699,9 +700,10 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local fIn     = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
-   local em          = emIn[1]:rkStepperFields()[inIdx]
+   local em     = emIn[1]:rkStepperFields()[inIdx] -- Dynamic fields (e.g. phi, Apar)
+   local emFunc = emIn[2]:rkStepperFields()[1]     -- Geometry/external field.
+
    local dApardtProv = emIn[1].dApardtProv
-   local emFunc      = emIn[2]:rkStepperFields()[1]
 
    -- Rescale slopes.
    if self.positivityRescale then
@@ -739,13 +741,8 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       end
    end
 
-   if self.fSource and self.evolveSources then
-      local tm = Time.clock()
-      -- Add source it to the RHS.
-      -- Barrier over shared communicator before accumulate.
-      Mpi.Barrier(self.grid:commSet().sharedComm)
-      fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
-      self.timers.sources = self.timers.sources + Time.clock() - tm 
+   if self.sources then
+      for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
    end
 end
 
@@ -784,14 +781,7 @@ function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
 end
 
 function GkSpecies:createDiagnostics()
-   local function contains(table, element)
-     for _, value in pairs(table) do
-       if value == element then
-         return true
-       end
-     end
-     return false
-   end
+   local function contains(table, element) return lume.any(table, function(e) return e==element end) end
 
    -- Create updater to compute volume-integrated moments
    -- function to check if integrated moment name is correct.
@@ -806,24 +796,9 @@ function GkSpecies:createDiagnostics()
       return false
    end
    self.diagnosticIntegratedMomentFields   = { }
-   self.diagnosticIntegratedMomentUpdaters = { } 
-   if self.fSource then
-      self.numDensitySrc = self:allocMoment()
-      self.momDensitySrc = self:allocMoment()
-      self.ptclEnergySrc = self:allocMoment()
-      self.threeMomentsCalc:advance(0.0, {self.fSource}, {self.numDensitySrc, self.momDensitySrc, self.ptclEnergySrc})
-      if contains(self.diagnosticIntegratedMoments, "intM0") and not contains(self.diagnosticIntegratedMoments, "intSrcM0") then
-        table.insert(self.diagnosticIntegratedMoments, "intSrcM0")
-      end
-      if contains(self.diagnosticIntegratedMoments, "intM1") and not contains(self.diagnosticIntegratedMoments, "intSrcM1") then
-         table.insert(self.diagnosticIntegratedMoments, "intSrcM1")
-      end
-      if contains(self.diagnosticIntegratedMoments, "intM2") and not contains(self.diagnosticIntegratedMoments, "intSrcM2") then
-         table.insert(self.diagnosticIntegratedMoments, "intSrcM2")
-      end
-      if contains(self.diagnosticIntegratedMoments, "intKE") and not contains(self.diagnosticIntegratedMoments, "intSrcKE") then
-         table.insert(self.diagnosticIntegratedMoments, "intSrcKE")
-      end
+   self.diagnosticIntegratedMomentUpdaters = { }
+   for _, src in lume.orderedIter(self.sources) do
+      src:createDiagnostics(self, self.diagnosticIntegratedMoments)
    end
 
    -- Allocate space to store integrated moments and create integrated moment updaters.
@@ -862,14 +837,6 @@ function GkSpecies:createDiagnostics()
                   numComponents = 1,
                   quantity      = "AbsV",
                   timeIntegrate = timeIntegrate,
-               }
-            elseif mom == "intSrcM0" or mom == "intSrcM1" or mom == "intSrcM2" or mom == "intSrcKE" then
-               self.diagnosticIntegratedMomentUpdaters[mom..label] = Updater.CartFieldIntegratedQuantCalc {
-                  onGrid        = confGrid,
-                  basis         = self.confBasis,
-                  numComponents = 1,
-                  quantity      = "V",
-                  timeIntegrate = true,
                }
             else
                self.diagnosticIntegratedMomentUpdaters[mom..label] = intCalc
@@ -1390,18 +1357,6 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tm)
          elseif mom == "intDelPosM2" and self.positivity then
             self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
                tm, {self.ptclEnergyPos}, {self.diagnosticIntegratedMomentFields[mom..label]})
-         elseif mom == "intSrcM0" then
-            self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
-                  tm, {self.numDensitySrc, self.sourceTimeDependence(tm)}, {self.diagnosticIntegratedMomentFields[mom..label]})
-         elseif mom == "intSrcM1" then
-            self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
-                  tm, {self.momDensitySrc, self.sourceTimeDependence(tm)}, {self.diagnosticIntegratedMomentFields[mom..label]})
-         elseif mom == "intSrcM2" then
-            self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
-                  tm, {self.ptclEnergySrc, self.sourceTimeDependence(tm)}, {self.diagnosticIntegratedMomentFields[mom..label]})
-         elseif mom == "intSrcKE" then
-            self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
-                  tm, {self.ptclEnergySrc, self.sourceTimeDependence(tm)*self.mass/2}, {self.diagnosticIntegratedMomentFields[mom..label]})
          end
       end
       if self.calcReactRate and label=="" then
@@ -1412,6 +1367,10 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tm)
    end
 
    computeIntegratedMoments(self.diagnosticIntegratedMoments, fIn)
+
+   for nm, src in lume.orderedIter(self.sources) do
+      src:calcDiagnosticIntegratedMoments(tm, self)
+   end
    
    if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
       for _, bc in ipairs(self.boundaryConditions) do
@@ -1478,7 +1437,7 @@ end
 function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    -- Need to wrap member functions so that self is passed.
    local function bcAbsorbFunc(...)  return self:bcAbsorbFunc(...) end
-   local function bcOpenFunc(...)    return  self:bcOpenFunc(...) end
+   local function bcOpenFunc(...)    return self:bcOpenFunc(...) end
    local function bcReflectFunc(...) return self:bcReflectFunc(...) end
    local function bcSheathFunc(...)  return self:bcSheathFunc(...) end
    local function bcCopyFunc(...)    return self:bcCopyFunc(...) end
@@ -1499,7 +1458,7 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    elseif bcType == SP_BC_SHEATH and dir==self.cdim then
       self.fhatSheath = Lin.Vec(self.basis:numBasis())
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcSheathFunc }, "flip"))
-      self.hasSheathBcs = true
+      self.hasSheathBCs = true
    elseif bcType == SP_BC_ZEROFLUX then
       table.insert(self.zeroFluxDirections, dir)
    elseif bcType == SP_BC_COPY then
@@ -1745,6 +1704,12 @@ function GkSpecies:Maxwellian(xn, n0, T0, vdIn)
    else
       return n0*(2*math.pi*vt2)^(-1/2)*math.exp(-v2/(2*vt2))
    end
+end
+
+function GkSpecies:projToSource(proj)
+   local tbl = proj.tbl
+   local pow = tbl.power
+   return Source { profile = proj, power = pow }
 end
 
 return GkSpecies

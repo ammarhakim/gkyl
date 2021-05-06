@@ -33,8 +33,8 @@ function Bc:init(tbl)
 
    self._isFirst = true -- Will be reset first time _advance() is called.
 
-   self._grid     = assert(tbl.onGrid, "Updater.Bc: Must specify grid to use with 'onGrid''")
-   self._dir      = assert(tbl.dir, "Updater.Bc: Must specify direction to apply BCs with 'dir'")
+   self._grid = assert(tbl.onGrid, "Updater.Bc: Must specify grid to use with 'onGrid''")
+   self._dir  = assert(tbl.dir, "Updater.Bc: Must specify direction to apply BCs with 'dir'")
    self._dirlabel = dirlabel[self._dir]
 
    self._edge = assert(
@@ -59,8 +59,8 @@ function Bc:init(tbl)
 
    self._idxIn  = Lin.IntVec(self._grid:ndim())
    self._idxOut = Lin.IntVec(self._grid:ndim())
-   self._xcIn  = Lin.Vec(self._grid:ndim())
-   self._xcOut = Lin.Vec(self._grid:ndim())
+   self._xcIn   = Lin.Vec(self._grid:ndim())
+   self._xcOut  = Lin.Vec(self._grid:ndim())
 
    -- For diagnostics: create reduced boundary grid with 1 cell in dimension of self._dir.
    if self._grid:isShared() then 
@@ -86,7 +86,7 @@ function Bc:init(tbl)
       local nodeComm  = commSet.nodeComm
       local nodeRank  = Mpi.Comm_rank(nodeComm)
       local dirRank   = nodeRank
-      local cuts = {}
+      local cuts      = {}
       for d=1,3 do cuts[d] = self._grid:cuts(d) or 1 end
       local writeRank = -1
       if self._dir == 1 then 
@@ -131,9 +131,9 @@ function Bc:init(tbl)
       if self._feedback then
          assert(tbl.cdim == 1, "Bc.init: Feedback boundary condition is implemented only for 1X simulations.")
          local confBasis   = assert(tbl.confBasis, "Bc.init: Must specify 'confBasis' when 'feedback' is true.")
-         local cDim = confBasis:ndim()
+         local cDim        = confBasis:ndim()
          self.numConfBasis = confBasis:numBasis()
-         local node = Lin.Vec(cDim)
+         local node        = Lin.Vec(cDim)
          if self._edge == "lower" then node[1] = -1.0 else node[1] = 1.0 end
          self._confBasisEdge = Lin.Vec(self.numConfBasis)
          confBasis:evalBasis(node, self._confBasisEdge)
@@ -149,9 +149,9 @@ function Bc:init(tbl)
          self.mom2  = Lin.Vec(self.numConfBasis)
          -- Compute the offsets used to shorten the velocity range. For now assume that the zero
          -- along any velocity dimension is located at a cell boundary and not inside of a cell.
-         local partialMomReg      = self._edge == "lower" and "N" or "P"
-         local partialMomDirP     = cDim + self._dir
-         self.partialMomDirExts   = {0,0}
+         local partialMomReg    = self._edge == "lower" and "N" or "P"
+         local partialMomDirP   = cDim + self._dir
+         self.partialMomDirExts = {0,0}
          local partialMomDirCells = self._grid:numCells(partialMomDirP)
          for d = 1,pDim do self.idxP[d]=1 end   -- Could be any cell in other directions.
          for idx=1,partialMomDirCells do
@@ -225,19 +225,19 @@ function Bc:_advance(tCurr, inFld, outFld)
 
          -- Mini version of DistFuncMomentCalc to compute moments in the skin cell.
          local pDim, cDim = self._grid:ndim(), 1
-         local vDim       = pDim - cDim
+         local vDim = pDim - cDim
          local phaseRange = distf:localRange()
          --for dir = 1, cDim do
          --   phaseRange = phaseRange:extendDir(dir, distf:lowerGhost(), distf:upperGhost())
          --end
          local phaseIndexer = distf:genIndexer()
-         local distfItr     = distf:get(1)
+         local distfItr = distf:get(1)
          -- Construct ranges for nested loops.
          local confSkinRange = self._edge == "lower" and phaseRange:selectFirst(cDim):lowerSkin(dir,1) or phaseRange:selectFirst(cDim):upperSkin(dir,1)
          local confSkinRangeDecomp = LinearDecomp.LinearDecompRange {
             range = confSkinRange, numSplit = grid:numSharedProcs() }
          local velRange = phaseRange:selectLast(vDim)
-         local tId      = grid:subGridSharedId()    -- Local thread ID.
+         local tId = grid:subGridSharedId()    -- Local thread ID.
          velRange = velRange:extendDir(dir,self.partialMomDirExts[1],self.partialMomDirExts[2])
          local phaseIndexer = distf:genIndexer()
          local edgeM0, edgeM1, edgeM2 = 0.0, 0.0, 0.0
@@ -276,8 +276,8 @@ function Bc:_advance(tCurr, inFld, outFld)
          end
       end
       self._projectEvaluateFn = ProjectOnBasis {
-         onGrid   = self._boundaryGrid,
-         basis    = self._basis,
+         onGrid = self._boundaryGrid,
+         basis = self._basis,
          evaluate = myEvaluateFn,
       }
    end
@@ -339,7 +339,7 @@ function Bc:storeBoundaryFlux(tCurr, rkIdx, qOut)
                                   createFieldFromField(self._boundaryGrid, qOut, {1,1}),
                                   createFieldFromField(self._boundaryGrid, qOut, {1,1}),
                                   createFieldFromField(self._boundaryGrid, qOut, {1,1}),}
-      self._boundaryFluxRate      = createFieldFromField(self._boundaryGrid, qOut, {1,1})
+      self._boundaryFluxRate = createFieldFromField(self._boundaryGrid, qOut, {1,1})
       self._boundaryFluxFieldPrev = createFieldFromField(self._boundaryGrid, qOut, {1,1})
       self._boundaryFluxFieldPrev:clear(0.0)
       self._boundaryPtr = {self._boundaryFluxFields[1]:get(1), 
@@ -348,17 +348,17 @@ function Bc:storeBoundaryFlux(tCurr, rkIdx, qOut)
                            self._boundaryFluxFields[4]:get(1),}
       self._boundaryIdxr = self._boundaryFluxFields[1]:genIndexer()
 
-      local global        = qOut:globalRange()
-      local globalExt     = qOut:globalExtRange()
+      local global = qOut:globalRange()
+      local globalExt = qOut:globalExtRange()
       local localExtRange = qOut:localExtRange()
-      self._ghostRng      = self._ghostRng or localExtRange:intersect(
+      self._ghostRng = self._ghostRng or localExtRange:intersect(
    	 self:getGhostRange(global, globalExt) ) -- Range spanning ghost cells.
       -- Decompose ghost region into threads.
       self._ghostRangeDecomp = self._ghostRangeDecomp or LinearDecomp.LinearDecompRange {
    	 range = self._ghostRng, numSplit = self._grid:numSharedProcs() }
    end
 
-   local ptrOut  = qOut:get(1) -- Get pointers to (re)use inside inner loop.
+   local ptrOut = qOut:get(1) -- Get pointers to (re)use inside inner loop.
    local indexer = qOut:genIndexer()
 
    local tId = self._grid:subGridSharedId() -- Local thread ID.
@@ -378,14 +378,14 @@ end
 
 function Bc:evalOnConfBoundary(inFld)
    if self._isFirst then
-      self._confBoundaryField    = self._confBoundaryField or createFieldFromField(self._confBoundaryGrid, inFld, {1,1})
+      self._confBoundaryField = self._confBoundaryField or createFieldFromField(self._confBoundaryGrid, inFld, {1,1})
       self._confBoundaryFieldPtr = self._confBoundaryFieldPtr or self._confBoundaryField:get(1)
-      self._confBoundaryIdxr     = self._confBoundaryIdxr or self._confBoundaryField:genIndexer()
+      self._confBoundaryIdxr = self._confBoundaryIdxr or self._confBoundaryField:genIndexer()
 
-      local confGlobal        = inFld:globalRange()
-      local confGlobalExt     = inFld:globalExtRange()
+      local confGlobal = inFld:globalRange()
+      local confGlobalExt = inFld:globalExtRange()
       local confLocalExtRange = inFld:localExtRange()
-      self._confGhostRng      = self._confGhostRng or confLocalExtRange:intersect(
+      self._confGhostRng = self._confGhostRng or confLocalExtRange:intersect(
    	 self:getGhostRange(confGlobal, confGlobalExt) ) -- Range spanning ghost cells.
       -- Decompose ghost region into threads.
       self._confGhostRangeDecomp = self._confGhostRangeDecomp or LinearDecomp.LinearDecompRange {
@@ -393,7 +393,7 @@ function Bc:evalOnConfBoundary(inFld)
    end
 
    local inFldPtr = inFld:get(1)
-   local indexer  = inFld:genIndexer()
+   local indexer = inFld:genIndexer()
 
    local tId = self._grid:subGridSharedId() -- Local thread ID.
    for idxIn in self._confGhostRangeDecomp:rowMajorIter(tId) do
@@ -463,9 +463,9 @@ function Bc:initBcDiagnostics(cDim)
          end
       end
       local reducedDecomp = CartDecomp.CartProd {
-         comm      = self._splitComm,
+         comm = self._splitComm,
          writeRank = self.writeRank,
-         cuts      = reducedCuts,
+         cuts = reducedCuts,
          useShared = self._grid:isShared(),
       }
 

@@ -158,7 +158,7 @@ function GkField:fullInit(appTbl)
    self.discontinuousApar = xsys.pickBool(tbl.discontinuousApar, true)
 
    -- For ndim=1 only.
-   self.kperp2 = tbl.kperp2
+   self.kperpSq = tbl.kperpSq or tbl.kperp2   -- kperp2 for backwards compatibility.
 
    -- Allow user to specify polarization weight. will be calculated automatically if not specified.
    self.polarizationWeight = tbl.polarizationWeight
@@ -291,8 +291,6 @@ function GkField:initField(species)
       self:phiSolve(0.0, species, 1, 1)
    end
 
-   local polyOrder = self.basis:polyOrder()
-
    if self.isElectromagnetic then
       -- Solve for initial Apar.
       local apar = self.potentials[1].apar
@@ -419,9 +417,9 @@ function GkField:createSolver(species, externalField)
       local laplacianConstant, modifierConstant
  
       if self.ndim==1 then
-         assert(self.kperp2, "GkField: must specify kperp2 for ndim=1")
+         assert(self.kperpSq, "GkField: must specify kperpSq for ndim=1")
          laplacianConstant = 0.0 
-         modifierConstant  = self.kperp2*self.polarizationWeight 
+         modifierConstant  = self.kperpSq*self.polarizationWeight 
       else 
          laplacianConstant = -self.polarizationWeight 
          modifierConstant  = 0.0 
@@ -457,7 +455,7 @@ function GkField:createSolver(species, externalField)
      }
      if ndim==1 then
         laplacianConstant = 0.0
-        modifierConstant  = self.kperp2/self.mu0
+        modifierConstant  = self.kperpSq/self.mu0
      else
         laplacianConstant = -1.0/self.mu0
         modifierConstant  = 0.0
@@ -586,10 +584,8 @@ function GkField:createDiagnostics()
       elemType   = self.potentials[1].phi:elemType(),
       method     = self.ioMethod,
       writeGhost = self.writeGhost,
-      metaData   = {
-	 polyOrder = self.basis:polyOrder(),
-	 basisType = self.basis:id()
-      },
+      metaData   = {polyOrder = self.basis:polyOrder(),
+                    basisType = self.basis:id(),},
    }
 
    -- Updaters for computing integrated quantities.
@@ -626,7 +622,7 @@ function GkField:write(tm, force)
             if self.linearizedPolarization then
                local esEnergyFac = .5*self.polarizationWeight
                if self.ndim == 1 then 
-                  esEnergyFac = esEnergyFac*self.kperp2 
+                  esEnergyFac = esEnergyFac*self.kperpSq 
                   if self.adiabatic then 
                      esEnergyFac = esEnergyFac + .5*self.adiabSpec:getQneutFac() 
                   end
@@ -643,7 +639,7 @@ function GkField:write(tm, force)
             end
             if self.isElectromagnetic then 
               local emEnergyFac = .5/self.mu0
-              if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperp2 end
+              if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperpSq end
               self.energyCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy })
             end
          end
@@ -749,7 +745,7 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
                end
             end
             if self.ndim == 1 then
-               self.modifierWeight:combine(self.kperp2, self.weight)
+               self.modifierWeight:combine(self.kperpSq, self.weight)
             else
                self.modifierWeight:clear(0.0)
                self.laplacianWeight:combine(-1.0, self.weight)
@@ -829,7 +825,7 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
 
       self.currentDens:clear(0.0)
       if self.ndim==1 then 
-         self.modifierWeight:combine(self.kperp2/self.mu0, self.unitWeight) 
+         self.modifierWeight:combine(self.kperpSq/self.mu0, self.unitWeight) 
       else 
          self.modifierWeight:clear(0.0)
       end
@@ -879,7 +875,7 @@ function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
    if self.evolve then
       self.currentDens:clear(0.0)
       if self.ndim==1 then 
-         self.modifierWeight:combine(self.kperp2/self.mu0, self.unitWeight) 
+         self.modifierWeight:combine(self.kperpSq/self.mu0, self.unitWeight) 
       else 
          self.modifierWeight:clear(0.0)
       end
@@ -996,9 +992,6 @@ function GkGeometry:fullInit(appTbl)
    -- NOTE: for must purposes one must use geo.name, defined in the :alloc method.
    self.geoType = tbl.geometryType and tbl.geometryType or "SimpleHelical"
 
-   -- Specify which geometry to use.
-   self.geoType = tbl.geometryType and tbl.geometryType or "SimpleHelical"
-
    -- Wall potential for sheath BCs.
    self.phiWallFunc = tbl.phiWall
    if self.phiWallFunc then assert(type(self.phiWallFunc)=="function", "GkGeometry: phiWall must be a function (t, xn)") end
@@ -1036,8 +1029,8 @@ function GkGeometry:alloc()
    -- bmagInv ~ 1/B.
    self.geo.bmagInv = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
-   -- gradpar = J B / sqrt(g_zz).
-   self.geo.gradpar = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   -- cmag = J B / sqrt(g_zz).
+   self.geo.cmag = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
    -- Functions for Laplacian.
    -- g^xx = |grad x|**2.
@@ -1078,12 +1071,12 @@ function GkGeometry:alloc()
       self.geo.jacobTotInv = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
       -- Functions for magnetic drifts .
-      -- geoX = g_xz / ( sqrt(g_zz) )
-      self.geo.geoX = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-      -- geoY = g_yz / ( sqrt(g_zz) )
-      self.geo.geoY = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
-      -- geoZ = sqrt(g_zz)
-      self.geo.geoZ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+      -- b_x = g_xz / ( sqrt(g_zz) )
+      self.geo.b_x = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+      -- b_y = g_yz / ( sqrt(g_zz) )
+      self.geo.b_y = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+      -- b_z = sqrt(g_zz)
+      self.geo.b_z = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
  
       -- Functions for laplacian, including Jacobian factor.
       self.geo.gxxJ = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
@@ -1151,22 +1144,22 @@ function GkGeometry:createSolver()
          self.calcAllGeo = function(t, xn)
             local gxx, gxy, gyy = 1.0, 0.0, 1.0
 
-            local bmag    = self.bmagFunc(t, xn)
-            local gradpar = 1.0
+            local bmag = self.bmagFunc(t, xn)
+            local cmag = 1.0
 
-            return bmag, 1/bmag, gradpar, gxx, gxy, gyy
+            return bmag, 1/bmag, cmag, gxx, gxy, gyy
           end
       else
          self.calcAllGeo = function(t, xn)
             local gxx, gxy, gyy = 1.0, 0.0, 1.0
 
-            local bmag    = self.bmagFunc(t, xn)
-            local gradpar = 1.0
+            local bmag = self.bmagFunc(t, xn)
+            local cmag = 1.0
 
             local bdriftX = self.bdriftXFunc(t, xn)
             local bdriftY = self.bdriftYFunc(t, xn)
 
-            return bmag, 1/bmag, gradpar, gxx, gxy, gyy, bdriftX, bdriftY
+            return bmag, 1/bmag, cmag, gxx, gxy, gyy, bdriftX, bdriftY
           end
       end
 
@@ -1210,9 +1203,9 @@ function GkGeometry:createSolver()
                g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
             end
             local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
-            local geoX     = g_xz/math.sqrt(g_zz)
-            local geoY     = g_yz/math.sqrt(g_zz)
-            local geoZ     = math.sqrt(g_zz)
+            local b_x      = g_xz/math.sqrt(g_zz)
+            local b_y      = g_yz/math.sqrt(g_zz)
+            local b_z      = math.sqrt(g_zz)
 
             local det = jacobian^2
             local gxx = (g_yy*g_zz-g_yz^2)/det
@@ -1223,10 +1216,10 @@ function GkGeometry:createSolver()
             local gzz = (g_xx*g_yy-g_xy^2)/det
 
             local bmag    = self.bmagFunc(t, xn)
-            local gradpar = jacobian*bmag/math.sqrt(g_zz)
+            local cmag = jacobian*bmag/math.sqrt(g_zz)
 
-            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, gradpar, 
-                   geoX, geoY, geoZ, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
+            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
+                   b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
          end
       elseif self.ndim == 2 then
          self.calcAllGeo = function(t, xn)
@@ -1239,9 +1232,9 @@ function GkGeometry:createSolver()
                g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
             end
             local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
-            local geoX     = g_xz/math.sqrt(g_zz)
-            local geoY     = g_yz/math.sqrt(g_zz)
-            local geoZ     = math.sqrt(g_zz)
+            local b_x      = g_xz/math.sqrt(g_zz)
+            local b_y      = g_yz/math.sqrt(g_zz)
+            local b_z      = math.sqrt(g_zz)
 
             local det = jacobian^2
             local gxx = (g_yy*g_zz-g_yz^2)/det
@@ -1252,10 +1245,10 @@ function GkGeometry:createSolver()
             local gzz = (g_xx*g_yy-g_xy^2)/det
 
             local bmag    = self.bmagFunc(t, xn)
-            local gradpar = jacobian*bmag/math.sqrt(g_zz)
+            local cmag = jacobian*bmag/math.sqrt(g_zz)
 
-            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, gradpar, 
-                   geoX, geoY, geoZ, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
+            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
+                   b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
           end
       else
          self.calcAllGeo = function(t, xn)
@@ -1263,9 +1256,9 @@ function GkGeometry:createSolver()
             self.grid:calcMetric(xn, g)
             local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
             local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
-            local geoX     = g_xz/math.sqrt(g_zz)
-            local geoY     = g_yz/math.sqrt(g_zz)
-            local geoZ     = math.sqrt(g_zz)
+            local b_x      = g_xz/math.sqrt(g_zz)
+            local b_y      = g_yz/math.sqrt(g_zz)
+            local b_z      = math.sqrt(g_zz)
 
             local det = jacobian^2
             local gxx = (g_yy*g_zz-g_yz^2)/det
@@ -1275,11 +1268,11 @@ function GkGeometry:createSolver()
             local gyz = (g_xy*g_xz-g_xx*g_yz)/det
             local gzz = (g_xx*g_yy-g_xy^2)/det
 
-            local bmag    = self.bmagFunc(t, xn)
-            local gradpar = jacobian*bmag/math.sqrt(g_zz)
+            local bmag = self.bmagFunc(t, xn)
+            local cmag = jacobian*bmag/math.sqrt(g_zz)
 
-            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, gradpar, 
-                   geoX, geoY, geoZ, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
+            return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 
+                   b_x, b_y, b_z, gxx, gxy, gyy, gxx*jacobian, gxy*jacobian, gyy*jacobian
           end
       end
 
@@ -1337,21 +1330,21 @@ function GkGeometry:initField()
          -- Read the geometry quantities from a file.
          if self.ndim == 1 then
             local tm, fr = self.fieldIo:read({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-               gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy}, self.fromFile, true)
+               cmag=self.geo.cmag, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy}, self.fromFile, true)
          else
             local tm, fr = self.fieldIo:read({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-               gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy, 
+               cmag=self.geo.cmag, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy, 
                bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY}, self.fromFile, true)
          end
       else
          self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
          if self.ndim == 1 then
             self.separateComponents:advance(0, {self.geo.allGeo},
-               {self.geo.bmag, self.geo.bmagInv, self.geo.gradpar,
+               {self.geo.bmag, self.geo.bmagInv, self.geo.cmag,
                 self.geo.gxx, self.geo.gxy, self.geo.gyy})
          else
             self.separateComponents:advance(0, {self.geo.allGeo},
-               {self.geo.bmag, self.geo.bmagInv, self.geo.gradpar,
+               {self.geo.bmag, self.geo.bmagInv, self.geo.cmag,
                 self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.bdriftX, self.geo.bdriftY})
          end
       end
@@ -1360,14 +1353,14 @@ function GkGeometry:initField()
          -- Read the geometry quantities from a file.
          local tm, fr = self.fieldIo:read({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
             jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-            gradpar=self.geo.gradpar, geoX=self.geo.geoX, geoY=self.geo.geoY, geoZ=self.geo.geoZ, gxx=self.geo.gxx,
+            cmag=self.geo.cmag, b_x=self.geo.b_x, b_y=self.geo.b_y, b_z=self.geo.b_z, gxx=self.geo.gxx,
             gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
             self.fromFile, true)
       else
          self.setAllGeo:advance(0.0, {}, {self.geo.allGeo})
          self.separateComponents:advance(0, {self.geo.allGeo},
             {self.geo.jacobGeo, self.geo.jacobGeoInv, self.geo.jacobTot, self.geo.jacobTotInv,
-             self.geo.bmag, self.geo.bmagInv, self.geo.gradpar, self.geo.geoX, self.geo.geoY, self.geo.geoZ,
+             self.geo.bmag, self.geo.bmagInv, self.geo.cmag, self.geo.b_x, self.geo.b_y, self.geo.b_z,
              self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
       end
    end
@@ -1380,7 +1373,7 @@ function GkGeometry:initField()
    -- these fields were created with syncPeriodicDirs = false.
    self.geo.bmag:sync(false)
    self.geo.bmagInv:sync(false)
-   self.geo.gradpar:sync(false)
+   self.geo.cmag:sync(false)
    self.geo.gxx:sync(false)
    self.geo.gxy:sync(false)
    self.geo.gyy:sync(false)
@@ -1396,9 +1389,9 @@ function GkGeometry:initField()
       self.geo.jacobGeo:sync(false)
       self.geo.jacobGeoInv:sync(false)
       self.geo.jacobTotInv:sync(false)
-      self.geo.geoX:sync(false)
-      self.geo.geoY:sync(false)
-      self.geo.geoZ:sync(false)
+      self.geo.b_x:sync(false)
+      self.geo.b_y:sync(false)
+      self.geo.b_z:sync(false)
    end
    self.geo.phiWall:sync(false)
 
@@ -1414,13 +1407,13 @@ function GkGeometry:write(tm)
          if self.ndim == 1 then
             for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
                self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-                  gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy},
+                  cmag=self.geo.cmag, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy},
                   string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
             end
          else
             for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
                self.fieldIo:write({bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-                  gradpar=self.geo.gradpar, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy,
+                  cmag=self.geo.cmag, gxx=self.geo.gxx, gxy=self.geo.gxy, gyy=self.geo.gyy,
                   bdriftX=self.geo.bdriftX, bdriftY=self.geo.bdriftY},
                   string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
             end
@@ -1429,7 +1422,7 @@ function GkGeometry:write(tm)
          for _, v in pairs({{"%d",self.writeGhost},{"restart",true}}) do
             self.fieldIo:write({jacobGeo=self.geo.jacobGeo, jacobGeoInv=self.geo.jacobGeoInv, jacobTot=self.geo.jacobTot,
                jacobTotInv=self.geo.jacobTotInv, bmag=self.geo.bmag, bmagInv=self.geo.bmagInv,
-               gradpar=self.geo.gradpar, geoX=self.geo.geoX, geoY=self.geo.geoY, geoZ=self.geo.geoZ, gxx=self.geo.gxx,
+               cmag=self.geo.cmag, b_x=self.geo.b_x, b_y=self.geo.b_y, b_z=self.geo.b_z, gxx=self.geo.gxx,
                gxy=self.geo.gxy, gyy=self.geo.gyy, gxxJ=self.geo.gxxJ, gxyJ=self.geo.gxyJ, gyyJ=self.geo.gyyJ},
                string.format("allGeo_"..v[1]..".bp", self.ioFrame), tm, self.ioFrame, v[2])
          end

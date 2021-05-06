@@ -13,6 +13,7 @@ local Lin            = require "Lib.Linalg"
 local Mpi            = require "Comm.Mpi"
 local Projection     = require "App.Projection"
 local Proto          = require "Lib.Proto"
+local Source         = require "App.Sources.VmSource"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
 local VlasovEq       = require "Eq.Vlasov"
@@ -619,51 +620,10 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          c:advance(tCurr, fIn, species, fRhsOut)   -- 'species' needed for cross-species collisions.
       end
    end
-
-   if self.sourceSteadyState and self.evolveSources then
-      local localEdgeFlux = ffi.new("double[3]")
-      localEdgeFlux[0] = 0.0
-      localEdgeFlux[1] = 0.0
-      localEdgeFlux[2] = 0.0
-
-      local numConfDims = self.confBasis:ndim()
-      assert(numConfDims==1, "VlasovSpecies: The steady state source is available only for 1X.")
-      local numConfBasis = self.confBasis:numBasis()
-      local lower, upper = Lin.Vec(numConfDims), Lin.Vec(numConfDims)
-      lower[1], upper[1] = -1.0, 1.0
-      local basisUpper = Lin.Vec(numConfBasis)
-      local basisLower = Lin.Vec(numConfBasis)
-
-      self.confBasis:evalBasis(upper, basisUpper)
-      self.confBasis:evalBasis(lower, basisLower)
-
-      local flux = self:fluidMoments()[2]
-      local fluxIndexer, fluxItr = flux:genIndexer(), flux:get(1)
-      for idx in flux:localRangeIter() do
-	 if idx[1] == self.grid:numCells(1) then
-	    flux:fill(fluxIndexer(idx), fluxItr)
-	    for k = 1, numConfBasis do
-	       localEdgeFlux[0] = localEdgeFlux[0] + fluxItr[k]*basisUpper[k]
-	    end
-	 elseif idx[1] == 1 then
-	    flux:fill(fluxIndexer(idx), fluxItr)
-	    for k = 1, numConfBasis do
-	       localEdgeFlux[0] = localEdgeFlux[0] - fluxItr[k]*basisLower[k]
-	    end
-	 end
-      end
-      local globalEdgeFlux = ffi.new("double[3]")
-      Mpi.Allreduce(localEdgeFlux, globalEdgeFlux, 1,
-		    Mpi.DOUBLE, Mpi.MAX, self.grid:commSet().comm)
-      local densFactor = globalEdgeFlux[0]/self.sourceSteadyStateLength
-      fRhsOut:accumulate(densFactor, self.fSource)
-   elseif self.fSource and self.evolveSources then
-      -- add source it to the RHS
-      -- Barrier over shared communicator before accumulate
-      Mpi.Barrier(self.grid:commSet().sharedComm)
-      fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
+   if self.sources then
+      for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
    end
-
+   
    -- Save boundary fluxes for diagnostics.
    if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
       for _, bc in ipairs(self.boundaryConditions) do
@@ -682,17 +642,13 @@ function VlasovSpecies:createDiagnostics()
      return false
    end
 
-    if self.fSource then
-      self.numDensitySrc = self:allocMoment()
-      self.momDensitySrc = self:allocVectorMoment(self.vdim)
-      self.ptclEnergySrc = self:allocMoment()
-      self.fiveMomentsCalc:advance(0.0, {self.fSource}, {self.numDensitySrc, self.momDensitySrc, self.ptclEnergySrc})
-    end
+   for _, src in lume.orderedIter(self.sources) do src:createDiagnostics(self) end
+
    -- Create updater to compute volume-integrated moments
    -- function to check if integrated moment name is correct.
    local function isIntegratedMomentNameGood(nm)
       if nm == "intM0" or nm == "intM1i" or nm == "intM2Flow" 
-      or nm == "intM2Thermal" or nm == "intM2" or nm == "intL2"
+      or nm == "intM2Thermal" or nm == "intM2" or nm == "intL2" then
          return true
       end
       return false
@@ -1156,6 +1112,7 @@ function VlasovSpecies:calcDiagnosticIntegratedMoments(tm)
          elseif mom == "intL2" then
             self.diagnosticIntegratedMomentUpdaters[mom]:advance(
                tm, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[mom]})
+	 end
       end
       if self.calcIntSrcIz and label=="" then
 	 local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
@@ -1248,25 +1205,35 @@ function VlasovSpecies:bcExternFunc(dir, tm, idxIn, fIn, fOut)
    return fOut
 end
 
-function VlasovSpecies:calcExternalBC()
+function VlasovSpecies:initExternalBC()
    tbl = self.tbl
    local externalBC = assert(tbl.externalBC, "VlasovSpecies: Must define externalBC parameters")
-   local lower = Lin.Vec(self.grid:ndim())
-   local upper = Lin.Vec(self.grid:ndim())
-   local cells = Lin.Vec(self.grid:ndim())
-   lower[1] = 0
-   upper[1] = 1
-   cells[1] = 1
-   for d = 1, self.vdim do
-      lower[d + 1] = self.grid:lower(d + 1)
-      upper[d + 1] = self.grid:upper(d + 1)
-      cells[d + 1] = self.grid:numCells(d + 1)
+   local lower, upper, cells = {}, {}, {}
+   local GridConstructor = Grid.RectCart
+   local coordinateMap = {}
+   if self.coordinateMap then
+      for d = 1, self.cdim do
+         table.insert(coordinateMap, function (z) return z end)
+      end
+      for d = 1, self.vdim do
+         table.insert(coordinateMap, self.coordinateMap[d])
+      end
+      GridConstructor = Grid.NonUniformRectCart
    end
-   local grid = Grid.RectCart {
+   for d = 1, self.cdim do
+      lower[d], upper[d], cells[d] = 0, 1, 1
+   end
+   for d = 1, self.vdim do
+      lower[d + self.cdim] = self.lower[d]
+      upper[d + self.cdim] = self.upper[d]
+      cells[d + self.cdim] = self.grid:numCells(d + self.cdim)
+   end
+   local grid = GridConstructor {
       lower = lower,
       upper = upper,
       cells = cells,
-      periodicDirs = {}
+      periodicDirs = {},
+      mappings = coordinateMap,
    }
    self.externalBCFunction = DataStruct.Field {
       onGrid = grid,
@@ -1282,10 +1249,13 @@ function VlasovSpecies:calcExternalBC()
    local evaluateBronold = Updater.EvaluateBronoldFehskeBC {
       onGrid = grid,
       basis = self.basis,
+      cdim = self.cdim,
+      vdim = self.vdim,
       electronAffinity = externalBC.electronAffinity,
       effectiveMass = externalBC.effectiveMass,
       elemCharge = externalBC.elemCharge,
       me = externalBC.electronMass,
+      ignore = externalBC.ignore,
    }
    evaluateBronold:advance(0.0, {}, {self.externalBCFunction})
 end
@@ -1722,6 +1692,15 @@ function VlasovSpecies:Maxwellian(xn, n0, T0, vdnIn)
      v2 = v2 + (xn[d] - vdnIn[d-self.cdim])^2
    end
    return n0 / math.sqrt(2*math.pi*vt2)^self.vdim * math.exp(-v2/(2*vt2))
+end
+
+function VlasovSpecies:projToSource(proj)
+   -- For backwards compatibility: in the case where the source is specified
+   -- as a projection object in the input file, this function turns that
+   -- projection object into a Source object.
+   local tbl = proj.tbl
+   local pow = tbl.power
+   return Source { profile = proj, power = pow }
 end
 
 return VlasovSpecies

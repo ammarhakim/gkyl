@@ -153,11 +153,11 @@ plasmaApp = Plasma.App {
             local effectiveSource = math.max(sourceDensity(t,{x,y,0}), floor)
             local c_ss            = math.sqrt(5/3*sourceTemperature(t,{x,y,0})/mi)
             local nPeak           = 4*math.sqrt(5)/3/c_ss*Ls*effectiveSource/2
-            local perturb         = 1e-3*(math.random()-0.5)*2.0
+            local perturb         = 0
             if math.abs(z) <= Ls then
-               return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2--*(1+perturb)
+               return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2*(1+perturb)
             else
-               return nPeak/2 --*(1+perturb)
+               return nPeak/2*(1+perturb)
             end
          end,
          temperature = function (t, xn)
@@ -172,7 +172,8 @@ plasmaApp = Plasma.App {
       },
       
       -- Source parameters
-      source = Plasma.MaxwellianProjection {
+      source = Plasma.Source {
+         kind        = "Maxwellian",
          density     = sourceDensity,
          temperature = sourceTemperature,
          power       = P_src/2,
@@ -227,11 +228,11 @@ plasmaApp = Plasma.App {
             local effectiveSource = math.max(sourceDensity(t,{x,y,0}), floor)
             local c_ss            = math.sqrt(5/3*sourceTemperature(t,{x,y,0})/mi)
             local nPeak           = 4*math.sqrt(5)/3/c_ss*Ls*effectiveSource/2
-            local perturb         = 1e-3*(math.random()-0.5)*2.0
+            local perturb         = 0
             if math.abs(z) <= Ls then
-               return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2 --*(1+perturb)
+               return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2*(1+perturb)
             else
-               return nPeak/2 --*(1+perturb)
+               return nPeak/2*(1+perturb)
             end
          end,
          temperature = function (t, xn)
@@ -260,7 +261,8 @@ plasmaApp = Plasma.App {
       },
 
       -- Source parameters.
-      source = Plasma.MaxwellianProjection {
+      source = Plasma.Source {
+         kind        = "Maxwellian",
          density     = sourceDensity,
          temperature = sourceTemperature,
          power       = P_src/2,
@@ -360,7 +362,9 @@ plasmaApp = Plasma.App {
       },
 
       -- Source parameters.
-      source = Plasma.VmMaxwellianProjection{
+      -- source = Plasma.VmMaxwellianProjection{
+      source = Plasma.VmSource {
+         kind        = "Maxwellian",
          density     = sourceDensityNeut,
          temperature = 2.*eV,
       },

@@ -4,6 +4,7 @@
 -- ~/gkylsoft/openmpi/bin/mpirun -n 4 ~/gkylsoft/gkyl/bin/gkyl *lua
 
 local Plasma = (require "App.PlasmaOnCartGrid").Gyrokinetic()
+--local VmPlasma = (require "App.PlasmaOnCartGrid").VlasovMaxwell()
 local Constants = require "Lib.Constants"
 
 function sech(x)
@@ -18,7 +19,7 @@ eV   = Constants.ELEMENTARY_CHARGE
 qe   = -eV
 qi   =  eV
 mi   = Constants.PROTON_MASS   -- Hydrogen ions.
-me   = Constants.ELECTRON_MASS
+me   = Constants.ELECTRON_MASS --*1836.0
 B0  = 0.5     -- Magnetic field amplitude [T].
 
 n0  = nfac*5e18    -- Number density [1/m^3].
@@ -44,25 +45,37 @@ Lx = 40 --[m]
 Ls = 25 -- [m]
 S0 = 7e22*nfac -- [m^-3 s^-1] jupyter nb recommends 
 P_src = 1e6
+srcFac = 0.1
 
 -- Source profiles
 sourceDensity = function (t,xn)
    local x = xn[1]
-   return 0.5*S0*(math.exp(-x^2/20)+ 0.001)
+   return srcFac*S0*(math.exp(-x^2/20)+ 0.001)
+   -- local flr = 0.001
+   -- if math.abs(x) < Ls/2 then
+   --    return S0*(math.cos(math.pi*x/Ls)+flr)
+   -- else
+   --  return S0*flr
+   -- end
 end
 sourceTemperatureElc = function (t,xn)
    local x = xn[1]
-   return 2*7.5*Te0
+   return 4.0*Te0/srcFac
 end
 sourceTemperatureIon = function (t,xn)
    local x = xn[1]
-   return 2*7.5*Te0
+   return 4.0*Te0/srcFac
 end
 sourceDensityNeut = function (t,xn)
    local x = xn[1]
    local x0 = 1
    local S0n = 8e-21*n0^2 --nfac*1e23
    return S0n
+   --  if x <= 0 then
+   --    return S0n*(sech((-Lx/2-x)/x0)^2+ 0.001)
+   -- else       
+   --    return S0n*(sech((Lx/2-x)/x0)^2 + 0.001)
+   -- end
 end
 
 -- Parameters for collisions.
@@ -136,11 +149,13 @@ sim = Plasma.App {
       coll = Plasma.LBOCollisions {
          collideWith = {'elc', 'ion'},
          nuFrac = 0.1,
+	 --frequencies = {nuElc},
       },
       diagnosticMoments = { "GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq"},
       diagnosticIntegratedMoments = {"intM0", "intM1",
       				     "intM2" },
       diagnosticBoundaryFluxMoments = {"GkM0", "GkUpar"},
+      diagnosticIntegratedBoundaryFluxMoments = {"intM0"},
       ionization = Plasma.Ionization {
       	 collideWith  = {"neut"},
       	 electrons    = "elc",
@@ -193,11 +208,13 @@ sim = Plasma.App {
       coll = Plasma.LBOCollisions {
          collideWith = {'ion','elc'},
          nuFrac = 0.1,
+	 --frequencies = {nuIon},
       },
       diagnosticMoments = { "GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq"},
       diagnosticIntegratedMoments = {"intM0", "intM1",
 				     "intM2" },
       diagnosticBoundaryFluxMoments = {"GkM0", "GkUpar"},
+      diagnosticIntegratedBoundaryFluxMoments = {"intM0"},
       ionization = Plasma.Ionization {
       	 collideWith  = {"neut"},
       	 electrons    = "elc",
@@ -229,14 +246,15 @@ sim = Plasma.App {
       init = Plasma.VmMaxwellianProjection {
          density = function (t, xn)
             local x, vpar = xn[1], xn[2]
-            local n_n = n0
-	    local x0 = 0.5
+            local n_n = 4*n0
+	    local x0 = 0.1
 	    local flr = 1e12
 	    if x <= 0 then
 	       return n_n*(sech((-Lx/2-x)/x0)^2) + flr
 	    else	       
 	       return n_n*(sech((Lx/2-x)/x0)^2) + flr
 	    end
+	    -- return 0.1*n0
          end,
          driftSpeed = function (t, xn)
             local x, vpar = xn[1], xn[2]
@@ -249,14 +267,18 @@ sim = Plasma.App {
       },
       evolve = true,
       source = Plasma.VmMaxwellianProjection {
-         density = sourceDensityNeut,
-	 driftSpeed = function (t, xn)
-	    return {0,0,0}
-	 end,
-	 temperature = function (t, xn)
-	    return 10*eV
-	 end,
+       density = sourceDensityNeut,
+       driftSpeed = function (t, xn)
+          return {0,0,0}
+       end,
+       temperature = function (t, xn)
+          return 10*eV
+       end,
       },
+      -- coll = Plasma.VmBGKCollisions {
+      --    collideWith = {'neut'},
+      -- 	 frequencies = {1e6},
+      -- },
       bcx = {Plasma.Vlasov.bcRecycle, Plasma.Vlasov.bcRecycle},
       recycleTemp = 10*eV,
       recycleFrac = 0.5,
@@ -266,6 +288,8 @@ sim = Plasma.App {
       diagnosticIntegratedMoments = {"intM0", "intM1i",
       				     "intM2Flow", "intM2Thermal" },
       diagnosticBoundaryFluxMoments = {"M0"},
+      diagnosticIntegratedFluxMoments = {"M0"},
+      diagnosticIntegratedBoundaryFluxMoments = {"intM0"},
       ionization = Plasma.Ionization {
       	 collideWith  = {"elc"},
       	 electrons    = "elc",

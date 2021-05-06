@@ -18,20 +18,12 @@ muMin     = 0.0
 muMax     = mass*(vMax^2)/(2*B0)
 Nx        = {2,2}                             -- Number of cells in configuration space.
 Nv        = {8,4}                         -- Number of cells in velocity space.
--- The next three are for p1, 2x2x16x8, rectangular IC.
-nMr  = 1.00391704                           -- Density of Maxwellian and rectangle. 
-uMr  = 0.0                                  -- Flow speed of Maxwellian and rectangle. 
-vt2Mr = 0.02982575                          -- Thermal speed of Maxwellian and rectangle.
 -- Large bump on tail of Maxwellian:
 vt   = math.sqrt(1.0/12.0)                  -- Thermal speed of Maxwellian in bump.
 ab   = math.sqrt(0.1)                       -- Amplitude of bump.
 ub   = 4*math.sqrt(1/12.0)                    -- Location of bump.
 sb   = 0.12                                 -- Softening factor to avoid divergence.
 vtb  = 1.0/math.sqrt(2.0)                   -- Thermal speed of Maxwellian in bump.
--- The next three are for p2, 2x2x16x8, bump in tail IC. 
-nMb  = 1.58922769                           -- Density of Maxwellian and bump. 
-uMb  = 0.57489126                           -- Flow speed of Maxwellian and bump. 
-vt2Mb = 0.33719523                          -- Thermal speed of Maxwellian and bump.
 
 -- Top hat function without drift (u=0).
 local function topHat(x, y, vpar, mu, n, u, vth)
@@ -59,10 +51,10 @@ end
 plasmaApp = Plasma.App {
    logToFile = false,
    
-   tEnd        = 1,           -- End time.
+   tEnd        = 1.0,           -- End time.
    nFrame      = 1,             -- Number of frames to write.
-   lower       = {0,0},         -- Configuration space lower coordinate.
-   upper       = {1.0,1.0},         -- Configuration space upper coordinate.
+   lower       = {0.0,0.0},     -- Configuration space lower coordinate.
+   upper       = {1.0,1.0},     -- Configuration space upper coordinate.
    cells       = Nx,            -- Configuration space cells.
    basis       = "serendipity", -- One of "serendipity" or "maximal-order".
    polyOrder   = polyOrder,     -- Polynomial order.
@@ -97,6 +89,7 @@ plasmaApp = Plasma.App {
       --        Plasma.Species.bcOpen },
       -- Evolve species?
       evolve = true,
+      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.
@@ -127,6 +120,7 @@ plasmaApp = Plasma.App {
       --        Plasma.Species.bcOpen },
       -- Evolve species?
       evolve = true,
+      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.

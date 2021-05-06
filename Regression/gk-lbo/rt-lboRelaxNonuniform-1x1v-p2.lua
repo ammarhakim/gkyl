@@ -12,19 +12,11 @@ u0        = 0.0                             -- Flow speed.
 vt        = 1.0/3.0                         -- Thermal speed..
 nu        = 0.01                            -- Collision frequency.
 B0        = 1.0                             -- Background magnetic field
--- The next three are for p1, v \in [-8vt,8vt], 2x32, rectangular IC.
-nMr  = 1.01036297                           -- Density of Maxwellian and rectangle. 
-uMr  = 0.0                                  -- Flow speed of Maxwellian and rectangle. 
-vt2Mr = 0.11235162                          -- Thermal speed of Maxwellian and rectangle.
 -- Large bump on tail of Maxwellian:
 ab   = math.sqrt(0.1)                       -- Amplitude of bump.
 ub   = 4*math.sqrt(((3*vt/2)^2)/3)          -- Location of bump.
 sb   = 0.12                                 -- Softening factor to avoid divergence.
 vtb  = 1.0                                  -- Thermal speed of Maxwellian in bump.
--- The next three are for p1, v \in [-8vt,8vt], 2x32, bump in tail IC. 
-nMb  = 1.10187077                           -- Density of Maxwellian and bump. 
-uMb  = 0.48880976                           -- Flow speed of Maxwellian and bump. 
-vt2Mb = 0.39691067                          -- Thermal speed of Maxwellian and bump.
 
 -- Top hat function without drift (u=0).
 local function topHat(x, v, n, u, vth)
@@ -135,7 +127,7 @@ plasmaApp = Plasma.App {
    field = Plasma.Field {
       evolve      = false, -- Evolve fields?
       externalPhi = function (t, xn) return 0.0 end,
-      kperp2      = 0.0
+      kperpSq     = 0.0
    },
    
    -- Magnetic geometry.
