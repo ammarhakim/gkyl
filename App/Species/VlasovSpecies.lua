@@ -700,7 +700,7 @@ function VlasovSpecies:createDiagnostics()
             assert(false, string.format("Error: integrated moment %s not valid", mom..label))
          end
       end
-      if self.calcIntSrcIz and label=="" then
+      if (self.calcIntSrcIz and label=="") or (self.calcReactRate and label=="") then
 	 self.srcIzM0 = self:allocMoment()
 	 self.intSrcIzM0 = DataStruct.DynVector {
 	    numComponents = 1,
@@ -1112,12 +1112,17 @@ function VlasovSpecies:calcDiagnosticIntegratedMoments(tm)
                tm, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[mom]})
 	 end
       end
-      if self.calcIntSrcIz and label=="" then
+      if self.calcIntSrcIz and label=="" then -- intSrcIzM0 for neutrals (when plasma is GK)
 	 local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
 	 sourceIz:scale(-1.0)
 	 self.numDensityCalc:advance(tm, {sourceIz}, {self.srcIzM0})
+	 self.intCalcIz:advance( tm, {self.srcIzM0}, {self.intSrcIzM0} )
+      elseif self.calcReactRate and label=="" then -- intSrcIzM0 for elc
+	 local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
+	 self.numDensityCalc:advance(tm, {sourceIz}, {self.srcIzM0})
 	 self.intCalcIz:advance( tm, {self.srcIzM0}, {self.intSrcIzM0} )       
       end
+      
       -- if self.hasRecycleBcs and label~="" then
       -- 	 if self.cdim == 1 or (self.cdim == 3 and string.match(label,"Z")) then
       -- 	    mom = "intM0Recycle"
