@@ -329,6 +329,7 @@ def build(bld):
     vlasovData/VlasovStreamSer1x3vP2.cpp
     vlasovData/VlasovStreamSer2x2vP2.cpp
     vlasovData/VlasovStreamSer2x3vP2.cpp
+    vlasovData/VlasovStreamSer3x3vP2.cpp
 
     vlasovData/VlasovStreamSer1x1vP3.cpp
     vlasovData/VlasovStreamSer1x2vP3.cpp
@@ -373,6 +374,7 @@ def build(bld):
     vlasovData/VlasovSurfStreamSer1x3vP2.cpp
     vlasovData/VlasovSurfStreamSer2x2vP2.cpp
     vlasovData/VlasovSurfStreamSer2x3vP2.cpp
+    vlasovData/VlasovSurfStreamSer3x3vP2.cpp
 
     vlasovData/VlasovSurfStreamSer1x1vP3.cpp
     vlasovData/VlasovSurfStreamSer1x2vP3.cpp
