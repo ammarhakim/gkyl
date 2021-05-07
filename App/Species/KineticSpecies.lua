@@ -62,7 +62,6 @@ function KineticSpecies:fullInit(appTbl)
    self.evolve              = xsys.pickBool(tbl.evolve, true) -- By default, evolve species.
    self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless, self.evolve) 
    self.evolveCollisions    = xsys.pickBool(tbl.evolveCollisions, self.evolve) 
-   self.evolveSources       = xsys.pickBool(tbl.evolveSources, self.evolve) 
 
    assert(#self.lower == self.vdim, "'lower' must have " .. self.vdim .. " entries")
    assert(#self.upper == self.vdim, "'upper' must have " .. self.vdim .. " entries")
@@ -152,6 +151,12 @@ function KineticSpecies:fullInit(appTbl)
 	 val:fullInit(tbl) -- Initialize sources
       end
    end
+   -- Create a keys metatable in self.projections so we always loop in the same order (better for I/O).
+   local sources_keys = {}
+   for k in pairs(self.sources) do table.insert(sources_keys, k) end
+   table.sort(sources_keys)
+   setmetatable(self.sources, sources_keys)
+
    self.projections = {}
    for nm, val in pairs(tbl) do
       if ProjectionBase.is(val) and not string.find(nm,"source") then
@@ -170,18 +175,11 @@ function KineticSpecies:fullInit(appTbl)
 	 func = function(t, zn) return tbl.background(t, zn, self) end,
       }
    end
-
    -- Create a keys metatable in self.projections so we always loop in the same order (better for I/O).
    local projections_keys = {}
    for k in pairs(self.projections) do table.insert(projections_keys, k) end
    table.sort(projections_keys)
    setmetatable(self.projections, projections_keys)
-
-   -- Create a keys metatable in self.projections so we always loop in the same order (better for I/O).
-   local sources_keys = {}
-   for k in pairs(self.sources) do table.insert(sources_keys, k) end
-   table.sort(sources_keys)
-   setmetatable(self.sources, sources_keys)
 
    self.deltaF         = xsys.pickBool(appTbl.deltaF, false)
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)

@@ -1009,39 +1009,38 @@ return {
    Gyrofluid = function ()
       App.label = "Gyrofluid"
       return  {
-	 AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
-	 App = App,
-	 Field = require ("App.Field.GkField").GkField,
-	 FunctionProjection = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
-	 Geometry = require ("App.Field.GkField").GkGeometry,
+	 AdiabaticSpecies    = require ("App.Species.AdiabaticSpecies"),
+	 App                 = App,
+	 Field               = require ("App.Field.GkField").GkField,
+	 FunctionProjection  = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
+	 Geometry            = require ("App.Field.GkField").GkGeometry,
 	 GyrofluidProjection = require ("App.Projection.GyrofluidProjection").GyrofluidProjection, 
-         PASCollisions = require "App.Collisions.GfPitchAngleScattering",
-         Source = require "App.Sources.GyrofluidSource",
-	 Species = require "App.Species.GyrofluidSpecies",
+         PASCollisions       = require "App.Collisions.GfPitchAngleScattering",
+         Source              = require "App.Sources.GyrofluidSource",
+	 Species             = require "App.Species.GyrofluidSpecies",
       }
    end,
 
    Gyrokinetic = function ()
       App.label = "Gyrokinetic"
       return  {
-	 App = App,
-	 Species = require "App.Species.GkSpecies",
-	 AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
-	 Vlasov = require ("App.Species.VlasovSpecies"),
-	 Field = require ("App.Field.GkField").GkField,
-	 Geometry = require ("App.Field.GkField").GkGeometry,
-	 FunctionProjection = require ("App.Projection.GkProjection").FunctionProjection, 
-	 MaxwellianProjection = require ("App.Projection.GkProjection").MaxwellianProjection,
+	 AdiabaticSpecies       = require ("App.Species.AdiabaticSpecies"),
+	 App                    = App,
+	 BGKCollisions          = require "App.Collisions.GkBGKCollisions",
+	 BgkCollisions          = require "App.Collisions.GkBGKCollisions",
+	 ChargeExchange         = require "App.Collisions.GkChargeExchange",
+	 Field                  = require ("App.Field.GkField").GkField,
+	 FunctionProjection     = require ("App.Projection.GkProjection").FunctionProjection, 
+	 Geometry               = require ("App.Field.GkField").GkGeometry,
+	 Ionization             = require "App.Collisions.GkIonization",
+	 LBOCollisions          = require "App.Collisions.GkLBOCollisions",
+	 LboCollisions          = require "App.Collisions.GkLBOCollisions",
+	 MaxwellianProjection   = require ("App.Projection.GkProjection").MaxwellianProjection,
+	 Species                = require "App.Species.GkSpecies",
+	 Source                 = require "App.Sources.GkSource",
+	 Vlasov                 = require ("App.Species.VlasovSpecies"),
 	 VmMaxwellianProjection = require ("App.Projection.VlasovProjection").MaxwellianProjection,
-	 BGKCollisions = require "App.Collisions.GkBGKCollisions",
-	 VmBGKCollisions = require "App.Collisions.VmBGKCollisions",
-	 LBOCollisions = require "App.Collisions.GkLBOCollisions",
-	 BgkCollisions = require "App.Collisions.GkBGKCollisions",
-	 LboCollisions = require "App.Collisions.GkLBOCollisions",
-	 ChargeExchange = require "App.Collisions.GkChargeExchange",
-	 Ionization = require "App.Collisions.GkIonization",
-	 Source = require "App.Sources.GkSource",
-	 VmSource = require "App.Sources.VmSource",
+	 VmSource               = require "App.Sources.GkSource",
       }
    end,
 
@@ -1049,9 +1048,10 @@ return {
       App.label = "Incompressible Euler"
       return {
 	 App       = App,
-	 Species   = require "App.Species.IncompEulerSpecies",
-	 Field     = require ("App.Field.GkField").GkField,
 	 Diffusion = require "App.Collisions.Diffusion",
+	 Field     = require ("App.Field.GkField").GkField,
+         Source    = require "App.Sources.FluidSource",
+	 Species   = require "App.Species.IncompEulerSpecies",
       }
    end,
    
