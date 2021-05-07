@@ -64,15 +64,17 @@ local function orgDiagnostics(diagsImpl, diagsTbl, diagGroups)
       table.sort(diagList, sortFunc)
       -- Different MPI ranks may find different acceptable orders.
       -- Need to sync this order across MPI ranks.
-      local myOrder, delim = "", ","
-      for _, v in ipairs(diagList) do myOrder=myOrder..v..delim end
-      local Cstr = new("char [?]", string.len(myOrder))
-      ffi.copy(Cstr, myOrder)
-      Mpi.Bcast(Cstr, string.len(myOrder)+1, Mpi.CHAR, 0, Mpi.COMM_WORLD)
-      myOrder = ffi.string(Cstr)
-      local newList = {}
-      for nm in string.gmatch(myOrder, "(.-)"..delim) do table.insert(newList, nm) end
-      for i, v in ipairs(newList) do diagList[i] = v end 
+      if string.len(myOrder) > 0 then
+         local myOrder, delim = "", ","
+         for _, v in ipairs(diagList) do myOrder=myOrder..v..delim end
+         local Cstr = new("char [?]", string.len(myOrder))
+         ffi.copy(Cstr, myOrder)
+         Mpi.Bcast(Cstr, string.len(myOrder)+1, Mpi.CHAR, 0, Mpi.COMM_WORLD)
+         myOrder = ffi.string(Cstr)
+         local newList = {}
+         for nm in string.gmatch(myOrder, "(.-)"..delim) do table.insert(newList, nm) end
+         for i, v in ipairs(newList) do diagList[i] = v end 
+      end
    end
    -- We have to sort the groups in the same order in every MPI rank.
    for _, v in lume.orderedIter(diagGroups) do sortDiagsTbl(diagsImpl, v) end
