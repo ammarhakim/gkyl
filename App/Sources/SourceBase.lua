@@ -1,8 +1,17 @@
+-- Gkyl ------------------------------------------------------------------------
+--
+-- Source base object.
+--
+--    _______     ___
+-- + 6 @ |||| # P ||| +
+--------------------------------------------------------------------------------
+
 local Proto = require "Lib.Proto"
 
 -- Empty shell source base class.
 local SourceBase = Proto()
 
+-- Functions that must be defined by subclasses.
 function SourceBase:init(tbl) self.tbl = tbl end
 function SourceBase:fullInit(speciesTbl) end
 function SourceBase:setName(nm) self.name = nm end
