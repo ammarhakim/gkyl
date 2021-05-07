@@ -7,17 +7,29 @@
 extern "C" { 
 void ProjectFluxOnGhosts1x1vDir1Ser_P1(const double wv, const double dv, const double zVal, const double *fIn, double *fHat); 
 
+void ProjectFluxOnGhosts1x1vDir1Ser_P2(const double wv, const double dv, const double zVal, const double *fIn, double *fHat); 
+
 void ProjectFluxOnGhosts1x2vDir1Ser_P1(const double wv, const double dv, const double zVal, const double *fIn, double *fHat); 
 
+void ProjectFluxOnGhosts1x2vDir1Ser_P2(const double wv, const double dv, const double zVal, const double *fIn, double *fHat); 
+
 void ProjectFluxOnGhosts1x3vDir1Ser_P1(const double wv, const double dv, const double zVal, const double *fIn, double *fHat); 
+
+void ProjectFluxOnGhosts1x3vDir1Ser_P2(const double wv, const double dv, const double zVal, const double *fIn, double *fHat); 
 
 
 void ProjectFluxOnGhosts2x2vDir2Ser_P1(const double wv, const double dv, const double zVal, const double *fIn, double *fHat); 
 
+void ProjectFluxOnGhosts2x2vDir2Ser_P2(const double wv, const double dv, const double zVal, const double *fIn, double *fHat); 
+
 void ProjectFluxOnGhosts2x3vDir2Ser_P1(const double wv, const double dv, const double zVal, const double *fIn, double *fHat); 
+
+void ProjectFluxOnGhosts2x3vDir2Ser_P2(const double wv, const double dv, const double zVal, const double *fIn, double *fHat); 
 
 
 void ProjectFluxOnGhosts3x3vDir3Ser_P1(const double wv, const double dv, const double zVal, const double *fIn, double *fHat); 
+
+void ProjectFluxOnGhosts3x3vDir3Ser_P2(const double wv, const double dv, const double zVal, const double *fIn, double *fHat); 
 
 
 } 

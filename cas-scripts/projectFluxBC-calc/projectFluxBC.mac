@@ -8,12 +8,12 @@ load("fem-calc/femMatrices")$ /* Contains node info and modal-to-nodal transform
 fpprec : 24$
 
 
-calcProjectFluxOnGhost(dir, fh, cdim, vdim, basisFun) := block([], 
+calcProjectFluxOnGhost(dir, fh, cdim, vdim, basisFun, polyOrder) := block([], 
   kill(varsC, varsP, basisC, basisP),
 
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
-  p : 1, /* This will just be done for p = 1 for now. */
+  polyOrder : p,
 
   bP : basisP[p],
   bC : basisC[p],
@@ -41,7 +41,7 @@ calcProjectFluxOnGhost(dir, fh, cdim, vdim, basisFun) := block([],
 )$
 
 bName        : "Ser"$
-maxPolyOrder : 1$
+maxPolyOrder : 2$
 minCdim      : 1$
 minVdim      : 1$
 maxCdim      : 3$
@@ -53,10 +53,12 @@ for c : minCdim thru maxCdim do (
   printf(fh, "#include <ProjectFluxOnGhosts.h> ~%"),
   printf(fh, "#include <math.h> ~%"),
   for v : c thru maxVdim do (
-    dir : c,
-    disp(printf(false,sconcat("Creating flux project on ghosts",bName," ~ax~av"),c,v)),
-    print("dir = ", dir, c, v),
-    calcProjectFluxOnGhost(dir, fh, c, v, bName)
+      for p : 1 thru maxPolyOrder do (
+      	  dir : c,
+    	  disp(printf(false,sconcat("Creating flux project on ghosts",bName," ~ax~av"),c,v)),
+    	  print("dir = ", dir, c, v),
+    	  calcProjectFluxOnGhost(dir, fh, c, v, bName, p)
+      )
   ),
   close(fh)
 )$
