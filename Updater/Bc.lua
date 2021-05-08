@@ -378,14 +378,14 @@ end
 
 function Bc:evalOnConfBoundary(inFld)
    if self._isFirst then
-      self._confBoundaryField = self._confBoundaryField or createFieldFromField(self._confBoundaryGrid, inFld, {1,1})
+      self._confBoundaryField    = self._confBoundaryField or createFieldFromField(self._confBoundaryGrid, inFld, {1,1})
       self._confBoundaryFieldPtr = self._confBoundaryFieldPtr or self._confBoundaryField:get(1)
-      self._confBoundaryIdxr = self._confBoundaryIdxr or self._confBoundaryField:genIndexer()
+      self._confBoundaryIdxr     = self._confBoundaryIdxr or self._confBoundaryField:genIndexer()
 
-      local confGlobal = inFld:globalRange()
-      local confGlobalExt = inFld:globalExtRange()
+      local confGlobal        = inFld:globalRange()
+      local confGlobalExt     = inFld:globalExtRange()
       local confLocalExtRange = inFld:localExtRange()
-      self._confGhostRng = self._confGhostRng or confLocalExtRange:intersect(
+      self._confGhostRng      = self._confGhostRng or confLocalExtRange:intersect(
    	 self:getGhostRange(confGlobal, confGlobalExt) ) -- Range spanning ghost cells.
       -- Decompose ghost region into threads.
       self._confGhostRangeDecomp = self._confGhostRangeDecomp or LinearDecomp.LinearDecompRange {
@@ -463,9 +463,9 @@ function Bc:initBcDiagnostics(cDim)
          end
       end
       local reducedDecomp = CartDecomp.CartProd {
-         comm = self._splitComm,
+         comm      = self._splitComm,
          writeRank = self.writeRank,
-         cuts = reducedCuts,
+         cuts      = reducedCuts,
          useShared = self._grid:isShared(),
       }
 

@@ -197,11 +197,7 @@ local function buildApplication(self, tbl)
 	 val:fullInit(tbl) -- Initialize species.
       end
    end
-   -- Create a keys entry in species so we always loop in the same order.
-   local species_keys = {}
-   for k in pairs(species) do table.insert(species_keys, k) end
-   table.sort(species_keys)
-   setmetatable(species, species_keys)
+   lume.setOrder(species)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
    -- Setup each species.
    for _, s in lume.orderedIter(species) do
@@ -223,12 +219,7 @@ local function buildApplication(self, tbl)
 	 val:fullInit(tbl) -- Initialize fluid sources.
       end
    end
-
-   -- Create a keys entry in sources so we always loop in the same order.
-   local fluidSources_keys = {}
-   for k in pairs(fluidSources) do table.insert(fluidSources_keys, k) end
-   table.sort(fluidSources_keys)
-   setmetatable(fluidSources, fluidSources_keys)
+   lume.setOrder(fluidSources)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
    -- Add grid to app object.
    self._confGrid = confGrid
