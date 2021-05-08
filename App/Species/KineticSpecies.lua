@@ -151,11 +151,7 @@ function KineticSpecies:fullInit(appTbl)
 	 val:fullInit(tbl) -- Initialize sources
       end
    end
-   -- Create a keys metatable in self.projections so we always loop in the same order (better for I/O).
-   local sources_keys = {}
-   for k in pairs(self.sources) do table.insert(sources_keys, k) end
-   table.sort(sources_keys)
-   setmetatable(self.sources, sources_keys)
+   lume.setOrder(self.sources)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
    self.projections = {}
    for nm, val in pairs(tbl) do
@@ -175,11 +171,7 @@ function KineticSpecies:fullInit(appTbl)
 	 func = function(t, zn) return tbl.background(t, zn, self) end,
       }
    end
-   -- Create a keys metatable in self.projections so we always loop in the same order (better for I/O).
-   local projections_keys = {}
-   for k in pairs(self.projections) do table.insert(projections_keys, k) end
-   table.sort(projections_keys)
-   setmetatable(self.projections, projections_keys)
+   lume.setOrder(self.projections)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
    self.deltaF         = xsys.pickBool(appTbl.deltaF, false)
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)

@@ -15,7 +15,6 @@ local Updater       = require "Updater"
 local FluidDiag_MomSq = Proto(DiagsImplBase)
 function FluidDiag_MomSq:fullInit(diagApp, specIn)
    self.field    = specIn:allocVectorMoment(specIn.nMoments)
-   self.updaters = specIn.weakMultiply
    self.done     = false
 end
 function FluidDiag_MomSq:getDependencies() return {} end
@@ -23,7 +22,7 @@ function FluidDiag_MomSq:getType() return "grid" end
 function FluidDiag_MomSq:advance(tm, inFlds, outFlds)
    local specIn = inFlds[1]
    local momIn  = specIn:getMoments(1)
-   self.updaters:advance(tm, {momIn, momIn}, {self.field})
+   specIn.weakMultiply:advance(tm, {momIn, momIn}, {self.field})
 end
 
 -- ~~~~ Moments integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~

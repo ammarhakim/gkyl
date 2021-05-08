@@ -58,9 +58,17 @@ local iscallable = function(x)
   return mt and mt.__call ~= nil
 end
 
+function lume.setOrder(tbl)
+   -- Create a keys metatable in tbl so we always loop in the same order (w/ orderedIter).
+   local tbl_keys = {}
+   for k in pairs(tbl) do table.insert(tbl_keys, k) end
+   table.sort(tbl_keys)
+   setmetatable(tbl, tbl_keys)
+end
+
 function lume.orderedIter(x)
   -- Assume that the metatable of x contains the sorted
-  -- keys of x, indicating the iteration order.
+  -- keys of x (see setOrder), indicating the iteration order.
    local idx, keys = 0, getmetatable(x)
    local n = table.getn(keys)
    return function()
