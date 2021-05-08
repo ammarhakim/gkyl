@@ -92,10 +92,7 @@ function SpeciesDiagnostics:fullInit(mySpecies, diagsImpl)
 
    self.diags = {}  -- Grid and integrated diagnostics.
    self.diagGroups = {grid={}, integrated={}}  -- Names of requested diags of each kind.
-   local groups_keys = {}
-   for k in pairs(self.diagGroups) do table.insert(groups_keys, k) end
-   table.sort(groups_keys)
-   setmetatable(self.diagGroups, groups_keys)  -- Stored ordered keys in metatable.
+   lume.setOrder(self.diagGroups)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
    -- Sort requested diagnostics into grid and integrated diagnostics.
    for _, nm in ipairs(mySpecies.tbl.diagnostics) do
