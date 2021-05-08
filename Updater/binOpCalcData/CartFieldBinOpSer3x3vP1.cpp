@@ -2,7 +2,11 @@
 #include <CartFieldBinOpModDecl.h> 
  
 using namespace Eigen; 
- 
+
+void CartFieldBinOpMultiply3x3vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+{ 
+}
+
 void CartFieldBinOpConfPhaseMultiply3x3vSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       scalar/vector field in configuration space. 
