@@ -7,7 +7,6 @@
 --
 --------------------------------------------------------------------------------
 local Plasma    = (require "App.PlasmaOnCartGrid").Gyrokinetic()
-local Vlasov    = require("App.PlasmaOnCartGrid").VlasovMaxwell()
 local Constants = require "Lib.Constants"
 local Mpi       = require "Comm.Mpi"
 
@@ -119,7 +118,7 @@ plasmaApp = Plasma.App {
    nFrame      = 1,                            -- Number of output frames.
    lower       = {R - Lx/2-.02, -Ly/2, -Lz/2}, -- Configuration space lower left.
    upper       = {R + Lx/2, Ly/2, Lz/2},       -- Configuration space upper right.
-   cells       = {8, 4, 8},                    -- Configuration space cells.
+   cells       = {8, 1, 8},                    -- Configuration space cells.
    basis       = "serendipity",                -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                            -- Polynomial order.
    timeStepper = "rk3",                        -- One of "rk2" or "rk3".
@@ -154,7 +153,7 @@ plasmaApp = Plasma.App {
             local effectiveSource = math.max(sourceDensity(t,{x,y,0}), floor)
             local c_ss            = math.sqrt(5/3*sourceTemperature(t,{x,y,0})/mi)
             local nPeak           = 4*math.sqrt(5)/3/c_ss*Ls*effectiveSource/2
-            local perturb         = 1e-3*(math.random()-0.5)*2.0
+            local perturb         = 0
             if math.abs(z) <= Ls then
                return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2*(1+perturb)
             else
@@ -229,7 +228,7 @@ plasmaApp = Plasma.App {
             local effectiveSource = math.max(sourceDensity(t,{x,y,0}), floor)
             local c_ss            = math.sqrt(5/3*sourceTemperature(t,{x,y,0})/mi)
             local nPeak           = 4*math.sqrt(5)/3/c_ss*Ls*effectiveSource/2
-            local perturb         = 1e-3*(math.random()-0.5)*2.0
+            local perturb         = 0
             if math.abs(z) <= Ls then
                return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2*(1+perturb)
             else
@@ -307,7 +306,7 @@ plasmaApp = Plasma.App {
       randomseed = randomseed,
    },
 
-   neutral = Vlasov.Species {
+   neutral = Plasma.Vlasov {
       evolve = true,
       charge = 0.0, 
       mass   = mi,
@@ -318,7 +317,7 @@ plasmaApp = Plasma.App {
       decompCuts = {1},
 
       -- Initial conditions.
-      init = Vlasov.MaxwellianProjection {
+      init = Plasma.VmMaxwellianProjection {
          density = function (t, xn)
    	    local x, y, z = xn[1], xn[2], xn[3]
             local n_n = 0.1*n0
@@ -363,15 +362,16 @@ plasmaApp = Plasma.App {
       },
 
       -- Source parameters.
-      source = Vlasov.Source {
+      -- source = Plasma.VmMaxwellianProjection{
+      source = Plasma.VmSource {
          kind        = "Maxwellian",
          density     = sourceDensityNeut,
          temperature = 2.*eV,
       },
 
       -- Boundary conditions.
-      bcx = {Vlasov.Species.bcAbsorb, Vlasov.Species.bcAbsorb},
-      bcz = {Vlasov.Species.bcReflect, Vlasov.Species.bcReflect},
+      bcx = {Plasma.Vlasov.bcAbsorb, Plasma.Vlasov.bcAbsorb},
+      bcz = {Plasma.Vlasov.bcReflect, Plasma.Vlasov.bcReflect},
 
       -- Diagnostics.
       diagnosticMoments = { "M0", "u", "vtSq"},

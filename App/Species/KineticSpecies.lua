@@ -868,26 +868,38 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        -- include dynvector for zeroth vector of ionization source
        tmStart = Time.clock()
-       local srcIzM0 = self:allocMoment()
-       self.numDensityCalc:advance(tm, {sourceIz}, {srcIzM0})
-       local intCalc = Updater.CartFieldIntegratedQuantCalc {
-       	  onGrid        = self.confGrid,
-       	  basis         = self.confBasis,
-       	  numComponents = 1,
-       	  quantity      = "V",
-       	  timeIntegrate = true,
-       }
-       intCalc:advance( tm, {srcIzM0}, {self.intSrcIzM0} )
        self.intSrcIzM0:write(
           string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
-       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
-       
+       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart       
     end
 
+    if self.calcIntSrcIz then
+       tmStart = Time.clock()
+       local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
+       sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       self.intSrcIzM0:write(
+          string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
+       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart    
+    end
+       
     -- Write CX diagnostics
     if self.calcCXSrc then
        self.vSigmaCX:write(string.format("%s_vSigmaCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        self.collisions[self.collNmCX].sourceCX:write(string.format("%s_sourceCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+    end
+
+    -- Write recycling diagnostics
+    if self.hasRecycleBcs then
+        for _, bc in ipairs(self.boundaryConditions) do
+	   label = bc:label()
+	   if self.cdim == 1 or (self.cdim == 3 and string.match(label,"Z")) then
+	      wlabel = (label):gsub("Flux","")
+	      self.recycleCoef[label]:write(string.format("%s%s_%d.bp", 'recycleCoef', wlabel, self.diagIoFrame), tm, self.diagIoFrame, false)
+	      self.recycleDistF[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleDistF', wlabel, self.diagIoFrame), tm, self.diagIoFrame, false)
+	      -- mom="intM0Recycle"
+	      -- self.diagnosticIntegratedMomentFields[mom..label]:write(string.format("%s_%s.bp", self.name, mom..label), tm, self.diagIoFrame)
+	   end
+	end
     end
 end
 
@@ -986,6 +998,11 @@ function KineticSpecies:writeRestart(tm)
       self.intSrcIzM0:write(
 	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
    end
+   if self.calcIntSrcIz then
+      self.intSrcIzM0:write(
+	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
+   end
+
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
@@ -1010,6 +1027,10 @@ function KineticSpecies:readRestart()
    end
    
    if self.calcReactRate then
+      self.intSrcIzM0:read(
+	 string.format("%s_intSrcIzM0_restart.bp", self.name))
+   end
+   if self.calcIntSrcIz then
       self.intSrcIzM0:read(
 	 string.format("%s_intSrcIzM0_restart.bp", self.name))
    end

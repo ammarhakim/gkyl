@@ -37,6 +37,7 @@ local MappedPoisson = require "Updater.MappedPoisson"
 local MaxwellianOnBasis = require "Updater.MaxwellianOnBasis"
 local PositivityCheck = require "Updater.PositivityCheck"
 local PositivityRescale = require "Updater.PositivityRescale"
+local ProjectFluxFunc = require "Updater.ProjectFluxFunc"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local SelfPrimMoments = require "Updater.SelfPrimMoments"
 local SeparateVectorComponents = require "Updater.SeparateVectorComponents"
@@ -84,6 +85,7 @@ return {
    MaxwellianOnBasis = MaxwellianOnBasis,
    PositivityCheck = PositivityCheck,
    PositivityRescale = PositivityRescale,
+   ProjectFluxFunc = ProjectFluxFunc,
    ProjectOnBasis = ProjectOnBasis,
    SelfPrimMoments = SelfPrimMoments,
    SeparateVectorComponents = SeparateVectorComponents,

@@ -486,6 +486,8 @@ def build(bld):
     maxwellianOnBasisData/MaxwellianOnBasisTensor2x2vP1.cpp
     maxwellianOnBasisData/MaxwellianOnBasisTensor2x2vP2.cpp
 
+    projectFluxOnGhostsData/ProjectFluxOnGhostsSer.cpp
+
     PositivityRescaleImpl.cpp
 
     ProjectOnBasisImpl.cpp
@@ -531,7 +533,7 @@ def build(bld):
 
     bld.shlib(source = sources,
 
-              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData maxwellianOnBasisData', 
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData maxwellianOnBasisData projectFluxOnGhostsData', 
 
               use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     
