@@ -40,11 +40,13 @@ plasmaApp = Plasma.App {
    fluid = Plasma.Species {
       charge = 1.0,
       -- Projected initial conditions (with quadrature).
-      init                 = vanLeerIC,
-      source               = vanLeerSource,
-      sourceTimeDependence = function (t) return 1.0 end,
-      evolve               = true, -- Evolve species?
-      evolveCollisionless  = false,
+      init   = vanLeerIC,
+      source = Plasma.Source{
+         source         = vanLeerSource,
+         timeDependence = function (t) return 1.0 end,
+      },
+      evolve              = true, -- Evolve species?
+      evolveCollisionless = false,
       diff = Plasma.Diffusion {
          coefficient = diffCoefficient,
       },

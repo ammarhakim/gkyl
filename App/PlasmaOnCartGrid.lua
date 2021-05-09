@@ -197,11 +197,7 @@ local function buildApplication(self, tbl)
 	 val:fullInit(tbl) -- Initialize species.
       end
    end
-   -- Create a keys entry in species so we always loop in the same order.
-   local species_keys = {}
-   for k in pairs(species) do table.insert(species_keys, k) end
-   table.sort(species_keys)
-   setmetatable(species, species_keys)
+   lume.setOrder(species)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
    -- Setup each species.
    for _, s in lume.orderedIter(species) do
@@ -223,12 +219,7 @@ local function buildApplication(self, tbl)
 	 val:fullInit(tbl) -- Initialize fluid sources.
       end
    end
-
-   -- Create a keys entry in sources so we always loop in the same order.
-   local fluidSources_keys = {}
-   for k in pairs(fluidSources) do table.insert(fluidSources_keys, k) end
-   table.sort(fluidSources_keys)
-   setmetatable(fluidSources, fluidSources_keys)
+   lume.setOrder(fluidSources)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
    -- Add grid to app object.
    self._confGrid = confGrid
@@ -298,7 +289,7 @@ local function buildApplication(self, tbl)
    externalField:initField()
    
    -- Initialize species solvers and diagnostics.
-   for nm, s in lume.orderedIter(species) do
+   for _, s in lume.orderedIter(species) do
       local hasE, hasB = field:hasEB()
       local extHasE, extHasB = externalField:hasEB()
       s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
@@ -308,7 +299,7 @@ local function buildApplication(self, tbl)
    end
 
    -- Initialize fluid source solvers.
-   for nm, s in lume.orderedIter(fluidSources) do
+   for _, s in lume.orderedIter(fluidSources) do
       s:createSolver(species, field)
    end   
 
@@ -614,8 +605,8 @@ local function buildApplication(self, tbl)
       local fieldBuf = field:rkStepperFields()[bufIdx]
 
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
-      -- Update sources.
-      for nm, s in lume.orderedIter(fluidSources) do
+      -- Update fluid source terms.
+      for _, s in lume.orderedIter(fluidSources) do
 	 local myStatus, myDtSuggested = s:updateFluidSource(
             tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, species,
             field, externalField.em)
@@ -870,9 +861,11 @@ local function buildApplication(self, tbl)
                tmCollNonSlvr = tmCollNonSlvr + c:nonSlvrTime()
 	    end
          end
-         if s.timers and s.fSource and s.evolveSources then
-            tmSrc = tmSrc + s.timers.sources
-         end
+         if s.sources then
+	    for _, src in pairs(s.sources) do
+               tmSrc = tmSrc + src:srcTime()
+	    end
+	 end
       end
 
       for _, s in lume.orderedIter(fluidSources) do tmSrc = tmSrc + s:totalTime() end
@@ -915,7 +908,7 @@ local function buildApplication(self, tbl)
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Integrated moment calculations took",
-	     1000000.001111, tmIntMom/step, 100*tmIntMom/tmTotal))
+	     tmIntMom, tmIntMom/step, 100*tmIntMom/tmTotal))
       tmAccounted = tmAccounted + tmIntMom
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
@@ -1004,24 +997,41 @@ function App:run()
 end
 
 return {
+   Gyrofluid = function ()
+      App.label = "Gyrofluid"
+      return  {
+	 AdiabaticSpecies    = require ("App.Species.AdiabaticSpecies"),
+	 App                 = App,
+	 Field               = require ("App.Field.GkField").GkField,
+	 FunctionProjection  = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
+	 Geometry            = require ("App.Field.GkField").GkGeometry,
+	 GyrofluidProjection = require ("App.Projection.GyrofluidProjection").GyrofluidProjection, 
+         PASCollisions       = require "App.Collisions.GfPitchAngleScattering",
+         Source              = require "App.Sources.GyrofluidSource",
+	 Species             = require "App.Species.GyrofluidSpecies",
+      }
+   end,
+
    Gyrokinetic = function ()
       App.label = "Gyrokinetic"
       return  {
-	 App = App,
-	 Species = require "App.Species.GkSpecies",
-	 AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
-	 Vlasov = require ("App.Species.VlasovSpecies"),
-	 Field = require ("App.Field.GkField").GkField,
-	 Geometry = require ("App.Field.GkField").GkGeometry,
-	 FunctionProjection = require ("App.Projection.GkProjection").FunctionProjection, 
-	 MaxwellianProjection = require ("App.Projection.GkProjection").MaxwellianProjection,
+	 AdiabaticSpecies       = require ("App.Species.AdiabaticSpecies"),
+	 App                    = App,
+	 BGKCollisions          = require "App.Collisions.GkBGKCollisions",
+	 BgkCollisions          = require "App.Collisions.GkBGKCollisions",
+	 ChargeExchange         = require "App.Collisions.GkChargeExchange",
+	 Field                  = require ("App.Field.GkField").GkField,
+	 FunctionProjection     = require ("App.Projection.GkProjection").FunctionProjection, 
+	 Geometry               = require ("App.Field.GkField").GkGeometry,
+	 Ionization             = require "App.Collisions.GkIonization",
+	 LBOCollisions          = require "App.Collisions.GkLBOCollisions",
+	 LboCollisions          = require "App.Collisions.GkLBOCollisions",
+	 MaxwellianProjection   = require ("App.Projection.GkProjection").MaxwellianProjection,
+	 Species                = require "App.Species.GkSpecies",
+	 Source                 = require "App.Sources.GkSource",
+	 Vlasov                 = require ("App.Species.VlasovSpecies"),
 	 VmMaxwellianProjection = require ("App.Projection.VlasovProjection").MaxwellianProjection,
-	 BGKCollisions = require "App.Collisions.GkBGKCollisions",
-	 LBOCollisions = require "App.Collisions.GkLBOCollisions",
-	 BgkCollisions = require "App.Collisions.GkBGKCollisions",
-	 LboCollisions = require "App.Collisions.GkLBOCollisions",
-	 ChargeExchange = require "App.Collisions.GkChargeExchange",
-	 Ionization = require "App.Collisions.GkIonization",
+	 VmSource               = require "App.Sources.VmSource",
       }
    end,
 
@@ -1029,12 +1039,28 @@ return {
       App.label = "Incompressible Euler"
       return {
 	 App       = App,
-	 Species   = require "App.Species.IncompEulerSpecies",
-	 Field     = require ("App.Field.GkField").GkField,
 	 Diffusion = require "App.Collisions.Diffusion",
+	 Field     = require ("App.Field.GkField").GkField,
+         Source    = require "App.Sources.FluidSource",
+	 Species   = require "App.Species.IncompEulerSpecies",
       }
    end,
    
+   Moments = function ()
+      App.label = "Multi-fluid"
+      return {
+         App = App,
+         Species = require "App.Species.MomentSpecies",
+         Field = require ("App.Field.MaxwellField").MaxwellField,
+         CollisionlessEmSource = require "App.FluidSources.CollisionlessEmSource",
+         TenMomentRelaxSource  = require "App.FluidSources.TenMomentRelaxSource",
+         AxisymmetricMomentSource = require "App.FluidSources.AxisymmetricMomentSource",
+         AxisymmetricPhMaxwellSource = require "App.FluidSources.AxisymmetricPhMaxwellSource",
+         BraginskiiHeatConductionSource = require "App.FluidSources.BraginskiiHeatConductionSource",
+         BraginskiiViscosityDiffusionSource = require "App.FluidSources.BraginskiiViscosityDiffusionSource",
+      }
+   end,
+
    VlasovMaxwell = function ()
       App.label = "Vlasov-Maxwell"
       return {
@@ -1053,6 +1079,8 @@ return {
 	 ChargeExchange = require "App.Collisions.VmChargeExchange",
 	 Ionization = require "App.Collisions.VmIonization",
 	 Diffusion = require "App.Collisions.Diffusion",
+	 SteadySource = require "App.Sources.VmSteadyStateSource",
+	 Source = require "App.Sources.VmSource",
       }
    end,
    

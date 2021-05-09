@@ -93,6 +93,7 @@ def build(bld):
     primMomentsCalcData/VmSelfPrimMomentsSer1x3vP2.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer2x2vP2.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer2x3vP2.cpp
+    primMomentsCalcData/VmSelfPrimMomentsSer3x3vP2.cpp
     primMomentsCalcData/VmSelfPrimMomentsMax1x1vP2.cpp
     primMomentsCalcData/VmSelfPrimMomentsMax1x2vP2.cpp
     primMomentsCalcData/VmSelfPrimMomentsMax1x3vP2.cpp
@@ -270,7 +271,7 @@ def build(bld):
     binOpCalcData/CartFieldBinOpSer2x2vP2.cpp
     binOpCalcData/CartFieldBinOpSer2x3vP2.cpp
     binOpCalcData/CartFieldBinOpSer3x2vP2.cpp
-
+    binOpCalcData/CartFieldBinOpSer3x3vP2.cpp
 
     binOpCalcData/CartFieldBinOpMax1xP2.cpp
     binOpCalcData/CartFieldBinOpMax2xP2.cpp
@@ -468,6 +469,7 @@ def build(bld):
     maxwellianOnBasisData/MaxwellianOnBasisSer3x2vP1.cpp
     maxwellianOnBasisData/MaxwellianOnBasisSer3x2vP2.cpp
     maxwellianOnBasisData/MaxwellianOnBasisSer3x3vP1.cpp
+    maxwellianOnBasisData/MaxwellianOnBasisSer3x3vP2.cpp
     maxwellianOnBasisData/MaxwellianOnBasisMax1x1vP1.cpp
     maxwellianOnBasisData/MaxwellianOnBasisMax1x1vP2.cpp
     maxwellianOnBasisData/MaxwellianOnBasisMax1x1vP3.cpp
@@ -485,10 +487,13 @@ def build(bld):
     maxwellianOnBasisData/MaxwellianOnBasisTensor2x2vP1.cpp
     maxwellianOnBasisData/MaxwellianOnBasisTensor2x2vP2.cpp
 
+    projectFluxOnGhostsData/ProjectFluxOnGhostsSer.cpp
+
     PositivityRescaleImpl.cpp
 
     ProjectOnBasisImpl.cpp
     EvalOnNodesImpl.cpp
+    EvaluateBronoldFehskeBCImpl.cpp
     """
 
     ## HyperDisContDeviceShared.cu
@@ -529,7 +534,7 @@ def build(bld):
 
     bld.shlib(source = sources,
 
-              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData maxwellianOnBasisData', 
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData maxwellianOnBasisData projectFluxOnGhostsData', 
 
               use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     

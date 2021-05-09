@@ -151,9 +151,9 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block
 
     alphaMuDMid : float(expand(fullratsimp(subst(zr,alphaMuD_e)))),
     if polyOrder=1 then (
-     	facMuMid : float(expand(fullratsimp(subst(zr,doExpand(facMu_c,bP)))))
+      facMuMid : float(expand(fullratsimp(subst(zr,doExpand(facMu_c,bP)))))
     ) else (
-     	facMuMid : float(expand(fullratsimp(subst(zr,facMu_e))))
+      facMuMid : float(expand(fullratsimp(subst(zr,facMu_e))))
     ),
     expr  : float(expand(fullratsimp(-alphaMuDMid+((polyOrder+1)**2)*(facVparMid+facMuMid)/(2*polyOrder+1)))),
     param : cons(expr, [float(expand(((polyOrder+1)**2)/(2*polyOrder+1))), rdvSq4[1], m_, w[vid[2]]]),

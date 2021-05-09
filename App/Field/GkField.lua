@@ -291,8 +291,6 @@ function GkField:initField(species)
       self:phiSolve(0.0, species, 1, 1)
    end
 
-   local polyOrder = self.basis:polyOrder()
-
    if self.isElectromagnetic then
       -- Solve for initial Apar.
       local apar = self.potentials[1].apar
@@ -586,10 +584,8 @@ function GkField:createDiagnostics()
       elemType   = self.potentials[1].phi:elemType(),
       method     = self.ioMethod,
       writeGhost = self.writeGhost,
-      metaData   = {
-	 polyOrder = self.basis:polyOrder(),
-	 basisType = self.basis:id()
-      },
+      metaData   = {polyOrder = self.basis:polyOrder(),
+                    basisType = self.basis:id(),},
    }
 
    -- Updaters for computing integrated quantities.
@@ -1148,7 +1144,7 @@ function GkGeometry:createSolver()
          self.calcAllGeo = function(t, xn)
             local gxx, gxy, gyy = 1.0, 0.0, 1.0
 
-            local bmag    = self.bmagFunc(t, xn)
+            local bmag = self.bmagFunc(t, xn)
             local cmag = 1.0
 
             return bmag, 1/bmag, cmag, gxx, gxy, gyy
@@ -1157,7 +1153,7 @@ function GkGeometry:createSolver()
          self.calcAllGeo = function(t, xn)
             local gxx, gxy, gyy = 1.0, 0.0, 1.0
 
-            local bmag    = self.bmagFunc(t, xn)
+            local bmag = self.bmagFunc(t, xn)
             local cmag = 1.0
 
             local bdriftX = self.bdriftXFunc(t, xn)
@@ -1207,9 +1203,9 @@ function GkGeometry:createSolver()
                g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
             end
             local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
-            local b_x     = g_xz/math.sqrt(g_zz)
-            local b_y     = g_yz/math.sqrt(g_zz)
-            local b_z     = math.sqrt(g_zz)
+            local b_x      = g_xz/math.sqrt(g_zz)
+            local b_y      = g_yz/math.sqrt(g_zz)
+            local b_z      = math.sqrt(g_zz)
 
             local det = jacobian^2
             local gxx = (g_yy*g_zz-g_yz^2)/det
@@ -1236,9 +1232,9 @@ function GkGeometry:createSolver()
                g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
             end
             local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
-            local b_x     = g_xz/math.sqrt(g_zz)
-            local b_y     = g_yz/math.sqrt(g_zz)
-            local b_z     = math.sqrt(g_zz)
+            local b_x      = g_xz/math.sqrt(g_zz)
+            local b_y      = g_yz/math.sqrt(g_zz)
+            local b_z      = math.sqrt(g_zz)
 
             local det = jacobian^2
             local gxx = (g_yy*g_zz-g_yz^2)/det
@@ -1260,9 +1256,9 @@ function GkGeometry:createSolver()
             self.grid:calcMetric(xn, g)
             local g_xx, g_xy, g_xz, g_yy, g_yz, g_zz = g[1], g[2], g[3], g[4], g[5], g[6]
             local jacobian = math.sqrt(-g_xz^2*g_yy + 2*g_xy*g_xz*g_yz - g_xx*g_yz^2 - g_xy^2*g_zz + g_xx*g_yy*g_zz)
-            local b_x     = g_xz/math.sqrt(g_zz)
-            local b_y     = g_yz/math.sqrt(g_zz)
-            local b_z     = math.sqrt(g_zz)
+            local b_x      = g_xz/math.sqrt(g_zz)
+            local b_y      = g_yz/math.sqrt(g_zz)
+            local b_z      = math.sqrt(g_zz)
 
             local det = jacobian^2
             local gxx = (g_yy*g_zz-g_yz^2)/det
@@ -1272,7 +1268,7 @@ function GkGeometry:createSolver()
             local gyz = (g_xy*g_xz-g_xx*g_yz)/det
             local gzz = (g_xx*g_yy-g_xy^2)/det
 
-            local bmag    = self.bmagFunc(t, xn)
+            local bmag = self.bmagFunc(t, xn)
             local cmag = jacobian*bmag/math.sqrt(g_zz)
 
             return jacobian, 1/jacobian, jacobian*bmag, 1/(jacobian*bmag), bmag, 1/bmag, cmag, 

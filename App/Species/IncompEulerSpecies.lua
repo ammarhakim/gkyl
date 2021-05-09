@@ -13,6 +13,7 @@ local LinearDecomp  = require "Lib.LinearDecomp"
 local Updater       = require "Updater"
 local Mpi           = require "Comm.Mpi"
 local Proto         = require "Lib.Proto"
+local ConstDiffusionModDecl = require "Eq.constDiffusionData.ConstDiffusionModDecl"
 
 local IncompEulerSpecies = Proto(FluidSpecies)
 
@@ -32,25 +33,45 @@ function IncompEulerSpecies:fullInit(appTbl)
    IncompEulerSpecies.super.fullInit(self, appTbl)
 
    self.nMoments = 1
+   self.zeroFluxDirections = {}
 end
 
-function IncompEulerSpecies:appendBoundaryConditions(dir, edge, bcType)
-   -- Need to wrap member functions so that self is passed.
-   local function bcAbsorbFunc(...)    return self:bcAbsorbFunc(...) end
-   local function bcCopyFunc(...)      return self:bcCopyFunc(...) end
-   local function bcDirichletFunc(...) return self:bcDirichletFunc(...) end
-   local function bcNeumannFunc(...)   return self:bcNeumannFunc(...) end
+function IncompEulerSpecies:bcDirichletFunc(dir, tm, idxIn, fIn, fOut)
+   -- Impose f=fBC at the boundary.
+   if (idxIn[dir] == 1) then
+      self.constDiffDirichletBCs[dir][1](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][1],fOut:data())
+   else
+      self.constDiffDirichletBCs[dir][2](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][2],fOut:data())
+   end
+end
 
+function IncompEulerSpecies:bcNeumannFunc(dir, tm, idxIn, fIn, fOut)
+   -- Impose f'=fpBC at the boundary.
+   if (idxIn[dir] == 1) then
+      self.constDiffNeumannBCs[dir][1](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][1],fOut:data())
+   else
+      self.constDiffNeumannBCs[dir][2](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][2],fOut:data())
+   end
+end
+
+
+function IncompEulerSpecies:appendBoundaryConditions(dir, edge, bcType)
    if bcType == SP_BC_ABSORB then
+      local function bcAbsorbFunc(...)    return self:bcAbsorbFunc(...) end
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { bcAbsorbFunc }, "pointwise"))
    elseif bcType == SP_BC_COPY then
+      local function bcCopyFunc(...)      return self:bcCopyFunc(...) end
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { bcCopyFunc }, "pointwise"))
    elseif bcType == SP_BC_ZEROFLUX then
       table.insert(self.zeroFluxDirections, dir)
    elseif bcType[1] == SP_BC_DIRICHLET then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { bcDirichletFunc, bcType[1] }, "pointwise"))
+      self.constDiffDirichletBCs = ConstDiffusionModDecl.selectBCs(self.basis:id(), self.basis:ndim(), self.basis:polyOrder(), 2, "Dirichlet")
+      local function bcDirichletFunc(...) return self:bcDirichletFunc(...) end
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { bcDirichletFunc }, "pointwise"))
    elseif bcType[1] == SP_BC_NEUMANN then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { bcNeumannFunc, bcType[1] }, "pointwise"))
+      self.constDiffNeumannBCs = ConstDiffusionModDecl.selectBCs(self.basis:id(), self.basis:ndim(), self.basis:polyOrder(), 2, "Neumann")
+      local function bcNeumannFunc(...)   return self:bcNeumannFunc(...) end
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { bcNeumannFunc }, "pointwise"))
    else
       assert(false, "IncompEulerSpecies: Unsupported BC type!")
    end
@@ -84,6 +105,35 @@ end
 function IncompEulerSpecies:calcCouplingMoments(tCurr, rkIdx)
    local fIn = self:rkStepperFields()[rkIdx]
    self.couplingMoments:copy(fIn)
+end
+
+function IncompEulerSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
+   self.tCurr = tCurr
+   local fIn     = self:rkStepperFields()[inIdx]
+   local fRhsOut = self:rkStepperFields()[outIdx]
+
+   if self.evolveCollisionless then
+      self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      local em = emIn[1]:rkStepperFields()[inIdx]
+      if self.positivityRescale then
+         self.posRescaler:advance(tCurr, {fIn}, {self.momPos}, false)
+         self.solver:advance(tCurr, {self.momPos, em}, {fRhsOut})
+      else
+         self.solver:advance(tCurr, {fIn, em}, {fRhsOut})
+      end
+   else
+      fRhsOut:clear(0.0) -- No RHS.
+   end
+
+   -- Perform the collision (diffusion) update.
+   if self.evolveCollisions then
+      for _, c in pairs(self.collisions) do
+         c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+         c:advance(tCurr, fIn, species, fRhsOut)
+      end
+   end
+
+   for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
 end
 
 function IncompEulerSpecies:fluidMoments()

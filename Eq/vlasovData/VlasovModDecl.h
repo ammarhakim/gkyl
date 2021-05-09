@@ -295,6 +295,11 @@ __host__ __device__ double VlasovPhiSurf3x3vSer_VZ_P1(const double *wl, const do
 __host__ __device__ double VlasovPhiBextSurf3x3vSer_VZ_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double qDm, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr); 
 __host__ __device__ double VlasovVolForce3x3vSerP1(const double *w, const double *dxv, const double *E, const double *f, double *out); 
 
+__host__ __device__ double VlasovVolStream3x3vSerP2(const double *w, const double *dxv, const double *f, double *out); 
+__host__ __device__ void VlasovSurfStream3x3vSer_X_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr); 
+__host__ __device__ void VlasovSurfStream3x3vSer_Y_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr); 
+__host__ __device__ void VlasovSurfStream3x3vSer_Z_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr); 
+
 __host__ __device__ double VlasovVolStream1x1vMaxP1(const double *w, const double *dxv, const double *f, double *out); 
 __host__ __device__ void VlasovSurfStream1x1vMax_X_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr); 
 __host__ __device__ double VlasovVol1x1vMaxP1(const double *w, const double *dxv, const double *EM, const double *f, double *out); 

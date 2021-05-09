@@ -11,7 +11,9 @@ local Grid           = require "Grid"
 local KineticSpecies = require "App.Species.KineticSpecies"
 local Lin            = require "Lib.Linalg"
 local Mpi            = require "Comm.Mpi"
+local Projection     = require "App.Projection"
 local Proto          = require "Lib.Proto"
+local Source         = require "App.Sources.VmSource"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
 local VlasovEq       = require "Eq.Vlasov"
@@ -29,6 +31,7 @@ local SP_BC_COPY    = 5
 -- AHH: This was 2 but seems that is unstable. So using plain copy.
 local SP_BC_OPEN      = SP_BC_COPY
 local SP_BC_ZEROFLUX  = 6
+local SP_BC_RECYCLE   = 7
 
 VlasovSpecies.bcAbsorb    = SP_BC_ABSORB     -- Absorb all particles.
 VlasovSpecies.bcOpen      = SP_BC_OPEN       -- Zero gradient.
@@ -36,6 +39,7 @@ VlasovSpecies.bcCopy      = SP_BC_COPY       -- Copy stuff.
 VlasovSpecies.bcReflect   = SP_BC_REFLECT    -- Specular reflection.
 VlasovSpecies.bcExternal  = SP_BC_EXTERN     -- Load external BC file.
 VlasovSpecies.bcZeroFlux  = SP_BC_ZEROFLUX
+VlasovSpecies.bcRecycle   = SP_BC_RECYCLE
 
 function VlasovSpecies:alloc(nRkDup)
    -- Allocate distribution function.
@@ -104,7 +108,7 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
    end
 
    self.computePlasmaB = true and plasmaB   -- Differentiate plasma B from external B.
-
+   
    -- Create updater to advance solution by one time-step.
    self.equation = VlasovEq {
       onGrid           = self.grid,
@@ -182,6 +186,9 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
             operator   = "VmLBO",
          }
       end
+
+      self.zIdx = Lin.IntVec(self.grid:ndim())
+
    end
 
    -- Updaters for the primitive moments.
@@ -440,6 +447,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    			self.m0fMax           = self:allocMoment()
    			self.m0mod            = self:allocMoment()
    			self.fMaxwellIz       = self:allocDistf()
+			self.srcIzM0          = self:allocMoment()
 			self.intSrcIzM0       = DataStruct.DynVector{numComponents = 1}
 			counterIz_elc         = false
 		     elseif self.name==species[sN].collisions[collNm].neutNm and counterIz_neut then
@@ -612,51 +620,8 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          c:advance(tCurr, fIn, species, fRhsOut)   -- 'species' needed for cross-species collisions.
       end
    end
-
-   if self.sourceSteadyState and self.evolveSources then
-      local localEdgeFlux = ffi.new("double[3]")
-      localEdgeFlux[0] = 0.0
-      localEdgeFlux[1] = 0.0
-      localEdgeFlux[2] = 0.0
-
-      local numConfDims = self.confBasis:ndim()
-      assert(numConfDims==1, "VlasovSpecies: The steady state source is available only for 1X.")
-      local numConfBasis = self.confBasis:numBasis()
-      local lower, upper = Lin.Vec(numConfDims), Lin.Vec(numConfDims)
-      lower[1], upper[1] = -1.0, 1.0
-      local basisUpper = Lin.Vec(numConfBasis)
-      local basisLower = Lin.Vec(numConfBasis)
-
-      self.confBasis:evalBasis(upper, basisUpper)
-      self.confBasis:evalBasis(lower, basisLower)
-
-      local flux = self:fluidMoments()[2]
-      local fluxIndexer, fluxItr = flux:genIndexer(), flux:get(1)
-      for idx in flux:localRangeIter() do
-	 if idx[1] == self.grid:numCells(1) then
-	    flux:fill(fluxIndexer(idx), fluxItr)
-	    for k = 1, numConfBasis do
-	       localEdgeFlux[0] = localEdgeFlux[0] + fluxItr[k]*basisUpper[k]
-	    end
-	 elseif idx[1] == 1 then
-	    flux:fill(fluxIndexer(idx), fluxItr)
-	    for k = 1, numConfBasis do
-	       localEdgeFlux[0] = localEdgeFlux[0] - fluxItr[k]*basisLower[k]
-	    end
-	 end
-      end
-      local globalEdgeFlux = ffi.new("double[3]")
-      Mpi.Allreduce(localEdgeFlux, globalEdgeFlux, 1,
-		    Mpi.DOUBLE, Mpi.MAX, self.grid:commSet().comm)
-      local densFactor = globalEdgeFlux[0]/self.sourceSteadyStateLength
-      fRhsOut:accumulate(densFactor, self.fSource)
-   elseif self.fSource and self.evolveSources then
-      -- add source it to the RHS
-      -- Barrier over shared communicator before accumulate
-      Mpi.Barrier(self.grid:commSet().sharedComm)
-      fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
-   end
-
+   for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
+   
    -- Save boundary fluxes for diagnostics.
    if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
       for _, bc in ipairs(self.boundaryConditions) do
@@ -675,17 +640,13 @@ function VlasovSpecies:createDiagnostics()
      return false
    end
 
-    if self.fSource then
-      self.numDensitySrc = self:allocMoment()
-      self.momDensitySrc = self:allocVectorMoment(self.vdim)
-      self.ptclEnergySrc = self:allocMoment()
-      self.fiveMomentsCalc:advance(0.0, {self.fSource}, {self.numDensitySrc, self.momDensitySrc, self.ptclEnergySrc})
-    end
+   for _, src in lume.orderedIter(self.sources) do src:createDiagnostics(self) end
+
    -- Create updater to compute volume-integrated moments
    -- function to check if integrated moment name is correct.
    local function isIntegratedMomentNameGood(nm)
       if nm == "intM0" or nm == "intM1i" or nm == "intM2Flow" 
-         or nm == "intM2Thermal" or nm == "intM2" or nm == "intL2" then
+      or nm == "intM2Thermal" or nm == "intM2" or nm == "intL2" then
          return true
       end
       return false
@@ -700,7 +661,7 @@ function VlasovSpecies:createDiagnostics()
    numCompInt["intL2"]        = 1
 
    self.diagnosticIntegratedMomentFields   = { }
-   self.diagnosticIntegratedMomentUpdaters = { } 
+   self.diagnosticIntegratedMomentUpdaters = { }
    -- Allocate space to store integrated moments and create integrated moment updaters.
    local function allocateDiagnosticIntegratedMoments(intMoments, bc, timeIntegrate)
       local label = ""
@@ -718,7 +679,7 @@ function VlasovSpecies:createDiagnostics()
                numComponents = numCompInt[mom],
             }
             local intCalc = Updater.CartFieldIntegratedQuantCalc {
-                  onGrid        = self.confGrid,
+                  onGrid        = confGrid,
                   basis         = self.confBasis,
                   numComponents = numCompInt[mom],
                   quantity      = "V",
@@ -738,6 +699,34 @@ function VlasovSpecies:createDiagnostics()
          else
             assert(false, string.format("Error: integrated moment %s not valid", mom..label))
          end
+      end
+      if (self.calcIntSrcIz and label=="") or (self.calcReactRate and label=="") then
+	 self.srcIzM0 = self:allocMoment()
+	 self.intSrcIzM0 = DataStruct.DynVector {
+	    numComponents = 1,
+	 }
+	 self.intCalcIz = Updater.CartFieldIntegratedQuantCalc {
+	    onGrid        = self.confGrid,
+	    basis         = self.confBasis,
+	    numComponents = 1,
+	    quantity      = "V",
+	    timeIntegrate = true,
+	 }
+      end
+      if self.hasRecycleBcs and label~="" then
+	 if self.cdim == 1 or (self.cdim == 3 and string.match(label,"Z")) then
+	    mom = "intM0Recycle"
+	    self.diagnosticIntegratedMomentFields[mom..label] = DataStruct.DynVector {
+	       numComponents = 1,
+	    }
+	    self.diagnosticIntegratedMomentUpdaters[mom..label] = Updater.CartFieldIntegratedQuantCalc {
+	       onGrid        = confGrid,
+	       basis         = self.confBasis,
+	       numComponents = numCompInt[mom],
+	       quantity      = "V",
+	       timeIntegrate = timeIntegrate,
+	    }
+	 end
       end
    end
 
@@ -1121,8 +1110,26 @@ function VlasovSpecies:calcDiagnosticIntegratedMoments(tm)
          elseif mom == "intL2" then
             self.diagnosticIntegratedMomentUpdaters[mom]:advance(
                tm, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[mom]})
-         end
+	 end
       end
+      if self.calcIntSrcIz and label=="" then -- intSrcIzM0 for neutrals (when plasma is GK)
+	 local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
+	 sourceIz:scale(-1.0)
+	 self.numDensityCalc:advance(tm, {sourceIz}, {self.srcIzM0})
+	 self.intCalcIz:advance( tm, {self.srcIzM0}, {self.intSrcIzM0} )
+      elseif self.calcReactRate and label=="" then -- intSrcIzM0 for elc
+	 local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
+	 self.numDensityCalc:advance(tm, {sourceIz}, {self.srcIzM0})
+	 self.intCalcIz:advance( tm, {self.srcIzM0}, {self.intSrcIzM0} )       
+      end
+      
+      -- if self.hasRecycleBcs and label~="" then
+      -- 	 if self.cdim == 1 or (self.cdim == 3 and string.match(label,"Z")) then
+      -- 	    mom = "intM0Recycle"
+      -- 	    self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
+      -- 	       tm, {self.recycleTestFlux[label]}, {self.diagnosticIntegratedMomentFields[mom..label]})
+      -- 	 end
+      -- end
    end
 
    computeIntegratedMoments(self.diagnosticIntegratedMoments, fIn)
@@ -1140,6 +1147,45 @@ function VlasovSpecies:bcReflectFunc(dir, tm, idxIn, fIn, fOut)
    self.basis:flipSign(dir, fIn, fOut)
    self.basis:flipSign(dir+self.cdim, fOut, fOut)
 end
+
+function VlasovSpecies:bcRecycleFunc(dir, tm, idxIn, fIn, fOut)
+   -- skinLoop should be "flip"
+   -- Note that bcRecycle only valid in dir parallel to B.
+   -- This is checked when bc is created.
+   local globalRange = self.grid:globalRange()
+   if dir == 1 then
+      l1 = 'FluxX'
+   elseif dir == 2 then
+      l1 = 'FluxY'
+   else
+      l1 = 'FluxZ'
+   end
+   if idxIn[dir] == globalRange:lower(dir) then 
+      l2 = 'lower' 
+   else 
+      l2 = 'upper'
+   end
+   label = l1..l2
+
+   -- print('label defined')
+   -- idxIn:copyInto(self.zIdx)
+   -- print('idx copied')
+   zIdx = idxIn
+   zIdx[dir] = 1
+   local numBasis = self.basis:numBasis()
+   local f = self.recycleDistF[label]
+   local rIdxr = f:genIndexer()
+   local rFPtr = self.recycleDistF[label]:get(1)
+   f:fill(rIdxr(zIdx), rFPtr)
+   for i = 1, numBasis do
+      fOut[i] = 0
+      fOut[i] = rFPtr[i]
+   end
+
+   self.basis:flipSign(dir, fOut, fOut)
+   self.basis:flipSign(dir+self.cdim, fOut, fOut)
+end
+
 
 function VlasovSpecies:bcExternFunc(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "flip".
@@ -1162,25 +1208,35 @@ function VlasovSpecies:bcExternFunc(dir, tm, idxIn, fIn, fOut)
    return fOut
 end
 
-function VlasovSpecies:calcExternalBC()
+function VlasovSpecies:initExternalBC()
    tbl = self.tbl
    local externalBC = assert(tbl.externalBC, "VlasovSpecies: Must define externalBC parameters")
-   local lower = Lin.Vec(self.grid:ndim())
-   local upper = Lin.Vec(self.grid:ndim())
-   local cells = Lin.Vec(self.grid:ndim())
-   lower[1] = 0
-   upper[1] = 1
-   cells[1] = 1
-   for d = 1, self.vdim do
-      lower[d + 1] = self.grid:lower(d + 1)
-      upper[d + 1] = self.grid:upper(d + 1)
-      cells[d + 1] = self.grid:numCells(d + 1)
+   local lower, upper, cells = {}, {}, {}
+   local GridConstructor = Grid.RectCart
+   local coordinateMap = {}
+   if self.coordinateMap then
+      for d = 1, self.cdim do
+         table.insert(coordinateMap, function (z) return z end)
+      end
+      for d = 1, self.vdim do
+         table.insert(coordinateMap, self.coordinateMap[d])
+      end
+      GridConstructor = Grid.NonUniformRectCart
    end
-   local grid = Grid.RectCart {
+   for d = 1, self.cdim do
+      lower[d], upper[d], cells[d] = 0, 1, 1
+   end
+   for d = 1, self.vdim do
+      lower[d + self.cdim] = self.lower[d]
+      upper[d + self.cdim] = self.upper[d]
+      cells[d + self.cdim] = self.grid:numCells(d + self.cdim)
+   end
+   local grid = GridConstructor {
       lower = lower,
       upper = upper,
       cells = cells,
-      periodicDirs = {}
+      periodicDirs = {},
+      mappings = coordinateMap,
    }
    self.externalBCFunction = DataStruct.Field {
       onGrid = grid,
@@ -1196,10 +1252,13 @@ function VlasovSpecies:calcExternalBC()
    local evaluateBronold = Updater.EvaluateBronoldFehskeBC {
       onGrid = grid,
       basis = self.basis,
+      cdim = self.cdim,
+      vdim = self.vdim,
       electronAffinity = externalBC.electronAffinity,
       effectiveMass = externalBC.effectiveMass,
       elemCharge = externalBC.elemCharge,
       me = externalBC.electronMass,
+      ignore = externalBC.ignore,
    }
    evaluateBronold:advance(0.0, {}, {self.externalBCFunction})
 end
@@ -1211,6 +1270,7 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
    local function bcOpenFunc(...)    return self:bcOpenFunc(...) end
    local function bcReflectFunc(...) return self:bcReflectFunc(...) end
    local function bcExternFunc(...)  return self:bcExternFunc(...) end
+   local function bcRecycleFunc(...) return self:bcRecycleFunc(...) end
 
    local vdir = dir + self.cdim
 
@@ -1240,6 +1300,14 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
 				      { bcExternFunc }, "flip"))
    elseif bcType == SP_BC_ZEROFLUX then
       table.insert(self.zeroFluxDirections, dir)
+      elseif bcType == SP_BC_RECYCLE and dir == self.cdim then
+      -- recycling code here
+      assert(self.tbl.diagnosticBoundaryFluxMoments, "VlasovSpecies: Recycle BCs must include boundary flux diagnostics using 'diagnosticBoundaryFluxMoments'")
+      assert(self.tbl.recycleTemp, "VlasovSpecies: Recycle BCs must specify temperature using 'recycleTemp'")
+      assert(self.tbl.recycleFrac, "VlasovSpecies: Recycle BCs must specify recycling fraction using 'recycleFrac'")
+      assert(self.tbl.recycleIon, "VlasovSpecies: Recycle BCs must specify ion species using 'recycleIon'")
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcRecycleFunc }, "flip"))
+      self.hasRecycleBcs = true
    else
       assert(false, "VlasovSpecies: Unsupported BC type!")
    end
@@ -1322,6 +1390,231 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uSelf, neutU, self.vtSqSelf, neutVtSq}, {self.vSigmaCX})
    end
 
+   if self.hasRecycleBcs then
+      tbl = self.tbl
+      if tCurr == 0.0 then
+	 self.recycleFMaxwell = {}
+	 self.recycleFhat = {}
+	 self.scaledFhat = {}
+	 self.recycleDistF = {}
+	 self.recycleFhatM0 = {}
+	 self.recycleIonFlux = {}
+	 self.recycleCoef = {}
+	 self.recycleTestFlux = {}
+	 self.calcFhatM0 = {}
+	 self.recycleConfDiv = {}
+	 self.recycleConfPhaseMult = {}       
+	 self.projectRecycleFMaxwell = {}
+	 self.projectFluxFunc = {}
+      end
+      for _, bc in ipairs(self.boundaryConditions) do
+	 label = bc:label()
+	 if self.cdim == 1 or (self.cdim == 3 and string.match(label,"Z")) then
+	    if tCurr == 0 then
+	       self.recycleIonNm = tbl.recycleIon
+	       -- Create objects and updaters needed for recycling wall BCs
+	       
+	       phaseGrid = bc:getBoundaryGrid()
+	       confGrid = bc:getConfBoundaryGrid()
+	       
+	       -- for fMaxwell projection with density = 1.
+	       self.recycleFMaxwell[label] = DataStruct.Field {
+		  onGrid        = phaseGrid,
+		  numComponents = self.basis:numBasis(),
+		  ghost         = {1, 1},
+		  metaData      = {polyOrder = self.basis:polyOrder(),
+				   basisType = self.basis:id(),
+				   charge    = self.charge,
+				   mass      = self.mass,},	    
+	       }
+	       -- for projection of flux on ghosts.
+	       self.recycleFhat[label] = DataStruct.Field {
+		  onGrid        = phaseGrid,
+		  numComponents = self.basis:numBasis(),
+		  ghost         = {1, 1},
+		  metaData      = {polyOrder = self.basis:polyOrder(),
+				   basisType = self.basis:id(),
+				   charge    = self.charge,
+				   mass      = self.mass,},	    
+	       }
+	       self.scaledFhat[label] = DataStruct.Field {
+		  onGrid        = phaseGrid,
+		  numComponents = self.basis:numBasis(),
+		  ghost         = {1, 1},
+		  metaData      = {polyOrder = self.basis:polyOrder(),
+				   basisType = self.basis:id(),
+				   charge    = self.charge,
+				   mass      = self.mass,},	    
+	       }
+	       -- for scaled projection of flux, passed to bc func.
+	       self.recycleDistF[label] = DataStruct.Field {
+		  onGrid        = phaseGrid,
+		  numComponents = self.basis:numBasis(),
+		  ghost         = {1, 1},
+		  metaData      = {polyOrder = self.basis:polyOrder(),
+				   basisType = self.basis:id(),
+				   charge    = self.charge,
+				   mass      = self.mass,},	    
+	       }
+	       
+	       -- 0th moment of fhat.
+	       self.recycleFhatM0[label] = DataStruct.Field {
+		  onGrid        = confGrid,
+		  numComponents = self.confBasis:numBasis(),
+		  ghost         = {1, 1},
+		  metaData      = {polyOrder = self.basis:polyOrder(),
+				   basisType = self.basis:id(),
+				   charge    = self.charge,
+				   mass      = self.mass,},	    
+	       }
+	       -- 0th moment of ion boundary flux
+	       self.recycleIonFlux[label] = DataStruct.Field {
+		  onGrid        = confGrid,
+		  numComponents = self.confBasis:numBasis(),
+		  ghost         = {1, 1},
+		  metaData      = {polyOrder = self.basis:polyOrder(),
+				   basisType = self.basis:id(),
+				   charge    = self.charge,
+				   mass      = self.mass,},	    
+	       }
+	       -- scaling factor for recycle distf.
+	       self.recycleCoef[label] = DataStruct.Field {
+		  onGrid        = confGrid,
+		  numComponents = self.confBasis:numBasis(),
+		  ghost         = {1, 1},
+		  metaData      = {polyOrder = self.basis:polyOrder(),
+				   basisType = self.basis:id(),
+				   charge    = self.charge,
+				   mass      = self.mass,},	    
+	       }
+	       self.recycleTestFlux[label] = DataStruct.Field {
+		  onGrid        = confGrid,
+		  numComponents = self.confBasis:numBasis(),
+		  ghost         = {1, 1},
+		  metaData      = {polyOrder = self.basis:polyOrder(),
+				   basisType = self.basis:id(),
+				   charge    = self.charge,
+				   mass      = self.mass,},	    
+	       }
+	       
+	       local dir, edgeVal
+	       if string.match(label,"lower") then
+		  edgeval = 1
+	       else
+		  edgeval = -1
+	       end
+	       if string.match(label,"X") then
+		  dir = 1
+		  if edgeval == 1 then -- lower flux is in negative direction
+		     mom = "M0Nvx"
+		  else                -- upper flux is in positive direction
+		     mom = "M0Pvx"
+		  end
+	       else
+		  dir = 3
+		  if edgeval == 1 then -- lower
+		     mom = "M0Nvz"
+		  else                -- upper
+		     mom = "M0Pvz"
+		  end
+	       end
+	       
+	       -- DistFuncMomentCalc Updater for fMaxwell	    
+	       self.calcFhatM0[label] = Updater.DistFuncMomentCalc {
+		  onGrid     = phaseGrid,
+		  phaseBasis = self.basis,
+		  confBasis  = self.confBasis,
+		  moment     = mom,
+	       }
+	       
+	       self.recycleConfDiv[label] = Updater.CartFieldBinOp {
+		  onGrid    = confGrid,
+		  weakBasis = self.confBasis,
+		  operation = "Divide",
+	       }
+	       self.recycleConfPhaseMult[label] = Updater.CartFieldBinOp {
+		  onGrid     = phaseGrid,
+		  weakBasis  = self.basis,
+		  fieldBasis = self.confBasis,
+		  operation  = "Multiply",
+	       }
+	       
+	       self.recFrac = tbl.recycleFrac		     
+	       T0 = tbl.recycleTemp
+	       recycleSource = function (t, xn)
+		  local cdim = self.cdim
+		  local vdim = self.vdim
+		  local vt2 = T0/self.mass
+		  --local u = -10*edgeval*math.sqrt(vt2)
+		  --local v2 = (xn[2] - u)^2 + xn[3]^2 + xn[4]^2
+		  local v2 = 0.0
+		  for d = cdim+1, cdim+vdim do
+		     v2 = v2 + (xn[d])^2
+		  end
+		  return 1.0 / math.sqrt(2*math.pi*vt2)^vdim * math.exp(-v2/(2*vt2))
+	       end
+	       
+	       self.projectRecycleFMaxwell = Updater.ProjectOnBasis {
+		  onGrid          = phaseGrid,
+		  basis           = self.basis,
+		  evaluate        = recycleSource,
+		  onGhosts        = false,
+	       }
+	       self.projectFluxFunc = Updater.ProjectFluxFunc {
+		  onGrid          = phaseGrid,
+		  phaseBasis      = self.basis,
+		  confBasis       = self.confBasis,
+		  edgeValue       = edgeval,
+		  direction       = dir,
+		  onGhosts        = false,
+	       }
+	       
+	       self.projectRecycleFMaxwell:advance(tCurr, {}, {self.recycleFMaxwell[label]})
+	       self.projectFluxFunc:advance(tCurr, {self.recycleFMaxwell[label]}, {self.recycleFhat[label]})
+	       self.calcFhatM0[label]:advance(tCurr, {self.recycleFhat[label]}, {self.recycleFhatM0[label]})
+	       self.recycleFhatM0[label]:scale(-1.0*edgeval)
+	       
+	       -- Write out distf and flux
+	       wlabel = (label):gsub("Flux","")
+	       self.recycleFhat[label]:write(
+		  string.format("%s_%s%s_%d.bp", self.name, 'recycleFhat', wlabel, self.diagIoFrame),
+		  tCurr, self.diagIoFrame, false)
+	       self.recycleFhatM0[label]:write(
+		  string.format("%s_%s%s_%d.bp", self.name, 'recycleFhatM0', wlabel, self.diagIoFrame),
+		  tCurr, self.diagIoFrame, false)
+	    end
+	    
+	    if tbl.recycleTime then
+	       self.recTime = tbl.recycleTime
+	       scaleByTime = function(tm)
+		  return 0.5*(1. + math.tanh(tm/self.recTime-1))
+		  --return math.tanh(tm/self.recTime)
+	       end
+	       self.scaledRecFrac = self.recFrac*scaleByTime(tCurr)
+	    else
+	       self.scaledRecFrac = self.recFrac
+	    end
+	 
+	    local ionBoundaryFlux = species[self.recycleIonNm].bcGkM0fluxField[label]
+	    wlabel = (label):gsub("Flux","")
+	    ionBoundaryFlux:scale(self.scaledRecFrac)
+	    
+	    -- weak divide
+	    self.recycleConfDiv[label]:advance(tCurr, {self.recycleFhatM0[label], ionBoundaryFlux}, {self.recycleCoef[label]})
+
+	    -- weak multiply
+	    self.recycleConfPhaseMult[label]:advance(tCurr, {self.recycleCoef[label], self.recycleFMaxwell[label]}, {self.recycleDistF[label]})
+	    -- Diagnostics to check flux
+	    self.recycleConfPhaseMult[label]:advance(tCurr, {self.recycleCoef[label], self.recycleFhat[label]}, {self.scaledFhat[label]})
+	    self.calcFhatM0[label]:advance(tCurr, {self.scaledFhat[label]}, {self.recycleTestFlux[label]})
+	    -- maybe calculated integrated M0 flux here??
+	    
+	    local scaleFac = 1.0/self.recFrac
+	    self.recycleTestFlux[label]:scale(scaleFac) -- This can be written out from KineticSpecies, if necessary.
+	 end
+      end
+   end
+
    self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
 end
 
@@ -1402,6 +1695,15 @@ function VlasovSpecies:Maxwellian(xn, n0, T0, vdnIn)
      v2 = v2 + (xn[d] - vdnIn[d-self.cdim])^2
    end
    return n0 / math.sqrt(2*math.pi*vt2)^self.vdim * math.exp(-v2/(2*vt2))
+end
+
+function VlasovSpecies:projToSource(proj)
+   -- For backwards compatibility: in the case where the source is specified
+   -- as a projection object in the input file, this function turns that
+   -- projection object into a Source object.
+   local tbl = proj.tbl
+   local pow = tbl.power
+   return Source { profile = proj, power = pow }
 end
 
 return VlasovSpecies
