@@ -1031,6 +1031,7 @@ return {
 	 Source                 = require "App.Sources.GkSource",
 	 Vlasov                 = require ("App.Species.VlasovSpecies"),
 	 VmMaxwellianProjection = require ("App.Projection.VlasovProjection").MaxwellianProjection,
+	 VmSource               = require "App.Sources.VmSource",
       }
    end,
 
