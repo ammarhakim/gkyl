@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Species base object
+-- Species base object.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -8,10 +8,10 @@
 
 local Proto = require "Lib.Proto"
 
--- empty shell species base class
+-- Empty shell species base class.
 local SpeciesBase = Proto()
 
--- functions that must be defined by subclasses
+-- Functions that must be defined by subclasses.
 function SpeciesBase:init(tbl) end
 function SpeciesBase:fullInit(appTbl) end
 function SpeciesBase:setName(nm) end

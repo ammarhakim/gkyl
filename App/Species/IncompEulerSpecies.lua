@@ -32,8 +32,6 @@ IncompEulerSpecies.bcNeumann   = SP_BC_NEUMANN      -- Specify the derivative (c
 function IncompEulerSpecies:fullInit(appTbl)
    IncompEulerSpecies.super.fullInit(self, appTbl)
 
-   self.sourceTimeDependence = self.tbl.sourceTimeDependence or function (t) return 1. end
-
    self.nMoments = 1
    self.zeroFluxDirections = {}
 end
@@ -135,12 +133,7 @@ function IncompEulerSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       end
    end
 
-   if self.mSource and self.evolveSources then
-      -- Add source term to the RHS.
-      -- Barrier over shared communicator before accumulate.
-      Mpi.Barrier(self.grid:commSet().sharedComm)
-      fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.mSource)
-   end
+   for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
 end
 
 function IncompEulerSpecies:fluidMoments()

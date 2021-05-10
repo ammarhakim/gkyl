@@ -62,7 +62,6 @@ function KineticSpecies:fullInit(appTbl)
    self.evolve              = xsys.pickBool(tbl.evolve, true) -- By default, evolve species.
    self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless, self.evolve) 
    self.evolveCollisions    = xsys.pickBool(tbl.evolveCollisions, self.evolve) 
-   self.evolveSources       = xsys.pickBool(tbl.evolveSources, self.evolve) 
 
    assert(#self.lower == self.vdim, "'lower' must have " .. self.vdim .. " entries")
    assert(#self.upper == self.vdim, "'upper' must have " .. self.vdim .. " entries")
@@ -141,26 +140,24 @@ function KineticSpecies:fullInit(appTbl)
    -- Get a random seed for random initial conditions.
    self.randomseed = tbl.randomseed
 
-   -- Initialization.
-   self.sources = {}
+   -- Initialize table containing sources (if any).
+   self.sources = {} 
    for nm, val in pairs(tbl) do
-      if SourceBase.is(val) then
+      if SourceBase.is(val) or string.find(nm,"source") then
+         if ProjectionBase.is(val) then val = self:projToSource(val) end
 	 self.sources[nm] = val
 	 self.sources[nm]:setName(nm)
 	 val:setSpeciesName(self.name)
 	 val:fullInit(tbl) -- Initialize sources
       end
    end
+   lume.setOrder(self.sources)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
+
    self.projections = {}
    for nm, val in pairs(tbl) do
-      if ProjectionBase.is(val) then
+      if ProjectionBase.is(val) and not string.find(nm,"source") then
          self.projections[nm] = val
       end
-   end
-   if tbl.sourceTimeDependence then
-      self.sourceTimeDependence = tbl.sourceTimeDependence
-   else
-      self.sourceTimeDependence = function (t) return 1.0 end
    end
    -- It is possible to use the keywords 'init' and 'background'
    -- to specify a function directly without using a Projection object.
@@ -174,18 +171,7 @@ function KineticSpecies:fullInit(appTbl)
 	 func = function(t, zn) return tbl.background(t, zn, self) end,
       }
    end
-
-   -- Create a keys metatable in self.projections so we always loop in the same order (better for I/O).
-   local projections_keys = {}
-   for k in pairs(self.projections) do table.insert(projections_keys, k) end
-   table.sort(projections_keys)
-   setmetatable(self.projections, projections_keys)
-
-   -- Create a keys metatable in self.projections so we always loop in the same order (better for I/O).
-   local sources_keys = {}
-   for k in pairs(self.sources) do table.insert(sources_keys, k) end
-   table.sort(sources_keys)
-   setmetatable(self.sources, sources_keys)
+   lume.setOrder(self.projections)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
    self.deltaF         = xsys.pickBool(appTbl.deltaF, false)
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
@@ -411,9 +397,7 @@ end
 function KineticSpecies:bcAbsorbFunc(dir, tm, idxIn, fIn, fOut)
    -- Note that for bcAbsorb there is no operation on fIn,
    -- so skinLoop (which determines indexing of fIn) does not matter 
-   for i = 1, self.basis:numBasis() do
-      fOut[i] = 0.0
-   end
+   for i = 1, self.basis:numBasis() do fOut[i] = 0.0 end
 end
 function KineticSpecies:bcOpenFunc(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "pointwise".
@@ -421,9 +405,7 @@ function KineticSpecies:bcOpenFunc(dir, tm, idxIn, fIn, fOut)
 end
 function KineticSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "pointwise".
-   for i = 1, self.basis:numBasis() do
-      fOut[i] = fIn[i]
-   end
+   for i = 1, self.basis:numBasis() do fOut[i] = fIn[i] end
 end
 
 -- Function to construct a BC updater.
@@ -465,16 +447,12 @@ function KineticSpecies:createBCs()
    handleBc(3, self.bcz)
 
    -- Calculate external boundary condition if applicable
-   if self.tbl.computeExternalBC then
-      self:initExternalBC()
-   end
+   if self.tbl.computeExternalBC then self:initExternalBC() end
 end
 
 function KineticSpecies:createSolver(externalField)
    -- Create solvers for collisions.
-   for _, c in pairs(self.collisions) do
-      c:createSolver(externalField)
-   end
+   for _, c in pairs(self.collisions) do c:createSolver(externalField) end
    if self.positivity then
       self.posChecker = Updater.PositivityCheck {
          onGrid = self.grid,
@@ -577,60 +555,11 @@ function KineticSpecies:initDist(extField)
       --    end
       --    self.fReservoir:accumulate(1.0, self.distf[2])
       -- end
-      
-      --DEPRECATED---------------------
-      if string.find(nm,"source") then
-         print("Specifying source as projection is deprecated, please use Plasma.Source instead")
-	 self.projSrc = true
-         if not self.fSource then self.fSource = self:allocDistf() end
-         self.fSource:accumulate(1.0, self.distf[2])
-         if self.positivityRescale then
-            self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
-         end
-         if pr.power then
-            local calcInt = Updater.CartFieldIntegratedQuantCalc {
-               onGrid        = self.confGrid,
-               basis         = self.confBasis,
-               numComponents = 1,
-               quantity      = "V",
-            }
-            local intKE = DataStruct.DynVector{numComponents = 1}
-            self.ptclEnergyCalc:advance(0.0, {self.fSource}, {self.ptclEnergyAux})
-            calcInt:advance(0.0, {self.ptclEnergyAux, self.mass/2}, {intKE})
-            local _, intKE_data = intKE:lastData()
-            self.powerScalingFac = pr.power/intKE_data[1]
-            self.fSource:scale(self.powerScalingFac)
-         end
-      end
    end
    
-   -- Set up profile function for species sources
-   for nm, src in lume.orderedIter(self.sources) do
-      local sourcePr = self.sources[nm].profile
-      sourcePr:fullInit(self)
-      sourcePr:advance(0.0, {extField}, {self.distf[2]})
-      Mpi.Barrier(self.grid:commSet().sharedComm)
-      if not self.fSource then self.fSource = self:allocDistf() end
-      self.fSource:accumulate(1.0, self.distf[2])
-      if self.positivityRescale then
-	 self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
-      end
-      if sourcePr.power then
-	 local calcInt = Updater.CartFieldIntegratedQuantCalc {
-	    onGrid        = self.confGrid,
-	    basis         = self.confBasis,
-	    numComponents = 1,
-	    quantity      = "V",
-	 }
-	 local intKE = DataStruct.DynVector{numComponents = 1}
-	 self.ptclEnergyCalc:advance(0.0, {self.fSource}, {self.ptclEnergyAux})
-	 calcInt:advance(0.0, {self.ptclEnergyAux, self.mass/2}, {intKE})
-	 local _, intKE_data = intKE:lastData()
-	 self.powerScalingFac = sourcePr.power/intKE_data[1]
-	 self.fSource:scale(self.powerScalingFac)
-      end
-   end
-   if self.scaleInitWithSourcePower then self.distf[1]:scale(self.powerScalingFac) end
+   -- Set up profile function for species sources.
+   for nm, src in lume.orderedIter(self.sources) do src:createSolver(self, extField) end
+
    assert(initCnt>0, string.format("KineticSpecies: Species '%s' not initialized!", self.name))
    if self.f0 and backgroundCnt == 0 then self.f0:copy(self.distf[1]) end
 
@@ -911,8 +840,16 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
 
     -- Write integrated moments.
     for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-       self.diagnosticIntegratedMomentFields[mom]:write(
-          string.format("%s_%s.bp", self.name, mom), tm, self.diagIoFrame)
+       -- These moments are handled in src:writeDiagnosticIntegratedMoments 
+       if not (mom == "intSrcM0" or mom == "intSrcM1" or mom == "intSrcM2" or mom == "intSrcKE") then
+          self.diagnosticIntegratedMomentFields[mom]:write(
+             string.format("%s_%s.bp", self.name, mom), tm, self.diagIoFrame)
+       end
+    end
+
+    -- Write source integrated diagnostics.
+    for nm, src in lume.orderedIter(self.sources) do
+       src:writeDiagnosticIntegratedMoments(tm, self.diagIoFrame)
     end
 
     for i, mom in ipairs(self.diagnosticIntegratedBoundaryFluxMoments) do
@@ -931,26 +868,38 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        -- include dynvector for zeroth vector of ionization source
        tmStart = Time.clock()
-       local srcIzM0 = self:allocMoment()
-       self.numDensityCalc:advance(tm, {sourceIz}, {srcIzM0})
-       local intCalc = Updater.CartFieldIntegratedQuantCalc {
-       	  onGrid        = self.confGrid,
-       	  basis         = self.confBasis,
-       	  numComponents = 1,
-       	  quantity      = "V",
-       	  timeIntegrate = true,
-       }
-       intCalc:advance( tm, {srcIzM0}, {self.intSrcIzM0} )
        self.intSrcIzM0:write(
           string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
-       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
-       
+       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart       
     end
 
+    if self.calcIntSrcIz then
+       tmStart = Time.clock()
+       local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
+       sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+       self.intSrcIzM0:write(
+          string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
+       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart    
+    end
+       
     -- Write CX diagnostics
     if self.calcCXSrc then
        self.vSigmaCX:write(string.format("%s_vSigmaCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        self.collisions[self.collNmCX].sourceCX:write(string.format("%s_sourceCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
+    end
+
+    -- Write recycling diagnostics
+    if self.hasRecycleBcs then
+        for _, bc in ipairs(self.boundaryConditions) do
+	   label = bc:label()
+	   if self.cdim == 1 or (self.cdim == 3 and string.match(label,"Z")) then
+	      wlabel = (label):gsub("Flux","")
+	      self.recycleCoef[label]:write(string.format("%s%s_%d.bp", 'recycleCoef', wlabel, self.diagIoFrame), tm, self.diagIoFrame, false)
+	      self.recycleDistF[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleDistF', wlabel, self.diagIoFrame), tm, self.diagIoFrame, false)
+	      -- mom="intM0Recycle"
+	      -- self.diagnosticIntegratedMomentFields[mom..label]:write(string.format("%s_%s.bp", self.name, mom..label), tm, self.diagIoFrame)
+	   end
+	end
     end
 end
 
@@ -986,11 +935,7 @@ function KineticSpecies:write(tm, force)
             self.distIo:write(self.distf[1], string.format("%s_f1_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
             self.distf[1]:accumulate(1, self.f0)
          end
-         if tm == 0.0 and self.fSource then
-	    for _, src in lume.orderedIter(self.sources) do
-	       src:write(tm, self.distIoFrame, self)
-	    end
-	 end
+         for _, src in lume.orderedIter(self.sources) do src:write(tm, self.distIoFrame) end
 	 self.distIoFrame = self.distIoFrame+1
       end
 
@@ -1053,6 +998,11 @@ function KineticSpecies:writeRestart(tm)
       self.intSrcIzM0:write(
 	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
    end
+   if self.calcIntSrcIz then
+      self.intSrcIzM0:write(
+	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
+   end
+
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
@@ -1077,6 +1027,10 @@ function KineticSpecies:readRestart()
    end
    
    if self.calcReactRate then
+      self.intSrcIzM0:read(
+	 string.format("%s_intSrcIzM0_restart.bp", self.name))
+   end
+   if self.calcIntSrcIz then
       self.intSrcIzM0:read(
 	 string.format("%s_intSrcIzM0_restart.bp", self.name))
    end

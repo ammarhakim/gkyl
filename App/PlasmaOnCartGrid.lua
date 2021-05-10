@@ -197,11 +197,7 @@ local function buildApplication(self, tbl)
 	 val:fullInit(tbl) -- Initialize species.
       end
    end
-   -- Create a keys entry in species so we always loop in the same order.
-   local species_keys = {}
-   for k in pairs(species) do table.insert(species_keys, k) end
-   table.sort(species_keys)
-   setmetatable(species, species_keys)
+   lume.setOrder(species)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
    -- Setup each species.
    for _, s in lume.orderedIter(species) do
@@ -223,12 +219,7 @@ local function buildApplication(self, tbl)
 	 val:fullInit(tbl) -- Initialize fluid sources.
       end
    end
-
-   -- Create a keys entry in sources so we always loop in the same order.
-   local fluidSources_keys = {}
-   for k in pairs(fluidSources) do table.insert(fluidSources_keys, k) end
-   table.sort(fluidSources_keys)
-   setmetatable(fluidSources, fluidSources_keys)
+   lume.setOrder(fluidSources)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
    -- Add grid to app object.
    self._confGrid = confGrid
@@ -870,15 +861,11 @@ local function buildApplication(self, tbl)
                tmCollNonSlvr = tmCollNonSlvr + c:nonSlvrTime()
 	    end
          end
-         if s.timers and s.fSource and s.evolveSources then
-	    if s.projSrc then
-	       tmSrc = tmSrc + s.timers.sources
-	    else
-	       for _, src in pairs(s.sources) do
-                  tmSrc = tmSrc + src:srcTime()
-	       end
+         if s.sources then
+	    for _, src in pairs(s.sources) do
+               tmSrc = tmSrc + src:srcTime()
 	    end
-         end
+	 end
       end
 
       for _, s in lume.orderedIter(fluidSources) do tmSrc = tmSrc + s:totalTime() end
@@ -1013,36 +1000,38 @@ return {
    Gyrofluid = function ()
       App.label = "Gyrofluid"
       return  {
-	 App = App,
-	 Field = require ("App.Field.GkField").GkField,
-	 FunctionProjection = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
-	 Geometry = require ("App.Field.GkField").GkGeometry,
+	 AdiabaticSpecies    = require ("App.Species.AdiabaticSpecies"),
+	 App                 = App,
+	 Field               = require ("App.Field.GkField").GkField,
+	 FunctionProjection  = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
+	 Geometry            = require ("App.Field.GkField").GkGeometry,
 	 GyrofluidProjection = require ("App.Projection.GyrofluidProjection").GyrofluidProjection, 
-         PASCollisions = require "App.Collisions.GfPitchAngleScattering",
-         Source = require "App.Sources.GyrofluidSource",
-	 Species = require "App.Species.GyrofluidSpecies",
+         PASCollisions       = require "App.Collisions.GfPitchAngleScattering",
+         Source              = require "App.Sources.GyrofluidSource",
+	 Species             = require "App.Species.GyrofluidSpecies",
       }
    end,
 
    Gyrokinetic = function ()
       App.label = "Gyrokinetic"
       return  {
-	 App = App,
-	 Species = require "App.Species.GkSpecies",
-	 AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
-	 Vlasov = require ("App.Species.VlasovSpecies"),
-	 Field = require ("App.Field.GkField").GkField,
-	 Geometry = require ("App.Field.GkField").GkGeometry,
-	 FunctionProjection = require ("App.Projection.GkProjection").FunctionProjection, 
-	 MaxwellianProjection = require ("App.Projection.GkProjection").MaxwellianProjection,
+	 AdiabaticSpecies       = require ("App.Species.AdiabaticSpecies"),
+	 App                    = App,
+	 BGKCollisions          = require "App.Collisions.GkBGKCollisions",
+	 BgkCollisions          = require "App.Collisions.GkBGKCollisions",
+	 ChargeExchange         = require "App.Collisions.GkChargeExchange",
+	 Field                  = require ("App.Field.GkField").GkField,
+	 FunctionProjection     = require ("App.Projection.GkProjection").FunctionProjection, 
+	 Geometry               = require ("App.Field.GkField").GkGeometry,
+	 Ionization             = require "App.Collisions.GkIonization",
+	 LBOCollisions          = require "App.Collisions.GkLBOCollisions",
+	 LboCollisions          = require "App.Collisions.GkLBOCollisions",
+	 MaxwellianProjection   = require ("App.Projection.GkProjection").MaxwellianProjection,
+	 Species                = require "App.Species.GkSpecies",
+	 Source                 = require "App.Sources.GkSource",
+	 Vlasov                 = require ("App.Species.VlasovSpecies"),
 	 VmMaxwellianProjection = require ("App.Projection.VlasovProjection").MaxwellianProjection,
-	 BGKCollisions = require "App.Collisions.GkBGKCollisions",
-	 LBOCollisions = require "App.Collisions.GkLBOCollisions",
-	 BgkCollisions = require "App.Collisions.GkBGKCollisions",
-	 LboCollisions = require "App.Collisions.GkLBOCollisions",
-	 ChargeExchange = require "App.Collisions.GkChargeExchange",
-	 Ionization = require "App.Collisions.GkIonization",
-	 Source = require "App.Sources.GkSource",
+	 VmSource               = require "App.Sources.VmSource",
       }
    end,
 
@@ -1050,9 +1039,10 @@ return {
       App.label = "Incompressible Euler"
       return {
 	 App       = App,
-	 Species   = require "App.Species.IncompEulerSpecies",
-	 Field     = require ("App.Field.GkField").GkField,
 	 Diffusion = require "App.Collisions.Diffusion",
+	 Field     = require ("App.Field.GkField").GkField,
+         Source    = require "App.Sources.FluidSource",
+	 Species   = require "App.Species.IncompEulerSpecies",
       }
    end,
    

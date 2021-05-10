@@ -177,6 +177,8 @@ function test_5(comm)
    Mpi.Barrier(comm)
 
    -- Test broadcasting strings.
+   -- MF 2021/05/05: as currently implemented it should probably only be used for strings
+   --                with length>0. It occasionally seg faults with empty strings.
    local myStr = "myRank".. rnk
    local Cstr = new("char [?]", string.len(myStr))
    ffi.copy(Cstr, myStr)

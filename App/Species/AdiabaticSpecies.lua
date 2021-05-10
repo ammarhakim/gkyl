@@ -11,6 +11,12 @@ local FluidSpecies = require "App.Species.FluidSpecies"
 
 local AdiabaticSpecies = Proto(FluidSpecies)
 
+-- Add constants to object indicate various supported boundary conditions.
+local SP_BC_ABSORB = 1
+local SP_BC_COPY   = 6
+AdiabaticSpecies.bcAbsorb = SP_BC_ABSORB      -- Absorb all particles.
+AdiabaticSpecies.bcCopy   = SP_BC_COPY        -- Copy stuff.
+
 function AdiabaticSpecies:fullInit(appTbl)
    AdiabaticSpecies.super.fullInit(self, appTbl)
 
@@ -49,6 +55,29 @@ function AdiabaticSpecies:createSolver(hasE, hasB, externalField)
       end
    end
 
+end
+
+function AdiabaticSpecies:bcAbsorbFunc(dir, tm, idxIn, fIn, fOut)
+   -- The idea is that by setting the plasma quantities to zero in the
+   -- ghost cell nothing is transported into the domain, and whatever is transported
+   -- out is lost. We can't set them to exactly zero or else the sound speed
+   -- and drift velocity would diverge, so we set them to something small.
+   local numB = self.basis:numBasis()
+   for i = 1, numB do fOut[i] = 1.e-10*fIn[i] end   -- Density. 
+end
+
+function AdiabaticSpecies:appendBoundaryConditions(dir, edge, bcType)
+   -- Need to wrap member functions so that self is passed.
+   local function bcAbsorbFunc(...)  return self:bcAbsorbFunc(...) end
+   local function bcCopyFunc(...)    return self:bcCopyFunc(...) end
+
+   if bcType == SP_BC_ABSORB then
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { bcAbsorbFunc }, "pointwise"))
+   elseif bcType == SP_BC_COPY then
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { bcCopyFunc }, "pointwise"))
+   else
+      assert(false, "AdiabaticSpecies: Unsupported BC type!")
+   end
 end
 
 -- Nothing to calculate, just copy.

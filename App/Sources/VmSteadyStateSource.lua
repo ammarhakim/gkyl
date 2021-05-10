@@ -50,6 +50,32 @@ function VmSteadyStateSource:setConfGrid(grid)
    self.confGrid = grid
 end
 
+function VmSteadyStateSource:createSolver(thisSpecies, extField)
+   self.profile:fullInit(thisSpecies)
+   self.profile:advance(0.0, {extField}, {thisSpecies.distf[2]})
+   Mpi.Barrier(thisSpecies.grid:commSet().sharedComm)
+   if not self.fSource then self.fSource = thisSpecies:allocDistf() end
+   self.fSource:accumulate(1.0, thisSpecies.distf[2])
+   if self.positivityRescale then
+      thisSpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
+   end
+   if self.power then
+      local calcInt = Updater.CartFieldIntegratedQuantCalc {
+         onGrid = self.confGrid,
+         basis = self.confBasis,
+         numComponents = 1,
+         quantity = "V",
+      }
+      local intKE = DataStruct.DynVector{numComponents = 1}
+      thisSpecies.ptclEnergyCalc:advance(0.0, {self.fSource}, {thisSpecies.ptclEnergyAux})
+      calcInt:advance(0.0, {thisSpecies.ptclEnergyAux, thisSpecies.mass/2}, {intKE})
+      local _, intKE_data = intKE:lastData()
+      self.powerScalingFac = self.power/intKE_data[1]
+      self.fSource:scale(self.powerScalingFac)
+   end
+   if thisSpecies.scaleInitWithSourcePower then thisSpecies.distf[1]:scale(self.powerScalingFac) end
+end
+
 function VmSteadyStateSource:advance(tCurr, fIn, species, fRhsOut)
    local tm = Time.clock()
    local localEdgeFlux = ffi.new("double[3]")
@@ -87,15 +113,35 @@ function VmSteadyStateSource:advance(tCurr, fIn, species, fRhsOut)
    local globalEdgeFlux = ffi.new("double[3]")
    Mpi.Allreduce(localEdgeFlux, globalEdgeFlux, 1, Mpi.DOUBLE, Mpi.MAX, self.confGrid:commSet().comm)
    local densFactor = globalEdgeFlux[0]/self.sourceLength
-   fRhsOut:accumulate(densFactor, species[self.speciesName].fSource)
+   fRhsOut:accumulate(densFactor, self.fSource)
    self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
 end
 
-function VmSteadyStateSource:write(tm, frame, species)
-   species.fSource:write(string.format("%s_fSource_0.bp", self.speciesName), tm, frame, true)
-   if species.numDensitySrc then species.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.speciesName), tm, frame) end
-   if species.momDensitySrc then species.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.speciesName), tm, frame) end
-   if species.ptclEnergySrc then species.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.speciesName), tm, frame) end
+function VmSteadyStateSource:createDiagnostics(thisSpecies, momTable)
+   self.diagnosticIntegratedMomentFields   = { }
+   self.diagnosticIntegratedMomentUpdaters = { }
+   self.diagnosticIntegratedMoments = { }
+   
+   self.numDensitySrc = thisSpecies:allocMoment()
+   self.momDensitySrc = thisSpecies:allocVectorMoment(thisSpecies.vdim)
+   self.ptclEnergySrc = thisSpecies:allocMoment()
+   thisSpecies.fiveMomentsCalc:advance(0.0, {self.fSource}, {self.numDensitySrc, self.momDensitySrc, self.ptclEnergySrc})
+end
+
+function VmSteadyStateSource:writeDiagnosticIntegratedMoments(tm, frame)
+   for i, mom in ipairs(self.diagnosticIntegratedMoments) do
+       self.diagnosticIntegratedMomentFields[mom]:write(string.format("%s_%s.bp", self.speciesName, mom), tm, frame)
+    end
+end
+
+
+function VmSteadyStateSource:write(tm, frame)
+   if tm == 0.0 then
+      self.fSource:write(string.format("%s_fSource_0.bp", self.speciesName), tm, frame, true)
+      if self.numDensitySrc then self.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.speciesName), tm, frame) end
+      if self.momDensitySrc then self.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.speciesName), tm, frame) end
+      if self.ptclEnergySrc then self.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.speciesName), tm, frame) end
+   end
 end
 
 function VmSteadyStateSource:srcTime()

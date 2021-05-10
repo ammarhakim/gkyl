@@ -66,13 +66,15 @@ local function orgDiagnostics(diagsImpl, diagsTbl, diagGroups)
       -- Need to sync this order across MPI ranks.
       local myOrder, delim = "", ","
       for _, v in ipairs(diagList) do myOrder=myOrder..v..delim end
-      local Cstr = new("char [?]", string.len(myOrder))
-      ffi.copy(Cstr, myOrder)
-      Mpi.Bcast(Cstr, string.len(myOrder)+1, Mpi.CHAR, 0, Mpi.COMM_WORLD)
-      myOrder = ffi.string(Cstr)
-      local newList = {}
-      for nm in string.gmatch(myOrder, "(.-)"..delim) do table.insert(newList, nm) end
-      for i, v in ipairs(newList) do diagList[i] = v end 
+      if string.len(myOrder) > 0 then
+         local Cstr = new("char [?]", string.len(myOrder))
+         ffi.copy(Cstr, myOrder)
+         Mpi.Bcast(Cstr, string.len(myOrder)+1, Mpi.CHAR, 0, Mpi.COMM_WORLD)
+         myOrder = ffi.string(Cstr)
+         local newList = {}
+         for nm in string.gmatch(myOrder, "(.-)"..delim) do table.insert(newList, nm) end
+         for i, v in ipairs(newList) do diagList[i] = v end 
+      end
    end
    -- We have to sort the groups in the same order in every MPI rank.
    for _, v in lume.orderedIter(diagGroups) do sortDiagsTbl(diagsImpl, v) end
@@ -90,10 +92,7 @@ function SpeciesDiagnostics:fullInit(mySpecies, diagsImpl)
 
    self.diags = {}  -- Grid and integrated diagnostics.
    self.diagGroups = {grid={}, integrated={}}  -- Names of requested diags of each kind.
-   local groups_keys = {}
-   for k in pairs(self.diagGroups) do table.insert(groups_keys, k) end
-   table.sort(groups_keys)
-   setmetatable(self.diagGroups, groups_keys)  -- Stored ordered keys in metatable.
+   lume.setOrder(self.diagGroups)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
    -- Sort requested diagnostics into grid and integrated diagnostics.
    for _, nm in ipairs(mySpecies.tbl.diagnostics) do

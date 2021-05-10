@@ -42,7 +42,6 @@ function FluidSpecies:fullInit(appTbl)
    self.evolve              = xsys.pickBool(tbl.evolve, true) -- Default: evolve species.
    self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless, self.evolve)
    self.evolveCollisions    = xsys.pickBool(tbl.evolveCollisions, self.evolve)
-   self.evolveSources       = xsys.pickBool(tbl.evolveSources, self.evolve)
 
    local nFrame = tbl.nDiagnosticFrame and tbl.nDiagnosticFrame or appTbl.nFrame
    -- Create triggers to write diagnostics.
@@ -68,31 +67,22 @@ function FluidSpecies:fullInit(appTbl)
 
    self.diagnostics = {}  -- Table in which we'll place diagnostic objects.
 
-   -- Initialization.
-   self.projections = {}
-   for nm, val in pairs(tbl) do
-      if ProjectionBase.is(val) then
-         self.projections[nm] = val
-      end
-   end
-
-   -- Initialization.
+   -- Initialize table containing sources (if any).
    self.sources = {}
    for nm, val in pairs(tbl) do
-      if SourceBase.is(val) then
+      if SourceBase.is(val) or string.find(nm,"source") then
          self.sources[nm] = val
          self.sources[nm]:setName(nm)
          val:setSpeciesName(self.name)
          val:fullInit(tbl) -- Initialize sources
       end
    end
+   lume.setOrder(self.sources)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
-   -- Create a keys metatable in self.projections so we always loop in the same order (better for I/O).
-   local sources_keys = {}
-   for k in pairs(self.sources) do table.insert(sources_keys, k) end
-   table.sort(sources_keys)
-   setmetatable(self.sources, sources_keys)
-
+   self.projections = {}
+   for nm, val in pairs(tbl) do
+      if ProjectionBase.is(val) then self.projections[nm] = val end
+   end
    -- The keys 'init' and 'background' can be used to speciy initial conditions
    -- or a background (for perturbed=true sims). These can be functions that would
    -- be projected with the Projection app, or a string which would specify a file to read.
@@ -116,21 +106,7 @@ function FluidSpecies:fullInit(appTbl)
          inputFile = tbl.background,
       }
    end
-   if type(tbl.source) == "function" then
-      self.projections["source"] = Projection.FluidProjection.FunctionProjection {
-         func = function(t, zn) return tbl.source(t, zn, self) end,
-      }
-   elseif type(tbl.source) == "string" then
-      self.projections["source"] = Projection.FluidProjection.ReadInput {
-         inputFile = tbl.source,
-      }
-   end
-
-   -- Create a keys metatable in self.projections so we always loop in the same order (better for I/O).
-   local projections_keys = {}
-   for k in pairs(self.projections) do table.insert(projections_keys, k) end
-   table.sort(projections_keys)
-   setmetatable(self.projections, projections_keys)
+   lume.setOrder(self.projections)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
    self.deltaF         = xsys.pickBool(appTbl.deltaF, false)
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
@@ -352,13 +328,11 @@ function FluidSpecies:createSolver(externalField)
    }
 
    -- Create solvers for collisions (e.g. diffusion).
-   for _, c in pairs(self.collisions) do
-      c:createSolver(self, externalField)
-   end
+   for _, c in pairs(self.collisions) do c:createSolver(self, externalField) end
+
    -- Create solvers for sources.
-   for _, src in lume.orderedIter(self.sources) do
-      src:createSolver(self,externalField)
-   end
+   for _, src in lume.orderedIter(self.sources) do src:createSolver(self,externalField) end
+
    if self.positivity then
       self.posChecker = Updater.PositivityCheck {
          onGrid = self.grid,
@@ -452,13 +426,6 @@ function FluidSpecies:initDist(extField)
          self.momBackground:accumulate(1.0, self.moments[2])
          self.momBackground:sync(syncPeriodicDirs)
          backgroundCnt = backgroundCnt + 1
-      end
-      if string.find(nm,"source") then
-         if not self.mSource then self.mSource = self:allocVectorMoment(self.nMoments) end
-         self.mSource:accumulate(1.0, self.moments[2])
-         if self.positivityRescale then
-            self.posRescaler:advance(0.0, {self.mSource}, {self.mSource})
-         end
       end
    end
    assert(initCnt>0, string.format("FluidSpecies: Species '%s' not initialized!", self.name))
@@ -642,10 +609,9 @@ function FluidSpecies:write(tm, force)
             self.momIo:write(momIn, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
             momIn:accumulate(1, self.momBackground)
          end
-         if tm == 0.0 then
-            for _, src in lume.orderedIter(self.sources) do
-               src:write(tm, self.diagIoFrame, self)
-            end
+
+         for _, src in lume.orderedIter(self.sources) do
+            src:write(tm, self.diagIoFrame, self)  -- Write source diagnostics.
          end
 
          for _, dOb in pairs(self.diagnostics) do
