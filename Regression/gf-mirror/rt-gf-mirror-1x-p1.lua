@@ -441,9 +441,10 @@ plasmaApp = Plasma.App {
       },
       source = Plasma.Source {
 --         fromFile    = "ion_fSourceIC.bp",
-         density = srcDenElc,
-         parallelTemperature = srcTempElc,
+         density                  = srcDenElc,
+         parallelTemperature      = srcTempElc,
          perpendicularTemperature = srcTempElc,
+         diagnostics              = {"intSrc"},
       },
       coll = Plasma.PASCollisions {
          collideWith = {'elc'},
@@ -509,9 +510,10 @@ plasmaApp = Plasma.App {
       },
       source = Plasma.Source {
 --         fromFile    = "ion_fSourceIC.bp",
-         density = srcDenIon,
-         parallelTemperature = srcTempIon,
+         density                  = srcDenIon,
+         parallelTemperature      = srcTempIon,
          perpendicularTemperature = srcTempIon,
+         diagnostics              = {"intSrc"},
       },
       coll = Plasma.PASCollisions {
          collideWith = {'ion'},

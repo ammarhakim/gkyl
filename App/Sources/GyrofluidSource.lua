@@ -9,12 +9,35 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local SourceBase = require "App.Sources.SourceBase"
-local DataStruct = require "DataStruct"
-local Mpi        = require "Comm.Mpi"
-local Projection = require "App.Projection.GyrofluidProjection"
-local Proto      = require "Lib.Proto"
-local Time       = require "Lib.Time"
+local SourceBase    = require "App.Sources.SourceBase"
+local DataStruct    = require "DataStruct"
+local Mpi           = require "Comm.Mpi"
+local Projection    = require "App.Projection.GyrofluidProjection"
+local DiagsApp      = require "App.Diagnostics.SpeciesDiagnostics"
+local DiagsImplBase = require "App.Diagnostics.DiagnosticsImplBase"
+local Updater       = require "Updater"
+local Proto         = require "Lib.Proto"
+local Time          = require "Lib.Time"
+
+-- ............... IMPLEMENTATION OF DIAGNOSTICS ................. --
+-- ~~~~ Source integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~
+local GyrofluidSourceDiag_intSrc = Proto(DiagsImplBase)
+function GyrofluidSourceDiag_intSrc:fullInit(diagApp, srcIn)
+   self.srcName  = string.gsub(srcIn.name, srcIn.speciesName.."_", "")
+   self.field    = DataStruct.DynVector { numComponents = srcIn.nMoments }
+   self.updaters = Updater.CartFieldIntegratedQuantCalc {
+      onGrid = srcIn.grid,   numComponents = srcIn.nMoments,
+      basis  = srcIn.basis,  quantity      = "V"
+   }
+   self.done = false
+end
+function GyrofluidSourceDiag_intSrc:getType() return "integrated" end
+function GyrofluidSourceDiag_intSrc:advance(tm, inFlds, outFlds)
+   local specIn = inFlds[1]
+   self.updaters:advance(tm, {specIn.sources[self.srcName]:getSource()}, {self.field})
+end
+
+-- .................... END OF DIAGNOSTICS ...................... --
 
 local GyrofluidSource = Proto(SourceBase)
 
@@ -39,7 +62,7 @@ function GyrofluidSource:fullInit(speciesTbl)
    self.timers = {accumulateSrc = 0.0}
 end
 
-function GyrofluidSource:setName(nm) self.name = nm end
+function GyrofluidSource:setName(nm) self.name = self.speciesName.."_"..nm end
 function GyrofluidSource:setSpeciesName(nm) self.speciesName = nm end
 function GyrofluidSource:setConfBasis(basis) self.basis = basis end
 function GyrofluidSource:setConfGrid(grid) self.grid = grid end
@@ -50,15 +73,28 @@ function GyrofluidSource:createSolver(mySpecies, externalField)
    self.momSource = mySpecies:allocVectorMoment(mySpecies.nMoments)
 
    local gfProj = Projection.GyrofluidProjection {
-      density = self.denFunc,
-      driftSpeed = self.uParFunc, 
-      parallelTemperature = self.TparFunc,
+      density                  = self.denFunc,
+      driftSpeed               = self.uParFunc, 
+      parallelTemperature      = self.TparFunc,
       perpendicularTemperature = self.TperpFunc,
    }
    gfProj:fullInit(mySpecies)
 
    gfProj:advance(0., {externalField}, {self.momSource})
    Mpi.Barrier(self.grid:commSet().sharedComm)
+
+   self.momSource:write(string.format("%s_0.bp", self.name), 0.0, 0, true)
+end
+
+function GyrofluidSource:createDiagnostics()
+   -- Create source diagnostics.
+   self.diagnostics = nil
+   if self.tbl.diagnostics then
+      self.diagnostics = DiagsApp{}
+      local srcDiags = {intSrc = GyrofluidSourceDiag_intSrc}
+      self.diagnostics:fullInit(self, srcDiags)
+   end
+   return self.diagnostics
 end
 
 function GyrofluidSource:advance(tCurr, momIn, species, momRhsOut)
@@ -70,12 +106,7 @@ function GyrofluidSource:advance(tCurr, momIn, species, momRhsOut)
    self.timers.accumulateSrc = self.timers.accumulateSrc + Time.clock() - tm
 end
 
-function GyrofluidSource:write(tm, frame, species)
-   self.momSource:write(string.format("%s_source_0.bp", self.speciesName), tm, frame, true)
-end
-
-function GyrofluidSource:srcTime()
-   return self.timers.accumulateSrc
-end
+function GyrofluidSource:getSource() return self.momSource end
+function GyrofluidSource:srcTime() return self.timers.accumulateSrc end
 
 return GyrofluidSource

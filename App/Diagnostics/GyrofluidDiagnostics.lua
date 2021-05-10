@@ -14,7 +14,7 @@
 --------------------------------------------------------------------------------
 
 local Proto         = require "Lib.Proto"
-local DiagsImplBase = require "App.Species.Diagnostics.DiagnosticsImplBase"
+local DiagsImplBase = require "App.Diagnostics.DiagnosticsImplBase"
 local DataStruct    = require "DataStruct"
 local Updater       = require "Updater"
 
@@ -24,7 +24,6 @@ function GyrofluidDiag_MomSq:fullInit(diagApp, specIn)
    self.field = specIn:allocVectorMoment(specIn.nMoments)
    self.done  = false
 end
-function GyrofluidDiag_MomSq:getDependencies() return {} end
 function GyrofluidDiag_MomSq:getType() return "grid" end
 function GyrofluidDiag_MomSq:advance(tm, inFlds, outFlds)
    local specIn = inFlds[1]
@@ -38,7 +37,6 @@ function GyrofluidDiag_M0:fullInit(diagApp, specIn)
    self.field = specIn:allocMoment()
    self.done  = false
 end
-function GyrofluidDiag_M0:getDependencies() return {} end
 function GyrofluidDiag_M0:getType() return "grid" end
 function GyrofluidDiag_M0:advance(tm, inFlds, outFlds)
    local specIn = inFlds[1]
@@ -52,7 +50,6 @@ function GyrofluidDiag_M1:fullInit(diagApp, specIn)
    self.field = specIn:allocMoment()
    self.done  = false
 end
-function GyrofluidDiag_M1:getDependencies() return {} end
 function GyrofluidDiag_M1:getType() return "grid" end
 function GyrofluidDiag_M1:advance(tm, inFlds, outFlds)
    local specIn = inFlds[1]
@@ -66,7 +63,6 @@ function GyrofluidDiag_M2:fullInit(diagApp, specIn)
    self.field = specIn:allocMoment()
    self.done  = false
 end
-function GyrofluidDiag_M2:getDependencies() return {} end
 function GyrofluidDiag_M2:getType() return "grid" end
 function GyrofluidDiag_M2:advance(tm, inFlds, outFlds)
    local specIn = inFlds[1]
@@ -96,7 +92,6 @@ function GyrofluidDiag_upar:fullInit(diagApp, specIn)
 
    self.fieldAux = {mJacM0=specIn:allocMoment(), mJacM1=specIn:allocMoment()}
 end
-function GyrofluidDiag_upar:getDependencies() return {} end
 function GyrofluidDiag_upar:getType() return "grid" end
 function GyrofluidDiag_upar:advance(tm, inFlds, outFlds)
    local specIn = inFlds[1]
@@ -112,7 +107,6 @@ function GyrofluidDiag_pperp:fullInit(diagApp, specIn)
 
    self.fieldAux = {M2perp=specIn:allocMoment()}
 end
-function GyrofluidDiag_pperp:getDependencies() return {} end
 function GyrofluidDiag_pperp:getType() return "grid" end
 function GyrofluidDiag_pperp:advance(tm, inFlds, outFlds)
    local specIn = inFlds[1]
@@ -191,7 +185,6 @@ function GyrofluidDiag_intMom:fullInit(diagApp, specIn)
    self.updaters = specIn.volIntegral.compsN
    self.done     = false
 end
-function GyrofluidDiag_intMom:getDependencies() return {} end
 function GyrofluidDiag_intMom:getType() return "integrated" end
 function GyrofluidDiag_intMom:advance(tm, inFlds, outFlds)
    local specIn = inFlds[1]

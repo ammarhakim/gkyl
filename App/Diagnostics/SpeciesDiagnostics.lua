@@ -1,8 +1,8 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Diagnostics for FluidSpecies.
+-- Diagnostics for any species, or other objects in a species.
 -- 
--- Supported diagnostic are defined as functions at the bottom of the file.
+-- Supported diagnostics are defined elsewhere.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -80,7 +80,7 @@ local function orgDiagnostics(diagsImpl, diagsTbl, diagGroups)
    for _, v in lume.orderedIter(diagGroups) do sortDiagsTbl(diagsImpl, v) end
 end
 
-local SpeciesDiagnostics = Proto()  -- FluidDiags is a child of DiagsBase.
+local SpeciesDiagnostics = Proto()
 
 function SpeciesDiagnostics:init(tbl)
    self.tbl = tbl
@@ -101,7 +101,7 @@ function SpeciesDiagnostics:fullInit(mySpecies, diagsImpl)
          local diagType = diagsImpl[nm]:getType()
          table.insert(self.diagGroups[diagType], nm)
       else
-         assert(false, string.format("FluidDiagnostics: %s is not an allowed diagnostic.",nm))
+         assert(false, string.format("SpeciesDiagnostics: %s is not an allowed diagnostic.",nm))
       end
    end
 

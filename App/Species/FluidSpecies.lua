@@ -16,8 +16,8 @@ local Projection       = require "App.Projection"
 local ProjectionBase   = require "App.Projection.ProjectionBase"
 local SourceBase       = require "App.Sources.SourceBase"
 local SpeciesBase      = require "App.Species.SpeciesBase"
-local DiagsApp         = require "App.Species.Diagnostics.SpeciesDiagnostics"
-local FluidDiags       = require "App.Species.Diagnostics.FluidDiagnostics"
+local DiagsApp         = require "App.Diagnostics.SpeciesDiagnostics"
+local FluidDiags       = require "App.Diagnostics.FluidDiagnostics"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
 local ffi              = require "ffi"
@@ -72,8 +72,8 @@ function FluidSpecies:fullInit(appTbl)
    for nm, val in pairs(tbl) do
       if SourceBase.is(val) or string.find(nm,"source") then
          self.sources[nm] = val
-         self.sources[nm]:setName(nm)
          val:setSpeciesName(self.name)
+         val:setName(nm)   -- Do :setName after :setSpeciesName for sources.
          val:fullInit(tbl) -- Initialize sources
       end
    end
@@ -561,10 +561,13 @@ function FluidSpecies:applyBc(tCurr, momIn)
 end
 
 function FluidSpecies:createDiagnostics()  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
-   -- Create this species' diagnostics.
-   if self.tbl.diagnostics then
+   if self.tbl.diagnostics then   -- Create this species' diagnostics.
       self.diagnostics[self.name] = DiagsApp{}
       self.diagnostics[self.name]:fullInit(self, FluidDiags)
+   end
+
+   for srcNm, src in lume.orderedIter(self.sources) do
+      self.diagnostics[self.name..srcNm] = src:createDiagnostics()
    end
 
    -- Many diagnostics require dividing by the Jacobian (if present).
@@ -590,8 +593,6 @@ function FluidSpecies:write(tm, force)
       -- Compute integrated diagnostics.
       if self.calcIntQuantTrigger(tm) then
          for _, dOb in pairs(self.diagnostics) do
-            --print("")
-            --print(tm, self.name, dOb.name)
             dOb:calcIntegratedDiagnostics(tm, self)   -- Compute this species' integrated diagnostics.
          end
       end

@@ -7,7 +7,7 @@
 --------------------------------------------------------------------------------
 
 local Proto         = require "Lib.Proto"
-local DiagsImplBase = require "App.Species.Diagnostics.DiagnosticsImplBase"
+local DiagsImplBase = require "App.Diagnostics.DiagnosticsImplBase"
 local DataStruct    = require "DataStruct"
 local Updater       = require "Updater"
 
@@ -17,7 +17,6 @@ function FluidDiag_MomSq:fullInit(diagApp, specIn)
    self.field    = specIn:allocVectorMoment(specIn.nMoments)
    self.done     = false
 end
-function FluidDiag_MomSq:getDependencies() return {} end
 function FluidDiag_MomSq:getType() return "grid" end
 function FluidDiag_MomSq:advance(tm, inFlds, outFlds)
    local specIn = inFlds[1]
@@ -32,7 +31,6 @@ function FluidDiag_intMom:fullInit(diagApp, specIn)
    self.updaters = specIn.volIntegral.compsN
    self.done     = false
 end
-function FluidDiag_intMom:getDependencies() return {} end
 function FluidDiag_intMom:getType() return "integrated" end
 function FluidDiag_intMom:advance(tm, inFlds, outFlds)
    local specIn = inFlds[1]

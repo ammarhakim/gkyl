@@ -8,8 +8,8 @@
 
 local Proto          = require "Lib.Proto"
 local FluidSpecies   = require "App.Species.FluidSpecies"
-local DiagsApp       = require "App.Species.Diagnostics.SpeciesDiagnostics"
-local GyrofluidDiags = require "App.Species.Diagnostics.GyrofluidDiagnostics"
+local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
+local GyrofluidDiags = require "App.Diagnostics.GyrofluidDiagnostics"
 local Mpi            = require "Comm.Mpi"
 local GyrofluidEq    = require "Eq.Gyrofluid"
 local Updater        = require "Updater"
@@ -277,6 +277,10 @@ function GyrofluidSpecies:createDiagnostics()  -- More sophisticated/extensive d
    if self.tbl.diagnostics then
       self.diagnostics[self.name] = DiagsApp{}
       self.diagnostics[self.name]:fullInit(self, GyrofluidDiags)
+   end
+
+   for srcNm, src in lume.orderedIter(self.sources) do
+      self.diagnostics[self.name..srcNm] = src:createDiagnostics()
    end
 
    -- Many diagnostics require dividing by the Jacobian (if present).
