@@ -6,10 +6,14 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local BCsBase        = require "App.BCs.BCsBase"
-local GyrofluidBasic = require "App.BCs.GyrofluidBasic"
+local AdiabaticBasic   = require "App.BCs.AdiabaticBasic"
+local BCsBase          = require "App.BCs.BCsBase"
+local GyrofluidBasic   = require "App.BCs.GyrofluidBasic"
+local IncompEulerBasic = require "App.BCs.IncompEulerBasic"
 
 return {
-   BCsBase        = BCsBase,
-   GyrofluidBasic = GyrofluidBasic,
+   AdiabaticBasic   = AdiabaticBasic,
+   BCsBase          = BCsBase,
+   GyrofluidBasic   = GyrofluidBasic,
+   IncompEulerBasic = IncompEulerBasic,
 }

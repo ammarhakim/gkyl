@@ -260,29 +260,6 @@ function FluidSpecies:allocVectorMoment(dim)
    return self:allocCartField(self.grid, dim*self.basis:numBasis(), {self.nGhost,self.nGhost}, metaData)
 end
 
-function FluidSpecies:bcAbsorbFunc(dir, tm, idxIn, fIn, fOut)
-   -- Note that for bcAbsorb there is no operation on fIn,
-   -- so skinLoop (which determines indexing of fIn) does not matter.
-   for i = 1, self.nMoments*self.basis:numBasis() do fOut[i] = 0.0 end
-end
-
-function FluidSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
-   for i = 1, self.nMoments*self.basis:numBasis() do fOut[i] = fIn[i] end
-end
-
--- Function to construct a BC updater.
-function FluidSpecies:makeBcUpdater(dir, edge, bcList, skinLoop, hasExtFld)
-   return Updater.Bc {
-      onGrid             = self.grid,
-      cdim               = self.ndim,
-      dir                = dir,
-      edge               = edge,
-      boundaryConditions = bcList,
-      skinLoop           = skinLoop,
-      hasExtFld          = hasExtFld,
-   }
-end
-
 function FluidSpecies:createBCs()
    -- Create a table to store auxiliary values needed by BCs
    -- and provided by the user in the input file.

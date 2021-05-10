@@ -250,7 +250,7 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
 
    -- Save boundary fluxes for diagnostics.
-   if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
+   if self.boundaryFluxDiagnostics then
       for _, bc in ipairs(self.boundaryConditions) do
          bc:storeBoundaryFlux(tCurr, outIdx, momRhsOut)
       end
@@ -258,32 +258,6 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, momIn, species, momRhsOut) end
 
-end
-
-function GyrofluidSpecies:bcAbsorbFunc(dir, tm, idxIn, fIn, fOut)
-   -- The idea is that by setting the plasma quantities to zero in the
-   -- ghost cell nothing is transported into the domain, and whatever is transported
-   -- out is lost. We can't set them to exactly zero or else the sound speed
-   -- and drift velocity would diverge, so we set them to something small.
-   local numB = self.basis:numBasis()
-   for i = 1, numB do fOut[0*numB+i] = 1.e-10*fIn[0*numB+i] end   -- Mass density. 
-   for i = 1, numB do fOut[1*numB+i] = 0. end                     -- Momentum density.  
-   for i = 1, numB do fOut[2*numB+i] = 1.e-10*fIn[2*numB+i] end   -- Energy density. 
-   for i = 1, numB do fOut[3*numB+i] = 1.e-10*fIn[3*numB+i] end   -- Perpendicular pressure (divided by B). 
-end
-
-function GyrofluidSpecies:appendBoundaryConditions(dir, edge, bcType)
-   -- Need to wrap member functions so that self is passed.
-   local function bcAbsorbFunc(...)  return self:bcAbsorbFunc(...) end
-   local function bcCopyFunc(...)    return self:bcCopyFunc(...) end
-
-   if bcType == SP_BC_ABSORB then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { bcAbsorbFunc }, "pointwise"))
-   elseif bcType == SP_BC_COPY then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { bcCopyFunc }, "pointwise"))
-   else
-      assert(false, "GyrofluidSpecies: Unsupported BC type!")
-   end
 end
 
 function GyrofluidSpecies:createDiagnostics()  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.

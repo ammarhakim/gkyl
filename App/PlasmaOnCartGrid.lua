@@ -1001,6 +1001,7 @@ return {
       App.label = "Gyrofluid"
       return  {
 	 AdiabaticSpecies    = require ("App.Species.AdiabaticSpecies"),
+         AdiabaticBasicBC    = require "App.BCs.AdiabaticBasic",
 	 App                 = App,
          BasicBC             = require "App.BCs.GyrofluidBasic",
 	 Field               = require ("App.Field.GkField").GkField,
@@ -1040,6 +1041,7 @@ return {
       App.label = "Incompressible Euler"
       return {
 	 App       = App,
+         BasicBC   = require "App.BCs.IncompEulerBasic",
 	 Diffusion = require "App.Collisions.Diffusion",
 	 Field     = require ("App.Field.GkField").GkField,
          Source    = require "App.Sources.FluidSource",
