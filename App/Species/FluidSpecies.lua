@@ -16,8 +16,9 @@ local Projection       = require "App.Projection"
 local ProjectionBase   = require "App.Projection.ProjectionBase"
 local SourceBase       = require "App.Sources.SourceBase"
 local SpeciesBase      = require "App.Species.SpeciesBase"
-local DiagsApp         = require "App.Diagnostics.SpeciesDiagnostics"
-local FluidDiags       = require "App.Diagnostics.FluidDiagnostics"
+local BCs              = require "App.BCs"
+local DiagsApp         = require "App.Species.Diagnostics.SpeciesDiagnostics"
+local FluidDiags       = require "App.Species.Diagnostics.FluidDiagnostics"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
 local ffi              = require "ffi"
@@ -112,27 +113,54 @@ function FluidSpecies:fullInit(appTbl)
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
    if self.deltaF then self.fluctuationBCs = true end
 
-   self.hasNonPeriodicBc   = false -- To indicate if we have non-periodic BCs.
+--   self.hasNonPeriodicBc   = false -- To indicate if we have non-periodic BCs.
    self.boundaryConditions = {}    -- List of BCs to apply.
    self.bcx, self.bcy, self.bcz = { }, { }, { }
+   self.bcInDir = {{ }, { }, { }}
 
    -- Read in boundary conditions.
    -- Check to see if bc type is good is now done in createBc.
    if tbl.bcx then
-      self.bcx[1], self.bcx[2] = tbl.bcx[1], tbl.bcx[2]
-      if self.bcx[1] == nil or self.bcx[2] == nil then assert(false, "FluidSpecies: unsupported BC type") end
-      self.hasNonPeriodicBc = true
+--      self.bcx[1], self.bcx[2] = tbl.bcx[1], tbl.bcx[2]
+--      if self.bcx[1] == nil or self.bcx[2] == nil then assert(false, "FluidSpecies: unsupported BC type") end
+      if tbl.bcx[1] == nil or tbl.bcx[2] == nil then assert(false, "FluidSpecies: unsupported BC type") end
+--      self.hasNonPeriodicBc = true
+      self.bcInDir[1] = {tbl.bcx[1], tbl.bcx[2]}
    end
    if tbl.bcy then
-      self.bcy[1], self.bcy[2] = tbl.bcy[1], tbl.bcy[2]
-      if self.bcy[1] == nil or self.bcy[2] == nil then assert(false, "FluidSpecies: unsupported BC type") end
-      self.hasNonPeriodicBc = true
+--      self.bcy[1], self.bcy[2] = tbl.bcy[1], tbl.bcy[2]
+--      if self.bcy[1] == nil or self.bcy[2] == nil then assert(false, "FluidSpecies: unsupported BC type") end
+      if tbl.bcy[1] == nil or tbl.bcy[2] == nil then assert(false, "FluidSpecies: unsupported BC type") end
+--      self.hasNonPeriodicBc = true
+      self.bcInDir[2] = {tbl.bcy[1], tbl.bcy[2]}
    end
    if tbl.bcz then
-      self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
-      if self.bcz[1] == nil or self.bcz[2] == nil then assert(false, "FluidSpecies: unsupported BC type") end
-      self.hasNonPeriodicBc = true
+--      self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
+--      if self.bcz[1] == nil or self.bcz[2] == nil then assert(false, "FluidSpecies: unsupported BC type") end
+      if tbl.bcz[1] == nil or tbl.bcz[2] == nil then assert(false, "FluidSpecies: unsupported BC type") end
+--      self.hasNonPeriodicBc = true
+      self.bcInDir[3] = {tbl.bcz[1], tbl.bcz[2]}
    end
+
+   -- Initialize boundary conditions.
+   self.nonPeriodicBCs = {}
+   for d, bcsTbl in ipairs(self.bcInDir) do
+      for e, bcOb in ipairs(bcsTbl) do
+         local goodBC = false
+         local val    = bcOb
+         if not BCs.BCsBase.is(val) then val = self:makeBcApp(bcOb) end
+         if BCs.BCsBase.is(val) then
+            table.insert(self.nonPeriodicBCs, val)
+            val:setSpeciesName(self.name)
+            val:setDir(d)
+            val:setEdge(e==1 and "lower" or "upper")
+            val:fullInit(tbl)
+            goodBC = true
+         end
+         assert(goodBC, "FluidSpecies: bc not recognized.")
+      end
+   end
+
    
    -- Collisions: currently used for a diffusion term.
    self.collisions = {}
@@ -178,12 +206,14 @@ function FluidSpecies:setConfBasis(basis)
    self.basis = basis
    for _, c in pairs(self.collisions) do c:setConfBasis(basis) end
    for _, src in pairs(self.sources) do src:setConfBasis(basis) end
+   for _, bc in ipairs(self.nonPeriodicBCs) do bc:setConfBasis(basis) end
 end
 function FluidSpecies:setConfGrid(grid)
    self.grid = grid
    self.ndim = self.grid:ndim()
    for _, c in pairs(self.collisions) do c:setConfGrid(grid) end
    for _, src in pairs(self.sources) do src:setConfGrid(grid) end
+   for _, bc in ipairs(self.nonPeriodicBCs) do bc:setConfGrid(grid) end
 end
 
 function FluidSpecies:createGrid(grid)
@@ -333,6 +363,9 @@ function FluidSpecies:createSolver(externalField)
    -- Create solvers for sources.
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self,externalField) end
 
+   -- Create BC solvers.
+   for _, bc in ipairs(self.nonPeriodicBCs) do bc:createSolver(self) end
+
    if self.positivity then
       self.posChecker = Updater.PositivityCheck {
          onGrid = self.grid,
@@ -385,7 +418,7 @@ function FluidSpecies:alloc(nRkDup)
    self.cflRateIdxr   = self.cflRateByCell:genIndexer()
    self.dtGlobal      = ffi.new("double[2]")
 
-   self:createBCs()
+--   self:createBCs()
 
    -- Create a table of flags to indicate whether primitive.
    -- At first we consider 3 flags: 
@@ -538,12 +571,11 @@ function FluidSpecies:applyBc(tCurr, momIn)
          momIn:accumulate(-1.0, self.momBackground)
       end
 
-      -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
-      if self.hasNonPeriodicBc then
-         for _, bc in ipairs(self.boundaryConditions) do
-            bc:advance(tCurr, {}, {momIn})
-         end
-      end
+      ---- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
+      --for _, bc in ipairs(self.boundaryConditions) do
+      --   bc:advance(tCurr, {}, {momIn})
+      --end
+      for _, bc in ipairs(self.nonPeriodicBCs) do bc:advance(tCurr, {}, {momIn}) end
 
       -- Apply periodic BCs (to only fluctuations if fluctuation BCs)
       momIn:sync()

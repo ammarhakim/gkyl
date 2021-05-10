@@ -1002,6 +1002,7 @@ return {
       return  {
 	 AdiabaticSpecies    = require ("App.Species.AdiabaticSpecies"),
 	 App                 = App,
+         BasicBC             = require "App.BCs.GyrofluidBasic",
 	 Field               = require ("App.Field.GkField").GkField,
 	 FunctionProjection  = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
 	 Geometry            = require ("App.Field.GkField").GkGeometry,

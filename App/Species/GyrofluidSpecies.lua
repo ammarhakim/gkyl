@@ -16,17 +16,31 @@ local Updater        = require "Updater"
 local DataStruct     = require "DataStruct"
 local Time           = require "Lib.Time"
 local Constants      = require "Lib.Constants"
+local BasicBC        = require "App.BCs.GyrofluidBasic"
 local Lin            = require "Lib.Linalg"
 local xsys           = require "xsys"
 local lume           = require "Lib.lume"
 
 local GyrofluidSpecies = Proto(FluidSpecies)
 
+-- ............. Backwards compatible treatment of BCs .....................-- 
 -- Add constants to object indicate various supported boundary conditions.
 local SP_BC_ABSORB = 1
 local SP_BC_COPY   = 6
-GyrofluidSpecies.bcAbsorb = SP_BC_ABSORB      -- Absorb all particles.
-GyrofluidSpecies.bcCopy   = SP_BC_COPY        -- Copy stuff.
+GyrofluidSpecies.bcAbsorb = SP_BC_ABSORB   -- Absorb all particles.
+GyrofluidSpecies.bcCopy   = SP_BC_COPY     -- Copy stuff.
+
+function GyrofluidSpecies:makeBcApp(bcIn)
+   local bcOut
+   if bcIn == SP_BC_COPY then
+      bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
+   elseif bcIn == SP_BC_ABSORB then
+      bcOut = BasicBC{kind="absorb", diagnostics={}, saveFlux=false}
+   end
+   return bcOut
+end
+
+-- ............. End of backwards compatibility for BCs .....................-- 
 
 function GyrofluidSpecies:fullInit(appTbl)
    GyrofluidSpecies.super.fullInit(self, appTbl)
