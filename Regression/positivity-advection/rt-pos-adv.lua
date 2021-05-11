@@ -60,7 +60,7 @@ plasmaApp = Plasma.App {
       init            = squareHat,
       evolve          = true, -- Evolve species?
       applyPositivity = true,
-      diagnostics = {"intMom"},
+      diagnostics     = {"intMom"},
    },
 
    -- Field solver.

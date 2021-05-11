@@ -15,6 +15,7 @@ local BCsBase = Proto()
 function BCsBase:init(tbl) self.tbl = tbl end
 function BCsBase:fullInit(speciesTbl) end
 function BCsBase:setSpeciesName(nm) self.speciesName = nm end
+function BCsBase:setName(nm) self.name = nm end
 function BCsBase:setConfBasis(basis) self.basis = basis end
 function BCsBase:setConfGrid(grid) self.grid = grid end
 function BCsBase:setDir(dir) self.bcDir = dir end
@@ -31,6 +32,11 @@ function BCsBase:bcAbsorb(dir, tm, idxIn, fIn, fOut)
    for i = 1, self.basis:numBasis() do fOut[i] = 0. end
 end
 function BCsBase:createSolver(thisSpecies, extField) end
+function BCsBase:createDiagnostics(mySpecies) end
+function BCsBase:storeBoundaryFlux(tCurr, rkIdx, qOut) end
+function BCsBase:copyBoundaryFluxField(inIdx, outIdx) end
+function BCsBase:combineBoundaryFluxField(outIdx, a, aIdx, ...) end
+function BCsBase:computeBoundaryFluxRate(dtIn) end
 function BCsBase:advance(tCurr, fIn, species, fRhsOut) end
 function BCsBase:storeBoundaryFlux(tCurr, rkIdx, qOut) end
 function BCsBase:copyBoundaryFluxField(inIdx, outIdx) end

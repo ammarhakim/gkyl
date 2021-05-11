@@ -7,17 +7,19 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local BCsBase      = require "App.BCs.BCsBase"
-local DataStruct   = require "DataStruct"
-local Updater      = require "Updater"
-local Mpi          = require "Comm.Mpi"
-local Proto        = require "Lib.Proto"
-local Time         = require "Lib.Time"
-local Range        = require "Lib.Range"
-local Lin          = require "Lib.Linalg"
-local LinearDecomp = require "Lib.LinearDecomp"
-local CartDecomp   = require "Lib.CartDecomp"
-local Grid         = require "Grid"
+local BCsBase        = require "App.BCs.BCsBase"
+local DataStruct     = require "DataStruct"
+local Updater        = require "Updater"
+local Mpi            = require "Comm.Mpi"
+local Proto          = require "Lib.Proto"
+local Time           = require "Lib.Time"
+local Range          = require "Lib.Range"
+local Lin            = require "Lib.Linalg"
+local LinearDecomp   = require "Lib.LinearDecomp"
+local CartDecomp     = require "Lib.CartDecomp"
+local Grid           = require "Grid"
+local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
+local GyrofluidDiags = require "App.Diagnostics.GyrofluidDiagnostics"
 
 local GyrofluidBasicBC = Proto(BCsBase)
 
@@ -31,8 +33,10 @@ function GyrofluidBasicBC:fullInit(speciesTbl)
 
    self.bcKind      = assert(tbl.kind, "GyrofluidBasicBC: must specify the type of BC in 'kind'.")
    self.diagnostics = tbl.diagnostics or {}
-   self.saveFlux    = tbl.saveFlux or false 
+   self.saveFlux    = tbl.saveFlux or false
 end
+
+function GyrofluidBasicBC:setName(nm) self.name = self.speciesName.."_"..nm end
 
 function GyrofluidBasicBC:bcCopy(dir, tm, idxIn, fIn, fOut)
    for i = 1, self.nMoments*self.basis:numBasis() do fOut[i] = fIn[i] end
@@ -132,17 +136,37 @@ function GyrofluidBasicBC:createSolver(mySpecies)
          }
       end
 
+      local moms = mySpecies:getMoments()
+      -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
+      self.allocCartField = function(self, grid, nComp, ghosts, metaData)
+         local f = DataStruct.Field {
+            onGrid        = grid,
+            numComponents = nComp,
+            ghost         = ghosts,
+            metaData      = metaData,
+         }
+         f:clear(0.0)
+         return f
+      end
+      self.allocMoment = function(self)
+         return self:allocCartField(self.boundaryGrid, self.basis:numBasis(), 
+                                    {moms:lowerGhost(),moms:upperGhost()}, moms:getMetaData())
+      end
+      self.allocVectorMoment = function(self, dim)
+         return self:allocCartField(self.boundaryGrid, dim*self.basis:numBasis(), 
+                                    {moms:lowerGhost(),moms:upperGhost()}, moms:getMetaData())
+      end
+
       -- Allocate fields needed.
       self.boundaryFluxFields = {}  -- Fluxes through the boundary, into ghost region, from each RK stage.
       self.boundaryPtr        = {}
-      local moms     = mySpecies:getMoments()
-      self.momInIdxr = moms:genIndexer()
+      self.momInIdxr          = moms:genIndexer()
       for i = 1, #mySpecies:rkStepperFields() do
-         self.boundaryFluxFields[i] = mySpecies:allocCartField(self.boundaryGrid, moms:numComponents(), {1,1}, moms:getMetaData())
+         self.boundaryFluxFields[i] = self:allocMoment()
          self.boundaryPtr[i]        = self.boundaryFluxFields[i]:get(1)
       end
-      self.boundaryFluxRate      = mySpecies:allocCartField(self.boundaryGrid, moms:numComponents(), {1,1}, moms:getMetaData())
-      self.boundaryFluxFieldPrev = mySpecies:allocCartField(self.boundaryGrid, moms:numComponents(), {1,1}, moms:getMetaData())
+      self.boundaryFluxRate      = self:allocMoment()
+      self.boundaryFluxFieldPrev = self:allocMoment()
       self.boundaryIdxr          = self.boundaryFluxFields[1]:genIndexer()
 
       self.idxOut = Lin.IntVec(self.grid:ndim())
@@ -177,10 +201,17 @@ function GyrofluidBasicBC:createSolver(mySpecies)
             self.boundaryFluxFields[outIdx]:accumulate(args[2*i-1], self.boundaryFluxFields[args[2*i]])
          end
       end
+      self.calcBoundaryFluxRateFunc = function(dtIn)
+         -- Compute boundary flux rate ~ (fGhost_new - fGhost_old)/dt.
+         self.boundaryFluxRate:combine( 1.0/dtIn, self.boundaryFluxFields[1],
+                                       -1.0/dtIn, self.boundaryFluxFieldPrev)
+         self.boundaryFluxFieldPrev:copy(self.boundaryFluxFields[1])
+      end
    else
       self.storeBoundaryFluxFunc = function(tCurr, rkIdx, qOut) end
       self.copyBoundaryFluxFieldFunc = function(inIdx, outIdx) end
       self.combineBoundaryFluxFieldFunc = function(outIdx, a, aIdx, ...) end
+      self.calcBoundaryFluxRateFunc = function(dtIn) end
    end
 end
 
@@ -193,17 +224,21 @@ end
 function GyrofluidBasicBC:combineBoundaryFluxField(outIdx, a, aIdx, ...)
    self.combineBoundaryFluxFieldFunc(outIdx, a, aIdx, ...)
 end
+function GyrofluidBasicBC:computeBoundaryFluxRate(dtIn)
+   self.calcBoundaryFluxRateFunc(dtIn)
+end
 
-function GyrofluidBasicBC:createDiagnostics()
+function GyrofluidBasicBC:createDiagnostics(mySpecies)
    -- Create BC diagnostics.
    self.diagnostics = nil
    if self.tbl.diagnostics then
-      self.diagnostics = DiagsApp{}
-      local srcDiags = {intSrc = GyrofluidSourceDiag_intSrc}
-      self.diagnostics:fullInit(self, srcDiags)
+      self.diagnostics = DiagsApp{implementation = GyrofluidDiags()}
+      self.diagnostics:fullInit(mySpecies, self)
    end
    return self.diagnostics
 end
+
+function GyrofluidBasicBC:getNoJacMoments() return self.boundaryFluxRate end  -- Used by diagnostics.
 
 function GyrofluidBasicBC:advance(tCurr, species, inFlds)
    self.bcSolver:advance(tCurr, {}, inFlds)

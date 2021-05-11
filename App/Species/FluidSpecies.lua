@@ -17,8 +17,8 @@ local ProjectionBase   = require "App.Projection.ProjectionBase"
 local SourceBase       = require "App.Sources.SourceBase"
 local SpeciesBase      = require "App.Species.SpeciesBase"
 local BCs              = require "App.BCs"
-local DiagsApp         = require "App.Species.Diagnostics.SpeciesDiagnostics"
-local FluidDiags       = require "App.Species.Diagnostics.FluidDiagnostics"
+local DiagsApp         = require "App.Diagnostics.SpeciesDiagnostics"
+local FluidDiags       = require "App.Diagnostics.FluidDiagnostics"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
 local ffi              = require "ffi"
@@ -129,22 +129,27 @@ function FluidSpecies:fullInit(appTbl)
    end
    -- Initialize boundary conditions.
    self.nonPeriodicBCs = {}
+   local dirLabel  = {'x','y','z'}
+   local edgeLabel = {'lower','upper'}
    for d, bcsTbl in ipairs(self.bcInDir) do
       for e, bcOb in ipairs(bcsTbl) do
          local goodBC = false
          local val    = bcOb
          if not BCs.BCsBase.is(val) then val = self:makeBcApp(bcOb) end
          if BCs.BCsBase.is(val) then
-            table.insert(self.nonPeriodicBCs, val)
+            local nm = dirLabel[d]..edgeLabel[e]
+            self.nonPeriodicBCs[nm] = val
             val:setSpeciesName(self.name)
+            val:setName(nm)   -- Do :setName after :setSpeciesName for BCs.
             val:setDir(d)
-            val:setEdge(e==1 and "lower" or "upper")
+            val:setEdge(edgeLabel[e])
             val:fullInit(tbl)
             goodBC = true
          end
          assert(goodBC, "FluidSpecies: bc not recognized.")
       end
    end
+   lume.setOrder(self.nonPeriodicBCs)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
    
    -- Collisions: currently used for a diffusion term.
@@ -191,14 +196,14 @@ function FluidSpecies:setConfBasis(basis)
    self.basis = basis
    for _, c in pairs(self.collisions) do c:setConfBasis(basis) end
    for _, src in pairs(self.sources) do src:setConfBasis(basis) end
-   for _, bc in ipairs(self.nonPeriodicBCs) do bc:setConfBasis(basis) end
+   for _, bc in pairs(self.nonPeriodicBCs) do bc:setConfBasis(basis) end
 end
 function FluidSpecies:setConfGrid(grid)
    self.grid = grid
    self.ndim = self.grid:ndim()
    for _, c in pairs(self.collisions) do c:setConfGrid(grid) end
    for _, src in pairs(self.sources) do src:setConfGrid(grid) end
-   for _, bc in ipairs(self.nonPeriodicBCs) do bc:setConfGrid(grid) end
+   for _, bc in pairs(self.nonPeriodicBCs) do bc:setConfGrid(grid) end
 end
 
 function FluidSpecies:createGrid(grid)
@@ -288,7 +293,7 @@ function FluidSpecies:createSolver(externalField)
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self,externalField) end
 
    -- Create BC solvers.
-   for _, bc in ipairs(self.nonPeriodicBCs) do bc:createSolver(self) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self) end
 
    if self.positivity then
       self.posChecker = Updater.PositivityCheck {
@@ -342,6 +347,7 @@ function FluidSpecies:alloc(nRkDup)
    self.cflRatePtr    = self.cflRateByCell:get(1)
    self.cflRateIdxr   = self.cflRateByCell:genIndexer()
    self.dtGlobal      = ffi.new("double[2]")
+   self.dtGlobal[0], self.dtGlobal[1] = 1.0, 1.0   -- Temporary value (so diagnostics at t=0 aren't inf).
 
    -- Create a table of flags to indicate whether primitive.
    -- At first we consider 3 flags: 
@@ -411,7 +417,7 @@ end
 function FluidSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
 
-   for _, bc in ipairs(self.nonPeriodicBCs) do
+   for _, bc in pairs(self.nonPeriodicBCs) do
       bc:copyBoundaryFluxField(aIdx, outIdx)
    end
 end
@@ -424,7 +430,7 @@ function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end
 
-   for _, bc in ipairs(self.nonPeriodicBCs) do
+   for _, bc in pairs(self.nonPeriodicBCs) do
       bc:combineBoundaryFluxField(outIdx, a, aIdx, ...)
    end
 end
@@ -497,7 +503,7 @@ function FluidSpecies:applyBc(tCurr, momIn)
       end
 
       -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
-      for _, bc in ipairs(self.nonPeriodicBCs) do bc:advance(tCurr, {}, {momIn}) end
+      for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advance(tCurr, {}, {momIn}) end
 
       -- Apply periodic BCs (to only fluctuations if fluctuation BCs)
       momIn:sync()
@@ -516,12 +522,16 @@ end
 
 function FluidSpecies:createDiagnostics()  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
    if self.tbl.diagnostics then   -- Create this species' diagnostics.
-      self.diagnostics[self.name] = DiagsApp{}
-      self.diagnostics[self.name]:fullInit(self, FluidDiags)
+      self.diagnostics[self.name] = DiagsApp{implementation = FluidDiags()}
+      self.diagnostics[self.name]:fullInit(self, self)
    end
 
    for srcNm, src in lume.orderedIter(self.sources) do
-      self.diagnostics[self.name..srcNm] = src:createDiagnostics()
+      self.diagnostics[self.name..srcNm] = src:createDiagnostics(self)
+   end
+
+   for bcNm, bc in lume.orderedIter(self.nonPeriodicBCs) do
+      self.diagnostics[self.name..bcNm] = bc:createDiagnostics(self)
    end
 
    -- Many diagnostics require dividing by the Jacobian (if present).
@@ -541,7 +551,11 @@ function FluidSpecies:write(tm, force)
       for _, dOb in pairs(self.diagnostics) do
          dOb:resetState(tm)   -- Reset booleans indicating if diagnostic has been computed.
       end
+
       self.calcNoJacMom(tm, 1)  -- Many diagnostics do not include Jacobian factor.
+      for _, bc in pairs(self.nonPeriodicBCs) do
+         bc:computeBoundaryFluxRate(self.dtGlobal[0])
+      end
 
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.
