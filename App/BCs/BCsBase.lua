@@ -19,6 +19,7 @@ function BCsBase:setConfBasis(basis) self.basis = basis end
 function BCsBase:setConfGrid(grid) self.grid = grid end
 function BCsBase:setDir(dir) self.bcDir = dir end
 function BCsBase:setEdge(edge) self.bcEdge = edge end
+function BCsBase:setSaveFlux(newSaveFlux) self.saveFlux = newSaveFlux end
 function BCsBase:bcCopy(dir, tm, idxIn, fIn, fOut)
    for i = 1, self.basis:numBasis() do fOut[i] = fIn[i] end
 end
@@ -31,6 +32,9 @@ function BCsBase:bcAbsorb(dir, tm, idxIn, fIn, fOut)
 end
 function BCsBase:createSolver(thisSpecies, extField) end
 function BCsBase:advance(tCurr, fIn, species, fRhsOut) end
+function BCsBase:storeBoundaryFlux(tCurr, rkIdx, qOut) end
+function BCsBase:copyBoundaryFluxField(inIdx, outIdx) end
+function BCsBase:combineBoundaryFluxField(outIdx, a, aIdx, ...) end
 function BCsBase:getDir() return self.bcDir end
 function BCsBase:getEdge() return self.bcEdge end
 function BCsBase:getKind() return self.bcKind end

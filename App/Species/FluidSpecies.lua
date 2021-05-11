@@ -113,35 +113,20 @@ function FluidSpecies:fullInit(appTbl)
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
    if self.deltaF then self.fluctuationBCs = true end
 
---   self.hasNonPeriodicBc   = false -- To indicate if we have non-periodic BCs.
-   self.boundaryConditions = {}    -- List of BCs to apply.
-   self.bcx, self.bcy, self.bcz = { }, { }, { }
-   self.bcInDir = {{ }, { }, { }}
-
    -- Read in boundary conditions.
-   -- Check to see if bc type is good is now done in createBc.
+   self.bcInDir = {{ }, { }, { }}   -- List of BCs to apply.
    if tbl.bcx then
---      self.bcx[1], self.bcx[2] = tbl.bcx[1], tbl.bcx[2]
---      if self.bcx[1] == nil or self.bcx[2] == nil then assert(false, "FluidSpecies: unsupported BC type") end
       if tbl.bcx[1] == nil or tbl.bcx[2] == nil then assert(false, "FluidSpecies: unsupported BC type") end
---      self.hasNonPeriodicBc = true
       self.bcInDir[1] = {tbl.bcx[1], tbl.bcx[2]}
    end
    if tbl.bcy then
---      self.bcy[1], self.bcy[2] = tbl.bcy[1], tbl.bcy[2]
---      if self.bcy[1] == nil or self.bcy[2] == nil then assert(false, "FluidSpecies: unsupported BC type") end
       if tbl.bcy[1] == nil or tbl.bcy[2] == nil then assert(false, "FluidSpecies: unsupported BC type") end
---      self.hasNonPeriodicBc = true
       self.bcInDir[2] = {tbl.bcy[1], tbl.bcy[2]}
    end
    if tbl.bcz then
---      self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
---      if self.bcz[1] == nil or self.bcz[2] == nil then assert(false, "FluidSpecies: unsupported BC type") end
       if tbl.bcz[1] == nil or tbl.bcz[2] == nil then assert(false, "FluidSpecies: unsupported BC type") end
---      self.hasNonPeriodicBc = true
       self.bcInDir[3] = {tbl.bcz[1], tbl.bcz[2]}
    end
-
    -- Initialize boundary conditions.
    self.nonPeriodicBCs = {}
    for d, bcsTbl in ipairs(self.bcInDir) do
@@ -260,44 +245,6 @@ function FluidSpecies:allocVectorMoment(dim)
    return self:allocCartField(self.grid, dim*self.basis:numBasis(), {self.nGhost,self.nGhost}, metaData)
 end
 
-function FluidSpecies:createBCs()
-   -- Create a table to store auxiliary values needed by BCs
-   -- and provided by the user in the input file.
-   self.auxBCvalues = {}
-
-   -- Functions to make life easier while reading in BCs to apply.
-   -- Note: appendBoundaryConditions defined in sub-classes.
-   local function handleBc(dir, bc, isPeriodic)
-      table.insert(self.auxBCvalues,{nil,nil})
-      
-      local dirNames = {"x", "y", "z"}
-      if (isPeriodic) then
-         assert(bc==nil or (bc[1]==nil and bc[2]==nil), "Boundary conditions supplied in periodic direction ".. dirNames[dir]..".")
-      end
-
-      if bc[1] then
-         self:appendBoundaryConditions(dir, 'lower', bc[1])
-         if type(bc[1]) == "table" then self.auxBCvalues[dir][1] = bc[1][2] end
-      else
-         assert(isPeriodic, "Invalid lower boundary condition in non-periodic direction ".. dirNames[dir]..".")
-      end
-
-      if bc[2] then
-         self:appendBoundaryConditions(dir, 'upper', bc[2])
-         if type(bc[2]) == "table" then self.auxBCvalues[dir][2] = bc[2][2] end
-      else
-         assert(isPeriodic, "Invalid upper boundary condition in non-periodic direction ".. dirNames[dir]..".")
-      end
-   end
-
-   local isPeriodic = {false, false, false}
-   for _, dir in ipairs(self.grid:getPeriodicDirs()) do isPeriodic[dir] = true end
-
-   -- Add various BCs to list of BCs to apply.
-   local bc = {self.bcx, self.bcy, self.bcz}
-   for d = 1, self.ndim do handleBc(d, bc[d], isPeriodic[d]) end
-end
-
 function FluidSpecies:createSolver(externalField)
    if externalField then
       -- Set up Jacobian.
@@ -362,6 +309,7 @@ function FluidSpecies:alloc(nRkDup)
       self.moments[i] = self:allocVectorMoment(self.nMoments)
       self.moments[i]:clear(0.0)
    end
+   self:setActiveRKidx(1)
 
    -- Create Adios object for field I/O.
    self.momIo = AdiosCartFieldIo {
@@ -394,8 +342,6 @@ function FluidSpecies:alloc(nRkDup)
    self.cflRatePtr    = self.cflRateByCell:get(1)
    self.cflRateIdxr   = self.cflRateByCell:genIndexer()
    self.dtGlobal      = ffi.new("double[2]")
-
---   self:createBCs()
 
    -- Create a table of flags to indicate whether primitive.
    -- At first we consider 3 flags: 
@@ -447,8 +393,6 @@ function FluidSpecies:initDist(extField)
 
    self.moments[2]:clear(0.0)
 
-   self:setActiveRKidx(1)
-
    if self.positivityRescale or self.positivityDiffuse then
       self.posRescaler:advance(0.0, {self.moments[1]}, {self.moments[1]}, false)
    end
@@ -461,15 +405,15 @@ end
 function FluidSpecies:rkStepperFields() return self.moments end
 
 function FluidSpecies:getMoments(rkIdx)
-   if rkIdx == nil then
-      return self:rkStepperFields()[self.activeRKidx]
-   else
-      return self:rkStepperFields()[rkIdx]
-   end
+   return rkIdx and self:rkStepperFields()[rkIdx] or self:rkStepperFields()[self.activeRKidx]
 end
 
 function FluidSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
+
+   for _, bc in ipairs(self.nonPeriodicBCs) do
+      bc:copyBoundaryFluxField(aIdx, outIdx)
+   end
 end
 
 function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
@@ -478,6 +422,10 @@ function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
    self:rkStepperFields()[outIdx]:combine(a, self:rkStepperFields()[aIdx])
    for i = 1, nFlds do -- Accumulate rest of the fields.
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
+   end
+
+   for _, bc in ipairs(self.nonPeriodicBCs) do
+      bc:combineBoundaryFluxField(outIdx, a, aIdx, ...)
    end
 end
 
@@ -548,10 +496,7 @@ function FluidSpecies:applyBc(tCurr, momIn)
          momIn:accumulate(-1.0, self.momBackground)
       end
 
-      ---- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
-      --for _, bc in ipairs(self.boundaryConditions) do
-      --   bc:advance(tCurr, {}, {momIn})
-      --end
+      -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
       for _, bc in ipairs(self.nonPeriodicBCs) do bc:advance(tCurr, {}, {momIn}) end
 
       -- Apply periodic BCs (to only fluctuations if fluctuation BCs)

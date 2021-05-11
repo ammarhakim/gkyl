@@ -249,11 +249,8 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       self.equation:setAuxFields({em, emFunc, self.primMomSelf})  -- Set auxFields in case they are needed by BCs/collisions.
    end
 
-   -- Save boundary fluxes for diagnostics.
-   if self.boundaryFluxDiagnostics then
-      for _, bc in ipairs(self.boundaryConditions) do
-         bc:storeBoundaryFlux(tCurr, outIdx, momRhsOut)
-      end
+   for _, bc in ipairs(self.nonPeriodicBCs) do
+      bc:storeBoundaryFlux(tCurr, outIdx, momRhsOut)   -- Save boundary fluxes.
    end
 
    for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, momIn, species, momRhsOut) end
