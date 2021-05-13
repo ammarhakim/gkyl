@@ -57,7 +57,7 @@ local function buildApplication(self, tbl)
    local log = Logger {
       logToFile = xsys.pickBool(tbl.logToFile, true)
    }
-      
+
    log(date(false):fmt()); log("\n") -- Time-stamp for sim start.
    if GKYL_GIT_CHANGESET then
       log(string.format("Gkyl built with %s\n", GKYL_GIT_CHANGESET))
@@ -98,7 +98,7 @@ local function buildApplication(self, tbl)
       assert(false, "ioMethod must be one of 'MPI' or 'POSIX'. Provided '" .. ioMethod .. "' instead")
    end
 
-   local goodStepperNames = { "rk1", "rk2", "rk3", "rk3s4", "fvDimSplit" }
+   local goodStepperNames = { "rk1", "rk2", "rk3", "rk3s4", "fvDimSplit", "rk3impBGK" }
    -- Time-stepper.
    local timeStepperNm = warnDefault(tbl.timeStepper, "timeStepper", "rk3")
    if not lume.find(goodStepperNames, timeStepperNm) then
@@ -106,7 +106,7 @@ local function buildApplication(self, tbl)
    end
 
    -- CFL fractions for various steppers
-   local stepperCFLFracs = { rk1 = 1.0, rk2 = 1.0, rk3 = 1.0, rk3s4 = 2.0, fvDimSplit = 1.0 }
+   local stepperCFLFracs = { rk1 = 1.0, rk2 = 1.0, rk3 = 1.0, rk3s4 = 2.0, fvDimSplit = 1.0, rk3impBGK = 1.0 }
 
    local cflFrac = tbl.cflFrac
    -- Compute CFL fraction if not specified
@@ -115,7 +115,7 @@ local function buildApplication(self, tbl)
    end
 
    -- Number of fields needed for each stepper type
-   local stepperNumFields = { rk1 = 3, rk2 = 3, rk3 = 3, rk3s4 = 4, fvDimSplit = 3 }
+   local stepperNumFields = { rk1 = 3, rk2 = 3, rk3 = 3, rk3s4 = 4, fvDimSplit = 3, rk3impBGK = 3 }
 
    -- Tracker for timestep
    local dtTracker = DataStruct.DynVector {
@@ -124,7 +124,7 @@ local function buildApplication(self, tbl)
    local dtPtr = Lin.Vec(1)
 
    -- Parallel decomposition stuff.
-   local useShared  = xsys.pickBool(tbl.useShared, false)   
+   local useShared  = xsys.pickBool(tbl.useShared, false)
    local decompCuts = tbl.decompCuts
    if tbl.decompCuts then
       assert(cdim == #tbl.decompCuts, "decompCuts should have exactly " .. cdim .. " entries")
@@ -166,7 +166,7 @@ local function buildApplication(self, tbl)
    local GridConstructor = Grid.RectCart
    if tbl.coordinateMap then
       GridConstructor = Grid.NonUniformRectCart
-   elseif tbl.mapc2p then 
+   elseif tbl.mapc2p then
       GridConstructor = Grid.MappedCart
    end
    -- Setup configuration space grid.
@@ -180,7 +180,7 @@ local function buildApplication(self, tbl)
       mapc2p        = tbl.mapc2p,
       world         = tbl.world,
    }
-   if tbl.coordinateMap or tbl.mapc2p then 
+   if tbl.coordinateMap or tbl.mapc2p then
       local metaData = {polyOrder = confBasis:polyOrder(),
                         basisType = confBasis:id(),
                         grid      = GKYL_OUT_PREFIX .. "_grid.bp"}
@@ -227,7 +227,7 @@ local function buildApplication(self, tbl)
    -- Set conf grid for each fluid source.
    for _, s in lume.orderedIter(fluidSources) do
       s:setConfGrid(confGrid)
-   end  
+   end
 
    local cflMin = GKYL_MAX_DOUBLE
    -- Compute CFL numbers.
@@ -251,7 +251,7 @@ local function buildApplication(self, tbl)
 	 cflMin = math.min(cflMin, myCfl)
 	 fld:setCfl(myCfl)
       end
-      
+
       -- Allocate field data.
       fld:alloc(stepperNumFields[timeStepperNm])
 
@@ -287,7 +287,7 @@ local function buildApplication(self, tbl)
    if externalField == nil then externalField = NoField {} end
    externalField:createSolver()
    externalField:initField()
-   
+
    -- Initialize species solvers and diagnostics.
    for _, s in lume.orderedIter(species) do
       local hasE, hasB = field:hasEB()
@@ -301,7 +301,7 @@ local function buildApplication(self, tbl)
    -- Initialize fluid source solvers.
    for _, s in lume.orderedIter(fluidSources) do
       s:createSolver(species, field)
-   end   
+   end
 
    -- Compute the coupling moments.
    for _, s in lume.orderedIter(species) do
@@ -315,7 +315,7 @@ local function buildApplication(self, tbl)
 
    -- Apply species BCs.
    for _, s in lume.orderedIter(species) do
-      -- This is a dummy forwardEuler call because some BCs require 
+      -- This is a dummy forwardEuler call because some BCs require
       -- auxFields to be set, which is controlled by species solver.
       if s.charge == 0.0 then
       	 s:advance(0, species, {NoField {}, NoField {}}, 1, 2)
@@ -328,7 +328,7 @@ local function buildApplication(self, tbl)
    -- Function to write data to file.
    local function writeData(tCurr, force)
       for _, s in lume.orderedIter(species) do s:write(tCurr, force) end
-      for _, src in lume.orderedIter(fluidSources) do src:write(tCurr) end 
+      for _, src in lume.orderedIter(fluidSources) do src:write(tCurr) end
       field:write(tCurr, force)
       externalField:write(tCurr, force)
    end
@@ -339,7 +339,7 @@ local function buildApplication(self, tbl)
       field:writeRestart(tCurr)
       externalField:writeRestart(tCurr)
    end
-   
+
    -- Function to read from restart frame.
    local function readRestart() --> Time at which restart was written.
       local rTime = 0.0
@@ -349,7 +349,7 @@ local function buildApplication(self, tbl)
       field:readRestart()
       externalField:readRestart()
       for _, s in lume.orderedIter(species) do
-         -- This is a dummy forwardEuler call because some BCs require 
+         -- This is a dummy forwardEuler call because some BCs require
          -- auxFields to be set, which is controlled by species solver.
 	 if s.charge == 0 then
 	    s:advance(0, species, {NoField {}, NoField {}}, 1, 2)
@@ -408,10 +408,10 @@ local function buildApplication(self, tbl)
       end
       -- Compute functional field (if any).
       externalField:advance(tCurr)
-      
+
       for _, s in lume.orderedIter(species) do
          -- Compute moments needed in coupling with fields and
-         -- collisions (the species should update internal datastructures). 
+         -- collisions (the species should update internal datastructures).
          s:calcCouplingMoments(tCurr, inIdx, species)
       end
 
@@ -430,8 +430,8 @@ local function buildApplication(self, tbl)
       end
 
       -- Some systems (e.g. EM GK) require additional step(s) to complete the forward Euler.
-      for istep = 2, nstep do      
-         -- Update EM field.. step 2 (if necessary). 
+      for istep = 2, nstep do
+         -- Update EM field.. step 2 (if necessary).
          -- Note: no calcCouplingMoments call because field:forwardEulerStep2
          -- either reuses already calculated moments, or other moments are
          -- calculated in field:forwardEulerStep2.
@@ -447,18 +447,18 @@ local function buildApplication(self, tbl)
       if calcCflFlag then
          dtSuggested = tbl.tEnd - tCurr + 1e-20
          if tbl.maximumDt then dtSuggested = math.min(dtSuggested, tbl.maximumDt) end
-         
+
          -- Get suggested dt from each field and species.
          dtSuggested = math.min(dtSuggested, field:suggestDt())
          for _, s in lume.orderedIter(species) do
             dtSuggested = math.min(dtSuggested, s:suggestDt())
          end
-         
+
          -- After deciding global dt, tell species.
          for _, s in lume.orderedIter(species) do
             s:setDtGlobal(dtSuggested)
          end
-      else 
+      else
          dtSuggested = dt -- From argument list.
          -- If calcCflFlag not being used, need to barrier before doing the RK combine.
          -- When running with calcCflFlag, an all-reduce is done on the time-step to find
@@ -526,6 +526,29 @@ local function buildApplication(self, tbl)
 
       return true, dt
    end
+
+   -- Function to advance solution using SSP-RK3 scheme with implicit BGK operator.
+  function timeSteppers.rk3impBGK(tCurr, dtSuggested)
+        updateImpBGK(dtSuggested/2, 1)
+        -- RK stage 1.
+        local dt = forwardEuler(tCurr, nil, 1, 2)
+        -- RK stage 2.
+        forwardEuler(tCurr+dt, dtSuggested, 2, 3)
+        local tm = Time.clock()
+        combine(2, 3.0/4.0, 1, 1.0/4.0, 3)
+        stepperTime = stepperTime + (Time.clock() - tm)
+        -- RK stage 3.
+        forwardEuler(tCurr+dtSuggested/2, dt, 2, 3)
+        tm = Time.clock()
+        combine(2, 1.0/3.0, 1, 2.0/3.0, 3)
+        copy(1, 2)
+        updateImpBGK(dtSuggested/2, 1)
+        return true, dt
+  end
+
+  local function updateImpBGK(dt, distfIn)
+   species:implicitBGKUadvance(dt, distfIn)
+  end
 
    -- Function to advance solution using 4-stage SSP-RK3 scheme.
    function timeSteppers.rk3s4(tCurr)
@@ -682,7 +705,7 @@ local function buildApplication(self, tbl)
 	 -- time-step.
 	 if fIdx[cdim][2] == 2 then copy(1, 2) end
       end
-      
+
       return status, dtSuggested, isInv
    end
 
@@ -694,7 +717,7 @@ local function buildApplication(self, tbl)
    local tmEnd = Time.clock()
    log(string.format("Initialization completed in %g sec\n\n", tmEnd-tmStart))
 
-   -- Read some info about restarts (default is to write restarts 1/20 (5%) of sim, 
+   -- Read some info about restarts (default is to write restarts 1/20 (5%) of sim,
    -- but no need to write restarts more frequently than regular diagnostic output).
    local restartFrameEvery = tbl.restartFrameEvery and tbl.restartFrameEvery or math.max(1/20.0, 1/tbl.nFrame)
 
@@ -774,10 +797,10 @@ local function buildApplication(self, tbl)
          if timeStepperNm == "fvDimSplit" then
 	    status, dtSuggested, isInv = timeSteppers[timeStepperNm](tCurr, myDt, tryInv)
          else
-            status, myDt = timeSteppers[timeStepperNm](tCurr)
+            status, myDt = timeSteppers[timeStepperNm](tCurr, dtSuggested)
             dtSuggested = myDt
          end
-    
+
          -- If stopfile exists, break.
          if (file_exists(stopfile)) then
             writeData(tCurr+myDt, true)
@@ -794,7 +817,7 @@ local function buildApplication(self, tbl)
 
 	 -- Check status and determine what to do next.
 	 if status and isInv then
-            if first then 
+            if first then
                log(string.format(" Step 0 at time %g. Time step %g. Completed 0%%\n", tCurr, myDt))
                initDt = math.min(maxDt, dtSuggested); first = false
             end
@@ -814,8 +837,8 @@ local function buildApplication(self, tbl)
                dtTracker:write(string.format("dt.bp"), tCurr+myDt, irestart)
                irestart = irestart + 1
                writeRestartTime = writeRestartTime + Time.clock() - tmRestart
-	    end	    
-	    
+	    end
+
 	    tCurr = tCurr + myDt
 	    myDt = math.min(dtSuggested, maxDt)
 	    step = step + 1
@@ -828,7 +851,7 @@ local function buildApplication(self, tbl)
 	    myDt = dtSuggested
 	 end
 
-         if (myDt < 1e-4*initDt) then 
+         if (myDt < 1e-4*initDt) then
             failcount = failcount + 1
             log(string.format("WARNING: Timestep dt = %g is below 1e-4*initDt. Fail counter = %d...\n", myDt, failcount))
             if failcount > 20 then
@@ -876,7 +899,7 @@ local function buildApplication(self, tbl)
       --log(string.format(
 	--     "Number of barriers %d barriers (%g barriers/step)\n\n",
 	--     Mpi.getNumBarriers(), Mpi.getNumBarriers()/step))
-      
+
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Solver took", tmSlvr, tmSlvr/step, 100*tmSlvr/tmTotal))
@@ -943,7 +966,7 @@ local function buildApplication(self, tbl)
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
       	     "Time spent in barrier function",
-      	     Mpi.getTimeBarriers(), Mpi.getTimeBarriers()/step, 100*Mpi.getTimeBarriers()/tmTotal))      
+      	     Mpi.getTimeBarriers(), Mpi.getTimeBarriers()/step, 100*Mpi.getTimeBarriers()/tmTotal))
       tmUnaccounted = tmTotal - tmAccounted
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
@@ -959,11 +982,11 @@ local function buildApplication(self, tbl)
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n\n",
 	     "[Unaccounted for]",
 	     tmUnaccounted, tmUnaccounted/step, 100*tmUnaccounted/tmTotal))
-      
+
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.f%%)\n\n",
 	     "Main loop completed in",
-	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))      
+	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))
       log(date(false):fmt()); log("\n") -- Time-stamp for sim end.
 
       -- Perform other numerical/performance diagnostics.
@@ -1003,9 +1026,9 @@ return {
 	 AdiabaticSpecies    = require ("App.Species.AdiabaticSpecies"),
 	 App                 = App,
 	 Field               = require ("App.Field.GkField").GkField,
-	 FunctionProjection  = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
+	 FunctionProjection  = require ("App.Projection.GyrofluidProjection").FunctionProjection,
 	 Geometry            = require ("App.Field.GkField").GkGeometry,
-	 GyrofluidProjection = require ("App.Projection.GyrofluidProjection").GyrofluidProjection, 
+	 GyrofluidProjection = require ("App.Projection.GyrofluidProjection").GyrofluidProjection,
          PASCollisions       = require "App.Collisions.GfPitchAngleScattering",
          Source              = require "App.Sources.GyrofluidSource",
 	 Species             = require "App.Species.GyrofluidSpecies",
@@ -1021,7 +1044,7 @@ return {
 	 BgkCollisions          = require "App.Collisions.GkBGKCollisions",
 	 ChargeExchange         = require "App.Collisions.GkChargeExchange",
 	 Field                  = require ("App.Field.GkField").GkField,
-	 FunctionProjection     = require ("App.Projection.GkProjection").FunctionProjection, 
+	 FunctionProjection     = require ("App.Projection.GkProjection").FunctionProjection,
 	 Geometry               = require ("App.Field.GkField").GkGeometry,
 	 Ionization             = require "App.Collisions.GkIonization",
 	 LBOCollisions          = require "App.Collisions.GkLBOCollisions",
@@ -1045,7 +1068,7 @@ return {
 	 Species   = require "App.Species.IncompEulerSpecies",
       }
    end,
-   
+
    Moments = function ()
       App.label = "Multi-fluid"
       return {
@@ -1083,7 +1106,7 @@ return {
 	 Source = require "App.Sources.VmSource",
       }
    end,
-   
+
    Moments = function ()
       App.label = "Multi-fluid"
       return {
