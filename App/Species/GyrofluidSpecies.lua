@@ -190,12 +190,12 @@ end
 
 function GyrofluidSpecies:calcCouplingMomentsNoEvolve(tCurr, rkIdx, species) end
 function GyrofluidSpecies:calcCouplingMomentsEvolve(tCurr, rkIdx, species)
-   local momIn = self:rkStepperFields()[rkIdx]
    -- Compute moments needed in coupling to fields and collisions.
-   local tmStart = Time.clock()
-
    if not self.momentFlags[1] then -- No need to recompute if already computed.
-      self.calcDeltaMom(momIn)
+      local momIn   = self:rkStepperFields()[rkIdx]
+      local tmStart = Time.clock()
+
+      momIn = self.returnDeltaMom(momIn)  -- Compute and return fluctuations.
 
       -- Calculate the parallel flow speed.
       self:uParCalc(tCurr, momIn, self.mJacM0, self.mJacM1, self.uParSelf)
@@ -217,11 +217,8 @@ function GyrofluidSpecies:calcCouplingMomentsEvolve(tCurr, rkIdx, species)
       -- Indicate that primitive moments have been computed.
       self.momentFlags[1] = true
 
-      self.calcFullMom(momIn)
-
+      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
-
-   self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
 end
 
 function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)

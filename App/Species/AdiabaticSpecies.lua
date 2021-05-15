@@ -69,16 +69,20 @@ function AdiabaticSpecies:createSolver(hasE, hasB, externalField)
       end
    end
 
+   if self.deltaF then
+      self.calcCouplingMomentsEvolveFunc = function(tCurr, rkIdx)
+         self.couplingMoments:clear(0.0)
+      end
+   else
+      self.calcCouplingMomentsEvolveFunc = function(tCurr, rkIdx)
+         local fIn = self:rkStepperFields()[rkIdx]
+         self.couplingMoments:copy(fIn)
+      end
+   end
 end
 
--- Nothing to calculate, just copy.
 function AdiabaticSpecies:calcCouplingMomentsEvolve(tCurr, rkIdx)
-   if self.deltaF then
-      self.couplingMoments:clear(0.0)
-   else
-      local fIn = self:rkStepperFields()[rkIdx]
-      self.couplingMoments:copy(fIn)
-   end
+   self.calcCouplingMomentsEvolveFunc(tCurr, rkIdx)
 end
 
 function AdiabaticSpecies:fluidMoments()
@@ -98,14 +102,16 @@ function AdiabaticSpecies:temp() return self._temp end
 
 function AdiabaticSpecies:dens0() return self._dens0 end
 
--- This is factor on potential in qneut equation.
-function AdiabaticSpecies:getQneutFac(linearized)
-   if linearized == false then
-      self.qneutFac:combine(self.charge^2/self._temp, self.couplingMoments)
-      return self.qneutFac
-   else
-      return self._dens0*self.charge^2/self._temp
-   end
+function AdiabaticSpecies:getQneutFacLin()
+   -- Return the factor on potential in in charge neutrality equation,
+   -- assuming a linearized polarization.
+   return self._dens0*self.charge^2/self._temp
+end
+function AdiabaticSpecies:getQneutFacNotLin()
+   -- Return the factor on potential in in charge neutrality equation,
+   -- not assuming a linearized polarization.
+   self.qneutFac:combine(self.charge^2/self._temp, self.couplingMoments)
+   return self.qneutFac
 end
 
 return AdiabaticSpecies

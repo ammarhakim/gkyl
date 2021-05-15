@@ -305,21 +305,22 @@ function FluidSpecies:createSolver(externalField)
       }
    end
 
+   -- Functions to compute fluctuations given the current moments and background,
+   -- and the full-F moments given the fluctuations and background.
    if self.fluctuationBCs then 
-      self.calcDeltaMom = function(momIn) momIn:accumulate(-1.0, self.momBackground) end
-      self.calcFullMom  = function(momIn)
-         -- Put back together total distribution.
-         momIn:accumulate(1.0, self.momBackground)
+      self.calcDeltaMom   = function(momIn) momIn:accumulate(-1.0, self.momBackground) end
+      self.returnDeltaMom = function(momIn)
+         self.flucMom:combine(1.0, momIn, -1.0, self.momBackground)
+         return(self.flucMom)
       end
-      self.calcFullMomAndSync = function(momIn, syncFullFperiodicDirs)
-         self.calcFullMom(momIn)
-         -- Update ghosts in total distribution, without enforcing periodicity.
+      self.calcFullMom = function(momIn, syncFullFperiodicDirs)
+         momIn:accumulate(1.0, self.momBackground)
          momIn:sync(syncFullFperiodicDirs)
       end
    else
-      self.calcDeltaMom       = function(momIn) end
-      self.calcFullMom        = function(momIn) end 
-      self.calcFullMomAndSync = function(momIn, syncFullFperiodicDirs) end 
+      self.calcDeltaMom   = function(momIn) end
+      self.returnDeltaMom = function(momIn) return momIn end
+      self.calcFullMom    = function(momIn, syncFullFperiodicDirs) end 
    end
 
    if self.momBackground then
@@ -379,6 +380,8 @@ function FluidSpecies:alloc(nRkDup)
    projectUnity:advance(0.0, {}, {self.unitField})
 
    self.noJacMom = self:allocVectorMoment(self.nMoments)   -- Moments without Jacobian.
+
+   self.flucMom = self.fluctuationBCs and self:allocVectorMoment(self.nMoments) or nil   -- Fluctuation.
 
    if self.positivity then self.momPos = self:allocVectorMoment(self.nMoments) end
 
@@ -554,7 +557,7 @@ function FluidSpecies:applyBcEvolve(tCurr, momIn)
    -- Apply periodic BCs (to only fluctuations if fluctuation BCs)
    momIn:sync()
 
-   self.calcFullMomAndSync(momIn, false)
+   self.calcFullMom(momIn, false)   -- Update ghosts, w/o enforcing periodicity.
 
    self.bcTime = self.bcTime + Time.clock()-tmStart
 end
