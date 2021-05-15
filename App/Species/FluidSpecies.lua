@@ -42,7 +42,6 @@ function FluidSpecies:fullInit(appTbl)
 
    self.evolve              = xsys.pickBool(tbl.evolve, true) -- Default: evolve species.
    self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless, self.evolve)
-   self.evolveCollisions    = xsys.pickBool(tbl.evolveCollisions, self.evolve)
 
    local nFrame = tbl.nDiagnosticFrame and tbl.nDiagnosticFrame or appTbl.nFrame
    -- Create triggers to write diagnostics.
@@ -305,6 +304,41 @@ function FluidSpecies:createSolver(externalField)
          basis  = self.basis,
       }
    end
+
+   if self.fluctuationBCs then 
+      self.calcDeltaMom = function(momIn) momIn:accumulate(-1.0, self.momBackground) end
+      self.calcFullMom  = function(momIn)
+         -- Put back together total distribution.
+         momIn:accumulate(1.0, self.momBackground)
+      end
+      self.calcFullMomAndSync = function(momIn, syncFullFperiodicDirs)
+         self.calcFullMom(momIn)
+         -- Update ghosts in total distribution, without enforcing periodicity.
+         momIn:sync(syncFullFperiodicDirs)
+      end
+   else
+      self.calcDeltaMom       = function(momIn) end
+      self.calcFullMom        = function(momIn) end 
+      self.calcFullMomAndSync = function(momIn, syncFullFperiodicDirs) end 
+   end
+
+   if self.momBackground then
+      self.writeFluctuation = function(tm, fr, momIn)
+         momIn:accumulate(-1, self.momBackground)
+         self.momIo:write(momIn, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, fr)
+         momIn:accumulate( 1, self.momBackground)
+      end
+   else
+      self.writeFluctuation = function(tm, fr, momIn) end
+   end
+
+   if self.evolve then
+      self.suggestDtFunc = function() return FluidSpecies["suggestDtEvolve"](self) end
+      self.applyBcFunc   = function(tCurr, momIn) return FluidSpecies["applyBcEvolve"](self, tCurr, momIn) end
+   else
+      self.suggestDtFunc = function() return FluidSpecies["suggestDtNotEvolve"](self) end
+      self.applyBcFunc   = function(tCurr, momIn) return FluidSpecies["applyBcNotEvolve"](self, tCurr, momIn) end
+   end
 end
 
 function FluidSpecies:alloc(nRkDup)
@@ -391,7 +425,10 @@ function FluidSpecies:initDist(extField)
       end
    end
    assert(initCnt>0, string.format("FluidSpecies: Species '%s' not initialized!", self.name))
-   if self.momBackground and backgroundCnt == 0 then self.momBackground:copy(self.moments[1]) end
+   if self.momBackground then
+      if backgroundCnt == 0 then self.momBackground:copy(self.moments[1]) end
+      self.momBackground:write(string.format("%s_background_%d.bp", self.name, self.diagIoFrame), 0., self.diagIoFrame, true)
+   end
 
    if self.fluctuationBCs then
       assert(backgroundCnt > 0, "FluidSpecies: must specify an initial background distribution with 'background' in order to use fluctuation-only BCs")
@@ -404,9 +441,7 @@ function FluidSpecies:initDist(extField)
    end
 end
 
-function FluidSpecies:setActiveRKidx(rkIdx)
-   self.activeRKidx = rkIdx
-end
+function FluidSpecies:setActiveRKidx(rkIdx) self.activeRKidx = rkIdx end
 
 function FluidSpecies:rkStepperFields() return self.moments end
 
@@ -417,13 +452,11 @@ end
 function FluidSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
 
-   for _, bc in pairs(self.nonPeriodicBCs) do
-      bc:copyBoundaryFluxField(aIdx, outIdx)
-   end
+   for _, bc in pairs(self.nonPeriodicBCs) do bc:copyBoundaryFluxField(aIdx, outIdx) end
 end
 
 function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
-   local args = {...} -- Package up rest of args as table.
+   local args  = {...} -- Package up rest of args as table.
    local nFlds = #args/2
    self:rkStepperFields()[outIdx]:combine(a, self:rkStepperFields()[aIdx])
    for i = 1, nFlds do -- Accumulate rest of the fields.
@@ -435,9 +468,8 @@ function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
    end
 end
 
-function FluidSpecies:suggestDt()
-   if not self.evolve then return GKYL_MAX_DOUBLE end
-
+function FluidSpecies:suggestDtNotEvolve() return GKYL_MAX_DOUBLE end
+function FluidSpecies:suggestDtEvolve()
    local dtSuggested = math.min(self.cfl/self.cflRateByCell:reduce('max')[1], GKYL_MAX_DOUBLE)
 
    -- If dtSuggested == GKYL_MAX_DOUBLE, it is likely because of NaNs.
@@ -446,6 +478,7 @@ function FluidSpecies:suggestDt()
 
    return dtSuggested
 end
+function FluidSpecies:suggestDt() return self.suggestDtFunc() end
 
 function FluidSpecies:setDtGlobal(dtGlobal) self.dtGlobal[0] = dtGlobal end
 
@@ -492,33 +525,24 @@ function FluidSpecies:applyBcIdx(tCurr, idx, isFirstRk)
   end
 end
 
-function FluidSpecies:applyBc(tCurr, momIn)
+function FluidSpecies:applyBcNotEvolve(tCurr, momIn) end
+function FluidSpecies:applyBcEvolve(tCurr, momIn) 
    -- momIn is the set of evolved moments.
    local tmStart = Time.clock()
 
-   if self.evolve then
-      if self.fluctuationBCs then
-         -- If fluctuation-only BCs, subtract off background before applying BCs.
-         momIn:accumulate(-1.0, self.momBackground)
-      end
+   self.calcDeltaMom(momIn)
 
-      -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
-      for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advance(tCurr, {}, {momIn}) end
+   -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advance(tCurr, {}, {momIn}) end
 
-      -- Apply periodic BCs (to only fluctuations if fluctuation BCs)
-      momIn:sync()
+   -- Apply periodic BCs (to only fluctuations if fluctuation BCs)
+   momIn:sync()
 
-      if self.fluctuationBCs then
-         -- Put back together total distribution
-         momIn:accumulate(1.0, self.momBackground)
-
-         -- Update ghosts in total distribution, without enforcing periodicity.
-         momIn:sync(false)
-      end
-   end
+   self.calcFullMomAndSync(momIn, false)
 
    self.bcTime = self.bcTime + Time.clock()-tmStart
 end
+function FluidSpecies:applyBc(tCurr, momIn) self.applyBcFunc(tCurr, momIn) end
 
 function FluidSpecies:createDiagnostics()  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
    if self.tbl.diagnostics then   -- Create this species' diagnostics.
@@ -569,33 +593,25 @@ function FluidSpecies:write(tm, force)
       -- Only write stuff if triggered.
       if self.diagIoTrigger(tm) or force then
          local momIn = self:rkStepperFields()[1]
+
 	 self.momIo:write(momIn, string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
-         if self.momBackground then
-            if tm == 0.0 then
-               self.momBackground:write(string.format("%s_background_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, true)
-            end
-            momIn:accumulate(-1, self.momBackground)
-            self.momIo:write(momIn, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
-            momIn:accumulate(1, self.momBackground)
-         end
+         self.writeFluctuation(tm, self.diagIoFrame, momIn)
 
          for _, src in lume.orderedIter(self.sources) do
-            src:write(tm, self.diagIoFrame, self)  -- Write source diagnostics.
+            src:write(tm, self.diagIoFrame, self)  -- Allow sources to write (aside from diagnostics).
          end
 
          for _, dOb in pairs(self.diagnostics) do
             dOb:calcGridDiagnostics(tm, self)   -- Compute this species' grid diagnostics.
          end
-
+          
          -- Write this species' field and integrated diagnostics.
          for _, dOb in pairs(self.diagnostics) do
             dOb:write(tm, self.diagIoFrame)
          end
 
-         if self.evolveCollisions then  -- Write collision's diagnostics.
-            for _, c in pairs(self.collisions) do
-               c:write(tm, self.diagIoFrame)
-            end
+         for _, c in pairs(self.collisions) do
+            c:write(tm, self.diagIoFrame)  -- Allow collisions to write (aside from diagnostics).
          end
 
          if self.positivityDiffuse then
@@ -658,14 +674,8 @@ function FluidSpecies:totalSolverTime()
    if self.solver then return self.solver.totalTime end
    return 0
 end
-function FluidSpecies:totalBcTime()
-   return self.bcTime
-end
-function FluidSpecies:momCalcTime()
-   return 0
-end
-function FluidSpecies:intMomCalcTime()
-   return self.integratedMomentsTime
-end
+function FluidSpecies:totalBcTime() return self.bcTime end
+function FluidSpecies:momCalcTime() return 0 end
+function FluidSpecies:intMomCalcTime() return self.integratedMomentsTime end
 
 return FluidSpecies

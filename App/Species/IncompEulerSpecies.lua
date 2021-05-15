@@ -104,11 +104,9 @@ function IncompEulerSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
 
    -- Perform the collision (diffusion) update.
-   if self.evolveCollisions then
-      for _, c in pairs(self.collisions) do
-         c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-         c:advance(tCurr, fIn, species, fRhsOut)
-      end
+   for _, c in pairs(self.collisions) do
+      c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      c:advance(tCurr, fIn, species, fRhsOut)
    end
 
    for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end

@@ -132,6 +132,18 @@ function GyrofluidSpecies:createSolver(hasPhi, hasApar, externalField)
       globalUpwind       = true,
    }
 
+   if self.deltaF then
+      self.calcDeltaFjacM0 = function(jacM0In)
+         jacM0In:accumulateOffset(-1.0/self.mass, self.momBackground, self.mJacM0Off)
+      end
+      self.calcDeltaFjacM1 = function(jacM1In)
+         jacM1In:accumulateOffset(-1.0/self.mass, self.momBackground, self.mJacM1Off)
+      end
+   else
+      self.calcDeltaFjacM0 = function(jacM0In) end
+      self.calcDeltaFjacM1 = function(jacM1In) end
+   end
+
    self.timers = {couplingMom=0., weakMom=0., sources=0.}
 end
 
@@ -183,7 +195,7 @@ function GyrofluidSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
 
-      if self.deltaF then momIn:accumulate(-1.0, self.momBackground) end
+      self.calcDeltaMom(momIn)
 
       if not self.momentFlags[1] then -- No need to recompute if already computed.
          -- Calculate the parallel flow speed.
@@ -207,7 +219,7 @@ function GyrofluidSpecies:calcCouplingMoments(tCurr, rkIdx, species)
          self.momentFlags[1] = true
       end
 
-      if self.deltaF then momIn:accumulate(1.0, self.momBackground) end
+      self.calcFullMom(momIn)
 
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
@@ -232,11 +244,9 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    -- Perform the collision update. This includes terms that comes from
    -- collisions but also other objects in the Collisions App (e.g. diffusion).
-   if self.evolveCollisions then
-      for _, c in pairs(self.collisions) do
-         c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-         c:advance(tCurr, momIn, species, momRhsOut)
-      end
+   for _, c in pairs(self.collisions) do
+      c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      c:advance(tCurr, momIn, species, momRhsOut)
    end
 
    -- Complete the field solve.
@@ -308,7 +318,7 @@ function GyrofluidSpecies:getNumDensity(rkIdx)
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
       self.jacM0Aux:combineOffset(1./self.mass, momIn, self.mJacM0Off)
-      if self.deltaF then self.jacM0Aux:accumulateOffset(-1.0/self.mass, self.momBackground, self.mJacM0Off) end
+      self.calcDeltaFjacM0(self.jacM0Aux)
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
@@ -328,7 +338,7 @@ function GyrofluidSpecies:getMomDensity(rkIdx)
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
       self.jacM1Aux:combineOffset(1./self.mass, momIn, self.mJacM1Off)
-      if self.deltaF then self.jacM1Aux:accumulate(-1.0/self.mass, self.momBackground, 1*self.basis:numBasis()) end
+      self.calcDeltaFjacM1(self.jacM1Aux)
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
