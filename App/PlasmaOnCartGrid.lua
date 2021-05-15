@@ -294,7 +294,7 @@ local function buildApplication(self, tbl)
       local extHasE, extHasB = externalField:hasEB()
       s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
       s:createSolver(hasE or extHasE, hasB or extHasB, externalField, hasB)
-      s:initDist(externalField)
+      s:initDist(externalField, species)
       s:createDiagnostics()
    end
 

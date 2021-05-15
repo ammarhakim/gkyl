@@ -72,7 +72,7 @@ function AdiabaticSpecies:createSolver(hasE, hasB, externalField)
 end
 
 -- Nothing to calculate, just copy.
-function AdiabaticSpecies:calcCouplingMoments(tCurr, rkIdx)
+function AdiabaticSpecies:calcCouplingMomentsEvolve(tCurr, rkIdx)
    if self.deltaF then
       self.couplingMoments:clear(0.0)
    else
@@ -94,13 +94,9 @@ function AdiabaticSpecies:getNumDensity(rkIdx)
    end
 end
 
-function AdiabaticSpecies:temp()
-   return self._temp
-end
+function AdiabaticSpecies:temp() return self._temp end
 
-function AdiabaticSpecies:dens0()
-   return self._dens0
-end
+function AdiabaticSpecies:dens0() return self._dens0 end
 
 -- This is factor on potential in qneut equation.
 function AdiabaticSpecies:getQneutFac(linearized)

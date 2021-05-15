@@ -335,9 +335,15 @@ function FluidSpecies:createSolver(externalField)
    if self.evolve then
       self.suggestDtFunc = function() return FluidSpecies["suggestDtEvolve"](self) end
       self.applyBcFunc   = function(tCurr, momIn) return FluidSpecies["applyBcEvolve"](self, tCurr, momIn) end
+      self.calcCouplingMomentsFunc = function(tCurr, rkIdx, species)
+         return self:calcCouplingMomentsEvolve(tCurr, rkIdx, species)
+      end
    else
       self.suggestDtFunc = function() return FluidSpecies["suggestDtNotEvolve"](self) end
       self.applyBcFunc   = function(tCurr, momIn) return FluidSpecies["applyBcNotEvolve"](self, tCurr, momIn) end
+      self.calcCouplingMomentsFunc = function(tCurr, rkIdx, species)
+         return self:calcCouplingMomentsNoEvolve(tCurr, rkIdx, species)
+      end
    end
 end
 
@@ -396,7 +402,7 @@ function FluidSpecies:alloc(nRkDup)
 end
 
 -- Note: do not call applyBc here. It is called later in initialization sequence.
-function FluidSpecies:initDist(extField)
+function FluidSpecies:initDist(extField, species)
    if self.randomseed then
       math.randomseed(self.randomseed)
    else
@@ -439,11 +445,21 @@ function FluidSpecies:initDist(extField)
    if self.positivityRescale or self.positivityDiffuse then
       self.posRescaler:advance(0.0, {self.moments[1]}, {self.moments[1]}, false)
    end
+
+   -- Compute the initial coupling moments.
+   self:calcCouplingMomentsEvolve(0.0, 1, species)
 end
 
 function FluidSpecies:setActiveRKidx(rkIdx) self.activeRKidx = rkIdx end
 
 function FluidSpecies:rkStepperFields() return self.moments end
+
+function FluidSpecies:calcCouplingMomentsNoEvolve(tCurr, rkIdx)
+   self:calcCouplingMomentsEvolve(tCurr, rkIdx)
+end
+function FluidSpecies:calcCouplingMoments(tCurr, rkIdx, species)
+  self.calcCouplingMomentsFunc(tCurr, rkIdx, species)
+end
 
 function FluidSpecies:getMoments(rkIdx)
    return rkIdx and self:rkStepperFields()[rkIdx] or self:rkStepperFields()[self.activeRKidx]

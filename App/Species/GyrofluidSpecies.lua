@@ -51,7 +51,6 @@ function GyrofluidSpecies:fullInit(appTbl)
 
    self.nMoments = 3+1
    self.zeroFluxDirections = {}
-   self._firstMomentCalc = true  -- To avoid re-calculating moments when not evolving.
 end
 
 function GyrofluidSpecies:alloc(nRkDup)
@@ -189,40 +188,40 @@ function GyrofluidSpecies:TperpCalc(tm, mJacM0, pPerpJac, TperpOut)
    TperpOut:scale(self.mass)
 end
 
-function GyrofluidSpecies:calcCouplingMoments(tCurr, rkIdx, species)
+function GyrofluidSpecies:calcCouplingMomentsNoEvolve(tCurr, rkIdx, species) end
+function GyrofluidSpecies:calcCouplingMomentsEvolve(tCurr, rkIdx, species)
    local momIn = self:rkStepperFields()[rkIdx]
    -- Compute moments needed in coupling to fields and collisions.
-   if self.evolve or self._firstMomentCalc then
-      local tmStart = Time.clock()
+   local tmStart = Time.clock()
 
+   if not self.momentFlags[1] then -- No need to recompute if already computed.
       self.calcDeltaMom(momIn)
 
-      if not self.momentFlags[1] then -- No need to recompute if already computed.
-         -- Calculate the parallel flow speed.
-         self:uParCalc(tCurr, momIn, self.mJacM0, self.mJacM1, self.uParSelf)
-         
-         -- Get the perpendicular and parallel pressures (times Jacobian).
-         self:pPerpJacCalc(tCurr, momIn, self.jacM2perp, self.pPerpJac)
-         self:pParJacCalc(tCurr, momIn, self.uParSelf, self.mJacM1, self.mJacM2flow,
-                                 self.mJacM2, self.pPerpJac, self.pParJac)
+      -- Calculate the parallel flow speed.
+      self:uParCalc(tCurr, momIn, self.mJacM0, self.mJacM1, self.uParSelf)
+      
+      -- Get the perpendicular and parallel pressures (times Jacobian).
+      self:pPerpJacCalc(tCurr, momIn, self.jacM2perp, self.pPerpJac)
+      self:pParJacCalc(tCurr, momIn, self.uParSelf, self.mJacM1, self.mJacM2flow,
+                              self.mJacM2, self.pPerpJac, self.pParJac)
 
-         -- Compute perpendicular and parallel temperatures.
-         self:TparCalc(tCurr, self.mJacM0, self.pParJac, self.TparSelf)
-         self:TperpCalc(tCurr, self.mJacM0, self.pPerpJac, self.TperpSelf)
+      -- Compute perpendicular and parallel temperatures.
+      self:TparCalc(tCurr, self.mJacM0, self.pParJac, self.TparSelf)
+      self:TperpCalc(tCurr, self.mJacM0, self.pPerpJac, self.TperpSelf)
 
-         -- Package self primitive moments into a single field (expected by equation object).
-         self.primMomSelf:combineOffset(1.,  self.uParSelf, 0*self.basis:numBasis(),
-                                        1.,  self.TparSelf, 1*self.basis:numBasis(),
-                                        1., self.TperpSelf, 2*self.basis:numBasis())
+      -- Package self primitive moments into a single field (expected by equation object).
+      self.primMomSelf:combineOffset(1.,  self.uParSelf, 0*self.basis:numBasis(),
+                                     1.,  self.TparSelf, 1*self.basis:numBasis(),
+                                     1., self.TperpSelf, 2*self.basis:numBasis())
 
-         -- Indicate that primitive moments have been computed.
-         self.momentFlags[1] = true
-      end
+      -- Indicate that primitive moments have been computed.
+      self.momentFlags[1] = true
 
       self.calcFullMom(momIn)
 
-      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
+
+   self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
 end
 
 function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
@@ -315,13 +314,10 @@ function GyrofluidSpecies:getNumDensity(rkIdx)
 
    local momIn = self:rkStepperFields()[rkIdx]
 
-   if self.evolve or self._firstMomentCalc then
-      local tmStart = Time.clock()
-      self.jacM0Aux:combineOffset(1./self.mass, momIn, self.mJacM0Off)
-      self.calcDeltaFjacM0(self.jacM0Aux)
-      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
-   end
-   if not self.evolve then self._firstMomentCalc = false end
+   local tmStart = Time.clock()
+   self.jacM0Aux:combineOffset(1./self.mass, momIn, self.mJacM0Off)
+   self.calcDeltaFjacM0(self.jacM0Aux)
+   self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
 
    return self.jacM0Aux
 end
@@ -335,13 +331,10 @@ function GyrofluidSpecies:getMomDensity(rkIdx)
 
    local momIn = self:rkStepperFields()[rkIdx]
 
-   if self.evolve or self._firstMomentCalc then
-      local tmStart = Time.clock()
-      self.jacM1Aux:combineOffset(1./self.mass, momIn, self.mJacM1Off)
-      self.calcDeltaFjacM1(self.jacM1Aux)
-      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
-   end
-   if not self.evolve then self._firstMomentCalc = false end
+   local tmStart = Time.clock()
+   self.jacM1Aux:combineOffset(1./self.mass, momIn, self.mJacM1Off)
+   self.calcDeltaFjacM1(self.jacM1Aux)
+   self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
 
    return self.jacM1Aux
 end
@@ -364,16 +357,10 @@ function GyrofluidSpecies:momCalcTime()
    end
    return tm
 end
-function GyrofluidSpecies:solverVolTime()
-   return self.equation.totalVolTime
-end
-function GyrofluidSpecies:solverSurfTime()
-   return self.equation.totalSurfTime
-end
+function GyrofluidSpecies:solverVolTime() return self.equation.totalVolTime end
+function GyrofluidSpecies:solverSurfTime() return self.equation.totalSurfTime end
 function GyrofluidSpecies:totalSolverTime()
    local timer = self.solver.totalTime
-   if self.solverStep2 then timer = timer + self.solverStep2.totalTime end
-   if self.solverStep3 then timer = timer + self.solverStep3.totalTime end
    if self.posRescaler then timer = timer + self.posRescaler.totalTime end
    return timer
 end

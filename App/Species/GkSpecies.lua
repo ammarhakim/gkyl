@@ -1585,9 +1585,7 @@ function GkSpecies:getNumDensity(rkIdx)
    return self.numDensityAux
 end
 
-function GkSpecies:getBackgroundDens()
-   return self.n0
-end
+function GkSpecies:getBackgroundDens() return self.n0 end
 
 function GkSpecies:getMomDensity(rkIdx)
    -- If no rkIdx specified, assume momDensity has already been calculated.

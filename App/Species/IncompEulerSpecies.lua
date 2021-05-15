@@ -80,7 +80,7 @@ function IncompEulerSpecies:createSolver(hasE, hasB)
 end
 
 -- Nothing to calculate, just copy.
-function IncompEulerSpecies:calcCouplingMoments(tCurr, rkIdx)
+function IncompEulerSpecies:calcCouplingMomentsEvolve(tCurr, rkIdx)
    local fIn = self:rkStepperFields()[rkIdx]
    self.couplingMoments:copy(fIn)
 end
