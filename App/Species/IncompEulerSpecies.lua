@@ -76,6 +76,17 @@ function IncompEulerSpecies:createSolver(hasE, hasB)
          equation           = self.equation,
          zeroFluxDirections = zeroFluxDirs,
       }
+
+      if self.positivityRescale then
+         self.advSolver = function(tCurr, fIn, em, fRhsOut)
+            self.posRescaler:advance(tCurr, {fIn}, {self.momPos}, false)
+            self.solver:advance(tCurr, {self.momPos, em}, {fRhsOut})
+         end
+      else
+         self.advSolver = function(tCurr, fIn, em, fRhsOut)
+            self.solver:advance(tCurr, {fIn, em}, {fRhsOut})
+         end
+      end
    end
 end
 
@@ -93,12 +104,7 @@ function IncompEulerSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       local em = emIn[1]:rkStepperFields()[inIdx]
-      if self.positivityRescale then
-         self.posRescaler:advance(tCurr, {fIn}, {self.momPos}, false)
-         self.solver:advance(tCurr, {self.momPos, em}, {fRhsOut})
-      else
-         self.solver:advance(tCurr, {fIn, em}, {fRhsOut})
-      end
+      self.advSolver(tCurr, fIn, em, fRhsOut)
    else
       fRhsOut:clear(0.0) -- No RHS.
    end

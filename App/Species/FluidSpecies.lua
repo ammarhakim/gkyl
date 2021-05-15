@@ -294,15 +294,37 @@ function FluidSpecies:createSolver(externalField)
    -- Create BC solvers.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self) end
 
+   -- Create positivity functions.
    if self.positivity then
       self.posChecker = Updater.PositivityCheck {
          onGrid = self.grid,
          basis  = self.basis,
       }
+      self.checkPositivity = function(tCurr, idx)
+         return self.posChecker:advance(tCurr, {self:rkStepperFields()[idx]}, {})
+      end
+   else
+      self.checkPositivity = function(tCurr, idx) end
+   end
+   if self.positivityRescale or self.positivityDiffuse then
       self.posRescaler = Updater.PositivityRescale {
          onGrid = self.grid,
          basis  = self.basis,
       }
+      if self.positivityDiffuse then
+         self.posRescalerDiffAdv = function(tCurr, rkIdx, computeDiagnostics, zeroOut)
+            self.posRescaler:advance(tCurr, {self:rkStepperFields()[rkIdx]}, {self:rkStepperFields()[rkIdx]},
+                                     computeDiagnostics, zeroOut)
+         end
+         self.posRescalerDiffWrite = function(tm, fr) self.posRescaler:write(tm, fr, self.name) end
+      else
+         self.posRescalerDiffAdv   = function(tCurr, rkIdx, computeDiagnostics, zeroOut) end
+         self.posRescalerDiffWrite = function(tm, fr) end
+      end
+   else
+      self.posRescaler          = {advance=function(tCurr, inFlds, outFlds, computeDiagnostics, zeroOut) end}
+      self.posRescalerDiffAdv   = function(tCurr, rkIdx, computeDiagnostics, zeroOut) end
+      self.posRescalerDiffWrite = function(tm, fr) end
    end
 
    -- Functions to compute fluctuations given the current moments and background,
@@ -383,7 +405,7 @@ function FluidSpecies:alloc(nRkDup)
 
    self.flucMom = self.fluctuationBCs and self:allocVectorMoment(self.nMoments) or nil   -- Fluctuation.
 
-   if self.positivity then self.momPos = self:allocVectorMoment(self.nMoments) end
+   if self.positivityRescale then self.momPos = self:allocVectorMoment(self.nMoments) end
 
    -- Array with one component per cell to store cflRate in each cell.
    self.cflRateByCell = self:allocCartField(self.grid, 1, {1,1})
@@ -445,9 +467,7 @@ function FluidSpecies:initDist(extField, species)
 
    self.moments[2]:clear(0.0)
 
-   if self.positivityRescale or self.positivityDiffuse then
-      self.posRescaler:advance(0.0, {self.moments[1]}, {self.moments[1]}, false)
-   end
+   self.posRescaler:advance(0.0, {self.moments[1]}, {self.moments[1]}, false)
 
    -- Compute the initial coupling moments.
    self:calcCouplingMomentsEvolve(0.0, 1, species)
@@ -526,22 +546,12 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    momRhsOut:clear(0.0)
 end
 
-function FluidSpecies:checkPositivity(tCurr, idx)
-  local status = true
-  if self.positivity then
-     status = self.posChecker:advance(tCurr, {self:rkStepperFields()[idx]}, {})
-  end
-  return status
-end
-
 function FluidSpecies:applyBcIdx(tCurr, idx, isFirstRk)
-  if self.positivityDiffuse then
-     self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]}, true, isFirstRk)
-  end
+  self.posRescalerDiffAdv(tCurr, idx, true, isFirstRk)
+
   self:applyBc(tCurr, self:rkStepperFields()[idx])
-  if self.positivity then
-     self:checkPositivity(tCurr, idx)
-  end
+
+  self.checkPositivity(tCurr, idx)
 end
 
 function FluidSpecies:applyBcNotEvolve(tCurr, momIn) end
@@ -633,9 +643,7 @@ function FluidSpecies:write(tm, force)
             c:write(tm, self.diagIoFrame)  -- Allow collisions to write (aside from diagnostics).
          end
 
-         if self.positivityDiffuse then
-            self.posRescaler:write(tm, self.diagIoFrame, self.name)
-         end
+         self.posRescalerDiffWrite(tm, self.diagIoFrame)  -- Write positivity diagnostics.
 
          self.diagIoFrame = self.diagIoFrame+1
       end
