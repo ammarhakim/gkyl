@@ -131,6 +131,15 @@ function GyrofluidSpecies:createSolver(hasPhi, hasApar, externalField)
       globalUpwind       = true,
    }
 
+   if self.positivityRescale then
+      self.returnPosRescaledMom = function(tCurr, momIn)
+         self.posRescaler:advance(tCurr, {momIn}, {self.momPos}, false)
+         return self.momPos
+      end
+   else
+      self.returnPosRescaledMom = function(tCurr, momIn) return momIn end
+   end
+
    if self.deltaF then
       self.calcDeltaFjacM0 = function(jacM0In)
          jacM0In:accumulateOffset(-1.0/self.mass, self.momBackground, self.mJacM0Off)
@@ -230,10 +239,7 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local em     = emIn[1]:rkStepperFields()[inIdx] -- Dynamic fields (e.g. phi, Apar)
    local emFunc = emIn[2]:rkStepperFields()[1]     -- Geometry/external field.
 
-   if self.positivityRescale then
-      self.posRescaler:advance(tCurr, {momIn}, {self.momPos}, false)
-      momIn = self.momPos
-   end
+   momIn = self.returnPosRescaledMom(tCurr, momIn)
 
    -- Clear RHS, because HyperDisCont set up with clearOut = false.
    momRhsOut:clear(0.0)
