@@ -287,6 +287,9 @@ function DistFuncMomentCalc:init(tbl)
       end
    end
 
+   -- Option to compute moments only once per timestep, based on tCurr input parameter.
+   -- NOTE: this should not be used if the updater is used to compute several different quantities in the same timestep.
+   self.oncePerTime = xsys.pickBool(tbl.oncePerTime, false)
 
 end
 
@@ -610,7 +613,9 @@ end
 
 -- Advance method.
 function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
+   if self.oncePerTime and self.tCurr == tCurr then return end -- Do nothing, already computed on this step.
    self.advImpl(tCurr, inFld, outFld)
+   if self.oncePerTime then self.tCurr = tCurr end
 end
 
 return DistFuncMomentCalc

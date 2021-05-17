@@ -1039,6 +1039,7 @@ function GkSpecies:createDiagnostics()
       if bc then
          label = bc:label()
          bmag  = bc.bmag
+         advArgs[1][1] = bc:getBoundaryFluxRate()
          phaseGrid, confGrid = bc:getBoundaryGrid(), bc:getConfBoundaryGrid()
       end
 
@@ -1053,7 +1054,7 @@ function GkSpecies:createDiagnostics()
                                 charge    = self.charge,
                                 mass      = self.mass,},	    
             }
-            if bc then advArgs = {{bc:getBoundaryFluxRate()}, {self.diagnosticMomentFields[mom..label]}} end
+            if bc then advArgs[2][1] = self.diagnosticMomentFields[mom..label] end
             self.diagnosticMomentUpdaters[mom..label] = Updater.DistFuncMomentCalc {
                advanceArgs = advArgs,
                onGrid      = phaseGrid,

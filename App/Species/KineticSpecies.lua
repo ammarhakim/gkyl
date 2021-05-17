@@ -426,6 +426,7 @@ function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop,
       feedback           = self.feedbackBC,
       confBasis          = self.confBasis,
       confGrid           = self.confGrid,
+      inField            = self:rkStepperFields()[1],
    }
 end
 
