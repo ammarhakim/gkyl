@@ -59,12 +59,14 @@ end
 function DistFuncMomentCalc:init(tbl)
    DistFuncMomentCalc.super.init(self, tbl)    -- Setup base object.
 
-   local advArgs = assert(
-      tbl.advanceArgs, "Updater.DistFuncMomentCalc: Must sample arguments for advance method using 'advanceArgs'")
+   self._onGrid = assert(
+      tbl.onGrid, "Updater.DistFuncMomentCalc: Must provide grid object using 'onGrid'")
    local phaseBasis = assert(
       tbl.phaseBasis, "Updater.DistFuncMomentCalc: Must provide phase-space basis object using 'phaseBasis'")
    local confBasis = assert(
       tbl.confBasis, "Updater.DistFuncMomentCalc: Must provide configuration-space basis object using 'confBasis'")
+
+   local advArgs = tbl.advanceArgs  -- Sample arguments for advance method.
 
    self._basisID   = phaseBasis:id()
    self._polyOrder = phaseBasis:polyOrder()
@@ -114,10 +116,6 @@ function DistFuncMomentCalc:init(tbl)
    self.idxP = Lin.IntVec(self._pDim)
    self.xcP  = Lin.Vec(self._pDim)
    self.dxP  = Lin.Vec(self._pDim)
-
-
-   -- First entry in advArgs is a table containing the distribution function.
-   self._onGrid = advArgs[1][1]:grid()
 
    if self.isPartialMom then
       local baseMom
@@ -172,12 +170,6 @@ function DistFuncMomentCalc:init(tbl)
       self.bmagItr = self.bmag:get(1)
    end
 
-   if self._isGk then 
-      self.bmagItrSet = function(cIdx) self.bmag:fill(self.fldTools.confIndexer(cIdx), self.bmagItr) end
-   else
-      self.bmagItrSet = function(cIdx) end
-   end
-
    if self._fiveMomentsLBO then
       -- If vDim>1, intFac=2*pi/m or 4*pi/m.
       self._intFac = Lin.Vec(self._vDim)
@@ -216,8 +208,15 @@ function DistFuncMomentCalc:init(tbl)
    self.onGhosts = xsys.pickBool(tbl.onGhosts, true)
 
    -- Initialize tools constructed from fields (e.g. ranges).
-   local advArgs = tbl.advanceArgs   -- Sample arguments passed to advance method.
-   self.fldTools = self:initFldTools(advArgs[1],advArgs[2])
+   self.fldTools = advArgs and self:initFldTools(advArgs[1],advArgs[2]) or nil
+
+   -- Pre-select and create functions for various cases handled by this updater.
+   if self._isGk then 
+      self.bmagItrSet = function(cIdx) self.bmag:fill(self.fldTools.confIndexer(cIdx), self.bmagItr) end
+   else
+      self.bmagItrSet = function(cIdx) end
+   end
+
    if self._fiveMoments then
       -- The first five (Vlasov) or three (GK) moments.
       if self._isGk then   -- Functions that call kernels when computing a single moment.
@@ -614,7 +613,11 @@ end
 -- Advance method.
 function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
    if self.oncePerTime and self.tCurr == tCurr then return end -- Do nothing, already computed on this step.
+
+   self.fldTools = self.fldTools or self:initFldTools(inFld,outFld)
+
    self.advImpl(tCurr, inFld, outFld)
+
    if self.oncePerTime then self.tCurr = tCurr end
 end
 
