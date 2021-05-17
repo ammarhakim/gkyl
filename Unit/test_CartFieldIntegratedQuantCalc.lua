@@ -54,10 +54,11 @@ local function test_ser_V()
 
    -- Moment updater.
    local calcNumDensity = Updater.DistFuncMomentCalc {
-      onGrid     = phaseGrid,
-      phaseBasis = phaseBasis,
-      confBasis  = confBasis,
-      moment     = "M0",
+      advanceArgs = {{distf}, {numDensity}},
+      onGrid      = phaseGrid,
+      phaseBasis  = phaseBasis,
+      confBasis   = confBasis,
+      moment      = "M0",
    }
    calcNumDensity:advance(0.0, {distf}, {numDensity})
 

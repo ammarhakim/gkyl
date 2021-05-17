@@ -84,28 +84,32 @@ function test_ser_1x1v()
 
    -- Moment updaters.
    local calcNumDensity = Updater.DistFuncMomentCalc {
-      onGrid     = phaseGrid,
-      phaseBasis = phaseBasis,
-      confBasis  = confBasis,
-      moment     = "M0",
-   }
-   local calcNumDensityPvx = Updater.DistFuncMomentCalc {
-      onGrid     = phaseGrid,
-      phaseBasis = phaseBasis,
-      confBasis  = confBasis,
-      moment     = "M0Pvx",
+      advanceArgs = {{distf}, {numDensity}},
+      onGrid      = phaseGrid,
+      phaseBasis  = phaseBasis,
+      confBasis   = confBasis,
+      moment      = "M0",
    }
    local calcMomDensity = Updater.DistFuncMomentCalc {
-      onGrid     = phaseGrid,
-      phaseBasis = phaseBasis,
-      confBasis  = confBasis,
-      moment     = "M1i",
+      advanceArgs = {{distf}, {momDensity}},
+      onGrid      = phaseGrid,
+      phaseBasis  = phaseBasis,
+      confBasis   = confBasis,
+      moment      = "M1i",
+   }
+   local calcNumDensityPvx = Updater.DistFuncMomentCalc {
+      advanceArgs = {{distf}, {numDensity}},
+      onGrid      = phaseGrid,
+      phaseBasis  = phaseBasis,
+      confBasis   = confBasis,
+      moment      = "M0Pvx",
    }
    local calcMomDensityPvx = Updater.DistFuncMomentCalc {
-      onGrid     = phaseGrid,
-      phaseBasis = phaseBasis,
-      confBasis  = confBasis,
-      moment     = "M1iPvx",
+      advanceArgs = {{distf}, {numDensity}},
+      onGrid      = phaseGrid,
+      phaseBasis  = phaseBasis,
+      confBasis   = confBasis,
+      moment      = "M1iPvx",
    }
 
    -- Check M0, number density.
@@ -172,6 +176,7 @@ function test_max_1x1v()
 
    -- Moment updaters.
    local calcNumDensity = Updater.DistFuncMomentCalc {
+      advanceArgs = {{distf}, {numDensity}},
       onGrid     = phaseGrid,
       phaseBasis = phaseBasis,
       confBasis  = confBasis,
