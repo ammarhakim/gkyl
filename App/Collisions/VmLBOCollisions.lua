@@ -200,7 +200,7 @@ function VmLBOCollisions:setPhaseGrid(grid)
    self.phaseGrid = grid
 end
 
-function VmLBOCollisions:createSolver()
+function VmLBOCollisions:createSolver(mySpecies, extField)
    self.vdim      = self.phaseGrid:ndim() - self.confGrid:ndim()
 
    self.cNumBasis = self.confBasis:numBasis()

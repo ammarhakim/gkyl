@@ -240,56 +240,64 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
    end
    
    -- Create updaters to compute various moments.
+   local distf = self:rkStepperFields()[1]
    self.numDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      moment     = "GkM0", -- GkM0 = < f >
-      gkfacs     = {self.mass, self.bmag},
+      advanceArgs = {{distf}, {self.numDensity}},
+      onGrid      = self.grid,
+      phaseBasis  = self.basis,
+      confBasis   = self.confBasis,
+      moment      = "GkM0", -- GkM0 = < f >
+      gkfacs      = {self.mass, self.bmag},
    }
    self.momDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      moment     = "GkM1", -- GkM1 = < v_parallel f > 
-      gkfacs     = {self.mass, self.bmag},
+      advanceArgs = {{distf}, {self.momDensity}},
+      onGrid      = self.grid,
+      phaseBasis  = self.basis,
+      confBasis   = self.confBasis,
+      moment      = "GkM1", -- GkM1 = < v_parallel f > 
+      gkfacs      = {self.mass, self.bmag},
    }
    self.momProjDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      moment     = "GkM1proj", -- GkM1proj = < cellavg(v_parallel) f >
-      gkfacs     = {self.mass, self.bmag},
+      advanceArgs = {{distf}, {self.momDensity}},
+      onGrid      = self.grid,
+      phaseBasis  = self.basis,
+      confBasis   = self.confBasis,
+      moment      = "GkM1proj", -- GkM1proj = < cellavg(v_parallel) f >
+      gkfacs      = {self.mass, self.bmag},
    }
    self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      moment     = "GkM2", -- GkM2 = < (v_parallel^2 + 2*mu*B/m) f >
-      gkfacs     = {self.mass, self.bmag},
+      advanceArgs = {{distf}, {self.ptclEnergy}},
+      onGrid      = self.grid,
+      phaseBasis  = self.basis,
+      confBasis   = self.confBasis,
+      moment      = "GkM2", -- GkM2 = < (v_parallel^2 + 2*mu*B/m) f >
+      gkfacs      = {self.mass, self.bmag},
    }
    self.M2parCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      moment     = "GkM2par",
-      gkfacs     = {self.mass, self.bmag},
+      advanceArgs = {{distf}, {self.ptclEnergy}},
+      onGrid      = self.grid,
+      phaseBasis  = self.basis,
+      confBasis   = self.confBasis,
+      moment      = "GkM2par",
+      gkfacs      = {self.mass, self.bmag},
    }
    if self.vdim > 1 then
       self.M2perpCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.grid,
-         phaseBasis = self.basis,
-         confBasis  = self.confBasis,
-         moment     = "GkM2perp",
-         gkfacs     = {self.mass, self.bmag},
+         advanceArgs = {{distf}, {self.ptclEnergy}},
+         onGrid      = self.grid,
+         phaseBasis  = self.basis,
+         confBasis   = self.confBasis,
+         moment      = "GkM2perp",
+         gkfacs      = {self.mass, self.bmag},
       }
    end
    self.threeMomentsCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      moment     = "GkThreeMoments",
-      gkfacs     = {self.mass, self.bmag},
+      advanceArgs = {{distf}, {self.numDensity}},
+      onGrid      = self.grid,
+      phaseBasis  = self.basis,
+      confBasis   = self.confBasis,
+      moment      = "GkThreeMoments",
+      gkfacs      = {self.mass, self.bmag},
    }
    self.calcMaxwell = Updater.MaxwellianOnBasis {
       onGrid      = self.grid,
@@ -302,12 +310,13 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
       -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
       self.threeMomentsLBOCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.grid,
-         phaseBasis = self.basis,
-         confBasis  = self.confBasis,
-         moment     = "GkThreeMomentsLBO",
-         gkfacs     = {self.mass, self.bmag},
-         positivity = self.positivity,
+         advanceArgs = {{distf}, {self.numDensity}},
+         onGrid      = self.grid,
+         phaseBasis  = self.basis,
+         confBasis   = self.confBasis,
+         moment      = "GkThreeMomentsLBO",
+         gkfacs      = {self.mass, self.bmag},
+         positivity  = self.positivity,
       }
       if self.needCorrectedSelfPrimMom then
          self.primMomSelf = Updater.SelfPrimMoments {
@@ -1023,8 +1032,9 @@ function GkSpecies:createDiagnostics()
 
    -- Allocate space to store moments and create moment updaters.
    local function allocateDiagnosticMoments(moments, weakMoments, bc)
-      local label = ""
-      local bmag  = self.bmag
+      local label   = ""
+      local bmag    = self.bmag
+      local advArgs = {{self:rkStepperFields()[1]}, {self.numDensity}}
       local phaseGrid, confGrid = self.grid, self.confGrid
       if bc then
          label = bc:label()
@@ -1043,7 +1053,9 @@ function GkSpecies:createDiagnostics()
                                 charge    = self.charge,
                                 mass      = self.mass,},	    
             }
+            if bc then advArgs = {{bc:getBoundaryFluxRate()}, {self.diagnosticMomentFields[mom..label]}} end
             self.diagnosticMomentUpdaters[mom..label] = Updater.DistFuncMomentCalc {
+               advanceArgs = advArgs,
                onGrid      = phaseGrid,
                phaseBasis  = self.basis,
                confBasis   = self.confBasis,
@@ -1278,7 +1290,8 @@ function GkSpecies:createDiagnostics()
    	 		     mass      = self.mass,},	    
    	 }
    	 self.bcGkM0fluxUpdater[label] = Updater.DistFuncMomentCalc {
-   	    onGrid = phaseGrid,
+            advanceArgs = {{bc:getBoundaryFluxRate()}, {self.bcGkM0fluxField[label]}},
+            onGrid      = phaseGrid,
    	    phaseBasis  = self.basis,
    	    confBasis   = self.confBasis,
    	    moment      = 'GkM0',

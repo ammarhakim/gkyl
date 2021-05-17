@@ -203,7 +203,7 @@ function VmBGKCollisions:setPhaseGrid(grid)
    self.phaseGrid = grid
 end
 
-function VmBGKCollisions:createSolver()
+function VmBGKCollisions:createSolver(mySpecies, externalField)
    self.numVelDims = self.phaseGrid:ndim() - self.confGrid:ndim()
 
    local function createConfFieldCompV()
@@ -228,10 +228,10 @@ function VmBGKCollisions:createSolver()
       self.dM0 = createConfFieldComp1()
       -- Create updater to compute M0, M1i, M2 moments sequentially.
       self.fiveMomentsCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.phaseGrid,
-         phaseBasis = self.phaseBasis,
-         confBasis  = self.confBasis,
-         moment     = "FiveMoments",
+         advanceArgs = {{mySpecies:rkStepperFields()[1]}, {self.dM0}},
+         phaseBasis  = self.phaseBasis,
+         confBasis   = self.confBasis,
+         moment      = "FiveMoments",
       }
       self.lagFix = Updater.LagrangeFix {
          onGrid     = self.phaseGrid,

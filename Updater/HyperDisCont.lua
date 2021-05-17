@@ -8,19 +8,19 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local Alloc = require "Lib.Alloc"
-local DataStruct = require "DataStruct"
-local Grid = require "Grid.RectCart"
-local CartField = require "DataStruct.CartField"
-local Lin = require "Lib.Linalg"
+local Alloc        = require "Lib.Alloc"
+local DataStruct   = require "DataStruct"
+local Grid         = require "Grid.RectCart"
+local CartField    = require "DataStruct.CartField"
+local Lin          = require "Lib.Linalg"
 local LinearDecomp = require "Lib.LinearDecomp"
-local Mpi = require "Comm.Mpi"
-local Proto = require "Lib.Proto"
-local Range = require "Lib.Range"
-local UpdaterBase = require "Updater.Base"
-local ffi = require "ffi"
-local ffiC = ffi.C
-local xsys = require "xsys"
+local Mpi          = require "Comm.Mpi"
+local Proto        = require "Lib.Proto"
+local Range        = require "Lib.Range"
+local UpdaterBase  = require "Updater.Base"
+local ffi          = require "ffi"
+local ffiC         = ffi.C
+local xsys         = require "xsys"
 local new, sizeof, typeof, metatype = xsys.from(ffi,
      "new, sizeof, typeof, metatype")
 
@@ -140,16 +140,16 @@ function HyperDisCont:initDevice(tbl)
    return self
 end
 
--- advance method
+-- Advance method.
 function HyperDisCont:_advance(tCurr, inFld, outFld)
-   local grid = self._onGrid
-   local dt = self._dt
+   local grid          = self._onGrid
+   local dt            = self._dt
    local cflRateByCell = self._cflRateByCell
 
-   local qIn = assert(inFld[1], "HyperDisCont.advance: Must specify an input field")
+   local qIn     = assert(inFld[1], "HyperDisCont.advance: Must specify an input field")
    local qRhsOut = assert(outFld[1], "HyperDisCont.advance: Must specify an output field")
 
-   -- pass aux fields to equation object
+   -- Pass aux fields to equation object.
    for i = 1, #inFld-1 do
       self._auxFields[i] = inFld[i+1]
    end
@@ -160,17 +160,17 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
    local cfl, cflm = self._cfl, self._cflm
    local cfla = 0.0 -- actual CFL number used
 
-   local localRange = qRhsOut:localRange()
+   local localRange  = qRhsOut:localRange()
    local globalRange = qRhsOut:globalRange()
    local qInIdxr, qRhsOutIdxr = qIn:genIndexer(), qRhsOut:genIndexer() -- indexer functions into fields
-   local cflRateByCellIdxr = cflRateByCell:genIndexer()
+   local cflRateByCellIdxr    = cflRateByCell:genIndexer()
 
-   -- to store grid info
-   local dxp, dxm = Lin.Vec(ndim), Lin.Vec(ndim) -- cell shape on right/left
-   local xcp, xcm = Lin.Vec(ndim), Lin.Vec(ndim) -- cell center on right/left
-   local idxp, idxm = Lin.IntVec(ndim), Lin.IntVec(ndim) -- index on right/left
+   -- To store grid info.
+   local dxp, dxm   = Lin.Vec(ndim), Lin.Vec(ndim)       -- Cell shape on right/left.
+   local xcp, xcm   = Lin.Vec(ndim), Lin.Vec(ndim)       -- Cell center on right/left.
+   local idxp, idxm = Lin.IntVec(ndim), Lin.IntVec(ndim) -- Index on right/left.
 
-   -- pointers for (re)use in update
+   -- Pointers for (re)use in update.
    local qInM, qInP = qIn:get(1), qIn:get(1)
    local qRhsOutM, qRhsOutP = qRhsOut:get(1), qRhsOut:get(1)
    local cflRateByCellP = cflRateByCell:get(1)

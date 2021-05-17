@@ -269,7 +269,7 @@ end
 --
 --end
 
-function GkBGKCollisions:createSolver(externalField)
+function GkBGKCollisions:createSolver(mySpecies, externalField)
    -- Background magnetic field. Needed for spatially varying nu
    -- or to project Maxwellians with vdim>1.
    self.bmag = externalField.geo.bmag
@@ -278,16 +278,16 @@ function GkBGKCollisions:createSolver(externalField)
 
    if self.exactLagFixM012 then
       -- Intermediate moments used in Lagrange fixing.
+      self.dM0 = self:createConfField()
       self.dM1 = self:createConfField()
       self.dM2 = self:createConfField()
-      self.dM0 = self:createConfField()
       -- Create updater to compute M0, M1i, M2 moments sequentially.
       self.threeMomentsCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.phaseGrid,
-         phaseBasis = self.phaseBasis,
-         confBasis  = self.confBasis,
-         moment     = "GkThreeMoments",
-         gkfacs     = {self.mass, self.bmag},
+         advanceArgs = {{mySpecies:rkStepperFields()[1]}, {self.dM0}},
+         phaseBasis  = self.phaseBasis,
+         confBasis   = self.confBasis,
+         moment      = "GkThreeMoments",
+         gkfacs      = {self.mass, self.bmag},
       }
       self.lagFix = Updater.LagrangeFix {
          onGrid     = self.phaseGrid,
