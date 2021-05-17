@@ -240,7 +240,6 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
    end
    
    -- Create updaters to compute various moments.
-   local distf = self:rkStepperFields()[1]
    self.numDensityCalc = Updater.DistFuncMomentCalc {
       onGrid     = self.grid,
       phaseBasis = self.basis,

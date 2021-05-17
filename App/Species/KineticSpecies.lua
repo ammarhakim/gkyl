@@ -453,7 +453,7 @@ end
 
 function KineticSpecies:createSolver(externalField)
    -- Create solvers for collisions.
-   for _, c in pairs(self.collisions) do c:createSolver(self,externalField) end
+   for _, c in pairs(self.collisions) do c:createSolver(externalField) end
    if self.positivity then
       self.posChecker = Updater.PositivityCheck {
          onGrid = self.grid,

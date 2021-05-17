@@ -189,7 +189,7 @@ function GkLBOCollisions:setConfGrid(grid) self.confGrid = grid end
 function GkLBOCollisions:setPhaseBasis(basis) self.phaseBasis = basis end
 function GkLBOCollisions:setPhaseGrid(grid) self.phaseGrid = grid end
 
-function GkLBOCollisions:createSolver(mySpecies, externalField)
+function GkLBOCollisions:createSolver(externalField)
    self.vDim = self.phaseGrid:ndim() - self.confGrid:ndim()
 
    -- Number of physical velocity dimensions.

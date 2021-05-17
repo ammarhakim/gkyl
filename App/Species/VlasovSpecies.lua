@@ -137,7 +137,6 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
    }
 
    -- Create updaters to compute various moments.
-   local distf = self:rkStepperFields()[1]
    self.numDensityCalc = Updater.DistFuncMomentCalc {
       onGrid     = self.grid,
       phaseBasis = self.basis,
