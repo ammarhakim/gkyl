@@ -583,7 +583,6 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    totalEmField:clear(0.0)
 
    local qbym = self.charge/self.mass
-
    if emField and self.computePlasmaB then totalEmField:accumulate(qbym, emField) end
    if emExternalField then totalEmField:accumulate(qbym, emExternalField) end
 
@@ -620,6 +619,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          c:advance(tCurr, fIn, species, fRhsOut)   -- 'species' needed for cross-species collisions.
       end
    end
+
    for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
    
    -- Save boundary fluxes for diagnostics.
@@ -1123,13 +1123,13 @@ function VlasovSpecies:calcDiagnosticIntegratedMoments(tm)
 	 self.intCalcIz:advance( tm, {self.srcIzM0}, {self.intSrcIzM0} )       
       end
       
-      -- if self.hasRecycleBcs and label~="" then
-      -- 	 if self.cdim == 1 or (self.cdim == 3 and string.match(label,"Z")) then
-      -- 	    mom = "intM0Recycle"
-      -- 	    self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
-      -- 	       tm, {self.recycleTestFlux[label]}, {self.diagnosticIntegratedMomentFields[mom..label]})
-      -- 	 end
-      -- end
+      if self.hasRecycleBcs and label~="" then
+      	 if self.cdim == 1 or (self.cdim == 3 and string.match(label,"Z")) then
+      	    mom = "intM0Recycle"
+      	    self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
+      	       tm, {self.recycleTestFlux[label]}, {self.diagnosticIntegratedMomentFields[mom..label]})
+      	 end
+      end
    end
 
    computeIntegratedMoments(self.diagnosticIntegratedMoments, fIn)
@@ -1545,8 +1545,6 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 		  local cdim = self.cdim
 		  local vdim = self.vdim
 		  local vt2 = T0/self.mass
-		  --local u = -10*edgeval*math.sqrt(vt2)
-		  --local v2 = (xn[2] - u)^2 + xn[3]^2 + xn[4]^2
 		  local v2 = 0.0
 		  for d = cdim+1, cdim+vdim do
 		     v2 = v2 + (xn[d])^2
@@ -1588,7 +1586,6 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	       self.recTime = tbl.recycleTime
 	       scaleByTime = function(tm)
 		  return 0.5*(1. + math.tanh(tm/self.recTime-1))
-		  --return math.tanh(tm/self.recTime)
 	       end
 	       self.scaledRecFrac = self.recFrac*scaleByTime(tCurr)
 	    else

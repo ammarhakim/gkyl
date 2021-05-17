@@ -5,6 +5,8 @@
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
+-- System imports.
+local xsys = require "xsys"
 
 -- Gkyl libraries.
 local DataStruct  = require "DataStruct"
@@ -31,7 +33,7 @@ function PositivityRescale:init(tbl)
       tbl.basis,
       "Updater.PositivityRescale: Must provide basis object using 'basis'")
    assert(self.basis:polyOrder()==1, "Updater.PositivityRescale only implemented for p=1")
-
+   
    -- number of components to set
    self.numComponents = tbl.numComponents and tbl.numComponents or 1
    assert(self.numComponents == 1, "Updater.PositivityRescale only implemented for fields with numComponents = 1")
@@ -137,6 +139,7 @@ function PositivityRescale:advance(tCurr, inFld, outFld, computeDiagnostics, zer
       fOut:fill(self.fOutIndexer(idx), self.fOutPtr)
 
       local del2ChangeCell = ffiC.rescale(self.fInPtr:data(), self.fOutPtr:data(), ndim, numBasis, idx:data(), tCurr)
+     
       if computeDiagnostics then 
          self.del2ChangeByCell:fill(self.del2ChangeIndexer(idx), self.del2ChangePtr)
          self.del2ChangePtr:data()[self.rkIdx-1] = del2ChangeCell*grid:cellVolume()

@@ -124,12 +124,10 @@ bool check(const double *fIn, int ndim, int numBasis, int *idx, double tCurr, in
   return status;
 }
 
-
 double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx, double tCurr)
 {
   double f0 = fIn[0]*std::pow(0.7071067811865475,ndim);
-  if (f0 < 0.) return 0.;
-
+  
   double fmin = findMinNodalValue(fIn, ndim);
   double fminOld, del2Change = 0.;
   int j = 0;
@@ -153,6 +151,17 @@ double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx
      fmin = findMinNodalValue(fOut, ndim);
      j++;
   }
-  
+
+  if (f0 < 0.) {
+    fOut[0] = 0.0;
+    for(int i=1; i<numBasis; i++) {
+      fOut[i] = 0.0;
+    }
+  } else {
+    for(int i=0; i<numBasis; i++) {
+      fOut[i] = fIn[i];
+    }
+  }
+
   return del2Change;
 }

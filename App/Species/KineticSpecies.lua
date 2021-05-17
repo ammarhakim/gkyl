@@ -463,6 +463,19 @@ function KineticSpecies:createSolver(externalField)
          basis  = self.basis,
       }
    end
+   if self.positivityRescale then
+      self.prePosM0     = self:allocMoment()
+      self.postPosM0    = self:allocMoment()
+      self.delPosM0     = self:allocMoment()
+      self.intDelPosM0  = DataStruct.DynVector{numComponents = 1}
+      self.calcIntPosM0 = Updater.CartFieldIntegratedQuantCalc {
+	    onGrid        = self.confGrid,
+	    basis         = self.confBasis,
+	    numComponents = 1,
+	    quantity      = "V",
+	    timeIntegrate = timeIntegrate,
+      }
+   end
 end
 
 function KineticSpecies:alloc(nRkDup)
@@ -677,7 +690,7 @@ end
 function KineticSpecies:checkPositivity(tCurr, idx)
   local status = true
   if self.positivity then
-     status = self.posChecker:advance(tCurr, {self:rkStepperFields()[idx]}, {})
+     --status = self.posChecker:advance(tCurr, {self:rkStepperFields()[idx]}, {})
   end
   return status
 end
@@ -691,6 +704,15 @@ function KineticSpecies:applyBcIdx(tCurr, idx, isFirstRk)
   self:applyBc(tCurr, self:rkStepperFields()[idx])
   if self.positivity then
      self:checkPositivity(tCurr, idx)
+  end
+  if self.positivityRescale then
+     self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[idx]}, {self.prePosM0})
+     
+     self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]}, false)
+     
+     self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[idx]}, {self.postPosM0})
+     self.delPosM0:combine(1.0, self.postPosM0, -1.0, self.prePosM0)
+     self.calcIntPosM0:advance(tCurr, {self.delPosM0}, {self.intDelPosM0})
   end
 end
 
@@ -896,10 +918,13 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
 	      wlabel = (label):gsub("Flux","")
 	      self.recycleCoef[label]:write(string.format("%s%s_%d.bp", 'recycleCoef', wlabel, self.diagIoFrame), tm, self.diagIoFrame, false)
 	      self.recycleDistF[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleDistF', wlabel, self.diagIoFrame), tm, self.diagIoFrame, false)
-	      -- mom="intM0Recycle"
-	      -- self.diagnosticIntegratedMomentFields[mom..label]:write(string.format("%s_%s.bp", self.name, mom..label), tm, self.diagIoFrame)
 	   end
 	end
+    end
+
+    -- Vlasov positivity diagnostics
+    if self.positivityRescale then
+       self.intDelPosM0:write( string.format("%s_intPosDelM0.bp", self.name), tm, self.diagIoFrame)
     end
 end
 
