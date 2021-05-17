@@ -283,12 +283,11 @@ function GkBGKCollisions:createSolver(mySpecies, externalField)
       self.dM2 = self:createConfField()
       -- Create updater to compute M0, M1i, M2 moments sequentially.
       self.threeMomentsCalc = Updater.DistFuncMomentCalc {
-         advanceArgs = {{mySpecies:rkStepperFields()[1]}, {self.dM0}},
-         onGrid      = self.phaseGrid,
-         phaseBasis  = self.phaseBasis,
-         confBasis   = self.confBasis,
-         moment      = "GkThreeMoments",
-         gkfacs      = {self.mass, self.bmag},
+         onGrid     = self.phaseGrid,
+         phaseBasis = self.phaseBasis,
+         confBasis  = self.confBasis,
+         moment     = "GkThreeMoments",
+         gkfacs     = {self.mass, self.bmag},
       }
       self.lagFix = Updater.LagrangeFix {
          onGrid     = self.phaseGrid,

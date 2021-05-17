@@ -139,34 +139,30 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
    -- Create updaters to compute various moments.
    local distf = self:rkStepperFields()[1]
    self.numDensityCalc = Updater.DistFuncMomentCalc {
-      advanceArgs = {{distf}, {self.numDensity}},
-      onGrid      = self.grid,
-      phaseBasis  = self.basis,
-      confBasis   = self.confBasis,
-      moment      = "M0",
+      onGrid     = self.grid,
+      phaseBasis = self.basis,
+      confBasis  = self.confBasis,
+      moment     = "M0",
    }
    self.momDensityCalc = Updater.DistFuncMomentCalc {
-      advanceArgs = {{distf}, {self.momDensity}},
-      onGrid      = self.grid,
-      phaseBasis  = self.basis,
-      confBasis   = self.confBasis,
-      moment      = "M1i",
+      onGrid     = self.grid,
+      phaseBasis = self.basis,
+      confBasis  = self.confBasis,
+      moment     = "M1i",
    }
    self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
-      advanceArgs = {{distf}, {self.ptclEnergy}},
-      onGrid      = self.grid,
-      phaseBasis  = self.basis,
-      confBasis   = self.confBasis,
-      moment      = "M2",
+      onGrid     = self.grid,
+      phaseBasis = self.basis,
+      confBasis  = self.confBasis,
+      moment     = "M2",
    }
    -- Create updater to compute M0, M1i, M2 moments sequentially.
    -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
    self.fiveMomentsCalc = Updater.DistFuncMomentCalc {
-      advanceArgs = {{distf}, {self.numDensity}},
-      onGrid      = self.grid,
-      phaseBasis  = self.basis,
-      confBasis   = self.confBasis,
-      moment      = "FiveMoments",
+      onGrid     = self.grid,
+      phaseBasis = self.basis,
+      confBasis  = self.confBasis,
+      moment     = "FiveMoments",
    }
    self.calcMaxwell = Updater.MaxwellianOnBasis {
       onGrid      = self.grid,
@@ -178,11 +174,10 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
       -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
       self.fiveMomentsLBOCalc = Updater.DistFuncMomentCalc {
-         advanceArgs = {{distf}, {self.numDensity}},
-         onGrid      = self.grid,
-         phaseBasis  = self.basis,
-         confBasis   = self.confBasis,
-         moment      = "FiveMomentsLBO",
+         onGrid     = self.grid,
+         phaseBasis = self.basis,
+         confBasis  = self.confBasis,
+         moment     = "FiveMomentsLBO",
       }
       if self.needCorrectedSelfPrimMom then
          self.primMomSelf = Updater.SelfPrimMoments {
@@ -914,11 +909,9 @@ function VlasovSpecies:createDiagnostics()
    -- Allocate space to store moments and create moment updater.
    local function allocateDiagnosticMoments(moments, weakMoments, bc)
       local label = ""
-      local advArgs = {{self:rkStepperFields()[1]}, {self.numDensity}}
       local phaseGrid, confGrid = self.grid, self.confGrid
       if bc then
          label = bc:label()
-         advArgs[1][1] = bc:getBoundaryFluxRate()
          phaseGrid, confGrid = bc:getBoundaryGrid(), bc:getConfBoundaryGrid()
       end
 
@@ -936,13 +929,11 @@ function VlasovSpecies:createDiagnostics()
                },
             }
      
-            if bc then advArgs[2][1] = self.diagnosticMomentFields[mom..label] end
             self.diagnosticMomentUpdaters[mom..label] = Updater.DistFuncMomentCalc {
-               advanceArgs = advArgs,
-               onGrid      = phaseGrid,
-               phaseBasis  = self.basis,
-               confBasis   = self.confBasis,
-               moment      = mom,
+               onGrid     = phaseGrid,
+               phaseBasis = self.basis,
+               confBasis  = self.confBasis,
+               moment     = mom,
             }
          else
             assert(false, string.format("Error: moment %s not valid", mom..label))
@@ -1526,11 +1517,10 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	       
 	       -- DistFuncMomentCalc Updater for fMaxwell	    
 	       self.calcFhatM0[label] = Updater.DistFuncMomentCalc {
-                  advanceArgs = {{bc:getBoundaryFluxRate()}, {self.recycleFhatM0[label]}},
-                  onGrid      = phaseGrid,
-		  phaseBasis  = self.basis,
-		  confBasis   = self.confBasis,
-		  moment      = mom,
+                  onGrid     = phaseGrid,
+		  phaseBasis = self.basis,
+		  confBasis  = self.confBasis,
+		  moment     = mom,
 	       }
 	       
 	       self.recycleConfDiv[label] = Updater.CartFieldBinOp {

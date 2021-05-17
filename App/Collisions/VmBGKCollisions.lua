@@ -228,11 +228,10 @@ function VmBGKCollisions:createSolver(mySpecies, externalField)
       self.dM0 = createConfFieldComp1()
       -- Create updater to compute M0, M1i, M2 moments sequentially.
       self.fiveMomentsCalc = Updater.DistFuncMomentCalc {
-         advanceArgs = {{mySpecies:rkStepperFields()[1]}, {self.dM0}},
-         onGrid      = self.phaseGrid,
-         phaseBasis  = self.phaseBasis,
-         confBasis   = self.confBasis,
-         moment      = "FiveMoments",
+         onGrid     = self.phaseGrid,
+         phaseBasis = self.phaseBasis,
+         confBasis  = self.confBasis,
+         moment     = "FiveMoments",
       }
       self.lagFix = Updater.LagrangeFix {
          onGrid     = self.phaseGrid,
