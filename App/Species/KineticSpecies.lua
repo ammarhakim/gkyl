@@ -218,6 +218,7 @@ function KineticSpecies:fullInit(appTbl)
    self.positivity        = xsys.pickBool(tbl.applyPositivity, false)
    self.positivityDiffuse = xsys.pickBool(tbl.positivityDiffuse, self.positivity)
    self.positivityRescale = xsys.pickBool(tbl.positivityRescale, false)
+   self.nonconPositivity  = xsys.pickBool(tbl.nonconPositivity, false)
    
    -- for GK only: flag for gyroaveraging.
    self.gyavg = xsys.pickBool(tbl.gyroaverage, false)
@@ -463,7 +464,7 @@ function KineticSpecies:createSolver(externalField)
          basis  = self.basis,
       }
    end
-   if self.positivityRescale then
+   if self.nonconPositivity then
       self.prePosM0     = self:allocMoment()
       self.postPosM0    = self:allocMoment()
       self.delPosM0     = self:allocMoment()
@@ -474,6 +475,11 @@ function KineticSpecies:createSolver(externalField)
 	    numComponents = 1,
 	    quantity      = "V",
 	    timeIntegrate = timeIntegrate,
+      }
+      self.nonconPos = Updater.PositivityRescale {
+         onGrid = self.grid,
+         basis  = self.basis,
+	 nonconservative = true,
       }
    end
 end
@@ -705,10 +711,10 @@ function KineticSpecies:applyBcIdx(tCurr, idx, isFirstRk)
   if self.positivity then
      self:checkPositivity(tCurr, idx)
   end
-  if self.positivityRescale then
+  if self.nonconPositivity then
      self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[idx]}, {self.prePosM0})
      
-     self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]}, false)
+     self.nonconPos:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]}, false)
      
      self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[idx]}, {self.postPosM0})
      self.delPosM0:combine(1.0, self.postPosM0, -1.0, self.prePosM0)
@@ -923,7 +929,7 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
     end
 
     -- Vlasov positivity diagnostics
-    if self.positivityRescale then
+    if self.nonconPositivity then
        self.intDelPosM0:write( string.format("%s_intPosDelM0.bp", self.name), tm, self.diagIoFrame)
     end
 end

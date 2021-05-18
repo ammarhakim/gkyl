@@ -19,6 +19,7 @@ local ffiC        = ffi.C
 ffi.cdef[[
   double findMinNodalValue(double *fIn, int ndim); 
   double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx, double tCurr);
+  double nonconRescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx, double tCurr);
 ]]
 
 local PositivityRescale = Proto(UpdaterBase)
@@ -33,6 +34,7 @@ function PositivityRescale:init(tbl)
       tbl.basis,
       "Updater.PositivityRescale: Must provide basis object using 'basis'")
    assert(self.basis:polyOrder()==1, "Updater.PositivityRescale only implemented for p=1")
+   self.nonconservative = xsys.pickBool(tbl.nonconservative, false)
    
    -- number of components to set
    self.numComponents = tbl.numComponents and tbl.numComponents or 1
@@ -138,7 +140,12 @@ function PositivityRescale:advance(tCurr, inFld, outFld, computeDiagnostics, zer
       fIn:fill(self.fInIndexer(idx), self.fInPtr)
       fOut:fill(self.fOutIndexer(idx), self.fOutPtr)
 
-      local del2ChangeCell = ffiC.rescale(self.fInPtr:data(), self.fOutPtr:data(), ndim, numBasis, idx:data(), tCurr)
+      local del2ChangeCell = 0.0
+      if self.nonconservative then
+	 del2ChangeCell = ffiC.nonconRescale(self.fInPtr:data(), self.fOutPtr:data(), ndim, numBasis, idx:data(), tCurr)
+      else
+	 del2ChangeCell = ffiC.rescale(self.fInPtr:data(), self.fOutPtr:data(), ndim, numBasis, idx:data(), tCurr)
+      end
      
       if computeDiagnostics then 
          self.del2ChangeByCell:fill(self.del2ChangeIndexer(idx), self.del2ChangePtr)
