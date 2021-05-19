@@ -70,19 +70,28 @@ function AdiabaticSpecies:createSolver(hasE, hasB, externalField)
    end
 
    if self.deltaF then
-      self.calcCouplingMomentsEvolveFunc = function(tCurr, rkIdx)
+      self.calcCouplingMomentsFunc = function(tCurr, rkIdx)
          self.couplingMoments:clear(0.0)
       end
    else
-      self.calcCouplingMomentsEvolveFunc = function(tCurr, rkIdx)
+      self.calcCouplingMomentsFunc = function(tCurr, rkIdx)
          local fIn = self:rkStepperFields()[rkIdx]
          self.couplingMoments:copy(fIn)
       end
    end
+
+   self.suggestDtFunc = function() return FluidSpecies["suggestDtNotEvolve"](self) end
+   self.applyBcFunc   = function(tCurr, momIn) return FluidSpecies["applyBcNotEvolve"](self, tCurr, momIn) end
+
+   -- Empty methods needed in case positivity is used (for the kinetic species).
+   self.checkPositivity      = function(tCurr, idx) end
+   self.posRescaler          = {advance=function(tCurr, inFlds, outFlds, computeDiagnostics, zeroOut) end}
+   self.posRescalerDiffAdv   = function(tCurr, rkIdx, computeDiagnostics, zeroOut) end
+   self.posRescalerDiffWrite = function(tm, fr) end
 end
 
 function AdiabaticSpecies:calcCouplingMomentsEvolve(tCurr, rkIdx)
-   self.calcCouplingMomentsEvolveFunc(tCurr, rkIdx)
+   self.calcCouplingMomentsFunc(tCurr, rkIdx)
 end
 
 function AdiabaticSpecies:fluidMoments()
