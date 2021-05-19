@@ -27,6 +27,9 @@ def build(bld):
     lboData/GkLBOconstNuBoundarySurfSer1x2vP1.cpp
     lboData/GkLBOconstNuBoundarySurfSer2x2vP1.cpp
     lboData/GkLBOconstNuBoundarySurfSer3x2vP1.cpp
+    lboData/GkLBOconstNuSurfNonuniformSer1x1vP1.cpp
+    lboData/GkLBOconstNuSurfNonuniformSer1x2vP1.cpp
+    lboData/GkLBOconstNuSurfNonuniformSer2x2vP1.cpp
     lboData/GkLBOconstNuSurfPositivitySer1x1vP1.cpp
     lboData/GkLBOconstNuSurfPositivitySer1x2vP1.cpp
     lboData/GkLBOconstNuSurfPositivitySer2x2vP1.cpp
@@ -43,6 +46,27 @@ def build(bld):
     lboData/GkLBOconstNuBoundarySurfSer1x2vP2.cpp
     lboData/GkLBOconstNuBoundarySurfSer2x2vP2.cpp
     lboData/GkLBOconstNuBoundarySurfSer3x2vP2.cpp
+    lboData/GkLBOconstNuSurfNonuniformSer1x1vP2.cpp
+    lboData/GkLBOconstNuSurfNonuniformSer1x2vP2.cpp
+    lboData/GkLBOconstNuSurfNonuniformSer2x2vP2.cpp
+    lboData/GkLBOconstNuTensor1x1vP1.cpp
+    lboData/GkLBOconstNuTensor1x2vP1.cpp
+    lboData/GkLBOconstNuSurfTensor1x1vP1.cpp
+    lboData/GkLBOconstNuSurfTensor1x2vP1.cpp
+    lboData/GkLBOconstNuBoundarySurfTensor1x1vP1.cpp
+    lboData/GkLBOconstNuBoundarySurfTensor1x2vP1.cpp
+    lboData/GkLBOconstNuSurfNonuniformTensor1x1vP1.cpp
+    lboData/GkLBOconstNuSurfNonuniformTensor1x2vP1.cpp
+    lboData/GkLBOconstNuSurfNonuniformTensor2x2vP1.cpp
+    lboData/GkLBOconstNuTensor1x1vP2.cpp
+    lboData/GkLBOconstNuTensor1x2vP2.cpp
+    lboData/GkLBOconstNuSurfTensor1x1vP2.cpp
+    lboData/GkLBOconstNuSurfTensor1x2vP2.cpp
+    lboData/GkLBOconstNuBoundarySurfTensor1x1vP2.cpp
+    lboData/GkLBOconstNuBoundarySurfTensor1x2vP2.cpp
+    lboData/GkLBOconstNuSurfNonuniformTensor1x1vP2.cpp
+    lboData/GkLBOconstNuSurfNonuniformTensor1x2vP2.cpp
+    lboData/GkLBOconstNuSurfNonuniformTensor2x2vP2.cpp
     
     lboData/VmLBOconstNuSer1x1vP1.cpp
     lboData/VmLBOconstNuSer1x2vP1.cpp
@@ -62,6 +86,10 @@ def build(bld):
     lboData/VmLBOconstNuBoundarySurfSer2x2vP1.cpp
     lboData/VmLBOconstNuBoundarySurfSer2x3vP1.cpp
     lboData/VmLBOconstNuBoundarySurfSer3x3vP1.cpp
+    lboData/VmLBOconstNuSurfNonuniformSer1x1vP1.cpp
+    lboData/VmLBOconstNuSurfNonuniformSer1x2vP1.cpp
+    lboData/VmLBOconstNuSurfNonuniformSer1x3vP1.cpp
+    lboData/VmLBOconstNuSurfNonuniformSer2x2vP1.cpp
     lboData/VmLBOconstNuSer1x1vP2.cpp
     lboData/VmLBOconstNuSer1x2vP2.cpp
     lboData/VmLBOconstNuSer1x3vP2.cpp
@@ -77,6 +105,10 @@ def build(bld):
     lboData/VmLBOconstNuBoundarySurfSer1x3vP2.cpp
     lboData/VmLBOconstNuBoundarySurfSer2x2vP2.cpp
     lboData/VmLBOconstNuBoundarySurfSer2x3vP2.cpp
+    lboData/VmLBOconstNuSurfNonuniformSer1x1vP2.cpp
+    lboData/VmLBOconstNuSurfNonuniformSer1x2vP2.cpp
+    lboData/VmLBOconstNuSurfNonuniformSer1x3vP2.cpp
+    lboData/VmLBOconstNuSurfNonuniformSer2x2vP2.cpp
     lboData/VmLBOconstNuSer1x1vP3.cpp
     lboData/VmLBOconstNuSer1x2vP3.cpp
     lboData/VmLBOconstNuSer1x3vP3.cpp
@@ -89,6 +121,10 @@ def build(bld):
     lboData/VmLBOconstNuBoundarySurfSer1x2vP3.cpp
     lboData/VmLBOconstNuBoundarySurfSer1x3vP3.cpp
     lboData/VmLBOconstNuBoundarySurfSer2x2vP3.cpp
+    lboData/VmLBOconstNuSurfNonuniformSer1x1vP3.cpp
+    lboData/VmLBOconstNuSurfNonuniformSer1x2vP3.cpp
+    lboData/VmLBOconstNuSurfNonuniformSer1x3vP3.cpp
+    lboData/VmLBOconstNuSurfNonuniformSer2x2vP3.cpp
 
     lboData/VmLBOconstNuMax1x1vP1.cpp
     lboData/VmLBOconstNuMax1x2vP1.cpp
@@ -293,6 +329,7 @@ def build(bld):
     vlasovData/VlasovStreamSer1x3vP2.cpp
     vlasovData/VlasovStreamSer2x2vP2.cpp
     vlasovData/VlasovStreamSer2x3vP2.cpp
+    vlasovData/VlasovStreamSer3x3vP2.cpp
 
     vlasovData/VlasovStreamSer1x1vP3.cpp
     vlasovData/VlasovStreamSer1x2vP3.cpp
@@ -337,6 +374,7 @@ def build(bld):
     vlasovData/VlasovSurfStreamSer1x3vP2.cpp
     vlasovData/VlasovSurfStreamSer2x2vP2.cpp
     vlasovData/VlasovSurfStreamSer2x3vP2.cpp
+    vlasovData/VlasovSurfStreamSer3x3vP2.cpp
 
     vlasovData/VlasovSurfStreamSer1x1vP3.cpp
     vlasovData/VlasovSurfStreamSer1x2vP3.cpp
@@ -520,6 +558,14 @@ def build(bld):
     gkData/GyrokineticSimpleHelicalSurfPositivitySer2x0vP1.cpp
     gkData/GyrokineticSimpleHelicalSurfPositivitySer2x2vP1.cpp
     gkData/GyrokineticSimpleHelicalSurfPositivitySer3x2vP1.cpp
+    gkData/GyrokineticSimpleHelicalTensor1x1vP1.cpp
+    gkData/GyrokineticSimpleHelicalTensor1x2vP1.cpp
+    gkData/GyrokineticSimpleHelicalTensor1x1vP2.cpp
+    gkData/GyrokineticSimpleHelicalTensor1x2vP2.cpp
+    gkData/GyrokineticSimpleHelicalSurfTensor1x1vP1.cpp
+    gkData/GyrokineticSimpleHelicalSurfTensor1x2vP1.cpp
+    gkData/GyrokineticSimpleHelicalSurfTensor1x1vP2.cpp
+    gkData/GyrokineticSimpleHelicalSurfTensor1x2vP2.cpp
 
     gkData/EmGyrokineticSimpleHelicalSer1x1vP1.cpp
     gkData/EmGyrokineticSimpleHelicalSer1x2vP1.cpp
@@ -541,6 +587,14 @@ def build(bld):
     gkData/EmGyrokineticSimpleHelicalSurfPositivitySer1x2vP1.cpp
     gkData/EmGyrokineticSimpleHelicalSurfPositivitySer2x2vP1.cpp
     gkData/EmGyrokineticSimpleHelicalSurfPositivitySer3x2vP1.cpp
+    gkData/EmGyrokineticSimpleHelicalTensor1x1vP1.cpp
+    gkData/EmGyrokineticSimpleHelicalTensor1x2vP1.cpp
+    gkData/EmGyrokineticSimpleHelicalTensor1x1vP2.cpp
+    gkData/EmGyrokineticSimpleHelicalTensor1x2vP2.cpp
+    gkData/EmGyrokineticSimpleHelicalSurfTensor1x1vP1.cpp
+    gkData/EmGyrokineticSimpleHelicalSurfTensor1x2vP1.cpp
+    gkData/EmGyrokineticSimpleHelicalSurfTensor1x1vP2.cpp
+    gkData/EmGyrokineticSimpleHelicalSurfTensor1x2vP2.cpp
 
     gkData/GyrokineticGenGeoSer1x1vP1.cpp
     gkData/GyrokineticGenGeoSer1x2vP1.cpp
@@ -567,6 +621,14 @@ def build(bld):
     gkData/GyrokineticGenGeoSurfPositivitySer2x0vP1.cpp
     gkData/GyrokineticGenGeoSurfPositivitySer2x2vP1.cpp
     gkData/GyrokineticGenGeoSurfPositivitySer3x2vP1.cpp
+    gkData/GyrokineticGenGeoTensor1x1vP1.cpp
+    gkData/GyrokineticGenGeoTensor1x2vP1.cpp
+    gkData/GyrokineticGenGeoTensor1x1vP2.cpp
+    gkData/GyrokineticGenGeoTensor1x2vP2.cpp
+    gkData/GyrokineticGenGeoSurfTensor1x1vP1.cpp
+    gkData/GyrokineticGenGeoSurfTensor1x2vP1.cpp
+    gkData/GyrokineticGenGeoSurfTensor1x1vP2.cpp
+    gkData/GyrokineticGenGeoSurfTensor1x2vP2.cpp
 
     gkData/EmGyrokineticGenGeoSer1x1vP1.cpp
     gkData/EmGyrokineticGenGeoSer1x2vP1.cpp
@@ -588,14 +650,30 @@ def build(bld):
     gkData/EmGyrokineticGenGeoSurfPositivitySer1x2vP1.cpp
     gkData/EmGyrokineticGenGeoSurfPositivitySer2x2vP1.cpp
     gkData/EmGyrokineticGenGeoSurfPositivitySer3x2vP1.cpp
+    gkData/EmGyrokineticGenGeoTensor1x1vP1.cpp
+    gkData/EmGyrokineticGenGeoTensor1x2vP1.cpp
+    gkData/EmGyrokineticGenGeoTensor1x1vP2.cpp
+    gkData/EmGyrokineticGenGeoTensor1x2vP2.cpp
+    gkData/EmGyrokineticGenGeoSurfTensor1x1vP1.cpp
+    gkData/EmGyrokineticGenGeoSurfTensor1x2vP1.cpp
+    gkData/EmGyrokineticGenGeoSurfTensor1x1vP2.cpp
+    gkData/EmGyrokineticGenGeoSurfTensor1x2vP2.cpp
 
-    gkData/GkSheathFuncsSer.cpp
+    gkData/GkSheathFuncsSerP1.cpp
+    gkData/GkSheathFuncsSerP2.cpp
+    gkData/GkSheathFuncsTensorP1.cpp
+    gkData/GkSheathFuncsTensorP2.cpp
+
+    gyrofluidData/gyrofluid_surf_1x_p0_ser.cpp
+    gyrofluidData/gyrofluid_surf_1x_p1_ser.cpp
+    gyrofluidData/gyrofluid_vol_1x_p0_ser.cpp
+    gyrofluidData/gyrofluid_vol_1x_p1_ser.cpp
 
     Positivity.cpp
 
     """,
               name = 'eq',
-              target = 'eq', use='EIGEN CUTOOLS', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct',
+              target = 'eq', use='EIGEN CUTOOLS', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData gyrofluidData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct',
               vnum = '1.0',
               
     )

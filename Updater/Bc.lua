@@ -28,13 +28,25 @@ local Bc = Proto(UpdaterBase)
 
 local dirlabel = {"X", "Y", "Z"}
 
+local function createFieldFromField(grid, fld, ghostCells)
+   vComp = vComp or 1
+   local fld = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = fld:numComponents(),
+      ghost         = ghostCells,
+      metaData      = fld:getMetaData(),
+   }
+   fld:clear(0.0)
+   return fld
+end
+
 function Bc:init(tbl)
    Bc.super.init(self, tbl) -- Setup base object.
 
    self._isFirst = true -- Will be reset first time _advance() is called.
 
-   self._grid     = assert(tbl.onGrid, "Updater.Bc: Must specify grid to use with 'onGrid''")
-   self._dir      = assert(tbl.dir, "Updater.Bc: Must specify direction to apply BCs with 'dir'")
+   self._grid = assert(tbl.onGrid, "Updater.Bc: Must specify grid to use with 'onGrid''")
+   self._dir  = assert(tbl.dir, "Updater.Bc: Must specify direction to apply BCs with 'dir'")
    self._dirlabel = dirlabel[self._dir]
 
    self._edge = assert(
@@ -59,6 +71,8 @@ function Bc:init(tbl)
 
    self._idxIn  = Lin.IntVec(self._grid:ndim())
    self._idxOut = Lin.IntVec(self._grid:ndim())
+   self._xcIn   = Lin.Vec(self._grid:ndim())
+   self._xcOut  = Lin.Vec(self._grid:ndim())
 
    -- For diagnostics: create reduced boundary grid with 1 cell in dimension of self._dir.
    if self._grid:isShared() then 
@@ -84,7 +98,7 @@ function Bc:init(tbl)
       local nodeComm  = commSet.nodeComm
       local nodeRank  = Mpi.Comm_rank(nodeComm)
       local dirRank   = nodeRank
-      local cuts = {}
+      local cuts      = {}
       for d=1,3 do cuts[d] = self._grid:cuts(d) or 1 end
       local writeRank = -1
       if self._dir == 1 then 
@@ -116,6 +130,31 @@ function Bc:init(tbl)
          cells = reducedNumCells,
          decomposition = reducedDecomp,
       }
+
+      if tbl.inField then
+         local inFld = tbl.inField
+         -- make enough boundary field copies for 4 RK stages
+         self._boundaryFluxFields = {createFieldFromField(self._boundaryGrid, inFld, {1,1}),
+                                     createFieldFromField(self._boundaryGrid, inFld, {1,1}),
+                                     createFieldFromField(self._boundaryGrid, inFld, {1,1}),
+                                     createFieldFromField(self._boundaryGrid, inFld, {1,1}),}
+         self._boundaryFluxRate = createFieldFromField(self._boundaryGrid, inFld, {1,1})
+         self._boundaryFluxFieldPrev = createFieldFromField(self._boundaryGrid, inFld, {1,1})
+         self._boundaryFluxFieldPrev:clear(0.0)
+         self._boundaryPtr = {self._boundaryFluxFields[1]:get(1), 
+                              self._boundaryFluxFields[2]:get(1),
+                              self._boundaryFluxFields[3]:get(1),
+                              self._boundaryFluxFields[4]:get(1),}
+         self._boundaryIdxr = self._boundaryFluxFields[1]:genIndexer()
+
+         local global = inFld:globalRange()
+         local globalExt = inFld:globalExtRange()
+         local localExtRange = inFld:localExtRange()
+         self._ghostRng = self._ghostRng or localExtRange:intersect( self:getGhostRange(global, globalExt) ) -- Range spanning ghost cells.
+         -- Decompose ghost region into threads.
+         self._ghostRangeDecomp = self._ghostRangeDecomp or LinearDecomp.LinearDecompRange {
+      	    range = self._ghostRng, numSplit = self._grid:numSharedProcs() }
+      end
    end
 
    -- A function can be specied in the ghost cell layer to be used as
@@ -129,9 +168,9 @@ function Bc:init(tbl)
       if self._feedback then
          assert(tbl.cdim == 1, "Bc.init: Feedback boundary condition is implemented only for 1X simulations.")
          local confBasis   = assert(tbl.confBasis, "Bc.init: Must specify 'confBasis' when 'feedback' is true.")
-         local cDim = confBasis:ndim()
+         local cDim        = confBasis:ndim()
          self.numConfBasis = confBasis:numBasis()
-         local node = Lin.Vec(cDim)
+         local node        = Lin.Vec(cDim)
          if self._edge == "lower" then node[1] = -1.0 else node[1] = 1.0 end
          self._confBasisEdge = Lin.Vec(self.numConfBasis)
          confBasis:evalBasis(node, self._confBasisEdge)
@@ -147,9 +186,9 @@ function Bc:init(tbl)
          self.mom2  = Lin.Vec(self.numConfBasis)
          -- Compute the offsets used to shorten the velocity range. For now assume that the zero
          -- along any velocity dimension is located at a cell boundary and not inside of a cell.
-         local partialMomReg      = self._edge == "lower" and "N" or "P"
-         local partialMomDirP     = cDim + self._dir
-         self.partialMomDirExts   = {0,0}
+         local partialMomReg    = self._edge == "lower" and "N" or "P"
+         local partialMomDirP   = cDim + self._dir
+         self.partialMomDirExts = {0,0}
          local partialMomDirCells = self._grid:numCells(partialMomDirP)
          for d = 1,pDim do self.idxP[d]=1 end   -- Could be any cell in other directions.
          for idx=1,partialMomDirCells do
@@ -179,18 +218,6 @@ function Bc:getGhostRange(global, globalExt)
       lv[self._dir] = global:upper(self._dir)+1   -- For ghost cells on "right".
    end
    return Range.Range(lv, uv)
-end
-
-local function createFieldFromField(grid, fld, ghostCells)
-   vComp = vComp or 1
-   local fld = DataStruct.Field {
-      onGrid        = grid,
-      numComponents = fld:numComponents(),
-      ghost         = ghostCells,
-      metaData      = fld:getMetaData(),
-   }
-   fld:clear(0.0)
-   return fld
 end
 
 function Bc:_advance(tCurr, inFld, outFld)
@@ -223,19 +250,19 @@ function Bc:_advance(tCurr, inFld, outFld)
 
          -- Mini version of DistFuncMomentCalc to compute moments in the skin cell.
          local pDim, cDim = self._grid:ndim(), 1
-         local vDim       = pDim - cDim
+         local vDim = pDim - cDim
          local phaseRange = distf:localRange()
          --for dir = 1, cDim do
          --   phaseRange = phaseRange:extendDir(dir, distf:lowerGhost(), distf:upperGhost())
          --end
          local phaseIndexer = distf:genIndexer()
-         local distfItr     = distf:get(1)
+         local distfItr = distf:get(1)
          -- Construct ranges for nested loops.
          local confSkinRange = self._edge == "lower" and phaseRange:selectFirst(cDim):lowerSkin(dir,1) or phaseRange:selectFirst(cDim):upperSkin(dir,1)
          local confSkinRangeDecomp = LinearDecomp.LinearDecompRange {
             range = confSkinRange, numSplit = grid:numSharedProcs() }
          local velRange = phaseRange:selectLast(vDim)
-         local tId      = grid:subGridSharedId()    -- Local thread ID.
+         local tId = grid:subGridSharedId()    -- Local thread ID.
          velRange = velRange:extendDir(dir,self.partialMomDirExts[1],self.partialMomDirExts[2])
          local phaseIndexer = distf:genIndexer()
          local edgeM0, edgeM1, edgeM2 = 0.0, 0.0, 0.0
@@ -274,8 +301,8 @@ function Bc:_advance(tCurr, inFld, outFld)
          end
       end
       self._projectEvaluateFn = ProjectOnBasis {
-         onGrid   = self._boundaryGrid,
-         basis    = self._basis,
+         onGrid = self._boundaryGrid,
+         basis = self._basis,
          evaluate = myEvaluateFn,
       }
    end
@@ -314,11 +341,16 @@ function Bc:_advance(tCurr, inFld, outFld)
          qOut:fill(indexerIn(self._idxIn), ptrIn)
       end
 
+      self._grid:setIndex(self._idxIn)
+      self._grid:cellCenter(self._xcIn)
+      self._grid:setIndex(idxOut)
+      self._grid:cellCenter(self._xcOut)
+
       for _, bc in ipairs(self._bcList) do
          -- Apply the 'bc' function. This can represent many boundary
          -- condition types ranging from a simple copy or a reflection
          -- with the sign flit to QM based electron emission model.
-         bc(dir, tCurr, self._idxIn, ptrIn, ptrOut)
+         bc(dir, tCurr, self._idxIn, ptrIn, ptrOut, self._xcOut, self._xcIn)
       end
    end
 
@@ -326,32 +358,7 @@ function Bc:_advance(tCurr, inFld, outFld)
 end
 
 function Bc:storeBoundaryFlux(tCurr, rkIdx, qOut)
-   if self._isFirst then
-      -- make enough boundary field copies for 4 RK stages
-      self._boundaryFluxFields = {createFieldFromField(self._boundaryGrid, qOut, {1,1}),
-                                  createFieldFromField(self._boundaryGrid, qOut, {1,1}),
-                                  createFieldFromField(self._boundaryGrid, qOut, {1,1}),
-                                  createFieldFromField(self._boundaryGrid, qOut, {1,1}),}
-      self._boundaryFluxRate      = createFieldFromField(self._boundaryGrid, qOut, {1,1})
-      self._boundaryFluxFieldPrev = createFieldFromField(self._boundaryGrid, qOut, {1,1})
-      self._boundaryFluxFieldPrev:clear(0.0)
-      self._boundaryPtr = {self._boundaryFluxFields[1]:get(1), 
-                           self._boundaryFluxFields[2]:get(1),
-                           self._boundaryFluxFields[3]:get(1),
-                           self._boundaryFluxFields[4]:get(1),}
-      self._boundaryIdxr = self._boundaryFluxFields[1]:genIndexer()
-
-      local global        = qOut:globalRange()
-      local globalExt     = qOut:globalExtRange()
-      local localExtRange = qOut:localExtRange()
-      self._ghostRng      = self._ghostRng or localExtRange:intersect(
-   	 self:getGhostRange(global, globalExt) ) -- Range spanning ghost cells.
-      -- Decompose ghost region into threads.
-      self._ghostRangeDecomp = self._ghostRangeDecomp or LinearDecomp.LinearDecompRange {
-   	 range = self._ghostRng, numSplit = self._grid:numSharedProcs() }
-   end
-
-   local ptrOut  = qOut:get(1) -- Get pointers to (re)use inside inner loop.
+   local ptrOut = qOut:get(1) -- Get pointers to (re)use inside inner loop.
    local indexer = qOut:genIndexer()
 
    local tId = self._grid:subGridSharedId() -- Local thread ID.
@@ -386,7 +393,7 @@ function Bc:evalOnConfBoundary(inFld)
    end
 
    local inFldPtr = inFld:get(1)
-   local indexer  = inFld:genIndexer()
+   local indexer = inFld:genIndexer()
 
    local tId = self._grid:subGridSharedId() -- Local thread ID.
    for idxIn in self._confGhostRangeDecomp:rowMajorIter(tId) do

@@ -29,9 +29,7 @@ local GkLBOCollisions = Proto(CollisionsBase)
 
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
-function GkLBOCollisions:init(tbl)
-   self.tbl = tbl
-end
+function GkLBOCollisions:init(tbl) self.tbl = tbl end
 
 -- Function to find the index of an element in table.
 local function findInd(tblIn, el)
@@ -181,25 +179,15 @@ end
 function GkLBOCollisions:setName(nm)
    self.name = nm
 end
-function GkLBOCollisions:setSpeciesName(nm)
-   self.speciesName = nm
-end
+function GkLBOCollisions:setSpeciesName(nm) self.speciesName = nm end
 
 function GkLBOCollisions:setCfl(cfl)
    self.cfl = cfl -- what should this be? - AHH
 end
-function GkLBOCollisions:setConfBasis(basis)
-   self.confBasis = basis
-end
-function GkLBOCollisions:setConfGrid(grid)
-   self.confGrid = grid
-end
-function GkLBOCollisions:setPhaseBasis(basis)
-   self.phaseBasis = basis
-end
-function GkLBOCollisions:setPhaseGrid(grid)
-   self.phaseGrid = grid
-end
+function GkLBOCollisions:setConfBasis(basis) self.confBasis = basis end
+function GkLBOCollisions:setConfGrid(grid) self.confGrid = grid end
+function GkLBOCollisions:setPhaseBasis(basis) self.phaseBasis = basis end
+function GkLBOCollisions:setPhaseGrid(grid) self.phaseGrid = grid end
 
 function GkLBOCollisions:createSolver(externalField)
    self.vDim = self.phaseGrid:ndim() - self.confGrid:ndim()
@@ -247,7 +235,7 @@ function GkLBOCollisions:createSolver(externalField)
       -- Self-species collisionality, which varies in space.
       self.nuVarXSelf = DataStruct.Field {
          onGrid        = self.confGrid,
-         numComponents = self.cNumBasis,
+         numComponents = self.confBasis:numBasis(),
          ghost         = {1, 1},
       }
       -- Collisionality, nu, summed over all species pairs.
@@ -295,6 +283,7 @@ function GkLBOCollisions:createSolver(externalField)
       useCellAverageNu = self.cellConstNu,
       mass             = self.mass,
       positivity       = self.usePositivity,
+      gridID           = self.phaseGrid:id(),
    }
    self.collisionSlvr = Updater.HyperDisCont {
       onGrid             = self.phaseGrid,

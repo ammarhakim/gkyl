@@ -4,14 +4,35 @@ void GkM0Star1x1vSer_VX(const double intFac, const double *wl, const double *wr,
 { 
   // intFac:  =2pi/m for gyrokinetics (not used in Vlasov). 
   // w[NDIM]: Cell-center coordinates. 
-  // dxv[2]:  cell length in each direciton. 
+  // dxv[2]:  cell length in each direction. 
   // fl/fr:   Distribution function in left/right cells 
   // out:     Increment to M_0^star from this cell surface. 
  
   const double dS = 1.0*intFac*(wr[1]-wl[1]); 
  
+
   out[0] += ((-0.408248290463863*fr[2])+0.408248290463863*fl[2]+0.3535533905932737*fr[0]+0.3535533905932737*fl[0])*dS; 
   out[1] += ((-0.408248290463863*fr[3])+0.408248290463863*fl[3]+0.3535533905932737*fr[1]+0.3535533905932737*fl[1])*dS; 
+ 
+} 
+ 
+void GkM0StarNonuniform1x1vSer_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out) 
+{ 
+  // intFac:  =2pi/m for gyrokinetics (not used in Vlasov). 
+  // w[NDIM]: Cell-center coordinates. 
+  // dxv[2]:  cell length in each direction. 
+  // fl/fr:   Distribution function in left/right cells 
+  // out:     Increment to M_0^star from this cell surface. 
+ 
+  const double dS = 1.0*intFac*(wr[1]-wl[1]); 
+ 
+  const double dxvl1R2 = pow(dxvl[1],2);
+  const double dxvl1R3 = pow(dxvl[1],3);
+  const double dxvr1R2 = pow(dxvr[1],2);
+  const double dxvr1R3 = pow(dxvr[1],3);
+
+  out[0] += ((-(8.660254037844386*dxvl1R2*dxvr[1]*fr[2])/(4.242640687119286*dxvr1R3+12.72792206135786*dxvl[1]*dxvr1R2+12.72792206135786*dxvl1R2*dxvr[1]+4.242640687119286*dxvl1R3))-(5.196152422706631*dxvl1R3*fr[2])/(4.242640687119286*dxvr1R3+12.72792206135786*dxvl[1]*dxvr1R2+12.72792206135786*dxvl1R2*dxvr[1]+4.242640687119286*dxvl1R3)+(5.196152422706631*dxvr1R3*fl[2])/(4.242640687119286*dxvr1R3+12.72792206135786*dxvl[1]*dxvr1R2+12.72792206135786*dxvl1R2*dxvr[1]+4.242640687119286*dxvl1R3)+(8.660254037844386*dxvl[1]*dxvr1R2*fl[2])/(4.242640687119286*dxvr1R3+12.72792206135786*dxvl[1]*dxvr1R2+12.72792206135786*dxvl1R2*dxvr[1]+4.242640687119286*dxvl1R3)+(3.0*fl[0]*dxvr1R3)/(4.242640687119286*dxvr1R3+12.72792206135786*dxvl[1]*dxvr1R2+12.72792206135786*dxvl1R2*dxvr[1]+4.242640687119286*dxvl1R3)+(9.0*fl[0]*dxvl[1]*dxvr1R2)/(4.242640687119286*dxvr1R3+12.72792206135786*dxvl[1]*dxvr1R2+12.72792206135786*dxvl1R2*dxvr[1]+4.242640687119286*dxvl1R3)+(9.0*fr[0]*dxvl1R2*dxvr[1])/(4.242640687119286*dxvr1R3+12.72792206135786*dxvl[1]*dxvr1R2+12.72792206135786*dxvl1R2*dxvr[1]+4.242640687119286*dxvl1R3)+(3.0*fr[0]*dxvl1R3)/(4.242640687119286*dxvr1R3+12.72792206135786*dxvl[1]*dxvr1R2+12.72792206135786*dxvl1R2*dxvr[1]+4.242640687119286*dxvl1R3))*dS; 
+  out[1] += ((-(8.660254037844386*dxvl1R2*dxvr[1]*fr[3])/(4.242640687119286*dxvr1R3+12.72792206135786*dxvl[1]*dxvr1R2+12.72792206135786*dxvl1R2*dxvr[1]+4.242640687119286*dxvl1R3))-(5.196152422706631*dxvl1R3*fr[3])/(4.242640687119286*dxvr1R3+12.72792206135786*dxvl[1]*dxvr1R2+12.72792206135786*dxvl1R2*dxvr[1]+4.242640687119286*dxvl1R3)+(5.196152422706631*dxvr1R3*fl[3])/(4.242640687119286*dxvr1R3+12.72792206135786*dxvl[1]*dxvr1R2+12.72792206135786*dxvl1R2*dxvr[1]+4.242640687119286*dxvl1R3)+(8.660254037844386*dxvl[1]*dxvr1R2*fl[3])/(4.242640687119286*dxvr1R3+12.72792206135786*dxvl[1]*dxvr1R2+12.72792206135786*dxvl1R2*dxvr[1]+4.242640687119286*dxvl1R3)+(9.0*dxvl1R2*dxvr[1]*fr[1])/(4.242640687119286*dxvr1R3+12.72792206135786*dxvl[1]*dxvr1R2+12.72792206135786*dxvl1R2*dxvr[1]+4.242640687119286*dxvl1R3)+(3.0*dxvl1R3*fr[1])/(4.242640687119286*dxvr1R3+12.72792206135786*dxvl[1]*dxvr1R2+12.72792206135786*dxvl1R2*dxvr[1]+4.242640687119286*dxvl1R3)+(3.0*dxvr1R3*fl[1])/(4.242640687119286*dxvr1R3+12.72792206135786*dxvl[1]*dxvr1R2+12.72792206135786*dxvl1R2*dxvr[1]+4.242640687119286*dxvl1R3)+(9.0*dxvl[1]*dxvr1R2*fl[1])/(4.242640687119286*dxvr1R3+12.72792206135786*dxvl[1]*dxvr1R2+12.72792206135786*dxvl1R2*dxvr[1]+4.242640687119286*dxvl1R3))*dS; 
  
 } 
  
@@ -19,7 +40,7 @@ void GkM0StarPositivity1x1vSer_VX(const double intFac, const double *wl, const d
 { 
   // intFac:  =2pi/m for gyrokinetics (not used in Vlasov). 
   // w[NDIM]: Cell-center coordinates. 
-  // dxv[2]:  cell length in each direciton. 
+  // dxv[2]:  cell length in each direction. 
   // fl/fr:   Distribution function in left/right cells 
   // out:     Increment to M_0^star from this cell surface. 
  
@@ -31,8 +52,8 @@ void GkM0StarPositivity1x1vSer_VX(const double intFac, const double *wl, const d
   } else {
 
     double xBar[2];
-    xBar[0] = ((-0.125*fr[3])-0.125*fl[3]+0.2165063509461096*fr[2]+0.2165063509461096*fl[2]-0.2165063509461096*fr[1]+0.2165063509461096*fl[1]+0.375*fr[0]-0.375*fl[0])/(0.5*(1.732050807568877*(fr[2]-0.5773502691896258*fr[3])-1.732050807568877*(fl[2]-0.5773502691896258*fl[3]))-0.25*(3.464101615137754*(fr[2]-0.5773502691896258*fr[3])-3.464101615137754*(fl[2]-0.5773502691896258*fl[3])-3.0*(fr[0]-0.5773502691896258*fr[1])-3.0*(fl[0]-0.5773502691896258*fl[1]))); 
-    xBar[1] = (0.125*fr[3]+0.125*fl[3]+0.2165063509461096*fr[2]+0.2165063509461096*fl[2]+0.2165063509461096*fr[1]-0.2165063509461096*fl[1]+0.375*fr[0]-0.375*fl[0])/(0.5*(1.732050807568877*(0.5773502691896258*fr[3]+fr[2])-1.732050807568877*(0.5773502691896258*fl[3]+fl[2]))-0.25*(3.464101615137754*(0.5773502691896258*fr[3]+fr[2])-3.464101615137754*(0.5773502691896258*fl[3]+fl[2])-3.0*(0.5773502691896258*fr[1]+fr[0])-3.0*(0.5773502691896258*fl[1]+fl[0]))); 
+    xBar[0] = (0.21875*fr[3]+0.21875*fl[3]-0.3788861141556918*fr[2]-0.3788861141556918*fl[2]-0.270632938682637*fr[1]+0.270632938682637*fl[1]+0.46875*fr[0]-0.46875*fl[0])/(3.0*(0.1666666666666667*fr[3]-0.1666666666666667*fl[3]-0.2886751345948129*fr[2]+0.2886751345948129*fl[2]-0.1443375672974065*fr[1]-0.1443375672974065*fl[1]+0.25*fr[0]+0.25*fl[0])+0.5*((-0.25*fr[3])+0.25*fl[3]+0.4330127018922193*fr[2]-0.4330127018922193*fl[2])); 
+    xBar[1] = ((-0.21875*fr[3])-0.21875*fl[3]-0.3788861141556918*fr[2]-0.3788861141556918*fl[2]+0.270632938682637*fr[1]-0.270632938682637*fl[1]+0.46875*fr[0]-0.46875*fl[0])/(0.5*(0.25*fr[3]-0.25*fl[3]+0.4330127018922193*fr[2]-0.4330127018922193*fl[2])+3.0*((-0.1666666666666667*fr[3])+0.1666666666666667*fl[3]-0.2886751345948129*fr[2]+0.2886751345948129*fl[2]+0.1443375672974065*fr[1]+0.1443375672974065*fl[1]+0.25*fr[0]+0.25*fl[0])); 
 
     double xBarSq[2];
     xBarSq[0] = xBar[0]*xBar[0]; 
@@ -46,16 +67,16 @@ void GkM0StarPositivity1x1vSer_VX(const double intFac, const double *wl, const d
 
     if (std::abs(g1[0]) > 1.0e-15) {
       double g1Sq = g1[0]*g1[0];
-      gBound[0] = (-(0.1443375672974065*g1[0]*fr[1])/std::sinh(g1[0]))-(0.1443375672974065*g1[0]*fl[1])/std::sinh(g1[0])+(0.25*fr[0]*g1[0])/std::sinh(g1[0])+(0.25*fl[0]*g1[0])/std::sinh(g1[0]); 
+      gBound[0] = (0.125*g1[0]*fr[3])/std::sinh(g1[0])-(0.125*g1[0]*fl[3])/std::sinh(g1[0])-(0.2165063509461097*g1[0]*fr[2])/std::sinh(g1[0])+(0.2165063509461097*g1[0]*fl[2])/std::sinh(g1[0])-(0.1443375672974065*g1[0]*fr[1])/std::sinh(g1[0])-(0.1443375672974065*g1[0]*fl[1])/std::sinh(g1[0])+(0.25*fr[0]*g1[0])/std::sinh(g1[0])+(0.25*fl[0]*g1[0])/std::sinh(g1[0]); 
     } else {
-      gBound[0] = (-0.1443375672974065*fr[1])-0.1443375672974065*fl[1]+0.25*fr[0]+0.25*fl[0]; 
+      gBound[0] = 0.125*fr[3]-0.125*fl[3]-0.2165063509461097*fr[2]+0.2165063509461097*fl[2]-0.1443375672974065*fr[1]-0.1443375672974065*fl[1]+0.25*fr[0]+0.25*fl[0]; 
     };
 
     if (std::abs(g1[1]) > 1.0e-15) {
       double g1Sq = g1[1]*g1[1];
-      gBound[1] = (0.1443375672974065*fr[1]*g1[1])/std::sinh(g1[1])+(0.1443375672974065*fl[1]*g1[1])/std::sinh(g1[1])+(0.25*fr[0]*g1[1])/std::sinh(g1[1])+(0.25*fl[0]*g1[1])/std::sinh(g1[1]); 
+      gBound[1] = (-(0.125*g1[1]*fr[3])/std::sinh(g1[1]))+(0.125*g1[1]*fl[3])/std::sinh(g1[1])-(0.2165063509461097*g1[1]*fr[2])/std::sinh(g1[1])+(0.2165063509461097*g1[1]*fl[2])/std::sinh(g1[1])+(0.1443375672974065*fr[1]*g1[1])/std::sinh(g1[1])+(0.1443375672974065*fl[1]*g1[1])/std::sinh(g1[1])+(0.25*fr[0]*g1[1])/std::sinh(g1[1])+(0.25*fl[0]*g1[1])/std::sinh(g1[1]); 
     } else {
-      gBound[1] = 0.1443375672974065*fr[1]+0.1443375672974065*fl[1]+0.25*fr[0]+0.25*fl[0]; 
+      gBound[1] = (-0.125*fr[3])+0.125*fl[3]-0.2165063509461097*fr[2]+0.2165063509461097*fl[2]+0.1443375672974065*fr[1]+0.1443375672974065*fl[1]+0.25*fr[0]+0.25*fl[0]; 
     };
 
     out[0] += (0.7071067811865475*gBound[1]+0.7071067811865475*gBound[0])*dS; 
@@ -70,7 +91,7 @@ void GkM1iM2Star1x1vSer(const double *w, const double *dxv, const double intFac,
   // dxv[2]:  Cell length in each direciton. 
   // intFac:  =2pi/m for gyrokinetics. 
   // m_:      mass. 
-  // Bmag[2]: Magnetic field magnitude. 
+  // Bmag[NC]: Magnetic field magnitude. 
   // f:       Distribution function. 
   // outM1i:  Contribution to M_1^star from this cell. 
   // outM2:   Contribution to M_2^star from this cell. 
@@ -93,7 +114,7 @@ void GkBoundaryIntegral1x1vSer_F_VX_P1(const bool atLower, const double intFac, 
   // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
   // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
   // vBoundary: velocity at the boundary of the velocity grid. 
-  // dxv[2]:    cell length in each direciton. 
+  // dxv[2]:   cell length in each direction. 
   // fIn[4]:    distribution function at velocity boundaries. 
   // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
  
@@ -118,7 +139,7 @@ void GkBoundaryIntegral1x1vSer_F_VX_P2(const bool atLower, const double intFac, 
   // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
   // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
   // vBoundary: velocity at the boundary of the velocity grid. 
-  // dxv[2]:    cell length in each direciton. 
+  // dxv[2]:   cell length in each direction. 
   // fIn[8]:    distribution function at velocity boundaries. 
   // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
  
@@ -145,7 +166,7 @@ void GkBoundaryIntegral1x1vSer_F_VX_P3(const bool atLower, const double intFac, 
   // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
   // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
   // vBoundary: velocity at the boundary of the velocity grid. 
-  // dxv[2]:    cell length in each direciton. 
+  // dxv[2]:   cell length in each direction. 
   // fIn[12]:    distribution function at velocity boundaries. 
   // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
  
@@ -174,7 +195,7 @@ void GkBoundaryIntegral1x1vSer_vF_VX_P1(const bool atLower, const double intFac,
   // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
   // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
   // vBoundary: velocity at the boundary of the velocity grid. 
-  // dxv[2]:    cell length in each direciton. 
+  // dxv[2]:   cell length in each direction. 
   // fIn[4]:    distribution function at velocity boundaries. 
   // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
  
@@ -199,7 +220,7 @@ void GkBoundaryIntegral1x1vSer_vF_VX_P2(const bool atLower, const double intFac,
   // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
   // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
   // vBoundary: velocity at the boundary of the velocity grid. 
-  // dxv[2]:    cell length in each direciton. 
+  // dxv[2]:   cell length in each direction. 
   // fIn[8]:    distribution function at velocity boundaries. 
   // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
  
@@ -226,7 +247,7 @@ void GkBoundaryIntegral1x1vSer_vF_VX_P3(const bool atLower, const double intFac,
   // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
   // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
   // vBoundary: velocity at the boundary of the velocity grid. 
-  // dxv[2]:    cell length in each direciton. 
+  // dxv[2]:   cell length in each direction. 
   // fIn[12]:    distribution function at velocity boundaries. 
   // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
  

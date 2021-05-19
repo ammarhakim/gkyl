@@ -125,7 +125,8 @@ plasmaApp = Plasma.App {
       },
 
       -- Source parameters.
-      source = Plasma.MaxwellianProjection{
+      source = Plasma.Source {
+         kind        = "Maxwellian",
          density     = sourceDensity,
          temperature = sourceTemperatureElc,
       },
@@ -189,7 +190,8 @@ plasmaApp = Plasma.App {
       },
 
       -- Source Parameters.
-      source = Plasma.MaxwellianProjection{
+      source = Plasma.Source {
+         kind        = "Maxwellian",
          density     = sourceDensity,
          temperature = sourceTemperatureIon,
       },
@@ -263,7 +265,8 @@ plasmaApp = Plasma.App {
       },
 
       -- Source parameters.
-      source = Vlasov.MaxwellianProjection{
+      source = Vlasov.Source {
+         kind        = "Maxwellian",
          density     = sourceDensityNeut,
          temperature = 2.*eV,
       },
@@ -300,7 +303,7 @@ plasmaApp = Plasma.App {
    -- Field solver.
    field = Plasma.Field {
       evolve     = true,
-      kperp2     = kmin*kmin,
+      kperpSq    = kmin*kmin,
       bcLowerPhi = {{T = "N", V = 0.0}},
       bcUpperPhi = {{T = "N", V = 0.0}},
    },

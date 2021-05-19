@@ -200,7 +200,7 @@ function VmLBOCollisions:setPhaseGrid(grid)
    self.phaseGrid = grid
 end
 
-function VmLBOCollisions:createSolver()
+function VmLBOCollisions:createSolver(extField)
    self.vdim      = self.phaseGrid:ndim() - self.confGrid:ndim()
 
    self.cNumBasis = self.confBasis:numBasis()
@@ -293,6 +293,7 @@ function VmLBOCollisions:createSolver()
       vUpper           = self.vMax,
       varyingNu        = self.varNu,
       useCellAverageNu = self.cellConstNu,
+      gridID           = self.phaseGrid:id(),
    }
    self.collisionSlvr = Updater.HyperDisCont {
       onGrid             = self.phaseGrid,

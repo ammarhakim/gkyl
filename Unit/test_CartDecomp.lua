@@ -1,29 +1,33 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 -- Test for decomposition of Cartesian grids
+--
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Unit = require "Unit"
+local Unit       = require "Unit"
 local CartDecomp = require "Lib.CartDecomp"
-local Lin = require "Lib.Linalg"
-local Range = require "Lib.Range"
+local Lin        = require "Lib.Linalg"
+local Range      = require "Lib.Range"
+local Grid       = require "Grid"
+local DataStruct = require "DataStruct"
+
 
 local assert_equal = Unit.assert_equal
-local stats = Unit.stats
+local stats        = Unit.stats
 
 function test_1()
    local decomp = CartDecomp.CartProd { cuts = {2, 3}, __serTesting = true }
    assert_equal(2, decomp:ndim(), "Checking ndim")
    
-   assert_equal(2, decomp:cuts(1), "Checking cuts")
-   assert_equal(3, decomp:cuts(2), "Checking cuts")
+   assert_equal(2, decomp:cuts(1), "Checking X cuts")
+   assert_equal(3, decomp:cuts(2), "Checking Y cuts")
 
    local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {10, 10}))
    assert_equal(6, decomposedRgn:numSubDomains(), "Checking number of sub-domains")
 
-   -- fetch domains and do sanity checks
+   -- Fetch domains and do sanity checks.
    local v = 0
    for i = 1, decomposedRgn:numSubDomains() do
       v = v + decomposedRgn:subDomain(i):volume()
@@ -48,14 +52,14 @@ function test_2()
    local decomp = CartDecomp.CartProd { cuts = {2, 3, 4}, __serTesting = true }
    assert_equal(3, decomp:ndim(), "Checking ndim")
    
-   assert_equal(2, decomp:cuts(1), "Checking cuts")
-   assert_equal(3, decomp:cuts(2), "Checking cuts")
-   assert_equal(4, decomp:cuts(3), "Checking cuts")
+   assert_equal(2, decomp:cuts(1), "Checking X cuts")
+   assert_equal(3, decomp:cuts(2), "Checking Y cuts")
+   assert_equal(4, decomp:cuts(3), "Checking Z cuts")
 
    local decomposedRgn = decomp:decompose(Range.Range({1, 2, 3}, {10, 11, 12}))
    assert_equal(24, decomposedRgn:numSubDomains(), "Checking number of sub-domains")
 
-   -- fetch domains and do sanity checks
+   -- Fetch domains and do sanity checks.
    local v = 0
    for i = 1, decomposedRgn:numSubDomains() do
       v = v + decomposedRgn:subDomain(i):volume()
@@ -77,47 +81,62 @@ function test_2()
 end
 
 function test_3()
-   local decomp = CartDecomp.CartProd { cuts = {1, 1}, __serTesting = true }
+   local decomp        = CartDecomp.CartProd { cuts = {1, 1}, __serTesting = true }
    local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {10, 10}))
 
    local perIds = decomposedRgn:boundarySubDomainIds(1)
    assert_equal(1, #perIds, "Checking number of skeleton sub-domains in direction 1")
-   -- check individual pairs
-   assert_equal(1, perIds[1].lower, "Checking lower")
-   assert_equal(1, perIds[1].upper, "Checking upper")
+   -- Check individual pairs.
+   assert_equal(1, perIds[1].lower, "Checking X lower")
+   assert_equal(1, perIds[1].upper, "Checking X upper")
 
    perIds = decomposedRgn:boundarySubDomainIds(2)
    assert_equal(1, #perIds, "Checking number of skeleton sub-domains in direction 2")
-   -- check individual pairs
-   assert_equal(1, perIds[1].lower, "Checking lower")
-   assert_equal(1, perIds[1].upper, "Checking upper")   
+   -- Check individual pairs.
+   assert_equal(1, perIds[1].lower, "Checking Y lower")
+   assert_equal(1, perIds[1].upper, "Checking Y upper")   
 end
 
 function test_4()
-   local decomp = CartDecomp.CartProd { cuts = {2, 3}, __serTesting = true }
+--   local decomp        = CartDecomp.CartProd { cuts = {2, 1}, __serTesting = true }
+   local decomp        = CartDecomp.CartProd { cuts = {2, 1} }
    local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {10, 10}))
 
-   local perIds = decomposedRgn:boundarySubDomainIds(1)
-   assert_equal(3, #perIds, "Checking number of skeleton sub-domains in direction 1")
-   -- check individual pairs
-   assert_equal(1, perIds[1].lower, "Checking lower")
-   assert_equal(2, perIds[1].upper, "Checking upper")
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0},
+      upper = {1.0, 1.0},
+      cells = {10, 10},
+      decomposition = decomp,
+      periodicDirs = {2},
+   }
+   local field = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = 1,
+      ghost         = {1, 1},
+      syncCorners   = true,
+   }
 
-   assert_equal(3, perIds[2].lower, "Checking lower")
-   assert_equal(4, perIds[2].upper, "Checking upper")
-
-   assert_equal(5, perIds[3].lower, "Checking lower")
-   assert_equal(6, perIds[3].upper, "Checking upper")   
-
-
-   local perIds = decomposedRgn:boundarySubDomainIds(2)
-   assert_equal(2, #perIds, "Checking number of skeleton sub-domains in direction 2")
-   -- check individual pairs
-   assert_equal(1, perIds[1].lower, "Checking lower")
-   assert_equal(5, perIds[1].upper, "Checking upper")
-
-   assert_equal(2, perIds[2].lower, "Checking lower")
-   assert_equal(6, perIds[2].upper, "Checking upper")
+--   local perIds = decomposedRgn:boundarySubDomainIds(1)
+--   assert_equal(3, #perIds, "Checking number of skeleton sub-domains in direction 1")
+--   -- Check individual pairs.
+--   assert_equal(1, perIds[1].lower, "Checking X lower")
+--   assert_equal(2, perIds[1].upper, "Checking X upper")
+--
+--   assert_equal(3, perIds[2].lower, "Checking X lower")
+--   assert_equal(4, perIds[2].upper, "Checking X upper")
+--
+--   assert_equal(5, perIds[3].lower, "Checking X lower")
+--   assert_equal(6, perIds[3].upper, "Checking X upper")   
+--
+--
+--   local perIds = decomposedRgn:boundarySubDomainIds(2)
+--   assert_equal(2, #perIds, "Checking number of skeleton sub-domains in direction 2")
+--   -- Check individual pairs.
+--   assert_equal(1, perIds[1].lower, "Checking Y lower")
+--   assert_equal(5, perIds[1].upper, "Checking Y upper")
+--
+--   assert_equal(2, perIds[2].lower, "Checking Y lower")
+--   assert_equal(6, perIds[2].upper, "Checking Y upper")
 end
 
 function showRange(msg, rng)
@@ -131,12 +150,12 @@ function test_5()
    local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {20, 30}))
 
    for d = 1, decomp:ndim() do
-      -- fetch skeleton in direction d
+      -- Fetch skeleton in direction d.
       local perIds = decomposedRgn:boundarySubDomainIds(d)
       for p = 1, #perIds do
-	 local rlo, rup = decomposedRgn:subDomain(perIds[p].lower), decomposedRgn:subDomain(perIds[p].upper)
-	 --showRange(string.format("Dir %d. Lower-side box", d), rlo)
-	 --showRange(string.format("Dir %d. Upper-side box", d), rup)
+         local rlo, rup = decomposedRgn:subDomain(perIds[p].lower), decomposedRgn:subDomain(perIds[p].upper)
+         --showRange(string.format("Dir %d. Lower-side box", d), rlo)
+         --showRange(string.format("Dir %d. Upper-side box", d), rup)
       end
    end
 
@@ -201,7 +220,7 @@ function test_7()
    -- Test the :childDecomp method with a 1D decomp.
    local cuts1D  = {3}
    local cells1D = {10}
-   local decomp = CartDecomp.CartProd { cuts = cuts1D, __serTesting = true }
+   local decomp  = CartDecomp.CartProd { cuts = cuts1D, __serTesting = true }
 
    local childComm, childWriteRank, childCuts, childIsShared = decomp:childDecomp({1})
 
@@ -426,13 +445,13 @@ end
 
 
 -- Run tests
-test_1()
-test_2()
-test_3()
+--test_1()
+--test_2()
+--test_3()
 test_4()
-test_5()
-test_6()
-test_7()
+--test_5()
+--test_6()
+--test_7()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

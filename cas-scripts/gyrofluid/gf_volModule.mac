@@ -1,0 +1,188 @@
+/*
+  Create kernels for the volume term of the gyrofluid moment equations.
+
+  These are equations for the "stepped moments" J*m*n, J*m*n*upar, J*(ppar+m*n*upar^2)
+  and J*pperp/B. We use the following notation:
+    m0     = J*m*n,
+    m1     = J*m*n*upar,
+    m2     = J*E = J*((1/2)*(ppar+m*n*upar^2)+pperp)
+    m2perp = J*pperp/B
+  These are all stored consecutively in the same CartField.
+
+  We also refer to the "closure moments" which are the m*vpar^3 and m*vpar*mu moments
+  (times the Jacobian), and the "primitive moments" upar, Tpar and Tperp.
+
+*/
+load("modal-basis")$
+load("out-scripts")$
+load(stringproc)$
+load("recovery")$
+fpprec : 24$
+
+/* Specify the FV stencil order.
+     = 2 for second order.
+     = 4 for fourth order. */
+fvOrder : 2$
+
+doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+
+basisFromVars(basisType, varsIn, pIn) := block(
+  [basis,vars],
+  dimIn : length(varsIn),
+  if dimIn=0 then return([1]),
+
+  /* Load a p>0 basis just to get the variables. */
+  basis : getBasis(basisType, dimIn, 1),
+  vars  : listofvars(basis),
+
+  /* Load the desired basis. */
+  basis : getBasis(basisType, dimIn, pIn),
+
+  replaceList : makelist(vars[i]=varsIn[i],i,1,dimIn),
+  basis : psubst(replaceList,basis),
+
+  return(basis)
+)$
+
+writeCCompIncrCollect1(lhs, comp, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  numE : length(expr),
+  for i : 1 thru numE do (
+    if expr[i] # 0.0 then printf(fh, "  ~a += ~a; ~%", lhs[(comp-1)*numE+i-1], gcfac(expr[i]))
+  )
+)$
+
+calcGFvolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
+  [],
+
+  /* Load a p>0 basis just to get the variables. */
+  kill(varsC, varsP, basisC, basisP),
+  basis : getBasis(basisFun, dim, 1),
+  vars  : listofvars(basis),
+
+  /* Load the desired basis. */
+  kill(varsC, varsP, basisC, basisP),
+  basis       : getBasis(basisFun, dim, polyOrder),
+  numB        : length(basis),
+
+  varLabel : makelist(string(vars[d]),d,1,dim),
+
+  printf(fh, "~%"),
+  printf(fh, "double ~a(const double q_, const double m_, const double kappaPar, const double kappaPerp, const double kperpSq, const double *w, const double *dx, const double *jac, const double *rBmag, const double *jacDbmag, const double *dBdz, const double *sMom, const double *phi, double *primMom, double *out) ~%{ ~%", funcNm),
+  printf(fh, "  // q_,m_:   species charge and mass.~%"),
+  printf(fh, "  // kappa:   heat conductivity coefficients.~%"),
+  printf(fh, "  // kperpSq: k_perp^2.~%"),
+  printf(fh, "  // w:       cell-center.~%"),
+  printf(fh, "  // dx:      cell length.~%"),
+  printf(fh, "  // uMaxIn:  maximum speed.~%"),
+  printf(fh, "  // jac:     jacobian.~%"),
+  printf(fh, "  // rBmag:   reciprocal of magnetic field magnitude (1/B).~%"),
+  printf(fh, "  // jacDbmag:jacobian divided by B (J/B).~%"),
+  printf(fh, "  // sMom:    stepped moments (times Jacobian).~%"),
+  printf(fh, "  // phi:     electrostatic potential.~%"),
+  printf(fh, "  // primMom: primitive moments (upar, Tpar, Tperp).~%"),
+  printf(fh, "  // out:     output increment.~%"),
+  printf(fh, "~%"),
+
+  /* Declare cell-center variables and variables multiplying gradients. */
+  for d : 1 thru dim do (
+    printf(fh, "  double w~a = w[~a];~%", varLabel[d], d-1),
+    printf(fh, "  double rd~a2 = 2.0/dx[~a];~%", varLabel[d], d-1),
+    printf(fh, "  double rd~aSq4 = rd~a2*rd~a2;~%", varLabel[d], varLabel[d], varLabel[d])
+  ),
+  printf(fh, "~%"),
+
+  numMom : 3+1,
+  /* Moment expansions and coefficients. */
+  moms_e : [],  moms_c : [],
+  for m : 1 thru numMom do (
+    newMom_e : doExpand(makelist(sMom[i-1+(m-1)*numB],i,1,numB),basis),
+    moms_e   : endcons(newMom_e, moms_e),
+    moms_c   : endcons(calcInnerProdList(vars,1,basis,newMom_e),moms_c)
+  ),
+  /* Primitive moments, upar, Tpar, Tperp */
+  primMoms_e : [],  primMoms_c : [],
+  for m : 1 thru 3 do (
+    newMom_e   : doExpand(makelist(primMom[i-1+(m-1)*numB],i,1,numB),basis),
+    primMoms_e : endcons(newMom_e, primMoms_e),
+    primMoms_c : endcons(calcInnerProdList(vars,1,basis,newMom_e),primMoms_c)
+  ),
+
+  /* Stepped moment and primitive moment aliases. */
+  m0_e : moms_e[1],  m1_e : moms_e[2],  m2_e : moms_e[3],  m2perp_e : moms_e[4],
+  m0_c : moms_c[1],  m1_c : moms_c[2],  m2_c : moms_c[3],  m2perp_c : moms_c[4],
+  upar_e : primMoms_e[1],  Tpar_e : primMoms_e[2],  Tperp_e : primMoms_e[3],
+  upar_c : primMoms_c[1],  Tpar_c : primMoms_c[2],  Tperp_c : primMoms_c[3],
+
+  basisPrime  : diff(basis,x),
+  basisPrimeP : diff(basis,x,2),
+
+  pperpJac_c : (1/m_)*calcInnerProdList(vars,m0_e,basis,Tperp_e),
+  pparJac_c  : (1/m_)*calcInnerProdList(vars,m0_e,basis,Tpar_e),
+  pperpJac_e : doExpand(pperpJac_c,basis),
+  pparJac_e  : doExpand(pparJac_c,basis),
+
+  /* Define the fluxes so we can compute the advective
+     contributions of all equations in a loop. */
+  m0Flux_c     : calcInnerProdList(vars,1,basis,m1_e),
+  m1Flux_c     : calcInnerProdList(vars,1,basis,2*(m2_e-pperpJac_e)),
+  m2Flux_c     : calcInnerProdList(vars,upar_e,basis,m2_e+pparJac_e),
+  m2perpFlux_c : calcInnerProdList(vars,upar_e,basis,m2perp_e),
+  m0Flux_e     : doExpand(m0Flux_c,basis),
+  m1Flux_e     : doExpand(m1Flux_c,basis),
+  m2Flux_e     : doExpand(m2Flux_c,basis),
+  m2perpFlux_e : doExpand(m2perpFlux_c,basis),
+  flux_e : [m0Flux_e, m1Flux_e, m2Flux_e, m2perpFlux_e],
+
+  incr_c : [],
+  for mI : 1 thru numMom do (
+    incr_c : endcons(rdx2*calcInnerProdList(vars,1,basisPrime,flux_e[mI]), incr_c)
+  ),
+
+  numBzeros : makelist(0,i,1,numB),
+  /* Add the the terms that depend on the potential. */
+  qPhiDm_e : (q_/m_)*doExpand1(phi,basis),
+
+  h_e : [numBzeros, m0_e, m1_e, numBzeros],
+
+  for mI : 2 thru 3 do (
+    incr_c[mI] : incr_c[mI]-rdx2*calcInnerProdList(vars,diff(qPhiDm_e,x),basis,h_e[mI])
+  ),
+
+  /* Add the mirror force term to the momentum equation. */
+  dBdz_e : doExpand1(dBdz,basis),
+  incr_c[2] : incr_c[2]-calcInnerProdList(vars,dBdz_e,basis,m2perp_e),
+
+  /* Add the heat flux terms to the energy and pperp equations. */
+  hPar_e : Tpar_e,  hPerp_e : Tperp_e+m_*(1/2)*(-kperpSq)*qPhiDm_e,
+
+  jac_e      : doExpand1(jac,basis),
+  jacDbmag_e : doExpand1(jacDbmag,basis),
+
+  h_e : [numBzeros, numBzeros, (kappaPar/2)*hPar_e+kappaPerp*hPerp_e, kappaPerp*hPerp_e],
+
+  qFacs_e : [0, 0, jac_e, jacDbmag_e],
+
+  for mI : 3 thru 4 do (
+    incr_c[mI] : incr_c[mI]+rdxSq4*calcInnerProdList(vars,qFacs_e[mI],basisPrimeP,h_e[mI])
+  ),
+
+  /* Write out the increments. */
+  for mI : 1 thru numMom do (
+    writeCCompIncrCollect1(out, mI, incr_c[mI]),
+    printf(fh, "~%")
+  ),
+
+  /* Return CFL frequency */
+  zMid    : makelist(vars[d]=0, d, 1, dim),
+  Tmid    : (1/3)*(subst(zMid,Tpar_e) + 2*subst(zMid,Tperp_e)),
+  uMidOut : float(expand(fullratsimp(subst(zMid,upar_e) + sqrt(Tmid/m_)))),
+
+  cflFreq_qpar  : kappaPar*rdxSq4,
+  cflFreq_qperp : kappaPerp*rdxSq4,
+
+  printf(fh, "  return fabs(~a) + ~a*fmax(~a,~a); ~%", rdx2*uMidOut, float(((polyOrder+1)^2)/(2*polyOrder+1)), cflFreq_qpar, cflFreq_qperp ),
+
+  printf(fh, "}~%")
+
+)$

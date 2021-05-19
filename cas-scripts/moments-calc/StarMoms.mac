@@ -7,6 +7,8 @@
 
 load("modal-basis");
 load("out-scripts");
+load("recovery");
+load("scifac")$
 fpprec : 24$
 
 polyOrder : 1$ /* This is only for piecewise linear. */
@@ -36,7 +38,7 @@ let(dv1^3, dv1_cu)$
 let(dv2^3, dv2_cu)$
 let(dv3^3, dv3_cu)$
 
-writeCExprs1s(lhs, rhs, nSpaces) := block([expr],
+writeCExprs1s(lhs, rhs, nSpaces) := block([i,expr,ep],
   expr : expand(float(rhs)),
   for i : 1 thru length(expr) do (
     if expr[i] # 0.0 then (
@@ -53,7 +55,7 @@ writeCExprs1s(lhs, rhs, nSpaces) := block([expr],
   )
 )$
 
-writeCExprs1sI(lhs, iOut, rhs, nSpaces) := block([expr],
+writeCExprs1sI(lhs, iOut, rhs, nSpaces) := block([i,ep,expr],
   expr : expand(float(rhs)),
   for i : 1 thru length(expr) do (
     if expr[i] # 0.0 then (
@@ -70,7 +72,7 @@ writeCExprs1sI(lhs, iOut, rhs, nSpaces) := block([expr],
   )
 )$
 
-writeCExprs1so(lhs, rhs, nSpaces) := block([expr],
+writeCExprs1so(lhs, rhs, nSpaces) := block([i,expr],
   for i : 1 thru length(rhs) do (
     expr : float(expand(num(rhs[i]))/denom(rhs[i])),
     if expr # 0 then (
@@ -79,7 +81,7 @@ writeCExprs1so(lhs, rhs, nSpaces) := block([expr],
   )
 )$
 
-writeCExprs1sP(lhs, rhs, nSpaces) := block([expr],
+writeCExprs1sP(lhs, rhs, nSpaces) := block([i,ep,expr],
   expr : expand(float(rhs)),
   for i : 1 thru length(expr) do (
     if expr[i] # 0.0 then (
@@ -93,7 +95,7 @@ writeCExprs1sP(lhs, rhs, nSpaces) := block([expr],
   )
 )$
 
-writeCIncrExprsCollect1r(lhs, rhs, clst, cdim, vdim, nSpaces) := block([expr],
+writeCIncrExprsCollect1r(lhs, rhs, clst, cdim, vdim, nSpaces) := block([i,ep,param,vd,expr],
   expr : float(expand(rhs)),
   for i : 1 thru length(expr) do (
     if expr[i] # 0.0 then (
@@ -109,7 +111,7 @@ writeCIncrExprsCollect1r(lhs, rhs, clst, cdim, vdim, nSpaces) := block([expr],
   )
 )$
 
-writeCIncrExprsNoExpand1r(lhs, rhs, cdim, vdim) := block([expr],
+writeCIncrExprsNoExpand1r(lhs, rhs, cdim, vdim) := block([i,ep,vd,expr],
   expr : float(rhs),
   for i : 1 thru length(expr) do (
     if (expr[i] # 0.0) then (
@@ -123,83 +125,44 @@ writeCIncrExprsNoExpand1r(lhs, rhs, cdim, vdim) := block([expr],
   )
 )$
 
-calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun, applyPos) := block([],
+calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun, isNonuniform, applyPos) := block(
+  [pDim,vid,vid1,vv,surfVars,dv,bP,bC,NP,NC,recDxvL,recDxvR,h_e,hOrder,hsol,
+   Ncp,hsolKP,iHe,hsolEv,iC,xBars,xBarsSq,g1s,dvSurf,surfExpr,iM0star,
+   hsolKPifCond,iS,iCP,expg0,bSurf,gFsurf,gFsurfCP,n2m,modalV,gRec0],
 
   kill(varsC, varsP, basisC, basisP),
 
-  /*... Compute  1D recovery polynomial coefficients into hsol ...*/
-  /* Load 1D basis. */
-  load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
-  bC1 : basisC[polyOrder],
-  N1  : length(bC1),
-
-  eta(xc,dx,b) := subst(x=(w-xc)/(dx/2), b),
-
-  /* Construct the 1D recovery polynomial */
-  hOrder : 2*polyOrder+1,
-  /* Left and right (of the boundary) basis sets */
-  pL : eta(-1/2,1,bC1),
-  pR : eta(1/2,1,bC1),
-  /* Recovery polynomial expanded in z */
-  h1 : doExpand1(hn,makelist(w^i,i,0,hOrder)),
-
-  /* LHS of system of equations arising from weak equivalence relations */
-  eqL : makelist(integrate(h1*pL[i],w,-1,0), i,1,polyOrder+1),
-  eqR : makelist(integrate(h1*pR[i],w,0,1), i,1,polyOrder+1),
-  LHS : append(eqL,eqR),
-  A   : coefmatrix(LHS, makelist(hn[i],i,0,hOrder)),
-
-  /* RHS is similar to the mass matrix */
-  kill(fl, fr),
-  RHS : transpose(append(makelist(fl[i]/2,i,1,N1), makelist(fr[i]/2,i,1,N1))),
-
-  /* solve system of equations for coefficients of h */
-  S     : fullratsimp(invert(A) . RHS),
-  hsol1 : makelist(S[i][1],i,1,hOrder+1),
-
-  /*... Recovery polynomial coefficients of requested dimensionality ...*/
-  kill(varsC, basisC),
   /* Load basis of dimensionality requested. */
   load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+
+  pDim : cdim+vdim,
 
   /* Variables. */
   vid      : vidx(cdim,vdim),
   vid1     : vidx1(cdim,vdim),
   vv       : varsV[dir],
   surfVars : delete(vv,varsP),
-  dv       : makelist(dxvl[cdim+i], i, 0, vdim-1),
+  dv       : makelist(dxvl[cdim+i-1], i, 1, vdim),
 
   /* Polynomial basis and its derivatives. */
   bP  : basisP[polyOrder],
   bC  : basisC[polyOrder],
   NP  : length(bP),
   NC  : length(bC),
-  bPp : diff(bP,vv),
 
-  fg : doExpand(f, bP),       /* Function expanded in basis. */
+  /* Construct the recovery polynomial */
+  if isNonuniform then (
+    recDxvL : makelist(2,i,1,pDim),  recDxvL[cdim+dir] : dxvl[vid1[dir]],
+    recDxvR : makelist(2,i,1,pDim),  recDxvR[cdim+dir] : dxvr[vid1[dir]],
+    h_e : fullratsimp(calcRecov2CellGenNonuniform(basisFun,vv,varsP,polyOrder,recDxvL,recDxvR,
+                                                  dg(makelist(fl[i-1],i,1,NP)), dg(makelist(fr[i-1],i,1,NP))))
+  ) else (
+    h_e : calcRecov2CellGen(basisFun,vv,varsP,polyOrder,dg(makelist(fl[i-1],i,1,NP)), dg(makelist(fr[i-1],i,1,NP)))
+  ),
+  hOrder : 2*polyOrder+1,
+  hsol : cons(subst(vv=0,h_e),makelist(subst(vv=0,diff(h_e,vv,ord)/(ord!)),ord,1,hOrder)),
 
-  /* Obtain the left and right function coefficients
-     by projecting the function onto the direction of interest. */
-  hcoeff : calcInnerProdList([vv], 1, subst(x=vv,bC1), fg),
-  fls : subst(makelist(f[i]=fl[i],i,NP), hcoeff),
-  frs : subst(makelist(f[i]=fr[i],i,NP), hcoeff),
-
-  /* Substitute these "left" and "right" function coefficients,
-     which contain variation along other dimensions, into the
-     1D recovery polynomial coefficients computed above. */
-  hsol : psubst(append(makelist(fl[i]=fls[i], i, 1, N1), makelist(fr[i]=frs[i], i, 1, N1)), hsol1),
-
-  /* Because f's in hsol are index-1, we need to switch to
-     0-indexed for C++. */
-  subList : append(makelist(fr[i]=fr[i-1],i,1,NP),makelist(fl[i]=fl[i-1],i,1,NP)),
-  hsol   : psubst(subList,hsol),
-
-  /* Write out the full recovery polynomial and its derivative. */
-  h : sum(hsol[i]*vv^(i-1), i, 1, 2*N1),
-  /* Evaluate the recovery polynomial at the discontinuity. */
-  hsol0 : subst(vv=0,h),
-
-  /*............. Positivity-preserving recovery .............*/
+  /*............. Positivity-preserving recovery (should be revised) .............*/
 
   if (applyPos) then (
     /* In order to preserve positivity we will first use an exponential
@@ -229,7 +192,7 @@ calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun, applyPos) := block([],
 
     /* Evaluate boundary value of recovery polynomial at key (control) points. */
     Ncp : 2^(cdim+vdim-1),  /* Number of control points. */
-    hsolKP: [makelist(0,j,1,Ncp)],
+    hsolKP : [makelist(0,j,1,Ncp)],
     iHe : 1,
     pointEval(hsolKP,hsol[1],surfVars,1/3,1),
 
@@ -265,7 +228,7 @@ calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun, applyPos) := block([],
   ),
   printf(fh, "  // intFac:  =2pi/m for gyrokinetics (not used in Vlasov). ~%"),
   printf(fh, "  // w[NDIM]: Cell-center coordinates. ~%"),
-  printf(fh, "  // dxv[~a]:  cell length in each direciton. ~%", cdim+vdim),
+  printf(fh, "  // dxv[~a]:  cell length in each direction. ~%", cdim+vdim),
   printf(fh, "  // fl/fr:   Distribution function in left/right cells ~%"),
   printf(fh, "  // out:     Increment to M_0^\star from this cell surface. ~%"),
   printf(fh, " ~%"),
@@ -284,8 +247,11 @@ calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun, applyPos) := block([],
 
   if (not applyPos) then (
 
-    iM0star : calcInnerProdList(surfVars, 1, bC, hsol0),
-    writeCIncrExprsCollect1(out, dS*iM0star,[dS])
+    iM0star : calcInnerProdList(surfVars, 1, bC, hsol[1]),
+
+    quants : [dxvl,dxvr],
+    tempVars : [],
+    tempVars : writeCIncrExprsCollect1noPowers(out, dS*iM0star, [dS], quants, tempVars)
 
   ) else (
 
@@ -300,7 +266,7 @@ calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun, applyPos) := block([],
     ),
     printf(fh,"  if ( ~a ) {~%",hsolKPifCond),
 
-    iM0star : calcInnerProdList(surfVars, 1, bC, hsol0),
+    iM0star : calcInnerProdList(surfVars, 1, bC, hsol[1]),
     writeCIncrExprsCollect1r(out, dS*iM0star,[dS], cdim, vdim, 2),
 
     printf(fh,"  } else {~%"),
@@ -371,7 +337,8 @@ calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun, applyPos) := block([],
 )$
 
 /* Calculate Vlasov M1i* and M2*. */
-calcVmStarM1iM2(fh, funcNm, cdim, vdim, basisFun) := block([],
+calcVmStarM1iM2(fh, funcNm, cdim, vdim, basisFun) := block(
+  [i,bP,bC,NC,f_e,M0,M0M1i,dir,M1i,tempM1i,M0M2,clst],
 
   kill(varsC, varsP, basisC, basisP),
   kill(M0,M1i,M2,M0M1i,M0M2),    /* So it plays well with moment kernel script. */
@@ -413,18 +380,18 @@ calcVmStarM1iM2(fh, funcNm, cdim, vdim, basisFun) := block([],
   printf(fh, "~%"),
 
   M0M1i : (M0M1i : [],
-       for dir : 1 thru vdim do (
-         M0M1i : append(M0M1i, makelist(tempM0[i-1]*w[cdim+dir-1], i, 1, NC))
-       ),
+    for dir : 1 thru vdim do (
+      M0M1i : append(M0M1i, makelist(tempM0[i-1]*w[cdim+dir-1], i, 1, NC))
+    ),
   M0M1i),
   writeCIncrExprs1(outM1i, M0M1i),
   printf(fh, "~%"),
 
   /* Velocity space integral (projected on conf space) of vx*(dv/2)*f. */
   M1i : (M1i : [],
-       for dir : 1 thru vdim do (
-         M1i : append(M1i, calcInnerProdList(varsP, varsV[dir]*dxv[cdim+dir-1]/2, bC, f_e))
-       ),
+    for dir : 1 thru vdim do (
+      M1i : append(M1i, calcInnerProdList(varsP, varsV[dir]*dxv[cdim+dir-1]/2, bC, f_e))
+    ),
   M1i),
   /* Add to the integral of f. */
   tempM1i : M0M1i+volFact*M1i,
@@ -432,7 +399,7 @@ calcVmStarM1iM2(fh, funcNm, cdim, vdim, basisFun) := block([],
   /* Multiply (vector) components by corresponding w and add them. */
   M0M2 : makelist(0,i,1,NC),
   for vd : 1 thru vdim do (
-     M0M2 : M0M2+makelist(tempM1i[(vd-1)*NC+i],i,1,NC)*w[cdim+vd-1]
+    M0M2 : M0M2+makelist(tempM1i[(vd-1)*NC+i],i,1,NC)*w[cdim+vd-1]
   ),
   clst : append([volFact], makelist(tempM0[i-1], i, 1, NC)),
   writeCIncrExprsCollect1r(outM2, M0M2, clst, cdim, vdim, 0),
@@ -444,7 +411,8 @@ calcVmStarM1iM2(fh, funcNm, cdim, vdim, basisFun) := block([],
 )$
 
 /* Calculate gyrokinetic M1i* and M2*. */
-calcGkStarM1iM2(fh, funcNm, cdim, vdim, basisFun) := block([],
+calcGkStarM1iM2(fh, funcNm, cdim, vdim, basisFun) := block(
+  [i,bP,bC,f_e,bmag_e,M1,M2par,Mtemp,temp_e,M2perp],
 
   kill(varsC, varsP, basisC, basisP),
   kill(M1,M2par,M2perp),    /* So it plays well with moment kernel script. */
@@ -521,12 +489,19 @@ calcGkStarM1iM2(fh, funcNm, cdim, vdim, basisFun) := block([],
 
 calcStarMomContributions(fh, funcNmRoot, cdim, vdim, basisFun) := block([],
 
+  /* Is non-uniform booleans, false=uniform, true=nonuniform. */
+  gridType : [false,true],
+
   if (sequal(funcNmRoot,"Vm")) then (
 
-    funcNm : sconcat(funcNmRoot,"M0Star", c, "x", v, "v", basisFun),
+    for gridInd : 1 thru length(gridType) do (
+      isNonuniform : gridType[gridInd],
+      if isNonuniform then (gridStr : "Nonuniform") else (gridStr : ""),
 
-    for dir : 1 thru vdim do (
-      calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun, false)
+      funcNm : sconcat(funcNmRoot,"M0Star", gridStr, c, "x", v, "v", basisFun),
+      for dir : 1 thru vdim do (
+        calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun, isNonuniform, false)
+      )
     ),
 
     funcNm : sconcat(funcNmRoot,"M1iM2Star", c, "x", v, "v", basisFun),
@@ -534,12 +509,17 @@ calcStarMomContributions(fh, funcNmRoot, cdim, vdim, basisFun) := block([],
 
   ) else (
 
-    funcNm : sconcat(funcNmRoot,"M0Star", c, "x", v, "v", basisFun),
-    calcStarM0Dir(1, fh, funcNm, cdim, vdim, basisFun, false),
+    for gridInd : 1 thru length(gridType) do (
+      isNonuniform : gridType[gridInd],
+      if isNonuniform then (gridStr : "Nonuniform") else (gridStr : ""),
+
+      funcNm : sconcat(funcNmRoot, "M0Star", gridStr, c, "x", v, "v", basisFun),
+      calcStarM0Dir(1, fh, funcNm, cdim, vdim, basisFun, isNonuniform, false)
+    ),
 
     if (basisFun = "Ser") then (
       funcNm : sconcat(funcNmRoot,"M0StarPositivity", c, "x", v, "v", basisFun),
-      calcStarM0Dir(1, fh, funcNm, cdim, vdim, basisFun, true)
+      calcStarM0Dir(1, fh, funcNm, cdim, vdim, basisFun, false, true)
     ),
 
     funcNm : sconcat(funcNmRoot,"M1iM2Star", c, "x", v, "v", basisFun),

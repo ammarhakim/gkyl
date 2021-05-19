@@ -37,6 +37,7 @@ local MappedPoisson = require "Updater.MappedPoisson"
 local MaxwellianOnBasis = require "Updater.MaxwellianOnBasis"
 local PositivityCheck = require "Updater.PositivityCheck"
 local PositivityRescale = require "Updater.PositivityRescale"
+local ProjectFluxFunc = require "Updater.ProjectFluxFunc"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local SelfPrimMoments = require "Updater.SelfPrimMoments"
 local SeparateVectorComponents = require "Updater.SeparateVectorComponents"
@@ -48,6 +49,11 @@ local TenMomentGrad = require "Updater.TenMomentGrad"
 local TenMomentRelax = require "Updater.TenMomentRelax"
 local TenMomentSrc = require "Updater.TenMomentSrc"
 local WavePropagation = require "Updater.WavePropagation"
+local AxisymmetricFiveMomentSrc = require "Updater.AxisymmetricFiveMomentSrc"
+local AxisymmetricPhMaxwellSrc = require "Updater.AxisymmetricPhMaxwellSrc"
+local BraginskiiHeatConduction = require "Updater.BraginskiiHeatConduction"
+local BraginskiiViscosityDiffusion = require "Updater.BraginskiiViscosityDiffusion"
+local AnisotropicDiffusion = require "Updater.AnisotropicDiffusion"
 
 return {
    Bc = Bc,
@@ -81,6 +87,7 @@ return {
    MaxwellianOnBasis = MaxwellianOnBasis,
    PositivityCheck = PositivityCheck,
    PositivityRescale = PositivityRescale,
+   ProjectFluxFunc = ProjectFluxFunc,
    ProjectOnBasis = ProjectOnBasis,
    SelfPrimMoments = SelfPrimMoments,
    SeparateVectorComponents = SeparateVectorComponents,
@@ -92,4 +99,9 @@ return {
    TenMomentRelax = TenMomentRelax,
    TenMomentSrc = TenMomentSrc,
    WavePropagation = WavePropagation,
+   AxisymmetricFiveMomentSrc = AxisymmetricFiveMomentSrc,
+   AxisymmetricPhMaxwellSrc = AxisymmetricPhMaxwellSrc,
+   BraginskiiHeatConduction = BraginskiiHeatConduction,
+   BraginskiiViscosityDiffusion = BraginskiiViscosityDiffusion,
+   AnisotropicDiffusion = AnisotropicDiffusion,
 }

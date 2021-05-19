@@ -31,16 +31,6 @@ doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, len
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
 load ("scifac")$
-writeCExprsCollect1c(lhs, rhs, clst, nSpaces) := block([expr],
-  expr : float(expand(rhs)), 
-  for i : 1 thru length(expr) do (
-    if expr[i] # 0.0 then (
-      param : cons(expr[i], clst),
-      e     : apply(collectterms, param),
-      printf(fh,sconcat(smake(nSpaces," "),"  ~a = ~a; ~%"), lhs[i-1], gcfac(e))
-    )
-  )
-)$
 
 writeCExprsCollect1s(lhs, rhs, clst) := block([expr],
   expr : float(expand(rhs)), 
@@ -124,16 +114,16 @@ writeCExprs1sP(lhs, rhs, nSpaces) := block([expr],
 /* Given the value of the recovery polynomial (fRec) and its derivative
    (frecP) at the interface, this function computes the increments and
    writes them to the kernel file. */
-compWriteIncr(fRec,fRecP, nSpaces) := block([incr_s1,incr_s2],
+compWriteIncr(fRec,fRecP,rdv2In,nSpaces) := block([incr_s1,incr_s2],
 
   /* Separate out diffusion part of Ghat to simplify Ghat assignment.
-     Leave the rdv factor out for later multiplication. */
+     Leave the rdv factor out for later multiplication (or if using nonuniform grids). */
   Gdiff_c : fullratsimp(calcInnerProdList(varsP,1,bP,diffFac_e*fRecP)),
   alst    : doMakeExprLst(Gdiff_c, Gdiff),
   Gdiff_e : doExpand(alst, bP),
   
   /* Calculate Ghat (drag+diffusion) projected on the phase basis. */
-  Ghat_c : fullratsimp(GhatDrag_c+rdv2L*calcInnerProdList(varsP,1,bP,Gdiff_e)),
+  Ghat_c : fullratsimp(GhatDrag_c+rdv2In*calcInnerProdList(varsP,1,bP,Gdiff_e)),
 
   /* Ghat_c (coefficients of Ghat) is what gets written. From here
      on we can simply refer to Ghat. */
@@ -143,33 +133,35 @@ compWriteIncr(fRec,fRecP, nSpaces) := block([incr_s1,incr_s2],
 
   /* Increments to the right cell (some dimensional factors missing).
      incr_r1 and incr_r2 (farther below) have separate left/right symmetry. */
-  incr_r1 :  calcInnerProdList(surfVars, -1, subst(vv=-1, bP), Ghat_final),
-  incr_r2 :  fullratsimp(-calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), diffFac_e*fRec)),
+  incr_r1 : calcInnerProdList(surfVars, -1, subst(vv=-1, bP), Ghat_final),
+  incr_r2 : fullratsimp(-calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), diffFac_e*fRec)),
 
   /* Increments to the left cell (some dimensional factors missing). */
-  incr_l1 :  calcInnerProdList(surfVars, 1, subst(vv=1, bP), Ghat_final),
-  incr_l2 :  fullratsimp(-calcInnerProdList(surfVars, 1, subst(vv=1, bPp), diffFac_e*fRec)),
+  incr_l1 : calcInnerProdList(surfVars, 1, subst(vv=1, bP), Ghat_final),
+  incr_l2 : fullratsimp(-calcInnerProdList(surfVars, 1, subst(vv=1, bPp), diffFac_e*fRec)),
 
-  clst : append(makelist(nuVtSqSum[i],i,0,NC-1), makelist(BmagInv[i],i,0,NC-1)),
-  writeCExprsCollect1c(incr2, radcan(incr_r2), clst, nSpaces),
+  quants : [dxvl,dxvr],
+  tempVars : [],
+  tempVars : writeCExprs1noPowers(incr2, radcan(incr_r2), quants, tempVars),
   printf(fh, "~%"),
 
-  clst : append(makelist(nuVtSqSum[i],i,0,NC-1), makelist(BmagInv[i],i,0,NC-1)),
-  writeCExprsCollect1c(Gdiff, Gdiff_c, clst, nSpaces),
+  tempVars : writeCExprs1noPowers(Gdiff, Gdiff_c, quants, tempVars),
   printf(fh, "~%"),
 
   /* Populate Ghat including the diffusion term. */
-  clst : append([rdv2L], makelist(alphaDrag[i],i,0,NC-1)),
-  writeCExprsCollect1c(Ghat, Ghat_c, clst, nSpaces)
+  clst : append([rdv2In], makelist(alphaDrag[i],i,0,NC-1)),
+  writeCExprsCollect1(Ghat, Ghat_c, clst)
 
 )$
 
-calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, applyPos) := block([],
+calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, isNonuniform, applyPos) := block([],
 
   kill(varsC, varsP, basisC, basisP),
   /* Load basis of dimensionality requested. */
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
+
+  pDim : cdim+vdim,
 
   /* Variables. */
   vid      : vidx(cdim,vdim),
@@ -187,8 +179,17 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, applyPos) := b
 
   /* Construct the recovery polynomial */
   hOrder : 2*polyOrder+1,
-  h_e    : calcRecov2CellGen(basisFun,vv,varsP,polyOrder,dg(makelist(fl[i-1],i,1,NP)), dg(makelist(fr[i-1],i,1,NP))),
-  hsol   : cons(subst(vv=0,h_e),makelist(subst(vv=0,diff(h_e,vv,ord)/(ord!)),ord,1,hOrder)),
+  if isNonuniform then (
+    recDxvL : makelist(2,i,1,pDim),  recDxvL[cdim+dir] : dxvl[vid1[dir]],
+    recDxvR : makelist(2,i,1,pDim),  recDxvR[cdim+dir] : dxvr[vid1[dir]],
+    h_e : fullratsimp(calcRecov2CellGenNonuniform(basisFun,vv,varsP,polyOrder,recDxvL,recDxvR,
+                                                  dg(makelist(fl[i-1],i,1,NP)), dg(makelist(fr[i-1],i,1,NP)))),
+    rdv2DiffFac : 1
+  ) else (
+    h_e : calcRecov2CellGen(basisFun,vv,varsP,polyOrder,dg(makelist(fl[i-1],i,1,NP)), dg(makelist(fr[i-1],i,1,NP))),
+    rdv2DiffFac : rdv2L
+  ),
+  hsol : cons(subst(vv=0,h_e),makelist(subst(vv=0,diff(h_e,vv,ord)/(ord!)),ord,1,hOrder)),
 
   /*............. Positivity-preserving recovery (should be revised after
   ** switching to the use of recovery.mac) .............*/
@@ -332,14 +333,16 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, applyPos) := b
       /* Upwind the drag term using quadrature point evaluation. */
       if polyOrder=1 then quad : 1/sqrt(3),
       if polyOrder=2 then quad : sqrt(3/5),
-      nodes : getNodes(basisFun, cdim+vdim-1, polyOrder)*quad,
+      nodes : getNodes(basisFun, pDim-1, polyOrder)*quad,
       if cdim=1 and vdim=2 and polyOrder=2 then (
-        /* In 1x2v p=2 the bump IC does not conserve energy. We found that
-           the 1/sqrt(3) nodes do.
+        /* In 1x2v p=2 the bump IC does not conserve energy. 
            Cook up a node arrangement where corner cells are sqrt(3/5) nodes,
-           and the other four nodes are 1/sqrt(3). */
-        p1Nodes : args(getNodes(basisFun, cdim+vdim-1, 1)),
-        p2Nodes : args(getNodes(basisFun, cdim+vdim-1, 2)),
+           and the other four nodes are 1/sqrt(3). This appears to conserve
+           energy when using uniform grids. We found that the 1/sqrt(3) nodes
+           also conserve energy w/ uniform grids. But neither seems to conserve
+           energy with nonuniform grids. */
+        p1Nodes : args(getNodes(basisFun, pDim-1, 1)),
+        p2Nodes : args(getNodes(basisFun, pDim-1, 2)),
         extraNodeInd : [],
         p1NodeInd    : [],
         for i : 1 thru length(p2Nodes) do (
@@ -392,9 +395,9 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, applyPos) := b
     printf(fh, "~%"),
     /* Here need to change the sign of alphaDrSurf because calculation
        fHatAL assumed a convective term on the left side of the Gyrokinetic equation. */
-    fHatSurf_e    : subst(gkvsub, fhatALgenUpwind2(subst(gkvsubInv,fl_e), subst(gkvsubInv,fr_e), 
-                                                   -subst(gkvsubInv,alphaDrSurf_e), subst(gkvsubInv,vv), 
-                                                   cflL, cflR, cdim, vdim, polyOrder)),
+    fHatSurf_e : subst(gkvsub, fhatALgenUpwind2(subst(gkvsubInv,fl_e), subst(gkvsubInv,fr_e), 
+                                                -subst(gkvsubInv,alphaDrSurf_e), subst(gkvsubInv,vv), 
+                                                cflL, cflR, cdim, vdim, polyOrder)),
     GhatDrag_c : calcInnerProdList(varsP,alphaDrSurf_e,bP,fHatSurf_e)
 
   ),
@@ -447,7 +450,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, applyPos) := b
   if dir = 2 then (
     printf(fh, "  double diffFac[~a]; ~%", NC),
     clst : makelist(nuVtSqSum[i],i,0,NC-1),
-    writeCExprsCollect1c(diffFac, radcan(diffFac_c), clst, 0),
+    writeCExprsCollect1(diffFac, radcan(diffFac_c), clst),
     printf(fh, "~%")
   ),
 
@@ -463,7 +466,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, applyPos) := b
 
   if (not applyPos) then (
 
-    compWriteIncr(hsol[1],hsol[2],0)
+    compWriteIncr(hsol[1],hsol[2],rdv2DiffFac,0)
 
   ) else (
 
@@ -478,7 +481,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, applyPos) := b
     ),
     printf(fh,"  if ( ~a ) {~%",hsolKPifCond),
 
-    compWriteIncr(hsol[1], hsol[2], 2),
+    compWriteIncr(hsol[1], hsol[2], rdv2DiffFac, 2),
 
     printf(fh,"  } else {~%"),
     printf(fh,"~%"),
@@ -542,7 +545,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, applyPos) := b
     modalV  : n2m . makelist(gBoundP[i-1],i,1,Ncp),
     gRecP0  : doExpand(makelist(modalV[i][1],i,1,length(bSurf)),bSurf),
 
-    compWriteIncr(gRec0,gRecP0,2),
+    compWriteIncr(gRec0,gRecP0,rdv2DiffFac,2),
 
     printf(fh,"  };~%")
   ),
@@ -558,10 +561,8 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, applyPos) := b
   incr_s2 : makelist(incr2[i-1], i, 1, NP),
   /* Don't do coefficients where the increment is zero */
   for i : 1 thru NP do (
-    if (incr_r1[i] = 0) then
-      incr_s1[i] : 0,
-    if (incr_r2[i] = 0) then
-      incr_s2[i] : 0
+    if (incr_r1[i] = 0) then incr_s1[i] : 0,
+    if (incr_r2[i] = 0) then incr_s2[i] : 0
   ),
   /* Write out contribution right cell. */
   writeCIncrExprs1(outr, rdv2R*incr_s1+rdvSq4R*incr_s2), 
@@ -583,12 +584,8 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, applyPos) := b
   incr_s2 : makelist(signs2[i]*incr2[i-1], i, 1, NP),
   /* Don't do coefficients where the increment is zero */
   for i : 1 thru NP do (
-    if (incr_r1[i] = 0) then
-      incr_s1[i] : 0
-  ),
-  for i : 1 thru NP do (
-    if (incr_r2[i] = 0) then
-      incr_s2[i] : 0
+    if (incr_r1[i] = 0) then incr_s1[i] : 0,
+    if (incr_r2[i] = 0) then incr_s2[i] : 0
   ),
   /* Write out contribution to left cell. */
   writeCIncrExprs1(outl, rdv2L*incr_s1+rdvSq4L*incr_s2), 
@@ -677,7 +674,7 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, applyP
   if dir = 2 then (
     printf(fh, "  double diffFac[~a]; ~%", NC),
     clst : makelist(nuVtSqSum[i],i,0,NC-1),
-    writeCExprsCollect1c(diffFac, radcan(diffFac_c), clst, 0),
+    writeCExprsCollect1(diffFac, radcan(diffFac_c), clst),
     printf(fh, "~%")
   ),
 
@@ -706,9 +703,9 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, applyP
 );
 
 
-calcGkLBOconstNuSurfUpdater(fh, funcNm, cdim, vdim, basisFun, pOrder, usePos) := block([],
+calcGkLBOconstNuSurfUpdater(fh, funcNm, cdim, vdim, basisFun, pOrder, isNonuniform, usePos) := block([],
   printf(fh, "#include <GkLBOModDecl.h> ~%"),
-  for dir : 1 thru vdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pOrder, usePos) )
+  for dir : 1 thru vdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pOrder, isNonuniform, usePos) )
   
 )$
 

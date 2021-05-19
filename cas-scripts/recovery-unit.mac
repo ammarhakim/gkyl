@@ -30,14 +30,14 @@ testRecov(mode) := block(
     [["3-cell 1D p1", calcRecov3CellGen("Ser", x, [x], 1, dg(qL), dg(qC), dg(qR))]],
     [["3-cell 1D p2", calcRecov3CellGen("Ser", x, [x], 2, dg(qL), dg(qC), dg(qR))]],
     [["3-cell 2D p2", calcRecov3CellGen("Ser", x, [x,y], 2, dg(qL), dg(qC), dg(qR))]],
-    [["Face 2D p1 C1 yx", calcRecovFaceGen("Ser", [y,x], [x,y], 1, 1, 1, dg(dg(qBL),dg(qTL)), dg(dg(qBC),dg(qTC)), dg(dg(qBR),dg(qTR)))]],
-    [["Face 2D p1 C1 xy", calcRecovFaceGen("Ser", [x,y], [x,y], 1, 1, 1, dg(dg(qBL),dg(qBR)), dg(dg(qCL),dg(qCR)), dg(dg(qTL),dg(qTR)))]],
-    [["Face 2D p2 C2 yx", calcRecovFaceGen("Ser", [y,x], [x,y], 1, 2, 2, dg(dg(qBL),dg(qTL)), dg(dg(qBC),dg(qTC)), dg(dg(qBR),dg(qTR)))]],
-    [["Face 2D p2 C2 xy", calcRecovFaceGen("Ser", [x,y], [x,y], 1, 2, 2, dg(dg(qBL),dg(qBR)), dg(dg(qCL),dg(qCR)), dg(dg(qTL),dg(qTR)))]],
-    [["Face 2D p1 C1 BC", calcRecovFaceGen("Ser", [y,x], [x,y], 1, 1, 1, bc(D=DL,N=NL,val=valL), dg(dg(qBC),dg(qTC)), bc(D=DR,N=NR,val=valR))]],
-    [["Face 2D p2 C1 BC", calcRecovFaceGen("Ser", [y,x], [x,y], 1, 2, 1, bc(D=DL,N=NL,val=valL), dg(dg(qBC),dg(qTC)), bc(D=DR,N=NR,val=valR))]],
-    [["Face 3D p1 C1 yx", calcRecovFaceGen("Ser", [y,x], [x,y,z], 1, 1, 1, dg(dg(qBL),dg(qTL)), dg(dg(qBC),dg(qTC)), dg(dg(qBR),dg(qTR)))]],
-    [["Face 3D p1 C1 xy", calcRecovFaceGen("Ser", [x,y], [x,y,z], 1, 1, 1, dg(dg(qBL),dg(qTL)), dg(dg(qBC),dg(qTC)), dg(dg(qBR),dg(qTR)))]]
+    [["Face 2D p1 C1 yx", calcRecovFaceGen("Ser", [y,x], [x,y], 0, 0, 1, 1, dg(dg(qBL),dg(qTL)), dg(dg(qBC),dg(qTC)), dg(dg(qBR),dg(qTR)))]],
+    [["Face 2D p1 C1 xy", calcRecovFaceGen("Ser", [x,y], [x,y], 0, 0, 1, 1, dg(dg(qBL),dg(qBR)), dg(dg(qCL),dg(qCR)), dg(dg(qTL),dg(qTR)))]],
+    [["Face 2D p2 C2 yx", calcRecovFaceGen("Ser", [y,x], [x,y], 0, 0, 2, 2, dg(dg(qBL),dg(qTL)), dg(dg(qBC),dg(qTC)), dg(dg(qBR),dg(qTR)))]],
+    [["Face 2D p2 C2 xy", calcRecovFaceGen("Ser", [x,y], [x,y], 0, 0, 2, 2, dg(dg(qBL),dg(qBR)), dg(dg(qCL),dg(qCR)), dg(dg(qTL),dg(qTR)))]],
+    [["Face 2D p1 C1 BC", calcRecovFaceGen("Ser", [y,x], [x,y], 0, 0, 1, 1, bc(D=DL,N=NL,val=valL), dg(dg(qBC),dg(qTC)), bc(D=DR,N=NR,val=valR))]],
+    [["Face 2D p2 C1 BC", calcRecovFaceGen("Ser", [y,x], [x,y], 0, 0, 2, 1, bc(D=DL,N=NL,val=valL), dg(dg(qBC),dg(qTC)), bc(D=DR,N=NR,val=valR))]],
+    [["Face 3D p1 C1 yx", calcRecovFaceGen("Ser", [y,x], [x,y,z], 0, 0, 1, 1, dg(dg(qBL),dg(qTL)), dg(dg(qBC),dg(qTC)), dg(dg(qBR),dg(qTR)))]],
+    [["Face 3D p1 C1 xy", calcRecovFaceGen("Ser", [x,y], [x,y,z], 0, 0, 1, 1, dg(dg(qBL),dg(qTL)), dg(dg(qBC),dg(qTC)), dg(dg(qBR),dg(qTR)))]]
   ),
   
   if mode="create" then (
@@ -54,13 +54,13 @@ testRecov(mode) := block(
       difference : fullratsimp(expand(tests[i][2]-eval_string(s))),
       if difference # 0 then (
         nFailed : nFailed + 1,
-        print(sconcat(label, ": Failed")),
-        print(difference)
+        print(sconcat(label, ": Failed"))
+        /*print(difference)*/
       ) else (
         print(sconcat(label, ": OK"))
       )
     ),
-    print(sconcat("Number of failed tests: ", nFailed, "/", length(tests)))
+    print(sconcat("Passed: ", length(tests)-nFailed, "/", length(tests)))
   ),
 
   close(fh)

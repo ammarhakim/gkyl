@@ -15,20 +15,20 @@ void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double 
 }
 
 void gkylCartFieldAccumulateOffset(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out) {
-   if (nCompInp < nCompOut) {
-      for (unsigned i=0; i<nCells; ++i) {
-         for (unsigned c=0; c<nCompInp; ++c) {
-            out[sOut + i*nCompOut + compStart + c] += fact*inp[sInp + i*nCompInp + c];
-         }
+  if (nCompInp < nCompOut) {
+    for (unsigned i=0; i<nCells; ++i) {
+      for (unsigned c=0; c<nCompInp; ++c) {
+        out[sOut + i*nCompOut + compStart + c] += fact*inp[sInp + i*nCompInp + c];
       }
-   }
-   else {
-      for (unsigned i=0; i<nCells; ++i) {
-         for (unsigned c=0; c<nCompOut; ++c) {
-            out[sOut + i*nCompOut + c] += fact*inp[sInp + i*nCompInp + compStart + c];
-         }
+    }
+  }
+  else {
+    for (unsigned i=0; i<nCells; ++i) {
+      for (unsigned c=0; c<nCompOut; ++c) {
+        out[sOut + i*nCompOut + c] += fact*inp[sInp + i*nCompInp + compStart + c];
       }
-   }
+    }
+  }
 }
 
 void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out) {
@@ -37,20 +37,20 @@ void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp
 }
 
 void gkylCartFieldAssignOffset(unsigned sInp, unsigned sOut, unsigned nCells, unsigned compStart, unsigned nCompInp, unsigned nCompOut, double fact, const double *inp, double *out) {
-   if (nCompInp < nCompOut) {
-      for (unsigned i=0; i<nCells; ++i) {
-         for (unsigned c=0; c<nCompInp; ++c) {
-            out[sOut + i*nCompOut + compStart + c] = fact*inp[sInp + i*nCompInp + c];
-         }
+  if (nCompInp < nCompOut) {
+    for (unsigned i=0; i<nCells; ++i) {
+      for (unsigned c=0; c<nCompInp; ++c) {
+        out[sOut + i*nCompOut + compStart + c] = fact*inp[sInp + i*nCompInp + c];
       }
-   }
-   else {
-      for (unsigned i=0; i<nCells; ++i) {
-         for (unsigned c=0; c<nCompOut; ++c) {
-            out[sOut + i*nCompOut + c] = fact*inp[sInp + i*nCompInp + compStart + c];
-         }
+    }
+  }
+  else {
+    for (unsigned i=0; i<nCells; ++i) {
+      for (unsigned c=0; c<nCompOut; ++c) {
+        out[sOut + i*nCompOut + c] = fact*inp[sInp + i*nCompInp + compStart + c];
       }
-   }
+    }
+  }
 }
 
 void gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out) {

@@ -447,9 +447,9 @@ momentApp = Moments.App {
       end,
 
       bcx = { Euler.bcConst(rho_e_in, rhovx_e_in, rhovy_e_in, rhovz_e_in, e_e_in),
-              Euler.bcCopy },
-      bcy = { Euler.bcCopy, Euler.bcCopy },
-      bcz = { Euler.bcCopy, Euler.bcCopy },
+              Moments.Species.bcCopy },
+      bcy = { Moments.Species.bcCopy, Moments.Species.bcCopy },
+      bcz = { Moments.Species.bcCopy, Moments.Species.bcCopy },
 
       hasSsBnd = true,
       inOutFunc = function (t, xn)
@@ -481,9 +481,9 @@ momentApp = Moments.App {
       end,
 
       bcx = { Euler.bcConst(rho_i_in, rhovx_i_in, rhovy_i_in, rhovz_i_in, e_i_in),
-              Euler.bcCopy },
-      bcy = { Euler.bcCopy, Euler.bcCopy },
-      bcz = { Euler.bcCopy, Euler.bcCopy },
+              Moments.Species.bcCopy },
+      bcy = { Moments.Species.bcCopy, Moments.Species.bcCopy },
+      bcz = { Moments.Species.bcCopy, Moments.Species.bcCopy },
 
       hasSsBnd = true,
       inOutFunc = function (t, xn)

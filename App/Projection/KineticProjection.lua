@@ -66,18 +66,17 @@ function FunctionProjection:fullInit(species)
    if not func then func = self.tbl[1] end
 
    assert(func, "FunctionProjection: Must specify the function")
-   assert(type(func) == "function",
-	  "The input must be a table containing function")
+   assert(type(func) == "function", "The input must be a table containing function")
 
    if self.fromFile then
       self.ioMethod  = "MPI"
-      self.writeSkin = true
+      self.writeGhost = true
       self.fieldIo = AdiosCartFieldIo {
-         elemType  = species.distf[1]:elemType(),
-         method    = self.ioMethod,
-         writeSkin = self.writeSkin,
-         metaData  = {polyOrder = self.phaseBasis:polyOrder(),
-                      basisType = self.phaseBasis:id()}
+         elemType   = species.distf[1]:elemType(),
+         method     = self.ioMethod,
+         writeGhost = self.writeGhost,
+         metaData   = {polyOrder = self.phaseBasis:polyOrder(),
+                       basisType = self.phaseBasis:id()}
       }
    else
       self.project = Updater.ProjectOnBasis {
@@ -136,11 +135,11 @@ function MaxwellianProjection:fullInit(species)
 
    if self.fromFile then
       self.ioMethod  = "MPI"
-      self.writeSkin = true
+      self.writeGhost = true
       self.fieldIo = AdiosCartFieldIo {
          elemType  = species.distf[1]:elemType(),
          method    = self.ioMethod,
-         writeSkin = self.writeSkin,
+         writeGhost = self.writeGhost,
          metaData  = {polyOrder = self.phaseBasis:polyOrder(),
                       basisType = self.phaseBasis:id(),
                       charge    = self.charge,

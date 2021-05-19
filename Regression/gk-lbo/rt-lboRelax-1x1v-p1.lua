@@ -72,7 +72,7 @@ plasmaApp = Plasma.App {
       charge = 1.0, mass = 1.0,
       -- Velocity space grid.
       lower      = {-8.0*vt},
-      upper      = {8.0*vt},
+      upper      = { 8.0*vt},
       cells      = {32},
       -- Initial conditions.
       init = function (t, xn)
@@ -112,7 +112,7 @@ plasmaApp = Plasma.App {
    field = Plasma.Field {
       evolve      = false, -- Rvolve fields?
       externalPhi = function (t, xn) return 0.0 end,
-      kperp2      = 0.0
+      kperpSq     = 0.0
    },
    
    -- Magnetic geometry.

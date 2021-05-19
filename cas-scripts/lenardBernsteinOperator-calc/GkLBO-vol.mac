@@ -23,7 +23,7 @@ maxVdim_Max : 0$
 /* Tensor order basis. */
 maxPolyOrder_Tensor : 2$
 minCdim_Tensor : 1$
-minVdim_Tensor : 2$    /* see begining of v loop below though. */
+minVdim_Tensor : 1$    /* see begining of v loop below though. */
 maxCdim_Tensor : 1$
 maxVdim_Tensor : 2$
 
@@ -32,7 +32,7 @@ gkVdims      : [[1,2], [2], [2]]$
 /* ...... END OF USER INPUTS........ */
 
 /* To generate other bases, just add corresponding column to arrays below. */
-bName        : ["Ser", "Max", "Tensor"]$
+bName        : ["ser", "max", "tensor"]$
 maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
 minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
 minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$

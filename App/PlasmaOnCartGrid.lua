@@ -31,7 +31,7 @@ math = require("sci.math").generic -- this is global so that it affects input fi
 -- needed to run the App itself. Specific objects should be loaded in
 -- the  methods defined at the bottom of this file)
 local SpeciesBase       = require "App.Species.SpeciesBase"
-local SourceBase        = require "App.Sources.SourceBase"
+local FluidSourceBase   = require "App.FluidSources.FluidSourceBase"
 local FieldBase         = require ("App.Field.FieldBase").FieldBase
 local ExternalFieldBase = require ("App.Field.FieldBase").ExternalFieldBase
 local NoField           = require ("App.Field.FieldBase").NoField
@@ -150,18 +150,17 @@ local function buildApplication(self, tbl)
       end
    end
 
-   -- configuration space decomp object (eventually, this will be
-   -- slaved to the phase-space decomp)
+   -- Configuration space decomp object.
    local decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts,
+      cuts      = decompCuts,
       useShared = useShared,
    }
 
    -- Some timers.
-   local stepperTime = 0.0
-   local fwdEulerCombineTime = 0.0
-   local writeDataTime = 0.
-   local writeRestartTime = 0.
+   local stepperTime         = 0.
+   local fwdEulerCombineTime = 0.
+   local writeDataTime       = 0.
+   local writeRestartTime    = 0.
 
    -- Pick grid ctor based on uniform/non-uniform grid.
    local GridConstructor = Grid.RectCart
@@ -181,7 +180,12 @@ local function buildApplication(self, tbl)
       mapc2p        = tbl.mapc2p,
       world         = tbl.world,
    }
-   --confGrid:write("grid.bp")
+   if tbl.coordinateMap or tbl.mapc2p then 
+      local metaData = {polyOrder = confBasis:polyOrder(),
+                        basisType = confBasis:id(),
+                        grid      = GKYL_OUT_PREFIX .. "_grid.bp"}
+      confGrid:write("grid.bp", 0.0, metaData)
+   end
 
    -- Read in information about each species.
    local species = {}
@@ -193,11 +197,7 @@ local function buildApplication(self, tbl)
 	 val:fullInit(tbl) -- Initialize species.
       end
    end
-   -- Create a keys entry in species so we always loop in the same order.
-   local species_keys = {}
-   for k in pairs(species) do table.insert(species_keys, k) end
-   table.sort(species_keys)
-   setmetatable(species, species_keys)
+   lume.setOrder(species)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
    -- Setup each species.
    for _, s in lume.orderedIter(species) do
@@ -210,29 +210,24 @@ local function buildApplication(self, tbl)
       s:alloc(stepperNumFields[timeStepperNm])
    end
 
-   -- Read in information about each species.
-   local sources = {}
+   -- Read in information about each fluid source
+   local fluidSources = {}
    for nm, val in pairs(tbl) do
-      if SourceBase.is(val) then
-	 sources[nm] = val
-	 sources[nm]:setName(nm)
-	 val:fullInit(tbl) -- Initialize sources.
+      if FluidSourceBase.is(val) then
+	 fluidSources[nm] = val
+	 fluidSources[nm]:setName(nm)
+	 val:fullInit(tbl) -- Initialize fluid sources.
       end
    end
-
-   -- Create a keys entry in sources so we always loop in the same order.
-   local sources_keys = {}
-   for k in pairs(sources) do table.insert(sources_keys, k) end
-   table.sort(sources_keys)
-   setmetatable(sources, sources_keys)
+   lume.setOrder(fluidSources)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
    -- Add grid to app object.
    self._confGrid = confGrid
 
-   -- Set conf grid for each source.
-   for _, s in lume.orderedIter(sources) do
+   -- Set conf grid for each fluid source.
+   for _, s in lume.orderedIter(fluidSources) do
       s:setConfGrid(confGrid)
-   end   
+   end  
 
    local cflMin = GKYL_MAX_DOUBLE
    -- Compute CFL numbers.
@@ -294,7 +289,7 @@ local function buildApplication(self, tbl)
    externalField:initField()
    
    -- Initialize species solvers and diagnostics.
-   for nm, s in lume.orderedIter(species) do
+   for _, s in lume.orderedIter(species) do
       local hasE, hasB = field:hasEB()
       local extHasE, extHasB = externalField:hasEB()
       s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
@@ -303,8 +298,8 @@ local function buildApplication(self, tbl)
       s:createDiagnostics()
    end
 
-   -- Initialize source solvers.
-   for nm, s in lume.orderedIter(sources) do
+   -- Initialize fluid source solvers.
+   for _, s in lume.orderedIter(fluidSources) do
       s:createSolver(species, field)
    end   
 
@@ -333,6 +328,7 @@ local function buildApplication(self, tbl)
    -- Function to write data to file.
    local function writeData(tCurr, force)
       for _, s in lume.orderedIter(species) do s:write(tCurr, force) end
+      for _, src in lume.orderedIter(fluidSources) do src:write(tCurr) end 
       field:write(tCurr, force)
       externalField:write(tCurr, force)
    end
@@ -588,8 +584,8 @@ local function buildApplication(self, tbl)
       return status, dtSuggested, tryInv_next
    end
 
-   -- Update sources.
-   local function updateSource(dataIdx, tCurr, dt)
+   -- Update fluid sources.
+   local function updateFluidSource(dataIdx, tCurr, dt)
       -- Make list of species data to operate on.
       local speciesVar = {}
       for nm, s in lume.orderedIter(species) do
@@ -598,12 +594,24 @@ local function buildApplication(self, tbl)
       -- Field data to operate on.
       local fieldVar = field:rkStepperFields()[dataIdx]
 
+      -- Expose freely-available array space space. Useful for storing
+      -- intermediate quantities like spatial gradient.
+      local bufIdx = (dataIdx==1) and 2 or 1
+      local speciesBuf = {}
+      for nm, s in lume.orderedIter(species) do
+         speciesBuf[nm] = s:rkStepperFields()[bufIdx]
+      end
+      -- Field data to operate on.
+      local fieldBuf = field:rkStepperFields()[bufIdx]
+
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
-      -- Update sources.
-      for nm, s in lume.orderedIter(sources) do
-         local myStatus, myDtSuggested = s:updateSource(tCurr, dt, speciesVar, fieldVar)
-         status =  status and myStatus
-         dtSuggested = math.min(dtSuggested, myDtSuggested)
+      -- Update fluid source terms.
+      for _, s in lume.orderedIter(fluidSources) do
+	 local myStatus, myDtSuggested = s:updateFluidSource(
+            tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, species,
+            field, externalField.em)
+	 status =  status and myStatus
+	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
 
       return status, dtSuggested
@@ -617,11 +625,11 @@ local function buildApplication(self, tbl)
       -- Copy in case we need to take this step again.
       copy(3, 1)
 
-      -- Update source by half time-step.
+      -- Update fluid source by half time-step.
       do
-         local myStatus, myDtSuggested = updateSource(1, tCurr, dt/2)
-         status = status and myStatus
-         dtSuggested = math.min(dtSuggested, myDtSuggested)
+	 local myStatus, myDtSuggested = updateFluidSource(1, tCurr, dt/2)
+	 status = status and myStatus
+	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
 
       -- Update solution in each direction.
@@ -654,16 +662,16 @@ local function buildApplication(self, tbl)
          for _, s in lume.orderedIter(species) do tryInv[s] = false end
       end
 
-      -- Update source by half time-step.
+      -- Update fluid source by half time-step.
       if status and isInv then
-         local myStatus, myDtSuggested
-         if fIdx[cdim][2] == 2 then
-            myStatus, myDtSuggested = updateSource(2, tCurr, dt/2)
-         else
-            myStatus, myDtSuggested = updateSource(1, tCurr, dt/2)
-         end
-         status = status and myStatus
-         dtSuggested = math.min(dtSuggested, myDtSuggested)
+	 local myStatus, myDtSuggested
+	 if fIdx[cdim][2] == 2 then
+	    myStatus, myDtSuggested = updateFluidSource(2, tCurr, dt/2)
+	 else
+	    myStatus, myDtSuggested = updateFluidSource(1, tCurr, dt/2)
+	 end
+	 status = status and myStatus
+	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
 
       if not (status and isInv) then
@@ -734,7 +742,7 @@ local function buildApplication(self, tbl)
 	 if logTrigger(tCurr) then
 	    if logCount > 0 then
 	       log (string.format(
-		       " Step %5d at time %g. Time step %g. Completed %g%s\n", step, tCurr, myDt, tenth*10, "%"))
+		       " Step %6d at time  %#11.8g.  Time step  %.6e.  Completed %g%s\n", step, tCurr, myDt, tenth*10, "%"))
 	    else
 	       logCount = logCount+1
 	    end
@@ -852,12 +860,14 @@ local function buildApplication(self, tbl)
                tmCollNonSlvr = tmCollNonSlvr + c:nonSlvrTime()
 	    end
          end
-         if s.timers and s.fSource and s.evolveSources then
-            tmSrc = tmSrc + s.timers.sources
-         end
+         if s.sources then
+	    for _, src in pairs(s.sources) do
+               tmSrc = tmSrc + src:srcTime()
+	    end
+	 end
       end
 
-      for _, s in lume.orderedIter(sources) do tmSrc = tmSrc + s:totalTime() end
+      for _, s in lume.orderedIter(fluidSources) do tmSrc = tmSrc + s:totalTime() end
 
       local tmTotal = tmSimEnd-tmSimStart
       local tmAccounted = 0.0
@@ -867,75 +877,91 @@ local function buildApplication(self, tbl)
 	--     Mpi.getNumBarriers(), Mpi.getNumBarriers()/step))
       
       log(string.format(
-	     "Solver took				%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
-	     tmSlvr, tmSlvr/step, 100*tmSlvr/tmTotal))
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "Solver took", tmSlvr, tmSlvr/step, 100*tmSlvr/tmTotal))
       tmAccounted = tmAccounted + tmSlvr
       log(string.format(
-	     "Solver BCs took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
-	     tmBc, tmBc/step, 100*tmBc/tmTotal))
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "Solver BCs took", tmBc, tmBc/step, 100*tmBc/tmTotal))
       tmAccounted = tmAccounted + tmBc
       log(string.format(
-	     "Field solver took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "Field solver took",
 	     field:totalSolverTime(), field:totalSolverTime()/step, 100*field:totalSolverTime()/tmTotal))
       tmAccounted = tmAccounted + field:totalSolverTime()
       log(string.format(
-	     "Field solver BCs took			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "Field solver BCs",
 	     field:totalBcTime(), field:totalBcTime()/step, 100*field:totalBcTime()/tmTotal))
       tmAccounted = tmAccounted + field:totalBcTime()
       log(string.format(
-	     "Function field solver took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "Function field solver took",
 	     externalField:totalSolverTime(), externalField:totalSolverTime()/step, 100*externalField:totalSolverTime()/tmTotal))
       tmAccounted = tmAccounted + externalField:totalSolverTime()
       log(string.format(
-	     "Moment calculations took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "Moment calculations took",
 	     tmMom, tmMom/step, 100*tmMom/tmTotal))
       tmAccounted = tmAccounted + tmMom
       log(string.format(
-	     "Integrated moment calculations took	%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "Integrated moment calculations took",
 	     tmIntMom, tmIntMom/step, 100*tmIntMom/tmTotal))
       tmAccounted = tmAccounted + tmIntMom
       log(string.format(
-	     "Field energy calculations took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "Field energy calculations took",
 	     field:energyCalcTime(), field:energyCalcTime()/step, 100*field:energyCalcTime()/tmTotal))
       tmAccounted = tmAccounted + field:energyCalcTime()
       log(string.format(
-	     "Collision solver(s) took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "Collision solver(s) took",
 	     tmColl, tmColl/step, 100*tmColl/tmTotal))
       tmAccounted = tmAccounted + tmColl
       log(string.format(
-	     "Collision (other) took			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "Collision (other) took",
 	     tmCollNonSlvr, tmCollNonSlvr/step, 100*tmCollNonSlvr/tmTotal))
       tmAccounted = tmAccounted + tmCollNonSlvr
       log(string.format(
-	     "Source updaters took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "Source updaters took",
 	     tmSrc, tmSrc/step, 100*tmSrc/tmTotal))
       tmAccounted = tmAccounted + tmSrc
       log(string.format(
-	     "Stepper combine/copy took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "Stepper combine/copy took",
 	     stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
       tmAccounted = tmAccounted + stepperTime
       log(string.format(
-	     "Forward Euler combine took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "Forward Euler combine took",
 	     fwdEulerCombineTime, fwdEulerCombineTime/step, 100*fwdEulerCombineTime/tmTotal))
       tmAccounted = tmAccounted + fwdEulerCombineTime
       log(string.format(
-      	     "Time spent in barrier function		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+      	     "Time spent in barrier function",
       	     Mpi.getTimeBarriers(), Mpi.getTimeBarriers()/step, 100*Mpi.getTimeBarriers()/tmTotal))      
       tmUnaccounted = tmTotal - tmAccounted
       log(string.format(
-	     "Data write took				%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "Data write took",
 	     writeDataTime, writeDataTime/step, 100*writeDataTime/tmTotal))
       tmAccounted = tmAccounted + writeDataTime
       log(string.format(
-	     "Write restart took			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
+	     "Write restart took",
 	     writeRestartTime, writeRestartTime/step, 100*writeRestartTime/tmTotal))
       tmAccounted = tmAccounted + writeRestartTime
       log(string.format(
-	     "[Unaccounted for]			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n\n",
+	     "[Unaccounted for]",
 	     tmUnaccounted, tmUnaccounted/step, 100*tmUnaccounted/tmTotal))
       
       log(string.format(
-	     "Main loop completed in			%9.5f sec   (%7.6f s/step)   (%6.f%%)\n\n",
+	     "%-40s %13.5f s   (%9.6f s/step)   (%6.f%%)\n\n",
+	     "Main loop completed in",
 	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))      
       log(date(false):fmt()); log("\n") -- Time-stamp for sim end.
 
@@ -970,24 +996,41 @@ function App:run()
 end
 
 return {
+   Gyrofluid = function ()
+      App.label = "Gyrofluid"
+      return  {
+	 AdiabaticSpecies    = require ("App.Species.AdiabaticSpecies"),
+	 App                 = App,
+	 Field               = require ("App.Field.GkField").GkField,
+	 FunctionProjection  = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
+	 Geometry            = require ("App.Field.GkField").GkGeometry,
+	 GyrofluidProjection = require ("App.Projection.GyrofluidProjection").GyrofluidProjection, 
+         PASCollisions       = require "App.Collisions.GfPitchAngleScattering",
+         Source              = require "App.Sources.GyrofluidSource",
+	 Species             = require "App.Species.GyrofluidSpecies",
+      }
+   end,
+
    Gyrokinetic = function ()
       App.label = "Gyrokinetic"
       return  {
-	 App = App,
-	 Species = require "App.Species.GkSpecies",
-	 AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
-	 Vlasov = require ("App.Species.VlasovSpecies"),
-	 Field = require ("App.Field.GkField").GkField,
-	 Geometry = require ("App.Field.GkField").GkGeometry,
-	 FunctionProjection = require ("App.Projection.GkProjection").FunctionProjection, 
-	 MaxwellianProjection = require ("App.Projection.GkProjection").MaxwellianProjection,
+	 AdiabaticSpecies       = require ("App.Species.AdiabaticSpecies"),
+	 App                    = App,
+	 BGKCollisions          = require "App.Collisions.GkBGKCollisions",
+	 BgkCollisions          = require "App.Collisions.GkBGKCollisions",
+	 ChargeExchange         = require "App.Collisions.GkChargeExchange",
+	 Field                  = require ("App.Field.GkField").GkField,
+	 FunctionProjection     = require ("App.Projection.GkProjection").FunctionProjection, 
+	 Geometry               = require ("App.Field.GkField").GkGeometry,
+	 Ionization             = require "App.Collisions.GkIonization",
+	 LBOCollisions          = require "App.Collisions.GkLBOCollisions",
+	 LboCollisions          = require "App.Collisions.GkLBOCollisions",
+	 MaxwellianProjection   = require ("App.Projection.GkProjection").MaxwellianProjection,
+	 Species                = require "App.Species.GkSpecies",
+	 Source                 = require "App.Sources.GkSource",
+	 Vlasov                 = require ("App.Species.VlasovSpecies"),
 	 VmMaxwellianProjection = require ("App.Projection.VlasovProjection").MaxwellianProjection,
-	 BGKCollisions = require "App.Collisions.GkBGKCollisions",
-	 LBOCollisions = require "App.Collisions.GkLBOCollisions",
-	 BgkCollisions = require "App.Collisions.GkBGKCollisions",
-	 LboCollisions = require "App.Collisions.GkLBOCollisions",
-	 ChargeExchange = require "App.Collisions.GkChargeExchange",
-	 Ionization = require "App.Collisions.GkIonization",
+	 VmSource               = require "App.Sources.VmSource",
       }
    end,
 
@@ -995,12 +1038,29 @@ return {
       App.label = "Incompressible Euler"
       return {
 	 App       = App,
-	 Species   = require "App.Species.IncompEulerSpecies",
-	 Field     = require ("App.Field.GkField").GkField,
 	 Diffusion = require "App.Collisions.Diffusion",
+	 Field     = require ("App.Field.GkField").GkField,
+         Source    = require "App.Sources.FluidSource",
+	 Species   = require "App.Species.IncompEulerSpecies",
       }
    end,
    
+   Moments = function ()
+      App.label = "Multi-fluid"
+      return {
+         App = App,
+         Species = require "App.Species.MomentSpecies",
+         Field = require ("App.Field.MaxwellField").MaxwellField,
+         CollisionlessEmSource = require "App.FluidSources.CollisionlessEmSource",
+         TenMomentRelaxSource  = require "App.FluidSources.TenMomentRelaxSource",
+         TenMomentGradSource = require "App.FluidSources.TenMomentGradSource",
+         AxisymmetricMomentSource = require "App.FluidSources.AxisymmetricMomentSource",
+         AxisymmetricPhMaxwellSource = require "App.FluidSources.AxisymmetricPhMaxwellSource",
+         BraginskiiHeatConductionSource = require "App.FluidSources.BraginskiiHeatConductionSource",
+         BraginskiiViscosityDiffusionSource = require "App.FluidSources.BraginskiiViscosityDiffusionSource",
+      }
+   end,
+
    VlasovMaxwell = function ()
       App.label = "Vlasov-Maxwell"
       return {
@@ -1019,18 +1079,25 @@ return {
 	 ChargeExchange = require "App.Collisions.VmChargeExchange",
 	 Ionization = require "App.Collisions.VmIonization",
 	 Diffusion = require "App.Collisions.Diffusion",
+	 SteadySource = require "App.Sources.VmSteadyStateSource",
+	 Source = require "App.Sources.VmSource",
       }
    end,
    
    Moments = function ()
       App.label = "Multi-fluid"
       return {
-	 App = App,
-	 Species = require "App.Species.MomentSpecies",
-	 Field = require ("App.Field.MaxwellField").MaxwellField,
-	 CollisionlessEmSource = require "App.Sources.CollisionlessEmSource",
-	 TenMomentRelaxSource  = require "App.Sources.TenMomentRelaxSource",
-    TenMomentGradSource  = require "App.Sources.TenMomentGradSource",
+         App = App,
+         Species = require "App.Species.MomentSpecies",
+         Field = require ("App.Field.MaxwellField").MaxwellField,
+         ExternalField = require ("App.Field.MaxwellField").ExternalMaxwellField,
+         CollisionlessEmSource = require "App.FluidSources.CollisionlessEmSource",
+         TenMomentRelaxSource = require "App.FluidSources.TenMomentRelaxSource",
+         TenMomentGradSource = require "App.FluidSources.TenMomentGradSource",
+         AxisymmetricMomentSource = require "App.FluidSources.AxisymmetricMomentSource",
+         AxisymmetricPhMaxwellSource = require "App.FluidSources.AxisymmetricPhMaxwellSource",
+         BraginskiiHeatConductionSource = require "App.FluidSources.BraginskiiHeatConductionSource",
+         BraginskiiViscosityDiffusionSource = require "App.FluidSources.BraginskiiViscosityDiffusionSource",
       }
    end
 }

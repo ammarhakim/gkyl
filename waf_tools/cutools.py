@@ -52,6 +52,11 @@ class culink(ccroot.link_task):
     run_str = '${NVCC} -dlink -arch=sm_70 ${CXXLNK_SRC_F} ${SRC} ${CXXLNK_TGT_F} ${TGT[0].abspath()}'
 
 def options(opt):
+    opt.add_option('--enable-cuda', help=('Enable CUDA GPU build (if NVCC is found)'),
+                   dest='enable_cuda', action='store_true',
+                   default=False)
+    opt.add_option('--disable-cuda', help=('Disable CUDA GPU build (even if NVCC can be found)'),
+                   dest='enable_cuda', action='store_false')
     opt.add_option('--cuda-inc-dir', type='string', help='Path to CUTOOLS includes', dest='cuIncDir')
     opt.add_option('--cuda-lib-dir', type='string', help='Path to CUTOOLS libraries', dest='cuLibDir')
     opt.add_option('--cuda-link-libs', type='string', help='List of CUTOOLS libraries to link',
@@ -62,6 +67,8 @@ def check_cutools(conf):
     opt = conf.options
     conf.env['CUTOOLS_FOUND'] = False
     
+    if not conf.options.enable_cuda:
+        return
     
     conf.start_msg('Checking for NVCC compiler')
     try:

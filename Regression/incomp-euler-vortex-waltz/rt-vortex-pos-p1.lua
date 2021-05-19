@@ -39,6 +39,7 @@ plasmaApp = Plasma.App {
       applyPositivity = true,
       positivityDiffuse = true,
       positivityRescale = false,
+      diagnostics = {"intMom"},
    },
 
    -- Field solver.

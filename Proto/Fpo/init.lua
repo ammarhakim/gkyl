@@ -6,6 +6,6 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl modules
-local Fpo = require "Proto.Fpo.fpo"
+local Fpo = require "Proto.Fpo.vlasov_fpo"
 
 return Fpo

@@ -33,8 +33,8 @@ lambda = lambdaOverDi0 * di0
 -- domain size
 Lx = 25.6 * di0
 Ly = 12.8 * di0
-Nx = 64
-Ny = 32
+Nx = 128
+Ny = 64
 
 cfl = 1.0
 tEnd = 25.0/OmegaCi0

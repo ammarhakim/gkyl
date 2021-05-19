@@ -13,14 +13,14 @@ etaDir(dir, xc, dx, fn) := block(
   return(subst(td=dir, subst(dir=2*(td-xc)/dx, fn)))
 ) $
 
-eta(xc, dx, fn) := block(
+eta(vars, xc, dx, fn) := block([out],
   /* A helper function to shift basis functions in all directions
      together
-     Example: eta([x, y], [dx/2, -dy/2], [dx, dy], fn) */
-  [out, tx, ty, tz],
-  out : subst(tx=x, subst(x=2*(tx-xc[1])/dx[1], fn)),
-  if length(dx) > 1 then out : subst(ty=y, subst(y=2*(ty-xc[2])/dx[2], out)),
-  if length(dx) > 2 then out : subst(tz=z, subst(z=2*(tz-xc[3])/dx[3], out)),
+     Example: eta([dx/2, -dy/2], [dx, dy], fn) */
+  out : etaDir(vars[1], xc[1], dx[1], fn),
+  for d : 2 thru length(vars) do (
+    out : etaDir(vars[d], xc[d], dx[d], out)
+  ),
   return(out)
 ) $
 

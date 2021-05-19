@@ -129,7 +129,7 @@ calcJacobiGaussSeidelOp(fh, funcNm, dim, basisFun, pMax, isJacobi) := block([],
         printf(fh, "~%"),
 
         /* Write the relaxation stencil. */
-        writeCExprs1noPowers(phiC,relaxStencil,[rdx2SqVol,bcVals,dxC],18),
+        writeCExprs1noPowers(phiC,relaxStencil,[rdx2SqVol,bcVals,dxC],18,true),
         printf(fh, "~%"),
 
         printf(fh, "}~%"),

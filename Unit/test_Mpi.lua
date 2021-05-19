@@ -175,6 +175,16 @@ function test_5(comm)
       assert_equal(i+0.5, vals[i], "Testing Bcast data")
    end
    Mpi.Barrier(comm)
+
+   -- Test broadcasting strings.
+   -- MF 2021/05/05: as currently implemented it should probably only be used for strings
+   --                with length>0. It occasionally seg faults with empty strings.
+   local myStr = "myRank".. rnk
+   local Cstr = new("char [?]", string.len(myStr))
+   ffi.copy(Cstr, myStr)
+   Mpi.Bcast(Cstr, string.len(myStr)+1, Mpi.CHAR, 1, comm)
+   myStr = ffi.string(Cstr)
+   assert_equal("myRank1", myStr, "Testing Bcast string")
 end
 
 -- Non-blocking recv
