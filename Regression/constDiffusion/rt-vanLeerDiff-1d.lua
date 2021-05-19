@@ -51,7 +51,8 @@ plasmaApp = Plasma.App {
          coefficient = diffCoefficient,
       },
       -- BCs for the vanLeer 2005 test.
-      bcx = {{Plasma.Species.bcDirichlet, 1.0}, {Plasma.Species.bcNeumann,2.0*math.pi-1.0}},
+      bcx = {Plasma.BasicBC{kind="dirichlet", value=1.0},
+             Plasma.BasicBC{kind="neumann", value=2.0*math.pi-1.0}},
    },
 
 }

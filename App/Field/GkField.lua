@@ -426,7 +426,7 @@ function GkField:createSolver(species, externalField)
       end
 
       if self.adiabatic then 
-         modifierConstant = modifierConstant + self.adiabSpec:getQneutFac() 
+         modifierConstant = modifierConstant + self.adiabSpec:getQneutFacLin() 
       end
 
       self.laplacianWeight:combine(laplacianConstant, self.unitWeight)   -- No jacobian here.
@@ -624,7 +624,7 @@ function GkField:write(tm, force)
                if self.ndim == 1 then 
                   esEnergyFac = esEnergyFac*self.kperpSq 
                   if self.adiabatic then 
-                     esEnergyFac = esEnergyFac + .5*self.adiabSpec:getQneutFac() 
+                     esEnergyFac = esEnergyFac + .5*self.adiabSpec:getQneutFacLin() 
                   end
                end
                self.energyCalc:advance(tm, { self.potentials[1].phiAux, esEnergyFac }, { self.esEnergy })
@@ -632,7 +632,7 @@ function GkField:write(tm, force)
                if self.adiabatic and self.ndim > 1 then
                   local tm, energyVal = self.esEnergy:lastData()
                   local _, phiSqVal = self.phiSq:lastData()
-                  energyVal[1] = energyVal[1] + .5*self.adiabSpec:getQneutFac()*phiSqVal[1]
+                  energyVal[1] = energyVal[1] + .5*self.adiabSpec:getQneutFacLin()*phiSqVal[1]
                end
             else
                -- Something.
@@ -752,7 +752,7 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
             end
 
             if self.adiabatic then
-               self.modifierWeight:accumulate(1.0, self.adiabSpec:getQneutFac(false))
+               self.modifierWeight:accumulate(1.0, self.adiabSpec:getQneutFacNotLin())
             end
 
             if self.ndim > 1 then

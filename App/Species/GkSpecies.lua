@@ -1242,7 +1242,7 @@ function GkSpecies:createDiagnostics()
             end
          end
       end
-   end -- allocateDiagnosticMoments
+   end   -- allocateDiagnosticMoments
 
    organizeDiagnosticMoments(self.diagnosticMoments, self.diagnosticWeakMoments, self.diagnosticIntegratedMoments)
    allocateDiagnosticMoments(self.diagnosticMoments, self.diagnosticWeakMoments)
@@ -1278,7 +1278,7 @@ function GkSpecies:createDiagnostics()
    	 		     mass      = self.mass,},	    
    	 }
    	 self.bcGkM0fluxUpdater[label] = Updater.DistFuncMomentCalc {
-            onGrid     = phaseGrid,
+   	    onGrid     = phaseGrid,
    	    phaseBasis = self.basis,
    	    confBasis  = self.confBasis,
    	    moment     = 'GkM0',
@@ -1585,9 +1585,7 @@ function GkSpecies:getNumDensity(rkIdx)
    return self.numDensityAux
 end
 
-function GkSpecies:getBackgroundDens()
-   return self.n0
-end
+function GkSpecies:getBackgroundDens() return self.n0 end
 
 function GkSpecies:getMomDensity(rkIdx)
    -- If no rkIdx specified, assume momDensity has already been calculated.

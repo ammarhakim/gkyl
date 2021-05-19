@@ -17,21 +17,25 @@ local Proto         = require "Lib.Proto"
 local Time          = require "Lib.Time"
 
 -- ............... IMPLEMENTATION OF DIAGNOSTICS ................. --
+-- Diagnostics could be placed in a separate file if they balloon in
+-- number. But if we only have one or two we can just place it here.
+
 -- ~~~~ Source integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~
-local FluidSourceDiag_intSrc = Proto(DiagsImplBase)
-function FluidSourceDiag_intSrc:fullInit(diagApp, srcIn)
-   self.srcName  = string.gsub(srcIn.name, srcIn.speciesName.."_", "")
-   self.field    = DataStruct.DynVector { numComponents = srcIn.nMoments }
-   self.updaters = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = srcIn.grid,   numComponents = srcIn.nMoments,
-      basis  = srcIn.basis,  quantity      = "V"
-   }
-   self.done = false
-end
-function FluidSourceDiag_intSrc:getType() return "integrated" end
-function FluidSourceDiag_intSrc:advance(tm, inFlds, outFlds)
-   local specIn = inFlds[1]
-   self.updaters:advance(tm, {specIn.sources[self.srcName]:getSource()}, {self.field})
+local sourceDiagImpl = function()
+   local _intSrc = Proto(DiagsImplBase)
+   function _intSrc:fullInit(diagApp, mySpecies, srcIn)
+      self.srcName  = string.gsub(srcIn.name, srcIn.speciesName.."_", "")
+      self.field    = DataStruct.DynVector { numComponents = srcIn.nMoments }
+      self.updaters = mySpecies.volIntegral.compsN
+      self.done     = false
+   end
+   function _intSrc:getType() return "integrated" end
+   function _intSrc:advance(tm, inFlds, outFlds)
+      local specIn = inFlds[1]
+      self.updaters:advance(tm, {specIn.sources[self.srcName]:getSource()}, {self.field})
+   end
+
+   return {intSrc = _intSrc}
 end
 
 -- .................... END OF DIAGNOSTICS ...................... --

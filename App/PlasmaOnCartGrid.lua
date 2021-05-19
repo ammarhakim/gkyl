@@ -294,7 +294,7 @@ local function buildApplication(self, tbl)
       local extHasE, extHasB = externalField:hasEB()
       s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
       s:createSolver(hasE or extHasE, hasB or extHasB, externalField, hasB)
-      s:initDist(externalField)
+      s:initDist(externalField, species)
       s:createDiagnostics()
    end
 
@@ -1000,7 +1000,9 @@ return {
       App.label = "Gyrofluid"
       return  {
 	 AdiabaticSpecies    = require ("App.Species.AdiabaticSpecies"),
+         AdiabaticBasicBC    = require "App.BCs.AdiabaticBasic",
 	 App                 = App,
+         BasicBC             = require "App.BCs.GyrofluidBasic",
 	 Field               = require ("App.Field.GkField").GkField,
 	 FunctionProjection  = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
 	 Geometry            = require ("App.Field.GkField").GkGeometry,
@@ -1038,6 +1040,7 @@ return {
       App.label = "Incompressible Euler"
       return {
 	 App       = App,
+         BasicBC   = require "App.BCs.IncompEulerBasic",
 	 Diffusion = require "App.Collisions.Diffusion",
 	 Field     = require ("App.Field.GkField").GkField,
          Source    = require "App.Sources.FluidSource",

@@ -82,20 +82,21 @@ end
 
 local SpeciesDiagnostics = Proto()
 
-function SpeciesDiagnostics:init(tbl)
-   self.tbl = tbl
-end
+function SpeciesDiagnostics:init(tbl) self.tbl = tbl end
 
-function SpeciesDiagnostics:fullInit(mySpecies, diagsImpl)
+function SpeciesDiagnostics:fullInit(mySpecies, diagOwner)
 
-   self.name = mySpecies.name
+   local diagsImpl = assert(self.tbl.implementation,
+      "SpeciesDiagnostics: must specify the implementation of the diagnostics in 'implementation'.")
+
+   self.name  = diagOwner.name
 
    self.diags = {}  -- Grid and integrated diagnostics.
    self.diagGroups = {grid={}, integrated={}}  -- Names of requested diags of each kind.
    lume.setOrder(self.diagGroups)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
    -- Sort requested diagnostics into grid and integrated diagnostics.
-   for _, nm in ipairs(mySpecies.tbl.diagnostics) do
+   for _, nm in ipairs(diagOwner.tbl.diagnostics) do
       if contains(diagsImpl, nm) then
          self.diags[nm] = diagsImpl[nm]{}
          local diagType = diagsImpl[nm]:getType()
@@ -110,7 +111,7 @@ function SpeciesDiagnostics:fullInit(mySpecies, diagsImpl)
 
    -- Initialize diagnostics.
    for _, dG in pairs(self.diagGroups) do
-      for _, diagNm in ipairs(dG) do self.diags[diagNm]:fullInit(self, mySpecies) end
+      for _, diagNm in ipairs(dG) do self.diags[diagNm]:fullInit(self, mySpecies, diagOwner) end
    end
 
    self.spentTime = { gridDiags=0., intDiags=0. }
@@ -193,7 +194,6 @@ function SpeciesDiagnostics:write(tm, fr)
 end
 
 function SpeciesDiagnostics:writeRestartGridDiagnostics(tm, fr)
-   
    for _, diagNm in ipairs(self.diagGroups["grid"]) do 
       local diag = self.diags[diagNm]
       diag.field:write(string.format("%s_%s_restart.bp", self.name, diagNm), tm, fr, false)
