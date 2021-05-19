@@ -469,6 +469,7 @@ function KineticSpecies:createSolver(externalField)
       self.postPosM0    = self:allocMoment()
       self.delPosM0     = self:allocMoment()
       self.intDelPosM0  = DataStruct.DynVector{numComponents = 1}
+      self.intPosM0     = DataStruct.DynVector{numComponents = 1}
       self.calcIntPosM0 = Updater.CartFieldIntegratedQuantCalc {
 	    onGrid        = self.confGrid,
 	    basis         = self.confBasis,
@@ -718,7 +719,11 @@ function KineticSpecies:applyBcIdx(tCurr, idx, isFirstRk)
      
      self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[idx]}, {self.postPosM0})
      self.delPosM0:combine(1.0, self.postPosM0, -1.0, self.prePosM0)
+
+     local tm, lv = self.intPosM0:lastData()
      self.calcIntPosM0:advance(tCurr, {self.delPosM0}, {self.intDelPosM0})
+     local tmDel, lvDel = self.intDelPosM0:lastData()
+     self.intPosM0:appendData(tmDel, {lv[1]+lvDel[1]})
   end
 end
 
@@ -930,7 +935,7 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
 
     -- Vlasov positivity diagnostics
     if self.nonconPositivity then
-       self.intDelPosM0:write( string.format("%s_intPosDelM0.bp", self.name), tm, self.diagIoFrame)
+       self.intPosM0:write( string.format("%s_intPosM0.bp", self.name), tm, self.diagIoFrame)
     end
 end
 
