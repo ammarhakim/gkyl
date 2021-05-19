@@ -28,6 +28,18 @@ local Bc = Proto(UpdaterBase)
 
 local dirlabel = {"X", "Y", "Z"}
 
+local function createFieldFromField(grid, fld, ghostCells)
+   vComp = vComp or 1
+   local fld = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = fld:numComponents(),
+      ghost         = ghostCells,
+      metaData      = fld:getMetaData(),
+   }
+   fld:clear(0.0)
+   return fld
+end
+
 function Bc:init(tbl)
    Bc.super.init(self, tbl) -- Setup base object.
 
@@ -118,6 +130,31 @@ function Bc:init(tbl)
          cells = reducedNumCells,
          decomposition = reducedDecomp,
       }
+
+      if tbl.inField then
+         local inFld = tbl.inField
+         -- make enough boundary field copies for 4 RK stages
+         self._boundaryFluxFields = {createFieldFromField(self._boundaryGrid, inFld, {1,1}),
+                                     createFieldFromField(self._boundaryGrid, inFld, {1,1}),
+                                     createFieldFromField(self._boundaryGrid, inFld, {1,1}),
+                                     createFieldFromField(self._boundaryGrid, inFld, {1,1}),}
+         self._boundaryFluxRate = createFieldFromField(self._boundaryGrid, inFld, {1,1})
+         self._boundaryFluxFieldPrev = createFieldFromField(self._boundaryGrid, inFld, {1,1})
+         self._boundaryFluxFieldPrev:clear(0.0)
+         self._boundaryPtr = {self._boundaryFluxFields[1]:get(1), 
+                              self._boundaryFluxFields[2]:get(1),
+                              self._boundaryFluxFields[3]:get(1),
+                              self._boundaryFluxFields[4]:get(1),}
+         self._boundaryIdxr = self._boundaryFluxFields[1]:genIndexer()
+
+         local global = inFld:globalRange()
+         local globalExt = inFld:globalExtRange()
+         local localExtRange = inFld:localExtRange()
+         self._ghostRng = self._ghostRng or localExtRange:intersect( self:getGhostRange(global, globalExt) ) -- Range spanning ghost cells.
+         -- Decompose ghost region into threads.
+         self._ghostRangeDecomp = self._ghostRangeDecomp or LinearDecomp.LinearDecompRange {
+      	    range = self._ghostRng, numSplit = self._grid:numSharedProcs() }
+      end
    end
 
    -- A function can be specied in the ghost cell layer to be used as
@@ -181,18 +218,6 @@ function Bc:getGhostRange(global, globalExt)
       lv[self._dir] = global:upper(self._dir)+1   -- For ghost cells on "right".
    end
    return Range.Range(lv, uv)
-end
-
-local function createFieldFromField(grid, fld, ghostCells)
-   vComp = vComp or 1
-   local fld = DataStruct.Field {
-      onGrid        = grid,
-      numComponents = fld:numComponents(),
-      ghost         = ghostCells,
-      metaData      = fld:getMetaData(),
-   }
-   fld:clear(0.0)
-   return fld
 end
 
 function Bc:_advance(tCurr, inFld, outFld)
@@ -333,31 +358,6 @@ function Bc:_advance(tCurr, inFld, outFld)
 end
 
 function Bc:storeBoundaryFlux(tCurr, rkIdx, qOut)
-   if self._isFirst then
-      -- make enough boundary field copies for 4 RK stages
-      self._boundaryFluxFields = {createFieldFromField(self._boundaryGrid, qOut, {1,1}),
-                                  createFieldFromField(self._boundaryGrid, qOut, {1,1}),
-                                  createFieldFromField(self._boundaryGrid, qOut, {1,1}),
-                                  createFieldFromField(self._boundaryGrid, qOut, {1,1}),}
-      self._boundaryFluxRate = createFieldFromField(self._boundaryGrid, qOut, {1,1})
-      self._boundaryFluxFieldPrev = createFieldFromField(self._boundaryGrid, qOut, {1,1})
-      self._boundaryFluxFieldPrev:clear(0.0)
-      self._boundaryPtr = {self._boundaryFluxFields[1]:get(1), 
-                           self._boundaryFluxFields[2]:get(1),
-                           self._boundaryFluxFields[3]:get(1),
-                           self._boundaryFluxFields[4]:get(1),}
-      self._boundaryIdxr = self._boundaryFluxFields[1]:genIndexer()
-
-      local global = qOut:globalRange()
-      local globalExt = qOut:globalExtRange()
-      local localExtRange = qOut:localExtRange()
-      self._ghostRng = self._ghostRng or localExtRange:intersect(
-   	 self:getGhostRange(global, globalExt) ) -- Range spanning ghost cells.
-      -- Decompose ghost region into threads.
-      self._ghostRangeDecomp = self._ghostRangeDecomp or LinearDecomp.LinearDecompRange {
-   	 range = self._ghostRng, numSplit = self._grid:numSharedProcs() }
-   end
-
    local ptrOut = qOut:get(1) -- Get pointers to (re)use inside inner loop.
    local indexer = qOut:genIndexer()
 

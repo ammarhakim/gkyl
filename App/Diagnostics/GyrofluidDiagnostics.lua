@@ -1,14 +1,12 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Diagnostics for FluidSpecies.
+-- Diagnostics for GyrofluidSpecies.
 -- 
 -- We assume that integrated diagnostics can depend on field diagnostics, but
 -- not the other way around. We also assume that the integrated diagnostics are
 -- always computed before the field diagnostics, since they may be computed more
 -- frequently. This allows us to reset the state in calcIntegratedDiagostics.
 -- 
--- Supported diagnostic are defined as functions at the bottom of the file.
---
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------

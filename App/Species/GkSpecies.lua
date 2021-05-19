@@ -1023,8 +1023,8 @@ function GkSpecies:createDiagnostics()
 
    -- Allocate space to store moments and create moment updaters.
    local function allocateDiagnosticMoments(moments, weakMoments, bc)
-      local label = ""
-      local bmag  = self.bmag
+      local label   = ""
+      local bmag    = self.bmag
       local phaseGrid, confGrid = self.grid, self.confGrid
       if bc then
          label = bc:label()
@@ -1278,11 +1278,11 @@ function GkSpecies:createDiagnostics()
    	 		     mass      = self.mass,},	    
    	 }
    	 self.bcGkM0fluxUpdater[label] = Updater.DistFuncMomentCalc {
-   	    onGrid      = phaseGrid,
-   	    phaseBasis  = self.basis,
-   	    confBasis   = self.confBasis,
-   	    moment      = 'GkM0',
-   	    gkfacs      = {self.mass, bc.bmag},
+   	    onGrid     = phaseGrid,
+   	    phaseBasis = self.basis,
+   	    confBasis  = self.confBasis,
+   	    moment     = 'GkM0',
+   	    gkfacs     = {self.mass, bc.bmag},
    	 }
       end
    end
