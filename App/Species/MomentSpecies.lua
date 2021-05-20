@@ -222,7 +222,8 @@ function MomentSpecies:allocMoment()
    local m = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
-      ghost = {self.nGhost, self.nGhost}
+      ghost = {self.nGhost, self.nGhost},
+      syncCorners = true,
    }
    return m
 end
@@ -230,7 +231,8 @@ function MomentSpecies:allocVectorMoment(numComp)
    local m = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis()*numComp,
-      ghost = {self.nGhost, self.nGhost}
+      ghost = {self.nGhost, self.nGhost},
+      syncCorners = true,
    }
    return m
 end

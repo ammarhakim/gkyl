@@ -103,7 +103,7 @@ function TenMomentGradSource:createSolver(species, field)
       onGrid = self.grid,
       numComponents = 10,
       ghost = {2, 2},
-      --syncCorners = true,
+      syncCorners = true,
    }
    self.qJ2 = DataStruct.Field {
       onGrid = self.grid,
