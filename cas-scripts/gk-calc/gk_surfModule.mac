@@ -385,7 +385,7 @@ calcStep2Update(fh, funcNm, cdim, vdim, basisFun, polyOrder, varsInB, useGenGeo)
 
 )$
 
-calcGKSimpleHelicalSurfUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder, hasApar, varsInB, useGenGeo) := block([vd,dir,pureUpwind],
+calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrder, hasApar, varsInB, useGenGeo) := block([vd,dir,pureUpwind],
   if vdim = 0 then (vd : 0) else (vd : 1),
 
   for dir : 1 thru cdim+vd do (

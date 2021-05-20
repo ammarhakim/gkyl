@@ -17,25 +17,20 @@ geo : "both"$
 /* Serendipity basis. */
 maxPolyOrder_Ser : 2$
 minCdim_Ser : 1$
-minVdim_Ser : 2$
 maxCdim_Ser : 1$
-maxVdim_Ser : 2$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 2$
 minCdim_Max : 1$
-minVdim_Max : 1$
 maxCdim_Max : 0$
-maxVdim_Max : 0$
 
 /* Tensor order basis. */
 maxPolyOrder_Tensor : 2$
 minCdim_Tensor : 1$
-minVdim_Tensor : 2$
 maxCdim_Tensor : 1$
-maxVdim_Tensor : 2$
 
-gkVdims      : [[1,2], [2], [2]]$
+/* Vdim possibilities for each of Cdim=[1,2,3]. */
+gkVdims : [[1,2], [2], [2]]$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -43,9 +38,7 @@ gkVdims      : [[1,2], [2], [2]]$
 bName        : ["Ser", "Max", "Tensor"]$
 maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
 minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
-minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
 maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
-maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
 
 /* Is electromagnetic booleans. */
 if     ESorEM="ES"   then (fieldType : [false]) 
@@ -61,7 +54,7 @@ elseif geo="both"    then (geoType : [false,true])$
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
     for gkV : 1 thru length(gkVdims[c]) do (
-      v : min(maxVdim[bInd], gkVdims[c][gkV]),
+      v : gkVdims[c][gkV],
 
       maxPolyOrderB : maxPolyOrder[bInd],
       if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
@@ -92,7 +85,7 @@ for bInd : 1 thru length(bName) do (
 
             for b : 1 thru length(bVarsList) do (
               funcName : sconcat(emStr,"Gyrokinetic",geoStr,"Surf", c, "x", v, "v", bName[bInd]),
-              calcGKSimpleHelicalSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, wApar, bVarsList[b], isGenGeo)
+              calcGKSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, wApar, bVarsList[b], isGenGeo)
             ),
             close(fh)
           )
