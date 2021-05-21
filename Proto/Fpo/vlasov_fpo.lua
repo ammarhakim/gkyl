@@ -37,6 +37,7 @@ return function(tbl)
    local doughertyPotentials = xsys.pickBool(tbl.doughertyPotentials, false)
    local maxwellianPotentials = xsys.pickBool(tbl.maxwellianPotentials, false)
    local writeDiagnostics = xsys.pickBool(tbl.writeDiagnostics, false)
+   local doughertyFix = xsys.pickBool(tbl.doughertyFix, false)
    local cells = tbl.cells
    local lower = tbl.lower
    local upper = tbl.upper
@@ -60,32 +61,37 @@ return function(tbl)
    local dragKernelNm = string.format("vlasov_fpo_drag_cell_3x_ser_p%d", polyOrder)
    local dragKernelFn = ffi.C[dragKernelNm]
 
-   local diffSurfXLSerNm = string.format("vlasov_fpo_diff_surfxL_3x_ser_p%d", polyOrder)
+   local schemeType = tbl.schemeType and tbl.schemeType or "I"
+
+   local diffSurfXLSerNm = string.format("vlasov_fpo_diff%s_surfxL_3x_ser_p%d", schemeType, polyOrder)
    local diffSurfXLSerFn = ffi.C[diffSurfXLSerNm]
-   local diffSurfXUSerNm = string.format("vlasov_fpo_diff_surfxU_3x_ser_p%d", polyOrder)
+   local diffSurfXUSerNm = string.format("vlasov_fpo_diff%s_surfxU_3x_ser_p%d", schemeType, polyOrder)
    local diffSurfXUSerFn = ffi.C[diffSurfXUSerNm]
 
-   local diffSurfYLSerNm = string.format("vlasov_fpo_diff_surfyL_3x_ser_p%d", polyOrder)
+   local diffSurfYLSerNm = string.format("vlasov_fpo_diff%s_surfyL_3x_ser_p%d", schemeType, polyOrder)
    local diffSurfYLSerFn = ffi.C[diffSurfYLSerNm]
-   local diffSurfYUSerNm = string.format("vlasov_fpo_diff_surfyU_3x_ser_p%d", polyOrder)
+   local diffSurfYUSerNm = string.format("vlasov_fpo_diff%s_surfyU_3x_ser_p%d", schemeType, polyOrder)
    local diffSurfYUSerFn = ffi.C[diffSurfYUSerNm]
 
-   local diffSurfZLSerNm = string.format("vlasov_fpo_diff_surfzL_3x_ser_p%d", polyOrder)
+   local diffSurfZLSerNm = string.format("vlasov_fpo_diff%s_surfzL_3x_ser_p%d", schemeType, polyOrder)
    local diffSurfZLSerFn = ffi.C[diffSurfZLSerNm]
-   local diffSurfZUSerNm = string.format("vlasov_fpo_diff_surfzU_3x_ser_p%d", polyOrder)
+   local diffSurfZUSerNm = string.format("vlasov_fpo_diff%s_surfzU_3x_ser_p%d", schemeType, polyOrder)
    local diffSurfZUSerFn = ffi.C[diffSurfZUSerNm]
 
-   local diffVolSerNm = string.format("vlasov_fpo_diff_vol_3x_ser_p%d", polyOrder)
+   local diffVolSerNm = string.format("vlasov_fpo_diff%s_vol_3x_ser_p%d", schemeType, polyOrder)
    local diffVolSerFn = ffi.C[diffVolSerNm]
 
    local momsKernelNm = string.format("vlasov_fpo_moms_3x_ser_p%d", polyOrder)
    local momsKernelFn = ffi.C[momsKernelNm]
+   local momM0modKernelNm = string.format("vlasov_fpo_momM0mod_3x_ser_p%d", polyOrder)
+   local momM0modKernelFn = ffi.C[momM0modKernelNm]
+   local momM2KernelNm = string.format("vlasov_fpo_momM2_3x_ser_p%d", polyOrder)
+   local momM2KernelFn = ffi.C[momM2KernelNm]
    local diagKernelNm = string.format("vlasov_fpo_diag_3x_ser_p%d", polyOrder)
    local diagKernelFn = ffi.C[diagKernelNm]
 
    local fStencil7 = ffi.new("stencil7")
    local hStencil7 = ffi.new("stencil7")
-
 
    -------------------------------------------------------------------
    -- Grids and Fields -----------------------------------------------
@@ -113,6 +119,7 @@ return function(tbl)
             polyOrder = basis:polyOrder(),
             basisType = basis:id(),
          },
+         syncCorners = hasPeriodicBC,
       }
    end
    local f = getField()
@@ -136,158 +143,6 @@ return function(tbl)
    -------------------------------------------------------------------
    local function applyBc(fld)
       fld:sync()
-
-      if hasPeriodicBC then -- need to manually sync corners for now
-         local globalRange = fld:globalRange()
-         local xlo, xup = globalRange:lower(1), globalRange:upper(1)
-         local ylo, yup = globalRange:lower(2), globalRange:upper(2)
-         local zlo, zup = globalRange:lower(3), globalRange:upper(3)
-
-         local indexer = fld:indexer()
-         local idxSkin, idxGhost
-         local ptrSkin, ptrGhost = fld:get(1), fld:get(1)
-
-         -- corner LLL
-         idxGhost, idxSkin = indexer(xlo-1, ylo-1, zlo-1), indexer(xup, yup, zup)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
-         end
-         -- corner ULL
-         idxGhost, idxSkin = indexer(xup+1, ylo-1, zlo-1), indexer(xlo, yup, zup)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
-         end
-         -- corner LUL
-         idxGhost, idxSkin = indexer(xlo-1, yup+1, zlo-1), indexer(xup, ylo, zup)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
-         end
-         -- corner LLU
-         idxGhost, idxSkin = indexer(xlo-1, ylo-1, zup+1), indexer(xup, yup, zlo)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
-         end
-         -- corner LUU
-         idxGhost, idxSkin = indexer(xlo-1, yup+1, zup+1), indexer(xup, ylo, zlo)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
-         end
-         -- corner ULU
-         idxGhost, idxSkin = indexer(xup+1, ylo-1, zup+1), indexer(xlo, yup, zlo)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
-         end
-         -- corner UUL
-         idxGhost, idxSkin = indexer(xup+1, yup+1, zlo-1), indexer(xlo, ylo, zup)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
-         end
-         -- corner UUU
-         idxGhost, idxSkin = indexer(xup+1, yup+1, zup+1), indexer(xlo, ylo, zlo)
-         fld:fill(idxGhost, ptrGhost)
-         fld:fill(idxSkin, ptrSkin)
-         for k = 1, fld:numComponents() do
-            ptrGhost[k] = ptrSkin[k]
-         end
-
-         -- x-edges
-         for i = xlo, xup do
-            idxGhost, idxSkin = indexer(i, ylo-1, zlo-1), indexer(i, yup, zup)
-            fld:fill(idxGhost, ptrGhost)
-            fld:fill(idxSkin, ptrSkin)
-            for k = 1, fld:numComponents() do
-               ptrGhost[k] = ptrSkin[k]
-            end
-            idxGhost, idxSkin = indexer(i, yup+1, zlo-1), indexer(i, ylo, zup)
-            fld:fill(idxGhost, ptrGhost)
-            fld:fill(idxSkin, ptrSkin)
-            for k = 1, fld:numComponents() do
-               ptrGhost[k] = ptrSkin[k]
-            end
-            idxGhost, idxSkin = indexer(i, ylo-1, zup+1), indexer(i, yup, zlo)
-            fld:fill(idxGhost, ptrGhost)
-            fld:fill(idxSkin, ptrSkin)
-            for k = 1, fld:numComponents() do
-               ptrGhost[k] = ptrSkin[k]
-            end
-            idxGhost, idxSkin = indexer(i, yup+1, zup+1), indexer(i, ylo, zlo)
-            fld:fill(idxGhost, ptrGhost)
-            fld:fill(idxSkin, ptrSkin)
-            for k = 1, fld:numComponents() do
-               ptrGhost[k] = ptrSkin[k]
-            end
-         end
-
-         -- y-edges
-         for i = ylo, yup do
-            idxGhost, idxSkin = indexer(xlo-1, i, zlo-1), indexer(xup, i, zup)
-            fld:fill(idxGhost, ptrGhost)
-            fld:fill(idxSkin, ptrSkin)
-            for k = 1, fld:numComponents() do
-               ptrGhost[k] = ptrSkin[k]
-            end
-            idxGhost, idxSkin = indexer(xup+1, i, zlo-1), indexer(xlo, i, zup)
-            fld:fill(idxGhost, ptrGhost)
-            fld:fill(idxSkin, ptrSkin)
-            for k = 1, fld:numComponents() do
-               ptrGhost[k] = ptrSkin[k]
-            end
-            idxGhost, idxSkin = indexer(xlo-1, i, zup+1), indexer(xup, i, zlo)
-            fld:fill(idxGhost, ptrGhost)
-            fld:fill(idxSkin, ptrSkin)
-            for k = 1, fld:numComponents() do
-               ptrGhost[k] = ptrSkin[k]
-            end
-            idxGhost, idxSkin = indexer(xup+1, i, zup+1), indexer(xlo, i, zlo)
-            fld:fill(idxGhost, ptrGhost)
-            fld:fill(idxSkin, ptrSkin)
-            for k = 1, fld:numComponents() do
-               ptrGhost[k] = ptrSkin[k]
-            end
-         end
-
-         -- z-edges
-         for i = zlo, zup do
-            idxGhost, idxSkin = indexer(xlo-1, ylo-1, i), indexer(xup, yup, i)
-            fld:fill(idxGhost, ptrGhost)
-            fld:fill(idxSkin, ptrSkin)
-            for k = 1, fld:numComponents() do
-               ptrGhost[k] = ptrSkin[k]
-            end
-            idxGhost, idxSkin = indexer(xup+1, ylo-1, i), indexer(xlo, yup, i)
-            fld:fill(idxGhost, ptrGhost)
-            fld:fill(idxSkin, ptrSkin)
-            for k = 1, fld:numComponents() do
-               ptrGhost[k] = ptrSkin[k]
-            end
-            idxGhost, idxSkin = indexer(xlo-1, yup+1, i), indexer(xup, ylo, i)
-            fld:fill(idxGhost, ptrGhost)
-            fld:fill(idxSkin, ptrSkin)
-            for k = 1, fld:numComponents() do
-               ptrGhost[k] = ptrSkin[k]
-            end
-            idxGhost, idxSkin = indexer(xup+1, yup+1, i), indexer(xlo, ylo, i)
-            fld:fill(idxGhost, ptrGhost)
-            fld:fill(idxSkin, ptrSkin)
-            for k = 1, fld:numComponents() do
-               ptrGhost[k] = ptrSkin[k]
-            end
-         end
-      end
    end
 
 
@@ -314,6 +169,37 @@ return function(tbl)
          momsKernelFn(dv:data(), vc:data(), fPtr:data(), out:data())
       end
       return out
+   end
+
+   local function calcVth2(fIn)
+      local dv = Lin.Vec(3)
+      dv[1], dv[2], dv[3] = grid:dx(1), grid:dx(2), grid:dx(3)
+      local vc = Lin.Vec(3)
+      local localRange = fIn:localRange()
+      local indexer = fIn:genIndexer()
+      local M0mod, M2 = 0.0, 0.0
+
+      local isXloEdge, isXupEdge = 0, 0
+      local isYloEdge, isYupEdge = 0, 0
+      local isZloEdge, isZupEdge = 0, 0
+      for idxs in localRange:colMajorIter() do
+         -- if not hasPeriodicBC then
+         --    if idxs[1] == localRange:lower(1) then isXloEdge = 1 end
+         --    if idxs[1] == localRange:upper(1) then isXupEdge = 1 end
+         --    if idxs[2] == localRange:lower(2) then isYloEdge = 1 end
+         --    if idxs[2] == localRange:upper(2) then isYupEdge = 1 end
+         --    if idxs[3] == localRange:lower(3) then isZloEdge = 1 end
+         --    if idxs[3] == localRange:upper(3) then isZupEdge = 1 end
+         -- end
+               
+         grid:setIndex(idxs)
+         grid:cellCenter(vc)
+         local fPtr = fIn:get(indexer(idxs))
+         M0mod = M0mod + momM0modKernelFn(dv:data(), vc:data(), fPtr:data(),
+                                   isXloEdge, isXupEdge, isYloEdge, isYupEdge, isZloEdge, isZupEdge)
+         M2 = M2 + momM2KernelFn(dv:data(), vc:data(), fPtr:data())
+      end
+      return M2/M0mod
    end
 
    local function calcDiag(tCurr, fIn, hIn, vec)
@@ -398,6 +284,11 @@ return function(tbl)
          return vth2 * (z[1]^2 + z[2]^2 + z[3]^2)
       end
    end
+   local function getDoughertyGmod(vth2)
+      return function(t, z)
+         return vth2 * (z[1]^2 + z[2]^2 + z[3]^2)
+      end
+   end
    local function getMaxwellianG(momsIn)
       return function(t, z)
          local vx, vy, vz = z[1], z[2], z[3]
@@ -443,7 +334,13 @@ return function(tbl)
             projectUpd:setFunc(tbl.fixedG)
             projectUpd:advance(tCurr, {}, {gOut})
          elseif doughertyPotentials then
-            projectUpd:setFunc( getDoughertyG(moms) )
+            if doughertyFix then
+               local vth2 = calcVth2(fIn)
+               print(moms[5]/moms[1]/3 - vth2)
+               projectUpd:setFunc( getDoughertyGmod(vth2) )
+            else
+               projectUpd:setFunc( getDoughertyG(moms) )
+            end
             projectUpd:advance(tCurr, {}, {gOut})
          elseif maxwellianPotentials then
             projectUpd:setFunc( getMaxwellianG(moms) )
@@ -451,6 +348,12 @@ return function(tbl)
          else
             tmp:combine(-1, hOut)
             poissonG:advance(0.0, {tmp}, {gOut})
+         end
+
+         -- HACK to add the missing 1/2 for the drag term in scheme II
+         -- (i.e., the same drag term can be used for both scheme I and II)
+         if schemeType == "II" then
+            hOut:scale(0.5)
          end
       end
       tmRosen = tmRosen + Time.clock()-tmStart
