@@ -13,7 +13,7 @@ fpprec : 24$
 doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
-buildGKSimpleHelicalVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, varsInB, useGenGeo) := block(
+buildGKVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar, varsInB, useGenGeo) := block(
   [i,d,pDim,varsC,bC,varsP,bP,vSub,vSubInv,numC,numP,varLabel,BvarsLabel,rdx2vec,rdv2vec,bmagBasis,
    ignoreVars,bmag_e,bmagInv_e,b_x_e,b_y_e,b_z_e,jacobTotInv_e,phi_e,Apar_e,dAdt_e,dAdtPrev_e,hamil_e,
    BstardBmagL_e,BstardBmagR_e,replaceList,pbAuxFlds,alphaSum_e,vd,dir,dirLabel,wDir,rdDirVar2,dirVar,alpha_e,alpha_c,
@@ -186,7 +186,7 @@ buildGKSimpleHelicalVolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder, wApar
   flush_output(fh)
 )$
 
-buildGKSimpleHelicalStep2VolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder,useGenGeo) := block(
+buildGKStep2VolKernel(fh, funcNm, cdim, vdim, basisFun, polyOrder,useGenGeo) := block(
   [pDim,varsC,bC,varsP,bP,vSub,vSubInv,numC,numP,f_e,dApardt_e,
    volTerm_c,replaceList,alpha_e,dir,dirVar,alphaSurfAvgL_s],
   /* Generate the volume kernel for the 2nd step in gyrokinetics with Apar. */

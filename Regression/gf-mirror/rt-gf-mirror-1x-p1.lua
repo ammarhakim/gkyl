@@ -441,9 +441,10 @@ plasmaApp = Plasma.App {
       },
       source = Plasma.Source {
 --         fromFile    = "ion_fSourceIC.bp",
-         density = srcDenElc,
-         parallelTemperature = srcTempElc,
+         density                  = srcDenElc,
+         parallelTemperature      = srcTempElc,
          perpendicularTemperature = srcTempElc,
+         diagnostics              = {"intSrc"},
       },
       coll = Plasma.PASCollisions {
          collideWith = {'elc'},
@@ -451,7 +452,9 @@ plasmaApp = Plasma.App {
       },
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
-      bcx = {Plasma.Species.bcAbsorb, Plasma.Species.bcAbsorb},
+--      bcx = {Plasma.Species.bcAbsorb, Plasma.Species.bcAbsorb},
+      bcx = {Plasma.BasicBC{kind="absorb", diagnostics={"M0"}, saveFlux=true},
+             Plasma.BasicBC{kind="absorb", diagnostics={"M0"}, saveFlux=true}},
    },
 
    -- Gyrofluid electronss.
@@ -509,9 +512,10 @@ plasmaApp = Plasma.App {
       },
       source = Plasma.Source {
 --         fromFile    = "ion_fSourceIC.bp",
-         density = srcDenIon,
-         parallelTemperature = srcTempIon,
+         density                  = srcDenIon,
+         parallelTemperature      = srcTempIon,
          perpendicularTemperature = srcTempIon,
+--         diagnostics              = {"intSrc"},
       },
       coll = Plasma.PASCollisions {
          collideWith = {'ion'},

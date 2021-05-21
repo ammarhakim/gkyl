@@ -164,10 +164,10 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
       moment     = "FiveMoments",
    }
    self.calcMaxwell = Updater.MaxwellianOnBasis {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confGrid   = self.confGrid,
-      confBasis  = self.confBasis,
+      onGrid      = self.grid,
+      phaseBasis  = self.basis,
+      confGrid    = self.confGrid,
+      confBasis   = self.confBasis,
    }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
@@ -908,12 +908,10 @@ function VlasovSpecies:createDiagnostics()
    -- Allocate space to store moments and create moment updater.
    local function allocateDiagnosticMoments(moments, weakMoments, bc)
       local label = ""
-      local phaseGrid = self.grid
-      local confGrid = self.confGrid
+      local phaseGrid, confGrid = self.grid, self.confGrid
       if bc then
          label = bc:label()
-         phaseGrid = bc:getBoundaryGrid()
-         confGrid = bc:getConfBoundaryGrid()
+         phaseGrid, confGrid = bc:getBoundaryGrid(), bc:getConfBoundaryGrid()
       end
 
       for i, mom in pairs(moments) do
@@ -922,13 +920,14 @@ function VlasovSpecies:createDiagnostics()
                onGrid        = confGrid,
                numComponents = self.confBasis:numBasis()*numComp[mom],
                ghost         = {1, 1},
-               metaData = {
+               metaData      = {
                   polyOrder = self.basis:polyOrder(),
                   basisType = self.basis:id(),
-                  charge = self.charge,
-                  mass = self.mass,
+                  charge    = self.charge,
+                  mass      = self.mass,
                },
             }
+     
             self.diagnosticMomentUpdaters[mom..label] = Updater.DistFuncMomentCalc {
                onGrid     = phaseGrid,
                phaseBasis = self.basis,
@@ -945,11 +944,11 @@ function VlasovSpecies:createDiagnostics()
             onGrid        = confGrid,
             numComponents = self.confBasis:numBasis()*numComp[mom],
             ghost         = {1, 1},
-            metaData = {
+            metaData      = {
                polyOrder = self.basis:polyOrder(),
                basisType = self.basis:id(),
-               charge = self.charge,
-               mass = self.mass,
+               charge    = self.charge,
+               mass      = self.mass,
             },	    	    
          }
 
@@ -965,16 +964,12 @@ function VlasovSpecies:createDiagnostics()
                -- compute dependencies if not already computed: M0, M1i
                if self.diagnosticMomentUpdaters["M0"..label].tCurr ~= tm then
                   local fIn = self:rkStepperFields()[1]
-                  if bc then
-                     fIn = bc:getBoundaryFluxRate()
-                  end
+                  if bc then fIn = bc:getBoundaryFluxRate() end
                   self.diagnosticMomentUpdaters["M0"..label]:advance(tm, {fIn}, {self.diagnosticMomentFields["M0"..label]})
                end
                if self.diagnosticMomentUpdaters["M1i"..label].tCurr ~= tm then
                   local fIn = self:rkStepperFields()[1]
-                  if bc then
-                     fIn = bc:getBoundaryFluxRate()
-                  end
+                  if bc then fIn = bc:getBoundaryFluxRate() end
                   self.diagnosticMomentUpdaters["M1i"..label]:advance(tm, {fIn}, {self.diagnosticMomentFields["M1i"..label]})
                end
 
@@ -1521,7 +1516,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	       
 	       -- DistFuncMomentCalc Updater for fMaxwell	    
 	       self.calcFhatM0[label] = Updater.DistFuncMomentCalc {
-		  onGrid     = phaseGrid,
+                  onGrid     = phaseGrid,
 		  phaseBasis = self.basis,
 		  confBasis  = self.confBasis,
 		  moment     = mom,

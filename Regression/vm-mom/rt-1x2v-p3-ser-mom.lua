@@ -64,24 +64,28 @@ local ptclEnergy = DataStruct.Field {
 --------------
 
 numDensityCalc = Updater.DistFuncMomentCalc {
+   advanceArgs = {{distf}, {numDensity}},
    onGrid = phaseGrid,
    phaseBasis = phaseBasis,
    confBasis = confBasis,
    moment = "M0",
 }
 momentumCalc = Updater.DistFuncMomentCalc {
+   advanceArgs = {{distf}, {momentum}},
    onGrid = phaseGrid,
    phaseBasis = phaseBasis,
    confBasis = confBasis,
    moment = "M1i",
 }		
 pressureTensorCalc = Updater.DistFuncMomentCalc {
+   advanceArgs = {{distf}, {pressureTensor}},
    onGrid = phaseGrid,
    phaseBasis = phaseBasis,
    confBasis = confBasis,
    moment = "M2ij",
 }
 ptclEnergyCalc = Updater.DistFuncMomentCalc {
+   advanceArgs = {{distf}, {ptclEnergy}},
    onGrid = phaseGrid,
    phaseBasis = phaseBasis,
    confBasis = confBasis,
