@@ -90,6 +90,8 @@ function KineticSpecies:fullInit(appTbl)
       self.calcIntQuantTrigger = function(t) return true end
    end
 
+   self.diagnostics = {}  -- Table in which we'll place diagnostic objects.
+
    -- Write ghost cells on boundaries of global domain (for BCs).
    self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 
@@ -452,6 +454,20 @@ function KineticSpecies:createBCs()
 end
 
 function KineticSpecies:createSolver(externalField)
+   -- Set up weak multiplication and division operators.
+   self.confWeakMultiply = Updater.CartFieldBinOp {
+      onGrid    = self.confGrid,
+      weakBasis = self.confBasis,
+      operation = "Multiply",
+      onGhosts  = true,
+   }
+   self.confWeakDivide = Updater.CartFieldBinOp {
+      onGrid    = self.confGrid,
+      weakBasis = self.confBasis,
+      operation = "Divide",
+      onGhosts  = true,
+   }
+
    -- Create solvers for collisions.
    for _, c in pairs(self.collisions) do c:createSolver(externalField) end
    if self.positivity then
@@ -749,6 +765,12 @@ function KineticSpecies:createDiagnostics()
       operation = "Divide",
       onGhosts  = true,
    }
+
+   -- Many diagnostics require dividing by the Jacobian (if present).
+   -- Predefine the functions that do that.
+   self.divideByJacobGeo = self.jacobInv
+      and function(tm, fldIn) self.confWeakMultiply:advance(tm, {fldIn, self.jacobInv}, {fldIn}) end
+      or function(tm, fldIn) end
 end
 
 function KineticSpecies:calcDiagnosticMoments(tm)
@@ -910,6 +932,11 @@ end
 
 function KineticSpecies:write(tm, force)
    if self.evolve then
+
+      for _, dOb in pairs(self.diagnostics) do
+         dOb:resetState(tm)   -- Reset booleans indicating if diagnostic has been computed.
+      end
+
       if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics and tm > 0 then
          for _, bc in ipairs(self.boundaryConditions) do
             -- compute boundary flux rate ~ (fGhost_new - fGhost_old)/dt
@@ -922,6 +949,9 @@ function KineticSpecies:write(tm, force)
       -- Compute integrated diagnostics.
       if self.calcIntQuantTrigger(tm) then
          self:calcDiagnosticIntegratedMoments(tm)
+         for _, dOb in pairs(self.diagnostics) do
+            dOb:calcIntegratedDiagnostics(tm, self)   -- Compute integrated diagnostics (this species' and other objects').
+         end
       end
       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
 
@@ -937,6 +967,7 @@ function KineticSpecies:write(tm, force)
             self.distf[1]:accumulate(1, self.f0)
          end
          for _, src in lume.orderedIter(self.sources) do src:write(tm, self.distIoFrame) end
+
 	 self.distIoFrame = self.distIoFrame+1
       end
 
@@ -944,6 +975,14 @@ function KineticSpecies:write(tm, force)
       if self.diagIoTrigger(tm) or force then
          -- Compute moments and write them out.
          self:calcAndWriteDiagnosticMoments(tm)
+
+         for _, dOb in pairs(self.diagnostics) do
+            dOb:calcGridDiagnostics(tm, self)   -- Compute grid diagnostics (this species' and other objects').
+         end
+
+         for _, dOb in pairs(self.diagnostics) do   -- Write grid and integrated diagnostics.
+            dOb:write(tm, self.diagIoFrame)
+         end
 
          if self.evolveCollisions then
             for _, c in pairs(self.collisions) do
@@ -981,6 +1020,10 @@ function KineticSpecies:writeRestart(tm)
    if self.hasSheathBCs or self.fluctuationBCs then writeGhost = true end
 
    self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, writeGhost)
+
+   for _, dOb in pairs(self.diagnostics) do   -- Write restart diagnostics.
+      dOb:writeRestart(tm, self.diagIoFrame, self.dynVecRestartFrame)
+   end
 
    for i, mom in pairs(self.diagnosticMoments) do
       self.diagnosticMomentFields[mom]:write(
@@ -1021,6 +1064,10 @@ function KineticSpecies:readRestart()
    if not self.hasSheathBCs and not self.fluctuationBCs then 
       self:applyBc(tm, self.distf[1]) 
    end 
+
+   for _, dOb in pairs(self.diagnostics) do   -- Read grid and integrated diagnostics.
+      _, _ = dOb:readRestart()
+   end
    
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
       self.diagnosticIntegratedMomentFields[mom]:read(

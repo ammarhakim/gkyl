@@ -17,6 +17,8 @@ local Source         = require "App.Sources.VmSource"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
 local VlasovEq       = require "Eq.Vlasov"
+local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
+local VlasovDiags    = require "App.Diagnostics.VlasovDiagnostics"
 local ffi            = require "ffi"
 local xsys           = require "xsys"
 local lume           = require "Lib.lume"
@@ -212,6 +214,18 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
          onGhosts = false
       }
    end
+
+   -- Create an updater for volume integrals. Used by diagnostics.
+   self.volIntegral = {
+      comps1 = Updater.CartFieldIntegratedQuantCalc {
+         onGrid = self.confGrid,   numComponents = 1,
+         basis  = self.confBasis,  quantity      = "V",
+      },
+      compsVdim = Updater.CartFieldIntegratedQuantCalc {
+         onGrid = self.confGrid,   numComponents = self.vdim,
+         basis  = self.confBasis,  quantity      = "V",
+      },
+   }
 
    self.tmCouplingMom = 0.0    -- For timer.
 end
@@ -631,6 +645,15 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 end
 
 function VlasovSpecies:createDiagnostics()
+   -- Run the KineticSpecies 'createDiagnostics()' (e.g. to create divideByJacobGeo()).
+   VlasovSpecies.super.createDiagnostics(self)
+
+   -- Create this species' diagnostics.
+   if self.tbl.diagnostics then
+      self.diagnostics[self.name] = DiagsApp{implementation = VlasovDiags()}
+      self.diagnostics[self.name]:fullInit(self, self)
+   end
+
    local function contains(table, element)
      for _, value in pairs(table) do
        if value == element then

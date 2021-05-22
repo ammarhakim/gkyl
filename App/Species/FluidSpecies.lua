@@ -614,7 +614,7 @@ function FluidSpecies:write(tm, force)
       -- Compute integrated diagnostics.
       if self.calcIntQuantTrigger(tm) then
          for _, dOb in pairs(self.diagnostics) do
-            dOb:calcIntegratedDiagnostics(tm, self)   -- Compute this species' integrated diagnostics.
+            dOb:calcIntegratedDiagnostics(tm, self)   -- Compute integrated diagnostics (this species' and other objects').
          end
       end
       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
@@ -631,11 +631,10 @@ function FluidSpecies:write(tm, force)
          end
 
          for _, dOb in pairs(self.diagnostics) do
-            dOb:calcGridDiagnostics(tm, self)   -- Compute this species' grid diagnostics.
+            dOb:calcGridDiagnostics(tm, self)   -- Compute grid diagnostics (this species' and other objects').
          end
           
-         -- Write this species' field and integrated diagnostics.
-         for _, dOb in pairs(self.diagnostics) do
+         for _, dOb in pairs(self.diagnostics) do   -- Write grid and integrated diagnostics.
             dOb:write(tm, self.diagIoFrame)
          end
 
@@ -663,8 +662,7 @@ function FluidSpecies:writeRestart(tm)
 
    self.momIo:write(self.moments[1], string.format("%s_restart.bp", self.name), tm, self.diagIoFrame, writeGhost)
 
-   -- Write this species' restart diagnostics.
-   for _, dOb in pairs(self.diagnostics) do
+   for _, dOb in pairs(self.diagnostics) do   -- Write restart diagnostics.
       dOb:writeRestart(tm, self.diagIoFrame, self.dynVecRestartFrame)
    end
 
@@ -685,8 +683,7 @@ function FluidSpecies:readRestart()
       self:applyBc(tm, self.moments[1])
    end
 
-   -- Read this species field and integrated diagnostics.
-   for _, dOb in pairs(self.diagnostics) do
+   for _, dOb in pairs(self.diagnostics) do   -- Read grid and integrated diagnostics.
       _, _ = dOb:readRestart()
    end
    
