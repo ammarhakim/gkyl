@@ -32,6 +32,21 @@ local implementation = function()
       specIn.divideByJacobGeo(tm, self.field)
    end
 
+   -- ~~~~ Momentum density ~~~~~~~~~~~~~~~~~~~~~~
+   local _M1i = Proto(DiagsImplBase)
+   function _M1i:fullInit(diagApp, specIn, owner)
+      self.field = owner:allocMoment()
+      self.owner = owner
+      self.done  = false
+   end
+   function _M1i:getType() return "grid" end
+   function _M1i:advance(tm, inFlds, outFlds)
+      local specIn = inFlds[1]
+      local fIn    = self.owner:rkStepperFields()[1]
+      specIn.momDensityCalc:advance(tm, {fIn}, {self.field})
+      specIn.divideByJacobGeo(tm, self.field)
+   end
+
    -- ~~~~ Integrated number density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM0 = Proto(DiagsImplBase)
    function _intM0:fullInit(diagApp, specIn, owner)
@@ -48,6 +63,7 @@ local implementation = function()
 
    return {
       M0     = _M0,
+      M1i    = _M1i,
       intM0     = _intM0,
    }
 end

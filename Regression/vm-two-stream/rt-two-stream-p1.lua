@@ -44,8 +44,8 @@ vlasovApp = Plasma.App {
       end,
       evolve = true, -- evolve species?
 
-      diagnostics = { "M0", "intM0" },
-      diagnosticMoments = { "M1i", "M2" },
+      diagnostics = { "M0", "M1i", "intM0" },
+      diagnosticMoments = { "M2" },
       diagnosticIntegratedMoments = { "intM2Flow" }
    },
 
