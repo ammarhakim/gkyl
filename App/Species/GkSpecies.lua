@@ -92,6 +92,8 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
 
       self.bmag        = assert(externalField.geo.bmag, "nil bmag")
       self.bmagInv     = externalField.geo.bmagInv
+      self.bmagInvSq   = self:allocMoment()
+      self.confWeakMultiply:advance(0., {self.bmagInv, self.bmagInv}, {self.bmagInvSq})
       self.jacobGeo    = externalField.geo.jacobGeo
       self.jacobGeoInv = externalField.geo.jacobGeoInv
    end
@@ -1197,8 +1199,7 @@ function GkSpecies:createDiagnostics()
                -- Do weak operations.
                self.weakMultiplication:advance(tm, {self.diagnosticMomentFields["GkM0"..label], 
                                                     self.diagnosticMomentFields["GkTemp"..label]}, {momOut})
-               self.weakMultiplication:advance(tm, {momOut, bmagInv}, {momOut})
-               self.weakMultiplication:advance(tm, {momOut, bmagInv}, {momOut})
+               self.weakMultiplication:advance(tm, {momOut, bmagInvSq}, {momOut})
                momOut:scale(2*Constants.MU0)
 
                self.diagnosticMomentUpdaters[mom..label].tCurr = tm -- mark as complete for this tm
@@ -1640,8 +1641,7 @@ end
 
 function GkSpecies:getPolarizationWeight(linearized)
    if linearized == false then 
-      self.weakMultiplication:advance(0.0, {self.numDensity, self.bmagInv}, {self.polarizationWeight})
-      self.weakMultiplication:advance(0.0, {self.polarizationWeight, self.bmagInv}, {self.polarizationWeight})
+      self.weakMultiplication:advance(0.0, {self.numDensity, self.bmagInvSq}, {self.polarizationWeight})
       self.polarizationWeight:scale(self.mass)
       return self.polarizationWeight
    else 
