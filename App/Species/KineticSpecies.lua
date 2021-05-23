@@ -467,6 +467,12 @@ function KineticSpecies:createSolver(externalField)
       operation = "Divide",
       onGhosts  = true,
    }
+   self.confWeakDotProduct = Updater.CartFieldBinOp {
+      onGrid    = self.confGrid,
+      weakBasis = self.confBasis,
+      operation = "DotProduct",
+      onGhosts  = true,
+   }
 
    -- Create solvers for collisions.
    for _, c in pairs(self.collisions) do c:createSolver(externalField) end

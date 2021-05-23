@@ -62,6 +62,36 @@ local implementation = function()
       specIn.divideByJacobGeo(tm, self.field)
    end
 
+   -- ~~~~ Mean flow velocity ~~~~~~~~~~~~~~~~~~~~~~
+   local _uFlow = Proto(DiagsImplBase)
+   function _uFlow:fullInit(diagApp, specIn, owner)
+      self.field = owner:allocVectorMoment(specIn.vdim)
+      self.owner = owner
+      self.done  = false
+   end
+   function _uFlow:getType() return "grid" end
+   function _uFlow:getDependencies() return {"M0","M1i"} end
+   function _uFlow:advance(tm, inFlds, outFlds)
+      local specIn, diags = inFlds[1], inFlds[2]
+      local M0, M1i       = diags["M0"].field, diags["M1i"].field
+      specIn.confWeakDivide:advance(tm, {M0, M1i}, {self.field})
+   end
+
+   -- ~~~~ Mean flow energy density ~~~~~~~~~~~~~~~~~~~~~~
+   local _M2Flow = Proto(DiagsImplBase)
+   function _M2Flow:fullInit(diagApp, specIn, owner)
+      self.field = owner:allocVectorMoment(specIn.vdim)
+      self.owner = owner
+      self.done  = false
+   end
+   function _M2Flow:getType() return "grid" end
+   function _M2Flow:getDependencies() return {"M1i","uFlow"} end
+   function _M2Flow:advance(tm, inFlds, outFlds)
+      local specIn, diags = inFlds[1], inFlds[2]
+      local M1i, uFlow    = diags["M1i"].field, diags["uFlow"].field
+      specIn.confWeakDotProduct:advance(tm, {M1i, uFlow}, {self.field})
+   end
+
    -- ~~~~ Integrated number density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM0 = Proto(DiagsImplBase)
    function _intM0:fullInit(diagApp, specIn, owner)
@@ -104,13 +134,30 @@ local implementation = function()
       specIn.volIntegral.comps1:advance(tm, {M2}, {self.field})
    end
 
+   -- ~~~~ Integrated mean flow energy density ~~~~~~~~~~~~~~~~~~~~~~
+   local _intM2Flow = Proto(DiagsImplBase)
+   function _intM2Flow:fullInit(diagApp, specIn, owner)
+      self.field = DataStruct.DynVector { numComponents = 1 }
+      self.done  = false
+   end
+   function _intM2Flow:getDependencies() return {"M2Flow"} end
+   function _intM2Flow:getType() return "integrated" end
+   function _intM2Flow:advance(tm, inFlds, outFlds)
+      local specIn, diags = inFlds[1], inFlds[2]
+      local M2Flow = diags["M2Flow"].field
+      specIn.volIntegral.comps1:advance(tm, {M2Flow}, {self.field})
+   end
+
    return {
       M0     = _M0,
       M1i    = _M1i,
       M2     = _M2,
+      uFlow  = _uFlow,
+      M2Flow = _M2Flow,
       intM0     = _intM0,
       intM1i    = _intM1i,
       intM2     = _intM2,
+      intM2Flow = _intM2Flow,
    }
 end
 
