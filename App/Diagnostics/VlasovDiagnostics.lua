@@ -92,6 +92,25 @@ local implementation = function()
       specIn.confWeakDotProduct:advance(tm, {M1i, uFlow}, {self.field})
    end
 
+   -- ~~~~ Diagonal heat flux density ~~~~~~~~~~~~~~~~~~~~~~
+   local _M3i = Proto(DiagsImplBase)
+   function _M3i:fullInit(diagApp, specIn, owner)
+      self.field    = owner:allocVectorMoment(specIn.vdim)
+      self.owner    = owner
+      self.updaters = Updater.DistFuncMomentCalc {
+         onGrid     = specIn.grid,    confBasis = specIn.confBasis,
+         phaseBasis = specIn.basis,   moment    = "M3i",
+      }
+      self.done = false
+   end
+   function _M3i:getType() return "grid" end
+   function _M3i:advance(tm, inFlds, outFlds)
+      local specIn = inFlds[1]
+      local fIn    = self.owner:rkStepperFields()[1]
+      self.updaters:advance(tm, {fIn}, {self.field})
+      specIn.divideByJacobGeo(tm, self.field)
+   end
+
    -- ~~~~ Integrated number density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM0 = Proto(DiagsImplBase)
    function _intM0:fullInit(diagApp, specIn, owner)
@@ -152,6 +171,7 @@ local implementation = function()
       M0     = _M0,
       M1i    = _M1i,
       M2     = _M2,
+      M3i    = _M3i,
       uFlow  = _uFlow,
       M2Flow = _M2Flow,
       intM0     = _intM0,
