@@ -910,12 +910,6 @@ function GkSpecies:createDiagnostics(field)
       operation  = "Divide",
       onGhosts   = true,
    }
-   self.confPhaseMult = Updater.CartFieldBinOp {
-      onGrid     = self.grid,
-      weakBasis  = self.basis,
-      fieldBasis = self.confBasis,
-      operation  = "Multiply",
-   }
 
    -- Sort moments into diagnosticMoments, diagnosticWeakMoments.
    local function organizeDiagnosticMoments(moments, weakMoments, integratedMoments)
@@ -1545,7 +1539,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 
          self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
          self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
-         self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
+         self.confPhaseWeakMultiply:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
       end
 
       if self.calcCXSrc then

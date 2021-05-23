@@ -473,6 +473,12 @@ function KineticSpecies:createSolver(externalField)
       operation = "DotProduct",
       onGhosts  = true,
    }
+   self.confPhaseWeakMultiply = Updater.CartFieldBinOp {
+      onGrid     = self.grid,
+      weakBasis  = self.basis,
+      fieldBasis = self.confBasis,
+      operation  = "Multiply",
+   }
 
    -- Create solvers for collisions.
    for _, c in pairs(self.collisions) do c:createSolver(externalField) end
@@ -776,10 +782,10 @@ function KineticSpecies:createDiagnostics(field)
    -- (if present). Predefine the functions that do that.
    self.divideByJacobGeo = self.jacobGeoInv
       and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeoInv}, {fldOut}) end
-      or function(tm, fldIn, fldOut) end
+      or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
    self.multiplyByJacobGeo = self.jacobGeo
       and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeo}, {fldOut}) end
-      or function(tm, fldIn, fldOut) end
+      or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
 end
 
 function KineticSpecies:calcDiagnosticMoments(tm)
