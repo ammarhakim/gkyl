@@ -84,7 +84,7 @@ plasmaApp = Plasma.App {
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      diagnostics = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.
       coll = Plasma.BGKCollisions {
          collideWith = {'square'},
@@ -110,7 +110,7 @@ plasmaApp = Plasma.App {
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      diagnostics = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.
       coll = Plasma.BGKCollisions {
          collideWith = {'bump'},
