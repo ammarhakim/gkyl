@@ -275,12 +275,12 @@ local implementation = function()
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
    end
-   function _intM0:getDependencies() return {"M0"} end
+   function _intM0:getDependencies() return {"GkM0"} end
    function _intM0:getType() return "integrated" end
    function _intM0:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M0 = diags["M0"].field
-      specIn.volIntegral.comps1:advance(tm, {M0}, {self.field})
+      local M0 = diags["GkM0"].field
+      specIn.volIntegral:advance(tm, {M0}, {self.field})
    end
 
    -- ~~~~ Integrated momentum density ~~~~~~~~~~~~~~~~~~~~~~
@@ -289,12 +289,12 @@ local implementation = function()
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
    end
-   function _intM1:getDependencies() return {"M1"} end
+   function _intM1:getDependencies() return {"GkM1"} end
    function _intM1:getType() return "integrated" end
    function _intM1:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M1i = diags["M1"].field
-      specIn.volIntegral.comps1:advance(tm, {M1i}, {self.field})
+      local M1i = diags["GkM1"].field
+      specIn.volIntegral:advance(tm, {M1i}, {self.field})
    end
 
    -- ~~~~ Integrated particle kinetic energy density ~~~~~~~~~~~~~~~~~~~~~~
@@ -303,12 +303,12 @@ local implementation = function()
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
    end
-   function _intM2:getDependencies() return {"M2"} end
+   function _intM2:getDependencies() return {"GkM2"} end
    function _intM2:getType() return "integrated" end
    function _intM2:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M2 = diags["M2"].field
-      specIn.volIntegral.comps1:advance(tm, {M2}, {self.field})
+      local M2 = diags["GkM2"].field
+      specIn.volIntegral:advance(tm, {M2}, {self.field})
    end
 
    -- ~~~~ Integrated particle kinetic energy density (with mass/2 factor) ~~~~~~~~~~~~~~~~~~~~~~
@@ -317,12 +317,12 @@ local implementation = function()
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
    end
-   function _intKE:getDependencies() return {"M2"} end
+   function _intKE:getDependencies() return {"GkM2"} end
    function _intKE:getType() return "integrated" end
    function _intKE:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M2 = diags["M2"].field
-      specIn.volIntegral.comps1:advance(tm, {M2, 0.5*specIn.mass}, {self.field})
+      local M2 = diags["GkM2"].field
+      specIn.volIntegral:advance(tm, {M2, 0.5*specIn.mass}, {self.field})
    end
 
    -- ~~~~ Integrated particle energy density (including potential) ~~~~~~~~~~~~~~~~~~~~~~
@@ -336,7 +336,7 @@ local implementation = function()
    function _intHE:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local ptclEnergy    = diags["particleEnergy"].field
-      specIn.volIntegral.comps1:advance(tm, {ptclEnergy}, {self.field})
+      specIn.volIntegral:advance(tm, {ptclEnergy}, {self.field})
    end
 
    -- ~~~~ Integrated mean flow energy density ~~~~~~~~~~~~~~~~~~~~~~
@@ -350,7 +350,7 @@ local implementation = function()
    function _intM2Flow:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M2Flow = diags["M2Flow"].field
-      specIn.volIntegral.comps1:advance(tm, {M2Flow}, {self.field})
+      specIn.volIntegral:advance(tm, {M2Flow}, {self.field})
    end
 
    -- ~~~~ Integrated thermal energy density ~~~~~~~~~~~~~~~~~~~~~~
@@ -364,7 +364,7 @@ local implementation = function()
    function _intM2Thermal:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M2Thermal = diags["M2Thermal"].field
-      specIn.volIntegral.comps1:advance(tm, {M2Thermal}, {self.field})
+      specIn.volIntegral:advance(tm, {M2Thermal}, {self.field})
    end
 
    -- ~~~~ L1 norm (absolute value) of the distribution function ~~~~~~~~~~~~~~~~~~~~~~

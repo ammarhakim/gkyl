@@ -18,6 +18,8 @@ local Lin            = require "Lib.Linalg"
 local xsys           = require "xsys"
 local Source         = require "App.Sources.GkSource"
 local VlasovEq       = require "Eq.Vlasov"
+local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
+local GkDiags        = require "App.Diagnostics.GkDiagnostics"
 local lume           = require "Lib.lume"
 
 local GkSpecies = Proto(KineticSpecies)
@@ -332,6 +334,12 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
          operation = "Multiply",
       }
    end
+
+   -- Create an updater for volume integrals. Used by diagnostics.
+   self.volIntegral = Updater.CartFieldIntegratedQuantCalc {
+      onGrid = self.confGrid,   numComponents = 1,
+      basis  = self.confBasis,  quantity      = "V",
+   }
 
    self._firstMomentCalc = true  -- To avoid re-calculating moments when not evolving.
 
@@ -780,7 +788,16 @@ function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
    end
 end
 
-function GkSpecies:createDiagnostics()
+function GkSpecies:createDiagnostics(field)
+   -- Run the KineticSpecies 'createDiagnostics()' (e.g. to create divideByJacobGeo()).
+   GkSpecies.super.createDiagnostics(self, field)
+
+   -- Create this species' diagnostics.
+   if self.tbl.diagnostics then
+      self.diagnostics[self.name] = DiagsApp{implementation = GkDiags()}
+      self.diagnostics[self.name]:fullInit(self, field, self)
+   end
+
    local function contains(table, element) return lume.any(table, function(e) return e==element end) end
 
    -- Create updater to compute volume-integrated moments
