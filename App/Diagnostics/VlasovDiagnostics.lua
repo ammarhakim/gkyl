@@ -104,6 +104,25 @@ local implementation = function()
       self.field:combine(1., M2, -1., M2Flow)
    end
 
+   -- ~~~~ Square velocity tensor density ~~~~~~~~~~~~~~~~~~~~~~
+   local _M2ij = Proto(DiagsImplBase)
+   function _M2ij:fullInit(diagApp, specIn, owner)
+      self.field    = owner:allocVectorMoment(specIn.vdim*(specIn.vdim+1)/2)
+      self.owner    = owner
+      self.updaters = Updater.DistFuncMomentCalc {
+         onGrid     = specIn.grid,    confBasis = specIn.confBasis,
+         phaseBasis = specIn.basis,   moment    = "M2ij",
+      }
+      self.done = false
+   end
+   function _M2ij:getType() return "grid" end
+   function _M2ij:advance(tm, inFlds, outFlds)
+      local specIn = inFlds[1]
+      local fIn    = self.owner:rkStepperFields()[1]
+      self.updaters:advance(tm, {fIn}, {self.field})
+      specIn.divideByJacobGeo(tm, self.field)
+   end
+
    -- ~~~~ Diagonal heat flux density ~~~~~~~~~~~~~~~~~~~~~~
    local _M3i = Proto(DiagsImplBase)
    function _M3i:fullInit(diagApp, specIn, owner)
@@ -229,6 +248,7 @@ local implementation = function()
       M0        = _M0,
       M1i       = _M1i,
       M2        = _M2,
+      M2ij      = _M2ij,
       M3i       = _M3i,
       u         = _uFlow,
       uFlow     = _uFlow,
