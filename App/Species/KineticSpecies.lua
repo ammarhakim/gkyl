@@ -1008,12 +1008,23 @@ function KineticSpecies:write(tm, force)
 
          local tmStart = Time.clock()
          self:calcDiagnosticIntegratedMoments(tm)   -- Compute integrated diagnostics.
+         for _, dOb in pairs(self.diagnostics) do
+            dOb:calcIntegratedDiagnostics(tm, self)   -- Compute integrated diagnostics (this species' and other objects').
+         end
          self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
 
 	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, 0), tm, 0)
 
 	 -- Compute moments and write them out.
 	 self:calcAndWriteDiagnosticMoments(tm)
+
+         for _, dOb in pairs(self.diagnostics) do
+            dOb:calcGridDiagnostics(tm, self)   -- Compute grid diagnostics (this species' and other objects').
+         end
+
+         for _, dOb in pairs(self.diagnostics) do   -- Write grid and integrated diagnostics.
+            dOb:write(tm, self.diagIoFrame)
+         end
       end
       self.distIoFrame = self.distIoFrame+1
    end
@@ -1033,7 +1044,7 @@ function KineticSpecies:writeRestart(tm)
 
    for i, mom in pairs(self.diagnosticMoments) do
       self.diagnosticMomentFields[mom]:write(
-	 string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
+         string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
    end   
 
    -- Write restart files for integrated moments. Note: these are only needed for the rare case that the
