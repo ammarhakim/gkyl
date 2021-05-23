@@ -757,7 +757,7 @@ function KineticSpecies:applyBc(tCurr, fIn)
    self.bcTime = self.bcTime + (Time.clock()-tmStart)
 end
 
-function KineticSpecies:createDiagnostics()
+function KineticSpecies:createDiagnostics(field)
    -- Set up weak multiplication and division operators.
    self.weakMultiplication = Updater.CartFieldBinOp {
       onGrid    = self.confGrid,

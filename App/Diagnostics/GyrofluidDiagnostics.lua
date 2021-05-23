@@ -19,7 +19,7 @@ local Updater       = require "Updater"
 local implementation = function() 
    -- ~~~~ The moments squared ~~~~~~~~~~~~~~~~~~~~~~
    local _MomSq = Proto(DiagsImplBase)
-   function _MomSq:fullInit(diagApp, specIn, owner)
+   function _MomSq:fullInit(diagApp, specIn, field, owner)
       self.field = specIn:allocVectorMoment(specIn.nMoments)
       self.owner = owner
       self.done  = false
@@ -33,7 +33,7 @@ local implementation = function()
    
    -- ~~~~ Number density ~~~~~~~~~~~~~~~~~~~~~~
    local _M0 = Proto(DiagsImplBase)
-   function _M0:fullInit(diagApp, specIn, owner)
+   function _M0:fullInit(diagApp, specIn, field, owner)
       self.field = owner:allocMoment()
       self.owner = owner
       self.done  = false
@@ -47,7 +47,7 @@ local implementation = function()
    
    -- ~~~~ Momentum density (divided by mass) ~~~~~~~~~~~~~~~~~~~~~~
    local _M1 = Proto(DiagsImplBase)
-   function _M1:fullInit(diagApp, specIn, owner)
+   function _M1:fullInit(diagApp, specIn, field, owner)
       self.field = specIn:allocMoment()
       self.owner = owner
       self.done  = false
@@ -61,7 +61,7 @@ local implementation = function()
    
    -- ~~~~ Energy density (divided by mass/2) ~~~~~~~~~~~~~~~~~~~~~~
    local _M2 = Proto(DiagsImplBase)
-   function _M2:fullInit(diagApp, specIn, owner)
+   function _M2:fullInit(diagApp, specIn, field, owner)
       self.field = specIn:allocMoment()
       self.owner = owner
       self.done  = false
@@ -75,7 +75,7 @@ local implementation = function()
    
    -- ~~~~ Flow energy density (divided by mass) ~~~~~~~~~~~~~~~~~~~~~~
    local _M2flow = Proto(DiagsImplBase)
-   function _M2flow:fullInit(diagApp, specIn, owner)
+   function _M2flow:fullInit(diagApp, specIn, field, owner)
       self.field = specIn:allocMoment()
       self.done  = false
    end
@@ -89,7 +89,7 @@ local implementation = function()
    
    -- ~~~~ Parallel flow speed ~~~~~~~~~~~~~~~~~~~~~~
    local _upar = Proto(DiagsImplBase)
-   function _upar:fullInit(diagApp, specIn, owner)
+   function _upar:fullInit(diagApp, specIn, field, owner)
       self.field = specIn:allocMoment()
       self.done  = false
    
@@ -104,7 +104,7 @@ local implementation = function()
    
    -- ~~~~ Perpendicular pressure ~~~~~~~~~~~~~~~~~~~~~~
    local _pperp = Proto(DiagsImplBase)
-   function _pperp:fullInit(diagApp, specIn, owner)
+   function _pperp:fullInit(diagApp, specIn, field, owner)
       self.field = specIn:allocMoment()
       self.owner = owner
       self.done  = false
@@ -120,7 +120,7 @@ local implementation = function()
    
    -- ~~~~ Parallel pressure ~~~~~~~~~~~~~~~~~~~~~~
    local _ppar = Proto(DiagsImplBase)
-   function _ppar:fullInit(diagApp, specIn, owner)
+   function _ppar:fullInit(diagApp, specIn, field, owner)
       self.field = specIn:allocMoment()
       self.owner = owner
       self.done  = false
@@ -139,7 +139,7 @@ local implementation = function()
    
    -- ~~~~ Perpendicular temperature ~~~~~~~~~~~~~~~~~~~~~~
    local _Tperp = Proto(DiagsImplBase)
-   function _Tperp:fullInit(diagApp, specIn, owner)
+   function _Tperp:fullInit(diagApp, specIn, field, owner)
       self.field = specIn:allocMoment()
       self.done  = false
    end
@@ -153,7 +153,7 @@ local implementation = function()
    
    -- ~~~~ Parallel temperature ~~~~~~~~~~~~~~~~~~~~~~
    local _Tpar = Proto(DiagsImplBase)
-   function _Tpar:fullInit(diagApp, specIn, owner)
+   function _Tpar:fullInit(diagApp, specIn, field, owner)
       self.field = specIn:allocMoment()
       self.done  = false
    end
@@ -169,7 +169,7 @@ local implementation = function()
    -- MF 2021/04/14: If Tpar and Tperp are not requested, I think it is more
    --                efficient to implement this using 3*n*T = 2*E - m*n*upar^2.
    local _Temp = Proto(DiagsImplBase)
-   function _Temp:fullInit(diagApp, specIn, owner)
+   function _Temp:fullInit(diagApp, specIn, field, owner)
       self.field = specIn:allocMoment()
       self.owner = owner
       self.done  = false
@@ -186,7 +186,7 @@ local implementation = function()
    
    -- ~~~~ Moments integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~
    local _intMom = Proto(DiagsImplBase)
-   function _intMom:fullInit(diagApp, specIn, owner)
+   function _intMom:fullInit(diagApp, specIn, field, owner)
       self.field    = DataStruct.DynVector { numComponents = specIn.nMoments }
       self.updaters = specIn.volIntegral.compsN
       self.owner    = owner
@@ -200,7 +200,7 @@ local implementation = function()
    
    -- ~~~~ Integrated number density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM0 = Proto(DiagsImplBase)
-   function _intM0:fullInit(diagApp, specIn, owner)
+   function _intM0:fullInit(diagApp, specIn, field, owner)
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
    end
@@ -214,7 +214,7 @@ local implementation = function()
    
    -- ~~~~ Integrated momentum density (divided by mass) ~~~~~~~~~~~~~~~~~~~~~~
    local _intM1 = Proto(DiagsImplBase)
-   function _intM1:fullInit(diagApp, specIn, owner)
+   function _intM1:fullInit(diagApp, specIn, field, owner)
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
    end
@@ -228,7 +228,7 @@ local implementation = function()
    
    -- ~~~~ Integrated energy density (divided by mass/2) ~~~~~~~~~~~~~~~~~~~~~~
    local _intM2 = Proto(DiagsImplBase)
-   function _intM2:fullInit(diagApp, specIn, owner)
+   function _intM2:fullInit(diagApp, specIn, field, owner)
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
    end
@@ -242,7 +242,7 @@ local implementation = function()
    
    -- ~~~~ Integrated flow energy density (divided by mass) ~~~~~~~~~~~~~~~~~~~~~~
    local _intM2flow = Proto(DiagsImplBase)
-   function _intM2flow:fullInit(diagApp, specIn, owner)
+   function _intM2flow:fullInit(diagApp, specIn, field, owner)
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
    end

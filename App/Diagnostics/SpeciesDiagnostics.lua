@@ -84,7 +84,7 @@ local SpeciesDiagnostics = Proto()
 
 function SpeciesDiagnostics:init(tbl) self.tbl = tbl end
 
-function SpeciesDiagnostics:fullInit(mySpecies, diagOwner)
+function SpeciesDiagnostics:fullInit(mySpecies, field, diagOwner)
 
    local diagsImpl = assert(self.tbl.implementation,
       "SpeciesDiagnostics: must specify the implementation of the diagnostics in 'implementation'.")
@@ -111,7 +111,7 @@ function SpeciesDiagnostics:fullInit(mySpecies, diagOwner)
 
    -- Initialize diagnostics.
    for _, dG in pairs(self.diagGroups) do
-      for _, diagNm in ipairs(dG) do self.diags[diagNm]:fullInit(self, mySpecies, diagOwner) end
+      for _, diagNm in ipairs(dG) do self.diags[diagNm]:fullInit(self, mySpecies, field, diagOwner) end
    end
 
    self.writeGhost = xsys.pickBool(diagOwner.writeGhost, false)

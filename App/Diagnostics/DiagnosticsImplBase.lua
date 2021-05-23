@@ -12,7 +12,7 @@ local Proto = require "Lib.Proto"
 local DiagnosticsImplBase = Proto()
 
 -- Functions that must be defined by subclasses.
-function DiagnosticsImplBase:fullInit(diagApp, thisSpecies) end
+function DiagnosticsImplBase:fullInit(diagApp, thisSpecies, field, diagAppOwner) end
 function DiagnosticsImplBase:getDependencies() return {} end
 function DiagnosticsImplBase:getType() end
 function DiagnosticsImplBase:advance(time, inFlds, outFlds) end

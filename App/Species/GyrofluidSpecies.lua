@@ -268,11 +268,11 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, momIn, species, momRhsOut) end
 end
 
-function GyrofluidSpecies:createDiagnostics()  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
+function GyrofluidSpecies:createDiagnostics(field)  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
    -- Create this species' diagnostics.
    if self.tbl.diagnostics then
       self.diagnostics[self.name] = DiagsApp{implementation = GyrofluidDiags()}
-      self.diagnostics[self.name]:fullInit(self, self)
+      self.diagnostics[self.name]:fullInit(self, field, self)
    end
 
    for srcNm, src in lume.orderedIter(self.sources) do

@@ -14,7 +14,7 @@ local Updater       = require "Updater"
 local implementation = function() 
    -- ~~~~ The moments squared ~~~~~~~~~~~~~~~~~~~~~~
    local _MomSq = Proto(DiagsImplBase)
-   function _MomSq:fullInit(diagApp, specIn)
+   function _MomSq:fullInit(diagApp, specIn, field, owner)
       self.field    = specIn:allocVectorMoment(specIn.nMoments)
       self.done     = false
    end
@@ -27,7 +27,7 @@ local implementation = function()
    
    -- ~~~~ Moments integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~
    local _intMom = Proto(DiagsImplBase)
-   function _intMom:fullInit(diagApp, specIn)
+   function _intMom:fullInit(diagApp, specIn, field, owner)
       self.field    = DataStruct.DynVector { numComponents = specIn.nMoments }
       self.updaters = specIn.volIntegral.compsN
       self.done     = false

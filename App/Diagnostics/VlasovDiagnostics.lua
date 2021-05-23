@@ -19,7 +19,7 @@ local Updater       = require "Updater"
 local implementation = function()
    -- ~~~~ Number density ~~~~~~~~~~~~~~~~~~~~~~
    local _M0 = Proto(DiagsImplBase)
-   function _M0:fullInit(diagApp, specIn, owner)
+   function _M0:fullInit(diagApp, specIn, field, owner)
       self.field = owner:allocMoment()
       self.owner = owner
       self.done  = false
@@ -34,7 +34,7 @@ local implementation = function()
 
    -- ~~~~ Momentum density ~~~~~~~~~~~~~~~~~~~~~~
    local _M1i = Proto(DiagsImplBase)
-   function _M1i:fullInit(diagApp, specIn, owner)
+   function _M1i:fullInit(diagApp, specIn, field, owner)
       self.field = owner:allocVectorMoment(specIn.vdim)
       self.owner = owner
       self.done  = false
@@ -49,7 +49,7 @@ local implementation = function()
 
    -- ~~~~ Particle energy density ~~~~~~~~~~~~~~~~~~~~~~
    local _M2 = Proto(DiagsImplBase)
-   function _M2:fullInit(diagApp, specIn, owner)
+   function _M2:fullInit(diagApp, specIn, field, owner)
       self.field = owner:allocMoment()
       self.owner = owner
       self.done  = false
@@ -64,7 +64,7 @@ local implementation = function()
 
    -- ~~~~ Mean flow velocity ~~~~~~~~~~~~~~~~~~~~~~
    local _uFlow = Proto(DiagsImplBase)
-   function _uFlow:fullInit(diagApp, specIn, owner)
+   function _uFlow:fullInit(diagApp, specIn, field, owner)
       self.field = owner:allocVectorMoment(specIn.vdim)
       self.done  = false
    end
@@ -78,7 +78,7 @@ local implementation = function()
 
    -- ~~~~ Mean flow energy density ~~~~~~~~~~~~~~~~~~~~~~
    local _M2Flow = Proto(DiagsImplBase)
-   function _M2Flow:fullInit(diagApp, specIn, owner)
+   function _M2Flow:fullInit(diagApp, specIn, field, owner)
       self.field = owner:allocMoment()
       self.done  = false
    end
@@ -92,7 +92,7 @@ local implementation = function()
 
    -- ~~~~ Thermal energy density ~~~~~~~~~~~~~~~~~~~~~~
    local _M2Thermal = Proto(DiagsImplBase)
-   function _M2Thermal:fullInit(diagApp, specIn, owner)
+   function _M2Thermal:fullInit(diagApp, specIn, field, owner)
       self.field = owner:allocMoment()
       self.done  = false
    end
@@ -106,7 +106,7 @@ local implementation = function()
 
    -- ~~~~ Square velocity tensor density ~~~~~~~~~~~~~~~~~~~~~~
    local _M2ij = Proto(DiagsImplBase)
-   function _M2ij:fullInit(diagApp, specIn, owner)
+   function _M2ij:fullInit(diagApp, specIn, field, owner)
       self.field    = owner:allocVectorMoment(specIn.vdim*(specIn.vdim+1)/2)
       self.owner    = owner
       self.updaters = Updater.DistFuncMomentCalc {
@@ -125,7 +125,7 @@ local implementation = function()
 
    -- ~~~~ Diagonal heat flux density ~~~~~~~~~~~~~~~~~~~~~~
    local _M3i = Proto(DiagsImplBase)
-   function _M3i:fullInit(diagApp, specIn, owner)
+   function _M3i:fullInit(diagApp, specIn, field, owner)
       self.field    = owner:allocVectorMoment(specIn.vdim)
       self.owner    = owner
       self.updaters = Updater.DistFuncMomentCalc {
@@ -144,7 +144,7 @@ local implementation = function()
 
    -- ~~~~ Thermal speed squared ~~~~~~~~~~~~~~~~~~~~~~
    local _vtSq = Proto(DiagsImplBase)
-   function _vtSq:fullInit(diagApp, specIn, owner)
+   function _vtSq:fullInit(diagApp, specIn, field, owner)
       self.field = owner:allocMoment()
       self.done  = false
    end
@@ -159,7 +159,7 @@ local implementation = function()
 
    -- ~~~~ Integrated number density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM0 = Proto(DiagsImplBase)
-   function _intM0:fullInit(diagApp, specIn, owner)
+   function _intM0:fullInit(diagApp, specIn, field, owner)
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
    end
@@ -173,7 +173,7 @@ local implementation = function()
 
    -- ~~~~ Integrated momentum density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM1i = Proto(DiagsImplBase)
-   function _intM1i:fullInit(diagApp, specIn, owner)
+   function _intM1i:fullInit(diagApp, specIn, field, owner)
       self.field = DataStruct.DynVector { numComponents = specIn.vdim }
       self.done  = false
    end
@@ -187,7 +187,7 @@ local implementation = function()
 
    -- ~~~~ Integrated particle energy density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM2 = Proto(DiagsImplBase)
-   function _intM2:fullInit(diagApp, specIn, owner)
+   function _intM2:fullInit(diagApp, specIn, field, owner)
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
    end
@@ -201,7 +201,7 @@ local implementation = function()
 
    -- ~~~~ Integrated mean flow energy density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM2Flow = Proto(DiagsImplBase)
-   function _intM2Flow:fullInit(diagApp, specIn, owner)
+   function _intM2Flow:fullInit(diagApp, specIn, field, owner)
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
    end
@@ -215,7 +215,7 @@ local implementation = function()
 
    -- ~~~~ Integrated thermal energy density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM2Thermal = Proto(DiagsImplBase)
-   function _intM2Thermal:fullInit(diagApp, specIn, owner)
+   function _intM2Thermal:fullInit(diagApp, specIn, field, owner)
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
    end
@@ -229,7 +229,7 @@ local implementation = function()
 
    -- ~~~~ L2 norm of the distribution function ~~~~~~~~~~~~~~~~~~~~~~
    local _intL2 = Proto(DiagsImplBase)
-   function _intL2:fullInit(diagApp, specIn, owner)
+   function _intL2:fullInit(diagApp, specIn, field, owner)
       self.field    = DataStruct.DynVector { numComponents = 1 }
       self.updaters = Updater.CartFieldIntegratedQuantCalc {
          onGrid = specIn.grid,   numComponents = 1,

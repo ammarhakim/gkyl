@@ -644,14 +644,14 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
 end
 
-function VlasovSpecies:createDiagnostics()
+function VlasovSpecies:createDiagnostics(field)
    -- Run the KineticSpecies 'createDiagnostics()' (e.g. to create divideByJacobGeo()).
-   VlasovSpecies.super.createDiagnostics(self)
+   VlasovSpecies.super.createDiagnostics(self, field)
 
    -- Create this species' diagnostics.
    if self.tbl.diagnostics then
       self.diagnostics[self.name] = DiagsApp{implementation = VlasovDiags()}
-      self.diagnostics[self.name]:fullInit(self, self)
+      self.diagnostics[self.name]:fullInit(self, field, self)
    end
 
    local function contains(table, element)

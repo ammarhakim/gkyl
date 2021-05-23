@@ -573,10 +573,10 @@ function FluidSpecies:applyBcEvolve(tCurr, momIn)
 end
 function FluidSpecies:applyBc(tCurr, momIn) self.applyBcFunc(tCurr, momIn) end
 
-function FluidSpecies:createDiagnostics()  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
+function FluidSpecies:createDiagnostics(field)  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
    if self.tbl.diagnostics then   -- Create this species' diagnostics.
       self.diagnostics[self.name] = DiagsApp{implementation = FluidDiags()}
-      self.diagnostics[self.name]:fullInit(self, self)
+      self.diagnostics[self.name]:fullInit(self, field, self)
    end
 
    for srcNm, src in lume.orderedIter(self.sources) do
