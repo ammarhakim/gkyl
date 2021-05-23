@@ -22,8 +22,8 @@ nu12 = (m2/m1)*nu21
 vlasovApp = Plasma.App {
    logToFile = false,
 
-   tEnd        = 0.0025,             -- End time.
-   nFrame      = 1,              -- Number of frames to write.
+   tEnd        = 0.0025,           -- End time.
+   nFrame      = 1,                -- Number of frames to write.
    lower       = {0.0},            -- Configuration space lower left.
    upper       = {1.0},            -- Configuration space upper right.
    cells       = {16},             -- Configuration space cells.
@@ -68,8 +68,7 @@ vlasovApp = Plasma.App {
       evolve = true,
       evolveCollisionless = false,
       -- Diagnostic moments.
-      diagnosticMoments = { "M0", "M1i", "M2", "u", "vtSq" },
-      diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
+      diagnostics = { "M0", "M1i", "M2", "uFlow", "vtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
 	 collideWith  = { "neut1", "neut2", },
@@ -111,8 +110,7 @@ vlasovApp = Plasma.App {
       evolve = true,
       evolveCollisionless = false,
       -- Diagnostic moments.
-      diagnosticMoments = { "M0", "M1i", "M2", "u", "vtSq" },
-      diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
+      diagnostics = { "M0", "M1i", "M2", "uFlow", "vtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = { "neut1", "neut2", },

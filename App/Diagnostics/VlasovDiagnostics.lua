@@ -79,7 +79,7 @@ local implementation = function()
    -- ~~~~ Mean flow energy density ~~~~~~~~~~~~~~~~~~~~~~
    local _M2Flow = Proto(DiagsImplBase)
    function _M2Flow:fullInit(diagApp, specIn, owner)
-      self.field = owner:allocVectorMoment(specIn.vdim)
+      self.field = owner:allocMoment()
       self.done  = false
    end
    function _M2Flow:getType() return "grid" end
