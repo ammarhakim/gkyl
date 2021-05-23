@@ -70,10 +70,10 @@ local implementation = function()
       self.done  = false
    end
    function _uPar:getType() return "grid" end
-   function _uPar:getDependencies() return {"M0","M1"} end
+   function _uPar:getDependencies() return {"GkM0","GkM1"} end
    function _uPar:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M0, M1        = diags["M0"].field, diags["M1"].field
+      local M0, M1        = diags["GkM0"].field, diags["GkM1"].field
       specIn.confWeakDivide:advance(tm, {M0, M1}, {self.field})
    end
 
@@ -84,10 +84,10 @@ local implementation = function()
       self.done  = false
    end
    function _M2Flow:getType() return "grid" end
-   function _M2Flow:getDependencies() return {"M1","uPar"} end
+   function _M2Flow:getDependencies() return {"GkM1","GkUpar"} end
    function _M2Flow:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M1, uPar      = diags["M1"].field, diags["uPar"].field
+      local M1, uPar      = diags["GkM1"].field, diags["GkUpar"].field
       specIn.confWeakMultiply:advance(tm, {M1, uPar}, {self.field})
    end
 
@@ -98,10 +98,10 @@ local implementation = function()
       self.done  = false
    end
    function _M2Thermal:getType() return "grid" end
-   function _M2Thermal:getDependencies() return {"M2","M2Flow"} end
+   function _M2Thermal:getDependencies() return {"GkM2","M2Flow"} end
    function _M2Thermal:advance(tm, inFlds, outFlds)
       local diags      = inFlds[2]
-      local M2, M2Flow = diags["M2"].field, diags["M2Flow"].field
+      local M2, M2Flow = diags["GkM2"].field, diags["M2Flow"].field
       self.field:combine(1., M2, -1., M2Flow)
    end
 
@@ -197,10 +197,10 @@ local implementation = function()
       self.done  = false
    end
    function _vtSq:getType() return "grid" end
-   function _vtSq:getDependencies() return {"M2Thermal","M0"} end
+   function _vtSq:getDependencies() return {"M2Thermal","GkM0"} end
    function _vtSq:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M0, M2Thermal = diags["M0"].field, diags["M2Thermal"].field
+      local M0, M2Thermal = diags["GkM0"].field, diags["M2Thermal"].field
       specIn.confWeakDivide:advance(tm, {M0, M2Thermal}, {self.field})
       self.field:scale(1./specIn.vDegFreedom)
    end
@@ -293,8 +293,8 @@ local implementation = function()
    function _intM1:getType() return "integrated" end
    function _intM1:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M1i = diags["GkM1"].field
-      specIn.volIntegral:advance(tm, {M1i}, {self.field})
+      local M1 = diags["GkM1"].field
+      specIn.volIntegral:advance(tm, {M1}, {self.field})
    end
 
    -- ~~~~ Integrated particle kinetic energy density ~~~~~~~~~~~~~~~~~~~~~~
@@ -403,8 +403,9 @@ local implementation = function()
 
    return {
       GkM0      = _M0,
-      GkM1      = _M1i,
+      GkM1      = _M1,
       GkM2      = _M2,
+      GkUpar    = _uPar,
       uPar      = _uPar,
       M2Flow    = _M2Flow,
       M2Thermal = _M2Thermal,
@@ -413,6 +414,7 @@ local implementation = function()
       GkM3par   = _M3par,
       GkM3perp  = _M3par,
       GkTemp    = _Temp,
+      GkVtSq    = _vtSq,
       vtSq      = _vtSq,
       GkTpar    = _Tpar,
       GkTperp   = _Tperp,
