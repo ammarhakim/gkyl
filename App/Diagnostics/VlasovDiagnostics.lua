@@ -123,6 +123,21 @@ local implementation = function()
       specIn.divideByJacobGeo(tm, self.field)
    end
 
+   -- ~~~~ Thermal speed squared ~~~~~~~~~~~~~~~~~~~~~~
+   local _vtSq = Proto(DiagsImplBase)
+   function _vtSq:fullInit(diagApp, specIn, owner)
+      self.field = owner:allocMoment()
+      self.done  = false
+   end
+   function _vtSq:getType() return "grid" end
+   function _vtSq:getDependencies() return {"M2Thermal","M0"} end
+   function _vtSq:advance(tm, inFlds, outFlds)
+      local specIn, diags = inFlds[1], inFlds[2]
+      local M0, M2Thermal = diags["M0"].field, diags["M2Thermal"].field
+      specIn.confWeakDivide:advance(tm, {M0, M2Thermal}, {self.field})
+      self.field:scale(1./specIn.vdim)
+   end
+
    -- ~~~~ Integrated number density ~~~~~~~~~~~~~~~~~~~~~~
    local _intM0 = Proto(DiagsImplBase)
    function _intM0:fullInit(diagApp, specIn, owner)
@@ -215,9 +230,11 @@ local implementation = function()
       M1i       = _M1i,
       M2        = _M2,
       M3i       = _M3i,
+      u         = _uFlow,
       uFlow     = _uFlow,
       M2Flow    = _M2Flow,
       M2Thermal = _M2Thermal,
+      vtSq      = _vtSq,
       intM0        = _intM0,
       intM1i       = _intM1i,
       intM2        = _intM2,
