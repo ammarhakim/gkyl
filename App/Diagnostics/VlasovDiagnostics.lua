@@ -193,6 +193,23 @@ local implementation = function()
       specIn.volIntegral.comps1:advance(tm, {M2Thermal}, {self.field})
    end
 
+   -- ~~~~ L2 norm of the distribution function ~~~~~~~~~~~~~~~~~~~~~~
+   local _intL2 = Proto(DiagsImplBase)
+   function _intL2:fullInit(diagApp, specIn, owner)
+      self.field    = DataStruct.DynVector { numComponents = 1 }
+      self.updaters = Updater.CartFieldIntegratedQuantCalc {
+         onGrid = specIn.grid,   numComponents = 1,
+         basis  = specIn.basis,  quantity      = "V2",
+      }
+      self.owner = owner
+      self.done  = false
+   end
+   function _intL2:getType() return "integrated" end
+   function _intL2:advance(tm, inFlds, outFlds)
+      local fIn = self.owner:rkStepperFields()[1]
+      self.updaters:advance(tm, {fIn}, {self.field})
+   end
+
    return {
       M0        = _M0,
       M1i       = _M1i,
@@ -206,6 +223,7 @@ local implementation = function()
       intM2        = _intM2,
       intM2Flow    = _intM2Flow,
       intM2Thermal = _intM2Thermal,
+      intL2        = _intL2,
    }
 end
 

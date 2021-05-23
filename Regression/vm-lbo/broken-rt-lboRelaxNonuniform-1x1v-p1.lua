@@ -11,19 +11,11 @@ n0        = 1.0                             -- Density.
 u0        = 0.0                             -- Flow speed.
 vt        = 1.0/3.0                         -- Thermal speed..
 nu        = 0.01                            -- Collision frequency.
--- The next three are for p1, v \in [-8vt,8vt], 2x32, rectangular IC.
-nMr  = 1.0103629711+1.845e-12               -- Density of Maxwellian and rectangle. 
-uMr  = 0.0                                  -- Flow speed of Maxwellian and rectangle. 
-vtMr = math.sqrt(0.11235161663+1.62551e-12) -- Thermal speed of Maxwellian and rectangle.
 -- Large bump on tail of Maxwellian:
 ab   = math.sqrt(0.1)                       -- Amplitude of bump.
 ub   = 4*math.sqrt(((3*vt/2)^2)/3)          -- Location of bump.
 sb   = 0.12                                 -- Softening factor to avoid divergence.
 vtb  = 1.0                                  -- Thermal speed of Maxwellian in bump.
--- The next three are for p1, v \in [-8vt,8vt], 2x32, bump in tail IC. 
-nMb  = 1.1018707667+5.1e-13                 -- Density of Maxwellian and bump. 
-uMb  = 0.4888097565+27.426e-12              -- Flow speed of Maxwellian and bump. 
-vtMb = math.sqrt(0.39691067156+2.43e-13)    -- Thermal speed of Maxwellian and bump.
 
 -- Top hat function without drift (u=0).
 local function topHat(x, v, n, u, vth)
@@ -84,8 +76,7 @@ plasmaApp = Plasma.App {
       end,
       -- Evolve species?
       evolve = true,
-      -- Diagnostic moments.
-      diagnosticMoments = { "M0", "M1i", "M2" },
+      diagnostics = { "M0", "M1i", "M2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'square'},
@@ -93,28 +84,7 @@ plasmaApp = Plasma.App {
       },
    },
 
-   -- -- Maxwellian for comparison with rectangular IC.
-   -- maxwellSquare = Plasma.Species {
-   --    charge = 0.0, mass = 1.0,
-   --    -- Velocity space grid.
-   --    lower      = {-8.0*vt},
-   --    upper      = {8.0*vt},
-   --    cells      = {48},
-   --    -- Initial conditions.
-   --    init = Plasma.MaxwellianProjection {
-   --       density         = nMr,
-   --       driftSpeed      = {uMr},
-   --       temperature     = vtMr^2,
-   --       exactScaleM0    = false,
-   --       exactLagFixM012 = true,
-   --    },
-   --    -- Evolve species?
-   --    evolve = false,
-   --    -- Diagnostic moments.
-   --    diagnosticMoments = { "M0", "M1i", "M2" },
-   -- },
-
-   ---- Neutral species with a bump in the tail.
+   -- Neutral species with a bump in the tail.
    bump = Plasma.Species {
       charge = 0.0, mass = 1.0,
       -- Velocity space grid.
@@ -132,35 +102,13 @@ plasmaApp = Plasma.App {
       end,
       -- Evolve species?
       evolve = true,
-      -- Diagnostic moments.
-      diagnosticMoments = { "M0", "M1i", "M2" },
+      diagnostics = { "M0", "M1i", "M2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
          frequencies = {nu},
       },
    },
-
-   -- -- Maxwellian for comparison with bump in tail IC.
-   -- maxwellBump = Plasma.Species {
-   --    charge = 0.0, mass = 1.0,
-   --    -- Velocity space grid.
-   --    lower      = {-8.0*vt},
-   --    upper      = {8.0*vt},
-   --    cells      = {48},
-   --    -- Initial conditions.
-   --    init = Plasma.MaxwellianProjection {
-   --       density         = nMb,
-   --       driftSpeed      = {uMb},
-   --       temperature     = vtMb^2,
-   --       exactScaleM0    = false,
-   --       exactLagFixM012 = true,
-   --    },
-   --    -- Evolve species?
-   --    evolve = false,
-   --    -- Diagnostic moments.
-   --    diagnosticMoments = { "M0", "M1i", "M2" },
-   -- },
 
 }
 -- Run application.
