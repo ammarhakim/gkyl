@@ -774,8 +774,8 @@ function KineticSpecies:createDiagnostics(field)
 
    -- Many diagnostics require dividing by the Jacobian (if present).
    -- Predefine the functions that do that.
-   self.divideByJacobGeo = self.jacobInv
-      and function(tm, fldIn) self.confWeakMultiply:advance(tm, {fldIn, self.jacobInv}, {fldIn}) end
+   self.divideByJacobGeo = self.jacobGeoInv
+      and function(tm, fldIn) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeoInv}, {fldIn}) end
       or function(tm, fldIn) end
 end
 

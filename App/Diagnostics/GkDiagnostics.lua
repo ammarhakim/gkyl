@@ -182,10 +182,10 @@ local implementation = function()
       self.done  = false
    end
    function _Temp:getType() return "grid" end
-   function _Temp:getDependencies() return {"M2Thermal","M0"} end
+   function _Temp:getDependencies() return {"M2Thermal","GkM0"} end
    function _Temp:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M0, M2Thermal = diags["M0"].field, diags["M2Thermal"].field
+      local M0, M2Thermal = diags["GkM0"].field, diags["M2Thermal"].field
       specIn.confWeakDivide:advance(tm, {M0, M2Thermal}, {self.field})
       self.field:scale(specIn.mass/specIn.vDegFreedom)
    end
@@ -212,10 +212,10 @@ local implementation = function()
       self.done  = false
    end
    function _Tpar:getType() return "grid" end
-   function _Tpar:getDependencies() return {"M2Flow","M2par","M0"} end
+   function _Tpar:getDependencies() return {"M2Flow","M2par","GkM0"} end
    function _Tpar:advance(tm, inFlds, outFlds)
       local specIn, diags     = inFlds[1], inFlds[2]
-      local M2Flow, M2par, M0 = diags["M2Flow"].field, diags["M2par"].field, diags["M0"].field
+      local M2Flow, M2par, M0 = diags["M2Flow"].field, diags["M2par"].field, diags["GkM0"].field
       self.field:combine(1., M2par, -1., M2Flow)
       specIn.confWeakDivide:advance(tm, {M0, self.field}, {self.field})
       self.field:scale(specIn.mass)
@@ -228,10 +228,10 @@ local implementation = function()
       self.done  = false
    end
    function _Tperp:getType() return "grid" end
-   function _Tperp:getDependencies() return {"M2perp","M0"} end
+   function _Tperp:getDependencies() return {"M2perp","GkM0"} end
    function _Tperp:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M0, M2perp    = diags["M0"].field, diags["M2perp"].field
+      local M0, M2perp    = diags["GkM0"].field, diags["M2perp"].field
       specIn.confWeakDivide:advance(tm, {M0, M2perp}, {self.field})
       self.field:scale(specIn.mass)
    end
@@ -243,10 +243,10 @@ local implementation = function()
       self.done  = false
    end
    function _beta:getType() return "grid" end
-   function _beta:getDependencies() return {"Temp","M0"} end
+   function _beta:getDependencies() return {"Temp","GkM0"} end
    function _beta:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M0, Temp      = diags["M0"].field, diags["Temp"].field
+      local M0, Temp      = diags["GkM0"].field, diags["GkTemp"].field
       specIn.confWeakMultiply:advance(tm, {M0, Temp}, {self.field})
       specIn.confWeakMultiply:advance(tm, {specIn.bmagInvSq, self.field}, {self.field})
       self.field:scale(2*Constants.MU0)
@@ -260,10 +260,10 @@ local implementation = function()
       self.done  = false
    end
    function _particleEnergy:getType() return "grid" end
-   function _particleEnergy:getDependencies() return {"M0","M2"} end
+   function _particleEnergy:getDependencies() return {"GkM0","GkM2"} end
    function _particleEnergy:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M0, M2        = diags["M0"].field, diags["M2"].field
+      local M0, M2        = diags["GkM0"].field, diags["GkM2"].field
       specIn.confWeakMultiply:advance(tm, {M0, self.phi}, {self.field})
       self.field:scale(specIn.charge)
       self.field:accumulate(0.5*specIn.mass, M2)
@@ -409,10 +409,10 @@ local implementation = function()
       uPar      = _uPar,
       M2Flow    = _M2Flow,
       M2Thermal = _M2Thermal,
-      GkM2par   = _M2par,
-      GkM2perp  = _M2perp,
-      GkM3par   = _M3par,
-      GkM3perp  = _M3par,
+      M2par     = _M2par,
+      M2perp    = _M2perp,
+      M3par     = _M3par,
+      M3perp    = _M3par,
       GkTemp    = _Temp,
       GkVtSq    = _vtSq,
       vtSq      = _vtSq,

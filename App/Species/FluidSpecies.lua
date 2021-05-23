@@ -252,9 +252,9 @@ end
 function FluidSpecies:createSolver(externalField)
    if externalField then
       -- Set up Jacobian.
-      self.jacobFunc = externalField.jacobGeoFunc
-      self.jacob     = externalField.geo.jacobGeo
-      self.jacobInv  = externalField.geo.jacobGeoInv
+      self.jacobFunc   = externalField.jacobGeoFunc
+      self.jacob       = externalField.geo.jacobGeo
+      self.jacobGeoInv = externalField.geo.jacobGeoInv
    end
 
    -- Operators needed for time-dependent calculation and diagnostics.
@@ -589,8 +589,8 @@ function FluidSpecies:createDiagnostics(field)  -- More sophisticated/extensive 
 
    -- Many diagnostics require dividing by the Jacobian (if present).
    -- Predefine the function that does that.
-   self.calcNoJacMom = self.jacobInv
-      and function(tm, rkIdx) self.weakMultiply:advance(tm, {self:getMoments(rkIdx), self.jacobInv}, {self.noJacMom}) end
+   self.calcNoJacMom = self.jacobGeoInv
+      and function(tm, rkIdx) self.weakMultiply:advance(tm, {self:getMoments(rkIdx), self.jacobGeoInv}, {self.noJacMom}) end
       or function(tm, rkIdx) self.noJacMom:copy(self:getMoments(rkIdx)) end
 end
 
