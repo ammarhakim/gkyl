@@ -21,7 +21,8 @@ local implementation = function()
    -- ~~~~ Number density ~~~~~~~~~~~~~~~~~~~~~~
    local _M0 = Proto(DiagsImplBase)
    function _M0:fullInit(diagApp, specIn, fieldIn, owner)
-      self.field = owner:allocMoment()
+      self.field          = owner:allocMoment()
+      self.fieldwJacobGeo = owner:allocMoment()  -- So intM0 can depend on M0.
       self.owner = owner
       self.done  = false
    end
@@ -29,14 +30,15 @@ local implementation = function()
    function _M0:advance(tm, inFlds, outFlds)
       local specIn = inFlds[1]
       local fIn    = self.owner:rkStepperFields()[1]
-      specIn.numDensityCalc:advance(tm, {fIn}, {self.field})
-      specIn.divideByJacobGeo(tm, self.field)
+      specIn.numDensityCalc:advance(tm, {fIn}, {self.fieldwJacobGeo})
+      specIn.divideByJacobGeo(tm, self.fieldwJacobGeo, self.field)
    end
 
    -- ~~~~ Momentum density ~~~~~~~~~~~~~~~~~~~~~~
    local _M1 = Proto(DiagsImplBase)
    function _M1:fullInit(diagApp, specIn, fieldIn, owner)
-      self.field = owner:allocMoment()
+      self.field          = owner:allocMoment()
+      self.fieldwJacobGeo = owner:allocMoment()  -- So intM1 can depend on M1.
       self.owner = owner
       self.done  = false
    end
@@ -44,14 +46,15 @@ local implementation = function()
    function _M1:advance(tm, inFlds, outFlds)
       local specIn = inFlds[1]
       local fIn    = self.owner:rkStepperFields()[1]
-      specIn.momDensityCalc:advance(tm, {fIn}, {self.field})
-      specIn.divideByJacobGeo(tm, self.field)
+      specIn.momDensityCalc:advance(tm, {fIn}, {self.fieldwJacobGeo})
+      specIn.divideByJacobGeo(tm, self.fieldwJacobGeo, self.field)
    end
 
    -- ~~~~ Particle energy density ~~~~~~~~~~~~~~~~~~~~~~
    local _M2 = Proto(DiagsImplBase)
    function _M2:fullInit(diagApp, specIn, fieldIn, owner)
-      self.field = owner:allocMoment()
+      self.field          = owner:allocMoment()
+      self.fieldwJacobGeo = owner:allocMoment()  -- So intM2 can depend on M2.
       self.owner = owner
       self.done  = false
    end
@@ -59,8 +62,8 @@ local implementation = function()
    function _M2:advance(tm, inFlds, outFlds)
       local specIn = inFlds[1]
       local fIn    = self.owner:rkStepperFields()[1]
-      specIn.ptclEnergyCalc:advance(tm, {fIn}, {self.field})
-      specIn.divideByJacobGeo(tm, self.field)
+      specIn.ptclEnergyCalc:advance(tm, {fIn}, {self.fieldwJacobGeo})
+      specIn.divideByJacobGeo(tm, self.fieldwJacobGeo, self.field)
    end
 
    -- ~~~~ Mean flow velocity ~~~~~~~~~~~~~~~~~~~~~~
@@ -117,7 +120,7 @@ local implementation = function()
       local specIn = inFlds[1]
       local fIn    = self.owner:rkStepperFields()[1]
       specIn.M2parCalc:advance(tm, {fIn}, {self.field})
-      specIn.divideByJacobGeo(tm, self.field)
+      specIn.divideByJacobGeo(tm, self.field, self.field)
    end
 
    -- ~~~~ mu*B moment, perpendicular energy density ~~~~~~~~~~~~~~~~~~~~~~
@@ -132,7 +135,7 @@ local implementation = function()
       local specIn = inFlds[1]
       local fIn    = self.owner:rkStepperFields()[1]
       specIn.M2perpCalc:advance(tm, {fIn}, {self.field})
-      specIn.divideByJacobGeo(tm, self.field)
+      specIn.divideByJacobGeo(tm, self.field, self.field)
    end
 
    -- ~~~~ Parallel heat flux density ~~~~~~~~~~~~~~~~~~~~~~
@@ -152,7 +155,7 @@ local implementation = function()
       local specIn = inFlds[1]
       local fIn    = self.owner:rkStepperFields()[1]
       self.updaters:advance(tm, {fIn}, {self.field})
-      specIn.divideByJacobGeo(tm, self.field)
+      specIn.divideByJacobGeo(tm, self.field, self.field)
    end
 
    -- ~~~~ Parallel flux of perpendicular energy density ~~~~~~~~~~~~~~~~~~~~~~
@@ -172,7 +175,7 @@ local implementation = function()
       local specIn = inFlds[1]
       local fIn    = self.owner:rkStepperFields()[1]
       self.updaters:advance(tm, {fIn}, {self.field})
-      specIn.divideByJacobGeo(tm, self.field)
+      specIn.divideByJacobGeo(tm, self.field, self.field)
    end
 
    -- ~~~~ Temperature ~~~~~~~~~~~~~~~~~~~~~~
@@ -256,7 +259,6 @@ local implementation = function()
    local _particleEnergy = Proto(DiagsImplBase)
    function _particleEnergy:fullInit(diagApp, specIn, fieldIn, owner)
       self.field = owner:allocMoment()
-      self.phi   = fieldIn.potentials[1].phi
       self.done  = false
    end
    function _particleEnergy:getType() return "grid" end
@@ -264,7 +266,8 @@ local implementation = function()
    function _particleEnergy:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M0, M2        = diags["GkM0"].field, diags["GkM2"].field
-      specIn.confWeakMultiply:advance(tm, {M0, self.phi}, {self.field})
+      local phi           = specIn.equation.phi
+      specIn.confWeakMultiply:advance(tm, {M0, phi}, {self.field})
       self.field:scale(specIn.charge)
       self.field:accumulate(0.5*specIn.mass, M2)
    end
@@ -279,7 +282,7 @@ local implementation = function()
    function _intM0:getType() return "integrated" end
    function _intM0:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M0 = diags["GkM0"].field
+      local M0            = diags["GkM0"].fieldwJacobGeo
       specIn.volIntegral:advance(tm, {M0}, {self.field})
    end
 
@@ -293,7 +296,7 @@ local implementation = function()
    function _intM1:getType() return "integrated" end
    function _intM1:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M1 = diags["GkM1"].field
+      local M1 = diags["GkM1"].fieldwJacobGeo
       specIn.volIntegral:advance(tm, {M1}, {self.field})
    end
 
@@ -307,7 +310,7 @@ local implementation = function()
    function _intM2:getType() return "integrated" end
    function _intM2:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M2 = diags["GkM2"].field
+      local M2 = diags["GkM2"].fieldwJacobGeo
       specIn.volIntegral:advance(tm, {M2}, {self.field})
    end
 
@@ -321,22 +324,35 @@ local implementation = function()
    function _intKE:getType() return "integrated" end
    function _intKE:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M2 = diags["GkM2"].field
+      local M2 = diags["GkM2"].fieldwJacobGeo
       specIn.volIntegral:advance(tm, {M2, 0.5*specIn.mass}, {self.field})
    end
 
    -- ~~~~ Integrated particle energy density (including potential) ~~~~~~~~~~~~~~~~~~~~~~
    local _intHE = Proto(DiagsImplBase)
    function _intHE:fullInit(diagApp, specIn, fieldIn, owner)
-      self.field = DataStruct.DynVector { numComponents = 1 }
-      self.done  = false
+      self.field    = DataStruct.DynVector { numComponents = 1 }
+      self.fieldAux = owner:allocMoment()
+      --self.fieldAux = {owner:allocMoment(),owner:allocMoment()}
+      --self.owner    = owner
+      self.done     = false
    end
-   function _intHE:getDependencies() return {"particleEnergy"} end
+   function _intHE:getDependencies() return {"GkEnergy"} end
    function _intHE:getType() return "integrated" end
    function _intHE:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local ptclEnergy    = diags["particleEnergy"].field
-      specIn.volIntegral:advance(tm, {ptclEnergy}, {self.field})
+      local ptclEnergy    = diags["GkEnergy"].field
+      specIn.multiplyByJacobGeo(tm, ptclEnergy, self.fieldAux)
+      specIn.volIntegral:advance(tm, {self.fieldAux}, {self.field})
+      --local specIn = inFlds[1]
+      --local fIn    = self.owner:rkStepperFields()[1]
+      --local phi    = specIn.equation.phi
+      --specIn.numDensityCalc:advance(tm, {fIn}, {self.fieldAux[1]})
+      --specIn.ptclEnergyCalc:advance(tm, {fIn}, {self.fieldAux[2]})
+      --specIn.confWeakMultiply:advance(tm, {self.fieldAux[1], phi}, {self.fieldAux[1]})
+      --self.fieldAux[1]:scale(specIn.charge)
+      --self.fieldAux[1]:accumulate(0.5*specIn.mass, self.fieldAux[2])
+      --specIn.volIntegral:advance(tm, {self.fieldAux[1]}, {self.field})
    end
 
    -- ~~~~ Integrated mean flow energy density ~~~~~~~~~~~~~~~~~~~~~~

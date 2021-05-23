@@ -772,11 +772,14 @@ function KineticSpecies:createDiagnostics(field)
       onGhosts  = true,
    }
 
-   -- Many diagnostics require dividing by the Jacobian (if present).
-   -- Predefine the functions that do that.
+   -- Many diagnostics require dividing or multiplying by the Jacobian
+   -- (if present). Predefine the functions that do that.
    self.divideByJacobGeo = self.jacobGeoInv
-      and function(tm, fldIn) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeoInv}, {fldIn}) end
-      or function(tm, fldIn) end
+      and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeoInv}, {fldOut}) end
+      or function(tm, fldIn, fldOut) end
+   self.multiplyByJacobGeo = self.jacobGeo
+      and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeo}, {fldOut}) end
+      or function(tm, fldIn, fldOut) end
 end
 
 function KineticSpecies:calcDiagnosticMoments(tm)

@@ -29,7 +29,7 @@ local implementation = function()
       local specIn = inFlds[1]
       local fIn    = self.owner:rkStepperFields()[1]
       specIn.numDensityCalc:advance(tm, {fIn}, {self.field})
-      specIn.divideByJacobGeo(tm, self.field)
+      specIn.divideByJacobGeo(tm, self.field, self.field)
    end
 
    -- ~~~~ Momentum density ~~~~~~~~~~~~~~~~~~~~~~
@@ -44,7 +44,7 @@ local implementation = function()
       local specIn = inFlds[1]
       local fIn    = self.owner:rkStepperFields()[1]
       specIn.momDensityCalc:advance(tm, {fIn}, {self.field})
-      specIn.divideByJacobGeo(tm, self.field)
+      specIn.divideByJacobGeo(tm, self.field, self.field)
    end
 
    -- ~~~~ Particle energy density ~~~~~~~~~~~~~~~~~~~~~~
@@ -59,7 +59,7 @@ local implementation = function()
       local specIn = inFlds[1]
       local fIn    = self.owner:rkStepperFields()[1]
       specIn.ptclEnergyCalc:advance(tm, {fIn}, {self.field})
-      specIn.divideByJacobGeo(tm, self.field)
+      specIn.divideByJacobGeo(tm, self.field, self.field)
    end
 
    -- ~~~~ Mean flow velocity ~~~~~~~~~~~~~~~~~~~~~~
@@ -120,7 +120,7 @@ local implementation = function()
       local specIn = inFlds[1]
       local fIn    = self.owner:rkStepperFields()[1]
       self.updaters:advance(tm, {fIn}, {self.field})
-      specIn.divideByJacobGeo(tm, self.field)
+      specIn.divideByJacobGeo(tm, self.field, self.field)
    end
 
    -- ~~~~ Diagonal heat flux density ~~~~~~~~~~~~~~~~~~~~~~
@@ -139,7 +139,7 @@ local implementation = function()
       local specIn = inFlds[1]
       local fIn    = self.owner:rkStepperFields()[1]
       self.updaters:advance(tm, {fIn}, {self.field})
-      specIn.divideByJacobGeo(tm, self.field)
+      specIn.divideByJacobGeo(tm, self.field, self.field)
    end
 
    -- ~~~~ Thermal speed squared ~~~~~~~~~~~~~~~~~~~~~~

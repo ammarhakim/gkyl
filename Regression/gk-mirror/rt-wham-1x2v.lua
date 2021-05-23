@@ -419,9 +419,8 @@ plasmaApp = Plasma.App {
          isSource    = true,
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"GkM0", "GkUpar", "GkTemp", "GkTperp", "GkTpar"},
---      diagnosticMoments = {"GkM0", "GkUpar", "GkTemp", "GkTperp", "GkTpar"},
---      diagnosticIntegratedMoments = {"intM0", "intM1", "intM2", "intKE", "intHE", "intSrcM0", "intSrcM2"},
+      diagnostics = {"GkM0", "GkUpar", "GkTemp", "GkTperp", "GkTpar", "intM0", "intM1", "intM2", "intKE", "intHE" },
+      diagnosticIntegratedMoments = {"intSrcM0", "intSrcM2"},
       diagnosticBoundaryFluxMoments = {"GkM0", "GkM1", "GkM2", "GkUpar", "GkTemp", "GkEnergy"},
       diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
       randomseed = randomseed,
@@ -482,9 +481,8 @@ plasmaApp = Plasma.App {
          isSource    = true,
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"GkM0", "GkUpar", "GkTemp", "GkTperp", "GkTpar"},
---      diagnosticMoments = {"GkM0", "GkUpar", "GkTemp", "GkTperp", "GkTpar"},
---      diagnosticIntegratedMoments = {"intM0", "intM1", "intM2", "intKE", "intHE", "intSrcM0", "intSrcM2"},
+      diagnostics = {"GkM0", "GkUpar", "GkTemp", "GkTperp", "GkTpar", "intM0", "intM1", "intM2", "intKE", "intHE" },
+      diagnosticIntegratedMoments = {"intSrcM0", "intSrcM2"},
       diagnosticBoundaryFluxMoments = {"GkM0", "GkM1", "GkM2", "GkUpar", "GkTemp", "GkEnergy"},
       diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
       randomseed = randomseed,
