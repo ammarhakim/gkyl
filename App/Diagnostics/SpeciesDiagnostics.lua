@@ -114,6 +114,8 @@ function SpeciesDiagnostics:fullInit(mySpecies, diagOwner)
       for _, diagNm in ipairs(dG) do self.diags[diagNm]:fullInit(self, mySpecies, diagOwner) end
    end
 
+   self.writeGhost = xsys.pickBool(diagOwner.writeGhost, false)
+
    self.spentTime = { gridDiags=0., intDiags=0. }
 end
 
@@ -177,7 +179,7 @@ end
 function SpeciesDiagnostics:writeGridDiagnostics(tm, fr)
    for _, diagNm in ipairs(self.diagGroups["grid"]) do 
       local diag = self.diags[diagNm]
-      diag.field:write(string.format("%s_%s_%d.bp", self.name, diagNm, fr), tm, fr)
+      diag.field:write(string.format("%s_%s_%d.bp", self.name, diagNm, fr), tm, fr, self.writeGhost)
    end
 end
 

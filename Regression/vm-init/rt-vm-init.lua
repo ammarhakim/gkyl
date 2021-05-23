@@ -69,7 +69,7 @@ app = Plasma.App {
       },
       evolve = true, -- evolve species?
 
-      diagnosticMoments = { "M0", "M1i", "M2" }
+      diagnostics = { "M0", "M1i", "M2" }
    },
 
    lagFix = Plasma.Species {

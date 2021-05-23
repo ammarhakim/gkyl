@@ -71,7 +71,7 @@ sim = Plasma.App {
       evolve = true,
       --evolveCollisions = false,
       -- diagnostic moments
-      diagnosticMoments = { "M0", "M1i", "M2" },
+      diagnostics = { "M0", "M1i", "M2" },
      
       -- collisions
       coll = Plasma.BGKCollisions {
