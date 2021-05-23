@@ -66,7 +66,6 @@ local implementation = function()
    local _uFlow = Proto(DiagsImplBase)
    function _uFlow:fullInit(diagApp, specIn, owner)
       self.field = owner:allocVectorMoment(specIn.vdim)
-      self.owner = owner
       self.done  = false
    end
    function _uFlow:getType() return "grid" end
@@ -81,7 +80,6 @@ local implementation = function()
    local _M2Flow = Proto(DiagsImplBase)
    function _M2Flow:fullInit(diagApp, specIn, owner)
       self.field = owner:allocVectorMoment(specIn.vdim)
-      self.owner = owner
       self.done  = false
    end
    function _M2Flow:getType() return "grid" end
@@ -90,6 +88,20 @@ local implementation = function()
       local specIn, diags = inFlds[1], inFlds[2]
       local M1i, uFlow    = diags["M1i"].field, diags["uFlow"].field
       specIn.confWeakDotProduct:advance(tm, {M1i, uFlow}, {self.field})
+   end
+
+   -- ~~~~ Thermal energy density ~~~~~~~~~~~~~~~~~~~~~~
+   local _M2Thermal = Proto(DiagsImplBase)
+   function _M2Thermal:fullInit(diagApp, specIn, owner)
+      self.field = owner:allocMoment()
+      self.done  = false
+   end
+   function _M2Thermal:getType() return "grid" end
+   function _M2Thermal:getDependencies() return {"M2","M2Flow"} end
+   function _M2Thermal:advance(tm, inFlds, outFlds)
+      local diags      = inFlds[2]
+      local M2, M2Flow = diags["M2"].field, diags["M2Flow"].field
+      self.field:combine(1., M2, -1., M2Flow)
    end
 
    -- ~~~~ Diagonal heat flux density ~~~~~~~~~~~~~~~~~~~~~~
@@ -167,17 +179,33 @@ local implementation = function()
       specIn.volIntegral.comps1:advance(tm, {M2Flow}, {self.field})
    end
 
+   -- ~~~~ Integrated thermal energy density ~~~~~~~~~~~~~~~~~~~~~~
+   local _intM2Thermal = Proto(DiagsImplBase)
+   function _intM2Thermal:fullInit(diagApp, specIn, owner)
+      self.field = DataStruct.DynVector { numComponents = 1 }
+      self.done  = false
+   end
+   function _intM2Thermal:getDependencies() return {"M2Thermal"} end
+   function _intM2Thermal:getType() return "integrated" end
+   function _intM2Thermal:advance(tm, inFlds, outFlds)
+      local specIn, diags = inFlds[1], inFlds[2]
+      local M2Thermal = diags["M2Thermal"].field
+      specIn.volIntegral.comps1:advance(tm, {M2Thermal}, {self.field})
+   end
+
    return {
-      M0     = _M0,
-      M1i    = _M1i,
-      M2     = _M2,
-      M3i    = _M3i,
-      uFlow  = _uFlow,
-      M2Flow = _M2Flow,
-      intM0     = _intM0,
-      intM1i    = _intM1i,
-      intM2     = _intM2,
-      intM2Flow = _intM2Flow,
+      M0        = _M0,
+      M1i       = _M1i,
+      M2        = _M2,
+      M3i       = _M3i,
+      uFlow     = _uFlow,
+      M2Flow    = _M2Flow,
+      M2Thermal = _M2Thermal,
+      intM0        = _intM0,
+      intM1i       = _intM1i,
+      intM2        = _intM2,
+      intM2Flow    = _intM2Flow,
+      intM2Thermal = _intM2Thermal,
    }
 end
 
