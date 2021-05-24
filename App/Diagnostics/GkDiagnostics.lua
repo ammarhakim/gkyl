@@ -246,7 +246,7 @@ local implementation = function()
       self.done  = false
    end
    function _beta:getType() return "grid" end
-   function _beta:getDependencies() return {"Temp","GkM0"} end
+   function _beta:getDependencies() return {"GkTemp","GkM0"} end
    function _beta:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M0, Temp      = diags["GkM0"].field, diags["GkTemp"].field
