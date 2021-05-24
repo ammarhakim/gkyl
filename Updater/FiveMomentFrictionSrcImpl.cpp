@@ -31,10 +31,9 @@ pressure(const double *f, const double gamma)
 
 
 static inline double
-energy(double *f, const double p, const double gamma)
+energy(const double *f, const double p, const double gamma)
 {
-  return f[ER] = p / (gamma-1) \
-                 + 0.5 * (sq(f[MX]+sq(f[MY])+sq(f[MZ]))) / f[RHO];
+  return p / (gamma-1) + 0.5 * (sq(f[MX])+sq(f[MY])+sq(f[MZ])) / f[RHO];
 }
 
 
@@ -278,7 +277,7 @@ gkylFiveMomentFrictionSrcTimeCentered(
     f[MX] = f[RHO] * (2 * sol_u(s) - rhs_u(s));
     f[MY] = f[RHO] * (2 * sol_v(s) - rhs_v(s));
     f[MZ] = f[RHO] * (2 * sol_w(s) - rhs_w(s));
-    f[ER] = f[PP]/(sd->gasGamma-1) + 0.5*(sq(f[MX]+sq(f[MY])+sq(f[MZ])))/f[RHO];
+    f[ER] = f[PP]/(sd->gasGamma-1) + 0.5*(sq(f[MX])+sq(f[MY])+sq(f[MZ]))/f[RHO];
   }
 }
 
@@ -293,13 +292,16 @@ gkylFiveMomentFrictionSrcExact(
   const int nFluids = sd->nFluids;
   assert(nFluids==2);
 
+  double nu01 = sd->nuBase[0];
+  if (nu01==0)
+    return;
+
   double *f0 = fPtrs[0];
   double *f1 = fPtrs[1];
 
   const double rho0 = f0[RHO];
   const double rho1 = f1[RHO];
 
-  double nu01 = sd->nuBase[0];
   double nu10 = nu01 * rho0 / rho1;
   double nuSum = nu01 + nu10;
   double coeff = (std::exp(-nuSum*dt) - 1) / nuSum;
@@ -307,7 +309,7 @@ gkylFiveMomentFrictionSrcExact(
   double coeff1 = coeff * nu10;
 
   double p0 = pressure(f0, sd->gasGamma);
-  double p1 = pressure(f0, sd->gasGamma);
+  double p1 = pressure(f1, sd->gasGamma);
 
   for(int d=0; d<3; ++d)
   {

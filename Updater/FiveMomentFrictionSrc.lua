@@ -105,7 +105,7 @@ function FiveMomentFrictionSrc:init(tbl)
       self._updateSrc = timeCentered
    elseif scheme == "exact" then
       assert(nFluids==2, pfx.."For the 'exact' scheme, nFluids must be 2.")
-      self._updateSrc = timeCentered
+      self._updateSrc = exact
    else
       assert(false, string.format(pfx.."Scheme %s is not supported", scheme))
    end
