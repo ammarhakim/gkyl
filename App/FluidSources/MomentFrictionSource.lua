@@ -61,7 +61,7 @@ function MomentFrictionSource:createSolver(species, field)
          evolve = evolveLists[5],
          mass = mass,
          gasGamma = tbl.gasGamma,
-         hasPressure = tbl.hasPressureField,
+         hasPressure = tbl.hasPressure,
          nu = tbl.nu,
       }
    elseif #speciesLists[10]>0 then
