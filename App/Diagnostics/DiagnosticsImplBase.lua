@@ -15,6 +15,13 @@ local DiagnosticsImplBase = Proto()
 function DiagnosticsImplBase:fullInit(diagApp, thisSpecies, field, diagAppOwner) end
 function DiagnosticsImplBase:getDependencies() return {} end
 function DiagnosticsImplBase:getType() end
+function DiagnosticsImplBase:setGetF(perturbed, owner)
+   if perturbed then
+      self.getF = function() return owner:getFlucF() end
+   else
+      self.getF = function() return owner:rkStepperFields()[1] end
+   end
+end
 function DiagnosticsImplBase:advance(time, inFlds, outFlds) end
 
 return DiagnosticsImplBase

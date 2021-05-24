@@ -93,9 +93,11 @@ function KineticSpecies:fullInit(appTbl)
    self.diagnostics = {}  -- Table in which we'll place diagnostic objects.
    -- Determine if user wants diagnostics of the fluctuations.
    self.perturbedDiagnostics = false
-   if lume.any(tbl.diagnostics, function(e) return e=="perturbed" end) then
-      lume.remove(tbl.diagnostics,"perturbed")
-      self.perturbedDiagnostics = true
+   if tbl.diagnostics then
+      if lume.any(tbl.diagnostics, function(e) return e=="perturbed" end) then
+         lume.remove(tbl.diagnostics,"perturbed")
+         self.perturbedDiagnostics = true
+      end
    end
 
    -- Write ghost cells on boundaries of global domain (for BCs).
@@ -663,6 +665,9 @@ function KineticSpecies:getDistF(rkIdx)
       return self:rkStepperFields()[rkIdx]
    end
 end
+function KineticSpecies:getFlucF()
+   return self.flucF
+end
 
 function KineticSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
@@ -979,6 +984,8 @@ end
 function KineticSpecies:write(tm, force)
    if self.evolve then
 
+      self.calcDeltaF(self:rkStepperFields()[1])
+
       for _, dOb in pairs(self.diagnostics) do
          dOb:resetState(tm)   -- Reset booleans indicating if diagnostic has been computed.
       end
@@ -1072,7 +1079,7 @@ function KineticSpecies:write(tm, force)
 end
 
 function KineticSpecies:writeRestart(tm)
-   -- (The final "true/false" determines writing of ghost cells).
+   -- (The final "true/false" in calls to :write determines writing of ghost cells).
    local writeGhost = false
    if self.hasSheathBCs or self.fluctuationBCs then writeGhost = true end
 

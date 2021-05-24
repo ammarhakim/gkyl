@@ -103,8 +103,7 @@ plasmaApp = Plasma.App {
          exactScaleM0 = true,
       },
       evolve = true, -- Evolve species?
-      diagnosticMoments = {"GkM0", "GkM1", perturbed=true},
-      diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
+      diagnostics = {"perturbed", "GkM0", "GkM1", "intM0", "intM1", "intM2"},
    },
 
    ion = Plasma.Species {

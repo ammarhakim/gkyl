@@ -25,11 +25,12 @@ local implementation = function()
       self.fieldwJacobGeo = owner:allocMoment()  -- So intM0 can depend on M0.
       self.owner = owner
       self.done  = false
+      self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
    end
    function _M0:getType() return "grid" end
    function _M0:advance(tm, inFlds, outFlds)
       local specIn = inFlds[1]
-      local fIn    = self.owner:rkStepperFields()[1]
+      local fIn    = self.getF()
       specIn.numDensityCalc:advance(tm, {fIn}, {self.fieldwJacobGeo})
       specIn.divideByJacobGeo(tm, self.fieldwJacobGeo, self.field)
    end
@@ -41,11 +42,12 @@ local implementation = function()
       self.fieldwJacobGeo = owner:allocMoment()  -- So intM1 can depend on M1.
       self.owner = owner
       self.done  = false
+      self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
    end
    function _M1:getType() return "grid" end
    function _M1:advance(tm, inFlds, outFlds)
       local specIn = inFlds[1]
-      local fIn    = self.owner:rkStepperFields()[1]
+      local fIn    = self.getF()
       specIn.momDensityCalc:advance(tm, {fIn}, {self.fieldwJacobGeo})
       specIn.divideByJacobGeo(tm, self.fieldwJacobGeo, self.field)
    end
@@ -57,11 +59,12 @@ local implementation = function()
       self.fieldwJacobGeo = owner:allocMoment()  -- So intM2 can depend on M2.
       self.owner = owner
       self.done  = false
+      self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
    end
    function _M2:getType() return "grid" end
    function _M2:advance(tm, inFlds, outFlds)
       local specIn = inFlds[1]
-      local fIn    = self.owner:rkStepperFields()[1]
+      local fIn    = self.getF()
       specIn.ptclEnergyCalc:advance(tm, {fIn}, {self.fieldwJacobGeo})
       specIn.divideByJacobGeo(tm, self.fieldwJacobGeo, self.field)
    end
@@ -114,11 +117,12 @@ local implementation = function()
       self.field = owner:allocMoment()
       self.owner = owner
       self.done  = false
+      self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
    end
    function _M2par:getType() return "grid" end
    function _M2par:advance(tm, inFlds, outFlds)
       local specIn = inFlds[1]
-      local fIn    = self.owner:rkStepperFields()[1]
+      local fIn    = self.getF()
       specIn.M2parCalc:advance(tm, {fIn}, {self.field})
       specIn.divideByJacobGeo(tm, self.field, self.field)
    end
@@ -129,11 +133,12 @@ local implementation = function()
       self.field = owner:allocMoment()
       self.owner = owner
       self.done  = false
+      self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
    end
    function _M2perp:getType() return "grid" end
    function _M2perp:advance(tm, inFlds, outFlds)
       local specIn = inFlds[1]
-      local fIn    = self.owner:rkStepperFields()[1]
+      local fIn    = self.getF()
       specIn.M2perpCalc:advance(tm, {fIn}, {self.field})
       specIn.divideByJacobGeo(tm, self.field, self.field)
    end
@@ -149,11 +154,12 @@ local implementation = function()
          gkfacs     = {specIn.mass, specIn.bmag},
       }
       self.done = false
+      self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
    end
    function _M3par:getType() return "grid" end
    function _M3par:advance(tm, inFlds, outFlds)
       local specIn = inFlds[1]
-      local fIn    = self.owner:rkStepperFields()[1]
+      local fIn    = self.getF()
       self.updaters:advance(tm, {fIn}, {self.field})
       specIn.divideByJacobGeo(tm, self.field, self.field)
    end
@@ -169,11 +175,12 @@ local implementation = function()
          gkfacs     = {specIn.mass, specIn.bmag},
       }
       self.done = false
+      self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
    end
    function _M3perp:getType() return "grid" end
    function _M3perp:advance(tm, inFlds, outFlds)
       local specIn = inFlds[1]
-      local fIn    = self.owner:rkStepperFields()[1]
+      local fIn    = self.getF()
       self.updaters:advance(tm, {fIn}, {self.field})
       specIn.divideByJacobGeo(tm, self.field, self.field)
    end
@@ -335,6 +342,7 @@ local implementation = function()
       self.fieldAux = owner:allocMoment()
       --self.fieldAux = {owner:allocMoment(),owner:allocMoment()}
       --self.owner    = owner
+      --self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
       self.done     = false
    end
    function _intHE:getDependencies() return {"GkEnergy"} end
@@ -345,7 +353,7 @@ local implementation = function()
       specIn.multiplyByJacobGeo(tm, ptclEnergy, self.fieldAux)
       specIn.volIntegral:advance(tm, {self.fieldAux}, {self.field})
       --local specIn = inFlds[1]
-      --local fIn    = self.owner:rkStepperFields()[1]
+      --local fIn    = self.getF()
       --local phi    = specIn.equation.phi
       --specIn.numDensityCalc:advance(tm, {fIn}, {self.fieldAux[1]})
       --specIn.ptclEnergyCalc:advance(tm, {fIn}, {self.fieldAux[2]})
@@ -393,10 +401,11 @@ local implementation = function()
       }
       self.owner = owner
       self.done  = false
+      self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
    end
    function _intL1:getType() return "integrated" end
    function _intL1:advance(tm, inFlds, outFlds)
-      local fIn = self.owner:rkStepperFields()[1]
+      local fIn = self.getF()
       self.updaters:advance(tm, {fIn}, {self.field})
    end
 
@@ -410,10 +419,11 @@ local implementation = function()
       }
       self.owner = owner
       self.done  = false
+      self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
    end
    function _intL2:getType() return "integrated" end
    function _intL2:advance(tm, inFlds, outFlds)
-      local fIn = self.owner:rkStepperFields()[1]
+      local fIn = self.getF()
       self.updaters:advance(tm, {fIn}, {self.field})
    end
 

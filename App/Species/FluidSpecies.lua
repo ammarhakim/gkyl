@@ -322,7 +322,7 @@ function FluidSpecies:createSolver(externalField)
          self.posRescalerDiffWrite = function(tm, fr) end
       end
    else
-      self.posRescaler          = {advance=function(tCurr, inFlds, outFlds, computeDiagnostics, zeroOut) end}
+      self.posRescaler          = {advance=function(tCurr, inFlds, outFlds, computeDiagnostics, zeroOut) end, totalTime=0.}
       self.posRescalerDiffAdv   = function(tCurr, rkIdx, computeDiagnostics, zeroOut) end
       self.posRescalerDiffWrite = function(tm, fr) end
    end
@@ -580,11 +580,11 @@ function FluidSpecies:createDiagnostics(field)  -- More sophisticated/extensive 
    end
 
    for srcNm, src in lume.orderedIter(self.sources) do
-      self.diagnostics[self.name..srcNm] = src:createDiagnostics(self)
+      self.diagnostics[self.name..srcNm] = src:createDiagnostics(self, field)
    end
 
    for bcNm, bc in lume.orderedIter(self.nonPeriodicBCs) do
-      self.diagnostics[self.name..bcNm] = bc:createDiagnostics(self)
+      self.diagnostics[self.name..bcNm] = bc:createDiagnostics(self, field)
    end
 
    -- Many diagnostics require dividing by the Jacobian (if present).
