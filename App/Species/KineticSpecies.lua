@@ -511,7 +511,7 @@ function KineticSpecies:createSolver(externalField)
       self.calcDeltaF = function(fIn) end
    end
 
-   if self.fBackground then
+   if self.fluctuationBCs or self.perturbedDiagnostics then
       if self.perturbedDiagnostics then
          self.writeFluctuation = function(tm, fr, fIn)
             self.distIo:write(self.flucF, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, fr)

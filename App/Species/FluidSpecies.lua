@@ -358,7 +358,7 @@ function FluidSpecies:createSolver(externalField)
       self.calcDeltaMom = function(momIn) end
    end
 
-   if self.momBackground then
+   if self.fluctuationBCs or self.perturbedDiagnostics then
       if self.perturbedDiagnostics then
          self.writeFluctuation = function(tm, fr, momIn)
             self.momIo:write(self.flucMom, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, fr)
