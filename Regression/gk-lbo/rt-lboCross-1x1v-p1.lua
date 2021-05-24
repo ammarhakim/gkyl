@@ -1,13 +1,12 @@
 -- Gkyl ------------------------------------------------------------------------
 --
---
-local Plasma    = require("App.PlasmaOnCartGrid").Gyrokinetic()
-local Constants = require "Lib.Constants"
-
 -- This test initializes Maxwellian electrons and ions with different
 -- bulk velocity and temperature and collides them.
 -- We will use cross collisions only as a default, but one can add
 -- self collisions as well.
+--
+local Plasma    = require("App.PlasmaOnCartGrid").Gyrokinetic()
+local Constants = require "Lib.Constants"
 
 -- Universal parameters.
 eps0 = Constants.EPSILON0
@@ -95,8 +94,7 @@ plasmaApp = Plasma.App {
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq" },
-      diagnosticIntegratedMoments = { "intM0", "intM1", "intM2" },
+      diagnostics = { "GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq", "intM0", "intM1", "intM2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {"elc", "ion", },
@@ -135,8 +133,7 @@ plasmaApp = Plasma.App {
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq" },
-      diagnosticIntegratedMoments = { "intM0", "intM1", "intM2" },
+      diagnostics = { "GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq", "intM0", "intM1", "intM2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {"ion", "elc"},

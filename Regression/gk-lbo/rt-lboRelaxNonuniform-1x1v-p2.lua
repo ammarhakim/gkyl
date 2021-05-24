@@ -1,10 +1,9 @@
 -- Gkyl ------------------------------------------------------------------------
 --
---
-local Plasma = require("App.PlasmaOnCartGrid").Gyrokinetic()
-
 -- This test relaxes a rectangular/square IC and a bump in tail IC.
 -- Maxwellian's for comparison with each are also created.
+--
+local Plasma = require("App.PlasmaOnCartGrid").Gyrokinetic()
 
 polyOrder = 2
 n0        = 1.0                             -- Density.
@@ -50,7 +49,7 @@ local vCompMax = (vparMax-uBump)/vparMax
 plasmaApp = Plasma.App {
    logToFile = false,
 
-   tEnd        = 10,           -- End time.
+   tEnd        = 10,            -- End time.
    nFrame      = 1,             -- Number of frames to write.
    lower       = {0.0},         -- Configuration space lower coordinate.
    upper       = {1.0},         -- Configuration space upper coordinate.
@@ -68,7 +67,7 @@ plasmaApp = Plasma.App {
 
    -- Neutral species with a rectangular/square IC.
    square = Plasma.Species {
-      charge = 1.0, mass = 1.0,
+      charge = 1.0,  mass = 1.0,
       -- Velocity space grid.
       lower = {-1.0},
       upper = { 1.0},
@@ -82,9 +81,9 @@ plasmaApp = Plasma.App {
 
          return topHat(x, v, n0, u0, vt)
       end,
-      evolve = true,
+      evolve              = true,
       evolveCollisionless = false,
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      diagnostics         = { "GkM0", "GkM1", "GkM2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'square'},
          frequencies = {nu, },
@@ -93,7 +92,7 @@ plasmaApp = Plasma.App {
 
    -- Neutral species with a bump in the tail.
    bump = Plasma.Species {
-      charge = 1.0, mass = 1.0,
+      charge = 1.0,  mass = 1.0,
       -- Velocity space grid.
       lower = {vCompMin},
       upper = {vCompMax},
@@ -114,9 +113,9 @@ plasmaApp = Plasma.App {
 	 local x, v = xn[1], xn[2]
          return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
       end,
-      evolve            = true,
+      evolve              = true,
       evolveCollisionless = false,
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      diagnostics         = { "GkM0", "GkM1", "GkM2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
          frequencies = {nu, },

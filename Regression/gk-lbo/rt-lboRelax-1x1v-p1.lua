@@ -80,8 +80,8 @@ plasmaApp = Plasma.App {
 
          return topHat(x, v, n0, u0, vt)
       end,
-      evolve = true,
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      evolve      = true,
+      diagnostics = { "GkM0", "GkM1", "GkM2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'square'},
          frequencies = {nu, },
@@ -100,8 +100,8 @@ plasmaApp = Plasma.App {
 	 local x, v = xn[1], xn[2]
          return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
       end,
-      evolve            = true,
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      evolve      = true,
+      diagnostics = { "GkM0", "GkM1", "GkM2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
          frequencies = {nu, },

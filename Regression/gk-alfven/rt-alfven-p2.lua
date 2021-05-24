@@ -72,8 +72,7 @@ plasmaApp = Plasma.App {
 
    -- Gyrokinetic electrons.
    electron = Plasma.Species {
-      charge = qe,
-      mass = me,
+      charge = qe,  mass = me,
       -- Velocity space grid.
       lower = {-6*vte},
       upper = { 6*vte},
@@ -108,8 +107,7 @@ plasmaApp = Plasma.App {
    },
 
    ion = Plasma.Species {
-      charge = qi,
-      mass = mi,
+      charge = qi,  mass = mi,
       -- Velocity space grid.
       lower = {-6*vti},
       upper = {6*vti},
@@ -127,7 +125,7 @@ plasmaApp = Plasma.App {
          exactScaleM0 = true,
       },
       evolve = true, -- Evolve species?
-      diagnosticMoments = {"GkM0", "GkM1"},
+      diagnostics = {"GkM0", "GkM1"},
    },
 
    -- Field solver.
