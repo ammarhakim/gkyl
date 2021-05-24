@@ -1199,8 +1199,8 @@ function GkSpecies:createDiagnostics(field)
                if self.diagnosticMomentUpdaters[mom..label].tCurr == tm then return end -- Return if already computed for this t.m
                local fIn, momOut = inFlds[1], outFlds[1]
 
-               local bmagInv = self.bmagInv
-               if bc then bmagInv = bc:evalOnConfBoundary(self.bmagInv) end
+               local bmagInvSq = self.bmagInvSq
+               if bc then bmagInvSq = bc:evalOnConfBoundary(self.bmagInvSq) end
 
                -- Compute dependencies if not already computed: GkTemp (GkM0 will be computed via GkTemp if necessary).
                if self.diagnosticMomentUpdaters["GkTemp"..label].tCurr ~= tm then
