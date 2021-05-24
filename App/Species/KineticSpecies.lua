@@ -490,7 +490,7 @@ function KineticSpecies:createSolver(externalField)
 
    -- Functions to compute fluctuations given the current moments and background,
    -- and the full-F moments given the fluctuations and background.
-   if self.fluctuationBCs or self.perturbedDiagnostics then
+   if self.fluctuationBCs then
       self.minusBackgroundF = function(fIn) fIn:accumulate(-1.0, self.fBackground) end
       self.returnDeltaF     = function(fIn)
          self.flucF:combine(1.0, fIn, -1.0, self.fBackground)
@@ -509,6 +509,21 @@ function KineticSpecies:createSolver(externalField)
       self.calcDeltaF = function(fIn) self.flucF:combine(1.0, fIn, -1.0, self.fBackground) end
    else
       self.calcDeltaF = function(fIn) end
+   end
+
+   if self.fBackground then
+      if self.perturbedDiagnostics then
+         self.writeFluctuation = function(tm, fr, fIn)
+            self.distIo:write(self.flucF, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, fr)
+         end
+      else
+         self.writeFluctuation = function(tm, fr, fIn)
+            self.calcDeltaF(fIn)
+            self.distIo:write(self.flucF, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, fr)
+         end
+      end
+   else
+      self.writeFluctuation = function(tm, fr, momIn) end
    end
 
    -- Create solvers for collisions.
@@ -553,7 +568,7 @@ function KineticSpecies:alloc(nRkDup)
                     grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"},
    }
 
-   self.flucF = self.fluctuationBCs or self.perturbedDiagnostics and self:allocDistf() or nil   -- Fluctuation.
+   self.flucF = (self.fluctuationBCs or self.perturbedDiagnostics) and self:allocDistf() or nil   -- Fluctuation.
 
    if self.positivity then self.fPos = self:allocDistf() end
 
@@ -623,7 +638,10 @@ function KineticSpecies:initDist(extField)
    for nm, src in lume.orderedIter(self.sources) do src:createSolver(self, extField) end
 
    assert(initCnt>0, string.format("KineticSpecies: Species '%s' not initialized!", self.name))
-   if self.fBackground and backgroundCnt == 0 then self.fBackground:copy(self.distf[1]) end
+   if self.fBackground then
+      if backgroundCnt == 0 then self.fBackground:copy(self.distf[1]) end
+      self.fBackground:write(string.format("%s_background_%d.bp", self.name, self.diagIoFrame), 0., self.diagIoFrame, true)
+   end
 
    if self.fluctuationBCs then 
       assert(backgroundCnt > 0, "KineticSpecies: must specify an initial background distribution with 'background' in order to use fluctuation-only BCs") 
@@ -665,9 +683,8 @@ function KineticSpecies:getDistF(rkIdx)
       return self:rkStepperFields()[rkIdx]
    end
 end
-function KineticSpecies:getFlucF()
-   return self.flucF
-end
+
+function KineticSpecies:getFlucF() return self.flucF end
 
 function KineticSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
@@ -1010,15 +1027,11 @@ function KineticSpecies:write(tm, force)
 
       -- Only write stuff if triggered.
       if self.distIoTrigger(tm) or force then
-         self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
-         if self.fBackground then
-            if tm == 0.0 then
-	       self.fBackground:write(string.format("%s_fBackground_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame, true)
-	    end
-            self.distf[1]:accumulate(-1, self.fBackground)
-            self.distIo:write(self.distf[1], string.format("%s_f1_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
-            self.distf[1]:accumulate(1, self.fBackground)
-         end
+         local fIn = self:rkStepperFields()[1]
+
+         self.distIo:write(fIn, string.format("%s_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
+         self.writeFluctuation(tm, self.diagIoFrame, fIn)
+
          for _, src in lume.orderedIter(self.sources) do src:write(tm, self.distIoFrame) end
 
 	 self.distIoFrame = self.distIoFrame+1

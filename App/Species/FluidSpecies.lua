@@ -66,6 +66,14 @@ function FluidSpecies:fullInit(appTbl)
    self.randomseed = tbl.randomseed
 
    self.diagnostics = {}  -- Table in which we'll place diagnostic objects.
+   -- Determine if user wants diagnostics of the fluctuations.
+   self.perturbedDiagnostics = false
+   if tbl.diagnostics then
+      if lume.any(tbl.diagnostics, function(e) return e=="perturbed" end) then
+         lume.remove(tbl.diagnostics,"perturbed")
+         self.perturbedDiagnostics = true
+      end
+   end
 
    -- Initialize table containing sources (if any).
    self.sources = {}
@@ -344,12 +352,22 @@ function FluidSpecies:createSolver(externalField)
       self.returnDeltaMom = function(momIn) return momIn end
       self.calcFullMom    = function(momIn, syncFullFperiodicDirs) end 
    end
+   if self.perturbedDiagnostics then
+      self.calcDeltaMom = function(momIn) self.flucMom:combine(1.0, momIn, -1.0, self.momBackground) end
+   else
+      self.calcDeltaMom = function(momIn) end
+   end
 
    if self.momBackground then
-      self.writeFluctuation = function(tm, fr, momIn)
-         momIn:accumulate(-1, self.momBackground)
-         self.momIo:write(momIn, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, fr)
-         momIn:accumulate( 1, self.momBackground)
+      if self.perturbedDiagnostics then
+         self.writeFluctuation = function(tm, fr, momIn)
+            self.momIo:write(self.flucMom, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, fr)
+         end
+      else
+         self.writeFluctuation = function(tm, fr, momIn)
+            self.calcDeltaMom(momIn)
+            self.momIo:write(self.flucMom, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, fr)
+         end
       end
    else
       self.writeFluctuation = function(tm, fr, momIn) end
@@ -403,7 +421,7 @@ function FluidSpecies:alloc(nRkDup)
 
    self.noJacMom = self:allocVectorMoment(self.nMoments)   -- Moments without Jacobian.
 
-   self.flucMom = self.fluctuationBCs and self:allocVectorMoment(self.nMoments) or nil   -- Fluctuation.
+   self.flucMom = (self.fluctuationBCs or self.perturbedDiagnostics) and self:allocVectorMoment(self.nMoments) or nil   -- Fluctuation.
 
    if self.positivityRescale then self.momPos = self:allocVectorMoment(self.nMoments) end
 
@@ -487,6 +505,8 @@ end
 function FluidSpecies:getMoments(rkIdx)
    return rkIdx and self:rkStepperFields()[rkIdx] or self:rkStepperFields()[self.activeRKidx]
 end
+
+function FluidSpecies:getFlucMom() return self.flucMom end
 
 function FluidSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
@@ -600,6 +620,8 @@ end
 
 function FluidSpecies:write(tm, force)
    if self.evolve or force then
+
+      self.calcDeltaMom(self:rkStepperFields()[1])
 
       for _, dOb in pairs(self.diagnostics) do
          dOb:resetState(tm)   -- Reset booleans indicating if diagnostic has been computed.
