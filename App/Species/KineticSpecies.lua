@@ -91,6 +91,12 @@ function KineticSpecies:fullInit(appTbl)
    end
 
    self.diagnostics = {}  -- Table in which we'll place diagnostic objects.
+   -- Determine if user wants diagnostics of the fluctuations.
+   self.perturbedDiagnostics = false
+   if lume.any(tbl.diagnostics, function(e) return e=="perturbed" end) then
+      lume.remove(tbl.diagnostics,"perturbed")
+      self.perturbedDiagnostics = true
+   end
 
    -- Write ghost cells on boundaries of global domain (for BCs).
    self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
@@ -480,6 +486,24 @@ function KineticSpecies:createSolver(externalField)
       operation  = "Multiply",
    }
 
+   -- Functions to compute fluctuations given the current moments and background,
+   -- and the full-F moments given the fluctuations and background.
+   if self.fluctuationBCs or self.perturbedDiagnostics then
+      self.calcDeltaF   = function(fIn) fIn:accumulate(-1.0, self.fBackground) end
+      self.returnDeltaF = function(fIn)
+         self.flucF:combine(1.0, fIn, -1.0, self.fBackground)
+         return self.flucF
+      end
+      self.calcFullF = function(fIn, syncFullFperiodicDirs)
+         fIn:accumulate(1.0, self.fBackground)
+         fIn:sync(syncFullFperiodicDirs)
+      end
+   else
+      self.calcDeltaF   = function(fIn) end
+      self.returnDeltaF = function(fIn) return fIn end
+      self.calcFullF    = function(fIn, syncFullFperiodicDirs) end
+   end
+
    -- Create solvers for collisions.
    for _, c in pairs(self.collisions) do c:createSolver(externalField) end
    if self.positivity then
@@ -521,6 +545,8 @@ function KineticSpecies:alloc(nRkDup)
                     mass      = self.mass,    
                     grid      = GKYL_OUT_PREFIX .. "_" .. self.name .. "_grid.bp"},
    }
+
+   self.flucF = self.fluctuationBCs or self.perturbedDiagnostics and self:allocDistf() or nil   -- Fluctuation.
 
    if self.positivity then self.fPos = self:allocDistf() end
 
@@ -573,9 +599,9 @@ function KineticSpecies:initDist(extField)
          if pr.scaleWithSourcePower then self.scaleInitWithSourcePower = true end
       end
       if string.find(nm,"background") then
-	 if not self.f0 then self.f0 = self:allocDistf() end
-	 self.f0:accumulate(1.0, self.distf[2])
-	 self.f0:sync(syncPeriodicDirs)
+	 if not self.fBackground then self.fBackground = self:allocDistf() end
+	 self.fBackground:accumulate(1.0, self.distf[2])
+	 self.fBackground:sync(syncPeriodicDirs)
 	 backgroundCnt = backgroundCnt + 1
       end
       -- if pr.isReservoir then
@@ -590,7 +616,7 @@ function KineticSpecies:initDist(extField)
    for nm, src in lume.orderedIter(self.sources) do src:createSolver(self, extField) end
 
    assert(initCnt>0, string.format("KineticSpecies: Species '%s' not initialized!", self.name))
-   if self.f0 and backgroundCnt == 0 then self.f0:copy(self.distf[1]) end
+   if self.fBackground and backgroundCnt == 0 then self.fBackground:copy(self.distf[1]) end
 
    if self.fluctuationBCs then 
       assert(backgroundCnt > 0, "KineticSpecies: must specify an initial background distribution with 'background' in order to use fluctuation-only BCs") 
@@ -732,7 +758,7 @@ function KineticSpecies:applyBc(tCurr, fIn)
 
       if self.fluctuationBCs then
          -- If fluctuation-only BCs, subtract off background before applying BCs.
-         fIn:accumulate(-1.0, self.f0)
+         fIn:accumulate(-1.0, self.fBackground)
       end
 
       -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
@@ -753,7 +779,7 @@ function KineticSpecies:applyBc(tCurr, fIn)
 
       if self.fluctuationBCs then
          -- Put back together total distribution
-         fIn:accumulate(1.0, self.f0)
+         fIn:accumulate(1.0, self.fBackground)
  
          -- Update ghosts in total distribution, without enforcing periodicity.
          fIn:sync(not syncPeriodicDirsTrue)
@@ -791,8 +817,8 @@ end
 function KineticSpecies:calcDiagnosticMoments(tm)
    local fIn   = self:rkStepperFields()[1]
    local tCurr = tm
-   if self.f0 and self.perturbedMoments then 
-      fIn:accumulate(-1, self.f0)
+   if self.fBackground and self.perturbedMoments then 
+      fIn:accumulate(-1, self.fBackground)
       tCurr = -tm-1   -- Setting tCurr = -tm-1 forces the updater to recompute moments on this timestep.
    end
    for i, mom in pairs(self.diagnosticMoments) do
@@ -803,7 +829,7 @@ function KineticSpecies:calcDiagnosticMoments(tm)
                                               {self.diagnosticMomentFields[mom]})
       end
    end
-   if self.f0 and self.perturbedMoments then fIn:accumulate(1, self.f0) end
+   if self.fBackground and self.perturbedMoments then fIn:accumulate(1, self.fBackground) end
 end
 
 -- Some species-specific parts, but this function still gets called.
@@ -816,8 +842,8 @@ function KineticSpecies:calcDiagnosticWeakMoments(tm, weakMoments, bc)
       fIn   = bc:getBoundaryFluxRate()
    else
       fIn = self:rkStepperFields()[1]
-      if self.f0 and self.perturbedMoments then
-         fIn:accumulate(-1, self.f0)
+      if self.fBackground and self.perturbedMoments then
+         fIn:accumulate(-1, self.fBackground)
          tCurr = -tm-1   -- Setting tCurr = -tm-1 forces the updater to recompute moments on this timestep.
       end
    end
@@ -826,7 +852,7 @@ function KineticSpecies:calcDiagnosticWeakMoments(tm, weakMoments, bc)
       self.diagnosticMomentUpdaters[mom..label].advance(self, tCurr, {fIn}, {self.diagnosticMomentFields[mom..label]})
    end
 
-   if bc==nil and self.f0 and self.perturbedMoments then fIn:accumulate(1, self.f0) end
+   if bc==nil and self.fBackground and self.perturbedMoments then fIn:accumulate(1, self.fBackground) end
 end
 
 function KineticSpecies:calcDiagnosticBoundaryFluxMoments(tm)
@@ -973,13 +999,13 @@ function KineticSpecies:write(tm, force)
       -- Only write stuff if triggered.
       if self.distIoTrigger(tm) or force then
          self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
-         if self.f0 then
+         if self.fBackground then
             if tm == 0.0 then
-	       self.f0:write(string.format("%s_f0_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame, true)
+	       self.fBackground:write(string.format("%s_fBackground_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame, true)
 	    end
-            self.distf[1]:accumulate(-1, self.f0)
+            self.distf[1]:accumulate(-1, self.fBackground)
             self.distIo:write(self.distf[1], string.format("%s_f1_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
-            self.distf[1]:accumulate(1, self.f0)
+            self.distf[1]:accumulate(1, self.fBackground)
          end
          for _, src in lume.orderedIter(self.sources) do src:write(tm, self.distIoFrame) end
 

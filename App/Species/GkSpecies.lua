@@ -1483,7 +1483,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    -- Compute moments needed in coupling to fields and collisions.
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
-      if self.deltaF then fIn:accumulate(-1.0, self.f0) end
+      if self.deltaF then fIn:accumulate(-1.0, self.fBackground) end
 
       if self.needSelfPrimMom and
          lume.any({unpack(self.momentFlags,1,4)},function(x) return x==false end) then -- No need to recompute if already computed.
@@ -1515,7 +1515,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
          self.momentFlags[1] = true
       end
 
-      if self.deltaF then fIn:accumulate(1.0, self.f0) end
+      if self.deltaF then fIn:accumulate(1.0, self.fBackground) end
 
       -- For ionization.
       if self.calcReactRate then
@@ -1588,9 +1588,9 @@ function GkSpecies:getNumDensity(rkIdx)
 
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
-      if self.deltaF then fIn:accumulate(-1.0, self.f0) end
+      if self.deltaF then fIn:accumulate(-1.0, self.fBackground) end
       self.numDensityCalc:advance(nil, {fIn}, { self.numDensityAux })
-      if self.deltaF then fIn:accumulate(1.0, self.f0) end
+      if self.deltaF then fIn:accumulate(1.0, self.fBackground) end
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
@@ -1606,9 +1606,9 @@ function GkSpecies:getMomDensity(rkIdx)
  
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
-      if self.deltaF then fIn:accumulate(-1.0, self.f0) end
+      if self.deltaF then fIn:accumulate(-1.0, self.fBackground) end
       self.momDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
-      if self.deltaF then fIn:accumulate(1.0, self.f0) end
+      if self.deltaF then fIn:accumulate(1.0, self.fBackground) end
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
@@ -1623,9 +1623,9 @@ function GkSpecies:getMomProjDensity(rkIdx)
  
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
-      if self.deltaF then fIn:accumulate(-1.0, self.f0) end
+      if self.deltaF then fIn:accumulate(-1.0, self.fBackground) end
       self.momProjDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
-      if self.deltaF then fIn:accumulate(1.0, self.f0) end
+      if self.deltaF then fIn:accumulate(1.0, self.fBackground) end
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
@@ -1640,9 +1640,9 @@ function GkSpecies:getEmModifier(rkIdx)
 
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
-      if self.deltaF then fIn:accumulate(-1.0, self.f0) end
+      if self.deltaF then fIn:accumulate(-1.0, self.fBackground) end
       self.momProjDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
-      if self.deltaF then fIn:accumulate(1.0, self.f0) end
+      if self.deltaF then fIn:accumulate(1.0, self.fBackground) end
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end

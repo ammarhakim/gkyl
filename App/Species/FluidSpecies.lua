@@ -333,7 +333,7 @@ function FluidSpecies:createSolver(externalField)
       self.calcDeltaMom   = function(momIn) momIn:accumulate(-1.0, self.momBackground) end
       self.returnDeltaMom = function(momIn)
          self.flucMom:combine(1.0, momIn, -1.0, self.momBackground)
-         return(self.flucMom)
+         return self.flucMom
       end
       self.calcFullMom = function(momIn, syncFullFperiodicDirs)
          momIn:accumulate(1.0, self.momBackground)

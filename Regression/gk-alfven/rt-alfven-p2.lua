@@ -110,7 +110,7 @@ plasmaApp = Plasma.App {
       charge = qi,  mass = mi,
       -- Velocity space grid.
       lower = {-6*vti},
-      upper = {6*vti},
+      upper = { 6*vti},
       cells = {32},
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
