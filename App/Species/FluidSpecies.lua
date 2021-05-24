@@ -330,8 +330,8 @@ function FluidSpecies:createSolver(externalField)
    -- Functions to compute fluctuations given the current moments and background,
    -- and the full-F moments given the fluctuations and background.
    if self.fluctuationBCs then 
-      self.calcDeltaMom   = function(momIn) momIn:accumulate(-1.0, self.momBackground) end
-      self.returnDeltaMom = function(momIn)
+      self.minusBackgroundMom = function(momIn) momIn:accumulate(-1.0, self.momBackground) end
+      self.returnDeltaMom     = function(momIn)
          self.flucMom:combine(1.0, momIn, -1.0, self.momBackground)
          return self.flucMom
       end
@@ -340,7 +340,7 @@ function FluidSpecies:createSolver(externalField)
          momIn:sync(syncFullFperiodicDirs)
       end
    else
-      self.calcDeltaMom   = function(momIn) end
+      self.minusBackgroundMom = function(momIn) end
       self.returnDeltaMom = function(momIn) return momIn end
       self.calcFullMom    = function(momIn, syncFullFperiodicDirs) end 
    end
@@ -559,7 +559,7 @@ function FluidSpecies:applyBcEvolve(tCurr, momIn)
    -- momIn is the set of evolved moments.
    local tmStart = Time.clock()
 
-   self.calcDeltaMom(momIn)
+   self.minusBackgroundMom(momIn)
 
    -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advance(tCurr, {}, {momIn}) end
