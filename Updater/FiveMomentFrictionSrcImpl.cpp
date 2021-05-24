@@ -302,9 +302,9 @@ gkylFiveMomentFrictionSrcExact(
   double nu01 = sd->nuBase[0];
   double nu10 = nu01 * rho0 / rho1;
   double nuSum = nu01 + nu10;
-  double coeff = (std::exp(-(nuSum)*dt) - 1) / nuSum;
+  double coeff = (std::exp(-nuSum*dt) - 1) / nuSum;
   double coeff0 = coeff * nu01;
-  double coeff1 = coeff * nu01;
+  double coeff1 = coeff * nu10;
 
   double p0 = pressure(f0, sd->gasGamma);
   double p1 = pressure(f0, sd->gasGamma);
