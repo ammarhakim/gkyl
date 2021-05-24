@@ -21,7 +21,7 @@ ffi.cdef [[
     int nFluids;
     double gasGamma;
     bool hasPressure;
-    double *nuBase;
+    double nuBase[5*4/2];
   } FiveMomentFrictionSrcData_t;
 
   void gkylFiveMomentFrictionSrcForwardEuler(
@@ -72,7 +72,15 @@ function FiveMomentFrictionSrc:init(tbl)
   
    local nuBase = assert(tbl.nu, pfx.."Must specify 'nu' table.")
    assert(#nuBase==nFluids*(nFluids-1)/2, pfx.."'nu' entry # is incorrect.")
-   self._sd.nuBase = ffi.new("double[?]", #nuBase)
+   -- FIXME: Presently we are statically allocating space for _sd.nuBase (see
+   -- definition of FiveMomentFrictionSrcData_t); Dynamically allocating nuBase
+   -- using ffi.new within the dynamically allocated _sd seems to possibly cause
+   -- memory corruption.
+   if false then
+      self._sd.nuBase = ffi.new("double[?]", #nuBase)
+   else
+      assert(nFluids<=5, pfx.."Presently up to 5 species are supported.")
+   end
    for i=1,#nuBase do
       self._sd.nuBase[i-1] = nuBase[i]
    end
