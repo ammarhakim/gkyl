@@ -63,14 +63,14 @@ local implementation = function()
    end
 
    -- ~~~~ Mean flow velocity ~~~~~~~~~~~~~~~~~~~~~~
-   local _uDrift = Proto(DiagsImplBase)
-   function _uDrift:fullInit(diagApp, specIn, field, owner)
+   local _Udrift = Proto(DiagsImplBase)
+   function _Udrift:fullInit(diagApp, specIn, field, owner)
       self.field = owner:allocVectorMoment(specIn.vdim)
       self.done  = false
    end
-   function _uDrift:getType() return "grid" end
-   function _uDrift:getDependencies() return {"M0","M1i"} end
-   function _uDrift:advance(tm, inFlds, outFlds)
+   function _Udrift:getType() return "grid" end
+   function _Udrift:getDependencies() return {"M0","M1i"} end
+   function _Udrift:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M0, M1i       = diags["M0"].field, diags["M1i"].field
       specIn.confWeakDivide:advance(tm, {M0, M1i}, {self.field})
@@ -83,11 +83,11 @@ local implementation = function()
       self.done  = false
    end
    function _M2Flow:getType() return "grid" end
-   function _M2Flow:getDependencies() return {"M1i","uDrift"} end
+   function _M2Flow:getDependencies() return {"M1i","Udrift"} end
    function _M2Flow:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M1i, uDrift   = diags["M1i"].field, diags["uDrift"].field
-      specIn.confWeakDotProduct:advance(tm, {M1i, uDrift}, {self.field})
+      local M1i, Udrift   = diags["M1i"].field, diags["Udrift"].field
+      specIn.confWeakDotProduct:advance(tm, {M1i, Udrift}, {self.field})
    end
 
    -- ~~~~ Thermal energy density ~~~~~~~~~~~~~~~~~~~~~~
@@ -143,14 +143,14 @@ local implementation = function()
    end
 
    -- ~~~~ Thermal speed squared ~~~~~~~~~~~~~~~~~~~~~~
-   local _vtSq = Proto(DiagsImplBase)
-   function _vtSq:fullInit(diagApp, specIn, field, owner)
+   local _VtSq = Proto(DiagsImplBase)
+   function _VtSq:fullInit(diagApp, specIn, field, owner)
       self.field = owner:allocMoment()
       self.done  = false
    end
-   function _vtSq:getType() return "grid" end
-   function _vtSq:getDependencies() return {"M2Thermal","M0"} end
-   function _vtSq:advance(tm, inFlds, outFlds)
+   function _VtSq:getType() return "grid" end
+   function _VtSq:getDependencies() return {"M2Thermal","M0"} end
+   function _VtSq:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M0, M2Thermal = diags["M0"].field, diags["M2Thermal"].field
       specIn.confWeakDivide:advance(tm, {M0, M2Thermal}, {self.field})
@@ -255,10 +255,10 @@ local implementation = function()
       M2        = _M2,
       M2ij      = _M2ij,
       M3i       = _M3i,
-      uDrift    = _uDrift,
+      Udrift    = _Udrift,
       M2Flow    = _M2Flow,
       M2Thermal = _M2Thermal,
-      vtSq      = _vtSq,
+      VtSq      = _VtSq,
       intM0        = _intM0,
       intM1i       = _intM1i,
       intM2        = _intM2,

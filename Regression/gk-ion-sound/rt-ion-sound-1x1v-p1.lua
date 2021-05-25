@@ -59,7 +59,7 @@ plasmaApp = Plasma.App {
          temperature = function (t, xn) return Ti0 end,
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"GkM0", "GkM2", "intM0", "intM2"},
+      diagnostics = {"M0", "M2", "intM0", "intM2"},
    },
 
    adiabaticElectron = Plasma.AdiabaticSpecies {

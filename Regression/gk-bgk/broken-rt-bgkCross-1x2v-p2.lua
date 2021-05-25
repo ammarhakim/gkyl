@@ -93,7 +93,7 @@ plasmaApp = Plasma.App {
       --        Plasma.GkSpecies.bcOpen },
       -- Evolve species?
       evolve      = true,
-      diagnostics = { "GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq", "intM0", "intM1", "intM2" },
+      diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.
       coll = Plasma.BGKCollisions {
          collideWith = { "elc", "ion" },
@@ -134,7 +134,7 @@ plasmaApp = Plasma.App {
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
-      diagnostics = { "GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq", "intM0", "intM1", "intM2" },
+      diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.
       coll = Plasma.BGKCollisions {
          collideWith = { "ion", "elc" },

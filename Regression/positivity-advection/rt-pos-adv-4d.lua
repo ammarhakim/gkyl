@@ -71,7 +71,7 @@ plasmaApp = Plasma.App {
              },
       evolve          = true, -- Evolve species?
       applyPositivity = true,
-      diagnostics     = {"GkM0"}
+      diagnostics     = {"M0"}
    },
 
    -- Field solver.

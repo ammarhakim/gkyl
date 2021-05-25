@@ -103,7 +103,7 @@ plasmaApp = Plasma.App {
          exactScaleM0 = true,
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"perturbed", "GkM0", "GkM1"},
+      diagnostics = {"perturbed", "M0", "M1"},
    },
 
    ion = Plasma.Species {
@@ -125,7 +125,7 @@ plasmaApp = Plasma.App {
          exactScaleM0 = true,
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"GkM0", "GkM1"},
+      diagnostics = {"M0", "M1"},
    },
 
    -- Field solver.

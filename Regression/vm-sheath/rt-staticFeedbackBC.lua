@@ -72,7 +72,7 @@ sim = Plasma.App {
 	    },
       feedbackBC = true,
       evolveBC   = true,
-      diagnostics = { "M0", "M1i", "M2", "M3i", "vtSq", "uDrift", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
+      diagnostics = { "M0", "M1i", "M2", "M3i", "VtSq", "Udrift", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
    },
 
    -- Ions.

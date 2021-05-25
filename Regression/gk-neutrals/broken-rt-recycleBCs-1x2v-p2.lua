@@ -151,7 +151,7 @@ sim = Plasma.App {
          nuFrac = 0.1,
 	 --frequencies = {nuElc},
       },
-      diagnostics = { "GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq", "intM0", "intM1", "intM2"},
+      diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
       diagnosticBoundaryFluxMoments = {"GkM0", "GkUpar"},
       diagnosticIntegratedBoundaryFluxMoments = {"intM0"},
       ionization = Plasma.Ionization {
@@ -208,7 +208,7 @@ sim = Plasma.App {
          nuFrac = 0.1,
 	 --frequencies = {nuIon},
       },
-      diagnostics = { "GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq", "intM0", "intM1", "intM2"},
+      diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
       diagnosticBoundaryFluxMoments = {"GkM0", "GkUpar"},
       diagnosticIntegratedBoundaryFluxMoments = {"intM0"},
       ionization = Plasma.Ionization {
@@ -280,7 +280,7 @@ sim = Plasma.App {
       recycleFrac = 0.5,
       recycleIon = "ion",
       recycleTime = .5e-3,
-      diagnostics = { "M0", "uDrift", "vtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
+      diagnostics = { "M0", "Udrift", "VtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
       diagnosticBoundaryFluxMoments = {"M0"},
       diagnosticIntegratedFluxMoments = {"M0"},
       diagnosticIntegratedBoundaryFluxMoments = {"intM0"},

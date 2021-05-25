@@ -97,7 +97,7 @@ plasmaApp = Plasma.App {
       evolve = true,
       evolveCollisionless = false,
       -- Diagnostic moments.
-      diagnostics = { "GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq", "intM0", "intM1", "intM2" },
+      diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = { "elc", "ion" },
@@ -139,7 +139,7 @@ plasmaApp = Plasma.App {
       evolve = true,
       evolveCollisionless = false,
       -- Diagnostic moments.
-      diagnostics = { "GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq", "intM0", "intM1", "intM2" },
+      diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = { "ion", "elc" },

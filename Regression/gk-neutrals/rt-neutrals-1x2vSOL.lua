@@ -151,7 +151,7 @@ plasmaApp = Plasma.App {
       bcx = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
 
       -- Diagnostics
-      diagnostics = {"GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq", "intM0", "intM1", "intM2"},
+      diagnostics = {"M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
    },
 
    -- Gyrokinetic ions.
@@ -223,7 +223,7 @@ plasmaApp = Plasma.App {
       -- Boundary conditions.
       bcx = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
 
-      diagnostics = {"GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq", "intM0", "intM1", "intM2"},
+      diagnostics = {"M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
 
    },
 

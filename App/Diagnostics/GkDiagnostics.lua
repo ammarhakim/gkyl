@@ -67,16 +67,16 @@ local implementation = function()
    end
 
    -- ~~~~ Mean flow velocity ~~~~~~~~~~~~~~~~~~~~~~
-   local _uPar = Proto(DiagsImplBase)
-   function _uPar:fullInit(diagApp, specIn, fieldIn, owner)
+   local _Upar = Proto(DiagsImplBase)
+   function _Upar:fullInit(diagApp, specIn, fieldIn, owner)
       self.field = owner:allocMoment()
       self.done  = false
    end
-   function _uPar:getType() return "grid" end
-   function _uPar:getDependencies() return {"GkM0","GkM1"} end
-   function _uPar:advance(tm, inFlds, outFlds)
+   function _Upar:getType() return "grid" end
+   function _Upar:getDependencies() return {"M0","M1"} end
+   function _Upar:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M0, M1        = diags["GkM0"].field, diags["GkM1"].field
+      local M0, M1        = diags["M0"].field, diags["M1"].field
       specIn.confWeakDivide:advance(tm, {M0, M1}, {self.field})
    end
 
@@ -87,11 +87,11 @@ local implementation = function()
       self.done  = false
    end
    function _M2Flow:getType() return "grid" end
-   function _M2Flow:getDependencies() return {"GkM1","GkUpar"} end
+   function _M2Flow:getDependencies() return {"M1","Upar"} end
    function _M2Flow:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M1, uPar      = diags["GkM1"].field, diags["GkUpar"].field
-      specIn.confWeakMultiply:advance(tm, {M1, uPar}, {self.field})
+      local M1, Upar      = diags["M1"].field, diags["Upar"].field
+      specIn.confWeakMultiply:advance(tm, {M1, Upar}, {self.field})
    end
 
    -- ~~~~ Thermal energy density ~~~~~~~~~~~~~~~~~~~~~~
@@ -101,10 +101,10 @@ local implementation = function()
       self.done  = false
    end
    function _M2Thermal:getType() return "grid" end
-   function _M2Thermal:getDependencies() return {"GkM2","M2Flow"} end
+   function _M2Thermal:getDependencies() return {"M2","M2Flow"} end
    function _M2Thermal:advance(tm, inFlds, outFlds)
       local diags      = inFlds[2]
-      local M2, M2Flow = diags["GkM2"].field, diags["M2Flow"].field
+      local M2, M2Flow = diags["M2"].field, diags["M2Flow"].field
       self.field:combine(1., M2, -1., M2Flow)
    end
 
@@ -144,7 +144,7 @@ local implementation = function()
       self.field    = owner:allocMoment()
       self.updaters = Updater.DistFuncMomentCalc {
          onGrid     = specIn.grid,    confBasis = specIn.confBasis,
-         phaseBasis = specIn.basis,   moment    = "GkM3par",
+         phaseBasis = specIn.basis,   moment    = "M3par",
          gkfacs     = {specIn.mass, specIn.bmag},
       }
       self.done = false
@@ -164,7 +164,7 @@ local implementation = function()
       self.field    = owner:allocMoment()
       self.updaters = Updater.DistFuncMomentCalc {
          onGrid     = specIn.grid,    confBasis = specIn.confBasis,
-         phaseBasis = specIn.basis,   moment    = "GkM3perp",
+         phaseBasis = specIn.basis,   moment    = "M3perp",
          gkfacs     = {specIn.mass, specIn.bmag},
       }
       self.done = false
@@ -185,25 +185,25 @@ local implementation = function()
       self.done  = false
    end
    function _Temp:getType() return "grid" end
-   function _Temp:getDependencies() return {"M2Thermal","GkM0"} end
+   function _Temp:getDependencies() return {"M2Thermal","M0"} end
    function _Temp:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M0, M2Thermal = diags["GkM0"].field, diags["M2Thermal"].field
+      local M0, M2Thermal = diags["M0"].field, diags["M2Thermal"].field
       specIn.confWeakDivide:advance(tm, {M0, M2Thermal}, {self.field})
       self.field:scale(specIn.mass/specIn.vDegFreedom)
    end
 
    -- ~~~~ Thermal speed squared ~~~~~~~~~~~~~~~~~~~~~~
-   local _vtSq = Proto(DiagsImplBase)
-   function _vtSq:fullInit(diagApp, specIn, fieldIn, owner)
+   local _VtSq = Proto(DiagsImplBase)
+   function _VtSq:fullInit(diagApp, specIn, fieldIn, owner)
       self.field = owner:allocMoment()
       self.done  = false
    end
-   function _vtSq:getType() return "grid" end
-   function _vtSq:getDependencies() return {"M2Thermal","GkM0"} end
-   function _vtSq:advance(tm, inFlds, outFlds)
+   function _VtSq:getType() return "grid" end
+   function _VtSq:getDependencies() return {"M2Thermal","M0"} end
+   function _VtSq:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M0, M2Thermal = diags["GkM0"].field, diags["M2Thermal"].field
+      local M0, M2Thermal = diags["M0"].field, diags["M2Thermal"].field
       specIn.confWeakDivide:advance(tm, {M0, M2Thermal}, {self.field})
       self.field:scale(1./specIn.vDegFreedom)
    end
@@ -215,10 +215,10 @@ local implementation = function()
       self.done  = false
    end
    function _Tpar:getType() return "grid" end
-   function _Tpar:getDependencies() return {"M2Flow","M2par","GkM0"} end
+   function _Tpar:getDependencies() return {"M2Flow","M2par","M0"} end
    function _Tpar:advance(tm, inFlds, outFlds)
       local specIn, diags     = inFlds[1], inFlds[2]
-      local M2Flow, M2par, M0 = diags["M2Flow"].field, diags["M2par"].field, diags["GkM0"].field
+      local M2Flow, M2par, M0 = diags["M2Flow"].field, diags["M2par"].field, diags["M0"].field
       self.field:combine(1., M2par, -1., M2Flow)
       specIn.confWeakDivide:advance(tm, {M0, self.field}, {self.field})
       self.field:scale(specIn.mass)
@@ -231,41 +231,41 @@ local implementation = function()
       self.done  = false
    end
    function _Tperp:getType() return "grid" end
-   function _Tperp:getDependencies() return {"M2perp","GkM0"} end
+   function _Tperp:getDependencies() return {"M2perp","M0"} end
    function _Tperp:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M0, M2perp    = diags["GkM0"].field, diags["M2perp"].field
+      local M0, M2perp    = diags["M0"].field, diags["M2perp"].field
       specIn.confWeakDivide:advance(tm, {M0, M2perp}, {self.field})
       self.field:scale(specIn.mass)
    end
 
-   -- ~~~~ plasma beta ~~~~~~~~~~~~~~~~~~~~~~
-   local _beta = Proto(DiagsImplBase)
-   function _beta:fullInit(diagApp, specIn, fieldIn, owner)
+   -- ~~~~ Plasma beta ~~~~~~~~~~~~~~~~~~~~~~
+   local _Beta = Proto(DiagsImplBase)
+   function _Beta:fullInit(diagApp, specIn, fieldIn, owner)
       self.field = owner:allocMoment()
       self.done  = false
    end
-   function _beta:getType() return "grid" end
-   function _beta:getDependencies() return {"GkTemp","GkM0"} end
-   function _beta:advance(tm, inFlds, outFlds)
+   function _Beta:getType() return "grid" end
+   function _Beta:getDependencies() return {"Temp","M0"} end
+   function _Beta:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M0, Temp      = diags["GkM0"].field, diags["GkTemp"].field
+      local M0, Temp      = diags["M0"].field, diags["Temp"].field
       specIn.confWeakMultiply:advance(tm, {M0, Temp}, {self.field})
       specIn.confWeakMultiply:advance(tm, {specIn.bmagInvSq, self.field}, {self.field})
       self.field:scale(2*Constants.MU0)
    end
 
-   -- ~~~~ Total particle energy (including potential energy) ~~~~~~~~~~~~~~~~~~~~~~
-   local _particleEnergy = Proto(DiagsImplBase)
-   function _particleEnergy:fullInit(diagApp, specIn, fieldIn, owner)
+   -- ~~~~ Hamiltonian energy: total particle energy including potential energy ~~~~~~~~~~~~~~~~~~~~~~
+   local _HE = Proto(DiagsImplBase)
+   function _HE:fullInit(diagApp, specIn, fieldIn, owner)
       self.field = owner:allocMoment()
       self.done  = false
    end
-   function _particleEnergy:getType() return "grid" end
-   function _particleEnergy:getDependencies() return {"GkM0","GkM2"} end
-   function _particleEnergy:advance(tm, inFlds, outFlds)
+   function _HE:getType() return "grid" end
+   function _HE:getDependencies() return {"M0","M2"} end
+   function _HE:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M0, M2        = diags["GkM0"].field, diags["GkM2"].field
+      local M0, M2        = diags["M0"].field, diags["M2"].field
       local phi           = specIn.equation.phi
       specIn.confWeakMultiply:advance(tm, {M0, phi}, {self.field})
       self.field:scale(specIn.charge)
@@ -279,11 +279,11 @@ local implementation = function()
       self.done  = false
       self:setVolIntegral(specIn)
    end
-   function _intM0:getDependencies() return {"GkM0"} end
+   function _intM0:getDependencies() return {"M0"} end
    function _intM0:getType() return "integrated" end
    function _intM0:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M0            = diags["GkM0"].fieldwJacobGeo
+      local M0            = diags["M0"].fieldwJacobGeo
       self.volIntegral.comps1:advance(tm, {M0}, {self.field})
    end
 
@@ -294,11 +294,11 @@ local implementation = function()
       self.done  = false
       self:setVolIntegral(specIn)
    end
-   function _intM1:getDependencies() return {"GkM1"} end
+   function _intM1:getDependencies() return {"M1"} end
    function _intM1:getType() return "integrated" end
    function _intM1:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M1 = diags["GkM1"].fieldwJacobGeo
+      local M1 = diags["M1"].fieldwJacobGeo
       self.volIntegral.comps1:advance(tm, {M1}, {self.field})
    end
 
@@ -309,11 +309,11 @@ local implementation = function()
       self.done  = false
       self:setVolIntegral(specIn)
    end
-   function _intM2:getDependencies() return {"GkM2"} end
+   function _intM2:getDependencies() return {"M2"} end
    function _intM2:getType() return "integrated" end
    function _intM2:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M2 = diags["GkM2"].fieldwJacobGeo
+      local M2 = diags["M2"].fieldwJacobGeo
       self.volIntegral.comps1:advance(tm, {M2}, {self.field})
    end
 
@@ -324,11 +324,11 @@ local implementation = function()
       self.done  = false
       self:setVolIntegral(specIn)
    end
-   function _intKE:getDependencies() return {"GkM2"} end
+   function _intKE:getDependencies() return {"M2"} end
    function _intKE:getType() return "integrated" end
    function _intKE:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M2 = diags["GkM2"].fieldwJacobGeo
+      local M2 = diags["M2"].fieldwJacobGeo
       self.volIntegral.comps1:advance(tm, {M2, 0.5*specIn.mass}, {self.field})
    end
 
@@ -342,11 +342,11 @@ local implementation = function()
       --self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
       self.done        = false
    end
-   function _intHE:getDependencies() return {"GkEnergy"} end
+   function _intHE:getDependencies() return {"HE"} end
    function _intHE:getType() return "integrated" end
    function _intHE:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local ptclEnergy    = diags["GkEnergy"].field
+      local ptclEnergy    = diags["HE"].field
       specIn.multiplyByJacobGeo(tm, ptclEnergy, self.fieldAux)
       self.volIntegral.comps1:advance(tm, {self.fieldAux}, {self.field})
       --local specIn = inFlds[1]
@@ -425,24 +425,22 @@ local implementation = function()
    end
 
    return {
-      GkM0      = _M0,
-      GkM1      = _M1,
-      GkM2      = _M2,
-      GkUpar    = _uPar,
-      uPar      = _uPar,
+      M0        = _M0,
+      M1        = _M1,
+      M2        = _M2,
+      Upar      = _Upar,
       M2Flow    = _M2Flow,
       M2Thermal = _M2Thermal,
       M2par     = _M2par,
       M2perp    = _M2perp,
       M3par     = _M3par,
-      M3perp    = _M3par,
-      GkTemp    = _Temp,
-      GkVtSq    = _vtSq,
-      vtSq      = _vtSq,
-      GkTpar    = _Tpar,
-      GkTperp   = _Tperp,
-      GkBeta    = _beta,
-      GkEnergy  = _particleEnergy,
+      M3perp    = _M3perp,
+      Temp      = _Temp,
+      VtSq      = _VtSq,
+      Tpar      = _Tpar,
+      Tperp     = _Tperp,
+      Beta      = _Beta,
+      HE        = _HE,
       intM0        = _intM0,
       intM1        = _intM1,
       intM2        = _intM2,

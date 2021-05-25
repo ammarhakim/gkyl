@@ -83,7 +83,7 @@ plasmaApp = Plasma.App {
          frequencies = { nuIon },
       }, 
       evolve = true, -- Evolve species?
-      diagnostics = {"GkM0", "GkM2"},
+      diagnostics = {"M0", "M2"},
    },
 
    adiabaticElectron = Plasma.AdiabaticSpecies {

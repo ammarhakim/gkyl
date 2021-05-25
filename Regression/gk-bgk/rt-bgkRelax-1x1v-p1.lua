@@ -72,7 +72,7 @@ plasmaApp = Plasma.App {
          return topHat(x, v, n0, u0, vt)
       end,
       evolve = true,
-      diagnostics = { "GkM0", "GkM1", "GkM2" },
+      diagnostics = { "M0", "M1", "M2" },
       coll = Plasma.BGKCollisions {
          collideWith = {'square'},
          frequencies = {nu, },
@@ -92,7 +92,7 @@ plasmaApp = Plasma.App {
          return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
       end,
       evolve            = true,
-      diagnostics = { "GkM0", "GkM1", "GkM2" },
+      diagnostics = { "M0", "M1", "M2" },
       coll = Plasma.BGKCollisions {
          collideWith = {'bump'},
          frequencies = {nu, },
