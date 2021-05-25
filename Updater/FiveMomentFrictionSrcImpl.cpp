@@ -289,10 +289,9 @@ gkylFiveMomentFrictionSrcExact(
   const double dt,
   double **fPtrs)
 {
-  const int nFluids = sd->nFluids;
-  assert(nFluids==2);
+  assert(sd->nFluids==2);
 
-  double nu01 = sd->nuBase[0];
+  const double nu01 = sd->nuBase[0];
   if (nu01==0)
     return;
 
@@ -302,30 +301,32 @@ gkylFiveMomentFrictionSrcExact(
   const double rho0 = f0[RHO];
   const double rho1 = f1[RHO];
 
-  double nu10 = nu01 * rho0 / rho1;
-  double nuSum = nu01 + nu10;
-  double coeff = (std::exp(-nuSum*dt) - 1) / nuSum;
-  double coeff0 = coeff * nu01;
-  double coeff1 = coeff * nu10;
+  double du2 = 0;
+  {
+    const double nu10 = nu01 * rho0 / rho1;
+    const double nuSum = nu01 + nu10;
+    const double coeff = (std::exp(-nuSum*dt) - 1) / nuSum;
+    const double coeff0 = coeff * nu01;
+    const double coeff1 = coeff * nu10;
+
+    for(int d=0; d<3; ++d)
+    {
+      double u0 = f0[MX+d] / rho0;
+      double u1 = f1[MX+d] / rho1;
+      double du = u1 - u0;
+      u0 -= du * coeff0;
+      u1 += du * coeff1;
+      f0[MX+d] = rho0 * u0;
+      f1[MX+d] = rho1 * u1;
+
+      if (sd->hasPressure) {
+        du2 += sq(u1-u0);
+      }
+    }
+  }
 
   double p0 = pressure(f0, sd->gasGamma);
   double p1 = pressure(f1, sd->gasGamma);
-
-  double du2 = 0;
-  for(int d=0; d<3; ++d)
-  {
-    double u0 = f0[MX+d] / rho0;
-    double u1 = f1[MX+d] / rho1;
-    double du = u1 - u0;
-    u0 -= du * coeff0;
-    u1 += du * coeff1;
-    f0[MX+d] = rho0 * u0;
-    f1[MX+d] = rho1 * u1;
-
-    if (sd->hasPressure) {
-      du2 += sq(u1-u0);
-    }
-  }
 
   if (sd->hasPressure) {
     const double m0 = fd[0].mass, n0 = rho0 / m0;
@@ -340,10 +341,10 @@ gkylFiveMomentFrictionSrcExact(
 
     const double a = coeffp_a * (n0+n1) / (n0+n1);
     const double b = coeffp_a * (n0*coeffp_b0-n1*coeffp_b1) / (n0*n1);
-    double diffT = p0/n0 - p1/n1;
-    diffT = (diffT + b/a) * std::exp(-a*dt) - b/a;
+    double dT = p0/n0 - p1/n1;
+    dT = (dT + b/a) * std::exp(-a*dt) - b/a;
 
-    p0 = n0 * (p + n1 * diffT) / (n0 + n1);
+    p0 = n0 * (p + n1 * dT) / (n0 + n1);
     p1 = p - p0;
   }
 
