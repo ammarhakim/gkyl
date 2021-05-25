@@ -311,16 +311,41 @@ gkylFiveMomentFrictionSrcExact(
   double p0 = pressure(f0, sd->gasGamma);
   double p1 = pressure(f1, sd->gasGamma);
 
+  double du2 = 0;
   for(int d=0; d<3; ++d)
   {
-    const double u0 = f0[MX+d] / rho0;
-    const double u1 = f1[MX+d] / rho1;
-    const double du = u1 - u0;
-    f0[MX+d] = rho0 * (u0 - du * coeff0);
-    f1[MX+d] = rho1 * (u1 + du * coeff1);
+    double u0 = f0[MX+d] / rho0;
+    double u1 = f1[MX+d] / rho1;
+    double du = u1 - u0;
+    u0 -= du * coeff0;
+    u1 += du * coeff1;
+    f0[MX+d] = rho0 * u0;
+    f1[MX+d] = rho1 * u1;
+
+    if (sd->hasPressure) {
+      du2 += sq(u1-u0);
+    }
   }
 
-  // TODO: Update pressure.
+  if (sd->hasPressure) {
+    const double m0 = fd[0].mass, n0 = rho0 / m0;
+    const double m1 = fd[1].mass, n1 = rho1 / m1;
+
+    const double coeffp_a = nu01 * rho0 / (m0 + m1);
+    const double coeffp_b0 = (m0/3) * du2;
+    const double coeffp_b1 = (m1/3) * du2;
+
+    double p = p0 + p1;
+    p += (coeffp_b0 + coeffp_b1) * coeffp_a * dt;
+
+    const double a = coeffp_a * (n0+n1) / (n0+n1);
+    const double b = coeffp_a * (n0*coeffp_b0-n1*coeffp_b1) / (n0*n1);
+    double diffT = p0/n0 - p1/n1;
+    diffT = (diffT + b/a) * std::exp(-a*dt) - b/a;
+
+    p0 = n0 * (p + n1 * diffT) / (n0 + n1);
+    p1 = p - p0;
+  }
 
   f0[ER] = energy(f0, p0, sd->gasGamma);
   f1[ER] = energy(f1, p1, sd->gasGamma);
