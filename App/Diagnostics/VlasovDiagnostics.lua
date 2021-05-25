@@ -63,14 +63,14 @@ local implementation = function()
    end
 
    -- ~~~~ Mean flow velocity ~~~~~~~~~~~~~~~~~~~~~~
-   local _uFlow = Proto(DiagsImplBase)
-   function _uFlow:fullInit(diagApp, specIn, field, owner)
+   local _uDrift = Proto(DiagsImplBase)
+   function _uDrift:fullInit(diagApp, specIn, field, owner)
       self.field = owner:allocVectorMoment(specIn.vdim)
       self.done  = false
    end
-   function _uFlow:getType() return "grid" end
-   function _uFlow:getDependencies() return {"M0","M1i"} end
-   function _uFlow:advance(tm, inFlds, outFlds)
+   function _uDrift:getType() return "grid" end
+   function _uDrift:getDependencies() return {"M0","M1i"} end
+   function _uDrift:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M0, M1i       = diags["M0"].field, diags["M1i"].field
       specIn.confWeakDivide:advance(tm, {M0, M1i}, {self.field})
@@ -83,11 +83,11 @@ local implementation = function()
       self.done  = false
    end
    function _M2Flow:getType() return "grid" end
-   function _M2Flow:getDependencies() return {"M1i","uFlow"} end
+   function _M2Flow:getDependencies() return {"M1i","uDrift"} end
    function _M2Flow:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local M1i, uFlow    = diags["M1i"].field, diags["uFlow"].field
-      specIn.confWeakDotProduct:advance(tm, {M1i, uFlow}, {self.field})
+      local M1i, uDrift   = diags["M1i"].field, diags["uDrift"].field
+      specIn.confWeakDotProduct:advance(tm, {M1i, uDrift}, {self.field})
    end
 
    -- ~~~~ Thermal energy density ~~~~~~~~~~~~~~~~~~~~~~
@@ -255,8 +255,7 @@ local implementation = function()
       M2        = _M2,
       M2ij      = _M2ij,
       M3i       = _M3i,
-      u         = _uFlow,
-      uFlow     = _uFlow,
+      uDrift    = _uDrift,
       M2Flow    = _M2Flow,
       M2Thermal = _M2Thermal,
       vtSq      = _vtSq,

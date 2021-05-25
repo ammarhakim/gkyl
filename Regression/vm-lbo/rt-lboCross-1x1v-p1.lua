@@ -68,7 +68,7 @@ vlasovApp = Plasma.App {
       evolve = true,
       evolveCollisionless = false,
       -- Diagnostic moments.
-      diagnostics = { "M0", "M1i", "M2", "uFlow", "vtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
+      diagnostics = { "M0", "M1i", "M2", "uDrift", "vtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith  = { "neut1", "neut2", },
@@ -109,7 +109,7 @@ vlasovApp = Plasma.App {
       evolve = true,
       evolveCollisionless = false,
       -- Diagnostic moments.
-      diagnostics = { "M0", "M1i", "M2", "uFlow", "vtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
+      diagnostics = { "M0", "M1i", "M2", "uDrift", "vtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = { "neut1", "neut2", },

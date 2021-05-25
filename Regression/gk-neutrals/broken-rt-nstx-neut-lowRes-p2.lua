@@ -374,8 +374,8 @@ plasmaApp = Plasma.App {
       bcz = {Plasma.Vlasov.bcReflect, Plasma.Vlasov.bcReflect},
 
       -- Diagnostics.
-      diagnostics = { "M0", "uFlow", "vtSq"},
---      diagnostics = { "M0", "uFlow", "vtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal"},
+      diagnostics = { "M0", "uDrift", "vtSq"},
+--      diagnostics = { "M0", "uDrift", "vtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal"},
    },
    
    -- Field solver.
