@@ -136,11 +136,11 @@ plasmaApp = Plasma.App {
          density     = sourceDensity,
          temperature = sourceTemperature,
          power       = P_src/2,
+         diagnostics = {"intKE"},
       },
       evolve = true, -- Evolve species?
       --applyPositivity = true,
       diagnostics = {"GkM0", "GkUpar", "GkTemp", "GkBeta", "intM0", "intM1", "intHE",}, 
-      diagnosticIntegratedMoments = { "intSrcKE"},
       diagnosticBoundaryFluxMoments = {"GkM0", "GkUpar", "GkTemp", "GkBeta", "GkEnergy"},
       diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
       randomseed = randomseed,

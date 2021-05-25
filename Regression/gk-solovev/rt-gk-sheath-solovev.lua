@@ -331,16 +331,16 @@ plasmaApp = Plasma.App {
          collideWith = {'electron'},
          frequencies = {nuElc},
       },
-      source = Plasma.MaxwellianProjection {
+      source = Plasma.Source {
+         kind        = "Maxwellian",
          density     = sourceDensity,
          temperature = sourceTemperature,
          power       = P_src/2,
-         isSource    = true,
+         diagnostics = {"intKE"},
       },
       evolve = true, -- Evolve species?
       --applyPositivity = true,
       diagnostics = {"GkM0", "GkUpar", "GkTemp", "GkBeta", "intM0", "intM1", "intHE" }, 
-      diagnosticIntegratedMoments = {"intSrcKE"},
       diagnosticBoundaryFluxMoments = {"GkM0", "GkUpar", "GkTemp", "GkBeta", "GkEnergy"},
       diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
       randomseed = randomseed,

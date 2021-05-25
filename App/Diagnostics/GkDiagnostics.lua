@@ -23,7 +23,6 @@ local implementation = function()
    function _M0:fullInit(diagApp, specIn, fieldIn, owner)
       self.field          = owner:allocMoment()
       self.fieldwJacobGeo = owner:allocMoment()  -- So intM0 can depend on M0.
-      self.owner = owner
       self.done  = false
       self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
    end
@@ -40,7 +39,6 @@ local implementation = function()
    function _M1:fullInit(diagApp, specIn, fieldIn, owner)
       self.field          = owner:allocMoment()
       self.fieldwJacobGeo = owner:allocMoment()  -- So intM1 can depend on M1.
-      self.owner = owner
       self.done  = false
       self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
    end
@@ -57,7 +55,6 @@ local implementation = function()
    function _M2:fullInit(diagApp, specIn, fieldIn, owner)
       self.field          = owner:allocMoment()
       self.fieldwJacobGeo = owner:allocMoment()  -- So intM2 can depend on M2.
-      self.owner = owner
       self.done  = false
       self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
    end
@@ -115,7 +112,6 @@ local implementation = function()
    local _M2par = Proto(DiagsImplBase)
    function _M2par:fullInit(diagApp, specIn, fieldIn, owner)
       self.field = owner:allocMoment()
-      self.owner = owner
       self.done  = false
       self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
    end
@@ -131,7 +127,6 @@ local implementation = function()
    local _M2perp = Proto(DiagsImplBase)
    function _M2perp:fullInit(diagApp, specIn, fieldIn, owner)
       self.field = owner:allocMoment()
-      self.owner = owner
       self.done  = false
       self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
    end
@@ -147,7 +142,6 @@ local implementation = function()
    local _M3par = Proto(DiagsImplBase)
    function _M3par:fullInit(diagApp, specIn, fieldIn, owner)
       self.field    = owner:allocMoment()
-      self.owner    = owner
       self.updaters = Updater.DistFuncMomentCalc {
          onGrid     = specIn.grid,    confBasis = specIn.confBasis,
          phaseBasis = specIn.basis,   moment    = "GkM3par",
@@ -168,7 +162,6 @@ local implementation = function()
    local _M3perp = Proto(DiagsImplBase)
    function _M3perp:fullInit(diagApp, specIn, fieldIn, owner)
       self.field    = owner:allocMoment()
-      self.owner    = owner
       self.updaters = Updater.DistFuncMomentCalc {
          onGrid     = specIn.grid,    confBasis = specIn.confBasis,
          phaseBasis = specIn.basis,   moment    = "GkM3perp",
@@ -284,13 +277,14 @@ local implementation = function()
    function _intM0:fullInit(diagApp, specIn, fieldIn, owner)
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
+      self:setVolIntegral(specIn)
    end
    function _intM0:getDependencies() return {"GkM0"} end
    function _intM0:getType() return "integrated" end
    function _intM0:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M0            = diags["GkM0"].fieldwJacobGeo
-      specIn.volIntegral:advance(tm, {M0}, {self.field})
+      self.volIntegral.comps1:advance(tm, {M0}, {self.field})
    end
 
    -- ~~~~ Integrated momentum density ~~~~~~~~~~~~~~~~~~~~~~
@@ -298,13 +292,14 @@ local implementation = function()
    function _intM1:fullInit(diagApp, specIn, fieldIn, owner)
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
+      self:setVolIntegral(specIn)
    end
    function _intM1:getDependencies() return {"GkM1"} end
    function _intM1:getType() return "integrated" end
    function _intM1:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M1 = diags["GkM1"].fieldwJacobGeo
-      specIn.volIntegral:advance(tm, {M1}, {self.field})
+      self.volIntegral.comps1:advance(tm, {M1}, {self.field})
    end
 
    -- ~~~~ Integrated particle kinetic energy density ~~~~~~~~~~~~~~~~~~~~~~
@@ -312,13 +307,14 @@ local implementation = function()
    function _intM2:fullInit(diagApp, specIn, fieldIn, owner)
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
+      self:setVolIntegral(specIn)
    end
    function _intM2:getDependencies() return {"GkM2"} end
    function _intM2:getType() return "integrated" end
    function _intM2:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M2 = diags["GkM2"].fieldwJacobGeo
-      specIn.volIntegral:advance(tm, {M2}, {self.field})
+      self.volIntegral.comps1:advance(tm, {M2}, {self.field})
    end
 
    -- ~~~~ Integrated particle kinetic energy density (with mass/2 factor) ~~~~~~~~~~~~~~~~~~~~~~
@@ -326,13 +322,14 @@ local implementation = function()
    function _intKE:fullInit(diagApp, specIn, fieldIn, owner)
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
+      self:setVolIntegral(specIn)
    end
    function _intKE:getDependencies() return {"GkM2"} end
    function _intKE:getType() return "integrated" end
    function _intKE:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M2 = diags["GkM2"].fieldwJacobGeo
-      specIn.volIntegral:advance(tm, {M2, 0.5*specIn.mass}, {self.field})
+      self.volIntegral.comps1:advance(tm, {M2, 0.5*specIn.mass}, {self.field})
    end
 
    -- ~~~~ Integrated particle energy density (including potential) ~~~~~~~~~~~~~~~~~~~~~~
@@ -340,10 +337,10 @@ local implementation = function()
    function _intHE:fullInit(diagApp, specIn, fieldIn, owner)
       self.field    = DataStruct.DynVector { numComponents = 1 }
       self.fieldAux = owner:allocMoment()
+      self:setVolIntegral(specIn)
       --self.fieldAux = {owner:allocMoment(),owner:allocMoment()}
-      --self.owner    = owner
       --self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
-      self.done     = false
+      self.done        = false
    end
    function _intHE:getDependencies() return {"GkEnergy"} end
    function _intHE:getType() return "integrated" end
@@ -351,7 +348,7 @@ local implementation = function()
       local specIn, diags = inFlds[1], inFlds[2]
       local ptclEnergy    = diags["GkEnergy"].field
       specIn.multiplyByJacobGeo(tm, ptclEnergy, self.fieldAux)
-      specIn.volIntegral:advance(tm, {self.fieldAux}, {self.field})
+      self.volIntegral.comps1:advance(tm, {self.fieldAux}, {self.field})
       --local specIn = inFlds[1]
       --local fIn    = self.getF()
       --local phi    = specIn.equation.phi
@@ -360,7 +357,7 @@ local implementation = function()
       --specIn.confWeakMultiply:advance(tm, {self.fieldAux[1], phi}, {self.fieldAux[1]})
       --self.fieldAux[1]:scale(specIn.charge)
       --self.fieldAux[1]:accumulate(0.5*specIn.mass, self.fieldAux[2])
-      --specIn.volIntegral:advance(tm, {self.fieldAux[1]}, {self.field})
+      --self.volIntegral.comps1:advance(tm, {self.fieldAux[1]}, {self.field})
    end
 
    -- ~~~~ Integrated mean flow energy density ~~~~~~~~~~~~~~~~~~~~~~
@@ -368,13 +365,14 @@ local implementation = function()
    function _intM2Flow:fullInit(diagApp, specIn, fieldIn, owner)
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
+      self:setVolIntegral(specIn)
    end
    function _intM2Flow:getDependencies() return {"M2Flow"} end
    function _intM2Flow:getType() return "integrated" end
    function _intM2Flow:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M2Flow = diags["M2Flow"].field
-      specIn.volIntegral:advance(tm, {M2Flow}, {self.field})
+      self.volIntegral.comps1:advance(tm, {M2Flow}, {self.field})
    end
 
    -- ~~~~ Integrated thermal energy density ~~~~~~~~~~~~~~~~~~~~~~
@@ -382,13 +380,14 @@ local implementation = function()
    function _intM2Thermal:fullInit(diagApp, specIn, fieldIn, owner)
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
+      self:setVolIntegral(specIn)
    end
    function _intM2Thermal:getDependencies() return {"M2Thermal"} end
    function _intM2Thermal:getType() return "integrated" end
    function _intM2Thermal:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M2Thermal = diags["M2Thermal"].field
-      specIn.volIntegral:advance(tm, {M2Thermal}, {self.field})
+      self.volIntegral.comps1:advance(tm, {M2Thermal}, {self.field})
    end
 
    -- ~~~~ L1 norm (absolute value) of the distribution function ~~~~~~~~~~~~~~~~~~~~~~
@@ -399,7 +398,6 @@ local implementation = function()
          onGrid = specIn.grid,   numComponents = 1,
          basis  = specIn.basis,  quantity      = "AbsV",
       }
-      self.owner = owner
       self.done  = false
       self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
    end
@@ -417,7 +415,6 @@ local implementation = function()
          onGrid = specIn.grid,   numComponents = 1,
          basis  = specIn.basis,  quantity      = "V2",
       }
-      self.owner = owner
       self.done  = false
       self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
    end

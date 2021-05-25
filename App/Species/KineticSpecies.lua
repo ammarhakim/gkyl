@@ -156,8 +156,8 @@ function KineticSpecies:fullInit(appTbl)
       if SourceBase.is(val) or string.find(nm,"source") then
          if ProjectionBase.is(val) then val = self:projToSource(val) end
 	 self.sources[nm] = val
-	 self.sources[nm]:setName(nm)
 	 val:setSpeciesName(self.name)
+         val:setName(nm)   -- Do :setName after :setSpeciesName for sources.
 	 val:fullInit(tbl) -- Initialize sources
       end
    end

@@ -15,6 +15,8 @@ local Projection     = require "App.Projection"
 local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
+local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
+local VlasovDiags    = require "App.Diagnostics.VlasovDiagnostics"
 
 local VmSource = Proto(SourceBase)
 
@@ -27,11 +29,7 @@ function VmSource:init(tbl) self.tbl = tbl end
 function VmSource:fullInit(speciesTbl)
    local tbl = self.tbl -- Previously stored table.
 
-   if tbl.timeDependence then
-      self.timeDependence = tbl.timeDependence
-   else
-      self.timeDependence = function (t) return 1.0 end
-   end
+   self.timeDependence = tbl.timeDependence or function (t) return 1. end
 
    self.power = tbl.power
 
@@ -62,21 +60,21 @@ function VmSource:fullInit(speciesTbl)
    self.tmEvalSrc = 0.0
 end
 
-function VmSource:setName(nm) self.name = nm end
+function VmSource:setName(nm) self.name = self.speciesName.."_"..nm end
 function VmSource:setSpeciesName(nm) self.speciesName = nm end
 function VmSource:setConfBasis(basis) self.confBasis = basis end
 function VmSource:setConfGrid(grid) self.confGrid = grid end
 
-function VmSource:createSolver(thisSpecies, extField)
-   self.profile:fullInit(thisSpecies)
-   self.profile:advance(0.0, {extField}, {thisSpecies.distf[2]})
-   Mpi.Barrier(thisSpecies.grid:commSet().sharedComm)
+function VmSource:createSolver(mySpecies, extField)
+   self.profile:fullInit(mySpecies)
+   self.profile:advance(0.0, {extField}, {mySpecies.distf[2]})
+   Mpi.Barrier(mySpecies.grid:commSet().sharedComm)
 
-   if not self.fSource then self.fSource = thisSpecies:allocDistf() end
-   self.fSource:accumulate(1.0, thisSpecies.distf[2])
+   if not self.fSource then self.fSource = mySpecies:allocDistf() end
+   self.fSource:accumulate(1.0, mySpecies.distf[2])
 
    if self.positivityRescale then
-      thisSpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
+      mySpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
    end
 
    if self.power then
@@ -87,13 +85,53 @@ function VmSource:createSolver(thisSpecies, extField)
          quantity      = "V",
       }
       local intKE = DataStruct.DynVector{numComponents = 1}
-      thisSpecies.ptclEnergyCalc:advance(0.0, {self.fSource}, {thisSpecies.ptclEnergyAux})
-      calcInt:advance(0.0, {thisSpecies.ptclEnergyAux, thisSpecies.mass/2}, {intKE})
+      mySpecies.ptclEnergyCalc:advance(0.0, {self.fSource}, {mySpecies.ptclEnergyAux})
+      calcInt:advance(0.0, {mySpecies.ptclEnergyAux, mySpecies.mass/2}, {intKE})
       local _, intKE_data  = intKE:lastData()
       self.powerScalingFac = self.power/intKE_data[1]
       self.fSource:scale(self.powerScalingFac)
    end
-   if thisSpecies.scaleInitWithSourcePower then thisSpecies.distf[1]:scale(self.powerScalingFac) end
+   if mySpecies.scaleInitWithSourcePower then mySpecies.distf[1]:scale(self.powerScalingFac) end
+
+   local numDensitySrc = mySpecies:allocMoment()
+   local momDensitySrc = mySpecies:allocMoment()
+   local ptclEnergySrc = mySpecies:allocMoment()
+   mySpecies.fiveMomentsCalc:advance(0.0, {self.fSource}, {numDensitySrc, momDensitySrc, ptclEnergySrc})
+
+   self.fSource:write(string.format("%s_0.bp", self.name), 0., 0, true)
+   numDensitySrc:write(string.format("%s_M0_0.bp", self.name), 0., 0)
+   momDensitySrc:write(string.format("%s_M1_0.bp", self.name), 0., 0)
+   ptclEnergySrc:write(string.format("%s_M2_0.bp", self.name), 0., 0)
+
+   -- Need to define methods to allocate fields (used by diagnostics).
+   self.allocMoment = function() return mySpecies:allocMoment() end
+end
+
+function VmSource:createDiagnostics(mySpecies, field)
+   -- Create source diagnostics.
+   self.diagnostics = nil
+   if self.tbl.diagnostics then
+      self.diagnostics = DiagsApp{implementation = VlasovDiags()}
+      self.diagnostics:fullInit(mySpecies, field, self)
+
+      -- Change volume integral updater used in diagnostics so we output the time integrated vol integral.
+      self.volIntegral = {
+         comps1 = Updater.CartFieldIntegratedQuantCalc {
+            onGrid = self.confGrid,   numComponents = 1,    timeIntegrate = true,
+            basis  = self.confBasis,  quantity      = "V",
+         },
+         compsVdim = Updater.CartFieldIntegratedQuantCalc {
+            onGrid = self.confGrid,   numComponents = mySpecies.vdim,  timeIntegrate = true,
+            basis  = self.confBasis,  quantity      = "V",
+         },
+      }
+      for _, diagNm in ipairs(self.diagnostics.diagGroups["integrated"]) do
+         local diag = self.diagnostics.diags[diagNm]
+         diag:setVolIntegral(self)
+      end
+   end
+
+   return self.diagnostics
 end
 
 function VmSource:advance(tCurr, fIn, species, fRhsOut)
@@ -103,31 +141,11 @@ function VmSource:advance(tCurr, fIn, species, fRhsOut)
    self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
 end
 
-function VmSource:createDiagnostics(thisSpecies, momTable)
-   self.diagnosticIntegratedMomentFields   = { }
-   self.diagnosticIntegratedMomentUpdaters = { }
-   self.diagnosticIntegratedMoments        = { }
-   
-   self.numDensitySrc = thisSpecies:allocMoment()
-   self.momDensitySrc = thisSpecies:allocVectorMoment(thisSpecies.vdim)
-   self.ptclEnergySrc = thisSpecies:allocMoment()
-   thisSpecies.fiveMomentsCalc:advance(0.0, {self.fSource}, {self.numDensitySrc, self.momDensitySrc, self.ptclEnergySrc})
-end
+-- These are needed to recycle the VlasovDiagnostics with VmSource.
+function VmSource:rkStepperFields() return {self.fSource, self.fSource, self.fSource, self.fSource} end
+function VmSource:getFlucF() return self.fSource end
 
-function VmSource:writeDiagnosticIntegratedMoments(tm, frame)
-   for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-      self.diagnosticIntegratedMomentFields[mom]:write(string.format("%s_%s.bp", self.speciesName, mom), tm, frame)
-   end
-end
-
-function VmSource:write(tm, frame)
-   if tm == 0.0 then
-      self.fSource:write(string.format("%s_fSource_0.bp", self.speciesName), tm, frame, true)
-      self.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.speciesName), tm, frame)
-      self.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.speciesName), tm, frame)
-      self.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.speciesName), tm, frame)
-   end
-end
+function VmSource:write(tm, frame) end
 
 function VmSource:srcTime() return self.tmEvalSrc end
 

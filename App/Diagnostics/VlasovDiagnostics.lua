@@ -162,6 +162,7 @@ local implementation = function()
    function _intM0:fullInit(diagApp, specIn, field, owner)
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
+      self:setVolIntegral(specIn)
    end
    function _intM0:getDependencies() return {"M0"} end
    function _intM0:getType() return "integrated" end
@@ -176,6 +177,7 @@ local implementation = function()
    function _intM1i:fullInit(diagApp, specIn, field, owner)
       self.field = DataStruct.DynVector { numComponents = specIn.vdim }
       self.done  = false
+      self:setVolIntegral(specIn)
    end
    function _intM1i:getDependencies() return {"M1i"} end
    function _intM1i:getType() return "integrated" end
@@ -190,6 +192,7 @@ local implementation = function()
    function _intM2:fullInit(diagApp, specIn, field, owner)
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
+      self:setVolIntegral(specIn)
    end
    function _intM2:getDependencies() return {"M2"} end
    function _intM2:getType() return "integrated" end
@@ -204,6 +207,7 @@ local implementation = function()
    function _intM2Flow:fullInit(diagApp, specIn, field, owner)
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
+      self:setVolIntegral(specIn)
    end
    function _intM2Flow:getDependencies() return {"M2Flow"} end
    function _intM2Flow:getType() return "integrated" end
@@ -218,6 +222,7 @@ local implementation = function()
    function _intM2Thermal:fullInit(diagApp, specIn, field, owner)
       self.field = DataStruct.DynVector { numComponents = 1 }
       self.done  = false
+      self:setVolIntegral(specIn)
    end
    function _intM2Thermal:getDependencies() return {"M2Thermal"} end
    function _intM2Thermal:getType() return "integrated" end

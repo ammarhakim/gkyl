@@ -634,7 +634,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          c:advance(tCurr, fIn, species, fRhsOut)   -- 'species' needed for cross-species collisions.
       end
    end
-   for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
+   for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
    
    -- Save boundary fluxes for diagnostics.
    if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
@@ -654,6 +654,10 @@ function VlasovSpecies:createDiagnostics(field)
       self.diagnostics[self.name]:fullInit(self, field, self)
    end
 
+   for srcNm, src in lume.orderedIter(self.sources) do
+      self.diagnostics[self.name..srcNm] = src:createDiagnostics(self, field)
+   end
+
    local function contains(table, element)
      for _, value in pairs(table) do
        if value == element then
@@ -662,8 +666,6 @@ function VlasovSpecies:createDiagnostics(field)
      end
      return false
    end
-
-   for _, src in lume.orderedIter(self.sources) do src:createDiagnostics(self) end
 
    -- Create updater to compute volume-integrated moments
    -- function to check if integrated moment name is correct.

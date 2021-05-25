@@ -336,9 +336,12 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
    end
 
    -- Create an updater for volume integrals. Used by diagnostics.
-   self.volIntegral = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = self.confGrid,   numComponents = 1,
-      basis  = self.confBasis,  quantity      = "V",
+   -- Placed in a table with key 'comps1' to keep consistency with VlasovSpecies (makes diagnostics simpler).
+   self.volIntegral = {
+      comps1 = Updater.CartFieldIntegratedQuantCalc {
+         onGrid = self.confGrid,   numComponents = 1,
+         basis  = self.confBasis,  quantity      = "V",
+      }
    }
 
    if self.deltaF then
@@ -760,7 +763,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       end
    end
 
-   for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
+   for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
 end
 
 function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
@@ -807,6 +810,10 @@ function GkSpecies:createDiagnostics(field)
       self.diagnostics[self.name]:fullInit(self, field, self)
    end
 
+   for srcNm, src in lume.orderedIter(self.sources) do
+      self.diagnostics[self.name..srcNm] = src:createDiagnostics(self, field)
+   end
+
    local function contains(table, element) return lume.any(table, function(e) return e==element end) end
 
    -- Create updater to compute volume-integrated moments
@@ -823,9 +830,6 @@ function GkSpecies:createDiagnostics(field)
    end
    self.diagnosticIntegratedMomentFields   = { }
    self.diagnosticIntegratedMomentUpdaters = { }
-   for _, src in lume.orderedIter(self.sources) do
-      src:createDiagnostics(self, self.diagnosticIntegratedMoments)
-   end
 
    -- Allocate space to store integrated moments and create integrated moment updaters.
    local function allocateDiagnosticIntegratedMoments(intMoments, bc, timeIntegrate)
@@ -1387,10 +1391,6 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tm)
 
    computeIntegratedMoments(self.diagnosticIntegratedMoments, fIn)
 
-   for nm, src in lume.orderedIter(self.sources) do
-      src:calcDiagnosticIntegratedMoments(tm, self)
-   end
-   
    if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
       for _, bc in ipairs(self.boundaryConditions) do
          computeIntegratedMoments(self.diagnosticIntegratedBoundaryFluxMoments, bc:getBoundaryFluxRate(), bc:label())

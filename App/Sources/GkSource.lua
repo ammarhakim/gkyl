@@ -6,14 +6,16 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local SourceBase     = require "App.Sources.SourceBase"
-local DataStruct     = require "DataStruct"
-local lume           = require "Lib.lume"
-local Mpi            = require "Comm.Mpi"
-local Projection     = require "App.Projection"
-local Proto          = require "Lib.Proto"
-local Time           = require "Lib.Time"
-local Updater        = require "Updater"
+local SourceBase = require "App.Sources.SourceBase"
+local DataStruct = require "DataStruct"
+local lume       = require "Lib.lume"
+local Mpi        = require "Comm.Mpi"
+local Projection = require "App.Projection"
+local Proto      = require "Lib.Proto"
+local Time       = require "Lib.Time"
+local Updater    = require "Updater"
+local DiagsApp   = require "App.Diagnostics.SpeciesDiagnostics"
+local GkDiags    = require "App.Diagnostics.GkDiagnostics"
 
 local GkSource = Proto(SourceBase)
 
@@ -26,11 +28,7 @@ function GkSource:init(tbl) self.tbl = tbl end
 function GkSource:fullInit(thisSpecies)
    local tbl = self.tbl -- Previously stored table.
 
-   if tbl.timeDependence then
-      self.timeDependence = tbl.timeDependence
-   else
-      self.timeDependence = function (t) return 1.0 end
-   end
+   self.timeDependence = tbl.timeDependence or function (t) return 1. end
 
    self.power = tbl.power
 
@@ -61,21 +59,21 @@ function GkSource:fullInit(thisSpecies)
    self.tmEvalSrc = 0.0
 end
 
-function GkSource:setName(nm) self.name = nm end
+function GkSource:setName(nm) self.name = self.speciesName.."_"..nm end
 function GkSource:setSpeciesName(nm) self.speciesName = nm end
 function GkSource:setConfBasis(basis) self.confBasis = basis end
 function GkSource:setConfGrid(grid) self.confGrid = grid end
 
-function GkSource:createSolver(thisSpecies, extField)
-   self.profile:fullInit(thisSpecies)
-   self.profile:advance(0.0, {extField}, {thisSpecies.distf[2]})
-   Mpi.Barrier(thisSpecies.grid:commSet().sharedComm)
+function GkSource:createSolver(mySpecies, extField)
+   self.profile:fullInit(mySpecies)
+   self.profile:advance(0.0, {extField}, {mySpecies.distf[2]})
+   Mpi.Barrier(mySpecies.grid:commSet().sharedComm)
 
-   if not self.fSource then self.fSource = thisSpecies:allocDistf() end
-   self.fSource:accumulate(1.0, thisSpecies.distf[2])
+   if not self.fSource then self.fSource = mySpecies:allocDistf() end
+   self.fSource:accumulate(1.0, mySpecies.distf[2])
 
    if self.positivityRescale then
-      thisSpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
+      mySpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
    end
 
    if self.power then
@@ -86,13 +84,49 @@ function GkSource:createSolver(thisSpecies, extField)
          quantity      = "V",
       }
       local intKE = DataStruct.DynVector{numComponents = 1}
-      thisSpecies.ptclEnergyCalc:advance(0.0, {self.fSource}, {thisSpecies.ptclEnergyAux})
-      calcInt:advance(0.0, {thisSpecies.ptclEnergyAux, thisSpecies.mass/2}, {intKE})
+      mySpecies.ptclEnergyCalc:advance(0.0, {self.fSource}, {mySpecies.ptclEnergyAux})
+      calcInt:advance(0.0, {mySpecies.ptclEnergyAux, mySpecies.mass/2}, {intKE})
       local _, intKE_data  = intKE:lastData()
       self.powerScalingFac = self.power/intKE_data[1]
       self.fSource:scale(self.powerScalingFac)
    end
-   if thisSpecies.scaleInitWithSourcePower then thisSpecies.distf[1]:scale(self.powerScalingFac) end
+   if mySpecies.scaleInitWithSourcePower then mySpecies.distf[1]:scale(self.powerScalingFac) end
+
+   local numDensitySrc = mySpecies:allocMoment()
+   local momDensitySrc = mySpecies:allocMoment()
+   local ptclEnergySrc = mySpecies:allocMoment()
+   mySpecies.threeMomentsCalc:advance(0.0, {self.fSource}, {numDensitySrc, momDensitySrc, ptclEnergySrc})
+
+   self.fSource:write(string.format("%s_0.bp", self.name), 0., 0, true)
+   numDensitySrc:write(string.format("%s_M0_0.bp", self.name), 0., 0)
+   momDensitySrc:write(string.format("%s_M1_0.bp", self.name), 0., 0)
+   ptclEnergySrc:write(string.format("%s_M2_0.bp", self.name), 0., 0)
+
+   -- Need to define methods to allocate fields (used by diagnostics).
+   self.allocMoment = function() return mySpecies:allocMoment() end
+end
+
+function GkSource:createDiagnostics(mySpecies, field)
+   -- Create source diagnostics.
+   self.diagnostics = nil
+   if self.tbl.diagnostics then
+      self.diagnostics = DiagsApp{implementation = GkDiags()}
+      self.diagnostics:fullInit(mySpecies, field, self)
+
+      -- Change volume integral updater used in diagnostics so we output the time integrated vol integral.
+      self.volIntegral = {
+         comps1 = Updater.CartFieldIntegratedQuantCalc {
+            onGrid = self.confGrid,   numComponents = 1,    timeIntegrate = true,
+            basis  = self.confBasis,  quantity      = "V",
+         }
+      }
+      for _, diagNm in ipairs(self.diagnostics.diagGroups["integrated"]) do
+         local diag = self.diagnostics.diags[diagNm]
+         diag:setVolIntegral(self)
+      end
+   end
+
+   return self.diagnostics
 end
 
 function GkSource:advance(tCurr, fIn, species, fRhsOut)
@@ -102,77 +136,11 @@ function GkSource:advance(tCurr, fIn, species, fRhsOut)
    self.tmEvalSrc = self.tmEvalSrc + Time.clock() - tm
 end
 
-function GkSource:createDiagnostics(thisSpecies, momTable)
-   local function contains(table, element) return lume.any(table, function(e) return e==element end) end
+-- These are needed to recycle the GkDiagnostics with GkSource.
+function GkSource:rkStepperFields() return {self.fSource, self.fSource, self.fSource, self.fSource} end
+function GkSource:getFlucF() return self.fSource end
 
-   self.diagnosticIntegratedMomentFields   = { }
-   self.diagnosticIntegratedMomentUpdaters = { }
-   self.diagnosticIntegratedMoments        = { }
-   self.diagnosticIntegratedMomentTimeDep  = { }
-   
-   self.numDensitySrc = thisSpecies:allocMoment()
-   self.momDensitySrc = thisSpecies:allocMoment()
-   self.ptclEnergySrc = thisSpecies:allocMoment()
-   thisSpecies.threeMomentsCalc:advance(0.0, {self.fSource}, {self.numDensitySrc, self.momDensitySrc, self.ptclEnergySrc})
-   
-   if contains(momTable, "intM0") or contains(momTable, "intSrcM0") then
-      table.insert(self.diagnosticIntegratedMoments, "intSrcM0")
-      self.diagnosticIntegratedMomentFields["intSrcM0"] = {}
-      self.diagnosticIntegratedMomentFields["intSrcM0"].inFld = self.numDensitySrc
-      self.diagnosticIntegratedMomentTimeDep["intSrcM0"] = function(t) return self.timeDependence(t) end
-   end
-   if contains(momTable, "intM1") or contains(momTable, "intSrcM1") then
-      table.insert(self.diagnosticIntegratedMoments, "intSrcM1")
-      self.diagnosticIntegratedMomentFields["intSrcM1"] = {}
-      self.diagnosticIntegratedMomentFields["intSrcM1"].inFld = self.momDensitySrc
-      self.diagnosticIntegratedMomentTimeDep["intSrcM1"] = function(t) return self.timeDependence(t) end
-   end
-   if contains(momTable, "intM2") or contains(momTable, "intSrcM2") then
-      table.insert(self.diagnosticIntegratedMoments, "intSrcM2")
-      self.diagnosticIntegratedMomentFields["intSrcM2"] = {}
-      self.diagnosticIntegratedMomentFields["intSrcM2"].inFld = self.ptclEnergySrc
-      self.diagnosticIntegratedMomentTimeDep["intSrcM2"] = function(t) return self.timeDependence(t) end
-   end
-   if contains(momTable, "intKE") or contains(momTable, "intSrcKE") then
-      table.insert(self.diagnosticIntegratedMoments, "intSrcKE")
-      self.diagnosticIntegratedMomentFields["intSrcKE"] = {}
-      self.diagnosticIntegratedMomentFields["intSrcKE"].inFld = self.ptclEnergySrc
-      self.diagnosticIntegratedMomentTimeDep["intSrcKE"] = function(t) return self.timeDependence(t)*thisSpecies.mass/2. end
-   end
-   for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-      self.diagnosticIntegratedMomentFields[mom].outFld = DataStruct.DynVector{numComponents = 1}
-      self.diagnosticIntegratedMomentUpdaters[mom]      = Updater.CartFieldIntegratedQuantCalc {
-         onGrid        = thisSpecies.confGrid,
-         basis         = thisSpecies.confBasis,
-         numComponents = 1,
-         quantity      = "V",
-         timeIntegrate = true,
-      }
-   end
-end
-
-function GkSource:calcDiagnosticIntegratedMoments(tm, thisSpecies)
-   for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-      self.diagnosticIntegratedMomentUpdaters[mom]:advance(tm,
-         {self.diagnosticIntegratedMomentFields[mom].inFld, self.diagnosticIntegratedMomentTimeDep[mom](tm)},
-         {self.diagnosticIntegratedMomentFields[mom].outFld})
-   end
-end
-
-function GkSource:writeDiagnosticIntegratedMoments(tm, frame)
-   for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-      self.diagnosticIntegratedMomentFields[mom].outFld:write(string.format("%s_%s.bp", self.speciesName, mom), tm, frame)
-   end
-end
-
-function GkSource:write(tm, frame)
-   if tm == 0.0 then
-      self.fSource:write(string.format("%s_fSource_0.bp", self.speciesName), tm, frame, true)
-      self.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.speciesName), tm, frame)
-      self.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.speciesName), tm, frame)
-      self.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.speciesName), tm, frame)
-   end
-end
+function GkSource:write(tm, frame) end
 
 function GkSource:srcTime() return self.tmEvalSrc end
 
