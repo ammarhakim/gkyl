@@ -321,8 +321,8 @@ gkylFiveMomentFrictionSrcExact(
     const double m1 = fd[1].mass, n1 = rho1 / m1;
 
     const double a = 2 * nu01 * rho0 / (m0 + m1);
-    const double b0 = (m0/3) * du2;
-    const double b1 = (m1/3) * du2;
+    const double b0 = (m0/6) * du2;
+    const double b1 = (m1/6) * du2;
 
     // Heating in the total pressure.
     double p = p0 + p1;
