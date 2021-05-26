@@ -331,7 +331,7 @@ gkylFiveMomentFrictionSrcExact(
     const double m0 = fd[0].mass, n0 = rho0 / m0;
     const double m1 = fd[1].mass, n1 = rho1 / m1;
 
-    const double a = nu01 * rho0 / (m0 + m1);
+    const double a = 2 * nu01 * rho0 / (m0 + m1);
     const double b0 = (m0/3) * du2;
     const double b1 = (m1/3) * du2;
 
