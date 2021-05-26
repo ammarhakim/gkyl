@@ -33,7 +33,7 @@ local function orgDiagnostics(diagsImpl, diagsTbl, diagGroups)
    local function checkNinsertDependencies(diagNm, impl, diags)
       local depends = impl[diagNm]:getDependencies()
       -- Loop over dependencies and check if they are in table. If not, include them.
-      for depI, depNm in ipairs(depends) do
+      for _, depNm in ipairs(depends) do
          if diags[depNm]==nil then
             if contains(impl, depNm) then
                diags[depNm] = impl[depNm]
@@ -43,7 +43,10 @@ local function orgDiagnostics(diagsImpl, diagsTbl, diagGroups)
          end
       end
    end
-   for nm, _ in pairs(diagsTbl) do checkNinsertDependencies(nm, diagsImpl, diagsTbl) end
+
+   local diagsCurr = {}  -- Need a proxy table to create the iterator below, since diagsTbl will change.
+   for nm, _ in pairs(diagsTbl) do table.insert(diagsCurr, nm) end
+   for _, nm in ipairs(diagsCurr) do checkNinsertDependencies(nm, diagsImpl, diagsTbl) end
 
    local function sortDiagsTbl(impl, diagList)
       -- Create a keys list so we always loop in the same order.
@@ -66,10 +69,13 @@ local function orgDiagnostics(diagsImpl, diagsTbl, diagGroups)
       -- Need to sync this order across MPI ranks.
       local myOrder, delim = "", ","
       for _, v in ipairs(diagList) do myOrder=myOrder..v..delim end
-      if string.len(myOrder) > 0 then
-         local Cstr = new("char [?]", string.len(myOrder))
+      local myOrderLen = string.len(myOrder)
+      if myOrderLen > 0 then
+         -- MF 2021/05/26: without the +1 here I've seen randomly ocurring seg faults.
+         local Cstr = new("char [?]", myOrderLen+1)
          ffi.copy(Cstr, myOrder)
-         Mpi.Bcast(Cstr, string.len(myOrder)+1, Mpi.CHAR, 0, Mpi.COMM_WORLD)
+         -- An extra element is counted here (the null character at the end of a string? read online).
+         Mpi.Bcast(Cstr, myOrderLen+2, Mpi.CHAR, 0, Mpi.COMM_WORLD)
          myOrder = ffi.string(Cstr)
          local newList = {}
          for nm in string.gmatch(myOrder, "(.-)"..delim) do table.insert(newList, nm) end
