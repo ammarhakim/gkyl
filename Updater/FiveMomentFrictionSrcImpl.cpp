@@ -340,7 +340,7 @@ gkylFiveMomentFrictionSrcExact(
     double p = p0 + p1;
     p += (b0 + b1) * a * dt;
 
-    const double rate = a * (n0+n1) / (n0+n1);
+    const double rate = a * (n0+n1) / (n0*n1);
     const double shift = (n0*b0-n1*b1) / (n0+n1);
 
     // Temperature difference relaxation.
