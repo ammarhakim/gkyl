@@ -19,6 +19,7 @@ static const unsigned ER = 4;
 #define VY (2)
 #define VZ (3)
 #define PP (4)
+#define TT (4)
 
 #define sq(x) ((x) * (x))
 
@@ -182,11 +183,10 @@ gkylFiveMomentFrictionSrcTimeCentered(
   for (int s=0; s<nFluids; ++s)
   {
     double *f = fPtrs[s];
-    f[PP] = pressure(f, sd->gasGamma);
+    f[TT] = pressure(f, sd->gasGamma) / f[RHO] * fd[s].mass;
     f[VX] = f[MX] / f[RHO];
     f[VY] = f[MY] / f[RHO];
     f[VZ] = f[MZ] / f[RHO];
-    f[NN] = f[RHO] / fd[s].mass;
   }
 
   // Update velocities.
@@ -236,9 +236,9 @@ gkylFiveMomentFrictionSrcTimeCentered(
     {
       double *fs = fPtrs[s];
       const double ms = fd[s].mass;
-      const double temp = 0.5 * dt * fs[NN] * ms;
+      const double temp = 0.5 * dt * ms;
 
-      rhs_p[s] = fs[PP];
+      rhs_p[s] = fs[TT];
       lhs(s, s) = 1.;
 
       const double *nu_s = nu + nFluids * s;
@@ -255,8 +255,8 @@ gkylFiveMomentFrictionSrcTimeCentered(
         const double temp_sr = temp * nu_s[r] / (ms + mr);
 
         rhs_p[s] += temp_sr * (mr / 3.) * du2;
-        lhs(s, s) += temp_sr * 2 / fs[NN];
-        lhs(s, r) -= temp_sr * 2 / fr[NN];
+        lhs(s, s) += temp_sr * 2;
+        lhs(s, r) -= temp_sr * 2;
       }
     }
 
@@ -265,7 +265,7 @@ gkylFiveMomentFrictionSrcTimeCentered(
     for (int s=0; s<nFluids; ++s)
     {
       double *f = fPtrs[s];
-      f[PP] = 2 * sol_p(s) - f[PP];
+      f[PP] = (2 * sol_p(s) - f[TT]) * f[RHO] / fd[s].mass;
     }
   }
 
@@ -273,7 +273,6 @@ gkylFiveMomentFrictionSrcTimeCentered(
   for (int s=0; s<nFluids; ++s)
   {
     double *f = fPtrs[s];
-    f[RHO] = f[NN] * fd[s].mass;
     f[MX] = f[RHO] * (2 * sol_u(s) - rhs_u(s));
     f[MY] = f[RHO] * (2 * sol_v(s) - rhs_v(s));
     f[MZ] = f[RHO] * (2 * sol_w(s) - rhs_w(s));
