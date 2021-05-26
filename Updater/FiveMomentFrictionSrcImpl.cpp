@@ -247,11 +247,10 @@ gkylFiveMomentFrictionSrcTimeCentered(
         if (r==s)
           continue;
 
-        double *fr = fPtrs[r];
         const double mr = fd[r].mass;
-        const double du2 = sq(fs[VX]-fr[VX]) \
-                         + sq(fs[VY]-fr[VY]) \
-                         + sq(fs[VZ]-fr[VZ]);
+        const double du2 = sq(sol_u[s]-sol_u[r]) \
+                         + sq(sol_u[s]-sol_u[r]) \
+                         + sq(sol_w[s]-sol_w[r]);
         const double coeff_sr = coeff * nu_s[r] / (ms + mr);
 
         rhs_T[s] += coeff_sr * (mr / 3.) * du2;
