@@ -179,16 +179,6 @@ gkylFiveMomentFrictionSrcTimeCentered(
   double nu[nFluids * nFluids];
   calcNu(sd, fPtrs, sd->nuBase, nu);
 
-  // Convert conservative variables to primitive variables.
-  for (int s=0; s<nFluids; ++s)
-  {
-    double *f = fPtrs[s];
-    f[TT] = pressure(f, sd->gasGamma) / f[RHO] * fd[s].mass;
-    f[VX] = f[MX] / f[RHO];
-    f[VY] = f[MY] / f[RHO];
-    f[VZ] = f[MZ] / f[RHO];
-  }
-
   // Update velocities.
   Eigen::MatrixXd lhs = Eigen::MatrixXd::Constant(nFluids, nFluids, 0.0);
   Eigen::VectorXd rhs_u(nFluids);
@@ -198,9 +188,9 @@ gkylFiveMomentFrictionSrcTimeCentered(
   for (int s=0; s<nFluids; ++s)
   {
     double *fs = fPtrs[s];
-    rhs_u(s) = fs[VX];
-    rhs_v(s) = fs[VY];
-    rhs_w(s) = fs[VZ];
+    rhs_u(s) = fs[MX] / fs[RHO];
+    rhs_v(s) = fs[MY] / fs[RHO];
+    rhs_w(s) = fs[MZ] / fs[RHO];
 
     lhs(s, s) = 1.;
     const double *nu_s = nu + nFluids * s;
@@ -227,18 +217,18 @@ gkylFiveMomentFrictionSrcTimeCentered(
   Eigen::VectorXd sol_w = lhs.partialPivLu().solve(rhs_w);
 #endif
 
-  // TODO: Update pressure.
+  // Update temperature, and immediately, pressure.
   if (sd->hasPressure) {
     lhs.setZero();
     Eigen::VectorXd rhs_T(nFluids);
 
     for (int s=0; s<nFluids; ++s)
     {
-      double *fs = fPtrs[s];
       const double ms = fd[s].mass;
       const double coeff = 0.5 * dt * ms;
 
-      rhs_T[s] = fs[TT];
+      double *fs = fPtrs[s];
+      rhs_T(s) = pressure(fs, sd->gasGamma) / fs[RHO] * fd[s].mass;
       lhs(s, s) = 1.;
 
       const double *nu_s = nu + nFluids * s;
@@ -248,23 +238,23 @@ gkylFiveMomentFrictionSrcTimeCentered(
           continue;
 
         const double mr = fd[r].mass;
-        const double du2 = sq(sol_u[s]-sol_u[r]) \
-                         + sq(sol_u[s]-sol_u[r]) \
-                         + sq(sol_w[s]-sol_w[r]);
+        const double du2 = sq(sol_u(s)-sol_u(s)) \
+                         + sq(sol_v(s)-sol_v(s)) \
+                         + sq(sol_w(s)-sol_w(s));
         const double coeff_sr = coeff * nu_s[r] / (ms + mr);
 
-        rhs_T[s] += coeff_sr * (mr / 3.) * du2;
+        rhs_T(s) += coeff_sr * (mr / 3.) * du2;
         lhs(s, s) += coeff_sr * 2;
         lhs(s, r) -= coeff_sr * 2;
       }
     }
 
     // Compute pressure at n+1/2 and then at n+1.
-    Eigen::VectorXd sol_p = lhs.partialPivLu().solve(rhs_T);
+    Eigen::VectorXd sol_T = lhs.partialPivLu().solve(rhs_T);
     for (int s=0; s<nFluids; ++s)
     {
       double *f = fPtrs[s];
-      f[PP] = (2 * sol_p(s) - f[TT]) * f[RHO] / fd[s].mass;
+      f[PP] = (2 * sol_T(s) - rhs_T(s)) * f[RHO] / fd[s].mass;
     }
   }
 
