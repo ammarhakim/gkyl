@@ -270,9 +270,9 @@ gkylFiveMomentFrictionSrcTimeCentered(
   for (int s=0; s<nFluids; ++s)
   {
     double *f = fPtrs[s];
-    f[MX] = f[RHO] * (2 * sol_u(s) - rhs_u(s));
-    f[MY] = f[RHO] * (2 * sol_v(s) - rhs_v(s));
-    f[MZ] = f[RHO] * (2 * sol_w(s) - rhs_w(s));
+    f[MX] = 2 * f[RHO] * sol_u(s) - f[MX];
+    f[MY] = 2 * f[RHO] * sol_v(s) - f[MY];
+    f[MZ] = 2 * f[RHO] * sol_w(s) - f[MZ];
     f[ER] = f[PP]/(sd->gasGamma-1) + 0.5*(sq(f[MX])+sq(f[MY])+sq(f[MZ]))/f[RHO];
   }
 }
