@@ -222,13 +222,15 @@ gkylFiveMomentFrictionSrcTimeCentered(
     lhs.setZero();
     Eigen::VectorXd rhs_T(nFluids);
 
+    double T[nFluids];
     for (int s=0; s<nFluids; ++s)
     {
       const double ms = fd[s].mass;
       const double coeff = 0.5 * dt * ms;
 
       double *fs = fPtrs[s];
-      rhs_T(s) = pressure(fs, sd->gasGamma) / fs[RHO] * fd[s].mass;
+      T[s] = pressure(fs, sd->gasGamma) / fs[RHO] * fd[s].mass;
+      rhs_T(s) = T[s];
       lhs(s, s) = 1.;
 
       const double *nu_s = nu + nFluids * s;
@@ -254,7 +256,7 @@ gkylFiveMomentFrictionSrcTimeCentered(
     for (int s=0; s<nFluids; ++s)
     {
       double *f = fPtrs[s];
-      f[PP] = (2 * sol_T(s) - rhs_T(s)) * f[RHO] / fd[s].mass;
+      f[PP] = (2 * sol_T(s) - T[s]) * f[RHO] / fd[s].mass;
     }
   } else {
     for (int s=0; s<nFluids; ++s)
