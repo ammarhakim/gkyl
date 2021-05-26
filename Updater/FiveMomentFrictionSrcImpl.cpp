@@ -256,6 +256,12 @@ gkylFiveMomentFrictionSrcTimeCentered(
       double *f = fPtrs[s];
       f[PP] = (2 * sol_T(s) - rhs_T(s)) * f[RHO] / fd[s].mass;
     }
+  } else {
+    for (int s=0; s<nFluids; ++s)
+    {
+      double *f = fPtrs[s];
+      f[PP] = pressure(f, sd->gasGamma);
+    }
   }
 
   // Compute momentum (from velocity) and total energy at full time-step n+1.
