@@ -412,11 +412,10 @@ plasmaApp = Plasma.App {
          collideWith = {'elc'},
          frequencies = {nuElc},
       },
-      source = Plasma.MaxwellianProjection {
+      source = Plasma.Source {
 --         fromFile    = "elc_fSourceIC.bp",
          density     = srcDenElc,
          temperature = srcTempElc,
-         isSource    = true,
          diagnostics = {"intM0", "intM2"},
       },
       evolve = true, -- Evolve species?
@@ -474,11 +473,10 @@ plasmaApp = Plasma.App {
          collideWith = {'ion'},
          frequencies = {nuIon},
       },
-      source = Plasma.MaxwellianProjection {
+      source = Plasma.Source {
 --         fromFile    = "ion_fSourceIC.bp",
          density     = srcDenIon,
          temperature = srcTempIon,
-         isSource    = true,
          diagnostics = {"intM0", "intM2"},
       },
       evolve = true, -- Evolve species?
