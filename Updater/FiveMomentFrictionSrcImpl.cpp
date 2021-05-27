@@ -81,7 +81,7 @@ static void
 eulerUpdate(const FiveMomentFrictionSrcData_t *sd,
             const FiveMomentFrictionFluidData_t *fd,
             const double dt,
-            double *f,
+            double *fs,
             double *F,
             const int s,
             const double * const *fPtrsOld,
@@ -89,21 +89,14 @@ eulerUpdate(const FiveMomentFrictionSrcData_t *sd,
 {
   const int nFluids = sd->nFluids;
 
-  const double rho_s = f[RHO];
-  const double u_s = f[MX] / rho_s;
-  const double v_s = f[MY] / rho_s;
-  const double w_s = f[MZ] / rho_s;
-  const double p_s = pressure(f, sd->gasGamma);
+  const double ms = fd[s].mass;
+  const double u_s = fs[MX] / fs[RHO];
+  const double v_s = fs[MY] / fs[RHO];
+  const double w_s = fs[MZ] / fs[RHO];
+  const double T_s = pressure(fs, sd->gasGamma) / fs[RHO] * ms;
   const double *nu_s = nu + nFluids * s;
 
-  double u_s1 = u_s, v_s1 = v_s, w_s1 = w_s;
-
-  double ms, temp, p_s1=p_s;
-  if (sd->hasPressure)
-  {
-    ms = fd[s].mass;
-    temp = dt * f[RHO];
-  }
+  double u_s1=u_s, v_s1=v_s, w_s1=w_s, T_s1=T_s;
 
   for (int r=0; r<nFluids; ++r)
   {
@@ -121,18 +114,19 @@ eulerUpdate(const FiveMomentFrictionSrcData_t *sd,
 
     if (sd->hasPressure)
     {
-      const double p_r = pressure(fr, sd->gasGamma);
       const double mr = fd[r].mass;
+      const double T_r = pressure(fr, sd->gasGamma) / fr[RHO] * mr;
       const double du2 = sq(du) + sq(dv) + sq(dw);
-      const double temp_sr = temp * nu_s[r] / (ms + mr);
-      p_s1 += temp_sr *(2*(p_s/f[RHO] - p_r/fr[RHO]) + (mr/3)*du2);
+      const double coeff = dt * nu_s[r] * ms / (ms + mr);
+      T_s1 += coeff * ( 2*(T_r-T_s) + (mr/3)*du2 );
     }
   }
 
-  F[MX] = rho_s * u_s1;
-  F[MY] = rho_s * v_s1;
-  F[MZ] = rho_s * w_s1;
-  f[ER] = energy(f, p_s1, sd->gasGamma);
+  F[RHO] = fs[RHO];
+  F[MX] = fs[RHO] * u_s1;
+  F[MY] = fs[RHO] * v_s1;
+  F[MZ] = fs[RHO] * w_s1;
+  F[ER] = energy(F, T_s1 * fs[RHO] / ms, sd->gasGamma);
 }
 
 
@@ -240,9 +234,9 @@ gkylFiveMomentFrictionSrcTimeCentered(
           continue;
 
         const double mr = fd[r].mass;
-        const double du2 = sq(sol_u(s)-sol_u(r)) \
-                         + sq(sol_v(s)-sol_v(r)) \
-                         + sq(sol_w(s)-sol_w(r));
+        const double du2 = sq(rhs_u(s)-rhs_u(r)) \
+                         + sq(rhs_v(s)-rhs_v(r)) \
+                         + sq(rhs_w(s)-rhs_w(r));
         const double coeff_sr = coeff * nu_s[r] / (ms + mr);
 
         rhs_T(s) += coeff_sr * (mr / 3.) * du2;
