@@ -291,6 +291,9 @@ gkylFiveMomentFrictionSrcExact(
   const double rho0 = f0[RHO];
   const double rho1 = f1[RHO];
 
+  double p0 = pressure(f0, sd->gasGamma);
+  double p1 = pressure(f1, sd->gasGamma);
+
   double du2 = 0;
   {
     const double nu10 = nu01 * rho0 / rho1;
@@ -314,9 +317,6 @@ gkylFiveMomentFrictionSrcExact(
       }
     }
   }
-
-  double p0 = pressure(f0, sd->gasGamma);
-  double p1 = pressure(f1, sd->gasGamma);
 
   if (sd->hasPressure) {
     const double m0 = fd[0].mass, n0 = rho0 / m0;
