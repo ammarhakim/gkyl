@@ -62,10 +62,13 @@ local momentApp = Moments.App {
 
    friction = Moments.MomentFrictionSource {
       species = {"fluid1", "fluid2"},
-      timeStepper = "time-centered",
+      timeStepper = "time-centered", -- time-centered, exact, or forwardEuler
       gasGamma = gasGamma,
-      nu = {0.1},
-      hasPressure = true,
+      nu = {0.1},  -- In the order like nu12, nu13, nu14, nu23, nu24, nu34.
+                   -- Other values like nu21 will be computed during the
+                   -- simulation to satisfy rho1*nu12=rho2*nu21 due to momentum
+                   -- conservation.
+      updatePressure = true,
    },   
 }
 
