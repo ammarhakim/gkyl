@@ -16,7 +16,7 @@ extern "C" {
   typedef struct {
     int nFluids;
     double gasGamma;
-    bool hasPressure;
+    bool updatePressure;
     double nuBase[5*4/2];
   } FiveMomentFrictionSrcData_t;
 

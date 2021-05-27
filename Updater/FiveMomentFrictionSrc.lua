@@ -20,7 +20,7 @@ ffi.cdef [[
   typedef struct {
     int nFluids;
     double gasGamma;
-    bool hasPressure;
+    bool updatePressure;
     double nuBase[5*4/2];
   } FiveMomentFrictionSrcData_t;
 
@@ -68,7 +68,7 @@ function FiveMomentFrictionSrc:init(tbl)
    self._sd = ffi.new(ffi.typeof("FiveMomentFrictionSrcData_t"))
    self._sd.nFluids = nFluids
    self._sd.gasGamma = assert(tbl.gasGamma, pfx.."Must specify 'gasGamma'.")
-   self._sd.hasPressure = xsys.pickBool(tbl.hasPressure, true)
+   self._sd.updatePressure = xsys.pickBool(tbl.updatePressure, true)
   
    local nuBase = assert(tbl.nu, pfx.."Must specify 'nu' table.")
    assert(#nuBase==nFluids*(nFluids-1)/2, pfx.."'nu' entry # is incorrect.")

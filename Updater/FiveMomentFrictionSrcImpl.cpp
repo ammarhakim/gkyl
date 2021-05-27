@@ -112,7 +112,7 @@ eulerUpdate(const FiveMomentFrictionSrcData_t *sd,
     v_s1 += dt * nu_s[r] * dv;
     w_s1 += dt * nu_s[r] * dw;
 
-    if (sd->hasPressure)
+    if (sd->updatePressure)
     {
       const double mr = fd[r].mass;
       const double T_r = pressure(fr, sd->gasGamma) / fr[RHO] * mr;
@@ -212,7 +212,7 @@ gkylFiveMomentFrictionSrcTimeCentered(
 #endif
 
   // Update temperature, and immediately, pressure.
-  if (sd->hasPressure) {
+  if (sd->updatePressure) {
     lhs.setZero();
     Eigen::VectorXd rhs_T(nFluids);
 
@@ -312,13 +312,13 @@ gkylFiveMomentFrictionSrcExact(
       f0[MX+d] = rho0 * u0;
       f1[MX+d] = rho1 * u1;
 
-      if (sd->hasPressure) {
+      if (sd->updatePressure) {
         du2 += sq(u1-u0);
       }
     }
   }
 
-  if (sd->hasPressure) {
+  if (sd->updatePressure) {
     const double m0 = fd[0].mass, n0 = rho0 / m0;
     const double m1 = fd[1].mass, n1 = rho1 / m1;
 
