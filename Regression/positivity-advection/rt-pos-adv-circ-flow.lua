@@ -32,7 +32,7 @@ plasmaApp = Plasma.App {
       end,
       evolve          = true, -- Evolve species?
       applyPositivity = true,
-      diagnostics = {"intMom"},
+      diagnostics     = {"intMom"},
    },
 
    -- Field solver.

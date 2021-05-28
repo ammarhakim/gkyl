@@ -1,10 +1,10 @@
 #include <math.h>
 #include <vlasov_fpo.h>
 
-double vlasov_fpo_diff_vol_3x_ser_p1(const double dt, const double* dv,
-                                     const double* fIn,
-                                     const double* gIn,
-                                     double *fOut) {
+double vlasov_fpo_diffI_vol_3x_ser_p1(const double dt, const double* dv,
+                                      const double* fIn,
+                                      const double* gIn,
+                                      double *fOut) {
   const double Jxx = 16/(dv[0]*dv[0]*dv[0]*dv[0]);
   const double Jyy = 16/(dv[1]*dv[1]*dv[1]*dv[1]);
   const double Jzz = 16/(dv[2]*dv[2]*dv[2]*dv[2]);

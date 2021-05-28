@@ -89,8 +89,7 @@ end
 
 
 function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
-   -- Run the KineticSpecies 'createSolver()' to initialize the
-   -- collisions solver.
+   -- Run the KineticSpecies 'createSolver()' to initialize the collisions solver.
    VlasovSpecies.super.createSolver(self)
 
    -- External forces are accumulated to the electric field part of
@@ -164,10 +163,10 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
       moment     = "FiveMoments",
    }
    self.calcMaxwell = Updater.MaxwellianOnBasis {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confGrid   = self.confGrid,
-      confBasis  = self.confBasis,
+      onGrid      = self.grid,
+      phaseBasis  = self.basis,
+      confGrid    = self.confGrid,
+      confBasis   = self.confBasis,
    }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
@@ -212,6 +211,9 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
          onGhosts = false
       }
    end
+
+   -- Create species source solvers.
+   for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
 
    self.tmCouplingMom = 0.0    -- For timer.
 end
@@ -908,12 +910,10 @@ function VlasovSpecies:createDiagnostics()
    -- Allocate space to store moments and create moment updater.
    local function allocateDiagnosticMoments(moments, weakMoments, bc)
       local label = ""
-      local phaseGrid = self.grid
-      local confGrid = self.confGrid
+      local phaseGrid, confGrid = self.grid, self.confGrid
       if bc then
          label = bc:label()
-         phaseGrid = bc:getBoundaryGrid()
-         confGrid = bc:getConfBoundaryGrid()
+         phaseGrid, confGrid = bc:getBoundaryGrid(), bc:getConfBoundaryGrid()
       end
 
       for i, mom in pairs(moments) do
@@ -922,13 +922,14 @@ function VlasovSpecies:createDiagnostics()
                onGrid        = confGrid,
                numComponents = self.confBasis:numBasis()*numComp[mom],
                ghost         = {1, 1},
-               metaData = {
+               metaData      = {
                   polyOrder = self.basis:polyOrder(),
                   basisType = self.basis:id(),
-                  charge = self.charge,
-                  mass = self.mass,
+                  charge    = self.charge,
+                  mass      = self.mass,
                },
             }
+     
             self.diagnosticMomentUpdaters[mom..label] = Updater.DistFuncMomentCalc {
                onGrid     = phaseGrid,
                phaseBasis = self.basis,
@@ -945,11 +946,11 @@ function VlasovSpecies:createDiagnostics()
             onGrid        = confGrid,
             numComponents = self.confBasis:numBasis()*numComp[mom],
             ghost         = {1, 1},
-            metaData = {
+            metaData      = {
                polyOrder = self.basis:polyOrder(),
                basisType = self.basis:id(),
-               charge = self.charge,
-               mass = self.mass,
+               charge    = self.charge,
+               mass      = self.mass,
             },	    	    
          }
 
@@ -965,16 +966,12 @@ function VlasovSpecies:createDiagnostics()
                -- compute dependencies if not already computed: M0, M1i
                if self.diagnosticMomentUpdaters["M0"..label].tCurr ~= tm then
                   local fIn = self:rkStepperFields()[1]
-                  if bc then
-                     fIn = bc:getBoundaryFluxRate()
-                  end
+                  if bc then fIn = bc:getBoundaryFluxRate() end
                   self.diagnosticMomentUpdaters["M0"..label]:advance(tm, {fIn}, {self.diagnosticMomentFields["M0"..label]})
                end
                if self.diagnosticMomentUpdaters["M1i"..label].tCurr ~= tm then
                   local fIn = self:rkStepperFields()[1]
-                  if bc then
-                     fIn = bc:getBoundaryFluxRate()
-                  end
+                  if bc then fIn = bc:getBoundaryFluxRate() end
                   self.diagnosticMomentUpdaters["M1i"..label]:advance(tm, {fIn}, {self.diagnosticMomentFields["M1i"..label]})
                end
 
@@ -1121,15 +1118,7 @@ function VlasovSpecies:calcDiagnosticIntegratedMoments(tm)
 	 local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
 	 self.numDensityCalc:advance(tm, {sourceIz}, {self.srcIzM0})
 	 self.intCalcIz:advance( tm, {self.srcIzM0}, {self.intSrcIzM0} )       
-      end
-      
-      if self.hasRecycleBcs and label~="" then
-      	 if self.cdim == 1 or (self.cdim == 3 and string.match(label,"Z")) then
-      	    mom = "intM0Recycle"
-      	    self.diagnosticIntegratedMomentUpdaters[mom..label]:advance(
-      	       tm, {self.recycleTestFlux[label]}, {self.diagnosticIntegratedMomentFields[mom..label]})
-      	 end
-      end
+      end      
    end
 
    computeIntegratedMoments(self.diagnosticIntegratedMoments, fIn)
@@ -1521,7 +1510,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	       
 	       -- DistFuncMomentCalc Updater for fMaxwell	    
 	       self.calcFhatM0[label] = Updater.DistFuncMomentCalc {
-		  onGrid     = phaseGrid,
+                  onGrid     = phaseGrid,
 		  phaseBasis = self.basis,
 		  confBasis  = self.confBasis,
 		  moment     = mom,

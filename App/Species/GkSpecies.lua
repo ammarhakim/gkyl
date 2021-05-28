@@ -331,6 +331,9 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       }
    end
 
+   -- Create species source solvers.
+   for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
+
    self._firstMomentCalc = true  -- To avoid re-calculating moments when not evolving.
 
    self.timers = {couplingMom = 0., sources = 0.}
@@ -1023,8 +1026,8 @@ function GkSpecies:createDiagnostics()
 
    -- Allocate space to store moments and create moment updaters.
    local function allocateDiagnosticMoments(moments, weakMoments, bc)
-      local label = ""
-      local bmag  = self.bmag
+      local label   = ""
+      local bmag    = self.bmag
       local phaseGrid, confGrid = self.grid, self.confGrid
       if bc then
          label = bc:label()
@@ -1242,7 +1245,7 @@ function GkSpecies:createDiagnostics()
             end
          end
       end
-   end -- allocateDiagnosticMoments
+   end   -- allocateDiagnosticMoments
 
    organizeDiagnosticMoments(self.diagnosticMoments, self.diagnosticWeakMoments, self.diagnosticIntegratedMoments)
    allocateDiagnosticMoments(self.diagnosticMoments, self.diagnosticWeakMoments)
@@ -1278,11 +1281,11 @@ function GkSpecies:createDiagnostics()
    	 		     mass      = self.mass,},	    
    	 }
    	 self.bcGkM0fluxUpdater[label] = Updater.DistFuncMomentCalc {
-   	    onGrid = phaseGrid,
-   	    phaseBasis  = self.basis,
-   	    confBasis   = self.confBasis,
-   	    moment      = 'GkM0',
-   	    gkfacs      = {self.mass, bc.bmag},
+   	    onGrid     = phaseGrid,
+   	    phaseBasis = self.basis,
+   	    confBasis  = self.confBasis,
+   	    moment     = 'GkM0',
+   	    gkfacs     = {self.mass, bc.bmag},
    	 }
       end
    end
@@ -1585,9 +1588,7 @@ function GkSpecies:getNumDensity(rkIdx)
    return self.numDensityAux
 end
 
-function GkSpecies:getBackgroundDens()
-   return self.n0
-end
+function GkSpecies:getBackgroundDens() return self.n0 end
 
 function GkSpecies:getMomDensity(rkIdx)
    -- If no rkIdx specified, assume momDensity has already been calculated.

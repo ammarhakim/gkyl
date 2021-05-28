@@ -94,20 +94,20 @@ end
 
 -- advance method
 function PositivityRescale:advance(tCurr, inFld, outFld, computeDiagnostics, zeroOut)
-   local grid = self.grid
+   local grid      = self.grid
    local fIn, fOut = inFld[1], outFld[1]
 
-   local ndim = self.basis:ndim()
+   local ndim     = self.basis:ndim()
    local numBasis = self.basis:numBasis()
 
    if self._first then 
-      self.fInIndexer = fIn:genIndexer()
-      self.fInPtr = fIn:get(1)
-      self.fOutIndexer = fOut:genIndexer()
-      self.fOutPtr = fOut:get(1)
+      self.fInIndexer        = fIn:genIndexer()
+      self.fInPtr            = fIn:get(1)
+      self.fOutIndexer       = fOut:genIndexer()
+      self.fOutPtr           = fOut:get(1)
       self.del2ChangeIndexer = self.del2ChangeByCell:genIndexer()
-      self.del2ChangePtr = self.del2ChangeByCell:get(1)
-      self._first = false
+      self.del2ChangePtr     = self.del2ChangeByCell:get(1)
+      self._first            = false
    end
 
    if computeDiagnostics == nil then computeDiagnostics = true end
