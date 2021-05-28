@@ -24,13 +24,13 @@ function DiagnosticsImplBase:setGetF(perturbed, owner)
 end
 function DiagnosticsImplBase:setVolIntegral(volIntegralOwner)
    self.volIntegral = {}
-   self.volIntegral.comps1 = {}
-   function self.volIntegral.comps1:advance(tm, inFlds, outFlds)
-      volIntegralOwner.volIntegral.comps1:advance(tm, inFlds, outFlds)
+   self.volIntegral.scalar = {}
+   function self.volIntegral.scalar:advance(tm, inFlds, outFlds)
+      volIntegralOwner.volIntegral.scalar:advance(tm, inFlds, outFlds)
    end
-   self.volIntegral.compsVdim = {}
-   function self.volIntegral.compsVdim:advance(tm, inFlds, outFlds)
-      volIntegralOwner.volIntegral.compsVdim:advance(tm, inFlds, outFlds)
+   self.volIntegral.vector = {}
+   function self.volIntegral.vector:advance(tm, inFlds, outFlds)
+      volIntegralOwner.volIntegral.vector:advance(tm, inFlds, outFlds)
    end
 end
 function DiagnosticsImplBase:advance(time, inFlds, outFlds) end

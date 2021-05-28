@@ -29,7 +29,7 @@ local implementation = function()
    local _intMom = Proto(DiagsImplBase)
    function _intMom:fullInit(diagApp, specIn, field, owner)
       self.field    = DataStruct.DynVector { numComponents = specIn.nMoments }
-      self.updaters = specIn.volIntegral.compsN
+      self.updaters = specIn.volIntegral.vector
       self.done     = false
    end
    function _intMom:getType() return "integrated" end

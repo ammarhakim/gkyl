@@ -202,7 +202,7 @@ plasmaApp = Plasma.App {
 
       -- Diagnostics
       diagnostics = {"M0", "Upar", "Temp", "Beta"}, 
---      diagnostics = {"M0", "Upar", "Temp", "Beta","intM0", "intKE", "intHE", "intL2"},
+--      diagnostics = {"M0", "Upar", "Temp", "Beta","intM0", "intKE", "intEnergy", "intL2"},
       nDistFuncFrame = 1,
 
       randomseed = randomseed,
@@ -300,7 +300,7 @@ plasmaApp = Plasma.App {
 
       -- Diagnostics.
       diagnostics = {"M0", "Upar", "Temp", "Beta"}, 
---      diagnostics = {"M0", "Upar", "Temp", "Beta","intM0", "intKE", "intHE", "intL2"},
+--      diagnostics = {"M0", "Upar", "Temp", "Beta","intM0", "intKE", "intEnergy", "intL2"},
       nDistFuncFrame = 1,
 
       randomseed = randomseed,

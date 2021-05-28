@@ -338,7 +338,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
    -- Create an updater for volume integrals. Used by diagnostics.
    -- Placed in a table with key 'comps1' to keep consistency with VlasovSpecies (makes diagnostics simpler).
    self.volIntegral = {
-      comps1 = Updater.CartFieldIntegratedQuantCalc {
+      scalar = Updater.CartFieldIntegratedQuantCalc {
          onGrid = self.confGrid,   numComponents = 1,
          basis  = self.confBasis,  quantity      = "V",
       }

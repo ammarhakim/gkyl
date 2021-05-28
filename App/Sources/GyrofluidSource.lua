@@ -29,7 +29,7 @@ local sourceDiagImpl = function()
    function _intSrc:fullInit(diagApp, mySpecies, fieldIn, srcIn)
       self.srcName  = string.gsub(srcIn.name, srcIn.speciesName.."_", "")
       self.field    = DataStruct.DynVector { numComponents = srcIn.nMoments }
-      self.updaters = mySpecies.volIntegral.compsN
+      self.updaters = mySpecies.volIntegral.vector
       self.done     = false
    end
    function _intSrc:getType() return "integrated" end

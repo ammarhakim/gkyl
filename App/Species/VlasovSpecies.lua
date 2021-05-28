@@ -216,11 +216,11 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
 
    -- Create an updater for volume integrals. Used by diagnostics.
    self.volIntegral = {
-      comps1 = Updater.CartFieldIntegratedQuantCalc {
+      scalar = Updater.CartFieldIntegratedQuantCalc {
          onGrid = self.confGrid,   numComponents = 1,
          basis  = self.confBasis,  quantity      = "V",
       },
-      compsVdim = Updater.CartFieldIntegratedQuantCalc {
+      vector = Updater.CartFieldIntegratedQuantCalc {
          onGrid = self.confGrid,   numComponents = self.vdim,
          basis  = self.confBasis,  quantity      = "V",
       },

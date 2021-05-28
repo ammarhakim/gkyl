@@ -114,7 +114,7 @@ function GkSource:createDiagnostics(mySpecies, field)
 
       -- Change volume integral updater used in diagnostics so we output the time integrated vol integral.
       self.volIntegral = {
-         comps1 = Updater.CartFieldIntegratedQuantCalc {
+         scalar = Updater.CartFieldIntegratedQuantCalc {
             onGrid = self.confGrid,   numComponents = 1,    timeIntegrate = true,
             basis  = self.confBasis,  quantity      = "V",
          }

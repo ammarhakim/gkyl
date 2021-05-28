@@ -279,13 +279,13 @@ function FluidSpecies:createSolver(externalField)
       onGhosts  = true,
    }
    self.volIntegral = {
-      comps1 = Updater.CartFieldIntegratedQuantCalc {
+      scalar = Updater.CartFieldIntegratedQuantCalc {
          onGrid        = self.grid,
          basis         = self.basis,
          numComponents = 1,
          quantity      = "V"
       },
-      compsN = Updater.CartFieldIntegratedQuantCalc {
+      vector = Updater.CartFieldIntegratedQuantCalc {
          onGrid        = self.grid,
          basis         = self.basis,
          numComponents = self.nMoments,

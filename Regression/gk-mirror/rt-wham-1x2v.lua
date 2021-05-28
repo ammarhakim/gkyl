@@ -419,7 +419,7 @@ plasmaApp = Plasma.App {
          diagnostics = {"intM0", "intM2"},
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"M0", "Upar", "Temp", "Tperp", "Tpar", "intM0", "intM1", "intM2", "intKE", "intHE" },
+      diagnostics = {"M0", "Upar", "Temp", "Tperp", "Tpar", "intM0", "intM1", "intM2", "intKE", "intEnergy" },
       diagnosticBoundaryFluxMoments = {"GkM0", "GkM1", "GkM2", "GkUpar", "GkTemp", "GkEnergy"},
       diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
       randomseed = randomseed,
@@ -480,7 +480,7 @@ plasmaApp = Plasma.App {
          diagnostics = {"intM0", "intM2"},
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"M0", "Upar", "Temp", "Tperp", "Tpar", "intM0", "intM1", "intM2", "intKE", "intHE" },
+      diagnostics = {"M0", "Upar", "Temp", "Tperp", "Tpar", "intM0", "intM1", "intM2", "intKE", "intEnergy" },
       diagnosticBoundaryFluxMoments = {"GkM0", "GkM1", "GkM2", "GkUpar", "GkTemp", "GkEnergy"},
       diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
       randomseed = randomseed,

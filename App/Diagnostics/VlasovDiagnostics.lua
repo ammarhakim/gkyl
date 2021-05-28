@@ -169,7 +169,7 @@ local implementation = function()
    function _intM0:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M0 = diags["M0"].field
-      specIn.volIntegral.comps1:advance(tm, {M0}, {self.field})
+      specIn.volIntegral.scalar:advance(tm, {M0}, {self.field})
    end
 
    -- ~~~~ Integrated momentum density ~~~~~~~~~~~~~~~~~~~~~~
@@ -184,7 +184,7 @@ local implementation = function()
    function _intM1i:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M1i = diags["M1i"].field
-      specIn.volIntegral.compsVdim:advance(tm, {M1i}, {self.field})
+      specIn.volIntegral.vector:advance(tm, {M1i}, {self.field})
    end
 
    -- ~~~~ Integrated particle energy density ~~~~~~~~~~~~~~~~~~~~~~
@@ -199,7 +199,7 @@ local implementation = function()
    function _intM2:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M2 = diags["M2"].field
-      specIn.volIntegral.comps1:advance(tm, {M2}, {self.field})
+      specIn.volIntegral.scalar:advance(tm, {M2}, {self.field})
    end
 
    -- ~~~~ Integrated mean flow energy density ~~~~~~~~~~~~~~~~~~~~~~
@@ -214,7 +214,7 @@ local implementation = function()
    function _intM2Flow:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M2Flow = diags["M2Flow"].field
-      specIn.volIntegral.comps1:advance(tm, {M2Flow}, {self.field})
+      specIn.volIntegral.scalar:advance(tm, {M2Flow}, {self.field})
    end
 
    -- ~~~~ Integrated thermal energy density ~~~~~~~~~~~~~~~~~~~~~~
@@ -229,7 +229,7 @@ local implementation = function()
    function _intM2Thermal:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M2Thermal = diags["M2Thermal"].field
-      specIn.volIntegral.comps1:advance(tm, {M2Thermal}, {self.field})
+      specIn.volIntegral.scalar:advance(tm, {M2Thermal}, {self.field})
    end
 
    -- ~~~~ L2 norm of the distribution function ~~~~~~~~~~~~~~~~~~~~~~

@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Diagnostics for VlasovSpecies.
+-- Diagnostics for GkSpecies.
 --
 -- We assume that integrated diagnostics can depend on grid diagnostics, but
 -- not the other way around. We also assume that the integrated diagnostics are
@@ -256,14 +256,14 @@ local implementation = function()
    end
 
    -- ~~~~ Hamiltonian energy: total particle energy including potential energy ~~~~~~~~~~~~~~~~~~~~~~
-   local _HE = Proto(DiagsImplBase)
-   function _HE:fullInit(diagApp, specIn, fieldIn, owner)
+   local _Energy = Proto(DiagsImplBase)
+   function _Energy:fullInit(diagApp, specIn, fieldIn, owner)
       self.field = owner:allocMoment()
       self.done  = false
    end
-   function _HE:getType() return "grid" end
-   function _HE:getDependencies() return {"M0","M2"} end
-   function _HE:advance(tm, inFlds, outFlds)
+   function _Energy:getType() return "grid" end
+   function _Energy:getDependencies() return {"M0","M2"} end
+   function _Energy:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M0, M2        = diags["M0"].field, diags["M2"].field
       local phi           = specIn.equation.phi
@@ -284,7 +284,7 @@ local implementation = function()
    function _intM0:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M0            = diags["M0"].fieldwJacobGeo
-      self.volIntegral.comps1:advance(tm, {M0}, {self.field})
+      self.volIntegral.scalar:advance(tm, {M0}, {self.field})
    end
 
    -- ~~~~ Integrated momentum density ~~~~~~~~~~~~~~~~~~~~~~
@@ -299,7 +299,7 @@ local implementation = function()
    function _intM1:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M1 = diags["M1"].fieldwJacobGeo
-      self.volIntegral.comps1:advance(tm, {M1}, {self.field})
+      self.volIntegral.scalar:advance(tm, {M1}, {self.field})
    end
 
    -- ~~~~ Integrated particle kinetic energy density ~~~~~~~~~~~~~~~~~~~~~~
@@ -314,7 +314,7 @@ local implementation = function()
    function _intM2:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M2 = diags["M2"].fieldwJacobGeo
-      self.volIntegral.comps1:advance(tm, {M2}, {self.field})
+      self.volIntegral.scalar:advance(tm, {M2}, {self.field})
    end
 
    -- ~~~~ Integrated particle kinetic energy density (with mass/2 factor) ~~~~~~~~~~~~~~~~~~~~~~
@@ -329,12 +329,12 @@ local implementation = function()
    function _intKE:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M2 = diags["M2"].fieldwJacobGeo
-      self.volIntegral.comps1:advance(tm, {M2, 0.5*specIn.mass}, {self.field})
+      self.volIntegral.scalar:advance(tm, {M2, 0.5*specIn.mass}, {self.field})
    end
 
    -- ~~~~ Integrated particle energy density (including potential) ~~~~~~~~~~~~~~~~~~~~~~
-   local _intHE = Proto(DiagsImplBase)
-   function _intHE:fullInit(diagApp, specIn, fieldIn, owner)
+   local _intEnergy = Proto(DiagsImplBase)
+   function _intEnergy:fullInit(diagApp, specIn, fieldIn, owner)
       self.field    = DataStruct.DynVector { numComponents = 1 }
       self.fieldAux = owner:allocMoment()
       self:setVolIntegral(specIn)
@@ -342,13 +342,13 @@ local implementation = function()
       --self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
       self.done        = false
    end
-   function _intHE:getDependencies() return {"HE"} end
-   function _intHE:getType() return "integrated" end
-   function _intHE:advance(tm, inFlds, outFlds)
+   function _intEnergy:getDependencies() return {"Energy"} end
+   function _intEnergy:getType() return "integrated" end
+   function _intEnergy:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
-      local ptclEnergy    = diags["HE"].field
+      local ptclEnergy    = diags["Energy"].field
       specIn.multiplyByJacobGeo(tm, ptclEnergy, self.fieldAux)
-      self.volIntegral.comps1:advance(tm, {self.fieldAux}, {self.field})
+      self.volIntegral.scalar:advance(tm, {self.fieldAux}, {self.field})
       --local specIn = inFlds[1]
       --local fIn    = self.getF()
       --local phi    = specIn.equation.phi
@@ -357,7 +357,7 @@ local implementation = function()
       --specIn.confWeakMultiply:advance(tm, {self.fieldAux[1], phi}, {self.fieldAux[1]})
       --self.fieldAux[1]:scale(specIn.charge)
       --self.fieldAux[1]:accumulate(0.5*specIn.mass, self.fieldAux[2])
-      --self.volIntegral.comps1:advance(tm, {self.fieldAux[1]}, {self.field})
+      --self.volIntegral.scalar:advance(tm, {self.fieldAux[1]}, {self.field})
    end
 
    -- ~~~~ Integrated mean flow energy density ~~~~~~~~~~~~~~~~~~~~~~
@@ -372,7 +372,7 @@ local implementation = function()
    function _intM2Flow:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M2Flow = diags["M2Flow"].field
-      self.volIntegral.comps1:advance(tm, {M2Flow}, {self.field})
+      self.volIntegral.scalar:advance(tm, {M2Flow}, {self.field})
    end
 
    -- ~~~~ Integrated thermal energy density ~~~~~~~~~~~~~~~~~~~~~~
@@ -387,7 +387,7 @@ local implementation = function()
    function _intM2Thermal:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M2Thermal = diags["M2Thermal"].field
-      self.volIntegral.comps1:advance(tm, {M2Thermal}, {self.field})
+      self.volIntegral.scalar:advance(tm, {M2Thermal}, {self.field})
    end
 
    -- ~~~~ L1 norm (absolute value) of the distribution function ~~~~~~~~~~~~~~~~~~~~~~
@@ -440,14 +440,14 @@ local implementation = function()
       Tpar      = _Tpar,
       Tperp     = _Tperp,
       Beta      = _Beta,
-      HE        = _HE,
+      Energy       = _Energy,
       intM0        = _intM0,
       intM1        = _intM1,
       intM2        = _intM2,
       intM2Flow    = _intM2Flow,
       intM2Thermal = _intM2Thermal,
       intKE        = _intKE,
-      intHE        = _intHE,
+      intEnergy    = _intEnergy,
       intL1        = _intL1,
       intL2        = _intL2,
    }

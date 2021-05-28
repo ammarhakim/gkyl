@@ -188,7 +188,7 @@ local implementation = function()
    local _intMom = Proto(DiagsImplBase)
    function _intMom:fullInit(diagApp, specIn, field, owner)
       self.field    = DataStruct.DynVector { numComponents = specIn.nMoments }
-      self.updaters = specIn.volIntegral.compsN
+      self.updaters = specIn.volIntegral.vector
       self.owner    = owner
       self.done     = false
    end
@@ -209,7 +209,7 @@ local implementation = function()
    function _intM0:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M0 = diags["M0"].field
-      specIn.volIntegral.comps1:advance(tm, {M0}, {self.field})
+      specIn.volIntegral.scalar:advance(tm, {M0}, {self.field})
    end
    
    -- ~~~~ Integrated momentum density (divided by mass) ~~~~~~~~~~~~~~~~~~~~~~
@@ -223,7 +223,7 @@ local implementation = function()
    function _intM1:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M1 = diags["M1"].field
-      specIn.volIntegral.comps1:advance(tm, {M1}, {self.field})
+      specIn.volIntegral.scalar:advance(tm, {M1}, {self.field})
    end
    
    -- ~~~~ Integrated energy density (divided by mass/2) ~~~~~~~~~~~~~~~~~~~~~~
@@ -237,7 +237,7 @@ local implementation = function()
    function _intM2:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M2 = diags["M2"].field
-      specIn.volIntegral.comps1:advance(tm, {M2}, {self.field})
+      specIn.volIntegral.scalar:advance(tm, {M2}, {self.field})
    end
    
    -- ~~~~ Integrated flow energy density (divided by mass) ~~~~~~~~~~~~~~~~~~~~~~
@@ -251,7 +251,7 @@ local implementation = function()
    function _intM2flow:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M2flow = diags["M2flow"].field
-      specIn.volIntegral.comps1:advance(tm, {M2flow}, {self.field})
+      specIn.volIntegral.scalar:advance(tm, {M2flow}, {self.field})
    end
    
    return {
