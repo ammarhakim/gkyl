@@ -151,8 +151,7 @@ plasmaApp = Plasma.App {
       bcx = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
 
       -- Diagnostics
-      diagnosticMoments = {"GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq"},
-      diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
+      diagnostics = {"M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
    },
 
    -- Gyrokinetic ions.
@@ -224,9 +223,7 @@ plasmaApp = Plasma.App {
       -- Boundary conditions.
       bcx = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
 
-      -- Diagnostics.
-      diagnosticMoments = {"GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq"},
-      diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
+      diagnostics = {"M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
 
    },
 
@@ -293,10 +290,7 @@ plasmaApp = Plasma.App {
       -- Boundary conditions.
       bcx = {Vlasov.Species.bcReflect, Vlasov.Species.bcReflect},
 
-      -- Diagnostics.
-      diagnosticMoments = {"M0", "u", "vtSq"},
-      diagnosticIntegratedMoments = {"intM0", "intM1i",
-      				     "intM2Flow", "intM2Thermal" },
+      diagnostics = {"M0", "Udrift", "VtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal"},
  
    },
    

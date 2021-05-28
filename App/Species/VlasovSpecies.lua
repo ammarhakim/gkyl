@@ -17,6 +17,8 @@ local Source         = require "App.Sources.VmSource"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
 local VlasovEq       = require "Eq.Vlasov"
+local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
+local VlasovDiags    = require "App.Diagnostics.VlasovDiagnostics"
 local ffi            = require "ffi"
 local xsys           = require "xsys"
 local lume           = require "Lib.lume"
@@ -211,6 +213,18 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
          onGhosts = false
       }
    end
+
+   -- Create an updater for volume integrals. Used by diagnostics.
+   self.volIntegral = {
+      scalar = Updater.CartFieldIntegratedQuantCalc {
+         onGrid = self.confGrid,   numComponents = 1,
+         basis  = self.confBasis,  quantity      = "V",
+      },
+      vector = Updater.CartFieldIntegratedQuantCalc {
+         onGrid = self.confGrid,   numComponents = self.vdim,
+         basis  = self.confBasis,  quantity      = "V",
+      },
+   }
 
    -- Create species source solvers.
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
@@ -622,7 +636,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          c:advance(tCurr, fIn, species, fRhsOut)   -- 'species' needed for cross-species collisions.
       end
    end
-   for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
+   for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
    
    -- Save boundary fluxes for diagnostics.
    if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
@@ -632,7 +646,20 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
 end
 
-function VlasovSpecies:createDiagnostics()
+function VlasovSpecies:createDiagnostics(field)
+   -- Run the KineticSpecies 'createDiagnostics()' (e.g. to create divideByJacobGeo()).
+   VlasovSpecies.super.createDiagnostics(self, field)
+
+   -- Create this species' diagnostics.
+   if self.tbl.diagnostics then
+      self.diagnostics[self.name] = DiagsApp{implementation = VlasovDiags()}
+      self.diagnostics[self.name]:fullInit(self, field, self)
+   end
+
+   for srcNm, src in lume.orderedIter(self.sources) do
+      self.diagnostics[self.name..srcNm] = src:createDiagnostics(self, field)
+   end
+
    local function contains(table, element)
      for _, value in pairs(table) do
        if value == element then
@@ -641,8 +668,6 @@ function VlasovSpecies:createDiagnostics()
      end
      return false
    end
-
-   for _, src in lume.orderedIter(self.sources) do src:createDiagnostics(self) end
 
    -- Create updater to compute volume-integrated moments
    -- function to check if integrated moment name is correct.
@@ -1361,7 +1386,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
             
       self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
       self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
-      self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
+      self.confPhaseWeakMultiply:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
    end
 
    -- For charge exchange.

@@ -75,8 +75,7 @@ sim = Plasma.App {
               Plasma.Species.bcExternal },
       feedbackBC = true,
       evolveBC   = true,
-      diagnosticMoments = { "M0", "M1i", "M2", "M3i", "vtSq", "u" },
-      diagnosticIntegratedMoments = {"intM0", "intM1i", "intM2Flow", "intM2Thermal" },
+      diagnostics = { "M0", "M1i", "M2", "M3i", "VtSq", "Udrift", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
    },
 
    -- Ions.
@@ -95,7 +94,7 @@ sim = Plasma.App {
       evolve = true,   -- Evolve species?
       bcx = { Plasma.Species.bcReflect,
               Plasma.Species.bcAbsorb },
-      diagnosticMoments = { "M0", "M1i", "M2", "M3i" },
+      diagnostics = { "M0", "M1i", "M2", "M3i" },
    },
    
    -- Field solver.

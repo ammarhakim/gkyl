@@ -77,8 +77,7 @@ plasmaApp = Plasma.App {
       end,
       evolve = true,    -- Evolve species?
       -- Write out density, flow, total energy, and heat flux moments.
-      diagnosticMoments           = { "M0", "M1i", "M2", "M3i" },
-      diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2Flow", "intM2Thermal", "intL2" },
+      diagnostics = { "M0", "M1i", "M2", "M3i", "intM0", "intM1i", "intM2Flow", "intM2Thermal", "intL2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'elc'},
          frequencies = {nuElc},
@@ -105,8 +104,7 @@ plasmaApp = Plasma.App {
       end,
       evolve = true,    -- Evolve species?
       -- Write out density, flow, total energy, and heat flux moments.
-      diagnosticMoments           = { "M0", "M1i", "M2", "M3i" },
-      diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2Flow", "intM2Thermal", "intL2" },
+      diagnostics = { "M0", "M1i", "M2", "M3i", "intM0", "intM1i", "intM2Flow", "intM2Thermal", "intL2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'ion'},
          frequencies = {nuIon},

@@ -36,8 +36,8 @@ perturbation = 1e-4
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = 1.0/wpe,            -- End time.
-   nFrame      = 1,                  -- Number of output frames.
+   tEnd        = 1.0/wpe,              -- End time.
+   nFrame      = 1,                    -- Number of output frames.
    lower       = {-math.pi/knumber},   -- Configuration space lower left.
    upper       = {math.pi/knumber},    -- Configuration space upper right.
    cells       = {64},                 -- Configuration space cells.
@@ -73,8 +73,7 @@ plasmaApp = Plasma.App {
       end,
       evolve = true, -- Evolve species?
       -- Write out density, flow, total energy, and heat flux moments.
-      diagnosticMoments = { "M0", "M1i", "M2", "M3i" },
-      diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2Flow", "intM2Thermal", "intL2" },
+      diagnostics = { "M0", "M1i", "M2", "M3i", "intM0", "intM1i", "intM2Flow", "intM2Thermal", "intL2" },
    },
 
    -- Field solver.

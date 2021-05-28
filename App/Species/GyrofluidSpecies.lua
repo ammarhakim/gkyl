@@ -141,15 +141,15 @@ function GyrofluidSpecies:createSolver(hasPhi, hasApar, externalField)
    end
 
    if self.deltaF then
-      self.calcDeltaFjacM0 = function(jacM0In)
+      self.minusBackgroundJacM0 = function(jacM0In)
          jacM0In:accumulateOffset(-1.0/self.mass, self.momBackground, self.mJacM0Off)
       end
-      self.calcDeltaFjacM1 = function(jacM1In)
+      self.minusBackgroundJacM1 = function(jacM1In)
          jacM1In:accumulateOffset(-1.0/self.mass, self.momBackground, self.mJacM1Off)
       end
    else
-      self.calcDeltaFjacM0 = function(jacM0In) end
-      self.calcDeltaFjacM1 = function(jacM1In) end
+      self.minusBackgroundJacM0 = function(jacM0In) end
+      self.minusBackgroundJacM1 = function(jacM1In) end
    end
 
    self.timers = {couplingMom=0., weakMom=0., sources=0.}
@@ -204,7 +204,7 @@ function GyrofluidSpecies:calcCouplingMomentsEvolve(tCurr, rkIdx, species)
       local momIn   = self:rkStepperFields()[rkIdx]
       local tmStart = Time.clock()
 
-      momIn = self.returnDeltaMom(momIn)  -- Compute and return fluctuations.
+      momIn = self.getMom_or_deltaMom(momIn)  -- Return full-F moments, or compute and return fluctuations.
 
       -- Calculate the parallel flow speed.
       self:uParCalc(tCurr, momIn, self.mJacM0, self.mJacM1, self.uParSelf)
@@ -268,19 +268,19 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, momIn, species, momRhsOut) end
 end
 
-function GyrofluidSpecies:createDiagnostics()  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
+function GyrofluidSpecies:createDiagnostics(field)  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
    -- Create this species' diagnostics.
    if self.tbl.diagnostics then
       self.diagnostics[self.name] = DiagsApp{implementation = GyrofluidDiags()}
-      self.diagnostics[self.name]:fullInit(self, self)
+      self.diagnostics[self.name]:fullInit(self, field, self)
    end
 
    for srcNm, src in lume.orderedIter(self.sources) do
-      self.diagnostics[self.name..srcNm] = src:createDiagnostics(self)
+      self.diagnostics[self.name..srcNm] = src:createDiagnostics(self, field)
    end
 
    for bcNm, bc in lume.orderedIter(self.nonPeriodicBCs) do
-      self.diagnostics[self.name..bcNm] = bc:createDiagnostics(self)
+      self.diagnostics[self.name..bcNm] = bc:createDiagnostics(self, field)
    end
 
    -- Many diagnostics require dividing by the Jacobian (if present).
@@ -319,7 +319,7 @@ function GyrofluidSpecies:getNumDensity(rkIdx)
 
    local tmStart = Time.clock()
    self.jacM0Aux:combineOffset(1./self.mass, momIn, self.mJacM0Off)
-   self.calcDeltaFjacM0(self.jacM0Aux)
+   self.minusBackgroundJacM0(self.jacM0Aux)
    self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
 
    return self.jacM0Aux
@@ -336,7 +336,7 @@ function GyrofluidSpecies:getMomDensity(rkIdx)
 
    local tmStart = Time.clock()
    self.jacM1Aux:combineOffset(1./self.mass, momIn, self.mJacM1Off)
-   self.calcDeltaFjacM1(self.jacM1Aux)
+   self.minusBackgroundJacM1(self.jacM1Aux)
    self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
 
    return self.jacM1Aux

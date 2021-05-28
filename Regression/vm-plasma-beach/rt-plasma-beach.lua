@@ -74,7 +74,7 @@ plasmaApp = Plasma.App {
       charge = qe, mass = me,
       -- velocity space grid
       lower = {-6.0*vtElc, -6.0*vtElc},
-      upper = {6.0*vtElc, 6.0*vtElc},
+      upper = { 6.0*vtElc,  6.0*vtElc},
       cells = {NVX, NVY},
       -- initial conditions
       init = function (t, xn)
@@ -90,7 +90,7 @@ plasmaApp = Plasma.App {
       bcx = {Plasma.Species.bcCopy, Plasma.Species.bcCopy},
       evolve = true, -- evolve species?
 
-      diagnosticMoments = { "M0", "M1i", "M2" }
+      diagnostics = { "M0", "M1i", "M2" }
    },
 
    -- protons
@@ -98,7 +98,7 @@ plasmaApp = Plasma.App {
       charge = qi, mass = mi,
       -- velocity space grid
       lower = {-6.0*vtIon, -6.0*vtIon},
-      upper = {6.0*vtIon, 6.0*vtIon},
+      upper = { 6.0*vtIon,  6.0*vtIon},
       cells = {NVX, NVY},
       -- initial conditions
       init = function (t, xn)
@@ -114,7 +114,7 @@ plasmaApp = Plasma.App {
       bcx = {Plasma.Species.bcCopy, Plasma.Species.bcCopy},
       evolve = false, -- evolve species?
 
-      diagnosticMoments = { "M0", "M1i", "M2" }
+      diagnostics = { "M0", "M1i", "M2" }
    },
 
    -- field solver

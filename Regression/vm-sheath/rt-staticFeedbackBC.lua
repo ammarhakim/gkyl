@@ -33,8 +33,8 @@ end
 sim = Plasma.App {
    logToFile = false,
 
-   tEnd        = 10/omega_pe,       -- End time.
-   nFrame      = 1,                 -- Number of output frames.
+   tEnd        = 10/omega_pe,        -- End time.
+   nFrame      = 1,                  -- Number of output frames.
    lower       = {0.0},              -- Configuration space lower left.
    upper       = {128.0*lambda_D},   -- Configuration space upper right.
    cells       = {128},              -- Configuration space cells.
@@ -72,8 +72,7 @@ sim = Plasma.App {
 	    },
       feedbackBC = true,
       evolveBC   = true,
-      diagnosticMoments = { "M0", "M1i", "M2", "M3i", "vtSq", "u" },
-      diagnosticIntegratedMoments = {"intM0", "intM1i", "intM2Flow", "intM2Thermal" },
+      diagnostics = { "M0", "M1i", "M2", "M3i", "VtSq", "Udrift", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
    },
 
    -- Ions.
@@ -92,7 +91,7 @@ sim = Plasma.App {
       evolve = true,   -- Evolve species?
       bcx = { Plasma.Species.bcReflect,
               Plasma.Species.bcAbsorb },
-      diagnosticMoments = { "M0", "M1i", "M2", "M3i" },
+      diagnostics = { "M0", "M1i", "M2", "M3i" },
    },
    
    -- Field solver.

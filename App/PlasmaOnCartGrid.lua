@@ -295,7 +295,6 @@ local function buildApplication(self, tbl)
       s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
       s:createSolver(hasE or extHasE, hasB or extHasB, externalField, hasB)
       s:initDist(externalField, species)
-      s:createDiagnostics()
    end
 
    -- Initialize fluid source solvers.
@@ -312,6 +311,11 @@ local function buildApplication(self, tbl)
    -- Initialize field (sometimes requires species to have been initialized).
    field:createSolver(species, externalField)
    field:initField(species)
+
+   -- Initialize diagnostic objects.
+   for _, s in lume.orderedIter(species) do
+      s:createDiagnostics(field)
+   end
 
    -- Apply species BCs.
    for _, s in lume.orderedIter(species) do

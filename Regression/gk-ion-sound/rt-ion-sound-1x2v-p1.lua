@@ -35,10 +35,10 @@ plasmaApp = Plasma.App {
    logToFile = true,
 
    tEnd        = tFinal,           -- End time.
-   nFrame      = 1,               -- Number of output frames.
+   nFrame      = 1,                -- Number of output frames.
    lower       = {xLower},         -- Configuration space lower left.
    upper       = {xUpper},         -- Configuration space upper right.
-   cells       = {8},             -- Configuration space cells.
+   cells       = {8},              -- Configuration space cells.
    basis       = "serendipity",    -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                -- Polynomial order.
    timeStepper = "rk3",            -- One of "rk2" or "rk3".
@@ -56,8 +56,7 @@ plasmaApp = Plasma.App {
 
    -- Gyrokinetic ions.
    ion = Plasma.Species {
-      charge = 1.0,
-      mass   = mIon,
+      charge = 1.0,  mass   = mIon,
       -- Velocity space grid.
       lower      = {-6.0*vtIon, 0.0},
       upper      = { 6.0*vtIon, mIon*((5.0*vtIon)^2)/(2.0*B0)},
@@ -66,12 +65,8 @@ plasmaApp = Plasma.App {
       -- Initial conditions.
       -- Specify background so that we can plot perturbed distribution and moments.
       background = Plasma.MaxwellianProjection{
-         density = function (t, xn)
-            return nIon
-         end,
-         temperature = function (t, xn)
-            return Ti
-         end,
+         density     = function (t, xn) return nIon end,
+         temperature = function (t, xn) return Ti end,
       },
       init = Plasma.MaxwellianProjection{
          density = function (t, xn)
@@ -81,16 +76,14 @@ plasmaApp = Plasma.App {
             local perturb  = alpha*math.cos(k*x)
             return nIon*(1.0+perturb)
          end,
-         temperature = function (t, xn)
-            return Ti
-         end,
+         temperature = function (t, xn) return Ti end,
       },
       coll = Plasma.LBOCollisions{
          collideWith = { 'ion' },
          frequencies = { nuIon },
       }, 
       evolve = true, -- Evolve species?
-      diagnosticMoments = {"GkM0", "GkM2", perturbed = false},
+      diagnostics = {"M0", "M2"},
    },
 
    adiabaticElectron = Plasma.AdiabaticSpecies {

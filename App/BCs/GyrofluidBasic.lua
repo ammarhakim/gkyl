@@ -228,12 +228,12 @@ function GyrofluidBasicBC:computeBoundaryFluxRate(dtIn)
    self.calcBoundaryFluxRateFunc(dtIn)
 end
 
-function GyrofluidBasicBC:createDiagnostics(mySpecies)
+function GyrofluidBasicBC:createDiagnostics(mySpecies, field)
    -- Create BC diagnostics.
    self.diagnostics = nil
    if self.tbl.diagnostics then
       self.diagnostics = DiagsApp{implementation = GyrofluidDiags()}
-      self.diagnostics:fullInit(mySpecies, self)
+      self.diagnostics:fullInit(mySpecies, field, self)
    end
    return self.diagnostics
 end

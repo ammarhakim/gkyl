@@ -18,6 +18,8 @@ local Lin            = require "Lib.Linalg"
 local xsys           = require "xsys"
 local Source         = require "App.Sources.GkSource"
 local VlasovEq       = require "Eq.Vlasov"
+local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
+local GkDiags        = require "App.Diagnostics.GkDiagnostics"
 local lume           = require "Lib.lume"
 
 local GkSpecies = Proto(KineticSpecies)
@@ -92,6 +94,8 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
 
       self.bmag        = assert(externalField.geo.bmag, "nil bmag")
       self.bmagInv     = externalField.geo.bmagInv
+      self.bmagInvSq   = self:allocMoment()
+      self.confWeakMultiply:advance(0., {self.bmagInv, self.bmagInv}, {self.bmagInvSq})
       self.jacobGeo    = externalField.geo.jacobGeo
       self.jacobGeoInv = externalField.geo.jacobGeoInv
    end
@@ -330,6 +334,15 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
          operation = "Multiply",
       }
    end
+
+   -- Create an updater for volume integrals. Used by diagnostics.
+   -- Placed in a table with key 'comps1' to keep consistency with VlasovSpecies (makes diagnostics simpler).
+   self.volIntegral = {
+      scalar = Updater.CartFieldIntegratedQuantCalc {
+         onGrid = self.confGrid,   numComponents = 1,
+         basis  = self.confBasis,  quantity      = "V",
+      }
+   }
 
    -- Create species source solvers.
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
@@ -744,7 +757,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       end
    end
 
-   for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
+   for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
 end
 
 function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
@@ -781,7 +794,20 @@ function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
    end
 end
 
-function GkSpecies:createDiagnostics()
+function GkSpecies:createDiagnostics(field)
+   -- Run the KineticSpecies 'createDiagnostics()' (e.g. to create divideByJacobGeo()).
+   GkSpecies.super.createDiagnostics(self, field)
+
+   -- Create this species' diagnostics.
+   if self.tbl.diagnostics then
+      self.diagnostics[self.name] = DiagsApp{implementation = GkDiags()}
+      self.diagnostics[self.name]:fullInit(self, field, self)
+   end
+
+   for srcNm, src in lume.orderedIter(self.sources) do
+      self.diagnostics[self.name..srcNm] = src:createDiagnostics(self, field)
+   end
+
    local function contains(table, element) return lume.any(table, function(e) return e==element end) end
 
    -- Create updater to compute volume-integrated moments
@@ -798,9 +824,6 @@ function GkSpecies:createDiagnostics()
    end
    self.diagnosticIntegratedMomentFields   = { }
    self.diagnosticIntegratedMomentUpdaters = { }
-   for _, src in lume.orderedIter(self.sources) do
-      src:createDiagnostics(self, self.diagnosticIntegratedMoments)
-   end
 
    -- Allocate space to store integrated moments and create integrated moment updaters.
    local function allocateDiagnosticIntegratedMoments(intMoments, bc, timeIntegrate)
@@ -893,12 +916,6 @@ function GkSpecies:createDiagnostics()
       weakBasis  = self.confBasis,
       operation  = "Divide",
       onGhosts   = true,
-   }
-   self.confPhaseMult = Updater.CartFieldBinOp {
-      onGrid     = self.grid,
-      weakBasis  = self.basis,
-      fieldBasis = self.confBasis,
-      operation  = "Multiply",
    }
 
    -- Sort moments into diagnosticMoments, diagnosticWeakMoments.
@@ -1189,8 +1206,8 @@ function GkSpecies:createDiagnostics()
                if self.diagnosticMomentUpdaters[mom..label].tCurr == tm then return end -- Return if already computed for this t.m
                local fIn, momOut = inFlds[1], outFlds[1]
 
-               local bmagInv = self.bmagInv
-               if bc then bmagInv = bc:evalOnConfBoundary(self.bmagInv) end
+               local bmagInvSq = self.bmagInvSq
+               if bc then bmagInvSq = bc:evalOnConfBoundary(self.bmagInvSq) end
 
                -- Compute dependencies if not already computed: GkTemp (GkM0 will be computed via GkTemp if necessary).
                if self.diagnosticMomentUpdaters["GkTemp"..label].tCurr ~= tm then
@@ -1200,8 +1217,7 @@ function GkSpecies:createDiagnostics()
                -- Do weak operations.
                self.weakMultiplication:advance(tm, {self.diagnosticMomentFields["GkM0"..label], 
                                                     self.diagnosticMomentFields["GkTemp"..label]}, {momOut})
-               self.weakMultiplication:advance(tm, {momOut, bmagInv}, {momOut})
-               self.weakMultiplication:advance(tm, {momOut, bmagInv}, {momOut})
+               self.weakMultiplication:advance(tm, {momOut, bmagInvSq}, {momOut})
                momOut:scale(2*Constants.MU0)
 
                self.diagnosticMomentUpdaters[mom..label].tCurr = tm -- mark as complete for this tm
@@ -1369,10 +1385,6 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tm)
 
    computeIntegratedMoments(self.diagnosticIntegratedMoments, fIn)
 
-   for nm, src in lume.orderedIter(self.sources) do
-      src:calcDiagnosticIntegratedMoments(tm, self)
-   end
-   
    if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
       for _, bc in ipairs(self.boundaryConditions) do
          computeIntegratedMoments(self.diagnosticIntegratedBoundaryFluxMoments, bc:getBoundaryFluxRate(), bc:label())
@@ -1470,11 +1482,12 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
 end
 
 function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
-   local fIn = self:rkStepperFields()[rkIdx]
    -- Compute moments needed in coupling to fields and collisions.
    if self.evolve or self._firstMomentCalc then
+      local fIn     = self:rkStepperFields()[rkIdx]
       local tmStart = Time.clock()
-      if self.deltaF then fIn:accumulate(-1.0, self.f0) end
+
+      fIn = self.getF_or_deltaF(fIn)  -- Return full-F, or compute and return fluctuations.
 
       if self.needSelfPrimMom and
          lume.any({unpack(self.momentFlags,1,4)},function(x) return x==false end) then -- No need to recompute if already computed.
@@ -1506,8 +1519,6 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
          self.momentFlags[1] = true
       end
 
-      if self.deltaF then fIn:accumulate(1.0, self.f0) end
-
       -- For ionization.
       if self.calcReactRate then
          local neuts = species[self.neutNmIz]
@@ -1530,7 +1541,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 
          self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
          self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
-         self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
+         self.confPhaseWeakMultiply:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
       end
 
       if self.calcCXSrc then
@@ -1579,9 +1590,10 @@ function GkSpecies:getNumDensity(rkIdx)
 
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
-      if self.deltaF then fIn:accumulate(-1.0, self.f0) end
+
+      fIn = self.getF_or_deltaF(fIn)
       self.numDensityCalc:advance(nil, {fIn}, { self.numDensityAux })
-      if self.deltaF then fIn:accumulate(1.0, self.f0) end
+
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
@@ -1597,9 +1609,10 @@ function GkSpecies:getMomDensity(rkIdx)
  
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
-      if self.deltaF then fIn:accumulate(-1.0, self.f0) end
+
+      fIn = self.getF_or_deltaF(fIn)
       self.momDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
-      if self.deltaF then fIn:accumulate(1.0, self.f0) end
+
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
@@ -1614,9 +1627,10 @@ function GkSpecies:getMomProjDensity(rkIdx)
  
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
-      if self.deltaF then fIn:accumulate(-1.0, self.f0) end
+
+      fIn = self.getF_or_deltaF(fIn)
       self.momProjDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
-      if self.deltaF then fIn:accumulate(1.0, self.f0) end
+
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
@@ -1631,9 +1645,10 @@ function GkSpecies:getEmModifier(rkIdx)
 
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
-      if self.deltaF then fIn:accumulate(-1.0, self.f0) end
+
+      fIn = self.getF_or_deltaF(fIn)
       self.momProjDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
-      if self.deltaF then fIn:accumulate(1.0, self.f0) end
+
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
@@ -1643,8 +1658,7 @@ end
 
 function GkSpecies:getPolarizationWeight(linearized)
    if linearized == false then 
-      self.weakMultiplication:advance(0.0, {self.numDensity, self.bmagInv}, {self.polarizationWeight})
-      self.weakMultiplication:advance(0.0, {self.polarizationWeight, self.bmagInv}, {self.polarizationWeight})
+      self.weakMultiplication:advance(0.0, {self.numDensity, self.bmagInvSq}, {self.polarizationWeight})
       self.polarizationWeight:scale(self.mass)
       return self.polarizationWeight
    else 

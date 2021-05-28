@@ -92,7 +92,7 @@ plasmaApp = Plasma.App {
       end,
       evolve              = true,
       evolveCollisionless = false,
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2", },
+      diagnostics = { "M0", "M1", "M2", },
       diagnosticIntegratedMoments = { "intM0", "intM1", "intM2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'square'},
@@ -125,7 +125,7 @@ plasmaApp = Plasma.App {
       end,
       evolve              = true,
       evolveCollisionless = false,
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      diagnostics = { "M0", "M1", "M2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
          frequencies = {nu, },

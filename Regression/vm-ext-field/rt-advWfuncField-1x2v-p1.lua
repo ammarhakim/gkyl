@@ -42,7 +42,7 @@ sim = Plasma.App {
 	 return maxwellian2D(1.0, vx, vy, 0.0, 0.0, 1.0)
       end,
       -- Diagnostics.
-      diagnosticMoments = { "M1i" },
+      diagnostics = { "M1i" },
    },
 
    -- Specified, time-dependent electromagnetic fields.

@@ -64,16 +64,15 @@ plasmaApp = Plasma.App {
    cflFrac     = 1.0,
 
    -- Decomposition for configuration space.
-   decompCuts = {1},    -- Cuts in each configuration direction.
-   useShared = false,   -- If to use shared memory.
+   decompCuts = {1},     -- Cuts in each configuration direction.
+   useShared  = false,   -- If to use shared memory.
 
    -- Boundary conditions for configuration space.
    periodicDirs = {1}, -- Periodic directions.
 
    -- Gyrokinetic electrons.
    electron = Plasma.Species {
-      charge = qe,
-      mass = me,
+      charge = qe,  mass = me,
       -- Velocity space grid.
       lower = {-6*vte},
       upper = { 6*vte},
@@ -104,13 +103,11 @@ plasmaApp = Plasma.App {
          exactScaleM0 = true,
       },
       evolve = true, -- Evolve species?
-      diagnosticMoments = {"GkM0", "GkM1", perturbed=true},
-      diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
+      diagnostics = {"perturbed", "M0", "M1", "intM0", "intM1", "intM2"},
    },
 
    ion = Plasma.Species {
-      charge = qi,
-      mass = mi,
+      charge = qi,  mass = mi,
       -- Velocity space grid.
       lower = {-6*vti},
       upper = { 6*vti},
@@ -128,8 +125,7 @@ plasmaApp = Plasma.App {
          exactScaleM0 = true,
       },
       evolve = true, -- Evolve species?
-      diagnosticMoments = {"GkM0", "GkM1"},
-      diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
+      diagnostics = {"M0", "M1", "intM0", "intM1", "intM2"},
    },
 
    -- Field solver.
@@ -142,9 +138,7 @@ plasmaApp = Plasma.App {
    -- Magnetic geometry.
    externalField = Plasma.Geometry {
       -- Background magnetic field.
-      bmag = function (t, xn)
-         return B
-      end,
+      bmag = function (t, xn) return B end,
       -- Geometry is not time-dependent.
       evolve = false,
    },

@@ -1,3 +1,5 @@
+-- Gkyl ------------------------------------------------------------------------
+--
 -- This is a general geometry GK sheath test.
 -- We use an analytical Solovev equilibrium and 
 -- generate a field-aligned coordinate mapping.
@@ -9,8 +11,8 @@
 -- is still included in this file for reference.
 -- To generate the geometry from scratch, comment out the
 -- fromFile parameter in the Plasma.Geometry table.
-
--- Plasma ------------------------------------------------------------------------
+--
+--------------------------------------------------------------------------------
 local Plasma    = (require "App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
 local Mpi       = require "Comm.Mpi"
@@ -65,9 +67,9 @@ Lz = 8 -- [m]
 sintheta = 2.4/Lz
 
 -- Source parameters.
-P_SOL = 3.4e6 -- [W], total SOL power, from experimental heating power
-P_src = P_SOL*Ly*Lz/(2*math.pi*Rc*Lpol) -- [W], fraction of total SOL power into flux tube
-xSource = Rc -- [m], source start coordinate
+P_SOL        = 3.4e6 -- [W], total SOL power, from experimental heating power
+P_src        = P_SOL*Ly*Lz/(2*math.pi*Rc*Lpol) -- [W], fraction of total SOL power into flux tube
+xSource      = Rc -- [m], source start coordinate
 lambdaSource = 0.005 -- [m], characteristic length scale of density and temperature
 
 -- Source profiles.
@@ -265,11 +267,11 @@ randomseed = 100000*Mpi.Comm_rank(Mpi.COMM_WORLD)+63--os.time()
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = 0.5e-6,                     -- End time.
-   nFrame      = 1,                     -- Number of output frames.
+   tEnd        = 0.5e-6,                    -- End time.
+   nFrame      = 1,                         -- Number of output frames.
    lower       = {.06, -math.pi, -math.pi}, -- Configuration space lower left.
-   upper       = {.1, math.pi, math.pi},   -- Configuration space upper right.
-   cells       = {4, 1, 8},              -- Configuration space cells.
+   upper       = {.1, math.pi, math.pi},    -- Configuration space upper right.
+   cells       = {4, 1, 8},                 -- Configuration space cells.
    mapc2p = function(xc)
       -- field-aligned coordinates (x,y,z)
       local x, y, z = xc[1], xc[2], xc[3]
@@ -302,43 +304,43 @@ plasmaApp = Plasma.App {
       cells = {8, 4},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
-              density = function (t, xn)
-                 local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
-                 local Ls              = Lz/4
-                 local effectiveSource = sourceDensity(t,{x,y,0})
-                 local c_ss            = math.sqrt(5/3*sourceTemperature(t,{x,y,0})/mi)
-                 local nPeak           = 4*math.sqrt(5)/3/c_ss*Ls*effectiveSource/2
-                 local perturb         = 0 
-                 if math.abs(z) <= Ls then
-                    return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2*(1+perturb)
-                 else
-                    return nPeak/2*(1+perturb)
-                 end
-              end,
-              temperature = function (t, xn)
-                 local x = xn[1]
-                 if (x < xSource + 3*lambdaSource) then 
-                    return 50*eV
-                 else 
-                    return 20*eV
-                 end
-              end,
-              scaleWithSourcePower = true,
+         density = function (t, xn)
+            local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
+            local Ls              = Lz/4
+            local effectiveSource = sourceDensity(t,{x,y,0})
+            local c_ss            = math.sqrt(5/3*sourceTemperature(t,{x,y,0})/mi)
+            local nPeak           = 4*math.sqrt(5)/3/c_ss*Ls*effectiveSource/2
+            local perturb         = 0 
+            if math.abs(z) <= Ls then
+               return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2*(1+perturb)
+            else
+               return nPeak/2*(1+perturb)
+            end
+         end,
+         temperature = function (t, xn)
+            local x = xn[1]
+            if (x < xSource + 3*lambdaSource) then 
+               return 50*eV
+            else 
+               return 20*eV
+            end
+         end,
+         scaleWithSourcePower = true,
       },
-      coll   = Plasma.LBOCollisions {
+      coll = Plasma.LBOCollisions {
          collideWith = {'electron'},
          frequencies = {nuElc},
       },
-      source = Plasma.MaxwellianProjection {
-                density = sourceDensity,
-                temperature = sourceTemperature,
-                power = P_src/2,
-                isSource = true,
+      source = Plasma.Source {
+         kind        = "Maxwellian",
+         density     = sourceDensity,
+         temperature = sourceTemperature,
+         power       = P_src/2,
+         diagnostics = {"intKE"},
       },
       evolve = true, -- Evolve species?
       --applyPositivity = true,
-      diagnosticMoments = {"GkM0", "GkUpar", "GkTemp", "GkBeta"}, 
-      diagnosticIntegratedMoments = {"intM0", "intM1", "intHE", "intSrcKE"},
+      diagnostics = {"M0", "Upar", "Temp", "Beta", "intM0", "intM1", "intEnergy" }, 
       diagnosticBoundaryFluxMoments = {"GkM0", "GkUpar", "GkTemp", "GkBeta", "GkEnergy"},
       diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
       randomseed = randomseed,
@@ -356,43 +358,42 @@ plasmaApp = Plasma.App {
       cells = {8, 4},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
-              density = function (t, xn)
-                 local x, y, z         = xn[1], xn[2], xn[3]
-                 local Ls              = Lz/4
-                 local effectiveSource = sourceDensity(t,{x,y,0})
-                 local c_ss            = math.sqrt(5/3*sourceTemperature(t,{x,y,0})/mi)
-                 local nPeak           = 4*math.sqrt(5)/3/c_ss*Ls*effectiveSource/2
-                 local perturb         = 0
-                 if math.abs(z) <= Ls then
-                    return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2*(1+perturb)
-                 else
-                    return nPeak/2*(1+perturb)
-                 end
-              end,
-              temperature = function (t, xn)
-                 local x = xn[1]
-                 if x < xSource + 3*lambdaSource then 
-                    return 50*eV
-                 else 
-                    return 20*eV
-                 end
-              end,
-              scaleWithSourcePower = true,
+         density = function (t, xn)
+            local x, y, z         = xn[1], xn[2], xn[3]
+            local Ls              = Lz/4
+            local effectiveSource = sourceDensity(t,{x,y,0})
+            local c_ss            = math.sqrt(5/3*sourceTemperature(t,{x,y,0})/mi)
+            local nPeak           = 4*math.sqrt(5)/3/c_ss*Ls*effectiveSource/2
+            local perturb         = 0
+            if math.abs(z) <= Ls then
+               return nPeak*(1+math.sqrt(1-(z/Ls)^2))/2*(1+perturb)
+            else
+               return nPeak/2*(1+perturb)
+            end
+         end,
+         temperature = function (t, xn)
+            local x = xn[1]
+            if x < xSource + 3*lambdaSource then 
+               return 50*eV
+            else 
+               return 20*eV
+            end
+         end,
+         scaleWithSourcePower = true,
       },
-      coll   = Plasma.LBOCollisions {
+      coll = Plasma.LBOCollisions {
          collideWith = {'ion'},
          frequencies = {nuIon},
       },
       source = Plasma.MaxwellianProjection {
-                density = sourceDensity,
-                temperature = sourceTemperature,
-                power = P_src/2,
-                isSource = true,
+         density     = sourceDensity,
+         temperature = sourceTemperature,
+         power       = P_src/2,
+         isSource    = true,
       },
       evolve = true, -- Evolve species?
       --applyPositivity = true,
-      diagnosticMoments = {"GkM0", "GkUpar", "GkTemp"}, 
-      diagnosticIntegratedMoments = {"intM0", "intM1", "intKE", "intHE"},
+      diagnostics = {"M0", "Upar", "Temp", "intM0", "intM1", "intKE", "intEnergy"}, 
       diagnosticBoundaryFluxMoments = {"GkM0", "GkUpar", "GkEnergy"},
       diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
       randomseed = randomseed,

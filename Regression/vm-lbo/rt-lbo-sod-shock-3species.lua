@@ -1,11 +1,10 @@
 -- Gkyl ------------------------------------------------------------------------
 --
---
-
 -- This test is just to check that the infrastructure supporting multiple
 -- collision operators in the same species works.
 -- The actual parameters may need to be adjusted later to make sure they
 -- are consistent with some underlying assumptions in cross-collisions.
+--
 
 local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell()
 
@@ -26,8 +25,8 @@ end
 app = Plasma.App {
    logToFile = false,
 
-   tEnd        = 0.015,             -- End time.
-   nFrame      = 1,               -- Number of frames to write.
+   tEnd        = 0.015,            -- End time.
+   nFrame      = 1,                -- Number of frames to write.
    lower       = {0.0},            -- Configuration space lower left.
    upper       = {1.0},            -- Configuration space upper right.
    cells       = {16},             -- Configuration space cells.
@@ -47,7 +46,7 @@ app = Plasma.App {
       charge = 0.0, mass = 1.0,
       -- Velocity space grid.
       lower = {-6.0},
-      upper = {6.0},
+      upper = { 6.0},
       cells = {8},
       -- Initial conditions.
       init = function (t, xn)
@@ -64,7 +63,7 @@ app = Plasma.App {
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
-      diagnosticMoments = { "M0", "M1i" },
+      diagnostics = { "M0", "M1i" },
       -- Collisions.
       collBGK = Plasma.BgkCollisions {
       	 collideWith = { "neut1", "neut2", "neut3" },
@@ -77,7 +76,7 @@ app = Plasma.App {
       charge = 0.0, mass = 1.0,
       -- Velocity space grid.
       lower = {-6.0},
-      upper = {6.0},
+      upper = { 6.0},
       cells = {8},
       -- Initial conditions.
       init = function (t, xn)
@@ -94,7 +93,7 @@ app = Plasma.App {
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
-      diagnosticMoments = { "M0", "M1i" },
+      diagnostics = { "M0", "M1i" },
      
       -- Collisions.
       collLBO = Plasma.LBOCollisions {
@@ -113,7 +112,7 @@ app = Plasma.App {
       charge = 0.0, mass = 1.0,
       -- Velocity space grid.
       lower = {-6.0},
-      upper = {6.0},
+      upper = { 6.0},
       cells = {8},
       -- Initial conditions.
       init = function (t, xn)
@@ -130,7 +129,7 @@ app = Plasma.App {
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
-      diagnosticMoments = { "M0", "M1i" },
+      diagnostics = { "M0", "M1i" },
      
       -- Collisions.
       collLBO = Plasma.LBOCollisions {

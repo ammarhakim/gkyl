@@ -201,8 +201,8 @@ plasmaApp = Plasma.App {
       bcz = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
 
       -- Diagnostics
-      diagnosticMoments = {"GkM0", "GkUpar", "GkTemp", "GkBeta"}, 
---      diagnosticIntegratedMoments = {"intM0", "intKE", "intHE", "intL2"},
+      diagnostics = {"M0", "Upar", "Temp", "Beta"}, 
+--      diagnostics = {"M0", "Upar", "Temp", "Beta","intM0", "intKE", "intEnergy", "intL2"},
       nDistFuncFrame = 1,
 
       randomseed = randomseed,
@@ -299,8 +299,8 @@ plasmaApp = Plasma.App {
       bcz = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
 
       -- Diagnostics.
-      diagnosticMoments = {"GkM0", "GkUpar", "GkTemp", "GkBeta"}, 
---      diagnosticIntegratedMoments = {"intM0", "intKE", "intHE", "intL2"},
+      diagnostics = {"M0", "Upar", "Temp", "Beta"}, 
+--      diagnostics = {"M0", "Upar", "Temp", "Beta","intM0", "intKE", "intEnergy", "intL2"},
       nDistFuncFrame = 1,
 
       randomseed = randomseed,
@@ -374,9 +374,8 @@ plasmaApp = Plasma.App {
       bcz = {Plasma.Vlasov.bcReflect, Plasma.Vlasov.bcReflect},
 
       -- Diagnostics.
-      diagnosticMoments = { "M0", "u", "vtSq"},
---      diagnosticIntegratedMoments = {"intM0", "intM1i",
---      				     "intM2Flow", "intM2Thermal" },
+      diagnostics = { "M0", "Udrift", "VtSq"},
+--      diagnostics = { "M0", "Udrift", "VtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal"},
    },
    
    -- Field solver.

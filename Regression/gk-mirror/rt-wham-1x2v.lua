@@ -412,15 +412,14 @@ plasmaApp = Plasma.App {
          collideWith = {'elc'},
          frequencies = {nuElc},
       },
-      source = Plasma.MaxwellianProjection {
+      source = Plasma.Source {
 --         fromFile    = "elc_fSourceIC.bp",
          density     = srcDenElc,
          temperature = srcTempElc,
-         isSource    = true,
+         diagnostics = {"intM0", "intM2"},
       },
       evolve = true, -- Evolve species?
-      diagnosticMoments = {"GkM0", "GkUpar", "GkTemp", "GkTperp", "GkTpar"},
-      diagnosticIntegratedMoments = {"intM0", "intM1", "intM2", "intKE", "intHE", "intSrcM0", "intSrcM2"},
+      diagnostics = {"M0", "Upar", "Temp", "Tperp", "Tpar", "intM0", "intM1", "intM2", "intKE", "intEnergy" },
       diagnosticBoundaryFluxMoments = {"GkM0", "GkM1", "GkM2", "GkUpar", "GkTemp", "GkEnergy"},
       diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
       randomseed = randomseed,
@@ -474,15 +473,14 @@ plasmaApp = Plasma.App {
          collideWith = {'ion'},
          frequencies = {nuIon},
       },
-      source = Plasma.MaxwellianProjection {
+      source = Plasma.Source {
 --         fromFile    = "ion_fSourceIC.bp",
          density     = srcDenIon,
          temperature = srcTempIon,
-         isSource    = true,
+         diagnostics = {"intM0", "intM2"},
       },
       evolve = true, -- Evolve species?
-      diagnosticMoments = {"GkM0", "GkUpar", "GkTemp", "GkTperp", "GkTpar"},
-      diagnosticIntegratedMoments = {"intM0", "intM1", "intM2", "intKE", "intHE", "intSrcM0", "intSrcM2"},
+      diagnostics = {"M0", "Upar", "Temp", "Tperp", "Tpar", "intM0", "intM1", "intM2", "intKE", "intEnergy" },
       diagnosticBoundaryFluxMoments = {"GkM0", "GkM1", "GkM2", "GkUpar", "GkTemp", "GkEnergy"},
       diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
       randomseed = randomseed,
