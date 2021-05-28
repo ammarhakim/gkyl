@@ -79,8 +79,7 @@ plasmaApp = Plasma.App {
          plasma      = "H",              -- Ion species element.
       },
 
-      -- Diagnostics.
-      diagnostics = { "M0", "M1i", "M2", "vtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
+      diagnostics = { "M0", "M1i", "M2", "VtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
    },
 
    -- Ions
@@ -121,7 +120,7 @@ plasmaApp = Plasma.App {
       },
 
       -- Diagnostics
-      diagnostics = { "M0", "M1i", "M2", "vtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
+      diagnostics = { "M0", "M1i", "M2", "VtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
    },
 
    neut = Plasma.Species {

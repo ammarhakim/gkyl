@@ -1386,7 +1386,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
             
       self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
       self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
-      self.confPhaseMult:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
+      self.confPhaseWeakMultiply:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
    end
 
    -- For charge exchange.
