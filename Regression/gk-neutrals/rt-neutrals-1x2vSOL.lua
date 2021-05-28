@@ -290,7 +290,7 @@ plasmaApp = Plasma.App {
       -- Boundary conditions.
       bcx = {Vlasov.Species.bcReflect, Vlasov.Species.bcReflect},
 
-      diagnostics = {"M0", "u", "vtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal"},
+      diagnostics = {"M0", "Udrift", "VtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal"},
  
    },
    

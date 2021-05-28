@@ -91,8 +91,7 @@ end
 
 
 function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
-   -- Run the KineticSpecies 'createSolver()' to initialize the
-   -- collisions solver.
+   -- Run the KineticSpecies 'createSolver()' to initialize the collisions solver.
    VlasovSpecies.super.createSolver(self)
 
    -- External forces are accumulated to the electric field part of
@@ -226,6 +225,9 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
          basis  = self.confBasis,  quantity      = "V",
       },
    }
+
+   -- Create species source solvers.
+   for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
 
    self.tmCouplingMom = 0.0    -- For timer.
 end

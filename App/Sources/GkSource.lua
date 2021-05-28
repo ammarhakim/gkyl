@@ -66,11 +66,11 @@ function GkSource:setConfGrid(grid) self.confGrid = grid end
 
 function GkSource:createSolver(mySpecies, extField)
    self.profile:fullInit(mySpecies)
-   self.profile:advance(0.0, {extField}, {mySpecies.distf[2]})
-   Mpi.Barrier(mySpecies.grid:commSet().sharedComm)
 
-   if not self.fSource then self.fSource = mySpecies:allocDistf() end
-   self.fSource:accumulate(1.0, mySpecies.distf[2])
+   self.fSource = mySpecies:allocDistf()
+
+   self.profile:advance(0.0, {extField}, {self.fSource})
+   Mpi.Barrier(mySpecies.grid:commSet().sharedComm)
 
    if self.positivityRescale then
       mySpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
@@ -90,7 +90,6 @@ function GkSource:createSolver(mySpecies, extField)
       self.powerScalingFac = self.power/intKE_data[1]
       self.fSource:scale(self.powerScalingFac)
    end
-   if mySpecies.scaleInitWithSourcePower then mySpecies.distf[1]:scale(self.powerScalingFac) end
 
    local numDensitySrc = mySpecies:allocMoment()
    local momDensitySrc = mySpecies:allocMoment()

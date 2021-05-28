@@ -528,6 +528,7 @@ function KineticSpecies:createSolver(externalField)
 
    -- Create solvers for collisions.
    for _, c in pairs(self.collisions) do c:createSolver(externalField) end
+
    if self.positivity then
       self.posChecker = Updater.PositivityCheck {
          onGrid = self.grid,
@@ -633,10 +634,12 @@ function KineticSpecies:initDist(extField)
       --    self.fReservoir:accumulate(1.0, self.distf[2])
       -- end
    end
-   
-   -- Set up profile function for species sources.
-   for nm, src in lume.orderedIter(self.sources) do src:createSolver(self, extField) end
 
+   if self.scaleInitWithSourcePower then 
+      -- MF 2021/05/27: This assumes there's only one source object per species in the input file.
+      for _, src in lume.orderedIter(self.sources) do self.distf[1]:scale(src.powerScalingFac) end
+   end
+   
    assert(initCnt>0, string.format("KineticSpecies: Species '%s' not initialized!", self.name))
    if self.fBackground then
       if backgroundCnt == 0 then self.fBackground:copy(self.distf[1]) end
