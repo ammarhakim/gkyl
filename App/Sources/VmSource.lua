@@ -67,16 +67,16 @@ function VmSource:setSpeciesName(nm) self.speciesName = nm end
 function VmSource:setConfBasis(basis) self.confBasis = basis end
 function VmSource:setConfGrid(grid) self.confGrid = grid end
 
-function VmSource:createSolver(thisSpecies, extField)
-   self.profile:fullInit(thisSpecies)
-   self.profile:advance(0.0, {extField}, {thisSpecies.distf[2]})
-   Mpi.Barrier(thisSpecies.grid:commSet().sharedComm)
+function VmSource:createSolver(mySpecies, extField)
+   self.profile:fullInit(mySpecies)
 
-   if not self.fSource then self.fSource = thisSpecies:allocDistf() end
-   self.fSource:accumulate(1.0, thisSpecies.distf[2])
+   self.fSource = mySpecies:allocDistf()
+
+   self.profile:advance(0.0, {extField}, {self.fSource})
+   Mpi.Barrier(mySpecies.grid:commSet().sharedComm)
 
    if self.positivityRescale then
-      thisSpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
+      mySpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
    end
 
    if self.power then
@@ -87,13 +87,12 @@ function VmSource:createSolver(thisSpecies, extField)
          quantity      = "V",
       }
       local intKE = DataStruct.DynVector{numComponents = 1}
-      thisSpecies.ptclEnergyCalc:advance(0.0, {self.fSource}, {thisSpecies.ptclEnergyAux})
-      calcInt:advance(0.0, {thisSpecies.ptclEnergyAux, thisSpecies.mass/2}, {intKE})
+      mySpecies.ptclEnergyCalc:advance(0.0, {self.fSource}, {mySpecies.ptclEnergyAux})
+      calcInt:advance(0.0, {mySpecies.ptclEnergyAux, mySpecies.mass/2}, {intKE})
       local _, intKE_data  = intKE:lastData()
       self.powerScalingFac = self.power/intKE_data[1]
       self.fSource:scale(self.powerScalingFac)
    end
-   if thisSpecies.scaleInitWithSourcePower then thisSpecies.distf[1]:scale(self.powerScalingFac) end
 end
 
 function VmSource:advance(tCurr, fIn, species, fRhsOut)

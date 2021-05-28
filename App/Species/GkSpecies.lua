@@ -331,6 +331,9 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       }
    end
 
+   -- Create species source solvers.
+   for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
+
    self._firstMomentCalc = true  -- To avoid re-calculating moments when not evolving.
 
    self.timers = {couplingMom = 0., sources = 0.}
