@@ -112,22 +112,6 @@ function VmSource:createDiagnostics(mySpecies, field)
    if self.tbl.diagnostics then
       self.diagnostics = DiagsApp{implementation = VlasovDiags()}
       self.diagnostics:fullInit(mySpecies, field, self)
-
-      -- Change volume integral updater used in diagnostics so we output the time integrated vol integral.
-      self.volIntegral = {
-         scalar = Updater.CartFieldIntegratedQuantCalc {
-            onGrid = self.confGrid,   numComponents = 1,    timeIntegrate = true,
-            basis  = self.confBasis,  quantity      = "V",
-         },
-         vector = Updater.CartFieldIntegratedQuantCalc {
-            onGrid = self.confGrid,   numComponents = mySpecies.vdim,  timeIntegrate = true,
-            basis  = self.confBasis,  quantity      = "V",
-         },
-      }
-      for _, diagNm in ipairs(self.diagnostics.diagGroups["integrated"]) do
-         local diag = self.diagnostics.diags[diagNm]
-         diag:setVolIntegral(self)
-      end
    end
 
    return self.diagnostics
