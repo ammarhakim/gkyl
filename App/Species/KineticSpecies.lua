@@ -490,37 +490,30 @@ function KineticSpecies:createSolver(externalField)
 
    -- Functions to compute fluctuations given the current moments and background,
    -- and the full-F moments given the fluctuations and background.
-   self.getF_or_deltaF = self.fluctuationBCs and function(fIn)
+   self.getF_or_deltaF = self.deltaF and function(fIn)
       self.flucF:combine(1.0, fIn, -1.0, self.fBackground)
       return self.flucF
    end or function(fIn) return fIn end
-   if self.fluctuationBCs then
-      self.minusBackgroundF = function(fIn) fIn:accumulate(-1.0, self.fBackground) end
-      self.calcFullF = function(fIn, syncFullFperiodicDirs)
-         fIn:accumulate(1.0, self.fBackground)
-         fIn:sync(syncFullFperiodicDirs)
-      end
-   else
-      self.minusBackgroundF = function(fIn) end
-      self.calcFullF        = function(fIn, syncFullFperiodicDirs) end
-   end
-   if self.perturbedDiagnostics then
-      self.calcDeltaF = function(fIn) self.flucF:combine(1.0, fIn, -1.0, self.fBackground) end
-   else
-      self.calcDeltaF = function(fIn) end
-   end
+   self.minusBackgroundF = self.fluctuationBCs
+                          and function(fIn) fIn:accumulate(-1.0, self.fBackground) end
+                          or function(fIn) end
+   self.calcFullF = self.fluctuationBCs and function(fIn, syncFullFperiodicDirs)
+      fIn:accumulate(1.0, self.fBackground)
+      fIn:sync(syncFullFperiodicDirs)
+   end or function(fIn, syncFullFperiodicDirs) end
+   self.calcDeltaF = self.perturbedDiagnostics
+                    and function(fIn) self.flucF:combine(1.0, fIn, -1.0, self.fBackground) end
+                    or function(fIn) end
 
    if self.fluctuationBCs or self.perturbedDiagnostics then
-      if self.perturbedDiagnostics then
-         self.writeFluctuation = function(tm, fr, fIn)
+      self.writeFluctuation = self.perturbedDiagnostics
+         and function(tm, fr, fIn)
             self.distIo:write(self.flucF, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, fr)
          end
-      else
-         self.writeFluctuation = function(tm, fr, fIn)
+         or function(tm, fr, fIn)
             self.calcDeltaF(fIn)
             self.distIo:write(self.flucF, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, fr)
          end
-      end
    else
       self.writeFluctuation = function(tm, fr, momIn) end
    end
@@ -1003,7 +996,7 @@ end
 function KineticSpecies:write(tm, force)
    if self.evolve then
 
-      self.calcDeltaF(self:rkStepperFields()[1])
+      self.calcDeltaF(self:rkStepperFields()[1])   -- Compute delta-F (if necessary) and put it in self.flucF.
 
       for _, dOb in pairs(self.diagnostics) do
          dOb:resetState(tm)   -- Reset booleans indicating if diagnostic has been computed.

@@ -344,15 +344,6 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
       }
    }
 
-   if self.deltaF then
-      self.returnFluctuation = function(fIn)
-         self.flucF:combine(1.0, fIn, -1.0, self.fBackground)
-         return self.flucF
-      end
-   else
-      self.returnFluctuation = function(fIn) return fIn end
-   end
-
    -- Create species source solvers.
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
 
@@ -1600,7 +1591,7 @@ function GkSpecies:getNumDensity(rkIdx)
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
 
-      self.returnFluctuation(fIn)
+      fIn = self.getF_or_deltaF(fIn)
       self.numDensityCalc:advance(nil, {fIn}, { self.numDensityAux })
 
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
@@ -1619,7 +1610,7 @@ function GkSpecies:getMomDensity(rkIdx)
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
 
-      self.returnFluctuation(fIn)
+      fIn = self.getF_or_deltaF(fIn)
       self.momDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
 
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
@@ -1637,7 +1628,7 @@ function GkSpecies:getMomProjDensity(rkIdx)
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
 
-      self.returnFluctuation(fIn)
+      fIn = self.getF_or_deltaF(fIn)
       self.momProjDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
 
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
@@ -1655,7 +1646,7 @@ function GkSpecies:getEmModifier(rkIdx)
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
 
-      self.returnFluctuation(fIn)
+      fIn = self.getF_or_deltaF(fIn)
       self.momProjDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
 
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
