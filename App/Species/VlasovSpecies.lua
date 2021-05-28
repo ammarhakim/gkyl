@@ -229,6 +229,14 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
    -- Create species source solvers.
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
 
+   -- This code is just for recyclingBCs. It shouldn't be here I think (MF 2021/05/28) but we'll hack it for now
+   -- and fix it when we move recyclingBCs to their own app in subsequent commits.
+   if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
+      for _, bc in ipairs(self.boundaryConditions) do
+         bc:initBcDiagnostics(self.cdim)
+      end
+   end
+
    self.tmCouplingMom = 0.0    -- For timer.
 end
 
@@ -761,7 +769,6 @@ function VlasovSpecies:createDiagnostics(field)
 
    if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
       for _, bc in ipairs(self.boundaryConditions) do
-         bc:initBcDiagnostics(self.cdim)
          allocateDiagnosticIntegratedMoments(self.diagnosticIntegratedBoundaryFluxMoments, bc, true)
       end
    end
@@ -1407,19 +1414,19 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    if self.hasRecycleBcs then
       tbl = self.tbl
       if tCurr == 0.0 then
-	 self.recycleFMaxwell = {}
-	 self.recycleFhat = {}
-	 self.scaledFhat = {}
-	 self.recycleDistF = {}
-	 self.recycleFhatM0 = {}
-	 self.recycleIonFlux = {}
-	 self.recycleCoef = {}
-	 self.recycleTestFlux = {}
-	 self.calcFhatM0 = {}
-	 self.recycleConfDiv = {}
-	 self.recycleConfPhaseMult = {}       
-	 self.projectRecycleFMaxwell = {}
-	 self.projectFluxFunc = {}
+         self.recycleFMaxwell = {}
+         self.recycleFhat = {}
+         self.scaledFhat = {}
+         self.recycleDistF = {}
+         self.recycleFhatM0 = {}
+         self.recycleIonFlux = {}
+         self.recycleCoef = {}
+         self.recycleTestFlux = {}
+         self.calcFhatM0 = {}
+         self.recycleConfDiv = {}
+         self.recycleConfPhaseMult = {}       
+         self.projectRecycleFMaxwell = {}
+         self.projectFluxFunc = {}
       end
       for _, bc in ipairs(self.boundaryConditions) do
 	 label = bc:label()
@@ -1428,8 +1435,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	       self.recycleIonNm = tbl.recycleIon
 	       -- Create objects and updaters needed for recycling wall BCs
 	       
-	       phaseGrid = bc:getBoundaryGrid()
-	       confGrid = bc:getConfBoundaryGrid()
+	       phaseGrid, confGrid = bc:getBoundaryGrid(), bc:getConfBoundaryGrid()
 	       
 	       -- for fMaxwell projection with density = 1.
 	       self.recycleFMaxwell[label] = DataStruct.Field {

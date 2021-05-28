@@ -347,6 +347,48 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
    -- Create species source solvers.
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
 
+   -- This code is just for recyclingBCs. It shouldn't be here I think (MF 2021/05/28) but we'll hack it for now
+   -- and fix it when we move recyclingBCs to their own app in subsequent commits.
+   if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
+      self.bcGkM0fluxUpdater = {}
+      self.bcGkM0fluxField = {}
+
+      for _, bc in ipairs(self.boundaryConditions) do
+
+         bc:initBcDiagnostics(self.cdim)  -- This just initializes confBoundaryGrid.
+
+         -- Need to evaluate bmag on boundary for moment calculations.
+	 phaseGrid, confGrid = bc:getBoundaryGrid(), bc:getConfBoundaryGrid()
+
+	 bc.bmag = DataStruct.Field {
+            onGrid        = bc:getConfBoundaryGrid(),
+            numComponents = self.bmag:numComponents(),
+            ghost         = {1,1},
+            metaData      = self.bmag:getMetaData(),
+         }
+         -- Need to copy because evalOnConfBoundary only returns a pointer to a field that belongs to bc (and could be overwritten).
+         bc.bmag:copy(bc:evalOnConfBoundary(self.bmag))
+   	 -- Field and Updater used for recycling wall boundary flux calculation
+	 local label = bc:label()
+	 self.bcGkM0fluxField[label] = DataStruct.Field {
+   	    onGrid        = confGrid,
+   	    numComponents = self.confBasis:numBasis(),
+   	    ghost         = {1, 1},
+   	    metaData      = {polyOrder = self.basis:polyOrder(),
+   	 		     basisType = self.basis:id(),
+   	 		     charge    = self.charge,
+   	 		     mass      = self.mass,},	    
+   	 }
+   	 self.bcGkM0fluxUpdater[label] = Updater.DistFuncMomentCalc {
+   	    onGrid     = phaseGrid,
+   	    phaseBasis = self.basis,
+   	    confBasis  = self.confBasis,
+   	    moment     = 'GkM0',
+   	    gkfacs     = {self.mass, bc.bmag},
+   	 }
+      end
+   end
+
    self._firstMomentCalc = true  -- To avoid re-calculating moments when not evolving.
 
    self.timers = {couplingMom = 0., sources = 0.}
@@ -752,7 +794,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
       for _, bc in ipairs(self.boundaryConditions) do
          bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)
-	 label = bc:label()
+	 local label = bc:label()
 	 self.bcGkM0fluxUpdater[label]:advance(tCurr, {bc:getBoundaryFluxFields()[outIdx]}, {self.bcGkM0fluxField[label]} )
       end
    end
@@ -1268,43 +1310,11 @@ function GkSpecies:createDiagnostics(field)
 
    if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
       organizeDiagnosticMoments(self.diagnosticBoundaryFluxMoments, self.diagnosticWeakBoundaryFluxMoments, self.diagnosticIntegratedBoundaryFluxMoments)
-      
-      self.bcGkM0fluxUpdater = {}
-      self.bcGkM0fluxField = {}
-
       for _, bc in ipairs(self.boundaryConditions) do
-         -- Need to evaluate bmag on boundary for moment calculations.
-	 phaseGrid, confGrid = bc:getBoundaryGrid(), bc:getConfBoundaryGrid()
-
-	 bc.bmag = DataStruct.Field {
-            onGrid        = bc:getConfBoundaryGrid(),
-            numComponents = self.bmag:numComponents(),
-            ghost         = {1,1},
-            metaData      = self.bmag:getMetaData(),
-         }
-         -- Need to copy because evalOnConfBoundary only returns a pointer to a field that belongs to bc (and could be overwritten).
-         bc.bmag:copy(bc:evalOnConfBoundary(self.bmag))
          allocateDiagnosticMoments(self.diagnosticBoundaryFluxMoments, self.diagnosticWeakBoundaryFluxMoments, bc)
-   	 -- Field and Updater used for recycling wall boundary flux calculation
-	 label = bc:label()
-	 self.bcGkM0fluxField[label] = DataStruct.Field {
-   	    onGrid        = confGrid,
-   	    numComponents = self.confBasis:numBasis(),
-   	    ghost         = {1, 1},
-   	    metaData      = {polyOrder = self.basis:polyOrder(),
-   	 		     basisType = self.basis:id(),
-   	 		     charge    = self.charge,
-   	 		     mass      = self.mass,},	    
-   	 }
-   	 self.bcGkM0fluxUpdater[label] = Updater.DistFuncMomentCalc {
-   	    onGrid     = phaseGrid,
-   	    phaseBasis = self.basis,
-   	    confBasis  = self.confBasis,
-   	    moment     = 'GkM0',
-   	    gkfacs     = {self.mass, bc.bmag},
-   	 }
       end
    end
+
 end
 
 function GkSpecies:calcDiagnosticIntegratedMoments(tm)
