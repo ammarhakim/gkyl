@@ -490,19 +490,18 @@ function KineticSpecies:createSolver(externalField)
 
    -- Functions to compute fluctuations given the current moments and background,
    -- and the full-F moments given the fluctuations and background.
+   self.getF_or_deltaF = self.fluctuationBCs and function(fIn)
+      self.flucF:combine(1.0, fIn, -1.0, self.fBackground)
+      return self.flucF
+   end or function(fIn) return fIn end
    if self.fluctuationBCs then
       self.minusBackgroundF = function(fIn) fIn:accumulate(-1.0, self.fBackground) end
-      self.returnDeltaF     = function(fIn)
-         self.flucF:combine(1.0, fIn, -1.0, self.fBackground)
-         return self.flucF
-      end
       self.calcFullF = function(fIn, syncFullFperiodicDirs)
          fIn:accumulate(1.0, self.fBackground)
          fIn:sync(syncFullFperiodicDirs)
       end
    else
       self.minusBackgroundF = function(fIn) end
-      self.returnDeltaF     = function(fIn) return fIn end
       self.calcFullF        = function(fIn, syncFullFperiodicDirs) end
    end
    if self.perturbedDiagnostics then

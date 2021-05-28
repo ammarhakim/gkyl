@@ -1496,7 +1496,7 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       local fIn     = self:rkStepperFields()[rkIdx]
       local tmStart = Time.clock()
 
-      fIn = self.returnDeltaF(fIn)  -- Compute and return fluctuations.
+      fIn = self.getF_or_deltaF(fIn)  -- Return full-F, or compute and return fluctuations.
 
       if self.needSelfPrimMom and
          lume.any({unpack(self.momentFlags,1,4)},function(x) return x==false end) then -- No need to recompute if already computed.

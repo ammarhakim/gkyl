@@ -204,7 +204,7 @@ function GyrofluidSpecies:calcCouplingMomentsEvolve(tCurr, rkIdx, species)
       local momIn   = self:rkStepperFields()[rkIdx]
       local tmStart = Time.clock()
 
-      momIn = self.returnDeltaMom(momIn)  -- Compute and return fluctuations.
+      momIn = self.getMom_or_deltaMom(momIn)  -- Return full-F moments, or compute and return fluctuations.
 
       -- Calculate the parallel flow speed.
       self:uParCalc(tCurr, momIn, self.mJacM0, self.mJacM1, self.uParSelf)

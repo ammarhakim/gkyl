@@ -337,19 +337,18 @@ function FluidSpecies:createSolver(externalField)
 
    -- Functions to compute fluctuations given the current moments and background,
    -- and the full-F moments given the fluctuations and background.
+   self.getMom_or_deltaMom = self.fluctuationBCs and function(momIn)
+      self.flucMom:combine(1.0, momIn, -1.0, self.momBackground)
+      return self.flucMom
+   end or function(momIn) return momIn end
    if self.fluctuationBCs then 
       self.minusBackgroundMom = function(momIn) momIn:accumulate(-1.0, self.momBackground) end
-      self.returnDeltaMom     = function(momIn)
-         self.flucMom:combine(1.0, momIn, -1.0, self.momBackground)
-         return self.flucMom
-      end
       self.calcFullMom = function(momIn, syncFullFperiodicDirs)
          momIn:accumulate(1.0, self.momBackground)
          momIn:sync(syncFullFperiodicDirs)
       end
    else
       self.minusBackgroundMom = function(momIn) end
-      self.returnDeltaMom = function(momIn) return momIn end
       self.calcFullMom    = function(momIn, syncFullFperiodicDirs) end 
    end
    if self.perturbedDiagnostics then
