@@ -29,6 +29,9 @@ function AdiabaticBasicBC:fullInit(speciesTbl)
    self.saveFlux    = tbl.saveFlux or false
 end
 
+function AdiabaticBasicBC:setConfBasis(basis) self.basis = basis end
+function AdiabaticBasicBC:setConfGrid(grid) self.grid = grid end
+
 function AdiabaticBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
    -- The idea is that by setting the plasma quantities to zero in the
    -- ghost cell nothing is transported into the domain, and whatever is transported

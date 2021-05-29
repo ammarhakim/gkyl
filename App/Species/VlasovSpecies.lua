@@ -19,29 +19,53 @@ local Updater        = require "Updater"
 local VlasovEq       = require "Eq.Vlasov"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local VlasovDiags    = require "App.Diagnostics.VlasovDiagnostics"
+local BasicBC        = require "App.BCs.VlasovBasic"
 local ffi            = require "ffi"
 local xsys           = require "xsys"
 local lume           = require "Lib.lume"
 
 local VlasovSpecies = Proto(KineticSpecies)
 
--- Add constants to object indicate various supported boundary conditions.
-local SP_BC_ABSORB  = 1
-local SP_BC_REFLECT = 3
+-- AHH: This was 2 but seems that is unstable. So using plain copy.
+
 local SP_BC_EXTERN  = 4
-local SP_BC_COPY    = 5
+local SP_BC_RECYCLE = 7
+VlasovSpecies.bcExternal = SP_BC_EXTERN     -- Load external BC file.
+VlasovSpecies.bcZeroFlux = SP_BC_ZEROFLUX
+VlasovSpecies.bcRecycle  = SP_BC_RECYCLE
+
+-- ............. Backwards compatible treatment of BCs .....................--
+-- Add constants to object indicate various supported boundary conditions.
+local SP_BC_ABSORB    = 1
+local SP_BC_REFLECT   = 3
+local SP_BC_COPY      = 5
 -- AHH: This was 2 but seems that is unstable. So using plain copy.
 local SP_BC_OPEN      = SP_BC_COPY
 local SP_BC_ZEROFLUX  = 6
-local SP_BC_RECYCLE   = 7
-
+VlasovSpecies.bcCopy      = SP_BC_COPY       -- Copy stuff.
 VlasovSpecies.bcAbsorb    = SP_BC_ABSORB     -- Absorb all particles.
 VlasovSpecies.bcOpen      = SP_BC_OPEN       -- Zero gradient.
-VlasovSpecies.bcCopy      = SP_BC_COPY       -- Copy stuff.
 VlasovSpecies.bcReflect   = SP_BC_REFLECT    -- Specular reflection.
-VlasovSpecies.bcExternal  = SP_BC_EXTERN     -- Load external BC file.
 VlasovSpecies.bcZeroFlux  = SP_BC_ZEROFLUX
-VlasovSpecies.bcRecycle   = SP_BC_RECYCLE
+
+function VlasovSpecies:makeBcApp(bcIn)
+   local bcOut
+   if bcIn == SP_BC_COPY then
+      bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
+   elseif bcIn == SP_BC_ABSORB then
+      bcOut = BasicBC{kind="absorb", diagnostics={}, saveFlux=false}
+   elseif bcIn == SP_BC_OPEN then
+      -- AHH: open seems unstable. So using plain copy.
+      bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
+   elseif bcIn == SP_BC_REFLECT then
+      bcOut = BasicBC{kind="reflect", diagnostics={}, saveFlux=false}
+   elseif bcIn == SP_BC_ZEROFLUX then
+      bcOut = BasicBC{kind="zeroFlux", diagnostics={}, saveFlux=false}
+   end
+   return bcOut
+end
+
+-- ............. End of backwards compatibility for BCs .....................--
 
 function VlasovSpecies:alloc(nRkDup)
    -- Allocate distribution function.
@@ -125,9 +149,7 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
 
    -- Must apply zero-flux BCs in velocity directions.
    local zfd = { }
-   for d = 1, self.vdim do 
-     table.insert(self.zeroFluxDirections, self.cdim+d)
-   end
+   for d = 1, self.vdim do table.insert(self.zeroFluxDirections, self.cdim+d) end
 
    self.solver = Updater.HyperDisCont {
       onGrid             = self.grid,
@@ -652,6 +674,9 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)
       end
    end
+   for _, bc in ipairs(self.nonPeriodicBCs) do
+      bc:storeBoundaryFlux(tCurr, outIdx, momRhsOut)   -- Save boundary fluxes.
+   end
 end
 
 function VlasovSpecies:createDiagnostics(field)
@@ -666,6 +691,10 @@ function VlasovSpecies:createDiagnostics(field)
 
    for srcNm, src in lume.orderedIter(self.sources) do
       self.diagnostics[self.name..srcNm] = src:createDiagnostics(self, field)
+   end
+
+   for bcNm, bc in lume.orderedIter(self.nonPeriodicBCs) do
+      self.diagnostics[self.name..bcNm] = bc:createDiagnostics(self, field)
    end
 
    local function contains(table, element)
@@ -1181,9 +1210,9 @@ function VlasovSpecies:bcRecycleFunc(dir, tm, idxIn, fIn, fOut)
    else
       l1 = 'FluxZ'
    end
-   if idxIn[dir] == globalRange:lower(dir) then 
-      l2 = 'lower' 
-   else 
+   if idxIn[dir] == globalRange:lower(dir) then
+      l2 = 'lower'
+   else
       l2 = 'upper'
    end
    label = l1..l2
@@ -1207,7 +1236,6 @@ function VlasovSpecies:bcRecycleFunc(dir, tm, idxIn, fIn, fOut)
    self.basis:flipSign(dir+self.cdim, fOut, fOut)
 end
 
-
 function VlasovSpecies:bcExternFunc(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "flip".
    local numBasis = self.basis:numBasis()
@@ -1220,7 +1248,7 @@ function VlasovSpecies:bcExternFunc(dir, tm, idxIn, fIn, fOut)
    local externalBCFunction = self.externalBCFunction:get(exIdxr(velIdx))
    if velIdx[1] ~= 0 and velIdx[1] ~= self.grid:numCells(2) + 1 then
       for i = 1, numBasis do
-	 fOut[i] = 0
+        fOut[i] = 0
          for j = 1, numBasis do
             fOut[i] = fOut[i] + fIn[j]*externalBCFunction[(i - 1)*numBasis + j]
          end
@@ -1231,17 +1259,13 @@ end
 
 function VlasovSpecies:initExternalBC()
    tbl = self.tbl
-   local externalBC = assert(tbl.externalBC, "VlasovSpecies: Must define externalBC parameters")
+   local externalBC          = assert(tbl.externalBC, "VlasovSpecies: Must define externalBC parameters")
    local lower, upper, cells = {}, {}, {}
-   local GridConstructor = Grid.RectCart
-   local coordinateMap = {}
+   local GridConstructor     = Grid.RectCart
+   local coordinateMap       = {}
    if self.coordinateMap then
-      for d = 1, self.cdim do
-         table.insert(coordinateMap, function (z) return z end)
-      end
-      for d = 1, self.vdim do
-         table.insert(coordinateMap, self.coordinateMap[d])
-      end
+      for d = 1, self.cdim do table.insert(coordinateMap, function (z) return z end) end
+      for d = 1, self.vdim do table.insert(coordinateMap, self.coordinateMap[d]) end
       GridConstructor = Grid.NonUniformRectCart
    end
    for d = 1, self.cdim do
@@ -1253,32 +1277,24 @@ function VlasovSpecies:initExternalBC()
       cells[d + self.cdim] = self.grid:numCells(d + self.cdim)
    end
    local grid = GridConstructor {
-      lower = lower,
-      upper = upper,
+      lower = lower,  periodicDirs = {},
+      upper = upper,  mappings     = coordinateMap,
       cells = cells,
-      periodicDirs = {},
-      mappings = coordinateMap,
    }
    self.externalBCFunction = DataStruct.Field {
-      onGrid = grid,
+      onGrid        = grid,
       numComponents = self.basis:numBasis()*self.basis:numBasis(),
-      metaData = {
-         polyOrder = self.basis:polyOrder(),
-         basisType = self.basis:id(),
-         charge = self.charge,
-         mass = self.mass,
+      metaData      = {
+         polyOrder = self.basis:polyOrder(),  charge = self.charge,
+         basisType = self.basis:id(),         mass   = self.mass,
       },
    }
    -- Calculate Bronold and Fehske reflection function coefficients
    local evaluateBronold = Updater.EvaluateBronoldFehskeBC {
-      onGrid = grid,
-      basis = self.basis,
-      cdim = self.cdim,
-      vdim = self.vdim,
-      electronAffinity = externalBC.electronAffinity,
-      effectiveMass = externalBC.effectiveMass,
-      elemCharge = externalBC.elemCharge,
-      me = externalBC.electronMass,
+      onGrid = grid,        electronAffinity = externalBC.electronAffinity,
+      basis  = self.basis,  effectiveMass    = externalBC.effectiveMass,
+      cdim   = self.cdim,   elemCharge       = externalBC.elemCharge,
+      vdim   = self.vdim,   me               = externalBC.electronMass,
       ignore = externalBC.ignore,
    }
    evaluateBronold:advance(0.0, {}, {self.externalBCFunction})

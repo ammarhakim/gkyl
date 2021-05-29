@@ -21,6 +21,7 @@ local Projection       = require "App.Projection"
 local ProjectionBase   = require "App.Projection.ProjectionBase"
 local Proto            = require "Lib.Proto"
 local SpeciesBase      = require "App.Species.SpeciesBase"
+local BCs              = require "App.BCs"
 local SourceBase       = require "App.Sources.SourceBase"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
@@ -197,22 +198,52 @@ function KineticSpecies:fullInit(appTbl)
    self.feedbackBC = xsys.pickBool(tbl.feedbackBC, false)
 
    -- Read in boundary conditions.
+   self.bcInDir = {{ }, { }, { }}   -- List of BCs to apply.
    -- Check to see if bc type is good is now done in createBc.
    if tbl.bcx then
-      self.bcx[1], self.bcx[2] = tbl.bcx[1], tbl.bcx[2]
-      if self.bcx[1] == nil or self.bcx[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
-      self.hasNonPeriodicBc = true
+      --self.bcx[1], self.bcx[2] = tbl.bcx[1], tbl.bcx[2]
+      --if self.bcx[1] == nil or self.bcx[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
+      --self.hasNonPeriodicBc = true
+      if tbl.bcx[1] == nil or tbl.bcx[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
+      self.bcInDir[1] = {tbl.bcx[1], tbl.bcx[2]}
    end
    if tbl.bcy then
-      self.bcy[1], self.bcy[2] = tbl.bcy[1], tbl.bcy[2]
-      if self.bcy[1] == nil or self.bcy[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
-      self.hasNonPeriodicBc = true
+      --self.bcy[1], self.bcy[2] = tbl.bcy[1], tbl.bcy[2]
+      --if self.bcy[1] == nil or self.bcy[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
+      --self.hasNonPeriodicBc = true
+      if tbl.bcy[1] == nil or tbl.bcy[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
+      self.bcInDir[2] = {tbl.bcy[1], tbl.bcy[2]}
    end
    if tbl.bcz then
-      self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
-      if self.bcz[1] == nil or self.bcz[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
-      self.hasNonPeriodicBc = true
+      --self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
+      --if self.bcz[1] == nil or self.bcz[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
+      --self.hasNonPeriodicBc = true
+      if tbl.bcz[1] == nil or tbl.bcz[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
+      self.bcInDir[3] = {tbl.bcz[1], tbl.bcz[2]}
    end
+   -- Initialize boundary conditions.
+   self.nonPeriodicBCs = {}
+   local dirLabel  = {'x','y','z'}
+   local edgeLabel = {'lower','upper'}
+   for d, bcsTbl in ipairs(self.bcInDir) do
+      for e, bcOb in ipairs(bcsTbl) do
+         local goodBC = false
+         local val    = bcOb
+         if not BCs.BCsBase.is(val) then val = self:makeBcApp(bcOb) end
+         if BCs.BCsBase.is(val) then
+            local nm = dirLabel[d]..edgeLabel[e]
+            self.nonPeriodicBCs[nm] = val
+            val:setSpeciesName(self.name)
+            val:setName(nm)   -- Do :setName after :setSpeciesName for BCs.
+            val:setDir(d)
+            val:setEdge(edgeLabel[e])
+            val:fullInit(tbl)
+            goodBC = true
+         end
+         assert(goodBC, "VlasovSpecies: bc not recognized.")
+      end
+   end
+   lume.setOrder(self.nonPeriodicBCs)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
    -- Collisions.
    self.collisions = {}
@@ -248,32 +279,28 @@ end
 
 function KineticSpecies:getCharge() return self.charge end
 function KineticSpecies:getMass() return self.mass end
+function KineticSpecies:getNdim() return self.ndim end
+function KineticSpecies:getVdim() return self.vdim end
+function KineticSpecies:setName(nm) self.name = nm end -- Needs to be called before fullInit().
 
-function KineticSpecies:getNdim()
-   return self.ndim
-end
-function KineticSpecies:getVdim()
-   return self.vdim
-end
-function KineticSpecies:setName(nm) -- Needs to be called before fullInit().
-   self.name = nm
-end
 function KineticSpecies:setCfl(cfl)
    self.cfl = cfl
    for _, c in pairs(self.collisions) do c:setCfl(cfl) end   
 end
-function KineticSpecies:setIoMethod(ioMethod)
-   self.ioMethod = ioMethod
-end
+
+function KineticSpecies:setIoMethod(ioMethod) self.ioMethod = ioMethod end
+
 function KineticSpecies:setConfBasis(basis)
    self.confBasis = basis
    for _, c in pairs(self.collisions) do c:setConfBasis(basis) end
    for _, src in pairs(self.sources) do src:setConfBasis(basis) end
+   for _, bc in pairs(self.nonPeriodicBCs) do bc:setConfBasis(basis) end
 end
 function KineticSpecies:setConfGrid(grid)
    self.confGrid = grid
    for _, c in pairs(self.collisions) do c:setConfGrid(grid) end
    for _, src in pairs(self.sources) do src:setConfGrid(grid) end
+   for _, bc in pairs(self.nonPeriodicBCs) do bc:setConfGrid(grid) end
 end
 
 function KineticSpecies:createGrid(confGridIn)
@@ -403,64 +430,6 @@ function KineticSpecies:allocVectorMoment(dim)
    return self:allocCartField(self.confGrid,dim*self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
 
--- Various functions to apply BCs of different types.
-function KineticSpecies:bcAbsorbFunc(dir, tm, idxIn, fIn, fOut)
-   -- Note that for bcAbsorb there is no operation on fIn,
-   -- so skinLoop (which determines indexing of fIn) does not matter 
-   for i = 1, self.basis:numBasis() do fOut[i] = 0.0 end
-end
-function KineticSpecies:bcOpenFunc(dir, tm, idxIn, fIn, fOut)
-   -- Requires skinLoop = "pointwise".
-   self.basis:flipSign(dir, fIn, fOut)
-end
-function KineticSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
-   -- Requires skinLoop = "pointwise".
-   for i = 1, self.basis:numBasis() do fOut[i] = fIn[i] end
-end
-
--- Function to construct a BC updater.
-function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop,
-				      evaluateFn)
-   return Updater.Bc {
-      onGrid             = self.grid,
-      boundaryConditions = bcList,
-      dir                = dir,
-      vdir               = vdir,
-      edge               = edge,
-      skinLoop           = skinLoop,
-      cdim               = self.cdim,
-      vdim               = self.vdim,
-      basis              = self.basis,
-      evaluate           = evaluateFn,
-      evolveFn           = self.evolveFnBC,
-      feedback           = self.feedbackBC,
-      confBasis          = self.confBasis,
-      confGrid           = self.confGrid,
-      inField            = self:rkStepperFields()[1],
-   }
-end
-
-function KineticSpecies:createBCs()
-   -- Functions to make life easier while reading in BCs to apply.
-   -- Note: appendBoundaryConditions defined in sub-classes.
-   local function handleBc(dir, bc)
-      if bc[1] then
-	 self:appendBoundaryConditions(dir, "lower", bc[1])
-      end
-      if bc[2] then
-	 self:appendBoundaryConditions(dir, "upper", bc[2])
-      end
-   end
-
-   -- Add various BCs to list of BCs to apply.
-   handleBc(1, self.bcx)
-   handleBc(2, self.bcy)
-   handleBc(3, self.bcz)
-
-   -- Calculate external boundary condition if applicable
-   if self.tbl.computeExternalBC then self:initExternalBC() end
-end
-
 function KineticSpecies:createSolver(externalField)
    -- Set up weak multiplication and division operators.
    self.confWeakMultiply = Updater.CartFieldBinOp {
@@ -515,11 +484,20 @@ function KineticSpecies:createSolver(externalField)
             self.distIo:write(self.flucF, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, fr)
          end
    else
-      self.writeFluctuation = function(tm, fr, momIn) end
+      self.writeFluctuation = function(tm, fr, fIn) end
+   end
+
+   if self.evolve then
+      self.applyBcFunc   = function(tCurr, fIn) return KineticSpecies["applyBcEvolve"](self, tCurr, fIn) end
+   else
+      self.applyBcFunc   = function(tCurr, fIn) return KineticSpecies["applyBcDontEvolve"](self, tCurr, fIn) end
    end
 
    -- Create solvers for collisions.
    for _, c in pairs(self.collisions) do c:createSolver(externalField) end
+
+   -- Create BC solvers.
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self) end
 
    if self.positivity then
       self.posChecker = Updater.PositivityCheck {
@@ -684,6 +662,8 @@ function KineticSpecies:getFlucF() return self.flucF end
 function KineticSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
 
+   for _, bc in pairs(self.nonPeriodicBCs) do bc:copyBoundaryFluxField(aIdx, outIdx) end
+
    if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
       for _, bc in ipairs(self.boundaryConditions) do
          bc:getBoundaryFluxFields()[outIdx]:copy(bc:getBoundaryFluxFields()[aIdx])
@@ -701,6 +681,10 @@ function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
    self:rkStepperFields()[outIdx]:combine(a, self:rkStepperFields()[aIdx])
    for i = 1, nFlds do -- Accumulate rest of the fields.
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
+   end
+
+   for _, bc in pairs(self.nonPeriodicBCs) do
+      bc:combineBoundaryFluxField(outIdx, a, aIdx, ...)
    end
 
    if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
@@ -771,44 +755,105 @@ function KineticSpecies:applyBcIdx(tCurr, idx, isFirstRk)
   end
 end
 
-function KineticSpecies:applyBc(tCurr, fIn)
+function KineticSpecies:applyBcDontEvolve(tCurr, fIn) end
+function KineticSpecies:applyBcEvolve(tCurr, fIn)
    -- fIn is total distribution function.
    local tmStart = Time.clock()
 
-   if self.evolve then 
-      local syncPeriodicDirsTrue = true
+   local syncPeriodicDirsTrue = true
 
-      if self.fluctuationBCs then
-         -- If fluctuation-only BCs, subtract off background before applying BCs.
-         fIn:accumulate(-1.0, self.fBackground)
-      end
+   if self.fluctuationBCs then
+      -- If fluctuation-only BCs, subtract off background before applying BCs.
+      fIn:accumulate(-1.0, self.fBackground)
+   end
 
-      -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
-      if self.hasNonPeriodicBc then
-         if self.feedbackBC then
-            for _, bc in ipairs(self.boundaryConditions) do
-               bc:advance(tCurr, {fIn}, {fIn})
-            end
-         else
-            for _, bc in ipairs(self.boundaryConditions) do
-               bc:advance(tCurr, {}, {fIn})
-            end
+   -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advance(tCurr, {}, {fIn}) end
+
+   -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
+   if self.hasNonPeriodicBc then
+      if self.feedbackBC then
+         for _, bc in ipairs(self.boundaryConditions) do
+            bc:advance(tCurr, {fIn}, {fIn})
          end
-      end
-
-      -- Apply periodic BCs (to only fluctuations if fluctuation BCs)
-      fIn:sync(syncPeriodicDirsTrue)
-
-      if self.fluctuationBCs then
-         -- Put back together total distribution
-         fIn:accumulate(1.0, self.fBackground)
- 
-         -- Update ghosts in total distribution, without enforcing periodicity.
-         fIn:sync(not syncPeriodicDirsTrue)
+      else
+         for _, bc in ipairs(self.boundaryConditions) do
+            bc:advance(tCurr, {}, {fIn})
+         end
       end
    end
 
+   -- Apply periodic BCs (to only fluctuations if fluctuation BCs)
+   fIn:sync(syncPeriodicDirsTrue)
+
+   if self.fluctuationBCs then
+      -- Put back together total distribution
+      fIn:accumulate(1.0, self.fBackground)
+ 
+      -- Update ghosts in total distribution, without enforcing periodicity.
+      fIn:sync(not syncPeriodicDirsTrue)
+   end
+
    self.bcTime = self.bcTime + (Time.clock()-tmStart)
+end
+function KineticSpecies:applyBc(tCurr, fIn) self.applyBcFunc(tCurr, fIn) end
+
+-- Various functions to apply BCs of different types.
+function KineticSpecies:bcAbsorbFunc(dir, tm, idxIn, fIn, fOut)
+   -- Note that for bcAbsorb there is no operation on fIn,
+   -- so skinLoop (which determines indexing of fIn) does not matter
+   for i = 1, self.basis:numBasis() do fOut[i] = 0.0 end
+end
+function KineticSpecies:bcOpenFunc(dir, tm, idxIn, fIn, fOut)
+   -- Requires skinLoop = "pointwise".
+   self.basis:flipSign(dir, fIn, fOut)
+end
+function KineticSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
+   -- Requires skinLoop = "pointwise".
+   for i = 1, self.basis:numBasis() do fOut[i] = fIn[i] end
+end
+
+-- Function to construct a BC updater.
+function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop,
+                                     evaluateFn)
+   return Updater.Bc {
+      onGrid             = self.grid,
+      boundaryConditions = bcList,
+      dir                = dir,
+      vdir               = vdir,
+      edge               = edge,
+      skinLoop           = skinLoop,
+      cdim               = self.cdim,
+      vdim               = self.vdim,
+      basis              = self.basis,
+      evaluate           = evaluateFn,
+      evolveFn           = self.evolveFnBC,
+      feedback           = self.feedbackBC,
+      confBasis          = self.confBasis,
+      confGrid           = self.confGrid,
+      inField            = self:rkStepperFields()[1],
+   }
+end
+
+function KineticSpecies:createBCs()
+   -- Functions to make life easier while reading in BCs to apply.
+   -- Note: appendBoundaryConditions defined in sub-classes.
+   local function handleBc(dir, bc)
+      if bc[1] then
+        self:appendBoundaryConditions(dir, "lower", bc[1])
+      end
+      if bc[2] then
+        self:appendBoundaryConditions(dir, "upper", bc[2])
+      end
+   end
+
+   -- Add various BCs to list of BCs to apply.
+   handleBc(1, self.bcx)
+   handleBc(2, self.bcy)
+   handleBc(3, self.bcz)
+
+   -- Calculate external boundary condition if applicable
+   if self.tbl.computeExternalBC then self:initExternalBC() end
 end
 
 function KineticSpecies:createDiagnostics(field)
@@ -989,17 +1034,20 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
     end
 end
 
-function KineticSpecies:isEvolving()
-   return self.evolve
-end
+function KineticSpecies:isEvolving() return self.evolve end
 
 function KineticSpecies:write(tm, force)
    if self.evolve then
 
-      self.calcDeltaF(self:rkStepperFields()[1])   -- Compute delta-F (if necessary) and put it in self.flucF.
+      -- Compute delta-F (if perturbed diagnostics are requested) and put it in self.flucF.
+      self.calcDeltaF(self:rkStepperFields()[1])
 
       for _, dOb in pairs(self.diagnostics) do
          dOb:resetState(tm)   -- Reset booleans indicating if diagnostic has been computed.
+      end
+
+      for _, bc in pairs(self.nonPeriodicBCs) do
+         bc:computeBoundaryFluxRate(self.dtGlobal[0])
       end
 
       if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics and tm > 0 then
@@ -1169,14 +1217,8 @@ function KineticSpecies:readRestart()
 end
 
 -- Timers.
-function KineticSpecies:totalSolverTime()
-   return self.solver.totalTime
-end
-function KineticSpecies:totalBcTime()
-   return self.bcTime
-end
-function KineticSpecies:intMomCalcTime()
-   return self.integratedMomentsTime
-end
+function KineticSpecies:totalSolverTime() return self.solver.totalTime end
+function KineticSpecies:totalBcTime() return self.bcTime end
+function KineticSpecies:intMomCalcTime() return self.integratedMomentsTime end
 
 return KineticSpecies

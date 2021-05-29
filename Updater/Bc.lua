@@ -62,9 +62,7 @@ function Bc:init(tbl)
       self._cDim = assert(
 	 tbl.cdim,
 	 "Updater.Bc: Must specify configuration space dimensions to apply with 'cdim'")
-      self._vdir = assert(
-	 tbl.vdir,
-	 "Updater.Bc: Must specify velocity direction to flip with 'vdir'")
+      self._vdir = self.dir + self._cDim
    end
 
    self._ghostRangeDecomp = nil -- Will be constructed on first call to advance.
@@ -238,9 +236,7 @@ function Bc:_advance(tCurr, inFld, outFld)
    	 range = self._ghostRng, numSplit = grid:numSharedProcs() }
 
       -- Get the function onto the boundary grid.
-      if self._evaluateFn then
-         self._ghostFld = createFieldFromField(self._boundaryGrid, qOut, {1,1})
-      end
+      if self._evaluateFn then self._ghostFld = createFieldFromField(self._boundaryGrid, qOut, {1,1}) end
    end
 
    if self._evaluateFn and (self._isFirst or self._feedback) then
@@ -301,8 +297,8 @@ function Bc:_advance(tCurr, inFld, outFld)
          end
       end
       self._projectEvaluateFn = ProjectOnBasis {
-         onGrid = self._boundaryGrid,
-         basis = self._basis,
+         onGrid   = self._boundaryGrid,
+         basis    = self._basis,
          evaluate = myEvaluateFn,
       }
    end
@@ -320,7 +316,7 @@ function Bc:_advance(tCurr, inFld, outFld)
    local ptrOut, ptrIn = qOut:get(1), qOut:get(1)
    local indexerOut, indexerIn = qOut:genIndexer(), qOut:genIndexer()
    if self._evaluateFn then
-      ptrIn = self._ghostFld:get(1)
+      ptrIn     = self._ghostFld:get(1)
       indexerIn = self._ghostFld:genIndexer()
    end
 

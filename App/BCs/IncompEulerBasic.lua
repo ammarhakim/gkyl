@@ -34,6 +34,9 @@ function IncompEulerBasicBC:fullInit(speciesTbl)
    end
 end
 
+function IncompEulerBasicBC:setConfBasis(basis) self.basis = basis end
+function IncompEulerBasicBC:setConfGrid(grid) self.grid = grid end
+
 function IncompEulerBasicBC:bcDirichlet(dir, tm, idxIn, fIn, fOut)
    -- Impose f=fBC at the boundary.
    if (idxIn[dir] == 1) then

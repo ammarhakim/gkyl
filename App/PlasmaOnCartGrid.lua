@@ -225,8 +225,8 @@ local function buildApplication(self, tbl)
    self._confGrid = confGrid
 
    -- Set conf grid for each fluid source.
-   for _, s in lume.orderedIter(fluidSources) do
-      s:setConfGrid(confGrid)
+   for _, flSrc in lume.orderedIter(fluidSources) do
+      flSrc:setConfGrid(confGrid)
    end  
 
    local cflMin = GKYL_MAX_DOUBLE
@@ -298,8 +298,8 @@ local function buildApplication(self, tbl)
    end
 
    -- Initialize fluid source solvers.
-   for _, s in lume.orderedIter(fluidSources) do
-      s:createSolver(species, field)
+   for _, flSrc in lume.orderedIter(fluidSources) do
+      flSrc:createSolver(species, field)
    end   
 
    -- Compute the coupling moments.
@@ -332,7 +332,7 @@ local function buildApplication(self, tbl)
    -- Function to write data to file.
    local function writeData(tCurr, force)
       for _, s in lume.orderedIter(species) do s:write(tCurr, force) end
-      for _, src in lume.orderedIter(fluidSources) do src:write(tCurr) end 
+      for _, flSrc in lume.orderedIter(fluidSources) do src:write(tCurr) end 
       field:write(tCurr, force)
       externalField:write(tCurr, force)
    end
@@ -610,8 +610,8 @@ local function buildApplication(self, tbl)
 
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
       -- Update fluid source terms.
-      for _, s in lume.orderedIter(fluidSources) do
-	 local myStatus, myDtSuggested = s:updateFluidSource(
+      for _, flSrc in lume.orderedIter(fluidSources) do
+	 local myStatus, myDtSuggested = flSrc:updateFluidSource(
             tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, species,
             field, externalField.em)
 	 status =  status and myStatus
@@ -872,7 +872,7 @@ local function buildApplication(self, tbl)
 	 end
       end
 
-      for _, s in lume.orderedIter(fluidSources) do tmSrc = tmSrc + s:totalTime() end
+      for _, flSrc in lume.orderedIter(fluidSources) do tmSrc = tmSrc + flSrc:totalTime() end
 
       local tmTotal = tmSimEnd-tmSimStart
       local tmAccounted = 0.0

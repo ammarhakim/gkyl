@@ -157,7 +157,6 @@ function FluidSpecies:fullInit(appTbl)
       end
    end
    lume.setOrder(self.nonPeriodicBCs)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
-
    
    -- Collisions: currently used for a diffusion term.
    self.collisions = {}
@@ -337,37 +336,31 @@ function FluidSpecies:createSolver(externalField)
 
    -- Functions to compute fluctuations given the current moments and background,
    -- and the full-F moments given the fluctuations and background.
-   self.getMom_or_deltaMom = self.fluctuationBCs and function(momIn)
+   self.getMom_or_deltaMom = self.deltaF and function(momIn)
       self.flucMom:combine(1.0, momIn, -1.0, self.momBackground)
       return self.flucMom
    end or function(momIn) return momIn end
-   if self.fluctuationBCs then 
-      self.minusBackgroundMom = function(momIn) momIn:accumulate(-1.0, self.momBackground) end
-      self.calcFullMom = function(momIn, syncFullFperiodicDirs)
+   self.minusBackgroundMom = self.fluctuationBCs
+      and function(momIn) momIn:accumulate(-1.0, self.momBackground) end
+      or function(momIn) end
+   self.calcFullMom = self.fluctuationBCs
+      and function(momIn, syncFullFperiodicDirs)
          momIn:accumulate(1.0, self.momBackground)
          momIn:sync(syncFullFperiodicDirs)
-      end
-   else
-      self.minusBackgroundMom = function(momIn) end
-      self.calcFullMom    = function(momIn, syncFullFperiodicDirs) end 
-   end
-   if self.perturbedDiagnostics then
-      self.calcDeltaMom = function(momIn) self.flucMom:combine(1.0, momIn, -1.0, self.momBackground) end
-   else
-      self.calcDeltaMom = function(momIn) end
-   end
+      end or function(momIn, syncFullFperiodicDirs) end 
+   self.calcDeltaMom = self.perturbedDiagnostics 
+      and function(momIn) self.flucMom:combine(1.0, momIn, -1.0, self.momBackground) end
+      or function(momIn) end
 
    if self.fluctuationBCs or self.perturbedDiagnostics then
-      if self.perturbedDiagnostics then
-         self.writeFluctuation = function(tm, fr, momIn)
+      self.writeFluctuation = self.perturbedDiagnostics 
+         and function(tm, fr, momIn)
             self.momIo:write(self.flucMom, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, fr)
          end
-      else
-         self.writeFluctuation = function(tm, fr, momIn)
+         or function(tm, fr, momIn)
             self.calcDeltaMom(momIn)
             self.momIo:write(self.flucMom, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, fr)
          end
-      end
    else
       self.writeFluctuation = function(tm, fr, momIn) end
    end
@@ -379,8 +372,8 @@ function FluidSpecies:createSolver(externalField)
          return self:calcCouplingMomentsEvolve(tCurr, rkIdx, species)
       end
    else
-      self.suggestDtFunc = function() return FluidSpecies["suggestDtNotEvolve"](self) end
-      self.applyBcFunc   = function(tCurr, momIn) return FluidSpecies["applyBcNotEvolve"](self, tCurr, momIn) end
+      self.suggestDtFunc = function() return FluidSpecies["suggestDtDontEvolve"](self) end
+      self.applyBcFunc   = function(tCurr, momIn) return FluidSpecies["applyBcDontEvolve"](self, tCurr, momIn) end
       self.calcCouplingMomentsFunc = function(tCurr, rkIdx, species)
          return self:calcCouplingMomentsNoEvolve(tCurr, rkIdx, species)
       end
@@ -526,7 +519,7 @@ function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
    end
 end
 
-function FluidSpecies:suggestDtNotEvolve() return GKYL_MAX_DOUBLE end
+function FluidSpecies:suggestDtDontEvolve() return GKYL_MAX_DOUBLE end
 function FluidSpecies:suggestDtEvolve()
    local dtSuggested = math.min(self.cfl/self.cflRateByCell:reduce('max')[1], GKYL_MAX_DOUBLE)
 
@@ -573,7 +566,7 @@ function FluidSpecies:applyBcIdx(tCurr, idx, isFirstRk)
   self.checkPositivity(tCurr, idx)
 end
 
-function FluidSpecies:applyBcNotEvolve(tCurr, momIn) end
+function FluidSpecies:applyBcDontEvolve(tCurr, momIn) end
 function FluidSpecies:applyBcEvolve(tCurr, momIn) 
    -- momIn is the set of evolved moments.
    local tmStart = Time.clock()
@@ -620,6 +613,7 @@ end
 function FluidSpecies:write(tm, force)
    if self.evolve or force then
 
+      -- Calculate fluctuations (if perturbed diagnostics are requested) and put them in self.flucMom.
       self.calcDeltaMom(self:rkStepperFields()[1])
 
       for _, dOb in pairs(self.diagnostics) do
@@ -627,6 +621,7 @@ function FluidSpecies:write(tm, force)
       end
 
       self.calcNoJacMom(tm, 1)  -- Many diagnostics do not include Jacobian factor.
+
       for _, bc in pairs(self.nonPeriodicBCs) do
          bc:computeBoundaryFluxRate(self.dtGlobal[0])
       end

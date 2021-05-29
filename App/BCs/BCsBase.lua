@@ -16,8 +16,8 @@ function BCsBase:init(tbl) self.tbl = tbl end
 function BCsBase:fullInit(speciesTbl) end
 function BCsBase:setSpeciesName(nm) self.speciesName = nm end
 function BCsBase:setName(nm) self.name = nm end
-function BCsBase:setConfBasis(basis) self.basis = basis end
-function BCsBase:setConfGrid(grid) self.grid = grid end
+function BCsBase:setConfBasis(basis) self.confBasis = basis end
+function BCsBase:setConfGrid(grid) self.confGrid = grid end
 function BCsBase:setDir(dir) self.bcDir = dir end
 function BCsBase:setEdge(edge) self.bcEdge = edge end
 function BCsBase:setSaveFlux(newSaveFlux) self.saveFlux = newSaveFlux end
@@ -44,5 +44,14 @@ function BCsBase:combineBoundaryFluxField(outIdx, a, aIdx, ...) end
 function BCsBase:getDir() return self.bcDir end
 function BCsBase:getEdge() return self.bcEdge end
 function BCsBase:getKind() return self.bcKind end
+function BCsBase:getGhostRange(global, globalExt)
+   local lv, uv = globalExt:lowerAsVec(), globalExt:upperAsVec()
+   if self.bcEdge == "lower" then
+      uv[self.bcDir] = global:lower(self.bcDir)-1   -- For ghost cells on "left".
+   else
+      lv[self.bcDir] = global:upper(self.bcDir)+1   -- For ghost cells on "right".
+   end
+   return Range.Range(lv, uv)
+end
 
 return BCsBase

@@ -66,9 +66,9 @@ sim = Plasma.App {
       -- Reflection function parameters
       externalBC = {
 	 electronAffinity = 1.0,
-	 effectiveMass = 0.4,
-	 elemCharge = q0,
-	 electronMass = m_e
+	 effectiveMass    = 0.4,
+	 elemCharge       = q0,
+	 electronMass     = m_e
       },
       computeExternalBC = true,
       bcx = { Plasma.Species.bcReflect,

@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Basic boundary condition for a gyrofluid species, i.e. those that can be
+-- Basic boundary condition for a Vlasov species, i.e. those that can be
 -- applied with Updater/Bc.lua.
 --
 --    _______     ___
@@ -19,44 +19,104 @@ local LinearDecomp   = require "Lib.LinearDecomp"
 local CartDecomp     = require "Lib.CartDecomp"
 local Grid           = require "Grid"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
-local GyrofluidDiags = require "App.Diagnostics.GyrofluidDiagnostics"
+local VlasovDiags    = require "App.Diagnostics.VlasovDiagnostics"
 
-local GyrofluidBasicBC = Proto(BCsBase)
+local VlasovBasicBC = Proto(BCsBase)
 
 -- Store table passed to it and defer construction to :fullInit().
-function GyrofluidBasicBC:init(tbl) self.tbl = tbl end
+function VlasovBasicBC:init(tbl) self.tbl = tbl end
 
 -- Function initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
-function GyrofluidBasicBC:fullInit(speciesTbl)
+function VlasovBasicBC:fullInit(mySpecies)
    local tbl = self.tbl -- Previously stored table.
 
-   self.bcKind      = assert(tbl.kind, "GyrofluidBasicBC: must specify the type of BC in 'kind'.")
+   self.bcKind      = assert(tbl.kind, "VlasovBasicBC: must specify the type of BC in 'kind'.")
    self.diagnostics = tbl.diagnostics or {}
    self.saveFlux    = tbl.saveFlux or false
 end
 
-function GyrofluidBasicBC:setName(nm) self.name = self.speciesName.."_"..nm end
-function GyrofluidBasicBC:setConfBasis(basis) self.basis = basis end
-function GyrofluidBasicBC:setConfGrid(grid) self.grid = grid end
+function VlasovBasicBC:setName(nm) self.name = self.speciesName.."_"..nm end
 
-function GyrofluidBasicBC:bcCopy(dir, tm, idxIn, fIn, fOut)
-   for i = 1, self.nMoments*self.basis:numBasis() do fOut[i] = fIn[i] end
+function VlasovBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
+   -- Note that for bcAbsorb there is no operation on fIn,
+   -- so skinLoop (which determines indexing of fIn) does not matter
+   for i = 1, self.basis:numBasis() do fOut[i] = 0.0 end
+end
+function VlasovBasicBC:bcOpen(dir, tm, idxIn, fIn, fOut)
+   -- Requires skinLoop = "pointwise".
+   self.basis:flipSign(dir, fIn, fOut)
+end
+function VlasovBasicBC:bcCopy(dir, tm, idxIn, fIn, fOut)
+   -- Requires skinLoop = "pointwise".
+   for i = 1, self.basis:numBasis() do fOut[i] = fIn[i] end
+end
+function VlasovBasicBC:bcReflect(dir, tm, idxIn, fIn, fOut)
+   -- Requires skinLoop = "flip".
+   self.basis:flipSign(dir, fIn, fOut)
+   self.basis:flipSign(dir+self.cdim, fOut, fOut)
+end
+function VlasovBasicBC:bcRecycle(dir, tm, idxIn, fIn, fOut)
+   -- skinLoop should be "flip"
+   -- Note that bcRecycle only valid in dir parallel to B.
+   -- This is checked when bc is created.
+   local globalRange = self.grid:globalRange()
+   local l1, l2
+   if dir == 1 then
+      l1 = 'FluxX'
+   elseif dir == 2 then
+      l1 = 'FluxY'
+   else
+      l1 = 'FluxZ'
+   end
+   if idxIn[dir] == globalRange:lower(dir) then
+      l2 = 'lower'
+   else
+      l2 = 'upper'
+   end
+   local label = l1..l2
+
+   local zIdx = idxIn
+   zIdx[dir] = 1
+
+   local f     = self.recycleDistF[label]
+   local rIdxr = f:genIndexer()
+   local rFPtr = self.recycleDistF[label]:get(1)
+   f:fill(rIdxr(zIdx), rFPtr)
+   for i = 1, self.basis:numBasis() do
+      fOut[i] = 0
+      fOut[i] = rFPtr[i]
+   end
+
+   self.basis:flipSign(dir, fOut, fOut)
+   self.basis:flipSign(dir+self.cdim, fOut, fOut)
+end
+function VlasovBasicBC:bcExtern(dir, tm, idxIn, fIn, fOut)
+   -- Requires skinLoop = "flip".
+   local numBasis = self.basis:numBasis()
+   local velIdx   = Lin.IntVec(self.ndim)
+   velIdx[1] = 1
+   for d = 1, self.vdim do
+      velIdx[d + 1] = idxIn[self.cdim + d]
+   end
+   local exIdxr = self.externalBCFunction:genIndexer()
+   local externalBCFunction = self.externalBCFunction:get(exIdxr(velIdx))
+   if velIdx[1] ~= 0 and velIdx[1] ~= self.grid:numCells(2) + 1 then
+      for i = 1, numBasis do
+         fOut[i] = 0
+         for j = 1, numBasis do
+            fOut[i] = fOut[i] + fIn[j]*externalBCFunction[(i - 1)*numBasis + j]
+         end
+      end
+   end
+   return fOut
 end
 
-function GyrofluidBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
-   -- The idea is that by setting the plasma quantities to zero in the
-   -- ghost cell nothing is transported into the domain, and whatever is transported
-   -- out is lost. We can't set them to exactly zero or else the sound speed
-   -- and drift velocity would diverge, so we set them to something small.
-   local numB = self.basis:numBasis()
-   for i = 1, numB do fOut[0*numB+i] = 1.e-10*fIn[0*numB+i] end   -- Mass density.
-   for i = 1, numB do fOut[1*numB+i] = 0. end                     -- Momentum density.
-   for i = 1, numB do fOut[2*numB+i] = 1.e-10*fIn[2*numB+i] end   -- Energy density.
-   for i = 1, numB do fOut[3*numB+i] = 1.e-10*fIn[3*numB+i] end   -- Perpendicular pressure (divided by B).
-end
+function VlasovBasicBC:createSolver(mySpecies)
 
-function GyrofluidBasicBC:createSolver(mySpecies)
+   self.basis, self.grid = mySpecies.basis, mySpecies.grid
+   self.ndim, self.cdim, self.vdim = self.grid:ndim(), self.confGrid:ndim(), self.grid:ndim()-self.confGrid:ndim()
+
    local bcFunc, skinType
    if self.bcKind == "copy" then
       bcFunc   = function(...) return self:bcCopy(...) end
@@ -64,15 +124,18 @@ function GyrofluidBasicBC:createSolver(mySpecies)
    elseif self.bcKind == "absorb" then
       bcFunc   = function(...) return self:bcAbsorb(...) end
       skinType = "pointwise"
+   elseif self.bcKind == "open" then
+      bcFunc   = function(...) return self:bcOpen(...) end
+      skinType = "pointwise"
+   elseif self.bcKind == "reflect" then
+      bcFunc   = function(...) return self:bcReflect(...) end
+      skinType = "flip"
    end
 
-   self.bcSolver = Updater.Bc {
-      onGrid             = self.grid,
-      cdim               = self.grid:ndim(),
-      dir                = self.bcDir,
-      edge               = self.bcEdge,
-      boundaryConditions = {bcFunc},
-      skinLoop           = skinType,
+   self.bcSolver = Updater.Bc{
+      onGrid = self.grid,    skinLoop           = skinType,
+      cdim   = self.ndim,    edge               = self.bcEdge,  
+      dir    = self.bcDir,   boundaryConditions = {bcFunc},   
    }
 
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
@@ -80,7 +143,7 @@ function GyrofluidBasicBC:createSolver(mySpecies)
    if self.saveFlux then
       -- Create reduced boundary grid with 1 cell in dimension of self._dir.
       if self.grid:isShared() then
-         assert(false, "GyrofluidBasicBC: shared memory implementation of boundary flux diagnostics not ready.")
+         assert(false, "VlasovBasicBC: shared memory implementation of boundary flux diagnostics not ready.")
       else
          local reducedLower, reducedUpper, reducedNumCells, reducedCuts = {}, {}, {}, {}
          for d = 1, self.grid:ndim() do
@@ -123,12 +186,35 @@ function GyrofluidBasicBC:createSolver(mySpecies)
             writeRank = writeRank,        useShared = self.grid:isShared(),
          }
          self.boundaryGrid = Grid.RectCart {
-            lower = reducedLower,  cells = reducedNumCells,
+            lower = reducedLower,  cells         = reducedNumCells,
+            upper = reducedUpper,  decomposition = reducedDecomp,
+         }
+         -- Create reduced boundary config-space grid with 1 cell in dimension of self._dir.
+         reducedLower, reducedUpper, reducedNumCells, reducedCuts = {}, {}, {}, {}
+         for d = 1, self.cdim do
+            if d==self.bcDir then
+               table.insert(reducedLower, -self.grid:dx(d)/2)
+               table.insert(reducedUpper,  self.grid:dx(d)/2)
+               table.insert(reducedNumCells, 1)
+               table.insert(reducedCuts, 1)
+            else
+               table.insert(reducedLower,    self.grid:lower(d))
+               table.insert(reducedUpper,    self.grid:upper(d))
+               table.insert(reducedNumCells, self.grid:numCells(d))
+               table.insert(reducedCuts,     self.grid:cuts(d))
+            end
+         end
+         local reducedDecomp = CartDecomp.CartProd {
+            comm      = self._splitComm,  cuts      = reducedCuts,
+            writeRank = self.writeRank,   useShared = self.grid:isShared(),
+         }
+         self.confBoundaryGrid = Grid.RectCart {
+            lower = reducedLower,  cells         = reducedNumCells,
             upper = reducedUpper,  decomposition = reducedDecomp,
          }
       end
 
-      local moms = mySpecies:getMoments()
+      local distf, numDensity = mySpecies:getDistF(), mySpecies:getNumDensity()
       -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
       self.allocCartField = function(self, grid, nComp, ghosts, metaData)
          local f = DataStruct.Field {
@@ -140,31 +226,35 @@ function GyrofluidBasicBC:createSolver(mySpecies)
          f:clear(0.0)
          return f
       end
+      local allocDistf = function()
+         return self:allocCartField(self.boundaryGrid,self.basis:numBasis(),
+                                    {distf:lowerGhost(),distf:upperGhost()},distf:getMetaData())
+      end
       self.allocMoment = function(self)
-         return self:allocCartField(self.boundaryGrid, self.basis:numBasis(), 
-                                    {moms:lowerGhost(),moms:upperGhost()}, moms:getMetaData())
+         return self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
+                                    {numDensity:lowerGhost(),numDensity:upperGhost()}, numDensity:getMetaData())
       end
       self.allocVectorMoment = function(self, dim)
-         return self:allocCartField(self.boundaryGrid, dim*self.basis:numBasis(), 
-                                    {moms:lowerGhost(),moms:upperGhost()}, moms:getMetaData())
+         return self:allocCartField(self.confBoundaryGrid, dim*self.basis:numBasis(),
+                                    {numDensity:lowerGhost(),numDensity:upperGhost()}, numDensity:getMetaData())
       end
 
       -- Allocate fields needed.
       self.boundaryFluxFields = {}  -- Fluxes through the boundary, into ghost region, from each RK stage.
       self.boundaryPtr        = {}
-      self.momInIdxr          = moms:genIndexer()
+      self.distfInIdxr        = distf:genIndexer()
       for i = 1, #mySpecies:rkStepperFields() do
-         self.boundaryFluxFields[i] = self:allocMoment()
+         self.boundaryFluxFields[i] = allocDistf()
          self.boundaryPtr[i]        = self.boundaryFluxFields[i]:get(1)
       end
-      self.boundaryFluxRate      = self:allocMoment()
-      self.boundaryFluxFieldPrev = self:allocMoment()
+      self.boundaryFluxRate      = allocDistf()
+      self.boundaryFluxFieldPrev = allocDistf()
       self.boundaryIdxr          = self.boundaryFluxFields[1]:genIndexer()
 
       self.idxOut = Lin.IntVec(self.grid:ndim())
 
       -- Create the range needed to loop over ghosts.
-      local global, globalExt, localExtRange = moms:globalRange(), moms:globalExtRange(), moms:localExtRange()
+      local global, globalExt, localExtRange = distf:globalRange(), distf:globalExtRange(), distf:localExtRange()
       self.ghostRng = localExtRange:intersect(self:getGhostRange(global, globalExt))
       -- Decompose ghost region into threads.
       self.ghostRangeDecomp = LinearDecomp.LinearDecompRange{range=self.ghostRng, numSplit=self.grid:numSharedProcs()}
@@ -174,7 +264,7 @@ function GyrofluidBasicBC:createSolver(mySpecies)
          local ptrOut = qOut:get(1)
          for idx in self.ghostRangeDecomp:rowMajorIter(self.tId) do
             idx:copyInto(self.idxOut)
-            qOut:fill(self.momInIdxr(idx), ptrOut)
+            qOut:fill(self.distfInIdxr(idx), ptrOut)
 
             -- Before operating on ghosts, store ghost values for later flux diagnostics
             self.idxOut[self.bcDir] = 1
@@ -207,37 +297,41 @@ function GyrofluidBasicBC:createSolver(mySpecies)
    end
 end
 
-function GyrofluidBasicBC:storeBoundaryFlux(tCurr, rkIdx, qOut)
+function VlasovBasicBC:storeBoundaryFlux(tCurr, rkIdx, qOut)
    self.storeBoundaryFluxFunc(tCurr, rkIdx, qOut)
 end
-function GyrofluidBasicBC:copyBoundaryFluxField(inIdx, outIdx)
+
+function VlasovBasicBC:copyBoundaryFluxField(inIdx, outIdx)
    self.copyBoundaryFluxFieldFunc(inIdx, outIdx)
 end
-function GyrofluidBasicBC:combineBoundaryFluxField(outIdx, a, aIdx, ...)
+function VlasovBasicBC:combineBoundaryFluxField(outIdx, a, aIdx, ...)
    self.combineBoundaryFluxFieldFunc(outIdx, a, aIdx, ...)
 end
-function GyrofluidBasicBC:computeBoundaryFluxRate(dtIn)
+function VlasovBasicBC:computeBoundaryFluxRate(dtIn)
    self.calcBoundaryFluxRateFunc(dtIn)
 end
 
-function GyrofluidBasicBC:createDiagnostics(mySpecies, field)
+function VlasovBasicBC:createDiagnostics(mySpecies, field)
    -- Create BC diagnostics.
    self.diagnostics = nil
    if self.tbl.diagnostics then
-      self.diagnostics = DiagsApp{implementation = GyrofluidDiags()}
+      self.diagnostics = DiagsApp{implementation = VlasovDiags()}
       self.diagnostics:fullInit(mySpecies, field, self)
    end
    return self.diagnostics
 end
 
-function GyrofluidBasicBC:getNoJacMoments() return self.boundaryFluxRate end  -- Used by diagnostics.
+-- These are needed to recycle the VlasovDiagnostics with VlasovBasicBC.
+function VlasovBasicBC:rkStepperFields() return {self.boundaryFluxRate, self.boundaryFluxRate,
+                                                 self.boundaryFluxRate, self.boundaryFluxRate} end
+function VlasovBasicBC:getFlucF() return self.boundaryFluxRate end
 
-function GyrofluidBasicBC:advance(tCurr, species, inFlds)
+function VlasovBasicBC:advance(tCurr, species, inFlds)
    self.bcSolver:advance(tCurr, {}, inFlds)
 end
 
-function GyrofluidBasicBC:getBoundaryFluxFields()
+function VlasovBasicBC:getBoundaryFluxFields()
    return self.boundaryFluxFields
 end
 
-return GyrofluidBasicBC
+return VlasovBasicBC
