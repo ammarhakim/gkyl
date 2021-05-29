@@ -62,7 +62,7 @@ function Bc:init(tbl)
       self._cDim = assert(
 	 tbl.cdim,
 	 "Updater.Bc: Must specify configuration space dimensions to apply with 'cdim'")
-      self._vdir = self.dir + self._cDim
+      self._vdir = self._dir + self._cDim
    end
 
    self._ghostRangeDecomp = nil -- Will be constructed on first call to advance.

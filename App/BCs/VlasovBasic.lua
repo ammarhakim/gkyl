@@ -134,7 +134,7 @@ function VlasovBasicBC:createSolver(mySpecies)
 
    self.bcSolver = Updater.Bc{
       onGrid = self.grid,    skinLoop           = skinType,
-      cdim   = self.ndim,    edge               = self.bcEdge,  
+      cdim   = self.cdim,    edge               = self.bcEdge,  
       dir    = self.bcDir,   boundaryConditions = {bcFunc},   
    }
 

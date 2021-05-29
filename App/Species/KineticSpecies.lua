@@ -200,24 +200,30 @@ function KineticSpecies:fullInit(appTbl)
    -- Read in boundary conditions.
    self.bcInDir = {{ }, { }, { }}   -- List of BCs to apply.
    -- Check to see if bc type is good is now done in createBc.
+   --if tbl.bcx then
+   --   self.bcx[1], self.bcx[2] = tbl.bcx[1], tbl.bcx[2]
+   --   if self.bcx[1] == nil or self.bcx[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
+   --   self.hasNonPeriodicBc = true
+   --end
+   --if tbl.bcy then
+   --   self.bcy[1], self.bcy[2] = tbl.bcy[1], tbl.bcy[2]
+   --   if self.bcy[1] == nil or self.bcy[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
+   --   self.hasNonPeriodicBc = true
+   --end
+   --if tbl.bcz then
+   --   self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
+   --   if self.bcz[1] == nil or self.bcz[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
+   --   self.hasNonPeriodicBc = true
+   --end
    if tbl.bcx then
-      --self.bcx[1], self.bcx[2] = tbl.bcx[1], tbl.bcx[2]
-      --if self.bcx[1] == nil or self.bcx[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
-      --self.hasNonPeriodicBc = true
       if tbl.bcx[1] == nil or tbl.bcx[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
       self.bcInDir[1] = {tbl.bcx[1], tbl.bcx[2]}
    end
    if tbl.bcy then
-      --self.bcy[1], self.bcy[2] = tbl.bcy[1], tbl.bcy[2]
-      --if self.bcy[1] == nil or self.bcy[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
-      --self.hasNonPeriodicBc = true
       if tbl.bcy[1] == nil or tbl.bcy[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
       self.bcInDir[2] = {tbl.bcy[1], tbl.bcy[2]}
    end
    if tbl.bcz then
-      --self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
-      --if self.bcz[1] == nil or self.bcz[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
-      --self.hasNonPeriodicBc = true
       if tbl.bcz[1] == nil or tbl.bcz[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
       self.bcInDir[3] = {tbl.bcz[1], tbl.bcz[2]}
    end
