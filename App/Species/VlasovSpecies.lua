@@ -229,14 +229,6 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
    -- Create species source solvers.
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
 
-   -- This code is just for recyclingBCs. It shouldn't be here I think (MF 2021/05/28) but we'll hack it for now
-   -- and fix it when we move recyclingBCs to their own app in subsequent commits.
-   if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
-      for _, bc in ipairs(self.boundaryConditions) do
-         bc:initBcDiagnostics(self.cdim)
-      end
-   end
-
    self.tmCouplingMom = 0.0    -- For timer.
 end
 
@@ -1253,20 +1245,16 @@ function VlasovSpecies:initExternalBC()
       cells[d + self.cdim] = self.grid:numCells(d + self.cdim)
    end
    local grid = GridConstructor {
-      lower = lower,
-      upper = upper,
+      lower = lower,  periodicDirs = {},
+      upper = upper,  mappings = coordinateMap,
       cells = cells,
-      periodicDirs = {},
-      mappings = coordinateMap,
    }
    self.externalBCFunction = DataStruct.Field {
       onGrid = grid,
       numComponents = self.basis:numBasis()*self.basis:numBasis(),
       metaData = {
-         polyOrder = self.basis:polyOrder(),
-         basisType = self.basis:id(),
-         charge = self.charge,
-         mass = self.mass,
+         polyOrder = self.basis:polyOrder(),  charge = self.charge,
+         basisType = self.basis:id(),         mass   = self.mass,
       },
    }
    -- Calculate Bronold and Fehske reflection function coefficients

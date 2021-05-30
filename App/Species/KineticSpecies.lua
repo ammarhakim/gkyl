@@ -419,8 +419,7 @@ function KineticSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
 end
 
 -- Function to construct a BC updater.
-function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop,
-				      evaluateFn)
+function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop, evaluateFn)
    return Updater.Bc {
       onGrid             = self.grid,
       boundaryConditions = bcList,
@@ -436,7 +435,8 @@ function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop,
       feedback           = self.feedbackBC,
       confBasis          = self.confBasis,
       confGrid           = self.confGrid,
-      inField            = self:rkStepperFields()[1],
+      doDiagnostics      = self.boundaryFluxDiagnostics,
+      advanceArgs        = {{self:rkStepperFields()[1]}, {self:rkStepperFields()[1]}},
    }
 end
 

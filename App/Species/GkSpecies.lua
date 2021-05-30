@@ -355,8 +355,6 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
 
       for _, bc in ipairs(self.boundaryConditions) do
 
-         bc:initBcDiagnostics(self.cdim)  -- This just initializes confBoundaryGrid.
-
          -- Need to evaluate bmag on boundary for moment calculations.
 	 phaseGrid, confGrid = bc:getBoundaryGrid(), bc:getConfBoundaryGrid()
 
