@@ -1,8 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Basic boundary condition for a Vlasov species, i.e. those that can be
--- applied with Updater/Bc.lua using just a function (e.g. bcAbsorb, bcOpen)
--- and no additional setup.
+-- Electron reflection BC based on the Bronold & Fehske model.
+--   F.X. Bronold, H. Fehske, Absorption of an electron by a dielectric wall, Phys. Rev. Lett. 115 (22) (2015) 225001.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -21,72 +20,108 @@ local CartDecomp     = require "Lib.CartDecomp"
 local Grid           = require "Grid"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local VlasovDiags    = require "App.Diagnostics.VlasovDiagnostics"
+local xsys           = require "xsys"
 
-local VlasovBasicBC = Proto(BCsBase)
+local BnFReflectionBC = Proto(BCsBase)
 
 -- Store table passed to it and defer construction to :fullInit().
-function VlasovBasicBC:init(tbl) self.tbl = tbl end
+function BnFReflectionBC:init(tbl) self.tbl = tbl end
 
 -- Function initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
-function VlasovBasicBC:fullInit(mySpecies)
+function BnFReflectionBC:fullInit(mySpecies)
    local tbl = self.tbl -- Previously stored table.
 
-   self.bcKind      = assert(tbl.kind, "VlasovBasicBC: must specify the type of BC in 'kind'.")
    self.diagnostics = tbl.diagnostics or {}
    self.saveFlux    = tbl.saveFlux or false
+
+   self.electronAffinity = tbl.electronAffinity
+   self.effectiveMass    = tbl.effectiveMass   
+   self.elemCharge       = tbl.elemCharge      
+   self.electronMass     = tbl.electronMass    
+   self.ignore           = tbl.ignore
+
+   self.evolve   = xsys.pickBool(tbl.evolve, true) 
+   self.feedback = xsys.pickBool(tbl.feedback, true) 
 
    if tbl.diagnostics then
      if #tbl.diagnostics>0 then self.saveFlux = true end
    end
 end
 
-function VlasovBasicBC:setName(nm) self.name = self.speciesName.."_"..nm end
+function BnFReflectionBC:setName(nm) self.name = self.speciesName.."_"..nm end
 
-function VlasovBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
-   -- Note that for bcAbsorb there is no operation on fIn,
-   -- so skinLoop (which determines indexing of fIn) does not matter
-   for i = 1, self.basis:numBasis() do fOut[i] = 0.0 end
-end
-function VlasovBasicBC:bcOpen(dir, tm, idxIn, fIn, fOut)
-   -- Requires skinLoop = "pointwise".
-   self.basis:flipSign(dir, fIn, fOut)
-end
-function VlasovBasicBC:bcCopy(dir, tm, idxIn, fIn, fOut)
-   -- Requires skinLoop = "pointwise".
-   for i = 1, self.basis:numBasis() do fOut[i] = fIn[i] end
-end
-function VlasovBasicBC:bcReflect(dir, tm, idxIn, fIn, fOut)
+function BnFReflectionBC:bcBnFReflectionFunc(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "flip".
-   self.basis:flipSign(dir, fIn, fOut)
-   self.basis:flipSign(dir+self.cdim, fOut, fOut)
+   local numBasis = self.basis:numBasis()
+   local velIdx = Lin.IntVec(self.ndim)
+   velIdx[1] = 1
+   for d = 1, self.vdim do
+      velIdx[d + 1] = idxIn[self.cdim + d]
+   end
+   local exIdxr = self.externalBCFunction:genIndexer()
+   local externalBCFunction = self.externalBCFunction:get(exIdxr(velIdx))
+   if velIdx[1] ~= 0 and velIdx[1] ~= self.grid:numCells(2) + 1 then
+      for i = 1, numBasis do
+        fOut[i] = 0
+         for j = 1, numBasis do
+            fOut[i] = fOut[i] + fIn[j]*externalBCFunction[(i - 1)*numBasis + j]
+         end
+      end
+   end
+   return fOut
 end
 
-function VlasovBasicBC:createSolver(mySpecies)
+function BnFReflectionBC:createSolver(mySpecies)
 
    self.basis, self.grid = mySpecies.basis, mySpecies.grid
    self.ndim, self.cdim, self.vdim = self.grid:ndim(), self.confGrid:ndim(), self.grid:ndim()-self.confGrid:ndim()
 
-   local bcFunc, skinType
-   if self.bcKind == "copy" then
-      bcFunc   = function(...) return self:bcCopy(...) end
-      skinType = "pointwise"
-   elseif self.bcKind == "absorb" then
-      bcFunc   = function(...) return self:bcAbsorb(...) end
-      skinType = "pointwise"
-   elseif self.bcKind == "open" then
-      bcFunc   = function(...) return self:bcOpen(...) end
-      skinType = "pointwise"
-   elseif self.bcKind == "reflect" then
-      bcFunc   = function(...) return self:bcReflect(...) end
-      skinType = "flip"
+   local lower, upper, cells = {}, {}, {}
+   local GridConstructor     = Grid.RectCart
+   local coordinateMap       = {}
+   if mySpecies.coordinateMap then
+      for d = 1, self.cdim do table.insert(coordinateMap, function (z) return z end) end
+      for d = 1, self.vdim do table.insert(coordinateMap, mySpecies.coordinateMap[d]) end
+      GridConstructor = Grid.NonUniformRectCart
    end
+   for d = 1, self.cdim do lower[d], upper[d], cells[d] = 0, 1, 1 end
+   for d = 1, self.vdim do
+      lower[d + self.cdim] = mySpecies.lower[d]
+      upper[d + self.cdim] = mySpecies.upper[d]
+      cells[d + self.cdim] = self.grid:numCells(d + self.cdim)
+   end
+   local grid = GridConstructor {
+      lower = lower,  periodicDirs = {},
+      upper = upper,  mappings     = coordinateMap,
+      cells = cells,
+   }
+   self.externalBCFunction = DataStruct.Field {
+      onGrid        = grid,
+      numComponents = self.basis:numBasis()*self.basis:numBasis(),
+      metaData      = {polyOrder = self.basis:polyOrder(),  charge = self.charge,
+                       basisType = self.basis:id(),         mass   = self.mass,  },
+   }
+   -- Calculate Bronold and Fehske reflection function coefficients
+   local evaluateBronold = Updater.EvaluateBronoldFehskeBC {
+      onGrid = grid,        electronAffinity = self.electronAffinity,
+      basis  = self.basis,  effectiveMass    = self.effectiveMass,
+      cdim   = self.cdim,   elemCharge       = self.elemCharge,
+      vdim   = self.vdim,   me               = self.electronMass,
+      ignore = self.ignore,
+   }
+   evaluateBronold:advance(0.0, {}, {self.externalBCFunction})
 
+   local bcFunc   = function(...) return self:bcBnFReflectionFunc(...) end
+   local skinType = "flip"
+
+   local vdir = self.bcDir+self.cdim
    self.bcSolver = Updater.Bc{
-      onGrid = self.grid,    skinLoop           = skinType,
-      cdim   = self.cdim,    edge               = self.bcEdge,  
-      dir    = self.bcDir,   boundaryConditions = {bcFunc},   
-      vdir   = self.bcDir+self.cdim,
+      onGrid = self.grid,   edge     = self.bcEdge,  
+      cdim   = self.cdim,   skinLoop = skinType,
+      dir    = self.bcDir,  evolveFn = self.evolve,
+      vdir   = vdir,        feedback = self.feedback,
+      boundaryConditions = {bcFunc},   
    }
 
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
@@ -181,21 +216,21 @@ function VlasovBasicBC:createSolver(mySpecies)
    end
 end
 
-function VlasovBasicBC:storeBoundaryFlux(tCurr, rkIdx, qOut)
+function BnFReflectionBC:storeBoundaryFlux(tCurr, rkIdx, qOut)
    self.storeBoundaryFluxFunc(tCurr, rkIdx, qOut)
 end
 
-function VlasovBasicBC:copyBoundaryFluxField(inIdx, outIdx)
+function BnFReflectionBC:copyBoundaryFluxField(inIdx, outIdx)
    self.copyBoundaryFluxFieldFunc(inIdx, outIdx)
 end
-function VlasovBasicBC:combineBoundaryFluxField(outIdx, a, aIdx, ...)
+function BnFReflectionBC:combineBoundaryFluxField(outIdx, a, aIdx, ...)
    self.combineBoundaryFluxFieldFunc(outIdx, a, aIdx, ...)
 end
-function VlasovBasicBC:computeBoundaryFluxRate(dtIn)
+function BnFReflectionBC:computeBoundaryFluxRate(dtIn)
    self.calcBoundaryFluxRateFunc(dtIn)
 end
 
-function VlasovBasicBC:createDiagnostics(mySpecies, field)
+function BnFReflectionBC:createDiagnostics(mySpecies, field)
    -- Create BC diagnostics.
    self.diagnostics = nil
    if self.tbl.diagnostics then
@@ -205,17 +240,17 @@ function VlasovBasicBC:createDiagnostics(mySpecies, field)
    return self.diagnostics
 end
 
--- These are needed to recycle the VlasovDiagnostics with VlasovBasicBC.
-function VlasovBasicBC:rkStepperFields() return {self.boundaryFluxRate, self.boundaryFluxRate,
+-- These are needed to recycle the VlasovDiagnostics with BnFReflectionBC.
+function BnFReflectionBC:rkStepperFields() return {self.boundaryFluxRate, self.boundaryFluxRate,
                                                  self.boundaryFluxRate, self.boundaryFluxRate} end
-function VlasovBasicBC:getFlucF() return self.boundaryFluxRate end
+function BnFReflectionBC:getFlucF() return self.boundaryFluxRate end
 
-function VlasovBasicBC:advance(tCurr, species, inFlds)
+function BnFReflectionBC:advance(tCurr, species, inFlds)
    self.bcSolver:advance(tCurr, {}, inFlds)
 end
 
-function VlasovBasicBC:getBoundaryFluxFields()
+function BnFReflectionBC:getBoundaryFluxFields()
    return self.boundaryFluxFields
 end
 
-return VlasovBasicBC
+return BnFReflectionBC

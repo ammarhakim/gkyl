@@ -34,6 +34,10 @@ function GyrofluidBasicBC:fullInit(speciesTbl)
    self.bcKind      = assert(tbl.kind, "GyrofluidBasicBC: must specify the type of BC in 'kind'.")
    self.diagnostics = tbl.diagnostics or {}
    self.saveFlux    = tbl.saveFlux or false
+
+   if tbl.diagnostics then
+     if #tbl.diagnostics>0 then self.saveFlux = true end
+   end
 end
 
 function GyrofluidBasicBC:setName(nm) self.name = self.speciesName.."_"..nm end
@@ -78,64 +82,15 @@ function GyrofluidBasicBC:createSolver(mySpecies)
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
    -- the fluxes through a boundary (e.g. neutral recycling).
    if self.saveFlux then
-      -- Create reduced boundary grid with 1 cell in dimension of self._dir.
-      if self.grid:isShared() then
-         assert(false, "GyrofluidBasicBC: shared memory implementation of boundary flux diagnostics not ready.")
-      else
-         local reducedLower, reducedUpper, reducedNumCells, reducedCuts = {}, {}, {}, {}
-         for d = 1, self.grid:ndim() do
-            if d==self.bcDir then
-               table.insert(reducedLower, -self.grid:dx(d)/2.)
-               table.insert(reducedUpper,  self.grid:dx(d)/2.)
-               table.insert(reducedNumCells, 1)
-               table.insert(reducedCuts, 1)
-            else
-               table.insert(reducedLower,    self.grid:lower(d))
-               table.insert(reducedUpper,    self.grid:upper(d))
-               table.insert(reducedNumCells, self.grid:numCells(d))
-               table.insert(reducedCuts,     self.grid:cuts(d))
-            end
-         end
-         local commSet  = self.grid:commSet()
-         local worldComm, nodeComm = commSet.comm, commSet.nodeComm
-         local nodeRank = Mpi.Comm_rank(nodeComm)
-         local dirRank  = nodeRank
-         local cuts     = {}
-         for d=1,3 do cuts[d] = self.grid:cuts(d) or 1 end
-         local writeRank = -1
-         if self.bcDir == 1 then
-            dirRank = nodeRank % (cuts[1]*cuts[2]) % cuts[1]
-         elseif self.bcDir == 2 then
-            dirRank = math.floor(nodeRank/cuts[1]) % cuts[2]
-         elseif self.bcDir == 3 then
-            dirRank = math.floor(nodeRank/cuts[1]/cuts[2])
-         end
-         self._splitComm = Mpi.Comm_split(worldComm, dirRank, nodeRank)
-         -- Set up which ranks to write from.
-         if self.bcEdge == "lower" and dirRank == 0 then
-            writeRank = nodeRank
-         elseif self.bcEdge == "upper" and dirRank == self.grid:cuts(self.bcDir)-1 then
-            writeRank = nodeRank
-         end
-         self.writeRank = writeRank
-         local reducedDecomp = CartDecomp.CartProd {
-            comm      = self._splitComm,  cuts      = reducedCuts,
-            writeRank = writeRank,        useShared = self.grid:isShared(),
-         }
-         self.boundaryGrid = Grid.RectCart {
-            lower = reducedLower,  cells = reducedNumCells,
-            upper = reducedUpper,  decomposition = reducedDecomp,
-         }
-      end
+      -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
+      self:createBoundaryGrid()
 
       local moms = mySpecies:getMoments()
       -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
       self.allocCartField = function(self, grid, nComp, ghosts, metaData)
          local f = DataStruct.Field {
-            onGrid        = grid,
-            numComponents = nComp,
-            ghost         = ghosts,
-            metaData      = metaData,
+            onGrid        = grid,   ghost    = ghosts,
+            numComponents = nComp,  metaData = metaData,
          }
          f:clear(0.0)
          return f

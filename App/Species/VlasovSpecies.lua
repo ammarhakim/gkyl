@@ -32,7 +32,6 @@ local VlasovSpecies = Proto(KineticSpecies)
 local SP_BC_EXTERN  = 4
 local SP_BC_RECYCLE = 7
 VlasovSpecies.bcExternal = SP_BC_EXTERN     -- Load external BC file.
-VlasovSpecies.bcZeroFlux = SP_BC_ZEROFLUX
 VlasovSpecies.bcRecycle  = SP_BC_RECYCLE
 
 -- ............. Backwards compatible treatment of BCs .....................--

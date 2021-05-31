@@ -1072,23 +1072,25 @@ return {
    VlasovMaxwell = function ()
       App.label = "Vlasov-Maxwell"
       return {
-	 App = App,
-	 Species = require "App.Species.VlasovSpecies",
-	 FuncSpecies = require "App.Species.FuncVlasovSpecies",
-	 Field = require ("App.Field.MaxwellField").MaxwellField,
-	 ExternalField = require ("App.Field.MaxwellField").ExternalMaxwellField,
-	 FuncField = require ("App.Field.MaxwellField").ExternalMaxwellField, -- for backwards compat
-	 FunctionProjection = require ("App.Projection.VlasovProjection").FunctionProjection,
+	 App                  = App,
+         BasicBC              = require "App.BCs.VlasovBasic",
+         BronoldFehskeBC      = require "App.BCs.BronoldFehskeReflection",
+	 Species              = require "App.Species.VlasovSpecies",
+	 FuncSpecies          = require "App.Species.FuncVlasovSpecies",
+	 Field                = require ("App.Field.MaxwellField").MaxwellField,
+	 ExternalField        = require ("App.Field.MaxwellField").ExternalMaxwellField,
+	 FuncField            = require ("App.Field.MaxwellField").ExternalMaxwellField, -- for backwards compat
+	 FunctionProjection   = require ("App.Projection.VlasovProjection").FunctionProjection,
 	 MaxwellianProjection = require ("App.Projection.VlasovProjection").MaxwellianProjection,
-	 BGKCollisions = require "App.Collisions.VmBGKCollisions",
-	 LBOCollisions = require "App.Collisions.VmLBOCollisions",
-	 BgkCollisions = require "App.Collisions.VmBGKCollisions",
-	 LboCollisions = require "App.Collisions.VmLBOCollisions",
-	 ChargeExchange = require "App.Collisions.VmChargeExchange",
-	 Ionization = require "App.Collisions.VmIonization",
-	 Diffusion = require "App.Collisions.Diffusion",
-	 SteadySource = require "App.Sources.VmSteadyStateSource",
-	 Source = require "App.Sources.VmSource",
+	 BGKCollisions        = require "App.Collisions.VmBGKCollisions",
+	 LBOCollisions        = require "App.Collisions.VmLBOCollisions",
+	 BgkCollisions        = require "App.Collisions.VmBGKCollisions",
+	 LboCollisions        = require "App.Collisions.VmLBOCollisions",
+	 ChargeExchange       = require "App.Collisions.VmChargeExchange",
+	 Ionization           = require "App.Collisions.VmIonization",
+	 Diffusion            = require "App.Collisions.Diffusion",
+	 SteadySource         = require "App.Sources.VmSteadyStateSource",
+	 Source               = require "App.Sources.VmSource",
       }
    end,
    
