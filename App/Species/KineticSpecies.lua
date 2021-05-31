@@ -436,6 +436,64 @@ function KineticSpecies:allocVectorMoment(dim)
    return self:allocCartField(self.confGrid,dim*self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
 
+-- Various functions to apply BCs of different types.
+function KineticSpecies:bcAbsorbFunc(dir, tm, idxIn, fIn, fOut)
+   -- Note that for bcAbsorb there is no operation on fIn,
+   -- so skinLoop (which determines indexing of fIn) does not matter 
+   for i = 1, self.basis:numBasis() do fOut[i] = 0.0 end
+end
+function KineticSpecies:bcOpenFunc(dir, tm, idxIn, fIn, fOut)
+   -- Requires skinLoop = "pointwise".
+   self.basis:flipSign(dir, fIn, fOut)
+end
+function KineticSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
+   -- Requires skinLoop = "pointwise".
+   for i = 1, self.basis:numBasis() do fOut[i] = fIn[i] end
+end
+
+-- Function to construct a BC updater.
+function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop, evaluateFn)
+   return Updater.Bc {
+      onGrid             = self.grid,
+      boundaryConditions = bcList,
+      dir                = dir,
+      vdir               = vdir,
+      edge               = edge,
+      skinLoop           = skinLoop,
+      cdim               = self.cdim,
+      vdim               = self.vdim,
+      basis              = self.basis,
+      evaluate           = evaluateFn,
+      evolveFn           = self.evolveFnBC,
+      feedback           = self.feedbackBC,
+      confBasis          = self.confBasis,
+      confGrid           = self.confGrid,
+      doDiagnostics      = self.boundaryFluxDiagnostics,
+      advanceArgs        = {{self:rkStepperFields()[1]}, {self:rkStepperFields()[1]}},
+   }
+end
+
+function KineticSpecies:createBCs()
+   -- Functions to make life easier while reading in BCs to apply.
+   -- Note: appendBoundaryConditions defined in sub-classes.
+   local function handleBc(dir, bc)
+      if bc[1] then
+	 self:appendBoundaryConditions(dir, "lower", bc[1])
+      end
+      if bc[2] then
+	 self:appendBoundaryConditions(dir, "upper", bc[2])
+      end
+   end
+
+   -- Add various BCs to list of BCs to apply.
+   handleBc(1, self.bcx)
+   handleBc(2, self.bcy)
+   handleBc(3, self.bcz)
+
+   -- Calculate external boundary condition if applicable
+   if self.tbl.computeExternalBC then self:initExternalBC() end
+end
+
 function KineticSpecies:createSolver(externalField)
    -- Set up weak multiplication and division operators.
    self.confWeakMultiply = Updater.CartFieldBinOp {

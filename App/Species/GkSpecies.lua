@@ -351,11 +351,9 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
    -- and fix it when we move recyclingBCs to their own app in subsequent commits.
    if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
       self.bcGkM0fluxUpdater = {}
-      self.bcGkM0fluxField = {}
+      self.bcGkM0fluxField   = {}
 
       for _, bc in ipairs(self.boundaryConditions) do
-
-         bc:initBcDiagnostics(self.cdim)  -- This just initializes confBoundaryGrid.
 
          -- Need to evaluate bmag on boundary for moment calculations.
 	 phaseGrid, confGrid = bc:getBoundaryGrid(), bc:getConfBoundaryGrid()
@@ -926,7 +924,6 @@ function GkSpecies:createDiagnostics(field)
 
    if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
       for _, bc in ipairs(self.boundaryConditions) do
-         bc:initBcDiagnostics(self.cdim)
          allocateDiagnosticIntegratedMoments(self.diagnosticIntegratedBoundaryFluxMoments, bc, true)
       end
    end
