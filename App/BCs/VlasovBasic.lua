@@ -21,6 +21,7 @@ local CartDecomp     = require "Lib.CartDecomp"
 local Grid           = require "Grid"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local VlasovDiags    = require "App.Diagnostics.VlasovDiagnostics"
+local xsys           = require "xsys"
 
 local VlasovBasicBC = Proto(BCsBase)
 
@@ -32,10 +33,18 @@ function VlasovBasicBC:init(tbl) self.tbl = tbl end
 function VlasovBasicBC:fullInit(mySpecies)
    local tbl = self.tbl -- Previously stored table.
 
-   self.bcKind      = assert(tbl.kind, "VlasovBasicBC: must specify the type of BC in 'kind'.")
+   if tbl.kind=="function" or tbl.bcFunction then
+      assert(type(tbl.bcFunction)=="function", "VlasovBasicBC: bcFunction must be a function.")
+      self.bcKind   = "function"
+      self.bcFuncIn = assert(tbl.bcFunction, "VlasovBasicBC: must specify the BC function in 'bcFunc' when using 'function' BC kind.")
+      self.feedback = xsys.pickBool(tbl.feedback, false) 
+      self.evolve   = xsys.pickBool(tbl.evolve, self.feedback) 
+   else
+      self.bcKind = assert(tbl.kind, "VlasovBasicBC: must specify the type of BC in 'kind'.")
+   end
+
    self.diagnostics = tbl.diagnostics or {}
    self.saveFlux    = tbl.saveFlux or false
-
    if tbl.diagnostics then
      if #tbl.diagnostics>0 then self.saveFlux = true end
    end
@@ -80,13 +89,20 @@ function VlasovBasicBC:createSolver(mySpecies)
    elseif self.bcKind == "reflect" then
       bcFunc   = function(...) return self:bcReflect(...) end
       skinType = "flip"
+   elseif self.bcKind == "function" then
+      bcFunc   = function(...) return self:bcCopy(...) end
+      skinType = "pointwise"
    end
 
+   local vdir = self.bcDir+self.cdim
    self.bcSolver = Updater.Bc{
-      onGrid = self.grid,    skinLoop           = skinType,
-      cdim   = self.cdim,    edge               = self.bcEdge,  
-      dir    = self.bcDir,   boundaryConditions = {bcFunc},   
-      vdir   = self.bcDir+self.cdim,
+      onGrid   = self.grid,   edge               = self.bcEdge,  
+      cdim     = self.cdim,   boundaryConditions = {bcFunc},   
+      dir      = self.bcDir,  evaluate           = self.bcFuncIn,
+      vdir     = vdir,        evolveFn           = self.evolve,
+      skinLoop = skinType,    feedback           = self.feedback,
+      basis    = self.basis,  confBasis          = self.confBasis,
+      advanceArgs = {{mySpecies:rkStepperFields()[1]}, {mySpecies:rkStepperFields()[1]}},
    }
 
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
@@ -211,7 +227,7 @@ function VlasovBasicBC:rkStepperFields() return {self.boundaryFluxRate, self.bou
 function VlasovBasicBC:getFlucF() return self.boundaryFluxRate end
 
 function VlasovBasicBC:advance(tCurr, species, inFlds)
-   self.bcSolver:advance(tCurr, {}, inFlds)
+   self.bcSolver:advance(tCurr, inFlds, inFlds)
 end
 
 function VlasovBasicBC:getBoundaryFluxFields()

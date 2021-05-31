@@ -467,7 +467,6 @@ function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop, evaluat
       evolveFn           = self.evolveFnBC,
       feedback           = self.feedbackBC,
       confBasis          = self.confBasis,
-      confGrid           = self.confGrid,
       doDiagnostics      = self.boundaryFluxDiagnostics,
       advanceArgs        = {{self:rkStepperFields()[1]}, {self:rkStepperFields()[1]}},
    }

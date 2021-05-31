@@ -20,7 +20,6 @@ local CartDecomp     = require "Lib.CartDecomp"
 local Grid           = require "Grid"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local VlasovDiags    = require "App.Diagnostics.VlasovDiagnostics"
-local xsys           = require "xsys"
 
 local BnFReflectionBC = Proto(BCsBase)
 
@@ -40,9 +39,6 @@ function BnFReflectionBC:fullInit(mySpecies)
    self.elemCharge       = tbl.elemCharge      
    self.electronMass     = tbl.electronMass    
    self.ignore           = tbl.ignore
-
-   self.evolve   = xsys.pickBool(tbl.evolve, true) 
-   self.feedback = xsys.pickBool(tbl.feedback, true) 
 
    if tbl.diagnostics then
      if #tbl.diagnostics>0 then self.saveFlux = true end
@@ -117,11 +113,10 @@ function BnFReflectionBC:createSolver(mySpecies)
 
    local vdir = self.bcDir+self.cdim
    self.bcSolver = Updater.Bc{
-      onGrid = self.grid,   edge     = self.bcEdge,  
-      cdim   = self.cdim,   skinLoop = skinType,
-      dir    = self.bcDir,  evolveFn = self.evolve,
-      vdir   = vdir,        feedback = self.feedback,
-      boundaryConditions = {bcFunc},   
+      onGrid = self.grid,   edge               = self.bcEdge,  
+      cdim   = self.cdim,   skinLoop           = skinType,
+      dir    = self.bcDir,  boundaryConditions = {bcFunc},   
+      vdir   = vdir,      
    }
 
    -- The saveFlux option is used for boundary diagnostics, or BCs that require

@@ -50,7 +50,9 @@ VlasovSpecies.bcZeroFlux  = SP_BC_ZEROFLUX
 
 function VlasovSpecies:makeBcApp(bcIn, dir, edge)
    local bcOut
-   if bcIn == SP_BC_COPY then
+   if type(bcIn) == "function" then
+      bcOut = BasicBC{kind="function", bcFunction=bcIn, diagnostics={}, saveFlux=false}
+   elseif bcIn == SP_BC_COPY then
       bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
    elseif bcIn == SP_BC_ABSORB then
       bcOut = BasicBC{kind="absorb", diagnostics={}, saveFlux=false}

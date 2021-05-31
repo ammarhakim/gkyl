@@ -65,10 +65,11 @@ sim = Plasma.App {
       end,
       evolve = true,   -- Evolve species?
       bcx = { Plasma.Species.bcReflect,
-              function(t, z, M0, M1, M2)
-		 local vth = vth_e
-		 return M1/(vth^2)*math.exp(-(z[2])^2/(2*vth*vth))
-	      end 
+              Plasma.BasicBC{bcFunction = function(t, z, M0, M1, M2)
+                                local vth = vth_e
+                                return M1/(vth^2)*math.exp(-(z[2])^2/(2*vth*vth))
+                             end,
+                             feedback = true,}
 	    },
       feedbackBC = true,
       evolveBC   = true,
