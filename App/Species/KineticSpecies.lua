@@ -235,7 +235,7 @@ function KineticSpecies:fullInit(appTbl)
       for e, bcOb in ipairs(bcsTbl) do
          local goodBC = false
          local val    = bcOb
-         if not BCs.BCsBase.is(val) then val = self:makeBcApp(bcOb) end
+         if not BCs.BCsBase.is(val) then val = self:makeBcApp(bcOb, d, e) end
          if BCs.BCsBase.is(val) then
             local nm = dirLabel[d]..edgeLabel[e]
             self.nonPeriodicBCs[nm] = val

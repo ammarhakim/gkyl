@@ -20,6 +20,7 @@ local VlasovEq       = require "Eq.Vlasov"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local VlasovDiags    = require "App.Diagnostics.VlasovDiagnostics"
 local BasicBC        = require "App.BCs.VlasovBasic"
+local BCsBase        = require "App.BCs.BCsBase"
 local ffi            = require "ffi"
 local xsys           = require "xsys"
 local lume           = require "Lib.lume"
@@ -48,7 +49,7 @@ VlasovSpecies.bcOpen      = SP_BC_OPEN       -- Zero gradient.
 VlasovSpecies.bcReflect   = SP_BC_REFLECT    -- Specular reflection.
 VlasovSpecies.bcZeroFlux  = SP_BC_ZEROFLUX
 
-function VlasovSpecies:makeBcApp(bcIn)
+function VlasovSpecies:makeBcApp(bcIn, dir, edge)
    local bcOut
    if bcIn == SP_BC_COPY then
       bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
@@ -60,7 +61,8 @@ function VlasovSpecies:makeBcApp(bcIn)
    elseif bcIn == SP_BC_REFLECT then
       bcOut = BasicBC{kind="reflect", diagnostics={}, saveFlux=false}
    elseif bcIn == SP_BC_ZEROFLUX then
-      bcOut = BasicBC{kind="zeroFlux", diagnostics={}, saveFlux=false}
+      bcOut = BCsBase{kind="zeroFlux", diagnostics={}, saveFlux=false}
+      table.insert(self.zeroFluxDirections, dir)
    end
    return bcOut
 end

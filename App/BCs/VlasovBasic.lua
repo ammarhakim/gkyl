@@ -56,61 +56,6 @@ function VlasovBasicBC:bcReflect(dir, tm, idxIn, fIn, fOut)
    self.basis:flipSign(dir, fIn, fOut)
    self.basis:flipSign(dir+self.cdim, fOut, fOut)
 end
-function VlasovBasicBC:bcRecycle(dir, tm, idxIn, fIn, fOut)
-   -- skinLoop should be "flip"
-   -- Note that bcRecycle only valid in dir parallel to B.
-   -- This is checked when bc is created.
-   local globalRange = self.grid:globalRange()
-   local l1, l2
-   if dir == 1 then
-      l1 = 'FluxX'
-   elseif dir == 2 then
-      l1 = 'FluxY'
-   else
-      l1 = 'FluxZ'
-   end
-   if idxIn[dir] == globalRange:lower(dir) then
-      l2 = 'lower'
-   else
-      l2 = 'upper'
-   end
-   local label = l1..l2
-
-   local zIdx = idxIn
-   zIdx[dir] = 1
-
-   local f     = self.recycleDistF[label]
-   local rIdxr = f:genIndexer()
-   local rFPtr = self.recycleDistF[label]:get(1)
-   f:fill(rIdxr(zIdx), rFPtr)
-   for i = 1, self.basis:numBasis() do
-      fOut[i] = 0
-      fOut[i] = rFPtr[i]
-   end
-
-   self.basis:flipSign(dir, fOut, fOut)
-   self.basis:flipSign(dir+self.cdim, fOut, fOut)
-end
-function VlasovBasicBC:bcExtern(dir, tm, idxIn, fIn, fOut)
-   -- Requires skinLoop = "flip".
-   local numBasis = self.basis:numBasis()
-   local velIdx   = Lin.IntVec(self.ndim)
-   velIdx[1] = 1
-   for d = 1, self.vdim do
-      velIdx[d + 1] = idxIn[self.cdim + d]
-   end
-   local exIdxr = self.externalBCFunction:genIndexer()
-   local externalBCFunction = self.externalBCFunction:get(exIdxr(velIdx))
-   if velIdx[1] ~= 0 and velIdx[1] ~= self.grid:numCells(2) + 1 then
-      for i = 1, numBasis do
-         fOut[i] = 0
-         for j = 1, numBasis do
-            fOut[i] = fOut[i] + fIn[j]*externalBCFunction[(i - 1)*numBasis + j]
-         end
-      end
-   end
-   return fOut
-end
 
 function VlasovBasicBC:createSolver(mySpecies)
 
@@ -136,6 +81,7 @@ function VlasovBasicBC:createSolver(mySpecies)
       onGrid = self.grid,    skinLoop           = skinType,
       cdim   = self.cdim,    edge               = self.bcEdge,  
       dir    = self.bcDir,   boundaryConditions = {bcFunc},   
+      vdir   = self.bcDir+self.cdim,
    }
 
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
