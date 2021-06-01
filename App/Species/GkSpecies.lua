@@ -126,8 +126,7 @@ function GkSpecies:createSolver(field, externalField)
 
       self.bmag        = assert(externalField.geo.bmag, "nil bmag")
       self.bmagInv     = externalField.geo.bmagInv
-      self.bmagInvSq   = self:allocMoment()
-      self.confWeakMultiply:advance(0., {self.bmagInv, self.bmagInv}, {self.bmagInvSq})
+      self.bmagInvSq   = externalField.geo.bmagInvSq
       self.jacobGeo    = externalField.geo.jacobGeo
       self.jacobGeoInv = externalField.geo.jacobGeoInv
    end
@@ -282,47 +281,45 @@ function GkSpecies:createSolver(field, externalField)
    
    -- Create updaters to compute various moments.
    self.numDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
+      onGrid     = self.grid,   confBasis  = self.confBasis,
+      phaseBasis = self.basis,  gkfacs     = {self.mass, self.bmag},
       moment     = "GkM0", -- GkM0 = < f >
-      gkfacs     = {self.mass, self.bmag},
    }
    self.momDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
+      onGrid     = self.grid,   confBasis  = self.confBasis,
+      phaseBasis = self.basis,  gkfacs     = {self.mass, self.bmag},
       moment     = "GkM1", -- GkM1 = < v_parallel f > 
-      gkfacs     = {self.mass, self.bmag},
    }
    self.momProjDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
+      onGrid     = self.grid,   confBasis  = self.confBasis,
+      phaseBasis = self.basis,  gkfacs     = {self.mass, self.bmag},
       moment     = "GkM1proj", -- GkM1proj = < cellavg(v_parallel) f >
-      gkfacs     = {self.mass, self.bmag},
    }
    self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
+      onGrid     = self.grid,   confBasis  = self.confBasis,
+      phaseBasis = self.basis,  gkfacs     = {self.mass, self.bmag},
       moment     = "GkM2", -- GkM2 = < (v_parallel^2 + 2*mu*B/m) f >
-      gkfacs     = {self.mass, self.bmag},
    }
    self.M2parCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      moment     = "GkM2par",
-      gkfacs     = {self.mass, self.bmag},
+      onGrid     = self.grid,   confBasis  = self.confBasis,
+      phaseBasis = self.basis,  gkfacs     = {self.mass, self.bmag},
+      moment     = "GkM2par", -- GkM2par = < v_parallel^2 f >
+   }
+   self.M3parCalc = Updater.DistFuncMomentCalc {
+      onGrid     = self.grid,   confBasis  = self.confBasis,
+      phaseBasis = self.basis,  gkfacs     = {self.mass, self.bmag},
+      moment     = "GkM3par", -- GkM3par = < v_parallel^3 f >
    }
    if self.vdim > 1 then
       self.M2perpCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.grid,
-         phaseBasis = self.basis,
-         confBasis  = self.confBasis,
-         moment     = "GkM2perp",
-         gkfacs     = {self.mass, self.bmag},
+         onGrid     = self.grid,   confBasis  = self.confBasis,
+         phaseBasis = self.basis,  gkfacs     = {self.mass, self.bmag},
+         moment     = "GkM2perp", -- GkM2 = < (mu*B/m) f >
+      }
+      self.M3perpCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.grid,   confBasis  = self.confBasis,
+         phaseBasis = self.basis,  gkfacs     = {self.mass, self.bmag},
+         moment     = "GkM3perp", -- GkM3perp = < vpar*(mu*B/m) f >
       }
    end
    self.threeMomentsCalc = Updater.DistFuncMomentCalc {
@@ -373,7 +370,7 @@ function GkSpecies:createSolver(field, externalField)
    end
 
    -- Create an updater for volume integrals. Used by diagnostics.
-   -- Placed in a table with key 'comps1' to keep consistency with VlasovSpecies (makes diagnostics simpler).
+   -- Placed in a table with key 'scalar' to keep consistency with VlasovSpecies (makes diagnostics simpler).
    self.volIntegral = {
       scalar = Updater.CartFieldIntegratedQuantCalc {
          onGrid = self.confGrid,   numComponents = 1,
@@ -833,7 +830,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 	 self.bcGkM0fluxUpdater[label]:advance(tCurr, {bc:getBoundaryFluxFields()[outIdx]}, {self.bcGkM0fluxField[label]} )
       end
    end
-   for _, bc in ipairs(self.nonPeriodicBCs) do
+   for _, bc in pairs(self.nonPeriodicBCs) do
       bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)   -- Save boundary fluxes.
    end
 

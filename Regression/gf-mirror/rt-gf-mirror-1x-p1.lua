@@ -453,8 +453,8 @@ plasmaApp = Plasma.App {
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
 --      bcx = {Plasma.Species.bcAbsorb, Plasma.Species.bcAbsorb},
-      bcx = {Plasma.BasicBC{kind="absorb", diagnostics={"M0"}},
-             Plasma.BasicBC{kind="absorb", diagnostics={"M0"}}},
+      bcx = {Plasma.BasicBC{kind="absorb", diagnostics={"M0","M2flow"}},
+             Plasma.BasicBC{kind="absorb", diagnostics={"M0","M2flow"}}},
    },
 
    -- Gyrofluid electronss.

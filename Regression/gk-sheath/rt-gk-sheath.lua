@@ -141,13 +141,11 @@ plasmaApp = Plasma.App {
       evolve = true, -- Evolve species?
       --applyPositivity = true,
       diagnostics = {"M0", "Upar", "Temp", "Beta", "intM0", "intM1", "intEnergy",}, 
-      diagnosticBoundaryFluxMoments = {"GkM0", "GkUpar", "GkTemp", "GkBeta", "GkEnergy"},
-      diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
       randomseed = randomseed,
-      --bcx = {Plasma.Species.bcZeroFlux, Plasma.Species.bcZeroFlux},
-      --bcz = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
-      bcx = {Plasma.BasicBC{kind="zeroFlux"}, Plasma.BasicBC{kind="zeroFlux"}},
-      bcz = {Plasma.BasicBC{kind="sheath"}  , Plasma.BasicBC{kind="sheath"}  },
+      bcx = {Plasma.BasicBC{kind="zeroFlux",diagnostics={"M0","Upar","Temp","Beta","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.BasicBC{kind="zeroFlux",diagnostics={"M0","Upar","Temp","Beta","Energy","intM0","intM1","intKE","intEnergy"}}},
+      bcz = {Plasma.BasicBC{kind="sheath",diagnostics=  {"M0","Upar","Temp","Beta","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.BasicBC{kind="sheath",diagnostics=  {"M0","Upar","Temp","Beta","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Gyrokinetic ions
@@ -195,13 +193,11 @@ plasmaApp = Plasma.App {
       evolve = true, -- Evolve species?
       --applyPositivity = true,
       diagnostics = {"M0", "Upar", "Temp", "intM0", "intM1", "intKE", "intEnergy"}, 
-      diagnosticBoundaryFluxMoments = {"GkM0", "GkUpar", "GkEnergy"},
-      diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
       randomseed = randomseed,
-      --bcx = {Plasma.Species.bcZeroFlux, Plasma.Species.bcZeroFlux},
-      --bcz = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
-      bcx = {Plasma.BasicBC{kind="zeroFlux"}, Plasma.BasicBC{kind="zeroFlux"}},
-      bcz = {Plasma.BasicBC{kind="sheath"}  , Plasma.BasicBC{kind="sheath"}  },
+      bcx = {Plasma.BasicBC{kind="zeroFlux",diagnostics={"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.BasicBC{kind="zeroFlux",diagnostics={"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}}},
+      bcz = {Plasma.BasicBC{kind="sheath",diagnostics=  {"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.BasicBC{kind="sheath",diagnostics=  {"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Field solver.

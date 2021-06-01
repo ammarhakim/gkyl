@@ -1021,7 +1021,8 @@ function GkGeometry:alloc()
    self.geo.bmag = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
    -- bmagInv ~ 1/B.
-   self.geo.bmagInv = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   self.geo.bmagInv   = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   self.geo.bmagInvSq = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
    -- cmag = J B / sqrt(g_zz).
    self.geo.cmag = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
@@ -1358,6 +1359,11 @@ function GkGeometry:initField()
              self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
       end
    end
+   local confWeakMultiply = Updater.CartFieldBinOp {
+      onGrid    = self.grid,   operation = "Multiply",
+      weakBasis = self.basis,  onGhosts  = true,
+   }
+   confWeakMultiply:advance(0., {self.geo.bmagInv, self.geo.bmagInv}, {self.geo.bmagInvSq})
    log("...Finished initializing the geometry\n")
 
    if self.setPhiWall then self.setPhiWall:advance(0.0, {}, {self.geo.phiWall})
@@ -1367,6 +1373,7 @@ function GkGeometry:initField()
    -- these fields were created with syncPeriodicDirs = false.
    self.geo.bmag:sync(false)
    self.geo.bmagInv:sync(false)
+   self.geo.bmagInvSq:sync(false)
    self.geo.cmag:sync(false)
    self.geo.gxx:sync(false)
    self.geo.gxy:sync(false)

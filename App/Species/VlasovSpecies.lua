@@ -613,9 +613,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
 
 end
 
-function VlasovSpecies:setActiveRKidx(rkIdx)
-   self.activeRKidx = rkIdx
-end
+function VlasovSpecies:setActiveRKidx(rkIdx) self.activeRKidx = rkIdx end
 
 function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    self:setActiveRKidx(inIdx)

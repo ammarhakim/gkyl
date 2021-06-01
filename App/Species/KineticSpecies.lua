@@ -498,28 +498,20 @@ end
 function KineticSpecies:createSolver(field, externalField)
    -- Set up weak multiplication and division operators.
    self.confWeakMultiply = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "Multiply",
-      onGhosts  = true,
+      onGrid    = self.confGrid,   operation = "Multiply",
+      weakBasis = self.confBasis,  onGhosts  = true,
    }
    self.confWeakDivide = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "Divide",
-      onGhosts  = true,
+      onGrid    = self.confGrid,   operation = "Divide",
+      weakBasis = self.confBasis,  onGhosts  = true,
    }
    self.confWeakDotProduct = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "DotProduct",
-      onGhosts  = true,
+      onGrid    = self.confGrid,   operation = "DotProduct",
+      weakBasis = self.confBasis,  onGhosts  = true,
    }
    self.confPhaseWeakMultiply = Updater.CartFieldBinOp {
-      onGrid     = self.grid,
-      weakBasis  = self.basis,
-      fieldBasis = self.confBasis,
-      operation  = "Multiply",
+      onGrid    = self.grid,   fieldBasis = self.confBasis,
+      weakBasis = self.basis,  operation  = "Multiply",
    }
 
    -- Functions to compute fluctuations given the current moments and background,
@@ -587,6 +579,7 @@ function KineticSpecies:alloc(nRkDup)
       self.distf[i] = self:allocDistf()
       self.distf[i]:clear(0.0)
    end
+   self:setActiveRKidx(1)
 
    if self.positivity then
       self.fDelPos = {}
@@ -620,6 +613,7 @@ function KineticSpecies:alloc(nRkDup)
    self.cflRatePtr    = self.cflRateByCell:get(1)
    self.cflRateIdxr   = self.cflRateByCell:genIndexer()
    self.dtGlobal      = ffi.new("double[2]")
+   self.dtGlobal[0], self.dtGlobal[1] = 1.0, 1.0   -- Temporary value (so diagnostics at t=0 aren't inf).
 
    self:createBCs()
 
@@ -691,8 +685,6 @@ function KineticSpecies:initDist(extField)
 
    self.distf[2]:clear(0.0)
    
-   self:setActiveRKidx(1)
-
    -- Calculate initial density averaged over simulation domain.
    --self.n0 = nil
    --local dens0 = self:allocMoment()
@@ -712,9 +704,7 @@ function KineticSpecies:initDist(extField)
    --print("Average density is " .. self.n0)
 end
 
-function KineticSpecies:setActiveRKidx(rkIdx)
-   self.activeRKidx = rkIdx
-end
+function KineticSpecies:setActiveRKidx(rkIdx) self.activeRKidx = rkIdx end
 
 function KineticSpecies:rkStepperFields() return self.distf end
 
