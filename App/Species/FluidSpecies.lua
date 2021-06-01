@@ -136,7 +136,7 @@ function FluidSpecies:fullInit(appTbl)
    end
    -- Initialize boundary conditions.
    self.nonPeriodicBCs = {}
-   local dirLabel  = {'x','y','z'}
+   local dirLabel  = {'X','Y','Z'}
    local edgeLabel = {'lower','upper'}
    for d, bcsTbl in ipairs(self.bcInDir) do
       for e, bcOb in ipairs(bcsTbl) do
@@ -144,7 +144,7 @@ function FluidSpecies:fullInit(appTbl)
          local val    = bcOb
          if not BCs.BCsBase.is(val) then val = self:makeBcApp(bcOb) end
          if BCs.BCsBase.is(val) then
-            local nm = dirLabel[d]..edgeLabel[e]
+            local nm = 'bc'..dirLabel[d]..edgeLabel[e]
             self.nonPeriodicBCs[nm] = val
             val:setSpeciesName(self.name)
             val:setName(nm)   -- Do :setName after :setSpeciesName for BCs.

@@ -68,6 +68,8 @@ function GyrofluidBasicBC:createSolver(mySpecies, field, externalField)
    elseif self.bcKind == "absorb" then
       bcFunc   = function(...) return self:bcAbsorb(...) end
       skinType = "pointwise"
+   else
+      assert(false, "GyrofluidBasicBC: BC kind not recognized.")
    end
 
    self.bcSolver = Updater.Bc {
@@ -181,6 +183,9 @@ function GyrofluidBasicBC:createDiagnostics(mySpecies, field)
    if self.tbl.diagnostics then
       self.diagnostics = DiagsApp{implementation = GyrofluidDiags()}
       self.diagnostics:fullInit(mySpecies, field, self)
+      -- Presently boundary diagnostics are boundary flux diagnostics. Append 'flux' to the diagnostic's
+      -- name so files are named accordingly. Re-design this when non-flux diagnostics are implemented
+      self.diagnostics.name = self.diagnostics.name..'_flux'
    end
    return self.diagnostics
 end

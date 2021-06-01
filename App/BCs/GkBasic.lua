@@ -186,6 +186,8 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
 
       bcFunc   = function(...) return self:bcSheath(...) end
       skinType = "flip"
+   else
+      assert(false, "GkBasicBC: BC kind not recognized.")
    end
 
    local vdir = nil
@@ -409,6 +411,9 @@ function GkBasicBC:createDiagnostics(mySpecies, field)
    if self.tbl.diagnostics then
       self.diagnostics = DiagsApp{implementation = GkDiags()}
       self.diagnostics:fullInit(mySpecies, field, self)
+      -- Presently boundary diagnostics are boundary flux diagnostics. Append 'flux' to the diagnostic's
+      -- name so files are named accordingly. Re-design this when non-flux diagnostics are implemented
+      self.diagnostics.name = self.diagnostics.name..'_flux'
    end
    return self.diagnostics
 end

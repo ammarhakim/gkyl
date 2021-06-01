@@ -92,6 +92,8 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
    elseif self.bcKind == "function" then
       bcFunc   = function(...) return self:bcCopy(...) end
       skinType = "pointwise"
+   else
+      assert(false, "VlasovBasicBC: BC kind not recognized.")
    end
 
    local vdir = self.bcDir+self.cdim
@@ -217,6 +219,9 @@ function VlasovBasicBC:createDiagnostics(mySpecies, field)
    if self.tbl.diagnostics then
       self.diagnostics = DiagsApp{implementation = VlasovDiags()}
       self.diagnostics:fullInit(mySpecies, field, self)
+      -- Presently boundary diagnostics are boundary flux diagnostics. Append 'flux' to the diagnostic's
+      -- name so files are named accordingly. Re-design this when non-flux diagnostics are implemented
+      self.diagnostics.name = self.diagnostics.name..'_flux'
    end
    return self.diagnostics
 end
