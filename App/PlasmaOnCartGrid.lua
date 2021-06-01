@@ -332,7 +332,7 @@ local function buildApplication(self, tbl)
    -- Function to write data to file.
    local function writeData(tCurr, force)
       for _, s in lume.orderedIter(species) do s:write(tCurr, force) end
-      for _, flSrc in lume.orderedIter(fluidSources) do src:write(tCurr) end 
+      for _, flSrc in lume.orderedIter(fluidSources) do flSrc:write(tCurr) end 
       field:write(tCurr, force)
       externalField:write(tCurr, force)
    end
