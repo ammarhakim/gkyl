@@ -146,7 +146,7 @@ function Gyrokinetic:setAuxFields(auxFields)
          self.phiGyPtr = {}
          self.phiGyIdxr = {}
          for i=1,self._grid:numCells(self._ndim) do
-            self.phiGyPtr[i] = self.phiGy[i]:get(1)
+            self.phiGyPtr[i]  = self.phiGy[i]:get(1)
             self.phiGyIdxr[i] = self.phiGy[i]:genIndexer()
          end
       end

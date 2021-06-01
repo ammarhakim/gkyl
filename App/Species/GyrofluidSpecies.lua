@@ -91,9 +91,15 @@ function GyrofluidSpecies:alloc(nRkDup)
    self.first = true
 end
 
-function GyrofluidSpecies:createSolver(hasPhi, hasApar, externalField)
+function GyrofluidSpecies:createSolver(field, externalField)
    -- Run the FluidSpecies 'createSolver()' to initialize the collisions solver.
-   GyrofluidSpecies.super.createSolver(self,externalField)
+   GyrofluidSpecies.super.createSolver(self, field, externalField)
+
+   local hasE, hasB       = field:hasEB()
+   local extHasE, extHasB = externalField:hasEB()
+
+   local hasPhi  = hasE or extHasE
+   local hasApar = hasB or extHasB
 
    -- Set up Jacobian.
    if externalField then

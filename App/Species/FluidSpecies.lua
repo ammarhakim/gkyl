@@ -256,12 +256,14 @@ function FluidSpecies:allocVectorMoment(dim)
    return self:allocCartField(self.grid, dim*self.basis:numBasis(), {self.nGhost,self.nGhost}, metaData)
 end
 
-function FluidSpecies:createSolver(externalField)
+function FluidSpecies:createSolver(field, externalField)
    if externalField then
       -- Set up Jacobian.
       self.jacobFunc   = externalField.jacobGeoFunc
-      self.jacob       = externalField.geo.jacobGeo
-      self.jacobGeoInv = externalField.geo.jacobGeoInv
+      if externalField.geo then
+         self.jacob       = externalField.geo.jacobGeo
+         self.jacobGeoInv = externalField.geo.jacobGeoInv
+      end
    end
 
    -- Operators needed for time-dependent calculation and diagnostics.
@@ -367,13 +369,17 @@ function FluidSpecies:createSolver(externalField)
 
    if self.evolve then
       self.suggestDtFunc = function() return FluidSpecies["suggestDtEvolve"](self) end
-      self.applyBcFunc   = function(tCurr, momIn) return FluidSpecies["applyBcEvolve"](self, tCurr, momIn) end
+      self.applyBcFunc   = function(tCurr, field, externalField, inIdx, outIdx)
+         return FluidSpecies["applyBcEvolve"](self, tCurr, field, externalField, inIdx, outIdx)
+      end
       self.calcCouplingMomentsFunc = function(tCurr, rkIdx, species)
          return self:calcCouplingMomentsEvolve(tCurr, rkIdx, species)
       end
    else
       self.suggestDtFunc = function() return FluidSpecies["suggestDtDontEvolve"](self) end
-      self.applyBcFunc   = function(tCurr, momIn) return FluidSpecies["applyBcDontEvolve"](self, tCurr, momIn) end
+      self.applyBcFunc   = function(tCurr, field, externalField, inIdx, outIdx)
+         return FluidSpecies["applyBcDontEvolve"](self, tCurr, field, externalField, inIdx, outIdx)
+      end
       self.calcCouplingMomentsFunc = function(tCurr, rkIdx, species)
          return self:calcCouplingMomentsNoEvolve(tCurr, rkIdx, species)
       end
@@ -558,23 +564,24 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    momRhsOut:clear(0.0)
 end
 
-function FluidSpecies:applyBcIdx(tCurr, idx, isFirstRk)
-  self.posRescalerDiffAdv(tCurr, idx, true, isFirstRk)
+function FluidSpecies:applyBcIdx(tCurr, field, externalField, inIdx, outIdx, isFirstRk)
+  self.posRescalerDiffAdv(tCurr, outIdx, true, isFirstRk)
 
-  self:applyBc(tCurr, self:rkStepperFields()[idx])
+  self:applyBc(tCurr, field, externalField, inIdx, outIdx)
 
-  self.checkPositivity(tCurr, idx)
+  self.checkPositivity(tCurr, outIdx)
 end
 
-function FluidSpecies:applyBcDontEvolve(tCurr, momIn) end
-function FluidSpecies:applyBcEvolve(tCurr, momIn) 
-   -- momIn is the set of evolved moments.
+function FluidSpecies:applyBcDontEvolve(tCurr, field, externalField, inIdx, outIdx) end
+function FluidSpecies:applyBcEvolve(tCurr, field, externalField, inIdx, outIdx) 
    local tmStart = Time.clock()
+
+   local momIn = self:rkStepperFields()[outIdx]   -- momIn is the set of evolved moments.
 
    self.minusBackgroundMom(momIn)
 
    -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
-   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advance(tCurr, {}, {momIn}) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advance(tCurr, self, field, externalField, inIdx, outIdx) end
 
    -- Apply periodic BCs (to only fluctuations if fluctuation BCs)
    momIn:sync()
@@ -583,7 +590,9 @@ function FluidSpecies:applyBcEvolve(tCurr, momIn)
 
    self.bcTime = self.bcTime + Time.clock()-tmStart
 end
-function FluidSpecies:applyBc(tCurr, momIn) self.applyBcFunc(tCurr, momIn) end
+function FluidSpecies:applyBc(tCurr, field, externalField, inIdx, outIdx)
+   self.applyBcFunc(tCurr, field, externalField, inIdx, outIdx)
+end
 
 function FluidSpecies:createDiagnostics(field)  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
    if self.tbl.diagnostics then   -- Create this species' diagnostics.

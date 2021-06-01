@@ -62,7 +62,7 @@ function VlasovSpecies:makeBcApp(bcIn, dir, edge)
    elseif bcIn == SP_BC_REFLECT then
       bcOut = BasicBC{kind="reflect", diagnostics={}, saveFlux=false}
    elseif bcIn == SP_BC_ZEROFLUX then
-      bcOut = BCsBase{kind="zeroFlux", diagnostics={}, saveFlux=false}
+      bcOut = "zeroFlux"
       table.insert(self.zeroFluxDirections, dir)
    end
    return bcOut
@@ -117,9 +117,15 @@ function VlasovSpecies:allocMomCouplingFields()
 end
 
 
-function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
+function VlasovSpecies:createSolver(field, externalField)
    -- Run the KineticSpecies 'createSolver()' to initialize the collisions solver.
-   VlasovSpecies.super.createSolver(self)
+   VlasovSpecies.super.createSolver(self, field, externalField)
+
+   local plasmaE, plasmaB = field:hasEB()
+   local extHasE, extHasB = externalField:hasEB()
+
+   local hasE = plasmaE or extHasE
+   local hasB = plasmaB or extHasB
 
    -- External forces are accumulated to the electric field part of
    -- totalEmField
@@ -128,7 +134,6 @@ function VlasovSpecies:createSolver(hasE, hasB, funcField, plasmaB)
       hasB = true
    end
 
-   -- Allocate field to accumulate funcField if any.
    if hasB then
       self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
    else
@@ -670,7 +675,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       end
    end
    for _, bc in ipairs(self.nonPeriodicBCs) do
-      bc:storeBoundaryFlux(tCurr, outIdx, momRhsOut)   -- Save boundary fluxes.
+      bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)   -- Save boundary fluxes.
    end
 end
 

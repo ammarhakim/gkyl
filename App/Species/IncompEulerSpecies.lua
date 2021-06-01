@@ -46,10 +46,13 @@ function IncompEulerSpecies:fullInit(appTbl)
    self.nMoments = 1
 end
 
-function IncompEulerSpecies:createSolver(hasE, hasB)
+function IncompEulerSpecies:createSolver(field, externalField)
    -- Run the FluidSpecies 'createSolver()' to initialize the
    -- collisions (diffusion) solver.
-   IncompEulerSpecies.super.createSolver(self)
+   IncompEulerSpecies.super.createSolver(self, field, externalField)
+
+   local hasE, hasB       = field:hasEB()
+   local extHasE, extHasB = externalField:hasEB()
 
    -- Retrieve the zero-flux BCs (if any) from BC objects.
    local zeroFluxDirs = {}

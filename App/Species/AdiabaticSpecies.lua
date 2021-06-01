@@ -46,7 +46,7 @@ function AdiabaticSpecies:fullInit(appTbl)
    assert(self.evolve==false, "AdiabaticSpecies: cannot evolve an adiabatic species")
 end
 
-function AdiabaticSpecies:createSolver(hasE, hasB, externalField)
+function AdiabaticSpecies:createSolver(field, externalField)
 
    -- Compute density in center of domain.
    local gridCenter = {}

@@ -60,7 +60,7 @@ function GyrofluidBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
    for i = 1, numB do fOut[3*numB+i] = 1.e-10*fIn[3*numB+i] end   -- Perpendicular pressure (divided by B).
 end
 
-function GyrofluidBasicBC:createSolver(mySpecies)
+function GyrofluidBasicBC:createSolver(mySpecies, field, externalField)
    local bcFunc, skinType
    if self.bcKind == "copy" then
       bcFunc   = function(...) return self:bcCopy(...) end
@@ -187,8 +187,9 @@ end
 
 function GyrofluidBasicBC:getNoJacMoments() return self.boundaryFluxRate end  -- Used by diagnostics.
 
-function GyrofluidBasicBC:advance(tCurr, species, inFlds)
-   self.bcSolver:advance(tCurr, {}, inFlds)
+function GyrofluidBasicBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
+   local fIn = mySpecies:rkStepperFields()[outIdx]
+   self.bcSolver:advance(tCurr, {fIn}, {fIn})
 end
 
 function GyrofluidBasicBC:getBoundaryFluxFields()

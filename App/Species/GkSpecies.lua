@@ -20,10 +20,13 @@ local Source         = require "App.Sources.GkSource"
 local VlasovEq       = require "Eq.Vlasov"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local GkDiags        = require "App.Diagnostics.GkDiagnostics"
+local BasicBC        = require "App.BCs.GkBasic"
+local BCsBase        = require "App.BCs.BCsBase"
 local lume           = require "Lib.lume"
 
 local GkSpecies = Proto(KineticSpecies)
 
+-- ............. Backwards compatible treatment of BCs .....................--
 -- Add constants to object indicate various supported boundary conditions.
 local SP_BC_ABSORB   = 1
 local SP_BC_OPEN     = 2
@@ -34,9 +37,33 @@ local SP_BC_COPY     = 6
 GkSpecies.bcAbsorb   = SP_BC_ABSORB      -- Absorb all particles.
 GkSpecies.bcOpen     = SP_BC_OPEN        -- Zero gradient.
 GkSpecies.bcReflect  = SP_BC_REFLECT     -- Specular reflection.
-GkSpecies.bcSheath   = SP_BC_SHEATH      -- Specular reflection.
+GkSpecies.bcSheath   = SP_BC_SHEATH      -- Sheath.
 GkSpecies.bcZeroFlux = SP_BC_ZEROFLUX    -- Zero flux.
 GkSpecies.bcCopy     = SP_BC_COPY        -- Copy stuff.
+
+function GkSpecies:makeBcApp(bcIn, dir, edge)
+   local bcOut
+   if type(bcIn) == "function" then
+      bcOut = BasicBC{kind="function", bcFunction=bcIn, diagnostics={}, saveFlux=false}
+   elseif bcIn == SP_BC_COPY then
+      bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
+   elseif bcIn == SP_BC_ABSORB then
+      bcOut = BasicBC{kind="absorb", diagnostics={}, saveFlux=false}
+   elseif bcIn == SP_BC_OPEN then
+      -- AHH: open seems unstable. So using plain copy.
+      bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
+   elseif bcIn == SP_BC_REFLECT then
+      bcOut = BasicBC{kind="reflect", diagnostics={}, saveFlux=false}
+   elseif bcIn == SP_BC_SHEATH then
+      bcOut = BasicBC{kind="sheath", diagnostics={}, saveFlux=false}
+   elseif bcIn == SP_BC_ZEROFLUX then
+      bcOut = "zeroFlux"
+      table.insert(self.zeroFluxDirections, dir)
+   end
+   return bcOut
+end
+
+-- ............. End of backwards compatibility for BCs .....................--
 
 function GkSpecies:alloc(nRkDup)
    -- Allocate distribution function.
@@ -76,10 +103,15 @@ function GkSpecies:allocMomCouplingFields()
    assert(false, "GkSpecies:allocMomCouplingFields should not be called. Field object should allocate its own coupling fields")
 end
 
-function GkSpecies:createSolver(hasPhi, hasApar, externalField)
-   -- Run the KineticSpecies 'createSolver()' to initialize the
-   -- collisions solver.
-   GkSpecies.super.createSolver(self,externalField)
+function GkSpecies:createSolver(field, externalField)
+   -- Run the KineticSpecies 'createSolver()' to initialize the collisions solver.
+   GkSpecies.super.createSolver(self, field, externalField)
+
+   local hasE, hasB       = field:hasEB()
+   local extHasE, extHasB = externalField:hasEB()
+
+   local hasPhi  = hasE or extHasE
+   local hasApar = hasB or extHasB
 
    -- Set up Jacobian.
    if externalField then
@@ -150,6 +182,11 @@ function GkSpecies:createSolver(hasPhi, hasApar, externalField)
          rho3       = self.rho3,
          integrate  = true,
       }
+   end
+
+   self.hasSheathBCs = false
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do
+      self.hasSheathBCs = self.hasSheathBCs or (bc.bcKind=="sheath" and true or false)
    end
 
    -- Create updater to advance solution by one time-step.
@@ -796,6 +833,9 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 	 self.bcGkM0fluxUpdater[label]:advance(tCurr, {bc:getBoundaryFluxFields()[outIdx]}, {self.bcGkM0fluxField[label]} )
       end
    end
+   for _, bc in ipairs(self.nonPeriodicBCs) do
+      bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)   -- Save boundary fluxes.
+   end
 
    for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
 end
@@ -846,6 +886,10 @@ function GkSpecies:createDiagnostics(field)
 
    for srcNm, src in lume.orderedIter(self.sources) do
       self.diagnostics[self.name..srcNm] = src:createDiagnostics(self, field)
+   end
+
+   for bcNm, bc in lume.orderedIter(self.nonPeriodicBCs) do
+      self.diagnostics[self.name..bcNm] = bc:createDiagnostics(self, field)
    end
 
    local function contains(table, element) return lume.any(table, function(e) return e==element end) end

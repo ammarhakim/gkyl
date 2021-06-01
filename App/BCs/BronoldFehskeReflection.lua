@@ -68,7 +68,7 @@ function BnFReflectionBC:bcBnFReflectionFunc(dir, tm, idxIn, fIn, fOut)
    return fOut
 end
 
-function BnFReflectionBC:createSolver(mySpecies)
+function BnFReflectionBC:createSolver(mySpecies, field, externalField)
 
    self.basis, self.grid = mySpecies.basis, mySpecies.grid
    self.ndim, self.cdim, self.vdim = self.grid:ndim(), self.confGrid:ndim(), self.grid:ndim()-self.confGrid:ndim()
@@ -240,8 +240,9 @@ function BnFReflectionBC:rkStepperFields() return {self.boundaryFluxRate, self.b
                                                  self.boundaryFluxRate, self.boundaryFluxRate} end
 function BnFReflectionBC:getFlucF() return self.boundaryFluxRate end
 
-function BnFReflectionBC:advance(tCurr, species, inFlds)
-   self.bcSolver:advance(tCurr, {}, inFlds)
+function BnFReflectionBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
+   local fIn = mySpecies:rkStepperFields()[outIdx]
+   self.bcSolver:advance(tCurr, {}, {fIn})
 end
 
 function BnFReflectionBC:getBoundaryFluxFields()

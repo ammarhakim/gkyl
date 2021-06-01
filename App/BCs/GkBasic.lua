@@ -8,42 +8,44 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local BCsBase        = require "App.BCs.BCsBase"
-local DataStruct     = require "DataStruct"
-local Updater        = require "Updater"
-local Mpi            = require "Comm.Mpi"
-local Proto          = require "Lib.Proto"
-local Time           = require "Lib.Time"
-local Range          = require "Lib.Range"
-local Lin            = require "Lib.Linalg"
-local LinearDecomp   = require "Lib.LinearDecomp"
-local CartDecomp     = require "Lib.CartDecomp"
-local Grid           = require "Grid"
-local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
-local GkDiags        = require "App.Diagnostics.GkDiagnostics"
-local xsys           = require "xsys"
+local BCsBase      = require "App.BCs.BCsBase"
+local DataStruct   = require "DataStruct"
+local Updater      = require "Updater"
+local Mpi          = require "Comm.Mpi"
+local Proto        = require "Lib.Proto"
+local Time         = require "Lib.Time"
+local Range        = require "Lib.Range"
+local Lin          = require "Lib.Linalg"
+local LinearDecomp = require "Lib.LinearDecomp"
+local CartDecomp   = require "Lib.CartDecomp"
+local Grid         = require "Grid"
+local DiagsApp     = require "App.Diagnostics.SpeciesDiagnostics"
+local GkDiags      = require "App.Diagnostics.GkDiagnostics"
+local xsys         = require "xsys"
+local GyrokineticModDecl = require "Eq.gkData.GyrokineticModDecl"
 
-local GyrokineticBasicBC = Proto(BCsBase)
+local GkBasicBC = Proto(BCsBase)
 
 -- Store table passed to it and defer construction to :fullInit().
-function GyrokineticBasicBC:init(tbl) self.tbl = tbl end
+function GkBasicBC:init(tbl) self.tbl = tbl end
 
 -- Function initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
-function GyrokineticBasicBC:fullInit(mySpecies)
+function GkBasicBC:fullInit(mySpecies)
    local tbl = self.tbl -- Previously stored table.
 
    if tbl.kind=="function" or tbl.bcFunction then
-      assert(type(tbl.bcFunction)=="function", "GyrokineticBasicBC: bcFunction must be a function.")
+      assert(type(tbl.bcFunction)=="function", "GkBasicBC: bcFunction must be a function.")
       self.bcKind   = "function"
-      self.bcFuncIn = assert(tbl.bcFunction, "GyrokineticBasicBC: must specify the BC function in 'bcFunc' when using 'function' BC kind.")
+      self.bcFuncIn = assert(tbl.bcFunction, "GkBasicBC: must specify the BC function in 'bcFunc' when using 'function' BC kind.")
       self.feedback = xsys.pickBool(tbl.feedback, false) 
-      self.evolve   = xsys.pickBool(tbl.evolve, self.feedback) 
    else
-      self.bcKind = assert(tbl.kind, "GyrokineticBasicBC: must specify the type of BC in 'kind'.")
-   end
+      self.bcKind = assert(tbl.kind, "GkBasicBC: must specify the type of BC in 'kind'.")
 
-   self.equation = self.bcKind=="sheath" and mySpecies.equation or nil -- Needed for sheath BCs kernel.
+      self.phiWallFunc = tbl.phiWall
+      if self.phiWallFunc then assert(type(self.phiWallFunc)=="function", "GkBasicBC: phiWall must be a function (t, xn).") end
+   end
+   self.evolve = xsys.pickBool(tbl.evolve, self.feedback or false) 
 
    self.diagnostics = tbl.diagnostics or {}
    self.saveFlux    = tbl.saveFlux or false
@@ -52,27 +54,34 @@ function GyrokineticBasicBC:fullInit(mySpecies)
    end
 end
 
-function GyrokineticBasicBC:setName(nm) self.name = self.speciesName.."_"..nm end
+function GkBasicBC:setName(nm) self.name = self.speciesName.."_"..nm end
 
-function GyrokineticBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
+function GkBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
    -- Note that for bcAbsorb there is no operation on fIn,
    -- so skinLoop (which determines indexing of fIn) does not matter
    for i = 1, self.basis:numBasis() do fOut[i] = 0.0 end
 end
-function GyrokineticBasicBC:bcOpen(dir, tm, idxIn, fIn, fOut)
+function GkBasicBC:bcOpen(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "pointwise".
    self.basis:flipSign(dir, fIn, fOut)
 end
-function GyrokineticBasicBC:bcCopy(dir, tm, idxIn, fIn, fOut)
+function GkBasicBC:bcCopy(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "pointwise".
    for i = 1, self.basis:numBasis() do fOut[i] = fIn[i] end
 end
-function GyrokineticBasicBC:bcReflect(dir, tm, idxIn, fIn, fOut)
+function GkBasicBC:bcReflect(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "flip".
    self.basis:flipSign(dir, fIn, fOut)
-   self.basis:flipSign(dir+self.cdim, fOut, fOut)
+   local vparDir = self.cdim+1
+   self.basis:flipSign(vparDir, fOut, fOut)
 end
-function GyrokineticBasicBC:bcSheath(dir, tm, idxIn, fIn, fOut)
+function GkBasicBC:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_, idx, f, fRefl)
+   self.phi:fill(self.phiIdxr(idx), self.phiPtr)
+   self.phiWallFld:fill(self.phiWallFldIdxr(idx), self.phiWallFldPtr)
+   return self._calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_,
+                                     self.phiPtr:data(), self.phiWallFldPtr:data(), f:data(), fRefl:data())
+end
+function GkBasicBC:bcSheath(dir, tm, idxIn, fIn, fOut)
    -- Note that GK reflection only valid in z-vpar.
    -- This is checked when bc is created.
 
@@ -110,15 +119,18 @@ function GyrokineticBasicBC:bcSheath(dir, tm, idxIn, fIn, fOut)
    -- 1) fhat=0 (no reflection, i.e. absorb),
    -- 2) fhat=f (full reflection)
    -- 3) fhat=c*f (partial reflection)
-   self.equation:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, self.charge, self.mass, idxIn, fIn, self.fhatSheath)
+   self:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, self.charge, self.mass, idxIn, fIn, self.fhatSheath)
    -- reflect fhat into skin cells
    self:bcReflect(dir, tm, nil, self.fhatSheath, fOut)
 end
 
-function GyrokineticBasicBC:createSolver(mySpecies)
+function GkBasicBC:createSolver(mySpecies, field, externalField)
 
    self.basis, self.grid = mySpecies.basis, mySpecies.grid
    self.ndim, self.cdim, self.vdim = self.grid:ndim(), self.confGrid:ndim(), self.grid:ndim()-self.confGrid:ndim()
+
+   self.setPhiWall = {advance = function(tCurr,inFlds,OutFlds) end}
+   self.getPhi     = function(fieldIn, inIdx) return nil end 
 
    local bcFunc, skinType
    if self.bcKind == "copy" then
@@ -131,17 +143,54 @@ function GyrokineticBasicBC:createSolver(mySpecies)
       bcFunc   = function(...) return self:bcOpen(...) end
       skinType = "pointwise"
    elseif self.bcKind == "reflect" then
+      assert(self.bcDir==self.cdim, "GkBasicBC: reflect BC can only be used along the last/parallel configuration space dimension.")
       bcFunc   = function(...) return self:bcReflect(...) end
       skinType = "flip"
    elseif self.bcKind == "function" then
       bcFunc   = function(...) return self:bcCopy(...) end
       skinType = "pointwise"
    elseif self.bcKind == "sheath" then
+      assert(self.bcDir==self.cdim, "GkBasicBC: sheath BC can only be used along the last/parallel configuration space dimension.")
+
+      self.charge, self.mass = mySpecies.charge, mySpecies.mass
+
+      self.fhatSheath = Lin.Vec(self.basis:numBasis())
+
+      self.getPhi = function(fieldIn, inIdx) return fieldIn:rkStepperFields()[inIdx].phi end 
+      -- Pre-create pointer and indexer for phi potential.
+      local phi = field:rkStepperFields()[1].phi
+      self.phiPtr, self.phiIdxr = phi:get(1), phi:genIndexer()
+
+      -- Create field and function for calculating wall potential according to user-provided function.
+      self.phiWallFld = DataStruct.Field {
+         onGrid        = field.grid,
+         numComponents = field.basis:numBasis(),
+         ghost         = {1,1},
+         metaData      = {polyOrder = field.basis:polyOrder(),
+                          basisType = field.basis:id()},
+         syncPeriodicDirs = false,
+      }
+      self.phiWallFld:clear(0.)
+      self.phiWallFldPtr, self.phiWallFldIdxr = self.phiWallFld:get(1), self.phiWallFld:genIndexer()
+      if self.phiWallFunc then
+         self.setPhiWall = Updater.EvalOnNodes {
+            onGrid = field.grid,   evaluate = self.phiWallFunc,
+            basis  = field.basis,  onGhosts = true,
+         }
+         self.setPhiWall:advance(0.0, {}, {self.phiWallFld})
+      end
+      self.phiWallFld:sync(false)
+
+      self._calcSheathReflection = GyrokineticModDecl.selectSheathReflection(self.basis:id(), self.cdim, 
+                                                                             self.vdim, self.basis:polyOrder())
+
       bcFunc   = function(...) return self:bcSheath(...) end
       skinType = "flip"
    end
 
-   local vdir = self.bcDir+self.cdim
+   local vdir = nil
+   if self.bcDir==self.cdim then vdir = self.cdim+1 end
+
    self.bcSolver = Updater.Bc{
       onGrid   = self.grid,   edge               = self.bcEdge,  
       cdim     = self.cdim,   boundaryConditions = {bcFunc},   
@@ -244,21 +293,21 @@ function GyrokineticBasicBC:createSolver(mySpecies)
    end
 end
 
-function GyrokineticBasicBC:storeBoundaryFlux(tCurr, rkIdx, qOut)
+function GkBasicBC:storeBoundaryFlux(tCurr, rkIdx, qOut)
    self.storeBoundaryFluxFunc(tCurr, rkIdx, qOut)
 end
 
-function GyrokineticBasicBC:copyBoundaryFluxField(inIdx, outIdx)
+function GkBasicBC:copyBoundaryFluxField(inIdx, outIdx)
    self.copyBoundaryFluxFieldFunc(inIdx, outIdx)
 end
-function GyrokineticBasicBC:combineBoundaryFluxField(outIdx, a, aIdx, ...)
+function GkBasicBC:combineBoundaryFluxField(outIdx, a, aIdx, ...)
    self.combineBoundaryFluxFieldFunc(outIdx, a, aIdx, ...)
 end
-function GyrokineticBasicBC:computeBoundaryFluxRate(dtIn)
+function GkBasicBC:computeBoundaryFluxRate(dtIn)
    self.calcBoundaryFluxRateFunc(dtIn)
 end
 
-function GyrokineticBasicBC:createDiagnostics(mySpecies, field)
+function GkBasicBC:createDiagnostics(mySpecies, field)
    -- Create BC diagnostics.
    self.diagnostics = nil
    if self.tbl.diagnostics then
@@ -268,17 +317,21 @@ function GyrokineticBasicBC:createDiagnostics(mySpecies, field)
    return self.diagnostics
 end
 
--- These are needed to recycle the GkDiagnostics with GyrokineticBasicBC.
-function GyrokineticBasicBC:rkStepperFields() return {self.boundaryFluxRate, self.boundaryFluxRate,
-                                                 self.boundaryFluxRate, self.boundaryFluxRate} end
-function GyrokineticBasicBC:getFlucF() return self.boundaryFluxRate end
+-- These are needed to recycle the GkDiagnostics with GkBasicBC.
+function GkBasicBC:rkStepperFields() return {self.boundaryFluxRate, self.boundaryFluxRate,
+                                             self.boundaryFluxRate, self.boundaryFluxRate} end
+function GkBasicBC:getFlucF() return self.boundaryFluxRate end
 
-function GyrokineticBasicBC:advance(tCurr, species, inFlds)
-   self.bcSolver:advance(tCurr, inFlds, inFlds)
+function GkBasicBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
+
+   self.setPhiWall:advance(tCurr, {}, self.phiWallFld) -- Compute wall potential if needed (i.e. sheath BC).
+   self.phi = self.getPhi(field, inIdx)              -- If needed get the current plasma potential (for sheath BC).
+
+   local fIn = mySpecies:rkStepperFields()[outIdx] 
+
+   self.bcSolver:advance(tCurr, {fIn}, {fIn})
 end
 
-function GyrokineticBasicBC:getBoundaryFluxFields()
-   return self.boundaryFluxFields
-end
+function GkBasicBC:getBoundaryFluxFields() return self.boundaryFluxFields end
 
-return GyrokineticBasicBC
+return GkBasicBC

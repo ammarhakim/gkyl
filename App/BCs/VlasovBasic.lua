@@ -71,7 +71,7 @@ function VlasovBasicBC:bcReflect(dir, tm, idxIn, fIn, fOut)
    self.basis:flipSign(dir+self.cdim, fOut, fOut)
 end
 
-function VlasovBasicBC:createSolver(mySpecies)
+function VlasovBasicBC:createSolver(mySpecies, field, externalField)
 
    self.basis, self.grid = mySpecies.basis, mySpecies.grid
    self.ndim, self.cdim, self.vdim = self.grid:ndim(), self.confGrid:ndim(), self.grid:ndim()-self.confGrid:ndim()
@@ -226,12 +226,11 @@ function VlasovBasicBC:rkStepperFields() return {self.boundaryFluxRate, self.bou
                                                  self.boundaryFluxRate, self.boundaryFluxRate} end
 function VlasovBasicBC:getFlucF() return self.boundaryFluxRate end
 
-function VlasovBasicBC:advance(tCurr, species, inFlds)
-   self.bcSolver:advance(tCurr, inFlds, inFlds)
+function VlasovBasicBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
+   local fIn = mySpecies:rkStepperFields()[outIdx]
+   self.bcSolver:advance(tCurr, {fIn}, {fIn})
 end
 
-function VlasovBasicBC:getBoundaryFluxFields()
-   return self.boundaryFluxFields
-end
+function VlasovBasicBC:getBoundaryFluxFields() return self.boundaryFluxFields end
 
 return VlasovBasicBC

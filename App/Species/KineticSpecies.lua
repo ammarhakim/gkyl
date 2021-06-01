@@ -245,8 +245,10 @@ function KineticSpecies:fullInit(appTbl)
             val:setEdge(edgeLabel[e])
             val:fullInit(tbl)
             goodBC = true
+         elseif val=="zeroFlux" then
+            goodBC = true
          end
-         assert(goodBC, "VlasovSpecies: bc not recognized.")
+         assert(goodBC, "GkSpecies: bc not recognized.")
       end
    end
    lume.setOrder(self.nonPeriodicBCs)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
@@ -493,7 +495,7 @@ function KineticSpecies:createBCs()
    if self.tbl.computeExternalBC then self:initExternalBC() end
 end
 
-function KineticSpecies:createSolver(externalField)
+function KineticSpecies:createSolver(field, externalField)
    -- Set up weak multiplication and division operators.
    self.confWeakMultiply = Updater.CartFieldBinOp {
       onGrid    = self.confGrid,
@@ -551,16 +553,20 @@ function KineticSpecies:createSolver(externalField)
    end
 
    if self.evolve then
-      self.applyBcFunc   = function(tCurr, fIn) return KineticSpecies["applyBcEvolve"](self, tCurr, fIn) end
+      self.applyBcFunc = function(tCurr, field, externalField, inIdx, outIdx)
+         return KineticSpecies["applyBcEvolve"](self, tCurr, field, externalField, inIdx, outIdx)
+      end
    else
-      self.applyBcFunc   = function(tCurr, fIn) return KineticSpecies["applyBcDontEvolve"](self, tCurr, fIn) end
+      self.applyBcFunc = function(tCurr, field, externalField, inIdx, outIdx)
+         return KineticSpecies["applyBcDontEvolve"](self, tCurr, field, externalField, inIdx, outIdx)
+      end
    end
 
    -- Create solvers for collisions.
    for _, c in pairs(self.collisions) do c:createSolver(externalField) end
 
    -- Create BC solvers.
-   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self, field, externalField) end
 
    if self.positivity then
       self.posChecker = Updater.PositivityCheck {
@@ -806,22 +812,24 @@ function KineticSpecies:checkPositivity(tCurr, idx)
   return status
 end
 
-function KineticSpecies:applyBcIdx(tCurr, idx, isFirstRk)
+function KineticSpecies:applyBcIdx(tCurr, field, externalField, inIdx, outIdx, isFirstRk)
   if self.positivityDiffuse then
-     self.fDelPos[idx]:combine(-1.0, self:rkStepperFields()[idx])
-     self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]}, true, isFirstRk)
-     self.fDelPos[idx]:accumulate(1.0, self:rkStepperFields()[idx])
+     self.fDelPos[outIdx]:combine(-1.0, self:rkStepperFields()[outIdx])
+     self.posRescaler:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]}, true, isFirstRk)
+     self.fDelPos[outIdx]:accumulate(1.0, self:rkStepperFields()[outIdx])
   end
-  self:applyBc(tCurr, self:rkStepperFields()[idx])
+  self:applyBc(tCurr, field, externalField, inIdx, outIdx)
   if self.positivity then
-     self:checkPositivity(tCurr, idx)
+     self:checkPositivity(tCurr, outIdx)
   end
 end
 
-function KineticSpecies:applyBcDontEvolve(tCurr, fIn) end
-function KineticSpecies:applyBcEvolve(tCurr, fIn)
+function KineticSpecies:applyBcDontEvolve(tCurr, field, externalField, inIdx, outIdx) end
+function KineticSpecies:applyBcEvolve(tCurr, field, externalField, inIdx, outIdx)
    -- fIn is total distribution function.
    local tmStart = Time.clock()
+
+   local fIn = self:rkStepperFields()[outIdx]
 
    local syncPeriodicDirsTrue = true
 
@@ -831,7 +839,7 @@ function KineticSpecies:applyBcEvolve(tCurr, fIn)
    end
 
    -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
-   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advance(tCurr, {}, {fIn}) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advance(tCurr, self, field, externalField, inIdx, outIdx) end
 
    -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
    if self.hasNonPeriodicBc then
@@ -859,7 +867,9 @@ function KineticSpecies:applyBcEvolve(tCurr, fIn)
 
    self.bcTime = self.bcTime + (Time.clock()-tmStart)
 end
-function KineticSpecies:applyBc(tCurr, fIn) self.applyBcFunc(tCurr, fIn) end
+function KineticSpecies:applyBc(tCurr, field, externalField, inIdx, outIdx)
+   self.applyBcFunc(tCurr, field, externalField, inIdx, outIdx)
+end
 
 function KineticSpecies:createDiagnostics(field)
    -- Set up weak multiplication and division operators.

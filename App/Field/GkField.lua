@@ -308,9 +308,7 @@ function GkField:initField(species)
    self:applyBc(0, self.potentials[1])
 end
 
-function GkField:rkStepperFields()
-   return self.potentials
-end
+function GkField:rkStepperFields() return self.potentials end
 
 -- For RK timestepping for non-elliptic fields (e.g. only apar).
 function GkField:copyRk(outIdx, aIdx)
@@ -330,11 +328,8 @@ function GkField:combineRk(outIdx, a, aIdx, ...)
    end
 end
 
-function GkField:suggestDt()
-   return GKYL_MAX_DOUBLE
-end
-function GkField:clearCFL()
-end
+function GkField:suggestDt() return GKYL_MAX_DOUBLE end
+function GkField:clearCFL() end
 
 function GkField:createSolver(species, externalField)
    -- Get adiabatic species info.
@@ -718,8 +713,7 @@ function GkField:readRestart()
 end
 
 -- Not needed for GK.
-function GkField:accumulateCurrent(dt, current, em)
-end
+function GkField:accumulateCurrent(dt, current, em) end
 
 -- Solve for electrostatic potential phi.
 function GkField:advance(tCurr, species, inIdx, outIdx)

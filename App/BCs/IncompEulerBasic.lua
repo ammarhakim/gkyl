@@ -55,7 +55,7 @@ function IncompEulerBasicBC:bcNeumann(dir, tm, idxIn, fIn, fOut)
    end
 end
 
-function IncompEulerBasicBC:createSolver(mySpecies)
+function IncompEulerBasicBC:createSolver(mySpecies, field, externalField)
    local bcFunc, skinType
    if self.bcKind == "copy" then
       bcFunc   = function(...) return self:bcCopy(...) end
@@ -92,8 +92,9 @@ function IncompEulerBasicBC:createSolver(mySpecies)
    end
 end
 
-function IncompEulerBasicBC:advance(tCurr, species, flds)
-   self.bcSolver:advance(tCurr, {}, flds)
+function IncompEulerBasicBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
+   local fIn = mySpecies:rkStepperFields()[outIdx]
+   self.bcSolver:advance(tCurr, {}, {fIn})
 end
 
 return IncompEulerBasicBC

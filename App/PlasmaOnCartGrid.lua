@@ -290,10 +290,8 @@ local function buildApplication(self, tbl)
    
    -- Initialize species solvers and diagnostics.
    for _, s in lume.orderedIter(species) do
-      local hasE, hasB = field:hasEB()
-      local extHasE, extHasB = externalField:hasEB()
       s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
-      s:createSolver(hasE or extHasE, hasB or extHasB, externalField, hasB)
+      s:createSolver(field, externalField)
       s:initDist(externalField, species)
    end
 
@@ -313,9 +311,7 @@ local function buildApplication(self, tbl)
    field:initField(species)
 
    -- Initialize diagnostic objects.
-   for _, s in lume.orderedIter(species) do
-      s:createDiagnostics(field)
-   end
+   for _, s in lume.orderedIter(species) do s:createDiagnostics(field) end
 
    -- Apply species BCs.
    for _, s in lume.orderedIter(species) do
@@ -326,7 +322,7 @@ local function buildApplication(self, tbl)
       else
 	 s:advance(0, species, {field, externalField}, 1, 2)
       end
-      s:applyBc(0, s:rkStepperFields()[1])
+      s:applyBcInitial(0, field, externalField, 1, 1)
    end
 
    -- Function to write data to file.
@@ -382,22 +378,16 @@ local function buildApplication(self, tbl)
 
    -- Various functions to copy/increment fields.
    local function copy(outIdx, aIdx)
-      for _, s in lume.orderedIter(species) do
-         s:copyRk(outIdx, aIdx)
-      end
+      for _, s in lume.orderedIter(species) do s:copyRk(outIdx, aIdx) end
       field:copyRk(outIdx, aIdx)
    end
    local function combine(outIdx, a, aIdx, ...)
-      for _, s in lume.orderedIter(species) do
-         s:combineRk(outIdx, a, aIdx, ...)
-      end
+      for _, s in lume.orderedIter(species) do s:combineRk(outIdx, a, aIdx, ...) end
       field:combineRk(outIdx, a, aIdx, ...)
    end
-   local function applyBc(tCurr, idx, ...)
-      for _, s in lume.orderedIter(species) do
-         s:applyBcIdx(tCurr, idx, ...)
-      end
-      field:applyBcIdx(tCurr, idx)
+   local function applyBc(tCurr, inIdx, outIdx, ...)
+      for _, s in lume.orderedIter(species) do s:applyBcIdx(tCurr, field, externalField, inIdx, outIdx, ...) end
+      field:applyBcIdx(tCurr, outIdx)
    end
 
    -- Function to take a single forward-euler time-step.
@@ -474,7 +464,7 @@ local function buildApplication(self, tbl)
       local tm = Time.clock()
       combine(outIdx, dtSuggested, outIdx, 1.0, inIdx)
       fwdEulerCombineTime = fwdEulerCombineTime + Time.clock() - tm
-      applyBc(tCurr, outIdx, calcCflFlag)
+      applyBc(tCurr, inIdx, outIdx, calcCflFlag)
 
       return dtSuggested
    end
@@ -1023,6 +1013,7 @@ return {
       return  {
 	 AdiabaticSpecies       = require ("App.Species.AdiabaticSpecies"),
 	 App                    = App,
+         BasicBC                = require "App.BCs.GkBasic",
 	 BGKCollisions          = require "App.Collisions.GkBGKCollisions",
 	 BgkCollisions          = require "App.Collisions.GkBGKCollisions",
 	 ChargeExchange         = require "App.Collisions.GkChargeExchange",
