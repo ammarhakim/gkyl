@@ -169,22 +169,24 @@ function VlasovSpecies:createSolver(field, externalField)
 
    -- Create updaters to compute various moments.
    self.numDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      moment     = "M0",
+      onGrid     = self.grid,   confBasis  = self.confBasis,
+      phaseBasis = self.basis,  moment     = "M0",
    }
    self.momDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      moment     = "M1i",
+      onGrid     = self.grid,   confBasis  = self.confBasis,
+      phaseBasis = self.basis,  moment     = "M1i",
    }
    self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      moment     = "M2",
+      onGrid     = self.grid,   confBasis  = self.confBasis,
+      phaseBasis = self.basis,  moment     = "M2",
+   }
+   self.M2ijCalc = Updater.DistFuncMomentCalc {
+      onGrid     = self.grid,   confBasis = self.confBasis,
+      phaseBasis = self.basis,  moment    = "M2ij",
+   }
+   self.M3iCalc = Updater.DistFuncMomentCalc {
+      onGrid     = self.grid,   confBasis = self.confBasis,
+      phaseBasis = self.basis,  moment    = "M3i",
    }
    -- Create updater to compute M0, M1i, M2 moments sequentially.
    -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
@@ -672,7 +674,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)
       end
    end
-   for _, bc in ipairs(self.nonPeriodicBCs) do
+   for _, bc in pairs(self.nonPeriodicBCs) do
       bc:storeBoundaryFlux(tCurr, outIdx, fRhsOut)   -- Save boundary fluxes.
    end
 end
@@ -1705,17 +1707,11 @@ function VlasovSpecies:momCalcTime()
    return tm
 end
 
-function VlasovSpecies:getVoronovReactRate()
-   return self.voronovReactRate
-end
+function VlasovSpecies:getVoronovReactRate() return self.voronovReactRate end
 
-function VlasovSpecies:getFMaxwellIz()
-   return self.fMaxwellIz
-end
+function VlasovSpecies:getFMaxwellIz() return self.fMaxwellIz end
 
-function VlasovSpecies:getSrcCX()
-   return self.srcCX
-end
+function VlasovSpecies:getSrcCX() return self.srcCX end
 
 -- Please test this for higher than 1x1v... (MF: JJ?).
 function VlasovSpecies:Maxwellian(xn, n0, T0, vdnIn)

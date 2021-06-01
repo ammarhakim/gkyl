@@ -129,6 +129,7 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
    self.basis, self.grid = mySpecies.basis, mySpecies.grid
    self.ndim, self.cdim, self.vdim = self.grid:ndim(), self.confGrid:ndim(), self.grid:ndim()-self.confGrid:ndim()
 
+   -- Sheath BCs use phi and phiWall.
    self.setPhiWall = {advance = function(tCurr,inFlds,OutFlds) end}
    self.getPhi     = function(fieldIn, inIdx) return nil end 
 
@@ -258,10 +259,10 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
       self.ghostRangeDecomp = LinearDecomp.LinearDecompRange{range=self.ghostRange, numSplit=self.grid:numSharedProcs()}
       self.tId              = self.grid:subGridSharedId() -- Local thread ID.
 
+      -- The following are needed to evaluate a conf-space CartField on the confBoundaryGrid.
       self.confBoundaryField    = self:allocMoment()
       self.confBoundaryFieldPtr = self.confBoundaryField:get(1)
       self.confBoundaryIdxr     = self.confBoundaryField:genIndexer()
-
       local confGlobal        = numDensity:globalRange()
       local confGlobalExt     = numDensity:globalExtRange()
       local confLocalExtRange = numDensity:localExtRange()

@@ -120,7 +120,7 @@ local implementation = function()
    local _M2par = Proto(DiagsImplBase)
    function _M2par:fullInit(diagApp, specIn, fieldIn, owner)
       self.field            = owner:allocMoment()
-      self.updater          = owner.M2parCalcCalc or specIn.M2parCalcCalc
+      self.updater          = owner.M2parCalc or specIn.M2parCalc
       self.divideByJacobGeo = owner.divideByJacobGeo or specIn.divideByJacobGeo
       self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
       self.done = false
@@ -137,7 +137,7 @@ local implementation = function()
    local _M2perp = Proto(DiagsImplBase)
    function _M2perp:fullInit(diagApp, specIn, fieldIn, owner)
       self.field            = owner:allocMoment()
-      self.updater          = owner.M2perpCalcCalc or specIn.M2perpCalcCalc
+      self.updater          = owner.M2perpCalc or specIn.M2perpCalc
       self.divideByJacobGeo = owner.divideByJacobGeo or specIn.divideByJacobGeo
       self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
       self.done = false
@@ -154,7 +154,7 @@ local implementation = function()
    local _M3par = Proto(DiagsImplBase)
    function _M3par:fullInit(diagApp, specIn, fieldIn, owner)
       self.field            = owner:allocMoment()
-      self.updater          = owner.M3parCalcCalc or specIn.M3parCalcCalc
+      self.updater          = owner.M3parCalc or specIn.M3parCalc
       self.divideByJacobGeo = owner.divideByJacobGeo or specIn.divideByJacobGeo
       self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
       self.done = false
@@ -171,7 +171,7 @@ local implementation = function()
    local _M3perp = Proto(DiagsImplBase)
    function _M3perp:fullInit(diagApp, specIn, fieldIn, owner)
       self.field            = owner:allocMoment()
-      self.updater          = owner.M3perpCalcCalc or specIn.M3perpCalcCalc
+      self.updater          = owner.M3perpCalc or specIn.M3perpCalc
       self.divideByJacobGeo = owner.divideByJacobGeo or specIn.divideByJacobGeo
       self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
       self.done = false
@@ -399,35 +399,35 @@ local implementation = function()
    -- ~~~~ L1 norm (absolute value) of the distribution function ~~~~~~~~~~~~~~~~~~~~~~
    local _intL1 = Proto(DiagsImplBase)
    function _intL1:fullInit(diagApp, specIn, fieldIn, owner)
-      self.field    = DataStruct.DynVector { numComponents = 1 }
-      self.updaters = Updater.CartFieldIntegratedQuantCalc {
+      self.field   = DataStruct.DynVector { numComponents = 1 }
+      self.updater = Updater.CartFieldIntegratedQuantCalc {
          onGrid = specIn.grid,   numComponents = 1,
          basis  = specIn.basis,  quantity      = "AbsV",
       }
-      self.done  = false
       self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
+      self.done = false
    end
    function _intL1:getType() return "integrated" end
    function _intL1:advance(tm, inFlds, outFlds)
       local fIn = self.getF()
-      self.updaters:advance(tm, {fIn}, {self.field})
+      self.updater:advance(tm, {fIn}, {self.field})
    end
 
    -- ~~~~ L2 norm of the distribution function ~~~~~~~~~~~~~~~~~~~~~~
    local _intL2 = Proto(DiagsImplBase)
    function _intL2:fullInit(diagApp, specIn, fieldIn, owner)
-      self.field    = DataStruct.DynVector { numComponents = 1 }
-      self.updaters = Updater.CartFieldIntegratedQuantCalc {
+      self.field   = DataStruct.DynVector { numComponents = 1 }
+      self.updater = Updater.CartFieldIntegratedQuantCalc {
          onGrid = specIn.grid,   numComponents = 1,
          basis  = specIn.basis,  quantity      = "V2",
       }
-      self.done = false
       self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.
+      self.done = false
    end
    function _intL2:getType() return "integrated" end
    function _intL2:advance(tm, inFlds, outFlds)
       local fIn = self.getF()
-      self.updaters:advance(tm, {fIn}, {self.field})
+      self.updater:advance(tm, {fIn}, {self.field})
    end
 
    return {

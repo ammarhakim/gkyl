@@ -129,8 +129,8 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
          return f
       end
       local allocDistf = function()
-         return self:allocCartField(self.boundaryGrid,self.basis:numBasis(),
-                                    {distf:lowerGhost(),distf:upperGhost()},distf:getMetaData())
+         return self:allocCartField(self.boundaryGrid, self.basis:numBasis(),
+                                    {distf:lowerGhost(),distf:upperGhost()}, distf:getMetaData())
       end
       self.allocMoment = function(self)
          return self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
@@ -157,10 +157,34 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
 
       -- Create the range needed to loop over ghosts.
       local global, globalExt, localExtRange = distf:globalRange(), distf:globalExtRange(), distf:localExtRange()
-      self.ghostRng = localExtRange:intersect(self:getGhostRange(global, globalExt))
+      self.ghostRange = localExtRange:intersect(self:getGhostRange(global, globalExt))
       -- Decompose ghost region into threads.
-      self.ghostRangeDecomp = LinearDecomp.LinearDecompRange{range=self.ghostRng, numSplit=self.grid:numSharedProcs()}
+      self.ghostRangeDecomp = LinearDecomp.LinearDecompRange{range=self.ghostRange, numSplit=self.grid:numSharedProcs()}
       self.tId              = self.grid:subGridSharedId() -- Local thread ID.
+
+      -- The following are needed to evaluate a conf-space CartField on the confBoundaryGrid.
+      self.confBoundaryField    = self:allocMoment()
+      self.confBoundaryFieldPtr = self.confBoundaryField:get(1)
+      self.confBoundaryIdxr     = self.confBoundaryField:genIndexer()
+      local confGlobal        = numDensity:globalRange()
+      local confGlobalExt     = numDensity:globalExtRange()
+      local confLocalExtRange = numDensity:localExtRange()
+      self.confGhostRange = confLocalExtRange:intersect(self:getGhostRange(confGlobal, confGlobalExt)) -- Range spanning ghost cells.
+      -- Decompose ghost region into threads.
+      self.confGhostRangeDecomp = LinearDecomp.LinearDecompRange {range=self.confGhostRange, numSplit=self.grid:numSharedProcs()}
+
+      local jacobGeo = externalField.geo and externalField.geo.jacobGeo
+      if jacobGeo then
+         self.jacobGeo = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
+                                             {jacobGeo:lowerGhost(),jacobGeo:upperGhost()}, jacobGeo:getMetaData())
+         self.jacobGeo:copy(self:evalOnConfBoundary(jacobGeo))
+      end
+      local jacobGeoInv = externalField.geo and externalField.geo.jacobGeoInv
+      if jacobGeoInv then
+         self.jacobGeoInv = self:allocCartField(self.confBoundaryGrid, self.confBasis:numBasis(),
+                                                {jacobGeoInv:lowerGhost(),jacobGeoInv:upperGhost()}, jacobGeoInv:getMetaData())
+         self.jacobGeoInv:copy(self:evalOnConfBoundary(jacobGeoInv))
+      end
 
       self.storeBoundaryFluxFunc = function(tCurr, rkIdx, qOut)
          local ptrOut = qOut:get(1)
@@ -191,6 +215,58 @@ function VlasovBasicBC:createSolver(mySpecies, field, externalField)
                                        -1.0/dtIn, self.boundaryFluxFieldPrev)
          self.boundaryFluxFieldPrev:copy(self.boundaryFluxFields[1])
       end
+      -- Set up weak multiplication and division operators (for diagnostics).
+      self.confWeakMultiply = Updater.CartFieldBinOp {
+         onGrid    = self.confBoundaryGrid,  operation = "Multiply",
+         weakBasis = self.confBasis,         onGhosts  = true,
+      }
+      self.confWeakDivide = Updater.CartFieldBinOp {
+         onGrid    = self.confBoundaryGrid,  operation = "Divide",
+         weakBasis = self.confBasis,         onGhosts  = true,
+      }
+      self.confWeakDotProduct = Updater.CartFieldBinOp {
+         onGrid    = self.confBoundaryGrid,  operation = "DotProduct",
+         weakBasis = self.confBasis,         onGhosts  = true,
+      }
+      -- Volume integral operator (for diagnostics).
+      self.volIntegral = {
+         scalar = Updater.CartFieldIntegratedQuantCalc {
+            onGrid = self.confBoundaryGrid,  numComponents = 1,
+            basis  = self.confBasis,         quantity      = "V",
+            timeIntegrate = true,
+         },
+         vector = Updater.CartFieldIntegratedQuantCalc {
+            onGrid = self.confBoundaryGrid,  numComponents = self.vdim,
+            basis  = self.confBasis,         quantity      = "V",
+         },
+      }
+      -- Moment calculators (for diagnostics).
+      self.numDensityCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
+         phaseBasis = self.basis,         moment     = "M0",
+      }
+      self.momDensityCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
+         phaseBasis = self.basis,         moment     = "M1i",
+      }
+      self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
+         phaseBasis = self.basis,         moment     = "M2",
+      }
+      self.M2ijCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
+         phaseBasis = self.basis,         moment    = "M2ij",
+      }
+      self.M3iCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
+         phaseBasis = self.basis,         moment    = "M3i",
+      }
+      self.divideByJacobGeo = self.jacobGeoInv
+         and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeoInv}, {fldOut}) end
+         or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
+      self.multiplyByJacobGeo = self.jacobGeo
+         and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeo}, {fldOut}) end
+         or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
    else
       self.storeBoundaryFluxFunc        = function(tCurr, rkIdx, qOut) end
       self.copyBoundaryFluxFieldFunc    = function(inIdx, outIdx) end
@@ -237,5 +313,23 @@ function VlasovBasicBC:advance(tCurr, mySpecies, field, externalField, inIdx, ou
 end
 
 function VlasovBasicBC:getBoundaryFluxFields() return self.boundaryFluxFields end
+
+function VlasovBasicBC:evalOnConfBoundary(inFld)
+   local inFldPtr  = inFld:get(1)
+   local inFldIdxr = inFld:genIndexer()
+
+   local tId = self.grid:subGridSharedId() -- Local thread ID.
+   for idxIn in self.confGhostRangeDecomp:rowMajorIter(tId) do
+      idxIn:copyInto(self.idxOut)
+      self.idxOut[self.bcDir] = 1
+
+      inFld:fill(inFldIdxr(idxIn), inFldPtr)
+      self.confBoundaryField:fill(self.confBoundaryIdxr(self.idxOut), self.confBoundaryFieldPtr)
+
+      for c = 1, inFld:numComponents() do self.confBoundaryFieldPtr[c] = inFldPtr[c] end
+   end
+
+   return self.confBoundaryField
+end
 
 return VlasovBasicBC
