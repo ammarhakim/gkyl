@@ -328,7 +328,6 @@ end
 function NeutralRecyclingBC:createCouplingSolver(species, field, externalField)
    -- Fetch and organize information about other species that recycling BCs depends on.
    local recIon = species[self.recycleIonNm]
-   self.recycleIon = {mass = recIon.mass, charge = recIon.charge, grid = recIon.grid}
 
    self.recIonBC = recIon.nonPeriodicBCs[string.gsub(self.name,self.speciesName.."_","")]
    self.bcIonM0fluxField = self.recIonBC:allocMoment() 
