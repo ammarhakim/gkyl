@@ -336,7 +336,6 @@ function GkBasicBC:createSolver(mySpecies, field, externalField)
          scalar = Updater.CartFieldIntegratedQuantCalc {
             onGrid = self.confBoundaryGrid,  numComponents = 1,
             basis  = self.confBasis,         quantity      = "V",
-            timeIntegrate = true,
          }
       }
       -- Moment calculators (for diagnostics).

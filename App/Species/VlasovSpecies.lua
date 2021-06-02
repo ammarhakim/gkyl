@@ -27,8 +27,6 @@ local lume           = require "Lib.lume"
 
 local VlasovSpecies = Proto(KineticSpecies)
 
--- AHH: This was 2 but seems that is unstable. So using plain copy.
-
 local SP_BC_EXTERN  = 4
 local SP_BC_RECYCLE = 7
 VlasovSpecies.bcExternal = SP_BC_EXTERN     -- Load external BC file.
