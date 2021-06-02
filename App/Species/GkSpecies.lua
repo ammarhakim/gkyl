@@ -20,7 +20,7 @@ local Source         = require "App.Sources.GkSource"
 local VlasovEq       = require "Eq.Vlasov"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local GkDiags        = require "App.Diagnostics.GkDiagnostics"
-local BasicBC        = require "App.BCs.GkBasic"
+local BasicBC        = require("App.BCs.GkBasic").GkBasic
 local BCsBase        = require "App.BCs.BCsBase"
 local lume           = require "Lib.lume"
 
@@ -56,7 +56,7 @@ function GkSpecies:makeBcApp(bcIn, dir, edge)
       bcOut = BasicBC{kind="reflect", diagnostics={}, saveFlux=false}
    elseif bcIn == SP_BC_SHEATH then
       bcOut = BasicBC{kind="sheath", diagnostics={}, saveFlux=false}
-   elseif bcIn == SP_BC_ZEROFLUX then
+   elseif bcIn == SP_BC_ZEROFLUX or bcIn.tbl.kind=="zeroFlux" then
       bcOut = "zeroFlux"
       table.insert(self.zeroFluxDirections, dir)
    end

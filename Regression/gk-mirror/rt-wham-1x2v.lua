@@ -420,10 +420,9 @@ plasmaApp = Plasma.App {
       },
       evolve = true, -- Evolve species?
       diagnostics = {"M0", "Upar", "Temp", "Tperp", "Tpar", "intM0", "intM1", "intM2", "intKE", "intEnergy" },
-      diagnosticBoundaryFluxMoments = {"GkM0", "GkM1", "GkM2", "GkUpar", "GkTemp", "GkEnergy"},
-      diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
       randomseed = randomseed,
-      bcx = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      bcx = {Plasma.SheathBC{diagnostics={"M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics={"M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Gyrokinetic ions.
@@ -481,10 +480,9 @@ plasmaApp = Plasma.App {
       },
       evolve = true, -- Evolve species?
       diagnostics = {"M0", "Upar", "Temp", "Tperp", "Tpar", "intM0", "intM1", "intM2", "intKE", "intEnergy" },
-      diagnosticBoundaryFluxMoments = {"GkM0", "GkM1", "GkM2", "GkUpar", "GkTemp", "GkEnergy"},
-      diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
       randomseed = randomseed,
-      bcx = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      bcx = {Plasma.SheathBC{diagnostics={"M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics={"M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Field solver.

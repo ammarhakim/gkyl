@@ -89,8 +89,6 @@ plasmaApp = Plasma.App {
             return Te0
          end,
       },
-      --bcx = { Plasma.GkSpecies.bcOpen,
-      --        Plasma.GkSpecies.bcOpen },
       -- Evolve species?
       evolve      = true,
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
@@ -129,8 +127,6 @@ plasmaApp = Plasma.App {
             return Ti0
          end,
       },
-      --bcx = { Plasma.GkSpecies.bcOpen,
-      --        Plasma.GkSpecies.bcOpen },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.

@@ -120,6 +120,8 @@ function FluidSpecies:fullInit(appTbl)
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
    if self.deltaF then self.fluctuationBCs = true end
 
+   self.zeroFluxDirections = {}
+
    -- Read in boundary conditions.
    self.bcInDir = {{ }, { }, { }}   -- List of BCs to apply.
    if tbl.bcx then
@@ -151,6 +153,8 @@ function FluidSpecies:fullInit(appTbl)
             val:setDir(d)
             val:setEdge(edgeLabel[e])
             val:fullInit(tbl)
+            goodBC = true
+         elseif val=="zeroFlux" then
             goodBC = true
          end
          assert(goodBC, "FluidSpecies: bc not recognized.")

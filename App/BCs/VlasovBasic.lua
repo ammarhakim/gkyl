@@ -332,4 +332,41 @@ function VlasovBasicBC:evalOnConfBoundary(inFld)
    return self.confBoundaryField
 end
 
-return VlasovBasicBC
+-- ................... Classes meant as aliases to simplify input files ...................... --
+local VlasovAbsorbBC = Proto(VlasovBasicBC)
+function VlasovAbsorbBC:fullInit(mySpecies)
+   self.tbl.kind  = "absorb"
+   VlasovAbsorbBC.super.fullInit(self, mySpecies)
+end
+
+local VlasovReflectBC = Proto(VlasovBasicBC)
+function VlasovReflectBC:fullInit(mySpecies)
+   self.tbl.kind  = "reflect"
+   VlasovReflectBC.super.fullInit(self, mySpecies)
+end
+
+local VlasovCopyBC = Proto(VlasovBasicBC)
+function VlasovCopyBC:fullInit(mySpecies)
+   self.tbl.kind  = "copy"
+   VlasovCopyBC.super.fullInit(self, mySpecies)
+end
+
+local VlasovOpenBC = Proto(VlasovBasicBC)
+function VlasovOpenBC:fullInit(mySpecies)
+   self.tbl.kind  = "copy"
+   VlasovOpenBC.super.fullInit(self, mySpecies)
+end
+
+local VlasovZeroFluxBC = Proto()
+function VlasovZeroFluxBC:init(tbl)
+   self.tbl      = tbl
+   self.tbl.kind = "zeroFlux"
+end
+-- ................... End of VlasovBasicBC alias classes .................... --
+
+return {VlasovBasic    = VlasovBasicBC,
+        VlasovAbsorb   = VlasovAbsorbBC,
+        VlasovCopy     = VlasovCopyBC,
+        VlasovOpen     = VlasovOpenBC,
+        VlasovReflect  = VlasovReflectBC,
+        VlasovZeroFlux = VlasovZeroFluxBC}

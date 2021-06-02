@@ -142,10 +142,9 @@ plasmaApp = Plasma.App {
       --applyPositivity = true,
       diagnostics = {"M0", "Upar", "Temp", "Beta", "intM0", "intM1", "intEnergy",}, 
       randomseed = randomseed,
-      bcx = {Plasma.Species.bcZeroFlux,
-             Plasma.Species.bcZeroFlux},
-      bcz = {Plasma.BasicBC{kind="sheath",diagnostics=  {"M0","Upar","Temp","Beta","Energy","intM0","intM1","intKE","intEnergy"}},
-             Plasma.BasicBC{kind="sheath",diagnostics=  {"M0","Upar","Temp","Beta","Energy","intM0","intM1","intKE","intEnergy"}}},
+      bcx = {Plasma.ZeroFluxBC{}, Plasma.ZeroFluxBC{}},
+      bcz = {Plasma.SheathBC{diagnostics={"M0","Upar","Temp","Beta","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics={"M0","Upar","Temp","Beta","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Gyrokinetic ions
@@ -153,7 +152,7 @@ plasmaApp = Plasma.App {
       charge = qi,  mass = mi,
       -- Velocity space grid.
       lower = {-4*vti, 0},
-      upper = {4*vti, 12*mi*vti^2/(2*B0)},
+      upper = { 4*vti, 12*mi*vti^2/(2*B0)},
       cells = {8, 4},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
@@ -194,10 +193,10 @@ plasmaApp = Plasma.App {
       --applyPositivity = true,
       diagnostics = {"M0", "Upar", "Temp", "intM0", "intM1", "intKE", "intEnergy"}, 
       randomseed = randomseed,
-      bcx = {Plasma.Species.bcZeroFlux,
-             Plasma.Species.bcZeroFlux},
-      bcz = {Plasma.BasicBC{kind="sheath",diagnostics=  {"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}},
-             Plasma.BasicBC{kind="sheath",diagnostics=  {"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}}},
+      bcx = {Plasma.ZeroFluxBC{},
+             Plasma.ZeroFluxBC{}},
+      bcz = {Plasma.SheathBC{diagnostics={"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics={"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Field solver.
@@ -224,5 +223,5 @@ plasmaApp = Plasma.App {
       evolve = false,
    },
 }
--- run application
+-- Run application.
 plasmaApp:run()

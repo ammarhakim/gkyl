@@ -16,7 +16,7 @@ local Updater        = require "Updater"
 local DataStruct     = require "DataStruct"
 local Time           = require "Lib.Time"
 local Constants      = require "Lib.Constants"
-local BasicBC        = require "App.BCs.GyrofluidBasic"
+local BasicBC        = require ("App.BCs.GyrofluidBasic").GyrofluidBasic
 local Lin            = require "Lib.Linalg"
 local xsys           = require "xsys"
 local lume           = require "Lib.lume"
@@ -25,10 +25,12 @@ local GyrofluidSpecies = Proto(FluidSpecies)
 
 -- ............. Backwards compatible treatment of BCs .....................-- 
 -- Add constants to object indicate various supported boundary conditions.
-local SP_BC_ABSORB = 1
-local SP_BC_COPY   = 6
-GyrofluidSpecies.bcAbsorb = SP_BC_ABSORB   -- Absorb all particles.
-GyrofluidSpecies.bcCopy   = SP_BC_COPY     -- Copy stuff.
+local SP_BC_ABSORB   = 1
+local SP_BC_ZEROFLUX = 5
+local SP_BC_COPY     = 6
+GyrofluidSpecies.bcAbsorb   = SP_BC_ABSORB     -- Absorb all particles.
+GyrofluidSpecies.bcCopy     = SP_BC_COPY       -- Copy stuff.
+GyrofluidSpecies.bcZeroFlux = SP_BC_ZEROFLUX   -- Zero flux.
 
 function GyrofluidSpecies:makeBcApp(bcIn)
    local bcOut
@@ -36,6 +38,9 @@ function GyrofluidSpecies:makeBcApp(bcIn)
       bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
    elseif bcIn == SP_BC_ABSORB then
       bcOut = BasicBC{kind="absorb", diagnostics={}, saveFlux=false}
+   elseif bcIn == SP_BC_ZEROFLUX or bcIn.tbl.kind=="zeroFlux" then
+      bcOut = "zeroFlux"
+      table.insert(self.zeroFluxDirections, dir)
    end
    return bcOut
 end
@@ -50,7 +55,6 @@ function GyrofluidSpecies:fullInit(appTbl)
    self.kappaPar, self.kappaPerp = self.tbl.kappaPar, self.tbl.kappaPerp
 
    self.nMoments = 3+1
-   self.zeroFluxDirections = {}
 end
 
 function GyrofluidSpecies:alloc(nRkDup)

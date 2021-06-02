@@ -64,7 +64,7 @@ sim = Plasma.App {
 	 return maxwellian(n_e, 0.0, vth_e, v)
       end,
       evolve = true,   -- Evolve species?
-      bcx = { Plasma.Species.bcReflect,
+      bcx = { Plasma.ReflectBC{},
               Plasma.BasicBC{bcFunction = function(t, z, M0, M1, M2)
                                 local vth = vth_e
                                 return M1/(vth^2)*math.exp(-(z[2])^2/(2*vth*vth))
@@ -90,8 +90,8 @@ sim = Plasma.App {
 	 return maxwellian(n_i, 0.0, vth_i, v)
       end,
       evolve = true,   -- Evolve species?
-      bcx = { Plasma.Species.bcReflect,
-              Plasma.Species.bcAbsorb },
+      bcx = { Plasma.ReflectBC{},
+              Plasma.AbsorbBC{}},
       diagnostics = { "M0", "M1i", "M2", "M3i" },
    },
    

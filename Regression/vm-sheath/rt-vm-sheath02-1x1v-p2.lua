@@ -66,8 +66,8 @@ sim = Plasma.App {
          end
       },
       evolve = true, -- Evolve species?
-      bcx = { Plasma.BasicBC{kind="absorb" ,diagnostics={"intM0", "intM1i", "intM2"}},
-              Plasma.BasicBC{kind="reflect",diagnostics={"intM0", "intM1i", "intM2"}} },
+      bcx = { Plasma.AbsorbBC{diagnostics={"intM0", "intM1i", "intM2"}},
+              Plasma.ReflectBC{diagnostics={"intM0", "intM1i", "intM2"}} },
       diagnostics = { "M0", "M1i", "M2", "intM0", "intM1i", "intM2" },
    },
 
@@ -90,8 +90,8 @@ sim = Plasma.App {
          end
       },
       evolve = true, -- Evolve species?
-      bcx = { Plasma.BasicBC{kind="absorb" ,diagnostics={"intM0", "intM1i", "intM2"}},
-              Plasma.BasicBC{kind="reflect",diagnostics={"intM0", "intM1i", "intM2"}} },
+      bcx = { Plasma.AbsorbBC{diagnostics={"intM0", "intM1i", "intM2"}},
+              Plasma.ReflectBC{diagnostics={"intM0", "intM1i", "intM2"}} },
       diagnostics = { "M0", "M1i", "M2", "intM0", "intM1i", "intM2" },
    },
    

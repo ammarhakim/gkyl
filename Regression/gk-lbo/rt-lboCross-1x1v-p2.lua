@@ -90,8 +90,6 @@ plasmaApp = Plasma.App {
             return Te0
          end,
       },
-      --bcx = { Plasma.GkSpecies.bcOpen,
-      --        Plasma.GkSpecies.bcOpen },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
@@ -129,8 +127,6 @@ plasmaApp = Plasma.App {
             return Ti0
          end,
       },
-      --bcx = { Plasma.GkSpecies.bcOpen,
-      --        Plasma.GkSpecies.bcOpen },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.

@@ -63,7 +63,7 @@ sim = Plasma.App {
 	 return maxwellian(n_e, 0.0, vth_e, v)
       end,
       evolve = true,   -- Evolve species?
-      bcx = { Plasma.Species.bcReflect,
+      bcx = { Plasma.ReflectBC{},
               Plasma.BronoldFehskeBC{
                  electronAffinity = 1.0,  elemCharge   = q0,
                  effectiveMass    = 0.4,  electronMass = m_e
@@ -85,8 +85,8 @@ sim = Plasma.App {
 	 return maxwellian(n_i, 0.0, vth_i, v)
       end,
       evolve = true,   -- Evolve species?
-      bcx = { Plasma.Species.bcReflect,
-              Plasma.Species.bcAbsorb },
+      bcx = { Plasma.ReflectBC{},
+              Plasma.AbsorbBC{} },
       diagnostics = { "M0", "M1i", "M2", "M3i" },
    },
    

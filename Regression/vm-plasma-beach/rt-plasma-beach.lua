@@ -87,7 +87,7 @@ plasmaApp = Plasma.App {
 	 return maxwellian2D(nElc, vx, vy, 0.0, 0.0, vtElc)
       end,
       -- Boundary conditions.
-      bcx    = {Plasma.Species.bcCopy, Plasma.Species.bcCopy},
+      bcx    = {Plasma.CopyBC{}, Plasma.CopyBC{}},
       evolve = true,   -- Evolve species?
 
       diagnostics = { "M0", "M1i", "M2" }
@@ -111,7 +111,7 @@ plasmaApp = Plasma.App {
 	 return maxwellian2D(nIon, vx, vy, 0.0, 0.0, vtIon)
       end,
       -- Boundary conditions.
-      bcx    = {Plasma.Species.bcCopy, Plasma.Species.bcCopy},
+      bcx    = {Plasma.CopyBC{}, Plasma.CopyBC{}},
       evolve = false,   -- Evolve species?
 
       diagnostics = { "M0", "M1i", "M2" }

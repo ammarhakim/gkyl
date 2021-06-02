@@ -13,7 +13,7 @@ local LinearDecomp  = require "Lib.LinearDecomp"
 local Updater       = require "Updater"
 local Mpi           = require "Comm.Mpi"
 local Proto         = require "Lib.Proto"
-local BasicBC       = require "App.BCs.IncompEulerBasic"
+local BasicBC       = require ("App.BCs.IncompEulerBasic").IncompEulerBasic
 local lume          = require "Lib.lume"
 
 local IncompEulerSpecies = Proto(FluidSpecies)
@@ -33,8 +33,9 @@ function IncompEulerSpecies:makeBcApp(bcIn)
       bcOut = BasicBC{kind="copy"}
    elseif bcIn == SP_BC_ABSORB then
       bcOut = BasicBC{kind="absorb"}
-   elseif bcIn == SP_BC_ZEROFLUX then
-      bcOut = BasicBC{kind="zeroFlux"}
+   elseif bcIn == SP_BC_ZEROFLUX or bcIn.tbl.kind=="zeroFlux" then
+      bcOut = "zeroFlux"
+      table.insert(self.zeroFluxDirections, dir)
    end
    return bcOut
 end
@@ -54,15 +55,6 @@ function IncompEulerSpecies:createSolver(field, externalField)
    local hasE, hasB       = field:hasEB()
    local extHasE, extHasB = externalField:hasEB()
 
-   -- Retrieve the zero-flux BCs (if any) from BC objects.
-   local zeroFluxDirs = {}
-   for _, bc in ipairs(self.nonPeriodicBCs) do 
-      local bcDir = bc:getDir()
-      if bc:getKind() == "zeroFlux" and not lume.any(zeroFluxDirs, function(e) return e==bcDir end) then
-         table.insert(zeroFluxDirs, bcDir)
-      end
-   end
-
    if self.evolveCollisionless then
       -- Create updater to advance solution by one time-step.
       self.equation = IncompEulerEq {
@@ -77,7 +69,7 @@ function IncompEulerSpecies:createSolver(field, externalField)
          basis              = self.basis,
          cfl                = self.cfl,
          equation           = self.equation,
-         zeroFluxDirections = zeroFluxDirs,
+         zeroFluxDirections = self.zeroFluxDirections,
       }
 
       if self.positivityRescale then

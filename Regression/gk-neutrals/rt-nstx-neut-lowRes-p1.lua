@@ -197,8 +197,8 @@ plasmaApp = Plasma.App {
       },
 
       -- Boundary conditions
-      bcx = {Plasma.Species.bcZeroFlux, Plasma.Species.bcZeroFlux},
-      bcz = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      bcx = {Plasma.ZeroFluxBC{}, Plasma.ZeroFluxBC{}},
+      bcz = {Plasma.SheathBC{}, Plasma.SheathBC{}},
 
       -- Diagnostics
       diagnostics = {"M0", "Upar", "Temp", "Beta"}, 
@@ -295,8 +295,8 @@ plasmaApp = Plasma.App {
       },
 
       -- Boundary conditions.
-      bcx = {Plasma.Species.bcZeroFlux, Plasma.Species.bcZeroFlux},
-      bcz = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      bcx = {Plasma.ZeroFluxBC{}, Plasma.ZeroFluxBC{}},
+      bcz = {Plasma.SheathBC{}, Plasma.SheathBC{}},
 
       -- Diagnostics.
       diagnostics = {"M0", "Upar", "Temp", "Beta"}, 
@@ -370,8 +370,8 @@ plasmaApp = Plasma.App {
       },
 
       -- Boundary conditions.
-      bcx = {Plasma.Vlasov.bcAbsorb, Plasma.Vlasov.bcAbsorb},
-      bcz = {Plasma.Vlasov.bcReflect, Plasma.Vlasov.bcReflect},
+      bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}},
+      bcz = {Plasma.ReflectBC{}, Plasma.ReflectBC{}},
 
       -- Diagnostics.
       diagnostics = { "M0", "Udrift", "VtSq"},

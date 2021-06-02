@@ -201,4 +201,20 @@ function GyrofluidBasicBC:getBoundaryFluxFields()
    return self.boundaryFluxFields
 end
 
-return GyrofluidBasicBC
+-- ................... Classes meant as aliases to simplify input files ...................... --
+local GyrofluidAbsorbBC = Proto(GyrofluidBasicBC)
+function GyrofluidAbsorbBC:fullInit(mySpecies)
+   self.tbl.kind  = "absorb"
+   GyrofluidAbsorbBC.super.fullInit(self, mySpecies)
+end
+
+local GyrofluidCopyBC = Proto(GyrofluidBasicBC)
+function GyrofluidCopyBC:fullInit(mySpecies)
+   self.tbl.kind  = "copy"
+   GyrofluidCopyBC.super.fullInit(self, mySpecies)
+end
+-- ................... End of GyrofluidBasicBC alias classes .................... --
+
+return {GyrofluidBasic   = GyrofluidBasicBC,
+        GyrofluidAbsorb  = GyrofluidAbsorbBC,
+        GyrofluidCopy    = GyrofluidCopyBC,}

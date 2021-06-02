@@ -73,23 +73,18 @@ function IncompEulerBasicBC:createSolver(mySpecies, field, externalField)
                                                                  self.basis:polyOrder(), 2, "Neumann")
       bcFunc   = function(...) return self:bcNeumann(...) end
       skinType = "pointwise"
+   else
+      assert(false, "IncompEulerBasicBC: BC kind not recognized.")
    end
 
-   if self.bcKind == "zeroFlux" then
-      -- Zero flux is not actually handled by the BC object, but rather it
-      -- signals the equation object to not apply surface fluxes at the boundary.
-      self.bcSolver = {}
-      function self.bcSolver:advance(t, inFlds, OutFlds) end
-   else
-      self.bcSolver = Updater.Bc {
-         onGrid             = self.grid,
-         cdim               = self.grid:ndim(),
-         dir                = self.bcDir,
-         edge               = self.bcEdge,
-         boundaryConditions = {bcFunc},
-         skinLoop           = skinType,
-      }
-   end
+   self.bcSolver = Updater.Bc {
+      onGrid             = self.grid,
+      cdim               = self.grid:ndim(),
+      dir                = self.bcDir,
+      edge               = self.bcEdge,
+      boundaryConditions = {bcFunc},
+      skinLoop           = skinType,
+   }
 end
 
 function IncompEulerBasicBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
@@ -97,4 +92,28 @@ function IncompEulerBasicBC:advance(tCurr, mySpecies, field, externalField, inId
    self.bcSolver:advance(tCurr, {}, {fIn})
 end
 
-return IncompEulerBasicBC
+-- ................... Classes meant as aliases to simplify input files ...................... --
+local IncompEulerAbsorbBC = Proto(IncompEulerBasicBC)
+function IncompEulerAbsorbBC:fullInit(mySpecies)
+   self.tbl.kind  = "absorb"
+   IncompEulerAbsorbBC.super.fullInit(self, mySpecies)
+end
+
+local IncompEulerCopyBC = Proto(IncompEulerBasicBC)
+function IncompEulerCopyBC:fullInit(mySpecies)
+   self.tbl.kind  = "copy"
+   IncompEulerCopyBC.super.fullInit(self, mySpecies)
+end
+
+local IncompEulerZeroFluxBC = Proto()
+function IncompEulerZeroFluxBC:init(tbl)
+   self.tbl      = tbl
+   self.tbl.kind = "zeroFlux"
+end
+-- ................... End of IncompEulerBasicBC alias classes .................... --
+
+return {IncompEulerBasic    = IncompEulerBasicBC,
+        IncompEulerAbsorb   = IncompEulerAbsorbBC,
+        IncompEulerCopy     = IncompEulerCopyBC,
+        IncompEulerZeroFlux = IncompEulerZeroFluxBC,}
+

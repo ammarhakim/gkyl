@@ -19,7 +19,7 @@ local Updater        = require "Updater"
 local VlasovEq       = require "Eq.Vlasov"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local VlasovDiags    = require "App.Diagnostics.VlasovDiagnostics"
-local BasicBC        = require "App.BCs.VlasovBasic"
+local BasicBC        = require ("App.BCs.VlasovBasic").VlasovBasic
 local BCsBase        = require "App.BCs.BCsBase"
 local ffi            = require "ffi"
 local xsys           = require "xsys"
@@ -61,7 +61,7 @@ function VlasovSpecies:makeBcApp(bcIn, dir, edge)
       bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
    elseif bcIn == SP_BC_REFLECT then
       bcOut = BasicBC{kind="reflect", diagnostics={}, saveFlux=false}
-   elseif bcIn == SP_BC_ZEROFLUX then
+   elseif bcIn == SP_BC_ZEROFLUX or bcIn.tbl.kind=="zeroFlux" then
       bcOut = "zeroFlux"
       table.insert(self.zeroFluxDirections, dir)
    end

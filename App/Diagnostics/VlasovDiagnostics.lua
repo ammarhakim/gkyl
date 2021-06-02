@@ -38,8 +38,8 @@ local implementation = function()
    -- ~~~~ Momentum density ~~~~~~~~~~~~~~~~~~~~~~
    local _M1i = Proto(DiagsImplBase)
    function _M1i:fullInit(diagApp, specIn, field, owner)
-      self.field            = owner:allocMoment()
-      self.fieldwJacobGeo   = owner:allocMoment()  -- So intM1i can depend on M1i.
+      self.field            = owner:allocVectorMoment(specIn.vdim)
+      self.fieldwJacobGeo   = owner:allocVectorMoment(specIn.vdim)  -- So intM1i can depend on M1i.
       self.updater          = owner.momDensityCalc or specIn.momDensityCalc
       self.divideByJacobGeo = owner.divideByJacobGeo or specIn.divideByJacobGeo
       self:setGetF(specIn.perturbedDiagnostics, owner)  -- self.getF differentiates between f and delta-f.

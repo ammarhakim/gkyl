@@ -454,4 +454,48 @@ function GkBasicBC:evalOnConfBoundary(inFld)
    return self.confBoundaryField
 end
 
-return GkBasicBC
+-- ................... Classes meant as aliases to simplify input files ...................... --
+local GkAbsorbBC = Proto(GkBasicBC)
+function GkAbsorbBC:fullInit(mySpecies)
+   self.tbl.kind  = "absorb"
+   GkAbsorbBC.super.fullInit(self, mySpecies)
+end
+
+local GkReflectBC = Proto(GkBasicBC)
+function GkReflectBC:fullInit(mySpecies)
+   self.tbl.kind  = "reflect"
+   GkReflectBC.super.fullInit(self, mySpecies)
+end
+
+local GkCopyBC = Proto(GkBasicBC)
+function GkCopyBC:fullInit(mySpecies)
+   self.tbl.kind  = "copy"
+   GkCopyBC.super.fullInit(self, mySpecies)
+end
+
+local GkOpenBC = Proto(GkBasicBC)
+function GkOpenBC:fullInit(mySpecies)
+   self.tbl.kind  = "copy"
+   GkOpenBC.super.fullInit(self, mySpecies)
+end
+
+local GkZeroFluxBC = Proto()
+function GkZeroFluxBC:init(tbl)
+   self.tbl      = tbl
+   self.tbl.kind = "zeroFlux"
+end
+
+local GkSheathBC = Proto(GkBasicBC)
+function GkSheathBC:fullInit(mySpecies)
+   self.tbl.kind  = "sheath"
+   GkSheathBC.super.fullInit(self, mySpecies)
+end
+-- ................... End of GkBasicBC alias classes .................... --
+
+return {GkBasic    = GkBasicBC,
+        GkAbsorb   = GkAbsorbBC,
+        GkCopy     = GkCopyBC,
+        GkOpen     = GkOpenBC,
+        GkReflect  = GkReflectBC,
+        GkZeroFlux = GkZeroFluxBC,
+        GkSheath   = GkSheathBC}
