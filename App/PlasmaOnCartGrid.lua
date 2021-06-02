@@ -300,8 +300,9 @@ local function buildApplication(self, tbl)
       flSrc:createSolver(species, field)
    end   
 
-   -- Compute the coupling moments.
    for _, s in lume.orderedIter(species) do
+      s:createCouplingSolver(species, field, externalField)
+      -- Compute the coupling moments.
       s:clearMomentFlags(species)
       s:calcCouplingMoments(0.0, 1, species)
    end

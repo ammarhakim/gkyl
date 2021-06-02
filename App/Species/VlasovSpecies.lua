@@ -1335,7 +1335,7 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
 				      { bcExternFunc }, "flip"))
    elseif bcType == SP_BC_ZEROFLUX then
       table.insert(self.zeroFluxDirections, dir)
-      elseif bcType == SP_BC_RECYCLE and dir == self.cdim then
+   elseif bcType == SP_BC_RECYCLE and dir == self.cdim then
       -- recycling code here
       assert(self.tbl.diagnosticBoundaryFluxMoments, "VlasovSpecies: Recycle BCs must include boundary flux diagnostics using 'diagnosticBoundaryFluxMoments'")
       assert(self.tbl.recycleTemp, "VlasovSpecies: Recycle BCs must specify temperature using 'recycleTemp'")
@@ -1531,7 +1531,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 				   mass      = self.mass,},	    
 	       }
 	       
-	       local dir, edgeVal
+	       local dir, edgeVal, mom
 	       if string.match(label,"lower") then
 		  edgeval = 1
 	       else

@@ -47,7 +47,7 @@ end
 
 function BnFReflectionBC:setName(nm) self.name = self.speciesName.."_"..nm end
 
-function BnFReflectionBC:bcBnFReflectionFunc(dir, tm, idxIn, fIn, fOut)
+function BnFReflectionBC:bcBnFReflection(dir, tm, idxIn, fIn, fOut)
    -- Requires skinLoop = "flip".
    local numBasis = self.basis:numBasis()
    local velIdx = Lin.IntVec(self.ndim)
@@ -108,7 +108,7 @@ function BnFReflectionBC:createSolver(mySpecies, field, externalField)
    }
    evaluateBronold:advance(0.0, {}, {self.externalBCFunction})
 
-   local bcFunc   = function(...) return self:bcBnFReflectionFunc(...) end
+   local bcFunc   = function(...) return self:bcBnFReflection(...) end
    local skinType = "flip"
 
    local vdir = self.bcDir+self.cdim
@@ -325,23 +325,5 @@ function BnFReflectionBC:advance(tCurr, mySpecies, field, externalField, inIdx, 
 end
 
 function BnFReflectionBC:getBoundaryFluxFields() return self.boundaryFluxFields end
-
-function BnFReflectionBC:evalOnConfBoundary(inFld)
-   local inFldPtr  = inFld:get(1)
-   local inFldIdxr = inFld:genIndexer()
-
-   local tId = self.grid:subGridSharedId() -- Local thread ID.
-   for idxIn in self.confGhostRangeDecomp:rowMajorIter(tId) do
-      idxIn:copyInto(self.idxOut)
-      self.idxOut[self.bcDir] = 1
-
-      inFld:fill(inFldIdxr(idxIn), inFldPtr)
-      self.confBoundaryField:fill(self.confBoundaryIdxr(self.idxOut), self.confBoundaryFieldPtr)
-
-      for c = 1, inFld:numComponents() do self.confBoundaryFieldPtr[c] = inFldPtr[c] end
-   end
-
-   return self.confBoundaryField
-end
 
 return BnFReflectionBC

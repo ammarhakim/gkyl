@@ -435,24 +435,6 @@ end
 
 function GkBasicBC:getBoundaryFluxFields() return self.boundaryFluxFields end
 
-function GkBasicBC:evalOnConfBoundary(inFld)
-   local inFldPtr  = inFld:get(1)
-   local inFldIdxr = inFld:genIndexer()
-
-   local tId = self.grid:subGridSharedId() -- Local thread ID.
-   for idxIn in self.confGhostRangeDecomp:rowMajorIter(tId) do
-      idxIn:copyInto(self.idxOut)
-      self.idxOut[self.bcDir] = 1
-
-      inFld:fill(inFldIdxr(idxIn), inFldPtr)
-      self.confBoundaryField:fill(self.confBoundaryIdxr(self.idxOut), self.confBoundaryFieldPtr)
-
-      for c = 1, inFld:numComponents() do self.confBoundaryFieldPtr[c] = inFldPtr[c] end
-   end
-
-   return self.confBoundaryField
-end
-
 -- ................... Classes meant as aliases to simplify input files ...................... --
 local GkAbsorbBC = Proto(GkBasicBC)
 function GkAbsorbBC:fullInit(mySpecies)

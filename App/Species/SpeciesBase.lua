@@ -25,6 +25,7 @@ function SpeciesBase:setCfl(cfl) end
 function SpeciesBase:setDtGlobal(dtGlobal) end
 function SpeciesBase:getNdim() return 1 end
 function SpeciesBase:createSolver() end
+function SpeciesBase:createCouplingSolver() end
 function SpeciesBase:createDiagnostics() end
 function SpeciesBase:rkStepperFields() return { nil } end
 function SpeciesBase:suggestDt() end
