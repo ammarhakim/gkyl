@@ -357,7 +357,7 @@ function MaxwellField:createSolver()
                onGhosts = true,
             }
             project:advance(0.0, {}, {self._inOut})
-            self.fieldIo:write(self._inOut, string.format("%s_inOut.bp", self.name), 0, 0)
+            self.fieldIo:write(self._inOut, string.format("%s_inOut.bp", "field"), 0, 0)
          end
 
          local ndim = self.grid:ndim()
