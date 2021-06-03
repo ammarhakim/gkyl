@@ -1,3 +1,6 @@
+-----------------------------------------------------------------
+-- Two-fluid modeling of mangetosphere-solar wind interaction. --
+-----------------------------------------------------------------
 --------------
 -- PREAMBLE --
 --------------
@@ -31,15 +34,15 @@ local lightSpeed = Consts.SPEED_OF_LIGHT / 100
 local mu0 = Consts.MU0
 local epsilon0 = 1 / mu0 / (lightSpeed ^ 2)
 
-local R0 = 2634.1e3 -- Planet radius
--- Planet dipole moment
+local R0 = 2634.1e3 -- Planet radius.
+-- Planet dipole moment.
 local Dx = -18e-9 * R0 ^ 3
 local Dy = 51.8e-9 * R0 ^ 3
 local Dz = -716.8e-9 * R0 ^ 3
-local r1 = 0.5 * R0 -- Zero B field when r < r1
-local r0 = R0 -- Radius of the inner boundary
+local r1 = 0.5 * R0 -- B field will be set to zero where r < r1.
+local rInOut = R0 -- Radius of the inner boundary.
 
--- Inflows condition
+-- Inflow condition.
 local rho_in = 56e6 * Consts.PROTON_MASS
 local vx_in = 140e3
 local vy_in = 0
@@ -49,13 +52,13 @@ local Bx_in = 0
 local By_in = -6e-9
 local Bz_in = -77e-9
 
--- Mirror-dipole setup
-local r_ramp1 = 2 * R0
-local r_ramp2 = 2.5 * R0
-local stretch = 1
-local xmir = -2.578125 * R0
+-- Mirror-dipole (mirdip) setup.
+local mirdip_rRamp1 = 2 * R0
+local mirdip_rRamp2 = 2.5 * R0
+local mirdip_stretch = 1
+local mirdip_xMirror = -2.578125 * R0
 
--- Kinetic parameters
+-- Kinetic parameters.
 local mi = 14 * Consts.PROTON_MASS
 local di_in = 0.2 * R0
 local mi__me = 25
@@ -67,7 +70,7 @@ local charge = {qe, qi}
 local mass = {me, mi}
 local de_in = di_in * sqrt(me / mi)
 
--- Domain
+-- Domain.
 local xlo, xup, Nx = -24 * R0, 24 * R0, 96
 local ylo, yup, Ny = -24 * R0, 24 * R0, 96
 local zlo, zup, Nz = -24 * R0, 24 * R0, 96
@@ -75,6 +78,7 @@ local zlo, zup, Nz = -24 * R0, 24 * R0, 96
 local lower = {xlo, ylo, zlo}
 local upper = {xup, yup, zup}
 local cells = {Nx, Ny, Nz}
+local decompCuts = nil
 local useNonUniformGrid = true
 -- Using two tanh functions to rampd down and up the grid sizes (U-shape).
 -- xl, wxl: Floor and transition-layer width of the left tanh (ramping down dx.)
@@ -90,12 +94,12 @@ local cfl = 0.9
 local cflm = 1.1 * cfl
 local limiter = "monotonized-centered"
 
--- I/O control
+-- I/O control.
 local tEnd = 2700
 local tFrame = 60
 local nFrame = floor(tEnd / tFrame)
 
--- Derived parameters
+-- Derived parameters.
 local rhoe_in = rho_in / (1 + mi__me)
 local rhovxe_in = rhoe_in * vx_in
 local rhovye_in = rhoe_in * vy_in
@@ -140,10 +144,10 @@ log("%30s = %g", "cs_in [km/s]", cs_in / 1e3)
 log("%30s = %g", "vA_in [km/s]", vA_in / 1e3)
 log("%30s = %g", "pmag_in [nPa]", pmag_in / 1e-9)
 log("%30s = %g", "beta_in", beta_in)
-log("%30s = %g", "mirror-dipole r_ramp1 [R0]", r_ramp1 / R0)
-log("%30s = %g", "mirror-dipole r_ramp2 [R0]", r_ramp2 / R0)
-log("%30s = %g", "mirror-dipole stretch     ", stretch)
-log("%30s = %g", "mirror-dipole xmir    [R0]", xmir / R0)
+log("%30s = %g", "mirror-dipole mirdip_rRamp1 [R0]", mirdip_rRamp1 / R0)
+log("%30s = %g", "mirror-dipole mirdip_rRamp2 [R0]", mirdip_rRamp2 / R0)
+log("%30s = %g", "mirror-dipole mirdip_stretch     ", mirdip_stretch)
+log("%30s = %g", "mirror-dipole mirdip_xMirror    [R0]", mirdip_xMirror / R0)
 log("%30s = %g", "di_in [R0]", di_in / R0)
 log("%30s = %g", "ion-electron mass ratio", mi__me)
 log("%30s = %g", "ion-electron pressure ratio", pi__pe)
@@ -173,9 +177,9 @@ local function calcP(x, y, z)
 end
 
 local function calcV(x, y, z)
-   local xx = x > 0 and x / stretch or x
+   local xx = x > 0 and x / mirdip_stretch or x
    local r = sqrt(xx ^ 2 + y ^ 2 + z ^ 2)
-   local s = (r - r_ramp1) / (r_ramp2 - r_ramp1)
+   local s = (r - mirdip_rRamp1) / (mirdip_rRamp2 - mirdip_rRamp1)
    s = max(s, 0)
    s = min(s, 1)
    local vx = vx_in * s
@@ -185,10 +189,8 @@ local function calcV(x, y, z)
 end
 
 local function dipoleB(x, y, z, x0, y0, z0, Dx, Dy, Dz, cut)
-   if cut and x < xmir then return 0, 0, 0 end
-   local xx = (x - x0)
-   local yy = (y - y0)
-   local zz = (z - z0)
+   if cut and x < mirdip_xMirror then return 0, 0, 0 end
+   local xx, yy, zz = x - x0, y - y0, z - z0
    local rr = sqrt(xx ^ 2 + yy ^ 2 + zz ^ 2)
    local Bx =
        (3 * xx * Dx * xx + 3 * xx * Dy * yy + 3 * xx * Dz * zz - Dx * rr ^ 2) /
@@ -205,26 +207,28 @@ end
 local function staticB(x, y, z)
    local r2 = x ^ 2 + y ^ 2 + z ^ 2
    if (r2 < r1 ^ 2) then return 0, 0, 0 end
-   local Bxs, Bys, Bzs = 0, 0, 0
    local Bxd0, Byd0, Bzd0 = dipoleB(x, y, z, 0, 0, 0, Dx, Dy, Dz, false)
-   Bxs, Bys, Bzs = Bxs + Bxd0, Bys + Byd0, Bzs + Bzd0
-   -- Bxs, Bys, Bzs = Bxs+Bx_in, Bys+By_in, Bzs+Bz_in
-   return Bxs, Bys, Bzs
+   return Bxd0, Byd0, Bzd0
 end
 
 local function totalB(x, y, z)
    local r2 = x ^ 2 + y ^ 2 + z ^ 2
    if (r2 < r1 ^ 2) then return 0, 0, 0 end
+
    local Bxt, Byt, Bzt = 0, 0, 0
+
    local Bxd0, Byd0, Bzd0 = dipoleB(x, y, z, 0, 0, 0, Dx, Dy, Dz, true)
    Bxt, Byt, Bzt = Bxt + Bxd0, Byt + Byd0, Bzt + Bzd0
-   local Bxdm, Bydm, Bzdm = dipoleB(x, y, z, 2 * xmir, 0, 0, -Dx, Dy, Dz, true)
+
+   local Bxdm, Bydm, Bzdm = dipoleB(x, y, z, 2 * mirdip_xMirror, 0, 0, -Dx, Dy,
+                                    Dz, true)
    Bxt, Byt, Bzt = Bxt + Bxdm, Byt + Bydm, Bzt + Bzdm
+
    Bxt, Byt, Bzt = Bxt + Bx_in, Byt + By_in, Bzt + Bz_in
    return Bxt, Byt, Bzt
 end
 
-local function init(xn, name)
+local function initElc(t, xn)
    local x, y, z = xn[1], xn[2], xn[3]
 
    local rho = calcRho(x, y, z)
@@ -232,16 +236,11 @@ local function init(xn, name)
    local p = calcP(x, y, z)
 
    local rhoe = rho / (1 + mi__me)
-   local rhoi = rho - rhoe
+   local pe = p / (1 + pi__pe)
+
    local rhovxe = rhoe * vx
    local rhovye = rhoe * vy
    local rhovze = rhoe * vz
-   local rhovxi = rhoi * vx
-   local rhovyi = rhoi * vy
-   local rhovzi = rhoi * vz
-   local pe = p / (1 + pi__pe)
-   local pi = p - pe
-
    local Pxxe = pe + rhovxe ^ 2 / rhoe
    local Pyye = pe + rhovye ^ 2 / rhoe
    local Pzze = pe + rhovze ^ 2 / rhoe
@@ -249,6 +248,22 @@ local function init(xn, name)
    local Pxze = rhovxe * rhovze / rhoe
    local Pyze = rhovye * rhovze / rhoe
 
+   return rhoe, rhovxe, rhovye, rhovze, Pxxe, Pxye, Pxze, Pyye, Pyze, Pzze
+end
+
+local function initIon(t, xn)
+   local x, y, z = xn[1], xn[2], xn[3]
+
+   local rho = calcRho(x, y, z)
+   local vx, vy, vz = calcV(x, y, z)
+   local p = calcP(x, y, z)
+
+   local rhoi = rho * mi__me / (1 + mi__me)
+   local pi = p * pi__pe / (1 + pi__pe)
+
+   local rhovxi = rhoi * vx
+   local rhovyi = rhoi * vy
+   local rhovzi = rhoi * vz
    local Pxxi = pi + rhovxi ^ 2 / rhoi
    local Pyyi = pi + rhovyi ^ 2 / rhoi
    local Pzzi = pi + rhovzi ^ 2 / rhoi
@@ -256,33 +271,34 @@ local function init(xn, name)
    local Pxzi = rhovxi * rhovzi / rhoi
    local Pyzi = rhovyi * rhovzi / rhoi
 
+   return rhoi, rhovxi, rhovyi, rhovzi, Pxxi, Pxyi, Pxzi, Pyyi, Pyzi, Pzzi
+end
+
+local function initField(t, xn)
+   local x, y, z = xn[1], xn[2], xn[3]
+
    local Bxt, Byt, Bzt = totalB(x, y, z)
    local Bxs, Bys, Bzs = staticB(x, y, z)
    local Bx, By, Bz = Bxt - Bxs, Byt - Bys, Bzt - Bzs
 
+   local vx, vy, vz = calcV(x, y, z)
    local Ex = -vy * Bzt + vz * Byt
    local Ey = -vz * Bxt + vx * Bzt
    local Ez = -vx * Byt + vy * Bxt
 
-   if name == "elc" then
-      return rhoe, rhovxe, rhovye, rhovze, Pxxe, Pxye, Pxze, Pyye, Pyze, Pzze
-   elseif name == "ion" then
-      return rhoi, rhovxi, rhovyi, rhovzi, Pxxi, Pxyi, Pxzi, Pyyi, Pyzi, Pzzi
-   elseif name == "field" then
-      return Ex, Ey, Ez, Bx, By, Bz, 0, 0
-   else
-      assert(0)
-   end
+   return Ex, Ey, Ez, Bx, By, Bz, 0, 0
 end
 
-local function setStaticField(x, y, z)
+local function staticEmFunction(t, xn)
+   local x, y, z = xn[1], xn[2], xn[3]
    local Exs, Eys, Ezs = 0, 0, 0
    local Bxs, Bys, Bzs = staticB(x, y, z)
    return Exs, Eys, Ezs, Bxs, Bys, Bzs, 0, 0
 end
 
-local function setInOutField(x, y, z)
-   if (x ^ 2 + y ^ 2 + z ^ 2 < r0 ^ 2) then
+local function inOutFunc(t, xn)
+   local x, y, z = xn[1], xn[2], xn[3]
+   if (x ^ 2 + y ^ 2 + z ^ 2 < rInOut ^ 2) then
       return -1
    else
       return 1
@@ -294,14 +310,34 @@ end
 ----------
 local coordinateMap = nil
 if useNonUniformGrid then
+   -- User-defined functions that map computational-grid coordinates to
+   -- computational-grid cell sizes. The physical coordinates will be computed
+   -- accordingly.
+   local Lx = xup - xlo
+   local _xl, _wxl = (xl - xlo) / Lx, wxl / Lx
+   local _xr, _wxr = (xr - xlo) / Lx, wxr / Lx
+   local _x2dx = function(_x)
+      return 2 - tanh((_x - _xl) / _wxl) + tanh((_x - _xr) / _wxr) + sx
+   end
+
+   local Ly = yup - ylo
+   local _yl, _wyl = (yl - ylo) / Ly, wyl / Ly
+   local _yr, _wyr = (yr - ylo) / Ly, wyr / Ly
+   local _y2dy = function(_y)
+      return 2 - tanh((_y - _yl) / _wyl) + tanh((_y - _yr) / _wyr) + sy
+   end
+
+   local Lz = zup - zlo
+   local _zl, _wzl = (zl - zlo) / Lz, wzl / Lz
+   local _zr, _wzr = (zr - zlo) / Lz, wzr / Lz
+   local _z2dz = function(_z)
+      return 2 - tanh((_z - _zl) / _wzl) + tanh((_z - _zr) / _wzr) + sz
+   end
 
    -- Get a mapping function from computational node-center coordinates to
-   -- physical node-center coordinates. _x2dx maps cell index to grid size in
-   -- the computational grid.
+   -- physical node-center coordinates.
+   -- _x2dx: maps cell index to grid size in the computational grid.
    local get_c2p = function(x0, Lx, Nx, _x2dx)
-      local x0 = lower[1]
-      local Lx = upper[1] - x0
-
       -- Node-center computational coordinates.
       local xncComput = {0}
       for i = 2, Nx + 1 do
@@ -323,37 +359,10 @@ if useNonUniformGrid then
       end
    end
 
-   -- X
-   local x0 = lower[1]
-   local Lx = upper[1] - x0
-   local _xl, _wxl = (xl - x0) / Lx, wxl / Lx
-   local _xr, _wxr = (xr - x0) / Lx, wxr / Lx
-   local _x2dx = function(_x)
-      return 2 - tanh((_x - _xl) / _wxl) + tanh((_x - _xr) / _wxr) + sx
-   end
-   local c2p_x = get_c2p(x0, Lx, Nx, _x2dx)
-
-   -- Y
-   local y0 = lower[2]
-   local Ly = upper[2] - y0
-   local _yl, _wyl = (yl - y0) / Ly, wyl / Ly
-   local _yr, _wyr = (yr - y0) / Ly, wyr / Ly
-   local _y2dy = function(_y)
-      return 2 - tanh((_y - _yl) / _wyl) + tanh((_y - _yr) / _wyr) + sy
-   end
-   local c2p_y = get_c2p(y0, Ly, Ny, _y2dy)
-
-   -- Z
-   local z0 = lower[3]
-   local Lz = upper[3] - z0
-   local _zl, _wzl = (zl - z0) / Lz, wzl / Lz
-   local _zr, _wzr = (zr - z0) / Lz, wzr / Lz
-   local _z2dz = function(_z)
-      return 2 - tanh((_z - _zl) / _wzl) + tanh((_z - _zr) / _wzr) + sz
-   end
-   local c2p_z = get_c2p(z0, Lz, Nz, _z2dz)
-
-   coordinateMap = {c2p_x, c2p_y, c2p_z}
+   coordinateMap = {
+      get_c2p(xlo, Lx, Nx, _x2dx), get_c2p(ylo, Ly, Ny, _y2dy),
+      get_c2p(zlo, Lz, Nz, _z2dz)
+   }
    lower = {0, 0, 0}
    upper = {1, 1, 1}
 end
@@ -361,9 +370,15 @@ end
 ------------------------
 -- BOUNDARY CONDITION --
 ------------------------
+local bcInflow_elc = TenMoment.bcConst(rhoe_in, rhovxe_in, rhovye_in, rhovze_in,
+                                       Pxxe_in, Pxye_in, Pxze_in, Pyye_in,
+                                       Pyze_in, Pzze_in)
+local bcInflow_ion = TenMoment.bcConst(rhoi_in, rhovxi_in, rhovyi_in, rhovzi_in,
+                                       Pxxi_in, Pxyi_in, Pxzi_in, Pyyi_in,
+                                       Pyzi_in, Pzzi_in)
+
 local bcInflow_field = {
    function(dir, tm, idxIn, qin, qbc, xcOut, xcIn)
-      local x, y, z = xcOut[1], xcOut[2], xcOut[3]
       qbc[1] = Ex_in
       qbc[2] = Ey_in
       qbc[3] = Ez_in
@@ -391,63 +406,46 @@ local momentApp = Moments.App {
    upper = upper,
    cells = cells,
    coordinateMap = coordinateMap,
+   decompCuts = decompCuts,
    timeStepper = "fvDimSplit",
 
-   -- electrons
    elc = Moments.Species {
       charge = qe,
       mass = me,
       equation = TenMoment {},
       equationInv = TenMoment {numericalFlux = "lax"},
-      init = function(t, xn) return init(xn, "elc") end,
-      bcx = {
-         TenMoment.bcConst(rhoe_in, rhovxe_in, rhovye_in, rhovze_in, Pxxe_in,
-                           Pxye_in, Pxze_in, Pyye_in, Pyze_in, Pzze_in),
-         Moments.Species.bcCopy
-      },
+      init = initElc,
+      bcx = {bcInflow_elc, Moments.Species.bcCopy},
       bcy = {Moments.Species.bcCopy, Moments.Species.bcCopy},
       bcz = {Moments.Species.bcCopy, Moments.Species.bcCopy},
       hasSsBnd = true,
-      inOutFunc = function(t, xn)
-         local x, y, z = xn[1], xn[2], xn[3]
-         return setInOutField(x, y, z)
-      end,
+      inOutFunc = inOutFunc,
       ssBc = {Moments.Species.bcCopy}
    },
 
-   -- ions
    ion = Moments.Species {
       charge = qi,
       mass = mi,
       equation = TenMoment {gasGamma = gasGamma},
       equationInv = TenMoment {gasGamma = gasGamma, numericalFlux = "lax"},
-      init = function(t, xn) return init(xn, "ion") end,
-      bcx = {
-         TenMoment.bcConst(rhoi_in, rhovxi_in, rhovyi_in, rhovzi_in, Pxxi_in,
-                           Pxyi_in, Pxzi_in, Pyyi_in, Pyzi_in, Pzzi_in),
-         Moments.Species.bcCopy
-      },
+      init = initIon,
+      bcx = {bcInflow_ion, Moments.Species.bcCopy},
       bcy = {Moments.Species.bcCopy, Moments.Species.bcCopy},
       bcz = {Moments.Species.bcCopy, Moments.Species.bcCopy},
       hasSsBnd = true,
-      inOutFunc = function(t, xn)
-         local x, y, z = xn[1], xn[2], xn[3]
-         return setInOutField(x, y, z)
-      end,
+      inOutFunc = inOutFunc,
       ssBc = {Moments.Species.bcCopy}
    },
 
    field = Moments.Field {
-      epsilon0 = 1.0,
-      mu0 = 1.0,
-      init = function(t, xn) return init(xn, "field") end,
+      epsilon0 = epsilon0,
+      mu0 = mu0,
+      init = initField,
       bcx = {bcInflow_field, Moments.Field.bcCopy},
       bcy = {Moments.Field.bcCopy, Moments.Field.bcCopy},
       bcz = {Moments.Field.bcCopy, Moments.Field.bcCopy},
-      inOutFunc = function(t, xn)
-         local x, y, z = xn[1], xn[2], xn[3]
-         return setInOutField(x, y, z)
-      end,
+      hasSsBnd = true,
+      inOutFunc = inOutFunc,
       ssBc = {Moments.Species.bcReflect}
    },
 
@@ -455,10 +453,7 @@ local momentApp = Moments.App {
       species = {"elc", "ion"},
       timeStepper = "direct",
       hasStaticField = true,
-      staticEmFunction = function(t, xn)
-         local x, y, z = xn[1], xn[2], xn[3]
-         return setStaticField(x, y, z)
-      end
+      staticEmFunction = staticEmFunction
    }
 
 }
