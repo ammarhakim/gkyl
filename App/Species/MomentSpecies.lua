@@ -188,7 +188,6 @@ end
 function MomentSpecies:setConfGrid(cgrid)
    self.grid = cgrid
    self.ndim = self.grid:ndim()
-   self.cdim = self.ndim
 end
 
 function MomentSpecies:allocMoment()
@@ -227,7 +226,6 @@ function MomentSpecies:makeBcUpdater(dir, edge, bcList, skinLoop, hasExtFld)
       dir = dir,
       edge = edge,
       skinLoop = skinLoop,
-      cdim = self.cdim,
       vdim = self.vdim,
       hasExtFld = hasExtFld,
    }
@@ -289,7 +287,7 @@ function MomentSpecies:createBCs()
       isPeriodic[dir] = true
    end
    local bc = {self.bcx, self.bcy, self.bcz}
-   for d = 1, self.cdim do
+   for d = 1, self.ndim do
      handleBc(d, bc[d], isPeriodic[d])
   end
 end
