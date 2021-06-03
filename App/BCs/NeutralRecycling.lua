@@ -38,17 +38,19 @@ function NeutralRecyclingBC:fullInit(mySpecies)
    if tbl.recycleTime then
       self.recycleTime = tbl.recycleTime
       self.scaledRecycleFrac = function(tm)
-         return self.recycleFrac * (0.5*(1. + math.tanh(tm/self.recTime-1)))
+         return self.recycleFrac * (0.5*(1. + math.tanh(tm/self.recycleTime-1)))
       end
    else
       self.scaledRecycleFrac = function(tm) return self.recycleFrac end
    end
 
-   self.diagnostics = tbl.diagnostics or {}
-   self.saveFlux    = tbl.saveFlux or false
-
+   self.saveFlux = tbl.saveFlux or false
+   self.anyDiagnostics = false
    if tbl.diagnostics then
-     if #tbl.diagnostics>0 then self.saveFlux = true end
+      if #tbl.diagnostics>0 then
+         self.anyDiagnostics = true
+         self.saveFlux       = true
+      end
    end
 end
 
@@ -71,6 +73,13 @@ function NeutralRecyclingBC:bcNeutralRecycling(dir, tm, idxIn, fIn, fOut)
 
    self.basis:flipSign(dir, fOut, fOut)
    self.basis:flipSign(dir+self.cdim, fOut, fOut)
+end
+
+function NeutralRecyclingBC:initCrossSpeciesCoupling(species)
+   -- Need to set saveFlux=true in the recycling ion's BC at the same boundary as this.
+   local recIon = species[self.recycleIonNm]
+   self.recIonBC = recIon.nonPeriodicBCs[string.gsub(self.name,self.speciesName.."_","")]
+   self.recIonBC:setSaveFlux(true)
 end
 
 function NeutralRecyclingBC:createSolver(mySpecies, field, externalField)
@@ -259,64 +268,69 @@ function NeutralRecyclingBC:createSolver(mySpecies, field, externalField)
             self.boundaryFluxFields[outIdx]:accumulate(args[2*i-1], self.boundaryFluxFields[args[2*i]])
          end
       end
-      self.calcBoundaryFluxRateFunc = function(dtIn)
-         -- Compute boundary flux rate ~ (fGhost_new - fGhost_old)/dt.
-         self.boundaryFluxRate:combine( 1.0/dtIn, self.boundaryFluxFields[1],
-                                       -1.0/dtIn, self.boundaryFluxFieldPrev)
-         self.boundaryFluxFieldPrev:copy(self.boundaryFluxFields[1])
-      end
 
-      -- Set up weak multiplication and division operators (for diagnostics).
-      self.confWeakMultiply = Updater.CartFieldBinOp {
-         onGrid    = self.confBoundaryGrid,  operation = "Multiply",
-         weakBasis = self.confBasis,         onGhosts  = true,
-      }
-      self.confWeakDivide = Updater.CartFieldBinOp {
-         onGrid    = self.confBoundaryGrid,  operation = "Divide",
-         weakBasis = self.confBasis,         onGhosts  = true,
-      }
-      self.confWeakDotProduct = Updater.CartFieldBinOp {
-         onGrid    = self.confBoundaryGrid,  operation = "DotProduct",
-         weakBasis = self.confBasis,         onGhosts  = true,
-      }
-      -- Volume integral operator (for diagnostics).
-      self.volIntegral = {
-         scalar = Updater.CartFieldIntegratedQuantCalc {
-            onGrid = self.confBoundaryGrid,  numComponents = 1,
-            basis  = self.confBasis,         quantity      = "V",
-         },
-         vector = Updater.CartFieldIntegratedQuantCalc {
-            onGrid = self.confBoundaryGrid,  numComponents = self.vdim,
-            basis  = self.confBasis,         quantity      = "V",
-         },
-      }
-      -- Moment calculators (for diagnostics).
-      self.numDensityCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
-         phaseBasis = self.basis,         moment     = "M0",
-      }
-      self.momDensityCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
-         phaseBasis = self.basis,         moment     = "M1i",
-      }
-      self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
-         phaseBasis = self.basis,         moment     = "M2",
-      }
-      self.M2ijCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
-         phaseBasis = self.basis,         moment    = "M2ij",
-      }
-      self.M3iCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
-         phaseBasis = self.basis,         moment    = "M3i",
-      }
-      self.divideByJacobGeo = self.jacobGeoInv
-         and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeoInv}, {fldOut}) end
-         or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
-      self.multiplyByJacobGeo = self.jacobGeo
-         and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeo}, {fldOut}) end
-         or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
+      if not self.anyDiagnostics then
+         self.calcBoundaryFluxRateFunc = function(dtIn) end
+      else
+         self.calcBoundaryFluxRateFunc = function(dtIn)
+            -- Compute boundary flux rate ~ (fGhost_new - fGhost_old)/dt.
+            self.boundaryFluxRate:combine( 1.0/dtIn, self.boundaryFluxFields[1],
+                                          -1.0/dtIn, self.boundaryFluxFieldPrev)
+            self.boundaryFluxFieldPrev:copy(self.boundaryFluxFields[1])
+         end
+
+         -- Set up weak multiplication and division operators (for diagnostics).
+         self.confWeakMultiply = Updater.CartFieldBinOp {
+            onGrid    = self.confBoundaryGrid,  operation = "Multiply",
+            weakBasis = self.confBasis,         onGhosts  = true,
+         }
+         self.confWeakDivide = Updater.CartFieldBinOp {
+            onGrid    = self.confBoundaryGrid,  operation = "Divide",
+            weakBasis = self.confBasis,         onGhosts  = true,
+         }
+         self.confWeakDotProduct = Updater.CartFieldBinOp {
+            onGrid    = self.confBoundaryGrid,  operation = "DotProduct",
+            weakBasis = self.confBasis,         onGhosts  = true,
+         }
+         -- Volume integral operator (for diagnostics).
+         self.volIntegral = {
+            scalar = Updater.CartFieldIntegratedQuantCalc {
+               onGrid = self.confBoundaryGrid,  numComponents = 1,
+               basis  = self.confBasis,         quantity      = "V",
+            },
+            vector = Updater.CartFieldIntegratedQuantCalc {
+               onGrid = self.confBoundaryGrid,  numComponents = self.vdim,
+               basis  = self.confBasis,         quantity      = "V",
+            },
+         }
+         -- Moment calculators (for diagnostics).
+         self.numDensityCalc = Updater.DistFuncMomentCalc {
+            onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
+            phaseBasis = self.basis,         moment     = "M0",
+         }
+         self.momDensityCalc = Updater.DistFuncMomentCalc {
+            onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
+            phaseBasis = self.basis,         moment     = "M1i",
+         }
+         self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
+            onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
+            phaseBasis = self.basis,         moment     = "M2",
+         }
+         self.M2ijCalc = Updater.DistFuncMomentCalc {
+            onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
+            phaseBasis = self.basis,         moment    = "M2ij",
+         }
+         self.M3iCalc = Updater.DistFuncMomentCalc {
+            onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
+            phaseBasis = self.basis,         moment    = "M3i",
+         }
+         self.divideByJacobGeo = self.jacobGeoInv
+            and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeoInv}, {fldOut}) end
+            or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
+         self.multiplyByJacobGeo = self.jacobGeo
+            and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeo}, {fldOut}) end
+            or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
+      end
    else
       self.storeBoundaryFluxFunc        = function(tCurr, rkIdx, qOut) end
       self.copyBoundaryFluxFieldFunc    = function(inIdx, outIdx) end
@@ -362,12 +376,12 @@ end
 
 -- These are needed to recycle the VlasovDiagnostics with NeutralRecyclingBC.
 function NeutralRecyclingBC:rkStepperFields() return {self.boundaryFluxRate, self.boundaryFluxRate,
-                                                 self.boundaryFluxRate, self.boundaryFluxRate} end
+                                                      self.boundaryFluxRate, self.boundaryFluxRate} end
 function NeutralRecyclingBC:getFlucF() return self.boundaryFluxRate end
 
 function NeutralRecyclingBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
    -- Compute the 0th moment of the ion boundary flux.
-   self.recIonBC.numDensityCalc:advance(tCurr, {self.recIonBC:getBoundaryFluxFields()[outIdx], self.bcIonM0fluxField})
+   self.recIonBC.numDensityCalc:advance(tCurr, {self.recIonBC:getBoundaryFluxFields()[outIdx]}, {self.bcIonM0fluxField})
 
    self.bcIonM0fluxField:scale(self.scaledRecycleFrac(tCurr))
 
@@ -378,7 +392,7 @@ function NeutralRecyclingBC:advance(tCurr, mySpecies, field, externalField, inId
    self.recycleConfPhaseWeakMultiply:advance(tCurr, {self.recycleCoef, self.recycleFMaxwell}, {self.recycleDistF})
 
    -- Diagnostics to check flux.
-   self.recycleConfPhaseMult:advance(tCurr, {self.recycleCoef, self.recycleFhat}, {self.scaledFhat})
+   self.recycleConfPhaseWeakMultiply:advance(tCurr, {self.recycleCoef, self.recycleFhat}, {self.scaledFhat})
    self.calcFhatM0:advance(tCurr, {self.scaledFhat}, {self.recycleTestFlux})
    -- Maybe calculated integrated M0 flux here??
 
@@ -386,6 +400,12 @@ function NeutralRecyclingBC:advance(tCurr, mySpecies, field, externalField, inId
 
    local fIn = mySpecies:rkStepperFields()[outIdx]
    self.bcSolver:advance(tCurr, {}, {fIn})
+
+   -- Write out distf and flux.
+   self.recycleFhat:write(string.format("%s_%s_%d.bp", self.name, 'recycleFhat', mySpecies.diagIoFrame),
+      0., mySpecies.diagIoFrame, false)
+   self.recycleFhatM0:write(string.format("%s_%s_%d.bp", self.name, 'recycleFhatM0', mySpecies.diagIoFrame),
+      0., mySpecies.diagIoFrame, false)
 end
 
 function NeutralRecyclingBC:getBoundaryFluxFields() return self.boundaryFluxFields end

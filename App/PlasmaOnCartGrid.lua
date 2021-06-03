@@ -291,6 +291,8 @@ local function buildApplication(self, tbl)
    -- Initialize species solvers and diagnostics.
    for _, s in lume.orderedIter(species) do
       s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
+   end
+   for _, s in lume.orderedIter(species) do
       s:createSolver(field, externalField)
       s:initDist(externalField, species)
    end
@@ -1020,6 +1022,7 @@ return {
          BasicBC    = require ("App.BCs.GkBasic").GkBasic,
          AbsorbBC   = require ("App.BCs.GkBasic").GkAbsorb,
          CopyBC     = require ("App.BCs.GkBasic").GkCopy,
+         NeutralRecyclingBC = require "App.BCs.NeutralRecycling",
          OpenBC     = require ("App.BCs.GkBasic").GkOpen,
          ReflectBC  = require ("App.BCs.GkBasic").GkReflect,
          SheathBC   = require ("App.BCs.GkBasic").GkSheath,
@@ -1080,6 +1083,7 @@ return {
          BasicBC    = require ("App.BCs.VlasovBasic").VlasovBasic,
          AbsorbBC   = require ("App.BCs.VlasovBasic").VlasovAbsorb,
          CopyBC     = require ("App.BCs.VlasovBasic").VlasovCopy,
+         NeutralRecyclingBC = require "App.BCs.NeutralRecycling",
          OpenBC     = require ("App.BCs.VlasovBasic").VlasovOpen,
          ReflectBC  = require ("App.BCs.VlasovBasic").VlasovReflect,
          ZeroFluxBC = require ("App.BCs.VlasovBasic").VlasovZeroFlux,

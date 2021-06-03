@@ -35,8 +35,13 @@ function GyrofluidBasicBC:fullInit(speciesTbl)
    self.diagnostics = tbl.diagnostics or {}
    self.saveFlux    = tbl.saveFlux or false
 
+   self.saveFlux = tbl.saveFlux or false
+   self.anyDiagnostics = false
    if tbl.diagnostics then
-     if #tbl.diagnostics>0 then self.saveFlux = true end
+      if #tbl.diagnostics>0 then
+         self.anyDiagnostics = true
+         self.saveFlux       = true
+      end
    end
 end
 
@@ -150,11 +155,15 @@ function GyrofluidBasicBC:createSolver(mySpecies, field, externalField)
             self.boundaryFluxFields[outIdx]:accumulate(args[2*i-1], self.boundaryFluxFields[args[2*i]])
          end
       end
-      self.calcBoundaryFluxRateFunc = function(dtIn)
-         -- Compute boundary flux rate ~ (fGhost_new - fGhost_old)/dt.
-         self.boundaryFluxRate:combine( 1.0/dtIn, self.boundaryFluxFields[1],
-                                       -1.0/dtIn, self.boundaryFluxFieldPrev)
-         self.boundaryFluxFieldPrev:copy(self.boundaryFluxFields[1])
+      if not self.anyDiagnostics then
+         self.calcBoundaryFluxRateFunc = function(dtIn) end
+      else
+         self.calcBoundaryFluxRateFunc = function(dtIn)
+            -- Compute boundary flux rate ~ (fGhost_new - fGhost_old)/dt.
+            self.boundaryFluxRate:combine( 1.0/dtIn, self.boundaryFluxFields[1],
+                                          -1.0/dtIn, self.boundaryFluxFieldPrev)
+            self.boundaryFluxFieldPrev:copy(self.boundaryFluxFields[1])
+         end
       end
    else
       self.storeBoundaryFluxFunc        = function(tCurr, rkIdx, qOut) end

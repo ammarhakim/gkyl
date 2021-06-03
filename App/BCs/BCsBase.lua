@@ -35,7 +35,9 @@ function BCsBase:bcAbsorb(dir, tm, idxIn, fIn, fOut)
    -- sound speed & drift velocity diverge, so set them to something small.
    for i = 1, self.basis:numBasis() do fOut[i] = 0. end
 end
+function BCsBase:initCrossSpeciesCoupling(species) end
 function BCsBase:createSolver(thisSpecies, extField) end
+function BCsBase:createCouplingSolver(species, field, externalField) end
 function BCsBase:createBoundaryGrid()
    -- Create a ghost boundary grid with only one cell in the direction of the BC.
    if self.grid:isShared() then

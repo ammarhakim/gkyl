@@ -40,8 +40,13 @@ function BnFReflectionBC:fullInit(mySpecies)
    self.electronMass     = tbl.electronMass    
    self.ignore           = tbl.ignore
 
+   self.saveFlux = tbl.saveFlux or false
+   self.anyDiagnostics = false
    if tbl.diagnostics then
-     if #tbl.diagnostics>0 then self.saveFlux = true end
+      if #tbl.diagnostics>0 then
+         self.anyDiagnostics = true
+         self.saveFlux       = true
+      end
    end
 end
 
@@ -221,64 +226,69 @@ function BnFReflectionBC:createSolver(mySpecies, field, externalField)
             self.boundaryFluxFields[outIdx]:accumulate(args[2*i-1], self.boundaryFluxFields[args[2*i]])
          end
       end
-      self.calcBoundaryFluxRateFunc = function(dtIn)
-         -- Compute boundary flux rate ~ (fGhost_new - fGhost_old)/dt.
-         self.boundaryFluxRate:combine( 1.0/dtIn, self.boundaryFluxFields[1],
-                                       -1.0/dtIn, self.boundaryFluxFieldPrev)
-         self.boundaryFluxFieldPrev:copy(self.boundaryFluxFields[1])
-      end
 
-      -- Set up weak multiplication and division operators (for diagnostics).
-      self.confWeakMultiply = Updater.CartFieldBinOp {
-         onGrid    = self.confBoundaryGrid,  operation = "Multiply",
-         weakBasis = self.confBasis,         onGhosts  = true,
-      }
-      self.confWeakDivide = Updater.CartFieldBinOp {
-         onGrid    = self.confBoundaryGrid,  operation = "Divide",
-         weakBasis = self.confBasis,         onGhosts  = true,
-      }
-      self.confWeakDotProduct = Updater.CartFieldBinOp {
-         onGrid    = self.confBoundaryGrid,  operation = "DotProduct",
-         weakBasis = self.confBasis,         onGhosts  = true,
-      }
-      -- Volume integral operator (for diagnostics).
-      self.volIntegral = {
-         scalar = Updater.CartFieldIntegratedQuantCalc {
-            onGrid = self.confBoundaryGrid,  numComponents = 1,
-            basis  = self.confBasis,         quantity      = "V",
-         },
-         vector = Updater.CartFieldIntegratedQuantCalc {
-            onGrid = self.confBoundaryGrid,  numComponents = self.vdim,
-            basis  = self.confBasis,         quantity      = "V",
-         },
-      }
-      -- Moment calculators (for diagnostics).
-      self.numDensityCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
-         phaseBasis = self.basis,         moment     = "M0",
-      }
-      self.momDensityCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
-         phaseBasis = self.basis,         moment     = "M1i",
-      }
-      self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
-         phaseBasis = self.basis,         moment     = "M2",
-      }
-      self.M2ijCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
-         phaseBasis = self.basis,         moment    = "M2ij",
-      }
-      self.M3iCalc = Updater.DistFuncMomentCalc {
-         onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
-         phaseBasis = self.basis,         moment    = "M3i",
-      }
-      self.divideByJacobGeo = self.jacobGeoInv
-         and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeoInv}, {fldOut}) end
-         or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
-      self.multiplyByJacobGeo = self.jacobGeo
-         and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeo}, {fldOut}) end
-         or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
+      if not self.anyDiagnostics then
+         self.calcBoundaryFluxRateFunc = function(dtIn) end
+      else
+         self.calcBoundaryFluxRateFunc = function(dtIn)
+            -- Compute boundary flux rate ~ (fGhost_new - fGhost_old)/dt.
+            self.boundaryFluxRate:combine( 1.0/dtIn, self.boundaryFluxFields[1],
+                                          -1.0/dtIn, self.boundaryFluxFieldPrev)
+            self.boundaryFluxFieldPrev:copy(self.boundaryFluxFields[1])
+         end
+
+         -- Set up weak multiplication and division operators (for diagnostics).
+         self.confWeakMultiply = Updater.CartFieldBinOp {
+            onGrid    = self.confBoundaryGrid,  operation = "Multiply",
+            weakBasis = self.confBasis,         onGhosts  = true,
+         }
+         self.confWeakDivide = Updater.CartFieldBinOp {
+            onGrid    = self.confBoundaryGrid,  operation = "Divide",
+            weakBasis = self.confBasis,         onGhosts  = true,
+         }
+         self.confWeakDotProduct = Updater.CartFieldBinOp {
+            onGrid    = self.confBoundaryGrid,  operation = "DotProduct",
+            weakBasis = self.confBasis,         onGhosts  = true,
+         }
+         -- Volume integral operator (for diagnostics).
+         self.volIntegral = {
+            scalar = Updater.CartFieldIntegratedQuantCalc {
+               onGrid = self.confBoundaryGrid,  numComponents = 1,
+               basis  = self.confBasis,         quantity      = "V",
+            },
+            vector = Updater.CartFieldIntegratedQuantCalc {
+               onGrid = self.confBoundaryGrid,  numComponents = self.vdim,
+               basis  = self.confBasis,         quantity      = "V",
+            },
+         }
+         -- Moment calculators (for diagnostics).
+         self.numDensityCalc = Updater.DistFuncMomentCalc {
+            onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
+            phaseBasis = self.basis,         moment     = "M0",
+         }
+         self.momDensityCalc = Updater.DistFuncMomentCalc {
+            onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
+            phaseBasis = self.basis,         moment     = "M1i",
+         }
+         self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
+            onGrid     = self.boundaryGrid,  confBasis  = self.confBasis,
+            phaseBasis = self.basis,         moment     = "M2",
+         }
+         self.M2ijCalc = Updater.DistFuncMomentCalc {
+            onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
+            phaseBasis = self.basis,         moment    = "M2ij",
+         }
+         self.M3iCalc = Updater.DistFuncMomentCalc {
+            onGrid     = self.boundaryGrid,  confBasis = self.confBasis,
+            phaseBasis = self.basis,         moment    = "M3i",
+         }
+         self.divideByJacobGeo = self.jacobGeoInv
+            and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeoInv}, {fldOut}) end
+            or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
+         self.multiplyByJacobGeo = self.jacobGeo
+            and function(tm, fldIn, fldOut) self.confWeakMultiply:advance(tm, {fldIn, self.jacobGeo}, {fldOut}) end
+            or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
+      end
    else
       self.storeBoundaryFluxFunc        = function(tCurr, rkIdx, qOut) end
       self.copyBoundaryFluxFieldFunc    = function(inIdx, outIdx) end

@@ -572,6 +572,14 @@ function KineticSpecies:createSolver(field, externalField)
    end
 end
 
+function KineticSpecies:createCouplingSolver(species, field, externalField)
+   -- After all species have called their createSolver methods, we here create the objects
+   -- needed for cross-species solves (e.g. cross-species collisions).
+
+   -- Create BC solvers.
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createCouplingSolver(species, field, externalField) end
+end
+
 function KineticSpecies:alloc(nRkDup)
    -- Allocate fields needed in RK update.
    self.distf = {}
