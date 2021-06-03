@@ -188,34 +188,7 @@ end
 function MomentSpecies:setConfGrid(cgrid)
    self.grid = cgrid
    self.ndim = self.grid:ndim()
-end
-
-function MomentSpecies:createGrid(cgrid)
-   self.cdim = cgrid:ndim()
-   self.ndim = self.cdim
-
-   -- Create decomposition.
-   local decompCuts = {}
-   for d = 1, self.cdim do table.insert(decompCuts, cgrid:cuts(d)) end
-   self.decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts,
-      useShared = self.useShared,
-   }
-
-   -- Create computational domain.
-   local lower, upper, cells = {}, {}, {}
-   for d = 1, self.cdim do
-      table.insert(lower, cgrid:lower(d))
-      table.insert(upper, cgrid:upper(d))
-      table.insert(cells, cgrid:numCells(d))
-   end
-   self.grid = Grid.RectCart {
-      lower = lower,
-      upper = upper,
-      cells = cells,
-      periodicDirs = cgrid:getPeriodicDirs(),
-      decomposition = self.decomp,
-   }
+   self.cdim = self.ndim
 end
 
 function MomentSpecies:allocMoment()
