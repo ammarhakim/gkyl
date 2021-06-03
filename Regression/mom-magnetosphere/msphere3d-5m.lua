@@ -19,6 +19,7 @@ local max = math.max
 local abs = math.abs
 local exp = math.exp
 local floor = math.floor
+local tanh = math.tanh
 
 ----------------
 -- PARAMETERS --
@@ -66,20 +67,21 @@ local mass = {me, mi}
 local de_in = di_in * sqrt(me / mi)
 
 -- Domain and grid
-local xlo, xup, nx = -24 * R0, 24 * R0, 96
-local ylo, yup, ny = -24 * R0, 24 * R0, 96
-local zlo, zup, nz = -24 * R0, 24 * R0, 96
+local xlo, xup, Nx = -24 * R0, 24 * R0, 96
+local ylo, yup, Ny = -24 * R0, 24 * R0, 96
+local zlo, zup, Nz = -24 * R0, 24 * R0, 96
 local lower = {xlo, ylo, zlo}
 local upper = {xup, yup, zup}
-local cells = {nx, ny, nz}
--- Nonuniform grid where grid size is a Flattop Gaussian function of location.
--- w: Gaussian region width.
--- fw: Flat region width.
--- r: Grid ratio, grid_max/grid_min.
+local cells = {Nx, Ny, Nz}
+-- Nonuniform grid.
 local useNonUniformGrid = true
-local wx, fwx, rx = 1.9 * R0, 2.25 * R0, 50
-local wy, fwy, ry = 2. * R0, 2. * R0, 50
-local wz, fwz, rz = 2. * R0, 2. * R0, 50
+-- Using two tanh functions to rampd down and up the grid sizes (U-shape).
+-- xl, wxl: Floor and transition-layer width of the left tanh (ramping down dx.)
+-- xr, wxr: Floor and transition-layer width of the right tanh (ramping up dx.)
+-- sx: A shift that affects the max(dx)/min(dx) ratio.
+local xl, wxl, xr, wxr, sx = -5 * R0, 3 * R0, 5 * R0, 3 * R0, 0.01
+local yl, wyl, yr, wyr, sy = -5 * R0, 3 * R0, 5 * R0, 3 * R0, 0.01
+local zl, wzl, zr, wzr, sz = -5 * R0, 3 * R0, 5 * R0, 3 * R0, 0.01
 
 -- Computational constants.
 local cfl = 0.9
@@ -153,7 +155,7 @@ log("%30s = %g", "me/qe [true me/e]",
     me / qe / (Consts.ELECTRON_MASS / Consts.ELEMENTARY_CHARGE))
 log("%30s = %g, %g, %g", "lower [R0]", xlo / R0, ylo / R0, zlo / R0)
 log("%30s = %g, %g, %g", "upper [R0]", xup / R0, yup / R0, zup / R0)
-log("%30s = %g, %g, %g", "cells", nx, ny, nz)
+log("%30s = %g, %g, %g", "cells", Nx, Ny, Nz)
 
 -----------------------
 -- INITIAL CONDITION --
@@ -291,128 +293,62 @@ end
 local coordinateMap = nil
 if useNonUniformGrid then
 
-   -- distribution of grid size centered at x0
-   function f_dx5(x, x0, w, r, uniform_width)
-      --[[
-   Args:
-      x    : relative coordinate in the range of [0,1]
-      xx0  : center of dx distribution on [0,1] that is transformed from 
-             physical domain [xlo, xup]
-      width: width of Gaussian distribution
-   Returns:
-   --]]
-      if (abs(x - x0) <= uniform_width) then
-         return 1
-      elseif (x - x0 > uniform_width) then
-         local x1 = x0 + uniform_width
-         return (1 / r - (1 / r - 1) * exp(-.5 * ((x - x1) / w) ^ 2))
-      elseif (x - x0 < -uniform_width) then
-         local x1 = x0 - uniform_width
-         return (1 / r - (1 / r - 1) * exp(-.5 * ((x - x1) / w) ^ 2))
+   -- Get a mapping function from computational node-center coordinates to
+   -- physical node-center coordinates. _x2dx maps cell index to grid size in
+   -- the computational grid.
+   local get_c2p = function (x0, Lx, Nx, _x2dx)
+      local x0 = lower[1]
+      local Lx = upper[1] - x0
+
+      -- Node-center computational coordinates.
+      local xncComput = {0}
+      for i=2, Nx+1 do
+         xncComput[i] = xncComput[i-1] + _x2dx((i -0.5) / Nx)
+      end
+
+      -- Node-center physical coordinates.
+      local xncPhys = {}
+      for i=1, Nx+1 do
+         xncPhys[i] = x0 + xncComput[i] * Lx / xncComput[Nx+1]
+      end
+
+      xncComput = nil
+      return function(xncComput)
+         local idx = floor(xncComput*Nx+1.5)
+         idx = max(1, idx)
+         idx = min(Nx+1, idx)
+         return xncPhys[idx]
       end
    end
 
-   function gentle_peak1(x, x1, w1, r1)
-      return (1 / r1 - (1 / r1 - 1) * exp(-0.5 * ((x - x1) / w1) ^ 2))
+   -- X
+   local x0 = lower[1] local Lx = upper[1] - x0
+   local _xl, _wxl = (xl - x0) / Lx, wxl / Lx
+   local _xr, _wxr = (xr - x0) / Lx, wxr / Lx
+   local _x2dx = function(_x)
+      return 2-tanh((_x-_xl)/_wxl)+tanh((_x-_xr)/_wxr) + sx
    end
+   local c2p_x = get_c2p(x0, Lx, Nx, _x2dx)
 
-   function gentle_peak2(x, x1, wl, rl, wr, rr)
-      local w1 = (x > x1) and wr or wl
-      local r1 = (x > x1) and rr or rl
-      return (1 / r1 - (1 / r1 - 1) * exp(-0.5 * ((x - x1) / w1) ^ 2))
+   -- Y
+   local y0 = lower[2] local Ly = upper[2] - y0
+   local _yl, _wyl = (yl - y0) / Ly, wyl / Ly
+   local _yr, _wyr = (yr - y0) / Ly, wyr / Ly
+   local _y2dy = function(_y)
+      return 2-tanh((_y-_yl)/_wyl)+tanh((_y-_yr)/_wyr) + sy
    end
+   local c2p_y = get_c2p(y0, Ly, Ny, _y2dy)
 
-   function calcGrid(f_dx, xlo, xup, nx)
-      --[[
-   Args:
-      xlo, xup: lower and upper bounds of physical domain
-      nx   : number of real cells
-   Returns:
-      xx_nc: node-center compuational domain coordinates; 'ghost' points might
-             go out of [0, 1]
-      x_nc : node-center physical domain coordinates
-   Both xx_nc and x_c have nx+1+2*sw points. xx_nc is uniform and 1-on-1 maps
-   to x_nc.
-   --]]
-      local sw = 2
-      local sw1 = sw + 100 -- wider stencile for xx_nc to include more possible xx values
-      local xx_nc = {}
-      xx_nc[sw1 + 1] = 0
-      for j = 0, nx + sw1 - 1 do
-         local i = j + sw1 + 1
-         xx_nc[i + 1] = xx_nc[i] + f_dx((j + .5) / nx)
-      end
-      for j = 0, -sw1 + 1, -1 do
-         local i = j + sw1 + 1
-         xx_nc[i - 1] = xx_nc[i] - f_dx((j - .5) / nx)
-      end
-      fac = 1 / xx_nc[nx + sw1 + 1]
-      for j = -sw1, nx + sw1 do
-         local i = j + sw1 + 1
-         xx_nc[i] = xx_nc[i] * fac
-      end
-      local x_nc = {}
-      for j = -sw1, nx + sw1 do
-         local i = j + sw1 + 1
-         x_nc[i] = xlo + (xup - xlo) * j / nx
-      end
-      return xx_nc, x_nc
+   -- Z
+   local z0 = lower[3] local Lz = upper[3] - z0
+   local _zl, _wzl = (zl - z0) / Lz, wzl / Lz
+   local _zr, _wzr = (zr - z0) / Lz, wzr / Lz
+   local _z2dz = function(_z)
+      return 2-tanh((_z-_zl)/_wzl)+tanh((_z-_zr)/_wzr) + sz
    end
-   function linearRefine(xx, xx_nc, x_nc, display)
-      local num = table.getn(xx_nc)
-      local x
-      if (xx <= xx_nc[1]) then
-         x = x_nc[1]
-      elseif (xx >= xx_nc[num]) then
-         x = x_nc[num]
-      end
-      for i = 2, num do
-         if (xx == xx_nc[i]) then
-            x = x_nc[i]
-            break
-         elseif (xx < xx_nc[i]) then -- xx is between xx_nc[i-1] and xx_nc[i]
-            x = x_nc[i - 1] + (x_nc[i] - x_nc[i - 1]) * (xx - xx_nc[i - 1]) /
-                    (xx_nc[i] - xx_nc[i - 1])
-            break
-         end
-      end
-      if display then log("%g %g", xx, x) end
-      return x
-   end
+   local c2p_z = get_c2p(z0, Lz, Nz, _z2dz)
 
-   --[[
-   function f_dx(x)
-      return gentle_peak2(x, (x1-xlo)/(xup-xlo), wx1l/(xup-xlo), rx1l, wx1r/(xup-xlo), rx1r) 
-           + gentle_peak2(x, (x2-xlo)/(xup-xlo), wx2l/(xup-xlo), rx2l, wx2r/(xup-xlo), rx2r)
-   end
-   --]]
-   x0 = 0
-   function f_dx(x)
-      return f_dx5(x, (x0 - xlo) / (xup - xlo), wx / (xup - xlo), rx,
-                   fwx / (xup - xlo))
-   end
-   xx_nc, x_nc = calcGrid(f_dx, xlo, xup, nx)
-
-   y0 = 0 -- minimum dy location
-   function f_dy(y)
-      return f_dx5(y, (y0 - ylo) / (yup - ylo), wy / (yup - ylo), ry,
-                   fwy / (yup - ylo))
-   end
-   yy_nc, y_nc = calcGrid(f_dy, ylo, yup, ny)
-
-   z0 = 0 -- minimum dz location
-   function f_dz(z)
-      return f_dx5(z, (z0 - zlo) / (zup - zlo), wz / (zup - zlo), rz,
-                   fwz / (zup - zlo))
-   end
-   zz_nc, z_nc = calcGrid(f_dz, zlo, zup, nz)
-
-   coordinateMap = {
-      function(xx) return linearRefine(xx, xx_nc, x_nc) end,
-      function(yy) return linearRefine(yy, yy_nc, y_nc) end,
-      function(zz) return linearRefine(zz, zz_nc, z_nc) end
-   }
-
+   coordinateMap = { c2p_x, c2p_y, c2p_z }
    lower = {0, 0, 0}
    upper = {1, 1, 1}
 end
