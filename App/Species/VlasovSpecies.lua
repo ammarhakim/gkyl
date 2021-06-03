@@ -1166,6 +1166,7 @@ function VlasovSpecies:bcRecycleFunc(dir, tm, idxIn, fIn, fOut)
    -- Note that bcRecycle only valid in dir parallel to B.
    -- This is checked when bc is created.
    local globalRange = self.grid:globalRange()
+   local l1, l2, label
    if dir == 1 then
       l1 = 'FluxX'
    elseif dir == 2 then
@@ -1180,10 +1181,7 @@ function VlasovSpecies:bcRecycleFunc(dir, tm, idxIn, fIn, fOut)
    end
    label = l1..l2
 
-   -- print('label defined')
-   -- idxIn:copyInto(self.zIdx)
-   -- print('idx copied')
-   zIdx = idxIn
+   local zIdx = idxIn
    zIdx[dir] = 1
    local numBasis = self.basis:numBasis()
    local f = self.recycleDistF[label]
@@ -1413,9 +1411,9 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
          self.calcFhatM0 = {}
          self.recycleConfDiv = {}
          self.recycleConfPhaseMult = {}       
-         self.projectRecycleFMaxwell = {}
-         self.projectFluxFunc = {}
       end
+      local projectRecycleFMaxwell = {}
+      local projectFluxFunc = {}
       for _, bc in ipairs(self.boundaryConditions) do
 	 label = bc:label()
 	 if self.cdim == 1 or (self.cdim == 3 and string.match(label,"Z")) then
@@ -1505,7 +1503,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 				   mass      = self.mass,},	    
 	       }
 	       
-	       local dir, edgeVal
+	       local dir, edgeVal, mom
 	       if string.match(label,"lower") then
 		  edgeval = 1
 	       else
@@ -1548,8 +1546,8 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	       }
 	       
 	       self.recFrac = tbl.recycleFrac		     
-	       T0 = tbl.recycleTemp
-	       recycleSource = function (t, xn)
+	       local T0 = tbl.recycleTemp
+	       local recycleSource = function (t, xn)
 		  local cdim = self.cdim
 		  local vdim = self.vdim
 		  local vt2 = T0/self.mass
@@ -1560,13 +1558,13 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 		  return 1.0 / math.sqrt(2*math.pi*vt2)^vdim * math.exp(-v2/(2*vt2))
 	       end
 	       
-	       self.projectRecycleFMaxwell = Updater.ProjectOnBasis {
+	       projectRecycleFMaxwell[label] = Updater.ProjectOnBasis {
 		  onGrid          = phaseGrid,
 		  basis           = self.basis,
 		  evaluate        = recycleSource,
 		  onGhosts        = false,
 	       }
-	       self.projectFluxFunc = Updater.ProjectFluxFunc {
+	       projectFluxFunc[label] = Updater.ProjectFluxFunc {
 		  onGrid          = phaseGrid,
 		  phaseBasis      = self.basis,
 		  confBasis       = self.confBasis,
@@ -1575,8 +1573,8 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 		  onGhosts        = false,
 	       }
 	       
-	       self.projectRecycleFMaxwell:advance(tCurr, {}, {self.recycleFMaxwell[label]})
-	       self.projectFluxFunc:advance(tCurr, {self.recycleFMaxwell[label]}, {self.recycleFhat[label]})
+	       projectRecycleFMaxwell[label]:advance(tCurr, {}, {self.recycleFMaxwell[label]})
+	       projectFluxFunc[label]:advance(tCurr, {self.recycleFMaxwell[label]}, {self.recycleFhat[label]})
 	       self.calcFhatM0[label]:advance(tCurr, {self.recycleFhat[label]}, {self.recycleFhatM0[label]})
 	       self.recycleFhatM0[label]:scale(-1.0*edgeval)
 	       
@@ -1592,7 +1590,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
 	    
 	    if tbl.recycleTime then
 	       self.recTime = tbl.recycleTime
-	       scaleByTime = function(tm)
+	       local scaleByTime = function(tm)
 		  return 0.5*(1. + math.tanh(tm/self.recTime-1))
 	       end
 	       self.scaledRecFrac = self.recFrac*scaleByTime(tCurr)
