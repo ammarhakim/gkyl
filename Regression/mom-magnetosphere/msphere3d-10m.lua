@@ -3,6 +3,7 @@
 --------------
 local Moments = require("App.PlasmaOnCartGrid").Moments()
 local TenMoment = require "Eq.TenMoment"
+local BoundaryCondition = require "Updater.BoundaryCondition"
 local Consts = require "Constants"
 local Logger = require "Logger"
 
@@ -66,19 +67,20 @@ local charge = {qe, qi}
 local mass = {me, mi}
 local de_in = di_in * sqrt(me / mi)
 
--- Domain and grid
+-- Domain
 local xlo, xup, Nx = -24 * R0, 24 * R0, 96
 local ylo, yup, Ny = -24 * R0, 24 * R0, 96
 local zlo, zup, Nz = -24 * R0, 24 * R0, 96
+-- Grid.
 local lower = {xlo, ylo, zlo}
 local upper = {xup, yup, zup}
 local cells = {Nx, Ny, Nz}
--- Nonuniform grid.
 local useNonUniformGrid = true
 -- Using two tanh functions to rampd down and up the grid sizes (U-shape).
 -- xl, wxl: Floor and transition-layer width of the left tanh (ramping down dx.)
 -- xr, wxr: Floor and transition-layer width of the right tanh (ramping up dx.)
--- sx: A shift that affects the max(dx)/min(dx) ratio.
+-- sx: Shift all grids up/down to avoid tiny grids and to somewhat change the
+-- max(dx)/min(dx) ratio.
 local xl, wxl, xr, wxr, sx = -5 * R0, 3 * R0, 5 * R0, 3 * R0, 0.01
 local yl, wyl, yr, wyr, sy = -5 * R0, 3 * R0, 5 * R0, 3 * R0, 0.01
 local zl, wzl, zr, wzr, sz = -5 * R0, 3 * R0, 5 * R0, 3 * R0, 0.01
@@ -296,62 +298,86 @@ if useNonUniformGrid then
    -- Get a mapping function from computational node-center coordinates to
    -- physical node-center coordinates. _x2dx maps cell index to grid size in
    -- the computational grid.
-   local get_c2p = function (x0, Lx, Nx, _x2dx)
+   local get_c2p = function(x0, Lx, Nx, _x2dx)
       local x0 = lower[1]
       local Lx = upper[1] - x0
 
       -- Node-center computational coordinates.
       local xncComput = {0}
-      for i=2, Nx+1 do
-         xncComput[i] = xncComput[i-1] + _x2dx((i -0.5) / Nx)
+      for i = 2, Nx + 1 do
+         xncComput[i] = xncComput[i - 1] + _x2dx((i - 0.5) / Nx)
       end
 
       -- Node-center physical coordinates.
       local xncPhys = {}
-      for i=1, Nx+1 do
-         xncPhys[i] = x0 + xncComput[i] * Lx / xncComput[Nx+1]
+      for i = 1, Nx + 1 do
+         xncPhys[i] = x0 + xncComput[i] * Lx / xncComput[Nx + 1]
       end
 
       xncComput = nil
       return function(xncComput)
-         local idx = floor(xncComput*Nx+1.5)
+         local idx = floor(xncComput * Nx + 1.5)
          idx = max(1, idx)
-         idx = min(Nx+1, idx)
+         idx = min(Nx + 1, idx)
          return xncPhys[idx]
       end
    end
 
    -- X
-   local x0 = lower[1] local Lx = upper[1] - x0
+   local x0 = lower[1]
+   local Lx = upper[1] - x0
    local _xl, _wxl = (xl - x0) / Lx, wxl / Lx
    local _xr, _wxr = (xr - x0) / Lx, wxr / Lx
    local _x2dx = function(_x)
-      return 2-tanh((_x-_xl)/_wxl)+tanh((_x-_xr)/_wxr) + sx
+      return 2 - tanh((_x - _xl) / _wxl) + tanh((_x - _xr) / _wxr) + sx
    end
    local c2p_x = get_c2p(x0, Lx, Nx, _x2dx)
 
    -- Y
-   local y0 = lower[2] local Ly = upper[2] - y0
+   local y0 = lower[2]
+   local Ly = upper[2] - y0
    local _yl, _wyl = (yl - y0) / Ly, wyl / Ly
    local _yr, _wyr = (yr - y0) / Ly, wyr / Ly
    local _y2dy = function(_y)
-      return 2-tanh((_y-_yl)/_wyl)+tanh((_y-_yr)/_wyr) + sy
+      return 2 - tanh((_y - _yl) / _wyl) + tanh((_y - _yr) / _wyr) + sy
    end
    local c2p_y = get_c2p(y0, Ly, Ny, _y2dy)
 
    -- Z
-   local z0 = lower[3] local Lz = upper[3] - z0
+   local z0 = lower[3]
+   local Lz = upper[3] - z0
    local _zl, _wzl = (zl - z0) / Lz, wzl / Lz
    local _zr, _wzr = (zr - z0) / Lz, wzr / Lz
    local _z2dz = function(_z)
-      return 2-tanh((_z-_zl)/_wzl)+tanh((_z-_zr)/_wzr) + sz
+      return 2 - tanh((_z - _zl) / _wzl) + tanh((_z - _zr) / _wzr) + sz
    end
    local c2p_z = get_c2p(z0, Lz, Nz, _z2dz)
 
-   coordinateMap = { c2p_x, c2p_y, c2p_z }
+   coordinateMap = {c2p_x, c2p_y, c2p_z}
    lower = {0, 0, 0}
    upper = {1, 1, 1}
 end
+
+------------------------
+-- BOUNDARY CONDITION --
+------------------------
+local bcInflow_field = {
+   function(dir, tm, idxIn, qin, qbc, xcOut, xcIn)
+      local x, y, z = xcOut[1], xcOut[2], xcOut[3]
+      qbc[1] = Ex_in
+      qbc[2] = Ey_in
+      qbc[3] = Ez_in
+
+      local x, y, z = xcOut[1], xcOut[2], xcOut[3]
+      local Bxs, Bys, Bzs = staticB(x, y, z)
+      qbc[4] = Bx_in - Bxs
+      qbc[5] = By_in - Bys
+      qbc[6] = Bz_in - Bzs
+
+      qbc[7] = qin[7]
+      qbc[8] = qin[8]
+   end
+}
 
 ---------
 -- APP --
@@ -415,10 +441,7 @@ local momentApp = Moments.App {
       epsilon0 = 1.0,
       mu0 = 1.0,
       init = function(t, xn) return init(xn, "field") end,
-      bcx = {
-         Moments.Field.bcConst(Ex_in, Ey_in, Ez_in, Bx_in, By_in, Bz_in, 0, 0),
-         Moments.Field.bcCopy
-      },
+      bcx = {bcInflow_field, Moments.Field.bcCopy},
       bcy = {Moments.Field.bcCopy, Moments.Field.bcCopy},
       bcz = {Moments.Field.bcCopy, Moments.Field.bcCopy},
       inOutFunc = function(t, xn)
