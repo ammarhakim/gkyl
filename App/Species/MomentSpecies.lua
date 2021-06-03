@@ -226,8 +226,7 @@ function MomentSpecies:makeBcUpdater(dir, edge, bcList, skinLoop, hasExtFld)
       dir = dir,
       edge = edge,
       skinLoop = skinLoop,
-      vdim = self.vdim,
-      hasExtFld = hasExtFld,
+      cdim = self.ndim,
    }
 end
 
