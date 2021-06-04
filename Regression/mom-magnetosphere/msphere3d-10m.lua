@@ -166,17 +166,17 @@ log("%30s = %g, %g, %g", "cells", Nx, Ny, Nz)
 -----------------------
 -- INITIAL CONDITION --
 -----------------------
-local function calcRho(x, y, z)
+local function initRho(x, y, z)
    local rho = rho_in
    return rho
 end
 
-local function calcP(x, y, z)
+local function initP(x, y, z)
    local p = p_in
    return p
 end
 
-local function calcV(x, y, z)
+local function initV(x, y, z)
    local xx = x > 0 and x / mirdip_stretch or x
    local r = sqrt(xx ^ 2 + y ^ 2 + z ^ 2)
    local s = (r - mirdip_rRamp1) / (mirdip_rRamp2 - mirdip_rRamp1)
@@ -244,9 +244,9 @@ end
 local function initElc(t, xn)
    local x, y, z = xn[1], xn[2], xn[3]
 
-   local rhoe = calcRho(x, y, z) / (1 + mi__me)
-   local vx, vy, vz = calcV(x, y, z)
-   local pe = calcP(x, y, z) / (1 + pi__pe)
+   local rhoe = initRho(x, y, z) / (1 + mi__me)
+   local vx, vy, vz = initV(x, y, z)
+   local pe = initP(x, y, z) / (1 + pi__pe)
 
    local q = {}
    rho_v_p_to_10m(q, rhoe, vx, vy, vz, pe)
@@ -257,9 +257,9 @@ end
 local function initIon(t, xn)
    local x, y, z = xn[1], xn[2], xn[3]
 
-   local rhoi = calcRho(x, y, z) * mi__me / (1 + mi__me)
-   local vx, vy, vz = calcV(x, y, z)
-   local pi = calcP(x, y, z) * pi__pe / (1 + pi__pe)
+   local rhoi = initRho(x, y, z) * mi__me / (1 + mi__me)
+   local vx, vy, vz = initV(x, y, z)
+   local pi = initP(x, y, z) * pi__pe / (1 + pi__pe)
 
    local q = {}
    rho_v_p_to_10m(q, rhoi, vx, vy, vz, pi)
@@ -274,7 +274,7 @@ local function initField(t, xn)
    local Bxs, Bys, Bzs = staticB(x, y, z)
    local Bx, By, Bz = Bxt - Bxs, Byt - Bys, Bzt - Bzs
 
-   local vx, vy, vz = calcV(x, y, z)
+   local vx, vy, vz = initV(x, y, z)
    local Ex = -vy * Bzt + vz * Byt
    local Ey = -vz * Bxt + vx * Bzt
    local Ez = -vx * Byt + vy * Bxt
