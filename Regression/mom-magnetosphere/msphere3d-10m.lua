@@ -17,14 +17,6 @@ local log = function(...)
    logger("\n")
 end
 
-local sqrt = math.sqrt
-local min = math.min
-local max = math.max
-local abs = math.abs
-local exp = math.exp
-local floor = math.floor
-local tanh = math.tanh
-
 ----------------
 -- PARAMETERS --
 -- SI units   --
@@ -64,11 +56,11 @@ local di_in = 0.2 * R0
 local mi__me = 25
 local pi__pe = 5
 local me = mi / mi__me
-local qi = mi / di_in / sqrt(mu0 * rho_in)
+local qi = mi / di_in / math.sqrt(mu0 * rho_in)
 local qe = -qi
 local charge = {qe, qi}
 local mass = {me, mi}
-local de_in = di_in * sqrt(me / mi)
+local de_in = di_in * math.sqrt(me / mi)
 
 -- Domain.
 local xlo, xup, Nx = -24 * R0, 24 * R0, 96
@@ -80,11 +72,11 @@ local upper = {xup, yup, zup}
 local cells = {Nx, Ny, Nz}
 local decompCuts = nil
 local useNonUniformGrid = true
--- Using two tanh functions to rampd down and up the grid sizes (U-shape).
--- xl, wxl: Floor and transition-layer width of the left tanh (ramping down dx.)
--- xr, wxr: Floor and transition-layer width of the right tanh (ramping up dx.)
+-- Using two math.tanh functions to rampd down and up the grid sizes (U-shape).
+-- xl, wxl: Floor and transition-layer width of the left math.tanh (ramping down dx.)
+-- xr, wxr: Floor and transition-layer width of the right math.tanh (ramping up dx.)
 -- sx: Shift all grids up/down to avoid tiny grids and to somewhat change the
--- max(dx)/min(dx) ratio.
+-- math.max(dx)/math.min(dx) ratio.
 local xl, wxl, xr, wxr, sx = -5 * R0, 3 * R0, 5 * R0, 3 * R0, 0.01
 local yl, wyl, yr, wyr, sy = -5 * R0, 3 * R0, 5 * R0, 3 * R0, 0.01
 local zl, wzl, zr, wzr, sz = -5 * R0, 3 * R0, 5 * R0, 3 * R0, 0.01
@@ -97,7 +89,7 @@ local limiter = "monotonized-centered"
 -- I/O control.
 local tEnd = 2700
 local tFrame = 60
-local nFrame = floor(tEnd / tFrame)
+local nFrame = math.floor(tEnd / tFrame)
 
 -- Derived parameters.
 local rhoe_in = rho_in / (1 + mi__me)
@@ -124,9 +116,9 @@ local Pxyi_in = vx_in * vy_in * rhoi_in
 local Pxzi_in = vx_in * vz_in * rhoi_in
 local Pyzi_in = vy_in * vz_in * rhoi_in
 
-local B_in = sqrt(Bx_in ^ 2 + By_in ^ 2 + Bz_in ^ 2)
-local cs_in = sqrt(gasGamma * p_in / rho_in)
-local vA_in = B_in / sqrt(mu0 * rho_in)
+local B_in = math.sqrt(Bx_in ^ 2 + By_in ^ 2 + Bz_in ^ 2)
+local cs_in = math.sqrt(gasGamma * p_in / rho_in)
+local vA_in = B_in / math.sqrt(mu0 * rho_in)
 local pmag_in = B_in ^ 2 / 2 / mu0
 local beta_in = p_in / pmag_in
 local Ex_in = -vy_in * Bz_in + vz_in * By_in
@@ -178,10 +170,10 @@ end
 
 local function initV(x, y, z)
    local xx = x > 0 and x / mirdip_stretch or x
-   local r = sqrt(xx ^ 2 + y ^ 2 + z ^ 2)
+   local r = math.sqrt(xx ^ 2 + y ^ 2 + z ^ 2)
    local s = (r - mirdip_rRamp1) / (mirdip_rRamp2 - mirdip_rRamp1)
-   s = max(s, 0)
-   s = min(s, 1)
+   s = math.max(s, 0)
+   s = math.min(s, 1)
    local vx = vx_in * s
    local vy = vy_in * s
    local vz = vz_in * s
@@ -191,7 +183,7 @@ end
 local function dipoleB(x, y, z, x0, y0, z0, Dx, Dy, Dz, cut)
    if cut and x < mirdip_xMirror then return 0, 0, 0 end
    local xx, yy, zz = x - x0, y - y0, z - z0
-   local rr = sqrt(xx ^ 2 + yy ^ 2 + zz ^ 2)
+   local rr = math.sqrt(xx ^ 2 + yy ^ 2 + zz ^ 2)
    local Bx =
        (3 * xx * Dx * xx + 3 * xx * Dy * yy + 3 * xx * Dz * zz - Dx * rr ^ 2) /
            rr ^ 5
@@ -310,21 +302,21 @@ if useNonUniformGrid then
    local _xl, _wxl = (xl - xlo) / Lx, wxl / Lx
    local _xr, _wxr = (xr - xlo) / Lx, wxr / Lx
    local _x2dx = function(_x)
-      return 2 - tanh((_x - _xl) / _wxl) + tanh((_x - _xr) / _wxr) + sx
+      return 2 - math.tanh((_x - _xl) / _wxl) + math.tanh((_x - _xr) / _wxr) + sx
    end
 
    local Ly = yup - ylo
    local _yl, _wyl = (yl - ylo) / Ly, wyl / Ly
    local _yr, _wyr = (yr - ylo) / Ly, wyr / Ly
    local _y2dy = function(_y)
-      return 2 - tanh((_y - _yl) / _wyl) + tanh((_y - _yr) / _wyr) + sy
+      return 2 - math.tanh((_y - _yl) / _wyl) + math.tanh((_y - _yr) / _wyr) + sy
    end
 
    local Lz = zup - zlo
    local _zl, _wzl = (zl - zlo) / Lz, wzl / Lz
    local _zr, _wzr = (zr - zlo) / Lz, wzr / Lz
    local _z2dz = function(_z)
-      return 2 - tanh((_z - _zl) / _wzl) + tanh((_z - _zr) / _wzr) + sz
+      return 2 - math.tanh((_z - _zl) / _wzl) + math.tanh((_z - _zr) / _wzr) + sz
    end
 
    -- Get a mapping function from computational node-center coordinates to
@@ -345,9 +337,9 @@ if useNonUniformGrid then
 
       xncComput = nil
       return function(xncComput)
-         local idx = floor(xncComput * Nx + 1.5)
-         idx = max(1, idx)
-         idx = min(Nx + 1, idx)
+         local idx = math.floor(xncComput * Nx + 1.5)
+         idx = math.max(1, idx)
+         idx = math.min(Nx + 1, idx)
          return xncPhys[idx]
       end
    end
