@@ -65,9 +65,9 @@ local upper = {xup, yup, zup}
 local cells = {Nx, Ny, Nz}
 local decompCuts = nil
 local useNonUniformGrid = true
--- Using two math.tanh functions to rampd down and up the grid sizes (U-shape).
--- xl, wxl: Floor and transition-layer width of the left math.tanh (ramping down dx.)
--- xr, wxr: Floor and transition-layer width of the right math.tanh (ramping up dx.)
+-- Using two tanh functions to rampd down and up the grid sizes (U-shape).
+-- xl, wxl: Floor and transition-layer width of the left tanh (ramping down dx.)
+-- xr, wxr: Floor and transition-layer width of the right tanh (ramping up dx.)
 -- sx: Shift all grids up/down to avoid tiny grids and to somewhat change the
 -- math.max(dx)/math.min(dx) ratio.
 local xl, wxl, xr, wxr, sx = -5 * R0, 3 * R0, 5 * R0, 3 * R0, 0.01
@@ -294,25 +294,26 @@ if useNonUniformGrid then
    -- User-defined functions that map computational-grid coordinates to
    -- computational-grid cell sizes. The physical coordinates will be computed
    -- accordingly.
+   local tanh = math.tanh
    local Lx = xup - xlo
    local _xl, _wxl = (xl - xlo) / Lx, wxl / Lx
    local _xr, _wxr = (xr - xlo) / Lx, wxr / Lx
    local _x2dx = function(_x)
-      return 2 - math.tanh((_x - _xl) / _wxl) + math.tanh((_x - _xr) / _wxr) + sx
+      return 2 - tanh((_x - _xl) / _wxl) + tanh((_x - _xr) / _wxr) + sx
    end
 
    local Ly = yup - ylo
    local _yl, _wyl = (yl - ylo) / Ly, wyl / Ly
    local _yr, _wyr = (yr - ylo) / Ly, wyr / Ly
    local _y2dy = function(_y)
-      return 2 - math.tanh((_y - _yl) / _wyl) + math.tanh((_y - _yr) / _wyr) + sy
+      return 2 - tanh((_y - _yl) / _wyl) + tanh((_y - _yr) / _wyr) + sy
    end
 
    local Lz = zup - zlo
    local _zl, _wzl = (zl - zlo) / Lz, wzl / Lz
    local _zr, _wzr = (zr - zlo) / Lz, wzr / Lz
    local _z2dz = function(_z)
-      return 2 - math.tanh((_z - _zl) / _wzl) + math.tanh((_z - _zr) / _wzr) + sz
+      return 2 - tanh((_z - _zl) / _wzl) + tanh((_z - _zr) / _wzr) + sz
    end
 
    -- Get a mapping function from computational node-center coordinates to
