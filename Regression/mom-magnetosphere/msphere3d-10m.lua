@@ -394,6 +394,46 @@ local bcInflow_field = {
    end
 }
 
+local rho_v_p_to_10m = function(q, rho, vx, vy, vz, p)
+   q[1] = rho
+   q[2] = rho * vx
+   q[3] = rho * vy
+   q[4] = rho * vz
+   q[5] = rho * vx * vx + p
+   q[6] = rho * vx * vy
+   q[7] = rho * vx * vz
+   q[8] = rho * vy * vy + p
+   q[9] = rho * vy * vz
+   q[10] = rho * vz * vz + p
+end
+
+local bcInner_elc = {
+   function(dir, tm, idxIn, qin, qbc, xcOut, xcIn)
+      rho_v_p_to_10m(qbc, rhoe_in, 0, 0, 0, pe_in)
+   end
+}
+
+local bcInner_ion = {
+   function(dir, tm, idxIn, qin, qbc, xcOut, xcIn)
+      rho_v_p_to_10m(qbc, rhoi_in, 0, 0, 0, pi_in)
+   end
+}
+
+local bcInner_field = {
+   function(dir, tm, idxIn, qin, qbc, xcOut, xcIn)
+      qbc[1] = 0
+      qbc[2] = 0
+      qbc[3] = 0
+
+      qbc[4] = qin[4]
+      qbc[5] = qin[5]
+      qbc[6] = qin[6]
+
+      qbc[7] = qin[7]
+      qbc[8] = qin[8]
+   end
+}
+
 ---------
 -- APP --
 ---------
@@ -420,7 +460,7 @@ local momentApp = Moments.App {
       bcz = {Moments.Species.bcCopy, Moments.Species.bcCopy},
       hasSsBnd = true,
       inOutFunc = inOutFunc,
-      ssBc = {Moments.Species.bcCopy}
+      ssBc = {bcInner_elc}
    },
 
    ion = Moments.Species {
@@ -434,7 +474,7 @@ local momentApp = Moments.App {
       bcz = {Moments.Species.bcCopy, Moments.Species.bcCopy},
       hasSsBnd = true,
       inOutFunc = inOutFunc,
-      ssBc = {Moments.Species.bcCopy}
+      ssBc = {bcInner_ion}
    },
 
    field = Moments.Field {
@@ -446,7 +486,7 @@ local momentApp = Moments.App {
       bcz = {Moments.Field.bcCopy, Moments.Field.bcCopy},
       hasSsBnd = true,
       inOutFunc = inOutFunc,
-      ssBc = {Moments.Species.bcReflect}
+      ssBc = {bcInner_field}
    },
 
    emSource = Moments.CollisionlessEmSource {
