@@ -91,8 +91,27 @@ function KineticSpecies:fullInit(appTbl)
       self.calcIntQuantTrigger = function(t) return true end
    end
 
-   self.diagnostics = {}  -- Table in which we'll place diagnostic objects.
    -- Determine if user wants diagnostics of the fluctuations.
+   -- ~~~~~  This section is for backwards compatibility with the old way of specifying diagnostics
+   -- ~~~~~  It will be dropped in the future.
+   if tbl.diagnosticMoments then
+      tbl.diagnostics = tbl.diagnostics or {}
+      for nm, v in pairs(tbl.diagnosticMoments) do
+         if nm == "perturbed" and v == true then 
+            table.insert(tbl.diagnostics, "perturbed")
+         elseif type(nm) == "number" then
+	    table.insert(tbl.diagnostics, v)
+         end
+      end
+   end
+   if tbl.diagnosticIntegratedMoments then
+      tbl.diagnostics = tbl.diagnostics or {}
+      for _, v in ipairs(tbl.diagnosticIntegratedMoments) do table.insert(tbl.diagnostics, v) end
+   end
+   -- ~~~~~~~~~~~~ End of diagnostics backwards compatibility code. ~~~~~~~~~~~~~~~~~~~~~~~ --
+
+   self.diagnostics = {}  -- Table in which we'll place diagnostic objects.
+
    self.perturbedDiagnostics = false
    if tbl.diagnostics then
       if lume.any(tbl.diagnostics, function(e) return e=="perturbed" end) then
