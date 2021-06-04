@@ -190,34 +190,6 @@ function MomentSpecies:setConfGrid(cgrid)
    self.ndim = self.grid:ndim()
 end
 
-function MomentSpecies:createGrid(cgrid)
-   self.cdim = cgrid:ndim()
-   self.ndim = self.cdim
-
-   -- Create decomposition.
-   local decompCuts = {}
-   for d = 1, self.cdim do table.insert(decompCuts, cgrid:cuts(d)) end
-   self.decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts,
-      useShared = self.useShared,
-   }
-
-   -- Create computational domain.
-   local lower, upper, cells = {}, {}, {}
-   for d = 1, self.cdim do
-      table.insert(lower, cgrid:lower(d))
-      table.insert(upper, cgrid:upper(d))
-      table.insert(cells, cgrid:numCells(d))
-   end
-   self.grid = Grid.RectCart {
-      lower = lower,
-      upper = upper,
-      cells = cells,
-      periodicDirs = cgrid:getPeriodicDirs(),
-      decomposition = self.decomp,
-   }
-end
-
 function MomentSpecies:allocMoment()
    local m = DataStruct.Field {
       onGrid = self.grid,
@@ -254,9 +226,7 @@ function MomentSpecies:makeBcUpdater(dir, edge, bcList, skinLoop, hasExtFld)
       dir = dir,
       edge = edge,
       skinLoop = skinLoop,
-      cdim = self.cdim,
-      vdim = self.vdim,
-      hasExtFld = hasExtFld,
+      cdim = self.ndim,
    }
 end
 
@@ -316,7 +286,7 @@ function MomentSpecies:createBCs()
       isPeriodic[dir] = true
    end
    local bc = {self.bcx, self.bcy, self.bcz}
-   for d = 1, self.cdim do
+   for d = 1, self.ndim do
      handleBc(d, bc[d], isPeriodic[d])
   end
 end
