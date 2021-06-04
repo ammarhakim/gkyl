@@ -177,6 +177,11 @@ function MaxwellField:fullInit(appTbl)
       self.hasNonPeriodicBc = true
    end
 
+   self.ssBc = {}
+   if tbl.ssBc then
+      self.ssBc[1] = tbl.ssBc[1]
+   end
+
    self.tmCurrentAccum = 0.0 -- Time spent in current accumulate.
    self.integratedEMTime = 0.0 -- Time spent integrating EM fields.
 
@@ -542,6 +547,42 @@ function MaxwellField:createSolver()
    handleBc(2, self.bcy)
    handleBc(3, self.bcz)
 
+   self.ssBoundaryConditions = { }
+   function makeSsBcUpdater(dir, inOut, bcList)
+      return Updater.StairSteppedBc {
+         onGrid = self.grid,
+         inOut = inOut,
+         boundaryConditions = bcList,
+         dir = dir,
+      }
+   end
+   local function appendSsBoundaryConditions(dir, inOut, bcType)
+      if bcType == EM_BC_OPEN then
+	 table.insert(self.ssBoundaryConditions,
+		      makeSsBcUpdater(dir, inOut, { bcCopy }))
+      elseif bcType == EM_BC_COPY then
+	 table.insert(self.ssBoundaryConditions,
+		      makeSsBcUpdater(dir, inOut, { bcCopy }))
+      elseif bcType == EM_BC_REFLECT then
+	 table.insert(self.ssBoundaryConditions,
+		      makeSsBcUpdater(dir, inOut, { bcReflect }))
+      elseif bcType == EM_BC_SYMMETRY then
+	 table.insert(self.ssBoundaryConditions,
+		      makeSsBcUpdater(dir, inOut, { bcSymmetry }))
+      elseif bcType == EM_BC_AXIS then
+	 table.insert(self.ssBoundaryConditions,
+		      makeSsBcUpdater(dir, inOut,  PerfMaxwell.bcAxis ))
+      elseif type(bcType) == "table" then
+	 table.insert(self.ssBoundaryConditions,
+		      makeSsBcUpdater(dir, inOut, bcType))
+      else
+	 assert(false, "MaxwellField.ssBoundaryConditions: Unsupported BC type!")
+      end
+   end
+   for dir = 1, self.grid:ndim() do
+      appendSsBoundaryConditions(dir, self._inOut, self.ssBc[1])
+   end
+
    self.bcTime = 0.0 -- Timer for BCs.
 end
 
@@ -785,6 +826,13 @@ function MaxwellField:applyBc(tCurr, emIn)
 	 bc:advance(tCurr, {}, {emIn})
       end
    end   
+
+   for _, bc in ipairs(self.ssBoundaryConditions) do
+      if (not dir) or dir == bc:getDir() then
+          bc:advance(tCurr, {}, {emIn})
+       end
+    end
+
    emIn:sync()
    self.bcTime = self.bcTime + Time.clock()-tmStart
 end
