@@ -629,10 +629,6 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local totalEmField    = self.totalEmField
    totalEmField:clear(0.0)
 
-   for _, bc in pairs(self.nonPeriodicBCs) do
-      bc:preAdvance(tCurr, self, field, externalField, inIdx, outIdx)
-   end
-
    local qbym = self.charge/self.mass
 
    if emField and self.computePlasmaB then totalEmField:accumulate(qbym, emField) end
@@ -684,11 +680,11 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
 end
 
-function VlasovSpecies:postAdvance(tCurr, species, emIn, inIdx, outIdx)
+function VlasovSpecies:advanceCrossSpeciesCoupling(tCurr, species, emIn, inIdx, outIdx)
    -- Perform some operations after the updates have been computed, but before
    -- the combine RK (in PlasmaOnCartGrid) is called.
 
-   for _, bc in pairs(self.nonPeriodicBCs) do bc:calcBoundaryFluxMom(tCurr, outIdx) end
+   for _, bc in pairs(self.nonPeriodicBCs) do bc:advanceCrossSpeciesCoupling(tCurr, species, outIdx) end
 end
 
 function VlasovSpecies:createDiagnostics(field)

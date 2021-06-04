@@ -38,7 +38,7 @@ function SpeciesBase:write(tm) end
 function SpeciesBase:writeRestart(tm) end
 function SpeciesBase:readRestart() return 0.0 end
 function SpeciesBase:advance(tCurr, species, emIn, inIdx, outIdx) return true, GKYL_MAX_DOUBLE end
-function SpeciesBase:postAdvance(tCurr, species, emIn, inIdx, outIdx) end
+function SpeciesBase:advanceCrossSpeciesCoupling(tCurr, species, emIn, inIdx, outIdx) end
 function SpeciesBase:updateInDirection(dir, tCurr, dt, fIn, fOut) return true, GKYL_MAX_DOUBLE end
 function SpeciesBase:applyBcIdx(tCurr, field, externalField, inIdx, outIdx) end
 function SpeciesBase:applyBc(tCurr, field, externalField, inIdx, outIdx) end

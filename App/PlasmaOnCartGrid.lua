@@ -426,7 +426,7 @@ local function buildApplication(self, tbl)
          end
       end
       for _, s in lume.orderedIter(species) do
-         s:postAdvance(tCurr, species, {field, externalField}, inIdx, outIdx)
+         s:advanceCrossSpeciesCoupling(tCurr, species, {field, externalField}, inIdx, outIdx)
       end
 
       -- Some systems (e.g. EM GK) require additional step(s) to complete the forward Euler.

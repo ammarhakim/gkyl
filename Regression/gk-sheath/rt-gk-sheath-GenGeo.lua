@@ -210,7 +210,7 @@ plasmaApp = Plasma.App {
       --applyPositivity = true,
       diagnostics = {"M0", "Upar", "Temp", "intM0", "intM1", "intKE", "intEnergy"}, 
       randomseed = randomseed,
-      bcx = {Plasma.ZeroFluxBC{}, Plasma.ZeroFlux{}},
+      bcx = {Plasma.ZeroFluxBC{}, Plasma.ZeroFluxBC{}},
       bcz = {Plasma.SheathBC{diagnostics={"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}},
              Plasma.SheathBC{diagnostics={"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}}},
    },

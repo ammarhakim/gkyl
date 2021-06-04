@@ -397,26 +397,9 @@ function NeutralRecyclingBC:calcCouplingMoments(tCurr, rkIdx, species)
    self.recycleTestFlux:scale(1.0/self.recycleFrac) -- This can be written out from KineticSpecies, if necessary.
 end
 
-function NeutralRecyclingBC:calcBoundaryFluxMom(tCurr, outIdx)
+function NeutralRecyclingBC:advanceCrossSpeciesCoupling(tCurr, species, outIdx)
    -- Compute the 0th moment of the ion boundary flux.
    self.recIonBC.numDensityCalc:advance(tCurr, {self.recIonBC:getBoundaryFluxFields()[outIdx]}, {self.bcIonM0fluxField})
-end
-
-function NeutralRecyclingBC:preAdvance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
---   self.bcIonM0fluxField:scale(self.scaledRecycleFrac(tCurr))
---
---   -- Weak divide.
---   self.recycleConfWeakDivide:advance(tCurr, {self.recycleFhatM0, self.bcIonM0fluxField}, {self.recycleCoef})
---
---   -- Weak multiply.
---   self.recycleConfPhaseWeakMultiply:advance(tCurr, {self.recycleCoef, self.recycleFMaxwell}, {self.recycleDistF})
---
---   -- Diagnostics to check flux.
---   self.recycleConfPhaseWeakMultiply:advance(tCurr, {self.recycleCoef, self.recycleFhat}, {self.scaledFhat})
---   self.calcFhatM0:advance(tCurr, {self.scaledFhat}, {self.recycleTestFlux})
---   -- Maybe calculated integrated M0 flux here??
---
---   self.recycleTestFlux:scale(1.0/self.recycleFrac) -- This can be written out from KineticSpecies, if necessary.
 end
 
 function NeutralRecyclingBC:copyBoundaryFluxField(inIdx, outIdx)
@@ -451,32 +434,8 @@ function NeutralRecyclingBC:rkStepperFields() return {self.boundaryFluxRate, sel
 function NeutralRecyclingBC:getFlucF() return self.boundaryFluxRate end
 
 function NeutralRecyclingBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
---   -- Compute the 0th moment of the ion boundary flux.
---   self.recIonBC.numDensityCalc:advance(tCurr, {self.recIonBC:getBoundaryFluxFields()[outIdx]}, {self.bcIonM0fluxField})
-
---   self.bcIonM0fluxField:scale(self.scaledRecycleFrac(tCurr))
---
---   -- Weak divide.
---   self.recycleConfWeakDivide:advance(tCurr, {self.recycleFhatM0, self.bcIonM0fluxField}, {self.recycleCoef})
---
---   -- Weak multiply.
---   self.recycleConfPhaseWeakMultiply:advance(tCurr, {self.recycleCoef, self.recycleFMaxwell}, {self.recycleDistF})
---
---   -- Diagnostics to check flux.
---   self.recycleConfPhaseWeakMultiply:advance(tCurr, {self.recycleCoef, self.recycleFhat}, {self.scaledFhat})
---   self.calcFhatM0:advance(tCurr, {self.scaledFhat}, {self.recycleTestFlux})
---   -- Maybe calculated integrated M0 flux here??
---
---   self.recycleTestFlux:scale(1.0/self.recycleFrac) -- This can be written out from KineticSpecies, if necessary.
-
    local fIn = mySpecies:rkStepperFields()[outIdx]
    self.bcSolver:advance(tCurr, {}, {fIn})
-
-   -- Write out distf and flux.
-   self.recycleFhat:write(string.format("%s_%s_%d.bp", self.name, 'recycleFhat', mySpecies.diagIoFrame),
-      0., mySpecies.diagIoFrame, false)
-   self.recycleFhatM0:write(string.format("%s_%s_%d.bp", self.name, 'recycleFhatM0', mySpecies.diagIoFrame),
-      0., mySpecies.diagIoFrame, false)
 end
 
 function NeutralRecyclingBC:getBoundaryFluxFields() return self.boundaryFluxFields end
