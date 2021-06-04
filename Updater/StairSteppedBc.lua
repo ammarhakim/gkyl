@@ -127,20 +127,23 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
       for i = localRange:lower(dir)-1, localRange:upper(dir)+1 do
          idxL[dir] = i
          idxR[dir] = i + 1
+         local idxIn
          if isGhostL[i][0] or isGhostR[i][0] then
             if (isGhostL[i][0]) then
                qOut:fill(indexer(idxL), qG)
                qOut:fill(indexer(idxR), qS)
                self._grid:setIndex(idxL);  self._grid:cellCenter(xcOut);
                self._grid:setIndex(idxR);  self._grid:cellCenter(xcIn);
+               idxIn = idxR
             else -- right cell is ghost
                qOut:fill(indexer(idxR), qG)
                qOut:fill(indexer(idxL), qS)
                self._grid:setIndex(idxL);  self._grid:cellCenter(xcIn);
                self._grid:setIndex(idxR);  self._grid:cellCenter(xcOut);
+               idxIn = idxL
             end
             for _, bc in ipairs(self._bcList) do
-               bc(dir, tCurr, nil, qS, qG, xcOut, xcIn)
+               bc(dir, tCurr, idxIn, qS, qG, xcOut, xcIn)
             end
          end
       end
