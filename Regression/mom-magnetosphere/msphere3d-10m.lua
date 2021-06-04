@@ -229,8 +229,8 @@ local rho_v_p_to_10m = function(q, rho, vx, vy, vz, p)
    q[10] = rho * vz * vz + p
 end
 
-local function initElc(t, xn)
-   local x, y, z = xn[1], xn[2], xn[3]
+local function initElc(t, xc)
+   local x, y, z = xc[1], xc[2], xc[3]
 
    local rhoe = initRho(x, y, z) / (1 + mi__me)
    local vx, vy, vz = initV(x, y, z)
@@ -242,8 +242,8 @@ local function initElc(t, xn)
    return unpack(q)
 end
 
-local function initIon(t, xn)
-   local x, y, z = xn[1], xn[2], xn[3]
+local function initIon(t, xc)
+   local x, y, z = xc[1], xc[2], xc[3]
 
    local rhoi = initRho(x, y, z) * mi__me / (1 + mi__me)
    local vx, vy, vz = initV(x, y, z)
@@ -255,8 +255,8 @@ local function initIon(t, xn)
    return unpack(q)
 end
 
-local function initField(t, xn)
-   local x, y, z = xn[1], xn[2], xn[3]
+local function initField(t, xc)
+   local x, y, z = xc[1], xc[2], xc[3]
 
    local Bxt, Byt, Bzt = totalB(x, y, z)
    local Bxs, Bys, Bzs = staticB(x, y, z)
@@ -270,15 +270,15 @@ local function initField(t, xn)
    return Ex, Ey, Ez, Bx, By, Bz, 0, 0
 end
 
-local function staticEmFunction(t, xn)
-   local x, y, z = xn[1], xn[2], xn[3]
+local function staticEmFunction(t, xc)
+   local x, y, z = xc[1], xc[2], xc[3]
    local Exs, Eys, Ezs = 0, 0, 0
    local Bxs, Bys, Bzs = staticB(x, y, z)
    return Exs, Eys, Ezs, Bxs, Bys, Bzs, 0, 0
 end
 
-local function inOutFunc(t, xn)
-   local x, y, z = xn[1], xn[2], xn[3]
+local function inOutFunc(t, xc)
+   local x, y, z = xc[1], xc[2], xc[3]
    if (x ^ 2 + y ^ 2 + z ^ 2 < rInOut ^ 2) then
       return -1
    else
@@ -318,32 +318,33 @@ if useNonUniformGrid then
 
    -- Get a mapping function from computational node-center coordinates to
    -- physical node-center coordinates.
-   -- _x2dx: maps cell index to grid size in the computational grid.
-   local get_c2p = function(x0, Lx, Nx, _x2dx)
+   -- _x2dx: A function that maps cell-center coordinate (between 0 and 1) to
+   --    grid size on the computational grid.
+   local get_comput2phys = function(xlo, Lx, Nx, _x2dx)
       -- Node-center computational coordinates.
-      local xncComput = {0}
+      local xnComput = {0}
       for i = 2, Nx + 1 do
-         xncComput[i] = xncComput[i - 1] + _x2dx((i - 0.5) / Nx)
+         xnComput[i] = xnComput[i - 1] + _x2dx((i - 0.5) / Nx)
       end
 
       -- Node-center physical coordinates.
-      local xncPhys = {}
+      local xnPhys = {}
       for i = 1, Nx + 1 do
-         xncPhys[i] = x0 + xncComput[i] * Lx / xncComput[Nx + 1]
+         xnPhys[i] = xlo + xnComput[i] * Lx / xnComput[Nx + 1]
       end
 
-      xncComput = nil
-      return function(xncComput)
-         local idx = math.floor(xncComput * Nx + 1.5)
+      xnComput = nil
+      return function(xnComput)
+         local idx = math.floor(xnComput * Nx + 1.5)
          idx = math.max(1, idx)
          idx = math.min(Nx + 1, idx)
-         return xncPhys[idx]
+         return xnPhys[idx]
       end
    end
 
    coordinateMap = {
-      get_c2p(xlo, Lx, Nx, _x2dx), get_c2p(ylo, Ly, Ny, _y2dy),
-      get_c2p(zlo, Lz, Nz, _z2dz)
+      get_comput2phys(xlo, Lx, Nx, _x2dx), get_comput2phys(ylo, Ly, Ny, _y2dy),
+      get_comput2phys(zlo, Lz, Nz, _z2dz)
    }
    lower = {0, 0, 0}
    upper = {1, 1, 1}
@@ -360,46 +361,46 @@ local bcInflow_ion = TenMoment.bcConst(rhoi_in, rhovxi_in, rhovyi_in, rhovzi_in,
                                        Pyzi_in, Pzzi_in)
 
 local bcInflow_field = {
-   function(dir, tm, idxIn, qin, qbc, xcOut, xcIn)
-      qbc[1] = Ex_in
-      qbc[2] = Ey_in
-      qbc[3] = Ez_in
+   function(dir, tm, idxSkin, qSkin, qGhost, xcGhost, xcSkin)
+      qGhost[1] = Ex_in
+      qGhost[2] = Ey_in
+      qGhost[3] = Ez_in
 
-      local x, y, z = xcOut[1], xcOut[2], xcOut[3]
+      local x, y, z = xcGhost[1], xcGhost[2], xcGhost[3]
       local Bxs, Bys, Bzs = staticB(x, y, z)
-      qbc[4] = Bx_in - Bxs
-      qbc[5] = By_in - Bys
-      qbc[6] = Bz_in - Bzs
+      qGhost[4] = Bx_in - Bxs
+      qGhost[5] = By_in - Bys
+      qGhost[6] = Bz_in - Bzs
 
-      qbc[7] = qin[7]
-      qbc[8] = qin[8]
+      qGhost[7] = qSkin[7]
+      qGhost[8] = qSkin[8]
    end
 }
 
 local bcInner_elc = {
-   function(dir, tm, idxIn, qin, qbc, xcOut, xcIn)
-      rho_v_p_to_10m(qbc, rhoe_in, 0, 0, 0, pe_in)
+   function(dir, tm, idxSkin, qSkin, qGhost, xcGhost, xcSkin)
+      rho_v_p_to_10m(qGhost, rhoe_in, 0, 0, 0, pe_in)
    end
 }
 
 local bcInner_ion = {
-   function(dir, tm, idxIn, qin, qbc, xcOut, xcIn)
-      rho_v_p_to_10m(qbc, rhoi_in, 0, 0, 0, pi_in)
+   function(dir, tm, idxSkin, qSkin, qGhost, xcGhost, xcSkin)
+      rho_v_p_to_10m(qGhost, rhoi_in, 0, 0, 0, pi_in)
    end
 }
 
 local bcInner_field = {
-   function(dir, tm, idxIn, qin, qbc, xcOut, xcIn)
-      qbc[1] = 0
-      qbc[2] = 0
-      qbc[3] = 0
+   function(dir, tm, idxSkin, qSkin, qGhost, xcGhost, xcSkin)
+      qGhost[1] = 0
+      qGhost[2] = 0
+      qGhost[3] = 0
 
-      qbc[4] = qin[4]
-      qbc[5] = qin[5]
-      qbc[6] = qin[6]
+      qGhost[4] = qSkin[4]
+      qGhost[5] = qSkin[5]
+      qGhost[6] = qSkin[6]
 
-      qbc[7] = qin[7]
-      qbc[8] = qin[8]
+      qGhost[7] = qSkin[7]
+      qGhost[8] = qSkin[8]
    end
 }
 
