@@ -10,13 +10,6 @@ local BoundaryCondition = require "Updater.BoundaryCondition"
 local Consts = require "Constants"
 local Logger = require "Logger"
 
-local logger = Logger {logToFile = True}
-
-local log = function(...)
-   logger(string.format(...))
-   logger("\n")
-end
-
 ----------------
 -- PARAMETERS --
 -- SI units   --
@@ -124,6 +117,9 @@ local beta_in = p_in / pmag_in
 local Ex_in = -vy_in * Bz_in + vz_in * By_in
 local Ey_in = -vz_in * Bx_in + vx_in * Bz_in
 local Ez_in = -vx_in * By_in + vy_in * Bx_in
+
+local logger = Logger {logToFile = True}
+local log = function(...) logger(string.format(...).."\n") end
 
 log("%30s = %g", "lightSpeed [km/s]", lightSpeed / 1e3)
 log("%30s = %g, %g, %g", "Dipole strength [nT]", Dx / R0 ^ 3 / 1e-9,
