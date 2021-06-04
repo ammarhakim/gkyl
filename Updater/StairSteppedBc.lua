@@ -100,6 +100,9 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
    local isGhostL       = self._isGhostL
    local isGhostR       = self._isGhostR
 
+   local xcIn   = Lin.Vec(self._grid:ndim())
+   local xcOut  = Lin.Vec(self._grid:ndim())
+
    local tId = self._grid:subGridSharedId() -- local thread ID
 
    -- outer loop is over directions orthogonal to 'dir' and inner
@@ -128,12 +131,16 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
             if (isGhostL[i][0]) then
                qOut:fill(indexer(idxL), qG)
                qOut:fill(indexer(idxR), qS)
+               self._grid:setIndex(idxL);  self._grid:cellCenter(xcOut);
+               self._grid:setIndex(idxR);  self._grid:cellCenter(xcIn);
             else -- right cell is ghost
                qOut:fill(indexer(idxR), qG)
                qOut:fill(indexer(idxL), qS)
+               self._grid:setIndex(idxL);  self._grid:cellCenter(xcIn);
+               self._grid:setIndex(idxR);  self._grid:cellCenter(xcOut);
             end
             for _, bc in ipairs(self._bcList) do
-               bc(dir, tCurr, idxS, qS, qG) -- TODO: PASS COORDINATES
+               bc(dir, tCurr, nil, qS, qG, xcOut, xcIn)
             end
          end
       end
