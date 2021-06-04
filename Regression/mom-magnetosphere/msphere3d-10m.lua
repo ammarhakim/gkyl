@@ -228,50 +228,43 @@ local function totalB(x, y, z)
    return Bxt, Byt, Bzt
 end
 
+local rho_v_p_to_10m = function(q, rho, vx, vy, vz, p)
+   q[1] = rho
+   q[2] = rho * vx
+   q[3] = rho * vy
+   q[4] = rho * vz
+   q[5] = rho * vx * vx + p
+   q[6] = rho * vx * vy
+   q[7] = rho * vx * vz
+   q[8] = rho * vy * vy + p
+   q[9] = rho * vy * vz
+   q[10] = rho * vz * vz + p
+end
+
 local function initElc(t, xn)
    local x, y, z = xn[1], xn[2], xn[3]
 
-   local rho = calcRho(x, y, z)
+   local rhoe = calcRho(x, y, z) / (1 + mi__me)
    local vx, vy, vz = calcV(x, y, z)
-   local p = calcP(x, y, z)
+   local pe = calcP(x, y, z) / (1 + pi__pe)
 
-   local rhoe = rho / (1 + mi__me)
-   local pe = p / (1 + pi__pe)
+   local q = {}
+   rho_v_p_to_10m(q, rhoe, vx, vy, vz, pe)
 
-   local rhovxe = rhoe * vx
-   local rhovye = rhoe * vy
-   local rhovze = rhoe * vz
-   local Pxxe = pe + rhovxe ^ 2 / rhoe
-   local Pyye = pe + rhovye ^ 2 / rhoe
-   local Pzze = pe + rhovze ^ 2 / rhoe
-   local Pxye = rhovxe * rhovye / rhoe
-   local Pxze = rhovxe * rhovze / rhoe
-   local Pyze = rhovye * rhovze / rhoe
-
-   return rhoe, rhovxe, rhovye, rhovze, Pxxe, Pxye, Pxze, Pyye, Pyze, Pzze
+   return unpack(q)
 end
 
 local function initIon(t, xn)
    local x, y, z = xn[1], xn[2], xn[3]
 
-   local rho = calcRho(x, y, z)
+   local rhoi = calcRho(x, y, z) * mi__me / (1 + mi__me)
    local vx, vy, vz = calcV(x, y, z)
-   local p = calcP(x, y, z)
+   local pi = calcP(x, y, z) * pi__pe / (1 + pi__pe)
 
-   local rhoi = rho * mi__me / (1 + mi__me)
-   local pi = p * pi__pe / (1 + pi__pe)
+   local q = {}
+   rho_v_p_to_10m(q, rhoi, vx, vy, vz, pi)
 
-   local rhovxi = rhoi * vx
-   local rhovyi = rhoi * vy
-   local rhovzi = rhoi * vz
-   local Pxxi = pi + rhovxi ^ 2 / rhoi
-   local Pyyi = pi + rhovyi ^ 2 / rhoi
-   local Pzzi = pi + rhovzi ^ 2 / rhoi
-   local Pxyi = rhovxi * rhovyi / rhoi
-   local Pxzi = rhovxi * rhovzi / rhoi
-   local Pyzi = rhovyi * rhovzi / rhoi
-
-   return rhoi, rhovxi, rhovyi, rhovzi, Pxxi, Pxyi, Pxzi, Pyyi, Pyzi, Pzzi
+   return unpack(q)
 end
 
 local function initField(t, xn)
@@ -393,19 +386,6 @@ local bcInflow_field = {
       qbc[8] = qin[8]
    end
 }
-
-local rho_v_p_to_10m = function(q, rho, vx, vy, vz, p)
-   q[1] = rho
-   q[2] = rho * vx
-   q[3] = rho * vy
-   q[4] = rho * vz
-   q[5] = rho * vx * vx + p
-   q[6] = rho * vx * vy
-   q[7] = rho * vx * vz
-   q[8] = rho * vy * vy + p
-   q[9] = rho * vy * vz
-   q[10] = rho * vz * vz + p
-end
 
 local bcInner_elc = {
    function(dir, tm, idxIn, qin, qbc, xcOut, xcIn)
