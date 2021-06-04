@@ -120,9 +120,12 @@ function BCsBase:createConfBoundaryGrid()
 end
 function BCsBase:createDiagnostics(mySpecies) end
 function BCsBase:storeBoundaryFlux(tCurr, rkIdx, qOut) end
+function BCsBase:calcBoundaryFluxMom(tCurr, outIdx) end
+function BCsBase:calcCouplingMoments(tCurr, rkIdx, species) end
 function BCsBase:copyBoundaryFluxField(inIdx, outIdx) end
 function BCsBase:combineBoundaryFluxField(outIdx, a, aIdx, ...) end
 function BCsBase:computeBoundaryFluxRate(dtIn) end
+function BCsBase:preAdvance(tCurr, mySpecies, field, externalField, inIdx, outIdx) end
 function BCsBase:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx) end
 function BCsBase:storeBoundaryFlux(tCurr, rkIdx, qOut) end
 function BCsBase:copyBoundaryFluxField(inIdx, outIdx) end

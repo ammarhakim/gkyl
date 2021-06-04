@@ -296,14 +296,14 @@ local function buildApplication(self, tbl)
       s:createSolver(field, externalField)
       s:initDist(externalField, species)
    end
-
-   -- Initialize fluid source solvers.
    for _, flSrc in lume.orderedIter(fluidSources) do
-      flSrc:createSolver(species, field)
+      flSrc:createSolver(species, field)    -- Initialize fluid source solvers.
    end   
-
    for _, s in lume.orderedIter(species) do
       s:createCouplingSolver(species, field, externalField)
+   end
+
+   for _, s in lume.orderedIter(species) do
       -- Compute the coupling moments.
       s:clearMomentFlags(species)
       s:calcCouplingMoments(0.0, 1, species)
@@ -425,6 +425,9 @@ local function buildApplication(self, tbl)
             s:advance(tCurr, species, {field, externalField}, inIdx, outIdx)
          end
       end
+      for _, s in lume.orderedIter(species) do
+         s:postAdvance(tCurr, species, {field, externalField}, inIdx, outIdx)
+      end
 
       -- Some systems (e.g. EM GK) require additional step(s) to complete the forward Euler.
       for istep = 2, nstep do      
@@ -452,9 +455,7 @@ local function buildApplication(self, tbl)
          end
          
          -- After deciding global dt, tell species.
-         for _, s in lume.orderedIter(species) do
-            s:setDtGlobal(dtSuggested)
-         end
+         for _, s in lume.orderedIter(species) do s:setDtGlobal(dtSuggested) end
       else 
          dtSuggested = dt -- From argument list.
          -- If calcCflFlag not being used, need to barrier before doing the RK combine.

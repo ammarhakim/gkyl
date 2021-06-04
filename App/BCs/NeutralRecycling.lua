@@ -20,6 +20,35 @@ local CartDecomp     = require "Lib.CartDecomp"
 local Grid           = require "Grid"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local VlasovDiags    = require "App.Diagnostics.VlasovDiagnostics"
+local DiagsImplBase  = require "App.Diagnostics.DiagnosticsImplBase"
+
+-- ............... IMPLEMENTATION OF DIAGNOSTICS ................. --
+-- Diagnostics could be placed in a separate file if they balloon in
+-- number. But if we only have one or two we can just place it here.
+
+-- ~~~~ Source integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~
+local bcRecycleDiagImpl = function()
+   -- Recycling coefficient.
+   local _recycleCoef = Proto(DiagsImplBase)
+   function _recycleCoef:fullInit(diagApp, specIn, field, owner)
+      self.field = owner.recycleCoef
+      self.done  = false
+   end
+   function _recycleCoef:getType() return "grid" end
+   function _recycleCoef:advance(tm, inFlds, outFlds) end
+   -- Recycling distribution function.
+   local _recycleDistF = Proto(DiagsImplBase)
+   function _recycleDistF:fullInit(diagApp, specIn, field, owner)
+      self.field = owner.recycleDistF
+      self.done  = false
+   end
+   function _recycleDistF:getType() return "grid" end
+   function _recycleDistF:advance(tm, inFlds, outFlds) end
+   return {recycleCoef  = _recycleCoef,
+           recycleDistF = _recycleDistF}
+end
+
+-- .................... END OF DIAGNOSTICS ...................... --
 
 local NeutralRecyclingBC = Proto(BCsBase)
 
@@ -176,18 +205,18 @@ function NeutralRecyclingBC:createSolver(mySpecies, field, externalField)
       return 1.0 / math.sqrt(2*math.pi*vt2)^vdim * math.exp(-v2/(2*vt2))
    end
 
-   self.projectRecycleFMaxwell = Updater.ProjectOnBasis {
+   local projectRecycleFMaxwell = Updater.ProjectOnBasis {
       onGrid = self.boundaryGrid,  evaluate = recycleSource,
       basis  = self.basis,         onGhosts = false,
    }
-   self.projectFluxFunc = Updater.ProjectFluxFunc {
+   local projectFluxFunc = Updater.ProjectFluxFunc {
       onGrid     = self.boundaryGrid,  edgeValue  = edgeval,
       phaseBasis = self.basis,         direction  = self.bcDir,
       confBasis  = self.confBasis,     onGhosts   = false,
    }
 
-   self.projectRecycleFMaxwell:advance(0., {}, {self.recycleFMaxwell})
-   self.projectFluxFunc:advance(0., {self.recycleFMaxwell}, {self.recycleFhat})
+   projectRecycleFMaxwell:advance(0., {}, {self.recycleFMaxwell})
+   projectFluxFunc:advance(0., {self.recycleFMaxwell}, {self.recycleFhat})
    self.calcFhatM0:advance(0., {self.recycleFhat}, {self.recycleFhatM0})
    self.recycleFhatM0:scale(-1.0*edgeval)
 
@@ -351,38 +380,7 @@ function NeutralRecyclingBC:storeBoundaryFlux(tCurr, rkIdx, qOut)
    self.storeBoundaryFluxFunc(tCurr, rkIdx, qOut)
 end
 
-function NeutralRecyclingBC:copyBoundaryFluxField(inIdx, outIdx)
-   self.copyBoundaryFluxFieldFunc(inIdx, outIdx)
-end
-function NeutralRecyclingBC:combineBoundaryFluxField(outIdx, a, aIdx, ...)
-   self.combineBoundaryFluxFieldFunc(outIdx, a, aIdx, ...)
-end
-function NeutralRecyclingBC:computeBoundaryFluxRate(dtIn)
-   self.calcBoundaryFluxRateFunc(dtIn)
-end
-
-function NeutralRecyclingBC:createDiagnostics(mySpecies, field)
-   -- Create BC diagnostics.
-   self.diagnostics = nil
-   if self.tbl.diagnostics then
-      self.diagnostics = DiagsApp{implementation = VlasovDiags()}
-      self.diagnostics:fullInit(mySpecies, field, self)
-      -- Presently boundary diagnostics are boundary flux diagnostics. Append 'flux' to the diagnostic's
-      -- name so files are named accordingly. Re-design this when non-flux diagnostics are implemented
-      self.diagnostics.name = self.diagnostics.name..'_flux'
-   end
-   return self.diagnostics
-end
-
--- These are needed to recycle the VlasovDiagnostics with NeutralRecyclingBC.
-function NeutralRecyclingBC:rkStepperFields() return {self.boundaryFluxRate, self.boundaryFluxRate,
-                                                      self.boundaryFluxRate, self.boundaryFluxRate} end
-function NeutralRecyclingBC:getFlucF() return self.boundaryFluxRate end
-
-function NeutralRecyclingBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
-   -- Compute the 0th moment of the ion boundary flux.
-   self.recIonBC.numDensityCalc:advance(tCurr, {self.recIonBC:getBoundaryFluxFields()[outIdx]}, {self.bcIonM0fluxField})
-
+function NeutralRecyclingBC:calcCouplingMoments(tCurr, rkIdx, species)
    self.bcIonM0fluxField:scale(self.scaledRecycleFrac(tCurr))
 
    -- Weak divide.
@@ -397,6 +395,79 @@ function NeutralRecyclingBC:advance(tCurr, mySpecies, field, externalField, inId
    -- Maybe calculated integrated M0 flux here??
 
    self.recycleTestFlux:scale(1.0/self.recycleFrac) -- This can be written out from KineticSpecies, if necessary.
+end
+
+function NeutralRecyclingBC:calcBoundaryFluxMom(tCurr, outIdx)
+   -- Compute the 0th moment of the ion boundary flux.
+   self.recIonBC.numDensityCalc:advance(tCurr, {self.recIonBC:getBoundaryFluxFields()[outIdx]}, {self.bcIonM0fluxField})
+end
+
+function NeutralRecyclingBC:preAdvance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
+--   self.bcIonM0fluxField:scale(self.scaledRecycleFrac(tCurr))
+--
+--   -- Weak divide.
+--   self.recycleConfWeakDivide:advance(tCurr, {self.recycleFhatM0, self.bcIonM0fluxField}, {self.recycleCoef})
+--
+--   -- Weak multiply.
+--   self.recycleConfPhaseWeakMultiply:advance(tCurr, {self.recycleCoef, self.recycleFMaxwell}, {self.recycleDistF})
+--
+--   -- Diagnostics to check flux.
+--   self.recycleConfPhaseWeakMultiply:advance(tCurr, {self.recycleCoef, self.recycleFhat}, {self.scaledFhat})
+--   self.calcFhatM0:advance(tCurr, {self.scaledFhat}, {self.recycleTestFlux})
+--   -- Maybe calculated integrated M0 flux here??
+--
+--   self.recycleTestFlux:scale(1.0/self.recycleFrac) -- This can be written out from KineticSpecies, if necessary.
+end
+
+function NeutralRecyclingBC:copyBoundaryFluxField(inIdx, outIdx)
+   self.copyBoundaryFluxFieldFunc(inIdx, outIdx)
+end
+function NeutralRecyclingBC:combineBoundaryFluxField(outIdx, a, aIdx, ...)
+   self.combineBoundaryFluxFieldFunc(outIdx, a, aIdx, ...)
+end
+function NeutralRecyclingBC:computeBoundaryFluxRate(dtIn)
+   self.calcBoundaryFluxRateFunc(dtIn)
+end
+
+function NeutralRecyclingBC:createDiagnostics(mySpecies, field)
+   -- Create BC diagnostics.
+   self.diagnostics = nil
+   if self.tbl.diagnostics then
+      local vlasovDiags  = VlasovDiags()
+      local recycleDiags = bcRecycleDiagImpl()
+      for nm, v in pairs(vlasovDiags) do recycleDiags[nm] = v end
+      self.diagnostics = DiagsApp{implementation = recycleDiags}
+      self.diagnostics:fullInit(mySpecies, field, self)
+      -- Presently boundary diagnostics are boundary flux diagnostics. Append 'flux' to the diagnostic's
+      -- name so files are named accordingly. Re-design this when non-flux diagnostics are implemented
+      self.diagnostics.name = self.diagnostics.name..'_flux'
+   end
+   return self.diagnostics
+end
+
+-- These are needed to recycle the VlasovDiagnostics with NeutralRecyclingBC.
+function NeutralRecyclingBC:rkStepperFields() return {self.boundaryFluxRate, self.boundaryFluxRate,
+                                                      self.boundaryFluxRate, self.boundaryFluxRate} end
+function NeutralRecyclingBC:getFlucF() return self.boundaryFluxRate end
+
+function NeutralRecyclingBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
+--   -- Compute the 0th moment of the ion boundary flux.
+--   self.recIonBC.numDensityCalc:advance(tCurr, {self.recIonBC:getBoundaryFluxFields()[outIdx]}, {self.bcIonM0fluxField})
+
+--   self.bcIonM0fluxField:scale(self.scaledRecycleFrac(tCurr))
+--
+--   -- Weak divide.
+--   self.recycleConfWeakDivide:advance(tCurr, {self.recycleFhatM0, self.bcIonM0fluxField}, {self.recycleCoef})
+--
+--   -- Weak multiply.
+--   self.recycleConfPhaseWeakMultiply:advance(tCurr, {self.recycleCoef, self.recycleFMaxwell}, {self.recycleDistF})
+--
+--   -- Diagnostics to check flux.
+--   self.recycleConfPhaseWeakMultiply:advance(tCurr, {self.recycleCoef, self.recycleFhat}, {self.scaledFhat})
+--   self.calcFhatM0:advance(tCurr, {self.scaledFhat}, {self.recycleTestFlux})
+--   -- Maybe calculated integrated M0 flux here??
+--
+--   self.recycleTestFlux:scale(1.0/self.recycleFrac) -- This can be written out from KineticSpecies, if necessary.
 
    local fIn = mySpecies:rkStepperFields()[outIdx]
    self.bcSolver:advance(tCurr, {}, {fIn})
