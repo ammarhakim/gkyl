@@ -51,8 +51,6 @@ local pi__pe = 5
 local me = mi / mi__me
 local qi = mi / di_in / math.sqrt(mu0 * rho_in)
 local qe = -qi
-local charge = {qe, qi}
-local mass = {me, mi}
 local de_in = di_in * math.sqrt(me / mi)
 
 -- Domain.
@@ -232,12 +230,12 @@ end
 local function initElc(t, xc)
    local x, y, z = xc[1], xc[2], xc[3]
 
-   local rhoe = initRho(x, y, z) / (1 + mi__me)
+   local rho = initRho(x, y, z) / (1 + mi__me)
    local vx, vy, vz = initV(x, y, z)
-   local pe = initP(x, y, z) / (1 + pi__pe)
+   local p = initP(x, y, z) / (1 + pi__pe)
 
    local q = {}
-   rho_v_p_to_10m(q, rhoe, vx, vy, vz, pe)
+   rho_v_p_to_10m(q, rho, vx, vy, vz, p)
 
    return unpack(q)
 end
@@ -245,12 +243,12 @@ end
 local function initIon(t, xc)
    local x, y, z = xc[1], xc[2], xc[3]
 
-   local rhoi = initRho(x, y, z) * mi__me / (1 + mi__me)
+   local rho = initRho(x, y, z) * mi__me / (1 + mi__me)
    local vx, vy, vz = initV(x, y, z)
-   local pi = initP(x, y, z) * pi__pe / (1 + pi__pe)
+   local p = initP(x, y, z) * pi__pe / (1 + pi__pe)
 
    local q = {}
-   rho_v_p_to_10m(q, rhoi, vx, vy, vz, pi)
+   rho_v_p_to_10m(q, rho, vx, vy, vz, p)
 
    return unpack(q)
 end
@@ -436,8 +434,8 @@ local momentApp = Moments.App {
    ion = Moments.Species {
       charge = qi,
       mass = mi,
-      equation = TenMoment {gasGamma = gasGamma},
-      equationInv = TenMoment {gasGamma = gasGamma, numericalFlux = "lax"},
+      equation = TenMoment {},
+      equationInv = TenMoment {numericalFlux = "lax"},
       init = initIon,
       bcx = {bcInflow_ion, Moments.Species.bcCopy},
       bcy = {Moments.Species.bcCopy, Moments.Species.bcCopy},
