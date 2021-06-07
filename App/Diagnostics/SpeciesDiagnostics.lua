@@ -16,6 +16,7 @@ local lume       = require "Lib.lume"
 local Mpi        = require "Comm.Mpi"
 local ffi        = require "ffi"
 local xsys       = require "xsys"
+local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 
 local new, copy = xsys.from(ffi,"new, copy")
 
@@ -101,6 +102,13 @@ function SpeciesDiagnostics:fullInit(mySpecies, field, diagOwner)
    self.diagGroups = {grid={}, integrated={}}  -- Names of requested diags of each kind.
    lume.setOrder(self.diagGroups)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
 
+   -- Option to write grid and integrated diagnostics in two files, instead of every diagnostic having a file.
+   self.inTwoFiles = false
+   if lume.any(diagOwner.tbl.diagnostics, function(e) return e=="twoFiles" end) then
+      lume.remove(diagOwner.tbl.diagnostics,"twoFiles")
+      self.inTwoFiles = true
+   end
+
    -- Sort requested diagnostics into grid and integrated diagnostics.
    for _, nm in ipairs(diagOwner.tbl.diagnostics) do
       if contains(diagsImpl, nm) then
@@ -121,6 +129,53 @@ function SpeciesDiagnostics:fullInit(mySpecies, field, diagOwner)
    end
 
    self.writeGhost = xsys.pickBool(diagOwner.writeGhost, false)
+
+   -- Pre-define methods for writing diagnostics to two files only (grid and integrated)
+   -- or to write each diagnostic to its own file.
+   -- MF 2021/06/06: Writing all integrated diagnostics to a single file is currently not available.
+   if self.inTwoFiles then
+      self.gridDiagsToWrite = {}
+      self.ioMethod = "MPI"
+      local elemType
+      for _, diagNm in ipairs(self.diagGroups["grid"]) do
+         local diag = self.diags[diagNm]
+         local fldElemType = diag.field:elemType()
+         elemType = elemType or fldElemType
+         assert(elemType==fldElemType, "SpeciesDiagnostics: elemType of all diagnostics must be the same.")
+      end
+      self.diagIo = AdiosCartFieldIo {
+         elemType   = elemType,
+         method     = self.ioMethod,
+         writeGhost = self.writeGhost,
+         metaData   = {polyOrder = mySpecies.basis:polyOrder(),
+                       basisType = mySpecies.basis:id(),},
+      }
+      self.writeFunc = function(tm, fr)
+         SpeciesDiagnostics["writeGridDiagnostics_oneFile"](self, tm, fr)
+         SpeciesDiagnostics["writeIntegratedDiagnostics_separateFiles"](self, tm, fr)
+      end
+      self.writeRestartFunc = function(tm, gridFr, intFr)
+         SpeciesDiagnostics["writeRestartGridDiagnostics_oneFile"](self, tm, gridFr)
+
+         -- Write restart files for integrated moments. Note: these are only needed for the rare case that the
+         -- restart write frequency is higher than the normal write frequency from nFrame.
+         -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
+         SpeciesDiagnostics["writeRestartIntegratedDiagnostics_separateFiles"](self, tm, intFr)
+      end
+   else
+      self.writeFunc = function(tm, fr)
+         SpeciesDiagnostics["writeGridDiagnostics_separateFiles"](self, tm, fr)
+         SpeciesDiagnostics["writeIntegratedDiagnostics_separateFiles"](self, tm, fr)
+      end
+      self.writeRestartFunc = function(tm, gridFr, intFr)
+         SpeciesDiagnostics["writeRestartGridDiagnostics_separateFiles"](self, tm, gridFr)
+
+         -- Write restart files for integrated moments. Note: these are only needed for the rare case that the
+         -- restart write frequency is higher than the normal write frequency from nFrame.
+         -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
+         SpeciesDiagnostics["writeRestartIntegratedDiagnostics_separateFiles"](self, tm, intFr)
+      end
+   end
 
    self.spentTime = { gridDiags=0., intDiags=0. }
 end
@@ -182,47 +237,65 @@ function SpeciesDiagnostics:calcGridDiagnostics(tm, mySpecies)
    self.spentTime.gridDiags = self.spentTime.gridDiags + Time.clock() - tmStart
 end
 
-function SpeciesDiagnostics:writeGridDiagnostics(tm, fr)
+function SpeciesDiagnostics:writeGridDiagnostics_separateFiles(tm, fr)
+   -- Write each grid diagnostic to its own file.
    for _, diagNm in ipairs(self.diagGroups["grid"]) do 
       local diag = self.diags[diagNm]
       diag.field:write(string.format("%s_%s_%d.bp", self.name, diagNm, fr), tm, fr, self.writeGhost)
    end
 end
-
-function SpeciesDiagnostics:writeIntegratedDiagnostics(tm, fr)
+function SpeciesDiagnostics:writeIntegratedDiagnostics_separateFiles(tm, fr)
+   -- Write each integrated diagnostic to its own file.
    for _, diagNm in ipairs(self.diagGroups["integrated"]) do 
       local diag = self.diags[diagNm]
       diag.field:write(string.format("%s_%s.bp", self.name, diagNm), tm, fr)
    end
 end
 
-function SpeciesDiagnostics:write(tm, fr)
-   self:writeGridDiagnostics(tm, fr)
-   self:writeIntegratedDiagnostics(tm, fr)
+function SpeciesDiagnostics:writeGridDiagnostics_oneFile(tm, fr)
+   -- Write all grid diagnostic to a single file.
+   for _, diagNm in ipairs(self.diagGroups["grid"]) do 
+      self.gridDiagsToWrite[diagNm] = self.diags[diagNm].field
+   end
+   self.diagIo:write(self.gridDiagsToWrite, string.format("%s_gridDiagnostics_%d.bp", self.name, fr), tm, fr, self.writeGhost)
+end
+function SpeciesDiagnostics:writeIntegratedDiagnostics_oneFile(tm, fr)
+   -- Write all integrated diagnostic to a single file.
+   -- MF 2021/06/01: Not yet available because I think we haven't done this for DynVectors.
+   assert(false, "SpeciesDiagnostics:writeIntegratedDiagnostics_oneFile not ready.")
 end
 
-function SpeciesDiagnostics:writeRestartGridDiagnostics(tm, fr)
+function SpeciesDiagnostics:write(tm, fr) self.writeFunc(tm, fr) end
+
+function SpeciesDiagnostics:writeRestartGridDiagnostics_separateFiles(tm, fr)
+   -- Write a restart file for each grid diagnostic.
    for _, diagNm in ipairs(self.diagGroups["grid"]) do 
       local diag = self.diags[diagNm]
       diag.field:write(string.format("%s_%s_restart.bp", self.name, diagNm), tm, fr, false)
    end
 end
-
-function SpeciesDiagnostics:writeRestartIntegratedDiagnostics(tm, fr)
+function SpeciesDiagnostics:writeRestartIntegratedDiagnostics_separateFiles(tm, fr)
+   -- Write a restart file for each integrated diagnostic.
    for _, diagNm in ipairs(self.diagGroups["integrated"]) do 
       local diag = self.diags[diagNm]
       diag.field:write(string.format("%s_%s_restart.bp", self.name, diagNm), tm, fr, false, false)
    end
 end
 
-function SpeciesDiagnostics:writeRestart(tm, gridFr, intFr)
-   self:writeRestartGridDiagnostics(tm, gridFr)
-
-   -- Write restart files for integrated moments. Note: these are only needed for the rare case that the
-   -- restart write frequency is higher than the normal write frequency from nFrame.
-   -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
-   self:writeRestartIntegratedDiagnostics(tm, intFr)
+function SpeciesDiagnostics:writeRestartGridDiagnostics_oneFile(tm, fr)
+   -- Write a single restart file for all grid diagnostics.
+   for _, diagNm in ipairs(self.diagGroups["grid"]) do 
+      self.gridDiagsToWrite[diagNm] = self.diags[diagNm].field
+   end
+   self.diagIo:write(self.gridDiagsToWrite, string.format("%s_gridDiagnostics_restart.bp", self.name), tm, fr, false)
 end
+function SpeciesDiagnostics:writeRestartIntegratedDiagnostics_oneFile(tm, fr)
+   -- Write a single restart file for all integrated diagnostics.
+   -- MF 2021/06/01: Not yet available because I think we haven't done this for DynVectors.
+   assert(false, "SpeciesDiagnostics:writeRestartIntegratedDiagnostics_oneFile not ready.")
+end
+
+function SpeciesDiagnostics:writeRestart(tm, gridFr, intFr) self.writeRestartFunc(tm, gridFr, intFr) end
 
 function SpeciesDiagnostics:readRestart()
    local tm, fr

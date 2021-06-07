@@ -34,6 +34,9 @@ function IncompEulerBasicBC:fullInit(speciesTbl)
    end
 end
 
+function IncompEulerBasicBC:setConfBasis(basis) self.basis = basis end
+function IncompEulerBasicBC:setConfGrid(grid) self.grid = grid end
+
 function IncompEulerBasicBC:bcDirichlet(dir, tm, idxIn, fIn, fOut)
    -- Impose f=fBC at the boundary.
    if (idxIn[dir] == 1) then
@@ -52,7 +55,7 @@ function IncompEulerBasicBC:bcNeumann(dir, tm, idxIn, fIn, fOut)
    end
 end
 
-function IncompEulerBasicBC:createSolver(mySpecies)
+function IncompEulerBasicBC:createSolver(mySpecies, field, externalField)
    local bcFunc, skinType
    if self.bcKind == "copy" then
       bcFunc   = function(...) return self:bcCopy(...) end
@@ -70,27 +73,47 @@ function IncompEulerBasicBC:createSolver(mySpecies)
                                                                  self.basis:polyOrder(), 2, "Neumann")
       bcFunc   = function(...) return self:bcNeumann(...) end
       skinType = "pointwise"
-   end
-
-   if self.bcKind == "zeroFlux" then
-      -- Zero flux is not actually handled by the BC object, but rather it
-      -- signals the equation object to not apply surface fluxes at the boundary.
-      self.bcSolver = {}
-      function self.bcSolver:advance(t, inFlds, OutFlds) end
    else
-      self.bcSolver = Updater.Bc {
-         onGrid             = self.grid,
-         cdim               = self.grid:ndim(),
-         dir                = self.bcDir,
-         edge               = self.bcEdge,
-         boundaryConditions = {bcFunc},
-         skinLoop           = skinType,
-      }
+      assert(false, "IncompEulerBasicBC: BC kind not recognized.")
    end
+
+   self.bcSolver = Updater.Bc {
+      onGrid             = self.grid,
+      cdim               = self.grid:ndim(),
+      dir                = self.bcDir,
+      edge               = self.bcEdge,
+      boundaryConditions = {bcFunc},
+      skinLoop           = skinType,
+   }
 end
 
-function IncompEulerBasicBC:advance(tCurr, species, flds)
-   self.bcSolver:advance(tCurr, {}, flds)
+function IncompEulerBasicBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
+   local fIn = mySpecies:rkStepperFields()[outIdx]
+   self.bcSolver:advance(tCurr, {}, {fIn})
 end
 
-return IncompEulerBasicBC
+-- ................... Classes meant as aliases to simplify input files ...................... --
+local IncompEulerAbsorbBC = Proto(IncompEulerBasicBC)
+function IncompEulerAbsorbBC:fullInit(mySpecies)
+   self.tbl.kind  = "absorb"
+   IncompEulerAbsorbBC.super.fullInit(self, mySpecies)
+end
+
+local IncompEulerCopyBC = Proto(IncompEulerBasicBC)
+function IncompEulerCopyBC:fullInit(mySpecies)
+   self.tbl.kind  = "copy"
+   IncompEulerCopyBC.super.fullInit(self, mySpecies)
+end
+
+local IncompEulerZeroFluxBC = Proto()
+function IncompEulerZeroFluxBC:init(tbl)
+   self.tbl      = tbl
+   self.tbl.kind = "zeroFlux"
+end
+-- ................... End of IncompEulerBasicBC alias classes .................... --
+
+return {IncompEulerBasic    = IncompEulerBasicBC,
+        IncompEulerAbsorb   = IncompEulerAbsorbBC,
+        IncompEulerCopy     = IncompEulerCopyBC,
+        IncompEulerZeroFlux = IncompEulerZeroFluxBC,}
+

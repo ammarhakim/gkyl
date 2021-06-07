@@ -16,7 +16,7 @@ local Updater        = require "Updater"
 local DataStruct     = require "DataStruct"
 local Time           = require "Lib.Time"
 local Constants      = require "Lib.Constants"
-local BasicBC        = require "App.BCs.GyrofluidBasic"
+local BasicBC        = require ("App.BCs.GyrofluidBasic").GyrofluidBasic
 local Lin            = require "Lib.Linalg"
 local xsys           = require "xsys"
 local lume           = require "Lib.lume"
@@ -25,17 +25,24 @@ local GyrofluidSpecies = Proto(FluidSpecies)
 
 -- ............. Backwards compatible treatment of BCs .....................-- 
 -- Add constants to object indicate various supported boundary conditions.
-local SP_BC_ABSORB = 1
-local SP_BC_COPY   = 6
-GyrofluidSpecies.bcAbsorb = SP_BC_ABSORB   -- Absorb all particles.
-GyrofluidSpecies.bcCopy   = SP_BC_COPY     -- Copy stuff.
+local SP_BC_ABSORB   = 1
+local SP_BC_ZEROFLUX = 5
+local SP_BC_COPY     = 6
+GyrofluidSpecies.bcAbsorb   = SP_BC_ABSORB     -- Absorb all particles.
+GyrofluidSpecies.bcCopy     = SP_BC_COPY       -- Copy stuff.
+GyrofluidSpecies.bcZeroFlux = SP_BC_ZEROFLUX   -- Zero flux.
 
 function GyrofluidSpecies:makeBcApp(bcIn)
    local bcOut
    if bcIn == SP_BC_COPY then
+      print("GyrofluidSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
       bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
    elseif bcIn == SP_BC_ABSORB then
+      print("GyrofluidSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
       bcOut = BasicBC{kind="absorb", diagnostics={}, saveFlux=false}
+   elseif bcIn == SP_BC_ZEROFLUX or bcIn.tbl.kind=="zeroFlux" then
+      bcOut = "zeroFlux"
+      table.insert(self.zeroFluxDirections, dir)
    end
    return bcOut
 end
@@ -50,7 +57,6 @@ function GyrofluidSpecies:fullInit(appTbl)
    self.kappaPar, self.kappaPerp = self.tbl.kappaPar, self.tbl.kappaPerp
 
    self.nMoments = 3+1
-   self.zeroFluxDirections = {}
 end
 
 function GyrofluidSpecies:alloc(nRkDup)
@@ -91,9 +97,15 @@ function GyrofluidSpecies:alloc(nRkDup)
    self.first = true
 end
 
-function GyrofluidSpecies:createSolver(hasPhi, hasApar, externalField)
+function GyrofluidSpecies:createSolver(field, externalField)
    -- Run the FluidSpecies 'createSolver()' to initialize the collisions solver.
-   GyrofluidSpecies.super.createSolver(self,externalField)
+   GyrofluidSpecies.super.createSolver(self, field, externalField)
+
+   local hasE, hasB       = field:hasEB()
+   local extHasE, extHasB = externalField:hasEB()
+
+   local hasPhi  = hasE or extHasE
+   local hasApar = hasB or extHasB
 
    -- Set up Jacobian.
    if externalField then
@@ -261,7 +273,7 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       self.equation:setAuxFields({em, emFunc, self.primMomSelf})  -- Set auxFields in case they are needed by BCs/collisions.
    end
 
-   for _, bc in ipairs(self.nonPeriodicBCs) do
+   for _, bc in pairs(self.nonPeriodicBCs) do
       bc:storeBoundaryFlux(tCurr, outIdx, momRhsOut)   -- Save boundary fluxes.
    end
 

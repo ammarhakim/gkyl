@@ -332,20 +332,17 @@ plasmaApp = Plasma.App {
          frequencies = {nuElc},
       },
       source = Plasma.Source {
-         kind        = "Maxwellian",
-         density     = sourceDensity,
+         kind        = "Maxwellian",       power       = P_src/2,
+         density     = sourceDensity,      diagnostics = {"intKE"},
          temperature = sourceTemperature,
-         power       = P_src/2,
-         diagnostics = {"intKE"},
       },
       evolve = true, -- Evolve species?
       --applyPositivity = true,
       diagnostics = {"M0", "Upar", "Temp", "Beta", "intM0", "intM1", "intEnergy" }, 
-      diagnosticBoundaryFluxMoments = {"GkM0", "GkUpar", "GkTemp", "GkBeta", "GkEnergy"},
-      diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
       randomseed = randomseed,
-      bcx = {Plasma.Species.bcZeroFlux, Plasma.Species.bcZeroFlux},
-      bcz = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      bcx = {Plasma.ZeroFluxBC{}, Plasma.ZeroFluxBC{}},
+      bcz = {Plasma.SheathBC{diagnostics={"M0","Upar","Temp","Beta","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics={"M0","Upar","Temp","Beta","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Gyrokinetic ions
@@ -386,19 +383,16 @@ plasmaApp = Plasma.App {
          frequencies = {nuIon},
       },
       source = Plasma.MaxwellianProjection {
-         density     = sourceDensity,
-         temperature = sourceTemperature,
-         power       = P_src/2,
-         isSource    = true,
+         density     = sourceDensity,      power       = P_src/2,
+         temperature = sourceTemperature,  isSource    = true,
       },
       evolve = true, -- Evolve species?
       --applyPositivity = true,
       diagnostics = {"M0", "Upar", "Temp", "intM0", "intM1", "intKE", "intEnergy"}, 
-      diagnosticBoundaryFluxMoments = {"GkM0", "GkUpar", "GkEnergy"},
-      diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
       randomseed = randomseed,
-      bcx = {Plasma.Species.bcZeroFlux, Plasma.Species.bcZeroFlux},
-      bcz = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      bcx = {Plasma.ZeroFluxBC{}, Plasma.ZeroFluxBC{}},
+      bcz = {Plasma.SheathBC{diagnostics={"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics={"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Field solver.
@@ -407,7 +401,7 @@ plasmaApp = Plasma.App {
       bcUpperPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T = "N", V = 0.0}},
       bcLowerApar = {{T = "D", V = 0.0}, {T = "P"}},
       bcUpperApar = {{T = "D", V = 0.0}, {T = "P"}},
-      evolve     = true, -- Evolve fields?
+      evolve = true, -- Evolve fields?
       isElectromagnetic = false,
    },
 
@@ -429,5 +423,5 @@ plasmaApp = Plasma.App {
       evolve = false,
    },
 }
--- run application
+-- Run application.
 plasmaApp:run()

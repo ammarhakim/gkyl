@@ -58,8 +58,7 @@ app = Plasma.App {
 	    return maxwellian(nr, ur, vthr, v)
 	 end
       end,
-      bcx = { Plasma.Species.bcOpen,
-	      Plasma.Species.bcOpen },
+      bcx = { Plasma.OpenBC{}, Plasma.OpenBC{} },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
@@ -88,8 +87,7 @@ app = Plasma.App {
 	    return maxwellian(nr, ur, vthr, v)
 	 end
       end,
-      bcx = { Plasma.Species.bcOpen,
-	      Plasma.Species.bcOpen },
+      bcx = { Plasma.OpenBC{}, Plasma.OpenBC{} },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
@@ -124,8 +122,7 @@ app = Plasma.App {
 	    return maxwellian(nr, ur, vthr, v)
 	 end
       end,
-      bcx = { Plasma.Species.bcOpen,
-	      Plasma.Species.bcOpen },
+      bcx = { Plasma.OpenBC{}, Plasma.OpenBC{} },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.

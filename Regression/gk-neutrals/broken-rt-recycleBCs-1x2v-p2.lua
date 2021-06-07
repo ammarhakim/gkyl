@@ -152,17 +152,12 @@ sim = Plasma.App {
 	 --frequencies = {nuElc},
       },
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
-      diagnosticBoundaryFluxMoments = {"GkM0", "GkUpar"},
-      diagnosticIntegratedBoundaryFluxMoments = {"intM0"},
       ionization = Plasma.Ionization {
-      	 collideWith  = {"neut"},
-      	 electrons    = "elc",
-      	 neutrals     = "neut",
-      	 elemCharge   = eV, 
-      	 elcMass      = me,
-      	 plasma       = "H",         
+      	 collideWith = {"neut"},  elemCharge = eV, 
+      	 electrons   = "elc",     elcMass    = me,
+      	 neutrals    = "neut",    plasma     = "H",         
       },
-      bcx = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      bcx = {Plasma.SheathBC{diagnostics={"M0","Upar","intM0"}}, Plasma.SheathBC{diagnostics={"M0","Upar","intM0"}}},
    },
 
    -- Ions
@@ -171,7 +166,7 @@ sim = Plasma.App {
       charge = qi, mass = mi,
       -- Velocity space grid.
       lower = {-4.0*vti, 0},
-      upper = {4.0*vti, 12*mi*vti^2/(2*B0)},
+      upper = { 4.0*vti, 12*mi*vti^2/(2*B0)},
       cells = {16, 8},
       decompCuts = {1},
       -- Initial conditions.
@@ -209,8 +204,6 @@ sim = Plasma.App {
 	 --frequencies = {nuIon},
       },
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
-      diagnosticBoundaryFluxMoments = {"GkM0", "GkUpar"},
-      diagnosticIntegratedBoundaryFluxMoments = {"intM0"},
       ionization = Plasma.Ionization {
       	 collideWith  = {"neut"},
       	 electrons    = "elc",
@@ -228,7 +221,7 @@ sim = Plasma.App {
       	 plasma = "H",
       	 charge = qi,
       },
-      bcx = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      bcx = {Plasma.SheathBC{diagnostics={"M0","Upar","intM0"}}, Plasma.SheathBC{diagnostics={"M0","Upar","intM0"}}},
    },
 
    neut = Plasma.Vlasov {
@@ -275,31 +268,27 @@ sim = Plasma.App {
       --    collideWith = {'neut'},
       -- 	 frequencies = {1e6},
       -- },
-      bcx = {Plasma.Vlasov.bcRecycle, Plasma.Vlasov.bcRecycle},
-      recycleTemp = 10*eV,
-      recycleFrac = 0.5,
-      recycleIon = "ion",
-      recycleTime = .5e-3,
+      bcx = {Plasma.RecycleBC{
+                recycleTemp = 10*eV,  recycleIon  = "ion",
+                recycleFrac = 0.5,    recycleTime = .5e-3,
+                diagnostics={"M0","intM0"}
+             },
+             Plasma.RecycleBC{
+                recycleTemp = 10*eV,  recycleIon  = "ion",
+                recycleFrac = 0.5,    recycleTime = .5e-3,
+                diagnostics={"M0","intM0"}
+             }},
       diagnostics = { "M0", "Udrift", "VtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
-      diagnosticBoundaryFluxMoments = {"M0"},
-      diagnosticIntegratedFluxMoments = {"M0"},
-      diagnosticIntegratedBoundaryFluxMoments = {"intM0"},
       ionization = Plasma.Ionization {
-      	 collideWith  = {"elc"},
-      	 electrons    = "elc",
-      	 neutrals     = "neut",
-      	 elemCharge   = eV, 
-      	 elcMass      = me,
-      	 plasma       = "H",         
+      	 collideWith = {"elc"},  elemCharge = eV, 
+      	 electrons   = "elc",    elcMass    = me,
+      	 neutrals    = "neut",   plasma     = "H",         
       },
       chargeExchange = Plasma.ChargeExchange {
-      	 collideWith = {"ion"},
-      	 ions = "ion",
-      	 neutrals = "neut",
-      	 ionMass = mi,
-      	 neutMass = mi,
-      	 plasma = "H",
-      	 charge = 0,
+      	 collideWith = {"ion"},  neutMass = mi,
+      	 ions        = "ion",    plasma   = "H",
+      	 neutrals    = "neut",   charge   = 0,
+      	 ionMass     = mi,
       },
    },
    

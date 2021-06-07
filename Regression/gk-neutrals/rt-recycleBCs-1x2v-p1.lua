@@ -1,16 +1,15 @@
 -- Gkyl --------------------------------------------------------------
--- Basic sheath simulation -------------------------------------------
+--
+-- Basic sheath simulation with neutrals and recycling BCs.
+--
 -- For runs in parallel use:
--- ~/gkylsoft/openmpi/bin/mpirun -n 4 ~/gkylsoft/gkyl/bin/gkyl *lua
+-- ~/gkylsoft/openmpi/bin/mpirun -n 4 ~/gkylsoft/gkyl/bin/gkyl <filename>
+----------------------------------------------------------------------
 
-local Plasma = (require "App.PlasmaOnCartGrid").Gyrokinetic()
---local VmPlasma = (require "App.PlasmaOnCartGrid").VlasovMaxwell()
+local Plasma    = (require "App.PlasmaOnCartGrid").Gyrokinetic()
 local Constants = require "Lib.Constants"
 
-function sech(x)
-   return 2*math.exp(x)/(math.exp(2*x)+1)
-end
-
+function sech(x) return 2*math.exp(x)/(math.exp(2*x)+1) end
 
 nfac = 1.0
 -- Universal parameters.
@@ -20,7 +19,7 @@ qe   = -eV
 qi   =  eV
 mi   = Constants.PROTON_MASS   -- Hydrogen ions.
 me   = Constants.ELECTRON_MASS --*1836.0
-B0  = 0.5     -- Magnetic field amplitude [T].
+B0   = 0.5     -- Magnetic field amplitude [T].
 
 n0  = nfac*5e18    -- Number density [1/m^3].
 
@@ -29,10 +28,10 @@ Ti0 = 40*eV   -- Ion temperature.
 
 -- Derived physical parameters
 -- set kmin*rho_s = 0.2, used for Field table
-cs = math.sqrt(Te0/mi)
+cs       = math.sqrt(Te0/mi)
 omega_ci = eV*B0/mi
-rho_s = cs/omega_ci
-kmin = 0.2/rho_s
+rho_s    = cs/omega_ci
+kmin     = 0.2/rho_s
 
 -- Thermal speeds.
 vti = math.sqrt(Ti0/mi)
@@ -42,9 +41,9 @@ vte = math.sqrt(Te0/me)
 Lx = 40 --[m]
 
 -- Source parameters
-Ls = 25 -- [m]
-S0 = 7e22*nfac -- [m^-3 s^-1] jupyter nb recommends 
-P_src = 1e6
+Ls     = 25 -- [m]
+S0     = 7e22*nfac -- [m^-3 s^-1] jupyter nb recommends 
+P_src  = 1e6
 srcFac = 0.1
 
 -- Source profiles
@@ -87,16 +86,14 @@ nuElc = nuFrac*logLambdaElc*eV^4*n0/(6*math.sqrt(2)*math.pi^(3/2)*eps0^2*math.sq
 logLambdaIon = 6.6 - 0.5*math.log(n0/1e20) + 1.5*math.log(Ti0/eV)
 nuIon = nuFrac*logLambdaIon*eV^4*n0/(12*math.pi^(3/2)*eps0^2*math.sqrt(mi)*(Ti0)^(3/2))
 
---print(Lx/cs)
-
 sim = Plasma.App {
    logToFile = false,
 
-   tEnd        = 1e-7,  --1000/omega_pe,    -- End time.
+   tEnd        = 4e-7,  --1000/omega_pe,    -- End time.
    nFrame      = 1,                -- Number of output frames.
-   lower       = {-Lx/2},            -- Configuration space lower left.
-   upper       = {Lx/2}, -- Configuration space upper right.
-   cells       = {64},            -- Configuration space cells.
+   lower       = {-Lx/2},          -- Configuration space lower left.
+   upper       = { Lx/2},          -- Configuration space upper right.
+   cells       = {64},             -- Configuration space cells.
    basis       = "serendipity",    -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                -- Polynomial order.
    cflFrac     = 1,                -- CFL "fraction". Usually 1.0.
@@ -112,10 +109,10 @@ sim = Plasma.App {
     -- Electrons.
    elc = Plasma.Species {
       nDistFuncFrame = 10,
-      charge = qe, mass = me,
+      charge = qe,  mass = me,
       -- Velocity space grid.
       lower = {-4.0*vte, 0},
-      upper = {4.0*vte, 12*me*vte^2/(2*B0)},
+      upper = { 4.0*vte, 12*me*vte^2/(2*B0)},
       cells = {16, 8},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection{
@@ -148,30 +145,26 @@ sim = Plasma.App {
       evolve = true, -- Evolve species?
       coll = Plasma.LBOCollisions {
          collideWith = {'elc', 'ion'},
-         nuFrac = 0.1,
+         nuFrac      = 0.1,
 	 --frequencies = {nuElc},
       },
-      diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
-      diagnosticBoundaryFluxMoments = {"GkM0", "GkUpar"},
-      diagnosticIntegratedBoundaryFluxMoments = {"intM0"},
       ionization = Plasma.Ionization {
-      	 collideWith  = {"neut"},
-      	 electrons    = "elc",
-      	 neutrals     = "neut",
-      	 elemCharge   = eV, 
-      	 elcMass      = me,
-      	 plasma       = "H",         
+      	 collideWith = {"neut"},  elemCharge   = eV, 
+         electrons   = "elc",     elcMass      = me,
+      	 neutrals    = "neut",    plasma       = "H",         
       },
-      bcx = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
+      bcx = {Plasma.SheathBC{diagnostics={"M0","Upar","intM0"}},
+             Plasma.SheathBC{diagnostics={"M0","Upar","intM0"}}},
    },
 
    -- Ions
    ion = Plasma.Species {
       nDistFuncFrame = 10,
-      charge = qi, mass = mi,
+      charge = qi,  mass = mi,
       -- Velocity space grid.
       lower = {-4.0*vti, 0},
-      upper = {4.0*vti, 12*mi*vti^2/(2*B0)},
+      upper = { 4.0*vti, 12*mi*vti^2/(2*B0)},
       cells = {16, 8},
       decompCuts = {1},
       -- Initial conditions.
@@ -205,38 +198,31 @@ sim = Plasma.App {
       evolve = true,
       coll = Plasma.LBOCollisions {
          collideWith = {'ion','elc'},
-         nuFrac = 0.1,
+         nuFrac      = 0.1,
 	 --frequencies = {nuIon},
       },
-      diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
-      diagnosticBoundaryFluxMoments = {"GkM0", "GkUpar"},
-      diagnosticIntegratedBoundaryFluxMoments = {"intM0"},
       ionization = Plasma.Ionization {
-      	 collideWith  = {"neut"},
-      	 electrons    = "elc",
-      	 neutrals     = "neut",
-      	 elemCharge   = eV,
-      	 elcMass      = me,
-      	 plasma       = "H",
+      	 collideWith = {"neut"},  elemCharge = eV,
+      	 electrons   = "elc",     elcMass    = me,
+      	 neutrals    = "neut",    plasma     = "H",
       },
       chargeExchange = Plasma.ChargeExchange {
-      	 collideWith = {"neut"},
-      	 ions = "ion",
-      	 neutrals = "neut",
-      	 ionMass = mi,
-      	 neutMass = mi,
-      	 plasma = "H",
-      	 charge = qi,
+      	 collideWith = {"neut"},  neutMass = mi,
+      	 ions        = "ion",     plasma   = "H",
+      	 neutrals    = "neut",    charge   = qi,
+      	 ionMass     = mi,
       },
-      bcx = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
+      bcx = {Plasma.SheathBC{diagnostics={"M0","Upar","intM0"}},
+             Plasma.SheathBC{diagnostics={"M0","Upar","intM0"}}},
    },
 
    neut = Plasma.Vlasov {
       nDistFuncFrame = 10,
-      charge = 0.0, mass = mi,
+      charge = 0.0,  mass = mi,
       -- Velocity space grid
       lower = {-4.0*vti, -4.0*vti, -4.0*vti},
-      upper = {4.0*vti, 4.0*vti, 4.0*vti},
+      upper = { 4.0*vti,  4.0*vti,  4.0*vti},
       cells = {8, 8, 8},
       decompCuts = {1},
       init = Plasma.VmMaxwellianProjection {
@@ -263,44 +249,40 @@ sim = Plasma.App {
       },
       evolve = true,
       source = Plasma.VmMaxwellianProjection {
-       density = sourceDensityNeut,
-       driftSpeed = function (t, xn)
-          return {0,0,0}
-       end,
-       temperature = function (t, xn)
-          return 10*eV
-       end,
+         density = sourceDensityNeut,
+         driftSpeed = function (t, xn)
+            return {0,0,0}
+         end,
+         temperature = function (t, xn)
+            return 10*eV
+         end,
       },
       -- coll = Plasma.VmBGKCollisions {
       --    collideWith = {'neut'},
       -- 	 frequencies = {1e6},
       -- },
-      bcx = {Plasma.Vlasov.bcRecycle, Plasma.Vlasov.bcRecycle},
-      recycleTemp = 10*eV,
-      recycleFrac = 0.5,
-      recycleIon = "ion",
-      recycleTime = .5e-3,
-      diagnostics = { "M0", "Udrift", "VtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal"},
-      diagnosticBoundaryFluxMoments = {"M0"},
-      diagnosticIntegratedFluxMoments = {"M0"},
-      diagnosticIntegratedBoundaryFluxMoments = {"intM0"},
       ionization = Plasma.Ionization {
-      	 collideWith  = {"elc"},
-      	 electrons    = "elc",
-      	 neutrals     = "neut",
-      	 elemCharge   = eV, 
-      	 elcMass      = me,
-      	 plasma       = "H",         
+      	 collideWith = {"elc"},  elemCharge = eV,
+      	 electrons   = "elc",    elcMass    = me,
+      	 neutrals    = "neut",   plasma     = "H",
       },
       chargeExchange = Plasma.ChargeExchange {
-      	 collideWith = {"ion"},
-      	 ions = "ion",
-      	 neutrals = "neut",
-      	 ionMass = mi,
-      	 neutMass = mi,
-      	 plasma = "H",
-      	 charge = 0,
+      	 collideWith = {"ion"},	 neutMass = mi,
+      	 ions        = "ion",  	 plasma   = "H",
+      	 neutrals    = "neut", 	 charge   = 0,
+      	 ionMass     = mi,
       },
+      diagnostics = { "M0", "Udrift", "VtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal"},
+      bcx = {Plasma.NeutralRecyclingBC{
+                recycleTemp = 10*eV,  recycleIon  = "ion",
+                recycleFrac = 0.5,    recycleTime = .5e-3,
+                diagnostics = {"M0","intM0","recycleCoef","recycleDistF"},
+             },
+             Plasma.NeutralRecyclingBC{
+                recycleTemp = 10*eV,  recycleIon  = "ion",
+                recycleFrac = 0.5,    recycleTime = .5e-3,
+                diagnostics = {"M0","intM0","recycleCoef","recycleDistF"},
+             }},
    },
    
    -- Field solver.
@@ -311,14 +293,14 @@ sim = Plasma.App {
       kperp2 = kmin*kmin,
    },
 
-      -- Magnetic geometry.
+   -- Magnetic geometry.
    funcField = Plasma.Geometry {
-      -- background magnetic field
+      -- Background magnetic field.
       bmag = function (t, xn)
          local x = xn[1]
          return B0
       end,
-      -- geometry is not time-dependent
+      -- Geometry is not time-dependent.
       evolve = false,
    },
 }
