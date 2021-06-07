@@ -355,9 +355,18 @@ plasmaApp = Plasma.App {
       },
 
       -- Boundary conditions.
-      bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}},
-      bcz = {Plasma.ReflectBC{}, Plasma.ReflectBC{}},
-
+      bcx = {Plasma.VmAbsorbBC{}, Plasma.VmReflectBC{}},
+      bcz = {Plasma.NeutralRecyclingBC{
+                recycleTemp = 10*eV,  recycleIon  = "ion",
+                recycleFrac = 0.5,    recycleTime = .5e-3,
+                diagnostics = {"M0","intM0","recycleCoef","recycleDistF"},
+             },
+             Plasma.NeutralRecyclingBC{
+                recycleTemp = 10*eV,  recycleIon  = "ion",
+                recycleFrac = 0.5,
+                diagnostics = {"M0","intM0","recycleCoef","recycleDistF"},
+             }},
+      
       -- Diagnostics.
       diagnostics = { "M0", "Udrift", "VtSq"},
 --      diagnostics = { "M0", "Udrift", "VtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal"},
