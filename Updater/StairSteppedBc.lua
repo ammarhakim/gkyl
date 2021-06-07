@@ -1,11 +1,10 @@
-----------------------------------------------------------------------
--- Updter to apply boundary conditions at stair-stepped boundaries. --
-----------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- Updter to apply boundary conditions at stair-stepped, embedded boundaries. --
+--------------------------------------------------------------------------------
+local Proto = require "Lib.Proto"
+local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
 local LinearDecomp = require "Lib.LinearDecomp"
-local Proto = require "Lib.Proto"
-local Range = require "Lib.Range"
-local UpdaterBase = require "Updater.Base"
 
 local isGhost = function(inOutPtr) return inOutPtr[1] < 0 end
 
@@ -23,8 +22,10 @@ function StairSteppedBc:init(tbl)
    self._inOut = assert(tbl.inOut,
                         pfx .. "Must specify mask field with 'inOut'.")
 
+   local localRange = self._grid:localRange()
+   local localPerpRange = localRange:shorten(self._dir)
    self._perpRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = self._grid:localRange():shorten(self._dir),
+      range = localPerpRange,
       numSplit = self._grid:numSharedProcs(),
       threadComm = self:getSharedComm()
    }
@@ -33,9 +34,12 @@ end
 function StairSteppedBc:_advance(tCurr, inFld, outFld)
    local qOut = assert(outFld[1],
                        "StairSteppedBc.advance: Must-specify an output field")
+   local inOut = self._inOut
    local grid = self._grid
    local dir = self._dir
+
    local localRange = grid:localRange()
+   local lower, upper = localRange:lower(dir), localRange:upper(dir)
 
    -- Pointer and indices to be reused.
    local qGhost, qSkin = qOut:get(1), qOut:get(1)
@@ -43,21 +47,20 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
    local idxR = Lin.IntVec(grid:ndim())
    local indexer = qOut:genIndexer()
 
-   local inOut = self._inOut
    local inOutL, inOutR = inOut:get(1), inOut:get(1)
    local inOutIndexer = inOut:genIndexer()
 
-   local xcSkin = Lin.Vec(self._grid:ndim())
-   local xcGhost = Lin.Vec(self._grid:ndim())
+   local xcSkin = Lin.Vec(grid:ndim())
+   local xcGhost = Lin.Vec(grid:ndim())
 
-   -- Loop over directions orthogonal to 'dir'.
-   local tId = self._grid:subGridSharedId()
+   -- Loop over directions perpendicular to 'dir'.
+   local tId = grid:subGridSharedId()
    for idx in self._perpRangeDecomp:colMajorIter(tId) do
       idx:copyInto(idxL)
       idx:copyInto(idxR)
 
       -- Loop over 1D slice in `dir`.
-      for i = localRange:lower(dir) - 1, localRange:upper(dir) + 1 do
+      for i = lower - 1, upper + 1 do
          idxL[dir] = i
          inOut:fill(inOutIndexer(idxL), inOutL)
          local leftCellIsGhost = isGhost(inOutL)
@@ -78,12 +81,12 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
             end
 
             qOut:fill(indexer(idxGhost), qGhost)
-            self._grid:setIndex(idxGhost)
-            self._grid:cellCenter(xcGhost)
+            grid:setIndex(idxGhost)
+            grid:cellCenter(xcGhost)
 
             qOut:fill(indexer(idxSkin), qSkin)
-            self._grid:setIndex(idxSkin)
-            self._grid:cellCenter(xcSkin)
+            grid:setIndex(idxSkin)
+            grid:cellCenter(xcSkin)
 
             for _, bc in ipairs(self._bcList) do
                bc(dir, tCurr, idxSkin, qSkin, qGhost, xcGhost, xcSkin)
