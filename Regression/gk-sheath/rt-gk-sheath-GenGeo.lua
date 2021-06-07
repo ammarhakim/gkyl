@@ -156,8 +156,6 @@ plasmaApp = Plasma.App {
       evolve = true, -- Evolve species?
       --applyPositivity = true,
       diagnostics = {"M0", "Upar", "Temp", "Beta", "intM0", "intM1", "intEnergy"}, 
-      diagnosticBoundaryFluxMoments = {},
-      diagnosticIntegratedBoundaryFluxMoments = {},
       randomseed = randomseed,
       bcx = {Plasma.ZeroFluxBC{}, Plasma.ZeroFluxBC{}},
       bcz = {Plasma.SheathBC{diagnostics={"M0","Upar","Temp","Beta","Energy","intM0","intM1","intKE","intEnergy"}},
