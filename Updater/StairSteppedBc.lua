@@ -73,21 +73,22 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
          local ghostSkin = leftCellIsGhost and (not rightCellIsGhost)
          local skinGhost = (not leftCellIsGhost) and rightCellIsGhost
 
-         local idxSkin
          if ghostSkin or skinGhost then
+            local idxGhost, idxSkin
             if (ghostSkin) then
-               qOut:fill(indexer(idxL), qGhost)
-               qOut:fill(indexer(idxR), qSkin)
-               self._grid:setIndex(idxL);  self._grid:cellCenter(xcGhost);
-               self._grid:setIndex(idxR);  self._grid:cellCenter(xcSkin);
-               idxSkin = idxR
-            else
-               qOut:fill(indexer(idxR), qGhost)
-               qOut:fill(indexer(idxL), qSkin)
-               self._grid:setIndex(idxL);  self._grid:cellCenter(xcSkin);
-               self._grid:setIndex(idxR);  self._grid:cellCenter(xcGhost);
-               idxSkin = idxL
+               idxGhost, idxSkin = idxL, idxR
+            else -- ghostSkin
+               idxGhost, idxSkin = idxR, idxL
             end
+
+            qOut:fill(indexer(idxGhost), qGhost)
+            self._grid:setIndex(idxGhost)
+            self._grid:cellCenter(xcGhost)
+
+            qOut:fill(indexer(idxSkin), qSkin)
+            self._grid:setIndex(idxSkin)
+            self._grid:cellCenter(xcSkin)
+
             for _, bc in ipairs(self._bcList) do
                bc(dir, tCurr, idxSkin, qSkin, qGhost, xcGhost, xcSkin)
             end
