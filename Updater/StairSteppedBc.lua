@@ -26,7 +26,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 -- Boundary condition updater
 local StairSteppedBc = Proto(UpdaterBase)
 
-local isOutside = function (inOutPtr)
+local isGhost = function (inOutPtr)
    return inOutPtr[1] < 0
 end
 
@@ -63,7 +63,7 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
    end
 
    -- get pointers to (re)use inside inner loop [G: Ghost, S: Skin]
-   local qG, qS  = qOut:get(1), qOut:get(1)
+   local qGhost, qSkin = qOut:get(1), qOut:get(1)
    local idxL    = Lin.IntVec(grid:ndim())
    local idxR    = Lin.IntVec(grid:ndim())
    local indexer = qOut:genIndexer()
@@ -86,31 +86,33 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
       -- loop over edges
       for i = localRange:lower(dir)-1, localRange:upper(dir)+1 do
          idxL[dir] = i
-         idxR[dir] = i + 1
          inOut:fill(inOutIdxr(idxL), inOutL)
+         local leftCellIsGhost = isGhost(inOutL)
+
+         idxR[dir] = i + 1
          inOut:fill(inOutIdxr(idxR), inOutR)
-         local isOutsideL = isOutside(inOutL)
-         local isOutsideR = isOutside(inOutR)
-         local isGhostL =  isOutsideL and not isOutsideR
-         local isGhostR = not isOutsideL and isOutsideR
+         local rightCellIsGhost = isGhost(inOutR)
+
+         local ghostSkin = leftCellIsGhost and (not rightCellIsGhost)
+         local skinGhost = (not leftCellIsGhost) and rightCellIsGhost
 
          local idxIn
-         if isGhostL or isGhostR then
-            if (isGhostL) then
-               qOut:fill(indexer(idxL), qG)
-               qOut:fill(indexer(idxR), qS)
+         if ghostSkin or skinGhost then
+            if (ghostSkin) then
+               qOut:fill(indexer(idxL), qGhost)
+               qOut:fill(indexer(idxR), qSkin)
                self._grid:setIndex(idxL);  self._grid:cellCenter(xcOut);
                self._grid:setIndex(idxR);  self._grid:cellCenter(xcIn);
                idxIn = idxR
             else
-               qOut:fill(indexer(idxR), qG)
-               qOut:fill(indexer(idxL), qS)
+               qOut:fill(indexer(idxR), qGhost)
+               qOut:fill(indexer(idxL), qSkin)
                self._grid:setIndex(idxL);  self._grid:cellCenter(xcIn);
                self._grid:setIndex(idxR);  self._grid:cellCenter(xcOut);
                idxIn = idxL
             end
             for _, bc in ipairs(self._bcList) do
-               bc(dir, tCurr, idxIn, qS, qG, xcOut, xcIn)
+               bc(dir, tCurr, idxIn, qSkin, qGhost, xcOut, xcIn)
             end
          end
       end
