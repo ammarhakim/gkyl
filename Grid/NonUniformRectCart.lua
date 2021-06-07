@@ -163,6 +163,7 @@ function NonUniformRectCart:write(fName, tmStamp, metaData)
       cells = cells,
       decomposition = self.decomp,
    }
+   grid.id = function () return self:id() end
    local nodalCoords = DataStruct.Field {
       onGrid        = grid,
       numComponents = self:ndim(),
