@@ -360,7 +360,7 @@ local function buildApplication(self, tbl)
 	    s:advance(0, species, {field, externalField}, 1, 2)
 	 end
          s:setDtGlobal(dtLast[1])
-	 rTime = s:readRestart()
+	 rTime = s:readRestart(field, externalField)
       end
       return rTime
    end
