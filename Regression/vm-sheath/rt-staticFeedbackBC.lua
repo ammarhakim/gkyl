@@ -33,8 +33,8 @@ end
 sim = Plasma.App {
    logToFile = false,
 
-   tEnd        = 10/omega_pe,       -- End time.
-   nFrame      = 1,                 -- Number of output frames.
+   tEnd        = 10/omega_pe,        -- End time.
+   nFrame      = 1,                  -- Number of output frames.
    lower       = {0.0},              -- Configuration space lower left.
    upper       = {128.0*lambda_D},   -- Configuration space upper right.
    cells       = {128},              -- Configuration space cells.
@@ -64,16 +64,16 @@ sim = Plasma.App {
 	 return maxwellian(n_e, 0.0, vth_e, v)
       end,
       evolve = true,   -- Evolve species?
-      bcx = { Plasma.Species.bcReflect,
-              function(t, z, M0, M1, M2)
-		 local vth = vth_e
-		 return M1/(vth^2)*math.exp(-(z[2])^2/(2*vth*vth))
-	      end 
+      bcx = { Plasma.ReflectBC{},
+              Plasma.BasicBC{bcFunction = function(t, z, M0, M1, M2)
+                                local vth = vth_e
+                                return M1/(vth^2)*math.exp(-(z[2])^2/(2*vth*vth))
+                             end,
+                             feedback = true,}
 	    },
       feedbackBC = true,
       evolveBC   = true,
-      diagnosticMoments = { "M0", "M1i", "M2", "M3i", "vtSq", "u" },
-      diagnosticIntegratedMoments = {"intM0", "intM1i", "intM2Flow", "intM2Thermal" },
+      diagnostics = { "M0", "M1i", "M2", "M3i", "VtSq", "Udrift", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
    },
 
    -- Ions.
@@ -90,9 +90,9 @@ sim = Plasma.App {
 	 return maxwellian(n_i, 0.0, vth_i, v)
       end,
       evolve = true,   -- Evolve species?
-      bcx = { Plasma.Species.bcReflect,
-              Plasma.Species.bcAbsorb },
-      diagnosticMoments = { "M0", "M1i", "M2", "M3i" },
+      bcx = { Plasma.ReflectBC{},
+              Plasma.AbsorbBC{}},
+      diagnostics = { "M0", "M1i", "M2", "M3i" },
    },
    
    -- Field solver.

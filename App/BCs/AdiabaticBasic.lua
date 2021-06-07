@@ -29,6 +29,9 @@ function AdiabaticBasicBC:fullInit(speciesTbl)
    self.saveFlux    = tbl.saveFlux or false
 end
 
+function AdiabaticBasicBC:setConfBasis(basis) self.basis = basis end
+function AdiabaticBasicBC:setConfGrid(grid) self.grid = grid end
+
 function AdiabaticBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
    -- The idea is that by setting the plasma quantities to zero in the
    -- ghost cell nothing is transported into the domain, and whatever is transported
@@ -37,7 +40,7 @@ function AdiabaticBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
    for i = 1, self.basis:numBasis() do fOut[i] = 1.e-10*fIn[i] end   -- Density.
 end
 
-function AdiabaticBasicBC:createSolver(mySpecies)
+function AdiabaticBasicBC:createSolver(mySpecies, field, externalField)
    local bcFunc, skinType
    if self.bcKind == "copy" then
       bcFunc   = function(...) return self:bcCopy(...) end
@@ -57,8 +60,9 @@ function AdiabaticBasicBC:createSolver(mySpecies)
    }
 end
 
-function AdiabaticBasicBC:advance(tCurr, species, inFlds)
-   self.bcSolver:advance(tCurr, {}, inFlds)
+function AdiabaticBasicBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
+   local fIn = mySpecies:rkStepperFields()[outIdx]
+   self.bcSolver:advance(tCurr, {fIn}, {fIn})
 end
 
 return AdiabaticBasicBC

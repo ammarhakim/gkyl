@@ -16,6 +16,7 @@ local lume       = require "Lib.lume"
 local Mpi        = require "Comm.Mpi"
 local ffi        = require "ffi"
 local xsys       = require "xsys"
+local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 
 local new, copy = xsys.from(ffi,"new, copy")
 
@@ -33,7 +34,7 @@ local function orgDiagnostics(diagsImpl, diagsTbl, diagGroups)
    local function checkNinsertDependencies(diagNm, impl, diags)
       local depends = impl[diagNm]:getDependencies()
       -- Loop over dependencies and check if they are in table. If not, include them.
-      for depI, depNm in ipairs(depends) do
+      for _, depNm in ipairs(depends) do
          if diags[depNm]==nil then
             if contains(impl, depNm) then
                diags[depNm] = impl[depNm]
@@ -43,7 +44,10 @@ local function orgDiagnostics(diagsImpl, diagsTbl, diagGroups)
          end
       end
    end
-   for nm, _ in pairs(diagsTbl) do checkNinsertDependencies(nm, diagsImpl, diagsTbl) end
+
+   local diagsCurr = {}  -- Need a proxy table to create the iterator below, since diagsTbl will change.
+   for nm, _ in pairs(diagsTbl) do table.insert(diagsCurr, nm) end
+   for _, nm in ipairs(diagsCurr) do checkNinsertDependencies(nm, diagsImpl, diagsTbl) end
 
    local function sortDiagsTbl(impl, diagList)
       -- Create a keys list so we always loop in the same order.
@@ -66,10 +70,13 @@ local function orgDiagnostics(diagsImpl, diagsTbl, diagGroups)
       -- Need to sync this order across MPI ranks.
       local myOrder, delim = "", ","
       for _, v in ipairs(diagList) do myOrder=myOrder..v..delim end
-      if string.len(myOrder) > 0 then
-         local Cstr = new("char [?]", string.len(myOrder))
+      local myOrderLen = string.len(myOrder)
+      if myOrderLen > 0 then
+         -- MF 2021/05/26: without the +1 here I've seen randomly ocurring seg faults.
+         local Cstr = new("char [?]", myOrderLen+1)
          ffi.copy(Cstr, myOrder)
-         Mpi.Bcast(Cstr, string.len(myOrder)+1, Mpi.CHAR, 0, Mpi.COMM_WORLD)
+         -- An extra element is counted here (the null character at the end of a string? read online).
+         Mpi.Bcast(Cstr, myOrderLen+2, Mpi.CHAR, 0, Mpi.COMM_WORLD)
          myOrder = ffi.string(Cstr)
          local newList = {}
          for nm in string.gmatch(myOrder, "(.-)"..delim) do table.insert(newList, nm) end
@@ -84,7 +91,7 @@ local SpeciesDiagnostics = Proto()
 
 function SpeciesDiagnostics:init(tbl) self.tbl = tbl end
 
-function SpeciesDiagnostics:fullInit(mySpecies, diagOwner)
+function SpeciesDiagnostics:fullInit(mySpecies, field, diagOwner)
 
    local diagsImpl = assert(self.tbl.implementation,
       "SpeciesDiagnostics: must specify the implementation of the diagnostics in 'implementation'.")
@@ -94,6 +101,13 @@ function SpeciesDiagnostics:fullInit(mySpecies, diagOwner)
    self.diags = {}  -- Grid and integrated diagnostics.
    self.diagGroups = {grid={}, integrated={}}  -- Names of requested diags of each kind.
    lume.setOrder(self.diagGroups)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
+
+   -- Option to write grid and integrated diagnostics in two files, instead of every diagnostic having a file.
+   self.inTwoFiles = false
+   if lume.any(diagOwner.tbl.diagnostics, function(e) return e=="twoFiles" end) then
+      lume.remove(diagOwner.tbl.diagnostics,"twoFiles")
+      self.inTwoFiles = true
+   end
 
    -- Sort requested diagnostics into grid and integrated diagnostics.
    for _, nm in ipairs(diagOwner.tbl.diagnostics) do
@@ -111,7 +125,56 @@ function SpeciesDiagnostics:fullInit(mySpecies, diagOwner)
 
    -- Initialize diagnostics.
    for _, dG in pairs(self.diagGroups) do
-      for _, diagNm in ipairs(dG) do self.diags[diagNm]:fullInit(self, mySpecies, diagOwner) end
+      for _, diagNm in ipairs(dG) do self.diags[diagNm]:fullInit(self, mySpecies, field, diagOwner) end
+   end
+
+   self.writeGhost = xsys.pickBool(diagOwner.writeGhost, false)
+
+   -- Pre-define methods for writing diagnostics to two files only (grid and integrated)
+   -- or to write each diagnostic to its own file.
+   -- MF 2021/06/06: Writing all integrated diagnostics to a single file is currently not available.
+   if self.inTwoFiles then
+      self.gridDiagsToWrite = {}
+      self.ioMethod = "MPI"
+      local elemType
+      for _, diagNm in ipairs(self.diagGroups["grid"]) do
+         local diag = self.diags[diagNm]
+         local fldElemType = diag.field:elemType()
+         elemType = elemType or fldElemType
+         assert(elemType==fldElemType, "SpeciesDiagnostics: elemType of all diagnostics must be the same.")
+      end
+      self.diagIo = AdiosCartFieldIo {
+         elemType   = elemType,
+         method     = self.ioMethod,
+         writeGhost = self.writeGhost,
+         metaData   = {polyOrder = mySpecies.basis:polyOrder(),
+                       basisType = mySpecies.basis:id(),},
+      }
+      self.writeFunc = function(tm, fr)
+         SpeciesDiagnostics["writeGridDiagnostics_oneFile"](self, tm, fr)
+         SpeciesDiagnostics["writeIntegratedDiagnostics_separateFiles"](self, tm, fr)
+      end
+      self.writeRestartFunc = function(tm, gridFr, intFr)
+         SpeciesDiagnostics["writeRestartGridDiagnostics_oneFile"](self, tm, gridFr)
+
+         -- Write restart files for integrated moments. Note: these are only needed for the rare case that the
+         -- restart write frequency is higher than the normal write frequency from nFrame.
+         -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
+         SpeciesDiagnostics["writeRestartIntegratedDiagnostics_separateFiles"](self, tm, intFr)
+      end
+   else
+      self.writeFunc = function(tm, fr)
+         SpeciesDiagnostics["writeGridDiagnostics_separateFiles"](self, tm, fr)
+         SpeciesDiagnostics["writeIntegratedDiagnostics_separateFiles"](self, tm, fr)
+      end
+      self.writeRestartFunc = function(tm, gridFr, intFr)
+         SpeciesDiagnostics["writeRestartGridDiagnostics_separateFiles"](self, tm, gridFr)
+
+         -- Write restart files for integrated moments. Note: these are only needed for the rare case that the
+         -- restart write frequency is higher than the normal write frequency from nFrame.
+         -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
+         SpeciesDiagnostics["writeRestartIntegratedDiagnostics_separateFiles"](self, tm, intFr)
+      end
    end
 
    self.spentTime = { gridDiags=0., intDiags=0. }
@@ -174,47 +237,65 @@ function SpeciesDiagnostics:calcGridDiagnostics(tm, mySpecies)
    self.spentTime.gridDiags = self.spentTime.gridDiags + Time.clock() - tmStart
 end
 
-function SpeciesDiagnostics:writeGridDiagnostics(tm, fr)
+function SpeciesDiagnostics:writeGridDiagnostics_separateFiles(tm, fr)
+   -- Write each grid diagnostic to its own file.
    for _, diagNm in ipairs(self.diagGroups["grid"]) do 
       local diag = self.diags[diagNm]
-      diag.field:write(string.format("%s_%s_%d.bp", self.name, diagNm, fr), tm, fr)
+      diag.field:write(string.format("%s_%s_%d.bp", self.name, diagNm, fr), tm, fr, self.writeGhost)
    end
 end
-
-function SpeciesDiagnostics:writeIntegratedDiagnostics(tm, fr)
+function SpeciesDiagnostics:writeIntegratedDiagnostics_separateFiles(tm, fr)
+   -- Write each integrated diagnostic to its own file.
    for _, diagNm in ipairs(self.diagGroups["integrated"]) do 
       local diag = self.diags[diagNm]
       diag.field:write(string.format("%s_%s.bp", self.name, diagNm), tm, fr)
    end
 end
 
-function SpeciesDiagnostics:write(tm, fr)
-   self:writeGridDiagnostics(tm, fr)
-   self:writeIntegratedDiagnostics(tm, fr)
+function SpeciesDiagnostics:writeGridDiagnostics_oneFile(tm, fr)
+   -- Write all grid diagnostic to a single file.
+   for _, diagNm in ipairs(self.diagGroups["grid"]) do 
+      self.gridDiagsToWrite[diagNm] = self.diags[diagNm].field
+   end
+   self.diagIo:write(self.gridDiagsToWrite, string.format("%s_gridDiagnostics_%d.bp", self.name, fr), tm, fr, self.writeGhost)
+end
+function SpeciesDiagnostics:writeIntegratedDiagnostics_oneFile(tm, fr)
+   -- Write all integrated diagnostic to a single file.
+   -- MF 2021/06/01: Not yet available because I think we haven't done this for DynVectors.
+   assert(false, "SpeciesDiagnostics:writeIntegratedDiagnostics_oneFile not ready.")
 end
 
-function SpeciesDiagnostics:writeRestartGridDiagnostics(tm, fr)
+function SpeciesDiagnostics:write(tm, fr) self.writeFunc(tm, fr) end
+
+function SpeciesDiagnostics:writeRestartGridDiagnostics_separateFiles(tm, fr)
+   -- Write a restart file for each grid diagnostic.
    for _, diagNm in ipairs(self.diagGroups["grid"]) do 
       local diag = self.diags[diagNm]
       diag.field:write(string.format("%s_%s_restart.bp", self.name, diagNm), tm, fr, false)
    end
 end
-
-function SpeciesDiagnostics:writeRestartIntegratedDiagnostics(tm, fr)
+function SpeciesDiagnostics:writeRestartIntegratedDiagnostics_separateFiles(tm, fr)
+   -- Write a restart file for each integrated diagnostic.
    for _, diagNm in ipairs(self.diagGroups["integrated"]) do 
       local diag = self.diags[diagNm]
       diag.field:write(string.format("%s_%s_restart.bp", self.name, diagNm), tm, fr, false, false)
    end
 end
 
-function SpeciesDiagnostics:writeRestart(tm, gridFr, intFr)
-   self:writeRestartGridDiagnostics(tm, gridFr)
-
-   -- Write restart files for integrated moments. Note: these are only needed for the rare case that the
-   -- restart write frequency is higher than the normal write frequency from nFrame.
-   -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
-   self:writeRestartIntegratedDiagnostics(tm, intFr)
+function SpeciesDiagnostics:writeRestartGridDiagnostics_oneFile(tm, fr)
+   -- Write a single restart file for all grid diagnostics.
+   for _, diagNm in ipairs(self.diagGroups["grid"]) do 
+      self.gridDiagsToWrite[diagNm] = self.diags[diagNm].field
+   end
+   self.diagIo:write(self.gridDiagsToWrite, string.format("%s_gridDiagnostics_restart.bp", self.name), tm, fr, false)
 end
+function SpeciesDiagnostics:writeRestartIntegratedDiagnostics_oneFile(tm, fr)
+   -- Write a single restart file for all integrated diagnostics.
+   -- MF 2021/06/01: Not yet available because I think we haven't done this for DynVectors.
+   assert(false, "SpeciesDiagnostics:writeRestartIntegratedDiagnostics_oneFile not ready.")
+end
+
+function SpeciesDiagnostics:writeRestart(tm, gridFr, intFr) self.writeRestartFunc(tm, gridFr, intFr) end
 
 function SpeciesDiagnostics:readRestart()
    local tm, fr

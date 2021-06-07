@@ -34,9 +34,20 @@ function GyrofluidBasicBC:fullInit(speciesTbl)
    self.bcKind      = assert(tbl.kind, "GyrofluidBasicBC: must specify the type of BC in 'kind'.")
    self.diagnostics = tbl.diagnostics or {}
    self.saveFlux    = tbl.saveFlux or false
+
+   self.saveFlux = tbl.saveFlux or false
+   self.anyDiagnostics = false
+   if tbl.diagnostics then
+      if #tbl.diagnostics>0 then
+         self.anyDiagnostics = true
+         self.saveFlux       = true
+      end
+   end
 end
 
 function GyrofluidBasicBC:setName(nm) self.name = self.speciesName.."_"..nm end
+function GyrofluidBasicBC:setConfBasis(basis) self.basis = basis end
+function GyrofluidBasicBC:setConfGrid(grid) self.grid = grid end
 
 function GyrofluidBasicBC:bcCopy(dir, tm, idxIn, fIn, fOut)
    for i = 1, self.nMoments*self.basis:numBasis() do fOut[i] = fIn[i] end
@@ -54,17 +65,7 @@ function GyrofluidBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
    for i = 1, numB do fOut[3*numB+i] = 1.e-10*fIn[3*numB+i] end   -- Perpendicular pressure (divided by B).
 end
 
-function GyrofluidBasicBC:getGhostRange(global, globalExt)
-   local lv, uv = globalExt:lowerAsVec(), globalExt:upperAsVec()
-   if self.bcEdge == "lower" then
-      uv[self.bcDir] = global:lower(self.bcDir)-1   -- For ghost cells on "left".
-   else
-      lv[self.bcDir] = global:upper(self.bcDir)+1   -- For ghost cells on "right".
-   end
-   return Range.Range(lv, uv)
-end
-
-function GyrofluidBasicBC:createSolver(mySpecies)
+function GyrofluidBasicBC:createSolver(mySpecies, field, externalField)
    local bcFunc, skinType
    if self.bcKind == "copy" then
       bcFunc   = function(...) return self:bcCopy(...) end
@@ -72,6 +73,8 @@ function GyrofluidBasicBC:createSolver(mySpecies)
    elseif self.bcKind == "absorb" then
       bcFunc   = function(...) return self:bcAbsorb(...) end
       skinType = "pointwise"
+   else
+      assert(false, "GyrofluidBasicBC: BC kind not recognized.")
    end
 
    self.bcSolver = Updater.Bc {
@@ -86,64 +89,15 @@ function GyrofluidBasicBC:createSolver(mySpecies)
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
    -- the fluxes through a boundary (e.g. neutral recycling).
    if self.saveFlux then
-      -- Create reduced boundary grid with 1 cell in dimension of self._dir.
-      if self.grid:isShared() then
-         assert(false, "GyrofluidBasicBC: shared memory implementation of boundary flux diagnostics not ready.")
-      else
-         local reducedLower, reducedUpper, reducedNumCells, reducedCuts = {}, {}, {}, {}
-         for d = 1, self.grid:ndim() do
-            if d==self.bcDir then
-               table.insert(reducedLower, -self.grid:dx(d)/2.)
-               table.insert(reducedUpper,  self.grid:dx(d)/2.)
-               table.insert(reducedNumCells, 1)
-               table.insert(reducedCuts, 1)
-            else
-               table.insert(reducedLower, self.grid:lower(d))
-               table.insert(reducedUpper, self.grid:upper(d))
-               table.insert(reducedNumCells, self.grid:numCells(d))
-               table.insert(reducedCuts, self.grid:cuts(d))
-            end
-         end
-         local commSet  = self.grid:commSet()
-         local worldComm, nodeComm = commSet.comm, commSet.nodeComm
-         local nodeRank = Mpi.Comm_rank(nodeComm)
-         local dirRank  = nodeRank
-         local cuts     = {}
-         for d=1,3 do cuts[d] = self.grid:cuts(d) or 1 end
-         local writeRank = -1
-         if self.bcDir == 1 then
-            dirRank = nodeRank % (cuts[1]*cuts[2]) % cuts[1]
-         elseif self.bcDir == 2 then
-            dirRank = math.floor(nodeRank/cuts[1]) % cuts[2]
-         elseif self.bcDir == 3 then
-            dirRank = math.floor(nodeRank/cuts[1]/cuts[2])
-         end
-         self._splitComm = Mpi.Comm_split(worldComm, dirRank, nodeRank)
-         -- Set up which ranks to write from.
-         if self.bcEdge == "lower" and dirRank == 0 then
-            writeRank = nodeRank
-         elseif self.bcEdge == "upper" and dirRank == self.grid:cuts(self.bcDir)-1 then
-            writeRank = nodeRank
-         end
-         self.writeRank = writeRank
-         local reducedDecomp = CartDecomp.CartProd {
-            comm      = self._splitComm,  cuts      = reducedCuts,
-            writeRank = writeRank,        useShared = self.grid:isShared(),
-         }
-         self.boundaryGrid = Grid.RectCart {
-            lower = reducedLower,  cells = reducedNumCells,
-            upper = reducedUpper,  decomposition = reducedDecomp,
-         }
-      end
+      -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
+      self:createBoundaryGrid()
 
       local moms = mySpecies:getMoments()
       -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
       self.allocCartField = function(self, grid, nComp, ghosts, metaData)
          local f = DataStruct.Field {
-            onGrid        = grid,
-            numComponents = nComp,
-            ghost         = ghosts,
-            metaData      = metaData,
+            onGrid        = grid,   ghost    = ghosts,
+            numComponents = nComp,  metaData = metaData,
          }
          f:clear(0.0)
          return f
@@ -201,17 +155,21 @@ function GyrofluidBasicBC:createSolver(mySpecies)
             self.boundaryFluxFields[outIdx]:accumulate(args[2*i-1], self.boundaryFluxFields[args[2*i]])
          end
       end
-      self.calcBoundaryFluxRateFunc = function(dtIn)
-         -- Compute boundary flux rate ~ (fGhost_new - fGhost_old)/dt.
-         self.boundaryFluxRate:combine( 1.0/dtIn, self.boundaryFluxFields[1],
-                                       -1.0/dtIn, self.boundaryFluxFieldPrev)
-         self.boundaryFluxFieldPrev:copy(self.boundaryFluxFields[1])
+      if not self.anyDiagnostics then
+         self.calcBoundaryFluxRateFunc = function(dtIn) end
+      else
+         self.calcBoundaryFluxRateFunc = function(dtIn)
+            -- Compute boundary flux rate ~ (fGhost_new - fGhost_old)/dt.
+            self.boundaryFluxRate:combine( 1.0/dtIn, self.boundaryFluxFields[1],
+                                          -1.0/dtIn, self.boundaryFluxFieldPrev)
+            self.boundaryFluxFieldPrev:copy(self.boundaryFluxFields[1])
+         end
       end
    else
-      self.storeBoundaryFluxFunc = function(tCurr, rkIdx, qOut) end
-      self.copyBoundaryFluxFieldFunc = function(inIdx, outIdx) end
+      self.storeBoundaryFluxFunc        = function(tCurr, rkIdx, qOut) end
+      self.copyBoundaryFluxFieldFunc    = function(inIdx, outIdx) end
       self.combineBoundaryFluxFieldFunc = function(outIdx, a, aIdx, ...) end
-      self.calcBoundaryFluxRateFunc = function(dtIn) end
+      self.calcBoundaryFluxRateFunc     = function(dtIn) end
    end
 end
 
@@ -228,24 +186,44 @@ function GyrofluidBasicBC:computeBoundaryFluxRate(dtIn)
    self.calcBoundaryFluxRateFunc(dtIn)
 end
 
-function GyrofluidBasicBC:createDiagnostics(mySpecies)
+function GyrofluidBasicBC:createDiagnostics(mySpecies, field)
    -- Create BC diagnostics.
    self.diagnostics = nil
    if self.tbl.diagnostics then
       self.diagnostics = DiagsApp{implementation = GyrofluidDiags()}
-      self.diagnostics:fullInit(mySpecies, self)
+      self.diagnostics:fullInit(mySpecies, field, self)
+      -- Presently boundary diagnostics are boundary flux diagnostics. Append 'flux' to the diagnostic's
+      -- name so files are named accordingly. Re-design this when non-flux diagnostics are implemented
+      self.diagnostics.name = self.diagnostics.name..'_flux'
    end
    return self.diagnostics
 end
 
 function GyrofluidBasicBC:getNoJacMoments() return self.boundaryFluxRate end  -- Used by diagnostics.
 
-function GyrofluidBasicBC:advance(tCurr, species, inFlds)
-   self.bcSolver:advance(tCurr, {}, inFlds)
+function GyrofluidBasicBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
+   local fIn = mySpecies:rkStepperFields()[outIdx]
+   self.bcSolver:advance(tCurr, {fIn}, {fIn})
 end
 
 function GyrofluidBasicBC:getBoundaryFluxFields()
    return self.boundaryFluxFields
 end
 
-return GyrofluidBasicBC
+-- ................... Classes meant as aliases to simplify input files ...................... --
+local GyrofluidAbsorbBC = Proto(GyrofluidBasicBC)
+function GyrofluidAbsorbBC:fullInit(mySpecies)
+   self.tbl.kind  = "absorb"
+   GyrofluidAbsorbBC.super.fullInit(self, mySpecies)
+end
+
+local GyrofluidCopyBC = Proto(GyrofluidBasicBC)
+function GyrofluidCopyBC:fullInit(mySpecies)
+   self.tbl.kind  = "copy"
+   GyrofluidCopyBC.super.fullInit(self, mySpecies)
+end
+-- ................... End of GyrofluidBasicBC alias classes .................... --
+
+return {GyrofluidBasic   = GyrofluidBasicBC,
+        GyrofluidAbsorb  = GyrofluidAbsorbBC,
+        GyrofluidCopy    = GyrofluidCopyBC,}

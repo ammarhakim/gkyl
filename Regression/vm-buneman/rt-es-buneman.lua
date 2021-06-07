@@ -51,7 +51,7 @@ plasmaApp = Plasma.App {
       end,
       evolve = true, -- evolve species?
 
-      diagnosticMoments = { "M0", "M1i", "M2" }
+      diagnostics = { "M0", "M1i", "M2" }
    },
 
    -- electrons
@@ -68,7 +68,7 @@ plasmaApp = Plasma.App {
       end,
       evolve = true, -- evolve species?
 
-      diagnosticMoments = { "M0", "M1i", "M2" }
+      diagnostics = { "M0", "M1i", "M2" }
    },   
 
    -- field solver

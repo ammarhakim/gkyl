@@ -87,8 +87,7 @@ plasmaApp = Plasma.App {
       end,
       -- Evolve species?
       evolve = true,
-      -- Diagnostic moments.
-      diagnosticMoments = { "M0", "M1i", "M2" },
+      diagnostics = { "M0", "M1i", "M2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'square'},
@@ -123,8 +122,7 @@ plasmaApp = Plasma.App {
       end,
       -- Evolve species?
       evolve = true,
-      -- Diagnostic moments.
-      diagnosticMoments = { "M0", "M1i", "M2" },
+      diagnostics = { "M0", "M1i", "M2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},

@@ -453,8 +453,8 @@ plasmaApp = Plasma.App {
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
 --      bcx = {Plasma.Species.bcAbsorb, Plasma.Species.bcAbsorb},
-      bcx = {Plasma.BasicBC{kind="absorb", diagnostics={"M0"}, saveFlux=true},
-             Plasma.BasicBC{kind="absorb", diagnostics={"M0"}, saveFlux=true}},
+      bcx = {Plasma.BasicBC{kind="absorb", diagnostics={"M0","M2flow"}},
+             Plasma.BasicBC{kind="absorb", diagnostics={"M0","M2flow"}}},
    },
 
    -- Gyrofluid electronss.
@@ -515,7 +515,7 @@ plasmaApp = Plasma.App {
          density                  = srcDenIon,
          parallelTemperature      = srcTempIon,
          perpendicularTemperature = srcTempIon,
---         diagnostics              = {"intSrc"},
+         diagnostics              = {"intSrc"},
       },
       coll = Plasma.PASCollisions {
          collideWith = {'ion'},

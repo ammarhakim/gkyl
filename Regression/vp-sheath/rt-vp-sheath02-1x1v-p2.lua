@@ -66,11 +66,9 @@ sim = Plasma.App {
          end
       },
       evolve = true, -- Evolve species?
-      bcx = { Plasma.Species.bcAbsorb,
-	      Plasma.Species.bcReflect },
-      diagnosticMoments = { "M0", "M1i", "M2" },
-      diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2" },
-      diagnosticIntegratedBoundaryFluxMoments = { "intM0", "intM1i", "intM2" },
+      bcx = { Plasma.AbsorbBC{diagnostics={"intM0", "intM1i", "intM2"}},
+	      Plasma.ReflectBC{diagnostics={"intM0", "intM1i", "intM2"}} },
+      diagnostics = { "M0", "M1i", "M2", "intM0", "intM1i", "intM2" },
    },
 
    ion = Plasma.Species {
@@ -92,11 +90,9 @@ sim = Plasma.App {
          end
       },
       evolve = true, -- Evolve species?
-      bcx = { Plasma.Species.bcAbsorb,
-	      Plasma.Species.bcReflect },
-      diagnosticMoments = { "M0", "M1i", "M2" },
-      diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2" },
-      diagnosticIntegratedBoundaryFluxMoments = { "intM0", "intM1i", "intM2" },
+      bcx = { Plasma.AbsorbBC{diagnostics={"intM0", "intM1i", "intM2"}},
+	      Plasma.ReflectBC{diagnostics={"intM0", "intM1i", "intM2"}} },
+      diagnostics = { "M0", "M1i", "M2", "intM0", "intM1i", "intM2" },
    },
    
    -- Field solver.

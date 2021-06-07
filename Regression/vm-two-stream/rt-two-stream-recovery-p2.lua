@@ -44,7 +44,7 @@ vlasovApp = Plasma.App {
       end,
       evolve = true, -- evolve species?
       numVelFlux = "recovery",
-      diagnosticMoments = { "M0", "M1i", "M2" },
+      diagnostics = { "M0", "M1i", "M2" },
       diff = Plasma.Diffusion {
          coefficient   = 1.0e-8,
          -- Optional inputs:

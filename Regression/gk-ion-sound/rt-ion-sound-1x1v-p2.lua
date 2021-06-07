@@ -18,10 +18,10 @@ B0      = 1.0
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = 15, -- End time.
-   nFrame      = 1,  -- Number of output frames.
+   tEnd        = 15,                 -- End time.
+   nFrame      = 1,                  -- Number of output frames.
    lower       = {-math.pi/knumber}, -- Configuration space lower left.
-   upper       = {math.pi/knumber},  -- Configuration space upper right.
+   upper       = { math.pi/knumber}, -- Configuration space upper right.
    cells       = {16},               -- Configuration space cells.
    basis       = "serendipity",      -- One of "serendipity" or "maximal-order".
    polyOrder   = 2,                  -- Polynomial order.
@@ -37,21 +37,16 @@ plasmaApp = Plasma.App {
 
    -- Gyrokinetic ions.
    ion = Plasma.Species {
-      charge = 1.0,
-      mass = 1.0,
+      charge = 1.0,  mass = 1.0,
       -- Velocity space grid.
       lower = {-6.0},
-      upper = {6.0},
+      upper = { 6.0},
       cells = {32},
       -- Initial conditions.
       -- Specify background so that we can plot perturbed distribution and moments.
       background = Plasma.MaxwellianProjection {
-         density = function (t, xn)
-            return ni0
-         end,
-         temperature = function (t, xn)
-            return Ti0
-         end,
+         density     = function (t, xn) return ni0 end,
+         temperature = function (t, xn) return Ti0 end,
       },
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
@@ -61,12 +56,10 @@ plasmaApp = Plasma.App {
             local perturb = alpha*math.cos(k*x)
             return ni0*(1+perturb)
          end,
-         temperature = function (t, xn)
-            return Ti0
-         end,
+         temperature = function (t, xn) return Ti0 end,
       },
       evolve = true, -- Evolve species?
-      diagnosticMoments = {"GkM0", "GkM2", perturbed = false},
+      diagnostics = {"M0", "M2"},
    },
 
    adiabaticElectron = Plasma.AdiabaticSpecies {
@@ -74,9 +67,7 @@ plasmaApp = Plasma.App {
       mass = 1.0,
       temp = Te0,
       -- Initial conditions.. use ion background so that background is exactly neutral.
-      init = function (t, xn)
-         return ne0
-      end,
+      init = function (t, xn) return ne0 end,
       evolve = false, -- Evolve species?
    },
 

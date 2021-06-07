@@ -16,7 +16,7 @@ local Updater        = require "Updater"
 local DataStruct     = require "DataStruct"
 local Time           = require "Lib.Time"
 local Constants      = require "Lib.Constants"
-local BasicBC        = require "App.BCs.GyrofluidBasic"
+local BasicBC        = require ("App.BCs.GyrofluidBasic").GyrofluidBasic
 local Lin            = require "Lib.Linalg"
 local xsys           = require "xsys"
 local lume           = require "Lib.lume"
@@ -25,17 +25,24 @@ local GyrofluidSpecies = Proto(FluidSpecies)
 
 -- ............. Backwards compatible treatment of BCs .....................-- 
 -- Add constants to object indicate various supported boundary conditions.
-local SP_BC_ABSORB = 1
-local SP_BC_COPY   = 6
-GyrofluidSpecies.bcAbsorb = SP_BC_ABSORB   -- Absorb all particles.
-GyrofluidSpecies.bcCopy   = SP_BC_COPY     -- Copy stuff.
+local SP_BC_ABSORB   = 1
+local SP_BC_ZEROFLUX = 5
+local SP_BC_COPY     = 6
+GyrofluidSpecies.bcAbsorb   = SP_BC_ABSORB     -- Absorb all particles.
+GyrofluidSpecies.bcCopy     = SP_BC_COPY       -- Copy stuff.
+GyrofluidSpecies.bcZeroFlux = SP_BC_ZEROFLUX   -- Zero flux.
 
 function GyrofluidSpecies:makeBcApp(bcIn)
    local bcOut
    if bcIn == SP_BC_COPY then
+      print("GyrofluidSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
       bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
    elseif bcIn == SP_BC_ABSORB then
+      print("GyrofluidSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
       bcOut = BasicBC{kind="absorb", diagnostics={}, saveFlux=false}
+   elseif bcIn == SP_BC_ZEROFLUX or bcIn.tbl.kind=="zeroFlux" then
+      bcOut = "zeroFlux"
+      table.insert(self.zeroFluxDirections, dir)
    end
    return bcOut
 end
@@ -50,7 +57,6 @@ function GyrofluidSpecies:fullInit(appTbl)
    self.kappaPar, self.kappaPerp = self.tbl.kappaPar, self.tbl.kappaPerp
 
    self.nMoments = 3+1
-   self.zeroFluxDirections = {}
 end
 
 function GyrofluidSpecies:alloc(nRkDup)
@@ -91,9 +97,15 @@ function GyrofluidSpecies:alloc(nRkDup)
    self.first = true
 end
 
-function GyrofluidSpecies:createSolver(hasPhi, hasApar, externalField)
+function GyrofluidSpecies:createSolver(field, externalField)
    -- Run the FluidSpecies 'createSolver()' to initialize the collisions solver.
-   GyrofluidSpecies.super.createSolver(self,externalField)
+   GyrofluidSpecies.super.createSolver(self, field, externalField)
+
+   local hasE, hasB       = field:hasEB()
+   local extHasE, extHasB = externalField:hasEB()
+
+   local hasPhi  = hasE or extHasE
+   local hasApar = hasB or extHasB
 
    -- Set up Jacobian.
    if externalField then
@@ -141,15 +153,15 @@ function GyrofluidSpecies:createSolver(hasPhi, hasApar, externalField)
    end
 
    if self.deltaF then
-      self.calcDeltaFjacM0 = function(jacM0In)
+      self.minusBackgroundJacM0 = function(jacM0In)
          jacM0In:accumulateOffset(-1.0/self.mass, self.momBackground, self.mJacM0Off)
       end
-      self.calcDeltaFjacM1 = function(jacM1In)
+      self.minusBackgroundJacM1 = function(jacM1In)
          jacM1In:accumulateOffset(-1.0/self.mass, self.momBackground, self.mJacM1Off)
       end
    else
-      self.calcDeltaFjacM0 = function(jacM0In) end
-      self.calcDeltaFjacM1 = function(jacM1In) end
+      self.minusBackgroundJacM0 = function(jacM0In) end
+      self.minusBackgroundJacM1 = function(jacM1In) end
    end
 
    self.timers = {couplingMom=0., weakMom=0., sources=0.}
@@ -204,7 +216,7 @@ function GyrofluidSpecies:calcCouplingMomentsEvolve(tCurr, rkIdx, species)
       local momIn   = self:rkStepperFields()[rkIdx]
       local tmStart = Time.clock()
 
-      momIn = self.returnDeltaMom(momIn)  -- Compute and return fluctuations.
+      momIn = self.getMom_or_deltaMom(momIn)  -- Return full-F moments, or compute and return fluctuations.
 
       -- Calculate the parallel flow speed.
       self:uParCalc(tCurr, momIn, self.mJacM0, self.mJacM1, self.uParSelf)
@@ -261,26 +273,26 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       self.equation:setAuxFields({em, emFunc, self.primMomSelf})  -- Set auxFields in case they are needed by BCs/collisions.
    end
 
-   for _, bc in ipairs(self.nonPeriodicBCs) do
+   for _, bc in pairs(self.nonPeriodicBCs) do
       bc:storeBoundaryFlux(tCurr, outIdx, momRhsOut)   -- Save boundary fluxes.
    end
 
    for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, momIn, species, momRhsOut) end
 end
 
-function GyrofluidSpecies:createDiagnostics()  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
+function GyrofluidSpecies:createDiagnostics(field)  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
    -- Create this species' diagnostics.
    if self.tbl.diagnostics then
       self.diagnostics[self.name] = DiagsApp{implementation = GyrofluidDiags()}
-      self.diagnostics[self.name]:fullInit(self, self)
+      self.diagnostics[self.name]:fullInit(self, field, self)
    end
 
    for srcNm, src in lume.orderedIter(self.sources) do
-      self.diagnostics[self.name..srcNm] = src:createDiagnostics(self)
+      self.diagnostics[self.name..srcNm] = src:createDiagnostics(self, field)
    end
 
    for bcNm, bc in lume.orderedIter(self.nonPeriodicBCs) do
-      self.diagnostics[self.name..bcNm] = bc:createDiagnostics(self)
+      self.diagnostics[self.name..bcNm] = bc:createDiagnostics(self, field)
    end
 
    -- Many diagnostics require dividing by the Jacobian (if present).
@@ -319,7 +331,7 @@ function GyrofluidSpecies:getNumDensity(rkIdx)
 
    local tmStart = Time.clock()
    self.jacM0Aux:combineOffset(1./self.mass, momIn, self.mJacM0Off)
-   self.calcDeltaFjacM0(self.jacM0Aux)
+   self.minusBackgroundJacM0(self.jacM0Aux)
    self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
 
    return self.jacM0Aux
@@ -336,7 +348,7 @@ function GyrofluidSpecies:getMomDensity(rkIdx)
 
    local tmStart = Time.clock()
    self.jacM1Aux:combineOffset(1./self.mass, momIn, self.mJacM1Off)
-   self.calcDeltaFjacM1(self.jacM1Aux)
+   self.minusBackgroundJacM1(self.jacM1Aux)
    self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
 
    return self.jacM1Aux

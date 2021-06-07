@@ -26,10 +26,10 @@ local Time          = require "Lib.Time"
 -- ~~~~ Source integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~
 local sourceDiagImpl = function()
    local _intSrc = Proto(DiagsImplBase)
-   function _intSrc:fullInit(diagApp, mySpecies, srcIn)
+   function _intSrc:fullInit(diagApp, mySpecies, fieldIn, srcIn)
       self.srcName  = string.gsub(srcIn.name, srcIn.speciesName.."_", "")
       self.field    = DataStruct.DynVector { numComponents = srcIn.nMoments }
-      self.updaters = mySpecies.volIntegral.compsN
+      self.updaters = mySpecies.volIntegral.vector
       self.done     = false
    end
    function _intSrc:getType() return "integrated" end
@@ -89,12 +89,12 @@ function GyrofluidSource:createSolver(mySpecies, externalField)
    self.momSource:write(string.format("%s_0.bp", self.name), 0.0, 0, true)
 end
 
-function GyrofluidSource:createDiagnostics(mySpecies)
+function GyrofluidSource:createDiagnostics(mySpecies, field)
    -- Create source diagnostics.
    self.diagnostics = nil
    if self.tbl.diagnostics then
       self.diagnostics = DiagsApp{implementation = sourceDiagImpl()}
-      self.diagnostics:fullInit(mySpecies, self)
+      self.diagnostics:fullInit(mySpecies, field, self)
    end
    return self.diagnostics
 end

@@ -412,19 +412,17 @@ plasmaApp = Plasma.App {
          collideWith = {'elc'},
          frequencies = {nuElc},
       },
-      source = Plasma.MaxwellianProjection {
+      source = Plasma.Source {
 --         fromFile    = "elc_fSourceIC.bp",
          density     = srcDenElc,
          temperature = srcTempElc,
-         isSource    = true,
+         diagnostics = {"intM0", "intM2"},
       },
       evolve = true, -- Evolve species?
-      diagnosticMoments = {"GkM0", "GkUpar", "GkTemp", "GkTperp", "GkTpar"},
-      diagnosticIntegratedMoments = {"intM0", "intM1", "intM2", "intKE", "intHE", "intSrcM0", "intSrcM2"},
-      diagnosticBoundaryFluxMoments = {"GkM0", "GkM1", "GkM2", "GkUpar", "GkTemp", "GkEnergy"},
-      diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
+      diagnostics = {"M0", "Upar", "Temp", "Tperp", "Tpar", "intM0", "intM1", "intM2", "intKE", "intEnergy" },
       randomseed = randomseed,
-      bcx = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      bcx = {Plasma.SheathBC{diagnostics={"M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics={"M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Gyrokinetic ions.
@@ -474,19 +472,17 @@ plasmaApp = Plasma.App {
          collideWith = {'ion'},
          frequencies = {nuIon},
       },
-      source = Plasma.MaxwellianProjection {
+      source = Plasma.Source {
 --         fromFile    = "ion_fSourceIC.bp",
          density     = srcDenIon,
          temperature = srcTempIon,
-         isSource    = true,
+         diagnostics = {"intM0", "intM2"},
       },
       evolve = true, -- Evolve species?
-      diagnosticMoments = {"GkM0", "GkUpar", "GkTemp", "GkTperp", "GkTpar"},
-      diagnosticIntegratedMoments = {"intM0", "intM1", "intM2", "intKE", "intHE", "intSrcM0", "intSrcM2"},
-      diagnosticBoundaryFluxMoments = {"GkM0", "GkM1", "GkM2", "GkUpar", "GkTemp", "GkEnergy"},
-      diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
+      diagnostics = {"M0", "Upar", "Temp", "Tperp", "Tpar", "intM0", "intM1", "intM2", "intKE", "intEnergy" },
       randomseed = randomseed,
-      bcx = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      bcx = {Plasma.SheathBC{diagnostics={"M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics={"M0","M1","M2","Upar","Temp","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Field solver.
