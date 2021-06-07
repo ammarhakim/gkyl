@@ -35,8 +35,10 @@ GyrofluidSpecies.bcZeroFlux = SP_BC_ZEROFLUX   -- Zero flux.
 function GyrofluidSpecies:makeBcApp(bcIn)
    local bcOut
    if bcIn == SP_BC_COPY then
+      print("GyrofluidSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
       bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
    elseif bcIn == SP_BC_ABSORB then
+      print("GyrofluidSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
       bcOut = BasicBC{kind="absorb", diagnostics={}, saveFlux=false}
    elseif bcIn == SP_BC_ZEROFLUX or bcIn.tbl.kind=="zeroFlux" then
       bcOut = "zeroFlux"

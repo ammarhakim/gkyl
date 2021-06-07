@@ -98,7 +98,7 @@ plasmaApp = Plasma.App {
 
       -- Species-specific velocity domain.
       lower = {-4.0*vte, 0},
-      upper = {4.0*vte, 12*me*vte^2/(2*B0)},
+      upper = { 4.0*vte, 12*me*vte^2/(2*B0)},
       cells = {16, 8},
 
       -- Initial conditions.
@@ -139,16 +139,13 @@ plasmaApp = Plasma.App {
 
       -- Neutral interactions.
       ionization = Plasma.Ionization {
-         collideWith = {"neut"},
-         electrons   = "elc",
-         neutrals    = "neut",
-         elemCharge  = eV, 
-         elcMass     = me,
-         plasma      = "H",         
+         collideWith = {"neut"},  elemCharge = eV, 
+         electrons   = "elc",     elcMass    = me,
+         neutrals    = "neut",    plasma     = "H",         
       },
 
       -- Boundary conditions.
-      bcx = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      bcx = {Plasma.SheathBC{}, Plasma.SheathBC{}},
 
       -- Diagnostics
       diagnostics = {"M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
@@ -203,25 +200,19 @@ plasmaApp = Plasma.App {
 
       -- Neutral interactions.
       ionization = Plasma.Ionization {
-         collideWith = {"neut"},
-         electrons   = "elc",
-         neutrals    = "neut",
-         elemCharge  = eV,
-         elcMass     = me,
-         plasma      = "H",
+         collideWith = {"neut"},  elemCharge = eV,
+         electrons   = "elc",     elcMass    = me,
+         neutrals    = "neut",    plasma     = "H",
       },
       chargeExchange = Plasma.ChargeExchange {
-         collideWith = {"neut"},
-         ions        = "ion",
-         neutrals    = "neut",
+         collideWith = {"neut"},  neutMass = mi,
+         ions        = "ion",     plasma   = "H",
+         neutrals    = "neut",    charge   = qi,
          ionMass     = mi,
-         neutMass    = mi,
-         plasma      = "H",
-         charge      = qi,
       },
 
       -- Boundary conditions.
-      bcx = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      bcx = {Plasma.SheathBC{}, Plasma.SheathBC{}},
 
       diagnostics = {"M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
 
@@ -270,25 +261,19 @@ plasmaApp = Plasma.App {
 
       -- Neutral interactions.
       ionization = Plasma.Ionization {
-         collideWith = {"elc"},
-         electrons   = "elc",
-         neutrals    = "neut",
-         elemCharge  = eV, 
-         elcMass     = me,
-         plasma      = "H",         
+         collideWith = {"elc"},  elemCharge = eV, 
+         electrons   = "elc",    elcMass    = me,
+         neutrals    = "neut",   plasma     = "H",         
       },
       chargeExchange = Plasma.ChargeExchange {
-         collideWith = {"ion"},
-         ions        = "ion",
-         neutrals    = "neut",
+         collideWith = {"ion"},  neutMass = mi,
+         ions        = "ion",    plasma   = "H",
+         neutrals    = "neut",   charge   = 0,
          ionMass     = mi,
-         neutMass    = mi,
-         plasma      = "H",
-         charge      = 0,
       },
 
       -- Boundary conditions.
-      bcx = {Vlasov.Species.bcReflect, Vlasov.Species.bcReflect},
+      bcx = {Vlasov.ReflectBC{}, Vlasov.ReflectBC{}},
 
       diagnostics = {"M0", "Udrift", "VtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal"},
  

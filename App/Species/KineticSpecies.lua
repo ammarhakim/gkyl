@@ -92,9 +92,9 @@ function KineticSpecies:fullInit(appTbl)
    end
 
    -- Determine if user wants diagnostics of the fluctuations.
-   -- ~~~~~  This section is for backwards compatibility with the old way of specifying diagnostics
-   -- ~~~~~  It will be dropped in the future.
+   -- ~~~~~ Backwards compatibility with old diagnostic specification. To be removed in the future. ~~~~~~ --
    if tbl.diagnosticMoments then
+      print("App.Species.KineticSpecies: warning... 'diagnosticMoments' will be deprecated. use 'diagnostics' instead.")
       tbl.diagnostics = tbl.diagnostics or {}
       for nm, v in pairs(tbl.diagnosticMoments) do
          if nm == "perturbed" and v == true then 
@@ -105,6 +105,7 @@ function KineticSpecies:fullInit(appTbl)
       end
    end
    if tbl.diagnosticIntegratedMoments then
+      print("App.Species.KineticSpecies: warning... 'diagnosticIntegratedMoments' will be deprecated. use 'diagnostics' instead.")
       tbl.diagnostics = tbl.diagnostics or {}
       for _, v in ipairs(tbl.diagnosticIntegratedMoments) do table.insert(tbl.diagnostics, v) end
    end
@@ -122,50 +123,6 @@ function KineticSpecies:fullInit(appTbl)
 
    -- Write ghost cells on boundaries of global domain (for BCs).
    self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
-
-   -- Write perturbed moments by subtracting background before moment calc.. false by default.
-   self.perturbedMoments = false
-   -- Read in which diagnostic moments to compute on output.
-   self.requestedDiagnosticMoments = tbl.diagnosticMoments or {}
-   self.diagnosticMoments = { }
-   if tbl.diagnosticMoments then
-      for i, nm in pairs(tbl.diagnosticMoments) do
-         if i == "perturbed" and nm == true then 
-            self.perturbedMoments = true
-         elseif type(i) == "number" then
-	    self.diagnosticMoments[i] = nm
-         end
-      end
-   end
-
-   -- Read in which integrated diagnostic moments to compute on output.
-   self.diagnosticIntegratedMoments = { }
-   if tbl.diagnosticIntegratedMoments then
-      for i, nm in ipairs(tbl.diagnosticIntegratedMoments) do
-         self.diagnosticIntegratedMoments[i] = nm
-      end
-   end
-
-   -- Read in which boundary diagnostic moments to compute on output.
-   self.boundaryFluxDiagnostics       = false
-   self.diagnosticBoundaryFluxMoments = { }
-   self.requestedDiagnosticBoundaryFluxMoments = tbl.diagnosticBoundaryFluxMoments or {}
-   if tbl.diagnosticBoundaryFluxMoments then
-      self.boundaryFluxDiagnostics = true
-      for i, nm in pairs(tbl.diagnosticBoundaryFluxMoments) do
-         self.diagnosticBoundaryFluxMoments[i] = nm
-      end
-   end
-
-   -- Read in which boundary diagnostic moments to compute on output.
-   self.boundaryFluxDiagnostics = false
-   self.diagnosticIntegratedBoundaryFluxMoments = { }
-   if tbl.diagnosticIntegratedBoundaryFluxMoments then
-      self.boundaryFluxDiagnostics = true
-      for i, nm in pairs(tbl.diagnosticIntegratedBoundaryFluxMoments) do
-         self.diagnosticIntegratedBoundaryFluxMoments[i] = nm
-      end
-   end
 
    -- Get a random seed for random initial conditions.
    self.randomseed = tbl.randomseed
@@ -209,31 +166,8 @@ function KineticSpecies:fullInit(appTbl)
 
    self.zeroFluxDirections = {}
 
-   self.hasNonPeriodicBc   = false -- To indicate if we have non-periodic BCs.
-   self.boundaryConditions = { }   -- list of Bcs to apply
-   self.bcx, self.bcy, self.bcz = { }, { }, { }
-   -- Functional BCs
-   self.evolveFnBC = xsys.pickBool(tbl.evolveFnBC, true)
-   self.feedbackBC = xsys.pickBool(tbl.feedbackBC, false)
-
    -- Read in boundary conditions.
    self.bcInDir = {{ }, { }, { }}   -- List of BCs to apply.
-   -- Check to see if bc type is good is now done in createBc.
-   --if tbl.bcx then
-   --   self.bcx[1], self.bcx[2] = tbl.bcx[1], tbl.bcx[2]
-   --   if self.bcx[1] == nil or self.bcx[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
-   --   self.hasNonPeriodicBc = true
-   --end
-   --if tbl.bcy then
-   --   self.bcy[1], self.bcy[2] = tbl.bcy[1], tbl.bcy[2]
-   --   if self.bcy[1] == nil or self.bcy[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
-   --   self.hasNonPeriodicBc = true
-   --end
-   --if tbl.bcz then
-   --   self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
-   --   if self.bcz[1] == nil or self.bcz[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
-   --   self.hasNonPeriodicBc = true
-   --end
    if tbl.bcx then
       if tbl.bcx[1] == nil or tbl.bcx[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
       self.bcInDir[1] = {tbl.bcx[1], tbl.bcx[2]}
@@ -457,63 +391,6 @@ function KineticSpecies:allocVectorMoment(dim)
    return self:allocCartField(self.confGrid,dim*self.confBasis:numBasis(),{self.nGhost,self.nGhost},metaData)
 end
 
--- Various functions to apply BCs of different types.
-function KineticSpecies:bcAbsorbFunc(dir, tm, idxIn, fIn, fOut)
-   -- Note that for bcAbsorb there is no operation on fIn,
-   -- so skinLoop (which determines indexing of fIn) does not matter 
-   for i = 1, self.basis:numBasis() do fOut[i] = 0.0 end
-end
-function KineticSpecies:bcOpenFunc(dir, tm, idxIn, fIn, fOut)
-   -- Requires skinLoop = "pointwise".
-   self.basis:flipSign(dir, fIn, fOut)
-end
-function KineticSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
-   -- Requires skinLoop = "pointwise".
-   for i = 1, self.basis:numBasis() do fOut[i] = fIn[i] end
-end
-
--- Function to construct a BC updater.
-function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop, evaluateFn)
-   return Updater.Bc {
-      onGrid             = self.grid,
-      boundaryConditions = bcList,
-      dir                = dir,
-      vdir               = vdir,
-      edge               = edge,
-      skinLoop           = skinLoop,
-      cdim               = self.cdim,
-      vdim               = self.vdim,
-      basis              = self.basis,
-      evaluate           = evaluateFn,
-      evolveFn           = self.evolveFnBC,
-      feedback           = self.feedbackBC,
-      confBasis          = self.confBasis,
-      doDiagnostics      = self.boundaryFluxDiagnostics,
-      advanceArgs        = {{self:rkStepperFields()[1]}, {self:rkStepperFields()[1]}},
-   }
-end
-
-function KineticSpecies:createBCs()
-   -- Functions to make life easier while reading in BCs to apply.
-   -- Note: appendBoundaryConditions defined in sub-classes.
-   local function handleBc(dir, bc)
-      if bc[1] then
-	 self:appendBoundaryConditions(dir, "lower", bc[1])
-      end
-      if bc[2] then
-	 self:appendBoundaryConditions(dir, "upper", bc[2])
-      end
-   end
-
-   -- Add various BCs to list of BCs to apply.
-   handleBc(1, self.bcx)
-   handleBc(2, self.bcy)
-   handleBc(3, self.bcz)
-
-   -- Calculate external boundary condition if applicable
-   if self.tbl.computeExternalBC then self:initExternalBC() end
-end
-
 function KineticSpecies:createSolver(field, externalField)
    -- Set up weak multiplication and division operators.
    self.confWeakMultiply = Updater.CartFieldBinOp {
@@ -642,8 +519,6 @@ function KineticSpecies:alloc(nRkDup)
    self.dtGlobal      = ffi.new("double[2]")
    self.dtGlobal[0], self.dtGlobal[1] = 1.0, 1.0   -- Temporary value (so diagnostics at t=0 aren't inf).
 
-   self:createBCs()
-
    -- Create a table of flags to indicate whether moments have been computed.
    -- At first we consider 6 flags: coupling moments (M0, M1i, M2)
    -- boundary corrections (m1Correction, m2Correction), star moments
@@ -750,12 +625,6 @@ function KineticSpecies:copyRk(outIdx, aIdx)
 
    for _, bc in pairs(self.nonPeriodicBCs) do bc:copyBoundaryFluxField(aIdx, outIdx) end
 
-   if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
-      for _, bc in ipairs(self.boundaryConditions) do
-         bc:getBoundaryFluxFields()[outIdx]:copy(bc:getBoundaryFluxFields()[aIdx])
-      end
-   end
-
    if self.positivity then
       self.fDelPos[outIdx]:copy(self.fDelPos[aIdx])
    end
@@ -771,15 +640,6 @@ function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
 
    for _, bc in pairs(self.nonPeriodicBCs) do
       bc:combineBoundaryFluxField(outIdx, a, aIdx, ...)
-   end
-
-   if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
-      for _, bc in ipairs(self.boundaryConditions) do
-         bc:getBoundaryFluxFields()[outIdx]:combine(a, bc:getBoundaryFluxFields()[aIdx])
-         for i = 1, nFlds do -- Accumulate rest of the fields.
-            bc:getBoundaryFluxFields()[outIdx]:accumulate(args[2*i-1], bc:getBoundaryFluxFields()[args[2*i]])
-         end
-      end
    end
 
    if self.positivity then
@@ -858,19 +718,6 @@ function KineticSpecies:applyBcEvolve(tCurr, field, externalField, inIdx, outIdx
    -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advance(tCurr, self, field, externalField, inIdx, outIdx) end
 
-   -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
-   if self.hasNonPeriodicBc then
-      if self.feedbackBC then
-         for _, bc in ipairs(self.boundaryConditions) do
-            bc:advance(tCurr, {fIn}, {fIn})
-         end
-      else
-         for _, bc in ipairs(self.boundaryConditions) do
-            bc:advance(tCurr, {}, {fIn})
-         end
-      end
-   end
-
    -- Apply periodic BCs (to only fluctuations if fluctuation BCs)
    fIn:sync(syncPeriodicDirsTrue)
 
@@ -889,20 +736,6 @@ function KineticSpecies:applyBc(tCurr, field, externalField, inIdx, outIdx)
 end
 
 function KineticSpecies:createDiagnostics(field)
-   -- Set up weak multiplication and division operators.
-   self.weakMultiplication = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "Multiply",
-      onGhosts  = true,
-   }
-   self.weakDivision = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "Divide",
-      onGhosts  = true,
-   }
-
    -- Many diagnostics require dividing or multiplying by the Jacobian
    -- (if present). Predefine the functions that do that.
    self.divideByJacobGeo = self.jacobGeoInv
@@ -913,114 +746,8 @@ function KineticSpecies:createDiagnostics(field)
       or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
 end
 
-function KineticSpecies:calcDiagnosticMoments(tm)
-   local fIn   = self:rkStepperFields()[1]
-   local tCurr = tm
-   if self.fBackground and self.perturbedMoments then 
-      fIn:accumulate(-1, self.fBackground)
-      tCurr = -tm-1   -- Setting tCurr = -tm-1 forces the updater to recompute moments on this timestep.
-   end
-   for i, mom in pairs(self.diagnosticMoments) do
-      self.diagnosticMomentUpdaters[mom]:advance(tCurr, {fIn}, {self.diagnosticMomentFields[mom]})
-      -- Remove geometric jacobian factor.
-      if self.jacobGeoInv then
-         self.weakMultiplication:advance(0.0, {self.diagnosticMomentFields[mom], self.jacobGeoInv},
-                                              {self.diagnosticMomentFields[mom]})
-      end
-   end
-   if self.fBackground and self.perturbedMoments then fIn:accumulate(1, self.fBackground) end
-end
-
--- Some species-specific parts, but this function still gets called.
-function KineticSpecies:calcDiagnosticWeakMoments(tm, weakMoments, bc)
-   local fIn
-   local tCurr = tm
-   local label = ""
-   if bc then
-      label = bc:label() 
-      fIn   = bc:getBoundaryFluxRate()
-   else
-      fIn = self:rkStepperFields()[1]
-      if self.fBackground and self.perturbedMoments then
-         fIn:accumulate(-1, self.fBackground)
-         tCurr = -tm-1   -- Setting tCurr = -tm-1 forces the updater to recompute moments on this timestep.
-      end
-   end
-
-   for i, mom in ipairs(weakMoments) do
-      self.diagnosticMomentUpdaters[mom..label].advance(self, tCurr, {fIn}, {self.diagnosticMomentFields[mom..label]})
-   end
-
-   if bc==nil and self.fBackground and self.perturbedMoments then fIn:accumulate(1, self.fBackground) end
-end
-
-function KineticSpecies:calcDiagnosticBoundaryFluxMoments(tm)
-   for _, bc in ipairs(self.boundaryConditions) do
-      for i, mom in ipairs(self.diagnosticBoundaryFluxMoments) do
-         self.diagnosticMomentUpdaters[mom..bc:label()]:advance(
-            tm, {bc:getBoundaryFluxRate()}, {self.diagnosticMomentFields[mom..bc:label()]})
-      end 
-   end
-end
-
--- Species-specific.
-function KineticSpecies:calcDiagnosticIntegratedMoments(tm) end
-
 function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
-    self:calcDiagnosticMoments(tm)
-    if self.diagnosticWeakMoments then 
-       self:calcDiagnosticWeakMoments(tm, self.diagnosticWeakMoments)
-    end
-    if self.diagnosticBoundaryFluxMoments then
-       self:calcDiagnosticBoundaryFluxMoments(tm)
-    end
-    if self.diagnosticWeakBoundaryFluxMoments then
-       for _, bc in ipairs(self.boundaryConditions) do
-          self:calcDiagnosticWeakMoments(tm, self.diagnosticWeakBoundaryFluxMoments, bc)
-       end
-    end
-
-    for i, mom in ipairs(self.requestedDiagnosticMoments) do
-       local fldNm = mom
-       if self.diagnosticMomentFields[fldNm]==nil then
-          -- Cross-species diagnostics have another species name appended to them, so the name
-          -- in requestedDiagnosticMoments does not match the name in diagnosticMomentFields.
-          for nm, _ in pairs(self.diagnosticMomentFields) do
-             if string.find(nm, "uCross") or string.find(nm, "vtSqCross") or
-                string.find(nm, "GkUparCross") or string.find(nm, "GkVtSqCross") then fldNm=nm end
-          end
-       end
-       self.diagnosticMomentFields[fldNm]:write(
-          string.format("%s_%s_%d.bp", self.name, fldNm, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
-    end
-
-    for i, mom in ipairs(self.requestedDiagnosticBoundaryFluxMoments) do
-       for _, bc in ipairs(self.boundaryConditions) do
-          self.diagnosticMomentFields[mom..bc:label()]:write(
-             string.format("%s_%s_%d.bp", self.name, mom..bc:label(), self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
-       end
-    end
-
-    -- Write integrated moments.
-    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-       -- These moments are handled in src:writeDiagnosticIntegratedMoments 
-       if not (mom == "intSrcM0" or mom == "intSrcM1" or mom == "intSrcM2" or mom == "intSrcKE") then
-          self.diagnosticIntegratedMomentFields[mom]:write(
-             string.format("%s_%s.bp", self.name, mom), tm, self.diagIoFrame)
-       end
-    end
-
-    -- Write source integrated diagnostics.
-    for nm, src in lume.orderedIter(self.sources) do
-       src:writeDiagnosticIntegratedMoments(tm, self.diagIoFrame)
-    end
-
-    for i, mom in ipairs(self.diagnosticIntegratedBoundaryFluxMoments) do
-       for _, bc in ipairs(self.boundaryConditions) do
-          self.diagnosticIntegratedMomentFields[mom..bc:label()]:write(
-             string.format("%s_%s.bp", self.name, mom..bc:label()), tm, self.diagIoFrame)
-       end
-    end
+    -- IMPORTANT: do not use this method anymore. It should disappear. The stuff below will be moved elsewhere (MF).
 
     -- Write ionization diagnostics
     if self.calcReactRate then
@@ -1050,20 +777,6 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        self.vSigmaCX:write(string.format("%s_vSigmaCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        self.collisions[self.collNmCX].sourceCX:write(string.format("%s_sourceCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
     end
-
-    -- Write recycling diagnostics
-    if self.hasRecycleBcs then
-        for _, bc in ipairs(self.boundaryConditions) do
-	   label = bc:label()
-	   if self.cdim == 1 or (self.cdim == 3 and string.match(label,"Z")) then
-	      wlabel = (label):gsub("Flux","")
-	      self.recycleCoef[label]:write(string.format("%s%s_%d.bp", 'recycleCoef', wlabel, self.diagIoFrame), tm, self.diagIoFrame, false)
-	      self.recycleDistF[label]:write(string.format("%s_%s%s_%d.bp", self.name, 'recycleDistF', wlabel, self.diagIoFrame), tm, self.diagIoFrame, false)
-	      -- mom="intM0Recycle"
-	      -- self.diagnosticIntegratedMomentFields[mom..label]:write(string.format("%s_%s.bp", self.name, mom..label), tm, self.diagIoFrame)
-	   end
-	end
-    end
 end
 
 function KineticSpecies:isEvolving() return self.evolve end
@@ -1082,18 +795,10 @@ function KineticSpecies:write(tm, force)
          bc:computeBoundaryFluxRate(self.dtGlobal[0])
       end
 
-      if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics and tm > 0 then
-         for _, bc in ipairs(self.boundaryConditions) do
-            -- compute boundary flux rate ~ (fGhost_new - fGhost_old)/dt
-            bc:getBoundaryFluxRate():combine(1.0/self.dtGlobal[0], bc:getBoundaryFluxFields()[1], -1.0/self.dtGlobal[0], bc:getBoundaryFluxFieldPrev())
-            bc:getBoundaryFluxFieldPrev():copy(bc:getBoundaryFluxFields()[1])
-         end
-      end
-
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.
       if self.calcIntQuantTrigger(tm) then
-         self:calcDiagnosticIntegratedMoments(tm)
+         self:calcDiagnosticIntegratedMoments(tm)   -- MF: to be removed. Only here for some neutral diagnostics (to be moved).
          for _, dOb in pairs(self.diagnostics) do
             dOb:calcIntegratedDiagnostics(tm, self)   -- Compute integrated diagnostics (this species' and other objects').
          end
@@ -1109,13 +814,13 @@ function KineticSpecies:write(tm, force)
 
          for _, src in lume.orderedIter(self.sources) do src:write(tm, self.distIoFrame) end
 
-	 self.distIoFrame = self.distIoFrame+1
+         self.distIoFrame = self.distIoFrame+1
       end
 
 
       if self.diagIoTrigger(tm) or force then
          -- Compute moments and write them out.
-         self:calcAndWriteDiagnosticMoments(tm)
+         self:calcAndWriteDiagnosticMoments(tm)   -- MF: to be removed. Only here for some neutral diagnostics (to be moved).
 
          for _, dOb in pairs(self.diagnostics) do
             dOb:calcGridDiagnostics(tm, self)   -- Compute grid diagnostics (this species' and other objects').
@@ -1142,7 +847,7 @@ function KineticSpecies:write(tm, force)
       if self.distIoFrame == 0 then
 
          local tmStart = Time.clock()
-         self:calcDiagnosticIntegratedMoments(tm)   -- Compute integrated diagnostics.
+         self:calcDiagnosticIntegratedMoments(tm)   -- MF: to be removed. Only here for some neutral diagnostics (to be moved).
          for _, dOb in pairs(self.diagnostics) do
             dOb:calcIntegratedDiagnostics(tm, self)   -- Compute integrated diagnostics (this species' and other objects').
          end
@@ -1150,8 +855,7 @@ function KineticSpecies:write(tm, force)
 
 	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, 0), tm, 0)
 
-	 -- Compute moments and write them out.
-	 self:calcAndWriteDiagnosticMoments(tm)
+	 self:calcAndWriteDiagnosticMoments(tm)   -- MF: to be removed. Only here for some neutral diagnostics (to be moved).
 
          for _, dOb in pairs(self.diagnostics) do
             dOb:calcGridDiagnostics(tm, self)   -- Compute grid diagnostics (this species' and other objects').
@@ -1177,19 +881,7 @@ function KineticSpecies:writeRestart(tm)
       dOb:writeRestart(tm, self.diagIoFrame, self.dynVecRestartFrame)
    end
 
-   for i, mom in pairs(self.diagnosticMoments) do
-      self.diagnosticMomentFields[mom]:write(
-         string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
-   end   
-
-   -- Write restart files for integrated moments. Note: these are only needed for the rare case that the
-   -- restart write frequency is higher than the normal write frequency from nFrame.
-   for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-      -- (the first "false" prevents flushing of data after write, the second "false" prevents appending)
-      self.diagnosticIntegratedMomentFields[mom]:write(
-         string.format("%s_%s_restart.bp", self.name, mom), tm, self.dynVecRestartFrame, false, false)
-   end
-
+   -- The following two should be moved elsehwere (MF).
    if self.calcReactRate then
       self.intSrcIzM0:write(
 	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
@@ -1221,11 +913,7 @@ function KineticSpecies:readRestart()
       _, _ = dOb:readRestart()
    end
    
-   for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-      self.diagnosticIntegratedMomentFields[mom]:read(
-         string.format("%s_%s_restart.bp", self.name, mom))
-   end
-   
+   -- The following two should be moved elsehwere (MF).
    if self.calcReactRate then
       self.intSrcIzM0:read(
 	 string.format("%s_intSrcIzM0_restart.bp", self.name))
@@ -1233,12 +921,6 @@ function KineticSpecies:readRestart()
    if self.calcIntSrcIz then
       self.intSrcIzM0:read(
 	 string.format("%s_intSrcIzM0_restart.bp", self.name))
-   end
-
-   for i, mom in pairs(self.diagnosticMoments) do
-      local _, dfr = self.diagnosticMomentFields[mom]:read(
-         string.format("%s_%s_restart.bp", self.name, mom))
-      self.diagIoFrame = dfr -- Reset internal diagnostic IO frame counter.
    end
 
    -- Iterate triggers.

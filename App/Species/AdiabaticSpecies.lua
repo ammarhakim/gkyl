@@ -21,6 +21,7 @@ AdiabaticSpecies.bcCopy   = SP_BC_COPY     -- Copy stuff.
 
 function AdiabaticSpecies:makeBcApp(bcIn)
    local bcOut
+   print("AdiabaticSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
    if bcIn == SP_BC_COPY then
       bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
    elseif bcIn == SP_BC_ABSORB then
