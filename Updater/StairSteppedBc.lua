@@ -33,8 +33,6 @@ end
 function StairSteppedBc:init(tbl)
    StairSteppedBc.super.init(self, tbl) -- setup base object
 
-   self._isFirst = true -- will be reset first time _advance() is called
-
    self._grid = assert(tbl.onGrid, "Updater.StairSteppedBc: Must specify grid to use with 'onGrid''")
    self._dir  = assert(tbl.dir, "Updater.StairSteppedBc: Must specify direction to apply BCs with 'dir'")
 
@@ -45,6 +43,12 @@ function StairSteppedBc:init(tbl)
    local localRange = self._localRange
 
    self._inOut = assert(tbl.inOut, "Updater.StairSteppedBc: Must specify mask field with 'inOut'")
+
+   self._perpRangeDecomp = LinearDecomp.LinearDecompRange {
+      range      = localRange:shorten(self._dir), -- range orthogonal to 'dir'
+      numSplit   = self._grid:numSharedProcs(),
+      threadComm = self:getSharedComm()
+   }
 end
 
 function StairSteppedBc:_advance(tCurr, inFld, outFld)
@@ -54,15 +58,7 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
    local dir = self._dir
    local localRange = grid:localRange()
 
-   if self._isFirst then
-      self._perpRangeDecomp = LinearDecomp.LinearDecompRange {
-         range      = localRange:shorten(dir), -- range orthogonal to 'dir'
-         numSplit   = grid:numSharedProcs(),
-         threadComm = self:getSharedComm()
-      }
-   end
-
-   -- get pointers to (re)use inside inner loop [G: Ghost, S: Skin]
+   -- Pointer and indices to be (re)used.
    local qGhost, qSkin = qOut:get(1), qOut:get(1)
    local idxL    = Lin.IntVec(grid:ndim())
    local idxR    = Lin.IntVec(grid:ndim())
@@ -75,15 +71,13 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
    local xcIn   = Lin.Vec(self._grid:ndim())
    local xcOut  = Lin.Vec(self._grid:ndim())
 
-   local tId = self._grid:subGridSharedId() -- local thread ID
-
-   -- outer loop is over directions orthogonal to 'dir' and inner
-   -- loop is over 1D slice in `dir`.
+   -- Loop over directions orthogonal to 'dir'.
+   local tId = self._grid:subGridSharedId()
    for idx in self._perpRangeDecomp:colMajorIter(tId) do
       idx:copyInto(idxL)
       idx:copyInto(idxR)
 
-      -- loop over edges
+      -- Loop over 1D slice in `dir`.
       for i = localRange:lower(dir)-1, localRange:upper(dir)+1 do
          idxL[dir] = i
          inOut:fill(inOutIdxr(idxL), inOutL)
@@ -118,7 +112,6 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
       end
    end
 
-   self._isFirst = false
    return true, GKYL_MAX_DOUBLE
 end
 
