@@ -5,23 +5,12 @@
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
--- System libraries
-local xsys = require "xsys"
-
--- Gkyl libraries
 local Alloc        = require "Lib.Alloc"
 local Lin          = require "Lib.Linalg"
 local LinearDecomp = require "Lib.LinearDecomp"
 local Proto        = require "Lib.Proto"
 local Range        = require "Lib.Range"
 local UpdaterBase  = require "Updater.Base"
-
--- System libraries.
-local ffi  = require "ffi"
-local xsys = require "xsys"
-local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
-"new, copy, fill, sizeof, typeof, metatype")
-
 
 -- Boundary condition updater
 local StairSteppedBc = Proto(UpdaterBase)
