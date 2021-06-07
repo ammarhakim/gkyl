@@ -22,28 +22,6 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 "new, copy, fill, sizeof, typeof, metatype")
 
--- Helper object for indexing 1D slice data. The slice spans from
--- [lower, upper] (inclusive) and has `stride` pieces of data stored
--- at each location.
-local createSliceData = function (dtype)
-   local slice_mt = {
-      __new = function (self, lower, upper, stride)
-         local n = upper-lower+1
-         local v = new(self)
-         v._data = Alloc.malloc(typeof(dtype)*n*stride)
-         v._sz, v._stride, v._lower = n*stride, stride, lower
-         return v
-      end,
-      __index = function (self, k)
-         return self._data+(k-self._lower)*self._stride
-      end,
-      __gc = function (self)
-         Alloc.free(self._data)
-      end,
-   }
-   return metatype(typeof(string.format("struct {int _sz, _stride, _lower; %s *_data; }", dtype)), slice_mt)
-end
-local SliceDataBool = createSliceData("bool")
 
 -- Boundary condition updater
 local StairSteppedBc = Proto(UpdaterBase)
@@ -67,10 +45,6 @@ function StairSteppedBc:init(tbl)
    local localRange = self._localRange
 
    self._inOut = assert(tbl.inOut, "Updater.StairSteppedBc: Must specify mask field with 'inOut'")
-
-   local l, u = localRange:lower(self._dir)-2, localRange:upper(self._dir)+2
-   self._isGhostL = SliceDataBool(l, u, 1);
-   self._isGhostR = SliceDataBool(l, u, 1);
 end
 
 function StairSteppedBc:_advance(tCurr, inFld, outFld)
@@ -97,8 +71,6 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
    local inOut          = self._inOut
    local inOutL, inOutR = inOut:get(1), inOut:get(1)
    local inOutIdxr      = inOut:genIndexer()
-   local isGhostL       = self._isGhostL
-   local isGhostR       = self._isGhostR
 
    local xcIn   = Lin.Vec(self._grid:ndim())
    local xcOut  = Lin.Vec(self._grid:ndim())
@@ -119,23 +91,18 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
          inOut:fill(inOutIdxr(idxR), inOutR)
          local isOutsideL = isOutside(inOutL)
          local isOutsideR = isOutside(inOutR)
-         isGhostL[i][0] =  isOutsideL and not isOutsideR
-         isGhostR[i][0] = not isOutsideL and isOutsideR
-      end
+         local isGhostL =  isOutsideL and not isOutsideR
+         local isGhostR = not isOutsideL and isOutsideR
 
-      -- loop over edges
-      for i = localRange:lower(dir)-1, localRange:upper(dir)+1 do
-         idxL[dir] = i
-         idxR[dir] = i + 1
          local idxIn
-         if isGhostL[i][0] or isGhostR[i][0] then
-            if (isGhostL[i][0]) then
+         if isGhostL or isGhostR then
+            if (isGhostL) then
                qOut:fill(indexer(idxL), qG)
                qOut:fill(indexer(idxR), qS)
                self._grid:setIndex(idxL);  self._grid:cellCenter(xcOut);
                self._grid:setIndex(idxR);  self._grid:cellCenter(xcIn);
                idxIn = idxR
-            else -- right cell is ghost
+            else
                qOut:fill(indexer(idxR), qG)
                qOut:fill(indexer(idxL), qS)
                self._grid:setIndex(idxL);  self._grid:cellCenter(xcIn);
