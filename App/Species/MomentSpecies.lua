@@ -592,7 +592,7 @@ function MomentSpecies:writeRestart(tm)
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
-function MomentSpecies:readRestart()
+function MomentSpecies:readRestart(field, externalField)
    local tm, fr = self.momIo:read(self.moments[1], string.format("%s_restart.bp", self.name))
    self.diagIoFrame = fr -- Reset internal frame counter.
    self.integratedMoments:read(string.format("%s_intMom_restart.bp", self.name))

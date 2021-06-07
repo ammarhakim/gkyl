@@ -894,7 +894,7 @@ function KineticSpecies:writeRestart(tm)
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
-function KineticSpecies:readRestart()
+function KineticSpecies:readRestart(field, externalField)
    local readGhost = false
    if self.hasSheathBCs or self.fluctuationBCs then readGhost = true end
 
@@ -906,7 +906,7 @@ function KineticSpecies:readRestart()
 
    -- Apply BCs (unless skin cells have been read because of special BCs).
    if not self.hasSheathBCs and not self.fluctuationBCs then 
-      self:applyBc(tm, self.distf[1]) 
+      self:applyBc(tm, field, externalField, 1, 1) 
    end 
 
    for _, dOb in pairs(self.diagnostics) do   -- Read grid and integrated diagnostics.

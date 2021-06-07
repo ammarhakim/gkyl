@@ -698,7 +698,7 @@ function FluidSpecies:writeRestart(tm)
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
-function FluidSpecies:readRestart()
+function FluidSpecies:readRestart(field, externalField)
    local readGhost = false
    if self.hasSheathBCs or self.fluctuationBCs then readGhost = true end
 
@@ -709,7 +709,7 @@ function FluidSpecies:readRestart()
    self.moments[1]:sync()
 
    if not self.hasSheathBCs and not self.fluctuationBCs then
-      self:applyBc(tm, self.moments[1])
+      self:applyBc(tm, field, externalField, 1, 1)
    end
 
    for _, dOb in pairs(self.diagnostics) do   -- Read grid and integrated diagnostics.
