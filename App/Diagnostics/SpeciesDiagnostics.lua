@@ -306,7 +306,7 @@ function SpeciesDiagnostics:readRestart()
 
    for _, diagNm in ipairs(self.diagGroups["integrated"]) do 
       local diag = self.diags[diagNm]
-      tm, fr = diag.field:read(string.format("%s_%s_restart.bp", self.name, diagNm))
+      diag.field:read(string.format("%s_%s_restart.bp", self.name, diagNm))
    end
    return tm, fr
 end

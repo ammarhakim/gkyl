@@ -947,9 +947,13 @@ function KineticSpecies:readRestart(field, externalField)
       self:applyBc(tm, field, externalField, 1, 1) 
    end 
 
+   local diagIoFrame_new
    for _, dOb in pairs(self.diagnostics) do   -- Read grid and integrated diagnostics.
-      _, _ = dOb:readRestart()
+      local _, dfr = dOb:readRestart()
+      diagIoFrame_new = diagIoFrame_new or dfr
+      assert(diagIoFrame_new==dfr, "KineticSpecies:readRestart expected diagnostics from previous run to have the same last frame.") 
    end
+   self.diagIoFrame = diagIoFrame_new
    
    -- The following two should be moved elsehwere (MF).
    if self.calcReactRate then
