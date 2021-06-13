@@ -73,22 +73,16 @@ function GyrofluidProjection:fullInit(species)
       }
    else
       self.project = Updater.ProjectOnBasis {
-         onGrid   = self.grid,
-         basis    = self.basis,
-         evaluate = function(t, xn) return 0. end,   -- Set later.
-         onGhosts = true,
+         onGrid   = self.grid,   evaluate = function(t, xn) return 0. end,   -- Set later.
+         basis    = self.basis,  onGhosts = true,
       }
       self.weakMultiply = Updater.CartFieldBinOp {
-         onGrid    = self.grid,
-         weakBasis = self.basis,
-         operation = "Multiply",
-         onGhosts  = true,
+         onGrid    = self.grid,   operation = "Multiply",
+         weakBasis = self.basis,  onGhosts  = true,
       }
       self.weakDivide = Updater.CartFieldBinOp {
-         onGrid    = self.grid,
-         weakBasis = self.basis,
-         operation = "Divide",
-         onGhosts  = true,
+         onGrid    = self.grid,   operation = "Divide",
+         weakBasis = self.basis,  onGhosts  = true,
       }
       -- Will also need some temporary fields. Can use those declared in GyrofluidSpecies.
       self.jacM0      = species.jacM0
@@ -141,10 +135,10 @@ function GyrofluidProjection:advance(tm, inFlds, outFlds)
       self.project:advance(t, {}, {self.TparSelf})
       self.weakMultiply:advance(0, {self.TparSelf, self.jacM0}, {self.pParJac})
 
-      -- Calculate the parallel flow energy density.
+      -- Calculate the parallel flow energy density, times Jacobian.
       self.weakMultiply:advance(0, {self.uParSelf, self.mJacM1}, {self.mJacM2flow})
 
-      -- Calculate the total particle energy density (times Jacobian).
+      -- Calculate the total particle kinetic energy density (times Jacobian).
       self.mJacM2:combine(0.5, self.pParJac, 0.5, self.mJacM2flow, 1., self.pPerpJac)
 
       -- Combine the moments into a single field.

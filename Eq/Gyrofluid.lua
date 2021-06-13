@@ -78,19 +78,15 @@ function Gyrofluid:setAuxFields(auxFields)
 
       -- Compose a field with J/B. Eventually we'll remove this or put it in geo.
       local weakMult = Updater.CartFieldBinOp {
-         onGrid    = self._grid,
-         weakBasis = self._basis,
-         operation = "Multiply",
-         onGhosts  = true,
+         onGrid    = self._grid,   operation = "Multiply",
+         weakBasis = self._basis,  onGhosts  = true,
       }
       self.jacobDbmag = DataStruct.Field {
-         onGrid        = self._grid,
+         onGrid        = self._grid,            
          numComponents = self._basis:numBasis(),
          ghost         = {1, 1},
          metaData      = {polyOrder = self._basis:polyOrder(),
-                          basisType = self._basis:id(),
-                          charge    = self.charge,
-                          mass      = self.mass,},
+                          basisType = self._basis:id(),},
       }
       self.jacobDbmag:clear(0.)
       weakMult:advance(0., {self.jacob,self.rBmag}, {self.jacobDbmag})
@@ -108,20 +104,16 @@ function Gyrofluid:setAuxFields(auxFields)
          return dx
       end
       self.dBdz = DataStruct.Field {
-         onGrid        = self._grid,
+         onGrid        = self._grid,            
          numComponents = self._basis:numBasis(),
          ghost         = {1, 1},
          metaData      = {polyOrder = self._basis:polyOrder(),
-                          basisType = self._basis:id(),
-                          charge    = self.charge,
-                          mass      = self.mass,},
+                          basisType = self._basis:id(),},
       }
       self.dBdz:clear(0.)
       local evOnNodes = Updater.EvalOnNodes {
-         onGrid   = self._grid,
-         basis    = self._basis,
-         evaluate = dBdzFunc,
-         onGhosts = true,
+         onGrid = self._grid,   evaluate = dBdzFunc,
+         basis  = self._basis,  onGhosts = true,
       }
       evOnNodes:advance(0., {}, {self.dBdz})
 

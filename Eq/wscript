@@ -666,8 +666,10 @@ def build(bld):
 
     gyrofluidData/gyrofluid_surf_1x_p0_ser.cpp
     gyrofluidData/gyrofluid_surf_1x_p1_ser.cpp
+    gyrofluidData/gyrofluid_surf_1x_p2_ser.cpp
     gyrofluidData/gyrofluid_vol_1x_p0_ser.cpp
     gyrofluidData/gyrofluid_vol_1x_p1_ser.cpp
+    gyrofluidData/gyrofluid_vol_1x_p2_ser.cpp
 
     Positivity.cpp
 

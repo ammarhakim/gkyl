@@ -59,7 +59,7 @@ log("\n")
 alim    = 0.125    -- Plasma limiting radius.
 alphaIC = {2,10}
 
-nuFrac = 200.0  -- Factor multiplying the collisionality.
+nuFrac = 1.0  -- Factor multiplying the collisionality.
 -- Electron-electron collision freq.
 logLambdaElc = 6.6 - 0.5*math.log(n0/1e20) + 1.5*math.log(Te0/eV)
 nuElc        = nuFrac*logLambdaElc*(eV^4)*n0/(6*math.sqrt(2)*(math.pi^(3/2))*(eps0^2)*math.sqrt(me)*(Te0^(3/2)))
@@ -113,11 +113,11 @@ beta_par = (32. - 9.*math.pi)/(3.*math.pi - 8.)
 D_par    = 2.*math.sqrt(math.pi)/(3.*math.pi - 8.)
 D_perp   = math.sqrt(math.pi)/2.
 
-nu_ee, nu_ii = 0., 0.
-kappaParIon  = 1.e-16*n0*(vti^2)*(3.+beta_par)/(math.sqrt(3)*D_par*vti*kpar+nu_ii)
-kappaPerpIon = 1.e-16*n0*(vti^2)/(math.sqrt(2)*D_perp*vti*kpar+nu_ii)
-kappaParElc  = 1.e-16*n0*(vte^2)*(3.+beta_par)/(math.sqrt(3)*D_par*vte*kpar+nu_ee)
-kappaPerpElc = 1.e-16*n0*(vte^2)/(math.sqrt(2)*D_perp*vte*kpar+nu_ee)
+nu_ee, nu_ii = nuElc, nuIon
+kappaParIon  = n0*(vti^2)*(3.+beta_par)/(math.sqrt(3)*D_par*vti*kpar+nu_ii)
+kappaPerpIon = n0*(vti^2)/(math.sqrt(2)*D_perp*vti*kpar+nu_ii)
+kappaParElc  = n0*(vte^2)*(3.+beta_par)/(math.sqrt(3)*D_par*vte*kpar+nu_ee)
+kappaPerpElc = n0*(vte^2)/(math.sqrt(2)*D_perp*vte*kpar+nu_ee)
 
 log(string.format("  Heatflux coefficients:\n"))
 log(string.format("    kappaPar_i  = %e\n", kappaParIon))

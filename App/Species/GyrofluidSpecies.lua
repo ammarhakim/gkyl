@@ -124,23 +124,17 @@ function GyrofluidSpecies:createSolver(field, externalField)
 
    -- Create updater to advance solution by one time-step.
    self.equation = GyrofluidEq {
-      onGrid    = self.grid,
-      basis     = self.basis,
-      charge    = self.charge,
+      onGrid    = self.grid,    kappaPar  = self.kappaPar,
+      basis     = self.basis,   kappaPerp = self.kappaPerp,
+      charge    = self.charge,  bmagFunc  = self.bmagFunc,
       mass      = self.mass,
-      kappaPar  = self.kappaPar,
-      kappaPerp = self.kappaPerp,
-      bmagFunc  = self.bmagFunc,
    }
 
    self.solver = Updater.HyperDisCont {
-      onGrid             = self.grid,
-      basis              = self.basis,
-      cfl                = self.cfl,
-      equation           = self.equation,
-      zeroFluxDirections = self.zeroFluxDirections,
-      clearOut           = false,   -- Continue accumulating into output field.
-      globalUpwind       = true,
+      onGrid   = self.grid,      zeroFluxDirections = self.zeroFluxDirections,
+      basis    = self.basis,     clearOut     = false,   -- Continue accumulating into output field.
+      cfl      = self.cfl,       globalUpwind = true,
+      equation = self.equation,
    }
 
    if self.positivityRescale then
@@ -189,7 +183,8 @@ function GyrofluidSpecies:pPerpJacCalc(tm, momIn, jacM2perp, pPerpJacOut)
    self.weakMultiply:advance(tm, {jacM2perp, self.bmag}, {pPerpJacOut})
 end
 
-function GyrofluidSpecies:pParJacCalc(tm, momIn, uPar, mJacM1, mJacM2flow, mJacM2, pPerpJac, pParJacOut)
+function GyrofluidSpecies:pParJacCalc(tm, momIn, uPar, mJacM1, mJacM2flow, 
+                                      mJacM2, pPerpJac, pParJacOut)
    -- Compute the parallel pressure (times Jacobian).
    self.weakMultiply:advance(tm, {uPar, mJacM1}, {mJacM2flow})
    mJacM2:combineOffset(1, momIn, self.mJacM2Off)
