@@ -170,10 +170,10 @@ function Gyrofluid:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr,
 
    self.phi:fill(self.indexer(idxl), self.phiPtrl)
    self.phi:fill(self.indexer(idxr), self.phiPtrr)
-   self.bmag:fill(self.indexer(idxr), self.bmagPtr)
-   self.rBmag:fill(self.indexer(idxr), self.rBmagPtr)
-   self.jacob:fill(self.indexer(idxr), self.jacobPtr)
-   self.jacobDbmag:fill(self.indexer(idxr), self.jacobDbmagPtr)
+   self.bmag:fill(self.indexer(idxl), self.bmagPtr)
+   self.rBmag:fill(self.indexer(idxl), self.rBmagPtr)
+   self.jacob:fill(self.indexer(idxl), self.jacobPtr)
+   self.jacobDbmag:fill(self.indexer(idxl), self.jacobDbmagPtr)
    self.primMom:fill(self.indexer(idxl), self.primMomPtrl)
    self.primMom:fill(self.indexer(idxr), self.primMomPtrr)
 
