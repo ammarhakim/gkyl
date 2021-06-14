@@ -102,7 +102,8 @@ for bInd : 1 thru length(bName) do (
         printf(fh, "double ConstHyperDiffusion4Vol~ax~aP~a_diffDirs~a(const double *w, const double *dx, const double *nu, const double *f, double *out); ~%", cD, bName[bInd], polyOrder, diffDirsStr),
         if (polyOrder>1) then (
           printf(fh, "double ConstHyperDiffusion6Vol~ax~aP~a_diffDirs~a(const double *w, const double *dx, const double *nu, const double *f, double *out); ~%", cD, bName[bInd], polyOrder, diffDirsStr)
-        )
+        ),
+        printf(fh, "double ConstDiffusionVarCoeffVol~ax~aP~a_diffDirs~a(const double *w, const double *dx, const double *nu, const double *f, double *out); ~%", cD, bName[bInd], polyOrder, diffDirsStr)
       ),
 
       for dir : 1 thru cD do (
@@ -114,6 +115,8 @@ for bInd : 1 thru length(bName) do (
           printf(fh, "void ConstHyperDiffusion6Surf~ax~aP~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, surfLabels[dir]),
           printf(fh, "void ConstHyperDiffusion6BoundarySurf~ax~aP~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, surfLabels[dir])
         ),
+        printf(fh, "void ConstDiffusionVarCoeffSurf~ax~aP~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nul, const double *nur, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, surfLabels[dir]),
+        printf(fh, "void ConstDiffusionVarCoeffBoundarySurf~ax~aP~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nul, const double *nur, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, surfLabels[dir]),
         if polyOrder=1 then (
           /* Add kernels for positivity preserving algorithm. */
           printf(fh, "void ConstDiffusionSurfPositivity~ax~aP~a_~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", cD, bName[bInd], polyOrder, surfLabels[dir])
