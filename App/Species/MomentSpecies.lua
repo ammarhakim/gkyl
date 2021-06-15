@@ -528,11 +528,14 @@ function MomentSpecies:applyBc(tCurr, fIn, dir)
             end
          end
       end
-      for _, bc in ipairs(self.ssBoundaryConditions) do
-         if (not dir) or dir == bc:getDir() then
-             bc:advance(tCurr, {}, {fIn})
+      if (self._hasSsBnd) then
+         fIn:sync()
+         for _, bc in ipairs(self.ssBoundaryConditions) do
+            if (not dir) or dir == bc:getDir() then
+                bc:advance(tCurr, {}, {fIn})
+             end
           end
-       end
+      end
       fIn:sync()
    end
    self.bcTime = self.bcTime + Time.clock()-tmStart
