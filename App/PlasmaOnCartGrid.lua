@@ -1009,6 +1009,7 @@ return {
 	 FunctionProjection  = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
 	 Geometry            = require ("App.Field.GkField").GkGeometry,
 	 GyrofluidProjection = require ("App.Projection.GyrofluidProjection").GyrofluidProjection, 
+         HeatFlux            = require "App.Collisions.GfHeatFlux",
          PASCollisions       = require "App.Collisions.GfPitchAngleScattering",
          Source              = require "App.Sources.GyrofluidSource",
 	 Species             = require "App.Species.GyrofluidSpecies",

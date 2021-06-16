@@ -1,9 +1,8 @@
 #include <gyrofluid_mod_decl.h>
 
-double gyrofluid_vol_1x_p1_ser(const double q_, const double m_, const double kappaPar, const double kappaPerp, const double kperpSq, const double *w, const double *dx, const double *jac, const double *rBmag, const double *jacDbmag, const double *dBdz, const double *sMom, const double *phi, double *primMom, double *out) 
+double gyrofluid_vol_1x_p1_ser(const double q_, const double m_, const double kperpSq, const double *w, const double *dx, const double *jac, const double *rBmag, const double *jacDbmag, const double *dBdz, const double *sMom, const double *phi, double *primMom, double *out) 
 { 
   // q_,m_:   species charge and mass.
-  // kappa:   heat conductivity coefficients.
   // kperpSq: k_perp^2.
   // w:       cell-center.
   // dx:      cell length.
@@ -26,9 +25,9 @@ double gyrofluid_vol_1x_p1_ser(const double q_, const double m_, const double ka
   out[3] += (((-1.224744871391589*phi[1]*sMom[1]*q_)-2.449489742783178*(sMom[1]*primMom[5]+sMom[0]*primMom[4]))/m_+3.464101615137754*sMom[4])*rdx2-0.7071067811865475*(dBdz[0]*sMom[7]+dBdz[1]*sMom[6]); 
 
   out[4] += -(1.224744871391589*phi[1]*sMom[2]*q_*rdx2)/m_; 
-  out[5] += jac[1]*(kappaPerp*(2.121320343559642*primMom[4]-1.060660171779821*phi[0]*kperpSq*q_)+1.060660171779821*primMom[2]*kappaPar)*rdxSq4+((0.8660254037844386*((primMom[0]*sMom[1]+sMom[0]*primMom[1])*primMom[3]+(primMom[1]*sMom[1]+primMom[0]*sMom[0])*primMom[2])-1.224744871391589*phi[1]*sMom[3]*q_)/m_+1.224744871391589*(primMom[1]*sMom[5]+primMom[0]*sMom[4]))*rdx2; 
+  out[5] += ((0.8660254037844386*((primMom[0]*sMom[1]+sMom[0]*primMom[1])*primMom[3]+(primMom[1]*sMom[1]+primMom[0]*sMom[0])*primMom[2])-1.224744871391589*phi[1]*sMom[3]*q_)/m_+1.224744871391589*(primMom[1]*sMom[5]+primMom[0]*sMom[4]))*rdx2; 
 
-  out[7] += jacDbmag[1]*kappaPerp*(2.121320343559642*primMom[4]-1.060660171779821*phi[0]*kperpSq*q_)*rdxSq4+1.224744871391589*(primMom[1]*sMom[7]+primMom[0]*sMom[6])*rdx2; 
+  out[7] += 1.224744871391589*(primMom[1]*sMom[7]+primMom[0]*sMom[6])*rdx2; 
 
-  return rdx2*(fabs(0.7071067811865475*primMom[0]) + 0.8408964152537145*sqrt((2.0*primMom[4])/m_+(3.0*primMom[2])/m_)) + 1.333333333333333*fmax((jac[0]*kappaPar*m_*rdxSq4)/sMom[0],(jac[0]*kappaPerp*m_*rdxSq4)/sMom[0]); 
+  return rdx2*(fabs(0.7071067811865475*primMom[0]) + 0.8408964152537145*sqrt((2.0*primMom[4])/m_+(3.0*primMom[2])/m_)); 
 }
