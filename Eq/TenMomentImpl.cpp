@@ -208,7 +208,13 @@ void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], do
 }
 
 // Qfluctuations for ten-moment equations
-void gkylTenMomentQFluct(double *waves, double s[5], double amdq[10], double apdq[10])
+void gkylTenMomentQFluct(const int dir,
+                         double ql[],
+                         double qr[],
+                         double waves[],
+                         double s[],
+                         double amdq[],
+                         double apdq[])
 {
   for (unsigned m=0; m<10; ++m)
   {
@@ -223,7 +229,12 @@ void gkylTenMomentQFluct(double *waves, double s[5], double amdq[10], double apd
   }
 }
 
-void gkylTenMomentRpLax(int dir, double delta[10], double ql[10], double qr[10], double *waves, double s[5])
+void gkylTenMomentRpLax(int dir,
+                        double delta[10],
+                        double ql[10],
+                        double qr[10],
+                        double *waves,
+                        double s[5])
 {
   for (unsigned i=0; i<10; ++i)
     waves[i] = qr[i]-ql[i];
