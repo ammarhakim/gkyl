@@ -1,9 +1,9 @@
-// Gkyl ------------------------------------------------------------------------
+// Gkyl ////////////////////////////////////////////////////////////////////////
 //
 // C++ back-end for ten-moment core functions
 //    _______     ___
 // + 6 @ |||| # P ||| +
-//------------------------------------------------------------------------------
+////////////////////////////////////////////////////////////////////////////////
 
 #include <cmath>
 #include <TenMomentImpl.h>
@@ -220,5 +220,101 @@ void gkylTenMomentQFluct(double *waves, double s[5], double amdq[10], double apd
       else
         apdq[m] += s[mw]*waves[m+10*mw];
     }
+  }
+}
+
+void gkylTenMomentRpLax(int dir, double delta[10], double ql[10], double qr[10], double *waves, double s[5])
+{
+  for (unsigned i=0; i<10; ++i)
+    waves[i] = qr[i]-ql[i];
+
+  int d1, dp1;
+  if (dir == 1)
+  {
+    d1 = 1;
+    dp1 = 4;
+  }
+  else if (dir == 2)
+  {
+    d1 = 2;
+    dp1 = 7;
+  }
+  else if (dir == 3)
+  {
+    d1 = 3;
+    dp1 = 9;
+  }
+
+  double rho, u1, p11;
+  
+  rho = ql[0];
+  u1 = ql[d1];
+  p11 = ql[dp1] - rho*u1*u1;
+  double sl = u1+std::sqrt(3*p11/rho);
+  
+  rho = qr[0];
+  u1 = qr[d1];
+  p11 = qr[dp1] - rho*u1*u1;
+  double sr = u1+std::sqrt(3*p11/rho);
+
+  s[0] = 0.5*(sl+sr);
+}
+
+static void
+flux(const int dir, const double* q, double* f)
+{
+  int RHO = 0;
+  int U1, U2, U3;
+  int P11, P12, P13, P22, P23, P33;
+  if (dir == 1)
+  {
+    U1 = 1; U2 = 2; U3 = 3;
+    P11 = 4; P12 = 5; P13 = 6; P22 = 7; P23 = 8; P33 = 9;
+  }
+  else if (dir == 2)
+  {
+    U1 = 2; U2 = 3; U3 = 1;
+    P11 = 7; P12 = 8; P13 = 5; P22 = 9; P23 = 6; P33 = 4;
+  }
+  else if (dir == 3)
+  {
+    U1 = 3; U2 = 1; U3 = 2;
+    P11 = 9; P12 = 6; P13 = 8; P22 = 4; P23 = 5; P33 = 7;
+  }
+
+  double v[10];
+  primitive(q, v);
+
+  // Density flux.
+  f[RHO] = v[RHO]*v[U1];
+  // Momentum density flux.
+  f[U1] = v[RHO]*v[U1]*v[U1] + v[P11];
+  f[U2] = v[RHO]*v[U1]*v[U2] + v[P12];
+  f[U3] = v[RHO]*v[U1]*v[U3] + v[P13];
+  // Total pressure flux.
+  f[P11] = v[RHO]*v[U1]*v[U1]*v[U1] + 3*v[U1]*v[P11];
+  f[P12] = v[RHO]*v[U1]*v[U1]*v[U2] + 2*v[U1]*v[P12] + v[U2]*v[P11];
+  f[P13] = v[RHO]*v[U1]*v[U1]*v[U3] + 2*v[U1]*v[P13] + v[U3]*v[P11];
+  f[P22] = v[RHO]*v[U1]*v[U2]*v[U2] + v[U1]*v[P22] + 2*v[U2]*v[P12];
+  f[P23] = v[RHO]*v[U1]*v[U2]*v[U3] + v[U1]*v[P23] + v[U2]*v[P13] + v[U3]*v[P12];
+  f[P33] = v[RHO]*v[U1]*v[U3]*v[U3] + v[U1]*v[P33] + 2*v[U3]*v[P13];
+}
+
+void gkylTenMomentQFluctLax(const int dir,
+                            double ql[],
+                            double qr[],
+                            double waves[],
+                            double s[],
+                            double amdq[],
+                            double apdq[])
+{
+  double fl[10], fr[10];
+  flux(dir, ql, fl);
+  flux(dir, qr, fr);
+
+  for (unsigned m=0; m<10; ++m)
+  {
+    amdq[m] = 0.5*(fr[m]-fl[m] - s[0]*(qr[m]-ql[m]));
+    apdq[m] = 0.5*(fr[m]-fl[m] + s[0]*(qr[m]-ql[m]));
   }
 }
