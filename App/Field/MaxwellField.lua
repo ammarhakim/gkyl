@@ -829,11 +829,14 @@ function MaxwellField:applyBc(tCurr, emIn)
       end
    end   
 
-   for _, bc in ipairs(self.ssBoundaryConditions) do
-      if (not dir) or dir == bc:getDir() then
-          bc:advance(tCurr, {}, {emIn})
-       end
-    end
+   if self._hasSsBnd then
+      emIn:sync()
+      for _, bc in ipairs(self.ssBoundaryConditions) do
+         if (not dir) or dir == bc:getDir() then
+            bc:advance(tCurr, {}, {emIn})
+         end
+      end
+   end
 
    emIn:sync()
    self.bcTime = self.bcTime + Time.clock()-tmStart
