@@ -15,24 +15,27 @@ local Logger = require "Logger"
 -- SI units   --
 ----------------
 local gasGamma = 5 / 3
-local lightSpeed = Consts.SPEED_OF_LIGHT / 100
 local mu0 = Consts.MU0
+local lightSpeed = Consts.SPEED_OF_LIGHT / 100
 local epsilon0 = 1 / mu0 / (lightSpeed ^ 2)
 
 local R0 = 2634.1e3 -- Planet radius.
--- Planet dipole moment.
+-- Moment of the planetary magneic field, D = B / R0^3, where B is the B field
+-- at the magnetic equator.
 local Dx = -18e-9 * R0 ^ 3
 local Dy = 51.8e-9 * R0 ^ 3
 local Dz = -716.8e-9 * R0 ^ 3
-local r1 = 0.5 * R0 -- B field will be set to zero where r < r1.
-local rInOut = R0 -- Radius of the inner boundary.
+local rCutBfield = 0.5 * R0 -- B field will be set to zero where r < rCutBfield.
+local rInnerBoundary = R0 -- Radius of the inner boundary.
 
--- Inflow condition.
+-- Inflow conditions.
+-- Inflow plasma density, velocity, and pressure.
 local rho_in = 56e6 * Consts.PROTON_MASS
 local vx_in = 140e3
 local vy_in = 0
 local vz_in = 0
 local p_in = 3.8e-9
+-- Inflow magnetic field.
 local Bx_in = 0
 local By_in = -6e-9
 local Bz_in = -77e-9
@@ -43,15 +46,15 @@ local mirdip_rRamp2 = 2.5 * R0
 local mirdip_stretch = 1
 local mirdip_xMirror = -2.578125 * R0
 
--- Kinetic parameters.
-local mi = 14 * Consts.PROTON_MASS
-local di_in = 0.2 * R0
-local mi__me = 25
-local pi__pe = 5
-local me = mi / mi__me
-local qi = mi / di_in / math.sqrt(mu0 * rho_in)
-local qe = -qi
-local de_in = di_in * math.sqrt(me / mi)
+-- Kinetic (non-MHD) parameters.
+local mi = 14 * Consts.PROTON_MASS  -- Ion mass.
+local di_in = 0.2 * R0  -- Ion inertial length based on inflow conditions.
+local mi__me = 25  -- Ion-to-electron mass ratio.
+local pi__pe = 5  -- Ion-to-electron pressure ratio.
+local me = mi / mi__me  -- electron mass.
+local qi = mi / di_in / math.sqrt(mu0 * rho_in)  -- Ion charge.
+local qe = -qi  -- Electron charge.
+local de_in = di_in * math.sqrt(me / mi)  -- Electron inertial length.
 
 -- Domain.
 local xlo, xup, Nx = -24 * R0, 24 * R0, 96
@@ -61,7 +64,7 @@ local zlo, zup, Nz = -24 * R0, 24 * R0, 96
 local lower = {xlo, ylo, zlo}
 local upper = {xup, yup, zup}
 local cells = {Nx, Ny, Nz}
-local decompCuts = nil
+local decompCuts = nil  -- {nProcessorsX, nProcessosY, nProcessorsZ}
 local useNonUniformGrid = true
 -- Using two tanh functions to rampd down and up the grid sizes (U-shape).
 -- xl, wxl: Floor and transition-layer width of the left tanh (ramping down dx.)
@@ -74,47 +77,47 @@ local zl, wzl, zr, wzr, sz = -5 * R0, 3 * R0, 5 * R0, 3 * R0, 0.01
 
 -- Computational constants.
 local cfl = 0.9
-local cflm = 1.1 * cfl
 local limiter = "monotonized-centered"
 
 -- I/O control.
 local tEnd = 2700
-local tFrame = 60
-local nFrame = math.floor(tEnd / tFrame)
+local tPerFrame = 60  -- Time interval between otuput time frames.
+local nFrame = math.floor(tEnd / tPerFrame) -- How many time frames to write.
 
--- Derived parameters.
+-- Derived parameters for setting boundary conditions and logging.
 local rhoe_in = rho_in / (1 + mi__me)
 local rhovxe_in = rhoe_in * vx_in
 local rhovye_in = rhoe_in * vy_in
 local rhovze_in = rhoe_in * vz_in
 local pe_in = p_in / (1 + pi__pe)
-local Pxxe_in = pe_in + vx_in ^ 2 * rhoe_in
-local Pyye_in = pe_in + vy_in ^ 2 * rhoe_in
-local Pzze_in = pe_in + vz_in ^ 2 * rhoe_in
-local Pxye_in = vx_in * vy_in * rhoe_in
-local Pxze_in = vx_in * vz_in * rhoe_in
-local Pyze_in = vy_in * vz_in * rhoe_in
+local Pxxe_in = rhoe_in * vx_in * vx_in  + pe_in
+local Pxye_in = rhoe_in * vx_in * vy_in
+local Pxze_in = rhoe_in * vx_in * vz_in
+local Pyye_in = rhoe_in * vy_in * vy_in  + pe_in
+local Pyze_in = rhoe_in * vy_in * vz_in
+local Pzze_in = rhoe_in * vz_in * vz_in  + pe_in
 
 local rhoi_in = rho_in - rhoe_in
 local rhovxi_in = rhoi_in * vx_in
 local rhovyi_in = rhoi_in * vy_in
 local rhovzi_in = rhoi_in * vz_in
 local pi_in = p_in - pe_in
-local Pxxi_in = pi_in + vx_in ^ 2 * rhoi_in
-local Pyyi_in = pi_in + vy_in ^ 2 * rhoi_in
-local Pzzi_in = pi_in + vz_in ^ 2 * rhoi_in
-local Pxyi_in = vx_in * vy_in * rhoi_in
-local Pxzi_in = vx_in * vz_in * rhoi_in
-local Pyzi_in = vy_in * vz_in * rhoi_in
+local Pxxi_in = rhoi_in * vx_in * vx_in  + pi_in
+local Pxyi_in = rhoi_in * vx_in * vy_in
+local Pxzi_in = rhoi_in * vx_in * vz_in
+local Pyyi_in = rhoi_in * vy_in * vy_in  + pi_in
+local Pyzi_in = rhoi_in * vy_in * vz_in
+local Pzzi_in = rhoi_in * vz_in * vz_in  + pi_in
+
+local Ex_in = -vy_in * Bz_in + vz_in * By_in
+local Ey_in = -vz_in * Bx_in + vx_in * Bz_in
+local Ez_in = -vx_in * By_in + vy_in * Bx_in
 
 local B_in = math.sqrt(Bx_in ^ 2 + By_in ^ 2 + Bz_in ^ 2)
 local cs_in = math.sqrt(gasGamma * p_in / rho_in)
 local vA_in = B_in / math.sqrt(mu0 * rho_in)
 local pmag_in = B_in ^ 2 / 2 / mu0
 local beta_in = p_in / pmag_in
-local Ex_in = -vy_in * Bz_in + vz_in * By_in
-local Ey_in = -vz_in * Bx_in + vx_in * Bz_in
-local Ez_in = -vx_in * By_in + vy_in * Bx_in
 
 local logger = Logger {logToFile = True}
 local log = function(...) logger(string.format(...).."\n") end
@@ -149,9 +152,9 @@ log("%30s = %g, %g, %g", "lower [R0]", xlo / R0, ylo / R0, zlo / R0)
 log("%30s = %g, %g, %g", "upper [R0]", xup / R0, yup / R0, zup / R0)
 log("%30s = %g, %g, %g", "cells", Nx, Ny, Nz)
 
------------------------
--- INITIAL CONDITION --
------------------------
+------------------------
+-- INITIAL CONDITIONS --
+------------------------
 local function initRho(x, y, z)
    local rho = rho_in
    return rho
@@ -192,14 +195,14 @@ end
 
 local function staticB(x, y, z)
    local r2 = x ^ 2 + y ^ 2 + z ^ 2
-   if (r2 < r1 ^ 2) then return 0, 0, 0 end
+   if (r2 < rCutBfield ^ 2) then return 0, 0, 0 end
    local Bxd0, Byd0, Bzd0 = dipoleB(x, y, z, 0, 0, 0, Dx, Dy, Dz, false)
    return Bxd0, Byd0, Bzd0
 end
 
 local function totalB(x, y, z)
    local r2 = x ^ 2 + y ^ 2 + z ^ 2
-   if (r2 < r1 ^ 2) then return 0, 0, 0 end
+   if (r2 < rCutBfield ^ 2) then return 0, 0, 0 end
 
    local Bxt, Byt, Bzt = 0, 0, 0
 
@@ -265,19 +268,24 @@ local function initField(t, xc)
    local Ey = -vz * Bxt + vx * Bzt
    local Ez = -vx * Byt + vy * Bxt
 
-   return Ex, Ey, Ez, Bx, By, Bz, 0, 0
+   local phiE = 0
+   local phiB = 0
+
+   return Ex, Ey, Ez, Bx, By, Bz, phiE, phiB
 end
 
 local function staticEmFunction(t, xc)
    local x, y, z = xc[1], xc[2], xc[3]
    local Exs, Eys, Ezs = 0, 0, 0
    local Bxs, Bys, Bzs = staticB(x, y, z)
-   return Exs, Eys, Ezs, Bxs, Bys, Bzs, 0, 0
+   local phiE = 0
+   local phiB = 0
+   return Exs, Eys, Ezs, Bxs, Bys, Bzs, phiE, phiB
 end
 
 local function inOutFunc(t, xc)
    local x, y, z = xc[1], xc[2], xc[3]
-   if (x ^ 2 + y ^ 2 + z ^ 2 < rInOut ^ 2) then
+   if (x ^ 2 + y ^ 2 + z ^ 2 < rInnerBoundary ^ 2) then
       return -1
    else
       return 1
@@ -287,7 +295,7 @@ end
 ----------
 -- GRID --
 ----------
-local coordinateMap = nil
+local coordinateMap = nil  -- This will be set if a non-uniform grid is used.
 if useNonUniformGrid then
    -- User-defined functions that map computational-grid coordinates to
    -- computational-grid cell sizes. The physical coordinates will be computed
@@ -348,12 +356,14 @@ if useNonUniformGrid then
    upper = {1, 1, 1}
 end
 
-------------------------
--- BOUNDARY CONDITION --
-------------------------
+-------------------------
+-- BOUNDARY CONDITIONs --
+-------------------------
+-- Inflow boundary conditions.
 local bcInflow_elc = TenMoment.bcConst(rhoe_in, rhovxe_in, rhovye_in, rhovze_in,
                                        Pxxe_in, Pxye_in, Pxze_in, Pyye_in,
                                        Pyze_in, Pzze_in)
+
 local bcInflow_ion = TenMoment.bcConst(rhoi_in, rhovxi_in, rhovyi_in, rhovzi_in,
                                        Pxxi_in, Pxyi_in, Pxzi_in, Pyyi_in,
                                        Pyzi_in, Pzzi_in)
@@ -364,17 +374,20 @@ local bcInflow_field = {
       qGhost[2] = Ey_in
       qGhost[3] = Ez_in
 
+      -- Setting BC on the perturbation magnetic field, not the total field.
       local x, y, z = xcGhost[1], xcGhost[2], xcGhost[3]
       local Bxs, Bys, Bzs = staticB(x, y, z)
       qGhost[4] = Bx_in - Bxs
       qGhost[5] = By_in - Bys
       qGhost[6] = Bz_in - Bzs
 
+      -- Divergence-error correction potentials.
       qGhost[7] = qSkin[7]
       qGhost[8] = qSkin[8]
    end
 }
 
+-- Boundary conditions applied at the embedded inner boundary.
 local bcInner_elc = {
    function(dir, tm, idxSkin, qSkin, qGhost, xcGhost, xcSkin)
       rho_v_p_to_10m(qGhost, rhoe_in, 0, 0, 0, pe_in)
@@ -402,9 +415,9 @@ local bcInner_field = {
    end
 }
 
----------
--- APP --
----------
+------------------
+-- APP CREATION --
+------------------
 local momentApp = Moments.App {
    logToFile = true,
 
@@ -416,12 +429,14 @@ local momentApp = Moments.App {
    coordinateMap = coordinateMap,
    decompCuts = decompCuts,
    timeStepper = "fvDimSplit",
+   cflFrac = cfl,
 
    elc = Moments.Species {
       charge = qe,
       mass = me,
       equation = TenMoment {},
       equationInv = TenMoment {numericalFlux = "lax"},
+      limiter = limiter,
       init = initElc,
       bcx = {bcInflow_elc, Moments.Species.bcCopy},
       bcy = {Moments.Species.bcCopy, Moments.Species.bcCopy},
@@ -436,6 +451,7 @@ local momentApp = Moments.App {
       mass = mi,
       equation = TenMoment {},
       equationInv = TenMoment {numericalFlux = "lax"},
+      limiter = limiter,
       init = initIon,
       bcx = {bcInflow_ion, Moments.Species.bcCopy},
       bcy = {Moments.Species.bcCopy, Moments.Species.bcCopy},
@@ -448,6 +464,7 @@ local momentApp = Moments.App {
    field = Moments.Field {
       epsilon0 = epsilon0,
       mu0 = mu0,
+      limiter = limiter,
       init = initField,
       bcx = {bcInflow_field, Moments.Field.bcCopy},
       bcy = {Moments.Field.bcCopy, Moments.Field.bcCopy},
@@ -463,7 +480,6 @@ local momentApp = Moments.App {
       hasStaticField = true,
       staticEmFunction = staticEmFunction
    }
-
 }
 
 ---------
