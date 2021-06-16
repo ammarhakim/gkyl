@@ -529,27 +529,43 @@ local function buildApplication(self, tbl)
 
    -- Function to advance solution using SSP-RK3 scheme with implicit BGK operator.
   function timeSteppers.rk3impBGK(tCurr, dtSuggested)
-        updateImpBGK(dtSuggested/2, 1)
+
+        --updateImpBGK(dtSuggested/2, 1)
+
         -- RK stage 1.
         local dt = forwardEuler(tCurr, nil, 1, 2)
+
         -- RK stage 2.
-        forwardEuler(tCurr+dt, dtSuggested, 2, 3)
+        --forwardEuler(tCurr+dt, dtSuggested, 2, 3)
+        forwardEuler(tCurr+dt, dt, 2, 3)
         local tm = Time.clock()
         combine(2, 3.0/4.0, 1, 1.0/4.0, 3)
         stepperTime = stepperTime + (Time.clock() - tm)
+
         -- RK stage 3.
-        forwardEuler(tCurr+dtSuggested/2, dt, 2, 3)
+        --forwardEuler(tCurr+dtSuggested/2, dt, 2, 3)
+        forwardEuler(tCurr+dt/2, dt, 2, 3)
         tm = Time.clock()
         combine(2, 1.0/3.0, 1, 2.0/3.0, 3)
         copy(1, 2)
-        updateImpBGK(dtSuggested/2, 1)
+        stepperTime = stepperTime + (Time.clock() - tm)
+
+        --updateImpBGK(dtSuggested/2, 1)
+        updateImpBGK(dt, 1)
+
         return true, dt
   end
 
   local function updateImpBGK(dt, distfIn)
-   species:implicitBGKUadvance(dt, distfIn)
+   for _, s in lume.orderedIter(species) do
+     if s.charge == 0 then
+        s:advance(tCurr, species, {NoField {}, NoField {}}, inIdx, outIdx)
+     else
+        s:advance(tCurr, species, {field, externalField}, inIdx, outIdx)
+     end
+   end
   end
-
+  
    -- Function to advance solution using 4-stage SSP-RK3 scheme.
    function timeSteppers.rk3s4(tCurr)
       -- RK stage 1.

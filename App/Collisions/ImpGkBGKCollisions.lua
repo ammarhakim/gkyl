@@ -387,7 +387,7 @@ function GkBGKCollisions:createSolver(externalField)
       mass       = self.mass,
    }
    -- BGK Collision solver itself.
-   self.collisionSlvr = Updater.BgkCollisions {
+   self.collisionSlvr = Updater.implicitBGK {
       onGrid           = self.phaseGrid,
       confGrid         = self.confGrid,
       confBasis        = self.confBasis,
@@ -398,7 +398,7 @@ function GkBGKCollisions:createSolver(externalField)
 
 end
 
-function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
+function impGkBGKCollisions:advance(tCurr, dt, fIn, species, fRhsOut)
 
    -- Fetch coupling moments and primitive moments of this species
    local selfMom     = species[self.speciesName]:fluidMoments()
@@ -537,7 +537,7 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
    end    -- end if self.crossCollisions
    self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 
-   self.collisionSlvr:advance(tCurr, {fIn, self.nufMaxwellSum, self.nuSum}, {fRhsOut})
+   self.collisionSlvr:advance(tCurr, {fIn, self.nufMaxwellSum, self.nuSum, dt}, {fRhsOut})
 
 end
 

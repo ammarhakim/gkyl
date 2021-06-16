@@ -1,150 +1,129 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Updater to calculate the Spitzer collision frequency.
--- Eventually this updater may:
--- a) Return a cell-wise constant nu given a normalized initial normNu.
--- b) Return a nu expanded in the basis function given an initial normNu.
--- c) Build nu in SI units (either cell-wise constant or varying).
+-- Updater to calculate BGK collisions for various species.
 --
---    _______     ___
--- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local UpdaterBase   = require "Updater.Base"
-local LinearDecomp  = require "Lib.LinearDecomp"
-local Proto         = require "Lib.Proto"
-local SpitzerNuDecl = require "Updater.spitzerNuCalcData.SpitzerNuModDecl"
-local xsys          = require "xsys"
-local Lin           = require "Lib.Linalg"
+local LinearDecomp = require "Lib.LinearDecomp"
+local Proto        = require "Proto"
+local UpdaterBase  = require "Updater.Base"
 
--- Updater object.
-local SpitzerCollisionality = Proto(UpdaterBase)
+-- System libraries.
+local xsys = require "xsys"
 
-function SpitzerCollisionality:init(tbl)
-   SpitzerCollisionality.super.init(self, tbl) -- Setup base object.
+-- BGK Collisions updater object.
+local BgkCollisions = Proto(UpdaterBase)
 
-   self._onGrid = assert(
-      tbl.onGrid, "Updater.SpitzerCollisionality: Must provide grid object using 'onGrid'.")
+----------------------------------------------------------------------
+-- Updater Initialization --------------------------------------------
+function BgkCollisions:init(tbl)
+   BgkCollisions.super.init(self, tbl) -- Setup base object.
 
-   local confBasis = assert(
-      tbl.confBasis, "Updater.SpitzerCollisionality: Must provide the configuration basis object using 'confBasis'.")
+   self._phaseGrid     = assert(tbl.onGrid,
+      "Updater.BgkCollisions: Must provide phase space grid object using 'onGrid'")
+   self._phaseBasis    = assert(tbl.phaseBasis,
+      "Updater.BgkCollisions: Must provide phase space basis object using 'phaseBasis'")
+   self._confGrid      = assert(tbl.confGrid,
+      "Updater.BgkCollisions: Must provide configuration space grid object using 'confGrid'")
+   self._confBasis     = assert(tbl.confBasis,
+      "Updater.BgkCollisions: Must provide configuration space basis object using 'confBasis'")
+   local varNuIn       = tbl.varyingNu           -- Specify if collisionality varies spatially.
+   local cellConstNuIn = tbl.useCellAverageNu    -- Specify whether to use cell-wise constant collisionality.
 
-   self._cellConstNu = assert(
-      tbl.useCellAverageNu, "Updater.SpitzerCollisionality: Must specify whether to use cell averaged collisionality in 'useCellAverageNu'.")
+   -- Dimension of phase space.
+   self._pDim = self._phaseBasis:ndim()
 
-   self._isNormNu = tbl.willInputNormNu
-   assert(self._isNormNu~=nil, "Updater.SpitzerCollisionality: Must specify whether normalized collisionality (normNu) will be inputed or not.")
-
-   self._elemCharge = assert(
-      tbl.elemCharge, "Updater.SpitzerCollisionality: Must specify elementary charge ('elemCharge') to build Spitzer collisionality.")
-   self._epsilon0   = assert(
-      tbl.epsilon0, "Updater.SpitzerCollisionality: Must specify vacuum permittivity ('epsilon0') to build Spitzer collisionality.")
-   self._hBar       = assert(
-      tbl.hBar, "Updater.SpitzerCollisionality: Must specify Planck's constant h divided by 2pi ('hBar') to build Spitzer collisionality.")
-   local nuFracIn = tbl.nuFrac
-   if nuFracIn then
-      self._nuFrac = nuFracIn
+   -- The default is spatially constant collisionality.
+   if varNuIn==nil then
+      self._varNu       = false
+      self._cellConstNu = true
    else
-      self._nuFrac = 1.0
-   end
-
-   -- Dimension of configuration space.
-   self._cDim = confBasis:ndim()
-   -- Basis name and polynomial order.
-   self._basisID   = confBasis:id()
-   self._polyOrder = confBasis:polyOrder()
-
-   -- Number of basis functions.
-   self._numBasisC = confBasis:numBasis()
-
-   if self._isNormNu then
-      if self._cellConstNu then
-         self._SpitzerNuCalc = SpitzerNuDecl.selectCellAvSpitzerNuScale(self._basisID, self._cDim, self._polyOrder)
+      self._varNu       = varNuIn
+      if cellConstNuIn == nil then
+         self._cellConstNu = true
       else
-         self._SpitzerNuCalc = SpitzerNuDecl.selectSpitzerNuScale(self._basisID, self._cDim, self._polyOrder)
-      end
-   else
-      if self._cellConstNu then
-         self._SpitzerNuCalc = SpitzerNuDecl.selectCellAvSpitzerNuBuild(self._basisID, self._cDim, self._polyOrder)
-      else
-         self._SpitzerNuCalc = SpitzerNuDecl.selectSpitzerNuBuild(self._basisID, self._cDim, self._polyOrder)
+         self._cellConstNu = cellConstNuIn
       end
    end
-   self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
 
-   self._BmagZero = Lin.Vec(self._numBasisC)
-   for iC = 1,self._numBasisC do
-      self._BmagZero[iC] = 0.0
+   if self._varNu then
+      self._nuPtr, self._nuIdxr = nil, nil
    end
-   
+
+   local numConfDims = self._confBasis:ndim()
+   -- To obtain the cell average, multiply the zeroth coefficient by this factor.
+   self._cellAvFac = 1.0/(math.sqrt(2.0^numConfDims))
 end
 
--- Advance method.
-function SpitzerCollisionality:_advance(tCurr, inFld, outFld)
-   local grid = self._onGrid
+----------------------------------------------------------------------
+-- Updater Advance ---------------------------------------------------
+function ImplicitBGK:_advance(tCurr, inFld, outFld)
+   local grid          = self._phaseGrid
+   local numPhaseBasis = self._phaseBasis:numBasis()
+   local pDim          = self._pDim
+   -- Get the inputs and outputs.
+   local fIn           = assert(inFld[1],
+      "BgkCollisions.advance: Must specify an input distribution function field as input[1]")
+   local sumNufMaxwell = assert(inFld[2],
+      "BgkCollisions.advance: Must specify sum(nu*Maxwellian) field as input[2]")
+   local sumNuIn       = assert(inFld[3],
+      "BgkCollisions.advance: Must specify the sum of collisionalities as input[3]")
+   local dt            = assert(inFld[4],
+      "BgkCollisions.advance: Must specify the time stepping width as input[4]")
+   local nuFrac = 1.0
+   if inFld[4] then nuFrac = inFld[4] end
 
-   local chargeSelf, massSelf   = inFld[1], inFld[2]
-   local m0Self, vtSqSelf       = inFld[3], inFld[4]
-   local chargeOther, massOther = inFld[5], inFld[6]
-   local m0Other, vtSqOther     = inFld[7], inFld[8]
+   local fRhsOut = assert(outFld[1], "BgkCollisions.advance: Must specify an output field")
 
-   local normNu = inFld[9]
-   local Bmag, BmagItr
+   local fInItr           = fIn:get(1)
+   local sumNufMaxwellItr = sumNufMaxwell:get(1)
 
-   local firstInput, massFac = 0.0, 0.0
-
-   local confIndexer = m0Self:genIndexer()
-
-   local m0SelfItr    = m0Self:get(1)
-   local vtSqSelfItr  = vtSqSelf:get(1)
-   local m0OtherItr   = m0Other:get(1)
-   local vtSqOtherItr = vtSqOther:get(1)
-
-   local nuOut    = outFld[1]
-   local nuOutItr = nuOut:get(1)
-
-   local confRange = m0Self:localRange()
-   if self.onGhosts then confRange = m0Self:localExtRange() end
-
-   -- Construct ranges for nested loops.
-   local confRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = confRange:selectFirst(self._cDim), numSplit = grid:numSharedProcs() }
-   local tId = grid:subGridSharedId() -- Local thread ID.
-
-   -- Fork logic here to avoid if-statement in space loop.
-   if (inFld[10] ~= nil) then
-      Bmag    = inFld[10]
-      BmagItr = Bmag:get(1)
-      for cIdx in confRangeDecomp:rowMajorIter(tId) do
-         grid:setIndex(cIdx)
- 
-         m0Self:fill(confIndexer(cIdx), m0SelfItr)
-         vtSqSelf:fill(confIndexer(cIdx), vtSqSelfItr)
-         m0Other:fill(confIndexer(cIdx), m0OtherItr)
-         vtSqOther:fill(confIndexer(cIdx), vtSqOtherItr)
-
-         Bmag:fill(confIndexer(cIdx), BmagItr)
- 
-         nuOut:fill(confIndexer(cIdx), nuOutItr)
- 
-         self._SpitzerNuCalc(self._elemCharge, self._epsilon0, self._hBar, self._nuFrac, chargeSelf, massSelf, m0SelfItr:data(), vtSqSelfItr:data(), chargeOther, massOther, m0OtherItr:data(), vtSqOtherItr:data(), normNu, BmagItr:data(), nuOutItr:data())
-      end
+   local sumNu = 0.0    -- Assigned below if cellConstNu=true.
+   if self._varNu then
+      self._sumNuPtr  = sumNuIn:get(1)
+      self._sumNuIdxr = sumNuIn:genIndexer()
    else
-      BmagItr = self._BmagZero
-      for cIdx in confRangeDecomp:rowMajorIter(tId) do
-         grid:setIndex(cIdx)
- 
-         m0Self:fill(confIndexer(cIdx), m0SelfItr)
-         vtSqSelf:fill(confIndexer(cIdx), vtSqSelfItr)
-         m0Other:fill(confIndexer(cIdx), m0OtherItr)
-         vtSqOther:fill(confIndexer(cIdx), vtSqOtherItr)
- 
-         nuOut:fill(confIndexer(cIdx), nuOutItr)
- 
-         self._SpitzerNuCalc(self._elemCharge, self._epsilon0, self._hBar, self._nuFrac, chargeSelf, massSelf, m0SelfItr:data(), vtSqSelfItr:data(), chargeOther, massOther, m0OtherItr:data(), vtSqOtherItr:data(), normNu, BmagItr:data(), nuOutItr:data())
+      sumNu = sumNuIn
+   end
+
+   local fRhsOutItr   = fRhsOut:get(1)
+   local phaseRange   = fRhsOut:localRange()
+   -- Get the range to loop over the domain.
+   local phaseIndexer = fRhsOut:genIndexer()
+
+   -- Get the interface for setting global CFL frequencies
+   local cflRateByCell     = self._cflRateByCell
+   local cflRateByCellIdxr = cflRateByCell:genIndexer()
+   local cflRateByCellPtr  = cflRateByCell:get(1)
+
+   -- Construct range for shared memory.
+   local phaseRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = phaseRange:selectFirst(pDim), numSplit = grid:numSharedProcs() }
+   local tId = grid:subGridSharedId()    -- Local thread ID.
+
+   -- Phase space loop.
+   for pIdx in phaseRangeDecomp:rowMajorIter(tId) do
+      fIn:fill(phaseIndexer(pIdx), fInItr)
+      sumNufMaxwell:fill(phaseIndexer(pIdx), sumNufMaxwellItr)
+      fRhsOut:fill(phaseIndexer(pIdx), fRhsOutItr)
+
+      cflRateByCell:fill(cflRateByCellIdxr(pIdx), cflRateByCellPtr)
+
+      if self._cellConstNu then
+         -- This code assumes nu is cell-wise constant.
+         if self._varNu then
+            sumNuIn:fill(self._sumNuIdxr(pIdx), self._sumNuPtr)    -- Get pointer to sumNu field.
+            sumNu = self._sumNuPtr[1]*self._cellAvFac
+         end
+         for k = 1, numPhaseBasis do
+            if sumNufMaxwellItr[k] == sumNufMaxwellItr[k] then -- NaN check.
+               fRhsOutItr[k] = fRhsOutItr[k] + nuFrac*(sumNufMaxwellItr[k] - sumNu*fInItr[k]/(1+sumNu*dt))
+            end
+         end
+	 cflRateByCellPtr:data()[0] = cflRateByCellPtr:data()[0] + sumNu
       end
    end
 end
 
-return SpitzerCollisionality
+return BgkCollisions
