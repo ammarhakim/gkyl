@@ -240,31 +240,17 @@ void gkylTenMomentRpLax(int dir,
     waves[i] = qr[i]-ql[i];
 
   int d1, dp1;
-  if (dir == 1)
-  {
-    d1 = 1;
-    dp1 = 4;
-  }
-  else if (dir == 2)
-  {
-    d1 = 2;
-    dp1 = 7;
-  }
-  else if (dir == 3)
-  {
-    d1 = 3;
-    dp1 = 9;
-  }
+  if (dir == 1) { d1 = 1; dp1 = 4; }
+  else if (dir == 2) { d1 = 2; dp1 = 7; }
+  else if (dir == 3) { d1 = 3; dp1 = 9; }
 
   double rho, u1, p11;
-  
   rho = ql[0];
-  u1 = ql[d1];
+  u1 = ql[d1]/rho;
   p11 = ql[dp1] - rho*u1*u1;
   double sl = u1+std::sqrt(3*p11/rho);
-  
   rho = qr[0];
-  u1 = qr[d1];
+  u1 = qr[d1]/rho;
   p11 = qr[dp1] - rho*u1*u1;
   double sr = u1+std::sqrt(3*p11/rho);
 
@@ -323,9 +309,25 @@ void gkylTenMomentQFluctLax(const int dir,
   flux(dir, ql, fl);
   flux(dir, qr, fr);
 
+  int d1, dp1;
+  if (dir == 1) { d1 = 1; dp1 = 4; }
+  else if (dir == 2) { d1 = 2; dp1 = 7; }
+  else if (dir == 3) { d1 = 3; dp1 = 9; }
+
+  double rho, u1, p11;
+  rho = ql[0];
+  u1 = ql[d1]/rho;
+  p11 = ql[dp1] - rho*u1*u1;
+  double sl = std::fabs(u1)+std::sqrt(3*p11/rho);
+  rho = qr[0];
+  u1 = qr[d1]/rho;
+  p11 = qr[dp1] - rho*u1*u1;
+  double sr = std::fabs(u1)+std::sqrt(3*p11/rho);
+  double smax = std::max(sl, sr);
+
   for (unsigned m=0; m<10; ++m)
   {
-    amdq[m] = 0.5*(fr[m]-fl[m] - s[0]*(qr[m]-ql[m]));
-    apdq[m] = 0.5*(fr[m]-fl[m] + s[0]*(qr[m]-ql[m]));
+    amdq[m] = 0.5*(fr[m]-fl[m] - smax*(qr[m]-ql[m]));
+    apdq[m] = 0.5*(fr[m]-fl[m] + smax*(qr[m]-ql[m]));
   }
 }
