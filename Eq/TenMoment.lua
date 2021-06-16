@@ -20,6 +20,8 @@ ffi.cdef [[
 
 /* TenMoment equations */
 typedef struct {
+   int _numWaves; /* Number of waves in system */
+   int _rpType; /* Type of RP to use */
    int64_t numFlux; /* Type of numerical flux to use */
    int useIntermediateWave; /* Flag to indicate intermediate wave use */
    double _rpTime; /* Time spent in RP */
@@ -29,7 +31,12 @@ typedef struct {
 /* Ten-moment RP solver */
   void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], double *waves, double s[5]);
 /* Ten-moment q-fluctuations */
-  void gkylTenMomentQFluct(double *waves, double *s, double *amdq, double *apdq);
+  void gkylTenMomentQFluct(const int dir, double *ql, double *qr, double *waves, double *s, double *amdq, double *apdq);
+
+/* Ten-moment RP solver using Lax flux */
+  void gkylTenMomentRpLax(int dir, double delta[10], double ql[10], double qr[10], double *waves, double s[5]);
+/* Ten-moment q-fluctuations for Lax flux */
+  void gkylTenMomentQFluctLax(const int dir, double *ql, double *qr, double *waves, double *s, double *amdq, double *apdq);
 ]]
 
 -- Pre-defined constants to make life a little easier.
@@ -65,24 +72,41 @@ local function primitive(q, out)
    out[10] = q[10]-q[4]^2/q[1] 
 end
 
+local RP_TYPE_ROE, RP_TYPE_LAX  = 1, 2
+
 -- Riemann problem for Ten-moment equations: `delta` is the vector we
 -- wish to split, `ql`/`qr` the left/right states. On output, `waves`
 -- and `s` contain the waves and speeds. waves is a mwave X meqn
 -- matrix. See LeVeque's book for explanations.
 local function rp(self, dir, delta, ql, qr, waves, s)
    -- dispatch call to C++ function implementing the RP
-   ffi.C.gkylTenMomentRp(dir, delta:data(), ql:data(), qr:data(), waves:data(), s:data())
+   if self._rpType == RP_TYPE_ROE then
+      ffi.C.gkylTenMomentRp(dir, delta:data(), ql:data(), qr:data(), waves:data(), s:data())
+   else
+      ffi.C.gkylTenMomentRpLax(dir, delta:data(), ql:data(), qr:data(), waves:data(), s:data())
+   end
 end
 
 local tenMoment_mt = {
    __new = function (self, tbl)
       local f = new(self)
+      f._rpType = RP_TYPE_ROE
+      if tbl.numericalFlux then
+	 if tbl.numericalFlux == "roe" then
+	    f._rpType = RP_TYPE_ROE
+	 elseif tbl.numericalFlux == "lax" then
+	    f._rpType = RP_TYPE_LAX
+	 else
+	    assert(false, "Euler: 'numericalFlux' must be one of 'roe' or 'lax'")
+	 end
+      end
+      f._numWaves = f._rpType == RP_TYPE_ROE and 5 or 1 -- Number of waves.
       f._rpTime = 0.0
       return f
    end,
    __index = {
       numEquations = function (self) return 10 end,
-      numWaves = function (self) return 5 end,
+      numWaves = function (self) return self._numWaves end,
       flux = function (self, dir, qIn, fOut)
 	 local d = dirShuffle[dir] -- shuffle indices for `dir`
 	 local dp = dirShufflePr[dir] -- shuffle indices for `dir` for pressure tensor
@@ -113,7 +137,14 @@ local tenMoment_mt = {
       end,
       rp = rp,
       qFluctuations = function (self, dir, ql, qr, waves, s, amdq, apdq)
-	 ffi.C.gkylTenMomentQFluct(waves:data(), s:data(), amdq:data(), apdq:data())
+	 if self._rpType == RP_TYPE_ROE then
+	    ffi.C.gkylTenMomentQFluct(dir, ql:data(), qr:data(), waves:data(),
+                                      s:data(), amdq:data(), apdq:data())
+         else
+	    ffi.C.gkylTenMomentQFluctLax(dir, ql:data(), qr:data(),
+                                         waves:data(), s:data(), amdq:data(),
+                                         apdq:data())
+         end
       end,
    }
 }
