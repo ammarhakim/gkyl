@@ -565,7 +565,7 @@ local function buildApplication(self, tbl)
      end
    end
   end
-  
+
    -- Function to advance solution using 4-stage SSP-RK3 scheme.
    function timeSteppers.rk3s4(tCurr)
       -- RK stage 1.
