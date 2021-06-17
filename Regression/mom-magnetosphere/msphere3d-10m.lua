@@ -77,6 +77,9 @@ local zl, wzl, zr, wzr, sz = -5 * R0, 3 * R0, 5 * R0, 3 * R0, 0.01
 
 -- Computational constants.
 local cfl = 0.9
+-- Wave limiter for the wave-propagation method (q-wave form).
+-- One of "zero", "min-mod", "superbee", "van-leer", "monotonized-centered",
+-- "beam-warming".
 local limiter = "monotonized-centered"
 
 -- I/O control.
