@@ -479,7 +479,19 @@ local momentApp = Moments.App {
       timeStepper = "direct",
       hasStaticField = true,
       staticEmFunction = staticEmFunction
-   }
+   },
+
+   elc10mRelax = Moments.TenMomentRelaxSource {
+      species = {"elc"},
+      timeStepper = "explicit",
+      k = 1/de_in,
+   },
+
+   ion10mRelax = Moments.TenMomentRelaxSource {
+      species = {"ion"},
+      timeStepper = "explicit",
+      k = 1/de_in,
+   },
 }
 
 ---------
