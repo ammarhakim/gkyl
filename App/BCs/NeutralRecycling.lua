@@ -44,8 +44,17 @@ local bcRecycleDiagImpl = function()
    end
    function _recycleDistF:getType() return "grid" end
    function _recycleDistF:advance(tm, inFlds, outFlds) end
+   -- Recycling flux.
+   local _recycleTestFlux = Proto(DiagsImplBase)
+   function _recycleTestFlux:fullInit(diagApp, specIn, field, owner)
+      self.field = owner.recycleTestFlux
+      self.done  = false
+   end
+   function _recycleTestFlux:getType() return "grid" end
+   function _recycleTestFlux:advance(tm, inFlds, outFlds) end
    return {recycleCoef  = _recycleCoef,
-           recycleDistF = _recycleDistF}
+           recycleDistF = _recycleDistF,
+	   recycleTestFlux = _recycleTestFlux}
 end
 
 -- .................... END OF DIAGNOSTICS ...................... --
