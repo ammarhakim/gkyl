@@ -83,6 +83,8 @@ local limiter = "monotonized-centered"
 local tEnd = 2700
 local tPerFrame = 60  -- Time interval between otuput time frames.
 local nFrame = math.floor(tEnd / tPerFrame) -- How many time frames to write.
+local suggestedDt = (xup - xlo) / Nx / lightSpeed * 1e-3 -- Initial dt.
+local maximumDt  = nil  -- Maximum dt during the simulation.
 
 -- Derived parameters for setting boundary conditions and logging.
 local rhoe_in = rho_in / (1 + mi__me)
@@ -151,6 +153,8 @@ log("%30s = %g", "me/qe [true me/e]",
 log("%30s = %g, %g, %g", "lower [R0]", xlo / R0, ylo / R0, zlo / R0)
 log("%30s = %g, %g, %g", "upper [R0]", xup / R0, yup / R0, zup / R0)
 log("%30s = %g, %g, %g", "cells", Nx, Ny, Nz)
+log("%30s = %s", "suggestedDt [s]", suggestedDt)
+log("%30s = %s", "maximumDt [s]", maximumDt)
 
 ------------------------
 -- INITIAL CONDITIONS --
@@ -430,6 +434,8 @@ local momentApp = Moments.App {
    decompCuts = decompCuts,
    timeStepper = "fvDimSplit",
    cflFrac = cfl,
+   suggestedDt = suggestedDt,
+   maximumDt = maximumDt,
 
    elc = Moments.Species {
       charge = qe,
