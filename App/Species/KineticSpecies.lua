@@ -720,11 +720,11 @@ function KineticSpecies:applyBcIdx(tCurr, field, externalField, inIdx, outIdx, i
      self:checkPositivity(tCurr, outIdx)
   end
   if self.nonconPositivity then
-     self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[idx]}, {self.prePosM0})
+     self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self.prePosM0})
      
-     self.nonconPos:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]}, false)
+     self.nonconPos:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]}, false)
      
-     self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[idx]}, {self.postPosM0})
+     self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self.postPosM0})
      self.delPosM0:combine(1.0, self.postPosM0, -1.0, self.prePosM0)
 
      local tm, lv = self.intPosM0:lastData()
