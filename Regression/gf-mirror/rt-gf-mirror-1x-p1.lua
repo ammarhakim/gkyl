@@ -59,7 +59,7 @@ log("\n")
 alim    = 0.125    -- Plasma limiting radius.
 alphaIC = {2,10}
 
-nuFrac = 200.0  -- Factor multiplying the collisionality.
+nuFrac = 1.0  -- Factor multiplying the collisionality.
 -- Electron-electron collision freq.
 logLambdaElc = 6.6 - 0.5*math.log(n0/1e20) + 1.5*math.log(Te0/eV)
 nuElc        = nuFrac*logLambdaElc*(eV^4)*n0/(6*math.sqrt(2)*(math.pi^(3/2))*(eps0^2)*math.sqrt(me)*(Te0^(3/2)))
@@ -113,11 +113,11 @@ beta_par = (32. - 9.*math.pi)/(3.*math.pi - 8.)
 D_par    = 2.*math.sqrt(math.pi)/(3.*math.pi - 8.)
 D_perp   = math.sqrt(math.pi)/2.
 
-nu_ee, nu_ii = 0., 0.
-kappaParIon  = 1.e-16*n0*(vti^2)*(3.+beta_par)/(math.sqrt(3)*D_par*vti*kpar+nu_ii)
-kappaPerpIon = 1.e-16*n0*(vti^2)/(math.sqrt(2)*D_perp*vti*kpar+nu_ii)
-kappaParElc  = 1.e-16*n0*(vte^2)*(3.+beta_par)/(math.sqrt(3)*D_par*vte*kpar+nu_ee)
-kappaPerpElc = 1.e-16*n0*(vte^2)/(math.sqrt(2)*D_perp*vte*kpar+nu_ee)
+nu_ee, nu_ii = nuElc, nuIon
+kappaParIon  = n0*(vti^2)*(3.+beta_par)/(math.sqrt(3)*D_par*vti*kpar+nu_ii)
+kappaPerpIon = n0*(vti^2)/(math.sqrt(2)*D_perp*vti*kpar+nu_ii)
+kappaParElc  = n0*(vte^2)*(3.+beta_par)/(math.sqrt(3)*D_par*vte*kpar+nu_ee)
+kappaPerpElc = n0*(vte^2)/(math.sqrt(2)*D_perp*vte*kpar+nu_ee)
 
 log(string.format("  Heatflux coefficients:\n"))
 log(string.format("    kappaPar_i  = %e\n", kappaParIon))
@@ -358,7 +358,7 @@ end
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd       = 0.50e-6,         -- End time.
+   tEnd       = 0.250e-6,         -- End time.
    nFrame     = 1,              -- Number of output frames.
    lower      = {zMin},          -- Configuration space lower left.
    upper      = {zMax},          -- Configuration space upper right.
@@ -389,7 +389,6 @@ plasmaApp = Plasma.App {
    -- Gyrofluid ions.
    elc = Plasma.Species {
       charge = qe, mass = me,
-      kappaPar = kappaParElc,  kappaPerp = kappaPerpElc,
       -- Initial conditions.
       init = Plasma.GyrofluidProjection {
          density = function (t, xn)
@@ -438,6 +437,9 @@ plasmaApp = Plasma.App {
                return Te_m*math.sqrt(Bmag/B_m)
             end
          end,
+      },
+      closure = Plasma.HeatFlux{
+         kappaPar = kappaParElc,  kappaPerp = kappaPerpElc,
       },
       source = Plasma.Source {
 --         fromFile    = "ion_fSourceIC.bp",
@@ -453,14 +455,13 @@ plasmaApp = Plasma.App {
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
 --      bcx = {Plasma.Species.bcAbsorb, Plasma.Species.bcAbsorb},
-      bcx = {Plasma.BasicBC{kind="absorb", diagnostics={"M0","M2flow"}},
-             Plasma.BasicBC{kind="absorb", diagnostics={"M0","M2flow"}}},
+      bcx = {Plasma.AbsorbBC{},
+             Plasma.AbsorbBC{}},
    },
 
    -- Gyrofluid electronss.
    ion = Plasma.Species {
       charge = qi, mass = mi,
-      kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
       -- Initial conditions.
       init = Plasma.GyrofluidProjection {
          density = function (t, xn)
@@ -510,6 +511,9 @@ plasmaApp = Plasma.App {
             end
          end,
       },
+      closure = Plasma.HeatFlux{
+         kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
+      },
       source = Plasma.Source {
 --         fromFile    = "ion_fSourceIC.bp",
          density                  = srcDenIon,
@@ -523,7 +527,7 @@ plasmaApp = Plasma.App {
       },
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
-      bcx = {Plasma.Species.bcAbsorb, Plasma.Species.bcAbsorb},
+      bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}},
    },
 
    -- Field solver.

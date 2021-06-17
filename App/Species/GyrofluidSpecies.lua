@@ -124,23 +124,17 @@ function GyrofluidSpecies:createSolver(field, externalField)
 
    -- Create updater to advance solution by one time-step.
    self.equation = GyrofluidEq {
-      onGrid    = self.grid,
-      basis     = self.basis,
-      charge    = self.charge,
+      onGrid    = self.grid,    kappaPar  = self.kappaPar,
+      basis     = self.basis,   kappaPerp = self.kappaPerp,
+      charge    = self.charge,  bmagFunc  = self.bmagFunc,
       mass      = self.mass,
-      kappaPar  = self.kappaPar,
-      kappaPerp = self.kappaPerp,
-      bmagFunc  = self.bmagFunc,
    }
 
    self.solver = Updater.HyperDisCont {
-      onGrid             = self.grid,
-      basis              = self.basis,
-      cfl                = self.cfl,
-      equation           = self.equation,
-      zeroFluxDirections = self.zeroFluxDirections,
-      clearOut           = false,   -- Continue accumulating into output field.
-      globalUpwind       = true,
+      onGrid   = self.grid,      zeroFluxDirections = self.zeroFluxDirections,
+      basis    = self.basis,     clearOut     = false,   -- Continue accumulating into output field.
+      cfl      = self.cfl,       globalUpwind = true,
+      equation = self.equation,
    }
 
    if self.positivityRescale then
@@ -189,7 +183,8 @@ function GyrofluidSpecies:pPerpJacCalc(tm, momIn, jacM2perp, pPerpJacOut)
    self.weakMultiply:advance(tm, {jacM2perp, self.bmag}, {pPerpJacOut})
 end
 
-function GyrofluidSpecies:pParJacCalc(tm, momIn, uPar, mJacM1, mJacM2flow, mJacM2, pPerpJac, pParJacOut)
+function GyrofluidSpecies:pParJacCalc(tm, momIn, uPar, mJacM1, mJacM2flow, 
+                                      mJacM2, pPerpJac, pParJacOut)
    -- Compute the parallel pressure (times Jacobian).
    self.weakMultiply:advance(tm, {uPar, mJacM1}, {mJacM2flow})
    mJacM2:combineOffset(1, momIn, self.mJacM2Off)
@@ -249,7 +244,7 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local momRhsOut = self:rkStepperFields()[outIdx]
 
    local em     = emIn[1]:rkStepperFields()[inIdx] -- Dynamic fields (e.g. phi, Apar)
-   local emFunc = emIn[2]:rkStepperFields()[1]     -- Geometry/external field.
+   local extGeo = emIn[2]:rkStepperFields()[1]     -- Geometry/external field.
 
    momIn = self.returnPosRescaledMom(tCurr, momIn)
 
@@ -260,7 +255,7 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    -- collisions but also other objects in the Collisions App (e.g. diffusion).
    for _, c in pairs(self.collisions) do
       c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      c:advance(tCurr, momIn, species, momRhsOut)
+      c:advance(tCurr, momIn, species, {em, extGeo}, momRhsOut)
    end
 
    -- Complete the field solve.
@@ -268,9 +263,9 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solver:advance(tCurr, {momIn, em, emFunc, self.primMomSelf}, {momRhsOut})
+      self.solver:advance(tCurr, {momIn, em, extGeo, self.primMomSelf}, {momRhsOut})
    else
-      self.equation:setAuxFields({em, emFunc, self.primMomSelf})  -- Set auxFields in case they are needed by BCs/collisions.
+      self.equation:setAuxFields({em, extGeo, self.primMomSelf})  -- Set auxFields in case they are needed by BCs/collisions.
    end
 
    for _, bc in pairs(self.nonPeriodicBCs) do

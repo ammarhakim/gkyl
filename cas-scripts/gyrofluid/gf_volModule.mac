@@ -53,7 +53,12 @@ writeCCompIncrCollect1(lhs, comp, rhs) := block([expr],
 )$
 
 calcGFvolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
-  [],
+  [d,m,basis,vars,varLabel,numMom,moms_e,moms_c,primMoms_e,primMoms_c,
+   m0_e,m0_c,m1_e,m1_c,m2_e,m2_c,m2perp_e,m2perp_c,upar_e,upar_c,Tpar_e,Tpar_c,Tperp_e,Tperp_c,
+   basisPrime,basisPrimeP,pperpJac_c,pparJac_c,pperpJac_e,pparJac_e,
+   m0Flux_c,m1Flux_c,m2Flux_c,m2perpFlux_c,m0Flux_e,m1Flux_e,m2Flux_e,m2perpFlux_e,
+   flux_e,incr_c,mI,numBzeros,qPhiDm_e,h_e,dBdz_e,
+   zMid,TparMid,Tmid,uMidOut,cMidOut],
 
   /* Load a p>0 basis just to get the variables. */
   kill(varsC, varsP, basisC, basisP),
@@ -68,9 +73,8 @@ calcGFvolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
   varLabel : makelist(string(vars[d]),d,1,dim),
 
   printf(fh, "~%"),
-  printf(fh, "double ~a(const double q_, const double m_, const double kappaPar, const double kappaPerp, const double kperpSq, const double *w, const double *dx, const double *jac, const double *rBmag, const double *jacDbmag, const double *dBdz, const double *sMom, const double *phi, double *primMom, double *out) ~%{ ~%", funcNm),
+  printf(fh, "double ~a(const double q_, const double m_, const double kperpSq, const double *w, const double *dx, const double *jac, const double *rBmag, const double *jacDbmag, const double *dBdz, const double *sMom, const double *phi, double *primMom, double *out) ~%{ ~%", funcNm),
   printf(fh, "  // q_,m_:   species charge and mass.~%"),
-  printf(fh, "  // kappa:   heat conductivity coefficients.~%"),
   printf(fh, "  // kperpSq: k_perp^2.~%"),
   printf(fh, "  // w:       cell-center.~%"),
   printf(fh, "  // dx:      cell length.~%"),
@@ -153,20 +157,6 @@ calcGFvolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
   dBdz_e : doExpand1(dBdz,basis),
   incr_c[2] : incr_c[2]-calcInnerProdList(vars,dBdz_e,basis,m2perp_e),
 
-  /* Add the heat flux terms to the energy and pperp equations. */
-  hPar_e : Tpar_e,  hPerp_e : Tperp_e+m_*(1/2)*(-kperpSq)*qPhiDm_e,
-
-  jac_e      : doExpand1(jac,basis),
-  jacDbmag_e : doExpand1(jacDbmag,basis),
-
-  h_e : [numBzeros, numBzeros, (kappaPar/2)*hPar_e+kappaPerp*hPerp_e, kappaPerp*hPerp_e],
-
-  qFacs_e : [0, 0, jac_e, jacDbmag_e],
-
-  for mI : 3 thru 4 do (
-    incr_c[mI] : incr_c[mI]+rdxSq4*calcInnerProdList(vars,qFacs_e[mI],basisPrimeP,h_e[mI])
-  ),
-
   /* Write out the increments. */
   for mI : 1 thru numMom do (
     writeCCompIncrCollect1(out, mI, incr_c[mI]),
@@ -175,13 +165,13 @@ calcGFvolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
 
   /* Return CFL frequency */
   zMid    : makelist(vars[d]=0, d, 1, dim),
-  Tmid    : (1/3)*(subst(zMid,Tpar_e) + 2*subst(zMid,Tperp_e)),
-  uMidOut : float(expand(fullratsimp(subst(zMid,upar_e) + sqrt(Tmid/m_)))),
+  /*Tmid    : subst(zMid,Tpar_e),*/
+  TparMid : subst(zMid,Tpar_e),  TperpMid : subst(zMid,Tperp_e),
+  Tmid    : (1/3)*(TparMid + 2*TperpMid),
+  uMidOut : float(expand(fullratsimp(subst(zMid,upar_e)))),
+  cMidOut : float(expand(fullratsimp(sqrt((2*TparMid+3*Tmid)/m_)))),
 
-  cflFreq_qpar  : kappaPar*rdxSq4,
-  cflFreq_qperp : kappaPerp*rdxSq4,
-
-  printf(fh, "  return fabs(~a) + ~a*fmax(~a,~a); ~%", rdx2*uMidOut, float(((polyOrder+1)^2)/(2*polyOrder+1)), cflFreq_qpar, cflFreq_qperp ),
+  printf(fh, "  return ~a*(fabs(~a) + ~a); ~%", rdx2, uMidOut, cMidOut ),
 
   printf(fh, "}~%")
 

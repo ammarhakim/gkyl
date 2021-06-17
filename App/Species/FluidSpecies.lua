@@ -272,29 +272,21 @@ function FluidSpecies:createSolver(field, externalField)
 
    -- Operators needed for time-dependent calculation and diagnostics.
    self.weakMultiply = Updater.CartFieldBinOp {
-      onGrid    = self.grid,
-      weakBasis = self.basis,
-      operation = "Multiply",
-      onGhosts  = true,
+      onGrid    = self.grid,   operation = "Multiply",
+      weakBasis = self.basis,  onGhosts  = true,
    }
    self.weakDivide = Updater.CartFieldBinOp {
-      onGrid    = self.grid,
-      weakBasis = self.basis,
-      operation = "Divide",
-      onGhosts  = true,
+      onGrid    = self.grid,   operation = "Divide",
+      weakBasis = self.basis,  onGhosts  = true,
    }
    self.volIntegral = {
       scalar = Updater.CartFieldIntegratedQuantCalc {
-         onGrid        = self.grid,
-         basis         = self.basis,
-         numComponents = 1,
-         quantity      = "V"
+         onGrid = self.grid,   numComponents = 1,
+         basis  = self.basis,  quantity      = "V"
       },
       vector = Updater.CartFieldIntegratedQuantCalc {
-         onGrid        = self.grid,
-         basis         = self.basis,
-         numComponents = self.nMoments,
-         quantity      = "V"
+         onGrid = self.grid,   numComponents = self.nMoments,
+         basis  = self.basis,  quantity      = "V"
       }
    }
 
@@ -414,10 +406,8 @@ function FluidSpecies:alloc(nRkDup)
 
    self.unitField = self:allocMoment()
    local projectUnity = Updater.ProjectOnBasis {
-      onGrid   = self.grid,
-      basis    = self.basis,
-      evaluate = function(t, zn) return 1.0 end,
-      onGhosts = true,
+      onGrid   = self.grid,   evaluate = function(t, zn) return 1.0 end,
+      basis    = self.basis,  onGhosts = true,
    }
    projectUnity:advance(0.0, {}, {self.unitField})
 
@@ -619,9 +609,7 @@ function FluidSpecies:createDiagnostics(field)  -- More sophisticated/extensive 
       or function(tm, rkIdx) self.noJacMom:copy(self:getMoments(rkIdx)) end
 end
 
-function FluidSpecies:getNoJacMoments()
-   return self.noJacMom
-end
+function FluidSpecies:getNoJacMoments() return self.noJacMom end
 
 function FluidSpecies:write(tm, force)
    if self.evolve or force then
