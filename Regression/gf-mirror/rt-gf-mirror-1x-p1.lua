@@ -358,7 +358,7 @@ end
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd       = 0.50e-6,         -- End time.
+   tEnd       = 0.250e-6,         -- End time.
    nFrame     = 1,              -- Number of output frames.
    lower      = {zMin},          -- Configuration space lower left.
    upper      = {zMax},          -- Configuration space upper right.
@@ -389,7 +389,6 @@ plasmaApp = Plasma.App {
    -- Gyrofluid ions.
    elc = Plasma.Species {
       charge = qe, mass = me,
-      kappaPar = kappaParElc,  kappaPerp = kappaPerpElc,
       -- Initial conditions.
       init = Plasma.GyrofluidProjection {
          density = function (t, xn)
@@ -438,6 +437,9 @@ plasmaApp = Plasma.App {
                return Te_m*math.sqrt(Bmag/B_m)
             end
          end,
+      },
+      closure = Plasma.HeatFlux{
+         kappaPar = kappaParElc,  kappaPerp = kappaPerpElc,
       },
       source = Plasma.Source {
 --         fromFile    = "ion_fSourceIC.bp",
@@ -460,7 +462,6 @@ plasmaApp = Plasma.App {
    -- Gyrofluid electronss.
    ion = Plasma.Species {
       charge = qi, mass = mi,
-      kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
       -- Initial conditions.
       init = Plasma.GyrofluidProjection {
          density = function (t, xn)
@@ -509,6 +510,9 @@ plasmaApp = Plasma.App {
                return Ti_m*math.sqrt(Bmag/B_m)
             end
          end,
+      },
+      closure = Plasma.HeatFlux{
+         kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
       },
       source = Plasma.Source {
 --         fromFile    = "ion_fSourceIC.bp",

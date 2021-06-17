@@ -33,9 +33,6 @@ function Gyrofluid:init(tbl)
    self.charge = assert(tbl.charge, "Gyrofluid: must specify charge using 'charge'.")
    self.mass   = assert(tbl.mass, "Gyrofluid: must specify mass using 'mass'.")
 
-   self.kappaPar   = assert(tbl.kappaPar, "Gyrofluid: must specify parallel heat conductivity using 'kappaPar'.")
-   self.kapparPerp = assert(tbl.kappaPerp, "Gyrofluid: must specify perpendicular heat conductivity using 'kappaPerp'.")
-
    self.kPerpSq  = 0.
    print("setting kPerpSq = 0.0 in Eq/Gyrofluid.lua.")
    self.bmagFunc = assert(tbl.bmagFunc, "Gyrofluid: must specify the function defining the magnetic field amplitude using 'bmagFunc'.")       
@@ -159,7 +156,7 @@ function Gyrofluid:volTerm(w, dx, idx, f, out)
    self.primMom:fill(self.indexer(idx), self.primMomPtr)
    self.dBdz:fill(self.indexer(idx), self.dBdzPtr)
 
-   local res = self._volTerm(self.charge, self.mass, self.kappaPar, self.kapparPerp, self.kPerpSq, w:data(), dx:data(), self.jacobPtr:data(), self.rBmagPtr:data(), self.jacobDbmagPtr:data(), self.dBdzPtr:data(), f:data(), self.phiPtr:data(), self.primMomPtr:data(), out:data())
+   local res = self._volTerm(self.charge, self.mass, self.kPerpSq, w:data(), dx:data(), self.jacobPtr:data(), self.rBmagPtr:data(), self.jacobDbmagPtr:data(), self.dBdzPtr:data(), f:data(), self.phiPtr:data(), self.primMomPtr:data(), out:data())
    self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
    return res
 end
@@ -177,7 +174,7 @@ function Gyrofluid:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr,
    self.primMom:fill(self.indexer(idxl), self.primMomPtrl)
    self.primMom:fill(self.indexer(idxr), self.primMomPtrr)
 
-   local res = self._surfTerm[dir](self.charge, self.mass, self.kappaPar, self.kapparPerp, self.kPerpSq, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.jacobPtr:data(), self.rBmagPtr:data(), self.jacobDbmagPtr:data(), fl:data(), fr:data(), self.phiPtrl:data(), self.phiPtrr:data(), self.primMomPtrl:data(), self.primMomPtrr:data(), outl:data(), outr:data())
+   local res = self._surfTerm[dir](self.charge, self.mass, self.kPerpSq, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.jacobPtr:data(), self.rBmagPtr:data(), self.jacobDbmagPtr:data(), fl:data(), fr:data(), self.phiPtrl:data(), self.phiPtrr:data(), self.primMomPtrl:data(), self.primMomPtrr:data(), outl:data(), outr:data())
    self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    return res
 end

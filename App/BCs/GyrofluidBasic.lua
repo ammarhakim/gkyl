@@ -66,6 +66,9 @@ function GyrofluidBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
 end
 
 function GyrofluidBasicBC:createSolver(mySpecies, field, externalField)
+
+   self.nMoments = mySpecies.nMoments
+
    local bcFunc, skinType
    if self.bcKind == "copy" then
       bcFunc   = function(...) return self:bcCopy(...) end
@@ -213,17 +216,17 @@ end
 -- ................... Classes meant as aliases to simplify input files ...................... --
 local GyrofluidAbsorbBC = Proto(GyrofluidBasicBC)
 function GyrofluidAbsorbBC:fullInit(mySpecies)
-   self.tbl.kind  = "absorb"
+   self.tbl.kind = "absorb"
    GyrofluidAbsorbBC.super.fullInit(self, mySpecies)
 end
 
 local GyrofluidCopyBC = Proto(GyrofluidBasicBC)
 function GyrofluidCopyBC:fullInit(mySpecies)
-   self.tbl.kind  = "copy"
+   self.tbl.kind = "copy"
    GyrofluidCopyBC.super.fullInit(self, mySpecies)
 end
 -- ................... End of GyrofluidBasicBC alias classes .................... --
 
-return {GyrofluidBasic   = GyrofluidBasicBC,
-        GyrofluidAbsorb  = GyrofluidAbsorbBC,
-        GyrofluidCopy    = GyrofluidCopyBC,}
+return {GyrofluidBasic  = GyrofluidBasicBC,
+        GyrofluidAbsorb = GyrofluidAbsorbBC,
+        GyrofluidCopy   = GyrofluidCopyBC,}

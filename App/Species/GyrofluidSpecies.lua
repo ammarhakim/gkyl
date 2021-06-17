@@ -244,7 +244,7 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local momRhsOut = self:rkStepperFields()[outIdx]
 
    local em     = emIn[1]:rkStepperFields()[inIdx] -- Dynamic fields (e.g. phi, Apar)
-   local emFunc = emIn[2]:rkStepperFields()[1]     -- Geometry/external field.
+   local extGeo = emIn[2]:rkStepperFields()[1]     -- Geometry/external field.
 
    momIn = self.returnPosRescaledMom(tCurr, momIn)
 
@@ -255,7 +255,7 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    -- collisions but also other objects in the Collisions App (e.g. diffusion).
    for _, c in pairs(self.collisions) do
       c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      c:advance(tCurr, momIn, species, momRhsOut)
+      c:advance(tCurr, momIn, species, {em, extGeo}, momRhsOut)
    end
 
    -- Complete the field solve.
@@ -263,9 +263,9 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solver:advance(tCurr, {momIn, em, emFunc, self.primMomSelf}, {momRhsOut})
+      self.solver:advance(tCurr, {momIn, em, extGeo, self.primMomSelf}, {momRhsOut})
    else
-      self.equation:setAuxFields({em, emFunc, self.primMomSelf})  -- Set auxFields in case they are needed by BCs/collisions.
+      self.equation:setAuxFields({em, extGeo, self.primMomSelf})  -- Set auxFields in case they are needed by BCs/collisions.
    end
 
    for _, bc in pairs(self.nonPeriodicBCs) do
