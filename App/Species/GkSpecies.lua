@@ -848,6 +848,7 @@ function GkSpecies:createDiagnostics(field)
    for bcNm, bc in lume.orderedIter(self.nonPeriodicBCs) do
       self.diagnostics[self.name..bcNm] = bc:createDiagnostics(self, field)
    end
+   lume.setOrder(self.diagnostics)
 
    -- MF: This is here temporarily. It should be moved to the ionization app. 
    if self.calcReactRate then

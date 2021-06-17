@@ -289,6 +289,7 @@ function GyrofluidSpecies:createDiagnostics(field)  -- More sophisticated/extens
    for bcNm, bc in lume.orderedIter(self.nonPeriodicBCs) do
       self.diagnostics[self.name..bcNm] = bc:createDiagnostics(self, field)
    end
+   lume.setOrder(self.diagnostics)
 
    -- Many diagnostics require dividing by the Jacobian (if present).
    -- Predefine the function that does that.
@@ -362,7 +363,7 @@ end
 
 function GyrofluidSpecies:momCalcTime()
    local tm = self.timers.couplingMom
-   for _, dOb in pairs(self.diagnostics) do
+   for _, dOb in lume.orderedIter(self.diagnostics) do
       tm = tm + dOb:getDiagTime()
    end
    return tm

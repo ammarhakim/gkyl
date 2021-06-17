@@ -72,11 +72,10 @@ local function orgDiagnostics(diagsImpl, diagsTbl, diagGroups)
       for _, v in ipairs(diagList) do myOrder=myOrder..v..delim end
       local myOrderLen = string.len(myOrder)
       if myOrderLen > 0 then
-         -- MF 2021/05/26: without the +1 here I've seen randomly ocurring seg faults.
-         local Cstr = new("char [?]", myOrderLen+1)
+         local Cstr = new("char [?]", myOrderLen)
          ffi.copy(Cstr, myOrder)
          -- An extra element is counted here (the null character at the end of a string? read online).
-         Mpi.Bcast(Cstr, myOrderLen+2, Mpi.CHAR, 0, Mpi.COMM_WORLD)
+         Mpi.Bcast(Cstr, myOrderLen, Mpi.CHAR, 0, Mpi.COMM_WORLD)
          myOrder = ffi.string(Cstr)
          local newList = {}
          for nm in string.gmatch(myOrder, "(.-)"..delim) do table.insert(newList, nm) end

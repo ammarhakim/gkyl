@@ -32,7 +32,7 @@ function GyrofluidHeatFlux:init(tbl)
    self.kapparPerp = assert(tbl.kappaPerp, "Eq.GyrofluidHeatFlux: must specify perpendicular heat conductivity using 'kappaPerp'.")
 
    self.kPerpSq  = 0.
-   print("setting kPerpSq = 0.0 in Eq/Gyrofluid.lua.")
+   print("setting kPerpSq = 0.0 in Eq.GyrofluidHeatFlux.lua.")
 
    local nm, p = self._basis:id(), self._basis:polyOrder()
    self._volTerm  = GFheatFluxModDecl.selectVol (nm, self._ndim, p)

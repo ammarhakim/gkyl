@@ -358,14 +358,14 @@ end
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd       = 0.250e-6,         -- End time.
+   tEnd       = .250e-6,         -- End time.
    nFrame     = 1,              -- Number of output frames.
    lower      = {zMin},          -- Configuration space lower left.
    upper      = {zMax},          -- Configuration space upper right.
    cells      = {numCellZ},      -- Configuration space cells.
    basis      = "serendipity",   -- One of "serendipity" or "maximal-order".
    polyOrder  = polyOrder,       -- Polynomial order.
-   decompCuts = {1},             -- MPI cuts in each.
+   decompCuts = {2},             -- MPI cuts in each.
    -- Dimensions of greater configuration space (for computing metric),
    -- and values at which to evaluate the other coordinates.
    world  = { dim=3, evaluateAt={x=fldLinePsi,y=0.0} },
@@ -454,9 +454,8 @@ plasmaApp = Plasma.App {
       },
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
---      bcx = {Plasma.Species.bcAbsorb, Plasma.Species.bcAbsorb},
-      bcx = {Plasma.AbsorbBC{},
-             Plasma.AbsorbBC{}},
+      bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}},
+--      bcx = {Plasma.CopyBC{}, Plasma.CopyBC{}},
    },
 
    -- Gyrofluid electronss.
@@ -528,6 +527,7 @@ plasmaApp = Plasma.App {
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
       bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}},
+--      bcx = {Plasma.CopyBC{}, Plasma.CopyBC{}},
    },
 
    -- Field solver.
@@ -541,6 +541,7 @@ plasmaApp = Plasma.App {
    -- Magnetic geometry.
    externalField = Plasma.Geometry {
       -- Background magnetic field.
+--      fromFile = "allGeo_restart.bp",
       bmag = function (t, xn)
          local z   = xn[1]
          local psi = psi_RZ(RatZeq0,0.0)  -- Magnetic flux function psi of field line.

@@ -601,6 +601,7 @@ function FluidSpecies:createDiagnostics(field)  -- More sophisticated/extensive 
    for bcNm, bc in lume.orderedIter(self.nonPeriodicBCs) do
       self.diagnostics[self.name..bcNm] = bc:createDiagnostics(self, field)
    end
+   lume.setOrder(self.diagnostics)
 
    -- Many diagnostics require dividing by the Jacobian (if present).
    -- Predefine the function that does that.
@@ -617,7 +618,7 @@ function FluidSpecies:write(tm, force)
       -- Calculate fluctuations (if perturbed diagnostics are requested) and put them in self.flucMom.
       self.calcDeltaMom(self:rkStepperFields()[1])
 
-      for _, dOb in pairs(self.diagnostics) do
+      for _, dOb in lume.orderedIter(self.diagnostics) do
          dOb:resetState(tm)   -- Reset booleans indicating if diagnostic has been computed.
       end
 
@@ -630,7 +631,7 @@ function FluidSpecies:write(tm, force)
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.
       if self.calcIntQuantTrigger(tm) then
-         for _, dOb in pairs(self.diagnostics) do
+         for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcIntegratedDiagnostics(tm, self)   -- Compute integrated diagnostics (this species' and other objects').
          end
       end
@@ -647,11 +648,11 @@ function FluidSpecies:write(tm, force)
             src:write(tm, self.diagIoFrame, self)  -- Allow sources to write (aside from diagnostics).
          end
 
-         for _, dOb in pairs(self.diagnostics) do
+         for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcGridDiagnostics(tm, self)   -- Compute grid diagnostics (this species' and other objects').
          end
           
-         for _, dOb in pairs(self.diagnostics) do   -- Write grid and integrated diagnostics.
+         for _, dOb in lume.orderedIter(self.diagnostics) do   -- Write grid and integrated diagnostics.
             dOb:write(tm, self.diagIoFrame)
          end
 
@@ -679,7 +680,7 @@ function FluidSpecies:writeRestart(tm)
 
    self.momIo:write(self.moments[1], string.format("%s_restart.bp", self.name), tm, self.diagIoFrame, writeGhost)
 
-   for _, dOb in pairs(self.diagnostics) do   -- Write restart diagnostics.
+   for _, dOb in lume.orderedIter(self.diagnostics) do   -- Write restart diagnostics.
       dOb:writeRestart(tm, self.diagIoFrame, self.dynVecRestartFrame)
    end
 
@@ -700,7 +701,7 @@ function FluidSpecies:readRestart(field, externalField)
       self:applyBc(tm, field, externalField, 1, 1)
    end
 
-   for _, dOb in pairs(self.diagnostics) do   -- Read grid and integrated diagnostics.
+   for _, dOb in lume.orderedIter(self.diagnostics) do   -- Read grid and integrated diagnostics.
       _, _ = dOb:readRestart()
    end
    
