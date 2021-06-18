@@ -2,8 +2,8 @@
 
 /* ...... USER INPUTS........ */
 
-/* Indicate the mininimum and maximum dimensinality for which
-   you wish to generate kernels. The smalles possible is 1 and
+/* Indicate the mininimum and maximum dimensionality for which
+   you wish to generate kernels. The smallest possible is 1 and
    the largest 6. This will generate a multitude of kernels
    to allow the user to add diffusion in any subset of directions. */
 
