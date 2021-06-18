@@ -1,0 +1,80 @@
+/*
+  Functions to generate kernels that compute sqrt(f)^q where f
+  is a DG field using Gaussian quadrature.
+*/
+
+load("out-scripts")$
+load("modal-basis")$
+load("nodalOperations/quadratureFuncs.mac")$
+
+loadBasisX(dimTot, basisType, pOrder) := block([basis,vars],
+  /* Load a basis based on dimensionality and basis type alone. */
+  kill(varsC, varsP, basisC, basisP),
+  if (dimTot < 4) then (
+    load(sconcat("basis-precalc/basis", basisType, dimTot, "x"))
+  ) else (
+    load(sconcat("basis-precalc/basis", basisType, dimTot-3, "x", 3, "v"))
+  ),
+
+  if (dimTot < 4) then (
+    basis : basisC[pOrder],
+    vars  : varsC
+  ) else (
+    basis : basisP[pOrder],
+    vars  : varsP
+  ),
+  return([basis,vars])
+)$
+
+calcSqrtProjGauss(fh, funcNm, dim, basisNm, polyOrder) := block(
+  [i,k,numQuad,basis,vars,numB,fIn_e,ordWeight,numOrds,weights,ordNum,sqrtfRq_n,nOrd,cSub,out_c],
+
+  numQuad : polyOrder+1, /* Number of quarature points in 1D. */
+
+  [basis, vars] : loadBasisX(dim, basisNm, polyOrder),
+  numB : length(basis),
+
+  fIn_e : doExpand1(fIn, basis),     /* Function expanded in basis. */
+
+  printf(fh,"void ~a(const double qExp, const double *fIn, double *out) ~%{ ~%", funcNm),
+  printf(fh,"  // qExp: exponent in sqrt(f)^q.~%"),
+  printf(fh,"  // fIn:  input field.~%"),
+  printf(fh,"  // out:  output field.~%"),
+
+  /* Get the Gaussian quadrature weights and ordinates (in [-1,1] space). */
+  ordWeight : gaussOrdWeight(numQuad,dim),
+  normOrds  : float(ordWeight[1]),
+  weights   : float(ordWeight[2]),
+  ordNum    : length(normOrds),
+
+  /* Write out sqrt(fIn)^q evaluated a quadrature points, so it doesn't get
+     evaluated multiple times for the various basis functions. */
+  sqrtfRq_n : makelist(0,i,1,ordNum),
+  for i : 1 thru ordNum do (
+    nOrd : normOrds[i],
+    cSub : makelist(vars[d]=normOrds[i][d],d,1,dim),
+
+    sqrtfRq_n[i] : pow(sqrt(subst(cSub,fIn_e)),qExp)
+  ),
+  printf(fh,"double sqrtfRq[~a];~%", ordNum),
+  writeCExprs1(sqrtfRq, sqrtfRq_n),
+  printf(fh,"~%"),
+
+  out_c : makelist(0,i,1,numB),
+  for i : 1 thru ordNum do (
+    nOrd : normOrds[i],
+
+    /* Add contribution to each DG coefficient. */
+    for k : 1 thru numB do (
+      out_c[k] : out_c[k]+weights[i]*subst(makelist(vars[d]=nOrd[d],d,1,dim),basis[k])*sqrtfRq[i-1]
+    )
+  ),
+
+/*
+  strSub : [],
+  writeCExprsNoExpand1_ssubst(out, out_c, strSub, false),
+  */
+  writeCExprsNoExpand1(out, out_c),
+
+  printf(fh, "}~%")
+)$
