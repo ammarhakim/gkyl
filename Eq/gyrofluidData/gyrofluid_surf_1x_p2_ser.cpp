@@ -1,9 +1,8 @@
 #include <gyrofluid_mod_decl.h>
 
-double gyrofluid_surf_1x_p2_ser_x(const double q_, const double m_, const double kperpSq, const double *wL1, const double *dxL1, const double *wR1, const double *dxR1, const double cMaxIn, const double *jacL, const double *rBmagL, const double *jacDbmagL, const double *sMomL1, const double *sMomR1, const double *phiL1, const double *phiR1, double *primMomL1, const double *primMomR1, double *outL, double *outR) 
+double gyrofluid_surf_1x_p2_ser_x(const double q_, const double m_, const double *wL1, const double *dxL1, const double *wR1, const double *dxR1, const double cMaxIn, const double *jacL, const double *rBmagL, const double *jacDbmagL, const double *sMomL1, const double *sMomR1, const double *phiL1, const double *phiR1, double *primMomL1, const double *primMomR1, const double *csL1, const double *csR1, double *outL, double *outR) 
 { 
   // q_,m_:              species charge and mass.
-  // kperpSq:            k_perp^2.
   // wL,wR:              cell-center in left and right cells.
   // dxL,dxR:            cell length in left and right cells.
   // cMaxIn:             maximum sound speed (or some factor like it).
@@ -13,6 +12,7 @@ double gyrofluid_surf_1x_p2_ser_x(const double q_, const double m_, const double
   // sMomL,sMomR:        stepped moments (times Jacobian) in left and right cells.
   // phiL,phiR:          electrostatic potential in left and right cells.
   // primMomL,primMomR:  primitive moments (upar, Tpar, Tperp) in left and right cells.
+  // csL,csR:            sound speed in left and right cells.
   // outL/outR:          output increment in left and right cells.
 
   double wxL = wL1[0];
@@ -105,5 +105,5 @@ double gyrofluid_surf_1x_p2_ser_x(const double q_, const double m_, const double
   outL[10] += incr4[1]*rdx2L; 
   outL[11] += -1.0*incr4[2]*rdx2L; 
 
-  return 0.5*sqrt((-(6.324555320336761*primMomL1[8])/m_)+(5.656854249492382*primMomL1[6])/m_-(9.48683298050514*primMomL1[5])/m_+(8.485281374238571*primMomL1[3])/m_); 
+  return 0.7071067811865475*csL1[0]-0.7905694150420947*csL1[2]; 
 }

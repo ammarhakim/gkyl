@@ -74,7 +74,7 @@ plasmaApp = Plasma.App {
    logToFile = true,
 
    tEnd       = 0.50e-6,         -- End time.
-   nFrame     = 1,               -- Number of output frames.
+   nFrame     = 40,               -- Number of output frames.
    lower      = {zMin},          -- Configuration space lower left.
    upper      = {zMax},          -- Configuration space upper right.
    cells      = {64},            -- Configuration space cells.

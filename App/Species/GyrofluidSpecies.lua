@@ -13,7 +13,6 @@ local GyrofluidDiags = require "App.Diagnostics.GyrofluidDiagnostics"
 local Mpi            = require "Comm.Mpi"
 local GyrofluidEq    = require "Eq.Gyrofluid"
 local Updater        = require "Updater"
-local DataStruct     = require "DataStruct"
 local Time           = require "Lib.Time"
 local Constants      = require "Lib.Constants"
 local BasicBC        = require ("App.BCs.GyrofluidBasic").GyrofluidBasic
@@ -137,6 +136,9 @@ function GyrofluidSpecies:createSolver(field, externalField)
       equation = self.equation,
    }
 
+   self.cSound = self:allocMoment()  -- Sound speed.
+   self.sqrtOnBasis = Updater.SqrtOnBasis{onGrid = self.grid,  basis = self.basis, onGhosts=true}
+
    if self.positivityRescale then
       self.returnPosRescaledMom = function(tCurr, momIn)
          self.posRescaler:advance(tCurr, {momIn}, {self.momPos}, false)
@@ -167,7 +169,15 @@ function GyrofluidSpecies:getMomOff(momIdx)
 end
 
 function GyrofluidSpecies:initCrossSpeciesCoupling(species)
-   -- Nothing implemented yet.
+   -- Save pointers electron and ion names. Will need them to compute sound speed.
+   for nm, s in pairs(species) do
+      if s.charge > 0. then
+         self.ionNm = nm
+      elseif s.charge < 0. then
+         self.elcNm = nm
+      end
+   end
+   self.ionMass = species[self.ionNm].mass
 end
 
 function GyrofluidSpecies:uParCalc(tm, momIn, mJacM0, mJacM1, uParOut)
@@ -248,6 +258,12 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    momIn = self.returnPosRescaledMom(tCurr, momIn)
 
+   -- Compute the sound speed sqrt((3*Ti_par+Te))/m_i.
+   self.cSound:combineOffset(     3./self.ionMass, species[self.ionNm].primMomSelf, 1*self.basis:numBasis(),
+                             1./(3.*self.ionMass), species[self.elcNm].primMomSelf, 1*self.basis:numBasis(),
+                             2./(3.*self.ionMass), species[self.elcNm].primMomSelf, 2*self.basis:numBasis())
+   self.sqrtOnBasis:advance(tCurr, {self.cSound}, {self.cSound})
+
    -- Clear RHS, because HyperDisCont set up with clearOut = false.
    momRhsOut:clear(0.0)
 
@@ -263,9 +279,9 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solver:advance(tCurr, {momIn, em, extGeo, self.primMomSelf}, {momRhsOut})
+      self.solver:advance(tCurr, {momIn, em, extGeo, self.primMomSelf, self.cSound}, {momRhsOut})
    else
-      self.equation:setAuxFields({em, extGeo, self.primMomSelf})  -- Set auxFields in case they are needed by BCs/collisions.
+      self.equation:setAuxFields({em, extGeo, self.primMomSelf, self.cSound})  -- Set auxFields in case they are needed by BCs/collisions.
    end
 
    for _, bc in pairs(self.nonPeriodicBCs) do

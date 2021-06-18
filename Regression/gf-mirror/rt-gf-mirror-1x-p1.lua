@@ -358,8 +358,8 @@ end
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd       = .250e-6,         -- End time.
-   nFrame     = 1,              -- Number of output frames.
+   tEnd       = 4.0e-6,         -- End time.
+   nFrame     = 512,              -- Number of output frames.
    lower      = {zMin},          -- Configuration space lower left.
    upper      = {zMax},          -- Configuration space upper right.
    cells      = {numCellZ},      -- Configuration space cells.
@@ -454,8 +454,8 @@ plasmaApp = Plasma.App {
       },
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
-      bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}},
---      bcx = {Plasma.CopyBC{}, Plasma.CopyBC{}},
+--      bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}},
+      bcx = {Plasma.CopyBC{}, Plasma.CopyBC{}},
    },
 
    -- Gyrofluid electronss.
@@ -526,8 +526,8 @@ plasmaApp = Plasma.App {
       },
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
-      bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}},
---      bcx = {Plasma.CopyBC{}, Plasma.CopyBC{}},
+--      bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}},
+      bcx = {Plasma.CopyBC{}, Plasma.CopyBC{}},
    },
 
    -- Field solver.

@@ -1,9 +1,8 @@
 #include <gyrofluid_mod_decl.h>
 
-double gyrofluid_vol_1x_p2_ser(const double q_, const double m_, const double kperpSq, const double *w, const double *dx, const double *jac, const double *rBmag, const double *jacDbmag, const double *dBdz, const double *sMom, const double *phi, double *primMom, double *out) 
+double gyrofluid_vol_1x_p2_ser(const double q_, const double m_, const double *w, const double *dx, const double *jac, const double *rBmag, const double *jacDbmag, const double *dBdz, const double *sMom, const double *phi, const double *primMom, const double *cs, double *out) 
 { 
   // q_,m_:   species charge and mass.
-  // kperpSq: k_perp^2.
   // w:       cell-center.
   // dx:      cell length.
   // uMaxIn:  maximum speed.
@@ -13,6 +12,7 @@ double gyrofluid_vol_1x_p2_ser(const double q_, const double m_, const double kp
   // sMom:    stepped moments (times Jacobian).
   // phi:     electrostatic potential.
   // primMom: primitive moments (upar, Tpar, Tperp).
+  // cs:      sound speed.
   // out:     output increment.
 
   double wx = w[0];
@@ -33,5 +33,5 @@ double gyrofluid_vol_1x_p2_ser(const double q_, const double m_, const double kp
   out[10] += 1.224744871391589*(primMom[2]*sMom[11]+primMom[1]*sMom[10]+primMom[0]*sMom[9])*rdx2; 
   out[11] += (2.449489742783178*(primMom[1]*sMom[11]+primMom[2]*sMom[10])+2.738612787525831*(primMom[0]*sMom[10]+primMom[1]*sMom[9]))*rdx2; 
 
-  return rdx2*(fabs(0.7071067811865475*primMom[0]-0.7905694150420947*primMom[2]) + 0.5*sqrt((-(6.324555320336761*primMom[8])/m_)+(5.656854249492382*primMom[6])/m_-(9.48683298050514*primMom[5])/m_+(8.485281374238571*primMom[3])/m_)); 
+  return rdx2*(fabs(0.7071067811865475*primMom[0]-0.7905694150420947*primMom[2]) + 0.7071067811865475*cs[0]-0.7905694150420947*cs[2]); 
 }

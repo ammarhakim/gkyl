@@ -56,7 +56,7 @@ calcSqrtProjGauss(fh, funcNm, dim, basisNm, polyOrder) := block(
 
     sqrtfRq_n[i] : pow(sqrt(subst(cSub,fIn_e)),qExp)
   ),
-  printf(fh,"double sqrtfRq[~a];~%", ordNum),
+  printf(fh,"  double sqrtfRq[~a];~%", ordNum),
   writeCExprs1(sqrtfRq, sqrtfRq_n),
   printf(fh,"~%"),
 
