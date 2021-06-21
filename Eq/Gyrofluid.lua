@@ -33,8 +33,6 @@ function Gyrofluid:init(tbl)
    self.charge = assert(tbl.charge, "Gyrofluid: must specify charge using 'charge'.")
    self.mass   = assert(tbl.mass, "Gyrofluid: must specify mass using 'mass'.")
 
-   self.kPerpSq  = 0.
-   print("setting kPerpSq = 0.0 in Eq/Gyrofluid.lua.")
    self.bmagFunc = assert(tbl.bmagFunc, "Gyrofluid: must specify the function defining the magnetic field amplitude using 'bmagFunc'.")       
 
    local nm, p = self._basis:id(), self._basis:polyOrder()
@@ -52,6 +50,7 @@ function Gyrofluid:setAuxFields(auxFields)
    local potentials = auxFields[1]   -- First auxField is Field object.
    local geo        = auxFields[2]   -- Second auxField is ExternalField object.
    local primMom    = auxFields[3]   -- Third auxField is the primitive moments field.
+   local cSound     = auxFields[4]   -- Third auxField is the sound speed.
 
    -- Get the electrostatic potential, phi.
    self.phi = potentials.phi
@@ -66,10 +65,8 @@ function Gyrofluid:setAuxFields(auxFields)
    self.jacob   = geo.jacobGeo
    self.phiWall = geo.phiWall  -- For sheath BCs.
 
-   -- Primitive moments uPar, Tpar, Tperp.
-   self.primMom = primMom
-
-   self.kperpSq = geo.kperpSq
+   self.primMom = primMom   -- Primitive moments uPar, Tpar, Tperp.
+   self.cSound  = cSound    -- Sound speed.
 
    if self._isFirst then
 
@@ -140,6 +137,11 @@ function Gyrofluid:setAuxFields(auxFields)
       self.primMomPtrl = self.primMom:get(1)
       self.primMomPtrr = self.primMom:get(1)
 
+      -- Sound speed.
+      self.cSoundPtr  = self.cSound:get(1)
+      self.cSoundPtrl = self.cSound:get(1)
+      self.cSoundPtrr = self.cSound:get(1)
+
       self._isFirst = false -- No longer first time.
    end
 end
@@ -155,8 +157,9 @@ function Gyrofluid:volTerm(w, dx, idx, f, out)
    self.jacobDbmag:fill(self.indexer(idx), self.jacobDbmagPtr)
    self.primMom:fill(self.indexer(idx), self.primMomPtr)
    self.dBdz:fill(self.indexer(idx), self.dBdzPtr)
+   self.cSound:fill(self.indexer(idx), self.cSoundPtr)
 
-   local res = self._volTerm(self.charge, self.mass, self.kPerpSq, w:data(), dx:data(), self.jacobPtr:data(), self.rBmagPtr:data(), self.jacobDbmagPtr:data(), self.dBdzPtr:data(), f:data(), self.phiPtr:data(), self.primMomPtr:data(), out:data())
+   local res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.jacobPtr:data(), self.rBmagPtr:data(), self.jacobDbmagPtr:data(), self.dBdzPtr:data(), f:data(), self.phiPtr:data(), self.primMomPtr:data(), self.cSoundPtr:data(), out:data())
    self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
    return res
 end
@@ -173,8 +176,10 @@ function Gyrofluid:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr,
    self.jacobDbmag:fill(self.indexer(idxl), self.jacobDbmagPtr)
    self.primMom:fill(self.indexer(idxl), self.primMomPtrl)
    self.primMom:fill(self.indexer(idxr), self.primMomPtrr)
-
-   local res = self._surfTerm[dir](self.charge, self.mass, self.kPerpSq, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.jacobPtr:data(), self.rBmagPtr:data(), self.jacobDbmagPtr:data(), fl:data(), fr:data(), self.phiPtrl:data(), self.phiPtrr:data(), self.primMomPtrl:data(), self.primMomPtrr:data(), outl:data(), outr:data())
+   self.cSound:fill(self.indexer(idxl), self.cSoundPtrl)
+   self.cSound:fill(self.indexer(idxr), self.cSoundPtrr)
+   
+   local res = self._surfTerm[dir](self.charge, self.mass, wl:data(), dxl:data(), wr:data(), dxr:data(), maxs, self.jacobPtr:data(), self.rBmagPtr:data(), self.jacobDbmagPtr:data(), fl:data(), fr:data(), self.phiPtrl:data(), self.phiPtrr:data(), self.primMomPtrl:data(), self.primMomPtrr:data(), self.cSoundPtrl:data(), self.cSoundPtrr:data(), outl:data(), outr:data())
    self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    return res
 end

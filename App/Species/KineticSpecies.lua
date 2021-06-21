@@ -825,7 +825,7 @@ function KineticSpecies:write(tm, force)
       -- Compute delta-F (if perturbed diagnostics are requested) and put it in self.flucF.
       self.calcDeltaF(self:rkStepperFields()[1])
 
-      for _, dOb in pairs(self.diagnostics) do
+      for _, dOb in lume.orderedIter(self.diagnostics) do
          dOb:resetState(tm)   -- Reset booleans indicating if diagnostic has been computed.
       end
 
@@ -837,7 +837,7 @@ function KineticSpecies:write(tm, force)
       -- Compute integrated diagnostics.
       if self.calcIntQuantTrigger(tm) then
          self:calcDiagnosticIntegratedMoments(tm)   -- MF: to be removed. Only here for some neutral diagnostics (to be moved).
-         for _, dOb in pairs(self.diagnostics) do
+         for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcIntegratedDiagnostics(tm, self)   -- Compute integrated diagnostics (this species' and other objects').
          end
       end
@@ -860,11 +860,11 @@ function KineticSpecies:write(tm, force)
          -- Compute moments and write them out.
          self:calcAndWriteDiagnosticMoments(tm)   -- MF: to be removed. Only here for some neutral diagnostics (to be moved).
 
-         for _, dOb in pairs(self.diagnostics) do
+         for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcGridDiagnostics(tm, self)   -- Compute grid diagnostics (this species' and other objects').
          end
 
-         for _, dOb in pairs(self.diagnostics) do   -- Write grid and integrated diagnostics.
+         for _, dOb in lume.orderedIter(self.diagnostics) do   -- Write grid and integrated diagnostics.
             dOb:write(tm, self.diagIoFrame)
          end
 
@@ -886,7 +886,7 @@ function KineticSpecies:write(tm, force)
 
          local tmStart = Time.clock()
          self:calcDiagnosticIntegratedMoments(tm)   -- MF: to be removed. Only here for some neutral diagnostics (to be moved).
-         for _, dOb in pairs(self.diagnostics) do
+         for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcIntegratedDiagnostics(tm, self)   -- Compute integrated diagnostics (this species' and other objects').
          end
          self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
@@ -895,11 +895,11 @@ function KineticSpecies:write(tm, force)
 
 	 self:calcAndWriteDiagnosticMoments(tm)   -- MF: to be removed. Only here for some neutral diagnostics (to be moved).
 
-         for _, dOb in pairs(self.diagnostics) do
+         for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcGridDiagnostics(tm, self)   -- Compute grid diagnostics (this species' and other objects').
          end
 
-         for _, dOb in pairs(self.diagnostics) do   -- Write grid and integrated diagnostics.
+         for _, dOb in lume.orderedIter(self.diagnostics) do   -- Write grid and integrated diagnostics.
             dOb:write(tm, self.diagIoFrame)
          end
       end
@@ -915,7 +915,7 @@ function KineticSpecies:writeRestart(tm)
 
    self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, writeGhost)
 
-   for _, dOb in pairs(self.diagnostics) do   -- Write restart diagnostics.
+   for _, dOb in lume.orderedIter(self.diagnostics) do   -- Write restart diagnostics.
       dOb:writeRestart(tm, self.diagIoFrame, self.dynVecRestartFrame)
    end
 
@@ -948,7 +948,7 @@ function KineticSpecies:readRestart(field, externalField)
    end 
 
    local diagIoFrame_new
-   for _, dOb in pairs(self.diagnostics) do   -- Read grid and integrated diagnostics.
+   for _, dOb in lume.orderedIter(self.diagnostics) do   -- Read grid and integrated diagnostics.
       local _, dfr = dOb:readRestart()
       diagIoFrame_new = diagIoFrame_new or dfr
       assert(diagIoFrame_new==dfr, "KineticSpecies:readRestart expected diagnostics from previous run to have the same last frame.") 

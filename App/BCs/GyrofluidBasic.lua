@@ -65,9 +65,45 @@ function GyrofluidBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
    for i = 1, numB do fOut[3*numB+i] = 1.e-10*fIn[3*numB+i] end   -- Perpendicular pressure (divided by B).
 end
 
+function GyrofluidBasicBC:bcBohmSheath(dir, tm, idxIn, fIn, fOut)
+   local numB = self.basis:numBasis()
+   for i = 1, numB do fOut[0*numB+i] = fIn[0*numB+i] end   -- Mass density (copy/homogeneous Neumann).
+
+   self.phi:fill(self.indexer(idxIn), self.phiPtr)
+   self.bmag:fill(self.indexer(idxIn), self.bmagPtr)
+   self.jacob:fill(self.indexer(idxIn), self.jacobPtr)
+
+   local function evAtBoundary(ptrIn, cOff)
+      if self.basis:polyOrder()==1 then
+         return self.bcEdge=='lower'
+            and (ptrIn[cOff+0]-math.sqrt(3)*ptrIn[cOff+1])/math.sqrt(2)
+            or  (ptrIn[cOff+0]+math.sqrt(3)*ptrIn[cOff+1])/math.sqrt(2)
+      end
+   end
+
+   -- Potential, magnetic field and Jacobian at the boundary.
+   local phi_b   = evAtBoundary(self.phiPtr,0)
+   local bmag_b  = evAtBoundary(self.bmagPtr,0)
+   local jacob_b = evAtBoundary(self.jacobPtr,0)
+
+   -- Temperatures at the boundary. 
+   self.primMomSelf:fill(self.indexer(idxIn), self.primMomSelfPtr)
+   local Tpar_b  = evAtBoundary(self.primMomSelfPtr,1*numB)
+   local Tperp_b = evAtBoundary(self.primMomSelfPtr,2*numB)
+
+   local m2perpOff = 3*numB
+   local m2perp_b = evAtBoundary(fIn, m2perpOff)
+
+   local pPerp_b = m2perp_b*bmag_b/jacob_b
+
+end
+
 function GyrofluidBasicBC:createSolver(mySpecies, field, externalField)
 
    self.nMoments = mySpecies.nMoments
+
+   -- Bohm sheath BC uses phi.
+   self.getPhi = function(fieldIn, inIdx) return nil end 
 
    local bcFunc, skinType
    if self.bcKind == "copy" then
@@ -75,6 +111,22 @@ function GyrofluidBasicBC:createSolver(mySpecies, field, externalField)
       skinType = "pointwise"
    elseif self.bcKind == "absorb" then
       bcFunc   = function(...) return self:bcAbsorb(...) end
+      skinType = "pointwise"
+   elseif self.bcKind == "bohmSheath" then
+      
+      self.getPhi = function(fieldIn, inIdx) return fieldIn:rkStepperFields()[inIdx].phi end
+      local phi   = field:rkStepperFields()[1].phi
+      self.bmag   = externalField.geo.bmag
+      self.jacob  = externalField.geo.jacobGeo
+      -- Pre-create pointers and indexers.
+      self.phiPtr, self.phiIdxr = phi:get(1), phi:genIndexer()
+      self.indexer = phi:genIndexer()
+      self.bmagPtr, self.jacobPtr = self.bmag:get(1), self.jacob:get(1)
+
+      self.primMomSelf = mySpecies.primMomSelf   -- Primitive moments: upar, Tpar, Tperp.
+      self.primMomSelfPtr = self.primMomSelf:get(1)
+
+      bcFunc   = function(...) return self:bcBohmSheath(...) end
       skinType = "pointwise"
    else
       assert(false, "GyrofluidBasicBC: BC kind not recognized.")
@@ -205,6 +257,8 @@ end
 function GyrofluidBasicBC:getNoJacMoments() return self.boundaryFluxRate end  -- Used by diagnostics.
 
 function GyrofluidBasicBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
+   self.phi = self.getPhi(field, inIdx)   -- If needed get the current plasma potential (for sheath BC).
+
    local fIn = mySpecies:rkStepperFields()[outIdx]
    self.bcSolver:advance(tCurr, {fIn}, {fIn})
 end

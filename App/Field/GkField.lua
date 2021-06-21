@@ -1118,9 +1118,7 @@ function GkGeometry:createSolver()
             end
             local deriv = diff.derivativef(bmagUnpack, #xn)
             local xntable = {}
-            for i = 1, #xn do
-              xntable[i] = xn[i]
-            end
+            for i = 1, #xn do xntable[i] = xn[i] end
             local f, dx, dy, dz = deriv(unpack(xntable))
             return dx, dy, dz
          end

@@ -74,7 +74,6 @@ plasmaApp = Plasma.App {
    -- Gyrokinetic ions.
    ion = Plasma.Species {
       charge = q_i,  mass = m_i,
-      kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
       -- Initial conditions.
       init = Plasma.GyrofluidProjection {
          density = function (t, xn)
@@ -87,6 +86,9 @@ plasmaApp = Plasma.App {
          parallelTemperature = function (t, xn) return Ti0 end,
          perpendicularTemperature = function (t, xn) return Ti0 end,
       },
+      closure = Plasma.HeatFlux{
+         kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
+      },
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
    },
@@ -94,12 +96,14 @@ plasmaApp = Plasma.App {
    -- Gyrokinetic electronss.
    elc = Plasma.Species {
       charge = q_e,  mass = m_e,
-      kappaPar = kappaParElc,  kappaPerp = kappaPerpElc,
       -- Initial conditions.
       init = Plasma.GyrofluidProjection {
          density = function (t, xn) return ne0 end,
          parallelTemperature = function (t, xn) return Te0 end,
          perpendicularTemperature = function (t, xn) return Te0 end,
+      },
+      closure = Plasma.HeatFlux{
+         kappaPar = kappaParElc,  kappaPerp = kappaPerpElc,
       },
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
