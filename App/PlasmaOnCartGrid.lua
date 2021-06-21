@@ -1004,6 +1004,7 @@ return {
          BasicBC             = require ("App.BCs.GyrofluidBasic").GyrofluidBasic,
          AbsorbBC            = require ("App.BCs.GyrofluidBasic").GyrofluidAbsorb,
          CopyBC              = require ("App.BCs.GyrofluidBasic").GyrofluidCopy,
+         SheathBC            = require ("App.BCs.GyrofluidBasic").GyrofluidSheath,
          ZeroFluxBC          = require ("App.BCs.GyrofluidBasic").GyrofluidZeroFlux,
 	 Field               = require ("App.Field.GkField").GkField,
 	 FunctionProjection  = require ("App.Projection.GyrofluidProjection").FunctionProjection, 

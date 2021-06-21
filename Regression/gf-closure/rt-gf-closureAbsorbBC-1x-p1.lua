@@ -70,10 +70,12 @@ kappaPerpIon = n0*(vti^2)/(math.sqrt(2)*D_perp*vti*kpar+nu_ii)
 kappaParElc  = n0*(vte^2)*(3.+beta_par)/(math.sqrt(3)*D_par*vte*kpar+nu_ee)
 kappaPerpElc = n0*(vte^2)/(math.sqrt(2)*D_perp*vte*kpar+nu_ee)
 
+local Lambda = math.log(mi/(2.*math.pi*me)) -- Sheath factor. Only used by electrons. 
+
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd       = 0.50e-6,         -- End time.
+   tEnd       = 0.250e-6,         -- End time.
    nFrame     = 1,               -- Number of output frames.
    lower      = {zMin},          -- Configuration space lower left.
    upper      = {zMax},          -- Configuration space upper right.
@@ -96,12 +98,17 @@ plasmaApp = Plasma.App {
    restartFrameEvery = .05,
    calcIntQuantEvery = 1./10.,  -- Aim at 10x more frequently than frames.
 
+   writeGhost = true,
+
    -- Gyrofluid ions.
    elc = Plasma.Species {
       charge = qe, mass = me,
       -- Initial conditions.
       init = Plasma.GyrofluidProjection {
          density = n0,
+         driftSpeed = function(t, zn)
+            return math.sqrt((3*Ti0+Te0)/mi)*math.exp(Lambda)*math.tanh(2.*zn[1])
+         end,
          perpendicularTemperature = Te0,
          parallelTemperature = function(t, zn)
             return Te0*(1+0.25*math.cos((2.*math.pi/(zMax-zMin))*zn[1]))
@@ -121,6 +128,9 @@ plasmaApp = Plasma.App {
       -- Initial conditions.
       init = Plasma.GyrofluidProjection {
          density = n0,
+         driftSpeed = function(t, zn)
+            return math.sqrt((3*Ti0+Te0)/mi)*math.tanh(2.*zn[1])
+         end,
          perpendicularTemperature = Ti0,
          parallelTemperature = function(t, zn)
             return Ti0*(1+0.25*math.cos((2.*math.pi/(zMax-zMin))*zn[1]))

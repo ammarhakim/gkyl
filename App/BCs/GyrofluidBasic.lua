@@ -20,6 +20,7 @@ local CartDecomp     = require "Lib.CartDecomp"
 local Grid           = require "Grid"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local GyrofluidDiags = require "App.Diagnostics.GyrofluidDiagnostics"
+local Constants      = require "Lib.Constants"
 
 local GyrofluidBasicBC = Proto(BCsBase)
 
@@ -65,37 +66,76 @@ function GyrofluidBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
    for i = 1, numB do fOut[3*numB+i] = 1.e-10*fIn[3*numB+i] end   -- Perpendicular pressure (divided by B).
 end
 
-function GyrofluidBasicBC:bcBohmSheath(dir, tm, idxIn, fIn, fOut)
+function GyrofluidBasicBC:bcSheath(dir, tm, idxIn, fIn, fOut)
    local numB = self.basis:numBasis()
-   for i = 1, numB do fOut[0*numB+i] = fIn[0*numB+i] end   -- Mass density (copy/homogeneous Neumann).
-
-   self.phi:fill(self.indexer(idxIn), self.phiPtr)
-   self.bmag:fill(self.indexer(idxIn), self.bmagPtr)
-   self.jacob:fill(self.indexer(idxIn), self.jacobPtr)
 
    local function evAtBoundary(ptrIn, cOff)
+      -- Given the pointer to the function in the skin cell, evaluate it
+      -- at the lower/upper boundary.
       if self.basis:polyOrder()==1 then
          return self.bcEdge=='lower'
-            and (ptrIn[cOff+0]-math.sqrt(3)*ptrIn[cOff+1])/math.sqrt(2)
-            or  (ptrIn[cOff+0]+math.sqrt(3)*ptrIn[cOff+1])/math.sqrt(2)
+            and (ptrIn[cOff+1]-math.sqrt(3)*ptrIn[cOff+2])/math.sqrt(2)
+            or  (ptrIn[cOff+1]+math.sqrt(3)*ptrIn[cOff+2])/math.sqrt(2)
       end
    end
 
+   local function zerothCoeff(valIn)
+      -- Assuming a cell-wise constant function, take the value in the cell
+      -- and return the 0th DG coefficient. This would normally be done in a kernel.
+      if self.basis:polyOrder()==1 then
+         return valIn*math.sqrt(2.)
+      elseif self.basis:polyOrder()==2 then
+         return valIn*2.
+      end
+   end
+
+   local mJacM0_b = evAtBoundary(fIn,0)   -- m*n*Jac at the boundary.
+
+   fOut[0*numB+1] = zerothCoeff(mJacM0_b)   -- Mass density (times Jacobian).
+   for i = 2, numB do fOut[0*numB+i] = 0. end
+
    -- Potential, magnetic field and Jacobian at the boundary.
+   self.phi:fill(self.indexer(idxIn), self.phiPtr)
+   self.bmag:fill(self.indexer(idxIn), self.bmagPtr)
+   self.jacob:fill(self.indexer(idxIn), self.jacobPtr)
    local phi_b   = evAtBoundary(self.phiPtr,0)
    local bmag_b  = evAtBoundary(self.bmagPtr,0)
    local jacob_b = evAtBoundary(self.jacobPtr,0)
 
-   -- Temperatures at the boundary. 
+   -- Temperature and sound speed at the boundary.
    self.primMomSelf:fill(self.indexer(idxIn), self.primMomSelfPtr)
+   self.cSound:fill(self.indexer(idxIn), self.cSoundPtr)
    local Tpar_b  = evAtBoundary(self.primMomSelfPtr,1*numB)
    local Tperp_b = evAtBoundary(self.primMomSelfPtr,2*numB)
+   local cs_b    = evAtBoundary(self.cSoundPtr,0)
 
-   local m2perpOff = 3*numB
-   local m2perp_b = evAtBoundary(fIn, m2perpOff)
+   local upar_b
+   if self.charge > 0. then
+      -- upar_i = c_s
+      upar_b = self.bcEdge=='lower' and -cs_b or cs_b
+   elseif self.charge < 0. then
+      -- upar_e = c_s*exp(Lambda - max(0, e*phi/Te))
+      local Te_b    = (Tpar_b+2.*Tperp_b)/3.
+      local eV      = Constants.ELEMENTARY_CHARGE
 
-   local pPerp_b = m2perp_b*bmag_b/jacob_b
+      upar_b = cs_b*math.exp( self.Lambda - math.max(0., eV*phi_b/Te_b) )
+      upar_b = self.bcEdge=='lower' and -upar_b or upar_b
+   end
+   fOut[1*numB+1] = zerothCoeff(mJacM0_b*upar_b)   -- Momentum density (times Jacobian).
+   for i = 2, numB do fOut[1*numB+i] = 0. end
+   
+   local mJacM1_b = evAtBoundary(fOut,1*numB)   -- New (ghost cell) m*n*upar*Jac at the boundary.
+   
+   -- Perpendicular and parallel pressures (times Jacobian) at the boundary.
+   local pPerpJac_b = (mJacM0_b/self.mass)*Tperp_b
+   local pParJac_b  = (mJacM0_b/self.mass)*Tpar_b
 
+   -- Kinetic energy density (times Jacobian) at the boundary.
+   fOut[2*numB+1] = zerothCoeff(0.5*(pParJac_b + upar_b*mJacM1_b) + pPerpJac_b)
+   for i = 2, numB do fOut[2*numB+i] = 0. end
+
+   fOut[3*numB+1] = zerothCoeff(pPerpJac_b/bmag_b)    -- Jacobian*pperp/B.
+   for i = 2, numB do fOut[3*numB+i] = 0. end
 end
 
 function GyrofluidBasicBC:createSolver(mySpecies, field, externalField)
@@ -112,7 +152,10 @@ function GyrofluidBasicBC:createSolver(mySpecies, field, externalField)
    elseif self.bcKind == "absorb" then
       bcFunc   = function(...) return self:bcAbsorb(...) end
       skinType = "pointwise"
-   elseif self.bcKind == "bohmSheath" then
+   elseif self.bcKind == "sheath" then
+
+      self.charge, self.mass = mySpecies.charge, mySpecies.mass
+      self.Lambda = math.log(mySpecies.ionMass/(2.*math.pi*self.mass)) -- Only used by electrons. 
       
       self.getPhi = function(fieldIn, inIdx) return fieldIn:rkStepperFields()[inIdx].phi end
       local phi   = field:rkStepperFields()[1].phi
@@ -123,10 +166,13 @@ function GyrofluidBasicBC:createSolver(mySpecies, field, externalField)
       self.indexer = phi:genIndexer()
       self.bmagPtr, self.jacobPtr = self.bmag:get(1), self.jacob:get(1)
 
-      self.primMomSelf = mySpecies.primMomSelf   -- Primitive moments: upar, Tpar, Tperp.
+      self.primMomSelf    = mySpecies.primMomSelf   -- Primitive moments: upar, Tpar, Tperp.
       self.primMomSelfPtr = self.primMomSelf:get(1)
 
-      bcFunc   = function(...) return self:bcBohmSheath(...) end
+      self.cSound    = mySpecies.cSound   -- Sound speed.
+      self.cSoundPtr = self.cSound:get(1)
+
+      bcFunc   = function(...) return self:bcSheath(...) end
       skinType = "pointwise"
    else
       assert(false, "GyrofluidBasicBC: BC kind not recognized.")
@@ -279,8 +325,15 @@ function GyrofluidCopyBC:fullInit(mySpecies)
    self.tbl.kind = "copy"
    GyrofluidCopyBC.super.fullInit(self, mySpecies)
 end
+
+local GyrofluidSheathBC = Proto(GyrofluidBasicBC)
+function GyrofluidSheathBC:fullInit(mySpecies)
+   self.tbl.kind = "sheath"
+   GyrofluidSheathBC.super.fullInit(self, mySpecies)
+end
 -- ................... End of GyrofluidBasicBC alias classes .................... --
 
 return {GyrofluidBasic  = GyrofluidBasicBC,
         GyrofluidAbsorb = GyrofluidAbsorbBC,
-        GyrofluidCopy   = GyrofluidCopyBC,}
+        GyrofluidCopy   = GyrofluidCopyBC,
+        GyrofluidSheath = GyrofluidSheathBC,}

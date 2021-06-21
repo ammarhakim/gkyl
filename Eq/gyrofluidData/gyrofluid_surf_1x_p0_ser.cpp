@@ -28,7 +28,7 @@ double gyrofluid_surf_1x_p0_ser_x(const double q_, const double m_, const double
   double uparR[1]; 
   uparR[0] = 0.7071067811865475*primMomR1[0]; 
 
-  double cMax = cMaxIn + fabs(fmax(0.7071067811865475*primMomL1[0],0.7071067811865475*primMomR1[0]));
+  double cMax = cMaxIn + fmax(fabs(0.7071067811865475*primMomL1[0]),fabs(0.7071067811865475*primMomR1[0]));
   double sMom1Favg[1];
   sMom1Favg[0] = 0.3535533905932738*(sMomR1[1]+sMomL1[1]); 
 

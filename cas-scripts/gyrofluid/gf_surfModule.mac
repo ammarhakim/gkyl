@@ -220,7 +220,7 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
   incrR_c : [],  incrL_c : [],
 
   /* Add the local max parallel velocity to the global max sound speed. */
-  printf(fh, "  double cMax = cMaxIn + fabs(fmax(~a,~a));~%", float(expand(subst(surfVar=1, uparL1_e))), float(expand(subst(surfVar=-1, uparR1_e)))),
+  printf(fh, "  double cMax = cMaxIn + fmax(fabs(~a),fabs(~a));~%", float(expand(subst(surfVar=1, uparL1_e))), float(expand(subst(surfVar=-1, uparR1_e)))),
 
   for mI : 1 thru numMom do (
 
