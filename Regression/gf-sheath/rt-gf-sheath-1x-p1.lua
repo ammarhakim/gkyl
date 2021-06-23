@@ -137,14 +137,14 @@ local Lambda = math.log(mi/(2.*math.pi*me)) -- Sheath factor. Only used by elect
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd       = 1.0e-12,         -- End time.
-   nFrame     = 100,              -- Number of output frames.
+   tEnd       = 6.0e-6,         -- End time.
+   nFrame     = 1,              -- Number of output frames.
    lower      = {zMin},          -- Configuration space lower left.
    upper      = {zMax},          -- Configuration space upper right.
    cells      = {numCellZ},      -- Configuration space cells.
    basis      = "serendipity",   -- One of "serendipity" or "maximal-order".
    polyOrder  = polyOrder,       -- Polynomial order.
-   decompCuts = {4},             -- MPI cuts in each.
+   decompCuts = {1},             -- MPI cuts in each.
    mapc2p = function(xc)
       -- Field-aligned coordinates (x,y).
       local x, y = xc[1], xc[2]
