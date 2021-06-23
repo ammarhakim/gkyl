@@ -67,6 +67,9 @@ function FluidSource:setConfGrid(grid) self.grid = grid end
 function FluidSource:setCfl(cfl) self.cfl = cfl end
 
 function FluidSource:createSolver(mySpecies, externalField)
+
+   self.writeGhost = mySpecies.writeGhost
+
    -- Source rate in each moment equation.
    self.momSource = mySpecies:allocVectorMoment(mySpecies.nMoments)
 
@@ -89,7 +92,7 @@ function FluidSource:createSolver(mySpecies, externalField)
       mySpecies.posRescaler:advance(0.0, {self.momSource}, {self.momSource})
    end
 
-   self.momSource:write(string.format("%s_0.bp", self.name), 0.0, 0, true)
+   self.momSource:write(string.format("%s_0.bp", self.name), 0.0, 0, self.writeGhost)
 end
 
 function FluidSource:advance(tCurr, momIn, species, momRhsOut)

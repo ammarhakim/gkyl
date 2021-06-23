@@ -98,7 +98,7 @@ plasmaApp = Plasma.App {
    restartFrameEvery = .05,
    calcIntQuantEvery = 1./10.,  -- Aim at 10x more frequently than frames.
 
-   writeGhost = true,
+   writeGhost = false,
 
    -- Gyrofluid ions.
    elc = Plasma.Species {
