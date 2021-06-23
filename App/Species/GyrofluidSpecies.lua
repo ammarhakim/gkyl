@@ -180,6 +180,8 @@ function GyrofluidSpecies:initCrossSpeciesCoupling(species)
       end
    end
    self.ionMass = species[self.ionNm].mass
+   -- Electrons may need to know the latest ion upar for sheath BCs.
+   self.ionPrimMomSelf = species[self.ionNm].primMomSelf
 end
 
 function GyrofluidSpecies:uParCalc(tm, momIn, mJacM0, mJacM1, uParOut)

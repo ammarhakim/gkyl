@@ -67,8 +67,6 @@ function GyrofluidBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
 end
 
 function GyrofluidBasicBC:bcSheath(dir, tm, idxIn, fIn, fOut)
-   local numB = self.basis:numBasis()
-
    local function evAtBoundary(ptrIn, cOff)
       -- Given the pointer to the function in the skin cell, evaluate it
       -- at the lower/upper boundary.
@@ -88,6 +86,8 @@ function GyrofluidBasicBC:bcSheath(dir, tm, idxIn, fIn, fOut)
          return valIn*2.
       end
    end
+
+   local numB = self.basis:numBasis()
 
    local mJacM0_b = evAtBoundary(fIn,0)   -- m*n*Jac at the boundary.
 
@@ -111,16 +111,18 @@ function GyrofluidBasicBC:bcSheath(dir, tm, idxIn, fIn, fOut)
 
    local upar_b
    if self.charge > 0. then
-      -- upar_i = c_s
-      upar_b = self.bcEdge=='lower' and -cs_b or cs_b
+      -- upar_i = max(c_s, upar).
+      upar_b = math.max(cs_b, math.abs(evAtBoundary(self.primMomSelfPtr,0)))
    elseif self.charge < 0. then
-      -- upar_e = c_s*exp(Lambda - max(0, e*phi/Te))
-      local Te_b    = (Tpar_b+2.*Tperp_b)/3.
-      local eV      = Constants.ELEMENTARY_CHARGE
+      -- upar_e = upar_i*exp(Lambda - max(0, e*phi/Te)).
+      local Te_b = (Tpar_b+2.*Tperp_b)/3.
+      local eV   = Constants.ELEMENTARY_CHARGE
+      self.ionPrimMomSelf:fill(self.indexer(idxIn), self.ionPrimMomSelfPtr)
+      local upari_b = math.max(cs_b, math.abs(evAtBoundary(self.ionPrimMomSelfPtr,0)))
 
-      upar_b = cs_b*math.exp( self.Lambda - math.max(0., eV*phi_b/Te_b) )
-      upar_b = self.bcEdge=='lower' and -upar_b or upar_b
+      upar_b = upari_b*math.exp( self.Lambda - math.max(0., eV*phi_b/Te_b) )
    end
+   upar_b = self.bcEdge=='lower' and -upar_b or upar_b
    fOut[1*numB+1] = zerothCoeff(mJacM0_b*upar_b)   -- Momentum density (times Jacobian).
    for i = 2, numB do fOut[1*numB+i] = 0. end
    
@@ -168,6 +170,9 @@ function GyrofluidBasicBC:createSolver(mySpecies, field, externalField)
 
       self.primMomSelf    = mySpecies.primMomSelf   -- Primitive moments: upar, Tpar, Tperp.
       self.primMomSelfPtr = self.primMomSelf:get(1)
+
+      self.ionPrimMomSelf    = mySpecies.ionPrimMomSelf
+      self.ionPrimMomSelfPtr = self.ionPrimMomSelf:get(1)
 
       self.cSound    = mySpecies.cSound   -- Sound speed.
       self.cSoundPtr = self.cSound:get(1)

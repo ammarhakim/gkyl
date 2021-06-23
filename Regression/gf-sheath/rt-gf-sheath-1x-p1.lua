@@ -137,8 +137,8 @@ local Lambda = math.log(mi/(2.*math.pi*me)) -- Sheath factor. Only used by elect
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd       = 48*1.0e-6,         -- End time.
-   nFrame     = 120,              -- Number of output frames.
+   tEnd       = 1.0e-12,         -- End time.
+   nFrame     = 100,              -- Number of output frames.
    lower      = {zMin},          -- Configuration space lower left.
    upper      = {zMax},          -- Configuration space upper right.
    cells      = {numCellZ},      -- Configuration space cells.
@@ -159,6 +159,7 @@ plasmaApp = Plasma.App {
    cflFrac     = 0.50,
    restartFrameEvery = .05,
    calcIntQuantEvery = 1./10.,  -- Aim at 10x more frequently than frames.
+--   writeGhost = true,
 
    -- Gyrofluid ions.
    elc = Plasma.Species {
@@ -167,7 +168,7 @@ plasmaApp = Plasma.App {
       init = Plasma.GyrofluidProjection {
          density = function (t, xn)
             local z = xn[1]
-            return math.max(n0*1.e-2,(n0/math.sqrt(2.*math.pi*(sigSrcIon^2)))*math.exp(-((z-0.)^2)/(2.*(sigSrcIon^2))))
+            return math.max(n0*1.e-8,(n0/math.sqrt(2.*math.pi*(sigSrcIon^2)))*math.exp(-((z-0.)^2)/(2.*(sigSrcIon^2))))
          end,
          driftSpeed = function (t, xn)
             local z = xn[1]
@@ -178,6 +179,10 @@ plasmaApp = Plasma.App {
       },
 --      closure = Plasma.HeatFlux{
 --         kappaPar = kappaParElc,  kappaPerp = kappaPerpElc,
+--      },
+--      coll = Plasma.PASCollisions {
+--         collideWith = {'elc'},
+--         frequencies = {nuElc},
 --      },
       source = Plasma.Source {
 --         fromFile    = "ion_fSourceIC.bp",
@@ -197,7 +202,7 @@ plasmaApp = Plasma.App {
       init = Plasma.GyrofluidProjection {
          density = function (t, xn)
             local z = xn[1]
-            return math.max(n0*1.e-2,(n0/math.sqrt(2.*math.pi*(sigSrcElc^2)))*math.exp(-((z-0.)^2)/(2.*(sigSrcElc^2))))
+            return math.max(n0*1.e-8,(n0/math.sqrt(2.*math.pi*(sigSrcElc^2)))*math.exp(-((z-0.)^2)/(2.*(sigSrcElc^2))))
          end,
          driftSpeed = function (t, xn)
             local z = xn[1]
@@ -206,15 +211,19 @@ plasmaApp = Plasma.App {
          perpendicularTemperature = Ti0,
          parallelTemperature = Ti0,
       },
---      closure = Plasma.HeatFlux{
---         kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
---      },
       source = Plasma.Source {
 --         fromFile    = "ion_fSourceIC.bp",
          density                  = srcDenIon,
          parallelTemperature      = srcTempIon,
          perpendicularTemperature = srcTempIon,
       },
+--      closure = Plasma.HeatFlux{
+--         kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
+--      },
+--      coll = Plasma.PASCollisions {
+--         collideWith = {'ion'},
+--         frequencies = {nuIon},
+--      },
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
       bcx = {Plasma.SheathBC{}, Plasma.SheathBC{}},
