@@ -49,6 +49,15 @@ local function orgDiagnostics(diagsImpl, diagsTbl, diagGroups)
    for nm, _ in pairs(diagsTbl) do table.insert(diagsCurr, nm) end
    for _, nm in ipairs(diagsCurr) do checkNinsertDependencies(nm, diagsImpl, diagsTbl) end
 
+   -- Create a table of unique IDs. This is necessary to ensure sorting (below)
+   -- has the same result in all MPI ranks. We tried broadcasting a string of the
+   -- sorted concatenated diag names but that was not functioning reliably.
+   local diag_keys = {}
+   for k in pairs(diagsImpl) do table.insert(diag_keys, k) end
+   table.sort(diag_keys)
+   local diagIDs = {}
+   for id, nm in ipairs(diag_keys) do diagIDs[nm] = id end
+
    local function sortDiagsTbl(impl, diagList)
       -- Create a keys list so we always loop in the same order.
       local sortFunc = function(d1,d2)
@@ -68,18 +77,15 @@ local function orgDiagnostics(diagsImpl, diagsTbl, diagGroups)
       table.sort(diagList, sortFunc)
       -- Different MPI ranks may find different acceptable orders.
       -- Need to sync this order across MPI ranks.
-      local myOrder, delim = "", ","
-      for _, v in ipairs(diagList) do myOrder=myOrder..v..delim end
-      local myOrderLen = string.len(myOrder)
-      if myOrderLen > 0 then
-         local Cstr = new("char [?]", myOrderLen)
-         ffi.copy(Cstr, myOrder)
-         -- An extra element is counted here (the null character at the end of a string? read online).
-         Mpi.Bcast(Cstr, myOrderLen, Mpi.CHAR, 0, Mpi.COMM_WORLD)
-         myOrder = ffi.string(Cstr)
-         local newList = {}
-         for nm in string.gmatch(myOrder, "(.-)"..delim) do table.insert(newList, nm) end
-         for i, v in ipairs(newList) do diagList[i] = v end 
+      local myOrderedIDs = {}
+      for _, nm in ipairs(diagList) do table.insert(myOrderedIDs, diagIDs[nm]) end
+      local numIDs = #myOrderedIDs
+      if numIDs > 0 then
+         local Cint = new("int [?]", numIDs)
+         for i, id in ipairs(myOrderedIDs) do Cint[i-1] = id end
+         Mpi.Bcast(Cint, numIDs, Mpi.INT, 0, Mpi.COMM_WORLD)
+         for i = 1,numIDs do myOrderedIDs[i] = Cint[i-1] end
+         for i, id in ipairs(myOrderedIDs) do diagList[i] = lume.find(diagIDs, id) end 
       end
    end
    -- We have to sort the groups in the same order in every MPI rank.
