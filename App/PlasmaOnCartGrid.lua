@@ -1021,6 +1021,7 @@ return {
       App.label = "Gyrokinetic"
       return  {
 	 AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
+         AdiabaticBasicBC = require "App.BCs.AdiabaticBasic",
 	 App = App,
          BasicBC    = require ("App.BCs.GkBasic").GkBasic,
          AbsorbBC   = require ("App.BCs.GkBasic").GkAbsorb,
