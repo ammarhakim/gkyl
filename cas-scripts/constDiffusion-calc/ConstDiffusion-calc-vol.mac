@@ -1,6 +1,7 @@
 /* For single integration by parts use ConstDiffusionSIBP-vol,
    for double integration by parts use ConstDiffusion-vol */
 load("constDiffusion-calc/ConstDiffusion-vol")$
+load("constDiffusion-calc/ConstDiffusionVarCoeff-vol")$
 load(stringproc)$
 
 /* ...... USER INPUTS........ */
@@ -13,17 +14,17 @@ load(stringproc)$
 /* Serendipity basis. */
 maxPolyOrder_Ser : 2$
 minDim_Ser : 1$
-maxDim_Ser : 4$
+maxDim_Ser : 2$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 1$
 minDim_Max : 1$
-maxDim_Max : 1$
+maxDim_Max : 0$
 
 /* Tensor basis. */
 maxPolyOrder_Tensor : 2$
 minDim_Tensor : 1$
-maxDim_Tensor : 4$
+maxDim_Tensor : 0$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -60,6 +61,11 @@ for bInd : 1 thru length(bName) do (
         funcName  : sconcat("ConstHyperDiffusion",diffOrder,"Vol", cD, "x", bName[bInd]),
         calcConstDiffusionVolUpdater(fh, funcName, cD, bName[bInd], polyOrder, diffOrder)
       ),
+      
+      /* Second order diffusion with spatially varying coefficient. */
+      diffOrder : 2,
+      funcName  : sconcat("ConstDiffusionVarCoeffVol", cD, "x", bName[bInd]),
+      buildConstDiffusionVarCoeffVol(fh, funcName, cD, bName[bInd], polyOrder, diffOrder),
 
       close(fh)
 

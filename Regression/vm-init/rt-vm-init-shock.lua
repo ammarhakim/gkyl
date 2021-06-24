@@ -63,8 +63,8 @@ plasmaApp = Plasma.App {
 	 end
 	 return maxwellian(n, u, vt, v)
       end,
-      -- diagnostics
-      diagnosticMoments = { "M0", "M1i", "M2", "M3i" }
+      -- Diagnostics.
+      diagnostics = { "M0", "M1i", "M2", "M3i" }
    },
 
    neut = Plasma.Species {
@@ -98,7 +98,7 @@ plasmaApp = Plasma.App {
 	 end,
          exactLagFixM012 = true,
       },
-      -- diagnostics
-      diagnosticMoments = { "M0", "M1i", "M2", "M3i" }
+      -- Diagnostics.
+      diagnostics = { "M0", "M1i", "M2", "M3i" }
    },   
 }

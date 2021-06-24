@@ -1,13 +1,12 @@
 -- Gkyl ------------------------------------------------------------------------
 --
---
-local Plasma    = require("App.PlasmaOnCartGrid").Gyrokinetic()
-local Constants = require "Lib.Constants"
-
 -- This test initializes Maxwellian electrons and ions with different
 -- bulk velocity and temperature and collides them.
 -- We will use cross collisions only as a default, but one can add
 -- self collisions as well.
+--
+local Plasma    = require("App.PlasmaOnCartGrid").Gyrokinetic()
+local Constants = require "Lib.Constants"
 
 -- Universal parameters.
 eps0 = Constants.EPSILON0
@@ -51,8 +50,8 @@ Lx = 4 -- [m]
 plasmaApp = Plasma.App {
    logToFile = false,
    
-   tEnd        = 0.10/nuElcIon,    -- End time.
-   nFrame      = 1,              -- Number of frames to write.
+   tEnd        = 0.10/nuElcIon,   -- End time.
+   nFrame      = 1,               -- Number of frames to write.
    lower       = {-Lx/2},         -- Configuration space lower coordinate.
    upper       = { Lx/2},         -- Configuration space upper coordinate.
    cells       = {32},            -- Configuration space cells.
@@ -90,13 +89,10 @@ plasmaApp = Plasma.App {
             return Te0
          end,
       },
-      --bcx = { Plasma.GkSpecies.bcOpen,
-      --        Plasma.GkSpecies.bcOpen },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq" },
-      diagnosticIntegratedMoments = { "intM0", "intM1", "intM2" },
+      diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.
       coll = Plasma.BGKCollisions {
          collideWith = {"elc", "ion", },
@@ -130,13 +126,10 @@ plasmaApp = Plasma.App {
             return Ti0
          end,
       },
-      --bcx = { Plasma.GkSpecies.bcOpen,
-      --        Plasma.GkSpecies.bcOpen },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq" },
-      diagnosticIntegratedMoments = { "intM0", "intM1", "intM2" },
+      diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.
       coll = Plasma.BGKCollisions {
          collideWith = {"ion", "elc"},

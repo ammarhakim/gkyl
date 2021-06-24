@@ -13,20 +13,40 @@ local GyrofluidDiags = require "App.Diagnostics.GyrofluidDiagnostics"
 local Mpi            = require "Comm.Mpi"
 local GyrofluidEq    = require "Eq.Gyrofluid"
 local Updater        = require "Updater"
-local DataStruct     = require "DataStruct"
 local Time           = require "Lib.Time"
 local Constants      = require "Lib.Constants"
+local BasicBC        = require ("App.BCs.GyrofluidBasic").GyrofluidBasic
 local Lin            = require "Lib.Linalg"
 local xsys           = require "xsys"
 local lume           = require "Lib.lume"
 
 local GyrofluidSpecies = Proto(FluidSpecies)
 
+-- ............. Backwards compatible treatment of BCs .....................-- 
 -- Add constants to object indicate various supported boundary conditions.
-local SP_BC_ABSORB = 1
-local SP_BC_COPY   = 6
-GyrofluidSpecies.bcAbsorb = SP_BC_ABSORB      -- Absorb all particles.
-GyrofluidSpecies.bcCopy   = SP_BC_COPY        -- Copy stuff.
+local SP_BC_ABSORB   = 1
+local SP_BC_ZEROFLUX = 5
+local SP_BC_COPY     = 6
+GyrofluidSpecies.bcAbsorb   = SP_BC_ABSORB     -- Absorb all particles.
+GyrofluidSpecies.bcCopy     = SP_BC_COPY       -- Copy stuff.
+GyrofluidSpecies.bcZeroFlux = SP_BC_ZEROFLUX   -- Zero flux.
+
+function GyrofluidSpecies:makeBcApp(bcIn)
+   local bcOut
+   if bcIn == SP_BC_COPY then
+      print("GyrofluidSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
+      bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
+   elseif bcIn == SP_BC_ABSORB then
+      print("GyrofluidSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
+      bcOut = BasicBC{kind="absorb", diagnostics={}, saveFlux=false}
+   elseif bcIn == SP_BC_ZEROFLUX or bcIn.tbl.kind=="zeroFlux" then
+      bcOut = "zeroFlux"
+      table.insert(self.zeroFluxDirections, dir)
+   end
+   return bcOut
+end
+
+-- ............. End of backwards compatibility for BCs .....................-- 
 
 function GyrofluidSpecies:fullInit(appTbl)
    GyrofluidSpecies.super.fullInit(self, appTbl)
@@ -36,8 +56,6 @@ function GyrofluidSpecies:fullInit(appTbl)
    self.kappaPar, self.kappaPerp = self.tbl.kappaPar, self.tbl.kappaPerp
 
    self.nMoments = 3+1
-   self.zeroFluxDirections = {}
-   self._firstMomentCalc = true  -- To avoid re-calculating moments when not evolving.
 end
 
 function GyrofluidSpecies:alloc(nRkDup)
@@ -78,9 +96,18 @@ function GyrofluidSpecies:alloc(nRkDup)
    self.first = true
 end
 
-function GyrofluidSpecies:createSolver(hasPhi, hasApar, externalField)
+function GyrofluidSpecies:createSolver(field, externalField)
+
+   self.cSound = self:allocMoment()  -- Sound speed. Do this before calling FluidSpecies' :createSolver.
+
    -- Run the FluidSpecies 'createSolver()' to initialize the collisions solver.
-   GyrofluidSpecies.super.createSolver(self,externalField)
+   GyrofluidSpecies.super.createSolver(self, field, externalField)
+
+   local hasE, hasB       = field:hasEB()
+   local extHasE, extHasB = externalField:hasEB()
+
+   local hasPhi  = hasE or extHasE
+   local hasApar = hasB or extHasB
 
    -- Set up Jacobian.
    if externalField then
@@ -99,24 +126,41 @@ function GyrofluidSpecies:createSolver(hasPhi, hasApar, externalField)
 
    -- Create updater to advance solution by one time-step.
    self.equation = GyrofluidEq {
-      onGrid    = self.grid,
-      basis     = self.basis,
-      charge    = self.charge,
+      onGrid    = self.grid,    kappaPar  = self.kappaPar,
+      basis     = self.basis,   kappaPerp = self.kappaPerp,
+      charge    = self.charge,  bmagFunc  = self.bmagFunc,
       mass      = self.mass,
-      kappaPar  = self.kappaPar,
-      kappaPerp = self.kappaPerp,
-      bmagFunc  = self.bmagFunc,
    }
 
    self.solver = Updater.HyperDisCont {
-      onGrid             = self.grid,
-      basis              = self.basis,
-      cfl                = self.cfl,
-      equation           = self.equation,
-      zeroFluxDirections = self.zeroFluxDirections,
-      clearOut           = false,   -- Continue accumulating into output field.
-      globalUpwind       = true,
+      onGrid   = self.grid,      zeroFluxDirections = self.zeroFluxDirections,
+      basis    = self.basis,     clearOut     = false,   -- Continue accumulating into output field.
+      cfl      = self.cfl,       globalUpwind = true,
+      equation = self.equation,
    }
+
+   self.sqrtOnBasis = Updater.SqrtOnBasis{onGrid = self.grid,  basis = self.basis, onGhosts=true}
+
+   if self.positivityRescale then
+      self.returnPosRescaledMom = function(tCurr, momIn)
+         self.posRescaler:advance(tCurr, {momIn}, {self.momPos}, false)
+         return self.momPos
+      end
+   else
+      self.returnPosRescaledMom = function(tCurr, momIn) return momIn end
+   end
+
+   if self.deltaF then
+      self.minusBackgroundJacM0 = function(jacM0In)
+         jacM0In:accumulateOffset(-1.0/self.mass, self.momBackground, self.mJacM0Off)
+      end
+      self.minusBackgroundJacM1 = function(jacM1In)
+         jacM1In:accumulateOffset(-1.0/self.mass, self.momBackground, self.mJacM1Off)
+      end
+   else
+      self.minusBackgroundJacM0 = function(jacM0In) end
+      self.minusBackgroundJacM1 = function(jacM1In) end
+   end
 
    self.timers = {couplingMom=0., weakMom=0., sources=0.}
 end
@@ -127,7 +171,17 @@ function GyrofluidSpecies:getMomOff(momIdx)
 end
 
 function GyrofluidSpecies:initCrossSpeciesCoupling(species)
-   -- Nothing implemented yet.
+   -- Save pointers electron and ion names. Will need them to compute sound speed.
+   for nm, s in pairs(species) do
+      if s.charge > 0. then
+         self.ionNm = nm
+      elseif s.charge < 0. then
+         self.elcNm = nm
+      end
+   end
+   self.ionMass = species[self.ionNm].mass
+   -- Electrons may need to know the latest ion upar for sheath BCs.
+   self.ionPrimMomSelf = species[self.ionNm].primMomSelf
 end
 
 function GyrofluidSpecies:uParCalc(tm, momIn, mJacM0, mJacM1, uParOut)
@@ -143,12 +197,17 @@ function GyrofluidSpecies:pPerpJacCalc(tm, momIn, jacM2perp, pPerpJacOut)
    self.weakMultiply:advance(tm, {jacM2perp, self.bmag}, {pPerpJacOut})
 end
 
-function GyrofluidSpecies:pParJacCalc(tm, momIn, uPar, mJacM1, mJacM2flow, mJacM2, pPerpJac, pParJacOut)
+function GyrofluidSpecies:pParJacCalc(tm, momIn, uPar, mJacM1, mJacM2flow, 
+                                      mJacM2, pPerpJac, pParJacOut)
    -- Compute the parallel pressure (times Jacobian).
    self.weakMultiply:advance(tm, {uPar, mJacM1}, {mJacM2flow})
    mJacM2:combineOffset(1, momIn, self.mJacM2Off)
    Mpi.Barrier(self.grid:commSet().sharedComm)   -- Barrier over sharedComm before combine.
    pParJacOut:combine(2., mJacM2, -2., pPerpJac, -1., mJacM2flow)
+
+   -- If the perpendicular pressure and/or the parallel flow energy density are sufficiently
+   -- large, or if the kinetic energy density is sufficiently low, the parallel pressure
+   -- could come out negative.
 end
 
 function GyrofluidSpecies:TparCalc(tm, mJacM0, pParJac, TparOut)
@@ -163,37 +222,34 @@ function GyrofluidSpecies:TperpCalc(tm, mJacM0, pPerpJac, TperpOut)
    TperpOut:scale(self.mass)
 end
 
-function GyrofluidSpecies:calcCouplingMoments(tCurr, rkIdx, species)
-   local momIn = self:rkStepperFields()[rkIdx]
+function GyrofluidSpecies:calcCouplingMomentsNoEvolve(tCurr, rkIdx, species) end
+function GyrofluidSpecies:calcCouplingMomentsEvolve(tCurr, rkIdx, species)
    -- Compute moments needed in coupling to fields and collisions.
-   if self.evolve or self._firstMomentCalc then
+   if not self.momentFlags[1] then -- No need to recompute if already computed.
+      local momIn   = self:rkStepperFields()[rkIdx]
       local tmStart = Time.clock()
 
-      if self.deltaF then momIn:accumulate(-1.0, self.momBackground) end
+      momIn = self.getMom_or_deltaMom(momIn)  -- Return full-F moments, or compute and return fluctuations.
 
-      if not self.momentFlags[1] then -- No need to recompute if already computed.
-         -- Calculate the parallel flow speed.
-         self:uParCalc(tCurr, momIn, self.mJacM0, self.mJacM1, self.uParSelf)
-         
-         -- Get the perpendicular and parallel pressures (times Jacobian).
-         self:pPerpJacCalc(tCurr, momIn, self.jacM2perp, self.pPerpJac)
-         self:pParJacCalc(tCurr, momIn, self.uParSelf, self.mJacM1, self.mJacM2flow,
-                                 self.mJacM2, self.pPerpJac, self.pParJac)
+      -- Calculate the parallel flow speed.
+      self:uParCalc(tCurr, momIn, self.mJacM0, self.mJacM1, self.uParSelf)
+      
+      -- Get the perpendicular and parallel pressures (times Jacobian).
+      self:pPerpJacCalc(tCurr, momIn, self.jacM2perp, self.pPerpJac)
+      self:pParJacCalc(tCurr, momIn, self.uParSelf, self.mJacM1, self.mJacM2flow,
+                              self.mJacM2, self.pPerpJac, self.pParJac)
 
-         -- Compute perpendicular and parallel temperatures.
-         self:TparCalc(tCurr, self.mJacM0, self.pParJac, self.TparSelf)
-         self:TperpCalc(tCurr, self.mJacM0, self.pPerpJac, self.TperpSelf)
+      -- Compute perpendicular and parallel temperatures.
+      self:TparCalc(tCurr, self.mJacM0, self.pParJac, self.TparSelf)
+      self:TperpCalc(tCurr, self.mJacM0, self.pPerpJac, self.TperpSelf)
 
-         -- Package self primitive moments into a single field (expected by equation object).
-         self.primMomSelf:combineOffset(1.,  self.uParSelf, 0*self.basis:numBasis(),
-                                        1.,  self.TparSelf, 1*self.basis:numBasis(),
-                                        1., self.TperpSelf, 2*self.basis:numBasis())
+      -- Package self primitive moments into a single field (expected by equation object).
+      self.primMomSelf:combineOffset(1.,  self.uParSelf, 0*self.basis:numBasis(),
+                                     1.,  self.TparSelf, 1*self.basis:numBasis(),
+                                     1., self.TperpSelf, 2*self.basis:numBasis())
 
-         -- Indicate that primitive moments have been computed.
-         self.momentFlags[1] = true
-      end
-
-      if self.deltaF then momIn:accumulate(1.0, self.momBackground) end
+      -- Indicate that primitive moments have been computed.
+      self.momentFlags[1] = true
 
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
    end
@@ -206,23 +262,24 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local momRhsOut = self:rkStepperFields()[outIdx]
 
    local em     = emIn[1]:rkStepperFields()[inIdx] -- Dynamic fields (e.g. phi, Apar)
-   local emFunc = emIn[2]:rkStepperFields()[1]     -- Geometry/external field.
+   local extGeo = emIn[2]:rkStepperFields()[1]     -- Geometry/external field.
 
-   if self.positivityRescale then
-      self.posRescaler:advance(tCurr, {momIn}, {self.momPos}, false)
-      momIn = self.momPos
-   end
+   momIn = self.returnPosRescaledMom(tCurr, momIn)
+
+   -- Compute the sound speed sqrt((3*Ti_par+Te))/m_i.
+   self.cSound:combineOffset(     3./self.ionMass, species[self.ionNm].primMomSelf, 1*self.basis:numBasis(),
+                             1./(3.*self.ionMass), species[self.elcNm].primMomSelf, 1*self.basis:numBasis(),
+                             2./(3.*self.ionMass), species[self.elcNm].primMomSelf, 2*self.basis:numBasis())
+   self.sqrtOnBasis:advance(tCurr, {self.cSound}, {self.cSound})
 
    -- Clear RHS, because HyperDisCont set up with clearOut = false.
    momRhsOut:clear(0.0)
 
    -- Perform the collision update. This includes terms that comes from
    -- collisions but also other objects in the Collisions App (e.g. diffusion).
-   if self.evolveCollisions then
-      for _, c in pairs(self.collisions) do
-         c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-         c:advance(tCurr, momIn, species, momRhsOut)
-      end
+   for _, c in pairs(self.collisions) do
+      c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      c:advance(tCurr, momIn, species, {em, extGeo}, momRhsOut)
    end
 
    -- Complete the field solve.
@@ -230,58 +287,33 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solver:advance(tCurr, {momIn, em, emFunc, self.primMomSelf}, {momRhsOut})
+      self.solver:advance(tCurr, {momIn, em, extGeo, self.primMomSelf, self.cSound}, {momRhsOut})
    else
-      self.equation:setAuxFields({em, emFunc, self.primMomSelf})  -- Set auxFields in case they are needed by BCs/collisions.
+      self.equation:setAuxFields({em, extGeo, self.primMomSelf, self.cSound})  -- Set auxFields in case they are needed by BCs/collisions.
    end
 
-   -- Save boundary fluxes for diagnostics.
-   if self.hasNonPeriodicBc and self.boundaryFluxDiagnostics then
-      for _, bc in ipairs(self.boundaryConditions) do
-         bc:storeBoundaryFlux(tCurr, outIdx, momRhsOut)
-      end
+   for _, bc in pairs(self.nonPeriodicBCs) do
+      bc:storeBoundaryFlux(tCurr, outIdx, momRhsOut)   -- Save boundary fluxes.
    end
 
    for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, momIn, species, momRhsOut) end
-
 end
 
-function GyrofluidSpecies:bcAbsorbFunc(dir, tm, idxIn, fIn, fOut)
-   -- The idea is that by setting the plasma quantities to zero in the
-   -- ghost cell nothing is transported into the domain, and whatever is transported
-   -- out is lost. We can't set them to exactly zero or else the sound speed
-   -- and drift velocity would diverge, so we set them to something small.
-   local numB = self.basis:numBasis()
-   for i = 1, numB do fOut[0*numB+i] = 1.e-10*fIn[0*numB+i] end   -- Mass density. 
-   for i = 1, numB do fOut[1*numB+i] = 0. end                     -- Momentum density.  
-   for i = 1, numB do fOut[2*numB+i] = 1.e-10*fIn[2*numB+i] end   -- Energy density. 
-   for i = 1, numB do fOut[3*numB+i] = 1.e-10*fIn[3*numB+i] end   -- Perpendicular pressure (divided by B). 
-end
-
-function GyrofluidSpecies:appendBoundaryConditions(dir, edge, bcType)
-   -- Need to wrap member functions so that self is passed.
-   local function bcAbsorbFunc(...)  return self:bcAbsorbFunc(...) end
-   local function bcCopyFunc(...)    return self:bcCopyFunc(...) end
-
-   if bcType == SP_BC_ABSORB then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { bcAbsorbFunc }, "pointwise"))
-   elseif bcType == SP_BC_COPY then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { bcCopyFunc }, "pointwise"))
-   else
-      assert(false, "GyrofluidSpecies: Unsupported BC type!")
-   end
-end
-
-function GyrofluidSpecies:createDiagnostics()  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
+function GyrofluidSpecies:createDiagnostics(field)  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
    -- Create this species' diagnostics.
    if self.tbl.diagnostics then
-      self.diagnostics[self.name] = DiagsApp{}
-      self.diagnostics[self.name]:fullInit(self, GyrofluidDiags)
+      self.diagnostics[self.name] = DiagsApp{implementation = GyrofluidDiags()}
+      self.diagnostics[self.name]:fullInit(self, field, self)
    end
 
    for srcNm, src in lume.orderedIter(self.sources) do
-      self.diagnostics[self.name..srcNm] = src:createDiagnostics()
+      self.diagnostics[self.name..srcNm] = src:createDiagnostics(self, field)
    end
+
+   for bcNm, bc in lume.orderedIter(self.nonPeriodicBCs) do
+      self.diagnostics[self.name..bcNm] = bc:createDiagnostics(self, field)
+   end
+   lume.setOrder(self.diagnostics)
 
    -- Many diagnostics require dividing by the Jacobian (if present).
    -- Predefine the function that does that.
@@ -317,13 +349,10 @@ function GyrofluidSpecies:getNumDensity(rkIdx)
 
    local momIn = self:rkStepperFields()[rkIdx]
 
-   if self.evolve or self._firstMomentCalc then
-      local tmStart = Time.clock()
-      self.jacM0Aux:combineOffset(1./self.mass, momIn, self.mJacM0Off)
-      if self.deltaF then self.jacM0Aux:accumulateOffset(-1.0/self.mass, self.momBackground, self.mJacM0Off) end
-      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
-   end
-   if not self.evolve then self._firstMomentCalc = false end
+   local tmStart = Time.clock()
+   self.jacM0Aux:combineOffset(1./self.mass, momIn, self.mJacM0Off)
+   self.minusBackgroundJacM0(self.jacM0Aux)
+   self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
 
    return self.jacM0Aux
 end
@@ -337,13 +366,10 @@ function GyrofluidSpecies:getMomDensity(rkIdx)
 
    local momIn = self:rkStepperFields()[rkIdx]
 
-   if self.evolve or self._firstMomentCalc then
-      local tmStart = Time.clock()
-      self.jacM1Aux:combineOffset(1./self.mass, momIn, self.mJacM1Off)
-      if self.deltaF then self.jacM1Aux:accumulate(-1.0/self.mass, self.momBackground, 1*self.basis:numBasis()) end
-      self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
-   end
-   if not self.evolve then self._firstMomentCalc = false end
+   local tmStart = Time.clock()
+   self.jacM1Aux:combineOffset(1./self.mass, momIn, self.mJacM1Off)
+   self.minusBackgroundJacM1(self.jacM1Aux)
+   self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
 
    return self.jacM1Aux
 end
@@ -361,21 +387,15 @@ end
 
 function GyrofluidSpecies:momCalcTime()
    local tm = self.timers.couplingMom
-   for _, dOb in pairs(self.diagnostics) do
+   for _, dOb in lume.orderedIter(self.diagnostics) do
       tm = tm + dOb:getDiagTime()
    end
    return tm
 end
-function GyrofluidSpecies:solverVolTime()
-   return self.equation.totalVolTime
-end
-function GyrofluidSpecies:solverSurfTime()
-   return self.equation.totalSurfTime
-end
+function GyrofluidSpecies:solverVolTime() return self.equation.totalVolTime end
+function GyrofluidSpecies:solverSurfTime() return self.equation.totalSurfTime end
 function GyrofluidSpecies:totalSolverTime()
    local timer = self.solver.totalTime
-   if self.solverStep2 then timer = timer + self.solverStep2.totalTime end
-   if self.solverStep3 then timer = timer + self.solverStep3.totalTime end
    if self.posRescaler then timer = timer + self.posRescaler.totalTime end
    return timer
 end

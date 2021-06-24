@@ -6,7 +6,6 @@ CC=icc
 CXX=icpc
 MPICC=icc 
 MPICXX=icpc 
-export GKYLSOFT='~/gkylsoft'
 # if we are in machines directory, go up a directory
 if [ `dirname "$0"` == "." ] 
   then

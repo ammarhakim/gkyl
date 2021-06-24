@@ -8,14 +8,29 @@
 
 local Proto        = require "Lib.Proto"
 local FluidSpecies = require "App.Species.FluidSpecies"
+local BasicBC      = require "App.BCs.AdiabaticBasic"
 
 local AdiabaticSpecies = Proto(FluidSpecies)
 
+-- ............. Backwards compatible treatment of BCs .....................--
 -- Add constants to object indicate various supported boundary conditions.
 local SP_BC_ABSORB = 1
 local SP_BC_COPY   = 6
-AdiabaticSpecies.bcAbsorb = SP_BC_ABSORB      -- Absorb all particles.
-AdiabaticSpecies.bcCopy   = SP_BC_COPY        -- Copy stuff.
+AdiabaticSpecies.bcAbsorb = SP_BC_ABSORB   -- Absorb all particles.
+AdiabaticSpecies.bcCopy   = SP_BC_COPY     -- Copy stuff.
+
+function AdiabaticSpecies:makeBcApp(bcIn)
+   local bcOut
+   print("AdiabaticSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
+   if bcIn == SP_BC_COPY then
+      bcOut = BasicBC{kind="copy", diagnostics={}, saveFlux=false}
+   elseif bcIn == SP_BC_ABSORB then
+      bcOut = BasicBC{kind="absorb", diagnostics={}, saveFlux=false}
+   end
+   return bcOut
+end
+
+-- ............. End of backwards compatibility for BCs .....................--
 
 function AdiabaticSpecies:fullInit(appTbl)
    AdiabaticSpecies.super.fullInit(self, appTbl)
@@ -32,7 +47,7 @@ function AdiabaticSpecies:fullInit(appTbl)
    assert(self.evolve==false, "AdiabaticSpecies: cannot evolve an adiabatic species")
 end
 
-function AdiabaticSpecies:createSolver(hasE, hasB, externalField)
+function AdiabaticSpecies:createSolver(field, externalField)
 
    -- Compute density in center of domain.
    local gridCenter = {}
@@ -55,39 +70,29 @@ function AdiabaticSpecies:createSolver(hasE, hasB, externalField)
       end
    end
 
-end
-
-function AdiabaticSpecies:bcAbsorbFunc(dir, tm, idxIn, fIn, fOut)
-   -- The idea is that by setting the plasma quantities to zero in the
-   -- ghost cell nothing is transported into the domain, and whatever is transported
-   -- out is lost. We can't set them to exactly zero or else the sound speed
-   -- and drift velocity would diverge, so we set them to something small.
-   local numB = self.basis:numBasis()
-   for i = 1, numB do fOut[i] = 1.e-10*fIn[i] end   -- Density. 
-end
-
-function AdiabaticSpecies:appendBoundaryConditions(dir, edge, bcType)
-   -- Need to wrap member functions so that self is passed.
-   local function bcAbsorbFunc(...)  return self:bcAbsorbFunc(...) end
-   local function bcCopyFunc(...)    return self:bcCopyFunc(...) end
-
-   if bcType == SP_BC_ABSORB then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { bcAbsorbFunc }, "pointwise"))
-   elseif bcType == SP_BC_COPY then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { bcCopyFunc }, "pointwise"))
-   else
-      assert(false, "AdiabaticSpecies: Unsupported BC type!")
-   end
-end
-
--- Nothing to calculate, just copy.
-function AdiabaticSpecies:calcCouplingMoments(tCurr, rkIdx)
    if self.deltaF then
-      self.couplingMoments:clear(0.0)
+      self.calcCouplingMomentsFunc = function(tCurr, rkIdx)
+         self.couplingMoments:clear(0.0)
+      end
    else
-      local fIn = self:rkStepperFields()[rkIdx]
-      self.couplingMoments:copy(fIn)
+      self.calcCouplingMomentsFunc = function(tCurr, rkIdx)
+         local fIn = self:rkStepperFields()[rkIdx]
+         self.couplingMoments:copy(fIn)
+      end
    end
+
+   self.suggestDtFunc = function() return FluidSpecies["suggestDtDontEvolve"](self) end
+   self.applyBcFunc   = function(tCurr, momIn) return FluidSpecies["applyBcDontEvolve"](self, tCurr, momIn) end
+
+   -- Empty methods needed in case positivity is used (for the kinetic species).
+   self.checkPositivity      = function(tCurr, idx) end
+   self.posRescaler          = {advance=function(tCurr, inFlds, outFlds, computeDiagnostics, zeroOut) end}
+   self.posRescalerDiffAdv   = function(tCurr, rkIdx, computeDiagnostics, zeroOut) end
+   self.posRescalerDiffWrite = function(tm, fr) end
+end
+
+function AdiabaticSpecies:calcCouplingMomentsEvolve(tCurr, rkIdx)
+   self.calcCouplingMomentsFunc(tCurr, rkIdx)
 end
 
 function AdiabaticSpecies:fluidMoments()
@@ -103,22 +108,20 @@ function AdiabaticSpecies:getNumDensity(rkIdx)
    end
 end
 
-function AdiabaticSpecies:temp()
-   return self._temp
-end
+function AdiabaticSpecies:temp() return self._temp end
 
-function AdiabaticSpecies:dens0()
-   return self._dens0
-end
+function AdiabaticSpecies:dens0() return self._dens0 end
 
--- This is factor on potential in qneut equation.
-function AdiabaticSpecies:getQneutFac(linearized)
-   if linearized == false then
-      self.qneutFac:combine(self.charge^2/self._temp, self.couplingMoments)
-      return self.qneutFac
-   else
-      return self._dens0*self.charge^2/self._temp
-   end
+function AdiabaticSpecies:getQneutFacLin()
+   -- Return the factor on potential in charge neutrality equation,
+   -- assuming a linearized polarization.
+   return self._dens0*self.charge^2/self._temp
+end
+function AdiabaticSpecies:getQneutFacNotLin()
+   -- Return the factor on potential in in charge neutrality equation,
+   -- not assuming a linearized polarization.
+   self.qneutFac:combine(self.charge^2/self._temp, self.couplingMoments)
+   return self.qneutFac
 end
 
 return AdiabaticSpecies

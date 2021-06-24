@@ -92,7 +92,7 @@ plasmaApp = Plasma.App {
          end,
       },
       evolve = true, -- Evolve species?
-      diagnosticMoments = {"GkM0"}, 
+      diagnostics = {"M0"}, 
    },
 
    -- Adiabatic ions.

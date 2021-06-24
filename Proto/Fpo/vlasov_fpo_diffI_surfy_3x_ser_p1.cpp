@@ -1,21 +1,21 @@
 #include <math.h>
 #include <vlasov_fpo.h>
 
-void vlasov_fpo_diff_surfyL_3x_ser_p1(const double dt, const double* dv,
-                                      const double* fLC,
-                                      const double* fL1L, const double* fL1U,
-                                      const double* fL2L, const double* fL2U,
-                                      const double* fUC,
-                                      const double* fU1L, const double* fU1U,
-                                      const double* fU2L, const double* fU2U,
-                                      const double* gLC,
-                                      const double* gL1L, const double* gL1U,
-                                      const double* gL2L, const double* gL2U,
-                                      const double* gUC,
-                                      const double* gU1L, const double* gU1U,
-                                      const double* gU2L, const double* gU2U,
-                                      const int isBoundary,
-                                      double* fOut) {
+void vlasov_fpo_diffI_surfyL_3x_ser_p1(const double dt, const double* dv,
+                                       const double* fLC,
+                                       const double* fL1L, const double* fL1U,
+                                       const double* fL2L, const double* fL2U,
+                                       const double* fUC,
+                                       const double* fU1L, const double* fU1U,
+                                       const double* fU2L, const double* fU2U,
+                                       const double* gLC,
+                                       const double* gL1L, const double* gL1U,
+                                       const double* gL2L, const double* gL2U,
+                                       const double* gUC,
+                                       const double* gU1L, const double* gU1U,
+                                       const double* gU2L, const double* gU2U,
+                                       const int isBoundary,
+                                       double* fOut) {
   const double Jxx = 16/(dv[0]*dv[0]*dv[0]*dv[0]);
   const double Jyy = 16/(dv[1]*dv[1]*dv[1]*dv[1]);
   const double Jzz = 16/(dv[2]*dv[2]*dv[2]*dv[2]);
@@ -47,21 +47,21 @@ void vlasov_fpo_diff_surfyL_3x_ser_p1(const double dt, const double* dv,
   }
 }
 
-void vlasov_fpo_diff_surfyU_3x_ser_p1(const double dt, const double* dv,
-                                      const double* fLC,
-                                      const double* fL1L, const double* fL1U,
-                                      const double* fL2L, const double* fL2U,
-                                      const double* fUC,
-                                      const double* fU1L, const double* fU1U,
-                                      const double* fU2L, const double* fU2U,
-                                      const double* gLC,
-                                      const double* gL1L, const double* gL1U,
-                                      const double* gL2L, const double* gL2U,
-                                      const double* gUC,
-                                      const double* gU1L, const double* gU1U,
-                                      const double* gU2L, const double* gU2U,
-                                      const int isBoundary,
-                                      double* fOut) {
+void vlasov_fpo_diffI_surfyU_3x_ser_p1(const double dt, const double* dv,
+                                       const double* fLC,
+                                       const double* fL1L, const double* fL1U,
+                                       const double* fL2L, const double* fL2U,
+                                       const double* fUC,
+                                       const double* fU1L, const double* fU1U,
+                                       const double* fU2L, const double* fU2U,
+                                       const double* gLC,
+                                       const double* gL1L, const double* gL1U,
+                                       const double* gL2L, const double* gL2U,
+                                       const double* gUC,
+                                       const double* gU1L, const double* gU1U,
+                                       const double* gU2L, const double* gU2U,
+                                       const int isBoundary,
+                                       double* fOut) {
   const double Jxx = 16/(dv[0]*dv[0]*dv[0]*dv[0]);
   const double Jyy = 16/(dv[1]*dv[1]*dv[1]*dv[1]);
   const double Jzz = 16/(dv[2]*dv[2]*dv[2]*dv[2]);

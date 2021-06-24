@@ -136,3 +136,63 @@ double ConstHyperDiffusion6Vol2xSerP2_diffDirs2(const double *w, const double *d
   return (rdxFnu[0])*0.9;
 
 } 
+double ConstDiffusionVarCoeffVol2xSerP2_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+{ 
+  // w[2]:   Cell-center coordinates.
+  // dx[2]:  Cell spacing.
+  // nu[16]:  diffusion coefficient.
+  // f:      Input distribution function.
+  // out:    Incremented output 
+  double rdxF[1]; 
+  rdxF[0] = 4.0/(dx[0]*dx[0]); 
+
+  out[1] += 3.354101966249685*rdxF[0]*f[1]*nu[4]+1.5*f[0]*rdxF[0]*nu[1]; 
+  out[3] += 3.354101966249685*rdxF[0]*f[3]*nu[4]+1.5*rdxF[0]*nu[1]*f[2]; 
+  out[4] += 10.06230589874905*rdxF[0]*f[4]*nu[4]+7.5*f[0]*rdxF[0]*nu[4]+6.708203932499369*rdxF[0]*f[1]*nu[1]+3.354101966249685*f[0]*nu[0]*rdxF[0]; 
+  out[6] += 10.06230589874905*rdxF[0]*nu[4]*f[6]+7.500000000000001*rdxF[0]*f[2]*nu[4]+6.708203932499369*rdxF[0]*nu[1]*f[3]+3.354101966249684*nu[0]*rdxF[0]*f[2]; 
+  out[7] += 3.354101966249685*rdxF[0]*nu[4]*f[7]+1.5*rdxF[0]*nu[1]*f[5]; 
+
+  return (rdxF[0]*(-0.5590169943749475*nu[5])-0.5590169943749475*nu[4]+0.5*nu[0])*0.9;
+
+} 
+double ConstDiffusionVarCoeffVol2xSerP2_diffDirs12(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+{ 
+  // w[2]:   Cell-center coordinates.
+  // dx[2]:  Cell spacing.
+  // nu[16]:  diffusion coefficient.
+  // f:      Input distribution function.
+  // out:    Incremented output 
+  double rdxF[2]; 
+  rdxF[0] = 4.0/(dx[0]*dx[0]); 
+  rdxF[1] = 4.0/(dx[1]*dx[1]); 
+
+  out[1] += 3.354101966249685*rdxF[0]*f[1]*nu[4]+1.5*f[0]*rdxF[0]*nu[1]; 
+  out[2] += 3.354101966249685*rdxF[1]*f[2]*nu[13]+1.5*f[0]*rdxF[1]*nu[10]; 
+  out[3] += 3.354101966249685*rdxF[1]*f[3]*nu[13]+1.5*f[1]*rdxF[1]*nu[10]+3.354101966249685*rdxF[0]*f[3]*nu[4]+1.5*rdxF[0]*nu[1]*f[2]; 
+  out[4] += 10.06230589874905*rdxF[0]*f[4]*nu[4]+7.5*f[0]*rdxF[0]*nu[4]+6.708203932499369*rdxF[0]*f[1]*nu[1]+3.354101966249685*f[0]*nu[0]*rdxF[0]; 
+  out[5] += 10.06230589874905*rdxF[1]*f[5]*nu[13]+7.5*f[0]*rdxF[1]*nu[13]+6.708203932499369*rdxF[1]*f[2]*nu[10]+3.354101966249685*f[0]*rdxF[1]*nu[8]; 
+  out[6] += 3.354101966249685*rdxF[1]*f[6]*nu[13]+1.5*rdxF[1]*f[4]*nu[10]+10.06230589874905*rdxF[0]*nu[4]*f[6]+7.500000000000001*rdxF[0]*f[2]*nu[4]+6.708203932499369*rdxF[0]*nu[1]*f[3]+3.354101966249684*nu[0]*rdxF[0]*f[2]; 
+  out[7] += 10.06230589874905*rdxF[1]*f[7]*nu[13]+7.500000000000001*f[1]*rdxF[1]*nu[13]+6.708203932499369*rdxF[1]*f[3]*nu[10]+3.354101966249684*f[1]*rdxF[1]*nu[8]+3.354101966249685*rdxF[0]*nu[4]*f[7]+1.5*rdxF[0]*nu[1]*f[5]; 
+
+  return (rdxF[0]*(-0.5590169943749475*nu[5])-0.5590169943749475*nu[4]+0.5*nu[0]+rdxF[1]*(-0.5590169943749475*nu[13])-0.5590169943749475*nu[12]+0.5*nu[8])*0.9;
+
+} 
+double ConstDiffusionVarCoeffVol2xSerP2_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+{ 
+  // w[2]:   Cell-center coordinates.
+  // dx[2]:  Cell spacing.
+  // nu[16]:  diffusion coefficient.
+  // f:      Input distribution function.
+  // out:    Incremented output 
+  double rdxF[1]; 
+  rdxF[0] = 4.0/(dx[1]*dx[1]); 
+
+  out[2] += 3.354101966249685*rdxF[0]*f[2]*nu[13]+1.5*f[0]*rdxF[0]*nu[10]; 
+  out[3] += 3.354101966249685*rdxF[0]*f[3]*nu[13]+1.5*rdxF[0]*f[1]*nu[10]; 
+  out[5] += 10.06230589874905*rdxF[0]*f[5]*nu[13]+7.5*f[0]*rdxF[0]*nu[13]+6.708203932499369*rdxF[0]*f[2]*nu[10]+3.354101966249685*f[0]*rdxF[0]*nu[8]; 
+  out[6] += 3.354101966249685*rdxF[0]*f[6]*nu[13]+1.5*rdxF[0]*f[4]*nu[10]; 
+  out[7] += 10.06230589874905*rdxF[0]*f[7]*nu[13]+7.500000000000001*rdxF[0]*f[1]*nu[13]+6.708203932499369*rdxF[0]*f[3]*nu[10]+3.354101966249684*rdxF[0]*f[1]*nu[8]; 
+
+  return (rdxF[0]*(-0.5590169943749475*nu[13])-0.5590169943749475*nu[12]+0.5*nu[8])*0.9;
+
+} 

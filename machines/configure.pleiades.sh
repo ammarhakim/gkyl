@@ -3,8 +3,6 @@
 # Edit the paths and options in the following command to suit your system
 module load mpi-sgi/mpt
 module load comp-intel
-module load eigen
-#module load szip
 
 CC=icc
 CXX=icpc
@@ -14,15 +12,16 @@ MPICXX=icpc
 # Build directory
 OUT=build
 # Install location
-PREFIX=$HOME/gkylsoft/gkyl
+export GKYLSOFT=$HOME/gkylsoft
+export PREFIX=$GKYLSOFT/gkyl
 
 # Compile flags (set optimization/debug flags here)
 CXXFLAGS='-O3,-std=c++17,-xAVX'
 
 # LuaJIT options
-LUAJIT_INC_DIR=$HOME/gkylsoft/luajit/include/luajit-2.1
-LUAJIT_LIB_DIR=$HOME/gkylsoft/luajit/lib
-LUAJIT_SHARE_DIR=$HOME/gkylsoft/luajit/share/luajit-2.1.0-beta3
+LUAJIT_INC_DIR=$GKYLSOFT/luajit/include/luajit-2.1
+LUAJIT_LIB_DIR=$GKYLSOFT/luajit/lib
+LUAJIT_SHARE_DIR=$GKYLSOFT/luajit/share/luajit-2.1.0-beta3
 
 # MPI options
 ENABLE_MPI="--enable-mpi"

@@ -17,21 +17,25 @@ local Proto         = require "Lib.Proto"
 local Time          = require "Lib.Time"
 
 -- ............... IMPLEMENTATION OF DIAGNOSTICS ................. --
+-- Diagnostics could be placed in a separate file if they balloon in
+-- number. But if we only have one or two we can just place it here.
+
 -- ~~~~ Source integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~
-local FluidSourceDiag_intSrc = Proto(DiagsImplBase)
-function FluidSourceDiag_intSrc:fullInit(diagApp, srcIn)
-   self.srcName  = string.gsub(srcIn.name, srcIn.speciesName.."_", "")
-   self.field    = DataStruct.DynVector { numComponents = srcIn.nMoments }
-   self.updaters = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = srcIn.grid,   numComponents = srcIn.nMoments,
-      basis  = srcIn.basis,  quantity      = "V"
-   }
-   self.done = false
-end
-function FluidSourceDiag_intSrc:getType() return "integrated" end
-function FluidSourceDiag_intSrc:advance(tm, inFlds, outFlds)
-   local specIn = inFlds[1]
-   self.updaters:advance(tm, {specIn.sources[self.srcName]:getSource()}, {self.field})
+local sourceDiagImpl = function()
+   local _intSrc = Proto(DiagsImplBase)
+   function _intSrc:fullInit(diagApp, mySpecies, srcIn)
+      self.srcName  = string.gsub(srcIn.name, srcIn.speciesName.."_", "")
+      self.field    = DataStruct.DynVector { numComponents = srcIn.nMoments }
+      self.updaters = mySpecies.volIntegral.vector
+      self.done     = false
+   end
+   function _intSrc:getType() return "integrated" end
+   function _intSrc:advance(tm, inFlds, outFlds)
+      local specIn = inFlds[1]
+      self.updaters:advance(tm, {specIn.sources[self.srcName]:getSource()}, {self.field})
+   end
+
+   return {intSrc = _intSrc}
 end
 
 -- .................... END OF DIAGNOSTICS ...................... --
@@ -63,6 +67,9 @@ function FluidSource:setConfGrid(grid) self.grid = grid end
 function FluidSource:setCfl(cfl) self.cfl = cfl end
 
 function FluidSource:createSolver(mySpecies, externalField)
+
+   self.writeGhost = mySpecies.writeGhost
+
    -- Source rate in each moment equation.
    self.momSource = mySpecies:allocVectorMoment(mySpecies.nMoments)
 
@@ -85,7 +92,7 @@ function FluidSource:createSolver(mySpecies, externalField)
       mySpecies.posRescaler:advance(0.0, {self.momSource}, {self.momSource})
    end
 
-   self.momSource:write(string.format("%s_0.bp", self.name), 0.0, 0, true)
+   self.momSource:write(string.format("%s_0.bp", self.name), 0.0, 0, self.writeGhost)
 end
 
 function FluidSource:advance(tCurr, momIn, species, momRhsOut)

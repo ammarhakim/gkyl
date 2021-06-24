@@ -1,6 +1,6 @@
 -- Gkyl -------------------------------------------------------------------
 --
--- Gyrofluid ion sound wave test case
+-- Gyrofluid ion sound wave test case.
 --
 ---------------------------------------------------------------------------
 local Plasma = require ("App.PlasmaOnCartGrid").Gyrofluid()
@@ -23,15 +23,20 @@ B0      = 1.0
 vtElc = math.sqrt(Te0/m_e)
 vtIon = math.sqrt(Ti0/m_i)
 
+-- Electron-electron collision freq.
+nuElc = 0.
+-- Ion-ion collision freq.
+nuIon = 0.
+
 -- Beer & Hammett 3+1 closure model parameters.
 beta_par = (32. - 9.*math.pi)/(3.*math.pi - 8.)
 D_par    = 2.*math.sqrt(math.pi)/(3.*math.pi - 8.)
 D_perp   = math.sqrt(math.pi)/2.
 
-kappaParIon  = ni0*vtIon*(3.+beta_par)/(math.sqrt(3)*D_par*kpar)
-kappaPerpIon = ni0*vtIon/(math.sqrt(2)*D_perp*kpar)
-kappaParElc  = ne0*vtElc*(3.+beta_par)/(math.sqrt(3)*D_par*kpar)
-kappaPerpElc = ne0*vtElc/(math.sqrt(2)*D_perp*kpar)
+kappaParIon  = ni0*(vtIon^2)*(3.+beta_par)/(math.sqrt(3)*D_par*vtIon*kpar+nuIon)
+kappaPerpIon = ni0*(vtIon^2)/(math.sqrt(2)*D_perp*vtIon*kpar+nuIon)
+kappaParElc  = ne0*(vtElc^2)*(3.+beta_par)/(math.sqrt(3)*D_par*vtElc*kpar+nuElc)
+kappaPerpElc = ne0*(vtElc^2)/(math.sqrt(2)*D_perp*vtElc*kpar+nuElc)
 
 -- Geometry related parameters.
 R0 = 1.0
@@ -69,7 +74,6 @@ plasmaApp = Plasma.App {
    -- Gyrokinetic ions.
    ion = Plasma.Species {
       charge = q_i,  mass = m_i,
-      kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
       -- Initial conditions.
       init = Plasma.GyrofluidProjection {
          density = function (t, xn)
@@ -82,6 +86,9 @@ plasmaApp = Plasma.App {
          parallelTemperature = function (t, xn) return Ti0 end,
          perpendicularTemperature = function (t, xn) return Ti0 end,
       },
+      closure = Plasma.HeatFlux{
+         kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
+      },
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
    },
@@ -89,12 +96,14 @@ plasmaApp = Plasma.App {
    -- Gyrokinetic electronss.
    elc = Plasma.Species {
       charge = q_e,  mass = m_e,
-      kappaPar = kappaParElc,  kappaPerp = kappaPerpElc,
       -- Initial conditions.
       init = Plasma.GyrofluidProjection {
          density = function (t, xn) return ne0 end,
          parallelTemperature = function (t, xn) return Te0 end,
          perpendicularTemperature = function (t, xn) return Te0 end,
+      },
+      closure = Plasma.HeatFlux{
+         kappaPar = kappaParElc,  kappaPerp = kappaPerpElc,
       },
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},

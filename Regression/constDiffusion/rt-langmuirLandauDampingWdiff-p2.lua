@@ -16,33 +16,33 @@ epsilon0   = 1.0                         -- Permittivity of free space.
 mu0        = 1.0                         -- Permeability of free space.
 lightSpeed = 1/math.sqrt(mu0*epsilon0)   -- Speed of light.
 
-qe = -1.0
-qi = 1.0
-me = 1.0
-mi = 1836.153
+qe  = -1.0
+qi  = 1.0
+me  = 1.0
+mi  = 1836.153
 vte = 1.0 -- electron thermal velocity
 vti = vte/math.sqrt(mi) -- ion thermal velocity 
 
 nElc = 1.0   -- Number density.
 
--- plasma frequency and Debye length.
-wpe = math.sqrt(qe^2*nElc/(epsilon0*me))
+-- Plasma frequency and Debye length.
+wpe     = math.sqrt(qe^2*nElc/(epsilon0*me))
 lambdaD = vte/wpe
 
 -- Parameters for perturbation.
 knumber      = 0.5/lambdaD
 perturbation = 1.0e-2 -- distribution function perturbation
-Nx = 32
-Nvx = 32
-vMaxElc = 6.0*vte
-vMaxIon = 6.0*vti
+Nx           = 32
+Nvx          = 32
+vMaxElc      = 6.0*vte
+vMaxIon      = 6.0*vti
 -- Compute hyperdiffusion coefficients from dv (so coefficient is a frequency)
 nuElc = 1.0e-1*(vMaxElc/Nvx)^6
 
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = 100.0/wpe,              -- End time.
+   tEnd        = 100.0/wpe,            -- End time.
    nFrame      = 1,                    -- Number of output frames.
    lower       = {-math.pi/knumber},   -- Configuration space lower left.
    upper       = { math.pi/knumber},   -- Configuration space upper right.
@@ -63,10 +63,10 @@ plasmaApp = Plasma.App {
 
    -- Electrons.
    elc = Plasma.Species {
-      charge = qe, mass = me,
+      charge = qe,  mass = me,
       -- Velocity space grid.
       lower = {-vMaxElc},
-      upper = {vMaxElc},
+      upper = { vMaxElc},
       cells = {Nvx},
       -- Initial conditions.
       init = function (t, xn)
@@ -79,8 +79,7 @@ plasmaApp = Plasma.App {
       end,
       evolve = true, -- Evolve species?
       -- Write out density, flow, total energy, and heat flux moments.
-      diagnosticMoments = { "M0", "M1i", "M2", "M3i" },
-      diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2Flow", "intM2Thermal", "intL2" },
+      diagnostics = { "M0", "M1i", "M2", "M3i", "intM0", "intM1i", "intM2Flow", "intM2Thermal", "intL2" },
       diff = Plasma.Diffusion {
          coefficient   = nuElc,
          -- Optional inputs:
@@ -91,10 +90,10 @@ plasmaApp = Plasma.App {
 
    -- Fixed ions.
    ion = Plasma.Species {
-      charge = qi, mass = mi,
+      charge = qi,  mass = mi,
       -- Velocity space grid.
       lower = {-vMaxIon},
-      upper = {vMaxIon},
+      upper = { vMaxIon},
       cells = {Nvx},
       -- Initial conditions.
       init = function (t, xn)

@@ -69,9 +69,9 @@ plasmaApp = Plasma.App {
    square = Plasma.Species {
       charge = 0.0, mass = 1.0,
       -- Velocity space grid.
-      lower      = {vMin,vMin,vMin},
-      upper      = {vMax,vMax,vMax},
-      cells      = Nv,
+      lower = {vMin,vMin,vMin},
+      upper = {vMax,vMax,vMax},
+      cells = Nv,
       -- Initial conditions.
       init = function (t, xn)
 	 local x, vx, vy, vz = xn[1], xn[2], xn[3], xn[4]
@@ -81,7 +81,7 @@ plasmaApp = Plasma.App {
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
-      diagnosticMoments = { "M0", "M1i", "M2" },
+      diagnostics = { "M0", "M1i", "M2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'square'},
@@ -93,9 +93,9 @@ plasmaApp = Plasma.App {
    bump = Plasma.Species {
       charge = 0.0, mass = 1.0,
       -- Velocity space grid.
-      lower      = {vMin,vMin,vMin},
-      upper      = {vMax,vMax,vMax},
-      cells      = Nv,
+      lower = {vMin,vMin,vMin},
+      upper = {vMax,vMax,vMax},
+      cells = Nv,
       -- Initial conditions.
       init = function (t, xn)
 	 local x, vx, vy, vz = xn[1], xn[2], xn[3], xn[4]
@@ -105,7 +105,7 @@ plasmaApp = Plasma.App {
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
-      diagnosticMoments = { "M0", "M1i", "M2" },
+      diagnostics = { "M0", "M1i", "M2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
@@ -114,5 +114,5 @@ plasmaApp = Plasma.App {
    },
 
 }
--- run application
+-- Run application.
 plasmaApp:run()

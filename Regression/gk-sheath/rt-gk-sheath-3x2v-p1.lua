@@ -9,24 +9,24 @@ local Mpi       = require "Comm.Mpi"
 
 -- Universal constant parameters.
 eps0 = Constants.EPSILON0
-eV = Constants.ELEMENTARY_CHARGE
-qe = -eV
-qi = eV
-me = Constants.ELECTRON_MASS
+eV   = Constants.ELEMENTARY_CHARGE
+qe   = -eV
+qi   = eV
+me   = Constants.ELECTRON_MASS
 
 -- Plasma parameters.
-mi = 2.014*Constants.PROTON_MASS -- (deuterium ions)
+mi  = 2.014*Constants.PROTON_MASS -- (deuterium ions)
 Te0 = 40*eV 
 Ti0 = 40*eV 
-n0 = 7e18  -- [1/m^3]
+n0  = 7e18  -- [1/m^3]
 
 -- Geometry and magnetic field.
 B_axis = 0.5   -- [T]
-R0 = 0.85  -- [m]
-a0 = 0.15   -- [m]
-R = R0 + a0
-B0 = B_axis*(R0/R) -- [T]
-Lpol = 2.4 -- [m]
+R0     = 0.85  -- [m]
+a0     = 0.15   -- [m]
+R      = R0 + a0
+B0     = B_axis*(R0/R) -- [T]
+Lpol   = 2.4 -- [m]
 
 -- Parameters for collisions.
 nuFrac = 0.1
@@ -81,26 +81,26 @@ randomseed = 100000*Mpi.Comm_rank(Mpi.COMM_WORLD)+63--os.time()
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd = .5e-6,                     -- End time.
-   nFrame = 1,                     -- Number of output frames.
-   lower = {R - Lx/2, -Ly/2, -Lz/2}, -- Configuration space lower left.
-   upper = {R + Lx/2, Ly/2, Lz/2},   -- Configuration space upper right.
-   cells = {4, 1, 8},              -- Configuration space cells.
-   basis = "serendipity",            -- One of "serendipity" or "maximal-order".
-   polyOrder = 1,                        -- Polynomial order.
+   tEnd        = .5e-6,                    -- End time.
+   nFrame      = 1,                        -- Number of output frames.
+   lower       = {R - Lx/2, -Ly/2, -Lz/2}, -- Configuration space lower left.
+   upper       = {R + Lx/2, Ly/2, Lz/2},   -- Configuration space upper right.
+   cells       = {4, 1, 8},                -- Configuration space cells.
+   basis       = "serendipity",            -- One of "serendipity" or "maximal-order".
+   polyOrder   = 1,                        -- Polynomial order.
    timeStepper = "rk3",                    -- One of "rk2" or "rk3".
-   cflFrac = 0.4,
+   cflFrac     = 0.4,
    restartFrameEvery = .5,
 
    -- Boundary conditions for configuration space.
    periodicDirs = {2},     -- Periodic in y only.
-   decompCuts = {1,1,1},
+   decompCuts   = {1,1,1},
 
    -- Gyrokinetic electrons.
    electron = Plasma.Species {
-      charge = qe, mass = me,
+      charge = qe,  mass = me,
       lower = {-4*vte, 0},
-      upper = {4*vte, 12*me*vte^2/(2*B0)},
+      upper = { 4*vte, 12*me*vte^2/(2*B0)},
       cells = {8, 4},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
@@ -136,24 +136,23 @@ plasmaApp = Plasma.App {
          density     = sourceDensity,
          temperature = sourceTemperature,
          power       = P_src/2,
+         diagnostics = {"intKE"},
       },
       evolve = true, -- Evolve species?
       --applyPositivity = true,
-      diagnosticMoments = {"GkM0", "GkUpar", "GkTemp", "GkBeta"}, 
-      diagnosticIntegratedMoments = {"intM0", "intM1", "intHE", "intSrcKE"},
-      diagnosticBoundaryFluxMoments = {"GkM0", "GkUpar", "GkTemp", "GkBeta", "GkEnergy"},
-      diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
+      diagnostics = {"M0", "Upar", "Temp", "Beta", "intM0", "intM1", "intEnergy",}, 
       randomseed = randomseed,
-      bcx = {Plasma.Species.bcZeroFlux, Plasma.Species.bcZeroFlux},
-      bcz = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      bcx = {Plasma.ZeroFluxBC{}, Plasma.ZeroFluxBC{}},
+      bcz = {Plasma.SheathBC{diagnostics={"M0","Upar","Temp","Beta","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics={"M0","Upar","Temp","Beta","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Gyrokinetic ions
    ion = Plasma.Species {
-      charge = qi, mass = mi,
+      charge = qi,  mass = mi,
       -- Velocity space grid.
       lower = {-4*vti, 0},
-      upper = {4*vti, 12*mi*vti^2/(2*B0)},
+      upper = { 4*vti, 12*mi*vti^2/(2*B0)},
       cells = {8, 4},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
@@ -192,13 +191,12 @@ plasmaApp = Plasma.App {
       },
       evolve = true, -- Evolve species?
       --applyPositivity = true,
-      diagnosticMoments = {"GkM0", "GkUpar", "GkTemp"}, 
-      diagnosticIntegratedMoments = {"intM0", "intM1", "intKE", "intHE"},
-      diagnosticBoundaryFluxMoments = {"GkM0", "GkUpar", "GkEnergy"},
-      diagnosticIntegratedBoundaryFluxMoments = {"intM0", "intM1", "intKE", "intHE"},
+      diagnostics = {"M0", "Upar", "Temp", "intM0", "intM1", "intKE", "intEnergy"}, 
       randomseed = randomseed,
-      bcx = {Plasma.Species.bcZeroFlux, Plasma.Species.bcZeroFlux},
-      bcz = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      bcx = {Plasma.ZeroFluxBC{},
+             Plasma.ZeroFluxBC{}},
+      bcz = {Plasma.SheathBC{diagnostics={"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}},
+             Plasma.SheathBC{diagnostics={"M0","Upar","Energy","intM0","intM1","intKE","intEnergy"}}},
    },
 
    -- Field solver.
@@ -207,10 +205,10 @@ plasmaApp = Plasma.App {
       isElectromagnetic = false,
       -- Dirichlet in x, periodic in y. Potential phi has homogeneous Neumann
       -- BC for the smoothing operation that enforces continuity in z.
-      bcLowerPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T ="N", V = 0.0}},
-      bcUpperPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T ="N", V = 0.0}},
-      bcLowerApar = {{T ="D", V = 0.0}, {T = "P"}},
-      bcUpperApar = {{T ="D", V = 0.0}, {T = "P"}},
+      bcLowerPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T = "N", V = 0.0}},
+      bcUpperPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T = "N", V = 0.0}},
+      bcLowerApar = {{T = "D", V = 0.0}, {T = "P"}},
+      bcUpperApar = {{T = "D", V = 0.0}, {T = "P"}},
    },
 
    -- Magnetic geometry.
@@ -225,5 +223,5 @@ plasmaApp = Plasma.App {
       evolve = false,
    },
 }
--- run application
+-- Run application.
 plasmaApp:run()

@@ -57,12 +57,13 @@ local function createProject(grid,basis)
    return projUp
 end
 
-local function distFmoment(grid,pBasis,cBasis,mom)
+local function distFmoment(fIn,momOut,grid,pBasis,cBasis,mom)
    local momUp = Updater.DistFuncMomentCalc {
-      onGrid     = grid,
-      phaseBasis = pBasis,
-      confBasis  = cBasis,
-      moment     = mom,
+      advanceArgs = {{fIn}, {momOut}},
+      onGrid      = grid,
+      phaseBasis  = pBasis,
+      confBasis   = cBasis,
+      moment      = mom,
    }
    return momUp
 end
@@ -120,7 +121,7 @@ local function test_one(pOrder, basis)
    project:advance(0.0, {}, {distf})
 
    -- Moment updater.
-   local calcNumDensity = distFmoment(phaseGrid,phaseBasis,confBasis,"M0")
+   local calcNumDensity = distFmoment(distf,numDensity,phaseGrid,phaseBasis,confBasis,"M0")
    calcNumDensity:advance(0.0, {distf}, {numDensity})
 
    -- Compute integrated f and integrated moment with CartFieldIntegratedQuantCalc.
@@ -200,7 +201,7 @@ local function test_x2v1(pOrder, basis)
    project:advance(0.0, {}, {distf})
 
    -- Moment updater.
-   local calcMomDensity = distFmoment(phaseGrid,phaseBasis,confBasis,"M1i")
+   local calcMomDensity = distFmoment(distf,momDensity,phaseGrid,phaseBasis,confBasis,"M1i")
    calcMomDensity:advance(0.0, {distf}, {momDensity})
 
    -- Compute integrated M1_1 moment with CartFieldIntegratedQuantCalc.
@@ -250,7 +251,7 @@ local function test_x3v2(pOrder, basis)
    project:advance(0.0, {}, {distf})
 
    -- Moment updater.
-   local calcMomDensity = distFmoment(phaseGrid,phaseBasis,confBasis,"M1i")
+   local calcMomDensity = distFmoment(distf,momDensity,phaseGrid,phaseBasis,confBasis,"M1i")
    calcMomDensity:advance(0.0, {distf}, {momDensity})
 
    -- Compute integrated M1_1 moment with CartFieldIntegratedQuantCalc.
@@ -301,7 +302,7 @@ local function test_x4v3(pOrder, basis)
    project:advance(0.0, {}, {distf})
 
    -- Moment updater.
-   local calcMomDensity = distFmoment(phaseGrid,phaseBasis,confBasis,"M1i")
+   local calcMomDensity = distFmoment(distf,momDensity,phaseGrid,phaseBasis,confBasis,"M1i")
    calcMomDensity:advance(0.0, {distf}, {momDensity})
 
    -- Compute integrated M1_1 moment with CartFieldIntegratedQuantCalc.
@@ -355,7 +356,7 @@ local function test_x5v3(pOrder, basis)
    project:advance(0.0, {}, {distf})
 
    -- Moment updater.
-   local calcMomDensity = distFmoment(phaseGrid,phaseBasis,confBasis,"M1i")
+   local calcMomDensity = distFmoment(distf,momDensity,phaseGrid,phaseBasis,confBasis,"M1i")
    calcMomDensity:advance(0.0, {distf}, {momDensity})
 
    -- Compute integrated M1_1 moment with CartFieldIntegratedQuantCalc.
@@ -764,7 +765,7 @@ local function test_v1SqvSq(pOrder, basis)
    project:advance(0.0, {}, {distf})
 
    -- Moment updater.
-   local calcEnergyDensity = distFmoment(phaseGrid,phaseBasis,confBasis,"M2")
+   local calcEnergyDensity = distFmoment(distf,energyDensity,phaseGrid,phaseBasis,confBasis,"M2")
    calcEnergyDensity:advance(0.0, {distf}, {energyDensity})
 
    -- Compute integrated f and integrated moment with CartFieldIntegratedQuantCalc.

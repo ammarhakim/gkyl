@@ -37,8 +37,7 @@ plasmaApp = Plasma.App {
 
    -- Gyrokinetic ions.
    ion = Plasma.Species {
-      charge = 1.0,
-      mass = 1.0,
+      charge = 1.0,  mass = 1.0,
       -- Velocity space grid
       lower = {-6.0},
       upper = { 6.0},
@@ -46,12 +45,8 @@ plasmaApp = Plasma.App {
       -- Initial conditions.
       -- Specify background so that we can plot perturbed distribution and moments.
       background = Plasma.MaxwellianProjection {
-         density = function (t, xn)
-            return ni0
-         end,
-         temperature = function (t, xn)
-            return Ti0
-         end,
+         density     = function (t, xn) return ni0 end,
+         temperature = function (t, xn) return Ti0 end,
       },
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
@@ -61,13 +56,10 @@ plasmaApp = Plasma.App {
             local perturb = alpha*math.cos(k*x)
             return ni0*(1+perturb)
          end,
-         temperature = function (t, xn)
-            return Ti0
-         end,
+         temperature = function (t, xn) return Ti0 end,
       },
       evolve = true, -- Evolve species?
-      diagnosticMoments = {"GkM0", "GkM2", perturbed = false},
-      diagnosticIntegratedMoments = {"intM0", "intM2"},
+      diagnostics = {"M0", "M2", "intM0", "intM2"},
    },
 
    adiabaticElectron = Plasma.AdiabaticSpecies {

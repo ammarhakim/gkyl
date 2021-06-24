@@ -11,33 +11,37 @@ local DiagsImplBase = require "App.Diagnostics.DiagnosticsImplBase"
 local DataStruct    = require "DataStruct"
 local Updater       = require "Updater"
 
--- ~~~~ The moments squared ~~~~~~~~~~~~~~~~~~~~~~
-local FluidDiag_MomSq = Proto(DiagsImplBase)
-function FluidDiag_MomSq:fullInit(diagApp, specIn)
-   self.field    = specIn:allocVectorMoment(specIn.nMoments)
-   self.done     = false
-end
-function FluidDiag_MomSq:getType() return "grid" end
-function FluidDiag_MomSq:advance(tm, inFlds, outFlds)
-   local specIn = inFlds[1]
-   local momIn  = specIn:getMoments(1)
-   specIn.weakMultiply:advance(tm, {momIn, momIn}, {self.field})
+local implementation = function() 
+   -- ~~~~ The moments squared ~~~~~~~~~~~~~~~~~~~~~~
+   local _MomSq = Proto(DiagsImplBase)
+   function _MomSq:fullInit(diagApp, specIn, field, owner)
+      self.field    = specIn:allocVectorMoment(specIn.nMoments)
+      self.done     = false
+   end
+   function _MomSq:getType() return "grid" end
+   function _MomSq:advance(tm, inFlds, outFlds)
+      local specIn = inFlds[1]
+      local momIn  = specIn:getMoments(1)
+      specIn.weakMultiply:advance(tm, {momIn, momIn}, {self.field})
+   end
+   
+   -- ~~~~ Moments integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~
+   local _intMom = Proto(DiagsImplBase)
+   function _intMom:fullInit(diagApp, specIn, field, owner)
+      self.field    = DataStruct.DynVector { numComponents = specIn.nMoments }
+      self.updaters = specIn.volIntegral.vector
+      self.done     = false
+   end
+   function _intMom:getType() return "integrated" end
+   function _intMom:advance(tm, inFlds, outFlds)
+      local specIn = inFlds[1]
+      self.updaters:advance(tm, {specIn:rkStepperFields()[1]}, {self.field})
+   end
+
+   return {
+     MomSq  = _MomSq,
+     intMom = _intMom
+   }
 end
 
--- ~~~~ Moments integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~
-local FluidDiag_intMom = Proto(DiagsImplBase)
-function FluidDiag_intMom:fullInit(diagApp, specIn)
-   self.field    = DataStruct.DynVector { numComponents = specIn.nMoments }
-   self.updaters = specIn.volIntegral.compsN
-   self.done     = false
-end
-function FluidDiag_intMom:getType() return "integrated" end
-function FluidDiag_intMom:advance(tm, inFlds, outFlds)
-   local specIn = inFlds[1]
-   self.updaters:advance(tm, {specIn:rkStepperFields()[1]}, {self.field})
-end
-
-return {
-  MomSq  = FluidDiag_MomSq,
-  intMom = FluidDiag_intMom
-}
+return implementation

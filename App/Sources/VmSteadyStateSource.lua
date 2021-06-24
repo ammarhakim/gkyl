@@ -15,14 +15,14 @@ local Projection     = require "App.Projection"
 local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
+local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
+local VlasovDiags    = require "App.Diagnostics.VlasovDiagnostics"
 
 local VmSteadyStateSource = Proto(SourceBase)
 
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
-function VmSteadyStateSource:init(tbl)
-   self.tbl = tbl
-end
+function VmSteadyStateSource:init(tbl) self.tbl = tbl end
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
@@ -37,28 +37,26 @@ function VmSteadyStateSource:fullInit(speciesTbl)
    self.tmEvalSrc = 0.0
 end
 
-function VmSteadyStateSource:setName(nm)
-   self.name = nm
-end
-function VmSteadyStateSource:setSpeciesName(nm)
-   self.speciesName = nm
-end
-function VmSteadyStateSource:setConfBasis(basis)
-   self.confBasis = basis
-end
-function VmSteadyStateSource:setConfGrid(grid)
-   self.confGrid = grid
-end
+function VmSteadyStateSource:setName(nm) self.name = self.speciesName.."_"..nm end
+function VmSteadyStateSource:setSpeciesName(nm) self.speciesName = nm end
+function VmSteadyStateSource:setConfBasis(basis) self.confBasis = basis end
+function VmSteadyStateSource:setConfGrid(grid) self.confGrid = grid end
 
-function VmSteadyStateSource:createSolver(thisSpecies, extField)
-   self.profile:fullInit(thisSpecies)
-   self.profile:advance(0.0, {extField}, {thisSpecies.distf[2]})
-   Mpi.Barrier(thisSpecies.grid:commSet().sharedComm)
-   if not self.fSource then self.fSource = thisSpecies:allocDistf() end
-   self.fSource:accumulate(1.0, thisSpecies.distf[2])
+function VmSteadyStateSource:createSolver(mySpecies, extField)
+
+   self.writeGhost = mySpecies.writeGhost   
+
+   self.profile:fullInit(mySpecies)
+
+   self.fSource = mySpecies:allocDistf()
+
+   self.profile:advance(0.0, {extField}, {self.fSource})
+   Mpi.Barrier(mySpecies.grid:commSet().sharedComm)
+
    if self.positivityRescale then
-      thisSpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
+      mySpecies.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
    end
+
    if self.power then
       local calcInt = Updater.CartFieldIntegratedQuantCalc {
          onGrid = self.confGrid,
@@ -67,13 +65,22 @@ function VmSteadyStateSource:createSolver(thisSpecies, extField)
          quantity = "V",
       }
       local intKE = DataStruct.DynVector{numComponents = 1}
-      thisSpecies.ptclEnergyCalc:advance(0.0, {self.fSource}, {thisSpecies.ptclEnergyAux})
-      calcInt:advance(0.0, {thisSpecies.ptclEnergyAux, thisSpecies.mass/2}, {intKE})
+      mySpecies.ptclEnergyCalc:advance(0.0, {self.fSource}, {mySpecies.ptclEnergyAux})
+      calcInt:advance(0.0, {mySpecies.ptclEnergyAux, mySpecies.mass/2}, {intKE})
       local _, intKE_data = intKE:lastData()
       self.powerScalingFac = self.power/intKE_data[1]
       self.fSource:scale(self.powerScalingFac)
    end
-   if thisSpecies.scaleInitWithSourcePower then thisSpecies.distf[1]:scale(self.powerScalingFac) end
+
+   local numDensitySrc = mySpecies:allocMoment()
+   local momDensitySrc = mySpecies:allocVectorMoment(mySpecies.vdim)
+   local ptclEnergySrc = mySpecies:allocMoment()
+   mySpecies.fiveMomentsCalc:advance(0.0, {self.fSource}, {numDensitySrc, momDensitySrc, ptclEnergySrc})
+
+   self.fSource:write(string.format("%s_0.bp", self.name), 0., 0, self.writeGhost)
+   numDensitySrc:write(string.format("%s_M0_0.bp", self.name), 0., 0)
+   momDensitySrc:write(string.format("%s_M1_0.bp", self.name), 0., 0)
+   ptclEnergySrc:write(string.format("%s_M2_0.bp", self.name), 0., 0)
 end
 
 function VmSteadyStateSource:advance(tCurr, fIn, species, fRhsOut)
@@ -118,34 +125,22 @@ function VmSteadyStateSource:advance(tCurr, fIn, species, fRhsOut)
 end
 
 function VmSteadyStateSource:createDiagnostics(thisSpecies, momTable)
-   self.diagnosticIntegratedMomentFields   = { }
-   self.diagnosticIntegratedMomentUpdaters = { }
-   self.diagnosticIntegratedMoments = { }
-   
-   self.numDensitySrc = thisSpecies:allocMoment()
-   self.momDensitySrc = thisSpecies:allocVectorMoment(thisSpecies.vdim)
-   self.ptclEnergySrc = thisSpecies:allocMoment()
-   thisSpecies.fiveMomentsCalc:advance(0.0, {self.fSource}, {self.numDensitySrc, self.momDensitySrc, self.ptclEnergySrc})
-end
-
-function VmSteadyStateSource:writeDiagnosticIntegratedMoments(tm, frame)
-   for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-       self.diagnosticIntegratedMomentFields[mom]:write(string.format("%s_%s.bp", self.speciesName, mom), tm, frame)
-    end
-end
-
-
-function VmSteadyStateSource:write(tm, frame)
-   if tm == 0.0 then
-      self.fSource:write(string.format("%s_fSource_0.bp", self.speciesName), tm, frame, true)
-      if self.numDensitySrc then self.numDensitySrc:write(string.format("%s_srcM0_0.bp", self.speciesName), tm, frame) end
-      if self.momDensitySrc then self.momDensitySrc:write(string.format("%s_srcM1_0.bp", self.speciesName), tm, frame) end
-      if self.ptclEnergySrc then self.ptclEnergySrc:write(string.format("%s_srcM2_0.bp", self.speciesName), tm, frame) end
+   -- Create source diagnostics.
+   self.diagnostics = nil
+   if self.tbl.diagnostics then
+      self.diagnostics = DiagsApp{implementation = VlasovDiags()}
+      self.diagnostics:fullInit(mySpecies, field, self)
    end
+
+   return self.diagnostics
 end
 
-function VmSteadyStateSource:srcTime()
-   return self.tmEvalSrc
-end
+-- These are needed to recycle the VlasovDiagnostics with VmSource.
+function VmSteadyStateSource:rkStepperFields() return {self.fSource, self.fSource, self.fSource, self.fSource} end
+function VmSteadyStateSource:getFlucF() return self.fSource end
+
+function VmSteadyStateSource:write(tm, frame) end
+
+function VmSteadyStateSource:srcTime() return self.tmEvalSrc end
 
 return VmSteadyStateSource

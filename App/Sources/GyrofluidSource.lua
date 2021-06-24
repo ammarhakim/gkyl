@@ -20,21 +20,24 @@ local Proto         = require "Lib.Proto"
 local Time          = require "Lib.Time"
 
 -- ............... IMPLEMENTATION OF DIAGNOSTICS ................. --
+-- Diagnostics could be placed in a separate file if they balloon in
+-- number. But if we only have one or two we can just place it here.
+
 -- ~~~~ Source integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~
-local GyrofluidSourceDiag_intSrc = Proto(DiagsImplBase)
-function GyrofluidSourceDiag_intSrc:fullInit(diagApp, srcIn)
-   self.srcName  = string.gsub(srcIn.name, srcIn.speciesName.."_", "")
-   self.field    = DataStruct.DynVector { numComponents = srcIn.nMoments }
-   self.updaters = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = srcIn.grid,   numComponents = srcIn.nMoments,
-      basis  = srcIn.basis,  quantity      = "V"
-   }
-   self.done = false
-end
-function GyrofluidSourceDiag_intSrc:getType() return "integrated" end
-function GyrofluidSourceDiag_intSrc:advance(tm, inFlds, outFlds)
-   local specIn = inFlds[1]
-   self.updaters:advance(tm, {specIn.sources[self.srcName]:getSource()}, {self.field})
+local sourceDiagImpl = function()
+   local _intSrc = Proto(DiagsImplBase)
+   function _intSrc:fullInit(diagApp, mySpecies, fieldIn, srcIn)
+      self.srcName  = string.gsub(srcIn.name, srcIn.speciesName.."_", "")
+      self.field    = DataStruct.DynVector { numComponents = srcIn.nMoments }
+      self.updaters = mySpecies.volIntegral.vector
+      self.done     = false
+   end
+   function _intSrc:getType() return "integrated" end
+   function _intSrc:advance(tm, inFlds, outFlds)
+      local specIn = inFlds[1]
+      self.updaters:advance(tm, {specIn.sources[self.srcName]:getSource()}, {self.field})
+   end
+   return {intSrc = _intSrc}
 end
 
 -- .................... END OF DIAGNOSTICS ...................... --
@@ -57,8 +60,6 @@ function GyrofluidSource:fullInit(speciesTbl)
 
    self.timeDependence = tbl.timeDependence or function (t) return 1. end
 
-   self.nMoments = 3+1
-
    self.timers = {accumulateSrc = 0.0}
 end
 
@@ -69,8 +70,13 @@ function GyrofluidSource:setConfGrid(grid) self.grid = grid end
 function GyrofluidSource:setCfl(cfl) self.cfl = cfl end
 
 function GyrofluidSource:createSolver(mySpecies, externalField)
+
+   self.writeGhost = mySpecies.writeGhost   
+
+   self.nMoments = mySpecies.nMoments
+
    -- Source rate in each moment equation.
-   self.momSource = mySpecies:allocVectorMoment(mySpecies.nMoments)
+   self.momSource = mySpecies:allocVectorMoment(self.nMoments)
 
    local gfProj = Projection.GyrofluidProjection {
       density                  = self.denFunc,
@@ -83,16 +89,15 @@ function GyrofluidSource:createSolver(mySpecies, externalField)
    gfProj:advance(0., {externalField}, {self.momSource})
    Mpi.Barrier(self.grid:commSet().sharedComm)
 
-   self.momSource:write(string.format("%s_0.bp", self.name), 0.0, 0, true)
+   self.momSource:write(string.format("%s_0.bp", self.name), 0.0, 0, self.writeGhost)
 end
 
-function GyrofluidSource:createDiagnostics()
+function GyrofluidSource:createDiagnostics(mySpecies, field)
    -- Create source diagnostics.
    self.diagnostics = nil
    if self.tbl.diagnostics then
-      self.diagnostics = DiagsApp{}
-      local srcDiags = {intSrc = GyrofluidSourceDiag_intSrc}
-      self.diagnostics:fullInit(self, srcDiags)
+      self.diagnostics = DiagsApp{implementation = sourceDiagImpl()}
+      self.diagnostics:fullInit(mySpecies, field, self)
    end
    return self.diagnostics
 end

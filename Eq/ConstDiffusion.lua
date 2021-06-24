@@ -40,18 +40,27 @@ function ConstDiffusion:init(tbl)
    local nuIn     = assert(tbl.coefficient,
                            "Eq.constDiffusion: must specify diffusion coefficient (or vector) using 'coefficient' ")
    local nuInType = type(nuIn)
-   self._nu       = Lin.Vec(dim)
-   for d = 1, dim do self._nu[d] = 0.0 end
+   local isVarCoeff = false
    if (nuInType == "number") then
       -- Set the diffusion coefficient to the same amplitude in all directions.
+      self._nu = Lin.Vec(dim)
       for d = 1, dim do self._nu[d] = nuIn end
    elseif (nuInType == "table") then
-      if diffDirsIn then
-         assert(#nuIn==#diffDirsIn, "Eq.constDiffusion: 'coefficient' table must have the same number of entries as 'diffusiveDirs'.")
+      if #nuIn > 0 then   -- Must be a table of numbers.
+         if diffDirsIn then
+            assert(#nuIn==#diffDirsIn, "Eq.constDiffusion: 'coefficient' table must have the same number of entries as 'diffusiveDirs'.")
+         else
+            assert(#nuIn==dim, "Eq.constDiffusion: 'coefficient' table must have the same number of entries as the simulation's dimensions if 'diffusiveDirs' is not given.")
+         end
+         self._nu = Lin.Vec(dim)
+         for d = 1, dim do self._nu[d] = 0.0 end
+         for d = 1, #self.diffDirs do self._nu[self.diffDirs[d]] = nuIn[d] end
       else
-         assert(#nuIn==dim, "Eq.constDiffusion: 'coefficient' table must have the same number of entries as the simulation's dimensions if 'diffusiveDirs' is not given.")
+
+         -- The coefficient is a CartField with the spatially varying coefficient.
+         isVarCoeff = true
+         self._nu   = nuIn
       end
-      for d = 1, #self.diffDirs do self._nu[self.diffDirs[d]] = nuIn[d] end
    else
       assert(false, "Eq.constDiffusion: 'coefficient' must be a number or a table.")
    end
@@ -67,9 +76,36 @@ function ConstDiffusion:init(tbl)
    local applyPositivity = xsys.pickBool(tbl.positivity, false)   -- Positivity preserving option.
 
    -- Store pointers to C kernels implementing volume and surface terms.
-   self._volTerm           = ConstDiffusionModDecl.selectVol(nm, dim, pOrder, self.diffDirs, diffOrder)
-   self._surfTerms         = ConstDiffusionModDecl.selectSurf(nm, dim, pOrder, self.diffDirs, diffOrder, applyPositivity)
-   self._boundarySurfTerms = ConstDiffusionModDecl.selectBoundarySurf(nm, dim, pOrder, self.diffDirs, diffOrder, applyPositivity)
+   self._volTerm           = ConstDiffusionModDecl.selectVol(nm, dim, pOrder, self.diffDirs, diffOrder, isVarCoeff)
+   self._surfTerms         = ConstDiffusionModDecl.selectSurf(nm, dim, pOrder, self.diffDirs, diffOrder, isVarCoeff, applyPositivity)
+   self._boundarySurfTerms = ConstDiffusionModDecl.selectBoundarySurf(nm, dim, pOrder, self.diffDirs, diffOrder, isVarCoeff, applyPositivity)
+   
+   if isVarCoeff then
+
+      self._nuPtrl = self._nu:get(1)
+      self._nuPtrr = self._nu:get(1)
+      self._nuIdxr = self._nu:genIndexer()
+
+      self.volTermFunc = function(w, dx, idx, q, out)
+         return ConstDiffusion["volTermVarInSpace"](self, w, dx, idx, q, out)
+      end
+      self.surfTermFunc = function(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+         return ConstDiffusion["surfTermVarInSpace"](self, dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+      end
+      self.boundarySurfTermFunc = function(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+         return ConstDiffusion["boundarySurfTermVarInSpace"](self, dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+      end
+   else
+      self.volTermFunc = function(w, dx, idx, q, out)
+         return ConstDiffusion["volTermConstInSpace"](self, w, dx, idx, q, out)
+      end
+      self.surfTermFunc = function(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+         return ConstDiffusion["surfTermConstInSpace"](self, dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+      end
+      self.boundarySurfTermFunc = function(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+         return ConstDiffusion["boundarySurfTermConstInSpace"](self, dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+      end
+   end
 end
 
 -- Methods.
@@ -106,19 +142,45 @@ end
 
 -- Volume integral term for use in DG scheme.
 function ConstDiffusion:volTerm(w, dx, idx, q, out)
+   return self.volTermFunc(w, dx, idx, q, out)
+end
+function ConstDiffusion:volTermConstInSpace(w, dx, idx, q, out)
    local cflFreq = self._volTerm(w:data(), dx:data(), self._nu:data(), q:data(), out:data())
+   return cflFreq
+end
+function ConstDiffusion:volTermVarInSpace(w, dx, idx, q, out)
+   self._nu:fill(self._nuIdxr(idx), self._nuPtrl)
+   local cflFreq = self._volTerm(w:data(), dx:data(), self._nuPtrl:data(), q:data(), out:data())
    return cflFreq
 end
 
 -- Surface integral term for use in DG scheme.
 function ConstDiffusion:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+   return self.surfTermFunc(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+end
+function ConstDiffusion:surfTermConstInSpace(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    self._surfTerms[dir](wl:data(), wr:data(), dxl:data(), dxr:data(), self._nu:data(), ql:data(), qr:data(), outl:data(), outr:data())
+   return 0
+end
+function ConstDiffusion:surfTermVarInSpace(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+   self._nu:fill(self._nuIdxr(idxl), self._nuPtrl)
+   self._nu:fill(self._nuIdxr(idxr), self._nuPtrr)
+   self._surfTerms[dir](wl:data(), wr:data(), dxl:data(), dxr:data(), self._nuPtrl:data(), self._nuPtrr:data(), ql:data(), qr:data(), outl:data(), outr:data())
    return 0
 end
 
 -- Contribution from surface integral term at the boundaries for use in DG scheme.
 function ConstDiffusion:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+   return self.boundarySurfTermFunc(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+end
+function ConstDiffusion:boundarySurfTermConstInSpace(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    self._boundarySurfTerms[dir](wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._nu:data(), ql:data(), qr:data(), outl:data(), outr:data())
+   return 0
+end
+function ConstDiffusion:boundarySurfTermVarInSpace(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+   self._nu:fill(self._nuIdxr(idxl), self._nuPtrl)
+   self._nu:fill(self._nuIdxr(idxr), self._nuPtrr)
+   self._boundarySurfTerms[dir](wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._nuPtrl:data(), self._nuPtrr:data(), ql:data(), qr:data(), outl:data(), outr:data())
    return 0
 end
 

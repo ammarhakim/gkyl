@@ -190,34 +190,6 @@ function MomentSpecies:setConfGrid(cgrid)
    self.ndim = self.grid:ndim()
 end
 
-function MomentSpecies:createGrid(cgrid)
-   self.cdim = cgrid:ndim()
-   self.ndim = self.cdim
-
-   -- Create decomposition.
-   local decompCuts = {}
-   for d = 1, self.cdim do table.insert(decompCuts, cgrid:cuts(d)) end
-   self.decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts,
-      useShared = self.useShared,
-   }
-
-   -- Create computational domain.
-   local lower, upper, cells = {}, {}, {}
-   for d = 1, self.cdim do
-      table.insert(lower, cgrid:lower(d))
-      table.insert(upper, cgrid:upper(d))
-      table.insert(cells, cgrid:numCells(d))
-   end
-   self.grid = Grid.RectCart {
-      lower = lower,
-      upper = upper,
-      cells = cells,
-      periodicDirs = cgrid:getPeriodicDirs(),
-      decomposition = self.decomp,
-   }
-end
-
 function MomentSpecies:allocMoment()
    local m = DataStruct.Field {
       onGrid = self.grid,
@@ -254,9 +226,7 @@ function MomentSpecies:makeBcUpdater(dir, edge, bcList, skinLoop, hasExtFld)
       dir = dir,
       edge = edge,
       skinLoop = skinLoop,
-      cdim = self.cdim,
-      vdim = self.vdim,
-      hasExtFld = hasExtFld,
+      cdim = self.ndim,
    }
 end
 
@@ -316,12 +286,12 @@ function MomentSpecies:createBCs()
       isPeriodic[dir] = true
    end
    local bc = {self.bcx, self.bcy, self.bcz}
-   for d = 1, self.cdim do
+   for d = 1, self.ndim do
      handleBc(d, bc[d], isPeriodic[d])
   end
 end
 
-function MomentSpecies:createSolver(hasE, hasB)
+function MomentSpecies:createSolver(field, externalField)
    if self._hasSsBnd then
       self._inOut = DataStruct.Field {
          onGrid = self.grid,
@@ -542,9 +512,14 @@ function MomentSpecies:updateInDirection(dir, tCurr, dt, fIn, fOut, tryInv)
    return status, dtSuggested, tryInv_next
 end
 
-function MomentSpecies:applyBcIdx(tCurr, idx, isFirstRk)
+function MomentSpecies:applyBcIdx(tCurr, field, externalField, inIdx, outIdx, isFirstRk)
   for dir = 1, self.ndim do
-     self:applyBc(tCurr, self:rkStepperFields()[idx], dir)
+     self:applyBc(tCurr, self:rkStepperFields()[outIdx], dir)
+  end
+end
+function MomentSpecies:applyBcInitial(tCurr, field, externalField, inIdx, outIdx)
+  for dir = 1, self.ndim do
+     self:applyBc(tCurr, self:rkStepperFields()[outIdx], dir)
   end
 end
 
@@ -617,7 +592,7 @@ function MomentSpecies:writeRestart(tm)
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
-function MomentSpecies:readRestart()
+function MomentSpecies:readRestart(field, externalField)
    local tm, fr = self.momIo:read(self.moments[1], string.format("%s_restart.bp", self.name))
    self.diagIoFrame = fr -- Reset internal frame counter.
    self.integratedMoments:read(string.format("%s_intMom_restart.bp", self.name))

@@ -278,9 +278,9 @@ function GkBGKCollisions:createSolver(externalField)
 
    if self.exactLagFixM012 then
       -- Intermediate moments used in Lagrange fixing.
+      self.dM0 = self:createConfField()
       self.dM1 = self:createConfField()
       self.dM2 = self:createConfField()
-      self.dM0 = self:createConfField()
       -- Create updater to compute M0, M1i, M2 moments sequentially.
       self.threeMomentsCalc = Updater.DistFuncMomentCalc {
          onGrid     = self.phaseGrid,
