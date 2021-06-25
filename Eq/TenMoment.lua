@@ -160,10 +160,12 @@ end
 -- make object callable, and redirect call to the :new method
 setmetatable(TenMoment, { __call = function (self, o) return self.new(self, o) end })
 
-local bcWallCopy       = BoundaryCondition.Copy { components = {1, 5, 8, 9, 10} }
-local bcWallFlip       = BoundaryCondition.Copy { components = {6, 7}, fact = {-1, -1} }
-local bcWallZeroNormal = BoundaryCondition.ZeroNormal { components = {2, 3, 4} }
-TenMoment.bcWall = { bcWallCopy, bcWallFlip, bcWallZeroNormal }
+-- rho, Pxx, Pyy, Pzz
+local bcWallCopy = BoundaryCondition.Copy { components = {1, 5, 8, 10} }
+local bcWallFlow = BoundaryCondition.ZeroNormal { components = {2, 3, 4} }
+-- Pyz, Pxz, Pxy
+local bcWallPres = BoundaryCondition.ZeroTangent { components = {9, 7, 6} }
+TenMoment.bcWall = { bcWallCopy, bcWallFlow, bcWallPres }
 
 TenMoment.bcConst = function(rho, rhou, rhov, rhow, pxx, pxy, pxz, pyy, pyz, pzz)
    local bc = BoundaryCondition.Const {
