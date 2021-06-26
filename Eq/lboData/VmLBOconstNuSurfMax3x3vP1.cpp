@@ -9,7 +9,6 @@ double VmLBOconstNuSurf3x3vMax_VX_P1(const double *wl, const double *wr, const d
   // nuVtSqSum[4]:  sum of thermal speeds squared time their respective collisionalities. 
   // fl/fr:         Distribution function in left/right cells 
   // outl/outr:     Incremented distribution function in left/right cells 
-  double rdv = 1.0/dxvl[3]; 
   double rdv2L = 2.0/dxvl[3]; 
   double rdv2R = 2.0/dxvr[3]; 
   double rdvSq4L = 4.0/(dxvl[3]*dxvl[3]); 
@@ -46,12 +45,12 @@ double VmLBOconstNuSurf3x3vMax_VX_P1(const double *wl, const double *wr, const d
     Ghat[i]=0.0; 
   }; 
 
-  Ghat[0] = ((-0.7654655446197428*nuVtSqSum[0]*fr[4])-0.7654655446197428*nuVtSqSum[0]*fl[4]+0.7954951288348656*fr[3]*nuVtSqSum[3]-0.7954951288348656*fl[3]*nuVtSqSum[3]+0.7954951288348656*fr[2]*nuVtSqSum[2]-0.7954951288348656*fl[2]*nuVtSqSum[2]+0.7954951288348656*fr[1]*nuVtSqSum[1]-0.7954951288348656*fl[1]*nuVtSqSum[1]+0.7954951288348656*fr[0]*nuVtSqSum[0]-0.7954951288348656*fl[0]*nuVtSqSum[0])*rdv-0.8660254037844386*fjump[4]+alphaDrag[0]*(0.3061862178478971*favg[4]+0.1767766952966368*favg[0])+0.1767766952966368*alphaDrag[3]*favg[3]+0.1767766952966368*alphaDrag[2]*favg[2]+0.1767766952966368*alphaDrag[1]*favg[1]-0.5*fjump[0]; 
-  Ghat[1] = ((-0.7654655446197428*nuVtSqSum[1]*fr[4])-0.7654655446197428*nuVtSqSum[1]*fl[4]+0.7954951288348656*fr[0]*nuVtSqSum[1]-0.7954951288348656*fl[0]*nuVtSqSum[1]+0.7954951288348656*nuVtSqSum[0]*fr[1]-0.7954951288348656*nuVtSqSum[0]*fl[1])*rdv+alphaDrag[1]*(0.3061862178478971*favg[4]+0.1767766952966368*favg[0])-0.5*fjump[1]+0.1767766952966368*alphaDrag[0]*favg[1]; 
-  Ghat[2] = ((-0.7654655446197428*nuVtSqSum[2]*fr[4])-0.7654655446197428*nuVtSqSum[2]*fl[4]+0.7954951288348656*fr[0]*nuVtSqSum[2]-0.7954951288348656*fl[0]*nuVtSqSum[2]+0.7954951288348656*nuVtSqSum[0]*fr[2]-0.7954951288348656*nuVtSqSum[0]*fl[2])*rdv+alphaDrag[2]*(0.3061862178478971*favg[4]+0.1767766952966368*favg[0])-0.5*fjump[2]+0.1767766952966368*alphaDrag[0]*favg[2]; 
-  Ghat[3] = ((-0.7654655446197428*nuVtSqSum[3]*fr[4])-0.7654655446197428*nuVtSqSum[3]*fl[4]+0.7954951288348656*fr[0]*nuVtSqSum[3]-0.7954951288348656*fl[0]*nuVtSqSum[3]+0.7954951288348656*nuVtSqSum[0]*fr[3]-0.7954951288348656*nuVtSqSum[0]*fl[3])*rdv+alphaDrag[3]*(0.3061862178478971*favg[4]+0.1767766952966368*favg[0])-0.5*fjump[3]+0.1767766952966368*alphaDrag[0]*favg[3]; 
-  Ghat[5] = (0.7954951288348656*nuVtSqSum[0]*fr[5]-0.7954951288348656*nuVtSqSum[0]*fl[5])*rdv-0.5*fjump[5]+0.1767766952966368*alphaDrag[0]*favg[5]; 
-  Ghat[6] = (0.7954951288348656*nuVtSqSum[0]*fr[6]-0.7954951288348656*nuVtSqSum[0]*fl[6])*rdv-0.5*fjump[6]+0.1767766952966368*alphaDrag[0]*favg[6]; 
+  Ghat[0] = ((-0.3827327723098713*nuVtSqSum[0]*fr[4])-0.3827327723098713*nuVtSqSum[0]*fl[4]+0.3977475644174328*fr[3]*nuVtSqSum[3]-0.3977475644174328*fl[3]*nuVtSqSum[3]+0.3977475644174328*fr[2]*nuVtSqSum[2]-0.3977475644174328*fl[2]*nuVtSqSum[2]+0.3977475644174328*fr[1]*nuVtSqSum[1]-0.3977475644174328*fl[1]*nuVtSqSum[1]+0.3977475644174328*fr[0]*nuVtSqSum[0]-0.3977475644174328*fl[0]*nuVtSqSum[0])*rdv2L-0.8660254037844386*fjump[4]+alphaDrag[0]*(0.3061862178478971*favg[4]+0.1767766952966368*favg[0])+0.1767766952966368*alphaDrag[3]*favg[3]+0.1767766952966368*alphaDrag[2]*favg[2]+0.1767766952966368*alphaDrag[1]*favg[1]-0.5*fjump[0]; 
+  Ghat[1] = ((-0.3827327723098713*nuVtSqSum[1]*fr[4])-0.3827327723098713*nuVtSqSum[1]*fl[4]+0.3977475644174328*fr[0]*nuVtSqSum[1]-0.3977475644174328*fl[0]*nuVtSqSum[1]+0.3977475644174328*nuVtSqSum[0]*fr[1]-0.3977475644174328*nuVtSqSum[0]*fl[1])*rdv2L+alphaDrag[1]*(0.3061862178478971*favg[4]+0.1767766952966368*favg[0])-0.5*fjump[1]+0.1767766952966368*alphaDrag[0]*favg[1]; 
+  Ghat[2] = ((-0.3827327723098713*nuVtSqSum[2]*fr[4])-0.3827327723098713*nuVtSqSum[2]*fl[4]+0.3977475644174328*fr[0]*nuVtSqSum[2]-0.3977475644174328*fl[0]*nuVtSqSum[2]+0.3977475644174328*nuVtSqSum[0]*fr[2]-0.3977475644174328*nuVtSqSum[0]*fl[2])*rdv2L+alphaDrag[2]*(0.3061862178478971*favg[4]+0.1767766952966368*favg[0])-0.5*fjump[2]+0.1767766952966368*alphaDrag[0]*favg[2]; 
+  Ghat[3] = ((-0.3827327723098713*nuVtSqSum[3]*fr[4])-0.3827327723098713*nuVtSqSum[3]*fl[4]+0.3977475644174328*fr[0]*nuVtSqSum[3]-0.3977475644174328*fl[0]*nuVtSqSum[3]+0.3977475644174328*nuVtSqSum[0]*fr[3]-0.3977475644174328*nuVtSqSum[0]*fl[3])*rdv2L+alphaDrag[3]*(0.3061862178478971*favg[4]+0.1767766952966368*favg[0])-0.5*fjump[3]+0.1767766952966368*alphaDrag[0]*favg[3]; 
+  Ghat[5] = (0.3977475644174328*nuVtSqSum[0]*fr[5]-0.3977475644174328*nuVtSqSum[0]*fl[5])*rdv2L-0.5*fjump[5]+0.1767766952966368*alphaDrag[0]*favg[5]; 
+  Ghat[6] = (0.3977475644174328*nuVtSqSum[0]*fr[6]-0.3977475644174328*nuVtSqSum[0]*fl[6])*rdv2L-0.5*fjump[6]+0.1767766952966368*alphaDrag[0]*favg[6]; 
 
   double incr1[7]; 
   incr1[0] = -0.5*Ghat[0]; 
@@ -93,7 +92,6 @@ double VmLBOconstNuSurf3x3vMax_VY_P1(const double *wl, const double *wr, const d
   // nuVtSqSum[4]:  sum of thermal speeds squared time their respective collisionalities. 
   // fl/fr:         Distribution function in left/right cells 
   // outl/outr:     Incremented distribution function in left/right cells 
-  double rdv = 1.0/dxvl[4]; 
   double rdv2L = 2.0/dxvl[4]; 
   double rdv2R = 2.0/dxvr[4]; 
   double rdvSq4L = 4.0/(dxvl[4]*dxvl[4]); 
@@ -130,12 +128,12 @@ double VmLBOconstNuSurf3x3vMax_VY_P1(const double *wl, const double *wr, const d
     Ghat[i]=0.0; 
   }; 
 
-  Ghat[0] = ((-0.7654655446197428*nuVtSqSum[0]*fr[5])-0.7654655446197428*nuVtSqSum[0]*fl[5]+0.7954951288348656*fr[3]*nuVtSqSum[3]-0.7954951288348656*fl[3]*nuVtSqSum[3]+0.7954951288348656*fr[2]*nuVtSqSum[2]-0.7954951288348656*fl[2]*nuVtSqSum[2]+0.7954951288348656*fr[1]*nuVtSqSum[1]-0.7954951288348656*fl[1]*nuVtSqSum[1]+0.7954951288348656*fr[0]*nuVtSqSum[0]-0.7954951288348656*fl[0]*nuVtSqSum[0])*rdv-0.8660254037844386*fjump[5]+alphaDrag[0]*(0.3061862178478971*favg[5]+0.1767766952966368*favg[0])+0.1767766952966368*alphaDrag[3]*favg[3]+0.1767766952966368*alphaDrag[2]*favg[2]+0.1767766952966368*alphaDrag[1]*favg[1]-0.5*fjump[0]; 
-  Ghat[1] = ((-0.7654655446197428*nuVtSqSum[1]*fr[5])-0.7654655446197428*nuVtSqSum[1]*fl[5]+0.7954951288348656*fr[0]*nuVtSqSum[1]-0.7954951288348656*fl[0]*nuVtSqSum[1]+0.7954951288348656*nuVtSqSum[0]*fr[1]-0.7954951288348656*nuVtSqSum[0]*fl[1])*rdv+alphaDrag[1]*(0.3061862178478971*favg[5]+0.1767766952966368*favg[0])-0.5*fjump[1]+0.1767766952966368*alphaDrag[0]*favg[1]; 
-  Ghat[2] = ((-0.7654655446197428*nuVtSqSum[2]*fr[5])-0.7654655446197428*nuVtSqSum[2]*fl[5]+0.7954951288348656*fr[0]*nuVtSqSum[2]-0.7954951288348656*fl[0]*nuVtSqSum[2]+0.7954951288348656*nuVtSqSum[0]*fr[2]-0.7954951288348656*nuVtSqSum[0]*fl[2])*rdv+alphaDrag[2]*(0.3061862178478971*favg[5]+0.1767766952966368*favg[0])-0.5*fjump[2]+0.1767766952966368*alphaDrag[0]*favg[2]; 
-  Ghat[3] = ((-0.7654655446197428*nuVtSqSum[3]*fr[5])-0.7654655446197428*nuVtSqSum[3]*fl[5]+0.7954951288348656*fr[0]*nuVtSqSum[3]-0.7954951288348656*fl[0]*nuVtSqSum[3]+0.7954951288348656*nuVtSqSum[0]*fr[3]-0.7954951288348656*nuVtSqSum[0]*fl[3])*rdv+alphaDrag[3]*(0.3061862178478971*favg[5]+0.1767766952966368*favg[0])-0.5*fjump[3]+0.1767766952966368*alphaDrag[0]*favg[3]; 
-  Ghat[4] = (0.7954951288348656*nuVtSqSum[0]*fr[4]-0.7954951288348656*nuVtSqSum[0]*fl[4])*rdv-0.5*fjump[4]+0.1767766952966368*alphaDrag[0]*favg[4]; 
-  Ghat[6] = (0.7954951288348656*nuVtSqSum[0]*fr[6]-0.7954951288348656*nuVtSqSum[0]*fl[6])*rdv-0.5*fjump[6]+0.1767766952966368*alphaDrag[0]*favg[6]; 
+  Ghat[0] = ((-0.3827327723098713*nuVtSqSum[0]*fr[5])-0.3827327723098713*nuVtSqSum[0]*fl[5]+0.3977475644174328*fr[3]*nuVtSqSum[3]-0.3977475644174328*fl[3]*nuVtSqSum[3]+0.3977475644174328*fr[2]*nuVtSqSum[2]-0.3977475644174328*fl[2]*nuVtSqSum[2]+0.3977475644174328*fr[1]*nuVtSqSum[1]-0.3977475644174328*fl[1]*nuVtSqSum[1]+0.3977475644174328*fr[0]*nuVtSqSum[0]-0.3977475644174328*fl[0]*nuVtSqSum[0])*rdv2L-0.8660254037844386*fjump[5]+alphaDrag[0]*(0.3061862178478971*favg[5]+0.1767766952966368*favg[0])+0.1767766952966368*alphaDrag[3]*favg[3]+0.1767766952966368*alphaDrag[2]*favg[2]+0.1767766952966368*alphaDrag[1]*favg[1]-0.5*fjump[0]; 
+  Ghat[1] = ((-0.3827327723098713*nuVtSqSum[1]*fr[5])-0.3827327723098713*nuVtSqSum[1]*fl[5]+0.3977475644174328*fr[0]*nuVtSqSum[1]-0.3977475644174328*fl[0]*nuVtSqSum[1]+0.3977475644174328*nuVtSqSum[0]*fr[1]-0.3977475644174328*nuVtSqSum[0]*fl[1])*rdv2L+alphaDrag[1]*(0.3061862178478971*favg[5]+0.1767766952966368*favg[0])-0.5*fjump[1]+0.1767766952966368*alphaDrag[0]*favg[1]; 
+  Ghat[2] = ((-0.3827327723098713*nuVtSqSum[2]*fr[5])-0.3827327723098713*nuVtSqSum[2]*fl[5]+0.3977475644174328*fr[0]*nuVtSqSum[2]-0.3977475644174328*fl[0]*nuVtSqSum[2]+0.3977475644174328*nuVtSqSum[0]*fr[2]-0.3977475644174328*nuVtSqSum[0]*fl[2])*rdv2L+alphaDrag[2]*(0.3061862178478971*favg[5]+0.1767766952966368*favg[0])-0.5*fjump[2]+0.1767766952966368*alphaDrag[0]*favg[2]; 
+  Ghat[3] = ((-0.3827327723098713*nuVtSqSum[3]*fr[5])-0.3827327723098713*nuVtSqSum[3]*fl[5]+0.3977475644174328*fr[0]*nuVtSqSum[3]-0.3977475644174328*fl[0]*nuVtSqSum[3]+0.3977475644174328*nuVtSqSum[0]*fr[3]-0.3977475644174328*nuVtSqSum[0]*fl[3])*rdv2L+alphaDrag[3]*(0.3061862178478971*favg[5]+0.1767766952966368*favg[0])-0.5*fjump[3]+0.1767766952966368*alphaDrag[0]*favg[3]; 
+  Ghat[4] = (0.3977475644174328*nuVtSqSum[0]*fr[4]-0.3977475644174328*nuVtSqSum[0]*fl[4])*rdv2L-0.5*fjump[4]+0.1767766952966368*alphaDrag[0]*favg[4]; 
+  Ghat[6] = (0.3977475644174328*nuVtSqSum[0]*fr[6]-0.3977475644174328*nuVtSqSum[0]*fl[6])*rdv2L-0.5*fjump[6]+0.1767766952966368*alphaDrag[0]*favg[6]; 
 
   double incr1[7]; 
   incr1[0] = -0.5*Ghat[0]; 
@@ -177,7 +175,6 @@ double VmLBOconstNuSurf3x3vMax_VZ_P1(const double *wl, const double *wr, const d
   // nuVtSqSum[4]:  sum of thermal speeds squared time their respective collisionalities. 
   // fl/fr:         Distribution function in left/right cells 
   // outl/outr:     Incremented distribution function in left/right cells 
-  double rdv = 1.0/dxvl[5]; 
   double rdv2L = 2.0/dxvl[5]; 
   double rdv2R = 2.0/dxvr[5]; 
   double rdvSq4L = 4.0/(dxvl[5]*dxvl[5]); 
@@ -214,12 +211,12 @@ double VmLBOconstNuSurf3x3vMax_VZ_P1(const double *wl, const double *wr, const d
     Ghat[i]=0.0; 
   }; 
 
-  Ghat[0] = ((-0.7654655446197428*nuVtSqSum[0]*fr[6])-0.7654655446197428*nuVtSqSum[0]*fl[6]+0.7954951288348656*fr[3]*nuVtSqSum[3]-0.7954951288348656*fl[3]*nuVtSqSum[3]+0.7954951288348656*fr[2]*nuVtSqSum[2]-0.7954951288348656*fl[2]*nuVtSqSum[2]+0.7954951288348656*fr[1]*nuVtSqSum[1]-0.7954951288348656*fl[1]*nuVtSqSum[1]+0.7954951288348656*fr[0]*nuVtSqSum[0]-0.7954951288348656*fl[0]*nuVtSqSum[0])*rdv-0.8660254037844386*fjump[6]+alphaDrag[0]*(0.3061862178478971*favg[6]+0.1767766952966368*favg[0])+0.1767766952966368*alphaDrag[3]*favg[3]+0.1767766952966368*alphaDrag[2]*favg[2]+0.1767766952966368*alphaDrag[1]*favg[1]-0.5*fjump[0]; 
-  Ghat[1] = ((-0.7654655446197428*nuVtSqSum[1]*fr[6])-0.7654655446197428*nuVtSqSum[1]*fl[6]+0.7954951288348656*fr[0]*nuVtSqSum[1]-0.7954951288348656*fl[0]*nuVtSqSum[1]+0.7954951288348656*nuVtSqSum[0]*fr[1]-0.7954951288348656*nuVtSqSum[0]*fl[1])*rdv+alphaDrag[1]*(0.3061862178478971*favg[6]+0.1767766952966368*favg[0])-0.5*fjump[1]+0.1767766952966368*alphaDrag[0]*favg[1]; 
-  Ghat[2] = ((-0.7654655446197428*nuVtSqSum[2]*fr[6])-0.7654655446197428*nuVtSqSum[2]*fl[6]+0.7954951288348656*fr[0]*nuVtSqSum[2]-0.7954951288348656*fl[0]*nuVtSqSum[2]+0.7954951288348656*nuVtSqSum[0]*fr[2]-0.7954951288348656*nuVtSqSum[0]*fl[2])*rdv+alphaDrag[2]*(0.3061862178478971*favg[6]+0.1767766952966368*favg[0])-0.5*fjump[2]+0.1767766952966368*alphaDrag[0]*favg[2]; 
-  Ghat[3] = ((-0.7654655446197428*nuVtSqSum[3]*fr[6])-0.7654655446197428*nuVtSqSum[3]*fl[6]+0.7954951288348656*fr[0]*nuVtSqSum[3]-0.7954951288348656*fl[0]*nuVtSqSum[3]+0.7954951288348656*nuVtSqSum[0]*fr[3]-0.7954951288348656*nuVtSqSum[0]*fl[3])*rdv+alphaDrag[3]*(0.3061862178478971*favg[6]+0.1767766952966368*favg[0])-0.5*fjump[3]+0.1767766952966368*alphaDrag[0]*favg[3]; 
-  Ghat[4] = (0.7954951288348656*nuVtSqSum[0]*fr[4]-0.7954951288348656*nuVtSqSum[0]*fl[4])*rdv-0.5*fjump[4]+0.1767766952966368*alphaDrag[0]*favg[4]; 
-  Ghat[5] = (0.7954951288348656*nuVtSqSum[0]*fr[5]-0.7954951288348656*nuVtSqSum[0]*fl[5])*rdv-0.5*fjump[5]+0.1767766952966368*alphaDrag[0]*favg[5]; 
+  Ghat[0] = ((-0.3827327723098713*nuVtSqSum[0]*fr[6])-0.3827327723098713*nuVtSqSum[0]*fl[6]+0.3977475644174328*fr[3]*nuVtSqSum[3]-0.3977475644174328*fl[3]*nuVtSqSum[3]+0.3977475644174328*fr[2]*nuVtSqSum[2]-0.3977475644174328*fl[2]*nuVtSqSum[2]+0.3977475644174328*fr[1]*nuVtSqSum[1]-0.3977475644174328*fl[1]*nuVtSqSum[1]+0.3977475644174328*fr[0]*nuVtSqSum[0]-0.3977475644174328*fl[0]*nuVtSqSum[0])*rdv2L-0.8660254037844386*fjump[6]+alphaDrag[0]*(0.3061862178478971*favg[6]+0.1767766952966368*favg[0])+0.1767766952966368*alphaDrag[3]*favg[3]+0.1767766952966368*alphaDrag[2]*favg[2]+0.1767766952966368*alphaDrag[1]*favg[1]-0.5*fjump[0]; 
+  Ghat[1] = ((-0.3827327723098713*nuVtSqSum[1]*fr[6])-0.3827327723098713*nuVtSqSum[1]*fl[6]+0.3977475644174328*fr[0]*nuVtSqSum[1]-0.3977475644174328*fl[0]*nuVtSqSum[1]+0.3977475644174328*nuVtSqSum[0]*fr[1]-0.3977475644174328*nuVtSqSum[0]*fl[1])*rdv2L+alphaDrag[1]*(0.3061862178478971*favg[6]+0.1767766952966368*favg[0])-0.5*fjump[1]+0.1767766952966368*alphaDrag[0]*favg[1]; 
+  Ghat[2] = ((-0.3827327723098713*nuVtSqSum[2]*fr[6])-0.3827327723098713*nuVtSqSum[2]*fl[6]+0.3977475644174328*fr[0]*nuVtSqSum[2]-0.3977475644174328*fl[0]*nuVtSqSum[2]+0.3977475644174328*nuVtSqSum[0]*fr[2]-0.3977475644174328*nuVtSqSum[0]*fl[2])*rdv2L+alphaDrag[2]*(0.3061862178478971*favg[6]+0.1767766952966368*favg[0])-0.5*fjump[2]+0.1767766952966368*alphaDrag[0]*favg[2]; 
+  Ghat[3] = ((-0.3827327723098713*nuVtSqSum[3]*fr[6])-0.3827327723098713*nuVtSqSum[3]*fl[6]+0.3977475644174328*fr[0]*nuVtSqSum[3]-0.3977475644174328*fl[0]*nuVtSqSum[3]+0.3977475644174328*nuVtSqSum[0]*fr[3]-0.3977475644174328*nuVtSqSum[0]*fl[3])*rdv2L+alphaDrag[3]*(0.3061862178478971*favg[6]+0.1767766952966368*favg[0])-0.5*fjump[3]+0.1767766952966368*alphaDrag[0]*favg[3]; 
+  Ghat[4] = (0.3977475644174328*nuVtSqSum[0]*fr[4]-0.3977475644174328*nuVtSqSum[0]*fl[4])*rdv2L-0.5*fjump[4]+0.1767766952966368*alphaDrag[0]*favg[4]; 
+  Ghat[5] = (0.3977475644174328*nuVtSqSum[0]*fr[5]-0.3977475644174328*nuVtSqSum[0]*fl[5])*rdv2L-0.5*fjump[5]+0.1767766952966368*alphaDrag[0]*favg[5]; 
 
   double incr1[7]; 
   incr1[0] = -0.5*Ghat[0]; 

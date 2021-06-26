@@ -76,7 +76,7 @@ plasmaApp = Plasma.App {
       upper = {VPAR_UPPER, MU_UPPER},
       cells = {N_VPAR, N_MU},
       -- initial conditions
-      initBackground = Plasma.MaxwellianProjection {
+      background = Plasma.MaxwellianProjection {
               density = function (t, xn)
                  local x = xn[1]
                  return n0*(1-(x-r0)/L_n)
@@ -85,7 +85,6 @@ plasmaApp = Plasma.App {
                  local x = xn[1]
                  return Te0*(1-(x-r0)/L_T)
               end,
-              isBackground = true,
              },
       init = Plasma.MaxwellianProjection {
               density = function (t, xn)
@@ -99,7 +98,7 @@ plasmaApp = Plasma.App {
               end,
              },
       evolve = true, -- evolve species?
-      diagnosticMoments = {"GkM0", "GkM2"},
+      diagnostics = {"M0", "M2"},
    },
 
    -- adiabatic ions

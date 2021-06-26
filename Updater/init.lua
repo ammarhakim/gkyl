@@ -37,15 +37,23 @@ local MappedPoisson = require "Updater.MappedPoisson"
 local MaxwellianOnBasis = require "Updater.MaxwellianOnBasis"
 local PositivityCheck = require "Updater.PositivityCheck"
 local PositivityRescale = require "Updater.PositivityRescale"
+local ProjectFluxFunc = require "Updater.ProjectFluxFunc"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local SelfPrimMoments = require "Updater.SelfPrimMoments"
 local SeparateVectorComponents = require "Updater.SeparateVectorComponents"
 local SolidSurface = require "Updater.SolidSurface"
 local SpitzerCollisionality = require "Updater.SpitzerCollisionality"
+local SqrtOnBasis = require "Updater.SqrtOnBasis"
 local StairSteppedBc = require "Updater.StairSteppedBc"
 local TenMomentRelax = require "Updater.TenMomentRelax"
 local TenMomentSrc = require "Updater.TenMomentSrc"
 local WavePropagation = require "Updater.WavePropagation"
+local AxisymmetricFiveMomentSrc = require "Updater.AxisymmetricFiveMomentSrc"
+local AxisymmetricPhMaxwellSrc = require "Updater.AxisymmetricPhMaxwellSrc"
+local FiveMomentFrictionSrc = require "Updater.FiveMomentFrictionSrc"
+local BraginskiiHeatConduction = require "Updater.BraginskiiHeatConduction"
+local BraginskiiViscosityDiffusion = require "Updater.BraginskiiViscosityDiffusion"
+local AnisotropicDiffusion = require "Updater.AnisotropicDiffusion"
 
 return {
    Bc = Bc,
@@ -79,13 +87,21 @@ return {
    MaxwellianOnBasis = MaxwellianOnBasis,
    PositivityCheck = PositivityCheck,
    PositivityRescale = PositivityRescale,
+   ProjectFluxFunc = ProjectFluxFunc,
    ProjectOnBasis = ProjectOnBasis,
    SelfPrimMoments = SelfPrimMoments,
    SeparateVectorComponents = SeparateVectorComponents,
    SolidSurface = SolidSurface,
+   SqrtOnBasis = SqrtOnBasis,
    SpitzerCollisionality = SpitzerCollisionality,
    StairSteppedBc = StairSteppedBc,
    TenMomentRelax = TenMomentRelax,
    TenMomentSrc = TenMomentSrc,
    WavePropagation = WavePropagation,
+   AxisymmetricFiveMomentSrc = AxisymmetricFiveMomentSrc,
+   AxisymmetricPhMaxwellSrc = AxisymmetricPhMaxwellSrc,
+   FiveMomentFrictionSrc = FiveMomentFrictionSrc,
+   BraginskiiHeatConduction = BraginskiiHeatConduction,
+   BraginskiiViscosityDiffusion = BraginskiiViscosityDiffusion,
+   AnisotropicDiffusion = AnisotropicDiffusion,
 }

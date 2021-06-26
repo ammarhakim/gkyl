@@ -1,0 +1,53 @@
+/*
+  Generate the surface kernels for gyrofluid heat flux terms.
+
+  The functions called in this file are in gfheat_surfModule.mac.
+*/
+load("gfHeatFlux/gfHeatFlux_surfModule")$
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 2$
+minCdim_Ser : 1$
+maxCdim_Ser : 1$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 2$
+minCdim_Max : 1$
+maxCdim_Max : 0$
+
+/* Tensor product basis. */
+maxPolyOrder_Tensor : 3$
+minCdim_Tensor : 1$
+maxCdim_Tensor : 0$
+
+/* ...... END OF USER INPUTS........ */
+
+/* To generate other bases, just add corresponding column to arrays below. */
+bName        : ["ser","max","tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+
+/* Generate kernels of selected types. */
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+
+    maxPolyOrderB : maxPolyOrder[bInd],
+
+    for polyOrder : 0 thru maxPolyOrderB do (
+
+      fname : sconcat("~/max-out/gyrofluid_heatflux_surf_", c, "x_p", polyOrder, "_", bName[bInd], ".cpp"),
+      disp(printf(false,"Creating surface file: ~a",fname)),
+
+      fh : openw(fname),
+      printf(fh, "#include <gyrofluid_heatflux_mod_decl.h>~%"),
+
+      funcName : sconcat("gyrofluid_heatflux_surf_", c, "x_p", polyOrder, "_", bName[bInd]),
+      calcGFsurfKernels(fh, funcName, c, polyOrder, bName[bInd]),
+
+      close(fh)
+    )
+  )
+)$

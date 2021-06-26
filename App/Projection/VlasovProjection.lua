@@ -27,16 +27,18 @@ function MaxwellianProjection:lagrangeFix(distf)
    local dM1     = self.species:allocVectorMoment(self.vdim)
    local M2, dM2 = self.species:allocMoment(), self.species:allocMoment()
 
+   local project = Updater.ProjectOnBasis {
+      onGrid   = self.confGrid,
+      basis    = self.confBasis,
+      evaluate = function(t,xn) return 0. end,
+      onGhosts = true,
+   }
+
    self.species.numDensityCalc:advance(0.0, {distf}, {M0})
    local func = function (t, zn)
       return self.density(t, zn, self.species)
    end
-   local project = Updater.ProjectOnBasis {
-      onGrid          = self.confGrid,
-      basis           = self.confBasis,
-      evaluate        = func,
-      projectOnGhosts = true,
-   }
+   project:setFunc(function(t,xn) return func(t,xn) end)
    project:advance(0.0, {}, {dM0})
    dM0:accumulate(-1.0, M0)
 
@@ -51,12 +53,7 @@ function MaxwellianProjection:lagrangeFix(distf)
 	 return self.density(t, zn, self.species) * drifts[1], self.density(t, zn, self.species) * drifts[2], self.density(t, zn, self.species) * drifts[3]
       end
    end
-   project = Updater.ProjectOnBasis {
-      onGrid          = self.confGrid,
-      basis           = self.confBasis,
-      evaluate        = func,
-      projectOnGhosts = true,
-   }
+   project:setFunc(function(t,xn) return func(t,xn) end)
    project:advance(0.0, {}, {dM1})
    dM1:accumulate(-1.0, M1)
 
@@ -71,27 +68,22 @@ function MaxwellianProjection:lagrangeFix(distf)
 	 (out + self.vdim*self.temperature(t, zn, self.species)/self.species.mass )
       return out
    end
-   project = Updater.ProjectOnBasis {
-      onGrid          = self.confGrid,
-      basis           = self.confBasis,
-      evaluate        = func,
-      projectOnGhosts = true,
-   }
+   project:setFunc(function(t,xn) return func(t,xn) end)
    project:advance(0.0, {}, {dM2})
    dM2:accumulate(-1.0, M2)
-
    
    local lagFix = Updater.LagrangeFix {
       onGrid     = self.phaseGrid,
       phaseBasis = self.phaseBasis,
       confGrid   = self.confGrid,
       confBasis  = self.confBasis,
-      mode       = 'Vlasov'
+      mode       = 'vlasov'
    }
    lagFix:advance(0.0, {dM0, dM1, dM2}, {distf})
 end
 
-function MaxwellianProjection:run(t, distf)
+function MaxwellianProjection:advance(t, inFlds, outFlds)
+   local distf = outFlds[1]
    self.project:advance(t, {}, {distf})
    if self.exactScaleM0 then
       self:scaleDensity(distf)

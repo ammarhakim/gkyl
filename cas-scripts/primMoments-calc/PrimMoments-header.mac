@@ -15,7 +15,7 @@ printf(fh, " ~%")$
 
 printf(fh, "extern \"C\" { ~%")$
 
-bName   : ["Ser","Max"]$
+bName   : ["Ser","Max","Tensor"]$
 gkVdims : [[1,2], [2], [2]]$
 
 

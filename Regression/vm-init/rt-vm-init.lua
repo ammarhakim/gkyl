@@ -44,7 +44,7 @@ app = Plasma.App {
       },
       evolve = true, -- evolve species?
 
-      diagnosticMoments = { "M0", "M1i", "M2" }
+      diagnostics = { "M0", "M1i", "M2" }
    },
 
    scaleFix = Plasma.Species {
@@ -69,7 +69,7 @@ app = Plasma.App {
       },
       evolve = true, -- evolve species?
 
-      diagnosticMoments = { "M0", "M1i", "M2" }
+      diagnostics = { "M0", "M1i", "M2" }
    },
 
    lagFix = Plasma.Species {
@@ -94,7 +94,7 @@ app = Plasma.App {
       },
       evolve = true, -- evolve species?
 
-      diagnosticMoments = { "M0", "M1i", "M2" }
+      diagnostics = { "M0", "M1i", "M2" }
    },
 
    double = Plasma.Species {
@@ -103,7 +103,8 @@ app = Plasma.App {
       lower = {-6.0, -6.0},
       upper = {6.0, 6.0},
       cells = {4, 6},
-      -- initial conditions
+      -- Initial conditions. Multiple projections with
+      -- "init" in the name get added.
       init1 = Plasma.MaxwellianProjection {
          density = 1.0,
          driftSpeed = {1.0, 0.0},
@@ -118,6 +119,6 @@ app = Plasma.App {
          exactScaleM0 = false,
          exactLagFixM012 = true,
       },
-      diagnosticMoments = { "M0", "M1i", "M2" }
+      diagnostics = { "M0", "M1i", "M2" }
    },
 }

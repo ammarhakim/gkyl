@@ -7,40 +7,39 @@
 --------------------------------------------------------------------------------
 
 -- System libraries.
-local ffi = require "ffi"
+local ffi  = require "ffi"
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
 -- Gkyl libraries.
-local Adios = require "Io.Adios"
+local Adios       = require "Io.Adios"
 local AdiosReader = require "Io.AdiosReader"
-local Alloc = require "Lib.Alloc"
-local Lin = require "Lib.Linalg"
-local Mpi = require "Comm.Mpi"
-local Proto = require "Lib.Proto"
+local Alloc       = require "Lib.Alloc"
+local Lin         = require "Lib.Linalg"
+local Mpi         = require "Comm.Mpi"
+local Proto       = require "Lib.Proto"
 
--- Code from Lua wiki to convert table to comma-seperated-values
--- string.
--- Used to escape "'s by toCSV
+-- Code from Lua wiki to convert table to comma-seperated-values string.
+-- Used to escape "'s by toCSV.
 local function escapeCSV (s)
   if string.find(s, '[,"]') then
     s = '"' .. string.gsub(s, '"', '""') .. '"'
   end
   return s
 end
--- Convert from table to CSV string
+-- Convert from table to CSV string.
 local function toCSV (tt)
   local s = ""
   -- ChM 23.02.2014: changed pairs to ipairs assumption is that
-  -- fromCSV and toCSV maintain data as ordered array
+  -- fromCSV and toCSV maintain data as ordered array.
   for _,p in ipairs(tt) do  
     s = s .. "," .. escapeCSV(p)
   end
-  return string.sub(s, 2)      -- remove first comma
+  return string.sub(s, 2)      -- Remove first comma.
 end
 
--- Template to copy from table/vector
+-- Template to copy from table/vector.
 local copyTempl = xsys.template [[
 return function (src, dest)
 | for i = 1, NCOMP do
@@ -56,18 +55,18 @@ end
 
 local DynVector = Proto()
 
--- Constructor for DynVector
+-- Constructor for DynVector.
 function DynVector:init(tbl)
    self._numComponents = tbl.numComponents and tbl.numComponents or 1
 
    -- We store 1 extra element than requested to allow for 1-based
-   -- indexing of returned values
+   -- indexing of returned values.
    local allocator = Alloc.createAllocator(
       string.format("double[%d]", self._numComponents+1))
    self._timeMesh = Alloc.Double()
-   self._data = allocator()
+   self._data     = allocator()
    -- Temp storage for single entry.
-   self._tmpData = new(string.format("double[%d]", self._numComponents+1))
+   self._tmpData  = new(string.format("double[%d]", self._numComponents+1))
    self._tmpTable = {}
    for i = 1, self._numComponents do self._tmpTable[i] = nil end
 
@@ -76,7 +75,7 @@ function DynVector:init(tbl)
 
    -- Write only from rank-0: create sub-communicator and use that for
    -- writing data (perhaps one needs a user-specified write-rank).
-   local ranks = Lin.IntVec(1); ranks[1] = 0
+   local ranks  = Lin.IntVec(1); ranks[1] = 0
    self._ioComm = Mpi.Split_comm(Mpi.COMM_WORLD, ranks)
 
    -- Allocate space for IO buffer.
@@ -90,7 +89,7 @@ function DynVector:init(tbl)
          ["inputfile"] = {
             value = GKYL_INP_FILE_CONTENTS, vType = "string"
          }
-   }
+      }
    else
       -- Write some dummy text otherwise.
       self._metaData = { ["inputfile"] = { value = "inputfile", vType = "string" } }
@@ -267,20 +266,16 @@ function DynVector:read(fName)
    local timeMesh, data
    if reader:hasVar("TimeMesh") then
       timeMesh = reader:getVar("TimeMesh"):read()
-      data = reader:getVar("Data"):read()
+      data     = reader:getVar("Data"):read()
    elseif reader:hasVar("TimeMesh0") then
       timeMesh = reader:getVar("TimeMesh0"):read()
-      data = reader:getVar("Data0"):read()
-      varCnt = 1
+      data     = reader:getVar("Data0"):read()
+      varCnt   = 1
       while reader:hasVar("TimeMesh"..varCnt) do
          local timeMeshN = reader:getVar("TimeMesh"..varCnt):read()
-         local dataN = reader:getVar("Data"..varCnt):read()
-         for i = 1, timeMeshN:size() do
-            timeMesh:push(timeMeshN[i])
-         end
-         for i = 1, dataN:size() do
-            data:push(dataN[i])
-         end
+         local dataN     = reader:getVar("Data"..varCnt):read()
+         for i = 1, timeMeshN:size() do timeMesh:push(timeMeshN[i]) end
+         for i = 1, dataN:size() do data:push(dataN[i]) end
          varCnt = varCnt + 1
       end
    end
@@ -300,7 +295,7 @@ end
 
 function DynVector:removeLast()
    local tm = self._timeMesh:popLast()
-   local v = self._data:popLast()
+   local v  = self._data:popLast()
    return tm, v
 end
 
@@ -328,14 +323,14 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
    end
 
    if not tmStamp then tmStamp = 0.0 end -- Default time-stamp.
-   local flushData = xsys.pickBool(flushData, true)  -- Default flush data on write.
+   local flushData  = xsys.pickBool(flushData, true)  -- Default flush data on write.
    local appendData = xsys.pickBool(appendData, true) -- Default append data to single file.
 
    if appendData and (frNum and frNum>=0) then 
       self.frNum = frNum 
    else 
       self.frNum = "" 
-      frNum = frNum or 0
+      frNum      = frNum or 0
    end
 
    -- Create group and set I/O method.
@@ -344,7 +339,7 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
    Adios.select_method(grpId, "MPI", "", "")
    
    -- ADIOS expects CSV string to specify data shape
-   local localTmSz = toCSV( {self._data:size()} )
+   local localTmSz  = toCSV( {self._data:size()} )
    local localDatSz = toCSV( {self._data:size(), self._numComponents} )
    
    -- Define data to write.
@@ -386,11 +381,11 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
 
    -- Clear data for next round of IO.
    if flushData then 
-     local tLast, dLast = self:lastData() -- Save the last data, in case we need it later.
-     self.tLast = tLast
-     for i = 1, self._numComponents do self.dLast[i] = dLast[i] end
-     self:clear()
-     self.flushed = true
+      local tLast, dLast = self:lastData() -- Save the last data, in case we need it later.
+      self.tLast = tLast
+      for i = 1, self._numComponents do self.dLast[i] = dLast[i] end
+      self:clear()
+      self.flushed = true
    end
 end
 

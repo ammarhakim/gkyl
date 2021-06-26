@@ -12,37 +12,37 @@ function sech(x)
    return 2*math.exp(x)/(math.exp(2*x)+1)
 end
 
--- Universal parameters
+-- Universal parameters.
 eps0 = Constants.EPSILON0
 eV   = Constants.ELEMENTARY_CHARGE
 qe   = -eV
 qi   =  eV
-mi   = Constants.PROTON_MASS   -- Hydrogen ions
-me   = mi/400                   -- Reduced ion/elc mass ratio
-B0   = 0.5                     -- Magnetic field amplitude [T]
-n0   = 5e18                    -- Number density [1/m^3]
-Te0  = 75*eV                  -- Electron temperature
-Ti0  = 75*eV                  -- Ion temperature
+mi   = Constants.PROTON_MASS   -- Hydrogen ions.
+me   = mi/400                  -- Reduced ion/elc mass ratio.
+B0   = 0.5                     -- Magnetic field amplitude [T].
+n0   = 5e18                    -- Number density [1/m^3].
+Te0  = 75*eV                   -- Electron temperature.
+Ti0  = 75*eV                   -- Ion temperature.
 
--- Derived physical parameters
--- set kmin*rho_s = 0.2, used for Field table
+-- Derived physical parameters.
+-- Set kmin*rho_s = 0.2, used for Field table
 cs       = math.sqrt(Te0/mi)
 omega_ci = eV*B0/mi
 rho_s    = cs/omega_ci
 kmin     = 0.2/rho_s
 
--- Thermal speeds
+-- Thermal speeds.
 vti = math.sqrt(Ti0/mi)
 vte = math.sqrt(Te0/me)
 
--- Connection length
+-- Connection length.
 Lx = 80 --[m]
 
--- Source parameters
-Ls = 25         -- [m] Source width
-S0 = 5e22       -- [m^-3 s^-1] Particle source rate 
+-- Source parameters.
+Ls = 25         -- [m] Source width.
+S0 = 5e22       -- [m^-3 s^-1] Particle source rate .
 
--- Source profiles
+-- Source profiles.
 sourceDensity = function (t,xn)
    local x = xn[1]
    local flr = 0.001
@@ -74,34 +74,34 @@ end
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd   = 1.0e-6,          -- End time, in terms of ion transit time Lx/cs
-   nFrame = 1,               -- Number of output frames
-   lower  = {-Lx/2},         -- Configuration space lower left
-   upper  = { Lx/2},         -- Configuration space upper right
-   cells  = {64},            -- Configuration space cells
-   basis  = "serendipity",   -- One of "serendipity" or "maximal-order"
-   polyOrder   = 1,          -- Polynomial order
-   cflFrac     = 1.0,        -- CFL "fraction". Usually 1.0
-   timeStepper = "rk3",      -- One of "rk2" or "rk3"
+   tEnd   = 1.0e-6,          -- End time, in terms of ion transit time Lx/cs.
+   nFrame = 1,               -- Number of output frames.
+   lower  = {-Lx/2},         -- Configuration space lower left.
+   upper  = { Lx/2},         -- Configuration space upper right.
+   cells  = {64},            -- Configuration space cells.
+   basis  = "serendipity",   -- One of "serendipity" or "maximal-order".
+   polyOrder   = 1,          -- Polynomial order.
+   cflFrac     = 1.0,        -- CFL "fraction". Usually 1.0.
+   timeStepper = "rk3",      -- One of "rk2" or "rk3".
 
-   -- Decomposition for configuration space
-   decompCuts = {1},   -- Cuts in each configuration direction
-   useShared  = false,  -- If to use shared memory
+   -- Decomposition for configuration space.
+   decompCuts = {1},    -- Cuts in each configuration direction.
+   useShared  = false,  -- If to use shared memory.
 
-   -- Boundary conditions for configuration space
-   periodicDirs = {},  -- Periodic directions
+   -- Boundary conditions for configuration space.
+   periodicDirs = {},  -- Periodic directions.
       
-   -- Gyrokinetic electrons
+   -- Gyrokinetic electrons.
    elc = Plasma.Species {
       evolve = true,
       charge = qe, mass = me,
 
-      -- Species-specific velocity domain
+      -- Species-specific velocity domain.
       lower = {-4.0*vte, 0},
-      upper = {4.0*vte, 12*me*vte^2/(2*B0)},
+      upper = { 4.0*vte, 12*me*vte^2/(2*B0)},
       cells = {16, 8},
 
-      -- Initial conditions
+      -- Initial conditions.
       init = Plasma.MaxwellianProjection{
          density = function (t, xn)
 	    local x, vpar = xn[1], xn[2]
@@ -124,46 +124,45 @@ plasmaApp = Plasma.App {
          end,
       },
 
-      -- Source parameters
-      source = {"maxwellian", density = sourceDensity,
-		temperature = sourceTemperatureElc},
+      -- Source parameters.
+      source = Plasma.Source {
+         kind        = "Maxwellian",
+         density     = sourceDensity,
+         temperature = sourceTemperatureElc,
+      },
 
-      -- Collisions
+      -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'elc','ion'},
          nuFrac      = 0.1,
       },
 
-      -- Neutral interactions
+      -- Neutral interactions.
       ionization = Plasma.Ionization {
-         collideWith = {"neut"},
-         electrons   = "elc",
-         neutrals    = "neut",
-         elemCharge  = eV, 
-         elcMass     = me,
-         plasma      = "H",         
+         collideWith = {"neut"},  elemCharge = eV, 
+         electrons   = "elc",     elcMass    = me,
+         neutrals    = "neut",    plasma     = "H",         
       },
 
-      -- Boundary conditions
-      bcx = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      -- Boundary conditions.
+      bcx = {Plasma.SheathBC{}, Plasma.SheathBC{}},
 
       -- Diagnostics
-      diagnosticMoments = {"GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq"},
-      diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
+      diagnostics = {"M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
    },
 
-   -- Gyrokinetic ions
+   -- Gyrokinetic ions.
    ion = Plasma.Species {
       evolve = true,
       charge = qi, mass = mi,
 
-      -- Species-specific velocity domain
+      -- Species-specific velocity domain.
       lower = {-4.0*vti, 0},
       upper = { 4.0*vti, 12*mi*vti^2/(2*B0)},
       cells = {16, 8},
       decompCuts = {1},
       
-      -- Initial conditions
+      -- Initial conditions.
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
 	    local x, vpar = xn[1], xn[2]
@@ -186,56 +185,51 @@ plasmaApp = Plasma.App {
          end,
       },
 
-      -- Source Parameters
-      source = {"maxwellian", density = sourceDensity,
-		temperature = sourceTemperatureIon},
+      -- Source Parameters.
+      source = Plasma.Source {
+         kind        = "Maxwellian",
+         density     = sourceDensity,
+         temperature = sourceTemperatureIon,
+      },
 
-      -- Collisions
+      -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'ion','elc'},
          nuFrac      = 0.1,
       },
 
-      -- Neutral interactions
+      -- Neutral interactions.
       ionization = Plasma.Ionization {
-         collideWith = {"neut"},
-         electrons   = "elc",
-         neutrals    = "neut",
-         elemCharge  = eV,
-         elcMass     = me,
-         plasma      = "H",
+         collideWith = {"neut"},  elemCharge = eV,
+         electrons   = "elc",     elcMass    = me,
+         neutrals    = "neut",    plasma     = "H",
       },
       chargeExchange = Plasma.ChargeExchange {
-         collideWith = {"neut"},
-         ions        = "ion",
-         neutrals    = "neut",
+         collideWith = {"neut"},  neutMass = mi,
+         ions        = "ion",     plasma   = "H",
+         neutrals    = "neut",    charge   = qi,
          ionMass     = mi,
-         neutMass    = mi,
-         plasma      = "H",
-         charge      = qi,
       },
 
-      -- Boundary conditions
-      bcx = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      -- Boundary conditions.
+      bcx = {Plasma.SheathBC{}, Plasma.SheathBC{}},
 
-      -- Diagnostics
-      diagnosticMoments = {"GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq"},
-      diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
+      diagnostics = {"M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
 
    },
 
-   -- Vlasov neutrals
+   -- Vlasov neutrals.
    neut = Vlasov.Species {
       evolve = true,
       charge = 0.0, mass = mi,
       
-      -- Species-specific velocity domain
+      -- Species-specific velocity domain.
       lower = {-4.0*vti, -4.0*vti, -4.0*vti},
       upper = {4.0*vti, 4.0*vti, 4.0*vti},
       cells = {8, 8, 8},
       decompCuts = {1},
 
-      -- Initial conditions
+      -- Initial conditions.
       init = Vlasov.MaxwellianProjection {
          density = function (t, xn)
             local x, vpar = xn[1], xn[2]
@@ -258,45 +252,39 @@ plasmaApp = Plasma.App {
          end,
       },
 
-      -- Source parameters
-      source = {"maxwellian", density = sourceDensityNeut,
-		driftSpeed = {0, 0, 0}, temperature = 2*eV},      
+      -- Source parameters.
+      source = Vlasov.Source {
+         kind        = "Maxwellian",
+         density     = sourceDensityNeut,
+         temperature = 2.*eV,
+      },
 
-      -- Neutral interactions
+      -- Neutral interactions.
       ionization = Plasma.Ionization {
-         collideWith = {"elc"},
-         electrons   = "elc",
-         neutrals    = "neut",
-         elemCharge  = eV, 
-         elcMass     = me,
-         plasma      = "H",         
+         collideWith = {"elc"},  elemCharge = eV, 
+         electrons   = "elc",    elcMass    = me,
+         neutrals    = "neut",   plasma     = "H",         
       },
       chargeExchange = Plasma.ChargeExchange {
-         collideWith = {"ion"},
-         ions        = "ion",
-         neutrals    = "neut",
+         collideWith = {"ion"},  neutMass = mi,
+         ions        = "ion",    plasma   = "H",
+         neutrals    = "neut",   charge   = 0,
          ionMass     = mi,
-         neutMass    = mi,
-         plasma      = "H",
-         charge      = 0,
       },
 
-      -- Boundary conditions
-      bcx = {Vlasov.Species.bcReflect, Vlasov.Species.bcReflect},
+      -- Boundary conditions.
+      bcx = {Vlasov.ReflectBC{}, Vlasov.ReflectBC{}},
 
-      -- Diagnostics
-      diagnosticMoments = {"M0", "u", "vtSq"},
-      diagnosticIntegratedMoments = {"intM0", "intM1i",
-      				     "intM2Flow", "intM2Thermal" },
+      diagnostics = {"M0", "Udrift", "VtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal"},
  
    },
    
-   -- Field solver
+   -- Field solver.
    field = Plasma.Field {
-      phiBcLeft  = { T ="N", V = 0.0},
-      phiBcRight = { T ="N", V = 0.0},
       evolve     = true,
-      kperp2     = kmin*kmin,
+      kperpSq    = kmin*kmin,
+      bcLowerPhi = {{T = "N", V = 0.0}},
+      bcUpperPhi = {{T = "N", V = 0.0}},
    },
 
    -- Magnetic geometry.

@@ -165,7 +165,9 @@ Gkyl::checkToolIfExist(const std::string& inp) {
 
   std::vector<std::string> toolMatch, toolMatchNm; // store matched names
   // check for abbreviations
-  for (const auto &[toolNm, toolInfo] : toolList) {
+  for (const auto &t : toolList) {
+    auto toolNm = t.first;
+    auto toolInfo = t.second;
     std::size_t pos = toolNm.find(inp);
     if (pos == 0) {
       toolMatch.push_back(toolInfo.first);

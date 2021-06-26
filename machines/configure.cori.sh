@@ -11,7 +11,15 @@ CXX=CC
 MPICC=cc
 MPICXX=CC
 
-# Install location
+# if we are in machines directory, go up a directory before 
+# executing commands in this script
+if [ `dirname "$0"` == "." ] 
+  then
+    cd ..
+fi
+
+# Install location... by default, puts gkylsoft directory
+# on same level as gkyl directory (where we are now, presumably)
 export GKYLSOFT=$(readlink -f ../gkylsoft)
 PREFIX=$GKYLSOFT/gkyl
 
@@ -34,12 +42,6 @@ ADIOS_LIB_DIR=$GKYLSOFT/adios/lib
 
 # EIGEN options
 EIGEN_INC_DIR=$EIGEN3_DIR/include/eigen3
-
-# if we are in machines directory, go up a directory before executing cmd
-if [ `dirname "$0"` == "." ] 
-  then
-    cd ..
-fi
 
 # LuaJIT options
 LUAJIT_INC_DIR=$GKYLSOFT/luajit/include/luajit-2.1

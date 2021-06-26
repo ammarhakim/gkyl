@@ -3,7 +3,7 @@
 --
 local Plasma = require ("App.PlasmaOnCartGrid").VlasovMaxwell()
 
--- left/right state for shock
+-- Left/right state for shock.
 local nl, ul, pl = 1.0, 0.0, 1.0
 local nr, ur, pr = 0.125, 0.0, 0.1
 
@@ -20,37 +20,36 @@ local maxwellianR = function(t, z)
 end
 
 sim = Plasma.App {
-   logToFile = false,
-   --cflFrac = 0.1,
-   tEnd = 0.11, -- end time
-   nFrame = 1, -- number of frames to write
-   lower = {0.0}, -- configuration space lower left
-   upper = {1.0}, -- configuration space upper right
-   cells = {128}, -- configuration space cells
-   basis = "serendipity", -- one of "serendipity" or "maximal-order"
-   polyOrder = 2, -- polynomial order
-   timeStepper = "rk3", -- one of "rk2", "rk3" or "rk3s4"
+   logToFile   = false,
+   --cflFrac     = 0.1,
+   tEnd        = 0.11,          -- End time.
+   nFrame      = 1,             -- Number of frames to write.
+   lower       = {0.0},         -- Configuration space lower left.
+   upper       = {1.0},         -- Configuration space upper right.
+   cells       = {128},         -- Configuration space cells.
+   basis       = "serendipity", -- One of "serendipity" or "maximal-order".
+   polyOrder   = 2,             -- Polynomial order.
+   timeStepper = "rk3",         -- One of "rk2", "rk3" or "rk3s4".
 
-   -- decomposition for configuration space
-   decompCuts = {1}, -- cuts in each configuration direction
-   useShared = false, -- if to use shared memory
+   -- Decomposition for configuration space.
+   decompCuts = {1},   -- Cuts in each configuration direction.
+   useShared  = false, -- If to use shared memory.
 
-   -- boundary conditions for configuration space
-   periodicDirs = {}, -- periodic directions
+   -- Boundary conditions for configuration space
+   periodicDirs = {},  -- Periodic directions.
 
-   -- electrons
+   -- Electrons.
    neut = Plasma.Species {
       --nDiagnosticFrame = 2,
-      charge = 0.0, mass = 1.0,
-      -- velocity space grid
+      charge = 0.0,  mass = 1.0,
+      -- Velocity space grid.
       lower = {-6.0},
-      upper = {6.0},
+      upper = { 6.0},
       cells = {32},
-      decompCuts = {1},
-      -- initial conditions
+      -- Initial conditions.
       init = Plasma.MaxwellianProjection {
-	 density = 0.5,--0.5*(nl+nr),
-	 driftSpeed = {0.5*(nl+nr)},
+	 density     = 0.5,--0.5*(nl+nr),
+	 driftSpeed  = {0.5*(nl+nr)},
 	 temperature = 0.5*(vthl^2+vthr^2),
       },
       -- reservoir = Plasma.MaxwellianProjection {
@@ -66,19 +65,17 @@ sim = Plasma.App {
       --    isReservoir = true,
       -- },
       bcx = { maxwellianL, maxwellianR },
-      evolveFnBC = false,
-       -- evolve species?
+      -- Evolve species?
       evolve = true,
       --evolveCollisions = false,
-      -- diagnostic moments
-      diagnosticMoments = { "M0", "M1i", "M2" },
+      diagnostics = { "M0", "M1i", "M2" },
      
-      -- collisions
+      -- Collisions.
       coll = Plasma.BGKCollisions {
          collideWith = {"neut"},
 	 frequencies = {vthl/K},
       },
    },
 }
--- run application
+-- Run application.
 sim:run()

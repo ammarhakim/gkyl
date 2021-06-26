@@ -70,9 +70,7 @@ function BgkCollisions:_advance(tCurr, inFld, outFld)
    local sumNuIn       = assert(inFld[3],
       "BgkCollisions.advance: Must specify the sum of collisionalities as input[3]")
    local nuFrac = 1.0
-   if inFld[4] then
-      nuFrac = inFld[4]
-   end
+   if inFld[4] then nuFrac = inFld[4] end
 
    local fRhsOut = assert(outFld[1], "BgkCollisions.advance: Must specify an output field")
 

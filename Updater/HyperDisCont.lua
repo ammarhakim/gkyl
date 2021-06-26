@@ -55,61 +55,60 @@ local HyperDisCont = Proto(UpdaterBase)
 function HyperDisCont:init(tbl)
    HyperDisCont.super.init(self, tbl)
 
-   -- read data from input file
+   -- Read data from input file.
    self._onGrid = assert(tbl.onGrid, "Updater.HyperDisCont: Must provide grid object using 'onGrid'")
    self._basis = assert(tbl.basis, "Updater.HyperDisCont: Must specify basis functions to use using 'basis'")
 
-   -- by default, clear output field before incrementing with vol/surf updates
+   -- By default, clear output field before incrementing with vol/surf updates.
    self._clearOut = xsys.pickBool(tbl.clearOut, true)
 
    assert(self._onGrid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
    self._ndim = self._onGrid:ndim()
 
-   -- equation to solve
+   -- Equation to solve.
    self._equation = assert(tbl.equation, "Updater.HyperDisCont: Must provide equation object using 'equation'")
 
-   -- by default, update all directions
+   -- By default, update all directions.
    self._updateDirs = {}
    for d = 1, self._ndim do
       self._updateDirs[d] = d
    end
-   -- read in which directions we are to update
+   -- Read in which directions we are to update.
    if tbl.updateDirections then
       self._updateDirs = tbl.updateDirections
    end
 
-   -- set zero flux direction flags
+   -- Set zero flux direction flags.
    self._zeroFluxFlags = {}
-   for d = 1, self._ndim do
-      self._zeroFluxFlags[d] = false
-   end
+   for d = 1, self._ndim do self._zeroFluxFlags[d] = false end
    if tbl.zeroFluxDirections then
-      for i, d in ipairs(tbl.zeroFluxDirections) do
-         self._zeroFluxFlags[d] = true
-      end
+      for i, d in ipairs(tbl.zeroFluxDirections) do self._zeroFluxFlags[d] = true end
    end
 
-   -- flag to turn on/off volume term
+   -- Flag to turn on/off volume term.
    self._updateVolumeTerm = xsys.pickBool(tbl.updateVolumeTerm, true)
+
+   -- Flag to indicate the use of local or global upwind fluxes. Local
+   -- does not need to do a reduction of the maximum speed (saves an Mpi.Allreduce).
+   self._globalUpwind = xsys.pickBool(tbl.globalUpwind, true)
 
    -- CFL number
    self._cfl = assert(tbl.cfl, "Updater.HyperDisCont: Must specify CFL number using 'cfl'")
    self._cflm = tbl.cflm and tbl.cflm or 1.1*self._cfl -- no larger than this
 
-   -- maximum characteristic velocities for use in penalty based
-   -- fluxes
+   -- Maximum characteristic velocities for use in penalty based fluxes.
    self._maxs, self._maxsOld, self._maxsLocal = Lin.Vec(self._ndim), Lin.Vec(self._ndim), Lin.Vec(self._ndim)
    for d = 1, self._ndim do
-      -- very first step the penalty term will be zero. However, in
+      -- Very first step the penalty term will be zero. However, in
       -- subsequent steps the maximum speed from the previous step
-      -- will be used
+      -- will be used.
       self._maxs[d] = 0.0
    end
    self._noPenaltyFlux = xsys.pickBool(tbl.noPenaltyFlux, false)
 
    self._isFirst = true
-   self._auxFields = {} -- auxilliary fields passed to eqn object
-   self._perpRangeDecomp = {} -- perp ranges in each direction      
+   self._auxFields = {} -- Auxilliary fields passed to eqn object.
+   self._perpRangeDecomp = {} -- Perp ranges in each direction.
 
    return self
 end
@@ -180,33 +179,33 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
    -- This flag is needed as the volume integral already contains
    -- contributions from all directions. Hence, we must only
    -- accumulate the volume contribution once, skipping it for other
-   -- directions
+   -- directions.
    local firstDir = true
 
-   -- use maximum characteristic speeds from previous step as penalty
+   -- Use maximum characteristic speeds from previous step as penalty.
    for d = 1, ndim do
       if self._noPenaltyFlux then 
          self._maxsOld[d] = 0.0
       else
          self._maxsOld[d] = self._maxs[d]
       end
-      self._maxsLocal[d] = 0.0 -- reset to get new values in this step
+      self._maxsLocal[d] = 0.0 -- Reset to get new values in this step.
    end
 
-   local tId = grid:subGridSharedId() -- local thread ID
+   local tId = grid:subGridSharedId() -- Local thread ID.
 
-   -- clear output field before computing vol/surf increments
+   -- Clear output field before computing vol/surf increments.
    if self._clearOut then qRhsOut:clear(0.0) end
-   -- accumulate contributions from volume and surface integrals
+   -- Accumulate contributions from volume and surface integrals.
    local cflRate
-   -- iterate through updateDirs backwards so that a zero flux dir is first in kinetics
+   -- Iterate through updateDirs backwards so that a zero flux dir is first in kinetics.
    for i = #self._updateDirs, 1, -1 do 
       local dir = self._updateDirs[i]
-      -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
+      -- Lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell).
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
       local dirLoSurfIdx, dirUpSurfIdx = dirLoIdx, dirUpIdx
       
-      -- compute loop bounds for zero flux direction 
+      -- Compute loop bounds for zero flux direction.
       if self._zeroFluxFlags[dir] then
          local dirGlobalLoIdx, dirGlobalUpIdx = globalRange:lower(dir), globalRange:upper(dir)+1
          if dirLoIdx == dirGlobalLoIdx then 
@@ -232,7 +231,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 	 idx:copyInto(idxp); idx:copyInto(idxm)
 
          for i = dirLoIdx, dirUpIdx do -- this loop is over edges
-	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
+	    idxm[dir], idxp[dir] = i-1, i -- cell left/right of edge 'i'
 
 	    grid:setIndex(idxm)
             grid:getDx(dxm)
@@ -277,9 +276,11 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
       firstDir = false
    end
 
-   -- determine largest amax across processors
-   Mpi.Allreduce(
-      self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, self:getComm())
+   -- Determine largest amax across processors.
+   if self._globalUpwind then
+      Mpi.Allreduce(
+         self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, self:getComm())
+   end
 
    self._isFirst = false
 end
@@ -299,7 +300,7 @@ function HyperDisCont:_advanceOnDevice(tCurr, inFld, outFld)
    local numBlocks  = math.ceil(numCellsLocal/numThreads)
 
    if self._clearOut then
-     cuda.Memset(qRhsOut:deviceDataPointer(), 0.0, sizeof('double')*qRhsOut:size())
+      cuda.Memset(qRhsOut:deviceDataPointer(), 0.0, sizeof('double')*qRhsOut:size())
    end
 
    if self._useSharedDevice then

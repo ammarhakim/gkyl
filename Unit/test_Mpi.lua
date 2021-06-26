@@ -175,6 +175,19 @@ function test_5(comm)
       assert_equal(i+0.5, vals[i], "Testing Bcast data")
    end
    Mpi.Barrier(comm)
+
+   -- Test broadcasting strings.
+   -- MF 2021/05/05: as currently implemented it should probably only be used for strings
+   --                with length>0. It occasionally seg faults with empty strings.
+   -- MF 2021/05/25: below we use len+1 because without the +1 I was seeing random failures.
+   -- MF 2021/06/17: we have removed the +1 and +2 altogether. Lua strings are not NULL terminated.
+   -- MF 2021/06/22: even without the +1,+2, a seg fault was encountered in Stellar but not Frontera. Conclusion: we don't yet know how to broadcast strings reliably.
+   local myStr = "myRank".. rnk
+   local Cstr = new("char [?]", string.len(myStr))
+   ffi.copy(Cstr, myStr)
+   Mpi.Bcast(Cstr, string.len(myStr), Mpi.CHAR, 1, comm)
+   myStr = ffi.string(Cstr)
+   assert_equal("myRank1", myStr, "Testing Bcast string")
 end
 
 -- Non-blocking recv

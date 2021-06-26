@@ -1,20 +1,20 @@
 
-local Unit = require "Unit"
+local Unit       = require "Unit"
 local Basis      = require "Basis"
-local Grid = require "Grid"
+local Grid       = require "Grid"
 local DataStruct = require "DataStruct"
 local Updater    = require "Updater"
 
 local assert_equal = Unit.assert_equal
-local stats = Unit.stats
+local stats        = Unit.stats
 
 function test()
    local grid = Grid.RectCart {
-      lower = {0.0},
-      upper = {1.0},
-      cells = {2},
+      lower = {0.0, },
+      upper = {1.0, },
+      cells = {  2, },
    }
-   local basis = Basis.CartModalSerendipity { ndim = 1, polyOrder = 1 }
+   local basis = Basis.CartModalSerendipity { ndim = grid:ndim(), polyOrder = 2 }
    local numVals = 2
    local vecField = DataStruct.Field {
       onGrid        = grid,
@@ -31,7 +31,7 @@ function test()
    end
    
    local localRange = vecField:localRange()
-   local indexer = vecField:genIndexer()
+   local indexer    = vecField:genIndexer()
    for idx in localRange:colMajorIter() do
       local fitr = vecField:get(indexer(idx))
       for i = 1, numVals*basis:numBasis() do
@@ -41,7 +41,7 @@ function test()
 
    local separate = Updater.SeparateVectorComponents {
       onGrid = grid,
-      basis = basis,
+      basis  = basis,
    }
 
    separate:advance(0, {vecField}, compFields)

@@ -70,7 +70,7 @@ function GkChargeExchange:fullInit(speciesTbl)
       self.b = 5.65e-20
    end
 
-   self._tmEvalMom = 0
+   self.timers = {nonSlvr = 0.}
 end
 
 function GkChargeExchange:setName(nm)
@@ -170,12 +170,11 @@ function GkChargeExchange:createSolver(funcField)
 end
 
 function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
+   local tmNonSlvrStart = Time.clock()
 
-   local writeOut = false
    -- Identify species and accumulate.
    if (self.speciesName == self.ionNm) then
 
-      tmEvalMomStart = Time.clock()
       local neutM0   = species[self.neutNm]:fluidMoments()[1]
       local neutU    = species[self.neutNm]:selfPrimitiveMoments()[1] 
       local neutVtSq = species[self.neutNm]:selfPrimitiveMoments()[2]
@@ -185,23 +184,15 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       species[self.speciesName].calcMaxwell:advance(tCurr,
          {neutM0, neutU, neutVtSq, species[self.speciesName].bmag}, {self.fMaxNeut})
 
-      species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, self.fMaxNeut}, {self.M0iDistFn})
-      species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
+      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {ionM0, self.fMaxNeut}, {self.M0iDistFn})
+      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
       self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
-      species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
+      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
 
-      if writeOut then
-	 species[self.speciesName].distIo:write(self.fMaxNeut, string.format("%s_fMaxNeut_%d.bp",self.speciesName,tCurr*1e10),0,0,true)
-	 species[self.speciesName].distIo:write(neutVtSq, string.format("%s_neutVtSq_%d.bp",self.speciesName,tCurr*1e10),0,0, true)
-	 species[self.speciesName].distIo:write(self.sourceCX, string.format("%s_srcCX_%d.bp",self.speciesName,tCurr*1e10),0,0,true)
-      end
-
-      self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       fRhsOut:accumulate(1.0,self.sourceCX)
 
    elseif (self.speciesName == self.neutNm) then
 
-      tmEvalMomStart = Time.clock()      
       local ionM0     = species[self.ionNm]:fluidMoments()[1]
       local ionU      = species[self.ionNm]:selfPrimitiveMoments()[1] 
       local ionVtSq   = species[self.ionNm]:selfPrimitiveMoments()[2]
@@ -211,21 +202,16 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       
       species[self.speciesName].calcMaxwell:advance(tCurr, {ionM0, ionU, ionVtSq}, {self.fMaxIon})
 
-      species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
-      species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, self.fMaxIon}, {self.M0nDistFi})
+      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
+      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {neutM0, self.fMaxIon}, {self.M0nDistFi})
       self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
-      species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
+      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
       
-      if writeOut then
-	 species[self.speciesName].distIo:write(neutDistF, string.format("%s_neutDistF_%d.bp",self.speciesName,tCurr*1e10),0,0)
-	 species[self.speciesName].distIo:write(ionVtSq, string.format("%s_ionVtSq_%d.bp",self.speciesName,tCurr*1e10),0,0)
-      end
-      
-      self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       fRhsOut:accumulate(-self.iMass/self.nMass,self.sourceCX)
 
    end
-   
+
+   self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 end
 
 function GkChargeExchange:write(tm, frame)
@@ -235,8 +221,8 @@ function GkChargeExchange:slvrTime()
    return 0
 end
 
-function GkChargeExchange:momTime()
-   return self._tmEvalMom
+function GkChargeExchange:nonSlvrTime()
+   return self.timers.nonSlvr
 end
 
 function GkChargeExchange:projectMaxwellTime()

@@ -1,5 +1,8 @@
 -- Gkyl --------------------------------------------------------------
--- BGK Relexation test -----------------------------------------------
+--
+-- BGK relaxation test
+--
+----------------------------------------------------------------------
 local Plasma = require ("App.PlasmaOnCartGrid").VlasovMaxwell()
 
 sim = Plasma.App {
@@ -41,9 +44,7 @@ sim = Plasma.App {
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
-      diagnosticMoments = { "M0", "M1i" },
-      diagnosticIntegratedMoments = { "intM0", "intM1i",
-				      "intM2Flow", "intM2Thermal" },
+      diagnostics = { "M0", "M1i", "M2", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
       -- Collisions.
       bgk = Plasma.BGKCollisions {
          collideWith = {"neut"},

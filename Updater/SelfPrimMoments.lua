@@ -115,13 +115,13 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
    local m1Star, m1StarItr
    local m2Star, m2StarItr
    if self._polyOrder > 1 then
-      m2         = inFld[3]
-      m2Itr      = m2:get(1)
+      m2    = inFld[3]
+      m2Itr = m2:get(1)
    else
-      m0Star, m1Star, m2Star  = inFld[6], inFld[7], inFld[8]
-      m0StarItr     = m0Star:get(1)
-      m1StarItr     = m1Star:get(1)
-      m2StarItr     = m2Star:get(1)
+      m0Star, m1Star, m2Star = inFld[6], inFld[7], inFld[8]
+      m0StarItr = m0Star:get(1)
+      m1StarItr = m1Star:get(1)
+      m2StarItr = m2Star:get(1)
    end
 
    local confRange  = m0:localRange()

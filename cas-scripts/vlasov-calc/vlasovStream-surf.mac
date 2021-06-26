@@ -8,7 +8,7 @@ load(stringproc)$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 3$
+maxPolyOrder_Ser : 2$
 minCdim_Ser : 1$
 minVdim_Ser : 1$    /* see begining of v loop below though. */
 maxCdim_Ser : 3$
@@ -45,7 +45,6 @@ for bInd : 1 thru length(bName) do (
 
       maxPolyOrderB : maxPolyOrder[bInd],
       if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
-      if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
 
       for polyOrder : 1 thru maxPolyOrderB do (
         disp(printf(false,sconcat("Creating surface VlasovStream",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),

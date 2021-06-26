@@ -404,38 +404,6 @@ function test_7()
 end
 
 function test_8()
-   local grid = Grid.NonUniformRectCart { cells = {3} }
-   local xn   = grid:nodeCoords(1)
-   -- Set nodes manually (this is the mapping zeta^2).
-   xn[1] = 0.0
-   xn[2] = 1/3*1/3
-   xn[3] = 2/3*2/3
-   xn[4] = 1*1
-   -- Done.
-
-   local idx = Lin.IntVec(grid:ndim())
-
-   assert_equal(1, grid:ndim(), "Checking NDIM")
-
-   assert_equal(3, grid:numCells(1), "Checking numCells")   
-
-   assert_equal(0.0, grid:lower(1), "Checking lower")
-   assert_equal(1.0, grid:upper(1), "Checking upper")
-
-   grid:setIndex( idx:setValues {1} )
-   assert_equal(1/9, grid:dx(1), "Checking dx")
-   assert_equal(1/9, grid:cellVolume(), "Checking volume")
-
-   grid:setIndex( idx:setValues {2} )
-   assert_equal(1/3, grid:dx(1), "Checking dx")
-   assert_equal(1/3, grid:cellVolume(), "Checking volume")
-
-   grid:setIndex( idx:setValues {3} )
-   assert_equal(5/9, grid:dx(1), "Checking dx")
-   assert_equal(5/9, grid:cellVolume(), "Checking volume")   
-end
-
-function test_9()
    local grid = Grid.RectCart {
       lower        = {0.0, 1.0, 1.0},
       upper        = {2.0, 5.0, 10.0},
@@ -449,7 +417,7 @@ function test_9()
    assert_equal(true, grid:isDirPeriodic(3), "Checking periodicity")
 end
 
-function test_10()
+function test_9()
    local grid = Grid.NonUniformRectCart {
       lower        = {0.0, 1.0, 1.0},
       upper        = {2.0, 5.0, 10.0},
@@ -463,7 +431,7 @@ function test_10()
    assert_equal(true, grid:isDirPeriodic(3), "Checking periodicity (NU)")
 end
 
-function test_11()
+function test_10()
    -- Test the creation of child grids from a 2D parent grid.
    local decomp = DecompRegionCalc.CartProd { cuts = {1, 1} }
    local parentLower = {0.0, 1.0}
@@ -613,7 +581,7 @@ function test_11()
    end
 end
 
-function test_12()
+function test_11()
    -- Test the grid's findCell method in 2D.
    local grid = Grid.RectCart {
       lower = {0.0, 1.0},
@@ -995,7 +963,6 @@ test_8()
 test_9()
 test_10()
 test_11()
-test_12()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

@@ -80,12 +80,9 @@ plasmaApp = Plasma.App {
 
          return topHat(x, v, n0, u0, vt)
       end,
-      --bcx = { Plasma.Species.bcOpen,
-      --        Plasma.Species.bcOpen },
       -- Evolve species?
-      evolve = true,
-      -- Diagnostic moments.
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      evolve      = true,
+      diagnostics = { "M0", "M1", "M2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'square'},
@@ -106,12 +103,9 @@ plasmaApp = Plasma.App {
 
          return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
       end,
-      --bcx = { Plasma.Species.bcOpen,
-      --        Plasma.Species.bcOpen },
       -- Evolve species?
-      evolve = true,
-      -- Diagnostic moments.
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      evolve      = true,
+      diagnostics = { "M0", "M1", "M2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
@@ -123,7 +117,7 @@ plasmaApp = Plasma.App {
    field = Plasma.Field {
       evolve      = false, -- Evolve fields?
       externalPhi = function (t, xn) return 0.0 end,
-      kperp2      = 0.0
+      kperpSq     = 0.0
    },
    
    -- Magnetic geometry.

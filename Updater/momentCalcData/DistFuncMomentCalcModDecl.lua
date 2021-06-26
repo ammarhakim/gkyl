@@ -59,11 +59,12 @@ function _M.selectIntMomCalc(basisNm, CDIM, VDIM, polyOrder)
 end
 
 -- With piecewise linear selfPrimMoments needs the star moments.
-function _M.selectStarM0Calc(dir, kinSpecies, basisNm, CDIM, VDIM, applyPos)
+function _M.selectStarM0Calc(dir, kinSpecies, basisNm, CDIM, VDIM, gridID, applyPos)
+   local gridStr = gridID=="uniform" and "" or "Nonuniform"
+   local posString = applyPos and "Positivity" or ""
+
    local funcType = "void"
-   local posString = ""
-   if applyPos then posString = "Positivity" end
-   local funcNm = string.format("%sM0Star%s%dx%dv%s_%s", kinSpecies, posString, CDIM, VDIM, basisNmMap[basisNm], vvars[dir])
+   local funcNm = string.format("%sM0Star%s%s%dx%dv%s_%s", kinSpecies, gridStr, posString, CDIM, VDIM, basisNmMap[basisNm], vvars[dir])
    local funcSign
    if kinSpecies=="Vm" then
       funcSign = "(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out)"

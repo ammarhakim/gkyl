@@ -15,9 +15,11 @@ local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max", ["tenso
 local _M = {}
 
 -- Select function to compute volume terms.
-function _M.selectVol(basisNm, DIM, polyOrder, diffDirsIn, diffOrder)
+function _M.selectVol(basisNm, DIM, polyOrder, diffDirsIn, diffOrder, spatiallyVaryingCoeff)
    diffStr = "Diffusion"
    if diffOrder > 2 then diffStr = "HyperDiffusion" .. diffOrder end
+
+   if spatiallyVaryingCoeff then diffStr = diffStr .. "VarCoeff" end
 
    local diffDirsStr = ""
    for _, d in ipairs(diffDirsIn) do diffDirsStr = diffDirsStr .. d end
@@ -31,9 +33,11 @@ function _M.selectVol(basisNm, DIM, polyOrder, diffDirsIn, diffOrder)
 end
 
 -- Select functions to compute surface terms (output is a table of functions).
-function _M.selectSurf(basisNm, DIM, polyOrder, diffDirsIn, diffOrder, applyPos)
+function _M.selectSurf(basisNm, DIM, polyOrder, diffDirsIn, diffOrder, spatiallyVaryingCoeff, applyPos)
    diffStr = "Diffusion"
    if diffOrder > 2 then diffStr = "HyperDiffusion" .. diffOrder end
+
+   if spatiallyVaryingCoeff then diffStr = diffStr .. "VarCoeff" end
 
    local posStr = ""
    if applyPos then posStr = "Positivity" end
@@ -44,7 +48,9 @@ function _M.selectSurf(basisNm, DIM, polyOrder, diffDirsIn, diffOrder, applyPos)
       funcNm[d] = string.format("Const%sSurf%s%dx%sP%d_X%d", diffStr, posStr, DIM, 
                                 basisNmMap[basisNm], polyOrder, diffDirsIn[d])
    end
-   local funcSign = "(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr)"
+   local funcSign = spatiallyVaryingCoeff
+      and "(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nul, const double *nur, const double *fl, const double *fr, double *outl, double *outr)"
+      or "(const double *wl, const double *wr, const double *dxl, const double *dxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr)"
 
    local CDefStr = ""
    for d = 1, #diffDirsIn do CDefStr = CDefStr .. (funcType .. " " .. funcNm[d] .. funcSign .. ";\n") end
@@ -60,9 +66,11 @@ function _M.selectSurf(basisNm, DIM, polyOrder, diffDirsIn, diffOrder, applyPos)
 end
 
 -- Select functions to compute boundary surface terms (output is a table of functions).
-function _M.selectBoundarySurf(basisNm, DIM, polyOrder, diffDirsIn, diffOrder, applyPos)
+function _M.selectBoundarySurf(basisNm, DIM, polyOrder, diffDirsIn, diffOrder, spatiallyVaryingCoeff, applyPos)
    diffStr = "Diffusion"
    if diffOrder > 2 then diffStr = "HyperDiffusion" .. diffOrder end
+
+   if spatiallyVaryingCoeff then diffStr = diffStr .. "VarCoeff" end
 
    local funcType = "void"
    local funcNm   = {}
@@ -70,7 +78,9 @@ function _M.selectBoundarySurf(basisNm, DIM, polyOrder, diffDirsIn, diffOrder, a
       funcNm[d] = string.format("Const%sBoundarySurf%dx%sP%d_X%d", diffStr, DIM, 
                                 basisNmMap[basisNm], polyOrder, diffDirsIn[d])
    end
-   local funcSign = "(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr)"
+   local funcSign = spatiallyVaryingCoeff
+      and "(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nul, const double *nur, const double *fl, const double *fr, double *outl, double *outr)"
+      or "(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr)"
 
    local CDefStr = ""
    for d = 1, #diffDirsIn do CDefStr = CDefStr .. (funcType .. " " .. funcNm[d] .. funcSign .. ";\n") end

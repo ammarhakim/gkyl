@@ -5,12 +5,18 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local SourceBase = require "App.Sources.SourceBase"
-local CollisionlessEmSource = require "App.Sources.CollisionlessEmSource"
-local TenMomentRelaxSource = require "App.Sources.TenMomentRelaxSource"
+local SourceBase      = require "App.Sources.SourceBase"
+local FluidSource     = require "App.Sources.FluidSource"
+local GkSource        = require "App.Sources.GkSource"
+local GyrofluidSource = require "App.Sources.GyrofluidSource"
+local VmSource        = require "App.Sources.VmSource"
+local VmSteadyStateSource = require "App.Sources.VmSteadyStateSource"
 
 return {
-   SourceBase = SourceBase,
-   CollisionlessEmSource = CollisionlessEmSource,
-   TenMomentRelaxSource = TenMomentRelaxSource
+   FluidSource     = FluidSource,
+   GkSource        = GkSource,
+   GyrofluidSource = GyrofluidSource,
+   SourceBase      = SourceBase,
+   VmSource        = VmSource,
+   VmSteadyStateSource = VmSteadyStateSource,
 }

@@ -175,7 +175,7 @@ function VmLBOCollisions:fullInit(speciesTbl)
 
    self.cfl = 0.0    -- Will be replaced.
 
-   self.tmEvalMom = 0.0
+   self.timers = {nonSlvr = 0.}
 end
 
 function VmLBOCollisions:setName(nm)
@@ -200,7 +200,7 @@ function VmLBOCollisions:setPhaseGrid(grid)
    self.phaseGrid = grid
 end
 
-function VmLBOCollisions:createSolver()
+function VmLBOCollisions:createSolver(extField)
    self.vdim      = self.phaseGrid:ndim() - self.confGrid:ndim()
 
    self.cNumBasis = self.confBasis:numBasis()
@@ -270,10 +270,10 @@ function VmLBOCollisions:createSolver()
          }
       elseif self.selfCollisions then
          local projectUserNu = Updater.ProjectOnBasis {
-            onGrid          = self.confGrid,
-            basis           = self.confBasis,
-            evaluate        = self.collFreqSelf,
-            projectOnGhosts = false
+            onGrid   = self.confGrid,
+            basis    = self.confBasis,
+            evaluate = self.collFreqSelf,
+            onGhosts = false
          }
          projectUserNu:advance(0.0, {}, {self.nuVarXSelf})
       end
@@ -293,6 +293,7 @@ function VmLBOCollisions:createSolver()
       vUpper           = self.vMax,
       varyingNu        = self.varNu,
       useCellAverageNu = self.cellConstNu,
+      gridID           = self.phaseGrid:id(),
    }
    self.collisionSlvr = Updater.HyperDisCont {
       onGrid             = self.phaseGrid,
@@ -358,6 +359,7 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
    local selfMom     = species[self.speciesName]:fluidMoments()
    local primMomSelf = species[self.speciesName]:selfPrimitiveMoments()
 
+   local tmNonSlvrStart = Time.clock()
    if self.varNu then
       self.nuSum:clear(0.0)
    else
@@ -366,9 +368,7 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
    self.nuUSum:clear(0.0)
    self.nuVtSqSum:clear(0.0)
 
-   local tmEvalMomStart = Time.clock()
    if self.selfCollisions then
-      self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
 
       -- NOTE: The following code is commented out because Vm users don't seem
       -- to be as worried about limit crossings as Gk users, so counting them
@@ -490,15 +490,18 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
       end    -- end loop over other species that this species collides with.
 
    end    -- end if self.crossCollisions.
+   self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 
    -- Compute increment from collisions and accumulate it into output.
    self.collisionSlvr:advance(
       tCurr, {fIn, self.nuUSum, self.nuVtSqSum, self.nuSum}, {self.collOut})
+
+   local tmNonSlvrStart = Time.clock()
    -- Barrier over shared communicator before accumulate
    Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
 
    fRhsOut:accumulate(1.0, self.collOut)
-
+   self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 end
 
 function VmLBOCollisions:write(tm, frame)
@@ -507,15 +510,15 @@ function VmLBOCollisions:write(tm, frame)
 end
 
 function VmLBOCollisions:totalTime()
-   return self.collisionSlvr.totalTime + self.tmEvalMom
+   return self.collisionSlvr.totalTime + self.timers.nonSlvr
 end
 
 function VmLBOCollisions:slvrTime()
    return self.collisionSlvr.totalTime
 end
 
-function VmLBOCollisions:momTime()
-   return self.tmEvalMom
+function VmLBOCollisions:nonSlvrTime()
+   return self.timers.nonSlvr
 end
 
 return VmLBOCollisions

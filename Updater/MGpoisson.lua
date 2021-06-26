@@ -276,8 +276,8 @@ function MGpoisson:init(tbl)
 
    -- Create a grid for each level.
    -- Not sure this is needed, but in general it probably is (e.g. unstructured, or even nonuniform meshes).
-   self.mgGrids           = {}
-   self.mgGrids[1]        = grid
+   self.mgGrids    = {}
+   self.mgGrids[1] = grid
    -- Iterate (phi), right-side source and residual fields at each level.
    self.phiAll      = {}
    self.rhoAll      = {}
@@ -335,19 +335,11 @@ function MGpoisson:init(tbl)
                bcUpper = bcUpper,
             }
          elseif self.isFEM and (self.dim==2) then
-            local femBCleft, femBCright, femBCbottom, femBCtop = nil, nil, nil, nil 
-            local femBCleft   = bcLower[1]["T"]~="P" and {T=bcLower[1]["T"], V=bcLower[1]["V"]} or nil
-            local femBCright  = bcUpper[1]["T"]~="P" and {T=bcUpper[1]["T"], V=bcUpper[1]["V"]} or nil
-            local femBCbottom = bcLower[2]["T"]~="P" and {T=bcLower[2]["T"], V=bcLower[2]["V"]} or nil
-            local femBCtop    = bcUpper[2]["T"]~="P" and {T=bcUpper[2]["T"], V=bcUpper[2]["V"]} or nil
             self.directSolver = DirectFEMSolver {
-               onGrid       = self.mgGrids[self.mgLevels],
-               basis        = basis,
-               periodicDirs = periodicDirsC,
-               bcLeft       = femBCleft,
-               bcRight      = femBCright,
-               bcBottom     = femBCbottom,
-               bcTop        = femBCtop,
+               onGrid  = self.mgGrids[self.mgLevels],
+               basis   = basis,
+               bcLower = bcLower,
+               bcUpper = bcUpper,
             }
          end
       end

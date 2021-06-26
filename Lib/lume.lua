@@ -1,6 +1,9 @@
 --
 -- lume
 --
+-- Important: this has been modified/enhanced in gkyl. It is no longer the same
+--            as the original lume package.
+--
 -- Copyright (c) 2018 rxi
 --
 -- Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -20,6 +23,7 @@
 -- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
+--
 --
 
 local lume = { _version = "2.3.0" }
@@ -52,6 +56,25 @@ local iscallable = function(x)
   if type(x) == "function" then return true end
   local mt = getmetatable(x)
   return mt and mt.__call ~= nil
+end
+
+function lume.setOrder(tbl)
+   -- Create a keys metatable in tbl so we always loop in the same order (w/ orderedIter).
+   local tbl_keys = {}
+   for k in pairs(tbl) do table.insert(tbl_keys, k) end
+   table.sort(tbl_keys)
+   setmetatable(tbl, tbl_keys)
+end
+
+function lume.orderedIter(x)
+  -- Assume that the metatable of x contains the sorted
+  -- keys of x (see setOrder), indicating the iteration order.
+   local idx, keys = 0, getmetatable(x)
+   local n = table.getn(keys)
+   return function()
+      idx = idx+1
+      if idx <= n then return keys[idx], x[keys[idx]] end
+   end
 end
 
 local getiter = function(x)
