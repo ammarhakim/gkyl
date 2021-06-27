@@ -120,6 +120,8 @@ function FluidSpecies:fullInit(appTbl)
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
    if self.deltaF then self.fluctuationBCs = true end
 
+   self.zeroFluxDirections = {}
+
    -- Read in boundary conditions.
    self.bcInDir = {{ }, { }, { }}   -- List of BCs to apply.
    if tbl.bcx then
@@ -136,7 +138,7 @@ function FluidSpecies:fullInit(appTbl)
    end
    -- Initialize boundary conditions.
    self.nonPeriodicBCs = {}
-   local dirLabel  = {'x','y','z'}
+   local dirLabel  = {'X','Y','Z'}
    local edgeLabel = {'lower','upper'}
    for d, bcsTbl in ipairs(self.bcInDir) do
       for e, bcOb in ipairs(bcsTbl) do
@@ -144,7 +146,7 @@ function FluidSpecies:fullInit(appTbl)
          local val    = bcOb
          if not BCs.BCsBase.is(val) then val = self:makeBcApp(bcOb) end
          if BCs.BCsBase.is(val) then
-            local nm = dirLabel[d]..edgeLabel[e]
+            local nm = 'bc'..dirLabel[d]..edgeLabel[e]
             self.nonPeriodicBCs[nm] = val
             val:setSpeciesName(self.name)
             val:setName(nm)   -- Do :setName after :setSpeciesName for BCs.
@@ -152,12 +154,13 @@ function FluidSpecies:fullInit(appTbl)
             val:setEdge(edgeLabel[e])
             val:fullInit(tbl)
             goodBC = true
+         elseif val=="zeroFlux" then
+            goodBC = true
          end
          assert(goodBC, "FluidSpecies: bc not recognized.")
       end
    end
    lume.setOrder(self.nonPeriodicBCs)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
-
    
    -- Collisions: currently used for a diffusion term.
    self.collisions = {}
@@ -257,39 +260,33 @@ function FluidSpecies:allocVectorMoment(dim)
    return self:allocCartField(self.grid, dim*self.basis:numBasis(), {self.nGhost,self.nGhost}, metaData)
 end
 
-function FluidSpecies:createSolver(externalField)
+function FluidSpecies:createSolver(field, externalField)
    if externalField then
       -- Set up Jacobian.
       self.jacobFunc   = externalField.jacobGeoFunc
-      self.jacob       = externalField.geo.jacobGeo
-      self.jacobGeoInv = externalField.geo.jacobGeoInv
+      if externalField.geo then
+         self.jacob       = externalField.geo.jacobGeo
+         self.jacobGeoInv = externalField.geo.jacobGeoInv
+      end
    end
 
    -- Operators needed for time-dependent calculation and diagnostics.
    self.weakMultiply = Updater.CartFieldBinOp {
-      onGrid    = self.grid,
-      weakBasis = self.basis,
-      operation = "Multiply",
-      onGhosts  = true,
+      onGrid    = self.grid,   operation = "Multiply",
+      weakBasis = self.basis,  onGhosts  = true,
    }
    self.weakDivide = Updater.CartFieldBinOp {
-      onGrid    = self.grid,
-      weakBasis = self.basis,
-      operation = "Divide",
-      onGhosts  = true,
+      onGrid    = self.grid,   operation = "Divide",
+      weakBasis = self.basis,  onGhosts  = true,
    }
    self.volIntegral = {
       scalar = Updater.CartFieldIntegratedQuantCalc {
-         onGrid        = self.grid,
-         basis         = self.basis,
-         numComponents = 1,
-         quantity      = "V"
+         onGrid = self.grid,   numComponents = 1,
+         basis  = self.basis,  quantity      = "V"
       },
       vector = Updater.CartFieldIntegratedQuantCalc {
-         onGrid        = self.grid,
-         basis         = self.basis,
-         numComponents = self.nMoments,
-         quantity      = "V"
+         onGrid = self.grid,   numComponents = self.nMoments,
+         basis  = self.basis,  quantity      = "V"
       }
    }
 
@@ -300,7 +297,7 @@ function FluidSpecies:createSolver(externalField)
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self,externalField) end
 
    -- Create BC solvers.
-   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self, field, externalField) end
 
    -- Create positivity functions.
    if self.positivity then
@@ -337,50 +334,48 @@ function FluidSpecies:createSolver(externalField)
 
    -- Functions to compute fluctuations given the current moments and background,
    -- and the full-F moments given the fluctuations and background.
-   self.getMom_or_deltaMom = self.fluctuationBCs and function(momIn)
+   self.getMom_or_deltaMom = self.deltaF and function(momIn)
       self.flucMom:combine(1.0, momIn, -1.0, self.momBackground)
       return self.flucMom
    end or function(momIn) return momIn end
-   if self.fluctuationBCs then 
-      self.minusBackgroundMom = function(momIn) momIn:accumulate(-1.0, self.momBackground) end
-      self.calcFullMom = function(momIn, syncFullFperiodicDirs)
+   self.minusBackgroundMom = self.fluctuationBCs
+      and function(momIn) momIn:accumulate(-1.0, self.momBackground) end
+      or function(momIn) end
+   self.calcFullMom = self.fluctuationBCs
+      and function(momIn, syncFullFperiodicDirs)
          momIn:accumulate(1.0, self.momBackground)
          momIn:sync(syncFullFperiodicDirs)
-      end
-   else
-      self.minusBackgroundMom = function(momIn) end
-      self.calcFullMom    = function(momIn, syncFullFperiodicDirs) end 
-   end
-   if self.perturbedDiagnostics then
-      self.calcDeltaMom = function(momIn) self.flucMom:combine(1.0, momIn, -1.0, self.momBackground) end
-   else
-      self.calcDeltaMom = function(momIn) end
-   end
+      end or function(momIn, syncFullFperiodicDirs) end 
+   self.calcDeltaMom = self.perturbedDiagnostics 
+      and function(momIn) self.flucMom:combine(1.0, momIn, -1.0, self.momBackground) end
+      or function(momIn) end
 
    if self.fluctuationBCs or self.perturbedDiagnostics then
-      if self.perturbedDiagnostics then
-         self.writeFluctuation = function(tm, fr, momIn)
+      self.writeFluctuation = self.perturbedDiagnostics 
+         and function(tm, fr, momIn)
             self.momIo:write(self.flucMom, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, fr)
          end
-      else
-         self.writeFluctuation = function(tm, fr, momIn)
+         or function(tm, fr, momIn)
             self.calcDeltaMom(momIn)
             self.momIo:write(self.flucMom, string.format("%s_fluctuation_%d.bp", self.name, self.diagIoFrame), tm, fr)
          end
-      end
    else
       self.writeFluctuation = function(tm, fr, momIn) end
    end
 
    if self.evolve then
       self.suggestDtFunc = function() return FluidSpecies["suggestDtEvolve"](self) end
-      self.applyBcFunc   = function(tCurr, momIn) return FluidSpecies["applyBcEvolve"](self, tCurr, momIn) end
+      self.applyBcFunc   = function(tCurr, field, externalField, inIdx, outIdx)
+         return FluidSpecies["applyBcEvolve"](self, tCurr, field, externalField, inIdx, outIdx)
+      end
       self.calcCouplingMomentsFunc = function(tCurr, rkIdx, species)
          return self:calcCouplingMomentsEvolve(tCurr, rkIdx, species)
       end
    else
-      self.suggestDtFunc = function() return FluidSpecies["suggestDtNotEvolve"](self) end
-      self.applyBcFunc   = function(tCurr, momIn) return FluidSpecies["applyBcNotEvolve"](self, tCurr, momIn) end
+      self.suggestDtFunc = function() return FluidSpecies["suggestDtDontEvolve"](self) end
+      self.applyBcFunc   = function(tCurr, field, externalField, inIdx, outIdx)
+         return FluidSpecies["applyBcDontEvolve"](self, tCurr, field, externalField, inIdx, outIdx)
+      end
       self.calcCouplingMomentsFunc = function(tCurr, rkIdx, species)
          return self:calcCouplingMomentsNoEvolve(tCurr, rkIdx, species)
       end
@@ -411,10 +406,8 @@ function FluidSpecies:alloc(nRkDup)
 
    self.unitField = self:allocMoment()
    local projectUnity = Updater.ProjectOnBasis {
-      onGrid   = self.grid,
-      basis    = self.basis,
-      evaluate = function(t, zn) return 1.0 end,
-      onGhosts = true,
+      onGrid   = self.grid,   evaluate = function(t, zn) return 1.0 end,
+      basis    = self.basis,  onGhosts = true,
    }
    projectUnity:advance(0.0, {}, {self.unitField})
 
@@ -526,7 +519,7 @@ function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
    end
 end
 
-function FluidSpecies:suggestDtNotEvolve() return GKYL_MAX_DOUBLE end
+function FluidSpecies:suggestDtDontEvolve() return GKYL_MAX_DOUBLE end
 function FluidSpecies:suggestDtEvolve()
    local dtSuggested = math.min(self.cfl/self.cflRateByCell:reduce('max')[1], GKYL_MAX_DOUBLE)
 
@@ -565,23 +558,24 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    momRhsOut:clear(0.0)
 end
 
-function FluidSpecies:applyBcIdx(tCurr, idx, isFirstRk)
-  self.posRescalerDiffAdv(tCurr, idx, true, isFirstRk)
+function FluidSpecies:applyBcIdx(tCurr, field, externalField, inIdx, outIdx, isFirstRk)
+  self.posRescalerDiffAdv(tCurr, outIdx, true, isFirstRk)
 
-  self:applyBc(tCurr, self:rkStepperFields()[idx])
+  self:applyBc(tCurr, field, externalField, inIdx, outIdx)
 
-  self.checkPositivity(tCurr, idx)
+  self.checkPositivity(tCurr, outIdx)
 end
 
-function FluidSpecies:applyBcNotEvolve(tCurr, momIn) end
-function FluidSpecies:applyBcEvolve(tCurr, momIn) 
-   -- momIn is the set of evolved moments.
+function FluidSpecies:applyBcDontEvolve(tCurr, field, externalField, inIdx, outIdx) end
+function FluidSpecies:applyBcEvolve(tCurr, field, externalField, inIdx, outIdx) 
    local tmStart = Time.clock()
+
+   local momIn = self:rkStepperFields()[outIdx]   -- momIn is the set of evolved moments.
 
    self.minusBackgroundMom(momIn)
 
    -- Apply non-periodic BCs (to only fluctuations if fluctuation BCs).
-   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advance(tCurr, {}, {momIn}) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:advance(tCurr, self, field, externalField, inIdx, outIdx) end
 
    -- Apply periodic BCs (to only fluctuations if fluctuation BCs)
    momIn:sync()
@@ -590,7 +584,9 @@ function FluidSpecies:applyBcEvolve(tCurr, momIn)
 
    self.bcTime = self.bcTime + Time.clock()-tmStart
 end
-function FluidSpecies:applyBc(tCurr, momIn) self.applyBcFunc(tCurr, momIn) end
+function FluidSpecies:applyBc(tCurr, field, externalField, inIdx, outIdx)
+   self.applyBcFunc(tCurr, field, externalField, inIdx, outIdx)
+end
 
 function FluidSpecies:createDiagnostics(field)  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
    if self.tbl.diagnostics then   -- Create this species' diagnostics.
@@ -605,6 +601,7 @@ function FluidSpecies:createDiagnostics(field)  -- More sophisticated/extensive 
    for bcNm, bc in lume.orderedIter(self.nonPeriodicBCs) do
       self.diagnostics[self.name..bcNm] = bc:createDiagnostics(self, field)
    end
+   lume.setOrder(self.diagnostics)
 
    -- Many diagnostics require dividing by the Jacobian (if present).
    -- Predefine the function that does that.
@@ -613,20 +610,20 @@ function FluidSpecies:createDiagnostics(field)  -- More sophisticated/extensive 
       or function(tm, rkIdx) self.noJacMom:copy(self:getMoments(rkIdx)) end
 end
 
-function FluidSpecies:getNoJacMoments()
-   return self.noJacMom
-end
+function FluidSpecies:getNoJacMoments() return self.noJacMom end
 
 function FluidSpecies:write(tm, force)
    if self.evolve or force then
 
+      -- Calculate fluctuations (if perturbed diagnostics are requested) and put them in self.flucMom.
       self.calcDeltaMom(self:rkStepperFields()[1])
 
-      for _, dOb in pairs(self.diagnostics) do
+      for _, dOb in lume.orderedIter(self.diagnostics) do
          dOb:resetState(tm)   -- Reset booleans indicating if diagnostic has been computed.
       end
 
       self.calcNoJacMom(tm, 1)  -- Many diagnostics do not include Jacobian factor.
+
       for _, bc in pairs(self.nonPeriodicBCs) do
          bc:computeBoundaryFluxRate(self.dtGlobal[0])
       end
@@ -634,7 +631,7 @@ function FluidSpecies:write(tm, force)
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.
       if self.calcIntQuantTrigger(tm) then
-         for _, dOb in pairs(self.diagnostics) do
+         for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcIntegratedDiagnostics(tm, self)   -- Compute integrated diagnostics (this species' and other objects').
          end
       end
@@ -644,18 +641,18 @@ function FluidSpecies:write(tm, force)
       if self.diagIoTrigger(tm) or force then
          local momIn = self:rkStepperFields()[1]
 
-	 self.momIo:write(momIn, string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
+	 self.momIo:write(momIn, string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
          self.writeFluctuation(tm, self.diagIoFrame, momIn)
 
          for _, src in lume.orderedIter(self.sources) do
             src:write(tm, self.diagIoFrame, self)  -- Allow sources to write (aside from diagnostics).
          end
 
-         for _, dOb in pairs(self.diagnostics) do
+         for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcGridDiagnostics(tm, self)   -- Compute grid diagnostics (this species' and other objects').
          end
           
-         for _, dOb in pairs(self.diagnostics) do   -- Write grid and integrated diagnostics.
+         for _, dOb in lume.orderedIter(self.diagnostics) do   -- Write grid and integrated diagnostics.
             dOb:write(tm, self.diagIoFrame)
          end
 
@@ -671,7 +668,7 @@ function FluidSpecies:write(tm, force)
       -- If not evolving species, don't write anything except initial conditions.
       if self.diagIoFrame == 0 then
          local momIn = self:rkStepperFields()[1]
-         self.momIo:write(momIn, string.format("%s_%d.bp", self.name, 0), tm, 0)
+         self.momIo:write(momIn, string.format("%s_%d.bp", self.name, 0), tm, 0, self.writeGhost)
       end
       self.diagIoFrame = self.diagIoFrame+1
    end
@@ -683,14 +680,14 @@ function FluidSpecies:writeRestart(tm)
 
    self.momIo:write(self.moments[1], string.format("%s_restart.bp", self.name), tm, self.diagIoFrame, writeGhost)
 
-   for _, dOb in pairs(self.diagnostics) do   -- Write restart diagnostics.
+   for _, dOb in lume.orderedIter(self.diagnostics) do   -- Write restart diagnostics.
       dOb:writeRestart(tm, self.diagIoFrame, self.dynVecRestartFrame)
    end
 
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
-function FluidSpecies:readRestart()
+function FluidSpecies:readRestart(field, externalField)
    local readGhost = false
    if self.hasSheathBCs or self.fluctuationBCs then readGhost = true end
 
@@ -701,10 +698,10 @@ function FluidSpecies:readRestart()
    self.moments[1]:sync()
 
    if not self.hasSheathBCs and not self.fluctuationBCs then
-      self:applyBc(tm, self.moments[1])
+      self:applyBc(tm, field, externalField, 1, 1)
    end
 
-   for _, dOb in pairs(self.diagnostics) do   -- Read grid and integrated diagnostics.
+   for _, dOb in lume.orderedIter(self.diagnostics) do   -- Read grid and integrated diagnostics.
       _, _ = dOb:readRestart()
    end
    

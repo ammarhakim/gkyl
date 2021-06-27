@@ -54,7 +54,7 @@ function GfPitchAngleScattering:createSolver(mySpecies, externalField)
    end
 end
 
-function GfPitchAngleScattering:advance(tCurr, momIn, species, momRhsOut)
+function GfPitchAngleScattering:advance(tCurr, momIn, species, emIn, momRhsOut)
    local tm = Time.clock()
 
    local selfSpecies       = species[self.speciesName]
@@ -72,19 +72,12 @@ function GfPitchAngleScattering:advance(tCurr, momIn, species, momRhsOut)
    self.timers.totalTime = self.timers.totalTime + Time.clock() - tm
 end
 
-function GfPitchAngleScattering:write(tm, frame, species)
-end
+function GfPitchAngleScattering:write(tm, frame, species) end
 
-function GfPitchAngleScattering:totalTime()
-   return self.timers.totalTime
-end
+function GfPitchAngleScattering:totalTime() return self.timers.totalTime end
 
-function GfPitchAngleScattering:slvrTime()
-   return self.timers.totalTime
-end
+function GfPitchAngleScattering:slvrTime() return self.timers.totalTime end
 
-function GfPitchAngleScattering:nonSlvrTime()
-   return 0.
-end
+function GfPitchAngleScattering:nonSlvrTime() return 0. end
 
 return GfPitchAngleScattering

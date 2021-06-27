@@ -308,9 +308,7 @@ function GkField:initField(species)
    self:applyBc(0, self.potentials[1])
 end
 
-function GkField:rkStepperFields()
-   return self.potentials
-end
+function GkField:rkStepperFields() return self.potentials end
 
 -- For RK timestepping for non-elliptic fields (e.g. only apar).
 function GkField:copyRk(outIdx, aIdx)
@@ -330,11 +328,8 @@ function GkField:combineRk(outIdx, a, aIdx, ...)
    end
 end
 
-function GkField:suggestDt()
-   return GKYL_MAX_DOUBLE
-end
-function GkField:clearCFL()
-end
+function GkField:suggestDt() return GKYL_MAX_DOUBLE end
+function GkField:clearCFL() end
 
 function GkField:createSolver(species, externalField)
    -- Get adiabatic species info.
@@ -718,8 +713,7 @@ function GkField:readRestart()
 end
 
 -- Not needed for GK.
-function GkField:accumulateCurrent(dt, current, em)
-end
+function GkField:accumulateCurrent(dt, current, em) end
 
 -- Solve for electrostatic potential phi.
 function GkField:advance(tCurr, species, inIdx, outIdx)
@@ -1027,7 +1021,8 @@ function GkGeometry:alloc()
    self.geo.bmag = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
    -- bmagInv ~ 1/B.
-   self.geo.bmagInv = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   self.geo.bmagInv   = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
+   self.geo.bmagInvSq = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
 
    -- cmag = J B / sqrt(g_zz).
    self.geo.cmag = createField(self.grid,self.basis,ghostNum,1,syncPeriodic)
@@ -1123,9 +1118,7 @@ function GkGeometry:createSolver()
             end
             local deriv = diff.derivativef(bmagUnpack, #xn)
             local xntable = {}
-            for i = 1, #xn do
-              xntable[i] = xn[i]
-            end
+            for i = 1, #xn do xntable[i] = xn[i] end
             local f, dx, dy, dz = deriv(unpack(xntable))
             return dx, dy, dz
          end
@@ -1364,6 +1357,11 @@ function GkGeometry:initField()
              self.geo.gxx, self.geo.gxy, self.geo.gyy, self.geo.gxxJ, self.geo.gxyJ, self.geo.gyyJ})
       end
    end
+   local confWeakMultiply = Updater.CartFieldBinOp {
+      onGrid    = self.grid,   operation = "Multiply",
+      weakBasis = self.basis,  onGhosts  = true,
+   }
+   confWeakMultiply:advance(0., {self.geo.bmagInv, self.geo.bmagInv}, {self.geo.bmagInvSq})
    log("...Finished initializing the geometry\n")
 
    if self.setPhiWall then self.setPhiWall:advance(0.0, {}, {self.geo.phiWall})
@@ -1373,6 +1371,7 @@ function GkGeometry:initField()
    -- these fields were created with syncPeriodicDirs = false.
    self.geo.bmag:sync(false)
    self.geo.bmagInv:sync(false)
+   self.geo.bmagInvSq:sync(false)
    self.geo.cmag:sync(false)
    self.geo.gxx:sync(false)
    self.geo.gxy:sync(false)

@@ -291,7 +291,7 @@ function MomentSpecies:createBCs()
   end
 end
 
-function MomentSpecies:createSolver(hasE, hasB)
+function MomentSpecies:createSolver(field, externalField)
    if self._hasSsBnd then
       self._inOut = DataStruct.Field {
          onGrid = self.grid,
@@ -512,9 +512,14 @@ function MomentSpecies:updateInDirection(dir, tCurr, dt, fIn, fOut, tryInv)
    return status, dtSuggested, tryInv_next
 end
 
-function MomentSpecies:applyBcIdx(tCurr, idx, isFirstRk)
+function MomentSpecies:applyBcIdx(tCurr, field, externalField, inIdx, outIdx, isFirstRk)
   for dir = 1, self.ndim do
-     self:applyBc(tCurr, self:rkStepperFields()[idx], dir)
+     self:applyBc(tCurr, self:rkStepperFields()[outIdx], dir)
+  end
+end
+function MomentSpecies:applyBcInitial(tCurr, field, externalField, inIdx, outIdx)
+  for dir = 1, self.ndim do
+     self:applyBc(tCurr, self:rkStepperFields()[outIdx], dir)
   end
 end
 
@@ -590,7 +595,7 @@ function MomentSpecies:writeRestart(tm)
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
-function MomentSpecies:readRestart()
+function MomentSpecies:readRestart(field, externalField)
    local tm, fr = self.momIo:read(self.moments[1], string.format("%s_restart.bp", self.name))
    self.diagIoFrame = fr -- Reset internal frame counter.
    self.integratedMoments:read(string.format("%s_intMom_restart.bp", self.name))

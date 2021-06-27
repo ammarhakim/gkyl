@@ -60,8 +60,6 @@ function GyrofluidSource:fullInit(speciesTbl)
 
    self.timeDependence = tbl.timeDependence or function (t) return 1. end
 
-   self.nMoments = 3+1
-
    self.timers = {accumulateSrc = 0.0}
 end
 
@@ -72,8 +70,13 @@ function GyrofluidSource:setConfGrid(grid) self.grid = grid end
 function GyrofluidSource:setCfl(cfl) self.cfl = cfl end
 
 function GyrofluidSource:createSolver(mySpecies, externalField)
+
+   self.writeGhost = mySpecies.writeGhost   
+
+   self.nMoments = mySpecies.nMoments
+
    -- Source rate in each moment equation.
-   self.momSource = mySpecies:allocVectorMoment(mySpecies.nMoments)
+   self.momSource = mySpecies:allocVectorMoment(self.nMoments)
 
    local gfProj = Projection.GyrofluidProjection {
       density                  = self.denFunc,
@@ -86,7 +89,7 @@ function GyrofluidSource:createSolver(mySpecies, externalField)
    gfProj:advance(0., {externalField}, {self.momSource})
    Mpi.Barrier(self.grid:commSet().sharedComm)
 
-   self.momSource:write(string.format("%s_0.bp", self.name), 0.0, 0, true)
+   self.momSource:write(string.format("%s_0.bp", self.name), 0.0, 0, self.writeGhost)
 end
 
 function GyrofluidSource:createDiagnostics(mySpecies, field)

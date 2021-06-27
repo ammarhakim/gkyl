@@ -63,18 +63,11 @@ sim = Plasma.App {
 	 return maxwellian(n_e, 0.0, vth_e, v)
       end,
       evolve = true,   -- Evolve species?
-      -- Reflection function parameters
-      externalBC = {
-	 electronAffinity = 1.0,
-	 effectiveMass = 0.4,
-	 elemCharge = q0,
-	 electronMass = m_e
-      },
-      computeExternalBC = true,
-      bcx = { Plasma.Species.bcReflect,
-              Plasma.Species.bcExternal },
-      feedbackBC = true,
-      evolveBC   = true,
+      bcx = { Plasma.ReflectBC{},
+              Plasma.BronoldFehskeBC{
+                 electronAffinity = 1.0,  elemCharge   = q0,
+                 effectiveMass    = 0.4,  electronMass = m_e
+              } },
       diagnostics = { "M0", "M1i", "M2", "M3i", "VtSq", "Udrift", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
    },
 
@@ -92,8 +85,8 @@ sim = Plasma.App {
 	 return maxwellian(n_i, 0.0, vth_i, v)
       end,
       evolve = true,   -- Evolve species?
-      bcx = { Plasma.Species.bcReflect,
-              Plasma.Species.bcAbsorb },
+      bcx = { Plasma.ReflectBC{},
+              Plasma.AbsorbBC{} },
       diagnostics = { "M0", "M1i", "M2", "M3i" },
    },
    

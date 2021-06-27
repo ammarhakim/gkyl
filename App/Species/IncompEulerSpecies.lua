@@ -13,7 +13,7 @@ local LinearDecomp  = require "Lib.LinearDecomp"
 local Updater       = require "Updater"
 local Mpi           = require "Comm.Mpi"
 local Proto         = require "Lib.Proto"
-local BasicBC       = require "App.BCs.IncompEulerBasic"
+local BasicBC       = require ("App.BCs.IncompEulerBasic").IncompEulerBasic
 local lume          = require "Lib.lume"
 
 local IncompEulerSpecies = Proto(FluidSpecies)
@@ -30,11 +30,14 @@ IncompEulerSpecies.bcZeroFlux  = SP_BC_ZEROFLUX     -- Zero flux.
 function IncompEulerSpecies:makeBcApp(bcIn)
    local bcOut
    if bcIn == SP_BC_COPY then
+      print("IncompEulerSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
       bcOut = BasicBC{kind="copy"}
    elseif bcIn == SP_BC_ABSORB then
+      print("IncompEulerSpecies: warning... old way of specifyin BCs will be deprecated. Use BC apps instead.")
       bcOut = BasicBC{kind="absorb"}
-   elseif bcIn == SP_BC_ZEROFLUX then
-      bcOut = BasicBC{kind="zeroFlux"}
+   elseif bcIn == SP_BC_ZEROFLUX or bcIn.tbl.kind=="zeroFlux" then
+      bcOut = "zeroFlux"
+      table.insert(self.zeroFluxDirections, dir)
    end
    return bcOut
 end
@@ -46,19 +49,13 @@ function IncompEulerSpecies:fullInit(appTbl)
    self.nMoments = 1
 end
 
-function IncompEulerSpecies:createSolver(hasE, hasB)
+function IncompEulerSpecies:createSolver(field, externalField)
    -- Run the FluidSpecies 'createSolver()' to initialize the
    -- collisions (diffusion) solver.
-   IncompEulerSpecies.super.createSolver(self)
+   IncompEulerSpecies.super.createSolver(self, field, externalField)
 
-   -- Retrieve the zero-flux BCs (if any) from BC objects.
-   local zeroFluxDirs = {}
-   for _, bc in ipairs(self.nonPeriodicBCs) do 
-      local bcDir = bc:getDir()
-      if bc:getKind() == "zeroFlux" and not lume.any(zeroFluxDirs, function(e) return e==bcDir end) then
-         table.insert(zeroFluxDirs, bcDir)
-      end
-   end
+   local hasE, hasB       = field:hasEB()
+   local extHasE, extHasB = externalField:hasEB()
 
    if self.evolveCollisionless then
       -- Create updater to advance solution by one time-step.
@@ -74,7 +71,7 @@ function IncompEulerSpecies:createSolver(hasE, hasB)
          basis              = self.basis,
          cfl                = self.cfl,
          equation           = self.equation,
-         zeroFluxDirections = zeroFluxDirs,
+         zeroFluxDirections = self.zeroFluxDirections,
       }
 
       if self.positivityRescale then

@@ -83,8 +83,6 @@ plasmaApp = Plasma.App {
 
          return topHat(x, vpar, mu, n0, u0, vt)
       end,
-      --bcx = { Plasma.Species.bcOpen,
-      --        Plasma.Species.bcOpen },
       -- Evolve species?
       evolve      = true,
       diagnostics = { "M0", "M1", "M2" },
@@ -112,8 +110,6 @@ plasmaApp = Plasma.App {
 
          return bumpMaxwell(x,vpar,mu,n0,u0,vt,ab,ub,sb,vtb)
       end,
-      --bcx = { Plasma.Species.bcOpen,
-      --        Plasma.Species.bcOpen },
       -- Evolve species?
       evolve      = true,
       diagnostics = { "M0", "M1", "M2" },

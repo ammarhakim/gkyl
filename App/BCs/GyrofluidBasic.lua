@@ -20,6 +20,7 @@ local CartDecomp     = require "Lib.CartDecomp"
 local Grid           = require "Grid"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local GyrofluidDiags = require "App.Diagnostics.GyrofluidDiagnostics"
+local Constants      = require "Lib.Constants"
 
 local GyrofluidBasicBC = Proto(BCsBase)
 
@@ -34,9 +35,20 @@ function GyrofluidBasicBC:fullInit(speciesTbl)
    self.bcKind      = assert(tbl.kind, "GyrofluidBasicBC: must specify the type of BC in 'kind'.")
    self.diagnostics = tbl.diagnostics or {}
    self.saveFlux    = tbl.saveFlux or false
+
+   self.saveFlux = tbl.saveFlux or false
+   self.anyDiagnostics = false
+   if tbl.diagnostics then
+      if #tbl.diagnostics>0 then
+         self.anyDiagnostics = true
+         self.saveFlux       = true
+      end
+   end
 end
 
 function GyrofluidBasicBC:setName(nm) self.name = self.speciesName.."_"..nm end
+function GyrofluidBasicBC:setConfBasis(basis) self.basis = basis end
+function GyrofluidBasicBC:setConfGrid(grid) self.grid = grid end
 
 function GyrofluidBasicBC:bcCopy(dir, tm, idxIn, fIn, fOut)
    for i = 1, self.nMoments*self.basis:numBasis() do fOut[i] = fIn[i] end
@@ -54,17 +66,87 @@ function GyrofluidBasicBC:bcAbsorb(dir, tm, idxIn, fIn, fOut)
    for i = 1, numB do fOut[3*numB+i] = 1.e-10*fIn[3*numB+i] end   -- Perpendicular pressure (divided by B).
 end
 
-function GyrofluidBasicBC:getGhostRange(global, globalExt)
-   local lv, uv = globalExt:lowerAsVec(), globalExt:upperAsVec()
-   if self.bcEdge == "lower" then
-      uv[self.bcDir] = global:lower(self.bcDir)-1   -- For ghost cells on "left".
-   else
-      lv[self.bcDir] = global:upper(self.bcDir)+1   -- For ghost cells on "right".
+function GyrofluidBasicBC:bcSheath(dir, tm, idxIn, fIn, fOut)
+   local function evAtBoundary(ptrIn, cOff)
+      -- Given the pointer to the function in the skin cell, evaluate it
+      -- at the lower/upper boundary.
+      if self.basis:polyOrder()==1 then
+         return self.bcEdge=='lower'
+            and (ptrIn[cOff+1]-math.sqrt(3)*ptrIn[cOff+2])/math.sqrt(2)
+            or  (ptrIn[cOff+1]+math.sqrt(3)*ptrIn[cOff+2])/math.sqrt(2)
+      end
    end
-   return Range.Range(lv, uv)
+
+   local function zerothCoeff(valIn)
+      -- Assuming a cell-wise constant function, take the value in the cell
+      -- and return the 0th DG coefficient. This would normally be done in a kernel.
+      if self.basis:polyOrder()==1 then
+         return valIn*math.sqrt(2.)
+      elseif self.basis:polyOrder()==2 then
+         return valIn*2.
+      end
+   end
+
+   local numB = self.basis:numBasis()
+
+   local mJacM0_b = evAtBoundary(fIn,0)   -- m*n*Jac at the boundary.
+
+   fOut[0*numB+1] = zerothCoeff(mJacM0_b)   -- Mass density (times Jacobian).
+   for i = 2, numB do fOut[0*numB+i] = 0. end
+
+   -- Potential, magnetic field and Jacobian at the boundary.
+   self.phi:fill(self.indexer(idxIn), self.phiPtr)
+   self.bmag:fill(self.indexer(idxIn), self.bmagPtr)
+   self.jacob:fill(self.indexer(idxIn), self.jacobPtr)
+   local phi_b   = evAtBoundary(self.phiPtr,0)
+   local bmag_b  = evAtBoundary(self.bmagPtr,0)
+   local jacob_b = evAtBoundary(self.jacobPtr,0)
+
+   -- Temperature and sound speed at the boundary.
+   self.primMomSelf:fill(self.indexer(idxIn), self.primMomSelfPtr)
+   self.cSound:fill(self.indexer(idxIn), self.cSoundPtr)
+   local Tpar_b  = evAtBoundary(self.primMomSelfPtr,1*numB)
+   local Tperp_b = evAtBoundary(self.primMomSelfPtr,2*numB)
+   local cs_b    = evAtBoundary(self.cSoundPtr,0)
+
+   local upar_b
+   if self.charge > 0. then
+      -- upar_i = max(c_s, upar).
+      upar_b = math.max(cs_b, math.abs(evAtBoundary(self.primMomSelfPtr,0)))
+   elseif self.charge < 0. then
+      -- upar_e = upar_i*exp(Lambda - max(0, e*phi/Te)).
+      local Te_b = (Tpar_b+2.*Tperp_b)/3.
+      local eV   = Constants.ELEMENTARY_CHARGE
+      self.ionPrimMomSelf:fill(self.indexer(idxIn), self.ionPrimMomSelfPtr)
+      local upari_b = math.max(cs_b, math.abs(evAtBoundary(self.ionPrimMomSelfPtr,0)))
+
+      upar_b = upari_b*math.exp( self.Lambda - math.max(0., eV*phi_b/Te_b) )
+   end
+   upar_b = self.bcEdge=='lower' and -upar_b or upar_b
+   fOut[1*numB+1] = zerothCoeff(mJacM0_b*upar_b)   -- Momentum density (times Jacobian).
+   for i = 2, numB do fOut[1*numB+i] = 0. end
+   
+   local mJacM1_b = evAtBoundary(fOut,1*numB)   -- New (ghost cell) m*n*upar*Jac at the boundary.
+   
+   -- Perpendicular and parallel pressures (times Jacobian) at the boundary.
+   local pPerpJac_b = (mJacM0_b/self.mass)*Tperp_b
+   local pParJac_b  = (mJacM0_b/self.mass)*Tpar_b
+
+   -- Kinetic energy density (times Jacobian) at the boundary.
+   fOut[2*numB+1] = zerothCoeff(0.5*(pParJac_b + upar_b*mJacM1_b) + pPerpJac_b)
+   for i = 2, numB do fOut[2*numB+i] = 0. end
+
+   fOut[3*numB+1] = zerothCoeff(pPerpJac_b/bmag_b)    -- Jacobian*pperp/B.
+   for i = 2, numB do fOut[3*numB+i] = 0. end
 end
 
-function GyrofluidBasicBC:createSolver(mySpecies)
+function GyrofluidBasicBC:createSolver(mySpecies, field, externalField)
+
+   self.nMoments = mySpecies.nMoments
+
+   -- Bohm sheath BC uses phi.
+   self.getPhi = function(fieldIn, inIdx) return nil end 
+
    local bcFunc, skinType
    if self.bcKind == "copy" then
       bcFunc   = function(...) return self:bcCopy(...) end
@@ -72,6 +154,33 @@ function GyrofluidBasicBC:createSolver(mySpecies)
    elseif self.bcKind == "absorb" then
       bcFunc   = function(...) return self:bcAbsorb(...) end
       skinType = "pointwise"
+   elseif self.bcKind == "sheath" then
+
+      self.charge, self.mass = mySpecies.charge, mySpecies.mass
+      self.Lambda = math.log(mySpecies.ionMass/(2.*math.pi*self.mass)) -- Only used by electrons. 
+      
+      self.getPhi = function(fieldIn, inIdx) return fieldIn:rkStepperFields()[inIdx].phi end
+      local phi   = field:rkStepperFields()[1].phi
+      self.bmag   = externalField.geo.bmag
+      self.jacob  = externalField.geo.jacobGeo
+      -- Pre-create pointers and indexers.
+      self.phiPtr, self.phiIdxr = phi:get(1), phi:genIndexer()
+      self.indexer = phi:genIndexer()
+      self.bmagPtr, self.jacobPtr = self.bmag:get(1), self.jacob:get(1)
+
+      self.primMomSelf    = mySpecies.primMomSelf   -- Primitive moments: upar, Tpar, Tperp.
+      self.primMomSelfPtr = self.primMomSelf:get(1)
+
+      self.ionPrimMomSelf    = mySpecies.ionPrimMomSelf
+      self.ionPrimMomSelfPtr = self.ionPrimMomSelf:get(1)
+
+      self.cSound    = mySpecies.cSound   -- Sound speed.
+      self.cSoundPtr = self.cSound:get(1)
+
+      bcFunc   = function(...) return self:bcSheath(...) end
+      skinType = "pointwise"
+   else
+      assert(false, "GyrofluidBasicBC: BC kind not recognized.")
    end
 
    self.bcSolver = Updater.Bc {
@@ -86,64 +195,15 @@ function GyrofluidBasicBC:createSolver(mySpecies)
    -- The saveFlux option is used for boundary diagnostics, or BCs that require
    -- the fluxes through a boundary (e.g. neutral recycling).
    if self.saveFlux then
-      -- Create reduced boundary grid with 1 cell in dimension of self._dir.
-      if self.grid:isShared() then
-         assert(false, "GyrofluidBasicBC: shared memory implementation of boundary flux diagnostics not ready.")
-      else
-         local reducedLower, reducedUpper, reducedNumCells, reducedCuts = {}, {}, {}, {}
-         for d = 1, self.grid:ndim() do
-            if d==self.bcDir then
-               table.insert(reducedLower, -self.grid:dx(d)/2.)
-               table.insert(reducedUpper,  self.grid:dx(d)/2.)
-               table.insert(reducedNumCells, 1)
-               table.insert(reducedCuts, 1)
-            else
-               table.insert(reducedLower, self.grid:lower(d))
-               table.insert(reducedUpper, self.grid:upper(d))
-               table.insert(reducedNumCells, self.grid:numCells(d))
-               table.insert(reducedCuts, self.grid:cuts(d))
-            end
-         end
-         local commSet  = self.grid:commSet()
-         local worldComm, nodeComm = commSet.comm, commSet.nodeComm
-         local nodeRank = Mpi.Comm_rank(nodeComm)
-         local dirRank  = nodeRank
-         local cuts     = {}
-         for d=1,3 do cuts[d] = self.grid:cuts(d) or 1 end
-         local writeRank = -1
-         if self.bcDir == 1 then
-            dirRank = nodeRank % (cuts[1]*cuts[2]) % cuts[1]
-         elseif self.bcDir == 2 then
-            dirRank = math.floor(nodeRank/cuts[1]) % cuts[2]
-         elseif self.bcDir == 3 then
-            dirRank = math.floor(nodeRank/cuts[1]/cuts[2])
-         end
-         self._splitComm = Mpi.Comm_split(worldComm, dirRank, nodeRank)
-         -- Set up which ranks to write from.
-         if self.bcEdge == "lower" and dirRank == 0 then
-            writeRank = nodeRank
-         elseif self.bcEdge == "upper" and dirRank == self.grid:cuts(self.bcDir)-1 then
-            writeRank = nodeRank
-         end
-         self.writeRank = writeRank
-         local reducedDecomp = CartDecomp.CartProd {
-            comm      = self._splitComm,  cuts      = reducedCuts,
-            writeRank = writeRank,        useShared = self.grid:isShared(),
-         }
-         self.boundaryGrid = Grid.RectCart {
-            lower = reducedLower,  cells = reducedNumCells,
-            upper = reducedUpper,  decomposition = reducedDecomp,
-         }
-      end
+      -- Create reduced boundary grid with 1 cell in dimension of self.bcDir.
+      self:createBoundaryGrid()
 
       local moms = mySpecies:getMoments()
       -- Need to define methods to allocate fields defined on boundary grid (used by diagnostics).
       self.allocCartField = function(self, grid, nComp, ghosts, metaData)
          local f = DataStruct.Field {
-            onGrid        = grid,
-            numComponents = nComp,
-            ghost         = ghosts,
-            metaData      = metaData,
+            onGrid        = grid,   ghost    = ghosts,
+            numComponents = nComp,  metaData = metaData,
          }
          f:clear(0.0)
          return f
@@ -201,17 +261,21 @@ function GyrofluidBasicBC:createSolver(mySpecies)
             self.boundaryFluxFields[outIdx]:accumulate(args[2*i-1], self.boundaryFluxFields[args[2*i]])
          end
       end
-      self.calcBoundaryFluxRateFunc = function(dtIn)
-         -- Compute boundary flux rate ~ (fGhost_new - fGhost_old)/dt.
-         self.boundaryFluxRate:combine( 1.0/dtIn, self.boundaryFluxFields[1],
-                                       -1.0/dtIn, self.boundaryFluxFieldPrev)
-         self.boundaryFluxFieldPrev:copy(self.boundaryFluxFields[1])
+      if not self.anyDiagnostics then
+         self.calcBoundaryFluxRateFunc = function(dtIn) end
+      else
+         self.calcBoundaryFluxRateFunc = function(dtIn)
+            -- Compute boundary flux rate ~ (fGhost_new - fGhost_old)/dt.
+            self.boundaryFluxRate:combine( 1.0/dtIn, self.boundaryFluxFields[1],
+                                          -1.0/dtIn, self.boundaryFluxFieldPrev)
+            self.boundaryFluxFieldPrev:copy(self.boundaryFluxFields[1])
+         end
       end
    else
-      self.storeBoundaryFluxFunc = function(tCurr, rkIdx, qOut) end
-      self.copyBoundaryFluxFieldFunc = function(inIdx, outIdx) end
+      self.storeBoundaryFluxFunc        = function(tCurr, rkIdx, qOut) end
+      self.copyBoundaryFluxFieldFunc    = function(inIdx, outIdx) end
       self.combineBoundaryFluxFieldFunc = function(outIdx, a, aIdx, ...) end
-      self.calcBoundaryFluxRateFunc = function(dtIn) end
+      self.calcBoundaryFluxRateFunc     = function(dtIn) end
    end
 end
 
@@ -234,18 +298,47 @@ function GyrofluidBasicBC:createDiagnostics(mySpecies, field)
    if self.tbl.diagnostics then
       self.diagnostics = DiagsApp{implementation = GyrofluidDiags()}
       self.diagnostics:fullInit(mySpecies, field, self)
+      -- Presently boundary diagnostics are boundary flux diagnostics. Append 'flux' to the diagnostic's
+      -- name so files are named accordingly. Re-design this when non-flux diagnostics are implemented
+      self.diagnostics.name = self.diagnostics.name..'_flux'
    end
    return self.diagnostics
 end
 
 function GyrofluidBasicBC:getNoJacMoments() return self.boundaryFluxRate end  -- Used by diagnostics.
 
-function GyrofluidBasicBC:advance(tCurr, species, inFlds)
-   self.bcSolver:advance(tCurr, {}, inFlds)
+function GyrofluidBasicBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
+   self.phi = self.getPhi(field, inIdx)   -- If needed get the current plasma potential (for sheath BC).
+
+   local fIn = mySpecies:rkStepperFields()[outIdx]
+   self.bcSolver:advance(tCurr, {fIn}, {fIn})
 end
 
 function GyrofluidBasicBC:getBoundaryFluxFields()
    return self.boundaryFluxFields
 end
 
-return GyrofluidBasicBC
+-- ................... Classes meant as aliases to simplify input files ...................... --
+local GyrofluidAbsorbBC = Proto(GyrofluidBasicBC)
+function GyrofluidAbsorbBC:fullInit(mySpecies)
+   self.tbl.kind = "absorb"
+   GyrofluidAbsorbBC.super.fullInit(self, mySpecies)
+end
+
+local GyrofluidCopyBC = Proto(GyrofluidBasicBC)
+function GyrofluidCopyBC:fullInit(mySpecies)
+   self.tbl.kind = "copy"
+   GyrofluidCopyBC.super.fullInit(self, mySpecies)
+end
+
+local GyrofluidSheathBC = Proto(GyrofluidBasicBC)
+function GyrofluidSheathBC:fullInit(mySpecies)
+   self.tbl.kind = "sheath"
+   GyrofluidSheathBC.super.fullInit(self, mySpecies)
+end
+-- ................... End of GyrofluidBasicBC alias classes .................... --
+
+return {GyrofluidBasic  = GyrofluidBasicBC,
+        GyrofluidAbsorb = GyrofluidAbsorbBC,
+        GyrofluidCopy   = GyrofluidCopyBC,
+        GyrofluidSheath = GyrofluidSheathBC,}
