@@ -91,7 +91,7 @@ plasmaApp = Plasma.App {
       local Y = R0*math.sin(phi)
       return X, Y
    end,
-   timeStepper = "rk3",              -- One of "rk2" or "rk3".
+   timeStepper = "rk3opSplit",
    cflFrac     = 0.90,
    restartFrameEvery = .05,
    calcIntQuantEvery = 1./10.,  -- Aim at 10x more frequently than frames.
@@ -111,6 +111,7 @@ plasmaApp = Plasma.App {
       },
       closure = Plasma.HeatFlux{
          kappaPar = kappaParElc,  kappaPerp = kappaPerpElc,
+         treatment = "sts",
       },
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
@@ -129,6 +130,7 @@ plasmaApp = Plasma.App {
       },
       closure = Plasma.HeatFlux{
          kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
+         treatment = "sts",
       },
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},

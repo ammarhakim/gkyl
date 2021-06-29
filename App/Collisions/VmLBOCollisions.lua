@@ -136,42 +136,19 @@ function VmLBOCollisions:fullInit(speciesTbl)
          end
       end
       -- Check for constants epsilon_0, elementary charge e, and Planck's constant/2pi. If not use default value.
-      local epsilon0In = tbl.epsilon0
-      if epsilon0In then
-         self.epsilon0 = epsilon0In
-      else
-         self.epsilon0 = Constants.EPSILON0
-      end
-      local elemChargeIn = tbl.elemCharge
-      if elemChargeIn then
-         self.elemCharge = elemChargeIn
-      else
-         self.elemCharge = Constants.ELEMENTARY_CHARGE
-      end
-      local hBarIn = tbl.hBar
-      if hBarIn then
-         self.hBar = hBarIn
-      else
-         self.hBar = Constants.PLANCKS_CONSTANT_H/(2.0*Constants.PI)
-      end
+      self.epsilon0   = tbl.epsilon0 or Constants.EPSILON0
+      self.elemCharge = tbl.elemCharge or Constants.ELEMENTARY_CHARGE
+      self.hBar       = tbl.hBar or Constants.PLANCKS_CONSTANT_H/(2.0*Constants.PI)
    end
 
    if self.crossCollisions then
       self.mass       = speciesTbl.mass      -- Mass of this species.
       self.charge     = speciesTbl.charge    -- Charge of this species.
       local betaGreeneIn = tbl.betaGreene    -- Can specify 'betaGreene' free parameter in Grene cross-species collisions.
-      if betaGreeneIn then
-         self.betaGreene = betaGreeneIn
-      else
-         self.betaGreene = 0.0   -- Default value.
-      end
+      self.betaGreene = betaGreeneIn or 0.0
    end
 
-   if tbl.nuFrac then
-      self.nuFrac = tbl.nuFrac
-   else
-      self.nuFrac = 1.0
-   end
+   self.nuFrac = tbl.nuFrac or 1.0
 
    self.cfl = 0.0    -- Will be replaced.
 

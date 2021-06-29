@@ -771,6 +771,8 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    end
 
    -- For Ionization.
+   -- MF: these calculations should not take place here. VlasovSpecies should just call a :calcCouplingMoments
+   --     method in the ionization App. For example, see how it's done for the BCs below.
    if self.calcReactRate then
       local neuts = species[self.neutNmIz]
       if lume.any({unpack(neuts.momentFlags,1,4)},function(x) return x==false end) then
@@ -795,6 +797,8 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
    end
 
    -- For charge exchange.
+   -- MF: these calculations should not take place here. VlasovSpecies should just call a :calcCouplingMoments
+   --     method in the CX App. For example, see how it's done for the BCs below.
    if self.calcCXSrc then
       -- Calculate Vcx*SigmaCX.
       local neuts = species[self.neutNmCX]

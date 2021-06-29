@@ -299,6 +299,28 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, momIn, species, momRhsOut) end
 end
 
+function GyrofluidSpecies:splitAdvance(tCurr, species, emIn, inIdx, outIdx)
+   self:setActiveRKidx(inIdx)
+   self.tCurr = tCurr
+   local momIn     = self:rkStepperFields()[inIdx]
+   local momRhsOut = self:rkStepperFields()[outIdx]
+
+   local em     = emIn[1]:rkStepperFields()[inIdx] -- Dynamic fields (e.g. phi, Apar)
+   local extGeo = emIn[2]:rkStepperFields()[1]     -- Geometry/external field.
+
+   momIn = self.returnPosRescaledMom(tCurr, momIn)
+
+   -- Clear RHS, because HyperDisCont set up with clearOut = false.
+   momRhsOut:clear(0.0)
+
+   -- Perform the collision update. This includes terms that comes from
+   -- collisions but also other objects in the Collisions App (e.g. diffusion).
+   for _, c in pairs(self.collisions) do
+      c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      c:splitAdvance(tCurr, momIn, species, {em, extGeo}, momRhsOut)
+   end
+end
+
 function GyrofluidSpecies:createDiagnostics(field)  -- More sophisticated/extensive diagnostics go in Species/Diagnostics.
    -- Create this species' diagnostics.
    if self.tbl.diagnostics then

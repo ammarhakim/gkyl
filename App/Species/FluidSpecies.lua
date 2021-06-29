@@ -169,7 +169,7 @@ function FluidSpecies:fullInit(appTbl)
          self.collisions[nm] = val
          self.collisions[nm]:setName(nm)
          val:setSpeciesName(self.name)
-         val:fullInit(tbl)    -- Initialize collisions (e.g. diffusion).
+         val:fullInit(tbl, appTbl)    -- Initialize collisions (e.g. diffusion).
       end
    end
 

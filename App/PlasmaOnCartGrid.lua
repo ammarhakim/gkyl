@@ -99,7 +99,7 @@ local function buildApplication(self, tbl)
    end
 
    -- Time-stepper.
-   local goodStepperNames = { "rk1", "rk2", "rk3", "rk3s4", "fvDimSplit" }
+   local goodStepperNames = { "rk1", "rk2", "rk3", "rk3s4", "rk3opSplit", "fvDimSplit" }
    local timeStepperNm = warnDefault(tbl.timeStepper, "timeStepper", "rk3")
    local timeIntegrator
    if lume.find(goodStepperNames, timeStepperNm) then
@@ -113,6 +113,8 @@ local function buildApplication(self, tbl)
          timeIntegrator = require "App.TimeSteppers.SSP_RK3s4"
       elseif timeStepperNm == "fvDimSplit" then
          timeIntegrator = require "App.TimeSteppers.FVdimSplit"
+      elseif timeStepperNm == "rk3opSplit" then
+         timeIntegrator = require "App.TimeSteppers.SSP_RK3opSplit"
       else
          assert(false, "Time stepper not implemented.")
       end
@@ -400,16 +402,16 @@ local function buildApplication(self, tbl)
 
    -- Store some flags and info about the state and work done by the app.
    local appStatus = {
-      success      = true,
-      step         = 0,
+      success = true,  step = 0,
       -- For diagnostics:
-      nFwdEuler    = 0,
-      -- Below: an entry per stage (max 4 stages + 2 for operator splitting).
-      nFail        = {0, 0, 0, 0, 0, 0},
-      dtDiff       = {{GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.},
-                      {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.},
-                      {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.}},
+      nFwdEuler = 0,
+      nFail     = {},
+      dtDiff    = {},
    }
+   for i = 1, timeStepper.numStates do
+      appStatus.nFail[i] = 0
+      appStatus.dtDiff[i] = {GKYL_MAX_DOUBLE, 0.}
+   end
 
    -- Compute the time rate of change (dy/dt).
    local function dydt(tCurr, inIdx, outIdx)
@@ -418,6 +420,7 @@ local function buildApplication(self, tbl)
          s:clearCFL()
          s:clearMomentFlags(species)
       end
+
       -- Compute functional field (if any).
       externalField:advance(tCurr)
       
@@ -460,6 +463,31 @@ local function buildApplication(self, tbl)
       end
    end
 
+   -- For methods that use operator splitting, compute the time rate of change
+   -- due to the operators that are split off (applied before and after RK).
+   local function dydtSplit(tCurr, inIdx, outIdx)
+      field:clearCFL()
+      for _, s in lume.orderedIter(species) do
+         s:clearCFL()
+         s:clearMomentFlags(species)
+      end
+
+      for _, s in lume.orderedIter(species) do
+         -- Compute moments needed in coupling with fields and
+         -- collisions (the species should update internal datastructures).
+         s:calcCouplingMoments(tCurr, inIdx, species)
+      end
+
+      -- Update species.
+      for _, s in lume.orderedIter(species) do
+         if s.charge == 0 then
+            s:splitAdvance(tCurr, species, {NoField {}, NoField {}}, inIdx, outIdx)
+         else
+            s:splitAdvance(tCurr, species, {field, externalField}, inIdx, outIdx)
+         end
+      end
+   end
+
    -- Function to take a single forward-euler time-step.
    local function forwardEuler(tCurr, dt, inIdx, outIdx, stat)
       appStatus.nFwdEuler = appStatus.nFwdEuler + 1
@@ -490,7 +518,7 @@ local function buildApplication(self, tbl)
    end
 
    -- Set functions in time stepper object.
-   timeStepper:createSolver(appStatus, {combine, copy, dydt, forwardEuler},
+   timeStepper:createSolver(appStatus, {combine, copy, dydt, forwardEuler, dydtSplit},
                             {species, field, externalField, fluidSources})
 
    local devDiagnose = function()

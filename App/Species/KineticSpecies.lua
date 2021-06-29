@@ -44,9 +44,7 @@ local KineticSpecies = Proto(SpeciesBase)
 
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
-function KineticSpecies:init(tbl)
-   self.tbl = tbl
-end
+function KineticSpecies:init(tbl) self.tbl = tbl end
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.

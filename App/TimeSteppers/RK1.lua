@@ -17,6 +17,7 @@ function RK1:init(tbl)
 
    self.cflFrac = 1.0
    self.numFields = 3
+   self.numStates = 1
 end
 
 function RK1:createSolver(appStatus, stepperFuncs, appsIn)

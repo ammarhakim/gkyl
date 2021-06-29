@@ -19,6 +19,7 @@ function FVdimSplit:init(tbl)
 
    self.cflFrac = 1.0
    self.numFields = 3
+   self.numStates = 7
 end
 
 function FVdimSplit:createSolver(appStatus, stepperFuncs, appsIn)

@@ -19,6 +19,7 @@ function SSPRK2:init(tbl)
 
    self.cflFrac = 1.0
    self.numFields = 3
+   self.numStates = 2
 end
 
 function SSPRK2:createSolver(appStatus, stepperFuncs, appsIn)

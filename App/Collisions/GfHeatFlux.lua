@@ -22,13 +22,26 @@ function GfHeatFlux:init(tbl) self.tbl = tbl end
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
-function GfHeatFlux:fullInit(inputSpeciesTbl)
+function GfHeatFlux:fullInit(inputSpeciesTbl, appTbl)
    local tbl = self.tbl
 
    self.kappaPar  = assert(tbl.kappaPar, "App.GfHeatFlux: Must specify the parallel heat diffusivity in 'kappaPar'.")
    self.kappaPerp = assert(tbl.kappaPerp, "App.GfHeatFlux: Must specify the perpendicular heat diffusivity in 'kappaPerp'.")
 
    self.mass, self.charge = inputSpeciesTbl.mass, inputSpeciesTbl.charge
+
+   -- Decide whether to use an explicit step for this term, or a super-time-stepping (sts) integrator.
+   local treat = tbl.treatment or "explicit"
+   if treat == "explicit" then
+      self.advanceFunc = function(tCurr, momIn, species, emIn, momRhsOut) GfHeatFlux["advanceImp"](self, tCurr, momIn, species, emIn, momRhsOut) end
+      self.splitAdvanceFunc = function(tCurr, momIn, species, emIn, momRhsOut) end
+   elseif treat == "sts" then
+      assert(appTbl.timeStepper == "rk3opSplit", "App.GfHeatFlux: 'sts' treatment requires 'timeStepper=rk3opSplit'.")
+      self.splitAdvanceFunc = function(tCurr, momIn, species, emIn, momRhsOut) GfHeatFlux["advanceImp"](self, tCurr, momIn, species, emIn, momRhsOut) end
+      self.advanceFunc = function(tCurr, momIn, species, emIn, momRhsOut) end
+   else
+      assert(false, "App.GfHeatFlux: entry 'treatment' must be either 'explicit' or 'sts'.")
+   end
 
    self.timers = {totalTime = 0.}
 end
@@ -64,7 +77,7 @@ function GfHeatFlux:createSolver(mySpecies, externalField)
 
 end
 
-function GfHeatFlux:advance(tCurr, momIn, species, emIn, momRhsOut)
+function GfHeatFlux:advanceImp(tCurr, momIn, species, emIn, momRhsOut)
    local tm = Time.clock()
 
    local em     = emIn[1]   -- Dynamic fields (e.g. phi, Apar)
@@ -77,6 +90,12 @@ function GfHeatFlux:advance(tCurr, momIn, species, emIn, momRhsOut)
    momRhsOut:accumulate(1.0, self.momDotOut)
 
    self.timers.totalTime = self.timers.totalTime + Time.clock() - tm
+end
+function GfHeatFlux:advance(tCurr, momIn, species, emIn, momRhsOut)
+   self.advanceFunc(tCurr, momIn, species, emIn, momRhsOut)
+end
+function GfHeatFlux:splitAdvance(tCurr, momIn, species, emIn, momRhsOut)
+   self.splitAdvanceFunc(tCurr, momIn, species, emIn, momRhsOut)
 end
 
 function GfHeatFlux:write(tm, frame, species) end
