@@ -211,7 +211,7 @@ function TenMomentSrc:_advance(tCurr, inFld, outFld)
       end
       emDp = emFld:getDataPtrAt(emIdxr(idx))
       if (self._sd.hasStatic) then
-         staticEmDp = emFld:getDataPtrAt(staticEmIdxr(idx))
+         staticEmDp = staticEmFld:getDataPtrAt(staticEmIdxr(idx))
       end
       if (self._sd.hasSigma) then
          sigmaDp = self._sigmaFld:getDataPtrAt(sigmaIdxr(idx))
