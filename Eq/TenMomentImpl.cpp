@@ -323,7 +323,7 @@ void gkylTenMomentQFluctLax(const int dir,
   u1 = qr[d1]/rho;
   p11 = qr[dp1] - rho*u1*u1;
   double sr = std::fabs(u1)+std::sqrt(3*p11/rho);
-  double smax = std::max(sl, sr);
+  double smax = std::fmax(sl, sr);
 
   for (unsigned m=0; m<10; ++m)
   {
