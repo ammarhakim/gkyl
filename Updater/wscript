@@ -14,6 +14,39 @@ def build(bld):
     TenMomentRelaxImpl.cpp
     AxisymmetricFiveMomentSrcImpl.cpp
     AxisymmetricPhMaxwellSrcImpl.cpp
+    FiveMomentFrictionSrcImpl.cpp
+
+    sqrtOnBasisData/sqrt_on_basis_1x_p1_ser.cpp
+    sqrtOnBasisData/sqrt_on_basis_1x_p2_ser.cpp
+    sqrtOnBasisData/sqrt_on_basis_1x_p3_ser.cpp
+    sqrtOnBasisData/sqrt_on_basis_2x_p1_ser.cpp
+    sqrtOnBasisData/sqrt_on_basis_2x_p2_ser.cpp
+    sqrtOnBasisData/sqrt_on_basis_2x_p3_ser.cpp
+    sqrtOnBasisData/sqrt_on_basis_3x_p1_ser.cpp
+    sqrtOnBasisData/sqrt_on_basis_3x_p2_ser.cpp
+    sqrtOnBasisData/sqrt_on_basis_3x_p3_ser.cpp
+    sqrtOnBasisData/sqrt_on_basis_4x_p1_ser.cpp
+    sqrtOnBasisData/sqrt_on_basis_4x_p2_ser.cpp
+    sqrtOnBasisData/sqrt_on_basis_4x_p3_ser.cpp
+    sqrtOnBasisData/sqrt_on_basis_5x_p1_ser.cpp
+    sqrtOnBasisData/sqrt_on_basis_5x_p2_ser.cpp
+    sqrtOnBasisData/sqrt_on_basis_6x_p1_ser.cpp
+    sqrtOnBasisData/sqrt_on_basis_1x_p1_max.cpp
+    sqrtOnBasisData/sqrt_on_basis_1x_p2_max.cpp
+    sqrtOnBasisData/sqrt_on_basis_2x_p1_max.cpp
+    sqrtOnBasisData/sqrt_on_basis_2x_p2_max.cpp
+    sqrtOnBasisData/sqrt_on_basis_3x_p1_max.cpp
+    sqrtOnBasisData/sqrt_on_basis_3x_p2_max.cpp
+    sqrtOnBasisData/sqrt_on_basis_4x_p1_max.cpp
+    sqrtOnBasisData/sqrt_on_basis_4x_p2_max.cpp
+    sqrtOnBasisData/sqrt_on_basis_1x_p1_tensor.cpp
+    sqrtOnBasisData/sqrt_on_basis_1x_p2_tensor.cpp
+    sqrtOnBasisData/sqrt_on_basis_2x_p1_tensor.cpp
+    sqrtOnBasisData/sqrt_on_basis_2x_p2_tensor.cpp
+    sqrtOnBasisData/sqrt_on_basis_3x_p1_tensor.cpp
+    sqrtOnBasisData/sqrt_on_basis_3x_p2_tensor.cpp
+    sqrtOnBasisData/sqrt_on_basis_4x_p1_tensor.cpp
+    sqrtOnBasisData/sqrt_on_basis_4x_p2_tensor.cpp
 
     momentCalcData/IntegratedDGMomentSer1x.cpp
     momentCalcData/IntegratedDGMomentSer2x.cpp
@@ -534,7 +567,7 @@ def build(bld):
 
     bld.shlib(source = sources,
 
-              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData maxwellianOnBasisData projectFluxOnGhostsData', 
+              includes = '. ../Cuda interpolateCalcData mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData chargeExchangeCalcData ionizationCalcData maxwellianOnBasisData projectFluxOnGhostsData sqrtOnBasisData', 
 
               use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     

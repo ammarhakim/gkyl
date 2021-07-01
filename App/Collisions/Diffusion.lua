@@ -33,8 +33,16 @@ end
 function Diffusion:fullInit(speciesTbl)
    local tbl = self.tbl -- Previously stored table.
 
-   self.diffCoeff = assert(tbl.coefficient,   -- Diffusion coefficient (or vector).
+   -- Diffusion coefficient. This can be a single number, or a table of numbers and/or functions:
+   --   1) Single number: applies that diff coefficient along all directions.
+   --   2) Table of numbers: must have the same number elements as diffusiveDirs, and applies those diffusion 
+   --                        coefficients along the directions indicated in diffusiveDirs.
+   --   3) Functions: must be scalar functions with (t,xn) signature that specify the diffusion
+   --                 coefficients along the directions indicated in diffusiveDirs. These functions
+   --                 can only depend on the variable along that direction.
+   self.diffCoeff = assert(tbl.coefficient,
       "App.Diffusion: Must specify the diffusion coefficient (vector) in 'coefficient'.")
+
    self.diffDirs  = tbl.diffusiveDirs         -- Directions in which to apply diffusion.
    self.diffOrder = tbl.order                 -- Read the diffusion operator order.
 
@@ -66,27 +74,88 @@ function Diffusion:createSolver()
    local zfd = {}
    if self.phaseGrid then
       -- Running a phase-space simulation.
-      grid  = self.phaseGrid
-      basis = self.phaseBasis
-      local vdim = self.phaseGrid:ndim()-self.confGrid:ndim()
+      grid, basis = self.phaseGrid, self.phaseBasis
+      local vdim  = self.phaseGrid:ndim()-self.confGrid:ndim()
       -- Zero-flux BCs.
       for d = 1, vdim do
          zfd[d] = self.confGrid:ndim() + d
       end
    else
       -- Running a conf-space simulation.
-      grid  = self.confGrid
-      basis = self.confBasis
+      grid, basis = self.confGrid, self.confBasis
    end
 
    local dim = basis:ndim()
+   local diffCoeffType = type(self.diffCoeff)
    if self.diffDirs then
       assert(#self.diffDirs<=dim, "App.Diffusion: 'diffusiveDirs' cannot have more entries than the simulation's dimensions.")
    else
+      if diffCoeffType == "table" then
+         assert(#self.diffCoeff==dim, "App.Diffusion: 'coefficient' must have same number of entries as there are dimensions if not specifying 'diffusiveDirs'.")
+      end
       -- Apply diffusion in all directions.
       self.diffDirs = {}
       for d = 1, dim do self.diffDirs[d] = d end
    end
+
+   self.coefficient = {}
+   if diffCoeffType == "number" then
+      -- Set the diffusion coefficient to the same amplitude in all directions.
+      for d = 1, #self.diffDirs do self.coefficient[d] = self.diffCoeff end
+   elseif diffCoeffType == "table" then
+      if self.diffDirs then
+         assert(#self.diffCoeff==#self.diffDirs, "App.Diffusion: 'coefficient' table must have the same number of entries as 'diffusiveDirs'.")
+      else
+         assert(#self.diffCoeff==dim, "App.Diffusion: 'coefficient' table must have the same number of entries as the simulation's dimensions if 'diffusiveDirs' is not given.")
+      end
+      self.coefficient = self.diffCoeff
+   end
+   -- Check if any of the diffusion coefficients are functions. If yes, project
+   -- the diffusion coefficient vector onto the basis.
+   local isVarCoeff = false
+   for d = 1, #self.diffDirs do 
+      if type(self.coefficient[d]) == "function" then isVarCoeff = true; break end
+   end
+   if isVarCoeff then
+      -- Turn number entries into functions.
+      local coeffFuncs = {}
+      for d = 1, dim do coeffFuncs[d] = function(t, xn) return 0. end end
+      for d = 1, #self.diffDirs do 
+         if type(self.coefficient[d]) == "number" then
+            coeffFuncs[self.diffDirs[d]] = function(t, zn) return self.coefficient[d] end
+         else
+            coeffFuncs[self.diffDirs[d]] = self.coefficient[d]
+         end
+      end
+      local diffCoeffFunc
+      if dim==1 then
+         diffCoeffFunc = function(t,xn) return coeffFuncs[1](t,xn) end
+      elseif dim==2 then
+         diffCoeffFunc = function(t,xn) return coeffFuncs[1](t,xn), coeffFuncs[2](t,xn) end
+      elseif dim==3 then
+         diffCoeffFunc = function(t,xn) return coeffFuncs[1](t,xn), coeffFuncs[2](t,xn), coeffFuncs[3](t,xn) end
+      elseif dim==4 then
+         diffCoeffFunc = function(t,xn) return coeffFuncs[1](t,xn), coeffFuncs[2](t,xn), coeffFuncs[3](t,xn),
+                                               coeffFuncs[4](t,xn) end
+      elseif dim==5 then
+         diffCoeffFunc = function(t,xn) return coeffFuncs[1](t,xn), coeffFuncs[2](t,xn), coeffFuncs[3](t,xn),
+                                               coeffFuncs[4](t,xn), coeffFuncs[5](t,xn) end
+      elseif dim==6 then
+         diffCoeffFunc = function(t,xn) return coeffFuncs[1](t,xn), coeffFuncs[2](t,xn), coeffFuncs[3](t,xn),
+                                               coeffFuncs[4](t,xn), coeffFuncs[5](t,xn), coeffFuncs[6](t,xn) end
+      end
+      self.coefficient = DataStruct.Field {
+         onGrid        = grid,
+         numComponents = basis:numBasis()*dim,
+         ghost         = {1, 1},
+      }
+      local projectDiffCoeff = Updater.EvalOnNodes {
+         onGrid = grid,   evaluate = diffCoeffFunc,
+         basis  = basis,  onGhosts = true
+      }
+      projectDiffCoeff:advance(0.0, {}, {self.coefficient})
+   end
+
 
    -- Intemediate storage for output of collisions.
    self.collOut = DataStruct.Field {
@@ -97,7 +166,7 @@ function Diffusion:createSolver()
    -- Diffusion equation.
    self.equation = ConstDiffusionEq {
       basis         = basis,
-      coefficient   = self.diffCoeff,
+      coefficient   = self.coefficient,
       diffusiveDirs = self.diffDirs,
       positivity    = self.usePositivity,
       order         = self.diffOrder,

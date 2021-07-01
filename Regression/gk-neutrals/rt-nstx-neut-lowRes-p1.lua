@@ -188,21 +188,18 @@ plasmaApp = Plasma.App {
 
       -- Neutral interactions
       ionization = Plasma.Ionization {
-      	 collideWith  = {"neutral"},
-      	 electrons    = "electron",
-      	 neutrals     = "neutral",
-      	 elemCharge   = eV, 
-      	 elcMass      = me,
-      	 plasma       = "H",         
+      	 collideWith = {"neutral"},  elemCharge = eV, 
+      	 electrons   = "electron",   elcMass    = me,
+      	 neutrals    = "neutral",    plasma     = "H",         
       },
 
       -- Boundary conditions
-      bcx = {Plasma.Species.bcZeroFlux, Plasma.Species.bcZeroFlux},
-      bcz = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      bcx = {Plasma.ZeroFluxBC{}, Plasma.ZeroFluxBC{}},
+      bcz = {Plasma.SheathBC{}, Plasma.SheathBC{}},
 
       -- Diagnostics
-      diagnosticMoments = {"GkM0", "GkUpar", "GkTemp", "GkBeta"}, 
---      diagnosticIntegratedMoments = {"intM0", "intKE", "intHE", "intL2"},
+      diagnostics = {"M0", "Upar", "Temp", "Beta"}, 
+--      diagnostics = {"M0", "Upar", "Temp", "Beta", "intM0", "intKE", "intEnergy", "intL2"}, 
       nDistFuncFrame = 1,
 
       randomseed = randomseed,
@@ -277,30 +274,24 @@ plasmaApp = Plasma.App {
 
       -- Neutral interactions.
       ionization = Plasma.Ionization {
-      	 collideWith  = {"neutral"},
-      	 electrons    = "electron",
-      	 neutrals     = "neutral",
-      	 elemCharge   = eV,
-      	 elcMass      = me,
-      	 plasma       = "H",
+      	 collideWith  = {"neutral"},  elemCharge   = eV,
+      	 electrons    = "electron",   elcMass      = me,
+      	 neutrals     = "neutral",    plasma       = "H",
       },
       chargeExchange = Plasma.ChargeExchange {
-      	 collideWith = {"neutral"},
-      	 ions        = "ion",
-      	 neutrals    = "neutral",
+      	 collideWith = {"neutral"},  neutMass = mi,
+      	 ions        = "ion",        plasma   = "H",
+      	 neutrals    = "neutral",    charge   = qi,
       	 ionMass     = mi,
-      	 neutMass    = mi,
-      	 plasma      = "H",
-      	 charge      = qi,
       },
 
       -- Boundary conditions.
-      bcx = {Plasma.Species.bcZeroFlux, Plasma.Species.bcZeroFlux},
-      bcz = {Plasma.Species.bcSheath, Plasma.Species.bcSheath},
+      bcx = {Plasma.ZeroFluxBC{}, Plasma.ZeroFluxBC{}},
+      bcz = {Plasma.SheathBC{}, Plasma.SheathBC{}},
 
       -- Diagnostics.
-      diagnosticMoments = {"GkM0", "GkUpar", "GkTemp", "GkBeta"}, 
---      diagnosticIntegratedMoments = {"intM0", "intKE", "intHE", "intL2"},
+      diagnostics = {"M0", "Upar", "Temp", "Beta"}, 
+--      diagnostics = {"M0", "Upar", "Temp", "Beta", "intM0", "intKE", "intEnergy", "intL2"}, 
       nDistFuncFrame = 1,
 
       randomseed = randomseed,
@@ -344,21 +335,15 @@ plasmaApp = Plasma.App {
 
       -- Neutral interactions.
       ionization = Plasma.Ionization {
-      	 collideWith  = {"electron"},
-      	 electrons    = "electron",
-      	 neutrals     = "neutral",
-      	 elemCharge   = eV, 
-      	 elcMass      = me,
-      	 plasma       = "H",         
+      	 collideWith = {"electron"},  elemCharge = eV, 
+      	 electrons   = "electron",    elcMass    = me,
+      	 neutrals    = "neutral",     plasma     = "H",         
       },
       chargeExchange = Plasma.ChargeExchange {
-      	 collideWith = {"ion"},
-      	 ions        = "ion",
-      	 neutrals    = "neutral",
+      	 collideWith = {"ion"},    neutMass = mi,
+      	 ions        = "ion",      plasma   = "H",
+      	 neutrals    = "neutral",  charge   = 0,
       	 ionMass     = mi,
-      	 neutMass    = mi,
-      	 plasma      = "H",
-      	 charge      = 0,
       },
 
       -- Source parameters.
@@ -370,13 +355,12 @@ plasmaApp = Plasma.App {
       },
 
       -- Boundary conditions.
-      bcx = {Plasma.Vlasov.bcAbsorb, Plasma.Vlasov.bcAbsorb},
-      bcz = {Plasma.Vlasov.bcReflect, Plasma.Vlasov.bcReflect},
+      bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}},
+      bcz = {Plasma.ReflectBC{}, Plasma.ReflectBC{}},
 
       -- Diagnostics.
-      diagnosticMoments = { "M0", "u", "vtSq"},
---      diagnosticIntegratedMoments = {"intM0", "intM1i",
---      				     "intM2Flow", "intM2Thermal" },
+      diagnostics = { "M0", "Udrift", "VtSq"},
+--      diagnostics = { "M0", "Udrift", "VtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal"},
    },
    
    -- Field solver.
@@ -385,8 +369,8 @@ plasmaApp = Plasma.App {
       isElectromagnetic = false,
       -- Dirichlet in x, periodic in y. Potential phi has homogeneous Neumann
       -- BC for the smoothing operation that enforces continuity in z.
-      bcLowerPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T ="N", V = 0.0}},
-      bcUpperPhi  = {{T = "D", V = 0.0}, {T = "P"}, {T ="N", V = 0.0}},
+      bcLowerPhi = {{T = "D", V = 0.0}, {T = "P"}, {T ="N", V = 0.0}},
+      bcUpperPhi = {{T = "D", V = 0.0}, {T = "P"}, {T ="N", V = 0.0}},
    },
 
    -- Magnetic geometry.

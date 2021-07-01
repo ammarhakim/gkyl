@@ -40,7 +40,7 @@ plasmaApp = Plasma.App {
    logToFile = true,
 
    tEnd   = 60.0,              -- End time.
-   nFrame = 60,                 -- Number of output frames.
+   nFrame = 1,                 -- Number of output frames.
    lower  = {-math.pi/kpar},   -- Configuration space lower left.
    upper  = { math.pi/kpar},   -- Configuration space upper right.
    cells  = {16},              -- Configuration space cells.
@@ -67,7 +67,6 @@ plasmaApp = Plasma.App {
    -- Gyrokinetic ions.
    ion = Plasma.Species {
       charge = q_i,  mass = m_i,
-      kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
       -- Initial conditions.
       init = Plasma.GyrofluidProjection {
          density = function (t, xn) return n0 end,
@@ -85,6 +84,9 @@ plasmaApp = Plasma.App {
             local perturb = alpha*math.cos(k*x)
             return TiPerp0*(1+perturb)
          end,
+      },
+      closure = Plasma.HeatFlux{
+         kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
       },
       coll = Plasma.PASCollisions {
          collideWith = {'ion'},

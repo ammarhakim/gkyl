@@ -92,8 +92,7 @@ plasmaApp = Plasma.App {
          exactScaleM012 = true,
       },
       evolve = true,   -- Evolve species?
-      diagnosticMoments = {"GkM0", "GkUpar", "GkTemp"}, 
-      diagnosticIntegratedMoments = {"intM0", "intM2"},
+      diagnostics = {"M0", "Upar", "Temp", "intM0", "intM2"}, 
    },
 
    -- Adiabatic ions.

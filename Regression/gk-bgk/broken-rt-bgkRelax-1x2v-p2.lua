@@ -68,24 +68,21 @@ plasmaApp = Plasma.App {
 
    -- Neutral species with a rectangular/square IC.
    square = Plasma.Species {
-      charge = 1.0, mass = mass,
+      charge = 1.0,  mass = mass,
       -- Velocity space grid.
-      lower      = {vMin,muMin},
-      upper      = {vMax,muMax},
-      cells      = Nv,
+      lower = {vMin,muMin},
+      upper = {vMax,muMax},
+      cells = Nv,
       -- Initial conditions.
       init = function (t, xn)
 	 local x, vpar, mu = xn[1], xn[2], xn[3]
 
          return topHat(x, vpar, mu, n0, u0, vt)
       end,
-      --bcx = { Plasma.Species.bcOpen,
-      --        Plasma.Species.bcOpen },
       -- Evolve species?
       evolve              = true,
       evolveCollisionless = false,
-      -- Diagnostic moments.
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      diagnostics         = { "M0", "M1", "M2" },
       -- Collisions.
       coll = Plasma.BGKCollisions {
          collideWith = {'square'},
@@ -95,24 +92,21 @@ plasmaApp = Plasma.App {
 
    -- Neutral species with a bump in the tail.
    bump = Plasma.Species {
-      charge = 1.0, mass = mass,
+      charge = 1.0,  mass = mass,
       -- Velocity space grid.
-      lower      = {vMin,muMin},
-      upper      = {vMax,muMax},
-      cells      = Nv,
+      lower = {vMin,muMin},
+      upper = {vMax,muMax},
+      cells = Nv,
       -- Initial conditions.
       init = function (t, xn)
    	 local x, vpar, mu = xn[1], xn[2], xn[3]
 
          return bumpMaxwell(x,vpar,mu,n0,u0,vt,ab,ub,sb,vtb)
       end,
-      --bcx = { Plasma.Species.bcOpen,
-      --        Plasma.Species.bcOpen },
       -- Evolve species?
       evolve              = true,
       evolveCollisionless = false,
-      -- Diagnostic moments.
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      diagnostics         = { "M0", "M1", "M2" },
       -- Collisions.
       coll = Plasma.BGKCollisions {
          collideWith = {'bump'},

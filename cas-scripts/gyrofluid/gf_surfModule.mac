@@ -64,10 +64,9 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
    sideStr,uparL_c,uparCvar,uparNoZero_c,uparSurfL_e,uparR_c,uparSurfR_e,
    pparJacL1_c,pparJacL1_e,m2FluxL1_c,m2FluxL1_e,m2perpFluxL1_c,m2perpFluxL1_e,fluxL_e,
    pparJacR1_c,pparJacR1_e,m2FluxR1_c,m2FluxR1_e,m2perpFluxR1_c,m2perpFluxR1_e,fluxR_e,
-   incrR_c,incrL_c,fluxAvg_c,varName,fluxAvg_e,momJump_c,momHat_c,momHat_e,hOrder,numBzeros,qPhiDmL_e,qPhiDmR_e,
-   hL_c,hR_c,h_e,hsol,Gphi_c,GphiNoZero_c,Gphi_e,quants,tempVars,qPhiDmL_c,qPhiDmR_c,
-   hParL,hParR,jacL_e,jacDbmagL_e,qFacs_e,incrNonFluxR_c,incrNonFluxL_c,GheatF_c,GheatFNoZero_c,GheatF_e,
-   varNameNonFlux,incr_s,incrNonFlux_s,signs,signsNonFlux
+   incrR_c,incrL_c,fluxAvg_c,varName,fluxAvg_e,momJump_c,momHat_c,momHat_e,qPhiDmL_e,qPhiDmR_e,
+   Gphi_c,GphiNoZero_c,Gphi_e,qPhiDmL_c,qPhiDmR_c,
+   incr_s,signs
    ],
 
   /* Load a p>0 basis just to get the variables. */
@@ -87,23 +86,22 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
 
   printf(fh, "~%"),
   if polyOrder>0 or fvOrder=2 then (
-    printf(fh, "double ~a_~a(const double q_, const double m_, const double kappaPar, const double kappaPerp, const double kperpSq, const double *wL1, const double *dxL1, const double *wR1, const double *dxR1, const double uMaxIn, const double *jacL, const double *rBmagL, const double *jacDbmagL, const double *sMomL1, const double *sMomR1, const double *phiL1, const double *phiR1, double *primMomL1, const double *primMomR1, double *outL, double *outR) ~%{ ~%", funcNm, dirLabel)
+    printf(fh, "double ~a_~a(const double q_, const double m_, const double *wL1, const double *dxL1, const double *wR1, const double *dxR1, const double cMaxIn, const double *jacL, const double *rBmagL, const double *jacDbmagL, const double *sMomL1, const double *sMomR1, const double *phiL1, const double *phiR1, double *primMomL1, const double *primMomR1, const double *csL1, const double *csR1, double *outL, double *outR) ~%{ ~%", funcNm, dirLabel)
   ) else (
     /* When using p=0 and fvOrder=4 use 4-cell recovery for the surface updates. */
-    printf(fh, "double ~a_~a(const double q_, const double m_, const double kappaPar, const double kappaPerp, const double kperpSq, const double *wL2, const double *wL1, const double *dxL1, const double *dxL2, const double *wR2, const double *wR1, const double *dxR1, const double *dxR2, const double uMaxIn, const double *jacL, const double *rBmagL, const double *jacDbmagL, const double *sMomL2, const double *sMomL1, const double *sMomR1, const double *sMomR2, const double *phiL2, const double *phiL1, const double *phiR1, const double *phiR2, double *primMomL2, double *primMomL1, const double *primMomR1, const double *primMomR2, double *outL, double *outR) ~%{ ~%", funcNm, dirLabel)
+    printf(fh, "double ~a_~a(const double q_, const double m_, const double *wL2, const double *wL1, const double *dxL1, const double *dxL2, const double *wR2, const double *wR1, const double *dxR1, const double *dxR2, const double cMaxIn, const double *jacL, const double *rBmagL, const double *jacDbmagL, const double *sMomL2, const double *sMomL1, const double *sMomR1, const double *sMomR2, const double *phiL2, const double *phiL1, const double *phiR1, const double *phiR2, double *primMomL2, double *primMomL1, const double *primMomR1, const double *primMomR2, const double *csL2, const double *csL1, const double *csR1, const double *csR2, double *outL, double *outR) ~%{ ~%", funcNm, dirLabel)
   ),
   printf(fh, "  // q_,m_:              species charge and mass.~%"),
-  printf(fh, "  // kappaPar,kappaPerp: heat conductivity coefficients.~%"),
-  printf(fh, "  // kperpSq:            k_perp^2.~%"),
   printf(fh, "  // wL,wR:              cell-center in left and right cells.~%"),
   printf(fh, "  // dxL,dxR:            cell length in left and right cells.~%"),
-  printf(fh, "  // uMaxIn:             maximum speed.~%"),
+  printf(fh, "  // cMaxIn:             maximum sound speed (or some factor like it).~%"),
   printf(fh, "  // jac:                jacobian.~%"),
   printf(fh, "  // rBmag:              reciprocal of magnetic field magnitude (1/B).~%"),
   printf(fh, "  // jacDbmag:           jacobian divided by B (J/B).~%"),
   printf(fh, "  // sMomL,sMomR:        stepped moments (times Jacobian) in left and right cells.~%"),
   printf(fh, "  // phiL,phiR:          electrostatic potential in left and right cells.~%"),
   printf(fh, "  // primMomL,primMomR:  primitive moments (upar, Tpar, Tperp) in left and right cells.~%"),
+  printf(fh, "  // csL,csR:            sound speed in left and right cells.~%"),
   printf(fh, "  // outL/outR:          output increment in left and right cells.~%"),
   printf(fh, "~%"),
 
@@ -160,7 +158,7 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
   uparR1_c : primMomsR1_c[1],  TparR1_c : primMomsR1_c[2],  TperpR1_c : primMomsR1_c[3],
 
   /* Compute the advective term using the numerical flux:
-       Ghat = (1/2)*(FhatL+FhatR) - (uMaxIn/2)*(fR-fL)
+       Ghat = (1/2)*(FhatL+FhatR) - (cMax/2)*(fR-fL)
      where Fhat is the flux (in the equation) and f is the advected scalar. */
 
   surfIntVars : delete(surfVar,vars),  /* Surface integral variables. */
@@ -221,6 +219,9 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
 
   incrR_c : [],  incrL_c : [],
 
+  /* Add the local max parallel velocity to the global max sound speed. */
+  printf(fh, "  double cMax = cMaxIn + fmax(fabs(~a),fabs(~a));~%", float(expand(subst(surfVar=1, uparL1_e))), float(expand(subst(surfVar=-1, uparR1_e)))),
+
   for mI : 1 thru numMom do (
 
     printf(fh, "  double sMom~aFavg[~a];~%", mI, numSurf),
@@ -237,10 +238,10 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
        it out because it is just part of fhat. f here is the advected scalar. */
     momJump_c : gcfac(calcInnerProdList(surfIntVars, 1, surfBasis, subst(surfVar=-1, momsR1_e[mI])-subst(surfVar=1, momsL1_e[mI]))),
 
-    /* Evaluate surface projection of fhat = (Favg - uMax*fJump)/2. */
+    /* Evaluate surface projection of fhat = (Favg - cMax*fJump)/2. */
     varName : eval_string(sconcat("momHat",mI)), 
     printf(fh, "  double ~a[~a];~%", varName, numSurf),
-    momHat_c : fullratsimp(fluxAvg_c - (uMaxIn/2)*momJump_c),
+    momHat_c : fullratsimp(fluxAvg_c - (cMax/2)*momJump_c),
     writeCExprsNoExpand1(varName, momHat_c),
     printf(fh, "~%"),
     flush_output(fh),
@@ -257,97 +258,37 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
   qPhiDmL_c : calcInnerProdList(vars,1,basis,qPhiDmL_e),
   qPhiDmR_c : calcInnerProdList(vars,1,basis,qPhiDmR_e),
 
-  hOrder : 2*polyOrder+1,
-  numBzeros : makelist(0,i,1,numB),
-  /* Perform the recovery for the heat fluxes for the energy and perpendicular
-     pressure equations. They contribute to the advective increment, but also
-     have a non-flux-like increment which must be added separately. */
-  hParL : TparL1_c,  hPerpL : TperpL1_c+m_*(1/2)*(-kperpSq)*qPhiDmL_c,
-  hParR : TparR1_c,  hPerpR : TperpR1_c+m_*(1/2)*(-kperpSq)*qPhiDmR_c,
-
-  jacL_e      : doExpand1(jacL,basis),
-  jacDbmagL_e : doExpand1(jacDbmagL,basis),
-
-  hL_c : [numBzeros, numBzeros, (kappaPar/2)*hParL+kappaPerp*hPerpL, kappaPerp*hPerpL], 
-  hR_c : [numBzeros, numBzeros, (kappaPar/2)*hParR+kappaPerp*hPerpR, kappaPerp*hPerpR], 
-
-  qFacs_e : [0, 0, jacL_e, jacDbmagL_e],
-
-  incrNonFluxR_c : [numBzeros,numBzeros,numBzeros,numBzeros],
-  incrNonFluxL_c : [numBzeros,numBzeros,numBzeros,numBzeros],
-
-  for mI : 3 thru 4 do (
-    h_e  : calcRecov2CellGen(basisFun,surfVar,vars,polyOrder,dg(hL_c[mI]), dg(hR_c[mI])),
-    hsol : cons(subst(surfVar=0,h_e),makelist(subst(surfVar=0,diff(h_e,surfVar,ord)/(ord!)),ord,1,hOrder)),
-
-    GheatF_c       : fullratsimp(calcInnerProdList(vars,subst(surfVar=1,qFacs_e[mI]),basis,hsol[2])),
-    varName        : eval_string(sconcat("GheatF",mI)), 
-    GheatFNoZero_c : doMakeExprLst(GheatF_c, varName),
-    GheatF_e       : doExpand(GheatFNoZero_c, basis),
-
-    printf(fh, "  double ~a[~a];~%", varName, numB),
-    quants : [dxl,dxr],
-    tempVars : [],
-    tempVars : writeCExprs1noPowers(varName, GheatF_c, quants, tempVars),
-    printf(fh, "~%"),
-
-    /* Calculate contribution to momHat projected on the basis. */
-    momHat_c : fullratsimp(rdSurfVar2L*calcInnerProdList(vars,1,basis,GheatF_e)),
-
-    momHat_e : doExpand(doMakeExprLst(momHat_c, varName), basis),
-    momHat_e : subst(surfVar=1, momHat_e),
-
-    incrR_c[mI] : incrR_c[mI]+calcInnerProdList(surfIntVars, -1, subst(surfVar=-1, basis), momHat_e),
-    incrL_c[mI] : incrL_c[mI]+calcInnerProdList(surfIntVars,  1, subst(surfVar= 1, basis), momHat_e),
-
-    /* Compute the non-advective contribution from this term. */
-    incrNonFluxR_c[mI] : fullratsimp(-calcInnerProdList(surfIntVars, -subst(surfVar=1,qFacs_e[mI]), subst(surfVar=-1, basisPrime), hsol[1])),
-
-    incrNonFluxL_c[mI] : fullratsimp(-calcInnerProdList(surfIntVars,  subst(surfVar=1,qFacs_e[mI]), subst(surfVar= 1, basisPrime), hsol[1]))
-  ),
-
   /* Write out the increments (mod some dimensional factors). */
   for mI : 1 thru numMom do (
     varName : eval_string(sconcat("incr",mI)),
     printf(fh, "  double ~a[~a];~%", varName, numB),
     writeCExprsNoExpand1(varName, incrR_c[mI]),
-    printf(fh, "~%"),
-
-    varNameNonFlux : eval_string(sconcat("incrNonFlux",mI)),
-    printf(fh, "  double ~a[~a];~%", varNameNonFlux, numB),
-    writeCExprsNoExpand1(varNameNonFlux, incrNonFluxR_c[mI]),
     printf(fh, "~%")
   ),
 
   /* Write out the contributions to each moment equation. */
   for mI : 1 thru numMom do (
-    varName        : eval_string(sconcat("incr",mI)),
-    varNameNonFlux : eval_string(sconcat("incrNonFlux",mI)),
-    incr_s         : makelist(varName[i-1], i, 1, numB),
-    incrNonFlux_s  : makelist(varNameNonFlux[i-1], i, 1, numB),
+    varName : eval_string(sconcat("incr",mI)),
+    incr_s  : makelist(varName[i-1], i, 1, numB),
     /* Don't do coefficients where the increment is zero */
     for i : 1 thru numB do (
-      if (incrR_c[mI][i] = 0)        then incr_s[i]        : 0,
-      if (incrNonFluxR_c[mI][i] = 0) then incrNonFlux_s[i] : 0
+      if (incrR_c[mI][i] = 0) then incr_s[i] : 0
     ),
-    writeCCompIncrExprsNoExpand1(outR, mI, rdSurfVar2R*incr_s+rdSurfVarSq4R*incrNonFlux_s),
+    writeCCompIncrExprsNoExpand1(outR, mI, rdSurfVar2R*incr_s),
     printf(fh, "~%"),
     flush_output(fh),
 
     /* Contribution to left cell (surfVar=1) is same except for signs. */
-    signs : makelist(1,i,1,numB),  signsNonFlux : makelist(1,i,1,numB),
+    signs : makelist(1,i,1,numB),
     for i : 1 thru numB do (
-      if incrR_c[mI][i]=0        then false else signs[i]        : fullratsimp(incrL_c[mI][i]/incrR_c[mI][i]),
-      if incrNonFluxR_c[mI][i]=0 then false else signsNonFlux[i] : fullratsimp(incrNonFluxL_c[mI][i]/incrNonFluxR_c[mI][i])
+      if incrR_c[mI][i]=0 then false else signs[i] : fullratsimp(incrL_c[mI][i]/incrR_c[mI][i])
     ),
-    incr_s        : makelist(signs[i]*varName[i-1], i, 1, numB),
-    incrNonFlux_s : makelist(signsNonFlux[i]*varNameNonFlux[i-1], i, 1, numB),
+    incr_s : makelist(signs[i]*varName[i-1], i, 1, numB),
     /* Don't do coefficients where the increment is zero */
     for i : 1 thru numB do (
-      if (incrR_c[mI][i] = 0)        then incr_s[i]        : 0,
-      if (incrNonFluxR_c[mI][i] = 0) then incrNonFlux_s[i] : 0
+      if (incrR_c[mI][i] = 0) then incr_s[i] : 0
     ),
-    writeCCompIncrExprsNoExpand1(outL, mI, rdSurfVar2L*incr_s+rdSurfVarSq4L*incrNonFlux_s),
+    writeCCompIncrExprsNoExpand1(outL, mI, rdSurfVar2L*incr_s),
     printf(fh, "~%"),
     flush_output(fh)
   ),
@@ -357,10 +298,10 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
      waves (e.g. imagine that upar=0, but one still has a pressure
      disturbance propagating). */
   zMid    : makelist(vars[d]=0, d, 1, dim),
-  Tmid    : (1/3)*(subst(zMid,TparL1_e) + 2*subst(zMid,TperpL1_e)),
-  uMidOut : float(expand(fullratsimp(subst(zMid,uparL1_e) + sqrt(Tmid/m_)))),
+  csL1_e  : doExpand1(csL1, basis),
+  cMidOut : float(expand(fullratsimp(subst(zMid,csL1_e)))),
 
-  printf(fh, "  return fabs(~a); ~%", uMidOut),
+  printf(fh, "  return ~a; ~%", cMidOut),
 
   printf(fh, "}~%")
 
@@ -368,8 +309,6 @@ calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
 
 calcGFsurfKernels(fh, funcNm, dim, polyOrder, basisFun) := block([dir],
   for dir : 1 thru dim do (
-
     calcUpdateInDir(dir, fh, funcNm, dim, polyOrder, basisFun)
-
   )
 )$

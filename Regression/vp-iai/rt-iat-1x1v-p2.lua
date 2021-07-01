@@ -24,12 +24,12 @@ end
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = 30.0,         -- End time.
-   nFrame      = 1,           -- Number of output frames.
+   tEnd        = 30.0,          -- End time.
+   nFrame      = 1,             -- Number of output frames.
 
    lower       = {0.0},         -- Configuration space lower left.
    upper       = {1.0},         -- Configuration space upper right.
-   cells       = {64},         -- Configuration space cells.
+   cells       = {64},          -- Configuration space cells.
    basis       = "serendipity", -- One of "serendipity" or "maximal-order".
    polyOrder   = 2,             -- Polynomial order.
    timeStepper = "rk3",         -- One of "rk2" or "rk3".
@@ -60,8 +60,7 @@ plasmaApp = Plasma.App {
       end,
       evolve = true, -- Evolve species?
 
-      diagnosticMoments = { "M0", "M1i"},
-      diagnosticIntegratedMoments = { "intM0", "intM1i"},
+      diagnostics = { "M0", "M1i", "intM0", "intM1i" },
    },
 
    -- Ions.
@@ -80,8 +79,7 @@ plasmaApp = Plasma.App {
       end,
       evolve = true, -- Evolve species?
 
-      diagnosticMoments = { "M0", "M1i"},
-      diagnosticIntegratedMoments = { "intM0", "intM1i"},
+      diagnostics = { "M0", "M1i", "intM0", "intM1i" },
    },   
 
    -- Field solver.

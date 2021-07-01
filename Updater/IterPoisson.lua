@@ -129,11 +129,12 @@ function IterPoisson:init(tbl)
 
    -- function to allocate fields
    local function getField(numComponents)
-      return DataStruct.Field {
+      local f = DataStruct.Field {
 	 onGrid = self.onGrid,
 	 numComponents = numComponents,
 	 ghost = {1, 1},
       }
+      return f
    end
 
    local numBasis = self.basis:numBasis()
@@ -392,19 +393,19 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
       errHist:appendData(numStages*step, { err } )      
 
       if self.verbose then
-	 self.log(string.format("  Step %d, dt = %g. Res. norm = %g\n", step, dt, err))
+         self.log(string.format("  Step %d, dt = %g. Res. norm = %g\n", step, dt, err))
       end
 
       if err < self.errEps or step>=self.maxSteps then
-   	 isDone = true
-	 break
+         isDone = true
+         break
       end      
 
       -- take one iteration
       if self.stepper == "RKL1" then
-	 self:sts(dt, f, self.fDiff0, fNew, self.fact)
+         self:sts(dt, f, self.fDiff0, fNew, self.fact)
       else
-	 self:richard2(dt, self.fJ1, f, self.fDiff0, fNew)
+         self:richard2(dt, self.fJ1, f, self.fDiff0, fNew)
       end
       self.fJ1:copy(f) -- for richard2 scheme
       f:copy(fNew)
@@ -412,14 +413,14 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
       -- check if we should store the solution for use in
       -- extrapolation
       if step % self.extrapolateInterval == 0 then
-   	 fE1:copy(fE2); fE2:copy(f)
-   	 errE1 = errE2; errE2 = err
-   	 numPrevStored = numPrevStored + 1
-   	 if numPrevStored > 1 then -- need two values to extrapolate
-   	    local eps = errE2/errE1 -- extrapolation factor
-   	    extraHist:appendData(numPrevStored-1, { eps } )
-   	    f:combine(1.0, fE2, eps, fE2, -eps, fE1)
-   	 end
+         fE1:copy(fE2); fE2:copy(f)
+         errE1 = errE2; errE2 = err
+         numPrevStored = numPrevStored + 1
+         if numPrevStored > 1 then -- need two values to extrapolate
+            local eps = errE2/errE1 -- extrapolation factor
+            extraHist:appendData(numPrevStored-1, { eps } )
+            f:combine(1.0, fE2, eps, fE2, -eps, fE1)
+         end
       end
 
       step = step+1
@@ -427,9 +428,9 @@ function IterPoisson:_advance(tCurr, inFld, outFld)
 
    if self.verbose then
       self.log(
-	 string.format(
-	    " IterPoisson took %g sec, %d stages\n", Time.clock()-tmStart, self.numCalls*numStages
-	 )
+         string.format(
+            " IterPoisson took %g sec, %d stages\n", Time.clock()-tmStart, self.numCalls*numStages
+         )
       )      
    end
 

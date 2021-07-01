@@ -4,14 +4,14 @@ load(stringproc)$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 3$
+maxPolyOrder_Ser : 2$
 minCdim_Ser : 1$
 minVdim_Ser : 1$    /* but see v loop below. */
-maxCdim_Ser : 0$
-maxVdim_Ser : 0$
+maxCdim_Ser : 3$
+maxVdim_Ser : 3$
 
 /* Maximal order basis. */
-maxPolyOrder_Max : 3$
+maxPolyOrder_Max : 2$
 minCdim_Max : 1$
 minVdim_Max : 1$    /* but see v loop below. */
 maxCdim_Max : 0$
@@ -21,8 +21,8 @@ maxVdim_Max : 0$
 maxPolyOrder_Tensor : 2$
 minCdim_Tensor : 1$
 minVdim_Tensor : 1$
-maxCdim_Tensor : 1$
-maxVdim_Tensor : 2$
+maxCdim_Tensor : 0$
+maxVdim_Tensor : 0$
 
 gkVdims      : [[1,2], [2], [2]]$
 
@@ -43,7 +43,6 @@ for bInd : 1 thru length(bName) do (
     for v : max(c,minVdim[bInd]) thru maxVdim[bInd] do (
       maxPolyOrderB : maxPolyOrder[bInd],
       if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
-      if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
 
       for polyOrder : 1 thru maxPolyOrderB do (
     
@@ -73,7 +72,6 @@ for bInd : 1 thru length(bName) do (
 
       maxPolyOrderB : maxPolyOrder[bInd],
       if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
-      if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
 
       for polyOrder : 1 thru maxPolyOrderB do (
 

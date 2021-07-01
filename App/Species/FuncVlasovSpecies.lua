@@ -81,7 +81,7 @@ function FuncVlasovSpecies:createSolver()
    }
 end
 
-function FuncVlasovSpecies:createDiagnostics()
+function FuncVlasovSpecies:createDiagnostics(field)
 end
 
 function FuncVlasovSpecies:initDist()

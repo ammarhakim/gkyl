@@ -25,6 +25,7 @@ function SpeciesBase:setCfl(cfl) end
 function SpeciesBase:setDtGlobal(dtGlobal) end
 function SpeciesBase:getNdim() return 1 end
 function SpeciesBase:createSolver() end
+function SpeciesBase:createCouplingSolver() end
 function SpeciesBase:createDiagnostics() end
 function SpeciesBase:rkStepperFields() return { nil } end
 function SpeciesBase:suggestDt() end
@@ -35,11 +36,17 @@ function SpeciesBase:initCrossSpeciesCoupling() end
 function SpeciesBase:calcCouplingMoments() end
 function SpeciesBase:write(tm) end
 function SpeciesBase:writeRestart(tm) end
-function SpeciesBase:readRestart() return 0.0 end
+function SpeciesBase:readRestart(field, externalField) return 0.0 end
 function SpeciesBase:advance(tCurr, species, emIn, inIdx, outIdx) return true, GKYL_MAX_DOUBLE end
+function SpeciesBase:advanceCrossSpeciesCoupling(tCurr, species, emIn, inIdx, outIdx) end
 function SpeciesBase:updateInDirection(dir, tCurr, dt, fIn, fOut) return true, GKYL_MAX_DOUBLE end
-function SpeciesBase:applyBcIdx(tCurr, idx) end
-function SpeciesBase:applyBc(tCurr, fld) end
+function SpeciesBase:applyBcIdx(tCurr, field, externalField, inIdx, outIdx) end
+function SpeciesBase:applyBc(tCurr, field, externalField, inIdx, outIdx) end
+function SpeciesBase:applyBcInitial(tCurr, field, externalField, inIdx, outIdx)
+   -- This function is a temporary hack to make initial :applyBc call in PlasmaOnCartGrid work
+   -- with both KineticSpecies/FluidSpecies and MomentSpecies.
+   self:applyBc(tCurr, field, externalField, inIdx, outIdx)
+end
 function SpeciesBase:totalSolverTime() return 0.0 end
 function SpeciesBase:momCalcTime() return 0.0 end
 function SpeciesBase:intMomCalcTime() return 0.0 end

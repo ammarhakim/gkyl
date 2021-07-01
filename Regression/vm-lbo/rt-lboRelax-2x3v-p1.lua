@@ -14,20 +14,12 @@ vMin      = -2.0                            -- Min velocity in grid.
 vMax      =  2.0                            -- Max velocity in grid.
 Nx        = {2,2}                           -- Number of cells in configuration space.
 Nv        = {16,16,16}                      -- Number of cells in velocity space.
--- The next three are for p1, v\in[-2,2], 2x16, rectangular IC.
-nMr  = 1.0                                  -- Density of Maxwellian and rectangle. 
-uMr  = {0.0,0.0,0.0}                        -- Flow speed of Maxwellian and rectangle. 
-vtMr = math.sqrt(0.0208333333+3.333e-11)    -- Thermal speed of Maxwellian and rectangle.
 -- Large bump on tail of Maxwellian:
 vt   = math.sqrt(1.0/24.0)                  -- Thermal speed of Maxwellian in bump.
 ab   = 4*math.sqrt(0.1)                     -- Amplitude of bump.
 ub   = {2*math.sqrt(1/3),0.0,0.0}           -- Location of bump.
 sb   = 0.12                                 -- Softening factor to avoid divergence.
 vtb  = 1.0/math.sqrt(2.0)                   -- Thermal speed of Maxwellian in bump.
--- These are for p1, v\in[-2,2], 2x16, bump in tail IC. 
-nMb  = 3.356702993+2.9312e-12               -- Density of Maxwellian and bump. 
-uMb  = {0.51706459056+3.253e-12,0.0,0.0}    -- Flow speed of Maxwellian and bump. 
-vtMb = math.sqrt(0.2394147396+8.02e-11)     -- Thermal speed of Maxwellian and bump.
 
 -- Top hat function without drift (u=0).
 local function topHat(x, y, vx, vy, vz, n, ux, uy, uz, vth)
@@ -74,9 +66,9 @@ plasmaApp = Plasma.App {
    square = Plasma.Species {
       charge = 0.0, mass = 1.0,
       -- Velocity space grid.
-      lower      = {vMin,vMin,vMin},
-      upper      = {vMax,vMax,vMax},
-      cells      = Nv,
+      lower = {vMin,vMin,vMin},
+      upper = {vMax,vMax,vMax},
+      cells = Nv,
       -- Initial conditions.
       init = function (t, xn)
 	 local x, y, vx, vy, vz = xn[1], xn[2], xn[3], xn[4], xn[5]
@@ -86,7 +78,7 @@ plasmaApp = Plasma.App {
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
-      diagnosticMoments = { "M0", "M1i", "M2" },
+      diagnostics = { "M0", "M1i", "M2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'square'},
@@ -94,34 +86,13 @@ plasmaApp = Plasma.App {
       },
    },
 
-  -- -- Maxwellian for comparison with rectangular IC.
-  -- maxwellSquare = Plasma.Species {
-  --    charge = 0.0, mass = 1.0,
-  --    -- Velocity space grid.
-  --    lower      = {vMin,vMin,vMin},
-  --    upper      = {vMax,vMax,vMax},
-  --    cells      = Nv,
-  --    -- Initial conditions.
-  --    init = Plasma.MaxwellianProjection {
-  --       density         = nMr,
-  --       driftSpeed      = {uMr,0.0,0.0},
-  --       temperature     = vtMr^2,
-  --       exactScaleM0    = false,
-  --       exactLagFixM012 = true,
-  --    },
-  --    -- Evolve species?
-  --    evolve = false,
-  --    -- Diagnostic moments.
-  --    diagnosticMoments = { "M0", "M1i", "M2" },
-  -- },
-
    -- Neutral species with a bump in the tail.
    bump = Plasma.Species {
       charge = 0.0, mass = 1.0,
       -- Velocity space grid.
-      lower      = {vMin,vMin,vMin},
-      upper      = {vMax,vMax,vMax},
-      cells      = Nv,
+      lower = {vMin,vMin,vMin},
+      upper = {vMax,vMax,vMax},
+      cells = Nv,
       -- Initial conditions.
       init = function (t, xn)
          local x, y, vx, vy, vz = xn[1], xn[2], xn[3], xn[4], xn[5]
@@ -131,7 +102,7 @@ plasmaApp = Plasma.App {
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
-      diagnosticMoments = { "M0", "M1i", "M2" },
+      diagnostics = { "M0", "M1i", "M2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
@@ -139,27 +110,6 @@ plasmaApp = Plasma.App {
       },
    },
 
-  -- -- Maxwellian for comparison with bump in tail IC.
-  -- maxwellBump = Plasma.Species {
-  --    charge = 0.0, mass = 1.0,
-  --    -- Velocity space grid.
-  --    lower      = {vMin,vMin,vMin},
-  --    upper      = {vMax,vMax,vMax},
-  --    cells      = Nv,
-  --    -- Initial conditions.
-  --    init = Plasma.MaxwellianProjection {
-  --       density         = nMb,
-  --       driftSpeed      = {uMb,0.0,0.0},
-  --       temperature     = vtMb^2,
-  --       exactScaleM0    = false,
-  --       exactLagFixM012 = true,
-  --    },
-  --    -- Evolve species?
-  --    evolve = false,
-  --    -- Diagnostic moments.
-  --    diagnosticMoments = { "M0", "M1i", "M2" },
-  -- },
-
 }
--- run application
+-- Run application.
 plasmaApp:run()

@@ -156,10 +156,10 @@ function VmChargeExchange:advance(tCurr, fIn, species, fRhsOut)
    local ionM0     = species[self.ionNm]:fluidMoments()[1]
    local ionDistF  = species[self.ionNm]:getDistF()
    
-   species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
-   species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
+   species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
+   species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
    self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
-   species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
+   species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
 
    if (self.speciesName == self.ionNm) then
       fRhsOut:accumulate(1.0,self.sourceCX)

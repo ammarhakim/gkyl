@@ -62,8 +62,7 @@ plasmaApp = Plasma.App {
       end,
       evolve = true, -- Evolve species?
  
-      diagnosticMoments           = { "M0", "M1i" },
-      diagnosticIntegratedMoments = { "intM0", "intM1i"},
+      diagnostics = { "M0", "M1i", "intM0", "intM1i" },
    },
  
    -- Ions.
@@ -82,14 +81,13 @@ plasmaApp = Plasma.App {
       end,
       evolve = true,    -- Evolve species?
  
-      diagnosticMoments           = { "M0", "M1i", "M2" },
-      diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2Flow", "intM2Thermal", "intL2" },
+      diagnostics = { "M0", "M1i", "M2", "intM0", "intM1i", "intM2Flow", "intM2Thermal", "intL2" },
    },
 
    -- Field solver.
    field = Plasma.Field {
       epsilon0 = 1.0,
-      evolve = true, -- Evolve field?
+      evolve   = true, -- Evolve field?
       hasMagneticField = false,
    },
  

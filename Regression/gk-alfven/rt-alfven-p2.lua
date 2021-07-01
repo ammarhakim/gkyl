@@ -72,8 +72,7 @@ plasmaApp = Plasma.App {
 
    -- Gyrokinetic electrons.
    electron = Plasma.Species {
-      charge = qe,
-      mass = me,
+      charge = qe,  mass = me,
       -- Velocity space grid.
       lower = {-6*vte},
       upper = { 6*vte},
@@ -104,15 +103,14 @@ plasmaApp = Plasma.App {
          exactScaleM0 = true,
       },
       evolve = true, -- Evolve species?
-      diagnosticMoments = {"GkM0", "GkM1", perturbed=true},
+      diagnostics = {"perturbed", "M0", "M1"},
    },
 
    ion = Plasma.Species {
-      charge = qi,
-      mass = mi,
+      charge = qi,  mass = mi,
       -- Velocity space grid.
       lower = {-6*vti},
-      upper = {6*vti},
+      upper = { 6*vti},
       cells = {32},
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
@@ -127,7 +125,7 @@ plasmaApp = Plasma.App {
          exactScaleM0 = true,
       },
       evolve = true, -- Evolve species?
-      diagnosticMoments = {"GkM0", "GkM1"},
+      diagnostics = {"M0", "M1"},
    },
 
    -- Field solver.

@@ -1,150 +1,103 @@
--- Gkyl ------------------------------------------------------------------------
---
--- Apply boundary conditions at stair-stepped boundaries.
---
---    _______     ___
--- + 6 @ |||| # P ||| +
---------------------------------------------------------------------------------
--- System libraries
-local xsys = require "xsys"
-
--- Gkyl libraries
-local Alloc        = require "Lib.Alloc"
-local Lin          = require "Lib.Linalg"
+------------------------------------------------------------------------
+-- Boundary condition updater for embedded, stair-stepped boundaries. --
+------------------------------------------------------------------------
+local Proto = require "Lib.Proto"
+local UpdaterBase = require "Updater.Base"
+local Lin = require "Lib.Linalg"
 local LinearDecomp = require "Lib.LinearDecomp"
-local Proto        = require "Lib.Proto"
-local Range        = require "Lib.Range"
-local UpdaterBase  = require "Updater.Base"
 
--- System libraries.
-local ffi  = require "ffi"
-local xsys = require "xsys"
-local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
-"new, copy, fill, sizeof, typeof, metatype")
+local isGhost = function(inOutPtr) return inOutPtr[1] < 0 end
 
--- Helper object for indexing 1D slice data. The slice spans from
--- [lower, upper] (inclusive) and has `stride` pieces of data stored
--- at each location.
-local createSliceData = function (dtype)
-   local slice_mt = {
-      __new = function (self, lower, upper, stride)
-         local n = upper-lower+1
-         local v = new(self)
-         v._data = Alloc.malloc(typeof(dtype)*n*stride)
-         v._sz, v._stride, v._lower = n*stride, stride, lower
-         return v
-      end,
-      __index = function (self, k)
-         return self._data+(k-self._lower)*self._stride
-      end,
-      __gc = function (self)
-         Alloc.free(self._data)
-      end,
-   }
-   return metatype(typeof(string.format("struct {int _sz, _stride, _lower; %s *_data; }", dtype)), slice_mt)
-end
-local SliceDataBool = createSliceData("bool")
-
--- Boundary condition updater
 local StairSteppedBc = Proto(UpdaterBase)
 
-local isOutside = function (inOutPtr)
-   return inOutPtr[1] < 0
-end
-
 function StairSteppedBc:init(tbl)
-   StairSteppedBc.super.init(self, tbl) -- setup base object
+   StairSteppedBc.super.init(self, tbl)
+   local pfx = "Updater.StairSteppedBc: "
 
-   self._isFirst = true -- will be reset first time _advance() is called
+   self.grid = assert(tbl.onGrid, pfx .. "Must specify grid with 'onGrid'.")
+   self.dir = assert(tbl.dir,
+                     pfx .. "Must specify direction to apply BCs with 'dir'.")
+   self.bcList = assert(tbl.boundaryConditions,
+                        pfx .. "Must specify 'boundaryConditions'.")
+   self.inOut = assert(tbl.inOut,
+                       pfx .. "Must specify mask field with 'inOut'.")
 
-   self._grid = assert(tbl.onGrid, "Updater.StairSteppedBc: Must specify grid to use with 'onGrid''")
-   self._dir  = assert(tbl.dir, "Updater.StairSteppedBc: Must specify direction to apply BCs with 'dir'")
-
-   self._bcList = assert(
-   tbl.boundaryConditions, "Updater.StairSteppedBc: Must specify boundary conditions to apply with 'boundaryConditions'")
-
-   self._localRange = tbl.onGrid:localRange()
-   local localRange = self._localRange
-
-   self._inOut = assert(tbl.inOut, "Updater.StairSteppedBc: Must specify mask field with 'inOut'")
-
-   local l, u = localRange:lower(self._dir)-2, localRange:upper(self._dir)+2
-   self._isGhostL = SliceDataBool(l, u, 1);
-   self._isGhostR = SliceDataBool(l, u, 1);
+   local localRange = self.grid:localRange()
+   local localPerpRange = localRange:shorten(self.dir)
+   self.perpRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = localPerpRange,
+      numSplit = self.grid:numSharedProcs(),
+      threadComm = self:getSharedComm()
+   }
 end
 
 function StairSteppedBc:_advance(tCurr, inFld, outFld)
-   local grid = self._grid
-   local qOut = assert(outFld[1], "StairSteppedBc.advance: Must-specify an output field")
-   
-   local dir = self._dir
+   local qOut = assert(outFld[1],
+                       "StairSteppedBc.advance: Must-specify an output field.")
+   local inOut = self.inOut
+   local grid = self.grid
+   local dir = self.dir
+
    local localRange = grid:localRange()
+   local lower, upper = localRange:lower(dir), localRange:upper(dir)
 
-   if self._isFirst then
-      self._perpRangeDecomp = LinearDecomp.LinearDecompRange {
-         range      = localRange:shorten(dir), -- range orthogonal to 'dir'
-         numSplit   = grid:numSharedProcs(),
-         threadComm = self:getSharedComm()
-      }
-   end
-
-   -- get pointers to (re)use inside inner loop [G: Ghost, S: Skin]
-   local qG, qS  = qOut:get(1), qOut:get(1)
-   local idxL    = Lin.IntVec(grid:ndim())
-   local idxR    = Lin.IntVec(grid:ndim())
+   -- Pointers and indices to be reused.
+   local qGhost, qSkin = qOut:get(1), qOut:get(1)
+   local idxL = Lin.IntVec(grid:ndim())
+   local idxR = Lin.IntVec(grid:ndim())
    local indexer = qOut:genIndexer()
 
-   local inOut          = self._inOut
    local inOutL, inOutR = inOut:get(1), inOut:get(1)
-   local inOutIdxr      = inOut:genIndexer()
-   local isGhostL       = self._isGhostL
-   local isGhostR       = self._isGhostR
+   local inOutIndexer = inOut:genIndexer()
 
-   local tId = self._grid:subGridSharedId() -- local thread ID
+   local xcSkin = Lin.Vec(grid:ndim())
+   local xcGhost = Lin.Vec(grid:ndim())
 
-   -- outer loop is over directions orthogonal to 'dir' and inner
-   -- loop is over 1D slice in `dir`.
-   for idx in self._perpRangeDecomp:colMajorIter(tId) do
+   -- Loop over directions perpendicular to 'dir'.
+   local tId = grid:subGridSharedId()
+   for idx in self.perpRangeDecomp:colMajorIter(tId) do
       idx:copyInto(idxL)
       idx:copyInto(idxR)
 
-      -- loop over edges
-      for i = localRange:lower(dir)-1, localRange:upper(dir)+1 do
+      -- Loop over 1D slice in `dir`.
+      for i = lower - 1, upper + 1 do
          idxL[dir] = i
-         idxR[dir] = i + 1
-         inOut:fill(inOutIdxr(idxL), inOutL)
-         inOut:fill(inOutIdxr(idxR), inOutR)
-         local isOutsideL = isOutside(inOutL)
-         local isOutsideR = isOutside(inOutR)
-         isGhostL[i][0] =  isOutsideL and not isOutsideR
-         isGhostR[i][0] = not isOutsideL and isOutsideR
-      end
+         inOut:fill(inOutIndexer(idxL), inOutL)
+         local leftCellIsGhost = isGhost(inOutL)
 
-      -- loop over edges
-      for i = localRange:lower(dir)-1, localRange:upper(dir)+1 do
-         idxL[dir] = i
          idxR[dir] = i + 1
-         if isGhostL[i][0] or isGhostR[i][0] then
-            if (isGhostL[i][0]) then
-               qOut:fill(indexer(idxL), qG)
-               qOut:fill(indexer(idxR), qS)
-            else -- right cell is ghost
-               qOut:fill(indexer(idxR), qG)
-               qOut:fill(indexer(idxL), qS)
+         inOut:fill(inOutIndexer(idxR), inOutR)
+         local rightCellIsGhost = isGhost(inOutR)
+
+         local ghostSkin = leftCellIsGhost and (not rightCellIsGhost)
+         local skinGhost = (not leftCellIsGhost) and rightCellIsGhost
+
+         if ghostSkin or skinGhost then
+            local idxGhost, idxSkin
+            if (ghostSkin) then
+               idxGhost, idxSkin = idxL, idxR
+            else -- ghostSkin
+               idxGhost, idxSkin = idxR, idxL
             end
-            for _, bc in ipairs(self._bcList) do
-               bc(dir, tCurr, idxS, qS, qG) -- TODO: PASS COORDINATES
+
+            qOut:fill(indexer(idxGhost), qGhost)
+            grid:setIndex(idxGhost)
+            grid:cellCenter(xcGhost)
+
+            qOut:fill(indexer(idxSkin), qSkin)
+            grid:setIndex(idxSkin)
+            grid:cellCenter(xcSkin)
+
+            for _, bc in ipairs(self.bcList) do
+               bc(dir, tCurr, idxSkin, qSkin, qGhost, xcGhost, xcSkin)
             end
          end
       end
    end
 
-   self._isFirst = false
    return true, GKYL_MAX_DOUBLE
 end
 
-function StairSteppedBc:getDir()
-   return self._dir
-end
+function StairSteppedBc:getDir() return self.dir end
 
 return StairSteppedBc

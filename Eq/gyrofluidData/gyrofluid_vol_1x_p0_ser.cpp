@@ -1,10 +1,8 @@
 #include <gyrofluid_mod_decl.h>
 
-double gyrofluid_vol_1x_p0_ser(const double q_, const double m_, const double kappaPar, const double kappaPerp, const double kperpSq, const double *w, const double *dx, const double *jac, const double *rBmag, const double *jacDbmag, const double *dBdz, const double *sMom, const double *phi, double *primMom, double *out) 
+double gyrofluid_vol_1x_p0_ser(const double q_, const double m_, const double *w, const double *dx, const double *jac, const double *rBmag, const double *jacDbmag, const double *dBdz, const double *sMom, const double *phi, const double *primMom, const double *cs, double *out) 
 { 
   // q_,m_:   species charge and mass.
-  // kappa:   heat conductivity coefficients.
-  // kperpSq: k_perp^2.
   // w:       cell-center.
   // dx:      cell length.
   // uMaxIn:  maximum speed.
@@ -14,6 +12,7 @@ double gyrofluid_vol_1x_p0_ser(const double q_, const double m_, const double ka
   // sMom:    stepped moments (times Jacobian).
   // phi:     electrostatic potential.
   // primMom: primitive moments (upar, Tpar, Tperp).
+  // cs:      sound speed.
   // out:     output increment.
 
   double wx = w[0];
@@ -25,5 +24,5 @@ double gyrofluid_vol_1x_p0_ser(const double q_, const double m_, const double ka
 
 
 
-  return fabs((0.4854917717073234*sqrt((2.0*primMom[2])/m_+primMom[1]/m_)+0.7071067811865475*primMom[0])*rdx2) + 1.0*fmax(kappaPar*rdxSq4,kappaPerp*rdxSq4); 
+  return rdx2*(fabs(0.7071067811865475*primMom[0]) + 0.7071067811865475*cs[0]); 
 }

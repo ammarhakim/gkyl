@@ -27,4 +27,6 @@ return {
    "./mom-axisymmetric/rt-phmaxwell-axisymmetric.lua",
    "./mom-axisymmetric/rt-5m-dean-axisymmetric.lua",
    "./mom-axisymmetric/rt-5m-mirror.lua",
+   "./gk-neutrals/rt-recycleBCs-1x2v-p2.lua",
+   "./gk-neutrals/rt-nstx-neut-lowRes-p2.lua",
 }
