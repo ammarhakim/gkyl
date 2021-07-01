@@ -78,8 +78,9 @@ function VlasovSpecies:fullInit(appTbl)
    end
 
    -- numVelFlux used for selecting which type of numerical flux function to use in velocity space
-   -- defaults to "penalty" in Eq object, supported options: "penalty," "recovery"
-   -- only used for DG Maxwell.
+   -- defaults to "penalty" in Eq object, supported options: "penalty," "recovery," and "upwind"
+   -- Note: "recovery" and "upwind" only supported by p=1 Serendipity and p=2 Tensor
+   -- Note: only used for DG Vlasov-Maxwell.
    self.numVelFlux = tbl.numVelFlux
 end
 

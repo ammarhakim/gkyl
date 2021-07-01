@@ -21,7 +21,7 @@ maxPolyOrder_Tensor : 3$
 minCdim_Tensor : 1$
 minVdim_Tensor : 1$    /* see begining of v loop below though. */
 maxCdim_Tensor : 2$
-maxVdim_Tensor : 2$
+maxVdim_Tensor : 3$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -76,6 +76,9 @@ printf(fh, "#define VLASOV_MOD_DECL_H ~%")$
 printf(fh, "~%")$
 printf(fh, "#include <GkylCudaConfig.h> ~%")$
 printf(fh, "#include <cmath> ~%")$
+printf(fh, "~%")$
+printf(fh, "template <typename T> int sgn(T val) { ~%")$
+printf(fh, "  return (T(0) < val) - (val < T(0)); ~%}~%")$
 printf(fh, "~%")$
 printf(fh, "extern \"C\" { ~%")$
 printf(fh, "~%")$
