@@ -24,13 +24,11 @@ local Diffusion = Proto(CollisionsBase)
 
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
-function Diffusion:init(tbl)
-   self.tbl = tbl
-end
+function Diffusion:init(tbl) self.tbl = tbl end
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
-function Diffusion:fullInit(speciesTbl)
+function Diffusion:fullInit(speciesTbl, appTbl)
    local tbl = self.tbl -- Previously stored table.
 
    -- Diffusion coefficient. This can be a single number, or a table of numbers and/or functions:
@@ -47,6 +45,19 @@ function Diffusion:fullInit(speciesTbl)
    self.diffOrder = tbl.order                 -- Read the diffusion operator order.
 
    self.usePositivity = speciesTbl.applyPositivity   -- Use positivity preserving algorithms.
+
+   -- Decide whether to use an explicit step for this term, or a super-time-stepping (sts) integrator.
+   local treat = tbl.treatment or "explicit"
+   if treat == "explicit" then
+      self.advanceFunc = function(tCurr, fIn, species, fRhsOut) Diffusion["advanceImp"](self, tCurr, fIn, species, fRhsOut) end
+      self.splitAdvanceFunc = function(tCurr, fIn, species, fRhsOut) end
+   elseif treat == "sts" then
+      assert(appTbl.timeStepper == "rk3opSplit", "App.Diffusion: 'sts' treatment requires 'timeStepper=rk3opSplit'.")
+      self.splitAdvanceFunc = function(tCurr, fIn, species, fRhsOut) Diffusion["advanceImp"](self, tCurr, fIn, species, fRhsOut) end
+      self.advanceFunc = function(tCurr, fIn, species, fRhsOut) end
+   else
+      assert(false, "App.Diffusion: entry 'treatment' must be either 'explicit' or 'sts'.")
+   end
 
    self.cfl = 0.0   -- Will be replaced.
 
@@ -181,19 +192,22 @@ function Diffusion:createSolver()
    }
 end
 
-function Diffusion:advance(tCurr, fIn, species, fRhsOut)
-
+function Diffusion:advanceImp(tCurr, fIn, species, fRhsOut)
    -- Compute increment from diffusion and accumulate it into output.
    self.collisionSlvr:advance(tCurr, {fIn}, {self.collOut})
 
    local tmNonSlvrStart = Time.clock()
    -- Barrier over shared communicator before accumulate
-   if self.phaseGrid then
-      Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
-   end
+   if self.phaseGrid then Mpi.Barrier(self.phaseGrid:commSet().sharedComm) end
 
    fRhsOut:accumulate(1.0, self.collOut)
    self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
+end
+function Diffusion:advance(tCurr, fIn, species, fRhsOut)
+   self.advanceFunc(tCurr, fIn, species, fRhsOut)
+end
+function Diffusion:splitAdvance(tCurr, fIn, species, fRhsOut)
+   self.splitAdvanceFunc(tCurr, fIn, species, fRhsOut)
 end
 
 function Diffusion:write(tm, frame)
@@ -205,12 +219,8 @@ function Diffusion:totalTime()
    return self.collisionSlvr.totalTime + self.timers.nonSlvr
 end
 
-function Diffusion:slvrTime()
-   return self.collisionSlvr.totalTime
-end
+function Diffusion:slvrTime() return self.collisionSlvr.totalTime end
 
-function Diffusion:nonSlvrTime()
-   return self.timers.nonSlvr
-end
+function Diffusion:nonSlvrTime() return self.timers.nonSlvr end
 
 return Diffusion

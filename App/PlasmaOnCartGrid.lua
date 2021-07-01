@@ -694,11 +694,11 @@ local function buildApplication(self, tbl)
       local tmAccounted = 0.0
       log(string.format("\n\nTotal number of time-steps %s\n", appStatus.step))
       log(string.format("   Number of forward-Euler calls %s\n", appStatus.nFwdEuler))
-      for stI = 2, 3 do
-         log(string.format("   Number of RK stage-"..stI.." failures %s\n", appStatus.nFail[stI]))
+      for stI = 2, timeStepper.numStates do
+         log(string.format("   Number of stage-"..stI.." failures %s\n", appStatus.nFail[stI]))
          if appStatus.nFail[stI] > 0 then
-            log(string.format("     Min rel dt diff for RK stage-"..stI.." failures %s\n", appStatus.dtDiff[stI][1]))
-            log(string.format("     Max rel dt diff for RK stage-"..stI.." failures %s\n", appStatus.dtDiff[stI][2]))
+            log(string.format("     Min rel dt diff for stage-"..stI.." failures %s\n", appStatus.dtDiff[stI][1]))
+            log(string.format("     Max rel dt diff for stage-"..stI.." failures %s\n", appStatus.dtDiff[stI][2]))
          end
       end
       log("")

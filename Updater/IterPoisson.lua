@@ -247,9 +247,7 @@ function IterPoisson:calcRHS(fIn, fOut)
    fOut:accumulate(1.0, self.src)
 end
 
-function IterPoisson:applyBc(fld)
-   fld:sync()
-end
+function IterPoisson:applyBc(fld) fld:sync() end
 
 -- Takes fIn and fDiff0 (which is calcRHS on fIn) and computes fOut
 function IterPoisson:sts(dt, fIn, fDiff0, fOut, fact)
