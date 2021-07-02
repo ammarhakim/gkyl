@@ -53,7 +53,7 @@ local function calcNumStages(dtRatio)
    -- integer that satisfies the inequality in equation 26 of that paper.
    -- RKL1.
    --return math.ceil((1/2)*(math.sqrt(1+8*dtRatio)-1))
-   return math.floor(math.ceil(1/2*(math.sqrt(1+8*dtRatio)-1))/2)*2+1
+   return math.floor(math.ceil(0.5*(math.sqrt(1+8*dtRatio)-1))/2)*2+1
    -- RKL2.
    --return math.ceil((1/2)*(math.sqrt(9+16*dtRatio)-1))
 end
@@ -85,23 +85,19 @@ function OperatorSplitSSPRK3:sts(tCurr, outIdx, dtIn, inIdx, stat)
    -- Stage 1. See equation 9 of Meyer et al. JCP 2014.
    self.dydtSplit(tCurr, inIdx, fDotIdx)
 
-   local dt, dtSplitMin = dtIn, GKYL_MAX_DOUBLE
-   for _, s in pairs(self.species) do dtSplitMin = math.min(dtSplitMin, s:suggestDt()) end
-
-   local numStages = calcNumStages(dt/dtSplitMin)   -- Number of RKL stages.
-
-   local dtMax = dtMaxAllowed(numStages, dtSplitMin)
-   if dtMax < 0.99*dt then dt = dtMax end
-
+   local dt, dtSplit = dtIn, dtIn
+   for _, s in pairs(self.species) do dtSplit = math.min(dtSplit, s:suggestDt()) end
    stat.dt_actual    = dt*2.
    stat.dt_suggested = dt*2.
+
+   local numStages = calcNumStages(dt/dtSplit)   -- Number of RKL stages.
+   print(string.format("dt=%g | dtSplit=%g | numStages=%g",dt,dtSplit,numStages))
 
    for _, s in lume.orderedIter(self.species) do
       local fIn = s:rkStepperFields()[inIdx]
       local fDot = s:rkStepperFields()[fDotIdx]
       local fjm1, fjm2 = s:rkStepperFields()[jm1], s:rkStepperFields()[jm2]
       fjm2:copy(fIn)
-      -- The following can rewrite f[jm1] so muTilde*dt*fDot has to go first in :combine.
       fjm1:combine(muTilde(numStages,1)*dt, fDot, 1.0, fIn)
    end
    for _, s in lume.orderedIter(self.species) do
@@ -168,7 +164,6 @@ function OperatorSplitSSPRK3:createSolver(appStatus, stepperFuncs, appsIn)
       [self.SPLIT_STAGE_1] = function(tCurr, dt)
          self:sts(tCurr, 1, dt/2., 1, stat)
          local dtNext, nextState = stat.dt_actual, self.RK_STAGE_1
---         local dtNext, nextState = dt, self.RK_STAGE_1
          return dtNext, nextState
       end,
       [self.RK_STAGE_1] = function(tCurr, dt)
@@ -262,6 +257,3 @@ function OperatorSplitSSPRK3:advance(tCurr, dtIn)
 end
 
 return OperatorSplitSSPRK3
---   print(string.format("pre dt=%g | dtSplitMin=%g | numStages=%d | dt_act=%g",dt, dtSplitMin, numStages, stat.dt_actual))
---   print(string.format("aft dt=%g | dtSplitMin=%g | numStages=%d | dtMax=%g | dt_act=%g",dt, dtSplitMin, numStages, dtMax, stat.dt_actual))
---   print(" ")

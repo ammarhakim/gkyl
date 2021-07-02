@@ -17,16 +17,17 @@ end
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = 5.50,            -- End time.
-   nFrame      = 10,                -- Number of output frames.
+   tEnd        = 4.0,            -- End time.
+   nFrame      = 1,                -- Number of output frames.
    lower       = {0.0},            -- Configuration space lower left.
    upper       = {1.0},            -- Configuration space upper right.
    cells       = {16},             -- Configuration space cells.
    basis       = "serendipity",    -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                -- Polynomial order.
    timeStepper = "rk3opSplit",
- --  timeStepper = "rk3",
+--   timeStepper = "rk3",
 --   maximumDt = 0.1,
+--   suggestedDt = 0.1,
    
    periodicDirs = {1},
 
