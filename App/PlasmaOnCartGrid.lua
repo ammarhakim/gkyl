@@ -641,6 +641,7 @@ local function buildApplication(self, tbl)
 	    end	    
 	    
 	    dt_next = math.min(stepStatus.dt_suggested, dt_max)
+
 	    appStatus.step = appStatus.step + 1
 	    if (tCurr >= tEnd) then break end
 	 else

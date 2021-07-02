@@ -27,7 +27,7 @@ plasmaApp = Plasma.App {
    timeStepper = "rk3opSplit",
 --   timeStepper = "rk3",
 --   maximumDt = 0.1,
---   suggestedDt = 0.1,
+--   suggestedDt = 4.0,
    
    periodicDirs = {1},
 
