@@ -545,6 +545,7 @@ function KineticSpecies:initDist(extField)
    if self.fluctuationBCs then syncPeriodicDirs = false end
 
    local initCnt, backgroundCnt = 0, 0
+   local scaleInitWithSourcePower = false
    for nm, pr in lume.orderedIter(self.projections) do
       pr:fullInit(self)
       pr:advance(0.0, {extField}, {self.distf[2]})
@@ -552,9 +553,9 @@ function KineticSpecies:initDist(extField)
       -- processes will get to accumulate before projection is finished.
       Mpi.Barrier(self.grid:commSet().sharedComm)
       if string.find(nm,"init") then
-	 self.distf[1]:accumulate(1.0, self.distf[2])
-	 initCnt = initCnt + 1
-         if pr.scaleWithSourcePower then self.scaleInitWithSourcePower = true end
+         self.distf[1]:accumulate(1.0, self.distf[2])
+         initCnt = initCnt + 1
+         if pr.scaleWithSourcePower then scaleInitWithSourcePower = true end
       end
       if string.find(nm,"background") then
 	 if not self.fBackground then self.fBackground = self:allocDistf() end
@@ -570,7 +571,7 @@ function KineticSpecies:initDist(extField)
       -- end
    end
 
-   if self.scaleInitWithSourcePower then 
+   if scaleInitWithSourcePower then 
       -- MF 2021/05/27: This assumes there's only one source object per species in the input file.
       for _, src in lume.orderedIter(self.sources) do self.distf[1]:scale(src.powerScalingFac) end
    end

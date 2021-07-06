@@ -8,6 +8,7 @@
 
 local Proto          = require "Lib.Proto"
 local FluidSpecies   = require "App.Species.FluidSpecies"
+local AdiabaticSpecies = require "App.Species.AdiabaticSpecies"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local GyrofluidDiags = require "App.Diagnostics.GyrofluidDiagnostics"
 local Mpi            = require "Comm.Mpi"
@@ -172,14 +173,45 @@ end
 
 function GyrofluidSpecies:initCrossSpeciesCoupling(species)
    -- Save pointers electron and ion names. Will need them to compute sound speed.
+   self.adiabaticIon, self.adiabaticElc = false, false
    for nm, s in pairs(species) do
       if s.charge > 0. then
          self.ionNm = nm
+         if AdiabaticSpecies.is(s) then self.adiabaticIon = true end
       elseif s.charge < 0. then
          self.elcNm = nm
+         if AdiabaticSpecies.is(s) then self.adiabaticElc = true end
       end
    end
    self.ionMass = species[self.ionNm].mass
+   -- Set the function that computes the sound speed.
+   if self.adiabaticElc or self.adiabaticIon then
+      local project = Updater.ProjectOnBasis {
+         onGrid = self.grid,   evaluate = function(t, xn) return 0. end,   -- Set later.
+         basis  = self.basis,  onGhosts = true,
+      }
+      if self.adiabaticElc then
+         self.elcTempFld = self:allocMoment()
+         project:setFunc(function(t, xn) return species[self.elcNm]:temp() end)
+         project:advance(0., {}, {self.elcTempFld})
+         self.calcCsFunc = function(tCurr, mi, primMomSelfIon, primMomSelfElc, csOut)
+            GyrofluidSpecies["calcCsAdiabaticElc"](self,tCurr, mi, primMomSelfIon, primMomSelfElc, csOut)
+         end
+      elseif self.adiabaticIon then
+         self.ionTempFld = self:allocMoment()
+         project:setFunc(function(t, xn) return species[self.ionNm]:temp() end)
+         project:advance(0., {}, {self.ionTempFld})
+         self.calcCsFunc = function(tCurr, mi, primMomSelfIon, primMomSelfElc, csOut)
+            GyrofluidSpecies["calcCsAdiabaticIon"](self,tCurr, mi, primMomSelfIon, primMomSelfElc, csOut)
+         end
+      end
+   else
+      self.calcCsFunc = function(tCurr, mi, primMomSelfIon, primMomSelfElc, csOut)
+         GyrofluidSpecies["calcCsGF"](self,tCurr, mi, primMomSelfIon, primMomSelfElc, csOut)
+      end
+   end
+
+
    -- Electrons may need to know the latest ion upar for sheath BCs.
    self.ionPrimMomSelf = species[self.ionNm].primMomSelf
 end
@@ -255,6 +287,30 @@ function GyrofluidSpecies:calcCouplingMomentsEvolve(tCurr, rkIdx, species)
    end
 end
 
+function GyrofluidSpecies:calcCsGF(tCurr, mi, primMomSelfIon, primMomSelfElc, csOut)
+   -- Compute the sound speed given the ion mass and the primitive moments of gyrofluid electrons and ions. 
+   csOut:combineOffset(     3./mi, primMomSelfIon, 1*self.basis:numBasis(),
+                       1./(3.*mi), primMomSelfElc, 1*self.basis:numBasis(),
+                       2./(3.*mi), primMomSelfElc, 2*self.basis:numBasis())
+   self.sqrtOnBasis:advance(tCurr, {csOut}, {csOut})
+end
+function GyrofluidSpecies:calcCsAdiabaticElc(tCurr, mi, primMomSelfIon, primMomSelfElc, csOut)
+   -- Compute the sound speed when electrons are adiabatic.
+   csOut:combineOffset(3./mi, primMomSelfIon, 1*self.basis:numBasis(),
+                       1./mi, self.elcTempFld, 0)
+   self.sqrtOnBasis:advance(tCurr, {csOut}, {csOut})
+end
+function GyrofluidSpecies:calcCsAdiabaticIon(tCurr, mi, primMomSelfIon, primMomSelfElc, csOut)
+   -- Compute the sound speed when ions are adiabatic.
+   csOut:combineOffset(     3./mi, self.ionTempFld, 0,
+                       1./(3.*mi), primMomSelfElc, 1*self.basis:numBasis(),
+                       2./(3.*mi), primMomSelfElc, 2*self.basis:numBasis())
+   self.sqrtOnBasis:advance(tCurr, {csOut}, {csOut})
+end
+function GyrofluidSpecies:calcCs(tCurr, mi, primMomSelfIon, primMomSelfElc, csOut)
+   self.calcCsFunc(tCurr, mi, primMomSelfIon, primMomSelfElc, csOut)
+end
+
 function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    self:setActiveRKidx(inIdx)
    self.tCurr = tCurr
@@ -267,10 +323,7 @@ function GyrofluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    momIn = self.returnPosRescaledMom(tCurr, momIn)
 
    -- Compute the sound speed sqrt((3*Ti_par+Te))/m_i.
-   self.cSound:combineOffset(     3./self.ionMass, species[self.ionNm].primMomSelf, 1*self.basis:numBasis(),
-                             1./(3.*self.ionMass), species[self.elcNm].primMomSelf, 1*self.basis:numBasis(),
-                             2./(3.*self.ionMass), species[self.elcNm].primMomSelf, 2*self.basis:numBasis())
-   self.sqrtOnBasis:advance(tCurr, {self.cSound}, {self.cSound})
+   self:calcCs(tCurr, self.ionMass, species[self.ionNm].primMomSelf, species[self.elcNm].primMomSelf, self.cSound) 
 
    -- Clear RHS, because HyperDisCont set up with clearOut = false.
    momRhsOut:clear(0.0)

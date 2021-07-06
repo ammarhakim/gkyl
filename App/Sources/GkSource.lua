@@ -115,7 +115,6 @@ function GkSource:createDiagnostics(mySpecies, field)
       self.diagnostics = DiagsApp{implementation = GkDiags()}
       self.diagnostics:fullInit(mySpecies, field, self)
    end
-
    return self.diagnostics
 end
 
