@@ -1,0 +1,73 @@
+/* Generate the header file for Maxwell's equation kernels. */
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+minPolyOrder_Ser : 1$
+maxPolyOrder_Ser : 2$
+minCdim_Ser : 1$
+minVdim_Ser : 1$    /* see begining of v loop below though. */
+maxCdim_Ser : 3$
+maxVdim_Ser : 3$
+
+/* Maximal order basis. */
+minPolyOrder_Max : 1$
+maxPolyOrder_Max : 3$
+minCdim_Max : 1$
+minVdim_Max : 1$    /* see begining of v loop below though. */
+maxCdim_Max : 0$
+maxVdim_Max : 0$
+
+/* Tensor product basis. */
+/* Note that Serendipity, p = 1, is equivalent to Tensor */
+/* Thus no need to calculate p = 1 Tensor basis */
+minPolyOrder_Tensor : 2$
+maxPolyOrder_Tensor : 2$
+minCdim_Tensor : 1$
+minVdim_Tensor : 1$    /* see begining of v loop below though. */
+maxCdim_Tensor : 2$
+maxVdim_Tensor : 3$
+
+/* ...... END OF USER INPUTS........ */
+
+cvars : [x, y, z]$
+
+bName        : ["ser","max","tensor"]$
+minPolyOrder : [minPolyOrder_Ser, minPolyOrder_Max, minPolyOrder_Tensor]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+
+printPrototype(deco, ci, vi, bStr, pi) := block([si],
+
+  printf(fh, "~adouble maxwell_vol_~ax_~a_p~a(const gkyl_maxwell_inp *meq, const double *w, const double *dx, const double *q, double* restrict out); ~%", deco, ci, bStr, pi),
+  for si : 1 thru ci do (
+    printf(fh, "~adouble maxwell_surf~a_~ax_~a_p~a(const gkyl_maxwell_inp *meq, const double *w, const double *dx, const double tau, const double *ql, const double *qc, const double *qr, double* restrict out); ~%", deco, cvars[si], ci, bStr, pi)
+  ),
+
+  printf(fh, "~%")
+)$
+
+/* ............ Write out the C header file ............ */
+fh : openw("~/max-out/gkyl_maxwell_kernels.h")$
+
+printf(fh, "#pragma once ~%")$
+printf(fh, "#include <math.h> ~%")$
+printf(fh, "typedef struct { double c, chi, gamma; } gkyl_maxwell_inp; ~%")$
+printf(fh, "~%")$
+
+decorator : ""$
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+
+    minPolyOrderB : minPolyOrder[bInd],
+    maxPolyOrderB : maxPolyOrder[bInd],
+    if (c=3 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
+
+    for polyOrder : minPolyOrderB thru maxPolyOrderB do (
+      printPrototype(decorator, c, v, bName[bInd], polyOrder)
+    )
+  )
+);
+close(fh)$
+/* ............ Finished writing out the C header file ............ */

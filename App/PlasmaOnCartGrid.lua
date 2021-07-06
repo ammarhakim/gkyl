@@ -1004,6 +1004,7 @@ return {
          BasicBC             = require ("App.BCs.GyrofluidBasic").GyrofluidBasic,
          AbsorbBC            = require ("App.BCs.GyrofluidBasic").GyrofluidAbsorb,
          CopyBC              = require ("App.BCs.GyrofluidBasic").GyrofluidCopy,
+         SheathBC            = require ("App.BCs.GyrofluidBasic").GyrofluidSheath,
          ZeroFluxBC          = require ("App.BCs.GyrofluidBasic").GyrofluidZeroFlux,
 	 Field               = require ("App.Field.GkField").GkField,
 	 FunctionProjection  = require ("App.Projection.GyrofluidProjection").FunctionProjection, 
@@ -1020,6 +1021,7 @@ return {
       App.label = "Gyrokinetic"
       return  {
 	 AdiabaticSpecies = require ("App.Species.AdiabaticSpecies"),
+         AdiabaticBasicBC = require "App.BCs.AdiabaticBasic",
 	 App = App,
          BasicBC    = require ("App.BCs.GkBasic").GkBasic,
          AbsorbBC   = require ("App.BCs.GkBasic").GkAbsorb,

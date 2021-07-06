@@ -66,6 +66,9 @@ function VmSource:setConfBasis(basis) self.confBasis = basis end
 function VmSource:setConfGrid(grid) self.confGrid = grid end
 
 function VmSource:createSolver(mySpecies, extField)
+
+   self.writeGhost = mySpecies.writeGhost   
+
    self.profile:fullInit(mySpecies)
 
    self.fSource = mySpecies:allocDistf()
@@ -97,7 +100,7 @@ function VmSource:createSolver(mySpecies, extField)
    local ptclEnergySrc = mySpecies:allocMoment()
    mySpecies.fiveMomentsCalc:advance(0.0, {self.fSource}, {numDensitySrc, momDensitySrc, ptclEnergySrc})
 
-   self.fSource:write(string.format("%s_0.bp", self.name), 0., 0, true)
+   self.fSource:write(string.format("%s_0.bp", self.name), 0., 0, self.writeGhost)
    numDensitySrc:write(string.format("%s_M0_0.bp", self.name), 0., 0)
    momDensitySrc:write(string.format("%s_M1_0.bp", self.name), 0., 0)
    ptclEnergySrc:write(string.format("%s_M2_0.bp", self.name), 0., 0)

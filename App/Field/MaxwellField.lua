@@ -808,7 +808,7 @@ end
 function MaxwellField:updateInDirection(dir, tCurr, dt, fIn, fOut)
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
    if self.evolve then
-      self:applyBc(tCurr, fIn)
+      self:applyBc(tCurr, fIn, dir)
       self.fieldHyperSlvr[dir]:setDtAndCflRate(dt, nil)
       status, dtSuggested = self.fieldHyperSlvr[dir]:advance(tCurr, {fIn}, {fOut})
    else
@@ -821,19 +821,24 @@ function MaxwellField:applyBcIdx(tCurr, idx)
    self:applyBc(tCurr, self:rkStepperFields()[idx])
 end 
 
-function MaxwellField:applyBc(tCurr, emIn)
+function MaxwellField:applyBc(tCurr, emIn, dir)
    local tmStart = Time.clock()
    if self.hasNonPeriodicBc then
       for _, bc in ipairs(self.boundaryConditions) do
-	 bc:advance(tCurr, {}, {emIn})
+         if (not dir) or dir == bc:getDir() then
+	    bc:advance(tCurr, {}, {emIn})
+         end
       end
    end   
 
-   for _, bc in ipairs(self.ssBoundaryConditions) do
-      if (not dir) or dir == bc:getDir() then
-          bc:advance(tCurr, {}, {emIn})
-       end
-    end
+   if self._hasSsBnd then
+      emIn:sync()
+      for _, bc in ipairs(self.ssBoundaryConditions) do
+         if (not dir) or dir == bc:getDir() then
+            bc:advance(tCurr, {}, {emIn})
+         end
+      end
+   end
 
    emIn:sync()
    self.bcTime = self.bcTime + Time.clock()-tmStart

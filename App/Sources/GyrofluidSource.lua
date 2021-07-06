@@ -71,6 +71,8 @@ function GyrofluidSource:setCfl(cfl) self.cfl = cfl end
 
 function GyrofluidSource:createSolver(mySpecies, externalField)
 
+   self.writeGhost = mySpecies.writeGhost   
+
    self.nMoments = mySpecies.nMoments
 
    -- Source rate in each moment equation.
@@ -87,7 +89,7 @@ function GyrofluidSource:createSolver(mySpecies, externalField)
    gfProj:advance(0., {externalField}, {self.momSource})
    Mpi.Barrier(self.grid:commSet().sharedComm)
 
-   self.momSource:write(string.format("%s_0.bp", self.name), 0.0, 0, true)
+   self.momSource:write(string.format("%s_0.bp", self.name), 0.0, 0, self.writeGhost)
 end
 
 function GyrofluidSource:createDiagnostics(mySpecies, field)

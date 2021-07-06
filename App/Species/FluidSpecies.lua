@@ -297,7 +297,7 @@ function FluidSpecies:createSolver(field, externalField)
    for _, src in lume.orderedIter(self.sources) do src:createSolver(self,externalField) end
 
    -- Create BC solvers.
-   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self) end
+   for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self, field, externalField) end
 
    -- Create positivity functions.
    if self.positivity then
@@ -641,7 +641,7 @@ function FluidSpecies:write(tm, force)
       if self.diagIoTrigger(tm) or force then
          local momIn = self:rkStepperFields()[1]
 
-	 self.momIo:write(momIn, string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
+	 self.momIo:write(momIn, string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
          self.writeFluctuation(tm, self.diagIoFrame, momIn)
 
          for _, src in lume.orderedIter(self.sources) do
@@ -668,7 +668,7 @@ function FluidSpecies:write(tm, force)
       -- If not evolving species, don't write anything except initial conditions.
       if self.diagIoFrame == 0 then
          local momIn = self:rkStepperFields()[1]
-         self.momIo:write(momIn, string.format("%s_%d.bp", self.name, 0), tm, 0)
+         self.momIo:write(momIn, string.format("%s_%d.bp", self.name, 0), tm, 0, self.writeGhost)
       end
       self.diagIoFrame = self.diagIoFrame+1
    end

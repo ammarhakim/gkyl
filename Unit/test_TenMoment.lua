@@ -80,8 +80,8 @@ function test_1()
    
 end
 
-function test_2()
-   local tenMoment = TenMoment { }
+function test_2(numericalFlux)
+   local tenMoment = TenMoment { numericalFlux=numericalFlux }
 
    local ql = calcq({1.0, 0.2, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0})
    local qr = calcq({1.0, 0.1, 0.1, 0.1, 2.0, 0.0, 2.0, 0.0, 0.0, 2.0})
@@ -109,8 +109,8 @@ function test_2()
    end   
 end
 
-function test_3()
-   local tenMoment = TenMoment { }
+function test_3(numericalFlux)
+   local tenMoment = TenMoment { numericalFlux=numericalFlux }
 
    local ql = calcq({1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0})
    local qr = calcq({2.0, 2.0, 0.1, 2.0, 2.0, 0.0, 2.0, 0.0, 0.0, 2.0})
@@ -138,8 +138,8 @@ function test_3()
    end   
 end
 
-function test_4()
-   local tenMoment = TenMoment { }
+function test_4(numericalFlux)
+   local tenMoment = TenMoment { numericalFlux=numericalFlux }
 
    local ql = calcq({1.0, 0.0, 0.0, 0.0, 0.5e-4, 0.0, 0.0, 0.5e-4, 0.0, 0.5e-4})
    local qr = calcq({0.125, 0.0, 0.0, 0.0, 0.05e-4, 0.0, 0.0, 0.05e-4, 0.0, 0.05e-4})
@@ -167,8 +167,8 @@ function test_4()
    end   
 end
 
-function test_5()
-   local tenMoment = TenMoment { }
+function test_5(numericalFlux)
+   local tenMoment = TenMoment { numericalFlux=numericalFlux }
 
    local ql = calcq({1.0,   0.1, 0.2, 0.3, 0.5e-4,  0.0,  0.02, 0.5e-4,  0.0, 0.5e-4})
    local qr = calcq({0.125, 0.0, 0.1, 0.4, 0.05e-4, 0.01, 0.0,  0.05e-4, 0.03, 0.05e-4})
@@ -202,6 +202,11 @@ test_2()
 test_3()
 test_4()
 test_5()
+
+test_2("lax")
+test_3("lax")
+test_4("lax")
+test_5("lax")
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

@@ -97,6 +97,9 @@ function GyrofluidSpecies:alloc(nRkDup)
 end
 
 function GyrofluidSpecies:createSolver(field, externalField)
+
+   self.cSound = self:allocMoment()  -- Sound speed. Do this before calling FluidSpecies' :createSolver.
+
    -- Run the FluidSpecies 'createSolver()' to initialize the collisions solver.
    GyrofluidSpecies.super.createSolver(self, field, externalField)
 
@@ -136,7 +139,6 @@ function GyrofluidSpecies:createSolver(field, externalField)
       equation = self.equation,
    }
 
-   self.cSound = self:allocMoment()  -- Sound speed.
    self.sqrtOnBasis = Updater.SqrtOnBasis{onGrid = self.grid,  basis = self.basis, onGhosts=true}
 
    if self.positivityRescale then
@@ -178,6 +180,8 @@ function GyrofluidSpecies:initCrossSpeciesCoupling(species)
       end
    end
    self.ionMass = species[self.ionNm].mass
+   -- Electrons may need to know the latest ion upar for sheath BCs.
+   self.ionPrimMomSelf = species[self.ionNm].primMomSelf
 end
 
 function GyrofluidSpecies:uParCalc(tm, momIn, mJacM0, mJacM1, uParOut)
@@ -200,6 +204,10 @@ function GyrofluidSpecies:pParJacCalc(tm, momIn, uPar, mJacM1, mJacM2flow,
    mJacM2:combineOffset(1, momIn, self.mJacM2Off)
    Mpi.Barrier(self.grid:commSet().sharedComm)   -- Barrier over sharedComm before combine.
    pParJacOut:combine(2., mJacM2, -2., pPerpJac, -1., mJacM2flow)
+
+   -- If the perpendicular pressure and/or the parallel flow energy density are sufficiently
+   -- large, or if the kinetic energy density is sufficiently low, the parallel pressure
+   -- could come out negative.
 end
 
 function GyrofluidSpecies:TparCalc(tm, mJacM0, pParJac, TparOut)

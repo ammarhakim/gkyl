@@ -113,7 +113,7 @@ function AdiabaticSpecies:temp() return self._temp end
 function AdiabaticSpecies:dens0() return self._dens0 end
 
 function AdiabaticSpecies:getQneutFacLin()
-   -- Return the factor on potential in in charge neutrality equation,
+   -- Return the factor on potential in charge neutrality equation,
    -- assuming a linearized polarization.
    return self._dens0*self.charge^2/self._temp
 end
