@@ -142,11 +142,22 @@ gkylMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, doubl
   {
     double *f = ff[n];
     double qbym = fd[n].charge/fd[n].mass;
-    double qbym2 = sq(qbym);
+
+    // diagonal elements of lhs for current equations
+    lhs(fidx(n,X), fidx(n,X)) = 1.0;
+    lhs(fidx(n,Y), fidx(n,Y)) = 1.0;
+    lhs(fidx(n,Z), fidx(n,Z)) = 1.0;
+
+    // fill rhs for current equations
+    rhs(fidx(n,X)) = qbym*f[MX];
+    rhs(fidx(n,Y)) = qbym*f[MY];
+    rhs(fidx(n,Z)) = qbym*f[MZ];
 
     if (fd[n].evolve)
     {
-      // off-diagonal elements of lhs
+      double qbym2 = sq(qbym);
+
+      // off-diagonal elements of current-lhs due to Lorentz force
       // eqn. for X-component of current
       lhs(fidx(n,X), fidx(n,Y)) = -dt1*qbym*(em[BZ]+staticEm[BZ]);
       lhs(fidx(n,X), fidx(n,Z)) = dt1*qbym*(em[BY]+staticEm[BY]);
@@ -161,34 +172,24 @@ gkylMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, doubl
       lhs(fidx(n,Z), fidx(n,X)) = -dt1*qbym*(em[BY]+staticEm[BY]);
       lhs(fidx(n,Z), fidx(n,Y)) = dt1*qbym*(em[BX]+staticEm[BX]);
       lhs(fidx(n,Z), eidx(Z)) = -dt1*qbym2*f[RHO];
+
+      // add static electric force to current equations
+      rhs(fidx(n,X)) += dt1*qbym2*f[RHO]*staticEm[EX];
+      rhs(fidx(n,Y)) += dt1*qbym2*f[RHO]*staticEm[EY];
+      rhs(fidx(n,Z)) += dt1*qbym2*f[RHO]*staticEm[EZ];
+
+      // add auxiliary sources, if present, to current equations
+      if (sd->hasAuxSrc) {
+        rhs(fidx(n,X)) += dt1*auxSrc[n*3+0];
+        rhs(fidx(n,Y)) += dt1*auxSrc[n*3+1];
+        rhs(fidx(n,Z)) += dt1*auxSrc[n*3+2];
+      }
+
+      // add gravity source to current equations
+      rhs(fidx(n, sd->gravityDir)) += dt1*qbym*f[RHO]*sd->gravity;
     }
 
-    // diagonal elements of lhs
-    lhs(fidx(n,X), fidx(n,X)) = 1.0;
-    lhs(fidx(n,Y), fidx(n,Y)) = 1.0;
-    lhs(fidx(n,Z), fidx(n,Z)) = 1.0;
-
-    // fill corresponding RHS elements
-    rhs(fidx(n,X)) = qbym*f[MX];
-    rhs(fidx(n,Y)) = qbym*f[MY];
-    rhs(fidx(n,Z)) = qbym*f[MZ];
-
-    // add gravity source term for current
-    rhs(fidx(n, sd->gravityDir)) += qbym*f[RHO]*sd->gravity*dt1;
-
-    // add auxiliary source for current
-    if (sd->hasAuxSrc) {
-      rhs(fidx(n, X)) += auxSrc[n*3+0]*dt1;
-      rhs(fidx(n, Y)) += auxSrc[n*3+1]*dt1;
-      rhs(fidx(n, Z)) += auxSrc[n*3+2]*dt1;
-    }
-
-    // add static electric field to current equation 
-    rhs(fidx(n, X)) += dt1*qbym2*f[RHO]*staticEm[EX];
-    rhs(fidx(n, Y)) += dt1*qbym2*f[RHO]*staticEm[EY];
-    rhs(fidx(n, Z)) += dt1*qbym2*f[RHO]*staticEm[EZ];
-
-    // set current contribution to electric field equation
+    // set current contributions to electric field equations
     lhs(eidx(X), fidx(n,X)) = dt2;
     lhs(eidx(Y), fidx(n,Y)) = dt2;
     lhs(eidx(Z), fidx(n,Z)) = dt2;
@@ -204,7 +205,7 @@ gkylMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, doubl
   rhs(eidx(EY)) = em[EY];
   rhs(eidx(EZ)) = em[EZ];
 
-  // add auxiliary source for current
+  // add auxiliary source to E field equation; e.g., a current
   if (sd->hasAuxSrc) {
     rhs(eidx(EX)) += auxSrc[nFluids*3+0]*dt1;
     rhs(eidx(EY)) += auxSrc[nFluids*3+1]*dt1;
