@@ -402,11 +402,24 @@ gkylMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt,
     JOld[n][1] = f[MY] * qbym[n];
     JOld[n][2] = f[MZ] * qbym[n];
 
-    J[n][0] = f[MX] * qbym[n] + 0.5*dt*sq(qbym[n])*f[RHO]*staticEm[EX];
-    J[n][1] = f[MY] * qbym[n] + 0.5*dt*sq(qbym[n])*f[RHO]*staticEm[EY];
-    J[n][2] = f[MZ] * qbym[n] + 0.5*dt*sq(qbym[n])*f[RHO]*staticEm[EZ];
+    J[n][0] = f[MX] * qbym[n];
+    J[n][1] = f[MY] * qbym[n];
+    J[n][2] = f[MZ] * qbym[n];
     if (!fd[n].evolve)
       continue;
+
+    // Add additional sources for currents.
+    J[n][0] += 0.5*dt*sq(qbym[n])*f[RHO]*staticEm[EX];
+    J[n][1] += 0.5*dt*sq(qbym[n])*f[RHO]*staticEm[EY];
+    J[n][2] += 0.5*dt*sq(qbym[n])*f[RHO]*staticEm[EZ];
+    // TODO: add auxiliary sources for E field equations
+    if (sd->hasAuxSrc) {
+      J[n][0] += 0.5*dt*auxSrc[n*3+0];
+      J[n][1] += 0.5*dt*auxSrc[n*3+1];
+      J[n][2] += 0.5*dt*auxSrc[n*3+2];
+    }
+    J[n][sd->gravityDir] += 0.5*dt*qbym[n]*f[RHO]*sd->gravity;
+
     Wc_dt[n] = qbym[n] * Bmag * dt;
     wp_dt2[n] = f[RHO] * sq(qbym[n]) / epsilon0 * sq(dt);
     double tmp = 1. + sq(Wc_dt[n]) / 4.;
