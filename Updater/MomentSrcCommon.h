@@ -14,6 +14,7 @@ extern "C" {
     typedef struct {
         double charge, mass; /* Charge and mass */
         bool evolve;
+        bool magnetized;
 
         double qbym;
     } FluidData_t;

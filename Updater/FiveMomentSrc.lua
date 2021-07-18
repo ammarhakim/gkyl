@@ -31,6 +31,7 @@ ffi.cdef [[
 typedef struct {
   double charge, mass; /* Charge and mass */
   bool evolve;
+  bool magnetized;
 
   double qbym;
 } FluidData_t;
@@ -161,6 +162,11 @@ function FiveMomentSrc:init(tbl)
         self._fd[n-1].evolve = tbl.evolve[n]
       else
         self._fd[n-1].evolve = true
+      end
+      if (tbl.magnetized ~= nil) then
+        self._fd[n-1].magnetized = tbl.magnetized[n]
+      else
+        self._fd[n-1].magnetized = true
       end
       self._qbym[n] = self._fd[n-1].qbym
    end

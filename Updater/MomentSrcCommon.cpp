@@ -158,20 +158,21 @@ gkylMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, doubl
       double qbym2 = sq(qbym);
 
       // off-diagonal elements of current-lhs due to Lorentz force
-      // eqn. for X-component of current
-      lhs(fidx(n,X), fidx(n,Y)) = -dt1*qbym*(em[BZ]+staticEm[BZ]);
-      lhs(fidx(n,X), fidx(n,Z)) = dt1*qbym*(em[BY]+staticEm[BY]);
       lhs(fidx(n,X), eidx(X)) = -dt1*qbym2*f[RHO];
-
-      // eqn. for Y-component of current
-      lhs(fidx(n,Y), fidx(n,X)) = dt1*qbym*(em[BZ]+staticEm[BZ]);
-      lhs(fidx(n,Y), fidx(n,Z)) = -dt1*qbym*(em[BX]+staticEm[BX]);
       lhs(fidx(n,Y), eidx(Y)) = -dt1*qbym2*f[RHO];
-
-      // eqn. for Z-component of current
-      lhs(fidx(n,Z), fidx(n,X)) = -dt1*qbym*(em[BY]+staticEm[BY]);
-      lhs(fidx(n,Z), fidx(n,Y)) = dt1*qbym*(em[BX]+staticEm[BX]);
       lhs(fidx(n,Z), eidx(Z)) = -dt1*qbym2*f[RHO];
+
+      if (fd[n].magnetized)
+      {
+        lhs(fidx(n,X), fidx(n,Y)) = -dt1*qbym*(em[BZ]+staticEm[BZ]);
+        lhs(fidx(n,X), fidx(n,Z)) = dt1*qbym*(em[BY]+staticEm[BY]);
+
+        lhs(fidx(n,Y), fidx(n,X)) = dt1*qbym*(em[BZ]+staticEm[BZ]);
+        lhs(fidx(n,Y), fidx(n,Z)) = -dt1*qbym*(em[BX]+staticEm[BX]);
+
+        lhs(fidx(n,Z), fidx(n,X)) = -dt1*qbym*(em[BY]+staticEm[BY]);
+        lhs(fidx(n,Z), fidx(n,Y)) = dt1*qbym*(em[BX]+staticEm[BX]);
+      }
 
       // add static electric force to current equations
       rhs(fidx(n,X)) += dt1*qbym2*f[RHO]*staticEm[EX];
