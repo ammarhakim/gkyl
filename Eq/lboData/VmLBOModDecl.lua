@@ -34,8 +34,8 @@ function _M.selectConstNuVol(basisNm, CDIM, VDIM, polyOrder)
 end
 
 -- Select functions to compute surface terms (output is a table of functions).
-function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, numVelFlux, isNonuniform)
-   local fluxStr = numVelFlux=="penalty" and "" or "Upwind"
+function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, fluxType, isNonuniform)
+   local fluxStr = fluxType=="penalty" and "" or "Upwind"
    local gridStr = isNonuniform and "Nonuniform" or ""
 
    local funcType = "double"
@@ -56,8 +56,8 @@ function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, numVelFlux, isNonuniform)
    end
    return kernels
 end
-function _M.selectConstNuSurf(basisNm, CDIM, VDIM, polyOrder, numVelFlux, isNonuniform)
-   local fluxStr = numVelFlux=="penalty" and "" or "Upwind"
+function _M.selectConstNuSurf(basisNm, CDIM, VDIM, polyOrder, fluxType, isNonuniform)
+   local fluxStr = fluxType=="penalty" and "" or "Upwind"
    local gridStr = isNonuniform and "Nonuniform" or ""
 
    local funcType = "double"

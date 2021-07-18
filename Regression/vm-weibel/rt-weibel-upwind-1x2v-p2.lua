@@ -66,7 +66,7 @@ vlasovApp = Vlasov.App {
 	    maxwellian2D(nElc20, vx, vy, uxElc20, uyElc20, vthElc20)
       end,
       evolve = true, -- Evolve species?
-      numVelFlux = "upwind",  -- Use upwind fluxes.
+      vFlux  = "upwind",  -- Use upwind fluxes in velocity space.
       diagnostics = { "M0", "M1i", "M2" }
    },
 

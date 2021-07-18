@@ -72,7 +72,7 @@ plasmaApp = Plasma.App {
          return topHat(x, v, n0, u0, vt)
       end,
       evolve = true,   -- Evolve species?
-      numVelFlux = "upwind",  -- Use upwind fluxes.
+      vFlux  = "upwind",  -- Use upwind fluxes in velocity space.
       -- Diagnostic moments.
       diagnostics = { "M0", "M1i", "M2" },
       -- Collisions.
@@ -96,7 +96,7 @@ plasmaApp = Plasma.App {
          return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
       end,
       evolve = true,   -- Evolve species?
-      numVelFlux = "upwind",  -- Use upwind fluxes.
+      vFlux  = "upwind",  -- Use upwind fluxes in velocity space.
       -- Diagnostic moments.
       diagnostics = { "M0", "M1i", "M2" },
       -- Collisions.
