@@ -406,39 +406,35 @@ gkylMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt,
     J[n][0] = f[MX] * qbym[n];
     J[n][1] = f[MY] * qbym[n];
     J[n][2] = f[MZ] * qbym[n];
-    if (!fd[n].evolve)
-      continue;
 
-    // Add additional sources for currents.
-    J[n][0] += 0.5*dt*sq(qbym[n])*f[RHO]*staticEm[EX];
-    J[n][1] += 0.5*dt*sq(qbym[n])*f[RHO]*staticEm[EY];
-    J[n][2] += 0.5*dt*sq(qbym[n])*f[RHO]*staticEm[EZ];
-    // TODO: add auxiliary sources for E field equations
-    if (sd->hasAuxSrc) {
-      J[n][0] += 0.5*dt*auxSrc[n*3+0];
-      J[n][1] += 0.5*dt*auxSrc[n*3+1];
-      J[n][2] += 0.5*dt*auxSrc[n*3+2];
+    if (fd[n].evolve) {
+      // Add additional sources for currents.
+      J[n][0] += 0.5*dt*sq(qbym[n])*f[RHO]*staticEm[EX];
+      J[n][1] += 0.5*dt*sq(qbym[n])*f[RHO]*staticEm[EY];
+      J[n][2] += 0.5*dt*sq(qbym[n])*f[RHO]*staticEm[EZ];
+      // TODO: add auxiliary sources for E field equations
+      if (sd->hasAuxSrc) {
+        J[n][0] += 0.5*dt*auxSrc[n*3+0];
+        J[n][1] += 0.5*dt*auxSrc[n*3+1];
+        J[n][2] += 0.5*dt*auxSrc[n*3+2];
+      }
+      J[n][sd->gravityDir] += 0.5*dt*qbym[n]*f[RHO]*sd->gravity;
+
+      Wc_dt[n] = qbym[n] * Bmag * dt;
+      wp_dt2[n] = f[RHO] * sq(qbym[n]) / epsilon0 * sq(dt);
+      double tmp = 1. + sq(Wc_dt[n]) / 4.;
+      w02 += wp_dt2[n] / tmp;
+      gam2 += wp_dt2[n] * sq(Wc_dt[n]) / tmp;
+      delta += wp_dt2[n] * Wc_dt[n] / tmp;
+      K -= dt / tmp * (J[n] + sq(Wc_dt[n] / 2.) * b * b.dot(J[n]) - (Wc_dt[n] / 2.) * b.cross(J[n]));
+    } else {
+      K -= dt * J[n];
     }
-    J[n][sd->gravityDir] += 0.5*dt*qbym[n]*f[RHO]*sd->gravity;
-
-    Wc_dt[n] = qbym[n] * Bmag * dt;
-    wp_dt2[n] = f[RHO] * sq(qbym[n]) / epsilon0 * sq(dt);
-    double tmp = 1. + sq(Wc_dt[n]) / 4.;
-    w02 += wp_dt2[n] / tmp;
-    gam2 += wp_dt2[n] * sq(Wc_dt[n]) / tmp;
-    delta += wp_dt2[n] * Wc_dt[n] / tmp;
-    K -= dt / tmp * (J[n] + sq(Wc_dt[n] / 2.) * b * b.dot(J[n]) - (Wc_dt[n] / 2.) * b.cross(J[n]));
   }
   double Delta2 = sq(delta) / (1. + w02 / 4.);
 
   Eigen::Vector3d F(em[EX] * epsilon0, em[EY] * epsilon0, em[EZ] * epsilon0);
   Eigen::Vector3d F_halfK = F + 0.5 * K;
-  for (unsigned n=0; n < nFluids; ++n)
-  {
-    if (fd[n].evolve)
-      continue;
-    F_halfK -= (0.5 * dt) * J[n];
-  }
 
   double tmp = 1. / (1. + w02 / 4. + Delta2 / 64.);
   Eigen::Vector3d Fbar = tmp * (
