@@ -1,17 +1,20 @@
 -- Gkyl ------------------------------------------------------------------------
+--
+-- A 1x1v Buneman instability simulation.
+--
 local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell()
 
--- electron parameters
+-- Electron parameters.
 vDriftElc = 0.159
-vtElc = 0.02
--- ion parameters
+vtElc     = 0.02
+-- Ion parameters.
 vDriftIon = 0.0
-vtIon = 0.001
--- mass ratio
+vtIon     = 0.001
+-- Mass ratio.
 massRatio = 25.0
 
-knumber = 1.0 -- wave-number
-perturbation = 1.0e-6 -- distribution function perturbation
+knumber      = 1.0    -- Wave-number.
+perturbation = 1.0e-6 -- Distribution function perturbation.
 
 local function maxwellian1v(v, vDrift, vt)
    return 1/math.sqrt(2*math.pi*vt^2)*math.exp(-(v-vDrift)^2/(2*vt^2))
@@ -20,66 +23,64 @@ end
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd = 60.0, -- end time
-   nFrame = 1, -- number of output frames
-   lower = {0.0}, -- configuration space lower left
-   upper = {1.0}, -- configuration space upper right
-   cells = {16}, -- configuration space cells
-   basis = "serendipity", -- one of "serendipity" or "maximal-order"
-   polyOrder = 2, -- polynomial order
-   timeStepper = "rk3", -- one of "rk2" or "rk3"
+   tEnd        = 60.0,          -- End time.
+   nFrame      = 1,             -- Number of output frames.
+   lower       = {0.0},         -- Configuration space lower left.
+   upper       = {1.0},         -- Configuration space upper right.
+   cells       = {16},          -- Configuration space cells.
+   basis       = "serendipity", -- One of "serendipity" or "maximal-order".
+   polyOrder   = 2,             -- Polynomial order.
+   timeStepper = "rk3",         -- One of "rk2" or "rk3".
 
-   -- decomposition for configuration space
-   decompCuts = {1}, -- cuts in each configuration direction
-   useShared = false, -- if to use shared memory
+   -- Decomposition for configuration space.
+   decompCuts = {1},   -- Cuts in each configuration direction
+   useShared  = false, -- If to use shared memory
 
-   -- boundary conditions for configuration space
-   periodicDirs = {1}, -- periodic directions
+   -- Boundary conditions for configuration space.
+   periodicDirs = {1}, -- Periodic directions
 
-   -- electrons
+   -- Electrons.
    elc = Plasma.Species {
-      charge = -1.0, mass = 1.0,
-      -- velocity space grid
+      charge = -1.0,  mass = 1.0,
+      -- Velocity space grid.
       lower = {-6.0*vDriftElc},
-      upper = {6.0*vDriftElc},
+      upper = { 6.0*vDriftElc},
       cells = {64},
-      -- initial conditions
+      -- Initial conditions.
       init = function (t, xn)
 	 local x, v = xn[1], xn[2]
 	 local fv = maxwellian1v(v, vDriftElc, vtElc)
 	 return fv*(1+perturbation*math.cos(2*math.pi*knumber*x))
       end,
-      evolve = true, -- evolve species?
-
+      evolve = true, -- Evolve species?
       diagnostics = { "M0", "M1i", "M2" }
    },
 
-   -- electrons
+   -- Electrons
    ion = Plasma.Species {
-      charge = 1.0, mass = massRatio,
-      -- velocity space grid
+      charge = 1.0,  mass = massRatio,
+      -- Velocity space grid.
       lower = {-32.0*vtIon},
-      upper = {32.0*vtIon},
+      upper = { 32.0*vtIon},
       cells = {64},
-      -- initial conditions
+      -- Initial conditions.
       init = function (t, xn)
 	 local x, v = xn[1], xn[2]
 	 return maxwellian1v(v, vDriftIon, vtIon)
       end,
-      evolve = true, -- evolve species?
-
+      evolve = true, -- Evolve species?
       diagnostics = { "M0", "M1i", "M2" }
    },   
 
-   -- field solver
+   -- Field solver.
    field = Plasma.Field {
-      epsilon0 = 1.0, mu0 = 1.0,
+      epsilon0 = 1.0,  mu0 = 1.0,
       useGhostCurrent = true,
       init = function (t, xn)
 	 return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
       end,
-      evolve = true, -- evolve field?
+      evolve = true, -- Evolve field?
    },
 }
--- run application
+-- Run application.
 plasmaApp:run()
