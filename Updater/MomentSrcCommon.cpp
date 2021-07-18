@@ -423,14 +423,14 @@ gkylMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt,
       wp_dt2[n] = f[RHO] * sq(qbym[n]) / epsilon0 * sq(dt);
       Wc_dt[n] = fd[n].magnetized? qbym[n] * Bmag * dt : 0.;
 
-      double tmp = 1. / (1. + sq(Wc_dt[n]) / 4.);
-      w02 += wp_dt2[n] * tmp;
-      gam2 += wp_dt2[n] * sq(Wc_dt[n]) * tmp;
-      delta += wp_dt2[n] * Wc_dt[n] * tmp;
+      double t1 = 1. / (1. + sq(Wc_dt[n]) / 4.);
+      w02   += t1 * wp_dt2[n];
+      delta += t1 * wp_dt2[n] * Wc_dt[n];
+      gam2  += t1 * wp_dt2[n] * Wc_dt[n] * Wc_dt[n];
 
-      K -= dt * tmp * (J[n]
-                       + sq(Wc_dt[n] / 2.) * b * b.dot(J[n])
-                       - (Wc_dt[n] / 2.) * b.cross(J[n]));
+      K -= dt * t1 * (J[n]
+                      + sq(Wc_dt[n] / 2.) * b * b.dot(J[n])
+                      - (Wc_dt[n] / 2.) * b.cross(J[n]));
     } else {
       // If the species is not evolved (but only provides current to update E),
       // its Wc & wp are effectively zero when computing its contribution to K,
