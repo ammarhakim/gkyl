@@ -422,11 +422,15 @@ gkylMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt,
 
       Wc_dt[n] = qbym[n] * Bmag * dt;
       wp_dt2[n] = f[RHO] * sq(qbym[n]) / epsilon0 * sq(dt);
-      double tmp = 1. + sq(Wc_dt[n]) / 4.;
-      w02 += wp_dt2[n] / tmp;
-      gam2 += wp_dt2[n] * sq(Wc_dt[n]) / tmp;
-      delta += wp_dt2[n] * Wc_dt[n] / tmp;
-      K -= dt / tmp * (J[n] + sq(Wc_dt[n] / 2.) * b * b.dot(J[n]) - (Wc_dt[n] / 2.) * b.cross(J[n]));
+
+      double tmp = 1. / (1. + sq(Wc_dt[n]) / 4.);
+      w02 += wp_dt2[n] * tmp;
+      gam2 += wp_dt2[n] * sq(Wc_dt[n]) * tmp;
+      delta += wp_dt2[n] * Wc_dt[n] * tmp;
+
+      K -= dt * tmp * (J[n]
+                       + sq(Wc_dt[n] / 2.) * b * b.dot(J[n])
+                       - (Wc_dt[n] / 2.) * b.cross(J[n]));
     } else {
       K -= dt * J[n];
     }
