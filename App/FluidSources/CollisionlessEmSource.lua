@@ -38,6 +38,7 @@ function CollisionlessEmSource:fullInit(appTbl)
 
    self.speciesList = tbl.species -- list of species to update
    self.evolve = tbl.evolve
+   self.magnetized = tbl.magnetized
 
    self.hasSourceBeenWritten = false -- write source only once
 
@@ -72,6 +73,7 @@ function CollisionlessEmSource:createSolver(species, field)
    local numSpecies = #self.speciesList
    local mass, charge = {}, {}
    local evolve = self.evolve
+   local magnetized = self.magnetized
 
    local source_type
    for i, nm in ipairs(self.speciesList) do
@@ -90,6 +92,13 @@ function CollisionlessEmSource:createSolver(species, field)
          evolve[i] = species[nm]:getEvolve()
       end
    end
+   if not magnetized then
+      magnetized = {}
+      for i, nm in ipairs(self.speciesList) do
+         magnetized[i] = species[nm]:getEvolve()
+      end
+   end
+
 
    if self.hasStaticField then
       local ndim = self.grid:ndim()
@@ -116,6 +125,7 @@ function CollisionlessEmSource:createSolver(species, field)
          charge = charge,
          mass = mass,
          evolve = evolve,
+         magnetized = magnetized,
          epsilon0 = field:getEpsilon0(),
          elcErrorSpeedFactor = field:getElcErrorSpeedFactor(),
          mgnErrorSpeedFactor = field:getMgnErrorSpeedFactor(),
@@ -137,6 +147,7 @@ function CollisionlessEmSource:createSolver(species, field)
          charge = charge,
          mass = mass,
          evolve = evolve,
+         magnetized = magnetized,
          epsilon0 = field:getEpsilon0(),
          elcErrorSpeedFactor = field:getElcErrorSpeedFactor(),
          mgnErrorSpeedFactor = field:getMgnErrorSpeedFactor(),
