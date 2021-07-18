@@ -400,7 +400,7 @@ function GkField:createSolver(species, externalField)
       if not self.polarizationWeight then 
          self.polarizationWeight = 0.0
          for _, s in lume.orderedIter(species) do
-            if Species.GkSpecies.is(s) then
+            if Species.GkSpecies.is(s) or Species.GyrofluidSpecies.is(s) then
                self.polarizationWeight = self.polarizationWeight + s:getPolarizationWeight()
             end
          end
@@ -734,7 +734,7 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
          if not self.linearizedPolarization or (self._first and not self.uniformPolarization) then
             self.weight:clear(0.0)
             for _, s in lume.orderedIter(species) do
-               if Species.GkSpecies.is(s) then
+               if Species.GkSpecies.is(s) or Species.GyrofluidSpecies.is(s) then
                   self.weight:accumulate(1.0, s:getPolarizationWeight(false))
                end
             end

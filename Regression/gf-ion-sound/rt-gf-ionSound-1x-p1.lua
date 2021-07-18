@@ -90,7 +90,7 @@ plasmaApp = Plasma.App {
          kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
+      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","Upar","Tpar","Tperp","Ppar","Pperp"},
    },
 
    -- Gyrokinetic electronss.
@@ -106,13 +106,13 @@ plasmaApp = Plasma.App {
          kappaPar = kappaParElc,  kappaPerp = kappaPerpElc,
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
+      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","Upar","Tpar","Tperp","Ppar","Pperp"},
    },
 
    -- Field solver.
    field = Plasma.Field {
       evolve  = true, -- Evolve field?
-      kperpSq = 0.3,
+      kperpSq = 0.3^2,
    },
 
    -- Magnetic geometry.

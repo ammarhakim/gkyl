@@ -299,6 +299,8 @@ local function buildApplication(self, tbl)
    for _, flSrc in lume.orderedIter(fluidSources) do
       flSrc:createSolver(species, field)    -- Initialize fluid source solvers.
    end   
+   -- Create field solver (sometimes requires species solver to have been created).
+   field:createSolver(species, externalField)
    for _, s in lume.orderedIter(species) do
       s:createCouplingSolver(species, field, externalField)
    end
