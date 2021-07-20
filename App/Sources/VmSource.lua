@@ -11,7 +11,7 @@ local DataStruct     = require "DataStruct"
 local ffi            = require "ffi"
 local Lin            = require "Lib.Linalg"
 local Mpi            = require "Comm.Mpi"
-local Projection     = require "App.Projection"
+local Projection     = require "App.Projection.VlasovProjection"
 local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
@@ -34,12 +34,16 @@ function VmSource:fullInit(speciesTbl)
    self.power = tbl.power
 
    if tbl.profile then
-      self.profile = tbl.profile
+      if type(tbl.profile) == "function" then
+         self.profile = Projection.FunctionProjection{func = tbl.profile,}
+      elseif type(tbl.profile) == "string" then
+         self.profile = Projection.FunctionProjection{fromFile = tbl.profile,}
+      end
    elseif tbl.kind then
       self.density     = assert(tbl.density, "App.VmSource: must specify density profile of source in 'density'.")
       self.temperature = assert(tbl.temperature, "App.VmSource: must specify temperature profile of source in 'density'.")
       if tbl.kind == "Maxwellian" or tbl.kind == "maxwellian" then
-         self.profile = Projection.VlasovProjection.MaxwellianProjection {
+         self.profile = Projection.MaxwellianProjection {
             density     = self.density,
             temperature = self.temperature,
             power       = self.power,
@@ -51,7 +55,7 @@ function VmSource:fullInit(speciesTbl)
       -- If user doesn't specify 'kind', default to Maxwellian.
       self.density     = assert(tbl.density, "App.VmSource: must specify density profile of source in 'density'.")
       self.temperature = assert(tbl.temperature, "App.VmSource: must specify temperature profile of source in 'density'.")
-      self.profile     = Projection.VlasovProjection.MaxwellianProjection {
+      self.profile     = Projection.MaxwellianProjection {
          density     = self.density,
          temperature = self.temperature,
          power       = self.power,
