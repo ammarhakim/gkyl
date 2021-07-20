@@ -33,7 +33,6 @@ end
 local function bRKL2(j, isRKL1)   -- For RKL2.
    return j<3 and 1/3 or (j^2+j-2)/(2*j*(j+1))
 end
-
 local function mu(j, isRKL1)
    return isRKL1
       and (2*j-1)/j   -- RKL1.
@@ -101,9 +100,6 @@ function OperatorSplitSSPRK3:sts(tCurr, outIdx, dtIn, inIdx, stat)
 
    local dt, dtSplit = dtIn, dtIn
    for _, s in pairs(self.species) do dtSplit = math.min(dtSplit, s:suggestDt()) end
-   -- IMPORTANT: *2 below because we assume sts is called with dt/2.
-   stat.dt_actual    = dt*2.
-   stat.dt_suggested = dt*2.
 
    local numStages = calcNumStages(dt/dtSplit, isRKL1)   -- Number of RKL stages.
 
@@ -130,15 +126,12 @@ function OperatorSplitSSPRK3:sts(tCurr, outIdx, dtIn, inIdx, stat)
          local fDot = s:rkStepperFields()[fDotIdx]
          local fjm1, fjm2 = s:rkStepperFields()[jm1], s:rkStepperFields()[jm2]
          local fj = fDot
-
          -- The following rewrites f[fDotIdx], so muTilde*dt*fDot has to go first in :combine.
          fj:combine(muTilde(numStages,j,isRKL1)*dt, fDot, mu(j,isRKL1), fjm1, nu(j,isRKL1), fjm2)
             
          if not isRKL1 then   -- For RKL2.
             local fDot0 = s:rkStepperFields()[fDot0Idx]
             local fIn = s:rkStepperFields()[inIdx]
-            
-            -- The following rewrites f[fDotIdx], so muTilde*dt*fDot has to go first in :combine.
             fj:accumulate(1.-mu(j,isRKL1)-nu(j,isRKL1), fIn, gammaTilde(numStages,j)*dt, fDot0)
          end
       end
@@ -190,6 +183,7 @@ function OperatorSplitSSPRK3:createSolver(appStatus, stepperFuncs, appsIn)
    self.stages = {
       [self.SPLIT_STAGE_1] = function(tCurr, dt)
          self:sts(tCurr, 1, dt/2., 1, stat)
+         stat.dt_actual, stat.dt_suggested = dt, dt
          local dtNext, nextState = stat.dt_actual, self.RK_STAGE_1
          return dtNext, nextState
       end,
@@ -253,6 +247,7 @@ function OperatorSplitSSPRK3:createSolver(appStatus, stepperFuncs, appsIn)
       end,
       [self.SPLIT_STAGE_2] = function(tCurr, dt)
          self:sts(tCurr, 1, dt/2., 1, stat)
+         stat.dt_actual, stat.dt_suggested = dt, dt
          local dtNext, nextState
          if stat.dt_actual < dt then
             -- Diagnostics.

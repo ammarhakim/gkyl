@@ -11,13 +11,13 @@ local diffCoefficient = 0.01
 local function ICfunc(t, xn)
    local x = xn[1]
    local k = 2.0*math.pi
-   return math.cos(k*x)
+   return 1.+0.5*math.cos(k*x)
 end
 
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = 4.0,            -- End time.
+   tEnd        = 4.,               -- End time.
    nFrame      = 1,                -- Number of output frames.
    lower       = {0.0},            -- Configuration space lower left.
    upper       = {1.0},            -- Configuration space upper right.
@@ -39,8 +39,8 @@ plasmaApp = Plasma.App {
    fluid = Plasma.Species {
       charge = 1.0,
       -- Projected initial conditions (with quadrature).
-      init   = ICfunc,
-      evolve              = true, -- Evolve species?
+      init = ICfunc,
+      evolve = true, -- Evolve species?
       evolveCollisionless = false,
       diff = Plasma.Diffusion {
          coefficient = diffCoefficient,
