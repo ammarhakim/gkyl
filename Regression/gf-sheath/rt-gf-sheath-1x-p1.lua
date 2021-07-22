@@ -134,6 +134,14 @@ end
 
 local Lambda = math.log(mi/(2.*math.pi*me)) -- Sheath factor. Only used by electrons.
 
+local dzEff   = (zMax-zMin)/(numCellZ*(polyOrder+1))
+local kParMax = math.pi/dzEff
+local omega_H = kParMax*vte/kperpRhos
+
+print(string.format("  dzEff = %e m\n", dzEff))
+print(string.format("  kparMax = %e 1/m\n", kParMax))
+print(string.format("  omega_H = kpar*vte/(kperp*rhos) = %e rad/s\n", omega_H))
+
 plasmaApp = Plasma.App {
    logToFile = true,
 
@@ -191,8 +199,9 @@ plasmaApp = Plasma.App {
          perpendicularTemperature = srcTempElc,
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
+      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","Upar","Tpar","Tperp","Ppar","Pperp"},
       bcx = {Plasma.SheathBC{}, Plasma.SheathBC{}},
+--      bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}},
    },
 
    -- Gyrofluid electronss.
@@ -225,8 +234,9 @@ plasmaApp = Plasma.App {
 --         frequencies = {nuIon},
 --      },
       evolve = true, -- Evolve species?
-      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
+      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","Upar","Tpar","Tperp","Ppar","Pperp"},
       bcx = {Plasma.SheathBC{}, Plasma.SheathBC{}},
+--      bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}},
    },
 
    -- Field solver.

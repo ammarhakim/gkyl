@@ -171,10 +171,8 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, isNonuniform, 
   surfVars : delete(vv,varsP),
 
   /* Polynomial basis and its derivatives. */
-  bP  : subst(gkvsub, basisP[polyOrder]),
-  bC  : basisC[polyOrder],
-  NP  : length(bP),
-  NC  : length(bC),
+  bP  : subst(gkvsub, basisP[polyOrder]),  NP : length(bP),
+  bC  : basisC[polyOrder],                 NC : length(bC),
   bPp : diff(bP,vv),
 
   /* Construct the recovery polynomial */
@@ -334,7 +332,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, isNonuniform, 
       if polyOrder=1 then quad : 1/sqrt(3),
       if polyOrder=2 then quad : sqrt(3/5),
       nodes : getNodes(basisFun, pDim-1, polyOrder)*quad,
-      if cdim=1 and vdim=2 and polyOrder=2 then (
+      if cdim=1 and vdim=2 and polyOrder=2 and basisFun="Ser" then (
         /* In 1x2v p=2 the bump IC does not conserve energy. 
            Cook up a node arrangement where corner cells are sqrt(3/5) nodes,
            and the other four nodes are 1/sqrt(3). This appears to conserve
@@ -343,8 +341,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, isNonuniform, 
            energy with nonuniform grids. */
         p1Nodes : args(getNodes(basisFun, pDim-1, 1)),
         p2Nodes : args(getNodes(basisFun, pDim-1, 2)),
-        extraNodeInd : [],
-        p1NodeInd    : [],
+        extraNodeInd : [],  p1NodeInd : [],
         for i : 1 thru length(p2Nodes) do (
           idx : sublist_indices(p1Nodes,lambda([x], x=p2Nodes[i])),
           if length(idx)=0 then (
@@ -619,7 +616,7 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, applyP
   bPp : diff(bP,vv),
 
   /* First compute the contribution coming from the second
-  ** differentiation by parts to left and right cells. */
+     differentiation by parts to left and right cells. */
   nuVtSqSum_e : doExpand1(nuVtSqSum,bC),
   BmagInv_e   : doExpand1(BmagInv,bC),
 
@@ -650,7 +647,7 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrder, applyP
   ),
 
   /* Increments to the right cell (some dimensional factors missing).
-  ** Here incr_r1 and incr_r2 have separate left/right symmetry. */
+     Here incr_r1 and incr_r2 have separate left/right symmetry. */
   incr_r2 : -calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), subst(vv=-1, gr)),
 
   /* Increments to the left cell (some dimensional factors missing). */

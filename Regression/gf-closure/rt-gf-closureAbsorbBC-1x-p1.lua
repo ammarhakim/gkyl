@@ -118,7 +118,7 @@ plasmaApp = Plasma.App {
          kappaPar = kappaParElc,  kappaPerp = kappaPerpElc,
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
+      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","Upar","Tpar","Tperp","Ppar","Pperp"},
       bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}}
    },
 
@@ -140,7 +140,7 @@ plasmaApp = Plasma.App {
          kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
+      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","Upar","Tpar","Tperp","Ppar","Pperp"},
       bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}}
    },
 

@@ -263,10 +263,10 @@ end
 function FluidSpecies:createSolver(field, externalField)
    if externalField then
       -- Set up Jacobian.
-      self.jacobFunc   = externalField.jacobGeoFunc
+      self.jacobFun = externalField.jacobGeoFunc
       if externalField.geo then
-         self.jacob       = externalField.geo.jacobGeo
-         self.jacobGeoInv = externalField.geo.jacobGeoInv
+         self.jacob    = externalField.geo.jacobGeo
+         self.jacobInv = externalField.geo.jacobGeoInv
       end
    end
 
@@ -294,7 +294,7 @@ function FluidSpecies:createSolver(field, externalField)
    for _, c in pairs(self.collisions) do c:createSolver(self, externalField) end
 
    -- Create solvers for sources.
-   for _, src in lume.orderedIter(self.sources) do src:createSolver(self,externalField) end
+   for _, src in lume.orderedIter(self.sources) do src:createSolver(self, externalField) end
 
    -- Create BC solvers.
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:createSolver(self, field, externalField) end
@@ -448,6 +448,7 @@ function FluidSpecies:initDist(extField, species)
    if self.fluctuationBCs then syncPeriodicDirs = false end
 
    local initCnt, backgroundCnt = 0, 0
+   local scaleInitWithSourcePower = false
    for nm, pr in pairs(self.projections) do
       pr:fullInit(self)
       pr:advance(0.0, {extField}, {self.moments[2]})
@@ -457,6 +458,7 @@ function FluidSpecies:initDist(extField, species)
       if string.find(nm,"init") then
          self.moments[1]:accumulate(1.0, self.moments[2])
          initCnt = initCnt + 1
+         if pr.scaleWithSourcePower then scaleInitWithSourcePower = true end
       end
       if string.find(nm,"background") then
          if not self.momBackground then self.momBackground = self:allocVectorMoment(self.nMoments) end
@@ -465,6 +467,12 @@ function FluidSpecies:initDist(extField, species)
          backgroundCnt = backgroundCnt + 1
       end
    end
+
+   if scaleInitWithSourcePower then
+      -- MF 2021/05/27: This assumes there's only one source object per species in the input file.
+      for _, src in lume.orderedIter(self.sources) do self.moments[1]:scale(src.powerScalingFac) end
+   end
+
    assert(initCnt>0, string.format("FluidSpecies: Species '%s' not initialized!", self.name))
    if self.momBackground then
       if backgroundCnt == 0 then self.momBackground:copy(self.moments[1]) end
@@ -605,8 +613,8 @@ function FluidSpecies:createDiagnostics(field)  -- More sophisticated/extensive 
 
    -- Many diagnostics require dividing by the Jacobian (if present).
    -- Predefine the function that does that.
-   self.calcNoJacMom = self.jacobGeoInv
-      and function(tm, rkIdx) self.weakMultiply:advance(tm, {self:getMoments(rkIdx), self.jacobGeoInv}, {self.noJacMom}) end
+   self.calcNoJacMom = self.jacobInv
+      and function(tm, rkIdx) self.weakMultiply:advance(tm, {self:getMoments(rkIdx), self.jacobInv}, {self.noJacMom}) end
       or function(tm, rkIdx) self.noJacMom:copy(self:getMoments(rkIdx)) end
 end
 

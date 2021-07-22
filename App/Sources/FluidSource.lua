@@ -51,7 +51,7 @@ function FluidSource:init(tbl) self.tbl = tbl end
 function FluidSource:fullInit(speciesTbl)
    local tbl = self.tbl -- Previously stored table.
 
-   self.srcIn = assert(tbl.source, "App.FluidSource: must specify source profile in 'source'.")
+   self.srcIn = assert(tbl.profile, "App.FluidSource: must specify source profile in 'source'.")
 
    self.timeDependence = tbl.timeDependence or function (t) return 1. end
 

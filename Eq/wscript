@@ -86,6 +86,9 @@ def build(bld):
     lboData/VmLBOconstNuBoundarySurfSer2x2vP1.cpp
     lboData/VmLBOconstNuBoundarySurfSer2x3vP1.cpp
     lboData/VmLBOconstNuBoundarySurfSer3x3vP1.cpp
+    lboData/VmLBOconstNuUpwindSurfSer1x1vP1.cpp
+    lboData/VmLBOconstNuUpwindSurfSer1x2vP1.cpp
+    lboData/VmLBOconstNuUpwindSurfSer2x2vP1.cpp
     lboData/VmLBOconstNuSurfNonuniformSer1x1vP1.cpp
     lboData/VmLBOconstNuSurfNonuniformSer1x2vP1.cpp
     lboData/VmLBOconstNuSurfNonuniformSer1x3vP1.cpp
@@ -105,6 +108,9 @@ def build(bld):
     lboData/VmLBOconstNuBoundarySurfSer1x3vP2.cpp
     lboData/VmLBOconstNuBoundarySurfSer2x2vP2.cpp
     lboData/VmLBOconstNuBoundarySurfSer2x3vP2.cpp
+    lboData/VmLBOconstNuUpwindSurfSer1x1vP2.cpp
+    lboData/VmLBOconstNuUpwindSurfSer1x2vP2.cpp
+    lboData/VmLBOconstNuUpwindSurfSer2x2vP2.cpp
     lboData/VmLBOconstNuSurfNonuniformSer1x1vP2.cpp
     lboData/VmLBOconstNuSurfNonuniformSer1x2vP2.cpp
     lboData/VmLBOconstNuSurfNonuniformSer1x3vP2.cpp
@@ -126,51 +132,38 @@ def build(bld):
     lboData/VmLBOconstNuSurfNonuniformSer1x3vP3.cpp
     lboData/VmLBOconstNuSurfNonuniformSer2x2vP3.cpp
 
-    lboData/VmLBOconstNuMax1x1vP1.cpp
-    lboData/VmLBOconstNuMax1x2vP1.cpp
-    lboData/VmLBOconstNuMax1x3vP1.cpp
-    lboData/VmLBOconstNuMax2x2vP1.cpp
-    lboData/VmLBOconstNuMax2x3vP1.cpp
-    lboData/VmLBOconstNuMax3x3vP1.cpp
-    lboData/VmLBOconstNuSurfMax1x1vP1.cpp
-    lboData/VmLBOconstNuSurfMax1x2vP1.cpp
-    lboData/VmLBOconstNuSurfMax1x3vP1.cpp
-    lboData/VmLBOconstNuSurfMax2x2vP1.cpp
-    lboData/VmLBOconstNuSurfMax2x3vP1.cpp
-    lboData/VmLBOconstNuSurfMax3x3vP1.cpp
-    lboData/VmLBOconstNuBoundarySurfMax1x1vP1.cpp
-    lboData/VmLBOconstNuBoundarySurfMax1x2vP1.cpp
-    lboData/VmLBOconstNuBoundarySurfMax1x3vP1.cpp
-    lboData/VmLBOconstNuBoundarySurfMax2x2vP1.cpp
-    lboData/VmLBOconstNuBoundarySurfMax2x3vP1.cpp
-    lboData/VmLBOconstNuBoundarySurfMax3x3vP1.cpp
-    lboData/VmLBOconstNuMax1x1vP2.cpp
-    lboData/VmLBOconstNuMax1x2vP2.cpp
-    lboData/VmLBOconstNuMax1x3vP2.cpp
-    lboData/VmLBOconstNuMax2x2vP2.cpp
-    lboData/VmLBOconstNuMax2x3vP2.cpp
-    lboData/VmLBOconstNuSurfMax1x1vP2.cpp
-    lboData/VmLBOconstNuSurfMax1x2vP2.cpp
-    lboData/VmLBOconstNuSurfMax1x3vP2.cpp
-    lboData/VmLBOconstNuSurfMax2x2vP2.cpp
-    lboData/VmLBOconstNuSurfMax2x3vP2.cpp
-    lboData/VmLBOconstNuBoundarySurfMax1x1vP2.cpp
-    lboData/VmLBOconstNuBoundarySurfMax1x2vP2.cpp
-    lboData/VmLBOconstNuBoundarySurfMax1x3vP2.cpp
-    lboData/VmLBOconstNuBoundarySurfMax2x2vP2.cpp
-    lboData/VmLBOconstNuBoundarySurfMax2x3vP2.cpp
-    lboData/VmLBOconstNuMax1x1vP3.cpp
-    lboData/VmLBOconstNuMax1x2vP3.cpp
-    lboData/VmLBOconstNuMax1x3vP3.cpp
-    lboData/VmLBOconstNuMax2x2vP3.cpp
-    lboData/VmLBOconstNuSurfMax1x1vP3.cpp
-    lboData/VmLBOconstNuSurfMax1x2vP3.cpp
-    lboData/VmLBOconstNuSurfMax1x3vP3.cpp
-    lboData/VmLBOconstNuSurfMax2x2vP3.cpp
-    lboData/VmLBOconstNuBoundarySurfMax1x1vP3.cpp
-    lboData/VmLBOconstNuBoundarySurfMax1x2vP3.cpp
-    lboData/VmLBOconstNuBoundarySurfMax1x3vP3.cpp
-    lboData/VmLBOconstNuBoundarySurfMax2x2vP3.cpp
+    lboData/VmLBOconstNuTensor1x1vP1.cpp
+    lboData/VmLBOconstNuTensor1x2vP1.cpp
+    lboData/VmLBOconstNuTensor1x3vP1.cpp
+    lboData/VmLBOconstNuTensor2x2vP1.cpp
+    lboData/VmLBOconstNuSurfTensor1x1vP1.cpp
+    lboData/VmLBOconstNuSurfTensor1x2vP1.cpp
+    lboData/VmLBOconstNuSurfTensor1x3vP1.cpp
+    lboData/VmLBOconstNuSurfTensor2x2vP1.cpp
+    lboData/VmLBOconstNuBoundarySurfTensor1x1vP1.cpp
+    lboData/VmLBOconstNuBoundarySurfTensor1x2vP1.cpp
+    lboData/VmLBOconstNuBoundarySurfTensor1x3vP1.cpp
+    lboData/VmLBOconstNuBoundarySurfTensor2x2vP1.cpp
+    lboData/VmLBOconstNuUpwindSurfTensor1x1vP1.cpp
+    lboData/VmLBOconstNuUpwindSurfTensor1x2vP1.cpp
+    lboData/VmLBOconstNuUpwindSurfTensor1x3vP1.cpp
+    lboData/VmLBOconstNuUpwindSurfTensor2x2vP1.cpp
+    lboData/VmLBOconstNuTensor1x1vP2.cpp
+    lboData/VmLBOconstNuTensor1x2vP2.cpp
+    lboData/VmLBOconstNuTensor1x3vP2.cpp
+    lboData/VmLBOconstNuTensor2x2vP2.cpp
+    lboData/VmLBOconstNuSurfTensor1x1vP2.cpp
+    lboData/VmLBOconstNuSurfTensor1x2vP2.cpp
+    lboData/VmLBOconstNuSurfTensor1x3vP2.cpp
+    lboData/VmLBOconstNuSurfTensor2x2vP2.cpp
+    lboData/VmLBOconstNuBoundarySurfTensor1x1vP2.cpp
+    lboData/VmLBOconstNuBoundarySurfTensor1x2vP2.cpp
+    lboData/VmLBOconstNuBoundarySurfTensor1x3vP2.cpp
+    lboData/VmLBOconstNuBoundarySurfTensor2x2vP2.cpp
+    lboData/VmLBOconstNuUpwindSurfTensor1x1vP2.cpp
+    lboData/VmLBOconstNuUpwindSurfTensor1x2vP2.cpp
+    lboData/VmLBOconstNuUpwindSurfTensor1x3vP2.cpp
+    lboData/VmLBOconstNuUpwindSurfTensor2x2vP2.cpp
 
     constDiffusionData/ConstDiffusionSer1xP1.cpp
     constDiffusionData/ConstDiffusionSer2xP1.cpp
@@ -519,6 +512,23 @@ def build(bld):
     vlasovData/VlasovRecoverySurfElcMagTensor1x1vP2.cpp
     vlasovData/VlasovRecoverySurfElcMagSer1x1vP3.cpp
     vlasovData/VlasovRecoverySurfElcMagTensor1x1vP3.cpp
+
+    vlasovData/VlasovUpwindSurfElcMagSer1x1vP1.cpp
+    vlasovData/VlasovUpwindSurfElcMagSer1x2vP1.cpp
+    vlasovData/VlasovUpwindSurfElcMagSer1x3vP1.cpp
+    vlasovData/VlasovUpwindSurfElcMagSer2x2vP1.cpp
+    vlasovData/VlasovUpwindSurfElcMagSer2x3vP1.cpp
+    vlasovData/VlasovUpwindSurfElcMagSer3x3vP1.cpp
+
+    vlasovData/VlasovUpwindSurfElcMagSer1x1vP2.cpp
+    vlasovData/VlasovUpwindSurfElcMagSer1x2vP2.cpp
+    vlasovData/VlasovUpwindSurfElcMagSer1x3vP2.cpp
+    vlasovData/VlasovUpwindSurfElcMagSer2x2vP2.cpp
+
+    vlasovData/VlasovUpwindSurfElcMagTensor1x1vP2.cpp
+    vlasovData/VlasovUpwindSurfElcMagTensor1x2vP2.cpp
+    vlasovData/VlasovUpwindSurfElcMagTensor1x3vP2.cpp
+    vlasovData/VlasovUpwindSurfElcMagTensor2x2vP2.cpp
 
     vlasovData/VlasovIncr.cpp
 

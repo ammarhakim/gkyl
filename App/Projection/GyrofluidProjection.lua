@@ -24,8 +24,8 @@ function FunctionProjection:advance(time, inFlds, outFlds)
    local extField = inFlds[1]
    local momOut   = outFlds[1]
 
-   local jacobGeo = extField.geo.jacobGeo
-   if jacobGeo then self.weakMultiply:advance(0, {momOut, jacobGeo}, {momOut}) end
+   local jacob = extField.geo.jacobGeo
+   if jacob then self.weakMultiply:advance(0, {momOut, jacob}, {momOut}) end
 end
 
 --------------------------------------------------------------------------------
@@ -36,8 +36,8 @@ end
 
 local GyrofluidProjection = Proto(FluidProjectionParent)
 
-function GyrofluidProjection:fullInit(species)
-   GyrofluidProjection.super.fullInit(self, species)
+function GyrofluidProjection:fullInit(mySpecies)
+   GyrofluidProjection.super.fullInit(self, mySpecies)
 
    local tbl = self.tbl
    self.density    = assert(tbl.density, "GyrofluidProjection: must specify 'density'")
@@ -59,11 +59,13 @@ function GyrofluidProjection:fullInit(species)
       self.Tperp = function (t, zn) return tbl.perpendicularTemperature end
    end
 
+   self.charge, self.mass = mySpecies.charge, mySpecies.mass
+
    if self.fromFile then
       self.ioMethod  = "MPI"
       self.writeSkin = true
       self.fieldIo = AdiosCartFieldIo {
-         elemType   = species.moments[1]:elemType(),
+         elemType   = mySpecies.moments[1]:elemType(),
          method     = self.ioMethod,
          writeGhost = self.writeGhost,
          metaData   = {polyOrder = self.basis:polyOrder(),
@@ -73,8 +75,8 @@ function GyrofluidProjection:fullInit(species)
       }
    else
       self.project = Updater.ProjectOnBasis {
-         onGrid   = self.grid,   evaluate = function(t, xn) return 0. end,   -- Set later.
-         basis    = self.basis,  onGhosts = true,
+         onGrid = self.grid,   evaluate = function(t, xn) return 0. end,   -- Set later.
+         basis  = self.basis,  onGhosts = true,
       }
       self.weakMultiply = Updater.CartFieldBinOp {
          onGrid    = self.grid,   operation = "Multiply",
@@ -85,22 +87,23 @@ function GyrofluidProjection:fullInit(species)
          weakBasis = self.basis,  onGhosts  = true,
       }
       -- Will also need some temporary fields. Can use those declared in GyrofluidSpecies.
-      self.jacM0      = species.jacM0
-      self.mJacM0     = species.mJacM0
-      self.mJacM1     = species.mJacM1
-      self.mJacM2     = species.mJacM2
-      self.jacM2perp  = species.jacM2perp
-      self.uParSelf   = species.uParSelf
-      self.TperpSelf  = species.TperpSelf
-      self.TparSelf   = species.TparSelf 
-      self.pPerpJac   = species.pPerpJac
-      self.pParJac    = species.pParJac
-      self.mJacM2flow = species.mJacM2flow
+      self.jacM0      = mySpecies.jacM0
+      self.mJacM0     = mySpecies.mJacM0
+      self.mJacM1     = mySpecies.mJacM1
+      self.mJacM2     = mySpecies.mJacM2
+      self.jacM2perp  = mySpecies.jacM2perp
+      self.uParSelf   = mySpecies.uParSelf
+      self.TperpSelf  = mySpecies.TperpSelf
+      self.TparSelf   = mySpecies.TparSelf 
+      self.pPerpJac   = mySpecies.pPerpJac
+      self.pParJac    = mySpecies.pParJac
+      self.mJacM2flow = mySpecies.mJacM2flow
       -- Useful to have a unit field.
-      self.unitFld = species:allocMoment()
-      self.unitFld:scale(1.0)
+      self.unitFld = mySpecies:allocMoment()
+      self.project:setFunc(function(t,xn) return 1. end)
+      self.project:advance(t, {}, {self.unitFld})
 
-      self.momOff = species:getMomOff()
+      self.momOff = mySpecies:getMomOff()
    end
 end
 
@@ -110,13 +113,13 @@ function GyrofluidProjection:advance(tm, inFlds, outFlds)
    if self.fromFile then
       local tm, fr = self.fieldIo:read(momOut, self.fromFile)
    else
-      local bmag     = extField.geo.bmag
-      local jacobGeo = extField.geo.jacobGeo or self.unitFld
+      local bmag  = extField.geo.bmag
+      local jacob = extField.geo.jacobGeo or self.unitFld
 
       -- Compute the zeroth moment (number density), times mass, times Jacobian.
       self.project:setFunc(self.density)
       self.project:advance(t, {}, {self.jacM0})
-      self.weakMultiply:advance(0, {self.jacM0, jacobGeo}, {self.jacM0})
+      self.weakMultiply:advance(0, {self.jacM0, jacob}, {self.jacM0})
       self.mJacM0:combine(self.mass, self.jacM0)
 
       -- Compute the 1st moment times mass (momentum density), times Jacobian.

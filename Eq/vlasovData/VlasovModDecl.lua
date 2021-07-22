@@ -61,32 +61,16 @@ function _M.selectVolElcMag(basisNm, CDIM, VDIM, polyOrder)
    return ffi.C[funcNm]
 end
 
--- Select functions to compute surface EM field acceleration  terms (output is a table of functions).
-function _M.selectSurfElcMag(basisNm, CDIM, VDIM, polyOrder)
+-- Select functions to compute surface EM field acceleration terms (output is a table of functions).
+function _M.selectSurfElcMag(basisNm, CDIM, VDIM, polyOrder, vFluxType)
+   local vFluxTypeStr = vFluxType=="penalty" and "" or 
+                        (vFluxType=="recovery" and "Recovery" or
+                        (vFluxType=="upwind" and "Upwind" or assert(false, "VlasovModDecl: 'vFlux' chosen not supported.")))
+
    local funcType = "double"
    local funcNm = {}
    for d = 1, VDIM do
-      funcNm[d] = string.format("VlasovSurfElcMag%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], vvars[d], polyOrder)
-   end
-   local funcSign = "(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *E, const double *fl, const double *fr, double *outl, double *outr)"
-
-   local CDefStr = ""
-   for d = 1, VDIM do CDefStr = CDefStr .. (funcType .. " " .. funcNm[d] .. funcSign .. ";\n") end
-   ffi.cdef(CDefStr)
-
-   local kernels = {}
-   for d = 1, VDIM do
-      local tmp = ffi.C[funcNm[d]]
-      kernels[d] = tmp
-   end
-   return kernels
-end
-
-function _M.selectRecoverySurfElcMag(basisNm, CDIM, VDIM, polyOrder)
-   local funcType = "double"
-   local funcNm = {}
-   for d = 1, VDIM do
-      funcNm[d] = string.format("VlasovRecoverySurfElcMag%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], vvars[d], polyOrder)
+      funcNm[d] = string.format("Vlasov%sSurfElcMag%dx%dv%s_%s_P%d", vFluxTypeStr, CDIM, VDIM, basisNmMap[basisNm], vvars[d], polyOrder)
    end
    local funcSign = "(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *E, const double *fl, const double *fr, double *outl, double *outr)"
 
