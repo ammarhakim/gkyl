@@ -47,11 +47,11 @@ function Diffusion:fullInit(speciesTbl, appTbl)
    self.usePositivity = speciesTbl.applyPositivity   -- Use positivity preserving algorithms.
 
    -- Decide whether to use an explicit step for this term, or a super-time-stepping (sts) integrator.
-   local treat = tbl.treatment or "explicit"
-   if treat == "explicit" then
+   self.treat = tbl.treatment or "explicit"
+   if self.treat == "explicit" then
       self.advanceFunc = function(tCurr, fIn, species, fRhsOut) Diffusion["advanceImp"](self, tCurr, fIn, species, fRhsOut) end
       self.splitAdvanceFunc = function(tCurr, fIn, species, fRhsOut) end
-   elseif treat == "sts" then
+   elseif self.treat == "sts" then
       assert(appTbl.timeStepper == "rk3opSplit", "App.Diffusion: 'sts' treatment requires 'timeStepper=rk3opSplit'.")
       self.splitAdvanceFunc = function(tCurr, fIn, species, fRhsOut) Diffusion["advanceImp"](self, tCurr, fIn, species, fRhsOut) end
       self.advanceFunc = function(tCurr, fIn, species, fRhsOut) end
@@ -167,6 +167,18 @@ function Diffusion:createSolver()
       projectDiffCoeff:advance(0.0, {}, {self.coefficient})
    end
 
+   if self.treat == "sts" then
+      assert(not isVarCoeff, "App.Collisions.Diffusion: spatially varying coefficient not yet supported with operator split.")
+      -- Calculate the largest time step (or smallest cflFreq) that
+      -- operator splitting should take.
+      self.cflFreqSplit = 0.
+      local diffOrder = self.diffOrder or 2
+      for d = 1, #self.diffDirs do
+         local Lx = grid:upper(self.diffDirs[d])-grid:lower(self.diffDirs[d])
+         self.cflFreqSplit = self.cflFreqSplit+((2.*math.pi/Lx)^diffOrder)*self.coefficient[1]
+      end
+   end
+
 
    -- Intemediate storage for output of collisions.
    self.collOut = DataStruct.Field {
@@ -209,6 +221,7 @@ end
 function Diffusion:splitAdvance(tCurr, fIn, species, fRhsOut)
    self.splitAdvanceFunc(tCurr, fIn, species, fRhsOut)
 end
+function Diffusion:cflRateSplit() return self.cflFreqSplit end
 
 function Diffusion:write(tm, frame)
 -- Since this doesn't seem to be as big a problem in Vm as in Gk, we comment this out for now.

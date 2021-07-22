@@ -17,7 +17,7 @@ end
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = 4.,               -- End time.
+   tEnd        = 4,               -- End time.
    nFrame      = 1,                -- Number of output frames.
    lower       = {0.0},            -- Configuration space lower left.
    upper       = {1.0},            -- Configuration space upper right.
@@ -26,7 +26,7 @@ plasmaApp = Plasma.App {
    polyOrder   = 1,                -- Polynomial order.
    timeStepper = "rk3opSplit",
 --   timeStepper = "rk3",
---   maximumDt = 0.1,
+--   maximumDt = 1.68869,
 --   suggestedDt = 4.0,
    
    periodicDirs = {1},

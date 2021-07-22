@@ -530,6 +530,15 @@ function FluidSpecies:suggestDtEvolve()
    return dtSuggested
 end
 function FluidSpecies:suggestDt() return self.suggestDtFunc() end
+function FluidSpecies:suggestDtSplit() 
+   local dtSuggested = GKYL_MAX_DOUBLE
+
+   for _, c in pairs(self.collisions) do
+      dtSuggested = math.min(self.cfl/c:cflRateSplit(), dtSuggested)
+   end
+
+   return dtSuggested
+end
 
 function FluidSpecies:setDtGlobal(dtGlobal) self.dtGlobal[0] = dtGlobal end
 
