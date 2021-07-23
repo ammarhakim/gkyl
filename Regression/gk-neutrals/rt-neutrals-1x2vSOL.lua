@@ -5,7 +5,6 @@
 ------------------------------------------------------------------------
 
 local Plasma    = require("App.PlasmaOnCartGrid").Gyrokinetic()
-local Vlasov    = require("App.PlasmaOnCartGrid").VlasovMaxwell()
 local Constants = require "Lib.Constants"
 
 function sech(x)
@@ -219,7 +218,7 @@ plasmaApp = Plasma.App {
    },
 
    -- Vlasov neutrals.
-   neut = Vlasov.Species {
+   neut = Plasma.Vlasov {
       evolve = true,
       charge = 0.0, mass = mi,
       
@@ -230,7 +229,7 @@ plasmaApp = Plasma.App {
       decompCuts = {1},
 
       -- Initial conditions.
-      init = Vlasov.MaxwellianProjection {
+      init = Plasma.VmMaxwellianProjection {
          density = function (t, xn)
             local x, vpar = xn[1], xn[2]
             local n_n     = n0
@@ -253,7 +252,7 @@ plasmaApp = Plasma.App {
       },
 
       -- Source parameters.
-      source = Vlasov.Source {
+      source = Plasma.VmSource {
          kind        = "Maxwellian",
          density     = sourceDensityNeut,
          temperature = 2.*eV,
@@ -273,7 +272,7 @@ plasmaApp = Plasma.App {
       },
 
       -- Boundary conditions.
-      bcx = {Vlasov.ReflectBC{}, Vlasov.ReflectBC{}},
+      bcx = {Plasma.ReflectBC{}, Plasma.ReflectBC{}},
 
       diagnostics = {"M0", "Udrift", "VtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal"},
  
