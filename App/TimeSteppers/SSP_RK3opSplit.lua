@@ -101,13 +101,14 @@ function OperatorSplitSSPRK3:sts(tCurr, outIdx, dtIn, inIdx, stat)
    -- Below :suggestDtSplit sets the largest dt by which sts should step the solution.
    local dt, dtSplitExp = dtIn, dtIn
    for _, s in pairs(self.species) do
-      dt = math.min(dt, 0.1*s:suggestDtSplit())
+      dt = math.min(dt, s:suggestDtSplit())
       dtSplitExp = math.min(dtSplitExp, s:suggestDt())
    end
    -- IMPORTANT: *2 below because we assume sts is called with dt/2.
    stat.dt_actual, stat.dt_suggested = dt*2, dt*2
 
    local numStages = calcNumStages(dt/dtSplitExp, isRKL1)   -- Number of RKL stages.
+--   print(string.format("dt=%g | dtSplitExp=%g | numStages=%d",dt,dtSplitExp,numStages))
 
    for _, s in lume.orderedIter(self.species) do
       local flds = s:rkStepperFields()

@@ -677,6 +677,22 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
 end
 
+function VlasovSpecies:splitAdvance(tCurr, species, emIn, inIdx, outIdx)
+   local fIn     = self:rkStepperFields()[inIdx]
+   local fRhsOut = self:rkStepperFields()[outIdx]
+
+   fRhsOut:clear(0.0)
+
+   -- Perform the collision update.
+   if self.evolveCollisions then
+      for _, c in pairs(self.collisions) do
+         c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+         c:splitAdvance(tCurr, fIn, species, fRhsOut)
+      end
+   end
+end
+
+
 function VlasovSpecies:advanceCrossSpeciesCoupling(tCurr, species, emIn, inIdx, outIdx)
    -- Perform some operations after the updates have been computed, but before
    -- the combine RK (in PlasmaOnCartGrid) is called.

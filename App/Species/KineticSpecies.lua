@@ -211,7 +211,7 @@ function KineticSpecies:fullInit(appTbl)
 	 self.collisions[nm] = val
 	 self.collisions[nm]:setName(nm)
 	 val:setSpeciesName(self.name)
-	 val:fullInit(tbl) -- Initialize collisions
+	 val:fullInit(tbl, appTbl) -- Initialize collisions
       end
    end
 
@@ -656,6 +656,15 @@ function KineticSpecies:suggestDt()
    -- If dtSuggested == GKYL_MAX_DOUBLE, it is likely because of NaNs. 
    -- If so, return 0 so that no timestep is taken, and we will abort the simulation.
    if dtSuggested == GKYL_MAX_DOUBLE then dtSuggested = 0.0 end
+
+   return dtSuggested
+end
+function KineticSpecies:suggestDtSplit()
+   local dtSuggested = GKYL_MAX_DOUBLE
+
+   for _, c in pairs(self.collisions) do
+      dtSuggested = math.min(self.cfl/c:cflFreqMin(self:rkStepperFields()[1]), dtSuggested)
+   end
 
    return dtSuggested
 end

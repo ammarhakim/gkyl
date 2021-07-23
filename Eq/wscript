@@ -126,6 +126,8 @@ def build(bld):
     lboData/VmLBOconstNuSurfNonuniformSer1x3vP3.cpp
     lboData/VmLBOconstNuSurfNonuniformSer2x2vP3.cpp
 
+    lboData/VmLBOconstNuCFLfreqMinSer1x1vP1.cpp
+
     lboData/VmLBOconstNuMax1x1vP1.cpp
     lboData/VmLBOconstNuMax1x2vP1.cpp
     lboData/VmLBOconstNuMax1x3vP1.cpp

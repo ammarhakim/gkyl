@@ -70,13 +70,9 @@ function HyperDisCont:init(tbl)
 
    -- By default, update all directions.
    self._updateDirs = {}
-   for d = 1, self._ndim do
-      self._updateDirs[d] = d
-   end
+   for d = 1, self._ndim do self._updateDirs[d] = d end
    -- Read in which directions we are to update.
-   if tbl.updateDirections then
-      self._updateDirs = tbl.updateDirections
-   end
+   if tbl.updateDirections then self._updateDirs = tbl.updateDirections end
 
    -- Set zero flux direction flags.
    self._zeroFluxFlags = {}

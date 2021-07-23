@@ -46,7 +46,7 @@ end
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
-function VmLBOCollisions:fullInit(speciesTbl)
+function VmLBOCollisions:fullInit(speciesTbl, appTbl)
    local tbl = self.tbl -- Previously stored table.
 
    self.collKind = "VmLBO"    -- Type of collisions model. Useful at the species app level.
@@ -150,32 +150,31 @@ function VmLBOCollisions:fullInit(speciesTbl)
 
    self.nuFrac = tbl.nuFrac or 1.0
 
+    -- Decide whether to use an explicit or a super-time-stepping (sts) integrator.
+   self.treat = tbl.treatment or "explicit"
+   if self.treat == "explicit" then
+      self.advanceFunc = function(tCurr, fIn, species, fRhsOut) VmLBOCollisions["advanceImp"](self, tCurr, fIn, species, fRhsOut) end
+      self.splitAdvanceFunc = function(tCurr, fIn, species, fRhsOut) end
+   elseif self.treat == "sts" then
+      assert(appTbl.timeStepper == "rk3opSplit", "App.VmLBOCollisions: 'sts' treatment requires 'timeStepper=rk3opSplit'.")
+      self.splitAdvanceFunc = function(tCurr, fIn, species, fRhsOut) VmLBOCollisions["advanceImp"](self, tCurr, fIn, species, fRhsOut) end
+      self.advanceFunc = function(tCurr, fIn, species, fRhsOut) end
+   else
+      assert(false, "App.Diffusion: entry 'treatment' must be either 'explicit' or 'sts'.")
+   end
+
    self.cfl = 0.0    -- Will be replaced.
 
    self.timers = {nonSlvr = 0.}
 end
 
-function VmLBOCollisions:setName(nm)
-   self.name = nm
-end
-function VmLBOCollisions:setSpeciesName(nm)
-   self.speciesName = nm
-end
-function VmLBOCollisions:setCfl(cfl)
-   self.cfl = cfl
-end
-function VmLBOCollisions:setConfBasis(basis)
-   self.confBasis = basis
-end
-function VmLBOCollisions:setConfGrid(grid)
-   self.confGrid = grid
-end
-function VmLBOCollisions:setPhaseBasis(basis)
-   self.phaseBasis = basis
-end
-function VmLBOCollisions:setPhaseGrid(grid)
-   self.phaseGrid = grid
-end
+function VmLBOCollisions:setName(nm) self.name = nm end
+function VmLBOCollisions:setSpeciesName(nm) self.speciesName = nm end
+function VmLBOCollisions:setCfl(cfl) self.cfl = cfl end
+function VmLBOCollisions:setConfBasis(basis) self.confBasis = basis end
+function VmLBOCollisions:setConfGrid(grid) self.confGrid = grid end
+function VmLBOCollisions:setPhaseBasis(basis) self.phaseBasis = basis end
+function VmLBOCollisions:setPhaseGrid(grid) self.phaseGrid = grid end
 
 function VmLBOCollisions:createSolver(extField)
    self.vdim      = self.phaseGrid:ndim() - self.confGrid:ndim()
@@ -189,9 +188,7 @@ function VmLBOCollisions:createSolver(extField)
    end
    self.vMaxSq = self.vMax[1] 
    for vd = 1,self.vdim do
-      if (self.vMaxSq < self.vMax[vd]) then
-         self.vMaxSq = self.vMax[vd]
-      end
+      if (self.vMaxSq < self.vMax[vd]) then self.vMaxSq = self.vMax[vd] end
    end
    self.vMaxSq = self.vMaxSq^2
 
@@ -236,21 +233,15 @@ function VmLBOCollisions:createSolver(extField)
       if self.timeDepNu then 
          -- Updater to compute spatially varying (Spitzer) nu.
          self.spitzerNu = Updater.SpitzerCollisionality {
-            onGrid           = self.confGrid,
-            confBasis        = self.confBasis,
-            useCellAverageNu = self.cellConstNu,
-            willInputNormNu  = self.userInputNormNu,
-            elemCharge       = self.elemCharge,
-            epsilon0         = self.epsilon0,
-            hBar             = self.hBar,
-            nuFrac           = self.nuFrac,
+            onGrid           = self.confGrid,         elemCharge = self.elemCharge,
+            confBasis        = self.confBasis,        epsilon0   = self.epsilon0,
+            useCellAverageNu = self.cellConstNu,      hBar       = self.hBar,
+            willInputNormNu  = self.userInputNormNu,  nuFrac     = self.nuFrac,
          }
       elseif self.selfCollisions then
          local projectUserNu = Updater.ProjectOnBasis {
-            onGrid   = self.confGrid,
-            basis    = self.confBasis,
-            evaluate = self.collFreqSelf,
-            onGhosts = false
+            onGrid = self.confGrid,   evaluate = self.collFreqSelf,
+            basis  = self.confBasis,  onGhosts = false
          }
          projectUserNu:advance(0.0, {}, {self.nuVarXSelf})
       end
@@ -265,20 +256,14 @@ function VmLBOCollisions:createSolver(extField)
    end
    -- Lenard-Bernstein equation.
    self.equation = VmLBOconstNuEq {
-      phaseBasis       = self.phaseBasis,
-      confBasis        = self.confBasis,
-      vUpper           = self.vMax,
-      varyingNu        = self.varNu,
-      useCellAverageNu = self.cellConstNu,
-      gridID           = self.phaseGrid:id(),
+      phaseBasis = self.phaseBasis,  varyingNu        = self.varNu,
+      confBasis  = self.confBasis,   useCellAverageNu = self.cellConstNu,
+      vUpper     = self.vMax,        onGrid           = self.phaseGrid,
    }
    self.collisionSlvr = Updater.HyperDisCont {
-      onGrid             = self.phaseGrid,
-      basis              = self.phaseBasis,
-      cfl                = self.cfl,
-      equation           = self.equation,
-      updateDirections   = zfd,    -- Only update velocity directions.
-      zeroFluxDirections = zfd,
+      onGrid = self.phaseGrid,   equation           = self.equation,
+      basis  = self.phaseBasis,  updateDirections   = zfd,    -- Velocity directions only.
+      cfl    = self.cfl,         zeroFluxDirections = zfd,
    }
    if self.crossCollisions then
       if self.varNu then
@@ -310,13 +295,10 @@ function VmLBOCollisions:createSolver(extField)
       end
       -- Updater to compute cross-species primitive moments.
       self.primMomCross = Updater.CrossPrimMoments {
-         onGrid           = self.confGrid,
-         phaseBasis       = self.phaseBasis,
-         confBasis        = self.confBasis,
-         operator         = "VmLBO",
-         betaGreene       = self.betaGreene, 
-         varyingNu        = self.varNu,
-         useCellAverageNu = self.cellConstNu,
+         onGrid     = self.confGrid,    betaGreene       = self.betaGreene, 
+         phaseBasis = self.phaseBasis,  varyingNu        = self.varNu,
+         confBasis  = self.confBasis,   useCellAverageNu = self.cellConstNu,
+         operator   = "VmLBO",
       }
    end
 
@@ -330,7 +312,7 @@ function VmLBOCollisions:createSolver(extField)
    self.cellAvFac          = 1.0/math.sqrt(2.0^self.confGrid:ndim())
 end
 
-function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
+function VmLBOCollisions:advanceImp(tCurr, fIn, species, fRhsOut)
 
    -- Fetch coupling moments and primitive moments of this species.
    local selfMom     = species[self.speciesName]:fluidMoments()
@@ -346,37 +328,6 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
    self.nuVtSqSum:clear(0.0)
 
    if self.selfCollisions then
-
-      -- NOTE: The following code is commented out because Vm users don't seem
-      -- to be as worried about limit crossings as Gk users, so counting them
-      -- is disabled for now. See the 'write' method as well.
-      ---- Determine whether primitive moments cross limits based on
-      ---- parallel flow speed and thermal speed squared.
-      --self.primMomCrossLimitL[1] = 0
-      --self.primMomCrossLimitG[1] = 0
-      --local confIndexer          = self.velocity:genIndexer()
-      --local uItr                 = self.velocity:get(1)
-      --local vthSqItr             = self.vthSq:get(1)
-      --for idx in self.velocity:localRangeIter() do
-      --   self.velocity:fill(confIndexer(idx), uItr)
-      --   self.vthSq:fill(confIndexer(idx), vthSqItr)
-      --   local primCrossingFound = false
-      --   for vd = 1,self.vdim do
-      --      if (math.abs(uItr[(vd-1)*self.cNumBasis+1]*self.cellAvFac)>self.vMax[vd]) then
-      --         uCrossingFound = true
-      --         break
-      --      end
-      --   end
-      --   local vthSq0 = vthSqItr[1]*self.cellAvFac
-
-      --   if (uCrossingFound or (vthSq0<0) or (vthSq0>self.vMaxSq)) then
-      --      self.primMomCrossLimitL[1] = self.primMomCrossLimitL[1]+1
-      --   end
-      --end
-      --Mpi.Allreduce(self.primMomCrossLimitL:data(), self.primMomCrossLimitG:data(), 1,
-      --              Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().comm)
-      --self.primMomLimitCrossings:appendData(tCurr+dt, self.primMomCrossLimitG)
-
       if self.varNu then
          if self.timeDepNu then
             -- Compute the Spitzer collisionality.
@@ -480,6 +431,13 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
    fRhsOut:accumulate(1.0, self.collOut)
    self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 end
+function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
+   self.advanceFunc(tCurr, fIn, species, fRhsOut)
+end
+function VmLBOCollisions:splitAdvance(tCurr, fIn, species, fRhsOut)
+   self.splitAdvanceFunc(tCurr, fIn, species, fRhsOut)
+end
+function VmLBOCollisions:cflFreqMin(fIn) return self.equation:cflFreqMin(fIn) end
 
 function VmLBOCollisions:write(tm, frame)
 -- Since this doesn't seem to be as big a problem in Vm as in Gk, we comment this out for now.

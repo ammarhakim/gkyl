@@ -1,5 +1,6 @@
 load("lenardBernsteinOperator-calc/VmLBOconstNu-vol")$
 load("lenardBernsteinOperator-calc/VmLBOvarNu-vol")$
+load("lenardBernsteinOperator-calc/VmLBO-cflFreqMin")$
 load(stringproc)$
 /* This script calls the functions which calculate the
    updates from the volume term contributions. */
@@ -17,15 +18,15 @@ maxVdim_Ser : 3$
 maxPolyOrder_Max : 3$
 minCdim_Max : 1$
 minVdim_Max : 1$    /* see begining of v loop below though. */
-maxCdim_Max : 3$
-maxVdim_Max : 3$
+maxCdim_Max : 0$
+maxVdim_Max : 0$
 
 /* Tensor product basis. */
-maxPolyOrder_Tensor : 3$
+maxPolyOrder_Tensor : 2$
 minCdim_Tensor : 1$
 minVdim_Tensor : 1$    /* see begining of v loop below though. */
-maxCdim_Tensor : 0$
-maxVdim_Tensor : 0$
+maxCdim_Tensor : 2$
+maxVdim_Tensor : 2$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -46,6 +47,7 @@ for bInd : 1 thru length(bName) do (
 
       for polyOrder : 1 thru maxPolyOrderB do (
 
+/*
         disp(printf(false,sconcat("Creating volume VmLBOconstNu",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
         fname : sconcat("~/max-out/VmLBOconstNu", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
         fh : openw(fname),
@@ -53,7 +55,6 @@ for bInd : 1 thru length(bName) do (
         calcVmLBOconstNuVolUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
         close(fh) 
 
-/*
         disp(printf(false,sconcat("Creating volume VmLBOvarNu",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
         fname    : sconcat("~/max-out/VmLBOvarNu", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
         fh       : openw(fname),
@@ -61,6 +62,13 @@ for bInd : 1 thru length(bName) do (
         calcVmLBOvarNuVolUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
         close(fh)
 */
+
+        disp(printf(false,sconcat("Creating volume VmLBOconstNuCFLfreqMin",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
+        fname : sconcat("~/max-out/VmLBOconstNuCFLfreqMin", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
+        fh : openw(fname),
+        funcName : sconcat("VmLBOconstNuCFLfreqMin", c, "x", v, "v", bName[bInd]),
+        calcVmLBOconstNuCFLfreqMin(fh, funcName, c, v, bName[bInd], polyOrder),
+        close(fh) 
       )
     )
   )

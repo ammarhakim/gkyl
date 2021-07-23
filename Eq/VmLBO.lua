@@ -12,6 +12,7 @@ local VmLBOModDecl = require "Eq.lboData.VmLBOModDecl"
 local ffi          = require "ffi"
 local xsys         = require "xsys"
 local EqBase       = require "Eq.EqBase"
+local LinearDecomp = require "Lib.LinearDecomp"
 
 -- For incrementing in updater.
 ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOut); ]]
@@ -22,6 +23,7 @@ local VmLBO = Proto(EqBase)
 -- ctor.
 function VmLBO:init(tbl)
 
+   self._grid          = assert(tbl.onGrid, "Eq.VmLBO: must specify a grid.")
    self._phaseBasis    = assert(
       tbl.phaseBasis, "Eq.VmLBO: Must specify phase-space basis functions to use using 'phaseBasis'.")
    self._confBasis     = assert(
@@ -31,7 +33,7 @@ function VmLBO:init(tbl)
    local varNuIn       = tbl.varyingNu           -- Specify if collisionality varies spatially.
    local cellConstNuIn = tbl.useCellAverageNu    -- Specify whether to use cell-wise constant collisionality.
 
-   local isGridNonuniform = tbl.gridID == "mapped"
+   local isGridNonuniform = self._grid:id() == "mapped"
    
    self._pdim = self._phaseBasis:ndim()
    self._cdim = self._confBasis:ndim()
@@ -76,6 +78,7 @@ function VmLBO:init(tbl)
       self._volUpdate  = VmLBOModDecl.selectConstNuVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       self._surfUpdate = VmLBOModDecl.selectConstNuSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), isGridNonuniform)
       self._boundarySurfUpdate = VmLBOModDecl.selectConstNuBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._cflMinKer  = VmLBOModDecl.selectConstNuCFLfreqMin(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    else
       self._volUpdate  = VmLBOModDecl.selectVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       self._surfUpdate = VmLBOModDecl.selectSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), isGridNonuniform)
@@ -94,6 +97,16 @@ function VmLBO:init(tbl)
 
    -- Flag to indicate if we are being called for first time.
    self._isFirst = true
+
+   -- Prep pointers and objects for computing min CFL frequency. 
+   self.dxv = Lin.Vec(self._pdim)    -- Cell shape.
+   self.xc  = Lin.Vec(self._pdim)    -- Cell center coordinates.
+   self.Lv  = Lin.Vec(self._vdim)    -- Velocity domain length.
+   for d = 1, self._vdim do
+      self.Lv[d] = self._grid:upper(self._cdim+d)-self._grid:lower(self._cdim+d)
+   end
+   self.omegaCFLminDrag = Lin.Vec(1) 
+   self.omegaCFLminDiff = Lin.Vec(1) 
 end
 
 -- Methods.
@@ -108,19 +121,13 @@ function VmLBO:isPositive(q)
 end
 
 -- flux in direction dir.
-function VmLBO:flux(dir, qIn, fOut)
-   assert(false, "VmLBO:flux: NYI!")
-end
+function VmLBO:flux(dir, qIn, fOut) assert(false, "VmLBO:flux: NYI!") end
 
 -- Riemann problem for Vlasov LBO equation.
-function VmLBO:rp(dir, delta, ql, qr, waves, s)
-   assert(false, "VmLBO:rp: NYI!")
-end
+function VmLBO:rp(dir, delta, ql, qr, waves, s) assert(false, "VmLBO:rp: NYI!") end
 
 -- Compute q-fluctuations.
-function VmLBO:qFluctuations(dir, ql, qr, waves, s, amdq, apdq)
-   assert(false, "VmLBO:qFluctuations: NYI!")
-end
+function VmLBO:qFluctuations(dir, ql, qr, waves, s, amdq, apdq) assert(false, "VmLBO:qFluctuations: NYI!") end
 
 -- Maximum wave speed.
 function VmLBO:maxSpeed(dir, w, dx, q)
@@ -250,15 +257,33 @@ function VmLBO:pdim() return self._pdim end
 function VmLBO:cdim() return self._cdim end
 function VmLBO:vdim() return self._vdim end
 function VmLBO:qbym() return self._qbym end
+function VmLBO:volUpdate() return self._volUpdate end
+function VmLBO:surfUpdate() return self._surfUpdate end
+function VmLBO:boundarySurfUpdate() return self._boundarySurfUpdate end
 
-function VmLBO:volUpdate()
-   return self._volUpdate
-end
-function VmLBO:surfUpdate()
-   return self._surfUpdate
-end
-function VmLBO:boundarySurfUpdate()
-   return self._boundarySurfUpdate
+function VmLBO:cflFreqMin(fIn) 
+   -- Calculate the minimum CFL freq supported (for computing the maximum
+   -- step allowed in implicit stepping).
+
+   local range = fIn:localRange()
+   local rangeDecomp = LinearDecomp.LinearDecompRange {
+      range = range:selectFirst(self._pdim), numSplit = self._grid:numSharedProcs() }
+   local tId = self._grid:subGridSharedId()    -- Local thread ID.
+
+   self.omegaCFLminDrag[1], self.omegaCFLminDiff[1] = GKYL_MIN_DOUBLE, GKYL_MIN_DOUBLE
+
+   for idx in rangeDecomp:rowMajorIter(tId) do
+      self._grid:setIndex(idx)
+      self._grid:getDx(self.dxv)
+      self._grid:cellCenter(self.xc)
+
+      self._nuUSum:fill(self._nuUSumIdxr(idx), self._nuUSumPtr)          -- Get pointer to u field.
+      self._nuVtSqSum:fill(self._nuVtSqSumIdxr(idx), self._nuVtSqSumPtr) -- Get pointer to vtSq field.
+
+      self._cflMinKer(self.xc:data(), self.dxv:data(), self.Lv:data(), self._inNuSum, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), self.omegaCFLminDrag:data(), self.omegaCFLminDiff:data())
+   end
+
+   return math.min(self.omegaCFLminDrag[1], self.omegaCFLminDiff[1])
 end
 
 return VmLBO

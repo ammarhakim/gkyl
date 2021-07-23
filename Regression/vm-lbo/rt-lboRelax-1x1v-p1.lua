@@ -10,7 +10,7 @@ polyOrder = 1
 n0        = 1.0                             -- Density.
 u0        = 0.0                             -- Flow speed.
 vt        = 1.0/3.0                         -- Thermal speed..
-nu        = 0.01                            -- Collision frequency.
+nu        = 0.10                            -- Collision frequency.
 -- Large bump on tail of Maxwellian:
 ab   = math.sqrt(0.1)                       -- Amplitude of bump.
 ub   = 4*math.sqrt(((3*vt/2)^2)/3)          -- Location of bump.
@@ -88,7 +88,7 @@ plasmaApp = Plasma.App {
       -- Velocity space grid.
       lower = {-8.0*vt},
       upper = { 8.0*vt},
-      cells = {48},
+      cells = {48*3},
       -- Initial conditions.
       init = function (t, xn)
 	 local x, v = xn[1], xn[2]

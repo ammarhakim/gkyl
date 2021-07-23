@@ -75,6 +75,9 @@ for bInd : 1 thru length(bName) do (
 
           printf(fh, "double VmLBOconstNuBoundarySurf~ax~av~a_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr); ~%", c, v, bName[bInd], cvars[surfDir], polyOrder)
         ),
+
+        printf(fh, "void VmLBOconstNuCFLfreqMin~ax~av~aP~a(const double *w, const double *dxv, const double *Lv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, double *cflFreqDrag, double *cflFreqDiff); ~%", c, v, bName[bInd], polyOrder),
+
         printf(fh, "~%")
       )
     ),

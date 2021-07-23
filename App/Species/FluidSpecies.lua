@@ -534,7 +534,7 @@ function FluidSpecies:suggestDtSplit()
    local dtSuggested = GKYL_MAX_DOUBLE
 
    for _, c in pairs(self.collisions) do
-      dtSuggested = math.min(self.cfl/c:cflRateSplit(), dtSuggested)
+      dtSuggested = math.min(self.cfl/c:cflFreqMin(self:rkStepperFields()[1]), dtSuggested)
    end
 
    return dtSuggested

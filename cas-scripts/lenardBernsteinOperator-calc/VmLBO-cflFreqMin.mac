@@ -1,0 +1,93 @@
+load("modal-basis")$
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+/* This script generates kernels that suggest what the maximum dt (in
+   the form of a CFL frequency) to use for the Lenard Bernstein
+   operator should be (e.g. in super time stepping). */
+
+cidx(cdim)      := makelist(i,i,0,cdim-1)$
+vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
+
+cvars  : [x, y, z]$
+varsV  : [vx, vy, vz]$
+
+doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[a0+i-1] else 0, i, 1, length(vals))$
+
+calcVmLBOconstNuCFLfreqMin(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([],
+  printf(fh, "#include <VmLBOModDecl.h> ~%"),
+
+  kill(varsC, varsP, basisC, basisP),
+  /* Load basis of dimensionality requested. */
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+
+  /* Polynomial basis and its derivatives. */
+  bP : basisP[polyOrder],
+  bC : basisC[polyOrder],
+  NP : length(bP),
+  NC : length(bC),
+
+  printf(fh, "void ~aP~a(const double *w, const double *dxv, const double *Lv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, double *cflFreqDrag, double *cflFreqDiff) ~%{ ~%", funcNm, polyOrder),
+  printf(fh, "  // w[~a]:        cell-center coordinates. ~%", cdim+vdim),
+  printf(fh, "  // dxv[~a]:      cell spacing. ~%", cdim+vdim),
+  printf(fh, "  // nuSum:       collisionalities added (self and cross species collisionalities). ~%"),
+  printf(fh, "  // nuUSum:      sum of bulk velocities times their respective collisionalities. ~%"),
+  printf(fh, "  // nuVtSqSum:   sum of thermal speeds squared time their respective collisionalities. ~%"),
+  printf(fh, "  // Lv[~a]:       domain length in velocity space.~%",vdim),
+  printf(fh, "  // cflFreqDrag: min CFL frequency supported by drag terms.~%"),
+  printf(fh, "  // cflFreqDiff: min CFL frequency supported by diffusion terms.~%"),
+  printf(fh, "~%"),
+
+  cid : cidx(cdim),
+  vid : vidx(cdim,vdim),
+
+  /* Specify a point to evaluate alpha at for use in computing CFL */
+  /* Here we choose to evaluate things in the middle of the cell, where
+     coordinates = 0. */
+  zr : makelist(varsP[d]=0, d, 1, length(varsP)),
+
+  /* Expand flow speed sum(nu*u) and sum(nu*vtSq) in configuration basis. */
+  nuUSum_e    : doExpand1(nuUSum, bC),
+  nuVtSqSum_e : doExpand1(nuVtSqSum, bC),
+
+  /* To allow for multiple components change the cofficient indices in u. */
+  nuUSum_e : psubst(makelist(nuUSum[i]=nuUSum[a0+i],i,0,NC-1),nuUSum_e),
+
+  alphaDrag_mid : makelist(0, i, 1, vdim),
+  for vdir : 1 thru vdim do (
+    /* alphaDrag = k*< psi, (nuSum*v - nuUSum) >. */
+    alphaDrag_c : (2*%pi/Lv[vdir-1])*calcInnerProdList(varsP, 1, bP, -nuSum*(w[vid[vdir]]+0.5*dxv[vid[vdir]]*varsV[vdir])+subst(a0=NC*(vdir-1),nuUSum_e)),
+    alphaDrag_e : doExpand(alphaDrag_c, bP),
+    /* Evaluate alpha_vdim at zr to approximate max(abs(alpha_vdim))/dv_i. */
+    alphaDrag_mid[vdir] : gcfac(float(expand(subst(zr,0.5*subst(a0=NP*(vdir-1),alphaDrag_e)))))
+  ),
+
+  /* facDiff = k^2*< psi, nuVtSqSum >. */
+  facDiff_c : calcInnerProdList(varsC, 1, bC, nuVtSqSum_e),
+  facDiff_e : doExpand(facDiff_c, bC),
+
+  /* Evaluate facDiff at zr to approximate max(abs(facDiff))/dv_i */
+  polyFact : ((polyOrder+1)^2)/(2*polyOrder+1),
+
+  facDiff_mid : makelist(0, i, 1, vdim),
+  for vdir : 1 thru vdim do (
+     facDiff_mid[vdir] : gcfac(float(expand(((2*%pi)^2/pow(Lv[vdir-1],2))*subst(zr,polyFact*facDiff_e))))
+  ),
+
+  if vdim = 1 then (
+    printf(fh, "  *cflFreqDrag = std::fmax(*cflFreqDrag, std::fabs(~a)); ~%", alphaDrag_mid[1]),
+    printf(fh, "  *cflFreqDiff = std::fmax(*cflFreqDiff, std::fabs(~a)); ~%", facDiff_mid[1])
+  ) elseif vdim = 2 then (
+    printf(fh, "  *cflFreqDrag = std::fmax(*cflFreqDrag, std::fabs(~a)+std::fabs(~a)); ~%", alphaDrag_mid[1], alphaDrag_mid[2]),
+    printf(fh, "  *cflFreqDiff = std::fmax(*cflFreqDiff, std::fabs(~a)+std::fabs(~a)); ~%", facDiff_mid[1]  , facDiff_mid[2]  )
+  ) else (
+    printf(fh, "  *cflFreqDrag = std::fmax(*cflFreqDrag, std::fabs(~a)+std::fabs(~a)+std::fabs(~a)); ~%", alphaDrag_mid[1], alphaDrag_mid[2], alphaDrag_mid[3]),
+    printf(fh, "  *cflFreqDiff = std::fmax(*cflFreqDiff, std::fabs(~a)+std::fabs(~a)+std::fabs(~a)); ~%", facDiff_mid[1]  , facDiff_mid[2]  , facDiff_mid[3]  )
+  ),
+
+  printf(fh, "~%"),
+
+  printf(fh, "} ~%")
+
+);
