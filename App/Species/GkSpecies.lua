@@ -855,7 +855,6 @@ function GkSpecies:createDiagnostics(field)
       self.intCalcIz = Updater.CartFieldIntegratedQuantCalc {
          onGrid = self.confGrid,   quantity      = "V",
          basis  = self.confBasis,  numComponents = 1,
-	 timeIntegrate = true,
       }
    end
 end
