@@ -251,12 +251,12 @@ local function buildApplication(self, tbl)
       fld:setBasis(confBasis)
       fld:setGrid(confGrid)
       do
-	 local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
-	 if fld.isElliptic then
-	    myCfl = tbl.cfl and tbl.cfl or cflFrac/(cdim*(2*polyOrder+1))
-	 end
-	 cflMin = math.min(cflMin, myCfl)
-	 fld:setCfl(myCfl)
+         local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
+         if fld.isElliptic then
+            myCfl = tbl.cfl and tbl.cfl or cflFrac/(cdim*(2*polyOrder+1))
+         end
+         cflMin = math.min(cflMin, myCfl)
+         fld:setCfl(myCfl)
       end
       
       -- Allocate field data.
@@ -328,9 +328,9 @@ local function buildApplication(self, tbl)
       -- This is a dummy forwardEuler call because some BCs require 
       -- auxFields to be set, which is controlled by species solver.
       if s.charge == 0.0 then
-      	 s:advance(0, species, {NoField {}, NoField {}}, 1, 2)
+         s:advance(0, species, {NoField {}, NoField {}}, 1, 2)
       else
-	 s:advance(0, species, {field, externalField}, 1, 2)
+         s:advance(0, species, {field, externalField}, 1, 2)
       end
       s:applyBcInitial(0, field, externalField, 1, 1)
    end
@@ -473,13 +473,11 @@ local function buildApplication(self, tbl)
       end
 
       for _, s in lume.orderedIter(species) do
-         -- Compute moments needed in coupling with fields and
-         -- collisions (the species should update internal datastructures).
+         -- Compute moments needed in coupling with fields and collisions.
          s:calcCouplingMoments(tCurr, inIdx, species)
       end
 
-      -- Update species.
-      for _, s in lume.orderedIter(species) do
+      for _, s in lume.orderedIter(species) do   -- Update species.
          if s.charge == 0 then
             s:splitAdvance(tCurr, species, {NoField {}, NoField {}}, inIdx, outIdx)
          else

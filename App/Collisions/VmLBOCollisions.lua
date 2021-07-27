@@ -175,6 +175,7 @@ function VmLBOCollisions:setConfBasis(basis) self.confBasis = basis end
 function VmLBOCollisions:setConfGrid(grid) self.confGrid = grid end
 function VmLBOCollisions:setPhaseBasis(basis) self.phaseBasis = basis end
 function VmLBOCollisions:setPhaseGrid(grid) self.phaseGrid = grid end
+function VmLBOCollisions:useSTS() return self.treat == "sts" end
 
 function VmLBOCollisions:createSolver(extField)
    self.vdim      = self.phaseGrid:ndim() - self.confGrid:ndim()

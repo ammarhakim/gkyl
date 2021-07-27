@@ -98,19 +98,19 @@ function OperatorSplitSSPRK3:sts(tCurr, outIdx, dtIn, inIdx, stat)
    -- Stage 1. See equation 9 of Meyer et al. JCP 2014.
    self.dydtSplit(tCurr, inIdx, fDotIdx)
 
-   -- Below :suggestDtSplit sets the largest dt by which sts should step the solution.
+   -- Below :suggestDtMax_sts sets the largest dt by which sts should step the solution.
    local dt, dtSplitExp = dtIn, dtIn
-   for _, s in pairs(self.species) do
-      dt = math.min(dt, s:suggestDtSplit())
+   for _, s in pairs(self.sts_species) do
+      dt = math.min(dt, s:suggestDtMax_sts())
       dtSplitExp = math.min(dtSplitExp, s:suggestDt())
    end
    -- IMPORTANT: *2 below because we assume sts is called with dt/2.
    stat.dt_actual, stat.dt_suggested = dt*2, dt*2
 
    local numStages = calcNumStages(dt/dtSplitExp, isRKL1)   -- Number of RKL stages.
---   print(string.format("dt=%g | dtSplitExp=%g | numStages=%d",dt,dtSplitExp,numStages))
+--   print(string.format("dt=%g | dtSplitExp=%g | dtRatio=%g | numStages=%d",dt,dtSplitExp,dt/dtSplitExp,numStages))
 
-   for _, s in lume.orderedIter(self.species) do
+   for _, s in lume.orderedIter(self.sts_species) do
       local flds = s:rkStepperFields()
       local fIn, fDot, fjm1, fjm2 = flds[inIdx], flds[fDotIdx], flds[jm1], flds[jm2]
       fjm2:copy(fIn)
@@ -121,14 +121,14 @@ function OperatorSplitSSPRK3:sts(tCurr, outIdx, dtIn, inIdx, stat)
          fDot0:copy(fDot)
       end
    end
-   for _, s in lume.orderedIter(self.species) do
+   for _, s in lume.orderedIter(self.sts_species) do
       s:applyBcIdx(tCurr, self.field, self.externalField, inIdx, jm1)
    end
 
    for jS = 2, numStages do   -- Remaining stages.
       self.dydtSplit(tCurr, jm1, fDotIdx)
 
-      for _, s in lume.orderedIter(self.species) do
+      for _, s in lume.orderedIter(self.sts_species) do
          local flds = s:rkStepperFields()
          local fDot, fjm1, fjm2 = flds[fDotIdx], flds[jm1], flds[jm2]
          local fj = fDot
@@ -141,12 +141,12 @@ function OperatorSplitSSPRK3:sts(tCurr, outIdx, dtIn, inIdx, stat)
             fj:accumulate(1.-mu(jS,isRKL1)-nu(jS,isRKL1), fIn, gammaTilde(numStages,jS)*dt, fDot0)
          end
       end
-      for _, s in lume.orderedIter(self.species) do
+      for _, s in lume.orderedIter(self.sts_species) do
          s:applyBcIdx(tCurr, self.field, self.externalField, jm1, fDotIdx)
       end
 
       -- Reset fields for next stage.
-      for _, s in lume.orderedIter(self.species) do
+      for _, s in lume.orderedIter(self.sts_species) do
          local flds = s:rkStepperFields()
          local fj, fjm1, fjm2 = flds[fDotIdx], flds[jm1], flds[jm2]
          fjm2:copy(fjm1)
@@ -154,7 +154,7 @@ function OperatorSplitSSPRK3:sts(tCurr, outIdx, dtIn, inIdx, stat)
       end
    end
 
-   for _, s in lume.orderedIter(self.species) do
+   for _, s in lume.orderedIter(self.sts_species) do
       local flds = s:rkStepperFields()
       local fj, fOut = flds[jm1], flds[outIdx]
       fOut:copy(fj)
@@ -173,6 +173,26 @@ function OperatorSplitSSPRK3:createSolver(appStatus, stepperFuncs, appsIn)
    self.field         = appsIn[2]
    self.externalField = appsIn[3]
 
+   -- The split stage may contain a combination of algorithms (e.g. sts, implicit).
+   -- Need to separate the species which require each algorithm.
+   self.sts_species = {}
+   local anySTS = false
+   for nm, s in lume.orderedIter(self.species) do
+      if s:useSTS() then
+         self.sts_species[nm] = s
+         anySTS = true
+      end
+   end
+   if anySTS then
+      lume.setOrder(self.sts_species)  -- Save order in metatable to loop in the same order (w/ orderedIter, better for I/O).
+      self.splitStep = function(tCurr, outIdx, dt, inIdx, stat) OperatorSplitSSPRK3["sts"](self, tCurr, outIdx, dt, inIdx, stat) end
+   else
+      self.splitStep = function(tCurr, outIdx, dt, inIdx, stat)
+         -- IMPORTANT: *2 below because we assume sts is called with dt/2.
+         stat.dt_actual, stat.dt_suggested = dt*2, dt*2
+      end
+   end
+
    self.stepperTime = 0
 
    -- Stepper status.
@@ -190,7 +210,7 @@ function OperatorSplitSSPRK3:createSolver(appStatus, stepperFuncs, appsIn)
    local stat = self.stepStatus
    self.stages = {
       [self.SPLIT_STAGE_1] = function(tCurr, dt)
-         self:sts(tCurr, 1, dt/2., 1, stat)
+         self.splitStep(tCurr, 1, dt/2., 1, stat)
          local dtNext, nextState = stat.dt_actual, self.RK_STAGE_1
          return dtNext, nextState
       end,
@@ -253,7 +273,7 @@ function OperatorSplitSSPRK3:createSolver(appStatus, stepperFuncs, appsIn)
          return dtNext, nextState
       end,
       [self.SPLIT_STAGE_2] = function(tCurr, dt)
-         self:sts(tCurr, 1, dt/2., 1, stat)
+         self.splitStep(tCurr, 1, dt/2., 1, stat)
          local dtNext, nextState
          if stat.dt_actual < dt then
             -- Diagnostics.

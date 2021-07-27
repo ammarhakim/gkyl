@@ -233,7 +233,13 @@ function KineticSpecies:fullInit(appTbl)
 
    self.integratedMomentsTime = 0.0 -- Timer for integrated moments.
    self.bcTime = 0.0   -- Timer for BCs.
+end
 
+function KineticSpecies:useSTS()
+   -- Check the apps in this species for super-time-stepping (STS).
+   local hasSTSop = false
+   for _, c in pairs(self.collisions) do hasSTSop = hasSTSop or c:useSTS() end
+   return hasSTSop 
 end
 
 function KineticSpecies:getCharge() return self.charge end
@@ -659,7 +665,7 @@ function KineticSpecies:suggestDt()
 
    return dtSuggested
 end
-function KineticSpecies:suggestDtSplit()
+function KineticSpecies:suggestDtMax_sts()
    local dtSuggested = GKYL_MAX_DOUBLE
 
    for _, c in pairs(self.collisions) do
