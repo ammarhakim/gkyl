@@ -478,12 +478,11 @@ function KineticSpecies:createSolver(field, externalField)
 	    basis         = self.confBasis,
 	    numComponents = 1,
 	    quantity      = "V",
-	    timeIntegrate = timeIntegrate,
       }
       self.nonconPos = Updater.PositivityRescale {
          onGrid = self.grid,
          basis  = self.basis,
-	 nonconservative = true,
+         nonconservative = true,
       }
    end
 end
@@ -705,7 +704,7 @@ end
 function KineticSpecies:checkPositivity(tCurr, idx)
   local status = true
   if self.positivity then
-     --status = self.posChecker:advance(tCurr, {self:rkStepperFields()[idx]}, {})
+     status = self.posChecker:advance(tCurr, {self:rkStepperFields()[idx]}, {})
   end
   return status
 end
