@@ -76,14 +76,14 @@ calcVmLBOconstNuCFLfreqMin(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block
   ),
 
   if vdim = 1 then (
-    printf(fh, "  *cflFreqDrag = std::fmax(*cflFreqDrag, std::fabs(~a)); ~%", alphaDrag_mid[1]),
-    printf(fh, "  *cflFreqDiff = std::fmax(*cflFreqDiff, std::fabs(~a)); ~%", facDiff_mid[1])
+    printf(fh, "  cflFreqDrag[0] = std::fmax(cflFreqDrag[0], std::fabs(~a)); ~%", alphaDrag_mid[1]),
+    printf(fh, "  cflFreqDiff[0] = std::fmax(cflFreqDiff[0], std::fabs(~a)); ~%", facDiff_mid[1])
   ) elseif vdim = 2 then (
-    printf(fh, "  *cflFreqDrag = std::fmax(*cflFreqDrag, std::fabs(~a)+std::fabs(~a)); ~%", alphaDrag_mid[1], alphaDrag_mid[2]),
-    printf(fh, "  *cflFreqDiff = std::fmax(*cflFreqDiff, std::fabs(~a)+std::fabs(~a)); ~%", facDiff_mid[1]  , facDiff_mid[2]  )
+    printf(fh, "  cflFreqDrag[0] = std::fmax(cflFreqDrag[0], std::fabs(~a)+std::fabs(~a)); ~%", alphaDrag_mid[1], alphaDrag_mid[2]),
+    printf(fh, "  cflFreqDiff[0] = std::fmax(cflFreqDiff[0], std::fabs(~a)+std::fabs(~a)); ~%", facDiff_mid[1]  , facDiff_mid[2]  )
   ) else (
-    printf(fh, "  *cflFreqDrag = std::fmax(*cflFreqDrag, std::fabs(~a)+std::fabs(~a)+std::fabs(~a)); ~%", alphaDrag_mid[1], alphaDrag_mid[2], alphaDrag_mid[3]),
-    printf(fh, "  *cflFreqDiff = std::fmax(*cflFreqDiff, std::fabs(~a)+std::fabs(~a)+std::fabs(~a)); ~%", facDiff_mid[1]  , facDiff_mid[2]  , facDiff_mid[3]  )
+    printf(fh, "  cflFreqDrag[0] = std::fmax(cflFreqDrag[0], std::fabs(~a)+std::fabs(~a)+std::fabs(~a)); ~%", alphaDrag_mid[1], alphaDrag_mid[2], alphaDrag_mid[3]),
+    printf(fh, "  cflFreqDiff[0] = std::fmax(cflFreqDiff[0], std::fabs(~a)+std::fabs(~a)+std::fabs(~a)); ~%", facDiff_mid[1]  , facDiff_mid[2]  , facDiff_mid[3]  )
   ),
 
   printf(fh, "~%"),

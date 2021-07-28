@@ -657,11 +657,16 @@ end
 function KineticSpecies:suggestDt()
    if not self.evolve then return GKYL_MAX_DOUBLE end
 
-   local dtSuggested = math.min(self.cfl/self.cflRateByCell:reduce('max')[1], GKYL_MAX_DOUBLE)
-
-   -- If dtSuggested == GKYL_MAX_DOUBLE, it is likely because of NaNs. 
-   -- If so, return 0 so that no timestep is taken, and we will abort the simulation.
-   if dtSuggested == GKYL_MAX_DOUBLE then dtSuggested = 0.0 end
+   local cflFreqMax = self.cflRateByCell:reduce('max')[1]
+   local dtSuggested
+   if cflFreqMax > 0. then
+      dtSuggested = math.min(self.cfl/cflFreqMax, GKYL_MAX_DOUBLE)
+      -- If dtSuggested == GKYL_MAX_DOUBLE, it is likely because of NaNs. 
+      -- If so, return 0 so that no timestep is taken, and we will abort the simulation.
+      if dtSuggested == GKYL_MAX_DOUBLE then dtSuggested = 0.0 end
+   else
+      dtSuggested = GKYL_MAX_DOUBLE
+   end
 
    return dtSuggested
 end
@@ -676,11 +681,7 @@ function KineticSpecies:suggestDtMax_sts()
 end
 
 function KineticSpecies:setDtGlobal(dtGlobal) self.dtGlobal[0] = dtGlobal end
-
-function KineticSpecies:clearCFL()
-   -- Clear cflRateByCell for next cfl calculation.
-   self.cflRateByCell:clear(0.0)
-end
+function KineticSpecies:clearCFL() self.cflRateByCell:clear(0.0) end
 
 function KineticSpecies:clearMomentFlags(species)
    -- Clear the momentFlags table to indicate that moments (and other
@@ -894,7 +895,7 @@ function KineticSpecies:writeRestart(tm)
       dOb:writeRestart(tm, self.diagIoFrame, self.dynVecRestartFrame)
    end
 
-   -- The following two should be moved elsehwere (MF).
+   -- MF: The following two should be moved elsehwere (e.g. their respective Apps).
    if self.calcReactRate then
       self.intSrcIzM0:write(
 	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
@@ -930,14 +931,12 @@ function KineticSpecies:readRestart(field, externalField)
    end
    self.diagIoFrame = diagIoFrame_new
    
-   -- The following two should be moved elsehwere (MF).
+   -- MF: The following two should be moved elsehwere (e.g. their respective Apps).
    if self.calcReactRate then
-      self.intSrcIzM0:read(
-	 string.format("%s_intSrcIzM0_restart.bp", self.name))
+      self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
    end
    if self.calcIntSrcIz then
-      self.intSrcIzM0:read(
-	 string.format("%s_intSrcIzM0_restart.bp", self.name))
+      self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
    end
 
    -- Iterate triggers.

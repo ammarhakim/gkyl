@@ -1,0 +1,93 @@
+load("modal-basis")$
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+/* This script generates the kernels that suggest the maximum dt (in
+   the form of a CFL frequency) to use for the constant-in-time
+   diffusion operator (e.g. in super time stepping). */
+
+/* Functions loadBasisX and getDirCombos ought to match those in the
+   header-generating script. */
+loadBasisX(dimTot, basisType, pOrder) := block([basis,vars],
+  /* Load a basis based on dimensionality and basis type alone. */
+  kill(varsC, varsP, basisC, basisP),
+  if (dimTot < 4) then (
+    load(sconcat("basis-precalc/basis", basisType, dimTot, "x"))
+  ) else (
+    load(sconcat("basis-precalc/basis", basisType, dimTot-3, "x", 3, "v"))
+  ),
+
+  if (dimTot < 4) then (
+    basis : basisC[pOrder],
+    vars  : varsC
+  ) else (
+    basis : basisP[pOrder],
+    vars  : varsP
+  ),
+  return([basis,vars])
+)$
+
+getDirCombos(varsIn) := block([dirCombosSet,dirCombos,d],
+  dirCombosSet : setify([]),
+  for d : 1 thru length(varsIn) do (
+    dirCombosSet : union(dirCombosSet,powerset(setify(varsIn),d))
+  ),
+  dirCombos : full_listify(dirCombosSet),
+  dirCombos : makelist(sort(dirCombos[i],lambda([a,b],slength(string(a)) < slength(string(b)))),i,1,length(dirCombos)),
+  return(dirCombos)
+)$
+
+calcConstDiffusionCFLfreqMin(fh, funcNm, dim, basisFun, polyOrder, diffOrder) := block(
+  [tmpLst,basis,vars,numB,diffDirCombos,diffDirs],
+
+  tmpLst : loadBasisX(dim, basisFun, polyOrder),
+  basis  : tmpLst[1], 
+  vars   : tmpLst[2], 
+
+  numB : length(basis),
+
+  /* For a given dimensionality get the combinations of
+     directions in which to apply diffusion. */
+  diffDirCombos : getDirCombos(vars),
+
+  for diffDirs in diffDirCombos do (
+
+    diffDirNum : length(diffDirs),
+    diffDirInP : makelist(sublist_indices(vars,lambda([x], x=diffDirs[i]))[1],i,1,diffDirNum),
+
+    diffDirsStr :"",
+    for dI in diffDirInP do (diffDirsStr : sconcat(diffDirsStr,string(dI))),
+
+    printf(fh,"void ~aP~a_diffDirs~a(const double *Lx, const double *nu, double *cflFreq) ~%{ ~%", funcNm, polyOrder, diffDirsStr),
+    printf(fh,"  // Lx[~a]:  domain length.~%",vdim),
+    printf(fh,"  // nu[~a]:  diffusion coefficient (collisionality).~%",dim*numB),
+
+    printf(fh,"  double kxSq[~a]; ~%", diffDirNum),
+    nuSign : (-1)^(diffOrder/2+1),
+    for d : 1 thru diffDirNum do (
+      denFac : sconcat("Lx[", diffDirInP[d]-1,"]*Lx[", diffDirInP[d]-1,"]"),
+      for ef : 2 thru diffOrder/2 do (
+        denFac : sconcat(denFac,"*Lx[", diffDirInP[d]-1,"]*Lx[", diffDirInP[d]-1,"]")
+      ),
+      printf(fh,"  kxSq[~a] = ~a/(~a); ~%", d-1, float((2*%pi)^2), denFac)
+    ),
+    printf(fh,"~%"),
+
+    /* Return the value used in the CFL calculation. */
+    nu_e  : doExpand(makelist(nu[(diffDirInP[1]-1)*numB+i-1],i,1,numB),basis),
+    nuMid : subst(makelist(vars[d]=0,d,1,dim),nu_e),
+    pstr : sconcat("  cflFreq[0] = fmax(cflFreq[0],(kxSq[0]*(",string(float(nuMid)),")"),
+    for d : 2 thru diffDirNum do (
+      nu_e  : doExpand(makelist(nu[(diffDirInP[d]-1)*numB+i-1],i,1,numB),basis),
+      nuMid : subst(makelist(vars[d]=0,d,1,dim),nu_e),
+      pstr  : sconcat(pstr,"+kxSq[",d-1,"]*(",string(float(nuMid)),")")
+    ),
+    pstr : sconcat(pstr,")*~a);~%"),
+    printf(fh, pstr, float(((polyOrder+1)**2)/(2*polyOrder+1))),
+    printf(fh,"~%"),
+  
+    printf(fh,"} ~%")
+  )
+);
+

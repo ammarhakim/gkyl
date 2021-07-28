@@ -141,7 +141,20 @@ function IncompEulerSpecies:getNumDensity(rkIdx)
 end
 
 function IncompEulerSpecies:suggestDt()
-   return math.min(self.cfl/self.cflRateByCell:reduce('max')[1], GKYL_MAX_DOUBLE)
+   if not self.evolve then return GKYL_MAX_DOUBLE end
+
+   local cflFreqMax = self.cflRateByCell:reduce('max')[1]
+   local dtSuggested
+   if cflFreqMax > 0. then
+      dtSuggested = math.min(self.cfl/cflFreqMax, GKYL_MAX_DOUBLE)
+      -- If dtSuggested == GKYL_MAX_DOUBLE, it is likely because of NaNs.
+      -- If so, return 0 so that no timestep is taken, and we will abort the simulation.
+      if dtSuggested == GKYL_MAX_DOUBLE then dtSuggested = 0.0 end
+   else
+      dtSuggested = GKYL_MAX_DOUBLE
+   end
+
+   return dtSuggested
 end
 
 function IncompEulerSpecies:clearCFL()

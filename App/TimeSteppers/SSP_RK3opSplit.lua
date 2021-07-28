@@ -108,7 +108,7 @@ function OperatorSplitSSPRK3:sts(tCurr, outIdx, dtIn, inIdx, stat)
    stat.dt_actual, stat.dt_suggested = dt*2, dt*2
 
    local numStages = calcNumStages(dt/dtSplitExp, isRKL1)   -- Number of RKL stages.
---   print(string.format("dt=%g | dtSplitExp=%g | dtRatio=%g | numStages=%d",dt,dtSplitExp,dt/dtSplitExp,numStages))
+   --print(string.format("dt=%g | dtSplitExp=%g | dtRatio=%g | numStages=%d",dt,dtSplitExp,dt/dtSplitExp,numStages))
 
    for _, s in lume.orderedIter(self.sts_species) do
       local flds = s:rkStepperFields()

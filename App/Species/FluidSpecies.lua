@@ -189,6 +189,13 @@ function FluidSpecies:fullInit(appTbl)
    self.bcTime = 0.0   -- Timer for BCs.
 end
 
+function FluidSpecies:useSTS()
+   -- Check the apps in this species for super-time-stepping (STS).
+   local hasSTSop = false
+   for _, c in pairs(self.collisions) do hasSTSop = hasSTSop or c:useSTS() end
+   return hasSTSop
+end
+
 function FluidSpecies:getCharge() return self.charge end
 function FluidSpecies:getMass() return self.mass end
 function FluidSpecies:getNdim() return self.ndim end
@@ -521,11 +528,18 @@ end
 
 function FluidSpecies:suggestDtDontEvolve() return GKYL_MAX_DOUBLE end
 function FluidSpecies:suggestDtEvolve()
-   local dtSuggested = math.min(self.cfl/self.cflRateByCell:reduce('max')[1], GKYL_MAX_DOUBLE)
+   if not self.evolve then return GKYL_MAX_DOUBLE end
 
-   -- If dtSuggested == GKYL_MAX_DOUBLE, it is likely because of NaNs.
-   -- If so, return 0 so that no timestep is taken, and we will abort the simulation.
-   if dtSuggested == GKYL_MAX_DOUBLE then dtSuggested = 0.0 end
+   local cflFreqMax = self.cflRateByCell:reduce('max')[1]
+   local dtSuggested
+   if cflFreqMax > 0. then
+      dtSuggested = math.min(self.cfl/cflFreqMax, GKYL_MAX_DOUBLE)
+      -- If dtSuggested == GKYL_MAX_DOUBLE, it is likely because of NaNs.
+      -- If so, return 0 so that no timestep is taken, and we will abort the simulation.
+      if dtSuggested == GKYL_MAX_DOUBLE then dtSuggested = 0.0 end
+   else
+      dtSuggested = GKYL_MAX_DOUBLE
+   end
 
    return dtSuggested
 end

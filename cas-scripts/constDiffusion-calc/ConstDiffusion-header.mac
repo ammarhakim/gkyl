@@ -99,9 +99,12 @@ for bInd : 1 thru length(bName) do (
         for dI in diffDirInP do (diffDirsStr : sconcat(diffDirsStr,string(dI))),
 
         printf(fh, "double ConstDiffusionVol~ax~aP~a_diffDirs~a(const double *w, const double *dx, const double *nu, const double *f, double *out); ~%", cD, bName[bInd], polyOrder, diffDirsStr),
+        printf(fh, "void ConstDiffusionCFLfreqMin~ax~aP~a_diffDirs~a(const double *Lx, const double *nu, double *cflFreq);~%", cD, bName[bInd], polyOrder, diffDirsStr),
         printf(fh, "double ConstHyperDiffusion4Vol~ax~aP~a_diffDirs~a(const double *w, const double *dx, const double *nu, const double *f, double *out); ~%", cD, bName[bInd], polyOrder, diffDirsStr),
+        printf(fh, "void ConstHyperDiffusion4CFLfreqMin~ax~aP~a_diffDirs~a(const double *Lx, const double *nu, double *cflFreq);~%", cD, bName[bInd], polyOrder, diffDirsStr),
         if (polyOrder>1) then (
-          printf(fh, "double ConstHyperDiffusion6Vol~ax~aP~a_diffDirs~a(const double *w, const double *dx, const double *nu, const double *f, double *out); ~%", cD, bName[bInd], polyOrder, diffDirsStr)
+          printf(fh, "double ConstHyperDiffusion6Vol~ax~aP~a_diffDirs~a(const double *w, const double *dx, const double *nu, const double *f, double *out); ~%", cD, bName[bInd], polyOrder, diffDirsStr),
+          printf(fh, "void ConstHyperDiffusion6CFLfreqMin~ax~aP~a_diffDirs~a(const double *Lx, const double *nu, double *cflFreq);~%", cD, bName[bInd], polyOrder, diffDirsStr)
         ),
         printf(fh, "double ConstDiffusionVarCoeffVol~ax~aP~a_diffDirs~a(const double *w, const double *dx, const double *nu, const double *f, double *out); ~%", cD, bName[bInd], polyOrder, diffDirsStr)
       ),

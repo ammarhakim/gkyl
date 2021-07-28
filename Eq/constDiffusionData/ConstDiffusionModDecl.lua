@@ -125,4 +125,20 @@ function _M.selectBCs(basisNm, DIM, polyOrder, diffOrder, bcType)
    return kernels
 end
 
+-- Select function to compute the minimum CFL frequency.
+function _M.selectCFLfreqMin(basisNm, DIM, polyOrder, diffDirsIn, diffOrder, spatiallyVaryingCoeff)
+   diffStr = "Diffusion"
+   if diffOrder > 2 then diffStr = "HyperDiffusion" .. diffOrder end
+
+   local diffDirsStr = ""
+   for _, d in ipairs(diffDirsIn) do diffDirsStr = diffDirsStr .. d end
+
+   local funcType = "void"
+   local funcNm   = string.format("Const%sCFLfreqMin%dx%sP%d_diffDirs%s", diffStr, DIM, basisNmMap[basisNm], polyOrder, diffDirsStr)
+   local funcSign = "(const double *Lx, const double *nu, double *cflFreq)"
+
+   ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
+   return ffi.C[funcNm]
+end
+
 return _M

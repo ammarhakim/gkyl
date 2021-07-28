@@ -127,6 +127,26 @@ def build(bld):
     lboData/VmLBOconstNuSurfNonuniformSer2x2vP3.cpp
 
     lboData/VmLBOconstNuCFLfreqMinSer1x1vP1.cpp
+    lboData/VmLBOconstNuCFLfreqMinSer1x2vP1.cpp
+    lboData/VmLBOconstNuCFLfreqMinSer1x3vP1.cpp
+    lboData/VmLBOconstNuCFLfreqMinSer2x2vP1.cpp
+    lboData/VmLBOconstNuCFLfreqMinSer2x3vP1.cpp
+    lboData/VmLBOconstNuCFLfreqMinSer3x3vP1.cpp
+    lboData/VmLBOconstNuCFLfreqMinSer1x1vP2.cpp
+    lboData/VmLBOconstNuCFLfreqMinSer1x2vP2.cpp
+    lboData/VmLBOconstNuCFLfreqMinSer1x3vP2.cpp
+    lboData/VmLBOconstNuCFLfreqMinSer2x2vP2.cpp
+    lboData/VmLBOconstNuCFLfreqMinSer2x3vP2.cpp
+    lboData/VmLBOconstNuCFLfreqMinSer1x1vP3.cpp
+    lboData/VmLBOconstNuCFLfreqMinSer1x2vP3.cpp
+    lboData/VmLBOconstNuCFLfreqMinSer1x3vP3.cpp
+    lboData/VmLBOconstNuCFLfreqMinSer2x2vP3.cpp
+    lboData/VmLBOconstNuCFLfreqMinTensor1x1vP1.cpp
+    lboData/VmLBOconstNuCFLfreqMinTensor1x2vP1.cpp
+    lboData/VmLBOconstNuCFLfreqMinTensor2x2vP1.cpp
+    lboData/VmLBOconstNuCFLfreqMinTensor1x1vP2.cpp
+    lboData/VmLBOconstNuCFLfreqMinTensor1x2vP2.cpp
+    lboData/VmLBOconstNuCFLfreqMinTensor2x2vP2.cpp
 
     lboData/VmLBOconstNuMax1x1vP1.cpp
     lboData/VmLBOconstNuMax1x2vP1.cpp

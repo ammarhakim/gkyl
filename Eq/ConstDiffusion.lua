@@ -12,6 +12,8 @@ local Proto  = require "Lib.Proto"
 local ffi    = require "ffi"
 local xsys   = require "xsys"
 local EqBase = require "Eq.EqBase"
+local Mpi    = require "Comm.Mpi"
+local LinearDecomp = require "Lib.LinearDecomp"
 local ConstDiffusionModDecl = require "Eq.constDiffusionData.ConstDiffusionModDecl"
 
 -- ConstDiffusion equation on a rectangular mesh.
@@ -20,6 +22,7 @@ local ConstDiffusion = Proto(EqBase)
 -- ctor
 function ConstDiffusion:init(tbl)
 
+   self._grid  = assert(tbl.onGrid, "Eq.ConstDiffusion: must specify a grid.")
    self._basis = assert(tbl.basis,
       "Eq.constDiffusion: Must specify basis functions to use using 'basis'")
 
@@ -56,7 +59,6 @@ function ConstDiffusion:init(tbl)
          for d = 1, dim do self._nu[d] = 0.0 end
          for d = 1, #self.diffDirs do self._nu[self.diffDirs[d]] = nuIn[d] end
       else
-
          -- The coefficient is a CartField with the spatially varying coefficient.
          isVarCoeff = true
          self._nu   = nuIn
@@ -79,6 +81,7 @@ function ConstDiffusion:init(tbl)
    self._volTerm           = ConstDiffusionModDecl.selectVol(nm, dim, pOrder, self.diffDirs, diffOrder, isVarCoeff)
    self._surfTerms         = ConstDiffusionModDecl.selectSurf(nm, dim, pOrder, self.diffDirs, diffOrder, isVarCoeff, applyPositivity)
    self._boundarySurfTerms = ConstDiffusionModDecl.selectBoundarySurf(nm, dim, pOrder, self.diffDirs, diffOrder, isVarCoeff, applyPositivity)
+   self._cflMinKer         = ConstDiffusionModDecl.selectCFLfreqMin(nm, dim, pOrder, self.diffDirs, diffOrder, isVarCoeff)
    
    if isVarCoeff then
 
@@ -105,6 +108,22 @@ function ConstDiffusion:init(tbl)
       self.boundarySurfTermFunc = function(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
          return ConstDiffusion["boundarySurfTermConstInSpace"](self, dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
       end
+   end
+
+   if isVarCoeff then
+      self.Lx  = Lin.Vec(dim)    -- Velocity domain length.
+      for d = 1, dim do
+         self.Lx[d] = self._grid:upper(d)-self._grid:lower(d)
+      end
+      self.omegaCFLminL, self.omegaCFLmin = Lin.Vec(1), Lin.Vec(1)
+      self.cflFreqMinFunc = function(fIn) return ConstDiffusion["cflFreqMinImp"](self, fIn) end 
+   else
+      self.omegaCFLmin = 0.
+      for d = 1, #self.diffDirs do
+         local Lx = self._grid:upper(self.diffDirs[d])-self._grid:lower(self.diffDirs[d])
+         self.omegaCFLmin = self.omegaCFLmin+((2.*math.pi/Lx)^diffOrder)*self._nu[self.diffDirs[d]]
+      end
+      self.cflFreqMinFunc = function(fIn) return self.omegaCFLmin end 
    end
 end
 
@@ -184,8 +203,29 @@ function ConstDiffusion:boundarySurfTermVarInSpace(dir, wl, wr, dxl, dxr, maxs, 
    return 0
 end
 
-function ConstDiffusion:setAuxFields(auxFields)
+function ConstDiffusion:setAuxFields(auxFields) end
+
+function ConstDiffusion:cflFreqMinImp(fIn)
+   -- Calculate the minimum CFL freq supported (for computing the maximum
+   -- step allowed in implicit stepping).
+   local range = fIn:localRange()
+   local rangeDecomp = LinearDecomp.LinearDecompRange {
+      range = range:selectFirst(self._basis:ndim()), numSplit = self._grid:numSharedProcs() }
+   local tId = self._grid:subGridSharedId()    -- Local thread ID.
+
+   self.omegaCFLminL[1] = GKYL_MIN_DOUBLE
+
+   for idx in rangeDecomp:rowMajorIter(tId) do
+      self._nu:fill(self._nuIdxr(idx), self._nuPtrl)
+      self._cflMinKer(self.Lx:data(), self._nuPtrl:data(), self.omegaCFLmin:data())
+   end
+
+   Mpi.Allreduce(self.omegaCFLminL:data(), self.omegaCFLmin:data(),
+                 1, Mpi.DOUBLE, Mpi.MAX, self._grid:commSet().comm)
+
+   return self.omegaCFLmin[1]
 end
+function ConstDiffusion:cflFreqMin(fIn) return self.cflFreqMinFunc(fIn) end
 
 
 return ConstDiffusion

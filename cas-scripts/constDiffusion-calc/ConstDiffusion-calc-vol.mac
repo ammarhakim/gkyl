@@ -2,6 +2,7 @@
    for double integration by parts use ConstDiffusion-vol */
 load("constDiffusion-calc/ConstDiffusion-vol")$
 load("constDiffusion-calc/ConstDiffusionVarCoeff-vol")$
+load("constDiffusion-calc/ConstDiffusion-cflFreqMin")$
 load(stringproc)$
 
 /* ...... USER INPUTS........ */
@@ -12,9 +13,9 @@ load(stringproc)$
    to allow the user to add diffusion in any subset of directions. */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 2$
+maxPolyOrder_Ser : 3$
 minDim_Ser : 1$
-maxDim_Ser : 2$
+maxDim_Ser : 4$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 1$
@@ -24,7 +25,7 @@ maxDim_Max : 0$
 /* Tensor basis. */
 maxPolyOrder_Tensor : 2$
 minDim_Tensor : 1$
-maxDim_Tensor : 0$
+maxDim_Tensor : 4$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -66,6 +67,20 @@ for bInd : 1 thru length(bName) do (
       diffOrder : 2,
       funcName  : sconcat("ConstDiffusionVarCoeffVol", cD, "x", bName[bInd]),
       buildConstDiffusionVarCoeffVol(fh, funcName, cD, bName[bInd], polyOrder, diffOrder),
+
+      /* Kernels that compute the minimum CFL freq (for implicit stepping). */
+      diffOrder : 2, /* Second order diffusion. */
+      funcName  : sconcat("ConstDiffusionCFLfreqMin", cD, "x", bName[bInd]),
+      calcConstDiffusionCFLfreqMin(fh, funcName, cD, bName[bInd], polyOrder, diffOrder),
+      diffOrder : 4, /* Fourth order hyperdiffusion. */
+      funcName  : sconcat("ConstHyperDiffusion",diffOrder,"CFLfreqMin", cD, "x", bName[bInd]),
+      calcConstDiffusionCFLfreqMin(fh, funcName, cD, bName[bInd], polyOrder, diffOrder),
+      if (polyOrder > 1) then (
+        diffOrder : 6, /* Sixth order hyperdiffusion. */
+        funcName  : sconcat("ConstHyperDiffusion",diffOrder,"CFLfreqMin", cD, "x", bName[bInd]),
+        calcConstDiffusionCFLfreqMin(fh, funcName, cD, bName[bInd], polyOrder, diffOrder)
+      ),
+      
 
       close(fh)
 

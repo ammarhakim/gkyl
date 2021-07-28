@@ -13,6 +13,7 @@ local ffi          = require "ffi"
 local xsys         = require "xsys"
 local EqBase       = require "Eq.EqBase"
 local LinearDecomp = require "Lib.LinearDecomp"
+local Mpi          = require "Comm.Mpi"
 
 -- For incrementing in updater.
 ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOut); ]]
@@ -56,11 +57,7 @@ function VmLBO:init(tbl)
       self._cellConstNu = true
    else
       self._varNu       = varNuIn
-      if cellConstNuIn==nil then
-         self._cellConstNu = true
-      else
-         self._cellConstNu = cellConstNuIn
-      end
+      self._cellConstNu = cellConstNuIn==nil and true or cellConstNuIn
    end
 
    if self._varNu then
@@ -105,8 +102,8 @@ function VmLBO:init(tbl)
    for d = 1, self._vdim do
       self.Lv[d] = self._grid:upper(self._cdim+d)-self._grid:lower(self._cdim+d)
    end
-   self.omegaCFLminDrag = Lin.Vec(1) 
-   self.omegaCFLminDiff = Lin.Vec(1) 
+   self.omegaCFLminDrag, self.omegaCFLminDiff = Lin.Vec(1), Lin.Vec(1) 
+   self.omegaCFLminL, self.omegaCFLmin = Lin.Vec(1), Lin.Vec(1)
 end
 
 -- Methods.
@@ -264,7 +261,6 @@ function VmLBO:boundarySurfUpdate() return self._boundarySurfUpdate end
 function VmLBO:cflFreqMin(fIn) 
    -- Calculate the minimum CFL freq supported (for computing the maximum
    -- step allowed in implicit stepping).
-
    local range = fIn:localRange()
    local rangeDecomp = LinearDecomp.LinearDecompRange {
       range = range:selectFirst(self._pdim), numSplit = self._grid:numSharedProcs() }
@@ -279,11 +275,20 @@ function VmLBO:cflFreqMin(fIn)
 
       self._nuUSum:fill(self._nuUSumIdxr(idx), self._nuUSumPtr)          -- Get pointer to u field.
       self._nuVtSqSum:fill(self._nuVtSqSumIdxr(idx), self._nuVtSqSumPtr) -- Get pointer to vtSq field.
+      if self._varNu then
+         self._nuSum:fill(self._nuSumIdxr(idx), self._nuSumPtr)    -- Get pointer to nu field.
+         self._inNuSum = self._nuSumPtr[1]*self._cellAvFac
+      end
 
       self._cflMinKer(self.xc:data(), self.dxv:data(), self.Lv:data(), self._inNuSum, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), self.omegaCFLminDrag:data(), self.omegaCFLminDiff:data())
    end
 
-   return math.min(self.omegaCFLminDrag[1], self.omegaCFLminDiff[1])
+   self.omegaCFLminL[1] = math.min(self.omegaCFLminDrag[1], self.omegaCFLminDiff[1])
+
+   Mpi.Allreduce(self.omegaCFLminL:data(), self.omegaCFLmin:data(),
+                 1, Mpi.DOUBLE, Mpi.MAX, self._grid:commSet().comm)
+
+   return self.omegaCFLmin[1]
 end
 
 return VmLBO

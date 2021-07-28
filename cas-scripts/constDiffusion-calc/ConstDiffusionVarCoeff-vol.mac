@@ -114,11 +114,11 @@ buildConstDiffusionVarCoeffVol(fh, funcNm, dim, basisFun, polyOrder, diffOrder) 
     /* Return the value used in the CFL calculation. */
     nu_e  : doExpand(makelist(nu[(diffDirInP[1]-1)*numB+i-1],i,1,numB),basis),
     nuMid : subst(makelist(vars[d]=0,d,1,dim),nu_e), 
-    pstr : sconcat("  return (rdxF[0]*",string(float(nuMid))),
+    pstr : sconcat("  return (rdxF[0]*(",string(float(nuMid)),")"),
     for d : 2 thru diffDirNum do (
       nu_e  : doExpand(makelist(nu[(diffDirInP[d]-1)*numB+i-1],i,1,numB),basis),
       nuMid : subst(makelist(vars[d]=0,d,1,dim),nu_e), 
-      pstr  : sconcat(pstr,"+rdxF[",d-1,"]*",string(float(nuMid)))
+      pstr  : sconcat(pstr,"+rdxF[",d-1,"]*(",string(float(nuMid)),")")
     ),
     pstr : sconcat(pstr,")*~a;~%"),
     printf(fh, pstr, 0.5*float(((polyOrder+1)**2)/(2*polyOrder+1))),

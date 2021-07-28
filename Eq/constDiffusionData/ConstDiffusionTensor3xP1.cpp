@@ -1,5 +1,5 @@
 #include <ConstDiffusionModDecl.h> 
-double ConstDiffusionVol3xSerP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstDiffusionVol3xTensorP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -13,7 +13,7 @@ double ConstDiffusionVol3xSerP1_diffDirs1(const double *w, const double *dx, con
   return (rdxFnu[0])*0.6666666666666666;
 
 } 
-double ConstDiffusionVol3xSerP1_diffDirs12(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstDiffusionVol3xTensorP1_diffDirs12(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -28,7 +28,7 @@ double ConstDiffusionVol3xSerP1_diffDirs12(const double *w, const double *dx, co
   return (rdxFnu[0]+rdxFnu[1])*0.6666666666666666;
 
 } 
-double ConstDiffusionVol3xSerP1_diffDirs123(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstDiffusionVol3xTensorP1_diffDirs123(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -44,7 +44,7 @@ double ConstDiffusionVol3xSerP1_diffDirs123(const double *w, const double *dx, c
   return (rdxFnu[0]+rdxFnu[1]+rdxFnu[2])*0.6666666666666666;
 
 } 
-double ConstDiffusionVol3xSerP1_diffDirs13(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstDiffusionVol3xTensorP1_diffDirs13(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -59,7 +59,7 @@ double ConstDiffusionVol3xSerP1_diffDirs13(const double *w, const double *dx, co
   return (rdxFnu[0]+rdxFnu[1])*0.6666666666666666;
 
 } 
-double ConstDiffusionVol3xSerP1_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstDiffusionVol3xTensorP1_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -73,7 +73,7 @@ double ConstDiffusionVol3xSerP1_diffDirs2(const double *w, const double *dx, con
   return (rdxFnu[0])*0.6666666666666666;
 
 } 
-double ConstDiffusionVol3xSerP1_diffDirs23(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstDiffusionVol3xTensorP1_diffDirs23(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -88,7 +88,7 @@ double ConstDiffusionVol3xSerP1_diffDirs23(const double *w, const double *dx, co
   return (rdxFnu[0]+rdxFnu[1])*0.6666666666666666;
 
 } 
-double ConstDiffusionVol3xSerP1_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstDiffusionVol3xTensorP1_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -102,7 +102,7 @@ double ConstDiffusionVol3xSerP1_diffDirs3(const double *w, const double *dx, con
   return (rdxFnu[0])*0.6666666666666666;
 
 } 
-double ConstHyperDiffusion4Vol3xSerP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstHyperDiffusion4Vol3xTensorP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -116,7 +116,7 @@ double ConstHyperDiffusion4Vol3xSerP1_diffDirs1(const double *w, const double *d
   return (rdxFnu[0])*0.6666666666666666;
 
 } 
-double ConstHyperDiffusion4Vol3xSerP1_diffDirs12(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstHyperDiffusion4Vol3xTensorP1_diffDirs12(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -131,7 +131,7 @@ double ConstHyperDiffusion4Vol3xSerP1_diffDirs12(const double *w, const double *
   return (rdxFnu[0]+rdxFnu[1])*0.6666666666666666;
 
 } 
-double ConstHyperDiffusion4Vol3xSerP1_diffDirs123(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstHyperDiffusion4Vol3xTensorP1_diffDirs123(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -147,7 +147,7 @@ double ConstHyperDiffusion4Vol3xSerP1_diffDirs123(const double *w, const double 
   return (rdxFnu[0]+rdxFnu[1]+rdxFnu[2])*0.6666666666666666;
 
 } 
-double ConstHyperDiffusion4Vol3xSerP1_diffDirs13(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstHyperDiffusion4Vol3xTensorP1_diffDirs13(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -162,7 +162,7 @@ double ConstHyperDiffusion4Vol3xSerP1_diffDirs13(const double *w, const double *
   return (rdxFnu[0]+rdxFnu[1])*0.6666666666666666;
 
 } 
-double ConstHyperDiffusion4Vol3xSerP1_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstHyperDiffusion4Vol3xTensorP1_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -176,7 +176,7 @@ double ConstHyperDiffusion4Vol3xSerP1_diffDirs2(const double *w, const double *d
   return (rdxFnu[0])*0.6666666666666666;
 
 } 
-double ConstHyperDiffusion4Vol3xSerP1_diffDirs23(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstHyperDiffusion4Vol3xTensorP1_diffDirs23(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -191,7 +191,7 @@ double ConstHyperDiffusion4Vol3xSerP1_diffDirs23(const double *w, const double *
   return (rdxFnu[0]+rdxFnu[1])*0.6666666666666666;
 
 } 
-double ConstHyperDiffusion4Vol3xSerP1_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstHyperDiffusion4Vol3xTensorP1_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -205,7 +205,7 @@ double ConstHyperDiffusion4Vol3xSerP1_diffDirs3(const double *w, const double *d
   return (rdxFnu[0])*0.6666666666666666;
 
 } 
-double ConstDiffusionVarCoeffVol3xSerP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstDiffusionVarCoeffVol3xTensorP1_diffDirs1(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -223,7 +223,7 @@ double ConstDiffusionVarCoeffVol3xSerP1_diffDirs1(const double *w, const double 
   return (rdxF[0]*(0.3535533905932737*nu[0]))*0.6666666666666666;
 
 } 
-double ConstDiffusionVarCoeffVol3xSerP1_diffDirs12(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstDiffusionVarCoeffVol3xTensorP1_diffDirs12(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -244,7 +244,7 @@ double ConstDiffusionVarCoeffVol3xSerP1_diffDirs12(const double *w, const double
   return (rdxF[0]*(0.3535533905932737*nu[0])+rdxF[1]*(0.3535533905932737*nu[8]))*0.6666666666666666;
 
 } 
-double ConstDiffusionVarCoeffVol3xSerP1_diffDirs123(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstDiffusionVarCoeffVol3xTensorP1_diffDirs123(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -267,7 +267,7 @@ double ConstDiffusionVarCoeffVol3xSerP1_diffDirs123(const double *w, const doubl
   return (rdxF[0]*(0.3535533905932737*nu[0])+rdxF[1]*(0.3535533905932737*nu[8])+rdxF[2]*(0.3535533905932737*nu[16]))*0.6666666666666666;
 
 } 
-double ConstDiffusionVarCoeffVol3xSerP1_diffDirs13(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstDiffusionVarCoeffVol3xTensorP1_diffDirs13(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -288,7 +288,7 @@ double ConstDiffusionVarCoeffVol3xSerP1_diffDirs13(const double *w, const double
   return (rdxF[0]*(0.3535533905932737*nu[0])+rdxF[1]*(0.3535533905932737*nu[16]))*0.6666666666666666;
 
 } 
-double ConstDiffusionVarCoeffVol3xSerP1_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstDiffusionVarCoeffVol3xTensorP1_diffDirs2(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -306,7 +306,7 @@ double ConstDiffusionVarCoeffVol3xSerP1_diffDirs2(const double *w, const double 
   return (rdxF[0]*(0.3535533905932737*nu[8]))*0.6666666666666666;
 
 } 
-double ConstDiffusionVarCoeffVol3xSerP1_diffDirs23(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstDiffusionVarCoeffVol3xTensorP1_diffDirs23(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -327,7 +327,7 @@ double ConstDiffusionVarCoeffVol3xSerP1_diffDirs23(const double *w, const double
   return (rdxF[0]*(0.3535533905932737*nu[8])+rdxF[1]*(0.3535533905932737*nu[16]))*0.6666666666666666;
 
 } 
-double ConstDiffusionVarCoeffVol3xSerP1_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out) 
+double ConstDiffusionVarCoeffVol3xTensorP1_diffDirs3(const double *w, const double *dx, const double *nu, const double *f, double *out) 
 { 
   // w[3]:   Cell-center coordinates.
   // dx[3]:  Cell spacing.
@@ -345,7 +345,7 @@ double ConstDiffusionVarCoeffVol3xSerP1_diffDirs3(const double *w, const double 
   return (rdxF[0]*(0.3535533905932737*nu[16]))*0.6666666666666666;
 
 } 
-void ConstDiffusionCFLfreqMin3xSerP1_diffDirs1(const double *Lx, const double *nu, double *cflFreq) 
+void ConstDiffusionCFLfreqMin3xTensorP1_diffDirs1(const double *Lx, const double *nu, double *cflFreq) 
 { 
   // Lx[vdim]:  domain length.
   // nu[24]:  diffusion coefficient (collisionality).
@@ -355,7 +355,7 @@ void ConstDiffusionCFLfreqMin3xSerP1_diffDirs1(const double *Lx, const double *n
   cflFreq[0] = fmax(cflFreq[0],(kxSq[0]*(0.3535533905932737*nu[0]))*1.333333333333333);
 
 } 
-void ConstDiffusionCFLfreqMin3xSerP1_diffDirs12(const double *Lx, const double *nu, double *cflFreq) 
+void ConstDiffusionCFLfreqMin3xTensorP1_diffDirs12(const double *Lx, const double *nu, double *cflFreq) 
 { 
   // Lx[vdim]:  domain length.
   // nu[24]:  diffusion coefficient (collisionality).
@@ -366,7 +366,7 @@ void ConstDiffusionCFLfreqMin3xSerP1_diffDirs12(const double *Lx, const double *
   cflFreq[0] = fmax(cflFreq[0],(kxSq[0]*(0.3535533905932737*nu[0])+kxSq[1]*(0.3535533905932737*nu[8]))*1.333333333333333);
 
 } 
-void ConstDiffusionCFLfreqMin3xSerP1_diffDirs123(const double *Lx, const double *nu, double *cflFreq) 
+void ConstDiffusionCFLfreqMin3xTensorP1_diffDirs123(const double *Lx, const double *nu, double *cflFreq) 
 { 
   // Lx[vdim]:  domain length.
   // nu[24]:  diffusion coefficient (collisionality).
@@ -378,7 +378,7 @@ void ConstDiffusionCFLfreqMin3xSerP1_diffDirs123(const double *Lx, const double 
   cflFreq[0] = fmax(cflFreq[0],(kxSq[0]*(0.3535533905932737*nu[0])+kxSq[1]*(0.3535533905932737*nu[8])+kxSq[2]*(0.3535533905932737*nu[16]))*1.333333333333333);
 
 } 
-void ConstDiffusionCFLfreqMin3xSerP1_diffDirs13(const double *Lx, const double *nu, double *cflFreq) 
+void ConstDiffusionCFLfreqMin3xTensorP1_diffDirs13(const double *Lx, const double *nu, double *cflFreq) 
 { 
   // Lx[vdim]:  domain length.
   // nu[24]:  diffusion coefficient (collisionality).
@@ -389,7 +389,7 @@ void ConstDiffusionCFLfreqMin3xSerP1_diffDirs13(const double *Lx, const double *
   cflFreq[0] = fmax(cflFreq[0],(kxSq[0]*(0.3535533905932737*nu[0])+kxSq[1]*(0.3535533905932737*nu[16]))*1.333333333333333);
 
 } 
-void ConstDiffusionCFLfreqMin3xSerP1_diffDirs2(const double *Lx, const double *nu, double *cflFreq) 
+void ConstDiffusionCFLfreqMin3xTensorP1_diffDirs2(const double *Lx, const double *nu, double *cflFreq) 
 { 
   // Lx[vdim]:  domain length.
   // nu[24]:  diffusion coefficient (collisionality).
@@ -399,7 +399,7 @@ void ConstDiffusionCFLfreqMin3xSerP1_diffDirs2(const double *Lx, const double *n
   cflFreq[0] = fmax(cflFreq[0],(kxSq[0]*(0.3535533905932737*nu[8]))*1.333333333333333);
 
 } 
-void ConstDiffusionCFLfreqMin3xSerP1_diffDirs23(const double *Lx, const double *nu, double *cflFreq) 
+void ConstDiffusionCFLfreqMin3xTensorP1_diffDirs23(const double *Lx, const double *nu, double *cflFreq) 
 { 
   // Lx[vdim]:  domain length.
   // nu[24]:  diffusion coefficient (collisionality).
@@ -410,7 +410,7 @@ void ConstDiffusionCFLfreqMin3xSerP1_diffDirs23(const double *Lx, const double *
   cflFreq[0] = fmax(cflFreq[0],(kxSq[0]*(0.3535533905932737*nu[8])+kxSq[1]*(0.3535533905932737*nu[16]))*1.333333333333333);
 
 } 
-void ConstDiffusionCFLfreqMin3xSerP1_diffDirs3(const double *Lx, const double *nu, double *cflFreq) 
+void ConstDiffusionCFLfreqMin3xTensorP1_diffDirs3(const double *Lx, const double *nu, double *cflFreq) 
 { 
   // Lx[vdim]:  domain length.
   // nu[24]:  diffusion coefficient (collisionality).
@@ -420,7 +420,7 @@ void ConstDiffusionCFLfreqMin3xSerP1_diffDirs3(const double *Lx, const double *n
   cflFreq[0] = fmax(cflFreq[0],(kxSq[0]*(0.3535533905932737*nu[16]))*1.333333333333333);
 
 } 
-void ConstHyperDiffusion4CFLfreqMin3xSerP1_diffDirs1(const double *Lx, const double *nu, double *cflFreq) 
+void ConstHyperDiffusion4CFLfreqMin3xTensorP1_diffDirs1(const double *Lx, const double *nu, double *cflFreq) 
 { 
   // Lx[vdim]:  domain length.
   // nu[24]:  diffusion coefficient (collisionality).
@@ -430,7 +430,7 @@ void ConstHyperDiffusion4CFLfreqMin3xSerP1_diffDirs1(const double *Lx, const dou
   cflFreq[0] = fmax(cflFreq[0],(kxSq[0]*(0.3535533905932737*nu[0]))*1.333333333333333);
 
 } 
-void ConstHyperDiffusion4CFLfreqMin3xSerP1_diffDirs12(const double *Lx, const double *nu, double *cflFreq) 
+void ConstHyperDiffusion4CFLfreqMin3xTensorP1_diffDirs12(const double *Lx, const double *nu, double *cflFreq) 
 { 
   // Lx[vdim]:  domain length.
   // nu[24]:  diffusion coefficient (collisionality).
@@ -441,7 +441,7 @@ void ConstHyperDiffusion4CFLfreqMin3xSerP1_diffDirs12(const double *Lx, const do
   cflFreq[0] = fmax(cflFreq[0],(kxSq[0]*(0.3535533905932737*nu[0])+kxSq[1]*(0.3535533905932737*nu[8]))*1.333333333333333);
 
 } 
-void ConstHyperDiffusion4CFLfreqMin3xSerP1_diffDirs123(const double *Lx, const double *nu, double *cflFreq) 
+void ConstHyperDiffusion4CFLfreqMin3xTensorP1_diffDirs123(const double *Lx, const double *nu, double *cflFreq) 
 { 
   // Lx[vdim]:  domain length.
   // nu[24]:  diffusion coefficient (collisionality).
@@ -453,7 +453,7 @@ void ConstHyperDiffusion4CFLfreqMin3xSerP1_diffDirs123(const double *Lx, const d
   cflFreq[0] = fmax(cflFreq[0],(kxSq[0]*(0.3535533905932737*nu[0])+kxSq[1]*(0.3535533905932737*nu[8])+kxSq[2]*(0.3535533905932737*nu[16]))*1.333333333333333);
 
 } 
-void ConstHyperDiffusion4CFLfreqMin3xSerP1_diffDirs13(const double *Lx, const double *nu, double *cflFreq) 
+void ConstHyperDiffusion4CFLfreqMin3xTensorP1_diffDirs13(const double *Lx, const double *nu, double *cflFreq) 
 { 
   // Lx[vdim]:  domain length.
   // nu[24]:  diffusion coefficient (collisionality).
@@ -464,7 +464,7 @@ void ConstHyperDiffusion4CFLfreqMin3xSerP1_diffDirs13(const double *Lx, const do
   cflFreq[0] = fmax(cflFreq[0],(kxSq[0]*(0.3535533905932737*nu[0])+kxSq[1]*(0.3535533905932737*nu[16]))*1.333333333333333);
 
 } 
-void ConstHyperDiffusion4CFLfreqMin3xSerP1_diffDirs2(const double *Lx, const double *nu, double *cflFreq) 
+void ConstHyperDiffusion4CFLfreqMin3xTensorP1_diffDirs2(const double *Lx, const double *nu, double *cflFreq) 
 { 
   // Lx[vdim]:  domain length.
   // nu[24]:  diffusion coefficient (collisionality).
@@ -474,7 +474,7 @@ void ConstHyperDiffusion4CFLfreqMin3xSerP1_diffDirs2(const double *Lx, const dou
   cflFreq[0] = fmax(cflFreq[0],(kxSq[0]*(0.3535533905932737*nu[8]))*1.333333333333333);
 
 } 
-void ConstHyperDiffusion4CFLfreqMin3xSerP1_diffDirs23(const double *Lx, const double *nu, double *cflFreq) 
+void ConstHyperDiffusion4CFLfreqMin3xTensorP1_diffDirs23(const double *Lx, const double *nu, double *cflFreq) 
 { 
   // Lx[vdim]:  domain length.
   // nu[24]:  diffusion coefficient (collisionality).
@@ -485,7 +485,7 @@ void ConstHyperDiffusion4CFLfreqMin3xSerP1_diffDirs23(const double *Lx, const do
   cflFreq[0] = fmax(cflFreq[0],(kxSq[0]*(0.3535533905932737*nu[8])+kxSq[1]*(0.3535533905932737*nu[16]))*1.333333333333333);
 
 } 
-void ConstHyperDiffusion4CFLfreqMin3xSerP1_diffDirs3(const double *Lx, const double *nu, double *cflFreq) 
+void ConstHyperDiffusion4CFLfreqMin3xTensorP1_diffDirs3(const double *Lx, const double *nu, double *cflFreq) 
 { 
   // Lx[vdim]:  domain length.
   // nu[24]:  diffusion coefficient (collisionality).

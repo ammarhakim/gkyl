@@ -24,8 +24,8 @@ plasmaApp = Plasma.App {
    cells       = {16},             -- Configuration space cells.
    basis       = "serendipity",    -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                -- Polynomial order.
-   timeStepper = "rk3opSplit",
---   timeStepper = "rk3",
+--   timeStepper = "rk3opSplit",
+   timeStepper = "rk3",
 --   maximumDt = 1.68869,
 --   suggestedDt = 4.0,
    
@@ -44,7 +44,7 @@ plasmaApp = Plasma.App {
       evolveCollisionless = false,
       diff = Plasma.Diffusion {
          coefficient = diffCoefficient,
-         treatment = "sts",
+--         treatment = "sts",
       },
    },
 

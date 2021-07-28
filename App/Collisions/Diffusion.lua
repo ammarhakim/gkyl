@@ -79,6 +79,7 @@ function Diffusion:setConfBasis(basis)  self.confBasis = basis end
 function Diffusion:setConfGrid(grid)    self.confGrid = grid end
 function Diffusion:setPhaseBasis(basis) self.phaseBasis = basis end
 function Diffusion:setPhaseGrid(grid)   self.phaseGrid = grid end
+function Diffusion:useSTS() return self.treat == "sts" end
 
 function Diffusion:createSolver()
    local grid, basis
@@ -167,19 +168,6 @@ function Diffusion:createSolver()
       projectDiffCoeff:advance(0.0, {}, {self.coefficient})
    end
 
-   if self.treat == "sts" then
-      assert(not isVarCoeff, "App.Collisions.Diffusion: spatially varying coefficient not yet supported with operator split.")
-      -- Calculate the largest time step (or smallest cflFreq) that
-      -- operator splitting should take.
-      self.omegaCFLmin = 0.
-      local diffOrder = self.diffOrder or 2
-      for d = 1, #self.diffDirs do
-         local Lx = grid:upper(self.diffDirs[d])-grid:lower(self.diffDirs[d])
-         self.omegaCFLmin = self.omegaCFLmin+((2.*math.pi/Lx)^diffOrder)*self.coefficient[1]
-      end
-   end
-
-
    -- Intemediate storage for output of collisions.
    self.collOut = DataStruct.Field {
       onGrid        = grid,
@@ -188,19 +176,14 @@ function Diffusion:createSolver()
    }
    -- Diffusion equation.
    self.equation = ConstDiffusionEq {
-      basis         = basis,
-      coefficient   = self.coefficient,
-      diffusiveDirs = self.diffDirs,
-      positivity    = self.usePositivity,
-      order         = self.diffOrder,
+      onGrid      = grid,              diffusiveDirs = self.diffDirs,
+      basis       = basis,             positivity    = self.usePositivity,
+      coefficient = self.coefficient,  order         = self.diffOrder,
    }
    self.collisionSlvr = Updater.HyperDisCont {
-      onGrid             = grid,
-      basis              = basis,
-      cfl                = self.cfl,
-      equation           = self.equation,
-      updateDirections   = self.diffDirs,
-      zeroFluxDirections = zfd,
+      onGrid = grid,      equation           = self.equation,
+      basis  = basis,     updateDirections   = self.diffDirs,
+      cfl    = self.cfl,  zeroFluxDirections = zfd,
    }
 end
 
@@ -221,7 +204,7 @@ end
 function Diffusion:splitAdvance(tCurr, fIn, species, fRhsOut)
    self.splitAdvanceFunc(tCurr, fIn, species, fRhsOut)
 end
-function Diffusion:cflFreqMin(fIn) return self.omegaCFLmin end
+function Diffusion:cflFreqMin(fIn) return self.equation:cflFreqMin(fIn) end
 
 function Diffusion:write(tm, frame)
 -- Since this doesn't seem to be as big a problem in Vm as in Gk, we comment this out for now.
