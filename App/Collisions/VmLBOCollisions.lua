@@ -30,9 +30,7 @@ local VmLBOCollisions = Proto(CollisionsBase)
 
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
-function VmLBOCollisions:init(tbl)
-   self.tbl = tbl
-end
+function VmLBOCollisions:init(tbl) self.tbl = tbl end
 
 -- Function to find the index of an element in table.
 local function findInd(tblIn, el)
@@ -73,7 +71,7 @@ function VmLBOCollisions:fullInit(speciesTbl, appTbl)
 
    -- Now establish if user wants constant or spatially varying collisionality.
    -- For constant nu, separate self and cross collision frequencies.
-   self.collFreqs          = tbl.frequencies -- List of collision frequencies, if using spatially constant nu.
+   self.collFreqs = tbl.frequencies -- List of collision frequencies, if using spatially constant nu.
    if self.collFreqs then
       -- Collisionality, provided by user, will remain constant in time.
       self.timeDepNu = false
@@ -86,14 +84,14 @@ function VmLBOCollisions:fullInit(speciesTbl, appTbl)
          end
       end
       if (collFreqType == "number") then
-         self.varNu         = false    -- Not spatially varying nu.
+         self.varNu = false    -- Not spatially varying nu.
       else -- collFreqType must be a function, which we assume to be spatially dependent. 
-         self.varNu         = true
+         self.varNu = true
       end
       -- For now only cell-wise constant nu is implemented.
-      self.cellConstNu      = true     -- Cell-wise constant nu?
+      self.cellConstNu = true     -- Cell-wise constant nu?
       if self.selfCollisions then
-         self.collFreqSelf  = self.collFreqs[selfSpecInd]
+         self.collFreqSelf = self.collFreqs[selfSpecInd]
       end
       if self.crossCollisions then
          self.collFreqCross = lume.clone(self.collFreqs)
@@ -150,7 +148,7 @@ function VmLBOCollisions:fullInit(speciesTbl, appTbl)
 
    self.nuFrac = tbl.nuFrac or 1.0
 
-    -- Decide whether to use an explicit or a super-time-stepping (sts) integrator.
+   -- Decide whether to use an explicit or a super-time-stepping (sts) integrator.
    self.treat = tbl.treatment or "explicit"
    if self.treat == "explicit" then
       self.advanceFunc = function(tCurr, fIn, species, fRhsOut) VmLBOCollisions["advanceImp"](self, tCurr, fIn, species, fRhsOut) end
@@ -263,7 +261,7 @@ function VmLBOCollisions:createSolver(extField)
    }
    self.collisionSlvr = Updater.HyperDisCont {
       onGrid = self.phaseGrid,   equation           = self.equation,
-      basis  = self.phaseBasis,  updateDirections   = zfd,    -- Velocity directions only.
+      basis  = self.phaseBasis,  updateDirections   = zfd, -- Velocity directions only.
       cfl    = self.cfl,         zeroFluxDirections = zfd,
    }
    if self.crossCollisions then
@@ -448,11 +446,9 @@ end
 function VmLBOCollisions:totalTime()
    return self.collisionSlvr.totalTime + self.timers.nonSlvr
 end
-
 function VmLBOCollisions:slvrTime()
    return self.collisionSlvr.totalTime
 end
-
 function VmLBOCollisions:nonSlvrTime()
    return self.timers.nonSlvr
 end

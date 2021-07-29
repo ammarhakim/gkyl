@@ -47,7 +47,6 @@ for bInd : 1 thru length(bName) do (
 
       for polyOrder : 1 thru maxPolyOrderB do (
 
-/*
         disp(printf(false,sconcat("Creating volume VmLBOconstNu",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
         fname : sconcat("~/max-out/VmLBOconstNu", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
         fh : openw(fname),
@@ -55,6 +54,7 @@ for bInd : 1 thru length(bName) do (
         calcVmLBOconstNuVolUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
         close(fh) 
 
+/*
         disp(printf(false,sconcat("Creating volume VmLBOvarNu",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
         fname    : sconcat("~/max-out/VmLBOvarNu", bName[bInd], c, "x", v, "vP", polyOrder, ".cpp"),
         fh       : openw(fname),

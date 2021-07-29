@@ -58,6 +58,7 @@ plasmaApp = Plasma.App {
    basis       = "serendipity",   -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,               -- Polynomial order.
    timeStepper = "rk3",           -- One of "rk2", "rk3" or "rk3s4".
+--   timeStepper = "rk3opSplit",           -- One of "rk2", "rk3" or "rk3s4".
 --   cflFrac     = 1.0,
    
    -- Decomposition for configuration space.
@@ -73,7 +74,7 @@ plasmaApp = Plasma.App {
       -- Velocity space grid.
       lower      = {-5.0*vte},
       upper      = { 5.0*vte},
-      cells      = {32},
+      cells      = {32*3},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
@@ -101,6 +102,7 @@ plasmaApp = Plasma.App {
 --         frequencies = { nuElcIon },
          -- Optional arguments:
 --         betaGreene  = 0.0,    -- Free parameter, must be >-1.
+--         treatment   = "sts",
       },
    },
 
@@ -110,7 +112,7 @@ plasmaApp = Plasma.App {
       -- Velocity space grid.
       lower      = {-5.0*vti},
       upper      = { 5.0*vti},
-      cells      = {32},
+      cells      = {32*3},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection {
          density = function (t, xn)
@@ -138,6 +140,7 @@ plasmaApp = Plasma.App {
 --         frequencies = { nuIonElc },
          -- Optional arguments:
 --         betaGreene  = 0.0,    -- Free parameter, must be >-1.
+--         treatment   = "sts",
       },
    },
 

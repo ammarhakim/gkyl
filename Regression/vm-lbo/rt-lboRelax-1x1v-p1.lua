@@ -49,8 +49,8 @@ plasmaApp = Plasma.App {
    cells       = {2},           -- Configuration space cells.
    basis       = "serendipity", -- One of "serendipity" or "maximal-order".
    polyOrder   = polyOrder,     -- Polynomial order.
-   timeStepper = "rk3",  -- One of "rk2", "rk3" or "rk3s4".
---   timeStepper = "rk3opSplit",  -- One of "rk2", "rk3" or "rk3s4".
+--   timeStepper = "rk3",  -- One of "rk2", "rk3" or "rk3s4".
+   timeStepper = "rk3opSplit",  -- One of "rk2", "rk3" or "rk3s4".
 
    -- Decomposition for configuration space.
    decompCuts = {1},            -- Cuts in each configuration direction.
@@ -80,7 +80,7 @@ plasmaApp = Plasma.App {
       coll = Plasma.LBOCollisions {
          collideWith = {'square'},
          frequencies = {nu},
- --        treatment   = "sts",
+         treatment   = "sts",
       },
    },
 
@@ -105,7 +105,7 @@ plasmaApp = Plasma.App {
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
          frequencies = {nu},
---         treatment   = "sts",
+         treatment   = "sts",
       },
    },
 

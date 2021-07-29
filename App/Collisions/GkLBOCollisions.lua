@@ -44,7 +44,7 @@ end
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
-function GkLBOCollisions:fullInit(speciesTbl)
+function GkLBOCollisions:fullInit(speciesTbl, appTbl)
    local tbl = self.tbl -- previously stored table
 
    self.collKind = "GkLBO"    -- Type of collisions model. Useful at the species app level.
@@ -73,7 +73,7 @@ function GkLBOCollisions:fullInit(speciesTbl)
    
    -- Now establish if user wants constant or spatially varying collisionality.
    -- For constant nu, separate self and cross collision frequencies.
-   self.collFreqs          = tbl.frequencies -- List of collision frequencies, if using spatially constant nu. 
+   self.collFreqs = tbl.frequencies -- List of collision frequencies, if using spatially constant nu. 
    if self.collFreqs then
       -- Collisionality, provided by user, will remain constant in time.
       self.timeDepNu = false
@@ -86,14 +86,14 @@ function GkLBOCollisions:fullInit(speciesTbl)
          end
       end
       if (collFreqType == "number") then
-         self.varNu         = false    -- Not spatially varying nu.
+         self.varNu = false    -- Not spatially varying nu.
       else -- collFreqType must be a function, which we assume to be spatially dependent.
-         self.varNu         = true
+         self.varNu = true
       end
       -- For now only cell-wise constant nu is implemented.
-      self.cellConstNu      = true     -- Cell-wise constant nu?
+      self.cellConstNu = true     -- Cell-wise constant nu?
       if self.selfCollisions then
-         self.collFreqSelf  = self.collFreqs[selfSpecInd]
+         self.collFreqSelf = self.collFreqs[selfSpecInd]
       end
       if self.crossCollisions then
          self.collFreqCross = lume.clone(self.collFreqs)
@@ -133,42 +133,32 @@ function GkLBOCollisions:fullInit(speciesTbl)
          end
       end
       -- Check for constants epsilon_0, elementary charge e, and Planck's constant/2pi. If not use default value.
-      local epsilon0In = tbl.epsilon0
-      if epsilon0In then
-         self.epsilon0 = epsilon0In
-      else
-         self.epsilon0 = Constants.EPSILON0
-      end
-      local elemChargeIn = tbl.elemCharge
-      if elemChargeIn then
-         self.elemCharge = elemChargeIn
-      else
-         self.elemCharge = Constants.ELEMENTARY_CHARGE
-      end
-      local hBarIn = tbl.hBar
-      if hBarIn then
-         self.hBar = hBarIn
-      else
-         self.hBar = Constants.PLANCKS_CONSTANT_H/(2.0*Constants.PI)
-      end
+      self.epsilon0   = tbl.epsilon0 or Constants.EPSILON0
+      self.elemCharge = tbl.elemCharge or Constants.ELEMENTARY_CHARGE
+      self.hBar       = tbl.hBar or Constants.PLANCKS_CONSTANT_H/(2.0*Constants.PI)
    end
 
    if self.crossCollisions then
       self.charge        = speciesTbl.charge    -- Charge of this species.
       local betaGreeneIn = tbl.betaGreene       -- Can specify 'betaGreene' free parameter in Grene cross-species collisions.
-      if betaGreeneIn then
-         self.betaGreene = betaGreeneIn
-      else
-         self.betaGreene = 0.0   -- Default value.
-      end
+      self.betaGreene    = betaGreeneIn or 0.0
    end
 
    self.mass = speciesTbl.mass   -- Mass of this species.
 
-   if tbl.nuFrac then
-      self.nuFrac = tbl.nuFrac
+   self.nuFrac = tbl.nuFrac or 1.0
+
+   -- Decide whether to use an explicit or a super-time-stepping (sts) integrator.
+   self.treat = tbl.treatment or "explicit"
+   if self.treat == "explicit" then
+      self.advanceFunc = function(tCurr, fIn, species, fRhsOut) GkLBOCollisions["advanceImp"](self, tCurr, fIn, species, fRhsOut) end
+      self.splitAdvanceFunc = function(tCurr, fIn, species, fRhsOut) end
+   elseif self.treat == "sts" then
+      assert(appTbl.timeStepper == "rk3opSplit", "App.GkLBOCollisions: 'sts' treatment requires 'timeStepper=rk3opSplit'.")
+      self.splitAdvanceFunc = function(tCurr, fIn, species, fRhsOut) GkLBOCollisions["advanceImp"](self, tCurr, fIn, species, fRhsOut) end
+      self.advanceFunc = function(tCurr, fIn, species, fRhsOut) end
    else
-      self.nuFrac = 1.0
+      assert(false, "App.Diffusion: entry 'treatment' must be either 'explicit' or 'sts'.")
    end
 
    self.usePositivity = speciesTbl.applyPositivity    -- Use positivity preserving algorithms.
@@ -188,6 +178,7 @@ function GkLBOCollisions:setConfBasis(basis) self.confBasis = basis end
 function GkLBOCollisions:setConfGrid(grid) self.confGrid = grid end
 function GkLBOCollisions:setPhaseBasis(basis) self.phaseBasis = basis end
 function GkLBOCollisions:setPhaseGrid(grid) self.phaseGrid = grid end
+function GkLBOCollisions:useSTS() return self.treat == "sts" end
 
 function GkLBOCollisions:createSolver(externalField)
    self.vDim = self.phaseGrid:ndim() - self.confGrid:ndim()
@@ -247,21 +238,15 @@ function GkLBOCollisions:createSolver(externalField)
       if self.timeDepNu then
          -- Updater to compute spatially varying (Spitzer) nu.
          self.spitzerNu = Updater.SpitzerCollisionality {
-            onGrid           = self.confGrid,
-            confBasis        = self.confBasis,
-            useCellAverageNu = self.cellConstNu,
-            willInputNormNu  = self.userInputNormNu,
-            elemCharge       = self.elemCharge,
-            epsilon0         = self.epsilon0,
-            hBar             = self.hBar,
-            nuFrac           = self.nuFrac,
+            onGrid           = self.confGrid,         elemCharge = self.elemCharge,
+            confBasis        = self.confBasis,        epsilon0   = self.epsilon0,
+            useCellAverageNu = self.cellConstNu,      hBar       = self.hBar,
+            willInputNormNu  = self.userInputNormNu,  nuFrac     = self.nuFrac,
          }
       elseif self.selfCollisions then
          local projectUserNu = Updater.ProjectOnBasis {
-            onGrid   = self.confGrid,
-            basis    = self.confBasis,
-            evaluate = self.collFreqSelf,
-            onGhosts = false
+            onGrid = self.confGrid,   evaluate = self.collFreqSelf,
+            basis  = self.confBasis,  onGhosts = false
          }
          projectUserNu:advance(0.0, {}, {self.nuVarXSelf})
       end
@@ -276,22 +261,15 @@ function GkLBOCollisions:createSolver(externalField)
    end
    -- Lenard-Bernstein equation.
    self.equation = GkLBOconstNuEq {
-      phaseBasis       = self.phaseBasis,
-      confBasis        = self.confBasis,
-      vParUpper        = self.vParMax,
-      varyingNu        = self.varNu,
-      useCellAverageNu = self.cellConstNu,
-      mass             = self.mass,
-      positivity       = self.usePositivity,
-      gridID           = self.phaseGrid:id(),
+      onGrid     = self.phaseGrid,   varyingNu        = self.varNu,
+      phaseBasis = self.phaseBasis,  useCellAverageNu = self.cellConstNu,
+      confBasis  = self.confBasis,   mass             = self.mass,
+      vParUpper  = self.vParMax,     positivity       = self.usePositivity,
    }
    self.collisionSlvr = Updater.HyperDisCont {
-      onGrid             = self.phaseGrid,
-      basis              = self.phaseBasis,
-      cfl                = self.cfl,
-      equation           = self.equation,
-      updateDirections   = zfd,    -- Only update velocity directions.
-      zeroFluxDirections = zfd,
+      onGrid = self.phaseGrid,   equation           = self.equation,
+      basis  = self.phaseBasis,  updateDirections   = zfd, -- Velocity directions only.
+      cfl    = self.cfl,         zeroFluxDirections = zfd,
    }
    if self.crossCollisions then
       if self.varNu then
@@ -323,13 +301,10 @@ function GkLBOCollisions:createSolver(externalField)
       end
       -- Updater to compute cross-species primitive moments.
       self.primMomCross = Updater.CrossPrimMoments {
-         onGrid           = self.confGrid,
-         phaseBasis       = self.phaseBasis,
-         confBasis        = self.confBasis,
-         operator         = "GkLBO",
-         betaGreene       = self.betaGreene,
-         varyingNu        = self.varNu,
-         useCellAverageNu = self.cellConstNu,
+         onGrid     = self.confGrid,    betaGreene       = self.betaGreene,
+         phaseBasis = self.phaseBasis,  varyingNu        = self.varNu,
+         confBasis  = self.confBasis,   useCellAverageNu = self.cellConstNu,
+         operator   = "GkLBO",
       }
    end
 
@@ -342,8 +317,7 @@ function GkLBOCollisions:createSolver(externalField)
    }
 end
 
-function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
-
+function GkLBOCollisions:advanceImp(tCurr, fIn, species, fRhsOut)
    -- Fetch coupling moments and primitive moments of this species.
    local selfMom     = species[self.speciesName]:fluidMoments()
    local primMomSelf = species[self.speciesName]:selfPrimitiveMoments()
@@ -466,6 +440,13 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
    fRhsOut:accumulate(1.0, self.collOut)
    self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 end
+function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
+   self.advanceFunc(tCurr, fIn, species, fRhsOut)
+end
+function GkLBOCollisions:splitAdvance(tCurr, fIn, species, fRhsOut)
+   self.splitAdvanceFunc(tCurr, fIn, species, fRhsOut)
+end
+function GkLBOCollisions:cflFreqMin(fIn) return self.equation:cflFreqMin(fIn) end
 
 function GkLBOCollisions:write(tm, frame)
    if self.selfCollisions then
@@ -481,11 +462,9 @@ end
 function GkLBOCollisions:totalTime()
    return self.collisionSlvr.totalTime + self.timers.nonSlvr
 end
-
 function GkLBOCollisions:slvrTime()
    return self.collisionSlvr.totalTime
 end
-
 function GkLBOCollisions:nonSlvrTime()
    return self.timers.nonSlvr
 end

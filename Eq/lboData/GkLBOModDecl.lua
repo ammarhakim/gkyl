@@ -121,5 +121,15 @@ function _M.selectConstNuBoundarySurf(basisNm, CDIM, VDIM, polyOrder, applyPos)
    return kernels
 end
 
+-- Select function to compute the minimum CFL frequency.
+function _M.selectConstNuCFLfreqMin(basisNm, CDIM, VDIM, polyOrder)
+   local funcType = "void"
+   local funcNm = string.format("GkLBOconstNuCFLfreqMin%dx%dv%sP%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   local funcSign = "(const double m_, const double *w, const double *dxv, const double *Lv, const double *BmagInv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, double *cflFreqDrag, double *cflFreqDiff)"
+
+   ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
+   return ffi.C[funcNm]
+end
+
 
 return _M

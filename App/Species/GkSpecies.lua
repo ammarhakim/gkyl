@@ -797,6 +797,21 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
 end
 
+function GkSpecies:splitAdvance(tCurr, species, emIn, inIdx, outIdx)
+   local fIn     = self:rkStepperFields()[inIdx]
+   local fRhsOut = self:rkStepperFields()[outIdx]
+
+   fRhsOut:clear(0.0)
+
+   -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
+   if self.evolveCollisions then
+      for _, c in pairs(self.collisions) do
+         c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+         c:splitAdvance(tCurr, fIn, species, fRhsOut)
+      end
+   end
+end
+
 function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
    local fIn = self:rkStepperFields()[inIdx]
    if self.positivityRescale then

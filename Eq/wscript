@@ -67,7 +67,20 @@ def build(bld):
     lboData/GkLBOconstNuSurfNonuniformTensor1x1vP2.cpp
     lboData/GkLBOconstNuSurfNonuniformTensor1x2vP2.cpp
     lboData/GkLBOconstNuSurfNonuniformTensor2x2vP2.cpp
-    
+
+    lboData/GkLBOconstNuCFLfreqMinSer1x1vP1.cpp
+    lboData/GkLBOconstNuCFLfreqMinSer1x2vP1.cpp
+    lboData/GkLBOconstNuCFLfreqMinSer2x2vP1.cpp
+    lboData/GkLBOconstNuCFLfreqMinSer3x2vP1.cpp
+    lboData/GkLBOconstNuCFLfreqMinSer1x1vP2.cpp
+    lboData/GkLBOconstNuCFLfreqMinSer1x2vP2.cpp
+    lboData/GkLBOconstNuCFLfreqMinSer2x2vP2.cpp
+    lboData/GkLBOconstNuCFLfreqMinSer3x2vP2.cpp
+    lboData/GkLBOconstNuCFLfreqMinTensor1x1vP1.cpp
+    lboData/GkLBOconstNuCFLfreqMinTensor1x2vP1.cpp
+    lboData/GkLBOconstNuCFLfreqMinTensor1x1vP2.cpp
+    lboData/GkLBOconstNuCFLfreqMinTensor1x2vP2.cpp
+
     lboData/VmLBOconstNuSer1x1vP1.cpp
     lboData/VmLBOconstNuSer1x2vP1.cpp
     lboData/VmLBOconstNuSer1x3vP1.cpp

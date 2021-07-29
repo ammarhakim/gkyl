@@ -7,13 +7,10 @@ fpprec : 24$
    the form of a CFL frequency) to use for the Lenard Bernstein
    operator should be (e.g. in super time stepping). */
 
-cidx(cdim)      := makelist(i,i,0,cdim-1)$
 vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 
 cvars  : [x, y, z]$
 varsV  : [vx, vy, vz]$
-
-doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[a0+i-1] else 0, i, 1, length(vals))$
 
 calcVmLBOconstNuCFLfreqMin(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([],
   printf(fh, "#include <VmLBOModDecl.h> ~%"),
@@ -23,10 +20,8 @@ calcVmLBOconstNuCFLfreqMin(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block
   load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
 
   /* Polynomial basis and its derivatives. */
-  bP : basisP[polyOrder],
-  bC : basisC[polyOrder],
-  NP : length(bP),
-  NC : length(bC),
+  bP : basisP[polyOrder],  NP : length(bP),
+  bC : basisC[polyOrder],  NC : length(bC),
 
   printf(fh, "void ~aP~a(const double *w, const double *dxv, const double *Lv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, double *cflFreqDrag, double *cflFreqDiff) ~%{ ~%", funcNm, polyOrder),
   printf(fh, "  // w[~a]:        cell-center coordinates. ~%", cdim+vdim),
@@ -38,9 +33,6 @@ calcVmLBOconstNuCFLfreqMin(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block
   printf(fh, "  // cflFreqDrag: min CFL frequency supported by drag terms.~%"),
   printf(fh, "  // cflFreqDiff: min CFL frequency supported by diffusion terms.~%"),
   printf(fh, "~%"),
-
-  cid : cidx(cdim),
-  vid : vidx(cdim,vdim),
 
   /* Specify a point to evaluate alpha at for use in computing CFL */
   /* Here we choose to evaluate things in the middle of the cell, where
@@ -54,6 +46,7 @@ calcVmLBOconstNuCFLfreqMin(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block
   /* To allow for multiple components change the cofficient indices in u. */
   nuUSum_e : psubst(makelist(nuUSum[i]=nuUSum[a0+i],i,0,NC-1),nuUSum_e),
 
+  vid : vidx(cdim,vdim),
   alphaDrag_mid : makelist(0, i, 1, vdim),
   for vdir : 1 thru vdim do (
     /* alphaDrag = k*< psi, (nuSum*v - nuUSum) >. */
@@ -85,9 +78,7 @@ calcVmLBOconstNuCFLfreqMin(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block
     printf(fh, "  cflFreqDrag[0] = std::fmax(cflFreqDrag[0], std::fabs(~a)+std::fabs(~a)+std::fabs(~a)); ~%", alphaDrag_mid[1], alphaDrag_mid[2], alphaDrag_mid[3]),
     printf(fh, "  cflFreqDiff[0] = std::fmax(cflFreqDiff[0], std::fabs(~a)+std::fabs(~a)+std::fabs(~a)); ~%", facDiff_mid[1]  , facDiff_mid[2]  , facDiff_mid[3]  )
   ),
-
   printf(fh, "~%"),
 
-  printf(fh, "} ~%")
-
+  printf(fh, "}~%")
 );

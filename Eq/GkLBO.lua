@@ -12,6 +12,8 @@ local GkLBOModDecl = require "Eq.lboData.GkLBOModDecl"
 local ffi          = require "ffi"
 local xsys         = require "xsys"
 local EqBase       = require "Eq.EqBase"
+local LinearDecomp = require "Lib.LinearDecomp"
+local Mpi          = require "Comm.Mpi"
 
 -- For incrementing in updater.
 ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOut); ]]
@@ -22,6 +24,7 @@ local GkLBO = Proto(EqBase)
 -- ctor.
 function GkLBO:init(tbl)
 
+   self._grid        = assert(tbl.onGrid, "Eq.GkLBO: must specify a grid.")
    self._phaseBasis  = assert(tbl.phaseBasis, 
       "Eq.GkLBO: Must specify phase-space basis functions to use using 'phaseBasis'.")
    self._confBasis   = assert(tbl.confBasis, 
@@ -36,7 +39,7 @@ function GkLBO:init(tbl)
    assert(tbl.mass, "Eq.GkLBO: Must pass mass using 'mass'.")
    self._inMass = tbl.mass
 
-   local isGridNonuniform = tbl.gridID == "mapped"
+   local isGridNonuniform = self._grid:id() == "mapped"
 
    local applyPositivity = xsys.pickBool(tbl.positivity,false)   -- Positivity preserving option.
 
@@ -72,6 +75,7 @@ function GkLBO:init(tbl)
       self._volUpdate  = GkLBOModDecl.selectConstNuVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       self._surfUpdate = GkLBOModDecl.selectConstNuSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), isGridNonuniform, applyPositivity)
       self._boundarySurfUpdate = GkLBOModDecl.selectConstNuBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), applyPositivity)
+      self._cflMinKer  = GkLBOModDecl.selectConstNuCFLfreqMin(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    else
       self._volUpdate  = GkLBOModDecl.selectVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       self._surfUpdate = GkLBOModDecl.selectSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), isGridNonuniform, applyPositivity)
@@ -94,6 +98,16 @@ function GkLBO:init(tbl)
    self._isFirst = true
 
    self.primMomCrossLimit = 0.0
+
+   -- Prep pointers and objects for computing min CFL frequency.
+   self.dxv = Lin.Vec(self._pdim)    -- Cell shape.
+   self.xc  = Lin.Vec(self._pdim)    -- Cell center coordinates.
+   self.Lv  = Lin.Vec(self._vdim)    -- Velocity domain length.
+   for d = 1, self._vdim do
+      self.Lv[d] = self._grid:upper(self._cdim+d)-self._grid:lower(self._cdim+d)
+   end
+   self.omegaCFLminDrag, self.omegaCFLminDiff = Lin.Vec(1), Lin.Vec(1)
+   self.omegaCFLminL, self.omegaCFLmin = Lin.Vec(1), Lin.Vec(1)
 end
 
 -- Methods.
@@ -264,15 +278,42 @@ function GkLBO:pdim() return self._pdim end
 function GkLBO:cdim() return self._cdim end
 function GkLBO:vdim() return self._vdim end
 function GkLBO:qbym() return self._qbym end
+function GkLBO:volUpdate() return self._volUpdate end
+function GkLBO:surfUpdate() return self._surfUpdate end
+function GkLBO:boundarySurfUpdate() return self._boundarySurfUpdate end
 
-function GkLBO:volUpdate()
-   return self._volUpdate
-end
-function GkLBO:surfUpdate()
-   return self._surfUpdate
-end
-function GkLBO:boundarySurfUpdate()
-   return self._boundarySurfUpdate
+function GkLBO:cflFreqMin(fIn)
+   -- Calculate the minimum CFL freq supported (for computing the maximum
+   -- step allowed in implicit stepping).
+   local range = fIn:localRange()
+   local rangeDecomp = LinearDecomp.LinearDecompRange {
+      range = range:selectFirst(self._pdim), numSplit = self._grid:numSharedProcs() }
+   local tId = self._grid:subGridSharedId()    -- Local thread ID.
+
+   self.omegaCFLminDrag[1], self.omegaCFLminDiff[1] = GKYL_MIN_DOUBLE, GKYL_MIN_DOUBLE
+
+   for idx in rangeDecomp:rowMajorIter(tId) do
+      self._grid:setIndex(idx)
+      self._grid:getDx(self.dxv)
+      self._grid:cellCenter(self.xc)
+
+      self._BmagInv:fill(self._BmagInvIdxr(idx), self._BmagInvPtr)          -- Get pointer to BmagInv field.
+      self._nuUSum:fill(self._nuUSumIdxr(idx), self._nuUSumPtr)             -- Get pointer to sum(nu*u) field.
+      self._nuVtSqSum:fill(self._nuVtSqSumIdxr(idx), self._nuVtSqSumPtr)    -- Get pointer to sum(nu*vtSq) field.
+      if self._varNu then
+         self._nuSum:fill(self._nuSumIdxr(idx), self._nuSumPtr)          -- Get pointer to sum(nu) field.
+         self._inNuSum = self._nuSumPtr[1]*self._cellAvFac
+      end
+
+      self._cflMinKer(self._inMass, self.xc:data(), self.dxv:data(), self.Lv:data(), self._BmagInvPtr:data(), self._inNuSum, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), self.omegaCFLminDrag:data(), self.omegaCFLminDiff:data())
+   end
+
+   self.omegaCFLminL[1] = math.min(self.omegaCFLminDrag[1], self.omegaCFLminDiff[1])
+
+   Mpi.Allreduce(self.omegaCFLminL:data(), self.omegaCFLmin:data(),
+                 1, Mpi.DOUBLE, Mpi.MAX, self._grid:commSet().comm)
+
+   return self.omegaCFLmin[1]
 end
 
 return GkLBO
