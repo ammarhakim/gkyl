@@ -1,0 +1,97 @@
+load("modal-basis")$
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+/* This script generates kernels that suggest what the maximum dt (in
+   the form of a CFL frequency) to use for the Lenard Bernstein
+   operator should be (e.g. in super time stepping). */
+
+vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
+
+varsV : [vpar, mu]$
+gkvsub: [vx=vpar,vy=mu]$
+
+calcGkLBOconstNuCFLfreqMin(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([],
+  printf(fh, "#include <GkLBOModDecl.h> ~%"),
+
+  kill(varsC, varsP, basisC, basisP),
+  /* Load basis of dimensionality requested. */
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+  /* Rename independent variables in bases. */
+  varsP : subst(gkvsub, varsP),
+
+  /* Polynomial basis and its derivatives. */
+  bP : subst(gkvsub, basisP[polyOrder]),  NP : length(bP),
+  bC : basisC[polyOrder],  NC : length(bC),
+
+  printf(fh, "void ~aP~a(const double m_, const double *w, const double *dxv, const double *Lv, const double *BmagInv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, double *cflFreqDrag, double *cflFreqDiff) ~%{ ~%", funcNm, polyOrder),
+  printf(fh, "  // m_:        species mass. ~%"),
+  printf(fh, "  // w[~a]:      Cell-center coordinates. ~%", cdim+vdim),
+  printf(fh, "  // dxv[~a]:    Cell spacing. ~%", cdim+vdim),
+  printf(fh, "  // Lv[~a]:    domain length in velocity space.~%",vdim),
+  printf(fh, "  // BmagInv[~a]:reciprocal of the magnetic field magnitude, 1/B. ~%", NC),
+  printf(fh, "  // nuSum:     collisionalities added (self and cross species collisionalities). ~%"),
+  printf(fh, "  // nuUSum:    sum of bulk velocities times their respective collisionalities. ~%"),
+  printf(fh, "  // nuVtSqSum: sum of thermal speeds squared time their respective collisionalities. ~%"),
+  printf(fh, "  // cflFreqDrag: min CFL frequency supported by drag terms.~%"),
+  printf(fh, "  // cflFreqDiff: min CFL frequency supported by diffusion terms.~%"),
+  printf(fh, "~%"),
+
+  /* Specify a point to evaluate alpha at for use in computing CFL */
+  /* Here we choose to evaluate things in the middle of the cell, where
+     coordinates = 0. */
+  zr : makelist(varsP[d]=0, d, 1, length(varsP)),
+
+  /* Expand flow speed sum(nu*u) and sum(nu*vtSq) in configuration basis. */
+  nuUSum_e    : doExpand1(nuUSum, bC),
+  nuVtSqSum_e : doExpand1(nuVtSqSum, bC),    
+  
+  /* vpar contribution. */
+  vid  : vidx(cdim,vdim),
+  cv   : varsV[1],
+  alphaVpar_c : calcInnerProdList(varsP,1,bP,-nuSum*((dxv[vid[1]]/2)*cv + w[vid[1]]) + nuUSum_e),
+  alphaVpar_e : doExpand(alphaVpar_c, bP),
+
+  facVpar_c : calcInnerProdList(varsC,kvSq[0],bC,nuVtSqSum_e),
+  facVpar_e : doExpand(facVpar_c, bC),
+
+  /* mu contribution. Last 3 terms from 2nd int by parts */
+  if vdim = 2 then (
+    cv : varsV[2],
+    BmagInv_e : doExpand1(BmagInv,bC),
+    
+    alphaMu_c : calcInnerProdList(varsP,1,bP,2*(-nuSum*((dxv[vid[2]]/2)*cv + w[vid[2]]))),
+    alphaMu_e : doExpand(alphaMu_c, bP),
+    
+    facMu_c : calcInnerProdList(varsP,kvSq[1],bP,2*m_*BmagInv_e*nuVtSqSum_e*((dxv[vid[2]]/2)*cv + w[vid[2]])),
+    facMu_e : doExpand(facMu_c, bP)
+  ),
+    
+  printf(fh, "  double kv[~a]; ~%", vdim),
+  printf(fh, "  double kvSq[~a]; ~%", vdim),
+  for dir : 1 thru vdim do (
+    printf(fh, "  kv[~a]   = ~a/Lv[~a]; ~%", dir-1, float(2*%pi), dir-1),
+    printf(fh, "  kvSq[~a] = kv[~a]*kv[~a]; ~%", dir-1, dir-1, dir-1)
+  ),
+  printf(fh, "~%"),
+
+  alphaVparMid : float(expand(fullratsimp(subst(zr,alphaVpar_e)))),
+  facVparMid   : float(expand(fullratsimp(subst(zr,facVpar_e)))),
+
+  if vdim = 1 then (
+    pFac : ((polyOrder+1)**2)/(2*polyOrder+1),
+    printf(fh, "  cflFreqDrag[0] = std::fmax(cflFreqDrag[0], std::fabs(~a)); ~%", kv[0]*alphaVparMid),
+    printf(fh, "  cflFreqDiff[0] = std::fmax(cflFreqDiff[0], std::fabs(~a)); ~%", pFac*facVparMid)
+  ) else (
+    alphaMuMid : float(expand(fullratsimp(subst(zr,alphaMu_e)))),
+    facMuMid   : float(expand(fullratsimp(subst(zr,facMu_e)))),
+
+    printf(fh, "  cflFreqDrag[0] = std::fmax(cflFreqDrag[0], std::fabs(~a)+std::fabs(~a)); ~%", kv[0]*alphaVparMid, kv[1]*alphaMuMid),
+    printf(fh, "  cflFreqDiff[0] = std::fmax(cflFreqDiff[0], ~a*(std::fabs(~a)+std::fabs(~a))); ~%", float(pFac), facVparMid, facMuMid)
+  ),
+  printf(fh, "~%"),
+
+  printf(fh, "}~%")
+);
+
