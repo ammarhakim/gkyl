@@ -58,7 +58,6 @@ def build(bld):
     lboData/GkLBOconstNuBoundarySurfTensor1x2vP2.cpp
     lboData/GkLBOconstNuSurfNonuniformTensor1x1vP2.cpp
     lboData/GkLBOconstNuSurfNonuniformTensor1x2vP2.cpp
-    lboData/GkLBOconstNuSurfNonuniformTensor2x2vP2.cpp
     
     lboData/VmLBOconstNuSer1x1vP1.cpp
     lboData/VmLBOconstNuSer1x2vP1.cpp
@@ -222,35 +221,6 @@ def build(bld):
     maxwellData/MaxwellCentralSurfSer1xP3.cpp
     maxwellData/MaxwellCentralSurfSer2xP3.cpp
 
-    maxwellData/MaxwellVolMax1xP1.cpp
-    maxwellData/MaxwellVolMax2xP1.cpp
-    maxwellData/MaxwellVolMax3xP1.cpp
-
-    maxwellData/MaxwellVolMax1xP2.cpp
-    maxwellData/MaxwellVolMax2xP2.cpp
-
-    maxwellData/MaxwellVolMax1xP3.cpp
-    maxwellData/MaxwellVolMax2xP3.cpp
-
-    maxwellData/MaxwellSurfMax1xP1.cpp
-    maxwellData/MaxwellSurfMax2xP1.cpp
-    maxwellData/MaxwellSurfMax3xP1.cpp
-
-    maxwellData/MaxwellSurfMax1xP2.cpp
-    maxwellData/MaxwellSurfMax2xP2.cpp
-
-    maxwellData/MaxwellSurfMax1xP3.cpp
-    maxwellData/MaxwellSurfMax2xP3.cpp
-
-    maxwellData/MaxwellCentralSurfMax1xP1.cpp
-    maxwellData/MaxwellCentralSurfMax2xP1.cpp
-    maxwellData/MaxwellCentralSurfMax3xP1.cpp
-
-    maxwellData/MaxwellCentralSurfMax1xP2.cpp
-    maxwellData/MaxwellCentralSurfMax2xP2.cpp
-
-    maxwellData/MaxwellCentralSurfMax1xP3.cpp
-    maxwellData/MaxwellCentralSurfMax2xP3.cpp
 
     maxwellData/MaxwellVolTensor1xP2.cpp
     maxwellData/MaxwellVolTensor2xP2.cpp
@@ -269,24 +239,6 @@ def build(bld):
 
     maxwellData/MaxwellCentralSurfTensor1xP3.cpp
     maxwellData/MaxwellCentralSurfTensor2xP3.cpp
-
-    vlasovData/VlasovStreamMax1x1vP1.cpp
-    vlasovData/VlasovStreamMax1x2vP1.cpp
-    vlasovData/VlasovStreamMax1x3vP1.cpp
-    vlasovData/VlasovStreamMax2x2vP1.cpp
-    vlasovData/VlasovStreamMax2x3vP1.cpp
-    vlasovData/VlasovStreamMax3x3vP1.cpp
-
-    vlasovData/VlasovStreamMax1x1vP2.cpp
-    vlasovData/VlasovStreamMax1x2vP2.cpp
-    vlasovData/VlasovStreamMax1x3vP2.cpp
-    vlasovData/VlasovStreamMax2x2vP2.cpp
-    vlasovData/VlasovStreamMax2x3vP2.cpp
-
-    vlasovData/VlasovStreamMax1x1vP3.cpp
-    vlasovData/VlasovStreamMax1x2vP3.cpp
-    vlasovData/VlasovStreamMax1x3vP3.cpp
-    vlasovData/VlasovStreamMax2x2vP3.cpp
 
     vlasovData/VlasovStreamSer1x1vP1.cpp
     vlasovData/VlasovStreamSer1x2vP1.cpp
@@ -315,24 +267,6 @@ def build(bld):
     vlasovData/VlasovStreamTensor1x1vP3.cpp
     vlasovData/VlasovStreamTensor1x2vP3.cpp
 
-    vlasovData/VlasovSurfStreamMax1x1vP1.cpp
-    vlasovData/VlasovSurfStreamMax1x2vP1.cpp
-    vlasovData/VlasovSurfStreamMax1x3vP1.cpp
-    vlasovData/VlasovSurfStreamMax2x2vP1.cpp
-    vlasovData/VlasovSurfStreamMax2x3vP1.cpp
-    vlasovData/VlasovSurfStreamMax3x3vP1.cpp
-
-    vlasovData/VlasovSurfStreamMax1x1vP2.cpp
-    vlasovData/VlasovSurfStreamMax1x2vP2.cpp
-    vlasovData/VlasovSurfStreamMax1x3vP2.cpp
-    vlasovData/VlasovSurfStreamMax2x2vP2.cpp
-    vlasovData/VlasovSurfStreamMax2x3vP2.cpp
-
-    vlasovData/VlasovSurfStreamMax1x1vP3.cpp
-    vlasovData/VlasovSurfStreamMax1x2vP3.cpp
-    vlasovData/VlasovSurfStreamMax1x3vP3.cpp
-    vlasovData/VlasovSurfStreamMax2x2vP3.cpp
-
     vlasovData/VlasovSurfStreamSer1x1vP1.cpp
     vlasovData/VlasovSurfStreamSer1x2vP1.cpp
     vlasovData/VlasovSurfStreamSer1x3vP1.cpp
@@ -360,24 +294,6 @@ def build(bld):
     vlasovData/VlasovSurfStreamTensor1x1vP3.cpp
     vlasovData/VlasovSurfStreamTensor1x2vP3.cpp
 
-    vlasovData/VlasovMax1x1vP1.cpp
-    vlasovData/VlasovMax1x2vP1.cpp
-    vlasovData/VlasovMax1x3vP1.cpp
-    vlasovData/VlasovMax2x2vP1.cpp
-    vlasovData/VlasovMax2x3vP1.cpp
-    vlasovData/VlasovMax3x3vP1.cpp
-
-    vlasovData/VlasovMax1x1vP2.cpp
-    vlasovData/VlasovMax1x2vP2.cpp
-    vlasovData/VlasovMax1x3vP2.cpp
-    vlasovData/VlasovMax2x2vP2.cpp
-    vlasovData/VlasovMax2x3vP2.cpp
-
-    vlasovData/VlasovMax1x1vP3.cpp
-    vlasovData/VlasovMax1x2vP3.cpp
-    vlasovData/VlasovMax1x3vP3.cpp
-    vlasovData/VlasovMax2x2vP3.cpp
-
     vlasovData/VlasovSer1x1vP1.cpp
     vlasovData/VlasovSer1x2vP1.cpp
     vlasovData/VlasovSer1x3vP1.cpp
@@ -404,34 +320,12 @@ def build(bld):
     vlasovData/VlasovTensor1x1vP3.cpp
     vlasovData/VlasovTensor1x2vP3.cpp
 
-    vlasovData/VlasovForceMax1x1vP1.cpp
-    vlasovData/VlasovForceMax1x1vP2.cpp
-    vlasovData/VlasovForceMax1x1vP3.cpp
-
     vlasovData/VlasovForceSer1x1vP1.cpp
     vlasovData/VlasovForceSer1x1vP2.cpp
     vlasovData/VlasovForceSer1x1vP3.cpp
 
     vlasovData/VlasovForceTensor1x1vP2.cpp
     vlasovData/VlasovForceTensor1x1vP3.cpp
-
-    vlasovData/VlasovSurfElcMagMax1x1vP1.cpp
-    vlasovData/VlasovSurfElcMagMax1x2vP1.cpp
-    vlasovData/VlasovSurfElcMagMax1x3vP1.cpp
-    vlasovData/VlasovSurfElcMagMax2x2vP1.cpp
-    vlasovData/VlasovSurfElcMagMax2x3vP1.cpp
-    vlasovData/VlasovSurfElcMagMax3x3vP1.cpp
-
-    vlasovData/VlasovSurfElcMagMax1x1vP2.cpp
-    vlasovData/VlasovSurfElcMagMax1x2vP2.cpp
-    vlasovData/VlasovSurfElcMagMax1x3vP2.cpp
-    vlasovData/VlasovSurfElcMagMax2x2vP2.cpp
-    vlasovData/VlasovSurfElcMagMax2x3vP2.cpp
-
-    vlasovData/VlasovSurfElcMagMax1x1vP3.cpp
-    vlasovData/VlasovSurfElcMagMax1x2vP3.cpp
-    vlasovData/VlasovSurfElcMagMax1x3vP3.cpp
-    vlasovData/VlasovSurfElcMagMax2x2vP3.cpp
 
     vlasovData/VlasovSurfElcMagSer1x1vP1.cpp
     vlasovData/VlasovSurfElcMagSer1x2vP1.cpp
@@ -510,12 +404,8 @@ def build(bld):
 
     vlasovData/VlasovIncr.cpp
 
-    pbData/CanonicalMax1x1v.cpp
-    pbData/CanonicalMax2x2v.cpp
     pbData/CanonicalSer1x1v.cpp
     pbData/CanonicalSer2x2v.cpp
-    pbData/CanonicalSurfMax1x1v.cpp
-    pbData/CanonicalSurfMax2x2v.cpp
     pbData/CanonicalSurfSer1x1v.cpp
     pbData/CanonicalSurfSer2x2v.cpp
     pbData/CanonicalDisContSurfSer1x1v.cpp
@@ -670,24 +560,6 @@ def build(bld):
 
     vlasovData/VlasovTmplModDeviceFuncs.cpp
 
-    vlasovData/VlasovStreamMax1x1vP1.cpp
-    vlasovData/VlasovStreamMax1x2vP1.cpp
-    vlasovData/VlasovStreamMax1x3vP1.cpp
-    vlasovData/VlasovStreamMax2x2vP1.cpp
-    vlasovData/VlasovStreamMax2x3vP1.cpp
-    vlasovData/VlasovStreamMax3x3vP1.cpp
-
-    vlasovData/VlasovStreamMax1x1vP2.cpp
-    vlasovData/VlasovStreamMax1x2vP2.cpp
-    vlasovData/VlasovStreamMax1x3vP2.cpp
-    vlasovData/VlasovStreamMax2x2vP2.cpp
-    vlasovData/VlasovStreamMax2x3vP2.cpp
-
-    vlasovData/VlasovStreamMax1x1vP3.cpp
-    vlasovData/VlasovStreamMax1x2vP3.cpp
-    vlasovData/VlasovStreamMax1x3vP3.cpp
-    vlasovData/VlasovStreamMax2x2vP3.cpp
-
     vlasovData/VlasovStreamSer1x1vP1.cpp
     vlasovData/VlasovStreamSer1x2vP1.cpp
     vlasovData/VlasovStreamSer1x3vP1.cpp
@@ -713,24 +585,6 @@ def build(bld):
 
     vlasovData/VlasovStreamTensor1x1vP3.cpp
     vlasovData/VlasovStreamTensor1x2vP3.cpp
-
-    vlasovData/VlasovSurfStreamMax1x1vP1.cpp
-    vlasovData/VlasovSurfStreamMax1x2vP1.cpp
-    vlasovData/VlasovSurfStreamMax1x3vP1.cpp
-    vlasovData/VlasovSurfStreamMax2x2vP1.cpp
-    vlasovData/VlasovSurfStreamMax2x3vP1.cpp
-    vlasovData/VlasovSurfStreamMax3x3vP1.cpp
-
-    vlasovData/VlasovSurfStreamMax1x1vP2.cpp
-    vlasovData/VlasovSurfStreamMax1x2vP2.cpp
-    vlasovData/VlasovSurfStreamMax1x3vP2.cpp
-    vlasovData/VlasovSurfStreamMax2x2vP2.cpp
-    vlasovData/VlasovSurfStreamMax2x3vP2.cpp
-
-    vlasovData/VlasovSurfStreamMax1x1vP3.cpp
-    vlasovData/VlasovSurfStreamMax1x2vP3.cpp
-    vlasovData/VlasovSurfStreamMax1x3vP3.cpp
-    vlasovData/VlasovSurfStreamMax2x2vP3.cpp
 
     vlasovData/VlasovSurfStreamSer1x1vP1.cpp
     vlasovData/VlasovSurfStreamSer1x2vP1.cpp
@@ -758,24 +612,6 @@ def build(bld):
     vlasovData/VlasovSurfStreamTensor1x1vP3.cpp
     vlasovData/VlasovSurfStreamTensor1x2vP3.cpp
 
-    vlasovData/VlasovMax1x1vP1.cpp
-    vlasovData/VlasovMax1x2vP1.cpp
-    vlasovData/VlasovMax1x3vP1.cpp
-    vlasovData/VlasovMax2x2vP1.cpp
-    vlasovData/VlasovMax2x3vP1.cpp
-    vlasovData/VlasovMax3x3vP1.cpp
-
-    vlasovData/VlasovMax1x1vP2.cpp
-    vlasovData/VlasovMax1x2vP2.cpp
-    vlasovData/VlasovMax1x3vP2.cpp
-    vlasovData/VlasovMax2x2vP2.cpp
-    vlasovData/VlasovMax2x3vP2.cpp
-
-    vlasovData/VlasovMax1x1vP3.cpp
-    vlasovData/VlasovMax1x2vP3.cpp
-    vlasovData/VlasovMax1x3vP3.cpp
-    vlasovData/VlasovMax2x2vP3.cpp
-
     vlasovData/VlasovSer1x1vP1.cpp
     vlasovData/VlasovSer1x2vP1.cpp
     vlasovData/VlasovSer1x3vP1.cpp
@@ -801,24 +637,6 @@ def build(bld):
 
     vlasovData/VlasovTensor1x1vP3.cpp
     vlasovData/VlasovTensor1x2vP3.cpp
-
-    vlasovData/VlasovSurfElcMagMax1x1vP1.cpp
-    vlasovData/VlasovSurfElcMagMax1x2vP1.cpp
-    vlasovData/VlasovSurfElcMagMax1x3vP1.cpp
-    vlasovData/VlasovSurfElcMagMax2x2vP1.cpp
-    vlasovData/VlasovSurfElcMagMax2x3vP1.cpp
-    vlasovData/VlasovSurfElcMagMax3x3vP1.cpp
-
-    vlasovData/VlasovSurfElcMagMax1x1vP2.cpp
-    vlasovData/VlasovSurfElcMagMax1x2vP2.cpp
-    vlasovData/VlasovSurfElcMagMax1x3vP2.cpp
-    vlasovData/VlasovSurfElcMagMax2x2vP2.cpp
-    vlasovData/VlasovSurfElcMagMax2x3vP2.cpp
-
-    vlasovData/VlasovSurfElcMagMax1x1vP3.cpp
-    vlasovData/VlasovSurfElcMagMax1x2vP3.cpp
-    vlasovData/VlasovSurfElcMagMax1x3vP3.cpp
-    vlasovData/VlasovSurfElcMagMax2x2vP3.cpp
 
     vlasovData/VlasovSurfElcMagSer1x1vP1.cpp
     vlasovData/VlasovSurfElcMagSer1x2vP1.cpp
@@ -882,35 +700,6 @@ def build(bld):
     maxwellData/MaxwellCentralSurfSer1xP3.cpp
     maxwellData/MaxwellCentralSurfSer2xP3.cpp
 
-    maxwellData/MaxwellVolMax1xP1.cpp
-    maxwellData/MaxwellVolMax2xP1.cpp
-    maxwellData/MaxwellVolMax3xP1.cpp
-
-    maxwellData/MaxwellVolMax1xP2.cpp
-    maxwellData/MaxwellVolMax2xP2.cpp
-
-    maxwellData/MaxwellVolMax1xP3.cpp
-    maxwellData/MaxwellVolMax2xP3.cpp
-
-    maxwellData/MaxwellSurfMax1xP1.cpp
-    maxwellData/MaxwellSurfMax2xP1.cpp
-    maxwellData/MaxwellSurfMax3xP1.cpp
-
-    maxwellData/MaxwellSurfMax1xP2.cpp
-    maxwellData/MaxwellSurfMax2xP2.cpp
-
-    maxwellData/MaxwellSurfMax1xP3.cpp
-    maxwellData/MaxwellSurfMax2xP3.cpp
-
-    maxwellData/MaxwellCentralSurfMax1xP1.cpp
-    maxwellData/MaxwellCentralSurfMax2xP1.cpp
-    maxwellData/MaxwellCentralSurfMax3xP1.cpp
-
-    maxwellData/MaxwellCentralSurfMax1xP2.cpp
-    maxwellData/MaxwellCentralSurfMax2xP2.cpp
-
-    maxwellData/MaxwellCentralSurfMax1xP3.cpp
-    maxwellData/MaxwellCentralSurfMax2xP3.cpp
 
     maxwellData/MaxwellVolTensor1xP2.cpp
     maxwellData/MaxwellVolTensor2xP2.cpp
