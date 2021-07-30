@@ -810,11 +810,6 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        self.vSigmaCX:write(string.format("%s_vSigmaCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        self.collisions[self.collNmCX].sourceCX:write(string.format("%s_sourceCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
     end
-
-    -- Vlasov positivity diagnostics
-    if self.nonconPositivity then
-       self.intPosM0:write( string.format("%s_intPosM0.bp", self.name), tm, self.diagIoFrame)
-    end
 end
 
 function KineticSpecies:isEvolving() return self.evolve end
@@ -877,6 +872,10 @@ function KineticSpecies:write(tm, force)
          if self.positivityDiffuse then
             self.posRescaler:write(tm, self.diagIoFrame, self.name)
          end
+
+	 if self.nonconPositivity then
+	    self.intPosM0:write( string.format("%s_intPosM0.bp", self.name), tm, self.diagIoFrame)
+	 end
 
          self.diagIoFrame = self.diagIoFrame+1
       end
