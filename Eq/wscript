@@ -120,10 +120,6 @@ def build(bld):
     lboData/VmLBOconstNuBoundarySurfSer1x2vP3.cpp
     lboData/VmLBOconstNuBoundarySurfSer1x3vP3.cpp
     lboData/VmLBOconstNuBoundarySurfSer2x2vP3.cpp
-    lboData/VmLBOconstNuSurfNonuniformSer1x1vP3.cpp
-    lboData/VmLBOconstNuSurfNonuniformSer1x2vP3.cpp
-    lboData/VmLBOconstNuSurfNonuniformSer1x3vP3.cpp
-    lboData/VmLBOconstNuSurfNonuniformSer2x2vP3.cpp
 
     lboData/VmLBOconstNuTensor1x1vP2.cpp
     lboData/VmLBOconstNuTensor1x2vP2.cpp
