@@ -207,8 +207,8 @@ local implementation = function()
    function _Temp:advance(tm, inFlds, outFlds)
       local specIn, diags = inFlds[1], inFlds[2]
       local M2flow, M0    = diags["M2flow"].field, diags["M0"].field
-      self.field:combineOffset( 2./3., self.owner:getNoJacMoments(), specIn:getMomOff(3),
-                               -specIn:getMass()/3., M2flow, 0)
+      self.field:combineOffset( 2./3., self.owner:getNoJacMoments(), specIn:getMomOff(3))
+      self.field:accumulate(-specIn:getMass()/3., M2flow)
       specIn.weakDivide:advance(tm, {M0,self.field}, {self.field})
    end
    

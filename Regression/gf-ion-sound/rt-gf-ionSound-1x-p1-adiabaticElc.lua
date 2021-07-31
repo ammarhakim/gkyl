@@ -1,13 +1,14 @@
 -- Gkyl -------------------------------------------------------------------
 --
--- Gyrofluid ion acoustic wave damping.
+-- Gyrofluid ion acoustic wave damping with adiabatic electrons.
 -- Time normalized to the ion gyrofrequency, omega_ci 
 -- Distances normalized to the ion sound gyroradius, rho_s=c_s/omega_ci.
 -- Temperatures normalized to the electron temperature, T_e.
 -- Velocities normalized to c_s=sqrt(T_e/m_i).
 --
 ---------------------------------------------------------------------------
-local Plasma = require ("App.PlasmaOnCartGrid").Gyrofluid()
+
+local Plasma = require("App.PlasmaOnCartGrid").Gyrofluid()
 
 tau     = 1.0            -- Ion temperature to electron temperature ratio.
 Te      = 1.0            -- Electron temperature.
@@ -27,8 +28,8 @@ Ti      = Te*tau     -- Ion temperature.
 nIon    = n0         -- Background ion density.
 nElc    = n0         -- Background electron density.
 
-vtIon   = math.sqrt(Ti)                -- Ion thermal speed.
-vtElc   = math.sqrt((mIon/mElc)*Te)    -- Electron thermal speed.
+vtIon   = math.sqrt(Ti)                -- Ion thermal speed. 
+vtElc   = math.sqrt((mIon/mElc)*Te)    -- Electron thermal speed. 
 
 -- Beer & Hammett 3+1 closure model parameters.
 beta_par = (32. - 9.*math.pi)/(3.*math.pi - 8.)
@@ -40,40 +41,42 @@ kappaPerpIon = nIon*(vtIon^2)/(math.sqrt(2)*D_perp*vtIon*kpar0+nuIon)
 kappaParElc  = nElc*(vtElc^2)*(3.+beta_par)/(math.sqrt(3)*D_par*vtElc*kpar0+nuElc)
 kappaPerpElc = nElc*(vtElc^2)/(math.sqrt(2)*D_perp*vtElc*kpar0+nuElc)
 
--- Geometry related parameters.
-R0 = 1.0
-r0 = 0.0
-
 plasmaApp = Plasma.App {
-   tEnd        = 5.0,                -- End time.
-   nFrame      = 1,                  -- Number of output frames.
-   lower       = {xLower},           -- Configuration space lower left.
-   upper       = {xUpper},           -- Configuration space upper right.
-   cells       = {16},               -- Configuration space cells.
-   basis       = "serendipity",      -- One of "serendipity" or "tensor".
-   polyOrder   = 1,                  -- Polynomial order.
-   timeStepper = "rk3",              -- One of "rk2" or "rk3".
+   tEnd        = 5.0,              -- End time.
+   nFrame      = 1,                -- Number of output frames.
+   lower       = {xLower},         -- Configuration space lower left.
+   upper       = {xUpper},         -- Configuration space upper right.
+   cells       = {16},             -- Configuration space cells.
+   basis       = "serendipity",    -- One of "serendipity" or "maximal-order".
+   polyOrder   = 1,                -- Polynomial order.
+   timeStepper = "rk3",            -- One of "rk2" or "rk3".
    cflFrac     = 0.90,
 
    -- Frequency with which to compute integrated diagnostics.
 --   calcIntQuantEvery = 1/600.,
 
    -- Decomposition for configuration space.
-   decompCuts = {1},   -- Cuts in each configuration direction.
+   decompCuts = {1},    -- Cuts in each configuration direction.
 
    -- Boundary conditions for configuration space.
    periodicDirs = {1},   -- Periodic directions.
 
-   -- Gyrofluid ions.
+   -- Gyrokinetic ions.
    ion = Plasma.Species {
       charge = 1.0,  mass = mIon,
       -- Initial conditions.
-      init = Plasma.GyrofluidProjection {
+      -- Specify background so that we can plot perturbed distribution and moments.
+      background = Plasma.GyrofluidProjection{
+         density = function (t, xn) return nIon end,
+         parallelTemperature = function (t, xn) return Ti end,
+         perpendicularTemperature = function (t, xn) return Ti end,
+      },
+      init = Plasma.GyrofluidProjection{
          density = function (t, xn)
             local x     = xn[1]
             local k     = kpar0
             local alpha = 0.01
-            return nIon*(1.+alpha*math.cos(k*x))
+            return nIon*(1.0+alpha*math.cos(k*x))
          end,
          parallelTemperature = function (t, xn) return Ti end,
          perpendicularTemperature = function (t, xn) return Ti end,
@@ -85,20 +88,12 @@ plasmaApp = Plasma.App {
       diagnostics = {"M0","intM0","intM1","intM2","Upar","Tpar","Tperp"},
    },
 
-   -- Gyrofluid electronss.
-   elc = Plasma.Species {
+   adiabaticElectron = Plasma.AdiabaticSpecies {
       charge = -1.0,  mass = mElc,
-      -- Initial conditions.
-      init = Plasma.GyrofluidProjection {
-         density = function (t, xn) return nElc end,
-         parallelTemperature = function (t, xn) return Te end,
-         perpendicularTemperature = function (t, xn) return Te end,
-      },
-      closure = Plasma.HeatFlux{
-         kappaPar = kappaParElc,  kappaPerp = kappaPerpElc,
-      },
-      evolve = true, -- Evolve species?
-      diagnostics = {"M0","intM0","intM1","intM2","Upar","Tpar","Tperp"},
+      temp   = Te,
+      -- Initial conditions.. use ion background so that background is exactly neutral.
+      init = function (t, xn) return nElc end,
+      evolve = false, -- Evolve species?
    },
 
    -- Field solver.
@@ -108,7 +103,7 @@ plasmaApp = Plasma.App {
    },
 
    -- Magnetic geometry.
-   externalField = Plasma.Geometry {
+   funcField = Plasma.Geometry {
       -- Background magnetic field.
       bmag = function (t, xn) return B0 end,
       -- Geometry is not time-dependent.

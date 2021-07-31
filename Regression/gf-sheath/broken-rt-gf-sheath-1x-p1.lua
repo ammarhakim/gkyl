@@ -11,9 +11,9 @@ polyOrder = 1
 
 -- Universal constant parameters.
 eps0, mu0 = Constants.EPSILON0, Constants.MU0
-eV = Constants.ELEMENTARY_CHARGE
-qe, qi = -eV, eV
-me, mp = 16*Constants.ELECTRON_MASS, Constants.PROTON_MASS
+eV        = Constants.ELEMENTARY_CHARGE
+qe, qi    = -eV, eV
+me, mp    = 16.*Constants.ELECTRON_MASS, Constants.PROTON_MASS
 
 -- Plasma parameters.
 mi        = 2.014*mp                         -- Deuterium ion mass.
@@ -141,32 +141,35 @@ local omega_H = kParMax*vte/kperpRhos
 print(string.format("  dzEff = %e m\n", dzEff))
 print(string.format("  kparMax = %e 1/m\n", kParMax))
 print(string.format("  omega_H = kpar*vte/(kperp*rhos) = %e rad/s\n", omega_H))
+print("")
+print(string.format("  kappaParElc = %e \n", kappaParElc))
+print(string.format("  omega_diff  = %e \n", (kappaParElc/(n0*1.e-8*B0))*((polyOrder+1)/(0.5*(zMax-zMin)/numCellZ))^2))
 
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd       = 6.0e-6,         -- End time.
-   nFrame     = 1,              -- Number of output frames.
+   tEnd       = 18.0e-7,         -- End time.
+   nFrame     = 180,              -- Number of output frames.
    lower      = {zMin},          -- Configuration space lower left.
    upper      = {zMax},          -- Configuration space upper right.
    cells      = {numCellZ},      -- Configuration space cells.
    basis      = "serendipity",   -- One of "serendipity" or "maximal-order".
    polyOrder  = polyOrder,       -- Polynomial order.
    decompCuts = {1},             -- MPI cuts in each.
-   mapc2p = function(xc)
-      -- Field-aligned coordinates (x,y).
-      local x, y = xc[1], xc[2]
-      -- Cylindrical coordinates (R,phi).
-      local phi = x/(R0+r0)
-      -- Cartesian coordinates (X,Y).
-      local X = R0*math.cos(phi)
-      local Y = R0*math.sin(phi)
-      return X, Y
-   end,
+--   mapc2p = function(xc)
+--      -- Field-aligned coordinates (x,y).
+--      local x, y = xc[1], xc[2]
+--      -- Cylindrical coordinates (R,phi).
+--      local phi = x/(R0+r0)
+--      -- Cartesian coordinates (X,Y).
+--      local X = R0*math.cos(phi)
+--      local Y = R0*math.sin(phi)
+--      return X, Y
+--   end,
    timeStepper = "rk3",              -- One of "rk2" or "rk3".
    cflFrac     = 0.50,
    restartFrameEvery = .05,
-   calcIntQuantEvery = 1./10.,  -- Aim at 10x more frequently than frames.
+   calcIntQuantEvery = 1./30.,  -- Aim at 10x more frequently than frames.
 --   writeGhost = true,
 
    -- Gyrofluid ions.
@@ -176,7 +179,7 @@ plasmaApp = Plasma.App {
       init = Plasma.GyrofluidProjection {
          density = function (t, xn)
             local z = xn[1]
-            return math.max(n0*1.e-8,(n0/math.sqrt(2.*math.pi*(sigSrcIon^2)))*math.exp(-((z-0.)^2)/(2.*(sigSrcIon^2))))
+            return math.max(n0*1.e-3,(n0/math.sqrt(2.*math.pi*(sigSrcIon^2)))*math.exp(-((z-0.)^2)/(2.*(sigSrcIon^2))))
          end,
          driftSpeed = function (t, xn)
             local z = xn[1]
@@ -188,10 +191,10 @@ plasmaApp = Plasma.App {
 --      closure = Plasma.HeatFlux{
 --         kappaPar = kappaParElc,  kappaPerp = kappaPerpElc,
 --      },
---      coll = Plasma.PASCollisions {
---         collideWith = {'elc'},
---         frequencies = {nuElc},
---      },
+      coll = Plasma.PASCollisions {
+         collideWith = {'elc'},
+         frequencies = {nuElc},
+      },
       source = Plasma.Source {
 --         fromFile    = "ion_fSourceIC.bp",
          density                  = srcDenElc,
@@ -200,18 +203,18 @@ plasmaApp = Plasma.App {
       },
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","Upar","Tpar","Tperp","Ppar","Pperp"},
-      bcx = {Plasma.SheathBC{}, Plasma.SheathBC{}},
---      bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}},
+--      bcx = {Plasma.SheathBC{}, Plasma.SheathBC{}},
+      bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}},
    },
 
-   -- Gyrofluid electronss.
+   -- Gyrofluid electrons.
    ion = Plasma.Species {
       charge = qi, mass = mi,
       -- Initial conditions.
       init = Plasma.GyrofluidProjection {
          density = function (t, xn)
             local z = xn[1]
-            return math.max(n0*1.e-8,(n0/math.sqrt(2.*math.pi*(sigSrcElc^2)))*math.exp(-((z-0.)^2)/(2.*(sigSrcElc^2))))
+            return math.max(n0*1.e-3,(n0/math.sqrt(2.*math.pi*(sigSrcElc^2)))*math.exp(-((z-0.)^2)/(2.*(sigSrcElc^2))))
          end,
          driftSpeed = function (t, xn)
             local z = xn[1]
@@ -229,14 +232,14 @@ plasmaApp = Plasma.App {
 --      closure = Plasma.HeatFlux{
 --         kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
 --      },
---      coll = Plasma.PASCollisions {
---         collideWith = {'ion'},
---         frequencies = {nuIon},
---      },
+      coll = Plasma.PASCollisions {
+         collideWith = {'ion'},
+         frequencies = {nuIon},
+      },
       evolve = true, -- Evolve species?
       diagnostics = {"intMom","intM0","intM1","intM2","M2flow","Upar","Tpar","Tperp","Ppar","Pperp"},
-      bcx = {Plasma.SheathBC{}, Plasma.SheathBC{}},
---      bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}},
+--      bcx = {Plasma.SheathBC{}, Plasma.SheathBC{}},
+      bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}},
    },
 
    -- Field solver.

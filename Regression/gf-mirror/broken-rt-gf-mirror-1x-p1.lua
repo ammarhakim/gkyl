@@ -446,7 +446,7 @@ plasmaApp = Plasma.App {
          density                  = srcDenElc,
          parallelTemperature      = srcTempElc,
          perpendicularTemperature = srcTempElc,
-         diagnostics              = {"intSrc"},
+--         diagnostics              = {"intSrc"},
       },
       coll = Plasma.PASCollisions {
          collideWith = {'elc'},
@@ -518,7 +518,7 @@ plasmaApp = Plasma.App {
          density                  = srcDenIon,
          parallelTemperature      = srcTempIon,
          perpendicularTemperature = srcTempIon,
-         diagnostics              = {"intSrc"},
+--         diagnostics              = {"intSrc"},
       },
       coll = Plasma.PASCollisions {
          collideWith = {'ion'},
