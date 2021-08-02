@@ -35,7 +35,7 @@ local gkIzDiagImpl = function()
    function _intSrcIz:fullInit(diagApp, mySpecies, fieldIn, owner)
       -- self.srcName  = string.gsub(srcIn.name, srcIn.speciesName.."_", "")
       self.field    = DataStruct.DynVector { numComponents = 1 }
-      self.fieldAux = mySpecies.allocMoment()
+      self.fieldAux = mySpecies:allocMoment()
       self.updaters = mySpecies.volIntegral.scalar
       self.updatersAux = mySpecies.numDensityCalc
       self.owner    = owner
