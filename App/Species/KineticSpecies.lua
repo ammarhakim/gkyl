@@ -916,16 +916,17 @@ function KineticSpecies:readRestart(field, externalField)
       diagIoFrame_new = diagIoFrame_new or dfr
       assert(diagIoFrame_new==dfr, "KineticSpecies:readRestart expected diagnostics from previous run to have the same last frame.") 
    end
-   self.diagIoFrame = diagIoFrame_new
+   -- The 'or self.distIoFrame' below is for sims without diagnostics, or when the first
+   -- run didn't request diagnostics, but the latter (when the restart requests diagnostics
+   -- while the first one didn't) requires commenting out the loop above (a hack, beware).
+   self.diagIoFrame = diagIoFrame_new or self.distIoFrame
    
    -- The following two should be moved elsehwere (MF).
    if self.calcReactRate then
-      self.intSrcIzM0:read(
-	 string.format("%s_intSrcIzM0_restart.bp", self.name))
+      self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
    end
    if self.calcIntSrcIz then
-      self.intSrcIzM0:read(
-	 string.format("%s_intSrcIzM0_restart.bp", self.name))
+      self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
    end
 
    -- Iterate triggers.

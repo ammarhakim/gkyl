@@ -50,18 +50,14 @@ function GfHeatFlux:createSolver(mySpecies, externalField)
       kappaPar = self.kappaPar,  mass      = self.mass,      
    }
    self.collisionSlvr = Updater.HyperDisCont {
-      onGrid = grid,
-      basis  = basis,
-      cfl    = self.cfl,
-      equation           = self.equation,
-      updateDirections   = hfDirs,
-      globalUpwind       = false,
+      onGrid = grid,      equation         = self.equation,
+      basis  = basis,     updateDirections = hfDirs,
+      cfl    = self.cfl,  globalUpwind     = false,
 --      zeroFluxDirections = hfDirs,
    }
 
    -- Intemediate storage for output of this app.
    self.momDotOut = mySpecies:allocVectorMoment(mySpecies.nMoments)
-
 end
 
 function GfHeatFlux:advance(tCurr, momIn, species, emIn, momRhsOut)

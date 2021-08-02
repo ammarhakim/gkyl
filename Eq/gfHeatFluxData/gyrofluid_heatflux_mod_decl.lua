@@ -15,7 +15,7 @@ local _M = {}
 
 -- Select function to compute volume terms.
 function _M.selectVol(basisNm, dim, polyOrder)
-   local funcSign = "(const double q_, const double m_, const double kappaPar, const double kappaPerp, const double kperpSq, const double *w, const double *dx, const double *jac, const double *jacDbmag, const double *sMom, const double *phi, double *primMom, double *out)"
+   local funcSign = "(const double q_, const double m_, const double kappaPar, const double kappaPerp, const double kperpSq, const double *w, const double *dx, const double *jac, const double *rBmag, const double *rBmagSq, const double *sMom, const double *phi, double *primMom, double *out)"
 
    local funcType = "double"
    local funcNm = string.format("gyrofluid_heatflux_vol_%dx_p%d_%s", dim, polyOrder, basisNmMap[basisNm])
@@ -25,8 +25,8 @@ function _M.selectVol(basisNm, dim, polyOrder)
 end
 
 function _M.selectSurf(basisNm, dim, polyOrder)
-   local funcType  = "double"
-   local funcSign = "(const double q_, const double m_, const double kappaPar, const double kappaPerp, const double kperpSq, const double *wL1, const double *dxL1, const double *wR1, const double *dxR1, const double *jacL, const double *jacDbmagL, const double *sMomL1, const double *sMomR1, const double *phiL1, const double *phiR1, double *primMomL1, const double *primMomR1, double *outL, double *outR)"
+   local funcType  = "void"
+   local funcSign = "(const double q_, const double m_, const double kappaPar, const double kappaPerp, const double kperpSq, const double *wL1, const double *dxL1, const double *wR1, const double *dxR1, const double *rBmagL1, const double *rBmagR1, const double *rBmagSqL1, const double *rBmagSqR1, const double *sMomL1, const double *sMomR1, const double *phiL1, const double *phiR1, double *primMomL1, const double *primMomR1, double *outL, double *outR)"
 
    local funcNm = {}
    if dim == 1 then

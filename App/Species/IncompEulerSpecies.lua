@@ -98,13 +98,8 @@ function IncompEulerSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local fIn     = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
-   if self.evolveCollisionless then
-      self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      local em = emIn[1]:rkStepperFields()[inIdx]
-      self.advSolver(tCurr, fIn, em, fRhsOut)
-   else
-      fRhsOut:clear(0.0) -- No RHS.
-   end
+   -- Clear RHS, because HyperDisCont set up with clearOut = false.
+   fRhsOut:clear(0.0)
 
    -- Perform the collision (diffusion) update.
    for _, c in pairs(self.collisions) do
@@ -112,12 +107,19 @@ function IncompEulerSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       c:advance(tCurr, fIn, species, fRhsOut)
    end
 
+   -- Complete the field solve.
+   emIn[1]:phiSolve(tCurr, species, inIdx, outIdx)
+
+   if self.evolveCollisionless then
+      self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      local em = emIn[1]:rkStepperFields()[inIdx]
+      self.advSolver(tCurr, fIn, em, fRhsOut)
+   end
+
    for _, src in pairs(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end
 end
 
-function IncompEulerSpecies:fluidMoments()
-   return { self.couplingMoments }
-end
+function IncompEulerSpecies:fluidMoments() return { self.couplingMoments } end
 
 -- For interfacing with GkField.
 function IncompEulerSpecies:getNumDensity(rkIdx)
