@@ -12,6 +12,7 @@
 local CollisionsBase = require "App.Collisions.CollisionsBase"
 local Constants      = require "Lib.Constants"
 local DataStruct     = require "DataStruct"
+local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
@@ -23,6 +24,34 @@ local xsys           = require "xsys"
 --
 -- Voronov ionization operator.
 ---------------------------------------------------------------------------
+
+-- ............... IMPLEMENTATION OF DIAGNOSTICS ................. --
+-- Diagnostics could be placed in a separate file if they balloon in
+-- number. But if we only have one or two we can just place it here.
+
+-- ~~~~ Source integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~
+local gkIzDiagImpl = function()
+   local _intSrcIz = Proto(DiagsImplBase)
+   function _intSrcIz:fullInit(diagApp, mySpecies, fieldIn, owner)
+      -- self.srcName  = string.gsub(srcIn.name, srcIn.speciesName.."_", "")
+      self.field    = DataStruct.DynVector { numComponents = 1 }
+      self.fieldAux = mySpecies.allocMoment()
+      self.updaters = mySpecies.volIntegral.scalar
+      self.updatersAux = mySpecies.numDensityCalc
+      self.owner    = owner
+      self.done     = false
+   end
+   function _intSrcIz:getType() return "integrated" end
+   function _intSrcIz:advance(tm, inFlds, outFlds)
+      --local specIn = inFlds[1]
+      self.updatersAux:advance(tm, {self.owner.ionizSrc}, {self.fieldAux})
+      self.updaters:advance(tm, {self.fieldAux}, {self.field})
+   end
+
+   return {intSrcIz = _intSrcIz}
+end
+
+-- .................... END OF DIAGNOSTICS ...................... --
 
 local GkIonization = Proto(CollisionsBase)
 
@@ -77,9 +106,20 @@ function GkIonization:fullInit(speciesTbl)
    self.timers = {nonSlvr = 0.}
 end
 
-function GkIonization:setName(nm)
-   self.name = nm
+function GkIonization:createDiagnostics(mySpecies, field)
+   -- Create source diagnostics.
+   self.diagnostics = nil
+   if self.tbl.diagnostics then
+      self.diagnostics = DiagsApp{implementation = gkIzDiagImpl()}
+      self.diagnostics:fullInit(mySpecies, field, self)
+   end
+   return self.diagnostics
 end
+
+function GkIonization:setName(nm)
+   self.name = self.speciesName.."_"..nm
+end
+
 function GkIonization:setSpeciesName(nm)
    self.speciesName = nm
 end

@@ -211,11 +211,12 @@ function KineticSpecies:fullInit(appTbl)
    for nm, val in pairs(tbl) do
       if Collisions.CollisionsBase.is(val) then
 	 self.collisions[nm] = val
-	 self.collisions[nm]:setName(nm)
 	 val:setSpeciesName(self.name)
+         val:setName(nm)   -- Do :setName after :setSpeciesName for collisions.
 	 val:fullInit(tbl) -- Initialize collisions
       end
    end
+   lume.setOrder(self.collisions)
 
    self.positivity        = xsys.pickBool(tbl.applyPositivity, false)
    self.positivityDiffuse = xsys.pickBool(tbl.positivityDiffuse, self.positivity)
@@ -789,20 +790,18 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        self.vtSqIz:write(string.format("%s_vtSqIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        self.voronovReactRate:write(string.format("%s_coefIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       -- include dynvector for zeroth vector of ionization source
-       tmStart = Time.clock()
-       self.intSrcIzM0:write(
-          string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
-       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart       
+       -- self.intSrcIzM0:write(
+       --    string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
     end
 
     if self.calcIntSrcIz then
        tmStart = Time.clock()
        local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
        sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       self.intSrcIzM0:write(
-          string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
-       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart    
+       -- self.intSrcIzM0:write(
+       --    string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
+       -- self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart 
+       
     end
        
     -- Write CX diagnostics
@@ -919,14 +918,14 @@ function KineticSpecies:writeRestart(tm)
    end
 
    -- The following two should be moved elsehwere (MF).
-   if self.calcReactRate then
-      self.intSrcIzM0:write(
-	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
-   end
-   if self.calcIntSrcIz then
-      self.intSrcIzM0:write(
-	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
-   end
+   -- if self.calcReactRate then
+   --    self.intSrcIzM0:write(
+   -- 	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
+   -- end
+   -- if self.calcIntSrcIz then
+   --    self.intSrcIzM0:write(
+   -- 	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
+   -- end
 
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
