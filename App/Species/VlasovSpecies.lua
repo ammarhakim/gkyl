@@ -723,7 +723,6 @@ function VlasovSpecies:calcDiagnosticIntegratedMoments(tm)
 
    if self.calcIntSrcIz then -- intSrcIzM0 for neutrals (when plasma is GK)
       local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
-      sourceIz:scale(-1.0)
       self.numDensityCalc:advance(tm, {sourceIz}, {self.srcIzM0})
       self.intCalcIz:advance( tm, {self.srcIzM0}, {self.intSrcIzM0} )
    elseif self.calcReactRate then -- intSrcIzM0 for elc
