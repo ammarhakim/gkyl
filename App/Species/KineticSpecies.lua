@@ -944,6 +944,7 @@ function KineticSpecies:readRestart(field, externalField)
    local diagIoFrame_new
    for _, dOb in lume.orderedIter(self.diagnostics) do   -- Read grid and integrated diagnostics.
       local _, dfr = dOb:readRestart()
+      print(nm, diagIoFrame_new, dfr)
       diagIoFrame_new = diagIoFrame_new or dfr
       assert(diagIoFrame_new==dfr, "KineticSpecies:readRestart expected diagnostics from previous run to have the same last frame.") 
    end
@@ -953,12 +954,12 @@ function KineticSpecies:readRestart(field, externalField)
    self.diagIoFrame = diagIoFrame_new or self.distIoFrame
    
    -- The following two should be moved elsehwere (MF).
-   if self.calcReactRate then
-      self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
-   end
-   if self.calcIntSrcIz then
-      self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
-   end
+   -- if self.calcReactRate then
+   --    self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
+   -- end
+   -- if self.calcIntSrcIz then
+   --    self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
+   -- end
 
    -- Iterate triggers.
    self.distIoTrigger(tm)

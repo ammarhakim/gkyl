@@ -32,8 +32,20 @@ local xsys           = require "xsys"
 
 -- ~~~~ Source integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~
 local gkIzDiagImpl = function()
-   local _intSrcIzM0 = Proto(DiagsImplBase)
-   function _intSrcIzM0:fullInit(diagApp, mySpecies, fieldIn, owner)
+   local _M0 = Proto(DiagsImplBase)
+   function _M0:fullInit(diagApp, mySpecies, fieldIn, owner)
+      self.field    = mySpecies:allocMoment()
+      self.updater  = mySpecies.numDensityCalc
+      self.owner    = owner
+      self.done     = false
+   end
+   function _M0:getType() return "grid" end
+   function _M0:advance(tm, inFlds, outFlds)
+      self.updater:advance(tm, {self.owner.ionizSrc}, {self.field})
+   end
+   
+   local _intM0 = Proto(DiagsImplBase)
+   function _intM0:fullInit(diagApp, mySpecies, fieldIn, owner)
       self.fieldAux = mySpecies:allocMoment()
       self.updatersAux = mySpecies.numDensityCalc
       self.field    = DataStruct.DynVector { numComponents = 1 }
@@ -41,13 +53,16 @@ local gkIzDiagImpl = function()
       self.owner    = owner
       self.done     = false
    end
-   function _intSrcIzM0:getType() return "integrated" end
-   function _intSrcIzM0:advance(tm, inFlds, outFlds)
+   function _intM0:getType() return "integrated" end
+   function _intM0:advance(tm, inFlds, outFlds)
       self.updatersAux:advance(tm, {self.owner.ionizSrc}, {self.fieldAux})
       self.updater:advance(tm, {self.fieldAux}, {self.field})
    end
 
-   return {intSrcIzM0 = _intSrcIzM0}
+   return {
+      M0    = _M0,
+      intM0 = _intM0
+   }
 end
 
 -- .................... END OF DIAGNOSTICS ...................... --
