@@ -211,8 +211,9 @@ function KineticSpecies:fullInit(appTbl)
    for nm, val in pairs(tbl) do
       if Collisions.CollisionsBase.is(val) then
 	 self.collisions[nm] = val
-	 self.collisions[nm]:setName(nm)
 	 val:setSpeciesName(self.name)
+	 val:setName(nm)
+	 val:setCollName(nm)
 	 val:fullInit(tbl) -- Initialize collisions
       end
    end
@@ -783,13 +784,8 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
     -- IMPORTANT: do not use this method anymore. It should disappear. The stuff below will be moved elsewhere (MF).
 
     -- Write ionization diagnostics
-    if self.calcReactRate then
-       local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
-       self.fMaxwellIz:write(string.format("%s_fMaxwell_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       self.vtSqIz:write(string.format("%s_vtSqIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       self.voronovReactRate:write(string.format("%s_coefIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       -- include dynvector for zeroth vector of ionization source
+   if self.calcReactRate then
+       -- include dynvector for zeroth moment of ionization source
        tmStart = Time.clock()
        self.intSrcIzM0:write(
           string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
@@ -798,8 +794,6 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
 
     if self.calcIntSrcIz then
        tmStart = Time.clock()
-       local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
-       sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
        self.intSrcIzM0:write(
           string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
        self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart    
