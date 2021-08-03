@@ -31,14 +31,6 @@ def build(bld):
     sqrtOnBasisData/sqrt_on_basis_5x_p1_ser.cpp
     sqrtOnBasisData/sqrt_on_basis_5x_p2_ser.cpp
     sqrtOnBasisData/sqrt_on_basis_6x_p1_ser.cpp
-    sqrtOnBasisData/sqrt_on_basis_1x_p1_max.cpp
-    sqrtOnBasisData/sqrt_on_basis_1x_p2_max.cpp
-    sqrtOnBasisData/sqrt_on_basis_2x_p1_max.cpp
-    sqrtOnBasisData/sqrt_on_basis_2x_p2_max.cpp
-    sqrtOnBasisData/sqrt_on_basis_3x_p1_max.cpp
-    sqrtOnBasisData/sqrt_on_basis_3x_p2_max.cpp
-    sqrtOnBasisData/sqrt_on_basis_4x_p1_max.cpp
-    sqrtOnBasisData/sqrt_on_basis_4x_p2_max.cpp
     sqrtOnBasisData/sqrt_on_basis_1x_p1_tensor.cpp
     sqrtOnBasisData/sqrt_on_basis_1x_p2_tensor.cpp
     sqrtOnBasisData/sqrt_on_basis_2x_p1_tensor.cpp
@@ -74,9 +66,6 @@ def build(bld):
     spitzerNuCalcData/SpitzerNuSer1x.cpp
     spitzerNuCalcData/SpitzerNuSer2x.cpp
     spitzerNuCalcData/SpitzerNuSer3x.cpp
-    spitzerNuCalcData/SpitzerNuMax1x.cpp
-    spitzerNuCalcData/SpitzerNuMax2x.cpp
-    spitzerNuCalcData/SpitzerNuMax3x.cpp
 
     momentCalcData/DistFuncMomentLBOCalcSer1x1v.cpp
     momentCalcData/DistFuncMomentLBOCalcSer1x2v.cpp
@@ -103,22 +92,14 @@ def build(bld):
     primMomentsCalcData/VmSelfPrimMomentsSer2x2vP1.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer2x3vP1.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer3x3vP1.cpp
-    primMomentsCalcData/VmSelfPrimMomentsMax1x1vP1.cpp
-    primMomentsCalcData/VmSelfPrimMomentsMax1x2vP1.cpp
-    primMomentsCalcData/VmSelfPrimMomentsMax1x3vP1.cpp
-    primMomentsCalcData/VmSelfPrimMomentsMax2x2vP1.cpp
-    primMomentsCalcData/VmSelfPrimMomentsMax2x3vP1.cpp
-    primMomentsCalcData/VmSelfPrimMomentsMax3x3vP1.cpp
     primMomentsCalcData/VmSelfPrimMomentsTensor1x1vP1.cpp
     primMomentsCalcData/VmSelfPrimMomentsTensor1x2vP1.cpp
+    primMomentsCalcData/VmSelfPrimMomentsTensor1x3vP1.cpp
+    primMomentsCalcData/VmSelfPrimMomentsTensor2x2vP1.cpp
     primMomentsCalcData/GkSelfPrimMomentsSer1x1vP1.cpp
     primMomentsCalcData/GkSelfPrimMomentsSer1x2vP1.cpp
     primMomentsCalcData/GkSelfPrimMomentsSer2x2vP1.cpp
     primMomentsCalcData/GkSelfPrimMomentsSer3x2vP1.cpp
-    primMomentsCalcData/GkSelfPrimMomentsMax1x1vP1.cpp
-    primMomentsCalcData/GkSelfPrimMomentsMax1x2vP1.cpp
-    primMomentsCalcData/GkSelfPrimMomentsMax2x2vP1.cpp
-    primMomentsCalcData/GkSelfPrimMomentsMax3x2vP1.cpp
     primMomentsCalcData/GkSelfPrimMomentsTensor1x1vP1.cpp
     primMomentsCalcData/GkSelfPrimMomentsTensor1x2vP1.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer1x1vP2.cpp
@@ -127,37 +108,23 @@ def build(bld):
     primMomentsCalcData/VmSelfPrimMomentsSer2x2vP2.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer2x3vP2.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer3x3vP2.cpp
-    primMomentsCalcData/VmSelfPrimMomentsMax1x1vP2.cpp
-    primMomentsCalcData/VmSelfPrimMomentsMax1x2vP2.cpp
-    primMomentsCalcData/VmSelfPrimMomentsMax1x3vP2.cpp
-    primMomentsCalcData/VmSelfPrimMomentsMax2x2vP2.cpp
-    primMomentsCalcData/VmSelfPrimMomentsMax2x3vP2.cpp
     primMomentsCalcData/VmSelfPrimMomentsTensor1x1vP2.cpp
     primMomentsCalcData/VmSelfPrimMomentsTensor1x2vP2.cpp
+    primMomentsCalcData/VmSelfPrimMomentsTensor1x3vP2.cpp
+    primMomentsCalcData/VmSelfPrimMomentsTensor2x2vP2.cpp
     primMomentsCalcData/GkSelfPrimMomentsSer1x1vP2.cpp
     primMomentsCalcData/GkSelfPrimMomentsSer1x2vP2.cpp
     primMomentsCalcData/GkSelfPrimMomentsSer2x2vP2.cpp
     primMomentsCalcData/GkSelfPrimMomentsSer3x2vP2.cpp
-    primMomentsCalcData/GkSelfPrimMomentsMax1x1vP2.cpp
-    primMomentsCalcData/GkSelfPrimMomentsMax1x2vP2.cpp
-    primMomentsCalcData/GkSelfPrimMomentsMax2x2vP2.cpp
-    primMomentsCalcData/GkSelfPrimMomentsMax3x2vP2.cpp
     primMomentsCalcData/GkSelfPrimMomentsTensor1x1vP2.cpp
     primMomentsCalcData/GkSelfPrimMomentsTensor1x2vP2.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer1x1vP3.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer1x2vP3.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer1x3vP3.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer2x2vP3.cpp
-    primMomentsCalcData/VmSelfPrimMomentsMax1x1vP3.cpp
-    primMomentsCalcData/VmSelfPrimMomentsMax1x2vP3.cpp
-    primMomentsCalcData/VmSelfPrimMomentsMax1x3vP3.cpp
-    primMomentsCalcData/VmSelfPrimMomentsMax2x2vP3.cpp
     primMomentsCalcData/GkSelfPrimMomentsSer1x1vP3.cpp
     primMomentsCalcData/GkSelfPrimMomentsSer1x2vP3.cpp
     primMomentsCalcData/GkSelfPrimMomentsSer2x2vP3.cpp
-    primMomentsCalcData/GkSelfPrimMomentsMax1x1vP3.cpp
-    primMomentsCalcData/GkSelfPrimMomentsMax1x2vP3.cpp
-    primMomentsCalcData/GkSelfPrimMomentsMax2x2vP3.cpp
 
     primMomentsCalcData/VmLBOCrossPrimMomentsSer1x1vP1.cpp
     primMomentsCalcData/VmLBOCrossPrimMomentsSer1x2vP1.cpp
@@ -165,104 +132,60 @@ def build(bld):
     primMomentsCalcData/VmLBOCrossPrimMomentsSer2x2vP1.cpp
     primMomentsCalcData/VmLBOCrossPrimMomentsSer2x3vP1.cpp
     primMomentsCalcData/VmLBOCrossPrimMomentsSer3x3vP1.cpp
-    primMomentsCalcData/VmLBOCrossPrimMomentsMax1x1vP1.cpp
-    primMomentsCalcData/VmLBOCrossPrimMomentsMax1x2vP1.cpp
-    primMomentsCalcData/VmLBOCrossPrimMomentsMax1x3vP1.cpp
-    primMomentsCalcData/VmLBOCrossPrimMomentsMax2x2vP1.cpp
-    primMomentsCalcData/VmLBOCrossPrimMomentsMax2x3vP1.cpp
-    primMomentsCalcData/VmLBOCrossPrimMomentsMax3x3vP1.cpp
+    primMomentsCalcData/VmLBOCrossPrimMomentsTensor1x1vP1.cpp
+    primMomentsCalcData/VmLBOCrossPrimMomentsTensor1x2vP1.cpp
+    primMomentsCalcData/VmLBOCrossPrimMomentsTensor1x3vP1.cpp
+    primMomentsCalcData/VmLBOCrossPrimMomentsTensor2x2vP1.cpp
     primMomentsCalcData/GkLBOCrossPrimMomentsSer1x1vP1.cpp
     primMomentsCalcData/GkLBOCrossPrimMomentsSer1x2vP1.cpp
     primMomentsCalcData/GkLBOCrossPrimMomentsSer2x2vP1.cpp
     primMomentsCalcData/GkLBOCrossPrimMomentsSer3x2vP1.cpp
-    primMomentsCalcData/GkLBOCrossPrimMomentsMax1x1vP1.cpp
-    primMomentsCalcData/GkLBOCrossPrimMomentsMax1x2vP1.cpp
-    primMomentsCalcData/GkLBOCrossPrimMomentsMax2x2vP1.cpp
-    primMomentsCalcData/GkLBOCrossPrimMomentsMax3x2vP1.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsSer1x1vP1.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsSer1x2vP1.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsSer1x3vP1.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsSer2x2vP1.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsSer2x3vP1.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsSer3x3vP1.cpp
-    primMomentsCalcData/VmBGKCrossPrimMomentsMax1x1vP1.cpp
-    primMomentsCalcData/VmBGKCrossPrimMomentsMax1x2vP1.cpp
-    primMomentsCalcData/VmBGKCrossPrimMomentsMax1x3vP1.cpp
-    primMomentsCalcData/VmBGKCrossPrimMomentsMax2x2vP1.cpp
-    primMomentsCalcData/VmBGKCrossPrimMomentsMax2x3vP1.cpp
-    primMomentsCalcData/VmBGKCrossPrimMomentsMax3x3vP1.cpp
     primMomentsCalcData/GkBGKCrossPrimMomentsSer1x1vP1.cpp
     primMomentsCalcData/GkBGKCrossPrimMomentsSer1x2vP1.cpp
     primMomentsCalcData/GkBGKCrossPrimMomentsSer2x2vP1.cpp
     primMomentsCalcData/GkBGKCrossPrimMomentsSer3x2vP1.cpp
-    primMomentsCalcData/GkBGKCrossPrimMomentsMax1x1vP1.cpp
-    primMomentsCalcData/GkBGKCrossPrimMomentsMax1x2vP1.cpp
-    primMomentsCalcData/GkBGKCrossPrimMomentsMax2x2vP1.cpp
-    primMomentsCalcData/GkBGKCrossPrimMomentsMax3x2vP1.cpp
     primMomentsCalcData/VmLBOCrossPrimMomentsSer1x1vP2.cpp
     primMomentsCalcData/VmLBOCrossPrimMomentsSer1x2vP2.cpp
     primMomentsCalcData/VmLBOCrossPrimMomentsSer1x3vP2.cpp
     primMomentsCalcData/VmLBOCrossPrimMomentsSer2x2vP2.cpp
     primMomentsCalcData/VmLBOCrossPrimMomentsSer2x3vP2.cpp
-    primMomentsCalcData/VmLBOCrossPrimMomentsMax1x1vP2.cpp
-    primMomentsCalcData/VmLBOCrossPrimMomentsMax1x2vP2.cpp
-    primMomentsCalcData/VmLBOCrossPrimMomentsMax1x3vP2.cpp
-    primMomentsCalcData/VmLBOCrossPrimMomentsMax2x2vP2.cpp
-    primMomentsCalcData/VmLBOCrossPrimMomentsMax2x3vP2.cpp
+    primMomentsCalcData/VmLBOCrossPrimMomentsTensor1x1vP2.cpp
+    primMomentsCalcData/VmLBOCrossPrimMomentsTensor1x2vP2.cpp
+    primMomentsCalcData/VmLBOCrossPrimMomentsTensor1x3vP2.cpp
+    primMomentsCalcData/VmLBOCrossPrimMomentsTensor2x2vP2.cpp
     primMomentsCalcData/GkLBOCrossPrimMomentsSer1x1vP2.cpp
     primMomentsCalcData/GkLBOCrossPrimMomentsSer1x2vP2.cpp
     primMomentsCalcData/GkLBOCrossPrimMomentsSer2x2vP2.cpp
     primMomentsCalcData/GkLBOCrossPrimMomentsSer3x2vP2.cpp
-    primMomentsCalcData/GkLBOCrossPrimMomentsMax1x1vP2.cpp
-    primMomentsCalcData/GkLBOCrossPrimMomentsMax1x2vP2.cpp
-    primMomentsCalcData/GkLBOCrossPrimMomentsMax2x2vP2.cpp
-    primMomentsCalcData/GkLBOCrossPrimMomentsMax3x2vP2.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsSer1x1vP2.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsSer1x2vP2.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsSer1x3vP2.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsSer2x2vP2.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsSer2x3vP2.cpp
-    primMomentsCalcData/VmBGKCrossPrimMomentsMax1x1vP2.cpp
-    primMomentsCalcData/VmBGKCrossPrimMomentsMax1x2vP2.cpp
-    primMomentsCalcData/VmBGKCrossPrimMomentsMax1x3vP2.cpp
-    primMomentsCalcData/VmBGKCrossPrimMomentsMax2x2vP2.cpp
-    primMomentsCalcData/VmBGKCrossPrimMomentsMax2x3vP2.cpp
     primMomentsCalcData/GkBGKCrossPrimMomentsSer1x1vP2.cpp
     primMomentsCalcData/GkBGKCrossPrimMomentsSer1x2vP2.cpp
     primMomentsCalcData/GkBGKCrossPrimMomentsSer2x2vP2.cpp
     primMomentsCalcData/GkBGKCrossPrimMomentsSer3x2vP2.cpp
-    primMomentsCalcData/GkBGKCrossPrimMomentsMax1x1vP2.cpp
-    primMomentsCalcData/GkBGKCrossPrimMomentsMax1x2vP2.cpp
-    primMomentsCalcData/GkBGKCrossPrimMomentsMax2x2vP2.cpp
-    primMomentsCalcData/GkBGKCrossPrimMomentsMax3x2vP2.cpp
     primMomentsCalcData/VmLBOCrossPrimMomentsSer1x1vP3.cpp
     primMomentsCalcData/VmLBOCrossPrimMomentsSer1x2vP3.cpp
     primMomentsCalcData/VmLBOCrossPrimMomentsSer1x3vP3.cpp
     primMomentsCalcData/VmLBOCrossPrimMomentsSer2x2vP3.cpp
-    primMomentsCalcData/VmLBOCrossPrimMomentsMax1x1vP3.cpp
-    primMomentsCalcData/VmLBOCrossPrimMomentsMax1x2vP3.cpp
-    primMomentsCalcData/VmLBOCrossPrimMomentsMax1x3vP3.cpp
-    primMomentsCalcData/VmLBOCrossPrimMomentsMax2x2vP3.cpp
     primMomentsCalcData/GkLBOCrossPrimMomentsSer1x1vP3.cpp
     primMomentsCalcData/GkLBOCrossPrimMomentsSer1x2vP3.cpp
     primMomentsCalcData/GkLBOCrossPrimMomentsSer2x2vP3.cpp
-    primMomentsCalcData/GkLBOCrossPrimMomentsMax1x1vP3.cpp
-    primMomentsCalcData/GkLBOCrossPrimMomentsMax1x2vP3.cpp
-    primMomentsCalcData/GkLBOCrossPrimMomentsMax2x2vP3.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsSer1x1vP3.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsSer1x2vP3.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsSer1x3vP3.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsSer2x2vP3.cpp
-    primMomentsCalcData/VmBGKCrossPrimMomentsMax1x1vP3.cpp
-    primMomentsCalcData/VmBGKCrossPrimMomentsMax1x2vP3.cpp
-    primMomentsCalcData/VmBGKCrossPrimMomentsMax1x3vP3.cpp
-    primMomentsCalcData/VmBGKCrossPrimMomentsMax2x2vP3.cpp
     primMomentsCalcData/GkBGKCrossPrimMomentsSer1x1vP3.cpp
     primMomentsCalcData/GkBGKCrossPrimMomentsSer1x2vP3.cpp
     primMomentsCalcData/GkBGKCrossPrimMomentsSer2x2vP3.cpp
-    primMomentsCalcData/GkBGKCrossPrimMomentsMax1x1vP3.cpp
-    primMomentsCalcData/GkBGKCrossPrimMomentsMax1x2vP3.cpp
-    primMomentsCalcData/GkBGKCrossPrimMomentsMax2x2vP3.cpp
 
     binOpCalcData/CartFieldBinOpImpl.cpp
     binOpCalcData/CartFieldBinOpSer1xP1.cpp
@@ -275,17 +198,6 @@ def build(bld):
     binOpCalcData/CartFieldBinOpSer2x3vP1.cpp
     binOpCalcData/CartFieldBinOpSer3x2vP1.cpp
     binOpCalcData/CartFieldBinOpSer3x3vP1.cpp
-
-    binOpCalcData/CartFieldBinOpMax1xP1.cpp
-    binOpCalcData/CartFieldBinOpMax2xP1.cpp
-    binOpCalcData/CartFieldBinOpMax3xP1.cpp
-    binOpCalcData/CartFieldBinOpMax1x1vP1.cpp
-    binOpCalcData/CartFieldBinOpMax1x2vP1.cpp
-    binOpCalcData/CartFieldBinOpMax1x3vP1.cpp
-    binOpCalcData/CartFieldBinOpMax2x2vP1.cpp
-    binOpCalcData/CartFieldBinOpMax2x3vP1.cpp
-    binOpCalcData/CartFieldBinOpMax3x2vP1.cpp
-    binOpCalcData/CartFieldBinOpMax3x3vP1.cpp
 
     binOpCalcData/CartFieldBinOpTensor1xP1.cpp
     binOpCalcData/CartFieldBinOpTensor2xP1.cpp
@@ -306,17 +218,6 @@ def build(bld):
     binOpCalcData/CartFieldBinOpSer3x2vP2.cpp
     binOpCalcData/CartFieldBinOpSer3x3vP2.cpp
 
-    binOpCalcData/CartFieldBinOpMax1xP2.cpp
-    binOpCalcData/CartFieldBinOpMax2xP2.cpp
-    binOpCalcData/CartFieldBinOpMax3xP2.cpp
-    binOpCalcData/CartFieldBinOpMax1x1vP2.cpp
-    binOpCalcData/CartFieldBinOpMax1x2vP2.cpp
-    binOpCalcData/CartFieldBinOpMax1x3vP2.cpp
-    binOpCalcData/CartFieldBinOpMax2x2vP2.cpp
-    binOpCalcData/CartFieldBinOpMax2x3vP2.cpp
-    binOpCalcData/CartFieldBinOpMax3x2vP2.cpp
-
-
     binOpCalcData/CartFieldBinOpTensor1xP2.cpp
     binOpCalcData/CartFieldBinOpTensor2xP2.cpp
     binOpCalcData/CartFieldBinOpTensor3xP2.cpp
@@ -333,39 +234,24 @@ def build(bld):
     binOpCalcData/CartFieldBinOpSer1x3vP3.cpp
     binOpCalcData/CartFieldBinOpSer2x2vP3.cpp
 
-    binOpCalcData/CartFieldBinOpMax1xP3.cpp
-    binOpCalcData/CartFieldBinOpMax2xP3.cpp
-    binOpCalcData/CartFieldBinOpMax3xP3.cpp
-    binOpCalcData/CartFieldBinOpMax1x1vP3.cpp
-    binOpCalcData/CartFieldBinOpMax1x2vP3.cpp
-    binOpCalcData/CartFieldBinOpMax1x3vP3.cpp
-    binOpCalcData/CartFieldBinOpMax2x2vP3.cpp
-
     binOpCalcData/CartFieldBinOpTensor1xP3.cpp
     binOpCalcData/CartFieldBinOpTensor2xP3.cpp
     binOpCalcData/CartFieldBinOpTensor1x1vP3.cpp
     binOpCalcData/CartFieldBinOpTensor1x2vP3.cpp
 
-    lagrangeFixData/lagrangeFix_vlasov_1x1v_max_p1.cpp
-    lagrangeFixData/lagrangeFix_vlasov_1x1v_max_p2.cpp
     lagrangeFixData/lagrangeFix_vlasov_1x1v_ser_p1.cpp
     lagrangeFixData/lagrangeFix_vlasov_1x1v_ser_p2.cpp
     lagrangeFixData/lagrangeFix_vlasov_1x1v_ser_p3.cpp
     lagrangeFixData/lagrangeFix_vlasov_1x1v_tensor_p1.cpp
     lagrangeFixData/lagrangeFix_vlasov_1x1v_tensor_p2.cpp
-    lagrangeFixData/lagrangeFix_vlasov_1x2v_max_p1.cpp
-    lagrangeFixData/lagrangeFix_vlasov_1x2v_max_p2.cpp
     lagrangeFixData/lagrangeFix_vlasov_1x2v_ser_p1.cpp
     lagrangeFixData/lagrangeFix_vlasov_1x2v_ser_p2.cpp
     lagrangeFixData/lagrangeFix_vlasov_1x2v_ser_p3.cpp
     lagrangeFixData/lagrangeFix_vlasov_1x2v_tensor_p1.cpp
     lagrangeFixData/lagrangeFix_vlasov_1x2v_tensor_p2.cpp
-    lagrangeFixData/lagrangeFix_vlasov_1x3v_max_p1.cpp
     lagrangeFixData/lagrangeFix_vlasov_1x3v_ser_p1.cpp
     lagrangeFixData/lagrangeFix_vlasov_1x3v_ser_p2.cpp
     lagrangeFixData/lagrangeFix_vlasov_1x3v_ser_p3.cpp
-    lagrangeFixData/lagrangeFix_vlasov_2x2v_max_p1.cpp
-    lagrangeFixData/lagrangeFix_vlasov_2x2v_max_p2.cpp
     lagrangeFixData/lagrangeFix_vlasov_2x2v_ser_p1.cpp
     lagrangeFixData/lagrangeFix_vlasov_2x2v_ser_p2.cpp
     lagrangeFixData/lagrangeFix_vlasov_2x2v_ser_p3.cpp
@@ -375,22 +261,12 @@ def build(bld):
     lagrangeFixData/lagrangeFix_vlasov_2x3v_ser_p2.cpp
     lagrangeFixData/lagrangeFix_vlasov_3x3v_ser_p1.cpp
 
-    lagrangeFixData/lagrangeFix_gk_1x1v_max_p1.cpp
-    lagrangeFixData/lagrangeFix_gk_1x1v_max_p2.cpp
     lagrangeFixData/lagrangeFix_gk_1x1v_ser_p1.cpp
     lagrangeFixData/lagrangeFix_gk_1x1v_ser_p2.cpp
     lagrangeFixData/lagrangeFix_gk_1x1v_tensor_p1.cpp
     lagrangeFixData/lagrangeFix_gk_1x1v_tensor_p2.cpp
-    lagrangeFixData/lagrangeFix_gk_1x2v_max_p1.cpp
     lagrangeFixData/lagrangeFix_gk_1x2v_ser_p1.cpp
     lagrangeFixData/lagrangeFix_gk_1x2v_tensor_p1.cpp
-
-    momentCalcData/DistFuncMomentCalcMax1x1v.cpp
-    momentCalcData/DistFuncMomentCalcMax1x2v.cpp
-    momentCalcData/DistFuncMomentCalcMax1x3v.cpp
-    momentCalcData/DistFuncMomentCalcMax2x2v.cpp
-    momentCalcData/DistFuncMomentCalcMax2x3v.cpp
-    momentCalcData/DistFuncMomentCalcMax3x3v.cpp
 
     momentCalcData/DistFuncMomentCalcSer1x1v.cpp
     momentCalcData/DistFuncMomentCalcSer1x2v.cpp
@@ -409,11 +285,6 @@ def build(bld):
     momentCalcData/DistFuncGkMomentCalcSer2x2v.cpp
     momentCalcData/DistFuncGkMomentCalcSer3x2v.cpp
 
-    momentCalcData/DistFuncGkMomentCalcMax1x1v.cpp
-    momentCalcData/DistFuncGkMomentCalcMax1x2v.cpp
-    momentCalcData/DistFuncGkMomentCalcMax2x2v.cpp
-    momentCalcData/DistFuncGkMomentCalcMax3x2v.cpp
-
     momentCalcData/DistFuncGkMomentCalcTensor1x1v.cpp
     momentCalcData/DistFuncGkMomentCalcTensor1x2v.cpp
     momentCalcData/DistFuncGkMomentCalcTensor2x2v.cpp
@@ -425,13 +296,6 @@ def build(bld):
     momentCalcData/DistFuncIntegratedMomentCalcSer2x3v.cpp
     momentCalcData/DistFuncIntegratedMomentCalcSer3x3v.cpp
 
-    momentCalcData/DistFuncIntegratedMomentCalcMax1x1v.cpp
-    momentCalcData/DistFuncIntegratedMomentCalcMax1x2v.cpp
-    momentCalcData/DistFuncIntegratedMomentCalcMax1x3v.cpp
-    momentCalcData/DistFuncIntegratedMomentCalcMax2x2v.cpp
-    momentCalcData/DistFuncIntegratedMomentCalcMax2x3v.cpp
-    momentCalcData/DistFuncIntegratedMomentCalcMax3x3v.cpp
-
     CartFieldIntegratedQuantCalcImpl.cpp
 
     FemPerpPoissonImpl.cpp
@@ -441,13 +305,6 @@ def build(bld):
 
     DiscontPoissonImpl.cpp
   
-    confToPhaseData/ConfToPhaseMax1x1v.cpp
-    confToPhaseData/ConfToPhaseMax1x2v.cpp
-    confToPhaseData/ConfToPhaseMax1x3v.cpp
-    confToPhaseData/ConfToPhaseMax2x2v.cpp
-    confToPhaseData/ConfToPhaseMax2x3v.cpp
-    confToPhaseData/ConfToPhaseMax3x2v.cpp
-    confToPhaseData/ConfToPhaseMax3x3v.cpp
     confToPhaseData/ConfToPhaseSer1x1v.cpp
     confToPhaseData/ConfToPhaseSer1x2v.cpp
     confToPhaseData/ConfToPhaseSer1x3v.cpp
@@ -456,25 +313,13 @@ def build(bld):
     confToPhaseData/ConfToPhaseSer3x2v.cpp
     confToPhaseData/ConfToPhaseSer3x3v.cpp
 
-    ionizationCalcData/IonizationVtSqMax1x.cpp
-    ionizationCalcData/IonizationVtSqMax2x.cpp
-    ionizationCalcData/IonizationVtSqMax3x.cpp
     ionizationCalcData/IonizationVtSqSer1x.cpp
     ionizationCalcData/IonizationVtSqSer2x.cpp
     ionizationCalcData/IonizationVtSqSer3x.cpp
-    ionizationCalcData/VoronovMax1x.cpp
-    ionizationCalcData/VoronovMax2x.cpp
-    ionizationCalcData/VoronovMax3x.cpp
     ionizationCalcData/VoronovSer1x.cpp
     ionizationCalcData/VoronovSer2x.cpp
     ionizationCalcData/VoronovSer3x.cpp
 
-    chargeExchangeCalcData/SigmaCXcellAvMax1x1v.cpp
-    chargeExchangeCalcData/SigmaCXcellAvMax1x2v.cpp
-    chargeExchangeCalcData/SigmaCXcellAvMax1x3v.cpp
-    chargeExchangeCalcData/SigmaCXcellAvMax2x2v.cpp
-    chargeExchangeCalcData/SigmaCXcellAvMax2x3v.cpp
-    chargeExchangeCalcData/SigmaCXcellAvMax3x3v.cpp
     chargeExchangeCalcData/SigmaCXcellAvSer1x1v.cpp
     chargeExchangeCalcData/SigmaCXcellAvSer1x2v.cpp
     chargeExchangeCalcData/SigmaCXcellAvSer1x3v.cpp
@@ -503,14 +348,6 @@ def build(bld):
     maxwellianOnBasisData/MaxwellianOnBasisSer3x2vP2.cpp
     maxwellianOnBasisData/MaxwellianOnBasisSer3x3vP1.cpp
     maxwellianOnBasisData/MaxwellianOnBasisSer3x3vP2.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisMax1x1vP1.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisMax1x1vP2.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisMax1x1vP3.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisMax1x2vP1.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisMax1x2vP2.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisMax1x2vP3.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisMax2x2vP1.cpp
-    maxwellianOnBasisData/MaxwellianOnBasisMax2x2vP2.cpp
     maxwellianOnBasisData/MaxwellianOnBasisTensor1x1vP1.cpp
     maxwellianOnBasisData/MaxwellianOnBasisTensor1x1vP2.cpp
     maxwellianOnBasisData/MaxwellianOnBasisTensor1x1vP3.cpp
@@ -535,13 +372,6 @@ def build(bld):
         cusources = r"""
         HyperDisContDevice.cu
         
-        momentCalcData/DistFuncMomentCalcMax1x1v.cpp
-        momentCalcData/DistFuncMomentCalcMax1x2v.cpp
-        momentCalcData/DistFuncMomentCalcMax1x3v.cpp
-        momentCalcData/DistFuncMomentCalcMax2x2v.cpp
-        momentCalcData/DistFuncMomentCalcMax2x3v.cpp
-        momentCalcData/DistFuncMomentCalcMax3x3v.cpp
-
         momentCalcData/DistFuncMomentCalcSer1x1v.cpp
         momentCalcData/DistFuncMomentCalcSer1x2v.cpp
         momentCalcData/DistFuncMomentCalcSer1x3v.cpp

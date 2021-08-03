@@ -9,38 +9,15 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local SourceBase    = require "App.Sources.SourceBase"
-local DataStruct    = require "DataStruct"
-local Mpi           = require "Comm.Mpi"
-local Projection    = require "App.Projection.GyrofluidProjection"
-local DiagsApp      = require "App.Diagnostics.SpeciesDiagnostics"
-local DiagsImplBase = require "App.Diagnostics.DiagnosticsImplBase"
-local Updater       = require "Updater"
-local Proto         = require "Lib.Proto"
-local Time          = require "Lib.Time"
-
--- ............... IMPLEMENTATION OF DIAGNOSTICS ................. --
--- Diagnostics could be placed in a separate file if they balloon in
--- number. But if we only have one or two we can just place it here.
-
--- ~~~~ Source integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~
-local sourceDiagImpl = function()
-   local _intSrc = Proto(DiagsImplBase)
-   function _intSrc:fullInit(diagApp, mySpecies, fieldIn, srcIn)
-      self.srcName  = string.gsub(srcIn.name, srcIn.speciesName.."_", "")
-      self.field    = DataStruct.DynVector { numComponents = srcIn.nMoments }
-      self.updaters = mySpecies.volIntegral.vector
-      self.done     = false
-   end
-   function _intSrc:getType() return "integrated" end
-   function _intSrc:advance(tm, inFlds, outFlds)
-      local specIn = inFlds[1]
-      self.updaters:advance(tm, {specIn.sources[self.srcName]:getSource()}, {self.field})
-   end
-   return {intSrc = _intSrc}
-end
-
--- .................... END OF DIAGNOSTICS ...................... --
+local SourceBase     = require "App.Sources.SourceBase"
+local DataStruct     = require "DataStruct"
+local Mpi            = require "Comm.Mpi"
+local Projection     = require "App.Projection.GyrofluidProjection"
+local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
+local GyrofluidDiags = require "App.Diagnostics.GyrofluidDiagnostics"
+local Updater        = require "Updater"
+local Proto          = require "Lib.Proto"
+local Time           = require "Lib.Time"
 
 local GyrofluidSource = Proto(SourceBase)
 
@@ -59,6 +36,8 @@ function GyrofluidSource:fullInit(speciesTbl)
    self.TparFunc  = assert(tbl.parallelTemperature, "App.GyrofluidSource: must specify parallel temperature profile of source in 'parallelTemperature'.")
 
    self.timeDependence = tbl.timeDependence or function (t) return 1. end
+
+   self.power = tbl.power
 
    self.timers = {accumulateSrc = 0.0}
 end
@@ -89,14 +68,36 @@ function GyrofluidSource:createSolver(mySpecies, externalField)
    gfProj:advance(0., {externalField}, {self.momSource})
    Mpi.Barrier(self.grid:commSet().sharedComm)
 
+   if self.power then
+      local intKE = DataStruct.DynVector{numComponents = 1}
+      local ptclKE = mySpecies:allocMoment()
+      ptclKE:combineOffset(1., self.momSource, mySpecies:getMomOff(3))
+      mySpecies.volIntegral.scalar:advance(0., {ptclKE}, {intKE})
+      local _, intKE_data  = intKE:lastData()
+      self.powerScalingFac = self.power/intKE_data[1]
+      self.momSource:scale(self.powerScalingFac)
+   end
+
    self.momSource:write(string.format("%s_0.bp", self.name), 0.0, 0, self.writeGhost)
+
+   -- Need to define methods used by diagnostics.
+   self.allocMoment = function() return mySpecies:allocMoment() end
+   if externalField.geo.jacobGeoInv then
+      self.noJacSource = mySpecies:allocVectorMoment(self.nMoments) 
+      mySpecies.weakMultiply:advance(0., {self.momSource, externalField.geo.jacobGeoInv}, {self.noJacSource})
+      self.getNoJacMomentsFunc = function() return self.noJacSource end
+   else
+      self.getNoJacMomentsFunc = function() return self.momSource end
+   end
 end
+
+function GyrofluidSource:getNoJacMoments() return self.getNoJacMomentsFunc() end
 
 function GyrofluidSource:createDiagnostics(mySpecies, field)
    -- Create source diagnostics.
    self.diagnostics = nil
    if self.tbl.diagnostics then
-      self.diagnostics = DiagsApp{implementation = sourceDiagImpl()}
+      self.diagnostics = DiagsApp{implementation = GyrofluidDiags()}
       self.diagnostics:fullInit(mySpecies, field, self)
    end
    return self.diagnostics
@@ -104,10 +105,8 @@ end
 
 function GyrofluidSource:advance(tCurr, momIn, species, momRhsOut)
    local tm = Time.clock()
-
    Mpi.Barrier(self.grid:commSet().sharedComm)
    momRhsOut:accumulate(self.timeDependence(tCurr), self.momSource)
-
    self.timers.accumulateSrc = self.timers.accumulateSrc + Time.clock() - tm
 end
 

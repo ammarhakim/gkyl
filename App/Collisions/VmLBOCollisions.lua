@@ -173,6 +173,11 @@ function VmLBOCollisions:fullInit(speciesTbl)
       self.nuFrac = 1.0
    end
 
+   -- fluxType used for selecting which type of numerical flux function to use in velocity space
+   -- defaults to "penalty" in Eq object, supported options: "penalty," "upwind".
+   self.fluxType = speciesTbl.vFlux or "penalty"
+   assert(self.fluxType=="upwind" or self.fluxType=="penalty", "App.VmLBOCollisions: 'fluxType' must be 'upwind' or 'penalty'.")
+
    self.cfl = 0.0    -- Will be replaced.
 
    self.timers = {nonSlvr = 0.}
@@ -294,6 +299,7 @@ function VmLBOCollisions:createSolver(extField)
       varyingNu        = self.varNu,
       useCellAverageNu = self.cellConstNu,
       gridID           = self.phaseGrid:id(),
+      fluxType         = self.fluxType,
    }
    self.collisionSlvr = Updater.HyperDisCont {
       onGrid             = self.phaseGrid,

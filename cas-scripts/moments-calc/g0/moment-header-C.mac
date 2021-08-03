@@ -1,0 +1,77 @@
+/* Generate the header file for the Vlasov moment and integrated moment kernels. */
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+minPolyOrder_Ser : 1$
+maxPolyOrder_Ser : 2$
+minCdim_Ser : 1$
+minVdim_Ser : 1$    /* see begining of v loop below though. */
+maxCdim_Ser : 3$
+maxVdim_Ser : 3$
+
+/* Maximal order basis. */
+minPolyOrder_Max : 1$
+maxPolyOrder_Max : 3$
+minCdim_Max : 1$
+minVdim_Max : 1$    /* see begining of v loop below though. */
+maxCdim_Max : 0$
+maxVdim_Max : 0$
+
+/* Tensor product basis. */
+/* Note that Serendipity, p = 1, is equivalent to Tensor */
+/* Thus no need to calculate p = 1 Tensor basis */
+minPolyOrder_Tensor : 2$
+maxPolyOrder_Tensor : 2$
+minCdim_Tensor : 1$
+minVdim_Tensor : 1$    /* see begining of v loop below though. */
+maxCdim_Tensor : 2$
+maxVdim_Tensor : 3$
+
+/* ...... END OF USER INPUTS........ */
+
+cvars : [x, y, z]$
+
+bName        : ["ser","max","tensor"]$
+minPolyOrder : [minPolyOrder_Ser, minPolyOrder_Max, minPolyOrder_Tensor]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
+minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
+
+printPrototype(deco, ci, vi, bStr, pi) := block([si],
+  printf(fh, "~avoid vlasov_M0_~ax~av_~a_p~a(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out); ~%", deco, ci, vi, bStr, pi),
+  printf(fh, "~avoid vlasov_M1i_~ax~av_~a_p~a(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out); ~%", deco, ci, vi, bStr, pi),
+  printf(fh, "~avoid vlasov_M2_~ax~av_~a_p~a(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out); ~%", deco, ci, vi, bStr, pi),
+  printf(fh, "~avoid vlasov_FiveMoments_~ax~av_~a_p~a(const double *w, const double *dxv, const int *idx, const double *f, double* restrict outM0, double* restrict outM1i, double* restrict outM2); ~%", deco, ci, vi, bStr, pi),
+  printf(fh, "~avoid vlasov_M2ij_~ax~av_~a_p~a(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out); ~%", deco, ci, vi, bStr, pi),
+  printf(fh, "~avoid vlasov_M3i_~ax~av_~a_p~a(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out); ~%", deco, ci, vi, bStr, pi),
+  printf(fh, "~avoid vlasov_M3ijk_~ax~av_~a_p~a(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out); ~%", deco, ci, vi, bStr, pi),
+  printf(fh, "~avoid vlasov_int_mom_~ax~av_~a_p~a(const double *w, const double *dxv, const int *idx, const double *f, double* restrict out); ~%", deco, ci, vi, bStr, pi),
+  printf(fh, "~%") 
+)$
+
+fh : openw("~/max-out/gkyl_vlasov_mom_kernels.h")$
+printf(fh, "#pragma once ~%")$
+printf(fh, "#include <math.h> ~%")$
+printf(fh, "~%")$
+
+decorator : ""$
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : max(c,minVdim[bInd]) thru maxVdim[bInd] do (
+
+      minPolyOrderB : minPolyOrder[bInd],
+      maxPolyOrderB : maxPolyOrder[bInd],
+      if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+      if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
+
+      for polyOrder : minPolyOrderB thru maxPolyOrderB do (
+        printPrototype(decorator, c, v, bName[bInd], polyOrder)
+      )
+    )
+  )
+);
+close(fh)$
+/* ............ Finished writing out the C header file ............ */

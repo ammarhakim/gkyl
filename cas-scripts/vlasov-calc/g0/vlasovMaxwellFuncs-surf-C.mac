@@ -1,0 +1,298 @@
+/* This script generates the kernels for the surface term of the E + v x B 
+   advection in velocity space for the Vlasov equation (full EM) */
+
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+load("scifac")$
+fpprec : 24$
+
+varsV : [vx, vy, vz]$
+cvars : [x, y, z]$
+vvars : [vx, vy, vz]$
+
+dvdx  : [dv0dx0, dv1dx1, dv2dx2]$
+wdx   : [w0dx0, w1dx1, w2dx2]$
+dx11 : [dx10, dx11, dx12]$
+dv11 : [dv10, dv11, dv12]$
+
+Efld  : [E0, E1, E2]$
+Bfld  : [B0, B1, B2]$
+
+/* Helper function for switching to eta = (v - w)/(dv/2) coordinates */
+vTransSubs : [vvx=vx*dv1/2+wv1, vvy=vy*dv2/2+wv2, vvz=vz*dv3/2+wv3]$
+
+ax(vx, vy, vz, bc) := doExpand1(Efld[1],bc) + vy*doExpand1(Bfld[3],bc) - vz*doExpand1(Bfld[2],bc)$
+ay(vx, vy, vz, bc) := doExpand1(Efld[2],bc) + vz*doExpand1(Bfld[1],bc) - vx*doExpand1(Bfld[3],bc)$
+az(vx, vy, vz, bc) := doExpand1(Efld[3],bc) + vx*doExpand1(Bfld[2],bc) - vy*doExpand1(Bfld[1],bc)$
+
+vzero(vdim) := if vdim = 1 then [vvy=0, vvz=0] elseif vdim = 2 then [vvz=0] else [] $
+
+calcAccel(vdir, vdim, bc) :=
+  if vdir = 1
+    then subst(vTransSubs, subst(vzero(vdim), ax(vvx,vvy,vvz,bc)))
+  elseif vdir = 2
+    then subst(vTransSubs, subst(vzero(vdim), ay(vvx,vvy,vvz,bc)))
+  else
+    subst(vTransSubs, subst(vzero(vdim), az(vvx,vvy,vvz,bc)))$
+
+slcn(lst, n) := makelist(lst[i], i, 1, n)$
+
+cidx(cdim)      := makelist(i,i,0,cdim-1)$
+vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
+
+/* Helper functions for expanding in basis functions a quantity we know should be sparse  */
+/* For example, alpha, the phase space flow only depends on a few phase space coordinates */
+doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+
+calcVlasovStreamUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([bP,numBasisP,cid,vid,wvl,wvr,dvl,dvr,cv,vv,surfVars,fL_e,fR_e,fhat,surfTerm,incr_r,clst,incr_s],
+
+  kill(varsC, varsP, basisC, basisP),
+
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+
+  bP        : basisP[p],
+  numBasisP : length(bP),
+
+  printf(fh, "void ~a~a_~ax~av_~a_p~a(const double *w, const double *dxv, const double *fl, const double *fc, const double *fr, double* restrict out) ~%{ ~%", funcNm, cvars[dir], cdim, vdim, basisFun, p),
+  printf(fh, "  // w[NDIM]:   Cell-center coordinates.~%"),
+  printf(fh, "  // dxv[NDIM]: Cell spacing.~%"),
+  printf(fh, "  // fl/fc/fr:  Input Distribution function in left/center/right cells.~%"),
+  printf(fh, "  // out:       Incremented distribution function in center cell.~%"),
+
+  cid : cidx(cdim),
+  vid : vidx(cdim,vdim),
+
+  /* Surface contribution is defined as integral(phi^- Ghat) over the surface. */
+
+  /* vv = variable in direction of surface update. */
+  cv : varsP[dir],
+  vv : varsV[dir],
+
+  /* Surface variables to integrate over. */
+  surfVars : delete(cv,varsP),
+
+  /* Generate surface basis. this produces the ndim-1 orthogonal basis with no vv dependence. */
+  bSurf : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst([cv^2=var2,var2=1/3,cv=0],bP)))*bP),
+
+  /* Create expansions of f_left, f_center, and f_right on volume basis. */
+  fl_e : doExpand1(fl, bP),
+  fc_e : doExpand1(fc, bP),
+  fr_e : doExpand1(fr, bP),
+  printf(fh, "  const double dx1~a = 2/dxv[~a]; ~%", dir-1, cid[dir]),
+  printf(fh, "  const double dv = dxv[~a], wv = w[~a]; ~%", vid[dir], vid[dir]),
+  printf(fh, "  double Ghat_r[~a]; ~%", length(bSurf)),
+  printf(fh, "  double Ghat_l[~a]; ~%", length(bSurf)),
+  
+  printf(fh, "  if (~a>0) { ~%~%",wv),
+
+  /* Because v > 0, need left edge value */
+  /* Evaluate surface projection of Ghat_r = v f_c. */
+  Ghat_r_c : calcInnerProdList(surfVars, wv+(dv/2)*vv, bSurf, subst(cv=1, fc_e)),
+  writeCExprsCollect1lhsc(Ghat_r, radcan(Ghat_r_c)),
+  printf(fh, "~%"),
+  flush_output(fh),
+  /* Zero out components of Ghat which are empty. */
+  GhatNoZero_r : doMakeExprLst(Ghat_r_c, Ghat_r),
+  Ghat_r_e     : doExpandLst(GhatNoZero_r, bSurf),
+
+  /* Evaluate surface projection of Ghat_l = v f_l. */
+  Ghat_l_c : calcInnerProdList(surfVars, wv+(dv/2)*vv, bSurf, subst(cv=1, fl_e)),
+  writeCExprsCollect1lhsc(Ghat_l, radcan(Ghat_l_c)),
+  printf(fh, "~%"),
+  flush_output(fh),
+  /* Zero out components of Ghat which are empty. */
+  GhatNoZero_l : doMakeExprLst(Ghat_l_c, Ghat_l),
+  Ghat_l_e     : doExpandLst(GhatNoZero_l, bSurf),
+
+  printf(fh, "  } else { ~%~%"),
+  
+  /* Because v < 0, need right edge value */
+  /* Evaluate surface projection of Ghat_r = v f_r. */
+  Ghat_r_c : calcInnerProdList(surfVars, wv+(dv/2)*vv, bSurf, subst(cv=-1, fr_e)),
+  writeCExprsCollect1lhsc(Ghat_r, radcan(Ghat_r_c)),
+  printf(fh, "~%"),
+  flush_output(fh),
+  /* Zero out components of Ghat which are empty. */
+  GhatNoZero_r : doMakeExprLst(Ghat_r_c, Ghat_r),
+  Ghat_r_e     : doExpandLst(GhatNoZero_r, bSurf),
+
+  /* Evaluate surface projection of Ghat_l = v f_c. */
+  Ghat_l_c : calcInnerProdList(surfVars, wv+(dv/2)*vv, bSurf, subst(cv=-1, fc_e)),
+  writeCExprsCollect1lhsc(Ghat_l, radcan(Ghat_l_c)),
+  printf(fh, "~%"),
+  flush_output(fh),
+  /* Zero out components of Ghat which are empty. */
+  GhatNoZero_l : doMakeExprLst(Ghat_l_c, Ghat_l),
+  Ghat_l_e     : doExpandLst(GhatNoZero_l, bSurf),
+  
+  printf(fh, "  } ~%"),
+  /* Compute surface contribution integral(phi^- Ghat) on the right. */
+  incr_l : calcInnerProdList(surfVars, 1, subst(cv=-1.0, bP), Ghat_l_e),
+  incr_r : calcInnerProdList(surfVars, -1, subst(cv=1.0, bP), Ghat_r_e),
+  writeCIncrExprsCollect1lhsc(out, dx11[dir]*incr_l + dx11[dir]*incr_r),    
+  printf(fh, "} ~%")
+);
+
+calcVlasovLorentzUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+
+  bP    : basisP[p],
+  bC    : basisC[p],
+  varsC : slcn(varsP, cdim),
+  numC  : length(bC),
+
+  /* Specify a point to evaluate alpha at for use global Lax fluxes. */
+  cflPt : makelist(varsP[d]=0, d, 1, length(varsP)),
+
+  printf(fh, "double ~a~a_~ax~av_~a_p~a(const double *w, const double *dxv, const double amax, const double *qmem, const double *fl, const double *fc, const double *fr, double* restrict out) ~%{ ~%", funcNm, vvars[dir], cdim, vdim, basisFun, p),
+  printf(fh, "  // w:         Cell-center coordinates.~%"),
+  printf(fh, "  // dxv[NDIM]: Cell spacing.~%"),
+  printf(fh, "  // amax:      amax in global lax flux.~%"),
+  printf(fh, "  // qmem:      q/m*EM fields.~%"),
+  printf(fh, "  // fl/fc/fr:  Input Distribution function in left/center/right cells ~%"),
+  printf(fh, "  // out:       Output distribution function in center cell ~%"),
+  printf(fh, "  // returns abs(amid) for use in determining amax in cfl and global lax flux ~%"),
+
+  cid : cidx(cdim),
+  vid : vidx(cdim,vdim),
+
+  printf(fh, "  const double dv1~a = 2/dxv[~a]; ~%", dir-1, vid[dir]),
+  for d : 1 thru vdim do (
+    printf(fh, "  const double dv~a = dxv[~a], wv~a = w[~a]; ~%", d, vid[d], d, vid[d])
+  ),
+
+  printf(fh, "  const double *E~a = &qmem[~a]; ~%", dir-1, numC*(dir-1)),
+  /* If vdim = 1, then no magnetic field. */
+  if vdim > 1 then (
+    if vdim = 2 then (
+      /* In 2 velocity dimensions, only Bz. */
+      printf(fh, "  const double *B~a = &qmem[~a]; ~%", 2, numC*2+3*numC)
+    ),
+    if vdim = 3 then (
+      for d : 1 thru 3 do (
+        printf(fh, "  const double *B~a = &qmem[~a]; ~%", d-1, numC*(d-1)+3*numC)
+      )            
+    )
+  ),
+  printf(fh, "~%"),
+
+  /* Surface contribution is defined as integral(phi^- Ghat) over the surface. */
+
+  /* vv = variable in direction of surface update. */
+  vv : varsV[dir],
+
+  /* Surface variables to integrate over. */
+  surfVars : delete(vv,varsP),
+
+  /* Generate surface basis. this produces the ndim-1 orthogonal basis with no vv dependence. */
+  bSurf : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst([vv^2=var2,var2=1/3,vv=0],bP)))*bP),
+
+  /* Create expansions of f_left, f_center, and f_right on volume basis. */
+  fl_e : doExpand1(fl, bP),
+  fc_e : doExpand1(fc, bP),
+  fr_e : doExpand1(fr, bP),
+
+  /* Ghat involves both the average and jump of the distribution function
+     across the surface boundary, favg, and fjump. 
+     Note, in cell-based update there is a Ghat on the right edge (f_c evaluated at 1)
+     and a Ghat on the left edge (f_c evaluated at -1) */
+  printf(fh, "  double Ghat_r[~a]; ~%", length(bSurf)),
+  printf(fh, "  double favg_r[~a]; ~%", length(bSurf)),
+  printf(fh, "  double Ghat_l[~a]; ~%", length(bSurf)),
+  printf(fh, "  double favg_l[~a]; ~%", length(bSurf)),
+
+  /* alpha is the phase space flux at the surface. */
+  /* NOTE: Due to the form of the Vlasov-Maxwell system of equations, this phase space
+     flux is the same evaluated at the left edge and right edge in a given direction
+     (i.e., the flux does not explicitly depend on the coordinate in the surface direction)
+     For example, vx flux is q/m (Ex + vy*Bz - vz*By) */
+  printf(fh, "  double alpha[~a]; ~%", length(bSurf)),
+  printf(fh, "~%"),
+
+  /* Print C exprs for average of distribution across surface boundary, (RIGHT BOUNDARY)
+     favg = f_right(vv=-1) + f_center(vv=1), projected onto surface basis. */
+  favg_r_c : gcfac(fullratsimp(innerProd(surfVars, 1, bSurf, subst(vv=-1, fr_e)+subst(vv=1, fc_e)))),
+  writeCExprsCollect1lhsc(favg_r, radcan(favg_r_c)),
+  printf(fh, "~%"),
+  favgNoZero_r : doMakeExprLst(favg_r_c, favg_r),
+  favg_r_e       : doExpandLst(favgNoZero_r, bSurf),
+  flush_output(fh),
+
+  /* Print C exprs for average of distribution across surface boundary, (LEFT BOUNDARY)
+     favg = f_center(vv=-1) + f_left(vv=1), projected onto surface basis. */
+  favg_l_c : gcfac(fullratsimp(innerProd(surfVars, 1, bSurf, subst(vv=-1, fc_e)+subst(vv=1, fl_e)))),
+  writeCExprsCollect1lhsc(favg_l, radcan(favg_l_c)),
+  printf(fh, "~%"),
+  favgNoZero_l : doMakeExprLst(favg_l_c, favg_l),
+  favg_l_e       : doExpandLst(favgNoZero_l, bSurf),
+  flush_output(fh),
+
+  /* Project fjump = f_right(sv=-1) - f_center(sv=1) onto surface basis. (RIGHT BOUNDARY)
+     Don't need to print it out because it is just part of Ghat (see note below),
+     unlike favg which appears in Ghat in an inner product with alpha. */
+  fjump_r_c : gcfac(fullratsimp(innerProd(surfVars, 1, bSurf, subst(vv=-1, fr_e)-subst(vv=1, fc_e)))),
+
+  /* Project fjump = f_center(sv=-1) - f_left(sv=1) onto surface basis. (LEFT BOUNDARY)
+     Don't need to print it out because it is just part of Ghat (see note below),
+     unlike favg which appears in Ghat in an inner product with alpha. */
+  fjump_l_c : gcfac(fullratsimp(innerProd(surfVars, 1, bSurf, subst(vv=-1, fc_e)-subst(vv=1, fl_e)))),
+
+  /* alpha_v = q/m*(E + v x B) */
+  acc_e : calcAccel(dir, vdim, bC),
+  /* Project alpha_v onto surface basis, and print resulting coefficients. (RIGHT BOUNDARY) */
+  alphaV_c : calcInnerProdList(surfVars, 1, bSurf, subst(vv=1, acc_e)),
+  writeCExprsCollect1lhsc(alpha, radcan(alphaV_c)),
+  printf(fh, "~%"),
+  flush_output(fh),
+  /* Zero out components of alpha which are empty. */
+  alphaNoZero : doMakeExprLst(alphaV_c, alpha),
+  alpha_e     : doExpandLst(alphaNoZero, bSurf),
+
+  /* Evaluate acceleration at cflPt (in this case the midpoint). */
+  amid : float(expand(fullratsimp(subst(cflPt,alpha_e)))),
+  printf(fh, "  double amid = ~a; ~%", amid),
+  printf(fh, "~%"),
+  flush_output(fh),
+
+  /* Evaluate surface projection of Ghat = (alpha*favg - amax*fjump)/2. */
+  alphafavg_r_c : calcInnerProdList(surfVars, favg_r_e, bSurf, alpha_e),
+  /* Here we see why we didn't need to print out fjump_c. it appears directly in Ghat_c. */
+  Ghat_r_c : 0.5*alphafavg_r_c - 0.5*amax*fjump_r_c,
+  writeCExprsCollect1lhsc(Ghat_r, radcan(Ghat_r_c)),
+  printf(fh, "~%"),
+  flush_output(fh),
+  /* Zero out components of Ghat which are empty. */
+  GhatNoZero_r : doMakeExprLst(Ghat_r_c, Ghat_r),
+  Ghat_r_e     : doExpandLst(GhatNoZero_r, bSurf),
+
+  /* Evaluate surface projection of Ghat = (alpha*favg - amax*fjump)/2. */
+  alphafavg_l_c : calcInnerProdList(surfVars, favg_l_e, bSurf, alpha_e),
+  /* Here we see why we didn't need to print out fjump_c. it appears directly in Ghat_c. */
+  Ghat_l_c : 0.5*alphafavg_l_c - 0.5*amax*fjump_l_c,
+  writeCExprsCollect1lhsc(Ghat_l, radcan(Ghat_l_c)),
+  printf(fh, "~%"),
+  flush_output(fh),
+  /* Zero out components of Ghat which are empty. */
+  GhatNoZero_l : doMakeExprLst(Ghat_l_c, Ghat_l),
+  Ghat_l_e     : doExpandLst(GhatNoZero_l, bSurf),
+
+  /* Compute surface contribution integral(phi^- Ghat) on the right. */
+  incr_l : calcInnerProdList(surfVars, 1, subst(vv=-1.0, bP), Ghat_l_e),
+  incr_r : calcInnerProdList(surfVars, -1, subst(vv=1.0, bP), Ghat_r_e),
+  writeCIncrExprsCollect1lhsc(out, dv11[dir]*incr_l + dv11[dir]*incr_r),  
+  printf(fh, "~%"),
+
+  /* Return a local estimate of amax. */
+  printf(fh, "  return fabs(amid); ~%"),
+  printf(fh, "} ~%")
+);
+
+calcVlasovSurfUpdater(fh, funcNm, cdim, vdim, basisFun, p) := block([dir],
+  printf(fh, "#include <gkyl_vlasov_kernels.h> ~%"),
+  for dir : 1 thru cdim do ( calcVlasovStreamUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) ),
+  for dir : 1 thru vdim do ( calcVlasovLorentzUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, p) )
+)$
