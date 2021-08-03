@@ -99,8 +99,8 @@ function OperatorSplitSSPRK3:sts(tCurr, outIdx, dtIn, inIdx, stat)
    self.dydtSplit(tCurr, inIdx, fDotIdx)
 
    -- Below :suggestDtMax_sts sets the largest dt by which sts should step the solution.
-   local dt, dtSplitExp = dtIn, dtIn
-   for _, s in pairs(self.sts_species) do
+   local dt, dtSplitExp = dtIn, GKYL_MAX_DOUBLE
+   for nm, s in pairs(self.sts_species) do
       dt = math.min(dt, s:suggestDtMax_sts())
       dtSplitExp = math.min(dtSplitExp, s:suggestDt())
    end
@@ -108,7 +108,6 @@ function OperatorSplitSSPRK3:sts(tCurr, outIdx, dtIn, inIdx, stat)
    stat.dt_actual, stat.dt_suggested = dt*2, dt*2
 
    local numStages = calcNumStages(dt/dtSplitExp, isRKL1)   -- Number of RKL stages.
-   --print(string.format("dt=%g | dtSplitExp=%g | dtRatio=%g | numStages=%d",dt,dtSplitExp,dt/dtSplitExp,numStages))
 
    for _, s in lume.orderedIter(self.sts_species) do
       local flds = s:rkStepperFields()
@@ -123,6 +122,11 @@ function OperatorSplitSSPRK3:sts(tCurr, outIdx, dtIn, inIdx, stat)
    end
    for _, s in lume.orderedIter(self.sts_species) do
       s:applyBcIdx(tCurr, self.field, self.externalField, inIdx, jm1)
+--      -- Kinetic sims using STS for collisions just need to :sync during the STS.
+--      -- It can be noticeably faster, especially when sheath BCs are involved.
+--      -- In that case one can comment out :applyBcIdx above and uncomment the sync below.
+--      local fjm1 = s:rkStepperFields()[jm1]
+--      fjm1:sync(true)
    end
 
    for jS = 2, numStages do   -- Remaining stages.
@@ -143,6 +147,15 @@ function OperatorSplitSSPRK3:sts(tCurr, outIdx, dtIn, inIdx, stat)
       end
       for _, s in lume.orderedIter(self.sts_species) do
          s:applyBcIdx(tCurr, self.field, self.externalField, jm1, fDotIdx)
+--         -- Kinetic sims using STS for collisions just need to :sync during the STS.
+--         -- It can be noticeably faster, especially when sheath BCs are involved.
+--         -- In that case one can comment out :applyBcIdx above and uncomment lines below.
+--         if jS == numStages then
+--            s:applyBcIdx(tCurr, self.field, self.externalField, jm1, fDotIdx)
+--         else
+--            local fj = s:rkStepperFields()[fDotIdx]
+--            fj:sync(true)
+--         end
       end
 
       -- Reset fields for next stage.
