@@ -252,8 +252,9 @@ function GkIonization:advance(tCurr, fIn, species, fRhsOut)
      
       self.confMult:advance(tCurr, {coefIz, self.m0elc}, {self.coefM0})
       self.confPhaseMult:advance(tCurr, {self.coefM0, neutDistF}, {self.ionizSrc})
-
-      fRhsOut:accumulate(-1.0,self.ionizSrc)  
+      self.ionizSrc:scale(-1.)
+      
+      fRhsOut:accumulate(1.0,self.ionizSrc)  
    else
       -- Ions. 
       self.m0elc:copy(elcM0)
