@@ -141,6 +141,7 @@ plasmaApp = Plasma.App {
          collideWith = {"neut"},  elemCharge = eV, 
          electrons   = "elc",     elcMass    = me,
          neutrals    = "neut",    plasma     = "H",         
+         diagnostics = {"intSrcIzM0"},
       },
 
       -- Boundary conditions.
@@ -263,6 +264,7 @@ plasmaApp = Plasma.App {
          collideWith = {"elc"},  elemCharge = eV, 
          electrons   = "elc",    elcMass    = me,
          neutrals    = "neut",   plasma     = "H",         
+         diagnostics = {"intSrcIzM0"},
       },
       chargeExchange = Plasma.ChargeExchange {
          collideWith = {"ion"},  neutMass = mi,

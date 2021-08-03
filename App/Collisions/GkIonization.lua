@@ -12,6 +12,7 @@
 local CollisionsBase = require "App.Collisions.CollisionsBase"
 local Constants      = require "Lib.Constants"
 local DataStruct     = require "DataStruct"
+local DiagsImplBase  = require "App.Diagnostics.DiagnosticsImplBase"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
@@ -31,24 +32,22 @@ local xsys           = require "xsys"
 
 -- ~~~~ Source integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~
 local gkIzDiagImpl = function()
-   local _intSrcIz = Proto(DiagsImplBase)
-   function _intSrcIz:fullInit(diagApp, mySpecies, fieldIn, owner)
-      -- self.srcName  = string.gsub(srcIn.name, srcIn.speciesName.."_", "")
-      self.field    = DataStruct.DynVector { numComponents = 1 }
+   local _intSrcIzM0 = Proto(DiagsImplBase)
+   function _intSrcIzM0:fullInit(diagApp, mySpecies, fieldIn, owner)
       self.fieldAux = mySpecies:allocMoment()
-      self.updaters = mySpecies.volIntegral.scalar
       self.updatersAux = mySpecies.numDensityCalc
+      self.field    = DataStruct.DynVector { numComponents = 1 }
+      self.updater  = mySpecies.volIntegral.scalar
       self.owner    = owner
       self.done     = false
    end
-   function _intSrcIz:getType() return "integrated" end
-   function _intSrcIz:advance(tm, inFlds, outFlds)
-      --local specIn = inFlds[1]
+   function _intSrcIzM0:getType() return "integrated" end
+   function _intSrcIzM0:advance(tm, inFlds, outFlds)
       self.updatersAux:advance(tm, {self.owner.ionizSrc}, {self.fieldAux})
-      self.updaters:advance(tm, {self.fieldAux}, {self.field})
+      self.updater:advance(tm, {self.fieldAux}, {self.field})
    end
 
-   return {intSrcIz = _intSrcIz}
+   return {intSrcIzM0 = _intSrcIzM0}
 end
 
 -- .................... END OF DIAGNOSTICS ...................... --
@@ -116,32 +115,13 @@ function GkIonization:createDiagnostics(mySpecies, field)
    return self.diagnostics
 end
 
-function GkIonization:setName(nm)
-   self.name = self.speciesName.."_"..nm
-end
-
-function GkIonization:setSpeciesName(nm)
-   self.speciesName = nm
-end
-
-function GkIonization:setCfl(cfl)
-   self.cfl = cfl
-end
-
-function GkIonization:setConfBasis(basis)
-   self.confBasis = basis
-end
-function GkIonization:setConfGrid(grid)
-   self.confGrid = grid
-end
-
-function GkIonization:setPhaseBasis(basis)
-   self.phaseBasis = basis
-end
-
-function GkIonization:setPhaseGrid(grid)
-   self.phaseGrid = grid
-end
+function GkIonization:setName(nm) self.name = self.speciesName.."_"..nm end
+function GkIonization:setSpeciesName(nm) self.speciesName = nm end
+function GkIonization:setCfl(cfl) self.cfl = cfl end
+function GkIonization:setConfBasis(basis) self.confBasis = basis end
+function GkIonization:setConfGrid(grid) self.confGrid = grid end
+function GkIonization:setPhaseBasis(basis) self.phaseBasis = basis end
+function GkIonization:setPhaseGrid(grid) self.phaseGrid = grid end
 
 function GkIonization:createSolver(funcField)
    self.collisionSlvr = Updater.Ionization {

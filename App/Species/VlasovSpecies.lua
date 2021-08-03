@@ -704,7 +704,7 @@ function VlasovSpecies:createDiagnostics(field)
    end
 
    for collNm, coll in lume.orderedIter(self.collisions) do
-      self.collisions[self.name..collNm] = coll.createDiagnostics(self, field)
+      self.diagnostics[self.name..collNm] = coll:createDiagnostics(self, field)
    end
    lume.setOrder(self.diagnostics)
 

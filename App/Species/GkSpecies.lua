@@ -774,7 +774,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
    if self.evolveCollisions then
-      for _, c in pairs(self.collisions) do
+      for nm, c in pairs(self.collisions) do
          c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
          c:advance(tCurr, fIn, species, fRhsOut)
       end
@@ -850,7 +850,7 @@ function GkSpecies:createDiagnostics(field)
    end
 
    for collNm, coll in lume.orderedIter(self.collisions) do
-      self.collisions[self.name..collNm] = coll.createDiagnostics(self, field)
+      self.diagnostics[self.name..collNm] = coll:createDiagnostics(self, field)
    end
    lume.setOrder(self.diagnostics)
 
