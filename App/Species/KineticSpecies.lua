@@ -944,7 +944,6 @@ function KineticSpecies:readRestart(field, externalField)
    local diagIoFrame_new
    for _, dOb in lume.orderedIter(self.diagnostics) do   -- Read grid and integrated diagnostics.
       local _, dfr = dOb:readRestart()
-      print(nm, diagIoFrame_new, dfr)
       diagIoFrame_new = diagIoFrame_new or dfr
       assert(diagIoFrame_new==dfr, "KineticSpecies:readRestart expected diagnostics from previous run to have the same last frame.") 
    end
