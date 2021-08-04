@@ -10,8 +10,9 @@
 
 local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
+local TimeSteppersBase = require "App.TimeSteppers.TimeSteppersBase"
 
-local SSPRK3s4 = Proto()
+local SSPRK3s4 = Proto(TimeSteppersBase)
 
 -- Store table passed to it and defer construction.
 function SSPRK3s4:init(tbl)
@@ -57,18 +58,18 @@ function SSPRK3s4:createSolver(appStatus, stepperFuncs, appsIn)
          -- MF 2021/08/04: Disabling later stage failues for now, so steps are
          --                as it's been in g2 and not quite like it is in g0 now.
          --if stat.dt_actual < dt then
-            -- Diagnostics.
-            local dt_relDiff  = (dt-stat.dt_actual)/stat.dt_actual
-            appStatus.dtDiff[2][1] = math.min(appStatus.dtDiff[2][1], dt_relDiff)
-            appStatus.dtDiff[2][2] = math.max(appStatus.dtDiff[2][2], dt_relDiff)
-            appStatus.nFail[2]     = appStatus.nFail[2] + 1
+         --   -- Diagnostics.
+         --   local dt_relDiff  = (dt-stat.dt_actual)/stat.dt_actual
+         --   appStatus.dtDiff[2][1] = math.min(appStatus.dtDiff[2][1], dt_relDiff)
+         --   appStatus.dtDiff[2][2] = math.max(appStatus.dtDiff[2][2], dt_relDiff)
+         --   appStatus.nFail[2]     = appStatus.nFail[2] + 1
 
-            dtNext, nextState = stat.dt_actual, self.RK_STAGE_1
+         --   dtNext, nextState = stat.dt_actual, self.RK_STAGE_1
          --else
-         --   local tm = Time.clock()
-         --   self.combine(2, 1.0/2.0, 3, 1.0/2.0, 4)
-         --   self.stepperTime = self.stepperTime + (Time.clock() - tm)
-         --   dtNext, nextState = dt, self.RK_STAGE_3
+            local tm = Time.clock()
+            self.combine(2, 1.0/2.0, 3, 1.0/2.0, 4)
+            self.stepperTime = self.stepperTime + (Time.clock() - tm)
+            dtNext, nextState = dt, self.RK_STAGE_3
          --end
          return dtNext, nextState
       end,
@@ -79,18 +80,18 @@ function SSPRK3s4:createSolver(appStatus, stepperFuncs, appsIn)
          -- MF 2021/08/04: Disabling later stage failues for now, so steps are
          --                as it's been in g2 and not quite like it is in g0 now.
          --if stat.dt_actual < dt then
-            -- Diagnostics.
-            local dt_relDiff  = (dt-stat.dt_actual)/stat.dt_actual
-            appStatus.dtDiff[3][1] = math.min(appStatus.dtDiff[3][1], dt_relDiff)
-            appStatus.dtDiff[3][2] = math.max(appStatus.dtDiff[3][2], dt_relDiff)
-            appStatus.nFail[3]     = appStatus.nFail[3] + 1
+         --   -- Diagnostics.
+         --   local dt_relDiff  = (dt-stat.dt_actual)/stat.dt_actual
+         --   appStatus.dtDiff[3][1] = math.min(appStatus.dtDiff[3][1], dt_relDiff)
+         --   appStatus.dtDiff[3][2] = math.max(appStatus.dtDiff[3][2], dt_relDiff)
+         --   appStatus.nFail[3]     = appStatus.nFail[3] + 1
 
-            dtNext, nextState = stat.dt_actual, self.RK_STAGE_1
+         --   dtNext, nextState = stat.dt_actual, self.RK_STAGE_1
          --else
-         --   local tm = Time.clock()
-         --   self.combine(4, 2.0/3.0, 1, 1.0/6.0, 2, 1.0/6.0, 3)
-         --   self.stepperTime = self.stepperTime + (Time.clock() - tm)
-         --   dtNext, nextState = dt, self.RK_STAGE_4
+            local tm = Time.clock()
+            self.combine(4, 2.0/3.0, 1, 1.0/6.0, 2, 1.0/6.0, 3)
+            self.stepperTime = self.stepperTime + (Time.clock() - tm)
+            dtNext, nextState = dt, self.RK_STAGE_4
          --end
          return dtNext, nextState
       end,
@@ -101,18 +102,18 @@ function SSPRK3s4:createSolver(appStatus, stepperFuncs, appsIn)
          -- MF 2021/08/04: Disabling later stage failues for now, so steps are
          --                as it's been in g2 and not quite like it is in g0 now.
          --if stat.dt_actual < dt then
-            -- Diagnostics.
-            local dt_relDiff  = (dt-stat.dt_actual)/stat.dt_actual
-            appStatus.dtDiff[4][1] = math.min(appStatus.dtDiff[4][1], dt_relDiff)
-            appStatus.dtDiff[4][2] = math.max(appStatus.dtDiff[4][2], dt_relDiff)
-            appStatus.nFail[4]     = appStatus.nFail[4] + 1
+         --   -- Diagnostics.
+         --   local dt_relDiff  = (dt-stat.dt_actual)/stat.dt_actual
+         --   appStatus.dtDiff[4][1] = math.min(appStatus.dtDiff[4][1], dt_relDiff)
+         --   appStatus.dtDiff[4][2] = math.max(appStatus.dtDiff[4][2], dt_relDiff)
+         --   appStatus.nFail[4]     = appStatus.nFail[4] + 1
 
-            dtNext, nextState = stat.dt_actual, self.RK_STAGE_1
+         --   dtNext, nextState = stat.dt_actual, self.RK_STAGE_1
          --else
-         --   local tm = Time.clock()
-         --   self.combine(1, 1.0/2.0, 4, 1.0/2.0, 3)
-         --   self.stepperTime = self.stepperTime + (Time.clock() - tm)
-         --   dtNext, nextState = dt, self.RK_COMPLETE
+            local tm = Time.clock()
+            self.combine(1, 1.0/2.0, 4, 1.0/2.0, 3)
+            self.stepperTime = self.stepperTime + (Time.clock() - tm)
+            dtNext, nextState = dt, self.RK_COMPLETE
          --end
          return dtNext, nextState
       end,

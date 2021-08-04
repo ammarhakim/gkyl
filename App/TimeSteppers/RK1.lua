@@ -8,8 +8,9 @@
 
 local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
+local TimeSteppersBase = require "App.TimeSteppers.TimeSteppersBase"
 
-local RK1 = Proto()
+local RK1 = Proto(TimeSteppersBase)
 
 -- Store table passed to it and defer construction.
 function RK1:init(tbl)
