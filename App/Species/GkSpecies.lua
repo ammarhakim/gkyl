@@ -767,7 +767,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
    if self.evolveCollisions then
-      for _, c in pairs(self.collisions) do
+      for nm, c in pairs(self.collisions) do
          c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
          c:advance(tCurr, fIn, species, fRhsOut)
       end
@@ -841,6 +841,10 @@ function GkSpecies:createDiagnostics(field)
    for bcNm, bc in lume.orderedIter(self.nonPeriodicBCs) do
       self.diagnostics[self.name..bcNm] = bc:createDiagnostics(self, field)
    end
+
+   for collNm, coll in lume.orderedIter(self.collisions) do
+      self.diagnostics[self.name..collNm] = coll:createDiagnostics(self, field)
+   end
    lume.setOrder(self.diagnostics)
 
    -- MF: This is here temporarily. It should be moved to the ionization app. 
@@ -849,17 +853,6 @@ function GkSpecies:createDiagnostics(field)
          onGrid = self.confGrid,   quantity      = "V",
          basis  = self.confBasis,  numComponents = 1,
       }
-   end
-end
-
-function GkSpecies:calcDiagnosticIntegratedMoments(tm)
-   -- IMPORTANT: do not use this method anymore. It should disappear. The stuff below will be moved elsewhere (MF).
-   local fIn = self:rkStepperFields()[1]
-
-   if self.calcReactRate then
-      local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
-      self.numDensityCalc:advance(tm, {sourceIz}, {self.srcIzM0})
-      self.intCalcIz:advance( tm, {self.srcIzM0}, {self.intSrcIzM0} )       
    end
 end
 

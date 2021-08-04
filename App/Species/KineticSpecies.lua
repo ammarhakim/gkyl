@@ -212,11 +212,12 @@ function KineticSpecies:fullInit(appTbl)
       if Collisions.CollisionsBase.is(val) then
 	 self.collisions[nm] = val
 	 val:setSpeciesName(self.name)
-	 val:setName(nm)
+	 val:setName(nm) -- Do :setName after :setSpeciesName for collisions.
 	 val:setCollName(nm)
-	 val:fullInit(tbl) -- Initialize collisions
+     	 val:fullInit(tbl) -- Initialize collisions
       end
    end
+   lume.setOrder(self.collisions)
 
    self.positivity        = xsys.pickBool(tbl.applyPositivity, false)
    self.positivityDiffuse = xsys.pickBool(tbl.positivityDiffuse, self.positivity)
@@ -334,16 +335,12 @@ function KineticSpecies:createGrid(confGridIn)
       mappings      = coordinateMap,
    }
 
-   for _, c in pairs(self.collisions) do
-      c:setPhaseGrid(self.grid)
-   end
+   for _, c in pairs(self.collisions) do c:setPhaseGrid(self.grid) end
 end
 
 function KineticSpecies:createBasis(nm, polyOrder)
    self.basis = createBasis(nm, self.ndim, polyOrder)
-   for _, c in pairs(self.collisions) do
-      c:setPhaseBasis(self.basis)
-   end
+   for _, c in pairs(self.collisions) do c:setPhaseBasis(self.basis) end
 
    -- Output of grid file is placed here because as the file name is associated
    -- with a species, we wish to save the basisID and polyOrder in it. But these
@@ -780,27 +777,6 @@ function KineticSpecies:createDiagnostics(field)
       or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
 end
 
-function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
-    -- IMPORTANT: do not use this method anymore. It should disappear. The stuff below will be moved elsewhere (MF).
-
-    -- Write ionization diagnostics
-   if self.calcReactRate then
-       -- include dynvector for zeroth moment of ionization source
-       tmStart = Time.clock()
-       self.intSrcIzM0:write(
-          string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
-       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart       
-    end
-
-    if self.calcIntSrcIz then
-       tmStart = Time.clock()
-
-       self.intSrcIzM0:write(
-          string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
-       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart    
-    end
-end
-
 function KineticSpecies:isEvolving() return self.evolve end
 
 function KineticSpecies:write(tm, force)
@@ -820,7 +796,7 @@ function KineticSpecies:write(tm, force)
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.
       if self.calcIntQuantTrigger(tm) then
-         self:calcDiagnosticIntegratedMoments(tm)   -- MF: to be removed. Only here for some neutral diagnostics (to be moved).
+
          for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcIntegratedDiagnostics(tm, self)   -- Compute integrated diagnostics (this species' and other objects').
          end
@@ -842,7 +818,6 @@ function KineticSpecies:write(tm, force)
 
       if self.diagIoTrigger(tm) or force then
          -- Compute moments and write them out.
-         self:calcAndWriteDiagnosticMoments(tm)   -- MF: to be removed. Only here for some neutral diagnostics (to be moved).
 
          for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcGridDiagnostics(tm, self)   -- Compute grid diagnostics (this species' and other objects').
@@ -873,15 +848,13 @@ function KineticSpecies:write(tm, force)
       if self.distIoFrame == 0 then
 
          local tmStart = Time.clock()
-         self:calcDiagnosticIntegratedMoments(tm)   -- MF: to be removed. Only here for some neutral diagnostics (to be moved).
+
          for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcIntegratedDiagnostics(tm, self)   -- Compute integrated diagnostics (this species' and other objects').
          end
          self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
 
 	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, 0), tm, 0)
-
-	 self:calcAndWriteDiagnosticMoments(tm)   -- MF: to be removed. Only here for some neutral diagnostics (to be moved).
 
          for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcGridDiagnostics(tm, self)   -- Compute grid diagnostics (this species' and other objects').
@@ -907,16 +880,6 @@ function KineticSpecies:writeRestart(tm)
       dOb:writeRestart(tm, self.diagIoFrame, self.dynVecRestartFrame)
    end
 
-   -- The following two should be moved elsehwere (MF).
-   if self.calcReactRate then
-      self.intSrcIzM0:write(
-	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
-   end
-   if self.calcIntSrcIz then
-      self.intSrcIzM0:write(
-	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
-   end
-
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
@@ -939,7 +902,9 @@ function KineticSpecies:readRestart(field, externalField)
    for _, dOb in lume.orderedIter(self.diagnostics) do   -- Read grid and integrated diagnostics.
       local _, dfr = dOb:readRestart()
       diagIoFrame_new = diagIoFrame_new or dfr
-      assert(diagIoFrame_new==dfr, "KineticSpecies:readRestart expected diagnostics from previous run to have the same last frame.") 
+      if dfr then
+         assert(diagIoFrame_new==dfr, "KineticSpecies:readRestart expected diagnostics from previous run to have the same last frame.") 
+      end
    end
    -- The 'or self.distIoFrame' below is for sims without diagnostics, or when the first
    -- run didn't request diagnostics, but the latter (when the restart requests diagnostics
@@ -947,12 +912,12 @@ function KineticSpecies:readRestart(field, externalField)
    self.diagIoFrame = diagIoFrame_new or self.distIoFrame
    
    -- The following two should be moved elsehwere (MF).
-   if self.calcReactRate then
-      self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
-   end
-   if self.calcIntSrcIz then
-      self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
-   end
+   -- if self.calcReactRate then
+   --    self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
+   -- end
+   -- if self.calcIntSrcIz then
+   --    self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
+   -- end
 
    -- Iterate triggers.
    self.distIoTrigger(tm)

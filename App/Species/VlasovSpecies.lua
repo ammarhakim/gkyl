@@ -696,34 +696,23 @@ function VlasovSpecies:createDiagnostics(field)
    for bcNm, bc in lume.orderedIter(self.nonPeriodicBCs) do
       self.diagnostics[self.name..bcNm] = bc:createDiagnostics(self, field)
    end
+
+   for collNm, coll in lume.orderedIter(self.collisions) do
+      self.diagnostics[self.name..collNm] = coll:createDiagnostics(self, field)
+   end
    lume.setOrder(self.diagnostics)
 
    -- MF: This is here temporarily. It should be moved to the ionization app. 
-   if self.calcIntSrcIz or self.calcReactRate then
-      self.srcIzM0 = self:allocMoment()
-      self.intSrcIzM0 = DataStruct.DynVector {
-         numComponents = 1,
-      }
-      self.intCalcIz = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.confGrid,   quantity      = "V",
-         basis  = self.confBasis,  numComponents = 1,
-      }
-   end
-end
-
-function VlasovSpecies:calcDiagnosticIntegratedMoments(tm)
-   -- IMPORTANT: do not use this method anymore. It should disappear. The stuff below will be moved elsewhere (MF).
-   local fIn = self:rkStepperFields()[1]
-
-   if self.calcIntSrcIz then -- intSrcIzM0 for neutrals (when plasma is GK)
-      local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
-      self.numDensityCalc:advance(tm, {sourceIz}, {self.srcIzM0})
-      self.intCalcIz:advance( tm, {self.srcIzM0}, {self.intSrcIzM0} )
-   elseif self.calcReactRate then -- intSrcIzM0 for elc
-      local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
-      self.numDensityCalc:advance(tm, {sourceIz}, {self.srcIzM0})
-      self.intCalcIz:advance( tm, {self.srcIzM0}, {self.intSrcIzM0} )       
-   end      
+   -- if self.calcIntSrcIz or self.calcReactRate then
+   --    self.srcIzM0 = self:allocMoment()
+   --    self.intSrcIzM0 = DataStruct.DynVector {
+   --       numComponents = 1,
+   --    }
+   --    self.intCalcIz = Updater.CartFieldIntegratedQuantCalc {
+   --       onGrid = self.confGrid,   quantity      = "V",
+   --       basis  = self.confBasis,  numComponents = 1,
+   --    }
+   -- end
 end
 
 function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
@@ -852,12 +841,6 @@ function VlasovSpecies:momCalcTime()
    local tm = self.tmCouplingMom
    return tm
 end
-
-function VlasovSpecies:getVoronovReactRate() return self.voronovReactRate end
-
-function VlasovSpecies:getFMaxwellIz() return self.fMaxwellIz end
-
-function VlasovSpecies:getSrcCX() return self.srcCX end
 
 -- Please test this for higher than 1x1v... (MF: JJ?).
 function VlasovSpecies:Maxwellian(xn, n0, T0, vdnIn)
