@@ -466,7 +466,7 @@ local function buildApplication(self, tbl)
    local function forwardEuler(tCurr, dt, inIdx, outIdx, stat)
       appStatus.nFwdEuler = appStatus.nFwdEuler + 1
 
-      local dtMin = dt
+      local dtMin = GKYL_MAX_DOUBLE
       -- Get suggested dt from each field and species.
       dtMin = math.min(dtMin, field:suggestDt())
       for nm, s in pairs(species) do dtMin = math.min(dtMin, s:suggestDt()) end
