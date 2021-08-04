@@ -794,15 +794,10 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
 
     if self.calcIntSrcIz then
        tmStart = Time.clock()
+
        self.intSrcIzM0:write(
           string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
        self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart    
-    end
-       
-    -- Write CX diagnostics
-    if self.calcCXSrc then
-       self.vSigmaCX:write(string.format("%s_vSigmaCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       self.collisions[self.collNmCX].sourceCX:write(string.format("%s_sourceCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
     end
 end
 

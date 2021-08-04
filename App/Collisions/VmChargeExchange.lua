@@ -73,33 +73,14 @@ function VmChargeExchange:fullInit(speciesTbl)
    self.timers = {nonSlvr = 0.}
 end
 
-function VmChargeExchange:setName(nm)
-   self.name = nm
-end
-
-function VmChargeExchange:setSpeciesName(nm)
-   self.speciesName = nm
-end
-
-function VmChargeExchange:setCfl(cfl)
-   self.cfl = cfl
-end
-
-function VmChargeExchange:setConfBasis(basis)
-   self.confBasis = basis
-end
-
-function VmChargeExchange:setConfGrid(grid)
-   self.confGrid = grid
-end
-
-function VmChargeExchange:setPhaseBasis(basis)
-   self.phaseBasis = basis
-end
-
-function VmChargeExchange:setPhaseGrid(grid)
-   self.phaseGrid = grid
-end
+function VmChargeExchange:setName(nm) self.name = self.speciesName.."_"..nm end
+function VmChargeExchange:setCollName(nm) self.collNm = nm end
+function VmChargeExchange:setSpeciesName(nm) self.speciesName = nm end
+function VmChargeExchange:setCfl(cfl) self.cfl = cfl end
+function VmChargeExchange:setConfBasis(basis) self.confBasis = basis end
+function VmChargeExchange:setConfGrid(grid) self.confGrid = grid end
+function VmChargeExchange:setPhaseBasis(basis) self.phaseBasis = basis end
+function VmChargeExchange:setPhaseGrid(grid) self.phaseGrid = grid end
 
 function VmChargeExchange:createSolver(funcField) --species)
    self.collisionSlvr = Updater.ChargeExchange {
@@ -146,6 +127,17 @@ function VmChargeExchange:createSolver(funcField) --species)
 	 basisType = self.phaseBasis:id()
       },
    }
+   if (self.speciesName == self.ionNm) then
+      self.reactRate =  DataStruct.Field {
+	 onGrid        = self.confGrid,
+	 numComponents = self.confBasis:numBasis(),
+	 ghost         = {1, 1},
+	 metaData = {
+	    polyOrder = self.confBasis:polyOrder(),
+	    basisType = self.confBasis:id()
+	 },
+      }
+   end
 end
 
 function VmChargeExchange:advance(tCurr, fIn, species, fRhsOut)
@@ -159,7 +151,7 @@ function VmChargeExchange:advance(tCurr, fIn, species, fRhsOut)
    species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
    species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
    self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
-   species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
+   species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {species[self.ionNm].collisions[self.collNm].reactRate, self.diffDistF}, {self.sourceCX})
 
    if (self.speciesName == self.ionNm) then
       fRhsOut:accumulate(1.0,self.sourceCX)
@@ -171,6 +163,10 @@ function VmChargeExchange:advance(tCurr, fIn, species, fRhsOut)
 end
 
 function VmChargeExchange:write(tm, frame)
+   if self.reactRate then
+      self.reactRate:write(string.format("%s_reactRate_%d.bp", self.name, frame), tm, frame)
+      self.sourceCX:write(string.format("%s_source_%d.bp", self.name, frame), tm, frame)
+   end
 end
 
 function VmChargeExchange:slvrTime()

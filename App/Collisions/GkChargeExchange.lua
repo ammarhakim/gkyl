@@ -73,33 +73,14 @@ function GkChargeExchange:fullInit(speciesTbl)
    self.timers = {nonSlvr = 0.}
 end
 
-function GkChargeExchange:setName(nm)
-   self.name = nm
-end
-
-function GkChargeExchange:setSpeciesName(nm)
-   self.speciesName = nm
-end
-
-function GkChargeExchange:setCfl(cfl)
-   self.cfl = cfl
-end
-
-function GkChargeExchange:setConfBasis(basis)
-   self.confBasis = basis
-end
-
-function GkChargeExchange:setConfGrid(grid)
-   self.confGrid = grid
-end
-
-function GkChargeExchange:setPhaseBasis(basis)
-   self.phaseBasis = basis
-end
-
-function GkChargeExchange:setPhaseGrid(grid)
-   self.phaseGrid = grid
-end
+function GkChargeExchange:setName(nm) self.name = self.speciesName.."_"..nm end
+function GkChargeExchange:setCollName(nm) self.collNm = nm end
+function GkChargeExchange:setSpeciesName(nm) self.speciesName = nm end
+function GkChargeExchange:setCfl(cfl) self.cfl = cfl end
+function GkChargeExchange:setConfBasis(basis) self.confBasis = basis end
+function GkChargeExchange:setConfGrid(grid) self.confGrid = grid end
+function GkChargeExchange:setPhaseBasis(basis) self.phaseBasis = basis end
+function GkChargeExchange:setPhaseGrid(grid) self.phaseGrid = grid end
 
 function GkChargeExchange:createSolver(funcField)
    self.sourceCX =  DataStruct.Field {
@@ -156,6 +137,15 @@ function GkChargeExchange:createSolver(funcField)
 	    basisType = self.phaseBasis:id()
 	 },
       }
+      self.reactRate =  DataStruct.Field {
+	 onGrid        = self.confGrid,
+	 numComponents = self.confBasis:numBasis(),
+	 ghost         = {1, 1},
+	 metaData = {
+	    polyOrder = self.confBasis:polyOrder(),
+	    basisType = self.confBasis:id()
+	 },
+      }
    else --neutrals
       self.fMaxIon =  DataStruct.Field {
 	 onGrid        = self.phaseGrid,
@@ -171,6 +161,7 @@ end
 
 function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
    local tmNonSlvrStart = Time.clock()
+   local reactRate = species[self.ionNm].collisions[self.collNm].reactRate
 
    -- Identify species and accumulate.
    if (self.speciesName == self.ionNm) then
@@ -187,7 +178,7 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {ionM0, self.fMaxNeut}, {self.M0iDistFn})
       species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
       self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
-      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
+      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {reactRate, self.diffDistF}, {self.sourceCX})
 
       fRhsOut:accumulate(1.0,self.sourceCX)
 
@@ -205,7 +196,7 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
       species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
       species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {neutM0, self.fMaxIon}, {self.M0nDistFi})
       self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
-      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
+      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {reactRate, self.diffDistF}, {self.sourceCX})
       
       fRhsOut:accumulate(-self.iMass/self.nMass,self.sourceCX)
 
@@ -215,6 +206,10 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
 end
 
 function GkChargeExchange:write(tm, frame)
+   if self.reactRate then
+      self.reactRate:write(string.format("%s_reactRate_%d.bp", self.name, frame), tm, frame)
+      self.sourceCX:write(string.format("%s_source_%d.bp", self.name, frame), tm, frame)
+   end
 end
 
 function GkChargeExchange:slvrTime()

@@ -648,7 +648,7 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    			self.neutNmCX         = species[sN].collisions[collNm].neutNm
    			self.needSelfPrimMom  = true
 			species[self.neutNmCX].needSelfPrimMom = true
-			self.vSigmaCX         = self:allocMoment()
+			--self.vSigmaCX         = self:allocMoment()
    			species[self.neutNmCX].needSelfPrimMom = true
    			counterCX_ion = false
     		     end
@@ -928,8 +928,8 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
          local m0       = neuts:fluidMoments()[1]
          local neutU    = neuts:selfPrimitiveMoments()[1]
          local neutVtSq = neuts:selfPrimitiveMoments()[2]
-	 
-      	 species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uParSelf, neutU, self.vtSqSelf, neutVtSq}, {self.vSigmaCX})
+
+	 species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uParSelf, neutU, self.vtSqSelf, neutVtSq}, {species[self.name].collisions[self.collNmCX].reactRate})
       end
       
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart

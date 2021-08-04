@@ -519,7 +519,6 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
 			self.collNmCX         = collNm
    			self.neutNmCX         = species[sN].collisions[collNm].neutNm
    			self.needSelfPrimMom  = true
-   			self.vSigmaCX         = self:allocMoment()
 			species[self.neutNmCX].needSelfPrimMom = true
    			counterCX = false
     		     end
@@ -793,7 +792,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx, species)
       local neutU    = neuts:selfPrimitiveMoments()[1]
       local neutVtSq = neuts:selfPrimitiveMoments()[2]
       
-      species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uSelf, neutU, self.vtSqSelf, neutVtSq}, {self.vSigmaCX})
+      species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uSelf, neutU, self.vtSqSelf, neutVtSq}, {species[self.names].collisions[self.collNmCX].reactRate})
    end
 
    for _, bc in lume.orderedIter(self.nonPeriodicBCs) do bc:calcCouplingMoments(tCurr, rkIdx, species) end
