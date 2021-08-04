@@ -485,6 +485,25 @@ function KineticSpecies:createSolver(field, externalField)
          basis  = self.basis,
          nonconservative = true,
       }
+      self.nonconPosAdv = function(tCurr, outIdx) 
+	 self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self.prePosM0})
+     
+	 self.nonconPos:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]}, false)
+     
+	 self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self.postPosM0})
+	 self.delPosM0:combine(1.0, self.postPosM0, -1.0, self.prePosM0)
+
+	 local tm, lv = self.intPosM0:lastData()
+	 self.calcIntPosM0:advance(tCurr, {self.delPosM0}, {self.intDelPosM0})
+	 local tmDel, lvDel = self.intDelPosM0:lastData()
+	 self.intPosM0:appendData(tmDel, {lv[1]+lvDel[1]})
+      end
+      self.nonconPosWrite = function(tCurr, frame)
+      	 self.intPosM0:write( string.format("%s_intPosM0.bp", self.name), tCurr, frame)
+      end
+   else
+      self.nonconPosAdv = function(tCurr, outIdx) end
+      self.nonconPosWrite = function(tCurr, frame) end
    end
 end
 
@@ -720,19 +739,8 @@ function KineticSpecies:applyBcIdx(tCurr, field, externalField, inIdx, outIdx, i
   if self.positivity then
      self:checkPositivity(tCurr, outIdx)
   end
-  if self.nonconPositivity then
-     self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self.prePosM0})
-     
-     self.nonconPos:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]}, false)
-     
-     self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self.postPosM0})
-     self.delPosM0:combine(1.0, self.postPosM0, -1.0, self.prePosM0)
 
-     local tm, lv = self.intPosM0:lastData()
-     self.calcIntPosM0:advance(tCurr, {self.delPosM0}, {self.intDelPosM0})
-     local tmDel, lvDel = self.intDelPosM0:lastData()
-     self.intPosM0:appendData(tmDel, {lv[1]+lvDel[1]})
-  end
+  self.nonconPosAdv(tCurr, outIdx)
 end
 
 function KineticSpecies:applyBcDontEvolve(tCurr, field, externalField, inIdx, outIdx) end
@@ -840,10 +848,8 @@ function KineticSpecies:write(tm, force)
             self.posRescaler:write(tm, self.diagIoFrame, self.name)
          end
 
-	 if self.nonconPositivity then
-	    self.intPosM0:write( string.format("%s_intPosM0.bp", self.name), tm, self.diagIoFrame)
-	 end
-
+	 self.nonconPosWrite(tCurr, self.diagIoFrame)
+	 
          self.diagIoFrame = self.diagIoFrame+1
       end
    else
