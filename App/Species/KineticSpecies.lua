@@ -945,7 +945,9 @@ function KineticSpecies:readRestart(field, externalField)
    for _, dOb in lume.orderedIter(self.diagnostics) do   -- Read grid and integrated diagnostics.
       local _, dfr = dOb:readRestart()
       diagIoFrame_new = diagIoFrame_new or dfr
-      assert(diagIoFrame_new==dfr, "KineticSpecies:readRestart expected diagnostics from previous run to have the same last frame.") 
+      if dfr then
+         assert(diagIoFrame_new==dfr, "KineticSpecies:readRestart expected diagnostics from previous run to have the same last frame.") 
+      end
    end
    -- The 'or self.distIoFrame' below is for sims without diagnostics, or when the first
    -- run didn't request diagnostics, but the latter (when the restart requests diagnostics
