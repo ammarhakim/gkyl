@@ -7,6 +7,7 @@
 --------------------------------------------------------------------------------
 
 local Proto          = require "Lib.Proto"
+local DataStruct     = require "DataStruct"
 local FluidSpecies   = require "App.Species.FluidSpecies"
 local AdiabaticSpecies = require "App.Species.AdiabaticSpecies"
 local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
@@ -111,6 +112,7 @@ function GyrofluidSpecies:createSolver(field, externalField)
 
    -- Set up Jacobian.
    if externalField then
+
       self.bmagFunc  = externalField.bmagFunc
       self.jacobFunc = externalField.jacobGeoFunc
 
@@ -122,6 +124,22 @@ function GyrofluidSpecies:createSolver(field, externalField)
       self.bmagInv  = externalField.geo.bmagInv
       self.jacob    = externalField.geo.jacobGeo
       self.jacobInv = externalField.geo.jacobGeoInv
+
+      if self.jacob==nil then
+         local evOnNodes = Updater.EvalOnNodes {
+            onGrid = self.grid,   evaluate = function(t, xn) return 1. end,
+            basis  = self.basis,  onGhosts = true,
+         }
+         self.jacob = DataStruct.Field {
+            onGrid        = self.grid,
+            numComponents = self.basis:numBasis(),
+            ghost         = {1, 1},
+            metaData      = {polyOrder = self.basis:polyOrder(),
+                             basisType = self.basis:id(),},
+         }
+         evOnNodes:advance(0., {}, {self.jacob})
+         self.jacobInv = self.jacob
+      end
    end
 
    -- Create updater to advance solution by one time-step.

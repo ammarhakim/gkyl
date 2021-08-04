@@ -163,6 +163,20 @@ function GyrofluidBasicBC:createSolver(mySpecies, field, externalField)
       local phi   = field:rkStepperFields()[1].phi
       self.bmag   = externalField.geo.bmag
       self.jacob  = externalField.geo.jacobGeo
+      if self.jacob==nil then  -- In order to support simulations without jacobGeo.
+         local evOnNodes = Updater.EvalOnNodes {
+            onGrid = self.grid,   evaluate = function(t, xn) return 1. end,
+            basis  = self.basis,  onGhosts = true,
+         }
+         self.jacob = DataStruct.Field {
+            onGrid        = self.grid,
+            numComponents = self.basis:numBasis(),
+            ghost         = {1, 1},
+            metaData      = {polyOrder = self.basis:polyOrder(),
+                             basisType = self.basis:id(),},
+         }
+         evOnNodes:advance(0., {}, {self.jacob})
+      end
       -- Pre-create pointers and indexers.
       self.phiPtr, self.phiIdxr = phi:get(1), phi:genIndexer()
       self.indexer = phi:genIndexer()
