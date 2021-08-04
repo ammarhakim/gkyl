@@ -54,7 +54,9 @@ function SSPRK3s4:createSolver(appStatus, stepperFuncs, appsIn)
          self.dydt(tCurr+dt/2, 3, 4)
          self.forwardEuler(tCurr, dt, 3, 4, stat)
          local dtNext, nextState
-         if stat.dt_actual < dt then
+         -- MF 2021/08/04: Disabling later stage failues for now, so steps are
+         --                as it's been in g2 and not quite like it is in g0 now.
+         --if stat.dt_actual < dt then
             -- Diagnostics.
             local dt_relDiff  = (dt-stat.dt_actual)/stat.dt_actual
             appStatus.dtDiff[2][1] = math.min(appStatus.dtDiff[2][1], dt_relDiff)
@@ -62,19 +64,21 @@ function SSPRK3s4:createSolver(appStatus, stepperFuncs, appsIn)
             appStatus.nFail[2]     = appStatus.nFail[2] + 1
 
             dtNext, nextState = stat.dt_actual, self.RK_STAGE_1
-         else
-            local tm = Time.clock()
-            self.combine(2, 1.0/2.0, 3, 1.0/2.0, 4)
-            self.stepperTime = self.stepperTime + (Time.clock() - tm)
-            dtNext, nextState = dt, self.RK_STAGE_3
-         end
+         --else
+         --   local tm = Time.clock()
+         --   self.combine(2, 1.0/2.0, 3, 1.0/2.0, 4)
+         --   self.stepperTime = self.stepperTime + (Time.clock() - tm)
+         --   dtNext, nextState = dt, self.RK_STAGE_3
+         --end
          return dtNext, nextState
       end,
       [self.RK_STAGE_3] = function(tCurr, dt)
          self.dydt(tCurr+dt, 2, 3)
          self.forwardEuler(tCurr, dt, 2, 3, stat)
          local dtNext, nextState
-         if stat.dt_actual < dt then
+         -- MF 2021/08/04: Disabling later stage failues for now, so steps are
+         --                as it's been in g2 and not quite like it is in g0 now.
+         --if stat.dt_actual < dt then
             -- Diagnostics.
             local dt_relDiff  = (dt-stat.dt_actual)/stat.dt_actual
             appStatus.dtDiff[3][1] = math.min(appStatus.dtDiff[3][1], dt_relDiff)
@@ -82,19 +86,21 @@ function SSPRK3s4:createSolver(appStatus, stepperFuncs, appsIn)
             appStatus.nFail[3]     = appStatus.nFail[3] + 1
 
             dtNext, nextState = stat.dt_actual, self.RK_STAGE_1
-         else
-            local tm = Time.clock()
-            self.combine(4, 2.0/3.0, 1, 1.0/6.0, 2, 1.0/6.0, 3)
-            self.stepperTime = self.stepperTime + (Time.clock() - tm)
-            dtNext, nextState = dt, self.RK_STAGE_4
-         end
+         --else
+         --   local tm = Time.clock()
+         --   self.combine(4, 2.0/3.0, 1, 1.0/6.0, 2, 1.0/6.0, 3)
+         --   self.stepperTime = self.stepperTime + (Time.clock() - tm)
+         --   dtNext, nextState = dt, self.RK_STAGE_4
+         --end
          return dtNext, nextState
       end,
       [self.RK_STAGE_4] = function(tCurr, dt)
          self.dydt(tCurr+dt/2, 4, 3)
          self.forwardEuler(tCurr, dt, 4, 3, stat)
          local dtNext, nextState
-         if stat.dt_actual < dt then
+         -- MF 2021/08/04: Disabling later stage failues for now, so steps are
+         --                as it's been in g2 and not quite like it is in g0 now.
+         --if stat.dt_actual < dt then
             -- Diagnostics.
             local dt_relDiff  = (dt-stat.dt_actual)/stat.dt_actual
             appStatus.dtDiff[4][1] = math.min(appStatus.dtDiff[4][1], dt_relDiff)
@@ -102,12 +108,12 @@ function SSPRK3s4:createSolver(appStatus, stepperFuncs, appsIn)
             appStatus.nFail[4]     = appStatus.nFail[4] + 1
 
             dtNext, nextState = stat.dt_actual, self.RK_STAGE_1
-         else
-            local tm = Time.clock()
-            self.combine(1, 1.0/2.0, 4, 1.0/2.0, 3)
-            self.stepperTime = self.stepperTime + (Time.clock() - tm)
-            dtNext, nextState = dt, self.RK_COMPLETE
-         end
+         --else
+         --   local tm = Time.clock()
+         --   self.combine(1, 1.0/2.0, 4, 1.0/2.0, 3)
+         --   self.stepperTime = self.stepperTime + (Time.clock() - tm)
+         --   dtNext, nextState = dt, self.RK_COMPLETE
+         --end
          return dtNext, nextState
       end,
    }

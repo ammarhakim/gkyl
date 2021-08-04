@@ -471,11 +471,13 @@ local function buildApplication(self, tbl)
       dtMin = math.min(dtMin, field:suggestDt())
       for nm, s in pairs(species) do dtMin = math.min(dtMin, s:suggestDt()) end
 
-      local dt_maxRelDiff = 0.01
-      -- Check if dtMin is slightly smaller than dt. Use dt if it is
-      -- (avoids retaking steps if dt changes are very small).
-      local dt_relDiff = (dt-dtMin)/dt
-      if (dt_relDiff > 0 and dt_relDiff < dt_maxRelDiff) then dtMin = dt end
+      -- MF 2021/08/04: We will disable this criteria for now, so that the dt is
+      --                as it's been in g2 and not quite like it is in g0 now.
+      --local dt_maxRelDiff = 0.01
+      ---- Check if dtMin is slightly smaller than dt. Use dt if it is
+      ---- (avoids retaking steps if dt changes are very small).
+      --local dt_relDiff = (dt-dtMin)/dt
+      --if (dt_relDiff > 0 and dt_relDiff < dt_maxRelDiff) then dtMin = dt end
 
       -- Don't take a time-step larger that input dt.
       stat.dt_actual    = dt < dtMin and dt or dtMin
