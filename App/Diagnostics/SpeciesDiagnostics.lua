@@ -116,7 +116,6 @@ function SpeciesDiagnostics:fullInit(mySpecies, field, diagOwner)
 
    -- Sort requested diagnostics into grid and integrated diagnostics.   
    for _, nm in ipairs(diagOwner.tbl.diagnostics) do
-      --print(diagOwner.name)
       if contains(diagsImpl, nm) then
          self.diags[nm] = diagsImpl[nm]{}
          local diagType = diagsImpl[nm]:getType()

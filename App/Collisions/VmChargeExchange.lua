@@ -73,8 +73,10 @@ function VmChargeExchange:fullInit(speciesTbl)
    self.timers = {nonSlvr = 0.}
 end
 
-function VmChargeExchange:setName(nm) self.name = self.speciesName.."_"..nm end
-function VmChargeExchange:setCollName(nm) self.collNm = nm end
+function VmChargeExchange:setName(nm)
+   self.name = self.speciesName.."_"..nm
+   self.collNm = nm
+end
 function VmChargeExchange:setSpeciesName(nm) self.speciesName = nm end
 function VmChargeExchange:setCfl(cfl) self.cfl = cfl end
 function VmChargeExchange:setConfBasis(basis) self.confBasis = basis end

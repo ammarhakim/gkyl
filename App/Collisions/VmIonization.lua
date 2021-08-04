@@ -77,8 +77,10 @@ function VmIonization:fullInit(speciesTbl)
    self.timers = {nonSlvr = 0.}
 end
 
-function VmIonization:setName(nm) self.name = self.speciesName.."_"..nm end
-function VmIonization:setCollName(nm) self.collNm = nm end
+function VmIonization:setName(nm)
+   self.name = self.speciesName.."_"..nm
+   self.collNm = nm
+end
 function VmIonization:setSpeciesName(nm) self.speciesName = nm end
 function VmIonization:setCfl(cfl) self.cfl = cfl end
 function VmIonization:setConfBasis(basis) self.confBasis = basis end

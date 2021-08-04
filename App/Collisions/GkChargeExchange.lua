@@ -73,8 +73,10 @@ function GkChargeExchange:fullInit(speciesTbl)
    self.timers = {nonSlvr = 0.}
 end
 
-function GkChargeExchange:setName(nm) self.name = self.speciesName.."_"..nm end
-function GkChargeExchange:setCollName(nm) self.collNm = nm end
+function GkChargeExchange:setName(nm)
+   self.name = self.speciesName.."_"..nm
+   self.collNm = nm
+end
 function GkChargeExchange:setSpeciesName(nm) self.speciesName = nm end
 function GkChargeExchange:setCfl(cfl) self.cfl = cfl end
 function GkChargeExchange:setConfBasis(basis) self.confBasis = basis end

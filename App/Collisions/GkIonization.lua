@@ -130,8 +130,10 @@ function GkIonization:createDiagnostics(mySpecies, field)
    return self.diagnostics
 end
 
-function GkIonization:setName(nm) self.name = self.speciesName.."_"..nm end
-function GkIonization:setCollName(nm) self.collNm = nm end
+function GkIonization:setName(nm)
+   self.name = self.speciesName.."_"..nm
+   self.collNm = nm
+end
 function GkIonization:setSpeciesName(nm) self.speciesName = nm end
 function GkIonization:setCfl(cfl) self.cfl = cfl end
 function GkIonization:setConfBasis(basis) self.confBasis = basis end

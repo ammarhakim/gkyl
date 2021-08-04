@@ -492,8 +492,6 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    			self.needSelfPrimMom  = true
    			self.calcReactRate    = true
    			self.collNmIoniz      = collNm
-			self.srcIzM0          = self:allocMoment()
-			self.intSrcIzM0       = DataStruct.DynVector{numComponents = 1}
 			counterIz_elc         = false
 		     elseif self.name==species[sN].collisions[collNm].neutNm and counterIz_neut then
 			self.needSelfPrimMom = true
