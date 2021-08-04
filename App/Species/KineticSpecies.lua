@@ -722,25 +722,25 @@ function KineticSpecies:clearMomentFlags(species)
 end
 
 function KineticSpecies:checkPositivity(tCurr, idx)
-  local status = true
-  if self.positivity then
-     status = self.posChecker:advance(tCurr, {self:rkStepperFields()[idx]}, {})
-  end
-  return status
+   local status = true
+   if self.positivity then
+      status = self.posChecker:advance(tCurr, {self:rkStepperFields()[idx]}, {})
+   end
+   return status
 end
 
 function KineticSpecies:applyBcIdx(tCurr, field, externalField, inIdx, outIdx, isFirstRk)
-  if self.positivityDiffuse then
-     self.fDelPos[outIdx]:combine(-1.0, self:rkStepperFields()[outIdx])
-     self.posRescaler:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]}, true, isFirstRk)
-     self.fDelPos[outIdx]:accumulate(1.0, self:rkStepperFields()[outIdx])
-  end
-  self:applyBc(tCurr, field, externalField, inIdx, outIdx)
-  if self.positivity then
-     self:checkPositivity(tCurr, outIdx)
-  end
+   if self.positivityDiffuse then
+      self.fDelPos[outIdx]:combine(-1.0, self:rkStepperFields()[outIdx])
+      self.posRescaler:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]}, true, isFirstRk)
+      self.fDelPos[outIdx]:accumulate(1.0, self:rkStepperFields()[outIdx])
+   end
+   self:applyBc(tCurr, field, externalField, inIdx, outIdx)
+   if self.positivity then
+      self:checkPositivity(tCurr, outIdx)
+   end
 
-  self.nonconPosAdv(tCurr, outIdx)
+   self.nonconPosAdv(tCurr, outIdx)
 end
 
 function KineticSpecies:applyBcDontEvolve(tCurr, field, externalField, inIdx, outIdx) end
