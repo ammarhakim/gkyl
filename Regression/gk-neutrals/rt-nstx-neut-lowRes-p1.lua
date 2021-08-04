@@ -190,7 +190,8 @@ plasmaApp = Plasma.App {
       ionization = Plasma.Ionization {
       	 collideWith = {"neutral"},  elemCharge = eV, 
       	 electrons   = "electron",   elcMass    = me,
-      	 neutrals    = "neutral",    plasma     = "H",         
+      	 neutrals    = "neutral",    plasma     = "H",
+	 diagnostics = {"M0", "intM0"},
       },
 
       -- Boundary conditions
@@ -337,7 +338,8 @@ plasmaApp = Plasma.App {
       ionization = Plasma.Ionization {
       	 collideWith = {"electron"},  elemCharge = eV, 
       	 electrons   = "electron",    elcMass    = me,
-      	 neutrals    = "neutral",     plasma     = "H",         
+      	 neutrals    = "neutral",     plasma     = "H",
+	 diagnostics = {"M0", "intM0"},
       },
       chargeExchange = Plasma.ChargeExchange {
       	 collideWith = {"ion"},    neutMass = mi,

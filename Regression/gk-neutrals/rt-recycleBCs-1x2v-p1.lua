@@ -140,7 +140,8 @@ sim = Plasma.App {
       ionization = Plasma.Ionization {
       	 collideWith = {"neut"},  elemCharge   = eV, 
          electrons   = "elc",     elcMass      = me,
-      	 neutrals    = "neut",    plasma       = "H",         
+      	 neutrals    = "neut",    plasma       = "H",
+         diagnostics = {"M0", "intM0"},
       },
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
       bcx = {Plasma.SheathBC{diagnostics={"M0","Upar","intM0"}},
@@ -251,6 +252,7 @@ sim = Plasma.App {
       	 collideWith = {"elc"},  elemCharge = eV,
       	 electrons   = "elc",    elcMass    = me,
       	 neutrals    = "neut",   plasma     = "H",
+	 diagnostics = {"M0", "intM0"},
       },
       chargeExchange = Plasma.ChargeExchange {
       	 collideWith = {"ion"},	 neutMass = mi,

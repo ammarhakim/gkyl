@@ -77,6 +77,7 @@ plasmaApp = Plasma.App {
       	 elemCharge  = eV,               -- Define elementary charge.
       	 elcMass     = me,               -- Electron mass.
          plasma      = "H",              -- Ion species element.
+	 diagnostics = {"M0", "intM0"},
       },
 
       diagnostics = { "M0", "M1i", "M2", "VtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
@@ -107,7 +108,6 @@ plasmaApp = Plasma.App {
       	 elemCharge  = eV,               -- Define elementary charge.
       	 elcMass     = me,               -- Electron mass.
          plasma      = "H",              -- Ion species element.
-
       },
       chargeExchange = Plasma.ChargeExchange {
       	 collideWith = {"neut"},         -- Species to collide with.
@@ -147,6 +147,7 @@ plasmaApp = Plasma.App {
       	 elemCharge  = eV,             -- Define elementary charge.
       	 elcMass     = me,             -- Electron mass.
          plasma      = "H",            -- Ion species element.
+	 diagnostics = {"M0", "intM0"},
       },
       chargeExchange = Plasma.ChargeExchange {
       	 collideWith = {"ion"},        -- Species to collide with.
