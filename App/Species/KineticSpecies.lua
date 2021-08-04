@@ -223,6 +223,9 @@ function KineticSpecies:fullInit(appTbl)
    self.positivityDiffuse = xsys.pickBool(tbl.positivityDiffuse, self.positivity)
    self.positivityRescale = xsys.pickBool(tbl.positivityRescale, false)
    self.nonconPositivity  = xsys.pickBool(tbl.nonconPositivity, false)
+   if self.positivity and self.nonconPositivity then
+      assert(false, "KineticSpecies: 'self.positivity' and 'self.nonconPositvity cannot both be 'true'")
+   end
    
    -- for GK only: flag for gyroaveraging.
    self.gyavg = xsys.pickBool(tbl.gyroaverage, false)
