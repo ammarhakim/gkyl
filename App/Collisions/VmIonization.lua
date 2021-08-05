@@ -12,6 +12,8 @@
 local CollisionsBase = require "App.Collisions.CollisionsBase"
 local Constants      = require "Lib.Constants"
 local DataStruct     = require "DataStruct"
+local DiagsImplBase  = require "App.Diagnostics.DiagnosticsImplBase"
+local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
@@ -23,6 +25,47 @@ local xsys           = require "xsys"
 --
 -- Voronov ionization operator.
 ---------------------------------------------------------------------------
+
+-- ............... IMPLEMENTATION OF DIAGNOSTICS ................. --
+-- Diagnostics could be placed in a separate file if they balloon in
+-- number. But if we only have one or two we can just place it here.
+
+-- ~~~~ Source integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~
+local vmIzDiagImpl = function()
+   local _M0 = Proto(DiagsImplBase)
+   function _M0:fullInit(diagApp, mySpecies, fieldIn, owner)
+      self.field    = mySpecies:allocMoment()
+      self.updater  = mySpecies.numDensityCalc
+      self.owner    = owner
+      self.done     = false
+   end
+   function _M0:getType() return "grid" end
+   function _M0:advance(tm, inFlds, outFlds)
+      self.updater:advance(tm, {self.owner.ionizSrc}, {self.field})
+   end
+   
+   local _intM0 = Proto(DiagsImplBase)
+   function _intM0:fullInit(diagApp, mySpecies, fieldIn, owner)
+      self.fieldAux = mySpecies:allocMoment()
+      self.updatersAux = mySpecies.numDensityCalc
+      self.field    = DataStruct.DynVector { numComponents = 1 }
+      self.updater  = mySpecies.volIntegral.scalar
+      self.owner    = owner
+      self.done     = false
+   end
+   function _intM0:getType() return "integrated" end
+   function _intM0:advance(tm, inFlds, outFlds)
+      self.updatersAux:advance(tm, {self.owner.ionizSrc}, {self.fieldAux})
+      self.updater:advance(tm, {self.fieldAux}, {self.field})
+   end
+
+   return {
+      M0    = _M0,
+      intM0 = _intM0
+   }
+end
+
+-- .................... END OF DIAGNOSTICS ...................... --
 
 local VmIonization = Proto(CollisionsBase)
 
@@ -75,6 +118,16 @@ function VmIonization:fullInit(speciesTbl)
    end
 
    self.timers = {nonSlvr = 0.}
+end
+
+function VmIonization:createDiagnostics(mySpecies, field)
+   -- Create source diagnostics.
+   self.diagnostics = nil
+   if self.tbl.diagnostics then
+      self.diagnostics = DiagsApp{implementation = vmIzDiagImpl()}
+      self.diagnostics:fullInit(mySpecies, field, self)
+   end
+   return self.diagnostics
 end
 
 function VmIonization:setName(nm)
