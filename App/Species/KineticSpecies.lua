@@ -210,10 +210,10 @@ function KineticSpecies:fullInit(appTbl)
    self.collisions = {}
    for nm, val in pairs(tbl) do
       if Collisions.CollisionsBase.is(val) then
-	 self.collisions[nm] = val
-	 val:setSpeciesName(self.name)
-	 val:setName(nm) -- Do :setName after :setSpeciesName for collisions.
-     	 val:fullInit(tbl) -- Initialize collisions
+         self.collisions[nm] = val
+         val:setSpeciesName(self.name)
+         val:setName(nm) -- Do :setName after :setSpeciesName for collisions.
+         val:fullInit(tbl) -- Initialize collisions
       end
    end
    lume.setOrder(self.collisions)
@@ -474,10 +474,10 @@ function KineticSpecies:createSolver(field, externalField)
       self.intDelPosM0  = DataStruct.DynVector{numComponents = 1}
       self.intPosM0     = DataStruct.DynVector{numComponents = 1}
       self.calcIntPosM0 = Updater.CartFieldIntegratedQuantCalc {
-	    onGrid        = self.confGrid,
-	    basis         = self.confBasis,
-	    numComponents = 1,
-	    quantity      = "V",
+         onGrid        = self.confGrid,
+         basis         = self.confBasis,
+         numComponents = 1,
+         quantity      = "V",
       }
       self.nonconPos = Updater.PositivityRescale {
          onGrid = self.grid,
@@ -488,7 +488,7 @@ function KineticSpecies:createSolver(field, externalField)
          self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self.prePosM0})
          self.nonconPos:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]}, false)
 
-	 self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self.postPosM0})
+         self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self.postPosM0})
          self.delPosM0:combine(1.0, self.postPosM0, -1.0, self.prePosM0)
 
          local tm, lv = self.intPosM0:lastData()
@@ -846,8 +846,8 @@ function KineticSpecies:write(tm, force)
             self.posRescaler:write(tm, self.diagIoFrame, self.name)
          end
 
-	 self.nonconPosWrite(tCurr, self.diagIoFrame)
-	 
+         self.nonconPosWrite(tCurr, self.diagIoFrame)
+
          self.diagIoFrame = self.diagIoFrame+1
       end
    else
