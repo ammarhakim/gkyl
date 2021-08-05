@@ -13,9 +13,6 @@ local ffi          = require "ffi"
 local xsys         = require "xsys"
 local EqBase       = require "Eq.EqBase"
 
--- For incrementing in updater.
-ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOut); ]]
-
 -- Gyrokinetic Lenard-Bernstein equation on a rectangular mesh.
 local GkLBO = Proto(EqBase)
 
