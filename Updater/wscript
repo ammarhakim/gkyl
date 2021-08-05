@@ -403,7 +403,6 @@ def build(bld):
     
 ## Removed the following files from the build for now
 #     binOpCalcData/CartFieldBinOpSer3x3vP2.cpp
-#     binOpCalcData/CartFieldBinOpMax3x3vP2.cpp
 #    lagrangeFixData/lagrangeFix_gk_1x2v_ser_p2.cpp
 #    lagrangeFixData/lagrangeFix_gk_1x2v_tensor_p2.cpp
 #    lagrangeFixData/lagrangeFix_gk_2x2v_max_p1.cpp

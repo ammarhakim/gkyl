@@ -436,7 +436,7 @@ function GkBasicBC:getFlucF() return self.boundaryFluxRate end
 
 function GkBasicBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
 
-   self.setPhiWall:advance(tCurr, {}, self.phiWallFld) -- Compute wall potential if needed (i.e. sheath BC).
+   self.setPhiWall:advance(tCurr, {}, {self.phiWallFld}) -- Compute wall potential if needed (i.e. sheath BC).
    self.phi = self.getPhi(field, inIdx)              -- If needed get the current plasma potential (for sheath BC).
 
    local fIn = mySpecies:rkStepperFields()[outIdx] 
