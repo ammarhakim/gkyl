@@ -30,7 +30,6 @@ local xsys           = require "xsys"
 -- Diagnostics could be placed in a separate file if they balloon in
 -- number. But if we only have one or two we can just place it here.
 
--- ~~~~ Source integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~
 local gkIzDiagImpl = function()
    local _M0 = Proto(DiagsImplBase)
    function _M0:fullInit(diagApp, mySpecies, fieldIn, owner)
@@ -62,19 +61,21 @@ local gkIzDiagImpl = function()
    local _reactRate = Proto(DiagsImplBase)
    function _reactRate:fullInit(diagApp, mySpecies, fieldIn, owner)
       self.field = mySpecies:allocMoment()
-      self.owner    = owner
-      self.done     = false
+      self.owner = owner
+      self.done  = false
    end
    function _reactRate:getType() return "grid" end
    function _reactRate:advance(tm, inFlds, outFlds)
-      self.field:copy(self.owner.reactRate)
+      if self.owner.reactRate then
+	 self.field:copy(self.owner.reactRate)
+      end
    end
 
    local _source = Proto(DiagsImplBase)
    function _source:fullInit(diagApp, mySpecies, fieldIn, owner)
       self.field = mySpecies:allocDistf()
-      self.owner    = owner
-      self.done     = false
+      self.owner = owner
+      self.done  = false
    end
    function _source:getType() return "grid" end
    function _source:advance(tm, inFlds, outFlds)

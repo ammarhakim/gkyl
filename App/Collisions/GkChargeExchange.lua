@@ -13,6 +13,8 @@
 local CollisionsBase = require "App.Collisions.CollisionsBase"
 local Constants      = require "Lib.Constants"
 local DataStruct     = require "DataStruct"
+local DiagsImplBase  = require "App.Diagnostics.DiagnosticsImplBase"
+local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
@@ -23,7 +25,44 @@ local xsys           = require "xsys"
 -- GkChargeExchange  --------------------------------------------------------
 --
 -- Charge Exchange Operator
---------------------------------------------------------------------------------
+-----------------------------------------------------------------------------
+
+-- ............... IMPLEMENTATION OF DIAGNOSTICS ................. --
+-- Diagnostics could be placed in a separate file if they balloon in
+-- number. But if we only have one or two we can just place it here.
+
+local gkCxDiagImpl = function()
+   local _reactRate = Proto(DiagsImplBase)
+   function _reactRate:fullInit(diagApp, mySpecies, fieldIn, owner)
+      self.field = mySpecies:allocMoment()
+      self.owner = owner
+      self.done  = false
+   end
+   function _reactRate:getType() return "grid" end
+   function _reactRate:advance(tm, inFlds, outFlds)
+      if self.owner.reactRate then
+	 self.field:copy(self.owner.reactRate)
+      end
+   end
+
+   local _source = Proto(DiagsImplBase)
+   function _source:fullInit(diagApp, mySpecies, fieldIn, owner)
+      self.field = mySpecies:allocDistf()
+      self.owner = owner
+      self.done  = false
+   end
+   function _source:getType() return "grid" end
+   function _source:advance(tm, inFlds, outFlds)
+      self.field:copy(self.owner.sourceCX)
+   end
+
+   return {
+      reactRate = _reactRate,
+      source    = _source,
+   }
+end
+
+-- .................... END OF DIAGNOSTICS ...................... --
 
 local GkChargeExchange = Proto(CollisionsBase)
 
@@ -71,6 +110,16 @@ function GkChargeExchange:fullInit(speciesTbl)
    end
 
    self.timers = {nonSlvr = 0.}
+end
+
+function GkChargeExchange:createDiagnostics(mySpecies, field)
+   -- Create source diagnostics.
+   self.diagnostics = nil
+   if self.tbl.diagnostics then
+      self.diagnostics = DiagsApp{implementation = gkCxDiagImpl()}
+      self.diagnostics:fullInit(mySpecies, field, self)
+   end
+   return self.diagnostics
 end
 
 function GkChargeExchange:setName(nm)
@@ -207,12 +256,7 @@ function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
    self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 end
 
-function GkChargeExchange:write(tm, frame)
-   if self.reactRate then
-      self.reactRate:write(string.format("%s_reactRate_%d.bp", self.name, frame), tm, frame)
-      self.sourceCX:write(string.format("%s_source_%d.bp", self.name, frame), tm, frame)
-   end
-end
+function GkChargeExchange:write(tm, frame) end
 
 function GkChargeExchange:slvrTime()
    return 0

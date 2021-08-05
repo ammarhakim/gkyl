@@ -30,7 +30,6 @@ local xsys           = require "xsys"
 -- Diagnostics could be placed in a separate file if they balloon in
 -- number. But if we only have one or two we can just place it here.
 
--- ~~~~ Source integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~
 local vmIzDiagImpl = function()
    local _M0 = Proto(DiagsImplBase)
    function _M0:fullInit(diagApp, mySpecies, fieldIn, owner)
@@ -59,9 +58,35 @@ local vmIzDiagImpl = function()
       self.updater:advance(tm, {self.fieldAux}, {self.field})
    end
 
+   local _reactRate = Proto(DiagsImplBase)
+   function _reactRate:fullInit(diagApp, mySpecies, fieldIn, owner)
+      self.field = mySpecies:allocMoment()
+      self.owner = owner
+      self.done  = false
+   end
+   function _reactRate:getType() return "grid" end
+   function _reactRate:advance(tm, inFlds, outFlds)
+      if self.owner.reactRate then
+	 self.field:copy(self.owner.reactRate)
+      end
+   end
+
+   local _source = Proto(DiagsImplBase)
+   function _source:fullInit(diagApp, mySpecies, fieldIn, owner)
+      self.field = mySpecies:allocDistf()
+      self.owner    = owner
+      self.done     = false
+   end
+   function _source:getType() return "grid" end
+   function _source:advance(tm, inFlds, outFlds)
+      self.field:copy(self.owner.ionizSrc)
+   end
+
    return {
-      M0    = _M0,
-      intM0 = _intM0
+      M0        = _M0,
+      intM0     = _intM0,
+      reactRate = _reactRate,
+      source    = _source,
    }
 end
 
@@ -303,14 +328,7 @@ function VmIonization:advance(tCurr, fIn, species, fRhsOut)
    self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 end
    
-function VmIonization:write(tm, frame)
-   if self.reactRate then
-      self.reactRate:write(string.format("%s_reactRate_%d.bp", self.name, frame), tm, frame)
-      self.ionizSrc:write(string.format("%s_source_%d.bp", self.name, frame), tm, frame)
-   elseif self.speciesName == self.neutNm then
-      self.ionizSrc:write(string.format("%s_source_%d.bp", self.name, frame), tm, frame)
-   end
-end
+function VmIonization:write(tm, frame) end
 
 function VmIonization:setCfl(cfl)
    self.cfl = cfl
