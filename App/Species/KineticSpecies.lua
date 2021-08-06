@@ -210,16 +210,21 @@ function KineticSpecies:fullInit(appTbl)
    self.collisions = {}
    for nm, val in pairs(tbl) do
       if Collisions.CollisionsBase.is(val) then
-	 self.collisions[nm] = val
-	 self.collisions[nm]:setName(nm)
-	 val:setSpeciesName(self.name)
-	 val:fullInit(tbl) -- Initialize collisions
+         self.collisions[nm] = val
+         val:setSpeciesName(self.name)
+         val:setName(nm) -- Do :setName after :setSpeciesName for collisions.
+         val:fullInit(tbl) -- Initialize collisions
       end
    end
+   lume.setOrder(self.collisions)
 
    self.positivity        = xsys.pickBool(tbl.applyPositivity, false)
    self.positivityDiffuse = xsys.pickBool(tbl.positivityDiffuse, self.positivity)
    self.positivityRescale = xsys.pickBool(tbl.positivityRescale, false)
+   self.nonconPositivity  = xsys.pickBool(tbl.nonconPositivity, false)
+   if self.positivity and self.nonconPositivity then
+      assert(false, "KineticSpecies: 'self.positivity' and 'self.nonconPositvity cannot both be 'true'")
+   end
    
    -- for GK only: flag for gyroaveraging.
    self.gyavg = xsys.pickBool(tbl.gyroaverage, false)
@@ -332,16 +337,12 @@ function KineticSpecies:createGrid(confGridIn)
       mappings      = coordinateMap,
    }
 
-   for _, c in pairs(self.collisions) do
-      c:setPhaseGrid(self.grid)
-   end
+   for _, c in pairs(self.collisions) do c:setPhaseGrid(self.grid) end
 end
 
 function KineticSpecies:createBasis(nm, polyOrder)
    self.basis = createBasis(nm, self.ndim, polyOrder)
-   for _, c in pairs(self.collisions) do
-      c:setPhaseBasis(self.basis)
-   end
+   for _, c in pairs(self.collisions) do c:setPhaseBasis(self.basis) end
 
    -- Output of grid file is placed here because as the file name is associated
    -- with a species, we wish to save the basisID and polyOrder in it. But these
@@ -465,6 +466,42 @@ function KineticSpecies:createSolver(field, externalField)
          onGrid = self.grid,
          basis  = self.basis,
       }
+   end
+   if self.nonconPositivity then
+      self.prePosM0     = self:allocMoment()
+      self.postPosM0    = self:allocMoment()
+      self.delPosM0     = self:allocMoment()
+      self.intDelPosM0  = DataStruct.DynVector{numComponents = 1}
+      self.intPosM0     = DataStruct.DynVector{numComponents = 1}
+      self.calcIntPosM0 = Updater.CartFieldIntegratedQuantCalc {
+         onGrid        = self.confGrid,
+         basis         = self.confBasis,
+         numComponents = 1,
+         quantity      = "V",
+      }
+      self.nonconPos = Updater.PositivityRescale {
+         onGrid = self.grid,
+         basis  = self.basis,
+         nonconservative = true,
+      }
+      self.nonconPosAdv = function(tCurr, outIdx) 
+         self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self.prePosM0})
+         self.nonconPos:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]}, false)
+
+         self.numDensityCalc:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self.postPosM0})
+         self.delPosM0:combine(1.0, self.postPosM0, -1.0, self.prePosM0)
+
+         local tm, lv = self.intPosM0:lastData()
+         self.calcIntPosM0:advance(tCurr, {self.delPosM0}, {self.intDelPosM0})
+         local tmDel, lvDel = self.intDelPosM0:lastData()
+         self.intPosM0:appendData(tmDel, {lv[1]+lvDel[1]})
+      end
+      self.nonconPosWrite = function(tCurr, frame)
+         self.intPosM0:write( string.format("%s_intPosM0.bp", self.name), tCurr, frame)
+      end
+   else
+      self.nonconPosAdv = function(tCurr, outIdx) end
+      self.nonconPosWrite = function(tCurr, frame) end
    end
 end
 
@@ -683,23 +720,25 @@ function KineticSpecies:clearMomentFlags(species)
 end
 
 function KineticSpecies:checkPositivity(tCurr, idx)
-  local status = true
-  if self.positivity then
-     status = self.posChecker:advance(tCurr, {self:rkStepperFields()[idx]}, {})
-  end
-  return status
+   local status = true
+   if self.positivity then
+      status = self.posChecker:advance(tCurr, {self:rkStepperFields()[idx]}, {})
+   end
+   return status
 end
 
 function KineticSpecies:applyBcIdx(tCurr, field, externalField, inIdx, outIdx, isFirstRk)
-  if self.positivityDiffuse then
-     self.fDelPos[outIdx]:combine(-1.0, self:rkStepperFields()[outIdx])
-     self.posRescaler:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]}, true, isFirstRk)
-     self.fDelPos[outIdx]:accumulate(1.0, self:rkStepperFields()[outIdx])
-  end
-  self:applyBc(tCurr, field, externalField, inIdx, outIdx)
-  if self.positivity then
-     self:checkPositivity(tCurr, outIdx)
-  end
+   if self.positivityDiffuse then
+      self.fDelPos[outIdx]:combine(-1.0, self:rkStepperFields()[outIdx])
+      self.posRescaler:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]}, true, isFirstRk)
+      self.fDelPos[outIdx]:accumulate(1.0, self:rkStepperFields()[outIdx])
+   end
+   self:applyBc(tCurr, field, externalField, inIdx, outIdx)
+   if self.positivity then
+      self:checkPositivity(tCurr, outIdx)
+   end
+
+   self.nonconPosAdv(tCurr, outIdx)
 end
 
 function KineticSpecies:applyBcDontEvolve(tCurr, field, externalField, inIdx, outIdx) end
@@ -747,39 +786,6 @@ function KineticSpecies:createDiagnostics(field)
       or function(tm, fldIn, fldOut) fldOut:copy(fldIn) end
 end
 
-function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
-    -- IMPORTANT: do not use this method anymore. It should disappear. The stuff below will be moved elsewhere (MF).
-
-    -- Write ionization diagnostics
-    if self.calcReactRate then
-       local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
-       self.fMaxwellIz:write(string.format("%s_fMaxwell_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       self.vtSqIz:write(string.format("%s_vtSqIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       self.voronovReactRate:write(string.format("%s_coefIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       -- include dynvector for zeroth vector of ionization source
-       tmStart = Time.clock()
-       self.intSrcIzM0:write(
-          string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
-       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart       
-    end
-
-    if self.calcIntSrcIz then
-       tmStart = Time.clock()
-       local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
-       sourceIz:write(string.format("%s_sourceIz_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       self.intSrcIzM0:write(
-          string.format("%s_intSrcIzM0.bp", self.name), tm, self.diagIoFrame)
-       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart    
-    end
-       
-    -- Write CX diagnostics
-    if self.calcCXSrc then
-       self.vSigmaCX:write(string.format("%s_vSigmaCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-       self.collisions[self.collNmCX].sourceCX:write(string.format("%s_sourceCX_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame, self.writeSkin)
-    end
-end
-
 function KineticSpecies:isEvolving() return self.evolve end
 
 function KineticSpecies:write(tm, force)
@@ -799,7 +805,7 @@ function KineticSpecies:write(tm, force)
       local tmStart = Time.clock()
       -- Compute integrated diagnostics.
       if self.calcIntQuantTrigger(tm) then
-         self:calcDiagnosticIntegratedMoments(tm)   -- MF: to be removed. Only here for some neutral diagnostics (to be moved).
+
          for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcIntegratedDiagnostics(tm, self)   -- Compute integrated diagnostics (this species' and other objects').
          end
@@ -821,7 +827,6 @@ function KineticSpecies:write(tm, force)
 
       if self.diagIoTrigger(tm) or force then
          -- Compute moments and write them out.
-         self:calcAndWriteDiagnosticMoments(tm)   -- MF: to be removed. Only here for some neutral diagnostics (to be moved).
 
          for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcGridDiagnostics(tm, self)   -- Compute grid diagnostics (this species' and other objects').
@@ -841,6 +846,8 @@ function KineticSpecies:write(tm, force)
             self.posRescaler:write(tm, self.diagIoFrame, self.name)
          end
 
+         self.nonconPosWrite(tCurr, self.diagIoFrame)
+
          self.diagIoFrame = self.diagIoFrame+1
       end
    else
@@ -848,15 +855,13 @@ function KineticSpecies:write(tm, force)
       if self.distIoFrame == 0 then
 
          local tmStart = Time.clock()
-         self:calcDiagnosticIntegratedMoments(tm)   -- MF: to be removed. Only here for some neutral diagnostics (to be moved).
+
          for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcIntegratedDiagnostics(tm, self)   -- Compute integrated diagnostics (this species' and other objects').
          end
          self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
 
 	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, 0), tm, 0)
-
-	 self:calcAndWriteDiagnosticMoments(tm)   -- MF: to be removed. Only here for some neutral diagnostics (to be moved).
 
          for _, dOb in lume.orderedIter(self.diagnostics) do
             dOb:calcGridDiagnostics(tm, self)   -- Compute grid diagnostics (this species' and other objects').
@@ -882,16 +887,6 @@ function KineticSpecies:writeRestart(tm)
       dOb:writeRestart(tm, self.diagIoFrame, self.dynVecRestartFrame)
    end
 
-   -- The following two should be moved elsehwere (MF).
-   if self.calcReactRate then
-      self.intSrcIzM0:write(
-	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
-   end
-   if self.calcIntSrcIz then
-      self.intSrcIzM0:write(
-	 string.format("%s_intSrcIzM0_restart.bp", self.name), tm, self.dynVecRestartFrame, false, false)
-   end
-
    self.dynVecRestartFrame = self.dynVecRestartFrame + 1
 end
 
@@ -914,7 +909,9 @@ function KineticSpecies:readRestart(field, externalField)
    for _, dOb in lume.orderedIter(self.diagnostics) do   -- Read grid and integrated diagnostics.
       local _, dfr = dOb:readRestart()
       diagIoFrame_new = diagIoFrame_new or dfr
-      assert(diagIoFrame_new==dfr, "KineticSpecies:readRestart expected diagnostics from previous run to have the same last frame.") 
+      if dfr then
+         assert(diagIoFrame_new==dfr, "KineticSpecies:readRestart expected diagnostics from previous run to have the same last frame.") 
+      end
    end
    -- The 'or self.distIoFrame' below is for sims without diagnostics, or when the first
    -- run didn't request diagnostics, but the latter (when the restart requests diagnostics
@@ -922,12 +919,12 @@ function KineticSpecies:readRestart(field, externalField)
    self.diagIoFrame = diagIoFrame_new or self.distIoFrame
    
    -- The following two should be moved elsehwere (MF).
-   if self.calcReactRate then
-      self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
-   end
-   if self.calcIntSrcIz then
-      self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
-   end
+   -- if self.calcReactRate then
+   --    self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
+   -- end
+   -- if self.calcIntSrcIz then
+   --    self.intSrcIzM0:read(string.format("%s_intSrcIzM0_restart.bp", self.name))
+   -- end
 
    -- Iterate triggers.
    self.distIoTrigger(tm)

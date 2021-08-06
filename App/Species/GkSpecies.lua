@@ -619,17 +619,8 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    			self.needSelfPrimMom  = true
 			self.calcReactRate    = true
    			self.collNmIoniz      = collNm
-			self.voronovReactRate = self:allocMoment()
-   			self.vtSqIz           = self:allocMoment()
-   			self.m0fMax           = self:allocMoment()
-   			self.m0mod            = self:allocMoment()
-   			self.fMaxwellIz       = self:allocDistf()
 			species[self.neutNmIz].calcIntSrcIz = true
 			species[self.neutNmIz].collNmIoniz = collNm
-			self.srcIzM0 = self:allocMoment()
-			self.intSrcIzM0 = DataStruct.DynVector {
-			   numComponents = 1,
-			}
    			counterIz_elc = false
 		     elseif self.name==species[sN].collisions[collNm].neutNm and counterIz_neut then
 			self.needSelfPrimMom = true
@@ -655,7 +646,7 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    			self.neutNmCX         = species[sN].collisions[collNm].neutNm
    			self.needSelfPrimMom  = true
 			species[self.neutNmCX].needSelfPrimMom = true
-			self.vSigmaCX         = self:allocMoment()
+			--self.vSigmaCX         = self:allocMoment()
    			species[self.neutNmCX].needSelfPrimMom = true
    			counterCX_ion = false
     		     end
@@ -774,7 +765,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
    if self.evolveCollisions then
-      for _, c in pairs(self.collisions) do
+      for nm, c in pairs(self.collisions) do
          c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
          c:advance(tCurr, fIn, species, fRhsOut)
       end
@@ -848,6 +839,10 @@ function GkSpecies:createDiagnostics(field)
    for bcNm, bc in lume.orderedIter(self.nonPeriodicBCs) do
       self.diagnostics[self.name..bcNm] = bc:createDiagnostics(self, field)
    end
+
+   for collNm, coll in lume.orderedIter(self.collisions) do
+      self.diagnostics[self.name..collNm] = coll:createDiagnostics(self, field)
+   end
    lume.setOrder(self.diagnostics)
 
    -- MF: This is here temporarily. It should be moved to the ionization app. 
@@ -856,17 +851,6 @@ function GkSpecies:createDiagnostics(field)
          onGrid = self.confGrid,   quantity      = "V",
          basis  = self.confBasis,  numComponents = 1,
       }
-   end
-end
-
-function GkSpecies:calcDiagnosticIntegratedMoments(tm)
-   -- IMPORTANT: do not use this method anymore. It should disappear. The stuff below will be moved elsewhere (MF).
-   local fIn = self:rkStepperFields()[1]
-
-   if self.calcReactRate then
-      local sourceIz = self.collisions[self.collNmIoniz]:getIonizSrc()
-      self.numDensityCalc:advance(tm, {sourceIz}, {self.srcIzM0})
-      self.intCalcIz:advance( tm, {self.srcIzM0}, {self.intSrcIzM0} )       
    end
 end
 
@@ -916,21 +900,13 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
             neuts:calcCouplingMoments(tCurr, rkIdx, species)
          end
          local neutM0   = neuts:fluidMoments()[1]
-         local neutU    = neuts:selfPrimitiveMoments()[1]
          local neutVtSq = neuts:selfPrimitiveMoments()[2]
             
          if tCurr == 0.0 then
             species[self.name].collisions[self.collNmIoniz].collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
          end
         
-         species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {self.voronovReactRate})
-         species[self.name].collisions[self.collNmIoniz].calcIonizationTemp:advance(tCurr, {self.vtSqSelf}, {self.vtSqIz})
-
-         self.calcMaxwell:advance(tCurr, {self.numDensity, neutU, self.vtSqIz, self.bmag}, {self.fMaxwellIz})
-
-         self.numDensityCalc:advance(tCurr, {self.fMaxwellIz}, {self.m0fMax})
-         self.confDiv:advance(tCurr, {self.m0fMax, self.numDensity}, {self.m0mod})
-         self.confPhaseWeakMultiply:advance(tCurr, {self.m0mod, self.fMaxwellIz}, {self.fMaxwellIz})
+         species[self.name].collisions[self.collNmIoniz].collisionSlvr:advance(tCurr, {neutM0, neutVtSq, self.vtSqSelf}, {species[self.name].collisions[self.collNmIoniz].reactRate})
       end
 
       if self.calcCXSrc then
@@ -943,8 +919,8 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx, species)
          local m0       = neuts:fluidMoments()[1]
          local neutU    = neuts:selfPrimitiveMoments()[1]
          local neutVtSq = neuts:selfPrimitiveMoments()[2]
-	 
-      	 species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uParSelf, neutU, self.vtSqSelf, neutVtSq}, {self.vSigmaCX})
+
+	 species[self.neutNmCX].collisions[self.collNmCX].collisionSlvr:advance(tCurr, {m0, self.uParSelf, neutU, self.vtSqSelf, neutVtSq}, {species[self.name].collisions[self.collNmCX].reactRate})
       end
       
       self.timers.couplingMom = self.timers.couplingMom + Time.clock() - tmStart
@@ -1054,10 +1030,6 @@ function GkSpecies:getPolarizationWeight(linearized)
       return self.n0*self.mass/self.B0^2
    end
 end
-
-function GkSpecies:getVoronovReactRate() return self.voronovReactRate end
-
-function GkSpecies:getFMaxwellIz() return self.fMaxwellIz end
 
 function GkSpecies:getSrcCX() return self.srcCX end
 

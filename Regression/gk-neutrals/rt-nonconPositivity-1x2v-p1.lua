@@ -1,6 +1,7 @@
 -- Gkyl --------------------------------------------------------------
 --
 -- Basic sheath simulation with neutrals and recycling BCs.
+-- Nonconservative positivity for neutrals included.
 --
 -- For runs in parallel use:
 -- ~/gkylsoft/openmpi/bin/mpirun -n 4 ~/gkylsoft/gkyl/bin/gkyl <filename>
@@ -141,7 +142,7 @@ sim = Plasma.App {
       	 collideWith = {"neut"},  elemCharge   = eV, 
          electrons   = "elc",     elcMass      = me,
       	 neutrals    = "neut",    plasma       = "H",
-         diagnostics = {"M0", "intM0", "reactRate", "source"},
+	 diagnostics = {"M0", "intM0", "reactRate", "source"},
       },
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
       bcx = {Plasma.SheathBC{diagnostics={"M0","Upar","intM0"}},
@@ -200,7 +201,7 @@ sim = Plasma.App {
       	 collideWith = {"neut"},  neutMass = mi,
       	 ions        = "ion",     plasma   = "H",
       	 neutrals    = "neut",    charge   = qi,
-      	 ionMass     = mi,        diagnostics = {"reactRate","source"},
+      	 ionMass     = mi,        diagnostics = {"reactRate", "source"},
       },
       diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2"},
       bcx = {Plasma.SheathBC{diagnostics={"M0","Upar","intM0"}},
@@ -215,6 +216,7 @@ sim = Plasma.App {
       upper = { 4.0*vti,  4.0*vti,  4.0*vti},
       cells = {8, 8, 8},
       decompCuts = {1},
+      nonconPositivity = true,
       init = Plasma.VmMaxwellianProjection {
          density = function (t, xn)
             local x, vpar = xn[1], xn[2]

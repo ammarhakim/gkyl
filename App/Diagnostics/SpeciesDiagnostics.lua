@@ -114,7 +114,7 @@ function SpeciesDiagnostics:fullInit(mySpecies, field, diagOwner)
       self.inTwoFiles = true
    end
 
-   -- Sort requested diagnostics into grid and integrated diagnostics.
+   -- Sort requested diagnostics into grid and integrated diagnostics.   
    for _, nm in ipairs(diagOwner.tbl.diagnostics) do
       if contains(diagsImpl, nm) then
          self.diags[nm] = diagsImpl[nm]{}

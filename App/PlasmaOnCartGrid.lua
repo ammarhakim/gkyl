@@ -1033,6 +1033,8 @@ return {
          ReflectBC  = require ("App.BCs.GkBasic").GkReflect,
          SheathBC   = require ("App.BCs.GkBasic").GkSheath,
          ZeroFluxBC = require ("App.BCs.GkBasic").GkZeroFlux,
+	 VmAbsorbBC = require ("App.BCs.VlasovBasic").VlasovAbsorb,
+	 VmReflectBC = require ("App.BCs.VlasovBasic").VlasovReflect,
 	 BGKCollisions   = require "App.Collisions.GkBGKCollisions",
 	 BgkCollisions   = require "App.Collisions.GkBGKCollisions",
 	 ChargeExchange  = require "App.Collisions.GkChargeExchange",
