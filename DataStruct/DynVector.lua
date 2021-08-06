@@ -333,10 +333,27 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
       frNum      = frNum or 0
    end
 
-   -- Create group and set I/O method.
-   local grpNm = "DynVector"..frNum..outNm
-   local grpId = Adios.declare_group(grpNm, "", Adios.flag_no)
-   Adios.select_method(grpId, "MPI", "", "")
+   if self._isFirst then
+      -- Create group and set I/O method.
+      self.grpNm = "DynVector"..outNm
+      self.grpId = Adios.declare_group(self.grpNm, "", Adios.flag_no)
+      Adios.select_method(self.grpId, "MPI", "", "")
+
+      -- Write meta-data for this file.
+      for attrNm, v in pairs(self._metaData) do
+         if v.vType == "integer" then
+            Adios.define_attribute_byvalue(self.grpId, attrNm, "", Adios.integer, 1, v.value)
+         elseif v.vType == "double" then
+            Adios.define_attribute_byvalue(self.grpId, attrNm, "", Adios.double, 1, v.value)
+         elseif v.vType == "string" then
+            Adios.define_attribute_byvalue(self.grpId, attrNm, "", Adios.string, 1, v.value)
+         elseif v.vType == "table" then
+            Adios.define_attribute_byvalue(self.grpId, attrNm, "", v.elementType, v.numElements, v.value)
+         end
+      end
+      self._isFirst = false
+   end
+
    
    -- ADIOS expects CSV string to specify data shape
    local localTmSz  = toCSV( {self._data:size()} )
@@ -344,31 +361,15 @@ function DynVector:write(outNm, tmStamp, frNum, flushData, appendData)
    
    -- Define data to write.
    Adios.define_var(
-      grpId, "TimeMesh"..self.frNum, "", Adios.double, localTmSz, "", "")
+      self.grpId, "TimeMesh"..self.frNum, "", Adios.double, localTmSz, localTmSz, "")
    Adios.define_var(
-      grpId, "Data"..self.frNum, "", Adios.double, localDatSz, "", "")
-
-   if self._isFirst then
-      -- Write meta-data for this file.
-      for attrNm, v in pairs(self._metaData) do
-         if v.vType == "integer" then
-            Adios.define_attribute_byvalue(grpId, attrNm, "", Adios.integer, 1, v.value)
-         elseif v.vType == "double" then
-            Adios.define_attribute_byvalue(grpId, attrNm, "", Adios.double, 1, v.value)
-         elseif v.vType == "string" then
-            Adios.define_attribute_byvalue(grpId, attrNm, "", Adios.string, 1, v.value)
-         elseif v.vType == "table" then
-            Adios.define_attribute_byvalue(grpId, attrNm, "", v.elementType, v.numElements, v.value)
-         end
-      end
-      self._isFirst = false
-   end
+      self.grpId, "Data"..self.frNum, "", Adios.double, localDatSz, localDatSz, "")
 
    local fullNm = GKYL_OUT_PREFIX .. "_" .. outNm
    if frNum == 0 or not appendData then
-      fd = Adios.open(grpNm, fullNm, "w", comm[0])
+      fd = Adios.open(self.grpNm, fullNm, "w", comm[0])
    else
-      fd = Adios.open(grpNm, fullNm, "u", comm[0])
+      fd = Adios.open(self.grpNm, fullNm, "u", comm[0])
    end
 
    Adios.write(fd, "TimeMesh"..self.frNum, self._timeMesh:data())
