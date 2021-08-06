@@ -656,11 +656,9 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
 
    -- Perform the collision update.
-   if self.evolveCollisions then
-      for _, c in pairs(self.collisions) do
-         c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-         c:advance(tCurr, fIn, species, fRhsOut)   -- 'species' needed for cross-species collisions.
-      end
+   for _, c in pairs(self.collisions) do
+      c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      c:advance(tCurr, fIn, species, fRhsOut)   -- 'species' needed for cross-species collisions.
    end
 
    for _, src in lume.orderedIter(self.sources) do src:advance(tCurr, fIn, species, fRhsOut) end

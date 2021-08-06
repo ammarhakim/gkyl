@@ -75,7 +75,6 @@ vlasovApp = Plasma.App {
          exactLagFixM012 = false,
       },
       evolve = true,
-      --evolveCollisions = false,
       -- Diagnostic moments.
       diagnostics = { "M0", "M1i", "M2", "Udrift", "VtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
       -- Collisions.
@@ -116,7 +115,6 @@ vlasovApp = Plasma.App {
          exactLagFixM012 = false,
       },
       evolve = true,
-      --evolveCollisions = false,
       -- Diagnostic moments.
       diagnostics = { "M0", "M1i", "M2", "Udrift", "VtSq", "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
       -- Collisions.

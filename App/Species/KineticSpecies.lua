@@ -44,9 +44,7 @@ local KineticSpecies = Proto(SpeciesBase)
 
 -- This ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below.
-function KineticSpecies:init(tbl)
-   self.tbl = tbl
-end
+function KineticSpecies:init(tbl) self.tbl = tbl end
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
@@ -62,7 +60,6 @@ function KineticSpecies:fullInit(appTbl)
 
    self.evolve              = xsys.pickBool(tbl.evolve, true) -- By default, evolve species.
    self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless, self.evolve) 
-   self.evolveCollisions    = xsys.pickBool(tbl.evolveCollisions, self.evolve) 
 
    assert(#self.lower == self.vdim, "'lower' must have " .. self.vdim .. " entries")
    assert(#self.upper == self.vdim, "'upper' must have " .. self.vdim .. " entries")
@@ -836,10 +833,8 @@ function KineticSpecies:write(tm, force)
             dOb:write(tm, self.diagIoFrame)
          end
 
-         if self.evolveCollisions then
-            for _, c in pairs(self.collisions) do
-               c:write(tm, self.diagIoFrame)
-            end
+         for _, c in lume.orderedIter(self.collisions) do
+            c:write(tm, self.diagIoFrame)  -- MF: Preferably this method will go away. Use diagnostics instead.
          end
 
          if self.positivityDiffuse then
