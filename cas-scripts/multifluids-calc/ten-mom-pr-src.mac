@@ -55,6 +55,43 @@ A : ident(6)-dt1*srcJac $
 invA : invert(A) $
 d : denom(fullratsimp(invA[1,1]))$
 invAd : fullratsimp( d*invA ) $
-pr : transpose( matrix(makelist(prOut[i],i,0,5)) )$
-sol : fullratsimp( invAd.pr )$
+pout : transpose( matrix(makelist(prOut[i],i,0,5)) )$
+pr : transpose( matrix(makelist(prRhs[i],i,0,5)) )$
+sol : expand(invAd.pr)$
 
+/* switch magnetic field notation prior to write out */
+let(B[1], Bx)$
+let(B[2], By)$
+let(B[3], Bz)$
+sol : map(letsimp, sol)$
+
+/* Simplify some terms for ease of write out of solution */
+/* NOTE: the order of these let statements is deliberate,
+         as Maxima assumes the order of the let is hierarchal
+         so need to simplify the ^4, then ^3, then ^2 terms */
+let(dt1^4, dt4)$
+let(dt1^3, dt3)$
+let(dt1^2, dtsq)$
+
+let(Bx^4, Bx4)$
+let(Bx^3, Bx3)$
+let(Bx^2, Bx2)$
+
+let(By^4, By4)$
+let(By^3, By3)$
+let(By^2, By2)$
+
+let(Bz^4, Bz4)$
+let(Bz^3, Bz3)$
+let(Bz^2, Bz2)$
+
+let(qbym^4, qb4)$
+let(qbym^3, qb3)$
+let(qbym^2, qb2)$
+
+fh : openw("~/max-out/rotate.c")$
+sol : map(letsimp, sol)$
+for i : 1 thru length(sol) do (
+  printf(fh, "  ~a = 2.0*(~a)/d - ~a;~%", pout[i,1], sol[i,1], pr[i,1])
+)$
+close(fh)$
