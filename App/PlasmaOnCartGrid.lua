@@ -98,30 +98,36 @@ local function buildApplication(self, tbl)
       assert(false, "ioMethod must be one of 'MPI' or 'POSIX'. Provided '" .. ioMethod .. "' instead")
    end
 
-   local goodStepperNames = { "rk1", "rk2", "rk3", "rk3s4", "fvDimSplit" }
    -- Time-stepper.
+   local goodStepperNames = { "rk1", "rk2", "rk3", "rk3s4", "fvDimSplit" }
    local timeStepperNm = warnDefault(tbl.timeStepper, "timeStepper", "rk3")
-   if not lume.find(goodStepperNames, timeStepperNm) then
-      assert(false, "Incorrect timeStepper type " .. timeStepperNm .. " specified")
+   local timeIntegrator
+   if lume.find(goodStepperNames, timeStepperNm) then
+      if timeStepperNm == "rk1" then
+         timeIntegrator = require "App.TimeSteppers.SSP_RK1"
+      elseif timeStepperNm == "rk2" then
+         timeIntegrator = require "App.TimeSteppers.SSP_RK2"
+      elseif timeStepperNm == "rk3" then
+         timeIntegrator = require "App.TimeSteppers.SSP_RK3"
+      elseif timeStepperNm == "rk3s4" then
+         timeIntegrator = require "App.TimeSteppers.SSP_RK3s4"
+      elseif timeStepperNm == "fvDimSplit" then
+         timeIntegrator = require "App.TimeSteppers.FVdimSplit"
+      else
+         assert(false, "Time stepper not implemented.")
+      end
+   else
+      assert(false, "Incorrect timeStepper type " .. timeStepperNm .. " specified.")
    end
+   local timeStepper = timeIntegrator{}
 
-   -- CFL fractions for various steppers
-   local stepperCFLFracs = { rk1 = 1.0, rk2 = 1.0, rk3 = 1.0, rk3s4 = 2.0, fvDimSplit = 1.0 }
+   local maxDt = tbl.maximumDt or GKYL_MAX_DOUBLE
 
-   local cflFrac = tbl.cflFrac
-   -- Compute CFL fraction if not specified
-   if  cflFrac == nil then
-      cflFrac = stepperCFLFracs[timeStepperNm]
-   end
-
-   -- Number of fields needed for each stepper type
-   local stepperNumFields = { rk1 = 3, rk2 = 3, rk3 = 3, rk3s4 = 4, fvDimSplit = 3 }
+   local cflFrac = tbl.cflFrac or timeStepper.cflFrac   -- CFL fraction.
 
    -- Tracker for timestep
-   local dtTracker = DataStruct.DynVector {
-      numComponents = 1,
-   }
-   local dtPtr = Lin.Vec(1)
+   local dtTracker = DataStruct.DynVector { numComponents = 1, }
+   local dtPtr     = Lin.Vec(1)
 
    -- Parallel decomposition stuff.
    local useShared  = xsys.pickBool(tbl.useShared, false)   
@@ -157,7 +163,6 @@ local function buildApplication(self, tbl)
    }
 
    -- Some timers.
-   local stepperTime         = 0.
    local fwdEulerCombineTime = 0.
    local writeDataTime       = 0.
    local writeRestartTime    = 0.
@@ -207,7 +212,7 @@ local function buildApplication(self, tbl)
       -- Set up phase grid and basis.
       s:createGrid(confGrid)
       s:createBasis(basisNm, polyOrder)
-      s:alloc(stepperNumFields[timeStepperNm])
+      s:alloc(timeStepper.numFields)
    end
 
    -- Read in information about each fluid source
@@ -253,7 +258,7 @@ local function buildApplication(self, tbl)
       end
       
       -- Allocate field data.
-      fld:alloc(stepperNumFields[timeStepperNm])
+      fld:alloc(timeStepper.numFields)
 
       -- Initialize field solvers and diagnostics.
       fld:createDiagnostics()
@@ -395,11 +400,21 @@ local function buildApplication(self, tbl)
       field:applyBcIdx(tCurr, outIdx)
    end
 
-   -- Function to take a single forward-euler time-step.
-   local function forwardEuler(tCurr, dt, inIdx, outIdx)
-      local calcCflFlag = false
-      local dtSuggested
-      if dt == nil then calcCflFlag = true end
+   -- Store some flags and info about the state and work done by the app.
+   local appStatus = {
+      success      = true,
+      step         = 0,
+      -- For diagnostics:
+      nFwdEuler    = 0,
+      -- Below: an entry per stage (max 4 stages + 2 for operator splitting).
+      nFail        = {0, 0, 0, 0, 0, 0},
+      dtDiff       = {{GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.},
+                      {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.},
+                      {GKYL_MAX_DOUBLE, 0.}, {GKYL_MAX_DOUBLE, 0.}},
+   }
+
+   -- Compute the time rate of change (dy/dt).
+   local function dydt(tCurr, inIdx, outIdx)
       field:clearCFL()
       for _, s in lume.orderedIter(species) do
          s:clearCFL()
@@ -445,246 +460,42 @@ local function buildApplication(self, tbl)
             s[advanceString](s, tCurr, species, {field, externalField}, inIdx, outIdx)
          end
       end
+   end
 
-      if calcCflFlag then
-         dtSuggested = tbl.tEnd - tCurr + 1e-20
-         if tbl.maximumDt then dtSuggested = math.min(dtSuggested, tbl.maximumDt) end
-         
-         -- Get suggested dt from each field and species.
-         dtSuggested = math.min(dtSuggested, field:suggestDt())
-         for _, s in lume.orderedIter(species) do
-            dtSuggested = math.min(dtSuggested, s:suggestDt())
-         end
-         
-         -- After deciding global dt, tell species.
-         for _, s in lume.orderedIter(species) do s:setDtGlobal(dtSuggested) end
-      else 
-         dtSuggested = dt -- From argument list.
-         -- If calcCflFlag not being used, need to barrier before doing the RK combine.
-         -- When running with calcCflFlag, an all-reduce is done on the time-step to find
-         -- the smallest time step, giving us an implicit barrier before we combine RK steps.
-         Mpi.Barrier(self._confGrid:commSet().sharedComm)
-      end
+   -- Function to take a single forward-euler time-step.
+   local function forwardEuler(tCurr, dt, inIdx, outIdx, stat)
+      appStatus.nFwdEuler = appStatus.nFwdEuler + 1
+
+      local dtMin = GKYL_MAX_DOUBLE
+      -- Get suggested dt from each field and species.
+      dtMin = math.min(dtMin, field:suggestDt())
+      for nm, s in pairs(species) do dtMin = math.min(dtMin, s:suggestDt()) end
+
+      -- MF 2021/08/04: We will disable this criteria for now, so that the dt is
+      --                as it's been in g2 and not quite like it is in g0 now.
+      --local dt_maxRelDiff = 0.01
+      ---- Check if dtMin is slightly smaller than dt. Use dt if it is
+      ---- (avoids retaking steps if dt changes are very small).
+      --local dt_relDiff = (dt-dtMin)/dt
+      --if (dt_relDiff > 0 and dt_relDiff < dt_maxRelDiff) then dtMin = dt end
+
+      -- Don't take a time-step larger that input dt.
+      stat.dt_actual    = dt < dtMin and dt or dtMin
+      stat.dt_suggested = dtMin
+
+      stat.dt_actual = math.min(math.min(stat.dt_actual, tbl.tEnd - tCurr + 1e-20), maxDt)
+      
+      -- After deciding global dt, tell species.
+      for nm, s in pairs(species) do s:setDtGlobal(stat.dt_actual) end
       -- Take forward Euler step in fields and species
       -- NOTE: order of these arguments matters... outIdx must come before inIdx.
-      local tm = Time.clock()
-      combine(outIdx, dtSuggested, outIdx, 1.0, inIdx)
-      fwdEulerCombineTime = fwdEulerCombineTime + Time.clock() - tm
+      combine(outIdx, stat.dt_actual, outIdx, 1.0, inIdx)
       applyBc(tCurr, inIdx, outIdx, calcCflFlag)
-
-      return dtSuggested
    end
 
-   -- Various time-steppers. See gkyl docs for formulas for various
-   -- SSP-RK schemes:
-   -- http://gkyl.readthedocs.io/en/latest/dev/ssp-rk.html
-   local timeSteppers = {}
-
-   -- Function to advance solution using RK1 scheme (UNSTABLE! Only for testing).
-   function timeSteppers.rk1(tCurr)
-      local dt = forwardEuler(tCurr, nil, 1, 2)
-      local tm = Time.clock()
-      copy(1, 2)
-      stepperTime = stepperTime + (Time.clock() - tm)
-
-      return true, dt
-   end
-
-   -- Function to advance solution using SSP-RK2 scheme (mildly
-   -- unstable and in general should not be used).
-   function timeSteppers.rk2(tCurr)
-      -- RK stage 1.
-      local dt = forwardEuler(tCurr, nil, 1, 2)
-
-      -- RK stage 2.
-      forwardEuler(tCurr+dt, dt, 2, 3)
-      local tm = Time.clock()
-      combine(2, 1.0/2.0, 1, 1.0/2.0, 3)
-      copy(1, 2)
-      stepperTime = stepperTime + (Time.clock() - tm)
-
-      return true, dt
-   end
-
-   -- Function to advance solution using SSP-RK3 scheme.
-   function timeSteppers.rk3(tCurr)
-      -- RK stage 1.
-      local dt = forwardEuler(tCurr, nil, 1, 2)
-
-      -- RK stage 2.
-      forwardEuler(tCurr+dt, dt, 2, 3)
-      local tm = Time.clock()
-      combine(2, 3.0/4.0, 1, 1.0/4.0, 3)
-      stepperTime = stepperTime + (Time.clock() - tm)
-
-      -- RK stage 3.
-      forwardEuler(tCurr+dt/2, dt, 2, 3)
-      tm = Time.clock()
-      combine(2, 1.0/3.0, 1, 2.0/3.0, 3)
-      copy(1, 2)
-      stepperTime = stepperTime + (Time.clock() - tm)
-
-      return true, dt
-   end
-
-   -- Function to advance solution using 4-stage SSP-RK3 scheme.
-   function timeSteppers.rk3s4(tCurr)
-      -- RK stage 1.
-      local dt = forwardEuler(tCurr, nil, 1, 2)
-      local tm = Time.clock()
-      combine(3, 1.0/2.0, 1, 1.0/2.0, 2)
-      stepperTime = stepperTime + (Time.clock() - tm)
-
-      -- RK stage 2.
-      forwardEuler(tCurr+dt/2, dt, 3, 4)
-      tm = Time.clock()
-      combine(2, 1.0/2.0, 3, 1.0/2.0, 4)
-      stepperTime = stepperTime + (Time.clock() - tm)
-
-      -- RK stage 3.
-      forwardEuler(tCurr+dt, dt, 2, 3)
-      tm = Time.clock()
-      combine(4, 2.0/3.0, 1, 1.0/6.0, 2, 1.0/6.0, 3)
-      stepperTime = stepperTime + (Time.clock() - tm)
-
-      -- RK stage 4.
-      forwardEuler(tCurr+dt/2, dt, 4, 3)
-      tm = Time.clock()
-      combine(1, 1.0/2.0, 4, 1.0/2.0, 3)
-      stepperTime = stepperTime + (Time.clock() - tm)
-
-      return true, dt
-   end
-
-   -- Update solution in specified direction.
-   local function updateInDirection(dir, tCurr, dt, tryInv)
-      local status, dtSuggested = true, GKYL_MAX_DOUBLE
-      local fIdx = { {1,2}, {2,1}, {1,2} } -- For indexing inp/out fields.
-
-      local tryInv_next = {}
-      -- Update species.
-      for _, s in lume.orderedIter(species) do
-	 local vars = s:rkStepperFields()
-	 local inp, out = vars[fIdx[dir][1]], vars[fIdx[dir][2]]
-	 local myStatus, myDtSuggested, myTryInv = s:updateInDirection(
-	    dir, tCurr, dt, inp, out, tryInv[s])
-	 tryInv_next[s] = myTryInv
-	 status =  status and myStatus
-	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-      end
-      do
-	 -- Update field.
-	 local vars = field:rkStepperFields()
-	 local inp, out = vars[fIdx[dir][1]], vars[fIdx[dir][2]]
-	 local myStatus, myDtSuggested = field:updateInDirection(dir, tCurr, dt, inp, out)
-	 status =  status and myStatus
-	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-      end
-
-      return status, dtSuggested, tryInv_next
-   end
-
-   -- Update fluid sources.
-   local function updateFluidSource(dataIdx, tCurr, dt)
-      -- Make list of species data to operate on.
-      local speciesVar = {}
-      for nm, s in lume.orderedIter(species) do
-	 speciesVar[nm] = s:rkStepperFields()[dataIdx]
-      end
-      -- Field data to operate on.
-      local fieldVar = field:rkStepperFields()[dataIdx]
-
-      -- Expose freely-available array space space. Useful for storing
-      -- intermediate quantities like spatial gradient.
-      local bufIdx = (dataIdx==1) and 2 or 1
-      local speciesBuf = {}
-      for nm, s in lume.orderedIter(species) do
-         speciesBuf[nm] = s:rkStepperFields()[bufIdx]
-      end
-      -- Field data to operate on.
-      local fieldBuf = field:rkStepperFields()[bufIdx]
-
-      local status, dtSuggested = true, GKYL_MAX_DOUBLE
-      -- Update fluid source terms.
-      for _, flSrc in lume.orderedIter(fluidSources) do
-	 local myStatus, myDtSuggested = flSrc:updateFluidSource(
-            tCurr, dt, speciesVar, fieldVar, speciesBuf, fieldBuf, species,
-            field, externalField.em)
-	 status =  status and myStatus
-	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-      end
-
-      return status, dtSuggested
-   end
-
-   -- Function to advance solution using FV dimensionally split scheme.
-   function timeSteppers.fvDimSplit(tCurr, dt, tryInv)
-      local status, dtSuggested = true, GKYL_MAX_DOUBLE
-      local fIdx = { {1,2}, {2,1}, {1,2} } -- For indexing inp/out fields.
-
-      -- Copy in case we need to take this step again.
-      copy(3, 1)
-
-      -- Update fluid source by half time-step.
-      do
-	 local myStatus, myDtSuggested = updateFluidSource(1, tCurr, dt/2)
-	 status = status and myStatus
-	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-      end
-
-      -- Update solution in each direction.
-      local isInv = true
-      for d = 1, cdim do
-	 local myStatus, myDtSuggested, myTryInv = updateInDirection(d, tCurr, dt, tryInv)
-	 status =  status and myStatus
-	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-	 if not status then
-	    log(" ** Time step too large! Aborting this step!")
-	    break
-	 else
-	    -- If an updated species is invalid, plan to use lax flux for THIS
-	    -- species in the re-taken step.
-            for nm, s in lume.orderedIter(species) do
-	       if myTryInv[s] then
-		  isInv = false
-		  tryInv[s] = true
-		  log(string.format(
-			 "\n ** Invalid values in %s; Will re-update using Lax flux!\n", nm))
-	       end
-	    end
-	    -- Break the loop if any species is invalid.
-	    if not isInv then
-	       break
-	    end
-	 end
-      end
-      -- Is all species is valid, do not use lax in the next step.
-      if isInv then
-         for _, s in lume.orderedIter(species) do tryInv[s] = false end
-      end
-
-      -- Update fluid source by half time-step.
-      if status and isInv then
-	 local myStatus, myDtSuggested
-	 if fIdx[cdim][2] == 2 then
-	    myStatus, myDtSuggested = updateFluidSource(2, tCurr, dt/2)
-	 else
-	    myStatus, myDtSuggested = updateFluidSource(1, tCurr, dt/2)
-	 end
-	 status = status and myStatus
-	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-      end
-
-      if not (status and isInv) then
-	 copy(1, 3) -- Restore old solution in case of failure.
-      else
-	 -- If solution not already in field[1], copy for use in next
-	 -- time-step.
-	 if fIdx[cdim][2] == 2 then copy(1, 2) end
-      end
-      
-      return status, dtSuggested, isInv
-   end
+   -- Set functions in time stepper object.
+   timeStepper:createSolver(appStatus, {combine, copy, dydt, forwardEuler},
+                            {species, field, externalField, fluidSources})
 
    local devDiagnose = function()
       -- Perform performance/numerics-related diagnostics.
@@ -706,11 +517,11 @@ local function buildApplication(self, tbl)
       -- Sanity check: don't run if not needed.
       if tStart >= tEnd then return end
 
-      local maxDt = tbl.maximumDt and tbl.maximumDt or tEnd-tStart -- max time-step
-      local initDt =  tbl.suggestedDt and tbl.suggestedDt or maxDt -- initial time-step
-      local step = 1
-      local tCurr = tStart
-      local myDt = initDt
+      local dt_max  = tbl.maximumDt and tbl.maximumDt or tEnd-tStart -- max time-step
+      local dt_init = tbl.suggestedDt and tbl.suggestedDt or dt_max -- initial time-step
+      local tCurr   = tStart
+      local dt_next = dt_init
+      appStatus.step = 1
 
       -- Triggers for 10% and 1% loggers.
       local logTrigger = LinearTrigger(0, tEnd, 10)
@@ -743,7 +554,8 @@ local function buildApplication(self, tbl)
 	 if logTrigger(tCurr) then
 	    if logCount > 0 then
 	       log (string.format(
-		       " Step %6d at time  %#11.8g.  Time step  %.6e.  Completed %g%s\n", step, tCurr, myDt, tenth*10, "%"))
+		       " Step %6d at time  %#11.8g.  Time step  %.6e.  Completed %g%s\n", 
+                       appStatus.step, tCurr, dt_next, tenth*10, "%"))
 	    else
 	       logCount = logCount+1
 	    end
@@ -761,80 +573,64 @@ local function buildApplication(self, tbl)
       local irestart = 0
       local stopfile = GKYL_OUT_PREFIX .. ".stop"
 
-      -- For the fvDimSplit updater, tryInv contains for indicators for each
-      -- species whether the domain-invariant equation should be used in the
-      -- next step; they might be changed during fvDimSplit calls.
-      local tryInv = {}
-      for _, s in lume.orderedIter(species) do tryInv[s] = false end
-      local isInv = true
       -- Main simulation loop.
       while true do
 	 -- Call time-stepper.
-         local status, dtSuggested
-         if timeStepperNm == "fvDimSplit" then
-	    status, dtSuggested, isInv = timeSteppers[timeStepperNm](tCurr, myDt, tryInv)
-         else
-            status, myDt = timeSteppers[timeStepperNm](tCurr)
-            dtSuggested = myDt
-         end
+	 local stepStatus = timeStepper:advance(tCurr, dt_next)
     
          -- If stopfile exists, break.
          if (file_exists(stopfile)) then
-            writeData(tCurr+myDt, true)
-            writeRestart(tCurr+myDt)
+            writeData(tCurr+stepStatus.dt_actual, true)
+            writeRestart(tCurr+stepStatus.dt_actual)
             break
          end
 
          -- Abort simulation if the suggested timestep is 0, which means there are likely NaNs.
          -- Don't write anything.
-         if (myDt == 0.0) then
+         if (stepStatus.dt_suggested == 0.0) then
             log(string.format(" ERROR: dt is zero, there are likely NaNs. Terminating without writing files."))
             break
          end
 
-	 -- Check status and determine what to do next.
-	 if status and isInv then
+	 if appStatus.success then
             if first then 
-               log(string.format(" Step 0 at time %g. Time step %g. Completed 0%%\n", tCurr, myDt))
-               initDt = math.min(maxDt, dtSuggested); first = false
+               log(string.format(" Step 0 at time %g. Time step %g. Completed 0%%\n", tCurr, stepStatus.dt_actual))
+               dt_init = math.min(dt_max, stepStatus.dt_actual); first = false
             end
+	    tCurr = tCurr + stepStatus.dt_actual
             -- Track dt.
-            dtPtr:data()[0] = myDt
-            dtTracker:appendData(tCurr+myDt, dtPtr)
+            dtPtr:data()[0] = stepStatus.dt_actual
+            dtTracker:appendData(tCurr, dtPtr)
             -- Write log
-	    writeLogMessage(tCurr+myDt)
+	    writeLogMessage(tCurr)
 	    -- We must write data first before calling writeRestart in
 	    -- order not to mess up numbering of frames on a restart.
             local tmWrite = Time.clock()
-	    writeData(tCurr+myDt)
+	    writeData(tCurr)
             writeDataTime = writeDataTime + Time.clock() - tmWrite
-	    if checkWriteRestart(tCurr+myDt) then
+	    if checkWriteRestart(tCurr) then
                local tmRestart = Time.clock()
-	       writeRestart(tCurr+myDt)
-               dtTracker:write(string.format("dt.bp"), tCurr+myDt, irestart)
+	       writeRestart(tCurr)
+               dtTracker:write(string.format("dt.bp"), tCurr, irestart)
                irestart = irestart + 1
                writeRestartTime = writeRestartTime + Time.clock() - tmRestart
 	    end	    
 	    
-	    tCurr = tCurr + myDt
-	    myDt = math.min(dtSuggested, maxDt)
-	    step = step + 1
+	    dt_next = math.min(stepStatus.dt_suggested, dt_max)
+	    appStatus.step = appStatus.step + 1
 	    if (tCurr >= tEnd) then break end
-	 elseif not status then
-	    log (string.format(" ** Time step %g too large! Will retake with dt %g\n", myDt, dtSuggested))
-	    myDt = dtSuggested
-	 elseif not isInv then
-	    log (string.format(" ** Invalid values detected! Will retake with dt %g\n", dtSuggested))
-	    myDt = dtSuggested
+	 else
+	    log(string.format(" ** Step failed with dt=%g! Will retake with dt=%g\n", dt_next, stepStatus.dt_suggested))
+	    dt_next = stepStatus.dt_suggested
 	 end
 
-         if (myDt < 1e-4*initDt) then 
+         if (dt_next < 1e-4*dt_init) then 
             failcount = failcount + 1
-            log(string.format("WARNING: Timestep dt = %g is below 1e-4*initDt. Fail counter = %d...\n", myDt, failcount))
+            log(string.format("WARNING: Timestep dt = %g is below 1e-4*dt_init. Fail counter = %d...\n", dt_next, failcount))
             if failcount > 20 then
-               writeData(tCurr+myDt, true)
-               dtTracker:write(string.format("dt.bp"), tCurr+myDt)
-               log(string.format("ERROR: Timestep below 1e-4*initDt for 20 consecutive steps. Exiting...\n"))
+               writeData(tCurr+stepStatus.dt_actual, true)
+               dtTracker:write(string.format("dt.bp"), tCurr+stepStatus.dt_actual)
+               log(string.format("ERROR: Timestep below 1e-4*dt_init for 20 consecutive steps. Exiting...\n"))
                break
             end
          else
@@ -872,98 +668,107 @@ local function buildApplication(self, tbl)
 
       local tmTotal = tmSimEnd-tmSimStart
       local tmAccounted = 0.0
-      log(string.format("\nTotal number of time-steps %s\n", step))
+      log(string.format("\n\nTotal number of time-steps %s\n", appStatus.step))
+      log(string.format("   Number of forward-Euler calls %s\n", appStatus.nFwdEuler))
+      for stI = 2, 3 do
+         log(string.format("   Number of RK stage-"..stI.." failures %s\n", appStatus.nFail[stI]))
+         if appStatus.nFail[stI] > 0 then
+            log(string.format("     Min rel dt diff for RK stage-"..stI.." failures %s\n", appStatus.dtDiff[stI][1]))
+            log(string.format("     Max rel dt diff for RK stage-"..stI.." failures %s\n", appStatus.dtDiff[stI][2]))
+         end
+      end
+      log("")
       --log(string.format(
 	--     "Number of barriers %d barriers (%g barriers/step)\n\n",
-	--     Mpi.getNumBarriers(), Mpi.getNumBarriers()/step))
+	--     Mpi.getNumBarriers(), Mpi.getNumBarriers()/appStatus.step))
       
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
-	     "Solver took", tmSlvr, tmSlvr/step, 100*tmSlvr/tmTotal))
+	     "Solver took", tmSlvr, tmSlvr/appStatus.step, 100*tmSlvr/tmTotal))
       tmAccounted = tmAccounted + tmSlvr
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
-	     "Solver BCs took", tmBc, tmBc/step, 100*tmBc/tmTotal))
+	     "Solver BCs took", tmBc, tmBc/appStatus.step, 100*tmBc/tmTotal))
       tmAccounted = tmAccounted + tmBc
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Field solver took",
-	     field:totalSolverTime(), field:totalSolverTime()/step, 100*field:totalSolverTime()/tmTotal))
+	     field:totalSolverTime(), field:totalSolverTime()/appStatus.step, 100*field:totalSolverTime()/tmTotal))
       tmAccounted = tmAccounted + field:totalSolverTime()
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Field solver BCs",
-	     field:totalBcTime(), field:totalBcTime()/step, 100*field:totalBcTime()/tmTotal))
+	     field:totalBcTime(), field:totalBcTime()/appStatus.step, 100*field:totalBcTime()/tmTotal))
       tmAccounted = tmAccounted + field:totalBcTime()
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Function field solver took",
-	     externalField:totalSolverTime(), externalField:totalSolverTime()/step, 100*externalField:totalSolverTime()/tmTotal))
+	     externalField:totalSolverTime(), externalField:totalSolverTime()/appStatus.step, 100*externalField:totalSolverTime()/tmTotal))
       tmAccounted = tmAccounted + externalField:totalSolverTime()
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Moment calculations took",
-	     tmMom, tmMom/step, 100*tmMom/tmTotal))
+	     tmMom, tmMom/appStatus.step, 100*tmMom/tmTotal))
       tmAccounted = tmAccounted + tmMom
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Integrated moment calculations took",
-	     tmIntMom, tmIntMom/step, 100*tmIntMom/tmTotal))
+	     tmIntMom, tmIntMom/appStatus.step, 100*tmIntMom/tmTotal))
       tmAccounted = tmAccounted + tmIntMom
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Field energy calculations took",
-	     field:energyCalcTime(), field:energyCalcTime()/step, 100*field:energyCalcTime()/tmTotal))
+	     field:energyCalcTime(), field:energyCalcTime()/appStatus.step, 100*field:energyCalcTime()/tmTotal))
       tmAccounted = tmAccounted + field:energyCalcTime()
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Collision solver(s) took",
-	     tmColl, tmColl/step, 100*tmColl/tmTotal))
+	     tmColl, tmColl/appStatus.step, 100*tmColl/tmTotal))
       tmAccounted = tmAccounted + tmColl
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Collision (other) took",
-	     tmCollNonSlvr, tmCollNonSlvr/step, 100*tmCollNonSlvr/tmTotal))
+	     tmCollNonSlvr, tmCollNonSlvr/appStatus.step, 100*tmCollNonSlvr/tmTotal))
       tmAccounted = tmAccounted + tmCollNonSlvr
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Source updaters took",
-	     tmSrc, tmSrc/step, 100*tmSrc/tmTotal))
+	     tmSrc, tmSrc/appStatus.step, 100*tmSrc/tmTotal))
       tmAccounted = tmAccounted + tmSrc
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Stepper combine/copy took",
-	     stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
-      tmAccounted = tmAccounted + stepperTime
+	     timeStepper.stepperTime, timeStepper.stepperTime/appStatus.step, 100*timeStepper.stepperTime/tmTotal))
+      tmAccounted = tmAccounted + timeStepper.stepperTime
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Forward Euler combine took",
-	     fwdEulerCombineTime, fwdEulerCombineTime/step, 100*fwdEulerCombineTime/tmTotal))
+	     fwdEulerCombineTime, fwdEulerCombineTime/appStatus.step, 100*fwdEulerCombineTime/tmTotal))
       tmAccounted = tmAccounted + fwdEulerCombineTime
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
       	     "Time spent in barrier function",
-      	     Mpi.getTimeBarriers(), Mpi.getTimeBarriers()/step, 100*Mpi.getTimeBarriers()/tmTotal))      
+      	     Mpi.getTimeBarriers(), Mpi.getTimeBarriers()/appStatus.step, 100*Mpi.getTimeBarriers()/tmTotal))      
       tmUnaccounted = tmTotal - tmAccounted
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Data write took",
-	     writeDataTime, writeDataTime/step, 100*writeDataTime/tmTotal))
+	     writeDataTime, writeDataTime/appStatus.step, 100*writeDataTime/tmTotal))
       tmAccounted = tmAccounted + writeDataTime
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n",
 	     "Write restart took",
-	     writeRestartTime, writeRestartTime/step, 100*writeRestartTime/tmTotal))
+	     writeRestartTime, writeRestartTime/appStatus.step, 100*writeRestartTime/tmTotal))
       tmAccounted = tmAccounted + writeRestartTime
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.3f%%)\n\n",
 	     "[Unaccounted for]",
-	     tmUnaccounted, tmUnaccounted/step, 100*tmUnaccounted/tmTotal))
+	     tmUnaccounted, tmUnaccounted/appStatus.step, 100*tmUnaccounted/tmTotal))
       
       log(string.format(
 	     "%-40s %13.5f s   (%9.6f s/step)   (%6.f%%)\n\n",
 	     "Main loop completed in",
-	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))      
+	     tmTotal, tmTotal/appStatus.step, 100*tmTotal/tmTotal))      
       log(date(false):fmt()); log("\n") -- Time-stamp for sim end.
 
       -- Perform other numerical/performance diagnostics.
