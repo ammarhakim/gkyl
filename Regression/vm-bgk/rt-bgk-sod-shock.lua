@@ -67,7 +67,6 @@ sim = Plasma.App {
       end,
 
       evolveCollisionless = true,
-      evolveCollisions    = true,
       -- Collisions.
       bgk = Plasma.BGKCollisions {
 	 collideWith = {"neut"},

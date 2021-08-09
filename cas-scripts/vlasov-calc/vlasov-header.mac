@@ -13,15 +13,15 @@ maxVdim_Ser : 3$
 maxPolyOrder_Max : 3$
 minCdim_Max : 1$
 minVdim_Max : 1$    /* see begining of v loop below though. */
-maxCdim_Max : 3$
-maxVdim_Max : 3$
+maxCdim_Max : 0$
+maxVdim_Max : 0$
 
 /* Tensor product basis. */
 maxPolyOrder_Tensor : 3$
 minCdim_Tensor : 1$
 minVdim_Tensor : 1$    /* see begining of v loop below though. */
 maxCdim_Tensor : 2$
-maxVdim_Tensor : 2$
+maxVdim_Tensor : 3$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -44,7 +44,8 @@ printPrototype(deco, ci, vi, bStr, pi) := block([si],
   printf(fh, "~adouble VlasovVol~ax~av~aP~a(const double *w, const double *dxv, const double *EM, const double *f, double *out); ~%", deco, ci, vi, bStr, pi),
   for si : 1 thru vi do (
     printf(fh, "~adouble VlasovSurfElcMag~ax~av~a_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr); ~%", deco, ci, vi, bStr, cvars[si], pi),
-    printf(fh, "~adouble VlasovRecoverySurfElcMag~ax~av~a_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr); ~%", deco, ci, vi, bStr, cvars[si], pi)
+    printf(fh, "~adouble VlasovRecoverySurfElcMag~ax~av~a_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr); ~%", deco, ci, vi, bStr, cvars[si], pi),
+    printf(fh, "~adouble VlasovUpwindSurfElcMag~ax~av~a_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr); ~%", deco, ci, vi, bStr, cvars[si], pi)
   ),
 
   printf(fh, "~adouble VlasovPhiVol~ax~av~aP~a(const double *w, const double *dxv, const double qDm, const double *phi, const double *EM, const double *f, double *out); ~%", deco, ci, vi, bStr, pi),
@@ -75,6 +76,9 @@ printf(fh, "#define VLASOV_MOD_DECL_H ~%")$
 printf(fh, "~%")$
 printf(fh, "#include <GkylCudaConfig.h> ~%")$
 printf(fh, "#include <cmath> ~%")$
+printf(fh, "~%")$
+printf(fh, "template <typename T> int sgn(T val) { ~%")$
+printf(fh, "  return (T(0) < val) - (val < T(0)); ~%}~%")$
 printf(fh, "~%")$
 printf(fh, "extern \"C\" { ~%")$
 printf(fh, "~%")$

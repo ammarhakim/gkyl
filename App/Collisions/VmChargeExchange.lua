@@ -13,6 +13,8 @@
 local CollisionsBase = require "App.Collisions.CollisionsBase"
 local Constants      = require "Lib.Constants"
 local DataStruct     = require "DataStruct"
+local DiagsImplBase  = require "App.Diagnostics.DiagnosticsImplBase"
+local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
@@ -23,7 +25,45 @@ local xsys           = require "xsys"
 -- VmChargeExchange  --------------------------------------------------------
 --
 -- Charge Exchange Operator
---------------------------------------------------------------------------------
+-----------------------------------------------------------------------------
+
+-- ............... IMPLEMENTATION OF DIAGNOSTICS ................. --
+-- Diagnostics could be placed in a separate file if they balloon in
+-- number. But if we only have one or two we can just place it here.
+
+local vmCxDiagImpl = function()
+   local _reactRate = Proto(DiagsImplBase)
+   function _reactRate:fullInit(diagApp, mySpecies, fieldIn, owner)
+      self.field = mySpecies:allocMoment()
+      self.owner = owner
+      self.done  = false
+   end
+   function _reactRate:getType() return "grid" end
+   function _reactRate:advance(tm, inFlds, outFlds)
+      if self.owner.reactRate then
+	 self.field:copy(self.owner.reactRate)
+      end
+   end
+
+   local _source = Proto(DiagsImplBase)
+   function _source:fullInit(diagApp, mySpecies, fieldIn, owner)
+      self.field = mySpecies:allocDistf()
+      self.owner = owner
+      self.done  = false
+   end
+   function _source:getType() return "grid" end
+   function _source:advance(tm, inFlds, outFlds)
+      self.field:copy(self.owner.sourceCX)
+   end
+
+   return {
+      reactRate = _reactRate,
+      source    = _source,
+   }
+end
+
+-- .................... END OF DIAGNOSTICS ...................... --
+
 
 local VmChargeExchange = Proto(CollisionsBase)
 
@@ -73,33 +113,26 @@ function VmChargeExchange:fullInit(speciesTbl)
    self.timers = {nonSlvr = 0.}
 end
 
+function VmChargeExchange:createDiagnostics(mySpecies, field)
+   -- Create source diagnostics.
+   self.diagnostics = nil
+   if self.tbl.diagnostics then
+      self.diagnostics = DiagsApp{implementation = vmCxDiagImpl()}
+      self.diagnostics:fullInit(mySpecies, field, self)
+   end
+   return self.diagnostics
+end
+
 function VmChargeExchange:setName(nm)
-   self.name = nm
+   self.name = self.speciesName.."_"..nm
+   self.collNm = nm
 end
-
-function VmChargeExchange:setSpeciesName(nm)
-   self.speciesName = nm
-end
-
-function VmChargeExchange:setCfl(cfl)
-   self.cfl = cfl
-end
-
-function VmChargeExchange:setConfBasis(basis)
-   self.confBasis = basis
-end
-
-function VmChargeExchange:setConfGrid(grid)
-   self.confGrid = grid
-end
-
-function VmChargeExchange:setPhaseBasis(basis)
-   self.phaseBasis = basis
-end
-
-function VmChargeExchange:setPhaseGrid(grid)
-   self.phaseGrid = grid
-end
+function VmChargeExchange:setSpeciesName(nm) self.speciesName = nm end
+function VmChargeExchange:setCfl(cfl) self.cfl = cfl end
+function VmChargeExchange:setConfBasis(basis) self.confBasis = basis end
+function VmChargeExchange:setConfGrid(grid) self.confGrid = grid end
+function VmChargeExchange:setPhaseBasis(basis) self.phaseBasis = basis end
+function VmChargeExchange:setPhaseGrid(grid) self.phaseGrid = grid end
 
 function VmChargeExchange:createSolver(funcField) --species)
    self.collisionSlvr = Updater.ChargeExchange {
@@ -146,6 +179,17 @@ function VmChargeExchange:createSolver(funcField) --species)
 	 basisType = self.phaseBasis:id()
       },
    }
+   if (self.speciesName == self.ionNm) then
+      self.reactRate =  DataStruct.Field {
+	 onGrid        = self.confGrid,
+	 numComponents = self.confBasis:numBasis(),
+	 ghost         = {1, 1},
+	 metaData = {
+	    polyOrder = self.confBasis:polyOrder(),
+	    basisType = self.confBasis:id()
+	 },
+      }
+   end
 end
 
 function VmChargeExchange:advance(tCurr, fIn, species, fRhsOut)
@@ -159,7 +203,7 @@ function VmChargeExchange:advance(tCurr, fIn, species, fRhsOut)
    species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
    species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
    self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
-   species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
+   species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {species[self.ionNm].collisions[self.collNm].reactRate, self.diffDistF}, {self.sourceCX})
 
    if (self.speciesName == self.ionNm) then
       fRhsOut:accumulate(1.0,self.sourceCX)
@@ -170,8 +214,7 @@ function VmChargeExchange:advance(tCurr, fIn, species, fRhsOut)
    self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 end
 
-function VmChargeExchange:write(tm, frame)
-end
+function VmChargeExchange:write(tm, frame) end
 
 function VmChargeExchange:slvrTime()
    return 0.

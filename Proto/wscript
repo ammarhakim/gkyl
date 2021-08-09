@@ -15,10 +15,6 @@ def build(bld):
     Fpo/vlasov_fpo_diffI_surfx_3x_ser_p1.cpp
     Fpo/vlasov_fpo_diffI_surfy_3x_ser_p1.cpp
     Fpo/vlasov_fpo_diffI_surfz_3x_ser_p1.cpp
-    Fpo/vlasov_fpo_diffI_surfx_3x_ser_p1_2cell.cpp
-    Fpo/vlasov_fpo_diffI_surfy_3x_ser_p1_2cell.cpp
-    Fpo/vlasov_fpo_diffI_surfz_3x_ser_p1_2cell.cpp
     Fpo/vlasov_fpo_diffI_vol_3x_ser_p1.cpp
     """,
     includes = '. Fpo', use='Eigen MPI lib', target = 'proto', name='proto', vnum = '1.0')
-

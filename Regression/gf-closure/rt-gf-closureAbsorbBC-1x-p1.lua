@@ -7,9 +7,6 @@
 ---------------------------------------------------------------------------
 local Plasma    = require ("App.PlasmaOnCartGrid").Gyrofluid()
 local Constants = require "Lib.Constants"
-local Logger    = require "Lib.Logger"
-
-local log = Logger { logToFile = true }
 
 -- Universal constant parameters.
 eps0, mu0 = Constants.EPSILON0, Constants.MU0
@@ -73,36 +70,22 @@ kappaPerpElc = n0*(vte^2)/(math.sqrt(2)*D_perp*vte*kpar+nu_ee)
 local Lambda = math.log(mi/(2.*math.pi*me)) -- Sheath factor. Only used by electrons. 
 
 plasmaApp = Plasma.App {
-   logToFile = true,
-
-   tEnd       = 0.250e-6,         -- End time.
-   nFrame     = 1,               -- Number of output frames.
-   lower      = {zMin},          -- Configuration space lower left.
-   upper      = {zMax},          -- Configuration space upper right.
-   cells      = {64},            -- Configuration space cells.
-   basis      = "serendipity",   -- One of "serendipity" or "maximal-order".
-   polyOrder  = polyOrder,       -- Polynomial order.
-   decompCuts = {1},             -- MPI cuts in each.
-   mapc2p     = function(xc)  -- MF (2021/04/20): this is only intended to give a Jacobian=1 for now.
-      -- Field-aligned coordinates (x,y).
-      local x, y = xc[1], xc[2]
-      -- Cylindrical coordinates (R,phi).
-      local phi = x/(R0+r0)
-      -- Cartesian coordinates (X,Y).
-      local X = R0*math.cos(phi)
-      local Y = R0*math.sin(phi)
-      return X, Y
-   end,
-   timeStepper = "rk3",              -- One of "rk2" or "rk3".
+   tEnd        = 0.50e-6,         -- End time.
+   nFrame      = 1,               -- Number of output frames.
+   lower       = {zMin},          -- Configuration space lower left.
+   upper       = {zMax},          -- Configuration space upper right.
+   cells       = {64},            -- Configuration space cells.
+   basis       = "serendipity",   -- One of "serendipity" or "maximal-order".
+   polyOrder   = polyOrder,       -- Polynomial order.
+   decompCuts  = {1},             -- MPI cuts in each.
+   timeStepper = "rk3",           -- One of "rk2" or "rk3".
    cflFrac     = 0.90,
    restartFrameEvery = .05,
    calcIntQuantEvery = 1./10.,  -- Aim at 10x more frequently than frames.
 
-   writeGhost = false,
-
    -- Gyrofluid ions.
    elc = Plasma.Species {
-      charge = qe, mass = me,
+      charge = qe,  mass = me,
       -- Initial conditions.
       init = Plasma.GyrofluidProjection {
          density = n0,
@@ -118,13 +101,13 @@ plasmaApp = Plasma.App {
          kappaPar = kappaParElc,  kappaPerp = kappaPerpElc,
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
+      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","Upar","Tpar","Tperp","Ppar","Pperp"},
       bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}}
    },
 
    -- Gyrofluid electronss.
    ion = Plasma.Species {
-      charge = qi, mass = mi,
+      charge = qi,  mass = mi,
       -- Initial conditions.
       init = Plasma.GyrofluidProjection {
          density = n0,
@@ -140,7 +123,7 @@ plasmaApp = Plasma.App {
          kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
+      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","Upar","Tpar","Tperp","Ppar","Pperp"},
       bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}}
    },
 

@@ -10,7 +10,6 @@
 ---------------------------------------------------------------------------
 local Plasma    = require ("App.PlasmaOnCartGrid").Gyrofluid()
 local Constants = require "Lib.Constants"
-local Logger    = require "Lib.Logger"
 -- SciLua (and extensions) used for AD, root finding and integration.
 -- Use sci.math instead of built-in 'math', see https://scilua.org/sci_diff.html.
 local math      = require("sci.math").generic
@@ -19,18 +18,13 @@ local quad      = require "sci.quad"
 local diff      = require "sci.diff-recursive"
 local df        = diff.df
 
-local log = Logger { logToFile = true }
-
 polyOrder = 1
 
 -- Universal constant parameters.
-eps0 = Constants.EPSILON0
-mu0  = Constants.MU0
-eV   = Constants.ELEMENTARY_CHARGE
-qe   = -eV
-qi   = eV
-me   = Constants.ELECTRON_MASS*16
-mp   = Constants.PROTON_MASS
+eps0, mu0 = Constants.EPSILON0, Constants.MU0
+eV        = Constants.ELEMENTARY_CHARGE
+qe, qi    = -eV, eV
+me, mp    = 16.*Constants.ELECTRON_MASS, Constants.PROTON_MASS
 
 -- Plasma parameters.
 mi        = 2.014*mp                         -- Deuterium ion mass.
@@ -227,9 +221,7 @@ for k = 1, nz+1 do
 end
 
 plasmaApp = Plasma.App {
-   logToFile = true,
-
-   tEnd       = 16.0e-8,         -- End time.
+   tEnd       = 0.5e-6,          -- End time.
    nFrame     = 1,               -- Number of output frames.
    lower      = {zMin},          -- Configuration space lower left.
    upper      = {zMax},          -- Configuration space upper right.
@@ -257,11 +249,9 @@ plasmaApp = Plasma.App {
    restartFrameEvery = .05,
    calcIntQuantEvery = 1./10.,  -- Aim at 10x more frequently than frames.
 
---   periodicDirs = {1},
-
    -- Gyrofluid ions.
    elc = Plasma.Species {
-      charge = qe, mass = me,
+      charge = qe,  mass = me,
       -- Initial conditions.
       init = Plasma.GyrofluidProjection {
          density = n0,
@@ -274,13 +264,13 @@ plasmaApp = Plasma.App {
          kappaPar = kappaParElc,  kappaPerp = kappaPerpElc,
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
+      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","Upar","Tpar","Tperp","Ppar","Pperp"},
       bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}},
    },
 
    -- Gyrofluid electronss.
    ion = Plasma.Species {
-      charge = qi, mass = mi,
+      charge = qi,  mass = mi,
       -- Initial conditions.
       init = Plasma.GyrofluidProjection {
          density = n0,
@@ -293,7 +283,7 @@ plasmaApp = Plasma.App {
          kappaPar = kappaParIon,  kappaPerp = kappaPerpIon,
       },
       evolve = true, -- Evolve species?
-      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","upar","Tpar","Tperp","ppar","pperp"},
+      diagnostics = {"intMom","intM0","intM1","intM2","M2flow","Upar","Tpar","Tperp","Ppar","Pperp"},
       bcx = {Plasma.AbsorbBC{}, Plasma.AbsorbBC{}},
    },
 

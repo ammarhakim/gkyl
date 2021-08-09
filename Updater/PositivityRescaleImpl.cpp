@@ -124,12 +124,11 @@ bool check(const double *fIn, int ndim, int numBasis, int *idx, double tCurr, in
   return status;
 }
 
-
 double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx, double tCurr)
 {
   double f0 = fIn[0]*std::pow(0.7071067811865475,ndim);
   if (f0 < 0.) return 0.;
-
+  
   double fmin = findMinNodalValue(fIn, ndim);
   double fminOld, del2Change = 0.;
   int j = 0;
@@ -153,6 +152,48 @@ double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx
      fmin = findMinNodalValue(fOut, ndim);
      j++;
   }
+
+  return del2Change;
+}
+
+double nonconRescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx, double tCurr)
+{
+  double f0 = fIn[0]*std::pow(0.7071067811865475,ndim);
   
+  double fmin = findMinNodalValue(fIn, ndim);
+  double fminOld, del2Change = 0.;
+  int j = 0;
+
+  while (j<10 && fmin < -EPSILON) {
+     double theta = std::min(1.0, (1. - EPSILON)/(1. - fmin/f0));
+
+     // modify moments. note no change to cell average
+     fOut[0] = fIn[0]; 
+     double del2 = 0.0;
+     for(int i=1; i<numBasis; i++) {
+       if(theta < 1 && j==0) {
+          del2 += fIn[i]*fIn[i];
+          fOut[i] = theta*fIn[i];
+       } else {
+          fOut[i] = theta*fOut[i];
+       }
+     }
+     del2Change += del2*(1-theta)*(1-theta);
+     
+     fmin = findMinNodalValue(fOut, ndim);
+     j++;
+  }
+
+  if (f0 < 0.) {
+    fOut[0] = 0.0;
+    for(int i=1; i<numBasis; i++) {
+      fOut[i] = 0.0;
+    }
+  } else {
+    for(int i=0; i<numBasis; i++) {
+      fOut[i] = fIn[i];
+    }
+  }
+
   return del2Change;
 }

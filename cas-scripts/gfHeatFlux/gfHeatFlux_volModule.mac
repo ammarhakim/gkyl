@@ -58,14 +58,15 @@ calcGFheatVolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
   varLabel : makelist(string(vars[d]),d,1,dim),
 
   printf(fh, "~%"),
-  printf(fh, "double ~a(const double q_, const double m_, const double kappaPar, const double kappaPerp, const double kperpSq, const double *w, const double *dx, const double *jac, const double *jacDbmag, const double *sMom, const double *phi, double *primMom, double *out) ~%{ ~%", funcNm),
+  printf(fh, "double ~a(const double q_, const double m_, const double kappaPar, const double kappaPerp, const double kperpSq, const double *w, const double *dx, const double *jac, const double *rBmag, const double *rBmagSq, const double *sMom, const double *phi, double *primMom, double *out) ~%{ ~%", funcNm),
   printf(fh, "  // q_,m_:   species charge and mass.~%"),
   printf(fh, "  // kappa:   heat conductivity coefficients.~%"),
   printf(fh, "  // kperpSq: k_perp^2.~%"),
   printf(fh, "  // w:       cell-center.~%"),
   printf(fh, "  // dx:      cell length.~%"),
   printf(fh, "  // jac:     jacobian.~%"),
-  printf(fh, "  // jacDbmag:jacobian divided by B (J/B).~%"),
+  printf(fh, "  // rBmag:   reciprocal of magnetic field magnitude (1/B).~%"),
+  printf(fh, "  // rBmagSq: rBmag^2.~%"),
   printf(fh, "  // sMom:    stepped moments (times Jacobian).~%"),
   printf(fh, "  // phi:     electrostatic potential.~%"),
   printf(fh, "  // primMom: primitive moments (upar, Tpar, Tperp).~%"),
@@ -101,11 +102,6 @@ calcGFheatVolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
   upar_e : primMoms_e[1],  Tpar_e : primMoms_e[2],  Tperp_e : primMoms_e[3],
   upar_c : primMoms_c[1],  Tpar_c : primMoms_c[2],  Tperp_c : primMoms_c[3],
 
-  pperpJac_c : (1/m_)*calcInnerProdList(vars,m0_e,basis,Tperp_e),
-  pparJac_c  : (1/m_)*calcInnerProdList(vars,m0_e,basis,Tpar_e),
-  pperpJac_e : doExpand(pperpJac_c,basis),
-  pparJac_e  : doExpand(pparJac_c,basis),
-
   numBzeros : makelist(0,i,1,numB),
   incr_c : [],
   for mI : 1 thru numMom do (
@@ -118,12 +114,12 @@ calcGFheatVolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
      get recovered in the surface kernels). */
   hPar_e : Tpar_e,  hPerp_e : Tperp_e+m_*(1/2)*(-kperpSq)*qPhiDm_e,
 
-  jac_e      : doExpand1(jac,basis),
-  jacDbmag_e : doExpand1(jacDbmag,basis),
+  rBmag_e   : doExpand1(rBmag, basis),
+  rBmagSq_e : doExpand1(rBmagSq, basis),
 
   h_e : [numBzeros, numBzeros, (kappaPar/2)*hPar_e+kappaPerp*hPerp_e, kappaPerp*hPerp_e],
 
-  qFacs_e : [0, 0, jac_e, jacDbmag_e],
+  qFacs_e : [0, 0, rBmag_e, rBmagSq_e],
 
   basisPrime : diff(basis,x),
 
@@ -138,11 +134,11 @@ calcGFheatVolKernels(fh, funcNm, dim, polyOrder, basisFun) := block(
   ),
 
   /* Return CFL frequency */
-  zMid   : makelist(vars[d]=0, d, 1, dim),
-  jacMid : subst(zMid, jac_e),
-  nMid   : subst(zMid, m0_e)/(jacMid*m_),
-  cflFreq_qpar  : (kappaPar/nMid)*rdxSq4,
-  cflFreq_qperp : (kappaPerp/nMid)*rdxSq4,
+  zMid     : makelist(vars[d]=0, d, 1, dim),
+  rBmagMid : subst(zMid, rBmag_e),
+  nJacMid  : subst(zMid, m0_e)/m_,
+  cflFreq_qpar  : (kappaPar*rBmagMid/nJacMid)*rdxSq4,
+  cflFreq_qperp : (kappaPerp*rBmagMid/nJacMid)*rdxSq4,
 
   printf(fh, "  return ~a*fmax(~a,~a); ~%", float(((polyOrder+1)^2)/(2*polyOrder+1)), float(cflFreq_qpar), float(cflFreq_qperp) ),
 

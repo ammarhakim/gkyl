@@ -42,7 +42,7 @@ plasmaApp = Plasma.App {
       -- Projected initial conditions (with quadrature).
       init   = vanLeerIC,
       source = Plasma.Source{
-         source         = vanLeerSource,
+         profile        = vanLeerSource,
          timeDependence = function (t) return 1.0 end,
       },
       evolve              = true, -- Evolve species?

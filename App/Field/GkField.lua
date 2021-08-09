@@ -147,11 +147,11 @@ function GkField:fullInit(appTbl)
    end
 
    -- For storing integrated energies.
-   self.phiSq    = DataStruct.DynVector { numComponents = 1 }
+   self.phiSq         = DataStruct.DynVector { numComponents = 1 }
    self.gradPerpPhiSq = DataStruct.DynVector { numComponents = 1 }
-   self.aparSq   = DataStruct.DynVector { numComponents = 1 }
-   self.esEnergy = DataStruct.DynVector { numComponents = 1 }
-   self.emEnergy = DataStruct.DynVector { numComponents = 1 }
+   self.aparSq        = DataStruct.DynVector { numComponents = 1 }
+   self.esEnergy      = DataStruct.DynVector { numComponents = 1 }
+   self.emEnergy      = DataStruct.DynVector { numComponents = 1 }
 
    self.adiabatic = false
    self.discontinuousPhi  = xsys.pickBool(tbl.discontinuousPhi, false)
@@ -169,9 +169,7 @@ function GkField:fullInit(appTbl)
    self.linearizedPolarization = xsys.pickBool(tbl.linearizedPolarization, true)
    self.uniformPolarization    = xsys.pickBool(tbl.uniformPolarization, true)
 
-   if self.isElectromagnetic then
-      self.mu0 = tbl.mu0 or Constants.MU0
-   end
+   if self.isElectromagnetic then self.mu0 = tbl.mu0 or Constants.MU0 end
 
    self.externalPhi = tbl.externalPhi
    if self.externalPhi and self.evolve then 
@@ -194,13 +192,12 @@ function GkField:fullInit(appTbl)
       self.calcIntFieldEnergyTrigger = function(t) return true end
    end
 
-   -- Flag to indicate if phi has been computed.
+   -- Flag to indicate if phi has been calculated.
    self.calcedPhi = false
 
    self.bcTime = 0.0 -- Timer for BCs.
 
-   self._first     = true
-   self._firstStep = true
+   self._first = true
 
    self.timers = {advTime={0.,0.,0.}}
 end
@@ -400,7 +397,7 @@ function GkField:createSolver(species, externalField)
       if not self.polarizationWeight then 
          self.polarizationWeight = 0.0
          for _, s in lume.orderedIter(species) do
-            if Species.GkSpecies.is(s) then
+            if Species.GkSpecies.is(s) or Species.GyrofluidSpecies.is(s) then
                self.polarizationWeight = self.polarizationWeight + s:getPolarizationWeight()
             end
          end
@@ -734,7 +731,7 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
          if not self.linearizedPolarization or (self._first and not self.uniformPolarization) then
             self.weight:clear(0.0)
             for _, s in lume.orderedIter(species) do
-               if Species.GkSpecies.is(s) then
+               if Species.GkSpecies.is(s) or Species.GyrofluidSpecies.is(s) then
                   self.weight:accumulate(1.0, s:getPolarizationWeight(false))
                end
             end

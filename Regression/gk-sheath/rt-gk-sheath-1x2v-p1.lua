@@ -87,6 +87,7 @@ plasmaApp = Plasma.App {
    timeStepper = "rk3",                    -- One of "rk2" or "rk3".
    cflFrac     = 0.4,
    restartFrameEvery = .5,
+   calcIntQuantEvery = 1./60.,
 
    decompCuts  = {1},    -- MPI subdomains/processes.
 
