@@ -1,7 +1,9 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Updater for projecting flux of distf onto (ghosts)
+-- Updater for projecting flux of distf onto (ghosts).
 --
+--    _______     ___
+-- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
@@ -22,16 +24,15 @@ function ProjectFluxFunc:init(tbl)
    ProjectFluxFunc.super.init(self, tbl) -- setup base object
    
    self._onGrid = assert(tbl.onGrid,
-			  "Updater.ProjectFluxFunc: Must provide grid object using 'onGrid'")
+                         "Updater.ProjectFluxFunc: Must provide grid object using 'onGrid'")
    self._confBasis = assert(tbl.confBasis,
-			    "Updater.ProjectFluxFunc: Must provide configuration space basis object using 'phaseBasis'")
+                            "Updater.ProjectFluxFunc: Must provide configuration space basis object using 'confBasis'")
    self._phaseBasis = assert(tbl.phaseBasis,
-			    "Updater.ProjectFluxFunc: Must provide configuration space basis object using 'phaseBasis'")
+                             "Updater.ProjectFluxFunc: Must provide phase space basis object using 'phaseBasis'")
    self._edgeVal = assert(tbl.edgeValue,
-			  "Updater.ProjectFluxFunc: Must provide edge values using 'edgeValue' ") 
+                          "Updater.ProjectFluxFunc: Must provide edge values using 'edgeValue' ") 
    self._dir = assert(tbl.direction,
-			  "Updater.ProjectFluxFunc: Must provide edge values using 'direction' ") 
-   --print("ProjectFlux:", self._edgeVal, self._dir)
+                      "Updater.ProjectFluxFunc: Must provide edge values using 'direction' ") 
    -- Dimension of phase space.
    self._pDim = self._phaseBasis:ndim()      
    -- Dimension of configuration space.
@@ -99,7 +100,6 @@ function ProjectFluxFunc:_advance(tCurr, inFld, outFld)
 
 	 self._projectFlux(wv, dv, self._edgeVal, fInItr:data(), fHatItr:data())
       end
-      
    end
 end
 

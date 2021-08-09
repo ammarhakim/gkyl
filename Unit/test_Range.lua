@@ -112,6 +112,18 @@ end
 
 function test_7()
    local range = Range.Range({1, 1, 1}, {10, 20, 30})
+
+   local rangeCopy = Range.Range({0},{1})
+   rangeCopy:copy(range)
+
+   assert_equal(1, rangeCopy:lower(1), "Checking lower copy")
+   assert_equal(1, rangeCopy:lower(2), "Checking lower copy")
+   assert_equal(1, rangeCopy:lower(3), "Checking lower copy")
+
+   assert_equal(10, rangeCopy:upper(1), "Checking upper copy")
+   assert_equal(20, rangeCopy:upper(2), "Checking upper copy")
+   assert_equal(30, rangeCopy:upper(3), "Checking upper copy")
+
    local extRange = range:extend(1, 2)
 
    assert_equal(0, extRange:lower(1), "Checking lower extended")

@@ -176,8 +176,6 @@ function NeutralRecyclingBC:createSolver(mySpecies, field, externalField)
    self.recycleDistF = allocDistf()
    -- 0th moment of fhat.
    self.recycleFhatM0 = self:allocMoment()
-   -- 0th moment of ion boundary flux.
-   self.recycleIonFlux = self:allocMoment()
    -- Scaling factor for recycle distf.
    self.recycleCoef     = self:allocMoment()
    self.recycleTestFlux = self:allocMoment()
