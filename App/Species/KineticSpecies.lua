@@ -121,6 +121,10 @@ function KineticSpecies:fullInit(appTbl)
    -- Write ghost cells on boundaries of global domain (for BCs).
    self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 
+   -- Option to group diagnostics (i.e. it writes one file for all grid diags, and one file
+   -- for all integrated diags) in all diagnostic Apps, rather than writing one file for each.
+   self.groupDiags = appTbl.groupDiagnostics or false
+
    -- Get a random seed for random initial conditions.
    self.randomseed = tbl.randomseed
 
