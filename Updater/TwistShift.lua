@@ -1,7 +1,8 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 -- Apply twist shift operation in y to a Cartesian field (e.g. gyrokinetics),
--- using weak equality-based interpolation.
+-- using weak equality-based interpolation. Essentially we are computing the
+-- left side of g(x,y) = f(x,y+S(x)).
 --
 -- Current limitations:
 --    1) The shift has to be monotonic.
@@ -21,15 +22,15 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local Proto          = require "Lib.Proto"
-local UpdaterBase    = require "Updater.Base"
-local Grid           = require "Grid"
-local Basis          = require "Basis"
-local DataStruct     = require "DataStruct"
-local EvOnNodesUpd   = require "Updater.EvalOnNodes"
-local Range          = require "Lib.Range"
-local Lin            = require "Lib.Linalg"
-local LinearDecomp   = require "Lib.LinearDecomp"
+local Proto        = require "Lib.Proto"
+local UpdaterBase  = require "Updater.Base"
+local Grid         = require "Grid"
+local Basis        = require "Basis"
+local DataStruct   = require "DataStruct"
+local EvOnNodesUpd = require "Updater.EvalOnNodes"
+local Range        = require "Lib.Range"
+local Lin          = require "Lib.Linalg"
+local LinearDecomp = require "Lib.LinearDecomp"
 
 local TwistShiftDecl = require "Updater.twistShiftData.TwistShiftModDecl"
 local tsFun          = require "Updater.twistShiftData.TwistShiftFun"
@@ -80,11 +81,9 @@ function TwistShift:init(tbl)
    -- Project the y-shift function (of x) onto a 1D grid/basis.
    local yShGridIngr = self.grid:childGrid({1})
    local yShGrid = Grid.RectCart {
-      lower = yShGridIngr.lower,
-      upper = yShGridIngr.upper,
+      lower = yShGridIngr.lower,  periodicDirs  = yShGridIngr.periodicDirs,
+      upper = yShGridIngr.upper,  decomposition = yShGridIngr.decomposition,
       cells = yShGridIngr.cells,
-      periodicDirs  = yShGridIngr.periodicDirs,
-      decomposition = yShGridIngr.decomposition,
    }
    local yShBasis = createBasis(yShGrid:ndim(), yShPolyOrder, basis:id())
    self.yShFld = DataStruct.Field {
@@ -134,11 +133,11 @@ function TwistShift:_advance(tCurr, inFld, outFld)
 
    local oneFld = false
    if fldDo==nil then
-      assert(cDim==3, "Updater.TwistShift: performing twist-shift to one field so it must be a 3D field (cDim=3).")
+      assert(cDim==3, "Updater.TwistShift: performing twist-shift to a single field is only available for 3D fields.")
       oneFld = true
       fldDo  = outFld[1]
    else
-      assert(cDim==2, "Updater.TwistShift: donor and target fields are separate, so they must be 2D fields (cDim=2).")
+      assert(cDim==2, "Updater.TwistShift: donor and target fields are separate, so they must be 2D fields.")
    end
 
    local indexer = fldTar:genIndexer()

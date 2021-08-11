@@ -206,13 +206,14 @@ end
 -- compute the shifted y-coordinate in the logical space of the donor cell (eta \in [-1,1]).
 --   xi:    logical space x coordinate.
 --   yTar:  physical y-coordinate in target cell.
+--   pmSh:  factor multiplying the y-shift (+/- 1).
 --   xcDo:  cell center coordinates of donor cell.
 --   xcTar: cell center coordinates of target cell.
 --   dx:    cell lengths.
 --   pickUpper: boolean indicating if wrapping function should return upper/lower boundary.
-local yShiftedLog = function(xi, yTar, xcDo, xcTar, pickUpper)
+local yShiftedLog = function(xi, yTar, pmSh, xcDo, xcTar, pickUpper)
    local xPhys = xcTar[1] + 0.5*dx[1]*xi
-   local yS    = yTar+yShiftF(xPhys)
+   local yS    = yTar+pmSh*yShiftF(xPhys)
    yS = wrapNum(yS, domLim[2], pickUpper)
    local eta   = p2l(yS, xcDo[2], dx[2])
    return eta
@@ -224,7 +225,7 @@ local yShiftedLogInv = function(ySlog, yTar, xcDoIn, xcTarIn, xLim, pickUpper)
    -- Invert the function p2l(y+yShifted(x)) via root finding. This function is passed to a projection
    -- operation, so that the resulting DG expansion is defined in a subcell of the donor cell.
    local function lossF(xlog)
-      return ySlog - yShiftedLog(xlog, yTar, xcDoIn, xcTarIn, pickUpper)
+      return ySlog - yShiftedLog(xlog, yTar, 1., xcDoIn, xcTarIn, pickUpper)
    end
    local tol = 1.e-11
    -- Have to consider extended logical space even though the part of the y+yShift curve
@@ -310,7 +311,7 @@ local nodToModProj1D = function(funcIn, limIn, fldOut)
 end
 
 local subCellInt_xLimDG = function(xLimFuncs, yBounds, xIdxIn, offDoTar, yShPtrIn, tsMatVecsIn)
-   -- Perform a sub-cell integral with x-limits (possibly functions of y) given by a
+   -- Perform a sub-cell integral with x-limits that are functions of y given by a
    -- DG polynomial representation. Here x-y mean the logical x-y of the donor cell.
    -- The functions xLimFuncs define these x-limits in the y-logical space of the
    -- donor cell. Then we project these functions onto a 1D DG basis. Since the integral
@@ -337,27 +338,22 @@ local subCellInt_xLimDG = function(xLimFuncs, yBounds, xIdxIn, offDoTar, yShPtrI
    end
 end
 
-local subCellInt_trapezoid = function(xLogBounds, yLogBounds, yTars, xIdxIn, xcDoIn, xcTarIn, pickUpper, yShPtrIn, tsMatVecsIn)
-   -- Perform integral over a trapezoidal subcell region.
-   --   xLogBounds: 2x2 table with the bounds of the logical x lower and upper limits.
-   --   yLogBounds: 2 element table with the logical y-bounds of the logical x lower and upper limits.
-   --   yTars:      yTar_{j-/+1/2} in target cell which defines the lower/upper x limits.
-   --   xIdx  :     current x-index.
+local subCellInt_xLoLimDG = function(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoIn, xcTarIn, pickUpper, yShPtrIn, tsMatVecsIn)
+   -- Perform subcell integral with variable lower x-limit.
+   --   yTar:       yTar+yShift gives the curve defining the lower x-limit.
+   --   xLogBounds: logical x range in which to invert yTar+yShift(x).
+   --   yLogBounds: logical y limits of the integral.
+   --   xIdxIn:     current x-index.
    --   xcDo:       cell center coordinates of donor cell.
    --   xcTar:      cell center coordinates of target cell.
-   --   pickUpper:  boolean indicating if wrapping function should return upper/lower boundary.
+   --   pickUpper:  boolean to indicate if wrapping function should return upper instead of lower boundary.
    --   yShPtrIn:   pointers to y-shift field data in current cell.
    --   tsMatVecs:  pre-allocated matrices and vectors.
-   local ycOff = doTarOff(xcDoIn, xcTarIn)
-   -- Functions describing the lower and upper limits in logical [-1,1] x-space.
-   local xLogLims = {
-      lo = function(t,xn)
-         return yShiftedLogInv(xn[1], yTars.lo, xcDoIn, xcTarIn, xLogBounds.lo, pickUpper)
-      end,                                                        
-      up = function(t,xn)                                         
-         return yShiftedLogInv(xn[1], yTars.up, xcDoIn, xcTarIn, xLogBounds.up, pickUpper)
-      end
-   }
+   local ycOff    = doTarOff(xcDoIn, xcTarIn)
+   local xLogLims = {lo = function(t,xn)
+                        return yShiftedLogInv(xn[1], yTar, xcDoIn, xcTarIn, xLogBounds, pickUpper)
+                     end,
+                     up = function(t,xn) return 1.0 end}
    subCellInt_xLimDG(xLogLims, yLogBounds, xIdxIn, ycOff, yShPtrIn, tsMatVecsIn)
 end
 
@@ -380,10 +376,38 @@ local subCellInt_xUpLimDG = function(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoI
    subCellInt_xLimDG(xLogLims, yLogBounds, xIdxIn, ycOff, yShPtrIn, tsMatVecsIn)
 end
 
-local subCellInt_xLoLimDG = function(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoIn, xcTarIn, pickUpper, yShPtrIn, tsMatVecsIn)
-   -- Perform subcell integral with variable lower x-limit.
-   --   yTar:       yTar+yShift gives the curve defining the lower x-limit.
-   --   xLogBounds: logical x range in which to invert yTar+yShift(x).
+local subCellInt_yLimDG = function(xBounds, yLimFuncs, xIdxIn, offDoTar, yShPtrIn, tsMatVecsIn)
+   -- Perform a sub-cell integral with y-limits that are functions of x given by a
+   -- DG polynomial representation. Here x-y mean the logical x-y of the donor cell.
+   -- The functions yLimFuncs define these y-limits in the x-logical space of the
+   -- donor cell. Then we project these functions onto a 1D DG basis. Since the integral
+   -- may not span the whole x-logical space of the donor cell (dxSub<2), the 1D
+   -- projection is done treating the partial x-logical space of the donor cell as a
+   -- 'physical' space on which the y-limit polynomial is defined, which has a different
+   -- relationship to its own logical coordinate than that between the logical and physical
+   -- coordinate of the donor cell. This means that the difference between the logical
+   -- coordinates of the y-limits and the donor field needs to be accounted for. We do that
+   -- using dxSub and xcSub in the kernel.
+   --   xBounds:   lower/upper logical x-limits of the integral.
+   --   yLimFuncs: functions defining lower/upper y-limits of integral.
+   --   xIdx:      current x-index.
+   --   offDoTar:  physical y-offset between donor and target cells.
+   --   yShPtr:    pointers to y-shift field data in current cell.
+   --   tsMatVecs: pre-allocated matrices and vectors.
+   local dy       = dx[2]
+   local dxSub, _ = dxAxc(xBounds)
+   if dxSub > 0 then
+      nodToModProj1D(xLimFuncs.lo, xBounds, projData.etaLo_xi)
+      nodToModProj1D(xLimFuncs.up, xBounds, projData.etaUp_xi)
+      intSubYlimDG(1., xBounds.lo, xBounds.up, projData.etaLo_xi:data(), projData.etaUp_xi:data(),
+                   dy, offDoTar, yShPtrIn, tsMatVecsIn, xIdxIn[1], 1)
+   end
+end
+
+local subCellInt_yLoLimDG = function(yDo, xLogBounds, yLogBounds, xIdxIn, xcDoIn, xcTarIn, pickUpper, yShPtrIn, tsMatVecsIn)
+   -- Perform subcell integral with variable lower y-limit.
+   --   yDo:        yDo-yShift gives the curve defining the lower x-limit.
+   --   xLogBounds: logical x range in which to compute yDo-yShift(x).
    --   yLogBounds: logical y limits of the integral.
    --   xIdxIn:     current x-index.
    --   xcDo:       cell center coordinates of donor cell.
@@ -392,10 +416,34 @@ local subCellInt_xLoLimDG = function(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoI
    --   yShPtrIn:   pointers to y-shift field data in current cell.
    --   tsMatVecs:  pre-allocated matrices and vectors.
    local ycOff    = doTarOff(xcDoIn, xcTarIn)
-   local xLogLims = {lo = function(t,xn)
-                        return yShiftedLogInv(xn[1], yTar, xcDoIn, xcTarIn, xLogBounds, pickUpper)
+   local yLogLims = {lo = function(t,xn)
+                        return yShiftedLog(xn[1], yDo, -1., xcDoIn, xcTarIn, xLogBounds, pickUpper)
                      end,
                      up = function(t,xn) return 1.0 end}
+   subCellInt_xLimDG(xLogBounds, yLogLims, xIdxIn, ycOff, yShPtrIn, tsMatVecsIn)
+end
+
+local subCellInt_trapezoid = function(xLogBounds, yLogBounds, yTars, xIdxIn, xcDoIn, xcTarIn, pickUpper, yShPtrIn, tsMatVecsIn)
+   -- Perform integral over a trapezoidal subcell region.
+   --   xLogBounds: 2x2 table with the bounds of the logical x lower and upper limits.
+   --   yLogBounds: 2 element table with the logical y-bounds of the logical x lower and upper limits.
+   --   yTars:      yTar_{j-/+1/2} in target cell which defines the lower/upper x limits.
+   --   xIdx  :     current x-index.
+   --   xcDo:       cell center coordinates of donor cell.
+   --   xcTar:      cell center coordinates of target cell.
+   --   pickUpper:  boolean indicating if wrapping function should return upper/lower boundary.
+   --   yShPtrIn:   pointers to y-shift field data in current cell.
+   --   tsMatVecs:  pre-allocated matrices and vectors.
+   local ycOff = doTarOff(xcDoIn, xcTarIn)
+   -- Functions describing the lower and upper limits in logical [-1,1] x-space.
+   local xLogLims = {
+      lo = function(t,xn)
+         return yShiftedLogInv(xn[1], yTars.lo, xcDoIn, xcTarIn, xLogBounds.lo, pickUpper)
+      end,                                                        
+      up = function(t,xn)                                         
+         return yShiftedLogInv(xn[1], yTars.up, xcDoIn, xcTarIn, xLogBounds.up, pickUpper)
+      end
+   }
    subCellInt_xLimDG(xLogLims, yLogBounds, xIdxIn, ycOff, yShPtrIn, tsMatVecsIn)
 end
 
@@ -472,7 +520,9 @@ local subCellInt_siiiORsiv = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limTar, atU
    local yTar     = limTar[2].up
    if yShiftUp <= yShiftF(x_pq.upTar.loDo) then
       -- Scenario siii.
-      local yLogBounds = {lo=-1., up=p2l(wrapNum(limTar[2].up+yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
+--      local yLogBounds = {lo=-1., up=p2l(wrapNum(limTar[2].up+yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2])}
+--      local xLogBounds = {lo=-1., up=p2l(x_pq.upTar.loDo,xcDoIn[1],dx[1])}
+      local yLogBounds = {lo=1.-(p2l(wrapNum(limTar[2].up+yShiftF(limTar[1].lo),domLim[2],atUpperYcell),xcDoIn[2],dx[2])-(-1.)), up=1.}
       local xLogBounds = {lo=-1., up=p2l(x_pq.upTar.loDo,xcDoIn[1],dx[1])}
       subCellInt_xUpLimDG(yTar, xLogBounds, yLogBounds, xIdxIn, xcDoIn, xcTarIn, atUpperYcell, yShPtrIn, tsMatVecsIn)
    else
@@ -738,12 +788,12 @@ local subCellInt_sxvORsxvi = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limDo, limT
       local yTar = limTar[2].lo
       yLogLims = {lo = function(t,xn) return -1.0 end,
                   up = function(t,xn)
-                          return -1.0+(1.0-yShiftedLog(xn[1], yTar, xcDoIn, xcTarIn, atUpperYcell))
+                          return -1.0+(1.0-yShiftedLog(xn[1], yTar, 1, xcDoIn, xcTarIn, atUpperYcell))
                        end}
    else   -- Scenario sxvi.
       local yTar = limTar[2].up
       yLogLims = {lo = function(t,xn)
-                          return -1.0+(1.0-yShiftedLog(xn[1], yTar, xcDoIn, xcTarIn, atUpperYcell))
+                          return -1.0+(1.0-yShiftedLog(xn[1], yTar, 1, xcDoIn, xcTarIn, atUpperYcell))
                        end,
                   up = function(t,xn) return 1.0 end}
    end
