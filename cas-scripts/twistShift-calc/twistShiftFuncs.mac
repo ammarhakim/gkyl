@@ -134,11 +134,14 @@ calcTwistShiftOp_xLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   /* Apply the y-shift (in the logical [-1,1] space of this cell) to the
      origin field. */ 
   ySh_e   : doExpand1(ySh, basis1D),
+  shiftedBasis : subst(y=y+(ySh_e-yOff)*(2/dyDo),copylist(basis)),
+/*
   fldDo_e : subst(y=y+(ySh_e-yOff)*(2/dyDo),fldDo_e),
+*/
   
   /* Compute the inner product, on target grid of current cell,
      of the source field times the target-grid basis functions (in this case donor and target basis are the same). */
-  fldTar_c : fullratsimp(sFac*calcInnerProdListGen(vars,intLims,1.0,basis,fldDo_e)),
+  fldTar_c : fullratsimp(sFac*calcInnerProdListGen(vars,intLims,1.0,shiftedBasis,fldDo_e)),
 
   printf(fh, "  tsData->mat = Eigen::MatrixXd::Zero(~a,~a);~%", numB, numB),
 
@@ -209,7 +212,7 @@ calcTwistShiftOp_yLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
    expQ,eI,f,doSub,k,lhsS,rhsS,expR,j],
   /* Perform integrals (for weak equality/interpolation) of subregions of a
      cell using fixed x-limits and variable y-limits (functions of x). The
-     y-limits are given by a DG (polynomial expansion), defined in a [-1,1]
+     y-limits are given by a DG polynomial expansion, defined in a [-1,1]
      logical space that is a sub-region of the source cell. */
   kill(varsC, varsP, basisC, basisP),
 
@@ -261,7 +264,7 @@ calcTwistShiftOp_yLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   yLimLo_e : doExpand1(yLimLo,basis1D),
   yLimUp_e : doExpand1(yLimUp,basis1D),
   /* The x-variable used in the inner product below may be different to the
-     x-variable in yLimLo/yLimUp because the former corresponds to the logical space of the source cell,
+     x-variable in yLimLo/yLimUp because the former corresponds to the logical space of the donor cell,
      while the latter to a sub-region of that logical (x) space. They a related by a shift and a scaling. */
   dxCell : 2,
   xcCell : 0,
@@ -283,13 +286,14 @@ calcTwistShiftOp_yLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   fldDo_c : makelist(fldDo[i],i,0,numB-1),
   
   /* Apply the y-shift (in the logical [-1,1] space of this cell) to the
-     origin field. */ 
+     donor field. */ 
   ySh_e   : doExpand1(ySh, basis1D),
-  fldDo_e : subst(y=y+(ySh_e-yOff)*(2/dyDo),fldDo_e),
+/*  fldDo_e : subst(y=y+(ySh_e-yOff)*(2/dyDo),fldDo_e), */
+  shiftedBasis : subst(y=y+(ySh_e-yOff)*(2/dyDo),copylist(basis)),
   
-  /* Compute the inner product, on target grid of current cell,
-     of the source field times the target-grid basis functions (in this case donor and target basis are the same). */
-  fldTar_c : fullratsimp(sFac*calcInnerProdListGenRev(vars,intLims,1.0,basis,fldDo_e)),
+  /* Compute the inner product, on donor grid of current cell,
+     of the source field times the donor-grid basis functions (in this case donor and target basis are the same). */
+  fldTar_c : fullratsimp(sFac*calcInnerProdListGenRev(vars,intLims,1.0,shiftedBasis,fldDo_e)),
   
   printf(fh, "  tsData->mat = Eigen::MatrixXd::Zero(~a,~a);~%", numB, numB),
 
@@ -400,10 +404,11 @@ calcTwistShiftOp_fullCell(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   /* Apply the y-shift (in the logical [-1,1] space of this cell) to the
      origin field. */ 
   ySh_e   : doExpand1(ySh, basis1D),
-  fldDo_e : subst(y=y+(ySh_e-yOff)*(2/dyDo),fldDo_e),
+  shiftedBasis : subst(y=y+(ySh_e-yOff)*(2/dyDo),copylist(basis)),
+/*  fldDo_e : subst(y=y+(ySh_e-yOff)*(2/dyDo),fldDo_e), */
   
   /* First add the integral over the whole cell. */
-  fldTar_c : fullratsimp(calcInnerProdList(vars,1.0,basis,fldDo_e)),
+  fldTar_c : fullratsimp(calcInnerProdList(vars,1.0,shiftedBasis,fldDo_e)),
 
   printf(fh, "  tsData->mat = Eigen::MatrixXd::Zero(~a,~a);~%", numB, numB),
 

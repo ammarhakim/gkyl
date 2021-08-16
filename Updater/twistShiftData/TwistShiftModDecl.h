@@ -16,6 +16,15 @@
 
 struct tsStruct;
 
+struct tsStruct
+{
+  tsStruct(const int numMats, const int matN);
+  std::vector<std::vector<Eigen::MatrixXd>> cellMat;
+  Eigen::MatrixXd mat;
+  Eigen::VectorXd vecDo;
+  Eigen::VectorXd vecTar;
+};
+
 extern "C" { 
 
   void* twistShift_alloc(const int numMats, const int matN);
@@ -67,14 +76,5 @@ extern "C" {
 
 
 }
-
-struct tsStruct
-{
-  tsStruct(const int numMats, const int matN);
-  std::vector<std::vector<Eigen::MatrixXd>> cellMat;
-  Eigen::MatrixXd mat;
-  Eigen::VectorXd vecDo;
-  Eigen::VectorXd vecTar;
-};
 
 #endif 

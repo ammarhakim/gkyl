@@ -2,7 +2,7 @@
 --
 -- Apply twist shift operation in y to a Cartesian field (e.g. gyrokinetics),
 -- using weak equality-based interpolation. Essentially we are computing the
--- left side of g(x,y) = f(x,y+S(x)).
+-- left side of g(x,y) = f(x,y-S(x)).
 --
 -- Current limitations:
 --    1) The shift has to be monotonic.
@@ -209,6 +209,7 @@ function TwistShift:_advance(tCurr, inFld, outFld)
          for mI = 1, #doCellsC do
 
             local idxDo2D = doCellsC[mI]
+--            if idxTar[2]==10 and idxDo2D[2]==6 then
             self.idxDoP[1], self.idxDoP[2] = idxDo2D[1], idxDo2D[2] 
 --            print("   from idxDo = ",self.idxDoP[1],self.idxDoP[2])
 
@@ -216,6 +217,7 @@ function TwistShift:_advance(tCurr, inFld, outFld)
 
             -- Matrix-vec multiply to compute the contribution of each donor cell to a target cell..
             self.tsMatVecMult(self.matVec, idxTar[1], mI, fldDoItr:data(), fldTarItr:data())
+--            end
          end
       end
    end

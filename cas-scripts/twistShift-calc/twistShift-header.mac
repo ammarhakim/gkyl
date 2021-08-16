@@ -29,7 +29,16 @@ printf(fh, "#include <algorithm>~%~%")$
 printf(fh, "#include <Eigen/Dense>~%")$
 printf(fh, "#include <vector>~%~%")$
 
-printf(fh, "struct tsStruct;~%~%")$
+printf(fh, "struct tsStruct;~%")$
+printf(fh, "~%")$
+printf(fh, "struct tsStruct~%")$
+printf(fh, "{~%")$
+printf(fh, "  tsStruct(const int numMats, const int matN);~%")$
+printf(fh, "  std::vector<std::vector<Eigen::MatrixXd>> cellMat;~%")$
+printf(fh, "  Eigen::MatrixXd mat;~%")$
+printf(fh, "  Eigen::VectorXd vecDo;~%")$
+printf(fh, "  Eigen::VectorXd vecTar;~%")$
+printf(fh, "};~%~%")$
 
 printf(fh, "extern \"C\" { ~%~%")$
 
@@ -71,16 +80,6 @@ for bInd : 1 thru length(bName) do (
 );
 
 printf(fh, "}~%~%")$
-
-printf(fh, "struct tsStruct~%")$
-printf(fh, "{~%")$
-printf(fh, "  tsStruct(const int numMats, const int matN);~%")$
-printf(fh, "  std::vector<std::vector<Eigen::MatrixXd>> cellMat;~%")$
-printf(fh, "  Eigen::MatrixXd mat;~%")$
-printf(fh, "  Eigen::VectorXd vecDo;~%")$
-printf(fh, "  Eigen::VectorXd vecTar;~%")$
-printf(fh, "};~%~%")$
-
 printf(fh, "#endif ~%")$
 
 close(fh)$
