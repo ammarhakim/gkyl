@@ -61,15 +61,16 @@ for bInd : 1 thru length(bName) do (
         vStr : "",
         if (vi>0) then (vStr: sconcat(vi,"v")),
   
-        printf(fh, "  void twistShift_matVecMult~ax~a~aP~a(tsStruct *tsData, const int xIdx, const int matIdx, const double *fldDo, double *fldTar);~%", ci, vStr, bName[bInd], polyOrder),
+        printf(fh, "  void twistShift_matVecMult_~ax~a~aP~a(tsStruct *tsData, const int xIdx, const int matIdx, const double *fldDo, double *fldTar);~%", ci, vStr, bName[bInd], polyOrder),
   
-        polyOrder1D : polyOrder,
+        for polyOrder1D : 1 thru polyOrder+1 do (
   
-        /* Twist-shift BC interpolation kernels. */
-        printf(fh, "  void twistShift_xLimDG~ax~a~aP~a_yShP~a(const double sFac, const double *xLimLo, const double *xLimUp, const double yLimLo, const double yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew);~%", ci, vStr, bName[bInd], polyOrder, polyOrder1D),
-        printf(fh, "  void twistShift_yLimDG~ax~a~aP~a_yShP~a(const double sFac, const double xLimLo, const double xLimUp, const double *yLimLo, const double *yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew);~%", ci, vStr, bName[bInd], polyOrder, polyOrder1D),
-        printf(fh, "  void twistShift_fullCell~ax~a~aP~a_yShP~a(const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew);~%", ci, vStr, bName[bInd], polyOrder, polyOrder1D),
-        printf(fh, "~%")
+          /* Twist-shift BC interpolation kernels. */
+          printf(fh, "  void twistShift_xLimDG_yShP~a_~ax~a~aP~a(const double sFac, const double *xLimLo, const double *xLimUp, const double yLimLo, const double yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew);~%", polyOrder1D, ci, vStr, bName[bInd], polyOrder),
+          printf(fh, "  void twistShift_yLimDG_yShP~a_~ax~a~aP~a(const double sFac, const double xLimLo, const double xLimUp, const double *yLimLo, const double *yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew);~%", polyOrder1D, ci, vStr, bName[bInd], polyOrder),
+          printf(fh, "  void twistShift_fullCell_yShP~a_~ax~a~aP~a(const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew);~%", polyOrder1D, ci, vStr, bName[bInd], polyOrder),
+          printf(fh, "~%")
+        )
   
       ),
       printf(fh, "~%")

@@ -29,6 +29,8 @@ maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
 minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
 maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
 
+maxPolyOrder1D : makelist(maxPolyOrder[i]+1,i,1,length(maxPolyOrder))$
+
 for bInd : 1 thru length(bName) do (
      
   for c : minCdim[bInd] thru maxCdim[bInd] do (
@@ -50,30 +52,32 @@ for bInd : 1 thru length(bName) do (
         printf(fh, "#include <TwistShiftModDecl.h> ~%"),
         printf(fh, " ~%"),
         
-        /* Interpolation operator with unspecified (constant) y-integral limits and
-           x-integral limits given by a DG expansion defined in a subregion of the source cell. */
-        funcName : sconcat("twistShift_xLimDG", c, "x", vStr, bName[bInd]),
-        disp(printf(false,sconcat("Working on twistShift_xLimDG", c, "x", vStr, bName[bInd]))),
-        calcTwistShiftOp_xLimDG(fh, funcName, c, v, bName[bInd], pOrder),
-        
-        /* Interpolation operator with unspecified (constant) x-integral limits and
-           y-integral limits given by a DG expansion defined in a subregion of the source cell. */
-        funcName : sconcat("twistShift_yLimDG", c, "x", vStr, bName[bInd]),
-        disp(printf(false,sconcat("Working on twistShift_yLimDG", c, "x", vStr, bName[bInd]))),
-        calcTwistShiftOp_yLimDG(fh, funcName, c, v, bName[bInd], pOrder),
-        
-        /* Integrate over a subcell region composed of the integral over the whole cell
-           minus the integral over two with (diagonally opposite) corner regions, each with 
-           unspecified (constant) y-integral limits and x-integral limits given by a DG
-           expansion defined in a subregion of the source cell. */
-        funcName : sconcat("twistShift_fullCell", c, "x", vStr, bName[bInd]),
-        disp(printf(false,sconcat("Working on twistShift_fullCell", c, "x", vStr, bName[bInd]))),
-        calcTwistShiftOp_fullCell(fh, funcName, c, v, bName[bInd], pOrder),
+        for pOrder1D : 1 thru maxPolyOrder1D[bInd] do (
+          /* Interpolation operator with unspecified (constant) y-integral limits and
+             x-integral limits given by a DG expansion defined in a subregion of the source cell. */
+          funcName : sconcat("twistShift_xLimDG_yShP", pOrder1D, "_", c, "x", vStr, bName[bInd]),
+          disp(printf(false,sconcat("Working on twistShift_xLimDG_yShP", pOrder1D, "_", c, "x", vStr, bName[bInd]))),
+          calcTwistShiftOp_xLimDG(fh, funcName, c, v, bName[bInd], pOrder, pOrder1D),
+          
+          /* Interpolation operator with unspecified (constant) x-integral limits and
+             y-integral limits given by a DG expansion defined in a subregion of the source cell. */
+          funcName : sconcat("twistShift_yLimDG_yShP", pOrder1D, "_", c, "x", vStr, bName[bInd]),
+          disp(printf(false,sconcat("Working on twistShift_yLimDG_yShP", pOrder1D, "_", c, "x", vStr, bName[bInd]))),
+          calcTwistShiftOp_yLimDG(fh, funcName, c, v, bName[bInd], pOrder, pOrder1D),
+          
+          /* Integrate over a subcell region composed of the integral over the whole cell
+             minus the integral over two with (diagonally opposite) corner regions, each with 
+             unspecified (constant) y-integral limits and x-integral limits given by a DG
+             expansion defined in a subregion of the source cell. */
+          funcName : sconcat("twistShift_fullCell_yShP", pOrder1D, "_", c, "x", vStr, bName[bInd]),
+          disp(printf(false,sconcat("Working on twistShift_fullCell_yShP", pOrder1D, "_", c, "x", vStr, bName[bInd]))),
+          calcTwistShiftOp_fullCell(fh, funcName, c, v, bName[bInd], pOrder, pOrder1D)
+        ),
 
         /* Perform mat-vec multiply to compute the contribution of a donor cell
            to a target cell. */
-        funcName : sconcat("twistShift_matVecMult", c, "x", vStr, bName[bInd]),
-        disp(printf(false,sconcat("Working on twistShift_matVecMult", c, "x", vStr, bName[bInd]))),
+        funcName : sconcat("twistShift_matVecMult_", c, "x", vStr, bName[bInd]),
+        disp(printf(false,sconcat("Working on twistShift_matVecMult_", c, "x", vStr, bName[bInd]))),
         calcTwistShiftOp_matVecMult(fh, funcName, c, v, bName[bInd], pOrder),
         
         close(fh)

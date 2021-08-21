@@ -40,7 +40,7 @@ end
 function _M.selectTwistShiftIntSubX(cDim, vDim, basisNm, polyOrder, yShPolyOrder)
    local vStr     = vDim > 0 and vDim .. "v" or ""
    local funcType = "void"
-   local funcNm   = string.format("twistShift_xLimDG%dx%s%sP%d_yShP%d", cDim, vStr, basisNmMap[basisNm], polyOrder, yShPolyOrder)
+   local funcNm   = string.format("twistShift_xLimDG_yShP%d_%dx%s%sP%d", yShPolyOrder, cDim, vStr, basisNmMap[basisNm], polyOrder)
    local funcSign = "(const double sFac, const double *xLimLo, const double *xLimUp, const double yLimLo, const double yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew)"
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
@@ -50,7 +50,7 @@ end
 function _M.selectTwistShiftIntSubY(cDim, vDim, basisNm, polyOrder, yShPolyOrder)
    local vStr     = vDim > 0 and vDim .. "v" or ""
    local funcType = "void"
-   local funcNm   = string.format("twistShift_yLimDG%dx%s%sP%d_yShP%d", cDim, vStr, basisNmMap[basisNm], polyOrder, yShPolyOrder)
+   local funcNm   = string.format("twistShift_yLimDG_yShP%d_%dx%s%sP%d", yShPolyOrder, cDim, vStr, basisNmMap[basisNm], polyOrder)
    local funcSign = "(const double sFac, const double xLimLo, const double xLimUp, const double *yLimLo, const double *yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew)"
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
@@ -60,7 +60,7 @@ end
 function _M.selectTwistShiftIntFullCell(cDim, vDim, basisNm, polyOrder, yShPolyOrder)
    local vStr     = vDim > 0 and vDim .. "v" or ""
    local funcType = "void"
-   local funcNm   = string.format("twistShift_fullCell%dx%s%sP%d_yShP%d", cDim, vStr, basisNmMap[basisNm], polyOrder, yShPolyOrder)
+   local funcNm   = string.format("twistShift_fullCell_yShP%d_%dx%s%sP%d", yShPolyOrder, cDim, vStr, basisNmMap[basisNm], polyOrder)
    local funcSign = "(const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew)"
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
@@ -71,7 +71,7 @@ end
 function _M.selectTwistShiftMatVecMult(cDim, vDim, basisNm, polyOrder)
    local vStr     = vDim > 0 and vDim .. "v" or ""
    local funcType = "void"
-   local funcNm   = string.format("twistShift_matVecMult%dx%s%sP%d", cDim, vStr, basisNmMap[basisNm], polyOrder, yShPolyOrder)
+   local funcNm   = string.format("twistShift_matVecMult_%dx%s%sP%d", cDim, vStr, basisNmMap[basisNm], polyOrder, yShPolyOrder)
    local funcSign = "(tsStruct *tsData, const int xIdx, const int matIdx, const double *fldDo, double *fldTar)"
 
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")

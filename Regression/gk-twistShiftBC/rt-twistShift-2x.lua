@@ -68,10 +68,8 @@ local fldTar       = createField(grid, basis)
 -- It has to be everywhere >0 or everywhere <0 (it cannot be zero, or too close to it).
 local yShiftFunc = function(t, xn)
                       local x = xn[1]
---                      return 1./(1.+0.25*x)
-                      return 0.2*x+1.2
---                      return 1.1
---                      return 0.1*(x+2.)^2+0.2*x+0.6
+                      return 1./(1.+0.25*x)
+--                      return 0.3*x+1.4
                    end
 
 local project = Updater.ProjectOnBasis {
@@ -85,32 +83,14 @@ local fldDoFunc = function(t, xn)
    local muX, muY   = 0., 0.
    local sigX, sigY = 0.3, 0.3
    return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((y-muY)^2)/(2.*(sigY^2)))
---   return math.exp(-((y-muY)^2)/(2.*(sigY^2)))
---   return math.sin((2.*math.pi/3.)*y)
---   if y<0. or y>.3 then
---      return 0.
---   else
---      return 1.
---   end
 end
 -- Shifted donor field.
 local fldDoShiftedFunc = function(t, xn)
    local x, y       = xn[1], xn[2]
    local muX, muY   = 0., 0.
    local sigX, sigY = 0.3, 0.3
---   return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((wrapNum(y+yShiftFunc(0,xn),{lo=grid:lower(2),up=grid:upper(2)},true)-muY)^2)/(2.*(sigY^2)))
---   return math.exp(-((wrapNum(y+yShiftFunc(0,xn),{lo=grid:lower(2),up=grid:upper(2)},true)-muY)^2)/(2.*(sigY^2)))
---   return math.sin((2.*math.pi/3.)*((wrapNum(y+yShiftFunc(0,xn),{lo=grid:lower(2),up=grid:upper(2)},true))))
---   if wrapNum(y+yShiftFunc(0,xn),{lo=grid:lower(2),up=grid:upper(2)},true) < 0. then
---      return 0.
---   else
---      return 1.
---   end
-   if y>-1.2 then
-      return 0.
-   else
-      return 1.
-   end
+   return math.exp(-((x-muX)^2)/(2.*(sigX^2))
+                   -((wrapNum(y+yShiftFunc(0,xn),{lo=grid:lower(2),up=grid:upper(2)},true)-muY)^2)/(2.*(sigY^2)))
 end
 
 -- Project donor field function onto basis.
@@ -134,14 +114,6 @@ local twistShiftUpd = Updater.TwistShift {
    onGrid = grid,   yShiftFunc      = yShiftFunc, 
    basis  = basis,  yShiftPolyOrder = yShiftPolyOrder, 
 }
---for i=1,grid:numCells(1) do
---   for j=1,grid:numCells(2) do
---      print(string.format("iTar=(%d,%d):",i,j))
---      for i, v in ipairs(twistShiftUpd.doCells[i][j]) do
---         print(string.format("  iDo[%d] = (%d,%d)",i,v[1],v[2]))
---      end
---   end
---end
 
 local t1 = os.clock()
 twistShiftUpd:_advance(0., {fldDo}, {fldTar})
@@ -153,3 +125,26 @@ fldTar:write("fldTar.bp")
 local intFldTar = DataStruct.DynVector { numComponents = 1, }
 intQuant:advance(0., {fldTar}, {intFldTar})
 intFldTar:write("intFldTar.bp", 0., 0)
+
+
+-- ............... SHIFT BACK .................. --
+local yShiftBackFunc = function(t, xn) return -yShiftFunc(t, xn) end
+
+local twistShiftBackUpd = Updater.TwistShift {
+   onGrid = grid,   yShiftFunc      = yShiftBackFunc, 
+   basis  = basis,  yShiftPolyOrder = yShiftPolyOrder, 
+}
+
+fldDo:clear(0.)
+local t1 = os.clock()
+twistShiftBackUpd:_advance(0., {fldTar}, {fldDo})
+local t2 = os.clock()
+io.write("Total test time: ", t2-t1, " s\n")
+
+fldDo:write("fldDoBack.bp")
+
+local intFldDoBack = DataStruct.DynVector { numComponents = 1, }
+intQuant:advance(0., {fldDo}, {intFldDoBack})
+intFldDoBack:write("intFldDoBack.bp", 0., 0)
+
+

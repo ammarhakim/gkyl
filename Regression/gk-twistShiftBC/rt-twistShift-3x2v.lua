@@ -1,6 +1,8 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Test the interpolation needed for twist-shift BCs in gyrokinetics.
+-- Test the twist-shift updater for twist-shift BCs in gyrokinetics.
+--
+-- This tests the 3x2v twist shift.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -10,13 +12,6 @@ local Grid       = require "Grid"
 local DataStruct = require "DataStruct"
 local Basis      = require "Basis"
 local Updater    = require "Updater"
--- The following are needed for projecting onto the basis.
-local SerendipityNodes     = require "Lib.SerendipityNodes"
-GKYL_EMBED_INP             = false
-
--- Create a field on a 3D grid. Then apply the twist-shift BC along z by
--- taking the field in the last x-y plane, twist-shift it, and place it
--- in the lower x-y ghost plane.
 
 local vt   = 1.0
 local mass = 1.0
@@ -37,6 +32,7 @@ local function createField(grid, basis, vComp)
       ghost         = {1, 1},
       metaData      = {polyOrder = basis:polyOrder(), basisType = basis:id()},
    }
+   fld:clear(0.)
    return fld
 end
 
@@ -60,33 +56,28 @@ local wrapNum = function (val, lims, pickUpper)
    end
 end
 
-local phaseGrid = Grid.RectCart {
-   lower        = lower,
-   upper        = upper,
-   cells        = numCells,
-   periodicDirs = periodicDirs,
+local grid = Grid.RectCart {
+   lower = lower,  cells        = numCells,
+   upper = upper,  periodicDirs = periodicDirs,
 }
 local confGrid = Grid.RectCart {
-   lower        = {lower[1],lower[2],lower[3]},
-   upper        = {upper[1],upper[2],upper[3]},
-   cells        = {numCells[1],numCells[2],numCells[3]},
-   periodicDirs = periodicDirs,
+   lower = {lower[1],lower[2],lower[3]},  cells        = {numCells[1],numCells[2],numCells[3]},
+   upper = {upper[1],upper[2],upper[3]},  periodicDirs = periodicDirs,
 }
-local phaseBasis = Basis.CartModalSerendipity { ndim = phaseGrid:ndim(), polyOrder = polyOrder }
-local confBasis  = Basis.CartModalSerendipity { ndim = confGrid:ndim(), polyOrder = polyOrder }
-local fldDo        = createField(phaseGrid, phaseBasis)
-local fldDoShifted = createField(phaseGrid, phaseBasis)
-local fldTar       = createField(phaseGrid, phaseBasis)
+local basis         = Basis.CartModalSerendipity { ndim = grid:ndim(), polyOrder = polyOrder }
+local confBasis     = Basis.CartModalSerendipity { ndim = confGrid:ndim(), polyOrder = polyOrder }
+local fldDo         = createField(grid, basis)
+local fldDoShifted  = createField(grid, basis)
+local fldDoNoGhosts = createField(grid, basis)
+local fldTar        = createField(grid, basis)
 
 -- Create a 1D grid and project the function that determines the shift.
 -- In flux-tube gyrokinetics this shift is a function of the magnetic
 -- safety profile, something like yShift = L_z*C_y(x)*q(x).
 local polyOrder1D = polyOrder
 local grid1D = Grid.RectCart {
-   lower        = {lower[1]},
-   upper        = {upper[1]},
-   cells        = {numCells[1]},
-   periodicDirs = {},
+   lower = {lower[1]},  cells        = {numCells[1]},
+   upper = {upper[1]},  periodicDirs = {},
 }
 local basis1D = Basis.CartModalSerendipity { ndim = grid1D:ndim(), polyOrder = polyOrder1D }
 
@@ -96,16 +87,9 @@ local yShiftFunc = function(t, xn)
                       local x = xn[1]
 --                      return 1./(1.+0.25*x)
                       return -0.3*x+0.97
---                      return 0.1*(x+2.)^2+0.2*x+0.6
                    end
 
-local project = Updater.ProjectOnBasis {
-   onGrid   = phaseGrid,
-   basis    = phaseBasis,
-   evaluate = function(t, xn) return 1. end,
-   projectOnGhosts = true,
-}
--- Donor field.
+-- Donor field function.
 local fldDoFunc = function(t, xn)
    local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
    local vExp  = -(vpar^2 + 2.*math.abs(mu)*B0/mass)/(2.0*(vt^2))
@@ -114,15 +98,8 @@ local fldDoFunc = function(t, xn)
    local muX, muY   = 0., 0.
    local sigX, sigY = 0.3, 0.3
    return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((y-muY)^2)/(2.*(sigY^2)))*vFunc
---   return math.exp(-((y-muY)^2)/(2.*(sigY^2)))*vFunc
---   return math.sin((2.*math.pi/3.)*y)*vFunc
---   if y < 0. then
---      return 0.*vFunc
---   else
---      return 1.*vFunc
---   end
 end
--- Shifted donor field.
+-- Shifted donor field function.
 local fldDoShiftedFunc = function(t, xn)
    local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
    local vExp  = -(vpar^2 + 2.*math.abs(mu)*B0/mass)/(2.0*(vt^2))
@@ -130,52 +107,93 @@ local fldDoShiftedFunc = function(t, xn)
 
    local muX, muY   = 0., 0.
    local sigX, sigY = 0.3, 0.3
-   return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((wrapNum(y+yShiftFunc(0,xn),{lo=phaseGrid:lower(2),up=phaseGrid:upper(2)},true)-muY)^2)/(2.*(sigY^2)))*vFunc
---   return math.exp(-((wrapNum(y+yShiftFunc(0,xn),{lo=phaseGrid:lower(2),up=phaseGrid:upper(2)},true)-muY)^2)/(2.*(sigY^2)))*vFunc
---   return math.sin((2.*math.pi/3.)*((wrapNum(y+yShiftFunc(0,xn),{lo=phaseGrid:lower(2),up=phaseGrid:upper(2)},true))))*vFunc
---   if wrapNum(y+yShiftFunc(0,xn),{lo=phaseGrid:lower(2),up=phaseGrid:upper(2)},true) < 0. then
---      return 0.*vFunc
---   else
---      return 1.*vFunc
---   end
+   return math.exp(-((x-muX)^2)/(2.*(sigX^2))
+                   -((wrapNum(y-yShiftFunc(0,xn),{lo=grid:lower(2),up=grid:upper(2)},true)-muY)^2)/(2.*(sigY^2)))*vFunc
 end
 
+-- Projection updaters.
+local project = Updater.ProjectOnBasis {
+   onGrid = grid,   evaluate = function(t, xn) return 1. end,
+   basis  = basis,
+}
+local projectOnGhosts = Updater.ProjectOnBasis {
+   onGrid = grid,   evaluate = function(t, xn) return 1. end,
+   basis  = basis,  projectOnGhosts = true,
+}
+local projectBmag = Updater.EvalOnNodes {
+   onGrid = grid,   evaluate        = function(t, xn) return B0 end,
+   basis  = basis,  projectOnGhosts = true,
+}
+
+-- Project the magnetic field amplitude.
+local bmag = createField(confGrid, confBasis)
+projectBmag:advance(0., {}, {bmag})
+
 -- Project donor field function onto basis.
-project:setFunc(function(t,xn) return fldDoFunc(t,xn) end)
-project:advance(0., {}, {fldDo})
-fldDo:write("fldDo.bp", 0., 0, true)
+projectOnGhosts:setFunc(function(t,xn) return fldDoFunc(t,xn) end)
+projectOnGhosts:advance(0., {}, {fldDo})
+fldDo:write("fldDo.bp")
 -- Project shifted donor field function onto basis.
-project:setFunc(function(t,xn) return fldDoShiftedFunc(t,xn) end)
-project:advance(0., {}, {fldDoShifted})
-fldDoShifted:write("fldDoShifted.bp", 0., 0, true)
+projectOnGhosts:setFunc(function(t,xn) return fldDoShiftedFunc(t,xn) end)
+projectOnGhosts:advance(0., {}, {fldDoShifted})
+fldDoShifted:write("fldDoShifted.bp")
 
--- Project the function in the target field but not in the ghost
--- cells. Twist-shift will fill the ghost cells.
-local projectNoGhosts = Updater.ProjectOnBasis {
-   onGrid   = phaseGrid,
-   basis    = phaseBasis,
-   evaluate = function(t, xn) return 1. end,
+-- Project the donor field function into the target field but not
+-- in the ghost cells. Twist-shift will fill the ghost cells.
+project:setFunc(function(t,xn) return fldDoFunc(t,xn) end)
+project:advance(0., {}, {fldDoNoGhosts})
+fldTar:copy(fldDoNoGhosts)
+
+-- Compute the velocity moments of the donor field in the ghosts
+-- cells only. So we first subtract the field with the donor field
+-- function projected in the inner cells only, from the field with
+-- the donor field function projected in the ghost cells too.
+fldDo:accumulate(-1., fldDoNoGhosts)
+local m0Do = createField(confGrid, confBasis)
+local m1Do = createField(confGrid, confBasis)
+local m2Do = createField(confGrid, confBasis)
+local numDensityCalc = Updater.DistFuncMomentCalc {
+   onGrid     = grid,       moment = "GkM0", -- GkM0 = < f >
+   phaseBasis = basis,      gkfacs = {mass, bmag},
+   confBasis  = confBasis,
 }
-projectNoGhosts:setFunc(function(t,xn) return fldDoFunc(t,xn) end)
-projectNoGhosts:advance(0., {}, {fldTar})
+local momDensityCalc = Updater.DistFuncMomentCalc {
+   onGrid     = grid,       moment = "GkM1", -- GkM1 = < v_parallel f >
+   phaseBasis = basis,      gkfacs = {mass, bmag},
+   confBasis  = confBasis,
+}
+local ptclEnergyCalc = Updater.DistFuncMomentCalc {
+   onGrid     = grid,       moment = "GkM2", -- GkM2 = < (v_parallel^2 + 2*mu*B/m) f >
+   phaseBasis = basis,      gkfacs = {mass, bmag},
+   confBasis  = confBasis,
+}
+numDensityCalc:advance(0., {fldDo}, {m0Do})
+momDensityCalc:advance(0., {fldDo}, {m1Do})
+ptclEnergyCalc:advance(0., {fldDo}, {m2Do})
+m0Do:write("fldDo_M0.bp",0., 0)
+m1Do:write("fldDo_M1.bp",0., 0)
+m2Do:write("fldDo_M2.bp",0., 0)
 
+-- Compute integrated moments.
 local intQuant = Updater.CartFieldIntegratedQuantCalc {
-   onGrid        = phaseGrid,
-   basis         = phaseBasis,
-   numComponents = 1,
-   quantity      = "V",
+   onGrid = confGrid,   numComponents = 1,
+   basis  = confBasis,  quantity      = "V",
 }
-local intFldDo = DataStruct.DynVector { numComponents = 1, }
-intQuant:advance(0., {fldDo}, {intFldDo})
-intFldDo:write("intFldDo.bp",0., 0)
+local intM0Do = DataStruct.DynVector { numComponents = 1, }
+local intM1Do = DataStruct.DynVector { numComponents = 1, }
+local intM2Do = DataStruct.DynVector { numComponents = 1, }
+intQuant:advance(0., {m0Do}, {intM0Do})
+intQuant:advance(0., {m1Do}, {intM1Do})
+intQuant:advance(0., {m2Do}, {intM2Do})
+intM0Do:write("fldDo_intM0.bp",0., 0)
+intM1Do:write("fldDo_intM1.bp",0., 0)
+intM2Do:write("fldDo_intM2.bp",0., 0)
 
+-- Apply the shift to the target field.
 local twistShiftUpd = Updater.TwistShift {
-   onGrid          = phaseGrid,
-   basis           = phaseBasis, 
-   confBasis       = confBasis,
-   yShiftFunc      = yShiftFunc, 
-   yShiftPolyOrder = yShiftPolyOrder,
-   edge            = "lower",
+   onGrid    = grid,   yShiftFunc      = yShiftFunc, 
+   basis     = basis,  yShiftPolyOrder = yShiftPolyOrder, 
+   confBasis = confBasis,   edge            = "lower",
 }
 
 local t1 = os.clock()
@@ -185,6 +203,48 @@ io.write("Total test time: ", t2-t1, " s\n")
 
 fldTar:write("fldTar.bp", 0., 0, true)
 
-local intFldTar = DataStruct.DynVector { numComponents = 1, }
-intQuant:advance(0., {fldTar}, {intFldTar})
-intFldTar:write("intFldTar.bp", 0., 0)
+-- Compute the velocity moments of the target field.
+-- Subtract the donor field in the inner cells so we only compute
+-- ghost cell moments.
+fldTar:accumulate(-1., fldDoNoGhosts)
+local m0Tar = createField(confGrid, confBasis)
+local m1Tar = createField(confGrid, confBasis)
+local m2Tar = createField(confGrid, confBasis)
+local numDensityCalcOnGhosts = Updater.DistFuncMomentCalc {
+   onGrid     = grid,       moment   = "GkM0", -- GkM0 = < f >
+   phaseBasis = basis,      gkfacs   = {mass, bmag},
+   confBasis  = confBasis,  onGhosts = true,
+}
+local momDensityCalcOnGhosts = Updater.DistFuncMomentCalc {
+   onGrid     = grid,       moment   = "GkM1", -- GkM1 = < v_parallel f >
+   phaseBasis = basis,      gkfacs   = {mass, bmag},
+   confBasis  = confBasis,  onGhosts = true,
+}
+local ptclEnergyCalcOnGhosts = Updater.DistFuncMomentCalc {
+   onGrid     = grid,       moment   = "GkM2", -- GkM2 = < (v_parallel^2 + 2*mu*B/m) f >
+   phaseBasis = basis,      gkfacs   = {mass, bmag},
+   confBasis  = confBasis,  onGhosts = true,
+}
+numDensityCalcOnGhosts:advance(0., {fldTar}, {m0Tar})
+momDensityCalcOnGhosts:advance(0., {fldTar}, {m1Tar})
+ptclEnergyCalcOnGhosts:advance(0., {fldTar}, {m2Tar})
+m0Tar:write("fldTar_M0.bp",0., 0)
+m1Tar:write("fldTar_M1.bp",0., 0)
+m2Tar:write("fldTar_M2.bp",0., 0)
+
+-- Compute integrated moments.
+local intQuantOnGhosts = Updater.CartFieldIntegratedQuantCalc {
+   onGrid   = confGrid,   numComponents = 1,
+   basis    = confBasis,  quantity      = "V",
+   onGhosts = true,
+}
+local intM0Tar = DataStruct.DynVector { numComponents = 1, }
+local intM1Tar = DataStruct.DynVector { numComponents = 1, }
+local intM2Tar = DataStruct.DynVector { numComponents = 1, }
+intQuantOnGhosts:advance(0., {m0Tar}, {intM0Tar})
+intQuantOnGhosts:advance(0., {m1Tar}, {intM1Tar})
+intQuantOnGhosts:advance(0., {m2Tar}, {intM2Tar})
+intM0Tar:write("fldTar_intM0.bp",0., 0)
+intM1Tar:write("fldTar_intM1.bp",0., 0)
+intM2Tar:write("fldTar_intM2.bp",0., 0)
+

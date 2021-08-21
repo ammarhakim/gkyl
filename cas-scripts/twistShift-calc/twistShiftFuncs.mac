@@ -52,7 +52,7 @@ innerProdGenRev(vars, lims, w, f1, f2) := block([n, r],
 calcInnerProdListGenRev(vars, lims, w, funcList, f) := fullratsimp(makelist(
     innerProdGenRev(vars, lims, w, funcList[i], f), i, 1, length(funcList)))$
 
-calcTwistShiftOp_xLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
+calcTwistShiftOp_xLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder, polyOrder1D) := block(
   [basisC1D,i,vars1D,vars,basis1D,numB1D,xLimLo_e,xLimUp_e,dyCell,ycCell,yMap,
    basis,numB,intLims,fldDo_e,fldDo_c,ySh_e,fldTar_c,subList,maxExponent,expQ,
    eI,f,doSub,k,lhsS,rhsS,expR,j],
@@ -63,7 +63,6 @@ calcTwistShiftOp_xLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   kill(varsC, varsP, basisC, basisP),
 
   /* Will need 1D basis for the y-shift. */
-  polyOrder1D : polyOrder,
   load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
   basisC1D : makelist(0,i,1,length(basisC)),
   for i : 1 thru length(basisC) do (basisC1D[i] : copylist(basisC[i])),
@@ -85,7 +84,7 @@ calcTwistShiftOp_xLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   numB : length(basis),
 
   /* Function declaration with input/output variables. */
-  printf(fh, "void ~aP~a_yShP~a(const double sFac, const double *xLimLo, const double *xLimUp, const double yLimLo, const double yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew) ~%{ ~%", funcNm, polyOrder, polyOrder1D),
+  printf(fh, "void ~aP~a(const double sFac, const double *xLimLo, const double *xLimUp, const double yLimLo, const double yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew) ~%{ ~%", funcNm, polyOrder, polyOrder1D),
   printf(fh, "  // sFac:   scale factor, typically +/- 1.0.~%"),
   printf(fh, "  // xLimUp: 1D DG expansion of the function xLimLo(y) giving the lower limit of the x integral.~%"),
   printf(fh, "  // xLimLo: 1D DG expansion of the function xLimUp(y) giving the upper limit of the x integral.~%"),
@@ -206,7 +205,7 @@ calcTwistShiftOp_xLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
 
 )$
 
-calcTwistShiftOp_yLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
+calcTwistShiftOp_yLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder, polyOrder1D) := block(
   [basisC1D,i,vars1D,vars,basis1D,numB1D,yLimLo_e,yLimUp_e,dxCell,xcCell,
    xMap,basis,numB,intLims,fldDo_e,fldDo_c,ySh_e,fldTar_c,subList,maxExponent,
    expQ,eI,f,doSub,k,lhsS,rhsS,expR,j],
@@ -217,7 +216,6 @@ calcTwistShiftOp_yLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   kill(varsC, varsP, basisC, basisP),
 
   /* Will need 1D basis for the y-shift. */
-  polyOrder1D : polyOrder,
   load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
   basisC1D : makelist(0,i,1,length(basisC)),
   for i : 1 thru length(basisC) do (basisC1D[i] : copylist(basisC[i])),
@@ -239,7 +237,7 @@ calcTwistShiftOp_yLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   numB : length(basis),
 
   /* Function declaration with input/output variables. */
-  printf(fh, "void ~aP~a_yShP~a(const double sFac, const double xLimLo, const double xLimUp, const double *yLimLo, const double *yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew) ~%{ ~%", funcNm, polyOrder, polyOrder1D),
+  printf(fh, "void ~aP~a(const double sFac, const double xLimLo, const double xLimUp, const double *yLimLo, const double *yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew) ~%{ ~%", funcNm, polyOrder, polyOrder1D),
   printf(fh, "  // sFac:    scale factor, typically +/- 1.0.~%"),
   printf(fh, "  // xLimUp:  lower limit of the x integral in [-1,1] logical space.~%"),
   printf(fh, "  // xLimLo:  upper limit of the x integral in [-1,1] logical space.~%"),
@@ -358,7 +356,7 @@ calcTwistShiftOp_yLimDG(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
 
 )$
 
-calcTwistShiftOp_fullCell(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
+calcTwistShiftOp_fullCell(fh, funcNm, cdim, vdim, basisFun, polyOrder, polyOrder1D) := block(
   [basisC1D,i,vars1D,vars,basis1D,numB1D,basis,numB,fldDo_e,fldDo_c,
    ySh_e,fldTar_c,sideSuffix,sI,xLimLo_e,xLimUp_e,dyCell,ycCell,dyLim,ycLim,yMap,yLimLo,yLimUp,
    intLims,subList,maxExponent,expQ,eI,f,doSUb,k,lhsS,rhsS,expR,j],
@@ -366,7 +364,6 @@ calcTwistShiftOp_fullCell(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   kill(varsC, varsP, basisC, basisP),
 
   /* Will need 1D basis for the y-shift. */
-  polyOrder1D : polyOrder,
   load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
   basisC1D : makelist(0,i,1,length(basisC)),
   for i : 1 thru length(basisC) do (basisC1D[i] : copylist(basisC[i])),
@@ -388,7 +385,7 @@ calcTwistShiftOp_fullCell(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block(
   numB : length(basis),
 
   /* Function declaration with input/output variables. */
-  printf(fh, "void ~aP~a_yShP~a(const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew) ~%{ ~%", funcNm, polyOrder, polyOrder1D),
+  printf(fh, "void ~aP~a(const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew) ~%{ ~%", funcNm, polyOrder, polyOrder1D),
   printf(fh, "  // dyDo:   y cell length of the donor cell.~%"),
   printf(fh, "  // yOff:   yOffset between the donor and target cells (in the direction of the shift).~%"),
   printf(fh, "  // ySh:    yShift translated to [-1,1] logical space.~%"),
