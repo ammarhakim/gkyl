@@ -1,6 +1,7 @@
 /* For single integration by parts use ConstDiffusionSIBP-surf,
    for double integration by parts use ConstDiffusion-surf */
 load("constDiffusion-calc/ConstDiffusion-surf")$
+load("constDiffusion-calc/ConstDiffusionVarCoeff-surf")$
 load(stringproc)$
 
 /* ...... USER INPUTS........ */
@@ -13,17 +14,17 @@ load(stringproc)$
 /* Serendipity basis. */
 maxPolyOrder_Ser : 2$
 minDim_Ser : 1$
-maxDim_Ser : 4$
+maxDim_Ser : 2$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 1$
-minDim_Max : 1$
-maxDim_Max : 1$
+minDim_Max : 0$
+maxDim_Max : 0$
 
 /* Tensor basis. */
 maxPolyOrder_Tensor : 2$
-minDim_Tensor : 1$
-maxDim_Tensor : 4$
+minDim_Tensor : 0$
+maxDim_Tensor : 0$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -61,6 +62,10 @@ for bInd : 1 thru length(bName) do (
         funcName  : sconcat("ConstHyperDiffusion",diffOrder,"Surf", cD, "x", bName[bInd]),
         calcConstDiffusionSurfUpdater(fh, funcName, cD, bName[bInd], polyOrder, diffOrder, usePositivity)
       ),
+      /* Second order diffusion with spatially varying coefficient. */
+      diffOrder : 2,
+      funcName  : sconcat("ConstDiffusionVarCoeffSurf", cD, "x", bName[bInd]),
+      buildConstDiffusionVarCoeffSurfKernel(fh, funcName, cD, bName[bInd], polyOrder, diffOrder),
       close(fh),
   
       /* boundarySurf kernels compute surface contribution that we
@@ -82,6 +87,10 @@ for bInd : 1 thru length(bName) do (
         funcName  : sconcat("ConstHyperDiffusion",diffOrder,"BoundarySurf", cD, "x", bName[bInd]),
         calcConstDiffusionBoundarySurfUpdater(fh, funcName, cD, bName[bInd], polyOrder, diffOrder, usePositivity)
       ),
+      /* Second order diffusion with spatially varying coefficient. */
+      diffOrder : 2,
+      funcName  : sconcat("ConstDiffusionVarCoeffBoundarySurf", cD, "x", bName[bInd]),
+      buildConstDiffusionVarCoeffBoundarySurfKernel(fh, funcName, cD, bName[bInd], polyOrder, diffOrder),
       close(fh),
     
       /* Positivity preserving kernels. */

@@ -8,12 +8,12 @@ void MGpoissonFEMprolong2xSer_P1(double *fldCC, double **fldF)
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
-  double *fldFLy = fldF[5];
-  double *fldFLyy = fldF[6];
-  double *fldFLxLy = fldF[9];
-  double *fldFLxLyy = fldF[10];
-  double *fldFLxxLy = fldF[13];
-  double *fldFLxxLyy = fldF[14];
+  double *fldFLy = fldF[4];
+  double *fldFLyy = fldF[5];
+  double *fldFLxLy = fldF[7];
+  double *fldFLxLyy = fldF[8];
+  double *fldFLxxLy = fldF[10];
+  double *fldFLxxLyy = fldF[11];
 
   fldFC[0] += 0.25*fldCC[0]; 
   fldFLxLy[0] += fldCC[0]; 
@@ -33,10 +33,10 @@ void MGpoissonFEMprolong2xSer_LxDirichlet_P1(double *fldCC, double **fldF)
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[7];
-  double *fldFLxLyy = fldF[8];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[0]; 
   fldFLxLy[0] += fldCC[0]; 
@@ -53,10 +53,10 @@ void MGpoissonFEMprolong2xSer_LxNeumann_P1(double *fldCC, double **fldF)
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[7];
-  double *fldFLxLyy = fldF[8];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[0]; 
   fldFLxLy[0] += fldCC[0]; 
@@ -73,10 +73,10 @@ void MGpoissonFEMprolong2xSer_LxRobin_P1(double *fldCC, double **fldF)
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[7];
-  double *fldFLxLyy = fldF[8];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[0]; 
   fldFLxLy[0] += fldCC[0]; 
@@ -96,10 +96,10 @@ void MGpoissonFEMprolong2xSer_UxDirichlet_P1(double *fldCC, double **fldF)
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
   double *fldFLyy = fldF[5];
-  double *fldFLxLy = fldF[8];
-  double *fldFLxLyy = fldF[9];
-  double *fldFLxxLy = fldF[12];
-  double *fldFLxxLyy = fldF[13];
+  double *fldFLxLy = fldF[7];
+  double *fldFLxLyy = fldF[8];
+  double *fldFLxxLy = fldF[10];
+  double *fldFLxxLyy = fldF[11];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -125,10 +125,10 @@ void MGpoissonFEMprolong2xSer_UxNeumann_P1(double *fldCC, double **fldF)
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
   double *fldFLyy = fldF[5];
-  double *fldFLxLy = fldF[8];
-  double *fldFLxLyy = fldF[9];
-  double *fldFLxxLy = fldF[12];
-  double *fldFLxxLyy = fldF[13];
+  double *fldFLxLy = fldF[7];
+  double *fldFLxLyy = fldF[8];
+  double *fldFLxxLy = fldF[10];
+  double *fldFLxxLyy = fldF[11];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -154,10 +154,10 @@ void MGpoissonFEMprolong2xSer_UxRobin_P1(double *fldCC, double **fldF)
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
   double *fldFLyy = fldF[5];
-  double *fldFLxLy = fldF[8];
-  double *fldFLxLyy = fldF[9];
-  double *fldFLxxLy = fldF[12];
-  double *fldFLxxLyy = fldF[13];
+  double *fldFLxLy = fldF[7];
+  double *fldFLxLyy = fldF[8];
+  double *fldFLxxLy = fldF[10];
+  double *fldFLxxLyy = fldF[11];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -181,9 +181,9 @@ void MGpoissonFEMprolong2xSer_LyDirichlet_P1(double *fldCC, double **fldF)
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
-  double *fldFLy = fldF[5];
-  double *fldFLxLy = fldF[7];
-  double *fldFLxxLy = fldF[9];
+  double *fldFLy = fldF[4];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[0]; 
   fldFLxLy[0] += fldCC[0]; 
@@ -201,9 +201,9 @@ void MGpoissonFEMprolong2xSer_LyNeumann_P1(double *fldCC, double **fldF)
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
-  double *fldFLy = fldF[5];
-  double *fldFLxLy = fldF[7];
-  double *fldFLxxLy = fldF[9];
+  double *fldFLy = fldF[4];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[0]; 
   fldFLxLy[0] += fldCC[0]; 
@@ -221,9 +221,9 @@ void MGpoissonFEMprolong2xSer_LyRobin_P1(double *fldCC, double **fldF)
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
-  double *fldFLy = fldF[5];
-  double *fldFLxLy = fldF[7];
-  double *fldFLxxLy = fldF[9];
+  double *fldFLy = fldF[4];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[0]; 
   fldFLxLy[0] += fldCC[0]; 
@@ -241,12 +241,12 @@ void MGpoissonFEMprolong2xSer_UyDirichlet_P1(double *fldCC, double **fldF)
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
-  double *fldFLy = fldF[5];
-  double *fldFLyy = fldF[6];
-  double *fldFLxLy = fldF[8];
-  double *fldFLxLyy = fldF[9];
-  double *fldFLxxLy = fldF[11];
-  double *fldFLxxLyy = fldF[12];
+  double *fldFLy = fldF[4];
+  double *fldFLyy = fldF[5];
+  double *fldFLxLy = fldF[7];
+  double *fldFLxLyy = fldF[8];
+  double *fldFLxxLy = fldF[10];
+  double *fldFLxxLyy = fldF[11];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -270,12 +270,12 @@ void MGpoissonFEMprolong2xSer_UyNeumann_P1(double *fldCC, double **fldF)
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
-  double *fldFLy = fldF[5];
-  double *fldFLyy = fldF[6];
-  double *fldFLxLy = fldF[8];
-  double *fldFLxLyy = fldF[9];
-  double *fldFLxxLy = fldF[11];
-  double *fldFLxxLyy = fldF[12];
+  double *fldFLy = fldF[4];
+  double *fldFLyy = fldF[5];
+  double *fldFLxLy = fldF[7];
+  double *fldFLxLyy = fldF[8];
+  double *fldFLxxLy = fldF[10];
+  double *fldFLxxLyy = fldF[11];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -299,12 +299,12 @@ void MGpoissonFEMprolong2xSer_UyRobin_P1(double *fldCC, double **fldF)
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
-  double *fldFLy = fldF[5];
-  double *fldFLyy = fldF[6];
-  double *fldFLxLy = fldF[8];
-  double *fldFLxLyy = fldF[9];
-  double *fldFLxxLy = fldF[11];
-  double *fldFLxxLyy = fldF[12];
+  double *fldFLy = fldF[4];
+  double *fldFLyy = fldF[5];
+  double *fldFLxLy = fldF[7];
+  double *fldFLxLyy = fldF[8];
+  double *fldFLxxLy = fldF[10];
+  double *fldFLxxLyy = fldF[11];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -327,8 +327,8 @@ void MGpoissonFEMprolong2xSer_LxDirichletLyDirichlet_P1(double *fldCC, double **
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLxLy = fldF[5];
+  double *fldFLy = fldF[2];
+  double *fldFLxLy = fldF[3];
 
   fldFC[0] += 0.25*fldCC[0]; 
   fldFLxLy[0] += fldCC[0]; 
@@ -343,8 +343,8 @@ void MGpoissonFEMprolong2xSer_LxDirichletLyNeumann_P1(double *fldCC, double **fl
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLxLy = fldF[5];
+  double *fldFLy = fldF[2];
+  double *fldFLxLy = fldF[3];
 
   fldFC[0] += 0.25*fldCC[0]; 
   fldFLxLy[0] += fldCC[0]; 
@@ -359,8 +359,8 @@ void MGpoissonFEMprolong2xSer_LxDirichletLyRobin_P1(double *fldCC, double **fldF
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLxLy = fldF[5];
+  double *fldFLy = fldF[2];
+  double *fldFLxLy = fldF[3];
 
   fldFC[0] += 0.25*fldCC[0]; 
   fldFLxLy[0] += fldCC[0]; 
@@ -375,8 +375,8 @@ void MGpoissonFEMprolong2xSer_LxNeumannLyDirichlet_P1(double *fldCC, double **fl
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLxLy = fldF[5];
+  double *fldFLy = fldF[2];
+  double *fldFLxLy = fldF[3];
 
   fldFC[0] += 0.25*fldCC[0]; 
   fldFLxLy[0] += fldCC[0]; 
@@ -391,8 +391,8 @@ void MGpoissonFEMprolong2xSer_LxNeumannLyNeumann_P1(double *fldCC, double **fldF
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLxLy = fldF[5];
+  double *fldFLy = fldF[2];
+  double *fldFLxLy = fldF[3];
 
   fldFC[0] += 0.25*fldCC[0]; 
   fldFLxLy[0] += fldCC[0]; 
@@ -407,8 +407,8 @@ void MGpoissonFEMprolong2xSer_LxNeumannLyRobin_P1(double *fldCC, double **fldF)
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLxLy = fldF[5];
+  double *fldFLy = fldF[2];
+  double *fldFLxLy = fldF[3];
 
   fldFC[0] += 0.25*fldCC[0]; 
   fldFLxLy[0] += fldCC[0]; 
@@ -423,8 +423,8 @@ void MGpoissonFEMprolong2xSer_LxRobinLyDirichlet_P1(double *fldCC, double **fldF
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLxLy = fldF[5];
+  double *fldFLy = fldF[2];
+  double *fldFLxLy = fldF[3];
 
   fldFC[0] += 0.25*fldCC[0]; 
   fldFLxLy[0] += fldCC[0]; 
@@ -439,8 +439,8 @@ void MGpoissonFEMprolong2xSer_LxRobinLyNeumann_P1(double *fldCC, double **fldF)
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLxLy = fldF[5];
+  double *fldFLy = fldF[2];
+  double *fldFLxLy = fldF[3];
 
   fldFC[0] += 0.25*fldCC[0]; 
   fldFLxLy[0] += fldCC[0]; 
@@ -455,8 +455,8 @@ void MGpoissonFEMprolong2xSer_LxRobinLyRobin_P1(double *fldCC, double **fldF)
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLxLy = fldF[5];
+  double *fldFLy = fldF[2];
+  double *fldFLxLy = fldF[3];
 
   fldFC[0] += 0.25*fldCC[0]; 
   fldFLxLy[0] += fldCC[0]; 
@@ -471,10 +471,10 @@ void MGpoissonFEMprolong2xSer_LxDirichletUyDirichlet_P1(double *fldCC, double **
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxLyy = fldF[7];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -493,10 +493,10 @@ void MGpoissonFEMprolong2xSer_LxDirichletUyNeumann_P1(double *fldCC, double **fl
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxLyy = fldF[7];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -515,10 +515,10 @@ void MGpoissonFEMprolong2xSer_LxDirichletUyRobin_P1(double *fldCC, double **fldF
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxLyy = fldF[7];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -537,10 +537,10 @@ void MGpoissonFEMprolong2xSer_LxNeumannUyDirichlet_P1(double *fldCC, double **fl
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxLyy = fldF[7];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -559,10 +559,10 @@ void MGpoissonFEMprolong2xSer_LxNeumannUyNeumann_P1(double *fldCC, double **fldF
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxLyy = fldF[7];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -581,10 +581,10 @@ void MGpoissonFEMprolong2xSer_LxNeumannUyRobin_P1(double *fldCC, double **fldF)
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxLyy = fldF[7];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -603,10 +603,10 @@ void MGpoissonFEMprolong2xSer_LxRobinUyDirichlet_P1(double *fldCC, double **fldF
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxLyy = fldF[7];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -625,10 +625,10 @@ void MGpoissonFEMprolong2xSer_LxRobinUyNeumann_P1(double *fldCC, double **fldF)
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxLyy = fldF[7];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -647,10 +647,10 @@ void MGpoissonFEMprolong2xSer_LxRobinUyRobin_P1(double *fldCC, double **fldF)
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxLyy = fldF[7];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -671,8 +671,8 @@ void MGpoissonFEMprolong2xSer_UxDirichletLyDirichlet_P1(double *fldCC, double **
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxxLy = fldF[8];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -693,8 +693,8 @@ void MGpoissonFEMprolong2xSer_UxDirichletLyNeumann_P1(double *fldCC, double **fl
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxxLy = fldF[8];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -715,8 +715,8 @@ void MGpoissonFEMprolong2xSer_UxDirichletLyRobin_P1(double *fldCC, double **fldF
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxxLy = fldF[8];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -737,8 +737,8 @@ void MGpoissonFEMprolong2xSer_UxNeumannLyDirichlet_P1(double *fldCC, double **fl
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxxLy = fldF[8];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -759,8 +759,8 @@ void MGpoissonFEMprolong2xSer_UxNeumannLyNeumann_P1(double *fldCC, double **fldF
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxxLy = fldF[8];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -781,8 +781,8 @@ void MGpoissonFEMprolong2xSer_UxNeumannLyRobin_P1(double *fldCC, double **fldF)
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxxLy = fldF[8];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -803,8 +803,8 @@ void MGpoissonFEMprolong2xSer_UxRobinLyDirichlet_P1(double *fldCC, double **fldF
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxxLy = fldF[8];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -825,8 +825,8 @@ void MGpoissonFEMprolong2xSer_UxRobinLyNeumann_P1(double *fldCC, double **fldF)
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxxLy = fldF[8];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -847,8 +847,8 @@ void MGpoissonFEMprolong2xSer_UxRobinLyRobin_P1(double *fldCC, double **fldF)
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxxLy = fldF[8];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldFC[0] += 0.25*fldCC[1]+0.25*fldCC[0]; 
   fldFC[1] += 0.5*fldCC[1]; 
@@ -1165,12 +1165,12 @@ void MGpoissonFEMrestrict2xSer_P1(double **fldF, double *fldCC)
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
-  double *fldFLy = fldF[5];
-  double *fldFLyy = fldF[6];
-  double *fldFLxLy = fldF[9];
-  double *fldFLxLyy = fldF[10];
-  double *fldFLxxLy = fldF[13];
-  double *fldFLxxLyy = fldF[14];
+  double *fldFLy = fldF[4];
+  double *fldFLyy = fldF[5];
+  double *fldFLxLy = fldF[7];
+  double *fldFLxLyy = fldF[8];
+  double *fldFLxxLy = fldF[10];
+  double *fldFLxxLyy = fldF[11];
 
   fldCC[0] += 0.25*fldFLyy[0]+0.5*fldFLy[0]+0.25*fldFLxxLyy[0]+0.5*fldFLxxLy[0]+0.25*fldFLxx[0]+0.5*fldFLxLyy[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
 }
@@ -1180,7 +1180,7 @@ void MGpoissonFEMrestrict2xSer_LxDirichlet_P1(double **fldF, double *fldCC)
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
 
-  double *fldFLxLy = fldF[7];
+  double *fldFLxLy = fldF[5];
 
   fldCC[0] += fldFLxLy[0]; 
 }
@@ -1192,10 +1192,10 @@ void MGpoissonFEMrestrict2xSer_LxNeumann_P1(double **fldF, double *fldCC)
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[7];
-  double *fldFLxLyy = fldF[8];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldCC[0] += 0.25*fldFLyy[0]+0.5*fldFLy[0]+0.5*fldFLxLyy[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
 }
@@ -1207,10 +1207,10 @@ void MGpoissonFEMrestrict2xSer_LxRobin_P1(double **fldF, double *fldCC)
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[7];
-  double *fldFLxLyy = fldF[8];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldCC[0] += 0.25*fldFLyy[0]+0.5*fldFLy[0]+0.5*fldFLxLyy[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
 }
@@ -1225,10 +1225,10 @@ void MGpoissonFEMrestrict2xSer_UxDirichlet_P1(double **fldF, double *fldCC)
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
   double *fldFLyy = fldF[5];
-  double *fldFLxLy = fldF[8];
-  double *fldFLxLyy = fldF[9];
-  double *fldFLxxLy = fldF[12];
-  double *fldFLxxLyy = fldF[13];
+  double *fldFLxLy = fldF[7];
+  double *fldFLxLyy = fldF[8];
+  double *fldFLxxLy = fldF[10];
+  double *fldFLxxLyy = fldF[11];
 
   fldCC[0] += 0.25*fldFLyy[0]+0.5*fldFLy[0]+0.25*fldFLxxLyy[0]+0.5*fldFLxxLy[0]+0.25*fldFLxx[0]+0.5*fldFLxLyy[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
   fldCC[1] += fldFLy[1]; 
@@ -1244,10 +1244,10 @@ void MGpoissonFEMrestrict2xSer_UxNeumann_P1(double **fldF, double *fldCC)
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
   double *fldFLyy = fldF[5];
-  double *fldFLxLy = fldF[8];
-  double *fldFLxLyy = fldF[9];
-  double *fldFLxxLy = fldF[12];
-  double *fldFLxxLyy = fldF[13];
+  double *fldFLxLy = fldF[7];
+  double *fldFLxLyy = fldF[8];
+  double *fldFLxxLy = fldF[10];
+  double *fldFLxxLyy = fldF[11];
 
   fldCC[0] += 0.25*fldFLyy[0]+0.5*fldFLy[0]+0.25*fldFLxxLyy[0]+0.5*fldFLxxLy[0]+0.25*fldFLxx[0]+0.5*fldFLxLyy[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
   fldCC[1] += 0.5*fldFLyy[1]+fldFLy[1]+0.5*fldFC[1]+0.25*fldFLyy[0]+0.5*fldFLy[0]+0.25*fldFC[0]; 
@@ -1263,10 +1263,10 @@ void MGpoissonFEMrestrict2xSer_UxRobin_P1(double **fldF, double *fldCC)
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
   double *fldFLyy = fldF[5];
-  double *fldFLxLy = fldF[8];
-  double *fldFLxLyy = fldF[9];
-  double *fldFLxxLy = fldF[12];
-  double *fldFLxxLyy = fldF[13];
+  double *fldFLxLy = fldF[7];
+  double *fldFLxLyy = fldF[8];
+  double *fldFLxxLy = fldF[10];
+  double *fldFLxxLyy = fldF[11];
 
   fldCC[0] += 0.25*fldFLyy[0]+0.5*fldFLy[0]+0.25*fldFLxxLyy[0]+0.5*fldFLxxLy[0]+0.25*fldFLxx[0]+0.5*fldFLxLyy[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
   fldCC[1] += 0.5*fldFLyy[1]+fldFLy[1]+0.5*fldFC[1]+0.25*fldFLyy[0]+0.5*fldFLy[0]+0.25*fldFC[0]; 
@@ -1277,7 +1277,7 @@ void MGpoissonFEMrestrict2xSer_LyDirichlet_P1(double **fldF, double *fldCC)
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
 
-  double *fldFLxLy = fldF[7];
+  double *fldFLxLy = fldF[5];
 
   fldCC[0] += fldFLxLy[0]; 
 }
@@ -1290,9 +1290,9 @@ void MGpoissonFEMrestrict2xSer_LyNeumann_P1(double **fldF, double *fldCC)
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
-  double *fldFLy = fldF[5];
-  double *fldFLxLy = fldF[7];
-  double *fldFLxxLy = fldF[9];
+  double *fldFLy = fldF[4];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldCC[0] += 0.5*fldFLy[0]+0.5*fldFLxxLy[0]+0.25*fldFLxx[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
 }
@@ -1305,9 +1305,9 @@ void MGpoissonFEMrestrict2xSer_LyRobin_P1(double **fldF, double *fldCC)
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
-  double *fldFLy = fldF[5];
-  double *fldFLxLy = fldF[7];
-  double *fldFLxxLy = fldF[9];
+  double *fldFLy = fldF[4];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldCC[0] += 0.5*fldFLy[0]+0.5*fldFLxxLy[0]+0.25*fldFLxx[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
 }
@@ -1320,12 +1320,12 @@ void MGpoissonFEMrestrict2xSer_UyDirichlet_P1(double **fldF, double *fldCC)
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
-  double *fldFLy = fldF[5];
-  double *fldFLyy = fldF[6];
-  double *fldFLxLy = fldF[8];
-  double *fldFLxLyy = fldF[9];
-  double *fldFLxxLy = fldF[11];
-  double *fldFLxxLyy = fldF[12];
+  double *fldFLy = fldF[4];
+  double *fldFLyy = fldF[5];
+  double *fldFLxLy = fldF[7];
+  double *fldFLxLyy = fldF[8];
+  double *fldFLxxLy = fldF[10];
+  double *fldFLxxLyy = fldF[11];
 
   fldCC[0] += 0.25*fldFLyy[0]+0.5*fldFLy[0]+0.25*fldFLxxLyy[0]+0.5*fldFLxxLy[0]+0.25*fldFLxx[0]+0.5*fldFLxLyy[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
   fldCC[1] += fldFC[0]; 
@@ -1339,12 +1339,12 @@ void MGpoissonFEMrestrict2xSer_UyNeumann_P1(double **fldF, double *fldCC)
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
-  double *fldFLy = fldF[5];
-  double *fldFLyy = fldF[6];
-  double *fldFLxLy = fldF[8];
-  double *fldFLxLyy = fldF[9];
-  double *fldFLxxLy = fldF[11];
-  double *fldFLxxLyy = fldF[12];
+  double *fldFLy = fldF[4];
+  double *fldFLyy = fldF[5];
+  double *fldFLxLy = fldF[7];
+  double *fldFLxLyy = fldF[8];
+  double *fldFLxxLy = fldF[10];
+  double *fldFLxxLyy = fldF[11];
 
   fldCC[0] += 0.25*fldFLyy[0]+0.5*fldFLy[0]+0.25*fldFLxxLyy[0]+0.5*fldFLxxLy[0]+0.25*fldFLxx[0]+0.5*fldFLxLyy[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
   fldCC[1] += 0.5*fldFLxx[1]+fldFLx[1]+0.5*fldFC[1]+0.25*fldFLxx[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
@@ -1358,12 +1358,12 @@ void MGpoissonFEMrestrict2xSer_UyRobin_P1(double **fldF, double *fldCC)
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
-  double *fldFLy = fldF[5];
-  double *fldFLyy = fldF[6];
-  double *fldFLxLy = fldF[8];
-  double *fldFLxLyy = fldF[9];
-  double *fldFLxxLy = fldF[11];
-  double *fldFLxxLyy = fldF[12];
+  double *fldFLy = fldF[4];
+  double *fldFLyy = fldF[5];
+  double *fldFLxLy = fldF[7];
+  double *fldFLxLyy = fldF[8];
+  double *fldFLxxLy = fldF[10];
+  double *fldFLxxLyy = fldF[11];
 
   fldCC[0] += 0.25*fldFLyy[0]+0.5*fldFLy[0]+0.25*fldFLxxLyy[0]+0.5*fldFLxxLy[0]+0.25*fldFLxx[0]+0.5*fldFLxLyy[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
   fldCC[1] += 0.5*fldFLxx[1]+fldFLx[1]+0.5*fldFC[1]+0.25*fldFLxx[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
@@ -1374,7 +1374,7 @@ void MGpoissonFEMrestrict2xSer_LxDirichletLyDirichlet_P1(double **fldF, double *
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
 
-  double *fldFLxLy = fldF[5];
+  double *fldFLxLy = fldF[3];
 
   fldCC[0] += fldFLxLy[0]; 
 }
@@ -1384,7 +1384,7 @@ void MGpoissonFEMrestrict2xSer_LxDirichletLyNeumann_P1(double **fldF, double *fl
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
 
-  double *fldFLxLy = fldF[5];
+  double *fldFLxLy = fldF[3];
 
   fldCC[0] += fldFLxLy[0]; 
 }
@@ -1394,7 +1394,7 @@ void MGpoissonFEMrestrict2xSer_LxDirichletLyRobin_P1(double **fldF, double *fldC
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
 
-  double *fldFLxLy = fldF[5];
+  double *fldFLxLy = fldF[3];
 
   fldCC[0] += fldFLxLy[0]; 
 }
@@ -1404,7 +1404,7 @@ void MGpoissonFEMrestrict2xSer_LxNeumannLyDirichlet_P1(double **fldF, double *fl
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
 
-  double *fldFLxLy = fldF[5];
+  double *fldFLxLy = fldF[3];
 
   fldCC[0] += fldFLxLy[0]; 
 }
@@ -1416,8 +1416,8 @@ void MGpoissonFEMrestrict2xSer_LxNeumannLyNeumann_P1(double **fldF, double *fldC
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLxLy = fldF[5];
+  double *fldFLy = fldF[2];
+  double *fldFLxLy = fldF[3];
 
   fldCC[0] += 0.5*fldFLy[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
 }
@@ -1429,8 +1429,8 @@ void MGpoissonFEMrestrict2xSer_LxNeumannLyRobin_P1(double **fldF, double *fldCC)
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLxLy = fldF[5];
+  double *fldFLy = fldF[2];
+  double *fldFLxLy = fldF[3];
 
   fldCC[0] += 0.5*fldFLy[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
 }
@@ -1440,7 +1440,7 @@ void MGpoissonFEMrestrict2xSer_LxRobinLyDirichlet_P1(double **fldF, double *fldC
   // fldF: fine-grid field in cells pointed to by the stencil.
   // fldC: coarse-grid field.
 
-  double *fldFLxLy = fldF[5];
+  double *fldFLxLy = fldF[3];
 
   fldCC[0] += fldFLxLy[0]; 
 }
@@ -1452,8 +1452,8 @@ void MGpoissonFEMrestrict2xSer_LxRobinLyNeumann_P1(double **fldF, double *fldCC)
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLxLy = fldF[5];
+  double *fldFLy = fldF[2];
+  double *fldFLxLy = fldF[3];
 
   fldCC[0] += 0.5*fldFLy[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
 }
@@ -1465,8 +1465,8 @@ void MGpoissonFEMrestrict2xSer_LxRobinLyRobin_P1(double **fldF, double *fldCC)
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLxLy = fldF[5];
+  double *fldFLy = fldF[2];
+  double *fldFLxLy = fldF[3];
 
   fldCC[0] += 0.5*fldFLy[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
 }
@@ -1477,7 +1477,7 @@ void MGpoissonFEMrestrict2xSer_LxDirichletUyDirichlet_P1(double **fldF, double *
   // fldC: coarse-grid field.
 
   double *fldFC = fldF[0];
-  double *fldFLxLy = fldF[6];
+  double *fldFLxLy = fldF[5];
 
   fldCC[0] += fldFLxLy[0]; 
   fldCC[1] += fldFC[0]; 
@@ -1489,7 +1489,7 @@ void MGpoissonFEMrestrict2xSer_LxDirichletUyNeumann_P1(double **fldF, double *fl
   // fldC: coarse-grid field.
 
   double *fldFC = fldF[0];
-  double *fldFLxLy = fldF[6];
+  double *fldFLxLy = fldF[5];
 
   fldCC[0] += fldFLxLy[0]; 
   fldCC[1] += fldFC[0]; 
@@ -1501,7 +1501,7 @@ void MGpoissonFEMrestrict2xSer_LxDirichletUyRobin_P1(double **fldF, double *fldC
   // fldC: coarse-grid field.
 
   double *fldFC = fldF[0];
-  double *fldFLxLy = fldF[6];
+  double *fldFLxLy = fldF[5];
 
   fldCC[0] += fldFLxLy[0]; 
   fldCC[1] += fldFC[0]; 
@@ -1514,10 +1514,10 @@ void MGpoissonFEMrestrict2xSer_LxNeumannUyDirichlet_P1(double **fldF, double *fl
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxLyy = fldF[7];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldCC[0] += 0.25*fldFLyy[0]+0.5*fldFLy[0]+0.5*fldFLxLyy[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
   fldCC[1] += fldFC[0]; 
@@ -1530,10 +1530,10 @@ void MGpoissonFEMrestrict2xSer_LxNeumannUyNeumann_P1(double **fldF, double *fldC
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxLyy = fldF[7];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldCC[0] += 0.25*fldFLyy[0]+0.5*fldFLy[0]+0.5*fldFLxLyy[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
   fldCC[1] += fldFLx[1]+0.5*fldFC[1]+0.5*fldFLx[0]+0.25*fldFC[0]; 
@@ -1546,10 +1546,10 @@ void MGpoissonFEMrestrict2xSer_LxNeumannUyRobin_P1(double **fldF, double *fldCC)
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxLyy = fldF[7];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldCC[0] += 0.25*fldFLyy[0]+0.5*fldFLy[0]+0.5*fldFLxLyy[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
   fldCC[1] += fldFLx[1]+0.5*fldFC[1]+0.5*fldFLx[0]+0.25*fldFC[0]; 
@@ -1562,10 +1562,10 @@ void MGpoissonFEMrestrict2xSer_LxRobinUyDirichlet_P1(double **fldF, double *fldC
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxLyy = fldF[7];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldCC[0] += 0.25*fldFLyy[0]+0.5*fldFLy[0]+0.5*fldFLxLyy[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
   fldCC[1] += fldFC[0]; 
@@ -1578,10 +1578,10 @@ void MGpoissonFEMrestrict2xSer_LxRobinUyNeumann_P1(double **fldF, double *fldCC)
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxLyy = fldF[7];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldCC[0] += 0.25*fldFLyy[0]+0.5*fldFLy[0]+0.5*fldFLxLyy[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
   fldCC[1] += fldFLx[1]+0.5*fldFC[1]+0.5*fldFLx[0]+0.25*fldFC[0]; 
@@ -1594,10 +1594,10 @@ void MGpoissonFEMrestrict2xSer_LxRobinUyRobin_P1(double **fldF, double *fldCC)
 
   double *fldFC = fldF[0];
   double *fldFLx = fldF[1];
-  double *fldFLy = fldF[3];
-  double *fldFLyy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxLyy = fldF[7];
+  double *fldFLy = fldF[2];
+  double *fldFLyy = fldF[3];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxLyy = fldF[6];
 
   fldCC[0] += 0.25*fldFLyy[0]+0.5*fldFLy[0]+0.5*fldFLxLyy[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
   fldCC[1] += fldFLx[1]+0.5*fldFC[1]+0.5*fldFLx[0]+0.25*fldFC[0]; 
@@ -1609,7 +1609,7 @@ void MGpoissonFEMrestrict2xSer_UxDirichletLyDirichlet_P1(double **fldF, double *
   // fldC: coarse-grid field.
 
   double *fldFLy = fldF[4];
-  double *fldFLxLy = fldF[6];
+  double *fldFLxLy = fldF[5];
 
   fldCC[0] += fldFLxLy[0]; 
   fldCC[1] += fldFLy[1]; 
@@ -1624,8 +1624,8 @@ void MGpoissonFEMrestrict2xSer_UxDirichletLyNeumann_P1(double **fldF, double *fl
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxxLy = fldF[8];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldCC[0] += 0.5*fldFLy[0]+0.5*fldFLxxLy[0]+0.25*fldFLxx[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
   fldCC[1] += fldFLy[1]; 
@@ -1640,8 +1640,8 @@ void MGpoissonFEMrestrict2xSer_UxDirichletLyRobin_P1(double **fldF, double *fldC
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxxLy = fldF[8];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldCC[0] += 0.5*fldFLy[0]+0.5*fldFLxxLy[0]+0.25*fldFLxx[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
   fldCC[1] += fldFLy[1]; 
@@ -1653,7 +1653,7 @@ void MGpoissonFEMrestrict2xSer_UxNeumannLyDirichlet_P1(double **fldF, double *fl
   // fldC: coarse-grid field.
 
   double *fldFLy = fldF[4];
-  double *fldFLxLy = fldF[6];
+  double *fldFLxLy = fldF[5];
 
   fldCC[0] += fldFLxLy[0]; 
   fldCC[1] += fldFLy[1]; 
@@ -1668,8 +1668,8 @@ void MGpoissonFEMrestrict2xSer_UxNeumannLyNeumann_P1(double **fldF, double *fldC
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxxLy = fldF[8];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldCC[0] += 0.5*fldFLy[0]+0.5*fldFLxxLy[0]+0.25*fldFLxx[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
   fldCC[1] += fldFLy[1]+0.5*fldFC[1]+0.5*fldFLy[0]+0.25*fldFC[0]; 
@@ -1684,8 +1684,8 @@ void MGpoissonFEMrestrict2xSer_UxNeumannLyRobin_P1(double **fldF, double *fldCC)
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxxLy = fldF[8];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldCC[0] += 0.5*fldFLy[0]+0.5*fldFLxxLy[0]+0.25*fldFLxx[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
   fldCC[1] += fldFLy[1]+0.5*fldFC[1]+0.5*fldFLy[0]+0.25*fldFC[0]; 
@@ -1697,7 +1697,7 @@ void MGpoissonFEMrestrict2xSer_UxRobinLyDirichlet_P1(double **fldF, double *fldC
   // fldC: coarse-grid field.
 
   double *fldFLy = fldF[4];
-  double *fldFLxLy = fldF[6];
+  double *fldFLxLy = fldF[5];
 
   fldCC[0] += fldFLxLy[0]; 
   fldCC[1] += fldFLy[1]; 
@@ -1712,8 +1712,8 @@ void MGpoissonFEMrestrict2xSer_UxRobinLyNeumann_P1(double **fldF, double *fldCC)
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxxLy = fldF[8];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldCC[0] += 0.5*fldFLy[0]+0.5*fldFLxxLy[0]+0.25*fldFLxx[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
   fldCC[1] += fldFLy[1]+0.5*fldFC[1]+0.5*fldFLy[0]+0.25*fldFC[0]; 
@@ -1728,8 +1728,8 @@ void MGpoissonFEMrestrict2xSer_UxRobinLyRobin_P1(double **fldF, double *fldCC)
   double *fldFLx = fldF[1];
   double *fldFLxx = fldF[2];
   double *fldFLy = fldF[4];
-  double *fldFLxLy = fldF[6];
-  double *fldFLxxLy = fldF[8];
+  double *fldFLxLy = fldF[5];
+  double *fldFLxxLy = fldF[6];
 
   fldCC[0] += 0.5*fldFLy[0]+0.5*fldFLxxLy[0]+0.25*fldFLxx[0]+fldFLxLy[0]+0.5*fldFLx[0]+0.25*fldFC[0]; 
   fldCC[1] += fldFLy[1]+0.5*fldFC[1]+0.5*fldFLy[0]+0.25*fldFC[0]; 
@@ -2208,7 +2208,7 @@ void MGpoissonFEMproject2xSer_P1(double **dx, double **femFld, double *out)
   double *femFldUxLy = femFld[7]; 
   double *femFldUxUy = femFld[8]; 
 
-  out[0] = 0.1111111111111111*(8.0*femFldUy[0]+2.0*(femFldUxUy[0]+femFldUxLy[0])+8.0*(femFldUx[0]+femFldLy[0])+2.0*(femFldLxUy[0]+femFldLxLy[0])+8.0*femFldLx[0]+32.0*femFldC[0])*volFac; 
+  out[0] = 0.1111111111111111*(4.0*femFldUy[0]+femFldUxUy[0]+femFldUxLy[0]+4.0*(femFldUx[0]+femFldLy[0])+femFldLxUy[0]+femFldLxLy[0]+4.0*femFldLx[0]+16.0*femFldC[0])*volFac; 
 
 }
 
@@ -2232,7 +2232,7 @@ void MGpoissonFEMproject2xSer_LxNonPeriodic_P1(double **dx, double **femFld, dou
   double *femFldUxLy = femFld[7]; 
   double *femFldUxUy = femFld[8]; 
 
-  out[0] = 0.1111111111111111*(4.0*femFldUy[0]+2.0*(femFldUxUy[0]+femFldUxLy[0])+8.0*femFldUx[0]+4.0*femFldLy[0]+16.0*femFldC[0])*volFac; 
+  out[0] = 0.1111111111111111*(2.0*femFldUy[0]+femFldUxUy[0]+femFldUxLy[0]+4.0*femFldUx[0]+2.0*femFldLy[0]+8.0*femFldC[0])*volFac; 
 
 }
 
@@ -2256,8 +2256,8 @@ void MGpoissonFEMproject2xSer_UxNonPeriodic_P1(double **dx, double **femFld, dou
   double *femFldUxLy = femFld[7]; 
   double *femFldUxUy = femFld[8]; 
 
-  out[0] = 0.1111111111111111*(2.0*(femFldUy[1]+femFldLy[1])+8.0*(femFldC[1]+femFldUy[0]+femFldLy[0])+2.0*(femFldLxUy[0]+femFldLxLy[0])+8.0*femFldLx[0]+32.0*femFldC[0])*volFac; 
-  out[1] = 0.1111111111111111*(4.0*(femFldUy[1]+femFldLy[1])+16.0*femFldC[1]+2.0*(femFldUy[0]+femFldLy[0])+8.0*femFldC[0])*volFac; 
+  out[0] = 0.1111111111111111*(femFldUy[1]+femFldLy[1]+4.0*(femFldC[1]+femFldUy[0]+femFldLy[0])+femFldLxUy[0]+femFldLxLy[0]+4.0*femFldLx[0]+16.0*femFldC[0])*volFac; 
+  out[1] = 0.1111111111111111*(2.0*(femFldUy[1]+femFldLy[1])+8.0*femFldC[1]+femFldUy[0]+femFldLy[0]+4.0*femFldC[0])*volFac; 
 
 }
 
@@ -2281,7 +2281,7 @@ void MGpoissonFEMproject2xSer_LyNonPeriodic_P1(double **dx, double **femFld, dou
   double *femFldUxLy = femFld[7]; 
   double *femFldUxUy = femFld[8]; 
 
-  out[0] = 0.1111111111111111*(8.0*femFldUy[0]+2.0*femFldUxUy[0]+4.0*femFldUx[0]+2.0*femFldLxUy[0]+4.0*femFldLx[0]+16.0*femFldC[0])*volFac; 
+  out[0] = 0.1111111111111111*(4.0*femFldUy[0]+femFldUxUy[0]+2.0*femFldUx[0]+femFldLxUy[0]+2.0*femFldLx[0]+8.0*femFldC[0])*volFac; 
 
 }
 
@@ -2305,8 +2305,8 @@ void MGpoissonFEMproject2xSer_UyNonPeriodic_P1(double **dx, double **femFld, dou
   double *femFldUxLy = femFld[7]; 
   double *femFldUxUy = femFld[8]; 
 
-  out[0] = 0.1111111111111111*(2.0*(femFldUx[1]+femFldLx[1])+8.0*femFldC[1]+2.0*femFldUxLy[0]+8.0*(femFldUx[0]+femFldLy[0])+2.0*femFldLxLy[0]+8.0*femFldLx[0]+32.0*femFldC[0])*volFac; 
-  out[1] = 0.1111111111111111*(4.0*(femFldUx[1]+femFldLx[1])+16.0*femFldC[1]+2.0*(femFldUx[0]+femFldLx[0])+8.0*femFldC[0])*volFac; 
+  out[0] = 0.1111111111111111*(femFldUx[1]+femFldLx[1]+4.0*femFldC[1]+femFldUxLy[0]+4.0*(femFldUx[0]+femFldLy[0])+femFldLxLy[0]+4.0*femFldLx[0]+16.0*femFldC[0])*volFac; 
+  out[1] = 0.1111111111111111*(2.0*(femFldUx[1]+femFldLx[1])+8.0*femFldC[1]+femFldUx[0]+femFldLx[0]+4.0*femFldC[0])*volFac; 
 
 }
 
@@ -2330,7 +2330,7 @@ void MGpoissonFEMproject2xSer_LxNonPeriodicLyNonPeriodic_P1(double **dx, double 
   double *femFldUxLy = femFld[7]; 
   double *femFldUxUy = femFld[8]; 
 
-  out[0] = 0.1111111111111111*(4.0*femFldUy[0]+2.0*femFldUxUy[0]+4.0*femFldUx[0]+8.0*femFldC[0])*volFac; 
+  out[0] = 0.1111111111111111*(2.0*femFldUy[0]+femFldUxUy[0]+2.0*femFldUx[0]+4.0*femFldC[0])*volFac; 
 
 }
 
@@ -2354,8 +2354,8 @@ void MGpoissonFEMproject2xSer_LxNonPeriodicUyNonPeriodic_P1(double **dx, double 
   double *femFldUxLy = femFld[7]; 
   double *femFldUxUy = femFld[8]; 
 
-  out[0] = 0.1111111111111111*(2.0*femFldUx[1]+4.0*femFldC[1]+2.0*femFldUxLy[0]+8.0*femFldUx[0]+4.0*femFldLy[0]+16.0*femFldC[0])*volFac; 
-  out[1] = 0.1111111111111111*(4.0*femFldUx[1]+8.0*femFldC[1]+2.0*femFldUx[0]+4.0*femFldC[0])*volFac; 
+  out[0] = 0.1111111111111111*(femFldUx[1]+2.0*femFldC[1]+femFldUxLy[0]+4.0*femFldUx[0]+2.0*femFldLy[0]+8.0*femFldC[0])*volFac; 
+  out[1] = 0.1111111111111111*(2.0*femFldUx[1]+4.0*femFldC[1]+femFldUx[0]+2.0*femFldC[0])*volFac; 
 
 }
 
@@ -2379,8 +2379,8 @@ void MGpoissonFEMproject2xSer_UxNonPeriodicLyNonPeriodic_P1(double **dx, double 
   double *femFldUxLy = femFld[7]; 
   double *femFldUxUy = femFld[8]; 
 
-  out[0] = 0.1111111111111111*(2.0*femFldUy[1]+4.0*femFldC[1]+8.0*femFldUy[0]+2.0*femFldLxUy[0]+4.0*femFldLx[0]+16.0*femFldC[0])*volFac; 
-  out[1] = 0.1111111111111111*(4.0*femFldUy[1]+8.0*femFldC[1]+2.0*femFldUy[0]+4.0*femFldC[0])*volFac; 
+  out[0] = 0.1111111111111111*(femFldUy[1]+2.0*femFldC[1]+4.0*femFldUy[0]+femFldLxUy[0]+2.0*femFldLx[0]+8.0*femFldC[0])*volFac; 
+  out[1] = 0.1111111111111111*(2.0*femFldUy[1]+4.0*femFldC[1]+femFldUy[0]+2.0*femFldC[0])*volFac; 
 
 }
 
@@ -2404,10 +2404,10 @@ void MGpoissonFEMproject2xSer_UxNonPeriodicUyNonPeriodic_P1(double **dx, double 
   double *femFldUxLy = femFld[7]; 
   double *femFldUxUy = femFld[8]; 
 
-  out[0] = 0.1111111111111111*(2.0*femFldC[3]+8.0*femFldC[2]+2.0*(femFldLy[1]+femFldLx[1])+8.0*(femFldC[1]+femFldLy[0])+2.0*femFldLxLy[0]+8.0*femFldLx[0]+32.0*femFldC[0])*volFac; 
-  out[1] = 0.1111111111111111*(4.0*femFldC[3]+2.0*femFldC[2]+4.0*femFldLy[1]+16.0*femFldC[1]+2.0*femFldLy[0]+8.0*femFldC[0])*volFac; 
-  out[2] = 0.1111111111111111*(4.0*femFldC[3]+16.0*femFldC[2]+4.0*femFldLx[1]+2.0*(femFldC[1]+femFldLx[0])+8.0*femFldC[0])*volFac; 
-  out[3] = 0.1111111111111111*(8.0*femFldC[3]+4.0*(femFldC[2]+femFldC[1])+2.0*femFldC[0])*volFac; 
+  out[0] = 0.1111111111111111*(femFldC[3]+4.0*femFldC[2]+femFldLy[1]+femFldLx[1]+4.0*(femFldC[1]+femFldLy[0])+femFldLxLy[0]+4.0*femFldLx[0]+16.0*femFldC[0])*volFac; 
+  out[1] = 0.1111111111111111*(2.0*femFldC[3]+femFldC[2]+2.0*femFldLy[1]+8.0*femFldC[1]+femFldLy[0]+4.0*femFldC[0])*volFac; 
+  out[2] = 0.1111111111111111*(2.0*femFldC[3]+8.0*femFldC[2]+2.0*femFldLx[1]+femFldC[1]+femFldLx[0]+4.0*femFldC[0])*volFac; 
+  out[3] = 0.1111111111111111*(4.0*femFldC[3]+2.0*(femFldC[2]+femFldC[1])+femFldC[0])*volFac; 
 
 }
 
@@ -7557,6 +7557,7 @@ void MGpoissonFEMresidual2xSer_UxRobinUyRobin_P1(double **dx, const double *bcVa
 
 void MGpoissonFEML2norm2xSer_P1(const double *dxC, double **femFld, double *normOut) 
 { 
+  // dxC:     cell length.
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
 
@@ -7577,6 +7578,7 @@ void MGpoissonFEML2norm2xSer_P1(const double *dxC, double **femFld, double *norm
 
 void MGpoissonFEML2norm2xSer_LxNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
+  // dxC:     cell length.
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
 
@@ -7597,6 +7599,7 @@ void MGpoissonFEML2norm2xSer_LxNonPeriodic_P1(const double *dxC, double **femFld
 
 void MGpoissonFEML2norm2xSer_UxNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
+  // dxC:     cell length.
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
 
@@ -7615,6 +7618,7 @@ void MGpoissonFEML2norm2xSer_UxNonPeriodic_P1(const double *dxC, double **femFld
 
 void MGpoissonFEML2norm2xSer_LyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
+  // dxC:     cell length.
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
 
@@ -7635,6 +7639,7 @@ void MGpoissonFEML2norm2xSer_LyNonPeriodic_P1(const double *dxC, double **femFld
 
 void MGpoissonFEML2norm2xSer_UyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
+  // dxC:     cell length.
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
 
@@ -7653,6 +7658,7 @@ void MGpoissonFEML2norm2xSer_UyNonPeriodic_P1(const double *dxC, double **femFld
 
 void MGpoissonFEML2norm2xSer_LxNonPeriodicUyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
+  // dxC:     cell length.
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
 
@@ -7671,6 +7677,7 @@ void MGpoissonFEML2norm2xSer_LxNonPeriodicUyNonPeriodic_P1(const double *dxC, do
 
 void MGpoissonFEML2norm2xSer_UxNonPeriodicLyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
+  // dxC:     cell length.
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
 
@@ -7689,6 +7696,7 @@ void MGpoissonFEML2norm2xSer_UxNonPeriodicLyNonPeriodic_P1(const double *dxC, do
 
 void MGpoissonFEML2norm2xSer_UxNonPeriodicUyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
+  // dxC:     cell length.
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
 
@@ -7706,6 +7714,7 @@ void MGpoissonFEML2norm2xSer_UxNonPeriodicUyNonPeriodic_P1(const double *dxC, do
 
 void MGpoissonFEMM0norm2xSer_P1(const double *dxC, double **femFld, double *normOut) 
 { 
+  // dxC:     cell length.
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
 
@@ -7722,6 +7731,7 @@ void MGpoissonFEMM0norm2xSer_P1(const double *dxC, double **femFld, double *norm
 
 void MGpoissonFEMM0norm2xSer_LxNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
+  // dxC:     cell length.
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
 
@@ -7738,6 +7748,7 @@ void MGpoissonFEMM0norm2xSer_LxNonPeriodic_P1(const double *dxC, double **femFld
 
 void MGpoissonFEMM0norm2xSer_UxNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
+  // dxC:     cell length.
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
 
@@ -7752,6 +7763,7 @@ void MGpoissonFEMM0norm2xSer_UxNonPeriodic_P1(const double *dxC, double **femFld
 
 void MGpoissonFEMM0norm2xSer_LyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
+  // dxC:     cell length.
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
 
@@ -7768,6 +7780,7 @@ void MGpoissonFEMM0norm2xSer_LyNonPeriodic_P1(const double *dxC, double **femFld
 
 void MGpoissonFEMM0norm2xSer_UyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
+  // dxC:     cell length.
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
 
@@ -7782,6 +7795,7 @@ void MGpoissonFEMM0norm2xSer_UyNonPeriodic_P1(const double *dxC, double **femFld
 
 void MGpoissonFEMM0norm2xSer_LxNonPeriodicUyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
+  // dxC:     cell length.
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
 
@@ -7796,6 +7810,7 @@ void MGpoissonFEMM0norm2xSer_LxNonPeriodicUyNonPeriodic_P1(const double *dxC, do
 
 void MGpoissonFEMM0norm2xSer_UxNonPeriodicLyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
+  // dxC:     cell length.
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
 
@@ -7810,6 +7825,7 @@ void MGpoissonFEMM0norm2xSer_UxNonPeriodicLyNonPeriodic_P1(const double *dxC, do
 
 void MGpoissonFEMM0norm2xSer_UxNonPeriodicUyNonPeriodic_P1(const double *dxC, double **femFld, double *normOut) 
 { 
+  // dxC:     cell length.
   // femFld:  FEM field in neighboring cells.
   // normOut: norm.
 

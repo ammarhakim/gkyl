@@ -261,6 +261,8 @@ function MappedCart:cellCenterPhys(xp)
 end
 
 function MappedCart:write(fName)
+   -- Write a file containing the grid node coordinates.
+
    -- Create a grid over nodes and a field to store nodal coordinates.
    local cells, lower, upper = {}, {}, {}
    for d = 1, self:ndim() do

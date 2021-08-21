@@ -1,10 +1,9 @@
 -- Gkyl ------------------------------------------------------------------------
 --
---
-local Plasma = require("App.PlasmaOnCartGrid").Gyrokinetic()
-
 -- This test relaxes a rectangular/square IC and a bump in tail IC.
 -- Maxwellian's for comparison with each are also created.
+--
+local Plasma = require("App.PlasmaOnCartGrid").Gyrokinetic()
 
 polyOrder = 1
 n0        = 1.0                             -- Density.
@@ -12,19 +11,11 @@ u0        = 0.0                             -- Flow speed.
 vt        = 1.0/3.0                         -- Thermal speed..
 nu        = 0.01                            -- Collision frequency.
 B0        = 1.0                             -- Background magnetic field
--- The next three are for p1, v \in [-8vt,8vt], 2x32, rectangular IC.
-nMr  = 1.01036297                           -- Density of Maxwellian and rectangle. 
-uMr  = 0.0                                  -- Flow speed of Maxwellian and rectangle. 
-vt2Mr = 0.11235162                          -- Thermal speed of Maxwellian and rectangle.
 -- Large bump on tail of Maxwellian:
 ab   = math.sqrt(0.1)                       -- Amplitude of bump.
 ub   = 4*math.sqrt(((3*vt/2)^2)/3)          -- Location of bump.
 sb   = 0.12                                 -- Softening factor to avoid divergence.
 vtb  = 1.0                                  -- Thermal speed of Maxwellian in bump.
--- The next three are for p1, v \in [-8vt,8vt], 2x32, bump in tail IC. 
-nMb  = 1.10187077                           -- Density of Maxwellian and bump. 
-uMb  = 0.48880976                           -- Flow speed of Maxwellian and bump. 
-vt2Mb = 0.39691067                          -- Thermal speed of Maxwellian and bump.
 
 -- Top hat function without drift (u=0).
 local function topHat(x, v, n, u, vth)
@@ -69,7 +60,7 @@ plasmaApp = Plasma.App {
 
    -- Neutral species with a rectangular/square IC.
    square = Plasma.Species {
-      charge = 1.0, mass = 1.0,
+      charge = 1.0,  mass = 1.0,
       -- Velocity space grid.
       lower      = {-8.0*vt},
       upper      = { 8.0*vt},
@@ -80,8 +71,8 @@ plasmaApp = Plasma.App {
 
          return topHat(x, v, n0, u0, vt)
       end,
-      evolve = true,
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      evolve      = true,
+      diagnostics = { "M0", "M1", "M2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'square'},
  --        frequencies = {nu},
@@ -91,7 +82,7 @@ plasmaApp = Plasma.App {
 
    -- Neutral species with a bump in the tail.
    bump = Plasma.Species {
-      charge = 1.0, mass = 1.0,
+      charge = 1.0,  mass = 1.0,
       -- Velocity space grid.
       lower      = {-8.0*vt},
       upper      = { 8.0*vt},
@@ -101,8 +92,8 @@ plasmaApp = Plasma.App {
 	 local x, v = xn[1], xn[2]
          return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
       end,
-      evolve = true,
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      evolve      = true,
+      diagnostics = { "M0", "M1", "M2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
 --         frequencies = {nu},
@@ -114,7 +105,7 @@ plasmaApp = Plasma.App {
    field = Plasma.Field {
       evolve      = false, -- Evolve fields?
       externalPhi = function (t, xn) return 0.0 end,
-      kperp2      = 0.0
+      kperpSq     = 0.0
    },
    
    -- Magnetic geometry.

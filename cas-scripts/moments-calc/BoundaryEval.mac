@@ -18,7 +18,7 @@ VarsV : [VX, VY, VZ]$
 Fsuffix : [F, vF]$
 Bfac    : [ 1 , vBoundary ]$
 
-writeCIncrExprsCollect1s(lhs, rhs, clst) := block([expr],
+writeCIncrExprsCollect1s(lhs, rhs, clst) := block([i,e,expr,param],
   expr : float(expand(rhs)),
   for i : 1 thru length(expr) do (
     if expr[i] # 0.0 then (
@@ -29,7 +29,9 @@ writeCIncrExprsCollect1s(lhs, rhs, clst) := block([expr],
   )
 )$
 
-calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block(
+  [i,e,modNm,polyOrder,bC,bP,NP,NC,vv,surfVars,dv,fbIn_e,mBlo_e,mBup_e,fBlo_c,fBup_c,expr,param],
+    
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -87,7 +89,7 @@ calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block
     printf(fh, "  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. ~%"),
     printf(fh, "  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). ~%"),
     printf(fh, "  // vBoundary: velocity at the boundary of the velocity grid. ~%"),
-    printf(fh, "  // dxv[~a]:    cell length in each direciton. ~%", cdim+vdim),
+    printf(fh, "  // dxv[~a]:   cell length in each direction. ~%", cdim+vdim),
     printf(fh, "  // fIn[~a]:    distribution function at velocity boundaries. ~%", NP),
     printf(fh, "  // out:       \int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). ~%"),
     printf(fh, " ~%"),
@@ -104,7 +106,6 @@ calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block
     ),
     printf(fh, " ~%"),
 
-    
     printf(fh, "  if (atLower) {~%"),
     printf(fh, " ~%"),
     if (wInd=1) then ( 

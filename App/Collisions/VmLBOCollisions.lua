@@ -17,7 +17,32 @@ local xsys           = require "xsys"
 local Lin            = require "Lib.Linalg"
 local Mpi            = require "Comm.Mpi"
 local lume           = require "Lib.lume"
+local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
+local DiagsImplBase  = require "App.Diagnostics.DiagnosticsImplBase"
 
+-- ............... IMPLEMENTATION OF DIAGNOSTICS ................. --
+-- Diagnostics could be placed in a separate file if they balloon in
+-- number. But if we only have one or two we can just place it here.
+
+-- ~~~~ Source integrated over the domain ~~~~~~~~~~~~~~~~~~~~~~
+local VmLBODiagsImpl = function()
+   -- IMPORTANT: this diagnostic is only here for testing!!! do not use (MF).
+   local _collOut = Proto(DiagsImplBase)
+   function _collOut:fullInit(diagApp, mySpecies, fieldIn, owner)
+      self.field = mySpecies:allocDistf()
+      self.owner = owner 
+      self.done  = false
+   end
+   function _collOut:getType() return "grid" end
+   function _collOut:advance(tm, inFlds, outFlds)
+      local specIn = inFlds[1]
+      self.field:copy(self.owner.collOut)
+   end
+
+   return {collOut = _collOut}
+end
+
+-- .................... END OF DIAGNOSTICS ...................... --
 
 -- VmLBOCollisions ---------------------------------------------------------------
 --
@@ -173,34 +198,25 @@ function VmLBOCollisions:fullInit(speciesTbl)
       self.nuFrac = 1.0
    end
 
+   -- fluxType used for selecting which type of numerical flux function to use in velocity space
+   -- defaults to "penalty" in Eq object, supported options: "penalty," "upwind".
+   self.fluxType = speciesTbl.vFlux or "penalty"
+   assert(self.fluxType=="upwind" or self.fluxType=="penalty", "App.VmLBOCollisions: 'fluxType' must be 'upwind' or 'penalty'.")
+
    self.cfl = 0.0    -- Will be replaced.
 
-   self.tmEvalMom = 0.0
+   self.timers = {nonSlvr = 0.}
 end
 
-function VmLBOCollisions:setName(nm)
-   self.name = nm
-end
-function VmLBOCollisions:setSpeciesName(nm)
-   self.speciesName = nm
-end
-function VmLBOCollisions:setCfl(cfl)
-   self.cfl = cfl
-end
-function VmLBOCollisions:setConfBasis(basis)
-   self.confBasis = basis
-end
-function VmLBOCollisions:setConfGrid(grid)
-   self.confGrid = grid
-end
-function VmLBOCollisions:setPhaseBasis(basis)
-   self.phaseBasis = basis
-end
-function VmLBOCollisions:setPhaseGrid(grid)
-   self.phaseGrid = grid
-end
+function VmLBOCollisions:setName(nm) self.name = self.speciesName.."_"..nm end
+function VmLBOCollisions:setSpeciesName(nm) self.speciesName = nm end
+function VmLBOCollisions:setCfl(cfl) self.cfl = cfl end
+function VmLBOCollisions:setConfBasis(basis) self.confBasis = basis end
+function VmLBOCollisions:setConfGrid(grid) self.confGrid = grid end
+function VmLBOCollisions:setPhaseBasis(basis) self.phaseBasis = basis end
+function VmLBOCollisions:setPhaseGrid(grid) self.phaseGrid = grid end
 
-function VmLBOCollisions:createSolver()
+function VmLBOCollisions:createSolver(extField)
    self.vdim      = self.phaseGrid:ndim() - self.confGrid:ndim()
 
    self.cNumBasis = self.confBasis:numBasis()
@@ -270,10 +286,10 @@ function VmLBOCollisions:createSolver()
          }
       elseif self.selfCollisions then
          local projectUserNu = Updater.ProjectOnBasis {
-            onGrid          = self.confGrid,
-            basis           = self.confBasis,
-            evaluate        = self.collFreqSelf,
-            projectOnGhosts = false
+            onGrid   = self.confGrid,
+            basis    = self.confBasis,
+            evaluate = self.collFreqSelf,
+            onGhosts = false
          }
          projectUserNu:advance(0.0, {}, {self.nuVarXSelf})
       end
@@ -293,6 +309,8 @@ function VmLBOCollisions:createSolver()
       vUpper           = self.vMax,
       varyingNu        = self.varNu,
       useCellAverageNu = self.cellConstNu,
+      gridID           = self.phaseGrid:id(),
+      fluxType         = self.fluxType,
    }
    self.collisionSlvr = Updater.HyperDisCont {
       onGrid             = self.phaseGrid,
@@ -352,12 +370,23 @@ function VmLBOCollisions:createSolver()
    self.cellAvFac          = 1.0/math.sqrt(2.0^self.confGrid:ndim())
 end
 
+function VmLBOCollisions:createDiagnostics(mySpecies, field)
+   -- Create source diagnostics.
+   self.diagnostics = nil
+   if self.tbl.diagnostics then
+      self.diagnostics = DiagsApp{implementation = VmLBODiagsImpl()}
+      self.diagnostics:fullInit(mySpecies, field, self)
+   end
+   return self.diagnostics
+end
+
 function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 
    -- Fetch coupling moments and primitive moments of this species.
    local selfMom     = species[self.speciesName]:fluidMoments()
    local primMomSelf = species[self.speciesName]:selfPrimitiveMoments()
 
+   local tmNonSlvrStart = Time.clock()
    if self.varNu then
       self.nuSum:clear(0.0)
    else
@@ -366,9 +395,7 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
    self.nuUSum:clear(0.0)
    self.nuVtSqSum:clear(0.0)
 
-   local tmEvalMomStart = Time.clock()
    if self.selfCollisions then
-      self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
 
       -- NOTE: The following code is commented out because Vm users don't seem
       -- to be as worried about limit crossings as Gk users, so counting them
@@ -490,15 +517,18 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
       end    -- end loop over other species that this species collides with.
 
    end    -- end if self.crossCollisions.
+   self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 
    -- Compute increment from collisions and accumulate it into output.
    self.collisionSlvr:advance(
       tCurr, {fIn, self.nuUSum, self.nuVtSqSum, self.nuSum}, {self.collOut})
+
+   local tmNonSlvrStart = Time.clock()
    -- Barrier over shared communicator before accumulate
    Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
 
    fRhsOut:accumulate(1.0, self.collOut)
-
+   self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 end
 
 function VmLBOCollisions:write(tm, frame)
@@ -507,15 +537,13 @@ function VmLBOCollisions:write(tm, frame)
 end
 
 function VmLBOCollisions:totalTime()
-   return self.collisionSlvr.totalTime + self.tmEvalMom
+   return self.collisionSlvr.totalTime + self.timers.nonSlvr
 end
-
 function VmLBOCollisions:slvrTime()
    return self.collisionSlvr.totalTime
 end
-
-function VmLBOCollisions:momTime()
-   return self.tmEvalMom
+function VmLBOCollisions:nonSlvrTime()
+   return self.timers.nonSlvr
 end
 
 return VmLBOCollisions

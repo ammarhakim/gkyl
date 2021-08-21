@@ -109,7 +109,7 @@ function AdiosCartFieldIo:init(tbl)
 	 elseif type(v) == "string" then
 	    self._metaData[k] = { value = v, vType = "string" }
 	 elseif type(v) == "table" then
-	    assert(type(v[1])=="number", "Io.AdiosCartFieldIo: Metadata table must have elements must be numbers.")
+	    assert(type(v[1])=="number", "Io.AdiosCartFieldIo: Metadata table elements must be numbers.")
             isInt = (math.floor(math.abs(v[1])) == math.abs(v[1]))
             for _, val in pairs(v) do
 	       assert(isInt == (math.floor(math.abs(val)) == math.abs(val)), "Io.AdiosCartFieldIo: Metadata table must have elements of the same type (int or double).")
@@ -134,10 +134,9 @@ end
 --   fName:    file name
 --   tmStamp:  time-stamp
 --   frNum:    frame number
---   writeGhost: Flag to indicate if we should write skin-cells on boundaries of global domain
+--   writeGhost: Flag to indicate if we should write ghost-cells on boundaries of global domain
 function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
-   local _writeGhost = self._writeGhost
-   if writeGhost ~= nil then _writeGhost = writeGhost end
+   local _writeGhost = writeGhost ~= nil and writeGhost or self._writeGhost
 
    -- Identify if fieldsIn is a CartField using the self._ndim variable (MF: there ought to be a better way).
    local fieldsTbl = type(fieldsIn._ndim)=="number" and {CartGridField = fieldsIn} or fieldsIn
@@ -167,12 +166,12 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
    local ndim = field:ndim()
    local localRange, globalRange = field:localRange(), field:globalRange()
    if _writeGhost then 
-      -- extend localRange to include ghost cells if on edge of global domain
+      -- Extend localRange to include ghost cells if on edge of global domain.
       for d = 1, ndim do
          if localRange:lower(d) == globalRange:lower(d) then localRange = localRange:extendDir(d, field:lowerGhost(), 0) end
          if localRange:upper(d) == globalRange:upper(d) then localRange = localRange:extendDir(d, 0, field:upperGhost()) end
       end
-      -- extend globalRange to include ghost cells
+      -- Extend globalRange to include ghost cells.
       globalRange = field:globalExtRange() 
    end
    
@@ -210,8 +209,10 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
       Adios.select_method(self.grpIds[grpNm], self._method, "", "")
       
       -- Global attributes for Gkyl build.
-      Adios.define_attribute_byvalue(self.grpIds[grpNm], "changeset", "", Adios.string, 1, GKYL_GIT_CHANGESET)
-      Adios.define_attribute_byvalue(self.grpIds[grpNm], "builddate", "", Adios.string, 1, GKYL_BUILD_DATE)
+      if GKYL_GIT_CHANGESET ~= "" then
+         Adios.define_attribute_byvalue(self.grpIds[grpNm], "changeset", "", Adios.string, 1, GKYL_GIT_CHANGESET)
+         Adios.define_attribute_byvalue(self.grpIds[grpNm], "builddate", "", Adios.string, 1, GKYL_BUILD_DATE)
+      end
       
       -- Field attributes.
       Adios.define_attribute_byvalue(self.grpIds[grpNm], "type", "", Adios.string, 1, field:grid():id())
@@ -287,7 +288,7 @@ function AdiosCartFieldIo:write(fieldsIn, fName, tmStamp, frNum, writeGhost)
       -- ADIOS expects data to be laid out in row-major order).
       fld:_copy_from_field_region(localRange, self._outBuff[1])
 
-      Adios.write(fd, fldNm, self._outBuff[1]:data())
+      local err = Adios.write(fd, fldNm, self._outBuff[1]:data())
    end
    Adios.close(fd)
 end
@@ -299,8 +300,7 @@ end
 --   fName:     file name.
 --   readGhost:  Flag to indicate if we should read skin-cells on boundaries of global domain.
 function AdiosCartFieldIo:read(fieldsOut, fName, readGhost) --> time-stamp, frame-number
-   local _readGhost = self._writeGhost
-   if readGhost ~= nil then _readGhost = readGhost end
+   local _readGhost = readGhost ~= nil and readGhost or self._writeGhost
 
    -- Identify if fieldsIn is a CartField using the self._ndim variable (MF: there ought to be a better way).
    local fieldsTbl = type(fieldsOut._ndim)=="number" and {CartGridField = fieldsOut} or fieldsOut

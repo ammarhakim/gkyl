@@ -18,5 +18,5 @@ cd zeromq-4.2.2
 make install
 
 # softlink to make finding easier
-ln -sf $PREFIX $GKYLSOFT/zeromq
+ln -sfn $PREFIX $GKYLSOFT/zeromq
 

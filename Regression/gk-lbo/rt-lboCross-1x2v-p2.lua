@@ -90,13 +90,10 @@ plasmaApp = Plasma.App {
             return Te0
          end,
       },
-      --bcx = { Plasma.GkSpecies.bcOpen,
-      --        Plasma.GkSpecies.bcOpen },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq" },
-      diagnosticIntegratedMoments = { "intM0", "intM1", "intM2" },
+      diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = { "elc", "ion" },
@@ -132,13 +129,10 @@ plasmaApp = Plasma.App {
             return Ti0
          end,
       },
-      --bcx = { Plasma.GkSpecies.bcOpen,
-      --        Plasma.GkSpecies.bcOpen },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq" },
-      diagnosticIntegratedMoments = { "intM0", "intM1", "intM2" },
+      diagnostics = { "M0", "M1", "M2", "Upar", "VtSq", "intM0", "intM1", "intM2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
          collideWith = { "ion", "elc" },
@@ -156,7 +150,7 @@ plasmaApp = Plasma.App {
    field = Plasma.Field {
       evolve = true,    -- Evolve fields?
       -- initPhiFunc = function (t, xn) return 0.0 end,
-      kperp2 = 0.0 
+      kperpSq = 0.0 
    },
    
    -- Magnetic geometry.

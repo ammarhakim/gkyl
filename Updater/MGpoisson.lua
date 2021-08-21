@@ -16,20 +16,22 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local MGpoissonDecl         = require "Updater.mgPoissonCalcData.MGpoissonModDecl"
-local Proto                 = require "Lib.Proto"
-local DirectDGPoissonSolver = require "Updater.DiscontPoisson"
-local UpdaterBase           = require "Updater.Base"
-local Grid                  = require "Grid"
-local DataStruct            = require "DataStruct"
-local DecompRegionCalc      = require "Lib.CartDecomp"
-local LinearDecomp          = require "Lib.LinearDecomp"
-local Lin                   = require "Lib.Linalg"
-local ffi                   = require "ffi"
-local lume                  = require "Lib.lume"
-local IntQuantCalc          = require "Updater.CartFieldIntegratedQuantCalc"
-local IntDGMoment           = require "Updater.IntegratedDGMoment"
-local Mpi                   = require "Comm.Mpi"
+local MGpoissonDecl    = require "Updater.mgPoissonCalcData.MGpoissonModDecl"
+local Proto            = require "Lib.Proto"
+local DirectDGSolver   = require "Updater.DiscontPoisson"
+local DirectFEMSolver  = require "Updater.FemPerpPoisson"
+local UpdaterBase      = require "Updater.Base"
+local Grid             = require "Grid"
+local DataStruct       = require "DataStruct"
+local DecompRegionCalc = require "Lib.CartDecomp"
+local LinearDecomp     = require "Lib.LinearDecomp"
+local Lin              = require "Lib.Linalg"
+local ffi              = require "ffi"
+local lume             = require "Lib.lume"
+local IntQuantCalc     = require "Updater.CartFieldIntegratedQuantCalc"
+local IntDGMoment      = require "Updater.IntegratedDGMoment"
+local Mpi              = require "Comm.Mpi"
+local Time             = require "Lib.Time"
 
 -- Boundary condition ID numbers.
 local BVP_BC_PERIODIC  = 0
@@ -152,15 +154,17 @@ function MGpoisson:init(tbl)
       self.gamma = 1
    end
 
-   if (tbl.tolerance) then
-      -- User-defined tolerance (stopping point) if given.
-      self.tol            = tbl.tolerance
-      self.numGammaCycles = 1000
+   -- MG cycles will continue until the self.tol relative residual norm tolerance
+   -- is reached, or until the self.numGammaCycles number of MG cycles is performed.
+   if tbl.tolerance then
+      self.tol = tbl.tolerance
    else
-      -- If not given perform the user-defined number of cycles
-      -- or stop when the relative residual norm is 1e-12.
-      self.numGammaCycles = assert(tbl.numCycles, "Updater.MGpoisson: if 'tolerance' is not specified, must provide the number of cycles with 'numCycles'.")
-      self.tol = 1.0e-12
+      self.tol = 1.0e-12   -- Default tolerance.
+   end
+   if tbl.numCycles then
+      self.numGammaCycles = tbl.numCycles
+   else
+      self.numGammaCycles = 1000   -- Default number of MG cycles.
    end
    -- ~~.................... End of user-input multigrid parameters ......................~~ --
 
@@ -272,8 +276,8 @@ function MGpoisson:init(tbl)
 
    -- Create a grid for each level.
    -- Not sure this is needed, but in general it probably is (e.g. unstructured, or even nonuniform meshes).
-   self.mgGrids           = {}
-   self.mgGrids[1]        = grid
+   self.mgGrids    = {}
+   self.mgGrids[1] = grid
    -- Iterate (phi), right-side source and residual fields at each level.
    self.phiAll      = {}
    self.rhoAll      = {}
@@ -322,13 +326,22 @@ function MGpoisson:init(tbl)
          decomposition = decompC,
       }
 
-      if (not notAtCoarsest and self.isDG) then
-         self.directSolver = DirectDGPoissonSolver {
-            onGrid  = self.mgGrids[self.mgLevels],
-            basis   = basis,
-            bcLower = bcLower,
-            bcUpper = bcUpper,
-         }
+      if not notAtCoarsest then
+         if self.isDG then
+            self.directSolver = DirectDGSolver {
+               onGrid  = self.mgGrids[self.mgLevels],
+               basis   = basis,
+               bcLower = bcLower,
+               bcUpper = bcUpper,
+            }
+         elseif self.isFEM and (self.dim==2) then
+            self.directSolver = DirectFEMSolver {
+               onGrid  = self.mgGrids[self.mgLevels],
+               basis   = basis,
+               bcLower = bcLower,
+               bcUpper = bcUpper,
+            }
+         end
       end
    end
 
@@ -480,15 +493,32 @@ function MGpoisson:init(tbl)
          self.intCalcAdv     = function(tCurr, inFld, outFld) MGpoisson['normFEM'](self, tCurr, "M0", inFld, outFld) end
          self._accuConst     = MGpoissonDecl.selectAccuConst(basisID, self.dim, polyOrder, bcTypes, self.isDG)
       end
-      self.localNorm     = Lin.Vec(1)
-      self.globalNorm    = Lin.Vec(1)
+      self.localNorm  = Lin.Vec(1)
+      self.globalNorm = Lin.Vec(1)
    end
    self.relResNorm   = DataStruct.DynVector { numComponents = 1 }
    self.residualNorm = DataStruct.DynVector { numComponents = 1 }
-   self.rhoNorm     = DataStruct.DynVector { numComponents = 1 }
+   self.rhoNorm      = DataStruct.DynVector { numComponents = 1 }
    if self.isPeriodicDomain then
       self.dynVbuf = DataStruct.DynVector { numComponents = 1 }
    end
+
+   -- Kernels and buffers used in computing electrostatic field energy.
+   self.localEnergy   = Lin.Vec(self.dim)
+   self.globalEnergy  = Lin.Vec(self.dim)
+   self._esEnergyCalc = MGpoissonDecl.selectESenergy(basisID, self.dim, polyOrder, bcTypes)
+
+   -- Timers.
+   self.relaxTime            = 0.0
+   self.residualTime         = 0.0
+   self.restrictTime         = 0.0
+   self.prolongTime          = 0.0
+   self.coarsestSolveTime    = 0.0
+   self.basisTranslationTime = 0.0
+   self.projectTime          = 0.0
+   self.residualNormTime     = 0.0
+   self.normTime             = 0.0
+   self.gammaCycleTime       = 0.0
 
 end
 
@@ -581,6 +611,7 @@ end
 function MGpoisson:translateDG_FEM(inFld,outFld,dir)
    -- Translate the DG coefficients of a field into FEM expansion
    -- coefficients (dir=1,DG_to_FEM), and viceversa (dir=2,FEM_to_DG).
+   local tmStart = Time.clock()
 
    local grid   = outFld:grid()
    local cellsN = {}
@@ -605,6 +636,39 @@ function MGpoisson:translateDG_FEM(inFld,outFld,dir)
       -- Get indices of cells used by stencil.
       self:opStencilIndices(idx,self.transBasisStencilType[dir],self.cuStencilIdx)
  
+      if (self.isPeriodicDomain and (self.dim > 1)) then
+         -- Kernels need the upper-right (lower-left) corner ghost cells.
+         -- Flip cell index to lower-left (upper-right).
+         local checkFor, setTo = {}, {}
+         if dir == DG_to_FEM then
+            for d = 1, self.dim do
+               checkFor[d] = 0
+               setTo[d]    = cellsN[d]
+            end
+         else
+            for d = 1, self.dim do
+               checkFor[d] = cellsN[d]+1
+               setTo[d]    = 1
+            end
+         end
+         for nI = 1, #self.cuStencilIdx do
+            local changeIdxInDir = {}
+            for d = 1, self.dim do
+               if (self.cuStencilIdx[nI][d] == checkFor[d]) then  -- Upper ghost cell in this direction.
+                  for _, dr in ipairs(self.dimRemain[d]) do
+                     if (self.cuStencilIdx[nI][dr] == checkFor[dr]) then  -- Upper ghost cell in another direction too.
+                        table.insert(changeIdxInDir, d)
+                        break
+                     end
+                  end
+               end
+            end
+            for _, d in ipairs(changeIdxInDir) do
+               self.cuStencilIdx[nI][d] = setTo[d]
+            end
+         end
+      end
+
       -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil.
       for i = 1, self.cuStencilSize do
          grid:setIndex(self.cuStencilIdx[i])
@@ -617,12 +681,22 @@ function MGpoisson:translateDG_FEM(inFld,outFld,dir)
    end
 
    if self.aPeriodicDir then outFld:sync() end
+   self.basisTranslationTime = self.basisTranslationTime + Time.clock() - tmStart
+end
+-- The following two are specializations of translateDG_FEM.
+function MGpoisson:translateDGtoFEM(inFld,outFld)
+   self:translateDG_FEM(inFld, outFld, DG_to_FEM)
+end
+function MGpoisson:translateFEMtoDG(inFld,outFld)
+   self:translateDG_FEM(inFld, outFld, FEM_to_DG)
 end
 
 function MGpoisson:projectFEM(femFld,fldOut)
    -- After a DG field is converted to an FEM field, we wish to project the FEM field onto
    -- the FEM (nodal) basis to obtain the right-side vector. This only happens once, and 
    -- ideally we would fold this operation in with DGtoFEM (for the righ-side source).
+   local tmStart = Time.clock()
+
    femFld:copy(fldOut)
 
    local grid   = fldOut:grid()
@@ -646,6 +720,43 @@ function MGpoisson:projectFEM(femFld,fldOut)
       -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
       self:opStencilIndices(idx, self.rhoStencilType, self.rhoStencilIdx)
 
+      if (self.isPeriodicDomain and (self.dim > 1)) then
+         -- Kernels need the upper-right (lower-left) corner ghost cells.
+         -- Flip cell index to lower-left (upper-right).
+         local checkFor, setTo = {{},{}}, {{},{}}
+         for d = 1, self.dim do
+            checkFor[1][d] = 0
+            setTo[1][d]    = cellsN[d]
+            checkFor[2][d] = cellsN[d]+1
+            setTo[2][d]    = 1
+         end
+         for nI = 1, #self.rhoStencilIdx do
+            local changeIdxInDir = {}
+            for d = 1, self.dim do
+               if (self.rhoStencilIdx[nI][d] == checkFor[1][d]) then  -- Lower ghost cell in this direction.
+                  for _, dr in ipairs(self.dimRemain[d]) do
+                     if (self.rhoStencilIdx[nI][dr] == checkFor[1][dr]) or
+                        (self.rhoStencilIdx[nI][dr] == checkFor[2][dr]) then  -- Lower/upper ghost cell in another direction too.
+                        table.insert(changeIdxInDir, {d, setTo[1][d]})
+                        break
+                     end
+                  end
+               elseif (self.rhoStencilIdx[nI][d] == checkFor[2][d]) then  -- Lower ghost cell in this direction.
+                  for _, dr in ipairs(self.dimRemain[d]) do
+                     if (self.rhoStencilIdx[nI][dr] == checkFor[1][dr]) or
+                        (self.rhoStencilIdx[nI][dr] == checkFor[2][dr]) then  -- Lower/upper ghost cell in another direction too.
+                        table.insert(changeIdxInDir, {d, setTo[2][d]})
+                        break
+                     end
+                  end
+               end
+            end
+            for _, dC in ipairs(changeIdxInDir) do
+               self.rhoStencilIdx[nI][dC[1]] = dC[2]
+            end
+         end
+      end
+
       for i = 1, self.rhoStencilSize do
          grid:setIndex(self.rhoStencilIdx[i])
          grid:getDx(self.dxBuf)
@@ -659,10 +770,13 @@ function MGpoisson:projectFEM(femFld,fldOut)
    end
 
    if self.aPeriodicDir then fldOut:sync() end
+   self.projectTime = self.projectTime + Time.clock() - tmStart
 end
 
 function MGpoisson:normFEM(tCurr,normType,inFld,outDynV)
    -- Compute the L2 norm of an FEM field.
+   local tmStart = Time.clock()
+
    local fld, norm  = inFld[1], outDynV[1] 
 
    local grid   = fld:grid()
@@ -684,10 +798,30 @@ function MGpoisson:normFEM(tCurr,normType,inFld,outDynV)
       grid:setIndex(idx)
       grid:getDx(self.dxBuf)
 
-      -- Get with indices of cells used by stencil. Store them in self.phiStencilIdx.
+      -- Get indices of cells used by stencil. Store them in self.cuStencilIdx.
       self:opStencilIndices(idx,{2,self.threes,self.mOnes},self.cuStencilIdx)
 
-      -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil.
+      if (self.isPeriodicDomain and (self.dim > 1)) then
+         -- Kernels need the upper-right corner ghost cells. Flip cell index to lower left.
+         for nI = 1, #self.cuStencilIdx do
+            local changeIdxInDir = {}
+            for d = 1, self.dim do
+               if (self.cuStencilIdx[nI][d] == cellsN[d]+1) then  -- Upper ghost cell in this direction.
+                  for _, dr in ipairs(self.dimRemain[d]) do
+                     if (self.cuStencilIdx[nI][dr] == cellsN[dr]+1) then  -- Upper ghost cell in another direction too.
+                        table.insert(changeIdxInDir, d)
+                        break
+                     end
+                  end
+               end
+            end
+            for _, d in ipairs(changeIdxInDir) do
+               self.cuStencilIdx[nI][d] = 1
+            end
+         end
+      end
+
+      -- Array of pointers to cell lengths and field data in cells pointed to by the stencil.
       for i = 1, self.cuStencilSize do
          grid:setIndex(self.cuStencilIdx[i])
 
@@ -705,6 +839,7 @@ function MGpoisson:normFEM(tCurr,normType,inFld,outDynV)
    if normType=="L2" then self.globalNorm[1] = math.sqrt(self.globalNorm[1]) end
 
    norm:appendData(tCurr, self.globalNorm)
+   self.normTime = self.normTime + Time.clock() - tmStart
 end
 
 function MGpoisson:accumulateConst(inConst,inFld)
@@ -731,8 +866,45 @@ function MGpoisson:accumulateConst(inConst,inFld)
    if self.aPeriodicDir then inFld:sync() end
 end
 
+function MGpoisson:esEnergy(tCurr,fldIn,outDynV)
+   -- Compute the electrostatic field energy given the potential. Here outDynV must
+   -- be a DynVector with the same number of components as there are dimensions.
+   local phiIn, esE = fldIn[1], outDynV[1]
+
+   local grid = phiIn:grid()
+
+   local indexer = phiIn:genIndexer()
+   local phiItr  = phiIn:get(1)
+
+   for d = 1, self.dim do
+      self.localEnergy[d] = 0.0   -- Clear local values.
+   end
+
+   -- Construct range for shared memory.
+   local phiRange       = phiIn:localRange()
+   local phiRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = phiRange:selectFirst(self.dim), numSplit = grid:numSharedProcs() }
+   local tId = grid:subGridSharedId()    -- Local thread ID.
+
+   for idx in phiRangeDecomp:rowMajorIter(tId) do
+      grid:setIndex(idx)
+      grid:getDx(self.dxBuf)
+
+      phiIn:fill(indexer(idx), phiItr)
+
+      self._esEnergyCalc(self.dxBuf:data(), phiItr:data(), self.localEnergy:data())
+   end
+
+   -- All-reduce across processors and push result into dyn-vector.
+   Mpi.Allreduce(
+      self.localEnergy:data(), self.globalEnergy:data(), self.dim, Mpi.DOUBLE, Mpi.SUM, self:getComm())
+
+   esE:appendData(tCurr, self.globalEnergy)
+end
+
 function MGpoisson:restrictDG(fFld,cFld)
    -- Restriction of a DG fine-grid field (fFld) to a coarse-grid field (cFld). 
+   local tmStart = Time.clock()
 
    local grid = cFld:grid() 
 
@@ -779,16 +951,21 @@ function MGpoisson:restrictDG(fFld,cFld)
    end
 
    if self.aPeriodicDir then cFld:sync() end
+   self.restrictTime = self.restrictTime + Time.clock() - tmStart
 end
 
 function MGpoisson:restrictFEM(fFld,cFld)
    -- FEM restriction of a fine-grid field (fFld) to a coarse-grid field (cFld). 
+   local tmStart = Time.clock()
 
    cFld:clear(0.0)
 
    local grid   = cFld:grid() 
    local cellsN = {}
    for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
+
+   -- For periodic BCs extend the range at the lower boundary by 1 cell.
+   local fLocalRange  = fFld:localRange():extendDirs(self.periodicDirs,1,0)
 
    local rangeDecomp = LinearDecomp.LinearDecompRange {
       range = cFld:localRange(), numSplit = grid:numSharedProcs() }
@@ -812,11 +989,30 @@ function MGpoisson:restrictFEM(fFld,cFld)
          for rI = 1, prevAdded do
             for k = 1, (self.igOpStencilWidth-1) do
                local newIdxInDir = self.fineGridIdx[rI][dir]-k
-               if ((not grid:isDirPeriodic(dir)) and newIdxInDir<1) or 
-                  ((grid:isDirPeriodic(dir) and newIdxInDir<0)) then break end
+               if ((not grid:isDirPeriodic(dir)) and newIdxInDir<1) then break end
                fCellCount = fCellCount + 1
                for d = 1, self.dim do self.fineGridIdx[fCellCount][d] = self.fineGridIdx[rI][d] end
                self.fineGridIdx[fCellCount][dir] = newIdxInDir
+            end
+         end
+      end
+
+      if (self.isPeriodicDomain and (self.dim > 1)) then
+         -- Kernels need the lower-left corner ghost cells. Flip cell index to upper right.
+         for nI = 1, #self.fineGridIdx do
+            local changeIdxInDir = {}
+            for d = 1, self.dim do
+               if (self.fineGridIdx[nI][d] == 0) then  -- Lower ghost cell in this direction.
+                  for _, dr in ipairs(self.dimRemain[d]) do
+                     if (self.fineGridIdx[nI][dr] == 0) then  -- Lower ghost cell in another direction too.
+                        table.insert(changeIdxInDir, d)
+                        break
+                     end
+                  end
+               end
+            end
+            for _, d in ipairs(changeIdxInDir) do
+               self.fineGridIdx[nI][d] = cellsN[d]
             end
          end
       end
@@ -825,14 +1021,19 @@ function MGpoisson:restrictFEM(fFld,cFld)
   
       -- Array of pointers to fine-grid field data by stencil. 
       for i = 1, fCellCount do
-         fFld:fill(fFldIndexer(self.fineGridIdx[i]), fFldItr)
-         self.fineFldItr[i] = fFldItr:data()
+         if fLocalRange:contains(self.fineGridIdx[i]) then
+            fFld:fill(fFldIndexer(self.fineGridIdx[i]), fFldItr)
+            self.fineFldItr[i] = fFldItr:data()
+         else
+            self.fineFldItr[i] = self.cellBuf:data()
+         end
       end
   
       self._restriction[self:idxToStencil(cIdx,cellsN)](self.fineFldItr:data(), cFldItr:data())
    end
    
    if self.aPeriodicDir then cFld:sync() end
+   self.restrictTime = self.restrictTime + Time.clock() - tmStart
 end
 
 function MGpoisson:jacobiCopyField(fldIn,fldOutAll)
@@ -864,6 +1065,7 @@ end
 
 function MGpoisson:relax(numRelax, phiFld, rhoFld)
    -- Perform numRelax relaxations of the Poisson equation.
+   local tmStart = Time.clock()
 
    local grid   = phiFld:grid() 
    local cellsN = {}
@@ -895,6 +1097,42 @@ function MGpoisson:relax(numRelax, phiFld, rhoFld)
          self:opStencilIndices(idx, self.phiStencilType, self.phiStencilIdx)
          self:opStencilIndices(idx, self.rhoStencilType, self.rhoStencilIdx)
    
+         if (self.isFEM and self.isPeriodicDomain and (self.dim > 1)) then
+            -- Kernels need the corner ghost cells. Flip cell index to opposite corner.
+            local checkFor, setTo = {{},{}}, {{},{}}
+            for d = 1, self.dim do
+               checkFor[1][d] = 0
+               setTo[1][d]    = cellsN[d]
+               checkFor[2][d] = cellsN[d]+1
+               setTo[2][d]    = 1
+            end
+            for nI = 1, #self.phiStencilIdx do
+               local changeIdxInDir = {}
+               for d = 1, self.dim do
+                  if (self.phiStencilIdx[nI][d] == checkFor[1][d]) then  -- Lower ghost cell in this direction.
+                     for _, dr in ipairs(self.dimRemain[d]) do
+                        if (self.phiStencilIdx[nI][dr] == checkFor[1][dr]) or
+                           (self.phiStencilIdx[nI][dr] == checkFor[2][dr]) then  -- Lower/upper ghost cell in another direction too.
+                           table.insert(changeIdxInDir, {d, setTo[1][d]})
+                           break
+                        end
+                     end
+                  elseif (self.phiStencilIdx[nI][d] == checkFor[2][d]) then  -- Lower ghost cell in this direction.
+                     for _, dr in ipairs(self.dimRemain[d]) do
+                        if (self.phiStencilIdx[nI][dr] == checkFor[1][dr]) or
+                           (self.phiStencilIdx[nI][dr] == checkFor[2][dr]) then  -- Lower/upper ghost cell in another direction too.
+                           table.insert(changeIdxInDir, {d, setTo[2][d]})
+                           break
+                        end
+                     end
+                  end
+               end
+               for _, dC in ipairs(changeIdxInDir) do
+                  self.phiStencilIdx[nI][dC[1]] = dC[2]
+               end
+            end
+         end
+
          -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil. 
          for i = 1, self.phiStencilSize do
             grid:setIndex(self.phiStencilIdx[i])
@@ -922,12 +1160,14 @@ function MGpoisson:relax(numRelax, phiFld, rhoFld)
 
       if self.aPeriodicDir then phiFld:sync() end
    end
+   self.relaxTime = self.relaxTime + Time.clock() - tmStart
 end
 
 function MGpoisson:residual(phiFld, rhoFld, resFld)
    -- Compute the residual:
    --     r = rho + L(phi). 
    -- where L is the Laplacian.
+   local tmStart = Time.clock()
 
    local grid   = phiFld:grid() 
    local cellsN = {}
@@ -953,6 +1193,43 @@ function MGpoisson:residual(phiFld, rhoFld, resFld)
       self:opStencilIndices(idx, self.phiStencilType, self.phiStencilIdx)
       self:opStencilIndices(idx, self.rhoStencilType, self.rhoStencilIdx)
    
+      if (self.isFEM and self.isPeriodicDomain and (self.dim > 1)) then
+         -- Kernels need the upper-right (lower-left) corner ghost cells.
+         -- Flip cell index to lower-left (upper-right).
+         local checkFor, setTo = {{},{}}, {{},{}}
+         for d = 1, self.dim do
+            checkFor[1][d] = 0
+            setTo[1][d]    = cellsN[d]
+            checkFor[2][d] = cellsN[d]+1
+            setTo[2][d]    = 1
+         end
+         for nI = 1, #self.phiStencilIdx do
+            local changeIdxInDir = {}
+            for d = 1, self.dim do
+               if (self.phiStencilIdx[nI][d] == checkFor[1][d]) then  -- Lower ghost cell in this direction.
+                  for _, dr in ipairs(self.dimRemain[d]) do
+                     if (self.phiStencilIdx[nI][dr] == checkFor[1][dr]) or
+                        (self.phiStencilIdx[nI][dr] == checkFor[2][dr]) then  -- Lower/upper ghost cell in another direction too.
+                        table.insert(changeIdxInDir, {d, setTo[1][d]})
+                        break
+                     end
+                  end
+               elseif (self.phiStencilIdx[nI][d] == checkFor[2][d]) then  -- Lower ghost cell in this direction.
+                  for _, dr in ipairs(self.dimRemain[d]) do
+                     if (self.phiStencilIdx[nI][dr] == checkFor[1][dr]) or
+                        (self.phiStencilIdx[nI][dr] == checkFor[2][dr]) then  -- Lower/upper ghost cell in another direction too.
+                        table.insert(changeIdxInDir, {d, setTo[2][d]})
+                        break
+                     end
+                  end
+               end
+            end
+            for _, dC in ipairs(changeIdxInDir) do
+               self.phiStencilIdx[nI][dC[1]] = dC[2]
+            end
+         end
+      end
+         
       -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil. 
       for i = 1, self.phiStencilSize do
          grid:setIndex(self.phiStencilIdx[i])
@@ -974,10 +1251,13 @@ function MGpoisson:residual(phiFld, rhoFld, resFld)
    end
 
    if self.aPeriodicDir then resFld:sync() end
+
+   self.residualTime = self.residualTime + Time.clock() - tmStart
 end
 
 function MGpoisson:relResidualNorm(gamIdx)
    -- Compute the relative norm of the residual: ||rho + L(phi)||/||rho||.
+   local tmStart = Time.clock()
 
    -- Compute the norm of the right-side source vector.
    self.l2normCalcAdv(1,{self.rhoAll[1]},{self.rhoNorm})
@@ -995,6 +1275,7 @@ function MGpoisson:relResidualNorm(gamIdx)
    end
    self.relResNorm:appendData(gamIdx, {relResNormOut})
 
+   self.residualNormTime = self.residualNormTime + Time.clock() - tmStart
    return relResNormOut
 end
 
@@ -1009,6 +1290,7 @@ end
 
 function MGpoisson:prolongDG(cFld,fFld)
    -- DG prolongation of a coarse-grid field (cFld) to a fine-grid field (fFld). 
+   local tmStart = Time.clock()
 
    local grid = fFld:grid() 
 
@@ -1055,10 +1337,12 @@ function MGpoisson:prolongDG(cFld,fFld)
    end
 
    if self.aPeriodicDir then fFld:sync() end
+   self.prolongTime = self.prolongTime + Time.clock() - tmStart
 end
 
 function MGpoisson:prolongFEM(cFld,fFld)
    -- FEM prolongation of a coarse-grid field (cFld) to a fine-grid field (fFld). 
+   local tmStart = Time.clock()
 
    fFld:clear(0.0)
 
@@ -1092,8 +1376,7 @@ function MGpoisson:prolongFEM(cFld,fFld)
          for rI = 1, prevAdded do
             for k = 1, (self.igOpStencilWidth-1) do
                local newIdxInDir = self.fineGridIdx[rI][dir]-k
-               if (newIdxInDir<1 and not grid:isDirPeriodic(dir)) or
-                  (newIdxInDir<0 and grid:isDirPeriodic(dir)) then break end
+               if (newIdxInDir<1 and not grid:isDirPeriodic(dir)) then break end
                fCellCount = fCellCount + 1
                for d = 1, self.dim do self.fineGridIdx[fCellCount][d] = self.fineGridIdx[rI][d] end
                self.fineGridIdx[fCellCount][dir] = newIdxInDir
@@ -1101,8 +1384,24 @@ function MGpoisson:prolongFEM(cFld,fFld)
          end
       end
 
+      if (self.isPeriodicDomain and (self.dim > 1)) then
+         -- Kernels need the upper-right corner ghost cells. Flip cell index to lower left.
+         local changeIdxInDir = {}
+         for d = 1, self.dim do
+            if (cIdx[d] == cellsN[d]+1) then  -- Upper ghost cell in this direction.
+               for _, dr in ipairs(self.dimRemain[d]) do
+                  if (cIdx[dr] == cellsN[dr]+1) then  -- Upper ghost cell in another direction too.
+                     table.insert(changeIdxInDir, d)
+                     break
+                  end
+               end
+            end
+         end
+         for _, d in ipairs(changeIdxInDir) do cIdx[d] = 1 end
+      end
+
       cFld:fill(cFldIndexer(cIdx), cFldItr)   -- Coarse field pointer.
-  
+
       -- Array of pointers to fine-grid field data by stencil.
       for i = 1, fCellCount do
          if fLocalRange:contains(self.fineGridIdx[i]) then
@@ -1117,6 +1416,7 @@ function MGpoisson:prolongFEM(cFld,fFld)
    end
 
    if self.aPeriodicDir then fFld:sync() end
+   self.prolongTime = self.prolongTime + Time.clock() - tmStart
 end
 
 function MGpoisson:gammaCycle(lCurr)
@@ -1130,6 +1430,7 @@ function MGpoisson:gammaCycle(lCurr)
       -- Coarsest grid. Use a direct solver or many iterations.
       -- The latter is useful if the coarsest grid is large still.
 
+      local tmStart = Time.clock()
       if self.directSolver then
          -- Call the direct solver.
          self.directSolver:advance(0.0, {self.rhoAll[lCurr]}, {self.phiAll[lCurr]})
@@ -1137,6 +1438,7 @@ function MGpoisson:gammaCycle(lCurr)
          -- Relax nu3 times.
          self:relax(self.nu3, self.phiAll[lCurr], self.rhoAll[lCurr]) 
       end
+      self.coarsestSolveTime = self.coarsestSolveTime + Time.clock() - tmStart
 
    else
 
@@ -1178,10 +1480,7 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
       self.rhoAll[1] = inFld[1]
    elseif self.isFEM then
       -- FEM solver. Translate RHS source DG coefficients to FEM.
-      self:translateDG_FEM(inFld[1], self.rhoAll[1], DG_to_FEM)
-      -- Project right-side source onto FEM (nodal) basis.
-      self.phiAll[1]:copy(self.rhoAll[1])   -- Temporary buffer.
-      self:projectFEM(self.phiAll[1], self.rhoAll[1])
+      self:translateDGtoFEM(inFld[1], self.rhoAll[1])
    end
    if self.isPeriodicDomain then
       -- Subtract the integral of right-side source from the right side.
@@ -1191,6 +1490,12 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
       self:accumulateConst(-intSrcVol, self.rhoAll[1])
    end
 
+   if self.isFEM then
+      -- Project right-side source onto FEM (nodal) basis.
+      self.phiAll[1]:copy(self.rhoAll[1])   -- Temporary buffer.
+      self:projectFEM(self.phiAll[1], self.rhoAll[1])
+   end
+
    local initialGuess   = inFld[2]
    local relResNormCurr = 1.0e12    -- Current (relative) residual norm.
    if initialGuess then
@@ -1198,7 +1503,7 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
          self.phiAll[1] = initialGuess
       elseif self.isFEM then
          -- FEM solver. Translate initial guess DG coefficients to FEM.
-         self:translateDG_FEM(initialGuess, self.phiAll[1], DG_to_FEM)
+         self:translateDGtoFEM(initialGuess, self.phiAll[1])
       end
    else
       -- No initial guess provided. Perform Full Multi-Grid (FMG).
@@ -1224,7 +1529,10 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
    -- Call MG gamma-cycles starting at the finest grid.
    while relResNormCurr > self.tol do
       gI = gI + 1
+
+      local tmStart = Time.clock()
       self:gammaCycle(1)
+      self.gammaCycleTime = self.gammaCycleTime + Time.clock() - tmStart
 
       -- Compute the relative residual norm. It gets stored in self.relResNorm. 
       relResNormCurr = self:relResidualNorm(gI)
@@ -1234,7 +1542,7 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
 
    if self.isFEM then
       -- Translate final phi from FEM to DG.
-      self:translateDG_FEM(self.phiAll[1],outFld[1],FEM_to_DG)
+      self:translateFEMtoDG(self.phiAll[1],outFld[1])
    end
 
 --   if #self.diagnostics>0 then
@@ -1245,6 +1553,20 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
 --         outFld[2]["phiFEM"]:copy(self.phiAll[1])
 --      end
 --   end
+
+   -- Package the timers.
+   self.timers = {
+      relaxTime            = self.relaxTime,           
+      residualTime         = self.residualTime,        
+      restrictTime         = self.restrictTime,        
+      prolongTime          = self.prolongTime,         
+      coarsestSolveTime    = self.coarsestSolveTime,
+      basisTranslationTime = self.basisTranslationTime,
+      projectTime          = self.projectTime,         
+      residualNormTime     = self.residualNormTime,    
+      normTime             = self.normTime,            
+      gammaCycleTime       = self.gammaCycleTime,      
+   }
 
 end
 

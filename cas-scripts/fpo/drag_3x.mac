@@ -1,0 +1,262 @@
+kill(all) $
+load("modal-basis") $
+load("recovery") $
+assume(dv[0]>0, dv[1]>0, dv[2]>0) $
+
+basisNm : "Ser"$
+for polyOrder : 1 thru 1 do (
+  fname : sconcat("~/max-out/vlasov_fpo_drag_cell_3x_ser_p", polyOrder, ".cpp"),
+  fh : openw(fname),
+  printf(fh, "#include <math.h>~%"),
+  printf(fh, "#include <vlasov_fpo.h>~%~%"),
+
+  printf(fh, "double vlasov_fpo_drag_cell_3x_ser_p~a(const double dt, const double *dv,~%", polyOrder),
+  printf(fh, "                                      const stencil7* fStencil, const stencil7* hStencil,~%")
+  printf(fh, "                                      const int isXloEdge, const int isXupEdge,~%"),
+  printf(fh, "                                      const int isYloEdge, const int isYupEdge,~%"),
+  printf(fh, "                                      const int isZloEdge, const int isZupEdge,~%"),
+  printf(fh, "                                      double* fOut) {~%"),
+
+  printf(fh, "  double Jx = 4/(dv[0]*dv[0]);~%"),
+  printf(fh, "  double Jy = 4/(dv[1]*dv[1]);~%"),
+  printf(fh, "  double Jz = 4/(dv[2]*dv[2]);~%~%"),
+
+  printf(fh, "  const double* f = fStencil->C;~%"),
+  printf(fh, "  const double* f1L = fStencil->xL;~%"),
+  printf(fh, "  const double* f1U = fStencil->xU;~%"),
+  printf(fh, "  const double* f2L = fStencil->yL;~%"),
+  printf(fh, "  const double* f2U = fStencil->yU;~%"),
+  printf(fh, "  const double* f3L = fStencil->zL;~%"),
+  printf(fh, "  const double* f3U = fStencil->zU;~%~%"),
+
+  printf(fh, "  const double* h = hStencil->C;~%"),
+  printf(fh, "  const double* h1L = hStencil->xL;~%"),
+  printf(fh, "  const double* h1U = hStencil->xU;~%"),
+  printf(fh, "  const double* h2L = hStencil->yL;~%"),
+  printf(fh, "  const double* h2U = hStencil->yU;~%"),
+  printf(fh, "  const double* h3L = hStencil->zL;~%"),
+  printf(fh, "  const double* h3U = hStencil->zU;~%~%"),
+
+  
+  ba : getBasis(basisNm, 3, polyOrder),
+  ba1L : eta([x,y,z], [-1,0,0], [2,2,2], ba),
+  ba1U : eta([x,y,z], [1,0,0], [2,2,2], ba),
+  ba2L : eta([x,y,z], [0,-1,0], [2,2,2], ba),
+  ba2U : eta([x,y,z], [0,1,0], [2,2,2], ba),
+  ba3L : eta([x,y,z], [0,0,-1], [2,2,2], ba),
+  ba3U : eta([x,y,z], [0,0,1], [2,2,2], ba),
+    
+  indexSubList : append(
+    /* drag potential */
+    makelist(h[i]=h[i-1], i, 1, length(ba)),
+    makelist(h1L[i]=h1L[i-1], i, 1, length(ba)),
+    makelist(h1U[i]=h1U[i-1], i, 1, length(ba)),
+    makelist(h2L[i]=h2L[i-1], i, 1, length(ba)),
+    makelist(h2U[i]=h2U[i-1], i, 1, length(ba)),
+    makelist(h3L[i]=h3L[i-1], i, 1, length(ba)),
+    makelist(h3U[i]=h3U[i-1], i, 1, length(ba)),
+    /* distribution functions */
+    makelist(f[i]=f[i-1], i, 1, length(ba)),
+    makelist(f1L[i]=f1L[i-1], i, 1, length(ba)),
+    makelist(f1U[i]=f1U[i-1], i, 1, length(ba)),
+    makelist(f2L[i]=f2L[i-1], i, 1, length(ba)),
+    makelist(f2U[i]=f2U[i-1], i, 1, length(ba)),
+    makelist(f3L[i]=f3L[i-1], i, 1, length(ba)),
+    makelist(f3U[i]=f3U[i-1], i, 1, length(ba)),
+    /* convolutions */
+    makelist(hxfLL[i]=hxfLL[i-1], i, 1, length(ba)),
+    makelist(hxfLU[i]=hxfLU[i-1], i, 1, length(ba)),
+    makelist(hxfUL[i]=hxfUL[i-1], i, 1, length(ba)),
+    makelist(hxfUU[i]=hxfUU[i-1], i, 1, length(ba)),
+    
+    makelist(hyfLL[i]=hyfLL[i-1], i, 1, length(ba)),
+    makelist(hyfLU[i]=hyfLU[i-1], i, 1, length(ba)),
+    makelist(hyfUL[i]=hyfUL[i-1], i, 1, length(ba)),
+    makelist(hyfUU[i]=hyfUU[i-1], i, 1, length(ba)),
+    
+    makelist(hzfLL[i]=hzfLL[i-1], i, 1, length(ba)),
+    makelist(hzfLU[i]=hzfLU[i-1], i, 1, length(ba)),
+    makelist(hzfUL[i]=hzfUL[i-1], i, 1, length(ba)),
+    makelist(hzfUU[i]=hzfUU[i-1], i, 1, length(ba)),
+    /* cell size */
+    makelist(dv[i]=dv[i-1], i, 1, 3)
+    ),
+
+  /* Setting up recoveries of h; i.e., the first layer of recovery */
+  hRec1L : calcRecov2CellGen(basisNm, x, [x,y,z], polyOrder, dg(h1L), dg(h)),
+  hRec1U : calcRecov2CellGen(basisNm, x, [x,y,z], polyOrder, dg(h), dg(h1U)),
+  hRec2L : calcRecov2CellGen(basisNm, y, [x,y,z], polyOrder, dg(h2L), dg(h)),
+  hRec2U : calcRecov2CellGen(basisNm, y, [x,y,z], polyOrder, dg(h), dg(h2U)),
+  hRec3L : calcRecov2CellGen(basisNm, z, [x,y,z], polyOrder, dg(h3L), dg(h)),
+  hRec3U : calcRecov2CellGen(basisNm, z, [x,y,z], polyOrder, dg(h), dg(h3U)),
+
+  /* Preparing the convolutions of the recovered h with the distribution function f */
+  /* -- X ----------------------------------------------------------- */
+  tmp : calcInnerProdListGen([x, y, z], [[-2,0],[-1,1],[-1,1]], 1, ba1L,
+    diff(hRec1L, x)*doExpand(f1L, ba1L)),
+  printf(fh, "  double hxfLL[~a];~%", length(ba)),
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "  hxfLL[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+  tmp : calcInnerProdListGen([x, y, z], [[0,2],[-1,1],[-1,1]], 1, ba1U,
+    diff(hRec1L, x)*doExpand(f, ba1U)),
+  printf(fh, "  double hxfLU[~a];~%", length(ba)),
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "  hxfLU[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+
+  tmp : calcInnerProdListGen([x, y, z], [[-2,0],[-1,1],[-1,1]], 1, ba1L,
+    diff(hRec1U, x)*doExpand(f, ba1L)),
+  printf(fh, "  double hxfUL[~a];~%", length(ba)),
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "  hxfUL[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+  tmp : calcInnerProdListGen([x, y, z], [[0,2],[-1,1],[-1,1]], 1, ba1U,
+    diff(hRec1U, x)*doExpand(f1U, ba1U)),
+  printf(fh, "  double hxfUU[~a];~%", length(ba)),
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "  hxfUU[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+
+  /* -- Y ----------------------------------------------------------- */
+  tmp : calcInnerProdListGen([x, y, z], [[-1,1],[-2,0],[-1,1]], 1, ba2L,
+    diff(hRec2L, y)*doExpand(f2L, ba2L)),
+  printf(fh, "  double hyfLL[~a];~%", length(ba)),
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "  hyfLL[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+  tmp : calcInnerProdListGen([x, y, z], [[-1,1],[0,2],[-1,1]], 1, ba2U,
+    diff(hRec2L, y)*doExpand(f, ba2U)),
+  printf(fh, "  double hyfLU[~a];~%", length(ba)),
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "  hyfLU[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+
+  tmp : calcInnerProdListGen([x, y, z], [[-1,1],[-2,0],[-1,1]], 1, ba2L,
+    diff(hRec2U, y)*doExpand(f, ba2L)),
+  printf(fh, "  double hyfUL[~a];~%", length(ba)),
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "  hyfUL[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+  tmp : calcInnerProdListGen([x, y, z], [[-1,1],[0,2],[-1,1]], 1, ba2U,
+    diff(hRec2U, y)*doExpand(f2U, ba2U)),
+  printf(fh, "  double hyfUU[~a];~%", length(ba)),
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "  hyfUU[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+
+  /* -- Z ----------------------------------------------------------- */
+  tmp : calcInnerProdListGen([x, y, z], [[-1,1],[-1,1],[-2,0]], 1, ba3L,
+    diff(hRec3L, z)*doExpand(f3L, ba3L)),
+  printf(fh, "  double hzfLL[~a];~%", length(ba)),
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "  hzfLL[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+  tmp : calcInnerProdListGen([x, y, z], [[-1,1],[-1,1],[0,2]], 1, ba3U,
+    diff(hRec3L, z)*doExpand(f, ba3U)),
+  printf(fh, "  double hzfLU[~a];~%", length(ba)),
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "  hzfLU[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+
+  tmp : calcInnerProdListGen([x, y, z], [[-1,1],[-1,1],[-2,0]], 1, ba3L,
+    diff(hRec3U, z)*doExpand(f, ba3L)),
+  printf(fh, "  double hzfUL[~a];~%", length(ba)),
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "  hzfUL[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+  tmp : calcInnerProdListGen([x, y, z], [[-1,1],[-1,1],[0,2]], 1, ba3U,
+    diff(hRec3U, z)*doExpand(f3U, ba3U)),
+  printf(fh, "  double hzfUU[~a];~%", length(ba)),
+   out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "  hzfUU[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+
+  /* Doing the second level of recovery of the convoluted dh*f products */
+  hxfRecL : calcRecov2CellGen(basisNm, x, [x,y,z], polyOrder, dg(hxfLL), dg(hxfLU)),
+  hxfRecU : calcRecov2CellGen(basisNm, x, [x,y,z], polyOrder, dg(hxfUL), dg(hxfUU)),
+  hyfRecL : calcRecov2CellGen(basisNm, y, [x,y,z], polyOrder, dg(hyfLL), dg(hyfLU)),
+  hyfRecU : calcRecov2CellGen(basisNm, y, [x,y,z], polyOrder, dg(hyfUL), dg(hyfUU)),
+  hzfRecL : calcRecov2CellGen(basisNm, z, [x,y,z], polyOrder, dg(hzfLL), dg(hzfLU)),
+  hzfRecU : calcRecov2CellGen(basisNm, z, [x,y,z], polyOrder, dg(hzfUL), dg(hzfUU)),
+
+
+  /* Putting together the surface terms at x */
+  hxfpSurL : calcInnerProdList([y,z], Jx, subst(x=-1, ba), subst(x=0, hxfRecL)),
+  hxfpSurU : calcInnerProdList([y,z], Jx, subst(x=1, ba), subst(x=0, hxfRecU)),
+  /* Putting together the surface terms at y */
+  hyfpSurL : calcInnerProdList([x,z], Jy, subst(y=-1, ba), subst(y=0, hyfRecL)),
+  hyfpSurU : calcInnerProdList([x,z], Jy, subst(y=1, ba), subst(y=0, hyfRecU)),
+  /* Putting together the surface terms at y */
+  hzfpSurL : calcInnerProdList([x,y], Jz, subst(z=-1, ba), subst(z=0, hzfRecL)),
+  hzfpSurU : calcInnerProdList([x,y], Jz, subst(z=1, ba), subst(z=0, hzfRecU)),
+
+  /* Putting together the volume terms */
+  hxfpxVol : calcInnerProdList([x,y,z], Jx, diff(ba, x), diff(doExpand(h, ba), x)*doExpand(f, ba)),
+  hyfpyVol : calcInnerProdList([x,y,z], Jy, diff(ba, y), diff(doExpand(h, ba), y)*doExpand(f, ba)),
+  hzfpzVol : calcInnerProdList([x,y,z], Jz, diff(ba, z), diff(doExpand(h, ba), z)*doExpand(f, ba)),
+
+  /* -- X ----------------------------------------------------------- */
+  printf(fh, "  if (isXloEdge) {~%"),
+  tmp : -hxfpSurU,
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "    fOut[~a] = f[~a] + ~a;~%", i-1, i-1, dt*out[i]),
+  printf(fh, "  } else if (isXupEdge) {~%"),
+  tmp : hxfpSurL,
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "    fOut[~a] = f[~a] + ~a;~%", i-1, i-1, dt*out[i]),
+  printf(fh, "  } else {~%"),
+  tmp : -(hxfpSurU-hxfpSurL),
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "    fOut[~a] = f[~a] + ~a;~%", i-1, i-1, dt*out[i]),
+  printf(fh, "  }~%~%"),
+
+  /* -- Y ----------------------------------------------------------- */
+  printf(fh, "  if (isYloEdge) {~%"),
+  tmp : -hyfpSurU,
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*out[i]),
+  printf(fh, "  } else if (isYupEdge) {~%"),
+  tmp : hyfpSurL,
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*out[i]),
+  printf(fh, "  } else {~%"),
+  tmp : -(hyfpSurU-hyfpSurL),
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*out[i]),
+  printf(fh, "  }~%~%"),
+
+  /* -- Z ----------------------------------------------------------- */
+  printf(fh, "  if (isZloEdge) {~%"),
+  tmp : -hzfpSurU,
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*out[i]),
+  printf(fh, "  } else if (isZupEdge) {~%"),
+  tmp : hzfpSurL,
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*out[i]),
+  printf(fh, "  } else {~%"),
+  tmp : -(hzfpSurU-hzfpSurL),
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*out[i]),
+  printf(fh, "  }~%~%"),
+
+
+  /* Writting the volume term */
+  tmp : hxfpxVol + hyfpyVol + hzfpzVol,
+  out : subst(indexSubList, float(expand(tmp))),
+  for i : 1 thru length(ba) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*out[i]),
+  
+  /* Calculating the time step */
+  vx :  diff(calcRecov1CellGen(basisNm, x, [x,y,z], polyOrder, 0, dg(h1L), dg(h), dg(h1U)), x)*Jx/2,
+  vy :  diff(calcRecov1CellGen(basisNm, y, [x,y,z], polyOrder, 0, dg(h2L), dg(h), dg(h2U)), y)*Jy/2,
+  vz :  diff(calcRecov1CellGen(basisNm, z, [x,y,z], polyOrder, 0, dg(h3L), dg(h), dg(h3U)), z)*Jz/2,
+  cflFreq : (2*polyOrder+1)*(subst([x=0,y=0,z=0], vx+vy+vz)),
+  out : subst(indexSubList, float(expand(cflFreq))),
+  printf(fh, "~%"),
+  printf(fh, "  return ~a;~%", out),
+ 
+  printf(fh, "}"),
+  
+  close(fh)
+  )

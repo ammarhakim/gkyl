@@ -13,9 +13,6 @@ local ffi          = require "ffi"
 local xsys         = require "xsys"
 local EqBase       = require "Eq.EqBase"
 
--- For incrementing in updater.
-ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOut); ]]
-
 -- Vlasov Lenard-Bernstein equation on a rectangular mesh.
 local VmLBO = Proto(EqBase)
 
@@ -30,6 +27,10 @@ function VmLBO:init(tbl)
       tbl.vUpper, "Eq.VmLBO: Must specify maximum velocity of v grid in 'vUpper'.")
    local varNuIn       = tbl.varyingNu           -- Specify if collisionality varies spatially.
    local cellConstNuIn = tbl.useCellAverageNu    -- Specify whether to use cell-wise constant collisionality.
+
+   local isGridNonuniform = tbl.gridID == "mapped"
+
+   local fluxType = tbl.fluxType or "penalty"
    
    self._pdim = self._phaseBasis:ndim()
    self._cdim = self._confBasis:ndim()
@@ -69,14 +70,14 @@ function VmLBO:init(tbl)
    -- To obtain the cell average, multiply the zeroth coefficient by this factor.
    self._cellAvFac = 1.0/(math.sqrt(2.0^self._cdim))
 
-   -- functions to perform LBO updates.
+   -- Functions to perform LBO updates.
    if self._cellConstNu then
       self._volUpdate  = VmLBOModDecl.selectConstNuVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-      self._surfUpdate = VmLBOModDecl.selectConstNuSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._surfUpdate = VmLBOModDecl.selectConstNuSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), fluxType, isGridNonuniform)
       self._boundarySurfUpdate = VmLBOModDecl.selectConstNuBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    else
       self._volUpdate  = VmLBOModDecl.selectVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-      self._surfUpdate = VmLBOModDecl.selectSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._surfUpdate = VmLBOModDecl.selectSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), fluxType, isGridNonuniform)
       self._boundarySurfUpdate = VmLBOModDecl.selectBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    end
 

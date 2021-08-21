@@ -1,0 +1,97 @@
+/** Pressure sources in 10M equations */
+
+load(itensor)$
+
+/** Compute Jacobian matrix J[i,j] : diff(F[i],Q[j]) */
+calcJac(F, Q) := genmatrix(lambda([i,j], diff(F[i],Q[j])), length(F), length(Q))$
+
+/** Declare P and Q as symmetric tensors */
+decsym(P,2,0,[sym(all)],[]);
+decsym(Q,3,0,[sym(all)],[]);
+
+/**** Ten-moment equations in primitive form */
+dn(dir) := u[dir]*D(n) + n*D(u[dir])$ /* Density */
+du(dir, i) := u[dir]*D(u[i]) + 1/(m*n)*D(canform(P([dir,i],[])))$ /* Velocity */
+dP(dir, i,j) := canform(P([i,j],[])*D(u[dir]) + D(u[i])*P([j,dir],[]) + D(u[j])*P([i,dir],[]) + u[dir]*D(P([i,j],[])))$
+
+/* Equations in directon dir */
+eqList(dir) := map(canform,
+  [dn(dir),
+  du(dir,1), du(dir,2), du(dir,3),
+  dP(dir,1,1), dP(dir,1,2), dP(dir,1,3), dP(dir,2,2), dP(dir,2,3), dP(dir,3,3)]
+  )$
+
+/* Differentials */
+diffList : map(D, [n, 
+  u[1], u[2], u[3], 
+  P([1,1],[]), P([1,2],[]), P([1,3],[]), P([2,2],[]), P([2,3],[]), P([3,3],[])])$
+
+/* Construct the A[i] matrices for use in dispersion matrix */
+ATen[1] : coefmatrix(eqList(1), diffList)$
+ATen[2] : coefmatrix(eqList(2), diffList)$
+ATen[3] : coefmatrix(eqList(3), diffList)$
+
+/* Source for momentum equations  */
+momSrc(i) := qbym*(E[i] + sum(sum(levi_civita([k,m,i])*u[k]*B[m], k, 1, 3), m, 1, 3))$
+
+/** Source terms for pressure equations */
+prSrc(i,j) := qbym*sum(sum(B[m]*levi_civita([k,m,i])*P([j,k],[]), m, 1, 3), k, 1, 3)
+  + qbym*sum(sum(B[m]*levi_civita([k,m,j])*P([i,k],[]), m, 1, 3), k, 1, 3)$
+
+srcList : map(canform, [prSrc(1,1), prSrc(1,2), prSrc(1,3), prSrc(2,2), prSrc(2,3), prSrc(3,3)]
+  )$
+
+pSubList : [P([1,1],[])=P[1,1], P([1,2],[])=P[1,2], P([1,3],[])=P[1,3], P([2,2],[])=P[2,2], P([2,3],[])=P[2,3], P([3,3],[])=P[3,3] ]$
+p0SubList : [ n0=n, P0([1,1],[])=P[1,1], P0([1,2],[])=P[1,2], P0([1,3],[])=P[1,3], P0([2,2],[])=P[2,2], P0([2,3],[])=P[2,3], P0([3,3],[])=P[3,3] ]$
+
+/* List of 10M variables */
+varList : [P[1,1], P[1,2], P[1,3], P[2,2], P[2,3], P[3,3] ]$
+
+/* Compute source Jacobian */
+srcJac : calcJac(subst(pSubList, srcList), varList)$
+
+A : ident(6)-dt1*srcJac $
+
+invA : invert(A) $
+d : denom(fullratsimp(invA[1,1]))$
+invAd : fullratsimp( d*invA ) $
+pout : transpose( matrix(makelist(prOut[i],i,0,5)) )$
+pr : transpose( matrix(makelist(prRhs[i],i,0,5)) )$
+sol : expand(invAd.pr)$
+
+/* switch magnetic field notation prior to write out */
+let(B[1], Bx)$
+let(B[2], By)$
+let(B[3], Bz)$
+sol : map(letsimp, sol)$
+
+/* Simplify some terms for ease of write out of solution */
+/* NOTE: the order of these let statements is deliberate,
+         as Maxima assumes the order of the let is hierarchal
+         so need to simplify the ^4, then ^3, then ^2 terms */
+let(dt1^4, dt4)$
+let(dt1^3, dt3)$
+let(dt1^2, dtsq)$
+
+let(Bx^4, Bx4)$
+let(Bx^3, Bx3)$
+let(Bx^2, Bx2)$
+
+let(By^4, By4)$
+let(By^3, By3)$
+let(By^2, By2)$
+
+let(Bz^4, Bz4)$
+let(Bz^3, Bz3)$
+let(Bz^2, Bz2)$
+
+let(qbym^4, qb4)$
+let(qbym^3, qb3)$
+let(qbym^2, qb2)$
+
+fh : openw("~/max-out/rotate.c")$
+sol : map(letsimp, sol)$
+for i : 1 thru length(sol) do (
+  printf(fh, "  ~a = 2.0*(~a)/d - ~a;~%", pout[i,1], sol[i,1], pr[i,1])
+)$
+close(fh)$

@@ -72,7 +72,7 @@ plasmaApp = Plasma.App {
       charge = 1.0, mass = 1.0,
       -- Velocity space grid.
       lower      = {-8.0*vt},
-      upper      = {8.0*vt},
+      upper      = { 8.0*vt},
       cells      = {32},
       -- Initial conditions.
       init = function (t, xn)
@@ -80,8 +80,8 @@ plasmaApp = Plasma.App {
 
          return topHat(x, v, n0, u0, vt)
       end,
-      evolve = true,
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      evolve      = true,
+      diagnostics = { "M0", "M1", "M2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'square'},
          frequencies = {nu, },
@@ -100,8 +100,8 @@ plasmaApp = Plasma.App {
 	 local x, v = xn[1], xn[2]
          return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
       end,
-      evolve            = true,
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      evolve      = true,
+      diagnostics = { "M0", "M1", "M2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},
          frequencies = {nu, },
@@ -112,7 +112,7 @@ plasmaApp = Plasma.App {
    field = Plasma.Field {
       evolve      = false, -- Rvolve fields?
       externalPhi = function (t, xn) return 0.0 end,
-      kperp2      = 0.0
+      kperpSq     = 0.0
    },
    
    -- Magnetic geometry.

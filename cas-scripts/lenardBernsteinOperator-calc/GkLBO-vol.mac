@@ -9,28 +9,27 @@ load(stringproc)$
 /* Serendipity basis. */
 maxPolyOrder_Ser : 3$
 minCdim_Ser : 1$
-minVdim_Ser : 1$    /* see beginning of v loop below though. */
-maxCdim_Ser : 3$
-maxVdim_Ser : 2$
+maxCdim_Ser : 0$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 3$
 minCdim_Max : 1$
-minVdim_Max : 1$    /* see begining of v loop below though. */
-maxCdim_Max : 3$
-maxVdim_Max : 2$
+maxCdim_Max : 0$
+
+/* Tensor order basis. */
+maxPolyOrder_Tensor : 2$
+minCdim_Tensor : 1$
+maxCdim_Tensor : 1$
 
 gkVdims      : [[1,2], [2], [2]]$
 
 /* ...... END OF USER INPUTS........ */
 
 /* To generate other bases, just add corresponding column to arrays below. */
-bName        : ["Ser", "Max"]$
-maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
-minCdim      : [minCdim_Ser, minCdim_Max]$
-minVdim      : [minVdim_Ser, minVdim_Max]$
-maxCdim      : [maxCdim_Ser, maxCdim_Max]$
-maxVdim      : [maxVdim_Ser, maxVdim_Max]$
+bName        : ["ser", "max", "tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
 
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (

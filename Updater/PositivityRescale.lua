@@ -5,6 +5,8 @@
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
+-- System imports.
+local xsys = require "xsys"
 
 -- Gkyl libraries.
 local DataStruct  = require "DataStruct"
@@ -17,6 +19,7 @@ local ffiC        = ffi.C
 ffi.cdef[[
   double findMinNodalValue(double *fIn, int ndim); 
   double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx, double tCurr);
+  double nonconRescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx, double tCurr);
 ]]
 
 local PositivityRescale = Proto(UpdaterBase)
@@ -31,7 +34,8 @@ function PositivityRescale:init(tbl)
       tbl.basis,
       "Updater.PositivityRescale: Must provide basis object using 'basis'")
    assert(self.basis:polyOrder()==1, "Updater.PositivityRescale only implemented for p=1")
-
+   self.nonconservative = xsys.pickBool(tbl.nonconservative, false)
+   
    -- number of components to set
    self.numComponents = tbl.numComponents and tbl.numComponents or 1
    assert(self.numComponents == 1, "Updater.PositivityRescale only implemented for fields with numComponents = 1")
@@ -90,20 +94,20 @@ end
 
 -- advance method
 function PositivityRescale:advance(tCurr, inFld, outFld, computeDiagnostics, zeroOut)
-   local grid = self.grid
+   local grid      = self.grid
    local fIn, fOut = inFld[1], outFld[1]
 
-   local ndim = self.basis:ndim()
+   local ndim     = self.basis:ndim()
    local numBasis = self.basis:numBasis()
 
    if self._first then 
-      self.fInIndexer = fIn:genIndexer()
-      self.fInPtr = fIn:get(1)
-      self.fOutIndexer = fOut:genIndexer()
-      self.fOutPtr = fOut:get(1)
+      self.fInIndexer        = fIn:genIndexer()
+      self.fInPtr            = fIn:get(1)
+      self.fOutIndexer       = fOut:genIndexer()
+      self.fOutPtr           = fOut:get(1)
       self.del2ChangeIndexer = self.del2ChangeByCell:genIndexer()
-      self.del2ChangePtr = self.del2ChangeByCell:get(1)
-      self._first = false
+      self.del2ChangePtr     = self.del2ChangeByCell:get(1)
+      self._first            = false
    end
 
    if computeDiagnostics == nil then computeDiagnostics = true end
@@ -136,7 +140,13 @@ function PositivityRescale:advance(tCurr, inFld, outFld, computeDiagnostics, zer
       fIn:fill(self.fInIndexer(idx), self.fInPtr)
       fOut:fill(self.fOutIndexer(idx), self.fOutPtr)
 
-      local del2ChangeCell = ffiC.rescale(self.fInPtr:data(), self.fOutPtr:data(), ndim, numBasis, idx:data(), tCurr)
+      local del2ChangeCell = 0.0
+      if self.nonconservative then
+	 del2ChangeCell = ffiC.nonconRescale(self.fInPtr:data(), self.fOutPtr:data(), ndim, numBasis, idx:data(), tCurr)
+      else
+	 del2ChangeCell = ffiC.rescale(self.fInPtr:data(), self.fOutPtr:data(), ndim, numBasis, idx:data(), tCurr)
+      end
+     
       if computeDiagnostics then 
          self.del2ChangeByCell:fill(self.del2ChangeIndexer(idx), self.del2ChangePtr)
          self.del2ChangePtr:data()[self.rkIdx-1] = del2ChangeCell*grid:cellVolume()

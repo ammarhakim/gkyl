@@ -399,7 +399,7 @@ calcFEMProlongationOp(fh, funcNm, dim, basisFun, pMax) := block([fI,dI,pS],
             removePowersOf : endcons(eval_string(sconcat("lUF",dataStrs[i],"C",dataStrs[j])),removePowersOf)
           )
         ),
-        writeCExprs1noPowers(fldF, fldF_c, removePowersOf, dim),
+        writeCExprs1noPowers(fldF, fldF_c, removePowersOf, dim, true),
   
         printf(fh, "~%"),
         printf(fh, "}~%"),

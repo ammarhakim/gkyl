@@ -97,7 +97,7 @@ function CrossPrimMoments:init(tbl)
    -- To obtain the cell average, multiply the zeroth coefficient by this factor.
    self._cellAvFac = 1.0/math.sqrt(2.0^self._cDim)
 
-   self.onGhosts = xsys.pickBool(false, tbl.onGhosts)
+   self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
 end
 
 -- Advance method.
@@ -142,6 +142,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
    local vtSqCrossSelfItr  = vtSqCrossSelf:get(1)
    local uCrossOtherItr    = uCrossOther:get(1)
    local vtSqCrossOtherItr = vtSqCrossOther:get(1)
+
 
    -- For LBO need a few more inputs. Also, in order to avoid evaluation
    -- of if-statements in the spatial loop, we have separate loops for each
@@ -279,7 +280,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
             end
 
          end    -- end if polyOrder>1.
-      else    -- BGK operator below (needs less inputs).
+      else    -- BGK operator below (needs fewer inputs).
 
          for cIdx in confRangeDecomp:rowMajorIter(tId) do
             grid:setIndex(cIdx)

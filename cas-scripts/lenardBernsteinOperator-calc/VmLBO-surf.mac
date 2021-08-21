@@ -6,26 +6,29 @@ load(stringproc)$
 
 /* ...... USER INPUTS........ */
 
+/* Generate kernels for "uni"form, "nonuni"form or "both" grid types. */
+grid : "uni"$
+
 /* Serendipity basis. */
-maxPolyOrder_Ser : 3$
+maxPolyOrder_Ser : 2$
 minCdim_Ser : 1$
 minVdim_Ser : 1$
-maxCdim_Ser : 3$
-maxVdim_Ser : 3$
+maxCdim_Ser : 0$
+maxVdim_Ser : 0$
 
 /* Maximal order basis. */
-maxPolyOrder_Max : 3$
+maxPolyOrder_Max : 2$
 minCdim_Max : 1$
 minVdim_Max : 1$
-maxCdim_Max : 3$
-maxVdim_Max : 3$
+maxCdim_Max : 0$
+maxVdim_Max : 0$
 
 /* Tensor product basis. */
-maxPolyOrder_Tensor : 3$
+maxPolyOrder_Tensor : 2$
 minCdim_Tensor : 1$
-maxCdim_Tensor : 1$
-minVdim_Tensor : 0$    /* see begining of v loop below though. */
-maxVdim_Tensor : 0$
+minVdim_Tensor : 1$    /* see begining of v loop below though. */
+maxCdim_Tensor : 2$
+maxVdim_Tensor : 3$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -35,6 +38,11 @@ minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
 minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
 maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
 maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
+
+/* Is non-uniform booleans. */
+if     grid="uni"    then (gridType : [false])
+elseif grid="nonuni" then (gridType : [true])
+elseif grid="both"   then (gridType : [false,true])$
 
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
@@ -46,21 +54,43 @@ for bInd : 1 thru length(bName) do (
 
       for polyOrder : 1 thru maxPolyOrderB do (
       
-        disp(printf(false,sconcat("Creating surface VmLBOconstNu",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
-        fname : sconcat("~/max-out/VmLBOconstNuSurf", bName[bInd], c, "x", v, "vP", polyOrder , ".cpp"),
+        for gridInd : 1 thru length(gridType) do (
+          isNonuniform : gridType[gridInd],
+
+          if isNonuniform then (gridStr : "Nonuniform") else (gridStr : ""),
+
+          disp(printf(false,sconcat("Creating surface VmLBOconstNu~a",bName[bInd]," ~ax~avP~a"),gridStr,c,v,polyOrder)),
+          fname : sconcat("~/max-out/VmLBOconstNuSurf", gridStr, bName[bInd], c, "x", v, "vP", polyOrder , ".cpp"),
+          fh : openw(fname),
+          funcName : sconcat("VmLBOconstNuSurf", gridStr, c, "x", v, "v", bName[bInd]),
+          numFluxOp : 0,
+          calcVmLBOconstNuSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, numFluxOp, isNonuniform),
+          close(fh)
+        )
+
+        /* Generate kernels with upwind fluxes for the drag term: */
+/*
+        isNonuniform : false,
+        gridStr : "",
+        disp(printf(false,sconcat("Creating surface VmLBOconstNuUpwind~a",bName[bInd]," ~ax~avP~a"),gridStr,c,v,polyOrder)),
+        fname : sconcat("~/max-out/VmLBOconstNuUpwindSurf", gridStr, bName[bInd], c, "x", v, "vP", polyOrder , ".cpp"),
         fh : openw(fname),
-        funcName : sconcat("VmLBOconstNuSurf", c, "x", v, "v", bName[bInd]),
-        calcVmLBOconstNuSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
-        close(fh),
+        funcName : sconcat("VmLBOconstNuUpwindSurf", gridStr, c, "x", v, "v", bName[bInd]),
+        numFluxOp : 1,
+        calcVmLBOconstNuSurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder, numFluxOp, isNonuniform),
+        close(fh)
+*/
         
         /* boundarySurf kernels compute surface contribution that we
            do not want to zero-out at the boundary of velocity domain. */
+/*
         disp(printf(false,sconcat("Creating boundary surface VmLBOconstNu",bName[bInd]," ~ax~avP~a"),c,v,polyOrder)),
         fname : sconcat("~/max-out/VmLBOconstNuBoundarySurf",bName[bInd], c, "x", v, "vP", polyOrder , ".cpp"),
         fh : openw(fname),
         funcName : sconcat("VmLBOconstNuBoundarySurf", c, "x", v, "v", bName[bInd]),
         calcVmLBOconstNuBoundarySurfUpdater(fh, funcName, c, v, bName[bInd], polyOrder),
         close(fh)
+*/
         
 
 /*

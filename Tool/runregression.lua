@@ -310,8 +310,13 @@ local function runLuaTest(test)
    else
       local f = io.popen(runCmd, "r")
       for l in f:lines() do
-	 runlog = runlog .. l .. "\n"
-	 verboseLog(l.."\n")
+	 if string.find(l, "*** LOAD ERROR ***") then
+	    print("... input file error!")
+	    print(f:read())
+	 else
+	    runlog = runlog .. l .. "\n"
+	    verboseLog(l.."\n")
+	 end
       end
    end
    local runtm = Time.clock()-tmStart

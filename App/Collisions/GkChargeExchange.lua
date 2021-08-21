@@ -13,6 +13,8 @@
 local CollisionsBase = require "App.Collisions.CollisionsBase"
 local Constants      = require "Lib.Constants"
 local DataStruct     = require "DataStruct"
+local DiagsImplBase  = require "App.Diagnostics.DiagnosticsImplBase"
+local DiagsApp       = require "App.Diagnostics.SpeciesDiagnostics"
 local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
@@ -23,7 +25,44 @@ local xsys           = require "xsys"
 -- GkChargeExchange  --------------------------------------------------------
 --
 -- Charge Exchange Operator
---------------------------------------------------------------------------------
+-----------------------------------------------------------------------------
+
+-- ............... IMPLEMENTATION OF DIAGNOSTICS ................. --
+-- Diagnostics could be placed in a separate file if they balloon in
+-- number. But if we only have one or two we can just place it here.
+
+local gkCxDiagImpl = function()
+   local _reactRate = Proto(DiagsImplBase)
+   function _reactRate:fullInit(diagApp, mySpecies, fieldIn, owner)
+      self.field = mySpecies:allocMoment()
+      self.owner = owner
+      self.done  = false
+   end
+   function _reactRate:getType() return "grid" end
+   function _reactRate:advance(tm, inFlds, outFlds)
+      if self.owner.reactRate then
+	 self.field:copy(self.owner.reactRate)
+      end
+   end
+
+   local _source = Proto(DiagsImplBase)
+   function _source:fullInit(diagApp, mySpecies, fieldIn, owner)
+      self.field = mySpecies:allocDistf()
+      self.owner = owner
+      self.done  = false
+   end
+   function _source:getType() return "grid" end
+   function _source:advance(tm, inFlds, outFlds)
+      self.field:copy(self.owner.sourceCX)
+   end
+
+   return {
+      reactRate = _reactRate,
+      source    = _source,
+   }
+end
+
+-- .................... END OF DIAGNOSTICS ...................... --
 
 local GkChargeExchange = Proto(CollisionsBase)
 
@@ -70,36 +109,29 @@ function GkChargeExchange:fullInit(speciesTbl)
       self.b = 5.65e-20
    end
 
-   self._tmEvalMom = 0
+   self.timers = {nonSlvr = 0.}
+end
+
+function GkChargeExchange:createDiagnostics(mySpecies, field)
+   -- Create source diagnostics.
+   self.diagnostics = nil
+   if self.tbl.diagnostics then
+      self.diagnostics = DiagsApp{implementation = gkCxDiagImpl()}
+      self.diagnostics:fullInit(mySpecies, field, self)
+   end
+   return self.diagnostics
 end
 
 function GkChargeExchange:setName(nm)
-   self.name = nm
+   self.name = self.speciesName.."_"..nm
+   self.collNm = nm
 end
-
-function GkChargeExchange:setSpeciesName(nm)
-   self.speciesName = nm
-end
-
-function GkChargeExchange:setCfl(cfl)
-   self.cfl = cfl
-end
-
-function GkChargeExchange:setConfBasis(basis)
-   self.confBasis = basis
-end
-
-function GkChargeExchange:setConfGrid(grid)
-   self.confGrid = grid
-end
-
-function GkChargeExchange:setPhaseBasis(basis)
-   self.phaseBasis = basis
-end
-
-function GkChargeExchange:setPhaseGrid(grid)
-   self.phaseGrid = grid
-end
+function GkChargeExchange:setSpeciesName(nm) self.speciesName = nm end
+function GkChargeExchange:setCfl(cfl) self.cfl = cfl end
+function GkChargeExchange:setConfBasis(basis) self.confBasis = basis end
+function GkChargeExchange:setConfGrid(grid) self.confGrid = grid end
+function GkChargeExchange:setPhaseBasis(basis) self.phaseBasis = basis end
+function GkChargeExchange:setPhaseGrid(grid) self.phaseGrid = grid end
 
 function GkChargeExchange:createSolver(funcField)
    self.sourceCX =  DataStruct.Field {
@@ -156,6 +188,15 @@ function GkChargeExchange:createSolver(funcField)
 	    basisType = self.phaseBasis:id()
 	 },
       }
+      self.reactRate =  DataStruct.Field {
+	 onGrid        = self.confGrid,
+	 numComponents = self.confBasis:numBasis(),
+	 ghost         = {1, 1},
+	 metaData = {
+	    polyOrder = self.confBasis:polyOrder(),
+	    basisType = self.confBasis:id()
+	 },
+      }
    else --neutrals
       self.fMaxIon =  DataStruct.Field {
 	 onGrid        = self.phaseGrid,
@@ -170,70 +211,59 @@ function GkChargeExchange:createSolver(funcField)
 end
 
 function GkChargeExchange:advance(tCurr, fIn, species, fRhsOut)
+   local tmNonSlvrStart = Time.clock()
+   local reactRate = species[self.ionNm].collisions[self.collNm].reactRate
 
-   local writeOut = false
    -- Identify species and accumulate.
    if (self.speciesName == self.ionNm) then
 
-      tmEvalMomStart = Time.clock()
       local neutM0   = species[self.neutNm]:fluidMoments()[1]
       local neutU    = species[self.neutNm]:selfPrimitiveMoments()[1] 
       local neutVtSq = species[self.neutNm]:selfPrimitiveMoments()[2]
       local ionM0    = species[self.ionNm]:fluidMoments()[1]
       local ionDistF = species[self.ionNm]:getDistF()
-      
+
       species[self.speciesName].calcMaxwell:advance(tCurr,
          {neutM0, neutU, neutVtSq, species[self.speciesName].bmag}, {self.fMaxNeut})
-      species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, self.fMaxNeut}, {self.M0iDistFn})
-      species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
+
+      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {ionM0, self.fMaxNeut}, {self.M0iDistFn})
+      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {neutM0, ionDistF}, {self.M0nDistFi})
       self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
-      species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
+      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {reactRate, self.diffDistF}, {self.sourceCX})
 
-      if writeOut then
-	 species[self.speciesName].distIo:write(self.fMaxNeut, string.format("%s_fMaxNeut_%d.bp",self.speciesName,tCurr*1e10),0,0,true)
-	 species[self.speciesName].distIo:write(neutVtSq, string.format("%s_neutVtSq_%d.bp",self.speciesName,tCurr*1e10),0,0, true)
-	 species[self.speciesName].distIo:write(self.sourceCX, string.format("%s_srcCX_%d.bp",self.speciesName,tCurr*1e10),0,0,true)
-      end
-
-      self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       fRhsOut:accumulate(1.0,self.sourceCX)
 
    elseif (self.speciesName == self.neutNm) then
 
-      tmEvalMomStart = Time.clock()      
       local ionM0     = species[self.ionNm]:fluidMoments()[1]
       local ionU      = species[self.ionNm]:selfPrimitiveMoments()[1] 
       local ionVtSq   = species[self.ionNm]:selfPrimitiveMoments()[2]
       local neutM0    = species[self.neutNm]:fluidMoments()[1]
       local neutDistF = species[self.neutNm]:getDistF()
+
       
       species[self.speciesName].calcMaxwell:advance(tCurr, {ionM0, ionU, ionVtSq}, {self.fMaxIon})
-      species[self.speciesName].confPhaseMult:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
-      species[self.speciesName].confPhaseMult:advance(tCurr, {neutM0, self.fMaxIon}, {self.M0nDistFi})
+
+      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {ionM0, neutDistF}, {self.M0iDistFn})
+      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {neutM0, self.fMaxIon}, {self.M0nDistFi})
       self.diffDistF:combine(1.0, self.M0iDistFn, -1.0, self.M0nDistFi)
-      species[self.speciesName].confPhaseMult:advance(tCurr, {species[self.ionNm].vSigmaCX, self.diffDistF}, {self.sourceCX})
+      species[self.speciesName].confPhaseWeakMultiply:advance(tCurr, {reactRate, self.diffDistF}, {self.sourceCX})
       
-      if writeOut then
-	 species[self.speciesName].distIo:write(neutDistF, string.format("%s_neutDistF_%d.bp",self.speciesName,tCurr*1e10),0,0)
-	 species[self.speciesName].distIo:write(ionVtSq, string.format("%s_ionVtSq_%d.bp",self.speciesName,tCurr*1e10),0,0)
-      end
-      
-      self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
       fRhsOut:accumulate(-self.iMass/self.nMass,self.sourceCX)
 
    end
-   
+
+   self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 end
 
-function GkChargeExchange:write(tm, frame)
-end
+function GkChargeExchange:write(tm, frame) end
 
 function GkChargeExchange:slvrTime()
    return 0
 end
 
-function GkChargeExchange:momTime()
-   return self._tmEvalMom
+function GkChargeExchange:nonSlvrTime()
+   return self.timers.nonSlvr
 end
 
 function GkChargeExchange:projectMaxwellTime()

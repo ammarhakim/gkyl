@@ -383,6 +383,12 @@ local bcWallZeroNormal = BoundaryCondition.ZeroNormal { components = {2, 3, 4} }
 -- Add wall BC specific to Euler equations.
 Euler.bcWall = { bcWallCopy, bcWallZeroNormal }
 
+-- Axis BCs specifici to Euler equations
+local bcAxisCopy = BoundaryCondition.Copy { components = {1, 4, 5} }
+local bcAxisFlip = BoundaryCondition.Flip { components = {2, 3} }
+-- Add wall BC specific to Euler equations.
+Euler.bcAxis = { bcAxisCopy, bcAxisFlip }
+
 Euler.bcConst = function(rho, rhou, rhov, rhow, Er)
    local bc = BoundaryCondition.Const {
       components = {1,2,3,4,5},

@@ -1,6 +1,9 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 -- Test for cartesian grid objects
+--
+-- IMPORTANT: there's another file that should be used insted: test_CartGridPar.lua
+--
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------

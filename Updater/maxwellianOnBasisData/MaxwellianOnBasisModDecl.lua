@@ -29,7 +29,7 @@ function _M.selectQuad(basisNm, cDim, vDim, polyOrder, quadType, isGK)
    end
    local funcNm = {string.format("%sMaxwellianOnBasis%s%dx%dv%s_P%d_evAtConfOrd", GKstr, quadType, cDim, vDim, basisNmMap[basisNm], polyOrder),
                    string.format("%sMaxwellianOnBasis%s%dx%dv%s%s_P%d_evAtConfOrd", GKstr, quadType, cDim, vDim, basisNmMap[basisNm], strU, polyOrder)}
-   local funcSign = "(const double *den, const double *flowU, const double *vtSq, double *bmag, double *flowUOrd, double *vtSqOrd, double *fMFacOrd, double *bmagOrd)"
+   local funcSign = "(const double *den, const double *flowU, const double *vtSq, const double *bmag, double *flowUOrd, double *vtSqOrd, double *fMFacOrd, double *bmagOrd)"
 
    local CDefStr = ""
    for i=1,2 do CDefStr = CDefStr .. (funcType .. " " .. funcNm[i] .. funcSign .. ";\n") end
@@ -51,12 +51,7 @@ end
 
 function _M.selectInnerLoop(isGK)
    local funcType = "void"
-   local funcNm
-   if isGK then
-      funcNm = "GkMaxwellianInnerLoop"
-   else
-      funcNm = "MaxwellianInnerLoop"
-   end
+   local funcNm   = isGK and "GkMaxwellianInnerLoop" or "MaxwellianInnerLoop"
    local funcSign = "(double *n, double *u, double *vtSq, double *bmag, double m_, double *fItr, double *weights, double *dz, double *zc, double *ordinates, double *basisAtOrdinates, double *phaseToConfOrdMap, int numPhaseBasis, int numConfOrds, int numPhaseOrds, int numConfDims, int numPhaseDims)"
    ffi.cdef(funcType .. " " .. funcNm .. funcSign .. ";\n")
    return ffi.C[funcNm]

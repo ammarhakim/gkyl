@@ -43,8 +43,8 @@ vlasovApp = Plasma.App {
 	 return (1+alpha*math.cos(k*x))*fv
       end,
       evolve = true, -- evolve species?
-      numVelFlux = "recovery",
-      diagnosticMoments = { "M0", "M1i", "M2" },
+      vFlux  = "recovery",
+      diagnostics = { "M0", "M1i", "M2" },
       diff = Plasma.Diffusion {
          coefficient   = 1.0e-8,
          -- Optional inputs:

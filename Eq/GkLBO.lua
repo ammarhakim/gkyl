@@ -13,9 +13,6 @@ local ffi          = require "ffi"
 local xsys         = require "xsys"
 local EqBase       = require "Eq.EqBase"
 
--- For incrementing in updater.
-ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOut); ]]
-
 -- Gyrokinetic Lenard-Bernstein equation on a rectangular mesh.
 local GkLBO = Proto(EqBase)
 
@@ -35,6 +32,8 @@ function GkLBO:init(tbl)
 
    assert(tbl.mass, "Eq.GkLBO: Must pass mass using 'mass'.")
    self._inMass = tbl.mass
+
+   local isGridNonuniform = tbl.gridID == "mapped"
 
    local applyPositivity = xsys.pickBool(tbl.positivity,false)   -- Positivity preserving option.
 
@@ -68,11 +67,11 @@ function GkLBO:init(tbl)
    -- Functions to perform LBO updates.
    if self._cellConstNu then
       self._volUpdate  = GkLBOModDecl.selectConstNuVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-      self._surfUpdate = GkLBOModDecl.selectConstNuSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), applyPositivity)
+      self._surfUpdate = GkLBOModDecl.selectConstNuSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), isGridNonuniform, applyPositivity)
       self._boundarySurfUpdate = GkLBOModDecl.selectConstNuBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), applyPositivity)
    else
       self._volUpdate  = GkLBOModDecl.selectVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-      self._surfUpdate = GkLBOModDecl.selectSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), applyPositivity)
+      self._surfUpdate = GkLBOModDecl.selectSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), isGridNonuniform, applyPositivity)
       self._boundarySurfUpdate = GkLBOModDecl.selectBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), applyPositivity)
    end
 
@@ -131,6 +130,7 @@ function GkLBO:volTerm(w, dx, idx, q, out)
    self._BmagInv:fill(self._BmagInvIdxr(idx), self._BmagInvPtr)          -- Get pointer to BmagInv field.
    self._nuUSum:fill(self._nuUSumIdxr(idx), self._nuUSumPtr)             -- Get pointer to sum(nu*u) field.
    self._nuVtSqSum:fill(self._nuVtSqSumIdxr(idx), self._nuVtSqSumPtr)    -- Get pointer to sum(nu*vtSq) field.
+   self._M2:fill(self._M2Idxr(idx), self._M2Ptr)                         -- Get pointer to M2 field.
    if self._cellConstNu then
       if self._varNu then
          self._nuSum:fill(self._nuSumIdxr(idx), self._nuSumPtr)          -- Get pointer to sum(nu) field.
@@ -141,8 +141,9 @@ function GkLBO:volTerm(w, dx, idx, q, out)
       -- Cell average values of uPar and vtSq (mind normalization).
       local nuUParSum0 = self._nuUSumPtr[1]*self._cellAvFac
       local nuVtSqSum0 = self._nuVtSqSumPtr[1]*self._cellAvFac
+      local M20        = self._M2Ptr[1]*self._cellAvFac
       if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
-          (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum))) then
+          (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum)) and (M20>0)) then
          cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self._BmagInvPtr:data(), self._inNuSum, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), q:data(), out:data())
       else
          cflFreq = 0.0
@@ -162,6 +163,7 @@ function GkLBO:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql,
    self._BmagInv:fill(self._BmagInvIdxr(idxl), self._BmagInvPtr)          -- Get pointer to BmagInv field.
    self._nuUSum:fill(self._nuUSumIdxr(idxl), self._nuUSumPtr)             -- Get pointer to sum(u) field.
    self._nuVtSqSum:fill(self._nuVtSqSumIdxr(idxl), self._nuVtSqSumPtr)    -- Get pointer to sum(nu*vtSq) field.
+   self._M2:fill(self._M2Idxr(idxl), self._M2Ptr)                         -- Get pointer to M2 field.
    if dir > self._cdim then
       if self._cellConstNu then
          if self._varNu then
@@ -173,8 +175,9 @@ function GkLBO:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql,
          -- Cell average values of uPar and vtSq (mind normalization).
          local nuUParSum0 = self._nuUSumPtr[1]*self._cellAvFac
          local nuVtSqSum0 = self._nuVtSqSumPtr[1]*self._cellAvFac
+         local M20        = self._M2Ptr[1]*self._cellAvFac
          if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
-             (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum))) then
+             (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum)) and (M20>0)) then
             vMuMidMax = self._surfUpdate[dir-self._cdim](
                self._inMass, cfll, cflr, wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._inNuSum, maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
          end
@@ -194,6 +197,7 @@ function GkLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr,
    self._BmagInv:fill(self._BmagInvIdxr(idxl), self._BmagInvPtr)          -- Get pointer to BmagInv field.
    self._nuUSum:fill(self._nuUSumIdxr(idxl), self._nuUSumPtr)             -- Get pointer to sum(nu*u) field.
    self._nuVtSqSum:fill(self._nuVtSqSumIdxr(idxl), self._nuVtSqSumPtr)    -- Get pointer to sum(nu*vtSq) field.
+   self._M2:fill(self._M2Idxr(idxl), self._M2Ptr)                         -- Get pointer to M2 field.
    if dir > self._cdim then
       if self._cellConstNu then
          if self._varNu then
@@ -205,8 +209,9 @@ function GkLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr,
          -- Cell average values of uPar and vtSq (mind normalization).
          local nuUParSum0 = self._nuUSumPtr[1]*self._cellAvFac
          local nuVtSqSum0 = self._nuVtSqSumPtr[1]*self._cellAvFac
+         local M20        = self._M2Ptr[1]*self._cellAvFac
          if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
-             (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum))) then
+             (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum)) and (M20>0)) then
             vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
                self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._inNuSum, maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
          end
@@ -225,6 +230,7 @@ function GkLBO:setAuxFields(auxFields)
    self._nuUSum    = auxFields[2]
    self._nuVtSqSum = auxFields[3]
    self._nuSum     = auxFields[4]
+   self._M2        = auxFields[5]
 
    if self._isFirst then
       -- Allocate pointers to field object.
@@ -236,6 +242,9 @@ function GkLBO:setAuxFields(auxFields)
 
       self._nuVtSqSumPtr  = self._nuVtSqSum:get(1)
       self._nuVtSqSumIdxr = self._nuVtSqSum:genIndexer()
+
+      self._M2Ptr         = self._M2:get(1)
+      self._M2Idxr        = self._M2:genIndexer()
 
       if self._varNu then
          self._nuSumPtr  = self._nuSum:get(1)

@@ -10,16 +10,14 @@ local Proto = require "Lib.Proto"
 
 -- Empty shell field base classes.
 local FieldBase = Proto()
-function FieldBase:init(tbl)
-   self.isElliptic = false
-end
+function FieldBase:init(tbl) self.isElliptic = false end
 function FieldBase:readRestart() end
+function FieldBase:printDevDiagnostics() end
 
 local ExternalFieldBase = Proto()
-function ExternalFieldBase:init(tbl)
-   self.isElliptic = false
-end
+function ExternalFieldBase:init(tbl) self.isElliptic = false end
 function ExternalFieldBase:readRestart() end
+function ExternalFieldBase:printDevDiagnostics() end
 
 -- NoField ---------------------------------------------------------------------
 --
@@ -29,11 +27,9 @@ function ExternalFieldBase:readRestart() end
 local NoField = Proto(FieldBase)
 
 -- Methods for no field object.
-function NoField:init(tbl)
-   NoField.super.init(tbl)
-end
+function NoField:init(tbl) NoField.super.init(tbl) end
 function NoField:fullInit(tbl) end
-function NoField:hasEB() return false, false end
+function NoField:hasEB() return nil, nil end
 function NoField:setCfl() end
 function NoField:setIoMethod(ioMethod) end
 function NoField:setBasis(basis) end
@@ -48,8 +44,7 @@ function NoField:readRestart() return 0.0 end
 function NoField:rkStepperFields() return {} end
 function NoField:suggestDt() end
 function NoField:clearCFL() end
-function NoField:advance(tCurr, momIn, emIn, emOut)
-end
+function NoField:advance(tCurr, momIn, emIn, emOut) end
 function NoField:updateInDirection(dir, tCurr, dt, fIn, fOut)
    return true, GKYL_MAX_DOUBLE
 end
@@ -60,6 +55,7 @@ function NoField:totalBcTime() return 0.0 end
 function NoField:energyCalcTime() return 0.0 end
 function NoField:copyRk() end
 function NoField:combineRk() end
+function NoField:printDevDiagnostics() end
 
 return {
    FieldBase         = FieldBase,

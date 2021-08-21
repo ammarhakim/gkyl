@@ -1,0 +1,251 @@
+/*
+  Create kernels for the surface contributions due to the heat flux
+  terms in the gyrofluid energy and perpendicular pressure equations.
+
+*/
+load("modal-basis")$
+load("out-scripts")$
+load(stringproc)$
+load("recovery")$
+fpprec : 24$
+
+/* Specify the FV stencil order.
+     = 2 for second order.
+     = 4 for fourth order. */
+fvOrder : 2$
+   
+doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+
+basisFromVars(basisType, varsIn, pIn) := block(
+  [basis,vars],
+  dimIn : length(varsIn),
+  if dimIn=0 then return([1]),
+
+  /* Load a p>0 basis just to get the variables. */
+  basis : getBasis(basisType, dimIn, 1),
+  vars  : listofvars(basis),
+
+  /* Load the desired basis. */
+  basis : getBasis(basisType, dimIn, pIn),
+
+  replaceList : makelist(vars[i]=varsIn[i],i,1,dimIn),
+  basis : psubst(replaceList,basis),
+
+  return(basis)
+)$
+
+writeCCompIncrExprsNoExpand1(lhs, comp, rhs) := block([expr],
+  expr : float(rhs),
+  numE : length(expr),
+  for i : 1 thru numE do (
+    if expr[i] # 0.0 then printf(fh, "  ~a += ~a; ~%", lhs[(comp-1)*numE+i-1], expr[i])
+  )
+)$
+
+calcUpdateInDir(surfDir, fh, funcNm, dim, polyOrder, basisFun) := block(
+  [
+   i,d,m,mI,basis,vars,numB,surfVar,varLabel,dirLabel,rdSurfVar2L,rdSurfVar2R,rdSurfVarSq4L,rdSurfVarSq4R,
+   numMom,newMom_e,primMomsL1_e,primMomsL1_c,primMomsR1_e,primMomsR1_c,
+   TparL1_e,TperpL1_e,TparR1_e,TperpR1_e,
+   TparL1_c,TperpL1_c,TparR1_c,TperpR1_c,
+   surfIntVars,surfBasis,numSurf,
+   incrR_c,incrL_c,varName,momHat_c,momHat_e,hOrder,numBzeros,qPhiDmL_e,qPhiDmR_e,
+   hL_c,hR_c,h_e,hsol,quants,tempVars,qPhiDmL_c,qPhiDmR_c,
+   hParL,hParR,jacL_e,jacDbmagL_e,qFacs_e,incrNonFluxR_c,incrNonFluxL_c,GheatF_c,GheatFNoZero_c,GheatF_e,
+   varNameNonFlux,incr_s,incrNonFlux_s,signs,signsNonFlux
+   ],
+
+  /* Load a p>0 basis just to get the variables. */
+  kill(varsC, varsP, basisC, basisP),
+  basis : getBasis(basisFun, dim, 1),
+  vars  : listofvars(basis),
+
+  /* Load the desired basis. */
+  kill(varsC, varsP, basisC, basisP),
+  basis      : getBasis(basisFun, dim, polyOrder),
+  numB       : length(basis),
+  surfVar    : vars[surfDir],             /* Surface variable. */
+  basisPrime : diff(basis,surfVar), 
+
+  varLabel : makelist(string(vars[d]),d,1,dim),
+  dirLabel : varLabel[surfDir],
+
+  printf(fh, "~%"),
+  if polyOrder>0 or fvOrder=2 then (
+    printf(fh, "void ~a_~a(const double q_, const double m_, const double kappaPar, const double kappaPerp, const double kperpSq, const double *wL1, const double *wR1, const double *dxL1, const double *dxR1, const double cMaxIn, const double *rBmagL1, const double *rBmagR1, const double *rBmagSqL1, const double *rBmagSqR1, const double *sMomL1, const double *sMomR1, const double *phiL1, const double *phiR1, double *primMomL1, const double *primMomR1, double *outL, double *outR) ~%{ ~%", funcNm, dirLabel)
+  ) else (
+    /* When using p=0 and fvOrder=4 use 4-cell recovery for the surface updates. */
+    printf(fh, "void ~a_~a(const double q_, const double m_, const double kappaPar, const double kappaPerp, const double kperpSq, const double *wL2, const double *wL1, const double *wR2, const double *wR1, const double *dxL2, const double *dxL1, const double *dxR1, const double *dxR2, const double cMaxIn, const double *rBmagL2, const double *rBmagL1, const double *rBmagR1, const double *rBmagR2, const double *rBmagSqL2, const double *rBmagSqL1, const double *rBmagSqR1, const double *rBmagSqR2, const double *sMomL2, const double *sMomL1, const double *sMomR1, const double *sMomR2, const double *phiL2, const double *phiL1, const double *phiR1, const double *phiR2, double *primMomL2, double *primMomL1, const double *primMomR1, const double *primMomR2, double *outL, double *outR) ~%{ ~%", funcNm, dirLabel)
+  ),
+  printf(fh, "  // q_,m_:              species charge and mass.~%"),
+  printf(fh, "  // kappaPar,kappaPerp: heat conductivity coefficients.~%"),
+  printf(fh, "  // kperpSq:            k_perp^2.~%"),
+  printf(fh, "  // wL,wR:              cell-center in left and right cells.~%"),
+  printf(fh, "  // dxL,dxR:            cell length in left and right cells.~%"),
+  printf(fh, "  // cMaxIn:             maximum sound speed (or some factor like it).~%"),
+  printf(fh, "  // rBmag:              reciprocal of magnetic field magnitude (1/B).~%"),
+  printf(fh, "  // rBmagSq:            rBmag^2.~%"),
+  printf(fh, "  // sMomL,sMomR:        stepped moments (times Jacobian) in left and right cells.~%"),
+  printf(fh, "  // phiL,phiR:          electrostatic potential in left and right cells.~%"),
+  printf(fh, "  // primMomL,primMomR:  primitive moments (upar, Tpar, Tperp) in left and right cells.~%"),
+  printf(fh, "  // outL/outR:          output increment in left and right cells.~%"),
+  printf(fh, "~%"),
+
+  /* Declare cell-center variables and variables multiplying gradients. */
+  for d : 1 thru dim do (
+    printf(fh, "  double rd~a2L = 2.0/dxL1[~a];~%", varLabel[d], d-1),
+    printf(fh, "  double rd~aSq4L = rd~a2L*rd~a2L;~%", varLabel[d], varLabel[d], varLabel[d]),
+    printf(fh, "  double rd~a2R = 2.0/dxR1[~a];~%", varLabel[d], d-1),
+    printf(fh, "  double rd~aSq4R = rd~a2R*rd~a2R;~%", varLabel[d], varLabel[d], varLabel[d])
+  ),
+  printf(fh, "~%"),
+
+  rdSurfVar2L : eval_string(sconcat("rd",dirLabel,"2L")),
+  rdSurfVar2R : eval_string(sconcat("rd",dirLabel,"2R")),
+  rdSurfVarSq4L : eval_string(sconcat("rd",dirLabel,"Sq4L")),
+  rdSurfVarSq4R : eval_string(sconcat("rd",dirLabel,"Sq4R")),
+
+  numMom : 3+1,
+  /* Primitive moments, upar, Tpar, Tperp */
+  primMomsL1_e : [],  primMomsL1_c : [],
+  primMomsR1_e : [],  primMomsR1_c : [],
+  for m : 1 thru 3 do ( 
+    newMom_e     : doExpand(makelist(primMomL1[i-1+(m-1)*numB],i,1,numB),basis),
+    primMomsL1_e : endcons(newMom_e, primMomsL1_e),
+    primMomsL1_c : endcons(calcInnerProdList(vars,1,basis,newMom_e),primMomsL1_c),
+
+    newMom_e     : doExpand(makelist(primMomR1[i-1+(m-1)*numB],i,1,numB),basis),
+    primMomsR1_e : endcons(newMom_e, primMomsR1_e),
+    primMomsR1_c : endcons(calcInnerProdList(vars,1,basis,newMom_e),primMomsR1_c)
+  ),
+  
+  /* Primitive moment aliases. */ 
+  TparL1_e : primMomsL1_e[2],  TperpL1_e : primMomsL1_e[3],
+  TparR1_e : primMomsR1_e[2],  TperpR1_e : primMomsR1_e[3],
+  TparL1_c : primMomsL1_c[2],  TperpL1_c : primMomsL1_c[3],
+  TparR1_c : primMomsR1_c[2],  TperpR1_c : primMomsR1_c[3],
+
+  surfIntVars : delete(surfVar,vars),  /* Surface integral variables. */
+  surfBasis   : basisFromVars(basisFun,surfIntVars,polyOrder),  /* Surface basis. */
+  numSurf     : length(surfBasis),
+
+  numBzeros : makelist(0,i,1,numB),
+  incrR_c : [],  incrL_c : [],
+  for mI : 1 thru numMom do (
+    incrR_c : endcons(numBzeros, incrR_c),
+    incrL_c : endcons(numBzeros, incrL_c)
+  ),
+
+  qPhiDmL_e : (q_/m_)*doExpand1(phiL1,basis),
+  qPhiDmR_e : (q_/m_)*doExpand1(phiR1,basis),
+  qPhiDmL_c : calcInnerProdList(vars,1,basis,qPhiDmL_e),
+  qPhiDmR_c : calcInnerProdList(vars,1,basis,qPhiDmR_e),
+
+  hOrder : 2*polyOrder+1,
+  /* Perform the recovery for the heat fluxes for the energy and perpendicular
+     pressure equations. They contribute to the advective increment, but also
+     have a non-flux-like increment which must be added separately. */
+  hParL : TparL1_c,  hPerpL : TperpL1_c+m_*(1/2)*(-kperpSq)*qPhiDmL_c,
+  hParR : TparR1_c,  hPerpR : TperpR1_c+m_*(1/2)*(-kperpSq)*qPhiDmR_c,
+
+  rBmagL1_e   : doExpand1(rBmagL1, basis),
+  rBmagSqL1_e : doExpand1(rBmagSqL1, basis),
+
+  hL_c : [numBzeros, numBzeros, (kappaPar/2)*hParL+kappaPerp*hPerpL, kappaPerp*hPerpL], 
+  hR_c : [numBzeros, numBzeros, (kappaPar/2)*hParR+kappaPerp*hPerpR, kappaPerp*hPerpR], 
+
+  qFacs_e : [0, 0, rBmagL1_e, rBmagSqL1_e],
+
+  incrNonFluxR_c : [numBzeros,numBzeros,numBzeros,numBzeros],
+  incrNonFluxL_c : [numBzeros,numBzeros,numBzeros,numBzeros],
+
+  for mI : 3 thru 4 do (
+    h_e  : calcRecov2CellGen(basisFun,surfVar,vars,polyOrder,dg(hL_c[mI]), dg(hR_c[mI])),
+    /* List of the first hOrder derivatives of h_e evaluated at the interface: */
+    hsol : cons(subst(surfVar=0,h_e),makelist(subst(surfVar=0,diff(h_e,surfVar,ord)/(ord!)),ord,1,hOrder)),
+
+    GheatF_c       : fullratsimp(rdSurfVar2L*calcInnerProdList(vars,subst(surfVar=1,qFacs_e[mI]),basis,hsol[2])),
+    varName        : eval_string(sconcat("GheatF",mI)), 
+    GheatFNoZero_c : doMakeExprLst(GheatF_c, varName),
+    GheatF_e       : doExpand(GheatFNoZero_c, basis),
+
+    printf(fh, "  double ~a[~a];~%", varName, numB),
+    quants : [dxl,dxr],
+    tempVars : [],
+    tempVars : writeCExprs1noPowers(varName, GheatF_c, quants, tempVars),
+    printf(fh, "~%"),
+
+    /* Calculate contribution to momHat projected on the basis. */
+    momHat_c : fullratsimp(calcInnerProdList(vars,1,basis,GheatF_e)),
+    momHat_e : doExpand(doMakeExprLst(momHat_c, varName), basis),
+    momHat_e : subst(surfVar=1, momHat_e),
+
+    incrL_c[mI] : incrL_c[mI]+calcInnerProdList(surfIntVars,  1, subst(surfVar= 1, basis), momHat_e),
+    incrR_c[mI] : incrR_c[mI]+calcInnerProdList(surfIntVars, -1, subst(surfVar=-1, basis), momHat_e),
+
+    /* Compute the non-advective contribution from this term. */
+    incrNonFluxL_c[mI] : fullratsimp(-calcInnerProdList(surfIntVars,  subst(surfVar=1,qFacs_e[mI]), subst(surfVar= 1, basisPrime), hsol[1])),
+    incrNonFluxR_c[mI] : fullratsimp(-calcInnerProdList(surfIntVars, -subst(surfVar=1,qFacs_e[mI]), subst(surfVar=-1, basisPrime), hsol[1]))
+  ),
+
+  /* Write out the increments (mod some dimensional factors). */
+  for mI : 3 thru 4 do (
+    varName : eval_string(sconcat("incr",mI)),
+    printf(fh, "  double ~a[~a];~%", varName, numB),
+    writeCExprsNoExpand1(varName, incrR_c[mI]),
+    printf(fh, "~%"),
+
+    varNameNonFlux : eval_string(sconcat("incrNonFlux",mI)),
+    printf(fh, "  double ~a[~a];~%", varNameNonFlux, numB),
+    writeCExprsNoExpand1(varNameNonFlux, incrNonFluxR_c[mI]),
+    printf(fh, "~%")
+  ),
+
+  /* Write out the contributions to each moment equation. */
+  for mI : 3 thru 4 do (
+    varName        : eval_string(sconcat("incr",mI)),
+    varNameNonFlux : eval_string(sconcat("incrNonFlux",mI)),
+    incr_s         : makelist(varName[i-1], i, 1, numB),
+    incrNonFlux_s  : makelist(varNameNonFlux[i-1], i, 1, numB),
+    /* Don't do coefficients where the increment is zero */
+    for i : 1 thru numB do (
+      if (incrR_c[mI][i] = 0)        then incr_s[i]        : 0,
+      if (incrNonFluxR_c[mI][i] = 0) then incrNonFlux_s[i] : 0
+    ),
+    writeCCompIncrExprsNoExpand1(outR, mI, rdSurfVar2R*incr_s+rdSurfVarSq4R*incrNonFlux_s),
+    printf(fh, "~%"),
+    flush_output(fh),
+
+    /* Contribution to left cell (surfVar=1) is same except for signs. */
+    signs : makelist(1,i,1,numB),  signsNonFlux : makelist(1,i,1,numB),
+    for i : 1 thru numB do (
+      if incrR_c[mI][i]=0        then false else signs[i]        : fullratsimp(incrL_c[mI][i]/incrR_c[mI][i]),
+      if incrNonFluxR_c[mI][i]=0 then false else signsNonFlux[i] : fullratsimp(incrNonFluxL_c[mI][i]/incrNonFluxR_c[mI][i])
+    ),
+    incr_s        : makelist(signs[i]*varName[i-1], i, 1, numB),
+    incrNonFlux_s : makelist(signsNonFlux[i]*varNameNonFlux[i-1], i, 1, numB),
+    /* Don't do coefficients where the increment is zero */
+    for i : 1 thru numB do (
+      if (incrR_c[mI][i] = 0)        then incr_s[i]        : 0,
+      if (incrNonFluxR_c[mI][i] = 0) then incrNonFlux_s[i] : 0
+    ),
+    writeCCompIncrExprsNoExpand1(outL, mI, rdSurfVar2L*incr_s+rdSurfVarSq4L*incrNonFlux_s),
+    printf(fh, "~%"),
+    flush_output(fh)
+  ),
+
+  printf(fh, "}~%")
+
+)$
+
+calcGFsurfKernels(fh, funcNm, dim, polyOrder, basisFun) := block([dir],
+  for dir : 1 thru dim do (
+    calcUpdateInDir(dir, fh, funcNm, dim, polyOrder, basisFun)
+  )
+)$
+
+calcGFboundarySurfKernels(fh, funcNm, dim, polyOrder, basisFun) := block([dir],
+  for dir : 1 thru dim do (
+    calcBoundaryUpdateInDir(dir, fh, funcNm, dim, polyOrder, basisFun)
+  )
+)$

@@ -34,11 +34,14 @@ function _M.selectConstNuVol(basisNm, CDIM, VDIM, polyOrder)
 end
 
 -- Select functions to compute surface terms (output is a table of functions).
-function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder)
+function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, fluxType, isNonuniform)
+   local fluxStr = fluxType=="penalty" and "" or "Upwind"
+   local gridStr = isNonuniform and "Nonuniform" or ""
+
    local funcType = "double"
    local funcNm   = {}
    for d = 1, VDIM do
-      funcNm[d] = string.format("VmLBOSurf%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], vvars[d], polyOrder)
+      funcNm[d] = string.format("VmLBO%sSurf%s%dx%dv%s_%s_P%d", fluxStr, gridStr, CDIM, VDIM, basisNmMap[basisNm], vvars[d], polyOrder)
    end
    local funcSign = "(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr)"
 
@@ -53,11 +56,14 @@ function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder)
    end
    return kernels
 end
-function _M.selectConstNuSurf(basisNm, CDIM, VDIM, polyOrder)
+function _M.selectConstNuSurf(basisNm, CDIM, VDIM, polyOrder, fluxType, isNonuniform)
+   local fluxStr = fluxType=="penalty" and "" or "Upwind"
+   local gridStr = isNonuniform and "Nonuniform" or ""
+
    local funcType = "double"
    local funcNm = {}
    for d = 1, VDIM do
-      funcNm[d] = string.format("VmLBOconstNuSurf%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], vvars[d], polyOrder)
+      funcNm[d] = string.format("VmLBOconstNu%sSurf%s%dx%dv%s_%s_P%d", fluxStr, gridStr, CDIM, VDIM, basisNmMap[basisNm], vvars[d], polyOrder)
    end
    local funcSign = "(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr)"
 

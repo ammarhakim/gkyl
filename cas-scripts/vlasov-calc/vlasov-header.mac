@@ -1,136 +1,110 @@
+/* Generate the header file for the Vlasov equation kernels. */
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 3$
+minCdim_Ser : 1$
+minVdim_Ser : 1$    /* see begining of v loop below though. */
+maxCdim_Ser : 3$
+maxVdim_Ser : 3$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 3$
+minCdim_Max : 1$
+minVdim_Max : 1$    /* see begining of v loop below though. */
+maxCdim_Max : 0$
+maxVdim_Max : 0$
+
+/* Tensor product basis. */
+maxPolyOrder_Tensor : 3$
+minCdim_Tensor : 1$
+minVdim_Tensor : 1$    /* see begining of v loop below though. */
+maxCdim_Tensor : 2$
+maxVdim_Tensor : 3$
+
+/* ...... END OF USER INPUTS........ */
+
 cvars : [X, Y, Z]$
 
+bName        : ["Ser","Max","Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
+minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
+
+printPrototype(deco, ci, vi, bStr, pi) := block([si],
+
+  printf(fh, "~adouble VlasovVolStream~ax~av~aP~a(const double *w, const double *dxv, const double *f, double *out); ~%", deco, ci, vi, bStr, pi),
+  for si : 1 thru ci do (
+    printf(fh, "~avoid VlasovSurfStream~ax~av~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr); ~%", deco, ci, vi, bStr, cvars[si], pi)
+  ),
+
+  printf(fh, "~adouble VlasovVol~ax~av~aP~a(const double *w, const double *dxv, const double *EM, const double *f, double *out); ~%", deco, ci, vi, bStr, pi),
+  for si : 1 thru vi do (
+    printf(fh, "~adouble VlasovSurfElcMag~ax~av~a_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr); ~%", deco, ci, vi, bStr, cvars[si], pi),
+    printf(fh, "~adouble VlasovRecoverySurfElcMag~ax~av~a_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr); ~%", deco, ci, vi, bStr, cvars[si], pi),
+    printf(fh, "~adouble VlasovUpwindSurfElcMag~ax~av~a_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr); ~%", deco, ci, vi, bStr, cvars[si], pi)
+  ),
+
+  printf(fh, "~adouble VlasovPhiVol~ax~av~aP~a(const double *w, const double *dxv, const double qDm, const double *phi, const double *EM, const double *f, double *out); ~%", deco, ci, vi, bStr, pi),
+  printf(fh, "~adouble VlasovPhiBextVol~ax~av~aP~a(const double *w, const double *dxv, const double qDm, const double *phi, const double *EM, const double *f, double *out); ~%", deco, ci, vi, bStr, pi),
+  for si : 1 thru vi do (
+    printf(fh, "~adouble VlasovPhiSurf~ax~av~a_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double qDm, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr); ~%", deco, ci, vi, bStr, cvars[si], pi),
+    printf(fh, "~adouble VlasovPhiBextSurf~ax~av~a_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double qDm, const double *phi, const double *EM, const double *fl, const double *fr, double *outl, double *outr); ~%", deco, ci, vi, bStr, cvars[si], pi)
+  ),
+
+  printf(fh, "~adouble VlasovVolForce~ax~av~aP~a(const double *w, const double *dxv, const double *E, const double *f, double *out); ~%", deco, ci, vi, bStr, pi),
+
+  printf(fh, "~%")
+)$
+
+/* ............ Write out the C header file ............ */
 fh : openw("~/max-out/VlasovModDecl.h")$
 
-printf(fh, "#ifndef VLASOV_MOD_DELC_H ~%")$
-printf(fh, "#define VLASOV_MOD_DELC_H ~%")$
+printf(fh, "// Gkyl ------------------------------------------------------------------------~%")$
+printf(fh, "//~%")$
+printf(fh, "// C header file for the Vlasov equation kernels.~%")$
+printf(fh, "//~%")$
+printf(fh, "//    _______     ___~%")$
+printf(fh, "// + 6 @ |||| # P ||| +~%")$
+printf(fh, "//------------------------------------------------------------------------------~%")$
+printf(fh, "~%")$
+printf(fh, "#ifndef VLASOV_MOD_DECL_H ~%")$
+printf(fh, "#define VLASOV_MOD_DECL_H ~%")$
+printf(fh, "~%")$
 printf(fh, "#include <GkylCudaConfig.h> ~%")$
 printf(fh, "#include <cmath> ~%")$
+printf(fh, "~%")$
+printf(fh, "template <typename T> int sgn(T val) { ~%")$
+printf(fh, "  return (T(0) < val) - (val < T(0)); ~%}~%")$
+printf(fh, "~%")$
 printf(fh, "extern \"C\" { ~%")$
+printf(fh, "~%")$
 
-for ci : 1 thru 3 do (
-  for vi : ci thru 3 do (
-    for pi : 1 thru 3 do (
-      printf(fh, "__host__ __device__ double VlasovVolStream~ax~avMaxP~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
-      for si : 1 thru ci do (
-        printf(fh, "__host__ __device__ void VlasovSurfStream~ax~avMax_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, cvars[si], pi)
-      ),
-      printf(fh, "~%")      
-    ),
-    printf(fh, "~%")
+decorator : "__host__ __device__ "$
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : max(c,minVdim[bInd]) thru maxVdim[bInd] do (
+
+      maxPolyOrderB : maxPolyOrder[bInd],
+      if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
+      if (c+v=6 and maxPolyOrderB > 1) then maxPolyOrderB : 1,
+
+      for polyOrder : 1 thru maxPolyOrderB do (
+        printPrototype(decorator, c, v, bName[bInd], polyOrder)
+      )
+    )
   )
-)$
+);
 
 printf(fh, "~% ~%")$
-
-for ci : 1 thru 3 do (
-  for vi : ci thru 3 do (
-    for pi : 1 thru 3 do (
-      printf(fh, "__host__ __device__ double VlasovVolStream~ax~avSerP~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
-      for si : 1 thru ci do (
-        printf(fh, "__host__ __device__ void VlasovSurfStream~ax~avSer_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, cvars[si], pi)
-      ),
-      printf(fh, "~%")
-    ),
-    printf(fh, "~%")
-  )
-)$
-
-printf(fh, "~% ~%")$
-
-for ci : 1 thru 2 do (
-  for vi : ci thru 3 do (
-    for pi : 2 thru 3 do (
-      printf(fh, "__host__ __device__ double VlasovVolStream~ax~avTensorP~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
-      for si : 1 thru ci do (
-        printf(fh, "__host__ __device__ void VlasovSurfStream~ax~avTensor_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, cvars[si], pi)
-      ),
-      printf(fh, "~%")
-    ),
-    printf(fh, "~%")
-  )
-)$
-
-printf(fh, "~% ~%")$
-
-for ci : 1 thru 3 do (
-  for vi : ci thru 3 do (
-    for pi : 1 thru 3 do (
-      printf(fh, "__host__ __device__ double VlasovVol~ax~avMaxP~a(const double *w, const double *dxv, const double *E, const double *f, double *out); ~%", ci, vi, pi),
-      for si : 1 thru vi do (
-        printf(fh, "__host__ __device__ double VlasovSurfElcMag~ax~avMax_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *E, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, cvars[si], pi)
-      ),
-      printf(fh, "~%")      
-    ),
-    printf(fh, "~%")
-  )
-)$
-
-printf(fh, "~% ~%")$
-
-for ci : 1 thru 3 do (
-  for vi : ci thru 3 do (
-    for pi : 1 thru 3 do (
-      printf(fh, "__host__ __device__ double VlasovVol~ax~avSerP~a(const double *w, const double *dxv, const double *E, const double *f, double *out); ~%", ci, vi, pi),
-      for si : 1 thru vi do (
-        printf(fh, "__host__ __device__ double VlasovSurfElcMag~ax~avSer_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *E, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, cvars[si], pi)
-      ),
-      printf(fh, "~%")      
-    ),
-    printf(fh, "~%")
-  )
-)$
-
-printf(fh, "~% ~%")$
-
-for ci : 1 thru 2 do (
-  for vi : ci thru 3 do (
-    for pi : 2 thru 3 do (
-      printf(fh, "__host__ __device__ double VlasovVol~ax~avTensorP~a(const double *w, const double *dxv, const double *E, const double *f, double *out); ~%", ci, vi, pi),
-      for si : 1 thru vi do (
-        printf(fh, "__host__ __device__ double VlasovSurfElcMag~ax~avTensor_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *E, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, cvars[si], pi)
-      ),
-      printf(fh, "~%")      
-    ),
-    printf(fh, "~%")
-  )
-)$
-
-for ci : 1 thru 1 do (
-  for vi : ci thru 1 do (
-    for pi : 1 thru 3 do (
-      printf(fh, "__host__ __device__ double  VlasovVolForce~ax~avMaxP~a(const double *w, const double *dxv, const double *E, const double *f, double *out); ~%", ci, vi, pi) 
-    ),
-    printf(fh, "~%")
-  )
-)$
-
-printf(fh, "~% ~%")$
-
-for ci : 1 thru 1 do (
-  for vi : ci thru 1 do (
-    for pi : 1 thru 3 do (
-      printf(fh, "__host__ __device__ double  VlasovVolForce~ax~avSerP~a(const double *w, const double *dxv, const double *E, const double *f, double *out); ~%", ci, vi, pi) 
-    ),
-    printf(fh, "~%")
-  )
-)$
-
-printf(fh, "~% ~%")$
-
-for ci : 1 thru 1 do (
-  for vi : ci thru 1 do (
-    for pi : 2 thru 3 do (
-      printf(fh, "__host__ __device__ double  VlasovVolForce~ax~avTensorP~a(const double *w, const double *dxv, const double *E, const double *f, double *out); ~%", ci, vi, pi)
-    ),
-    printf(fh, "~%")
-  )
-)$
-
-printf(fh, "~% ~%")$
-
 printf(fh, "} ~%")$
-
 printf(fh, "#endif ~%")$
-
 close(fh)$
+/* ............ Finished writing out the C header file ............ */
+
+
+
+

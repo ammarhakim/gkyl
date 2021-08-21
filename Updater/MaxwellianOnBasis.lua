@@ -32,14 +32,14 @@ local MaxwellianOnBasis = Proto(UpdaterBase)
 function MaxwellianOnBasis:init(tbl)
    MaxwellianOnBasis.super.init(self, tbl) -- setup base object
 
-   self.confGrid = assert(tbl.confGrid,
-			  "Updater.MaxwellianOnBasis: Must provide configuration space grid object 'confGrid'")
-   self.confBasis = assert(tbl.confBasis,
-			   "Updater.MaxwellianOnBasis: Must provide configuration space basis object 'confBasis'")
-   self.phaseGrid = assert(tbl.onGrid,
-			   "Updater.MaxwellianOnBasis: Must provide phase space grid object 'onGrid'")
+   self.phaseGrid  = assert(tbl.onGrid,
+                            "Updater.MaxwellianOnBasis: Must provide phase space grid object 'onGrid'")
+   self.confGrid   = assert(tbl.confGrid,
+                            "Updater.MaxwellianOnBasis: Must provide configuration space grid object 'confGrid'")
+   self.confBasis  = assert(tbl.confBasis,
+                            "Updater.MaxwellianOnBasis: Must provide configuration space basis object 'confBasis'")
    self.phaseBasis = assert(tbl.phaseBasis,
-			    "Updater.MaxwellianOnBasis: Must provide phase space basis object 'phaseBasis'")
+                            "Updater.MaxwellianOnBasis: Must provide phase space basis object 'phaseBasis'")
 
    -- Number of quadrature points in each direction
    local numQuad1D = tbl.numConfQuad and tbl.numConfQuad or self.confBasis:polyOrder() + 1
@@ -49,9 +49,9 @@ function MaxwellianOnBasis:init(tbl)
    self.quadImpl = tbl.implementation and tbl.implementation or "C"
 
    -- The C implementation only allows p+1 quadrature points (in 1D).
-   if numQuad1D ~= self.confBasis:polyOrder() + 1 then self.quadImpl="Lua" end
+   if numQuad1D ~= self.confBasis:polyOrder()+1 then self.quadImpl="Lua" end
 
-   self.projectOnGhosts = xsys.pickBool(tbl.projectOnGhosts, true)
+   self.onGhosts = xsys.pickBool(tbl.onGhosts, false)
 
    -- Mass and magnetic field amplitude are needed to project a gyrokinetic Maxwellian.
    self.mass = tbl.mass
@@ -86,7 +86,7 @@ function MaxwellianOnBasis:init(tbl)
    elseif self.quadImpl == "Lua" then
 
       self._innerLoop = MaxwellianModDecl.selectInnerLoop(self.isGK)
-      -- 1D weights and ordinates
+      -- 1D weights and ordinates.
       local ordinates = GaussQuadRules.ordinates[numQuad1D]
       local weights   = GaussQuadRules.weights[numQuad1D]
 
@@ -119,7 +119,7 @@ function MaxwellianOnBasis:init(tbl)
       self.phaseBasisAtOrds = Lin.Mat(self.numPhaseOrds,
            			   self.numPhaseBasis)
       self.phaseOrdinates = Lin.Mat(self.numPhaseOrds, self._pDim)
-      self.phaseWeights = Lin.Vec(self.numPhaseOrds) -- Needed for integration
+      self.phaseWeights = Lin.Vec(self.numPhaseOrds) -- Needed for integration.
       for ordIndexes in self.phaseQuadRange:colMajorIter() do
          local ordIdx = self.phaseQuadIndexer(ordIndexes)
          self.phaseWeights[ordIdx] = 1.0
@@ -132,7 +132,7 @@ function MaxwellianOnBasis:init(tbl)
                                    self.phaseBasisAtOrds[ordIdx])
       end
 
-      -- Construct the phase space to conf space ordinate map
+      -- Construct the phase space to conf space ordinate map.
       self.phaseToConfOrdMap = Lin.Vec(self.numPhaseOrds)
       for ordIndexes in self.phaseQuadRange:colMajorIter() do
          local confOrdIdx = self.confQuadIndexer(ordIndexes)
@@ -149,7 +149,7 @@ function MaxwellianOnBasis:init(tbl)
 end
 
 function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
-   -- Get the inputs and outputs
+   -- Get the inputs and outputs.
    local nIn     = assert(inFld[1], "MaxwellianOnBasis: Must specify density 'inFld[1]'")
    local uFlowIn = assert(inFld[2], "MaxwellianOnBasis: Must specify drift speed 'inFld[2]'")
    local vtSqIn  = assert(inFld[3], "MaxwellianOnBasis: Must specify thermal velocity squared 'inFld[3]'")
@@ -174,12 +174,11 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 
    local confIndexer  = nIn:genIndexer()
    local phaseIndexer = fOut:genIndexer()
-   local phaseRange   = fOut:localRange()
-   if self.onGhosts then   -- Extend range to config-space ghosts.
-      local cdirs = {}
-      for dir = 1, cDim do
-         phaseRange = phaseRange:extendDir(dir, fOut:lowerGhost(), fOut:upperGhost())
-      end
+   local phaseRange
+   if self.onGhosts then
+      phaseRange = fOut:localExtRange()
+   else
+      phaseRange = fOut:localRange()
    end
 
    -- Construct ranges for nested loops.
@@ -221,15 +220,10 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 
    elseif self.quadImpl == "Lua" then
 
-      local nOrd = Lin.Vec(self.numConfOrds)
-      local uFlowOrd
-      if self.isGK then
-         uFlowOrd = Lin.Vec(self.numConfOrds)
-      else
-         uFlowOrd = Lin.Mat(self.numConfOrds, vDim)
-      end
-      local vtSqOrd = Lin.Vec(self.numConfOrds)
-      local bmagOrd = Lin.Vec(self.numConfOrds)
+      local nOrd     = Lin.Vec(self.numConfOrds)
+      local uFlowOrd = self.isGK and Lin.Vec(self.numConfOrds) or Lin.Mat(self.numConfOrds, vDim)
+      local vtSqOrd  = Lin.Vec(self.numConfOrds)
+      local bmagOrd  = Lin.Vec(self.numConfOrds)
    
       -- Additional preallocated variables
       local ordIdx = nil
@@ -248,14 +242,14 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
             nOrd[ordIdx], vtSqOrd[ordIdx] = 0.0, 0.0
            
             for k = 1, self.numConfBasis do
-               nOrd[ordIdx] = nOrd[ordIdx] + nItr[k]*self.confBasisAtOrds[ordIdx][k]
+               nOrd[ordIdx]    = nOrd[ordIdx] + nItr[k]*self.confBasisAtOrds[ordIdx][k]
                vtSqOrd[ordIdx] = vtSqOrd[ordIdx] + vtSqItr[k]*self.confBasisAtOrds[ordIdx][k]
             end
             if self.isGK then 
                uFlowOrd[ordIdx], bmagOrd[ordIdx] = 0.0, 0.0
                for k = 1, self.numConfBasis do
                   bmagOrd[ordIdx] = bmagOrd[ordIdx] + bmagItr[k]*self.confBasisAtOrds[ordIdx][k]
-                  if uDim > 1 then   -- Get the z-component of fluid velocity.
+                  if uDim > 1 and cDim > 1 then   -- Get the z-component of fluid velocity.
                      uFlowOrd[ordIdx] = uFlowOrd[ordIdx] + uFlowItr[self.numConfBasis*2+k]*self.confBasisAtOrds[ordIdx][k]
                   else
                      uFlowOrd[ordIdx] = uFlowOrd[ordIdx] + uFlowItr[k]*self.confBasisAtOrds[ordIdx][k]
@@ -270,7 +264,11 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
                            uFlowItr[self.numConfBasis*(d-1)+k]*self.confBasisAtOrds[ordIdx][k]
                      end
                   end
-               elseif uDim == 1 and vDim==3 then -- if uPar passed from GkSpecies, fill d=3 component of u.
+               elseif uDim == 1 and cDim==1 and vDim==3 then -- if uPar passed from GkSpecies, fill d=1 component of u
+                  for k = 1, self.numConfBasis do
+                     uFlowOrd[ordIdx][1] = uFlowOrd[ordIdx][1] + uFlowItr[k]*self.confBasisAtOrds[ordIdx][k]
+                  end
+               elseif uDim == 1 and cDim>1 and vDim==3 then -- if uPar passed from GkSpecies, fill d=3 component of u
                   for k = 1, self.numConfBasis do
                      uFlowOrd[ordIdx][vDim] = uFlowOrd[ordIdx][vDim] + uFlowItr[k]*self.confBasisAtOrds[ordIdx][k]
                   end

@@ -1,4 +1,4 @@
-local Lin = require "Lib.Linalg"
+local Lin = require("Lib.Linalg")
 local function stencilFn(dx)
   local _M = {}
 

@@ -35,6 +35,17 @@ gsOrthoNorm(vars, u) := block([nbasis, phi, v],
     phi)
   )$
 
+/** Use Gram-Schmidt procedure to make a set of orthogonal basis set */
+b(vars, i,j,u,phi) := -innerProd(vars,1,u[i],phi[j])/innerProd(vars,1,phi[j],phi[j])$
+gsOrtho(vars, u) := block([nbasis, phi, v],
+  nbasis : length(u),
+  phi : (phi : [u[1]], for i from 2 thru nbasis
+    do (v : u[i] + sum( b(vars,i,j,u,phi)*phi[j], j, 1, i-1 ),
+      phi : endcons(v, phi)),
+    phi)
+  )$
+
+
 listifyListOfSets(los) := block([b],
   b : [],
   for pl in los do (for p in pl do b : append(b,[p])),
@@ -212,3 +223,48 @@ calcSurfExpansionMatrix(varsSurf, vPerp, valPerp, basisSurf, basisVol) := block(
 
 doExpand(f, basis) := sum(f[i]*basis[i], i, 1, length(basis))$
 doExpand1(f, basis) := sum(f[i-1]*basis[i], i, 1, length(basis))$
+
+/* Calculate integrals of a function specified by expansion
+coefficients on a sub-blocks */
+blockIntegrate(f, Nx, Ny, basis) := block(
+  [dx, dy, fi, i, j],
+  dx : 2/Nx,
+  dy : 2/Ny,
+  fi : makelist(0, i, 1, Nx*Ny),
+  for i : 1 thru Nx do (
+    for j : 1 thru Ny do (
+      fi[i+(j-1)*Nx] : integrate(integrate(doExpand(f, basis),
+          x, -1+(i-1)*dx, -1+i*dx), y, -1+(j-1)*dy, -1+j*dy)
+      )
+    ),
+  return(fi)
+  ) $
+invBlockIntegrate(fi, Nx, Ny, basis) := block(
+  [dx, dy, f, i, j, eqList, fSol],
+  f : makelist(f[i], i, 1, length(basis)),
+  dx : 2/Nx,
+  dy : 2/Ny,
+  eqList : [],
+  for i : 1 thru Nx do (
+    for j : 1 thru Ny do (
+      eqList : append(
+        eqList,
+        [integrate(integrate(doExpand(f, basis),
+            x, -1+(i-1)*dx, -1+i*dx), y, -1+(j-1)*dy, -1+j*dy) - fi[i+(j-1)*Nx]]
+        )   
+      )
+    ), 
+  fSol : linsolve(eqList, f),
+  return(subst(fSol, f))
+  ) $
+
+/* Linspace function: N equispaced points from [l,r] inclusive */
+linspace(l,r,N) := makelist(l+(r-l)*i/(N-1),i,0,N-1)$
+
+/* Find index to minimum element in lst */
+find_min_idx(lst) := block([cidx : 1],
+  for i : 2 thru length(lst) do (
+    cidx : if lst[i] < lst[cidx] then  i else cidx
+    ),
+  return (cidx)
+  )$

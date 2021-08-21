@@ -1,24 +1,25 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 -- Tests for 2D FEM Poisson solver
+--
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Unit = require "Unit"
-local Grid = require "Grid"
-local DataStruct = require "DataStruct"
-local Basis = require "Basis"
-local Updater = require "Updater"
-local Lin = require "Lib.Linalg"
+local Unit             = require "Unit"
+local Grid             = require "Grid"
+local DataStruct       = require "DataStruct"
+local Basis            = require "Basis"
+local Updater          = require "Updater"
+local Lin              = require "Lib.Linalg"
 local DecompRegionCalc = require "Lib.CartDecomp"
-local Mpi = require "Comm.Mpi"
+local Mpi              = require "Comm.Mpi"
 
 local assert_equal = Unit.assert_equal
 local assert_close = Unit.assert_close
 local stats = Unit.stats
-local ffi  = require "ffi"
-local xsys = require "xsys"
+local ffi   = require "ffi"
+local xsys  = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 function log(msg)
@@ -44,30 +45,27 @@ function test_solve2d(nx, ny, p, writeMatrix)
    log(string.format("nx=%d ny=%d polyOrder=%d", nx,ny,p))
    local t1 = os.clock()
    local poisson = Updater.FemPerpPoisson {
-     onGrid = grid,
-     basis = basis,
-     bcLeft = { T = "D", V = 0.0 },
-     bcRight = { T = "D", V = 0.0 },
-     bcBottom = { T = "N", V = 0.0 },
-     bcTop = { T = "D", V = 0.0 },
-     -- periodicDirs = {0,1},
-     writeStiffnessMatrix = writeMatrix,
+      onGrid  = grid,
+      basis   = basis,
+      bcLower = {{ T = "D", V = 0.0 }, { T = "N", V = 0.0 }},
+      bcUpper = {{ T = "D", V = 0.0 }, { T = "D", V = 0.0 }},
+      writeStiffnessMatrix = writeMatrix,
    }
    local t2 = os.clock()
    log(string.format("2D Poisson init took %f s", t2-t1))
    local srcModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1},
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
-   -- initialization constants
-   local a, b = 2, 5
+   -- Initialization constants.
+   local a, b   = 2, 5
    local c1, d0 = 0, 0
-   local c0 = a/12 - 1/2
-   local d1 = b/12 - 1/2
+   local c0     = a/12 - 1/2
+   local d1     = b/12 - 1/2
    local initSrcModal = Updater.ProjectOnBasis {
-      onGrid = grid,
-      basis = basis,
+      onGrid   = grid,
+      basis    = basis,
       evaluate = function (t,xn)
                     local x = xn[1]
                     local y = xn[2]
@@ -78,15 +76,15 @@ function test_solve2d(nx, ny, p, writeMatrix)
    }
    initSrcModal:advance(0.,{},{srcModal})
 
-   -- calculate exact solution
+   -- Calculate exact solution.
    local exactSolModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1},
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
    local initExactSolModal = Updater.ProjectOnBasis {
-      onGrid = grid,
-      basis = basis,
+      onGrid   = grid,
+      basis    = basis,
       evaluate = function (t,xn)
                     local x = xn[1]
                     local y = xn[2]
@@ -98,9 +96,9 @@ function test_solve2d(nx, ny, p, writeMatrix)
    initExactSolModal:advance(0.,{},{exactSolModal})
 
    local phiModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1}
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
 
    log(string.format("Solving..."))
@@ -110,9 +108,9 @@ function test_solve2d(nx, ny, p, writeMatrix)
    log(string.format("2D Poisson solve took total of %f s", t2-t1))
 
    local err = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1}
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
 
    err:combine(1.0, exactSolModal, -1.0, phiModal)
@@ -122,10 +120,10 @@ function test_solve2d(nx, ny, p, writeMatrix)
    --err:write("error-2d.bp", 0.0)
 
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
-     onGrid = grid,
-     basis = basis,
-     numComponents = 1,
-     quantity = "V2"
+      onGrid        = grid,
+      basis         = basis,
+      numComponents = 1,
+      quantity      = "V2",
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -146,17 +144,18 @@ function test_solve2d_periodic(nx, ny, p)
    log(string.format("nx=%d ny=%d polyOrder=%d", nx,ny,p))
    local t1 = os.clock()
    local poisson = Updater.FemPerpPoisson {
-     onGrid = grid,
-     basis = basis,
-     periodicDirs = {1,2},
-     writeStiffnessMatrix = false,
+      onGrid  = grid,
+      basis   = basis,
+      bcLower = {{ T = "P" }, { T = "P" }},
+      bcUpper = {{ T = "P" }, { T = "P" }},
+      writeStiffnessMatrix = false,
    }
    local t2 = os.clock()
    log(string.format("2D periodic Poisson init took %f s", t2-t1))
    local srcModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1},
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
    -- initialization constants
    local amn = {{0,10,0}, {10,0,0}, {10,0,0}}
@@ -183,9 +182,9 @@ function test_solve2d_periodic(nx, ny, p)
 
    -- calculate exact solution
    local exactSolModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1},
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
    local initfunc = function (t,xn)
               local x = xn[1]
@@ -210,9 +209,9 @@ function test_solve2d_periodic(nx, ny, p)
    initExactSolModal:advance(0.,{},{exactSolModal})
 
    local phiModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1}
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
 
    log(string.format("Solving..."))
@@ -222,9 +221,9 @@ function test_solve2d_periodic(nx, ny, p)
    log(string.format("2D periodic Poisson solve took total of %f s", t2-t1))
 
    local err = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1}
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
 
    err:combine(1.0, exactSolModal, -1.0, phiModal)
@@ -234,10 +233,10 @@ function test_solve2d_periodic(nx, ny, p)
    --err:write("periodic-error-2d.bp", 0.0)
 
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
-     onGrid = grid,
-     basis = basis,
-     numComponents = 1,
-     quantity = 'V2',
+      onGrid        = grid,
+      basis         = basis,
+      numComponents = 1,
+      quantity      = "V2",
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -260,21 +259,19 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
    log(string.format("nx=%d ny=%d nz=%d polyOrder=%d ", nx, ny, nz, p))
    local t1 = os.clock()
    local poisson = Updater.FemPerpPoisson {
-     onGrid = grid,
-     basis = basis,
-     bcLeft = { T = "D", V = 0.0 },
-     bcRight = { T = "D", V = 0.0 },
-     bcBottom = { T = "N", V = 0.0 },
-     bcTop = { T = "D", V = 0.0 },
-     -- periodicDirs = {0,1},
-     writeStiffnessMatrix = writeMatrix,
+      onGrid  = grid,
+      basis   = basis,
+      -- Not passing smooth=true or zContinuous=true, so don't need BC in 3rd dimension.
+      bcLower = {{ T = "D", V = 0.0 }, { T = "N", V = 0.0 }},
+      bcUpper = {{ T = "D", V = 0.0 }, { T = "D", V = 0.0 }},
+      writeStiffnessMatrix = writeMatrix,
    }
    local t2 = os.clock()
    log(string.format("3D Poisson init took %f s", t2-t1))
    local srcModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1, 1},
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
    local initSrcModal = Updater.ProjectOnBasis {
       onGrid = grid,
@@ -295,9 +292,9 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
    initSrcModal:advance(0.,{},{srcModal})
    -- calculate exact solution
    local exactSolModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1, 1},
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
    local initExactSolModal = Updater.ProjectOnBasis {
       onGrid = grid,
@@ -318,9 +315,9 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
    initExactSolModal:advance(0.,{},{exactSolModal})
 
    local phiModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1, 1}
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
 
    log(string.format("Solving..."))
@@ -330,9 +327,9 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
    log(string.format("3D Poisson solve took total of %f s ", t2-t1))
 
    local err = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1, 1}
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
 
    err:combine(1.0, exactSolModal, -1.0, phiModal)
@@ -342,10 +339,10 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
    --err:write("error-3d.bp", 0.0)
   
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
-     onGrid = grid,
-     basis = basis,
-     numComponents = 1,
-     quantity = 'V2',
+      onGrid        = grid,
+      basis         = basis,
+      numComponents = 1,
+      quantity      = "V2",
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -367,19 +364,21 @@ function test_solve3d_periodic(nx, ny, nz, p)
    log(string.format("nx=%d ny=%d nz=%d polyOrder=%d ", nx, ny, nz, p))
    local t1 = os.clock()
    local poisson = Updater.FemPerpPoisson {
-     onGrid = grid,
-     basis = basis,
-     periodicDirs = {1,2},
-     writeStiffnessMatrix = false,
+      onGrid  = grid,
+      basis   = basis,
+      -- Not passing smooth=true or zContinuous=true, so don't need BC in 3rd dimension.
+      bcLower = {{ T = "P" }, { T = "P" }},
+      bcUpper = {{ T = "P" }, { T = "P" }},
+      writeStiffnessMatrix = false,
    }
    local t2 = os.clock()
    log(string.format("3D periodic Poisson init took %f s", t2-t1))
    local srcModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1, 1},
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
-   -- initialization constants
+   -- Initialization constants.
    local amn = {{0,10,0}, {10,0,0}, {10,0,0}}
    local bmn = {{0,10,0}, {10,0,0}, {10,0,0}}
    local initSrcModal = Updater.ProjectOnBasis {
@@ -404,9 +403,9 @@ function test_solve3d_periodic(nx, ny, nz, p)
 
    -- calculate exact solution
    local exactSolModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1, 1},
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
    local initfunc = function (t,xn)
               local x = xn[1]
@@ -431,9 +430,9 @@ function test_solve3d_periodic(nx, ny, nz, p)
    initExactSolModal:advance(0.,{},{exactSolModal})
 
    local phiModal = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1, 1}
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
 
    log(string.format("Solving..."))
@@ -443,9 +442,9 @@ function test_solve3d_periodic(nx, ny, nz, p)
    log(string.format("3D periodic Poisson solve took total of %f s ", t2-t1))
 
    local err = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1, 1}
+      onGrid        = grid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
    }
 
    err:combine(1.0, exactSolModal, -1.0, phiModal)
@@ -455,10 +454,10 @@ function test_solve3d_periodic(nx, ny, nz, p)
    --err:write("periodic-error-3d.bp", 0.0)
 
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
-     onGrid = grid,
-     basis = basis,
-     numComponents = 1,
-     quantity = 'V2',
+      onGrid        = grid,
+      basis         = basis,
+      numComponents = 1,
+      quantity      = "V2",
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, {err}, {dynVec})
@@ -470,86 +469,86 @@ end
 
 
 function test_solve2d_p1()
-  log(string.format("--- Testing convergence of 2D solver with p=1 ---"))
-  err1 = test_solve2d(32, 32, 1)
-  err2 = test_solve2d(64, 64, 1)
-  err3 = test_solve2d(128, 128, 1)
-  log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
-  assert_close(1.0, err1/err2/4.0, .01, "2D p=1")
-  assert_close(1.0, err2/err3/4.0, .01, "2D p=1")
+   log(string.format("--- Testing convergence of 2D solver with p=1 ---"))
+   err1 = test_solve2d(32, 32, 1)
+   err2 = test_solve2d(64, 64, 1)
+   err3 = test_solve2d(128, 128, 1)
+   log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
+   assert_close(1.0, err1/err2/4.0, .01, "2D p=1")
+   assert_close(1.0, err2/err3/4.0, .01, "2D p=1")
 end
 
 function test_solve2d_p2()
-  log(string.format("--- Testing convergence of 2D solver with p=2 ---"))
-  err1 = test_solve2d(32, 32, 2)
-  err2 = test_solve2d(64, 64, 2)
-  err3 = test_solve2d(128, 128, 2)
-  log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
-  assert_close(2.0, err1/err2/4.0, .01, "2D p=2")
-  assert_close(2.0, err2/err3/4.0, .01, "2D p=2")
+   log(string.format("--- Testing convergence of 2D solver with p=2 ---"))
+   err1 = test_solve2d(32, 32, 2)
+   err2 = test_solve2d(64, 64, 2)
+   err3 = test_solve2d(128, 128, 2)
+   log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
+   assert_close(2.0, err1/err2/4.0, .01, "2D p=2")
+   assert_close(2.0, err2/err3/4.0, .01, "2D p=2")
 end
 
 function test_solve3d_p1()
-  log(string.format("--- Testing convergence of 3D solver with p=1 ---"))
-  err1 = test_solve3d(32, 32, 4, 1)
-  err2 = test_solve3d(64, 64, 4, 1)
-  err3 = test_solve3d(128, 128, 4, 1)
-  log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
-  assert_close(1.0, err1/err2/4.0, .01, "3D p=1")
-  assert_close(1.0, err2/err3/4.0, .01, "3D p=1")
+   log(string.format("--- Testing convergence of 3D solver with p=1 ---"))
+   err1 = test_solve3d(32, 32, 4, 1)
+   err2 = test_solve3d(64, 64, 4, 1)
+   err3 = test_solve3d(128, 128, 4, 1)
+   log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
+   assert_close(1.0, err1/err2/4.0, .01, "3D p=1")
+   assert_close(1.0, err2/err3/4.0, .01, "3D p=1")
 end
 
 function test_solve3d_p2()
-  log(string.format("--- Testing convergence of 3D solver with p=2 ---"))
-  err1 = test_solve3d(32, 32, 4, 2)
-  err2 = test_solve3d(64, 64, 4, 2)
-  err3 = test_solve3d(128, 128, 4, 2)
-  log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
-  assert_close(2.0, err1/err2/4.0, .01, "3D p=2")
-  assert_close(2.0, err2/err3/4.0, .01, "3D p=2")
+   log(string.format("--- Testing convergence of 3D solver with p=2 ---"))
+   err1 = test_solve3d(32, 32, 4, 2)
+   err2 = test_solve3d(64, 64, 4, 2)
+   err3 = test_solve3d(128, 128, 4, 2)
+   log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
+   assert_close(2.0, err1/err2/4.0, .01, "3D p=2")
+   assert_close(2.0, err2/err3/4.0, .01, "3D p=2")
 end
 
 function test_periodic2d_p1()
-  log(string.format("--- Testing convergence of 2D periodic solver with p=1 ---"))
-  err1 = test_solve2d_periodic(32, 32, 1)
-  err2 = test_solve2d_periodic(64, 64, 1)
-  err3 = test_solve2d_periodic(128, 128, 1)
-  log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
-  assert_close(1.0, err1/err2/4.0, .01, "2D periodic p=1")
-  assert_close(1.0, err2/err3/4.0, .01, "2D periodic p=1")
+   log(string.format("--- Testing convergence of 2D periodic solver with p=1 ---"))
+   err1 = test_solve2d_periodic(32, 32, 1)
+   err2 = test_solve2d_periodic(64, 64, 1)
+   err3 = test_solve2d_periodic(128, 128, 1)
+   log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
+   assert_close(1.0, err1/err2/4.0, .01, "2D periodic p=1")
+   assert_close(1.0, err2/err3/4.0, .01, "2D periodic p=1")
 end
 
 function test_periodic2d_p2()
-  log(string.format("--- Testing convergence of 2D periodic solver with p=2 ---"))
-  err1 = test_solve2d_periodic(32, 32, 2)
-  err2 = test_solve2d_periodic(64, 64, 2)
-  err3 = test_solve2d_periodic(128, 128, 2)
-  log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
-  assert_close(2.0, err1/err2/4.0, .01, "2D periodic p=2")
-  assert_close(2.0, err2/err3/4.0, .01, "2D periodic p=2")
+   log(string.format("--- Testing convergence of 2D periodic solver with p=2 ---"))
+   err1 = test_solve2d_periodic(32, 32, 2)
+   err2 = test_solve2d_periodic(64, 64, 2)
+   err3 = test_solve2d_periodic(128, 128, 2)
+   log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
+   assert_close(2.0, err1/err2/4.0, .01, "2D periodic p=2")
+   assert_close(2.0, err2/err3/4.0, .01, "2D periodic p=2")
 end
 
 function test_periodic3d_p1()
-  log(string.format("--- Testing convergence of 3D periodic solver with p=1 ---"))
-  err1 = test_solve3d_periodic(32, 32, 2, 1)
-  err2 = test_solve3d_periodic(64, 64, 2, 1)
-  err3 = test_solve3d_periodic(128, 128, 2, 1)
-  log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
-  assert_close(1.0, err1/err2/4.0, .01, "3D periodic p=1")
-  assert_close(1.0, err2/err3/4.0, .01, "3D periodic p=1")
+   log(string.format("--- Testing convergence of 3D periodic solver with p=1 ---"))
+   err1 = test_solve3d_periodic(32, 32, 2, 1)
+   err2 = test_solve3d_periodic(64, 64, 2, 1)
+   err3 = test_solve3d_periodic(128, 128, 2, 1)
+   log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
+   assert_close(1.0, err1/err2/4.0, .01, "3D periodic p=1")
+   assert_close(1.0, err2/err3/4.0, .01, "3D periodic p=1")
 end
 
 function test_periodic3d_p2()
-  log(string.format("--- Testing convergence of 3D periodic solver with p=2 ---"))
-  err1 = test_solve3d_periodic(32, 32, 4, 2)
-  err2 = test_solve3d_periodic(64, 64, 4, 2)
-  err3 = test_solve3d_periodic(128, 128, 4, 2)
-  log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
-  assert_close(2.0, err1/err2/4.0, .01, "3D periodic p=2")
-  assert_close(2.0, err2/err3/4.0, .01, "3D periodic p=2")
+   log(string.format("--- Testing convergence of 3D periodic solver with p=2 ---"))
+   err1 = test_solve3d_periodic(32, 32, 4, 2)
+   err2 = test_solve3d_periodic(64, 64, 4, 2)
+   err3 = test_solve3d_periodic(128, 128, 4, 2)
+   log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
+   assert_close(2.0, err1/err2/4.0, .01, "3D periodic p=2")
+   assert_close(2.0, err2/err3/4.0, .01, "3D periodic p=2")
 end
 
--- run tests
+-- Run tests.
 local t1 = os.clock()
 test_solve2d_p1()
 test_solve2d_p2()

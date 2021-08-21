@@ -90,6 +90,14 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, polyOrder) := block([],
   for i : 1 thru length(nodes) do (
     printf(fh, "  if (~a < 0) cellAvg = true; ~%", m0Corners[i])
   ),
+  if (polyOrder=1) then (
+    m2Corners : gcfac(float(fullratsimp(nodesub(doExpand1(m2S,bC)))))
+  ) else (
+    m2Corners : gcfac(float(fullratsimp(nodesub(doExpand1(m2,bC)))))
+  ),
+  for i : 1 thru length(nodes) do (
+    printf(fh, "  if (~a < 0) cellAvg = true; ~%", m2Corners[i])
+  ),
   printf(fh, " ~%"),
 
   /* Declare new buffers where moments, star moments and boundary corrections are stored. */

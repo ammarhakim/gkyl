@@ -49,6 +49,8 @@ function GkBGKCollisions:fullInit(speciesTbl)
 
    self.cfl = 0.1  -- Some default value.
 
+   self.mass = speciesTbl.mass   -- Mass of this species.
+
    self.collidingSpecies = assert(
       tbl.collideWith,
       "App.GkBGKCollisions: Must specify names of species to collide with in 'collideWith'.")
@@ -104,7 +106,6 @@ function GkBGKCollisions:fullInit(speciesTbl)
       self.timeDepNu = true
 
       self.varNu  = true                 -- Spatially varying nu.
-      self.mass   = speciesTbl.mass      -- Mass of this species.
       self.charge = speciesTbl.charge    -- Charge of this species.
       -- For now only cell-wise constant nu is implemented.
       self.cellConstNu  = true     -- Cell-wise constant nu?
@@ -159,7 +160,6 @@ function GkBGKCollisions:fullInit(speciesTbl)
    end
 
    if self.crossCollisions then
-      self.mass   = speciesTbl.mass          -- Mass of this species.
       self.charge = speciesTbl.charge        -- Charge of this species.
       local betaGreeneIn = tbl.betaGreene    -- Can specify 'betaGreene' free parameter in Grene cross-species collisions.
       if betaGreeneIn then
@@ -175,9 +175,9 @@ function GkBGKCollisions:fullInit(speciesTbl)
       self.nuFrac = 1.0
    end
 
-   self.exactLagFixM012 = xsys.pickBool(tbl.exactLagFixM012, true) 
+   self.exactLagFixM012 = xsys.pickBool(tbl.exactLagFixM012, true)  -- MF/NRM (2021/04/01): Needs more work. Changed below. 
 
-   self.tmEvalMom = 0.0
+   self.timers = {nonSlvr = 0.}
 end
 
 function GkBGKCollisions:setName(nm)
@@ -203,35 +203,91 @@ function GkBGKCollisions:setPhaseGrid(grid)
    self.phaseGrid = grid
 end
 
-function GkBGKCollisions:createSolver(externalField)
-   self.numVelDims = self.phaseGrid:ndim() - self.confGrid:ndim()
+function GkBGKCollisions:createConfField(vComp)
+   vComp = vComp or 1
+   local fld = DataStruct.Field {
+      onGrid        = self.confGrid,
+      numComponents = self.confBasis:numBasis()*vComp,
+      ghost         = {1, 1},
+   }
+   return fld
+end
 
-   local function createConfFieldCompV()
-      return DataStruct.Field {
-	 onGrid        = self.confGrid,
-	 numComponents = self.confBasis:numBasis()*self.numVelDims,
-	 ghost         = {1, 1},
-      }
-   end
-   local function createConfFieldComp1()
-      return DataStruct.Field {
-	 onGrid        = self.confGrid,
-	 numComponents = self.confBasis:numBasis(),
-	 ghost         = {1, 1},
-      }
-   end
+function GkBGKCollisions:createPhaseField()
+   local fld = DataStruct.Field {
+      onGrid        = self.phaseGrid,
+      numComponents = self.phaseBasis:numBasis(),
+      ghost         = {1, 1},
+   }
+   return fld
+end
+
+-- It appears that BGK collisions are not conservative if we don't fix
+-- the moments of the distribution function, because the moments of what
+-- MaxwellianOnBasis outputs are not exactly the input moments. We could
+-- do this with LagrangeFix. Another alternative is to use a series of
+-- rescalings, as done below.
+--function GkBGKCollisions:scaleM012(jacobPhaseFuncIn,fMIn)
+--
+--   local m0, m2Par, m2Perp                         = self:createConfField(), self:createConfField(), self:createConfField()
+--   local m0_e, m2_e                                = self:createConfField(), self:createConfField()
+--   local m0_mod, m2Par_mod, m2Perp_mod             = self:createConfField(), self:createConfField(), self:createConfField()
+--   local m0Par_mod, m0Perp_mod                     = self:createConfField(), self:createConfField()
+--   local m0Par_mod2, m0Perp_mod2                   = self:createConfField(), self:createConfField()
+--   local m02Par_mod, m02Perp_mod                   = self:createConfField(), self:createConfField()
+--   local distf0_mod, distf2Par_mod, distf2Perp_mod = self:createConfField(), self:createConfField(), self:createConfField()
+--
+--
+--   local cdim = self.confGrid:ndim()
+--   local vdim = self.phaseGrid:ndim() - cdim
+--
+--   -- Initialize Maxwellian distribution distf0 = FM, along with
+--   -- distf2Par = 0.5*(vpar^2)*FM and distf2Perp = (mu*B/mass)*FM.
+--   local distf0, distf2Par, distf2Perp = self:createPhaseField(), self:createPhaseField(), self:createPhaseField()
+--   distf0:copy(fMIn)
+--   local phaseProject = Updater.ProjectOnBasis {
+--      onGrid   = self.phaseGrid,
+--      basis    = self.phaseBasis,
+--      evaluate = function(t,xn) return 0. end,   -- Set below.
+--   }
+--   local distf2ParFunc = function (t, zn)
+--      local vpar = zn[cdim+1]
+--      return 0.5*(vpar^2)*jacobPhaseFuncIn(t,zn)*self.initFunc(t,zn)
+--   end
+--   phaseProject:setFunc(distf2parFunc)
+--   phaseProject:advance(0.0, {}, {distf2par})
+--   if vdim > 1 then
+--      local distf2perpFunc = function (t, zn)
+--         local xconf = {}
+--         for d = 1, cdim do xconf[d] = zn[d] end
+--         local mu = zn[cdim+2]
+--         return mu*sp.bmagFunc(t,zn)/sp.mass*sp.jacobPhaseFunc(t,xconf)*self.initFunc(t,zn)
+--      end
+--      phaseProject:setFunc(distf2perpFunc)
+--      phaseProject:advance(0.0, {}, {distf2perp})
+--   end
+--
+--end
+
+function GkBGKCollisions:createSolver(externalField)
+   -- Background magnetic field. Needed for spatially varying nu
+   -- or to project Maxwellians with vdim>1.
+   self.bmag = externalField.geo.bmag
+
+   if self.phaseBasis:polyOrder()>1 or self.confGrid:ndim()>2 then self.exactLagFixM012 = false end
 
    if self.exactLagFixM012 then
       -- Intermediate moments used in Lagrange fixing.
-      self.dM1 = createConfFieldCompV()
-      self.dM2 = createConfFieldComp1()
-      self.dM0 = createConfFieldComp1()
+      self.dM0 = self:createConfField()
+      self.dM1 = self:createConfField()
+      self.dM2 = self:createConfField()
       -- Create updater to compute M0, M1i, M2 moments sequentially.
-      self.fiveMomentsCalc = Updater.DistFuncMomentCalc {
+      self.threeMomentsCalc = Updater.DistFuncMomentCalc {
          onGrid     = self.phaseGrid,
          phaseBasis = self.phaseBasis,
          confBasis  = self.confBasis,
-         moment     = "FiveMoments",
+         moment     = "GkThreeMoments",
+         gkfacs     = {self.mass, self.bmag},
       }
       self.lagFix = Updater.LagrangeFix {
          onGrid     = self.phaseGrid,
@@ -239,26 +295,23 @@ function GkBGKCollisions:createSolver(externalField)
          phaseBasis = self.phaseBasis,
          confGrid   = self.confGrid,
          confBasis  = self.confBasis,
-         mode       = 'Gk',
+         mode       = 'gk',
+         mass       = self.mass,
       }
    end
 
    -- Sum of Maxwellians multiplied by respective collisionalities.
-   self.nufMaxwellSum = DataStruct.Field {
-      onGrid        = self.phaseGrid,
-      numComponents = self.phaseBasis:numBasis(),
-      ghost         = {1, 1},
-   }
+   self.nufMaxwellSum = self:createPhaseField()
 
    if self.varNu then
       -- Self-species collisionality, which varies in space.
-      self.nuVarXSelf = createConfFieldComp1()
+      self.nuVarXSelf = self:createConfField()
       -- Collisionality, nu, summed over all species pairs.
-      self.nuSum = createConfFieldComp1()
+      self.nuSum = self:createConfField()
       if self.timeDepNu then
          -- Updater to compute spatially varying (Spitzer) nu.
          self.spitzerNu = Updater.SpitzerCollisionality {
-            onGrid = self.confGrid,
+            onGrid           = self.confGrid,
             confBasis        = self.confBasis,
             useCellAverageNu = self.cellConstNu,
             willInputNormNu  = self.userInputNormNu,
@@ -267,14 +320,12 @@ function GkBGKCollisions:createSolver(externalField)
             hBar             = self.hBar,
             nuFrac           = self.nuFrac,
          }
-         -- Background magnetic field.
-         self.bmag = externalField.geo.bmag
       elseif self.selfCollisions then
          local projectUserNu = Updater.ProjectOnBasis {
-            onGrid          = self.confGrid,
-            basis           = self.confBasis,
-            evaluate        = self.collFreqSelf,
-            projectOnGhosts = false
+            onGrid   = self.confGrid,
+            basis    = self.confBasis,
+            evaluate = self.collFreqSelf,
+            onGhosts = false
          }
          projectUserNu:advance(0.0, {}, {self.nuVarXSelf})
       end
@@ -291,21 +342,11 @@ function GkBGKCollisions:createSolver(externalField)
 
    if self.crossCollisions then
       -- Cross-collision Maxwellian multiplied by collisionality.
-      self.nufMaxwellCross = DataStruct.Field {
-         onGrid        = self.phaseGrid,
-         numComponents = self.phaseBasis:numBasis(),
-         ghost         = {1, 1},
-      }
-      -- Dummy fields for the primitive moment calculator.
-      self.uCrossSq = DataStruct.Field {
-         onGrid        = self.confGrid,
-         numComponents = self.confBasis:numBasis(),
-         ghost         = {1, 1},
-      }
+      self.nufMaxwellCross = self:createPhaseField()
       if self.varNu then
          -- Temporary collisionality fields.
-         self.nuCrossSelf  = createConfFieldComp1()
-         self.nuCrossOther = createConfFieldComp1()
+         self.nuCrossSelf  = self:createConfField()
+         self.nuCrossOther = self:createConfField()
       else
          self.nuCrossSelf  = 0.0
          self.nuCrossOther = 0.0
@@ -322,8 +363,8 @@ function GkBGKCollisions:createSolver(externalField)
       }
       if self.exactLagFixM012 then
          -- Will need the 1st and 2nd moment of the cross-species Maxwellian.
-         self.crossMaxwellianM1 = createConfFieldCompV()
-         self.crossMaxwellianM2 = createConfFieldComp1()
+         self.crossMaxwellianM1 = self:createConfField()
+         self.crossMaxwellianM2 = self:createConfField()
          self.confMultiply = Updater.CartFieldBinOp {
             onGrid    = self.confGrid,
             weakBasis = self.confBasis,
@@ -340,10 +381,10 @@ function GkBGKCollisions:createSolver(externalField)
    -- Maxwellian solver.
    self.maxwellian = Updater.MaxwellianOnBasis {
       onGrid     = self.phaseGrid,
+      phaseBasis = self.phaseBasis,
       confGrid   = self.confGrid,
       confBasis  = self.confBasis,
-      phaseGrid  = self.phaseGrid,
-      phaseBasis = self.phaseBasis,
+      mass       = self.mass, 
    }
    -- BGK Collision solver itself.
    self.collisionSlvr = Updater.BgkCollisions {
@@ -363,6 +404,7 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
    local selfMom     = species[self.speciesName]:fluidMoments()
    local primMomSelf = species[self.speciesName]:selfPrimitiveMoments()
 
+   local tmNonSlvrStart = Time.clock()
    if self.varNu then
       self.nuSum:clear(0.0)
    else
@@ -371,10 +413,10 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
    self.nufMaxwellSum:clear(0.0)
 
    if self.selfCollisions then
-      self.maxwellian:advance(tCurr, {selfMom[1], primMomSelf[1], primMomSelf[2]},
+      self.maxwellian:advance(tCurr, {selfMom[1], primMomSelf[1], primMomSelf[2], self.bmag},
                               {self.nufMaxwellSum})
       if self.exactLagFixM012 then
-         self.fiveMomentsCalc:advance(tCurr, {self.nufMaxwellSum}, { self.dM0, self.dM1, self.dM2 })
+         self.threeMomentsCalc:advance(tCurr, {self.nufMaxwellSum}, { self.dM0, self.dM1, self.dM2 })
          -- Barrier before manipulations to moments before passing them to Lagrange Fix updater
          Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
 	 self.dM0:scale(-1)
@@ -383,7 +425,7 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
 	 self.dM1:accumulate(1, selfMom[2])
 	 self.dM2:scale(-1)
 	 self.dM2:accumulate(1, selfMom[3])
-	 self.lagFix:advance(tCurr, {self.dM0, self.dM1, self.dM2}, {self.nufMaxwellSum})
+	 self.lagFix:advance(tCurr, {self.dM0, self.dM1, self.dM2, self.bmag}, {self.nufMaxwellSum})
       end
 
       if self.varNu then
@@ -411,8 +453,6 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
 	 local mOther       = species[otherNm]:getMass()
 	 local otherMom     = species[otherNm]:fluidMoments()
          local primMomOther = species[otherNm]:selfPrimitiveMoments()
-
-         local tmEvalMomStart = Time.clock()
 
 	 -- Collision frequency established before computing
          -- crossPrimMom in case we want to generalize Greene without
@@ -448,26 +488,24 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
             -- Cross-primitive moments for the collision of these two species has not been computed.
             self.primMomCross:advance(tCurr, {self.mass, self.nuCrossSelf, selfMom, primMomSelf,
                                               mOther, self.nuCrossOther, otherMom, primMomOther},
-                                      {species[self.speciesName].uCross[otherNm], species[self.speciesName].vtSqCross[otherNm],
-                                       species[otherNm].uCross[self.speciesName], species[otherNm].vtSqCross[self.speciesName]})
+                                      {species[self.speciesName].uParCross[otherNm], species[self.speciesName].vtSqCross[otherNm],
+                                       species[otherNm].uParCross[self.speciesName], species[otherNm].vtSqCross[self.speciesName]})
 
             species[self.speciesName].momentFlags[5][otherNm] = true
             species[otherNm].momentFlags[5][self.speciesName] = true
          end
 
-         self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
-
-	 self.maxwellian:advance(tCurr, {selfMom[1], species[self.speciesName].uCross[otherNm],
-                                         species[self.speciesName].vtSqCross[otherNm]}, {self.nufMaxwellCross})
+	 self.maxwellian:advance(tCurr, {selfMom[1], species[self.speciesName].uParCross[otherNm],
+                                         species[self.speciesName].vtSqCross[otherNm], self.bmag}, {self.nufMaxwellCross})
          if self.exactLagFixM012 then
             -- Need to compute the first and second moment of the cross-species Maxwellian (needed by Lagrange fix).
-            self.confMultiply:advance(tCurr, {species[self.speciesName].uCross[otherNm], selfMom[1]}, {self.crossMaxwellianM1})
-            self.confDotProduct:advance(tCurr, {species[self.speciesName].uCross[otherNm],
-                                                species[self.speciesName].uCross[otherNm]}, {self.crossMaxwellianM2})
+            self.confMultiply:advance(tCurr, {species[self.speciesName].uParCross[otherNm], selfMom[1]}, {self.crossMaxwellianM1})
+            self.confDotProduct:advance(tCurr, {species[self.speciesName].uParCross[otherNm],
+                                                species[self.speciesName].uParCross[otherNm]}, {self.crossMaxwellianM2})
             self.crossMaxwellianM2:accumulate(1.0, species[self.speciesName].vtSqCross[otherNm])
             self.confMultiply:advance(tCurr, {selfMom[1],self.crossMaxwellianM2}, {self.crossMaxwellianM2})
             -- Now compute current moments of Maxwellians and perform Lagrange fix. 
-            self.fiveMomentsCalc:advance(tCurr, {self.nufMaxwellCross}, { self.dM0, self.dM1, self.dM2 })
+            self.threeMomentsCalc:advance(tCurr, {self.nufMaxwellCross}, { self.dM0, self.dM1, self.dM2 })
             -- Barrier before manipulations to moments before passing them to Lagrange Fix updater.
             Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
             self.dM0:scale(-1)
@@ -476,7 +514,7 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
             self.dM1:accumulate(1, self.crossMaxwellianM1)
             self.dM2:scale(-1)
             self.dM2:accumulate(1, self.crossMaxwellianM2)
-            self.lagFix:advance(tCurr, {self.dM0, self.dM1, self.dM2}, {self.nufMaxwellSum})
+            self.lagFix:advance(tCurr, {self.dM0, self.dM1, self.dM2, self.bmag}, {self.nufMaxwellSum})
          end
 
          if self.varNu then
@@ -497,6 +535,7 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
          end
       end    -- end loop over other species that this species collides with
    end    -- end if self.crossCollisions
+   self.timers.nonSlvr = self.timers.nonSlvr + Time.clock() - tmNonSlvrStart
 
    self.collisionSlvr:advance(tCurr, {fIn, self.nufMaxwellSum, self.nuSum}, {fRhsOut})
 
@@ -506,15 +545,15 @@ function GkBGKCollisions:write(tm, frame)
 end
 
 function GkBGKCollisions:totalTime()
-   return self.collisionSlvr.totalTime + self.maxwellian.totalTime + self.tmEvalMom
+   return self.collisionSlvr.totalTime + self.timers.nonSlvr
 end
 
 function GkBGKCollisions:slvrTime()
    return self.collisionSlvr.totalTime + self.maxwellian.totalTime
 end
 
-function GkBGKCollisions:momTime()
-   return self.tmEvalMom
+function GkBGKCollisions:nonSlvrTime()
+   return self.timers.nonSlvr
 end
 
 return GkBGKCollisions

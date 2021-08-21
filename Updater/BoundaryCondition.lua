@@ -8,10 +8,10 @@
 
 -- Gkyl libraries.
 local Base = require "Updater.Base"
-local Lin  = require "Lib.Linalg"
+local Lin = require "Lib.Linalg"
 
 -- System libraries.
-local ffi  = require "ffi"
+local ffi = require "ffi"
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
@@ -20,7 +20,7 @@ local _M = {}
 
 -- Helper function to extract list of components.
 local function getComponents(tbl)
-   local c    = assert(tbl.components, "BoundaryCondition: Must specify components with 'components' parameter")
+   local c = assert(tbl.components, "BoundaryCondition: Must specify components with 'components' parameter")
    local cIdx = Lin.IntVec(#c)
    for i = 1, #c do
       cIdx[i] = c[i]
@@ -39,10 +39,21 @@ function _M.Copy(tbl)
    end
 end
 
+-- flip BCs.
+function _M.Flip(tbl)
+   local cIdx = getComponents(tbl) -- Components to apply to.
+   local n = #cIdx -- Number of components.
+   return function (dir, tm, xc, qin, qbc)
+      for i = 1, n do
+	 qbc[cIdx[i]] = -qin[cIdx[i]]
+      end
+   end
+end
+
 -- Constant BCs.
 function _M.Const(tbl)
    local cIdx = getComponents(tbl) -- Components to apply to.
-   local n    = #cIdx -- Number of components.
+   local n = #cIdx -- Number of components.
    local vals = tbl.values
    assert(#vals == #cIdx, "Size of 'values' and 'components' fields must match ")
    return function (dir, tm, xc, qin, qbc)

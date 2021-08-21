@@ -217,13 +217,23 @@ local range_mt = {
 	 return r
       end,
       shorten = function (self, dir, len)
-	 if len == nil then len = 1 end
+         len = len or 1
 	 local r = new(rTy)
 	 r._ndim = self:ndim()
 	 for d = 1, self:ndim() do
 	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
 	 end
 	 r._upper[dir-1] = r._lower[dir-1]+len-1
+	 return r
+      end,
+      shortenFromBelow = function (self, dir, len)
+	 if len == nil then len = 1 end
+	 local r = new(rTy)
+	 r._ndim = self:ndim()
+	 for d = 1, self:ndim() do
+	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
+	 end
+	 r._lower[dir-1] = r._upper[dir-1]-(len-1)
 	 return r
       end,
       shift = function (self, offsets)
@@ -259,6 +269,42 @@ local range_mt = {
 	 end
 	 return false
       end,
+      isDifferenceInDirEmpty = function (self, rgn, dir)
+         -- Difference = relative complement = self\rgn. See the difference method below.
+         -- The difference is empty if the ranges are the same.
+         if self:lower(dir)==rgn:lower(dir) and self:upper(dir)==rgn:upper(dir) then
+            return true
+         else
+            return false
+	 end
+      end,
+      isDifferenceEmpty = function (self, rgn)
+         -- Difference = relative complement = self\rgn. See the difference method below.
+         -- The difference is empty if the ranges are the same.
+         local isSame = true
+	 for d = 1, self:ndim() do
+            isSame = isSame and self:isDifferenceInDirEmpty(rgn, d)
+	 end
+	 return isSame
+      end,
+      difference = function (self, rgn)
+         -- Compute the relative complement, or difference, self\rgn: elements in self but not in rgn.
+         -- Or also seen as self - intersection(self,rgn).
+         if self:isIntersectionEmpty(rgn) then return _M.Range(self:lowerAsVec(),self:upperAsVec()) end
+         if self:isDifferenceEmpty(rgn) then return nil end
+         local lo, up = Lin.IntVec(self:ndim()), Lin.IntVec(self:ndim())
+         for d = 1, self:ndim() do
+            local myLo, myUp = self:lower(d), self:upper(d)
+            if self:isDifferenceInDirEmpty(rgn,d) then
+               lo[d], up[d] = myLo, myUp
+            else
+               local interLo, interUp = math.max(myLo, rgn:lower(d)), math.min(myUp, rgn:upper(d))
+               lo[d] = myLo<interLo and myLo or interUp+1
+               up[d] = myLo<interLo and interLo-1 or myUp
+            end
+         end
+         return _M.Range(lo, up)
+      end,
       contains = function (self, idx)
 	 for d = 1, self:ndim() do
 	    if idx[d]<self:lower(d) or idx[d]>self:upper(d) then
@@ -270,10 +316,10 @@ local range_mt = {
       _iter = function (self, iter_func, idxStart, maxBumps)
 	  -- package up iterator state into table
 	 local iterState = {
-	    isFirst = true, numBumps = 0,
-	    isEmpty = self:volume() == 0 and true or false,
+	    isFirst  = true, numBumps = 0,
+	    isEmpty  = self:volume() == 0 and true or false,
 	    maxBumps = maxBumps,
-	    range = self
+	    range    = self
 	 }
 	 iterState.currIdx = Lin.IntVec(self:ndim())
 	 for dir = 1, self:ndim() do

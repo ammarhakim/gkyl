@@ -28,16 +28,15 @@ function KineticProjection:fullInit(species)
    self.phaseGrid  = species.grid
    self.confBasis  = species.confBasis
    self.confGrid   = species.confGrid
+   self.mass       = species:getMass()
+   self.charge     = species:getCharge()
 
    self.cdim = self.confGrid:ndim()
    self.vdim = self.phaseGrid:ndim() - self.confGrid:ndim()
 
-   self.fromFile     = self.tbl.fromFile
-   self.isInit       = xsys.pickBool(self.tbl.isInit, true)
-   self.isBackground = xsys.pickBool(self.tbl.isBackground, false)
-   self.isSource     = xsys.pickBool(self.tbl.isSource, false)
-   if self.isBackground or self.isSource then self.isInit = false end
-   self.isReservoir  = xsys.pickBool(self.tbl.isReservoir, false)
+   self.vDegFreedom = species.vDegFreedom   -- Only defined in GkSpecies.
+
+   self.fromFile = self.tbl.fromFile
 
    self.exactScaleM0    = xsys.pickBool(self.tbl.exactScaleM0, true)
    self.exactScaleM012  = xsys.pickBool(self.tbl.exactScaleM012, false)
@@ -46,6 +45,14 @@ function KineticProjection:fullInit(species)
 
    self.power = self.tbl.power
    self.scaleWithSourcePower = xsys.pickBool(self.tbl.scaleWithSourcePower, false)
+
+   self.weakMultiplyConfPhase = Updater.CartFieldBinOp {
+      onGrid     = self.phaseGrid,
+      weakBasis  = self.phaseBasis,
+      fieldBasis = self.confBasis,
+      operation  = "Multiply",
+      onGhosts   = true,
+   }
 end
 
 ----------------------------------------------------------------------
@@ -56,36 +63,34 @@ function FunctionProjection:fullInit(species)
    FunctionProjection.super.fullInit(self, species)
 
    local func = self.tbl.func
-   if not func then
-      func = self.tbl[1]
-   end
+   if not func then func = self.tbl[1] end
+
    assert(func, "FunctionProjection: Must specify the function")
-   assert(type(func) == "function",
-	  "The input must be a table containing function")
+   assert(type(func) == "function", "The input must be a table containing function")
+
    if self.fromFile then
       self.ioMethod  = "MPI"
-      self.writeSkin = true
+      self.writeGhost = true
       self.fieldIo = AdiosCartFieldIo {
-         elemType  = species.distf[1]:elemType(),
-         method    = self.ioMethod,
-         writeSkin = self.writeSkin,
-         metaData  = {
-            polyOrder = self.phaseBasis:polyOrder(),
-            basisType = self.phaseBasis:id()
-         },
+         elemType   = species.distf[1]:elemType(),
+         method     = self.ioMethod,
+         writeGhost = self.writeGhost,
+         metaData   = {polyOrder = self.phaseBasis:polyOrder(),
+                       basisType = self.phaseBasis:id()}
       }
    else
       self.project = Updater.ProjectOnBasis {
-         onGrid          = self.phaseGrid,
-         basis           = self.phaseBasis,
-         evaluate        = func,
-         projectOnGhosts = true
+         onGrid   = self.phaseGrid,
+         basis    = self.phaseBasis,
+         evaluate = func,
+         onGhosts = true
       }
    end
    self.initFunc = func
 end
 
-function FunctionProjection:run(t, distf)
+function FunctionProjection:advance(t, inFlds, outFlds)
+   local distf = outFlds[1]
    if self.fromFile then
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else
@@ -102,7 +107,12 @@ function MaxwellianProjection:fullInit(species)
 
    local tbl = self.tbl
    self.density     = assert(tbl.density, "Maxwellian: must specify 'density'")
-   self.driftSpeed  = tbl.driftSpeed or function (t, zn) return 0.0 end
+   self.driftSpeed  = tbl.driftSpeed or function(t, zn)
+      if self.vDegFreedom then return 0.   -- Gyrokinetics. Vlasov doesn't define vDegFreedom. 
+      elseif self.vdim==1 then return {0.}
+      elseif self.vdim==2 then return {0., 0.}
+      elseif self.vdim==3 then return {0., 0., 0.} end
+   end
    self.temperature = assert(tbl.temperature,
 			     "Maxwellian: must specify 'temperature'")
 
@@ -125,22 +135,22 @@ function MaxwellianProjection:fullInit(species)
 
    if self.fromFile then
       self.ioMethod  = "MPI"
-      self.writeSkin = true
+      self.writeGhost = true
       self.fieldIo = AdiosCartFieldIo {
          elemType  = species.distf[1]:elemType(),
          method    = self.ioMethod,
-         writeSkin = self.writeSkin,
-         metaData  = {
-            polyOrder = self.phaseBasis:polyOrder(),
-            basisType = self.phaseBasis:id()
-         },
+         writeGhost = self.writeGhost,
+         metaData  = {polyOrder = self.phaseBasis:polyOrder(),
+                      basisType = self.phaseBasis:id(),
+                      charge    = self.charge,
+                      mass      = self.mass,},
       }
    else
       self.project = Updater.ProjectOnBasis {
-         onGrid          = self.phaseGrid,
-         basis           = self.phaseBasis,
-         evaluate        = self.initFunc,
-         projectOnGhosts = true
+         onGrid   = self.phaseGrid,
+         basis    = self.phaseBasis,
+         evaluate = self.initFunc,
+         onGhosts = true
       }
    end
 end
@@ -154,10 +164,10 @@ function MaxwellianProjection:scaleDensity(distf)
       return self.density(t, zn, self.species)
    end
    local project = Updater.ProjectOnBasis {
-      onGrid          = self.confGrid,
-      basis           = self.confBasis,
-      evaluate        = func,
-      projectOnGhosts = true,
+      onGrid   = self.confGrid,
+      basis    = self.confBasis,
+      evaluate = func,
+      onGhosts = true,
    }
    project:advance(0.0, {}, {M0e})
 
@@ -167,21 +177,16 @@ function MaxwellianProjection:scaleDensity(distf)
       operation = "Divide",
       onGhosts  = true,
    }
-   local weakMultiplication = Updater.CartFieldBinOp {
-      onGrid     = self.phaseGrid,
-      weakBasis  = self.phaseBasis,
-      fieldBasis = self.confBasis,
-      operation  = "Multiply",
-      onGhosts   = true,
-   }
 
    -- Calculate M0mod = M0e / M0.
    weakDivision:advance(0.0, {M0, M0e}, {M0mod})
    -- Calculate distff = M0mod * distf.
-   weakMultiplication:advance(0.0, {M0mod, distf}, {distf})
+   self.weakMultiplyConfPhase:advance(0.0, {M0mod, distf}, {distf})
 end
 
-function MaxwellianProjection:run(t, distf)
+
+function MaxwellianProjection:advance(t, inFlds, outFlds)
+   local distf = outFlds[1]
    if self.fromFile then
       local tm, fr = self.fieldIo:read(distf, self.fromFile)
    else

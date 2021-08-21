@@ -158,10 +158,10 @@ compWriteIncr(varsIn, basisIn, dirIn, fRecOrd, isBoundSurf, nSpaces) := block([c
     fRec0  : fRecOrd[2],
     fRecP0 : fRecOrd[3],
 
-    incr_l : [calcInnerProdList(surfVars,1,subst(cv=1,basisIn),fRecP0),
+    incr_l : [calcInnerProdList(surfVars, 1,subst(cv=1,basisIn),fRecP0),
               calcInnerProdList(surfVars,-1,subst(cv=1,diff(basisIn,cv)),fRec0)],
   
-    incr_r : [-calcInnerProdList(surfVars,1,subst(cv=-1,basisIn),fRecP0),
+    incr_r : [-calcInnerProdList(surfVars, 1,subst(cv=-1,basisIn),fRecP0),
               -calcInnerProdList(surfVars,-1,subst(cv=-1,diff(basisIn,cv)),fRec0)]
   ) elseif (diffOrder=4) then (
     if isBoundSurf then (
@@ -309,7 +309,7 @@ compWriteIncr(varsIn, basisIn, dirIn, fRecOrd, isBoundSurf, nSpaces) := block([c
     incrOutLst : writeIncr(incr_l,incr_r,subList,addIncrs),
     writeCIncrExprs1s(outr, nuSign*rdxFnur*incrOutLst[1], nSpaces),
     printf(fh, "~%"),
-    writeCIncrExprs1s(outl, nuSign*rdxFnul*incrOutLst[2],nSpaces)
+    writeCIncrExprs1s(outl, nuSign*rdxFnul*incrOutLst[2], nSpaces)
   )
 )$
 
@@ -320,9 +320,7 @@ calcUpdateInDir(dir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, applyPos) 
     polyOrder : 1
   ),
 
-  tmpLst : loadBasisX(dim, basisFun, polyOrder),
-  basis  : tmpLst[1],
-  vars   : tmpLst[2],
+  [basis,vars] : loadBasisX(dim, basisFun, polyOrder),
 
   numB : length(basis),
 
@@ -523,9 +521,7 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, dim, basisFun, polyOrder, diffOrder, ap
     polyOrder : 1
   ),
 
-  tmpLst : loadBasisX(dim, basisFun, polyOrder),
-  basis  : tmpLst[1],
-  vars   : tmpLst[2],
+  [basis,vars] : loadBasisX(dim, basisFun, polyOrder),
 
   numB : length(basis),
 

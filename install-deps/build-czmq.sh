@@ -21,4 +21,4 @@ export PKG_CONFIG_PATH=$GKYLSOFT/zeromq-4.2.2/lib/pkgconfig
 make install
 
 # softlink to make finding easier
-ln -sf $PREFIX $GKYLSOFT/czmq
+ln -sfn $PREFIX $GKYLSOFT/czmq

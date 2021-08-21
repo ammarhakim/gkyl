@@ -63,7 +63,7 @@ function EvalOnNodes:init(tbl)
 
    assert(self._onGrid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
 
-   self._projectOnGhosts = xsys.pickBool(tbl.projectOnGhosts, false)
+   self._onGhosts = xsys.pickBool(tbl.onGhosts, false)
 
    local ndim      = self._basis:ndim()
    local polyOrder = self._basis:polyOrder()
@@ -101,7 +101,7 @@ function EvalOnNodes:_advance(tCurr, inFld, outFld)
    local tId = grid:subGridSharedId() -- Local thread ID.
    -- Object to iterate over only region owned by local SHM thread.
    local localRangeDecomp
-   if self._projectOnGhosts then
+   if self._onGhosts then
       localRangeDecomp = LinearDecomp.LinearDecompRange {
 	 range = qOut:localExtRange(), numSplit = grid:numSharedProcs() }
    else
