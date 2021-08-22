@@ -228,9 +228,9 @@ local doTarOff = function(xcDoIn, xcTarIn)
 --   elseif shiftSign==-1 and xcDoIn[2] >= xcTarIn[2] then
 --      return xcDoIn[2] - yShDLyFac*Ly - xcTarIn[2] + ps
 
-   if shiftSign==1 and xcDoIn[2] >= xcTarIn[2] then
+   if shiftSign==1 and (xcDoIn[2] > xcTarIn[2] or (shift>dx[2] and xcDoIn[2] == xcTarIn[2])) then
       return xcTarIn[2] - (xcDoIn[2] - yShDLyFac*Ly) + ps
-   elseif shiftSign==-1 and xcDoIn[2] <= xcTarIn[2] then
+   elseif shiftSign==-1 and (xcDoIn[2] < xcTarIn[2] or (shift<dx[2] and xcDoIn[2] == xcTarIn[2])) then
       return xcTarIn[2] - (xcDoIn[2] + yShDLyFac*Ly) + ps
    else
       return xcTarIn[2] - xcDoIn[2] + ps
@@ -824,6 +824,7 @@ local subCellInt_sxvORsxvi = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limDo, limT
    local etaLims  = {}               -- Table of functions definting the limits of eta integral.
    local yShiftLoXc = wrapNum(limTar[2].lo-yShiftF(xcDoIn[1]),domLim[2],atUpperYcell)
    if (limDo[2].lo <= yShiftLoXc) and (yShiftLoXc <= limDo[2].up) then   -- Scenario sxv.
+--      print("    scenario sxv")
       local yTar = limTar[2].lo
 --      etaLims = {lo = function(t,xn) return -1.0 end,
 --                 up = function(t,xn)
@@ -834,6 +835,7 @@ local subCellInt_sxvORsxvi = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limDo, limT
                       end,
                  up = function(t,xn) return 1.0 end}
    else   -- Scenario sxvi.
+--      print("    scenario sxvi")
       local yTar = limTar[2].up
 --      etaLims = {lo = function(t,xn)
 --                          return -1.0+(1.0-yShiftedLog(xn[1], yTar, 1, xcDoIn, xcTarIn, atUpperYcell))

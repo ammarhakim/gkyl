@@ -20,7 +20,7 @@ maxPolyOrder_Tensor : 1$
 minCdim_Tensor : 1$
 maxCdim_Tensor : 0$
 
-gkVdims : [[0,2], [0,2]]$
+gkVdims : [[0], [0,2]]$
 
 /* ...... END OF USER INPUTS........ */
 

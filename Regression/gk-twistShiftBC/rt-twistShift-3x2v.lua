@@ -23,6 +23,7 @@ local upper           = { 2.0,  1.50,  3.0,  5.0*vt, mass*((5.0*vt)^2)/(2.0*B0)}
 local numCells        = {10, 10, 4, 4, 4}
 local periodicDirs    = {2}
 local yShiftPolyOrder = 1
+local dy              = (upper[2]-lower[2])/numCells[2]
 
 local function createField(grid, basis, vComp)
    vComp = vComp or 1
@@ -86,7 +87,8 @@ local basis1D = Basis.CartModalSerendipity { ndim = grid1D:ndim(), polyOrder = p
 local yShiftFunc = function(t, xn)
                       local x = xn[1]
 --                      return 1./(1.+0.25*x)
-                      return -0.*x+0.97
+                      return -0.3*x+0.97
+--                      return dy/2.
                    end
 
 -- Donor field function.
@@ -98,10 +100,17 @@ local fldDoFunc = function(t, xn)
    local muX, muY   = 0., 0.
    local sigX, sigY = 0.3, 0.3
    return math.exp(-((x-muX)^2)/(2.*(sigX^2))-((y-muY)^2)/(2.*(sigY^2)))*vFunc
+--   if (y > 0.) and (y < dy) then
+--      return 1.
+--   else
+--      return 0.
+--   end
 end
 local fldDoFuncUpperOnly = function(t, xn)
    local x, y, z, vpar, mu = xn[1], xn[2], xn[3], xn[4], xn[5]
-   if ((z > grid:upper(3)) and 
+   if ((x > grid:lower(1)) and (x < grid:upper(1))) and 
+      ((y > grid:lower(2)) and (y < grid:upper(2))) and 
+      ((z > grid:upper(3)) and 
       (vpar > grid:lower(4)) and (vpar < grid:upper(4)) and 
       (mu > grid:lower(5)) and (mu < grid:upper(5))) then
       return fldDoFunc(t, xn)

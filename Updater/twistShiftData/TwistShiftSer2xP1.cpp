@@ -172,7 +172,7 @@ void twistShift_fullCell_yShP1_2xSerP1(const double dyDo, const double yOff, con
 
 }
 
-void twistShift_xLimDG_yShP2_2xSerP1_yShP2(const double sFac, const double *xLimLo, const double *xLimUp, const double yLimLo, const double yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew) 
+void twistShift_xLimDG_yShP2_2xSerP1(const double sFac, const double *xLimLo, const double *xLimUp, const double yLimLo, const double yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew) 
 { 
   // sFac:   scale factor, typically +/- 1.0.
   // xLimUp: 1D DG expansion of the function xLimLo(y) giving the lower limit of the x integral.
@@ -283,7 +283,7 @@ void twistShift_xLimDG_yShP2_2xSerP1_yShP2(const double sFac, const double *xLim
 
 }
 
-void twistShift_yLimDG_yShP2_2xSerP1_yShP2(const double sFac, const double xLimLo, const double xLimUp, const double *yLimLo, const double *yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew) 
+void twistShift_yLimDG_yShP2_2xSerP1(const double sFac, const double xLimLo, const double xLimUp, const double *yLimLo, const double *yLimUp, const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew) 
 { 
   // sFac:    scale factor, typically +/- 1.0.
   // xLimUp:  lower limit of the x integral in [-1,1] logical space.
@@ -368,7 +368,7 @@ void twistShift_yLimDG_yShP2_2xSerP1_yShP2(const double sFac, const double xLimL
 
 }
 
-void twistShift_fullCell_yShP2_2xSerP1_yShP2(const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew) 
+void twistShift_fullCell_yShP2_2xSerP1(const double dyDo, const double yOff, const double *ySh, tsStruct *tsData, const int xIdx, const bool pushNew) 
 { 
   // dyDo:   y cell length of the donor cell.
   // yOff:   yOffset between the donor and target cells (in the direction of the shift).
