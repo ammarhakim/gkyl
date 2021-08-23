@@ -221,7 +221,7 @@ intQuantPhase:advance(0., {fldDo}, {intFldDo})
 intFldDo:write("intFldDo.bp", 0., 0)
 
 -- Apply the shift to the target field.
-local twistShiftUpd = Updater.TwistShift {
+local twistShiftUpd = Updater.TwistShiftBC {
    onGrid    = grid,       yShiftFunc      = yShiftFunc, 
    basis     = basis,      yShiftPolyOrder = yShiftPolyOrder, 
    confBasis = confBasis,  edge            = "lower",

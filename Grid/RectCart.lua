@@ -367,7 +367,7 @@ function RectCart:childGrid(keepDims)
    assert(childDim>0 and childDim<=self._ndim, "RectCart:childGrid cannot have dimensions < 1 or greater than parent grid.")
 
    local childLower, childUpper, childCells, childPeriodicDirs = {}, {}, {}, {}
-   local dI, pIdx = 0
+   local dI, pIdx = 0, 0
    for _, d in ipairs(lume.sort(keepDims)) do
       dI = dI+1
       childLower[dI] = self:lower(d)

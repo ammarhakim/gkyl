@@ -151,7 +151,7 @@ local intFldDo = DataStruct.DynVector { numComponents = 1, }
 intQuant:advance(0., {fldDo}, {intFldDo})
 intFldDo:write("intFldDo.bp",0., 0)
 
-local twistShiftUpd = Updater.TwistShift {
+local twistShiftUpd = Updater.TwistShiftBC {
    onGrid          = grid,
    basis           = basis, 
    yShiftFunc      = yShiftFunc, 

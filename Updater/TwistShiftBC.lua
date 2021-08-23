@@ -35,7 +35,7 @@ local LinearDecomp = require "Lib.LinearDecomp"
 local TwistShiftDecl = require "Updater.twistShiftData.TwistShiftModDecl"
 local tsFun          = require "Updater.twistShiftData.TwistShiftFun"
 
-local TwistShift = Proto(UpdaterBase)
+local TwistShiftBC = Proto(UpdaterBase)
 
 local function createBasis(dim, pOrder, bKind)
    local basis
@@ -51,8 +51,8 @@ local function createBasis(dim, pOrder, bKind)
    return basis
 end
 
-function TwistShift:init(tbl)
-   TwistShift.super.init(self, tbl) -- Setup base object.
+function TwistShiftBC:init(tbl)
+   TwistShiftBC.super.init(self, tbl) -- Setup base object.
 
    self.grid = assert(
       tbl.onGrid, "Updater.TwistShift: Must provide grid to interpolate to using 'onGrid'.")
@@ -126,7 +126,7 @@ function TwistShift:init(tbl)
 
 end
 
-function TwistShift:_advance(tCurr, inFld, outFld)
+function TwistShiftBC:_advance(tCurr, inFld, outFld)
    local fldDo, fldTar = inFld[1], outFld[1]
 
    local cDim, vDim = self.cDim, self.vDim
@@ -224,4 +224,4 @@ function TwistShift:_advance(tCurr, inFld, outFld)
 
 end
 
-return TwistShift
+return TwistShiftBC

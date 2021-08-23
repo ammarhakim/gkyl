@@ -47,7 +47,7 @@ local SqrtOnBasis = require "Updater.SqrtOnBasis"
 local StairSteppedBc = require "Updater.StairSteppedBc"
 local TenMomentRelax = require "Updater.TenMomentRelax"
 local TenMomentSrc = require "Updater.TenMomentSrc"
-local TwistShift = require "Updater.TwistShift"
+local TwistShiftBC = require "Updater.TwistShiftBC"
 local WavePropagation = require "Updater.WavePropagation"
 local AxisymmetricFiveMomentSrc = require "Updater.AxisymmetricFiveMomentSrc"
 local AxisymmetricPhMaxwellSrc = require "Updater.AxisymmetricPhMaxwellSrc"
@@ -98,7 +98,7 @@ return {
    StairSteppedBc = StairSteppedBc,
    TenMomentRelax = TenMomentRelax,
    TenMomentSrc = TenMomentSrc,
-   TwistShift = TwistShift,
+   TwistShiftBC = TwistShiftBC,
    WavePropagation = WavePropagation,
    AxisymmetricFiveMomentSrc = AxisymmetricFiveMomentSrc,
    AxisymmetricPhMaxwellSrc = AxisymmetricPhMaxwellSrc,

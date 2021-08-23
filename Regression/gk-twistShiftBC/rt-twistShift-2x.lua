@@ -110,7 +110,7 @@ local intFldDo = DataStruct.DynVector { numComponents = 1, }
 intQuant:advance(0., {fldDo}, {intFldDo})
 intFldDo:write("intFldDo.bp", 0., 0)
 
-local twistShiftUpd = Updater.TwistShift {
+local twistShiftUpd = Updater.TwistShiftBC {
    onGrid = grid,   yShiftFunc      = yShiftFunc, 
    basis  = basis,  yShiftPolyOrder = yShiftPolyOrder, 
 }
@@ -130,7 +130,7 @@ intFldTar:write("intFldTar.bp", 0., 0)
 -- ............... SHIFT BACK .................. --
 local yShiftBackFunc = function(t, xn) return -yShiftFunc(t, xn) end
 
-local twistShiftBackUpd = Updater.TwistShift {
+local twistShiftBackUpd = Updater.TwistShiftBC {
    onGrid = grid,   yShiftFunc      = yShiftBackFunc, 
    basis  = basis,  yShiftPolyOrder = yShiftPolyOrder, 
 }
