@@ -230,7 +230,7 @@ local doTarOff = function(xcDoIn, xcTarIn)
 
    if shiftSign==1 and (xcDoIn[2] > xcTarIn[2] or (shift>dx[2] and xcDoIn[2] == xcTarIn[2])) then
       return xcTarIn[2] - (xcDoIn[2] - yShDLyFac*Ly) + ps
-   elseif shiftSign==-1 and (xcDoIn[2] < xcTarIn[2] or (shift<dx[2] and xcDoIn[2] == xcTarIn[2])) then
+   elseif shiftSign==-1 and (xcDoIn[2] < xcTarIn[2] or (-shift>dx[2] and xcDoIn[2] == xcTarIn[2])) then
       return xcTarIn[2] - (xcDoIn[2] + yShDLyFac*Ly) + ps
    else
       return xcTarIn[2] - xcDoIn[2] + ps
@@ -849,6 +849,9 @@ local subCellInt_sxvORsxvi = function(x_pq, xIdxIn, xcDoIn, xcTarIn, limDo, limT
    nodToModProj1D(etaLims.lo, xiBounds, projData.etaLo_xi)
    nodToModProj1D(etaLims.up, xiBounds, projData.etaUp_xi)
    local ycOff = doTarOff(xcDoIn, xcTarIn)  -- Offset between cell centers along y.
+--   print(string.format("      etaLo_xi = %g, %g\n",projData.etaLo_xi[1],projData.etaLo_xi[2]))
+--   print(string.format("      etaUp_xi = %g, %g\n",projData.etaUp_xi[1],projData.etaUp_xi[2]))
+--   print(string.format("      ycOff = %f\n",ycOff))
    intSubYlimDG(1., xiBounds.lo, xiBounds.up, projData.etaLo_xi:data(), projData.etaUp_xi:data(),
                 dx[2], ycOff, yShPtrIn, tsMatVecsIn, xIdxIn[1], 1)
 end
