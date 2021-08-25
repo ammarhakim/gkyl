@@ -538,11 +538,24 @@ def build(bld):
     gfHeatFluxData/gyrofluid_heatflux_vol_1x_p1_ser.cpp
     gfHeatFluxData/gyrofluid_heatflux_vol_1x_p2_ser.cpp
 
+    passiveAdvectionData/PassiveAdvectionSer1xP1.cpp
+    passiveAdvectionData/PassiveAdvectionSer2xP1.cpp
+    passiveAdvectionData/PassiveAdvectionSer3xP1.cpp
+    passiveAdvectionData/PassiveAdvectionSer1xP2.cpp
+    passiveAdvectionData/PassiveAdvectionSer2xP2.cpp
+    passiveAdvectionData/PassiveAdvectionSer3xP2.cpp
+    passiveAdvectionData/PassiveAdvectionSurfSer1xP1.cpp
+    passiveAdvectionData/PassiveAdvectionSurfSer2xP1.cpp
+    passiveAdvectionData/PassiveAdvectionSurfSer3xP1.cpp
+    passiveAdvectionData/PassiveAdvectionSurfSer1xP2.cpp
+    passiveAdvectionData/PassiveAdvectionSurfSer2xP2.cpp
+    passiveAdvectionData/PassiveAdvectionSurfSer3xP2.cpp
+
     Positivity.cpp
 
     """,
               name = 'eq',
-              target = 'eq', use='EIGEN CUTOOLS', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData gyrofluidData gfHeatFluxData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct',
+              target = 'eq', use='EIGEN CUTOOLS', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData gyrofluidData gfHeatFluxData passiveAdvectionData ../Updater/binOpCalcData ../Cuda ../Lib ../Basis ../Grid ../DataStruct',
               vnum = '1.0',
               
     )
