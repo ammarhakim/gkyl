@@ -31,8 +31,8 @@ end
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = 2,              -- End time.
-   nFrame      = 10,                -- Number of output frames.
+   tEnd        = 3,              -- End time.
+   nFrame      = 3,                -- Number of output frames.
    lower       = {0, 0, 0},           -- Configuration space lower left.
    upper       = {Lx, Ly, Lz},       -- Configuration space upper right.
    cells       = {16, 16, 16},         -- Configuration space cells.
@@ -49,7 +49,7 @@ plasmaApp = Plasma.App {
    periodicDirs = {1, 2}, -- Periodic directions
 
    -- Fluid species.
-   fluidUp = Plasma.Species {
+   fluidUpLin = Plasma.Species {
       -- Initial conditions.
       init            = function(t, xn)
         local n = cube(t,xn)
@@ -61,11 +61,11 @@ plasmaApp = Plasma.App {
         
       evolve = true, -- Evolve species?
       diagnostics = {"intMom"},
-      bcz = {Plasma.TwistShiftBC{shiftFunction=function(t,xn) return .1 end},
-             Plasma.TwistShiftBC{shiftFunction=function(t,xn) return .1 end}},
+      bcz = {Plasma.TwistShiftBC{shiftFunction=function(t,xn) return 1*(xn[1]-.5) end},
+             Plasma.TwistShiftBC{shiftFunction=function(t,xn) return 1*(xn[1]-.5) end}},
    },
 
-   fluidDown = Plasma.Species {
+   fluidDownLin = Plasma.Species {
       -- Initial conditions.
       init            = function(t, xn)
         local n = cube(t,xn)
@@ -77,8 +77,24 @@ plasmaApp = Plasma.App {
         
       evolve = true, -- Evolve species?
       diagnostics = {"intMom"},
-      bcz = {Plasma.TwistShiftBC{shiftFunction=function(t,xn) return .1 end},
-             Plasma.TwistShiftBC{shiftFunction=function(t,xn) return .1 end}},
+      bcz = {Plasma.TwistShiftBC{shiftFunction=function(t,xn) return 1*(xn[1]-.5) end},
+             Plasma.TwistShiftBC{shiftFunction=function(t,xn) return 1*(xn[1]-.5) end}},
+   },
+
+   fluidUpQuad = Plasma.Species {
+      -- Initial conditions.
+      init            = function(t, xn)
+        local n = cube(t,xn)
+        local vx = ux
+        local vy = uy
+        local vz = uz
+        return n, 0, 0, vz
+      end,
+        
+      evolve = true, -- Evolve species?
+      diagnostics = {"intMom"},
+      bcz = {Plasma.TwistShiftBC{shiftFunction=function(t,xn) return 1*(xn[1]-.5)^2 end},
+             Plasma.TwistShiftBC{shiftFunction=function(t,xn) return 1*(xn[1]-.5)^2 end}},
    },
 }
 -- Run application.

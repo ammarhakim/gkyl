@@ -56,15 +56,15 @@ function TwistShiftBC:init(tbl)
 
    self.grid = assert(
       tbl.onGrid, "Updater.TwistShift: Must provide grid to interpolate to using 'onGrid'.")
-   local basis = assert(
+   self.basis = assert(
       tbl.basis, "Updater.TwistShift: Must provide the basis of the fields using 'basis'.")
 
-   local confBasis = tbl.confBasis
-   if confBasis then
-      self.cDim = confBasis:ndim()
-      self.vDim = basis:ndim() - self.cDim
+   self.confBasis = tbl.confBasis
+   if self.confBasis then
+      self.cDim = self.confBasis:ndim()
+      self.vDim = self.basis:ndim() - self.cDim
    else
-      self.cDim, self.vDim = basis:ndim(), 0
+      self.cDim, self.vDim = self.basis:ndim(), 0
    end
 
    if self.cDim == 3 then
@@ -85,7 +85,7 @@ function TwistShiftBC:init(tbl)
       upper = yShGridIngr.upper,  decomposition = yShGridIngr.decomposition,
       cells = yShGridIngr.cells,
    }
-   local yShBasis = createBasis(yShGrid:ndim(), yShPolyOrder, basis:id())
+   local yShBasis = createBasis(yShGrid:ndim(), yShPolyOrder, self.basis:id())
    self.yShFld = DataStruct.Field {
       onGrid        = yShGrid,
       numComponents = yShBasis:numBasis(),
@@ -110,15 +110,15 @@ function TwistShiftBC:init(tbl)
 
    -- Allocate matrices that multiply each donor cell to compute its contribution to a target cell.
    -- Also allocate a temp vector and matrix used in the mat-vec multiply.
-   self.matVec = tsFun.matVec_alloc(self.yShFld, self.doCells, basis)
+   self.matVec = tsFun.matVec_alloc(self.yShFld, self.doCells, self.basis)
 
    -- Select kernels that assign matrices and later, in the :_advance method, do mat-vec multiplies.
-   tsFun.selectTwistShiftKernels(self.cDim, self.vDim, basis:id(), basis:polyOrder(), yShPolyOrder)
+   tsFun.selectTwistShiftKernels(self.cDim, self.vDim, self.basis:id(), self.basis:polyOrder(), yShPolyOrder)
 
    -- Pre-compute matrices using weak equalities between donor and target fields.
    tsFun.preCalcMat(self.grid, self.yShFld, self.doCells, self.matVec)
 
-   self.tsMatVecMult = TwistShiftDecl.selectTwistShiftMatVecMult(self.cDim, self.vDim, basis:id(), basis:polyOrder())
+   self.tsMatVecMult = TwistShiftDecl.selectTwistShiftMatVecMult(self.cDim, self.vDim, self.basis:id(), self.basis:polyOrder())
 
    self.idxDoP = Lin.IntVec(self.cDim+self.vDim)
 
@@ -174,6 +174,8 @@ function TwistShiftBC:_advance(tCurr, inFld, outFld)
       for idxTar in self.ghostRangeDecomp:rowMajorIter(tId) do
 
          fldTar:fill(indexer(idxTar), fldTarItr)
+         -- Zero out target cell before operation.
+         for i = 1, self.basis:numBasis() do fldTarItr[i] = 0. end
 
          local doCellsC = self.doCells[idxTar[1]][idxTar[2]]
 
@@ -200,6 +202,8 @@ function TwistShiftBC:_advance(tCurr, inFld, outFld)
       for idxTar in localRange:rowMajorIter() do
 
          fldTar:fill(indexer(idxTar), fldTarItr)
+         -- Zero out target cell before operation.
+         for i = 1, self.basis:numBasis() do fldTarItr[i] = 0. end
 
          local doCellsC = self.doCells[idxTar[1]][idxTar[2]]
 
