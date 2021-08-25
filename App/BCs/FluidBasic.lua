@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Basic boundary condition for a gyrofluid species, i.e. those that can be
+-- Basic boundary condition for a fluid species, i.e. those that can be
 -- applied with Updater/Bc.lua.
 --
 --    _______     ___
@@ -15,29 +15,29 @@ local Proto      = require "Lib.Proto"
 local Time       = require "Lib.Time"
 local ConstDiffusionModDecl = require "Eq.constDiffusionData.ConstDiffusionModDecl"
 
-local IncompEulerBasicBC = Proto(BCsBase)
+local FluidBasicBC = Proto(BCsBase)
 
 -- Store table passed to it and defer construction to :fullInit().
-function IncompEulerBasicBC:init(tbl) self.tbl = tbl end
+function FluidBasicBC:init(tbl) self.tbl = tbl end
 
 -- Function initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
-function IncompEulerBasicBC:fullInit(speciesTbl)
+function FluidBasicBC:fullInit(speciesTbl)
    local tbl = self.tbl -- Previously stored table.
 
-   self.bcKind      = assert(tbl.kind, "IncompEulerBasicBC: must specify the type of BC in 'kind'.")
+   self.bcKind      = assert(tbl.kind, "FluidBasicBC: must specify the type of BC in 'kind'.")
    self.diagnostics = tbl.diagnostics or {}
    self.saveFlux    = tbl.saveFlux or false
 
    if self.bcKind == "dirichlet" or self.bcKind == "neumann" then
-      self.bcValue = assert(tbl.value, "IncompEulerBasicBC: must specify the BC value in 'value'.")
+      self.bcValue = assert(tbl.value, "FluidBasicBC: must specify the BC value in 'value'.")
    end
 end
 
-function IncompEulerBasicBC:setConfBasis(basis) self.basis = basis end
-function IncompEulerBasicBC:setConfGrid(grid) self.grid = grid end
+function FluidBasicBC:setConfBasis(basis) self.basis = basis end
+function FluidBasicBC:setConfGrid(grid) self.grid = grid end
 
-function IncompEulerBasicBC:bcDirichlet(dir, tm, idxIn, fIn, fOut)
+function FluidBasicBC:bcDirichlet(dir, tm, idxIn, fIn, fOut)
    -- Impose f=fBC at the boundary.
    if (idxIn[dir] == 1) then
       self.constDiffDirichletBCs[dir][1](self.grid:dx(dir),fIn:data(),self.bcValue,fOut:data())
@@ -46,7 +46,7 @@ function IncompEulerBasicBC:bcDirichlet(dir, tm, idxIn, fIn, fOut)
    end
 end
 
-function IncompEulerBasicBC:bcNeumann(dir, tm, idxIn, fIn, fOut)
+function FluidBasicBC:bcNeumann(dir, tm, idxIn, fIn, fOut)
    -- Impose f'=fpBC at the boundary.
    if (idxIn[dir] == 1) then
       self.constDiffNeumannBCs[dir][1](self.grid:dx(dir),fIn:data(),self.bcValue,fOut:data())
@@ -55,7 +55,9 @@ function IncompEulerBasicBC:bcNeumann(dir, tm, idxIn, fIn, fOut)
    end
 end
 
-function IncompEulerBasicBC:createSolver(mySpecies, field, externalField)
+function FluidBasicBC:createSolver(mySpecies, field, externalField)
+   self.nMoments = mySpecies.nMoments
+
    local bcFunc, skinType
    if self.bcKind == "copy" then
       bcFunc   = function(...) return self:bcCopy(...) end
@@ -74,7 +76,7 @@ function IncompEulerBasicBC:createSolver(mySpecies, field, externalField)
       bcFunc   = function(...) return self:bcNeumann(...) end
       skinType = "pointwise"
    else
-      assert(false, "IncompEulerBasicBC: BC kind not recognized.")
+      assert(false, "FluidBasicBC: BC kind not recognized.")
    end
 
    self.bcSolver = Updater.Bc {
@@ -87,33 +89,33 @@ function IncompEulerBasicBC:createSolver(mySpecies, field, externalField)
    }
 end
 
-function IncompEulerBasicBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
+function FluidBasicBC:advance(tCurr, mySpecies, field, externalField, inIdx, outIdx)
    local fIn = mySpecies:rkStepperFields()[outIdx]
    self.bcSolver:advance(tCurr, {}, {fIn})
 end
 
 -- ................... Classes meant as aliases to simplify input files ...................... --
-local IncompEulerAbsorbBC = Proto(IncompEulerBasicBC)
-function IncompEulerAbsorbBC:fullInit(mySpecies)
+local FluidAbsorbBC = Proto(FluidBasicBC)
+function FluidAbsorbBC:fullInit(mySpecies)
    self.tbl.kind  = "absorb"
-   IncompEulerAbsorbBC.super.fullInit(self, mySpecies)
+   FluidAbsorbBC.super.fullInit(self, mySpecies)
 end
 
-local IncompEulerCopyBC = Proto(IncompEulerBasicBC)
-function IncompEulerCopyBC:fullInit(mySpecies)
+local FluidCopyBC = Proto(FluidBasicBC)
+function FluidCopyBC:fullInit(mySpecies)
    self.tbl.kind  = "copy"
-   IncompEulerCopyBC.super.fullInit(self, mySpecies)
+   FluidCopyBC.super.fullInit(self, mySpecies)
 end
 
-local IncompEulerZeroFluxBC = Proto()
-function IncompEulerZeroFluxBC:init(tbl)
+local FluidZeroFluxBC = Proto()
+function FluidZeroFluxBC:init(tbl)
    self.tbl      = tbl
    self.tbl.kind = "zeroFlux"
 end
--- ................... End of IncompEulerBasicBC alias classes .................... --
+-- ................... End of FluidBasicBC alias classes .................... --
 
-return {IncompEulerBasic    = IncompEulerBasicBC,
-        IncompEulerAbsorb   = IncompEulerAbsorbBC,
-        IncompEulerCopy     = IncompEulerCopyBC,
-        IncompEulerZeroFlux = IncompEulerZeroFluxBC,}
+return {FluidBasic    = FluidBasicBC,
+        FluidAbsorb   = FluidAbsorbBC,
+        FluidCopy     = FluidCopyBC,
+        FluidZeroFlux = FluidZeroFluxBC,}
 
