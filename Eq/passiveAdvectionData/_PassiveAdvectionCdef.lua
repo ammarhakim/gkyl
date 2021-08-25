@@ -25,4 +25,30 @@ double PassiveAdvectionSurf3xSer_X1_P2(const double *w, const double *dxv, const
 double PassiveAdvectionSurf3xSer_X2_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
 double PassiveAdvectionSurf3xSer_X3_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
 
+double PassiveAdvectionVol4xSerP1(const double *w, const double *dxv, const double *f, double *out); 
+double PassiveAdvectionSurf4xSer_X1_P1(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+double PassiveAdvectionSurf4xSer_X2_P1(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+double PassiveAdvectionSurf4xSer_X3_P1(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+double PassiveAdvectionSurf4xSer_X4_P1(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+
+double PassiveAdvectionVol4xSerP2(const double *w, const double *dxv, const double *f, double *out); 
+double PassiveAdvectionSurf4xSer_X1_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+double PassiveAdvectionSurf4xSer_X2_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+double PassiveAdvectionSurf4xSer_X3_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+double PassiveAdvectionSurf4xSer_X4_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+
+double PassiveAdvectionVol5xSerP1(const double *w, const double *dxv, const double *f, double *out); 
+double PassiveAdvectionSurf5xSer_X1_P1(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+double PassiveAdvectionSurf5xSer_X2_P1(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+double PassiveAdvectionSurf5xSer_X3_P1(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+double PassiveAdvectionSurf5xSer_X4_P1(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+double PassiveAdvectionSurf5xSer_X5_P1(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+
+double PassiveAdvectionVol5xSerP2(const double *w, const double *dxv, const double *f, double *out); 
+double PassiveAdvectionSurf5xSer_X1_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+double PassiveAdvectionSurf5xSer_X2_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+double PassiveAdvectionSurf5xSer_X3_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+double PassiveAdvectionSurf5xSer_X4_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+double PassiveAdvectionSurf5xSer_X5_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+
 ]]
