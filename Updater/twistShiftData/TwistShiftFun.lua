@@ -190,8 +190,9 @@ local findIntersect = function(yTar, yDo, xBounds, yLims)
       local stepSize = (xBounds.up-xBounds.lo)/numSteps
       for sI = 0, numSteps do
          local xp      = xBounds.lo+sI*stepSize
-         local exShift = (yLims.up-(yTar-yShiftF(xp)))/Ly
-         local newN    = math.sign(exShift)*math.floor(math.abs(exShift))
+         local xpShift = yShiftF(xp)
+         local exShift = xpShift<0. and ((yTar-xpShift)-yLims.lo)/Ly or (yLims.up-(yTar-xpShift))/Ly
+         local newN    = math.sign(xpShift)*math.floor(math.abs(exShift))
          if lume.find(nP,newN)==nil then table.insert(nP,newN) end
       end
       for _, iN in ipairs(nP) do
@@ -1078,6 +1079,7 @@ function _M.preCalcMat(grid, yShift, doCells, tsMatVecs)
                interPts[i][j]  = findIntersect(yTar, yDo, cellLimTar[1], domLim[2])
                if interPts[i][j]==nil then foundAll=false end 
 --               print(string.format("    O_%s,%s = %g",i,j,interPts[i][j] or -1e19))
+--               print(string.format("       yTar, yDo, cellLimTar[1], domLim[2] = %g, %g, (%g,%g), (%g,%g)",yTar, yDo, cellLimTar[1].lo, cellLimTar[1].up, domLim[2].lo, domLim[2].up))
             end
          end
 

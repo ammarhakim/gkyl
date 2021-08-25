@@ -6,9 +6,9 @@ load("twistShift-calc/twistShiftFuncs")$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 1$
+maxPolyOrder_Ser : 2$
 minCdim_Ser : 2$
-maxCdim_Ser : 3$
+maxCdim_Ser : 2$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 1$
@@ -29,7 +29,7 @@ maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
 minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
 maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
 
-maxPolyOrder1D : makelist(maxPolyOrder[i]+1,i,1,length(maxPolyOrder))$
+maxPolyOrder1D : makelist(maxPolyOrder[i],i,1,length(maxPolyOrder))$
 
 for bInd : 1 thru length(bName) do (
      
@@ -41,7 +41,7 @@ for bInd : 1 thru length(bName) do (
       maxPolyOrderB : maxPolyOrder[bInd],
       if (c+v>4 and maxPolyOrderB > 2) then maxPolyOrderB : 2,
 
-      for pOrder : 1 thru maxPolyOrderB do (
+      for pOrder : 2 thru maxPolyOrderB do (
         vStr : "",
         if (v>0) then (vStr: sconcat(v,"v")),
         fname : sconcat("~/max-out/TwistShift", bName[bInd], c, "x", vStr, "P", pOrder, ".cpp"),
