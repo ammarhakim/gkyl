@@ -1,8 +1,8 @@
-cvars : [X1, X2, X3]$
+cvars : [X1, X2, X3, X4, X5, X6]$
 
 printPrototypes() := block([], 
 pmax:2,
-for ci : 1 thru 3 do (
+for ci : 1 thru 5 do (
   for pi : 1 thru pmax do (
       printf(fh, "double PassiveAdvectionVol~axSerP~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, pi),
       for si : 1 thru ci do (

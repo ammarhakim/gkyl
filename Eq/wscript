@@ -541,12 +541,16 @@ def build(bld):
     passiveAdvectionData/PassiveAdvectionSer1xP1.cpp
     passiveAdvectionData/PassiveAdvectionSer2xP1.cpp
     passiveAdvectionData/PassiveAdvectionSer3xP1.cpp
+    passiveAdvectionData/PassiveAdvectionSer4xP1.cpp
+    passiveAdvectionData/PassiveAdvectionSer5xP1.cpp
     passiveAdvectionData/PassiveAdvectionSer1xP2.cpp
     passiveAdvectionData/PassiveAdvectionSer2xP2.cpp
     passiveAdvectionData/PassiveAdvectionSer3xP2.cpp
     passiveAdvectionData/PassiveAdvectionSurfSer1xP1.cpp
     passiveAdvectionData/PassiveAdvectionSurfSer2xP1.cpp
     passiveAdvectionData/PassiveAdvectionSurfSer3xP1.cpp
+    passiveAdvectionData/PassiveAdvectionSurfSer4xP1.cpp
+    passiveAdvectionData/PassiveAdvectionSurfSer5xP1.cpp
     passiveAdvectionData/PassiveAdvectionSurfSer1xP2.cpp
     passiveAdvectionData/PassiveAdvectionSurfSer2xP2.cpp
     passiveAdvectionData/PassiveAdvectionSurfSer3xP2.cpp
